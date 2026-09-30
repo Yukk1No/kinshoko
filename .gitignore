@@ -1,0 +1,6 @@
+# Local credentials and private working material
+.env
+.env.*
+!.env.example
+private/
+work/
