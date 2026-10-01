@@ -101,4 +101,6 @@ Q9 原先涉及首个实用版本的备份保护范围。此次回答明确了�
 
 Eagle 的公开字段、区域评论、在线 API 与直接读盘的区别见 [兼容性事实核查](../research/eagle-compatibility.md)。备份、恢复与同步的技术事实见 [数据保护核查](../research/data-protection.md)。候选图库的识别模型与应用控制边界见 [标签模型核查](../research/tagger-integration.md)。
 
+进一步核查 Eagle、图库与参考板的固定版本源码见 [数据实践调查](../research/data-model-practices.md)。现有层级图表达归属，具体存储规格需要先用导入样本核对字段保留、图片身份、人工拒绝、合并与参考组依赖；已确认的领域定义和 ADR 保持原意。
+
 Obsidian 官方将 vault 定义为本地目录，允许建立多个库；从列表移除会保留底层文件。[管理资料库](https://obsidian.md/help/manage-vaults) 其备份说明区分备份与持续同步。[备份说明](https://obsidian.md/help/backup) Kinshoko 的参考组与合并规则由领域访谈确定。
