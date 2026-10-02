@@ -1,6 +1,6 @@
 # Windows 桌面参考：技术边界核验
 
-核验日期：2026-10-03（Asia/Shanghai）。对应 [研究 Issue #5](https://github.com/Yukk1No/kinshoko/issues/5)，属于 [本地可用版本决策地图 #3](https://github.com/Yukk1No/kinshoko/issues/3)。本轮只阅读官方文档和固定源码，**未构建或运行桌面原型，未证明绘画体验、画质或性能**。
+核验日期：2026-10-03（Asia/Shanghai）。对应 [核验 Windows 桌面参考的技术边界](https://github.com/Yukk1No/kinshoko/issues/5)，属于 [形成首个本地可用版本的规格依据](https://github.com/Yukk1No/kinshoko/issues/3)。本轮只阅读官方文档和固定源码，**未构建或运行桌面原型，未证明绘画体验、画质或性能**。
 
 Tauri 2／WebView2 与 Qt 6／PySide6 都有置顶、忽略输入和 DPI 处理入口，可以保留为原型候选。锁定、固定局部、原图读取与物理像素 1:1 要由应用落实；文档不能替代绘画软件、画笔、混合 DPI 和大图的运行验证。[Tauri 窗口 API](https://v2.tauri.app/reference/javascript/api/namespacewindow/)、[Qt 窗口标志](https://doc.qt.io/qt-6.8/qt.html#WindowType-enum)
 
