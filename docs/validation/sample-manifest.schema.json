@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Yukk1No/kinshoko/docs/validation/sample-manifest.schema.json",
+  "title": "Kinshoko 验收样本清单",
+  "description": "只记录可公开的标识、校验值与弱真值，不包含图片本身。见 acceptance.md。",
+  "type": "object",
+  "required": ["version", "samples"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "samples": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sample" }
+    }
+  },
+  "$defs": {
+    "sample": {
+      "type": "object",
+      "required": ["id", "source", "sha256", "split", "coverage", "rating"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "清单内唯一标识，例如 pixiv-123456789-p0。"
+        },
+        "source": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["kind", "artworkId", "page"],
+              "additionalProperties": false,
+              "properties": {
+                "kind": { "const": "pixiv" },
+                "artworkId": { "type": "string", "pattern": "^[0-9]+$" },
+                "page": { "type": "integer", "minimum": 0 }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["kind", "description"],
+              "additionalProperties": false,
+              "properties": {
+                "kind": { "enum": ["self-made", "artist-local", "other"] },
+                "description": { "type": "string" },
+                "url": { "type": "string", "format": "uri" }
+              }
+            }
+          ]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "原图文件的 SHA-256。"
+        },
+        "split": {
+          "enum": ["calibration", "evaluation"],
+          "description": "相同原图的裁切与近似重复图片不跨两组。"
+        },
+        "coverage": {
+          "type": "array",
+          "description": "覆盖维度，例如 multi-person、lineart、grayscale、very-tall、transparent、cropped。",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "authorTags": {
+          "type": "array",
+          "description": "来源站点的作者标签，按原文保存，作弱真值使用。",
+          "items": { "type": "string" }
+        },
+        "rating": {
+          "enum": ["general", "r18"],
+          "description": "来源声明的分级，例如 pixiv R-18 标记。"
+        },
+        "ratingDetail": {
+          "enum": ["questionable", "explicit"],
+          "description": "仅 R-18 样本填写，由下载者标注。"
+        },
+        "notes": { "type": "string" }
+      },
+      "if": { "properties": { "rating": { "const": "r18" } } },
+      "then": { "required": ["ratingDetail"] }
+    }
+  }
+}
