@@ -48,8 +48,7 @@ a { color: var(--accent); text-underline-offset: 4px; }
 .nav-indicator { position: absolute; height: 22px; width: 2px; background: var(--accent); border-radius: 2px; left: -11px; margin-top: 11px; transition: top 210ms var(--ease); }
 .nav-tooltip { position: absolute; left: 54px; top: 9px; width: max-content; max-width: 210px; border-radius: 7px; background: var(--ink); color: var(--canvas); padding: 7px 10px; font-size: 12px; pointer-events: none; visibility: hidden; opacity: 0; transition: opacity 150ms var(--ease); z-index: 60; }
 .nav-button:hover .nav-tooltip, .nav-button:focus-visible .nav-tooltip { opacity: 1; visibility: visible; }
-.rail-bottom { margin-top: auto; display: flex; align-items: center; flex-direction: column; gap: 20px; }
-.rail-caption { font-size: 11px; color: var(--secondary); }
+.rail-bottom { margin-top: auto; display: flex; align-items: center; flex-direction: column; gap: 8px; }
 .workspace { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
 .workspace-header { height: 66px; flex: 0 0 66px; display: flex; gap: 24px; align-items: center; padding: 0 22px; border-bottom: 1px solid var(--line); background: var(--chrome); }
 .library-title { display: flex; align-items: center; gap: 12px; padding: 5px 0; white-space: nowrap; }

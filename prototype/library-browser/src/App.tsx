@@ -215,12 +215,16 @@ export default function App() {
     <nav className="icon-rail" aria-label="主要导航" inert={modalActive || undefined}>
       <div className="brand-icon" aria-hidden="true"><Library size={24} strokeWidth={1.8} /></div>
       <div className="rail-actions">
-        <span className="nav-indicator" style={{ top: drawer === 'library' ? 0 : drawer === 'settings' ? 100 : 50 }} />
+        <span className="nav-indicator" style={{ top: drawer === 'library' ? 0 : 50, opacity: drawer === 'settings' ? 0 : 1 }} />
         <NavButton icon={FolderOpen} label="资料库与样本" active={drawer === 'library'} onClick={() => setDrawer(drawer === 'library' ? null : 'library')} />
         <NavButton icon={Images} label="浏览参考图" active={!drawer} onClick={() => { setDrawer(null); closeViewer(); }} />
+      </div>
+      <div className="rail-bottom">
+        <button className="nav-button" aria-label={dark ? '切换浅色模式' : '切换深色模式'} onClick={() => setDark((value) => !value)}>
+          {dark ? <Sun size={20} /> : <Moon size={20} />}<span className="nav-tooltip">{dark ? '浅色模式' : '深色模式'}</span>
+        </button>
         <NavButton icon={Settings2} label="显示与操作设置" active={drawer === 'settings'} onClick={() => setDrawer(drawer === 'settings' ? null : 'settings')} />
       </div>
-      <div className="rail-bottom"><button className="nav-button" aria-label={dark ? '切换浅色模式' : '切换深色模式'} onClick={() => setDark((value) => !value)}>{dark ? <Sun size={20} /> : <Moon size={20} />}<span className="nav-tooltip">{dark ? '浅色模式' : '深色模式'}</span></button><span className="rail-caption">K</span></div>
     </nav>
     <main className="workspace">
       <div className="browser-surface" inert={aOverlay || undefined}>
