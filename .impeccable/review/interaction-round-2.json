@@ -1,0 +1,94 @@
+{
+  "observedAt": "2026-10-03",
+  "scale": 10000,
+  "afterDeleteScale": 9999,
+  "secondEnd": {
+    "focus": "sample-10000",
+    "scroll": 601024.3125,
+    "top": 339.46697998046875
+  },
+  "secondReturn": {
+    "focus": "sample-10000",
+    "scroll": 601024.3125,
+    "top": 339.46697998046875
+  },
+  "secondDelete": {
+    "focus": "sample-09999",
+    "scroll": 601024.3125,
+    "top": 251.1084899902344
+  },
+  "narrowAnchorBefore": {
+    "cards": [
+      {
+        "bottom": 330.84906005859375,
+        "id": "sample-09989",
+        "top": -263.15093994140625
+      },
+      {
+        "bottom": 742.1745300292969,
+        "id": "sample-09990",
+        "top": 340.6981201171875
+      },
+      {
+        "bottom": 1092.3113098144531,
+        "id": "sample-09991",
+        "top": 752.3207397460938
+      }
+    ],
+    "clientBottom": 814.0755004882812,
+    "clientTop": 145.98114013671875,
+    "focus": null,
+    "scroll": 3599168.75
+  },
+  "narrowAfterClose": {
+    "cards": [
+      {
+        "bottom": 184.86791229248047,
+        "id": "sample-09989",
+        "relativeTop": -409.13208770751953
+      },
+      {
+        "bottom": 596.1933898925781,
+        "id": "sample-09990",
+        "relativeTop": 194.71697998046875
+      }
+    ],
+    "focus": "sample-09999",
+    "inert": 0,
+    "relative9990": 194.71697998046875,
+    "scroll": 3599168.75
+  },
+  "bSameWidthBefore": {
+    "scroll": 3599311.75,
+    "top": 360.1273498535156
+  },
+  "bSameWidthAfter": {
+    "focus": "sample-09990",
+    "inert": 0,
+    "scroll": 3599311.75,
+    "top": 360.1273498535156
+  },
+  "resizeBefore": {
+    "anchor": {
+      "bottom": 29.4339599609375,
+      "id": "sample-09979",
+      "top": -564.5660400390625
+    },
+    "focus": "sample-09990",
+    "scroll": 1033648.3125
+  },
+  "resizeAfter": {
+    "anchor": {
+      "bottom": 29.547149658203125,
+      "id": "sample-09979",
+      "top": -564.4528503417969
+    },
+    "focus": "返回浏览位置",
+    "scroll": 3595893
+  },
+  "afterResizeClose": {
+    "focus": "sample-09990",
+    "inert": 0,
+    "scroll": 3595893
+  }
+}
