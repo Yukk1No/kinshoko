@@ -8,3 +8,5 @@ work/
 # Isolated UI prototype dependencies and build output
 prototype/library-browser/node_modules/
 prototype/library-browser/dist/
+prototype/reference-workspace/node_modules/
+prototype/reference-workspace/dist/
