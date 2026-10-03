@@ -41,7 +41,7 @@ a { color: var(--accent); text-underline-offset: 4px; }
 .brand-icon { width: 42px; height: 40px; display: grid; place-items: center; margin-bottom: 27px; color: var(--accent); border-radius: 12px; }
 .rail-actions { display: flex; flex-direction: column; position: relative; gap: 6px; }
 .nav-button { display: grid; place-items: center; width: 42px; height: 44px; position: relative; border-radius: 12px; color: var(--secondary); transition: color 180ms var(--ease), background-color 180ms var(--ease); }
-.nav-button:hover, .brand-icon:hover { background: var(--hover); color: var(--ink); }
+.nav-button:hover { background: var(--hover); color: var(--ink); }
 .nav-button.is-active { background: var(--active); color: var(--accent); }
 .nav-button > svg { transition: transform 180ms var(--ease); }
 .nav-button:hover > svg { transform: translateY(-1px); }
@@ -55,7 +55,6 @@ a { color: var(--accent); text-underline-offset: 4px; }
 .library-title { display: flex; align-items: center; gap: 12px; padding: 5px 0; white-space: nowrap; }
 .library-title > span { font-size: 16px; font-weight: 650; letter-spacing: -.02em; }
 .library-title > strong { font-weight: 450; color: var(--secondary); font-size: 13px; }
-.library-title > svg { color: var(--secondary); }
 .header-actions { margin-left: auto; display: flex; align-items: center; gap: 16px; }
 .sample-badge { color: var(--secondary); font-size: 11px; white-space: nowrap; }
 .search-field { border: 1px solid var(--line); height: 34px; display: flex; align-items: center; gap: 9px; padding: 0 10px; border-radius: 8px; color: var(--secondary); width: 340px; max-width: 35vw; background: var(--canvas); }

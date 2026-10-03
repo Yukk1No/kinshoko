@@ -1,7 +1,7 @@
 // Three throwaway browser layouts on /prototype/library-browser?variant=A|B|C.
 // No production library, native desktop window, tagger, persistence, or recovery is implemented.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, FolderOpen, Grid2X2, ImagePlus, Images, Library, Moon, PanelRightClose, Search, Settings2, SlidersHorizontal, Sun, X } from 'lucide-react';
+import { ArrowRight, Check, ChevronLeft, ChevronRight, FolderOpen, Grid2X2, ImagePlus, Images, Library, Moon, PanelRightClose, Search, Settings2, SlidersHorizontal, Sun, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Masonry from './Masonry';
 import type { Anchor, GridHandle, GridState } from './Masonry';
@@ -213,7 +213,7 @@ export default function App() {
     onDrop={(event) => { if (event.dataTransfer.files.length) { event.preventDefault(); setDragging(false); void addFiles(Array.from(event.dataTransfer.files)); } }}>
     <input type="file" accept=".jpg,.jpeg,.png,.webp" multiple hidden ref={fileRef} onChange={(event) => void addFiles(Array.from(event.target.files ?? []))} />
     <nav className="icon-rail" aria-label="主要导航" inert={modalActive || undefined}>
-      <button className="brand-icon" aria-label="Kinshoko，返回资料库浏览" onClick={() => { setDrawer(null); closeViewer(); }}><Library size={24} strokeWidth={1.8} /></button>
+      <div className="brand-icon" aria-hidden="true"><Library size={24} strokeWidth={1.8} /></div>
       <div className="rail-actions">
         <span className="nav-indicator" style={{ top: drawer === 'library' ? 0 : drawer === 'settings' ? 100 : 50 }} />
         <NavButton icon={FolderOpen} label="资料库与样本" active={drawer === 'library'} onClick={() => setDrawer(drawer === 'library' ? null : 'library')} />
@@ -225,7 +225,7 @@ export default function App() {
     <main className="workspace">
       <div className="browser-surface" inert={aOverlay || undefined}>
       <header className="workspace-header" inert={bOverlay || undefined}>
-        <button className="library-title" onClick={() => setDrawer(drawer === 'library' ? null : 'library')}><span>Kinshoko</span><strong>{libraryName}</strong><ChevronDown size={15} /></button>
+        <div className="library-title"><span>Kinshoko</span><strong>{libraryName}</strong></div>
         {variant !== 'B' && searchControl}
         <div className="header-actions"><span className="sample-badge">{collection === 'local' ? '内存试排' : '构造样本'}</span><button className="primary-button" onClick={picker} disabled={importing}><ImagePlus size={16} /><span>{importing ? '正在读取…' : '选择本地图片'}</span></button></div>
       </header>
