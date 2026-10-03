@@ -2,7 +2,7 @@
 
 调查日期：2026-10-03（Asia/Shanghai）。关联[核查竞品技术栈与首个功能的可复用依赖](https://github.com/Yukk1No/kinshoko/issues/12)。仅核查官方文档、固定源码和 npm 版本元数据；未安装应用、执行性能测试或改变领域决定。下文分别标明源码事实、官方声明与建议；版本是核验基线，不称“最新”。
 
-**建议首切片暂用 Tauri 2 + React + TypeScript + Vite + VirtuosoGrid**，完成创建/打开资料库、导入本地静态图片、浏览缩略图、清晰查看原图、关闭后无损重开。先用等尺寸卡片、自适应列数与 `object-fit: contain`；长宽比由卡片留白承接，减少第一阶段的排版与测量负担。这是工程取舍，尚无证据证明 React 或 Tauri 更快。
+**2026-10-03 设计输入更新：demo 必须实现瀑布流。** 原先等尺寸卡片的默认建议撤回；下文保留竞品和网格 API 的事实核查。当前优先实验 TanStack 的官方 lanes，选择理由与替代方案见[瀑布流复用核查](masonry-grid-reuse.md)，交互边界见[资料库浏览简报](../discovery/library-browser-ui-brief.md)。React／Tauri 仍属候选，未测速度或完成正式选型。
 
 ## 竞品实际使用什么
 
@@ -17,12 +17,12 @@
 
 ## 两种前端基线与两种网格依赖
 
-Tauri 官方把前端当静态资源，支持 React/Svelte 等 SPA，并推荐 Vite；发行时不需要 SSR 或常驻前端服务器。[官方配置][A1] React + TS + Vite 与 Svelte + TS + Vite 均可行：本次暂选 React，是因为等尺寸多列网格已有可直接集成的 VirtuosoGrid，能减少基础能力自研；并非竞品使用了 React，也不是运行速度结论。若采用 Svelte，可用官方 TanStack 适配器；组件响应式与生命周期写法需要另一套集成验证。
+Tauri 官方把前端当静态资源，支持 React/Svelte 等 SPA，并推荐 Vite；发行时不需要 SSR 或常驻前端服务器。[官方配置][A1] React + TS + Vite 与 Svelte + TS + Vite 均可行。React 是既有提案候选，新增瀑布流实验先核查其 TanStack 适配；并非竞品使用了 React，也不是运行速度结论。Svelte 有官方 TanStack 适配器，实际组件、生命周期与类型组合仍需另一套集成验证。
 
 | 候选（已核对具体 npm 版本） | 能复用的基础能力 | 仍由项目承担的成本 |
 |---|---|---|
 | `react-virtuoso` 4.18.16 / `b2a02d01de488dbf1e747c7a91151eeca6e13c72`，MIT；React/ReactDOM peer 接受 19 | VirtuosoGrid 支持等尺寸、多项每行；监听容器/卡片尺寸并重算滚动范围。[清单][V1]、[npm][VR]、[规则][V2] | 需给 CSS grid/flex 样式、稳定的自定义组件、选择/焦点和加载状态。它没有提供任意高低卡片的瀑布流解法。 |
-| TanStack Virtual：React 3.14.13、Svelte 3.13.39 / `78371e851e90fd74e984deeb0c3fd8098e2cd4f3`，MIT；peer 支持 React 16.8–19、Svelte 3.48/4/5 | headless 轴向虚拟器、测量与滚动能力，两个框架都有官方适配。[React 清单][T1]、[Svelte 清单][T2]、[npm React][TR]、[npm Svelte][TS]、[定位][T3] | 不生成布局；规则网格仍要自行分组行、计算列数与记录索引，并处理窗口改宽后的锚点。当前需求不值得先承担这些适配。 |
+| TanStack Virtual：React 3.14.13、Svelte 3.13.39 / `78371e851e90fd74e984deeb0c3fd8098e2cd4f3`，MIT；peer 支持 React 16.8–19、Svelte 3.48/4/5 | headless 轴向虚拟器、测量与滚动能力，两个框架都有官方适配。[React 清单][T1]、[Svelte 清单][T2]、[npm React][TR]、[npm Svelte][TS]、[定位][T3] | 不生成布局；规则网格仍要自行分组行、计算列数与记录索引，并处理窗口改宽后的锚点。瀑布流可复用官方 lanes，仍需样式、改宽、焦点和按图片身份恢复位置的接入，具体见新增核查。 |
 
 维护时需要锁定发行版本、保留 MIT 声明，并在升级后回归尺寸监听、焦点与滚动行为。[Virtuoso 许可][V3]、[TanStack 许可][T4] 现有 peer 范围只证明框架版本允许组合，仍需在 Windows WebView2 上验证。网格组件也不管理资料库身份、导入事务、图片解码或原图清晰度；这些不能靠换框架获得。
 
@@ -30,7 +30,7 @@ Tauri 官方把前端当静态资源，支持 React/Svelte 等 SPA，并推荐 V
 
 ## 下一步验证门槛（尚未执行）
 
-1. 锁定 React 19 与所选 Tauri 2、TS/Vite 发行版及 Virtuoso 4.18.16，核对 peer、许可、WebView2 与生产构建；竞品锁文件只是证据，不能直接当本项目版本锁。
+1. 锁定 React 19 与所选 Tauri 2、TS/Vite 发行版及瀑布流实验依赖（当前 TanStack React Virtual 3.14.13），核对 peer、许可、WebView2 与生产构建；竞品锁文件只是证据，不能直接当本项目版本锁。
 2. 无独显 Windows 上以 125%/150%/200% 缩放验证横图、竖图、透明 PNG、高像素图；缩略图像素量随显示尺寸/DPR足够，详情可按原像素查看，离屏不持续解码原图。
 3. 用 100/1,000/10,000 条记录测滚动、改宽、快速切库；DOM 数量应受可见范围/预渲染约束，反复浏览后缓存不无限增长。记录生产版耗时/峰值内存后再定预算，不预写跑分。
 4. 中文/长路径、重复导入、坏图和中断后重开：核对原字节哈希、记录数量及可查看性，并确认旧库响应不进入新库。标签检索、Eagle 迁移、钉图/参考组复用和经过恢复测试的备份属于后续首个可用版本的验收。

@@ -12,6 +12,10 @@
 
 基础检索、Eagle 迁入、局部钉图、参考组复用和本地备份恢复仍是首个长期使用版本的交付内容。其中**本地备份必须经过恢复验证**，这一步完成不表示已适合把唯一素材副本长期交给软件。公开／自制样本先验，覆盖不足再补画师的小批真实素材；无独显 Windows 是运行基线，GPU 用于加速。
 
+## 前端设计输入
+
+用户已指定图标侧栏、以 Axolotl Launcher 的动画与视效为参考，以及 demo 必须实现瀑布流。方向与测试任务见[资料库浏览简报](library-browser-ui-brief.md)，长期产品约束见 [PRODUCT.md](../../PRODUCT.md)。因此撤回“先固定等尺寸卡片、瀑布流以后再评估”的默认范围，网格依赖改为瀑布流实验候选；布局密度与找参考的效率分别验收。
+
 ## 竞品怎样影响选择
 
 | 已核验实践 | 采用的思路 | 对本方案的影响 |
@@ -27,8 +31,8 @@
 
 | 用途 | 建议 | 复用什么／为何选择 | 剩余条件 |
 |---|---|---|---|
-| 桌面与构建 | Tauri 2、Rust；React 19＋TS＋Vite 静态前端 | 复用 OS WebView2、原生窗口及官方构建；React 的选择依据是图库组件适配 | 锁定相容 SDK／CLI／JS API 与工具链；构建、离线部署、CPU／集显实测 |
-| 图库网格 | `react-virtuoso 4.18.16` 的 VirtuosoGrid | 等尺寸卡片、自适应列数、尺寸监听与滚动虚拟化，减少测量／布局自研 | 选择、焦点、改宽和快切库需测试；复杂瀑布流以后再评估 |
+| 桌面与构建 | Tauri 2、Rust；React 19＋TS＋Vite 静态前端 | 复用 OS WebView2、原生窗口及官方构建；React 仍为候选，图库组件随瀑布流要求重新核查 | 锁定相容 SDK／CLI／JS API 与工具链；构建、离线部署、CPU／集显实测 |
+| 图库瀑布流 | 实验优先候选 `@tanstack/react-virtual 3.14.13` 的官方 `lanes` | 复用最短列分配、尺寸估计、虚拟化、稳定项身份和滚动快照；保留完整图片比例 | 接入卡片、焦点及按图片身份恢复位置；改宽／重排、极端比例下 DOM 范围和 WebView2 表现须测 |
 | 持久化与迁移 | `rusqlite 0.40.2`（bundled、backup）＋`rusqlite_migration 2.6.0` | 复用 SQLite 事务、备份 API 与迁移；Rust 领域入口统一控制写入 | 组合要求 Rust≥1.95；Windows 编译、迁移和中断恢复未验证 |
 | 原图显示 | Tauri asset 协议＋WebView2 `<img>` | 直接显示保存的原文件，避免全图 base64／JSON IPC | scope／CSP、EXIF、ICC、混合 DPI 和实际内存成本须验证 |
 | 缩略图 | 条件候选 `image 0.25.10` | 复用解码、方向与缩放，只开必要格式；不编写编解码器 | **ICC、非 sRGB 与 alpha 门槛通过后才采纳**；失败转评估 libvips 的 Windows 适配 |
@@ -36,7 +40,7 @@
 | 前后端数据契约 | serde＋`ts-rs 12.0.0` | 从 Rust 返回类型生成 TS 声明，避免手写两套字段 | 生成物差异进 CI；检查 serde 表示、错误枚举及大整数的实际序列化 |
 | 选文件与验证工具 | Tauri 官方 dialog；Rust 测试、Vitest、Tauri 官方 WebDriver 路线 | 复用原生文件选择和测试工具 | 实包端到端与画师操作仍需执行；mock 不证明原生行为 |
 
-前三份研究笔记记录包版本、维护／许可证据与替代方案。补充工具已查一手发布信息： [uuid 1.26.1](https://crates.io/api/v1/crates/uuid/1.26.1)、[sha2 0.11.0](https://crates.io/api/v1/crates/sha2/0.11.0)、[ts-rs 12.0.0](https://crates.io/api/v1/crates/ts-rs/12.0.0)。uuid／sha2 为 MIT 或 Apache-2.0，ts-rs 为 MIT；[类型生成与 serde 支持](https://github.com/Aleph-Alpha/ts-rs)、[文件选择](https://v2.tauri.app/plugin/dialog/)、[测试入口](https://v2.tauri.app/develop/tests/)、[Vitest](https://vitest.dev/guide/)。
+研究笔记记录包版本、维护／许可证据与替代方案；新增 [Axolotl 界面参考](../research/axolotl-interface-reference.md) 和 [瀑布流复用核查](../research/masonry-grid-reuse.md)。补充工具已查一手发布信息： [uuid 1.26.1](https://crates.io/api/v1/crates/uuid/1.26.1)、[sha2 0.11.0](https://crates.io/api/v1/crates/sha2/0.11.0)、[ts-rs 12.0.0](https://crates.io/api/v1/crates/ts-rs/12.0.0)。uuid／sha2 为 MIT 或 Apache-2.0，ts-rs 为 MIT；[类型生成与 serde 支持](https://github.com/Aleph-Alpha/ts-rs)、[文件选择](https://v2.tauri.app/plugin/dialog/)、[测试入口](https://v2.tauri.app/develop/tests/)、[Vitest](https://vitest.dev/guide/)。
 
 版本是核验基线，不是已构建通过的锁文件。实施时先核对 Rust MSRV、Node engines／peer、架构与原生链接，再提交 Cargo.lock 和前端锁文件；记录 WebView2 Runtime。标准库、Tauri 现有 runtime 和上述库足够承担第一步的任务与存取，额外池、状态框架、画布框架按实际需求再评估。
 
@@ -74,7 +78,7 @@ Library Module 把文件复制／解码交给有界后台任务，DB 由专用�
 |---|---|---|
 | 所选版本能在 Windows 组合运行吗 | 最小依赖构建与 release 包；无开发工具环境离线安装；记录 MSRV、Node、Runtime、DLL | 保留候选，修正具体版本或链接方式 |
 | 画师看到的颜色／方向／像素正确吗 | EXIF 1–8、ICC／CMYK／灰阶、透明边缘、小图细线；原图和缩略图分别对照；混合 DPI 物理像素 1:1 | 缩略图依赖未定；验证 libvips 等现成方案，不能自行补色彩转换算法 |
-| 现成网格是否满足第一步规模 | 分规模构造列表、滚动／改宽／切库；记录 DOM 数、首次清晰时间、Core＋WebView2 内存和释放 | 调整加载／缓存预算；必要时比较 TanStack 的适配成本 |
+| 瀑布流是否满足浏览操作和规模 | 混合／极端比例、筛选排序、焦点、详情返回、滚动／改宽／切库；记录空间比例、DOM、首次清晰时间及 Core＋WebView2 内存 | 优先核验官方 lanes；调整接入与缓存预算，证据不足时比较其他现成组件 |
 | 文件与 DB 中断后能否保全 | 暂存、pending、发布、DB 提交各点终止；重开核对字节、元数据、记录数与失败清单 | 修正恢复顺序后再写入真实资料库 |
 
 实验独立保留于 `research/` 或 `prototype/` 分支并记录复现入口；迁入正式工程的是结论、样本和经逐块评审的合格代码。实验的临时 DB／状态不成为用户库。采纳基线后，正式代码从最小功能开始，必要错误处理、稳定接口和关键行为测试同时实现。
