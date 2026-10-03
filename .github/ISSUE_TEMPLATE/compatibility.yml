@@ -1,0 +1,53 @@
+name: 兼容性结果
+description: 在你的数位板、显示器与绘画软件组合上的桌面钉图结果
+labels: ["needs-triage"]
+body:
+  - type: input
+    id: tablet
+    attributes:
+      label: 数位板／数位屏品牌与型号
+      description: 例如 绘王、Wacom、XP-Pen 的具体型号。
+    validations:
+      required: true
+  - type: dropdown
+    id: driver-mode
+    attributes:
+      label: 数位板模式
+      options:
+        - WinTab
+        - Windows Ink（TabletPC）
+        - 不确定
+    validations:
+      required: true
+  - type: input
+    id: paint-app
+    attributes:
+      label: 绘画软件与版本
+      description: 例如 优动漫、CLIP STUDIO PAINT、SAI、Photoshop、Krita。
+    validations:
+      required: true
+  - type: input
+    id: displays
+    attributes:
+      label: 显示器数量、分辨率与缩放
+      description: 在“设置 → 系统 → 屏幕 → 缩放”查看，例如“1 台，2560×1440，150%”。
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Windows 版本
+  - type: checkboxes
+    id: results
+    attributes:
+      label: 通过的项目
+      options:
+        - label: 钉图始终位于绘画软件上层（含全屏）
+        - label: 开启穿透后，笔触落到画布
+        - label: 能可靠退出穿透
+        - label: 局部清晰，移动和缩放不改变边界
+        - label: 重新打开后恢复位置与裁切
+  - type: textarea
+    id: details
+    attributes:
+      label: 未通过项的现象

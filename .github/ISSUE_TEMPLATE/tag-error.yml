@@ -1,0 +1,37 @@
+name: 标签识别错误
+description: 自动标签或内容分级明显不对
+labels: ["needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: 不需要上传图片。请用文字描述图片特征，避免提交无法公开的素材。
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 错误类型
+      options:
+        - 漏标（图里有，但没有该标签）
+        - 误标（图里没有，却给了该标签）
+        - 分级漏判（R-18 图被判为全年龄）
+        - 分级误判（全年龄图被判为 R-18）
+    validations:
+      required: true
+  - type: input
+    id: tag
+    attributes:
+      label: 涉及的标签
+      description: 例如 蓝发、齐刘海、中分。
+    validations:
+      required: true
+  - type: textarea
+    id: image
+    attributes:
+      label: 图片特征
+      description: 例如单人／多人、头像／全身、线稿／厚涂、灰度、遮挡情况。
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: 模型与设置
+      description: 例如 PixAI v0.9、CPU／DirectML。

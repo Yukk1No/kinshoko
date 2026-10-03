@@ -1,0 +1,28 @@
+name: 交互反馈
+description: 使用中觉得别扭、找不到或打断绘画的地方
+labels: ["needs-triage"]
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: 当时想做什么
+      description: 例如“找蓝发齐刘海的参考”“把局部钉到画布旁边”。
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 实际发生了什么
+      description: 哪一步卡住、找不到、误触或打断了绘画。截图请避开不便公开的素材。
+    validations:
+      required: true
+  - type: textarea
+    id: expectation
+    attributes:
+      label: 期望的方式
+      description: 可以参考你用过的其他工具。
+  - type: input
+    id: version
+    attributes:
+      label: 版本或原型
+      description: 例如提交哈希、原型名称。
