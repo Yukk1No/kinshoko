@@ -74,7 +74,11 @@ a { color: var(--accent); text-underline-offset: 4px; }
 .browse-toolbar { min-height: 44px; flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 20px; }
 .result-summary { display: flex; align-items: center; gap: 12px; font-size: 12px; }
 .subtle { color: var(--secondary); font-size: 11px; line-height: 1.65; }
-.browse-controls { display: flex; gap: 5px; align-items: center; }
+.browse-controls { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.density-control { display: flex; align-items: center; gap: 7px; min-height: 30px; color: var(--secondary); white-space: nowrap; }
+.density-control > span { font-size: 11px; }
+.density-control input { width: clamp(78px, 9vw, 128px); margin: 0; accent-color: var(--accent); cursor: ew-resize; }
+.density-control output { min-width: 40px; color: var(--secondary); font-size: 10px; text-align: right; font-variant-numeric: tabular-nums; }
 .sort-label select { color: var(--secondary); background: transparent; border: 0; padding: 5px 20px 5px 6px; font-size: 12px; }
 select option { background: var(--panel); color: var(--ink); }
 .content-region { flex: 1; min-height: 0; display: flex; }
@@ -136,7 +140,21 @@ select option { background: var(--panel); color: var(--ink); }
 .inline-detail .viewer-toolbar, .observation-pane .viewer-toolbar { flex-wrap: wrap; }
 .inline-detail .viewer-title, .observation-pane .viewer-title { flex-basis: 70%; }
 .inline-detail .viewer-tools, .observation-pane .viewer-tools { width: 100%; justify-content: center; }
-.settings-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 330px; max-width: calc(100vw - var(--rail)); z-index: 30; background: var(--panel); padding: 20px; box-shadow: -12px 0 34px #0004; overflow: auto; animation: panel-in 190ms var(--ease); }
+.library-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 330px; max-width: calc(100vw - var(--rail)); z-index: 30; background: var(--panel); padding: 20px; box-shadow: -12px 0 34px #0004; overflow: auto; animation: panel-in 190ms var(--ease); }
+.browser-surface.is-hidden-page { visibility: hidden; }
+.settings-page { position: absolute; inset: 0; z-index: 5; overflow: auto; background: var(--canvas); padding: clamp(24px, 5vw, 56px); }
+.settings-page-inner { width: min(100%, 720px); margin: 0 auto; }
+.settings-page-heading { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 30px; }
+.settings-page-heading h1 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+.settings-page-heading p { margin: 9px 0 0; color: var(--secondary); font-size: 12px; line-height: 1.8; }
+.settings-section { margin: 0; padding: 0 0 25px; border-bottom: 1px solid var(--line); }
+.settings-section + .settings-section { margin-top: 25px; }
+.settings-section h2 { margin: 0 0 8px; color: var(--secondary); font-size: 12px; font-weight: 550; }
+.settings-row { justify-content: space-between; align-items: center; margin: 0; padding: 15px 0; border-top: 1px solid var(--line); }
+.settings-row > span { flex: 1; }
+.settings-row strong { display: block; font-size: 13px; font-weight: 500; }
+.settings-row small { margin-top: 4px; }
+.settings-row input { order: 2; width: 17px; height: 17px; flex: 0 0 auto; }
 .drawer-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
 .drawer-heading h2 { margin: 0; font-size: 18px; font-weight: 600; }
 .drawer-intro { font-size: 12px; color: var(--secondary); line-height: 1.8; margin: 0 0 20px; }
@@ -223,7 +241,13 @@ select option { background: var(--panel); color: var(--ink); }
   .prototype-label { font-size: 9px; padding-right: 5px; }
   .switcher-keys { display: none; }
   .variant-name { min-width: 90px; }
-  .settings-drawer { padding: 16px; }
+  .library-drawer { padding: 16px; }
+  .browse-controls { width: 100%; justify-content: space-between; }
+  .density-control { margin-left: auto; }
+  .density-control input { width: clamp(76px, 25vw, 110px); }
+  .settings-page { padding: 28px 20px; }
+  .settings-page-heading { padding-bottom: 19px; margin-bottom: 24px; }
+  .settings-section + .settings-section { margin-top: 21px; }
 }
 
 /* The scroll container survives empty results; the application owns its anchor. */

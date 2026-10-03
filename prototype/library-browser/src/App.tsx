@@ -1,7 +1,7 @@
 // Three throwaway browser layouts on /prototype/library-browser?variant=A|B|C.
 // No production library, native desktop window, tagger, persistence, or recovery is implemented.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Check, ChevronLeft, ChevronRight, FolderOpen, Grid2X2, ImagePlus, Images, Library, Moon, PanelRightClose, Search, Settings2, SlidersHorizontal, Sun, X } from 'lucide-react';
+import { ArrowRight, Check, ChevronLeft, ChevronRight, FolderOpen, ImagePlus, Images, Library, Moon, PanelRightClose, Search, Settings2, SlidersHorizontal, Sun, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Masonry from './Masonry';
 import type { Anchor, GridHandle, GridState } from './Masonry';
@@ -64,12 +64,12 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
-  const [drawer, setDrawer] = useState<'library' | 'settings' | null>(null);
+  const [drawer, setDrawer] = useState<'library' | null>(null);
+  const [settingsPage, setSettingsPage] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [dark, setDark] = useState(true);
   const [reduced, setReduced] = useState(false);
   const [density, setDensity] = useState(220);
-  const [uniform, setUniform] = useState(false);
   const [capTall, setCapTall] = useState(true);
   const [showState, setShowState] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -204,7 +204,7 @@ export default function App() {
   const gallery = <Masonry key={`${variant}:${collection}`} ref={gridRef} pictures={pictures} selectedId={selectedId} focusedId={focusedId}
     emptyKind={originals.length ? (query.trim() || tags.length ? 'no-match' : 'removed-all') : 'empty-library'}
     onEmptyAction={() => { if (query.trim() || tags.length) { setQuery(''); setTags([]); } else if (originals.length) setHiddenIds(new Set()); else picker(); }}
-    density={variant === 'C' ? Math.min(density, 170) : density} uniform={uniform} capTall={capTall} initialAnchor={anchors.current[variant]}
+    density={density} capTall={capTall} initialAnchor={anchors.current[variant]}
     onSelect={selectPicture} onOpen={openPicture} onFocus={setFocusedId} onState={setGridState} onDelete={removePicture} />;
   const viewer = <Viewer picture={selected} modal={bOverlay} onClose={variant === 'B' ? closeDetail : undefined} onStep={stepPicture} onRemove={() => selected && removePicture(selected.id)} onFiles={picker} />;
   return <div className={`app ${dark ? 'dark' : 'light'} ${reduced ? 'reduce-motion' : ''} variant-${variant}`}
@@ -215,19 +215,19 @@ export default function App() {
     <nav className="icon-rail" aria-label="主要导航" inert={modalActive || undefined}>
       <div className="brand-icon" aria-hidden="true"><Library size={24} strokeWidth={1.8} /></div>
       <div className="rail-actions">
-        <span className="nav-indicator" style={{ top: drawer === 'library' ? 0 : 50, opacity: drawer === 'settings' ? 0 : 1 }} />
-        <NavButton icon={FolderOpen} label="资料库与样本" active={drawer === 'library'} onClick={() => setDrawer(drawer === 'library' ? null : 'library')} />
-        <NavButton icon={Images} label="浏览参考图" active={!drawer} onClick={() => { setDrawer(null); closeViewer(); }} />
+        <span className="nav-indicator" style={{ top: drawer === 'library' ? 0 : 50, opacity: settingsPage ? 0 : 1 }} />
+        <NavButton icon={FolderOpen} label="资料库与样本" active={drawer === 'library'} onClick={() => { setSettingsPage(false); setDrawer(drawer === 'library' ? null : 'library'); }} />
+        <NavButton icon={Images} label="浏览参考图" active={!drawer && !settingsPage} onClick={() => { setSettingsPage(false); setDrawer(null); closeViewer(); }} />
       </div>
       <div className="rail-bottom">
         <button className="nav-button" aria-label={dark ? '切换浅色模式' : '切换深色模式'} onClick={() => setDark((value) => !value)}>
           {dark ? <Sun size={20} /> : <Moon size={20} />}<span className="nav-tooltip">{dark ? '浅色模式' : '深色模式'}</span>
         </button>
-        <NavButton icon={Settings2} label="显示与操作设置" active={drawer === 'settings'} onClick={() => setDrawer(drawer === 'settings' ? null : 'settings')} />
+        <NavButton icon={Settings2} label="显示与操作设置" active={settingsPage} onClick={() => { setDrawer(null); setSettingsPage(true); }} />
       </div>
     </nav>
     <main className="workspace">
-      <div className="browser-surface" inert={aOverlay || undefined}>
+      <div className={settingsPage ? 'browser-surface is-hidden-page' : 'browser-surface'} inert={settingsPage || aOverlay || undefined} aria-hidden={settingsPage || undefined}>
       <header className="workspace-header" inert={bOverlay || undefined}>
         <div className="library-title"><span>Kinshoko</span><strong>{libraryName}</strong></div>
         {variant !== 'B' && searchControl}
@@ -239,7 +239,7 @@ export default function App() {
         <div className="browse-controls">
           {variant !== 'B' && <button className={`text-button ${filtersOpen ? 'is-active' : ''}`} aria-expanded={filtersOpen} onClick={() => setFiltersOpen((value) => !value)}><SlidersHorizontal size={15} /><span>筛选{tags.length > 0 ? ` ${tags.length}` : ''}</span></button>}
           <label className="sort-label"><span className="sr-only">排序</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="original">原始顺序</option><option value="name">名称顺序</option><option value="reverse">倒序</option></select></label>
-          <button className="icon-button compact" aria-label="图片密度与布局对照" onClick={() => setDrawer(drawer === 'settings' ? null : 'settings')}><Grid2X2 size={16} /></button>
+          <label className="density-control"><span>图片密度</span><input type="range" min={140} max={360} step="any" value={density} aria-label="缩略图密度" aria-valuetext={Math.round(density) + ' 像素'} onChange={(event) => setDensity(Number(event.target.value))} /><output>{Math.round(density)} px</output></label>
           {variant === 'A' && <button className="text-button" disabled={!selected} onClick={() => selected && openPicture(selected)}>查看大图<ArrowRight size={15} /></button>}
         </div>
       </div>
@@ -251,30 +251,41 @@ export default function App() {
       </div>
       <footer className="workspace-footer" inert={bOverlay || undefined}><span>{importing ? '正在浏览器中读取文件…' : '双击 / Enter 查看 · 方向键按排序移动 · Delete 从本次结果移除'}</span><button onClick={() => setShowState((value) => !value)} aria-expanded={showState}>样稿状态</button></footer>
       </div>
-      {variant === 'A' && viewerOpen && <Viewer picture={selected} overlay onClose={closeViewer} onStep={stepPicture} onRemove={() => selected && removePicture(selected.id)} onFiles={picker} />}
+      {variant === 'A' && viewerOpen && !settingsPage && <Viewer picture={selected} overlay onClose={closeViewer} onStep={stepPicture} onRemove={() => selected && removePicture(selected.id)} onFiles={picker} />}
+      {settingsPage && <section className="settings-page" aria-labelledby="settings-page-title">
+        <div className="settings-page-inner">
+          <header className="settings-page-heading">
+            <h1 id="settings-page-title">显示与操作</h1>
+            <p>图片密度可在瀑布流上方随时调整；这里保留整库浏览时的显示与辅助选项。</p>
+          </header>
+          <section className="settings-section" aria-labelledby="image-display-title">
+            <h2 id="image-display-title">图片显示</h2>
+            <label className="check-option settings-row"><span><strong>限制极长图高度</strong><small>最多 560 px，等比缩小并保留全图。</small></span><input type="checkbox" checked={capTall} onChange={(event) => setCapTall(event.target.checked)} /></label>
+          </section>
+          <section className="settings-section" aria-labelledby="accessibility-title">
+            <h2 id="accessibility-title">辅助功能</h2>
+            <label className="check-option settings-row"><span><strong>减少动画</strong><small>也遵守系统的减少动画偏好。</small></span><input type="checkbox" checked={reduced} onChange={(event) => setReduced(event.target.checked)} /></label>
+          </section>
+          <section className="settings-help">
+            <h3>键盘操作</h3>
+            <p>/ 聚焦搜索；Tab 进入图片。左右键按排序移动，上下键跨当前列数；Enter 查看，空格选中，Esc 返回。</p>
+          </section>
+        </div>
+      </section>}
     </main>
-    {drawer && !modalActive && <aside className="settings-drawer" aria-label={drawer === 'library' ? '资料库与样本' : '显示与操作设置'}>
-      <div className="drawer-heading"><h2>{drawer === 'library' ? '资料库与样本' : '显示与操作'}</h2><button className="icon-button" aria-label="关闭面板" onClick={() => setDrawer(null)}><PanelRightClose size={18} /></button></div>
-      {drawer === 'library' ? <>
-        <p className="drawer-intro">这是一次性界面样稿。资料库入口用于试用状态，尚未连接磁盘数据。</p>
-        <div className="library-options">{([['samples', '绘画观察样本', '公开绘画 + 几何夹具'], ['local', '本地试排', `${localPictures.length} 张 · 仅在内存中`], ['empty', '空白资料库', '试用无数据状态']] as const).map(([value, title, subtitle]) => <button key={value} className={collection === value ? 'is-active' : ''} onClick={() => chooseCollection(value)}><FolderOpen size={19} /><span><strong>{title}</strong><small>{subtitle}</small></span>{collection === value && <Check size={16} />}</button>)}</div>
-        <label className="field-label">构造记录规模<select value={sampleCount} onChange={(event) => setSampleCount(Number(event.target.value))}><option value={100}>100 条</option><option value={1000}>1,000 条</option><option value={10000}>10,000 条</option></select></label>
-        <p className="subtle">大量记录复用少量图片 URL。它验证 DOM 与布局工作量，不能代表真实万张图导入、解码或检索性能。</p>
-        <button className="primary-button full" onClick={picker} disabled={importing}><ImagePlus size={16} />选择本地 JPEG / PNG / WebP</button>
-        {localPictures.length > 0 && <button className="text-button danger" onClick={clearLocal}>清空本地试排</button>}
-        <a className="source-link" href="/samples/SOURCES.md" target="_blank" rel="noreferrer">查看样本来源与许可<ArrowRight size={14} /></a>
-      </> : <>
-        <label className="field-label">缩略图密度<select value={density} onChange={(event) => setDensity(Number(event.target.value))}><option value={164}>紧凑</option><option value={220}>标准</option><option value={300}>舒展</option></select></label>
-        <label className="check-option"><input type="checkbox" checked={uniform} onChange={(event) => setUniform(event.target.checked)} /><span>等尺寸网格对照<small>用于比较留白，图片仍完整展示</small></span></label>
-        <label className="check-option"><input type="checkbox" checked={capTall} onChange={(event) => setCapTall(event.target.checked)} /><span>限制极长图高度<small>最多 560px，等比缩小并保留全图</small></span></label>
-        <label className="check-option"><input type="checkbox" checked={dark} onChange={(event) => setDark(event.target.checked)} /><span>深色观察表面</span></label>
-        <label className="check-option"><input type="checkbox" checked={reduced} onChange={(event) => setReduced(event.target.checked)} /><span>减少动画<small>也遵守系统的减少动画偏好</small></span></label>
-        <div className="settings-help"><h3>键盘与观察</h3><p>/ 聚焦搜索；Tab 进入图片。左右键按排序移动，上下键跨当前列数；Enter 查看，空格选中，Esc 返回。</p><p>原图以浏览器支持的方向解码，查看支持适应、原始尺寸（CSS）与缩放。色彩、GPU、混合 DPI 和桌面置顶不在这次网页样稿中验收。</p></div>
-      </>}
+    {drawer === 'library' && !modalActive && <aside className="library-drawer" aria-label="资料库与样本">
+      <div className="drawer-heading"><h2>资料库与样本</h2><button className="icon-button" aria-label="关闭面板" onClick={() => setDrawer(null)}><PanelRightClose size={18} /></button></div>
+      <p className="drawer-intro">这是一次性界面样稿。资料库入口用于试用状态，尚未连接磁盘数据。</p>
+      <div className="library-options">{([['samples', '绘画观察样本', '公开绘画 + 几何夹具'], ['local', '本地试排', String(localPictures.length) + ' 张 · 仅在内存中'], ['empty', '空白资料库', '试用无数据状态']] as const).map(([value, title, subtitle]) => <button key={value} className={collection === value ? 'is-active' : ''} onClick={() => chooseCollection(value)}><FolderOpen size={19} /><span><strong>{title}</strong><small>{subtitle}</small></span>{collection === value && <Check size={16} />}</button>)}</div>
+      <label className="field-label">构造记录规模<select value={sampleCount} onChange={(event) => setSampleCount(Number(event.target.value))}><option value={100}>100 条</option><option value={1000}>1,000 条</option><option value={10000}>10,000 条</option></select></label>
+      <p className="subtle">大量记录复用少量图片 URL。它验证 DOM 与布局工作量，不能代表真实万张图导入、解码或检索性能。</p>
+      <button className="primary-button full" onClick={picker} disabled={importing}><ImagePlus size={16} />选择本地 JPEG / PNG / WebP</button>
+      {localPictures.length > 0 && <button className="text-button danger" onClick={clearLocal}>清空本地试排</button>}
+      <a className="source-link" href="/samples/SOURCES.md" target="_blank" rel="noreferrer">查看样本来源与许可<ArrowRight size={14} /></a>
     </aside>}
     {dragging && <div className="drop-zone"><ImagePlus size={32} /><strong>放开，试排这些参考图</strong><span>JPEG / PNG / WebP · 原文件不改动</span></div>}
     {notice && <div className="notice" role="status" inert={modalActive || undefined}><span>{notice}</span><button className="icon-button compact" aria-label="关闭提示" onClick={() => setNotice('')}><X size={16} /></button></div>}
-    {showState && <aside className="state-report" aria-label="原型诊断状态" inert={modalActive || undefined}><div><strong>样稿状态</strong><button className="icon-button compact" aria-label="收起状态" onClick={() => setShowState(false)}><X size={14} /></button></div><dl><dt>结构 / 布局</dt><dd>{variant} / {uniform ? '等尺寸对照' : 'TanStack lanes'}</dd><dt>匹配 / 总记录</dt><dd>{pictures.length} / {originals.length}</dd><dt>列 / 卡片 DOM</dt><dd>{gridState.columns} / {gridState.mounted}</dd><dt>滚动 / 内容宽度</dt><dd>{gridState.scroll}px / {gridState.width}px</dd><dt>选中 ID</dt><dd>{selectedId ?? '无'}</dd><dt>焦点 ID</dt><dd>{focusedId ?? '无'}</dd></dl><p>诊断值随操作变化；未测量原生应用性能。</p></aside>}
-    {import.meta.env.DEV && <div inert={modalActive || undefined}><PrototypeSwitcher variant={variant} onChange={changeVariant} /></div>}
+    {showState && !settingsPage && <aside className="state-report" aria-label="原型诊断状态" inert={modalActive || undefined}><div><strong>样稿状态</strong><button className="icon-button compact" aria-label="收起状态" onClick={() => setShowState(false)}><X size={14} /></button></div><dl><dt>结构 / 布局</dt><dd>{variant} / TanStack lanes · {Math.round(density)}px</dd><dt>匹配 / 总记录</dt><dd>{pictures.length} / {originals.length}</dd><dt>列 / 卡片 DOM</dt><dd>{gridState.columns} / {gridState.mounted}</dd><dt>滚动 / 内容宽度</dt><dd>{gridState.scroll}px / {gridState.width}px</dd><dt>选中 ID</dt><dd>{selectedId ?? '无'}</dd><dt>焦点 ID</dt><dd>{focusedId ?? '无'}</dd></dl><p>诊断值随操作变化；未测量原生应用性能。</p></aside>}
+    {import.meta.env.DEV && !settingsPage && <div inert={modalActive || undefined}><PrototypeSwitcher variant={variant} onChange={changeVariant} /></div>}
   </div>;
 }

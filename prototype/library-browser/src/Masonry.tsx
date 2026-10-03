@@ -13,7 +13,7 @@ export type GridHandle = {
 };
 type Props = {
   pictures: Picture[]; selectedId: string | null; focusedId: string | null;
-  density: number; uniform: boolean; capTall: boolean; initialAnchor?: Anchor;
+  density: number; capTall: boolean; initialAnchor?: Anchor;
   emptyKind: 'no-match' | 'empty-library' | 'removed-all'; onEmptyAction: () => void;
   onSelect: (picture: Picture) => void; onOpen: (picture: Picture) => void;
   onFocus: (id: string) => void; onState: (state: GridState) => void;
@@ -22,7 +22,7 @@ type Props = {
 
 // TanStack owns lane assignment, measurements and the virtual range; this component only connects cards.
 const Masonry = forwardRef<GridHandle, Props>(function Masonry(props, ref) {
-  const { pictures, selectedId, focusedId, density, uniform, capTall, onSelect, onOpen, onFocus, onState, onDelete } = props;
+  const { pictures, selectedId, focusedId, density, capTall, onSelect, onOpen, onFocus, onState, onDelete } = props;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
   const [failures, setFailures] = useState<Set<string>>(() => new Set());
@@ -36,14 +36,14 @@ const Masonry = forwardRef<GridHandle, Props>(function Masonry(props, ref) {
   const reportFrame = useRef(0);
   const columns = Math.max(1, Math.floor((width + 10) / (density + 10)));
   const columnWidth = Math.max(1, (width - 10 * (columns - 1)) / columns);
-  const layout = `${width}:${columns}:${uniform}:${capTall}`;
+  const layout = `${width}:${columns}:${capTall}`;
   const focusedIndex = pictures.findIndex((picture) => picture.id === focusedId);
   const getItemKey = useCallback((index: number) => pictures[index].id, [pictures, layout]);
   const estimateSize = useCallback((index: number) => {
     const picture = pictures[index];
-    const height = uniform ? columnWidth : columnWidth * picture.height / picture.width;
+    const height = columnWidth * picture.height / picture.width;
     return (capTall ? Math.min(height, 560) : height) + 34;
-  }, [pictures, columnWidth, uniform, capTall]);
+  }, [pictures, columnWidth, capTall]);
   const virtualizer = useVirtualizer({
     count: pictures.length, getScrollElement: () => scrollRef.current,
     getItemKey, estimateSize, lanes: columns, gap: 10,

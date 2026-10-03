@@ -126,11 +126,15 @@ components:
     textColor: "{colors.secondary}"
     rounded: "{rounded.surface}"
     padding: "0"
-  settings-drawer:
-    backgroundColor: "{colors.panel}"
+  settings-page:
+    backgroundColor: "{colors.canvas}"
     textColor: "{colors.ink}"
-    padding: "20px"
-    width: "330px"
+    padding: "clamp(24px, 5vw, 56px)"
+    width: "100%"
+  density-slider:
+    textColor: "{colors.secondary}"
+    typography: "{typography.label}"
+    controlWidth: "clamp(78px, 9vw, 128px)"
   viewer-toolbar:
     backgroundColor: "{colors.chrome}"
     textColor: "{colors.secondary}"
@@ -145,7 +149,7 @@ components:
 
 这是 `prototype/library-browser` 已实现的一次性网页交互样稿的记录，供当前样稿保持一致；不是 Kinshoko 正式桌面产品的视觉定稿。用户确认的图标侧栏、Axolotl Launcher 轻量状态动效参考、尽量留给图片的空间，以及 demo 必须有瀑布流，是本记录的依据。没有新增品牌隐喻，也没有已批准的视觉稿。
 
-A／B／C、浅／深模式、密度与极长图策略均是画师可试用的候选；当前默认 A 和深色不代表最终选择。React／TypeScript／Vite、Lucide 与 TanStack Virtual 是这份网页样稿的实现事实，正式技术栈未确认。本文只描述源码，不宣告画师验收或评审全表面通过。
+A／B／C、浅／深模式、连续密度滑杆与极长图策略均可供画师试用；当前默认 A、深色与滑杆位置不代表最终选择。设置以完整工作区页面呈现，图片密度控制常驻瀑布流工具栏；主题切换只保留在侧栏。React／TypeScript／Vite、Lucide 与 TanStack Virtual 是这份网页样稿的实现事实，正式技术栈未确认。本文只描述源码，不宣告画师验收或评审全表面通过。
 
 证据来自 `src/styles.css`、`src/App.tsx`、`src/Masonry.tsx`、`src/Viewer.tsx`，并对齐本表面的方向合同、PRODUCT.md、GLOSSARY.md 与领域 ADR。资料库仍使用领域定义；“本地试排”仅在浏览器内存中持有文件对象。Windows 原生 Tauri 窗口、ICC／色彩、GPU、混合 DPI、桌面钉图、持久资料库、备份及恢复均未实现或未验证。 复测与评审范围见[样稿复测与评审记录](.impeccable/review/README.md)；该索引保留实际结论与范围，本文不扩展验收结论。
 
