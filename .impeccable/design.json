@@ -1,0 +1,547 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-03T07:09:55Z",
+  "title": "Design System: Kinshoko 资料库浏览交互样稿",
+  "extensions": {
+    "colorMeta": {
+      "canvas": {
+        "role": "neutral",
+        "displayName": "深色 · 工作底面",
+        "tonalRamp": [
+          "oklch(15.00% 0.0050 248.06)",
+          "oklch(26.43% 0.0050 248.06)",
+          "oklch(37.86% 0.0050 248.06)",
+          "oklch(49.29% 0.0050 248.06)",
+          "oklch(60.71% 0.0050 248.06)",
+          "oklch(72.14% 0.0050 248.06)",
+          "oklch(83.57% 0.0050 248.06)",
+          "oklch(95.00% 0.0050 248.06)"
+        ]
+      },
+      "light-canvas": {
+        "role": "neutral",
+        "displayName": "浅色 · 工作底面",
+        "tonalRamp": [
+          "oklch(15.00% 0.0041 121.56)",
+          "oklch(26.43% 0.0041 121.56)",
+          "oklch(37.86% 0.0041 121.56)",
+          "oklch(49.29% 0.0041 121.56)",
+          "oklch(60.71% 0.0041 121.56)",
+          "oklch(72.14% 0.0041 121.56)",
+          "oklch(83.57% 0.0041 121.56)",
+          "oklch(95.00% 0.0041 121.56)"
+        ]
+      },
+      "chrome": {
+        "role": "neutral",
+        "displayName": "深色 · 工具表面",
+        "tonalRamp": [
+          "oklch(15.00% 0.0071 248.10)",
+          "oklch(26.43% 0.0071 248.10)",
+          "oklch(37.86% 0.0071 248.10)",
+          "oklch(49.29% 0.0071 248.10)",
+          "oklch(60.71% 0.0071 248.10)",
+          "oklch(72.14% 0.0071 248.10)",
+          "oklch(83.57% 0.0071 248.10)",
+          "oklch(95.00% 0.0071 248.10)"
+        ]
+      },
+      "light-chrome": {
+        "role": "neutral",
+        "displayName": "浅色 · 工具表面",
+        "tonalRamp": [
+          "oklch(15.00% 0.0074 132.42)",
+          "oklch(26.43% 0.0074 132.42)",
+          "oklch(37.86% 0.0074 132.42)",
+          "oklch(49.29% 0.0074 132.42)",
+          "oklch(60.71% 0.0074 132.42)",
+          "oklch(72.14% 0.0074 132.42)",
+          "oklch(83.57% 0.0074 132.42)",
+          "oklch(95.00% 0.0074 132.42)"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "深色 · 面板表面",
+        "tonalRamp": [
+          "oklch(15.00% 0.0084 255.57)",
+          "oklch(26.43% 0.0084 255.57)",
+          "oklch(37.86% 0.0084 255.57)",
+          "oklch(49.29% 0.0084 255.57)",
+          "oklch(60.71% 0.0084 255.57)",
+          "oklch(72.14% 0.0084 255.57)",
+          "oklch(83.57% 0.0084 255.57)",
+          "oklch(95.00% 0.0084 255.57)"
+        ]
+      },
+      "light-panel": {
+        "role": "neutral",
+        "displayName": "浅色 · 面板表面",
+        "tonalRamp": [
+          "oklch(15.00% 0.0041 121.56)",
+          "oklch(26.43% 0.0041 121.56)",
+          "oklch(37.86% 0.0041 121.56)",
+          "oklch(49.29% 0.0041 121.56)",
+          "oklch(60.71% 0.0041 121.56)",
+          "oklch(72.14% 0.0041 121.56)",
+          "oklch(83.57% 0.0041 121.56)",
+          "oklch(95.00% 0.0041 121.56)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "深色 · 正文",
+        "tonalRamp": [
+          "oklch(15.00% 0.0034 145.55)",
+          "oklch(26.43% 0.0034 145.55)",
+          "oklch(37.86% 0.0034 145.55)",
+          "oklch(49.29% 0.0034 145.55)",
+          "oklch(60.71% 0.0034 145.55)",
+          "oklch(72.14% 0.0034 145.55)",
+          "oklch(83.57% 0.0034 145.55)",
+          "oklch(95.00% 0.0034 145.55)"
+        ]
+      },
+      "light-ink": {
+        "role": "neutral",
+        "displayName": "浅色 · 正文",
+        "tonalRamp": [
+          "oklch(15.00% 0.0111 156.45)",
+          "oklch(26.43% 0.0111 156.45)",
+          "oklch(37.86% 0.0111 156.45)",
+          "oklch(49.29% 0.0111 156.45)",
+          "oklch(60.71% 0.0111 156.45)",
+          "oklch(72.14% 0.0111 156.45)",
+          "oklch(83.57% 0.0111 156.45)",
+          "oklch(95.00% 0.0111 156.45)"
+        ]
+      },
+      "secondary": {
+        "role": "neutral",
+        "displayName": "深色 · 辅助内文",
+        "tonalRamp": [
+          "oklch(15.00% 0.0096 161.28)",
+          "oklch(26.43% 0.0096 161.28)",
+          "oklch(37.86% 0.0096 161.28)",
+          "oklch(49.29% 0.0096 161.28)",
+          "oklch(60.71% 0.0096 161.28)",
+          "oklch(72.14% 0.0096 161.28)",
+          "oklch(83.57% 0.0096 161.28)",
+          "oklch(95.00% 0.0096 161.28)"
+        ]
+      },
+      "light-secondary": {
+        "role": "neutral",
+        "displayName": "浅色 · 辅助内文",
+        "tonalRamp": [
+          "oklch(15.00% 0.0155 152.34)",
+          "oklch(26.43% 0.0155 152.34)",
+          "oklch(37.86% 0.0155 152.34)",
+          "oklch(49.29% 0.0155 152.34)",
+          "oklch(60.71% 0.0155 152.34)",
+          "oklch(72.14% 0.0155 152.34)",
+          "oklch(83.57% 0.0155 152.34)",
+          "oklch(95.00% 0.0155 152.34)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "深色 · 分隔线",
+        "tonalRamp": [
+          "oklch(15.00% 0.0081 184.89)",
+          "oklch(26.43% 0.0081 184.89)",
+          "oklch(37.86% 0.0081 184.89)",
+          "oklch(49.29% 0.0081 184.89)",
+          "oklch(60.71% 0.0081 184.89)",
+          "oklch(72.14% 0.0081 184.89)",
+          "oklch(83.57% 0.0081 184.89)",
+          "oklch(95.00% 0.0081 184.89)"
+        ]
+      },
+      "light-line": {
+        "role": "neutral",
+        "displayName": "浅色 · 分隔线",
+        "tonalRamp": [
+          "oklch(15.00% 0.0127 137.79)",
+          "oklch(26.43% 0.0127 137.79)",
+          "oklch(37.86% 0.0127 137.79)",
+          "oklch(49.29% 0.0127 137.79)",
+          "oklch(60.71% 0.0127 137.79)",
+          "oklch(72.14% 0.0127 137.79)",
+          "oklch(83.57% 0.0127 137.79)",
+          "oklch(95.00% 0.0127 137.79)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "深色 · 灰绿强调色",
+        "tonalRamp": [
+          "oklch(15.00% 0.0450 114.39)",
+          "oklch(26.43% 0.0450 114.39)",
+          "oklch(37.86% 0.0450 114.39)",
+          "oklch(49.29% 0.0450 114.39)",
+          "oklch(60.71% 0.0450 114.39)",
+          "oklch(72.14% 0.0450 114.39)",
+          "oklch(83.57% 0.0450 114.39)",
+          "oklch(95.00% 0.0450 114.39)"
+        ]
+      },
+      "light-accent": {
+        "role": "primary",
+        "displayName": "浅色 · 灰绿强调色",
+        "tonalRamp": [
+          "oklch(15.00% 0.0607 132.86)",
+          "oklch(26.43% 0.0607 132.86)",
+          "oklch(37.86% 0.0607 132.86)",
+          "oklch(49.29% 0.0607 132.86)",
+          "oklch(60.71% 0.0607 132.86)",
+          "oklch(72.14% 0.0607 132.86)",
+          "oklch(83.57% 0.0607 132.86)",
+          "oklch(95.00% 0.0607 132.86)"
+        ]
+      },
+      "selected-ink": {
+        "role": "neutral",
+        "displayName": "深色 · 选中内文",
+        "tonalRamp": [
+          "oklch(15.00% 0.0202 132.97)",
+          "oklch(26.43% 0.0202 132.97)",
+          "oklch(37.86% 0.0202 132.97)",
+          "oklch(49.29% 0.0202 132.97)",
+          "oklch(60.71% 0.0202 132.97)",
+          "oklch(72.14% 0.0202 132.97)",
+          "oklch(83.57% 0.0202 132.97)",
+          "oklch(95.00% 0.0202 132.97)"
+        ]
+      },
+      "light-selected-ink": {
+        "role": "neutral",
+        "displayName": "浅色 · 选中内文",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 89.88)",
+          "oklch(26.43% 0.0000 89.88)",
+          "oklch(37.86% 0.0000 89.88)",
+          "oklch(49.29% 0.0000 89.88)",
+          "oklch(60.71% 0.0000 89.88)",
+          "oklch(72.14% 0.0000 89.88)",
+          "oklch(83.57% 0.0000 89.88)",
+          "oklch(95.00% 0.0000 89.88)"
+        ]
+      },
+      "active": {
+        "role": "neutral",
+        "displayName": "深色 · 选中底",
+        "tonalRamp": [
+          "oklch(15.00% 0.0222 132.24)",
+          "oklch(26.43% 0.0222 132.24)",
+          "oklch(37.86% 0.0222 132.24)",
+          "oklch(49.29% 0.0222 132.24)",
+          "oklch(60.71% 0.0222 132.24)",
+          "oklch(72.14% 0.0222 132.24)",
+          "oklch(83.57% 0.0222 132.24)",
+          "oklch(95.00% 0.0222 132.24)"
+        ]
+      },
+      "light-active": {
+        "role": "neutral",
+        "displayName": "浅色 · 选中底",
+        "tonalRamp": [
+          "oklch(15.00% 0.0218 130.02)",
+          "oklch(26.43% 0.0218 130.02)",
+          "oklch(37.86% 0.0218 130.02)",
+          "oklch(49.29% 0.0218 130.02)",
+          "oklch(60.71% 0.0218 130.02)",
+          "oklch(72.14% 0.0218 130.02)",
+          "oklch(83.57% 0.0218 130.02)",
+          "oklch(95.00% 0.0218 130.02)"
+        ]
+      },
+      "hover": {
+        "role": "neutral",
+        "displayName": "深色 · 悬浮底",
+        "tonalRamp": [
+          "oklch(15.00% 0.0098 229.17)",
+          "oklch(26.43% 0.0098 229.17)",
+          "oklch(37.86% 0.0098 229.17)",
+          "oklch(49.29% 0.0098 229.17)",
+          "oklch(60.71% 0.0098 229.17)",
+          "oklch(72.14% 0.0098 229.17)",
+          "oklch(83.57% 0.0098 229.17)",
+          "oklch(95.00% 0.0098 229.17)"
+        ]
+      },
+      "light-hover": {
+        "role": "neutral",
+        "displayName": "浅色 · 悬浮底",
+        "tonalRamp": [
+          "oklch(15.00% 0.0108 136.56)",
+          "oklch(26.43% 0.0108 136.56)",
+          "oklch(37.86% 0.0108 136.56)",
+          "oklch(49.29% 0.0108 136.56)",
+          "oklch(60.71% 0.0108 136.56)",
+          "oklch(72.14% 0.0108 136.56)",
+          "oklch(83.57% 0.0108 136.56)",
+          "oklch(95.00% 0.0108 136.56)"
+        ]
+      },
+      "image-ground": {
+        "role": "neutral",
+        "displayName": "深色 · 图片底面",
+        "tonalRamp": [
+          "oklch(15.00% 0.0038 229.02)",
+          "oklch(26.43% 0.0038 229.02)",
+          "oklch(37.86% 0.0038 229.02)",
+          "oklch(49.29% 0.0038 229.02)",
+          "oklch(60.71% 0.0038 229.02)",
+          "oklch(72.14% 0.0038 229.02)",
+          "oklch(83.57% 0.0038 229.02)",
+          "oklch(95.00% 0.0038 229.02)"
+        ]
+      },
+      "light-image-ground": {
+        "role": "neutral",
+        "displayName": "浅色 · 图片底面",
+        "tonalRamp": [
+          "oklch(15.00% 0.0062 137.77)",
+          "oklch(26.43% 0.0062 137.77)",
+          "oklch(37.86% 0.0062 137.77)",
+          "oklch(49.29% 0.0062 137.77)",
+          "oklch(60.71% 0.0062 137.77)",
+          "oklch(72.14% 0.0062 137.77)",
+          "oklch(83.57% 0.0062 137.77)",
+          "oklch(95.00% 0.0062 137.77)"
+        ]
+      },
+      "warning": {
+        "role": "neutral",
+        "displayName": "深色 · 警示内文",
+        "tonalRamp": [
+          "oklch(15.00% 0.0653 32.77)",
+          "oklch(26.43% 0.0653 32.77)",
+          "oklch(37.86% 0.0653 32.77)",
+          "oklch(49.29% 0.0653 32.77)",
+          "oklch(60.71% 0.0653 32.77)",
+          "oklch(72.14% 0.0653 32.77)",
+          "oklch(83.57% 0.0653 32.77)",
+          "oklch(95.00% 0.0653 32.77)"
+        ]
+      },
+      "light-warning": {
+        "role": "neutral",
+        "displayName": "浅色 · 警示内文",
+        "tonalRamp": [
+          "oklch(15.00% 0.1194 31.27)",
+          "oklch(26.43% 0.1194 31.27)",
+          "oklch(37.86% 0.1194 31.27)",
+          "oklch(49.29% 0.1194 31.27)",
+          "oklch(60.71% 0.1194 31.27)",
+          "oklch(72.14% 0.1194 31.27)",
+          "oklch(83.57% 0.1194 31.27)",
+          "oklch(95.00% 0.1194 31.27)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "B 候选标题",
+        "purpose": "仅筛选优先候选的段落标题，尚非全产品展示字体。"
+      },
+      "title": {
+        "displayName": "窗口内标题",
+        "purpose": "头部 Kinshoko 名称。"
+      },
+      "body": {
+        "displayName": "继承基准",
+        "purpose": "根元素的界面字体与继承尺寸。"
+      },
+      "copy": {
+        "displayName": "说明内文",
+        "purpose": "侧面板帮助与状态说明。"
+      },
+      "control": {
+        "displayName": "文字控件",
+        "purpose": "按钮、筛选和查看工具。"
+      },
+      "label": {
+        "displayName": "辅助标签",
+        "purpose": "标签、图名和辅助说明。"
+      },
+      "caption": {
+        "displayName": "状态说明",
+        "purpose": "页脚与较次要的样稿提示。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel-dark",
+        "value": "0 12px 34px #0005",
+        "purpose": "深色候选的图片信息、通知、状态与重试提示。"
+      },
+      {
+        "name": "panel-light",
+        "value": "0 12px 34px #24332422",
+        "purpose": "浅色候选的同类浮动面板。"
+      },
+      {
+        "name": "drawer",
+        "value": "-12px 0 34px #0004",
+        "purpose": "当前右抽屉；两套候选沿用同一值。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "图标、导航、提示与侧面板共用。"
+      },
+      {
+        "name": "nav-state",
+        "value": "180ms",
+        "purpose": "导航内文、背景与 SVG 的 transform 过渡；图标悬浮上移 1px。"
+      },
+      {
+        "name": "nav-indicator",
+        "value": "210ms",
+        "purpose": "当前选中指示线 top 跟随。"
+      },
+      {
+        "name": "nav-tooltip",
+        "value": "150ms",
+        "purpose": "导航文字提示的 opacity 过渡。"
+      },
+      {
+        "name": "panel-in",
+        "value": "190ms",
+        "purpose": "右抽屉从 translateX(12px) / opacity .8 到原位 / opacity 1。"
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation: none !important; transition: none !important; scroll-behavior: auto !important;",
+        "purpose": "系统 prefers-reduced-motion 或样稿 reduce-motion 类生效。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-desktop",
+        "value": "1100px"
+      },
+      {
+        "name": "narrow",
+        "value": "720px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "主要文件选择按钮",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "深色候选的主要动作；读取中使用 disabled。",
+      "html": "<button class=\"ds-primary\">选择本地图片</button>",
+      "css": ".ds-primary { display:inline-flex; align-items:center; justify-content:center; gap:7px; border:0; border-radius:8px; min-height:34px; line-height:1; white-space:nowrap; cursor:pointer; font-family:\"Segoe UI Variable\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif; background:#c4c9a8; color:#20261c; padding:0 12px; font-size:12px; font-weight:600; } .ds-primary:hover { filter:brightness(1.08); } .ds-primary:focus-visible { outline:2px solid #c4c9a8; outline-offset:3px; } .ds-primary:disabled { opacity:.46; cursor:default; }"
+    },
+    {
+      "name": "文字按钮",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "默认、悬浮及活动状态用于筛选与查看工具。",
+      "html": "<button class=\"ds-text\">筛选</button> <button class=\"ds-text ds-text-active\" aria-pressed=\"true\">适应</button>",
+      "css": ".ds-text { display:inline-flex; align-items:center; justify-content:center; gap:7px; border:0; border-radius:8px; min-height:34px; line-height:1; white-space:nowrap; cursor:pointer; font-family:\"Segoe UI Variable\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif; color:#b4bbb7; background:none; padding:0 10px; font-size:12px; } .ds-text:hover { background:#303639; color:#eef0ee; } .ds-text.ds-text-active { background:#394034; color:#c4c9a8; } .ds-text:focus-visible { outline:2px solid #c4c9a8; outline-offset:3px; } .ds-text:disabled { opacity:.46; cursor:default; }"
+    },
+    {
+      "name": "图标按钮",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "工具区常规 SVG 图标动作。",
+      "html": "<button class=\"ds-icon\" aria-label=\"图片密度与布局对照\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" width=\"16\" height=\"16\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/></svg></button>",
+      "css": ".ds-icon { display:inline-flex; align-items:center; justify-content:center; gap:7px; border:0; border-radius:8px; min-height:34px; line-height:1; white-space:nowrap; cursor:pointer; font-family:\"Segoe UI Variable\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif; width:34px; padding:7px; color:#b4bbb7; background:none; } .ds-icon:hover { background:#303639; color:#eef0ee; } .ds-icon:focus-visible { outline:2px solid #c4c9a8; outline-offset:3px; } .ds-icon:disabled { opacity:.46; cursor:default; }"
+    },
+    {
+      "name": "紧凑图标按钮",
+      "kind": "button",
+      "refersTo": "button-icon-compact",
+      "description": "查看及浏览工具中更紧凑的同类动作。",
+      "html": "<button class=\"ds-icon-compact\" aria-label=\"图片密度与布局对照\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" width=\"16\" height=\"16\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/></svg></button>",
+      "css": ".ds-icon-compact { display:inline-flex; align-items:center; justify-content:center; gap:7px; border:0; border-radius:8px; min-height:34px; line-height:1; white-space:nowrap; cursor:pointer; font-family:\"Segoe UI Variable\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif; width:29px; min-height:29px; padding:5px; color:#b4bbb7; background:none; } .ds-icon-compact:hover { background:#303639; color:#eef0ee; } .ds-icon-compact:focus-visible { outline:2px solid #c4c9a8; outline-offset:3px; } .ds-icon-compact:disabled { opacity:.46; cursor:default; }"
+    },
+    {
+      "name": "搜索字段",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "普通候选搜索字段；B 使用同一组件的 40px 高度变体。",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" width=\"17\" height=\"17\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input aria-label=\"查找名称或样本标签\" placeholder=\"查找名称或样本标签…\"/><kbd>/</kbd></label>",
+      "css": ".ds-search { display:flex; align-items:center; gap:9px; border:1px solid #3e4443; height:34px; width:340px; max-width:35vw; padding:0 10px; border-radius:8px; color:#b4bbb7; background:#17191b; font-family:\"Segoe UI Variable\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif; } .ds-search input { border:0; background:transparent; outline:none; min-width:0; width:100%; flex:1; font-family:inherit; font-size:12px; color:#eef0ee; caret-color:#c4c9a8; } .ds-search:focus-within { border-color:#c4c9a8; } .ds-search input::placeholder { color:#b4bbb7; opacity:1; } .ds-search kbd { font-family:inherit; font-size:11px; border:1px solid #3e4443; padding:0 5px; border-radius:3px; }"
+    },
+    {
+      "name": "图标导航项",
+      "kind": "nav",
+      "refersTo": "navigation-item",
+      "description": "深色候选的活动导航、指示线、SVG 和悬浮／焦点提示；静态示例对应已选资料库入口。",
+      "html": "<nav class=\"ds-nav\" aria-label=\"主要导航\"><span class=\"ds-nav-indicator\"></span><button class=\"ds-nav-item ds-nav-active\" aria-label=\"资料库与样本\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" width=\"22\" height=\"22\"><path d=\"m6 14 1.5-2.9A2 2 0 0 1 9.2 10H20a2 2 0 0 1 1.9 2.6l-2.3 7a2 2 0 0 1-1.9 1.4H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v2\"/></svg><span class=\"ds-nav-tooltip\">资料库与样本</span></button></nav>",
+      "css": ".ds-nav { position:relative; padding:15px 10px; width:64px; background:#222528; border-right:1px solid #3e4443; font-family:\"Segoe UI Variable\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif; } .ds-nav-item { display:grid; place-items:center; position:relative; width:42px; height:44px; border:0; border-radius:12px; background:none; color:#b4bbb7; cursor:pointer; transition:color 180ms cubic-bezier(.16,1,.3,1), background-color 180ms cubic-bezier(.16,1,.3,1); } .ds-nav-item:hover { background:#303639; color:#eef0ee; } .ds-nav-item.ds-nav-active { background:#394034; color:#c4c9a8; } .ds-nav-item > svg { transition:transform 180ms cubic-bezier(.16,1,.3,1); } .ds-nav-item:hover > svg { transform:translateY(-1px); } .ds-nav-indicator { position:absolute; left:-1px; top:26px; width:2px; height:22px; border-radius:2px; background:#c4c9a8; transition:top 210ms cubic-bezier(.16,1,.3,1); } .ds-nav-tooltip { position:absolute; left:54px; top:9px; width:max-content; max-width:210px; border-radius:7px; background:#eef0ee; color:#17191b; padding:7px 10px; font-size:12px; opacity:0; visibility:hidden; pointer-events:none; transition:opacity 150ms cubic-bezier(.16,1,.3,1); } .ds-nav-item:hover .ds-nav-tooltip, .ds-nav-item:focus-visible .ds-nav-tooltip { opacity:1; visibility:visible; } .ds-nav-item:focus-visible { outline:2px solid #c4c9a8; outline-offset:3px; } @media(prefers-reduced-motion:reduce) { .ds-nav-item, .ds-nav-item > svg, .ds-nav-tooltip, .ds-nav-indicator { transition:none; } }"
+    },
+    {
+      "name": "手工标签",
+      "kind": "chip",
+      "refersTo": "tag",
+      "description": "手工样本的多选筛选标签；选中同时满足、显示勾选。",
+      "html": "<button class=\"ds-tag\" aria-pressed=\"false\">人像</button> <button class=\"ds-tag ds-tag-active\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" width=\"12\" height=\"12\"><path d=\"m9 12 2 2 4-4\"/></svg>透明</button>",
+      "css": ".ds-tag { display:inline-flex; align-items:center; gap:4px; height:26px; padding:0 9px; border:1px solid #3e4443; border-radius:6px; color:#b4bbb7; background:none; font-size:11px; cursor:pointer; font-family:\"Segoe UI Variable\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif; } .ds-tag:hover { color:#eef0ee; background:#303639; } .ds-tag.ds-tag-active { color:#c4c9a8; background:#394034; border-color:#c4c9a8; } .ds-tag:focus-visible { outline:2px solid #c4c9a8; outline-offset:3px; }"
+    },
+    {
+      "name": "参考图卡片",
+      "kind": "card",
+      "refersTo": "picture-card",
+      "description": "可聚焦、可选中的图片卡片；文档面板以默认密度目标 220px 演示单卡，图像 slot 留空，不提供虚构样本。样稿中的宽高由瀑布流计算。",
+      "html": "<button class=\"ds-picture-card\" aria-label=\"参考图示例，按 Enter 查看\" aria-pressed=\"false\"><span class=\"ds-picture-frame\"></span><span class=\"ds-picture-caption\"><span>参考图示例</span><small>样本</small></span></button>",
+      "css": ".ds-picture-card { padding:0; border:0; text-align:left; background:#222528; border-radius:12px; overflow:hidden; width:220px; color:#b4bbb7; cursor:pointer; font-family:\"Segoe UI Variable\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif; } .ds-picture-frame { display:flex; align-items:center; justify-content:center; width:100%; height:220px; background:#121415; } .ds-picture-caption { height:34px; display:flex; align-items:center; gap:8px; padding:0 10px; color:#b4bbb7; } .ds-picture-caption > span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; } .ds-picture-caption small { font-size:9px; color:#b4bbb7; } .ds-picture-card:hover .ds-picture-caption { background:#303639; } .ds-picture-card[aria-pressed=true] { outline:2px solid #c4c9a8; outline-offset:0; } .ds-picture-card:focus-visible { outline:2px solid #c4c9a8; outline-offset:3px; }"
+    },
+    {
+      "name": "设置侧面板",
+      "kind": "custom",
+      "refersTo": "settings-drawer",
+      "description": "实际右抽屉的材质、内距、标题与进入动效；文档预览将固定窗口定位转换为静态容器。",
+      "html": "<aside class=\"ds-drawer\"><div class=\"ds-drawer-heading\"><h2>显示与操作</h2></div><p class=\"ds-drawer-intro\">这是一次性界面样稿。资料库入口用于试用状态，尚未连接磁盘数据。</p></aside>",
+      "css": ".ds-drawer { width:330px; background:#292c30; color:#eef0ee; padding:20px; box-shadow:-12px 0 34px #0004; animation:ds-panel-in 190ms cubic-bezier(.16,1,.3,1); font-family:\"Segoe UI Variable\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif; } .ds-drawer-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; } .ds-drawer-heading h2 { margin:0; font-size:18px; font-weight:600; } .ds-drawer-intro { font-size:12px; color:#b4bbb7; line-height:1.8; margin:0 0 20px; } @keyframes ds-panel-in { from { opacity:.8; transform:translateX(12px); } to { opacity:1; transform:translateX(0); } } @media(prefers-reduced-motion:reduce) { .ds-drawer { animation:none; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "图片占据主要空间",
+    "overview": "这是 `prototype/library-browser` 已实现的一次性网页交互样稿的记录，供当前样稿保持一致；不是 Kinshoko 正式桌面产品的视觉定稿。用户确认的图标侧栏、Axolotl Launcher 轻量状态动效参考、尽量留给图片的空间，以及 demo 必须有瀑布流，是本记录的依据。没有新增品牌隐喻，也没有已批准的视觉稿。\n\nA／B／C、浅／深模式、密度与极长图策略均是画师可试用的候选；当前默认 A 和深色不代表最终选择。React／TypeScript／Vite、Lucide 与 TanStack Virtual 是这份网页样稿的实现事实，正式技术栈未确认。本文只描述源码，不宣告画师验收或评审全表面通过。\n\n证据来自 `src/styles.css`、`src/App.tsx`、`src/Masonry.tsx`、`src/Viewer.tsx`，并对齐本表面的方向合同、PRODUCT.md、GLOSSARY.md 与领域 ADR。资料库仍使用领域定义；“本地试排”仅在浏览器内存中持有文件对象。Windows 原生 Tauri 窗口、ICC／色彩、GPU、混合 DPI、桌面钉图、持久资料库、备份及恢复均未实现或未验证。 复测与评审范围见[样稿复测与评审记录](.impeccable/review/README.md)；该索引保留实际结论与范围，本文不扩展验收结论。",
+    "keyCharacteristics": [
+      "低彩度界面表面与一个强调色，图片观察区保持中性。",
+      "紧凑 SVG 图标导航，选中背景、指示线与文字提示可辨。",
+      "自然比例图片完整展示，缩略图与查看区不做装饰变换。",
+      "状态、失败恢复和样稿边界随操作可见。"
+    ],
+    "rules": [
+      {
+        "name": "单强调色",
+        "body": "每个候选主题使用同一个 accent 连接选中、焦点和主要动作；warning 只表示失败或移除相关反馈，不成为第二个品牌强调色。",
+        "section": "colors"
+      },
+      {
+        "name": "完整构图",
+        "body": "缩略图与原图查看保持等比完整展示；极长图上限以等比缩小实现，图片像素不参与悬浮或导航装饰动画。",
+        "section": "layout"
+      },
+      {
+        "name": "控件动、图片稳",
+        "body": "已实现动效仅作用于图标、导航状态、提示及侧面板；系统或手动减少动画时关闭过渡与动画。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** 保留图标导航的 SVG、可访问名称、悬浮／键盘提示与选中反馈。",
+      "**Do** 保留参考图完整比例，以及选中、键盘焦点和返回浏览位置的区别。",
+      "**Do** 使用当前主题同名角色切换色彩，让图片区域保持中性。",
+      "**Do** 为无数据、无匹配、读取失败和内存试排保留明确状态与恢复动作。",
+      "**Do** 同时遵守系统和样稿中的减少动画设置。"
+    ],
+    "donts": [
+      "**Don't** 为节省卡片高度裁去图片内容，或给图片像素加装饰变换。",
+      "**Don't** 将 A／B／C、浅深模式或当前实现依赖称为已批准的正式布局、配色或技术栈。",
+      "**Don't** 将开发专用结构切换条、诊断面板的局部样式或未使用变量推广成正式产品规范。"
+    ]
+  }
+}

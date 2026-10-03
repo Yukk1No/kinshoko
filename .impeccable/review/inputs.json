@@ -1,0 +1,40 @@
+{
+  "projectRoot": "C:/Users/yuk1no/.codex/worktrees/library-browser-prototype/kinshoko",
+  "artifact": "prototype/library-browser/src/App.tsx",
+  "skillRoot": "C:/Users/yuk1no/Documents/GitHub/kinshoko/.agents/skills/impeccable",
+  "contract": ".impeccable/surfaces/prototype-library-browser-src-app-tsx.md",
+  "product": "PRODUCT.md",
+  "mode": "Operate",
+  "buildPath": "code",
+  "comp": "None. User explicitly chose interactive code-led sample. No static comp was generated.",
+  "originalRequest": "好，然后侧栏用icon来组成，动画视效等，这些都可参考axolotl launcher。如果要最大化图片利用空间的话，我认为瀑布流是有必要在demo中开发的的。",
+  "confirmedAnswer": "直接做可交互样稿（推荐）",
+  "scope": "Isolated throwaway web prototype to choose structure and validate image-browser interactions; memory-only data. A/B/C are alternatives, no production layout/stack winner selected.",
+  "detector": "One run after first inspection, App.tsx/Masonry.tsx/Viewer.tsx/styles.css; result [], exit 0.",
+  "assetProvenance": "8 sourced public-domain JPEG fixtures with origin embedded as JPEG COM. SOURCES.md/JSON records exact origins; geometric SVG fixtures authored in code; no Axolotl source or assets copied.",
+  "knownLimits": "No native Tauri/WebView2/physical DPI/ICC/GPU/desktop pin/search model/backup validation. 10k records repeat few assets.",
+  "seed": "178c3989, grounded 7/6/4; no decision comp due user-pinned code-led prototype path.",
+  "guides": {
+    "craftFloor": "reference/craft-floor.md",
+    "finishReviewer": "agents/impeccable_finish_reviewer.toml"
+  },
+  "behaviorEvidence": {
+    "baseline": "Initial inspection and full finish review retained in initial-review.md. Earlier passing behavior is versioned evidence, not a blanket assertion about the latest correction.",
+    "fixRound1": ".impeccable/review/fix-round-1.md",
+    "fixVerdict1": ".impeccable/review/fix-verdict-1.md",
+    "fixRound2": ".impeccable/review/fix-round-2.md + interaction-round-2.json",
+    "finalVerdict": ".impeccable/review/fix-verdict-2.md: disposition ship; both original material fixes resolved; verdict pass scope only."
+  },
+  "screenshots": [
+    "desktop.jpg (A1440x900,100 records)",
+    "mobile.jpg (A390x844,100 records,at top)",
+    "desktop-B.jpg (B1440x900,100 records,detail open)",
+    "desktop-C.jpg (C1440x900,100 records,detail open)",
+    "mobile-B.jpg (B390x844,100 records,detail open)",
+    "mobile-C.jpg (C390x844,100 records,detail open)",
+    "viewer.jpg (A1440x900,selected sample8,fit image)",
+    "user-1281.jpg (A1281x720,100 records)",
+    "user-1044.jpg (A1044x1053,actual panel after visibility)"
+  ],
+  "qualityBar": "User-pinned Axolotl reference; no catalog challenger was adopted, no generated QUALITY BAR card or decision comp. Use docs/research/axolotl-interface-reference.md and the contract as the grounding; this is a code-led throwaway prototype, not brand selection."
+}
