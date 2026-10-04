@@ -55,7 +55,7 @@ R6 的光学渐变色是独立的材质参数，位于 `source/build_app_r6.py`�
 
 ## 复现
 
-需要 Python 3、Pillow 和本机 Chrome 或 Edge（找不到时设 `CHROME_PATH`）。在任意目录执行：
+需要 Python 3、Pillow 和本机 Chrome 或 Edge（找不到时设 `CHROME_PATH`）。在 `design/logo-kit/` 中执行：
 
 ```powershell
 python source/build_kit.py          # 几何与全部 SVG，写 export-jobs.json
@@ -66,5 +66,13 @@ python source/verify_and_package.py # 校验并写 manifest / validation；加 -
 ```
 
 R6 成品与 `source/approved-r6/` 逐字节比对；规范只出一页；PNG 尺寸、ICO / ICNS 帧、锁孔透明度、图层叠合和原生小帧来源均有记录（`docs/validation.json`）。
+
+`--zip <目录>` 可输出到套件根目录、已有子目录或外部目录。生成的 `kinshoko-logo-kit-v1.1.zip` 及套件内各目录的同名旧包均不计入 manifest，也不会被打进新包；可以重复打包。
+
+回归测试只需 Python 和 Pillow，使用临时副本检查颜色篡改、重复打包及包内清单，不调用 Chrome：
+
+```powershell
+python -B -m unittest discover -s source/tests -v
+```
 
 当前交付为资源套件，未修改应用代码。网页 snippet 和 manifest 是可接入的示例，路径需与部署目录对应。

@@ -9,6 +9,7 @@ import zipfile
 from PIL import Image, ImageChops, ImageStat
 
 ROOT = Path(__file__).resolve().parent.parent
+ARCHIVE_NAME = 'kinshoko-logo-kit-v1.1.zip'
 checks = {}
 
 
@@ -16,9 +17,13 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def assets():
+def assets(include_reports=False):
+    # Delivery archives are outputs, including older exports and case variants.
+    excluded = {ARCHIVE_NAME}
+    if not include_reports:
+        excluded.update(('manifest.json', 'validation.json'))
     return sorted(p for p in ROOT.rglob('*') if p.is_file() and '__pycache__' not in p.parts
-                  and p.name not in ('manifest.json', 'validation.json'))
+                  and p.name.casefold() not in excluded)
 
 
 svgs = list(ROOT.rglob('*.svg'))
@@ -88,12 +93,13 @@ for file, expected in [(ROOT / 'web/favicon.ico', {(16,16),(24,24),(32,32),(48,4
     assert ico.ico.sizes() == expected, (file, ico.ico.sizes())
 fav = Image.open(ROOT / 'web/favicon.ico').ico.getimage((16,16)).convert('RGBA')
 expected_fav = Image.open(ROOT / 'web/png/icon-day-16.png').convert('RGBA')
-assert ImageChops.difference(fav,expected_fav).getbbox() is None
+assert fav.size == expected_fav.size and fav.tobytes() == expected_fav.tobytes()
 for t, flat in (('light','day'), ('dark','night')):
     # Small native frames must be the hinted flat cuts, not downsampled glass.
-    for size in (16, 24, 32):
+    for size in (16, 20, 24, 32):
         frame = Image.open(ROOT / f'app/native/icon-{t}.ico').ico.getimage((size,size)).convert('RGBA')
-        assert ImageChops.difference(frame, Image.open(ROOT / f'web/png/icon-{flat}-{size}.png').convert('RGBA')).getbbox() is None, (t, size)
+        expected_frame = Image.open(ROOT / f'web/png/icon-{flat}-{size}.png').convert('RGBA')
+        assert frame.size == expected_frame.size and frame.tobytes() == expected_frame.tobytes(), (t, size)
     with Image.open(ROOT / f'app/native/icon-{t}.icns') as im:
         im.load(); assert im.size == (1024,1024)
         assert {(16,16,1),(16,16,2),(32,32,1),(32,32,2),(512,512,2)} <= set(im.info['sizes']), im.info
@@ -131,9 +137,9 @@ checks['asset_count'] = len(records)
 
 summary = {'assets':len(records),'SVG':len(svgs),'flat_PNG':len(jobs),'glass_PNG':30,'PDF_pages':pages}
 if '--zip' in sys.argv:
-    archive = Path(sys.argv[sys.argv.index('--zip') + 1]).resolve() / 'kinshoko-logo-kit-v1.1.zip'
+    archive = Path(sys.argv[sys.argv.index('--zip') + 1]).resolve() / ARCHIVE_NAME
+    files = assets(include_reports=True)
     with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as package:
-        files = sorted(p for p in ROOT.rglob('*') if p.is_file() and '__pycache__' not in p.parts)
         for file in files: package.write(file, 'kinshoko-logo-kit/' + file.relative_to(ROOT).as_posix())
     with zipfile.ZipFile(archive) as package:
         assert package.testzip() is None

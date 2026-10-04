@@ -401,8 +401,8 @@
     },
     {
       "path": "docs/sources.md",
-      "bytes": 1290,
-      "sha256": "0cf1cb06c48cb70a8e96aa8dc6c159daba1493c75690e983371fa2893b5b3d8b"
+      "bytes": 1280,
+      "sha256": "4bd30ff9a02a5d9ea319ecf65bc4cd90b4e14af26540a28c9eb439556e3b39d2"
     },
     {
       "path": "docs/usage-guide.html",
@@ -411,8 +411,8 @@
     },
     {
       "path": "docs/usage-guide.md",
-      "bytes": 1618,
-      "sha256": "ce3120ed9304b3fb6dfb517a94cb72bfe401b3fcc2b7a3479c3c3e42e6be6629"
+      "bytes": 1588,
+      "sha256": "a5dd54f515d0e3684769729294c1ddf22b23bd4cb6023e6d36607bdd845cca0d"
     },
     {
       "path": "docs/usage-guide.pdf",
@@ -607,8 +607,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 4932,
-      "sha256": "258f2939aaf768e46f1e33c3c093aeb01f6acd0f43dfdd169ea422bf1522fdf0"
+      "bytes": 5300,
+      "sha256": "dd97cee6262272d7ca3395459f87d91ac48618b1998a71f337dadf0c47c0d76e"
     },
     {
       "path": "source/approved-r6/icon-dark.svg",
@@ -652,8 +652,8 @@
     },
     {
       "path": "source/build_app_r6.py",
-      "bytes": 12559,
-      "sha256": "f538d0a7aea033d634a73d55fecf1319def495cbacfa0af5d373ab6553905902"
+      "bytes": 12724,
+      "sha256": "9185e4dcd16833d8f3dc1481f96852379297e87c7ed5f469718cdfef3342a841"
     },
     {
       "path": "source/build_docs.py",
@@ -672,13 +672,13 @@
     },
     {
       "path": "source/export_kit.py",
-      "bytes": 6092,
-      "sha256": "6bc04e383c3bbc1359210eea7ad9275c51449969e070487a350ad3956e5e2240"
+      "bytes": 6224,
+      "sha256": "ee24ed620a3d7f2d0d635fdfbaf39fd0d3aedcc93bd0452ed825c93677eb2f9c"
     },
     {
       "path": "source/package_formats.py",
-      "bytes": 2824,
-      "sha256": "dffc296e6f24796518285274a744a3dbd19f66e297e7054659379628d77268c4"
+      "bytes": 2895,
+      "sha256": "e0445f7491802bd8d2b99986142dbe5ec5843ab925937de87761944bc5a2af33"
     },
     {
       "path": "source/reference/a-keyhole.svg",
@@ -691,9 +691,14 @@
       "sha256": "ed1a5f4da6261f2d1ee165e27f366c8f83cd2cd65410ecd92d5c035bdd840343"
     },
     {
+      "path": "source/tests/test_verify_and_package.py",
+      "bytes": 6266,
+      "sha256": "4e3d95b59fb5799032e4c38a23bb75f875222e2e4b81303724098ba952b13c22"
+    },
+    {
       "path": "source/verify_and_package.py",
-      "bytes": 7832,
-      "sha256": "47262f7c41abf28aaae540c9eac61f0bc92d05531a40a9dab09b15d6f4bbed67"
+      "bytes": 8091,
+      "sha256": "0da4912880cf17faeafdb7caf06989ddce6938035dfb81f057d30b3c062bf1e9"
     },
     {
       "path": "symbols/app-mark-day.svg",
