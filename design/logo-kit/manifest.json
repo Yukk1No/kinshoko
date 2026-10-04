@@ -400,11 +400,6 @@
       "sha256": "78b4cb7e56b876c303193d012c653b3f1ca9ea4416ab45c5c01355d0a35d151f"
     },
     {
-      "path": "docs/favicon-check.json",
-      "bytes": 213,
-      "sha256": "55f6d786b9e4559d9fc9d995466f44bec67c2e7576a09a72436bca9e3c15a2a5"
-    },
-    {
       "path": "docs/sources.md",
       "bytes": 1290,
       "sha256": "0cf1cb06c48cb70a8e96aa8dc6c159daba1493c75690e983371fa2893b5b3d8b"
@@ -671,11 +666,6 @@
       "sha256": "bb1549f9fb60da1983e7b24b4109003dac9217d1a8fcb21cbba816003cd383f7"
     },
     {
-      "path": "source/check_favicon.cjs",
-      "bytes": 1591,
-      "sha256": "756c3337efda789b287710c692a6bf0eb0f86e7326a10a66124d538c0c446b35"
-    },
-    {
       "path": "source/export-jobs.json",
       "bytes": 10717,
       "sha256": "bcee00efd812f2ed2d08896ba5a27fd47652b3ffed9acd958c7ecb7d075649a2"
@@ -702,8 +692,8 @@
     },
     {
       "path": "source/verify_and_package.py",
-      "bytes": 7217,
-      "sha256": "4357517af4c034968f5828c768210a7ce989efc992daa934fc8e3466757a60e0"
+      "bytes": 7832,
+      "sha256": "47262f7c41abf28aaae540c9eac61f0bc92d05531a40a9dab09b15d6f4bbed67"
     },
     {
       "path": "symbols/app-mark-day.svg",

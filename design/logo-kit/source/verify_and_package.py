@@ -105,6 +105,12 @@ webmanifest = json.loads((ROOT / 'web/site.webmanifest').read_text())
 for icon in webmanifest['icons']:
     assert (ROOT / 'web' / icon['src']).is_file(), icon
 checks['web_manifest_paths_exist'] = True
+# Theme-aware favicon: light tokens by default, dark tokens under prefers-color-scheme.
+fav_svg = (ROOT / 'web/favicon.svg').read_text(encoding='utf-8')
+light, dark = re.search(r':root\{([^}]*)\}@media\(prefers-color-scheme:dark\)\{:root\{([^}]*)\}', fav_svg).groups()
+assert '--tile:#F7F3EA' in light and '--mark:#2B2747' in light, light
+assert '--tile:#2B2747' in dark and '--mark:#F4ECDC' in dark, dark
+checks['favicon_svg_theme_tokens'] = {'light': light, 'dark': dark}
 pages = len(re.findall(rb'/Type\s*/Page[^s]', (ROOT / 'docs/usage-guide.pdf').read_bytes()))
 assert pages == 1, pages
 guide = (ROOT / 'docs/usage-guide.html').read_text(encoding='utf-8')
