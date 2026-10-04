@@ -1,0 +1,94 @@
+"""Summarise a tagger-probe predictions.jsonl against the acceptance contract.
+
+Usage: python scripts/analysis/probe_report.py <predictions.jsonl | report.zip> [--split evaluation|calibration|all]
+
+- Rating gate: positives are samples with pixiv's R-18 flag; a sample counts as caught
+  when the model's top rating class is questionable or explicit (see acceptance.md).
+- Tag report: pixiv author tags are weak labels, so only author-tag recall is a rate;
+  model positives without the author tag are counted, not called errors.
+"""
+import argparse, collections, io, json, sys, zipfile
+
+# pixiv author tag -> Danbooru tags that count as a hit
+TAG_MAP = {
+    "青髪": ["blue_hair", "aqua_hair"], "水色髪": ["light_blue_hair", "blue_hair", "aqua_hair"],
+    "金髪": ["blonde_hair"], "黒髪": ["black_hair"], "銀髪": ["grey_hair", "white_hair"],
+    "白髪": ["white_hair", "grey_hair"], "赤髪": ["red_hair"], "ピンク髪": ["pink_hair"],
+    "茶髪": ["brown_hair"], "緑髪": ["green_hair"], "紫髪": ["purple_hair"],
+    "ショートヘア": ["short_hair"], "ロングヘア": ["long_hair", "very_long_hair"], "ボブ": ["bob_cut"],
+    "ツインテール": ["twintails"], "ポニーテール": ["ponytail"],
+    "ぱっつん": ["blunt_bangs"], "前髪ぱっつん": ["blunt_bangs"], "姫カット": ["hime_cut"],
+    "センター分け": ["middle_part", "parted_bangs"], "センターパート": ["middle_part", "parted_bangs"],
+    "モノクロ": ["monochrome", "greyscale"], "白黒": ["monochrome", "greyscale"], "線画": ["lineart"],
+    "逆光": ["backlighting"], "全身": ["full_body"], "バストアップ": ["upper_body", "portrait"],
+}
+EXACT_WANTED = {"センター分け": "middle_part", "センターパート": "middle_part"}
+
+
+def load(path):
+    if path.endswith(".zip"):
+        with zipfile.ZipFile(path) as z:
+            text = z.read("predictions.jsonl").decode("utf-8")
+    else:
+        text = open(path, encoding="utf-8").read()
+    return [json.loads(l) for l in text.splitlines() if l.strip()]
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("predictions")
+    ap.add_argument("--split", default="evaluation", choices=["evaluation", "calibration", "all"])
+    a = ap.parse_args()
+    rows = [r for r in load(a.predictions) if a.split == "all" or r["split"] == a.split]
+    out = io.StringIO()
+    w = lambda s="": print(s, file=out)
+    w(f"# 打标探测分析（split={a.split}）\n")
+
+    by_model = collections.defaultdict(list)
+    for r in rows:
+        by_model[r["model"]].append(r)
+
+    for model, rs in by_model.items():
+        w(f"## {model}（{len(rs)} 张，{rs[0]['provider']}）\n")
+        rated = [r for r in rs if r.get("ratings")]
+        if rated:
+            flagged = lambda r: max(r["ratings"], key=r["ratings"].get) in ("questionable", "explicit")
+            pos = [r for r in rated if r["truth_rating"] == "r18"]
+            neg = [r for r in rated if r["truth_rating"] != "r18"]
+            sens = [r for r in neg if "sensitive" in r["coverage"]]
+            plain = [r for r in neg if "sensitive" not in r["coverage"]]
+            caught = sum(flagged(r) for r in pos)
+            w("### 内容分级\n")
+            w(f"- R-18 召回：{caught}/{len(pos)}" + (f"（{caught / len(pos):.1%}，门槛 ≥ 95%）" if pos else "（没有 R-18 样本）"))
+            for r in pos:
+                if not flagged(r):
+                    top = max(r["ratings"], key=r["ratings"].get)
+                    w(f"  - 漏判 {r['sample']}：判为 {top}（{r['ratings'][top]:.2f}）")
+            if sens:
+                w(f"- 敏感全年龄被判 questionable/explicit：{sum(flagged(r) for r in sens)}/{len(sens)}（只记录）")
+            if plain:
+                w(f"- 其他全年龄被判 questionable/explicit：{sum(flagged(r) for r in plain)}/{len(plain)}（只记录）")
+            w()
+        else:
+            w("### 内容分级\n\n- 该模型不输出分级。\n")
+
+        w("### 与 pixiv 作者标签对照（只记录）\n")
+        w("| 作者标签 | 对应标签 | 作者标了 | 模型命中 | 命中率 | 模型给出但作者未标 |")
+        w("|---|---|---|---|---|---|")
+        for jp, targets in TAG_MAP.items():
+            tagged = [r for r in rs if jp in r["author_tags"]]
+            if not tagged:
+                continue
+            hit = sum(any(t in r["tags"] for t in targets) for r in tagged)
+            extra = sum(any(t in r["tags"] for t in targets) for r in rs if jp not in r["author_tags"])
+            w(f"| {jp} | {', '.join(targets)} | {len(tagged)} | {hit} | {hit / len(tagged):.0%} | {extra} |")
+        for jp, exact in EXACT_WANTED.items():
+            tagged = [r for r in rs if jp in r["author_tags"]]
+            if tagged:
+                w(f"\n精确 `{exact}`：{sum(exact in r['tags'] for r in tagged)}/{len(tagged)}（{jp}）")
+        w()
+    sys.stdout.write(out.getvalue())
+
+
+if __name__ == "__main__":
+    main()
