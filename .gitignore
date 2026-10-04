@@ -6,4 +6,4 @@ private/
 work/
 
 # Validation sample images (not redistributable)
-samples/
+/samples/
