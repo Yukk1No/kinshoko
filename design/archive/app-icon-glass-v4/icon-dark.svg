@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#35305C"/><stop offset="1" stop-color="#151326"/>
+    </linearGradient>
+    <radialGradient id="gA" cx="0.18" cy="0.12" r="0.7"><stop offset="0" stop-color="#4F6BD8" stop-opacity="0.55"/><stop offset="1" stop-color="#4F6BD8" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gB" cx="0.9" cy="0.95" r="0.7"><stop offset="0" stop-color="#7A5CE0" stop-opacity="0.55"/><stop offset="1" stop-color="#7A5CE0" stop-opacity="0"/></radialGradient>
+    <linearGradient id="tileRim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.55"/><stop offset="0.5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity="0.18"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+    <filter id="hair" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.6"/></filter>
+    <filter id="tiny" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter>
+    <clipPath id="tile"><rect width="1024" height="1024" rx="230"/></clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+    <rect width="1024" height="1024" fill="url(#gA)"/>
+    <rect width="1024" height="1024" fill="url(#gB)"/>
+    <g transform="translate(150 182) scale(2.6)">
+
+      
+  <defs>
+    <linearGradient id="bm-fill" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#C4B8FF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#6D5DD3" stop-opacity="0.92"/>
+    </linearGradient>
+    <linearGradient id="bm-rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.95"/>
+      <stop offset="0.35" stop-color="#fff" stop-opacity="0.15"/>
+      <stop offset="0.65" stop-color="#fff" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0.6"/>
+    </linearGradient>
+    <radialGradient id="bm-caustic" cx="0.5" cy="1.0" r="0.6">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bm-spec" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="bm-clip"><path fill-rule="evenodd" d="M90 20 H166 A26 26 0 0 1 192 46 V226 Q192 238 182 231 L128 194 L74 231 Q64 238 64 226 V46 A26 26 0 0 1 90 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></clipPath>
+  </defs>
+  <path fill-rule="evenodd" d="M90 20 H166 A26 26 0 0 1 192 46 V226 Q192 238 182 231 L128 194 L74 231 Q64 238 64 226 V46 A26 26 0 0 1 90 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="#000000" opacity="0.3" filter="url(#soft)" transform="translate(0 10)"/>
+  <path fill-rule="evenodd" d="M90 20 H166 A26 26 0 0 1 192 46 V226 Q192 238 182 231 L128 194 L74 231 Q64 238 64 226 V46 A26 26 0 0 1 90 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="url(#bm-fill)"/>
+  <g clip-path="url(#bm-clip)">
+    <rect x="0" y="120" width="256" height="140" fill="url(#bm-caustic)"/>
+    <ellipse cx="100" cy="22" rx="80" ry="26" fill="url(#bm-spec)" filter="url(#hair)"/>
+    <ellipse cx="170" cy="215" rx="70" ry="60" fill="#FF7FAE" opacity="0.55" filter="url(#soft)"/>
+    <path fill-rule="evenodd" d="M90 20 H166 A26 26 0 0 1 192 46 V226 Q192 238 182 231 L128 194 L74 231 Q64 238 64 226 V46 A26 26 0 0 1 90 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="none" stroke="#fff" stroke-opacity="0.28" stroke-width="10" filter="url(#hair)"/>
+    <path fill-rule="evenodd" d="M90 20 H166 A26 26 0 0 1 192 46 V226 Q192 238 182 231 L128 194 L74 231 Q64 238 64 226 V46 A26 26 0 0 1 90 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="none" stroke="url(#bm-rim)" stroke-width="3.2"/>
+    
+  </g>
+      
+  <defs>
+    <linearGradient id="st-fill" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#FFE39A" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#E39A2C" stop-opacity="0.92"/>
+    </linearGradient>
+    <linearGradient id="st-rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.95"/>
+      <stop offset="0.35" stop-color="#fff" stop-opacity="0.15"/>
+      <stop offset="0.65" stop-color="#fff" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0.6"/>
+    </linearGradient>
+    <radialGradient id="st-caustic" cx="0.5" cy="1.0" r="0.6">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="st-spec" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="st-clip"><path  d="M188 2 C196.8 37.2 196.8 37.2 232 46 C196.8 54.8 196.8 54.8 188 90 C179.2 54.8 179.2 54.8 144 46 C179.2 37.2 179.2 37.2 188 2 Z"/></clipPath>
+  </defs>
+  <path  d="M188 2 C196.8 37.2 196.8 37.2 232 46 C196.8 54.8 196.8 54.8 188 90 C179.2 54.8 179.2 54.8 144 46 C179.2 37.2 179.2 37.2 188 2 Z" fill="#E39A2C" opacity="0.35" filter="url(#soft)" transform="translate(0 10)"/>
+  <path  d="M188 2 C196.8 37.2 196.8 37.2 232 46 C196.8 54.8 196.8 54.8 188 90 C179.2 54.8 179.2 54.8 144 46 C179.2 37.2 179.2 37.2 188 2 Z" fill="url(#st-fill)"/>
+  <g clip-path="url(#st-clip)">
+    <rect x="0" y="120" width="256" height="140" fill="url(#st-caustic)"/>
+    <ellipse cx="100" cy="22" rx="80" ry="26" fill="url(#st-spec)" filter="url(#hair)"/>
+    
+    <path  d="M188 2 C196.8 37.2 196.8 37.2 232 46 C196.8 54.8 196.8 54.8 188 90 C179.2 54.8 179.2 54.8 144 46 C179.2 37.2 179.2 37.2 188 2 Z" fill="none" stroke="#fff" stroke-opacity="0.28" stroke-width="10" filter="url(#hair)"/>
+    <path  d="M188 2 C196.8 37.2 196.8 37.2 232 46 C196.8 54.8 196.8 54.8 188 90 C179.2 54.8 179.2 54.8 144 46 C179.2 37.2 179.2 37.2 188 2 Z" fill="none" stroke="url(#st-rim)" stroke-width="3.2"/>
+    
+  </g>
+    </g>
+    <rect x="3" y="3" width="1018" height="1018" rx="227" fill="none" stroke="url(#tileRim)" stroke-width="6"/>
+  </g>
+</svg>

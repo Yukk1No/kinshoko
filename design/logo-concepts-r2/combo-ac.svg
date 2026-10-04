@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1280" width="1600" height="1280">
+<rect width="1600" height="1280" fill="#EEEBE4"/>
+<text x="60" y="80" font-family="Segoe UI,sans-serif" font-weight="700" font-size="40" fill="#1a1a1a">Kinshoko — A × C combination study</text>
+<text x="60" y="118" font-family="Microsoft YaHei UI,Segoe UI,sans-serif" font-size="22" fill="#666">锁孔书签 + 圆头单线字标 · 两种 i 点 · 两套配色候选（墨紫×金 / 纸白×樱粉）</text>
+<rect x="60" y="150" width="720" height="300" rx="20" fill="#FFFFFF"/>
+<g transform="translate(130 210) scale(0.6)"><g transform="translate(0 16.52) scale(0.8241)"><path fill="#111111" fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></g><g transform="translate(192 0)"><g fill="none" stroke="#111111" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+<path d="M30 44 V200"/><path d="M96 104 L34 156"/><path d="M62 134 L100 200"/>
+<path d="M132 108 V200"/>
+<path d="M168 200 V108 M168 146 A32 32 0 0 1 232 146 V200"/>
+<path d="M314 120 C306 104 268 98 266 124 C264 148 318 146 318 174 C318 204 274 206 262 186"/>
+<path d="M352 44 V200 M352 146 A32 32 0 0 1 416 146 V200"/>
+<circle cx="490" cy="154" r="46"/>
+<path d="M568 44 V200"/><path d="M634 104 L572 156"/><path d="M600 134 L638 200"/>
+<circle cx="716" cy="154" r="46"/>
+</g>
+
+<path fill="#111111" d="M132 32 C136.16 53.84 136.16 53.84 158 58 C136.16 62.16 136.16 62.16 132 84 C127.84 62.16 127.84 62.16 106 58 C127.84 53.84 127.84 53.84 132 32 Z"/></g></g>
+<text x="88" y="426" font-family="Microsoft YaHei UI,sans-serif" font-size="20" fill="#999">1 · i 点＝闪光</text>
+<rect x="820" y="150" width="720" height="300" rx="20" fill="#FFFFFF"/>
+<g transform="translate(890 210) scale(0.6)"><g transform="translate(0 16.52) scale(0.8241)"><path fill="#111111" fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></g><g transform="translate(192 0)"><g fill="none" stroke="#111111" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+<path d="M30 44 V200"/><path d="M96 104 L34 156"/><path d="M62 134 L100 200"/>
+<path d="M132 108 V200"/>
+<path d="M168 200 V108 M168 146 A32 32 0 0 1 232 146 V200"/>
+<path d="M314 120 C306 104 268 98 266 124 C264 148 318 146 318 174 C318 204 274 206 262 186"/>
+<path d="M352 44 V200 M352 146 A32 32 0 0 1 416 146 V200"/>
+<circle cx="490" cy="154" r="46"/>
+<path d="M568 44 V200"/><path d="M634 104 L572 156"/><path d="M600 134 L638 200"/>
+<circle cx="716" cy="154" r="46"/>
+</g>
+
+<circle fill="#111111" cx="132" cy="64" r="15"/></g></g>
+<text x="848" y="426" font-family="Microsoft YaHei UI,sans-serif" font-size="20" fill="#999">2 · i 点＝圆点</text>
+<rect x="60" y="490" width="720" height="300" rx="20" fill="#2B2747"/>
+<g transform="translate(130 550) scale(0.6)"><g transform="translate(0 16.52) scale(0.8241)"><path fill="#F4ECDC" fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></g><g transform="translate(192 0)"><g fill="none" stroke="#F4ECDC" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+<path d="M30 44 V200"/><path d="M96 104 L34 156"/><path d="M62 134 L100 200"/>
+<path d="M132 108 V200"/>
+<path d="M168 200 V108 M168 146 A32 32 0 0 1 232 146 V200"/>
+<path d="M314 120 C306 104 268 98 266 124 C264 148 318 146 318 174 C318 204 274 206 262 186"/>
+<path d="M352 44 V200 M352 146 A32 32 0 0 1 416 146 V200"/>
+<circle cx="490" cy="154" r="46"/>
+<path d="M568 44 V200"/><path d="M634 104 L572 156"/><path d="M600 134 L638 200"/>
+<circle cx="716" cy="154" r="46"/>
+</g>
+
+<path fill="#E3B34F" d="M132 32 C136.16 53.84 136.16 53.84 158 58 C136.16 62.16 136.16 62.16 132 84 C127.84 62.16 127.84 62.16 106 58 C127.84 53.84 127.84 53.84 132 32 Z"/></g></g>
+<text x="88" y="766" font-family="Microsoft YaHei UI,sans-serif" font-size="20" fill="#8C88A8">3 · 墨紫 × 奶油 × 金</text>
+<rect x="820" y="490" width="720" height="300" rx="20" fill="#F7F3EA"/>
+<g transform="translate(890 550) scale(0.6)"><g transform="translate(0 16.52) scale(0.8241)"><path fill="#2B2747" fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></g><g transform="translate(192 0)"><g fill="none" stroke="#2B2747" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+<path d="M30 44 V200"/><path d="M96 104 L34 156"/><path d="M62 134 L100 200"/>
+<path d="M132 108 V200"/>
+<path d="M168 200 V108 M168 146 A32 32 0 0 1 232 146 V200"/>
+<path d="M314 120 C306 104 268 98 266 124 C264 148 318 146 318 174 C318 204 274 206 262 186"/>
+<path d="M352 44 V200 M352 146 A32 32 0 0 1 416 146 V200"/>
+<circle cx="490" cy="154" r="46"/>
+<path d="M568 44 V200"/><path d="M634 104 L572 156"/><path d="M600 134 L638 200"/>
+<circle cx="716" cy="154" r="46"/>
+</g>
+
+<path fill="#E0768F" d="M132 32 C136.16 53.84 136.16 53.84 158 58 C136.16 62.16 136.16 62.16 132 84 C127.84 62.16 127.84 62.16 106 58 C127.84 53.84 127.84 53.84 132 32 Z"/></g></g>
+<text x="848" y="766" font-family="Microsoft YaHei UI,sans-serif" font-size="20" fill="#999">4 · 纸白 × 墨紫 × 樱粉</text>
+<rect x="60" y="830" width="1480" height="390" rx="20" fill="#FFFFFF"/>
+<rect x="100" y="880" width="180" height="180" rx="40.5" fill="#2B2747"/><g transform="translate(134.2 914.2) scale(0.4359375)"><g transform="translate(0 -6)"><path fill="#F4ECDC" fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></g></g>
+<rect x="310" y="880" width="180" height="180" rx="40.5" fill="#E0768F"/><g transform="translate(344.2 914.2) scale(0.4359375)"><g transform="translate(0 -6)"><path fill="#FFFFFF" fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></g></g>
+<rect x="520" y="880" width="180" height="180" rx="40.5" fill="#F7F3EA"/><g transform="translate(554.2 914.2) scale(0.4359375)"><g transform="translate(0 -6)"><path fill="#2B2747" fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></g></g>
+<rect x="520" y="880" width="180" height="180" rx="40.5" fill="none" stroke="#E2DDD2" stroke-width="2"/>
+<rect x="100" y="1100" width="64" height="64" rx="14.4" fill="#2B2747"/><g transform="translate(112.16 1112.16) scale(0.155)"><g transform="translate(0 -6)"><path fill="#F4ECDC" fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></g></g>
+<rect x="190" y="1132" width="32" height="32" rx="7.2" fill="#2B2747"/><g transform="translate(196.08 1138.08) scale(0.0775)"><g transform="translate(0 -6)"><path fill="#F4ECDC" fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></g></g>
+<rect x="280" y="1148" width="16" height="16" rx="3.6" fill="#2B2747"/><g transform="translate(283.04 1151.04) scale(0.03875)"><g transform="translate(0 -6)"><path fill="#F4ECDC" fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></g></g>
+<text x="100" y="1196" font-family="Segoe UI,sans-serif" font-size="16" fill="#999">app icon · 64 / 32 / 16 px</text>
+<g transform="translate(900 880) scale(0.55)"><g transform="translate(267 0)"><path fill="#2B2747" fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></g><g transform="translate(0 270)"><g fill="none" stroke="#2B2747" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+<path d="M30 44 V200"/><path d="M96 104 L34 156"/><path d="M62 134 L100 200"/>
+<path d="M132 108 V200"/>
+<path d="M168 200 V108 M168 146 A32 32 0 0 1 232 146 V200"/>
+<path d="M314 120 C306 104 268 98 266 124 C264 148 318 146 318 174 C318 204 274 206 262 186"/>
+<path d="M352 44 V200 M352 146 A32 32 0 0 1 416 146 V200"/>
+<circle cx="490" cy="154" r="46"/>
+<path d="M568 44 V200"/><path d="M634 104 L572 156"/><path d="M600 134 L638 200"/>
+<circle cx="716" cy="154" r="46"/>
+</g>
+
+<path fill="#E0768F" d="M132 32 C136.16 53.84 136.16 53.84 158 58 C136.16 62.16 136.16 62.16 132 84 C127.84 62.16 127.84 62.16 106 58 C127.84 53.84 127.84 53.84 132 32 Z"/></g></g>
+</svg>

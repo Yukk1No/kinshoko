@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- A · 扉渡り: a tall arched door whose lower half breaks into crop marks; a spark waits inside -->
+  <g fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt" stroke-linejoin="miter">
+    <path d="M70 156 V88 A58 58 0 0 1 186 88 V156"/>
+    <path d="M70 184 V232 H110"/>
+    <path d="M186 184 V232 H146"/>
+  </g>
+  <path d="M128 112 C131 136 136 141 160 144 C136 147 131 152 128 176 C125 152 120 147 96 144 C120 141 125 136 128 112 Z" fill="#000"/>
+</svg>

@@ -1,0 +1,85 @@
+{
+  "version": "1.1",
+  "app_version": "R6",
+  "letter_stroke": 22,
+  "symbol": {
+    "viewBox": [
+      0,
+      0,
+      256,
+      256
+    ],
+    "outer_bounds": [
+      64,
+      20,
+      192,
+      236
+    ],
+    "path": "M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"
+  },
+  "wordmark": {
+    "bounds": [
+      19,
+      32,
+      773,
+      211
+    ],
+    "i_star": "M132 32 C136.16 53.84 136.16 53.84 158 58 C136.16 62.16 136.16 62.16 132 84 C127.84 62.16 127.84 62.16 106 58 C127.84 53.84 127.84 53.84 132 32 Z"
+  },
+  "horizontal": {
+    "width": 956.2592592592592,
+    "height": 223,
+    "symbol_scale": 0.8240740740740741,
+    "wordmark_x": 192,
+    "padding": 22
+  },
+  "vertical": {
+    "width": 798,
+    "height": 487,
+    "mark_to_wordmark_gap": 48,
+    "padding": 22
+  },
+  "clear_space": "X = one wordmark stroke = 22 source units",
+  "small_cuts": {
+    "micro": {
+      "size": 16,
+      "tile_radius": 3.6,
+      "path": "M5 2 H11 A1 1 0 0 1 12 3 V14 L8 11.5 L4 14 V3 A1 1 0 0 1 5 2 Z M7 7.73 A2 2 0 1 1 9 7.73 V10 H7 Z",
+      "star": null,
+      "halo": 0
+    },
+    "compact": {
+      "size": 24,
+      "tile_radius": 5.4,
+      "path": "M8.5 4 H15.5 A1.5 1.5 0 0 1 17 5.5 V20 L12 17 L7 20 V5.5 A1.5 1.5 0 0 1 8.5 4 Z M11.2 11.83 A2 2 0 1 1 12.8 11.83 L13.5 14.5 H10.5 Z",
+      "star": [
+        17.4,
+        5.0,
+        3.3,
+        0.26
+      ],
+      "halo": 1.1
+    },
+    "small": {
+      "size": 32,
+      "tile_radius": 7.2,
+      "path": "M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z",
+      "star": [
+        23.2,
+        6.6,
+        4.3,
+        0.24
+      ],
+      "halo": 1.3
+    }
+  },
+  "palette": {
+    "ink": "#2B2747",
+    "cream": "#F4ECDC",
+    "gold": "#E3B34F",
+    "sakura": "#E0768F",
+    "paper": "#F7F3EA",
+    "white": "#FFFFFF",
+    "black": "#000000"
+  }
+}

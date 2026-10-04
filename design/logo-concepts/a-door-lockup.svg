@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 256">
+  <!-- exploration lockup: live <text>, to be outlined/custom-drawn later -->
+  <g transform="translate(16 32) scale(0.75)">
+  
+  <g fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt" stroke-linejoin="miter">
+    <path d="M70 156 V88 A58 58 0 0 1 186 88 V156"/>
+    <path d="M70 184 V232 H110"/>
+    <path d="M186 184 V232 H146"/>
+  </g>
+  <path d="M128 112 C131 136 136 141 160 144 C136 147 131 152 128 176 C125 152 120 147 96 144 C120 141 125 136 128 112 Z" fill="#000"/>
+</g>
+  <text x="250" y="150" font-family="Georgia, 'Times New Roman', serif" font-size="96" letter-spacing="2" fill="#000">Kinshoko</text>
+  <text x="254" y="204" font-family="'Yu Mincho','Noto Serif JP','MS Mincho',serif" font-size="34" letter-spacing="18" fill="#000">禁書庫</text>
+</svg>

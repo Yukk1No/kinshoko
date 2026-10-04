@@ -1,0 +1,338 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000">
+<defs><linearGradient id="wl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6E7EC"/><stop offset="0.5" stop-color="#EDEFF7"/><stop offset="1" stop-color="#F7EEDC"/></linearGradient><linearGradient id="wd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1B1930"/><stop offset="0.6" stop-color="#2C2550"/><stop offset="1" stop-color="#4A2D45"/></linearGradient></defs>
+<rect width="800" height="1000" fill="url(#wl)"/><rect x="800" width="800" height="1000" fill="url(#wd)"/>
+<text x="60" y="80" font-family="Segoe UI,sans-serif" font-weight="700" font-size="34" fill="#2B2747">Light · 纸白 × 墨紫 × 樱粉</text>
+<text x="860" y="80" font-family="Segoe UI,sans-serif" font-weight="700" font-size="34" fill="#F4ECDC">Dark · 墨紫 × 奶油 × 金</text>
+<svg x="160" y="140" width="480" height="480" viewBox="0 0 1024 1024"><defs>
+ <linearGradient id="160_140bglight" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#FFF8F2"/><stop offset="1" stop-color="#EFD6DD"/></linearGradient>
+ <radialGradient id="160_140gllight" cx="0.5" cy="0.38" r="0.6"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+ <linearGradient id="160_140stlight" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#F7A3B6"/><stop offset="1" stop-color="#D9587A"/></linearGradient>
+ <linearGradient id="160_140frlight" x1="0.1" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.5"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.16"/></linearGradient>
+ <linearGradient id="160_140rimlight" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="1.0"/><stop offset="0.35" stop-color="#fff" stop-opacity="0.08"/><stop offset="0.7" stop-color="#fff" stop-opacity="0.05"/><stop offset="1" stop-color="#fff" stop-opacity="0.6"/></linearGradient>
+ <radialGradient id="160_140speclight" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <clipPath id="160_140tclight"><rect width="1024" height="1024" rx="228"/></clipPath>
+ <clipPath id="160_140bclight"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" clip-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)"/></clipPath>
+ <filter id="160_140blurlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="26"/></filter>
+ <filter id="160_140shlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="160_140glowlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<g clip-path="url(#160_140tclight)">
+ <rect width="1024" height="1024" rx="228" fill="url(#160_140bglight)"/><rect width="1024" height="1024" rx="228" fill="url(#160_140gllight)"/>
+ <!-- back layer: sparkle with soft glow -->
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#160_140stlight)" opacity="0.55" filter="url(#160_140glowlight)"/>
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#160_140stlight)"/>
+ <!-- glass shadow -->
+ <g opacity="0.28" filter="url(#160_140shlight)" transform="translate(0 26)"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)" fill="#7A3A52"/></g>
+ <!-- glass body: re-draw backdrop blurred inside the bookmark, then frost -->
+ <g clip-path="url(#160_140bclight)">
+  <rect width="1024" height="1024" rx="228" fill="url(#160_140bglight)"/><rect width="1024" height="1024" rx="228" fill="url(#160_140gllight)"/>
+  <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#160_140stlight)" filter="url(#160_140blurlight)" transform="translate(0 10)"/>
+  <rect width="1024" height="1024" fill="url(#160_140frlight)"/>
+  <ellipse cx="300" cy="250" rx="150" ry="70" fill="url(#160_140speclight)" opacity="0.55" transform="rotate(-32 300 250)"/>
+ </g>
+ <!-- rim light -->
+ <path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="none" stroke="url(#160_140rimlight)" stroke-width="2.36" stroke-linejoin="round" transform="translate(132.7 132.7) scale(2.963)"/>
+ <!-- tile edge highlight -->
+ <rect x="3" y="3" width="1018" height="1018" rx="225" fill="none" stroke="#fff" stroke-opacity="0.5" stroke-width="4"/>
+</g>
+</svg>
+<svg x="960" y="140" width="480" height="480" viewBox="0 0 1024 1024"><defs>
+ <linearGradient id="960_140bgdark" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#3E3968"/><stop offset="1" stop-color="#16142A"/></linearGradient>
+ <radialGradient id="960_140gldark" cx="0.5" cy="0.38" r="0.6"><stop offset="0" stop-color="#5A538E" stop-opacity="0.55"/><stop offset="1" stop-color="#5A538E" stop-opacity="0"/></radialGradient>
+ <linearGradient id="960_140stdark" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#FFE29A"/><stop offset="1" stop-color="#D99A2B"/></linearGradient>
+ <linearGradient id="960_140frdark" x1="0.1" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#E9E4FF" stop-opacity="0.26"/><stop offset="1" stop-color="#E9E4FF" stop-opacity="0.07"/></linearGradient>
+ <linearGradient id="960_140rimdark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="0.35" stop-color="#fff" stop-opacity="0.08"/><stop offset="0.7" stop-color="#fff" stop-opacity="0.05"/><stop offset="1" stop-color="#fff" stop-opacity="0.44999999999999996"/></linearGradient>
+ <radialGradient id="960_140specdark" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <clipPath id="960_140tcdark"><rect width="1024" height="1024" rx="228"/></clipPath>
+ <clipPath id="960_140bcdark"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" clip-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)"/></clipPath>
+ <filter id="960_140blurdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="26"/></filter>
+ <filter id="960_140shdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="960_140glowdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<g clip-path="url(#960_140tcdark)">
+ <rect width="1024" height="1024" rx="228" fill="url(#960_140bgdark)"/><rect width="1024" height="1024" rx="228" fill="url(#960_140gldark)"/>
+ <!-- back layer: sparkle with soft glow -->
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#960_140stdark)" opacity="0.55" filter="url(#960_140glowdark)"/>
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#960_140stdark)"/>
+ <!-- glass shadow -->
+ <g opacity="0.45" filter="url(#960_140shdark)" transform="translate(0 26)"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)" fill="#000000"/></g>
+ <!-- glass body: re-draw backdrop blurred inside the bookmark, then frost -->
+ <g clip-path="url(#960_140bcdark)">
+  <rect width="1024" height="1024" rx="228" fill="url(#960_140bgdark)"/><rect width="1024" height="1024" rx="228" fill="url(#960_140gldark)"/>
+  <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#960_140stdark)" filter="url(#960_140blurdark)" transform="translate(0 10)"/>
+  <rect width="1024" height="1024" fill="url(#960_140frdark)"/>
+  <ellipse cx="300" cy="250" rx="150" ry="70" fill="url(#960_140specdark)" opacity="0.55" transform="rotate(-32 300 250)"/>
+ </g>
+ <!-- rim light -->
+ <path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="none" stroke="url(#960_140rimdark)" stroke-width="2.36" stroke-linejoin="round" transform="translate(132.7 132.7) scale(2.963)"/>
+ <!-- tile edge highlight -->
+ <rect x="3" y="3" width="1018" height="1018" rx="225" fill="none" stroke="#fff" stroke-opacity="0.14" stroke-width="4"/>
+</g>
+</svg>
+<svg x="120" y="700" width="180" height="180" viewBox="0 0 1024 1024"><defs>
+ <linearGradient id="120_700bglight" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#FFF8F2"/><stop offset="1" stop-color="#EFD6DD"/></linearGradient>
+ <radialGradient id="120_700gllight" cx="0.5" cy="0.38" r="0.6"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+ <linearGradient id="120_700stlight" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#F7A3B6"/><stop offset="1" stop-color="#D9587A"/></linearGradient>
+ <linearGradient id="120_700frlight" x1="0.1" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.5"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.16"/></linearGradient>
+ <linearGradient id="120_700rimlight" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="1.0"/><stop offset="0.35" stop-color="#fff" stop-opacity="0.08"/><stop offset="0.7" stop-color="#fff" stop-opacity="0.05"/><stop offset="1" stop-color="#fff" stop-opacity="0.6"/></linearGradient>
+ <radialGradient id="120_700speclight" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <clipPath id="120_700tclight"><rect width="1024" height="1024" rx="228"/></clipPath>
+ <clipPath id="120_700bclight"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" clip-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)"/></clipPath>
+ <filter id="120_700blurlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="26"/></filter>
+ <filter id="120_700shlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="120_700glowlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<g clip-path="url(#120_700tclight)">
+ <rect width="1024" height="1024" rx="228" fill="url(#120_700bglight)"/><rect width="1024" height="1024" rx="228" fill="url(#120_700gllight)"/>
+ <!-- back layer: sparkle with soft glow -->
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#120_700stlight)" opacity="0.55" filter="url(#120_700glowlight)"/>
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#120_700stlight)"/>
+ <!-- glass shadow -->
+ <g opacity="0.28" filter="url(#120_700shlight)" transform="translate(0 26)"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)" fill="#7A3A52"/></g>
+ <!-- glass body: re-draw backdrop blurred inside the bookmark, then frost -->
+ <g clip-path="url(#120_700bclight)">
+  <rect width="1024" height="1024" rx="228" fill="url(#120_700bglight)"/><rect width="1024" height="1024" rx="228" fill="url(#120_700gllight)"/>
+  <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#120_700stlight)" filter="url(#120_700blurlight)" transform="translate(0 10)"/>
+  <rect width="1024" height="1024" fill="url(#120_700frlight)"/>
+  <ellipse cx="300" cy="250" rx="150" ry="70" fill="url(#120_700speclight)" opacity="0.55" transform="rotate(-32 300 250)"/>
+ </g>
+ <!-- rim light -->
+ <path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="none" stroke="url(#120_700rimlight)" stroke-width="2.36" stroke-linejoin="round" transform="translate(132.7 132.7) scale(2.963)"/>
+ <!-- tile edge highlight -->
+ <rect x="3" y="3" width="1018" height="1018" rx="225" fill="none" stroke="#fff" stroke-opacity="0.5" stroke-width="4"/>
+</g>
+</svg>
+<svg x="920" y="700" width="180" height="180" viewBox="0 0 1024 1024"><defs>
+ <linearGradient id="920_700bgdark" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#3E3968"/><stop offset="1" stop-color="#16142A"/></linearGradient>
+ <radialGradient id="920_700gldark" cx="0.5" cy="0.38" r="0.6"><stop offset="0" stop-color="#5A538E" stop-opacity="0.55"/><stop offset="1" stop-color="#5A538E" stop-opacity="0"/></radialGradient>
+ <linearGradient id="920_700stdark" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#FFE29A"/><stop offset="1" stop-color="#D99A2B"/></linearGradient>
+ <linearGradient id="920_700frdark" x1="0.1" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#E9E4FF" stop-opacity="0.26"/><stop offset="1" stop-color="#E9E4FF" stop-opacity="0.07"/></linearGradient>
+ <linearGradient id="920_700rimdark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="0.35" stop-color="#fff" stop-opacity="0.08"/><stop offset="0.7" stop-color="#fff" stop-opacity="0.05"/><stop offset="1" stop-color="#fff" stop-opacity="0.44999999999999996"/></linearGradient>
+ <radialGradient id="920_700specdark" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <clipPath id="920_700tcdark"><rect width="1024" height="1024" rx="228"/></clipPath>
+ <clipPath id="920_700bcdark"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" clip-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)"/></clipPath>
+ <filter id="920_700blurdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="26"/></filter>
+ <filter id="920_700shdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="920_700glowdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<g clip-path="url(#920_700tcdark)">
+ <rect width="1024" height="1024" rx="228" fill="url(#920_700bgdark)"/><rect width="1024" height="1024" rx="228" fill="url(#920_700gldark)"/>
+ <!-- back layer: sparkle with soft glow -->
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#920_700stdark)" opacity="0.55" filter="url(#920_700glowdark)"/>
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#920_700stdark)"/>
+ <!-- glass shadow -->
+ <g opacity="0.45" filter="url(#920_700shdark)" transform="translate(0 26)"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)" fill="#000000"/></g>
+ <!-- glass body: re-draw backdrop blurred inside the bookmark, then frost -->
+ <g clip-path="url(#920_700bcdark)">
+  <rect width="1024" height="1024" rx="228" fill="url(#920_700bgdark)"/><rect width="1024" height="1024" rx="228" fill="url(#920_700gldark)"/>
+  <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#920_700stdark)" filter="url(#920_700blurdark)" transform="translate(0 10)"/>
+  <rect width="1024" height="1024" fill="url(#920_700frdark)"/>
+  <ellipse cx="300" cy="250" rx="150" ry="70" fill="url(#920_700specdark)" opacity="0.55" transform="rotate(-32 300 250)"/>
+ </g>
+ <!-- rim light -->
+ <path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="none" stroke="url(#920_700rimdark)" stroke-width="2.36" stroke-linejoin="round" transform="translate(132.7 132.7) scale(2.963)"/>
+ <!-- tile edge highlight -->
+ <rect x="3" y="3" width="1018" height="1018" rx="225" fill="none" stroke="#fff" stroke-opacity="0.14" stroke-width="4"/>
+</g>
+</svg>
+<svg x="360" y="730" width="120" height="120" viewBox="0 0 1024 1024"><defs>
+ <linearGradient id="360_730bglight" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#FFF8F2"/><stop offset="1" stop-color="#EFD6DD"/></linearGradient>
+ <radialGradient id="360_730gllight" cx="0.5" cy="0.38" r="0.6"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+ <linearGradient id="360_730stlight" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#F7A3B6"/><stop offset="1" stop-color="#D9587A"/></linearGradient>
+ <linearGradient id="360_730frlight" x1="0.1" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.5"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.16"/></linearGradient>
+ <linearGradient id="360_730rimlight" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="1.0"/><stop offset="0.35" stop-color="#fff" stop-opacity="0.08"/><stop offset="0.7" stop-color="#fff" stop-opacity="0.05"/><stop offset="1" stop-color="#fff" stop-opacity="0.6"/></linearGradient>
+ <radialGradient id="360_730speclight" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <clipPath id="360_730tclight"><rect width="1024" height="1024" rx="228"/></clipPath>
+ <clipPath id="360_730bclight"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" clip-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)"/></clipPath>
+ <filter id="360_730blurlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="26"/></filter>
+ <filter id="360_730shlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="360_730glowlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<g clip-path="url(#360_730tclight)">
+ <rect width="1024" height="1024" rx="228" fill="url(#360_730bglight)"/><rect width="1024" height="1024" rx="228" fill="url(#360_730gllight)"/>
+ <!-- back layer: sparkle with soft glow -->
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#360_730stlight)" opacity="0.55" filter="url(#360_730glowlight)"/>
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#360_730stlight)"/>
+ <!-- glass shadow -->
+ <g opacity="0.28" filter="url(#360_730shlight)" transform="translate(0 26)"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)" fill="#7A3A52"/></g>
+ <!-- glass body: re-draw backdrop blurred inside the bookmark, then frost -->
+ <g clip-path="url(#360_730bclight)">
+  <rect width="1024" height="1024" rx="228" fill="url(#360_730bglight)"/><rect width="1024" height="1024" rx="228" fill="url(#360_730gllight)"/>
+  <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#360_730stlight)" filter="url(#360_730blurlight)" transform="translate(0 10)"/>
+  <rect width="1024" height="1024" fill="url(#360_730frlight)"/>
+  <ellipse cx="300" cy="250" rx="150" ry="70" fill="url(#360_730speclight)" opacity="0.55" transform="rotate(-32 300 250)"/>
+ </g>
+ <!-- rim light -->
+ <path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="none" stroke="url(#360_730rimlight)" stroke-width="2.36" stroke-linejoin="round" transform="translate(132.7 132.7) scale(2.963)"/>
+ <!-- tile edge highlight -->
+ <rect x="3" y="3" width="1018" height="1018" rx="225" fill="none" stroke="#fff" stroke-opacity="0.5" stroke-width="4"/>
+</g>
+</svg>
+<svg x="1160" y="730" width="120" height="120" viewBox="0 0 1024 1024"><defs>
+ <linearGradient id="1160_730bgdark" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#3E3968"/><stop offset="1" stop-color="#16142A"/></linearGradient>
+ <radialGradient id="1160_730gldark" cx="0.5" cy="0.38" r="0.6"><stop offset="0" stop-color="#5A538E" stop-opacity="0.55"/><stop offset="1" stop-color="#5A538E" stop-opacity="0"/></radialGradient>
+ <linearGradient id="1160_730stdark" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#FFE29A"/><stop offset="1" stop-color="#D99A2B"/></linearGradient>
+ <linearGradient id="1160_730frdark" x1="0.1" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#E9E4FF" stop-opacity="0.26"/><stop offset="1" stop-color="#E9E4FF" stop-opacity="0.07"/></linearGradient>
+ <linearGradient id="1160_730rimdark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="0.35" stop-color="#fff" stop-opacity="0.08"/><stop offset="0.7" stop-color="#fff" stop-opacity="0.05"/><stop offset="1" stop-color="#fff" stop-opacity="0.44999999999999996"/></linearGradient>
+ <radialGradient id="1160_730specdark" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <clipPath id="1160_730tcdark"><rect width="1024" height="1024" rx="228"/></clipPath>
+ <clipPath id="1160_730bcdark"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" clip-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)"/></clipPath>
+ <filter id="1160_730blurdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="26"/></filter>
+ <filter id="1160_730shdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="1160_730glowdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<g clip-path="url(#1160_730tcdark)">
+ <rect width="1024" height="1024" rx="228" fill="url(#1160_730bgdark)"/><rect width="1024" height="1024" rx="228" fill="url(#1160_730gldark)"/>
+ <!-- back layer: sparkle with soft glow -->
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#1160_730stdark)" opacity="0.55" filter="url(#1160_730glowdark)"/>
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#1160_730stdark)"/>
+ <!-- glass shadow -->
+ <g opacity="0.45" filter="url(#1160_730shdark)" transform="translate(0 26)"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)" fill="#000000"/></g>
+ <!-- glass body: re-draw backdrop blurred inside the bookmark, then frost -->
+ <g clip-path="url(#1160_730bcdark)">
+  <rect width="1024" height="1024" rx="228" fill="url(#1160_730bgdark)"/><rect width="1024" height="1024" rx="228" fill="url(#1160_730gldark)"/>
+  <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#1160_730stdark)" filter="url(#1160_730blurdark)" transform="translate(0 10)"/>
+  <rect width="1024" height="1024" fill="url(#1160_730frdark)"/>
+  <ellipse cx="300" cy="250" rx="150" ry="70" fill="url(#1160_730specdark)" opacity="0.55" transform="rotate(-32 300 250)"/>
+ </g>
+ <!-- rim light -->
+ <path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="none" stroke="url(#1160_730rimdark)" stroke-width="2.36" stroke-linejoin="round" transform="translate(132.7 132.7) scale(2.963)"/>
+ <!-- tile edge highlight -->
+ <rect x="3" y="3" width="1018" height="1018" rx="225" fill="none" stroke="#fff" stroke-opacity="0.14" stroke-width="4"/>
+</g>
+</svg>
+<svg x="540" y="758" width="64" height="64" viewBox="0 0 1024 1024"><defs>
+ <linearGradient id="540_758bglight" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#FFF8F2"/><stop offset="1" stop-color="#EFD6DD"/></linearGradient>
+ <radialGradient id="540_758gllight" cx="0.5" cy="0.38" r="0.6"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+ <linearGradient id="540_758stlight" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#F7A3B6"/><stop offset="1" stop-color="#D9587A"/></linearGradient>
+ <linearGradient id="540_758frlight" x1="0.1" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.5"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.16"/></linearGradient>
+ <linearGradient id="540_758rimlight" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="1.0"/><stop offset="0.35" stop-color="#fff" stop-opacity="0.08"/><stop offset="0.7" stop-color="#fff" stop-opacity="0.05"/><stop offset="1" stop-color="#fff" stop-opacity="0.6"/></linearGradient>
+ <radialGradient id="540_758speclight" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <clipPath id="540_758tclight"><rect width="1024" height="1024" rx="228"/></clipPath>
+ <clipPath id="540_758bclight"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" clip-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)"/></clipPath>
+ <filter id="540_758blurlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="26"/></filter>
+ <filter id="540_758shlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="540_758glowlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<g clip-path="url(#540_758tclight)">
+ <rect width="1024" height="1024" rx="228" fill="url(#540_758bglight)"/><rect width="1024" height="1024" rx="228" fill="url(#540_758gllight)"/>
+ <!-- back layer: sparkle with soft glow -->
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#540_758stlight)" opacity="0.55" filter="url(#540_758glowlight)"/>
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#540_758stlight)"/>
+ <!-- glass shadow -->
+ <g opacity="0.28" filter="url(#540_758shlight)" transform="translate(0 26)"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)" fill="#7A3A52"/></g>
+ <!-- glass body: re-draw backdrop blurred inside the bookmark, then frost -->
+ <g clip-path="url(#540_758bclight)">
+  <rect width="1024" height="1024" rx="228" fill="url(#540_758bglight)"/><rect width="1024" height="1024" rx="228" fill="url(#540_758gllight)"/>
+  <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#540_758stlight)" filter="url(#540_758blurlight)" transform="translate(0 10)"/>
+  <rect width="1024" height="1024" fill="url(#540_758frlight)"/>
+  <ellipse cx="300" cy="250" rx="150" ry="70" fill="url(#540_758speclight)" opacity="0.55" transform="rotate(-32 300 250)"/>
+ </g>
+ <!-- rim light -->
+ <path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="none" stroke="url(#540_758rimlight)" stroke-width="2.36" stroke-linejoin="round" transform="translate(132.7 132.7) scale(2.963)"/>
+ <!-- tile edge highlight -->
+ <rect x="3" y="3" width="1018" height="1018" rx="225" fill="none" stroke="#fff" stroke-opacity="0.5" stroke-width="4"/>
+</g>
+</svg>
+<svg x="1340" y="758" width="64" height="64" viewBox="0 0 1024 1024"><defs>
+ <linearGradient id="1340_758bgdark" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#3E3968"/><stop offset="1" stop-color="#16142A"/></linearGradient>
+ <radialGradient id="1340_758gldark" cx="0.5" cy="0.38" r="0.6"><stop offset="0" stop-color="#5A538E" stop-opacity="0.55"/><stop offset="1" stop-color="#5A538E" stop-opacity="0"/></radialGradient>
+ <linearGradient id="1340_758stdark" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#FFE29A"/><stop offset="1" stop-color="#D99A2B"/></linearGradient>
+ <linearGradient id="1340_758frdark" x1="0.1" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#E9E4FF" stop-opacity="0.26"/><stop offset="1" stop-color="#E9E4FF" stop-opacity="0.07"/></linearGradient>
+ <linearGradient id="1340_758rimdark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="0.35" stop-color="#fff" stop-opacity="0.08"/><stop offset="0.7" stop-color="#fff" stop-opacity="0.05"/><stop offset="1" stop-color="#fff" stop-opacity="0.44999999999999996"/></linearGradient>
+ <radialGradient id="1340_758specdark" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <clipPath id="1340_758tcdark"><rect width="1024" height="1024" rx="228"/></clipPath>
+ <clipPath id="1340_758bcdark"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" clip-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)"/></clipPath>
+ <filter id="1340_758blurdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="26"/></filter>
+ <filter id="1340_758shdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="1340_758glowdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<g clip-path="url(#1340_758tcdark)">
+ <rect width="1024" height="1024" rx="228" fill="url(#1340_758bgdark)"/><rect width="1024" height="1024" rx="228" fill="url(#1340_758gldark)"/>
+ <!-- back layer: sparkle with soft glow -->
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#1340_758stdark)" opacity="0.55" filter="url(#1340_758glowdark)"/>
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#1340_758stdark)"/>
+ <!-- glass shadow -->
+ <g opacity="0.45" filter="url(#1340_758shdark)" transform="translate(0 26)"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)" fill="#000000"/></g>
+ <!-- glass body: re-draw backdrop blurred inside the bookmark, then frost -->
+ <g clip-path="url(#1340_758bcdark)">
+  <rect width="1024" height="1024" rx="228" fill="url(#1340_758bgdark)"/><rect width="1024" height="1024" rx="228" fill="url(#1340_758gldark)"/>
+  <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#1340_758stdark)" filter="url(#1340_758blurdark)" transform="translate(0 10)"/>
+  <rect width="1024" height="1024" fill="url(#1340_758frdark)"/>
+  <ellipse cx="300" cy="250" rx="150" ry="70" fill="url(#1340_758specdark)" opacity="0.55" transform="rotate(-32 300 250)"/>
+ </g>
+ <!-- rim light -->
+ <path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="none" stroke="url(#1340_758rimdark)" stroke-width="2.36" stroke-linejoin="round" transform="translate(132.7 132.7) scale(2.963)"/>
+ <!-- tile edge highlight -->
+ <rect x="3" y="3" width="1018" height="1018" rx="225" fill="none" stroke="#fff" stroke-opacity="0.14" stroke-width="4"/>
+</g>
+</svg>
+<svg x="664" y="774" width="32" height="32" viewBox="0 0 1024 1024"><defs>
+ <linearGradient id="664_774bglight" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#FFF8F2"/><stop offset="1" stop-color="#EFD6DD"/></linearGradient>
+ <radialGradient id="664_774gllight" cx="0.5" cy="0.38" r="0.6"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+ <linearGradient id="664_774stlight" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#F7A3B6"/><stop offset="1" stop-color="#D9587A"/></linearGradient>
+ <linearGradient id="664_774frlight" x1="0.1" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.5"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.16"/></linearGradient>
+ <linearGradient id="664_774rimlight" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="1.0"/><stop offset="0.35" stop-color="#fff" stop-opacity="0.08"/><stop offset="0.7" stop-color="#fff" stop-opacity="0.05"/><stop offset="1" stop-color="#fff" stop-opacity="0.6"/></linearGradient>
+ <radialGradient id="664_774speclight" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <clipPath id="664_774tclight"><rect width="1024" height="1024" rx="228"/></clipPath>
+ <clipPath id="664_774bclight"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" clip-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)"/></clipPath>
+ <filter id="664_774blurlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="26"/></filter>
+ <filter id="664_774shlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="664_774glowlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<g clip-path="url(#664_774tclight)">
+ <rect width="1024" height="1024" rx="228" fill="url(#664_774bglight)"/><rect width="1024" height="1024" rx="228" fill="url(#664_774gllight)"/>
+ <!-- back layer: sparkle with soft glow -->
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#664_774stlight)" opacity="0.55" filter="url(#664_774glowlight)"/>
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#664_774stlight)"/>
+ <!-- glass shadow -->
+ <g opacity="0.28" filter="url(#664_774shlight)" transform="translate(0 26)"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)" fill="#7A3A52"/></g>
+ <!-- glass body: re-draw backdrop blurred inside the bookmark, then frost -->
+ <g clip-path="url(#664_774bclight)">
+  <rect width="1024" height="1024" rx="228" fill="url(#664_774bglight)"/><rect width="1024" height="1024" rx="228" fill="url(#664_774gllight)"/>
+  <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#664_774stlight)" filter="url(#664_774blurlight)" transform="translate(0 10)"/>
+  <rect width="1024" height="1024" fill="url(#664_774frlight)"/>
+  <ellipse cx="300" cy="250" rx="150" ry="70" fill="url(#664_774speclight)" opacity="0.55" transform="rotate(-32 300 250)"/>
+ </g>
+ <!-- rim light -->
+ <path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="none" stroke="url(#664_774rimlight)" stroke-width="2.36" stroke-linejoin="round" transform="translate(132.7 132.7) scale(2.963)"/>
+ <!-- tile edge highlight -->
+ <rect x="3" y="3" width="1018" height="1018" rx="225" fill="none" stroke="#fff" stroke-opacity="0.5" stroke-width="4"/>
+</g>
+</svg>
+<svg x="1464" y="774" width="32" height="32" viewBox="0 0 1024 1024"><defs>
+ <linearGradient id="1464_774bgdark" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#3E3968"/><stop offset="1" stop-color="#16142A"/></linearGradient>
+ <radialGradient id="1464_774gldark" cx="0.5" cy="0.38" r="0.6"><stop offset="0" stop-color="#5A538E" stop-opacity="0.55"/><stop offset="1" stop-color="#5A538E" stop-opacity="0"/></radialGradient>
+ <linearGradient id="1464_774stdark" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#FFE29A"/><stop offset="1" stop-color="#D99A2B"/></linearGradient>
+ <linearGradient id="1464_774frdark" x1="0.1" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#E9E4FF" stop-opacity="0.26"/><stop offset="1" stop-color="#E9E4FF" stop-opacity="0.07"/></linearGradient>
+ <linearGradient id="1464_774rimdark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="0.35" stop-color="#fff" stop-opacity="0.08"/><stop offset="0.7" stop-color="#fff" stop-opacity="0.05"/><stop offset="1" stop-color="#fff" stop-opacity="0.44999999999999996"/></linearGradient>
+ <radialGradient id="1464_774specdark" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <clipPath id="1464_774tcdark"><rect width="1024" height="1024" rx="228"/></clipPath>
+ <clipPath id="1464_774bcdark"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" clip-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)"/></clipPath>
+ <filter id="1464_774blurdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="26"/></filter>
+ <filter id="1464_774shdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="1464_774glowdark" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<g clip-path="url(#1464_774tcdark)">
+ <rect width="1024" height="1024" rx="228" fill="url(#1464_774bgdark)"/><rect width="1024" height="1024" rx="228" fill="url(#1464_774gldark)"/>
+ <!-- back layer: sparkle with soft glow -->
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#1464_774stdark)" opacity="0.55" filter="url(#1464_774glowdark)"/>
+ <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#1464_774stdark)"/>
+ <!-- glass shadow -->
+ <g opacity="0.45" filter="url(#1464_774shdark)" transform="translate(0 26)"><path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill-rule="evenodd" transform="translate(132.7 132.7) scale(2.963)" fill="#000000"/></g>
+ <!-- glass body: re-draw backdrop blurred inside the bookmark, then frost -->
+ <g clip-path="url(#1464_774bcdark)">
+  <rect width="1024" height="1024" rx="228" fill="url(#1464_774bgdark)"/><rect width="1024" height="1024" rx="228" fill="url(#1464_774gldark)"/>
+  <path d="M512 170 C602.0 380.0 602.0 380.0 812 470 C602.0 560.0 602.0 560.0 512 770 C422.0 560.0 422.0 560.0 212 470 C422.0 380.0 422.0 380.0 512 170 Z M630 470 A118 118 0 1 1 394 470 A118 118 0 1 1 630 470 Z" fill="url(#1464_774stdark)" filter="url(#1464_774blurdark)" transform="translate(0 10)"/>
+  <rect width="1024" height="1024" fill="url(#1464_774frdark)"/>
+  <ellipse cx="300" cy="250" rx="150" ry="70" fill="url(#1464_774specdark)" opacity="0.55" transform="rotate(-32 300 250)"/>
+ </g>
+ <!-- rim light -->
+ <path d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" fill="none" stroke="url(#1464_774rimdark)" stroke-width="2.36" stroke-linejoin="round" transform="translate(132.7 132.7) scale(2.963)"/>
+ <!-- tile edge highlight -->
+ <rect x="3" y="3" width="1018" height="1018" rx="225" fill="none" stroke="#fff" stroke-opacity="0.14" stroke-width="4"/>
+</g>
+</svg>
+<text x="120" y="940" font-family="Segoe UI,sans-serif" font-size="20" fill="#8A8299">180 / 120 / 64 / 32 px</text>
+<text x="920" y="940" font-family="Segoe UI,sans-serif" font-size="20" fill="#8C88A8">180 / 120 / 64 / 32 px</text>
+</svg>

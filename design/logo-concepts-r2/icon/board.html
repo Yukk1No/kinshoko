@@ -1,0 +1,56 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--ink:#2B2747;--cream:#F4ECDC;--paper:#F7F3EA}
+*{box-sizing:border-box;margin:0}
+body{width:1600px;font-family:"Segoe UI","Microsoft YaHei UI",sans-serif;background:#ECE8E0;color:#1c1b22;padding:56px 60px}
+h1{font-size:38px;font-weight:700} .sub{color:#6b6878;font-size:19px;margin:8px 0 34px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:28px}
+.card{border-radius:24px;padding:40px;position:relative;overflow:hidden}
+.day{background:var(--paper)} .night{background:#17152A;color:var(--cream)}
+.tag{position:absolute;left:28px;bottom:22px;font-size:16px;opacity:.6}
+.hero{display:flex;align-items:center;gap:44px}
+.hero img.ic{width:300px;height:300px;filter:drop-shadow(0 18px 30px rgba(20,16,40,.25))}
+.hero img.lk{width:330px}
+.sizes{display:flex;align-items:flex-end;gap:26px;margin-top:30px}
+.sizes figure{text-align:center;font-size:13px;opacity:.65}
+.explode{height:520px;display:flex;justify-content:center;align-items:center;gap:40px}
+.stack{position:relative;width:380px;height:480px}
+.stack img{position:absolute;left:30px;width:320px;height:320px;transform:rotateX(58deg) rotateZ(-42deg);transform-origin:center}
+.persp{perspective:1600px}
+.lbl{position:absolute;right:-150px;font-size:15px;width:170px;opacity:.75}
+.dock{display:flex;gap:18px;padding:16px 20px;border-radius:30px;width:max-content;margin:24px auto 0;backdrop-filter:blur(8px)}
+.day .dock{background:rgba(255,255,255,.55);box-shadow:0 8px 30px rgba(43,39,71,.12)}
+.night .dock{background:rgba(255,255,255,.08);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.dock div{width:76px;height:76px;border-radius:18px}
+.dock img{width:76px;height:76px}
+.wall{border-radius:20px;padding:40px 0 30px}
+.day .wall{background:linear-gradient(135deg,#F9D9E1,#DCD6F2 55%,#F6ECD6)}
+.night .wall{background:linear-gradient(135deg,#2A2550,#141228 60%,#3B2A3F)}
+</style></head><body>
+<h1>Kinshoko — App icon · Liquid Glass study</h1>
+<div class="sub">A 锁孔书签 × C 闪光字标 · 三层：背景光晕 / 玻璃书签（锁孔是真孔，透出背后的光）/ 前景玻璃闪光 · 白天＝纸白×墨紫×樱粉，夜间＝墨紫×奶油×金</div>
+
+<div class="row">
+ <div class="card day"><div class="hero"><img class="ic" src="png/icon-light.png"><img class="lk" src="lockup-day.svg"></div>
+  <div class="sizes"><figure><img src="png/icon-light.png" width="180"><br>180</figure><figure><img src="png/icon-light.png" width="120"><br>120</figure><figure><img src="png/icon-light.png" width="64"><br>64</figure><figure><img src="png/icon-light.png" width="32"><br>32</figure></div>
+  <span class="tag">Day · 白天</span></div>
+ <div class="card night"><div class="hero"><img class="ic" src="png/icon-dark.png"><img class="lk" src="lockup-night.svg"></div>
+  <div class="sizes"><figure><img src="png/icon-dark.png" width="180"><br>180</figure><figure><img src="png/icon-dark.png" width="120"><br>120</figure><figure><img src="png/icon-dark.png" width="64"><br>64</figure><figure><img src="png/icon-dark.png" width="32"><br>32</figure></div>
+  <span class="tag">Night · 夜间</span></div>
+</div>
+
+<div class="row">
+ <div class="card day persp"><div class="explode"><div class="stack">
+   <img src="png/layer0-light.png" style="top:200px"><img src="png/layer1-light.png" style="top:95px"><img src="png/layer2-light.png" style="top:-10px">
+   <span class="lbl" style="top:70px">② 前景 · 玻璃闪光</span><span class="lbl" style="top:180px">① 中景 · 玻璃书签<br>锁孔透光</span><span class="lbl" style="top:290px">⓪ 背景 · 纸白＋樱粉光晕</span>
+ </div></div><span class="tag">Layers · 分层</span></div>
+ <div class="card night persp"><div class="explode"><div class="stack">
+   <img src="png/layer0-dark.png" style="top:200px"><img src="png/layer1-dark.png" style="top:95px"><img src="png/layer2-dark.png" style="top:-10px">
+   <span class="lbl" style="top:70px">② 前景 · 金色玻璃闪光</span><span class="lbl" style="top:180px">① 中景 · 奶油玻璃书签</span><span class="lbl" style="top:290px">⓪ 背景 · 墨紫＋金色光晕</span>
+ </div></div><span class="tag">Layers · 分层</span></div>
+</div>
+
+<div class="row">
+ <div class="card day"><div class="wall"><div class="dock"><div style="background:#7FA7E8"></div><div style="background:#F2B35B"></div><img src="png/icon-light.png"><div style="background:#5BC69B"></div><div style="background:#C9C3D6"></div></div></div><span class="tag">In context · Dock</span></div>
+ <div class="card night"><div class="wall"><div class="dock"><div style="background:#3E5C9A"></div><div style="background:#8A5E2E"></div><img src="png/icon-dark.png"><div style="background:#2F7A5F"></div><div style="background:#4A4560"></div></div></div><span class="tag">In context · Dock</span></div>
+</div>
+</body></html>

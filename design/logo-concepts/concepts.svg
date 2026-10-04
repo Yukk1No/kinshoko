@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="1786" viewBox="0 0 1600 1786"><defs><filter id="grey"><feColorMatrix type="saturate" values="0"/></filter></defs><rect width="1600" height="1786" fill="#f7f7f4"/><text x="60" y="78" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="40" font-weight="700" fill="#161616">Logo concepts</text><text x="60" y="116" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="20" fill="#6b6b6b">Concepts for review — pick a direction (or tell me what you like in each).</text><rect x="60" y="150" width="474.667" height="774" rx="18" fill="#fff" stroke="#e4e4e0" stroke-width="1"/><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="90" y="190" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+  <!-- A · 扉渡り: a tall arched door whose lower half breaks into crop marks; a spark waits inside -->
+  <g fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt" stroke-linejoin="miter">
+    <path d="M70 156 V88 A58 58 0 0 1 186 88 V156"/>
+    <path d="M70 184 V232 H110"/>
+    <path d="M186 184 V232 H146"/>
+  </g>
+  <path d="M128 112 C131 136 136 141 160 144 C136 147 131 152 128 176 C125 152 120 147 96 144 C120 141 125 136 128 112 Z" fill="#000"/>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 256" x="90" y="514" width="414.667" height="120" preserveAspectRatio="xMidYMid meet">
+  <!-- exploration lockup: live <text>, to be outlined/custom-drawn later -->
+  <g transform="translate(16 32) scale(0.75)">
+  
+  <g fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt" stroke-linejoin="miter">
+    <path d="M70 156 V88 A58 58 0 0 1 186 88 V156"/>
+    <path d="M70 184 V232 H110"/>
+    <path d="M186 184 V232 H146"/>
+  </g>
+  <path d="M128 112 C131 136 136 141 160 144 C136 147 131 152 128 176 C125 152 120 147 96 144 C120 141 125 136 128 112 Z" fill="#000"/>
+</g>
+  <text x="250" y="150" font-family="Georgia, 'Times New Roman', serif" font-size="96" letter-spacing="2" fill="#000">Kinshoko</text>
+  <text x="254" y="204" font-family="'Yu Mincho','Noto Serif JP','MS Mincho',serif" font-size="34" letter-spacing="18" fill="#000">禁書庫</text>
+</svg></g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="90" y="660" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+  <!-- A · 扉渡り: a tall arched door whose lower half breaks into crop marks; a spark waits inside -->
+  <g fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt" stroke-linejoin="miter">
+    <path d="M70 156 V88 A58 58 0 0 1 186 88 V156"/>
+    <path d="M70 184 V232 H110"/>
+    <path d="M186 184 V232 H146"/>
+  </g>
+  <path d="M128 112 C131 136 136 141 160 144 C136 147 131 152 128 176 C125 152 120 147 96 144 C120 141 125 136 128 112 Z" fill="#000"/>
+</svg>
+</g><text x="122" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="180" y="692" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+  <!-- A · 扉渡り: a tall arched door whose lower half breaks into crop marks; a spark waits inside -->
+  <g fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt" stroke-linejoin="miter">
+    <path d="M70 156 V88 A58 58 0 0 1 186 88 V156"/>
+    <path d="M70 184 V232 H110"/>
+    <path d="M186 184 V232 H146"/>
+  </g>
+  <path d="M128 112 C131 136 136 141 160 144 C136 147 131 152 128 176 C125 152 120 147 96 144 C120 141 125 136 128 112 Z" fill="#000"/>
+</svg>
+</g><text x="196" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="238" y="708" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+  <!-- A · 扉渡り: a tall arched door whose lower half breaks into crop marks; a spark waits inside -->
+  <g fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt" stroke-linejoin="miter">
+    <path d="M70 156 V88 A58 58 0 0 1 186 88 V156"/>
+    <path d="M70 184 V232 H110"/>
+    <path d="M186 184 V232 H146"/>
+  </g>
+  <path d="M128 112 C131 136 136 141 160 144 C136 147 131 152 128 176 C125 152 120 147 96 144 C120 141 125 136 128 112 Z" fill="#000"/>
+</svg>
+</g><text x="246" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="90.0" y="780" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">A · 扉渡り Door</text><text x="90.0" y="814" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">Any door opens the library; its lower half</text><text x="90.0" y="840" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">breaks into crop marks</text><rect x="562.667" y="150" width="474.667" height="774" rx="18" fill="#fff" stroke="#161616" stroke-width="2"/><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="592.667" y="190" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+  <!-- B · 书蝶: a butterfly whose wings are the turning pages of an open book -->
+  <rect x="120" y="60" width="16" height="148" rx="8" fill="#000"/>
+  <g id="c1-w">
+    <path d="M146 72 C172 48 206 40 236 48 L230 66 C204 60 176 66 146 90 Z" fill="#000"/>
+    <path d="M146 104 C170 84 198 76 226 81 L214 126 H146 Z" fill="#000"/>
+    <path d="M146 138 H206 C214 172 198 202 170 212 C156 200 146 182 146 162 Z" fill="#000"/>
+  </g>
+  <use href="#c1-w" transform="translate(256 0) scale(-1 1)"/>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 256" x="592.667" y="514" width="414.667" height="120" preserveAspectRatio="xMidYMid meet">
+  <!-- exploration lockup: live <text>, to be outlined/custom-drawn later -->
+  <g transform="translate(16 32) scale(0.75)">
+  
+  <rect x="120" y="60" width="16" height="148" rx="8" fill="#000"/>
+  <g id="l1-w">
+    <path d="M146 72 C172 48 206 40 236 48 L230 66 C204 60 176 66 146 90 Z" fill="#000"/>
+    <path d="M146 104 C170 84 198 76 226 81 L214 126 H146 Z" fill="#000"/>
+    <path d="M146 138 H206 C214 172 198 202 170 212 C156 200 146 182 146 162 Z" fill="#000"/>
+  </g>
+  <use href="#l1-w" transform="translate(256 0) scale(-1 1)"/>
+</g>
+  <text x="250" y="150" font-family="Georgia, 'Times New Roman', serif" font-size="96" letter-spacing="2" fill="#000">Kinshoko</text>
+  <text x="254" y="204" font-family="'Yu Mincho','Noto Serif JP','MS Mincho',serif" font-size="34" letter-spacing="18" fill="#000">禁書庫</text>
+</svg></g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="592.667" y="660" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+  <!-- B · 书蝶: a butterfly whose wings are the turning pages of an open book -->
+  <rect x="120" y="60" width="16" height="148" rx="8" fill="#000"/>
+  <g id="s164-w">
+    <path d="M146 72 C172 48 206 40 236 48 L230 66 C204 60 176 66 146 90 Z" fill="#000"/>
+    <path d="M146 104 C170 84 198 76 226 81 L214 126 H146 Z" fill="#000"/>
+    <path d="M146 138 H206 C214 172 198 202 170 212 C156 200 146 182 146 162 Z" fill="#000"/>
+  </g>
+  <use href="#s164-w" transform="translate(256 0) scale(-1 1)"/>
+</svg>
+</g><text x="624.667" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="682.667" y="692" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+  <!-- B · 书蝶: a butterfly whose wings are the turning pages of an open book -->
+  <rect x="120" y="60" width="16" height="148" rx="8" fill="#000"/>
+  <g id="s132-w">
+    <path d="M146 72 C172 48 206 40 236 48 L230 66 C204 60 176 66 146 90 Z" fill="#000"/>
+    <path d="M146 104 C170 84 198 76 226 81 L214 126 H146 Z" fill="#000"/>
+    <path d="M146 138 H206 C214 172 198 202 170 212 C156 200 146 182 146 162 Z" fill="#000"/>
+  </g>
+  <use href="#s132-w" transform="translate(256 0) scale(-1 1)"/>
+</svg>
+</g><text x="698.667" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="740.667" y="708" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+  <!-- B · 书蝶: a butterfly whose wings are the turning pages of an open book -->
+  <rect x="120" y="60" width="16" height="148" rx="8" fill="#000"/>
+  <g id="s116-w">
+    <path d="M146 72 C172 48 206 40 236 48 L230 66 C204 60 176 66 146 90 Z" fill="#000"/>
+    <path d="M146 104 C170 84 198 76 226 81 L214 126 H146 Z" fill="#000"/>
+    <path d="M146 138 H206 C214 172 198 202 170 212 C156 200 146 182 146 162 Z" fill="#000"/>
+  </g>
+  <use href="#s116-w" transform="translate(256 0) scale(-1 1)"/>
+</svg>
+</g><text x="748.667" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="592.6666666666667" y="780" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">B · 书蝶 Book-butterfly</text><text x="592.6666666666667" y="808" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="700" fill="#161616" letter-spacing="1.5">RECOMMENDED</text><text x="592.6666666666667" y="842" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">Butterfly wings made of turning book pages</text><rect x="1065.33" y="150" width="474.667" height="774" rx="18" fill="#fff" stroke="#e4e4e0" stroke-width="1"/><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="1095.33" y="190" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+  <!-- C · 书架 K: a standing book is the stem; a book flies up-right, another leans on the shelf -->
+  <path fill="#000" fill-rule="evenodd" d="M48 32 H100 V224 H48 Z M60 62 V74 H88 V62 Z M60 182 V194 H88 V182 Z"/>
+  <path fill="#000" d="M112 92 L172 32 H236 L112 156 Z"/>
+  <path fill="#000" d="M114 166 L146 134 L236 224 H172 Z"/>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 256" x="1095.33" y="514" width="414.667" height="120" preserveAspectRatio="xMidYMid meet">
+  <!-- exploration lockup: live <text>, to be outlined/custom-drawn later -->
+  <g transform="translate(16 32) scale(0.75)">
+  
+  <path fill="#000" fill-rule="evenodd" d="M48 32 H100 V224 H48 Z M60 62 V74 H88 V62 Z M60 182 V194 H88 V182 Z"/>
+  <path fill="#000" d="M112 92 L172 32 H236 L112 156 Z"/>
+  <path fill="#000" d="M114 166 L146 134 L236 224 H172 Z"/>
+</g>
+  <text x="250" y="150" font-family="Georgia, 'Times New Roman', serif" font-size="96" letter-spacing="2" fill="#000">Kinshoko</text>
+  <text x="254" y="204" font-family="'Yu Mincho','Noto Serif JP','MS Mincho',serif" font-size="34" letter-spacing="18" fill="#000">禁書庫</text>
+</svg></g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="1095.33" y="660" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+  <!-- C · 书架 K: a standing book is the stem; a book flies up-right, another leans on the shelf -->
+  <path fill="#000" fill-rule="evenodd" d="M48 32 H100 V224 H48 Z M60 62 V74 H88 V62 Z M60 182 V194 H88 V182 Z"/>
+  <path fill="#000" d="M112 92 L172 32 H236 L112 156 Z"/>
+  <path fill="#000" d="M114 166 L146 134 L236 224 H172 Z"/>
+</svg>
+</g><text x="1127.33" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="1185.33" y="692" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+  <!-- C · 书架 K: a standing book is the stem; a book flies up-right, another leans on the shelf -->
+  <path fill="#000" fill-rule="evenodd" d="M48 32 H100 V224 H48 Z M60 62 V74 H88 V62 Z M60 182 V194 H88 V182 Z"/>
+  <path fill="#000" d="M112 92 L172 32 H236 L112 156 Z"/>
+  <path fill="#000" d="M114 166 L146 134 L236 224 H172 Z"/>
+</svg>
+</g><text x="1201.33" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="1243.33" y="708" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+  <!-- C · 书架 K: a standing book is the stem; a book flies up-right, another leans on the shelf -->
+  <path fill="#000" fill-rule="evenodd" d="M48 32 H100 V224 H48 Z M60 62 V74 H88 V62 Z M60 182 V194 H88 V182 Z"/>
+  <path fill="#000" d="M112 92 L172 32 H236 L112 156 Z"/>
+  <path fill="#000" d="M114 166 L146 134 L236 224 H172 Z"/>
+</svg>
+</g><text x="1251.33" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="1095.3333333333335" y="780" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">C · 书架 K Shelf-K</text><text x="1095.3333333333335" y="814" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">A K built from a standing, a flying and a</text><text x="1095.3333333333335" y="840" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">leaning book</text><rect x="60" y="952" width="474.667" height="774" rx="18" fill="#fff" stroke="#e4e4e0" stroke-width="1"/><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="90" y="992" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+  <!-- D · 卷栞: a closed book with its bookmark ribbon curling into a drill -->
+  <rect x="40" y="24" width="176" height="40" rx="6" fill="#000"/>
+  <path d="M84 64 V152 A50 50 0 1 0 184 152 A32 32 0 1 0 120 152 A14 14 0 0 0 148 152" fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt"/>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 256" x="90" y="1316" width="414.667" height="120" preserveAspectRatio="xMidYMid meet">
+  <!-- exploration lockup: live <text>, to be outlined/custom-drawn later -->
+  <g transform="translate(16 32) scale(0.75)">
+  
+  <rect x="40" y="24" width="176" height="40" rx="6" fill="#000"/>
+  <path d="M84 64 V152 A50 50 0 1 0 184 152 A32 32 0 1 0 120 152 A14 14 0 0 0 148 152" fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt"/>
+</g>
+  <text x="250" y="150" font-family="Georgia, 'Times New Roman', serif" font-size="96" letter-spacing="2" fill="#000">Kinshoko</text>
+  <text x="254" y="204" font-family="'Yu Mincho','Noto Serif JP','MS Mincho',serif" font-size="34" letter-spacing="18" fill="#000">禁書庫</text>
+</svg></g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="90" y="1462" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+  <!-- D · 卷栞: a closed book with its bookmark ribbon curling into a drill -->
+  <rect x="40" y="24" width="176" height="40" rx="6" fill="#000"/>
+  <path d="M84 64 V152 A50 50 0 1 0 184 152 A32 32 0 1 0 120 152 A14 14 0 0 0 148 152" fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt"/>
+</svg>
+</g><text x="122" y="1546" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="180" y="1494" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+  <!-- D · 卷栞: a closed book with its bookmark ribbon curling into a drill -->
+  <rect x="40" y="24" width="176" height="40" rx="6" fill="#000"/>
+  <path d="M84 64 V152 A50 50 0 1 0 184 152 A32 32 0 1 0 120 152 A14 14 0 0 0 148 152" fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt"/>
+</svg>
+</g><text x="196" y="1546" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="238" y="1510" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+  <!-- D · 卷栞: a closed book with its bookmark ribbon curling into a drill -->
+  <rect x="40" y="24" width="176" height="40" rx="6" fill="#000"/>
+  <path d="M84 64 V152 A50 50 0 1 0 184 152 A32 32 0 1 0 120 152 A14 14 0 0 0 148 152" fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt"/>
+</svg>
+</g><text x="246" y="1546" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="90.0" y="1582" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">D · 卷栞 Ribbon</text><text x="90.0" y="1616" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">A bookmark ribbon curling into a drill</text><text x="90.0" y="1642" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">twin-tail</text></svg>

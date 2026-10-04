@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+    <linearGradient id="bg" x2=".35" y2="1"><stop stop-color="#FFFCF7"/><stop offset="1" stop-color="#F2EBE1"/></linearGradient>
+    <radialGradient id="ambient" gradientUnits="userSpaceOnUse" cx="340" cy="280" r="670" gradientTransform="">
+      <stop stop-color="#DDD6EE" stop-opacity="0.12"/>
+      <stop offset=".38" stop-color="#DDD6EE" stop-opacity="0.074"/>
+      <stop offset=".72" stop-color="#DDD6EE" stop-opacity="0.022"/>
+      <stop offset="1" stop-color="#DDD6EE" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow" gradientUnits="userSpaceOnUse" cx="580" cy="535" r="470" gradientTransform="translate(580 535) scale(1.06 .88) translate(-580 -535)">
+      <stop stop-color="#EDB6C4" stop-opacity="0.18"/>
+      <stop offset=".38" stop-color="#EDB6C4" stop-opacity="0.112"/>
+      <stop offset=".72" stop-color="#EDB6C4" stop-opacity="0.032"/>
+      <stop offset="1" stop-color="#EDB6C4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2=".6" y2="1"><stop stop-color="#5C507E" stop-opacity=".93"/><stop offset="1" stop-color="#2E2747" stop-opacity=".96"/></linearGradient>
+    <radialGradient id="refract" gradientUnits="userSpaceOnUse" cx="164" cy="145" r="125" gradientTransform="">
+      <stop stop-color="#EDB6C4" stop-opacity="0.08"/>
+      <stop offset=".38" stop-color="#EDB6C4" stop-opacity="0.050"/>
+      <stop offset=".72" stop-color="#EDB6C4" stop-opacity="0.014"/>
+      <stop offset="1" stop-color="#EDB6C4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sheen" x2=".2" y2="1"><stop stop-color="#fff" stop-opacity="0.12"/><stop offset=".52" stop-color="#fff" stop-opacity=".03"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="depth" x1="64" y1="20" x2="175" y2="236" gradientUnits="userSpaceOnUse"><stop stop-color="#171124" stop-opacity="0"/><stop offset=".5" stop-color="#171124" stop-opacity="0"/><stop offset="1" stop-color="#171124" stop-opacity=".32"/></linearGradient>
+    <linearGradient id="spec" x1="68" y1="22" x2="188" y2="226" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8F0" stop-opacity="0.5"/><stop offset=".26" stop-color="#F3F1FF" stop-opacity=".34"/>
+      <stop offset=".50" stop-color="#FFF8F0" stop-opacity=".08"/><stop offset=".76" stop-color="#F4EEFF" stop-opacity=".14"/><stop offset="1" stop-color="#FFF6E9" stop-opacity=".54"/>
+    </linearGradient>
+    <!-- Local masks gate slightly displaced spectral strokes, under white highlights. -->
+    <radialGradient id="edge-top" gradientUnits="userSpaceOnUse" cx="78" cy="32" r="58" gradientTransform="">
+      <stop stop-color="#fff" stop-opacity="0"/>
+      <stop offset=".38" stop-color="#fff" stop-opacity="0.000"/>
+      <stop offset=".72" stop-color="#fff" stop-opacity="0.000"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="edge-bottom" gradientUnits="userSpaceOnUse" cx="139" cy="206" r="61" gradientTransform="">
+      <stop stop-color="#fff" stop-opacity="0.8"/>
+      <stop offset=".38" stop-color="#fff" stop-opacity="0.496"/>
+      <stop offset=".72" stop-color="#fff" stop-opacity="0.144"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="edge-hole" gradientUnits="userSpaceOnUse" cx="111" cy="115" r="29" gradientTransform="">
+      <stop stop-color="#fff" stop-opacity="0.6"/>
+      <stop offset=".38" stop-color="#fff" stop-opacity="0.372"/>
+      <stop offset=".72" stop-color="#fff" stop-opacity="0.108"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="dispersion" maskUnits="userSpaceOnUse" x="40" y="0" width="180" height="265" style="mask-type:luminance">
+      <rect x="40" width="180" height="265" fill="#000"/>
+      <rect x="40" width="180" height="265" fill="url(#edge-top)"/>
+      <rect x="40" width="180" height="265" fill="url(#edge-bottom)"/>
+      <rect x="40" width="180" height="265" fill="url(#edge-hole)"/>
+    </mask>
+    <linearGradient id="acc" x1=".15" y1="0" x2=".78" y2="1"><stop stop-color="#FFD5DF"/><stop offset=".45" stop-color="#DF779C"/><stop offset="1" stop-color="#A84975"/></linearGradient>
+    <linearGradient id="star-edge" x2=".75" y2="1"><stop stop-color="#FFFDF4" stop-opacity=".90"/><stop offset=".46" stop-color="#FFF5F1" stop-opacity=".15"/><stop offset="1" stop-color="#DAD6F2" stop-opacity=".28"/></linearGradient>
+    <radialGradient id="star-sheen" gradientUnits="userSpaceOnUse" cx="690" cy="200" r="75" gradientTransform="">
+      <stop stop-color="#fff" stop-opacity="0.42"/>
+      <stop offset=".38" stop-color="#fff" stop-opacity="0.260"/>
+      <stop offset=".72" stop-color="#fff" stop-opacity="0.076"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- A theme-related palette wraps the WHOLE star; no local mask gaps.
+         Warm gold passes through peach/rose before lavender, avoiding cyan/green seams. -->
+    <linearGradient id="star-spectrum" x1="639" y1="158" x2="783" y2="327" gradientUnits="userSpaceOnUse" color-interpolation="sRGB">
+      <stop stop-color="#FFE7D7"/><stop offset=".27" stop-color="#F4C5D4"/>
+      <stop offset=".52" stop-color="#C6C9E9"/><stop offset=".77" stop-color="#D7B8E6"/>
+      <stop offset="1" stop-color="#EAB6CE"/>
+    </linearGradient>
+    <filter id="star-feather-wide" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="3.2"/></filter>
+    <filter id="star-feather-mid" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.6"/></filter>
+    <filter id="star-feather-fine" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation=".65"/></filter>
+    <clipPath id="tile"><rect width="1024" height="1024" rx="230"/></clipPath>
+    <clipPath id="book"><path clip-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></clipPath>
+    <!-- Exclude the ORIGINAL keyhole after the shifted shadow has been blurred.
+         A hole in the shadow's own path is not enough: displacement/blur fills it. -->
+    <clipPath id="shadow-outside-hole" clipPathUnits="userSpaceOnUse"><path clip-rule="evenodd" d="M-256 -256 H512 V512 H-256 Z M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z" transform="translate(153.6 161.6) scale(2.8)"/></clipPath>
+    <clipPath id="spark"><path d="M716 132 C732.64 219.36 732.64 219.36 820 236 C732.64 252.64 732.64 252.64 716 340 C699.36 252.64 699.36 252.64 612 236 C699.36 219.36 699.36 219.36 716 132 Z"/></clipPath>
+    <filter id="shadow" x="-60%" y="-50%" width="220%" height="220%"><feGaussianBlur stdDeviation="4.5"/></filter>
+    <filter id="star-shadow" x="-60%" y="-60%" width="220%" height="240%"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="broad" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.6"/></filter>
+    <filter id="spectral-soft" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation=".48"/></filter>
+    </defs>
+<g clip-path="url(#tile)">
+<g transform="translate(-51.2 -48) scale(1.1)">
+<path d="M716 132 C732.64 219.36 732.64 219.36 820 236 C732.64 252.64 732.64 252.64 716 340 C699.36 252.64 699.36 252.64 612 236 C699.36 219.36 699.36 219.36 716 132 Z" transform="translate(-2 13)" fill="#38333E" opacity="0.156" filter="url(#star-shadow)"/>
+          <path d="M716 132 C732.64 219.36 732.64 219.36 820 236 C732.64 252.64 732.64 252.64 716 340 C699.36 252.64 699.36 252.64 612 236 C699.36 219.36 699.36 219.36 716 132 Z" fill="url(#acc)"/>
+          <g clip-path="url(#spark)"><rect x="610" y="130" width="212" height="212" fill="url(#star-sheen)"/>
+          <path d="M716 132 C732.64 219.36 732.64 219.36 820 236 C732.64 252.64 732.64 252.64 716 340 C699.36 252.64 699.36 252.64 612 236 C699.36 219.36 699.36 219.36 716 132 Z" fill="none" stroke="url(#star-spectrum)" stroke-width="32" opacity="0.09" stroke-linejoin="round" filter="url(#star-feather-wide)"/><path d="M716 132 C732.64 219.36 732.64 219.36 820 236 C732.64 252.64 732.64 252.64 716 340 C699.36 252.64 699.36 252.64 612 236 C699.36 219.36 699.36 219.36 716 132 Z" fill="none" stroke="url(#star-spectrum)" stroke-width="22" opacity="0.14" stroke-linejoin="round" filter="url(#star-feather-wide)"/><path d="M716 132 C732.64 219.36 732.64 219.36 820 236 C732.64 252.64 732.64 252.64 716 340 C699.36 252.64 699.36 252.64 612 236 C699.36 219.36 699.36 219.36 716 132 Z" fill="none" stroke="url(#star-spectrum)" stroke-width="14" opacity="0.22" stroke-linejoin="round" filter="url(#star-feather-mid)"/><path d="M716 132 C732.64 219.36 732.64 219.36 820 236 C732.64 252.64 732.64 252.64 716 340 C699.36 252.64 699.36 252.64 612 236 C699.36 219.36 699.36 219.36 716 132 Z" fill="none" stroke="url(#star-spectrum)" stroke-width="8" opacity="0.32" stroke-linejoin="round" filter="url(#star-feather-mid)"/><path d="M716 132 C732.64 219.36 732.64 219.36 820 236 C732.64 252.64 732.64 252.64 716 340 C699.36 252.64 699.36 252.64 612 236 C699.36 219.36 699.36 219.36 716 132 Z" fill="none" stroke="url(#star-spectrum)" stroke-width="3.5" opacity="0.42" stroke-linejoin="round" filter="url(#star-feather-fine)"/>
+          <path d="M716 132 C732.64 219.36 732.64 219.36 820 236 C732.64 252.64 732.64 252.64 716 340 C699.36 252.64 699.36 252.64 612 236 C699.36 219.36 699.36 219.36 716 132 Z" fill="none" stroke="url(#star-edge)" stroke-width="1.2" opacity="0.6" stroke-linejoin="round"/></g>
+</g></g>
+</svg>

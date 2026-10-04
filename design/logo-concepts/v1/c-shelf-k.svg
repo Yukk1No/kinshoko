@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- C · 书架 K: a standing book is the stem, a leaning book and a flying book are the arms -->
+  <path fill="#000" fill-rule="evenodd" d="M48 32 H100 V224 H48 Z M60 64 V76 H88 V64 Z M60 180 V192 H88 V180 Z"/>
+  <path fill="#000" d="M134 122 L236 224 H172 L112 164 Z"/>
+  <path fill="#000" d="M112 120 L196 36 L226 66 L142 150 Z"/>
+</svg>

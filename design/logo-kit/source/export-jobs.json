@@ -1,0 +1,432 @@
+[
+  {
+    "src": "lockups/horizontal-day.svg",
+    "dest": "lockups/png/horizontal-day.png",
+    "width": 1600
+  },
+  {
+    "src": "lockups/horizontal-mono-black.svg",
+    "dest": "lockups/png/horizontal-mono-black.png",
+    "width": 1600
+  },
+  {
+    "src": "lockups/horizontal-mono-ink.svg",
+    "dest": "lockups/png/horizontal-mono-ink.png",
+    "width": 1600
+  },
+  {
+    "src": "lockups/horizontal-night.svg",
+    "dest": "lockups/png/horizontal-night.png",
+    "width": 1600
+  },
+  {
+    "src": "lockups/horizontal-reverse-white.svg",
+    "dest": "lockups/png/horizontal-reverse-white.png",
+    "width": 1600
+  },
+  {
+    "src": "lockups/vertical-day.svg",
+    "dest": "lockups/png/vertical-day.png",
+    "width": 1600
+  },
+  {
+    "src": "lockups/vertical-mono-black.svg",
+    "dest": "lockups/png/vertical-mono-black.png",
+    "width": 1600
+  },
+  {
+    "src": "lockups/vertical-mono-ink.svg",
+    "dest": "lockups/png/vertical-mono-ink.png",
+    "width": 1600
+  },
+  {
+    "src": "lockups/vertical-night.svg",
+    "dest": "lockups/png/vertical-night.png",
+    "width": 1600
+  },
+  {
+    "src": "lockups/vertical-reverse-white.svg",
+    "dest": "lockups/png/vertical-reverse-white.png",
+    "width": 1600
+  },
+  {
+    "src": "wordmarks/wordmark-day.svg",
+    "dest": "wordmarks/png/wordmark-day.png",
+    "width": 1600
+  },
+  {
+    "src": "wordmarks/wordmark-mono-black.svg",
+    "dest": "wordmarks/png/wordmark-mono-black.png",
+    "width": 1600
+  },
+  {
+    "src": "wordmarks/wordmark-mono-ink.svg",
+    "dest": "wordmarks/png/wordmark-mono-ink.png",
+    "width": 1600
+  },
+  {
+    "src": "wordmarks/wordmark-night.svg",
+    "dest": "wordmarks/png/wordmark-night.png",
+    "width": 1600
+  },
+  {
+    "src": "wordmarks/wordmark-reverse-white.svg",
+    "dest": "wordmarks/png/wordmark-reverse-white.png",
+    "width": 1600
+  },
+  {
+    "src": "symbols/app-mark-day.svg",
+    "dest": "symbols/png/app-mark-day.png",
+    "width": 512
+  },
+  {
+    "src": "symbols/app-mark-mono-black.svg",
+    "dest": "symbols/png/app-mark-mono-black.png",
+    "width": 512
+  },
+  {
+    "src": "symbols/app-mark-mono-ink.svg",
+    "dest": "symbols/png/app-mark-mono-ink.png",
+    "width": 512
+  },
+  {
+    "src": "symbols/app-mark-night.svg",
+    "dest": "symbols/png/app-mark-night.png",
+    "width": 512
+  },
+  {
+    "src": "symbols/app-mark-reverse-white.svg",
+    "dest": "symbols/png/app-mark-reverse-white.png",
+    "width": 512
+  },
+  {
+    "src": "symbols/bookmark-compact-day.svg",
+    "dest": "symbols/png/bookmark-compact-day.png",
+    "width": 24
+  },
+  {
+    "src": "symbols/bookmark-compact-mono-black.svg",
+    "dest": "symbols/png/bookmark-compact-mono-black.png",
+    "width": 24
+  },
+  {
+    "src": "symbols/bookmark-compact-mono-ink.svg",
+    "dest": "symbols/png/bookmark-compact-mono-ink.png",
+    "width": 24
+  },
+  {
+    "src": "symbols/bookmark-compact-night.svg",
+    "dest": "symbols/png/bookmark-compact-night.png",
+    "width": 24
+  },
+  {
+    "src": "symbols/bookmark-compact-reverse-white.svg",
+    "dest": "symbols/png/bookmark-compact-reverse-white.png",
+    "width": 24
+  },
+  {
+    "src": "symbols/bookmark-micro-day.svg",
+    "dest": "symbols/png/bookmark-micro-day.png",
+    "width": 16
+  },
+  {
+    "src": "symbols/bookmark-micro-mono-black.svg",
+    "dest": "symbols/png/bookmark-micro-mono-black.png",
+    "width": 16
+  },
+  {
+    "src": "symbols/bookmark-micro-mono-ink.svg",
+    "dest": "symbols/png/bookmark-micro-mono-ink.png",
+    "width": 16
+  },
+  {
+    "src": "symbols/bookmark-micro-night.svg",
+    "dest": "symbols/png/bookmark-micro-night.png",
+    "width": 16
+  },
+  {
+    "src": "symbols/bookmark-micro-reverse-white.svg",
+    "dest": "symbols/png/bookmark-micro-reverse-white.png",
+    "width": 16
+  },
+  {
+    "src": "symbols/bookmark-small-day.svg",
+    "dest": "symbols/png/bookmark-small-day.png",
+    "width": 32
+  },
+  {
+    "src": "symbols/bookmark-small-mono-black.svg",
+    "dest": "symbols/png/bookmark-small-mono-black.png",
+    "width": 32
+  },
+  {
+    "src": "symbols/bookmark-small-mono-ink.svg",
+    "dest": "symbols/png/bookmark-small-mono-ink.png",
+    "width": 32
+  },
+  {
+    "src": "symbols/bookmark-small-night.svg",
+    "dest": "symbols/png/bookmark-small-night.png",
+    "width": 32
+  },
+  {
+    "src": "symbols/bookmark-small-reverse-white.svg",
+    "dest": "symbols/png/bookmark-small-reverse-white.png",
+    "width": 32
+  },
+  {
+    "src": "symbols/bookmark-standard-day.svg",
+    "dest": "symbols/png/bookmark-standard-day.png",
+    "width": 512
+  },
+  {
+    "src": "symbols/bookmark-standard-mono-black.svg",
+    "dest": "symbols/png/bookmark-standard-mono-black.png",
+    "width": 512
+  },
+  {
+    "src": "symbols/bookmark-standard-mono-ink.svg",
+    "dest": "symbols/png/bookmark-standard-mono-ink.png",
+    "width": 512
+  },
+  {
+    "src": "symbols/bookmark-standard-night.svg",
+    "dest": "symbols/png/bookmark-standard-night.png",
+    "width": 512
+  },
+  {
+    "src": "symbols/bookmark-standard-reverse-white.svg",
+    "dest": "symbols/png/bookmark-standard-reverse-white.png",
+    "width": 512
+  },
+  {
+    "src": "web/svg/icon-day-micro.svg",
+    "dest": "web/png/icon-day-16.png",
+    "width": 16
+  },
+  {
+    "src": "web/svg/icon-day-micro.svg",
+    "dest": "web/png/icon-day-20.png",
+    "width": 20
+  },
+  {
+    "src": "web/svg/icon-day-compact.svg",
+    "dest": "web/png/icon-day-24.png",
+    "width": 24
+  },
+  {
+    "src": "web/svg/icon-day-small.svg",
+    "dest": "web/png/icon-day-32.png",
+    "width": 32
+  },
+  {
+    "src": "web/svg/icon-day-standard.svg",
+    "dest": "web/png/icon-day-40.png",
+    "width": 40
+  },
+  {
+    "src": "web/svg/icon-day-standard.svg",
+    "dest": "web/png/icon-day-48.png",
+    "width": 48
+  },
+  {
+    "src": "web/svg/icon-day-standard.svg",
+    "dest": "web/png/icon-day-64.png",
+    "width": 64
+  },
+  {
+    "src": "web/svg/icon-day-standard.svg",
+    "dest": "web/png/icon-day-96.png",
+    "width": 96
+  },
+  {
+    "src": "web/svg/icon-day-standard.svg",
+    "dest": "web/png/icon-day-128.png",
+    "width": 128
+  },
+  {
+    "src": "web/svg/icon-day-standard.svg",
+    "dest": "web/png/icon-day-180.png",
+    "width": 180
+  },
+  {
+    "src": "web/svg/icon-day-standard.svg",
+    "dest": "web/png/icon-day-192.png",
+    "width": 192
+  },
+  {
+    "src": "web/svg/icon-day-standard.svg",
+    "dest": "web/png/icon-day-256.png",
+    "width": 256
+  },
+  {
+    "src": "web/svg/icon-day-standard.svg",
+    "dest": "web/png/icon-day-512.png",
+    "width": 512
+  },
+  {
+    "src": "web/svg/icon-day-standard.svg",
+    "dest": "web/png/icon-day-1024.png",
+    "width": 1024
+  },
+  {
+    "src": "web/svg/icon-day-micro.svg",
+    "dest": "web/png/retina/icon-day-16@2x.png",
+    "width": 32
+  },
+  {
+    "src": "web/svg/icon-day-micro.svg",
+    "dest": "web/png/retina/icon-day-16@3x.png",
+    "width": 48
+  },
+  {
+    "src": "web/svg/icon-day-micro.svg",
+    "dest": "web/png/retina/icon-day-20@2x.png",
+    "width": 40
+  },
+  {
+    "src": "web/svg/icon-day-micro.svg",
+    "dest": "web/png/retina/icon-day-20@3x.png",
+    "width": 60
+  },
+  {
+    "src": "web/svg/icon-day-compact.svg",
+    "dest": "web/png/retina/icon-day-24@2x.png",
+    "width": 48
+  },
+  {
+    "src": "web/svg/icon-day-compact.svg",
+    "dest": "web/png/retina/icon-day-24@3x.png",
+    "width": 72
+  },
+  {
+    "src": "web/svg/icon-day-small.svg",
+    "dest": "web/png/retina/icon-day-32@2x.png",
+    "width": 64
+  },
+  {
+    "src": "web/svg/icon-day-small.svg",
+    "dest": "web/png/retina/icon-day-32@3x.png",
+    "width": 96
+  },
+  {
+    "src": "web/svg/icon-day-maskable.svg",
+    "dest": "web/png/icon-day-maskable-512.png",
+    "width": 512
+  },
+  {
+    "src": "web/svg/icon-night-micro.svg",
+    "dest": "web/png/icon-night-16.png",
+    "width": 16
+  },
+  {
+    "src": "web/svg/icon-night-micro.svg",
+    "dest": "web/png/icon-night-20.png",
+    "width": 20
+  },
+  {
+    "src": "web/svg/icon-night-compact.svg",
+    "dest": "web/png/icon-night-24.png",
+    "width": 24
+  },
+  {
+    "src": "web/svg/icon-night-small.svg",
+    "dest": "web/png/icon-night-32.png",
+    "width": 32
+  },
+  {
+    "src": "web/svg/icon-night-standard.svg",
+    "dest": "web/png/icon-night-40.png",
+    "width": 40
+  },
+  {
+    "src": "web/svg/icon-night-standard.svg",
+    "dest": "web/png/icon-night-48.png",
+    "width": 48
+  },
+  {
+    "src": "web/svg/icon-night-standard.svg",
+    "dest": "web/png/icon-night-64.png",
+    "width": 64
+  },
+  {
+    "src": "web/svg/icon-night-standard.svg",
+    "dest": "web/png/icon-night-96.png",
+    "width": 96
+  },
+  {
+    "src": "web/svg/icon-night-standard.svg",
+    "dest": "web/png/icon-night-128.png",
+    "width": 128
+  },
+  {
+    "src": "web/svg/icon-night-standard.svg",
+    "dest": "web/png/icon-night-180.png",
+    "width": 180
+  },
+  {
+    "src": "web/svg/icon-night-standard.svg",
+    "dest": "web/png/icon-night-192.png",
+    "width": 192
+  },
+  {
+    "src": "web/svg/icon-night-standard.svg",
+    "dest": "web/png/icon-night-256.png",
+    "width": 256
+  },
+  {
+    "src": "web/svg/icon-night-standard.svg",
+    "dest": "web/png/icon-night-512.png",
+    "width": 512
+  },
+  {
+    "src": "web/svg/icon-night-standard.svg",
+    "dest": "web/png/icon-night-1024.png",
+    "width": 1024
+  },
+  {
+    "src": "web/svg/icon-night-micro.svg",
+    "dest": "web/png/retina/icon-night-16@2x.png",
+    "width": 32
+  },
+  {
+    "src": "web/svg/icon-night-micro.svg",
+    "dest": "web/png/retina/icon-night-16@3x.png",
+    "width": 48
+  },
+  {
+    "src": "web/svg/icon-night-micro.svg",
+    "dest": "web/png/retina/icon-night-20@2x.png",
+    "width": 40
+  },
+  {
+    "src": "web/svg/icon-night-micro.svg",
+    "dest": "web/png/retina/icon-night-20@3x.png",
+    "width": 60
+  },
+  {
+    "src": "web/svg/icon-night-compact.svg",
+    "dest": "web/png/retina/icon-night-24@2x.png",
+    "width": 48
+  },
+  {
+    "src": "web/svg/icon-night-compact.svg",
+    "dest": "web/png/retina/icon-night-24@3x.png",
+    "width": 72
+  },
+  {
+    "src": "web/svg/icon-night-small.svg",
+    "dest": "web/png/retina/icon-night-32@2x.png",
+    "width": 64
+  },
+  {
+    "src": "web/svg/icon-night-small.svg",
+    "dest": "web/png/retina/icon-night-32@3x.png",
+    "width": 96
+  },
+  {
+    "src": "web/svg/icon-night-maskable.svg",
+    "dest": "web/png/icon-night-maskable-512.png",
+    "width": 512
+  }
+]
