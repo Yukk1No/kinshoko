@@ -30,12 +30,13 @@
 
 ### 首批全年龄样本（2026-10-04）
 
-[sample-manifest.pixiv.json](sample-manifest.pixiv.json) 记录 211 张，用 `python scripts/samples/fetch_pixiv.py` 按清单下载并校验到 `samples/pixiv/`。
+[sample-manifest.pixiv.json](sample-manifest.pixiv.json) 记录 239 张，用 `python scripts/samples/fetch_pixiv.py` 按清单下载并校验到 `samples/pixiv/`。
 
 - 质量：主要取自最近 12 周的 pixiv 周榜。排行榜标签稀疏的维度（刘海、多人、半身、线稿、灰度、中分、极长图），从标签搜索的热门作品和带 `1000users入り`／`5000users入り` 标签的作品补齐。每张收藏数 ≥ 1000，中位数约 5200。
 - 过滤：全年龄、非 AI 生成（早于 pixiv AI 标注的作品按非 AI 处理），每位作者一张，多页作品取第 1 页。
 - 校准集按作品 ID 的哈希固定划出约 20%。
-- pixiv 标为敏感（`sl` ≥ 4）的全年龄作品，未登录时不提供原图地址，已从首批替换。它们适合作分级测试中“敏感但非 R-18”的样本，与 R-18 子集一起由发起者登录后下载。
+- 其中 28 张是 pixiv 标为敏感（`sl` ≥ 4）的全年龄作品，覆盖维度含 `sensitive`，作分级测试中“敏感但非 R-18”的样本。未登录时作品接口不给原图地址，脚本改用 `/pages` 接口取得。
+- R-18 子集由发起者手动下载，保留 pixiv 文件名（`<作品ID>_p<页码>.<扩展名>`），按程度放入 `samples/pixiv-r18/questionable/` 或 `explicit/`，再运行 `python scripts/samples/import_r18.py` 生成 `sample-manifest.pixiv-r18.json`。分级门槛只用 R-18 标记与程度，不需要作者标签。
 - 透明图未从 pixiv 取得，后续以自制图补充。
 
 ## 导入与数据保护（#8）
