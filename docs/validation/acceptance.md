@@ -1,6 +1,6 @@
 # 首个本地版本的验收约定
 
-2026-10-04。来源：[#4 确定首个本地版本的验收样本与指标](https://github.com/Yukk1No/kinshoko/issues/4) 的第十一轮访谈（Q44～Q67，记录见 [alignment.md](../discovery/alignment.md#第十一轮已确认)）；桌面钉图一节按第十二轮（Q68～Q73）修订。本文供 [#6](https://github.com/Yukk1No/kinshoko/issues/6)、[#7](https://github.com/Yukk1No/kinshoko/issues/7)、[#8](https://github.com/Yukk1No/kinshoko/issues/8) 等原型使用，不是实现规格；表中数值均为尚未实测的假设，原型结果可以修正，修正前后两版都要保留。
+2026-10-05。来源：[#4 确定首个本地版本的验收样本与指标](https://github.com/Yukk1No/kinshoko/issues/4) 的第十一轮访谈（Q44～Q67，记录见 [alignment.md](../discovery/alignment.md#第十一轮已确认)）；桌面钉图一节按第十二轮（Q68～Q73）修订，内容分级与安全模式一节按第十四轮（Q97～Q111）修订。本文供 [#6](https://github.com/Yukk1No/kinshoko/issues/6)、[#7](https://github.com/Yukk1No/kinshoko/issues/7)、[#8](https://github.com/Yukk1No/kinshoko/issues/8) 等原型使用，不是实现规格；表中数值均为尚未实测的假设，原型结果可以修正，修正前后两版都要保留。
 
 ## 验收原则
 
@@ -120,7 +120,28 @@
 
 ## 内容分级与安全模式
 
+2026-10-05 按 [#13](https://github.com/Yukk1No/kinshoko/issues/13) 的画师试用修订（Q97～Q111，记录见 [alignment.md](../discovery/alignment.md#第十四轮已确认)）：图片墙与查找中由原位模糊改为隐藏。
+
+首版提供全局安全模式开关，以封印书作为控件，覆盖浏览、搜索、参考组和钉图，处理 questionable 与 explicit；新安装默认开启，可用快捷键切换。分级沿用自动建议加人工修正的规则，人工决定优先。验收见上文“分级漏判”。
+
+- **图片墙与查找**：这些图不出现，其余图片补上空位；所有计数与候选都只按可见的图计算。正在查看的图被封印时，查看器回到图片墙。
+- **参考组与钉图**：原位模糊，保留布局，单张确认后显示。
+- **封印**：按下后约 0.3 秒内图的内容无法辨认，整段动画约 1 秒（假设值）。
+
+客观门槛：
+
+- 开启后，图片墙、查找结果、文件夹与标签计数、查找候选中都找不到被封印的图，也看不出它们的数量。
+- 开启后约 0.3 秒内，被封印图的内容无法辨认；释放未播完时开启，同样满足这个时限。
+- 参考组与钉图中的成人图保持原位与布局，关闭后原样恢复。
+
+释放特效的观感、时长与播放期间的输入方式属于定性反馈，不作门槛。
+
+<details>
+<summary>修订前的约定（2026-10-04 Q60、Q61）</summary>
+
 首版提供全局安全模式开关，覆盖浏览、搜索、参考组和钉图。开启时模糊 questionable 与 explicit，位置保留，点开前需要确认；新安装默认开启，可用快捷键切换。分级沿用自动建议加人工修正的规则，人工决定优先。验收见上文“分级漏判”。
+
+</details>
 
 ## 反馈渠道
 
