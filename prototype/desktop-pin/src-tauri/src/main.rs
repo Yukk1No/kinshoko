@@ -822,6 +822,24 @@ async fn set_scale(app: AppHandle, id: String, scale: f64, ax: f64, ay: f64) -> 
     Ok(())
 }
 
+/// Pen/touch drag: the page moves the window itself (see pinView in main.js).
+#[tauri::command]
+async fn move_pin(app: AppHandle, id: String, x: i32, y: i32) -> Result<(), String> {
+    let pin = find_pin(&app, &id).ok_or("pin not found")?;
+    if pin.locked || pin.hidden.is_some() {
+        return Ok(());
+    }
+    update_pin(&app, &id, |p| {
+        p.x = x;
+        p.y = y;
+    });
+    if let Some(w) = app.get_webview_window(&pin.label()) {
+        w.set_position(PhysicalPosition::new(x, y)).map_err(|e| e.to_string())?;
+    }
+    save(&app);
+    Ok(())
+}
+
 #[tauri::command]
 async fn set_opacity(app: AppHandle, id: String, opacity: f64) -> Result<(), String> {
     update_pin(&app, &id, |p| p.opacity = opacity.clamp(0.1, 1.0)).ok_or("pin not found")?;
@@ -1000,6 +1018,7 @@ fn main() {
             rotate,
             set_scale,
             set_opacity,
+            move_pin,
             close_pin,
             change_key,
             set_logging,

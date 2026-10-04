@@ -114,9 +114,12 @@ async function pinView(id) {
     if (b) act(b.dataset.act);
   });
 
-  // Drag to move. startDragging swallows dblclick, so detect double-click by hand.
+  // Drag to move. Mouse: the OS move loop (startDragging). Pen/touch: under Windows Ink the
+  // webview treats a pen drag as a pan gesture and never sends the compat mousedown that
+  // startDragging needs (#7), so move the window ourselves from pointer events.
   let lastDown = 0;
-  canvas.addEventListener("mousedown", (e) => {
+  let penDrag = null;
+  canvas.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || !pin) return;
     const now = performance.now();
     if (now - lastDown < 320) {
@@ -126,8 +129,28 @@ async function pinView(id) {
       return;
     }
     lastDown = now;
-    if (!pin.locked) getCurrentWindow().startDragging();
+    if (pin.locked) return;
+    if (e.pointerType === "mouse") {
+      getCurrentWindow().startDragging();
+      return;
+    }
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    penDrag = { pointerId: e.pointerId, sx: e.screenX, sy: e.screenY, x0: pin.x, y0: pin.y, frame: 0 };
   });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!penDrag || e.pointerId !== penDrag.pointerId) return;
+    const dpr = window.devicePixelRatio;
+    const x = Math.round(penDrag.x0 + (e.screenX - penDrag.sx) * dpr);
+    const y = Math.round(penDrag.y0 + (e.screenY - penDrag.sy) * dpr);
+    cancelAnimationFrame(penDrag.frame);
+    penDrag.frame = requestAnimationFrame(() => invoke("move_pin", { id, x, y }));
+  });
+  const endPenDrag = (e) => {
+    if (penDrag && e.pointerId === penDrag.pointerId) penDrag = null;
+  };
+  canvas.addEventListener("pointerup", endPenDrag);
+  canvas.addEventListener("pointercancel", endPenDrag);
 
   // Wheel: animated zoom around the cursor. Ctrl+wheel: opacity (Snipaste convention).
   let targetScale = null;

@@ -53,6 +53,8 @@ pre { font: 11px/1.5 Consolas, monospace; color: var(--secondary); max-height: 2
 
 /* ---------- pin window ---------- */
 html:has(body.pin), body.pin { background: transparent; overflow: hidden; user-select: none; }
+/* Windows Ink: no pan/zoom gestures on pins or the capture overlay, so pen drags reach us. */
+body.pin, body.pin canvas, body.capture { touch-action: none; }
 body.pin canvas { position: fixed; left: 0; top: 0; display: block; cursor: move; }
 body.pin.locked canvas { cursor: default; }
 body.pin .bar {
