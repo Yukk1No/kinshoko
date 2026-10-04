@@ -1,6 +1,6 @@
 # 首个本地版本的验收约定
 
-2026-10-04。来源：[#4 确定首个本地版本的验收样本与指标](https://github.com/Yukk1No/kinshoko/issues/4) 的第十一轮访谈（Q44～Q67，记录见 [alignment.md](../discovery/alignment.md#第十一轮已确认)）。本文供 [#6](https://github.com/Yukk1No/kinshoko/issues/6)、[#7](https://github.com/Yukk1No/kinshoko/issues/7)、[#8](https://github.com/Yukk1No/kinshoko/issues/8) 等原型使用，不是实现规格；表中数值均为尚未实测的假设，原型结果可以修正，修正前后两版都要保留。
+2026-10-04。来源：[#4 确定首个本地版本的验收样本与指标](https://github.com/Yukk1No/kinshoko/issues/4) 的第十一轮访谈（Q44～Q67，记录见 [alignment.md](../discovery/alignment.md#第十一轮已确认)）；桌面钉图一节按第十二轮（Q68～Q73）修订。本文供 [#6](https://github.com/Yukk1No/kinshoko/issues/6)、[#7](https://github.com/Yukk1No/kinshoko/issues/7)、[#8](https://github.com/Yukk1No/kinshoko/issues/8) 等原型使用，不是实现规格；表中数值均为尚未实测的假设，原型结果可以修正，修正前后两版都要保留。
 
 ## 验收原则
 
@@ -81,12 +81,12 @@
 
 - 钉图始终位于优动漫上层，包括优动漫全屏时。
 - 优动漫或钉图有焦点时按贴边隐藏键，全部钉图收到屏幕边、只露细边；数位笔随即能在画布上作画，不需要先点一下优动漫。
-- 再按一次，钉图回到原位；指针碰到细边时，单张钉图滑出。
-- 截图钉图显示的像素与截取时屏幕一致；库内局部按原图像素显示，边界不随移动、缩放、翻转或旋转改变。开发机另在 100% 与 150% 缩放下复测。
+- 再按一次，钉图回到原位。
+- 截图钉图在未缩放、未翻转旋转时，显示的像素与截取时屏幕一致；库内局部按原图像素显示，边界不随移动、缩放、翻转或旋转改变。开发机另在 100% 与 150% 缩放下复测。
 - 重新打开后恢复钉图位置、裁切、翻转与旋转。
 - 全局快捷键与优动漫冲突时能更换。
 
-清晰度由画师判断。翻转、旋转等操作的入口（如右键菜单）和动画手感属于定性反馈，不作门槛。其他品牌、多显示器、混合缩放和其他绘画软件进入[兼容性矩阵](../../.github/ISSUE_TEMPLATE/compatibility.yml)，由社区填报，不作首版门槛。
+清晰度由画师判断。翻转、旋转等操作的入口（如右键菜单）、动画手感，以及指针碰到屏幕边时是否单张滑出，属于定性反馈，不作门槛。其他品牌、多显示器、混合缩放和其他绘画软件进入[兼容性矩阵](../../.github/ISSUE_TEMPLATE/compatibility.yml)，由社区填报，不作首版门槛。
 
 <details>
 <summary>修订前的约定（2026-10-04 Q59、Q63、Q64）</summary>

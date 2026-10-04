@@ -43,10 +43,10 @@ body:
       label: 通过的项目
       options:
         - label: 钉图始终位于绘画软件上层（含全屏）
-        - label: 开启穿透后，笔触落到画布
-        - label: 能可靠退出穿透
-        - label: 局部清晰，移动和缩放不改变边界
-        - label: 重新打开后恢复位置与裁切
+        - label: 按贴边隐藏键后钉图收到屏幕边，笔随即能在画布上作画
+        - label: 再按一次，钉图回到原位
+        - label: 截图钉图未缩放时与截取时的屏幕一致；局部移动、缩放、翻转、旋转不改变边界
+        - label: 重新打开后恢复位置、裁切、翻转与旋转
   - type: textarea
     id: details
     attributes:
