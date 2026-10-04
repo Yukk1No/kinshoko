@@ -113,6 +113,9 @@ struct HistoryItem {
 struct Saved {
     pins: Vec<Pin>,
     history: Vec<HistoryItem>,
+    /// The usage-log switch survives restarts, so a trial only has to turn it on once.
+    #[serde(default)]
+    log_to_file: bool,
 }
 
 struct PendingCapture {
@@ -199,7 +202,7 @@ fn log_event(app: &AppHandle, msg: impl Into<String>) {
 fn save(app: &AppHandle) {
     let saved = {
         let s = st(app);
-        Saved { pins: s.pins.clone(), history: s.history.clone() }
+        Saved { pins: s.pins.clone(), history: s.history.clone(), log_to_file: s.log_to_file }
     };
     let _ = fs::write(data_dir(app).join(STATE_FILE), serde_json::to_string_pretty(&saved).unwrap());
 }
@@ -852,6 +855,7 @@ async fn change_key(app: AppHandle, action: String, accelerator: String) -> Snap
 fn set_logging(app: AppHandle, on: bool) {
     st(&app).log_to_file = on;
     log_event(&app, format!("usage log to file = {on}"));
+    save(&app);
     broadcast(&app);
 }
 
@@ -962,6 +966,7 @@ fn main() {
                 .and_then(|s| serde_json::from_str(&s).ok())
                 .unwrap_or_default();
             st(&handle).history = saved.history;
+            st(&handle).log_to_file = saved.log_to_file;
             for mut pin in saved.pins {
                 let s = pin.size();
                 if let Some((l, t, r, b)) = monitor_rect_for(&handle, pin.x, pin.y, s.width, s.height) {
