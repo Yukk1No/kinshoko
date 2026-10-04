@@ -1,0 +1,85 @@
+/* PROTOTYPE. Colours follow the library-browser prototype's dark DESIGN.md tokens. */
+:root {
+  --canvas: #17191b;
+  --chrome: #222528;
+  --panel: #292c30;
+  --ink: #eef0ee;
+  --secondary: #b4bbb7;
+  --line: #3e4443;
+  --accent: #c4c9a8;
+  --active: #394034;
+  --hover: #303639;
+  --warning: #edb7ab;
+  --font: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: 13px/1.5 var(--font); color: var(--ink); background: var(--canvas); }
+button, input { font: inherit; color: inherit; }
+button {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 5px 10px; cursor: pointer;
+}
+button:hover { background: var(--hover); }
+button:disabled { opacity: .45; cursor: default; }
+button.primary { background: var(--accent); color: #20261c; border-color: var(--accent); }
+input { background: var(--canvas); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; min-width: 0; }
+
+/* ---------- control window ---------- */
+body.control #app { display: grid; grid-template-columns: 280px 1fr; height: 100%; }
+aside { background: var(--chrome); border-right: 1px solid var(--line); padding: 16px; overflow: auto; }
+aside section { margin-top: 18px; display: grid; gap: 6px; }
+aside #samples { display: grid; gap: 6px; }
+aside button { text-align: left; }
+h1 { font-size: 16px; margin: 0; letter-spacing: -.02em; }
+h1 small, h2 small { color: var(--secondary); font-weight: 400; font-size: 11px; margin-left: 6px; }
+h2 { font-size: 12px; color: var(--secondary); margin: 0; font-weight: 600; }
+.hint { color: var(--secondary); font-size: 11px; margin: 0; word-break: break-all; }
+.warn { color: var(--warning); }
+.key { font-family: Consolas, monospace; background: var(--active); padding: 2px 6px; border-radius: 6px; }
+.row { display: flex; gap: 6px; align-items: center; }
+main { padding: 16px; overflow: auto; display: grid; gap: 10px; grid-template-rows: auto minmax(240px, 1fr) auto auto auto; }
+.stage-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.stage { background: #121415; border: 1px solid var(--line); border-radius: 8px; display: grid; place-items: center; overflow: hidden; min-height: 0; }
+.frame { position: relative; max-width: 100%; max-height: 100%; }
+#preview { display: block; max-width: 100%; max-height: calc(100vh - 360px); cursor: crosshair; user-select: none; -webkit-user-drag: none; }
+#sel { position: absolute; outline: 2px solid var(--accent); box-shadow: 0 0 0 9999px rgb(0 0 0 / .45); pointer-events: none; }
+table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+th { color: var(--secondary); font-weight: 500; }
+pre { font: 11px/1.5 Consolas, monospace; color: var(--secondary); max-height: 200px; overflow: auto; margin: 6px 0 0; }
+
+/* ---------- pin window ---------- */
+body.pin { background: #000; overflow: hidden; user-select: none; }
+body.pin canvas { position: fixed; left: 0; top: 0; display: block; }
+body.pin .drag { position: fixed; inset: 0; }
+body.pin.locked .drag { cursor: default; }
+body.pin .bar {
+  position: fixed; top: 6px; right: 6px; display: flex; gap: 4px;
+  opacity: 0; transition: opacity .12s; pointer-events: none;
+}
+body.pin:hover .bar { opacity: 1; pointer-events: auto; }
+body.pin .bar button { padding: 2px 7px; font-size: 11px; background: rgb(23 25 27 / .86); }
+body.pin .bar button.on { background: var(--accent); color: #20261c; border-color: var(--accent); }
+body.pin .badge {
+  position: fixed; left: 6px; bottom: 6px; font-size: 10px; padding: 1px 6px; border-radius: 6px;
+  background: rgb(23 25 27 / .78); color: var(--secondary); pointer-events: none;
+}
+body.pin .badge:empty { display: none; }
+/* Hover only: a resting pin shows nothing but reference pixels. */
+body.pin:not(:hover) .badge { display: none; }
+/* Thin frame so the artist can tell a click-through pin from a normal one. */
+body.pin.through::after {
+  content: ""; position: fixed; inset: 0; border: 1px dashed rgb(196 201 168 / .7); pointer-events: none;
+}
+body.pin.flash::after {
+  content: ""; position: fixed; inset: 0; border: 2px solid var(--accent); pointer-events: none;
+  animation: flash .9s ease-out forwards;
+}
+@keyframes flash { to { border-color: transparent; } }
+@media (prefers-reduced-motion: reduce) { body.pin.flash::after { animation: none; border-color: transparent; } }
+body.pin .diag {
+  position: fixed; left: 6px; top: 6px; margin: 0; padding: 4px 6px; max-height: none;
+  background: rgb(0 0 0 / .78); color: #e6e6e6; border-radius: 6px; pointer-events: none;
+}
