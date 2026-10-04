@@ -57,7 +57,11 @@
   ],
   "favicon_16_frame_is_exact_micro_asset": true,
   "web_manifest_paths_exist": true,
+  "favicon_svg_theme_tokens": {
+    "light": "--tile:#F7F3EA;--mark:#2B2747",
+    "dark": "--tile:#2B2747;--mark:#F4ECDC"
+  },
   "usage_guide_pages": 1,
   "usage_guide_text_present": true,
-  "asset_count": 229
+  "asset_count": 227
 }
