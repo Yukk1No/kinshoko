@@ -54,10 +54,17 @@
 
 ## 自动标签与内容分级（#6）
 
-模型选型跟随社区：默认 PixAI v0.9，WD SwinV2 v3 作后备。#6 回答“PixAI 能否在验收机器上以可接受的方式运行”，不再证明哪个模型最好。
+模型选型跟随社区：默认 PixAI，WD SwinV2 v3 作后备。#6 回答“PixAI 能否在验收机器上以可接受的方式运行”，不再证明哪个模型最好。2026-10-04 修订：PixAI v1.0 已发布，默认改为 v1.0 的社区 ONNX，结果见下文“选定结果”。
 
 1. **首个实验**：使用 PixAI 认可、无门禁的 [DeepGHS ONNX](https://huggingface.co/deepghs/pixai-tagger-v0.9-onnx)（见[标签模型调查](../research/tagger-model-comparison.md)），在 AMD 显卡上用 DirectML 运行；核对与 CPU 结果一致，确认没有算子静默回落 CPU。该 ONNX 在 DirectML 上无法正确运行时，GPU 档先用 WD 官方 ONNX，PixAI 只在 CPU 档提供。实验以 [打标探测程序](../../tools/tagger-probe/README.md) 在验收机器上运行。PixAI v0.9 只输出一般与角色标签，没有内容分级；探测同时运行 WD SwinV2 v3 取得分级，分级的最终来源依据结果决定。
 2. **选定条件**：能运行、分级达标、对照报告没有明显问题时选定 PixAI；否则退到 WD；两者都不满足时回到 [#9](https://github.com/Yukk1No/kinshoko/issues/9)。
+
+### 选定结果（2026-10-04）
+
+- **默认模型**：PixAI v1.0 FP16（[Mexes 社区 ONNX](https://huggingface.co/Mexes/pixai-tagger-v1.0-onnx-fp32-fp16-int8)，固定版本），在本机改写为分块注意力后用 DirectML 运行。原版在 4 GB 显卡上显存溢出（约 14 秒一张），分块后结果与原版一致，显存峰值约 1.6 GB。验收机器（RX 6500 XT 4 GB）上约 2.75 秒一张，238 张未出错，没有计算密集算子回落 CPU。
+- **分级来源**：使用 PixAI v1.0 自带的 `rating` 输出，不再另跑 WD。
+- **模型切换**：设置中允许用户切换模型，并注明各模型的显存需求。候选与需求以探测结果为准：v1.0 FP16 约 1.6 GB 显存；v1.0 FP32 约 3.1 GB 显存（4 GB 显卡上超出系统额度，不可用）；没有独显时 v1.0 FP32 在 CPU 上约 29 秒一张、约 4.6 GB 内存，WD 约 1.2 秒一张。
+- **门槛现状**：开发机上 v1.0 对 14 张 R-18 检出 12 张，未达 ≥ 95%；漏判的两张最高类为 sensitive。发起者决定仍用 v1.0 的分级，后续在校准集上确定判定规则或阈值，结果补记于此，不在评估集上调参。
 
 客观门槛：
 
@@ -68,7 +75,7 @@
 只记录：
 
 - 发色、发型等标签与 pixiv 作者标签的对照报告，用于发现几乎不出现或明显错位的标签。作者标签本身有遗漏，不作严格真值。
-- 已知词表缺口，例如 PixAI v0.9 与 WD v3 都没有 `middle_part`。
+- 已知词表缺口，例如 PixAI v0.9 与 WD v3 都没有 `middle_part`。PixAI v1.0 词表有 `middle_part`，但首批 4 张作者标了中分的样本都没有输出。
 - 无 R-18 标记的样本被判为 questionable 或 explicit 的比例。pixiv 全年龄作品本身可能含擦边内容，这一比例不作严格错误率。
 - 每档硬件的首次加载、单张推理 p50／p95、300 张批量总耗时、峰值 RAM／VRAM，以及打标期间优动漫是否卡顿。首次自动打标允许较慢（Q45）。
 
