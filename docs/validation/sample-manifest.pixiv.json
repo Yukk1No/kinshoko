@@ -4911,32 +4911,6 @@
    "rating": "general"
   },
   {
-   "id": "pixiv-149020759-p0",
-   "source": {
-    "kind": "pixiv",
-    "artworkId": "149020759",
-    "page": 0
-   },
-   "sha256": "75d3261ec8feb3cbea07dc9c345929ed1286c9ca03d156e79c1826800d8f3934",
-   "split": "evaluation",
-   "coverage": [
-    "hair:white"
-   ],
-   "authorTags": [
-    "AIイラスト",
-    "美少女",
-    "極上の女体",
-    "風景",
-    "WutheringWaves",
-    "鸣潮",
-    "鳴潮",
-    "白髪",
-    "緋雪(鳴潮)",
-    "Hiyuki"
-   ],
-   "rating": "general"
-  },
-  {
    "id": "pixiv-149325652-p0",
    "source": {
     "kind": "pixiv",
