@@ -1,0 +1,44 @@
+name: tagger-probe
+
+on:
+  push:
+    paths:
+      - "tools/tagger-probe/**"
+      - "docs/validation/sample-manifest.*.json"
+      - ".github/workflows/tagger-probe.yml"
+  pull_request:
+    paths:
+      - "tools/tagger-probe/**"
+      - "docs/validation/sample-manifest.*.json"
+      - ".github/workflows/tagger-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: tools/tagger-probe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tools/tagger-probe
+      - run: cargo build --release --locked
+      - name: Package
+        shell: pwsh
+        run: |
+          $out = "dist/kinshoko-tagger-probe"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          Copy-Item target/release/kinshoko-tagger-probe.exe $out/
+          Copy-Item target/release/*.dll $out/
+          Copy-Item README.md $out/使用说明.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kinshoko-tagger-probe-${{ github.sha }}
+          path: tools/tagger-probe/dist/kinshoko-tagger-probe
+          retention-days: 30

@@ -56,7 +56,7 @@
 
 模型选型跟随社区：默认 PixAI v0.9，WD SwinV2 v3 作后备。#6 回答“PixAI 能否在验收机器上以可接受的方式运行”，不再证明哪个模型最好。
 
-1. **首个实验**：使用 PixAI 认可、无门禁的 [DeepGHS ONNX](https://huggingface.co/deepghs/pixai-tagger-v0.9-onnx)（见[标签模型调查](../research/tagger-model-comparison.md)），在 AMD 显卡上用 DirectML 运行；核对与 CPU 结果一致，确认没有算子静默回落 CPU。该 ONNX 在 DirectML 上无法正确运行时，GPU 档先用 WD 官方 ONNX，PixAI 只在 CPU 档提供。
+1. **首个实验**：使用 PixAI 认可、无门禁的 [DeepGHS ONNX](https://huggingface.co/deepghs/pixai-tagger-v0.9-onnx)（见[标签模型调查](../research/tagger-model-comparison.md)），在 AMD 显卡上用 DirectML 运行；核对与 CPU 结果一致，确认没有算子静默回落 CPU。该 ONNX 在 DirectML 上无法正确运行时，GPU 档先用 WD 官方 ONNX，PixAI 只在 CPU 档提供。实验以 [打标探测程序](../../tools/tagger-probe/README.md) 在验收机器上运行。PixAI v0.9 只输出一般与角色标签，没有内容分级；探测同时运行 WD SwinV2 v3 取得分级，分级的最终来源依据结果决定。
 2. **选定条件**：能运行、分级达标、对照报告没有明显问题时选定 PixAI；否则退到 WD；两者都不满足时回到 [#9](https://github.com/Yukk1No/kinshoko/issues/9)。
 
 客观门槛：
@@ -116,6 +116,7 @@
 
 ## 反馈渠道
 
+- 开发原则（2026-10-04）：验证与 demo 以免安装开发环境的程序交给画师，在她的电脑上运行；程序生成本地日志与报告，由画师发回，开发据此迭代，不去画师电脑上搭建开发环境。日志只含硬件型号、耗时、公开样本或素材哈希，不含文件名与图片。日志答不了的主观问题由程序内的简短问题或引导清单收集。
 - 原型提供默认关闭的“记录使用日志”开关：搜索条件、打开与钉住的图片只写入本地文件，由画师自行决定是否导出。不作为正式产品的开发模式，不做默认上传的遥测。
 - 社区通过 Issue 模板提交交互反馈、标签识别错误和兼容性结果。
 - 人工纠正数据的自愿导出进入 roadmap。
