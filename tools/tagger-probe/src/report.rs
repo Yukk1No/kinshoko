@@ -25,7 +25,7 @@ pub struct Agreement {
     /// Images whose thresholded tag set is identical on both providers.
     pub identical_tag_sets: usize,
     pub min_tag_jaccard: f32,
-    /// WD only: images whose top rating class matches.
+    /// Models with a rating output: images whose top rating class matches.
     pub rating_agree: Option<usize>,
 }
 

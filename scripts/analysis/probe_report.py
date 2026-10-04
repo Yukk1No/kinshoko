@@ -2,14 +2,23 @@
 
 Usage: python scripts/analysis/probe_report.py <predictions.jsonl | report.zip> [--split evaluation|calibration|all]
 
-- Rating gate: positives are samples with pixiv's R-18 flag. Two rules are reported:
+- Rating gate: positives are samples with pixiv's R-18 flag, except pages reviewed as only
+  suggestive (coverage "r18-page-borderline"; the flag covers the whole work). Two rules are reported:
   "top" (the highest rating class is questionable or explicit, as in acceptance.md) and
   "threshold" (questionable or explicit score >= RATING_THRESHOLD, PixAI v1.0's
   recommended rating threshold; its rating outputs are independent sigmoids).
 - Tag report: pixiv author tags are weak labels, so only author-tag recall is a rate;
   model positives without the author tag are counted, not called errors.
 """
-import argparse, collections, io, json, sys, zipfile
+import argparse, collections, io, json, os, sys, zipfile
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Read from the manifest too, so reports made before a page was reviewed are judged the same way.
+BORDERLINE_IDS = {
+    s["id"]
+    for s in json.load(open(os.path.join(ROOT, "docs/validation/sample-manifest.pixiv-r18.json"), encoding="utf-8"))["samples"]
+    if "r18-page-borderline" in s["coverage"]
+}
 
 # pixiv author tag -> Danbooru tags that count as a hit
 TAG_MAP = {
@@ -55,6 +64,8 @@ def main():
     a = ap.parse_args()
     rows = [r for r in load(a.predictions) if a.split == "all" or r["split"] == a.split]
     for r in rows:
+        if r["sample"] in BORDERLINE_IDS and "r18-page-borderline" not in r["coverage"]:
+            r["coverage"] = r["coverage"] + ["r18-page-borderline"]
         if r.get("ratings"):
             r["ratings"] = {RATING_NAMES.get(k, k): v for k, v in r["ratings"].items()}
     out = io.StringIO()
@@ -72,7 +83,8 @@ def main():
         if not rated:
             w("- 该模型不输出分级。\n")
         else:
-            pos = [r for r in rated if r["truth_rating"] == "r18"]
+            pos = [r for r in rated if r["truth_rating"] == "r18" and "r18-page-borderline" not in r["coverage"]]
+            border = [r for r in rated if "r18-page-borderline" in r["coverage"]]
             neg = [r for r in rated if r["truth_rating"] != "r18"]
             sens = [r for r in neg if "sensitive" in r["coverage"]]
             plain = [r for r in neg if "sensitive" not in r["coverage"]]
@@ -84,6 +96,8 @@ def main():
                     if not flagged(r):
                         scores = "，".join(f"{k} {v:.2f}" for k, v in sorted(r["ratings"].items(), key=lambda kv: -kv[1]))
                         w(f"  - 漏判 {r['sample']}：{scores}")
+                if border:
+                    w(f"  - 复核为擦边的 R-18 页被判 q/e：{sum(flagged(r) for r in border)}/{len(border)}（不计入门槛）")
                 if sens:
                     w(f"  - 敏感全年龄被判 q/e：{sum(flagged(r) for r in sens)}/{len(sens)}（只记录）")
                 if plain:

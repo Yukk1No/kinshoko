@@ -56,7 +56,7 @@
 
 模型选型跟随社区：默认 PixAI，WD SwinV2 v3 作后备。#6 回答“PixAI 能否在验收机器上以可接受的方式运行”，不再证明哪个模型最好。2026-10-04 修订：PixAI v1.0 已发布，默认改为 v1.0 的社区 ONNX，结果见下文“选定结果”。
 
-1. **首个实验**：使用 PixAI 认可、无门禁的 [DeepGHS ONNX](https://huggingface.co/deepghs/pixai-tagger-v0.9-onnx)（见[标签模型调查](../research/tagger-model-comparison.md)），在 AMD 显卡上用 DirectML 运行；核对与 CPU 结果一致，确认没有算子静默回落 CPU。该 ONNX 在 DirectML 上无法正确运行时，GPU 档先用 WD 官方 ONNX，PixAI 只在 CPU 档提供。实验以 [打标探测程序](../../tools/tagger-probe/README.md) 在验收机器上运行。PixAI v0.9 只输出一般与角色标签，没有内容分级；探测同时运行 WD SwinV2 v3 取得分级，分级的最终来源依据结果决定。
+1. **首个实验**：使用 PixAI 认可、无门禁的 [DeepGHS ONNX](https://huggingface.co/deepghs/pixai-tagger-v0.9-onnx)（见[标签模型调查](../research/tagger-model-comparison.md)），在 AMD 显卡上用 DirectML 运行；核对与 CPU 结果一致，确认没有算子静默回落 CPU。该 ONNX 在 DirectML 上无法正确运行时，GPU 档先用 WD 官方 ONNX，PixAI 只在 CPU 档提供。实验以 [打标探测程序](../../tools/tagger-probe/README.md) 在验收机器上运行。PixAI v0.9 只输出一般与角色标签，没有内容分级；当时计划同时运行 WD SwinV2 v3 取得分级。改用 v1.0 后分级来源见“选定结果”。
 2. **选定条件**：能运行、分级达标、对照报告没有明显问题时选定 PixAI；否则退到 WD；两者都不满足时回到 [#9](https://github.com/Yukk1No/kinshoko/issues/9)。
 
 ### 选定结果（2026-10-04）
@@ -71,7 +71,7 @@
 
 | 项目 | 假设门槛 | 依据 |
 |---|---|---|
-| 分级漏判 | 正例为带 pixiv R-18 标记的样本；模型判为 questionable 或 explicit 即算检出。召回率 ≥ 95%；首批仅 14 张时等于全部检出（13/14 ≈ 93%），结果只作初步证据 | 漏判会让 R-18 图在安全模式下露出；宁可多模糊 |
+| 分级漏判 | 正例为带 pixiv R-18 标记的样本；模型判为 questionable 或 explicit 即算检出。召回率 ≥ 95%；首批仅 14 张时等于全部检出（13/14 ≈ 93%），结果只作初步证据。复核为单页擦边的作品（清单覆盖维度 `r18-page-borderline`）不计入正例，首批按 12 张单页正例判定 | 漏判会让 R-18 图在安全模式下露出；宁可多模糊 |
 
 只记录：
 
