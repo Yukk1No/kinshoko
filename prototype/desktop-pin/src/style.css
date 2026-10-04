@@ -22,64 +22,59 @@ button {
   padding: 5px 10px; cursor: pointer;
 }
 button:hover { background: var(--hover); }
-button:disabled { opacity: .45; cursor: default; }
-button.primary { background: var(--accent); color: #20261c; border-color: var(--accent); }
-input { background: var(--canvas); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; min-width: 0; }
+button:disabled { opacity: .5; cursor: default; }
+button.primary, button.on { background: var(--accent); color: #20261c; border-color: var(--accent); }
+kbd { font: 11px Consolas, monospace; background: rgb(0 0 0 / .25); padding: 1px 5px; border-radius: 5px; margin-left: 4px; }
+.hint { color: var(--secondary); font-size: 12px; margin: 0; word-break: break-all; }
+.warn { color: var(--warning); }
+.row { display: flex; gap: 6px; align-items: center; }
 
 /* ---------- control window ---------- */
-body.control #app { display: grid; grid-template-columns: 280px 1fr; height: 100%; }
-aside { background: var(--chrome); border-right: 1px solid var(--line); padding: 16px; overflow: auto; }
-aside section { margin-top: 18px; display: grid; gap: 6px; }
-aside #samples { display: grid; gap: 6px; }
-aside button { text-align: left; }
+body.control #app { display: grid; grid-template-rows: auto auto 1fr; height: 100%; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; background: var(--chrome); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; }
 h1 { font-size: 16px; margin: 0; letter-spacing: -.02em; }
-h1 small, h2 small { color: var(--secondary); font-weight: 400; font-size: 11px; margin-left: 6px; }
-h2 { font-size: 12px; color: var(--secondary); margin: 0; font-weight: 600; }
-.hint { color: var(--secondary); font-size: 11px; margin: 0; word-break: break-all; }
-.warn { color: var(--warning); }
-.key { font-family: Consolas, monospace; background: var(--active); padding: 2px 6px; border-radius: 6px; }
-.row { display: flex; gap: 6px; align-items: center; }
-main { padding: 16px; overflow: auto; display: grid; gap: 10px; grid-template-rows: auto minmax(240px, 1fr) auto auto auto; }
-.stage-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.stage { background: #121415; border: 1px solid var(--line); border-radius: 8px; display: grid; place-items: center; overflow: hidden; min-height: 0; }
-.frame { position: relative; max-width: 100%; max-height: 100%; }
-#preview { display: block; max-width: 100%; max-height: calc(100vh - 360px); cursor: crosshair; user-select: none; -webkit-user-drag: none; }
-#sel { position: absolute; outline: 2px solid var(--accent); box-shadow: 0 0 0 9999px rgb(0 0 0 / .45); pointer-events: none; }
-table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+h1 small { color: var(--secondary); font-weight: 400; font-size: 11px; margin-left: 6px; }
+h2 { font-size: 12px; color: var(--secondary); margin: 14px 0 6px; font-weight: 600; }
+nav { display: flex; gap: 4px; padding: 8px 16px 0; }
+nav button { border-radius: 8px 8px 0 0; border-bottom: none; }
+section { padding: 14px 16px; overflow: auto; border-top: 1px solid var(--line); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; display: grid; gap: 6px; }
+figure img { width: 100%; height: 120px; object-fit: contain; background: #121415; border-radius: 6px; }
+figcaption { font-size: 11px; color: var(--secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+figure .row button { flex: 1; padding: 3px 6px; font-size: 12px; }
+.keyrow { padding: 4px 0; }
+.keyrow span:first-child { width: 140px; }
+table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; margin-bottom: 10px; }
 th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); }
 th { color: var(--secondary); font-weight: 500; }
-pre { font: 11px/1.5 Consolas, monospace; color: var(--secondary); max-height: 200px; overflow: auto; margin: 6px 0 0; }
+pre { font: 11px/1.5 Consolas, monospace; color: var(--secondary); max-height: 240px; overflow: auto; margin: 6px 0 0; }
 
 /* ---------- pin window ---------- */
-body.pin { background: #000; overflow: hidden; user-select: none; }
-body.pin canvas { position: fixed; left: 0; top: 0; display: block; }
-body.pin .drag { position: fixed; inset: 0; }
-body.pin.locked .drag { cursor: default; }
+html:has(body.pin), body.pin { background: transparent; overflow: hidden; user-select: none; }
+body.pin canvas { position: fixed; left: 0; top: 0; display: block; cursor: move; }
+body.pin.locked canvas { cursor: default; }
 body.pin .bar {
-  position: fixed; top: 6px; right: 6px; display: flex; gap: 4px;
+  position: fixed; top: 6px; right: 6px; display: flex; gap: 3px;
   opacity: 0; transition: opacity .12s; pointer-events: none;
 }
 body.pin:hover .bar { opacity: 1; pointer-events: auto; }
-body.pin .bar button { padding: 2px 7px; font-size: 11px; background: rgb(23 25 27 / .86); }
+body.pin.hidden-edge .bar { display: none; }
+body.pin .bar button { padding: 1px 6px; font-size: 12px; min-width: 24px; background: rgb(23 25 27 / .86); }
 body.pin .bar button.on { background: var(--accent); color: #20261c; border-color: var(--accent); }
 body.pin .badge {
-  position: fixed; left: 6px; bottom: 6px; font-size: 10px; padding: 1px 6px; border-radius: 6px;
-  background: rgb(23 25 27 / .78); color: var(--secondary); pointer-events: none;
+  position: fixed; left: 50%; bottom: 8px; transform: translateX(-50%); font-size: 11px; padding: 2px 8px; border-radius: 6px;
+  background: rgb(23 25 27 / .82); color: var(--ink); pointer-events: none; opacity: 0; transition: opacity .15s; white-space: nowrap;
 }
-body.pin .badge:empty { display: none; }
-/* Hover only: a resting pin shows nothing but reference pixels. */
-body.pin:not(:hover) .badge { display: none; }
-/* Thin frame so the artist can tell a click-through pin from a normal one. */
-body.pin.through::after {
-  content: ""; position: fixed; inset: 0; border: 1px dashed rgb(196 201 168 / .7); pointer-events: none;
-}
-body.pin.flash::after {
-  content: ""; position: fixed; inset: 0; border: 2px solid var(--accent); pointer-events: none;
-  animation: flash .9s ease-out forwards;
-}
-@keyframes flash { to { border-color: transparent; } }
-@media (prefers-reduced-motion: reduce) { body.pin.flash::after { animation: none; border-color: transparent; } }
-body.pin .diag {
-  position: fixed; left: 6px; top: 6px; margin: 0; padding: 4px 6px; max-height: none;
-  background: rgb(0 0 0 / .78); color: #e6e6e6; border-radius: 6px; pointer-events: none;
-}
+body.pin .badge.show { opacity: 1; }
+
+/* ---------- capture overlay ---------- */
+body.capture { overflow: hidden; cursor: crosshair; user-select: none; background: #000; }
+body.capture #shot { position: fixed; left: 0; top: 0; display: block; image-rendering: pixelated; pointer-events: none; }
+body.capture #shade { position: fixed; inset: 0; background: rgb(0 0 0 / .35); pointer-events: none; }
+body.capture.has-sel #shade { display: none; }
+body.capture #sel { position: fixed; outline: 1px solid var(--accent); box-shadow: 0 0 0 9999px rgb(0 0 0 / .35); pointer-events: none; }
+body.capture #dim { position: absolute; left: 0; top: -22px; font: 11px Consolas, monospace; background: rgb(23 25 27 / .9); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+body.capture #tools { position: fixed; display: flex; gap: 4px; cursor: default; }
+body.capture #tip { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); font-size: 12px; background: rgb(23 25 27 / .85); padding: 4px 10px; border-radius: 8px; pointer-events: none; }

@@ -1,16 +1,14 @@
-// PROTOTYPE for #7. One page, two modes: `?pin=<id>` renders a pin window, otherwise the control window.
+// PROTOTYPE for #7, round 2. One page, three modes:
+//   ?pin=<id>   a pinned image
+//   ?capture=1  the frozen-screen region selector (F1)
+//   otherwise   the control window (capture history, prototype library, status)
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
-const pinId = new URLSearchParams(location.search).get("pin");
+const params = new URLSearchParams(location.search);
 const app = document.getElementById("app");
-
-const SAMPLES = [
-  { src: "/samples/pixel-grid.png", name: "像素网格（1px / 2px）" },
-  { src: "/samples/line-study.png", name: "细线习作 1600×1200" },
-  { src: "/samples/exif-orientation-6.jpg", name: "EXIF 方向 6（应显示 UP 朝上）" },
-];
 
 const urlFor = (src) => (src.startsWith("/samples/") ? src : convertFileSrc(src));
 const loadImage = (src) =>
@@ -20,8 +18,10 @@ const loadImage = (src) =>
     img.onerror = () => reject(new Error(`无法读取 ${src}`));
     img.src = urlFor(src);
   });
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
-if (pinId) pinView(pinId);
+if (params.get("pin")) pinView(params.get("pin"));
+else if (params.get("capture")) captureView();
 else controlView();
 
 // ---------------------------------------------------------------- pin window
@@ -30,95 +30,82 @@ async function pinView(id) {
   document.body.classList.add("pin");
   app.innerHTML = `
     <canvas id="c"></canvas>
-    <div class="drag" data-tauri-drag-region></div>
     <div class="bar">
-      <button data-act="onTop" title="置顶 Ctrl+Shift+A">置顶</button>
-      <button data-act="locked" title="锁定 Ctrl+L：禁止移动和缩放">锁定</button>
-      <button data-act="passthrough" title="穿透 Ctrl+T：笔和鼠标落到下面的画布">穿透</button>
-      <button data-act="one" title="1:1 按键 1">1:1</button>
+      <button data-act="fav" title="收藏到资料库">★</button>
+      <button data-act="flipH" title="水平翻转 H">⇋</button>
+      <button data-act="flipV" title="垂直翻转 V">⇵</button>
+      <button data-act="rotate" title="顺时针旋转 90° R">⟳</button>
+      <button data-act="locked" title="锁定：禁止移动和缩放">锁</button>
+      <button data-act="onTop" title="置顶">顶</button>
       <button data-act="close" title="关闭钉图">✕</button>
     </div>
-    <div class="badge"></div>
-    <pre class="diag" hidden></pre>`;
+    <div class="badge"></div>`;
   const canvas = app.querySelector("#c");
-  const drag = app.querySelector(".drag");
   const badge = app.querySelector(".badge");
-  const diag = app.querySelector(".diag");
   let pin = null;
   let img = null;
-  let info = null;
-  let wasPassthrough = false;
+  let badgeTimer = 0;
 
   const draw = () => {
     if (!pin || !img) return;
-    const w = Math.round(pin.crop.w * pin.scale);
-    const h = Math.round(pin.crop.h * pin.scale);
-    // Canvas backing store = intended physical size; CSS fills the window.
-    // If the window's CSS*DPR differs from w×h the browser resamples; the diag shows it.
-    canvas.width = w;
-    canvas.height = h;
-    // CSS size must map back to exactly w×h device pixels; `100vw` at 110% lands between
-    // device pixels and the compositor resamples (found by scripts/probe_windows.py).
     const dpr = window.devicePixelRatio;
-    canvas.style.width = `${w / dpr}px`;
-    canvas.style.height = `${h / dpr}px`;
-    canvas.style.imageRendering = pin.scale === 1 ? "pixelated" : "auto";
+    // Size from the pin's physical size, not innerWidth (whole CSS px), and keep CSS size =
+    // device px / dpr: anything else is resampled at 110% (found twice by probe_windows.py).
+    const odd0 = pin.rotation % 2 === 1;
+    const W = Math.max(1, Math.round((odd0 ? pin.h : pin.w) * pin.scale));
+    const H = Math.max(1, Math.round((odd0 ? pin.w : pin.h) * pin.scale));
+    canvas.width = W;
+    canvas.height = H;
+    canvas.style.width = `${W / dpr}px`;
+    canvas.style.height = `${H / dpr}px`;
+    canvas.style.opacity = pin.opacity;
+    // At 100% flips and quarter turns are pixel permutations: show them without smoothing.
+    canvas.style.imageRendering = Math.abs(pin.scale - 1) < 1e-9 ? "pixelated" : "auto";
     const ctx = canvas.getContext("2d");
-    ctx.imageSmoothingEnabled = pin.scale !== 1;
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(img, pin.crop.x, pin.crop.y, pin.crop.w, pin.crop.h, 0, 0, w, h);
-    renderDiag();
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate((pin.rotation * Math.PI) / 2);
+    ctx.scale(pin.flipH ? -1 : 1, pin.flipV ? -1 : 1);
+    const odd = pin.rotation % 2 === 1;
+    const dw = odd ? H : W;
+    const dh = odd ? W : H;
+    ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
   };
 
-  const renderDiag = () => {
-    if (!pin) return;
-    const dpr = window.devicePixelRatio;
-    const cssPx = `${innerWidth}×${innerHeight} css → ${(innerWidth * dpr).toFixed(1)}×${(innerHeight * dpr).toFixed(1)} px`;
-    const exact = Math.abs(innerWidth * dpr - canvas.width) < 0.5 && Math.abs(innerHeight * dpr - canvas.height) < 0.5;
-    diag.textContent =
-      `crop ${pin.crop.x},${pin.crop.y} ${pin.crop.w}×${pin.crop.h}\n` +
-      `scale ${pin.scale.toFixed(3)}  dpr ${dpr}\n` +
-      `canvas ${canvas.width}×${canvas.height}\n${cssPx}\n` +
-      `像素对齐 ${exact ? "是" : "否（被浏览器重采样）"}\n` +
-      (info ? `窗口 ${info.innerW}×${info.innerH} @ ${info.outerX},${info.outerY} sf ${info.scaleFactor}\n${info.monitor ?? ""}` : "");
+  const flashBadge = (text) => {
+    badge.textContent = text;
+    badge.classList.add("show");
+    clearTimeout(badgeTimer);
+    badgeTimer = setTimeout(() => badge.classList.remove("show"), 900);
   };
 
-  const applyState = (snap) => {
-    const next = snap.pins.find((p) => p.id === id);
+  const applyState = (s) => {
+    const next = s.pins.find((p) => p.id === id);
     if (!next) return;
-    const passthrough = snap.passthrough.includes(id);
-    info = snap.windows.find((w) => w.id === id) ?? null;
-    const needRedraw = !pin || pin.scale !== next.scale;
-    pin = { ...next, passthrough };
+    const redraw = !pin || ["flipH", "flipV", "rotation", "opacity", "scale"].some((k) => pin[k] !== next[k]);
+    pin = next;
     for (const b of app.querySelectorAll(".bar button[data-act]")) {
       const act = b.dataset.act;
       if (act in pin) b.classList.toggle("on", !!pin[act]);
     }
-    if (pin.locked) drag.removeAttribute("data-tauri-drag-region");
-    else drag.setAttribute("data-tauri-drag-region", "");
+    const item = s.history.find((h) => h.id === pin.captureId);
+    const fav = app.querySelector('[data-act="fav"]');
+    fav.classList.toggle("on", !!item?.libraryFile);
+    fav.disabled = !item;
+    fav.title = !item ? "不是截图，或已滚出截图历史" : item.libraryFile ? "已收藏" : "收藏到资料库";
     document.body.classList.toggle("locked", pin.locked);
-    document.body.classList.toggle("through", passthrough);
-    badge.textContent = [passthrough ? "穿透" : "", pin.locked ? "锁定" : "", pin.onTop ? "" : "未置顶"]
-      .filter(Boolean)
-      .join(" · ");
-    if (wasPassthrough && !passthrough) {
-      // Visible confirmation that the exit key worked.
-      document.body.classList.remove("flash");
-      void document.body.offsetWidth;
-      document.body.classList.add("flash");
-    }
-    wasPassthrough = passthrough;
-    if (needRedraw) draw();
-    else renderDiag();
+    document.body.classList.toggle("hidden-edge", !!pin.hidden && !pin.hidden.peeking);
+    if (redraw) draw();
   };
 
   const act = async (name) => {
     try {
       if (name === "close") return await invoke("close_pin", { id });
-      if (name === "one") return await invoke("set_scale", { id, scale: 1 });
+      if (name === "rotate") return await invoke("rotate", { id });
+      if (name === "fav") return pin.captureId && (await invoke("favorite", { captureId: pin.captureId }));
       await invoke("set_flag", { id, flag: name, value: !pin[name] });
     } catch (e) {
-      badge.textContent = String(e);
+      flashBadge(String(e));
     }
   };
 
@@ -126,41 +113,156 @@ async function pinView(id) {
     const b = e.target.closest("button[data-act]");
     if (b) act(b.dataset.act);
   });
+
+  // Drag to move. startDragging swallows dblclick, so detect double-click by hand.
+  let lastDown = 0;
+  canvas.addEventListener("mousedown", (e) => {
+    if (e.button !== 0 || !pin) return;
+    const now = performance.now();
+    if (now - lastDown < 320) {
+      lastDown = 0;
+      if (!pin.locked) invoke("set_scale", { id, scale: 1, ax: 0.5, ay: 0.5 });
+      flashBadge("100%");
+      return;
+    }
+    lastDown = now;
+    if (!pin.locked) getCurrentWindow().startDragging();
+  });
+
+  // Wheel: animated zoom around the cursor. Ctrl+wheel: opacity (Snipaste convention).
+  let targetScale = null;
+  let settleTimer = 0;
   window.addEventListener(
     "wheel",
     (e) => {
       e.preventDefault();
-      if (!pin || pin.locked) return;
-      const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
-      let next = pin.scale * factor;
-      if (Math.abs(next - 1) < 0.04) next = 1; // snap to 1:1 when passing it
-      invoke("set_scale", { id, scale: next });
+      if (!pin) return;
+      if (e.ctrlKey) {
+        const next = Math.round(Math.min(1, Math.max(0.1, pin.opacity + (e.deltaY < 0 ? 0.1 : -0.1))) * 10) / 10;
+        invoke("set_opacity", { id, opacity: next });
+        flashBadge(`不透明度 ${Math.round(next * 100)}%`);
+        return;
+      }
+      if (pin.locked) return flashBadge("已锁定");
+      targetScale = (targetScale ?? pin.scale) * (e.deltaY < 0 ? 1.12 : 1 / 1.12);
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => (targetScale = null), 300);
+      invoke("set_scale", { id, scale: targetScale, ax: e.clientX / innerWidth, ay: e.clientY / innerHeight });
+      flashBadge(`${Math.round(targetScale * 100)}%`);
     },
     { passive: false },
   );
   window.addEventListener("keydown", (e) => {
-    // Ctrl+wheel / Ctrl+± browser zoom would silently break 1:1.
-    if (e.ctrlKey && ["+", "-", "=", "0"].includes(e.key)) e.preventDefault();
-    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "a") act("onTop");
-    else if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === "l") act("locked");
-    else if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === "t") act("passthrough");
-    else if (!e.ctrlKey && e.key === "1") act("one");
-    else if (!e.ctrlKey && e.key.toLowerCase() === "d") diag.hidden = !diag.hidden;
+    if (e.ctrlKey && ["+", "-", "=", "0"].includes(e.key)) e.preventDefault(); // no browser zoom
+    if (e.ctrlKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === "h") act("flipH");
+    else if (k === "v") act("flipV");
+    else if (k === "r") act("rotate");
   });
-  window.addEventListener("resize", draw);
-  matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).addEventListener("change", draw);
+  // While the window animates (zoom/rotate), stretch the canvas to follow it smoothly;
+  // once it settles, snap back to the exact device-pixel size.
+  let settle = 0;
+  new ResizeObserver(() => {
+    Object.assign(canvas.style, { width: "100vw", height: "100vh" });
+    clearTimeout(settle);
+    settle = setTimeout(draw, 160);
+  }).observe(document.documentElement);
 
-  await listen("pins-changed", (e) => applyState(e.payload));
-  const snap = await invoke("get_state");
-  const first = snap.pins.find((p) => p.id === id);
-  if (!first) return;
+  await listen("state-changed", (e) => applyState(e.payload));
+  const first = await invoke("get_state");
+  const p = first.pins.find((x) => x.id === id);
+  if (!p) return;
   try {
-    img = await loadImage(first.src);
-  } catch (e) {
-    badge.textContent = `原图缺失：${first.src}`;
+    img = await loadImage(p.src);
+  } catch {
+    flashBadge(`原图缺失：${p.src}`);
   }
-  applyState(snap);
+  applyState(first);
   draw();
+}
+
+// ---------------------------------------------------------------- capture overlay
+
+async function captureView() {
+  document.body.classList.add("capture");
+  app.innerHTML = `
+    <img id="shot" alt="" />
+    <div id="shade"></div>
+    <div id="sel" hidden><span id="dim"></span></div>
+    <div id="tools" hidden>
+      <button data-a="pin" class="primary" title="Enter / F3 / 双击">钉住</button>
+      <button data-a="copy" title="Ctrl+C">复制</button>
+      <button data-a="cancel" title="Esc / 右键">取消</button>
+    </div>
+    <div id="tip">拖动框选区域 · Enter 钉住 · Ctrl+C 复制 · Esc 取消</div>`;
+  const info = await invoke("capture_info");
+  if (!info) return invoke("capture_cancel");
+  const shot = app.querySelector("#shot");
+  const sel = app.querySelector("#sel");
+  const dim = app.querySelector("#dim");
+  const tools = app.querySelector("#tools");
+  const dpr = window.devicePixelRatio;
+  // Physical px of the screenshot = CSS px * dpr: the frozen screen sits exactly in place.
+  Object.assign(shot.style, { width: `${info.w / dpr}px`, height: `${info.h / dpr}px` });
+  shot.onload = () => invoke("capture_ready");
+  shot.src = `${convertFileSrc(info.file)}?t=${Date.now()}`;
+
+  let start = null;
+  let rect = null; // physical px, relative to the monitor
+  // Pointer events carry fractional CSS coordinates, so clientX * dpr lands on the exact
+  // physical pixel even at 110% (mouse events snap to whole CSS px, ±1 physical px off).
+  const toPx = (e) => ({ x: Math.round(e.clientX * dpr), y: Math.round(e.clientY * dpr) });
+  const setRect = (a, b) => {
+    rect = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) };
+    Object.assign(sel.style, {
+      left: `${rect.x / dpr}px`,
+      top: `${rect.y / dpr}px`,
+      width: `${rect.w / dpr}px`,
+      height: `${rect.h / dpr}px`,
+    });
+    sel.hidden = false;
+    document.body.classList.add("has-sel");
+    dim.textContent = `${rect.w} × ${rect.h}`;
+  };
+  const finish = (action) => {
+    if (action === "cancel") return invoke("capture_cancel");
+    if (!rect || rect.w < 4 || rect.h < 4) return;
+    invoke("capture_finish", { ...rect, action });
+  };
+  document.addEventListener("pointerdown", (e) => {
+    if (e.target.closest("#tools")) return;
+    if (e.button === 2) return finish("cancel");
+    if (e.button !== 0) return;
+    document.documentElement.setPointerCapture(e.pointerId);
+    start = toPx(e);
+    tools.hidden = true;
+  });
+  document.addEventListener("pointermove", (e) => {
+    if (start) setRect(start, toPx(e));
+  });
+  document.addEventListener("pointerup", (e) => {
+    if (!start) return;
+    setRect(start, toPx(e));
+    start = null;
+    if (rect.w < 4 || rect.h < 4) return;
+    Object.assign(tools.style, {
+      left: `${Math.max(4, Math.min(innerWidth - 200, (rect.x + rect.w) / dpr - 190))}px`,
+      top: `${Math.min(innerHeight - 40, (rect.y + rect.h) / dpr + 8)}px`,
+    });
+    tools.hidden = false;
+  });
+  document.addEventListener("dblclick", () => finish("pin"));
+  document.addEventListener("contextmenu", (e) => e.preventDefault());
+  tools.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-a]");
+    if (b) finish(b.dataset.a);
+  });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") finish("cancel");
+    else if (e.key === "Enter" || e.key === "F3") finish("pin");
+    else if (e.ctrlKey && e.key.toLowerCase() === "c") finish("copy");
+  });
 }
 
 // ---------------------------------------------------------------- control window
@@ -168,175 +270,125 @@ async function pinView(id) {
 async function controlView() {
   document.body.classList.add("control");
   app.innerHTML = `
-    <aside>
-      <h1>钉图原型 <small>PROTOTYPE · #7</small></h1>
-      <section>
-        <h2>1 选图</h2>
-        <div id="samples"></div>
-        <button id="openFile">打开本地图片…</button>
-      </section>
-      <section>
-        <h2>穿透退出</h2>
-        <div id="shortcut"></div>
-        <div class="row">
-          <input id="accel" placeholder="例如 Ctrl+Alt+F10" />
-          <button id="setAccel">更换</button>
-        </div>
-        <button id="toggleAll">切换全部穿透</button>
-        <p class="hint">托盘图标菜单也能“恢复交互”。重开后穿透一律关闭。</p>
-      </section>
-      <section>
-        <h2>使用日志</h2>
-        <label><input type="checkbox" id="logging" /> 记录到本地文件（默认关）</label>
-        <p class="hint" id="dataFile"></p>
-      </section>
-    </aside>
-    <main>
-      <div class="stage-head">
-        <h2>2 预选局部 <small id="srcName">未选图</small></h2>
-        <div class="row">
-          <span id="cropText">拖动框选局部</span>
-          <button id="pinWhole" disabled>钉住整图</button>
-          <button id="pinCrop" class="primary" disabled>钉住选区</button>
-        </div>
+    <header>
+      <h1>钉图原型 <small>PROTOTYPE · #7 第二轮</small></h1>
+      <div class="actions">
+        <button id="capture" class="primary">截图钉住 <kbd data-key="capture"></kbd></button>
+        <button id="clip">钉剪贴板 <kbd data-key="pinClipboard"></kbd></button>
+        <button id="hide">隐藏／显示全部 <kbd data-key="hide"></kbd></button>
+        <button id="openFile">打开图片钉住…</button>
       </div>
-      <div class="stage"><div class="frame"><img id="preview" alt="" /><div id="sel" hidden></div></div></div>
-      <h2>3 钉图状态</h2>
-      <table id="pins"><thead><tr>
-        <th>id</th><th>裁切（原图像素）</th><th>缩放</th><th>窗口物理尺寸</th><th>位置</th><th>sf</th><th>状态</th><th></th>
-      </tr></thead><tbody></tbody></table>
+    </header>
+    <nav>
+      <button data-tab="history" class="on">截图历史</button>
+      <button data-tab="library">资料库（原型）</button>
+      <button data-tab="status">状态</button>
+    </nav>
+    <section data-panel="history"><div class="grid" id="history"></div></section>
+    <section data-panel="library" hidden><div class="grid" id="library"></div></section>
+    <section data-panel="status" hidden>
+      <h2>全局快捷键</h2>
+      <div id="keys"></div>
+      <h2>钉图</h2>
+      <table id="pins"><thead><tr><th>id</th><th>原图</th><th>缩放</th><th>旋转／翻转</th><th>不透明度</th><th>位置</th><th>状态</th></tr></thead><tbody></tbody></table>
+      <label><input type="checkbox" id="logging" /> 使用日志记录到本地文件（默认关）</label>
+      <p class="hint" id="dataDir"></p>
       <details><summary>事件</summary><pre id="events"></pre></details>
-    </main>`;
-
+    </section>`;
   const $ = (s) => app.querySelector(s);
-  const preview = $("#preview");
-  const sel = $("#sel");
-  let current = null; // { src, w, h }
-  let crop = null;
 
-  for (const s of SAMPLES) {
-    const b = document.createElement("button");
-    b.textContent = s.name;
-    b.onclick = () => choose(s.src, s.name);
-    $("#samples").append(b);
+  for (const b of app.querySelectorAll("nav button")) {
+    b.onclick = () => {
+      for (const x of app.querySelectorAll("nav button")) x.classList.toggle("on", x === b);
+      for (const p of app.querySelectorAll("[data-panel]")) p.hidden = p.dataset.panel !== b.dataset.tab;
+    };
   }
+  $("#capture").onclick = () => invoke("start_capture_cmd");
+  $("#clip").onclick = () => invoke("pin_clipboard_cmd");
+  $("#hide").onclick = () => invoke("toggle_hide");
   $("#openFile").onclick = async () => {
     const path = await open({
       multiple: false,
       filters: [{ name: "图片", extensions: ["png", "jpg", "jpeg", "webp", "gif", "bmp", "avif"] }],
     });
-    if (path) choose(path, path.split(/[\\/]/).pop());
-  };
-
-  async function choose(src, name) {
-    try {
-      const img = await loadImage(src);
-      current = { src, w: img.naturalWidth, h: img.naturalHeight };
-      preview.src = img.src;
-      $("#srcName").textContent = `${name} · ${current.w}×${current.h}`;
-      setCrop(null);
-      $("#pinWhole").disabled = false;
-    } catch (e) {
-      $("#srcName").textContent = String(e);
-    }
-  }
-
-  function setCrop(c) {
-    crop = c;
-    $("#pinCrop").disabled = !c;
-    if (!c) {
-      sel.hidden = true;
-      $("#cropText").textContent = "拖动框选局部";
-      return;
-    }
-    const k = preview.clientWidth / current.w;
-    Object.assign(sel.style, {
-      left: `${c.x * k}px`,
-      top: `${c.y * k}px`,
-      width: `${c.w * k}px`,
-      height: `${c.h * k}px`,
-    });
-    sel.hidden = false;
-    $("#cropText").textContent = `局部 ${c.x},${c.y} · ${c.w}×${c.h}`;
-  }
-
-  // Selection in oriented source pixels (naturalWidth already reflects EXIF orientation).
-  let dragStart = null;
-  const toSrc = (e) => {
-    const r = preview.getBoundingClientRect();
-    const k = current.w / r.width;
-    return {
-      x: Math.max(0, Math.min(current.w, Math.round((e.clientX - r.left) * k))),
-      y: Math.max(0, Math.min(current.h, Math.round((e.clientY - r.top) * k))),
-    };
-  };
-  preview.addEventListener("pointerdown", (e) => {
-    if (!current) return;
-    e.preventDefault();
-    preview.setPointerCapture(e.pointerId);
-    dragStart = toSrc(e);
-  });
-  preview.addEventListener("pointermove", (e) => {
-    if (!dragStart) return;
-    const p = toSrc(e);
-    const c = {
-      x: Math.min(p.x, dragStart.x),
-      y: Math.min(p.y, dragStart.y),
-      w: Math.abs(p.x - dragStart.x),
-      h: Math.abs(p.y - dragStart.y),
-    };
-    setCrop(c.w >= 8 && c.h >= 8 ? c : null);
-  });
-  preview.addEventListener("pointerup", () => (dragStart = null));
-  window.addEventListener("resize", () => crop && setCrop(crop));
-
-  const pin = (c) => invoke("create_pin", { src: current.src, crop: c }).catch((e) => alert(e));
-  $("#pinWhole").onclick = () => pin({ x: 0, y: 0, w: current.w, h: current.h });
-  $("#pinCrop").onclick = () => crop && pin(crop);
-
-  $("#toggleAll").onclick = () => invoke("toggle_all");
-  $("#setAccel").onclick = async () => {
-    const v = $("#accel").value.trim();
-    if (v) render(await invoke("change_exit_shortcut", { accelerator: v }));
+    if (path) invoke("pin_file", { path }).catch((e) => alert(e));
   };
   $("#logging").onchange = (e) => invoke("set_logging", { on: e.target.checked });
 
-  function render(snap) {
-    $("#shortcut").innerHTML = snap.exitShortcut
-      ? `<b class="key">${snap.exitShortcut}</b> 全局切换穿透${snap.shortcutError ? `<p class="warn">先前候选失败：${snap.shortcutError}</p>` : ""}`
-      : `<p class="warn">未注册退出快捷键，穿透已禁用：${snap.shortcutError ?? ""}</p>`;
-    $("#logging").checked = snap.logToFile;
-    $("#dataFile").textContent = `数据：${snap.dataFile}`;
-    const rows = snap.pins.map((p) => {
-      const w = snap.windows.find((x) => x.id === p.id);
-      const want = [Math.round(p.crop.w * p.scale), Math.round(p.crop.h * p.scale)];
-      const ok = w && w.innerW === want[0] && w.innerH === want[1];
-      const flags = [
-        p.onTop ? "置顶" : "未置顶",
-        p.locked ? "锁定" : "",
-        snap.passthrough.includes(p.id) ? "穿透" : "",
-      ].filter(Boolean).join(" · ");
-      return `<tr>
-        <td>${p.id}</td>
-        <td>${p.crop.x},${p.crop.y} ${p.crop.w}×${p.crop.h}</td>
-        <td>${p.scale === 1 ? "1:1" : p.scale.toFixed(3)}</td>
-        <td class="${ok ? "" : "warn"}">${w ? `${w.innerW}×${w.innerH}` : "?"}${ok ? "" : ` ≠ ${want.join("×")}`}</td>
-        <td>${p.x},${p.y}</td>
-        <td>${w ? w.scaleFactor.toFixed(3) : "?"}</td>
-        <td>${flags}</td>
-        <td><button data-close="${p.id}">关闭</button></td>
-      </tr>`;
-    });
-    $("#pins tbody").innerHTML = rows.join("") || `<tr><td colspan="8" class="hint">还没有钉图</td></tr>`;
-    $("#events").textContent = snap.events.slice().reverse().join("\n");
-  }
-  $("#pins").addEventListener("click", (e) => {
-    const id = e.target.dataset?.close;
-    if (id) invoke("close_pin", { id });
+  app.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-do]");
+    if (!b) return;
+    const { do: what, path, cid, action } = b.dataset;
+    if (what === "pin") invoke("pin_file", { path, captureId: cid || null }).catch((err) => alert(err));
+    if (what === "fav") invoke("favorite", { captureId: cid }).catch((err) => alert(err));
+    if (what === "key") {
+      const v = prompt("新的全局快捷键（例如 F6、Ctrl+Alt+A）");
+      if (v) invoke("change_key", { action, accelerator: v.trim() });
+    }
   });
 
-  await listen("pins-changed", (e) => render(e.payload));
+  const time = (ms) => new Date(ms).toLocaleTimeString();
+  let lastHistory = "";
+  let lastLibrary = "";
+  function render(s) {
+    for (const k of app.querySelectorAll("kbd[data-key]")) k.textContent = s.keys[k.dataset.key] ?? "未注册";
+    $("#hide").classList.toggle("on", s.allHidden);
+
+    const h = JSON.stringify(s.history);
+    if (h !== lastHistory) {
+      lastHistory = h;
+      $("#history").innerHTML =
+        s.history
+          .map(
+            (it) => `<figure>
+          <img src="${urlFor(it.file)}" alt="" loading="lazy" />
+          <figcaption>${time(it.created)} · ${it.w}×${it.h}</figcaption>
+          <div class="row">
+            <button data-do="pin" data-path="${esc(it.file)}" data-cid="${it.id}">钉住</button>
+            <button data-do="fav" data-cid="${it.id}" ${it.libraryFile ? "disabled" : ""}>${it.libraryFile ? "★ 已收藏" : "☆ 收藏"}</button>
+          </div></figure>`,
+          )
+          .join("") ||
+        `<p class="hint">还没有截图。按 ${s.keys.capture ?? "截图键"} 框选屏幕上任意区域。最多保留 10 张，旧的会自动删除；收藏的会复制进资料库。</p>`;
+    }
+    const l = JSON.stringify(s.library);
+    if (l !== lastLibrary) {
+      lastLibrary = l;
+      $("#library").innerHTML =
+        s.library
+          .map(
+            (f) => `<figure>
+          <img src="${urlFor(f)}" alt="" loading="lazy" />
+          <figcaption>${esc(f.split(/[\\/]/).pop())}</figcaption>
+          <div class="row"><button data-do="pin" data-path="${esc(f)}">钉住</button></div></figure>`,
+          )
+          .join("") || `<p class="hint">收藏的截图会出现在这里（原型用的临时文件夹，不是正式资料库）。</p>`;
+    }
+
+    $("#keys").innerHTML = [
+      ["capture", "截图钉住"],
+      ["pinClipboard", "钉剪贴板图片"],
+      ["hide", "隐藏／显示全部钉图"],
+    ]
+      .map(
+        ([a, label]) => `<div class="row keyrow"><span>${label}</span>
+        ${s.keys[a] ? `<kbd>${s.keys[a]}</kbd>` : `<span class="warn">未注册：${esc(s.keyErrors[a] ?? "")}</span>`}
+        <button data-do="key" data-action="${a}">更换</button></div>`,
+      )
+      .join("");
+    $("#pins tbody").innerHTML =
+      s.pins
+        .map(
+          (p) => `<tr><td>${p.id}</td><td>${p.w}×${p.h}</td><td>${Math.round(p.scale * 100)}%</td>
+        <td>${p.rotation * 90}°${p.flipH ? " ⇋" : ""}${p.flipV ? " ⇵" : ""}</td><td>${Math.round(p.opacity * 100)}%</td>
+        <td>${p.x},${p.y}</td><td>${[p.onTop ? "置顶" : "", p.locked ? "锁定" : "", p.hidden ? (p.hidden.peeking ? "探出" : `贴边:${p.hidden.edge}`) : ""].filter(Boolean).join(" · ")}</td></tr>`,
+        )
+        .join("") || `<tr><td colspan="7" class="hint">还没有钉图</td></tr>`;
+    $("#logging").checked = s.logToFile;
+    $("#dataDir").textContent = `数据目录：${s.dataDir}`;
+    $("#events").textContent = s.events.slice().reverse().join("\n");
+  }
+
+  await listen("state-changed", (e) => render(e.payload));
   render(await invoke("get_state"));
-  // Window facts (scale factor, real size) change without events, e.g. on restore or DPI change.
-  setInterval(async () => render(await invoke("get_state")), 1000);
 }
