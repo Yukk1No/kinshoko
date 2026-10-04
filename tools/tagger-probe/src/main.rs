@@ -32,6 +32,7 @@ struct Args {
     limit: usize,
     skip_cpu: bool,
     skip_gpu: bool,
+    all_models: bool,
     data_dir: PathBuf,
     prompt: bool,
 }
@@ -42,7 +43,7 @@ fn parse_args() -> Result<Args, String> {
         .unwrap_or_else(|| PathBuf::from("."))
         .join("Kinshoko")
         .join("probe");
-    let mut a = Args { sample_dirs: vec![], limit: usize::MAX, skip_cpu: false, skip_gpu: false, data_dir: default_data, prompt: true };
+    let mut a = Args { sample_dirs: vec![], limit: usize::MAX, skip_cpu: false, skip_gpu: false, all_models: false, data_dir: default_data, prompt: true };
     let mut it = std::env::args().skip(1);
     while let Some(arg) = it.next() {
         match arg.as_str() {
@@ -50,6 +51,7 @@ fn parse_args() -> Result<Args, String> {
             "--limit" => a.limit = it.next().and_then(|v| v.parse().ok()).ok_or("--limit 需要数字")?,
             "--skip-cpu" => a.skip_cpu = true,
             "--skip-gpu" => a.skip_gpu = true,
+            "--all-models" => a.all_models = true,
             "--data-dir" => a.data_dir = it.next().ok_or("--data-dir 需要路径")?.into(),
             "--no-prompt" => a.prompt = false,
             other => return Err(format!("未知参数 {other}")),
@@ -100,7 +102,7 @@ fn run(args: &Args) -> Result<(), String> {
     let dev_mode = !args.sample_dirs.is_empty();
     if args.prompt {
         println!("这个程序会测试自动打标模型在这台电脑上的速度和结果：");
-        println!("  1. 下载两个模型（约 1.7 GB）和 pixiv 上的公开样本图（约 0.8 GB），只在第一次运行时下载；");
+        println!("  1. 下载 PixAI v1.0 模型（约 3 GB）和 pixiv 上的公开样本图（约 0.8 GB，已下载过的直接复用）；");
         println!("  2. 分别用显卡和 CPU 给样本打标，可能需要几十分钟；");
         println!("  3. 在桌面生成一个报告压缩包，请把它发给开发者。");
         println!("报告只包含硬件型号、耗时和公开样本的打标结果，不会读取你自己的文件。");
@@ -122,6 +124,7 @@ fn run(args: &Args) -> Result<(), String> {
     println!("\n[2/4] 准备模型");
     let models: Vec<_> = models::MODELS
         .iter()
+        .filter(|spec| spec.default || args.all_models)
         .map(|spec| models::ensure(spec, &args.data_dir.join("models")))
         .collect::<Result<_, _>>()?;
 
@@ -143,6 +146,8 @@ fn run(args: &Args) -> Result<(), String> {
     let mut agreements = Vec::new();
     let mut notes = Vec::new();
     let mut first_predictions = true;
+    // Scores per (model key, provider) for cross-variant comparison.
+    let mut all_scores: Vec<(&str, Ep, Vec<Option<Vec<f32>>>)> = Vec::new();
     for model in &models {
         let mut gpu = None;
         let mut cpu = None;
@@ -150,8 +155,16 @@ fn run(args: &Args) -> Result<(), String> {
             if (ep == Ep::Cpu && args.skip_cpu) || (ep == Ep::DirectMl && args.skip_gpu) {
                 continue;
             }
-            println!("  {} · {}", model.spec.label, ep.label());
-            let r = bench::run(model, ep, &samples, &run_dir);
+            let n = match ep {
+                Ep::DirectMl => model.spec.directml,
+                Ep::Cpu => model.spec.cpu,
+            }
+            .take(samples.len());
+            if n == 0 {
+                continue;
+            }
+            println!("  {} · {}（{} 张）", model.spec.label, ep.label(), n);
+            let r = bench::run(model, ep, &samples[..n], &run_dir);
             if let Some(err) = &r.report.error {
                 println!("    {err}");
             }
@@ -166,15 +179,33 @@ fn run(args: &Args) -> Result<(), String> {
             }
         }
         if let (Some(c), Some(g)) = (&cpu, &gpu) {
-            agreements.push(report::agreement(model, c, g));
+            agreements.push(report::agreement(model, "CPU vs DirectML", c, g));
         }
+        // Predictions from the provider that covered more samples, CPU on ties.
+        let count = |v: &Option<Vec<Option<Vec<f32>>>>| v.as_ref().map_or(0, |s| s.iter().filter(|x| x.is_some()).count());
         let (provider, scores) = match (&cpu, &gpu) {
+            (Some(_), Some(g)) if count(&gpu) > count(&cpu) => ("directml", g),
             (Some(c), _) => ("cpu", c),
             (None, Some(g)) => ("directml", g),
             _ => continue,
         };
         report::write_predictions(&predictions, model, provider, &samples, scores, !first_predictions).map_err(|e| e.to_string())?;
         first_predictions = false;
+        if let Some(g) = gpu {
+            all_scores.push((model.spec.key, Ep::DirectMl, g));
+        }
+        if let Some(c) = cpu {
+            all_scores.push((model.spec.key, Ep::Cpu, c));
+        }
+    }
+    // PixAI v1.0: FP16 on the GPU against the FP32 reference on the CPU.
+    let find = |key: &str, ep: Ep| all_scores.iter().find(|(k, e, _)| *k == key && *e == ep).map(|(_, _, s)| s);
+    if let (Some(fp16), Some(fp32), Some(model)) = (
+        find("pixai-v1.0-fp16", Ep::DirectMl),
+        find("pixai-v1.0-fp32", Ep::Cpu),
+        models.iter().find(|m| m.spec.key == "pixai-v1.0-fp32"),
+    ) {
+        agreements.push(report::agreement(model, "FP32 CPU vs FP16 DirectML", fp32, fp16));
     }
 
     let drawing_app_answer = args.prompt.then(|| {

@@ -2,8 +2,10 @@
 
 Usage: python scripts/analysis/probe_report.py <predictions.jsonl | report.zip> [--split evaluation|calibration|all]
 
-- Rating gate: positives are samples with pixiv's R-18 flag; a sample counts as caught
-  when the model's top rating class is questionable or explicit (see acceptance.md).
+- Rating gate: positives are samples with pixiv's R-18 flag. Two rules are reported:
+  "top" (the highest rating class is questionable or explicit, as in acceptance.md) and
+  "threshold" (questionable or explicit score >= RATING_THRESHOLD, PixAI v1.0's
+  recommended rating threshold; its rating outputs are independent sigmoids).
 - Tag report: pixiv author tags are weak labels, so only author-tag recall is a rate;
   model positives without the author tag are counted, not called errors.
 """
@@ -23,6 +25,8 @@ TAG_MAP = {
     "逆光": ["backlighting"], "全身": ["full_body"], "バストアップ": ["upper_body", "portrait"],
 }
 EXACT_WANTED = {"センター分け": "middle_part", "センターパート": "middle_part"}
+RATING_THRESHOLD = 0.41
+RATING_NAMES = {"rating:g": "general", "rating:s": "sensitive", "rating:q": "questionable", "rating:e": "explicit"}
 
 
 def load(path):
@@ -34,12 +38,25 @@ def load(path):
     return [json.loads(l) for l in text.splitlines() if l.strip()]
 
 
+def qe(r):
+    return max(r["ratings"].get("questionable", 0), r["ratings"].get("explicit", 0))
+
+
+RULES = {
+    "最高档": lambda r: max(r["ratings"], key=r["ratings"].get) in ("questionable", "explicit"),
+    f"q/e ≥ {RATING_THRESHOLD}": lambda r: qe(r) >= RATING_THRESHOLD,
+}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("predictions")
     ap.add_argument("--split", default="evaluation", choices=["evaluation", "calibration", "all"])
     a = ap.parse_args()
     rows = [r for r in load(a.predictions) if a.split == "all" or r["split"] == a.split]
+    for r in rows:
+        if r.get("ratings"):
+            r["ratings"] = {RATING_NAMES.get(k, k): v for k, v in r["ratings"].items()}
     out = io.StringIO()
     w = lambda s="": print(s, file=out)
     w(f"# 打标探测分析（split={a.split}）\n")
@@ -51,26 +68,27 @@ def main():
     for model, rs in by_model.items():
         w(f"## {model}（{len(rs)} 张，{rs[0]['provider']}）\n")
         rated = [r for r in rs if r.get("ratings")]
-        if rated:
-            flagged = lambda r: max(r["ratings"], key=r["ratings"].get) in ("questionable", "explicit")
+        w("### 内容分级\n")
+        if not rated:
+            w("- 该模型不输出分级。\n")
+        else:
             pos = [r for r in rated if r["truth_rating"] == "r18"]
             neg = [r for r in rated if r["truth_rating"] != "r18"]
             sens = [r for r in neg if "sensitive" in r["coverage"]]
             plain = [r for r in neg if "sensitive" not in r["coverage"]]
-            caught = sum(flagged(r) for r in pos)
-            w("### 内容分级\n")
-            w(f"- R-18 召回：{caught}/{len(pos)}" + (f"（{caught / len(pos):.1%}，门槛 ≥ 95%）" if pos else "（没有 R-18 样本）"))
-            for r in pos:
-                if not flagged(r):
-                    top = max(r["ratings"], key=r["ratings"].get)
-                    w(f"  - 漏判 {r['sample']}：判为 {top}（{r['ratings'][top]:.2f}）")
-            if sens:
-                w(f"- 敏感全年龄被判 questionable/explicit：{sum(flagged(r) for r in sens)}/{len(sens)}（只记录）")
-            if plain:
-                w(f"- 其他全年龄被判 questionable/explicit：{sum(flagged(r) for r in plain)}/{len(plain)}（只记录）")
+            for rule, flagged in RULES.items():
+                caught = sum(flagged(r) for r in pos)
+                rate = f"（{caught / len(pos):.1%}，门槛 ≥ 95%）" if pos else "（没有 R-18 样本）"
+                w(f"- 规则「{rule}」R-18 召回：{caught}/{len(pos)}{rate}")
+                for r in pos:
+                    if not flagged(r):
+                        scores = "，".join(f"{k} {v:.2f}" for k, v in sorted(r["ratings"].items(), key=lambda kv: -kv[1]))
+                        w(f"  - 漏判 {r['sample']}：{scores}")
+                if sens:
+                    w(f"  - 敏感全年龄被判 q/e：{sum(flagged(r) for r in sens)}/{len(sens)}（只记录）")
+                if plain:
+                    w(f"  - 其他全年龄被判 q/e：{sum(flagged(r) for r in plain)}/{len(plain)}（只记录）")
             w()
-        else:
-            w("### 内容分级\n\n- 该模型不输出分级。\n")
 
         w("### 与 pixiv 作者标签对照（只记录）\n")
         w("| 作者标签 | 对应标签 | 作者标了 | 模型命中 | 命中率 | 模型给出但作者未标 |")

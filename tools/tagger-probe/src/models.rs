@@ -12,6 +12,26 @@ pub enum Preprocess {
     PixAi,
     /// WD v3: pad to white square, resize to 448², BGR, NHWC, 0–255.
     Wd,
+    /// PixAI v1.0: keep aspect, resize longest side to 1008, pad black, RGB, CHW, (x - 0.5) / 0.5.
+    PixAiV1,
+}
+
+/// How many samples a model runs on a provider.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Limit {
+    Skip,
+    All,
+    First(usize),
+}
+
+impl Limit {
+    pub fn take(self, n: usize) -> usize {
+        match self {
+            Limit::Skip => 0,
+            Limit::All => n,
+            Limit::First(k) => k.min(n),
+        }
+    }
 }
 
 pub struct ModelSpec {
@@ -21,14 +41,57 @@ pub struct ModelSpec {
     pub revision: &'static str,
     pub model_sha256: &'static str,
     pub model_size: u64,
+    /// Model file name in the repository.
+    pub file: &'static str,
     pub preprocess: Preprocess,
-    /// Threshold for general tags (category 0).
-    pub general_threshold: f32,
-    /// Threshold for character tags (category 4).
-    pub character_threshold: f32,
+    /// Per-category thresholds; categories not listed are not reported as tags.
+    pub thresholds: &'static [(u8, f32)],
+    pub directml: Limit,
+    pub cpu: Limit,
+    /// Part of the default run (the others need `--models all`).
+    pub default: bool,
 }
 
-pub const MODELS: [ModelSpec; 2] = [
+impl ModelSpec {
+    pub fn threshold(&self, category: u8) -> Option<f32> {
+        self.thresholds.iter().find(|(c, _)| *c == category).map(|(_, t)| *t)
+    }
+}
+
+/// Category thresholds recommended on the PixAI v1.0 model card.
+const V1_THRESHOLDS: &[(u8, f32)] = &[(0, 0.17), (1, 0.15), (3, 0.24), (4, 0.27), (5, 0.17), (9, 0.41)];
+
+pub const MODELS: [ModelSpec; 4] = [
+    ModelSpec {
+        key: "pixai-v1.0-fp16",
+        label: "PixAI Tagger v1.0 FP16 (Mexes ONNX)",
+        repo: "Mexes/pixai-tagger-v1.0-onnx-fp32-fp16-int8",
+        revision: "0800778563144a0e6fdf41ddadd84aae3cb0dbcf",
+        model_sha256: "cd668e6760bb58ec400ce1b0286e5c9133f83b543caac6a378406b7d56f8c303",
+        model_size: 992_916_002,
+        file: "model_fp16.onnx",
+        preprocess: Preprocess::PixAiV1,
+        thresholds: V1_THRESHOLDS,
+        // FP16 is for GPUs; on CPU it is slower than FP32.
+        directml: Limit::All,
+        cpu: Limit::Skip,
+        default: true,
+    },
+    ModelSpec {
+        key: "pixai-v1.0-fp32",
+        label: "PixAI Tagger v1.0 FP32 (Mexes ONNX)",
+        repo: "Mexes/pixai-tagger-v1.0-onnx-fp32-fp16-int8",
+        revision: "0800778563144a0e6fdf41ddadd84aae3cb0dbcf",
+        model_sha256: "1cae6083f07be1e1757125802566c767005ae883e4504c00db4ee1ef93486dad",
+        model_size: 1_984_062_544,
+        file: "model.onnx",
+        preprocess: Preprocess::PixAiV1,
+        thresholds: V1_THRESHOLDS,
+        // A subset: enough to measure speed, memory and agreement without hours on CPU.
+        directml: Limit::First(30),
+        cpu: Limit::First(30),
+        default: true,
+    },
     ModelSpec {
         key: "pixai-v0.9",
         label: "PixAI Tagger v0.9 (DeepGHS ONNX)",
@@ -36,10 +99,13 @@ pub const MODELS: [ModelSpec; 2] = [
         revision: "d8cf666911a2c3d10d586d7823259192313c7eb7",
         model_sha256: "a8d479098b5e23f253543c93df42391736abbb77c21c2efd3a513b9cda7b3657",
         model_size: 1_271_365_854,
+        file: "model.onnx",
         preprocess: Preprocess::PixAi,
         // From the repo's thresholds.csv.
-        general_threshold: 0.3,
-        character_threshold: 0.85,
+        thresholds: &[(0, 0.3), (4, 0.85)],
+        directml: Limit::All,
+        cpu: Limit::All,
+        default: false,
     },
     ModelSpec {
         key: "wd-swinv2-v3",
@@ -48,10 +114,13 @@ pub const MODELS: [ModelSpec; 2] = [
         revision: "627aef95638667ddcaa3ac8ae625e88ea5b02f51",
         model_sha256: "e6774bff34d43bd49f75a47db4ef217dce701c9847b546523eb85ff6dbba1db1",
         model_size: 467_460_978,
+        file: "model.onnx",
         preprocess: Preprocess::Wd,
         // P=R threshold from the model card; character default from the author's demo.
-        general_threshold: 0.2653,
-        character_threshold: 0.85,
+        thresholds: &[(0, 0.2653), (4, 0.85)],
+        directml: Limit::All,
+        cpu: Limit::All,
+        default: false,
     },
 ];
 
@@ -157,7 +226,7 @@ pub fn ensure(spec: &'static ModelSpec, dir: &Path) -> Result<LocalModel, String
     if needs_check {
         if fs::metadata(&onnx).map(|m| m.len()).unwrap_or(0) != spec.model_size {
             println!("  下载 {}（{}）…", spec.label, human_bytes(spec.model_size));
-            download(&url(spec, "model.onnx"), &onnx, Some(spec.model_size), &[])?;
+            download(&url(spec, spec.file), &onnx, Some(spec.model_size), &[])?;
         }
         println!("  校验 {} …", spec.label);
         let sha = sha256_file(&onnx).map_err(|e| e.to_string())?;

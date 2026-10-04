@@ -17,6 +17,8 @@ const RATING_CATEGORY: u8 = 9;
 #[derive(Serialize, Default)]
 pub struct Agreement {
     pub model: String,
+    /// What is compared, e.g. "CPU vs DirectML".
+    pub compared: String,
     pub compared_images: usize,
     pub max_abs_diff: f32,
     pub mean_abs_diff: f32,
@@ -31,10 +33,8 @@ pub fn tag_set(model: &LocalModel, scores: &[f32]) -> BTreeSet<usize> {
     scores
         .iter()
         .enumerate()
-        .filter(|(i, &s)| match model.tags.get(*i).map(|t| t.category) {
-            Some(0) => s >= model.spec.general_threshold,
-            Some(4) => s >= model.spec.character_threshold,
-            _ => false,
+        .filter(|(i, &s)| {
+            model.tags.get(*i).and_then(|t| model.spec.threshold(t.category)).map_or(false, |thr| s >= thr)
         })
         .map(|(i, _)| i)
         .collect()
@@ -55,8 +55,14 @@ fn top_rating(r: &BTreeMap<String, f32>) -> Option<&str> {
     r.iter().max_by(|a, b| a.1.total_cmp(b.1)).map(|(k, _)| k.as_str())
 }
 
-pub fn agreement(model: &LocalModel, cpu: &[Option<Vec<f32>>], gpu: &[Option<Vec<f32>>]) -> Agreement {
-    let mut a = Agreement { model: model.spec.key.to_string(), min_tag_jaccard: 1.0, ..Default::default() };
+/// Compare two score lists for the same samples (zipped; the shorter one bounds the comparison).
+pub fn agreement(model: &LocalModel, compared: &str, cpu: &[Option<Vec<f32>>], gpu: &[Option<Vec<f32>>]) -> Agreement {
+    let mut a = Agreement {
+        model: model.spec.key.to_string(),
+        compared: compared.to_string(),
+        min_tag_jaccard: 1.0,
+        ..Default::default()
+    };
     let (mut sum, mut count, mut rating_agree, mut has_rating) = (0f64, 0usize, 0usize, false);
     for (c, g) in cpu.iter().zip(gpu) {
         let (Some(c), Some(g)) = (c, g) else { continue };
@@ -195,14 +201,15 @@ pub fn markdown(r: &Report) -> String {
         );
     }
     if !r.agreement.is_empty() {
-        let _ = writeln!(s, "\n## CPU 与 DirectML 结果一致性\n");
-        let _ = writeln!(s, "| 模型 | 比较张数 | 最大分数差 | 平均分数差 | 标签集合完全一致 | 最低 Jaccard | 分级一致 |");
-        let _ = writeln!(s, "|---|---|---|---|---|---|---|");
+        let _ = writeln!(s, "\n## 结果一致性\n");
+        let _ = writeln!(s, "| 模型 | 比较 | 比较张数 | 最大分数差 | 平均分数差 | 标签集合完全一致 | 最低 Jaccard | 分级一致 |");
+        let _ = writeln!(s, "|---|---|---|---|---|---|---|---|");
         for a in r.agreement {
             let _ = writeln!(
                 s,
-                "| {} | {} | {:.2e} | {:.2e} | {} | {:.3} | {} |",
+                "| {} | {} | {} | {:.2e} | {:.2e} | {} | {:.3} | {} |",
                 a.model,
+                a.compared,
                 a.compared_images,
                 a.max_abs_diff,
                 a.mean_abs_diff,

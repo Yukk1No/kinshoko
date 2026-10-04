@@ -112,11 +112,20 @@ pub fn vram_usage() -> u64 {
     use windows::core::Interface;
     use windows::Win32::Graphics::Dxgi::{CreateDXGIFactory1, IDXGIAdapter3, IDXGIFactory1, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, DXGI_QUERY_VIDEO_MEMORY_INFO};
     let mut total = 0;
+    let mut seen = Vec::new();
     unsafe {
         let Ok(factory) = CreateDXGIFactory1::<IDXGIFactory1>() else { return 0 };
         let mut i = 0;
         while let Ok(a) = factory.EnumAdapters1(i) {
             i += 1;
+            // The same adapter can be enumerated more than once; count each LUID once.
+            if let Ok(d) = a.GetDesc1() {
+                let luid = (d.AdapterLuid.HighPart, d.AdapterLuid.LowPart);
+                if seen.contains(&luid) {
+                    continue;
+                }
+                seen.push(luid);
+            }
             if let Ok(a3) = a.cast::<IDXGIAdapter3>() {
                 let mut info = DXGI_QUERY_VIDEO_MEMORY_INFO::default();
                 if a3.QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &mut info).is_ok() {

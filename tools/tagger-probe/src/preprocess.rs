@@ -41,6 +41,26 @@ pub fn prepare(img: &DynamicImage, kind: Preprocess) -> Prepared {
             }
             Prepared { shape: [1, 3, SIZE as usize, SIZE as usize], data }
         }
+        Preprocess::PixAiV1 => {
+            // tagger_pipeline.rescale_pad: scale longest side to 1008 (floor), bilinear with
+            // antialias, centre on a zero (black) canvas, then normalize mean=std=0.5.
+            const V1: u32 = 1008;
+            let (w, h) = (rgb.width(), rgb.height());
+            let r = (V1 as f64 / h as f64).min(V1 as f64 / w as f64);
+            let (nw, nh) = (((w as f64 * r) as u32).max(1), ((h as f64 * r) as u32).max(1));
+            let resized = if (nw, nh) == (w, h) { rgb } else { image::imageops::resize(&rgb, nw, nh, FilterType::Triangle) };
+            let (left, top) = ((V1 - nw) / 2, (V1 - nh) / 2);
+            let n = (V1 * V1) as usize;
+            // Padding is 0 before normalization, i.e. -1 after it.
+            let mut data = vec![-1f32; 3 * n];
+            for (x, y, p) in resized.enumerate_pixels() {
+                let i = ((y + top) * V1 + x + left) as usize;
+                for c in 0..3 {
+                    data[c * n + i] = (p[c] as f32 / 255.0 - 0.5) / 0.5;
+                }
+            }
+            Prepared { shape: [1, 3, V1 as usize, V1 as usize], data }
+        }
         Preprocess::Wd => {
             // WD v3: pad to a white square, bicubic resize, BGR, NHWC, 0-255.
             let side = rgb.width().max(rgb.height());
