@@ -1,6 +1,8 @@
-# Liquid-glass app icon study for the keyhole bookmark (A) + sparkle (C).
-BM = ("M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z")
-KH = "M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"
+# Rejected glass app icons (night / sakura). Reproduces icon-night.svg and icon-sakura.svg:
+#   python build.py
+from pathlib import Path
+BM = ("M98 20 H158 A34 34 0 0 1 192 54 V220 Q192 241 175 229 L137 199 Q128 192 119 199 L81 229 Q64 241 64 220 V54 A34 34 0 0 1 98 20 Z")
+KH = "M116 117.8 A26 26 0 1 1 140 117.8 L145 151 Q146 158 139 158 H117 Q110 158 111 151 Z"
 def star(cx, cy, r, k=0.16):
     d = r*k
     return (f"M{cx} {cy-r} C{cx+d} {cy-d} {cx+d} {cy-d} {cx+r} {cy} C{cx+d} {cy+d} {cx+d} {cy+d} {cx} {cy+r} "
@@ -8,7 +10,7 @@ def star(cx, cy, r, k=0.16):
 ST = star(194, 46, 40)
 S = 2.75; TX = 512-128*S; TY = 512-128*S-6
 
-def icon(id, bg1, bg2, glow, g_top, g_bot, g_op, rim, st_top, st_bot, shadow, kh_tint):
+def icon(id, bg1, bg2, glow, g_top, g_bot, g_op, rim, st_top, st_bot, shadow, kh_tint, b1, b2, b3, caustic):
     sw = 1/S
     return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
 <defs>
@@ -24,12 +26,13 @@ def icon(id, bg1, bg2, glow, g_top, g_bot, g_op, rim, st_top, st_bot, shadow, kh
  <clipPath id="{id}stc"><path d="{ST}"/></clipPath>
  <clipPath id="{id}tile"><rect width="1024" height="1024" rx="228"/></clipPath>
  <filter id="{id}blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+ <filter id="{id}blob" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="70"/></filter>
  <filter id="{id}blur2" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter>
 </defs>
 <g clip-path="url(#{id}tile)">
  <rect width="1024" height="1024" fill="url(#{id}bg)"/>
  <rect width="1024" height="1024" fill="url(#{id}gl)"/>
- <path d="M0 0 H1024 V300 C700 380 320 260 0 360 Z" fill="#fff" opacity="0.05"/>
+ <g filter="url(#{id}blob)"><circle cx="300" cy="330" r="150" fill="{b1}" opacity="0.75"/><circle cx="720" cy="700" r="190" fill="{b2}" opacity="0.7"/><circle cx="640" cy="300" r="90" fill="{b3}" opacity="0.6"/></g>
  <g transform="translate({TX:.1f} {TY:.1f}) scale({S})">
   <!-- cast shadow -->
   <path d="{BM}" transform="translate(4 14)" fill="{shadow}" opacity="0.45" filter="url(#{id}blur)"/>
@@ -41,12 +44,13 @@ def icon(id, bg1, bg2, glow, g_top, g_bot, g_op, rim, st_top, st_bot, shadow, kh
   <!-- inner rim light + specular -->
   <g clip-path="url(#{id}bmc)">
    <path d="{BM} {KH}" fill="none" stroke="url(#{id}rim)" stroke-width="{10*sw*S/2.75*1.0:.2f}"/>
-   <path d="M60 14 H200 V70 C160 92 104 96 60 86 Z" fill="url(#{id}spec)" opacity="0.7"/>
-   <path d="M70 230 L128 188 L186 230" fill="none" stroke="#fff" stroke-opacity="0.25" stroke-width="5"/>
+   <ellipse cx="150" cy="215" rx="70" ry="34" fill="{caustic}" opacity="0.75" filter="url(#{id}blur)"/>
+   <path d="M60 14 H200 V64 C160 84 104 88 60 80 Z" fill="url(#{id}spec)" opacity="0.45"/>
+   <path d="{BM}" fill="none" stroke="#fff" stroke-opacity="0.5" stroke-width="14" filter="url(#{id}blur2)"/>
   </g>
   <!-- sparkle: second glass layer overlapping the corner -->
   <path d="{ST}" transform="translate(2 8)" fill="{shadow}" opacity="0.35" filter="url(#{id}blur2)"/>
-  <path d="{ST}" fill="url(#{id}st)" opacity="0.92"/>
+  <path d="{ST}" fill="url(#{id}st)" stroke="url(#{id}st)" stroke-width="7" stroke-linejoin="round" opacity="0.94"/>
   <g clip-path="url(#{id}stc)"><path d="{ST}" fill="none" stroke="#fff" stroke-opacity="0.7" stroke-width="3"/>
    <circle cx="186" cy="34" r="10" fill="#fff" opacity="0.55" filter="url(#{id}blur2)"/></g>
  </g>
@@ -56,12 +60,12 @@ def icon(id, bg1, bg2, glow, g_top, g_bot, g_op, rim, st_top, st_bot, shadow, kh
 </svg>'''
 
 V = {
- "night": dict(bg1="#3A3466", bg2="#17152A", glow="#8C7BD8", g_top="#FFF6E2", g_bot="#E9C985", g_op=0.9, rim=0.9,
-               st_top="#FFE6A6", st_bot="#E3A93C", shadow="#05040C", kh_tint="#2B2747"),
- "day":   dict(bg1="#FFFDF8", bg2="#ECE5F3", glow="#F6C9D5", g_top="#5C5492", g_bot="#2B2747", g_op=0.88, rim=0.75,
-               st_top="#FFB7C7", st_bot="#E0768F", shadow="#4B3F6B", kh_tint="#FFFFFF"),
- "sakura":dict(bg1="#F59AAE", bg2="#8E6FD0", glow="#FFE3EA", g_top="#FFFFFF", g_bot="#F1E8FF", g_op=0.62, rim=1.0,
-               st_top="#FFF3C8", st_bot="#F2C14E", shadow="#3B2366", kh_tint="#5A3C8F"),
+ "night": dict(bg1="#332D5E", bg2="#141226", glow="#7F6DD6", g_top="#FFF7E6", g_bot="#EBC77E", g_op=0.84, rim=0.95,
+               st_top="#FFEAB0", st_bot="#E3A93C", shadow="#05040C", kh_tint="#2B2747",
+               b1="#6A5ACD", b2="#C2577E", b3="#E3B34F", caustic="#FFF2C8"),
+ "sakura":dict(bg1="#F79DB1", bg2="#8A6BD0", glow="#FFE6EC", g_top="#FFFFFF", g_bot="#F3EAFF", g_op=0.6, rim=1.0,
+               st_top="#FFF4CC", st_bot="#F2C14E", shadow="#3B2366", kh_tint="#5A3C8F",
+               b1="#FFD1DC", b2="#6E4FC0", b3="#FFE7A0", caustic="#FFFFFF"),
 }
 for k, v in V.items():
-    open(f"icon-glass-{k}.svg","w",encoding="utf-8").write(icon(k, **v))
+    (Path(__file__).parent / f"icon-{k}.svg").write_text(icon(k, **v), encoding="utf-8", newline="")
