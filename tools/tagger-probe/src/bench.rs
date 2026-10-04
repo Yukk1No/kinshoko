@@ -107,8 +107,9 @@ pub fn memory_shortfall(model: &LocalModel, ep: Ep) -> Option<String> {
         Ep::DirectMl if model.spec.vram_need > 0 => {
             // DirectML uses device 0, the first adapter DXGI enumerates.
             let gpu = sysinfo::gpu_memory().into_iter().next()?;
-            (gpu.local_budget < model.spec.vram_need).then(|| {
-                format!("显存可用额度 {} 小于需要的约 {}", human_bytes(gpu.local_budget), human_bytes(model.spec.vram_need))
+            // The OS lowers the budget once a process nears it, so ask for headroom.
+            (gpu.local_budget < model.spec.vram_need / 4 * 5).then(|| {
+                format!("显存可用额度 {} 小于需要的约 {} 加 25% 余量", human_bytes(gpu.local_budget), human_bytes(model.spec.vram_need))
             })
         }
         Ep::Cpu if model.spec.ram_need > 0 => {
@@ -271,6 +272,14 @@ pub fn run(model: &LocalModel, ep: Ep, samples: &[Sample], workdir: &Path) -> Ru
                         format!("，显存峰值 {}，共享内存峰值 {}", human_bytes(g.local_usage), human_bytes(g.non_local_usage))
                     });
                     say!("    第 {} 张推理 {:.2} 秒{gpu}", i + 1, infer_ms / 1000.0);
+                }
+                // Over budget, Windows pages VRAM out and every image crawls (60 s/image seen).
+                if let Some(g) = sysinfo::gpu_memory().into_iter().next().filter(|g| ep == Ep::DirectMl && g.local_usage > g.local_budget) {
+                    report.stopped = Some(format!(
+                        "显存占用 {} 超过系统额度 {}",
+                        human_bytes(g.local_usage),
+                        human_bytes(g.local_budget)
+                    ));
                 }
                 if t3 - t2 > MAX_IMAGE {
                     report.stopped = Some(format!("第 {} 张推理用了 {:.0} 秒，超过 {} 秒上限", i + 1, infer_ms / 1000.0, MAX_IMAGE.as_secs()));
