@@ -143,6 +143,8 @@ pub struct Report<'a> {
     pub probe_version: &'static str,
     pub created_unix: u64,
     pub mode: &'a str,
+    /// False while the run is still going (or if it never finished).
+    pub complete: bool,
     pub hardware: &'a Hardware,
     pub samples_used: usize,
     pub samples_missing: usize,
@@ -163,6 +165,9 @@ fn ms(v: f64) -> String {
 pub fn markdown(r: &Report) -> String {
     let mut s = String::new();
     let _ = writeln!(s, "# Kinshoko 打标探测报告\n");
+    if !r.complete {
+        let _ = writeln!(s, "> 未完成：以下是中途保存的结果。\n");
+    }
     let h = r.hardware;
     let _ = writeln!(s, "- 系统：{}\n- CPU：{}（{} 线程）\n- 内存：{}", h.os, h.cpu, h.logical_cores, human_bytes(h.ram_bytes));
     for a in &h.adapters {
@@ -170,8 +175,8 @@ pub fn markdown(r: &Report) -> String {
     }
     let _ = writeln!(s, "- 显示器：{}", h.displays.join("、"));
     let _ = writeln!(s, "- 模式：{}；样本 {} 张（缺失 {}）\n", r.mode, r.samples_used, r.samples_missing);
-    let _ = writeln!(s, "| 模型 | 设备 | 结果 | 加载 | 首张 | 推理 p50 | 推理 p95 | 解码 p50 | 预处理 p50 | 总耗时 | 峰值内存 | 峰值显存 | 节点分布 |");
-    let _ = writeln!(s, "|---|---|---|---|---|---|---|---|---|---|---|---|---|");
+    let _ = writeln!(s, "| 模型 | 设备 | 结果 | 加载 | 首张 | 推理 p50 | 推理 p95 | 推理最长 | 解码 p50 | 预处理 p50 | 总耗时 | 峰值内存（提交） | 最少可用内存 | 显存峰值 / 共享内存峰值 / 可用额度 | 节点分布 |");
+    let _ = writeln!(s, "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
     for run in r.runs {
         let mut nodes = run.nodes_by_provider.iter().map(|(k, v)| format!("{k}: {v}")).collect::<Vec<_>>().join("<br>");
         if !run.nodes_by_provider.is_empty() {
@@ -182,21 +187,43 @@ pub fn markdown(r: &Report) -> String {
             };
             nodes.push_str(&format!("<br>计算密集算子回落 CPU：{heavy}"));
         }
+        let status = if let Some(why) = &run.skipped {
+            format!("跳过：{why}")
+        } else {
+            let mut t = if run.ok { format!("✓ {} 张", run.images) } else { format!("✗ {} 张", run.images) };
+            for extra in [&run.stopped, &run.error].into_iter().flatten() {
+                t.push_str(&format!("<br>{extra}"));
+            }
+            if run.device_lost {
+                t.push_str("<br>显卡被系统重置");
+            }
+            t
+        };
+        let gpu = run
+            .peaks
+            .gpus
+            .iter()
+            .filter(|g| g.local_usage > 0 || g.non_local_usage > 0)
+            .map(|g| format!("{} / {} / {}", human_bytes(g.local_usage), human_bytes(g.non_local_usage), human_bytes(g.local_budget)))
+            .collect::<Vec<_>>()
+            .join("<br>");
         let _ = writeln!(
             s,
-            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {:.0} s | {} | {} | {} |",
+            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {:.0} s | {} | {} | {} | {} |",
             run.model,
             run.ep.map(|e| e.label()).unwrap_or("-"),
-            if run.ok { format!("✓ {} 张", run.images) } else { format!("✗ {}", run.error.as_deref().unwrap_or("失败")) },
+            status,
             ms(run.load_ms),
             ms(run.first_image_ms),
             ms(run.inference.p50_ms),
             ms(run.inference.p95_ms),
+            ms(run.inference.max_ms),
             ms(run.decode.p50_ms),
             ms(run.preprocess.p50_ms),
             run.total_seconds,
-            human_bytes(run.peak_working_set_bytes),
-            human_bytes(run.peak_vram_bytes),
+            human_bytes(run.peaks.commit),
+            human_bytes(run.peaks.min_available_ram),
+            if gpu.is_empty() { "-".into() } else { gpu },
             nodes
         );
     }

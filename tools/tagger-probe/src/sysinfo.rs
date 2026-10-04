@@ -2,8 +2,8 @@
 
 use serde::Serialize;
 use std::process::Command;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
@@ -85,16 +85,35 @@ fn adapters() -> Vec<Adapter> {
     Vec::new()
 }
 
-/// Current working set of this process.
+/// This process's memory: (working set, committed private bytes).
 #[cfg(windows)]
-pub fn working_set() -> u64 {
+pub fn process_memory() -> (u64, u64) {
     use windows::Win32::System::ProcessStatus::{GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS};
     use windows::Win32::System::Threading::GetCurrentProcess;
     unsafe {
         let mut c = PROCESS_MEMORY_COUNTERS::default();
         let size = std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32;
         if GetProcessMemoryInfo(GetCurrentProcess(), &mut c, size).is_ok() {
-            c.WorkingSetSize as u64
+            (c.WorkingSetSize as u64, c.PagefileUsage as u64)
+        } else {
+            (0, 0)
+        }
+    }
+}
+
+#[cfg(not(windows))]
+pub fn process_memory() -> (u64, u64) {
+    (0, 0)
+}
+
+/// Physical memory currently available to the whole system.
+#[cfg(windows)]
+pub fn available_ram() -> u64 {
+    use windows::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
+    unsafe {
+        let mut m = MEMORYSTATUSEX { dwLength: std::mem::size_of::<MEMORYSTATUSEX>() as u32, ..Default::default() };
+        if GlobalMemoryStatusEx(&mut m).is_ok() {
+            m.ullAvailPhys
         } else {
             0
         }
@@ -102,77 +121,135 @@ pub fn working_set() -> u64 {
 }
 
 #[cfg(not(windows))]
-pub fn working_set() -> u64 {
+pub fn available_ram() -> u64 {
     0
 }
 
-/// Local (dedicated) video memory used by this process, summed over adapters.
+/// One hardware adapter's memory as seen by this process.
+#[derive(Serialize, Default, Clone)]
+pub struct GpuMemory {
+    pub name: String,
+    /// Dedicated VRAM this process uses.
+    pub local_usage: u64,
+    /// How much dedicated VRAM the OS currently lets this process use.
+    pub local_budget: u64,
+    /// Shared system memory this process uses through the adapter; it grows when VRAM overflows.
+    pub non_local_usage: u64,
+}
+
+/// Memory per hardware adapter, in DXGI enumeration order (DirectML's device 0 first).
 #[cfg(windows)]
-pub fn vram_usage() -> u64 {
+pub fn gpu_memory() -> Vec<GpuMemory> {
     use windows::core::Interface;
-    use windows::Win32::Graphics::Dxgi::{CreateDXGIFactory1, IDXGIAdapter3, IDXGIFactory1, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, DXGI_QUERY_VIDEO_MEMORY_INFO};
-    let mut total = 0;
+    use windows::Win32::Graphics::Dxgi::{
+        CreateDXGIFactory1, IDXGIAdapter3, IDXGIFactory1, DXGI_ADAPTER_FLAG_SOFTWARE, DXGI_MEMORY_SEGMENT_GROUP_LOCAL,
+        DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, DXGI_QUERY_VIDEO_MEMORY_INFO,
+    };
+    let mut out = Vec::new();
     let mut seen = Vec::new();
     unsafe {
-        let Ok(factory) = CreateDXGIFactory1::<IDXGIFactory1>() else { return 0 };
+        let Ok(factory) = CreateDXGIFactory1::<IDXGIFactory1>() else { return out };
         let mut i = 0;
         while let Ok(a) = factory.EnumAdapters1(i) {
             i += 1;
-            // The same adapter can be enumerated more than once; count each LUID once.
-            if let Ok(d) = a.GetDesc1() {
-                let luid = (d.AdapterLuid.HighPart, d.AdapterLuid.LowPart);
-                if seen.contains(&luid) {
-                    continue;
-                }
-                seen.push(luid);
+            let Ok(d) = a.GetDesc1() else { continue };
+            let len = d.Description.iter().position(|&c| c == 0).unwrap_or(d.Description.len());
+            let name = String::from_utf16_lossy(&d.Description[..len]);
+            // The same GPU can be enumerated more than once, even under different LUIDs, and
+            // each entry reports the same per-process usage; keep the first.
+            let key = (name.clone(), d.DedicatedVideoMemory);
+            if d.Flags & DXGI_ADAPTER_FLAG_SOFTWARE.0 as u32 != 0 || seen.contains(&key) {
+                continue;
             }
+            seen.push(key);
+            let mut m = GpuMemory { name, ..Default::default() };
             if let Ok(a3) = a.cast::<IDXGIAdapter3>() {
                 let mut info = DXGI_QUERY_VIDEO_MEMORY_INFO::default();
                 if a3.QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &mut info).is_ok() {
-                    total += info.CurrentUsage;
+                    m.local_usage = info.CurrentUsage;
+                    m.local_budget = info.Budget;
+                }
+                if a3.QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &mut info).is_ok() {
+                    m.non_local_usage = info.CurrentUsage;
                 }
             }
+            out.push(m);
         }
     }
-    total
+    out
 }
 
 #[cfg(not(windows))]
-pub fn vram_usage() -> u64 {
-    0
+pub fn gpu_memory() -> Vec<GpuMemory> {
+    Vec::new()
 }
 
-/// Samples peak working set and VRAM in the background until stopped.
+/// Peaks observed while a run was going.
+#[derive(Serialize, Default, Clone)]
+pub struct Peaks {
+    pub working_set: u64,
+    /// Committed private memory: what actually has to fit in RAM plus page file.
+    pub commit: u64,
+    pub min_available_ram: u64,
+    /// Per adapter: peak dedicated and shared usage, and the smallest budget seen.
+    pub gpus: Vec<GpuMemory>,
+}
+
+impl Peaks {
+    fn update(&mut self) {
+        let (ws, commit) = process_memory();
+        self.working_set = self.working_set.max(ws);
+        self.commit = self.commit.max(commit);
+        let avail = available_ram();
+        self.min_available_ram = if self.min_available_ram == 0 { avail } else { self.min_available_ram.min(avail) };
+        for g in gpu_memory() {
+            match self.gpus.iter_mut().find(|p| p.name == g.name) {
+                Some(p) => {
+                    p.local_usage = p.local_usage.max(g.local_usage);
+                    p.non_local_usage = p.non_local_usage.max(g.non_local_usage);
+                    p.local_budget = p.local_budget.min(g.local_budget);
+                }
+                None => self.gpus.push(g),
+            }
+        }
+    }
+}
+
+/// Samples peak memory in the background until stopped.
 pub struct PeakSampler {
     stop: Arc<AtomicBool>,
-    ram: Arc<AtomicU64>,
-    vram: Arc<AtomicU64>,
+    peaks: Arc<Mutex<Peaks>>,
     handle: Option<JoinHandle<()>>,
 }
 
 impl PeakSampler {
     pub fn start() -> Self {
         let stop = Arc::new(AtomicBool::new(false));
-        let ram = Arc::new(AtomicU64::new(working_set()));
-        let vram = Arc::new(AtomicU64::new(vram_usage()));
-        let (s, r, v) = (stop.clone(), ram.clone(), vram.clone());
+        let peaks = Arc::new(Mutex::new(Peaks::default()));
+        peaks.lock().unwrap().update();
+        let (s, p) = (stop.clone(), peaks.clone());
         let handle = std::thread::spawn(move || {
             while !s.load(Ordering::Relaxed) {
-                r.fetch_max(working_set(), Ordering::Relaxed);
-                v.fetch_max(vram_usage(), Ordering::Relaxed);
+                p.lock().unwrap().update();
                 std::thread::sleep(Duration::from_millis(200));
             }
         });
-        Self { stop, ram, vram, handle: Some(handle) }
+        Self { stop, peaks, handle: Some(handle) }
     }
 
-    /// Returns (peak working set, peak VRAM) in bytes.
-    pub fn finish(mut self) -> (u64, u64) {
+    /// Peaks so far, without stopping.
+    pub fn current(&self) -> Peaks {
+        self.peaks.lock().unwrap().clone()
+    }
+
+    pub fn finish(mut self) -> Peaks {
         self.stop.store(true, Ordering::Relaxed);
         if let Some(h) = self.handle.take() {
             let _ = h.join();
         }
-        (self.ram.load(Ordering::Relaxed), self.vram.load(Ordering::Relaxed))
+        let mut p = self.peaks.lock().unwrap().clone();
+        p.update();
+        p
     }
 }
 
