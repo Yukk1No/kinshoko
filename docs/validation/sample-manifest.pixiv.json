@@ -1,0 +1,5155 @@
+{
+ "version": 1,
+ "samples": [
+  {
+   "id": "pixiv-148183040-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148183040",
+    "page": 0
+   },
+   "sha256": "c1003a1a1fdcfcc779d2baf0a9bc104d17d7701162ac27339de11b50f7c76b02",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blonde"
+   ],
+   "authorTags": [
+    "GenshinImpact",
+    "原神",
+    "蛍(原神)",
+    "Lumine",
+    "星鋒の剣",
+    "冬の夜を狩る者",
+    "スネージナヤ",
+    "金髪",
+    "銃器",
+    "原神10000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149040133-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149040133",
+    "page": 0
+   },
+   "sha256": "8fe543a2678a25d8102f43be9a4c1ab0bc5117f455c095f3cb2b2163bd79f6d6",
+   "split": "evaluation",
+   "coverage": [
+    "style:twintails"
+   ],
+   "authorTags": [
+    "初音ミク",
+    "マジカルミライ",
+    "VOCALOID5000users入り",
+    "ツインテール"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-150148598-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "150148598",
+    "page": 0
+   },
+   "sha256": "f213d2045c8b49fe391df138731b4e8ad053efb1b4c00bfb081ef46f56546173",
+   "split": "evaluation",
+   "coverage": [
+    "style:twintails"
+   ],
+   "authorTags": [
+    "女の子",
+    "VOCALOID",
+    "初音ミク",
+    "miku",
+    "呪術廻戦",
+    "VOCALOID5000users入り",
+    "ツインテール"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149594560-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149594560",
+    "page": 0
+   },
+   "sha256": "75659529709aac0257dd40cbb162d46a3eb6f37dfaf021d53c9a0f26c3ba8fae",
+   "split": "calibration",
+   "coverage": [
+    "hair:blonde"
+   ],
+   "authorTags": [
+    "Fate/GrandOrder",
+    "FGO",
+    "ロード・ログレス",
+    "Fate/GO5000users入り",
+    "金髪",
+    "王冠",
+    "エクスカリバー"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149278529-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149278529",
+    "page": 0
+   },
+   "sha256": "841d08b0bd25d8a3b9f57957270bba147c20e10b0495606076f5fa941eae7ba8",
+   "split": "calibration",
+   "coverage": [
+    "hair:pink"
+   ],
+   "authorTags": [
+    "原神",
+    "GenshinImpact",
+    "シトラリ",
+    "Citlali",
+    "星と煙霧の夜話",
+    "原神10000users入り",
+    "膝",
+    "ピンク髪",
+    "腋"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149043463-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149043463",
+    "page": 0
+   },
+   "sha256": "1799ee112133667a770168a26027aa02c561a96ae2335d44fb4578e079ad2ed4",
+   "split": "evaluation",
+   "coverage": [
+    "style:twintails"
+   ],
+   "authorTags": [
+    "VOCALOID",
+    "初音ミク",
+    "Miku",
+    "VOCALOID10000users入り",
+    "VOCALOID5000users入り",
+    "ミクさんと花",
+    "透明感",
+    "ツインテール",
+    "裸足"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149594892-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149594892",
+    "page": 0
+   },
+   "sha256": "700667ff5266907f47d562fbcf36233697be4b32f83f6dab25a415a815fa8827",
+   "split": "evaluation",
+   "coverage": [
+    "hair:black"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "OC",
+    "女の子",
+    "制服",
+    "セーラー服",
+    "黒髪",
+    "少女",
+    "創作",
+    "オリジナル1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149354126-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149354126",
+    "page": 0
+   },
+   "sha256": "078cfb7ef165ed9cc32fff0763f92f973093a8e1cff5371124daac17f9fe5c80",
+   "split": "evaluation",
+   "coverage": [
+    "hair:pink"
+   ],
+   "authorTags": [
+    "ゼンレスゾーンゼロ",
+    "レミエール・ダン",
+    "蕾米埃尔",
+    "黒スト",
+    "極上の乳",
+    "魅惑の谷間",
+    "着衣巨乳",
+    "おっぱい",
+    "ゼンゼロ10000users入り",
+    "ピンク髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149351325-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149351325",
+    "page": 0
+   },
+   "sha256": "9e9ea9b3f35af5f021167f6a7b1551f928a2c09fa5cd66e76c251af758888099",
+   "split": "calibration",
+   "coverage": [
+    "hair:blue"
+   ],
+   "authorTags": [
+    "女の子",
+    "オリジナル",
+    "イラスト",
+    "フリーアイコン",
+    "青髪",
+    "少女",
+    "創作",
+    "猫",
+    "オリジナル1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148804251-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148804251",
+    "page": 0
+   },
+   "sha256": "98eb3b95bc3874a71cd3bff76fc65ad9b9dbca55d6ee1039ec750d3080c1f104",
+   "split": "evaluation",
+   "coverage": [
+    "backlight"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "創作",
+    "イラスト",
+    "逆光",
+    "美しい",
+    "背景",
+    "なにこれすごい",
+    "転生紀元",
+    "自分タグ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147630146-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147630146",
+    "page": 0
+   },
+   "sha256": "af8ec7148561d903298f216fcb71489bf71d0319b66ac2f835dbb513605a78b6",
+   "split": "evaluation",
+   "coverage": [
+    "hair:pink"
+   ],
+   "authorTags": [
+    "レミエール・ダン",
+    "ゼンレスゾーンゼロ",
+    "翼",
+    "pr",
+    "ピンク髪",
+    "シャドウ・ソリスト",
+    "水着",
+    "绝区零"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149883416-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149883416",
+    "page": 0
+   },
+   "sha256": "13427a239a4dc05a918bea64951b98df12af6fe417ba3c4eaf949724a25ccb20",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blonde"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "少女",
+    "創作",
+    "金髪",
+    "長手袋",
+    "ドレス",
+    "ロンググローブ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147359748-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147359748",
+    "page": 0
+   },
+   "sha256": "40e1677543dd11ecadab4d2e6feb8372df6fb9a84158ce4d781cbe34fdd852b3",
+   "split": "evaluation",
+   "coverage": [
+    "hair:white"
+   ],
+   "authorTags": [
+    "女の子",
+    "白髪",
+    "Sheya",
+    "赤眼",
+    "創作",
+    "ヴァンパイア",
+    "黒",
+    "白肌",
+    "黒は女性を美しく見せる"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147648533-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147648533",
+    "page": 0
+   },
+   "sha256": "7100d173e16fb8ed613bbf0136ee4c7d35112ec803e9a3132956c51f077674d6",
+   "split": "evaluation",
+   "coverage": [
+    "hair:white"
+   ],
+   "authorTags": [
+    "Fate/GrandOrder",
+    "イラスト",
+    "FGO",
+    "女の子",
+    "Fate/GO",
+    "Fate/strangefake",
+    "フランチェスカ(Fate)",
+    "フランチェスカ・プレラーティ",
+    "白髪",
+    "Fate/GO1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147921262-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147921262",
+    "page": 0
+   },
+   "sha256": "30cf89ef551e4fe7601625b989128d80ab59aa2110e7dbef4d914cabdccd1b76",
+   "split": "evaluation",
+   "coverage": [
+    "hair:black"
+   ],
+   "authorTags": [
+    "イラスト",
+    "背景",
+    "フリル",
+    "リボン",
+    "黒髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148184218-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148184218",
+    "page": 0
+   },
+   "sha256": "fc461db6579f2d6595bc08a0527fe5e25fc63f835ebcac7a437e29914b512c75",
+   "split": "calibration",
+   "coverage": [
+    "hair:pink"
+   ],
+   "authorTags": [
+    "レミエール・ダン",
+    "ゼンレスゾーンゼロ",
+    "ピンク髪",
+    "翼",
+    "デタッチドスリーブ",
+    "腿"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148761470-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148761470",
+    "page": 0
+   },
+   "sha256": "e5cd087b4b4a3101ce61af88653bcffc31c86e8f87b562bc2edbfa0b92354341",
+   "split": "evaluation",
+   "coverage": [
+    "hair:red"
+   ],
+   "authorTags": [
+    "創作",
+    "オリジナル",
+    "男の子",
+    "ゴーグル",
+    "リュック",
+    "商人",
+    "オリジナル500users入り",
+    "赤髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147635699-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147635699",
+    "page": 0
+   },
+   "sha256": "e160632d269f140b21589abc6a17cfeba3a0e19ba9d9aa8c29e84f331aad8b87",
+   "split": "calibration",
+   "coverage": [
+    "hair:purple"
+   ],
+   "authorTags": [
+    "女の子",
+    "少女",
+    "オリジナル",
+    "ビニール傘",
+    "紫目",
+    "雨",
+    "紫髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148759518-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148759518",
+    "page": 0
+   },
+   "sha256": "abe4264dfd645932b483c73c8794a6c51d9f5ed0e0dd1934a0117da84ebd69b8",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blonde"
+   ],
+   "authorTags": [
+    "プリキュア",
+    "森亜るるか",
+    "名探偵プリキュア!",
+    "キュアアルカナ・シャドウ",
+    "女の子",
+    "少女",
+    "マニキュア",
+    "ティアアルカナロッド",
+    "たんプリ1000users入り",
+    "金髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148474828-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148474828",
+    "page": 0
+   },
+   "sha256": "944d1531b31edec61947d0b09af5a9a41e56259ba745d927b008494e67e68605",
+   "split": "evaluation",
+   "coverage": [
+    "style:twintails"
+   ],
+   "authorTags": [
+    "初音ミク",
+    "VOCALOID",
+    "ツインテール",
+    "スターダストレイン",
+    "VOCALOID1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149876171-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149876171",
+    "page": 0
+   },
+   "sha256": "d2a1cd94f0e61735faedbd8958d0b93560c8e3b1d15b004ed955299df31d98cd",
+   "split": "evaluation",
+   "coverage": [
+    "length:short"
+   ],
+   "authorTags": [
+    "東方",
+    "チルノ",
+    "東方Project1000users入り",
+    "ショートカット",
+    "サングラス",
+    "貧乳"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148758910-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148758910",
+    "page": 0
+   },
+   "sha256": "10649fb91ab78a05ef69781179d06e2765401076de544e0e50d2a3a48b8f0aab",
+   "split": "calibration",
+   "coverage": [
+    "hair:blonde"
+   ],
+   "authorTags": [
+    "ブルーアーカイブ",
+    "女の子",
+    "ブルアカ",
+    "バニーガール",
+    "黒スト",
+    "魅惑のふともも",
+    "ニヤニヤ教授",
+    "金髪",
+    "笑顔",
+    "腋"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149087229-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149087229",
+    "page": 0
+   },
+   "sha256": "0c5e0a27a69bff572ed689d7c77843a27b0004e88933c0749eeed0d9dd6401ad",
+   "split": "calibration",
+   "coverage": [
+    "hair:pink"
+   ],
+   "authorTags": [
+    "魔法少女まどか☆マギカ",
+    "ワルプルギスの廻天",
+    "鹿目まどか",
+    "まどか☆マギカ1000users入り",
+    "光属性(マギアレコード)",
+    "アルティメットまどか",
+    "ピンク髪",
+    "魔法少女"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-150150304-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "150150304",
+    "page": 0
+   },
+   "sha256": "11fef872c3d5b801162012e4e10836f7b0ee0e6cff1ff7bfdf44e0149017c5da",
+   "split": "evaluation",
+   "coverage": [
+    "style:twintails"
+   ],
+   "authorTags": [
+    "クラレッタ・フリンツ",
+    "ゼンレスゾーンゼロ",
+    "ZenlessZoneZero",
+    "zzzero",
+    "ゼンゼロ",
+    "绝区零",
+    "女の子",
+    "claret",
+    "ツインテール"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147630469-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147630469",
+    "page": 0
+   },
+   "sha256": "a08fde7b9bd749f62083a087d6a5012cc3d27e97c5316ab607861c80d56fefa3",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blonde"
+   ],
+   "authorTags": [
+    "女の子",
+    "ツインテ",
+    "立ち絵",
+    "金髪",
+    "ドレス",
+    "手でハート",
+    "しゃがみ",
+    "超ロングヘア",
+    "白ニーソックス"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148185946-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148185946",
+    "page": 0
+   },
+   "sha256": "1059cc5d8306929ab271fba09f0846e6dd680d2872d5da52c9fd141e02e95d64",
+   "split": "evaluation",
+   "coverage": [
+    "hair:silver",
+    "hair:white"
+   ],
+   "authorTags": [
+    "巫てんり",
+    "白髪",
+    "銀髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147860829-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147860829",
+    "page": 0
+   },
+   "sha256": "f0151ba5381900c33436d3fe3b16728f4ed5aebb3458221a27bf8f7d9f73a53d",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blonde",
+    "hair:silver"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "私の推しは悪役令嬢。",
+    "手つなぎ",
+    "セーラーワンピ",
+    "金髪",
+    "銀髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149820558-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149820558",
+    "page": 0
+   },
+   "sha256": "4e51575756588c6b089742ee9a84481d6d7c4c4a93b60b6695106cd1fd14b443",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blonde"
+   ],
+   "authorTags": [
+    "FGO",
+    "Fate/GrandOrder",
+    "セイバーオルタ",
+    "黒ワンピ",
+    "金髪",
+    "約束された勝利の剣(セイバーオルタ)",
+    "チョーカー",
+    "女の子",
+    "Fate/GO1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148735969-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148735969",
+    "page": 0
+   },
+   "sha256": "8bebf6f7f65cfd0e95918647383157844468c7db7268326c3b0f5bd1e8ec66d3",
+   "split": "calibration",
+   "coverage": [
+    "hair:silver"
+   ],
+   "authorTags": [
+    "原神",
+    "genshinimpactfanart",
+    "genshinimpact",
+    "Genshin",
+    "Tsaritsa",
+    "アナスターシャ・フョードロヴナ・スネージナヤ",
+    "原神1000users入り",
+    "銀髪",
+    "女王",
+    "エルフ耳"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149335785-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149335785",
+    "page": 0
+   },
+   "sha256": "c86ecc67f645ba478314ba8c2077d7185c67eeacd7e80221735a9d80fefc883d",
+   "split": "evaluation",
+   "coverage": [
+    "hair:pink"
+   ],
+   "authorTags": [
+    "ゼンレスゾーンゼロ",
+    "ゼンゼロ",
+    "レミエール・ダン",
+    "ピンク髪",
+    "笑顔",
+    "翼",
+    "白ニーソックス"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147379859-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147379859",
+    "page": 0
+   },
+   "sha256": "b9e6befa2364a02eccf865092b51455cea7ab143ec4e1cb8b3cf5b079b9fe328",
+   "split": "evaluation",
+   "coverage": [
+    "hair:silver"
+   ],
+   "authorTags": [
+    "OC",
+    "黑丝",
+    "女の子",
+    "兽耳",
+    "沃尔芙",
+    "裾上げタイツ脱ぎ",
+    "銀髪",
+    "長手袋",
+    "ソックス足裏",
+    "ロンググローブ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147630373-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147630373",
+    "page": 0
+   },
+   "sha256": "074b30b4a267fd6ee20ac2961f233b51133748a16fb69a2d48c3cb9ab6c628f7",
+   "split": "evaluation",
+   "coverage": [
+    "hair:white",
+    "style:twintails"
+   ],
+   "authorTags": [
+    "アズールレーン",
+    "アズレン",
+    "碧蓝航线",
+    "ラフィー(アズールレーン)",
+    "白髪",
+    "AzurLane",
+    "裸足",
+    "ワンピース服",
+    "ツインテール"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148187831-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148187831",
+    "page": 0
+   },
+   "sha256": "77c47836a8efa928540d853b822f5c37c059480e5b52289fef5cbb239a14f9e7",
+   "split": "evaluation",
+   "coverage": [
+    "hair:white"
+   ],
+   "authorTags": [
+    "女の子",
+    "白髪",
+    "オリジナル"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147589510-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147589510",
+    "page": 0
+   },
+   "sha256": "165f17e75c7f0cdd80307aab4a8fd3530041e4e5003c36859510f886659a762f",
+   "split": "evaluation",
+   "coverage": [
+    "hair:black"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "黒髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149295055-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149295055",
+    "page": 0
+   },
+   "sha256": "ae88de16802c2e8284280c4bfa029a7034947578a0cbf6fee644e88c39e2f46f",
+   "split": "evaluation",
+   "coverage": [
+    "hair:white"
+   ],
+   "authorTags": [
+    "BlueArchive",
+    "ブルーアーカイブ",
+    "女の子",
+    "白髪",
+    "ブルアカ",
+    "淵上コトネ",
+    "キヴォトスの白鯨",
+    "DIVE_into_OCEAN!",
+    "胸に手"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147650174-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147650174",
+    "page": 0
+   },
+   "sha256": "154460fc563bf8a7275d94da6ad6450dd6fff40bb85bd8da3773352b78020ae1",
+   "split": "evaluation",
+   "coverage": [
+    "hair:black"
+   ],
+   "authorTags": [
+    "魔法少女ノ魔女裁判",
+    "まのさば",
+    "二階堂ヒロ",
+    "黒髪",
+    "赤目",
+    "女の子",
+    "少女",
+    "角娘",
+    "まのさばネタバレ",
+    "まのさば1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149040057-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149040057",
+    "page": 0
+   },
+   "sha256": "eb88a369ee01a9c95251f36dcc522b2cb16e2f3e5ae4851da57ca8f858b45931",
+   "split": "evaluation",
+   "coverage": [
+    "hair:red"
+   ],
+   "authorTags": [
+    "崩壊スターレイル",
+    "HonkaiStarRail",
+    "姫子(スターレイル)",
+    "赤髪",
+    "星空"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149594843-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149594843",
+    "page": 0
+   },
+   "sha256": "888559b745e9c11afe13cec2888fe072eb462284162a95274b7bba92d8ce53cd",
+   "split": "evaluation",
+   "coverage": [
+    "hair:red"
+   ],
+   "authorTags": [
+    "黒タイツ",
+    "スーパーの裏でヤニ吸うふたり",
+    "田山さん",
+    "美脚",
+    "田山(ヤニ吸う)",
+    "黒スト",
+    "編み上げブーツ",
+    "赤髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147082057-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147082057",
+    "page": 0
+   },
+   "sha256": "d15ca7dbd4adb9a4d4da2738405a2e066e0008ba5c9b891e62c5e71b653c5658",
+   "split": "evaluation",
+   "coverage": [
+    "hair:brown"
+   ],
+   "authorTags": [
+    "女の子",
+    "少女",
+    "原神",
+    "桑多涅",
+    "サンドローネ",
+    "插图",
+    "原神1000users入り",
+    "茶髪",
+    "デタッチドスリーブ",
+    "手袋"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147663765-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147663765",
+    "page": 0
+   },
+   "sha256": "a6b72a0eda87c1f7c1d5859b0a7bab7d58e01cb97c4541e9e3f29c8c6be98cfb",
+   "split": "evaluation",
+   "coverage": [
+    "thick-paint",
+    "very-tall"
+   ],
+   "authorTags": [
+    "女の子",
+    "美少女",
+    "風景",
+    "厚塗り",
+    "场景",
+    "初音",
+    "重音",
+    "miku",
+    "VOCALOID",
+    "初音ミク"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149319779-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149319779",
+    "page": 0
+   },
+   "sha256": "a314098dc78007329c3484bc8f66303adaa69e3bad8881753df1899ec788761b",
+   "split": "calibration",
+   "coverage": [
+    "hair:brown",
+    "style:ponytail"
+   ],
+   "authorTags": [
+    "ホロライブ",
+    "戌神ころね",
+    "犬耳",
+    "ポニーテール",
+    "茶髪",
+    "濡れ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148201456-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148201456",
+    "page": 0
+   },
+   "sha256": "418fdbf24a4bb183436d1abf229bb4456d6af8a1c7f7c8fee0605843e5233ce7",
+   "split": "calibration",
+   "coverage": [
+    "hair:brown",
+    "style:twintails"
+   ],
+   "authorTags": [
+    "アークナイツ",
+    "Arknights",
+    "女の子",
+    "アンジェリーナ(アークナイツ)",
+    "兽耳",
+    "茶髪",
+    "水",
+    "アークナイツ1000users入り",
+    "ツインテール",
+    "超ロングヘア"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147336744-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147336744",
+    "page": 0
+   },
+   "sha256": "ba31ed82cd8ae127a7670ebfb2110ed716c3e3a9d4889abcad3ddd4f89041c6b",
+   "split": "evaluation",
+   "coverage": [
+    "hair:red"
+   ],
+   "authorTags": [
+    "崩坏星穹铁道",
+    "崩壊:スターレイル1000users入り",
+    "姫子(スターレイル)",
+    "姫子・旅立ち",
+    "成長過程",
+    "笑顔",
+    "赤髪",
+    "マフラー"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149833907-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149833907",
+    "page": 0
+   },
+   "sha256": "250d93651ffa7ba4f37193d8b44af570b9faa5f580ead124c4a5b1666c836583",
+   "split": "evaluation",
+   "coverage": [
+    "length:short"
+   ],
+   "authorTags": [
+    "女の子",
+    "創作",
+    "むちむち",
+    "ケモミミ",
+    "足組み",
+    "ショートカット",
+    "極上の尻",
+    "袖まくり"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148480412-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148480412",
+    "page": 0
+   },
+   "sha256": "28dbf56a85cbb59d4321372e522e2608e572e920f0cea46edd78ed7f328afb76",
+   "split": "evaluation",
+   "coverage": [
+    "length:short"
+   ],
+   "authorTags": [
+    "ゼンゼロ",
+    "zzzero",
+    "绝区零",
+    "EllenJoe",
+    "エレン・ジョー",
+    "ゼンレスゾーンゼロ",
+    "ヴィクトリア家政",
+    "ショートカット",
+    "女の子",
+    "水中"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147936408-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147936408",
+    "page": 0
+   },
+   "sha256": "a248b26079cc9f57bb85ac62002301f0aa8f96669981607097f53ac798b943cd",
+   "split": "evaluation",
+   "coverage": [
+    "hair:brown"
+   ],
+   "authorTags": [
+    "サンドローネ",
+    "GenshinImpact",
+    "原神",
+    "Genshin",
+    "原神1000users入り",
+    "おっぱい",
+    "Sandrone",
+    "水着",
+    "茶髪",
+    "碧眼"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147064626-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147064626",
+    "page": 0
+   },
+   "sha256": "7d64ec1f1669effcb37c9a4be0d43554df3c05abe08a28505d331f7f1e3ae345",
+   "split": "evaluation",
+   "coverage": [
+    "hair:brown"
+   ],
+   "authorTags": [
+    "仕事絵",
+    "メイド",
+    "笑顔",
+    "白タイツ",
+    "茶髪",
+    "ストラップシューズ",
+    "敬礼"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-150166424-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "150166424",
+    "page": 0
+   },
+   "sha256": "d1ad8fa376f7d1ad70e8a5364e6f968154985dc1cbef5992b73fabed0ad399ae",
+   "split": "evaluation",
+   "coverage": [
+    "hair:silver"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "壱珂の絵",
+    "銀髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147421064-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147421064",
+    "page": 0
+   },
+   "sha256": "7eab67805a9cbe3664965869d35593df2f8de3ff5bfb40deac3c69c8139f7f5a",
+   "split": "evaluation",
+   "coverage": [
+    "hair:red"
+   ],
+   "authorTags": [
+    "HonkaiStarRail",
+    "HimekoNova",
+    "赤髪",
+    "崩壊:スターレイル",
+    "崩壊:スターレイル1000users入り",
+    "ロンググローブ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147344337-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147344337",
+    "page": 0
+   },
+   "sha256": "38b395225a4a9d5e0aa53a6f2a92579b0bdd9e2e45de3028fb2726a63c9f77d2",
+   "split": "calibration",
+   "coverage": [
+    "hair:green"
+   ],
+   "authorTags": [
+    "アークナイツ:エンドフィールド",
+    "竜娘",
+    "緑髪",
+    "スー(エンドフィールド)",
+    "祀",
+    "ハイヒール",
+    "エンドフィールド1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147092303-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147092303",
+    "page": 0
+   },
+   "sha256": "fe219528a59bc5f6910d15a2a1d9dbd6188f79c9e2eeba9a1c1d8c1d2915e5ee",
+   "split": "evaluation",
+   "coverage": [
+    "hair:purple"
+   ],
+   "authorTags": [
+    "一伊那尓栖",
+    "Ninomae_Ina'nis",
+    "バーチャルYouTuber",
+    "HololiveEN",
+    "ホロライブEN",
+    "バーチャルYouTuber1000users入り",
+    "貧乳",
+    "紫髪",
+    "泣きぼくろ",
+    "触手"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147631581-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147631581",
+    "page": 0
+   },
+   "sha256": "cd67b6be07eb12cc9646c18c448414ca93af6acf55f1f248882728173108d206",
+   "split": "evaluation",
+   "coverage": [
+    "hair:brown"
+   ],
+   "authorTags": [
+    "三つ編み",
+    "眼鏡",
+    "女の子",
+    "オリジナル",
+    "地味だけど下着派手な子",
+    "白ワンピ",
+    "サンドレス",
+    "茶髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149851338-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149851338",
+    "page": 0
+   },
+   "sha256": "7157212c6b5c566804cb3db94ed4263db9229dc95e32be8cf1e6b89c9387a3a2",
+   "split": "evaluation",
+   "coverage": [
+    "hair:brown"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "三つ編み",
+    "制服",
+    "女子校生",
+    "白ソックス",
+    "双子",
+    "茶髪",
+    "ピースサイン",
+    "ニットベスト",
+    "カーディガン"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149278509-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149278509",
+    "page": 0
+   },
+   "sha256": "e9266cd30651edaab2863e272dbc6e4d621c194f07afe01b86c3271288f0ab8b",
+   "split": "evaluation",
+   "coverage": [
+    "hair:silver",
+    "hair:white"
+   ],
+   "authorTags": [
+    "モンスターカンパニー",
+    "女の子",
+    "ふともも",
+    "魔法少女",
+    "白髪",
+    "小悪魔",
+    "こあくま",
+    "仕事絵",
+    "銀髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147316720-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147316720",
+    "page": 0
+   },
+   "sha256": "082e2cd92997bf5f50ba2a013c7f5bd6baa4df9a3bc5ecdcf764ffab120b9d47",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blue"
+   ],
+   "authorTags": [
+    "アークナイツ",
+    "明日方舟",
+    "チェン(アークナイツ)",
+    "陈",
+    "アークナイツ5000users入り",
+    "竜娘",
+    "青髪",
+    "巨乳化",
+    "腿"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148182837-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148182837",
+    "page": 0
+   },
+   "sha256": "c63c6fc0ed149dc228588321cde5e2fc8c7d67c246e61a87ebbe25b346e65707",
+   "split": "evaluation",
+   "coverage": [
+    "length:short"
+   ],
+   "authorTags": [
+    "リン(ゼンゼロ)",
+    "zzzero",
+    "ゼンレスゾーンゼロ",
+    "ゼンゼロ2周年イラコンFA",
+    "笑顔",
+    "ビキニ",
+    "ショートカット",
+    "绝区零"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149867328-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149867328",
+    "page": 0
+   },
+   "sha256": "a75dd68720445083f214bb24296cbb37fa7a8e1556287eae28be42351808d788",
+   "split": "evaluation",
+   "coverage": [
+    "backlight"
+   ],
+   "authorTags": [
+    "美しい",
+    "ZenlessZoneZero",
+    "ゼンレスゾーンゼロ",
+    "绝区零",
+    "レミエール・ダン",
+    "RemielleDan",
+    "蕾米埃尔",
+    "逆光",
+    "背景"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147327891-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147327891",
+    "page": 0
+   },
+   "sha256": "2065211868cab4c1ac3cf3071cf9734d89c8bdefa0dd08929a8c4b6962223a23",
+   "split": "evaluation",
+   "coverage": [
+    "length:bob"
+   ],
+   "authorTags": [
+    "イラスト",
+    "個展",
+    "ボブ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149345588-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149345588",
+    "page": 0
+   },
+   "sha256": "e727a4652cc5a460643ec41ecaee2549503dd956c9db704decbf4af3cdd278e5",
+   "split": "evaluation",
+   "coverage": [
+    "length:long"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "桜",
+    "カメラ",
+    "女の子",
+    "フリル",
+    "ロングヘア",
+    "花と女の子",
+    "オリジナル1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147069073-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147069073",
+    "page": 0
+   },
+   "sha256": "b42878d94457bfb28af0ce9203ba61452ab8cf27a2def7c53a08a38b67049bf6",
+   "split": "calibration",
+   "coverage": [
+    "hair:black",
+    "length:bob"
+   ],
+   "authorTags": [
+    "女の子",
+    "オリジナル",
+    "ボブカット",
+    "チョーカー",
+    "口紅",
+    "黒髪",
+    "ヘッドボードアングル",
+    "メイク"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149366369-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149366369",
+    "page": 0
+   },
+   "sha256": "70adce6b64c7503d826d5dea0f162046cd05b20167e182e83f9732facae5972c",
+   "split": "evaluation",
+   "coverage": [
+    "style:ponytail"
+   ],
+   "authorTags": [
+    "ブルーアーカイブ",
+    "BlueArchive",
+    "ブルアカ",
+    "天童ケイ",
+    "OL",
+    "ポニーテール",
+    "眼鏡っ娘",
+    "タイトスカート",
+    "黒タイツ",
+    "撫で回したい尻"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148718996-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148718996",
+    "page": 0
+   },
+   "sha256": "71afb3068563c445fdd84b87f7d77033136162c0d87a6e94a842469a6c61c262",
+   "split": "evaluation",
+   "coverage": [
+    "hair:black",
+    "multi-person"
+   ],
+   "authorTags": [
+    "女の子",
+    "オリジナル",
+    "ハイヒール",
+    "黒髪",
+    "魅惑のふともも",
+    "OL",
+    "巨乳",
+    "素足履き",
+    "二人",
+    "黑髮"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147931219-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147931219",
+    "page": 0
+   },
+   "sha256": "f215c60a9e76fcf294966fedcb1861770a076dcb361c3c9d91b3ab700a752ae5",
+   "split": "evaluation",
+   "coverage": [
+    "hair:red"
+   ],
+   "authorTags": [
+    "ブルーアーカイブ",
+    "BlueArchive",
+    "少女",
+    "棗イロハ",
+    "お尻",
+    "棗イロハ(水着)",
+    "出航!万魔船マコト議長の華麗なる避暑",
+    "赤髪",
+    "水着",
+    "麦わら帽子"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148210999-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148210999",
+    "page": 0
+   },
+   "sha256": "70354b94ecd772f36ca67241469550dea56a8bb162508f44050fe20ded07491e",
+   "split": "evaluation",
+   "coverage": [
+    "hair:silver"
+   ],
+   "authorTags": [
+    "ゼンゼロ",
+    "ゼンレスゾーンゼロ",
+    "ドラキナ・サンブリンガー",
+    "太もも",
+    "耳かき",
+    "片目隠れ",
+    "銀髪",
+    "ガーターリング",
+    "女の子",
+    "ロリママ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149000816-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149000816",
+    "page": 0
+   },
+   "sha256": "5acf849cf66e400f91a92204745c9d6ddf0948ad9adf32fa81ad5359843985f0",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blue"
+   ],
+   "authorTags": [
+    "Agoto",
+    "OC",
+    "スライム娘",
+    "ビキニ",
+    "水着",
+    "slimegirl",
+    "青髪",
+    "笑顔",
+    "サンバイザー"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147051684-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147051684",
+    "page": 0
+   },
+   "sha256": "952e564b0404acbc5605bf14db7daf8501cb0e05b3314eb8097f95773c6877c2",
+   "split": "evaluation",
+   "coverage": [
+    "hair:brown"
+   ],
+   "authorTags": [
+    "アーミヤ(アークナイツ)",
+    "アークナイツ",
+    "黒スト",
+    "茶髪",
+    "アークナイツ1000users入り",
+    "うさ耳",
+    "ジャケット",
+    "指輪",
+    "パーカー"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149820539-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149820539",
+    "page": 0
+   },
+   "sha256": "7509af6a1c155b0ad056c77741c1c9cbd73678d900a925078b91a0d1fa094567",
+   "split": "evaluation",
+   "coverage": [
+    "hair:silver"
+   ],
+   "authorTags": [
+    "Z/X",
+    "Z/X-Zillions_of_enemy_X-",
+    "各務原あづみ",
+    "Z/Xご本人",
+    "おへそ",
+    "ジャンプ",
+    "銀髪",
+    "貧乳",
+    "ツーサイドアップ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147704699-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147704699",
+    "page": 0
+   },
+   "sha256": "55c31474b360ec1e148f3e227d2a76daaa178bd820bdd52ba1e747dca749172d",
+   "split": "evaluation",
+   "coverage": [
+    "hair:purple"
+   ],
+   "authorTags": [
+    "アズールレーン",
+    "プリマス(アズールレーン)",
+    "ナース",
+    "白ニーソックス",
+    "紫髪",
+    "手袋",
+    "白衣天使の全身検診",
+    "看護師",
+    "アズールレーン5000users入り",
+    "ガーターベルト"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149836425-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149836425",
+    "page": 0
+   },
+   "sha256": "e8bf38b6d81b2313009188d4d9162a4b6c8905266578c8e6910d5eabf2189928",
+   "split": "evaluation",
+   "coverage": [
+    "hair:silver",
+    "hair:blonde"
+   ],
+   "authorTags": [
+    "女の子",
+    "オリジナル",
+    "エルフ",
+    "金髪",
+    "ダークエルフ",
+    "銀髪",
+    "バニーガール",
+    "おっぱい",
+    "笑顔",
+    "翠眼"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147928110-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147928110",
+    "page": 0
+   },
+   "sha256": "d9dd66f29fd2958ed6f0a1ab0bfd4af8d73c7d3bcef7467d1de4c80fce172536",
+   "split": "evaluation",
+   "coverage": [
+    "hair:green"
+   ],
+   "authorTags": [
+    "ArknightsEndfield",
+    "アークナイツエンドフィールド",
+    "スー(エンドフィールド)",
+    "竜娘",
+    "お団子頭",
+    "緑髪",
+    "おっぱい"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149891181-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149891181",
+    "page": 0
+   },
+   "sha256": "09a317d9b954436636db5b17fcfcfd427f1ec3d0f8ef1df0315042457a222519",
+   "split": "calibration",
+   "coverage": [
+    "style:ponytail"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "女子高生",
+    "ポニーテール",
+    "雨",
+    "オリジナル1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147611460-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147611460",
+    "page": 0
+   },
+   "sha256": "06eca11a817805d606c6f167c6b0da339ac3ee150a028b70f4d952328fa55a7b",
+   "split": "evaluation",
+   "coverage": [
+    "style:ponytail"
+   ],
+   "authorTags": [
+    "カルロッタ(鳴潮)",
+    "Carlotta",
+    "WutheringWaves",
+    "鳴潮",
+    "足組み",
+    "手袋",
+    "サイハイブーツ",
+    "ソファ",
+    "ポニーテール"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148514857-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148514857",
+    "page": 0
+   },
+   "sha256": "2774472baa48b83f0f46628e96faa7b04ecc6cd076e2c7dbccb3d9cb76772b0b",
+   "split": "evaluation",
+   "coverage": [
+    "hair:green"
+   ],
+   "authorTags": [
+    "ブルーアーカイブ",
+    "橘ヒカリ",
+    "橘ノゾミ",
+    "メイド服",
+    "白タイツ",
+    "ブルアカ",
+    "ブルーアーカイブ1000users入り",
+    "編み上げブーツ",
+    "姉妹",
+    "緑髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147078001-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147078001",
+    "page": 0
+   },
+   "sha256": "ed47df24e82129ab49d13f388bbfe70f08b79d7b85718a731223f79dc00d6ac9",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blue"
+   ],
+   "authorTags": [
+    "佐城雪美",
+    "ロリ",
+    "白タイツ",
+    "アイドルマスターシンデレラガールズ",
+    "ショッピングカート",
+    "赤目",
+    "青髪",
+    "ストラップシューズ",
+    "ツーサイドアップ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148997719-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148997719",
+    "page": 0
+   },
+   "sha256": "5c23d5a2303b6d0f86a548e63793c530a9f662f4bab1e92c610d909d21055ba6",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blue"
+   ],
+   "authorTags": [
+    "リン(ゼンゼロ)",
+    "リン",
+    "Belle",
+    "ゼンレスゾーンゼロ",
+    "ZenlessZoneZero",
+    "zzzero",
+    "女の子",
+    "ゼンゼロ1000users入り",
+    "爆乳",
+    "青髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-150123409-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "150123409",
+    "page": 0
+   },
+   "sha256": "bdda3dda5a1cc9f43dda3da73ff7f711e8adfb145458355452cd30169a54c231",
+   "split": "calibration",
+   "coverage": [
+    "full-body",
+    "hair:pink"
+   ],
+   "authorTags": [
+    "レミエール・ダン",
+    "ゼンレスゾーンゼロ",
+    "巨乳",
+    "黒スト",
+    "女の子",
+    "ピンク髪",
+    "翼",
+    "全身"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147953294-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147953294",
+    "page": 0
+   },
+   "sha256": "bcd0bcf136b3d2a6d9b81e4ea04be6ddea7cbb4dd360e5c6a86f0d9ecc216956",
+   "split": "evaluation",
+   "coverage": [
+    "hair:black"
+   ],
+   "authorTags": [
+    "黒タイツ",
+    "黒スト",
+    "おっぱい",
+    "美脚",
+    "巨乳",
+    "OL",
+    "魅惑のふともも",
+    "黒髪",
+    "着衣巨乳",
+    "口紅"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147972700-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147972700",
+    "page": 0
+   },
+   "sha256": "8a3378a4aff0f063acb37d15000882ca9dc5eaa87f42e78f7aeed481f577bcb3",
+   "split": "evaluation",
+   "coverage": [
+    "thick-paint"
+   ],
+   "authorTags": [
+    "創作",
+    "少女",
+    "背景",
+    "厚塗り",
+    "メイド",
+    "オリジナル1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147973362-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147973362",
+    "page": 0
+   },
+   "sha256": "bb02ecc7f0d9f95ec2659398908522f80f977e641cbe0398b85aa294fd27bdba",
+   "split": "evaluation",
+   "coverage": [
+    "hair:black"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "C108",
+    "水着",
+    "海",
+    "黒髪",
+    "水面",
+    "女の子",
+    "半水面",
+    "オリジナル5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148139886-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148139886",
+    "page": 0
+   },
+   "sha256": "c05c120df81d042ad730d0d54dc5f274d9b9e43845f01242959046a759cb9f38",
+   "split": "calibration",
+   "coverage": [
+    "hair:silver"
+   ],
+   "authorTags": [
+    "にじさんじ",
+    "Idios",
+    "ソフィア・ヴァレンタイン",
+    "仕事絵",
+    "バーチャルYouTuber1000users入り",
+    "笑顔",
+    "銀髪",
+    "ドレス"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149601898-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149601898",
+    "page": 0
+   },
+   "sha256": "ceeed974f330ab08acb2d5ec0e27817237b50a6d947cf0d7d0b1826fbb1e5a1b",
+   "split": "evaluation",
+   "coverage": [
+    "length:bob"
+   ],
+   "authorTags": [
+    "oc",
+    "original",
+    "irene",
+    "waifu",
+    "ボブ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148745117-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148745117",
+    "page": 0
+   },
+   "sha256": "ebd91d9141e4e5631d2d0e95c2eb13a186af8ded300a2339274c3399842c1c98",
+   "split": "evaluation",
+   "coverage": [
+    "hair:purple"
+   ],
+   "authorTags": [
+    "Fate/GrandOrder",
+    "FGO",
+    "キングプロテア・ソチナトル",
+    "キングプロテア・オルタ(水着)",
+    "オッドアイ",
+    "紫髪",
+    "デタッチドスリーブ",
+    "Fate/GO1000users入り",
+    "膝"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147079926-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147079926",
+    "page": 0
+   },
+   "sha256": "910c26d67cebcfe27c9c0672fbf2ce9fada9803d757c0cacd3c50dac93972d42",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blue"
+   ],
+   "authorTags": [
+    "ピクニック",
+    "オリジナル",
+    "伏臥",
+    "笑顔",
+    "ソックス",
+    "黑髮",
+    "青髪",
+    "ドレス"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149385737-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149385737",
+    "page": 0
+   },
+   "sha256": "d68fa5be184cfdd21eccce9d198ee615e079e5a40d4fde8ace1a106b99f81cee",
+   "split": "evaluation",
+   "coverage": [
+    "hair:green"
+   ],
+   "authorTags": [
+    "アークナイツ:エンドフィールド",
+    "ArknightsEndfield",
+    "明日方舟終末地",
+    "スー(エンドフィールド)",
+    "ジャケット",
+    "緑髪",
+    "お団子頭",
+    "エンドフィールド5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149063578-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149063578",
+    "page": 0
+   },
+   "sha256": "659d57af78f46d8ce2ba3f69911d1f5722bbaa39bcee9c3a899fd5292476e3f1",
+   "split": "evaluation",
+   "coverage": [
+    "hair:purple",
+    "hair:blue"
+   ],
+   "authorTags": [
+    "バンドリ!_ゆめ∞みた",
+    "藤都子",
+    "BanG_Dream!",
+    "バンドリ500users入り",
+    "青髪",
+    "紫髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149350775-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149350775",
+    "page": 0
+   },
+   "sha256": "2bffeaf99c9a8f0fa03a1b09ca13cad26b255d7697eaa6cd5eb55108b87a7832",
+   "split": "evaluation",
+   "coverage": [
+    "full-body",
+    "hair:silver"
+   ],
+   "authorTags": [
+    "魂魄妖夢",
+    "東方",
+    "東方Project",
+    "かわいい",
+    "かわみょん",
+    "ガーターリング",
+    "衣装アレンジ",
+    "銀髪",
+    "立ち絵",
+    "全身"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-150109114-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "150109114",
+    "page": 0
+   },
+   "sha256": "5b54682b3c955cd736174cef931424f5b09a4514211a4e464adf56fb945e6514",
+   "split": "evaluation",
+   "coverage": [
+    "full-body",
+    "style:twintails"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "ロリ",
+    "女の子",
+    "貧乳",
+    "裸足",
+    "ツインテール",
+    "オリキャラ",
+    "足",
+    "全身"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148803589-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148803589",
+    "page": 0
+   },
+   "sha256": "ee665e638e01c8e77f9728269c3e8423608d545e8515810a21a409d8999b8f2d",
+   "split": "evaluation",
+   "coverage": [
+    "backlight"
+   ],
+   "authorTags": [
+    "VTuber",
+    "にじさんじ",
+    "夢月ロア",
+    "ドロチラ",
+    "ドロワーズ",
+    "逆光",
+    "バーチャルYouTuber1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148520096-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148520096",
+    "page": 0
+   },
+   "sha256": "e8a3807e3c232f152219280aac958334c0c18ae7f7719f9337765ea69006790b",
+   "split": "evaluation",
+   "coverage": [
+    "hair:green"
+   ],
+   "authorTags": [
+    "アークナイツ:エンドフィールド",
+    "ArknightsEndfield",
+    "スー(エンドフィールド)",
+    "緑髪",
+    "ちっぱい",
+    "竜娘"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147710949-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147710949",
+    "page": 0
+   },
+   "sha256": "5d82730d4e11b4c0372d4241cfddde9d318694a6ba2ce0fdae783fd48add6cf6",
+   "split": "evaluation",
+   "coverage": [
+    "backlight"
+   ],
+   "authorTags": [
+    "ブルーアーカイブ",
+    "ブルアカ",
+    "BlueArchive",
+    "秤アツコ",
+    "秤アツコ(水着)",
+    "逆光"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-92607177-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "92607177",
+    "page": 0
+   },
+   "sha256": "ec0bb3652df0c51a589ff1c3f4f4b3784abf628d981cca40bb323f5405ddff13",
+   "split": "evaluation",
+   "coverage": [
+    "length:long"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "創作",
+    "女の子",
+    "水着",
+    "パフェ",
+    "茶髪ロング",
+    "オリジナル50000users入り",
+    "ロングヘア"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-98941477-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "98941477",
+    "page": 0
+   },
+   "sha256": "cdc7406bb30e0bab4c578bd7029a13b0cf19f0f05ba9461e646ddc77493b70ea",
+   "split": "evaluation",
+   "coverage": [
+    "length:long"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "花嫁",
+    "バスタブ",
+    "バスルーム",
+    "白ワンピ",
+    "着衣入浴",
+    "ロングヘア",
+    "オリジナル30000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-105003530-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "105003530",
+    "page": 0
+   },
+   "sha256": "4cb82f01ff3c4c2a5cb13c05bb991b4d32d49ae1ac6c61a2eef35244b285cca5",
+   "split": "evaluation",
+   "coverage": [
+    "length:long"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "美脚",
+    "へそ",
+    "ロングヘア",
+    "デニム",
+    "へそ出し",
+    "クールビューティー",
+    "美女",
+    "オリジナル30000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-89256447-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "89256447",
+    "page": 0
+   },
+   "sha256": "0add8b8798ec9e686e66ec0b6952a010723735f89875c6a22fd32ca953166867",
+   "split": "evaluation",
+   "coverage": [
+    "length:long"
+   ],
+   "authorTags": [
+    "86-エイティシックス-",
+    "86",
+    "ヴラディレーナ・ミリーゼ",
+    "銀髪碧眼",
+    "タイツ",
+    "ロングヘア",
+    "廃墟",
+    "エイティシックス10000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-61029756-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "61029756",
+    "page": 0
+   },
+   "sha256": "8235e1d0e140610f3624dfb6416353427f10bc8bdd6e0d1f4892e728dd460f19",
+   "split": "evaluation",
+   "coverage": [
+    "length:long"
+   ],
+   "authorTags": [
+    "レム(リゼロ)",
+    "リゼロ",
+    "レム",
+    "ラム",
+    "Re:ゼロから始める異世界生活",
+    "ロングヘア",
+    "女の子",
+    "恋ダンス",
+    "ラム(リゼロ)",
+    "リゼロ10000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-72114149-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "72114149",
+    "page": 0
+   },
+   "sha256": "6d4f1255912b3d2c559cc0b26ceb55c1f34c1b4cf26ccaa10904a0d07193825d",
+   "split": "calibration",
+   "coverage": [
+    "length:bob"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "女子高生",
+    "制服",
+    "ボブ",
+    "マフラー",
+    "オリジナル30000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-103920567-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "103920567",
+    "page": 0
+   },
+   "sha256": "d49f9e7ef6fa4e0818bd0fb21368a49d61c6652be9d46dfb8f315cf8daeff299",
+   "split": "evaluation",
+   "coverage": [
+    "length:bob"
+   ],
+   "authorTags": [
+    "ぼっち・ざ・ろっく!",
+    "山田リョウ(ぼっち・ざ・ろっく!)",
+    "道草を食う(物理)",
+    "草を食べて生きていきます",
+    "ぼっち・ざ・ろっく!10000users入り",
+    "ボブ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-60453642-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "60453642",
+    "page": 0
+   },
+   "sha256": "73a598161277bb7f49f0c3c60066de6fc4a069c3db7012654acc0a1c4950bef8",
+   "split": "calibration",
+   "coverage": [
+    "length:bob"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "グレー系",
+    "女の子",
+    "ボブカット",
+    "食べ物",
+    "リュックサック",
+    "オリジナル50000users入り",
+    "買い食い",
+    "中華まん",
+    "制服リュック"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-86240244-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "86240244",
+    "page": 0
+   },
+   "sha256": "6b77834411f1083913933a293c8ff9ab67f30f66d874ce86d834cf890c7289f8",
+   "split": "calibration",
+   "coverage": [
+    "bangs:blunt"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "女子高生",
+    "制服",
+    "ラーメン",
+    "ポニーテール",
+    "ぱっつん",
+    "編み込み",
+    "いっぱい食べる君が好き",
+    "オリジナル50000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-66952181-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "66952181",
+    "page": 0
+   },
+   "sha256": "cda6e892a4f04d44ed2237069712423a5ada360f49960a9690964e02fbe3a8d8",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:blunt",
+    "backlight"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "制服",
+    "ジャンパースカート",
+    "黒髪",
+    "ロングヘアー",
+    "ぱっつん",
+    "電車内",
+    "逆光",
+    "オリジナル30000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-97882755-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "97882755",
+    "page": 0
+   },
+   "sha256": "62802af3b652904ff14ea49ee8c3afc46df67a36e43355f206653d75018fd259",
+   "split": "calibration",
+   "coverage": [
+    "bangs:blunt"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "編み上げブーツ",
+    "奈落迦",
+    "ぱっつん",
+    "煙管",
+    "オリジナル30000users入り",
+    "クールビューティー"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-55739839-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "55739839",
+    "page": 0
+   },
+   "sha256": "b5995ab73dace66b30a6290705112186769f59a9280a3531641739c1842466e6",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:blunt"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "振袖",
+    "お正月",
+    "黒髪ロング",
+    "メジロ",
+    "ぱっつん",
+    "着物",
+    "オリジナル30000users入り",
+    "鳥と女の子"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-85527332-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "85527332",
+    "page": 0
+   },
+   "sha256": "73f15d419833cdb43804e4c3cc82ea56d4d5a646aa6804cb53bc39343728eb6b",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:blunt"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "和服",
+    "紫髪",
+    "三つ編み",
+    "ルーズサイドテール",
+    "ぱっつん",
+    "椿",
+    "白龍",
+    "オリジナル10000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-47390682-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "47390682",
+    "page": 0
+   },
+   "sha256": "476c7abaa0e14a83833a0f2f67fcf73b897c2140430d01c13d6ebc3997fe9378",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:blunt"
+   ],
+   "authorTags": [
+    "油彩",
+    "オリジナル",
+    "ワイン",
+    "ブラウス",
+    "女性",
+    "耽美",
+    "前髪ぱっつん",
+    "リボンタイ",
+    "美女",
+    "オリジナル30000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-51434844-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "51434844",
+    "page": 0
+   },
+   "sha256": "e0fed1ae34459515c91292bcf1a9faeab5b5677b6b1982f1b8fb64ccee6d3053",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:blunt"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "黒髪ロング",
+    "横座り",
+    "椅子",
+    "女の子",
+    "黒タイツ",
+    "マグカップ",
+    "前髪ぱっつん",
+    "オリジナル10000users入り",
+    "黒ワンピ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-55008991-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "55008991",
+    "page": 0
+   },
+   "sha256": "46dcf4f563d55976c86dfb6a18e9006348bff37a7a4b4250e0b6219416954c26",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:blunt"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "ネコミミモード",
+    "両手にツインテ",
+    "天使の小窓",
+    "オリジナル10000users入り",
+    "前髪ぱっつん",
+    "黒髪ツインテール",
+    "bob(イラストレーター)",
+    "巨乳"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-128024833-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "128024833",
+    "page": 0
+   },
+   "sha256": "e7308e2b9ee24cf5bd7c6b88fab51a6a870f98735d655fe31670ec969684dc1c",
+   "split": "calibration",
+   "coverage": [
+    "bangs:blunt"
+   ],
+   "authorTags": [
+    "初音ミク",
+    "ミクの日",
+    "VOCALOID",
+    "miku",
+    "みっぱい",
+    "ハーフトップ",
+    "ホットパンツ",
+    "前髪ぱっつん",
+    "見せハイレグパンツ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-96080463-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "96080463",
+    "page": 0
+   },
+   "sha256": "432923cdadacf1ef6a88e9b301972705d739a869a4d07d6fe0d06efbe04cabad",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:blunt"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "三白眼",
+    "チョーカー",
+    "女の子",
+    "パーカー",
+    "前髪ぱっつん",
+    "フード",
+    "美少女",
+    "ミステリアス"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-21154213-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "21154213",
+    "page": 0
+   },
+   "sha256": "6e086cb7e6faccf6dff48a735f73138820a76d38486e9418d5a93a1704fd3b1f",
+   "split": "calibration",
+   "coverage": [
+    "bangs:hime"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "和服",
+    "大和撫子",
+    "黒髪ロング",
+    "姫カット",
+    "簪",
+    "和風",
+    "和服美人",
+    "和傘",
+    "うちの子30000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-72388184-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "72388184",
+    "page": 0
+   },
+   "sha256": "b5fe933d24ff2a351eb3a46969243a9b81bbc55c302a980259d29b4b24c89440",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:hime"
+   ],
+   "authorTags": [
+    "陰陽師",
+    "彼岸花",
+    "見返り美人",
+    "刺青",
+    "姫カット",
+    "陰陽師10000users入り",
+    "ミニ着物",
+    "和傘",
+    "髪飾り",
+    "黒髪ロング"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-16215724-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "16215724",
+    "page": 0
+   },
+   "sha256": "f0e813c2f34ed2051ee280ea8f5c1ca8d82f6e26aeb0d9cc096e5006d38542f9",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:hime"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "廃墟",
+    "廃線",
+    "惚れそうなくらい美しい",
+    "10点じゃ足りない",
+    "弓道",
+    "セーラー服",
+    "姫カット",
+    "黒髪ロング",
+    "オリジナル10000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-85744832-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "85744832",
+    "page": 0
+   },
+   "sha256": "445290dc4c7d77a6be0f9a5f85c4f993160b88fce04f52fb7878cfa23f288208",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:hime"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "キャミソール",
+    "黒髪ロング",
+    "少女",
+    "女の子",
+    "オリジナル10000users入り",
+    "姫カット",
+    "腋",
+    "ぱっつん"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-68711812-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "68711812",
+    "page": 0
+   },
+   "sha256": "54a6cba6ee9ee44657bbb6341c6dcd0eef20177e4aa5c035240236ba01e96906",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:hime"
+   ],
+   "authorTags": [
+    "月ノ美兎",
+    "雑草ソムリエ",
+    "草食系女子",
+    "雑草",
+    "バーチャルYouTuber10000users入り",
+    "姫カット",
+    "にじさんじ",
+    "バーチャルYouTuber"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-12361195-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "12361195",
+    "page": 0
+   },
+   "sha256": "d695deaea17b4cf8b7286c7bfa39b3e2b4ad96c438edcd4ba2a5fbfac49c8dc4",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:hime"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "制服",
+    "黒髪ロング",
+    "黒タイツ",
+    "猫",
+    "黒セーラー",
+    "猫と女の子",
+    "黒脚",
+    "姫カット",
+    "うちの子10000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-17104931-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "17104931",
+    "page": 0
+   },
+   "sha256": "a08bb793f6f15f563d8e1c6acf10ba49bed4a3af6c77a1b093a42083914ee334",
+   "split": "evaluation",
+   "coverage": [
+    "multi-person"
+   ],
+   "authorTags": [
+    "色違い",
+    "ポケモン",
+    "ポケモン15周年",
+    "クリック推奨",
+    "愛しか感じない",
+    "目からハイドロカノン",
+    "愛がなければ描けない",
+    "ポケモンだいすきクラブ",
+    "ポケモン100000users入り",
+    "集合絵"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-63436438-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "63436438",
+    "page": 0
+   },
+   "sha256": "d1c376db88143fd044a74eaeff47b2cd987ec2c232c5d21c837cb4944c2ed040",
+   "split": "evaluation",
+   "coverage": [
+    "multi-person"
+   ],
+   "authorTags": [
+    "FGOイラコン",
+    "FGO",
+    "Fate/GrandOrder",
+    "集合絵",
+    "FGO優秀賞受賞作品",
+    "Fate/GO30000users入り",
+    "オールスター",
+    "素晴らしすぎる",
+    "人理継続保障機関フィニス・カルデア"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-93077711-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "93077711",
+    "page": 0
+   },
+   "sha256": "82abe52f190f40079903fd2bd2aae02cb39bb42b3b94bba36be21fa9658b0b4a",
+   "split": "evaluation",
+   "coverage": [
+    "multi-person"
+   ],
+   "authorTags": [
+    "原神",
+    "集合絵",
+    "愛がなければ描けない",
+    "なにこれすごい",
+    "クリック推奨",
+    "miHoYo",
+    "原神30000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-25286217-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "25286217",
+    "page": 0
+   },
+   "sha256": "c3e3052b1e228fbf99dfcdca6eaf15f266ae7bffedac17940532fdaa7cb5f7ee",
+   "split": "evaluation",
+   "coverage": [
+    "multi-person",
+    "very-tall"
+   ],
+   "authorTags": [
+    "カードキャプターさくら",
+    "クリック推奨",
+    "さくらカード達",
+    "なつかしい",
+    "クロウカード",
+    "ふつくしい",
+    "CLAMP10000users入り",
+    "木之本桜",
+    "集合絵",
+    "愛がなければ描けない"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-108349975-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "108349975",
+    "page": 0
+   },
+   "sha256": "639806b3414a5f0994b73edb6ae59f2f0a6435f36489571fac5cc0476aca678c",
+   "split": "evaluation",
+   "coverage": [
+    "multi-person"
+   ],
+   "authorTags": [
+    "ブルーアーカイブ",
+    "ブルアカ",
+    "静山マシロ",
+    "剣先ツルギ",
+    "羽川ハスミ",
+    "イチカ",
+    "仲正イチカ",
+    "正義実現委員会",
+    "集合絵",
+    "ブルーアーカイブ10000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-150104055-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "150104055",
+    "page": 0
+   },
+   "sha256": "9d2bfa81fdb7c594f79808fb754d288bc19e48fee74da3300bb7f340db6f19d3",
+   "split": "evaluation",
+   "coverage": [
+    "multi-person"
+   ],
+   "authorTags": [
+    "ヤニねこ",
+    "アニメ",
+    "集合絵"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-82403091-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "82403091",
+    "page": 0
+   },
+   "sha256": "9262719c2c0666862f7c8c13dcc0ea593f29e1b1a316a5248a16ecce5d75c0e9",
+   "split": "evaluation",
+   "coverage": [
+    "full-body"
+   ],
+   "authorTags": [
+    "構図",
+    "オリジナル",
+    "講座",
+    "松村上久郎",
+    "ペン画",
+    "かわいい",
+    "漫画",
+    "全身",
+    "アクション",
+    "技法"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-114047167-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "114047167",
+    "page": 0
+   },
+   "sha256": "d3a529388be271400453d2131fb6b55336447b6d2afd442504a98304c9239490",
+   "split": "evaluation",
+   "coverage": [
+    "full-body"
+   ],
+   "authorTags": [
+    "講座",
+    "描き方",
+    "身体",
+    "全身",
+    "ポーズ",
+    "コントラポスト"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-125978453-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "125978453",
+    "page": 0
+   },
+   "sha256": "22c6e29ecb77743be85bc67fd9f0ace8fc372e6f9797a3c78d06425b4e8d7698",
+   "split": "evaluation",
+   "coverage": [
+    "full-body"
+   ],
+   "authorTags": [
+    "ラピ(勝利の女神:NIKKE)",
+    "NIKKE",
+    "全身",
+    "赤髪",
+    "ラピ:レッドフード",
+    "勝利の女神:NIKKE"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-68255048-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "68255048",
+    "page": 0
+   },
+   "sha256": "65f06de11cd9ec5f29d63a283a82b19a5a6c8d4e79b6cdee9a8abe2e61060149",
+   "split": "evaluation",
+   "coverage": [
+    "bust-up"
+   ],
+   "authorTags": [
+    "女の子",
+    "オリジナル",
+    "仕事絵",
+    "桜",
+    "セーラー服",
+    "黒髪",
+    "ロングヘアー",
+    "バストアップ",
+    "オリジナル10000users入り",
+    "花と女の子"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-95137656-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "95137656",
+    "page": 0
+   },
+   "sha256": "0da3925d2439e5d87764b35063ada3770ae7b1da14867278449522a9a5548331",
+   "split": "calibration",
+   "coverage": [
+    "bust-up"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "ツインテール",
+    "サキュバス",
+    "バストアップ",
+    "はにかみ",
+    "両手にツインテ",
+    "圧倒的胸囲",
+    "オリジナル10000users入り",
+    "小新井りあす"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-37406963-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "37406963",
+    "page": 0
+   },
+   "sha256": "cdd6a65e3f7b37ace2e59805cf5839dfef46808ab6f1450bbb2a621720be37b9",
+   "split": "evaluation",
+   "coverage": [
+    "bust-up"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "青山澄香",
+    "コミケ",
+    "白ビキニ",
+    "水着",
+    "バストアップ",
+    "何故か偏るアンケート",
+    "蝶",
+    "オリジナル5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-97806561-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "97806561",
+    "page": 0
+   },
+   "sha256": "5de4fdbd913286879d88215e20388f234bb9bd4e9015d8d32714cae929272fef",
+   "split": "calibration",
+   "coverage": [
+    "bust-up"
+   ],
+   "authorTags": [
+    "女の子",
+    "JK",
+    "女子高生",
+    "マスク",
+    "黒髪",
+    "ロングヘアー",
+    "髪いじり",
+    "制服",
+    "バストアップ",
+    "オリジナル1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-108693077-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "108693077",
+    "page": 0
+   },
+   "sha256": "96127b35095d15d0ba131a117c40a5d290ba883e9878496d798c02635a1fab43",
+   "split": "evaluation",
+   "coverage": [
+    "bust-up"
+   ],
+   "authorTags": [
+    "髪の毛",
+    "講座",
+    "描き方",
+    "オリジナルキャラ",
+    "うさ耳",
+    "バストアップ",
+    "講座1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-108347672-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "108347672",
+    "page": 0
+   },
+   "sha256": "fbf2a279f511e37995d9e5304ce117954719228798a06818ef86c92eb84f529f",
+   "split": "evaluation",
+   "coverage": [
+    "bust-up"
+   ],
+   "authorTags": [
+    "ウーンドウォート",
+    "ガンダムTR-6",
+    "アドバンス・オブ・Z",
+    "AOZ",
+    "ガンダム",
+    "藤岡建機",
+    "ティターンズ",
+    "ガンダム1000users入り",
+    "バストアップ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-74884563-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "74884563",
+    "page": 0
+   },
+   "sha256": "f836a1dc26bbac0d6ee3ccd09ebc98252b1fa86c61705c9e01ae449aa35cc9df",
+   "split": "evaluation",
+   "coverage": [
+    "lineart"
+   ],
+   "authorTags": [
+    "講座",
+    "線画",
+    "アクション",
+    "ポーズ集",
+    "講座5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-49318952-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "49318952",
+    "page": 0
+   },
+   "sha256": "7c25c5cb9215c64fe0d1eeb26a4c4b4924b0da6fe023e2e6749590242e215bab",
+   "split": "evaluation",
+   "coverage": [
+    "lineart"
+   ],
+   "authorTags": [
+    "講座",
+    "線画",
+    "講座5000users入り",
+    "講座10000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-82704116-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "82704116",
+    "page": 0
+   },
+   "sha256": "b8d031935f8f14dcecb8fb95d024cc865248ea656eb4c4393059ed3e2b7d8ba0",
+   "split": "evaluation",
+   "coverage": [
+    "thick-paint"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "タトゥー",
+    "チョーカー",
+    "ピアス",
+    "黒髪ツインテール",
+    "厚塗り",
+    "オリジナル50000users入り",
+    "鼻バン"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-78259221-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "78259221",
+    "page": 0
+   },
+   "sha256": "8610dccb3d51f0a4069a447888a580b7eff481018bc250ef3fcde2a8aefa542a",
+   "split": "evaluation",
+   "coverage": [
+    "thick-paint"
+   ],
+   "authorTags": [
+    "碧蓝航线",
+    "アズールレーン",
+    "少女",
+    "オリジナル",
+    "女の子",
+    "厚塗り",
+    "魅惑のふともも",
+    "ロングヘアー",
+    "愛宕",
+    "愛宕(アズールレーン)"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-110829435-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "110829435",
+    "page": 0
+   },
+   "sha256": "39833e29d9c85e45fcba46a5b7c4ad6859d3ecf695b355e86491647b16e73530",
+   "split": "evaluation",
+   "coverage": [
+    "thick-paint"
+   ],
+   "authorTags": [
+    "厚塗り",
+    "塗り",
+    "メイキング",
+    "講座",
+    "描き方",
+    "講座10000users入り",
+    "肌",
+    "オリジナル",
+    "講座30000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-49501755-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "49501755",
+    "page": 0
+   },
+   "sha256": "6dc73cd16e38a65c0b7c7d397a4f57e6dedd9102395e2fbacab755e8cba5e0ce",
+   "split": "evaluation",
+   "coverage": [
+    "thick-paint"
+   ],
+   "authorTags": [
+    "メイキング",
+    "灰男",
+    "アレン・ウォーカー",
+    "厚塗り",
+    "D.Gray-man",
+    "CLIPSTUDIOPAINT",
+    "メイキング10000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-91558714-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "91558714",
+    "page": 0
+   },
+   "sha256": "23e1096a1566a91aaa50e3834cc1a4070e8e35878b6d4999a7847f395f90a744",
+   "split": "evaluation",
+   "coverage": [
+    "thick-paint"
+   ],
+   "authorTags": [
+    "FGO",
+    "Fate/GrandOrder",
+    "モルガン(Fate)",
+    "妖精騎士トリスタン",
+    "厚塗り",
+    "バーヴァン・シー(Fate)",
+    "和氣あず未",
+    "Fate/GO20000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-21613934-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "21613934",
+    "page": 0
+   },
+   "sha256": "7f0fd810cfedd1837840f700f7b5f18882912e7949661208b611a238ca4a6c16",
+   "split": "calibration",
+   "coverage": [
+    "grayscale"
+   ],
+   "authorTags": [
+    "モノクロ",
+    "西洋",
+    "漫画用背景素材",
+    "フリー素材",
+    "街並み",
+    "フリー素材10000users入り",
+    "あなたが神か"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-48326244-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "48326244",
+    "page": 0
+   },
+   "sha256": "57fb874834dd2a708908ddcc86ee9156cff1d29180fe477e9d38a700b689b995",
+   "split": "calibration",
+   "coverage": [
+    "grayscale"
+   ],
+   "authorTags": [
+    "モノクロ",
+    "オリジナル",
+    "ふつくしい",
+    "お洒落",
+    "繊細",
+    "美脚",
+    "お姉様",
+    "オリジナル10000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-78209522-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "78209522",
+    "page": 0
+   },
+   "sha256": "dcd2e228ff5550c579d18a9f86271bb480ce189bb5c5b66349f410448caa4727",
+   "split": "evaluation",
+   "coverage": [
+    "grayscale"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "モノクロ",
+    "風景",
+    "女の子",
+    "モノクロ画",
+    "ペン画",
+    "ハイアングル",
+    "生活感",
+    "どてら",
+    "オリジナル10000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-43738768-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "43738768",
+    "page": 0
+   },
+   "sha256": "2ad1ecb8194edd75a1776e1306ad0651b24b85a2d9fef94c0ec83d873b10b050",
+   "split": "evaluation",
+   "coverage": [
+    "grayscale"
+   ],
+   "authorTags": [
+    "フリー素材",
+    "素材",
+    "モノクロ",
+    "白黒",
+    "市松",
+    "ドット",
+    "アーガイル",
+    "網目",
+    "フリー素材5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-65649211-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "65649211",
+    "page": 0
+   },
+   "sha256": "5951b833fb1d8eefe823e11f73cf3f6a91c1bdc679f571156f7476359b98e44c",
+   "split": "evaluation",
+   "coverage": [
+    "grayscale"
+   ],
+   "authorTags": [
+    "BLEACH",
+    "黒崎一護",
+    "一護受",
+    "腐向け",
+    "白黒",
+    "志波海燕",
+    "突然のグロトネリア",
+    "BLEACH5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-54191467-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "54191467",
+    "page": 0
+   },
+   "sha256": "f11d6178294734a5401ea2147d482d14369e19f23083c6ec90fd39f7e6dd3170",
+   "split": "evaluation",
+   "coverage": [
+    "backlight"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "猫",
+    "獣耳",
+    "ここに住みたい",
+    "逆光",
+    "猫と女の子",
+    "猫耳娘",
+    "オリジナル50000users入り",
+    "MikaPikazo",
+    "片目隠れ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-89372788-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "89372788",
+    "page": 0
+   },
+   "sha256": "453dd1b7dfa7892e39cd34baf9713c110b5fd0fa9fb66e87c6813f8eeaf74075",
+   "split": "evaluation",
+   "coverage": [
+    "backlight"
+   ],
+   "authorTags": [
+    "碇シンジ",
+    "渚カヲル",
+    "エヴァンゲリオン",
+    "美少年",
+    "逆光",
+    "エヴァ50000users入り",
+    "ヱヴァンゲリヲン新劇場版:Q"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-56417589-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "56417589",
+    "page": 0
+   },
+   "sha256": "38890dc671bea34ace5a6c02518de64ed6b86a719b7918e46901891d9395c827",
+   "split": "evaluation",
+   "coverage": [
+    "backlight"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "波打ち際",
+    "しゃがみ",
+    "海辺",
+    "スニーカー",
+    "コンバース",
+    "逆光",
+    "オリジナル30000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-109777327-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "109777327",
+    "page": 0
+   },
+   "sha256": "2974bd1be146cb5d09978df6b4525f6c09c4389f4fdc1ac829ef7c6866f57ce7",
+   "split": "calibration",
+   "coverage": [
+    "bangs:middle-part"
+   ],
+   "authorTags": [
+    "ねこ",
+    "コウテイペンギン",
+    "ペンギン",
+    "漫画",
+    "落書き",
+    "オリキャラ",
+    "オリジナル",
+    "創作",
+    "センター分け",
+    "オリジナル1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-99682385-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "99682385",
+    "page": 0
+   },
+   "sha256": "63a9cf4792dec990d85595535eec7a1b2f305b2db29794f1d9af6d5536268099",
+   "split": "calibration",
+   "coverage": [
+    "bangs:middle-part"
+   ],
+   "authorTags": [
+    "黒髪",
+    "男の子",
+    "少年",
+    "創作",
+    "オリジナル",
+    "センター分け",
+    "オリジナル1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-81957944-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "81957944",
+    "page": 0
+   },
+   "sha256": "2a7c559e6d77ee07b298b2eeeb58679cee55c0b929eea03646640024787f8a7c",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:middle-part"
+   ],
+   "authorTags": [
+    "センター分け",
+    "ハイキュー!!500users入り",
+    "ハイキュー!!1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-53764526-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "53764526",
+    "page": 0
+   },
+   "sha256": "17fd13f7055e8c45a16f234db11426aeebd72d30e1451c2da04847dc63826942",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:middle-part"
+   ],
+   "authorTags": [
+    "忍たま",
+    "犬猿",
+    "六年生",
+    "潮江文次郎",
+    "食満留三郎",
+    "笑撃のラスト",
+    "センター分けの食満ちゃんにクラっときた",
+    "忍たま1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-39982231-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "39982231",
+    "page": 0
+   },
+   "sha256": "b24e8cbed1e2508bd182a88663bd004959243a765fc36370d376ca3c58a4cec8",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:middle-part"
+   ],
+   "authorTags": [
+    "黒子のバスケ",
+    "宮地清志",
+    "笠松幸男",
+    "黒子テツヤ",
+    "どう見ても似てるから問題ないッス。",
+    "桐皇からは?",
+    "笠松先輩の絶対領域!",
+    "ドセンター分けにしてみては?",
+    "黒バス1000users入り",
+    "黄瀬がぁあwww黄瀬がぁあwww"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-105493383-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "105493383",
+    "page": 0
+   },
+   "sha256": "e39f20873d8b974d17930b23d06ba46c3084fde92547aede7d00203b7d41e61f",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:middle-part"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "男の子",
+    "創作",
+    "弦楽器",
+    "白シャツ",
+    "センターパート",
+    "ヴァイオリン",
+    "ふつくしい",
+    "オリジナル1000users入り",
+    "バイオリン"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-83712359-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "83712359",
+    "page": 0
+   },
+   "sha256": "da92276970aea87a2a5bea92357f86bc2f7e6c735312a0ef4583b1b2c20037c4",
+   "split": "calibration",
+   "coverage": [
+    "lineart"
+   ],
+   "authorTags": [
+    "女の子",
+    "線画",
+    "水着",
+    "彼女、お借りします",
+    "水原千鶴",
+    "彼女、お借りします1000users入り",
+    "かのかり",
+    "彼女、お借りします5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-64218515-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "64218515",
+    "page": 0
+   },
+   "sha256": "9984e62a817d66bb64eb5e1a599b16821ffbd354be76103366f60d73988a1d5c",
+   "split": "evaluation",
+   "coverage": [
+    "lineart"
+   ],
+   "authorTags": [
+    "彼岸花",
+    "曼珠沙華",
+    "フリー素材",
+    "線画",
+    "背景",
+    "花",
+    "和柄",
+    "和風",
+    "フリー素材5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-42743602-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "42743602",
+    "page": 0
+   },
+   "sha256": "d28dce2405327a5e07887273a743d55213426e6ea06a8c1a90060c323c390106",
+   "split": "evaluation",
+   "coverage": [
+    "lineart"
+   ],
+   "authorTags": [
+    "ランプ",
+    "加工自由",
+    "フリー素材",
+    "線画",
+    "カンテラ",
+    "行燈",
+    "明かり",
+    "照明",
+    "フリー素材5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-37115498-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "37115498",
+    "page": 0
+   },
+   "sha256": "fc2f93841b6d222f4b0be557f41ddf21cebc733a800bf532e9f1ec8508d31cf6",
+   "split": "evaluation",
+   "coverage": [
+    "lineart"
+   ],
+   "authorTags": [
+    "フリー素材",
+    "線画",
+    "背景",
+    "教会",
+    "街",
+    "フリー素材5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-7226522-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "7226522",
+    "page": 0
+   },
+   "sha256": "80bf880435e86bcd9c9c2638d516b67a1ea38ca6a64b419ff5e9f756bfc47a23",
+   "split": "evaluation",
+   "coverage": [
+    "lineart"
+   ],
+   "authorTags": [
+    "カスタムブラシ",
+    "ブラシ設定",
+    "ペン入れ",
+    "線画",
+    "講座",
+    "CS4",
+    "Photoshop",
+    "一分でフォトショライフが変わる",
+    "これは流行る",
+    "講座5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-2734615-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "2734615",
+    "page": 0
+   },
+   "sha256": "24b54d49889a30f2722ebb7e750f78cbc98aca3c5122b4092a0b7957b1b49d11",
+   "split": "evaluation",
+   "coverage": [
+    "lineart"
+   ],
+   "authorTags": [
+    "シャンクス",
+    "ワンピース",
+    "線画",
+    "onepiece",
+    "バギー(ONEPIECE)",
+    "ワンピース5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-104001088-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "104001088",
+    "page": 0
+   },
+   "sha256": "b4878f26bacc90588e3c1aa567666ca7faa49ffc65ee71ece14171046791996b",
+   "split": "calibration",
+   "coverage": [
+    "grayscale"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "少女",
+    "ファンタジー",
+    "オリジナル5000users入り",
+    "モノクロ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-85947180-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "85947180",
+    "page": 0
+   },
+   "sha256": "5ba157a37c1fe35770c75bfcba2dd8c1d6de2d95b5f47a2f9be61af558c3477e",
+   "split": "evaluation",
+   "coverage": [
+    "grayscale"
+   ],
+   "authorTags": [
+    "虹ヶ咲学園スクールアイドル同好会",
+    "桜坂しずく",
+    "中須かすみ",
+    "天王寺璃奈",
+    "しずかす",
+    "Solitude_Rain",
+    "マニキュア",
+    "しずく、モノクローム",
+    "ラブライブ!虹ヶ咲学園スクールアイドル同好会",
+    "ラブライブ!5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-69623720-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "69623720",
+    "page": 0
+   },
+   "sha256": "6ca25b1ac916a5982f33059d0eedb02e9b04f1a600cb911d79963fabecda7c9f",
+   "split": "calibration",
+   "coverage": [
+    "grayscale"
+   ],
+   "authorTags": [
+    "アズールレーン",
+    "江風",
+    "江風(アズールレーン)",
+    "間奏モノクローム",
+    "アズールレーン5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148341891-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148341891",
+    "page": 0
+   },
+   "sha256": "20911f2d383f1415a2e4a9aac4fcd1b39d3313a4eae91fc25cdc056160486b5c",
+   "split": "evaluation",
+   "coverage": [
+    "multi-person"
+   ],
+   "authorTags": [
+    "Fate/GrandOrder",
+    "カーマ(水着)",
+    "リリス(水着)",
+    "リリス(Fate)",
+    "ゴルドルフ・ムジーク",
+    "ロマニ・アーキマン",
+    "マシュ・キリエライト",
+    "集合絵",
+    "全て遠き理想郷",
+    "Fate/GO5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-142719804-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "142719804",
+    "page": 0
+   },
+   "sha256": "1aeeaf71e6ce75dde48380397a17bb68625304d5fbd0b5f30fd0a560b1d595bc",
+   "split": "evaluation",
+   "coverage": [
+    "multi-person"
+   ],
+   "authorTags": [
+    "魔法少女ノ魔女裁判",
+    "まのさば",
+    "まのさば5000users入り",
+    "集合絵"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-126198592-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "126198592",
+    "page": 0
+   },
+   "sha256": "64f77888ca116fb38f9e56bdb694a60a2946ff63f20db5d493d33212e0cbaf65",
+   "split": "evaluation",
+   "coverage": [
+    "multi-person"
+   ],
+   "authorTags": [
+    "刀剣乱舞",
+    "刀剣乱舞ONLINE十周年祝画祝歌",
+    "愛がなければ描けない",
+    "クリック推奨",
+    "刀剣男士",
+    "ハイセンス",
+    "刀剣乱舞集合絵",
+    "刀剣乱舞5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-143837147-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "143837147",
+    "page": 0
+   },
+   "sha256": "50d1a87bb204f9b3593a3b3546f0777febc0eff20f5d51f29f133694171497b9",
+   "split": "evaluation",
+   "coverage": [
+    "hair:green"
+   ],
+   "authorTags": [
+    "ArknightsEndfield",
+    "エンドフィールド",
+    "竜娘",
+    "ゾアン・ファンイ",
+    "アークナイツ:エンドフィールド",
+    "笑顔",
+    "ぬいぐるみ",
+    "尻尾",
+    "緑髪",
+    "エンドフィールド5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-143331787-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "143331787",
+    "page": 0
+   },
+   "sha256": "fb15a72e12a9a1f411ed44f86ff86e49aee46e1e591d8e0552e14cc7b1fb8634",
+   "split": "calibration",
+   "coverage": [
+    "hair:green"
+   ],
+   "authorTags": [
+    "ゼンレスゾーンゼロ",
+    "ゼンゼロ",
+    "千夏(ゼンゼロ)",
+    "羞恥",
+    "気になる胸元",
+    "緑髪",
+    "ゼンゼロ5000users入り",
+    "乳寄せ",
+    "ちっぱい",
+    "照れ顔"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-145929242-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "145929242",
+    "page": 0
+   },
+   "sha256": "a60f6ac9e27b9a189dc6cb41e38f3c2345ff6ab4aa06fd81e3910803fb6b3f98",
+   "split": "evaluation",
+   "coverage": [
+    "hair:red"
+   ],
+   "authorTags": [
+    "崩壊:スターレイル",
+    "崩坏星穹铁道",
+    "崩壊スターレイル",
+    "姫子(スターレイル)",
+    "赤髪",
+    "足組み",
+    "崩壊:スターレイル5000users入り",
+    "白ワンピ",
+    "笑顔",
+    "ハーフアップ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-144801354-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "144801354",
+    "page": 0
+   },
+   "sha256": "8e9ff8f2243c9230ada255d8ac0a622ac705af2a205d7454b4f41886c2bbcc1a",
+   "split": "calibration",
+   "coverage": [
+    "hair:red"
+   ],
+   "authorTags": [
+    "女の子",
+    "オリジナル",
+    "双子",
+    "双子の姉",
+    "双子の妹",
+    "胸囲の格差社会",
+    "赤髪",
+    "黒スト",
+    "ベレー",
+    "オリジナル5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-144741622-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "144741622",
+    "page": 0
+   },
+   "sha256": "ea6b77f75d5dab4864f68f9d514b4d37a2fcc65ef2a7e0cb9fa9ae8881935f98",
+   "split": "evaluation",
+   "coverage": [
+    "hair:red"
+   ],
+   "authorTags": [
+    "アークナイツエンドフィールド",
+    "レーヴァテイン",
+    "エンドフィールド5000users入り",
+    "赤髪",
+    "紫目",
+    "巨乳化",
+    "前かがみ",
+    "黒ワンピ",
+    "長手袋",
+    "角娘"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-146320022-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "146320022",
+    "page": 0
+   },
+   "sha256": "954f6a5581166c9b08cd2dfeaeb12da761e8e5824d193ad07e604c8f67da5db5",
+   "split": "calibration",
+   "coverage": [
+    "hair:black"
+   ],
+   "authorTags": [
+    "ブルアカ",
+    "ブルーアーカイブ",
+    "BlueArchive",
+    "女の子",
+    "美少女",
+    "竜華キサキ",
+    "竜華キサキ(水着)",
+    "笑顔",
+    "黒髪",
+    "ブルーアーカイブ5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-143873390-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "143873390",
+    "page": 0
+   },
+   "sha256": "5a773eb5b8078c0e79718ef058924d69734339713a42c0cfff64d2ce068d5b79",
+   "split": "evaluation",
+   "coverage": [
+    "hair:black"
+   ],
+   "authorTags": [
+    "ヨル・ブライア",
+    "SPY×FAMILY",
+    "ヨル・フォージャー",
+    "黑髮",
+    "パーティードレス",
+    "黒髪巨乳",
+    "SPY×FAMILY5000users入り",
+    "赤面",
+    "尻",
+    "巨乳化"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-120136867-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "120136867",
+    "page": 0
+   },
+   "sha256": "c7363a646a99ffd50ac5de46a3dd662d8766f4929c06528bab59506603cdaa2e",
+   "split": "evaluation",
+   "coverage": [
+    "length:short"
+   ],
+   "authorTags": [
+    "しぐれういイラコン",
+    "しぐれうい",
+    "VTuber",
+    "バーチャルYouTuber",
+    "版権",
+    "ショートヘアー",
+    "ツインテール",
+    "制服",
+    "バーチャルYouTuber5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-112972050-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "112972050",
+    "page": 0
+   },
+   "sha256": "616c8712714791acdef979cba4bc11f626b7beec0ef4cef6f944d5812a0a05ab",
+   "split": "evaluation",
+   "coverage": [
+    "length:short"
+   ],
+   "authorTags": [
+    "包帯ぐるぐる巻き",
+    "ショートヘア",
+    "マミー",
+    "ハロウィン",
+    "ミイラ",
+    "女の子",
+    "ホロライブ",
+    "百鬼絵巻",
+    "百鬼あやめ",
+    "バーチャルYouTuber5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-146925385-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "146925385",
+    "page": 0
+   },
+   "sha256": "8e35efd77be3586af4077199cfb3a19549a87c1842d5f2e7e5224ead4a303f74",
+   "split": "calibration",
+   "coverage": [
+    "length:bob"
+   ],
+   "authorTags": [
+    "ブルーアーカイブ",
+    "ブルアカ",
+    "블루아카이브",
+    "BlueArchive",
+    "character",
+    "杏山カズサ",
+    "水着",
+    "がおー",
+    "ブルーアーカイブ5000users入り",
+    "ボブカット"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-140402054-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "140402054",
+    "page": 0
+   },
+   "sha256": "c035a282f635e8e65c073a720000b3e95df23df0e10c2f5e46b6d84e80dc1c55",
+   "split": "evaluation",
+   "coverage": [
+    "length:bob"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "あお高競泳水着部",
+    "ミサキ",
+    "黒髪",
+    "おかっぱ",
+    "ボブカット",
+    "竹箒",
+    "巫女",
+    "巫女服",
+    "オリジナル5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-144906553-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "144906553",
+    "page": 0
+   },
+   "sha256": "dd518f69bbed2113d2e158f3607eaa65f5dddbdc115bf618af9c4ccf99691462",
+   "split": "evaluation",
+   "coverage": [
+    "length:long"
+   ],
+   "authorTags": [
+    "ZenlessZoneZero",
+    "ゼンレスゾーンゼロ",
+    "プロメイア",
+    "マニキュア",
+    "青髪",
+    "尻",
+    "超ロングヘア",
+    "ハイヒール",
+    "ゼンゼロ5000users入り",
+    "尻揉み"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-113000236-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "113000236",
+    "page": 0
+   },
+   "sha256": "ef678aca4d742844bbe140ae0a1921bf160c0fca8219ced3f5619b0801409473",
+   "split": "calibration",
+   "coverage": [
+    "bangs:hime"
+   ],
+   "authorTags": [
+    "明日方舟",
+    "アークナイツ",
+    "Arturia",
+    "阿尔图罗",
+    "黒髪ロング",
+    "姫カット",
+    "少女",
+    "太もも",
+    "足組み",
+    "アークナイツ5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-103494561-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "103494561",
+    "page": 0
+   },
+   "sha256": "65228446b993a57b3cbcaabc00dd788e70cee55b2275d973e3c140c37a499207",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:hime"
+   ],
+   "authorTags": [
+    "ぼっち・ざ・ろっく!",
+    "PAさん",
+    "姫カット",
+    "黒髪ロング",
+    "超ロングヘア",
+    "ぼっち・ざ・ろっく!5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-134007424-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "134007424",
+    "page": 0
+   },
+   "sha256": "c9fc5f497e7116bba0953902af3ca3edc3e4ce7b5df9d2ec37510af9e03b092a",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:blunt"
+   ],
+   "authorTags": [
+    "イヴリン・シェヴァリエ",
+    "ゼンレスゾーンゼロ",
+    "ZenlessZoneZero",
+    "着衣巨乳",
+    "ぱっつんぱっつん",
+    "金髪",
+    "汗",
+    "爆乳",
+    "ゼンゼロ5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-132017464-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "132017464",
+    "page": 0
+   },
+   "sha256": "f28f7e9679b2b7f761fa5df806aaa82504256dc8c3c19977ad404bf6ad2da678",
+   "split": "evaluation",
+   "coverage": [
+    "bangs:blunt"
+   ],
+   "authorTags": [
+    "イーシェン",
+    "ゼンゼロ",
+    "ゼンレスゾーンゼロ",
+    "儀玄",
+    "巨乳",
+    "むちむちボディ",
+    "ぱっつんぱっつん",
+    "ゼンゼロ5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-150026805-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "150026805",
+    "page": 0
+   },
+   "sha256": "b8c200c5cdfa59373be4cefd4808fe52755e7055d7a5a65e2d3839853f0b6891",
+   "split": "evaluation",
+   "coverage": [
+    "full-body"
+   ],
+   "authorTags": [
+    "Fate/GrandOrder",
+    "FGO",
+    "ヤン・ジシュカ(Fate)",
+    "フシアナ・シロトチー",
+    "パンプキンファーム・スローター",
+    "フシアナ(Fate)",
+    "FGOご本人",
+    "全身",
+    "Fate/GO5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-111122773-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "111122773",
+    "page": 0
+   },
+   "sha256": "f6312e97406e6d7e2c3fb8c8a7f5c17f069c83ff7df12806df187fa0f93b416c",
+   "split": "evaluation",
+   "coverage": [
+    "thick-paint"
+   ],
+   "authorTags": [
+    "厚塗り",
+    "講座",
+    "創作",
+    "tips",
+    "メイキング",
+    "アイビス",
+    "描き方",
+    "講座5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-103866052-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "103866052",
+    "page": 0
+   },
+   "sha256": "017b730221ecefeab2f53ab98f47bb8c9cbbd53c4a62d34e838a6677a8fa4fe0",
+   "split": "calibration",
+   "coverage": [
+    "thick-paint"
+   ],
+   "authorTags": [
+    "CLIPSTUDIOPAINT",
+    "原神",
+    "厚塗り",
+    "鍾離",
+    "雷電将軍",
+    "ウェンティ(原神)",
+    "ナヒーダ",
+    "クリスマス",
+    "魔神(原神)",
+    "原神5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-96844907-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "96844907",
+    "page": 0
+   },
+   "sha256": "1e045f16ac57880ef6b86fed4f12eecd99a024df9a9d5f2fc634e8471af59f59",
+   "split": "evaluation",
+   "coverage": [
+    "thick-paint"
+   ],
+   "authorTags": [
+    "不破湊",
+    "にじさんじ",
+    "Vtuber",
+    "バーチャルYouTuber",
+    "ファンアート",
+    "二次創作",
+    "厚塗り",
+    "バーチャルYouTuber5000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-21818825-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "21818825",
+    "page": 0
+   },
+   "sha256": "6ffebc9d9364f91a9e5617783822f78f47b86e26817528d5db07e5f238ee6de0",
+   "split": "evaluation",
+   "coverage": [
+    "very-tall"
+   ],
+   "authorTags": [
+    "鏑木・T・虎徹",
+    "TIGER&BUNNY",
+    "縦長物語",
+    "虎兎コンビ",
+    "T&B最終回記念",
+    "オリオン座のリゲル(アラビア語で「足」を意味)は2重星",
+    "何これ幸せすぎる",
+    "T&B1000users入り",
+    "泣かせやがって、いいぞもっとやれ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-1104730-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "1104730",
+    "page": 0
+   },
+   "sha256": "f9ecdfc6b9c77fba8b5cb0ace0b798e0bcb36c818729c9178e461f2bb731a460",
+   "split": "evaluation",
+   "coverage": [
+    "very-tall"
+   ],
+   "authorTags": [
+    "土方",
+    "縦長",
+    "銀魂",
+    "せつない",
+    "切なさ120%",
+    "土ミツ",
+    "涙腺崩壊",
+    "土方十四郎",
+    "目からマヨネーズ",
+    "銀魂1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-978458-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "978458",
+    "page": 0
+   },
+   "sha256": "17f6afee4cb9472710aa5866cabdd88f7311e5475b4218c48c9b0b0d22e5a657",
+   "split": "calibration",
+   "coverage": [
+    "very-tall"
+   ],
+   "authorTags": [
+    "カンタレラ",
+    "ミクレチア",
+    "初音ミク",
+    "手に花",
+    "版権",
+    "縦長",
+    "腕に絡まる髪",
+    "VOCALOID",
+    "VOCALOID1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-228517-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "228517",
+    "page": 0
+   },
+   "sha256": "500250d07f4d18df8505c040eb7af557125a2ea3bb5c391425e266e7fa7acf8b",
+   "split": "evaluation",
+   "coverage": [
+    "very-tall"
+   ],
+   "authorTags": [
+    "モノノ怪",
+    "実は薬売りの後ろ髪はロンゲです",
+    "寸止め",
+    "版権",
+    "禁断の",
+    "縦長",
+    "脱衣",
+    "薬売り",
+    "モノノ怪1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147879576-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147879576",
+    "page": 0
+   },
+   "sha256": "2b2cc25029dbcdfce36b22a23eed8c47abc700ff007faac760275bdfec2d40e2",
+   "split": "evaluation",
+   "coverage": [
+    "hair:pink"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "バーチャルYouTuber",
+    "桜田ハネ",
+    "ピンク髪",
+    "女の子",
+    "魅惑の谷間",
+    "おっぱい",
+    "ロリ",
+    "エロ衣装"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-150181932-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "150181932",
+    "page": 0
+   },
+   "sha256": "ff783dc7cc03d41679ca2a51506ff078ca2930b04951ac17d6c2fad0ab2b7491",
+   "split": "evaluation",
+   "coverage": [
+    "style:twintails"
+   ],
+   "authorTags": [
+    "ツインテール",
+    "ナース",
+    "オリジナル",
+    "女の子",
+    "ヤンデレ",
+    "毒属性",
+    "創作",
+    "病み"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148801750-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148801750",
+    "page": 0
+   },
+   "sha256": "7aa25beedb76d660d8faf427a4bc73a78cc8f8eef5b73ba5e600d338121f8ece",
+   "split": "calibration",
+   "coverage": [
+    "hair:pink"
+   ],
+   "authorTags": [
+    "梁星",
+    "Illustration",
+    "liangxing",
+    "kikol",
+    "kikoldraws",
+    "ZenlessZoneZero",
+    "Remielle",
+    "ピンク髪",
+    "レミエール・ダン"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149579759-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149579759",
+    "page": 0
+   },
+   "sha256": "9d68aad457aba60a17402c6be6f75e924680f36df1adfe4ef50635cc7f5135ff",
+   "split": "evaluation",
+   "coverage": [
+    "hair:white"
+   ],
+   "authorTags": [
+    "創作",
+    "オリジナル",
+    "オリジナルキャラクター",
+    "うちの子",
+    "オリキャラ",
+    "女の子",
+    "白髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149087660-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149087660",
+    "page": 0
+   },
+   "sha256": "6102c090c68209767bdba5f5381c8935969885f0c35243b1042930eecbe5b35c",
+   "split": "evaluation",
+   "coverage": [
+    "style:twintails"
+   ],
+   "authorTags": [
+    "初音ミク",
+    "初音ミク生誕祭2026",
+    "初音ミク生誕祭",
+    "マジカルミライ",
+    "マジカルミライ2026",
+    "VOCALOID",
+    "VOCALOID1000users入り",
+    "ツインテール",
+    "後ろ手",
+    "白ワンピ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147632008-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147632008",
+    "page": 0
+   },
+   "sha256": "bd5d6c3309350eb482d23984069f6c7d5abd0eb91ae8ba1bcdffc4f81dede030",
+   "split": "evaluation",
+   "coverage": [
+    "hair:pink"
+   ],
+   "authorTags": [
+    "リン(アークナイツ)",
+    "arknights",
+    "明日方舟",
+    "アークナイツ",
+    "リン・ユーシャ(アークナイツ)",
+    "林",
+    "ねずみみ",
+    "アンダーリム",
+    "ピンク髪",
+    "女の子"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147083368-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147083368",
+    "page": 0
+   },
+   "sha256": "f51ca9e16ae761f18a78a4ba89b91fe7ce9422bf200f3341680ed7cdaffceb51",
+   "split": "calibration",
+   "coverage": [
+    "hair:blonde"
+   ],
+   "authorTags": [
+    "リンネー",
+    "鳴潮",
+    "リンネー・ミントキャンディ",
+    "笑顔",
+    "金髪",
+    "お腹",
+    "ショートパンツ",
+    "片目隠れ",
+    "濡れ透け"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149319884-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149319884",
+    "page": 0
+   },
+   "sha256": "a04f8e09507a112b504604a414f9c49e5049a3a9f95dbb85353e2c4445d36414",
+   "split": "calibration",
+   "coverage": [
+    "length:short"
+   ],
+   "authorTags": [
+    "仕事絵",
+    "BanG_Dream!",
+    "バンドリ",
+    "BanG_Dream!_It's_MyGO!!!!!",
+    "MyGO!!!!!",
+    "高松燈",
+    "傘",
+    "バンドリ500users入り",
+    "ショートカット",
+    "风景"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147860838-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147860838",
+    "page": 0
+   },
+   "sha256": "eecf3420e7849c193260eeb84819c09c0cb2b150cc97125b1e2414b01e9bce76",
+   "split": "evaluation",
+   "coverage": [
+    "length:short"
+   ],
+   "authorTags": [
+    "C108",
+    "SAO",
+    "ソードアート・オンライン",
+    "シノン",
+    "シノン(SAO)",
+    "ショートカット",
+    "ケモミミ",
+    "メイド"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147374769-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147374769",
+    "page": 0
+   },
+   "sha256": "41053c824bec1e08dbea14ed04bde0b29cd4e7743ba372b9d739965193dc58d5",
+   "split": "evaluation",
+   "coverage": [
+    "hair:white"
+   ],
+   "authorTags": [
+    "オリジナル",
+    "女の子",
+    "オリキャラ",
+    "白髪",
+    "水着",
+    "プール",
+    "Flobullet",
+    "オリジナル1000users入り"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148183553-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148183553",
+    "page": 0
+   },
+   "sha256": "e9d2d9e59386a882e876b8c18e13f5a2ff2a1590e8c8c9c78dac9911f9b0c128",
+   "split": "evaluation",
+   "coverage": [
+    "hair:brown"
+   ],
+   "authorTags": [
+    "ドールズフロントライン",
+    "少女前線",
+    "M200(ドールズフロントライン)",
+    "シャイアン",
+    "Cheyanne",
+    "照れ顔",
+    "ベレー",
+    "ジャケット",
+    "茶髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149076806-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149076806",
+    "page": 0
+   },
+   "sha256": "34cb84274ef3e4e2e2f58ae8d4f5779370307ef8239d865457831f02ddf0f049",
+   "split": "calibration",
+   "coverage": [
+    "style:ponytail"
+   ],
+   "authorTags": [
+    "女の子",
+    "ポニーテール",
+    "ストッキング",
+    "黒タイツ"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149874545-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149874545",
+    "page": 0
+   },
+   "sha256": "6a1cc427e0fab357ef7418ee26691c4574e96698f7cd026cd60ee4d7125abaa7",
+   "split": "evaluation",
+   "coverage": [
+    "hair:red"
+   ],
+   "authorTags": [
+    "ぼっち・ざ・ろっく!",
+    "喜多郁代",
+    "女の子",
+    "主観視点",
+    "赤髪",
+    "翠眼",
+    "苺",
+    "餌付け"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149597102-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149597102",
+    "page": 0
+   },
+   "sha256": "49d9a0778a5b5ccbbe9675706e8643a5819310126efa0f21214bdcf9ae754070",
+   "split": "evaluation",
+   "coverage": [
+    "hair:white"
+   ],
+   "authorTags": [
+    "原神",
+    "GenshinImpact",
+    "ロノヴァ",
+    "白髪",
+    "翼",
+    "ボディストッキング"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147861984-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147861984",
+    "page": 0
+   },
+   "sha256": "6af40faf22354e17eb32e555ea6952e6a333364dd0e88ed1d93b47f67421e2a5",
+   "split": "calibration",
+   "coverage": [
+    "hair:blue",
+    "length:short"
+   ],
+   "authorTags": [
+    "ZenlessZoneZero",
+    "zzzreo",
+    "ゼンレスゾーンゼロ",
+    "リン(ゼンゼロ)",
+    "Belle",
+    "ゼンゼロ1000users入り",
+    "ショートカット",
+    "青髪",
+    "笑顔"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149020759-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149020759",
+    "page": 0
+   },
+   "sha256": "75d3261ec8feb3cbea07dc9c345929ed1286c9ca03d156e79c1826800d8f3934",
+   "split": "evaluation",
+   "coverage": [
+    "hair:white"
+   ],
+   "authorTags": [
+    "AIイラスト",
+    "美少女",
+    "極上の女体",
+    "風景",
+    "WutheringWaves",
+    "鸣潮",
+    "鳴潮",
+    "白髪",
+    "緋雪(鳴潮)",
+    "Hiyuki"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149325652-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149325652",
+    "page": 0
+   },
+   "sha256": "5b15451c0998808166396a0c533880bf53e161592592830c4a98ef16d846cdf3",
+   "split": "evaluation",
+   "coverage": [
+    "style:ponytail",
+    "hair:pink"
+   ],
+   "authorTags": [
+    "鳴潮",
+    "エイメス",
+    "爱弥斯",
+    "メイド服",
+    "ピンク髪",
+    "咥え髪留め",
+    "ポニーテール",
+    "巨乳化"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147348797-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147348797",
+    "page": 0
+   },
+   "sha256": "2147e432481b551bffd9a4de76f8f6c0f4b93a565ee86d225d6687754f1dfeb0",
+   "split": "evaluation",
+   "coverage": [
+    "hair:brown"
+   ],
+   "authorTags": [
+    "原神",
+    "ディシア",
+    "原神1000users入り",
+    "頬杖",
+    "茶髪",
+    "戦乙女"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148732253-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148732253",
+    "page": 0
+   },
+   "sha256": "0ded423e7a1af081bcdf02a3e3139706b382ce539119501dc344e64ac3668619",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blue"
+   ],
+   "authorTags": [
+    "女の子",
+    "無職転生",
+    "ロキシー・ミグルディア",
+    "魔女帽子",
+    "青髪",
+    "靴",
+    "三つ編み"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147648305-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147648305",
+    "page": 0
+   },
+   "sha256": "f4bb001911f33bd1bfd1b2ceeaac8217699069e6a0eab0c57e69be3ca724b20b",
+   "split": "evaluation",
+   "coverage": [
+    "hair:purple"
+   ],
+   "authorTags": [
+    "女の子",
+    "アナスタシア・ホーシン",
+    "紫髪",
+    "見返り",
+    "冬服",
+    "翠眼",
+    "帽子"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149623680-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149623680",
+    "page": 0
+   },
+   "sha256": "b4b42c4583ca012d3d2d49e857a67f23f18d20e5191d0064e95a02047e42b579",
+   "split": "evaluation",
+   "coverage": [
+    "hair:purple"
+   ],
+   "authorTags": [
+    "常闇トワ",
+    "TOWART",
+    "ホロライブ",
+    "hololive",
+    "Vtuber",
+    "バーチャルYouTuber1000users入り",
+    "翠眼",
+    "眼镜",
+    "紫髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-147316730-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147316730",
+    "page": 0
+   },
+   "sha256": "23d38c7eb13f38d2aec44907d91ee81a8e415b969f7e8449ff52f48767444c41",
+   "split": "evaluation",
+   "coverage": [
+    "style:ponytail"
+   ],
+   "authorTags": [
+    "WutheringWaves",
+    "鳴潮",
+    "エイメス",
+    "漂泊者",
+    "ドレス",
+    "ポニーテール",
+    "男漂泊者",
+    "鸣潮"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-149908693-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149908693",
+    "page": 0
+   },
+   "sha256": "ed4b33f585c815a3b6e55f4d27e09c4e9668e2f659dd42c65e00fb80f1338eaf",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blue"
+   ],
+   "authorTags": [
+    "足指",
+    "裸足",
+    "オリジナルキャラ",
+    "足爪",
+    "スク水",
+    "プールサイド",
+    "Feet",
+    "しゃがみ",
+    "腿",
+    "青髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148539558-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148539558",
+    "page": 0
+   },
+   "sha256": "9199b8c79e77fb6145c0d0c7067be46c06258b5eb8c3bc87feedbe7f75f0f9b7",
+   "split": "calibration",
+   "coverage": [
+    "hair:purple"
+   ],
+   "authorTags": [
+    "仕事絵",
+    "一伊那尓栖",
+    "ホロライブ",
+    "ホロライブドリームス",
+    "水着",
+    "しゃがみ",
+    "海水浴",
+    "バーチャルYouTuber1000users入り",
+    "麦わら帽子",
+    "紫髪"
+   ],
+   "rating": "general"
+  },
+  {
+   "id": "pixiv-148798783-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148798783",
+    "page": 0
+   },
+   "sha256": "48f5341492f5b9e8f298b529ac57bf7838c957dac6d2fcc3976ad9cda1e0a59e",
+   "split": "evaluation",
+   "coverage": [
+    "hair:blue"
+   ],
+   "authorTags": [
+    "ホロライブ",
+    "星街すいせい",
+    "白ワンピ",
+    "水色髪",
+    "バーチャルYouTuber1000users入り"
+   ],
+   "rating": "general"
+  }
+ ]
+}
