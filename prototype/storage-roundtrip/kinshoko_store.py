@@ -210,12 +210,11 @@ class Library:
             self.db.execute("INSERT INTO tag VALUES(?,?)", (tid, name))
         return tid
 
-    def _resolve_source(self, kind, location, external_ids):
+    def relocation_candidate(self, kind, location, external_ids):
+        """新位置疑似是已登记来源搬家：同类来源的已绑定外部 ID 至少一半出现在新位置。只提出候选，不改任何数据。"""
         loc = os.path.normcase(os.path.abspath(location))
-        sid = self.one("SELECT id FROM import_source WHERE kind=? AND location=?", kind, loc)
-        if sid:
-            return sid, None
-        # 来源移库辨认（候选规则）：同类来源的已绑定外部 ID 至少一半出现在新位置
+        if self.one("SELECT id FROM import_source WHERE kind=? AND location=?", kind, loc):
+            return None
         best, best_ratio = None, 0.0
         for (cand,) in self.q("SELECT id FROM import_source WHERE kind=?", kind):
             ids = {r[0] for r in self.q("SELECT external_id FROM source_binding WHERE source_id=?", cand)}
@@ -224,9 +223,24 @@ class Library:
                 if ratio > best_ratio:
                     best, best_ratio = cand, ratio
         if best and best_ratio >= 0.5:
-            old = self.one("SELECT location FROM import_source WHERE id=?", best)
-            self.db.execute("UPDATE import_source SET location=?, relocated_from=? WHERE id=?", (loc, old, best))
-            return best, {"from": old, "to": loc, "overlap": round(best_ratio, 3)}
+            return {"source_id": best, "from": self.one("SELECT location FROM import_source WHERE id=?", best), "to": loc,
+                    "overlap": round(best_ratio, 3)}
+        return None
+
+    def _resolve_source(self, kind, location, source=None):
+        """source：None＝按位置找或新登记；已登记来源的 ID＝用户确认是它搬了家；"new"＝用户确认是另一个来源。"""
+        loc = os.path.normcase(os.path.abspath(location))
+        if source not in (None, "new"):
+            old = self.one("SELECT location FROM import_source WHERE id=?", source)
+            if old is None:
+                raise RuntimeError("确认的来源不存在：" + source)
+            if old != loc:
+                self.db.execute("UPDATE import_source SET location=?, relocated_from=? WHERE id=?", (loc, old, source))
+                return source, {"from": old, "to": loc}
+            return source, None
+        sid = None if source == "new" else self.one("SELECT id FROM import_source WHERE kind=? AND location=?", kind, loc)
+        if sid:
+            return sid, None
         sid = new_id()
         self.db.execute("INSERT INTO import_source VALUES(?,?,?,?,?,?,?)", (sid, kind, loc, None, MAPPING_VERSION, now(), None))
         return sid, None
@@ -310,7 +324,8 @@ class Library:
         return report
 
     # ---------- Eagle 导入 ----------
-    def import_eagle(self, eagle_dir):
+    def import_eagle(self, eagle_dir, source=None):
+        """source 见 _resolve_source。新位置疑似已登记来源搬家且未指定 source 时，不写任何数据，返回待确认。"""
         try:
             root_meta = json.load(open(os.path.join(eagle_dir, "metadata.json"), encoding="utf-8"))
             mt = json.load(open(os.path.join(eagle_dir, "mtime.json"), encoding="utf-8"))
@@ -322,7 +337,11 @@ class Library:
         img_dir = os.path.join(eagle_dir, "images")
         dir_ids = {d[:-5] for d in os.listdir(img_dir) if d.endswith(".info")} if os.path.isdir(img_dir) else set()
         all_ids = index_ids | dir_ids
-        src, relocated = self._resolve_source("eagle", eagle_dir, all_ids)
+        if source is None:
+            cand = self.relocation_candidate("eagle", eagle_dir, all_ids)
+            if cand:
+                return {"status": "needs_confirmation", "candidate": cand}
+        src, relocated = self._resolve_source("eagle", eagle_dir, source)
         self.db.execute("BEGIN")
         self.db.execute("UPDATE import_source SET raw_library_json=? WHERE id=?", (dumps(root_meta), src))
         self._upsert_folders(src, root_meta.get("folders", []))
@@ -375,7 +394,7 @@ class Library:
 
     # ---------- 普通文件导入 ----------
     def import_files(self, paths):
-        src, _ = self._resolve_source("files", os.path.dirname(paths[0]), {os.path.basename(p) for p in paths})
+        src, _ = self._resolve_source("files", os.path.dirname(paths[0]))
         rid = self._start_run(src)
         report = {"run_id": rid, "source_id": src, "relocated": None, "seen": len(paths), "ok": 0, "failed": 0,
                   "outcomes": {}, "failures": [], "dangling_folders": []}

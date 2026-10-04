@@ -204,10 +204,24 @@ gate("重导", "重导不重复创建已有记录", A.one("SELECT count(*) FROM 
 moved = eagle_a + "-搬到别处"
 os.rename(eagle_a, moved)
 n_before = A.one("SELECT count(*) FROM image")
-r3 = A.import_eagle(moved)
-gate("重导", "Eagle 库整体搬家后重导 → 认出是同一来源，不新建记录（候选规则：外部 ID 重合 ≥ 50%）",
+dump_before = A.canonical_dump()
+ask = A.import_eagle(moved)
+gate("重导", "Eagle 库整体搬家后重导 → 先请用户确认是否同一来源，确认前不写任何数据（候选：外部 ID 重合 ≥ 50%）",
+     ask["status"] == "needs_confirmation" and A.canonical_dump() == dump_before,
+     f"候选重合比例 {ask.get('candidate', {}).get('overlap')}")
+r3 = A.import_eagle(moved, source=ask["candidate"]["source_id"])
+gate("重导", "用户确认是同一来源 → 沿用来源登记并更新位置，不新建记录",
      r3["relocated"] and A.one("SELECT count(*) FROM image") == n_before and set(r3["outcomes"]) == {"refreshed"},
-     f"重合比例 {r3['relocated'] and r3['relocated']['overlap']}，结果 {r3['outcomes']}")
+     f"结果 {r3['outcomes']}")
+moved_b = eagle_b + "-副本"
+shutil.copytree(eagle_b, moved_b)
+nb_before = B.one("SELECT count(*) FROM image")
+ask_b = B.import_eagle(moved_b)
+rb2 = B.import_eagle(moved_b, source="new")
+gate("重导", "用户确认是另一个来源 → 新登记来源；相同原图汇入已有记录，不重复创建",
+     ask_b["status"] == "needs_confirmation" and B.one("SELECT count(*) FROM import_source") == 2
+     and B.one("SELECT count(*) FROM image") == nb_before and set(rb2["outcomes"]) == {"merged_same_original"},
+     f"结果 {rb2['outcomes']}")
 
 # ---------------------------------------------------------------- 来源失联
 section("4. 来源库离线时的参考组")
