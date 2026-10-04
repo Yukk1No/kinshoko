@@ -3,14 +3,19 @@
 use crate::models::LocalModel;
 use crate::preprocess;
 use crate::samples::Sample;
-use crate::sysinfo::PeakSampler;
-use crate::util::percentile;
+use crate::sysinfo::{self, GpuMemory, PeakSampler, Peaks};
+use crate::util::{human_bytes, percentile};
 use ort::session::{HasSelectedOutputs, OutputSelector, RunOptions, Session};
 use ort::value::Tensor;
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::path::Path;
-use std::time::Instant;
+use std::time::{Duration, Instant};
+
+/// A single image taking longer than this means the run is unusable; stop it.
+const MAX_IMAGE: Duration = Duration::from_secs(90);
+/// Free RAM kept for the rest of the system when deciding whether a CPU run fits.
+const RAM_MARGIN: u64 = 1_500_000_000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum Ep {
@@ -34,6 +39,7 @@ pub struct Timing {
     pub p50_ms: f64,
     pub p95_ms: f64,
     pub mean_ms: f64,
+    pub max_ms: f64,
 }
 
 fn timing(mut v: Vec<f64>) -> Timing {
@@ -41,7 +47,12 @@ fn timing(mut v: Vec<f64>) -> Timing {
         return Timing::default();
     }
     v.sort_by(|a, b| a.total_cmp(b));
-    Timing { p50_ms: percentile(&v, 50.0), p95_ms: percentile(&v, 95.0), mean_ms: v.iter().sum::<f64>() / v.len() as f64 }
+    Timing {
+        p50_ms: percentile(&v, 50.0),
+        p95_ms: percentile(&v, 95.0),
+        mean_ms: v.iter().sum::<f64>() / v.len() as f64,
+        max_ms: v[v.len() - 1],
+    }
 }
 
 #[derive(Serialize, Default)]
@@ -49,7 +60,13 @@ pub struct RunReport {
     pub model: String,
     pub ep: Option<Ep>,
     pub ok: bool,
+    /// Why the run did not start (not enough memory, GPU already lost).
+    pub skipped: Option<String>,
     pub error: Option<String>,
+    /// Why the run stopped early.
+    pub stopped: Option<String>,
+    /// The GPU was reset or removed (DXGI device hung/removed) during the run.
+    pub device_lost: bool,
     pub input_names: Vec<String>,
     pub output_names: Vec<String>,
     pub load_ms: f64,
@@ -60,8 +77,10 @@ pub struct RunReport {
     pub preprocess: Timing,
     pub inference: Timing,
     pub total_seconds: f64,
-    pub peak_working_set_bytes: u64,
-    pub peak_vram_bytes: u64,
+    pub available_ram_at_start: u64,
+    /// Adapter memory just before the session was created.
+    pub gpus_at_start: Vec<GpuMemory>,
+    pub peaks: Peaks,
     /// Graph nodes by execution provider, from an ORT profiling pass.
     pub nodes_by_provider: BTreeMap<String, usize>,
     /// Operator types of nodes that did not run on DirectML, with counts.
@@ -74,6 +93,37 @@ pub struct Run {
     pub report: RunReport,
     /// Per-sample scores, aligned with the sample list (None if that sample failed).
     pub scores: Vec<Option<Vec<f32>>>,
+}
+
+/// DXGI_ERROR_DEVICE_REMOVED / HUNG / RESET / DRIVER_INTERNAL_ERROR.
+pub fn is_device_lost(msg: &str) -> bool {
+    let m = msg.to_ascii_uppercase();
+    ["887A0005", "887A0006", "887A0007", "887A0020"].iter().any(|c| m.contains(c))
+}
+
+/// Reason to skip `model` on `ep` given the memory available now, if any.
+pub fn memory_shortfall(model: &LocalModel, ep: Ep) -> Option<String> {
+    match ep {
+        Ep::DirectMl if model.spec.vram_need > 0 => {
+            // DirectML uses device 0, the first adapter DXGI enumerates.
+            let gpu = sysinfo::gpu_memory().into_iter().next()?;
+            (gpu.local_budget < model.spec.vram_need).then(|| {
+                format!("显存可用额度 {} 小于需要的约 {}", human_bytes(gpu.local_budget), human_bytes(model.spec.vram_need))
+            })
+        }
+        Ep::Cpu if model.spec.ram_need > 0 => {
+            let free = sysinfo::available_ram();
+            (free < model.spec.ram_need + RAM_MARGIN).then(|| {
+                format!("可用内存 {} 不够（需要约 {}，另留 {}）", human_bytes(free), human_bytes(model.spec.ram_need), human_bytes(RAM_MARGIN))
+            })
+        }
+        _ => None,
+    }
+}
+
+pub fn skipped(model: &LocalModel, ep: Ep, n: usize, reason: String) -> Run {
+    let report = RunReport { model: model.spec.key.to_string(), ep: Some(ep), skipped: Some(reason), ..Default::default() };
+    Run { report, scores: (0..n).map(|_| None).collect() }
 }
 
 fn build(model: &LocalModel, ep: Ep, profile: Option<&Path>) -> ort::Result<Session> {
@@ -162,7 +212,13 @@ fn node_providers(model: &LocalModel, ep: Ep, samples: &[Sample], workdir: &Path
 }
 
 pub fn run(model: &LocalModel, ep: Ep, samples: &[Sample], workdir: &Path) -> Run {
-    let mut report = RunReport { model: model.spec.key.to_string(), ep: Some(ep), ..Default::default() };
+    let mut report = RunReport {
+        model: model.spec.key.to_string(),
+        ep: Some(ep),
+        available_ram_at_start: sysinfo::available_ram(),
+        gpus_at_start: if ep == Ep::DirectMl { sysinfo::gpu_memory() } else { Vec::new() },
+        ..Default::default()
+    };
     let mut scores = Vec::with_capacity(samples.len());
     let sampler = PeakSampler::start();
     let start = Instant::now();
@@ -172,9 +228,8 @@ pub fn run(model: &LocalModel, ep: Ep, samples: &[Sample], workdir: &Path) -> Ru
         Ok(s) => s,
         Err(e) => {
             report.error = Some(format!("创建会话失败: {e}"));
-            let (ram, vram) = sampler.finish();
-            report.peak_working_set_bytes = ram;
-            report.peak_vram_bytes = vram;
+            report.device_lost = is_device_lost(&e.to_string());
+            report.peaks = sampler.finish();
             return Run { report, scores: samples.iter().map(|_| None).collect() };
         }
     };
@@ -185,14 +240,13 @@ pub fn run(model: &LocalModel, ep: Ep, samples: &[Sample], workdir: &Path) -> Ru
         Ok(o) => o,
         Err(e) => {
             report.error = Some(format!("选择输出失败: {e}"));
-            let (ram, vram) = sampler.finish();
-            report.peak_working_set_bytes = ram;
-            report.peak_vram_bytes = vram;
+            report.peaks = sampler.finish();
             return Run { report, scores: samples.iter().map(|_| None).collect() };
         }
     };
 
     let (mut dec, mut pre, mut inf) = (Vec::new(), Vec::new(), Vec::new());
+    let mut last_print = Instant::now();
     for (i, s) in samples.iter().enumerate() {
         let t0 = Instant::now();
         let img = match preprocess::load(&s.path) {
@@ -211,6 +265,16 @@ pub fn run(model: &LocalModel, ep: Ep, samples: &[Sample], workdir: &Path) -> Ru
             Ok(v) => {
                 let t3 = Instant::now();
                 let infer_ms = (t3 - t2).as_secs_f64() * 1000.0;
+                if i < 3 || infer_ms > 5000.0 {
+                    let p = sampler.current();
+                    let gpu = p.gpus.first().map_or(String::new(), |g| {
+                        format!("，显存峰值 {}，共享内存峰值 {}", human_bytes(g.local_usage), human_bytes(g.non_local_usage))
+                    });
+                    say!("    第 {} 张推理 {:.2} 秒{gpu}", i + 1, infer_ms / 1000.0);
+                }
+                if t3 - t2 > MAX_IMAGE {
+                    report.stopped = Some(format!("第 {} 张推理用了 {:.0} 秒，超过 {} 秒上限", i + 1, infer_ms / 1000.0, MAX_IMAGE.as_secs()));
+                }
                 if i == 0 {
                     // First run includes warm-up; keep it out of the steady-state numbers.
                     report.first_image_ms = infer_ms;
@@ -227,25 +291,34 @@ pub fn run(model: &LocalModel, ep: Ep, samples: &[Sample], workdir: &Path) -> Ru
                 if report.error.is_none() {
                     report.error = Some(format!("推理失败: {e}"));
                 }
+                if is_device_lost(&e.to_string()) {
+                    report.device_lost = true;
+                    report.stopped = Some("显卡被系统重置，停止使用显卡".into());
+                }
             }
         }
-        if (i + 1) % 20 == 0 || i + 1 == samples.len() {
+        if let Some(why) = &report.stopped {
+            say!("    已停止：{why}");
+            // Remaining samples count as not run, not as failed.
+            scores.resize_with(samples.len(), || None);
+            break;
+        }
+        if (i + 1) % 20 == 0 || i + 1 == samples.len() || last_print.elapsed().as_secs() >= 30 {
+            last_print = Instant::now();
             let done = i + 1;
             let eta = start.elapsed().as_secs_f64() / done as f64 * (samples.len() - done) as f64;
-            println!("    {done}/{}  剩余约 {:.0} 秒", samples.len(), eta);
+            say!("    {done}/{}  剩余约 {:.0} 秒", samples.len(), eta);
         }
     }
     drop(session);
     report.total_seconds = start.elapsed().as_secs_f64();
-    let (ram, vram) = sampler.finish();
-    report.peak_working_set_bytes = ram;
-    report.peak_vram_bytes = vram;
-    report.images = samples.len() - report.failed_images;
+    report.peaks = sampler.finish();
+    report.images = scores.iter().filter(|s| s.is_some()).count();
     report.decode = timing(dec);
     report.preprocess = timing(pre);
     report.inference = timing(inf);
-    report.ok = report.images > 0 && report.error.is_none();
-    if ep == Ep::DirectMl && report.images > 0 {
+    report.ok = report.images > 0 && report.error.is_none() && report.stopped.is_none();
+    if ep == Ep::DirectMl && report.images > 0 && !report.device_lost && report.stopped.is_none() {
         let p = node_providers(model, ep, samples, workdir);
         report.heavy_non_dml_ops =
             p.non_dml_ops.iter().filter(|(op, _)| HEAVY_OPS.contains(&op.as_str())).map(|(k, v)| (k.clone(), *v)).collect();

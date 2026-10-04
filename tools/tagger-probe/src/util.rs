@@ -44,3 +44,26 @@ pub fn percentile(sorted: &[f64], p: f64) -> f64 {
     let rank = ((p / 100.0) * sorted.len() as f64).ceil() as usize;
     sorted[rank.clamp(1, sorted.len()) - 1]
 }
+
+static LOG: std::sync::Mutex<Option<File>> = std::sync::Mutex::new(None);
+
+/// Also append everything `say!` prints to `path`, so a run that crashes leaves a trace.
+pub fn set_log(path: &Path) {
+    if let Ok(f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        *LOG.lock().unwrap() = Some(f);
+    }
+}
+
+pub fn log_line(line: &str) {
+    println!("{line}");
+    if let Some(f) = LOG.lock().unwrap().as_mut() {
+        use std::io::Write;
+        let _ = writeln!(f, "{line}");
+        let _ = f.flush();
+    }
+}
+
+/// `println!` that is also written to the run log.
+macro_rules! say {
+    ($($t:tt)*) => { $crate::util::log_line(&format!($($t)*)) };
+}
