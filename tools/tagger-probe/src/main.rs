@@ -12,6 +12,7 @@
 //!                         also picks up the R-18 manifest)
 //!   --limit <n>           use at most n samples
 //!   --skip-cpu / --skip-gpu
+//!   --all-models          also run PixAI v0.9 and WD SwinV2 v3
 //!   --data-dir <dir>      where models, samples and runs are kept
 //!   --no-prompt           never wait for keyboard input
 
@@ -137,7 +138,7 @@ fn run(args: &Args) -> Result<(), String> {
     let dev_mode = !args.sample_dirs.is_empty();
     if args.prompt {
         say!("这个程序会测试自动打标模型在这台电脑上的速度和结果：");
-        say!("  1. 下载 PixAI v1.0 模型（约 3 GB）和 pixiv 上的公开样本图（约 0.8 GB），已下载过的直接复用；");
+        say!("  1. 下载 PixAI v1.0 模型（约 3 GB）和 pixiv 上的公开样本图（约 0.8 GB），已下载过的直接复用，共需约 7 GB 磁盘空间；");
         say!("  2. 分别用显卡和 CPU 给样本打标，可能需要几十分钟；内存或显存不够的项目会自动跳过；");
         say!("  3. 在桌面生成一个报告压缩包，请把它发给开发者。");
         say!("报告只包含硬件型号、耗时和公开样本的打标结果，不会读取你自己的文件。");

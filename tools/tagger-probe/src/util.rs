@@ -54,7 +54,28 @@ pub fn set_log(path: &Path) {
     }
 }
 
+/// Replace the user's profile paths in a message, so reports never carry the account name.
+pub fn scrub(msg: &str) -> String {
+    let mut out = msg.to_string();
+    for var in ["LOCALAPPDATA", "APPDATA", "USERPROFILE"] {
+        let Some(dir) = std::env::var_os(var) else { continue };
+        let dir = dir.to_string_lossy().to_string();
+        if dir.len() < 4 {
+            continue;
+        }
+        // Windows paths are case-insensitive; match on a lowercased copy.
+        let mut lower = out.to_lowercase();
+        let needle = dir.to_lowercase();
+        while let Some(i) = lower.find(&needle) {
+            out.replace_range(i..i + dir.len(), &format!("%{var}%"));
+            lower = out.to_lowercase();
+        }
+    }
+    out
+}
+
 pub fn log_line(line: &str) {
+    let line = &scrub(line);
     println!("{line}");
     if let Some(f) = LOG.lock().unwrap().as_mut() {
         use std::io::Write;

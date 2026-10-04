@@ -39,9 +39,11 @@
    "sha256": "9534834f1bc62bfb320b8f83e2d5f9c71e38f07fdae29565cead38c9eadffe51",
    "split": "evaluation",
    "coverage": [
-    "r18"
+    "r18",
+    "r18-page-borderline"
    ],
-   "rating": "r18"
+   "rating": "r18",
+   "notes": "首页本身只是擦边程度，pixiv R-18 标记针对整个作品；发起者 2026-10-04 复核，不计入分级正例。"
   },
   {
    "id": "pixiv-147700561-p0",
@@ -81,9 +83,11 @@
    "sha256": "02690d84c4c7acf5582cfb943871a9268426fa654b84450e240445a0d28b5fe3",
    "split": "evaluation",
    "coverage": [
-    "r18"
+    "r18",
+    "r18-page-borderline"
    ],
-   "rating": "r18"
+   "rating": "r18",
+   "notes": "首页本身只是擦边程度，pixiv R-18 标记针对整个作品；发起者 2026-10-04 复核，不计入分级正例。"
   },
   {
    "id": "pixiv-148840214-p0",

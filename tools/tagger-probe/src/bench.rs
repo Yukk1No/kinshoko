@@ -4,7 +4,7 @@ use crate::models::LocalModel;
 use crate::preprocess;
 use crate::samples::Sample;
 use crate::sysinfo::{self, GpuMemory, PeakSampler, Peaks};
-use crate::util::{human_bytes, percentile};
+use crate::util::{human_bytes, percentile, scrub};
 use ort::session::{HasSelectedOutputs, OutputSelector, RunOptions, Session};
 use ort::value::Tensor;
 use serde::Serialize;
@@ -228,7 +228,7 @@ pub fn run(model: &LocalModel, ep: Ep, samples: &[Sample], workdir: &Path) -> Ru
     let mut session = match build(model, ep, None) {
         Ok(s) => s,
         Err(e) => {
-            report.error = Some(format!("创建会话失败: {e}"));
+            report.error = Some(scrub(&format!("创建会话失败: {e}")));
             report.device_lost = is_device_lost(&e.to_string());
             report.peaks = sampler.finish();
             return Run { report, scores: samples.iter().map(|_| None).collect() };
@@ -240,7 +240,7 @@ pub fn run(model: &LocalModel, ep: Ep, samples: &[Sample], workdir: &Path) -> Ru
     let out = match select_output(&session) {
         Ok(o) => o,
         Err(e) => {
-            report.error = Some(format!("选择输出失败: {e}"));
+            report.error = Some(scrub(&format!("选择输出失败: {e}")));
             report.peaks = sampler.finish();
             return Run { report, scores: samples.iter().map(|_| None).collect() };
         }
@@ -298,7 +298,7 @@ pub fn run(model: &LocalModel, ep: Ep, samples: &[Sample], workdir: &Path) -> Ru
                 report.failed_images += 1;
                 scores.push(None);
                 if report.error.is_none() {
-                    report.error = Some(format!("推理失败: {e}"));
+                    report.error = Some(scrub(&format!("推理失败: {e}")));
                 }
                 if is_device_lost(&e.to_string()) {
                     report.device_lost = true;

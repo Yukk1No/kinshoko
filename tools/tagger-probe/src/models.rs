@@ -100,26 +100,6 @@ pub const MODELS: [ModelSpec; 5] = [
         default: true,
     },
     ModelSpec {
-        key: "pixai-v1.0-fp16",
-        label: "PixAI Tagger v1.0 FP16 原版（对照）",
-        dir: "pixai-v1.0-fp16",
-        repo: V1_REPO,
-        revision: V1_REVISION,
-        model_sha256: V1_FP16_SHA256,
-        model_size: 992_916_002,
-        file: "model_fp16.onnx",
-        preprocess: Preprocess::PixAiV1,
-        thresholds: V1_THRESHOLDS,
-        // A few images to confirm what the unchunked graph does on small GPUs; no memory
-        // check on purpose, the per-image time limit stops it if it stalls.
-        directml: Limit::First(5),
-        cpu: Limit::Skip,
-        chunking: None,
-        vram_need: 0,
-        ram_need: 0,
-        default: true,
-    },
-    ModelSpec {
         key: "pixai-v1.0-fp32-chunked",
         label: "PixAI Tagger v1.0 FP32 分块注意力",
         dir: "pixai-v1.0-fp32",
@@ -137,6 +117,26 @@ pub const MODELS: [ModelSpec; 5] = [
         // 3.1 GiB VRAM and 4.6 GiB committed on CPU (7.1 GiB and 11.9 GiB unchunked).
         vram_need: 3_400_000_000,
         ram_need: 5 * GB,
+        default: true,
+    },
+    ModelSpec {
+        key: "pixai-v1.0-fp16",
+        label: "PixAI Tagger v1.0 FP16 原版（对照）",
+        dir: "pixai-v1.0-fp16",
+        repo: V1_REPO,
+        revision: V1_REVISION,
+        model_sha256: V1_FP16_SHA256,
+        model_size: 992_916_002,
+        file: "model_fp16.onnx",
+        preprocess: Preprocess::PixAiV1,
+        thresholds: V1_THRESHOLDS,
+        // A few images to confirm what the unchunked graph does on small GPUs; no memory
+        // check on purpose, the per-image time limit stops it if it stalls.
+        directml: Limit::First(5),
+        cpu: Limit::Skip,
+        chunking: None,
+        vram_need: 0,
+        ram_need: 0,
         default: true,
     },
     ModelSpec {
@@ -197,7 +197,17 @@ fn url(spec: &ModelSpec, file: &str) -> String {
 /// Download `url` to `dest`, resuming a partial `.part` file when possible.
 pub fn download(url: &str, dest: &Path, expected_size: Option<u64>, extra_headers: &[(&str, &str)]) -> Result<(), String> {
     let part = dest.with_extension("part");
-    let have = fs::metadata(&part).map(|m| m.len()).unwrap_or(0);
+    let mut have = fs::metadata(&part).map(|m| m.len()).unwrap_or(0);
+    if let Some(size) = expected_size {
+        if have == size {
+            // Finished earlier but not renamed (e.g. the machine froze); the hash check follows.
+            return fs::rename(&part, dest).map_err(|e| e.to_string());
+        }
+        if have > size {
+            let _ = fs::remove_file(&part);
+            have = 0;
+        }
+    }
     let mut req = ureq::get(url).set("User-Agent", "kinshoko-tagger-probe");
     for (k, v) in extra_headers {
         req = req.set(k, v);
