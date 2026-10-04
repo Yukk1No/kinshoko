@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 256">
+  <!-- exploration lockup: live <text>, to be outlined/custom-drawn later -->
+  <g transform="translate(16 32) scale(0.75)">
+  
+  <rect x="40" y="24" width="176" height="40" rx="6" fill="#000"/>
+  <path d="M84 64 V152 A50 50 0 1 0 184 152 A32 32 0 1 0 120 152 A14 14 0 0 0 148 152" fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt"/>
+</g>
+  <text x="250" y="150" font-family="Georgia, 'Times New Roman', serif" font-size="96" letter-spacing="2" fill="#000">Kinshoko</text>
+  <text x="254" y="204" font-family="'Yu Mincho','Noto Serif JP','MS Mincho',serif" font-size="34" letter-spacing="18" fill="#000">禁書庫</text>
+</svg>

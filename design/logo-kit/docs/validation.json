@@ -1,0 +1,63 @@
+{
+  "svg_parse": 75,
+  "flat_vectors_have_no_font_or_bitmap_dependencies": true,
+  "approved_R6_byte_identical": {
+    "app/svg/icon-dark.svg": "a52ae6218c6e43c1ef453637d15b527b90d0d81515123f49b0f27424093df3e5",
+    "app/svg/icon-light.svg": "78b4cb7e56b876c303193d012c653b3f1ca9ea4416ab45c5c01355d0a35d151f",
+    "app/layers/layer0-dark.svg": "daa350b2608eee4671ac96af4db0822320efc8b66589928d60241c0aa6b87eb1",
+    "app/layers/layer0-light.svg": "a2240acda22dfcba90f3dc4290860f12f7aa74a723b7e0760cc6d936ed74a490",
+    "app/layers/layer1-dark.svg": "32209e768d26912606af23cdbcb8d8a154ac833a4a9f9a34b0a5f6fa3514d9ec",
+    "app/layers/layer1-light.svg": "40807baedc52740f8b271be7e389f5f8b9ea3051e9581e7bb1bb753e9b3f88fd",
+    "app/layers/layer2-dark.svg": "47cbb1b89666c6ce2474cc30276344980192e9a5e9a265722b6b251cce8db0b3",
+    "app/layers/layer2-light.svg": "b5f37f89a2a680da8f04530b974209486243ae917d0557375822b5c7448c4929"
+  },
+  "flat_png_dimensions_checked": 86,
+  "app_png_dimensions_checked": 30,
+  "layer_keyhole_alpha": {
+    "light": {
+      "lower-right": 0,
+      "lower-left": 0,
+      "center": 0
+    },
+    "dark": {
+      "lower-right": 0,
+      "lower-left": 0,
+      "center": 0
+    }
+  },
+  "layer_composite_against_full_R6": {
+    "light": {
+      "#FFFFFF": {
+        "max_channel_mean_absolute_error": 0.1954,
+        "max_channel_error": 38
+      },
+      "#2B2747": {
+        "max_channel_mean_absolute_error": 0.2014,
+        "max_channel_error": 55
+      }
+    },
+    "dark": {
+      "#FFFFFF": {
+        "max_channel_mean_absolute_error": 0.1507,
+        "max_channel_error": 82
+      },
+      "#2B2747": {
+        "max_channel_mean_absolute_error": 0.1489,
+        "max_channel_error": 82
+      }
+    }
+  },
+  "native_small_frames_are_flat_cuts": true,
+  "native_containers_verified": [
+    "favicon.ico",
+    "icon-light.ico",
+    "icon-dark.ico",
+    "icon-light.icns",
+    "icon-dark.icns"
+  ],
+  "favicon_16_frame_is_exact_micro_asset": true,
+  "web_manifest_paths_exist": true,
+  "usage_guide_pages": 1,
+  "usage_guide_text_present": true,
+  "asset_count": 229
+}

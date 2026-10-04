@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- B · 书蝶: a butterfly whose wings are the turning pages of an open book -->
+  <rect x="120" y="60" width="16" height="148" rx="8" fill="#000"/>
+  <g id="w">
+    <path d="M146 72 C172 48 206 40 236 48 L230 66 C204 60 176 66 146 90 Z" fill="#000"/>
+    <path d="M146 104 C170 84 198 76 226 81 L214 126 H146 Z" fill="#000"/>
+    <path d="M146 138 H206 C214 172 198 202 170 212 C156 200 146 182 146 162 Z" fill="#000"/>
+  </g>
+  <use href="#w" transform="translate(256 0) scale(-1 1)"/>
+</svg>

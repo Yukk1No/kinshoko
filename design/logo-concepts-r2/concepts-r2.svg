@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="1786" viewBox="0 0 1600 1786"><defs><filter id="grey"><feColorMatrix type="saturate" values="0"/></filter></defs><rect width="1600" height="1786" fill="#f7f7f4"/><text x="60" y="78" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="40" font-weight="700" fill="#161616">Kinshoko — logo concepts · round 2</text><text x="60" y="116" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="20" fill="#6b6b6b">Greyscale first. Lockup type is placeholder (Segoe UI); C is fully drawn.</text><rect x="60" y="150" width="474.667" height="774" rx="18" fill="#fff" stroke="#161616" stroke-width="2"/><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="90" y="190" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+<path fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 256" x="90" y="514" width="414.667" height="120" preserveAspectRatio="xMidYMid meet">
+<!-- exploration lockup: live text -->
+<g transform="translate(10 28) scale(0.78)"><path fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/></g>
+<text x="276" y="150" font-family="'Segoe UI Variable Display','Segoe UI',Inter,sans-serif" font-weight="600" font-size="100" letter-spacing="-2" fill="#000">Kinshoko</text>
+<text x="282" y="204" font-family="'Yu Gothic UI','Noto Sans JP',sans-serif" font-weight="500" font-size="30" letter-spacing="16" fill="#000">禁書庫</text>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="90" y="660" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+<path fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/>
+</svg>
+</g><text x="122" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="180" y="692" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+<path fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/>
+</svg>
+</g><text x="196" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="238" y="708" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+<path fill-rule="evenodd" d="M82 20 H174 A18 18 0 0 1 192 38 V236 L128 192 L64 236 V38 A18 18 0 0 1 82 20 Z
+ M116 117.8 A26 26 0 1 1 140 117.8 L147 158 H109 Z"/>
+</svg>
+</g><text x="246" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="90.0" y="780" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">A · 禁锁栞 Keyhole Bookmark</text><text x="90.0" y="808" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="700" fill="#161616" letter-spacing="1.5">RECOMMENDED</text><text x="90.0" y="842" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">书签里开一个锁孔：禁书库之门</text><rect x="562.667" y="150" width="474.667" height="774" rx="18" fill="#fff" stroke="#e4e4e0" stroke-width="1"/><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="592.667" y="190" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+<path d="M34 96 Q128 30 222 96" fill="none" stroke="#000" stroke-width="24" stroke-linecap="round"/>
+ <path fill-rule="evenodd" d="M128 68 C176 68 190 120 190 156 C190 202 164 236 128 236 C92 236 66 202 66 156 C66 120 80 68 128 68 Z
+ M104 120 C108.48 143.52 108.48 143.52 132 148 C108.48 152.48 108.48 152.48 104 176 C99.52 152.48 99.52 152.48 76 148 C99.52 143.52 99.52 143.52 104 120 Z
+ M156 200 A11 11 0 1 0 156 200.01 Z"/>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 256" x="592.667" y="514" width="414.667" height="120" preserveAspectRatio="xMidYMid meet">
+<!-- exploration lockup: live text -->
+<g transform="translate(10 28) scale(0.78)"><path d="M34 96 Q128 30 222 96" fill="none" stroke="#000" stroke-width="24" stroke-linecap="round"/>
+ <path fill-rule="evenodd" d="M128 68 C176 68 190 120 190 156 C190 202 164 236 128 236 C92 236 66 202 66 156 C66 120 80 68 128 68 Z
+ M104 120 C108.48 143.52 108.48 143.52 132 148 C108.48 152.48 108.48 152.48 104 176 C99.52 152.48 99.52 152.48 76 148 C99.52 143.52 99.52 143.52 104 120 Z
+ M156 200 A11 11 0 1 0 156 200.01 Z"/></g>
+<text x="276" y="150" font-family="'Segoe UI Variable Display','Segoe UI',Inter,sans-serif" font-weight="600" font-size="100" letter-spacing="-2" fill="#000">Kinshoko</text>
+<text x="282" y="204" font-family="'Yu Gothic UI','Noto Sans JP',sans-serif" font-weight="500" font-size="30" letter-spacing="16" fill="#000">禁書庫</text>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="592.667" y="660" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+<path d="M34 96 Q128 30 222 96" fill="none" stroke="#000" stroke-width="24" stroke-linecap="round"/>
+ <path fill-rule="evenodd" d="M128 68 C176 68 190 120 190 156 C190 202 164 236 128 236 C92 236 66 202 66 156 C66 120 80 68 128 68 Z
+ M104 120 C108.48 143.52 108.48 143.52 132 148 C108.48 152.48 108.48 152.48 104 176 C99.52 152.48 99.52 152.48 76 148 C99.52 143.52 99.52 143.52 104 120 Z
+ M156 200 A11 11 0 1 0 156 200.01 Z"/>
+</svg>
+</g><text x="624.667" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="682.667" y="692" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+<path d="M34 96 Q128 30 222 96" fill="none" stroke="#000" stroke-width="24" stroke-linecap="round"/>
+ <path fill-rule="evenodd" d="M128 68 C176 68 190 120 190 156 C190 202 164 236 128 236 C92 236 66 202 66 156 C66 120 80 68 128 68 Z
+ M104 120 C108.48 143.52 108.48 143.52 132 148 C108.48 152.48 108.48 152.48 104 176 C99.52 152.48 99.52 152.48 76 148 C99.52 143.52 99.52 143.52 104 120 Z
+ M156 200 A11 11 0 1 0 156 200.01 Z"/>
+</svg>
+</g><text x="698.667" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="740.667" y="708" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+<path d="M34 96 Q128 30 222 96" fill="none" stroke="#000" stroke-width="24" stroke-linecap="round"/>
+ <path fill-rule="evenodd" d="M128 68 C176 68 190 120 190 156 C190 202 164 236 128 236 C92 236 66 202 66 156 C66 120 80 68 128 68 Z
+ M104 120 C108.48 143.52 108.48 143.52 132 148 C108.48 152.48 108.48 152.48 104 176 C99.52 152.48 99.52 152.48 76 148 C99.52 143.52 99.52 143.52 104 120 Z
+ M156 200 A11 11 0 1 0 156 200.01 Z"/>
+</svg>
+</g><text x="748.667" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="592.6666666666667" y="780" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">B · 高光 Catchlight</text><text x="592.6666666666667" y="814" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">上睫线＋虹膜高光：看参考的那一眼</text><rect x="1065.33" y="150" width="474.667" height="774" rx="18" fill="#fff" stroke="#e4e4e0" stroke-width="1"/><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="1095.33" y="190" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+<g fill="none" stroke="#000" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M76 40 V216"/><path d="M162 104 L80 168"/><path d="M118 140 L170 216"/></g>
+ <path d="M176 14 C181.12 40.88 181.12 40.88 208 46 C181.12 51.12 181.12 51.12 176 78 C170.88 51.12 170.88 51.12 144 46 C170.88 40.88 170.88 40.88 176 14 Z"/>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 790 256" x="1095.33" y="514" width="414.667" height="120" preserveAspectRatio="xMidYMid meet">
+<g fill="none" stroke="#000" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+<path d="M30 44 V200"/><path d="M96 104 L34 156"/><path d="M62 134 L100 200"/>
+<path d="M132 108 V200"/>
+<path d="M168 200 V108 M168 146 A32 32 0 0 1 232 146 V200"/>
+<path d="M314 120 C306 104 268 98 266 124 C264 148 318 146 318 174 C318 204 274 206 262 186"/>
+<path d="M352 44 V200 M352 146 A32 32 0 0 1 416 146 V200"/>
+<circle cx="490" cy="154" r="46"/>
+<path d="M568 44 V200"/><path d="M634 104 L572 156"/><path d="M600 134 L638 200"/>
+<circle cx="716" cy="154" r="46"/>
+</g>
+<path d="M132 32 C136.16 53.84 136.16 53.84 158 58 C136.16 62.16 136.16 62.16 132 84 C127.84 62.16 127.84 62.16 106 58 C127.84 53.84 127.84 53.84 132 32 Z"/>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="1095.33" y="660" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+<g fill="none" stroke="#000" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M76 40 V216"/><path d="M162 104 L80 168"/><path d="M118 140 L170 216"/></g>
+ <path d="M176 14 C181.12 40.88 181.12 40.88 208 46 C181.12 51.12 181.12 51.12 176 78 C170.88 51.12 170.88 51.12 144 46 C170.88 40.88 170.88 40.88 176 14 Z"/>
+</svg>
+</g><text x="1127.33" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="1185.33" y="692" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+<g fill="none" stroke="#000" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M76 40 V216"/><path d="M162 104 L80 168"/><path d="M118 140 L170 216"/></g>
+ <path d="M176 14 C181.12 40.88 181.12 40.88 208 46 C181.12 51.12 181.12 51.12 176 78 C170.88 51.12 170.88 51.12 144 46 C170.88 40.88 170.88 40.88 176 14 Z"/>
+</svg>
+</g><text x="1201.33" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="1243.33" y="708" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+<g fill="none" stroke="#000" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M76 40 V216"/><path d="M162 104 L80 168"/><path d="M118 140 L170 216"/></g>
+ <path d="M176 14 C181.12 40.88 181.12 40.88 208 46 C181.12 51.12 181.12 51.12 176 78 C170.88 51.12 170.88 51.12 144 46 C170.88 40.88 170.88 40.88 176 14 Z"/>
+</svg>
+</g><text x="1251.33" y="744" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="1095.3333333333335" y="780" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">C · 星点 Sparkle Wordmark</text><text x="1095.3333333333335" y="814" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">圆头单线字标，i 点换成闪光</text><rect x="60" y="952" width="474.667" height="774" rx="18" fill="#fff" stroke="#e4e4e0" stroke-width="1"/><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="90" y="992" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+<path d="M24 108 C68 94 106 100 123 116 V232 C106 218 68 212 24 224 Z M133 116 C150 100 188 94 232 108 V224 C188 212 150 218 133 232 Z"/>
+ <path d="M122 112 C112 70 136 34 186 22 C152 44 136 72 134 112 Z"/>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 256" x="90" y="1316" width="414.667" height="120" preserveAspectRatio="xMidYMid meet">
+<!-- exploration lockup: live text -->
+<g transform="translate(10 28) scale(0.78)"><path d="M24 108 C68 94 106 100 123 116 V232 C106 218 68 212 24 224 Z M133 116 C150 100 188 94 232 108 V224 C188 212 150 218 133 232 Z"/>
+ <path d="M122 112 C112 70 136 34 186 22 C152 44 136 72 134 112 Z"/></g>
+<text x="276" y="150" font-family="'Segoe UI Variable Display','Segoe UI',Inter,sans-serif" font-weight="600" font-size="100" letter-spacing="-2" fill="#000">Kinshoko</text>
+<text x="282" y="204" font-family="'Yu Gothic UI','Noto Sans JP',sans-serif" font-weight="500" font-size="30" letter-spacing="16" fill="#000">禁書庫</text>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="90" y="1462" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+<path d="M24 108 C68 94 106 100 123 116 V232 C106 218 68 212 24 224 Z M133 116 C150 100 188 94 232 108 V224 C188 212 150 218 133 232 Z"/>
+ <path d="M122 112 C112 70 136 34 186 22 C152 44 136 72 134 112 Z"/>
+</svg>
+</g><text x="122" y="1546" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="180" y="1494" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+<path d="M24 108 C68 94 106 100 123 116 V232 C106 218 68 212 24 224 Z M133 116 C150 100 188 94 232 108 V224 C188 212 150 218 133 232 Z"/>
+ <path d="M122 112 C112 70 136 34 186 22 C152 44 136 72 134 112 Z"/>
+</svg>
+</g><text x="196" y="1546" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="238" y="1510" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+<path d="M24 108 C68 94 106 100 123 116 V232 C106 218 68 212 24 224 Z M133 116 C150 100 188 94 232 108 V224 C188 212 150 218 133 232 Z"/>
+ <path d="M122 112 C112 70 136 34 186 22 C152 44 136 72 134 112 Z"/>
+</svg>
+</g><text x="246" y="1546" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="90.0" y="1582" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">D · 呆毛 Ahoge Book</text><text x="90.0" y="1616" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">翻开的书中缝冒出一根呆毛</text><rect x="562.667" y="952" width="474.667" height="774" rx="18" fill="#fff" stroke="#e4e4e0" stroke-width="1"/><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="592.667" y="992" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+<path fill-rule="evenodd" d="M128 12 A116 116 0 1 1 127.99 12 Z M128 30 A98 98 0 1 0 128.01 30 Z"/>
+ <path d="M66 66 H102 V84 H84 V102 H66 Z M190 66 H154 V84 H172 V102 H190 Z M66 190 H102 V172 H84 V154 H66 Z M190 190 H154 V172 H172 V154 H190 Z"/><path d="M128 84 C135.04 120.96 135.04 120.96 172 128 C135.04 135.04 135.04 135.04 128 172 C120.96 135.04 120.96 135.04 84 128 C120.96 120.96 120.96 120.96 128 84 Z"/>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 256" x="592.667" y="1316" width="414.667" height="120" preserveAspectRatio="xMidYMid meet">
+<!-- exploration lockup: live text -->
+<g transform="translate(10 28) scale(0.78)"><path fill-rule="evenodd" d="M128 12 A116 116 0 1 1 127.99 12 Z M128 30 A98 98 0 1 0 128.01 30 Z"/>
+ <path d="M66 66 H102 V84 H84 V102 H66 Z M190 66 H154 V84 H172 V102 H190 Z M66 190 H102 V172 H84 V154 H66 Z M190 190 H154 V172 H172 V154 H190 Z"/><path d="M128 84 C135.04 120.96 135.04 120.96 172 128 C135.04 135.04 135.04 135.04 128 172 C120.96 135.04 120.96 135.04 84 128 C120.96 120.96 120.96 120.96 128 84 Z"/></g>
+<text x="276" y="150" font-family="'Segoe UI Variable Display','Segoe UI',Inter,sans-serif" font-weight="600" font-size="100" letter-spacing="-2" fill="#000">Kinshoko</text>
+<text x="282" y="204" font-family="'Yu Gothic UI','Noto Sans JP',sans-serif" font-weight="500" font-size="30" letter-spacing="16" fill="#000">禁書庫</text>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="592.667" y="1462" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+<path fill-rule="evenodd" d="M128 12 A116 116 0 1 1 127.99 12 Z M128 30 A98 98 0 1 0 128.01 30 Z"/>
+ <path d="M66 66 H102 V84 H84 V102 H66 Z M190 66 H154 V84 H172 V102 H190 Z M66 190 H102 V172 H84 V154 H66 Z M190 190 H154 V172 H172 V154 H190 Z"/><path d="M128 84 C135.04 120.96 135.04 120.96 172 128 C135.04 135.04 135.04 135.04 128 172 C120.96 135.04 120.96 135.04 84 128 C120.96 120.96 120.96 120.96 128 84 Z"/>
+</svg>
+</g><text x="624.667" y="1546" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="682.667" y="1494" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+<path fill-rule="evenodd" d="M128 12 A116 116 0 1 1 127.99 12 Z M128 30 A98 98 0 1 0 128.01 30 Z"/>
+ <path d="M66 66 H102 V84 H84 V102 H66 Z M190 66 H154 V84 H172 V102 H190 Z M66 190 H102 V172 H84 V154 H66 Z M190 190 H154 V172 H172 V154 H190 Z"/><path d="M128 84 C135.04 120.96 135.04 120.96 172 128 C135.04 135.04 135.04 135.04 128 172 C120.96 135.04 120.96 135.04 84 128 C120.96 120.96 120.96 120.96 128 84 Z"/>
+</svg>
+</g><text x="698.667" y="1546" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="740.667" y="1510" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+<path fill-rule="evenodd" d="M128 12 A116 116 0 1 1 127.99 12 Z M128 30 A98 98 0 1 0 128.01 30 Z"/>
+ <path d="M66 66 H102 V84 H84 V102 H66 Z M190 66 H154 V84 H172 V102 H190 Z M66 190 H102 V172 H84 V154 H66 Z M190 190 H154 V172 H172 V154 H190 Z"/><path d="M128 84 C135.04 120.96 135.04 120.96 172 128 C135.04 135.04 135.04 135.04 128 172 C120.96 135.04 120.96 135.04 84 128 C120.96 120.96 120.96 120.96 128 84 Z"/>
+</svg>
+</g><text x="748.667" y="1546" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="592.6666666666667" y="1582" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">E · 取景阵 Spell-frame</text><text x="592.6666666666667" y="1616" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">魔法阵外环＋取景框：框出局部</text></svg>

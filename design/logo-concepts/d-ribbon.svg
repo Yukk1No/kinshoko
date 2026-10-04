@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- D · 卷栞: a closed book with its bookmark ribbon curling into a drill -->
+  <rect x="40" y="24" width="176" height="40" rx="6" fill="#000"/>
+  <path d="M84 64 V152 A50 50 0 1 0 184 152 A32 32 0 1 0 120 152 A14 14 0 0 0 148 152" fill="none" stroke="#000" stroke-width="24" stroke-linecap="butt"/>
+</svg>

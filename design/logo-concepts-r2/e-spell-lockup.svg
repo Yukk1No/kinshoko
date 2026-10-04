@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 256">
+<!-- exploration lockup: live text -->
+<g transform="translate(10 28) scale(0.78)"><path fill-rule="evenodd" d="M128 12 A116 116 0 1 1 127.99 12 Z M128 30 A98 98 0 1 0 128.01 30 Z"/>
+ <path d="M66 66 H102 V84 H84 V102 H66 Z M190 66 H154 V84 H172 V102 H190 Z M66 190 H102 V172 H84 V154 H66 Z M190 190 H154 V172 H172 V154 H190 Z"/><path d="M128 84 C135.04 120.96 135.04 120.96 172 128 C135.04 135.04 135.04 135.04 128 172 C120.96 135.04 120.96 135.04 84 128 C120.96 120.96 120.96 120.96 128 84 Z"/></g>
+<text x="276" y="150" font-family="'Segoe UI Variable Display','Segoe UI',Inter,sans-serif" font-weight="600" font-size="100" letter-spacing="-2" fill="#000">Kinshoko</text>
+<text x="282" y="204" font-family="'Yu Gothic UI','Noto Sans JP',sans-serif" font-weight="500" font-size="30" letter-spacing="16" fill="#000">禁書庫</text>
+</svg>
