@@ -1,0 +1,201 @@
+{
+ "version": 1,
+ "samples": [
+  {
+   "id": "pixiv-142765835-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "142765835",
+    "page": 0
+   },
+   "sha256": "e22c28ad7222ca5ba795b66ceef48fe22de15b17876bf599e1e81fb1fbcbe1f3",
+   "split": "evaluation",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-146635855-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "146635855",
+    "page": 0
+   },
+   "sha256": "87ebd318529ea275d44219f6ba25ea7f9e877bdec7e2e9a26cd21f7191c43870",
+   "split": "evaluation",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-146794587-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "146794587",
+    "page": 0
+   },
+   "sha256": "9534834f1bc62bfb320b8f83e2d5f9c71e38f07fdae29565cead38c9eadffe51",
+   "split": "evaluation",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-147700561-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147700561",
+    "page": 0
+   },
+   "sha256": "9b9a70e773b96dacf08a7d0d04957402ea9451c825f63d5af7812865478a738d",
+   "split": "calibration",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-147702607-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "147702607",
+    "page": 0
+   },
+   "sha256": "d9097af08db62ee780c19f9179ab2207661d23ac76c17e4eab1030245a4ed031",
+   "split": "evaluation",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-148019241-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148019241",
+    "page": 0
+   },
+   "sha256": "02690d84c4c7acf5582cfb943871a9268426fa654b84450e240445a0d28b5fe3",
+   "split": "evaluation",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-148840214-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "148840214",
+    "page": 0
+   },
+   "sha256": "a2747d2bb030b396d10174f705bc60124bf9170713cafbb0daa19e0b9df7e3b8",
+   "split": "evaluation",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-149347683-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149347683",
+    "page": 0
+   },
+   "sha256": "8d558441405390c59898efddf43799638f8f474e2f508340565e56c7ed1482b9",
+   "split": "evaluation",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-149765927-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149765927",
+    "page": 0
+   },
+   "sha256": "492d128c4f50e60e496c32d24b3cd025c4e0e0d4def4d773872c7f0f637ae42b",
+   "split": "calibration",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-149799651-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149799651",
+    "page": 0
+   },
+   "sha256": "c738d754e4ff51e42c533b8d47da78f773a77fbeea5a5b1db36fdcf464701cba",
+   "split": "calibration",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-149862215-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149862215",
+    "page": 0
+   },
+   "sha256": "74c6c20234fc9228a6f05a456ad15609b42d27b3a068b0031e65c0caf221d10d",
+   "split": "evaluation",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-149888912-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149888912",
+    "page": 0
+   },
+   "sha256": "3aabac3c582ea315782db558c28746010723c17e6d170750ee562da82380f6eb",
+   "split": "calibration",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-149947829-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149947829",
+    "page": 0
+   },
+   "sha256": "806d2b11539d603db09c9657b1661ab0dce751556e924a0f92be868bb8a10623",
+   "split": "evaluation",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  },
+  {
+   "id": "pixiv-149947920-p0",
+   "source": {
+    "kind": "pixiv",
+    "artworkId": "149947920",
+    "page": 0
+   },
+   "sha256": "194f20d8bd336f94006ce443d2f016c97bea0d92a2910c970ca6cf7144e21cd6",
+   "split": "evaluation",
+   "coverage": [
+    "r18"
+   ],
+   "rating": "r18"
+  }
+ ]
+}

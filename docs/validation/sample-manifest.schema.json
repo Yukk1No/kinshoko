@@ -71,14 +71,8 @@
           "enum": ["general", "r18"],
           "description": "来源声明的分级，例如 pixiv R-18 标记。"
         },
-        "ratingDetail": {
-          "enum": ["questionable", "explicit"],
-          "description": "仅 R-18 样本填写，由下载者标注。"
-        },
         "notes": { "type": "string" }
-      },
-      "if": { "properties": { "rating": { "const": "r18" } } },
-      "then": { "required": ["ratingDetail"] }
+      }
     }
   }
 }
