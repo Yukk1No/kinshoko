@@ -93,7 +93,15 @@ kbd { font: 11px/1 var(--font); padding: 2px 5px; border: 1px solid var(--line-2
 .rail-btn:hover { background: var(--hover); color: var(--ink); }
 .rail-btn:hover svg { transform: translateY(-1px); }
 .rail-btn.is-active { color: var(--ink); background: var(--accent-soft); }
-.rail-btn.safe.is-on { color: var(--accent-strong); }
+/* the seal book (#27): sealed = accent on the lock only; deeper day pink for >= 3:1 on every rail background */
+.seal-book { --bb: var(--rail); --seal-cut: var(--bb); background: var(--bb); }
+.seal-book:hover { --bb: color-mix(in srgb, var(--ink) 7%, var(--rail)); background: var(--bb); }
+.seal-book:active { --bb: color-mix(in srgb, var(--ink) 12%, var(--rail)); }
+.seal-book.is-sealed { --bb: color-mix(in srgb, var(--seal-acc) 14%, var(--rail)); }
+.seal-book.is-sealed:hover { --bb: color-mix(in srgb, var(--seal-acc) 20%, var(--rail)); }
+.seal-book.is-sealed:active { --bb: color-mix(in srgb, var(--ink) 12%, var(--rail)); }
+.seal-book:hover svg { transform: none; }
+.seal-book:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .rail-badge { position: absolute; top: 3px; right: 2px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 10px; line-height: 15px; }
 .rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
 .tip { position: absolute; left: calc(100% + 10px); top: 50%; transform: translate(-4px, -50%); white-space: nowrap; background: var(--ink); color: var(--bg); padding: 5px 9px; border-radius: 7px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity var(--t-fast), transform var(--t-fast) var(--ease); z-index: 20; }
@@ -401,3 +409,22 @@ textarea:focus { outline: 0; border-color: var(--accent); }
   .viewer-bar .tool span, .ground-pick { display: none; }
   .lib-btn .muted { display: none; }
 }
+
+/* ------------------------------------------------------------ seal and release (#27) */
+:root { --seal-acc: #C85672; --seal-ink: var(--ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seal-acc: #E3B34F; } }
+:root[data-theme="dark"] { --seal-acc: #E3B34F; }
+/* Ghosts fly above the wall, the viewer and the rail, below the simulated desktop pins. */
+.fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 38; overflow: hidden; }
+.fx-ghost { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; border-radius: 6px; overflow: hidden; background: var(--card); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18); will-change: transform, opacity; }
+.fx-ghost img { width: 100%; height: 100%; display: block; object-fit: contain; }
+.fx-wash { position: absolute; inset: 0; background: #2B2747; opacity: 0; }
+.fx-burst { position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--seal-acc); box-shadow: 0 0 24px var(--seal-acc); opacity: 0; }
+.card.is-arriving { visibility: hidden; }
+/* Pins and group members: blur in place; the lock pops and the blur dissolves where it is (Q98, Q107). */
+.seal-veil { animation: veil-in 180ms var(--ease); }
+.seal-veil.is-leaving { opacity: 0; transition: opacity 400ms var(--ease) 60ms; }
+.seal-veil svg { overflow: visible; }
+@keyframes veil-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .seal-veil, .seal-veil.is-leaving { animation: none; transition: none; } }
+:root[data-reduced-motion] .seal-veil, :root[data-reduced-motion] .seal-veil.is-leaving { animation: none; transition: none; }

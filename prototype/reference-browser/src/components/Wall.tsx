@@ -3,7 +3,18 @@ import { EyeOff, ImageOff } from 'lucide-react';
 import type { ReferenceImage } from '../model';
 import { captureAnchor, masonry, neighbour, resolveAnchor, visible, type Anchor } from '../layout';
 
-export type WallHandle = { reveal: (id: string, focus?: boolean) => void; focusCurrent: () => void };
+export type WallHandle = {
+  reveal: (id: string, focus?: boolean) => void;
+  focusCurrent: () => void;
+  /** Call before the result set changes: the next layout moves every card on screen from where it is now (#13 reflow feedback). */
+  prepareReflow: (motion: { delay: number; duration: number }) => Map<string, DOMRect>;
+  /** Screen rect of a mounted card, or null. */
+  rectOf: (id: string) => DOMRect | null;
+  viewportRect: () => DOMRect | null;
+  /** Ids of mounted cards whose box intersects the visible part of the wall. */
+  onScreen: () => string[];
+  finishReflow: () => void;
+};
 export type WallStats = { columns: number; mounted: number; total: number };
 
 type Props = {
@@ -21,6 +32,8 @@ type Props = {
   onStats?: (stats: WallStats) => void;
   empty: React.ReactNode;
   inert?: boolean;
+  /** Cards that a released ghost is still flying to: kept in place but not drawn until it lands. */
+  arriving?: Set<string>;
 };
 
 const GAP = 8, PAD = 12, OVERSCAN = 700, TITLE = 26;
@@ -31,6 +44,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
   const [viewport, setViewport] = useState({ top: 0, height: 800 });
   const [focusId, setFocusId] = useState<string | null>(null);
   const anchor = useRef<Anchor | null>(null);
+  const reflow = useRef<{ before: Map<string, DOMRect>; delay: number; duration: number } | null>(null);
+  const cardEl = (id: string) => scroller.current?.querySelector<HTMLElement>(`[data-id="${CSS.escape(id)}"]`) ?? null;
   const ids = useMemo(() => p.images.map((i) => i.id), [p.images]);
   const titleH = p.showTitles ? TITLE : 0;
   const boxes = useMemo(() => masonry(p.images, {
@@ -64,6 +79,23 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
       if (top !== null && Math.abs(el.scrollTop - top) > 0.5) el.scrollTop = top;
     }
     setViewport({ top: el.scrollTop, height: el.clientHeight });
+    // FLIP: every card that was on screen glides from its old screen position to its new box.
+    // Starting from the measured rect (not the old box) keeps a reflow that interrupts another continuous.
+    const r = reflow.current;
+    if (r) {
+      reflow.current = null;
+      const view = el.getBoundingClientRect();
+      for (const card of el.querySelectorAll<HTMLElement>('.card[data-id]')) {
+        const before = r.before.get(card.dataset.id!);
+        const i = ids.indexOf(card.dataset.id!);
+        if (!before || i < 0) continue;
+        const b = boxes.boxes[i];
+        const fromX = before.left - view.left, fromY = before.top - view.top + el.scrollTop;
+        if (Math.abs(fromX - b.x) < 0.5 && Math.abs(fromY - b.y) < 0.5) continue;
+        card.animate([{ transform: `translate(${fromX}px, ${fromY}px)` }, { transform: `translate(${b.x}px, ${b.y}px)` }],
+          { duration: r.duration, delay: r.delay, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'backwards' });
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boxes]);
 
@@ -97,11 +129,29 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
 
   useImperativeHandle(ref, () => ({
     reveal,
+    prepareReflow: (motion) => {
+      const before = new Map<string, DOMRect>();
+      const cards = scroller.current?.querySelectorAll<HTMLElement>('.card[data-id]') ?? [];
+      // Read every rect (mid-animation positions included) before cancelling any animation.
+      for (const card of cards) before.set(card.dataset.id!, card.getBoundingClientRect());
+      for (const card of cards) card.getAnimations().forEach((a) => a.cancel());
+      reflow.current = { before, ...motion };
+      return before;
+    },
+    rectOf: (id) => cardEl(id)?.getBoundingClientRect() ?? null,
+    viewportRect: () => scroller.current?.getBoundingClientRect() ?? null,
+    onScreen: () => {
+      const el = scroller.current;
+      if (!el) return [];
+      const top = el.scrollTop, bottom = top + el.clientHeight;
+      return rendered.filter((i) => boxes.boxes[i].y < bottom && boxes.boxes[i].y + boxes.boxes[i].h > top).map((i) => ids[i]);
+    },
+    finishReflow: () => scroller.current?.querySelectorAll<HTMLElement>('.card[data-id]').forEach((c) => c.getAnimations().forEach((a) => a.finish())),
     focusCurrent: () => {
       const id = tabIndexId;
       if (id) scroller.current?.querySelector<HTMLElement>(`[data-id="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
     },
-  }), [reveal, tabIndexId]);
+  }), [reveal, tabIndexId, rendered, boxes, ids]);
 
   const onKeyDown = (event: React.KeyboardEvent, index: number) => {
     const image = p.images[index];
@@ -132,7 +182,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
         const b = boxes.boxes[index];
         const hidden = p.isHidden(image);
         return <button key={image.id} role="listitem" data-id={image.id}
-          className={`card${focusId === image.id ? ' is-current' : ''}`}
+          className={`card${focusId === image.id ? ' is-current' : ''}${p.arriving?.has(image.id) ? ' is-arriving' : ''}`}
           style={{ transform: `translate(${b.x}px, ${b.y}px)`, width: b.w, height: b.h }}
           tabIndex={image.id === tabIndexId ? 0 : -1}
           aria-label={`${hidden ? '安全模式已遮挡 · ' : ''}${image.title}，${image.w}×${image.h}`}

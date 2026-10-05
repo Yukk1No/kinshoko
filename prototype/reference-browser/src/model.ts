@@ -8,7 +8,7 @@ export type TagDef = { key: TagKey; ns: Namespace; name: string; group: string |
 
 export type Rating = 'general' | 'sensitive' | 'questionable' | 'explicit';
 export const RATING_LABEL: Record<Rating, string> = { general: '全年龄', sensitive: '敏感', questionable: '成人（轻度）', explicit: '成人' };
-/** Safe mode blurs questionable and explicit and keeps their place in the wall. */
+/** Safe mode seals questionable and explicit out of the wall and search, and blurs them in groups and pins (Q97, Q98). */
 export const isAdult = (rating: Rating) => rating === 'questionable' || rating === 'explicit';
 
 export type SourceTag = { tag: TagKey; from: string };
