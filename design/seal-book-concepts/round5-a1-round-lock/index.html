@@ -622,6 +622,9 @@ const GRADS = [
 const KINDS = 'nsnrsnnsnsrn'.split('');
 const T = 92, GAP = 10, OX = 72, OY = 12, H = 320, BTN = { x: 28, y: H - 28 - 44 };
 const slot = i => ({ x: OX + (i % 4) * (T + GAP), y: OY + Math.floor(i / 4) * (T + GAP) });
+// pinned / reference-group tiles keep their own slot (blur in place, never move); other tiles reflow around them
+const slotIndex = sealed => { const free = KINDS.map((k, i) => i).filter(i => KINDS[i] !== 'r'); let j = 0;
+  return KINDS.map((k, i) => k === 'r' ? i : (sealed && k === 's') ? null : free[j++]); };
 class Tw {
   constructor() { this.m = new Map(); }
   get(k, t, d) { const w = this.m.get(k); return w ? w(t) : d; }
@@ -660,8 +663,8 @@ class Wall {
     this.tw.set('burst', t, 0); this.pulseAt = -1;
   }
   layout(t, instant, delay = 0, dur = 650) {
-    let j = 0;
-    this.tiles.forEach((el, i) => { if (this.sealed && KINDS[i] === 's') return; const s = slot(j++);
+    const idx = slotIndex(this.sealed);
+    this.tiles.forEach((el, i) => { if (idx[i] === null) return; const s = slot(idx[i]);
       if (instant) { this.tw.set(i + 'x', t, s.x); this.tw.set(i + 'y', t, s.y); }
       else { this.tw.to(i + 'x', t, s.x, delay, dur, E.inOutC, s.x); this.tw.to(i + 'y', t, s.y, delay, dur, E.inOutC, s.y); } });
   }
@@ -671,7 +674,8 @@ class Wall {
     if (sealed) {
       this.tiles.forEach((el, i) => { const kind = KINDS[i];
         if (kind === 's') {
-          if (R) { tw.set(i + 'op', t, 0); tw.set(i + 'x', t, BTN.x - T / 2); tw.set(i + 'y', t, BTN.y - T / 2); return; }
+          if (R) { tw.set(i + 'op', t, 0); tw.set(i + 'x', t, BTN.x - T / 2); tw.set(i + 'y', t, BTN.y - T / 2);
+            tw.set(i + 's', t, .1); tw.set(i + 'rot', t, 0); tw.set(i + 'blur', t, 14); tw.set(i + 'wash', t, .92); return; }
           tw.to(i + 'blur', t, 14, 0, 240, E.outC); tw.to(i + 'wash', t, .92, 0, 220, E.outC); tw.to(i + 's', t, .94, 0, 220, E.outC);
           const d = 260 + k * 30; k++;
           tw.to(i + 'x', t, BTN.x - T / 2, d, 520, E.inC); tw.to(i + 'y', t, BTN.y - T / 2, d, 520, E.inC);
@@ -709,7 +713,14 @@ class Wall {
       if (!R) { tw.set('burst', t, 0); tw.to('burst', t, 1, 120, 620, E.outC); }
     }
   }
-  _slotOf(i) { let j = 0; for (let q = 0; q < i; q++) if (!(this.sealed && KINDS[q] === 's')) j++; return slot(j); }
+  _slotOf(i) { return slot(slotIndex(this.sealed)[i]); }
+  // reduced motion switched on mid-animation: jump every tween to the current target state
+  settle(t) {
+    this.toggle(this.sealed, t);
+    this.tiles.forEach((el, i) => { if (KINDS[i] === 's') this.tw.set(i + 'op', t, this.sealed ? 0 : 1);
+      if (KINDS[i] === 'r') this.tw.set(i + 'crack', t, 0); });
+    this.tw.set('burst', t, 0); this.pulseAt = -1;
+  }
   render(t) {
     const tw = this.tw;
     this.tiles.forEach((el, i) => {
@@ -753,7 +764,8 @@ document.querySelectorAll('[data-snap]').forEach(h => {
 document.querySelectorAll('.rb.live, .bigbtn').forEach(b => bindButton(b));
 document.getElementById('all').addEventListener('click', () => { document.querySelectorAll('.rb.live, .bigbtn').forEach(b => b.click()); liveWall.btn.click(); });
 document.getElementById('slow').addEventListener('change', e => SLOW = e.target.checked ? 5 : 1);
-document.getElementById('rm').addEventListener('change', e => REDUCED = e.target.checked);
+document.getElementById('rm').addEventListener('change', e => { REDUCED = e.target.checked;
+  if (REDUCED) { ctls.forEach(c => c.set(c.sealed, CLOCK)); liveWall.settle(CLOCK); } });
 document.getElementById('old').addEventListener('change', e => document.body.classList.toggle('old', e.target.checked));
 let last = performance.now();
 function loop(now) { CLOCK += (now - last) / SLOW; last = now; ctls.forEach(c => c.draw(CLOCK)); liveWall.render(CLOCK); requestAnimationFrame(loop); }
