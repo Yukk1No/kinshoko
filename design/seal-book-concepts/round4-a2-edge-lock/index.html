@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>封印书 · 书口小挂锁</title>
+<style>
+  :root {
+    --page: #E9E4DE; --text: #2B2747; --muted: #6B6680; --line: #D8D0C2; --card: #F5F0E6;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text);
+    font: 13px/1.6 "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif; }
+  .wrap { width: 1680px; padding: 36px 40px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .02em; }
+  h2 { font-size: 16px; margin: 0 0 4px; }
+  h3 { font-size: 13px; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin: 0 0 14px; }
+  .tools { display: flex; gap: 10px; margin-bottom: 26px; position: sticky; top: 0; z-index: 5; padding: 8px 0; background: var(--page); }
+  .tools button, .tools label { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 4px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  section { margin-bottom: 30px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+  .sec-head p { margin: 0; color: var(--muted); font-size: 12px; }
+  .panel { background: var(--card); border-radius: 14px; padding: 16px 18px; }
+  .lab { font-size: 11px; color: var(--lab, #8A8499); text-align: center; line-height: 1.4; }
+
+  .day   { --ink: #2B2747; --acc: #E0768F; --bg: #F7F3EA; --cut: var(--bg); --grid: rgba(43,39,71,.10); --lab: #8A8499;
+           --hov: #ECE5D8; --prs: #E2DACB; --sealbg: #F7E3E3; --sealhov: #F2D5D7; --focus: #2B2747; }
+  .night { --ink: #F4ECDC; --acc: #E3B34F; --bg: #1E1B2E; --cut: var(--bg); --grid: rgba(244,236,220,.10); --lab: #8C87A3;
+           --hov: #2A2640; --prs: #332F4B; --sealbg: #2F2A2E; --sealhov: #3A3333; --focus: #F4ECDC; }
+  body.deep .day { --acc: #C85672; }
+  .day, .night { background: var(--bg); color: var(--ink); }
+
+  svg.ic { display: block; overflow: visible; }
+
+  /* §1 master */
+  .master { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .mcard { border-radius: 14px; padding: 16px; display: flex; gap: 18px; align-items: flex-start; }
+  .mcard figure, .pcard figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .construct { position: relative; width: 240px; height: 240px; }
+  .construct svg { position: absolute; inset: 0; }
+  .zoom { display: block; image-rendering: pixelated; border-radius: 4px; }
+  .mspec { font-size: 12px; color: var(--lab); max-width: 250px; }
+  .mspec p { margin: 0 0 6px; }
+  .mspec b { color: var(--ink); font-weight: 600; }
+
+  /* §2 sizes */
+  .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .scard { border-radius: 14px; padding: 14px 16px; }
+  .srow { display: grid; grid-template-columns: 54px 52px 52px auto; align-items: center; gap: 14px; padding: 8px 0;
+          border-top: 1px solid var(--grid); }
+  .srow:first-of-type { border-top: 0; }
+  .srow .sz { font-size: 12px; color: var(--lab); }
+  .srow .one { display: grid; place-items: center; height: 40px; }
+  .srow .zooms { display: flex; gap: 10px; align-items: flex-end; }
+  .srow .zooms figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+
+  /* §2b position */
+  .pos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pcard { border-radius: 14px; padding: 14px 16px; }
+  .prow { display: grid; grid-template-columns: 92px 1fr; gap: 14px; align-items: center; padding: 8px 0; border-top: 1px solid var(--grid); }
+  .prow:first-of-type { border-top: 0; }
+  .prow .rl { font-size: 12px; color: var(--lab); }
+  .prow .rl b { display: block; color: var(--ink); font-weight: 600; }
+  .prow .items { display: flex; gap: 14px; align-items: center; }
+  .prow .ones { display: flex; gap: 12px; align-items: center; height: 40px; }
+
+  /* §3 button */
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .bcard { border-radius: 14px; padding: 16px 18px; display: flex; gap: 28px; align-items: flex-start; }
+  .rail { width: 56px; padding: 8px; border-radius: 14px; display: flex; flex-direction: column;
+          align-items: center; gap: 4px; background: var(--rail, color-mix(in srgb, var(--ink) 4%, var(--bg)));
+          outline: 1px solid var(--grid); }
+  .rail .sp { flex: 1; }
+  .rail .ph { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; opacity: .62; }
+  .rail .ph.cur { opacity: 1; background: color-mix(in srgb, var(--ink) 8%, var(--rail, var(--bg))); }
+  .rb { --bb: var(--rail, var(--bg)); --cut: var(--bb); width: 40px; height: 40px; border-radius: 10px; border: 0; padding: 0;
+        cursor: pointer; background: var(--bb); display: grid; place-items: center; position: relative;
+        transition: background-color 120ms; -webkit-tap-highlight-color: transparent; }
+  .rb svg { transition: transform 140ms cubic-bezier(.2,.8,.2,1); }
+  .rb[aria-pressed="true"] { --bb: var(--sealbg); }
+  .rb:hover, .rb.h { --bb: var(--hov); }
+  .rb[aria-pressed="true"]:hover, .rb[aria-pressed="true"].h { --bb: var(--sealhov); }
+  .rb:active, .rb.a { --bb: var(--prs); }
+  .rb[aria-pressed="true"]:active, .rb[aria-pressed="true"].a { --bb: color-mix(in srgb, var(--acc) 30%, var(--bg)); }
+  .rb:active svg, .rb.a svg { transform: scale(.9); }
+  .rb:focus { outline: none; }
+  .rb:focus-visible, .rb.f { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .matrix { display: grid; grid-template-columns: 60px repeat(5, 64px); gap: 10px 6px; align-items: center; }
+  .matrix .hd { font-size: 11px; color: var(--lab); text-align: center; }
+  .matrix .rl { font-size: 11px; color: var(--lab); }
+  .matrix .cell { display: grid; place-items: center; height: 52px; border-radius: 10px; background: var(--rail); }
+  .tip { position: absolute; left: 50px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 12px;
+         padding: 4px 9px; border-radius: 7px; background: var(--ink); color: var(--bg); pointer-events: none; z-index: 2; }
+  .spec { font-size: 12px; color: var(--lab); }
+  .spec p { margin: 0 0 6px; }
+  .spec code { font-family: Consolas, monospace; font-size: 11.5px; color: var(--ink); }
+
+  /* §3b contrast */
+  .contrast { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .ccard { border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+  table.ct { border-collapse: collapse; font-size: 12px; white-space: nowrap; flex: none; }
+  table.ct th, table.ct td { padding: 5px 10px; text-align: left; border-top: 1px solid var(--grid); }
+  table.ct th { color: var(--lab); font-weight: 400; border-top: 0; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; outline: 1px solid var(--grid); }
+  .ok { color: #2F8A5B; font-weight: 600; } .bad { color: #C0392B; font-weight: 600; }
+  .night .ok { color: #7BD4A2; } .night .bad { color: #FF8A7A; }
+  .tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; border: 1px dashed currentColor; margin-left: 4px; }
+
+  /* §4 motion */
+  .motion { display: grid; grid-template-columns: 360px 1fr; gap: 14px; }
+  .livebox { border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .livebox .row { display: flex; gap: 18px; align-items: center; }
+  .bigbtn { width: 120px; height: 120px; border-radius: 26px; border: 0; padding: 0; cursor: pointer; display: grid; place-items: center;
+            --bb: color-mix(in srgb, var(--ink) 4%, var(--bg)); --cut: var(--bb); background: var(--bb); }
+  .bigbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .strip { border-radius: 14px; padding: 12px 14px; }
+  .strip .frames { display: flex; gap: 6px; }
+  .strip figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .strip .fr { width: 76px; height: 76px; border-radius: 10px; display: grid; place-items: center;
+               background: color-mix(in srgb, var(--ink) 4%, var(--bg)); --cut: color-mix(in srgb, var(--ink) 4%, var(--bg)); }
+  .strip .fr.clk { outline: 1.5px dashed var(--grid); }
+  .timeline { position: relative; margin-top: 10px; font-size: 11px; color: var(--lab); }
+  .tl-row { display: grid; grid-template-columns: 92px 1fr; align-items: center; height: 18px; }
+  .tl-track { position: relative; height: 8px; background: var(--grid); border-radius: 4px; }
+  .tl-bar { position: absolute; top: 0; height: 8px; border-radius: 4px; background: var(--acc); }
+  .tl-bar.ink { background: var(--ink); opacity: .75; }
+  .tl-axis { display: grid; grid-template-columns: 92px 1fr; margin-top: 2px; }
+  .tl-axis div:last-child { display: flex; justify-content: space-between; }
+
+  /* §5 wall */
+  .wallsec { display: grid; grid-template-columns: 560px 1fr; gap: 14px; }
+  .stage { position: relative; width: 488px; height: 320px; }
+  .stage .rail { position: absolute; left: 0; top: 0; height: 320px; }
+  .tile { position: absolute; left: 0; top: 0; width: 92px; height: 92px; border-radius: 9px; overflow: hidden;
+          transform-origin: 46px 46px; will-change: transform, filter; }
+  .tile .art { position: absolute; inset: -8px; }
+  .tile .wash { position: absolute; inset: 0; opacity: 0; }
+  .tile .chip { position: absolute; left: 6px; bottom: 6px; font-size: 10px; line-height: 1; padding: 3px 5px; border-radius: 5px;
+                background: rgba(247,243,234,.88); color: #2B2747; }
+  .tile .mark { position: absolute; right: 6px; top: 6px; width: 24px; height: 24px; overflow: visible; }
+  .burst { position: absolute; width: 40px; height: 40px; border-radius: 50%; pointer-events: none; opacity: 0;
+           border: 2px solid var(--acc); }
+  .wcard { border-radius: 14px; padding: 16px; }
+  .wcard .ctl { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+  .wcard .ctl button { font: inherit; color: var(--ink); background: color-mix(in srgb, var(--ink) 6%, var(--bg)); border: 1px solid var(--grid);
+                       border-radius: 8px; padding: 3px 12px; cursor: pointer; }
+  .snaps { display: flex; flex-direction: column; gap: 10px; }
+  .snaprow { display: grid; grid-template-columns: 110px repeat(5, 1fr); gap: 8px; align-items: start; }
+  .snaprow .rl { font-size: 12px; color: var(--lab); padding-top: 6px; }
+  .snaprow .rl b { color: var(--ink); display: block; font-weight: 600; }
+  .mini .holder { width: 166px; height: 109px; overflow: hidden; border-radius: 8px; background: var(--bg); outline: 1px solid var(--grid); }
+  .mini .stage { zoom: .34; }
+  .wnotes { font-size: 12px; color: var(--lab); margin-top: 10px; }
+  .wnotes p { margin: 0 0 4px; }
+  .wnotes b { color: var(--ink); }
+
+  /* §6 notes */
+  .notes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .notes ul { margin: 0; padding-left: 18px; color: #4A4560; font-size: 12.5px; }
+  .notes li { margin-bottom: 5px; }
+
+  body.frames-only section:not(.keep), body.frames-only .tools, body.frames-only .sub, body.frames-only h1 { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>封印书控件 · 第四轮 · A2 书口小挂锁</h1>
+  <p class="sub">#27 · 延续第三轮 A 的“合上的书 ↔ 打开的书 + 星”，把不规则的蜡印换成一枚规则的小挂锁：圆角矩形锁体 + 单线锁梁，锁体挖出 logo 锁孔，骑在书口（右边缘）上，像日记本的锁。另附“锁在右下角”的位置对照。</p>
+  <div class="tools">
+    <button id="all" type="button">全部切换</button>
+    <label><input id="slow" type="checkbox"> 慢放 ×5</label>
+    <label><input id="rm" type="checkbox"> 减少动态</label>
+    <label><input id="deep" type="checkbox"> 日间改用深樱 #C85672（提案）</label>
+    <span class="lab" style="align-self:center">动画中途再点一次会从当前画面反向，不跳帧。</span>
+  </div>
+
+  <section>
+    <div class="sec-head"><h2>1 · 母版几何（24 网格）</h2><p>左：构造线；中：1× 实际栅格放大 ×8（浏览器真实栅格化）；右：尺寸说明。</p></div>
+    <div class="master" id="master"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>2 · 小尺寸专用几何</h2><p>每个尺寸单独画在自己的像素网格上，不是缩放。放大图带像素网格（×8 / ×7 / ×6 / ×5）。16 px 一行最右是“24 网格直接缩到 16 px”的对照。</p></div>
+    <div class="sizes" id="sizes"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>2b · 位置对照：书口中段 vs 右下角</h2><p>同一把锁、同一套尺寸，只改纵向位置。默认推荐书口中段；右下角为对照子方案。</p></div>
+    <div class="pos" id="pos"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>3 · 40 px 轨道按钮</h2><p>按钮可点击（空格 / 回车也可切换）。状态矩阵中的悬停、按下、焦点是强制显示的静态样式。</p></div>
+    <div class="btns" id="btns"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>3b · 强调色对比度（图形 ≥ 3 : 1）</h2><p>锁是封印态唯一的强调色元素，按 WCAG 1.4.11 非文本对比度计算（锁与其紧邻底色）。数值由页面实时计算。</p></div>
+    <div class="contrast" id="contrast"></div>
+  </section>
+
+  <section class="keep">
+    <div class="sec-head"><h2>4 · 切换动效</h2><p>释放 640 ms：锁梁弹起 → 锁下坠淡出 → 封面翻开 → 星出现。封印 440 ms：同一路径倒放，锁梁落下后再加 120 ms 的“咔哒”。</p></div>
+    <div class="motion">
+      <div class="livebox day" id="liveDay"></div>
+      <div style="display:flex;flex-direction:column;gap:10px" id="strips"></div>
+    </div>
+  </section>
+
+  <section class="keep">
+    <div class="sec-head"><h2>5 · 延展到图片墙（草图）</h2><p>敏感图被“收进书里”；参考组 / 钉图原位模糊并挂一把小锁，释放时锁梁弹开、小锁下坠淡出。图块为 CSS 渐变占位。</p></div>
+    <div class="wallsec">
+      <div class="wcard day" id="wallLive"></div>
+      <div class="wcard day"><div class="snaps" id="snaps"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>6 · 说明</h2></div>
+    <div class="notes">
+      <div class="panel"><h3>设计决策</h3><ul>
+        <li><b>锁骑在书口上</b>：24 网格里书 14 × 18（x 3–17），锁体 7 × 5（x 14–21），书口压在锁体中线左 0.5；书 + 锁整体左右居中（3–21）。锁体只占书面约 1/7，第一眼仍是一本书。</li>
+        <li><b>锁的造型</b>：圆角矩形锁体（r 1.25）+ 1 px 单线锁梁（内宽 3、圆角方顶，顶边落在整像素上），没有夹子、搭扣或绑带——锁体本身就跨在书口上，“扣住开口”的意思已经够了，再加搭扣在 24 px 里只会变成噪点。</li>
+        <li><b>锁孔</b>：logo 书签锁孔的单条轮廓（圆头 + 梯形槽），evenodd 挖空，所以锁孔里看到的是底色。</li>
+        <li><b>光环</b>：锁体和锁梁外一圈 1 px 底色（按钮里取按钮当前底色），把锁从封面上切出来；锁梁内侧也被光环填成底色，16 px 下锁梁才读得出“环”。</li>
+        <li><b>奇数宽锁体</b>：20 / 24 / 32 的锁体都是奇数宽（7 / 7 / 9），锁孔槽 1 px 落在像素中心；偶数宽时锁孔被抗锯齿成两列灰，和锁梁内框叠成“8”。</li>
+        <li><b>锁梁一长一短</b>：左腿比右腿长 rise + 0.5，藏在锁体后面；弹起时左腿仍插在锁体里、右腿离开——和真实挂锁一致，弹起的那一下不会像“整个锁梁飞走”。</li>
+        <li><b>颜色</b>：封印态只有锁用强调色（日樱粉 / 夜金），书始终是墨色；打开态只剩墨色 + 星，与第三轮 A 相同。</li>
+      </ul></div>
+      <div class="panel"><h3>与第三轮 A 相比</h3><ul>
+        <li>不规则蜡印（起伏边 + 蜡滴）→ 规则小挂锁；裂纹 / 两半下落 → 锁梁弹起 + 整把锁下坠淡出。</li>
+        <li>书加宽 1 格（x 3–16 → 3–17），因为锁比蜡印窄、伸出书口更少，省下的位置还给书；打开态几何与星完全不变。</li>
+        <li>16 px 由 7 × 7 圆蜡印改为 5 × 7 像素锁（3 × 3 锁梁 + 5 × 4 锁体 + 1 × 2 锁孔），强调色像素从约 33 降到 25，书面露出的墨色更多。</li>
+        <li>封印方向新增“咔哒”：锁梁落到底后，再压下 0.35 格并回弹，锁体同步下沉 0.2 格（120 ms，不受进度 p 影响，减少动态时关闭）。</li>
+        <li>图片墙上钉图的小蜡印换成同一把小锁：封印时锁升回原位、锁梁扣合；释放时锁梁弹开、锁下坠淡出（不飞行）。</li>
+        <li>新增强调色对比度表与深樱提案（#C85672），可在顶栏一键切换全页预览。</li>
+      </ul></div>
+      <div class="panel"><h3>待定问题</h3><ul>
+        <li><b>锁的位置</b>：书口中段（默认）还是右下角？中段更像日记锁、居中稳；右下角让封面上半部完整，书的轮廓更好认，但整体重心偏下（见 2b）。</li>
+        <li><b>是否接受深樱 #C85672</b>：原樱粉在纸白上只有 2.65 : 1，在封印态按钮底上 2.38 : 1；深樱在所有日间底色上 ≥ 3.01 : 1，但更“正经”、少了一点樱花感。</li>
+        <li>封印态按钮淡粉底（--sealbg）会进一步拉低锁的对比度；若保留原樱粉，建议去掉这层底色。</li>
+        <li>“咔哒”是否需要配合系统声音 / 触感反馈？目前只有视觉。</li>
+        <li>16 px 的锁（含光环）压住书面右侧 4 / 10 列，是否可接受？还是 16 px 只在 tooltip / 菜单里出现、不用太在意？</li>
+        <li>钉图上的小锁是否常驻（提示“这里有被封的东西”），还是只在封印动作时出现？</li>
+      </ul></div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ================= helpers ================= */
+const f = n => +(+n).toFixed(2);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (p, a, b) => clamp((p - a) / (b - a));
+const lerp = (a, b, t) => a + (b - a) * t;
+const E = {
+  lin: t => t, inQ: t => t * t, inC: t => t * t * t, outC: t => 1 - (1 - t) ** 3, outQ: t => 1 - (1 - t) ** 2,
+  inOutC: t => t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2,
+  back: (s = 1.7) => t => { const c = s + 1; return 1 + c * (t - 1) ** 3 + s * (t - 1) ** 2; },
+};
+const star = (cx, cy, r, k = .16) => { const d = r * k;
+  return `M${f(cx)} ${f(cy - r)} C${f(cx + d)} ${f(cy - d)} ${f(cx + d)} ${f(cy - d)} ${f(cx + r)} ${f(cy)} ` +
+    `C${f(cx + d)} ${f(cy + d)} ${f(cx + d)} ${f(cy + d)} ${f(cx)} ${f(cy + r)} ` +
+    `C${f(cx - d)} ${f(cy + d)} ${f(cx - d)} ${f(cy + d)} ${f(cx - r)} ${f(cy)} ` +
+    `C${f(cx - d)} ${f(cy - d)} ${f(cx - d)} ${f(cy - d)} ${f(cx)} ${f(cy - r)} Z`; };
+const keyhole = k => { const s = Math.sqrt(k.r * k.r - k.a * k.a);
+  return `M${f(k.hx - k.a)} ${f(k.hy + s)} A${k.r} ${k.r} 0 1 1 ${f(k.hx + k.a)} ${f(k.hy + s)} L${f(k.hx + k.b)} ${k.y1} H${f(k.hx - k.b)} Z`; };
+const rrect = (x0, y0, x1, y1, r) =>
+  `M${f(x0 + r)} ${f(y0)} H${f(x1 - r)} A${r} ${r} 0 0 1 ${f(x1)} ${f(y0 + r)} V${f(y1 - r)} A${r} ${r} 0 0 1 ${f(x1 - r)} ${f(y1)} H${f(x0 + r)} A${r} ${r} 0 0 1 ${f(x0)} ${f(y1 - r)} V${f(y0 + r)} A${r} ${r} 0 0 1 ${f(x0 + r)} ${f(y0)} Z`;
+const runs = (rows, ox, oy) => rows.map((row, y) => { let d = '', x = 0;
+  while (x < row.length) { if (row[x] === '#') { let e = x; while (row[e] === '#') e++; d += `M${ox + x} ${oy + y}h${e - x}v1h${x - e}Z`; x = e; } else x++; }
+  return d; }).join('');
+const dilate = rows => { const h = rows.length, w = rows[0].length, out = [];
+  for (let y = -1; y <= h; y++) { let s = '';
+    for (let x = -1; x <= w; x++) { const at = (xx, yy) => rows[yy] && rows[yy][xx] === '#';
+      s += (at(x, y) || at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1)) ? '#' : '.'; }
+    out.push(s); }
+  return out; };
+const fillHoles = rows => rows.map(r => r.replace(/\./g, (m, i) => { const L = r.slice(0, i).includes('#'), R = r.slice(i + 1).includes('#'); return L && R ? '#' : '.'; }));
+const page = P => { const w = P.fx - P.sx, g = Math.sign(w) || 1, aw = Math.abs(w);
+  const r = Math.min(P.r, aw / 2), rs = Math.min(P.rs || 0, aw / 2), cx = P.sx + .38 * w;
+  return `M${f(P.sx)} ${f(P.tS + rs)} Q${f(P.sx)} ${f(P.tS)} ${f(P.sx + g * rs)} ${f(P.tS)} Q${f(cx)} ${f(P.tF)} ${f(P.fx - g * r)} ${f(P.tF)} ` +
+    `Q${f(P.fx)} ${f(P.tF)} ${f(P.fx)} ${f(P.tF + r)} L${f(P.fx)} ${f(P.bF - r)} Q${f(P.fx)} ${f(P.bF)} ${f(P.fx - g * r)} ${f(P.bF)} ` +
+    `Q${f(cx)} ${f(P.bF)} ${f(P.sx + g * rs)} ${f(P.bS)} Q${f(P.sx)} ${f(P.bS)} ${f(P.sx)} ${f(P.bS - rs)} Z`; };
+const mirror = (P, c) => ({ ...P, sx: 2 * c - P.sx, fx: 2 * c - P.fx });
+
+/* ================= per-size geometry ================= */
+// lock: body x0..x1 / y0..y1, corner r; shackle centre-lines l / r, arc centre cy, legs end at base; rise = pop height
+const BASE = {
+  24: { n: 24, u: 1,
+    cover: { x0: 3, x1: 17, y0: 3, y1: 21, r: 2 }, bar: [5, 17, 6, 2, 1],
+    lock: { x0: 14, x1: 21, y0: 12, y1: 17, r: 1.25, sh: { l: 15.5, r: 19.5, top: 9.5, rr: 1.25, base: 12.5, w: 1, rise: 2 },
+            kh: { hx: 17.5, hy: 14, r: .95, a: .4, b: .5, y1: 16 }, halo: 1, cdy: 5 },
+    L: { sx: 11, fx: 3, tS: 7.5, tF: 6, bS: 21, bF: 19.5, r: 1.2, rs: 0 }, mid: 12, star: [20.8, 3.4, 3.1, .24, 1] },
+  20: { n: 20, u: .8333,
+    cover: { x0: 2, x1: 14, y0: 2, y1: 18, r: 1.5 }, bar: [4, 15, 4, 1.5, .75],
+    lock: { x0: 11, x1: 18, y0: 10, y1: 15, r: 1, sh: { l: 12.5, r: 16.5, top: 7.5, rr: 1, base: 10.5, w: 1, rise: 1.6 },
+            kh: { hx: 14.5, hy: 12, r: .85, a: .36, b: .5, y1: 14 }, halo: 1, cdy: 5 },
+    L: { sx: 9, fx: 2, tS: 6.5, tF: 5, bS: 18, bF: 16.5, r: 1, rs: 0 }, mid: 10, star: [17.3, 2.8, 2.6, .25, 1] },
+  32: { n: 32, u: 1.3333,
+    cover: { x0: 5, x1: 22, y0: 4, y1: 28, r: 2.5 }, bar: [8, 23, 7, 2, 1],
+    lock: { x0: 18, x1: 27, y0: 15, y1: 22, r: 1.6, sh: { l: 20, r: 25, top: 11, rr: 1.75, base: 15.5, w: 2, rise: 2.6 },
+            kh: { hx: 22.5, hy: 17.7, r: 1.25, a: .5, b: .75, y1: 20.5 }, halo: 1.4, cdy: 7 },
+    L: { sx: 15, fx: 4, tS: 10, tF: 8, bS: 28, bF: 26, r: 1.6, rs: 0 }, mid: 16, star: [27.6, 4.4, 4.1, .24, 1.3] },
+};
+const shiftLock = (L, dy) => ({ ...L, y0: L.y0 + dy, y1: L.y1 + dy, sh: { ...L.sh, top: L.sh.top + dy, base: L.sh.base + dy }, kh: { ...L.kh, hy: L.kh.hy + dy, y1: L.kh.y1 + dy } });
+const G = { mid: {}, corner: {} };
+for (const v of ['mid', 'corner']) for (const n in BASE) {
+  const b = BASE[n], g = { ...b, lock: v === 'corner' ? shiftLock(b.lock, b.lock.cdy) : b.lock };
+  g.R = mirror(g.L, g.mid); const c = g.cover;
+  g.closed = { sx: c.x0, fx: c.x1, tS: c.y0, tF: c.y0, bS: c.y1, bF: c.y1, r: c.r, rs: c.r };
+  G[v][n] = g;
+}
+
+// 16 px: drawn on the pixel grid
+const LOCK16 = ['.###.', '.#.#.', '.#.#.', '#####', '##.##', '##.##', '#####'];
+const HALO16 = fillHoles(dilate(LOCK16));
+const P16 = {
+  cover: 'M3 2 H11 A1 1 0 0 1 12 3 V13 A1 1 0 0 1 11 14 H3 A1 1 0 0 1 2 13 V3 A1 1 0 0 1 3 2 Z',
+  bar: 'M4 11 H7 V12 H4 Z',
+  lockAt: { mid: [9, 5], corner: [9, 8] },
+  pages: 'M1 6h5v1h-5Z M1 7h6v8h-6Z M4 15h3v1h-3Z M10 6h5v1h-5Z M9 7h6v8h-6Z M9 15h3v1h-3Z',
+  star: 'M13 0h1v2h-1Z M11 2h5v1h-5Z M13 3h1v2h-1Z',
+};
+
+/* ================= renderer ================= */
+let UID = 0;
+// the lock alone. p: 0 = locked, 1 = gone. click: 0..1 post-lock "click" (seal direction only)
+function lockSVG(g, p, col, click = 0) {
+  const L = g.lock, S = L.sh, u = g.u, h = L.halo;
+  if (p >= .999) return '';
+  const q = seg(p, 0, .22), rise = S.rise * E.back(2.4)(q);
+  const ck = click > 0 && click < 1 ? Math.sin(Math.PI * click) * (1 - .4 * click) : 0;
+  const dip = .35 * u * ck, nudge = .2 * u * ck;
+  const dr = E.inQ(seg(p, .16, .5)), ty = 4.5 * u * dr + nudge, rot = 9 * dr, op = 1 - seg(p, .3, .5);
+  const haloOp = 1 - seg(p, .18, .4);
+  const bcx = (L.x0 + L.x1) / 2, bcy = (L.y0 + L.y1) / 2;
+  const long = S.rise + .5;
+  const shD = `M${S.l} ${f(S.base + long)} V${f(S.top + S.rr)} Q${S.l} ${S.top} ${f(S.l + S.rr)} ${S.top} H${f(S.r - S.rr)} Q${S.r} ${S.top} ${S.r} ${f(S.top + S.rr)} V${S.base}`;
+  const shT = `translate(0 ${f(-rise + dip)})`;
+  const body = rrect(L.x0, L.y0, L.x1, L.y1, L.r);
+  let s = `<g transform="translate(0 ${f(ty)}) rotate(${f(rot)} ${bcx} ${bcy})" opacity="${f(op)}">`;
+  if (haloOp > 0) s += `<g opacity="${f(haloOp)}"><path d="${body}" fill="${col.cut}" stroke="${col.cut}" stroke-width="${2 * h}"/>` +
+    `<path transform="${shT}" d="${shD}" fill="${col.cut}" stroke="${col.cut}" stroke-width="${S.w + 2 * h}" stroke-linejoin="round"/></g>`;
+  s += `<path transform="${shT}" d="${shD}" fill="none" stroke="${col.acc}" stroke-width="${S.w}"/>`;
+  s += `<path fill-rule="evenodd" fill="${col.acc}" d="${body} ${keyhole(L.kh)}"/></g>`;
+  return s;
+}
+// p: 0 = sealed, 1 = open
+function renderIcon(g, p, col, click = 0) {
+  const u = g.u;
+  const e = E.inOutC(seg(p, .28, .86)), e2 = E.outC(seg(p, .3, .82));
+  const C = g.closed, L = g.L;
+  const spine = lerp(C.sx, L.sx, e), w = lerp(C.fx - C.sx, Math.abs(L.fx - L.sx), e), lift = 1.3 * u * Math.sin(Math.PI * e);
+  const front = { sx: spine, fx: spine + w * Math.cos(Math.PI * e), tS: lerp(C.tS, L.tS, e), tF: lerp(C.tF, L.tF, e) - lift,
+    bS: lerp(C.bS, L.bS, e), bF: lerp(C.bF, L.bF, e) + lift, r: lerp(C.r, L.r, e), rs: lerp(C.rs, 0, e) };
+  const back = {}; for (const k in C) back[k] = lerp(C[k], g.R[k], e2);
+  let s = `<path fill="${col.ink}" d="${page(back)}"/>`;
+  s += `<path fill="${col.ink}" stroke="${col.cut}" stroke-width="${f(1.3 * u)}" stroke-linejoin="round" paint-order="stroke" d="${page(front)}"/>`;
+  const barOp = 1 - seg(p, .18, .32);
+  if (barOp > 0) { const [x, y, bw, bh, br] = g.bar; s += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="${br}" fill="${col.cut}" opacity="${f(barOp)}"/>`; }
+  s += lockSVG(g, p, col, click);
+  const sg = seg(p, .66, 1);
+  if (sg > 0) { const [x, y, r, k, h] = g.star, sc = E.back(1.9)(sg), rot = -70 * (1 - E.outC(sg)), d = star(x, y, r, k);
+    const tr = `translate(${x} ${y}) rotate(${f(rot)}) scale(${f(Math.max(sc, 0))}) translate(${-x} ${-y})`;
+    s += `<g transform="${tr}" opacity="${f(seg(p, .66, .74))}"><path d="${d}" fill="${col.cut}" stroke="${col.cut}" stroke-width="${h * 2}" stroke-linejoin="round"/><path d="${d}" fill="${col.ink}"/></g>`; }
+  return s;
+}
+function render16(open, col, v = 'mid') {
+  if (open) return `<path fill="${col.ink}" d="${P16.pages}"/><path fill="${col.ink}" d="${P16.star}"/>`;
+  const [ox, oy] = P16.lockAt[v];
+  return `<path fill="${col.ink}" d="${P16.cover}"/><path fill="${col.cut}" d="${P16.bar}"/><path fill="${col.cut}" d="${runs(HALO16, ox - 1, oy - 1)}"/>` +
+    `<path fill="${col.acc}" d="${runs(LOCK16, ox, oy)}"/>`;
+}
+const VAR = { ink: 'var(--ink)', acc: 'var(--acc)', cut: 'var(--cut)' };
+const iconInner = (n, p, col, v = 'mid', click = 0) => n === 16 ? render16(p >= .5, col, v) : renderIcon(G[v][n], p, col, click);
+const iconSVG = (n, p, size = n, v = 'mid', click = 0) =>
+  `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 ${n} ${n}" aria-hidden="true" focusable="false">${iconInner(n, p, VAR, v, click)}</svg>`;
+
+const THEME = { day: { ink: '#2B2747', acc: '#E0768F', cut: '#F7F3EA' }, night: { ink: '#F4ECDC', acc: '#E3B34F', cut: '#1E1B2E' } };
+const DEEP = '#C85672';
+
+/* ================= raster zoom ================= */
+const zoomJobs = [];
+function zoomCanvas(n, p, theme, scale, grid = n, label = '', o = {}) {
+  const id = 'z' + (++UID);
+  zoomJobs.push({ id, n, p, theme, scale, grid, v: o.v || 'mid', acc: o.acc || null, click: o.click || 0 });
+  return `<figure><canvas class="zoom" id="${id}" width="${n * scale}" height="${n * scale}"></canvas>${label ? `<figcaption class="lab">${label}</figcaption>` : ''}</figure>`;
+}
+function runZoom() {
+  for (const j of zoomJobs) {
+    const col = { ...THEME[j.theme] }; if (j.acc) col.acc = j.acc;
+    const inner = j.grid === 16 ? render16(j.p >= .5, col, j.v) : renderIcon(G[j.v][j.grid], j.p, col, j.click);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${j.n}" height="${j.n}" viewBox="0 0 ${j.grid} ${j.grid}">${inner}</svg>`;
+    const img = new Image();
+    img.onload = () => {
+      const sm = document.createElement('canvas'); sm.width = sm.height = j.n; const sc = sm.getContext('2d');
+      sc.fillStyle = col.cut; sc.fillRect(0, 0, j.n, j.n); sc.drawImage(img, 0, 0, j.n, j.n);
+      const cv = document.getElementById(j.id), c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
+      c.drawImage(sm, 0, 0, j.n * j.scale, j.n * j.scale);
+      c.strokeStyle = j.theme === 'day' ? 'rgba(43,39,71,.09)' : 'rgba(244,236,220,.08)'; c.lineWidth = 1;
+      for (let i = 1; i < j.n; i++) { const v = i * j.scale + .5; c.beginPath(); c.moveTo(v, 0); c.lineTo(v, j.n * j.scale); c.moveTo(0, v); c.lineTo(j.n * j.scale, v); c.stroke(); }
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+}
+
+/* ================= §1 master ================= */
+function construct(theme, p) {
+  const g = G.mid[24], k = 10, col = THEME[theme];
+  const lines = [];
+  for (let i = 0; i <= 24; i++) lines.push(`<path d="M${i * k} 0V240M0 ${i * k}H240" stroke="${theme === 'day' ? 'rgba(43,39,71,.08)' : 'rgba(244,236,220,.07)'}" stroke-width="1"/>`);
+  const kl = theme === 'day' ? '#4C8FD6' : '#7FB2E8', Lk = g.lock, S = Lk.sh;
+  let guide = '';
+  if (p === 0) {
+    guide = `<rect x="${g.cover.x0 * k}" y="${g.cover.y0 * k}" width="${(g.cover.x1 - g.cover.x0) * k}" height="${(g.cover.y1 - g.cover.y0) * k}" fill="none" stroke="${kl}" stroke-dasharray="3 3"/>` +
+      `<rect x="${Lk.x0 * k}" y="${Lk.y0 * k}" width="${(Lk.x1 - Lk.x0) * k}" height="${(Lk.y1 - Lk.y0) * k}" fill="none" stroke="${kl}" stroke-dasharray="3 3"/>` +
+      `<rect x="${(Lk.x0 - 1) * k}" y="${(S.top - 1.5) * k}" width="${(Lk.x1 - Lk.x0 + 2) * k}" height="${(Lk.y1 - S.top + 2.5) * k}" fill="none" stroke="${kl}" stroke-opacity=".45"/>` +
+      `<path d="M${g.cover.x1 * k} 0V240" stroke="${kl}" stroke-width=".8"/>` +
+      `<path d="M${S.l * k} ${S.top * k}V${Lk.y0 * k}M${S.r * k} ${S.top * k}V${Lk.y0 * k}" stroke="${kl}" stroke-width=".8" stroke-dasharray="2 2"/>` +
+      `<path d="M120 0V240" stroke="${kl}" stroke-opacity=".6" stroke-dasharray="1 3"/>`;
+  } else {
+    const [x, y, r] = g.star;
+    guide = `<path d="M${g.mid * k} 0V240" stroke="${kl}" stroke-dasharray="3 3"/><rect x="${g.L.fx * k}" y="${g.L.tF * k}" width="${(g.R.fx - g.L.fx) * k}" height="${(g.L.bS - g.L.tF) * k}" fill="none" stroke="${kl}" stroke-dasharray="3 3"/>` +
+      `<circle cx="${x * k}" cy="${y * k}" r="${r * k}" fill="none" stroke="${kl}" stroke-dasharray="3 3"/>`;
+  }
+  return `<div class="construct"><svg width="240" height="240" viewBox="0 0 240 240">${lines.join('')}</svg>` +
+    `<svg width="240" height="240" viewBox="0 0 24 24" style="opacity:.92">${renderIcon(g, p, col)}</svg>` +
+    `<svg width="240" height="240" viewBox="0 0 240 240">${guide}</svg></div>`;
+}
+const SPEC_SEALED = `<div class="mspec"><p><b>书</b> 14 × 18（x 3–17，y 3–21），圆角 2；书底“页脚”缺口 6 × 2。</p>
+  <p><b>锁体</b> 7 × 5（x 14–21，y 12–17），圆角 1.25；奇数宽，中线 x 17.5 落在像素中心，锁孔槽才能 1 px 清晰居中；书口 x 17 压在锁体中线左侧 0.5。</p>
+  <p><b>锁梁</b> 1 px 单线，腿中心 15.5 / 19.5（整像素占满 15–16、19–20，内宽 3），圆角方顶（r 1.25），顶边外沿落在 y 9 整像素上。</p>
+  <p><b>锁孔</b> 圆头 Ø1.9 + 1 px 槽到 y 16；锁孔比锁梁内框窄，避免两个“孔”叠起来读成数字 8（上一版 6 宽锁体就有这个问题）。</p>
+  <p><b>光环</b> 1 px 底色；书 + 锁外框 3–21，左右居中。</p></div>`;
+const SPEC_OPEN = `<div class="mspec"><p>打开态与第三轮 A 完全相同：两页中缝 2 格，页顶向书口方向抬起；logo 四角星（pinch 0.24）压在右页角上，带 1 px 底色描边。</p><p>只用墨色，没有强调色。</p></div>`;
+document.getElementById('master').innerHTML = ['day', 'night'].map(t => `
+  <div class="mcard ${t}">
+    <figure>${construct(t, 0)}<figcaption class="lab">封印 · 构造</figcaption></figure>
+    <figure>${zoomCanvas(24, 0, t, 8)}<figcaption class="lab">封印 · 24 px 栅格 ×8</figcaption></figure>
+    ${t === 'day' ? SPEC_SEALED : ''}
+  </div>`).join('') + ['day', 'night'].map(t => `
+  <div class="mcard ${t}">
+    <figure>${construct(t, 1)}<figcaption class="lab">打开 · 构造</figcaption></figure>
+    <figure>${zoomCanvas(24, 1, t, 8)}<figcaption class="lab">打开 · 24 px 栅格 ×8</figcaption></figure>
+    ${t === 'day' ? SPEC_OPEN : ''}
+  </div>`).join('');
+
+/* ================= §2 sizes ================= */
+const ZS = { 16: 8, 20: 7, 24: 6, 32: 5 };
+document.getElementById('sizes').innerHTML = ['day', 'night'].map(t => `
+  <div class="scard ${t}">
+    ${[16, 20, 24, 32].map(n => `
+      <div class="srow">
+        <span class="sz">${n} px${n === 24 ? '<br>母版' : n === 16 ? '<br>逐像素' : '<br>专用'}</span>
+        <span class="one">${iconSVG(n, 0)}</span>
+        <span class="one">${iconSVG(n, 1)}</span>
+        <div class="zooms">
+          ${zoomCanvas(n, 0, t, ZS[n], n, '封印')}
+          ${zoomCanvas(n, 1, t, ZS[n], n, '打开')}
+          ${n === 16 ? `<span style="width:8px"></span>${zoomCanvas(16, 0, t, 8, 24, '对照：24 缩放')}` : ''}
+        </div>
+      </div>`).join('')}
+  </div>`).join('');
+
+/* ================= §2b position ================= */
+document.getElementById('pos').innerHTML = ['day', 'night'].map(t => `
+  <div class="pcard ${t}">
+    ${[['mid', '书口中段', '默认 · 日记锁'], ['corner', '右下角', '对照子方案']].map(([v, a, b]) => `
+      <div class="prow">
+        <div class="rl"><b>${a}</b>${b}</div>
+        <div class="items">
+          <div class="ones">${[16, 20, 24, 32].map(n => iconSVG(n, 0, n, v)).join('')}</div>
+          ${zoomCanvas(16, 0, t, 6, 16, '16 ×6', { v })}
+          ${zoomCanvas(24, 0, t, 5, 24, '24 ×5', { v })}
+          ${zoomCanvas(32, 0, t, 4, 32, '32 ×4', { v })}
+        </div>
+      </div>`).join('')}
+  </div>`).join('');
+
+/* ================= controls (p-driven, interruptible) ================= */
+let SLOW = 1, REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches, CLOCK = 0;
+document.getElementById('rm').checked = REDUCED;
+const OPEN_MS = 640, SEAL_MS = 440, CLICK_MS = 120;
+class Ctl {
+  constructor(svg, n = 24, v = 'mid') { this.svg = svg; this.n = n; this.v = v; this.pRef = 0; this.tRef = 0; this.dir = -1; this.last = ''; this.armed = false; }
+  pAt(t) { return clamp(this.pRef + this.dir * (t - this.tRef) / (this.dir > 0 ? OPEN_MS : SEAL_MS)); }
+  clickAt(t) { if (!this.armed || this.dir > 0) return 0; const hit = this.tRef + this.pRef * SEAL_MS; return t >= hit ? seg(t, hit, hit + CLICK_MS) : 0; }
+  get sealed() { return this.dir < 0; }
+  set(sealed, t) { this.pRef = this.pAt(t); this.tRef = t; this.dir = sealed ? -1 : 1; this.armed = sealed && !REDUCED && this.pRef > 0;
+    if (REDUCED) this.pRef = sealed ? 0 : 1; }
+  draw(t) { const p = this.pAt(t), c = this.clickAt(t), key = p + '|' + c;
+    if (key !== this.last) { this.svg.innerHTML = iconInner(this.n, p, VAR, this.v, c); this.last = key; } }
+}
+const ctls = [];
+function bindButton(btn) {
+  const svg = btn.querySelector('svg'); const c = new Ctl(svg, 24, btn.dataset.v || 'mid'); ctls.push(c); c.draw(0);
+  btn.addEventListener('click', () => {
+    const sealed = !c.sealed; c.set(sealed, CLOCK);
+    btn.setAttribute('aria-pressed', String(sealed));
+    btn.title = sealed ? '已封印 · 点击释放' : '封印敏感图片';
+  });
+  return c;
+}
+
+/* ================= §3 buttons ================= */
+const PH = {
+  grid: '<rect x="4.75" y="4.75" width="6" height="6" rx="1.5"/><rect x="13.25" y="4.75" width="6" height="6" rx="1.5"/><rect x="4.75" y="13.25" width="6" height="6" rx="1.5"/><rect x="13.25" y="13.25" width="6" height="6" rx="1.5"/>',
+  tag: '<path d="M4.75 5.75v5.1l8.4 8.4 6.1-6.1-8.4-8.4h-5.1z"/><circle cx="8.6" cy="8.6" r="1.2"/>',
+  folder: '<path d="M4.75 7.25v10a1.5 1.5 0 0 0 1.5 1.5h11.5a1.5 1.5 0 0 0 1.5-1.5v-7.5a1.5 1.5 0 0 0-1.5-1.5h-6l-2-2h-3.5a1.5 1.5 0 0 0-1.5 1.5z"/>',
+  search: '<circle cx="11" cy="11" r="5.5"/><path d="M15.2 15.2l4 4"/>',
+  gear: '<circle cx="12" cy="12" r="2.6"/><path d="M12 4.5v2M12 17.5v2M4.5 12h2M17.5 12h2M6.7 6.7l1.4 1.4M15.9 15.9l1.4 1.4M6.7 17.3l1.4-1.4M15.9 8.1l1.4-1.4"/>',
+};
+const ph = (k, cur) => `<span class="ph${cur ? ' cur' : ''}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${PH[k]}</svg></span>`;
+const sealBtn = (sealed = true, extra = '', v = 'mid') => `<button class="rb ${extra}" data-v="${v}" type="button" aria-label="封印敏感图片" aria-pressed="${sealed}" title="${sealed ? '已封印 · 点击释放' : '封印敏感图片'}">${iconSVG(24, sealed ? 0 : 1, 24, v)}</button>`;
+const rail = (inner, h) => `<nav class="rail" aria-label="主导航" style="height:${h}px">${inner}</nav>`;
+
+document.getElementById('btns').innerHTML = ['day', 'night'].map(t => `
+  <div class="bcard ${t}" style="--rail:${t === 'day' ? '#F0EADF' : '#24203A'}">
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+      ${rail(ph('grid', 1) + ph('tag') + ph('folder') + ph('search') + '<span class="sp"></span>' + sealBtn(true, 'live') + ph('gear'), 330)}
+      <span class="lab">可点击</span>
+    </div>
+    <div>
+      <div class="matrix">
+        <span></span>${['静止', '悬停', '按下', '键盘焦点', '悬停提示'].map(h => `<span class="hd">${h}</span>`).join('')}
+        ${[true, false].map(s => `<span class="rl">${s ? '封印中<br><code style="font-size:10px">pressed=true</code>' : '已释放<br><code style="font-size:10px">pressed=false</code>'}</span>
+          ${['', 'h', 'a', 'f'].map(cls => `<span class="cell">${sealBtn(s, cls)}</span>`).join('')}
+          <span class="cell" style="position:relative;justify-content:start;padding-left:6px;overflow:visible">${sealBtn(s, 'h')}<span class="tip" style="left:52px">${s ? '已封印 · 点击释放' : '封印敏感图片'}</span></span>`).join('')}
+        <span class="rl">右下角<br>子方案</span>
+        ${['', 'h', 'a', 'f'].map(cls => `<span class="cell">${sealBtn(true, cls, 'corner')}</span>`).join('')}
+        <span class="cell">${sealBtn(true, 'live', 'corner')}</span>
+      </div>
+      <div class="spec" style="margin-top:14px">
+        <p><code>&lt;button aria-label="封印敏感图片" aria-pressed="true"&gt;</code>：名称固定，状态只由 aria-pressed 表达（读屏：“封印敏感图片，切换按钮，已按下”）。图标 aria-hidden。</p>
+        <p>40 × 40，圆角 10；图标 24 px 母版居中。悬停 / 按下只换底色，按下时图标缩到 0.9；焦点为 2 px 墨色描边、外扩 2 px，不用强调色。锁的光环与星的描边取按钮当前底色（<code>--cut: var(--bb)</code>）。右下角子方案最后一格可点击。</p>
+      </div>
+    </div>
+  </div>`).join('');
+
+/* ================= §3b contrast ================= */
+const lum = h => { const c = [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16) / 255).map(v => v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; };
+const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+const cell = (fg, bg) => { const r = ratio(fg, bg); return `<td class="${r >= 3 ? 'ok' : 'bad'}">${r.toFixed(2)} : 1 ${r >= 3 ? '✓' : '✗'}</td>`; };
+const CT = {
+  day: { fgs: [['樱粉', '#E0768F', ''], ['深樱', DEEP, '提案']],
+    bgs: [['纸白 · 页面', '#F7F3EA'], ['轨道底', '#F0EADF'], ['悬停底', '#ECE5D8'], ['按下底', '#E2DACB'], ['封印态按钮淡粉底', '#F7E3E3'], ['封印态悬停', '#F2D5D7']] },
+  night: { fgs: [['金', '#E3B34F', '']],
+    bgs: [['夜底 · 页面', '#1E1B2E'], ['轨道底', '#24203A'], ['悬停底', '#2A2640'], ['按下底', '#332F4B'], ['封印态按钮底', '#2F2A2E'], ['封印态悬停', '#3A3333']] },
+};
+document.getElementById('contrast').innerHTML = ['day', 'night'].map(t => { const c = CT[t];
+  return `<div class="ccard ${t}">
+    <table class="ct"><tr><th>锁的底色</th>${c.fgs.map(([n, h, tg]) => `<th><span class="sw" style="background:${h}"></span>${n} ${h}${tg ? `<span class="tag">${tg}</span>` : ''}</th>`).join('')}</tr>
+      ${c.bgs.map(([n, b]) => `<tr><td><span class="sw" style="background:${b}"></span>${n} ${b}</td>${c.fgs.map(([, h]) => cell(h, b)).join('')}</tr>`).join('')}
+    </table>
+    <div style="display:flex;gap:10px;align-items:flex-end">
+      ${t === 'day' ? zoomCanvas(24, 0, t, 4, 24, '樱粉 #E0768F', { acc: '#E0768F' }) + zoomCanvas(24, 0, t, 4, 24, '深樱 #C85672（提案）', { acc: DEEP }) +
+        zoomCanvas(16, 0, t, 6, 16, '樱粉 16', { acc: '#E0768F' }) + zoomCanvas(16, 0, t, 6, 16, '深樱 16', { acc: DEEP })
+        : zoomCanvas(24, 0, t, 4, 24, '金 #E3B34F') + zoomCanvas(16, 0, t, 6, 16, '金 16')}
+    </div>
+  </div>`; }).join('') +
+  `<div class="lab" style="grid-column:1/-1;text-align:left">日间：原樱粉在所有日间底色上都低于 3 : 1（2.13–2.65）；深樱 #C85672 是满足“全部日间底色（含悬停 / 按下 / 封印态淡粉底）≥ 3 : 1”的最浅一档（3.01–3.77），色相与樱粉相同、只压暗。#CC5A76 在纸白上已有 3.58，但在封印态悬停底上只有 2.89，所以再压一档。夜间金在所有底色上 ≥ 7 : 1，无需调整。锁与墨色封面之间靠 1 px 底色光环分隔，不依赖锁与墨色的对比。</div>`;
+
+/* ================= §4 motion ================= */
+document.getElementById('liveDay').innerHTML = `
+  <div class="row">
+    <button class="bigbtn" type="button" aria-label="封印敏感图片（放大 ×5）" aria-pressed="true">${iconSVG(24, 0, 120)}</button>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+      <div style="display:flex;gap:10px;align-items:center">${sealBtn(true, 'live')}<span class="lab">40 px 实际大小</span></div>
+      <span class="lab" style="text-align:left;max-width:170px">点击放大或实际按钮切换；动画中途再点会从当前画面反向。顶栏可开慢放 ×5 / 减少动态。</span>
+    </div>
+  </div>
+  <div class="timeline" id="tl"></div>`;
+const TL = [['锁梁弹起（回弹）', 0, .22, ''], ['锁下坠 + 倾 9°', .16, .5, ''], ['锁淡出', .3, .5, ''], ['光环 / 书底淡出', .18, .4, 'ink'],
+  ['封面绕书脊翻开', .28, .86, 'ink'], ['右页展开', .3, .82, 'ink'], ['星（回弹）', .66, 1, 'ink']];
+document.getElementById('tl').innerHTML = TL.map(([n, a, b, c]) => `<div class="tl-row"><span>${n}</span><div class="tl-track"><div class="tl-bar ${c}" style="left:${a * 100}%;width:${(b - a) * 100}%"></div></div></div>`).join('') +
+  `<div class="tl-axis"><span></span><div><span>0</span><span>160</span><span>320</span><span>480</span><span>640 ms（释放）</span></div></div>` +
+  `<div class="tl-axis"><span></span><div><span>440</span><span>330</span><span>220</span><span>110</span><span>0 ms（封印倒放）</span></div></div>` +
+  `<div class="lab" style="text-align:left;margin-top:6px">封印到 0 后另加“咔哒” 120 ms：锁梁再压下 0.35 格回弹，锁体下沉 0.2 格回弹。减少动态：两态直接切换，无咔哒。</div>`;
+
+const PS = [0, .05, .1, .16, .22, .3, .4, .5, .6, .7, .8, .9, 1];
+const strip = (t, dir) => {
+  let fr = (dir > 0 ? PS : [...PS].reverse()).map(p => [p, 0, dir > 0 ? Math.round(p * OPEN_MS) + ' ms' : Math.round((1 - p) * SEAL_MS) + ' ms']);
+  if (dir < 0) fr = fr.slice(1).concat([[0, .35, '+40 咔哒'], [0, .7, '+85']]);
+  return `<div class="strip ${t}"><div class="frames">${fr.map(([p, c, l]) => `<figure><div class="fr${c ? ' clk' : ''}">${iconSVG(24, p, 72, 'mid', c)}</div><figcaption class="lab">${l}</figcaption></figure>`).join('')}</div></div>`;
+};
+document.getElementById('strips').innerHTML =
+  `<div class="lab" style="text-align:left">释放（封印 → 打开）· 日间 / 夜间</div>` + strip('day', 1) + strip('night', 1) +
+  `<div class="lab" style="text-align:left">封印（打开 → 封印），同一路径倒放、更快；最后两格为落锁后的“咔哒”（虚线框）</div>` + strip('day', -1);
+
+/* ================= §5 wall ================= */
+const GRADS = [
+  'linear-gradient(135deg,#F6C6D0,#B7A6E8)', 'linear-gradient(160deg,#9FD3E6,#4E6FB8)', 'linear-gradient(120deg,#FBE3A5,#F08F7A)',
+  'radial-gradient(circle at 30% 30%,#FFF2D6,#E59AB0 60%,#7A5AA8)', 'linear-gradient(200deg,#C9E7C1,#5E9C8F)', 'linear-gradient(135deg,#2E3561,#D97FA8)',
+  'linear-gradient(90deg,#F4D8C8,#C78B9C)', 'radial-gradient(circle at 70% 25%,#FFFFFF,#A9C8F0 45%,#5167A8)', 'linear-gradient(160deg,#FBD2A2,#B85C7C)',
+  'linear-gradient(135deg,#D7C6F4,#6E5BB5)', 'linear-gradient(45deg,#F9E7EF,#E0768F)', 'linear-gradient(180deg,#BFE3F2,#F3D9E6)'];
+const KINDS = 'nsnrsnnsnsrn'.split('');
+const T = 92, GAP = 10, OX = 72, OY = 12, H = 320, BTN = { x: 28, y: H - 28 - 44 };
+const slot = i => ({ x: OX + (i % 4) * (T + GAP), y: OY + Math.floor(i / 4) * (T + GAP) });
+
+class Tw {
+  constructor() { this.m = new Map(); }
+  get(k, t, d) { const w = this.m.get(k); return w ? w(t) : d; }
+  to(k, t, to, delay, dur, ease, d) {
+    const prev = this.m.get(k), t0 = t + delay, from = prev ? prev(t0) : d;
+    this.m.set(k, tt => { if (tt <= t0) return prev ? prev(tt) : d; if (dur <= 0) return to; return from + (to - from) * ease(Math.min(1, (tt - t0) / dur)); });
+  }
+  set(k, t, v) { this.to(k, t, v, 0, 0, E.lin, v); }
+}
+// small padlock badge on pinned / grouped tiles: the same lock as the icon (24 grid), paper halo
+const markSVG = (lk, ck) => lockSVG(G.mid[24], lk, { acc: document.body.classList.contains('deep') ? DEEP : '#E0768F', cut: '#F7F3EA', ink: '#2B2747' }, ck);
+
+class Wall {
+  constructor(host, { live = false, sealed = false } = {}) {
+    this.host = host; this.tw = new Tw(); this.sealed = sealed; this.live = live;
+    host.innerHTML = `<div class="stage">
+      ${rail(ph('grid', 1) + ph('tag') + ph('folder') + '<span class="sp"></span>' + sealBtn(sealed, 'wbtn') + ph('gear'), H)}
+      <div class="burst"></div>
+      ${KINDS.map((k, i) => `<div class="tile" data-k="${k}"><div class="art" style="background:${GRADS[i]}"></div><div class="wash" style="background:${k === 'r' ? '#F7F3EA' : '#2B2747'}"></div>
+        ${k === 's' ? '<span class="chip">敏感</span>' : k === 'r' ? '<span class="chip">钉图 / 参考组</span>' : ''}
+        ${k === 'r' ? '<svg class="mark" viewBox="12 7.5 10 10" aria-hidden="true"></svg>' : ''}</div>`).join('')}
+    </div>`;
+    this.tiles = [...host.querySelectorAll('.tile')]; this.btn = host.querySelector('.wbtn'); this.burst = host.querySelector('.burst');
+    this.ctl = new Ctl(this.btn.querySelector('svg')); this.ctl.pRef = sealed ? 0 : 1; this.ctl.dir = sealed ? -1 : 1;
+    const t = 0; this.layout(t, true);
+    this.tiles.forEach((el, i) => { const k = KINDS[i], tw = this.tw;
+      const hid = sealed && k === 's';
+      tw.set(i + 'op', t, hid ? 0 : 1); tw.set(i + 's', t, hid ? .1 : 1); tw.set(i + 'rot', t, 0);
+      tw.set(i + 'blur', t, sealed && k !== 'n' ? (k === 's' ? 14 : 10) : 0); tw.set(i + 'wash', t, sealed && k !== 'n' ? (k === 's' ? .92 : .45) : 0);
+      tw.set(i + 'lk', t, sealed && k === 'r' ? 0 : 1); tw.set(i + 'ck', t, 0);
+      if (hid) { tw.set(i + 'x', t, BTN.x - T / 2); tw.set(i + 'y', t, BTN.y - T / 2); } });
+    if (live) this.btn.addEventListener('click', () => this.toggle(!this.sealed, CLOCK));
+    this.tw.set('burst', t, 0); this.pulseAt = -1;
+  }
+  layout(t, instant, delay = 0, dur = 650) {
+    let j = 0;
+    this.tiles.forEach((el, i) => { if (this.sealed && KINDS[i] === 's') return; const s = slot(j++);
+      if (instant) { this.tw.set(i + 'x', t, s.x); this.tw.set(i + 'y', t, s.y); }
+      else { this.tw.to(i + 'x', t, s.x, delay, dur, E.inOutC, s.x); this.tw.to(i + 'y', t, s.y, delay, dur, E.inOutC, s.y); } });
+  }
+  toggle(sealed, t) {
+    this.sealed = sealed; this.ctl.set(sealed, t);
+    this.btn.setAttribute('aria-pressed', String(sealed));
+    const tw = this.tw, R = REDUCED;
+    let k = 0;
+    if (sealed) {
+      this.tiles.forEach((el, i) => { const kind = KINDS[i];
+        if (kind === 's') {
+          if (R) { tw.set(i + 'op', t, 0); tw.set(i + 'x', t, BTN.x - T / 2); tw.set(i + 'y', t, BTN.y - T / 2); return; }
+          tw.to(i + 'blur', t, 14, 0, 240, E.outC); tw.to(i + 'wash', t, .92, 0, 220, E.outC);
+          tw.to(i + 's', t, .94, 0, 220, E.outC);
+          const d = 260 + k * 30; k++;
+          tw.to(i + 'x', t, BTN.x - T / 2, d, 520, E.inC); tw.to(i + 'y', t, BTN.y - T / 2, d, 520, E.inC);
+          tw.to(i + 's', t, .1, d, 520, E.inC); tw.to(i + 'rot', t, (i % 2 ? 1 : -1) * 14, d, 520, E.inQ);
+          tw.to(i + 'op', t, 0, d + 380, 140, E.lin);
+        } else if (kind === 'r') {
+          if (R) { tw.set(i + 'blur', t, 10); tw.set(i + 'wash', t, .45); tw.set(i + 'lk', t, 0); tw.set(i + 'ck', t, 0); return; }
+          tw.to(i + 'blur', t, 10, 0, 240, E.outC); tw.to(i + 'wash', t, .45, 0, 240, E.outC);
+          const lk = tw.get(i + 'lk', t, 1), dur = lk < 1 ? 220 : 320, del = lk < 1 ? 0 : 120;   // interrupted release: lock comes straight back
+          tw.to(i + 'lk', t, 0, del, dur, E.outC);
+          tw.set(i + 'ck', t, 0); tw.to(i + 'ck', t, 1, del + dur, CLICK_MS, E.lin);
+        }
+      });
+      if (R) this.layout(t, true); else this.layout(t, false, 280, 620);
+      this.pulseAt = R ? -1 : t + 860;
+    } else {
+      this.layout(t, !!R, 40, 680);
+      this.tiles.forEach((el, i) => { const kind = KINDS[i];
+        if (kind === 's') {
+          const s = this._slotOf(i);
+          if (R) { tw.set(i + 'x', t, s.x); tw.set(i + 'y', t, s.y); tw.set(i + 's', t, 1); tw.set(i + 'rot', t, 0); tw.set(i + 'blur', t, 0); tw.set(i + 'wash', t, 0);
+            tw.set(i + 'op', t, 0); tw.to(i + 'op', t, 1, 0, 120, E.lin); return; }
+          const d = 150 + k * 55; k++;
+          if (tw.get(i + 'op', t, 1) < .05) { tw.set(i + 'rot', t, (i % 2 ? -1 : 1) * 24); }
+          tw.to(i + 'op', t, 1, d, 100, E.lin);
+          tw.to(i + 'x', t, s.x, d, 760, E.outC); tw.to(i + 'y', t, s.y, d, 760, E.back(1.1));
+          tw.to(i + 's', t, 1, d, 760, E.back(1.9)); tw.to(i + 'rot', t, 0, d, 760, E.outC);
+          tw.to(i + 'blur', t, 0, d + 300, 420, E.outC); tw.to(i + 'wash', t, 0, d + 260, 420, E.outC);
+        } else if (kind === 'r') {
+          tw.set(i + 'ck', t, 0);
+          if (R) { tw.set(i + 'blur', t, 0); tw.set(i + 'wash', t, 0); tw.set(i + 'lk', t, 1); return; }
+          tw.to(i + 'lk', t, 1, 40, 460, E.lin);
+          tw.to(i + 'blur', t, 0, 120, 380, E.outC); tw.to(i + 'wash', t, 0, 120, 360, E.outC);
+        }
+      });
+      if (!R) { tw.set('burst', t, 0); tw.to('burst', t, 1, 120, 620, E.outC); }
+    }
+  }
+  _slotOf(i) { let j = 0; for (let q = 0; q < i; q++) if (!(this.sealed && KINDS[q] === 's')) j++; return slot(j); }
+  render(t) {
+    const tw = this.tw;
+    this.tiles.forEach((el, i) => {
+      const x = tw.get(i + 'x', t, 0), y = tw.get(i + 'y', t, 0), s = tw.get(i + 's', t, 1), r = tw.get(i + 'rot', t, 0);
+      el.style.transform = `translate(${f(x)}px,${f(y)}px) rotate(${f(r)}deg) scale(${f(s)})`;
+      const b = tw.get(i + 'blur', t, 0); el.firstElementChild.style.filter = b > .05 ? `blur(${f(b)}px) saturate(${f(1 - b / 28)})` : '';
+      el.children[1].style.opacity = f(tw.get(i + 'wash', t, 0)); el.style.opacity = f(tw.get(i + 'op', t, 1));
+      el.style.zIndex = KINDS[i] === 's' ? 2 : 1;
+      if (KINDS[i] === 'r') { const m = el.querySelector('.mark'), lk = tw.get(i + 'lk', t, 1), ck = tw.get(i + 'ck', t, 0), key = f(lk) + '|' + f(ck) + document.body.className;
+        if (m._k !== key) { m._k = key; m.innerHTML = markSVG(lk, ck); } }
+    });
+    const bu = tw.get('burst', t, 0); this.burst.style.left = (BTN.x - 20) + 'px'; this.burst.style.top = (BTN.y - 20) + 'px';
+    this.burst.style.opacity = bu > 0 && bu < 1 ? f((1 - bu) * .7) : 0; this.burst.style.transform = `scale(${f(1 + bu * 5)})`;
+    this.ctl.draw(t);
+  }
+}
+
+document.getElementById('wallLive').innerHTML = `<div id="wallHost"></div>
+  <div class="ctl"><button type="button" id="wallT">封印 / 释放</button><span class="lab" style="text-align:left">也可点左侧轨道底部的按钮；中途再点会反向。</span></div>
+  <div class="wnotes">
+    <p><b>封印（≈ 0.9 s）</b>：0–240 ms 敏感图模糊 14 px + 墨色覆盖 92%（<b>0.24 s 不可辨</b>）→ 260 ms 起被吸向按钮（ease-in，逐张 30 ms）→ 其余图连续补位（280–900 ms）。钉图 / 参考组：原位模糊 10 px；120 ms 起小锁从下方 4.5 格处升回、淡入（320 ms，即释放路径倒放），锁梁最后扣合，再“咔哒” 120 ms。</p>
+    <p><b>释放（≈ 1.2 s）</b>：按钮书翻开（640 ms）；120 ms 起按钮处一圈光环扩散；敏感图逐张（间隔 55 ms）从按钮沿弧线飞回，缩放回弹；其余图 40–720 ms 连续让位。钉图 / 参考组：小锁锁梁弹开 → 下坠淡出（460 ms），模糊同时溶解，不飞行。</p>
+    <p><b>中断</b>：释放途中再封印，敏感图从当前位置反向；钉图小锁 220 ms 直接回到锁上（不等延迟），随后咔哒。<b>减少动态</b>：全部直接切换。</p>
+  </div>`;
+const liveWall = new Wall(document.getElementById('wallHost'), { live: true, sealed: false });
+document.getElementById('wallT').addEventListener('click', () => liveWall.btn.click());
+
+const snapRow = (label, sub, sealedStart, times) => `<div class="snaprow"><div class="rl"><b>${label}</b>${sub}</div>${times.map(ms => `<div class="mini"><div class="holder"><div data-snap="${sealedStart ? 1 : 0}" data-t="${ms}"></div></div><div class="lab">${ms} ms</div></div>`).join('')}</div>`;
+document.getElementById('snaps').innerHTML =
+  snapRow('封印', '敏感图 0.3 s 内不可辨', false, [0, 120, 260, 560, 950]) +
+  snapRow('释放', '英雄式：书开、图飞回', true, [0, 260, 500, 800, 1250]) +
+  snapRow('中断', '释放 400 ms 时再次封印', true, [400, 520, 650, 900, 1300]) +
+  `<div class="lab" style="text-align:left">定格帧由同一套补间引擎在指定时刻求值得到（不是示意图）。钉图 / 参考组右上角的小锁与按钮图标是同一把锁。</div>`;
+document.querySelectorAll('[data-snap]').forEach(h => {
+  const sealedStart = h.dataset.snap === '1', ms = +h.dataset.t;
+  const w = new Wall(h, { sealed: sealedStart });
+  if (h.closest('.snaprow').querySelector('b').textContent === '中断') { w.toggle(false, 0); if (ms >= 400) w.toggle(true, 400); }
+  else w.toggle(!sealedStart, 0);
+  w.render(ms);
+});
+
+/* ================= wiring ================= */
+document.querySelectorAll('.rb.live, .bigbtn').forEach(b => bindButton(b));
+document.getElementById('all').addEventListener('click', () => { document.querySelectorAll('.rb.live, .bigbtn').forEach(b => b.click()); liveWall.btn.click(); });
+document.getElementById('slow').addEventListener('change', e => SLOW = e.target.checked ? 5 : 1);
+document.getElementById('rm').addEventListener('change', e => REDUCED = e.target.checked);
+document.getElementById('deep').addEventListener('change', e => { document.body.classList.toggle('deep', e.target.checked);
+  THEME.day.acc = e.target.checked ? DEEP : '#E0768F'; runZoom(); });
+let last = performance.now();
+function loop(now) { CLOCK += (now - last) / SLOW; last = now; ctls.forEach(c => c.draw(CLOCK)); liveWall.render(CLOCK); requestAnimationFrame(loop); }
+liveWall.render(0); requestAnimationFrame(loop);
+runZoom();
+if (location.search.includes('frames')) document.body.classList.add('frames-only');
+</script>
+</body>
+</html>

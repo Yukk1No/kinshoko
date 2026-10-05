@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>封印书 · 锁链</title>
+<style>
+  :root {
+    --page: #E9E4DE; --text: #2B2747; --muted: #6B6680; --line: #D8D0C2;
+    --ease: cubic-bezier(.2, .8, .2, 1);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text);
+    font: 13px/1.6 "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif; }
+  .wrap { width: 1680px; padding: 36px 40px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .02em; }
+  h2 { font-size: 16px; margin: 34px 0 4px; }
+  h2 small { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 10px; }
+  .sub { color: var(--muted); margin: 0 0 12px; max-width: 1180px; }
+  .tools { display: flex; gap: 10px; margin: 14px 0 6px; position: sticky; top: 0; z-index: 5; padding: 8px 0; background: var(--page); }
+  .tools button, .tools label { font: inherit; color: var(--text); background: #F5F0E6; border: 1px solid var(--line);
+    border-radius: 8px; padding: 4px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .day   { --ink: #2B2747; --acc: #E0768F; --bg: #F5F0E6; --rail: #EEE7D8; --lab: #8A8499; --grid: rgba(43,39,71,.08); background: var(--bg); color: #2B2747; }
+  .night { --ink: #F4ECDC; --acc: #E3B34F; --bg: #1E1B2E; --rail: #17152A; --lab: #8C87A3; --grid: rgba(244,236,220,.08); background: var(--bg); color: #F4ECDC; }
+  .panel { border-radius: 14px; padding: 16px 18px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .lab { font-size: 11px; color: var(--lab, var(--muted)); }
+  svg.ic { display: block; overflow: visible; }
+
+  /* ---------- 尺寸表 ---------- */
+  .sizes { display: grid; grid-template-columns: 92px 44px 44px 1fr 1fr; gap: 10px 14px; align-items: center; }
+  .sizes .hd { font-size: 11px; color: var(--lab); }
+  .sizes .nm { font-size: 12px; line-height: 1.35; }
+  .sizes .nm b { display: block; font-size: 13px; }
+  .one { display: grid; place-items: center; height: 40px; }
+  canvas.zoom { display: block; border-radius: 4px; }
+  .construct { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
+  .construct figure { margin: 0; }
+  .construct figcaption { margin-top: 4px; }
+  .construct .txt { max-width: 560px; color: #4A4560; font-size: 12.5px; }
+  .construct .txt p { margin: 0 0 7px; }
+
+  /* ---------- 按钮 ---------- */
+  .sb { width: 40px; height: 40px; border-radius: 10px; border: 0; padding: 0; margin: 0; cursor: pointer;
+    background: transparent; display: grid; place-items: center; color: var(--ink); position: relative;
+    transition: background-color 140ms linear, transform 220ms var(--ease); -webkit-tap-highlight-color: transparent; }
+  .sb[aria-pressed="true"] { background: color-mix(in srgb, var(--acc) 15%, transparent); }
+  .sb:hover, .sb.is-hover { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+  .sb[aria-pressed="true"]:hover, .sb[aria-pressed="true"].is-hover { background: color-mix(in srgb, var(--acc) 24%, transparent); }
+  .sb:active, .sb.is-active { transform: scale(.92); transition-duration: 60ms; background: color-mix(in srgb, var(--ink) 13%, transparent); }
+  .sb[aria-pressed="true"]:active, .sb[aria-pressed="true"].is-active { background: color-mix(in srgb, var(--acc) 32%, transparent); }
+  .sb:focus { outline: none; }
+  .sb:focus-visible, .sb.is-focus { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .ri svg { width: 24px; height: 24px; fill: none; stroke: var(--ink); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; opacity: .82; }
+  .ri.cur { background: color-mix(in srgb, var(--ink) 9%, transparent); }
+  .ri.cur svg { opacity: 1; }
+
+  .railrow { display: flex; gap: 22px; align-items: stretch; }
+  .rail { width: 56px; background: var(--rail); border-radius: 12px; padding: 8px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 360px; }
+  .rail .sp { flex: 1; }
+  .rail .dv { width: 24px; height: 1px; background: var(--grid); margin: 4px 0; }
+  .matrix { display: grid; grid-template-columns: 54px repeat(4, 74px); gap: 10px 6px; align-items: center; justify-items: center; align-content: start; }
+  .matrix .lab { justify-self: start; }
+  .tip { position: relative; }
+  .tipbox { font-size: 11.5px; padding: 3px 8px; border-radius: 6px; background: var(--ink); color: var(--bg); white-space: nowrap; }
+  .a11y { font: 11.5px/1.55 Consolas, "Cascadia Mono", monospace; color: var(--lab); margin-top: 12px; white-space: pre; }
+
+  /* ---------- 动画 ---------- */
+  .anim { display: grid; grid-template-columns: 236px 236px 1fr; gap: 14px; align-items: start; }
+  .anim .stage { min-height: 300px; }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 18px; }
+  .stage .pad { width: 200px; height: 200px; border-radius: 12px; display: grid; place-items: center; cursor: pointer;
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 8px 8px; background-position: 4px 4px; }
+  .strips { background: #F5F0E6; }
+  .strip { display: flex; gap: 2px; align-items: flex-end; margin: 4px 0 10px; }
+  .strip figure { margin: 0; display: flex; flex-direction: column; align-items: center; }
+  .strip figcaption { font-size: 10px; color: var(--lab); }
+  .strip .mark { outline: 1.5px dashed var(--acc); outline-offset: 1px; border-radius: 4px; }
+  table.tm { border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+  table.tm td, table.tm th { padding: 2px 10px 2px 0; text-align: left; vertical-align: top; }
+  table.tm th { font-weight: 600; color: #4A4560; }
+  table.tm td.n { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---------- 图片墙 ---------- */
+  .wallbox { display: grid; grid-template-columns: auto 1fr; gap: 22px; }
+  .app { display: flex; gap: 0; border-radius: 14px; overflow: hidden; background: var(--bg); box-shadow: 0 0 0 1px var(--grid); position: relative; }
+  .app .rail { border-radius: 0; height: auto; }
+  .wallwrap { padding: 18px; position: relative; }
+  .wall { display: grid; grid-template-columns: repeat(4, 132px); grid-auto-rows: 96px; gap: 10px; position: relative; }
+  .slot { position: relative; border-radius: 10px; background:
+      repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--ink) 5%, transparent) 6px 7px);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 10%, transparent); }
+  .tile { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; will-change: transform, filter; }
+  .tile .ov { position: absolute; inset: 0; background: color-mix(in srgb, var(--bg) 70%, #000 0%); opacity: 0; }
+  .tile .pin { position: absolute; right: 6px; top: 6px; width: 18px; height: 18px; border-radius: 50%; background: var(--bg);
+    display: grid; place-items: center; }
+  .tile .pin svg { width: 12px; height: 12px; }
+  .tile .crack { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+  .slot .badge { position: absolute; z-index: 2; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; opacity: 0; }
+  svg.chains { position: absolute; left: 18px; top: 18px; overflow: visible; pointer-events: none; }
+  .flash { position: absolute; width: 40px; height: 40px; border-radius: 50%; pointer-events: none; opacity: 0;
+    background: radial-gradient(circle, color-mix(in srgb, var(--acc) 70%, transparent) 0%, color-mix(in srgb, var(--acc) 22%, transparent) 45%, transparent 70%); }
+  .clock { font: 12px Consolas, monospace; color: var(--lab); }
+  .gantt { font-size: 11.5px; width: 600px; }
+  .gantt .ax { position: relative; height: 16px; margin-left: 210px; border-bottom: 1px solid var(--grid); }
+  .gantt .ax span { position: absolute; transform: translateX(-50%); font-size: 10px; color: var(--lab); }
+  .gantt .r { display: grid; grid-template-columns: 210px 1fr; align-items: center; height: 19px; }
+  .gantt .r .t { color: #4A4560; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 6px; }
+  .night .gantt .r .t { color: #CFC8DA; }
+  .gantt .bar { position: relative; height: 100%; }
+  .gantt .bar i { position: absolute; top: 5px; height: 9px; border-radius: 3px; background: var(--acc); opacity: .85; }
+  .gantt .bar i.ink { background: var(--ink); opacity: .55; }
+  .gantt .bar .lim { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px dashed #C23B5A; }
+  .gantt h4 { margin: 10px 0 2px; font-size: 12.5px; }
+
+  .notes { columns: 3; column-gap: 28px; color: #4A4560; font-size: 12.5px; }
+  .notes h3 { font-size: 13.5px; margin: 0 0 4px; break-after: avoid; }
+  .notes ul { margin: 0 0 12px; padding-left: 18px; }
+  .notes li { margin-bottom: 4px; break-inside: avoid; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>封印书控件 · 第三轮 · E 锁链</h1>
+  <p class="sub">#27 · 图标轨底部 40 px 按钮。封印态：合上的书被两道交叉锁链缠住，交叉处挂一把带 logo 锁孔的挂锁；打开态：翻开的书 + 右上角 logo 四角星。本页全部自包含：上方为几何与像素对齐，中间为按钮状态与切换动效，下方为图片墙概念演示。</p>
+  <div class="tools">
+    <button id="all" type="button">全部切换</button>
+    <label><input id="slow" type="checkbox"> 慢放 ×4</label>
+    <label><input id="rm" type="checkbox"> 减少动态效果</label>
+    <span class="lab" style="align-self:center">所有按钮、大图标都可点击；动画途中再次点击会从当前画面平滑反转。</span>
+  </div>
+
+  <!-- ========== 1 几何 ========== -->
+  <h2>1 · 几何：24 网格母版 + 16 / 20 / 32 专用像素对齐版<small>每行：1× 实际尺寸（封印 / 打开）→ 6× 像素放大（Chrome 实际栅格结果，非矢量放大）</small></h2>
+  <div class="construct">
+    <figure><div id="cons-s"></div><figcaption class="lab">母版 · 封印（24 网格，12×）</figcaption></figure>
+    <figure><div id="cons-o"></div><figcaption class="lab">母版 · 打开（24 网格，12×）</figcaption></figure>
+    <div class="txt">
+      <p><b>链节</b>：真链节，两种交替——正面环（长 4.6、宽 2.8、壁厚 0.95，中间镂空）与侧面环（长 3、宽 1.15 的实心短杆），节间留 0.6 空隙。每条臂从交叉点起按固定节距 4.4 排布：正 · 侧 · 正 · 侧；可见的是一个正面环跨在书角 / 书边上，外侧再露半截侧面环，读作“链子从书背后绕过来”。</p>
+      <p><b>45° 交叉</b>：两条链都走正 45°，交叉点在 (12, 11)，比几何中心高 1，让挂锁的锁身落在中心偏下，重心稳。上臂正好擦过书的两个上角，下臂从书的左右两侧穿出——上紧下松，像挂锁把链子往下拽。</p>
+      <p><b>挂锁 = logo 锁孔</b>：锁身 6 × 5（x 9–15、y 12–17，整像素），锁梁线宽 1、两腿落在整像素列（10–11、13–14）；第二轮的锁太大，压过了书，这一轮缩到书宽的 3/7；锁孔直接用 logo 书签锁孔的比例（圆头 + 梯形下摆），镂空透底。</p>
+      <p><b>留缝而不是描边</b>：链、锁与书之间的 0.75 间隙用蒙版真正挖空（不是底色描边），所以悬停底色、强调底色、任意背景下都干净。正面环的孔也是透底的，夜间（金链 + 奶油书）因此仍分得开。</p>
+      <p><b>打开态</b>：两页书 + 星，书脊缝 2 px（11–13）整像素；星沿用 logo 字标 i 点的四角星曲率（k = 0.16）。封印 → 打开时，合上的封面直接变形为两页（同一组路径插值），不是交叉淡化。</p>
+    </div>
+  </div>
+  <div class="two">
+    <div class="panel day"><div class="sizes" id="sz-day"></div></div>
+    <div class="panel night"><div class="sizes" id="sz-night"></div></div>
+  </div>
+
+  <!-- ========== 2 按钮 ========== -->
+  <h2>2 · 40 px 图标轨按钮<small>左：模拟图标轨（可点击，Tab 可聚焦）；右：强制状态矩阵</small></h2>
+  <div class="two">
+    <div class="panel day"><div class="railrow" id="rail-day"></div></div>
+    <div class="panel night"><div class="railrow" id="rail-night"></div></div>
+  </div>
+
+  <!-- ========== 3 动画 ========== -->
+  <h2>3 · 切换动效<small>弹簧驱动，每个部件一条通道；中途点击 = 各通道带着当前位置和速度换目标，不跳帧</small></h2>
+  <div class="anim">
+    <div class="panel day stage"><div class="pad" id="big-day" role="button" tabindex="0" aria-pressed="true" aria-label="封印图片（大图演示）"></div><span class="lab">日间 · 点击切换</span></div>
+    <div class="panel night stage"><div class="pad" id="big-night" role="button" tabindex="0" aria-pressed="true" aria-label="封印图片（大图演示）"></div><span class="lab">夜间 · 点击切换</span></div>
+    <div class="panel day strips" id="strips"></div>
+  </div>
+
+  <!-- ========== 4 墙 ========== -->
+  <h2>4 · 延伸到图片墙（概念草图）<small>点击左侧图标轨底部的封印书按钮。灰白条纹格 = 图片原位；带图钉的两张 = 参考组 / 钉图</small></h2>
+  <div class="panel day wallbox" id="wallpanel">
+    <div>
+      <div class="app" id="app">
+        <div class="rail" id="wrail"></div>
+        <div class="wallwrap"><div class="wall" id="wall"></div><svg class="chains" id="wchains"></svg></div>
+        <div class="flash" id="flash"></div>
+      </div>
+      <div style="display:flex; gap:14px; align-items:center; margin-top:8px">
+        <span class="clock" id="clock">t = 0 ms</span>
+        <button id="wtheme" type="button" style="font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;padding:1px 8px;cursor:pointer">切换日 / 夜</button>
+      </div>
+    </div>
+    <div class="gantt" id="gantt"></div>
+  </div>
+
+  <!-- ========== 5 说明 ========== -->
+  <h2>5 · 说明</h2>
+  <div class="notes">
+    <h3>设计决定</h3>
+    <ul>
+      <li><b>链必须像金属链</b>：放弃第二轮的虚线描边，改为正面环 / 侧面环交替的真链节。正面环中间镂空透底，是“链”与“绳 / 带子”最关键的区别。</li>
+      <li><b>一条间隙规则</b>：所有重叠处（链压书、锁压链、锁压书）统一 0.75（24 网格）挖空间隙；32 px 1.0，20 px 0.65，16 px 备选 1 px 整像素。间隙用蒙版做，所以按钮悬停底色变化时不会露出“描边色块”。</li>
+      <li><b>颜色</b>：封印态 = 墨色书 + 强调色链与锁（日间樱粉、夜间金）；打开态只剩墨色（日间墨紫、夜间奶油）。按钮在封印态再垫 15% 强调色底，作为 aria-pressed 的视觉对应。</li>
+      <li><b>焦点环用墨色</b>：樱粉对纸白只有约 2.6 : 1，达不到非文本 3 : 1，焦点环改用墨色 2 px + 2 px 外偏移。</li>
+      <li><b>控件克制、墙面夸张</b>：按钮本身的动效总长 ≈ 0.35 s（封印）/ ≈ 0.65 s（释放），只有一处小火花；夸张的“崩断”演出放在墙上。</li>
+    </ul>
+    <h3>16 px 怎么解决</h3>
+    <ul>
+      <li>第二轮的问题：书 + 两条链 + 锁在 16 px 里只剩 1 列书边，链节和锁糊成一团。</li>
+      <li><b>主方案 “锁 + 横链”</b>：去掉书和交叉，只留挂锁 + 一条水平锁链（左右各一个 3×3 正面环 + 2×1 侧杆）。水平方向可以完全落在像素格上：环孔正好 1 个像素、锁梁两腿各 1 px、锁身 6×6、锁孔 2 px 宽。它和大尺寸是同一个意象的“徽记版”：锁 + 链 = 封印。</li>
+      <li><b>备选 “书 + 锁”</b>：保留书，只留锁不画链。更像“上锁的书”，但失去了本方向最有辨识度的链，和其它方向（如扣带）区分度变低。</li>
+      <li>20 px 仍保留两条交叉链，但正面环不再开孔（孔只有 0.8 px 会变成半透明的灰点），改为实心椭圆 + 细杆交替，靠节奏读出“链”；锁梁线宽 1 px。</li>
+      <li>16 px 打开态只用两页书 + 3 px 小星；星与书页留 1 px 缝。</li>
+    </ul>
+    <h3>和第二轮相比</h3>
+    <ul>
+      <li>虚线描边 → 真链节；描边色块留缝 → 蒙版挖空。</li>
+      <li>交叉点上移、锁身整像素，锁孔改用 logo 锁孔比例。</li>
+      <li>新增 16 / 20 / 32 专用几何；16 px 改为锁 + 横链。</li>
+      <li>动效从“同时淡入淡出”改为分部件的弹簧编排：封印 = 合书 → 链从对角线外滑入缠上 → 锁从上方落下扣合（锁梁“咔”一下）；释放 = 锁梁弹起 → 锁坠落 → 链条向外甩开（上臂变平、下臂下垂，像被重力拉走）→ 书翻开 → 星弹出。</li>
+      <li>可中断：任何时刻反向，各部件从当前位置与速度继续，无跳变。</li>
+    </ul>
+    <h3>待确认</h3>
+    <ul>
+      <li>16 px 选“锁 + 横链”（主）还是“书 + 锁”（备选）？前者更像本方向，后者更像“书”。</li>
+      <li>图标轨其它图标若是线性图标，封印态这枚实心多色图标仍偏重（见第 2 节对比）；可接受吗？还是要做一版线性锁链（会更难缩小）？</li>
+      <li>封印时普通图片是“飞进书里”还是原位消失？草图按“飞进书里”做，参考组 / 钉图原位模糊。被收走的图留下的空位是否保留（草图保留条纹空位），还是让剩余图片连续补位？</li>
+      <li>日间樱粉锁在纸白底上对比约 2.6 : 1，靠墨色书撑起整体辨识；是否需要把日间强调色压深一点？</li>
+      <li>释放时的小火花（按钮内）是否保留？去掉后控件更“精确”，但少了一点“崩断”的爽快感。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+/* ======================================================================
+   基础
+   ====================================================================== */
+const f2 = n => Math.round(n * 100) / 100;
+const lerp = (a, b, t) => a + (b - a) * t;
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+let SLOW = 1;
+let RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const THEME = { day: { ink: '#2B2747', acc: '#E0768F', bg: '#F5F0E6' }, night: { ink: '#F4ECDC', acc: '#E3B34F', bg: '#1E1B2E' } };
+const VARS = { ink: 'var(--ink)', acc: 'var(--acc)' };
+
+const rrect = (x0, y0, x1, y1, r) =>
+  `M${f2(x0 + r)} ${f2(y0)} H${f2(x1 - r)} A${r} ${r} 0 0 1 ${f2(x1)} ${f2(y0 + r)} V${f2(y1 - r)} A${r} ${r} 0 0 1 ${f2(x1 - r)} ${f2(y1)} H${f2(x0 + r)} A${r} ${r} 0 0 1 ${f2(x0)} ${f2(y1 - r)} V${f2(y0 + r)} A${r} ${r} 0 0 1 ${f2(x0 + r)} ${f2(y0)} Z`;
+const stadium = (L, W) => { const r = W / 2, a = Math.max(0, L / 2 - r);
+  return `M${f2(-a)} ${f2(-r)} H${f2(a)} A${f2(r)} ${f2(r)} 0 0 1 ${f2(a)} ${f2(r)} H${f2(-a)} A${f2(r)} ${f2(r)} 0 0 1 ${f2(-a)} ${f2(-r)} Z`; };
+// logo 字标 i 点的四角星（三次曲线，两控制点重合，k = 0.16）
+const starD = r => { const k = .16 * r;
+  return `M0 ${f2(-r)} C${f2(k)} ${f2(-k)} ${f2(k)} ${f2(-k)} ${f2(r)} 0 C${f2(k)} ${f2(k)} ${f2(k)} ${f2(k)} 0 ${f2(r)} C${f2(-k)} ${f2(k)} ${f2(-k)} ${f2(k)} ${f2(-r)} 0 C${f2(-k)} ${f2(-k)} ${f2(-k)} ${f2(-k)} 0 ${f2(-r)} Z`; };
+// logo 书签锁孔：圆头 + 梯形下摆（取 compact-24 的比例：头半径 0.3h，下摆半宽 0.23h）
+const keyholeD = (cx, top, h) => { const r = .3 * h, ch = .42 * r, cy = top + r, chy = cy + Math.sqrt(r * r - ch * ch), bh = .23 * h;
+  return `M${f2(cx - ch)} ${f2(chy)} A${f2(r)} ${f2(r)} 0 1 1 ${f2(cx + ch)} ${f2(chy)} L${f2(cx + bh)} ${f2(top + h)} H${f2(cx - bh)} Z`; };
+
+// 书页：同一组命令，合上（封面一半）与打开（一页）之间逐数值插值
+function pagePath(P, vb, mirror) {
+  const { xi, xo, yti, yto, ybi, ybo, r } = P;
+  const X = x => f2(mirror ? vb - x : x), Y = f2;
+  const w = xi - xo - r, dt = yti - yto, db = ybi - ybo;
+  return `M${X(xi)} ${Y(yti)} C${X(xi - .26 * w)} ${Y(yti - .76 * dt)} ${X(xo + r + .38 * w)} ${Y(yto - .06 * dt)} ${X(xo + r)} ${Y(yto)}`
+    + ` C${X(xo + .4 * r)} ${Y(yto)} ${X(xo)} ${Y(yto + .4 * r)} ${X(xo)} ${Y(yto + r)} V${Y(ybo - r)}`
+    + ` C${X(xo)} ${Y(ybo - .4 * r)} ${X(xo + .4 * r)} ${Y(ybo)} ${X(xo + r)} ${Y(ybo)}`
+    + ` C${X(xo + r + .38 * w)} ${Y(ybo - .06 * db)} ${X(xi - .26 * w)} ${Y(ybo + .22 * db)} ${X(xi)} ${Y(ybi)} Z`;
+}
+
+/* ======================================================================
+   几何规格（24 母版 + 20 / 32 专用；16 另写）
+   ====================================================================== */
+const SPEC = {
+  24: { vb: 24,
+    closed: { xi: 12.4, xo: 5, r: 2, yti: 3, yto: 3, ybi: 21, ybo: 21 },
+    open:   { xi: 11, xo: 3, r: 1, yti: 7.8, yto: 6, ybi: 21.5, ybo: 20 },
+    star: [19.6, 3.2, 2.3],
+    cross: [12, 11], body: [9, 15, 12, 17, 1.3],
+    sh: { l: 10.5, r: 13.5, cy: 10.5, rad: 1.5, base: 12.6, w: 1, rise: 1.5 }, kh: [12.85, 3.25],
+    halo: .75, link: { Lf: 4.6, Wf: 2.8, wall: .95, Ls: 3, Ws: 1.15, g: .6, hole: true },
+    s0: { up: -.8, dn: -1 }, n: 4, D: 6.5 },
+  20: { vb: 20,
+    closed: { xi: 10.4, xo: 4, r: 1.6, yti: 2, yto: 2, ybi: 18, ybo: 18 },
+    open:   { xi: 9, xo: 2, r: .9, yti: 6.5, yto: 5, ybi: 18, ybo: 16.7 },
+    star: [16.6, 2.5, 1.95],
+    cross: [10, 9.3], body: [7, 13, 10, 15, 1.2],
+    sh: { l: 8.5, r: 11.5, cy: 8.5, rad: 1.5, base: 10.6, w: 1, rise: 1.4 }, kh: [10.9, 3],
+    halo: .65, link: { Lf: 3.8, Wf: 2.2, wall: .9, Ls: 2.4, Ws: 1, g: .55, hole: false },
+    s0: { up: -.8, dn: -.6 }, n: 4, D: 5.5 },
+  32: { vb: 32,
+    closed: { xi: 16.5, xo: 7, r: 2.6, yti: 4, yto: 4, ybi: 28, ybo: 28 },
+    open:   { xi: 15, xo: 4, r: 1.3, yti: 10.4, yto: 8, ybi: 28.6, ybo: 26.6 },
+    star: [26.2, 4.3, 3.1],
+    cross: [16, 14.6], body: [12, 20, 16, 22.5, 1.6],
+    sh: { l: 14, r: 18, cy: 13.5, rad: 2, base: 16.8, w: 2, rise: 2 }, kh: [17.1, 4.3],
+    halo: 1, link: { Lf: 6.1, Wf: 3.7, wall: 1.25, Ls: 4, Ws: 1.5, g: .8, hole: true },
+    s0: { up: -1.1, dn: -1.5 }, n: 4, D: 8.5 },
+};
+const ARMS = [ { ang: 225, k: 'up', sg: -1 }, { ang: 315, k: 'up', sg: 1 }, { ang: 135, k: 'dn', sg: -1 }, { ang: 45, k: 'dn', sg: 1 } ];
+
+let UID = 0;
+const SEALED = { close: 1, chain: 1, lock: 1, latch: 1, star: 0, burst: 0, lockFrom: 5 };
+const OPENED = { close: 0, chain: 0, lock: 0, latch: 0, star: 1, burst: 0, lockFrom: 5 };
+
+function renderIcon(spec, s, C, id) {
+  if (spec.custom) return spec.custom(s.close > .5, C);
+  id = id || ('u' + (UID++));
+  const vb = spec.vb, o = clamp(1 - s.close, -.15, 1.15);
+  const P = {}; for (const k in spec.closed) P[k] = lerp(spec.closed[k], spec.open[k], o);
+  P.r = Math.max(.3, P.r);
+  const h = spec.halo, L = spec.link;
+  const cA = clamp(s.chain / .45), lA = clamp(s.lock * 2.2);
+  const [cx, cy] = spec.cross;
+
+  // 链节
+  let links = '';
+  if (cA > .003) {
+    const pitch = (L.Lf + L.Ls) / 2 + L.g, sp = (1 - s.chain) * 14, off = (1 - Math.max(s.chain, -.1)) * spec.D;
+    for (const a of ARMS) {
+      const ang = a.ang + a.sg * sp, rad = ang * Math.PI / 180, ux = Math.cos(rad), uy = Math.sin(rad);
+      for (let i = 0; i < spec.n; i++) {
+        const d = spec.s0[a.k] + i * pitch + off, px = cx + ux * d, py = cy + uy * d;
+        const face = i % 2 === 0;
+        const dd = face ? stadium(L.Lf, L.Wf) + (L.hole ? ' ' + stadium(L.Lf - 2 * L.wall, L.Wf - 2 * L.wall) : '') : stadium(L.Ls, L.Ws);
+        links += `<path fill-rule="evenodd" transform="translate(${f2(px)} ${f2(py)}) rotate(${f2(ang)})" d="${dd}"/>`;
+      }
+    }
+  }
+  // 锁
+  const [bx0, bx1, by0, by1, br] = spec.body, bcx = (bx0 + bx1) / 2, bcy = (by0 + by1) / 2, S = spec.sh;
+  const drop = (1 - s.lock) * s.lockFrom, rot = s.lockFrom > 0 ? (1 - s.lock) * 16 : 0, rise = (1 - clamp(s.latch, -.2, 1.2)) * S.rise;
+  const lockTf = `translate(0 ${f2(drop)}) rotate(${f2(rot)} ${bcx} ${bcy})`;
+  const shD = `M${S.l} ${S.base} V${S.cy} A${S.rad} ${S.rad} 0 0 1 ${S.r} ${S.cy} V${S.base}`;
+  const bodyD = rrect(bx0, by0, bx1, by1, br);
+  const lockMask = `<g transform="${lockTf}" opacity="${f2(lA)}"><path d="${bodyD}" fill="#000" stroke="#000" stroke-width="${2 * h}"/><path transform="translate(0 ${f2(-rise)})" d="${shD}" fill="none" stroke="#000" stroke-width="${S.w + 2 * h}" stroke-linecap="round"/></g>`;
+  const M = `x="${-vb}" y="${-vb}" width="${3 * vb}" height="${3 * vb}"`;
+  let out = '';
+  const needMask = cA > .003 || lA > .003;
+  if (needMask) out += `<defs>
+    <mask id="${id}c" maskUnits="userSpaceOnUse" ${M}><rect ${M} fill="#fff"/>
+      <g fill="#000" stroke="#000" stroke-width="${2 * h}" stroke-linejoin="round" opacity="${f2(cA)}">${links}</g>${lA > .003 ? lockMask : ''}</mask>
+    <mask id="${id}k" maskUnits="userSpaceOnUse" ${M}><rect ${M} fill="#fff"/>${lA > .003 ? lockMask : ''}</mask></defs>`;
+  // 两页分开画：镜像后的路径绕向相反，合在一个 path 里重叠处会被 nonzero 抵消出一道缝
+  out += `<g fill="${C.ink}"${needMask ? ` mask="url(#${id}c)"` : ''}><path d="${pagePath(P, vb, false)}"/><path d="${pagePath(P, vb, true)}"/></g>`;
+  if (cA > .003) out += `<g fill="${C.acc}" opacity="${f2(cA)}" mask="url(#${id}k)">${links}</g>`;
+  if (lA > .003) out += `<g transform="${lockTf}" opacity="${f2(lA)}">
+      <path transform="translate(0 ${f2(-rise)})" d="${shD}" fill="none" stroke="${C.acc}" stroke-width="${S.w}"/>
+      <path fill="${C.acc}" fill-rule="evenodd" d="${bodyD} ${keyholeD(bcx, spec.kh[0], spec.kh[1])}"/></g>`;
+  if (s.burst > .01) { // 释放时锁梁处的一下小火花
+    const k = 1 - s.burst, r0 = S.rad + 1.6 + k * 2.2, r1 = r0 + .9 + (1 - k) * 1.2, sy = S.cy - rise;
+    out += `<g stroke="${C.acc}" stroke-width="${f2(vb / 26)}" stroke-linecap="round" opacity="${f2(s.burst)}">` +
+      [-90, -140, -40].map(a => { const r = a * Math.PI / 180;
+        return `<path d="M${f2(bcx + Math.cos(r) * r0)} ${f2(sy + Math.sin(r) * r0)} L${f2(bcx + Math.cos(r) * r1)} ${f2(sy + Math.sin(r) * r1)}"/>`; }).join('') + '</g>';
+  }
+  if (s.star > .005) {
+    const [sx, sy, sr] = spec.star;
+    out += `<path fill="${C.ink}" opacity="${f2(clamp(s.star * 2.5))}" transform="translate(${sx} ${sy}) rotate(${f2((1 - s.star) * -90)}) scale(${f2(Math.max(0, s.star))})" d="${starD(sr)}"/>`;
+  }
+  return out;
+}
+
+/* ---------- 16 px：手工像素几何 ---------- */
+const OPEN16 = { xi: 7, xo: 1, r: .7, yti: 5.2, yto: 4, ybi: 14.8, ybo: 13.6 };
+const open16 = C => `<path fill="${C.ink}" d="${pagePath(OPEN16, 16, false)}"/><path fill="${C.ink}" d="${pagePath(OPEN16, 16, true)}"/>
+  <path fill="${C.ink}" d="M13.5 0 L14.15 .85 L15 1.5 L14.15 2.15 L13.5 3 L12.85 2.15 L12 1.5 L12.85 .85 Z"/>`;
+const SPEC16A = { vb: 16, custom: (sealed, C) => sealed ? `<g fill="${C.acc}">
+    <path fill-rule="evenodd" d="${rrect(0, 9, 3, 12, 1)} M1 10 H2 V11 H1 Z"/>
+    <rect x="3" y="10" width="2" height="1"/>
+    <rect x="11" y="10" width="2" height="1"/>
+    <path fill-rule="evenodd" d="${rrect(13, 9, 16, 12, 1)} M14 10 H15 V11 H14 Z"/>
+    <path fill-rule="evenodd" d="${rrect(5, 8, 11, 14, 1.2)} M7 10.3 A1 1 0 1 1 9 10.3 V12.6 H7 Z"/></g>
+    <path d="M6.5 8.5 V6.5 A1.5 1.5 0 0 1 9.5 6.5 V8.5" fill="none" stroke="${C.acc}" stroke-width="1"/>` : open16(C) };
+const SPEC16B = { vb: 16, custom: (sealed, C) => sealed ? `<defs><mask id="m16b${C.ink.length}${C.ink.charCodeAt(5) || 0}" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="16"><rect width="16" height="16" fill="#fff"/>
+      <path d="${rrect(5, 8, 11, 13, 1)}" stroke="#000" stroke-width="2"/><path d="M6.5 8.5 V6.5 A1.5 1.5 0 0 1 9.5 6.5 V8.5" fill="none" stroke="#000" stroke-width="3"/></mask></defs>
+    <path fill="${C.ink}" mask="url(#m16b${C.ink.length}${C.ink.charCodeAt(5) || 0})" d="${rrect(3, 1, 13, 15, 1.5)}"/>
+    <path fill="${C.acc}" fill-rule="evenodd" d="${rrect(5, 8, 11, 13, 1)} M7 10.3 A1 1 0 1 1 9 10.3 V12 H7 Z"/>
+    <path d="M6.5 8.5 V6.5 A1.5 1.5 0 0 1 9.5 6.5 V8.5" fill="none" stroke="${C.acc}" stroke-width="1"/>` : open16(C) };
+
+const svgWrap = (spec, size, inner, cls = 'ic') =>
+  `<svg xmlns="http://www.w3.org/2000/svg" class="${cls}" width="${size}" height="${size}" viewBox="0 0 ${spec.vb} ${spec.vb}" aria-hidden="true">${inner}</svg>`;
+const staticIcon = (spec, size, sealed, C = VARS) => svgWrap(spec, size, renderIcon(spec, sealed ? SEALED : OPENED, C));
+
+/* ======================================================================
+   弹簧动画：每个部件一条通道
+   ====================================================================== */
+// [延迟 ms, ω (rad/s), ζ]；延迟只在通道静止时生效，正在运动的通道立刻掉头
+const PLAN = {
+  seal:    { star: [0, 46, 1], close: [0, 28, 1], chain: [25, 26, 1], lock: [80, 32, .62], latch: [165, 48, .5] },
+  release: { latch: [0, 40, 1], lock: [40, 15, 1], chain: [70, 15, .92], close: [140, 18, .76], star: [250, 22, .58] },
+};
+const TARGET = { seal: { close: 1, chain: 1, lock: 1, latch: 1, star: 0 }, release: { close: 0, chain: 0, lock: 0, latch: 0, star: 1 } };
+class Anim {
+  constructor(sealed = true) {
+    this.sealed = sealed; const T = TARGET[sealed ? 'seal' : 'release'];
+    this.v = { ...T }; this.tgt = { ...T }; this.vel = {}; this.t0 = {}; this.p = {};
+    for (const k in T) { this.vel[k] = 0; this.t0[k] = 0; this.p[k] = [0, 30, 1]; }
+    this.t = 0; this.burst = 0; this.burstAt = -1; this.lockFrom = 5;
+  }
+  toggle() {
+    this.sealed = !this.sealed; const dir = this.sealed ? 'seal' : 'release', T = TARGET[dir];
+    for (const k in T) {
+      const rest = Math.abs(this.v[k] - this.tgt[k]) < .02 && Math.abs(this.vel[k]) < .05 && this.t >= this.t0[k];
+      const [d, w, z] = PLAN[dir][k];
+      this.t0[k] = this.t + (rest ? d : 0); this.p[k] = [0, w, z]; this.tgt[k] = T[k];
+    }
+    if (this.sealed && this.v.lock < .02) this.lockFrom = -4.5;      // 从上方落下扣合
+    if (!this.sealed && this.v.lock > .97) { this.lockFrom = 5; this.burstAt = this.t + 10; }
+    if (RM) this.snap();
+  }
+  snap() { for (const k in this.v) { this.v[k] = this.tgt[k]; this.vel[k] = 0; this.t0[k] = this.t; } this.burstAt = -1; this.burst = 0; }
+  step(ms) {
+    let left = ms;
+    while (left > 1e-6) {
+      const dt = Math.min(2, left); left -= dt; this.t += dt; const h = dt / 1000;
+      for (const k in this.v) {
+        if (this.t < this.t0[k]) continue;
+        const [, w, z] = this.p[k];
+        const a = -w * w * (this.v[k] - this.tgt[k]) - 2 * z * w * this.vel[k];
+        this.vel[k] += a * h; this.v[k] += this.vel[k] * h;
+      }
+      if (this.burstAt >= 0 && this.t >= this.burstAt) {
+        this.burst = 1 - (this.t - this.burstAt) / 260;
+        if (this.burst <= 0) { this.burst = 0; this.burstAt = -1; }
+      }
+    }
+  }
+  done() {
+    for (const k in this.v) if (this.t < this.t0[k] || Math.abs(this.v[k] - this.tgt[k]) > 4e-4 || Math.abs(this.vel[k]) > 4e-3) return false;
+    return this.burstAt < 0;
+  }
+  state() { return { ...this.v, burst: this.burst, lockFrom: this.lockFrom }; }
+}
+
+/* ---------- 实时实例 ---------- */
+const live = new Set(); let raf = 0, last = 0;
+function loop(now) {
+  const dt = Math.min(40, now - last) / SLOW; last = now;
+  for (const inst of live) { inst.anim.step(dt); inst.draw(); if (inst.anim.done()) live.delete(inst); }
+  raf = live.size ? requestAnimationFrame(loop) : 0;
+}
+function kick(inst) { live.add(inst); if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); } }
+const instances = [];
+function makeLive(host, spec, size, sealed = true) {
+  const id = 'L' + (UID++);
+  host.insertAdjacentHTML('beforeend', svgWrap(spec, size, ''));
+  const svg = host.lastElementChild;
+  const inst = { anim: new Anim(sealed), svg, draw() { svg.innerHTML = renderIcon(spec, this.anim.state(), VARS, id); } };
+  inst.draw(); instances.push(inst); return inst;
+}
+function toggleInst(inst, btn) {
+  inst.anim.toggle(); kick(inst); if (RM) inst.draw();
+  if (btn) { btn.setAttribute('aria-pressed', String(inst.anim.sealed)); btn.title = inst.anim.sealed ? '解除封印' : '封印图片'; }
+}
+
+/* ======================================================================
+   1 · 构造图 + 尺寸表
+   ====================================================================== */
+function construction(sealed) {
+  const sp = SPEC[24], C = { ink: THEME.day.ink, acc: THEME.day.acc };
+  let g = '';
+  for (let i = 0; i <= 24; i++) g += `<path d="M${i} 0 V24 M0 ${i} H24" stroke="rgba(43,39,71,${i % 4 ? .07 : .16})" stroke-width=".04"/>`;
+  const guides = sealed
+    ? `<path d="M0 -1 L24 23 M24 -1 L0 23" stroke="#3B7DD8" stroke-width=".05" stroke-dasharray=".3 .2" fill="none"/>
+       <circle cx="12" cy="11" r=".25" fill="#3B7DD8"/>
+       <rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="#3B7DD8" stroke-width=".05" stroke-dasharray=".3 .2"/>`
+    : `<path d="M11 0 V24 M13 0 V24" stroke="#3B7DD8" stroke-width=".05" stroke-dasharray=".3 .2"/>`;
+  return `<div class="day" style="border-radius:10px;padding:0;background:#F5F0E6"><svg width="288" height="288" viewBox="0 0 24 24" style="display:block;overflow:visible">${g}${renderIcon(sp, sealed ? SEALED : OPENED, C)}${guides}</svg></div>`;
+}
+document.getElementById('cons-s').innerHTML = construction(true);
+document.getElementById('cons-o').innerHTML = construction(false);
+
+const ROWS = [
+  { spec: SPEC16A, size: 16, nm: '16 px', sub: '主方案：锁 + 横链' },
+  { spec: SPEC16B, size: 16, nm: '16 px · 备选', sub: '书 + 锁（无链）' },
+  { spec: SPEC[20], size: 20, nm: '20 px', sub: '实心链节，不开孔' },
+  { spec: SPEC[24], size: 24, nm: '24 px · 母版', sub: '按钮内实际使用' },
+  { spec: SPEC[32], size: 32, nm: '32 px', sub: '同母版结构，整像素重排' },
+];
+const Z = 6;
+function rasterTo(canvas, svgStr, N, bg) {
+  const img = new Image();
+  img.onload = () => {
+    const sm = document.createElement('canvas'); sm.width = N; sm.height = N;
+    const sx = sm.getContext('2d'); sx.fillStyle = bg; sx.fillRect(0, 0, N, N); sx.drawImage(img, 0, 0, N, N);
+    const ctx = canvas.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(sm, 0, 0, N * Z, N * Z);
+    ctx.strokeStyle = bg === THEME.day.bg ? 'rgba(43,39,71,.10)' : 'rgba(244,236,220,.10)'; ctx.lineWidth = 1;
+    for (let i = 1; i < N; i++) { ctx.beginPath(); ctx.moveTo(i * Z + .5, 0); ctx.lineTo(i * Z + .5, N * Z); ctx.moveTo(0, i * Z + .5); ctx.lineTo(N * Z, i * Z + .5); ctx.stroke(); }
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+}
+for (const theme of ['day', 'night']) {
+  const host = document.getElementById('sz-' + theme), C = THEME[theme];
+  host.innerHTML = `<span class="hd">尺寸</span><span class="hd">封印</span><span class="hd">打开</span><span class="hd">封印 · 6× 像素</span><span class="hd">打开 · 6× 像素</span>` +
+    ROWS.map((r, i) => `<div class="nm"><b>${r.nm}</b><span class="lab">${r.sub}</span></div>
+      <div class="one">${staticIcon(r.spec, r.size, true)}</div><div class="one">${staticIcon(r.spec, r.size, false)}</div>
+      <canvas class="zoom" id="z-${theme}-${i}-s" width="${r.size * Z}" height="${r.size * Z}"></canvas>
+      <canvas class="zoom" id="z-${theme}-${i}-o" width="${r.size * Z}" height="${r.size * Z}"></canvas>`).join('');
+  ROWS.forEach((r, i) => {
+    for (const st of ['s', 'o']) {
+      const str = svgWrap(r.spec, r.size, renderIcon(r.spec, st === 's' ? SEALED : OPENED, C));
+      rasterTo(document.getElementById(`z-${theme}-${i}-${st}`), str, r.size, C.bg);
+    }
+  });
+}
+
+/* ======================================================================
+   2 · 图标轨
+   ====================================================================== */
+const RAIL_ICONS = [
+  '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+  '<path d="M3.5 7.5 A2 2 0 0 1 5.5 5.5 H9.5 L11.5 7.5 H18.5 A2 2 0 0 1 20.5 9.5 V17 A2 2 0 0 1 18.5 19 H5.5 A2 2 0 0 1 3.5 17 Z"/>',
+  '<path d="M4 4.5 V11 L12.5 19.5 L19.5 12.5 L11 4 H4.5"/><circle cx="8" cy="8" r="1.3"/>',
+  '<circle cx="11" cy="11" r="6"/><path d="M15.5 15.5 L20 20"/>',
+  '<circle cx="12" cy="12" r="8"/><path d="M12 7.5 V12 L15 14"/>',
+];
+const railIcons = (cur = 0) => RAIL_ICONS.map((d, i) => `<button class="sb ri${i === cur ? ' cur' : ''}" type="button" aria-label="占位图标 ${i + 1}"><svg viewBox="0 0 24 24">${d}</svg></button>`).join('');
+const sealBtn = (sealed, extra = '') => `<button class="sb seal ${extra}" type="button" aria-pressed="${sealed}" aria-label="封印图片（安全模式）" title="${sealed ? '解除封印' : '封印图片'}">${staticIcon(SPEC[24], 24, sealed)}</button>`;
+for (const theme of ['day', 'night']) {
+  const host = document.getElementById('rail-' + theme);
+  const states = [['静止', ''], ['悬停', 'is-hover'], ['按下', 'is-active'], ['键盘焦点', 'is-focus']];
+  host.innerHTML = `
+    <div class="rail" id="rl-${theme}">${railIcons()}<span class="sp"></span><span class="dv"></span><button class="sb seal" type="button" aria-pressed="true" aria-label="封印图片（安全模式）" title="解除封印" id="rb-${theme}"></button></div>
+    <div class="rail" aria-hidden="true">${railIcons()}<span class="sp"></span><span class="dv"></span>${sealBtn(false)}</div>
+    <div>
+      <div class="matrix">
+        <span></span>${states.map(s => `<span class="lab">${s[0]}</span>`).join('')}
+        <span class="lab">封印</span>${states.map(s => sealBtn(true, s[1])).join('')}
+        <span class="lab">打开</span>${states.map(s => sealBtn(false, s[1])).join('')}
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:16px">
+        ${sealBtn(true, 'is-hover')}<span class="tipbox">解除封印</span>
+        <span style="width:16px"></span>
+        ${sealBtn(false, 'is-hover')}<span class="tipbox">封印图片</span>
+      </div>
+      <div class="a11y">&lt;button aria-pressed="true"
+        aria-label="封印图片（安全模式）"
+        title="解除封印"&gt;…&lt;/button&gt;
+封印 = aria-pressed="true"；标签固定，
+提示文字说明“点了会怎样”。
+焦点环：墨色 2 px，外偏 2 px。
+封印态底：强调色 15%（悬停 24%，按下 32%）。</div>
+    </div>`;
+  host.querySelectorAll('.matrix .sb, .tipbox').forEach(b => b.tabIndex = -1);
+  const btn = document.getElementById('rb-' + theme);
+  const inst = makeLive(btn, SPEC[24], 24, true);
+  btn.addEventListener('click', () => toggleInst(inst, btn));
+  inst.btn = btn;
+}
+// 中间那条轨用来并排比较“封印 vs 打开”的分量
+document.querySelectorAll('.railrow > .rail:nth-child(2) .sb').forEach(b => b.tabIndex = -1);
+
+/* ======================================================================
+   3 · 大图 + 胶片帧
+   ====================================================================== */
+for (const theme of ['day', 'night']) {
+  const pad = document.getElementById('big-' + theme);
+  const inst = makeLive(pad, SPEC[24], 192, true);
+  const go = () => toggleInst(inst, pad);
+  pad.addEventListener('click', go);
+  pad.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); go(); } });
+  inst.btn = pad;
+}
+function simulate(startSealed, events, times) {
+  const a = new Anim(startSealed); let t = 0; const out = []; let ei = 0;
+  for (const tt of times) {
+    while (ei < events.length && events[ei] <= tt) { a.step(events[ei] - t); t = events[ei]; a.toggle(); ei++; }
+    a.step(tt - t); t = tt; out.push(a.state());
+  }
+  return out;
+}
+function measure(dir) {
+  const a = new Anim(dir === 'seal' ? false : true); a.toggle(); let t = 0, first = -1, settle = 0;
+  while (!a.done() && t < 3000) {
+    a.step(1); t++;
+    for (const k in a.v) if (Math.abs(a.v[k] - a.tgt[k]) > .01 || t < a.t0[k]) settle = t;
+    if (first < 0) { const v = a.v; if (dir === 'seal' ? (v.close > .97 && v.chain > .97 && v.lock > .97) : (v.close < .03 && v.chain < .03 && v.star > .97)) first = t; }
+  }
+  return { first, settle };
+}
+const range = (a, b, s) => { const r = []; for (let x = a; x <= b + 1e-9; x += s) r.push(Math.round(x)); return r; };
+const film = (title, frames, times, markAt) => `<div class="lab" style="color:#4A4560;font-size:12px"><b>${title}</b></div><div class="strip">` +
+  frames.map((s, i) => `<figure><div${markAt === times[i] ? ' class="mark"' : ''}>${svgWrap(SPEC[24], 48, renderIcon(SPEC[24], s, VARS))}</div><figcaption>${times[i]}</figcaption></figure>`).join('') + '</div>';
+(() => {
+  const tR = range(0, 660, 55), tS = range(0, 396, 33), tI = range(0, 660, 55);
+  const mS = measure('seal'), mR = measure('release');
+  document.getElementById('strips').innerHTML =
+    film('释放（封印 → 打开）：锁梁弹起 → 锁坠落 → 链条向外甩开 → 书翻开 → 星弹出　单位 ms', simulate(true, [0], tR), tR) +
+    film('封印（打开 → 封印）：合书 → 链从外侧滑入缠上 → 锁从上方落下 → 锁梁“咔”一下', simulate(false, [0], tS), tS) +
+    film('中断：释放进行到 165 ms 时再次点击（虚线框）→ 直接从当前画面收回封印，无跳帧', simulate(true, [0, 165], tI), tI, 165) +
+    `<table class="tm"><tr><th>方向</th><th>部件编排（延迟 · 弹簧）</th><th>主体到位</th><th>回弹 &lt; 1%</th></tr>
+      <tr><td>封印</td><td>星 0 ms 收起；书 0 ms 合上；链 25 ms 滑入；锁 80 ms 落下（ζ 0.62，轻微回弹）；锁梁 165 ms 扣合（ζ 0.5，“咔”）</td><td class="n">${mS.first} ms</td><td class="n">${mS.settle} ms</td></tr>
+      <tr><td>释放</td><td>锁梁 0 ms 弹起 + 火花 260 ms；锁 40 ms 坠落旋转；链 70 ms 向外甩开；书 140 ms 翻开（ζ 0.76）；星 250 ms 弹出（ζ 0.58）</td><td class="n">${mR.first} ms</td><td class="n">${mR.settle} ms</td></tr>
+      <tr><td>中断</td><td colspan="3">正在运动的通道立刻换目标（保留速度）；尚未开始的通道照常延迟。封印方向最长部件也在 ≈ 0.35 s 内到位，满足“中途再开启也在 0.3 s 量级内封住”。</td></tr>
+      <tr><td>减少动态</td><td colspan="3">勾选顶部“减少动态效果”或系统开启时：直接切换到终态，不做位移、不做火花。</td></tr></table>`;
+  window.__timing = { seal: mS, release: mR };
+})();
+
+/* ======================================================================
+   4 · 图片墙草图（WAAPI；中断时 commitStyles 后从当前值继续）
+   ====================================================================== */
+const GR = [
+  'linear-gradient(140deg,#F2B8A0,#C9637A)', 'linear-gradient(160deg,#9FC6E8,#5A6FB8)', 'linear-gradient(120deg,#F6E3A1,#E09B5A)',
+  'linear-gradient(150deg,#BFE3C8,#4F9A8A)', 'linear-gradient(130deg,#E7C4F0,#8C6CC9)', 'linear-gradient(170deg,#FCD5CE,#F28C8C)',
+  'linear-gradient(140deg,#B8D8F5,#E8B4D0)', 'linear-gradient(120deg,#2E3A6B,#7B5EA7)', 'linear-gradient(150deg,#F5E6C8,#C8A27A)',
+  'linear-gradient(135deg,#A7E0E0,#3F7FA6)', 'linear-gradient(160deg,#F9C6D6,#B05C8C)', 'linear-gradient(130deg,#DDE8B0,#7DA05A)'];
+const PINS = new Set([2, 9]);
+const wall = document.getElementById('wall');
+wall.innerHTML = GR.map((g, i) => `<div class="slot"><div class="tile" style="background:
+    radial-gradient(circle at ${30 + (i * 17) % 45}% ${35 + (i * 23) % 30}%, rgba(255,255,255,.75) 0 12%, transparent 13%),
+    radial-gradient(ellipse at ${70 - (i * 11) % 40}% 85%, rgba(30,20,50,.35) 0 22%, transparent 23%),
+    linear-gradient(${(i * 37) % 180}deg, transparent 0 58%, rgba(255,255,255,.28) 58% 62%, transparent 62%), ${g}">
+    ${PINS.has(i) ? `<svg class="crack" viewBox="0 0 132 96" preserveAspectRatio="none"><path d="M62 0 L58 22 L70 36 L54 52 L66 70 L60 96 M70 36 L92 40 L104 30 M54 52 L34 58" fill="none" stroke="#FFF8EC" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg>
+      <span class="pin"><svg viewBox="0 0 12 12"><path d="M4 1.5 H8 L7.3 5 L9 6.6 H3 L4.7 5 Z M6 6.6 V10.5" fill="none" stroke="var(--ink)" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/></svg></span>` : ''}
+    <div class="ov"></div></div>
+    ${PINS.has(i) ? `<svg class="badge" viewBox="0 0 30 30"><circle cx="15" cy="15" r="14" fill="var(--bg)" opacity=".9"/>${renderIcon(SPEC16A, SEALED, VARS).replace(/<path/g, '<path transform="translate(7 6)"').replace(/<rect/g, '<rect transform="translate(7 6)"')}</svg>` : ''}
+  </div>`).join('');
+const wrail = document.getElementById('wrail');
+wrail.innerHTML = railIcons() + '<span class="sp"></span><span class="dv"></span><button class="sb seal" type="button" aria-pressed="false" aria-label="封印图片（安全模式）" title="封印图片" id="wbtn"></button>';
+wrail.style.height = 'auto';
+const wbtn = document.getElementById('wbtn');
+const winst = makeLive(wbtn, SPEC[24], 24, false);
+const tiles = [...wall.querySelectorAll('.slot')].map((slot, i) => ({ slot, el: slot.querySelector('.tile'), ov: slot.querySelector('.ov'),
+  pin: PINS.has(i), crack: slot.querySelector('.crack path'), crackSvg: slot.querySelector('.crack'), badge: slot.querySelector('.badge') }));
+
+// 墙面锁链（两条对角线，各在中心断成两半）+ 中央大锁
+const WW = 4 * 132 + 3 * 10, WH = 3 * 96 + 2 * 10, wcx = WW / 2, wcy = WH / 2;
+const wch = document.getElementById('wchains');
+wch.setAttribute('width', WW); wch.setAttribute('height', WH); wch.setAttribute('viewBox', `0 0 ${WW} ${WH}`);
+function wallChainHalf(x1, y1) {
+  const dx = x1 - wcx, dy = y1 - wcy, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len, ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  const Lf = 30, Wf = 19, wall_ = 6, Ls = 19, Ws = 8, g = 4, pitch = (Lf + Ls) / 2 + g;
+  let s = '', i = 0;
+  for (let d = 26; d < len + 30; d += pitch, i++) {
+    const face = i % 2 === 0, dd = face ? stadium(Lf, Wf) + ' ' + stadium(Lf - 2 * wall_, Wf - 2 * wall_) : stadium(Ls, Ws);
+    s += `<path fill-rule="evenodd" transform="translate(${f2(wcx + ux * d)} ${f2(wcy + uy * d)}) rotate(${f2(ang)})" d="${dd}"/>`;
+  }
+  return { html: `<g class="half" fill="var(--acc)" stroke="rgba(20,16,40,.55)" stroke-width="2" paint-order="stroke">${s}</g>`, ux, uy };
+}
+const halves = [[0, 0], [WW, WH], [WW, 0], [0, WH]].map(([x, y]) => wallChainHalf(x, y));
+const bigLock = `<g id="wlock" style="transform-origin:${wcx}px ${wcy}px"><g transform="translate(${wcx - 12 * 7} ${wcy - 14.5 * 7}) scale(7)" stroke="rgba(20,16,40,.55)" stroke-width=".3" paint-order="stroke">
+    <path d="M10.5 12.6 V10.5 A1.5 1.5 0 0 1 13.5 10.5 V12.6" fill="none" stroke="var(--acc)" stroke-width="1.2"/>
+    <path fill="var(--acc)" fill-rule="evenodd" d="${rrect(9, 12, 15, 17, 1.3)} ${keyholeD(12, 12.85, 3.25)}"/></g></g>`;
+wch.innerHTML = halves.map(h => h.html).join('') + bigLock;
+const halfEls = [...wch.querySelectorAll('.half')];
+const wlock = document.getElementById('wlock');
+halfEls.forEach(el => el.style.transformOrigin = `${wcx}px ${wcy}px`);
+const outT = (h, k, rot) => `translate(${f2(h.ux * k)}px, ${f2(h.uy * k)}px) rotate(${rot}deg)`;
+function setOpenRest() {
+  halfEls.forEach((el, i) => { el.style.transform = outT(halves[i], 120, 0); el.style.opacity = 0; });
+  wlock.style.transform = 'translateY(-60px)'; wlock.style.opacity = 0;
+}
+setOpenRest();
+const flash = document.getElementById('flash');
+
+const freeze = el => { if (!el) return; for (const a of el.getAnimations()) { try { a.commitStyles(); } catch (e) {} a.cancel(); } };
+const anim = (el, kf, o) => el && el.animate(kf, { fill: 'forwards', ...o, duration: o.duration * SLOW, delay: (o.delay || 0) * SLOW });
+let wSealed = false, wT0 = 0, wBusyUntil = 0;
+function center(el) { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+const BLUR = 'blur(16px) saturate(.35)', CLEAR = 'blur(0px) saturate(1)';
+
+function wallSeal() {
+  const interrupted = performance.now() < wBusyUntil; const bc = center(wbtn);
+  const order = tiles.map(t => ({ t, d: Math.hypot(center(t.slot).x - bc.x, center(t.slot).y - bc.y) })).sort((a, b) => a.d - b.d);
+  let rank = 0;
+  for (const { t } of order) {
+    [t.el, t.ov, t.crack, t.crackSvg, t.badge].forEach(freeze);
+    if (RM) { t.el.style.filter = BLUR; t.ov.style.opacity = .5; if (!t.pin) t.el.style.opacity = 0; else t.badge.style.opacity = 1; continue; }
+    anim(t.el, [{ filter: BLUR }], { duration: 260, easing: 'cubic-bezier(.2,.7,.2,1)' });       // ≤ 0.3 s 不可辨认
+    anim(t.ov, [{ opacity: .5 }], { duration: 260, easing: 'linear' });
+    if (t.pin) {
+      anim(t.badge, [{ opacity: 1, transform: 'scale(1)' }], { duration: 220, delay: 160, easing: 'cubic-bezier(.3,1.4,.5,1)' });
+      if (t.crackSvg) anim(t.crackSvg, [{ opacity: 0 }], { duration: 100 });
+    } else {
+      const sc = center(t.slot), dx = bc.x - sc.x, dy = bc.y - sc.y, delay = interrupted ? 0 : 300 + rank * 16;
+      anim(t.el, [{ transform: `translate(${f2(dx)}px, ${f2(dy)}px) scale(.06) rotate(-10deg)` }], { duration: 520, delay, easing: 'cubic-bezier(.55,0,.75,.25)', composite: 'replace' });
+      anim(t.el, [{ opacity: 0 }], { duration: 120, delay: delay + 400, easing: 'linear' });
+      rank++;
+    }
+  }
+  halfEls.forEach(el => { freeze(el); if (RM) { el.style.transform = 'none'; el.style.opacity = 1; } else anim(el, [{ transform: 'translate(0px, 0px) rotate(0deg)', opacity: 1 }], { duration: 330, easing: 'cubic-bezier(.2,.9,.3,1.08)' }); });
+  freeze(wlock);
+  if (RM) { wlock.style.transform = 'none'; wlock.style.opacity = 1; }
+  else anim(wlock, [{ transform: 'translateY(0px) rotate(0deg)', opacity: 1 }], { duration: 260, delay: interrupted ? 0 : 160, easing: 'cubic-bezier(.3,1.45,.5,1)' });
+  wBusyUntil = performance.now() + 1050 * SLOW;
+}
+function wallRelease() {
+  const interrupted = performance.now() < wBusyUntil; const bc = center(wbtn);
+  const order = tiles.map(t => ({ t, d: Math.hypot(center(t.slot).x - bc.x, center(t.slot).y - bc.y) })).sort((a, b) => a.d - b.d);
+  freeze(wlock);
+  if (RM) { setOpenRest(); halfEls.forEach(freeze); }
+  else {
+    anim(wlock, [{ transform: 'translateY(46px) rotate(18deg)', opacity: 0 }], { duration: 320, easing: 'cubic-bezier(.5,0,.9,.5)' });
+    halfEls.forEach((el, i) => { freeze(el); anim(el, [{ transform: outT(halves[i], 190, (i % 2 ? 1 : -1) * 22), opacity: 0 }], { duration: 460, delay: interrupted ? 0 : 90, easing: 'cubic-bezier(.12,.7,.3,1)' }); });
+    const ar = document.getElementById('app').getBoundingClientRect();
+    flash.style.left = (bc.x - ar.left - 20) + 'px'; flash.style.top = (bc.y - ar.top - 20) + 'px';
+    freeze(flash);
+    anim(flash, [{ transform: 'scale(0)', opacity: .9 }, { transform: 'scale(14)', opacity: 0 }], { duration: 620, delay: 150, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'none' });
+  }
+  let rank = 0;
+  for (const { t } of order) {
+    [t.el, t.ov, t.crack, t.crackSvg, t.badge].forEach(freeze);
+    if (RM) { t.el.style.filter = CLEAR; t.ov.style.opacity = 0; t.el.style.opacity = 1; t.el.style.transform = 'none'; if (t.badge) t.badge.style.opacity = 0; continue; }
+    if (t.pin) {   // 参考组 / 钉图：原位，裂纹 → 消散，不飞
+      anim(t.badge, [{ opacity: 0, transform: 'scale(1.5)' }], { duration: 180, easing: 'ease-out' });
+      if (t.crackSvg) { t.crackSvg.style.opacity = 1; t.crack.style.strokeDashoffset = 1;
+        anim(t.crack, [{ strokeDashoffset: 0 }], { duration: 170, easing: 'cubic-bezier(.3,.7,.4,1)' });
+        anim(t.crackSvg, [{ opacity: 0 }], { duration: 300, delay: 300, easing: 'ease-in' }); }
+      anim(t.el, [{ filter: CLEAR }], { duration: 420, delay: 160, easing: 'cubic-bezier(.2,.7,.3,1)' });
+      anim(t.ov, [{ opacity: 0 }], { duration: 420, delay: 160, easing: 'ease-out' });
+      continue;
+    }
+    const cur = getComputedStyle(t.el).transform;
+    const curOp = +getComputedStyle(t.el).opacity;
+    if (cur === 'none' || cur === 'matrix(1, 0, 0, 1, 0, 0)') {   // 还没飞走：原位清晰
+      anim(t.el, [{ filter: CLEAR, opacity: 1 }], { duration: 260, easing: 'ease-out' });
+      anim(t.ov, [{ opacity: 0 }], { duration: 260 });
+      continue;
+    }
+    const sc = center(t.slot), dx = bc.x - sc.x, dy = bc.y - sc.y;
+    const delay = interrupted ? 0 : 260 + rank * 26, dur = 680; rank++;
+    anim(t.el, [{ transform: cur }, { transform: `translate(${f2(dx * .42)}px, ${f2(dy * .42 - 70)}px) scale(.62) rotate(7deg)`, offset: .5 },
+      { transform: 'translate(0px, -7px) scale(1.04) rotate(-1deg)', offset: .84 }, { transform: 'none' }], { duration: dur, delay, easing: 'cubic-bezier(.3,.6,.3,1)' });
+    anim(t.el, [{ opacity: curOp }, { opacity: 1, offset: .15 }, { opacity: 1 }], { duration: dur, delay, easing: 'linear' });
+    anim(t.el, [{ filter: CLEAR }], { duration: dur * .5, delay: delay + dur * .45, easing: 'ease-out' });
+    anim(t.ov, [{ opacity: 0 }], { duration: dur * .5, delay: delay + dur * .45, easing: 'ease-out' });
+  }
+  wBusyUntil = performance.now() + 1300 * SLOW;
+}
+function wallToggle() {
+  wSealed = !wSealed; wT0 = performance.now();
+  toggleInst(winst, wbtn);
+  wSealed ? wallSeal() : wallRelease();
+  tickClock();
+}
+wbtn.addEventListener('click', wallToggle);
+function tickClock() {
+  const el = document.getElementById('clock'), t = (performance.now() - wT0) / SLOW;
+  el.textContent = `${wSealed ? '封印' : '释放'} · t = ${Math.min(Math.round(t), 1500)} ms${SLOW > 1 ? '（慢放 ×4，已折算）' : ''}`;
+  if (t < 1500 && !window.__frame) requestAnimationFrame(tickClock);
+}
+document.getElementById('wtheme').addEventListener('click', () => {
+  const p = document.getElementById('wallpanel'); const n = p.classList.contains('day');
+  p.classList.toggle('day', !n); p.classList.toggle('night', n);
+});
+
+// 时间轴
+(() => {
+  const MAX = 1300, X = ms => (ms / MAX * 100).toFixed(2) + '%';
+  const row = (t, a, b, cls = '') => `<div class="r"><span class="t">${t}</span><div class="bar"><i class="${cls}" style="left:${X(a)};width:calc(${X(b - a)})"></i></div></div>`;
+  const ax = `<div class="ax">${[0, 300, 600, 900, 1200].map(m => `<span style="left:${X(m)}">${m}</span>`).join('')}</div>`;
+  document.getElementById('gantt').innerHTML =
+    `<h4>封印 · 总长 ≈ 1.0 s</h4>${ax}
+     <div class="r"><span class="t">全部图模糊到不可辨认</span><div class="bar"><i style="left:0;width:${X(260)}"></i><span class="lim" style="left:${X(300)}" title="300 ms 上限"></span></div></div>
+     ${row('按钮：合书 · 缠链 · 落锁', 0, 360, 'ink')}
+     ${row('墙面锁链从四角滑入', 0, 330)}
+     ${row('中央大锁落下扣合', 160, 420)}
+     ${row('普通图缩小、飞入封印书（近者先）', 300, 1000)}
+     ${row('参考组 / 钉图：原位模糊 + 小锁章', 0, 380)}
+     <h4>释放 · 总长 ≈ 1.25 s（英雄式）</h4>${ax}
+     ${row('大锁坠落', 0, 320)}
+     ${row('按钮：锁梁弹起 · 链甩开 · 书翻开 · 星', 0, 650, 'ink')}
+     ${row('墙面锁链从中心崩断、向外甩飞', 90, 550)}
+     ${row('书页光爆（从按钮扩散）', 150, 770)}
+     ${row('图从书里沿弧线飞回原位，落地微弹', 260, 1226)}
+     ${row('　└ 落地前半程开始去模糊', 566, 1226)}
+     ${row('参考组 / 钉图：裂纹 0–170', 0, 170)}
+     ${row('　└ 原位消散（去模糊），不飞', 160, 600)}
+     <p class="lab" style="margin:8px 0 0">红虚线 = 300 ms 上限。释放途中再点：所有图从当前位置 / 模糊度直接回到封印（模糊 260 ms 内完成，飞行不再等待延迟）。本草图里飞回的图落回自己的原位，所以没有演示“其余图连续补位”；正式实现应让补位用同一条弹簧连续移动（FLIP），不跳。</p>`;
+})();
+
+/* ======================================================================
+   全局工具
+   ====================================================================== */
+document.getElementById('all').addEventListener('click', () => instances.forEach(inst => { if (inst === winst) return; toggleInst(inst, inst.btn); }));
+document.getElementById('slow').addEventListener('change', e => { SLOW = e.target.checked ? 4 : 1; });
+const rmBox = document.getElementById('rm'); rmBox.checked = RM;
+rmBox.addEventListener('change', e => { RM = e.target.checked; });
+
+/* ---------- 截帧钩子：index.html#wall=seal@300 / release@600 / reseal@200（释放 500 ms 时再点）---------- */
+(() => {
+  const m = location.hash.match(/wall=(seal|release|reseal)@(\d+)/); if (!m) return;
+  const [, mode, ms] = m, T = +ms; window.__frame = true;
+  document.querySelectorAll('.wrap > *').forEach(el => { if (el.id !== 'wallpanel') el.style.display = 'none'; });
+  document.querySelector('.wrap').style.padding = '12px';
+  document.getElementById('gantt').style.display = 'none';
+  const seek = t => { document.getAnimations().forEach(a => { a.pause(); a.currentTime = t; }); };
+  const btnStep = t => { winst.anim.step(t); winst.draw(); };
+  const finishAll = () => { document.getAnimations().forEach(a => a.finish()); winst.anim.step(3000); winst.draw(); wBusyUntil = 0; };
+  if (mode === 'seal') { wallToggle(); seek(T); btnStep(T); }
+  if (mode === 'release') { wallToggle(); finishAll(); wallToggle(); seek(T); btnStep(T); }
+  if (mode === 'reseal') { wallToggle(); finishAll(); wallToggle(); seek(500); btnStep(500); wBusyUntil = Infinity; wallToggle(); seek(T); btnStep(T); }
+  document.getElementById('clock').textContent = `${mode === 'reseal' ? '释放 500 ms 时中断 → 封印' : mode === 'seal' ? '封印' : '释放'} · t = ${T} ms`;
+  document.getElementById('clock').style.cssText = 'font-size:15px;color:inherit;font-weight:600';
+})();
+</script>
+</body>
+</html>
