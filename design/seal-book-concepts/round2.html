@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>封印书 · 第二轮</title>
+<style>
+  :root {
+    --page: #E9E4DE; --text: #2B2747; --muted: #6B6680;
+    --slow: 1; --d: calc(340ms * var(--slow));
+    --ease: cubic-bezier(.2, .8, .2, 1);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text);
+    font: 13px/1.6 "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif; }
+  .wrap { width: 1680px; padding: 36px 40px 40px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .02em; }
+  .sub { color: var(--muted); margin: 0 0 14px; }
+  .tools { display: flex; gap: 10px; margin-bottom: 22px; }
+  .tools button, .tools label { font: inherit; color: var(--text); background: #F5F0E6; border: 1px solid #D8D0C2;
+    border-radius: 8px; padding: 4px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+
+  .row { display: grid; grid-template-columns: 250px 1fr 1fr; gap: 14px; margin-bottom: 14px; align-items: stretch; }
+  .desc h2 { font-size: 16px; margin: 6px 0 2px; }
+  .desc .tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid #CFC7B8;
+    border-radius: 99px; padding: 0 8px; margin-bottom: 6px; }
+  .desc p { margin: 0 0 6px; color: #4A4560; }
+  .desc .echo { color: var(--muted); font-size: 12px; }
+  .desc .risk { font-size: 12px; }
+  .risk b { font-weight: 600; }
+
+  .card { border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 18px; }
+  .day   { --ink: #2B2747; --acc: #E0768F; --cut: #F5F0E6; --tile: #ECE4D4; --grid: rgba(43,39,71,.07); --lab: #8A8499; background: var(--cut); }
+  .night { --ink: #F4ECDC; --acc: #E3B34F; --cut: #1E1B2E; --tile: #141221; --grid: rgba(244,236,220,.07); --lab: #8C87A3; background: var(--cut); }
+
+  .btnbox { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .tbtn { --cut: var(--tile); width: 40px; height: 40px; border-radius: 10px; border: 0; padding: 0; cursor: pointer;
+    background: var(--tile); display: grid; place-items: center;
+    transition: transform 120ms var(--ease), box-shadow 160ms; }
+  .tbtn:hover { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--ink) 18%, transparent); }
+  .tbtn:active { transform: scale(.92); }
+  .tbtn:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+  .lab { font-size: 11px; color: var(--lab); text-align: center; }
+
+  .sizes { display: flex; align-items: flex-end; gap: 10px; }
+  .sizes figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .sizes .sep { width: 1px; align-self: stretch; background: var(--grid); margin: 0 2px; }
+  .big { display: flex; gap: 10px; margin-left: auto; }
+  .big figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .big .pad { width: 92px; height: 92px; border-radius: 8px; display: grid; place-items: center;
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 3.5px 3.5px; background-position: 2px 2px; outline: 1px solid var(--grid); }
+
+  svg.ic { display: block; overflow: visible; }
+  svg.ic * { transform-box: fill-box; transform-origin: center; }
+  .C, .O, .C *, .O * { transition: opacity var(--d) var(--ease), transform var(--d) var(--ease), fill var(--d), stroke var(--d), d var(--d) var(--ease); }
+  .O { opacity: 0; transform: scale(.86); }
+  .open .O { opacity: 1; transform: none; }
+  .open .C { opacity: 0; }
+
+  /* 1 封蜡：蜡印裂成两半落下 */
+  .c1 .C .cov { transition-delay: calc(var(--d) * .25); }
+  .c1.open .C { opacity: 1; }
+  .c1.open .C .cov, .c1.open .C .ring, .c1.open .C .kh { opacity: 0; }
+  .c1.open .C .kh { transition-duration: calc(var(--d) * .3); }
+  .c1.open .sL { transform: translate(-1.6px, 5px) rotate(-38deg); opacity: 0; }
+  .c1.open .sR { transform: translate(2.4px, 6px) rotate(32deg); opacity: 0; }
+
+  /* 2 扣带：带扣向右滑开 */
+  .c2.open .C { opacity: 1; }
+  .c2.open .C .bk { opacity: 0; }
+  .c2.open .C .strap { transform: translateX(6px); opacity: 0; }
+
+  /* 3 御札：符纸揭起飘走 */
+  .c3 .tal { transform-origin: 50% 0; }
+  .c3.open .C { opacity: 1; }
+  .c3.open .C .bk { opacity: 0; }
+  .c3.open .C .tal { transform: translate(6px, -5px) rotate(28deg) scale(.8); opacity: 0; }
+
+  /* 4 封印阵：阵环旋开，阵眼星飞到右上 */
+  .c4.open .C { opacity: 1; }
+  .c4.open .C .bk { opacity: 0; }
+  .c4.open .C .ringg { transform: rotate(100deg) scale(1.3); opacity: 0; }
+  .c4 .st4 { fill: var(--acc); }
+  .c4.open .st4 { transform: translate(7.6px, -7.4px) scale(.74) rotate(90deg); fill: var(--ink); }
+
+  /* 5 锁链：锁落下，链条沿对角线抽走 */
+  .c5.open .C { opacity: 1; }
+  .c5.open .C .bk { opacity: 0; }
+  .c5.open .C .ch1 { transform: translate(7px, 3.6px); opacity: 0; }
+  .c5.open .C .ch2 { transform: translate(-7px, 3.6px); opacity: 0; }
+  .c5.open .C .lock { transform: translateY(6px) rotate(24deg); opacity: 0; }
+
+  /* 6 书签化书：logo 书签的两半直接变形为书页 */
+  .c6 .lh { d: path("M12.05 4 L8.5 4 C7.67 4 7 4.67 7 5.5 L7 20 L12.05 17 Z"); fill: var(--acc); }
+  .c6 .rh { d: path("M11.95 4 L15.5 4 C16.33 4 17 4.67 17 5.5 L17 20 L11.95 17 Z"); fill: var(--acc); }
+  .c6.open .lh { d: path("M11.4 7.6 L4 6.1 C3.45 6.1 3 6.55 3 7.1 L3 19.6 L11.4 21.2 Z"); fill: var(--ink); }
+  .c6.open .rh { d: path("M12.6 7.6 L20 6.1 C20.55 6.1 21 6.55 21 7.1 L21 19.6 L12.6 21.2 Z"); fill: var(--ink); }
+  .c6 .kh6 { transition: opacity calc(var(--d) * .4), transform calc(var(--d) * .4); }
+  .c6.open .kh6 { opacity: 0; transform: scale(.3); }
+  .c6 .st6 { transform: scale(0) rotate(-120deg); opacity: 0; transition-delay: calc(var(--d) * .35); }
+  .c6.open .st6 { transform: none; opacity: 1; }
+
+  /* 7 磨砂：玻璃板滑落，模糊的书变清楚 */
+  .c7.open .C { opacity: 1; }
+  .c7.open .C .blurbk { opacity: 0; }
+  .c7.open .C .pane { transform: translateY(5px); opacity: 0; }
+  .c7 .O { transform: none; }
+
+  /* 8 像素：逐帧切换 */
+  .c8 .C, .c8 .O { transform: none; transition: opacity var(--d) steps(3, jump-none); }
+  .c8.open .spark { animation: tw calc(var(--d) * 1.4) steps(2, jump-none) 2; }
+  @keyframes tw { 50% { opacity: 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .C, .O, .C *, .O * { transition: opacity 120ms !important; transform: none !important; }
+  }
+
+  .notes { margin-top: 18px; color: #4A4560; font-size: 12.5px; }
+  .notes p { margin: 3px 0; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="fb" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.15"/></filter>
+</svg>
+<div class="wrap">
+  <h1>封印书控件 · 第二轮：八种风格</h1>
+  <p class="sub">#27 · 图标轨底部 40 px 按钮。每个方向都是左边日间、右边夜间；按钮可点击切换并播放控件自身的切换动效（不是图片墙的封印 / 释放特效）。小尺寸为 24 网格直接缩放，未做 16 px 专用几何（像素风除外）。</p>
+  <div class="tools">
+    <button id="all" type="button">全部切换</button>
+    <label><input id="slow" type="checkbox"> 慢放 ×4</label>
+  </div>
+  <div id="rows"></div>
+  <div class="notes">
+    <p><b>颜色规则（沿用第一轮）</b>：封印态用强调色（日间樱粉、夜间金），表示“有东西被收起来了”；打开态只用墨色 / 奶油，回到普通图标的分量。</p>
+    <p><b>星</b>：所有打开态都在右上角放 logo 的四角星，接 logo kit 的意象；封印态的锁孔都取自 logo 书签的锁孔形状。</p>
+    <p><b>未做</b>：16 px 专用几何、悬停 / 按下的细节状态、与图片墙特效的联动时序。选定方向后再做。</p>
+  </div>
+</div>
+<script>
+const f = n => +n.toFixed(2);
+const star = (cx, cy, r, cls = '') => { const k = .16 * r;
+  return `<path class="${cls}" fill="var(--ink)" d="M${cx} ${f(cy-r)} Q${f(cx+k)} ${f(cy-k)} ${f(cx+r)} ${cy} Q${f(cx+k)} ${f(cy+k)} ${cx} ${f(cy+r)} Q${f(cx-k)} ${f(cy+k)} ${f(cx-r)} ${cy} Q${f(cx-k)} ${f(cy-k)} ${cx} ${f(cy-r)}Z"/>`; };
+const starD = (cx, cy, r) => { const k = .16 * r;
+  return `M${cx} ${f(cy-r)} Q${f(cx+k)} ${f(cy-k)} ${f(cx+r)} ${cy} Q${f(cx+k)} ${f(cy+k)} ${cx} ${f(cy+r)} Q${f(cx-k)} ${f(cy+k)} ${f(cx-r)} ${cy} Q${f(cx-k)} ${f(cy-k)} ${cx} ${f(cy-r)}Z`; };
+const key = (cx, cy, s, fill, cls = 'kh') =>
+  `<g class="${cls}" fill="${fill}"><circle cx="${cx}" cy="${f(cy-.55*s)}" r="${f(.8*s)}"/><path d="M${f(cx-.32*s)} ${f(cy-.4*s)} L${f(cx+.32*s)} ${f(cy-.4*s)} L${f(cx+.62*s)} ${f(cy+1.35*s)} L${f(cx-.62*s)} ${f(cy+1.35*s)} Z"/></g>`;
+
+const PAGES_D = ['M11.3 7.8 C9.4 6.5 6.8 6 4 6.1 C3.4 6.1 3 6.5 3 7.1 V18.6 C3 19.2 3.4 19.6 4 19.6 C6.8 19.5 9.4 20 11.3 21.4 Z',
+                 'M12.7 7.8 C14.6 6.5 17.2 6 20 6.1 C20.6 6.1 21 6.5 21 7.1 V18.6 C21 19.2 20.6 19.6 20 19.6 C17.2 19.5 14.6 20 12.7 21.4 Z'];
+const openFilled = `<g class="O">${PAGES_D.map(d => `<path fill="var(--ink)" d="${d}"/>`).join('')}${star(19.6, 3.2, 2.3)}</g>`;
+const cover = (x0, x1) => `<path fill="var(--ink)" d="M${x0+2} 3 H${x1-2} A2 2 0 0 1 ${x1} 5 V19 A2 2 0 0 1 ${x1-2} 21 H${x0+2} A2 2 0 0 1 ${x0} 19 V5 A2 2 0 0 1 ${x0+2} 3 Z"/>`;
+
+const PX_C = ['................','..###########...','..#w##########..','..#w##########..','..#w######aaa#..','..#w#####a###a..',
+  '..#w####aaaaaaa.','..#w####aaaaaaa.','..#w####aaawaaa.','..#w####aaawaaa.','..#w####aaaaaaa.','..#w####aaaaaaa.',
+  '..#w##########..','..##wwwwwwwww#..','...###########..','................'];
+const PX_O = ['............#...','...........###..','............#...','................','.##..........##.','.####......####.',
+  '.######..######.','.######..######.','.######..######.','.######..######.','.######..######.','.######..######.',
+  '.######..######.','..#####..#####..','.....##..##.....','................'];
+const px = (map, onlyAcc) => map.map((row, y) => [...row].map((ch, x) => {
+  const col = { '#': 'var(--ink)', a: 'var(--acc)', w: 'var(--cut)' }[ch];
+  return col ? `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${col}"/>` : ''; }).join('')).join('');
+
+const C = [
+  { id: 1, name: '封蜡', tag: '扁平 · 书信', desc: '书口压一枚蜡印，锁孔印在蜡上。打开时蜡印裂成两半落下，书翻开、星出现。',
+    echo: '与墙面的呼应：参考组和钉图的“封印碎裂”可以直接用这枚蜡印裂开。',
+    risk: '16 px：蜡印仍是醒目的色块，可读性好。',
+    body: () => `<g class="C">
+      <g class="cov">${cover(4, 17)}<rect x="6" y="17" width="7" height="2" rx="1" fill="var(--cut)"/></g>
+      <circle class="ring" cx="16.5" cy="12" r="5.5" fill="var(--cut)"/>
+      <path class="sL" fill="var(--acc)" d="M16.5 7.6 A4.4 4.4 0 0 0 16.5 16.4 Z"/>
+      <path class="sR" fill="var(--acc)" d="M16.4 7.6 A4.4 4.4 0 0 1 16.4 16.4 Z"/>
+      ${key(16.5, 12, 1.15, 'var(--cut)')}</g>${openFilled}` },
+  { id: 2, name: '扣带', tag: '线性 · 古籍', desc: '描线风格。合上的书被一条带扣扣住，锁孔在扣上；打开时带扣向右滑开。',
+    echo: '与墙面的呼应：释放时可把“解扣”做成一声短促的位移，再接书打开。',
+    risk: '16 px：1.5 线宽在 16 px 下约 1 px，需专门对齐像素。和其他线性图标最统一。',
+    body: () => `<g class="C"><g class="bk" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-linejoin="round">
+        <rect x="4.75" y="3.75" width="12.5" height="16.5" rx="2"/><path d="M8 4 V20"/></g>
+      <g class="strap"><rect x="12.4" y="9" width="8.6" height="6" rx="2" fill="var(--cut)" stroke="var(--acc)" stroke-width="1.5"/>
+      ${key(16.7, 12.1, .8, 'var(--acc)', 'k')}</g></g>
+      <g class="O"><g fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-linejoin="round">${PAGES_D.map(d => `<path d="${d}" transform="scale(.9)"/>`).join('')}</g>${star(19.6, 3.2, 2.3)}</g>` },
+  { id: 3, name: '御札', tag: '和风 · 二次元', desc: '书上竖贴一张符纸，纸上一枚圆印和三行笔画。打开时符纸从上端揭起、飘走。',
+    echo: '与墙面的呼应：封印时符纸可以“啪”地贴满被遮的图；钉图的消散是符纸烧尽。',
+    risk: '16 px：符纸上的笔画会糊成一条，需要删到只剩圆印。',
+    body: () => `<g class="C"><g class="bk">${cover(5, 19)}<rect x="7" y="17" width="10" height="2" rx="1" fill="var(--cut)"/></g>
+      <g class="tal"><rect x="8.9" y=".6" width="6.2" height="22.8" rx=".9" fill="var(--cut)"/>
+        <rect x="9.6" y="1.3" width="4.8" height="21.4" rx=".5" fill="var(--acc)"/>
+        <circle cx="12" cy="6.4" r="1.35" fill="none" stroke="var(--cut)" stroke-width=".85"/>
+        <path d="M10.9 10.6 H13.1 M10.9 13 H13.1 M10.9 15.4 H13.1" stroke="var(--cut)" stroke-width=".85" stroke-linecap="round"/></g></g>${openFilled}` },
+  { id: 4, name: '封印阵', tag: '魔法 · 奇幻', desc: '书被一圈阵环围住，阵眼是 logo 的星。打开时阵环旋转散开，星从封面中央飞到右上角。',
+    echo: '与墙面的呼应：星的飞行就是“图飞回原位”的缩影；阵环散开可做成全屏的一圈光。',
+    risk: '16 px：阵环和书的间隙只剩半像素，阵环建议加粗或改成四段弧。',
+    body: () => `<g class="C"><g class="bk"><rect x="6.5" y="4.5" width="11" height="15" rx="1.8" fill="var(--ink)"/>
+        <rect x="8.5" y="16.3" width="7" height="1.7" rx=".85" fill="var(--cut)"/></g>
+      <g class="ringg"><circle cx="12" cy="12" r="9.7" fill="none" stroke="var(--cut)" stroke-width="2.6"/>
+        <circle cx="12" cy="12" r="9.7" fill="none" stroke="var(--acc)" stroke-width="1.3" stroke-dasharray="13.7 1.54" transform="rotate(-50)"/></g></g>
+      <g class="O">${PAGES_D.map(d => `<path fill="var(--ink)" d="${d}"/>`).join('')}</g>
+      <path class="st4" d="${starD(12, 10.6, 3.1)}"/>` },
+  { id: 5, name: '锁链', tag: '夸张 · 游戏', desc: '两道锁链交叉缠住书，中间挂一把锁。打开时锁落下、链条沿对角线抽走。',
+    echo: '与墙面的呼应：最“英雄式”的释放——链条崩断适合配夸张的整墙演出。',
+    risk: '16 px：链节与锁会挤在一起，最难缩小；需要单独的简化版（只留锁）。',
+    body: () => `<g class="C"><g class="bk">${cover(5, 19)}<rect x="7" y="17" width="10" height="2" rx="1" fill="var(--cut)"/></g>
+      <g class="ch1"><path d="M1.5 6.5 L22.5 17.5" stroke="var(--cut)" stroke-width="3.4" stroke-linecap="round"/>
+        <path d="M1.5 6.5 L22.5 17.5" stroke="var(--acc)" stroke-width="1.9" stroke-dasharray="2.4 1.1"/></g>
+      <g class="ch2"><path d="M1.5 17.5 L22.5 6.5" stroke="var(--cut)" stroke-width="3.4" stroke-linecap="round"/>
+        <path d="M1.5 17.5 L22.5 6.5" stroke="var(--acc)" stroke-width="1.9" stroke-dasharray="2.4 1.1"/></g>
+      <g class="lock"><path d="M10.2 11 V9.4 A1.8 1.8 0 0 1 13.8 9.4 V11" fill="none" stroke="var(--cut)" stroke-width="3"/>
+        <rect x="8.3" y="9.9" width="7.4" height="6.8" rx="1.8" fill="var(--cut)"/>
+        <path d="M10.2 11 V9.4 A1.8 1.8 0 0 1 13.8 9.4 V11" fill="none" stroke="var(--acc)" stroke-width="1.3"/>
+        <rect x="9" y="10.6" width="6" height="5.4" rx="1.2" fill="var(--acc)"/>${key(12, 13, .75, 'var(--cut)', 'k')}</g></g>${openFilled}` },
+  { id: 6, name: '书签化书', tag: '极简 · 变形', desc: '封印态就是 logo 书签本身。打开时书签的两半直接变形成两页，底部的 V 口变成书脊，星随后出现。',
+    echo: '与墙面的呼应：变形的连续感与“补位要连续、不能跳变”是同一种原则。',
+    risk: '16 px：直接用 logo kit 的 micro 书签，小尺寸最稳。',
+    body: () => `<path class="lh" d="M12.05 4 L8.5 4 C7.67 4 7 4.67 7 5.5 L7 20 L12.05 17 Z"/>
+      <path class="rh" d="M11.95 4 L15.5 4 C16.33 4 17 4.67 17 5.5 L17 20 L11.95 17 Z"/>
+      <path class="kh6" fill="var(--cut)" d="M11.2 11.83 A2 2 0 1 1 12.8 11.83 L13.5 14.5 H10.5 Z"/>${star(19.6, 3.2, 2.3, 'st6')}` },
+  { id: 7, name: '磨砂', tag: '玻璃 · 柔和', desc: '书其实是打开的，只是隔着一块磨砂玻璃，玻璃上有锁孔。打开时玻璃滑落，模糊的书变清楚。',
+    echo: '与墙面的呼应：控件就是安全模式本身的样子（原位模糊），最直白，与 R6 玻璃 app 图标同族。',
+    risk: '16 px：模糊在小尺寸下近似一块灰，靠强调色边框和锁孔识别。',
+    body: () => `<g class="O">${PAGES_D.map(d => `<path fill="var(--ink)" d="${d}"/>`).join('')}${star(19.6, 3.2, 2.3)}</g>
+      <g class="C"><g class="blurbk" filter="url(#fb)" opacity=".85">${PAGES_D.map(d => `<path fill="var(--ink)" d="${d}"/>`).join('')}</g>
+      <g class="pane"><rect x="2.2" y="4.4" width="19.6" height="18" rx="3.4" fill="var(--cut)" fill-opacity=".55" stroke="var(--acc)" stroke-width="1.4"/>
+        ${key(12, 13.2, 1.35, 'var(--acc)', 'k')}</g></g>` },
+  { id: 8, name: '像素魔导书', tag: '像素 · 复古 RPG', desc: '16 × 16 像素画：上锁的魔导书 / 打开的书与闪光。切换按 3 帧跳变，闪光闪两下。',
+    echo: '与墙面的呼应：可让整墙特效也走低帧率“像素溶解”，性能最省。',
+    risk: '只能整数倍显示（16 / 32 / 48 px）；40 px 按钮里放 32 px。与其余界面的平滑风格不一致。',
+    pixel: true,
+    body: () => `<g class="C" shape-rendering="crispEdges">${px(PX_C)}</g><g class="O" shape-rendering="crispEdges">${px(PX_O.slice(3).map(r=>r), 0).replace(/y="(\d+)"/g, (m, y) => `y="${+y + 3}"`)}<g class="spark">${px(PX_O.slice(0, 3))}</g></g>` },
+];
+
+const icon = (c, size, open) => {
+  const vb = c.pixel ? '0 0 16 16' : '0 0 24 24';
+  return `<svg class="ic c${c.id}${open ? ' open' : ''}" width="${size}" height="${size}" viewBox="${vb}" aria-hidden="true">${c.body()}</svg>`;
+};
+const sizes = c => c.pixel ? [16, 32, 48] : [16, 20, 24, 32];
+
+const card = (c, theme) => `
+  <div class="card ${theme}">
+    <div class="btnbox"><button class="tbtn" type="button" aria-pressed="true" title="安全模式（点击切换）">${icon(c, c.pixel ? 32 : 24, false)}</button><span class="lab">点击切换</span></div>
+    <div class="sizes">
+      ${sizes(c).map(s => `<figure>${icon(c, s, false)}<figcaption class="lab">${s}</figcaption></figure>`).join('')}
+      <span class="sep"></span>
+      ${sizes(c).map(s => `<figure>${icon(c, s, true)}<figcaption class="lab">${s}</figcaption></figure>`).join('')}
+    </div>
+    <div class="big">
+      <figure><div class="pad">${icon(c, c.pixel ? 80 : 84, false)}</div><figcaption class="lab">封印</figcaption></figure>
+      <figure><div class="pad">${icon(c, c.pixel ? 80 : 84, true)}</div><figcaption class="lab">打开</figcaption></figure>
+    </div>
+  </div>`;
+
+document.getElementById('rows').innerHTML = C.map((c, i) => `
+  <section class="row">
+    <div class="desc"><h2>${String.fromCharCode(65 + i)} · ${c.name}</h2><span class="tag">${c.tag}</span>
+      <p>${c.desc}</p><p class="echo">${c.echo}</p><p class="risk"><b>小尺寸</b>　${c.risk.replace(/^16 px：/, '')}</p></div>
+    ${card(c, 'day')}${card(c, 'night')}
+  </section>`).join('');
+
+document.querySelectorAll('.tbtn').forEach(b => b.addEventListener('click', () => {
+  const svg = b.querySelector('svg'); const open = svg.classList.toggle('open');
+  b.setAttribute('aria-pressed', String(!open));
+}));
+document.getElementById('all').addEventListener('click', () => document.querySelectorAll('.tbtn').forEach(b => b.click()));
+document.getElementById('slow').addEventListener('change', e => document.documentElement.style.setProperty('--slow', e.target.checked ? 4 : 1));
+</script>
+</body>
+</html>

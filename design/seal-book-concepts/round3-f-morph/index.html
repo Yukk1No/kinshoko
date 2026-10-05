@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>封印书 · 书签化书</title>
+<style>
+  :root {
+    --page: #E9E4DE; --text: #2B2747; --muted: #6B6680; --soft: #4A4560; --line: #D8D0C2;
+    --slow: 1;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text);
+    font: 13px/1.6 "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif; }
+  .wrap { width: 1680px; padding: 36px 40px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .02em; }
+  h2 { font-size: 16px; margin: 30px 0 4px; }
+  h3 { font-size: 13px; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin: 0 0 12px; max-width: 1180px; }
+  .tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0 4px; }
+  .tools button, .tools label, .tools select { font: inherit; color: var(--text); background: #F5F0E6; border: 1px solid var(--line);
+    border-radius: 8px; padding: 4px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .tools .hint { color: var(--muted); font-size: 12px; }
+  .lab { font-size: 11px; color: var(--lab); text-align: center; line-height: 1.35; }
+  .note { color: var(--soft); font-size: 12.5px; }
+  .note b { font-weight: 600; }
+
+  .day   { --ink: #2B2747; --acc: #E0768F; --bg: #F7F3EA; --rail: #EFE8DA; --lab: #8A8499; --grid: rgba(43,39,71,.08); --focus: #2B2747; --ic: rgba(43,39,71,.55); background: var(--bg); color: #2B2747; }
+  .night { --ink: #F4ECDC; --acc: #E3B34F; --bg: #1E1B2E; --rail: #252239; --lab: #8C87A3; --grid: rgba(244,236,220,.08); --focus: #F4ECDC; --ic: rgba(244,236,220,.55); background: var(--bg); color: #F4ECDC; }
+  .card { border-radius: 14px; padding: 16px 18px; }
+
+  /* ---------- live icon (CSS d morph) ---------- */
+  svg.ic { display: block; overflow: visible; }
+  .live .L { d: var(--sL); }
+  .live .R { d: var(--sR); }
+  .live.open .L { d: var(--oL); }
+  .live.open .R { d: var(--oR); }
+  .live .kh { transform-box: view-box; transform-origin: var(--ko); }
+  .live .st { transform-box: view-box; transform-origin: var(--so); }
+  .live.v-A .pg, .live.v-B .pg { fill: var(--acc); }
+  .live.open.v-A .pg, .live.open.v-B .pg { fill: var(--ink); }
+  .live.v-C .pg { fill: var(--ink); }
+  .live .plug { display: none; }
+  .live.v-B .plug { display: inline; fill: var(--ink); }
+  .live.v-C .plug { display: inline; fill: var(--acc); }
+  .live .star { fill: var(--ink); }
+  /* 悬停预示：封印态书签微微张开 14% */
+  .peek .sb:hover .live:not(.open) .L, .peek .sb.is-hover .live:not(.open) .L { d: var(--pL); }
+  .peek .sb:hover .live:not(.open) .R, .peek .sb.is-hover .live:not(.open) .R { d: var(--pR); }
+  html.rm .live, html.rm .live * { transition: none !important; }
+  @media (prefers-reduced-motion: reduce) { .live, .live * { transition: none !important; } }
+
+  /* ---------- 40 px rail button ---------- */
+  .sb { width: 40px; height: 40px; border-radius: 10px; border: 0; padding: 0; margin: 0; cursor: pointer; color: inherit;
+    background: transparent; display: grid; place-items: center; position: relative;
+    transition: background-color 120ms ease, transform 220ms cubic-bezier(.22,1,.36,1); -webkit-tap-highlight-color: transparent; }
+  .sb:hover, .sb.is-hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+  .sb:active, .sb.is-active { background: color-mix(in srgb, var(--ink) 12%, transparent); transform: scale(.92); transition-duration: 80ms; }
+  .sb:focus { outline: none; }
+  .sb:focus-visible, .sb.is-focus { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .ricon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: var(--ic); }
+  .ricon.on { background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--ink); }
+
+  /* ---------- section 1 ---------- */
+  .construct { display: flex; gap: 18px; align-items: flex-start; }
+  .construct figure { margin: 0; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .construct .spec { flex: 1; font-size: 12.5px; color: var(--soft); }
+  .construct .spec table { border-collapse: collapse; font-size: 12px; }
+  .construct .spec td, .construct .spec th { padding: 2px 10px 2px 0; text-align: left; vertical-align: top; }
+  .construct .spec th { color: var(--muted); font-weight: 500; }
+  .geo { display: flex; gap: 14px; margin-top: 12px; }
+  .geo .blk { display: flex; flex-direction: column; gap: 8px; }
+  .geo .blk + .blk { border-left: 1px solid var(--grid); padding-left: 14px; }
+  .geo .t { font-weight: 600; font-size: 12px; }
+  .geo .ones { display: flex; gap: 14px; align-items: flex-end; min-height: 34px; }
+  .geo .ones figure, .geo .zooms figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .geo .zooms { display: flex; gap: 8px; }
+  canvas.zoom { display: block; border-radius: 4px; }
+  .kitcheck { margin-top: 8px; font-size: 12px; color: var(--muted); }
+  .kitcheck b.ok { color: #3D8A5A; } .kitcheck b.bad { color: #C0392B; }
+
+  /* ---------- section 2 ---------- */
+  .states { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .matrix { display: grid; grid-template-columns: 70px repeat(5, 92px); align-items: center; row-gap: 10px; }
+  .matrix .h { font-size: 11px; color: var(--lab); text-align: center; }
+  .matrix .rh { font-size: 12px; color: var(--lab); }
+  .matrix .c { display: grid; place-items: center; }
+  .rails { display: flex; gap: 14px; margin-top: 14px; align-items: stretch; }
+  .railbox { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .rail { width: 56px; height: 360px; border-radius: 14px; background: var(--rail); display: flex; flex-direction: column; align-items: center; padding: 10px 0; gap: 4px; }
+  .rail .brand { width: 40px; height: 40px; display: grid; place-items: center; }
+  .rail .div { width: 24px; height: 1px; background: var(--grid); margin: 4px 0; }
+  .rail .sp { flex: 1; }
+  .railcap { font-size: 11.5px; color: var(--muted); width: 92px; text-align: center; line-height: 1.4; }
+  .aria { font: 12px/1.6 Consolas, "Cascadia Mono", monospace; background: #F5F0E6; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; color: #3B3654; white-space: pre; }
+  .tip { position: absolute; left: 48px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 12px; padding: 4px 9px; border-radius: 7px;
+    background: var(--ink); color: var(--bg); pointer-events: none; opacity: 0; transition: opacity 120ms; z-index: 3; }
+  .sb:hover .tip, .sb:focus-visible .tip, .sb.show-tip .tip { opacity: 1; transition-delay: 400ms; }
+  .sb.show-tip .tip { transition-delay: 0ms; }
+
+  /* ---------- section 3 ---------- */
+  .morph { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .morph .card { display: flex; gap: 22px; align-items: center; }
+  .pad { border-radius: 10px; display: grid; place-items: center;
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 8px 8px; background-position: -1px -1px; outline: 1px solid var(--grid); }
+  .morph .side { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  .morph .tg { font: inherit; font-size: 12px; color: var(--ink); background: transparent; border: 1px solid var(--grid); border-radius: 8px; padding: 3px 10px; cursor: pointer; }
+  .frames { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .frow { display: flex; gap: 8px; align-items: flex-end; margin: 6px 0 10px; }
+  .frow figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .frow .rl { width: 76px; font-size: 12px; color: var(--lab); align-self: center; }
+  .timing { font-size: 12px; color: var(--soft); }
+  .timing table { border-collapse: collapse; }
+  .timing td, .timing th { padding: 2px 12px 2px 0; text-align: left; }
+  .timing th { color: var(--muted); font-weight: 500; }
+  .bar { position: relative; height: 12px; width: 300px; background: rgba(43,39,71,.06); border-radius: 3px; }
+  .bar i { position: absolute; top: 2px; height: 8px; border-radius: 2px; background: #2B2747; }
+  .bar i.a { background: #E0768F; } .bar i.g { background: #E3B34F; } .bar i.m { background: #8A8499; }
+  #selftest { font: 12px/1.5 Consolas, monospace; color: #3B3654; white-space: pre-wrap; margin: 6px 0 0; }
+
+  /* ---------- section 4 : wall ---------- */
+  .walldemo { position: relative; display: flex; gap: 18px; border-radius: 14px; padding: 16px; overflow: hidden; }
+  .walldemo .rail { height: auto; min-height: 300px; }
+  .wallarea { display: flex; flex-direction: column; gap: 14px; }
+  .wall { display: grid; grid-template-columns: repeat(6, 84px); gap: 8px; align-content: start; min-height: 176px; }
+  .tile { width: 84px; height: 84px; border-radius: 8px; position: relative; overflow: hidden; }
+  .tile .art, .tile .veil { position: absolute; inset: 0; }
+  .tile .veil { background: var(--acc); opacity: 0; }
+  .tile .tag { position: absolute; left: 5px; top: 5px; font-size: 10px; line-height: 1; padding: 3px 4px; border-radius: 4px; background: rgba(0,0,0,.42); color: #fff; }
+  .tile .badge { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; opacity: 0; }
+  .tile .crack { position: absolute; inset: 0; opacity: 0; }
+  .ghost { position: absolute; margin: 0; z-index: 6; transform-origin: 50% 50%; will-change: transform, filter, clip-path; }
+  .overlay { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+  .burst { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; border: 2px solid var(--acc); opacity: 0; pointer-events: none; }
+  .refstrip { display: flex; gap: 8px; align-items: center; }
+  .refstrip .rlab { font-size: 12px; color: var(--lab); width: 84px; line-height: 1.4; }
+  .walltime { display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 12px; }
+  .tl { display: grid; grid-template-columns: 54px 1fr; gap: 8px; align-items: center; }
+  .tlbar { position: relative; height: 20px; width: 640px; background: rgba(43,39,71,.05); border-radius: 4px; }
+  .tlbar i { position: absolute; top: 3px; height: 14px; border-radius: 3px; font-style: normal; font-size: 10px; line-height: 14px; color: #fff; padding: 0 4px; white-space: nowrap; overflow: hidden; }
+  .tlbar .tick { position: absolute; top: -2px; bottom: -2px; width: 1px; background: #C0392B; }
+  .tlbar .tick::after { content: attr(data-l); position: absolute; top: 22px; left: -12px; font-size: 10px; color: #C0392B; white-space: nowrap; }
+  .tlaxis { position: relative; height: 14px; width: 640px; margin-left: 62px; font-size: 10px; color: var(--muted); }
+  .tlaxis span { position: absolute; transform: translateX(-50%); }
+  .notes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-top: 8px; }
+  .notes .col { background: #F3EEE6; border-radius: 12px; padding: 14px 16px; font-size: 12.5px; color: var(--soft); }
+  .notes h3 { color: var(--text); font-size: 13.5px; }
+  .notes ul { margin: 0; padding-left: 18px; } .notes li { margin: 3px 0; }
+
+  body.only-frames .wrap > *:not(#sec-frames) { display: none !important; }
+  body.only-frames #sec-frames { display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>封印书 · F 书签化书（第三轮细化）</h1>
+  <p class="sub">#27 · 封印态就是 logo 的锁孔书签；打开时书签两半直接变形为两页，底部 V 口落成书脊，锁孔先收拢，星最后出现。本页：主几何与 16 / 20 / 32 px 像素对齐几何、40 px 按钮各状态与图标轨、可打断的变形动画、图片墙特效草图、说明。所有按钮都可以点击。</p>
+  <div class="tools">
+    <button id="allToggle" type="button">全部切换</button>
+    <label><input id="slow" type="checkbox"> 慢放 ×5</label>
+    <label><input id="rm" type="checkbox"> 模拟“减少动态效果”</label>
+    <label><input id="stag" type="checkbox" checked> 两页错开 24 ms</label>
+    <label><input id="peek" type="checkbox" checked> 悬停预示（书签微张）</label>
+    <span class="hint">动画中途再点一次会从当前形状掉头，不跳帧。</span>
+  </div>
+
+  <!-- 1 ------------------------------------------------------------------ -->
+  <h2>1 · 几何：24 主网格 + 16 / 20 / 32 px 专用像素对齐</h2>
+  <p class="sub">每半边都是同一结构 <code>M C A L A C Z</code>（顶边、上外角、外边、下外角、底边），封印与打开只是数值不同，所以任意中间帧都是合法路径。锁孔、星的避让用 mask 挖空，按钮底色变化时不需要“假装底色”。</p>
+  <div class="construct" id="construct"></div>
+  <div class="card day" style="margin-top:12px"><div class="geo" id="geoDay"></div><div class="kitcheck" id="kitDay"></div></div>
+  <div class="card night" style="margin-top:10px"><div class="geo" id="geoNight"></div></div>
+
+  <!-- 2 ------------------------------------------------------------------ -->
+  <h2>2 · 40 px 按钮与图标轨</h2>
+  <p class="sub">按钮本身透明，悬停 7% 墨色底、按下 12% 并缩到 0.92、键盘焦点为 2 px 墨色 / 奶油描边（强调色在纸白上只有 2.7:1，不够做焦点环）。下表的状态用类名强制显示，按钮本身也能点。</p>
+  <div class="states" id="states"></div>
+  <div class="rails" id="rails"></div>
+
+  <!-- 3 ------------------------------------------------------------------ -->
+  <h2 id="h-morph">3 · 变形动画（可打断）</h2>
+  <p class="sub">打开：锁孔 0–170 ms 收拢；两页 0–460 ms 弹簧展开（右页晚 24 ms）；星 200–620 ms 旋入并轻微回弹。封上：星 0–140 ms 先收；两页 40–340 ms 合拢（无回弹，干脆）；锁孔 200–400 ms 落回，有一点“咔哒”的回弹。用 CSS <code>d</code> 过渡实现，中途反向时从当前形状出发。</p>
+  <div class="tools" style="margin-top:0">
+    <label>变体 <select id="variant"><option value="C" selected>C 墨色书签 + 强调色锁芯（推荐）</option><option value="A">A 整枚强调色书签（第二轮）</option><option value="B">B 强调色书签 + 墨色锁芯</option></select></label>
+  </div>
+  <div class="morph" id="morph"></div>
+  <div id="sec-frames">
+    <div class="frames" id="frames"></div>
+  </div>
+  <div class="timing" id="timing"></div>
+  <div class="tools"><button id="runSelftest" type="button">运行自测（约 4 s，会操作下方图片墙）</button><span class="hint">本机 Chrome 实测记录（2026-10-05，headless，真实时间）见下；点按钮可重测。</span></div>
+  <pre id="selftest">自测（记录）
+控件：完整打开逐帧最大位移 1.115 单位；150 ms 时掉头，掉头前后逐帧最大位移 0.920 单位（帧数 32）
+  掉头那一帧：0.076 单位 —— 掉头不跳，步长小于正常播放
+图片墙：直接封印，全部 4 张图 blur ≥ 12px 最晚 64 ms；释放 0.4 s 后再封印，最晚 34 ms（门槛 300 ms）</pre>
+
+  <!-- 4 ------------------------------------------------------------------ -->
+  <h2>4 · 延伸到图片墙（草图）</h2>
+  <p class="sub">带“敏感”角标的是会被封印的图。封印：0.2 s 内糊掉并蒙上强调色（≤0.3 s 无法辨认），随后各自折成书签飞进左下角的书，其余图片 0.26 s 起连续补位，全程约 0.9 s。释放：书先打开、按钮处一圈光，图从书里依次飞出，带弧线和轻微放大落位，补位同时进行，约 1.2 s。参考组 / 钉图只在原位模糊，关闭时一张用“封印碎裂”，一张用“消散”，都不飞行。</p>
+  <div class="tools" style="margin-top:0">
+    <button id="wSeal" type="button">封印</button>
+    <button id="wRelease" type="button">释放</button>
+    <button id="wInterrupt" type="button">释放 0.4 s 后再封印（打断测试）</button>
+    <button id="wTheme" type="button">日 / 夜</button>
+    <span class="hint">左侧书签按钮也能切换。慢放与“减少动态效果”开关对这里同样生效。</span>
+  </div>
+  <div class="walldemo day" id="walldemo">
+    <div class="rail" id="wallRail"></div>
+    <div class="wallarea">
+      <div class="wall" id="wall"></div>
+      <div class="refstrip" id="refstrip"><div class="rlab">参考组 / 钉图<br>（原位模糊）</div></div>
+    </div>
+    <div class="overlay" id="overlay"></div>
+  </div>
+  <div class="walltime" id="walltime" style="margin-top:12px"></div>
+
+  <!-- 5 ------------------------------------------------------------------ -->
+  <h2>5 · 说明</h2>
+  <div class="notes">
+    <div class="col">
+      <h3>设计决定</h3>
+      <ul>
+        <li><b>同构路径</b>：每半边 7 段命令（M C A L A C Z），封印态的直边写成控制点在三等分点上的三次曲线；上外角用与 logo kit 相同的圆弧 A，下外角在封印态是半径 0 的圆弧。这样两页可以有真正的弧度，变形依旧是逐数插值，中间帧都是“半开的厚书”，不会出现自交。</li>
+        <li><b>V 口落成书脊</b>：书签底部向上的 V 口，在打开态翻成向下的书脊弧线；顶边同样向书脊下沉。上下各沉 2 单位（24 网格），像纸页被装订线拉住。</li>
+        <li><b>书往左偏半格</b>：打开态的书轴在 11.5（24 网格），书缝正好是第 11 列一整列像素；同时把星的视觉重量平衡回来。</li>
+        <li><b>星沿用 logo kit 的画法</b>：同一条三次曲线四角星，24 / 32 px 有底色挖空，与 compact / small 星的关系一致；16 px 改成 3×3 像素十字。</li>
+        <li><b>推荐变体 C</b>：墨色书签 + 强调色锁芯。① 在图标轨里与其他墨色图标同分量，封印时不至于一直“喊”；② 锁孔被堵上 = 已锁，正好区分 logo（logo 的锁孔是空的）；③ 日间樱粉对纸白只有 2.7:1，整枚粉色书签达不到图形 3:1，墨色书签是 13:1。</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>与第二轮相比</h3>
+      <ul>
+        <li>页面从平直平行四边形改成带弧度的纸页，上下外角都有圆角。</li>
+        <li>新增 16 / 20 / 32 px 专用几何（第二轮全部是 24 网格缩放）；16 / 24 / 32 封印态与 logo kit 小尺寸逐像素比对（见第 1 节底部）。新增 20 px 封印书签。</li>
+        <li>锁孔、星的避让从“画一块底色”改成 mask，按钮悬停 / 按下变底色也不会露馅。</li>
+        <li>动效：打开 / 封上用不同曲线（打开弹簧、封上干脆），星与锁孔的先后顺序按方向反转，可从中途掉头；加了两页 24 ms 错开、悬停预示、减少动态效果。</li>
+        <li>新增变体 B / C 与 logo 混淆的处理（锁芯）。</li>
+        <li>新增图片墙特效草图与时序。</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>待确认</h3>
+      <ul>
+        <li><b>封印态颜色</b>：选 C（墨色 + 锁芯）还是 A（整枚强调色）？A 更醒目，但日间对比不足 3:1，且就是 logo 剪影。</li>
+        <li><b>悬停预示</b>要不要保留？它暗示“点了会打开”，但打开态没有对应的预示。</li>
+        <li><b>两页错开</b> 24 ms 是否保留？更像手翻，但稍不对称。</li>
+        <li><b>实现</b>：CSS <code>d</code> 过渡在 Chromium / WebView2、Firefox 可用，Safari / WKWebView 不支持。若 macOS 端用 WebKit，需要用 JS 按同样的数据逐帧插值（本页的分帧图就是这样画的），或用 SMIL。CSS 掉头只保证位置连续，不保留速度；想要更“物理”的掉头需用 JS 弹簧。</li>
+        <li><b>图片墙</b>：草图里封印的图折成书签飞回按钮。约 250 张时只给视口内的图做飞行，视口外直接隐藏。释放期间是否响应输入（Q110）未在此处理。</li>
+        <li>16 px 的星改成像素十字，与 24 px 以上的曲线星不同形，是否接受？</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ====================================================================== geometry */
+const K = 0.5523;
+const OV = 0; // 中缝落在整像素上，两半不共享像素，不需要重叠
+const G = {
+  16: { seal: { cx: 8, hw: 4, t: 2, b: 14, a: 11.5, r: 1 },
+        open: { ax: 7.5, g: .5, hw: 5.5, to: 5, ts: 6, bo: 13, bs: 14, r: 1, rb: .5 },
+        key: 'M7 7.73 A2 2 0 1 1 9 7.73 V10 H7 Z', ko: [8, 7],
+        plus: 'M13 1 H14 V2 H15 V3 H14 V4 H13 V3 H12 V2 H13 Z', so: [13.5, 2.5], halo: 1,
+        kit: 'M5 2 H11 A1 1 0 0 1 12 3 V14 L8 11.5 L4 14 V3 A1 1 0 0 1 5 2 Z M7 7.73 A2 2 0 1 1 9 7.73 V10 H7 Z' },
+  20: { seal: { cx: 10, hw: 4, t: 3, b: 17, a: 14.5, r: 1.25 },
+        open: { ax: 9.5, g: .5, hw: 6.5, to: 5, ts: 6.5, bo: 15, bs: 16.5, r: 1.25, rb: .5 },
+        key: 'M9 9.44 A1.75 1.75 0 1 1 11 9.44 V12 H9 Z', ko: [10, 9],
+        star: [16.5, 2.5, 2.5, .3], halo: .9 },
+  24: { seal: { cx: 12, hw: 5, t: 4, b: 20, a: 17, r: 1.5 },
+        open: { ax: 11.5, g: .5, hw: 8.5, to: 5, ts: 7, bo: 18, bs: 20, r: 1.5, rb: .75 },
+        key: 'M11.2 11.83 A2 2 0 1 1 12.8 11.83 L13.5 14.5 H10.5 Z', ko: [12, 11],
+        star: [20.5, 3.5, 3, .26], halo: 1.1,
+        kit: 'M8.5 4 H15.5 A1.5 1.5 0 0 1 17 5.5 V20 L12 17 L7 20 V5.5 A1.5 1.5 0 0 1 8.5 4 Z M11.2 11.83 A2 2 0 1 1 12.8 11.83 L13.5 14.5 H10.5 Z' },
+  32: { seal: { cx: 16, hw: 6, t: 6, b: 27, a: 22.5, r: 2 },
+        open: { ax: 15, g: 1, hw: 11, to: 7, ts: 9.5, bo: 24, bs: 26.5, r: 2, rb: 1 },
+        key: 'M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z', ko: [16, 14.5],
+        star: [27.5, 4.5, 4, .24], halo: 1.3,
+        kit: 'M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z' },
+};
+const SIZES = [16, 20, 24, 32];
+const lp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+
+function sealHalf(s, g) {
+  const { cx, hw, t, b, a, r } = g, sx = cx - s * OV, xo = cx + s * hw;
+  const P0 = [sx, t], P1 = [xo - s * r, t], B = [xo, b], A = [sx, a];
+  return [['M', ...P0], ['C', ...lp(P0, P1, 1 / 3), ...lp(P0, P1, 2 / 3), ...P1],
+    ['A', r, r, 0, 0, s > 0 ? 1 : 0, xo, t + r], ['L', xo, b],
+    ['A', 0, 0, 0, 0, s > 0 ? 1 : 0, xo, b], ['C', ...lp(B, A, 1 / 3), ...lp(B, A, 2 / 3), ...A], ['Z']];
+}
+function openHalf(s, o) {
+  const { ax, g, hw, to, ts, bo, bs, r, rb } = o, sx = ax + s * g, xo = ax + s * hw;
+  const P1x = xo - s * r, Q0x = xo - s * rb;
+  return [['M', sx, ts], ['C', sx + (P1x - sx) * .25, to + (ts - to) * .3, sx + (P1x - sx) * .62, to, P1x, to],
+    ['A', r, r, 0, 0, s > 0 ? 1 : 0, xo, to + r], ['L', xo, bo - rb],
+    ['A', rb, rb, 0, 0, s > 0 ? 1 : 0, Q0x, bo],
+    ['C', Q0x + (sx - Q0x) * .38, bo, Q0x + (sx - Q0x) * .75, bo + (bs - bo) * .25, sx, bs], ['Z']];
+}
+const lerpSegs = (A, B, t) => A.map((seg, i) => seg.map((v, j) => j === 0 ? v : v + (B[i][j] - v) * t));
+const toD = segs => segs.map(s => s[0] + (s.length > 1 ? ' ' + s.slice(1).map(n => +n.toFixed(3)).join(' ') : '')).join(' ');
+function starD(cx, cy, r, k) { const d = r * k, f = n => +n.toFixed(3);
+  return `M${cx} ${f(cy - r)} C${f(cx + d)} ${f(cy - d)} ${f(cx + d)} ${f(cy - d)} ${f(cx + r)} ${cy} C${f(cx + d)} ${f(cy + d)} ${f(cx + d)} ${f(cy + d)} ${cx} ${f(cy + r)} C${f(cx - d)} ${f(cy + d)} ${f(cx - d)} ${f(cy + d)} ${f(cx - r)} ${cy} C${f(cx - d)} ${f(cy - d)} ${f(cx - d)} ${f(cy - d)} ${cx} ${f(cy - r)} Z`; }
+for (const S of SIZES) { const g = G[S];
+  g.sL = sealHalf(-1, g.seal); g.sR = sealHalf(1, g.seal); g.oL = openHalf(-1, g.open); g.oR = openHalf(1, g.open);
+  g.starPath = g.plus || starD(...g.star);
+  if (g.star) g.so = [g.star[0], g.star[1]];
+}
+
+/* ====================================================================== easing + timing */
+const EASE_SRC = {
+  spring: 'linear(0, 0.06 2.5%, 0.22 6%, 0.5 12%, 0.76 19%, 0.92 26%, 1.01 33%, 1.04 40%, 1.035 47%, 1.012 58%, 0.998 72%, 1)',
+  pop: 'linear(0, 0.3 8%, 0.75 17%, 1.08 27%, 1.14 34%, 1.1 42%, 1 56%, 0.98 66%, 1)',
+  popl: 'linear(0, 0.4 15%, 0.85 32%, 1.06 48%, 1.03 64%, 1)',
+  out: 'cubic-bezier(.22, 1, .36, 1)',
+  in: 'cubic-bezier(.55, 0, 1, .45)',
+  ease: 'cubic-bezier(.25, .1, .25, 1)',
+};
+function bezier(x1, y1, x2, y2) {
+  const bz = (u, a, b) => 3 * a * u * (1 - u) ** 2 + 3 * b * u * u * (1 - u) + u ** 3;
+  return t => { if (t <= 0) return 0; if (t >= 1) return 1; let lo = 0, hi = 1, u = t;
+    for (let i = 0; i < 40; i++) { u = (lo + hi) / 2; if (bz(u, x1, x2) < t) lo = u; else hi = u; } return bz(u, y1, y2); };
+}
+function linearE(src) {
+  const pts = src.slice(7, -1).split(',').map(s => { const [v, p] = s.trim().split(/\s+/); return { v: +v, x: p ? parseFloat(p) / 100 : null }; });
+  if (pts[0].x === null) pts[0].x = 0; if (pts[pts.length - 1].x === null) pts[pts.length - 1].x = 1;
+  for (let i = 1; i < pts.length; i++) if (pts[i].x === null) { let j = i; while (pts[j].x === null) j++;
+    for (let k = i; k < j; k++) pts[k].x = pts[i - 1].x + (pts[j].x - pts[i - 1].x) * (k - i + 1) / (j - i + 1); }
+  return t => { if (t <= 0) return pts[0].v; if (t >= 1) return pts[pts.length - 1].v;
+    for (let i = 1; i < pts.length; i++) if (t <= pts[i].x) { const a = pts[i - 1], b = pts[i];
+      return a.v + (b.v - a.v) * (b.x === a.x ? 1 : (t - a.x) / (b.x - a.x)); } return 1; };
+}
+const EASE = {}; for (const [k, s] of Object.entries(EASE_SRC))
+  EASE[k] = s.startsWith('linear') ? linearE(s) : bezier(...s.slice(13, -1).split(',').map(Number));
+// [delay, duration, easing]
+const TM = {
+  open:  { L: [0, 460, 'spring'], R: [24, 460, 'spring'], fill: [40, 260, 'ease'], kh: [0, 170, 'in'],   st: [200, 420, 'pop'] },
+  close: { L: [40, 300, 'out'],   R: [64, 300, 'out'],    fill: [60, 220, 'ease'], kh: [200, 200, 'popl'], st: [0, 140, 'in'] },
+};
+(function injectCSS() {
+  const ms = v => `calc(${v}ms * var(--slow))`, o = TM.open, c = TM.close, e = n => `var(--e-${n})`;
+  let css = ':root{' + Object.entries(EASE_SRC).map(([k, v]) => `--e-${k}:${v};`).join('') + '}';
+  css += `.live .pg{transition:d ${ms(c.L[1])} ${e(c.L[2])} ${ms(c.L[0])}, fill ${ms(c.fill[1])} ${e(c.fill[2])} ${ms(c.fill[0])};}
+  .live .R{transition-delay:${ms(c.R[0])}, ${ms(c.fill[0])};}
+  .live.open .pg{transition:d ${ms(o.L[1])} ${e(o.L[2])} ${ms(o.L[0])}, fill ${ms(o.fill[1])} ${e(o.fill[2])} ${ms(o.fill[0])};}
+  .live.open .R{transition-delay:${ms(o.R[0])}, ${ms(o.fill[0])};}
+  .nostag .live .R{transition-delay:${ms(c.L[0])}, ${ms(c.fill[0])};}
+  .nostag .live.open .R{transition-delay:${ms(o.L[0])}, ${ms(o.fill[0])};}
+  .live .kh{transition:transform ${ms(c.kh[1])} ${e(c.kh[2])} ${ms(c.kh[0])};}
+  .live.open .kh{transform:scale(0);transition:transform ${ms(o.kh[1])} ${e(o.kh[2])} ${ms(o.kh[0])};}
+  .live .st{transform:scale(0) rotate(-45deg);transition:transform ${ms(c.st[1])} ${e(c.st[2])} ${ms(c.st[0])};}
+  .live.open .st{transform:none;transition:transform ${ms(o.st[1])} ${e(o.st[2])} ${ms(o.st[0])};}`;
+  const el = document.createElement('style'); el.textContent = css; document.head.appendChild(el);
+})();
+/** 某方向某时刻的各元素状态（与 CSS 过渡同一份数据），用于分帧图 */
+function frameAt(dir, t, stag = true) {
+  const tm = TM[dir], q = k => { let [d, du, e] = tm[k]; if (k === 'R' && !stag) d = tm.L[0];
+    return EASE[e](Math.min(1, Math.max(0, (t - d) / du))); };
+  if (dir === 'open') return { pL: q('L'), pR: q('R'), fill: q('fill'), kh: 1 - q('kh'), stS: q('st'), stR: -45 * (1 - q('st')) };
+  return { pL: 1 - q('L'), pR: 1 - q('R'), fill: 1 - q('fill'), kh: q('kh'), stS: 1 - q('st'), stR: -45 * q('st') };
+}
+const SEALED = { pL: 0, pR: 0, fill: 0, kh: 1, stS: 0, stR: -45 }, OPENED = { pL: 1, pR: 1, fill: 1, kh: 0, stS: 1, stR: 0 };
+
+/* ====================================================================== rendering */
+const TH = { day: { ink: '#2B2747', acc: '#E0768F', bg: '#F7F3EA', rail: '#EFE8DA' },
+             night: { ink: '#F4ECDC', acc: '#E3B34F', bg: '#1E1B2E', rail: '#252239' } };
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, t) => '#' + hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * t).toString(16).padStart(2, '0')).join('');
+let UID = 0;
+/** 静态 SVG（颜色写死），用于 1× 预览、栅格放大、分帧 */
+function staticSVG(S, st, { theme = 'day', v = 'C', w = S, bg = false } = {}) {
+  const g = G[S], c = TH[theme], id = 'm' + (++UID);
+  const L = toD(lerpSegs(g.sL, g.oL, st.pL)), R = toD(lerpSegs(g.sR, g.oR, st.pR));
+  const body = v === 'C' || v === 'K' ? c.ink : mix(c.acc, c.ink, st.fill);
+  const plug = v === 'B' ? c.ink : v === 'C' ? c.acc : null;
+  const [kx, ky] = g.ko, [sx, sy] = g.so;
+  const kT = `translate(${kx} ${ky}) scale(${+st.kh.toFixed(4)}) translate(${-kx} ${-ky})`;
+  const sT = `translate(${sx} ${sy}) scale(${+st.stS.toFixed(4)}) rotate(${+st.stR.toFixed(3)}) translate(${-sx} ${-sy})`;
+  const showK = st.kh > .002, showS = st.stS > .002;
+  const lj = g.plus ? 'miter' : 'round';
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="ic" width="${w}" height="${w}" viewBox="0 0 ${S} ${S}">` +
+    (bg ? `<rect width="${S}" height="${S}" fill="${c.bg}"/>` : '') +
+    `<defs><mask id="${id}" maskUnits="userSpaceOnUse" x="-4" y="-4" width="${S + 8}" height="${S + 8}"><rect x="-4" y="-4" width="${S + 8}" height="${S + 8}" fill="#fff"/>` +
+    (showK ? `<path d="${g.key}" fill="#000" transform="${kT}"/>` : '') +
+    (showS ? `<path d="${g.starPath}" fill="#000" stroke="#000" stroke-width="${g.halo * 2}" stroke-linejoin="${lj}" transform="${sT}"/>` : '') +
+    `</mask></defs><g mask="url(#${id})"><path fill="${body}" d="${L}"/><path fill="${body}" d="${R}"/></g>` +
+    (plug && showK ? `<path fill="${plug}" d="${g.key}" transform="${kT}"/>` : '') +
+    (showS ? `<path fill="${c.ink}" d="${g.starPath}" transform="${sT}"/>` : '') + '</svg>';
+}
+function kitSVG(S, theme, bg = true) { const c = TH[theme];
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">${bg ? `<rect width="${S}" height="${S}" fill="${c.bg}"/>` : ''}<path fill="${c.ink}" fill-rule="evenodd" d="${G[S].kit}"/></svg>`; }
+/** 活的 SVG：颜色走主题变量，形状走 CSS d 过渡 */
+function liveSVG(S, { v = 'C', w = S, open = false, cls = '' } = {}) {
+  const g = G[S], id = 'lm' + (++UID), lj = g.plus ? 'miter' : 'round';
+  const P = .14, pL = toD(lerpSegs(g.sL, g.oL, P)), pR = toD(lerpSegs(g.sR, g.oR, P));
+  const style = `--sL:path('${toD(g.sL)}');--sR:path('${toD(g.sR)}');--oL:path('${toD(g.oL)}');--oR:path('${toD(g.oR)}');--pL:path('${pL}');--pR:path('${pR}');--ko:${g.ko[0]}px ${g.ko[1]}px;--so:${g.so[0]}px ${g.so[1]}px`;
+  return `<svg class="ic live v-${v}${open ? ' open' : ''} ${cls}" width="${w}" height="${w}" viewBox="0 0 ${S} ${S}" style="${style}" aria-hidden="true" focusable="false">` +
+    `<defs><mask id="${id}" maskUnits="userSpaceOnUse" x="-4" y="-4" width="${S + 8}" height="${S + 8}"><rect x="-4" y="-4" width="${S + 8}" height="${S + 8}" fill="#fff"/>` +
+    `<path class="kh" d="${g.key}" fill="#000"/><path class="st" d="${g.starPath}" fill="#000" stroke="#000" stroke-width="${g.halo * 2}" stroke-linejoin="${lj}"/></mask></defs>` +
+    `<g mask="url(#${id})"><path class="pg L" d="${toD(open ? g.oL : g.sL)}"/><path class="pg R" d="${toD(open ? g.oR : g.sR)}"/></g>` +
+    `<path class="kh plug" d="${g.key}"/><path class="st star" d="${g.starPath}"/></svg>`;
+}
+const brandSVG = (theme, w = 24) => { const c = TH[theme], g = G[24];
+  const sd = starD(17.4, 5, 3.3, .26);
+  return `<svg width="${w}" height="${w}" viewBox="0 0 24 24" aria-hidden="true"><path fill="${c.ink}" fill-rule="evenodd" d="${g.kit}"/>` +
+    `<path d="${sd}" fill="${c.rail}" stroke="${c.rail}" stroke-width="2.2" stroke-linejoin="round"/><path fill="${c.acc}" d="${sd}"/></svg>`; };
+const RICONS = {
+  grid: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>',
+  folder: '<path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8.5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z"/>',
+  tag: '<path d="M4 5.5V11l8.5 8.5 7-7L11 4H5.5A1.5 1.5 0 0 0 4 5.5Z"/><circle cx="8" cy="8" r="1.2"/>',
+  layers: '<path d="M12 4 20 8.5 12 13 4 8.5Z"/><path d="m4 12.5 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5" opacity=".0"/>',
+  search: '<circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 4.5 4.5"/>',
+};
+const ricon = (k, on = false) => `<div class="ricon${on ? ' on' : ''}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${RICONS[k]}</svg></div>`;
+const sealButton = ({ v = 'C', open = false, cls = '', tip = false } = {}) =>
+  `<button class="sb seal-toggle ${cls}" type="button" aria-label="安全模式" aria-pressed="${!open}" title="">${liveSVG(24, { v, open })}<span class="tip" role="tooltip">${open ? '安全模式：关 · 点击封印' : '已封印 · 点击释放'}</span></button>`;
+
+/* ====================================================================== section 1 */
+const RASTER = []; // [canvasEl, svgString, size, zoom, theme]
+function constructSVG(S, px) {
+  const g = G[S], W = S * px, u = n => +(n * px).toFixed(2);
+  let grid = ''; for (let i = 0; i <= S; i++) { const o = i * px + .5, major = i % 4 === 0;
+    grid += `<path d="M${o} 0V${W}M0 ${o}H${W}" stroke="rgba(43,39,71,${major ? .16 : .07})" stroke-width="1"/>`; }
+  const sc = `transform="scale(${px})"`;
+  const sealD = toD(g.sL) + ' ' + toD(g.sR);
+  return `<svg width="${W + 1}" height="${W + 1}" viewBox="0 0 ${W + 1} ${W + 1}" style="background:#F7F3EA;border-radius:6px">${grid}
+    <g ${sc}><path d="${toD(g.oL)} ${toD(g.oR)}" fill="rgba(43,39,71,.13)" stroke="#2B2747" stroke-width="${1.2 / px}"/>
+    <path d="${g.starPath}" fill="rgba(43,39,71,.13)" stroke="#2B2747" stroke-width="${1.2 / px}"/>
+    <path d="${sealD}" fill="none" stroke="#E0768F" stroke-width="${1.6 / px}" stroke-dasharray="${4 / px} ${3 / px}"/>
+    <path d="${g.key}" fill="none" stroke="#E0768F" stroke-width="${1.2 / px}"/></g>
+    <path d="M${u(g.seal.cx)} 0V${W}" stroke="#E0768F" stroke-width="1" stroke-dasharray="2 3" opacity=".8"/>
+    <path d="M${u(g.open.ax)} 0V${W}" stroke="#2B2747" stroke-width="1" stroke-dasharray="2 3" opacity=".6"/>
+    <circle cx="${u(g.so[0])}" cy="${u(g.so[1])}" r="2.5" fill="#2B2747"/>
+  </svg>`;
+}
+document.getElementById('construct').innerHTML =
+  [24, 16, 20, 32].map(S => `<figure>${constructSVG(S, { 24: 10, 16: 14, 20: 12, 32: 7.5 }[S])}<figcaption class="lab" style="--lab:#8A8499">${S} 网格 · 粉虚线 = 封印态，墨色 = 打开态</figcaption></figure>`).join('') +
+  `<div class="spec"><table>
+    <tr><th></th><th>封印态（= logo kit）</th><th>打开态（新）</th><th>星</th></tr>
+    <tr><td><b>16</b></td><td>micro：书签 4–12 × 2–14，V 口 11.5</td><td>两页 2–7 / 8–13，书缝第 7 列；外上 5，书脊 6–14</td><td>3×3 像素十字，中心 (13.5, 2.5)，与页面隔 1 行</td></tr>
+    <tr><td><b>20</b></td><td>新画：6–14 × 3–17，V 口 14.5；锁孔头 r 1.75，槽宽 2 落整像素</td><td>两页 3–9 / 10–16，书缝第 9 列；外上 5，书脊 6.5–16.5</td><td>曲线星 r 2.5，收腰 0.30，挖空 0.9</td></tr>
+    <tr><td><b>24</b></td><td>compact：7–17 × 4–20，V 口 17</td><td>两页 3–11 / 12–20，书缝第 11 列；外上 5、外下 18，书脊 7–20</td><td>r 3.0，收腰 0.26，挖空 1.1</td></tr>
+    <tr><td><b>32</b></td><td>small：10–22 × 6–27，V 口 22.5</td><td>两页 4–14 / 16–26，书缝 2 px；外上 7、外下 24，书脊 9.5–26.5</td><td>r 4.0，收腰 0.24，挖空 1.3</td></tr>
+  </table>
+  <p>所有外边（左右竖边、外上角、外下角）落在整像素上；弧形的顶边、底边本来就是抗锯齿过渡，不强求。书轴比画布中心偏左 0.5（32 px 偏 1），书缝正好是一整列像素，同时给右上角的星让出视觉重量。</p>
+  <p>16 px 的取舍：页宽只有 5 px，顶边下沉压到 1 px（再大就成了斜坡）；下外角圆角 0.5，近似直角；星用十字而不是曲线星——曲线星在 16 px 只剩一个灰点。</p></div>`;
+
+function geoBlock(theme) {
+  return SIZES.map(S => {
+    const zoom = { 16: 6, 20: 5, 24: 4, 32: 3 }[S];
+    const items = [['A 封印', staticSVG(S, SEALED, { theme, v: 'A', bg: true })], ['C 封印', staticSVG(S, SEALED, { theme, v: 'C', bg: true })], ['打开', staticSVG(S, OPENED, { theme, v: 'C', bg: true })]];
+    const ones = items.map(([l, s]) => `<figure>${s}<figcaption class="lab">${l}</figcaption></figure>`).join('');
+    const zooms = items.map(([l, s]) => { const i = RASTER.length; RASTER.push([null, s, S, zoom, theme]);
+      return `<figure><canvas class="zoom" data-r="${i}" width="${S * zoom + 1}" height="${S * zoom + 1}"></canvas><figcaption class="lab">${l} · ${S} px ×${zoom}</figcaption></figure>`; }).join('');
+    return `<div class="blk"><div class="t">${S} px</div><div class="ones">${ones}</div><div class="zooms">${zooms}</div></div>`;
+  }).join('');
+}
+document.getElementById('geoDay').innerHTML = geoBlock('day');
+document.getElementById('geoNight').innerHTML = geoBlock('night');
+
+async function raster(svg, S) {
+  const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  await img.decode(); const c = document.createElement('canvas'); c.width = c.height = S;
+  c.getContext('2d').drawImage(img, 0, 0, S, S); return c;
+}
+async function drawZooms() {
+  for (const cv of document.querySelectorAll('canvas.zoom')) {
+    const [, svg, S, z, theme] = RASTER[+cv.dataset.r];
+    const src = await raster(svg, S), ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false; ctx.drawImage(src, 0, 0, S * z, S * z);
+    ctx.fillStyle = theme === 'day' ? 'rgba(43,39,71,.10)' : 'rgba(244,236,220,.10)';
+    for (let i = 0; i <= S; i++) { ctx.fillRect(i * z, 0, 1, S * z + 1); ctx.fillRect(0, i * z, S * z + 1, 1); }
+  }
+  // 与 logo kit 小尺寸逐像素对比（墨色、无锁芯）
+  const out = [];
+  for (const S of [16, 24, 32]) {
+    const a = (await raster(kitSVG(S, 'day'), S)).getContext('2d').getImageData(0, 0, S, S).data;
+    const b = (await raster(staticSVG(S, SEALED, { theme: 'day', v: 'K', bg: true }), S)).getContext('2d').getImageData(0, 0, S, S).data;
+    let mx = 0, n = 0, where = []; for (let i = 0; i < a.length; i++) { const d = Math.abs(a[i] - b[i]); mx = Math.max(mx, d); if (d > 6) { n++; const px = (i >> 2); if (where.length < 8 && !where.includes(px)) where.push(px); } }
+    window.__where = (window.__where || '') + S + ':' + where.map(px => `(${px % S},${(px / S) | 0})`).join('') + ' ';
+    out.push(`${S} px：最大通道差 ${mx}，差异 > 6 的通道 ${n} 个， ${mx <= 10 ? '<b class="ok">一致</b>' : '<b class="bad">有差异</b>'}`);
+  }
+  document.getElementById('kitDay').innerHTML = '封印态与 logo kit（master/bookmark-micro-16、compact-24、small-32）栅格对比：' + out.join('；') + '。（最大差 ≤ 10/255 视为一致：只出现在锁孔抗锯齿边缘，因本稿用 mask 挖锁孔，kit 用 evenodd。）20 px 在 kit 中没有对应图形，为本轮新画。';
+  window.__zoomsDone = true;
+}
+
+/* ====================================================================== section 2 */
+function statesCard(theme) {
+  const cols = [['静止', ''], ['悬停', 'is-hover'], ['按下', 'is-active'], ['键盘焦点', 'is-focus'], ['悬停 + 提示', 'is-hover show-tip']];
+  const row = (open, label) => `<div class="rh">${label}</div>` + cols.map(([, cls]) => `<div class="c">${sealButton({ v: 'C', open, cls })}</div>`).join('');
+  return `<div class="card ${theme} peek"><h3>${theme === 'day' ? '日间' : '夜间'} · 变体 C</h3><div class="matrix">
+    <div></div>${cols.map(([l]) => `<div class="h">${l}</div>`).join('')}
+    ${row(false, '封印')}${row(true, '打开')}</div></div>`;
+}
+document.getElementById('states').innerHTML = statesCard('day') + statesCard('night');
+function rail(theme, v, cap) {
+  return `<div class="railbox"><div class="${theme} peek" style="background:transparent"><div class="rail">
+      <div class="brand" title="品牌 / 首页">${brandSVG(theme)}</div><div class="div"></div>
+      ${ricon('grid', true)}${ricon('folder')}${ricon('tag')}${ricon('search')}
+      <div class="sp"></div>${sealButton({ v })}</div></div><div class="railcap">${cap}</div></div>`;
+}
+document.getElementById('rails').innerHTML =
+  rail('day', 'A', '日 · A 整枚强调色（第二轮）') + rail('day', 'B', '日 · B 强调色 + 墨色锁芯') + rail('day', 'C', '日 · C 墨色 + 强调色锁芯（推荐）') +
+  rail('night', 'A', '夜 · A') + rail('night', 'B', '夜 · B') + rail('night', 'C', '夜 · C（推荐）') +
+  `<div style="flex:1;display:flex;flex-direction:column;gap:10px">
+    <div class="note"><b>与 logo 混淆</b>：轨顶部是品牌 logo（墨色书签 + 强调色星，锁孔透出底色）。A 与它几乎同形，只差一颗星和颜色；位置（顶 / 底）能分开，但第一次看到容易当成“回首页”。<br>
+    <b>区分办法</b>：把锁孔“堵上”——锁芯。logo 的锁孔永远是空的，封印按钮的锁孔是实心的强调色，读作“已锁”；打开后锁芯随锁孔一起收掉，只剩书和星。C 同时解决了“在轨里太吵”和“像 logo”两件事。B 保留强调色书签，只加墨色锁芯，区分度够但仍然最抢眼。</div>
+    <div class="aria">&lt;button class="seal-toggle" type="button"
+        aria-label="安全模式" aria-pressed="true"&gt;   &lt;!-- 封印 = 按下 --&gt;
+  &lt;svg aria-hidden="true" focusable="false"&gt;…&lt;/svg&gt;
+&lt;/button&gt;
+· 名称固定为“安全模式”，状态只由 aria-pressed 表达，不随状态改名
+· 提示气泡：封印时“已封印 · 点击释放”，打开时“安全模式：关 · 点击封印”
+· 状态变化时另用 aria-live="polite" 播报“已封印 n 张图”/“已释放”</div>
+  </div>`;
+
+/* ====================================================================== section 3 */
+function morphCard(theme) {
+  return `<div class="card ${theme} peek mc"><div class="pad" style="width:200px;height:200px">${liveSVG(24, { v: 'C', w: 168, cls: 'big' })}</div>
+    <div class="side">${sealButton({ v: 'C' })}<div class="lab">40 px 按钮</div>
+      <div style="display:flex;gap:10px;align-items:flex-end">${[16, 20, 24, 32].map(S => `<figure style="margin:0;display:flex;flex-direction:column;align-items:center;gap:4px">${liveSVG(S, { v: 'C' })}<figcaption class="lab">${S}</figcaption></figure>`).join('')}</div>
+      <button class="tg" type="button">切换（可在动画中途再点）</button></div>
+    <div class="note" style="color:var(--lab);max-width:300px">${theme === 'day' ? '日间' : '夜间'}。大图是 24 网格放大，下方小尺寸各用自己的像素对齐几何，四者同时变形（几何不同，节奏相同）。</div></div>`;
+}
+document.getElementById('morph').innerHTML = morphCard('day') + morphCard('night');
+document.querySelectorAll('.mc').forEach(card => {
+  const flip = () => { const lives = card.querySelectorAll('svg.live'); const open = !lives[0].classList.contains('open');
+    lives.forEach(s => s.classList.toggle('open', open)); card.querySelector('.sb').setAttribute('aria-pressed', String(!open)); };
+  card.querySelector('.tg').addEventListener('click', flip);
+  card.querySelector('.sb').addEventListener('click', e => { e.stopImmediatePropagation(); flip(); });
+});
+
+function framesHTML() {
+  const OT = [0, 60, 120, 180, 260, 360, 460, 620], CT = [0, 50, 100, 150, 220, 290, 360, 420];
+  const row = (dir, times, theme, v, label) => `<div class="frow"><div class="rl">${label}</div>` +
+    times.map(t => `<figure>${staticSVG(24, frameAt(dir, t), { theme, v, w: 64 })}<figcaption class="lab">${t} ms</figcaption></figure>`).join('') + '</div>';
+  return `<div class="card day"><h3>分帧 · 日间 · 变体 C（与 CSS 同一份时序数据逐帧计算）</h3>
+      ${row('open', OT, 'day', 'C', '封印 → 打开')}${row('close', CT, 'day', 'C', '打开 → 封印')}</div>
+    <div class="card night"><h3>分帧 · 夜间 · 变体 A（颜色同时由金过渡到奶油）</h3>
+      ${row('open', OT, 'night', 'A', '封印 → 打开')}${row('close', CT, 'night', 'A', '打开 → 封印')}</div>`;
+}
+document.getElementById('frames').innerHTML = framesHTML();
+(function timingTable() {
+  const W = 300, span = 640, bar = ([d, du], cls) => `<div class="bar"><i class="${cls}" style="left:${d / span * W}px;width:${du / span * W}px"></i></div>`;
+  const rows = [['两页（左）', 'L', ''], ['两页（右）', 'R', ''], ['颜色（A / B）', 'fill', 'm'], ['锁孔 + 锁芯', 'kh', 'a'], ['星 + 挖空', 'st', 'g']];
+  const ez = { spring: '弹簧，回弹约 4%', pop: '回弹约 14%', popl: '回弹约 6%', out: 'ease-out (.22,1,.36,1)', in: 'ease-in (.55,0,1,.45)', ease: 'ease' };
+  document.getElementById('timing').innerHTML = `<table style="margin-top:12px"><tr><th>元素</th><th>打开（0–640 ms）</th><th></th><th>封上（0–640 ms）</th><th></th></tr>` +
+    rows.map(([l, k, c]) => `<tr><td>${l}</td><td>${bar(TM.open[k], c)}</td><td>${TM.open[k][0]}+${TM.open[k][1]} ms · ${ez[TM.open[k][2]]}</td><td>${bar(TM.close[k], c)}</td><td>${TM.close[k][0]}+${TM.close[k][1]} ms · ${ez[TM.close[k][2]]}</td></tr>`).join('') +
+    `</table><p class="note">打开总长 620 ms（星落定），两页本身 484 ms；封上总长 400 ms。减少动态效果：两种方向都直接换形，无过渡。所有时长乘以“慢放”系数。</p>`;
+})();
+
+/* ====================================================================== global toggles */
+const html = document.documentElement;
+let SLOW = 1;
+const T = ms => ms * SLOW;
+const isRM = () => html.classList.contains('rm') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+document.getElementById('slow').addEventListener('change', e => { SLOW = e.target.checked ? 5 : 1; html.style.setProperty('--slow', SLOW); });
+document.getElementById('rm').addEventListener('change', e => html.classList.toggle('rm', e.target.checked));
+document.getElementById('stag').addEventListener('change', e => document.body.classList.toggle('nostag', !e.target.checked));
+document.getElementById('peek').addEventListener('change', e => document.querySelectorAll('.peek').forEach(p => p.classList.toggle('nopeek', !e.target.checked)));
+document.addEventListener('click', e => { const b = e.target.closest('.seal-toggle'); if (!b || b.closest('.mc') || b.id === 'wallBtn') return;
+  const s = b.querySelector('svg.live'); const open = s.classList.toggle('open'); b.setAttribute('aria-pressed', String(!open));
+  b.querySelector('.tip').textContent = open ? '安全模式：关 · 点击封印' : '已封印 · 点击释放'; });
+document.getElementById('allToggle').addEventListener('click', () => { document.querySelectorAll('.mc .tg').forEach(b => b.click());
+  document.querySelectorAll('#states .seal-toggle, #rails .seal-toggle').forEach(b => b.click()); });
+document.getElementById('variant').addEventListener('change', e => document.querySelectorAll('.mc svg.live').forEach(s => {
+  s.classList.remove('v-A', 'v-B', 'v-C'); s.classList.add('v-' + e.target.value); }));
+const peekStyle = document.createElement('style');
+peekStyle.textContent = '.nopeek .sb:hover .live:not(.open) .L, .nopeek .sb.is-hover .live:not(.open) .L{d:var(--sL)!important}.nopeek .sb:hover .live:not(.open) .R, .nopeek .sb.is-hover .live:not(.open) .R{d:var(--sR)!important}';
+document.head.appendChild(peekStyle);
+
+/* ====================================================================== section 4 : wall */
+const demo = document.getElementById('walldemo'), wallEl = document.getElementById('wall'), overlay = document.getElementById('overlay');
+document.getElementById('wallRail').innerHTML = `<div class="brand">${brandSVG('day')}</div><div class="div"></div>${ricon('grid', true)}${ricon('folder')}${ricon('tag')}<div class="sp"></div>` +
+  `<button class="sb seal-toggle" id="wallBtn" type="button" aria-label="安全模式" aria-pressed="false">${liveSVG(24, { v: 'C', open: true })}<span class="tip">安全模式</span></button>`;
+const HUES = [[350, 30], [210, 260], [28, 48], [160, 200], [280, 320], [10, 340], [190, 230], [40, 15], [300, 250], [120, 170], [225, 195], [330, 20]];
+const art = (i) => { const [h1, h2] = HUES[i % HUES.length];
+  return `radial-gradient(circle at 50% 36%, hsl(${h1} 70% 86%) 0 15%, transparent 16%),` +
+    `radial-gradient(ellipse 34% 30% at 50% 26%, hsl(${h2} 45% 30%) 0 98%, transparent 100%),` +
+    `radial-gradient(ellipse 38% 34% at 50% 92%, hsl(${h2} 55% 55%) 0 98%, transparent 100%),` +
+    `linear-gradient(${150 + i * 17}deg, hsl(${h1} 60% 72%), hsl(${h2} 55% 48%))`; };
+const SENS = new Set([1, 4, 6, 9]);
+const tiles = [];
+const BADGE = `<svg class="badge" viewBox="0 0 16 16"><path fill="rgba(255,255,255,.92)" fill-rule="evenodd" d="${G[16].kit}"/></svg>`;
+const CRACK = `<svg class="crack" viewBox="0 0 84 84" preserveAspectRatio="none"><path d="M-2 30 L18 36 L26 28 L40 44 L52 38 L62 52 L86 48" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/><path d="M40 44 L36 62 L44 86" fill="none" stroke="#fff" stroke-width="1.4" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg>`;
+for (let i = 0; i < 12; i++) {
+  const el = document.createElement('div'); el.className = 'tile';
+  el.innerHTML = `<div class="art" style="background:${art(i)}"></div><div class="veil"></div>${SENS.has(i) ? '<span class="tag">敏感</span>' : ''}`;
+  wallEl.appendChild(el); tiles.push({ el, k: SENS.has(i) ? 'sens' : 'safe', ghost: null, i });
+}
+const pins = [];
+[[13, true, 'crack'], [14, false], [15, true, 'dissolve']].forEach(([i, s, mode]) => {
+  const el = document.createElement('div'); el.className = 'tile';
+  el.innerHTML = `<div class="art" style="background:${art(i)}"></div>${s ? '<span class="tag">敏感</span>' + BADGE + CRACK : ''}`;
+  const fig = document.createElement('figure'); fig.style.cssText = 'margin:0;display:flex;flex-direction:column;align-items:center;gap:3px';
+  fig.appendChild(el); const cap = document.createElement('figcaption'); cap.className = 'lab'; cap.textContent = s ? (mode === 'crack' ? '关闭时：封印碎裂' : '关闭时：消散') : '普通';
+  fig.appendChild(cap); document.getElementById('refstrip').appendChild(fig);
+  if (s) pins.push({ el, mode });
+});
+const RECT = 'polygon(0% 0%, 50% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%)';
+const BOOK = 'polygon(24% 8%, 50% 8%, 76% 8%, 76% 92%, 50% 72%, 24% 92%)';
+const MIDCLIP = 'polygon(8% 3%, 50% 5%, 92% 3%, 94% 97%, 50% 90%, 6% 97%)';
+const BLUR = 'blur(16px) saturate(.5)', CLEAR = 'blur(0px) saturate(1)';
+const SPRING_FLIP = 'linear(0, 0.06 2.5%, 0.22 6%, 0.5 12%, 0.76 19%, 0.92 26%, 1.01 33%, 1.03 40%, 1.02 50%, 1.005 62%, 1)';
+let sealed = false;
+const wallBtn = () => document.getElementById('wallBtn');
+function setCtrl(open) { const b = wallBtn(); b.querySelector('svg.live').classList.toggle('open', open); b.setAttribute('aria-pressed', String(!open)); }
+const rel = r => { const d = demo.getBoundingClientRect(); return { x: r.left - d.left, y: r.top - d.top, w: r.width, h: r.height }; };
+function btnCenter() { const r = rel(wallBtn().getBoundingClientRect()); return { x: r.x + r.w / 2, y: r.y + r.h / 2 }; }
+function makeGhost(t, r) { const g = t.el.cloneNode(true); g.classList.add('ghost');
+  Object.assign(g.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px', transform: 'none', clipPath: RECT, filter: CLEAR });
+  overlay.appendChild(g); return g; }
+function snapshot(g) { // 取当前视觉状态后停掉 g 上的所有动画
+  const cs = getComputedStyle(g), v = getComputedStyle(g.querySelector('.veil'));
+  const m = new DOMMatrix(cs.transform === 'none' ? undefined : cs.transform);
+  const s = { tx: m.e, ty: m.f, sc: Math.hypot(m.a, m.b), rot: Math.atan2(m.b, m.a) * 180 / Math.PI,
+    clip: cs.clipPath === 'none' ? RECT : cs.clipPath, op: +cs.opacity, filter: cs.filter === 'none' ? CLEAR : cs.filter, veil: +v.opacity };
+  g.getAnimations({ subtree: true }).forEach(a => a.cancel()); return s; }
+const tf = (x, y, r, s) => `translate(${x}px, ${y}px) rotate(${r}deg) scale(${s})`;
+function flip(movers, before, delay, dur) {
+  movers.forEach(t => t.el.getAnimations().forEach(a => a.cancel()));
+  movers.forEach(t => { const a = t.el.getBoundingClientRect(), b = before.get(t.el); const dx = b.left - a.left, dy = b.top - a.top;
+    if (Math.abs(dx) + Math.abs(dy) < .5) return;
+    t.el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0px, 0px)' }], { duration: dur, delay, easing: SPRING_FLIP, fill: 'backwards' }); });
+}
+const LOG = [];
+function seal() {
+  if (sealed) return; sealed = true; setCtrl(false); const rm = isRM(), t0 = performance.now();
+  const movers = tiles.filter(t => t.k === 'safe'), before = new Map(movers.map(t => [t.el, t.el.getBoundingClientRect()]));
+  const flying = [];
+  tiles.filter(t => t.k === 'sens').forEach(t => {
+    let g = t.ghost, s;
+    if (g) s = snapshot(g);
+    else if (t.el.style.display !== 'none') { const r = rel(t.el.getBoundingClientRect()); g = makeGhost(t, r);
+      s = { tx: 0, ty: 0, sc: 1, rot: 0, clip: RECT, op: 1, filter: CLEAR, veil: 0 }; }
+    t.el.style.display = 'none'; t.el.style.visibility = '';
+    if (g) { t.ghost = g; flying.push([t, g, s]); }
+  });
+  pins.forEach(p => pinSeal(p, rm));
+  if (rm) { flying.forEach(([t, g]) => { g.remove(); t.ghost = null; }); movers.forEach(t => t.el.getAnimations().forEach(a => a.cancel())); return; }
+  flip(movers, before, T(260), T(600));
+  const bc = btnCenter();
+  flying.forEach(([t, g, s], i) => {
+    const cx = parseFloat(g.style.left) + g.offsetWidth / 2, cy = parseFloat(g.style.top) + g.offsetHeight / 2;
+    const dx = bc.x - cx, dy = bc.y - cy;
+    Object.assign(g.style, { transform: tf(s.tx, s.ty, s.rot, s.sc), clipPath: s.clip, opacity: s.op, filter: s.filter });
+    // ① 0–200 ms：糊掉 + 强调色蒙层（≤0.3 s 无法辨认）
+    g.animate([{ filter: s.filter }, { filter: BLUR }], { duration: T(200), easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' });
+    g.querySelector('.veil').animate([{ opacity: s.veil }, { opacity: .55 }], { duration: T(200), easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' });
+    // ② 折成书签、飞进书里
+    const a = g.animate([
+      { transform: tf(s.tx, s.ty, s.rot, s.sc), clipPath: s.clip, opacity: Math.max(s.op, .001), easing: 'cubic-bezier(.2,.8,.3,1)' },
+      { offset: .34, transform: tf(s.tx * .85, s.ty * .85 - 6, 0, s.sc * .62 + .1), clipPath: BOOK, opacity: 1, easing: 'cubic-bezier(.6,0,.9,.5)' },
+      { transform: tf(dx, dy, 0, .14), clipPath: BOOK, opacity: 0 }],
+      { duration: T(500), delay: T(240 + i * 40), fill: 'both' });
+    a.onfinish = () => { if (t.ghost === g) { g.remove(); t.ghost = null; } };
+    // 打断时实测：遮蔽何时完成
+    watchBlur(g, t0, i);
+  });
+}
+function release() {
+  if (!sealed) return; sealed = false; setCtrl(true); const rm = isRM();
+  const movers = tiles.filter(t => t.k === 'safe'), before = new Map(movers.map(t => [t.el, t.el.getBoundingClientRect()]));
+  const sens = tiles.filter(t => t.k === 'sens');
+  sens.forEach(t => { t.el.style.display = ''; t.el.style.visibility = 'hidden'; });
+  pins.forEach(p => pinRelease(p, rm));
+  if (rm) { movers.forEach(t => t.el.getAnimations().forEach(a => a.cancel()));
+    sens.forEach(t => { if (t.ghost) { t.ghost.remove(); t.ghost = null; } t.el.style.visibility = '';
+      t.el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120 }); }); return; }
+  flip(movers, before, T(140), T(720));
+  const bc = btnCenter();
+  const ring = document.createElement('div'); ring.className = 'burst'; Object.assign(ring.style, { left: bc.x + 'px', top: bc.y + 'px' }); overlay.appendChild(ring);
+  ring.animate([{ transform: 'scale(.5)', opacity: .9 }, { transform: 'scale(3.2)', opacity: 0 }], { duration: T(620), delay: T(120), easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'both' }).onfinish = () => ring.remove();
+  sens.forEach((t, i) => {
+    const r = rel(t.el.getBoundingClientRect()); let g = t.ghost, s;
+    const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+    if (g) { s = snapshot(g); const ox = parseFloat(g.style.left), oy = parseFloat(g.style.top);
+      s.tx += ox - r.x; s.ty += oy - r.y; Object.assign(g.style, { left: r.x + 'px', top: r.y + 'px' }); }
+    else { g = makeGhost(t, r); s = { tx: bc.x - cx, ty: bc.y - cy, sc: .14, rot: 0, clip: BOOK, op: 0, filter: BLUR, veil: .55 }; }
+    t.ghost = g; g.style.visibility = 'visible';
+    const side = (i % 2 ? 1 : -1) * 18, lift = 46 + i * 8;
+    const o = { duration: T(860), delay: T(200 + i * 55), fill: 'both' };
+    const a = g.animate([
+      { transform: tf(s.tx, s.ty, s.rot, s.sc), clipPath: s.clip, opacity: s.op, easing: 'cubic-bezier(.15,.6,.3,1)' },
+      { offset: .12, opacity: 1 },
+      { offset: .55, transform: tf(s.tx * .28 + side, s.ty * .28 - lift, side > 0 ? 5 : -5, 1.14), clipPath: MIDCLIP, easing: 'cubic-bezier(.3,0,.2,1)' },
+      { offset: .82, transform: tf(0, 0, 0, .97), clipPath: RECT },
+      { transform: tf(0, 0, 0, 1), clipPath: RECT, opacity: 1 }], o);
+    g.animate([{ filter: s.filter }, { offset: .6, filter: 'blur(5px) saturate(.9)' }, { filter: CLEAR }], o);
+    g.querySelector('.veil').animate([{ opacity: s.veil }, { offset: .7, opacity: .12 }, { opacity: 0 }], o);
+    a.onfinish = () => { if (t.ghost === g && !sealed) { t.el.style.visibility = ''; g.remove(); t.ghost = null; } };
+  });
+}
+function pinSeal(p, rm) {
+  const artEl = p.el.querySelector('.art'), badge = p.el.querySelector('.badge'), crack = p.el.querySelector('.crack');
+  const cur = getComputedStyle(artEl).filter; [artEl, badge, crack, ...crack.querySelectorAll('path')].forEach(e => e.getAnimations().forEach(a => a.cancel()));
+  artEl.style.filter = 'blur(14px) saturate(.6)'; badge.style.opacity = 1; crack.style.opacity = 0;
+  crack.querySelectorAll('path').forEach(pp => pp.style.strokeDashoffset = 1);
+  if (rm) return;
+  artEl.animate([{ filter: cur === 'none' ? CLEAR : cur }, { filter: 'blur(14px) saturate(.6)' }], { duration: T(200), easing: 'cubic-bezier(.2,.8,.3,1)' });
+  badge.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'scale(1)' }], { duration: T(240), delay: T(80), easing: EASE_SRC.popl, fill: 'backwards' });
+}
+function pinRelease(p, rm) {
+  const artEl = p.el.querySelector('.art'), badge = p.el.querySelector('.badge'), crack = p.el.querySelector('.crack');
+  const cur = getComputedStyle(artEl).filter; [artEl, badge, crack].forEach(e => e.getAnimations().forEach(a => a.cancel()));
+  artEl.style.filter = 'none'; badge.style.opacity = 0;
+  if (rm) { artEl.animate([{ opacity: .4 }, { opacity: 1 }], { duration: 120 }); return; }
+  if (p.mode === 'crack') {
+    crack.style.opacity = 0;
+    crack.querySelectorAll('path').forEach((pp, j) => pp.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: T(140), delay: T(j * 60), fill: 'both', easing: 'cubic-bezier(.3,0,.2,1)' }));
+    crack.animate([{ opacity: 1 }, { offset: .4, opacity: 1 }, { opacity: 0 }], { duration: T(460), easing: 'ease-out' });
+    badge.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.35)' }], { duration: T(200), delay: T(120), fill: 'backwards' });
+    artEl.animate([{ filter: cur }, { offset: .3, filter: cur }, { filter: 'blur(0px) saturate(1)' }], { duration: T(520), easing: 'cubic-bezier(.2,.8,.3,1)' });
+  } else {
+    badge.animate([{ opacity: 1 }, { opacity: 0 }], { duration: T(220) });
+    artEl.animate([{ filter: cur + ' brightness(1)' }, { offset: .5, filter: 'blur(6px) saturate(.9) brightness(1.12)' }, { filter: 'blur(0px) saturate(1) brightness(1)' }], { duration: T(480), easing: 'ease-out' });
+  }
+}
+function watchBlur(g, t0, i) { // 记录每张图 blur ≥ 12px（视为无法辨认）的时刻
+  const tick = () => { if (!g.isConnected) return; const m = /blur\(([\d.]+)px/.exec(getComputedStyle(g).filter);
+    if (m && +m[1] >= 12) { LOG.push(performance.now() - t0); return; } setTimeout(tick, 8); }; setTimeout(tick, 0); }
+wallBtn().addEventListener('click', () => sealed ? release() : seal());
+document.getElementById('wSeal').addEventListener('click', seal);
+document.getElementById('wRelease').addEventListener('click', release);
+document.getElementById('wInterrupt').addEventListener('click', () => { if (!sealed) seal(); setTimeout(() => { release(); setTimeout(seal, T(400)); }, isRM() ? 50 : T(1100)); });
+document.getElementById('wTheme').addEventListener('click', () => { const n = demo.classList.contains('day');
+  demo.classList.toggle('day', !n); demo.classList.toggle('night', n);
+  demo.querySelector('.brand').innerHTML = brandSVG(n ? 'night' : 'day'); });
+
+(function wallTimeline() {
+  const W = 640, S = 1300, x = ms => ms / S * W;
+  const row = (head, label, a, b, col, tick) => `<div class="tl"><b>${head}</b><div style="display:flex;gap:10px;align-items:center"><span style="width:190px;color:#4A4560">${label}</span><div class="tlbar"><i style="left:${x(a)}px;width:${x(b - a)}px;background:${col}">${a}–${b} ms</i>${tick ? `<span class="tick" style="left:${x(300)}px"></span>` : ''}</div></div></div>`;
+  const ax = [0, 200, 300, 500, 750, 1000, 1200].map(v => `<span style="left:${x(v)}px">${v} ms</span>`).join('');
+  document.getElementById('walltime').innerHTML =
+    row('封印', '糊掉 + 强调色蒙层（红线 = 0.3 s 门槛）', 0, 200, '#E0768F', true) +
+    row('', '按钮：书合上，锁孔落回', 0, 400, '#8A8499') +
+    row('', '折成书签 → 飞进书（每张晚 40 ms）', 240, 860, '#2B2747') +
+    row('', '其余图片补位（弹簧，连续）', 260, 860, '#6B8F7A') +
+    row('', '参考组 / 钉图原位模糊 + 小书签', 0, 320, '#C9962F') +
+    '<div style="height:8px"></div>' +
+    row('释放', '按钮：书打开，星落定', 0, 620, '#8A8499') +
+    row('', '按钮处光环', 120, 740, '#E0768F') +
+    row('', '图从书里依次飞出，弧线 + 放大 1.14 落位（每张晚 55 ms）', 200, 1225, '#2B2747') +
+    row('', '其余图片让位（弹簧，连续）', 140, 860, '#6B8F7A') +
+    row('', '钉图碎裂 / 消散（原位）', 0, 520, '#C9962F') +
+    `<div class="tlaxis" style="margin-left:262px">${ax}</div>
+     <p class="note" style="margin:6px 0 0">释放中途再封印：每张图从当前的位置、大小、模糊程度出发，200 ms 内糊到 16 px 并蒙上强调色，再飞回书里；补位从当前视觉位置继续，不跳。减少动态效果：封印时图直接消失、其余图直接归位；释放时直接出现，加 120 ms 淡入。</p>`;
+})();
+
+/* ====================================================================== self test (#selftest) */
+async function selftest() {
+  const out = [], wait = ms => new Promise(r => setTimeout(r, ms));
+  const nums = el => (getComputedStyle(el).d.match(/-?[\d.]+/g) || []).map(Number);
+  const svg = document.querySelector('.mc svg.big'), L = svg.querySelector('.L');
+  const sample = async (ms) => { const fr = []; const tEnd = performance.now() + ms;
+    while (performance.now() < tEnd) { fr.push([performance.now(), nums(L)]); await new Promise(r => setTimeout(r, 16)); } return fr; };
+  const maxStep = fr => { let m = 0; for (let i = 1; i < fr.length; i++) { const a = fr[i - 1][1], b = fr[i][1]; if (a.length !== b.length) return Infinity;
+    for (let j = 0; j < a.length; j++) m = Math.max(m, Math.abs(b[j] - a[j])); } return m; };
+  svg.classList.add('open'); const full = await sample(700);
+  svg.classList.remove('open'); await sample(600);
+  svg.classList.add('open'); const p1 = await sample(150); svg.classList.remove('open'); const p2 = await sample(500);
+  const both = p1.concat(p2);
+  out.push(`控件：完整打开逐帧最大位移 ${maxStep(full).toFixed(3)} 单位；150 ms 时掉头，掉头前后逐帧最大位移 ${maxStep(both).toFixed(3)} 单位（帧数 ${both.length}）`);
+  const k = p1.length - 1; out.push(`  掉头那一帧：${(Math.max(...p2[0][1].map((v, j) => Math.abs(v - p1[k][1][j])))).toFixed(3)} 单位`);
+  // wall
+  LOG.length = 0; seal(); await wait(1200); const direct = LOG.slice();
+  release(); await wait(400); LOG.length = 0; seal(); await wait(1200); const inter = LOG.slice();
+  const fmt = a => a.length ? `${Math.round(Math.max(...a))} ms（${a.length} 张）` : '无数据';
+  out.push(`图片墙：直接封印，全部图 blur ≥ 12px 最晚 ${fmt(direct)}；释放 0.4 s 后再封印，最晚 ${fmt(inter)}`);
+  document.getElementById('selftest').textContent = '自测\n' + out.join('\n');
+  document.title = 'SELFTEST DONE';
+}
+drawZooms();
+document.getElementById('runSelftest').addEventListener('click', () => selftest());
+if (location.hash === '#selftest') setTimeout(selftest, 300);
+if (location.hash === '#frames') document.body.classList.add('only-frames');
+</script>
+</body>
+</html>

@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>封印书 · 书口封带</title>
+<style>
+  :root {
+    --page: #E9E4DE; --text: #2B2747; --muted: #6B6680; --line: #D8D0C2; --card: #F5F0E6;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text);
+    font: 13px/1.6 "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif; }
+  .wrap { width: 1680px; padding: 36px 40px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .02em; }
+  h2 { font-size: 16px; margin: 0 0 4px; }
+  h3 { font-size: 13px; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin: 0 0 14px; }
+  .tools { display: flex; gap: 10px; margin-bottom: 26px; position: sticky; top: 0; z-index: 5; padding: 8px 0; background: var(--page); }
+  .tools button, .tools label { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 4px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  section { margin-bottom: 30px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+  .sec-head p { margin: 0; color: var(--muted); font-size: 12px; }
+  .panel { background: var(--card); border-radius: 14px; padding: 16px 18px; }
+  .lab { font-size: 11px; color: var(--lab, #8A8499); text-align: center; line-height: 1.4; }
+  .tag { display: inline-block; font-size: 10.5px; line-height: 1; padding: 3px 6px; border-radius: 5px; border: 1px solid currentColor; opacity: .8; }
+
+  .day   { --ink: #2B2747; --acc: #E0768F; --bg: #F7F3EA; --cut: var(--bg); --grid: rgba(43,39,71,.10); --lab: #8A8499;
+           --hov: #ECE5D8; --prs: #E2DACB; --sealbg: #F7E3E3; --sealhov: #F2D5D7; --focus: #2B2747; }
+  .night { --ink: #F4ECDC; --acc: #E3B34F; --bg: #1E1B2E; --cut: var(--bg); --grid: rgba(244,236,220,.10); --lab: #8C87A3;
+           --hov: #2A2640; --prs: #332F4B; --sealbg: #2F2A2E; --sealhov: #3A3333; --focus: #F4ECDC; }
+  /* proposal: deeper pink that clears 3:1 on every day background the band can sit on */
+  body.deep .day, .day.deep { --acc: #CC5A76; --sealbg: #F4E6E4; --sealhov: #F3E0E0; }
+  .day, .night { background: var(--bg); color: var(--ink); }
+
+  svg.ic { display: block; overflow: visible; }
+
+  /* §1 master */
+  .master { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .mcard { border-radius: 14px; padding: 16px; display: flex; gap: 18px; align-items: flex-start; }
+  .mcard figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .construct { position: relative; width: 240px; height: 240px; }
+  .construct svg { position: absolute; inset: 0; }
+  .zoom { display: block; image-rendering: pixelated; border-radius: 4px; }
+  .mside { font-size: 12px; color: var(--lab); max-width: 250px; }
+  .mside p { margin: 0 0 6px; }
+  .mside b { color: var(--ink); }
+
+  /* §2 sizes */
+  .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .scard { border-radius: 14px; padding: 14px 16px; }
+  .srow { display: grid; grid-template-columns: 54px 40px 40px auto; align-items: center; gap: 14px; padding: 8px 0;
+          border-top: 1px solid var(--grid); }
+  .srow:first-of-type { border-top: 0; }
+  .srow .sz { font-size: 12px; color: var(--lab); }
+  .srow .one { display: grid; place-items: center; height: 40px; }
+  .srow .zooms { display: flex; gap: 10px; align-items: flex-end; }
+  .srow .zooms figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+
+  /* §3 button */
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .bcard { border-radius: 14px; padding: 16px 18px; display: flex; gap: 28px; align-items: flex-start; }
+  .rail { width: 56px; padding: 8px; border-radius: 14px; display: flex; flex-direction: column;
+          align-items: center; gap: 4px; background: var(--rail, color-mix(in srgb, var(--ink) 4%, var(--bg)));
+          outline: 1px solid var(--grid); }
+  .rail .sp { flex: 1; }
+  .rail .ph { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; opacity: .62; }
+  .rail .ph.cur { opacity: 1; background: color-mix(in srgb, var(--ink) 8%, var(--rail, var(--bg))); }
+  .rb { --bb: var(--rail, var(--bg)); --cut: var(--bb); width: 40px; height: 40px; border-radius: 10px; border: 0; padding: 0;
+        cursor: pointer; background: var(--bb); display: grid; place-items: center; position: relative;
+        transition: background-color 120ms; -webkit-tap-highlight-color: transparent; }
+  .rb svg { transition: transform 140ms cubic-bezier(.2,.8,.2,1); }
+  .rb[aria-pressed="true"] { --bb: var(--sealbg); }
+  .rb:hover, .rb.h { --bb: var(--hov); }
+  .rb[aria-pressed="true"]:hover, .rb[aria-pressed="true"].h { --bb: var(--sealhov); }
+  .rb:active, .rb.a { --bb: var(--prs); }
+  .rb[aria-pressed="true"]:active, .rb[aria-pressed="true"].a { --bb: color-mix(in srgb, var(--acc) 24%, var(--bg)); }
+  .rb:active svg, .rb.a svg { transform: scale(.9); }
+  .rb:focus { outline: none; }
+  .rb:focus-visible, .rb.f { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .matrix { display: grid; grid-template-columns: 60px repeat(5, 64px); gap: 10px 6px; align-items: center; }
+  .matrix .hd { font-size: 11px; color: var(--lab); text-align: center; }
+  .matrix .rl { font-size: 11px; color: var(--lab); }
+  .matrix .cell { display: grid; place-items: center; height: 52px; border-radius: 10px; background: var(--rail); }
+  .tip { position: absolute; left: 50px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 12px;
+         padding: 4px 9px; border-radius: 7px; background: var(--ink); color: var(--bg); pointer-events: none; z-index: 2; }
+  .spec { font-size: 12px; color: var(--lab); }
+  .spec p { margin: 0 0 6px; }
+  .spec code { font-family: Consolas, monospace; font-size: 11.5px; color: var(--ink); }
+
+  /* §3b contrast */
+  .contrast { display: grid; grid-template-columns: 1.25fr 1fr; gap: 14px; }
+  .ctab { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .ctab th, .ctab td { padding: 5px 8px; text-align: left; border-top: 1px solid var(--grid); }
+  .ctab th { font-weight: 600; color: var(--lab); font-size: 11px; border-top: 0; }
+  .ctab .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -3px; margin-right: 6px; outline: 1px solid rgba(43,39,71,.15); }
+  .ok { color: #2E7D4F; font-weight: 600; } .bad { color: #B23A48; font-weight: 600; }
+  .cmp { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  .cmp figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .cmp .pair { display: flex; gap: 6px; padding: 8px; border-radius: 12px; background: var(--rail); }
+
+  /* §4 motion */
+  .motion { display: grid; grid-template-columns: 360px 1fr; gap: 14px; }
+  .live { border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .live .row { display: flex; gap: 18px; align-items: center; }
+  .bigbtn { width: 120px; height: 120px; border-radius: 26px; border: 0; padding: 0; cursor: pointer; display: grid; place-items: center;
+            --bb: color-mix(in srgb, var(--ink) 4%, var(--bg)); --cut: var(--bb); background: var(--bb); }
+  .bigbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .strip { border-radius: 14px; padding: 12px 14px; }
+  .strip .frames { display: flex; gap: 6px; }
+  .strip figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .strip .fr { width: 76px; height: 76px; border-radius: 10px; display: grid; place-items: center;
+               background: color-mix(in srgb, var(--ink) 4%, var(--bg)); --cut: color-mix(in srgb, var(--ink) 4%, var(--bg)); }
+  .timeline { position: relative; margin-top: 10px; font-size: 11px; color: var(--lab); }
+  .tl-row { display: grid; grid-template-columns: 104px 1fr; align-items: center; height: 18px; }
+  .tl-track { position: relative; height: 8px; background: var(--grid); border-radius: 4px; }
+  .tl-bar { position: absolute; top: 0; height: 8px; border-radius: 4px; background: var(--acc); }
+  .tl-bar.ink { background: var(--ink); opacity: .75; }
+  .tl-axis { display: grid; grid-template-columns: 104px 1fr; margin-top: 2px; }
+  .tl-axis div:last-child { display: flex; justify-content: space-between; }
+
+  /* §5 wall */
+  .wallsec { display: grid; grid-template-columns: 560px 1fr; gap: 14px; }
+  .stage { position: relative; width: 488px; height: 320px; }
+  .stage .rail { position: absolute; left: 0; top: 0; height: 320px; }
+  .tile { position: absolute; left: 0; top: 0; width: 92px; height: 92px; transform-origin: 46px 46px; will-change: transform; }
+  .tile .clip { position: absolute; inset: 0; border-radius: 9px; overflow: hidden; }
+  .tile .art { position: absolute; inset: -8px; will-change: filter; }
+  .tile .wash { position: absolute; inset: 0; opacity: 0; }
+  .tile .chip { position: absolute; left: 6px; bottom: 6px; font-size: 10px; line-height: 1; padding: 3px 5px; border-radius: 5px;
+                background: rgba(247,243,234,.88); color: #2B2747; }
+  /* band mark: keyhole (x 15.5 in the 24 grid) sits exactly on the tile's right edge, ×2 */
+  .tile .mark { position: absolute; left: 77px; top: 38px; width: 30px; height: 16px; overflow: visible; }
+  .burst { position: absolute; width: 40px; height: 40px; border-radius: 50%; pointer-events: none; opacity: 0;
+           border: 2px solid var(--acc); }
+  .wcard { border-radius: 14px; padding: 16px; }
+  .wcard .ctl { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+  .wcard .ctl button { font: inherit; color: var(--ink); background: color-mix(in srgb, var(--ink) 6%, var(--bg)); border: 1px solid var(--grid);
+                       border-radius: 8px; padding: 3px 12px; cursor: pointer; }
+  .snaps { display: flex; flex-direction: column; gap: 10px; }
+  .snaprow { display: grid; grid-template-columns: 110px repeat(5, 1fr); gap: 8px; align-items: start; }
+  .snaprow .rl { font-size: 12px; color: var(--lab); padding-top: 6px; }
+  .snaprow .rl b { color: var(--ink); display: block; font-weight: 600; }
+  .mini .holder { width: 166px; height: 109px; overflow: hidden; border-radius: 8px; background: var(--bg); outline: 1px solid var(--grid); }
+  .mini .stage { zoom: .34; }
+  .wnotes { font-size: 12px; color: var(--lab); margin-top: 10px; }
+  .wnotes p { margin: 0 0 4px; }
+  .wnotes b { color: var(--ink); }
+
+  /* §6 notes */
+  .notes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .notes ul { margin: 0; padding-left: 18px; color: #4A4560; font-size: 12.5px; }
+  .notes li { margin-bottom: 5px; }
+
+  body.frames-only section:not(.keep), body.frames-only .tools, body.frames-only .sub, body.frames-only h1 { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>封印书控件 · 第四轮 · A3 书口封带</h1>
+  <p class="sub">#27 · 在第三轮 A「封蜡」的结构上，把不规则的蜡印换成最简的几何件：一条横贯<b>书口</b>（书打开的那一边）的短封带，锁孔正好开在书口线上。封印 = 合上的书被封带扣住；打开 = 摊开的书 + 星。</p>
+  <div class="tools">
+    <button id="all" type="button">全部切换</button>
+    <label><input id="slow" type="checkbox"> 慢放 ×5</label>
+    <label><input id="rm" type="checkbox"> 减少动态</label>
+    <label><input id="deep" type="checkbox"> 日间改用加深樱粉（提案）</label>
+    <span class="lab" style="align-self:center">动画中途再点一次会从当前画面反向，不跳帧。</span>
+  </div>
+
+  <!-- §1 -->
+  <section>
+    <div class="sec-head"><h2>1 · 母版几何（24 网格）</h2><p>左：构造线；中：1× 实际栅格放大 ×8；右：说明。第三行是副方案「方形封签」，同一套渲染器只换几何。</p></div>
+    <div class="master" id="master"></div>
+  </section>
+
+  <!-- §2 -->
+  <section>
+    <div class="sec-head"><h2>2 · 小尺寸专用几何</h2><p>每个尺寸单独画在自己的像素网格上，不是缩放。放大图是浏览器真实栅格化结果（×8 / ×7 / ×6 / ×5，带像素网格）。16 px 行最右是“24 网格直接缩到 16 px”的对照。</p></div>
+    <div class="sizes" id="sizes"></div>
+  </section>
+
+  <!-- §3 -->
+  <section>
+    <div class="sec-head"><h2>3 · 40 px 轨道按钮</h2><p>按钮可点击（空格 / 回车也可切换）。状态矩阵中的悬停、按下、焦点是强制显示的静态样式。</p></div>
+    <div class="btns" id="btns"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>3b · 强调色对比度</h2><p>封带是唯一用强调色的图形，它四周有一圈按钮底色的光环，所以真正要过 3:1（WCAG 1.4.11 非文字对比）的是“封带 vs 按钮底色”。</p></div>
+    <div class="contrast">
+      <div class="panel" id="ctable"></div>
+      <div class="panel day" id="ccmp" style="--rail:#F0EADF"></div>
+    </div>
+  </section>
+
+  <!-- §4 -->
+  <section class="keep">
+    <div class="sec-head"><h2>4 · 切换动效</h2><p>释放 640 ms（封带在书口处被一刀切断 → 两段沿水平方向滑开并淡出 → 书翻开 → 星出现）；封印 420 ms（同一路径倒放：书合上、两段从两侧滑回、在书口对齐时轻轻一紧）。</p></div>
+    <div class="motion">
+      <div class="live day" id="liveDay"></div>
+      <div style="display:flex;flex-direction:column;gap:10px" id="strips"></div>
+    </div>
+  </section>
+
+  <!-- §5 -->
+  <section class="keep">
+    <div class="sec-head"><h2>5 · 延展到图片墙（草图）</h2><p>敏感图被“收进书里”；参考组 / 钉图原位模糊，并在图块<b>右边缘</b>扣上一条同款小封带（锁孔压在图块边上，图块就是一本“书”），解除时封带在边线处切断、两段滑开。图块为 CSS 渐变占位。</p></div>
+    <div class="wallsec">
+      <div class="wcard day" id="wallLive"></div>
+      <div class="wcard day"><div class="snaps" id="snaps"></div></div>
+    </div>
+  </section>
+
+  <!-- §6 -->
+  <section>
+    <div class="sec-head"><h2>6 · 说明</h2></div>
+    <div class="notes">
+      <div class="panel"><h3>设计决策</h3><ul>
+        <li><b>主方案 = 横贯书口的短封带</b>：两端全圆的胶囊条（24 网格 13 × 6，圆角 3），左半压在封面上、右半伸出书口，锁孔正好落在书口线上。它只锁“能打开的那一边”——和第一轮横贯整个封面的「封条」不同：那条是贴封，这条是扣住开口的带子，切断它书才能翻开。</li>
+        <li><b>纯几何</b>：去掉蜡的起伏、蜡滴、裂纹折线。只剩胶囊 + logo 锁孔（evenodd 真挖空）+ 1 格底色光环（与 logo kit 小尺寸星的“底色描边”同一做法）。</li>
+        <li><b>副方案 = 方形封签</b>：7 × 7、圆角 2 的方块骑在书口上（§1 第三行、§4 第四条）。更像“印”，更紧凑；但离开书口语义弱一些，看起来更像角标 / 徽章，所以作为副选。</li>
+        <li><b>打开</b>：一刀直切（不是撕），两段在张力释放下快出慢停（ease-out）向两侧滑开 2.4 格并淡出；不旋转、不下落——比第三轮的“两半落下”更克制。</li>
+        <li><b>颜色</b>：封印态只有封带用强调色（日樱粉 / 夜金），书始终墨色；打开态只剩墨色 + 星。</li>
+        <li><b>16 px</b>：逐像素绘制。书 9 × 12，封带 9 × 4（四角各去 1 像素当圆头），锁孔 = 3 像素横头 + 1 像素槽（T 形），光环 = 封带四邻膨胀 1 像素。封带必须压到 4 行：6 行的版本连光环占掉书高的 2/3，书只剩一个“C”。锁孔中心列是书口内最后一列（书口线不可能同时落在奇数宽锁孔的正中），16 px 下看不出来。</li>
+      </ul></div>
+      <div class="panel"><h3>与第三轮 A（封蜡）相比</h3><ul>
+        <li>蜡印 Ø9 + 蜡滴 → 13 × 6 胶囊封带；轮廓从“圆 + 三组正弦起伏”变成直线 + 半圆，栅格化后边缘干净得多（见 §2 放大图）。</li>
+        <li>书从 13 格宽改为 12 格（12 × 18 = 2:3），给伸出书口的封带留位置；整体包围盒 3–22，比几何中心偏右 0.5 格（书的墨色块更重，光学上反而居中）。</li>
+        <li>锁孔不再在“印”的中心，而是在书口线上——锁孔的位置本身就在说“这里是开口”。</li>
+        <li>释放动画：蜡印鼓起 → 折线裂开 → 两半旋转下落，改为 张紧 → 直切 → 水平滑开。时长与节奏（640 / 420 ms、翻书与星的区间）完全沿用，可直接替换。</li>
+        <li>图片墙小标记：从右上角的小蜡印改为扣在图块右边缘的小封带，原位切断，无飞行。</li>
+        <li>新增对比度表与“加深樱粉”提案开关（顶栏）。</li>
+      </ul></div>
+      <div class="panel"><h3>待定问题</h3><ul>
+        <li>主 / 副方案选哪个：长封带（书口语义强，16 px 下更宽）还是方形封签（更紧凑、更像印）？</li>
+        <li>日间樱粉 #E0768F 在纸白上只有 2.65:1，在封印底色 / 悬停底色上更低（2.1–2.4）。是否接受提案 #CC5A76（纸白 3.58、封印底 #F4E6E4 上 3.27）？代价是粉色更沉、不那么“樱”。也可以只在图标里用深粉、品牌其他地方保留原樱粉。</li>
+        <li>按下态底色（强调色 24% 混合）在两种粉色下都过不了 3:1——按下只持续 &lt;200 ms，是否豁免？</li>
+        <li>封带两端都是半圆：左端压在封面上显得像“标签”，是否要把左端改成直角（像从封面背后绕过来）？目前保持两端对称，是为了 16 px 下仍能读成一个独立的“件”。</li>
+        <li>“滑开”方向：现在左段往封面里滑、右段往外滑；另一个可选是整条向右“滑脱”书口（不切断），更温和但少了“破封”的动作。</li>
+        <li>参考组 / 钉图的小封带是否常驻（提示这里有被封的东西），还是只在封印动作时短暂出现？</li>
+      </ul></div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ================= helpers ================= */
+const f = n => +(+n).toFixed(2);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (p, a, b) => clamp((p - a) / (b - a));
+const lerp = (a, b, t) => a + (b - a) * t;
+const E = {
+  lin: t => t, inQ: t => t * t, inC: t => t * t * t, outC: t => 1 - (1 - t) ** 3, outQ: t => 1 - (1 - t) ** 2,
+  inOutC: t => t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2,
+  back: (s = 1.7) => t => { const c = s + 1; return 1 + c * (t - 1) ** 3 + s * (t - 1) ** 2; },
+};
+const star = (cx, cy, r, k = .16) => { const d = r * k;
+  return `M${f(cx)} ${f(cy - r)} C${f(cx + d)} ${f(cy - d)} ${f(cx + d)} ${f(cy - d)} ${f(cx + r)} ${f(cy)} ` +
+    `C${f(cx + d)} ${f(cy + d)} ${f(cx + d)} ${f(cy + d)} ${f(cx)} ${f(cy + r)} ` +
+    `C${f(cx - d)} ${f(cy + d)} ${f(cx - d)} ${f(cy + d)} ${f(cx - r)} ${f(cy)} ` +
+    `C${f(cx - d)} ${f(cy - d)} ${f(cx - d)} ${f(cy - d)} ${f(cx)} ${f(cy - r)} Z`; };
+// rounded rect as a path (so it can be combined with the keyhole for evenodd)
+const rrect = (x0, y0, x1, y1, r) => `M${x0 + r} ${y0}H${x1 - r}A${r} ${r} 0 0 1 ${x1} ${y0 + r}V${y1 - r}A${r} ${r} 0 0 1 ${x1 - r} ${y1}` +
+  `H${x0 + r}A${r} ${r} 0 0 1 ${x0} ${y1 - r}V${y0 + r}A${r} ${r} 0 0 1 ${x0 + r} ${y0}Z`;
+// logo keyhole: round head + tapered slot, one outline
+const keyhole = k => { const s = Math.sqrt(k.r * k.r - k.a * k.a);
+  return `M${f(k.hx - k.a)} ${f(k.hy + s)} A${k.r} ${k.r} 0 1 1 ${f(k.hx + k.a)} ${f(k.hy + s)} L${f(k.hx + k.b)} ${k.y1} H${f(k.hx - k.b)} Z`; };
+const runs = (rows, ox, oy) => rows.map((row, y) => { let d = '', x = 0;
+  while (x < row.length) { if (row[x] === '#') { let e = x; while (row[e] === '#') e++; d += `M${ox + x} ${oy + y}h${e - x}v1h${x - e}Z`; x = e; } else x++; }
+  return d; }).join('');
+const dilate = rows => { const h = rows.length, w = rows[0].length, out = [];
+  for (let y = -1; y <= h; y++) { let s = '';
+    for (let x = -1; x <= w; x++) { const at = (xx, yy) => rows[yy] && rows[yy][xx] && rows[yy][xx] !== '.';
+      s += (at(x, y) || at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1)) ? '#' : '.'; }
+    out.push(s); }
+  return out; };
+const page = P => { const w = P.fx - P.sx, g = Math.sign(w) || 1, aw = Math.abs(w);
+  const r = Math.min(P.r, aw / 2), rs = Math.min(P.rs || 0, aw / 2), cx = P.sx + .38 * w;
+  return `M${f(P.sx)} ${f(P.tS + rs)} Q${f(P.sx)} ${f(P.tS)} ${f(P.sx + g * rs)} ${f(P.tS)} Q${f(cx)} ${f(P.tF)} ${f(P.fx - g * r)} ${f(P.tF)} ` +
+    `Q${f(P.fx)} ${f(P.tF)} ${f(P.fx)} ${f(P.tF + r)} L${f(P.fx)} ${f(P.bF - r)} Q${f(P.fx)} ${f(P.bF)} ${f(P.fx - g * r)} ${f(P.bF)} ` +
+    `Q${f(cx)} ${f(P.bF)} ${f(P.sx + g * rs)} ${f(P.bS)} Q${f(P.sx)} ${f(P.bS)} ${f(P.sx)} ${f(P.bS - rs)} Z`; };
+const mirror = (P, c) => ({ ...P, sx: 2 * c - P.sx, fx: 2 * c - P.fx });
+
+/* ================= per-size geometry =================
+   cover: closed book; seal: the band (x0..x1, y0..y1, r); kh: keyhole, its hx is the cut line.
+   Every band / cover edge is on an integer; keyhole head width 3 (20/24) or 4 (32) is centred on a pixel centre. */
+const G = {
+  24: { n: 24, u: 1,
+    cover: { x0: 3, x1: 15, y0: 3, y1: 21, r: 2 }, bar: [5, 17, 6, 2, 1],
+    seal: { x0: 9, x1: 22, y0: 9, y1: 15, r: 3, halo: 1 }, kh: { hx: 15.5, hy: 11.5, r: 1.5, a: .5, b: .5, y1: 14 },
+    L: { sx: 11, fx: 3, tS: 7.5, tF: 6, bS: 21, bF: 19.5, r: 1.2, rs: 0 }, mid: 12,
+    star: [20.8, 3.4, 3.1, .24, 1] },
+  20: { n: 20, u: .8333,
+    cover: { x0: 2, x1: 13, y0: 2, y1: 18, r: 1.5 }, bar: [4, 15, 4, 1.5, .75],
+    seal: { x0: 8, x1: 19, y0: 7, y1: 13, r: 3, halo: 1 }, kh: { hx: 13.5, hy: 9.5, r: 1.5, a: .5, b: .5, y1: 12 },
+    L: { sx: 9, fx: 2, tS: 6.5, tF: 5, bS: 18, bF: 16.5, r: 1, rs: 0 }, mid: 10,
+    star: [17.3, 2.8, 2.6, .25, 1] },
+  32: { n: 32, u: 1.3333,
+    cover: { x0: 4, x1: 20, y0: 4, y1: 28, r: 2.5 }, bar: [7, 23, 8, 2, 1],
+    seal: { x0: 13, x1: 28, y0: 12, y1: 20, r: 4, halo: 1 }, kh: { hx: 20.5, hy: 15, r: 2, a: .75, b: 1, y1: 18.5 },
+    L: { sx: 15, fx: 4, tS: 10, tF: 8, bS: 28, bF: 26, r: 1.6, rs: 0 }, mid: 16,
+    star: [27.6, 4.4, 4.1, .24, 1.3] },
+};
+// sub-option: square stamp tab straddling the fore-edge (24 grid only)
+G.s24 = { ...G[24], seal: { x0: 12, x1: 19, y0: 9, y1: 16, r: 2, halo: 1 }, kh: { hx: 15.5, hy: 11.5, r: 1.5, a: .5, b: .5, y1: 14.5 } };
+for (const k in G) { const g = G[k]; g.R = mirror(g.L, g.mid); const S = g.seal;
+  g.band = rrect(S.x0, S.y0, S.x1, S.y1, S.r); g.khD = keyhole(g.kh);
+  const c = g.cover; g.closed = { sx: c.x0, fx: c.x1, tS: c.y0, tF: c.y0, bS: c.y1, bF: c.y1, r: c.r, rs: c.r }; }
+
+/* 16 px: drawn on the pixel grid. Book cols 1..9 / rows 2..13, band cols 5..13 / rows 6..9 (centred on the book), keyhole = 3-px head + 1-px slot. */
+const BAND16 = ['.#######.', '###...###', '####.####', '.#######.'];
+const STAMP16 = ['.###.', '#...#', '##.##', '#####', '.###.'];
+const P16 = {
+  cover: 'M2 2 H9 A1 1 0 0 1 10 3 V13 A1 1 0 0 1 9 14 H2 A1 1 0 0 1 1 13 V3 A1 1 0 0 1 2 2 Z',
+  bar: 'M3 11 H5 V12 H3 Z',
+  halo: runs(dilate(BAND16), 4, 5),
+  seal: runs(BAND16, 5, 6),
+  sHalo: runs(dilate(STAMP16), 6, 5),
+  sSeal: runs(STAMP16, 7, 6),
+  pages: 'M1 6h5v1h-5Z M1 7h6v8h-6Z M4 15h3v1h-3Z M10 6h5v1h-5Z M9 7h6v8h-6Z M9 15h3v1h-3Z',
+  star: 'M13 0h1v2h-1Z M11 2h5v1h-5Z M13 3h1v2h-1Z',
+};
+
+/* ================= renderer ================= */
+let UID = 0;
+// p: 0 = sealed, 1 = open
+function renderIcon(g, p, col, uid) {
+  const u = g.u, S = g.seal, K = g.kh;
+  const e = E.inOutC(seg(p, .28, .86)), e2 = E.outC(seg(p, .3, .82));
+  const C = g.closed, L = g.L;
+  const spine = lerp(C.sx, L.sx, e), w = lerp(C.fx - C.sx, Math.abs(L.fx - L.sx), e), lift = 1.3 * u * Math.sin(Math.PI * e);
+  const front = { sx: spine, fx: spine + w * Math.cos(Math.PI * e), tS: lerp(C.tS, L.tS, e), tF: lerp(C.tF, L.tF, e) - lift,
+    bS: lerp(C.bS, L.bS, e), bF: lerp(C.bF, L.bF, e) + lift, r: lerp(C.r, L.r, e), rs: lerp(C.rs, 0, e) };
+  const back = {}; for (const k in C) back[k] = lerp(C[k], g.R[k], e2);
+  let s = `<path fill="${col.ink}" d="${page(back)}"/>`;
+  s += `<path fill="${col.ink}" stroke="${col.cut}" stroke-width="${f(1.3 * u)}" stroke-linejoin="round" paint-order="stroke" d="${page(front)}"/>`;
+  const barOp = 1 - seg(p, .18, .32);
+  if (barOp > 0) { const [x, y, bw, bh, br] = g.bar; s += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="${br}" fill="${col.cut}" opacity="${f(barOp)}"/>`; }
+
+  // band: tension (0–.08) → straight cut at the keyhole (.06–.16) → two pieces slide apart (.1–.46) and fade (.24–.46)
+  const haloOp = 1 - seg(p, .16, .4);
+  const tens = Math.sin(Math.PI * seg(p, 0, .1));
+  const sx = 1 + .03 * tens, sy = 1 - .08 * tens, cy = (S.y0 + S.y1) / 2;
+  const tr = `translate(${K.hx} ${cy}) scale(${f(sx)} ${f(sy)}) translate(${-K.hx} ${-cy})`;
+  const haloP = `<path d="${g.band}" fill="${col.cut}" stroke="${col.cut}" stroke-width="${S.halo * 2}" stroke-linejoin="round" opacity="${f(haloOp)}"/>`;
+  const bandP = `<path fill-rule="evenodd" fill="${col.acc}" d="${g.band} ${g.khD}"/>`;
+  if (p < .06) s += `<g transform="${tr}">${haloP}${bandP}</g>`;
+  else if (p < .46) {
+    const gap = .35 * u * E.outC(seg(p, .06, .16)), slide = 2.4 * u * E.outC(seg(p, .1, .46)), op = 1 - seg(p, .24, .46), d = f(gap + slide);
+    const H = g.n;
+    s += `<defs><clipPath id="bl${uid}"><rect x="-1" y="0" width="${K.hx + 1}" height="${H}"/></clipPath><clipPath id="br${uid}"><rect x="${K.hx}" y="0" width="${H}" height="${H}"/></clipPath></defs>`;
+    s += `<g opacity="${f(op)}"><g transform="translate(${-d} 0)"><g clip-path="url(#bl${uid})">${haloP}${bandP}</g></g>` +
+         `<g transform="translate(${d} 0)"><g clip-path="url(#br${uid})">${haloP}${bandP}</g></g></g>`;
+  }
+  const sg = seg(p, .66, 1);
+  if (sg > 0) { const [x, y, r, k, h] = g.star, sc = E.back(1.9)(sg), rot = -70 * (1 - E.outC(sg)), d = star(x, y, r, k);
+    const t2 = `translate(${x} ${y}) rotate(${f(rot)}) scale(${f(Math.max(sc, 0))}) translate(${-x} ${-y})`;
+    s += `<g transform="${t2}" opacity="${f(seg(p, .66, .74))}"><path d="${d}" fill="${col.cut}" stroke="${col.cut}" stroke-width="${h * 2}" stroke-linejoin="round"/><path d="${d}" fill="${col.ink}"/></g>`; }
+  return s;
+}
+function render16(open, col, stamp = false) {
+  if (open) return `<path fill="${col.ink}" d="${P16.pages}"/><path fill="${col.ink}" d="${P16.star}"/>`;
+  return `<path fill="${col.ink}" d="${P16.cover}"/><path fill="${col.cut}" d="${P16.bar}"/><path fill="${col.cut}" d="${stamp ? P16.sHalo : P16.halo}"/>` +
+    `<path fill="${col.acc}" d="${stamp ? P16.sSeal : P16.seal}"/>`;
+}
+const VAR = { ink: 'var(--ink)', acc: 'var(--acc)', cut: 'var(--cut)' };
+const iconInner = (n, p, col, uid = ++UID) => n === 16 ? render16(p >= .5, col) : n === 's16' ? render16(p >= .5, col, true) : renderIcon(G[n], p, col, uid);
+const vb = n => n === 's24' ? 24 : n === 's16' ? 16 : n;
+const iconSVG = (n, p, size = vb(n), col = VAR, cls = '') =>
+  `<svg class="ic ${cls}" width="${size}" height="${size}" viewBox="0 0 ${vb(n)} ${vb(n)}" aria-hidden="true" focusable="false">${iconInner(n, p, col)}</svg>`;
+
+const THEME = { day: { ink: '#2B2747', acc: '#E0768F', cut: '#F7F3EA' }, night: { ink: '#F4ECDC', acc: '#E3B34F', cut: '#1E1B2E' } };
+const PINK = '#E0768F', DEEP = '#CC5A76';
+
+/* ================= raster zoom (real Chrome rasterization of the 1× SVG) ================= */
+const zoomJobs = [];
+function zoomCanvas(n, p, theme, scale, grid = n, label = '') {
+  const id = 'z' + (++UID);
+  zoomJobs.push({ id, n, p, theme, scale, grid });
+  return `<figure><canvas class="zoom" id="${id}" width="${n * scale}" height="${n * scale}"></canvas>${label ? `<figcaption class="lab">${label}</figcaption>` : ''}</figure>`;
+}
+function runZoom() {
+  for (const j of zoomJobs) {
+    const col = THEME[j.theme];
+    const inner = iconInner(j.grid, j.p, col, ++UID);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${j.n}" height="${j.n}" viewBox="0 0 ${vb(j.grid)} ${vb(j.grid)}">${inner}</svg>`;
+    const img = new Image();
+    img.onload = () => {
+      const sm = document.createElement('canvas'); sm.width = sm.height = j.n; const sc = sm.getContext('2d');
+      sc.fillStyle = col.cut; sc.fillRect(0, 0, j.n, j.n); sc.drawImage(img, 0, 0, j.n, j.n);
+      const cv = document.getElementById(j.id), c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
+      c.drawImage(sm, 0, 0, j.n * j.scale, j.n * j.scale);
+      c.strokeStyle = j.theme === 'day' ? 'rgba(43,39,71,.09)' : 'rgba(244,236,220,.08)'; c.lineWidth = 1;
+      for (let i = 1; i < j.n; i++) { const v = i * j.scale + .5; c.beginPath(); c.moveTo(v, 0); c.lineTo(v, j.n * j.scale); c.moveTo(0, v); c.lineTo(j.n * j.scale, v); c.stroke(); }
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+}
+
+/* ================= §1 master ================= */
+function construct(theme, p, key = 24) {
+  const g = G[key], k = 10, col = THEME[theme];
+  const lines = [];
+  for (let i = 0; i <= 24; i++) lines.push(`<path d="M${i * k} 0V240M0 ${i * k}H240" stroke="${theme === 'day' ? 'rgba(43,39,71,.08)' : 'rgba(244,236,220,.07)'}" stroke-width="1"/>`);
+  const kl = theme === 'day' ? '#4C8FD6' : '#7FB2E8', S = g.seal, K = g.kh;
+  let guide = '';
+  if (p === 0) {
+    const c = g.cover;
+    guide = `<rect x="${c.x0 * k}" y="${c.y0 * k}" width="${(c.x1 - c.x0) * k}" height="${(c.y1 - c.y0) * k}" fill="none" stroke="${kl}" stroke-dasharray="3 3"/>` +
+      `<rect x="${S.x0 * k}" y="${S.y0 * k}" width="${(S.x1 - S.x0) * k}" height="${(S.y1 - S.y0) * k}" fill="none" stroke="${kl}" stroke-dasharray="3 3"/>` +
+      `<rect x="${(S.x0 - S.halo) * k}" y="${(S.y0 - S.halo) * k}" width="${(S.x1 - S.x0 + 2 * S.halo) * k}" height="${(S.y1 - S.y0 + 2 * S.halo) * k}" rx="${(S.r + S.halo) * k}" fill="none" stroke="${kl}" stroke-opacity=".5"/>` +
+      `<path d="M${c.x1 * k} ${(c.y0 - 2) * k}V${(c.y1 + 2) * k}" stroke="#D9534F" stroke-opacity=".7" stroke-width="1"/>` +
+      `<text x="${c.x1 * k + 3}" y="${(c.y0 - .6) * k}" font-size="10" fill="#D9534F" fill-opacity=".85">书口</text>` +
+      `<path d="M${K.hx * k} ${(S.y0 - 1.5) * k}V${(S.y1 + 1.5) * k}" stroke="${kl}" stroke-width=".8"/>` +
+      `<text x="${K.hx * k + 3}" y="${(S.y1 + 2.4) * k}" font-size="10" fill="${kl}">切口</text>` +
+      `<path d="M0 ${(c.y0 + c.y1) / 2 * k}H240" stroke="${kl}" stroke-opacity=".6" stroke-dasharray="1 3"/>` +
+      `<path d="M120 0V240" stroke="${kl}" stroke-opacity=".6" stroke-dasharray="1 3"/>`;
+  } else {
+    const [x, y, r] = g.star;
+    guide = `<path d="M${g.mid * k} 0V240" stroke="${kl}" stroke-dasharray="3 3"/><rect x="${g.L.fx * k}" y="${g.L.tF * k}" width="${(g.R.fx - g.L.fx) * k}" height="${(g.L.bS - g.L.tF) * k}" fill="none" stroke="${kl}" stroke-dasharray="3 3"/>` +
+      `<circle cx="${x * k}" cy="${y * k}" r="${r * k}" fill="none" stroke="${kl}" stroke-dasharray="3 3"/>`;
+  }
+  return `<div class="construct"><svg width="240" height="240" viewBox="0 0 240 240">${lines.join('')}</svg>` +
+    `<svg width="240" height="240" viewBox="0 0 24 24" style="opacity:.92">${renderIcon(g, p, col, ++UID)}</svg>` +
+    `<svg width="240" height="240" viewBox="0 0 240 240">${guide}</svg></div>`;
+}
+const MS = {
+  band: `<p><b>主方案 · 书口封带</b></p><p>书 12 × 18（2:3），书口在 x = 15。</p><p>封带 13 × 6、圆角 3（两端全圆），y 9–15 与书的竖向中线对称；左 6 格压在封面上，右 7 格伸出书口。</p><p>锁孔头 Ø3 + 1 格宽槽，中心 x = 15.5（像素中心），即切口线；与书口线差 0.5 格，被封带盖住，看不出。</p><p>光环 1 格，取按钮底色。</p>`,
+  open: `<p><b>打开</b></p><p>与第三轮一致：两页中缝 2 格，页顶向书口抬起；星 = logo kit 四角星（pinch 0.24）+ 底色描边，压在右页角。</p><p>只有墨色，无强调色。</p>`,
+  stamp: `<p><b>副方案 · 方形封签</b></p><p>7 × 7、圆角 2，同样骑在书口上（左 3 格在封面、右 4 格在外），锁孔位置不变。</p><p>动画、光环、16 px 做法全部共用，只换几何常量。</p><p>更紧凑、更像“印”；但读起来更接近角标，书口的“扣住”感弱于长封带。</p>`,
+};
+document.getElementById('master').innerHTML = ['day', 'night'].map(t => `
+  <div class="mcard ${t}">
+    <figure>${construct(t, 0)}<figcaption class="lab">封印 · 构造</figcaption></figure>
+    <figure>${zoomCanvas(24, 0, t, 8)}<figcaption class="lab">封印 · 24 px 栅格 ×8</figcaption></figure>
+    ${t === 'day' ? `<div class="mside">${MS.band}</div>` : ''}
+  </div>`).join('') + ['day', 'night'].map(t => `
+  <div class="mcard ${t}">
+    <figure>${construct(t, 1)}<figcaption class="lab">打开 · 构造</figcaption></figure>
+    <figure>${zoomCanvas(24, 1, t, 8)}<figcaption class="lab">打开 · 24 px 栅格 ×8</figcaption></figure>
+    ${t === 'day' ? `<div class="mside">${MS.open}</div>` : ''}
+  </div>`).join('') + ['day', 'night'].map(t => `
+  <div class="mcard ${t}">
+    <figure>${construct(t, 0, 's24')}<figcaption class="lab">副方案 · 构造</figcaption></figure>
+    <figure>${zoomCanvas(24, 0, t, 8, 's24')}<figcaption class="lab">副方案 · 24 px ×8</figcaption></figure>
+    ${t === 'day' ? `<div class="mside">${MS.stamp}</div>` : `<figure>${zoomCanvas(16, 0, t, 8, 's16')}<figcaption class="lab">副方案 · 16 px ×8</figcaption></figure>`}
+  </div>`).join('');
+
+/* ================= §2 sizes ================= */
+const ZS = { 16: 8, 20: 7, 24: 6, 32: 5 };
+document.getElementById('sizes').innerHTML = ['day', 'night'].map(t => `
+  <div class="scard ${t}">
+    ${[16, 20, 24, 32].map(n => `
+      <div class="srow">
+        <span class="sz">${n} px${n === 24 ? '<br>母版' : n === 16 ? '<br>逐像素' : '<br>专用'}</span>
+        <span class="one">${iconSVG(n, 0)}</span>
+        <span class="one">${iconSVG(n, 1)}</span>
+        <div class="zooms">
+          ${zoomCanvas(n, 0, t, ZS[n], n, '封印')}
+          ${zoomCanvas(n, 1, t, ZS[n], n, '打开')}
+          ${n === 16 ? `<span style="width:8px"></span>${zoomCanvas(16, 0, t, 8, 24, '对照：24 缩放')}${zoomCanvas(16, 1, t, 8, 24, '对照：24 缩放')}` : ''}
+        </div>
+      </div>`).join('')}
+  </div>`).join('');
+
+/* ================= controls (p-driven, interruptible) ================= */
+let SLOW = 1, REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches, CLOCK = 0;
+document.getElementById('rm').checked = REDUCED;
+const OPEN_MS = 640, SEAL_MS = 420;
+class Ctl {
+  constructor(svg, n = 24) { this.svg = svg; this.n = n; this.pRef = 0; this.tRef = 0; this.dir = -1; this.uid = ++UID; this.last = -1; }
+  pAt(t) { return clamp(this.pRef + this.dir * (t - this.tRef) / (this.dir > 0 ? OPEN_MS : SEAL_MS)); }
+  get sealed() { return this.dir < 0; }
+  set(sealed, t) { this.pRef = this.pAt(t); this.tRef = t; this.dir = sealed ? -1 : 1; if (REDUCED) this.pRef = sealed ? 0 : 1; }
+  draw(t) { const p = this.pAt(t); if (p !== this.last) { this.svg.innerHTML = iconInner(this.n, p, VAR, this.uid); this.last = p; } }
+}
+const ctls = [];
+function bindButton(btn, n = 24) {
+  const svg = btn.querySelector('svg'); const c = new Ctl(svg, n); ctls.push(c);
+  if (btn.getAttribute('aria-pressed') === 'false') { c.pRef = 1; c.dir = 1; }
+  c.draw(0);
+  btn.addEventListener('click', () => {
+    const sealed = !c.sealed; c.set(sealed, CLOCK);
+    btn.setAttribute('aria-pressed', String(sealed));
+    btn.title = sealed ? '已封印 · 点击释放' : '封印敏感图片';
+  });
+  return c;
+}
+
+/* ================= §3 buttons ================= */
+const PH = {
+  grid: '<rect x="4.75" y="4.75" width="6" height="6" rx="1.5"/><rect x="13.25" y="4.75" width="6" height="6" rx="1.5"/><rect x="4.75" y="13.25" width="6" height="6" rx="1.5"/><rect x="13.25" y="13.25" width="6" height="6" rx="1.5"/>',
+  tag: '<path d="M4.75 5.75v5.1l8.4 8.4 6.1-6.1-8.4-8.4h-5.1z"/><circle cx="8.6" cy="8.6" r="1.2"/>',
+  folder: '<path d="M4.75 7.25v10a1.5 1.5 0 0 0 1.5 1.5h11.5a1.5 1.5 0 0 0 1.5-1.5v-7.5a1.5 1.5 0 0 0-1.5-1.5h-6l-2-2h-3.5a1.5 1.5 0 0 0-1.5 1.5z"/>',
+  search: '<circle cx="11" cy="11" r="5.5"/><path d="M15.2 15.2l4 4"/>',
+  gear: '<circle cx="12" cy="12" r="2.6"/><path d="M12 4.5v2M12 17.5v2M4.5 12h2M17.5 12h2M6.7 6.7l1.4 1.4M15.9 15.9l1.4 1.4M6.7 17.3l1.4-1.4M15.9 8.1l1.4-1.4"/>',
+};
+const ph = (k, cur) => `<span class="ph${cur ? ' cur' : ''}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${PH[k]}</svg></span>`;
+const sealBtn = (sealed = true, extra = '', n = 24) => `<button class="rb ${extra}" type="button" aria-label="封印敏感图片" aria-pressed="${sealed}" title="${sealed ? '已封印 · 点击释放' : '封印敏感图片'}">${iconSVG(n, sealed ? 0 : 1)}</button>`;
+const rail = (inner, h) => `<nav class="rail" aria-label="主导航" style="height:${h}px">${inner}</nav>`;
+
+document.getElementById('btns').innerHTML = ['day', 'night'].map(t => `
+  <div class="bcard ${t}" style="--rail:${t === 'day' ? '#F0EADF' : '#24203A'}">
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+      ${rail(ph('grid', 1) + ph('tag') + ph('folder') + ph('search') + '<span class="sp"></span>' + sealBtn(true, 'live') + ph('gear'), 330)}
+      <span class="lab">可点击</span>
+    </div>
+    <div>
+      <div class="matrix">
+        <span></span>${['静止', '悬停', '按下', '键盘焦点', '悬停提示'].map(h => `<span class="hd">${h}</span>`).join('')}
+        ${[true, false].map(s => `<span class="rl">${s ? '封印中<br><code style="font-size:10px">pressed=true</code>' : '已释放<br><code style="font-size:10px">pressed=false</code>'}</span>
+          ${['', 'h', 'a', 'f'].map(cls => `<span class="cell">${sealBtn(s, cls)}</span>`).join('')}
+          <span class="cell" style="position:relative;justify-content:start;padding-left:6px;overflow:visible">${sealBtn(s, 'h')}<span class="tip" style="left:52px">${s ? '已封印 · 点击释放' : '封印敏感图片'}</span></span>`).join('')}
+      </div>
+      <div class="spec" style="margin-top:14px">
+        <p><code>&lt;button aria-label="封印敏感图片" aria-pressed="true"&gt;</code>：名称固定，状态只由 aria-pressed 表达（读屏：“封印敏感图片，切换按钮，已按下”）。图标 aria-hidden。</p>
+        <p>40 × 40，圆角 10；24 px 母版居中。悬停 / 按下只换底色，按下时图标缩到 0.9；焦点 2 px 墨色描边、外扩 2 px（不用强调色，免得和封带混淆）。封带光环与星的描边取按钮当前底色（<code>--cut: var(--bb)</code>），悬停时不会露出错色圈。</p>
+      </div>
+    </div>
+  </div>`).join('');
+
+/* ================= §3b contrast ================= */
+const lum = h => { const c = [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16) / 255).map(v => v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; };
+const cr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+const fmt = v => `<span class="${v >= 3 ? 'ok' : 'bad'}">${v.toFixed(2)}</span>`;
+const sw = c => `<span class="sw" style="background:${c}"></span>`;
+const ROWS = [
+  ['纸白（页面 / 按钮静止）', '#F7F3EA', '#F7F3EA'], ['轨道底色', '#F0EADF', '#F0EADF'],
+  ['封印态按钮底', '#F7E3E3', '#F4E6E4'], ['封印态悬停底', '#F2D5D7', '#F3E0E0'], ['墨紫（封面，参考）', '#2B2747', '#2B2747']];
+document.getElementById('ctable').innerHTML = `<h3>日间：封带颜色 vs 它所在的底色</h3>
+  <table class="ctab"><tr><th>底色</th><th>现行 ${sw(PINK)}樱粉 ${PINK}</th><th>提案 ${sw(DEEP)}加深樱粉 ${DEEP}</th></tr>
+  ${ROWS.map(([n, a, b]) => `<tr><td>${n}</td><td>${sw(a)}${a} · ${fmt(cr(PINK, a))}</td><td>${sw(b)}${b} · ${fmt(cr(DEEP, b))}${a !== b ? ' <span class="tag">底色同步调淡</span>' : ''}</td></tr>`).join('')}
+  </table>
+  <p class="lab" style="text-align:left;margin:10px 0 0">夜间金 #E3B34F：夜底 #1E1B2E ${fmt(cr('#E3B34F', '#1E1B2E'))}，轨道 #24203A ${fmt(cr('#E3B34F', '#24203A'))}，封印态底 #2F2A2E ${fmt(cr('#E3B34F', '#2F2A2E'))}——无问题。<br>
+  按下态底色（强调色 24% 混合）两种粉都 &lt; 3:1，按下只持续一瞬，建议豁免。墨紫一行仅供参考：封带与封面之间有 1 格光环隔开，不靠两者对比。<br>
+  <b style="color:#2B2747">提案</b>：日间强调色改为 #CC5A76，并把封印态底 / 悬停底调淡到 #F4E6E4 / #F3E0E0，所有常驻状态 ≥ 3.1:1。顶栏开关可全页预览。</p>`;
+document.getElementById('ccmp').innerHTML = `<h3>40 px 封印态 · 现行 vs 提案（静止 / 悬停）</h3>
+  <div class="cmp">
+    <figure><div class="pair">${sealBtn(true)}${sealBtn(true, 'h')}</div><figcaption class="lab">现行 ${PINK}</figcaption></figure>
+    <figure class="deep"><div class="pair deep" style="--acc:${DEEP};--sealbg:#F4E6E4;--sealhov:#F3E0E0">${sealBtn(true)}${sealBtn(true, 'h')}</div><figcaption class="lab">提案 ${DEEP}</figcaption></figure>
+    <figure><div class="pair">${iconSVG(16, 0)}<span style="width:6px"></span>${iconSVG(20, 0)}</div><figcaption class="lab">现行 16 / 20</figcaption></figure>
+    <figure><div class="pair" style="--acc:${DEEP}">${iconSVG(16, 0)}<span style="width:6px"></span>${iconSVG(20, 0)}</div><figcaption class="lab">提案 16 / 20</figcaption></figure>
+  </div>
+  <p class="lab" style="text-align:left;margin-top:10px">小尺寸下差异最明显：樱粉在 16 px 的 9 × 6 像素封带里几乎和纸白糊成一片，加深后封带轮廓清楚，锁孔也更容易看见。</p>`;
+
+/* ================= §4 motion ================= */
+document.getElementById('liveDay').innerHTML = `
+  <div class="row">
+    <button class="bigbtn" type="button" aria-label="封印敏感图片（放大 ×5）" aria-pressed="true">${iconSVG(24, 0, 120)}</button>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+      <div style="display:flex;gap:10px;align-items:center">${sealBtn(true, 'live')}<span class="lab">40 px 实际大小</span></div>
+      <span class="lab" style="text-align:left;max-width:170px">点击放大或实际按钮切换；动画中途再点会从当前画面反向。顶栏可开慢放 ×5 / 减少动态（减少动态 = 直接换图，无过渡）。</span>
+    </div>
+  </div>
+  <div class="timeline" id="tl"></div>`;
+const TL = [['封带张紧', 0, .1, ''], ['书口处直切', .06, .16, ''], ['两段水平滑开', .1, .46, ''], ['两段淡出', .24, .46, ''], ['光环 / 书底淡出', .16, .4, 'ink'],
+  ['封面绕书脊翻开', .28, .86, 'ink'], ['右页展开', .3, .82, 'ink'], ['星（回弹）', .66, 1, 'ink']];
+document.getElementById('tl').innerHTML = TL.map(([n, a, b, c]) => `<div class="tl-row"><span>${n}</span><div class="tl-track"><div class="tl-bar ${c}" style="left:${a * 100}%;width:${(b - a) * 100}%"></div></div></div>`).join('') +
+  `<div class="tl-axis"><span></span><div><span>0</span><span>160</span><span>320</span><span>480</span><span>640 ms（释放）</span></div></div>` +
+  `<div class="tl-axis"><span></span><div><span>420</span><span>315</span><span>210</span><span>105</span><span>0 ms（封印，倒放）</span></div></div>`;
+
+const PS = [0, .04, .08, .12, .18, .26, .34, .44, .56, .7, .84, 1];
+const strip = (t, dir, key = 24) => `
+  <div class="strip ${t}">
+    <div class="frames">${(dir > 0 ? PS : [...PS].reverse()).map(p => `<figure><div class="fr">${iconSVG(key, p, 72)}</div><figcaption class="lab">${dir > 0 ? Math.round(p * OPEN_MS) : Math.round((1 - p) * SEAL_MS)} ms</figcaption></figure>`).join('')}</div>
+  </div>`;
+document.getElementById('strips').innerHTML =
+  `<div class="lab" style="text-align:left">释放（封印 → 打开）· 日间 / 夜间</div>` + strip('day', 1) + strip('night', 1) +
+  `<div class="lab" style="text-align:left">封印（打开 → 封印），同一路径倒放、更快</div>` + strip('day', -1) +
+  `<div class="lab" style="text-align:left">副方案 · 方形封签的释放（同一引擎）</div>` + strip('day', 1, 's24');
+
+/* ================= §5 wall ================= */
+const GRADS = [
+  'linear-gradient(135deg,#F6C6D0,#B7A6E8)', 'linear-gradient(160deg,#9FD3E6,#4E6FB8)', 'linear-gradient(120deg,#FBE3A5,#F08F7A)',
+  'radial-gradient(circle at 30% 30%,#FFF2D6,#E59AB0 60%,#7A5AA8)', 'linear-gradient(200deg,#C9E7C1,#5E9C8F)', 'linear-gradient(135deg,#2E3561,#D97FA8)',
+  'linear-gradient(90deg,#F4D8C8,#C78B9C)', 'radial-gradient(circle at 70% 25%,#FFFFFF,#A9C8F0 45%,#5167A8)', 'linear-gradient(160deg,#FBD2A2,#B85C7C)',
+  'linear-gradient(135deg,#D7C6F4,#6E5BB5)', 'linear-gradient(45deg,#F9E7EF,#E0768F)', 'linear-gradient(180deg,#BFE3F2,#F3D9E6)'];
+const KINDS = 'nsnrsnnsnsrn'.split('');
+const T = 92, GAP = 10, OX = 72, OY = 12, H = 320, BTN = { x: 28, y: H - 28 - 44 };
+const slot = i => ({ x: OX + (i % 4) * (T + GAP), y: OY + Math.floor(i / 4) * (T + GAP) });
+
+class Tw {
+  constructor() { this.m = new Map(); }
+  get(k, t, d) { const w = this.m.get(k); return w ? w(t) : d; }
+  to(k, t, to, delay, dur, ease, d) {
+    const prev = this.m.get(k), t0 = t + delay, from = prev ? prev(t0) : d;
+    this.m.set(k, tt => { if (tt <= t0) return prev ? prev(tt) : d; if (dur <= 0) return to; return from + (to - from) * ease(Math.min(1, (tt - t0) / dur)); });
+  }
+  set(k, t, v) { this.to(k, t, v, 0, 0, E.lin, v); }
+}
+
+// small band on a pinned / grouped tile: same band + keyhole as the 24 master (viewBox x 8..23, y 8..16, drawn ×2).
+// stamp 0→1: band wraps on, growing out from the keyhole; crack 0→1: straight cut, pieces slide apart and fade.
+const markSVG = (crack, stamp, uid) => {
+  const g = G[24], S = g.seal, K = g.kh, cy = (S.y0 + S.y1) / 2, acc = document.body.classList.contains('deep') ? DEEP : PINK;
+  if (stamp <= 0.001) return '';
+  const tr = `translate(${K.hx} ${cy}) scale(${f(stamp)} 1) translate(${-K.hx} ${-cy})`;
+  const ring = op => `<path d="${g.band}" fill="#F7F3EA" stroke="#F7F3EA" stroke-width="2" stroke-linejoin="round" opacity="${f(op)}"/>`;
+  const band = `<path fill-rule="evenodd" fill="${acc}" d="${g.band} ${g.khD}"/>`;
+  if (crack <= 0) return `<g transform="${tr}">${ring(1)}${band}</g>`;
+  const d = f(.35 * E.outC(seg(crack, 0, .2)) + 3 * E.outC(seg(crack, .1, 1))), op = 1 - seg(crack, .45, 1), rop = 1 - seg(crack, 0, .5);
+  return `<defs><clipPath id="ml${uid}"><rect x="0" y="0" width="${K.hx}" height="24"/></clipPath><clipPath id="mr${uid}"><rect x="${K.hx}" y="0" width="24" height="24"/></clipPath></defs>
+    <g transform="${tr}" opacity="${f(op)}">
+      <g transform="translate(${-d} 0)"><g clip-path="url(#ml${uid})">${ring(rop)}${band}</g></g>
+      <g transform="translate(${d} 0)"><g clip-path="url(#mr${uid})">${ring(rop)}${band}</g></g></g>`;
+};
+
+class Wall {
+  constructor(host, { live = false, sealed = false } = {}) {
+    this.host = host; this.tw = new Tw(); this.sealed = sealed; this.live = live;
+    host.innerHTML = `<div class="stage">
+      ${rail(ph('grid', 1) + ph('tag') + ph('folder') + '<span class="sp"></span>' + sealBtn(sealed, 'wbtn') + ph('gear'), H)}
+      <div class="burst"></div>
+      ${KINDS.map((k, i) => `<div class="tile" data-k="${k}"><div class="clip"><div class="art" style="background:${GRADS[i]}"></div><div class="wash" style="background:${k === 'r' ? '#F7F3EA' : '#2B2747'}"></div>
+        ${k === 's' ? '<span class="chip">敏感</span>' : k === 'r' ? '<span class="chip">钉图 / 参考组</span>' : ''}</div>
+        ${k === 'r' ? '<svg class="mark" viewBox="8 8 15 8"></svg>' : ''}</div>`).join('')}
+    </div>`;
+    this.tiles = [...host.querySelectorAll('.tile')]; this.btn = host.querySelector('.wbtn'); this.burst = host.querySelector('.burst');
+    this.arts = this.tiles.map(el => el.querySelector('.art')); this.washes = this.tiles.map(el => el.querySelector('.wash'));
+    this.ctl = new Ctl(this.btn.querySelector('svg')); this.ctl.pRef = sealed ? 0 : 1; this.ctl.dir = sealed ? -1 : 1;
+    this.uids = this.tiles.map(() => ++UID);
+    const t = 0; this.layout(t, true);
+    this.tiles.forEach((el, i) => { const k = KINDS[i], tw = this.tw;
+      const hid = sealed && k === 's';
+      tw.set(i + 'op', t, hid ? 0 : 1); tw.set(i + 's', t, hid ? .1 : 1); tw.set(i + 'rot', t, 0);
+      tw.set(i + 'blur', t, sealed && k !== 'n' ? (k === 's' ? 14 : 10) : 0); tw.set(i + 'wash', t, sealed && k !== 'n' ? (k === 's' ? .92 : .45) : 0);
+      tw.set(i + 'stamp', t, sealed && k === 'r' ? 1 : 0); tw.set(i + 'crack', t, 0);
+      if (hid) { tw.set(i + 'x', t, BTN.x - T / 2); tw.set(i + 'y', t, BTN.y - T / 2); } });
+    if (live) this.btn.addEventListener('click', () => this.toggle(!this.sealed, CLOCK));
+    this.tw.set('burst', t, 0); this.pulseAt = -1;
+  }
+  layout(t, instant, delay = 0, dur = 650) {
+    let j = 0;
+    this.tiles.forEach((el, i) => { if (this.sealed && KINDS[i] === 's') return; const s = slot(j++);
+      if (instant) { this.tw.set(i + 'x', t, s.x); this.tw.set(i + 'y', t, s.y); }
+      else { this.tw.to(i + 'x', t, s.x, delay, dur, E.inOutC, s.x); this.tw.to(i + 'y', t, s.y, delay, dur, E.inOutC, s.y); } });
+  }
+  toggle(sealed, t) {
+    this.sealed = sealed; this.ctl.set(sealed, t);
+    this.btn.setAttribute('aria-pressed', String(sealed));
+    const tw = this.tw, R = REDUCED;
+    let k = 0;
+    if (sealed) {
+      this.tiles.forEach((el, i) => { const kind = KINDS[i];
+        if (kind === 's') {
+          if (R) { tw.set(i + 'op', t, 0); tw.set(i + 'x', t, BTN.x - T / 2); tw.set(i + 'y', t, BTN.y - T / 2); return; }
+          tw.to(i + 'blur', t, 14, 0, 240, E.outC); tw.to(i + 'wash', t, .92, 0, 220, E.outC);
+          tw.to(i + 's', t, .94, 0, 220, E.outC);
+          const d = 260 + k * 30; k++;
+          tw.to(i + 'x', t, BTN.x - T / 2, d, 520, E.inC); tw.to(i + 'y', t, BTN.y - T / 2, d, 520, E.inC);
+          tw.to(i + 's', t, .1, d, 520, E.inC); tw.to(i + 'rot', t, (i % 2 ? 1 : -1) * 14, d, 520, E.inQ);
+          tw.to(i + 'op', t, 0, d + 380, 140, E.lin);
+        } else if (kind === 'r') {
+          if (R) { tw.set(i + 'blur', t, 10); tw.set(i + 'wash', t, .45); tw.set(i + 'stamp', t, 1); tw.set(i + 'crack', t, 0); return; }
+          tw.to(i + 'blur', t, 10, 0, 240, E.outC); tw.to(i + 'wash', t, .45, 0, 240, E.outC);
+          const cr = tw.get(i + 'crack', t, 0);
+          if (cr > 0 && cr < 1) tw.to(i + 'crack', t, 0, 0, 220, E.outC);          // interrupted release: pieces slide back together
+          else { tw.set(i + 'crack', t, 0); tw.set(i + 'stamp', t, 0); tw.to(i + 'stamp', t, 1, 120, 280, E.back(1.6)); }
+        }
+      });
+      if (R) this.layout(t, true); else this.layout(t, false, 280, 620);
+      this.pulseAt = R ? -1 : t + 860;
+    } else {
+      this.layout(t, !!R, 40, 680);
+      this.tiles.forEach((el, i) => { const kind = KINDS[i];
+        if (kind === 's') {
+          const s = this._slotOf(i);
+          if (R) { tw.set(i + 'x', t, s.x); tw.set(i + 'y', t, s.y); tw.set(i + 's', t, 1); tw.set(i + 'rot', t, 0); tw.set(i + 'blur', t, 0); tw.set(i + 'wash', t, 0);
+            tw.set(i + 'op', t, 0); tw.to(i + 'op', t, 1, 0, 120, E.lin); return; }
+          const d = 150 + k * 55; k++;
+          if (tw.get(i + 'op', t, 1) < .05) { tw.set(i + 'rot', t, (i % 2 ? -1 : 1) * 24); }
+          tw.to(i + 'op', t, 1, d, 100, E.lin);
+          tw.to(i + 'x', t, s.x, d, 760, E.outC); tw.to(i + 'y', t, s.y, d, 760, E.back(1.1));
+          tw.to(i + 's', t, 1, d, 760, E.back(1.9)); tw.to(i + 'rot', t, 0, d, 760, E.outC);
+          tw.to(i + 'blur', t, 0, d + 300, 420, E.outC); tw.to(i + 'wash', t, 0, d + 260, 420, E.outC);
+        } else if (kind === 'r') {
+          if (R) { tw.set(i + 'blur', t, 0); tw.set(i + 'wash', t, 0); tw.set(i + 'stamp', t, 0); return; }
+          tw.to(i + 'crack', t, 1, 40, 420, E.lin);
+          tw.to(i + 'blur', t, 0, 120, 380, E.outC); tw.to(i + 'wash', t, 0, 120, 360, E.outC);
+        }
+      });
+      if (!R) { tw.set('burst', t, 0); tw.to('burst', t, 1, 120, 620, E.outC); }
+    }
+  }
+  _slotOf(i) { let j = 0; for (let q = 0; q < i; q++) if (!(this.sealed && KINDS[q] === 's')) j++; return slot(j); }
+  render(t) {
+    const tw = this.tw;
+    this.tiles.forEach((el, i) => {
+      const x = tw.get(i + 'x', t, 0), y = tw.get(i + 'y', t, 0), s = tw.get(i + 's', t, 1), r = tw.get(i + 'rot', t, 0);
+      el.style.transform = `translate(${f(x)}px,${f(y)}px) rotate(${f(r)}deg) scale(${f(s)})`;
+      const b = tw.get(i + 'blur', t, 0); this.arts[i].style.filter = b > .05 ? `blur(${f(b)}px) saturate(${f(1 - b / 28)})` : '';
+      this.washes[i].style.opacity = f(tw.get(i + 'wash', t, 0)); el.style.opacity = f(tw.get(i + 'op', t, 1));
+      el.style.zIndex = KINDS[i] === 's' ? 3 : KINDS[i] === 'r' ? 2 : 1;
+      if (KINDS[i] === 'r') { const m = el.querySelector('.mark'), key = f(tw.get(i + 'crack', t, 0)) + '|' + f(tw.get(i + 'stamp', t, 0)) + document.body.className;
+        if (m._k !== key) { m._k = key; m.innerHTML = markSVG(tw.get(i + 'crack', t, 0), tw.get(i + 'stamp', t, 0), this.uids[i]); } }
+    });
+    const bu = tw.get('burst', t, 0); this.burst.style.left = (BTN.x - 20) + 'px'; this.burst.style.top = (BTN.y - 20) + 'px';
+    this.burst.style.opacity = bu > 0 && bu < 1 ? f((1 - bu) * .7) : 0; this.burst.style.transform = `scale(${f(1 + bu * 5)})`;
+    this.ctl.draw(t);
+    const svg = this.btn.querySelector('svg');
+    const pk = this.pulseAt >= 0 ? seg(t, this.pulseAt, this.pulseAt + 200) : 0;
+    svg.style.transform = pk > 0 && pk < 1 ? `scale(${f(1 - .12 * Math.sin(Math.PI * pk))})` : '';
+  }
+}
+
+document.getElementById('wallLive').innerHTML = `<div id="wallHost"></div>
+  <div class="ctl"><button type="button" id="wallT">封印 / 释放</button><span class="lab" style="text-align:left">也可点左侧轨道底部的按钮；中途再点会反向。</span></div>
+  <div class="wnotes">
+    <p><b>封印（≈ 0.9 s）</b>：0–240 ms 敏感图模糊 14 px + 墨色覆盖 92%（<b>0.24 s 不可辨</b>）→ 260 ms 起被吸向按钮（ease-in，逐张 30 ms）→ 640–900 ms 其余图连续补位 → 860 ms 按钮轻按一下“收下”。钉图 / 参考组：原位模糊 10 px，120 ms 起小封带从图块边线向两侧展开扣上（280 ms，轻回弹）。</p>
+    <p><b>释放（≈ 1.2 s）</b>：书翻开（640 ms）；120 ms 起按钮处一圈光环扩散；150 ms 起敏感图逐张（间隔 55 ms）从按钮沿弧线飞回原位、缩放回弹，飞行后段才去模糊；其余图 40–720 ms 连续让位。钉图 / 参考组：小封带在图块边线处切断、两段水平滑开淡出（420 ms），模糊同时溶解，不飞行。</p>
+    <p><b>中断</b>：释放途中再封印，未飞完的图从当前位置反向，0.24 s 内重新模糊到不可辨；已切断的小封带两段在 220 ms 内滑回合拢。<b>减少动态</b>：全部直接切换，释放时原位 120 ms 淡入。</p>
+  </div>`;
+const liveWall = new Wall(document.getElementById('wallHost'), { live: true, sealed: true });
+document.getElementById('wallT').addEventListener('click', () => liveWall.btn.click());
+
+const snapRow = (label, sub, sealedStart, times) => `<div class="snaprow"><div class="rl"><b>${label}</b>${sub}</div>${times.map(ms => `<div class="mini"><div class="holder"><div data-snap="${sealedStart ? 1 : 0}" data-t="${ms}"></div></div><div class="lab">${ms} ms</div></div>`).join('')}</div>`;
+document.getElementById('snaps').innerHTML =
+  snapRow('封印', '敏感图 0.3 s 内不可辨', false, [0, 120, 260, 560, 950]) +
+  snapRow('释放', '英雄式：书开、图飞回', true, [0, 160, 500, 800, 1250]) +
+  snapRow('中断', '释放 400 ms 时再次封印', true, [400, 520, 650, 900, 1300]) +
+  `<div class="lab" style="text-align:left">定格帧由同一套补间引擎在指定时刻求值得到（不是示意图）。钉图 / 参考组右边缘的小封带：封印时扣上，释放时切断滑开。</div>`;
+document.querySelectorAll('[data-snap]').forEach(h => {
+  const sealedStart = h.dataset.snap === '1', ms = +h.dataset.t;
+  const w = new Wall(h, { sealed: sealedStart });
+  if (h.closest('.snaprow').querySelector('b').textContent === '中断') { w.toggle(false, 0); if (ms >= 400) w.toggle(true, 400); }
+  else w.toggle(!sealedStart, 0);
+  w.render(ms);
+});
+
+/* ================= wiring ================= */
+document.querySelectorAll('.rb.live, .bigbtn').forEach(b => bindButton(b));
+document.getElementById('all').addEventListener('click', () => document.querySelectorAll('.rb.live, .bigbtn, #wallHost .wbtn').forEach(b => b.click()));
+document.getElementById('slow').addEventListener('change', e => SLOW = e.target.checked ? 5 : 1);
+document.getElementById('rm').addEventListener('change', e => REDUCED = e.target.checked);
+document.getElementById('deep').addEventListener('change', e => {
+  document.body.classList.toggle('deep', e.target.checked); THEME.day.acc = e.target.checked ? DEEP : PINK; runZoom(); });
+let last = performance.now();
+function loop(now) { CLOCK += (now - last) / SLOW; last = now; ctls.forEach(c => c.draw(CLOCK)); liveWall.render(CLOCK); requestAnimationFrame(loop); }
+liveWall.render(0); requestAnimationFrame(loop);
+if (location.search.includes('deep')) { document.getElementById('deep').checked = true; document.body.classList.add('deep'); THEME.day.acc = DEEP; }
+runZoom();
+if (location.search.includes('frames')) document.body.classList.add('frames-only');
+</script>
+</body>
+</html>

@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>封印书 · 封蜡精修</title>
+<style>
+  :root {
+    --page: #E9E4DE; --text: #2B2747; --muted: #6B6680; --line: #D8D0C2; --card: #F5F0E6;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text);
+    font: 13px/1.6 "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif; }
+  .wrap { width: 1680px; padding: 36px 40px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .02em; }
+  h2 { font-size: 16px; margin: 0 0 4px; }
+  h2 small { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 8px; }
+  h3 { font-size: 13px; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin: 0 0 14px; }
+  .tools { display: flex; gap: 10px; margin-bottom: 26px; position: sticky; top: 0; z-index: 5; padding: 8px 0; background: var(--page); }
+  .tools button, .tools label { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 4px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  section { margin-bottom: 30px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+  .sec-head p { margin: 0; color: var(--muted); font-size: 12px; }
+  .panel { background: var(--card); border-radius: 14px; padding: 16px 18px; }
+  .lab { font-size: 11px; color: var(--lab, #8A8499); text-align: center; line-height: 1.4; }
+
+  .day   { --ink: #2B2747; --acc: #E0768F; --bg: #F7F3EA; --cut: var(--bg); --grid: rgba(43,39,71,.10); --lab: #8A8499;
+           --hov: #ECE5D8; --prs: #E2DACB; --sealbg: #F7E3E3; --sealhov: #F2D5D7; --focus: #2B2747; }
+  .night { --ink: #F4ECDC; --acc: #E3B34F; --bg: #1E1B2E; --cut: var(--bg); --grid: rgba(244,236,220,.10); --lab: #8C87A3;
+           --hov: #2A2640; --prs: #332F4B; --sealbg: #2F2A2E; --sealhov: #3A3333; --focus: #F4ECDC; }
+  .day, .night { background: var(--bg); color: var(--ink); }
+
+  svg.ic { display: block; overflow: visible; }
+
+  /* ---------- §1 master ---------- */
+  .master { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .mcard { border-radius: 14px; padding: 16px; display: flex; gap: 18px; align-items: flex-start; }
+  .mcard figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .construct { position: relative; width: 240px; height: 240px; }
+  .construct svg { position: absolute; inset: 0; }
+  .zoom { display: block; image-rendering: pixelated; border-radius: 4px; }
+
+  /* ---------- §2 sizes ---------- */
+  .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .scard { border-radius: 14px; padding: 14px 16px; }
+  .srow { display: grid; grid-template-columns: 54px 52px 52px auto; align-items: center; gap: 14px; padding: 8px 0;
+          border-top: 1px solid var(--grid); }
+  .srow:first-of-type { border-top: 0; }
+  .srow .sz { font-size: 12px; color: var(--lab); }
+  .srow .one { display: grid; place-items: center; height: 40px; }
+  .srow .zooms { display: flex; gap: 10px; align-items: flex-end; }
+  .srow .zooms figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .naive { opacity: .95; }
+
+  /* ---------- §3 button ---------- */
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .bcard { border-radius: 14px; padding: 16px 18px; display: flex; gap: 28px; align-items: flex-start; }
+  .rail { --railbg: var(--bg); width: 56px; padding: 8px; border-radius: 14px; display: flex; flex-direction: column;
+          align-items: center; gap: 4px; background: var(--rail, color-mix(in srgb, var(--ink) 4%, var(--bg)));
+          outline: 1px solid var(--grid); }
+  .rail .sp { flex: 1; }
+  .rail .ph { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; opacity: .62; }
+  .rail .ph.cur { opacity: 1; background: color-mix(in srgb, var(--ink) 8%, var(--rail, var(--bg))); }
+  .rb { --bb: var(--rail, var(--bg)); --cut: var(--bb); width: 40px; height: 40px; border-radius: 10px; border: 0; padding: 0;
+        cursor: pointer; background: var(--bb); display: grid; place-items: center; position: relative;
+        transition: background-color 120ms; -webkit-tap-highlight-color: transparent; }
+  .rb svg { transition: transform 140ms cubic-bezier(.2,.8,.2,1); }
+  .rb[aria-pressed="true"] { --bb: var(--sealbg); }
+  .rb:hover, .rb.h { --bb: var(--hov); }
+  .rb[aria-pressed="true"]:hover, .rb[aria-pressed="true"].h { --bb: var(--sealhov); }
+  .rb:active, .rb.a { --bb: var(--prs); }
+  .rb[aria-pressed="true"]:active, .rb[aria-pressed="true"].a { --bb: color-mix(in srgb, var(--acc) 30%, var(--bg)); }
+  .rb:active svg, .rb.a svg { transform: scale(.9); }
+  .rb:focus { outline: none; }
+  .rb:focus-visible, .rb.f { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .rb.pulse svg { animation: pulse 220ms cubic-bezier(.2,.8,.2,1); }
+  @keyframes pulse { 40% { transform: scale(.88); } }
+  .matrix { display: grid; grid-template-columns: 60px repeat(5, 64px); gap: 10px 6px; align-items: center; }
+  .matrix .hd { font-size: 11px; color: var(--lab); text-align: center; }
+  .matrix .rl { font-size: 11px; color: var(--lab); }
+  .matrix .cell { display: grid; place-items: center; height: 52px; border-radius: 10px; background: var(--rail); }
+  .tip { position: absolute; left: 50px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 12px;
+         padding: 4px 9px; border-radius: 7px; background: var(--ink); color: var(--bg); pointer-events: none; z-index: 2; }
+  .tip kbd { font: inherit; opacity: .7; margin-left: 6px; }
+  .spec { font-size: 12px; color: var(--lab); max-width: 270px; }
+  .spec p { margin: 0 0 6px; }
+  .spec code { font-family: Consolas, monospace; font-size: 11.5px; color: var(--ink); }
+
+  /* ---------- §4 motion ---------- */
+  .motion { display: grid; grid-template-columns: 360px 1fr; gap: 14px; }
+  .live { border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .live .row { display: flex; gap: 18px; align-items: center; }
+  .bigbtn { width: 120px; height: 120px; border-radius: 26px; border: 0; padding: 0; cursor: pointer; display: grid; place-items: center;
+            --bb: color-mix(in srgb, var(--ink) 4%, var(--bg)); --cut: var(--bb); background: var(--bb); }
+  .bigbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .strip { border-radius: 14px; padding: 12px 14px; }
+  .strip .frames { display: flex; gap: 6px; }
+  .strip figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .strip .fr { width: 76px; height: 76px; border-radius: 10px; display: grid; place-items: center;
+               background: color-mix(in srgb, var(--ink) 4%, var(--bg)); --cut: color-mix(in srgb, var(--ink) 4%, var(--bg)); }
+  .timeline { position: relative; margin-top: 10px; font-size: 11px; color: var(--lab); }
+  .tl-row { display: grid; grid-template-columns: 92px 1fr; align-items: center; height: 18px; }
+  .tl-track { position: relative; height: 8px; background: var(--grid); border-radius: 4px; }
+  .tl-bar { position: absolute; top: 0; height: 8px; border-radius: 4px; background: var(--acc); }
+  .tl-bar.ink { background: var(--ink); opacity: .75; }
+  .tl-axis { display: grid; grid-template-columns: 92px 1fr; margin-top: 2px; }
+  .tl-axis div:last-child { display: flex; justify-content: space-between; }
+
+  /* ---------- §5 wall ---------- */
+  .wallsec { display: grid; grid-template-columns: 560px 1fr; gap: 14px; }
+  .stage { position: relative; width: 488px; height: 320px; }
+  .stage .rail { position: absolute; left: 0; top: 0; height: 320px; }
+  .tile { position: absolute; left: 0; top: 0; width: 92px; height: 92px; border-radius: 9px; overflow: hidden;
+          transform-origin: 46px 46px; will-change: transform, filter; }
+  .tile .art { position: absolute; inset: -8px; }
+  .tile .wash { position: absolute; inset: 0; opacity: 0; }
+  .tile .chip { position: absolute; left: 6px; bottom: 6px; font-size: 10px; line-height: 1; padding: 3px 5px; border-radius: 5px;
+                background: rgba(247,243,234,.88); color: #2B2747; }
+  .tile .mark { position: absolute; right: 5px; top: 5px; width: 30px; height: 30px; overflow: visible; }
+  .burst { position: absolute; width: 40px; height: 40px; border-radius: 50%; pointer-events: none; opacity: 0;
+           border: 2px solid var(--acc); }
+  .wcard { border-radius: 14px; padding: 16px; }
+  .wcard .ctl { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+  .wcard .ctl button { font: inherit; color: var(--ink); background: color-mix(in srgb, var(--ink) 6%, var(--bg)); border: 1px solid var(--grid);
+                       border-radius: 8px; padding: 3px 12px; cursor: pointer; }
+  .snaps { display: flex; flex-direction: column; gap: 10px; }
+  .snaprow { display: grid; grid-template-columns: 110px repeat(5, 1fr); gap: 8px; align-items: start; }
+  .snaprow .rl { font-size: 12px; color: var(--lab); padding-top: 6px; }
+  .snaprow .rl b { color: var(--ink); display: block; font-weight: 600; }
+  .mini { width: 100%; }
+  .mini .holder { width: 166px; height: 109px; overflow: hidden; border-radius: 8px; background: var(--bg); outline: 1px solid var(--grid); }
+  .mini .stage { zoom: .34; }
+  .wnotes { font-size: 12px; color: var(--lab); margin-top: 10px; }
+  .wnotes p { margin: 0 0 4px; }
+  .wnotes b { color: var(--ink); }
+
+  /* ---------- §6 notes ---------- */
+  .notes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .notes .panel h3 { margin-bottom: 6px; }
+  .notes ul { margin: 0; padding-left: 18px; color: #4A4560; font-size: 12.5px; }
+  .notes li { margin-bottom: 5px; }
+
+  body.frames-only section:not(.keep) , body.frames-only .tools, body.frames-only .sub, body.frames-only h1 { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>封印书控件 · 第三轮 · A 封蜡</h1>
+  <p class="sub">#27 · 在第二轮 A 的基础上精修：24 网格母版 + 16 / 20 / 32 px 专用像素对齐几何、40 px 轨道按钮的完整状态、可中断的切换动效，以及蜡印在图片墙上的延展草图。</p>
+  <div class="tools">
+    <button id="all" type="button">全部切换</button>
+    <label><input id="slow" type="checkbox"> 慢放 ×5</label>
+    <label><input id="rm" type="checkbox"> 减少动态</label>
+    <span class="lab" style="align-self:center">动画中途再点一次会从当前画面反向，不跳帧。</span>
+  </div>
+
+  <!-- §1 -->
+  <section>
+    <div class="sec-head"><h2>1 · 母版几何（24 网格）</h2><p>左：构造线（书 13 × 18，蜡印中心落在书口外 0.5，整体左右居中）；右：1× 实际栅格放大 ×8。</p></div>
+    <div class="master" id="master"></div>
+  </section>
+
+  <!-- §2 -->
+  <section>
+    <div class="sec-head"><h2>2 · 小尺寸专用几何</h2><p>每个尺寸单独画在自己的像素网格上，不是缩放。放大图是浏览器真实栅格化结果（×8 / ×7 / ×6 / ×5，带像素网格）。最右一列是“24 网格直接缩到 16 px”的对照。</p></div>
+    <div class="sizes" id="sizes"></div>
+  </section>
+
+  <!-- §3 -->
+  <section>
+    <div class="sec-head"><h2>3 · 40 px 轨道按钮</h2><p>按钮可点击（空格 / 回车也可切换）。状态矩阵中的悬停、按下、焦点是强制显示的静态样式。</p></div>
+    <div class="btns" id="btns"></div>
+  </section>
+
+  <!-- §4 -->
+  <section class="keep">
+    <div class="sec-head"><h2>4 · 切换动效</h2><p>释放 640 ms（蜡印裂开 → 两半落下 → 书翻开 → 星出现）；封印 420 ms（同一路径倒放：书合上、两半升起合拢、蜡印轻按一下）。</p></div>
+    <div class="motion">
+      <div class="live day" id="liveDay"></div>
+      <div style="display:flex;flex-direction:column;gap:10px" id="strips"></div>
+    </div>
+  </section>
+
+  <!-- §5 -->
+  <section class="keep">
+    <div class="sec-head"><h2>5 · 延展到图片墙（草图）</h2><p>同一枚蜡印：敏感图被“收进书里”，参考组 / 钉图原位模糊并盖一枚小蜡印，解除时蜡印裂开。图块为 CSS 渐变占位。</p></div>
+    <div class="wallsec">
+      <div class="wcard day" id="wallLive"></div>
+      <div class="wcard day"><div class="snaps" id="snaps"></div></div>
+    </div>
+  </section>
+
+  <!-- §6 -->
+  <section>
+    <div class="sec-head"><h2>6 · 说明</h2></div>
+    <div class="notes">
+      <div class="panel"><h3>设计决策</h3><ul>
+        <li><b>蜡印压在书口上</b>：书 13 × 18，蜡印 Ø9 的圆心落在书口外 0.5 格，正好“封住”开口；蜡印外一圈 1 格的底色光环把它和书分开，与 logo kit 小尺寸星星的“底色描边”同一做法。</li>
+        <li><b>蜡的质感</b>：轮廓 = 圆 + 三组低频起伏（振幅 ≈ 0.3 px@24）+ 左下一处溢出的蜡滴。足够“不圆”，又不会在 24 px 下变成锯齿。16 px 改为逐像素绘制的 7 × 7 圆，蜡滴省略（1 像素凸起在 16 px 下更像渲染错误，而不是蜡）。</li>
+        <li><b>锁孔</b>：沿用 logo 书签锁孔的单条轮廓（圆头 + 梯形槽），整体挖空（evenodd），所以碎片落下时锁孔是真孔，不会露出底色块。</li>
+        <li><b>裂纹</b>：一条六点折线纵贯蜡印并穿过锁孔，把锁孔也劈成两半——“锁被破开”是这条裂纹存在的理由。</li>
+        <li><b>颜色</b>：封印态只有蜡印用强调色（日樱粉 / 夜金），书始终是墨色；打开态只剩墨色 + 星。</li>
+        <li><b>打开态</b>：两页中缝 2 格，页顶向书口方向抬起；星用 logo kit 的四角星函数（pinch 0.24），压在右页角上并加底色描边。</li>
+      </ul></div>
+      <div class="panel"><h3>与第二轮相比</h3><ul>
+        <li>整体向左移 1 格并重新居中（第二轮偏右 0.5–1 格）；书改为 13 × 18 的整数格，书底“页脚”缺口缩短，避免与光环粘连。</li>
+        <li>蜡印由正圆改为蜡质轮廓 + 蜡滴；锁孔从“圆 + 梯形两块”改为 logo 的单条轮廓，并真正挖空。</li>
+        <li>新增 16 / 20 / 32 px 专用几何（第二轮全部是 24 网格缩放）；16 px 星改为 5 × 5 像素十字星。</li>
+        <li>动效从 CSS 过渡改为由单一进度值 p 驱动的逐帧渲染：书封面绕书脊翻转（带透视缩短），中途反向从当前 p 继续，不再跳到终点。</li>
+        <li>按钮补齐悬停 / 按下 / 焦点 / 封印底色，并让蜡印光环颜色随按钮底色变化（否则悬停时光环会露出一圈错色）。</li>
+      </ul></div>
+      <div class="panel"><h3>待定问题</h3><ul>
+        <li>封印态按钮底色要不要用强调色淡底（现为 16% 樱粉 / 金）？去掉它更安静，但“开着”这件事只剩图标本身表达。</li>
+        <li>16 px 的书底缺口（3 px 的一横）可读性边缘，是否在 16 px 直接去掉？</li>
+        <li>释放时的“英雄式”程度：现在是图从按钮弧线飞回 + 一圈光环；要不要再加强（例如整墙轻微震动、星光拖尾）？</li>
+        <li>敏感图封印时“被吸进书里”会让用户看到图飞向按钮——是否需要在 0.3 s 内就完全不可辨（现为模糊 14 px + 墨色覆盖 92%，0.26 s 到位）之外再加更强的遮盖？</li>
+        <li>参考组 / 钉图的小蜡印是否常驻（提示“这里有被封的东西”），还是只在封印动作时短暂出现？</li>
+        <li>快捷键与提示文案（现为“封印敏感图片”，aria-pressed 表示是否封印中）待定。</li>
+      </ul></div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ================= geometry helpers ================= */
+const f = n => +(+n).toFixed(2);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (p, a, b) => clamp((p - a) / (b - a));
+const lerp = (a, b, t) => a + (b - a) * t;
+const E = {
+  lin: t => t, inQ: t => t * t, inC: t => t * t * t, outC: t => 1 - (1 - t) ** 3, outQ: t => 1 - (1 - t) ** 2,
+  inOutC: t => t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2, outQuint: t => 1 - (1 - t) ** 5,
+  back: (s = 1.7) => t => { const c = s + 1; return 1 + c * (t - 1) ** 3 + s * (t - 1) ** 2; },
+};
+
+// logo-kit star (cx, cy, r, pinch)
+const star = (cx, cy, r, k = .16) => { const d = r * k;
+  return `M${f(cx)} ${f(cy - r)} C${f(cx + d)} ${f(cy - d)} ${f(cx + d)} ${f(cy - d)} ${f(cx + r)} ${f(cy)} ` +
+    `C${f(cx + d)} ${f(cy + d)} ${f(cx + d)} ${f(cy + d)} ${f(cx)} ${f(cy + r)} ` +
+    `C${f(cx - d)} ${f(cy + d)} ${f(cx - d)} ${f(cy + d)} ${f(cx - r)} ${f(cy)} ` +
+    `C${f(cx - d)} ${f(cy - d)} ${f(cx - d)} ${f(cy - d)} ${f(cx)} ${f(cy - r)} Z`; };
+
+// wax outline: circle + low-frequency wobble + one drip at lower-left
+const waxPts = (cx, cy, R, amp) => { const N = 44, pts = [];
+  for (let i = 0; i < N; i++) { const t = i / N * 2 * Math.PI;
+    let r = R + amp * (.55 * Math.sin(5 * t + .7) + .35 * Math.sin(3 * t + 2.2) + .2 * Math.sin(8 * t + 1.3));
+    const d = t - 2.25; r += amp * 1.3 * Math.exp(-(d * d) / .05);
+    pts.push([cx + r * Math.cos(t), cy + r * Math.sin(t)]); }
+  return pts; };
+const smooth = pts => { const n = pts.length; let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+  for (let i = 0; i < n; i++) { const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+    d += `C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])} ${f(p2[1])}`; }
+  return d + 'Z'; };
+// logo keyhole as one outline: round head + tapered slot
+const keyhole = k => { const s = Math.sqrt(k.r * k.r - k.a * k.a);
+  return `M${f(k.hx - k.a)} ${f(k.hy + s)} A${k.r} ${k.r} 0 1 1 ${f(k.hx + k.a)} ${f(k.hy + s)} L${f(k.hx + k.b)} ${k.y1} H${f(k.hx - k.b)} Z`; };
+// pixel runs -> path
+const runs = (rows, ox, oy) => rows.map((row, y) => { let d = '', x = 0;
+  while (x < row.length) { if (row[x] === '#') { let e = x; while (row[e] === '#') e++; d += `M${ox + x} ${oy + y}h${e - x}v1h${x - e}Z`; x = e; } else x++; }
+  return d; }).join('');
+const dilate = rows => { const h = rows.length, w = rows[0].length, out = [];
+  for (let y = -1; y <= h; y++) { let s = '';
+    for (let x = -1; x <= w; x++) { const at = (xx, yy) => rows[yy] && rows[yy][xx] === '#';
+      s += (at(x, y) || at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1)) ? '#' : '.'; }
+    out.push(s); }
+  return out; };
+
+// one page / cover: spine x, free-edge x, tops & bottoms at spine/free, free-corner radius r, spine-corner radius rs
+const page = P => { const w = P.fx - P.sx, g = Math.sign(w) || 1, aw = Math.abs(w);
+  const r = Math.min(P.r, aw / 2), rs = Math.min(P.rs || 0, aw / 2), cx = P.sx + .38 * w;
+  return `M${f(P.sx)} ${f(P.tS + rs)} Q${f(P.sx)} ${f(P.tS)} ${f(P.sx + g * rs)} ${f(P.tS)} Q${f(cx)} ${f(P.tF)} ${f(P.fx - g * r)} ${f(P.tF)} ` +
+    `Q${f(P.fx)} ${f(P.tF)} ${f(P.fx)} ${f(P.tF + r)} L${f(P.fx)} ${f(P.bF - r)} Q${f(P.fx)} ${f(P.bF)} ${f(P.fx - g * r)} ${f(P.bF)} ` +
+    `Q${f(cx)} ${f(P.bF)} ${f(P.sx + g * rs)} ${f(P.bS)} Q${f(P.sx)} ${f(P.bS)} ${f(P.sx)} ${f(P.bS - rs)} Z`; };
+const mirror = (P, c) => ({ ...P, sx: 2 * c - P.sx, fx: 2 * c - P.fx });
+
+/* ================= per-size geometry ================= */
+// u = scale relative to the 24 grid (for motion distances & strokes)
+const G = {
+  24: { n: 24, u: 1,
+    cover: { x0: 3, x1: 16, y0: 3, y1: 21, r: 2 }, bar: [5, 17, 6, 2, 1],
+    seal: { cx: 16.5, cy: 12.5, R: 4.5, amp: .3, halo: 1 }, kh: { hx: 16.5, hy: 11.5, r: 1.5, a: .5, b: .9, y1: 15 },
+    L: { sx: 11, fx: 3, tS: 7.5, tF: 6, bS: 21, bF: 19.5, r: 1.2, rs: 0 }, mid: 12,
+    star: [20.8, 3.4, 3.1, .24, 1] },
+  20: { n: 20, u: .8333,
+    cover: { x0: 3, x1: 13, y0: 2, y1: 18, r: 1.5 }, bar: [5, 15, 4, 1.5, .75],
+    seal: { cx: 13.5, cy: 10.5, R: 3.5, amp: .24, halo: 1 }, kh: { hx: 13.5, hy: 9.5, r: 1.5, a: .5, b: .55, y1: 13 },
+    L: { sx: 9, fx: 2, tS: 6.5, tF: 5, bS: 18, bF: 16.5, r: 1, rs: 0 }, mid: 10,
+    star: [17.3, 2.8, 2.6, .25, 1] },
+  32: { n: 32, u: 1.3333,
+    cover: { x0: 4, x1: 22, y0: 4, y1: 28, r: 2.5 }, bar: [7, 23, 8, 2, 1],
+    seal: { cx: 22, cy: 16, R: 6, amp: .42, halo: 1.4 }, kh: { hx: 22, hy: 14.6, r: 2, a: 1, b: 1.5, y1: 20 },
+    L: { sx: 15, fx: 4, tS: 10, tF: 8, bS: 28, bF: 26, r: 1.6, rs: 0 }, mid: 16,
+    star: [27.6, 4.4, 4.1, .24, 1.3] },
+};
+for (const k in G) { const g = G[k]; g.R = mirror(g.L, g.mid); g.wax = smooth(waxPts(g.seal.cx, g.seal.cy, g.seal.R, g.seal.amp)); g.khD = keyhole(g.kh);
+  const c = g.cover; g.closed = { sx: c.x0, fx: c.x1, tS: c.y0, tF: c.y0, bS: c.y1, bF: c.y1, r: c.r, rs: c.r }; }
+
+// 16 px: drawn on the pixel grid
+const SEAL16 = ['..###..', '.#####.', '#######', '#######', '#######', '.#####.', '..###..'];
+const P16 = {
+  cover: 'M2 2 H9 A1 1 0 0 1 10 3 V13 A1 1 0 0 1 9 14 H2 A1 1 0 0 1 1 13 V3 A1 1 0 0 1 2 2 Z',
+  bar: 'M3 11 H6 V12 H3 Z',
+  halo: runs(dilate(SEAL16), 6, 4),
+  seal: runs(SEAL16, 7, 5),
+  kh: keyhole({ hx: 10.5, hy: 7.5, r: 1.5, a: .5, b: .5, y1: 11 }),
+  pages: runs([
+    '.##.............', '.######.........', '.#######.#######', '.#######.#######'].slice(0, 0), 0, 0) +
+    'M1 6h5v1h-5Z M1 7h6v8h-6Z M4 15h3v1h-3Z' +
+    'M10 6h5v1h-5Z M9 7h6v8h-6Z M9 15h3v1h-3Z',
+  star: 'M13 0h1v2h-1Z M11 2h5v1h-5Z M13 3h1v2h-1Z',
+};
+
+/* ================= renderer ================= */
+let UID = 0;
+// p: 0 = sealed, 1 = open
+function renderIcon(g, p, col, uid) {
+  const u = g.u, S = g.seal;
+  // book
+  const e = E.inOutC(seg(p, .28, .86)), e2 = E.outC(seg(p, .3, .82));
+  const C = g.closed, L = g.L;
+  const spine = lerp(C.sx, L.sx, e), w = lerp(C.fx - C.sx, Math.abs(L.fx - L.sx), e), lift = 1.3 * u * Math.sin(Math.PI * e);
+  const front = { sx: spine, fx: spine + w * Math.cos(Math.PI * e), tS: lerp(C.tS, L.tS, e), tF: lerp(C.tF, L.tF, e) - lift,
+    bS: lerp(C.bS, L.bS, e), bF: lerp(C.bF, L.bF, e) + lift, r: lerp(C.r, L.r, e), rs: lerp(C.rs, 0, e) };
+  const back = {}; for (const k in C) back[k] = lerp(C[k], g.R[k], e2);
+  let s = `<path fill="${col.ink}" d="${page(back)}"/>`;
+  s += `<path fill="${col.ink}" stroke="${col.cut}" stroke-width="${f(1.3 * u)}" stroke-linejoin="round" paint-order="stroke" d="${page(front)}"/>`;
+  const barOp = 1 - seg(p, .18, .32);
+  if (barOp > 0) { const [x, y, bw, bh, br] = g.bar; s += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="${br}" fill="${col.cut}" opacity="${f(barOp)}"/>`; }
+  // seal
+  const haloOp = 1 - seg(p, .2, .42);
+  if (haloOp > 0) s += `<path d="${g.wax}" fill="${col.cut}" stroke="${col.cut}" stroke-width="${S.halo * 2}" stroke-linejoin="round" opacity="${f(haloOp)}"/>`;
+  const sealD = `${g.wax} ${g.khD}`;
+  const pulse = 1 + .06 * Math.sin(Math.PI * seg(p, 0, .16));
+  const pul = v => `translate(${S.cx} ${S.cy}) scale(${f(v)}) translate(${-S.cx} ${-S.cy})`;
+  if (p < .09) s += `<path fill-rule="evenodd" fill="${col.acc}" d="${sealD}" transform="${pul(pulse)}" opacity="${f(1 - seg(p, .07, .09))}"/>`;
+  if (p > .07 && p < .62) {
+    const c = E.outC(seg(p, .07, .2)), gap = .5 * u * c, fl = E.inQ(seg(p, .18, .62)), op = 1 - seg(p, .44, .62);
+    const R = S.R, cx = S.cx, cy = S.cy;
+    const crack = [[.1, -1.5], [-.14, -.78], [.1, -.34], [-.06, .1], [.16, .62], [-.04, 1.5]].map(([x, y]) => [cx + x * R, cy + y * R]);
+    const poly = side => [...crack, [cx + side * 2 * R, cy + 1.5 * R], [cx + side * 2 * R, cy - 1.5 * R]].map(q => q.map(f).join(',')).join(' ');
+    s += `<defs><clipPath id="cl${uid}"><polygon points="${poly(-1)}"/></clipPath><clipPath id="cr${uid}"><polygon points="${poly(1)}"/></clipPath></defs>`;
+    s += `<g opacity="${f(op)}" transform="${pul(pulse)}">`;
+    s += `<g transform="translate(${f(-gap - 1.1 * u * fl)} ${f(6.5 * u * fl)}) rotate(${f(-34 * fl)} ${f(cx - .45 * R)} ${cy})"><path clip-path="url(#cl${uid})" fill-rule="evenodd" fill="${col.acc}" d="${sealD}"/></g>`;
+    s += `<g transform="translate(${f(gap + 1.5 * u * fl)} ${f(7.6 * u * fl)}) rotate(${f(28 * fl)} ${f(cx + .45 * R)} ${cy})"><path clip-path="url(#cr${uid})" fill-rule="evenodd" fill="${col.acc}" d="${sealD}"/></g>`;
+    s += `</g>`;
+  }
+  // star
+  const sg = seg(p, .66, 1);
+  if (sg > 0) { const [x, y, r, k, h] = g.star, sc = E.back(1.9)(sg), rot = -70 * (1 - E.outC(sg)), d = star(x, y, r, k);
+    const tr = `translate(${x} ${y}) rotate(${f(rot)}) scale(${f(Math.max(sc, 0))}) translate(${-x} ${-y})`;
+    s += `<g transform="${tr}" opacity="${f(seg(p, .66, .74))}"><path d="${d}" fill="${col.cut}" stroke="${col.cut}" stroke-width="${h * 2}" stroke-linejoin="round"/><path d="${d}" fill="${col.ink}"/></g>`; }
+  return s;
+}
+function render16(open, col) {
+  if (open) return `<path fill="${col.ink}" d="${P16.pages}"/><path fill="${col.ink}" d="${P16.star}"/>`;
+  return `<path fill="${col.ink}" d="${P16.cover}"/><path fill="${col.cut}" d="${P16.bar}"/><path fill="${col.cut}" d="${P16.halo}"/>` +
+    `<path fill-rule="evenodd" fill="${col.acc}" d="${P16.seal} ${P16.kh}"/>`;
+}
+const VAR = { ink: 'var(--ink)', acc: 'var(--acc)', cut: 'var(--cut)' };
+const iconInner = (n, p, col, uid = ++UID) => n === 16 ? render16(p >= .5, col) : renderIcon(G[n], p, col, uid);
+const iconSVG = (n, p, size = n, col = VAR, cls = '') =>
+  `<svg class="ic ${cls}" width="${size}" height="${size}" viewBox="0 0 ${n} ${n}" aria-hidden="true" focusable="false">${iconInner(n, p, col)}</svg>`;
+
+const THEME = { day: { ink: '#2B2747', acc: '#E0768F', cut: '#F7F3EA' }, night: { ink: '#F4ECDC', acc: '#E3B34F', cut: '#1E1B2E' } };
+
+/* ================= raster zoom ================= */
+const zoomJobs = [];
+function zoomCanvas(n, p, theme, scale, grid = n, label = '') {
+  const id = 'z' + (++UID);
+  zoomJobs.push({ id, n, p, theme, scale, grid });
+  return `<figure><canvas class="zoom" id="${id}" width="${n * scale}" height="${n * scale}"></canvas>${label ? `<figcaption class="lab">${label}</figcaption>` : ''}</figure>`;
+}
+function runZoom() {
+  for (const j of zoomJobs) {
+    const col = THEME[j.theme];
+    const inner = j.grid === 16 ? render16(j.p >= .5, col) : renderIcon(G[j.grid], j.p, col, ++UID);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${j.n}" height="${j.n}" viewBox="0 0 ${j.grid} ${j.grid}">${inner}</svg>`;
+    const img = new Image();
+    img.onload = () => {
+      const sm = document.createElement('canvas'); sm.width = sm.height = j.n; const sc = sm.getContext('2d');
+      sc.fillStyle = col.cut; sc.fillRect(0, 0, j.n, j.n); sc.drawImage(img, 0, 0, j.n, j.n);
+      const cv = document.getElementById(j.id), c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
+      c.drawImage(sm, 0, 0, j.n * j.scale, j.n * j.scale);
+      c.strokeStyle = j.theme === 'day' ? 'rgba(43,39,71,.09)' : 'rgba(244,236,220,.08)'; c.lineWidth = 1;
+      for (let i = 1; i < j.n; i++) { const v = i * j.scale + .5; c.beginPath(); c.moveTo(v, 0); c.lineTo(v, j.n * j.scale); c.moveTo(0, v); c.lineTo(j.n * j.scale, v); c.stroke(); }
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+}
+
+/* ================= §1 master ================= */
+function construct(theme, p) {
+  const g = G[24], k = 10, col = THEME[theme];
+  const lines = [];
+  for (let i = 0; i <= 24; i++) lines.push(`<path d="M${i * k} 0V240M0 ${i * k}H240" stroke="${theme === 'day' ? 'rgba(43,39,71,.08)' : 'rgba(244,236,220,.07)'}" stroke-width="1"/>`);
+  const kl = theme === 'day' ? '#4C8FD6' : '#7FB2E8', S = g.seal;
+  let guide = '';
+  if (p === 0) {
+    guide = `<rect x="${g.cover.x0 * k}" y="${g.cover.y0 * k}" width="${(g.cover.x1 - g.cover.x0) * k}" height="${(g.cover.y1 - g.cover.y0) * k}" fill="none" stroke="${kl}" stroke-dasharray="3 3"/>` +
+      `<circle cx="${S.cx * k}" cy="${S.cy * k}" r="${S.R * k}" fill="none" stroke="${kl}" stroke-dasharray="3 3"/>` +
+      `<circle cx="${S.cx * k}" cy="${S.cy * k}" r="${(S.R + S.halo) * k}" fill="none" stroke="${kl}" stroke-opacity=".5"/>` +
+      `<path d="M${S.cx * k} ${(S.cy - S.R - 1.5) * k}V${(S.cy + S.R + 1.5) * k}M${(S.cx - 6) * k} ${S.cy * k}H${(S.cx + 6) * k}" stroke="${kl}" stroke-width=".8"/>` +
+      `<path d="M120 0V240" stroke="${kl}" stroke-opacity=".6" stroke-dasharray="1 3"/>`;
+  } else {
+    const [x, y, r] = g.star;
+    guide = `<path d="M${g.mid * k} 0V240" stroke="${kl}" stroke-dasharray="3 3"/><rect x="${g.L.fx * k}" y="${g.L.tF * k}" width="${(g.R.fx - g.L.fx) * k}" height="${(g.L.bS - g.L.tF) * k}" fill="none" stroke="${kl}" stroke-dasharray="3 3"/>` +
+      `<circle cx="${x * k}" cy="${y * k}" r="${r * k}" fill="none" stroke="${kl}" stroke-dasharray="3 3"/>`;
+  }
+  return `<div class="construct"><svg width="240" height="240" viewBox="0 0 240 240">${lines.join('')}</svg>` +
+    `<svg width="240" height="240" viewBox="0 0 24 24" style="opacity:.92">${renderIcon(g, p, col, ++UID)}</svg>` +
+    `<svg width="240" height="240" viewBox="0 0 240 240">${guide}</svg></div>`;
+}
+document.getElementById('master').innerHTML = ['day', 'night'].map(t => `
+  <div class="mcard ${t}">
+    <figure>${construct(t, 0)}<figcaption class="lab">封印 · 构造</figcaption></figure>
+    <figure>${zoomCanvas(24, 0, t, 8)}<figcaption class="lab">封印 · 24 px 栅格 ×8</figcaption></figure>
+  </div>
+  `).join('') + ['day', 'night'].map(t => `
+  <div class="mcard ${t}">
+    <figure>${construct(t, 1)}<figcaption class="lab">打开 · 构造</figcaption></figure>
+    <figure>${zoomCanvas(24, 1, t, 8)}<figcaption class="lab">打开 · 24 px 栅格 ×8</figcaption></figure>
+  </div>`).join('');
+// reorder: day sealed, night sealed, day open, night open (grid 2 col) is fine.
+
+/* ================= §2 sizes ================= */
+const ZS = { 16: 8, 20: 7, 24: 6, 32: 5 };
+document.getElementById('sizes').innerHTML = ['day', 'night'].map(t => `
+  <div class="scard ${t}">
+    ${[16, 20, 24, 32].map(n => `
+      <div class="srow">
+        <span class="sz">${n} px${n === 24 ? '<br>母版' : n === 16 ? '<br>逐像素' : '<br>专用'}</span>
+        <span class="one">${iconSVG(n, 0)}</span>
+        <span class="one">${iconSVG(n, 1)}</span>
+        <div class="zooms">
+          ${zoomCanvas(n, 0, t, ZS[n], n, '封印')}
+          ${zoomCanvas(n, 1, t, ZS[n], n, '打开')}
+          ${n === 16 ? `<span style="width:8px"></span>${zoomCanvas(16, 0, t, 8, 24, '对照：24 缩放')}${zoomCanvas(16, 1, t, 8, 24, '对照：24 缩放')}` : ''}
+        </div>
+      </div>`).join('')}
+  </div>`).join('');
+
+/* ================= controls (p-driven, interruptible) ================= */
+let SLOW = 1, REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches, CLOCK = 0;
+document.getElementById('rm').checked = REDUCED;
+const OPEN_MS = 640, SEAL_MS = 420;
+class Ctl {
+  constructor(svg, n = 24) { this.svg = svg; this.n = n; this.pRef = 0; this.tRef = 0; this.dir = -1; this.uid = ++UID; this.last = -1; }
+  pAt(t) { return clamp(this.pRef + this.dir * (t - this.tRef) / (this.dir > 0 ? OPEN_MS : SEAL_MS)); }
+  get sealed() { return this.dir < 0; }
+  set(sealed, t) { this.pRef = this.pAt(t); this.tRef = t; this.dir = sealed ? -1 : 1; if (REDUCED) this.pRef = sealed ? 0 : 1; }
+  draw(t) { const p = this.pAt(t); if (p !== this.last) { this.svg.innerHTML = iconInner(this.n, p, VAR, this.uid); this.last = p; } }
+}
+const ctls = [];
+function bindButton(btn, onToggle) {
+  const svg = btn.querySelector('svg'); const c = new Ctl(svg); ctls.push(c); c.draw(0);
+  btn.addEventListener('click', () => {
+    const sealed = !c.sealed; c.set(sealed, CLOCK);
+    btn.setAttribute('aria-pressed', String(sealed));
+    btn.title = sealed ? '已封印 · 点击释放' : '封印敏感图片';
+    onToggle && onToggle(sealed);
+  });
+  return c;
+}
+
+/* ================= §3 buttons ================= */
+const PH = {
+  grid: '<rect x="4.75" y="4.75" width="6" height="6" rx="1.5"/><rect x="13.25" y="4.75" width="6" height="6" rx="1.5"/><rect x="4.75" y="13.25" width="6" height="6" rx="1.5"/><rect x="13.25" y="13.25" width="6" height="6" rx="1.5"/>',
+  tag: '<path d="M4.75 5.75v5.1l8.4 8.4 6.1-6.1-8.4-8.4h-5.1z"/><circle cx="8.6" cy="8.6" r="1.2"/>',
+  folder: '<path d="M4.75 7.25v10a1.5 1.5 0 0 0 1.5 1.5h11.5a1.5 1.5 0 0 0 1.5-1.5v-7.5a1.5 1.5 0 0 0-1.5-1.5h-6l-2-2h-3.5a1.5 1.5 0 0 0-1.5 1.5z"/>',
+  search: '<circle cx="11" cy="11" r="5.5"/><path d="M15.2 15.2l4 4"/>',
+  gear: '<circle cx="12" cy="12" r="2.6"/><path d="M12 4.5v2M12 17.5v2M4.5 12h2M17.5 12h2M6.7 6.7l1.4 1.4M15.9 15.9l1.4 1.4M6.7 17.3l1.4-1.4M15.9 8.1l1.4-1.4"/>',
+};
+const ph = (k, cur) => `<span class="ph${cur ? ' cur' : ''}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${PH[k]}</svg></span>`;
+const sealBtn = (sealed = true, extra = '') => `<button class="rb ${extra}" type="button" aria-label="封印敏感图片" aria-pressed="${sealed}" title="${sealed ? '已封印 · 点击释放' : '封印敏感图片'}">${iconSVG(24, sealed ? 0 : 1)}</button>`;
+const rail = (inner, h) => `<nav class="rail" aria-label="主导航" style="height:${h}px">${inner}</nav>`;
+
+document.getElementById('btns').innerHTML = ['day', 'night'].map(t => `
+  <div class="bcard ${t}" style="--rail:${t === 'day' ? '#F0EADF' : '#24203A'}">
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+      ${rail(ph('grid', 1) + ph('tag') + ph('folder') + ph('search') + '<span class="sp"></span>' + sealBtn(true, 'live') + ph('gear'), 330)}
+      <span class="lab">可点击</span>
+    </div>
+    <div>
+      <div class="matrix">
+        <span></span>${['静止', '悬停', '按下', '键盘焦点', '悬停提示'].map(h => `<span class="hd">${h}</span>`).join('')}
+        ${[true, false].map(s => `<span class="rl">${s ? '封印中<br><code style="font-size:10px">pressed=true</code>' : '已释放<br><code style="font-size:10px">pressed=false</code>'}</span>
+          ${['', 'h', 'a', 'f'].map(cls => `<span class="cell">${sealBtn(s, cls)}</span>`).join('')}
+          <span class="cell" style="position:relative;justify-content:start;padding-left:6px;overflow:visible">${sealBtn(s, 'h')}<span class="tip" style="left:52px">${s ? '已封印 · 点击释放' : '封印敏感图片'}</span></span>`).join('')}
+      </div>
+      <div class="spec" style="margin-top:14px;max-width:none">
+        <p><code>&lt;button aria-label="封印敏感图片" aria-pressed="true"&gt;</code>：名称固定，状态只由 aria-pressed 表达（读屏：“封印敏感图片，切换按钮，已按下”）。图标 aria-hidden。</p>
+        <p>40 × 40，圆角 10；图标 24 px 母版居中。悬停 / 按下只换底色，按下时图标缩到 0.9；焦点为 2 px 墨色描边、外扩 2 px，不用强调色以免与封印态混淆。蜡印光环与星的描边取按钮当前底色（<code>--cut: var(--bb)</code>）。</p>
+      </div>
+    </div>
+  </div>`).join('');
+
+/* ================= §4 motion ================= */
+const liveHTML = t => `
+  <div class="row">
+    <button class="bigbtn" type="button" aria-label="封印敏感图片（放大 ×5）" aria-pressed="true">${iconSVG(24, 0, 120)}</button>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+      <div style="display:flex;gap:10px;align-items:center">${sealBtn(true, 'live')}<span class="lab">40 px 实际大小</span></div>
+      <span class="lab" style="text-align:left;max-width:170px">点击放大或实际按钮切换；动画中途再点会从当前画面反向。顶栏可开慢放 ×5 / 减少动态。</span>
+    </div>
+  </div>
+  <div class="timeline" id="tl"></div>`;
+document.getElementById('liveDay').innerHTML = liveHTML('day');
+const TL = [['蜡印鼓起', 0, .16, ''], ['裂开 0.5', .07, .2, ''], ['两半下落', .18, .62, ''], ['光环 / 书底淡出', .18, .42, 'ink'],
+  ['封面绕书脊翻开', .28, .86, 'ink'], ['右页展开', .3, .82, 'ink'], ['星（回弹）', .66, 1, 'ink']];
+document.getElementById('tl').innerHTML = TL.map(([n, a, b, c]) => `<div class="tl-row"><span>${n}</span><div class="tl-track"><div class="tl-bar ${c}" style="left:${a * 100}%;width:${(b - a) * 100}%"></div></div></div>`).join('') +
+  `<div class="tl-axis"><span></span><div><span>0</span><span>160</span><span>320</span><span>480</span><span>640 ms（释放）</span></div></div>` +
+  `<div class="tl-axis"><span></span><div><span>420</span><span>315</span><span>210</span><span>105</span><span>0 ms（封印，倒放）</span></div></div>`;
+
+const PS = [0, .05, .12, .2, .3, .4, .5, .6, .7, .8, .9, 1];
+const strip = (t, dir) => `
+  <div class="strip ${t}">
+    <div class="frames">${(dir > 0 ? PS : [...PS].reverse()).map(p => `<figure><div class="fr">${iconSVG(24, p, 72)}</div><figcaption class="lab">${dir > 0 ? Math.round(p * OPEN_MS) : Math.round((1 - p) * SEAL_MS)} ms</figcaption></figure>`).join('')}</div>
+  </div>`;
+document.getElementById('strips').innerHTML =
+  `<div class="lab" style="text-align:left">释放（封印 → 打开）· 日间 / 夜间</div>` + strip('day', 1) + strip('night', 1) +
+  `<div class="lab" style="text-align:left">封印（打开 → 封印），同一路径倒放、更快</div>` + strip('day', -1);
+
+/* ================= §5 wall ================= */
+const GRADS = [
+  'linear-gradient(135deg,#F6C6D0,#B7A6E8)', 'linear-gradient(160deg,#9FD3E6,#4E6FB8)', 'linear-gradient(120deg,#FBE3A5,#F08F7A)',
+  'radial-gradient(circle at 30% 30%,#FFF2D6,#E59AB0 60%,#7A5AA8)', 'linear-gradient(200deg,#C9E7C1,#5E9C8F)', 'linear-gradient(135deg,#2E3561,#D97FA8)',
+  'linear-gradient(90deg,#F4D8C8,#C78B9C)', 'radial-gradient(circle at 70% 25%,#FFFFFF,#A9C8F0 45%,#5167A8)', 'linear-gradient(160deg,#FBD2A2,#B85C7C)',
+  'linear-gradient(135deg,#D7C6F4,#6E5BB5)', 'linear-gradient(45deg,#F9E7EF,#E0768F)', 'linear-gradient(180deg,#BFE3F2,#F3D9E6)'];
+// kinds: n normal, s sensitive (hidden when sealed), r reference-group / pin (blur in place)
+const KINDS = 'nsnrsnnsnsrn'.split('');
+const T = 92, GAP = 10, OX = 72, OY = 12, H = 320, BTN = { x: 28, y: H - 28 - 44 }; // button centre in stage coords (rail: gear below)
+const slot = i => ({ x: OX + (i % 4) * (T + GAP), y: OY + Math.floor(i / 4) * (T + GAP) });
+
+class Tw {
+  constructor() { this.m = new Map(); }
+  get(k, t, d) { const w = this.m.get(k); return w ? w(t) : d; }
+  to(k, t, to, delay, dur, ease, d) {
+    const prev = this.m.get(k), t0 = t + delay, from = prev ? prev(t0) : d;
+    this.m.set(k, tt => { if (tt <= t0) return prev ? prev(tt) : d; if (dur <= 0) return to; return from + (to - from) * ease(Math.min(1, (tt - t0) / dur)); });
+  }
+  set(k, t, v) { this.to(k, t, v, 0, 0, E.lin, v); }
+}
+
+const markSVG = (crack, stamp, uid) => {
+  // small wax seal for pinned / grouped tiles: same wax + keyhole, paper ring, cracks on release
+  const g = G[24], S = g.seal, R = S.R, cx = S.cx, cy = S.cy;
+  if (stamp <= 0.001) return '';
+  const sc = stamp, fl = E.inQ(seg(crack, .25, 1)), gap = .45 * E.outC(seg(crack, 0, .3)), op = 1 - seg(crack, .6, 1);
+  const crackPts = [[.1, -1.5], [-.14, -.78], [.1, -.34], [-.06, .1], [.16, .62], [-.04, 1.5]].map(([x, y]) => [cx + x * R, cy + y * R]);
+  const poly = side => [...crackPts, [cx + side * 2 * R, cy + 1.5 * R], [cx + side * 2 * R, cy - 1.5 * R]].map(q => q.map(f).join(',')).join(' ');
+  const d = `${g.wax} ${g.khD}`;
+  const tr = `translate(${cx} ${cy}) scale(${f(sc)}) translate(${-cx} ${-cy})`;
+  const ring = `<path d="${g.wax}" fill="#F7F3EA" stroke="#F7F3EA" stroke-width="2" stroke-linejoin="round" opacity="${f(1 - seg(crack, 0, .4))}"/>`;
+  if (crack <= 0) return `<g transform="${tr}">${ring}<path fill-rule="evenodd" fill="#E0768F" d="${d}"/></g>`;
+  return `<defs><clipPath id="ml${uid}"><polygon points="${poly(-1)}"/></clipPath><clipPath id="mr${uid}"><polygon points="${poly(1)}"/></clipPath></defs>
+    <g transform="${tr}" opacity="${f(op)}">${ring}
+    <g transform="translate(${f(-gap - 1.2 * fl)} ${f(7 * fl)}) rotate(${f(-36 * fl)} ${f(cx - .45 * R)} ${cy})"><path clip-path="url(#ml${uid})" fill-rule="evenodd" fill="#E0768F" d="${d}"/></g>
+    <g transform="translate(${f(gap + 1.6 * fl)} ${f(8 * fl)}) rotate(${f(30 * fl)} ${f(cx + .45 * R)} ${cy})"><path clip-path="url(#mr${uid})" fill-rule="evenodd" fill="#E0768F" d="${d}"/></g></g>`;
+};
+
+class Wall {
+  constructor(host, { live = false, sealed = false } = {}) {
+    this.host = host; this.tw = new Tw(); this.sealed = sealed; this.live = live;
+    host.innerHTML = `<div class="stage">
+      ${rail(ph('grid', 1) + ph('tag') + ph('folder') + '<span class="sp"></span>' + sealBtn(sealed, 'wbtn') + ph('gear'), H)}
+      <div class="burst"></div>
+      ${KINDS.map((k, i) => `<div class="tile" data-k="${k}"><div class="art" style="background:${GRADS[i]}"></div><div class="wash" style="background:${k === 'r' ? '#F7F3EA' : '#2B2747'}"></div>
+        ${k === 's' ? '<span class="chip">敏感</span>' : k === 'r' ? '<span class="chip">钉图 / 参考组</span>' : ''}
+        ${k === 'r' ? '<svg class="mark" viewBox="10 6 13 13"></svg>' : ''}</div>`).join('')}
+    </div>`;
+    this.tiles = [...host.querySelectorAll('.tile')]; this.btn = host.querySelector('.wbtn'); this.burst = host.querySelector('.burst');
+    this.ctl = new Ctl(this.btn.querySelector('svg')); this.ctl.pRef = sealed ? 0 : 1; this.ctl.dir = sealed ? -1 : 1;
+    this.uids = this.tiles.map(() => ++UID);
+    const t = 0; this.layout(t, true);
+    this.tiles.forEach((el, i) => { const k = KINDS[i], tw = this.tw;
+      const hid = sealed && k === 's';
+      tw.set(i + 'op', t, hid ? 0 : 1); tw.set(i + 's', t, hid ? .1 : 1); tw.set(i + 'rot', t, 0);
+      tw.set(i + 'blur', t, sealed && k !== 'n' ? (k === 's' ? 14 : 10) : 0); tw.set(i + 'wash', t, sealed && k !== 'n' ? (k === 's' ? .92 : .45) : 0);
+      tw.set(i + 'stamp', t, sealed && k === 'r' ? 1 : 0); tw.set(i + 'crack', t, 0);
+      if (hid) { tw.set(i + 'x', t, BTN.x - T / 2); tw.set(i + 'y', t, BTN.y - T / 2); } });
+    if (live) this.btn.addEventListener('click', () => this.toggle(!this.sealed, CLOCK));
+    this.tw.set('burst', t, 0); this.pulseAt = -1;
+  }
+  layout(t, instant, delay = 0, dur = 650) {
+    let j = 0;
+    this.tiles.forEach((el, i) => { if (this.sealed && KINDS[i] === 's') return; const s = slot(j++);
+      if (instant) { this.tw.set(i + 'x', t, s.x); this.tw.set(i + 'y', t, s.y); }
+      else { this.tw.to(i + 'x', t, s.x, delay, dur, E.inOutC, s.x); this.tw.to(i + 'y', t, s.y, delay, dur, E.inOutC, s.y); } });
+  }
+  toggle(sealed, t) {
+    this.sealed = sealed; this.ctl.set(sealed, t);
+    this.btn.setAttribute('aria-pressed', String(sealed));
+    const tw = this.tw, R = REDUCED;
+    let k = 0;
+    if (sealed) {
+      this.tiles.forEach((el, i) => { const kind = KINDS[i];
+        if (kind === 's') {
+          if (R) { tw.set(i + 'op', t, 0); tw.set(i + 'x', t, BTN.x - T / 2); tw.set(i + 'y', t, BTN.y - T / 2); return; }
+          tw.to(i + 'blur', t, 14, 0, 240, E.outC); tw.to(i + 'wash', t, .92, 0, 220, E.outC);
+          tw.to(i + 's', t, .94, 0, 220, E.outC);
+          const d = 260 + k * 30; k++;
+          tw.to(i + 'x', t, BTN.x - T / 2, d, 520, E.inC); tw.to(i + 'y', t, BTN.y - T / 2, d, 520, E.inC);
+          tw.to(i + 's', t, .1, d, 520, E.inC); tw.to(i + 'rot', t, (i % 2 ? 1 : -1) * 14, d, 520, E.inQ);
+          tw.to(i + 'op', t, 0, d + 380, 140, E.lin);
+        } else if (kind === 'r') {
+          if (R) { tw.set(i + 'blur', t, 10); tw.set(i + 'wash', t, .45); tw.set(i + 'stamp', t, 1); tw.set(i + 'crack', t, 0); return; }
+          tw.to(i + 'blur', t, 10, 0, 240, E.outC); tw.to(i + 'wash', t, .45, 0, 240, E.outC);
+          const cr = tw.get(i + 'crack', t, 0);
+          if (cr > 0 && cr < 1) tw.to(i + 'crack', t, 0, 0, 220, E.outC);           // interrupted release: halves fly back up
+          else { tw.set(i + 'crack', t, 0); tw.set(i + 'stamp', t, 0); tw.to(i + 'stamp', t, 1, 140, 300, E.back(2.2)); }
+        }
+      });
+      if (R) this.layout(t, true); else this.layout(t, false, 280, 620);
+      this.pulseAt = R ? -1 : t + 860;
+    } else {
+      this.layout(t, !!R, 40, 680);
+      this.tiles.forEach((el, i) => { const kind = KINDS[i];
+        if (kind === 's') {
+          const s = this._slotOf(i);
+          if (R) { tw.set(i + 'x', t, s.x); tw.set(i + 'y', t, s.y); tw.set(i + 's', t, 1); tw.set(i + 'rot', t, 0); tw.set(i + 'blur', t, 0); tw.set(i + 'wash', t, 0);
+            tw.set(i + 'op', t, 0); tw.to(i + 'op', t, 1, 0, 120, E.lin); return; }
+          const d = 150 + k * 55; k++;
+          if (tw.get(i + 'op', t, 1) < .05) { tw.set(i + 'rot', t, (i % 2 ? -1 : 1) * 24); }
+          tw.to(i + 'op', t, 1, d, 100, E.lin);
+          tw.to(i + 'x', t, s.x, d, 760, E.outC); tw.to(i + 'y', t, s.y, d, 760, E.back(1.1));
+          tw.to(i + 's', t, 1, d, 760, E.back(1.9)); tw.to(i + 'rot', t, 0, d, 760, E.outC);
+          tw.to(i + 'blur', t, 0, d + 300, 420, E.outC); tw.to(i + 'wash', t, 0, d + 260, 420, E.outC);
+        } else if (kind === 'r') {
+          if (R) { tw.set(i + 'blur', t, 0); tw.set(i + 'wash', t, 0); tw.set(i + 'stamp', t, 0); return; }
+          tw.to(i + 'crack', t, 1, 40, 460, E.lin);
+          tw.to(i + 'blur', t, 0, 120, 380, E.outC); tw.to(i + 'wash', t, 0, 120, 360, E.outC);
+        }
+      });
+      if (!R) { tw.set('burst', t, 0); tw.to('burst', t, 1, 120, 620, E.outC); }
+    }
+  }
+  _slotOf(i) { let j = 0; for (let q = 0; q < i; q++) if (!(this.sealed && KINDS[q] === 's')) j++; return slot(j); }
+  render(t) {
+    const tw = this.tw;
+    this.tiles.forEach((el, i) => {
+      const x = tw.get(i + 'x', t, 0), y = tw.get(i + 'y', t, 0), s = tw.get(i + 's', t, 1), r = tw.get(i + 'rot', t, 0);
+      el.style.transform = `translate(${f(x)}px,${f(y)}px) rotate(${f(r)}deg) scale(${f(s)})`;
+      const b = tw.get(i + 'blur', t, 0); el.firstElementChild.style.filter = b > .05 ? `blur(${f(b)}px) saturate(${f(1 - b / 28)})` : '';
+      el.children[1].style.opacity = f(tw.get(i + 'wash', t, 0)); el.style.opacity = f(tw.get(i + 'op', t, 1));
+      el.style.zIndex = KINDS[i] === 's' ? 2 : 1;
+      if (KINDS[i] === 'r') { const m = el.querySelector('.mark'), key = f(tw.get(i + 'crack', t, 0)) + '|' + f(tw.get(i + 'stamp', t, 0));
+        if (m._k !== key) { m._k = key; m.innerHTML = markSVG(tw.get(i + 'crack', t, 0), tw.get(i + 'stamp', t, 0), this.uids[i]); } }
+    });
+    const bu = tw.get('burst', t, 0); this.burst.style.left = (BTN.x - 20) + 'px'; this.burst.style.top = (BTN.y - 20) + 'px';
+    this.burst.style.opacity = bu > 0 && bu < 1 ? f((1 - bu) * .7) : 0; this.burst.style.transform = `scale(${f(1 + bu * 5)})`;
+    this.ctl.draw(t);
+    const svg = this.btn.querySelector('svg');
+    const pk = this.pulseAt >= 0 ? seg(t, this.pulseAt, this.pulseAt + 200) : 0;
+    svg.style.transform = pk > 0 && pk < 1 ? `scale(${f(1 - .12 * Math.sin(Math.PI * pk))})` : '';
+  }
+}
+
+document.getElementById('wallLive').innerHTML = `<div id="wallHost"></div>
+  <div class="ctl"><button type="button" id="wallT">封印 / 释放</button><span class="lab" style="text-align:left">也可点左侧轨道底部的按钮；中途再点会反向（封印方向同样在 0.3 s 内不可辨）。</span></div>
+  <div class="wnotes">
+    <p><b>封印（≈ 0.9 s）</b>：0–240 ms 敏感图模糊 14 px + 墨色覆盖 92%（<b>0.24 s 不可辨</b>）→ 260 ms 起被吸向按钮（ease-in，逐张 30 ms）→ 640–900 ms 其余图连续补位 → 860 ms 按钮轻按一下“收下”。钉图 / 参考组：原位模糊 10 px，140 ms 盖下小蜡印（回弹）。</p>
+    <p><b>释放（≈ 1.2 s）</b>：书翻开（640 ms）；120 ms 起按钮处一圈光环扩散；150 ms 起敏感图逐张（间隔 55 ms）从按钮沿弧线飞回原位，缩放回弹到 1，飞行后段才去模糊；其余图 40–720 ms 连续让位。钉图 / 参考组：小蜡印裂开、两半落下（460 ms），模糊同时溶解，不飞行。</p>
+    <p><b>减少动态</b>：封印时敏感图直接消失、其余图直接到位；释放时原位 120 ms 淡入；钉图模糊与蜡印直接切换。</p>
+  </div>`;
+const liveWall = new Wall(document.getElementById('wallHost'), { live: true, sealed: false });
+document.getElementById('wallT').addEventListener('click', () => liveWall.btn.click());
+
+// snapshots
+const SNAP_T = [0, 150, 300, 600, 1000];
+const snapRow = (label, sub, sealedStart, times) => `<div class="snaprow"><div class="rl"><b>${label}</b>${sub}</div>${times.map(ms => `<div class="mini"><div class="holder"><div data-snap="${sealedStart ? 1 : 0}" data-t="${ms}"></div></div><div class="lab">${ms} ms</div></div>`).join('')}</div>`;
+document.getElementById('snaps').innerHTML =
+  snapRow('封印', '敏感图 0.3 s 内不可辨', false, [0, 120, 260, 560, 950]) +
+  snapRow('释放', '英雄式：书开、图飞回', true, [0, 260, 500, 800, 1250]) +
+  snapRow('中断', '释放 400 ms 时再次封印', true, [400, 520, 650, 900, 1300]) +
+  `<div class="lab" style="text-align:left">定格帧由同一套补间引擎在指定时刻求值得到（不是示意图）。钉图 / 参考组在右上角的小蜡印：封印时盖下，释放时裂开落下。</div>`;
+document.querySelectorAll('[data-snap]').forEach(h => {
+  const sealedStart = h.dataset.snap === '1', ms = +h.dataset.t;
+  const w = new Wall(h, { sealed: sealedStart });
+  if (h.closest('.snaprow').querySelector('b').textContent === '中断') { w.toggle(false, 0); if (ms >= 400) w.toggle(true, 400); }
+  else w.toggle(!sealedStart, 0);
+  w.render(ms);
+});
+
+/* ================= wiring ================= */
+document.querySelectorAll('.rb.live, .bigbtn').forEach(b => bindButton(b));
+document.getElementById('all').addEventListener('click', () => document.querySelectorAll('.rb.live, .bigbtn, .wbtn').forEach(b => { if (b.closest('#wallHost') || !b.classList.contains('wbtn')) b.click(); }));
+document.getElementById('slow').addEventListener('change', e => SLOW = e.target.checked ? 5 : 1);
+document.getElementById('rm').addEventListener('change', e => REDUCED = e.target.checked);
+let last = performance.now();
+function loop(now) { CLOCK += (now - last) / SLOW; last = now; ctls.forEach(c => c.draw(CLOCK)); liveWall.render(CLOCK); requestAnimationFrame(loop); }
+liveWall.render(0); requestAnimationFrame(loop);
+runZoom();
+if (location.search.includes('frames')) document.body.classList.add('frames-only');
+</script>
+</body>
+</html>
