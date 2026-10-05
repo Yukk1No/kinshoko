@@ -87,9 +87,9 @@ CanvasKit 是 Skia 的 WebAssembly 接口；Canvas 内容需要额外提供可�
 静态 TTF / OTF、变量 TTF / OTF 和 WOFF2 分别涉及字重、轮廓格式与交付容器，不能混为一谈：
 
 - **静态字体**适合明确只用少数字重的方案；Inter 400 / 500 / 600 的 hinted WOFF2 可以直接使用官方文件。不能仅从扩展名 `.ttf` 推出该文件具有 hinting。[Inter 4.1 说明](https://github.com/rsms/inter/blob/v4.1/misc/dist/help.txt)。
-- **变量字体**把多字重放进一个文件。Source Han Sans SC 的源码权重轴为 250–900，400 是 Regular、500 是 Medium、700 是 Bold；600 可插值。CSS `@font-face` 应声明实际范围并明确主文本为 400，避免把字体的默认 250 误用作 UI 正文。[Source Han SC 设计空间](https://github.com/adobe-fonts/source-han-sans/blob/master/Masters/designspaces/SourceHanSansSC-VF.designspace)。
+- **变量字体**把多字重放进一个文件。Source Han Sans SC 的源码权重轴为 250–900，400 是 Regular、500 是 Medium、700 是 Bold；600 可插值。CSS `@font-face` 必须声明 `font-weight: 250 900`；若省略范围，该 face 会被当作单一 400 字重，500 / 600 无法取到对应的轴值。[Source Han SC 设计空间](https://github.com/adobe-fonts/source-han-sans/blob/master/Masters/designspaces/SourceHanSansSC-VF.designspace)。
 - **本次 CJK 选 TTF 轮廓的 WOFF2。**Adobe 的历史发布说明记录过旧版 Windows 对变量 OTF 的 CFF2 问题及修复版本；这不能证明同一问题必然出现在 WebView2，实际最低系统与运行时仍需验收。[Source Han Sans 2.004R 的兼容性说明](https://github.com/adobe-fonts/source-han-sans/releases/tag/2.004R)。
-- **WOFF2 是本路线的交付格式。**若以后更换为非 Web UI，必须重新核实那个渲染器支持的字体容器、变量轴与 shaping；不能把 WebView2 可加载 WOFF2 推广为任意 Rust 原生渲染库都能使用它。
+- **WOFF2 是本路线的暂定交付格式。**WOFF2 的压缩主要节省网络传输；本地应用的安装包本身已压缩，而 WebView2 每次冷启动仍要先解压 WOFF2 并让 Chromium 的字体净化器检查这份 65,535 glyph 的字体。官方同版本的 `Variable/TTF/SourceHanSansSC-VF.ttf` 内容相同但不需要这一步解压；两者的冷启动耗时与安装体积须在实包中对比后再定。若以后更换为非 Web UI，必须重新核实那个渲染器支持的字体容器、变量轴与 shaping；不能把 WebView2 可加载 WOFF2 推广为任意 Rust 原生渲染库都能使用它。
 
 以下为 2026-10-05 对官方发布包或 GitHub 元数据的**资源观察**，不是加载内存、解压时间或帧率基准。MiB = 1,048,576 字节。
 
@@ -152,16 +152,31 @@ Windows 系统字体方案只引用用户系统中已存在的字体。普通 Wi
   font-style: normal;
   font-display: swap;
 }
+/* 同一文件，只取与西文共用码点的标点，让中日文语境使用全角字形。 */
+@font-face {
+  font-family: "Kinshoko Han Punct";
+  src: url("/fonts/SourceHanSansSC-VF.ttf.woff2") format("woff2");
+  font-weight: 250 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+2014, U+2018-2019, U+201C-201D, U+2026;
+}
 :root {
   --font-ui: "Kinshoko Inter", "Kinshoko Han",
     "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI",
     "Segoe UI Emoji", system-ui, sans-serif;
-  font-family: var(--font-ui);
+  --font-ui-cjk: "Kinshoko Han Punct", var(--font-ui);
   font-synthesis: none;
   text-rendering: auto;
 }
+:lang(zh), :lang(ja) { font-family: var(--font-ui-cjk); }
+:not(:lang(zh)):not(:lang(ja)) { font-family: var(--font-ui); }
 body { font-size: 14px; line-height: 1.5; }
 button, input, textarea, select { font: inherit; }
+/* Inter 只打包到 600；浏览器默认的 700 会让西文停在 600、汉字变成 700。 */
+b, strong, th, h1, h2, h3, h4, h5, h6 { font-weight: 600; }
+/* 没有斜体 face，且禁止合成；强调用字重或颜色。 */
+em, i, cite, var, dfn, address { font-style: normal; }
 .ui-label { font-weight: 500; }
 .ui-heading { font-weight: 600; }
 .numeric { font-variant-numeric: tabular-nums; }
@@ -172,7 +187,14 @@ button, input, textarea, select { font: inherit; }
 <!-- 共享汉字的地区字形交给内容语言；不要只设置 locl 开关。 -->
 <span lang="ja">作品：葬送のフリーレン</span>
 <span lang="zh-TW">標籤與資料庫</span>
+<span lang="en">Frieren: Beyond Journey’s End</span>
 ```
+
+几处取舍须随这组 CSS 一起保留：
+
+- **共用标点。**Inter 含有 `— ‘ ’ “ ” …`（2026-10-05 对 4.1 发行包 cmap 的检查）。若只按西文优先的家族栈，中文里的 `——`、`……` 和引号会落到 Inter 的窄西文字形。`Kinshoko Han Punct` 只在 `zh` / `ja` 语境中接管这几个码点；代价是中文语境里未标注语言的英文撇号、引号也会变成全角，已知的西文作品名或画师名应标 `lang="en"`。语言未知的用户标签沿用界面默认，接受这一差异。
+- **字重上限 600。**Inter 只打包 400 / 500 / 600，思源黑体可到 900。只给 Inter 600 声明更宽的范围也无济于事：同一行里西文仍是 600、汉字按 700 渲染。因此在样式中把浏览器默认为粗体的元素统一压到 600，设计稿不使用 700。
+- **没有斜体。**`font-synthesis: none` 同时禁止假斜体，显式恢复正体是为了让意图可见，而不是依赖浏览器静默降级。
 
 原生菜单、文件选择器等由 Windows 绘制的 UI 沿用系统字体；这组 CSS 作用于 WebView 内容。图片观察层可以有自己的缩放，工具文字按固定的 CSS 排版处理。
 
@@ -201,23 +223,32 @@ button, input, textarea, select { font: inherit; }
 语言样本：骨 直 令 返 曜；图 / 圖 / 図；「かな・カナ」与“中文标点”
 数字与符号：Il1 O0 0123456789 1,024 00:09 1920×1080 125% 1/2 ±0.25
 组合字符与 emoji：Café / Café / Zoë / 🎨 👩🏽‍🎨 📁
+文本 / emoji 双形符号：❤️ ☀️ 1️⃣（带 VS16）
+加粗与强调（放进 strong / em 渲染）：中文 Bold / 强调 emphasis
 较新扩展区回退探针：𰻞；长文件名：参考图_2026-10-05_作品名与画师名.png
 ```
 
 最低验收内容：
 
 1. Windows 100% / 125% / 150% / 200% 缩放，至少包含一台低 DPI 屏幕；固定应用窗口字号，比较 Inter hinted、Inter variable 和系统栈的清晰度与中文均衡感。
-2. `zh-CN` / `ja` / `zh-TW` / `zh-HK` 样本分别检查实际字形；`document.fonts.check()` 或字体加载成功不代表每个 glyph 都来自预期文件，需要查看实际 rendered fonts 和视觉结果。
-3. 动态输入、删除、滚动、截断、多行备注、fallback 字体、emoji 与带声调组合字符不裁切，不因字体切换造成标签高度或行宽明显跳动。
+2. `zh-CN` / `ja` / `zh-TW` / `zh-HK` 样本分别检查实际字形；`document.fonts.check()` 或字体加载成功不代表每个 glyph 都来自预期文件，需要查看实际 rendered fonts 和视觉结果。中文语境的 `——`、`……`、引号应为全角，`lang="en"` 的撇号应为西文字形；加粗的西文与汉字字重一致。
+3. 动态输入、删除、滚动、截断、多行备注、fallback 字体、emoji 与带声调组合字符不裁切，不因字体切换造成标签高度或行宽明显跳动。Inter 含有 ❤ ☀ 等文本符号，带 VS16 的 `❤️ ☀️` 和键帽数字须确认落到彩色 emoji 而非 Inter / 思源黑体的单色字形。
 4. 完全离线首次启动能显示所有固定 UI 文本；用户新输入的名字不会因「只裁了现有 UI 文案」变成方框。较新扩展汉字探针允许暴露覆盖边界，不能承诺任何一个 CJK 文件覆盖全 Unicode。
-5. 在正式 Tauri 包中测冷启动到字体就绪的时间、首次出现新字汇的延迟、实际读取量与进程内存，记录 Windows / WebView2 / 字体版本。浏览器样张只是辅助，不能代替该验收。
+5. 在正式 Tauri 包中测冷启动到字体就绪的时间、首次出现新字汇的延迟、实际读取量与进程内存，记录 Windows / WebView2 / 字体版本；思源黑体同时测 WOFF2 与官方 TTF 两种容器。浏览器样张只是辅助，不能代替该验收。
 
-## 本次比较用字体资源
+## 默认字体资源校验
 
-已取回官方 Inter 4.1 ZIP 和思源黑体 2.005R 原始 WOFF2；五个比较字体文件与两个对应许可证放在当前聊天的可视化目录 `fonts/`，未安装到系统、未加入应用仓库。`font-manifest.json` 记录实际字节数、SHA-256、版本、原始 URL 和 Inter ZIP 内的入口。Inter 本地文件名加 `-hinted` 只是便于区分，没有修改字体数据。
+接入时应从上文官方来源取文件，并以下表核对；字体文件和许可证尚未加入仓库。Inter 文件名加 `-hinted` 只是便于与变量版区分，没有修改字体数据。
 
-已确认默认字体负载为三个 hinted Inter 文件与一个完整思源黑体 SC 文件，共 14,558,924 字节（约 14.6 MB / 13.9 MiB；不含许可证）。
+| 接入文件名 | 官方来源 | 字节数 | SHA-256 |
+| --- | --- | ---: | --- |
+| `Inter-Regular-hinted.woff2` | Inter 4.1 ZIP `extras/woff-hinted/Inter-Regular.woff2` | 140,944 | `338239f6b590b8ced3bf857654d32da3fd3663294cd3003651ed57aa3abd7aa1` |
+| `Inter-Medium-hinted.woff2` | Inter 4.1 ZIP `extras/woff-hinted/Inter-Medium.woff2` | 143,664 | `7e80d9f65861ee6836a0081d4e75d88fb8789e5651d05edbc49640442a9610ee` |
+| `Inter-SemiBold-hinted.woff2` | Inter 4.1 ZIP `extras/woff-hinted/Inter-SemiBold.woff2` | 144,628 | `5013f48d77ab627b1db7c2415914284ef09abc3f60a8e0d0d8f3cd1bfebefb5e` |
+| `SourceHanSansSC-VF.ttf.woff2` | Source Han Sans 2.005R `Variable/WOFF2/TTF/` | 14,129,688 | `cfec773cdc2ea964de8713471c6fd20774bc40617f5567f92efeeccaca6604b0` |
 
-本次已在 Codex 内置浏览器打开独立对照页，确认本地五个声明的字体 face 加载成功；三个对照组可切换浅深色和 400/500/600，并同步显示自定义标签。完整思源黑体 SC 在 `zh-CN` 与 `ja` 下的「骨、直」等地区字形差异可见。页面保留系统栈作为对照；它只能证明这次浏览器样张的表现，未完成正式 Tauri/WebView2 包、画师设备、物理 100% 缩放、启动性能或混合 DPI 验收。
+已确认默认字体负载共 14,558,924 字节（约 14.6 MB / 13.9 MiB；不含许可证）。
+
+2026-10-05 曾用独立浏览器对照页加载上述文件与 Inter 变量版，三组对照可切换浅深色和 400 / 500 / 600；完整思源黑体 SC 在 `zh-CN` 与 `ja` 下的「骨、直」等地区字形差异可见。该对照页未入库，只能证明那次浏览器样张的表现，未完成正式 Tauri/WebView2 包、画师设备、物理 100% 缩放、启动性能或混合 DPI 验收。
 
 未安装系统字体、修改应用代码或冻结新的 ADR；新增的仓库内容仅为这份调研报告。字体来源、许可与清晰度验收点已足够进入正式前端接入，性能优化按实包数据决定。
