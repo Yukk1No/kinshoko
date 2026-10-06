@@ -4,8 +4,10 @@ import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowsePage } from "./bindings/BrowsePage";
+import type { ImageDetail } from "./bindings/ImageDetail";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
+import type { Sidebar } from "./bindings/Sidebar";
 import { App } from "./App";
 
 const info: AppInfo = { productName: "Kinshoko", version: "9.9.9" };
@@ -18,6 +20,27 @@ const page: BrowsePage = {
   nextCursor: null,
   total: 2,
 };
+
+const side: Sidebar = {
+  all: 2,
+  trash: 1,
+  folders: [
+    {
+      id: "F1",
+      name: "人物",
+      count: 1,
+      children: [{ id: "F2", name: "发型", count: 0, children: [] }],
+    },
+  ],
+};
+const detail = (id: string, manual: string | null): ImageDetail => ({
+  id,
+  width: 100,
+  height: 200,
+  folders: [{ id: "F1", name: "人物" }],
+  note: { manual, sources: [] },
+  deletedAt: null,
+});
 
 type Call = { cmd: string; args: unknown };
 let calls: Call[];
@@ -40,6 +63,15 @@ function backend(opened: LibraryInfo | null) {
           return page;
         case "plugin:library|start_import":
           return "T1";
+        case "plugin:library|sidebar":
+          return side;
+        case "plugin:library|image":
+          return detail((args as { imageId: string }).imageId, null);
+        case "plugin:library|edit": {
+          const { ids, edits } = args as { ids: string[]; edits: { kind: string; text?: string }[] };
+          const note = edits.find((e) => e.kind === "setNote")?.text ?? null;
+          return ids.map((id) => detail(id, note));
+        }
         default:
           return null;
       }
@@ -160,5 +192,107 @@ describe("主窗口", () => {
     fireEvent.click(screen.getByRole("button", { name: "设置" }));
 
     expect(await screen.findByRole("region", { name: "设置" })).toBeTruthy();
+  });
+});
+
+describe("整理", () => {
+  const card = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
+
+  it("侧栏列出全部、文件夹树与回收站及其计数，点文件夹按文件夹浏览", async () => {
+    backend(library);
+    render(<App />);
+    const nav = await screen.findByRole("navigation", { name: "侧栏" });
+    await waitFor(() => expect(nav.textContent).toContain("发型"));
+    expect(screen.getByRole("button", { name: "全部（2 张）" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "人物（1 张）" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "回收站（1 张）" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "发型（0 张）" }));
+    await waitFor(() =>
+      expect(sent("plugin:library|browse").at(-1)).toMatchObject({
+        query: { scope: { kind: "folder", id: "F2" } },
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "回收站（1 张）" }));
+    await waitFor(() =>
+      expect(sent("plugin:library|browse").at(-1)).toMatchObject({
+        query: { scope: { kind: "trash" } },
+      }),
+    );
+  });
+
+  it("新建文件夹放在当前打开的文件夹里，双击改名", async () => {
+    backend(library);
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "人物（1 张）" }));
+    fireEvent.click(screen.getByRole("button", { name: "新建文件夹" }));
+    const input = screen.getByLabelText("新文件夹名称");
+    fireEvent.change(input, { target: { value: "姿势" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() =>
+      expect(sent("plugin:library|create_folder")).toEqual([{ name: "姿势", parent: "F1" }]),
+    );
+
+    fireEvent.doubleClick(screen.getByRole("button", { name: "发型（0 张）" }));
+    const rename = screen.getByLabelText("文件夹名称");
+    fireEvent.change(rename, { target: { value: "发型与刘海" } });
+    fireEvent.keyDown(rename, { key: "Enter" });
+    await waitFor(() =>
+      expect(sent("plugin:library|rename_folder")).toEqual([{ folderId: "F2", name: "发型与刘海" }]),
+    );
+  });
+
+  it("选中多张图后批量放入文件夹、删除；回收站里恢复", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(card("a"));
+    fireEvent.click(card("b"), { ctrlKey: true });
+    expect(screen.getByText("已选 2 张")).toBeTruthy();
+
+    await waitFor(() => expect(screen.getAllByRole("option").length).toBeGreaterThan(1));
+    fireEvent.change(screen.getByLabelText("放入文件夹"), { target: { value: "F2" } });
+    await waitFor(() =>
+      expect(sent("plugin:library|edit")).toEqual([
+        { ids: ["a", "b"], edits: [{ kind: "addToFolder", folderId: "F2" }] },
+      ]),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "删除" }));
+    await waitFor(() =>
+      expect(sent("plugin:library|edit").at(-1)).toEqual({ ids: ["a", "b"], edits: [{ kind: "delete" }] }),
+    );
+    await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
+
+    fireEvent.click(screen.getByRole("button", { name: "回收站（1 张）" }));
+    await waitFor(() => expect(card("a")).toBeTruthy());
+    fireEvent.click(card("a"));
+    fireEvent.click(await screen.findByRole("button", { name: "恢复" }));
+    await waitFor(() =>
+      expect(sent("plugin:library|edit").at(-1)).toEqual({ ids: ["a"], edits: [{ kind: "restore" }] }),
+    );
+  });
+
+  it("只选一张时写备注，并能退回来源的备注", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(card("a"));
+    expect(await screen.findByText("所在文件夹：人物")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("备注"), { target: { value: "看左手" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存备注" }));
+    await waitFor(() =>
+      expect(sent("plugin:library|edit").at(-1)).toEqual({
+        ids: ["a"],
+        edits: [{ kind: "setNote", text: "看左手" }],
+      }),
+    );
+    const revert = screen.getByRole("button", { name: "退回来源备注" });
+    await waitFor(() => expect((revert as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(revert);
+    await waitFor(() =>
+      expect(sent("plugin:library|edit").at(-1)).toEqual({ ids: ["a"], edits: [{ kind: "revertNote" }] }),
+    );
   });
 });

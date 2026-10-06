@@ -3,6 +3,6 @@
 /**
  * 对参考图的一项编辑。一次 `edit` 把编辑列表按顺序用在每张图上，全部成功才提交。
  *
- * 新的编辑种类（例如标签决定、分级）在这里加变体，并在 [`apply`] 里处理。
+ * 新的编辑种类（例如标签决定、分级）在这里加变体，并在本模块的 `apply` 里处理。
  */
 export type ImageEdit = { "kind": "addToFolder", folderId: string, } | { "kind": "removeFromFolder", folderId: string, } | { "kind": "setNote", text: string, } | { "kind": "revertNote" } | { "kind": "delete" } | { "kind": "restore" };

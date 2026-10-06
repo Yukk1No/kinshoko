@@ -1,14 +1,20 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AppInfo } from "./bindings/AppInfo";
+import type { BrowseScope } from "./bindings/BrowseScope";
 import type { ImportReport } from "./bindings/ImportReport";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import { appInfo, currentLibrary, onLibraryEvent } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { ImportBar, type RunningImport } from "./library/ImportBar";
+import { SelectionPanel } from "./library/SelectionPanel";
+import { SidebarPane } from "./library/SidebarPane";
 import { SettingsPanel } from "./SettingsPanel";
-import { Wall } from "./wall/Wall";
+import { scopeKey, Wall } from "./wall/Wall";
 
-/** 主窗口：打开上次的资料库（没有时引导建库），导入，并在图片墙浏览；状态栏可打开设置。 */
+/**
+ * 主窗口：打开上次的资料库（没有时引导建库），导入，在侧栏切换全部／文件夹／回收站，
+ * 在图片墙浏览并整理选中的图；状态栏可打开设置。
+ */
 export function App() {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -18,6 +24,14 @@ export function App() {
   const [reloadKey, setReloadKey] = useState(0);
   const [running, setRunning] = useState<RunningImport | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
+  const [scope, setScope] = useState<BrowseScope>({ kind: "all" });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [problem, setProblem] = useState<string | null>(null);
+  const onError = useCallback((message: string) => setProblem(message), []);
+  const changeScope = (next: BrowseScope) => {
+    setScope(next);
+    setSelected(new Set());
+  };
 
   useEffect(() => {
     let alive = true;
@@ -77,9 +91,41 @@ export function App() {
               onDismissReport={() => setReport(null)}
             />
           </header>
-          <main className="app-main">
-            <Wall key={library.id} libraryId={library.id} reloadKey={reloadKey} />
-          </main>
+          <div className="app-body">
+            <SidebarPane
+              scope={scope}
+              onScope={changeScope}
+              reloadKey={reloadKey}
+              onError={onError}
+            />
+            <main className="app-main">
+              {problem && (
+                <p className="app-problem" role="alert">
+                  {problem}
+                  <button type="button" onClick={() => setProblem(null)}>
+                    知道了
+                  </button>
+                </p>
+              )}
+              {selected.size > 0 && (
+                <SelectionPanel
+                  scope={scope}
+                  selected={selected}
+                  onClear={() => setSelected(new Set())}
+                  reloadKey={reloadKey}
+                  onError={onError}
+                />
+              )}
+              <Wall
+                key={`${library.id}/${scopeKey(scope)}`}
+                libraryId={library.id}
+                scope={scope}
+                reloadKey={reloadKey}
+                selected={selected}
+                onSelectionChange={setSelected}
+              />
+            </main>
+          </div>
         </>
       ) : (
         <main className="app-main app-main-centered">
