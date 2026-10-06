@@ -188,7 +188,7 @@ pub(super) fn index(table: TagTranslations) -> Arc<TranslationIndex> {
 }
 
 /// 按界面语言显示的标签。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct TagLabel {
@@ -762,20 +762,30 @@ fn primary(lang: &str) -> &str {
 
 /// 按界面语言选择显示名：界面语言 → 同一主语言 → 其他语言 → 外部名称（尚未翻译）。
 fn label(id: &str, row: &TagRow, lang: &str) -> TagLabel {
-    let pick = row
-        .names
+    display_label(id, row.namespace, &row.names, &row.external, lang)
+}
+
+/// 同 [`label`]，供 Search 按词表快照显示标签。
+pub(crate) fn display_label(
+    id: &str,
+    namespace: TagNamespace,
+    names: &[LocalizedName],
+    external: &[String],
+    lang: &str,
+) -> TagLabel {
+    let pick = names
         .iter()
         .find(|n| n.lang.eq_ignore_ascii_case(lang))
         .or_else(|| {
-            row.names
+            names
                 .iter()
                 .find(|n| primary(&n.lang).eq_ignore_ascii_case(primary(lang)))
         })
-        .or_else(|| row.names.first());
+        .or_else(|| names.first());
     let (name, untranslated) = match pick {
         Some(n) => (n.name.clone(), false),
         None => (
-            row.external
+            external
                 .first()
                 .map(|e| e.replace('_', " "))
                 .unwrap_or_else(|| id.to_owned()),
@@ -784,10 +794,10 @@ fn label(id: &str, row: &TagRow, lang: &str) -> TagLabel {
     };
     TagLabel {
         id: id.to_owned(),
-        namespace: row.namespace,
+        namespace,
         name,
         untranslated,
-        has_external: !row.external.is_empty(),
+        has_external: !external.is_empty(),
     }
 }
 

@@ -19,6 +19,7 @@ mod edit;
 mod error;
 mod events;
 mod fault;
+mod filter;
 mod folders;
 mod import;
 mod recovery;
@@ -52,6 +53,7 @@ pub use types::{
 
 use events::Hub;
 use store::{DB_FILE, Readers, Writer};
+pub(crate) use tags::display_label;
 
 /// 资料库格式版本，写在 `library.format_version`。
 const FORMAT_VERSION: i64 = 1;

@@ -41,6 +41,7 @@ fn browse(library: &Library, scope: BrowseScope) -> Vec<String> {
     library
         .browse(&BrowseQuery {
             scope,
+            conditions: Default::default(),
             cursor: None,
             limit: 1000,
             thumbnail_px: 256,
@@ -303,6 +304,7 @@ fn deleted_images_leave_browsing_and_counts_and_come_back_from_the_trash() {
     let page = library
         .browse(&BrowseQuery {
             scope: BrowseScope::All,
+            conditions: Default::default(),
             cursor: None,
             limit: 1,
             thumbnail_px: 256,
