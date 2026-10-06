@@ -4,7 +4,10 @@
 //! - [`Library::browse`]：浏览，keyset 分页，返回已解析缩略图地址的卡片；
 //! - [`Library::import`]：立即返回导入任务，带进度、取消与逐项结果；
 //! - [`Library::events`]：提交后才推送的变更事件；
-//! - [`Library::thumbnail`]：缩略图（可重建缓存）的本地文件。
+//! - [`Library::thumbnail`]：缩略图（可重建缓存）的本地文件；
+//! - [`Library::edit_tags`] / [`Library::image_tags`]：人工标签决定与一张图的标签；
+//! - [`Library::vocabulary`]：标签词表快照；[`Library::tag_groups`]：侧栏的标签分组；
+//! - [`Library::replace_source_tags`]：按来源分层写入（打标、Eagle 导入等来源用）。
 //!
 //! 资料库目录：`library.sqlite`（身份与全部整理结果）＋ `originals/<sha 前两位>/<sha>.<ext>`
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
@@ -12,14 +15,17 @@
 mod colour;
 mod error;
 mod events;
+mod fault;
 mod import;
+mod recovery;
 mod store;
+mod tags;
 mod thumbnail;
 mod types;
 
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::sync::mpsc::Receiver;
+use std::sync::{Arc, RwLock};
 
 use rusqlite::{OptionalExtension, params};
 
@@ -29,9 +35,14 @@ pub use crate::fidelity::{
 pub use error::Error;
 pub use events::LibraryEvent;
 pub use import::ImportTask;
+pub use tags::{
+    FactSource, ImageTag, ImageTags, LocalizedName, SourceTag, TagAlias, TagCount, TagEdit,
+    TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef, TagTranslation, TagTranslations,
+    Vocabulary, VocabularyTag,
+};
 pub use types::{
-    BrowsePage, BrowseQuery, BrowseScope, ImageCard, ImportItem, ImportOutcome, ImportProgress,
-    ImportReport, ImportSource, LibraryInfo,
+    BrowsePage, BrowseQuery, BrowseScope, ImageCard, ImageSourceRecord, ImportItem, ImportOutcome,
+    ImportProgress, ImportReport, ImportSource, LibraryInfo, RecoveryReport,
 };
 
 use events::Hub;
@@ -55,6 +66,17 @@ pub(crate) struct Inner {
     writer: Writer,
     readers: Readers,
     hub: Hub,
+    recovery: RecoveryReport,
+    translations: RwLock<Arc<tags::TranslationIndex>>,
+}
+
+impl Inner {
+    fn translations(&self) -> Arc<tags::TranslationIndex> {
+        self.translations
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
 }
 
 impl Library {
@@ -83,7 +105,7 @@ impl Library {
                 now_ms()
             ],
         )?;
-        Self::start(root, conn)
+        Self::start(root, conn, RecoveryReport::default())
     }
 
     /// 打开已有资料库。
@@ -92,13 +114,24 @@ impl Library {
         if !db.is_file() {
             return Err(Error::NotALibrary(root.to_path_buf()));
         }
-        let conn = store::open_db(&db)?;
+        let mut conn = store::open_db(&db)?;
         std::fs::create_dir_all(root.join(ORIGINALS_DIR))?;
         std::fs::create_dir_all(root.join(STAGING_DIR))?;
-        Self::start(root, conn)
+        // 先对账，再启动读写。
+        let recovery = recovery::reconcile(&mut conn, root)?;
+        Self::start(root, conn, recovery)
     }
 
-    fn start(root: &Path, conn: rusqlite::Connection) -> Result<Library, Error> {
+    /// 本次打开时的对账结果：撤回了哪些中断的导入项、有哪些未知的孤立原文件。
+    pub fn recovery(&self) -> &RecoveryReport {
+        &self.inner.recovery
+    }
+
+    fn start(
+        root: &Path,
+        conn: rusqlite::Connection,
+        recovery: RecoveryReport,
+    ) -> Result<Library, Error> {
         let info = conn
             .query_row("SELECT id, name FROM library", [], |row| {
                 Ok(LibraryInfo {
@@ -128,6 +161,8 @@ impl Library {
                 writer: Writer::spawn(conn),
                 readers,
                 hub: Hub::default(),
+                recovery,
+                translations: RwLock::default(),
             }),
         })
     }
@@ -159,6 +194,117 @@ impl Library {
     /// 参考图的色彩描述（导入时记录）。
     pub fn colour(&self, image_id: &str) -> Result<ColourDescription, Error> {
         colour::get(&self.inner, image_id).map(|(d, ..)| d)
+    }
+
+    /// 参考图的全部来源，按记录先后。之后并入查看器详情 `image(id)`。
+    pub fn image_sources(&self, image_id: &str) -> Result<Vec<ImageSourceRecord>, Error> {
+        let conn = self.inner.readers.get();
+        let mut stmt = conn.prepare_cached(
+            "SELECT source, location FROM image_source WHERE image_id = ?1
+             ORDER BY recorded_at, rowid",
+        )?;
+        let sources = stmt
+            .query_map([image_id], |row| {
+                Ok(ImageSourceRecord {
+                    source: row.get(0)?,
+                    location: PathBuf::from(row.get::<_, String>(1)?),
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        if sources.is_empty() {
+            return Err(Error::UnknownImage);
+        }
+        Ok(sources)
+    }
+
+    /// 设置翻译表：之后首次进库的外部名称按它取得各语言的初始名称与别名。
+    /// 已有标签不受影响。
+    pub fn set_translations(&self, table: TagTranslations) {
+        *self
+            .inner
+            .translations
+            .write()
+            .unwrap_or_else(|e| e.into_inner()) = tags::index(table);
+    }
+
+    /// 对若干参考图批量应用标签编辑（添加、否决、清除人工标签决定）。
+    pub fn edit_tags(&self, image_ids: &[String], edits: &[TagEdit]) -> Result<(), Error> {
+        tags::edit_tags(&self.inner, image_ids, edits)
+    }
+
+    /// 一张参考图的有效标签及出处、被否决的标签，名称按界面语言 `lang`。
+    pub fn image_tags(&self, image_id: &str, lang: &str) -> Result<ImageTags, Error> {
+        tags::image_tags(&self.inner, image_id, lang)
+    }
+
+    /// 用 `source` 这一层的标签事实替换参考图在该层的旧事实。
+    /// 不碰其他来源，也不碰人工标签决定（#42“按来源分层”）。
+    pub fn replace_source_tags(
+        &self,
+        source: &FactSource,
+        image_id: &str,
+        tags: &[SourceTag],
+    ) -> Result<(), Error> {
+        tags::replace_source_tags(&self.inner, source, image_id, tags)
+    }
+
+    /// 标签词表快照：标签、各语言名称、别名、命名空间、外部对应与计数。
+    pub fn vocabulary(&self) -> Result<Vocabulary, Error> {
+        tags::vocabulary(&self.inner)
+    }
+
+    /// 给标签设置某种语言的名称（改名）。
+    pub fn rename_tag(&self, tag_id: &str, lang: &str, name: &str) -> Result<(), Error> {
+        tags::rename_tag(&self.inner, tag_id, lang, name)
+    }
+
+    pub fn add_tag_alias(&self, tag_id: &str, alias: &TagAlias) -> Result<(), Error> {
+        tags::add_tag_alias(&self.inner, tag_id, alias)
+    }
+
+    pub fn remove_tag_alias(&self, tag_id: &str, alias: &str) -> Result<(), Error> {
+        tags::remove_tag_alias(&self.inner, tag_id, alias)
+    }
+
+    /// 给标签补上外部对应。一个外部名称只能对应一个标签。
+    pub fn add_tag_external(&self, tag_id: &str, external: &str) -> Result<(), Error> {
+        tags::add_tag_external(&self.inner, tag_id, external)
+    }
+
+    pub fn remove_tag_external(&self, tag_id: &str, external: &str) -> Result<(), Error> {
+        tags::remove_tag_external(&self.inner, tag_id, external)
+    }
+
+    /// 建立标签分组，排在最后。给出 `namespace` 时分组列出该命名空间的全部标签。
+    pub fn create_tag_group(
+        &self,
+        name: &str,
+        namespace: Option<TagNamespace>,
+    ) -> Result<String, Error> {
+        tags::create_tag_group(&self.inner, name, namespace)
+    }
+
+    pub fn rename_tag_group(&self, group_id: &str, name: &str) -> Result<(), Error> {
+        tags::rename_tag_group(&self.inner, group_id, name)
+    }
+
+    /// 设置画师整理的分组的成员及顺序。
+    pub fn set_tag_group_tags(&self, group_id: &str, tag_ids: &[String]) -> Result<(), Error> {
+        tags::set_tag_group_tags(&self.inner, group_id, tag_ids)
+    }
+
+    /// 按给出的顺序排列标签分组。
+    pub fn order_tag_groups(&self, group_ids: &[String]) -> Result<(), Error> {
+        tags::order_tag_groups(&self.inner, group_ids)
+    }
+
+    pub fn delete_tag_group(&self, group_id: &str) -> Result<(), Error> {
+        tags::delete_tag_group(&self.inner, group_id)
+    }
+
+    /// 侧栏的标签分组及计数，名称按界面语言 `lang`。
+    pub fn tag_groups(&self, lang: &str) -> Result<Vec<TagGroupView>, Error> {
+        tags::tag_groups(&self.inner, lang)
     }
 
     /// 参考图原文件的位置。
