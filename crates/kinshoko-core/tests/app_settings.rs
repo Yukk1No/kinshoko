@@ -1,0 +1,60 @@
+//! 应用壳设置：本设备的开机自启与全局快捷键，保存在应用配置目录里的一个文件中。
+
+use kinshoko_core::{AppSettings, ShortcutAction};
+
+#[test]
+fn a_fresh_install_starts_at_login_and_uses_snipaste_style_function_keys() {
+    let dir = tempfile::tempdir().unwrap();
+
+    let settings = AppSettings::open(dir.path()).unwrap();
+
+    assert!(settings.autostart());
+    assert_eq!(settings.shortcut(ShortcutAction::Capture), Some("F1"));
+    assert_eq!(settings.shortcut(ShortcutAction::PinClipboard), Some("F3"));
+    assert_eq!(settings.shortcut(ShortcutAction::HideAllPins), Some("F4"));
+}
+
+#[test]
+fn turning_autostart_off_is_remembered_after_restart() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+
+    settings.set_autostart(false).unwrap();
+    drop(settings);
+
+    assert!(!AppSettings::open(dir.path()).unwrap().autostart());
+}
+
+#[test]
+fn an_unreadable_settings_file_falls_back_to_defaults_and_is_kept_aside() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("settings.json"), "{ 写了一半").unwrap();
+
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    settings.set_autostart(false).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("settings.broken.json")).unwrap(),
+        "{ 写了一半"
+    );
+}
+
+#[test]
+fn settings_written_by_a_newer_version_survive_a_round_trip_through_this_one() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("settings.json"),
+        r#"{ "version": 1, "autostart": true, "pinOpacity": 0.8 }"#,
+    )
+    .unwrap();
+
+    AppSettings::open(dir.path())
+        .unwrap()
+        .set_autostart(false)
+        .unwrap();
+
+    let saved: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(dir.path().join("settings.json")).unwrap()).unwrap();
+    assert_eq!(saved["pinOpacity"], 0.8);
+    assert_eq!(saved["autostart"], false);
+}
