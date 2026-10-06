@@ -5,12 +5,14 @@
 //! - [`Library::import`]：立即返回导入任务，带进度、取消与逐项结果；
 //! - [`Library::events`]：提交后才推送的变更事件；
 //! - [`Library::thumbnail`]：缩略图（可重建缓存）的本地文件；
+//! - [`Library::edit`]：一次批量整理若干张图，返回重新计算后的详情；[`Library::image`]：单张详情；
 //! - [`Library::sidebar`]：文件夹树与按可见图计算的计数；
 //! - 文件夹编辑：[`Library::create_folder`]、[`Library::rename_folder`]、[`Library::move_folder`]。
 //!
 //! 资料库目录：`library.sqlite`（身份与全部整理结果）＋ `originals/<sha 前两位>/<sha>.<ext>`
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
 
+mod edit;
 mod error;
 mod events;
 mod folders;
@@ -26,6 +28,7 @@ use std::sync::mpsc::Receiver;
 
 use rusqlite::{OptionalExtension, params};
 
+pub use edit::{FolderRef, ImageDetail, ImageEdit};
 pub use error::Error;
 pub use events::LibraryEvent;
 pub use folders::FolderNode;
@@ -152,6 +155,17 @@ impl Library {
     /// 参考图在目标像素宽度下的缩略图文件；缓存缺失时现场生成。
     pub fn thumbnail(&self, image_id: &str, target_px: u32) -> Result<PathBuf, Error> {
         thumbnail::get(&self.inner, image_id, target_px)
+    }
+
+    /// 对 `ids` 中的每张图按顺序应用 `edits`，一个事务内全部成功才提交，
+    /// 返回这些图重新计算后的详情（按 `ids` 顺序、去重）。
+    pub fn edit(&self, ids: &[String], edits: &[ImageEdit]) -> Result<Vec<ImageDetail>, Error> {
+        edit::edit(&self.inner, ids, edits)
+    }
+
+    /// 单张参考图的详情。
+    pub fn image(&self, image_id: &str) -> Result<ImageDetail, Error> {
+        edit::detail(&self.inner.readers.get(), image_id)
     }
 
     /// 侧栏：全部、回收站与文件夹树，计数只算可见的图。

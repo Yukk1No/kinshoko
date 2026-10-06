@@ -27,7 +27,7 @@ fn valid_name(name: &str) -> Result<String, Error> {
     Ok(name.to_owned())
 }
 
-fn ensure_folder(conn: &Connection, id: &str) -> Result<(), Error> {
+pub(super) fn ensure_folder(conn: &Connection, id: &str) -> Result<(), Error> {
     conn.query_row("SELECT 1 FROM folder WHERE id = ?1", [id], |_| Ok(()))
         .optional()?
         .ok_or(Error::UnknownFolder)

@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::library::{
-    BrowseQuery, BrowseScope, Error, FolderNode, ImportOutcome, ImportSource,
+    BrowseQuery, BrowseScope, Error, FolderNode, ImageEdit, ImportOutcome, ImportSource,
 };
 
 fn write_png(path: &Path, seed: u8) -> PathBuf {
@@ -130,4 +130,93 @@ fn folder_tree_survives_reopening() {
 
     let reopened = Library::open(&dir.path().join("lib")).unwrap();
     assert_eq!(reopened.sidebar().unwrap(), before);
+}
+
+#[test]
+fn an_image_can_sit_in_several_folders_and_each_folder_lists_it() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = library_with(dir.path(), 3);
+    let hair = library.create_folder("发型", None).unwrap();
+    let pose = library.create_folder("姿势", None).unwrap();
+
+    // 一次批量：前两张放进“发型”，第一张同时放进“姿势”。
+    let details = library
+        .edit(
+            &ids[0..2],
+            &[ImageEdit::AddToFolder {
+                folder_id: hair.clone(),
+            }],
+        )
+        .unwrap();
+    assert_eq!(details.len(), 2);
+    let details = library
+        .edit(
+            &ids[0..1],
+            &[ImageEdit::AddToFolder {
+                folder_id: pose.clone(),
+            }],
+        )
+        .unwrap();
+    let mut folders: Vec<&str> = details[0].folders.iter().map(|f| f.name.as_str()).collect();
+    folders.sort();
+    assert_eq!(folders, ["发型", "姿势"]);
+
+    let mut in_hair = browse(&library, BrowseScope::Folder { id: hair.clone() });
+    in_hair.sort();
+    let mut expected = ids[0..2].to_vec();
+    expected.sort();
+    assert_eq!(in_hair, expected);
+    assert_eq!(
+        browse(&library, BrowseScope::Folder { id: pose.clone() }),
+        ids[0..1]
+    );
+    assert_eq!(browse(&library, BrowseScope::All).len(), 3);
+    assert_eq!(tree(&library.sidebar().unwrap().folders), "发型(2) 姿势(1)");
+
+    // 移出一个文件夹，另一个不受影响。放入两次也只算一次。
+    let details = library
+        .edit(
+            &ids[0..1],
+            &[
+                ImageEdit::RemoveFromFolder {
+                    folder_id: hair.clone(),
+                },
+                ImageEdit::AddToFolder {
+                    folder_id: pose.clone(),
+                },
+            ],
+        )
+        .unwrap();
+    let folders: Vec<&str> = details[0].folders.iter().map(|f| f.name.as_str()).collect();
+    assert_eq!(folders, ["姿势"]);
+    assert_eq!(browse(&library, BrowseScope::Folder { id: hair }), ids[1..2]);
+    assert_eq!(tree(&library.sidebar().unwrap().folders), "发型(1) 姿势(1)");
+    assert_eq!(library.image(&ids[0]).unwrap(), details[0]);
+}
+
+#[test]
+fn a_batch_edit_with_an_unknown_image_or_folder_changes_nothing() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = library_with(dir.path(), 2);
+    let hair = library.create_folder("发型", None).unwrap();
+    let add = [ImageEdit::AddToFolder {
+        folder_id: hair.clone(),
+    }];
+
+    let with_unknown = [ids[0].clone(), "不存在".to_owned()];
+    assert!(matches!(
+        library.edit(&with_unknown, &add),
+        Err(Error::UnknownImage)
+    ));
+    assert!(matches!(
+        library.edit(
+            &ids,
+            &[
+                ImageEdit::AddToFolder { folder_id: hair.clone() },
+                ImageEdit::AddToFolder { folder_id: "不存在".into() },
+            ]
+        ),
+        Err(Error::UnknownFolder)
+    ));
+    assert!(browse(&library, BrowseScope::Folder { id: hair }).is_empty());
 }
