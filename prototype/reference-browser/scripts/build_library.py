@@ -38,18 +38,29 @@ GENERAL = {
     "棕发": ("发色", ["茶髪", "brown_hair", "茶发"]),
     "绿发": ("发色", ["緑髪", "green_hair"]),
     "紫发": ("发色", ["紫髪", "purple_hair"]),
-    # 发型
+    # 瞳色: pixiv wording plus the Danbooru names PixAI / WD output, so tagger results land in the same tags
+    "蓝瞳": ("瞳色", ["碧眼", "青目", "青い目", "青眼", "blue_eyes", "蓝眼"]),
+    "水色瞳": ("瞳色", ["水色目", "aqua_eyes"]),
+    "红瞳": ("瞳色", ["赤目", "赤眼", "紅眼", "赤い目", "red_eyes", "红眼"]),
+    "绿瞳": ("瞳色", ["翠眼", "緑目", "緑眼", "green_eyes", "绿眼"]),
+    "紫瞳": ("瞳色", ["紫目", "紫眼", "purple_eyes"]),
+    "金瞳": ("瞳色", ["金眼", "金目", "黄瞳", "yellow_eyes"]),
+    "粉瞳": ("瞳色", ["ピンク目", "pink_eyes"]),
+    "棕瞳": ("瞳色", ["茶目", "brown_eyes"]),
+    "灰瞳": ("瞳色", ["灰目", "grey_eyes"]),
+    "黑瞳": ("瞳色", ["黒目", "black_eyes"]),
+    "异色瞳": ("瞳色", ["オッドアイ", "heterochromia", "虹膜异色"]),
+    # 发型（含刘海）
     "双马尾": ("发型", ["ツインテール", "ツインテ", "twintails", "双马"]),
     "单马尾": ("发型", ["ポニーテール", "ponytail", "马尾"]),
     "麻花辫": ("发型", ["三つ編み", "braid", "辫子"]),
     "侧马尾": ("发型", ["ルーズサイドテール", "side_ponytail"]),
     "丸子头": ("发型", ["お団子頭", "hair_bun"]),
     "半扎发": ("发型", ["ハーフアップ", "ツーサイドアップ", "half_updo"]),
-    # 刘海
-    "齐刘海": ("刘海", ["ぱっつん", "前髪ぱっつん", "blunt_bangs", "平刘海"]),
-    "姬发式": ("刘海", ["姫カット", "hime_cut", "公主切"]),
-    "中分": ("刘海", ["センター分け", "センターパート", "middle_part", "parted_bangs"]),
-    "遮眼发": ("刘海", ["片目隠れ", "hair_over_one_eye"]),
+    "齐刘海": ("发型", ["ぱっつん", "前髪ぱっつん", "blunt_bangs", "平刘海"]),
+    "姬发式": ("发型", ["姫カット", "hime_cut", "公主切"]),
+    "中分": ("发型", ["センター分け", "センターパート", "middle_part", "parted_bangs"]),
+    "遮眼发": ("发型", ["片目隠れ", "hair_over_one_eye"]),
     # 发长
     "短发": ("发长", ["ショートカット", "ショートヘア", "ショートヘアー", "short_hair"]),
     "长发": ("发长", ["ロングヘア", "ロングヘアー", "long_hair"]),
@@ -72,7 +83,7 @@ GENERAL = {
     "制服": (None, ["セーラー服", "女子高生", "JK"]),
 }
 SPLIT_TAGS = {"黒髪ロング": ["黑发", "长发"], "茶髪ロング": ["棕发", "长发"], "黒髪ツインテール": ["黑发", "双马尾"],
-              "銀髪碧眼": ["银发"], "両手にツインテ": ["双马尾"]}
+              "銀髪碧眼": ["银发", "蓝瞳"], "両手にツインテ": ["双马尾"]}
 WORKS = {
     "原神": ["GenshinImpact", "Genshin", "genshinimpact", "genshinimpactfanart"],
     "绝区零": ["ゼンレスゾーンゼロ", "ZenlessZoneZero", "ゼンゼロ", "zzzero", "zzzreo"],
@@ -201,6 +212,19 @@ def load_predictions(path):
     return out
 
 
+def map_auto_tags(auto, index, defs):
+    """Map tagger names (blue_eyes) to library tags (一般:蓝瞳); keep the best score per tag."""
+    if not auto:
+        return None
+    tags = {}
+    for name, score in auto["tags"].items():
+        hits = index.get(name, [])
+        key = hits[0] if len(hits) == 1 else f"一般:{name}"
+        defs.setdefault(key, {"ns": "一般", "name": name, "group": None, "aliases": []})
+        tags[key] = max(score, tags.get(key, 0))
+    return {**auto, "tags": tags}
+
+
 def write_media(src, stem):
     cached = os.path.join(OUT, "media", "cache.json")
     cache = json.load(open(cached, encoding="utf-8")) if os.path.exists(cached) else {}
@@ -311,7 +335,7 @@ def main():
         r18 = "r18" in s["coverage"]
         rating = {"value": "explicit" if r18 else ("sensitive" if "sensitive" in s["coverage"] else "general"),
                   "from": "pixiv R-18 标记" if r18 else ("pixiv 敏感标记" if "sensitive" in s["coverage"] else "pixiv 全年龄")}
-        auto = predictions.get(s["id"])
+        auto = map_auto_tags(predictions.get(s["id"]), index, defs)
         images.append({
             "id": s["id"], "sha256": s["sha256"], "title": info.get("title") or f"pixiv {art}",
             "date": info.get("createDate"),

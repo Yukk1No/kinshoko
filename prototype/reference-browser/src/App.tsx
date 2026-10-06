@@ -143,6 +143,11 @@ export default function App() {
     }
     return [...list, { id: uid('c'), any: [term], negate }];
   });
+  /** Take one tag out of the conditions; a condition left with no alternatives goes too. */
+  const removeTag = (key: TagKey) => setConditions((list) => list.flatMap((c) => {
+    const any = c.any.filter((t) => !(t.kind === 'tag' && t.key === key));
+    return any.length ? [{ ...c, any }] : [];
+  }));
   const findTag = (key: TagKey) => {
     setViewing(null);
     setScope((s) => ({ ...s, folderId: null, trash: false }));
@@ -506,7 +511,8 @@ export default function App() {
             <input type="range" min={140} max={420} step={10} value={settings.density} onChange={(e) => setSettings({ ...settings, density: Number(e.target.value) })} />
           </label>
         </header>
-        <TagGroupBar groups={groupsForBar} counts={resultCounts} conditions={conditions} onAdd={(t, mode, negate) => { setViewing(null); addTerm(t, mode, negate); }} />
+        <TagGroupBar groups={groupsForBar} counts={resultCounts} conditions={conditions} onAdd={(t, mode, negate) => { setViewing(null); addTerm(t, mode, negate); }}
+          onRemove={(key) => { setViewing(null); removeTag(key); }} />
         <div className="content">
           <Wall ref={wall} images={results} resultKey={resultKey} density={settings.density} capTall={settings.capTall} showTitles={settings.showTitles} square={settings.square}
             isHidden={isHidden} onOpen={openImage} onMenu={cardMenu} empty={empty} onStats={settings.stats ? setStats : undefined} arriving={arriving}
