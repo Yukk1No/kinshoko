@@ -86,7 +86,9 @@ fn deep_dir(base: &Path, min_len: usize) -> PathBuf {
     let mut dir = std::path::absolute(base).unwrap();
     let mut i = 0;
     while dir.as_os_str().len() <= min_len {
-        dir.push(format!("很长的文件夹名称_{i:02}_abcdefghijklmnopqrstuvwxyz"));
+        dir.push(format!(
+            "很长的文件夹名称_{i:02}_abcdefghijklmnopqrstuvwxyz"
+        ));
         i += 1;
     }
     dir
@@ -124,7 +126,10 @@ fn write_png_long(path: &Path, seed: u8) -> PathBuf {
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     let mut bytes = Vec::new();
     RgbaImage::from_fn(12, 8, |x, y| image::Rgba([seed, x as u8, y as u8, 255]))
-        .write_to(&mut std::io::Cursor::new(&mut bytes), image::ImageFormat::Png)
+        .write_to(
+            &mut std::io::Cursor::new(&mut bytes),
+            image::ImageFormat::Png,
+        )
         .unwrap();
     std::fs::write(path, bytes).unwrap();
     path.to_path_buf()

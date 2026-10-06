@@ -135,6 +135,21 @@ impl ImportReport {
     }
 }
 
+/// 打开资料库时的对账结果。
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct RecoveryReport {
+    /// 上次中断、已撤回的导入项（原图所在位置），可以重新导入。
+    #[ts(type = "string[]")]
+    pub interrupted: Vec<PathBuf>,
+    /// 原文件夹里没有参考图引用的文件（相对资料库根目录）。只报告，不删除。
+    #[ts(type = "string[]")]
+    pub orphans: Vec<PathBuf>,
+    /// 清掉的未发布暂存文件个数。
+    pub discarded_staging: u32,
+}
+
 /// 参考图的一条来源：从哪里、以哪种方式进的库。字节相同的图各次导入的来源都保留。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImageSourceRecord {
