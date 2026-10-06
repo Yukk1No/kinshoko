@@ -13,8 +13,9 @@ use kinshoko_core::library::{
     ContentRating, ImageTags, ImportOutcome, ImportSource, TagEdit, TagNamespace, TagOrigin, TagRef,
 };
 use kinshoko_core::tagging::{
-    Device, InMemoryTagger, RawTag, Tagging, TaggingConfig, TaggingStatus,
+    Device, InMemoryTagger, ModelOption, ModelStore, RawTag, Tagging, TaggingConfig, TaggingStatus,
 };
+use std::sync::atomic::AtomicBool;
 use support::ModelServer;
 
 const ZH: &str = "zh-CN";
@@ -289,6 +290,40 @@ fn pausing_ends_the_session_and_resuming_continues() {
 }
 
 #[test]
+fn pausing_ends_the_session_at_once_without_waiting_for_the_current_image() {
+    let f = Fixture::new(1);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    // CPU 档一张约 29 秒：暂停不能等这张打完。
+    f.fake.set_delay(Duration::from_secs(30));
+    f.fake
+        .set_output(&f.original(0), vec![raw("blue_eyes", 0, 0.9)]);
+    let spec = f.server.publish("gpu", Device::DirectMl, b"model");
+    let tagging = f.start(f.config(vec![spec]));
+    tagging.download();
+    wait_for(&tagging, "开始打标", |s| {
+        matches!(s, TaggingStatus::Running { .. })
+    });
+    std::thread::sleep(Duration::from_millis(50));
+
+    let asked = Instant::now();
+    tagging.pause();
+    wait_for(&tagging, "暂停", |s| matches!(s, TaggingStatus::Paused));
+    assert!(asked.elapsed() < Duration::from_secs(2), "立即暂停");
+    assert_eq!(f.fake.live_sessions(), 0, "会话已结束，显存已归还");
+    assert!(f.fake.tagged().is_empty());
+
+    // 被打断的那张不算出错：恢复后照常打完。
+    f.fake.set_delay(Duration::ZERO);
+    tagging.resume();
+    idle(&tagging);
+    let names: Vec<_> = tags_of(&f.library, &f.ids[0])
+        .into_iter()
+        .map(|t| t.1)
+        .collect();
+    assert_eq!(names, vec!["blue eyes"]);
+}
+
+#[test]
 fn a_crashed_session_is_restarted_and_the_image_is_tagged() {
     let f = Fixture::new(2);
     f.fake.set_gpu(Some(GPU_BUDGET));
@@ -379,6 +414,130 @@ fn without_a_discrete_gpu_the_cpu_model_is_used() {
             .iter()
             .any(|(path, _)| *path == support::model_path(&gpu, &gpu.file)),
         "不下载用不上的显卡模型"
+    );
+}
+
+#[test]
+fn the_model_chosen_in_settings_is_used_even_with_a_gpu() {
+    let f = Fixture::new(1);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    let gpu = f.server.publish("gpu", Device::DirectMl, b"gpu model");
+    let cpu = f.server.publish("cpu", Device::Cpu, b"cpu model");
+    let mut config = f.config(vec![gpu, cpu.clone()]);
+    config.preferred = Some(cpu.key.clone());
+    let tagging = f.start(config);
+    let status = wait_for(&tagging, "需要下载模型", |s| {
+        matches!(s, TaggingStatus::NeedsDownload { .. })
+    });
+    assert!(
+        matches!(&status, TaggingStatus::NeedsDownload { model, .. } if *model == cpu.label),
+        "{status:?}"
+    );
+    tagging.download();
+    idle(&tagging);
+    assert_eq!(f.fake.started(), vec![(cpu.key.clone(), Device::Cpu)]);
+}
+
+#[test]
+fn switching_the_model_asks_before_downloading_it_and_then_uses_it() {
+    let f = Fixture::new(1);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    let gpu = f.server.publish("gpu", Device::DirectMl, b"gpu model");
+    let cpu = f.server.publish("cpu", Device::Cpu, b"cpu model");
+    let mut config = f.config(vec![gpu.clone(), cpu.clone()]);
+    config.poll_interval = Duration::from_millis(20);
+    let tagging = f.start(config);
+    tagging.download();
+    idle(&tagging);
+    assert_eq!(f.fake.started(), vec![(gpu.key.clone(), Device::DirectMl)]);
+
+    tagging.set_model(Some(cpu.key.clone()));
+    let status = wait_for(&tagging, "新模型需要下载", |s| {
+        matches!(s, TaggingStatus::NeedsDownload { .. })
+    });
+    assert!(
+        matches!(&status, TaggingStatus::NeedsDownload { model, .. } if *model == cpu.label),
+        "换了模型要重新确认下载：{status:?}"
+    );
+    tagging.download();
+    wait_for(&tagging, "换用 CPU 模型", |s| {
+        matches!(
+            s,
+            TaggingStatus::Idle {
+                device: Device::Cpu,
+                ..
+            }
+        )
+    });
+    let later = f.import(10..11);
+    tagging.wake();
+    wait_for(&tagging, "新图打标", |_| f.fake.tagged().len() == 2);
+    assert_eq!(
+        f.fake.tagged()[1],
+        (f.library.original_path(&later[0]).unwrap(), Device::Cpu)
+    );
+
+    // 换回自动：显卡模型已下载，不再询问。
+    tagging.set_model(None);
+    wait_for(&tagging, "换回显卡模型", |s| {
+        matches!(
+            s,
+            TaggingStatus::Idle {
+                device: Device::DirectMl,
+                ..
+            }
+        )
+    });
+}
+
+#[test]
+fn a_chosen_gpu_model_falls_back_to_the_cpu_model_without_a_gpu() {
+    let f = Fixture::new(1);
+    f.fake.set_gpu(None);
+    let gpu = f.server.publish("gpu", Device::DirectMl, b"gpu model");
+    let cpu = f.server.publish("cpu", Device::Cpu, b"cpu model");
+    let mut config = f.config(vec![cpu.clone(), gpu.clone()]);
+    config.preferred = Some(gpu.key.clone());
+    let tagging = f.start(config);
+    tagging.download();
+    idle(&tagging);
+    assert_eq!(f.fake.started(), vec![(cpu.key.clone(), Device::Cpu)]);
+}
+
+#[test]
+fn the_model_list_shows_each_models_needs_and_whether_it_is_installed() {
+    let f = Fixture::new(0);
+    let gpu = f.server.publish("gpu", Device::DirectMl, b"gpu model");
+    let mut cpu = f.server.publish("cpu", Device::Cpu, b"cpu model");
+    cpu.ram_need = 5_000_000_000;
+    let store = ModelStore::new(f.dir.path().join("models"), f.server.base_url());
+    store
+        .prepare(&gpu, &mut |_| {}, &AtomicBool::new(false))
+        .unwrap();
+
+    let options = store.options(&[gpu.clone(), cpu.clone()]);
+    assert_eq!(
+        options,
+        vec![
+            ModelOption {
+                key: gpu.key.clone(),
+                label: gpu.label.clone(),
+                device: Device::DirectMl,
+                vram_need: 1_800_000_000,
+                ram_need: 0,
+                size: 9,
+                installed: true,
+            },
+            ModelOption {
+                key: cpu.key.clone(),
+                label: cpu.label.clone(),
+                device: Device::Cpu,
+                vram_need: 1_800_000_000,
+                ram_need: 5_000_000_000,
+                size: 9,
+                installed: false,
+            },
+        ]
     );
 }
 

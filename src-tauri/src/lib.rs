@@ -47,6 +47,10 @@ pub fn run() {
             tagging::tagging_download,
             tagging::tagging_pause,
             tagging::tagging_resume,
+            tagging::tagging_models,
+            tagging::tagging_set_model,
+            tagging::tagging_pick_package,
+            tagging::tagging_import_package,
         ])
         .build(tauri::generate_context!())
         .expect("启动 Kinshoko 失败");

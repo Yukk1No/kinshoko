@@ -153,6 +153,25 @@ fn a_crash_or_hang_in_the_subprocess_ends_only_the_session() {
 }
 
 #[test]
+fn stopping_a_session_ends_the_subprocess_in_the_middle_of_an_image() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut tagger = tagger();
+    tagger.image_timeout = Duration::from_secs(60);
+    let mut session = tagger.start(&model(dir.path()), Device::DirectMl).unwrap();
+    let stop = session.stopper();
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(200));
+        stop();
+    });
+    let t = Instant::now();
+    assert!(matches!(
+        session.tag(&dir.path().join("hang.png")),
+        Err(TagFailure::Crashed(_))
+    ));
+    assert!(t.elapsed() < Duration::from_secs(10), "没有等到超时");
+}
+
+#[test]
 fn loading_a_missing_model_fails_without_hanging() {
     let dir = tempfile::tempdir().unwrap();
     let mut model = model(dir.path());

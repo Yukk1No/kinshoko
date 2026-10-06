@@ -24,6 +24,7 @@ import type { SavedPin } from "./bindings/SavedPin";
 import type { Region } from "./bindings/Region";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
+import type { ModelChoice } from "./bindings/ModelChoice";
 import type { RecoveryReport } from "./bindings/RecoveryReport";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { Sidebar } from "./bindings/Sidebar";
@@ -224,6 +225,27 @@ export function taggingPause(): Promise<void> {
 
 export function taggingResume(): Promise<void> {
   return invoke<void>("tagging_resume");
+}
+
+/** 设置中的打标模型列表与画师选的模型。 */
+export function taggingModels(): Promise<ModelChoice> {
+  return invoke<ModelChoice>("tagging_models");
+}
+
+/** 换用打标模型（`null` 为自动），保存在本设备。 */
+export function taggingSetModel(key: string | null): Promise<ModelChoice> {
+  return invoke<ModelChoice>("tagging_set_model", { key });
+}
+
+/** 选择要导入的模型包（zip）；取消时为 null。 */
+export function pickModelPackage(): Promise<string | null> {
+  const t = testPick<string | null>();
+  return t ? Promise.resolve(t.value) : invoke<string | null>("tagging_pick_package");
+}
+
+/** 从文件导入模型包并校验；校验不过时 reject 中文原因。 */
+export function importModelPackage(path: string): Promise<ModelChoice> {
+  return invoke<ModelChoice>("tagging_import_package", { path });
 }
 
 export function onTaggingStatus(handler: (status: TaggingStatus) => void): Promise<UnlistenFn> {
