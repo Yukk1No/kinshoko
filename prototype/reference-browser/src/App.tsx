@@ -459,6 +459,21 @@ export default function App() {
       {conditions.length > 0 && <button className="tool" onClick={() => setConditions((c) => c.slice(0, -1))}>去掉最后一个条件</button>}
     </div>;
 
+  // One library switcher: it heads the folder pane while that is open, otherwise it sits in the top bar.
+  const libInPane = paneOpen && section === 'browse';
+  const libSwitch = (
+    <div className="lib-switch">
+      <button className="lib-btn" onClick={() => setLibMenu((v) => !v)} aria-expanded={libMenu} aria-haspopup="menu" aria-label={`资料库：${library.name}`} title="切换资料库">
+        <strong>{library.name}</strong><ChevronDown size={14} />
+      </button>
+      {libMenu && <Menu x={(document.querySelector('.lib-btn')?.getBoundingClientRect().left ?? 0)} y={(document.querySelector('.lib-btn')?.getBoundingClientRect().bottom ?? 0) + 4}
+        onClose={() => setLibMenu(false)} items={[
+          ...libraries.map((l): MenuItem => ({ label: `${l.name}　${visibleCount(l)} 张`, checked: l.id === library.id, onSelect: () => { setLibraryId(l.id); setScope({ folderId: null, withDescendants: scope.withDescendants, trash: false }); setViewing(null); } })),
+          'sep', { label: '新建、合并、导入 Eagle（不在本样稿范围）', disabled: true },
+        ]} />}
+    </div>
+  );
+
   return <div className={`app${canvasMode ? ' is-canvas' : ''}`}>
     <Rail section={section} paneOpen={paneOpen} safeMode={safeMode} reducedMotion={reduced} slow={slow}
       badges={{ groups: groups.length || undefined, captures: captures.length || undefined }}
@@ -468,7 +483,7 @@ export default function App() {
 
     <div className="workspace">
       {paneOpen && <aside className="pane" inert={!!viewed || blockInput || undefined} aria-label={section === 'browse' ? '文件夹' : section === 'groups' ? '参考组' : '截图历史'}>
-        <header className="pane-head"><h2>{section === 'browse' ? library.name : section === 'groups' ? '参考组' : '截图历史'}</h2>
+        <header className="pane-head">{libInPane ? libSwitch : <h2>{section === 'groups' ? '参考组' : '截图历史'}</h2>}
           <button className="icon-tool" onClick={() => setPaneOpen(false)} aria-label="收起侧栏" title="收起（Ctrl+B）"><PanelLeftClose size={16} /></button></header>
         {section === 'browse' && <FolderPane folders={library.folders} counts={folderCounts} total={liveIndex.length} trashCount={trashCount}
           current={scope.folderId} trash={scope.trash} withDescendants={scope.withDescendants}
@@ -490,16 +505,7 @@ export default function App() {
       <main className="main" inert={!!viewed || blockInput || undefined} onPointerDownCapture={interruptRelease} onWheelCapture={interruptRelease} onKeyDownCapture={interruptRelease}>
         <header className="topbar">
           {!paneOpen && <button className="icon-tool" onClick={() => setPaneOpen(true)} aria-label="展开侧栏" title="展开（Ctrl+B）"><PanelLeft size={16} /></button>}
-          <div className="lib-switch">
-            <button className="lib-btn" onClick={() => setLibMenu((v) => !v)} aria-expanded={libMenu} aria-haspopup="menu">
-              <span className="lib-label"><span className="muted small">资料库</span><strong>{library.name}</strong></span><ChevronDown size={14} />
-            </button>
-            {libMenu && <Menu x={(document.querySelector('.lib-btn')?.getBoundingClientRect().left ?? 0)} y={(document.querySelector('.lib-btn')?.getBoundingClientRect().bottom ?? 0) + 4}
-              onClose={() => setLibMenu(false)} items={[
-                ...libraries.map((l): MenuItem => ({ label: `${l.name}　${visibleCount(l)} 张`, checked: l.id === library.id, onSelect: () => { setLibraryId(l.id); setScope({ folderId: null, withDescendants: scope.withDescendants, trash: false }); setViewing(null); } })),
-                'sep', { label: '新建、合并、导入 Eagle（不在本样稿范围）', disabled: true },
-              ]} />}
-          </div>
+          {!libInPane && libSwitch}
           <SearchBox ref={search} conditions={conditions} dict={dict} counts={counts}
             onAdd={(t, mode) => { setViewing(null); addTerm(t, mode); }}
             onToggleNegate={(id) => setConditions((l) => l.map((c) => (c.id === id ? { ...c, negate: !c.negate } : c)))}
