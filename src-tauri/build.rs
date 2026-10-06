@@ -8,6 +8,7 @@ fn main() {
                     "current_library",
                     "create_library",
                     "browse",
+                    "recovery",
                     "start_import",
                     "cancel_import",
                     "pick_folder",
