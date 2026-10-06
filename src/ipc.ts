@@ -2,9 +2,16 @@
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
+import type { CaptureAction } from "./bindings/CaptureAction";
+import type { CaptureEntry } from "./bindings/CaptureEntry";
+import type { CollectedCapture } from "./bindings/CollectedCapture";
+import type { FrozenScreen } from "./bindings/FrozenScreen";
+import type { PinInfo } from "./bindings/PinInfo";
+import type { Region } from "./bindings/Region";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
@@ -87,4 +94,88 @@ export function rebindShortcut(
   accelerator: string | null,
 ): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("rebind_shortcut", { action, accelerator });
+}
+
+// ---------- 截图与钉图（#62） ----------
+
+const desk = (command: string) => `plugin:desktop|${command}`;
+
+/** 开始框选截图（与全局快捷键相同）。 */
+export function startCapture(): Promise<void> {
+  return invoke<void>(desk("start_capture"));
+}
+
+/** 框选窗口：要显示的冻结屏幕；没有进行中的截图时为 null。 */
+export function frozenScreen(): Promise<FrozenScreen | null> {
+  return invoke<FrozenScreen | null>(desk("frozen_screen"));
+}
+
+/** 框选窗口：冻结屏幕已画好，可以显示窗口了。 */
+export function captureReady(): Promise<void> {
+  return invoke<void>(desk("capture_ready"));
+}
+
+/** 框选完成；region 是相对显示器的物理像素。 */
+export function finishCapture(region: Region, action: CaptureAction): Promise<void> {
+  return invoke<void>(desk("finish_capture"), { region, action });
+}
+
+export function cancelCapture(): Promise<void> {
+  return invoke<void>(desk("cancel_capture"));
+}
+
+/** 把剪贴板里的图片钉住；剪贴板没有图片时 reject 中文原因。 */
+export function pinClipboard(): Promise<void> {
+  return invoke<void>(desk("pin_clipboard"));
+}
+
+/** 从截图历史钉住一张截图。 */
+export function pinCapture(id: string): Promise<void> {
+  return invoke<void>(desk("pin_capture"), { id });
+}
+
+export function pinInfo(pin: string): Promise<PinInfo | null> {
+  return invoke<PinInfo | null>(desk("pin_info"), { pin });
+}
+
+/** 钉图窗口：第一帧已画好，可以显示了。 */
+export function pinReady(pin: string): Promise<void> {
+  return invoke<void>(desk("pin_ready"), { pin });
+}
+
+/** 在钉图上弹出右键菜单。 */
+export function pinMenu(pin: string): Promise<void> {
+  return invoke<void>(desk("pin_menu"), { pin });
+}
+
+/** 数位笔与触摸拖动钉图：移到屏幕物理像素 (x, y)。 */
+export function movePin(pin: string, x: number, y: number): Promise<void> {
+  return invoke<void>(desk("move_pin"), { pin, x, y });
+}
+
+export function captureHistory(): Promise<CaptureEntry[]> {
+  return invoke<CaptureEntry[]>(desk("capture_history"));
+}
+
+/** 收藏：经资料库的普通导入入口存进当前资料库。 */
+export function collectCapture(id: string): Promise<CollectedCapture> {
+  return invoke<CollectedCapture>(desk("collect_capture"), { id });
+}
+
+export function deleteCapture(id: string): Promise<void> {
+  return invoke<void>(desk("delete_capture"), { id });
+}
+
+export function onCaptureHistory(handler: (entries: CaptureEntry[]) => void): Promise<UnlistenFn> {
+  return listen<CaptureEntry[]>("capture-history", (e) => handler(e.payload));
+}
+
+/** 发给本钉图窗口的提示（例如“已收藏到…”）。只收发给这个窗口的，不收别的钉图的。 */
+export function onPinNotice(handler: (text: string) => void): Promise<UnlistenFn> {
+  return getCurrentWebviewWindow().listen<string>("pin-notice", (e) => handler(e.payload));
+}
+
+/** 截图历史中的截图或冻结屏幕（自定义协议 capture）转成 <img> 可用的 URL。 */
+export function captureUrl(address: string): string {
+  return convertFileSrc("", "capture") + address;
 }

@@ -22,6 +22,16 @@ tauri-plugin-dialog = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
+image = { version = "0.25", default-features = false, features = ["png"] }
+uuid = { version = "1", features = ["v4"] }
+# 截图（#62）：抓取光标所在显示器、读写剪贴板图片、读显示器配置文件。
+xcap = "0.9.8"
+arboard = { version = "3.6", default-features = false, features = ["image-data"] }
 
-[lints]
-workspace = true
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Graphics_Gdi", "Win32_UI_ColorSystem"] }
+
+# 与工作区相同，只是把 unsafe 从 forbid 放宽到 deny：读取显示器配置文件没有安全的封装，
+# 只允许 `desktop/win32.rs` 一个模块局部放开（见该文件开头）。
+[lints.rust]
+unsafe_code = "deny"

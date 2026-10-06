@@ -17,6 +17,7 @@ pub fn run() {
             shell::open_main_window(app);
         }))
         .plugin(library::init())
+        .plugin(desktop::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(
             tauri_plugin_autostart::Builder::new()

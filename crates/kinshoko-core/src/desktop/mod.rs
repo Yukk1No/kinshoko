@@ -8,7 +8,9 @@
 mod history;
 mod placement;
 mod screenshot;
+mod types;
 
-pub use history::{CaptureEntry, CaptureHistory, HISTORY_LIMIT, HistoryError};
+pub use history::{CaptureEntry, CaptureHistory, CollectedCapture, HISTORY_LIMIT, HistoryError};
 pub use placement::{ScreenRect, place_new_pin};
 pub use screenshot::{Region, Screenshot};
+pub use types::{CaptureAction, FrozenScreen, PinInfo};
