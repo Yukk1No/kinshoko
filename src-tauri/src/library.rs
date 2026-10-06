@@ -10,7 +10,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use kinshoko_core::library::{
-    BrowsePage, BrowseQuery, ImportSource, ImportTask, LibraryEvent, LibraryInfo,
+    BrowsePage, BrowseQuery, ImageTags, ImportSource, ImportTask, LibraryEvent, LibraryInfo,
+    TagEdit, TagGroupView, Vocabulary,
 };
 use kinshoko_core::{DeviceRegistry, Library};
 use tauri::http::{Response, StatusCode, header};
@@ -49,7 +50,11 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             start_import,
             cancel_import,
             pick_folder,
-            pick_files
+            pick_files,
+            image_tags,
+            edit_tags,
+            vocabulary,
+            tag_groups
         ])
         .setup(|app, _api| {
             app.plugin(tauri_plugin_dialog::init())?;
@@ -236,4 +241,52 @@ async fn pick_files<R: Runtime>(app: AppHandle<R>) -> Result<Vec<PathBuf>, Strin
             .collect())
     })
     .await
+}
+
+/// 一张参考图的标签，名称按界面语言 `lang`。
+#[tauri::command]
+async fn image_tags(
+    state: State<'_, LibraryState>,
+    image_id: String,
+    lang: String,
+) -> Result<ImageTags, String> {
+    let library = state.current()?;
+    blocking(move || {
+        library
+            .image_tags(&image_id, &lang)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+/// 对若干参考图批量添加、否决或清除标签决定。
+#[tauri::command]
+async fn edit_tags(
+    state: State<'_, LibraryState>,
+    image_ids: Vec<String>,
+    edits: Vec<TagEdit>,
+) -> Result<(), String> {
+    let library = state.current()?;
+    blocking(move || {
+        library
+            .edit_tags(&image_ids, &edits)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+#[tauri::command]
+async fn vocabulary(state: State<'_, LibraryState>) -> Result<Vocabulary, String> {
+    let library = state.current()?;
+    blocking(move || library.vocabulary().map_err(|e| e.to_string())).await
+}
+
+/// 侧栏的标签分组及计数，名称按界面语言 `lang`。
+#[tauri::command]
+async fn tag_groups(
+    state: State<'_, LibraryState>,
+    lang: String,
+) -> Result<Vec<TagGroupView>, String> {
+    let library = state.current()?;
+    blocking(move || library.tag_groups(&lang).map_err(|e| e.to_string())).await
 }
