@@ -33,6 +33,20 @@ pub async fn set_autostart(
     Ok(shell.view())
 }
 
+/// 开关查找条件里相近标签的来源标记（内置／个人）。
+#[tauri::command]
+pub async fn set_show_approx_source(
+    state: State<'_, ShellState>,
+    on: bool,
+) -> Result<ShellSettingsView, String> {
+    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+    shell
+        .settings
+        .set_show_approx_source(on)
+        .map_err(|e| e.to_string())?;
+    Ok(shell.view())
+}
+
 /// 更换（`accelerator` 为 `null` 时清除）一个动作的全局快捷键，立即生效。
 #[tauri::command]
 pub async fn rebind_shortcut(
