@@ -17,6 +17,8 @@ use super::Error;
 fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
         M::up(include_str!("migrations/0001_library.sql")),
+        M::up(include_str!("migrations/0051_tags.sql")),
+        // 文件名按工单编号；执行顺序按合入先后（#51 先于 #50 合入），只往后追加。
         M::up(include_str!("migrations/0050_folders_notes_trash.sql")),
     ])
 }

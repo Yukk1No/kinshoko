@@ -310,7 +310,7 @@ fn an_import_reports_progress_and_stops_when_cancelled_keeping_what_came_in() {
                 finished = Some(r);
                 break;
             }
-            kinshoko_core::library::LibraryEvent::ListStale { .. } => {}
+            _ => {}
         }
     }
     assert_eq!(finished, Some(report.clone()));

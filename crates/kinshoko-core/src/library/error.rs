@@ -12,6 +12,17 @@ pub enum Error {
     /// 文件夹不能移进它自己或它的子文件夹。
     FolderCycle,
     InvalidCursor,
+    UnknownTag,
+    UnknownTagGroup,
+    InvalidTagName,
+    /// 同一命名空间里有多个标签叫这个名字（或别名），需要按 id 指定。
+    AmbiguousTag(String),
+    /// 同一命名空间里已有标签在这个语言下叫这个名字。
+    DuplicateTagName(String),
+    /// 这个外部名称已对应到另一个标签。
+    ExternalTaken(String),
+    /// 命名空间分组的成员由命名空间决定，不能手动设置。
+    NamespaceGroup,
     Io(std::io::Error),
     Db(rusqlite::Error),
     Migration(rusqlite_migration::Error),
@@ -28,6 +39,13 @@ impl fmt::Display for Error {
             Error::UnknownFolder => write!(f, "资料库中没有这个文件夹"),
             Error::FolderCycle => write!(f, "文件夹不能移进它自己或它的子文件夹"),
             Error::InvalidCursor => write!(f, "浏览位置无效"),
+            Error::UnknownTag => write!(f, "资料库中没有这个标签"),
+            Error::UnknownTagGroup => write!(f, "资料库中没有这个标签分组"),
+            Error::InvalidTagName => write!(f, "标签名称不能为空"),
+            Error::AmbiguousTag(n) => write!(f, "有多个标签叫“{n}”，请从候选中选择"),
+            Error::DuplicateTagName(n) => write!(f, "同一命名空间里已有标签叫“{n}”"),
+            Error::ExternalTaken(n) => write!(f, "外部名称 {n} 已对应到另一个标签"),
+            Error::NamespaceGroup => write!(f, "这个分组按命名空间列出标签，不能手动调整成员"),
             Error::Io(e) => write!(f, "读写文件失败：{e}"),
             Error::Db(e) => write!(f, "资料库数据库出错：{e}"),
             Error::Migration(e) => write!(f, "资料库格式无法升级：{e}"),
