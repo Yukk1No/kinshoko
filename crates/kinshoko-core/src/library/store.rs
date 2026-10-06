@@ -58,6 +58,14 @@ pub(super) fn open_db(path: &Path) -> Result<Connection, Error> {
     Ok(conn)
 }
 
+/// 只读资料库身份；登记列表的可用性检查不升级数据库，也不启动对账。
+pub(super) fn inspect_db(path: &Path) -> Result<Connection, Error> {
+    Ok(Connection::open_with_flags(
+        sqlite_path(path)?,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )?)
+}
+
 type Job = Box<dyn FnOnce(&mut Connection) + Send>;
 
 /// 独占写连接的线程。任务按提交顺序执行。

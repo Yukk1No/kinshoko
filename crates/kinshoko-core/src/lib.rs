@@ -5,12 +5,14 @@
 
 mod app_shell;
 mod device;
+mod device_libraries;
 pub mod library;
 mod settings;
 mod shortcuts;
 
 pub use app_shell::{AppInfo, app_info};
 pub use device::{DeviceRegistry, RegisteredLibrary};
+pub use device_libraries::{DeviceLibraries, DeviceLibraryError, LibraryRegistration};
 pub use library::Library;
 pub use settings::{AppSettings, SettingsError, ShortcutAction};
 pub use shortcuts::{
