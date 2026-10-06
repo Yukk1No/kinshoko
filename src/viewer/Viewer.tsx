@@ -18,7 +18,7 @@ function savedBackground(): Background {
 export function Viewer({ libraryId, card, onClose }: Props) {
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
-  const [viewport, setViewport] = useState({ width: 0, height: 0, dpr: window.devicePixelRatio || 1 });
+  const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0, dpr: window.devicePixelRatio || 1 });
   const [mode, setMode] = useState<"fit" | "pixels" | "zoom">("fit");
   const [zoomScale, setZoomScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -36,8 +36,9 @@ export function Viewer({ libraryId, card, onClose }: Props) {
   useLayoutEffect(() => {
     const el = stage.current!;
     const sync = () => setViewport((prev) => {
-      const next = { width: el.clientWidth, height: el.clientHeight, dpr: window.devicePixelRatio || 1 };
-      return prev.width === next.width && prev.height === next.height && prev.dpr === next.dpr ? prev : next;
+      const rect = el.getBoundingClientRect();
+      const next = { width: el.clientWidth, height: el.clientHeight, left: rect.left, top: rect.top, dpr: window.devicePixelRatio || 1 };
+      return prev.width === next.width && prev.height === next.height && prev.left === next.left && prev.top === next.top && prev.dpr === next.dpr ? prev : next;
     });
     sync();
     const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(sync);
@@ -52,8 +53,9 @@ export function Viewer({ libraryId, card, onClose }: Props) {
   const physicalHeight = Math.max(1, Math.round(card.height * physicalWidth / card.width));
   const width = physicalWidth / dpr;
   const height = physicalHeight / dpr;
-  const left = Math.round(((viewport.width - width) / 2 + offset.x) * dpr) / dpr;
-  const top = Math.round(((viewport.height - height) / 2 + offset.y) * dpr) / dpr;
+  // 工具栏本身可落在部分设备像素上，起点必须相对整个窗口对齐，再换回观察层坐标。
+  const left = Math.round((viewport.left + (viewport.width - width) / 2 + offset.x) * dpr) / dpr - viewport.left;
+  const top = Math.round((viewport.top + (viewport.height - height) / 2 + offset.y) * dpr) / dpr - viewport.top;
   const scale = physicalWidth / card.width;
   const reset = (next: "fit" | "pixels") => { setMode(next); setOffset({ x: 0, y: 0 }); };
   const zoomAt = (factor: number, x = viewport.width / 2, y = viewport.height / 2) => {
@@ -136,7 +138,7 @@ export function Viewer({ libraryId, card, onClose }: Props) {
         onLostPointerCapture={() => { drag.current = null; }}>
         {viewport.width > 0 && <img key={src} src={src} alt="正在查看的参考图"
           draggable={false} onLoad={() => setLoadedSrc(src)} onError={() => setFailedSrc(src)}
-          style={{ width, height, left, top, imageRendering: scale > 2 ? "pixelated" : "auto", visibility: exactSource && loadedSrc === src ? "visible" : "hidden" }} />}
+          style={{ width, height, left: 0, top: 0, transform: `translate(${left}px, ${top}px)`, imageRendering: scale > 2 ? "pixelated" : "auto", visibility: exactSource && loadedSrc === src ? "visible" : "hidden" }} />}
         {exactSource && failedSrc === src ? <div className="viewer-message" role="alert">
           <p>无法读取这张参考图。请检查资料库文件是否仍可访问。</p>
           <button type="button" onClick={() => setRetry((r) => r + 1)}>重试读取</button>

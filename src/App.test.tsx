@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { AppInfo } from "./bindings/AppInfo";
@@ -449,8 +449,9 @@ describe("查找", () => {
     render(<App />);
     fireEvent.change(await box(), { target: { value: "某某" } });
 
-    await waitFor(() => expect(screen.getAllByRole("option")).toHaveLength(4));
-    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+    const options = () => within(screen.getByRole("listbox", { name: "" })).getAllByRole("option");
+    await waitFor(() => expect(options()).toHaveLength(4));
+    expect(options().map((o) => o.textContent)).toEqual([
       "查找“某某”",
       "角色：某某8",
       "作者：某某3",

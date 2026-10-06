@@ -149,11 +149,20 @@ export function App() {
               aria-hidden={sidebarCollapsed} inert={sidebarCollapsed}
               onTransitionEnd={(e) => { if (e.target === e.currentTarget && e.propertyName === "width") setSidebarMoving(false); }}>
               <SidebarPane
-              scope={scope}
-              onScope={changeScope}
-              reloadKey={reloadKey}
-              onError={onError}
+                scope={scope}
+                onScope={changeScope}
+                reloadKey={reloadKey}
+                onError={onError}
               />
+              {selected.size > 0 && (
+                <SelectionPanel
+                  scope={scope}
+                  selected={selected}
+                  onClear={() => setSelected(new Set())}
+                  reloadKey={reloadKey}
+                  onError={onError}
+                />
+              )}
             </div>
             <main className="app-main">
               <SearchBox
@@ -171,15 +180,6 @@ export function App() {
                     知道了
                   </button>
                 </p>
-              )}
-              {selected.size > 0 && (
-                <SelectionPanel
-                  scope={scope}
-                  selected={selected}
-                  onClear={() => setSelected(new Set())}
-                  reloadKey={reloadKey}
-                  onError={onError}
-                />
               )}
               <Wall
                 key={`${library.id}/${scopeKey(scope)}/${JSON.stringify(tree)}`}

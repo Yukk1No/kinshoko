@@ -371,11 +371,15 @@ button.primary {
   gap: 2px;
 }
 .sidebar-slot {
-  width: 237px; flex-shrink: 0; display: flex; overflow: hidden;
+  width: 237px; flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden;
   transition: width var(--t-slow) var(--ease);
 }
 .sidebar-slot[data-collapsed="true"] { width: 0; }
-.sidebar-slot .sidebar { box-sizing: border-box; width: 237px; }
+.sidebar-slot .sidebar { box-sizing: border-box; width: 237px; flex: 1; min-height: 0; }
+.sidebar-slot .selection {
+  box-sizing: border-box; width: 237px; max-height: 50%; overflow: auto; flex-shrink: 0;
+  border-top: 1px solid var(--line); border-right: 1px solid var(--line);
+}
 @media (prefers-reduced-motion: reduce) { .sidebar-slot { transition: none; } }
 
 .sidebar-item {
