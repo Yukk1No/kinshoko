@@ -5,8 +5,8 @@ mod eagle;
 
 use kinshoko_core::Library;
 use kinshoko_core::library::{
-    BrowseQuery, BrowseScope, EagleDiscoveryMethod, EagleDiscoveryOptions, ImageEdit, TagEdit,
-    TagNamespace, TagRef, discover_eagle_libraries,
+    BrowseQuery, BrowseScope, EagleDiscoveryMethod, EagleDiscoveryOptions, ImageEdit, LibraryEvent,
+    TagEdit, TagNamespace, TagRef, discover_eagle_libraries,
 };
 use kinshoko_core::library::{ImportOutcome, ImportSource};
 use sha2::{Digest, Sha256};
@@ -39,6 +39,80 @@ fn first_import_reads_items_not_thumbnails_or_mtime_and_preserves_original_bytes
             std::fs::read(fixture.item_dir(0).join("metadata.json")).unwrap(),
             metadata
         );
+    }
+}
+
+#[test]
+fn eagle_import_uses_decoded_display_dimensions_and_keeps_metadata_verbatim() {
+    use image::ImageEncoder;
+
+    for version in ["1.8.2", "4.0.0"] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut fixture = eagle::build(&dir.path().join("主库.library"), version, 2);
+        fixture.items[0]["width"] = serde_json::json!(900);
+        fixture.items[0]["height"] = serde_json::json!(300);
+        fixture.save_item(0);
+
+        // 原文件为 48 × 24，EXIF 方向 6 表示顺时针旋转 90°。
+        fixture.items[1]["ext"] = serde_json::json!("jpg");
+        fixture.items[1]["width"] = serde_json::json!(48);
+        fixture.items[1]["height"] = serde_json::json!(24);
+        let pixels = image::RgbImage::new(48, 24);
+        let mut bytes = Vec::new();
+        let mut encoder = image::codecs::jpeg::JpegEncoder::new(&mut bytes);
+        encoder
+            .set_exif_metadata(vec![
+                b'I', b'I', 42, 0, 8, 0, 0, 0, 1, 0, 18, 1, 3, 0, 1, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0,
+                0,
+            ])
+            .unwrap();
+        encoder
+            .write_image(pixels.as_raw(), 48, 24, image::ExtendedColorType::Rgb8)
+            .unwrap();
+        std::fs::write(fixture.original(1), &bytes).unwrap();
+        fixture.items[1]["size"] = serde_json::json!(bytes.len());
+        fixture.save_item(1);
+
+        let library = Library::create(&dir.path().join("kinshoko"), "参考").unwrap();
+        let report = library
+            .import(ImportSource {
+                paths: vec![fixture.root.clone()],
+            })
+            .wait();
+        assert!(
+            report
+                .items
+                .iter()
+                .all(|item| matches!(item.outcome, ImportOutcome::Imported { .. })),
+            "{report:?}"
+        );
+        let sources = library.eagle_sources().unwrap();
+        for (i, expected) in [(20, 20), (24, 48)].into_iter().enumerate() {
+            let binding = &sources[0].bindings[i];
+            let detail = library.image(&binding.image_id).unwrap();
+            assert_eq!((detail.width, detail.height), expected);
+            assert_eq!(
+                binding.raw_item_json,
+                std::fs::read_to_string(fixture.item_dir(i).join("metadata.json")).unwrap()
+            );
+        }
+        let page = library
+            .browse(&BrowseQuery {
+                scope: BrowseScope::All,
+                conditions: Default::default(),
+                cursor: None,
+                limit: 10,
+                thumbnail_px: 256,
+            })
+            .unwrap();
+        for (i, expected) in [(20, 20), (24, 48)].into_iter().enumerate() {
+            let card = page
+                .cards
+                .iter()
+                .find(|card| card.id == sources[0].bindings[i].image_id)
+                .unwrap();
+            assert_eq!((card.width, card.height), expected);
+        }
     }
 }
 
@@ -168,6 +242,209 @@ fn count(library: &Library, scope: BrowseScope) -> u32 {
         })
         .unwrap()
         .total
+}
+
+#[test]
+fn active_eagle_duplicates_stay_visible_regardless_of_order_or_retry() {
+    for version in ["1.8.2", "4.0.0"] {
+        for trash_first in [true, false] {
+            for retry_after_reopen in [false, true] {
+                let dir = tempfile::tempdir().unwrap();
+                let mut fixture = eagle::build(&dir.path().join("主库.library"), version, 2);
+                std::fs::copy(fixture.original(0), fixture.original(1)).unwrap();
+                fixture.items[1]["size"] = fixture.items[0]["size"].clone();
+                for i in 0..2 {
+                    fixture.items[i]["isDeleted"] = serde_json::json!((i == 0) == trash_first);
+                    fixture.save_item(i);
+                }
+                let root = dir.path().join("kinshoko");
+                let mut library = Library::create(&root, "参考").unwrap();
+                if retry_after_reopen {
+                    let report = library
+                        .import(ImportSource {
+                            paths: vec![fixture.item_dir(0)],
+                        })
+                        .wait();
+                    assert!(matches!(
+                        report.items[0].outcome,
+                        ImportOutcome::Imported { .. }
+                    ));
+                    drop(library);
+                    library = Library::open(&root).unwrap();
+                }
+                let report = library
+                    .import(ImportSource {
+                        paths: vec![fixture.root.clone()],
+                    })
+                    .wait();
+                assert!(
+                    report.items.iter().all(|item| matches!(
+                        item.outcome,
+                        ImportOutcome::Imported { .. } | ImportOutcome::Merged { .. }
+                    )),
+                    "{report:?}"
+                );
+                assert_eq!(count(&library, BrowseScope::All), 1);
+                assert_eq!(count(&library, BrowseScope::Trash), 0);
+                let sources = library.eagle_sources().unwrap();
+                let bindings = &sources[0].bindings;
+                assert_eq!(bindings.len(), 2);
+                assert_eq!(bindings[0].image_id, bindings[1].image_id);
+                assert_eq!(
+                    bindings
+                        .iter()
+                        .map(|binding| binding.state.as_str())
+                        .collect::<Vec<_>>(),
+                    if trash_first {
+                        vec!["trashed", "present"]
+                    } else {
+                        vec!["present", "trashed"]
+                    }
+                );
+                assert_eq!(
+                    library.image(&bindings[0].image_id).unwrap().deleted_at,
+                    None
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn new_eagle_duplicates_preserve_manual_deletion_and_restore() {
+    for trash_first in [true, false] {
+        for edit in [ImageEdit::Delete, ImageEdit::Restore] {
+            let dir = tempfile::tempdir().unwrap();
+            let mut fixture = eagle::build(&dir.path().join("主库.library"), "4.0.0", 2);
+            std::fs::copy(fixture.original(0), fixture.original(1)).unwrap();
+            fixture.items[1]["size"] = fixture.items[0]["size"].clone();
+            for i in 0..2 {
+                fixture.items[i]["isDeleted"] = serde_json::json!((i == 0) == trash_first);
+                fixture.save_item(i);
+            }
+            let root = dir.path().join("kinshoko");
+            let library = Library::create(&root, "参考").unwrap();
+            let first = library
+                .import(ImportSource {
+                    paths: vec![fixture.item_dir(0)],
+                })
+                .wait();
+            let ImportOutcome::Imported { image_id } = &first.items[0].outcome else {
+                panic!("{first:?}");
+            };
+            let deleted_at = library
+                .edit(std::slice::from_ref(image_id), &[edit])
+                .unwrap()[0]
+                .deleted_at;
+            drop(library);
+            let library = Library::open(&root).unwrap();
+            let second = library
+                .import(ImportSource {
+                    paths: vec![fixture.item_dir(1)],
+                })
+                .wait();
+            assert_eq!(
+                second.items[0].outcome,
+                ImportOutcome::Merged {
+                    image_id: image_id.clone()
+                }
+            );
+            assert_eq!(library.image(image_id).unwrap().deleted_at, deleted_at);
+        }
+    }
+}
+
+#[test]
+fn eagle_import_batches_list_refreshes_including_metadata_only_merges() {
+    use std::time::Instant;
+
+    for metadata_only in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut fixture = eagle::build(&dir.path().join("主库.library"), "4.0.0", 30);
+        let library = Library::create(&dir.path().join("kinshoko"), "参考").unwrap();
+        if metadata_only {
+            for i in 1..fixture.items.len() {
+                std::fs::copy(fixture.original(0), fixture.original(i)).unwrap();
+                fixture.items[i]["size"] = fixture.items[0]["size"].clone();
+                fixture.save_item(i);
+            }
+            let report = library
+                .import(ImportSource {
+                    paths: vec![fixture.original(0)],
+                })
+                .wait();
+            assert!(matches!(
+                report.items[0].outcome,
+                ImportOutcome::Imported { .. }
+            ));
+        }
+        // 来源文件夹登记会单独刷新一次；此处只观察后续条目的批量通知。
+        library
+            .import(ImportSource {
+                paths: vec![fixture.item_dir(0)],
+            })
+            .wait();
+        let events = library.events();
+        let start = Instant::now();
+        let report = library
+            .import(ImportSource {
+                paths: vec![fixture.root.clone()],
+            })
+            .wait();
+        let elapsed = start.elapsed();
+        assert!(
+            report.items.iter().all(|item| matches!(
+                item.outcome,
+                ImportOutcome::Imported { .. } | ImportOutcome::Merged { .. }
+            )),
+            "{report:?}"
+        );
+        if metadata_only {
+            assert!(
+                report
+                    .items
+                    .iter()
+                    .all(|item| matches!(item.outcome, ImportOutcome::Merged { .. }))
+            );
+        }
+        let delivered: Vec<_> = events.try_iter().collect();
+        let refreshes = delivered
+            .iter()
+            .filter(|event| matches!(event, LibraryEvent::ListStale { .. }))
+            .count();
+        assert!(refreshes > 0, "新增来源事实也应使浏览结果过期");
+        // 每 500 ms 最多一次，另允许任务结束时发出最后一批；不要求机器在固定时限内完成。
+        assert!(
+            refreshes as u128 <= elapsed.as_millis() / 500 + 1,
+            "{refreshes} 次刷新超过批量通知上限，耗时 {elapsed:?}"
+        );
+        assert!(matches!(
+            delivered.last(),
+            Some(LibraryEvent::TaskFinished { .. })
+        ));
+        let last_change = delivered
+            .iter()
+            .rposition(|event| matches!(event, LibraryEvent::ImagesChanged { .. }))
+            .unwrap();
+        assert!(
+            delivered[last_change..]
+                .iter()
+                .any(|event| matches!(event, LibraryEvent::ListStale { .. })),
+            "最后一批来源事实提交后也应通知重新浏览"
+        );
+
+        library
+            .import(ImportSource {
+                paths: vec![fixture.root],
+            })
+            .wait();
+        assert!(
+            events
+                .try_iter()
+                .all(|event| !matches!(event, LibraryEvent::ListStale { .. })),
+            "重复提交已登记条目没有变更，不需要重新浏览"
+        );
+    }
 }
 
 #[test]

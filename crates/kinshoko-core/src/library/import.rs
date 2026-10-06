@@ -115,8 +115,8 @@ fn run(
             report.cancelled = true;
             break;
         }
-        let outcome = import_one(inner, &path);
-        stale |= matches!(outcome, ImportOutcome::Imported { .. });
+        let (outcome, list_changed) = import_one(inner, &path);
+        stale |= list_changed;
         report.items.push(ImportItem { path, outcome });
         progress.done += 1;
 
@@ -234,8 +234,8 @@ pub(super) fn sha256_hex(bytes: &[u8]) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-fn import_one(inner: &Inner, path: &Path) -> ImportOutcome {
-    let failed = |reason: String| ImportOutcome::ReadFailed { reason };
+fn import_one(inner: &Inner, path: &Path) -> (ImportOutcome, bool) {
+    let failed = |reason: String| (ImportOutcome::ReadFailed { reason }, false);
     let eagle = if eagle::is_item(path) {
         match eagle::load(inner, path) {
             Ok(item) => Some(item),
@@ -256,7 +256,7 @@ fn import_one(inner: &Inner, path: &Path) -> ImportOutcome {
     }
     let probed = match probe(&bytes) {
         Ok(Some(p)) => p,
-        Ok(None) => return ImportOutcome::Unsupported,
+        Ok(None) => return (ImportOutcome::Unsupported, false),
         Err(reason) => return failed(format!("无法解码：{reason}")),
     };
     let sha = sha256_hex(&bytes);
@@ -267,12 +267,8 @@ fn import_one(inner: &Inner, path: &Path) -> ImportOutcome {
         size: bytes.len() as i64,
         format: ext(probed.format),
         rel_path,
-        width: eagle
-            .as_ref()
-            .map_or(probed.width, |item| item.metadata.width),
-        height: eagle
-            .as_ref()
-            .map_or(probed.height, |item| item.metadata.height),
+        width: probed.width,
+        height: probed.height,
         orientation: probed.orientation.to_exif(),
         original_name: eagle
             .as_ref()
@@ -458,11 +454,12 @@ fn commit_record(
     inner: &Inner,
     record: Record,
     pending: Option<String>,
-) -> Result<ImportOutcome, Error> {
+) -> Result<(ImportOutcome, bool), Error> {
     let translations = inner.translations();
     let (outcome, revision) = inner
         .writer
         .run(move |conn| commit(conn, record, pending.as_deref(), &translations))?;
+    let list_changed = revision.is_some() || matches!(outcome, ImportOutcome::Imported { .. });
     if let Some(revision) = revision {
         let image_id = match &outcome {
             ImportOutcome::Imported { image_id } | ImportOutcome::Merged { image_id } => {
@@ -478,11 +475,8 @@ fn commit_record(
             library_id: inner.info.id.clone(),
             revision,
         });
-        inner.hub.publish(LibraryEvent::ListStale {
-            library_id: inner.info.id.clone(),
-        });
     }
-    Ok(outcome)
+    Ok((outcome, list_changed))
 }
 
 /// 一个短事务：同库字节相同的原图合并为一条记录，来源各自保留；同时结束 pending。
@@ -520,8 +514,9 @@ fn commit(
         None => {
             tx.execute(
                 "INSERT INTO image (id, sha256, size, format, rel_path, width, height,
-                                    orientation, original_name, imported_at, collected_at, deleted_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+                                    orientation, original_name, imported_at, collected_at, deleted_at,
+                                    eagle_initial_trash)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
                 params![
                     r.id,
                     r.sha,
@@ -534,7 +529,8 @@ fn commit(
                     r.original_name,
                     now,
                     r.eagle.as_ref().map_or(now, |item| item.collected_at(now)),
-                    r.eagle.as_ref().and_then(|item| item.deleted_at(now))
+                    r.eagle.as_ref().and_then(|item| item.deleted_at(now)),
+                    r.eagle.as_ref().is_some_and(|item| item.deleted_at(now).is_some())
                 ],
             )?;
             ImportOutcome::Imported { image_id: r.id }

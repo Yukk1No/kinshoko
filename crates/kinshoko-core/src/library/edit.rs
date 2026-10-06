@@ -172,7 +172,8 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<(), Erro
         }
         ImageEdit::Delete => {
             let mut stmt = conn.prepare_cached(
-                "UPDATE image SET deleted_at = ?1 WHERE id = ?2 AND deleted_at IS NULL",
+                "UPDATE image SET deleted_at = coalesce(deleted_at, ?1), eagle_initial_trash = 0
+                 WHERE id = ?2",
             )?;
             let now = now_ms();
             for id in ids {
@@ -180,8 +181,9 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<(), Erro
             }
         }
         ImageEdit::Restore => {
-            let mut stmt =
-                conn.prepare_cached("UPDATE image SET deleted_at = NULL WHERE id = ?1")?;
+            let mut stmt = conn.prepare_cached(
+                "UPDATE image SET deleted_at = NULL, eagle_initial_trash = 0 WHERE id = ?1",
+            )?;
             for id in ids {
                 stmt.execute([id])?;
             }

@@ -23,6 +23,7 @@ fn migrations() -> Migrations<'static> {
         M::up(include_str!("migrations/0050_folders_notes_trash.sql")),
         M::up(include_str!("migrations/0052_tagging.sql")),
         M::up(include_str!("migrations/0057_eagle_import.sql")),
+        M::up(include_str!("migrations/0057_eagle_initial_trash.sql")),
     ])
 }
 

@@ -282,6 +282,14 @@ pub(super) fn commit(
     }
     tx.execute("INSERT OR IGNORE INTO image_source (image_id, source, location, recorded_at, note, url) VALUES (?1, 'eagle', ?2, ?3, ?4, ?5)", params![image_id, location, now, item.metadata.annotation, item.metadata.url])?;
     tx.execute("INSERT INTO source_binding (source_id, external_id, sha256, image_id, raw_item_json, state, collected_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)", params![item.source_id, item.metadata.id, sha, image_id, item.raw, if item.metadata.is_deleted { "trashed" } else { "present" }, item.collected_at(now)])?;
+    // 新的正常条目使重复原图可见；已有人工作出的删除决定不受来源影响。
+    if !item.metadata.is_deleted {
+        tx.execute(
+            "UPDATE image SET deleted_at = NULL, eagle_initial_trash = 0
+             WHERE id = ?1 AND eagle_initial_trash = 1",
+            [image_id],
+        )?;
+    }
     for (ord, note) in item.metadata.comments.iter().enumerate() {
         tx.execute("INSERT INTO region_note (source_id, external_id, sha256, ord, basis, raw_json) VALUES (?1, ?2, ?3, ?4, 'eagle-raw-unverified', ?5)", params![item.source_id, item.metadata.id, sha, ord as i64, note.to_string()])?;
     }
