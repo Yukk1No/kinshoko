@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import type { CaptureAction } from "../bindings/CaptureAction";
 import type { FrozenScreen } from "../bindings/FrozenScreen";
 import { cancelCapture, captureReady, captureUrl, finishCapture, frozenScreen } from "../ipc";
-import { selectionRect, toDevicePx, type Point, type Rect } from "./pixels";
+import { dragSelection, toDevicePx, type Point, type Rect } from "./pixels";
 
 /** 太小的选区多半是误点，不截。 */
 const MIN_SIZE = 4;
@@ -57,14 +57,15 @@ export function CaptureOverlay() {
     e.currentTarget.setPointerCapture(e.pointerId);
     start.current = at(e);
     setDragging(true);
-    setRect(null);
   };
   const onPointerMove = (e: PointerEvent) => {
-    if (start.current) setRect(selectionRect(start.current, at(e)));
+    const from = start.current;
+    if (from) setRect((previous) => dragSelection(previous, from, at(e)));
   };
   const onPointerUp = (e: PointerEvent) => {
-    if (!start.current) return;
-    setRect(selectionRect(start.current, at(e)));
+    const from = start.current;
+    if (!from) return;
+    setRect((previous) => dragSelection(previous, from, at(e)));
     start.current = null;
     setDragging(false);
   };

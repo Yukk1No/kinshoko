@@ -58,3 +58,11 @@ export function selectionRect(a: Point, b: Point): Rect {
     height: Math.abs(a.y - b.y),
   };
 }
+
+/**
+ * 拖动中的选区。按下后没有移动（例如双击钉住）时保留原来的选区，免得第二次按下把它清掉。
+ */
+export function dragSelection(previous: Rect | null, start: Point, current: Point): Rect | null {
+  if (start.x === current.x && start.y === current.y) return previous;
+  return selectionRect(start, current);
+}

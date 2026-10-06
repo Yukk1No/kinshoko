@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pinCanvasSize, selectionRect, toDevicePx } from "./pixels";
+import { dragSelection, pinCanvasSize, selectionRect, toDevicePx } from "./pixels";
 
 // DPI 像素规则（#7 两轮回归）：canvas 后备尺寸等于钉图的物理像素，CSS 尺寸 = 物理像素 / dpr，
 // 绝不用 100vw 或 innerWidth；否则 110% 下细线变糊、1 px 网格出摩尔纹。
@@ -55,5 +55,23 @@ describe("selectionRect", () => {
       width: 40,
       height: 20,
     });
+  });
+});
+
+describe("dragSelection", () => {
+  const previous = { x: 10, y: 10, width: 50, height: 30 };
+
+  it("拖动时以起点和当前点重新框选", () => {
+    expect(dragSelection(previous, { x: 100, y: 100 }, { x: 90, y: 120 })).toEqual({
+      x: 90,
+      y: 100,
+      width: 10,
+      height: 20,
+    });
+  });
+
+  it("按下没有移动（例如双击钉住）时保留原来的选区", () => {
+    expect(dragSelection(previous, { x: 30, y: 20 }, { x: 30, y: 20 })).toBe(previous);
+    expect(dragSelection(null, { x: 30, y: 20 }, { x: 30, y: 20 })).toBeNull();
   });
 });
