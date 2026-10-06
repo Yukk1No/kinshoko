@@ -15,6 +15,7 @@
 //! 资料库目录：`library.sqlite`（身份与全部整理结果）＋ `originals/<sha 前两位>/<sha>.<ext>`
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
 
+mod eagle;
 mod edit;
 mod error;
 mod events;

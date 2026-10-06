@@ -19,7 +19,7 @@ use sha2::{Digest, Sha256};
 
 use super::events::LibraryEvent;
 use super::types::{ImportItem, ImportOutcome, ImportProgress, ImportReport, ImportSource};
-use super::{Inner, ORIGINALS_DIR, STAGING_DIR, fault, now_ms};
+use super::{Inner, ORIGINALS_DIR, STAGING_DIR, eagle, fault, now_ms};
 
 /// 来源标记：普通文件导入。
 const SOURCE_FILE: &str = "file";
@@ -157,6 +157,20 @@ fn collect(path: &Path, files: &mut Vec<PathBuf>, failed: &mut Vec<ImportItem>) 
             },
         })
     };
+    if eagle::is_library(path) {
+        match eagle::collect(path) {
+            Ok(items) => files.extend(items),
+            Err(reason) => failed.push(ImportItem {
+                path: path.to_path_buf(),
+                outcome: ImportOutcome::ReadFailed { reason },
+            }),
+        }
+        return;
+    }
+    if eagle::is_item(path) {
+        files.push(path.to_path_buf());
+        return;
+    }
     match std::fs::metadata(path) {
         Err(e) => fail(failed, e),
         Ok(meta) if meta.is_dir() => match std::fs::read_dir(path) {
@@ -222,6 +236,16 @@ pub(super) fn sha256_hex(bytes: &[u8]) -> String {
 
 fn import_one(inner: &Inner, path: &Path) -> ImportOutcome {
     let failed = |reason: String| ImportOutcome::ReadFailed { reason };
+    let original;
+    let path = if eagle::is_item(path) {
+        original = match eagle::original(path) {
+            Ok(path) => path,
+            Err(reason) => return failed(reason),
+        };
+        &original
+    } else {
+        path
+    };
     let bytes = match std::fs::read(path) {
         Ok(b) => b,
         Err(e) => return failed(e.to_string()),
