@@ -16,6 +16,7 @@ import {
 } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { ImportBar, type RunningImport } from "./library/ImportBar";
+import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
 import { SelectionPanel } from "./library/SelectionPanel";
 import { SidebarPane } from "./library/SidebarPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
@@ -33,6 +34,7 @@ import { scopeKey, Wall } from "./wall/Wall";
 export function App() {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCaptures, setShowCaptures] = useState(false);
   // undefined：还在打开；null：本设备还没有资料库。
   const [library, setLibrary] = useState<LibraryInfo | null | undefined>(undefined);
   const [openError, setOpenError] = useState<string | null>(null);
@@ -237,6 +239,7 @@ export function App() {
           {library === null && <CreateLibrary onCreated={setLibrary} />}
         </main>
       )}
+      {showCaptures && <CaptureHistoryPanel libraryId={library?.id} />}
       {showSettings && (
         <SettingsPanel
           library={library ?? null}
@@ -245,15 +248,24 @@ export function App() {
       )}
       <footer className="app-status">
         <span>{info && `${info.productName} ${info.version}`}</span>
-        {library && <TaggingIndicator key={library.id} />}
-        <SealBook on={safe} onToggle={toggleSafe} />
-        <button
-          type="button"
-          aria-pressed={showSettings}
-          onClick={() => setShowSettings((shown) => !shown)}
-        >
-          设置
-        </button>
+        <span className="app-status-actions">
+          {library && <TaggingIndicator key={library.id} />}
+          <SealBook on={safe} onToggle={toggleSafe} />
+          <button
+            type="button"
+            aria-pressed={showCaptures}
+            onClick={() => setShowCaptures((shown) => !shown)}
+          >
+            截图历史
+          </button>
+          <button
+            type="button"
+            aria-pressed={showSettings}
+            onClick={() => setShowSettings((shown) => !shown)}
+          >
+            设置
+          </button>
+        </span>
       </footer>
     </div>
   );

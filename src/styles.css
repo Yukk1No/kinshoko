@@ -719,3 +719,188 @@ button.primary {
 .settings-approx td {
   padding: 2px 8px 2px 0;
 }
+
+.app-status-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* 截图历史（#62） */
+.capture-history {
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.capture-history-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.capture-history-bar h2 {
+  margin: 0 auto 0 0;
+  font-size: 15px;
+}
+
+.capture-history-empty {
+  opacity: 0.7;
+}
+
+.capture-history-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.capture-history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.capture-history-item img {
+  width: 100%;
+  height: 110px;
+  object-fit: contain;
+  background: var(--card);
+}
+
+.capture-history-meta {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.capture-history-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.capture-history-actions button {
+  padding: 2px 8px;
+}
+
+/* 截图框选窗口与钉图窗口：没有页面底色和边距，禁止系统手势（笔与触摸走 pointer 事件，#7）。 */
+:root[data-view="capture"],
+:root[data-view="capture"] body,
+:root[data-view="pin"],
+:root[data-view="pin"] body {
+  background: transparent;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.capture {
+  position: fixed;
+  inset: 0;
+  cursor: crosshair;
+}
+
+.capture-screen {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /* 冻结屏幕按物理像素原位显示，不做平滑。 */
+  image-rendering: pixelated;
+}
+
+.capture-shade {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.25);
+}
+
+.capture-selection {
+  position: absolute;
+  box-sizing: border-box;
+  outline: 1px solid #e0768f;
+  box-shadow: 0 0 0 100000px rgb(0 0 0 / 0.35);
+}
+
+.capture-size {
+  position: absolute;
+  left: 0;
+  top: -22px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 0.7);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.capture-tools {
+  position: absolute;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: default;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.3);
+}
+
+.capture-tip {
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.7);
+  color: #fff;
+}
+
+.pin {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.pin-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* 新钉图出现时描一圈渐隐的边，让画师一眼看出钉上了（#7 反馈）。 */
+.pin-appear {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px #e0768f;
+  animation: pin-appear 900ms ease-out forwards;
+}
+
+@keyframes pin-appear {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.pin-notice {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 12px);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 0.75);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}

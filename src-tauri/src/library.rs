@@ -86,7 +86,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             set_safe_mode
         ])
         .setup(|app, _api| {
-            app.plugin(tauri_plugin_dialog::init())?;
             let device_dir = match std::env::var_os(DATA_DIR_ENV) {
                 Some(dir) => PathBuf::from(dir),
                 None => app.path().app_data_dir()?,
@@ -208,6 +207,42 @@ async fn blocking<T: Send + 'static>(
         .map_err(|e| e.to_string())?
 }
 
+/// 本设备上次打开的资料库；没有时为 `None`。会读文件，不要在主线程上调用。
+fn open_last(device_dir: &std::path::Path) -> Result<Option<Library>, String> {
+    let device = DeviceRegistry::open(device_dir).map_err(|e| e.to_string())?;
+    match device.last_opened() {
+        None => Ok(None),
+        Some(entry) => Library::open(&entry.root)
+            .map(Some)
+            .map_err(|e| e.to_string()),
+    }
+}
+
+/// 当前资料库，还没打开时打开本设备上次打开的资料库。供其他模块（例如收藏截图）使用；
+/// 会读文件，不要在主线程上调用。
+pub fn current_or_last<R: Runtime>(app: &AppHandle<R>) -> Result<Arc<Library>, String> {
+    let state = app.state::<LibraryState>();
+    if let Ok(library) = state.current() {
+        return Ok(library);
+    }
+    let library = open_last(&state.device_dir)?.ok_or_else(|| "还没有资料库".to_owned())?;
+    activate(app, &state, library);
+    state.current()
+}
+
+/// [`current_or_last`] 会用到的资料库的 id 与名称，只读登记表、不打开资料库。
+pub fn current_name<R: Runtime>(app: &AppHandle<R>) -> Option<(String, String)> {
+    let state = app.state::<LibraryState>();
+    if let Ok(library) = state.current() {
+        let info = library.info();
+        return Some((info.id.clone(), info.name.clone()));
+    }
+    let device = DeviceRegistry::open(&state.device_dir).ok()?;
+    device
+        .last_opened()
+        .map(|entry| (entry.id.clone(), entry.name.clone()))
+}
+
 /// 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。
 #[tauri::command]
 async fn current_library<R: Runtime>(
@@ -218,16 +253,7 @@ async fn current_library<R: Runtime>(
         return Ok(Some(library.info().clone()));
     }
     let device_dir = state.device_dir.clone();
-    let opened = blocking(move || {
-        let device = DeviceRegistry::open(&device_dir).map_err(|e| e.to_string())?;
-        match device.last_opened() {
-            None => Ok(None),
-            Some(entry) => Library::open(&entry.root)
-                .map(Some)
-                .map_err(|e| e.to_string()),
-        }
-    })
-    .await?;
+    let opened = blocking(move || open_last(&device_dir)).await?;
     Ok(opened.map(|library| activate(&app, &state, library)))
 }
 
