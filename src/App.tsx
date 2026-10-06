@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowseScope } from "./bindings/BrowseScope";
+import type { ConditionTree } from "./bindings/ConditionTree";
+import type { SearchInput } from "./bindings/SearchInput";
 import type { ImportReport } from "./bindings/ImportReport";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
-import { appInfo, currentLibrary, onLibraryEvent } from "./ipc";
+import { appInfo, currentLibrary, onLibraryEvent, resolveSearch } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { ImportBar, type RunningImport } from "./library/ImportBar";
 import { LibraryPicker } from "./library/LibraryPicker";
 import { SelectionPanel } from "./library/SelectionPanel";
 import { SidebarPane } from "./library/SidebarPane";
+import { SearchBox, UI_LANG } from "./search/SearchBox";
 import { SettingsPanel } from "./SettingsPanel";
+import { TaggingIndicator } from "./TaggingIndicator";
 import { scopeKey, Wall } from "./wall/Wall";
 
 /** 每次打开另一资料库时重建整个工作区，选择、进度和迟到回调都留在旧工作区。 */
@@ -20,6 +24,10 @@ function LibraryWorkspace({ library }: { library: LibraryInfo }) {
   const [scope, setScope] = useState<BrowseScope>({ kind: "all" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [problem, setProblem] = useState<string | null>(null);
+  const [search, setSearch] = useState<SearchInput>({ conditions: [] });
+  const [tree, setTree] = useState<ConditionTree>({ conditions: [] });
+  /** 词表或图片变化时递增：重新解析条件（标签可能改名、删除或新增了叫法）。 */
+  const [vocabularyKey, setVocabularyKey] = useState(0);
   const onError = useCallback((message: string) => setProblem(message), []);
   const changeScope = (next: BrowseScope) => {
     setScope(next);
@@ -31,9 +39,20 @@ function LibraryWorkspace({ library }: { library: LibraryInfo }) {
     const unlisten = onLibraryEvent((event) => {
       if (!alive || event.libraryId !== library.id) return;
       switch (event.kind) {
-        case "listStale": setReloadKey((k) => k + 1); break;
-        case "taskProgress": setRunning({ taskId: event.taskId, progress: event.progress }); break;
-        case "taskFinished": setRunning(null); setReport(event.report); break;
+        case "listStale":
+          setReloadKey((k) => k + 1);
+          break;
+        case "vocabularyChanged":
+        case "imagesChanged":
+          setVocabularyKey((k) => k + 1);
+          break;
+        case "taskProgress":
+          setRunning({ taskId: event.taskId, progress: event.progress });
+          break;
+        case "taskFinished":
+          setRunning(null);
+          setReport(event.report);
+          break;
       }
     });
     return () => {
@@ -41,6 +60,28 @@ function LibraryWorkspace({ library }: { library: LibraryInfo }) {
       void unlisten.then((stop) => stop());
     };
   }, [library.id]);
+
+  // 条件变化时由 Search 解析成条件树，图片墙按它浏览。
+  const searching = search.conditions.length > 0;
+  useEffect(() => {
+    if (!searching) {
+      setTree((prev) => (prev.conditions.length ? { conditions: [] } : prev));
+      return;
+    }
+    let alive = true;
+    resolveSearch(library.id, search, UI_LANG).then(
+      (next) => {
+        if (!alive) return;
+        setTree(next);
+        // 同一棵条件树的结果也可能变了（图片的标签变了），保持位置重新浏览。
+        if (vocabularyKey) setReloadKey((k) => k + 1);
+      },
+      (e) => alive && setProblem(String(e)),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [library.id, search, searching, vocabularyKey]);
 
   const started = (taskId: string) => {
     setReport(null);
@@ -57,12 +98,13 @@ function LibraryWorkspace({ library }: { library: LibraryInfo }) {
       <div className="app-body">
         <SidebarPane libraryId={library.id} scope={scope} onScope={changeScope} reloadKey={reloadKey} onError={onError} />
         <main className="app-main">
+          <SearchBox libraryId={library.id} input={search} tree={searching ? tree : null} onChange={(next) => { setSearch(next); setSelected(new Set()); }} />
           {problem && <p className="app-problem" role="alert">{problem}
             <button type="button" onClick={() => setProblem(null)}>知道了</button>
           </p>}
           {selected.size > 0 && <SelectionPanel libraryId={library.id} scope={scope} selected={selected}
             onClear={() => setSelected(new Set())} reloadKey={reloadKey} onError={onError} />}
-          <Wall key={scopeKey(scope)} libraryId={library.id} scope={scope} reloadKey={reloadKey}
+          <Wall key={`${scopeKey(scope)}/${JSON.stringify(tree)}`} conditions={tree} libraryId={library.id} scope={scope} reloadKey={reloadKey}
             selected={selected} onSelectionChange={setSelected} />
         </main>
       </div>
@@ -114,7 +156,14 @@ export function App() {
       {showSettings && <SettingsPanel />}
       <footer className="app-status">
         <span>{info && `${info.productName} ${info.version}`}</span>
-        <button type="button" aria-pressed={showSettings} onClick={() => setShowSettings((shown) => !shown)}>设置</button>
+        {library && <TaggingIndicator key={`${library.id}/${library.root}`} libraryId={library.id} />}
+        <button
+          type="button"
+          aria-pressed={showSettings}
+          onClick={() => setShowSettings((shown) => !shown)}
+        >
+          设置
+        </button>
       </footer>
     </div>
   );

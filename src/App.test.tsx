@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { AppInfo } from "./bindings/AppInfo";
@@ -9,6 +9,10 @@ import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { Sidebar } from "./bindings/Sidebar";
 import type { RecoveryReport } from "./bindings/RecoveryReport";
+import type { Candidate } from "./bindings/Candidate";
+import type { ConditionTree } from "./bindings/ConditionTree";
+import type { SearchInput } from "./bindings/SearchInput";
+import type { TagLabel } from "./bindings/TagLabel";
 import { App } from "./App";
 
 const info: AppInfo = { productName: "Kinshoko", version: "9.9.9" };
@@ -42,6 +46,42 @@ const detail = (id: string, manual: string | null): ImageDetail => ({
   note: { manual, sources: [] },
   deletedAt: null,
 });
+
+const label = (id: string, namespace: TagLabel["namespace"], name: string): TagLabel => ({
+  id,
+  namespace,
+  name,
+  untranslated: false,
+  hasExternal: false,
+});
+const tags: Record<string, TagLabel> = {
+  A: label("A", "artist", "某某"),
+  C: label("C", "character", "某某"),
+  B: label("B", "general", "蓝发"),
+};
+const candidates: Candidate[] = [
+  { tag: tags.C, via: null, count: 8 },
+  { tag: tags.A, via: null, count: 3 },
+  { tag: tags.B, via: "某某色", count: 1 },
+];
+
+/** 模拟 Search：标签项照 id 填上标签名，文字项匹配名称含这段文字的标签。 */
+function resolved(input: SearchInput): ConditionTree {
+  return {
+    conditions: input.conditions.map((c) => ({
+      negate: c.negate,
+      any: c.any.map((t) =>
+        t.kind === "tag"
+          ? { kind: "tag" as const, tag: tags[t.id], similar: [] }
+          : {
+              kind: "text" as const,
+              text: t.text,
+              tags: Object.values(tags).filter((l) => l.name.includes(t.text)),
+            },
+      ),
+    })),
+  };
+}
 
 type Call = { cmd: string; args: unknown };
 let calls: Call[];
@@ -89,6 +129,12 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
         }
         case "plugin:library|recovery":
           return recovery;
+        case "plugin:library|search_candidates":
+          return (args as { text: string }).text.trim() ? candidates : [];
+        case "plugin:library|resolve_search":
+          return resolved((args as { input: SearchInput }).input);
+        case "tagging_status":
+          return { libraryId: (args as { libraryId: string }).libraryId, status: { state: "starting" } };
         default:
           return null;
       }
@@ -422,7 +468,7 @@ describe("整理", () => {
     fireEvent.click(card("b"), { ctrlKey: true });
     expect(screen.getByText("已选 2 张")).toBeTruthy();
 
-    await waitFor(() => expect(screen.getAllByRole("option").length).toBeGreaterThan(1));
+    await waitFor(() => expect(within(screen.getByLabelText("放入文件夹")).getAllByRole("option").length).toBeGreaterThan(1));
     fireEvent.change(screen.getByLabelText("放入文件夹"), { target: { value: "F2" } });
     await waitFor(() =>
       expect(sent("plugin:library|edit")).toEqual([
@@ -467,5 +513,116 @@ describe("整理", () => {
     await waitFor(() =>
       expect(sent("plugin:library|edit").at(-1)).toEqual({ libraryId: "L1", ids: ["a"], edits: [{ kind: "revertNote" }] }),
     );
+  });
+});
+
+describe("查找", () => {
+  const box = () => screen.findByRole("combobox", { name: "查找参考图" });
+  const lastInput = () => (sent("plugin:library|resolve_search").at(-1) as { input: SearchInput }).input;
+  const lastQuery = () =>
+    (sent("plugin:library|browse").at(-1) as { query: { conditions: ConditionTree } }).query;
+
+  it("切换资料库清空条件，旧候选和旧条件树的迟到结果不能进入新库", async () => {
+    const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
+    let finishCandidates!: (value: Candidate[]) => void;
+    let finishTree!: (value: ConditionTree) => void;
+    const oldCandidates = new Promise<Candidate[]>((resolve) => { finishCandidates = resolve; });
+    const oldTree = new Promise<ConditionTree>((resolve) => { finishTree = resolve; });
+    let requests = 0;
+    backend(library, clean, (cmd) => {
+      if (cmd === "plugin:library|registered_libraries") return [library, other].map((library) => ({ library, unavailable: null }));
+      if (cmd === "plugin:library|switch_library") return other;
+      if (cmd === "plugin:library|resolve_search") return oldTree;
+      if (cmd === "plugin:library|search_candidates") return requests++ === 0 ? oldCandidates : [];
+      return undefined;
+    });
+    render(<App />);
+    const input = await box();
+    fireEvent.change(input, { target: { value: "某" } });
+    await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(1));
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(sent("plugin:library|resolve_search")).toHaveLength(1));
+    fireEvent.change(screen.getByLabelText("当前资料库"), { target: { value: "L2" } });
+    await screen.findByRole("heading", { name: "私人收藏" });
+    fireEvent.change(await box(), { target: { value: "某" } });
+    await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(2));
+    await act(() => {
+      finishCandidates(candidates);
+      finishTree(resolved({ conditions: [{ any: [{ kind: "text", text: "旧库条件" }], negate: false }] }));
+    });
+
+    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(1);
+    expect(screen.getByRole("list", { name: "查找条件" }).children).toHaveLength(0);
+    expect(lastQuery().conditions.conditions).toHaveLength(0);
+    expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ libraryId: "L2" });
+    expect(sent("plugin:library|resolve_search")[0]).toMatchObject({ libraryId: "L1" });
+  });
+
+  it("输入的词命中多个命名空间与别名时，下拉按命名空间与别名列出候选", async () => {
+    backend(library);
+    render(<App />);
+    fireEvent.change(await box(), { target: { value: "某某" } });
+
+    await waitFor(() => expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(4));
+    expect(within(screen.getByRole("listbox")).getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "查找“某某”",
+      "角色：某某8",
+      "作者：某某3",
+      "蓝发又名：某某色1",
+    ]);
+    expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ text: "某某", lang: "zh-CN" });
+  });
+
+  it("不选候选直接回车就按文字查找，点选候选只查这个标签；图片墙按条件树重新浏览", async () => {
+    backend(library);
+    render(<App />);
+    const input = await box();
+    fireEvent.change(input, { target: { value: "某某" } });
+    await screen.findAllByRole("option");
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() =>
+      expect(lastInput()).toEqual({ conditions: [{ any: [{ kind: "text", text: "某某" }], negate: false }] }),
+    );
+    await waitFor(() => expect(lastQuery().conditions).toEqual(resolved(lastInput())));
+    const chips = screen.getByRole("list", { name: "查找条件" });
+    expect(chips.textContent).toContain("“某某”");
+    expect((input as HTMLInputElement).value).toBe("");
+
+    fireEvent.change(input, { target: { value: "某" } });
+    fireEvent.click(await screen.findByRole("option", { name: /作者：某某/ }));
+    await waitFor(() => expect(lastInput().conditions).toHaveLength(2));
+    expect(lastInput().conditions[1]).toEqual({ any: [{ kind: "tag", id: "A" }], negate: false });
+    await waitFor(() => expect(lastQuery().conditions.conditions).toHaveLength(2));
+    expect(chips.textContent).toContain("作者：某某");
+  });
+
+  it("Alt+回车或 Ctrl 点选把候选加进上一个条件作为“任一”；可以排除或去掉条件", async () => {
+    backend(library);
+    render(<App />);
+    const input = await box();
+    fireEvent.change(input, { target: { value: "蓝" } });
+    fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
+    await waitFor(() => expect(lastInput().conditions).toHaveLength(1));
+
+    fireEvent.change(input, { target: { value: "某" } });
+    fireEvent.click(await screen.findByRole("option", { name: /角色：某某/ }), { ctrlKey: true });
+    await waitFor(() =>
+      expect(lastInput().conditions).toEqual([
+        { any: [{ kind: "tag", id: "B" }, { kind: "tag", id: "C" }], negate: false },
+      ]),
+    );
+    fireEvent.change(input, { target: { value: "紫发" } });
+    await screen.findAllByRole("option");
+    fireEvent.keyDown(input, { key: "Enter", altKey: true });
+    await waitFor(() => expect(lastInput().conditions[0].any).toHaveLength(3));
+    expect(screen.getByRole("list", { name: "查找条件" }).textContent).toContain("或");
+
+    fireEvent.click(screen.getByRole("button", { name: "排除这个条件" }));
+    await waitFor(() => expect(lastInput().conditions[0].negate).toBe(true));
+    expect(screen.getByRole("list", { name: "查找条件" }).textContent).toContain("不要");
+
+    fireEvent.click(screen.getByRole("button", { name: "去掉这个条件" }));
+    await waitFor(() => expect(lastQuery().conditions).toEqual({ conditions: [] }));
   });
 });

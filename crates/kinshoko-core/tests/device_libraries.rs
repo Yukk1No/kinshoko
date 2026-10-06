@@ -8,6 +8,7 @@ use kinshoko_core::{DeviceLibraries, Library};
 fn query() -> BrowseQuery {
     BrowseQuery {
         scope: Default::default(),
+        conditions: Default::default(),
         cursor: None,
         limit: 100,
         thumbnail_px: 256,
@@ -135,11 +136,12 @@ fn relocating_a_library_and_registering_it_again_preserves_identity_originals_an
     let detail = library.image(&image_id).unwrap();
     let tags = library.image_tags(&image_id, "zh").unwrap();
     let side = library.sidebar().unwrap();
-    libraries.unregister(&id).unwrap();
-    assert!(libraries.current().is_none());
     drop(library);
+    drop(libraries);
     std::fs::rename(&root, &moved).unwrap();
 
+    let mut libraries = DeviceLibraries::open(&device_dir).unwrap();
+    assert!(libraries.registrations()[0].unavailable.is_some());
     let library = libraries.register(&moved).unwrap();
     assert_eq!(library.info().id, id);
     assert_eq!(library.image(&image_id).unwrap(), detail);
