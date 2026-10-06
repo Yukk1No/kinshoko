@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::events::LibraryEvent;
-use super::{Error, Inner, now_ms};
+use super::{Error, Inner, LIVE, now_ms};
 
 /// 标签命名空间。名称相同、命名空间不同的是两个标签。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, TS)]
@@ -289,11 +289,7 @@ fn write<T: Send + 'static>(
     let (value, revision) = inner.writer.run(move |conn| {
         let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         let value = f(&tx, &translations)?;
-        let revision: i64 = tx.query_row(
-            "UPDATE vocabulary_revision SET value = value + 1 RETURNING value",
-            [],
-            |r| r.get(0),
-        )?;
+        let revision = bump_revision(&tx)?;
         tx.commit()?;
         Ok::<_, Error>((value, revision))
     })?;
@@ -309,6 +305,15 @@ fn write<T: Send + 'static>(
         revision,
     });
     Ok(value)
+}
+
+/// 词表修订号加一，返回新值。词表内容或计数变化的写入事务里调用。
+pub(super) fn bump_revision(tx: &Transaction) -> Result<i64, Error> {
+    Ok(tx.query_row(
+        "UPDATE vocabulary_revision SET value = value + 1 RETURNING value",
+        [],
+        |r| r.get(0),
+    )?)
 }
 
 fn require_image(tx: &Transaction, image_id: &str) -> Result<(), Error> {
@@ -855,9 +860,12 @@ pub(super) fn image_tags(inner: &Inner, image_id: &str, lang: &str) -> Result<Im
     })
 }
 
+/// 每个标签的有效张数，只算可见的图（不含回收站）。
 fn counts(conn: &rusqlite::Connection) -> Result<HashMap<String, u32>, Error> {
-    let mut stmt =
-        conn.prepare_cached("SELECT tag_id, COUNT(*) FROM effective_tag GROUP BY tag_id")?;
+    let mut stmt = conn.prepare_cached(&format!(
+        "SELECT e.tag_id, COUNT(*) FROM effective_tag e
+         JOIN image ON image.id = e.image_id WHERE {LIVE} GROUP BY e.tag_id"
+    ))?;
     let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
     Ok(rows.collect::<Result<_, _>>()?)
 }

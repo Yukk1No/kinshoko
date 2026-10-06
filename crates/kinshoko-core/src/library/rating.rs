@@ -139,7 +139,7 @@ pub(super) fn images_to_tag(
     let conn = inner.readers.get();
     let mut stmt = conn.prepare_cached(
         "SELECT i.id FROM image i
-         WHERE NOT EXISTS (
+         WHERE i.deleted_at IS NULL AND NOT EXISTS (
             SELECT 1 FROM tagging_state s WHERE s.image_id = i.id AND s.source = ?1)
          ORDER BY i.seq DESC LIMIT ?2",
     )?;
