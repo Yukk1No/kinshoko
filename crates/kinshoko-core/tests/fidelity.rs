@@ -842,6 +842,8 @@ fn thumbnails_of_an_older_pipeline_version_are_removed_and_rebuilt() {
 fn the_gate_run_imports_every_sample_into_a_fresh_library_with_fixed_bytes() {
     let dir = tempfile::tempdir().unwrap();
     let run = gate::prepare(&dir.path().join("gate")).unwrap();
+    // 样本库不受安全模式影响（#60：开启时按 id 取不到被封存的图）。
+    assert!(!run.library.safe_mode());
 
     assert_eq!(run.items.len(), gate_samples().len());
     for (item, sample) in run.items.iter().zip(gate_samples()) {

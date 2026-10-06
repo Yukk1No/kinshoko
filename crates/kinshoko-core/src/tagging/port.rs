@@ -4,6 +4,7 @@
 //! [`super::InMemoryTagger`]。丢弃 [`TaggerSession`] 就结束会话、归还显存。
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -111,4 +112,10 @@ pub trait Tagger: Send + Sync {
 pub trait TaggerSession: Send {
     /// 对一张图打标，返回模型的原始结果（按外部名称）。
     fn tag(&mut self, image: &Path) -> Result<Vec<RawTag>, TagFailure>;
+    /// 从别的线程立即结束会话的开关：正在打的图随即以 [`TagFailure::Crashed`] 返回，
+    /// 不等它打完（画师暂停打标时立刻归还显存）。
+    fn stopper(&self) -> SessionStopper;
 }
+
+/// 见 [`TaggerSession::stopper`]。
+pub type SessionStopper = Arc<dyn Fn() + Send + Sync>;

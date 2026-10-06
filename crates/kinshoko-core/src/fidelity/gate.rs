@@ -289,6 +289,8 @@ pub fn prepare(dir: &std::path::Path) -> Result<GateRun, crate::library::Error> 
     let samples_dir = dir.join("samples");
     std::fs::create_dir_all(&samples_dir)?;
     let library = Library::create(&dir.join("library"), "还原度门槛样本")?;
+    // 样本库只给门槛实验用：关掉安全模式，按 id 取原图与缩略图不受分级影响。
+    library.set_safe_mode(false);
     let samples = samples();
     let mut paths = Vec::with_capacity(samples.len());
     for s in &samples {

@@ -25,6 +25,10 @@ uuid = { version = "1", features = ["v4", "v7"] }
 unicode-normalization = "0.1"
 # 模型下载（阻塞式，断点续传），与 tools/tagger-probe 相同。
 ureq = "2"
+# 离线导入模型包（zip），与 tools/tagger-probe 相同。
+zip = { version = "2", default-features = false, features = ["deflate"] }
+# 校验模型包里的词表，与打标子进程读词表用同一个解析器。
+csv = "1"
 
 [dev-dependencies]
 tempfile = "3.27.0"
