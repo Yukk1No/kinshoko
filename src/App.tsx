@@ -73,6 +73,7 @@ export function App() {
           <header className="app-toolbar">
             <h1 className="app-library-name">{library.name}</h1>
             <ImportBar
+              libraryName={library.name}
               running={running}
               report={report}
               onStarted={started}

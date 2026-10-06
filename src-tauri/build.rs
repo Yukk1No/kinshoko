@@ -9,10 +9,15 @@ fn main() {
                         "current_library",
                         "create_library",
                         "browse",
+                        "recovery",
                         "start_import",
                         "cancel_import",
                         "pick_folder",
                         "pick_files",
+                        "image_tags",
+                        "edit_tags",
+                        "vocabulary",
+                        "tag_groups",
                     ])
                     .default_permission(tauri_build::DefaultPermissionRule::AllowAllCommands),
             )
