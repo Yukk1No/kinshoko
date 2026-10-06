@@ -121,6 +121,29 @@ pub struct ImportReport {
     pub cancelled: bool,
 }
 
+impl ImportReport {
+    /// 只含读取失败项的导入来源，供重试；没有失败项时为 `None`。
+    /// 重试不会重复创建已成功的图：字节相同的原图总是合并为同一条记录。
+    pub fn retry_source(&self) -> Option<ImportSource> {
+        let paths: Vec<PathBuf> = self
+            .items
+            .iter()
+            .filter(|i| matches!(i.outcome, ImportOutcome::ReadFailed { .. }))
+            .map(|i| i.path.clone())
+            .collect();
+        (!paths.is_empty()).then_some(ImportSource { paths })
+    }
+}
+
+/// 参考图的一条来源：从哪里、以哪种方式进的库。字节相同的图各次导入的来源都保留。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImageSourceRecord {
+    /// 来源标记，例如普通文件导入为 `file`。
+    pub source: String,
+    /// 导入时原图所在位置。
+    pub location: PathBuf,
+}
+
 const MAX_LIMIT: u32 = 1000;
 
 pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, Error> {

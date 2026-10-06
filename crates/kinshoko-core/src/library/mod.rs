@@ -26,7 +26,7 @@ pub use error::Error;
 pub use events::LibraryEvent;
 pub use import::ImportTask;
 pub use types::{
-    BrowsePage, BrowseQuery, BrowseScope, ImageCard, ImportItem, ImportOutcome, ImportProgress,
+    BrowsePage, BrowseQuery, BrowseScope, ImageCard, ImageSourceRecord, ImportItem, ImportOutcome, ImportProgress,
     ImportReport, ImportSource, LibraryInfo,
 };
 
@@ -143,6 +143,27 @@ impl Library {
     /// 参考图在目标像素宽度下的缩略图文件；缓存缺失时现场生成。
     pub fn thumbnail(&self, image_id: &str, target_px: u32) -> Result<PathBuf, Error> {
         thumbnail::get(&self.inner, image_id, target_px)
+    }
+
+    /// 参考图的全部来源，按记录先后。之后并入查看器详情 `image(id)`。
+    pub fn image_sources(&self, image_id: &str) -> Result<Vec<ImageSourceRecord>, Error> {
+        let conn = self.inner.readers.get();
+        let mut stmt = conn.prepare_cached(
+            "SELECT source, location FROM image_source WHERE image_id = ?1
+             ORDER BY recorded_at, rowid",
+        )?;
+        let sources = stmt
+            .query_map([image_id], |row| {
+                Ok(ImageSourceRecord {
+                    source: row.get(0)?,
+                    location: PathBuf::from(row.get::<_, String>(1)?),
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        if sources.is_empty() {
+            return Err(Error::UnknownImage);
+        }
+        Ok(sources)
     }
 
     /// 参考图原文件的位置。
