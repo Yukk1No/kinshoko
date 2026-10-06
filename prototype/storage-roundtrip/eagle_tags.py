@@ -94,18 +94,21 @@ def main():
     ap = argparse.ArgumentParser(description="导出 Eagle 资料库的标签与使用次数")
     ap.add_argument("library", nargs="*", help="资料库文件夹（.library）；不填则自动找")
     ap.add_argument("--library", dest="library_opt", action="append", default=[])
-    ap.add_argument("--yes", action="store_true", help="不提问，用最大的库")
+    ap.add_argument("--yes", action="store_true", help="不提问；自动找到多个库时只导出最大的")
     ap.add_argument("--out", help="zip 输出目录，默认桌面")
     ap.add_argument("--pixai-tags", help="本地 selected_tags.csv（离线或测试用）")
     args = ap.parse_args()
 
-    libs, _ = discover(args.library + args.library_opt)
+    explicit = args.library + args.library_opt
+    libs, _ = discover(explicit)
     if not libs:
         raise SystemExit("没有找到 Eagle 资料库。可以把资料库文件夹（以 .library 结尾）拖到本程序图标上再运行。")
     for i, l in enumerate(libs):
         print(f"  [{i + 1}] {l['path']} —— {l['items']} 项，Eagle {l['version']}")
     picks = list(range(len(libs)))
-    if len(libs) > 1 and not args.yes:
+    if len(libs) > 1 and args.yes and not explicit:
+        picks = [0]  # discover 自动找到的库已按条目数从多到少排好
+    elif len(libs) > 1 and not args.yes:
         ans = input("导出哪些库？直接回车＝全部，或输入编号（如 1 或 1,2）：").strip()
         if ans:
             picks = [int(x) - 1 for x in ans.replace("，", ",").split(",") if x.strip().isdigit() and 0 < int(x) <= len(libs)] or picks
