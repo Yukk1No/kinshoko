@@ -5,6 +5,9 @@
 //! - [`Library::import`]：立即返回导入任务，带进度、取消与逐项结果；
 //! - [`Library::events`]：提交后才推送的变更事件；
 //! - [`Library::thumbnail`]：缩略图（可重建缓存）的本地文件；
+//! - [`Library::edit`]：一次批量整理若干张图，返回重新计算后的详情；[`Library::image`]：单张详情；
+//! - [`Library::sidebar`]：文件夹树与按可见图计算的计数；
+//! - 文件夹编辑：[`Library::create_folder`]、[`Library::rename_folder`]、[`Library::move_folder`]。
 //! - [`Library::edit_tags`] / [`Library::image_tags`]：人工标签决定与一张图的标签；
 //! - [`Library::vocabulary`]：标签词表快照；[`Library::tag_groups`]：侧栏的标签分组；
 //! - [`Library::replace_source_tags`]：按来源分层写入（打标、Eagle 导入等来源用）。
@@ -12,11 +15,14 @@
 //! 资料库目录：`library.sqlite`（身份与全部整理结果）＋ `originals/<sha 前两位>/<sha>.<ext>`
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
 
+mod edit;
 mod error;
 mod events;
 mod fault;
+mod folders;
 mod import;
 mod recovery;
+mod sidebar;
 mod store;
 mod tags;
 mod thumbnail;
@@ -28,9 +34,12 @@ use std::sync::{Arc, RwLock};
 
 use rusqlite::{OptionalExtension, params};
 
+pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, SourceNote};
 pub use error::Error;
 pub use events::LibraryEvent;
+pub use folders::FolderNode;
 pub use import::ImportTask;
+pub use sidebar::Sidebar;
 pub use tags::{
     FactSource, ImageTag, ImageTags, LocalizedName, SourceTag, TagAlias, TagCount, TagEdit,
     TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef, TagTranslation, TagTranslations,
@@ -50,6 +59,9 @@ const ORIGINALS_DIR: &str = "originals";
 const STAGING_DIR: &str = ".staging";
 const CACHE_DIR: &str = "cache";
 const READERS: usize = 4;
+
+/// 可见的参考图：不在回收站里。浏览、计数与侧栏都只算可见的图（`image` 表的条件）。
+pub(crate) const LIVE: &str = "image.deleted_at IS NULL";
 
 /// 一个打开的资料库。可在线程间共享（`Arc<Library>`）。
 pub struct Library {
@@ -180,6 +192,42 @@ impl Library {
         thumbnail::get(&self.inner, image_id, target_px)
     }
 
+    /// 对 `ids` 中的每张图按顺序应用 `edits`，一个事务内全部成功才提交，
+    /// 返回这些图重新计算后的详情（按 `ids` 顺序、去重）。
+    pub fn edit(&self, ids: &[String], edits: &[ImageEdit]) -> Result<Vec<ImageDetail>, Error> {
+        edit::edit(&self.inner, ids, edits)
+    }
+
+    /// 单张参考图的详情。
+    pub fn image(&self, image_id: &str) -> Result<ImageDetail, Error> {
+        edit::detail(&self.inner.readers.get(), image_id)
+    }
+
+    /// 侧栏：全部、回收站与文件夹树，计数只算可见的图。
+    pub fn sidebar(&self) -> Result<Sidebar, Error> {
+        sidebar::get(&self.inner)
+    }
+
+    /// 新建文件夹，放在 `parent` 下（`None` 为顶层）的最后，返回文件夹 id。
+    pub fn create_folder(&self, name: &str, parent: Option<&str>) -> Result<String, Error> {
+        folders::create(&self.inner, name, parent)
+    }
+
+    pub fn rename_folder(&self, folder_id: &str, name: &str) -> Result<(), Error> {
+        folders::rename(&self.inner, folder_id, name)
+    }
+
+    /// 把文件夹（连同子文件夹）移到 `parent` 下（`None` 为顶层）的第 `position` 位；
+    /// 超出时放在最后。不能移进它自己或它的子文件夹。
+    pub fn move_folder(
+        &self,
+        folder_id: &str,
+        parent: Option<&str>,
+        position: u32,
+    ) -> Result<(), Error> {
+        folders::move_to(&self.inner, folder_id, parent, position)
+    }
+
     /// 参考图的全部来源，按记录先后。之后并入查看器详情 `image(id)`。
     pub fn image_sources(&self, image_id: &str) -> Result<Vec<ImageSourceRecord>, Error> {
         let conn = self.inner.readers.get();
@@ -303,6 +351,27 @@ impl Library {
             .optional()?
             .ok_or(Error::UnknownImage)?;
         Ok(self.inner.root.join(rel))
+    }
+}
+
+impl Inner {
+    /// 在写线程上跑一个短事务；提交后才推送“列表过期”。
+    pub(crate) fn write<T: Send + 'static>(
+        &self,
+        f: impl FnOnce(&rusqlite::Transaction) -> Result<T, Error> + Send + 'static,
+    ) -> Result<T, Error> {
+        let result = self.writer.run(move |conn| {
+            let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+            let value = f(&tx)?;
+            tx.commit()?;
+            Ok(value)
+        });
+        if result.is_ok() {
+            self.hub.publish(LibraryEvent::ListStale {
+                library_id: self.info.id.clone(),
+            });
+        }
+        result
     }
 }
 
