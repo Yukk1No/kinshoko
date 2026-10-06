@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, MouseEvent } from "react";
 import type { BrowseScope } from "../bindings/BrowseScope";
+import type { ConditionTree } from "../bindings/ConditionTree";
 import type { ImageCard } from "../bindings/ImageCard";
 import { browse, thumbnailUrl } from "../ipc";
 import { captureAnchor, masonry, resolveAnchor, visible, type Anchor } from "./layout";
@@ -21,6 +22,8 @@ export const DRAG_IMAGES = "application/x-kinshoko-images";
 type Props = {
   libraryId: string;
   scope: BrowseScope;
+  /** Search 给出的条件树；没有条件时是范围内的全部。条件变化时由调用方换 key 重建，从顶部看起。 */
+  conditions?: ConditionTree;
   /** 资料库报告列表过期时递增：重新浏览，保持正在看的位置。 */
   reloadKey: number;
   selected: ReadonlySet<string>;
@@ -42,6 +45,8 @@ const EMPTY: Record<BrowseScope["kind"], string> = {
   trash: "回收站是空的。",
 };
 
+const NO_CONDITIONS: ConditionTree = { conditions: [] };
+
 function loadAnchor(key: string): Anchor | null {
   try {
     const raw = localStorage.getItem(key);
@@ -62,10 +67,18 @@ function saveAnchor(key: string, anchor: Anchor | null) {
 /**
  * 图片墙：按资料库记录的尺寸用纯函数排出瀑布流，只挂载视口附近的卡片。
  * 单击选中一张，Ctrl 单击增减，Shift 单击选中一段；选中的图可以拖到侧栏的文件夹上。
- * 换范围时由调用方换 key 重建。
+ * 换范围或条件时由调用方换 key 重建。查找结果不记住位置，新的查找从顶部看起。
  */
-export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange }: Props) {
-  const storeKey = anchorKey(libraryId, scope);
+export function Wall({
+  libraryId,
+  scope,
+  conditions = NO_CONDITIONS,
+  reloadKey,
+  selected,
+  onSelectionChange,
+}: Props) {
+  const searching = conditions.conditions.length > 0;
+  const storeKey = searching ? null : anchorKey(libraryId, scope);
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [viewport, setViewport] = useState({ top: 0, height: 0 });
@@ -74,7 +87,7 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
   const [total, setTotal] = useState<number | null>(null);
   const loading = useRef(false);
   /** 正在看的那张图。重开或重新浏览后滚回这里。 */
-  const anchor = useRef<Anchor | null>(loadAnchor(storeKey));
+  const anchor = useRef<Anchor | null>(storeKey ? loadAnchor(storeKey) : null);
   /** Shift 单击的起点。 */
   const pivot = useRef<string | null>(null);
   const restoring = useRef(true);
@@ -94,7 +107,13 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
         let after: string | null = null;
         let count = 0;
         do {
-          const page = await browse({ scope, cursor: after, limit: PAGE, thumbnailPx });
+          const page = await browse({
+            scope,
+            conditions,
+            cursor: after,
+            limit: PAGE,
+            thumbnailPx,
+          });
           next.push(...page.cards);
           after = page.nextCursor;
           count = page.total;
@@ -109,7 +128,7 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
         loading.current = false;
       }
     },
-    // 范围变化时调用方会换 key 重建，scope 不必列为依赖。
+    // 范围或条件变化时调用方会换 key 重建，不必列为依赖。
     [thumbnailPx],
   );
 
@@ -117,7 +136,7 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
     if (loading.current || !cursor) return;
     loading.current = true;
     try {
-      const page = await browse({ scope, cursor, limit: PAGE, thumbnailPx });
+      const page = await browse({ scope, conditions, cursor, limit: PAGE, thumbnailPx });
       setCards((prev) => [...prev, ...page.cards]);
       setCursor(page.nextCursor);
       setTotal(page.total);
@@ -177,7 +196,7 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
     settledTop.current = null;
     if (own || restoring.current) return;
     anchor.current = captureAnchor(layout, ids, el.scrollTop, el.clientHeight);
-    saveAnchor(storeKey, anchor.current);
+    if (storeKey) saveAnchor(storeKey, anchor.current);
   };
 
   // 接近底部时取下一页。
@@ -223,7 +242,7 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
   return (
     <div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}>
       {total === 0 ? (
-        <p className="wall-empty">{EMPTY[scope.kind]}</p>
+        <p className="wall-empty">{searching ? "没有符合条件的参考图。" : EMPTY[scope.kind]}</p>
       ) : (
         <div className="wall-canvas" style={{ height: layout.height }}>
           {mounted.map((i) => {

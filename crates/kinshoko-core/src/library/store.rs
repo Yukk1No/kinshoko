@@ -21,6 +21,7 @@ fn migrations() -> Migrations<'static> {
         M::up(include_str!("migrations/0046_import_pending.sql")),
         // 文件名按工单编号；执行顺序按合入先后（#51、#46 先于 #50 合入），只往后追加。
         M::up(include_str!("migrations/0050_folders_notes_trash.sql")),
+        M::up(include_str!("migrations/0052_tagging.sql")),
         M::up(include_str!("migrations/0057_eagle_import.sql")),
     ])
 }
@@ -122,6 +123,7 @@ impl Readers {
             .map(|_| {
                 let conn = connect(path)?;
                 conn.pragma_update(None, "query_only", "ON")?;
+                super::filter::register(&conn)?;
                 Ok(Mutex::new(conn))
             })
             .collect::<Result<_, Error>>()?;

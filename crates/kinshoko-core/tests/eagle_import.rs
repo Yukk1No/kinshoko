@@ -161,6 +161,7 @@ fn count(library: &Library, scope: BrowseScope) -> u32 {
     library
         .browse(&BrowseQuery {
             scope,
+            conditions: Default::default(),
             cursor: None,
             limit: 1,
             thumbnail_px: 256,
@@ -474,4 +475,42 @@ fn discovery_uses_local_api_first_and_falls_back_to_a_bounded_disk_scan() {
     assert_eq!(scanned.len(), 1);
     assert_eq!(scanned[0].name, "主库");
     assert_eq!(scanned[0].found_by, EagleDiscoveryMethod::Scan);
+}
+
+#[test]
+fn imported_eagle_source_links_can_be_found_with_the_integrated_text_search() {
+    use kinshoko_core::search::{ConditionInput, Search, SearchInput, TermInput};
+    let dir = tempfile::tempdir().unwrap();
+    let fixture = eagle::build(&dir.path().join("主库.library"), "4.0.0", 1);
+    let library = Library::create(&dir.path().join("kinshoko"), "参考").unwrap();
+    library
+        .import(ImportSource {
+            paths: vec![fixture.root],
+        })
+        .wait();
+    let conditions = Search::new(&library.vocabulary().unwrap()).resolve(
+        &SearchInput {
+            conditions: vec![ConditionInput {
+                any: vec![TermInput::Text {
+                    text: "example.com/0".into(),
+                }],
+                negate: false,
+            }],
+        },
+        "zh-CN",
+    );
+    let page = library
+        .browse(&BrowseQuery {
+            scope: BrowseScope::All,
+            conditions,
+            cursor: None,
+            limit: 10,
+            thumbnail_px: 256,
+        })
+        .unwrap();
+    assert_eq!(page.total, 1, "迁入的来源链接也属于可查找的参考图文字");
+    assert_eq!(
+        page.cards[0].id,
+        library.eagle_sources().unwrap()[0].bindings[0].image_id
+    );
 }

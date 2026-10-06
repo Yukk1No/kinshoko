@@ -25,7 +25,7 @@ CREATE TABLE source_binding (
     sha256 TEXT NOT NULL,
     image_id TEXT NOT NULL REFERENCES image(id),
     raw_item_json TEXT NOT NULL,
-    state TEXT NOT NULL CHECK (state IN ('present', 'trashed')),
+    state TEXT NOT NULL CHECK (state IN ('present', 'trashed', 'missing', 'superseded')),
     collected_at INTEGER NOT NULL,
     PRIMARY KEY (source_id, external_id, sha256)
 );

@@ -7,6 +7,7 @@ mod commands;
 mod desktop;
 mod library;
 mod shell;
+mod tagging;
 
 use tauri::RunEvent;
 
@@ -37,6 +38,10 @@ pub fn run() {
             commands::shell_settings,
             commands::set_autostart,
             commands::rebind_shortcut,
+            tagging::tagging_status,
+            tagging::tagging_download,
+            tagging::tagging_pause,
+            tagging::tagging_resume,
         ])
         .build(tauri::generate_context!())
         .expect("启动 Kinshoko 失败");
