@@ -13,8 +13,7 @@ use kinshoko_core::library::{
     ContentRating, ImageTags, ImportOutcome, ImportSource, TagEdit, TagNamespace, TagOrigin, TagRef,
 };
 use kinshoko_core::tagging::{
-    Device, InMemoryTagger, ModelOption, ModelStore, RawTag, Tagging, TaggingConfig,
-    TaggingStatus,
+    Device, InMemoryTagger, ModelOption, ModelStore, RawTag, Tagging, TaggingConfig, TaggingStatus,
 };
 use std::sync::atomic::AtomicBool;
 use support::ModelServer;
