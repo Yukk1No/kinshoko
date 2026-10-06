@@ -31,7 +31,9 @@ jobs:
       - name: Constructed-sample round trip (run.py)
         run: python run.py
       - name: Build exe
-        run: python -m PyInstaller --onefile --console --name kinshoko-eagle-check --distpath dist eagle_check.py
+        run: |
+          python -m PyInstaller --onefile --console --name kinshoko-eagle-check --distpath dist eagle_check.py
+          python -m PyInstaller --onefile --console --name kinshoko-eagle-tags --distpath dist eagle_tags.py
       - name: Self-test exe against fixture libraries
         shell: pwsh
         run: |
@@ -58,12 +60,24 @@ jobs:
           $global:LASTEXITCODE = 0  # 拒绝时退出码 1 是预期的；不让它成为本步骤的退出码
           if ((Get-ChildItem -Recurse $lib | Measure-Object).Count -ne $before) { throw "重叠工作区改动了原库" }
           Remove-Item dist/kinshoko-eagle-check-报告-*.zip
+      - name: Self-test tag export
+        shell: pwsh
+        run: |
+          $T = $env:RUNNER_TEMP
+          "tag_id,name,category,count`n1,blue_hair,0,1" | Set-Content "$T/pixai.csv" -Encoding utf8
+          ./dist/kinshoko-eagle-tags.exe "$T/fx/libs/主库.library" --yes --out "$T/tags-out" --pixai-tags "$T/pixai.csv"
+          if ($LASTEXITCODE -ne 0) { throw "标签导出退出码 $LASTEXITCODE" }
+          $zip = Get-ChildItem "$T/tags-out/kinshoko-eagle-tags-*.zip"
+          if (-not $zip) { throw "没有生成标签导出 zip" }
+          Expand-Archive $zip.FullName "$T/tags-x"
+          if (-not (Test-Path "$T/tags-x/library1/tags.csv") -or -not (Test-Path "$T/tags-x/summary.md")) { throw "标签导出 zip 内容不全" }
       - name: Package
         shell: pwsh
         run: |
           $out = "dist/kinshoko-eagle-check"
           New-Item -ItemType Directory -Force $out | Out-Null
           Move-Item dist/kinshoko-eagle-check.exe $out/
+          Move-Item dist/kinshoko-eagle-tags.exe $out/
           Copy-Item 使用说明.md $out/
       - uses: actions/upload-artifact@v4
         with:
