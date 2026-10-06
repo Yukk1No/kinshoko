@@ -1,7 +1,27 @@
+/* 视觉 token 取自 logo kit v1.1 与 #13 样稿：品牌色只用在界面框架上，图片底色保持中性。 */
 :root {
   color-scheme: light dark;
   font-family: system-ui, "Microsoft YaHei UI", sans-serif;
   font-size: 14px;
+  --bg: #f7f3ea;
+  --text: #2b2747;
+  --accent: #e0768f;
+  --accent-strong: #b5465f;
+  --line: rgb(43 39 71 / 0.14);
+  --wall: #eae9e6;
+  --card: #dcdbd7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1c2c;
+    --text: #f4ecdc;
+    --accent: #e3b34f;
+    --accent-strong: #e3b34f;
+    --line: rgb(244 236 220 / 0.14);
+    --wall: #161618;
+    --card: #232326;
+  }
 }
 
 html,
@@ -11,18 +31,202 @@ body,
   margin: 0;
 }
 
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+button {
+  font: inherit;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+}
+
 .app {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
+.app-toolbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.app-library-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 28px;
+  white-space: nowrap;
+}
+
 .app-main {
   flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main-centered {
+  align-items: center;
+  justify-content: center;
 }
 
 .app-status {
   padding: 4px 12px;
   font-size: 12px;
   opacity: 0.6;
+}
+
+/* 建库 */
+.create-library {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(440px, calc(100% - 32px));
+}
+
+.create-library h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.create-library p {
+  margin: 0;
+  opacity: 0.8;
+}
+
+.create-library label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.create-library input {
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+}
+
+.create-library-location {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.create-library-path {
+  overflow-wrap: anywhere;
+  opacity: 0.8;
+}
+
+/* 导入 */
+.import-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.import-actions,
+.import-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.import-progress progress {
+  width: 200px;
+  accent-color: var(--accent);
+}
+
+.import-report header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.import-report ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 160px;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.import-report li {
+  display: flex;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.import-report-path {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.import-report-reason {
+  white-space: nowrap;
+  color: var(--accent-strong);
+}
+
+/* 图片墙：中性底色，卡片无装饰；占位色先于缩略图出现，滚动时不露白。 */
+.wall {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--wall);
+}
+
+.wall-canvas {
+  position: relative;
+}
+
+.wall-empty {
+  margin: 48px auto;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.card {
+  position: absolute;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.card:hover {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
