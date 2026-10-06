@@ -12,6 +12,7 @@ import { SelectionPanel } from "./library/SelectionPanel";
 import { SidebarPane } from "./library/SidebarPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
 import { SettingsPanel } from "./SettingsPanel";
+import { TaggingIndicator } from "./TaggingIndicator";
 import { scopeKey, Wall } from "./wall/Wall";
 
 /**
@@ -180,6 +181,7 @@ export function App() {
       {showSettings && <SettingsPanel />}
       <footer className="app-status">
         <span>{info && `${info.productName} ${info.version}`}</span>
+        {library && <TaggingIndicator key={library.id} />}
         <button
           type="button"
           aria-pressed={showSettings}
