@@ -24,6 +24,8 @@ import { RELEASE, SEAL, SealFx, type FxReport } from './sealfx';
 
 const DEFAULT_SETTINGS: Settings = { theme: 'system', reducedMotion: false, density: 240, capTall: true, showTitles: false, square: false, inflate: false, logging: false, stats: false, releaseInput: 'allow', fxSlow: false };
 const systemReduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+// The side pane slides on the wall's resize curve, so its edge and the cards beside it move in step.
+const PANE = { w: 248, ms: 240, ease: 'cubic-bezier(0.2, 0.8, 0.2, 1)' };
 type DialogState =
   | { kind: 'save-group' }
   | { kind: 'open-group'; group: ReferenceGroup }
@@ -47,6 +49,9 @@ export default function App() {
   const [pins, setPins] = usePersistent<Pin[]>('pins', []);
   const [safeMode, setSafeMode] = usePersistent('safe-mode', true);
   const [paneOpen, setPaneOpen] = usePersistent('pane-open', true);
+  const [paneMotion, setPaneMotion] = useState<'opening' | 'closing' | null>(null);
+  const paneFrom = useRef<{ x: number; bars: Map<Element | 'lib', DOMRect> } | null>(null);
+  const paneTimer = useRef(0);
   const [infoOpen, setInfoOpen] = usePersistent('info-open', true);
   const [revealed, setRevealed] = useState<Set<string>>(() => new Set());
   const [captures, setCaptures] = useState<Capture[]>([]);
@@ -379,6 +384,51 @@ export default function App() {
     fx.current?.finish(); wall.current?.finishReflow(); setArriving(new Set()); endRelease();
   };
 
+  // ------------------------------------------------------------ side pane
+  // The pane slides under the rail (a translate with a matching clip) while the wall lays out once at its new
+  // width and its cards, the top bar and the tag bar glide there on the same curve, so the pane's edge never
+  // crosses them. Opening lends the wall a left padding under the pane for the cards to start from.
+  const setPane = (open: boolean) => {
+    if (open === paneOpen) return;
+    clearTimeout(paneTimer.current);
+    if (reduced) { paneFrom.current = null; setPaneMotion(null); setPaneOpen(open); return; }
+    // Measure everything where it is now (mid-slide included) before cancelling anything.
+    const pane = document.querySelector<HTMLElement>('.pane');
+    const bars = new Map<Element | 'lib', DOMRect>();
+    const moving = [...document.querySelectorAll('.topbar > *, .groupbar > *')];
+    for (const el of moving) if (!el.classList.contains('lib-switch')) bars.set(el, el.getBoundingClientRect());
+    const lib = document.querySelector('.lib-switch');
+    if (lib) bars.set('lib', lib.querySelector('.lib-btn')!.getBoundingClientRect());
+    const x = pane ? new DOMMatrix(getComputedStyle(pane).transform).m41 : -PANE.w;
+    [pane, lib, ...moving].forEach((el) => el?.getAnimations().forEach((a) => a.cancel()));
+    if (!matchMedia('(max-width: 820px)').matches) wall.current?.prepareReflow({ delay: 0, duration: PANE.ms * slow, resize: true });
+    paneFrom.current = { x, bars };
+    setPaneMotion(open ? 'opening' : 'closing');
+    setPaneOpen(open);
+    paneTimer.current = window.setTimeout(() => setPaneMotion(null), PANE.ms * slow + 40);
+  };
+  useLayoutEffect(() => {
+    const from = paneFrom.current;
+    if (!from) return;
+    paneFrom.current = null;
+    const timing = { duration: PANE.ms * slow, easing: PANE.ease };
+    const to = paneOpen ? 0 : -PANE.w;
+    const lib = document.querySelector('.lib-switch'), libFrom = from.bars.get('lib');
+    if (lib && libFrom) {
+      // The one library switcher changes hands between the pane head and the top bar: it glides across.
+      const now = lib.querySelector('.lib-btn')!.getBoundingClientRect(), riding = lib.closest('.pane') ? from.x - to : 0;
+      lib.animate([{ transform: `translate(${libFrom.left - now.left - riding}px, ${libFrom.top - now.top}px)` }, { transform: 'none' }], timing);
+    }
+    for (const [el, old] of from.bars) {
+      if (el === 'lib' || !el.isConnected) continue;
+      const now = el.getBoundingClientRect(), dx = old.left - now.left, dy = old.top - now.top;
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], timing);
+    }
+    // The clip keeps the pane off the rail; it is open to the right for the shadow and the arriving switcher.
+    const at = (x: number) => ({ transform: `translateX(${x}px)`, clipPath: `inset(0 -100vw 0 ${-x}px)` });
+    document.querySelector('.pane')?.animate([at(from.x), at(to)], { ...timing, fill: paneOpen ? 'none' : 'forwards' });
+  }, [paneOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     // Back on the wall, the last viewed picture is in view and focused (返回原位置).
     if (!viewing && lastViewed.current) {
@@ -425,8 +475,8 @@ export default function App() {
       if (e.key === 'F4') { e.preventDefault(); toggleEdge(); return; }
       if (e.key === 'F3') { e.preventDefault(); pasteClipboard(); return; }
       if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')) { e.preventDefault(); toggleSafeMode(); return; }
-      if (e.ctrlKey && ['1', '2', '3'].includes(e.key)) { e.preventDefault(); const s = (['browse', 'groups', 'captures'] as Section[])[Number(e.key) - 1]; setSection(s); setPaneOpen(true); return; }
-      if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); setPaneOpen((v) => !v); return; }
+      if (e.ctrlKey && ['1', '2', '3'].includes(e.key)) { e.preventDefault(); const s = (['browse', 'groups', 'captures'] as Section[])[Number(e.key) - 1]; setSection(s); setPane(true); return; }
+      if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); setPane(!paneOpen); return; }
       if (typing || dialog || menu) return;
       if (canvasMode && e.key === 'Escape') { setCanvasMode(false); return; }
       if (viewing) return;
@@ -477,14 +527,14 @@ export default function App() {
   return <div className={`app${canvasMode ? ' is-canvas' : ''}`}>
     <Rail section={section} paneOpen={paneOpen} safeMode={safeMode} reducedMotion={reduced} slow={slow}
       badges={{ groups: groups.length || undefined, captures: captures.length || undefined }}
-      onSection={(s) => { if (s === section) setPaneOpen((v) => !v); else { setSection(s); setPaneOpen(true); } }}
+      onSection={(s) => { if (s === section) setPane(!paneOpen); else { setSection(s); setPane(true); } }}
       onSafeMode={toggleSafeMode}
       onSettings={() => setDialog({ kind: 'settings' })} />
 
-    <div className="workspace">
-      {paneOpen && <aside className="pane" inert={!!viewed || blockInput || undefined} aria-label={section === 'browse' ? '文件夹' : section === 'groups' ? '参考组' : '截图历史'}>
-        <header className="pane-head">{libInPane ? libSwitch : <h2>{section === 'groups' ? '参考组' : '截图历史'}</h2>}
-          <button className="icon-tool" onClick={() => setPaneOpen(false)} aria-label="收起侧栏" title="收起（Ctrl+B）"><PanelLeftClose size={16} /></button></header>
+    <div className={`workspace${paneMotion ? ` is-pane-moving is-pane-${paneMotion}` : ''}`}>
+      {(paneOpen || paneMotion === 'closing') && <aside className="pane" inert={!!viewed || blockInput || !paneOpen || undefined} aria-label={section === 'browse' ? '文件夹' : section === 'groups' ? '参考组' : '截图历史'}>
+        <header className="pane-head">{section === 'browse' ? (libInPane ? libSwitch : <span />) : <h2>{section === 'groups' ? '参考组' : '截图历史'}</h2>}
+          <button className="icon-tool" onClick={() => setPane(false)} aria-label="收起侧栏" title="收起（Ctrl+B）"><PanelLeftClose size={16} /></button></header>
         {section === 'browse' && <FolderPane folders={library.folders} counts={folderCounts} total={liveIndex.length} trashCount={trashCount}
           current={scope.folderId} trash={scope.trash} withDescendants={scope.withDescendants}
           onPick={(id) => { setViewing(null); setScope((s) => ({ ...s, folderId: id, trash: false })); }}
@@ -504,7 +554,7 @@ export default function App() {
 
       <main className="main" inert={!!viewed || blockInput || undefined} onPointerDownCapture={interruptRelease} onWheelCapture={interruptRelease} onKeyDownCapture={interruptRelease}>
         <header className="topbar">
-          {!paneOpen && <button className="icon-tool" onClick={() => setPaneOpen(true)} aria-label="展开侧栏" title="展开（Ctrl+B）"><PanelLeft size={16} /></button>}
+          {!paneOpen && <button className="icon-tool" onClick={() => setPane(true)} aria-label="展开侧栏" title="展开（Ctrl+B）"><PanelLeft size={16} /></button>}
           {!libInPane && libSwitch}
           <SearchBox ref={search} conditions={conditions} dict={dict} counts={counts}
             onAdd={(t, mode) => { setViewing(null); addTerm(t, mode); }}
@@ -582,7 +632,7 @@ export default function App() {
         setGroups((g) => [group, ...g]);
         setDialog(null);
         setSection('groups');
-        setPaneOpen(true);
+        setPane(true);
         log('group-save', { members: members.length, libraries: new Set(members.map((m) => m.view.libraryId)).size });
         toast(`已保存参考组「${name}」：${members.length} 个成员。`);
       }} />}

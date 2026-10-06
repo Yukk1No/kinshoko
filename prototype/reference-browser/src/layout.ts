@@ -86,6 +86,45 @@ export function resolveAnchor(layout: Layout, ids: string[], anchor: Anchor | nu
   return Math.max(0, layout.boxes[i].y + anchor.delta);
 }
 
+/** A spot inside one picture (frac of its height) held at a fixed height in the viewport (offset). */
+export type Focal = { id: string; frac: number; offset: number };
+
+/**
+ * What a picture-size change zooms around: the picture at the viewport's centre, or the preferred one when on
+ * screen. `keep` is the previous focal: it is held through a whole slider drag while its picture is in view.
+ */
+export function captureFocal(layout: Layout, ids: string[], scrollTop: number, viewport: number, keep?: Focal | null, prefer?: string): Focal | null {
+  const bottom = scrollTop + viewport;
+  const at = (id: string | null | undefined) => { const i = id ? ids.indexOf(id) : -1; return i >= 0 ? layout.boxes[i] : null; };
+  const onScreen = (b: Box | null): b is Box => !!b && b.y < bottom && b.y + b.h > scrollTop;
+  if (keep && onScreen(at(keep.id))) return keep;
+  const spot = (id: string, b: Box, y: number): Focal => {
+    y = Math.min(Math.max(y, b.y, scrollTop), b.y + b.h, bottom);
+    return { id, frac: (y - b.y) / b.h, offset: y - scrollTop };
+  };
+  const preferred = at(prefer);
+  if (prefer && onScreen(preferred)) return spot(prefer, preferred, preferred.y + preferred.h / 2);
+  const cy = scrollTop + viewport / 2, shown = visible(layout, scrollTop, bottom);
+  if (!shown.length) return null;
+  let left = Infinity, right = -Infinity;
+  for (const i of shown) { left = Math.min(left, layout.boxes[i].x); right = Math.max(right, layout.boxes[i].x + layout.boxes[i].w); }
+  let best = -1, bestScore = Infinity;
+  for (const i of shown) {
+    const b = layout.boxes[i];
+    const dy = b.y > cy ? b.y - cy : b.y + b.h < cy ? cy - b.y - b.h : 0;
+    const score = dy * 4 + Math.abs(b.x + b.w / 2 - (left + right) / 2);
+    if (score < bestScore) { bestScore = score; best = i; }
+  }
+  return spot(ids[best], layout.boxes[best], cy);
+}
+
+export function resolveFocal(layout: Layout, ids: string[], focal: Focal | null): number | null {
+  const i = focal ? ids.indexOf(focal.id) : -1;
+  if (!focal || i < 0) return null;
+  const b = layout.boxes[i];
+  return Math.max(0, b.y + focal.frac * b.h - focal.offset);
+}
+
 /** Spatial neighbour for arrow keys: the nearest box in that direction. */
 export function neighbour(layout: Layout, from: number, dir: 'up' | 'down' | 'left' | 'right'): number {
   const a = layout.boxes[from];
