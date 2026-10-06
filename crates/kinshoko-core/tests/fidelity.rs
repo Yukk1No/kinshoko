@@ -628,3 +628,195 @@ fn every_gated_sample_keeps_its_colour_in_the_thumbnail() {
     }
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
+
+/// 派生图文件的格式、位深与嵌入的 ICC。
+fn container_of(path: &Path) -> (image::ImageFormat, image::ColorType, Option<Vec<u8>>) {
+    use image::ImageDecoder;
+    let reader = image::ImageReader::open(path)
+        .unwrap()
+        .with_guessed_format()
+        .unwrap();
+    let format = reader.format().unwrap();
+    let mut decoder = reader.into_decoder().unwrap();
+    (format, decoder.color_type(), decoder.icc_profile().unwrap())
+}
+
+#[test]
+fn thumbnails_are_stored_losslessly_in_a_tier_chosen_by_the_source() {
+    use image::ColorType as C;
+    use image::ImageFormat as F;
+    let dir = tempfile::tempdir().unwrap();
+    let library = Library::create(&dir.path().join("lib"), "库").unwrap();
+    let p3_icc = |name: &str| {
+        image::ImageReader::new(std::io::Cursor::new(&gate_sample(name).bytes))
+            .with_guessed_format()
+            .unwrap()
+            .into_decoder()
+            .map(|mut d| image::ImageDecoder::icc_profile(&mut d).unwrap())
+            .unwrap()
+    };
+    let display_p3 = {
+        // 转换到 Display P3 的派生图带同一份 Display P3 配置文件。
+        let thumb = library
+            .thumbnail(
+                &import_sample(&library, dir.path(), gate_sample("lut-a2b0.png")),
+                128,
+            )
+            .unwrap();
+        container_of(&thumb).2.expect("带 ICC")
+    };
+    let display_p3_profile = moxcms::ColorProfile::new_from_slice(&display_p3).unwrap();
+    assert!(display_p3_profile.lut_a_to_b_perceptual.is_none());
+
+    // (样本, 格式, 颜色类型, ICC：None＝不带, Some(None)＝Display P3, Some(Some(b))＝原 ICC)
+    let cases: Vec<(&str, F, C, Option<Option<Vec<u8>>>)> = vec![
+        ("orientation-1.jpg", F::WebP, C::Rgb8, None),
+        ("alpha-edge.png", F::WebP, C::Rgba8, None),
+        ("srgb-vs-gama.png", F::WebP, C::Rgb8, None),
+        ("animated.gif", F::WebP, C::Rgb8, None),
+        ("p3-v4.jpg", F::WebP, C::Rgb8, Some(p3_icc("p3-v4.jpg"))),
+        (
+            "adobe-rgb.jpg",
+            F::WebP,
+            C::Rgb8,
+            Some(p3_icc("adobe-rgb.jpg")),
+        ),
+        (
+            "png16-p3.png",
+            F::Png,
+            C::Rgb16,
+            Some(p3_icc("png16-p3.png")),
+        ),
+        ("png16-gray-ramp.png", F::Png, C::Rgb16, None),
+        ("cmyk-profile.jpg", F::Png, C::Rgb16, Some(None)),
+        ("gama-18.png", F::Png, C::Rgb16, Some(None)),
+        ("cicp-p3.png", F::Png, C::Rgb16, Some(None)),
+        ("gray-gamma22.jpg", F::Png, C::Rgb16, Some(None)),
+        ("pq.png", F::Png, C::Rgb16, Some(None)),
+    ];
+    for (name, format, color, icc) in cases {
+        let id = import_sample(&library, dir.path(), gate_sample(name));
+        let (f, c, embedded) = container_of(&library.thumbnail(&id, 128).unwrap());
+        let expected_icc = match icc {
+            None => None,
+            Some(None) => Some(display_p3.clone()),
+            Some(Some(bytes)) => Some(bytes),
+        };
+        assert_eq!((f, c), (format, color), "{name}");
+        assert_eq!(embedded, expected_icc, "{name}");
+    }
+}
+
+#[test]
+fn hdr_originals_get_an_sdr_thumbnail_with_reference_white_near_sdr_white() {
+    let dir = tempfile::tempdir().unwrap();
+    let library = Library::create(&dir.path().join("lib"), "库").unwrap();
+    for name in ["pq.png", "hlg.png"] {
+        let id = import_sample(&library, dir.path(), gate_sample(name));
+        let path = library.thumbnail(&id, 128).unwrap();
+        // 派生图是带 Display P3 ICC 的普通 PNG，没有 cICP（不会被当作 HDR 显示）。
+        let bytes = std::fs::read(&path).unwrap();
+        assert!(!bytes.windows(4).any(|w| w == b"cICP"), "{name}");
+        let thumb = decode_derivative(&path);
+        // 色块：0＝203 尼特白，2＝1000 尼特白，3＝20 尼特灰。
+        let at = |block: u32| {
+            let (bw, bh) = (thumb.image.width() / 4, thumb.image.height() / 2);
+            let (x, y) = ((block % 4) * bw + bw / 2, (block / 4) * bh + bh / 2);
+            lab_of(&thumb.profile, {
+                let p = thumb.image.get_pixel(x, y).0;
+                [p[0], p[1], p[2]]
+            })[0]
+        };
+        let (reference, peak, dim) = (at(0), at(2), at(3));
+        assert!(
+            (90.0..99.5).contains(&reference),
+            "{name} 参考白 L* = {reference}"
+        );
+        assert!(peak > reference && peak <= 100.5, "{name} 峰值 L* = {peak}");
+        assert!(dim < reference * 0.6, "{name} 暗部 L* = {dim}");
+    }
+}
+
+#[test]
+fn an_animated_original_shows_its_first_frame_as_a_still_thumbnail() {
+    let dir = tempfile::tempdir().unwrap();
+    let library = Library::create(&dir.path().join("lib"), "库").unwrap();
+    for name in ["animated.gif", "animated.png", "animated.webp"] {
+        let id = import_sample(&library, dir.path(), gate_sample(name));
+        let bytes = std::fs::read(library.thumbnail(&id, 128).unwrap()).unwrap();
+        // 静止的无损 WebP：没有 ANIM 块。首帧色块的颜色由色彩门槛测试覆盖。
+        assert!(!bytes.windows(4).any(|w| w == b"ANIM"), "{name}");
+        assert!(!bytes.windows(4).any(|w| w == b"acTL"), "{name}");
+    }
+}
+
+#[test]
+fn downscaling_averages_light_linearly_and_keeps_transparent_edges_clean() {
+    let dir = tempfile::tempdir().unwrap();
+    let library = Library::create(&dir.path().join("lib"), "库").unwrap();
+    // 左半边：1 px 黑白竖线；右半边：不透明红色，旁边是全透明的黑。
+    let path = write(
+        &dir.path().join("in/lines.png"),
+        &png_rgba(512, 64, |x, _| {
+            if x < 256 {
+                if x % 2 == 0 {
+                    [0, 0, 0, 255]
+                } else {
+                    [255, 255, 255, 255]
+                }
+            } else if x < 384 {
+                [255, 0, 0, 255]
+            } else {
+                [0, 0, 0, 0]
+            }
+        }),
+    );
+    let id = import_one(&library, &path);
+    let thumb = image::open(library.thumbnail(&id, 128).unwrap())
+        .unwrap()
+        .to_rgba8();
+    assert_eq!(thumb.dimensions(), (128, 16));
+
+    // 线性光平均：一半白光 → sRGB 编码约 188；在编码值上平均会得到约 128。
+    let grey = thumb.get_pixel(32, 8).0;
+    assert!((185..=191).contains(&grey[0]), "线条区 {grey:?}");
+
+    // 预乘 alpha：红色与透明交界处只变透明，不变暗、不带黑边。
+    for x in 90..100 {
+        let p = thumb.get_pixel(x, 8).0;
+        if p[3] > 8 {
+            assert!(p[0] >= 250 && p[1] <= 4 && p[2] <= 4, "x = {x}: {p:?}");
+        }
+    }
+}
+
+#[test]
+fn thumbnails_of_an_older_pipeline_version_are_removed_and_rebuilt() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("lib");
+    let library = Library::create(&root, "库").unwrap();
+    let id = import_sample(&library, dir.path(), gate_sample("p3-v4.jpg"));
+    let current = library.thumbnail(&id, 128).unwrap();
+    drop(library);
+
+    // #44 的 v0 管线留下的缓存（同一原图、同一档位）。
+    let stale = root.join("cache/thumbs/v0/ab/abcdef-128.webp");
+    std::fs::create_dir_all(stale.parent().unwrap()).unwrap();
+    std::fs::write(&stale, b"old").unwrap();
+    std::fs::remove_file(&current).unwrap();
+
+    let reopened = Library::open(&root).unwrap();
+    let rebuilt = reopened.thumbnail(&id, 128).unwrap();
+    assert_eq!(rebuilt, current);
+    assert!(rebuilt.is_file());
+    assert!(!rebuilt.to_string_lossy().contains("v0"));
+    // 旧版本目录在后台删除。
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while root.join("cache/thumbs/v0").exists() {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "旧缩略图目录没有被删除"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+}
