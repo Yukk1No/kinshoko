@@ -80,6 +80,15 @@ impl DeviceRegistry {
         self.save()
     }
 
+    /// 取消本设备的登记；资料库文件与整理结果仍保存在原位置。
+    pub fn unregister(&mut self, id: &str) -> std::io::Result<()> {
+        self.state.libraries.retain(|library| library.id != id);
+        if self.state.last_opened.as_deref() == Some(id) {
+            self.state.last_opened = None;
+        }
+        self.save()
+    }
+
     fn save(&self) -> std::io::Result<()> {
         if let Some(dir) = self.path.parent() {
             std::fs::create_dir_all(dir)?;
