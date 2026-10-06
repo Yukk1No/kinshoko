@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import type { PersonalApproxEntry } from "./bindings/PersonalApproxEntry";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
+import type { TagLabel } from "./bindings/TagLabel";
 import { SettingsPanel } from "./SettingsPanel";
 
 afterEach(() => {
@@ -16,6 +18,7 @@ const defaults: ShellSettingsView = {
     { action: "pinClipboard", accelerator: "F3", problem: null },
     { action: "hideAllPins", accelerator: "F4", problem: null },
   ],
+  showApproxSource: false,
 };
 
 /** 记录前端发出的命令，按给定的处理函数回应。 */
@@ -138,5 +141,62 @@ describe("设置：常驻与快捷键", () => {
       action: "pinClipboard",
       accelerator: null,
     });
+  });
+});
+
+describe("设置：近似查找", () => {
+  const library = { id: "L1", name: "工作参考", root: "D:\\参考" };
+  const label = (id: string, name: string, hasExternal: boolean): TagLabel => ({
+    id,
+    namespace: "general",
+    name,
+    untranslated: false,
+    hasExternal,
+  });
+  const entries: PersonalApproxEntry[] = [
+    { a: label("B", "蓝瞳", true), b: label("S", "天空色", false), relation: "similar" },
+    { a: label("B", "蓝瞳", true), b: label("Q", "水色瞳", true), relation: "notSimilar" },
+  ];
+
+  it("相近标签来源标记默认关闭，打开后告诉主窗口", async () => {
+    const calls = backend((cmd) =>
+      cmd === "set_show_approx_source" ? { ...defaults, showApproxSource: true } : undefined,
+    );
+    const seen: ShellSettingsView[] = [];
+    render(<SettingsPanel library={null} onChange={(v) => seen.push(v)} />);
+
+    const toggle = await screen.findByRole("checkbox", { name: "显示相近标签来源（内置／个人）" });
+    expect((toggle as HTMLInputElement).checked).toBe(false);
+    fireEvent.click(toggle);
+
+    await screen.findByRole("checkbox", { name: "显示相近标签来源（内置／个人）", checked: true });
+    expect(calls.find((c) => c.cmd === "set_show_approx_source")?.args).toEqual({ on: true });
+    expect(seen.at(-1)?.showApproxSource).toBe(true);
+  });
+
+  it("资料库设置中列出个人近似对应表的条目，可以删除", async () => {
+    let listed = entries;
+    const calls = backend((cmd, args) => {
+      if (cmd === "plugin:library|personal_approx") return listed;
+      if (cmd === "plugin:library|remove_tag_approx") {
+        listed = listed.filter((e) => !(e.a.id === args.a && e.b.id === args.b));
+        return null;
+      }
+      return undefined;
+    });
+    render(<SettingsPanel library={library} />);
+
+    const table = await screen.findByRole("table", { name: "个人近似对应表" });
+    const rows = await within(table).findAllByRole("row");
+    expect(rows.map((r) => r.textContent)).toEqual([
+      "蓝瞳～天空色相近删除",
+      "蓝瞳～水色瞳不相近删除",
+    ]);
+    expect(within(rows[0]).getAllByRole("img", { name: "没有外部对应，不参与内置近似对应表" })).toHaveLength(1);
+
+    fireEvent.click(within(rows[1]).getByRole("button", { name: "删除" }));
+
+    await waitFor(() => expect(within(table).getAllByRole("row")).toHaveLength(1));
+    expect(calls.find((c) => c.cmd === "plugin:library|remove_tag_approx")?.args).toEqual({ a: "B", b: "Q" });
   });
 });

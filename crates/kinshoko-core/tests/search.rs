@@ -1,12 +1,18 @@
 //! 基础检索（#54）：Search 是纯计算，输入文字与词表快照 → 可见的条件树与候选。
 //! 这里只用手写的词表快照，不碰资料库与文件。
 
+use kinshoko_core::approx::BuiltinApproxTable;
 use kinshoko_core::library::{LocalizedName, TagAlias, TagNamespace, Vocabulary, VocabularyTag};
 use kinshoko_core::search::{
     Condition, ConditionInput, ConditionTree, Search, SearchInput, Term, TermInput,
 };
 
 const ZH: &str = "zh-CN";
+
+/// 不带内置近似对应表的 Search：这里只看基础检索。
+fn plain(vocabulary: &Vocabulary) -> Search {
+    Search::new(vocabulary, &BuiltinApproxTable::default())
+}
 
 fn tag(
     id: &str,
@@ -35,15 +41,25 @@ fn tag(
 }
 
 fn vocabulary(tags: Vec<VocabularyTag>) -> Vocabulary {
-    Vocabulary { revision: 7, tags }
+    Vocabulary {
+        revision: 7,
+        tags,
+        personal_approx: Vec::new(),
+    }
 }
 
 fn text(t: &str) -> TermInput {
-    TermInput::Text { text: t.into() }
+    TermInput::Text {
+        text: t.into(),
+        dismissed: Vec::new(),
+    }
 }
 
 fn tag_term(id: &str) -> TermInput {
-    TermInput::Tag { id: id.into() }
+    TermInput::Tag {
+        id: id.into(),
+        dismissed: Vec::new(),
+    }
 }
 
 fn all(terms: Vec<TermInput>) -> ConditionInput {
@@ -54,7 +70,10 @@ fn all(terms: Vec<TermInput>) -> ConditionInput {
 }
 
 fn input(conditions: Vec<ConditionInput>) -> SearchInput {
-    SearchInput { conditions }
+    SearchInput {
+        conditions,
+        exact: false,
+    }
 }
 
 /// 条件树里每个条件的各项，写成“文字/标签 id 列表”便于比较。
@@ -66,7 +85,7 @@ fn shape(tree: &ConditionTree) -> Vec<(bool, Vec<String>)> {
                 .iter()
                 .map(|term| match term {
                     Term::Tag { tag, .. } => format!("tag:{}", tag.id),
-                    Term::Text { text, tags } => {
+                    Term::Text { text, tags, .. } => {
                         let ids: Vec<&str> = tags.iter().map(|t| t.id.as_str()).collect();
                         format!("text:{text}[{}]", ids.join(","))
                     }
@@ -79,7 +98,7 @@ fn shape(tree: &ConditionTree) -> Vec<(bool, Vec<String>)> {
 
 #[test]
 fn typed_words_match_every_tag_whose_name_or_alias_contains_them_in_any_namespace() {
-    let search = Search::new(&vocabulary(vec![
+    let search = plain(&vocabulary(vec![
         tag("a1", TagNamespace::Artist, "某某", &[], 3),
         tag("c1", TagNamespace::Character, "某某", &[], 2),
         tag("g1", TagNamespace::General, "蓝发", &["蓝头发"], 5),
@@ -95,7 +114,7 @@ fn typed_words_match_every_tag_whose_name_or_alias_contains_them_in_any_namespac
 
 #[test]
 fn conditions_stay_separate_alternatives_stay_inside_one_and_exclusion_is_kept() {
-    let search = Search::new(&vocabulary(vec![
+    let search = plain(&vocabulary(vec![
         tag("blue", TagNamespace::General, "蓝发", &[], 5),
         tag("purple", TagNamespace::General, "紫发", &[], 3),
         tag("multi", TagNamespace::General, "多人", &[], 2),
@@ -131,7 +150,7 @@ fn conditions_stay_separate_alternatives_stay_inside_one_and_exclusion_is_kept()
 
 #[test]
 fn width_and_case_do_not_matter_when_typing() {
-    let search = Search::new(&vocabulary(vec![
+    let search = plain(&vocabulary(vec![
         tag("a", TagNamespace::Character, "Ｍｉｋｕ", &[], 1),
         tag("b", TagNamespace::General, "ポニーテール", &[], 1),
     ]));
@@ -154,7 +173,7 @@ fn external_names_are_not_a_way_to_find_a_tag_unless_it_is_still_untranslated() 
         external: vec!["hair_ornament".into()],
         count: 1,
     };
-    let search = Search::new(&vocabulary(vec![translated, untranslated]));
+    let search = plain(&vocabulary(vec![translated, untranslated]));
 
     let tree = search.resolve(&input(vec![all(vec![text("blue_eyes")])]), ZH);
     assert_eq!(shape(&tree), [(false, vec!["text:blue_eyes[]".to_owned()])]);
@@ -172,7 +191,7 @@ fn external_names_are_not_a_way_to_find_a_tag_unless_it_is_still_untranslated() 
 
 #[test]
 fn blank_words_are_ignored_but_a_condition_on_a_deleted_tag_matches_nothing() {
-    let search = Search::new(&vocabulary(vec![tag(
+    let search = plain(&vocabulary(vec![tag(
         "a",
         TagNamespace::General,
         "蓝发",
@@ -206,7 +225,7 @@ fn tag_names_in_the_tree_follow_the_interface_language() {
         lang: "ja".into(),
         name: "青髪".into(),
     });
-    let search = Search::new(&vocabulary(vec![t]));
+    let search = plain(&vocabulary(vec![t]));
 
     let tree = search.resolve(&input(vec![all(vec![text("青髪")])]), ZH);
     let Term::Text { tags, .. } = &tree.conditions[0].any[0] else {
@@ -240,7 +259,7 @@ fn listed(search: &Search, typed: &str) -> Vec<String> {
 
 #[test]
 fn one_word_in_several_namespaces_lists_one_candidate_per_namespace() {
-    let search = Search::new(&vocabulary(vec![
+    let search = plain(&vocabulary(vec![
         tag("a1", TagNamespace::Artist, "某某", &[], 3),
         tag("c1", TagNamespace::Character, "某某", &[], 8),
         tag("g1", TagNamespace::General, "短发", &[], 4),
@@ -252,7 +271,7 @@ fn one_word_in_several_namespaces_lists_one_candidate_per_namespace() {
 
 #[test]
 fn candidates_rank_exact_then_prefix_then_contains_and_names_before_aliases() {
-    let search = Search::new(&vocabulary(vec![
+    let search = plain(&vocabulary(vec![
         tag("contains", TagNamespace::General, "浅蓝发", &[], 50),
         tag("prefix", TagNamespace::General, "蓝发挑染", &[], 1),
         tag("prefix-big", TagNamespace::General, "蓝发少女", &[], 9),
@@ -282,7 +301,7 @@ fn a_name_in_another_language_counts_as_a_way_to_reach_the_tag() {
         lang: "en".into(),
         name: "Blue Hair".into(),
     });
-    let search = Search::new(&vocabulary(vec![t]));
+    let search = plain(&vocabulary(vec![t]));
 
     assert_eq!(listed(&search, "blue"), ["蓝发（Blue Hair）×1"]);
 }

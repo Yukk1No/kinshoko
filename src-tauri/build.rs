@@ -25,6 +25,9 @@ fn main() {
                     "tag_groups",
                     "search_candidates",
                     "resolve_search",
+                    "set_tag_approx",
+                    "remove_tag_approx",
+                    "personal_approx",
                     "image_rating",
                 ])
                 .default_permission(tauri_build::DefaultPermissionRule::AllowAllCommands),

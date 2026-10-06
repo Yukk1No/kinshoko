@@ -75,3 +75,15 @@ fn the_tagging_model_choice_is_automatic_until_the_artist_picks_one() {
     settings.set_tagging_model(None).unwrap();
     assert_eq!(AppSettings::open(dir.path()).unwrap().tagging_model(), None);
 }
+
+#[test]
+fn showing_where_similar_tags_come_from_is_off_until_turned_on_and_then_remembered() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(!settings.show_approx_source(), "来源标记默认不显示");
+
+    settings.set_show_approx_source(true).unwrap();
+    drop(settings);
+
+    assert!(AppSettings::open(dir.path()).unwrap().show_approx_source());
+}

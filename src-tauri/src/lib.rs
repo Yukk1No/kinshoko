@@ -38,6 +38,7 @@ pub fn run() {
             commands::shell_settings,
             commands::set_autostart,
             commands::rebind_shortcut,
+            commands::set_show_approx_source,
             tagging::tagging_status,
             tagging::tagging_download,
             tagging::tagging_pause,
