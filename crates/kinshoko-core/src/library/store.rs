@@ -17,6 +17,7 @@ use super::Error;
 fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
         M::up(include_str!("migrations/0001_library.sql")),
+        M::up(include_str!("migrations/0051_tags.sql")),
         M::up(include_str!("migrations/0046_import_pending.sql")),
     ])
 }
