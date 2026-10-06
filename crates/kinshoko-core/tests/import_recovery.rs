@@ -28,6 +28,7 @@ fn count(library: &Library) -> u32 {
     library
         .browse(&BrowseQuery {
             scope: Default::default(),
+            conditions: Default::default(),
             cursor: None,
             limit: 1,
             thumbnail_px: 256,

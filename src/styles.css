@@ -304,6 +304,13 @@ button.primary {
   font: inherit;
 }
 
+/* 状态栏里的自动标签 */
+.tagging {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .settings {
   padding: 12px 16px;
   border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
@@ -529,3 +536,116 @@ button.primary {
 }
 .viewer-message p { margin: 0 0 8px; }
 .viewer-hint { padding: 4px 12px; font-size: 12px; text-align: center; }
+
+/* 搜索框（#54）：条件以标签块排在输入框前，下拉候选浮在图片墙上。 */
+.search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.search-chips {
+  display: contents;
+  list-style: none;
+}
+
+.search-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.search-chip[data-negate] {
+  text-decoration: line-through;
+  text-decoration-color: var(--accent-strong);
+}
+
+.search-chip-not {
+  color: var(--accent-strong);
+  margin-right: 4px;
+  text-decoration: none;
+}
+
+.search-chip-or,
+.search-chip-missing {
+  opacity: 0.6;
+}
+
+.search-chip button {
+  border: none;
+  background: none;
+  padding: 0 4px;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.search-chip button:hover,
+.search-chip button[aria-pressed="true"] {
+  opacity: 1;
+  color: var(--accent-strong);
+}
+
+.search-field {
+  position: relative;
+  flex: 1;
+  min-width: 160px;
+}
+
+.search-field input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.search-candidates {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+}
+
+.search-candidates li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.search-candidates li[aria-selected="true"] {
+  background: var(--line);
+}
+
+.search-candidate-via,
+.untranslated {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.search-candidate-count {
+  margin-left: auto;
+  font-size: 12px;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}

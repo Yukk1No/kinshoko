@@ -4,10 +4,14 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { AppInfo } from "./bindings/AppInfo";
+import type { Candidate } from "./bindings/Candidate";
+import type { ConditionTree } from "./bindings/ConditionTree";
+import type { SearchInput } from "./bindings/SearchInput";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
 import type { ImageDetail } from "./bindings/ImageDetail";
 import type { ImageEdit } from "./bindings/ImageEdit";
+import type { ImageRating } from "./bindings/ImageRating";
 import type { ImageTags } from "./bindings/ImageTags";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
@@ -17,6 +21,7 @@ import type { Sidebar } from "./bindings/Sidebar";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { TagEdit } from "./bindings/TagEdit";
 import type { TagGroupView } from "./bindings/TagGroupView";
+import type { TaggingStatus } from "./bindings/TaggingStatus";
 import type { Vocabulary } from "./bindings/Vocabulary";
 
 export function appInfo(): Promise<AppInfo> {
@@ -121,6 +126,16 @@ export function tagGroups(lang: string): Promise<TagGroupView[]> {
   return invoke<TagGroupView[]>(lib("tag_groups"), { lang });
 }
 
+/** 搜索框打字时的候选：按命名空间与别名列出，最多 limit 个。 */
+export function searchCandidates(text: string, lang: string, limit: number): Promise<Candidate[]> {
+  return invoke<Candidate[]>(lib("search_candidates"), { text, lang, limit });
+}
+
+/** 把搜索框里的条件解析成可见的条件树，交给 browse 执行。 */
+export function resolveSearch(input: SearchInput, lang: string): Promise<ConditionTree> {
+  return invoke<ConditionTree>(lib("resolve_search"), { input, lang });
+}
+
 export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<UnlistenFn> {
   return listen<LibraryEvent>("library-event", (e) => handler(e.payload));
 }
@@ -156,6 +171,34 @@ export function pickFolder(): Promise<string | null> {
 export function pickFiles(): Promise<string[]> {
   const t = testPick<string[]>();
   return t ? Promise.resolve(t.value ?? []) : invoke<string[]>(lib("pick_files"));
+}
+
+/** 一张参考图的内容分级（自动与有效）。 */
+export function imageRating(imageId: string): Promise<ImageRating> {
+  return invoke<ImageRating>(lib("image_rating"), { imageId });
+}
+
+/** 自动标签的当前状态；还没打开资料库时 reject。 */
+export function taggingStatus(): Promise<TaggingStatus> {
+  return invoke<TaggingStatus>("tagging_status");
+}
+
+/** 画师确认后下载打标模型（可续传）。 */
+export function taggingDownload(): Promise<void> {
+  return invoke<void>("tagging_download");
+}
+
+/** 暂停打标：结束打标子进程，归还显存。 */
+export function taggingPause(): Promise<void> {
+  return invoke<void>("tagging_pause");
+}
+
+export function taggingResume(): Promise<void> {
+  return invoke<void>("tagging_resume");
+}
+
+export function onTaggingStatus(handler: (status: TaggingStatus) => void): Promise<UnlistenFn> {
+  return listen<TaggingStatus>("tagging-status", (e) => handler(e.payload));
 }
 
 /** 应用壳设置：开机自启与全局快捷键。 */

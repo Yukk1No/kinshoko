@@ -1,21 +1,25 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowseScope } from "./bindings/BrowseScope";
+import type { ConditionTree } from "./bindings/ConditionTree";
+import type { SearchInput } from "./bindings/SearchInput";
 import type { ImportReport } from "./bindings/ImportReport";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { ImageCard } from "./bindings/ImageCard";
-import { appInfo, currentLibrary, onLibraryEvent } from "./ipc";
+import { appInfo, currentLibrary, onLibraryEvent, resolveSearch } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { ImportBar, type RunningImport } from "./library/ImportBar";
 import { SelectionPanel } from "./library/SelectionPanel";
 import { SidebarPane } from "./library/SidebarPane";
+import { SearchBox, UI_LANG } from "./search/SearchBox";
 import { SettingsPanel } from "./SettingsPanel";
+import { TaggingIndicator } from "./TaggingIndicator";
 import { scopeKey, Wall } from "./wall/Wall";
 import { Viewer } from "./viewer/Viewer";
 
 /**
  * 主窗口：打开上次的资料库（没有时引导建库），导入，在侧栏切换全部／文件夹／回收站，
- * 在图片墙浏览并整理选中的图；状态栏可打开设置。
+ * 按搜索框的条件查找，在图片墙浏览并整理选中的图；状态栏可打开设置。
  */
 export function App() {
   const [info, setInfo] = useState<AppInfo | null>(null);
@@ -32,6 +36,10 @@ export function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarMoving, setSidebarMoving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [search, setSearch] = useState<SearchInput>({ conditions: [] });
+  const [tree, setTree] = useState<ConditionTree>({ conditions: [] });
+  /** 词表或图片变化时递增：重新解析条件（标签可能改名、删除或新增了叫法）。 */
+  const [vocabularyKey, setVocabularyKey] = useState(0);
   const onError = useCallback((message: string) => setProblem(message), []);
   const changeScope = (next: BrowseScope) => {
     setScope(next);
@@ -72,6 +80,10 @@ export function App() {
         case "listStale":
           setReloadKey((k) => k + 1);
           break;
+        case "vocabularyChanged":
+        case "imagesChanged":
+          setVocabularyKey((k) => k + 1);
+          break;
         case "taskProgress":
           setRunning({ taskId: event.taskId, progress: event.progress });
           break;
@@ -85,6 +97,29 @@ export function App() {
       void unlisten.then((stop) => stop());
     };
   }, [libraryId]);
+
+  // 条件变化时由 Search 解析成条件树，图片墙按它浏览。
+  const searching = search.conditions.length > 0;
+  useEffect(() => {
+    if (!libraryId) return;
+    if (!searching) {
+      setTree((prev) => (prev.conditions.length ? { conditions: [] } : prev));
+      return;
+    }
+    let alive = true;
+    resolveSearch(search, UI_LANG).then(
+      (next) => {
+        if (!alive) return;
+        setTree(next);
+        // 同一棵条件树的结果也可能变了（图片的标签变了），保持位置重新浏览。
+        if (vocabularyKey) setReloadKey((k) => k + 1);
+      },
+      (e) => alive && setProblem(String(e)),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [libraryId, search, searching, vocabularyKey]);
 
   const started = (taskId: string) => {
     setReport(null);
@@ -121,6 +156,14 @@ export function App() {
               />
             </div>
             <main className="app-main">
+              <SearchBox
+                input={search}
+                tree={searching ? tree : null}
+                onChange={(next) => {
+                  setSearch(next);
+                  setSelected(new Set());
+                }}
+              />
               {problem && (
                 <p className="app-problem" role="alert">
                   {problem}
@@ -139,9 +182,10 @@ export function App() {
                 />
               )}
               <Wall
-                key={`${library.id}/${scopeKey(scope)}`}
+                key={`${library.id}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
                 libraryId={library.id}
                 scope={scope}
+                conditions={tree}
                 reloadKey={reloadKey}
                 selected={selected}
                 onSelectionChange={setSelected}
@@ -162,6 +206,7 @@ export function App() {
       {showSettings && <div inert={viewing !== null}><SettingsPanel /></div>}
       <footer className="app-status" inert={viewing !== null}>
         <span>{info && `${info.productName} ${info.version}`}</span>
+        {library && <TaggingIndicator key={library.id} />}
         <button
           type="button"
           aria-pressed={showSettings}

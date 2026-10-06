@@ -32,8 +32,15 @@ function Detail({
 }) {
   const { manual, sources } = detail.note;
   const sourceText = sources.map((s) => s.text).join("\n");
-  const [draft, setDraft] = useState(manual ?? sourceText);
-  useEffect(() => setDraft(manual ?? sourceText), [manual, sourceText]);
+  const saved = manual ?? sourceText;
+  const [draft, setDraft] = useState(saved);
+  // 保存或退回后备注变了，草稿跟着换。在渲染中比较而不用 effect：effect 晚一拍执行时
+  // 会冲掉刚打的字。
+  const [shown, setShown] = useState(saved);
+  if (shown !== saved) {
+    setShown(saved);
+    setDraft(saved);
+  }
 
   return (
     <div className="selection-detail">
@@ -49,7 +56,7 @@ function Detail({
       <div className="selection-actions">
         <button
           type="button"
-          disabled={draft === (manual ?? sourceText)}
+          disabled={draft === saved}
           onClick={() => edit([{ kind: "setNote", text: draft }])}
         >
           保存备注
