@@ -281,11 +281,17 @@ def build_table(candidates, reviews, source, previous):
     keys = {(c.category, c.a, c.b) for c in candidates}
     missing = sorted(keys - reviews.keys())
     stale = sorted(reviews.keys() - keys)
+    def listing(title, ks, limit=20):
+        rows = ["\t".join(k) for k in ks[:limit]]
+        if len(ks) > limit:
+            rows.append(f"……共 {len(ks)} 条")
+        return f"{title}：\n" + "\n".join(rows)
+
     problems = []
     if missing:
-        problems.append("以下候选尚未审核：\n" + "\n".join("\t".join(k) for k in missing))
+        problems.append(listing("以下候选尚未审核（可用 pending 列出全部）", missing))
     if stale:
-        problems.append("以下审核记录已不是候选：\n" + "\n".join("\t".join(k) for k in stale))
+        problems.append(listing("以下审核记录已不是候选", stale))
     if problems:
         raise ReviewError("\n".join(problems))
 
@@ -378,8 +384,9 @@ DEFAULT_CACHE = os.path.join(HERE, ".cache")
 def _read(path):
     if not os.path.exists(path):
         return None
+    # Git 在 Windows 上可能把换行检出为 CRLF；按 LF 比较。
     with open(path, encoding="utf-8", newline="") as f:
-        return f.read()
+        return f.read().replace("\r\n", "\n")
 
 
 def main(argv=None):
