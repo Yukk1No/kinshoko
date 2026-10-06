@@ -255,6 +255,8 @@ pub struct Vocabulary {
     #[ts(type = "number")]
     pub revision: i64,
     pub tags: Vec<VocabularyTag>,
+    /// 个人近似对应表的全部条目。
+    pub personal_approx: Vec<crate::approx::PersonalApprox>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -938,6 +940,7 @@ pub(super) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error> {
     Ok(Vocabulary {
         revision,
         tags: tags.into_values().collect(),
+        personal_approx: Vec::new(),
     })
 }
 
