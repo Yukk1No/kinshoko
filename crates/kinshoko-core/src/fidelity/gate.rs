@@ -536,13 +536,21 @@ pub fn samples() -> Vec<GateSample> {
         p.cicp = None;
         p
     };
-    for (name, gamma, note) in [
+    // 没有 cHRM 时，gAMA 与 1/2.2 相差不到 5% 算“中性”，Chromium 按 sRGB 解释（Skia 的
+    // `kPngGammaThreshold`，沿用 libpng 的 `PNG_GAMMA_THRESHOLD_FIXED`）。
+    for (name, gamma, note, expected) in [
         (
             "gama-045455.png",
             0.45455f32,
-            "只有 gAMA 0.45455：sRGB 原色加 2.2 次幂",
+            "只有 gAMA 0.45455：接近 1/2.2，按 sRGB 解释",
+            ColorProfile::new_srgb(),
         ),
-        ("gama-18.png", 1.0 / 1.8, "只有 gAMA 1/1.8"),
+        (
+            "gama-18.png",
+            1.0 / 1.8,
+            "只有 gAMA 1/1.8",
+            gamma_profile(1.0 / 1.8, None),
+        ),
     ] {
         all.push(sample(
             name,
@@ -560,7 +568,7 @@ pub fn samples() -> Vec<GateSample> {
                 },
                 &[],
             ),
-            rgb_patches(&gamma_profile(gamma, None)),
+            rgb_patches(&expected),
         ));
     }
     let p3_chrm = png::SourceChromaticities::new(

@@ -188,6 +188,19 @@ fn import_records_how_each_gate_sample_declares_its_colour() {
             None,
             false,
         ),
+        // 与 1/2.2 相差不到 5%、又没有 cHRM：Chromium 不建配置文件，按 sRGB 解释。
+        (
+            "gama-045455.png",
+            "png",
+            8,
+            M::Rgb,
+            D::None,
+            None,
+            false,
+            1,
+            None,
+            false,
+        ),
         (
             "gama-18.png",
             "png",
@@ -692,6 +705,7 @@ fn thumbnails_are_stored_losslessly_in_a_tier_chosen_by_the_source() {
         ),
         ("png16-gray-ramp.png", F::Png, C::Rgb16, None),
         ("cmyk-profile.jpg", F::Png, C::Rgb16, Some(None)),
+        ("gama-045455.png", F::WebP, C::Rgb8, None),
         ("gama-18.png", F::Png, C::Rgb16, Some(None)),
         ("cicp-p3.png", F::Png, C::Rgb16, Some(None)),
         ("gray-gamma22.jpg", F::Png, C::Rgb16, Some(None)),

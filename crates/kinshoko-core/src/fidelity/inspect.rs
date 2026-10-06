@@ -285,8 +285,11 @@ fn contains(haystack: &[u8], needle: &[u8]) -> bool {
     haystack.windows(needle.len()).any(|w| w == needle)
 }
 
+/// Skia 判断 gAMA 是否“中性”的容差。
+const PNG_GAMMA_THRESHOLD: f32 = 0.05;
+
 /// PNG：Chromium（Skia 的 Rust PNG 解码器）的优先级为 cICP（矩阵系数 0 且全范围）→ iCCP →
-/// sRGB 块 → gAMA＋cHRM；只有 gAMA 时用 sRGB 原色；没有 gAMA 时忽略 cHRM。
+/// sRGB 块 → gAMA＋cHRM；只有 gAMA 时用 sRGB 原色，接近 1/2.2 时按 sRGB；没有 gAMA 时忽略 cHRM。
 fn png(bytes: &[u8], found: &mut Found) -> Result<(), String> {
     let decoder = png::Decoder::new(Cursor::new(bytes));
     let reader = decoder.read_info().map_err(|e| e.to_string())?;
@@ -314,11 +317,15 @@ fn png(bytes: &[u8], found: &mut Found) -> Result<(), String> {
     found.srgb_chunk = info.srgb.is_some();
     if let Some(g) = info.gama_chunk {
         let g = g.into_value();
-        if g > 0.0 {
+        let chromaticities = info.chrm_chunk.map(|c| {
+            [c.white, c.red, c.green, c.blue].map(|(x, y)| (x.into_value(), y.into_value()))
+        });
+        // 没有 cHRM 时，与 1/2.2 相差不到 5% 的 gAMA 是“中性”的：Chromium 不建配置文件，
+        // 按 sRGB 解释（Skia `kPngGammaThreshold`，沿用 libpng 的 `PNG_GAMMA_THRESHOLD_FIXED`）。
+        let neutral = chromaticities.is_none() && (g * 2.2 - 1.0).abs() < PNG_GAMMA_THRESHOLD;
+        if g > 0.0 && !neutral {
             found.gamma = Some(g);
-            found.chromaticities = info.chrm_chunk.map(|c| {
-                [c.white, c.red, c.green, c.blue].map(|(x, y)| (x.into_value(), y.into_value()))
-            });
+            found.chromaticities = chromaticities;
         }
     }
     let cll = info
