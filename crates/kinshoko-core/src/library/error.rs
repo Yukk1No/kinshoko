@@ -8,6 +8,9 @@ pub enum Error {
     NotEmpty(PathBuf),
     NotALibrary(PathBuf),
     UnknownImage,
+    UnknownFolder,
+    /// 文件夹不能移进它自己或它的子文件夹。
+    FolderCycle,
     InvalidCursor,
     Io(std::io::Error),
     Db(rusqlite::Error),
@@ -22,6 +25,8 @@ impl fmt::Display for Error {
             Error::NotEmpty(p) => write!(f, "所选位置不是空文件夹：{}", p.display()),
             Error::NotALibrary(p) => write!(f, "这里没有 Kinshoko 资料库：{}", p.display()),
             Error::UnknownImage => write!(f, "资料库中没有这张参考图"),
+            Error::UnknownFolder => write!(f, "资料库中没有这个文件夹"),
+            Error::FolderCycle => write!(f, "文件夹不能移进它自己或它的子文件夹"),
             Error::InvalidCursor => write!(f, "浏览位置无效"),
             Error::Io(e) => write!(f, "读写文件失败：{e}"),
             Error::Db(e) => write!(f, "资料库数据库出错：{e}"),

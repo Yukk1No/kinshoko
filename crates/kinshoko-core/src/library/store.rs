@@ -15,7 +15,10 @@ use super::Error;
 
 /// 只追加，不改已发布的迁移。
 fn migrations() -> Migrations<'static> {
-    Migrations::new(vec![M::up(include_str!("migrations/0001_library.sql"))])
+    Migrations::new(vec![
+        M::up(include_str!("migrations/0001_library.sql")),
+        M::up(include_str!("migrations/0050_folders_notes_trash.sql")),
+    ])
 }
 
 pub(super) const DB_FILE: &str = "library.sqlite";

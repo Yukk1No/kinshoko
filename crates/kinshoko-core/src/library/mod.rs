@@ -4,14 +4,18 @@
 //! - [`Library::browse`]：浏览，keyset 分页，返回已解析缩略图地址的卡片；
 //! - [`Library::import`]：立即返回导入任务，带进度、取消与逐项结果；
 //! - [`Library::events`]：提交后才推送的变更事件；
-//! - [`Library::thumbnail`]：缩略图（可重建缓存）的本地文件。
+//! - [`Library::thumbnail`]：缩略图（可重建缓存）的本地文件；
+//! - [`Library::sidebar`]：文件夹树与按可见图计算的计数；
+//! - 文件夹编辑：[`Library::create_folder`]、[`Library::rename_folder`]、[`Library::move_folder`]。
 //!
 //! 资料库目录：`library.sqlite`（身份与全部整理结果）＋ `originals/<sha 前两位>/<sha>.<ext>`
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
 
 mod error;
 mod events;
+mod folders;
 mod import;
+mod sidebar;
 mod store;
 mod thumbnail;
 mod types;
@@ -24,7 +28,9 @@ use rusqlite::{OptionalExtension, params};
 
 pub use error::Error;
 pub use events::LibraryEvent;
+pub use folders::FolderNode;
 pub use import::ImportTask;
+pub use sidebar::Sidebar;
 pub use types::{
     BrowsePage, BrowseQuery, BrowseScope, ImageCard, ImportItem, ImportOutcome, ImportProgress,
     ImportReport, ImportSource, LibraryInfo,
@@ -39,6 +45,9 @@ const ORIGINALS_DIR: &str = "originals";
 const STAGING_DIR: &str = ".staging";
 const CACHE_DIR: &str = "cache";
 const READERS: usize = 4;
+
+/// 可见的参考图：不在回收站里。浏览、计数与侧栏都只算可见的图（`image` 表的条件）。
+pub(crate) const LIVE: &str = "image.deleted_at IS NULL";
 
 /// 一个打开的资料库。可在线程间共享（`Arc<Library>`）。
 pub struct Library {
@@ -145,6 +154,31 @@ impl Library {
         thumbnail::get(&self.inner, image_id, target_px)
     }
 
+    /// 侧栏：全部、回收站与文件夹树，计数只算可见的图。
+    pub fn sidebar(&self) -> Result<Sidebar, Error> {
+        sidebar::get(&self.inner)
+    }
+
+    /// 新建文件夹，放在 `parent` 下（`None` 为顶层）的最后，返回文件夹 id。
+    pub fn create_folder(&self, name: &str, parent: Option<&str>) -> Result<String, Error> {
+        folders::create(&self.inner, name, parent)
+    }
+
+    pub fn rename_folder(&self, folder_id: &str, name: &str) -> Result<(), Error> {
+        folders::rename(&self.inner, folder_id, name)
+    }
+
+    /// 把文件夹（连同子文件夹）移到 `parent` 下（`None` 为顶层）的第 `position` 位；
+    /// 超出时放在最后。不能移进它自己或它的子文件夹。
+    pub fn move_folder(
+        &self,
+        folder_id: &str,
+        parent: Option<&str>,
+        position: u32,
+    ) -> Result<(), Error> {
+        folders::move_to(&self.inner, folder_id, parent, position)
+    }
+
     /// 参考图原文件的位置。
     pub fn original_path(&self, image_id: &str) -> Result<PathBuf, Error> {
         let conn = self.inner.readers.get();
@@ -157,6 +191,27 @@ impl Library {
             .optional()?
             .ok_or(Error::UnknownImage)?;
         Ok(self.inner.root.join(rel))
+    }
+}
+
+impl Inner {
+    /// 在写线程上跑一个短事务；提交后才推送“列表过期”。
+    pub(crate) fn write<T: Send + 'static>(
+        &self,
+        f: impl FnOnce(&rusqlite::Transaction) -> Result<T, Error> + Send + 'static,
+    ) -> Result<T, Error> {
+        let result = self.writer.run(move |conn| {
+            let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+            let value = f(&tx)?;
+            tx.commit()?;
+            Ok(value)
+        });
+        if result.is_ok() {
+            self.hub.publish(LibraryEvent::ListStale {
+                library_id: self.info.id.clone(),
+            });
+        }
+        result
     }
 }
 
