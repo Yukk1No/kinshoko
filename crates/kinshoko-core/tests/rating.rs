@@ -4,7 +4,8 @@
 use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::library::{
-    ContentRating, FactSource, ImageEdit, ImageRating, ImportOutcome, ImportSource, RatingFact,
+    BrowseQuery, ContentRating, FactSource, ImageEdit, ImageRating, ImportOutcome, ImportSource,
+    LibraryEvent, RatingFact,
 };
 
 fn library_with_images(n: u8) -> (tempfile::TempDir, Library, Vec<String>) {
@@ -29,7 +30,65 @@ fn library_with_images(n: u8) -> (tempfile::TempDir, Library, Vec<String>) {
             other => panic!("未导入：{other:?}"),
         })
         .collect();
+    // 这些测试要读写含成人内容的图：关掉安全模式（另有测试检查封印随人工分级变化）。
+    library.set_safe_mode(false);
     (dir, library, ids)
+}
+
+fn visible(library: &Library) -> Vec<String> {
+    library
+        .browse(&BrowseQuery {
+            scope: Default::default(),
+            conditions: Default::default(),
+            cursor: None,
+            limit: 100,
+            thumbnail_px: 64,
+        })
+        .unwrap()
+        .cards
+        .into_iter()
+        .map(|c| c.id)
+        .collect()
+}
+
+#[test]
+fn safe_mode_seals_and_releases_images_by_their_manual_rating() {
+    let (_dir, library, ids) = library_with_images(2);
+    suggest(&library, &ids[0], ContentRating::General);
+    suggest(&library, &ids[1], ContentRating::Explicit);
+    library.set_safe_mode(true);
+    assert_eq!(visible(&library), vec![ids[0].clone()]);
+    let events = library.events();
+
+    // 模型说全年龄，画师改成露骨：安全模式下随即封印，浏览结果过期。
+    library
+        .edit(
+            &ids[..1],
+            &[ImageEdit::SetRating {
+                rating: ContentRating::Explicit,
+            }],
+        )
+        .unwrap();
+    assert!(visible(&library).is_empty());
+    assert!(
+        events
+            .try_iter()
+            .any(|e| matches!(e, LibraryEvent::ListStale { .. })),
+        "封印变化时推送列表过期"
+    );
+
+    // 模型说露骨，画师改成全年龄：放出。
+    library.set_safe_mode(false);
+    library
+        .edit(
+            &ids[1..],
+            &[ImageEdit::SetRating {
+                rating: ContentRating::General,
+            }],
+        )
+        .unwrap();
+    library.set_safe_mode(true);
+    assert_eq!(visible(&library), vec![ids[1].clone()]);
 }
 
 fn model() -> FactSource {

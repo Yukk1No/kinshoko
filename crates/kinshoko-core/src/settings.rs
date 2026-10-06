@@ -1,4 +1,4 @@
-//! 应用壳设置：本设备上与具体资料库无关的偏好（开机自启、全局快捷键、相近标签来源标记）。
+//! 应用壳设置：本设备上与具体资料库无关的偏好（开机自启、全局快捷键、安全模式、相近标签来源标记）。
 //!
 //! 保存在应用配置目录的 `settings.json`。后续的设置（钉图、模型选择、诊断开关等）
 //! 在 [`SettingsFile`] 上加带默认值的字段即可；不认识的字段原样保留，旧版本打开新版本
@@ -65,6 +65,8 @@ struct SettingsFile {
     shortcuts: BTreeMap<ShortcutAction, Option<String>>,
     /// 画师选的打标模型（模型 key）；`None` 为按本机条件自动选择。
     tagging_model: Option<String>,
+    /// 安全模式（#60）：新安装默认开启。
+    safe_mode: bool,
     /// 在查找条件里标出相近标签来自内置还是个人近似对应表（#56），默认不显示。
     show_approx_source: bool,
     /// 新版本写入、本版本不认识的字段。
@@ -79,6 +81,7 @@ impl Default for SettingsFile {
             autostart: true,
             shortcuts: BTreeMap::new(),
             tagging_model: None,
+            safe_mode: true,
             show_approx_source: false,
             unknown: serde_json::Map::new(),
         }
@@ -147,6 +150,15 @@ impl AppSettings {
 
     pub fn set_tagging_model(&mut self, key: Option<&str>) -> Result<(), SettingsError> {
         self.update(|f| f.tagging_model = key.map(str::to_owned))
+    }
+
+    /// 安全模式是否开启。
+    pub fn safe_mode(&self) -> bool {
+        self.file.safe_mode
+    }
+
+    pub fn set_safe_mode(&mut self, on: bool) -> Result<(), SettingsError> {
+        self.update(|f| f.safe_mode = on)
     }
 
     /// 查找条件里是否标出相近标签的来源（内置／个人）。

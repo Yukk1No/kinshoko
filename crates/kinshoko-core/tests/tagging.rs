@@ -33,6 +33,8 @@ impl Fixture {
     fn new(images: u8) -> Fixture {
         let dir = tempfile::tempdir().unwrap();
         let library = Arc::new(Library::create(&dir.path().join("lib"), "库").unwrap());
+        // 这里只看打标结果；安全模式（#60）另有测试，关掉它以便读到成人分级的图。
+        library.set_safe_mode(false);
         let fixture = Fixture {
             library,
             ids: Vec::new(),

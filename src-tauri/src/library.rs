@@ -3,7 +3,9 @@
 //!
 //! - 命令都是 async，阻塞工作放进 `spawn_blocking`，不占用主线程；
 //! - 资料库事件转发为窗口事件 `library-event`；
-//! - 缩略图走自定义协议 `thumb`：`<资料库 id>/<参考图 id>/<像素档位>`，缓存缺失时现场生成。
+//! - 缩略图走自定义协议 `thumb`：`<资料库 id>/<参考图 id>/<像素档位>`，缓存缺失时现场生成；
+//! - 安全模式（#60）：开关保存在应用壳设置里，打开资料库与切换时设给当前资料库。这里的命令都是
+//!   浏览视角；参考视角的句柄在装配（打开资料库）时取走，只交给参考组与桌面钉图，不经命令给前端。
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -12,8 +14,8 @@ use std::sync::{Arc, Mutex};
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::library::{
     BrowsePage, BrowseQuery, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportSource,
-    ImportTask, LibraryEvent, LibraryInfo, PersonalApproxEntry, RecoveryReport, Sidebar, TagEdit,
-    TagGroupView, Vocabulary,
+    ImportTask, LibraryEvent, LibraryInfo, PersonalApproxEntry, RecoveryReport, ReferenceLens,
+    Sidebar, TagEdit, TagGroupView, Vocabulary,
 };
 use kinshoko_core::search::{Candidate, ConditionTree, Search, SearchInput};
 use kinshoko_core::{DeviceRegistry, Library};
@@ -21,6 +23,8 @@ use tauri::http::{Response, StatusCode, header};
 use tauri::plugin::{Builder, TauriPlugin};
 use tauri::{AppHandle, Emitter, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
+
+use crate::shell::ShellState;
 
 /// 指定本设备登记表所在目录；不设时用应用数据目录。WebDriver 冒烟测试用它隔离数据。
 const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
@@ -32,6 +36,9 @@ struct LibraryState {
     tasks: Arc<Mutex<HashMap<String, ImportTask>>>,
     /// 当前资料库词表快照上的 Search；词表或图片变化时清掉，下次查找时重建。
     search: Arc<Mutex<Option<Arc<Search>>>>,
+    /// 当前资料库参考视角的句柄，装配时取走。只交给参考组（#66）与桌面钉图（#65），
+    /// 不经任何命令交给前端。
+    reference: Mutex<Option<ReferenceLens>>,
     /// 随软件分发的内置近似对应表，启动时读取一次。
     builtin_approx: BuiltinApproxTable,
 }
@@ -74,7 +81,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             set_tag_approx,
             remove_tag_approx,
             personal_approx,
-            image_rating
+            image_rating,
+            safe_mode,
+            set_safe_mode
         ])
         .setup(|app, _api| {
             app.plugin(tauri_plugin_dialog::init())?;
@@ -97,6 +106,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 current: Mutex::new(None),
                 tasks: Arc::default(),
                 search: Arc::default(),
+                reference: Mutex::new(None),
                 builtin_approx: BuiltinApproxTable::bundled(),
             });
             Ok(())
@@ -149,7 +159,9 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
 /// 设为当前资料库，并把它的事件转发给前端。
 fn activate<R: Runtime>(app: &AppHandle<R>, state: &LibraryState, library: Library) -> LibraryInfo {
     let info = library.info().clone();
+    library.set_safe_mode(saved_safe_mode(app));
     let events = library.events();
+    *lock(&state.reference) = library.take_reference_lens();
     let library = Arc::new(library);
     *lock(&state.current) = Some(library.clone());
     *lock(&state.search) = None;
@@ -168,11 +180,13 @@ fn activate<R: Runtime>(app: &AppHandle<R>, state: &LibraryState, library: Libra
                     _ => {}
                 }
                 // 先清掉旧快照再通知前端，前端收到事件后的查找用的是新词表。
+                // 安全模式切换后词表计数与可见的标签都变了。
                 if matches!(
                     event,
                     LibraryEvent::VocabularyChanged { .. }
                         | LibraryEvent::ImagesChanged { .. }
                         | LibraryEvent::ListStale { .. }
+                        | LibraryEvent::SafeModeChanged { .. }
                 ) {
                     lock(&search).take();
                 }
@@ -181,6 +195,13 @@ fn activate<R: Runtime>(app: &AppHandle<R>, state: &LibraryState, library: Libra
         })
         .expect("无法启动事件转发线程");
     info
+}
+
+/// 设置里的安全模式；读不到设置时按开启处理。
+fn saved_safe_mode<R: Runtime>(app: &AppHandle<R>) -> bool {
+    app.try_state::<ShellState>()
+        .and_then(|shell| shell.0.lock().ok().map(|s| s.settings.safe_mode()))
+        .unwrap_or(true)
 }
 
 async fn blocking<T: Send + 'static>(
@@ -452,6 +473,32 @@ async fn resolve_search(
     let library = state.current()?;
     let search = search(state.inner(), &library)?;
     Ok(search.resolve(&input, &lang))
+}
+
+/// 安全模式是否开启（全局设置）。
+#[tauri::command]
+async fn safe_mode<R: Runtime>(app: AppHandle<R>) -> Result<bool, String> {
+    Ok(saved_safe_mode(&app))
+}
+
+/// 开关安全模式：先保存设置，再设给当前资料库；资料库推送 `safeModeChanged`。
+#[tauri::command]
+async fn set_safe_mode<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+    on: bool,
+) -> Result<bool, String> {
+    if let Some(shell) = app.try_state::<ShellState>() {
+        let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
+        shell
+            .settings
+            .set_safe_mode(on)
+            .map_err(|e| e.to_string())?;
+    }
+    if let Ok(library) = state.current() {
+        library.set_safe_mode(on);
+    }
+    Ok(on)
 }
 
 /// 在个人近似对应表中记下两个标签相近或不相近（“＋”与“以后都不展开”）。

@@ -19,11 +19,17 @@ const info: AppInfo = { productName: "Kinshoko", version: "9.9.9" };
 const library: LibraryInfo = { id: "L1", name: "工作参考", root: "D:\\参考\\工作参考" };
 const page: BrowsePage = {
   cards: [
-    { id: "a", width: 100, height: 200, thumbnail: "L1/a/256" },
-    { id: "b", width: 300, height: 100, thumbnail: "L1/b/256" },
+    { id: "a", width: 100, height: 200, thumbnail: "L1/a/256", adult: false },
+    { id: "b", width: 300, height: 100, thumbnail: "L1/b/256", adult: false },
   ],
   nextCursor: null,
   total: 2,
+};
+/** 安全模式关闭时多出一张含成人内容的图。 */
+const released: BrowsePage = {
+  cards: [...page.cards, { id: "x", width: 200, height: 200, thumbnail: "L1/x/256", adult: true }],
+  nextCursor: null,
+  total: 3,
 };
 
 const side: Sidebar = {
@@ -112,11 +118,14 @@ type Call = { cmd: string; args: unknown };
 /** 设置中的“显示相近标签来源”。 */
 let showApproxSource = false;
 let calls: Call[];
+/** 后端的安全模式开关。 */
+let safeOn = true;
 
 const clean: RecoveryReport = { interrupted: [], orphans: [], discardedStaging: 0 };
 
-function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean) {
+function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean, safe = true) {
   calls = [];
+  safeOn = safe;
   mockWindows("main");
   let current = opened;
   mockIPC(
@@ -131,7 +140,12 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean) {
           current = library;
           return library;
         case "plugin:library|browse":
-          return page;
+          return safeOn ? page : released;
+        case "plugin:library|safe_mode":
+          return safeOn;
+        case "plugin:library|set_safe_mode":
+          safeOn = (args as { on: boolean }).on;
+          return safeOn;
         case "plugin:library|start_import":
           return "T1";
         case "plugin:library|sidebar":
@@ -613,5 +627,73 @@ describe("近似查找", () => {
     const hints = within(chips()).getAllByRole("img", { name: "没有外部对应，不参与内置近似对应表" });
     expect(hints).toHaveLength(1);
     expect(hints[0].previousElementSibling?.textContent).toBe("蓝发");
+  });
+});
+
+describe("安全模式", () => {
+  const book = () => screen.findByRole("button", { name: /安全模式/ });
+  const cardOf = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`);
+  const changed = (on: boolean) => push({ kind: "safeModeChanged", libraryId: "L1", on });
+
+  it("新装默认开启；点封印书或按 Ctrl+Shift+S 切换", async () => {
+    backend(library);
+    render(<App />);
+    const button = await book();
+    await waitFor(() => expect(button.getAttribute("aria-pressed")).toBe("true"));
+
+    fireEvent.click(button);
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+    await waitFor(() => expect(sent("plugin:library|set_safe_mode")).toEqual([{ on: false }]));
+
+    fireEvent.keyDown(window, { key: "S", ctrlKey: true, shiftKey: true });
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    await waitFor(() =>
+      expect(sent("plugin:library|set_safe_mode")).toEqual([{ on: false }, { on: true }]),
+    );
+  });
+
+  it("开启的同一刻遮住将被封印的图，资料库确认后它们离开图片墙", async () => {
+    backend(library, clean, false);
+    render(<App />);
+    await waitFor(() => expect(cardOf("x")?.dataset.veiled).toBe("false"));
+    expect(cardOf("a")?.dataset.veiled).toBe("false");
+
+    fireEvent.click(await book());
+    // 不等后端：点下的这一帧就开始遮蔽。
+    expect(cardOf("x")?.dataset.veiled).toBe("true");
+    expect(cardOf("a")?.dataset.veiled).toBe("false");
+
+    await changed(true);
+    await waitFor(() => expect(cardOf("x")).toBeNull());
+    expect(cardOf("a")).toBeTruthy();
+  });
+
+  it("关闭后被封印的图回到图片墙；释放未播完时再开启，立即重新遮住", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    expect(cardOf("x")).toBeNull();
+
+    fireEvent.click(await book());
+    await changed(false);
+    await waitFor(() => expect(cardOf("x")).toBeTruthy());
+    await waitFor(() => expect(cardOf("x")?.dataset.veiled).toBe("false"));
+
+    fireEvent.click(await book());
+    expect(cardOf("x")?.dataset.veiled).toBe("true");
+  });
+
+  it("开启后清掉选中的图，侧栏计数随之刷新", async () => {
+    backend(library, clean, false);
+    render(<App />);
+    await waitFor(() => expect(cardOf("x")).toBeTruthy());
+    fireEvent.click(cardOf("x")!);
+    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    const sidebars = sent("plugin:library|sidebar").length;
+
+    fireEvent.click(await book());
+    await changed(true);
+    await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
+    await waitFor(() => expect(sent("plugin:library|sidebar").length).toBeGreaterThan(sidebars));
   });
 });

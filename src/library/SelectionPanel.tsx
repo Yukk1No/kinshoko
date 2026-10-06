@@ -14,7 +14,12 @@ type Props = {
   /** 资料库报告列表过期时递增：重新取文件夹列表与详情。 */
   reloadKey: number;
   onError: (message: string) => void;
+  /** 安全模式开启时，改成含成人内容的分级会让图被封印：随即取消选择。 */
+  safeMode?: boolean;
 };
+
+const isAdult = (rating: ContentRating | null) =>
+  rating === "questionable" || rating === "explicit";
 
 /** 文件夹树摊平成带缩进的选项。 */
 function flatten(nodes: FolderNode[], depth = 0): { id: string; label: string }[] {
@@ -117,7 +122,14 @@ function Detail({
 }
 
 /** 选中参考图后的整理操作：放入或移出文件夹、删除或恢复；只选一张时还能写备注。 */
-export function SelectionPanel({ scope, selected, onClear, reloadKey, onError }: Props) {
+export function SelectionPanel({
+  scope,
+  selected,
+  onClear,
+  reloadKey,
+  onError,
+  safeMode = false,
+}: Props) {
   const ids = [...selected];
   const single = ids.length === 1 ? ids[0] : null;
   const [folders, setFolders] = useState<{ id: string; label: string }[]>([]);
@@ -151,7 +163,8 @@ export function SelectionPanel({ scope, selected, onClear, reloadKey, onError }:
     editImages(ids, edits).then(
       (details) => {
         if (single && details[0]) setDetail(details[0]);
-        if (clear) onClear();
+        const sealed = safeMode && details.some((d) => isAdult(d.rating.effective));
+        if (clear || sealed) onClear();
       },
       (e) => onError(String(e)),
     );

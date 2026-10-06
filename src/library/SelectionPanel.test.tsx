@@ -65,6 +65,29 @@ describe("选中一张图：内容分级", () => {
     expect(edits).toEqual([[{ kind: "setRating", rating: "general" }]]);
   });
 
+  it("安全模式下改成含成人内容的分级，图被封印，随即取消选择", async () => {
+    backend(
+      detail({ suggested: "general", effective: "general" }),
+      detail({ suggested: "general", manual: "explicit", effective: "explicit" }),
+    );
+    let cleared = false;
+    render(
+      <SelectionPanel
+        scope={{ kind: "all" }}
+        selected={new Set(["img"])}
+        onClear={() => (cleared = true)}
+        reloadKey={0}
+        onError={() => {}}
+        safeMode
+      />,
+    );
+
+    const select = await screen.findByRole("combobox", { name: "内容分级" });
+    fireEvent.change(select, { target: { value: "explicit" } });
+
+    await waitFor(() => expect(cleared).toBe(true));
+  });
+
   it("选回自动即退回自动分级", async () => {
     const edits = backend(detail({ manual: "general", effective: "general" }), detail({}));
     renderPanel();

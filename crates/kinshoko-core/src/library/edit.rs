@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::rating::{self, ContentRating, ImageRating};
-use super::{Error, Inner, LibraryEvent, folders, now_ms, tags};
+use super::{Error, Inner, LibraryEvent, folders, lens, now_ms, tags};
 
 /// 对参考图的一项编辑。一次 `edit` 把编辑列表按顺序用在每张图上，全部成功才提交。
 ///
@@ -98,12 +98,14 @@ pub(super) fn edit(
         .iter()
         .any(|e| matches!(e, ImageEdit::Delete | ImageEdit::Restore));
     let changed = ids.clone();
-    let (details, revision) = inner.write(move |tx| {
+    let lens = inner.lens_filter();
+    let (details, revision, resealed) = inner.write(move |tx| {
         for id in &ids {
-            ensure_image(tx, id)?;
+            lens::require_visible(tx, &lens, id)?;
         }
+        let mut resealed = false;
         for edit in &edits {
-            apply(tx, &ids, edit)?;
+            resealed |= apply(tx, &ids, edit)?;
         }
         let details = ids
             .iter()
@@ -114,9 +116,15 @@ pub(super) fn edit(
         } else {
             None
         };
-        Ok((details, revision))
+        Ok((details, revision, resealed))
     })?;
     let library_id = inner.info.id.clone();
+    // 人工分级跨过“含成人内容”：安全模式下这些图被封印或放出，浏览结果与计数都过期。
+    if resealed {
+        inner.hub.publish(LibraryEvent::ListStale {
+            library_id: library_id.clone(),
+        });
+    }
     inner.hub.publish(LibraryEvent::ImagesChanged {
         library_id: library_id.clone(),
         image_ids: changed,
@@ -130,13 +138,8 @@ pub(super) fn edit(
     Ok(details)
 }
 
-fn ensure_image(conn: &Connection, id: &str) -> Result<(), Error> {
-    conn.query_row("SELECT 1 FROM image WHERE id = ?1", [id], |_| Ok(()))
-        .optional()?
-        .ok_or(Error::UnknownImage)
-}
-
-fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<(), Error> {
+/// 返回是否有图因分级改变而被安全模式封印或放出。
+fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<bool, Error> {
     match edit {
         ImageEdit::AddToFolder { folder_id } => {
             folders::ensure_folder(conn, folder_id)?;
@@ -188,10 +191,10 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<(), Erro
                 stmt.execute([id])?;
             }
         }
-        ImageEdit::SetRating { rating } => rating::set_manual(conn, ids, Some(*rating))?,
-        ImageEdit::RevertRating => rating::set_manual(conn, ids, None)?,
+        ImageEdit::SetRating { rating } => return rating::set_manual(conn, ids, Some(*rating)),
+        ImageEdit::RevertRating => return rating::set_manual(conn, ids, None),
     }
-    Ok(())
+    Ok(false)
 }
 
 pub(super) fn detail(conn: &Connection, id: &str) -> Result<ImageDetail, Error> {
