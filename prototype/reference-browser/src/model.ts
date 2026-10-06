@@ -4,7 +4,9 @@ export type Namespace = '作者' | '角色' | '作品' | '一般';
 export const NAMESPACES: Namespace[] = ['作者', '角色', '作品', '一般'];
 /** Namespace is part of tag identity (Q90): `作者:某某` and `角色:某某` are two tags. */
 export type TagKey = string;
-export type TagDef = { key: TagKey; ns: Namespace; name: string; group: string | null; aliases: string[] };
+/** `external`: names in outside vocabularies (the tagger's blue_eyes), not aliases: typing them finds nothing (ADR-0003).
+ * `untranslated`: a tagger name with no translation yet, shown under its own name. */
+export type TagDef = { key: TagKey; ns: Namespace; name: string; group: string | null; aliases: string[]; external?: string[]; untranslated?: boolean };
 
 export type Rating = 'general' | 'sensitive' | 'questionable' | 'explicit';
 export const RATING_LABEL: Record<Rating, string> = { general: '全年龄', sensitive: '敏感', questionable: '成人（轻度）', explicit: '成人' };

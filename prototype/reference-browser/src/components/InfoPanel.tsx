@@ -3,6 +3,7 @@ import { ExternalLink, FolderPlus, Plus, RotateCcw, Sparkles, Star, X } from 'lu
 import type { Curation, Folder, Library, Rating, ReferenceImage, TagDef, TagKey, TagState } from '../model';
 import { RATING_LABEL, effectiveFolders, effectiveRating, imageKey, tagStates } from '../model';
 import { candidates } from '../search';
+import { Untranslated } from './Untranslated';
 
 type Props = {
   image: ReferenceImage;
@@ -100,7 +101,7 @@ export function InfoPanel(p: Props) {
       </div>
       {adding && <ul className="mini-suggest">
         {suggestions.map((c) => <li key={c.key}><button onClick={() => { p.onTag(c.key, 'add'); setAdding(''); }}>
-          <span className="ns">{c.def.ns === '一般' ? '' : `${c.def.ns}：`}</span>{c.def.name}{c.via && <span className="muted"> ← {c.via}</span>}</button></li>)}
+          <span className="ns">{c.def.ns === '一般' ? '' : `${c.def.ns}：`}</span>{c.def.name}<Untranslated def={c.def} />{c.via && <span className="muted"> ← {c.via}</span>}</button></li>)}
         {!suggestions.some((c) => c.def.name === adding.trim()) && <li><button onClick={() => { p.onCreateTag(adding.trim()); setAdding(''); }}>新建标签“{adding.trim()}”</button></li>}
       </ul>}
       {states.some((s) => s.rejected) && <div className="rejected">
@@ -144,7 +145,7 @@ function TagChip({ state, def, decided, onFind, onReject }: { state: TagState; d
   const cls = state.origin === 'manual' ? ' manual' : state.origin === 'auto' ? ' auto' : '';
   const title = state.origin === 'manual' ? '人工添加' : state.origin === 'auto' ? `自动建议 ${Math.round((state.score ?? 0) * 100)}%` : `来源：${state.from}`;
   return <span className={`chip${cls}`} title={title}>
-    <button className="chip-main" onClick={onFind}>{state.origin === 'manual' && <Star size={10} />}{state.origin === 'auto' && <Sparkles size={10} />}{def?.name ?? state.key}</button>
+    <button className="chip-main" onClick={onFind}>{state.origin === 'manual' && <Star size={10} />}{state.origin === 'auto' && <Sparkles size={10} />}{def?.name ?? state.key}<Untranslated def={def} /></button>
     <button className="chip-x" onClick={onReject} aria-label={state.origin === 'manual' ? '撤销添加' : '否决这个标签'} title={state.origin === 'manual' || decided ? '撤销' : '否决：之后重新识别也不会加回来'}><X size={10} /></button>
   </span>;
 }

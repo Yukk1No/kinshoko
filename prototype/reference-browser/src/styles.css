@@ -115,6 +115,12 @@ kbd { font: 11px/1 var(--font); padding: 2px 5px; border: 1px solid var(--line-2
 .tip { position: absolute; left: calc(100% + 10px); top: 50%; transform: translate(-4px, -50%); white-space: nowrap; background: var(--ink); color: var(--bg); padding: 5px 9px; border-radius: 7px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity var(--t-fast), transform var(--t-fast) var(--ease); z-index: 20; }
 .tip kbd { background: transparent; color: inherit; border-color: color-mix(in srgb, var(--bg) 40%, transparent); opacity: 0.8; }
 .rail-btn:hover .tip, .rail-btn:focus-visible .tip { opacity: 1; transform: translate(0, -50%); }
+/* An untranslated tagger name (ADR-0003): a quiet mark after the tag, its tip floats on the page. */
+.untranslated { display: inline-flex; vertical-align: -2px; margin-left: 3px; color: var(--ink-3); cursor: help; }
+.tip.floating { position: fixed; transform: translate(-50%, -100%); opacity: 1; animation: tip-in var(--t-fast) var(--ease); }
+.tip.floating.below { transform: translate(-50%, 0); }
+.tip.floating code { font: inherit; opacity: 0.8; }
+@keyframes tip-in { from { opacity: 0; } }
 
 /* ------------------------------------------------------------ side pane */
 .pane { width: 248px; flex: none; background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
