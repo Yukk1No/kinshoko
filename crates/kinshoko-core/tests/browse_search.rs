@@ -129,7 +129,10 @@ fn conditions_all_hold_alternatives_widen_and_exclusions_remove_page_by_page() {
     );
     let (got, totals) = found(&library, &tree, 1);
     assert_eq!(got.len(), 3, "每张图只出现一次");
-    assert_eq!(set(&got), set(&[ids[0].clone(), ids[1].clone(), ids[4].clone()]));
+    assert_eq!(
+        set(&got),
+        set(&[ids[0].clone(), ids[1].clone(), ids[4].clone()])
+    );
     assert_eq!(totals, BTreeSet::from([3]), "每页的计数都与结果一致");
 
     // 再加“短发”：默认同时满足。
@@ -218,4 +221,145 @@ fn a_condition_with_no_alternatives_matches_nothing_and_its_exclusion_everything
         }],
     };
     assert_eq!(set(&found(&library, &everything, 10).0), set(&ids));
+}
+
+/// 反馈约 100 ms 内出现（验收）：大库上解析条件并取第一页。耗时，手动以 release 运行：
+/// `cargo test --release --test browse_search -- --ignored`。
+#[test]
+#[ignore]
+fn the_first_page_of_a_search_arrives_within_100_ms_on_a_large_library() {
+    const N: usize = 10_000;
+    let dir = tempfile::tempdir().unwrap();
+    let names: Vec<String> = (0..N).map(|i| format!("ref_{i}.png")).collect();
+    let library = Library::create(&dir.path().join("lib"), "库").unwrap();
+    let paths: Vec<_> = names
+        .iter()
+        .enumerate()
+        .map(|(i, name)| {
+            let path = dir.path().join("in").join(name);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            RgbaImage::from_fn(2, 2, |x, y| {
+                image::Rgba([(i % 256) as u8, (i / 256) as u8, x as u8, y as u8])
+            })
+            .save(&path)
+            .unwrap();
+            path
+        })
+        .collect();
+    let ids: Vec<String> = library
+        .import(ImportSource { paths })
+        .wait()
+        .items
+        .into_iter()
+        .filter_map(|item| match item.outcome {
+            ImportOutcome::Imported { image_id } => Some(image_id),
+            _ => None,
+        })
+        .collect();
+    for (k, name) in ["蓝发", "紫发", "短发", "多人", "逆光"].iter().enumerate() {
+        let chosen: Vec<&String> = ids.iter().skip(k).step_by(k + 2).collect();
+        tag(&library, &chosen, TagNamespace::General, name);
+    }
+    let blue = tag_id(&library, TagNamespace::General, "蓝发");
+    let purple = tag_id(&library, TagNamespace::General, "紫发");
+    let multi = tag_id(&library, TagNamespace::General, "多人");
+    let vocabulary = library.vocabulary().unwrap();
+
+    let started = std::time::Instant::now();
+    let search = Search::new(&vocabulary);
+    let tree = search.resolve(
+        &SearchInput {
+            conditions: vec![
+                any(
+                    vec![TermInput::Tag { id: blue }, TermInput::Tag { id: purple }],
+                    false,
+                ),
+                any(vec![TermInput::Tag { id: multi }], true),
+                any(vec![TermInput::Text { text: "发".into() }], false),
+            ],
+        },
+        ZH,
+    );
+    let page = library
+        .browse(&BrowseQuery {
+            scope: Default::default(),
+            conditions: tree,
+            cursor: None,
+            limit: 500,
+            thumbnail_px: 256,
+        })
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(page.total > 0);
+    assert!(
+        elapsed < std::time::Duration::from_millis(100),
+        "{N} 张图上第一页用了 {elapsed:?}"
+    );
+}
+
+#[test]
+fn searching_finds_notes_stays_inside_the_scope_and_leaves_the_trash_out() {
+    use kinshoko_core::library::{BrowseScope, ImageEdit};
+
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = library_with(dir.path(), &["a.png", "b.png", "c.png", "d.png"]);
+    library
+        .edit(
+            &ids[..3],
+            &[ImageEdit::SetNote {
+                text: "逆光的头发".into(),
+            }],
+        )
+        .unwrap();
+    library.edit(&ids[2..3], &[ImageEdit::Delete]).unwrap();
+    let folder = library.create_folder("光影", None).unwrap();
+    library
+        .edit(
+            &[ids[1].clone(), ids[3].clone()],
+            &[ImageEdit::AddToFolder {
+                folder_id: folder.clone(),
+            }],
+        )
+        .unwrap();
+    let tree = resolve(
+        &library,
+        vec![any(
+            vec![TermInput::Text {
+                text: "逆光".into(),
+            }],
+            false,
+        )],
+    );
+
+    let (got, totals) = found(&library, &tree, 10);
+    assert_eq!(
+        set(&got),
+        set(&[ids[0].clone(), ids[1].clone()]),
+        "回收站里的图不出现"
+    );
+    assert_eq!(totals, BTreeSet::from([2]));
+
+    let in_folder = library
+        .browse(&BrowseQuery {
+            scope: BrowseScope::Folder { id: folder },
+            conditions: tree.clone(),
+            cursor: None,
+            limit: 10,
+            thumbnail_px: 256,
+        })
+        .unwrap();
+    assert_eq!(in_folder.total, 1);
+    assert_eq!(in_folder.cards[0].id, ids[1]);
+
+    let in_trash = library
+        .browse(&BrowseQuery {
+            scope: BrowseScope::Trash,
+            conditions: tree,
+            cursor: None,
+            limit: 10,
+            thumbnail_px: 256,
+        })
+        .unwrap();
+    assert_eq!(in_trash.total, 1);
+    assert_eq!(in_trash.cards[0].id, ids[2]);
 }

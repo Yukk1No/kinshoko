@@ -121,6 +121,7 @@ impl Readers {
             .map(|_| {
                 let conn = connect(path)?;
                 conn.pragma_update(None, "query_only", "ON")?;
+                super::filter::register(&conn)?;
                 Ok(Mutex::new(conn))
             })
             .collect::<Result<_, Error>>()?;

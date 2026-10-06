@@ -8,7 +8,13 @@ use kinshoko_core::search::{
 
 const ZH: &str = "zh-CN";
 
-fn tag(id: &str, namespace: TagNamespace, name: &str, aliases: &[&str], count: u32) -> VocabularyTag {
+fn tag(
+    id: &str,
+    namespace: TagNamespace,
+    name: &str,
+    aliases: &[&str],
+    count: u32,
+) -> VocabularyTag {
     VocabularyTag {
         id: id.into(),
         namespace,
@@ -154,7 +160,10 @@ fn external_names_are_not_a_way_to_find_a_tag_unless_it_is_still_untranslated() 
     assert_eq!(shape(&tree), [(false, vec!["text:blue_eyes[]".to_owned()])]);
     // 尚未翻译的标签以外部名称（下划线换成空格）显示，画师照着显示的名字也能查到。
     let tree = search.resolve(&input(vec![all(vec![text("hair orn")])]), ZH);
-    assert_eq!(shape(&tree), [(false, vec!["text:hair orn[raw]".to_owned()])]);
+    assert_eq!(
+        shape(&tree),
+        [(false, vec!["text:hair orn[raw]".to_owned()])]
+    );
     let Term::Text { tags, .. } = &tree.conditions[0].any[0] else {
         panic!("应是文字项");
     };
