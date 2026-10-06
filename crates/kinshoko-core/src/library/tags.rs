@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::events::LibraryEvent;
-use super::{Error, Inner, LIVE, now_ms};
+use super::{Error, Inner, LIVE, lens, now_ms};
 
 /// 标签命名空间。名称相同、命名空间不同的是两个标签。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, TS)]
@@ -465,9 +465,10 @@ pub(super) fn edit_tags(
 ) -> Result<(), Error> {
     let ids = image_ids.to_vec();
     let edits = edits.to_vec();
+    let lens = inner.lens_filter();
     write(inner, image_ids.to_vec(), move |tx, translations| {
         for id in &ids {
-            require_image(tx, id)?;
+            lens::require_visible(tx, &lens, id)?;
         }
         let now = now_ms();
         for edit in &edits {
@@ -807,9 +808,7 @@ fn sort_labels(labels: &mut [TagLabel]) {
 
 pub(super) fn image_tags(inner: &Inner, image_id: &str, lang: &str) -> Result<ImageTags, Error> {
     let conn = inner.readers.get();
-    conn.query_row("SELECT 1 FROM image WHERE id = ?1", [image_id], |_| Ok(()))
-        .optional()?
-        .ok_or(Error::UnknownImage)?;
+    inner.require_visible(&conn, image_id)?;
 
     let mut origins: BTreeMap<String, Vec<TagOrigin>> = BTreeMap::new();
     let mut facts = conn.prepare_cached(
@@ -870,11 +869,12 @@ pub(super) fn image_tags(inner: &Inner, image_id: &str, lang: &str) -> Result<Im
     })
 }
 
-/// 每个标签的有效张数，只算可见的图（不含回收站）。
-fn counts(conn: &rusqlite::Connection) -> Result<HashMap<String, u32>, Error> {
+/// 每个标签的有效张数，只算浏览视角下可见的图（不含回收站与被封印的图）。
+fn counts(inner: &Inner, conn: &rusqlite::Connection) -> Result<HashMap<String, u32>, Error> {
     let mut stmt = conn.prepare_cached(&format!(
         "SELECT e.tag_id, COUNT(*) FROM effective_tag e
-         JOIN image ON image.id = e.image_id WHERE {LIVE} GROUP BY e.tag_id"
+         JOIN image ON image.id = e.image_id WHERE {LIVE} AND {} GROUP BY e.tag_id",
+        inner.lens_filter()
     ))?;
     let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
     Ok(rows.collect::<Result<_, _>>()?)
@@ -885,7 +885,8 @@ pub(super) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error> {
     // 修订号与内容取自同一个读事务，保证快照一致。
     let tx = conn.transaction()?;
     let revision: i64 = tx.query_row("SELECT value FROM vocabulary_revision", [], |r| r.get(0))?;
-    let counts = counts(&tx)?;
+    let counts = counts(inner, &tx)?;
+    let hidden = inner.sealed_only_tags(&tx)?;
     let mut tags: BTreeMap<String, VocabularyTag> = BTreeMap::new();
     {
         let mut stmt = tx.prepare("SELECT id, namespace FROM tag")?;
@@ -896,6 +897,9 @@ pub(super) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error> {
             ))
         })? {
             let (id, namespace) = row?;
+            if hidden.contains(&id) {
+                continue;
+            }
             tags.insert(
                 id.clone(),
                 VocabularyTag {
@@ -943,7 +947,8 @@ pub(super) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error> {
 
 pub(super) fn tag_groups(inner: &Inner, lang: &str) -> Result<Vec<TagGroupView>, Error> {
     let conn = inner.readers.get();
-    let counts = counts(&conn)?;
+    let counts = counts(inner, &conn)?;
+    let hidden = inner.sealed_only_tags(&conn)?;
     let mut stmt =
         conn.prepare_cached("SELECT id, name, namespace FROM tag_group ORDER BY ord, created_at")?;
     let groups = stmt
@@ -961,7 +966,7 @@ pub(super) fn tag_groups(inner: &Inner, lang: &str) -> Result<Vec<TagGroupView>,
     let mut in_namespace = conn.prepare_cached("SELECT id FROM tag WHERE namespace = ?1")?;
     let mut out = Vec::new();
     for (id, name, namespace) in groups {
-        let tag_ids = match namespace {
+        let mut tag_ids = match namespace {
             Some(ns) => in_namespace
                 .query_map([ns.as_str()], |r| r.get::<_, String>(0))?
                 .collect::<Result<Vec<_>, _>>()?,
@@ -969,6 +974,7 @@ pub(super) fn tag_groups(inner: &Inner, lang: &str) -> Result<Vec<TagGroupView>,
                 .query_map([&id], |r| r.get::<_, String>(0))?
                 .collect::<Result<Vec<_>, _>>()?,
         };
+        tag_ids.retain(|t| !hidden.contains(t));
         let rows = load_tags(&conn, tag_ids.iter().cloned())?;
         let mut tags: Vec<TagCount> = tag_ids
             .iter()

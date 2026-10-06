@@ -26,6 +26,18 @@ fn turning_autostart_off_is_remembered_after_restart() {
 }
 
 #[test]
+fn safe_mode_is_on_after_a_fresh_install_and_turning_it_off_is_remembered() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(settings.safe_mode());
+
+    settings.set_safe_mode(false).unwrap();
+    drop(settings);
+
+    assert!(!AppSettings::open(dir.path()).unwrap().safe_mode());
+}
+
+#[test]
 fn an_unreadable_settings_file_falls_back_to_defaults_and_is_kept_aside() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("settings.json"), "{ 写了一半").unwrap();

@@ -5,7 +5,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{Error, Inner, LibraryEvent, folders, now_ms, tags};
+use super::{Error, Inner, LibraryEvent, folders, lens, now_ms, tags};
 
 /// 对参考图的一项编辑。一次 `edit` 把编辑列表按顺序用在每张图上，全部成功才提交。
 ///
@@ -91,9 +91,10 @@ pub(super) fn edit(
         .iter()
         .any(|e| matches!(e, ImageEdit::Delete | ImageEdit::Restore));
     let changed = ids.clone();
+    let lens = inner.lens_filter();
     let (details, revision) = inner.write(move |tx| {
         for id in &ids {
-            ensure_image(tx, id)?;
+            lens::require_visible(tx, &lens, id)?;
         }
         for edit in &edits {
             apply(tx, &ids, edit)?;
@@ -121,12 +122,6 @@ pub(super) fn edit(
         });
     }
     Ok(details)
-}
-
-fn ensure_image(conn: &Connection, id: &str) -> Result<(), Error> {
-    conn.query_row("SELECT 1 FROM image WHERE id = ?1", [id], |_| Ok(()))
-        .optional()?
-        .ok_or(Error::UnknownImage)
 }
 
 fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<(), Error> {
