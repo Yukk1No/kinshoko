@@ -26,3 +26,55 @@ body,
   font-size: 12px;
   opacity: 0.6;
 }
+
+.app-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-status button {
+  font: inherit;
+}
+
+.settings {
+  padding: 12px 16px;
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.settings h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.settings-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.settings-hint {
+  margin: 4px 0 8px;
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+.settings-error {
+  color: #c62828;
+}
+
+.settings-shortcuts th {
+  padding-right: 16px;
+  font-weight: normal;
+  text-align: left;
+}
+
+.settings-shortcuts td {
+  padding: 2px 8px 2px 0;
+}
+
+.settings-problem {
+  margin-left: 8px;
+  color: #c62828;
+  font-size: 12px;
+}

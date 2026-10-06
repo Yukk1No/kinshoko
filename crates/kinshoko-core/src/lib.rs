@@ -4,5 +4,11 @@
 //! 跨越前后端边界的类型带 `#[ts(export)]`，由 ts-rs 在 `cargo test` 时生成到 `src/bindings/`。
 
 mod app_shell;
+mod settings;
+mod shortcuts;
 
 pub use app_shell::{AppInfo, app_info};
+pub use settings::{AppSettings, SettingsError, ShortcutAction};
+pub use shortcuts::{
+    GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutBinding, ShortcutError,
+};
