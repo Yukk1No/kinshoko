@@ -4,12 +4,15 @@ import { captureUrl, movePin, onPinNotice, pinInfo, pinMenu, pinReady } from "..
 import { pinCanvasSize } from "./pixels";
 
 /**
- * 钉图的 2D 画布。优先用 display-p3 的 float16 画布：颜色在半精度浮点里转换，往返回到显示器时
- * 不损失 8 位精度，也不被裁到 sRGB 色域；不支持时退回普通 sRGB 画布。
+ * 钉图的 2D 画布：sRGB 色彩空间，优先用 float16 后备存储。
+ *
+ * 在开发机（110%，sRGB 显示器配置文件）上实测：sRGB 画布（8 位或 float16）与 <img> 回显逐像素
+ * 一致；display-p3 画布即使是 float16 也有约一半像素偏差 1～8 级，不满足截图恒等，所以不用 P3。
+ * float16 的 sRGB 画布是扩展范围的，广色域显示器的颜色不会被裁到 sRGB 色域；不支持时退回 8 位。
  */
 function pinContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D | null {
   const wide = canvas.getContext("2d", {
-    colorSpace: "display-p3",
+    colorSpace: "srgb",
     colorType: "float16",
   } as CanvasRenderingContext2DSettings);
   const attributes = wide?.getContextAttributes() as { colorType?: string } | undefined;
@@ -18,7 +21,7 @@ function pinContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D | null 
   const fallback = document.createElement("canvas");
   canvas.replaceWith(fallback);
   fallback.className = canvas.className;
-  return fallback.getContext("2d");
+  return fallback.getContext("2d", { colorSpace: "srgb" });
 }
 
 interface PenDrag {

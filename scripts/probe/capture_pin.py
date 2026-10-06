@@ -68,12 +68,26 @@ def running(image):
     return image.lower() in out.stdout.lower()
 
 
+# 等待时要让测试图窗口照常处理消息：不响应的顶层窗口会拖住别的程序建窗口。
+PUMP = []
+
+
+def pause(seconds):
+    end = time.time() + seconds
+    while time.time() < end:
+        for pump in PUMP:
+            pump()
+        time.sleep(0.02)
+
+
 def wait_for(what, fn, timeout=8.0):
     end = time.time() + timeout
     while time.time() < end:
         v = fn()
         if v:
             return v
+        for pump in PUMP:
+            pump()
         time.sleep(0.05)
     raise SystemExit(f"等待超时：{what}")
 
@@ -111,7 +125,8 @@ def main():
     photo = ImageTk.PhotoImage(pattern)
     tk.Label(root, image=photo, borderwidth=0, highlightthickness=0).pack()
     root.update()
-    time.sleep(2.5)
+    PUMP.append(root.update)
+    pause(2.5)
     root.update()
     ox, oy = root.winfo_rootx(), root.winfo_rooty()
 
@@ -124,13 +139,13 @@ def main():
         move(ox + 5, oy + 5)
         key(VK_F1)
         wait_for("框选窗口", lambda: window_rect(app.pid, "Kinshoko 截图"))
-        time.sleep(0.3)
+        pause(0.3)
         move(x0, y0)
         user32.mouse_event(LEFTDOWN, 0, 0, 0, 0)
         for t in range(1, 11):
             move(x0 + (x1 - x0) * t / 10, y0 + (y1 - y0) * t / 10)
         user32.mouse_event(LEFTUP, 0, 0, 0, 0)
-        time.sleep(0.2)
+        pause(0.2)
         move((x0 + x1) // 2, (y0 + y1) // 2)
         for _ in range(2):
             user32.mouse_event(LEFTDOWN, 0, 0, 0, 0)
@@ -139,7 +154,7 @@ def main():
 
         pin = wait_for("钉图窗口", lambda: window_rect(app.pid, "Kinshoko 钉图"))
         move(0, 0)
-        time.sleep(1.5)  # 等出现时的描边淡出
+        pause(1.5)  # 等出现时的描边淡出
         captures = list((data / "captures").glob("*.png"))
         results = {
             "钉图窗口尺寸等于选区": None
@@ -152,8 +167,11 @@ def main():
             "截图文件内嵌显示器配置文件": None
             if len(captures) == 1 and Image.open(captures[0]).info.get("icc_profile")
             else "没有 iCCP",
-            "钉图显示的像素与截图一致": diff(grab(pin), before),
+            "钉图显示的像素与截图一致": diff(shown := grab(pin), before),
         }
+        # 失败时留下图片，便于对照。
+        before.save(data / "before.png")
+        shown.save(data / "pin-shown.png")
     finally:
         root.destroy()
         app.kill()
@@ -164,6 +182,8 @@ def main():
     for name, problem in results.items():
         print(("✗ " if problem else "✓ ") + name + (f"：{problem}" if problem else ""))
         failed += bool(problem)
+    if failed:
+        print(f"对照图：{data}")
     sys.exit(1 if failed else 0)
 
 
