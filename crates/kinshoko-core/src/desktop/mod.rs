@@ -22,4 +22,4 @@ pub use pin::{
 };
 pub use placement::{ScreenRect, place_new_pin};
 pub use screenshot::{Region, Screenshot};
-pub use types::{CaptureAction, FrozenScreen, PinInfo};
+pub use types::{CaptureAction, FrozenScreen};

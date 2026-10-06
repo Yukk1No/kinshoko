@@ -132,7 +132,7 @@ impl SavedPin {
     pub fn flip(&mut self, horizontal: bool) {
         let p = &mut self.placement;
         // 旋转奇数圈时，屏幕上的水平方向是图片的垂直方向。
-        if horizontal == (p.rotation % 2 == 0) {
+        if horizontal == p.rotation.is_multiple_of(2) {
             p.flip_h = !p.flip_h;
         } else {
             p.flip_v = !p.flip_v;

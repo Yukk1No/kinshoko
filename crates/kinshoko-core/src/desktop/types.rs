@@ -24,14 +24,3 @@ pub struct FrozenScreen {
     /// 冻结屏幕的地址：`screen/<标记>`，由应用壳映射到自定义协议 `capture`。
     pub image: String,
 }
-
-/// 钉图窗口显示的内容。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct PinInfo {
-    pub capture_id: String,
-    /// 图片像素尺寸。
-    pub width: u32,
-    pub height: u32,
-}
