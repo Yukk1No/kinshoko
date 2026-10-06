@@ -11,10 +11,11 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::library::{
     BrowsePage, BrowseQuery, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportSource,
-    ImportTask, LibraryEvent, LibraryInfo, RecoveryReport, ReferenceLens, Sidebar, TagEdit,
-    TagGroupView, Vocabulary,
+    ImportTask, LibraryEvent, LibraryInfo, PersonalApproxEntry, RecoveryReport, ReferenceLens,
+    Sidebar, TagEdit, TagGroupView, Vocabulary,
 };
 use kinshoko_core::search::{Candidate, ConditionTree, Search, SearchInput};
 use kinshoko_core::{DeviceRegistry, Library};
@@ -38,6 +39,8 @@ struct LibraryState {
     /// 当前资料库参考视角的句柄，装配时取走。只交给参考组（#66）与桌面钉图（#65），
     /// 不经任何命令交给前端。
     reference: Mutex<Option<ReferenceLens>>,
+    /// 随软件分发的内置近似对应表，启动时读取一次。
+    builtin_approx: BuiltinApproxTable,
 }
 
 impl LibraryState {
@@ -75,6 +78,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             tag_groups,
             search_candidates,
             resolve_search,
+            set_tag_approx,
+            remove_tag_approx,
+            personal_approx,
             image_rating,
             safe_mode,
             set_safe_mode
@@ -97,6 +103,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 tasks: Arc::default(),
                 search: Arc::default(),
                 reference: Mutex::new(None),
+                builtin_approx: BuiltinApproxTable::bundled(),
             });
             Ok(())
         })
@@ -432,6 +439,7 @@ fn search(state: &LibraryState, library: &Library) -> Result<Arc<Search>, String
     }
     let search = Arc::new(Search::new(
         &library.vocabulary().map_err(|e| e.to_string())?,
+        &state.builtin_approx,
     ));
     *lock(&state.search) = Some(search.clone());
     Ok(search)
@@ -487,6 +495,44 @@ async fn set_safe_mode<R: Runtime>(
         library.set_safe_mode(on);
     }
     Ok(on)
+}
+
+/// 在个人近似对应表中记下两个标签相近或不相近（“＋”与“以后都不展开”）。
+#[tauri::command]
+async fn set_tag_approx(
+    state: State<'_, LibraryState>,
+    a: String,
+    b: String,
+    relation: ApproxRelation,
+) -> Result<(), String> {
+    let library = state.current()?;
+    blocking(move || {
+        library
+            .set_tag_approx(&a, &b, relation)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+/// 删除个人近似对应表中的一对。
+#[tauri::command]
+async fn remove_tag_approx(
+    state: State<'_, LibraryState>,
+    a: String,
+    b: String,
+) -> Result<(), String> {
+    let library = state.current()?;
+    blocking(move || library.remove_tag_approx(&a, &b).map_err(|e| e.to_string())).await
+}
+
+/// 资料库设置中列出的个人近似对应表条目，名称按界面语言 `lang`。
+#[tauri::command]
+async fn personal_approx(
+    state: State<'_, LibraryState>,
+    lang: String,
+) -> Result<Vec<PersonalApproxEntry>, String> {
+    let library = state.current()?;
+    blocking(move || library.personal_approx(&lang).map_err(|e| e.to_string())).await
 }
 
 /// 一张参考图的内容分级（自动与有效）。

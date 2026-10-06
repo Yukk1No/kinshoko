@@ -70,3 +70,15 @@ fn settings_written_by_a_newer_version_survive_a_round_trip_through_this_one() {
     assert_eq!(saved["pinOpacity"], 0.8);
     assert_eq!(saved["autostart"], false);
 }
+
+#[test]
+fn showing_where_similar_tags_come_from_is_off_until_turned_on_and_then_remembered() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(!settings.show_approx_source(), "来源标记默认不显示");
+
+    settings.set_show_approx_source(true).unwrap();
+    drop(settings);
+
+    assert!(AppSettings::open(dir.path()).unwrap().show_approx_source());
+}

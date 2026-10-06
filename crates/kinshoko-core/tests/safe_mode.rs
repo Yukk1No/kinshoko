@@ -6,6 +6,7 @@ use std::path::Path;
 
 use image::RgbaImage;
 use kinshoko_core::Library;
+use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::library::{
     BrowseQuery, BrowseScope, ContentRating, Error, FactSource, ImageEdit, ImportOutcome,
     ImportSource, LibraryEvent, RatingFact, TagEdit, TagNamespace, TagRef,
@@ -214,7 +215,7 @@ fn tag_counts_candidates_and_groups_do_not_reveal_sealed_images() {
             .iter()
             .any(|t| t.names.iter().any(|n| n.name == "只在成人图上"))
     );
-    let search = Search::new(&vocabulary);
+    let search = Search::new(&vocabulary, &BuiltinApproxTable::bundled());
     assert!(search.candidates("只在", ZH, 10).is_empty());
 
     f.library
@@ -230,17 +231,43 @@ fn tag_counts_candidates_and_groups_do_not_reveal_sealed_images() {
 }
 
 #[test]
+fn the_personal_approx_table_does_not_name_tags_only_on_sealed_images() {
+    let f = Fixture::new();
+    f.library.set_safe_mode(false);
+    let vocabulary = f.library.vocabulary().unwrap();
+    let id = |name: &str| {
+        vocabulary
+            .tags
+            .iter()
+            .find(|t| t.names.iter().any(|n| n.name == name))
+            .unwrap()
+            .id
+            .clone()
+    };
+    f.library
+        .set_tag_approx(&id("共有"), &id("只在成人图上"), ApproxRelation::Similar)
+        .unwrap();
+    assert_eq!(f.library.personal_approx(ZH).unwrap().len(), 1);
+
+    f.library.set_safe_mode(true);
+    assert!(f.library.personal_approx(ZH).unwrap().is_empty());
+    assert!(f.library.vocabulary().unwrap().personal_approx.is_empty());
+}
+
+#[test]
 fn searching_never_finds_sealed_images() {
     let f = Fixture::new();
     let vocabulary = f.library.vocabulary().unwrap();
-    let tree = Search::new(&vocabulary).resolve(
+    let tree = Search::new(&vocabulary, &BuiltinApproxTable::bundled()).resolve(
         &SearchInput {
             conditions: vec![ConditionInput {
                 any: vec![TermInput::Text {
                     text: "共有".into(),
+                    dismissed: Vec::new(),
                 }],
                 negate: false,
             }],
+            exact: false,
         },
         ZH,
     );

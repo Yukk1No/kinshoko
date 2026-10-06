@@ -3,4 +3,12 @@
 /**
  * 搜索框里的一项：点选的标签，或直接输入的文字。
  */
-export type TermInput = { "kind": "tag", id: string, } | { "kind": "text", text: string, };
+export type TermInput = { "kind": "tag", id: string, 
+/**
+ * “只这次”不展开的相近标签（`tag_id`）。
+ */
+dismissed: Array<string>, } | { "kind": "text", text: string, 
+/**
+ * “只这次”不展开的相近标签（`tag_id`）。
+ */
+dismissed: Array<string>, };

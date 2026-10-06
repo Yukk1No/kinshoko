@@ -6,6 +6,7 @@ use std::path::Path;
 
 use image::RgbaImage;
 use kinshoko_core::Library;
+use kinshoko_core::approx::BuiltinApproxTable;
 use kinshoko_core::library::{
     BrowseQuery, ImportOutcome, ImportSource, TagEdit, TagNamespace, TagRef,
 };
@@ -74,7 +75,17 @@ fn any(terms: Vec<TermInput>, negate: bool) -> ConditionInput {
 }
 
 fn resolve(library: &Library, conditions: Vec<ConditionInput>) -> ConditionTree {
-    Search::new(&library.vocabulary().unwrap()).resolve(&SearchInput { conditions }, ZH)
+    Search::new(
+        &library.vocabulary().unwrap(),
+        &BuiltinApproxTable::bundled(),
+    )
+    .resolve(
+        &SearchInput {
+            conditions,
+            exact: false,
+        },
+        ZH,
+    )
 }
 
 /// 按条件树逐页取完，返回取到的 id 与每页报告的计数。
@@ -117,7 +128,10 @@ fn conditions_all_hold_alternatives_widen_and_exclusions_remove_page_by_page() {
     let purple = tag_id(&library, TagNamespace::General, "紫发");
     let multi = tag_id(&library, TagNamespace::General, "多人");
     let short = tag_id(&library, TagNamespace::General, "短发");
-    let t = |id: &String| TermInput::Tag { id: id.clone() };
+    let t = |id: &String| TermInput::Tag {
+        id: id.clone(),
+        dismissed: Vec::new(),
+    };
 
     // 蓝发或紫发、不要多人。
     let tree = resolve(
@@ -174,7 +188,10 @@ fn typed_words_find_every_namespace_alias_and_the_images_own_file_name() {
             },
         )
         .unwrap();
-    let text = |s: &str| TermInput::Text { text: s.into() };
+    let text = |s: &str| TermInput::Text {
+        text: s.into(),
+        dismissed: Vec::new(),
+    };
 
     let tree = resolve(&library, vec![any(vec![text("某某")], false)]);
     let (got, totals) = found(&library, &tree, 10);
@@ -266,17 +283,39 @@ fn the_first_page_of_a_search_arrives_within_100_ms_on_a_large_library() {
     let vocabulary = library.vocabulary().unwrap();
 
     let started = std::time::Instant::now();
-    let search = Search::new(&vocabulary);
+    let search = Search::new(&vocabulary, &BuiltinApproxTable::bundled());
     let tree = search.resolve(
         &SearchInput {
             conditions: vec![
                 any(
-                    vec![TermInput::Tag { id: blue }, TermInput::Tag { id: purple }],
+                    vec![
+                        TermInput::Tag {
+                            id: blue,
+                            dismissed: Vec::new(),
+                        },
+                        TermInput::Tag {
+                            id: purple,
+                            dismissed: Vec::new(),
+                        },
+                    ],
                     false,
                 ),
-                any(vec![TermInput::Tag { id: multi }], true),
-                any(vec![TermInput::Text { text: "发".into() }], false),
+                any(
+                    vec![TermInput::Tag {
+                        id: multi,
+                        dismissed: Vec::new(),
+                    }],
+                    true,
+                ),
+                any(
+                    vec![TermInput::Text {
+                        text: "发".into(),
+                        dismissed: Vec::new(),
+                    }],
+                    false,
+                ),
             ],
+            exact: false,
         },
         ZH,
     );
@@ -326,6 +365,7 @@ fn searching_finds_notes_stays_inside_the_scope_and_leaves_the_trash_out() {
         vec![any(
             vec![TermInput::Text {
                 text: "逆光".into(),
+                dismissed: Vec::new(),
             }],
             false,
         )],

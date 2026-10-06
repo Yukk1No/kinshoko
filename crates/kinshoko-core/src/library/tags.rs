@@ -21,6 +21,7 @@ use ts_rs::TS;
 
 use super::events::LibraryEvent;
 use super::{Error, Inner, LIVE, lens, now_ms};
+use crate::approx::{ApproxRelation, PersonalApprox};
 
 /// 标签命名空间。名称相同、命名空间不同的是两个标签。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, TS)]
@@ -247,6 +248,16 @@ pub struct VocabularyTag {
     pub count: u32,
 }
 
+/// 资料库设置中列出的一条个人近似对应表条目。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PersonalApproxEntry {
+    pub a: TagLabel,
+    pub b: TagLabel,
+    pub relation: ApproxRelation,
+}
+
 /// 标签词表快照，供 Search 使用；按 `revision` 缓存。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -255,6 +266,8 @@ pub struct Vocabulary {
     #[ts(type = "number")]
     pub revision: i64,
     pub tags: Vec<VocabularyTag>,
+    /// 个人近似对应表的全部条目。
+    pub personal_approx: Vec<crate::approx::PersonalApprox>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -938,10 +951,13 @@ pub(super) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error> {
             }
         }
     }
+    let mut personal_approx = read_personal_approx(&tx)?;
+    personal_approx.retain(|e| !hidden.contains(&e.a) && !hidden.contains(&e.b));
     tx.finish()?;
     Ok(Vocabulary {
         revision,
         tags: tags.into_values().collect(),
+        personal_approx,
     })
 }
 
@@ -995,4 +1011,102 @@ pub(super) fn tag_groups(inner: &Inner, lang: &str) -> Result<Vec<TagGroupView>,
         });
     }
     Ok(out)
+}
+
+// ---------------------------------------------------------------- 个人近似对应表
+
+fn relation_str(relation: ApproxRelation) -> &'static str {
+    match relation {
+        ApproxRelation::Similar => "similar",
+        ApproxRelation::NotSimilar => "notSimilar",
+    }
+}
+
+fn parse_relation(s: &str) -> rusqlite::Result<ApproxRelation> {
+    match s {
+        "similar" => Ok(ApproxRelation::Similar),
+        "notSimilar" => Ok(ApproxRelation::NotSimilar),
+        other => Err(rusqlite::Error::InvalidColumnType(
+            2,
+            format!("未知的近似判断 {other}"),
+            rusqlite::types::Type::Text,
+        )),
+    }
+}
+
+/// 删掉 `a`、`b` 这一对两种顺序的记录。
+fn delete_pair(tx: &Transaction, a: &str, b: &str) -> Result<(), Error> {
+    tx.execute(
+        "DELETE FROM personal_approx
+         WHERE (tag_a = ?1 AND tag_b = ?2) OR (tag_a = ?2 AND tag_b = ?1)",
+        params![a, b],
+    )?;
+    Ok(())
+}
+
+pub(super) fn set_tag_approx(
+    inner: &Inner,
+    a: &str,
+    b: &str,
+    relation: ApproxRelation,
+) -> Result<(), Error> {
+    if a == b {
+        return Err(Error::SameTag);
+    }
+    let (a, b) = (a.to_owned(), b.to_owned());
+    write(inner, Vec::new(), move |tx, _| {
+        require_tag(tx, &a)?;
+        require_tag(tx, &b)?;
+        delete_pair(tx, &a, &b)?;
+        tx.execute(
+            "INSERT INTO personal_approx (tag_a, tag_b, relation, decided_at)
+             VALUES (?1, ?2, ?3, ?4)",
+            params![a, b, relation_str(relation), now_ms()],
+        )?;
+        Ok(())
+    })
+}
+
+pub(super) fn remove_tag_approx(inner: &Inner, a: &str, b: &str) -> Result<(), Error> {
+    let (a, b) = (a.to_owned(), b.to_owned());
+    write(inner, Vec::new(), move |tx, _| delete_pair(tx, &a, &b))
+}
+
+/// 个人近似对应表的全部条目，最近记下的在前。
+fn read_personal_approx(conn: &rusqlite::Connection) -> Result<Vec<PersonalApprox>, Error> {
+    let mut stmt = conn.prepare_cached(
+        "SELECT tag_a, tag_b, relation FROM personal_approx
+         ORDER BY decided_at DESC, rowid DESC",
+    )?;
+    let rows = stmt.query_map([], |r| {
+        Ok(PersonalApprox {
+            a: r.get(0)?,
+            b: r.get(1)?,
+            relation: parse_relation(&r.get::<_, String>(2)?)?,
+        })
+    })?;
+    Ok(rows.collect::<Result<_, _>>()?)
+}
+
+pub(super) fn personal_approx(
+    inner: &Inner,
+    lang: &str,
+) -> Result<Vec<PersonalApproxEntry>, Error> {
+    let conn = inner.readers.get();
+    let mut entries = read_personal_approx(&conn)?;
+    // 浏览视角：只出现在被封印的图上的标签不露出名称。
+    let hidden = inner.sealed_only_tags(&conn)?;
+    entries.retain(|e| !hidden.contains(&e.a) && !hidden.contains(&e.b));
+    let rows = load_tags(
+        &conn,
+        entries.iter().flat_map(|e| [e.a.clone(), e.b.clone()]),
+    )?;
+    Ok(entries
+        .into_iter()
+        .map(|e| PersonalApproxEntry {
+            a: label(&e.a, &rows[&e.a], lang),
+            b: label(&e.b, &rows[&e.b], lang),
+            relation: e.relation,
+        })
+        .collect())
 }
