@@ -12,7 +12,7 @@
 
 开发时：python eagle_check.py --library <某个.library> --yes --no-questions
 """
-import argparse, ctypes, json, os, platform, random, re, shutil, string, subprocess, sys, time, traceback, urllib.request, webbrowser, zipfile
+import argparse, ctypes, json, os, platform, random, re, shutil, string, subprocess, sys, tempfile, time, traceback, urllib.request, webbrowser, zipfile
 
 FROZEN = getattr(sys, "frozen", False)
 EXE_DIR = os.path.dirname(sys.executable if FROZEN else os.path.abspath(__file__))
@@ -28,6 +28,7 @@ except (AttributeError, ValueError):
 TOOL_VERSION = "2026-10-06"
 IMAGE_EXTS = {"jpg", "jpeg", "png", "webp", "gif", "bmp", "tif", "tiff", "avif"}
 MAX_FILE = 40 * 1024 * 1024
+BULK_MIN = 15
 EAGLE_API = "http://localhost:41595/api/library/history"
 SKIP_DIRS = {"windows", "program files", "program files (x86)", "programdata", "$recycle.bin", "appdata",
              "system volume information", "node_modules", ".git", "msocache", "recovery", "perflogs"}
@@ -64,6 +65,15 @@ def scrub(text):
     return text
 
 
+def diagnose(exc):
+    """出错时只记录异常类型、错误码和本程序内的调用位置；异常消息常含路径、条目 ID 和文件名，一律不写。"""
+    own = {"eagle_check.py", "kinshoko_store.py"}
+    frames = [f"{os.path.basename(f.filename)}:{f.lineno} {f.name}" for f in traceback.extract_tb(exc.__traceback__)
+              if os.path.basename(f.filename) in own]
+    codes = [f"{k}={getattr(exc, k)}" for k in ("errno", "winerror") if getattr(exc, k, None) is not None]
+    return "\n".join([type(exc).__name__ + (f"（{', '.join(codes)}）" if codes else "")] + frames)
+
+
 def timed(fn, *a, **kw):
     t = time.perf_counter()
     r = fn(*a, **kw)
@@ -89,10 +99,46 @@ def workspace(explicit):
     所以 exe 放得太深时改用 LOCALAPPDATA 下的 kinshoko-check。"""
     if explicit:
         return os.path.abspath(explicit)
+    return default_workspace()
+
+
+def default_workspace():
     w = os.path.join(EXE_DIR, "kinshoko-check-工作区")
     if len(w) > 120 and os.environ.get("LOCALAPPDATA"):
         w = os.path.join(os.environ["LOCALAPPDATA"], "kinshoko-check")
     return os.path.abspath(w)
+
+
+WORKSPACE_MARK = "kinshoko-check-工作区.txt"
+WORKSPACE_OWNED = False  # 只有确认工作区归本程序后，报告才写进工作区
+
+
+def _norm(p):
+    return os.path.normcase(os.path.realpath(p))
+
+
+def _inside(p, root):
+    try:
+        return os.path.commonpath([_norm(p), _norm(root)]) == _norm(root)
+    except ValueError:  # 不同盘符
+        return False
+
+
+def claim_workspace(W, libs):
+    """清空并接管工作区。工作区与任何资料库互相包含时拒绝；已有内容但不是本程序建的目录也拒绝，绝不删除。"""
+    global WORKSPACE_OWNED
+    for l in libs:
+        if _inside(W, l["path"]) or _inside(l["path"], W):
+            raise SystemExit("工作区和 Eagle 资料库重叠（一个在另一个里面）。为了不碰原库，程序停止。"
+                             "请把程序放到资料库外面，或用 --work 指定资料库以外的位置。")
+    if os.path.isdir(W) and os.listdir(W) and not os.path.exists(os.path.join(W, WORKSPACE_MARK)) \
+            and _norm(W) != _norm(default_workspace()):
+        raise SystemExit("指定的工作区里已经有别的文件，不是本程序建的。为了不误删，程序停止。请用 --work 指定一个空文件夹或新位置。")
+    shutil.rmtree(ks.lp(W), ignore_errors=True)
+    os.makedirs(W)
+    with open(os.path.join(W, WORKSPACE_MARK), "w", encoding="utf-8") as f:
+        f.write("Kinshoko Eagle 往返检查的工作区，只含副本。发回报告后可以整个删除。\n")
+    WORKSPACE_OWNED = True
 
 
 # ====================== 子进程：故障注入 ======================
@@ -469,6 +515,7 @@ def run(args):
         ans = input("用哪个库做主样本？直接回车＝[1]（最大的那个）：").strip()
         if ans.isdigit() and 1 <= int(ans) <= len(libs):
             pick = int(ans) - 1
+    claim_workspace(W, libs)
     main_lib = libs[pick]
     second = next((l for i, l in enumerate(libs) if i != pick and l["items"] > 0), None)
     metrics["资料库条目数"] = [l["items"] for l in libs]
@@ -495,9 +542,7 @@ def run(args):
     metrics["样本"] = {"张数": len(sample), "原文件总大小（MB）": round(used / 2**20, 1), "可用图片": n_usable, "分层命中": strata}
     say(f"可用图片 {n_usable} 张，挑出 {len(sample)} 张（{round(used / 2**20)} MB）。分层命中：{strata}")
 
-    shutil.rmtree(ks.lp(W), ignore_errors=True)
-    os.makedirs(W)
-    SRC = os.path.join(W, "sources")
+    SRC =os.path.join(W, "sources")
     eA = os.path.join(SRC, "甲.library")
     print("正在复制样本（只读原库）……", flush=True)
     _, t_copy = timed(copy_library, src, eA, sample)
@@ -515,6 +560,14 @@ def run(args):
         say(f"乙：只有一个资料库，取主库中未挑中的 {len(rest)} 张。")
         synthesized.append("乙库的条目取自主库里没挑中的图（画师只有一个资料库）")
     eB = os.path.join(SRC, "乙.library")
+    # 乙至少要有几张自己独有的图（与甲字节不同）；小库全部进了样本时，从甲的副本复制并改动字节合成
+    n_own_b = len(os.listdir(os.path.join(eB, "images")))
+    if n_own_b < 3:
+        donors = [m for m in sample if not m.get("isDeleted")][:3 - n_own_b]
+        for k, m in enumerate(donors):
+            clone_item(eA, m["id"], eB, eagle_like_id(rnd), extra_bytes=b"\0kinshoko-b-" + bytes([k]),
+                       edit=lambda x: x.update(tags=["乙库自己的标签"], folders=[], comments=[]))
+        synthesized.append(f"乙库独有条目：样本外没有可用图，从甲复制 {len(donors)} 张并改动字节、换新 ID")
     changed = [f for f, t in guard.items() if os.path.getmtime(os.path.join(src, f)) != t]
     if changed:
         notes.append(f"复制期间 Eagle 改动了原库的 {changed}；样本按复制时的状态检查。")
@@ -683,6 +736,12 @@ def run(args):
     bulk_ids = [i for i in plain if i not in reserved][:60]
     eBulk = os.path.join(SRC, "批量.library")
     copy_library(eA, eBulk, [a_items[i] for i in bulk_ids])
+    if len(bulk_ids) < BULK_MIN:  # 中断检查至少要 15 项（每种损坏 1 项以上）；样本小时复制并改动字节补齐
+        n_real = len(bulk_ids)
+        for k in range(BULK_MIN - n_real):
+            m = clone_item(eA, plain[k % len(plain)], eBulk, eagle_like_id(rnd), extra_bytes=b"\0kinshoko-bulk-" + bytes([k]))
+            bulk_ids.append(m["id"])
+        synthesized.append(f"批量中断样本：不重复的普通图片只剩 {n_real} 张，复制并改动字节补到 {BULK_MIN} 张")
 
     # ---------------------------------------------------------------- 3. 人工整理与参考组
     section("3. 人工整理与参考组")
@@ -905,7 +964,7 @@ def run(args):
     section("9. 写入中断与部分失败（Q38）")
     n_bulk = len(bulk_ids)
     n_broken = min(12, n_bulk // 5)
-    if n_bulk < 15:
+    if n_bulk < BULK_MIN:
         skip("中断", "批量中断与部分失败", f"不重复的普通图片只有 {n_bulk} 张")
     else:
         broken = []
@@ -1105,7 +1164,8 @@ def ask_questions(has_real_comments):
 
 
 def write_report(W, answers, error=None):
-    R = os.path.join(W, "报告")
+    # 工作区没被接管（例如与资料库重叠而被拒绝）时，不往里写任何东西
+    R = os.path.join(W, "报告") if WORKSPACE_OWNED else tempfile.mkdtemp(prefix="kinshoko-check-报告-")
     os.makedirs(R, exist_ok=True)
     passed = sum(1 for g in gates if g[2] is True)
     failed = sum(1 for g in gates if g[2] is False)
@@ -1133,12 +1193,16 @@ def write_report(W, answers, error=None):
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
         for f in ("report.md", "summary.json"):
             z.write(os.path.join(R, f), f)
-    return zpath, passed, failed
+    return zpath, passed, failed, skipped
 
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--child":
-        child_main(sys.argv[2], sys.argv[3])
+        try:
+            child_main(sys.argv[2], sys.argv[3])
+        except Exception as e:  # 父进程会把 stderr 写进报告：只给结构化诊断，不给原始堆栈
+            print(diagnose(e), file=sys.stderr)
+            sys.exit(1)
         return
     ap = argparse.ArgumentParser(description="Kinshoko #8：真实 Eagle 资料库往返检查")
     ap.add_argument("library", nargs="*", help="Eagle 资料库文件夹（可省略，自动查找；也可以把文件夹拖到 exe 上）")
@@ -1160,8 +1224,8 @@ def main():
         if e.code not in (None, 0):
             error = str(e.code)
             print("\n" + error)
-    except Exception:
-        error = scrub(traceback.format_exc())
+    except Exception as e:
+        error = diagnose(e)
         print("\n程序出错了，错误信息会写进报告：\n" + error)
     if D2 and not args.no_open:
         webbrowser.open(os.path.join(D2, "browse.html"))
@@ -1170,16 +1234,17 @@ def main():
             answers = ask_questions(bool(metrics.get("真实区域评论")))
         except EOFError:
             pass
-    zpath, passed, failed = write_report(W, answers, error)
+    zpath, passed, failed, skipped = write_report(W, answers, error)
     print()
     print("=" * 60)
     if error:
         print(f"检查中途停止（已完成 {passed} 项通过、{failed} 项未通过）。出错信息已写进报告。")
     else:
-        print(f"完成：{passed} 项通过，{failed} 项未通过。")
+        print(f"完成：{passed} 项通过，{failed} 项未通过" + (f"，{skipped} 项未覆盖（不算完成）。" if skipped else "。"))
     print(f"请把这个文件发回：{zpath}")
     print("（里面只有检查结果和计数，没有图片、文件名、标签和备注。）")
-    print(f"工作区 {W} 只是副本，发回报告后可以整个删除。")
+    if WORKSPACE_OWNED:
+        print(f"工作区 {W} 只是副本，发回报告后可以整个删除。")
     print("=" * 60)
     if not args.no_open and os.name == "nt":
         subprocess.run(["explorer", "/select,", zpath])
@@ -1188,7 +1253,7 @@ def main():
             input("按回车键关闭窗口……")
         except EOFError:
             pass
-    sys.exit(0 if not error and failed == 0 else 1)
+    sys.exit(0 if not error and failed == 0 and skipped == 0 else 1)
 
 
 if __name__ == "__main__":
