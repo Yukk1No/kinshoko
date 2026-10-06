@@ -12,12 +12,13 @@ serde_json.workspace = true
 ts-rs.workspace = true
 rusqlite = { version = "0.40", features = ["bundled"] }
 rusqlite_migration = "2.6"
-image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
 sha2 = "0.10"
 uuid = { version = "1", features = ["v4", "v7"] }
 
 [dev-dependencies]
 tempfile = "3.27.0"
+png = "0.18"
 
 [lints]
 workspace = true

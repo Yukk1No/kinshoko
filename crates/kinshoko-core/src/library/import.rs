@@ -184,7 +184,7 @@ struct Probed {
 
 fn probe(bytes: &[u8]) -> Result<Option<Probed>, String> {
     let format = match image::guess_format(bytes) {
-        Ok(f @ (ImageFormat::Jpeg | ImageFormat::Png | ImageFormat::WebP)) => f,
+        Ok(f @ (ImageFormat::Jpeg | ImageFormat::Png | ImageFormat::WebP | ImageFormat::Gif)) => f,
         _ => return Ok(None),
     };
     let mut reader = ImageReader::new(Cursor::new(bytes));
@@ -211,6 +211,7 @@ fn ext(format: ImageFormat) -> &'static str {
     match format {
         ImageFormat::Jpeg => "jpg",
         ImageFormat::Png => "png",
+        ImageFormat::Gif => "gif",
         _ => "webp",
     }
 }

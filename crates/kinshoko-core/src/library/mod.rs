@@ -15,6 +15,7 @@
 //! 资料库目录：`library.sqlite`（身份与全部整理结果）＋ `originals/<sha 前两位>/<sha>.<ext>`
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
 
+mod display;
 mod edit;
 mod error;
 mod events;
@@ -34,6 +35,7 @@ use std::sync::{Arc, RwLock};
 
 use rusqlite::{OptionalExtension, params};
 
+pub use display::{DisplayImage, DisplayKind};
 pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, SourceNote};
 pub use error::Error;
 pub use events::LibraryEvent;
@@ -190,6 +192,12 @@ impl Library {
     /// 参考图在目标像素宽度下的缩略图文件；缓存缺失时现场生成。
     pub fn thumbnail(&self, image_id: &str, target_px: u32) -> Result<PathBuf, Error> {
         thumbnail::get(&self.inner, image_id, target_px)
+    }
+
+    /// 查看器显示文件。target_px 是转正后目标宽度（设备像素），不按缩略图档位取整。
+    /// 静态 SDR 在原图像素及以上直接返回原文件；其他情况返回 sdr 派生图。
+    pub fn display_image(&self, image_id: &str, target_px: u32) -> Result<DisplayImage, Error> {
+        display::get(&self.inner, image_id, target_px)
     }
 
     /// 对 `ids` 中的每张图按顺序应用 `edits`，一个事务内全部成功才提交，
