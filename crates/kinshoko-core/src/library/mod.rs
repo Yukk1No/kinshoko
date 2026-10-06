@@ -16,6 +16,7 @@
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
 
 mod eagle;
+mod eagle_discovery;
 mod edit;
 mod error;
 mod events;
@@ -35,6 +36,10 @@ use std::sync::{Arc, RwLock};
 
 use rusqlite::{OptionalExtension, params};
 
+pub use eagle::{EagleBinding, EagleRegionNote, EagleSourceSnapshot};
+pub use eagle_discovery::{
+    EagleDiscoveryMethod, EagleDiscoveryOptions, EagleLibraryCandidate, discover_eagle_libraries,
+};
 pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, SourceNote};
 pub use error::Error;
 pub use events::LibraryEvent;
@@ -171,6 +176,11 @@ impl Library {
 
     pub fn info(&self) -> &LibraryInfo {
         &self.inner.info
+    }
+
+    /// Eagle 来源及其原样元数据快照；区域评论的坐标基准未经核验。
+    pub fn eagle_sources(&self) -> Result<Vec<EagleSourceSnapshot>, Error> {
+        eagle::snapshots(&self.inner)
     }
 
     /// 按查询浏览参考图，按导入先后从新到旧，keyset 分页。

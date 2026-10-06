@@ -19,7 +19,7 @@ use sha2::{Digest, Sha256};
 
 use super::events::LibraryEvent;
 use super::types::{ImportItem, ImportOutcome, ImportProgress, ImportReport, ImportSource};
-use super::{Inner, ORIGINALS_DIR, STAGING_DIR, eagle, fault, now_ms};
+use super::{Error, Inner, ORIGINALS_DIR, STAGING_DIR, eagle, fault, now_ms, tags};
 
 /// 来源标记：普通文件导入。
 const SOURCE_FILE: &str = "file";
@@ -91,7 +91,7 @@ fn run(
     let mut report = ImportReport::default();
     let mut files = Vec::new();
     for path in &source.paths {
-        collect(path, &mut files, &mut report.items);
+        collect(inner, path, &mut files, &mut report.items);
     }
 
     let mut progress = ImportProgress {
@@ -148,7 +148,7 @@ fn run(
 }
 
 /// 展开文件夹（含子文件夹，按名称排序）。读不了的位置记为读取失败。
-fn collect(path: &Path, files: &mut Vec<PathBuf>, failed: &mut Vec<ImportItem>) {
+fn collect(inner: &Inner, path: &Path, files: &mut Vec<PathBuf>, failed: &mut Vec<ImportItem>) {
     let fail = |failed: &mut Vec<ImportItem>, e: std::io::Error| {
         failed.push(ImportItem {
             path: path.to_path_buf(),
@@ -158,7 +158,7 @@ fn collect(path: &Path, files: &mut Vec<PathBuf>, failed: &mut Vec<ImportItem>) 
         })
     };
     if eagle::is_library(path) {
-        match eagle::collect(path) {
+        match eagle::collect(inner, path) {
             Ok(items) => files.extend(items),
             Err(reason) => failed.push(ImportItem {
                 path: path.to_path_buf(),
@@ -180,7 +180,7 @@ fn collect(path: &Path, files: &mut Vec<PathBuf>, failed: &mut Vec<ImportItem>) 
                     entries.filter_map(|e| e.ok().map(|e| e.path())).collect();
                 children.sort();
                 for child in children {
-                    collect(&child, files, failed);
+                    collect(inner, &child, files, failed);
                 }
             }
         },
@@ -236,20 +236,24 @@ pub(super) fn sha256_hex(bytes: &[u8]) -> String {
 
 fn import_one(inner: &Inner, path: &Path) -> ImportOutcome {
     let failed = |reason: String| ImportOutcome::ReadFailed { reason };
-    let original;
-    let path = if eagle::is_item(path) {
-        original = match eagle::original(path) {
-            Ok(path) => path,
+    let eagle = if eagle::is_item(path) {
+        match eagle::load(inner, path) {
+            Ok(item) => Some(item),
             Err(reason) => return failed(reason),
-        };
-        &original
+        }
     } else {
-        path
+        None
     };
-    let bytes = match std::fs::read(path) {
+    let original = eagle.as_ref().map_or(path, |item| item.original.as_path());
+    let bytes = match std::fs::read(original) {
         Ok(b) => b,
         Err(e) => return failed(e.to_string()),
     };
+    if let Some(item) = &eagle
+        && item.metadata.size != bytes.len() as u64
+    {
+        return failed("Eagle 条目的 size 与原文件字节数不符".into());
+    }
     let probed = match probe(&bytes) {
         Ok(Some(p)) => p,
         Ok(None) => return ImportOutcome::Unsupported,
@@ -263,22 +267,31 @@ fn import_one(inner: &Inner, path: &Path) -> ImportOutcome {
         size: bytes.len() as i64,
         format: ext(probed.format),
         rel_path,
-        width: probed.width,
-        height: probed.height,
+        width: eagle
+            .as_ref()
+            .map_or(probed.width, |item| item.metadata.width),
+        height: eagle
+            .as_ref()
+            .map_or(probed.height, |item| item.metadata.height),
         orientation: probed.orientation.to_exif(),
-        original_name: path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default(),
+        original_name: eagle
+            .as_ref()
+            .map(|item| item.metadata.name.clone())
+            .unwrap_or_else(|| {
+                path.file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default()
+            }),
         location: std::path::absolute(path)
             .unwrap_or_else(|_| path.to_path_buf())
             .to_string_lossy()
             .into_owned(),
+        eagle,
     };
 
     // 同库已有字节相同的原图：不再暂存与发布，直接合并来源。
     if already_stored(inner, &record.sha) {
-        return match inner.writer.run(move |conn| commit(conn, record, None)) {
+        return match commit_record(inner, record, None) {
             Ok(outcome) => outcome,
             Err(e) => failed(format!("写入资料库失败：{e}")),
         };
@@ -303,11 +316,7 @@ fn import_one(inner: &Inner, path: &Path) -> ImportOutcome {
     }
     fault::hit(fault::IMPORT_AFTER_PUBLISH);
 
-    let op = pending.id.clone();
-    match inner
-        .writer
-        .run(move |conn| commit(conn, record, Some(&op)))
-    {
+    match commit_record(inner, record, Some(pending.id.clone())) {
         Ok(outcome) => outcome,
         Err(e) => {
             abandon(inner, pending);
@@ -442,6 +451,38 @@ struct Record {
     orientation: u8,
     original_name: String,
     location: String,
+    eagle: Option<eagle::Item>,
+}
+
+fn commit_record(
+    inner: &Inner,
+    record: Record,
+    pending: Option<String>,
+) -> Result<ImportOutcome, Error> {
+    let translations = inner.translations();
+    let (outcome, revision) = inner
+        .writer
+        .run(move |conn| commit(conn, record, pending.as_deref(), &translations))?;
+    if let Some(revision) = revision {
+        let image_id = match &outcome {
+            ImportOutcome::Imported { image_id } | ImportOutcome::Merged { image_id } => {
+                image_id.clone()
+            }
+            _ => unreachable!(),
+        };
+        inner.hub.publish(LibraryEvent::ImagesChanged {
+            library_id: inner.info.id.clone(),
+            image_ids: vec![image_id],
+        });
+        inner.hub.publish(LibraryEvent::VocabularyChanged {
+            library_id: inner.info.id.clone(),
+            revision,
+        });
+        inner.hub.publish(LibraryEvent::ListStale {
+            library_id: inner.info.id.clone(),
+        });
+    }
+    Ok(outcome)
 }
 
 /// 一个短事务：同库字节相同的原图合并为一条记录，来源各自保留；同时结束 pending。
@@ -449,9 +490,26 @@ fn commit(
     conn: &mut rusqlite::Connection,
     r: Record,
     pending: Option<&str>,
-) -> rusqlite::Result<ImportOutcome> {
+    translations: &tags::TranslationIndex,
+) -> Result<(ImportOutcome, Option<i64>), Error> {
     let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
     let now = now_ms();
+    if let Some(item) = &r.eagle {
+        let binding: Option<(String, String)> = tx.query_row(
+            "SELECT sha256, image_id FROM source_binding WHERE source_id = ?1 AND external_id = ?2",
+            params![item.source_id, item.metadata.id], |row| Ok((row.get(0)?, row.get(1)?)),
+        ).optional()?;
+        if let Some((sha, image_id)) = binding {
+            if sha != r.sha {
+                return Err(Error::EagleReimportRequired);
+            }
+            if let Some(op) = pending {
+                tx.execute("DELETE FROM import_pending WHERE id = ?1", [op])?;
+            }
+            tx.commit()?;
+            return Ok((ImportOutcome::Merged { image_id }, None));
+        }
+    }
     let existing: Option<String> = tx
         .query_row("SELECT id FROM image WHERE sha256 = ?1", [&r.sha], |row| {
             row.get(0)
@@ -462,8 +520,8 @@ fn commit(
         None => {
             tx.execute(
                 "INSERT INTO image (id, sha256, size, format, rel_path, width, height,
-                                    orientation, original_name, imported_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                                    orientation, original_name, imported_at, collected_at, deleted_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
                 params![
                     r.id,
                     r.sha,
@@ -474,7 +532,9 @@ fn commit(
                     r.height,
                     r.orientation,
                     r.original_name,
-                    now
+                    now,
+                    r.eagle.as_ref().map_or(now, |item| item.collected_at(now)),
+                    r.eagle.as_ref().and_then(|item| item.deleted_at(now))
                 ],
             )?;
             ImportOutcome::Imported { image_id: r.id }
@@ -484,15 +544,28 @@ fn commit(
         ImportOutcome::Imported { image_id } | ImportOutcome::Merged { image_id } => image_id,
         _ => unreachable!(),
     };
-    tx.execute(
-        "INSERT OR IGNORE INTO image_source (image_id, source, location, recorded_at)
+    let revision = if let Some(item) = &r.eagle {
+        Some(eagle::commit(
+            &tx,
+            translations,
+            item,
+            &r.sha,
+            image_id,
+            &r.location,
+            now,
+        )?)
+    } else {
+        tx.execute(
+            "INSERT OR IGNORE INTO image_source (image_id, source, location, recorded_at)
          VALUES (?1, ?2, ?3, ?4)",
-        params![image_id, SOURCE_FILE, r.location, now],
-    )?;
+            params![image_id, SOURCE_FILE, r.location, now],
+        )?;
+        None
+    };
     if let Some(op) = pending {
         tx.execute("DELETE FROM import_pending WHERE id = ?1", [op])?;
     }
     fault::hit(fault::IMPORT_BEFORE_COMMIT);
     tx.commit()?;
-    Ok(outcome)
+    Ok((outcome, revision))
 }

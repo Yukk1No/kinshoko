@@ -15,6 +15,7 @@ rusqlite_migration = "2.6"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 sha2 = "0.10"
 uuid = { version = "1", features = ["v4", "v7"] }
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "json"] }
 
 [dev-dependencies]
 tempfile = "3.27.0"

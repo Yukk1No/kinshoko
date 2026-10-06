@@ -23,6 +23,7 @@ pub enum Error {
     ExternalTaken(String),
     /// 命名空间分组的成员由命名空间决定，不能手动设置。
     NamespaceGroup,
+    EagleReimportRequired,
     Io(std::io::Error),
     Db(rusqlite::Error),
     Migration(rusqlite_migration::Error),
@@ -46,6 +47,9 @@ impl fmt::Display for Error {
             Error::DuplicateTagName(n) => write!(f, "同一命名空间里已有标签叫“{n}”"),
             Error::ExternalTaken(n) => write!(f, "外部名称 {n} 已对应到另一个标签"),
             Error::NamespaceGroup => write!(f, "这个分组按命名空间列出标签，不能手动调整成员"),
+            Error::EagleReimportRequired => {
+                write!(f, "这个 Eagle 条目的内容已变化，需要使用重新迁入")
+            }
             Error::Io(e) => write!(f, "读写文件失败：{e}"),
             Error::Db(e) => write!(f, "资料库数据库出错：{e}"),
             Error::Migration(e) => write!(f, "资料库格式无法升级：{e}"),

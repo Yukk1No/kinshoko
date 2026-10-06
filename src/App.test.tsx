@@ -36,6 +36,9 @@ const side: Sidebar = {
 };
 const detail = (id: string, manual: string | null): ImageDetail => ({
   id,
+  originalName: "参考图",
+  collectedAt: 1756571097667,
+  sourceLinks: [],
   width: 100,
   height: 200,
   folders: [{ id: "F1", name: "人物" }],

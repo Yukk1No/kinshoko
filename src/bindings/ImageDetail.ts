@@ -5,7 +5,11 @@ import type { ImageNote } from "./ImageNote";
 /**
  * 查看单张参考图所需的详情。
  */
-export type ImageDetail = { id: string, width: number, height: number, 
+export type ImageDetail = { id: string, originalName: string, 
+/**
+ * 收集时间（Unix 毫秒）：Eagle btime → modificationTime → 导入时间。
+ */
+collectedAt: number, sourceLinks: Array<string>, width: number, height: number, 
 /**
  * 所在的文件夹，按名称排序。
  */
