@@ -876,6 +876,11 @@ button.primary {
   overflow: hidden;
 }
 
+/* 右下角按住拖动缩放（笔与鼠标相同）。 */
+.pin-corner {
+  cursor: nwse-resize;
+}
+
 .pin-canvas {
   position: absolute;
   left: 0;

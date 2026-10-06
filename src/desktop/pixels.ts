@@ -66,3 +66,49 @@ export function dragSelection(previous: Rect | null, start: Point, current: Poin
   if (start.x === current.x && start.y === current.y) return previous;
   return selectionRect(start, current);
 }
+
+/** 画钉图的变换：以画布中心为原点，先镜像（flipX/flipY 为 ±1）再顺时针转 angle，按 width×height 画。 */
+export interface PinDrawing {
+  angle: number;
+  flipX: number;
+  flipY: number;
+  /** 旋转前的目标尺寸（物理像素），与画布尺寸一样取整。 */
+  width: number;
+  height: number;
+}
+
+export function pinDrawing(pin: PinGeometry & { flipH: boolean; flipV: boolean }): PinDrawing {
+  const canvas = pinCanvasSize(pin, 1);
+  const odd = pin.rotation % 2 === 1;
+  return {
+    angle: (pin.rotation * Math.PI) / 2,
+    flipX: pin.flipH ? -1 : 1,
+    flipY: pin.flipV ? -1 : 1,
+    width: odd ? canvas.height : canvas.width,
+    height: odd ? canvas.width : canvas.height,
+  };
+}
+
+/** 按下右下角时的缩放与窗口物理像素尺寸。 */
+export interface ZoomStart {
+  scale: number;
+  width: number;
+  height: number;
+}
+
+/** 拖右下角缩放：左上角不动，按 (dx, dy)（物理像素）里拖得多的方向算新缩放，保持宽高比。 */
+export function cornerZoomScale(start: ZoomStart, dx: number, dy: number): number {
+  const factor = Math.max((start.width + dx) / start.width, (start.height + dy) / start.height);
+  return start.scale * Math.max(factor, 0);
+}
+
+/** 滚轮缩放：每格（deltaY 100）×1.12，向上放大。 */
+export function wheelZoomScale(scale: number, deltaY: number): number {
+  return scale * Math.pow(1.12, -deltaY / 100);
+}
+
+/** 指针（CSS 像素，相对钉图左上角）在右下角的缩放区里。区域最大 24 CSS 像素，小钉图按比例缩小。 */
+export function inZoomCorner(at: Point, cssWidth: number, cssHeight: number): boolean {
+  const zone = Math.min(24, 0.3 * Math.min(cssWidth, cssHeight));
+  return at.x >= cssWidth - zone && at.y >= cssHeight - zone;
+}

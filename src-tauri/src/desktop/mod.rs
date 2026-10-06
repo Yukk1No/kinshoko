@@ -1,4 +1,4 @@
-//! Desktop：截图、截图历史、桌面钉图与托盘（内联插件 `desktop`，前端以 `plugin:desktop|<命令>` 调用）。
+//! Desktop：截图、截图历史、桌面钉图、贴边隐藏与托盘（内联插件 `desktop`，前端以 `plugin:desktop|<命令>` 调用）。
 //! 规则在 `kinshoko_core::desktop`，这里只接系统：抓屏、剪贴板、窗口、托盘与全局快捷键。
 //!
 //! 线程规则（沿用 #7 钉图原型）：**持有 [`DesktopState`] 里任何一把锁时都不调用窗口 API**。
@@ -9,16 +9,18 @@
 //! - 截图历史变化时向所有窗口推送 `capture-history`（截图列表，从新到旧）。
 
 mod capture;
+mod edge;
 mod pins;
 #[cfg(windows)]
 mod win32;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
 use std::sync::{Mutex, MutexGuard};
 
 use kinshoko_core::ShortcutAction;
-use kinshoko_core::desktop::{CaptureEntry, CaptureHistory, CollectedCapture};
+use kinshoko_core::desktop::{CaptureEntry, CaptureHistory, CollectedCapture, EdgeHide, PinStore};
 use tauri::http::{Response, StatusCode, header};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::plugin::{Builder, TauriPlugin};
@@ -35,7 +37,13 @@ const HISTORY_EVENT: &str = "capture-history";
 pub struct DesktopState {
     history: Mutex<CaptureHistory>,
     capture: Mutex<capture::Session>,
+    /// 本次运行中打开着的钉图窗口。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
+    /// 钉图状态（`pins.json`），重新打开后恢复。
+    store: Mutex<PinStore>,
+    /// 钉图状态改了还没写回文件。
+    dirty: AtomicBool,
+    edge: Mutex<EdgeHide>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -60,6 +68,9 @@ pub fn init() -> TauriPlugin<Wry> {
             pins::pin_ready,
             pins::pin_menu,
             pins::move_pin,
+            pins::zoom_pin,
+            pins::turn_pin,
+            edge_hide,
             capture_history,
             collect_capture,
             delete_capture,
@@ -70,12 +81,20 @@ pub fn init() -> TauriPlugin<Wry> {
                 None => app.path().app_data_dir()?,
             };
             let history = CaptureHistory::open(&dir.join(HISTORY_DIR))?;
+            let store = PinStore::open(&dir)?;
             app.manage(DesktopState {
                 history: Mutex::new(history),
                 capture: Mutex::new(capture::Session::Idle),
                 pins: Mutex::default(),
+                store: Mutex::new(store),
+                dirty: AtomicBool::new(false),
+                edge: Mutex::default(),
             });
             app.on_menu_event(pins::on_menu_event);
+            edge::start(app);
+            // 恢复上次的钉图：建窗口要等事件循环跑起来，放到别的线程。
+            let handle = app.clone();
+            std::thread::spawn(move || pins::restore(&handle));
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol("capture", |ctx, request, responder| {
@@ -137,6 +156,17 @@ async fn collect_capture(app: AppHandle, id: String) -> Result<CollectedCapture,
         .map_err(|e| e.to_string())?
 }
 
+/// 贴边隐藏全部钉图，或让它们回到原位（与全局快捷键相同）。
+#[tauri::command]
+async fn edge_hide(app: AppHandle) {
+    edge::toggle_in_background(&app);
+}
+
+/// 退出前把钉图状态写回文件。
+pub fn on_exit(app: &AppHandle) {
+    edge::flush(app);
+}
+
 #[tauri::command]
 async fn delete_capture(app: AppHandle, id: String) -> Result<(), String> {
     lock(&state(&app).history)
@@ -152,16 +182,14 @@ pub fn on_shortcut(app: &AppHandle, action: ShortcutAction) {
     match action {
         ShortcutAction::Capture => capture::start(app),
         ShortcutAction::PinClipboard => pins::pin_clipboard_in_background(app),
-        // 贴边隐藏由 #63 接入。
-        ShortcutAction::HideAllPins => {
-            let _ = app.emit("shortcut-pressed", action);
-        }
+        ShortcutAction::HideAllPins => edge::toggle_in_background(app),
     }
 }
 
 const MENU_OPEN: &str = "open-main-window";
 const MENU_CAPTURE: &str = "capture";
 const MENU_PIN_CLIPBOARD: &str = "pin-clipboard";
+const MENU_EDGE_HIDE: &str = "edge-hide";
 const MENU_QUIT: &str = "quit";
 
 /// 常驻托盘：单击图标或菜单“打开 Kinshoko”回到主窗口，“退出”结束常驻进程。
@@ -172,6 +200,13 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
             &MenuItem::with_id(app, MENU_OPEN, "打开 Kinshoko", true, None::<&str>)?,
             &MenuItem::with_id(app, MENU_CAPTURE, "截图", true, None::<&str>)?,
             &MenuItem::with_id(app, MENU_PIN_CLIPBOARD, "钉剪贴板", true, None::<&str>)?,
+            &MenuItem::with_id(
+                app,
+                MENU_EDGE_HIDE,
+                "贴边隐藏／显示钉图",
+                true,
+                None::<&str>,
+            )?,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(app, MENU_QUIT, "退出", true, None::<&str>)?,
         ],
@@ -184,6 +219,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
             MENU_OPEN => shell::open_main_window(app),
             MENU_CAPTURE => capture::start(app),
             MENU_PIN_CLIPBOARD => pins::pin_clipboard_in_background(app),
+            MENU_EDGE_HIDE => edge::toggle_in_background(app),
             MENU_QUIT => app.exit(0),
             _ => {}
         })
