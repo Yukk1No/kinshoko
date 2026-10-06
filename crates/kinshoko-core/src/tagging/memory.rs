@@ -5,11 +5,13 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use super::port::{
-    Device, DeviceInfo, GpuInfo, PreparedModel, RawTag, TagFailure, Tagger, TaggerSession,
+    Device, DeviceInfo, GpuInfo, PreparedModel, RawTag, SessionStopper, TagFailure, Tagger,
+    TaggerSession,
 };
 
 #[derive(Default)]
@@ -118,7 +120,7 @@ impl Tagger for InMemoryTagger {
         Ok(Box::new(Session {
             tagger: self.clone(),
             device,
-            dead: false,
+            dead: Arc::default(),
         }))
     }
 }
@@ -126,27 +128,39 @@ impl Tagger for InMemoryTagger {
 struct Session {
     tagger: InMemoryTagger,
     device: Device,
-    dead: bool,
+    /// 会话已结束（崩溃或被 stopper 结束）。
+    dead: Arc<AtomicBool>,
+}
+
+impl Session {
+    fn ended(&self) -> bool {
+        self.dead.load(Ordering::SeqCst)
+    }
 }
 
 impl TaggerSession for Session {
     fn tag(&mut self, image: &Path) -> Result<Vec<RawTag>, TagFailure> {
-        if self.dead {
-            return Err(TagFailure::Crashed("会话已结束".into()));
+        let ended = || TagFailure::Crashed("会话已结束".into());
+        if self.ended() {
+            return Err(ended());
         }
-        let delay = self.tagger.lock().delay;
-        if !delay.is_zero() {
-            std::thread::sleep(delay);
+        // 模拟推理耗时；会话被结束时立即返回，像子进程被结束一样。
+        let until = Instant::now() + self.tagger.lock().delay;
+        while Instant::now() < until {
+            if self.ended() {
+                return Err(ended());
+            }
+            std::thread::sleep(Duration::from_millis(2));
         }
         let mut s = self.tagger.lock();
         if let Some(n) = s.crashes.get_mut(image).filter(|n| **n > 0) {
             *n -= 1;
-            self.dead = true;
+            self.dead.store(true, Ordering::SeqCst);
             return Err(TagFailure::Crashed("模拟崩溃".into()));
         }
         if let Some(n) = s.device_lost.get_mut(image).filter(|n| **n > 0) {
             *n -= 1;
-            self.dead = true;
+            self.dead.store(true, Ordering::SeqCst);
             return Err(TagFailure::DeviceLost("模拟显卡重置".into()));
         }
         if let Some(reason) = s.bad.get(image) {
@@ -154,6 +168,11 @@ impl TaggerSession for Session {
         }
         s.tagged.push((image.to_path_buf(), self.device));
         Ok(s.outputs.get(image).cloned().unwrap_or_default())
+    }
+
+    fn stopper(&self) -> SessionStopper {
+        let dead = self.dead.clone();
+        Arc::new(move || dead.store(true, Ordering::SeqCst))
     }
 }
 

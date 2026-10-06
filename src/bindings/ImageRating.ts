@@ -10,6 +10,10 @@ export type ImageRating = { imageId: string,
  */
 suggested: ContentRating | null, 
 /**
- * 有效分级（人工分级优先，#53）。
+ * 画师修正的分级；没有修正（或已退回）时为空。重新打标不覆盖它。
+ */
+manual: ContentRating | null, 
+/**
+ * 有效分级：人工分级优先，否则是自动分级。
  */
 effective: ContentRating | null, };

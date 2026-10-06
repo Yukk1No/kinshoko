@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import type { BrowseScope } from "../bindings/BrowseScope";
+import type { ContentRating } from "../bindings/ContentRating";
+import type { ImageRating } from "../bindings/ImageRating";
 import type { FolderNode } from "../bindings/FolderNode";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageEdit } from "../bindings/ImageEdit";
@@ -12,7 +14,12 @@ type Props = {
   /** 资料库报告列表过期时递增：重新取文件夹列表与详情。 */
   reloadKey: number;
   onError: (message: string) => void;
+  /** 安全模式开启时，改成含成人内容的分级会让图被封印：随即取消选择。 */
+  safeMode?: boolean;
 };
+
+const isAdult = (rating: ContentRating | null) =>
+  rating === "questionable" || rating === "explicit";
 
 /** 文件夹树摊平成带缩进的选项。 */
 function flatten(nodes: FolderNode[], depth = 0): { id: string; label: string }[] {
@@ -22,7 +29,46 @@ function flatten(nodes: FolderNode[], depth = 0): { id: string; label: string }[
   ]);
 }
 
-/** 只选中一张时：所在文件夹与备注。 */
+const RATING_LABELS: Record<ContentRating, string> = {
+  general: "全年龄",
+  sensitive: "轻微敏感",
+  questionable: "可疑",
+  explicit: "露骨",
+};
+
+/** 内容分级：画师选的分级优先于自动分级；选“自动”即退回自动分级。 */
+function RatingPicker({
+  rating,
+  edit,
+}: {
+  rating: ImageRating;
+  edit: (edits: ImageEdit[]) => void;
+}) {
+  const auto = rating.suggested ? RATING_LABELS[rating.suggested] : "尚未分级";
+  return (
+    <label className="selection-rating">
+      <span>内容分级</span>
+      <select
+        aria-label="内容分级"
+        value={rating.manual ?? ""}
+        onChange={(e) => {
+          const value = e.target.value as ContentRating | "";
+          edit([value ? { kind: "setRating", rating: value } : { kind: "revertRating" }]);
+        }}
+      >
+        <option value="">自动（{auto}）</option>
+        {(Object.keys(RATING_LABELS) as ContentRating[]).map((r) => (
+          <option key={r} value={r}>
+            {RATING_LABELS[r]}
+          </option>
+        ))}
+      </select>
+      {rating.manual && <span className="selection-hint">人工修正，重新打标不会覆盖</span>}
+    </label>
+  );
+}
+
+/** 只选中一张时：所在文件夹、内容分级与备注。 */
 function Detail({
   detail,
   edit,
@@ -49,6 +95,7 @@ function Detail({
           ? `所在文件夹：${detail.folders.map((f) => f.name).join("、")}`
           : "不在任何文件夹里"}
       </p>
+      <RatingPicker rating={detail.rating} edit={edit} />
       <label className="selection-note">
         <span>备注{manual === null && sources.length > 0 ? "（来自来源）" : ""}</span>
         <textarea value={draft} rows={3} onChange={(e) => setDraft(e.target.value)} />
@@ -75,7 +122,14 @@ function Detail({
 }
 
 /** 选中参考图后的整理操作：放入或移出文件夹、删除或恢复；只选一张时还能写备注。 */
-export function SelectionPanel({ scope, selected, onClear, reloadKey, onError }: Props) {
+export function SelectionPanel({
+  scope,
+  selected,
+  onClear,
+  reloadKey,
+  onError,
+  safeMode = false,
+}: Props) {
   const ids = [...selected];
   const single = ids.length === 1 ? ids[0] : null;
   const [folders, setFolders] = useState<{ id: string; label: string }[]>([]);
@@ -109,7 +163,8 @@ export function SelectionPanel({ scope, selected, onClear, reloadKey, onError }:
     editImages(ids, edits).then(
       (details) => {
         if (single && details[0]) setDetail(details[0]);
-        if (clear) onClear();
+        const sealed = safeMode && details.some((d) => isAdult(d.rating.effective));
+        if (clear || sealed) onClear();
       },
       (e) => onError(String(e)),
     );

@@ -20,6 +20,7 @@ import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
 import { SelectionPanel } from "./library/SelectionPanel";
 import { SidebarPane } from "./library/SidebarPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
+import { ModelSettings } from "./ModelSettings";
 import { SealBook } from "./SealBook";
 import { SettingsPanel } from "./SettingsPanel";
 import { TaggingIndicator } from "./TaggingIndicator";
@@ -218,6 +219,7 @@ export function App() {
                   onClear={() => setSelected(new Set())}
                   reloadKey={reloadKey}
                   onError={onError}
+                  safeMode={safe}
                 />
               )}
               <Wall
@@ -241,10 +243,13 @@ export function App() {
       )}
       {showCaptures && <CaptureHistoryPanel libraryId={library?.id} />}
       {showSettings && (
-        <SettingsPanel
-          library={library ?? null}
-          onChange={(view) => setShowApproxSource(view.showApproxSource)}
-        />
+        <>
+          <SettingsPanel
+            library={library ?? null}
+            onChange={(view) => setShowApproxSource(view.showApproxSource)}
+          />
+          <ModelSettings />
+        </>
       )}
       <footer className="app-status">
         <span>{info && `${info.productName} ${info.version}`}</span>

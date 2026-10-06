@@ -509,6 +509,18 @@ button.primary {
   resize: vertical;
 }
 
+/* 内容分级（#53）：人工分级优先于自动分级。 */
+.selection-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.selection-hint {
+  opacity: 0.6;
+}
+
 /* 搜索框（#54）：条件以标签块排在输入框前，下拉候选浮在图片墙上。 */
 .search {
   display: flex;
