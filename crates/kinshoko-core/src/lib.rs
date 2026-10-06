@@ -5,6 +5,7 @@
 
 mod app_shell;
 pub mod approx;
+pub mod desktop;
 mod device;
 pub mod library;
 pub mod search;

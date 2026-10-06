@@ -17,7 +17,11 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             shell::open_main_window(app);
         }))
+        // 对话框插件要注册在这里：插件的 setup 运行时 Tauri 持有插件表的锁，
+        // 在 setup 里再调用 `app.plugin` 会死锁，应用卡在启动阶段。
+        .plugin(tauri_plugin_dialog::init())
         .plugin(library::init())
+        .plugin(desktop::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(
             tauri_plugin_autostart::Builder::new()
