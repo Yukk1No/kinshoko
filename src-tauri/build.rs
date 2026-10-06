@@ -25,6 +25,7 @@ fn main() {
                     "tag_groups",
                     "search_candidates",
                     "resolve_search",
+                    "image_rating",
                 ])
                 .default_permission(tauri_build::DefaultPermissionRule::AllowAllCommands),
         ),

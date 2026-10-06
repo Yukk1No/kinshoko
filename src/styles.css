@@ -264,6 +264,13 @@ button.primary {
   font: inherit;
 }
 
+/* 状态栏里的自动标签 */
+.tagging {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .settings {
   padding: 12px 16px;
   border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
