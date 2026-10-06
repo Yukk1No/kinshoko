@@ -9,7 +9,9 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use serde::Serialize;
 use sha2::{Digest, Sha256};
+use ts_rs::TS;
 
 use super::patch;
 use super::port::{Device, PreparedModel};
@@ -135,6 +137,27 @@ pub fn catalog() -> Vec<ModelSpec> {
     ]
 }
 
+/// 设置界面里的一个可选模型：名称、设备档位、显存或内存需求、大小、本机是否已装好。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ModelOption {
+    pub key: String,
+    pub label: String,
+    pub device: Device,
+    /// DirectML 下的显存峰值估计。
+    #[ts(type = "number")]
+    pub vram_need: u64,
+    /// CPU 下的内存峰值估计；0 表示不检查。
+    #[ts(type = "number")]
+    pub ram_need: u64,
+    /// 首次使用要下载的字节数。
+    #[ts(type = "number")]
+    pub size: u64,
+    /// 已下载、校验（并改写）好，不必再下载。
+    pub installed: bool,
+}
+
 /// 默认的下载地址前缀。
 pub const HUGGING_FACE: &str = "https://huggingface.co";
 
@@ -211,6 +234,22 @@ impl ModelStore {
             onnx,
             tags_csv: p.tags,
         })
+    }
+
+    /// 设置界面的模型列表，按 `models` 的顺序。
+    pub fn options(&self, models: &[ModelSpec]) -> Vec<ModelOption> {
+        models
+            .iter()
+            .map(|spec| ModelOption {
+                key: spec.key.clone(),
+                label: spec.label.clone(),
+                device: spec.device,
+                vram_need: spec.vram_need,
+                ram_need: spec.ram_need,
+                size: spec.download_size(),
+                installed: self.ready(spec).is_some(),
+            })
+            .collect()
     }
 
     /// 已经下载了多少字节（含上次中断留下的部分）。

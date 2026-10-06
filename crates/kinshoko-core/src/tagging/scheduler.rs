@@ -41,6 +41,9 @@ pub struct TaggingConfig {
     pub max_crashes_per_image: u32,
     /// 显卡被重置或会话在显卡上启动失败这么多次后，本次运行不再用显卡，退到 CPU 档。
     pub max_gpu_failures: u32,
+    /// 画师在设置中选的模型（[`ModelSpec::key`]）：本机条件满足时优先用它，否则按 `models`
+    /// 的顺序退让（例如选了显卡模型但没有独显）。`None` 表示自动选择。
+    pub preferred: Option<String>,
 }
 
 impl TaggingConfig {
@@ -53,6 +56,7 @@ impl TaggingConfig {
             poll_interval: Duration::from_secs(1),
             max_crashes_per_image: 2,
             max_gpu_failures: 2,
+            preferred: None,
         }
     }
 
@@ -121,7 +125,10 @@ pub enum TaggingStatus {
 struct Control {
     paused: bool,
     stop: bool,
+    /// 画师确认了下载（对当前选的模型；换模型后要重新确认）。
     download: bool,
+    /// 见 [`TaggingConfig::preferred`]。
+    preferred: Option<String>,
 }
 
 struct Shared {
@@ -184,7 +191,10 @@ impl Tagging {
     /// 在后台开始为 `library` 打标。
     pub fn start(library: Arc<Library>, tagger: Arc<dyn Tagger>, config: TaggingConfig) -> Tagging {
         let shared = Arc::new(Shared {
-            control: Mutex::default(),
+            control: Mutex::new(Control {
+                preferred: config.preferred.clone(),
+                ..Control::default()
+            }),
             wake: Condvar::new(),
             status: Mutex::new(TaggingStatus::Starting),
             cancel: AtomicBool::new(false),
@@ -230,6 +240,18 @@ impl Tagging {
     pub fn pause(&self) {
         self.shared.control().paused = true;
         self.shared.stop_session();
+        self.shared.wake.notify_all();
+    }
+
+    /// 换用画师在设置中选的模型（`None` 为自动）。新模型还没下载时先显示大小，等画师确认；
+    /// 已经打过的图不重打（同一模型的不同精度共用一个来源）。
+    pub fn set_model(&self, key: Option<String>) {
+        let mut control = self.shared.control();
+        if control.preferred != key {
+            control.preferred = key;
+            control.download = false;
+        }
+        drop(control);
         self.shared.wake.notify_all();
     }
 
@@ -304,14 +326,17 @@ impl Worker {
         self.gpu_failures < self.config.max_gpu_failures
     }
 
-    /// 本机条件满足的第一个模型。
+    /// 本机条件满足的第一个模型；画师选的模型排在最前。
     fn choose(&mut self) -> Result<ModelSpec, String> {
         let info = self
             .device_info
             .get_or_insert_with(|| self.tagger.probe())
             .clone();
+        let preferred = self.shared.control().preferred.clone();
+        let mut order: Vec<&ModelSpec> = self.config.models.iter().collect();
+        order.sort_by_key(|spec| Some(&spec.key) != preferred.as_ref());
         let mut reasons = Vec::new();
-        for spec in &self.config.models {
+        for spec in order {
             match spec.device {
                 Device::DirectMl => match &info.gpu {
                     None => reasons.push("没有独立显卡".to_owned()),

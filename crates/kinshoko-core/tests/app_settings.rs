@@ -58,3 +58,20 @@ fn settings_written_by_a_newer_version_survive_a_round_trip_through_this_one() {
     assert_eq!(saved["pinOpacity"], 0.8);
     assert_eq!(saved["autostart"], false);
 }
+
+#[test]
+fn the_tagging_model_choice_is_automatic_until_the_artist_picks_one() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert_eq!(settings.tagging_model(), None);
+
+    settings
+        .set_tagging_model(Some("pixai-v1.0-fp32-chunked"))
+        .unwrap();
+    drop(settings);
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert_eq!(settings.tagging_model(), Some("pixai-v1.0-fp32-chunked"));
+
+    settings.set_tagging_model(None).unwrap();
+    assert_eq!(AppSettings::open(dir.path()).unwrap().tagging_model(), None);
+}
