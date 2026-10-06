@@ -4,4 +4,8 @@ import type { ConditionInput } from "./ConditionInput";
 /**
  * 画师在搜索框里组织的全部条件，各条件同时满足。
  */
-export type SearchInput = { conditions: Array<ConditionInput>, };
+export type SearchInput = { conditions: Array<ConditionInput>, 
+/**
+ * 精确查找：不展开相近标签。默认展开（近似查找）。
+ */
+exact: boolean, };

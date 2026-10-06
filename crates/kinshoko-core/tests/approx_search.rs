@@ -253,7 +253,7 @@ fn updating_the_built_in_table_leaves_personal_entries_in_force() {
 fn the_bundled_table_loads_and_unknown_formats_are_refused() {
     let table = BuiltinApproxTable::bundled();
     assert!(table.table_version() >= 1);
-    assert!(table.len() > 0);
+    assert!(!table.is_empty());
 
     let wrong = r#"{"format":"something-else","format_version":1,"table_version":1,"pairs":[]}"#;
     assert!(BuiltinApproxTable::parse(wrong).is_err());

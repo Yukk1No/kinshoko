@@ -40,6 +40,8 @@ pub struct ShortcutBinding {
 pub struct ShellSettingsView {
     pub autostart: bool,
     pub shortcuts: Vec<ShortcutBinding>,
+    /// 查找条件里标出相近标签的来源（内置／个人）。
+    pub show_approx_source: bool,
 }
 
 impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
@@ -47,6 +49,7 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
         ShellSettingsView {
             autostart: settings.autostart(),
             shortcuts: self.bindings(settings),
+            show_approx_source: settings.show_approx_source(),
         }
     }
 }
