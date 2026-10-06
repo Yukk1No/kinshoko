@@ -8,8 +8,8 @@ use image::{ImageEncoder, RgbaImage};
 use kinshoko_core::Library;
 use kinshoko_core::fidelity::gate::{self, GateSample};
 use kinshoko_core::library::{
-    ColourDeclaration, ColourDescription, ColourModel, HdrKind, IccKind, ImportOutcome,
-    ImportSource,
+    BrowseQuery, ColourDeclaration, ColourDescription, ColourModel, HdrKind, IccKind,
+    ImportOutcome, ImportSource,
 };
 
 fn import_one(library: &Library, path: &Path) -> String {
@@ -434,4 +434,197 @@ fn import_records_how_each_gate_sample_declares_its_colour() {
         library.colour(a).unwrap().icc.unwrap().sha256,
         library.colour(b).unwrap().icc.unwrap().sha256
     );
+}
+
+/// CIEDE2000 色差（Sharma 2005 的公式）。
+fn delta_e2000(lab1: [f32; 3], lab2: [f32; 3]) -> f64 {
+    let [l1, a1, b1] = lab1.map(f64::from);
+    let [l2, a2, b2] = lab2.map(f64::from);
+    let c1 = (a1 * a1 + b1 * b1).sqrt();
+    let c2 = (a2 * a2 + b2 * b2).sqrt();
+    let c_bar = (c1 + c2) / 2.0;
+    let g = 0.5 * (1.0 - (c_bar.powi(7) / (c_bar.powi(7) + 25f64.powi(7))).sqrt());
+    let (a1p, a2p) = ((1.0 + g) * a1, (1.0 + g) * a2);
+    let (c1p, c2p) = ((a1p * a1p + b1 * b1).sqrt(), (a2p * a2p + b2 * b2).sqrt());
+    let hue = |b: f64, a: f64| {
+        if a == 0.0 && b == 0.0 {
+            0.0
+        } else {
+            let h = b.atan2(a).to_degrees();
+            if h < 0.0 { h + 360.0 } else { h }
+        }
+    };
+    let (h1p, h2p) = (hue(b1, a1p), hue(b2, a2p));
+    let dl = l2 - l1;
+    let dc = c2p - c1p;
+    let dh = if c1p * c2p == 0.0 {
+        0.0
+    } else if (h2p - h1p).abs() <= 180.0 {
+        h2p - h1p
+    } else if h2p - h1p > 180.0 {
+        h2p - h1p - 360.0
+    } else {
+        h2p - h1p + 360.0
+    };
+    let d_h = 2.0 * (c1p * c2p).sqrt() * (dh.to_radians() / 2.0).sin();
+    let l_bar = (l1 + l2) / 2.0;
+    let c_bar_p = (c1p + c2p) / 2.0;
+    let h_bar = if c1p * c2p == 0.0 {
+        h1p + h2p
+    } else if (h1p - h2p).abs() <= 180.0 {
+        (h1p + h2p) / 2.0
+    } else if h1p + h2p < 360.0 {
+        (h1p + h2p + 360.0) / 2.0
+    } else {
+        (h1p + h2p - 360.0) / 2.0
+    };
+    let t = 1.0 - 0.17 * (h_bar - 30.0).to_radians().cos()
+        + 0.24 * (2.0 * h_bar).to_radians().cos()
+        + 0.32 * (3.0 * h_bar + 6.0).to_radians().cos()
+        - 0.20 * (4.0 * h_bar - 63.0).to_radians().cos();
+    let d_theta = 30.0 * (-((h_bar - 275.0) / 25.0).powi(2)).exp();
+    let r_c = 2.0 * (c_bar_p.powi(7) / (c_bar_p.powi(7) + 25f64.powi(7))).sqrt();
+    let s_l = 1.0 + 0.015 * (l_bar - 50.0).powi(2) / (20.0 + (l_bar - 50.0).powi(2)).sqrt();
+    let s_c = 1.0 + 0.045 * c_bar_p;
+    let s_h = 1.0 + 0.015 * c_bar_p * t;
+    let r_t = -(2.0 * d_theta.to_radians()).sin() * r_c;
+    ((dl / s_l).powi(2) + (dc / s_c).powi(2) + (d_h / s_h).powi(2) + r_t * (dc / s_c) * (d_h / s_h))
+        .sqrt()
+}
+
+#[test]
+fn delta_e2000_matches_the_published_test_data() {
+    // Sharma, Wu, Dalal (2005) 表 1 的第 1、7、17 组。
+    let cases = [
+        ([50.0, 2.6772, -79.7751], [50.0, 0.0, -82.7485], 2.0425),
+        ([50.0, 0.0, 0.0], [50.0, -1.0, 2.0], 2.3669),
+        ([50.0, 2.5, 0.0], [73.0, 25.0, -18.0], 27.1492),
+    ];
+    for (a, b, expected) in cases {
+        assert!((delta_e2000(a, b) - expected).abs() < 1e-3, "{a:?} {b:?}");
+    }
+}
+
+/// 一张派生图文件：像素（0～1）与它嵌入的 ICC（没有则 sRGB）。
+struct Decoded {
+    image: image::Rgba32FImage,
+    profile: moxcms::ColorProfile,
+}
+
+fn decode_derivative(path: &Path) -> Decoded {
+    use image::ImageDecoder;
+    let bytes = std::fs::read(path).unwrap();
+    let mut decoder = image::ImageReader::new(std::io::Cursor::new(&bytes))
+        .with_guessed_format()
+        .unwrap()
+        .into_decoder()
+        .unwrap();
+    let profile = match decoder.icc_profile().unwrap() {
+        Some(icc) => moxcms::ColorProfile::new_from_slice(&icc).unwrap(),
+        None => moxcms::ColorProfile::new_srgb(),
+    };
+    let image = image::DynamicImage::from_decoder(decoder)
+        .unwrap()
+        .to_rgba32f();
+    Decoded { image, profile }
+}
+
+impl Decoded {
+    /// 原图坐标中的色块在派生图里的平均 Lab 与 alpha。
+    fn patch(&self, p: &gate::Patch, original_width: u32) -> ([f32; 3], f32) {
+        let scale = self.image.width() as f64 / original_width as f64;
+        let x0 = (p.x as f64 * scale).ceil() as u32;
+        let y0 = (p.y as f64 * scale).ceil() as u32;
+        let x1 = ((p.x + p.width) as f64 * scale).floor() as u32;
+        let y1 = ((p.y + p.height) as f64 * scale).floor() as u32;
+        let mut sum = [0f64; 4];
+        let mut n = 0.0;
+        for y in y0..y1 {
+            for x in x0..x1 {
+                let px = self.image.get_pixel(x, y).0;
+                for c in 0..4 {
+                    sum[c] += px[c] as f64;
+                }
+                n += 1.0;
+            }
+        }
+        assert!(n > 0.0, "色块在派生图中为空");
+        let mean = sum.map(|s| (s / n) as f32);
+        (lab_of(&self.profile, [mean[0], mean[1], mean[2]]), mean[3])
+    }
+}
+
+/// 设备 RGB 经配置文件到 CIE Lab（D50）。
+fn lab_of(profile: &moxcms::ColorProfile, rgb: [f32; 3]) -> [f32; 3] {
+    let mut wide = moxcms::ColorProfile::new_bt2020();
+    let one = moxcms::curve_from_gamma(1.0);
+    wide.red_trc = Some(one.clone());
+    wide.green_trc = Some(one.clone());
+    wide.blue_trc = Some(one);
+    wide.cicp = None;
+    let transform = profile
+        .create_transform_f32(
+            moxcms::Layout::Rgb,
+            &wide,
+            moxcms::Layout::Rgb,
+            moxcms::TransformOptions::default(),
+        )
+        .unwrap();
+    let mut lin = [0f32; 3];
+    transform.transform(&rgb, &mut lin).unwrap();
+    let m = wide.rgb_to_xyz_matrix();
+    let xyz = [0, 1, 2].map(|r| (0..3).map(|c| m.v[r][c] * lin[c] as f64).sum::<f64>());
+    let f = |t: f64| {
+        if t > 216.0 / 24389.0 {
+            t.cbrt()
+        } else {
+            (24389.0 / 27.0 * t + 16.0) / 116.0
+        }
+    };
+    let [fx, fy, fz] = [xyz[0] / 0.9642, xyz[1], xyz[2] / 0.8249].map(f);
+    [
+        (116.0 * fy - 16.0) as f32,
+        (500.0 * (fx - fy)) as f32,
+        (200.0 * (fy - fz)) as f32,
+    ]
+}
+
+fn card_width(library: &Library, id: &str) -> u32 {
+    library
+        .browse(&BrowseQuery {
+            scope: Default::default(),
+            cursor: None,
+            limit: 1000,
+            thumbnail_px: 128,
+        })
+        .unwrap()
+        .cards
+        .into_iter()
+        .find(|c| c.id == id)
+        .unwrap()
+        .width
+}
+
+#[test]
+fn every_gated_sample_keeps_its_colour_in_the_thumbnail() {
+    let dir = tempfile::tempdir().unwrap();
+    let library = Library::create(&dir.path().join("lib"), "库").unwrap();
+    let mut failures = Vec::new();
+    for sample in gate_samples().iter().filter(|s| s.gated) {
+        let id = import_sample(&library, dir.path(), sample);
+        let width = card_width(&library, &id);
+        let thumb = decode_derivative(&library.thumbnail(&id, 128).unwrap());
+        assert_eq!(thumb.image.width(), 128, "{}", sample.file_name);
+        for (i, p) in sample.patches.iter().enumerate() {
+            let (lab, alpha) = thumb.patch(p, width);
+            let de = delta_e2000(lab, p.lab);
+            if de >= 1.0 || (alpha - p.alpha).abs() > 0.02 {
+                failures.push(format!(
+                    "{} 色块 {i}：ΔE2000 = {de:.2}（期望 {:?}，实际 {lab:?}），alpha {alpha:.3}／{:.3}",
+                    sample.file_name, p.lab, p.alpha
+                ));
+            }
+        }
+    }
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }

@@ -2,13 +2,8 @@
 
 use moxcms::{
     CmsError, ColorProfile, DataColorSpace, LutDataType, LutStore, LutType, LutWarehouse, Matrix3d,
-    ProfileClass, ProfileVersion, ToneReprCurve, curve_from_gamma,
+    ProfileClass, ProfileVersion, curve_from_gamma,
 };
-
-/// sRGB 传递函数（IEC 61966-2-1）的 ICC 参数曲线。
-pub(crate) fn srgb_curve() -> ToneReprCurve {
-    ToneReprCurve::Parametric(vec![2.4, 1. / 1.055, 0.055 / 1.055, 1. / 12.92, 0.04045])
-}
 
 pub(crate) fn srgb_eotf(v: f32) -> f32 {
     if v <= 0.04045 {

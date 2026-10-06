@@ -345,9 +345,10 @@ pub fn samples() -> Vec<GateSample> {
         rgb_patches(&lut_profile),
     ));
     // RGB 图配 CMYK 配置文件：颜色模型不符，Chromium 丢弃配置文件按 sRGB。
+    // 合成 CMYK：油墨按减色混合后落在 Display P3 中，与朴素公式（sRGB）明显不同。
     let cmyk_profile = profiles::cmyk(9, |ink| {
         let rgb = [ink[0], ink[1], ink[2]].map(|c| (1.0 - c) * (1.0 - ink[3]));
-        through(srgb_xyz)(rgb)
+        through(p3_xyz)(rgb)
     });
     let cmyk_icc = profiles::encode(&cmyk_profile).expect("可编码");
     all.push(sample(

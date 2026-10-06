@@ -19,8 +19,9 @@ pub(crate) struct Inspection {
     pub height: u32,
     pub orientation: Orientation,
     pub description: ColourDescription,
-    /// 生效的 ICC 配置文件（被 Chromium 规则忽略的不在这里）。
+    /// 生效的 ICC 配置文件及其原字节（被 Chromium 规则忽略的不在这里）。
     pub profile: Option<ColorProfile>,
+    pub icc: Option<Vec<u8>>,
     /// PNG gAMA（编码 gamma，例如 0.45455）。
     pub gamma: Option<f32>,
     /// PNG cHRM：白点与红绿蓝的 xy。
@@ -126,6 +127,11 @@ pub(crate) fn inspect(bytes: &[u8]) -> Result<Option<Inspection>, String> {
             hdr,
             hdr_metadata: found.peak_nits.is_some(),
             animated: found.animated,
+        },
+        icc: if declaration == ColourDeclaration::Icc {
+            found.icc
+        } else {
+            None
         },
         profile: if declaration == ColourDeclaration::Icc {
             profile

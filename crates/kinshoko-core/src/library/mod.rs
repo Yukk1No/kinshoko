@@ -110,6 +110,13 @@ impl Library {
             .optional()?
             .ok_or_else(|| Error::NotALibrary(root.to_path_buf()))?;
         let root = std::path::absolute(root)?;
+        {
+            // 管线版本变化后，旧缩略图目录整体作废。
+            let root = root.clone();
+            let _ = std::thread::Builder::new()
+                .name("kinshoko-stale-thumbnails".into())
+                .spawn(move || thumbnail::remove_stale(&root));
+        }
         let readers = Readers::open(&root.join(DB_FILE), READERS)?;
         Ok(Library {
             inner: Arc::new(Inner {
