@@ -17,6 +17,8 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             shell::open_main_window(app);
         }))
+        // 依赖插件在 Builder 登记；插件 setup 内再次登记会重复等待 Tauri 的插件锁。
+        .plugin(tauri_plugin_dialog::init())
         .plugin(library::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(

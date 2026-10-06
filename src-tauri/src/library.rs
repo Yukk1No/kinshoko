@@ -71,7 +71,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             image_rating
         ])
         .setup(|app, _api| {
-            app.plugin(tauri_plugin_dialog::init())?;
             let device_dir = match std::env::var_os(DATA_DIR_ENV) {
                 Some(dir) => PathBuf::from(dir),
                 None => app.path().app_data_dir()?,
