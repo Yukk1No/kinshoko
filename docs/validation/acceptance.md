@@ -145,6 +145,30 @@
 
 只记录：缩略图生成耗时与体积。
 
+### 门槛实验的运行方式（#45）
+
+- **样本**：由 `kinshoko_core::fidelity::gate::samples()` 生成，字节固定，任何机器上重新生成都相同；共 35 张，覆盖核查“尚未验证”一节的实验 1～8、13 与动图：ICC v4／v2 Display P3、Adobe RGB、LUT 型 ICC（A2B0 与 A2B1 不同）、颜色模型不符的 ICC、CMYK／YCCK JPEG（合成 CMYK 配置文件；FOGRA39 等不可再分发）与无配置文件的 CMYK、gAMA 0.45455／1/1.8、gAMA＋cHRM、sRGB 块＋矛盾 gAMA、cICP、cICP＋iCCP、16 位 PNG、灰度 ICC、细线与网点、透明边（PNG／WebP）、EXIF 方向 1～8（另有带 eXIf 的 PNG）、GIF／APNG／动态 WebP、增益图标记、PQ／HLG。每个样本的 SHA-256 写在报告里。
+- **开发机（无人值守）**：`node e2e/fidelity-gate.mjs target/release/kinshoko.exe [报告目录]`，CI 每次构建都跑并上传报告与样本；门槛未通过是要由人判断的实验结果，不让 CI 变红（该步骤 `continue-on-error`）。
+- **画师电脑**：运行 `kinshoko.exe --fidelity-gate`（可加报告目录，默认在桌面的“Kinshoko 还原度报告”）。程序在报告目录下新建只放样本的资料库，不碰画师的资料库；跑完后按 Windows 设置填写 HDR、自动色彩管理与显示器 ICC，点“保存报告”，把生成的 `fidelity-report-*.json` 与 `.md` 发回。
+- **读法**：WebView2 用 `createImageBitmap` 分别解码原图与 128 px 缩略图，画到 `display-p3` canvas 读回，比较色块平均值的 ΔE2000（门槛 < 1）与 alpha（±0.02）。“原图 vs 标称”是 WebView2 自己对色彩声明的解释（例如 LUT 型 ICC 是否被裁到 sRGB），“缩略图 vs 标称”用来区分偏的是哪一边，两栏都只记录。细线、16 位灰度渐变与 PQ／HLG 只记录，由画师目视。
+- **环境记录**：WebView2 Runtime 版本、Windows 版本与内部版本号、GPU 与驱动版本、显示器及其 ICC 关联（注册表）、页面的 `color-gamut`／`dynamic-range` 媒体查询、WebGL 渲染器、DPR，以及画师填写的 HDR、自动色彩管理与显示器 ICC。
+- **Rust 侧**：`cargo test -p kinshoko-core --test fidelity` 用同一组样本检查缩略图色块与标称 Lab 的 ΔE2000 < 1，与 WebView2 无关。
+
+结果（开发机与画师电脑各一份）补记于此。
+
+**开发机，2026-10-06**（Windows 11 25H2 26200.9550，RTX 4070 SUPER 驱动 32.0.16.1714，WebView2 154.0.4258.53，`color-gamut: srgb`，SDR，DPR 1.104；HDR／自动色彩管理未填写）：35 个样本中 4 个门槛样本未通过，其余通过。未通过的 4 个，缩略图与标称值都在 ΔE2000 < 1 以内，偏的是 WebView2 对原图的解码：
+
+| 样本 | 原图 vs 缩略图 | 原图 vs 标称 | 缩略图 vs 标称 |
+|---|---|---|---|
+| lut-a2b0.png | 16.35 | 16.43 | 0.89 |
+| cmyk-profile.jpg | 16.35 | 16.36 | 0.31 |
+| ycck-profile.jpg | 16.35 | 16.36 | 0.33 |
+| gama-045455.png | 1.79 | 1.78 | 0.27 |
+
+- LUT 型 ICC 与带配置文件的 CMYK／YCCK：WebView2 解出的原图与按 ICC 算出的颜色差约 16，缩略图按 ICC 转换。需要决定门槛以哪一边为准（ADR-0005 的“以 WebView2 解码为基准”是否对这几类例外）。
+- 只有 gAMA 0.45455 的 PNG：WebView2 按 sRGB 曲线解释，Kinshoko 按纯 2.2 幂函数解释，差 1.8。libpng 与浏览器惯例把 1/2.2 当作 sRGB，可以考虑跟随。
+- 本机的 WmiMonitorID 与显示器 ICC 关联读不到（非管理员），以页面上手填为准。
+
 ## 近似查找（#9）
 
 首版用内置近似对应表与个人近似对应表（[ADR-0003](../adr/0003-tag-identity-and-approximate-search.md)、[技术路线](../discovery/technical-route.md#首版范围)）。

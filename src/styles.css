@@ -299,3 +299,31 @@ button.primary {
   color: #c62828;
   font-size: 12px;
 }
+
+/* 还原度门槛实验（#45） */
+.gate {
+  padding: 16px 24px;
+  overflow: auto;
+  height: 100vh;
+  box-sizing: border-box;
+}
+.gate-manual {
+  display: grid;
+  gap: 8px;
+  max-width: 520px;
+  margin: 12px 0;
+}
+.gate-manual label {
+  display: grid;
+  gap: 4px;
+}
+.gate-table {
+  border-collapse: collapse;
+}
+.gate-table td,
+.gate-table th {
+  border-bottom: 1px solid var(--line);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}

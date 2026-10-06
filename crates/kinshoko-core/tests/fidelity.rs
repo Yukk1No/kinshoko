@@ -87,6 +87,7 @@ fn import_sample(library: &Library, dir: &Path, sample: &GateSample) -> String {
 }
 
 #[test]
+#[allow(clippy::type_complexity)] // 表格式的用例，一行一个样本。
 fn import_records_how_each_gate_sample_declares_its_colour() {
     use ColourDeclaration as D;
     use ColourModel as M;
@@ -642,6 +643,7 @@ fn container_of(path: &Path) -> (image::ImageFormat, image::ColorType, Option<Ve
 }
 
 #[test]
+#[allow(clippy::type_complexity)] // 表格式的用例，一行一个样本。
 fn thumbnails_are_stored_losslessly_in_a_tier_chosen_by_the_source() {
     use image::ColorType as C;
     use image::ImageFormat as F;
@@ -819,4 +821,33 @@ fn thumbnails_of_an_older_pipeline_version_are_removed_and_rebuilt() {
         );
         std::thread::sleep(std::time::Duration::from_millis(20));
     }
+}
+
+#[test]
+fn the_gate_run_imports_every_sample_into_a_fresh_library_with_fixed_bytes() {
+    let dir = tempfile::tempdir().unwrap();
+    let run = gate::prepare(&dir.path().join("gate")).unwrap();
+
+    assert_eq!(run.items.len(), gate_samples().len());
+    for (item, sample) in run.items.iter().zip(gate_samples()) {
+        assert_eq!(item.sample.file_name, sample.file_name);
+        // 每次生成的字节相同，哈希可以写进验收约定。
+        assert_eq!(item.sample.bytes, sample.bytes, "{}", sample.file_name);
+        assert_eq!(
+            std::fs::read(run.samples_dir.join(&sample.file_name)).unwrap(),
+            sample.bytes
+        );
+        assert_eq!(
+            std::fs::read(run.library.original_path(&item.image_id).unwrap()).unwrap(),
+            sample.bytes
+        );
+        // 色块都落在转正后的原图里。
+        for p in &item.sample.patches {
+            assert!(p.x + p.width <= item.width && p.y + p.height <= item.height);
+        }
+    }
+    let mut names: Vec<_> = run.items.iter().map(|i| &i.sample.file_name).collect();
+    names.sort();
+    names.dedup();
+    assert_eq!(names.len(), run.items.len());
 }

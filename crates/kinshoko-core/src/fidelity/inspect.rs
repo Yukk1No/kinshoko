@@ -252,24 +252,22 @@ fn jpeg(bytes: &[u8], found: &mut Found) -> Result<(), String> {
         let end = (i + 2 + len).min(bytes.len());
         let payload = bytes.get(i + 4..end).unwrap_or_default();
         match marker {
-            0xC0..=0xCF if !matches!(marker, 0xC4 | 0xC8 | 0xCC) => {
-                if payload.len() >= 6 {
-                    found.bit_depth = payload[0];
-                    found.model = match payload[5] {
-                        1 => ColourModel::Gray,
-                        4 => ColourModel::Cmyk,
-                        _ => ColourModel::Rgb,
-                    };
-                }
+            0xC0..=0xCF if !matches!(marker, 0xC4 | 0xC8 | 0xCC) && payload.len() >= 6 => {
+                found.bit_depth = payload[0];
+                found.model = match payload[5] {
+                    1 => ColourModel::Gray,
+                    4 => ColourModel::Cmyk,
+                    _ => ColourModel::Rgb,
+                };
             }
             0xE2 if payload.starts_with(ICC) && payload.len() > ICC.len() + 2 => {
                 icc_chunks.push((payload[ICC.len()], payload[ICC.len() + 2..].to_vec()));
             }
             0xE2 if payload.starts_with(ISO_GAIN_MAP) => found.gain_map = true,
-            0xE1 if payload.starts_with(XMP) => {
-                if contains(payload, b"hdrgm:") || contains(payload, b"hdrgm=") {
-                    found.gain_map = true;
-                }
+            0xE1 if payload.starts_with(XMP)
+                && (contains(payload, b"hdrgm:") || contains(payload, b"hdrgm=")) =>
+            {
+                found.gain_map = true;
             }
             0xEE if payload.starts_with(b"Adobe") => found.adobe = true,
             _ => {}

@@ -16,6 +16,7 @@ use serde::Serialize;
 use ts_rs::TS;
 
 use super::profiles;
+use crate::library::{BrowseQuery, ImportOutcome, ImportSource, Library};
 
 /// 一个门槛样本。
 #[derive(Debug, Clone, Serialize, TS)]
@@ -242,6 +243,99 @@ pub(crate) fn exif_orientation(o: u16) -> Vec<u8> {
     e.extend([0, 0]);
     e.extend(0u32.to_le_bytes());
     e
+}
+
+/// 一次门槛实验：样本写进 `dir/samples/`、导入 `dir/library/` 这个新资料库后的结果。
+pub struct GateRun {
+    pub library: Library,
+    pub samples_dir: std::path::PathBuf,
+    pub items: Vec<GateItem>,
+}
+
+/// 已入库的门槛样本。
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct GateItem {
+    #[serde(flatten)]
+    pub sample: GateSample,
+    pub image_id: String,
+    /// 原文件的 SHA-256。
+    pub sha256: String,
+    /// 转正后的原图尺寸。
+    pub width: u32,
+    pub height: u32,
+}
+
+/// 交给门槛实验页面的计划：已入库的样本与本机环境。
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct GatePlan {
+    pub items: Vec<GateItem>,
+    /// 应用壳读到的本机环境（WebView2 版本、Windows、GPU 与驱动、显示器 ICC 关联）。
+    #[ts(type = "Record<string, unknown>")]
+    pub environment: serde_json::Value,
+    /// 样本资料库的位置。
+    #[ts(type = "string")]
+    pub library: std::path::PathBuf,
+    /// 无人值守运行（CI）：页面跑完自动保存，不等人填写。
+    pub auto_save: bool,
+}
+
+/// 生成全部样本、写入 `dir/samples/` 并导入新资料库 `dir/library/`。`dir` 必须不存在或为空。
+pub fn prepare(dir: &std::path::Path) -> Result<GateRun, crate::library::Error> {
+    use sha2::{Digest, Sha256};
+    let samples_dir = dir.join("samples");
+    std::fs::create_dir_all(&samples_dir)?;
+    let library = Library::create(&dir.join("library"), "还原度门槛样本")?;
+    let samples = samples();
+    let mut paths = Vec::with_capacity(samples.len());
+    for s in &samples {
+        let path = samples_dir.join(&s.file_name);
+        std::fs::write(&path, &s.bytes)?;
+        paths.push(path);
+    }
+    let report = library.import(ImportSource { paths }).wait();
+    let cards = library
+        .browse(&BrowseQuery {
+            scope: Default::default(),
+            cursor: None,
+            limit: 1000,
+            thumbnail_px: 128,
+        })?
+        .cards;
+    let mut items = Vec::with_capacity(samples.len());
+    for (sample, item) in samples.into_iter().zip(report.items) {
+        let image_id = match item.outcome {
+            ImportOutcome::Imported { image_id } | ImportOutcome::Merged { image_id } => image_id,
+            other => {
+                return Err(crate::library::Error::Undecodable(format!(
+                    "{}：{other:?}",
+                    sample.file_name
+                )));
+            }
+        };
+        let card = cards
+            .iter()
+            .find(|c| c.id == image_id)
+            .ok_or(crate::library::Error::UnknownImage)?;
+        items.push(GateItem {
+            sha256: Sha256::digest(&sample.bytes)
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect(),
+            width: card.width,
+            height: card.height,
+            image_id,
+            sample,
+        });
+    }
+    Ok(GateRun {
+        library,
+        samples_dir,
+        items,
+    })
 }
 
 /// 全部门槛样本，顺序固定。

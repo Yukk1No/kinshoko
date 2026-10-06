@@ -6,6 +6,7 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
+import type { GatePlan } from "./bindings/GatePlan";
 import type { ImageTags } from "./bindings/ImageTags";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
@@ -137,4 +138,23 @@ export function rebindShortcut(
   accelerator: string | null,
 ): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("rebind_shortcut", { action, accelerator });
+}
+
+// ---------- 还原度门槛实验（#45） ----------
+
+/** 等样本资料库准备好后取得门槛实验计划。 */
+export function gatePlan(): Promise<GatePlan> {
+  return invoke<GatePlan>("gate_plan");
+}
+
+/** 样本原文件（px 省略）或其缩略图的原始字节。 */
+export async function gateImage(imageId: string, px?: number): Promise<Uint8Array<ArrayBuffer>> {
+  // 原始字节在自定义协议 IPC 下是 ArrayBuffer，退回 postMessage 时是数字数组。
+  const raw = await invoke<ArrayBuffer | number[]>("gate_image", { imageId, px: px ?? null });
+  return raw instanceof ArrayBuffer ? new Uint8Array(raw) : Uint8Array.from(raw);
+}
+
+/** 保存报告，返回 JSON 报告的路径。无人值守运行时保存后退出。 */
+export function gateSave(report: unknown, markdown: string, passed: boolean): Promise<string> {
+  return invoke<string>("gate_save", { report, markdown, passed });
 }

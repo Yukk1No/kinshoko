@@ -58,7 +58,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             tag_groups
         ])
         .setup(|app, _api| {
-            app.plugin(tauri_plugin_dialog::init())?;
             let device_dir = match std::env::var_os(DATA_DIR_ENV) {
                 Some(dir) => PathBuf::from(dir),
                 None => app.path().app_data_dir()?,
@@ -102,16 +101,25 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     if library.info().id != library_id {
         return not_found();
     }
-    match library
-        .thumbnail(image_id, px)
-        .map_err(|e| e.to_string())
-        .and_then(|p| std::fs::read(p).map_err(|e| e.to_string()))
-    {
+    let Ok(path) = library.thumbnail(image_id, px) else {
+        return not_found();
+    };
+    match std::fs::read(&path) {
         Ok(bytes) => Response::builder()
-            .header(header::CONTENT_TYPE, "image/webp")
+            .header(header::CONTENT_TYPE, image_content_type(&path))
             .body(bytes)
             .expect("响应合法"),
         Err(_) => not_found(),
+    }
+}
+
+/// 派生图按来源分档存为无损 WebP 或 16 位 PNG（#45）。
+pub fn image_content_type(path: &std::path::Path) -> &'static str {
+    match path.extension().and_then(|e| e.to_str()) {
+        Some("png") => "image/png",
+        Some("jpg" | "jpeg") => "image/jpeg",
+        Some("gif") => "image/gif",
+        _ => "image/webp",
     }
 }
 

@@ -91,6 +91,21 @@ jobs:
       - name: WebDriver 冒烟测试（建库、导入、浏览、重开）
         run: node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe
 
+      # WebView2 解码原图与缩略图、display-p3 canvas 读回色块比较 ΔE2000（#45）。
+      # 未通过是要由人判断的实验结果（报告随产物上传），不让构建变红。
+      - name: 还原度门槛实验
+        continue-on-error: true
+        run: node e2e/fidelity-gate.mjs target/release/kinshoko.exe "${{ runner.temp }}/fidelity"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fidelity-report-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/fidelity/fidelity-report-*
+            ${{ runner.temp }}/fidelity/run-*/samples/*
+          retention-days: 30
+
       - uses: actions/upload-artifact@v4
         with:
           name: kinshoko-setup-${{ github.sha }}
