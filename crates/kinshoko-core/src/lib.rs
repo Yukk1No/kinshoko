@@ -6,6 +6,7 @@
 mod app_shell;
 mod device;
 pub mod library;
+pub mod search;
 mod settings;
 mod shortcuts;
 

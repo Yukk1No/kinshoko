@@ -39,6 +39,7 @@ pub use types::{
     ImportReport, ImportSource, LibraryInfo,
 };
 
+pub(crate) use tags::display_label;
 use events::Hub;
 use store::{DB_FILE, Readers, Writer};
 
