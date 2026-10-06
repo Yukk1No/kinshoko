@@ -287,6 +287,40 @@ fn pausing_ends_the_session_and_resuming_continues() {
 }
 
 #[test]
+fn pausing_ends_the_session_at_once_without_waiting_for_the_current_image() {
+    let f = Fixture::new(1);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    // CPU 档一张约 29 秒：暂停不能等这张打完。
+    f.fake.set_delay(Duration::from_secs(30));
+    f.fake
+        .set_output(&f.original(0), vec![raw("blue_eyes", 0, 0.9)]);
+    let spec = f.server.publish("gpu", Device::DirectMl, b"model");
+    let tagging = f.start(f.config(vec![spec]));
+    tagging.download();
+    wait_for(&tagging, "开始打标", |s| {
+        matches!(s, TaggingStatus::Running { .. })
+    });
+    std::thread::sleep(Duration::from_millis(50));
+
+    let asked = Instant::now();
+    tagging.pause();
+    wait_for(&tagging, "暂停", |s| matches!(s, TaggingStatus::Paused));
+    assert!(asked.elapsed() < Duration::from_secs(2), "立即暂停");
+    assert_eq!(f.fake.live_sessions(), 0, "会话已结束，显存已归还");
+    assert!(f.fake.tagged().is_empty());
+
+    // 被打断的那张不算出错：恢复后照常打完。
+    f.fake.set_delay(Duration::ZERO);
+    tagging.resume();
+    idle(&tagging);
+    let names: Vec<_> = tags_of(&f.library, &f.ids[0])
+        .into_iter()
+        .map(|t| t.1)
+        .collect();
+    assert_eq!(names, vec!["blue eyes"]);
+}
+
+#[test]
 fn a_crashed_session_is_restarted_and_the_image_is_tagged() {
     let f = Fixture::new(2);
     f.fake.set_gpu(Some(GPU_BUDGET));

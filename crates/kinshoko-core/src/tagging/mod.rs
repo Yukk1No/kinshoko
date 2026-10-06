@@ -20,7 +20,8 @@ mod scheduler;
 pub use memory::InMemoryTagger;
 pub use models::{Chunking, HUGGING_FACE, ModelSpec, ModelStore, PrepareStage, catalog};
 pub use port::{
-    Device, DeviceInfo, GpuInfo, PreparedModel, RawTag, TagFailure, Tagger, TaggerSession,
+    Device, DeviceInfo, GpuInfo, PreparedModel, RawTag, SessionStopper, TagFailure, Tagger,
+    TaggerSession,
 };
 pub use process::{Backend, Engine, EngineError, ProcessTagger, serve};
 pub use scheduler::{Tagging, TaggingConfig, TaggingStatus};
