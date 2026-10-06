@@ -1,7 +1,35 @@
 /* 视觉 token 取自 logo kit v1.1 与 #13 样稿：品牌色只用在界面框架上，图片底色保持中性。 */
+@font-face {
+  font-family: "Kinshoko Inter";
+  src: url("/fonts/Inter-Regular-hinted.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Kinshoko Inter";
+  src: url("/fonts/Inter-Medium-hinted.woff2") format("woff2");
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Kinshoko Inter";
+  src: url("/fonts/Inter-SemiBold-hinted.woff2") format("woff2");
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Kinshoko Han";
+  src: url("/fonts/SourceHanSansSC-VF.ttf.woff2") format("woff2");
+  font-weight: 250 900; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Kinshoko Han Punct";
+  src: url("/fonts/SourceHanSansSC-VF.ttf.woff2") format("woff2");
+  font-weight: 250 900; font-style: normal; font-display: swap;
+  unicode-range: U+2014, U+2018-2019, U+201C-201D, U+2026;
+}
 :root {
   color-scheme: light dark;
-  font-family: system-ui, "Microsoft YaHei UI", sans-serif;
+  --font-ui: "Kinshoko Inter", "Kinshoko Han", "Segoe UI", "Microsoft YaHei UI", "Segoe UI Emoji", system-ui, sans-serif;
+  font-family: var(--font-ui);
+  font-synthesis: none;
   font-size: 14px;
   --bg: #f7f3ea;
   --text: #2b2747;
@@ -10,7 +38,14 @@
   --line: rgb(43 39 71 / 0.14);
   --wall: #eae9e6;
   --card: #dcdbd7;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 120ms;
+  --t: 200ms;
+  --t-slow: 260ms;
 }
+:lang(zh), :lang(ja) { font-family: "Kinshoko Han Punct", var(--font-ui); }
+button, input, textarea, select { font: inherit; }
+b, strong, th, h1, h2, h3, h4, h5, h6 { font-weight: 600; }
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -34,6 +69,7 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
+  line-height: 1.5;
 }
 
 button {
@@ -62,6 +98,7 @@ button.primary {
   flex-direction: column;
   height: 100%;
 }
+.app-workspace { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
 .app-toolbar {
   display: flex;
@@ -217,6 +254,8 @@ button.primary {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  overflow-anchor: none;
   background: var(--wall);
 }
 
@@ -234,6 +273,7 @@ button.primary {
   position: absolute;
   background: var(--card);
   overflow: hidden;
+  transform-origin: 0 0;
 }
 
 .card:hover {
@@ -323,6 +363,13 @@ button.primary {
   flex-direction: column;
   gap: 2px;
 }
+.sidebar-slot {
+  width: 237px; flex-shrink: 0; display: flex; overflow: hidden;
+  transition: width var(--t-slow) var(--ease);
+}
+.sidebar-slot[data-collapsed="true"] { width: 0; }
+.sidebar-slot .sidebar { box-sizing: border-box; width: 237px; }
+@media (prefers-reduced-motion: reduce) { .sidebar-slot { transition: none; } }
 
 .sidebar-item {
   display: flex;
@@ -437,3 +484,48 @@ button.primary {
   font-size: 14px;
   resize: vertical;
 }
+
+/* 原图查看器：图片观察层保持中性底色。 */
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.viewer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.viewer-stage {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  background: #808080;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.viewer-stage img { display: block; position: absolute; max-width: none; }
+.viewer-stage:active { cursor: grabbing; }
+.viewer-stage[data-background="dark"] { background: #202020; }
+.viewer-stage[data-background="light"] { background: #d6d6d6; }
+.viewer-stage[data-background="checker"] {
+  background: repeating-conic-gradient(#ddd 0% 25%, #999 0% 50%) 0 0 / 24px 24px;
+}
+.viewer-background { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+.viewer-background select { font: inherit; background: var(--bg); color: var(--text); }
+.viewer-toolbar output { min-width: 4ch; font-variant-numeric: tabular-nums; }
+.viewer-message {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  margin: 0; padding: 12px 16px; border-radius: 8px; background: var(--bg); color: var(--text);
+  text-align: center; cursor: default;
+}
+.viewer-message p { margin: 0 0 8px; }
+.viewer-hint { padding: 4px 12px; font-size: 12px; text-align: center; }

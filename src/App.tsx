@@ -3,6 +3,7 @@ import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowseScope } from "./bindings/BrowseScope";
 import type { ImportReport } from "./bindings/ImportReport";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
+import type { ImageCard } from "./bindings/ImageCard";
 import { appInfo, currentLibrary, onLibraryEvent } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { ImportBar, type RunningImport } from "./library/ImportBar";
@@ -10,6 +11,7 @@ import { SelectionPanel } from "./library/SelectionPanel";
 import { SidebarPane } from "./library/SidebarPane";
 import { SettingsPanel } from "./SettingsPanel";
 import { scopeKey, Wall } from "./wall/Wall";
+import { Viewer } from "./viewer/Viewer";
 
 /**
  * 主窗口：打开上次的资料库（没有时引导建库），导入，在侧栏切换全部／文件夹／回收站，
@@ -26,12 +28,24 @@ export function App() {
   const [report, setReport] = useState<ImportReport | null>(null);
   const [scope, setScope] = useState<BrowseScope>({ kind: "all" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [viewing, setViewing] = useState<ImageCard | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarMoving, setSidebarMoving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const onError = useCallback((message: string) => setProblem(message), []);
   const changeScope = (next: BrowseScope) => {
     setScope(next);
     setSelected(new Set());
   };
+  const toggleSidebar = () => {
+    setSidebarMoving(!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+    setSidebarCollapsed((collapsed) => !collapsed);
+  };
+  useEffect(() => {
+    if (!sidebarMoving) return;
+    const timer = window.setTimeout(() => setSidebarMoving(false), 280);
+    return () => window.clearTimeout(timer);
+  }, [sidebarCollapsed, sidebarMoving]);
 
   useEffect(() => {
     let alive = true;
@@ -81,8 +95,11 @@ export function App() {
   return (
     <div className="app">
       {library ? (
-        <>
+        <div className="app-workspace" inert={viewing !== null}>
           <header className="app-toolbar">
+            <button type="button" aria-expanded={!sidebarCollapsed} onClick={toggleSidebar}>
+              {sidebarCollapsed ? "展开侧栏" : "收起侧栏"}
+            </button>
             <h1 className="app-library-name">{library.name}</h1>
             <ImportBar
               libraryName={library.name}
@@ -93,12 +110,16 @@ export function App() {
             />
           </header>
           <div className="app-body">
-            <SidebarPane
+            <div className="sidebar-slot" data-collapsed={sidebarCollapsed}
+              aria-hidden={sidebarCollapsed} inert={sidebarCollapsed}
+              onTransitionEnd={(e) => { if (e.target === e.currentTarget && e.propertyName === "width") setSidebarMoving(false); }}>
+              <SidebarPane
               scope={scope}
               onScope={changeScope}
               reloadKey={reloadKey}
               onError={onError}
-            />
+              />
+            </div>
             <main className="app-main">
               {problem && (
                 <p className="app-problem" role="alert">
@@ -124,18 +145,22 @@ export function App() {
                 reloadKey={reloadKey}
                 selected={selected}
                 onSelectionChange={setSelected}
+                onOpenImage={setViewing}
+                viewerOpen={viewing !== null}
+                holdReflow={sidebarMoving}
               />
             </main>
           </div>
-        </>
+        </div>
       ) : (
         <main className="app-main app-main-centered">
           {openError && <p role="alert">上次的资料库无法打开：{openError}</p>}
           {library === null && <CreateLibrary onCreated={setLibrary} />}
         </main>
       )}
-      {showSettings && <SettingsPanel />}
-      <footer className="app-status">
+      {library && viewing && <Viewer libraryId={library.id} card={viewing} onClose={() => setViewing(null)} />}
+      {showSettings && <div inert={viewing !== null}><SettingsPanel /></div>}
+      <footer className="app-status" inert={viewing !== null}>
         <span>{info && `${info.productName} ${info.version}`}</span>
         <button
           type="button"

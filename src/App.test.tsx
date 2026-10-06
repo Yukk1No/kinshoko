@@ -105,6 +105,30 @@ afterEach(async () => {
 });
 
 describe("主窗口", () => {
+  it("单击仍选中，双击打开原图；Esc 返回原位置并把焦点交还参考图", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const wall = document.querySelector<HTMLElement>(".wall")!;
+    const card = document.querySelector<HTMLElement>('[data-id="a"]')!;
+    wall.scrollTop = 120;
+    fireEvent.scroll(wall);
+    fireEvent.click(card);
+    expect(screen.queryByRole("dialog", { name: "原图查看器" })).toBeNull();
+    expect(screen.getByText("已选 1 张")).toBeTruthy();
+
+    fireEvent.doubleClick(card);
+    const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
+    expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://reference.localhost/L1/a/100");
+    fireEvent.keyDown(viewer, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(wall.scrollTop).toBe(120);
+    expect(document.activeElement).toBe(card);
+
+    fireEvent.keyDown(card, { key: "Enter" });
+    expect(await screen.findByRole("dialog", { name: "原图查看器" })).toBeTruthy();
+  });
+
   it("在状态栏显示核心报告的版本", async () => {
     backend(library);
     render(<App />);

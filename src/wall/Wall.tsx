@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, MouseEvent } from "react";
+import { flushSync } from "react-dom";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ImageCard } from "../bindings/ImageCard";
 import { browse, thumbnailUrl } from "../ipc";
@@ -25,6 +26,10 @@ type Props = {
   reloadKey: number;
   selected: ReadonlySet<string>;
   onSelectionChange: (selected: Set<string>) => void;
+  onOpenImage: (card: ImageCard) => void;
+  viewerOpen: boolean;
+  /** 侧栏宽度动画期间保留布局；结束后按最终宽度重排一次。 */
+  holdReflow?: boolean;
 };
 
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
@@ -64,7 +69,7 @@ function saveAnchor(key: string, anchor: Anchor | null) {
  * 单击选中一张，Ctrl 单击增减，Shift 单击选中一段；选中的图可以拖到侧栏的文件夹上。
  * 换范围时由调用方换 key 重建。
  */
-export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange }: Props) {
+export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange, onOpenImage, viewerOpen, holdReflow = false }: Props) {
   const storeKey = anchorKey(libraryId, scope);
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -79,6 +84,43 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
   const pivot = useRef<string | null>(null);
   const restoring = useRef(true);
   const settledTop = useRef<number | null>(null);
+  const lastOpened = useRef<string | null>(null);
+  const wasViewing = useRef(false);
+  const layoutWidth = useRef(0);
+  const beforeReflow = useRef(new Map<string, DOMRect>());
+  const motions = useRef(new Map<string, Animation>());
+
+  const measureBeforeReflow = useCallback(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const viewport = el.getBoundingClientRect();
+    const measured = new Map<string, DOMRect>();
+    // 先读完所有当前矩形（包括动画中途的位置），再取消动画。
+    el.querySelectorAll<HTMLElement>(".card").forEach((node) => {
+      const rect = node.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0 && rect.bottom >= viewport.top && rect.top <= viewport.bottom) {
+        measured.set(node.dataset.id!, rect);
+      }
+    });
+    motions.current.forEach((motion) => motion.cancel());
+    motions.current.clear();
+    beforeReflow.current = measured;
+  }, []);
+
+  useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
+
+  useLayoutEffect(() => {
+    if (wasViewing.current && !viewerOpen && lastOpened.current) {
+      const card = scroller.current?.querySelector<HTMLElement>(`[data-id="${lastOpened.current}"]`);
+      card?.focus({ preventScroll: true });
+    }
+    wasViewing.current = viewerOpen;
+  }, [viewerOpen]);
+
+  const open = (card: ImageCard) => {
+    lastOpened.current = card.id;
+    onOpenImage(card);
+  };
 
   const thumbnailPx = useMemo(
     () => Math.ceil(TARGET * 1.5 * (window.devicePixelRatio || 1)),
@@ -102,6 +144,7 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
           const target = restoring.current ? anchor.current?.id : undefined;
           if (next.length >= want && !(target && !next.some((c) => c.id === target))) break;
         } while (after);
+        measureBeforeReflow();
         setCards(next);
         setCursor(after);
         setTotal(count);
@@ -118,6 +161,7 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
     loading.current = true;
     try {
       const page = await browse({ scope, cursor, limit: PAGE, thumbnailPx });
+      measureBeforeReflow();
       setCards((prev) => [...prev, ...page.cards]);
       setCursor(page.nextCursor);
       setTotal(page.total);
@@ -135,15 +179,19 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
   useLayoutEffect(() => {
     const el = scroller.current!;
     const sync = () => {
-      setWidth(el.clientWidth);
+      if (!holdReflow && el.clientWidth !== layoutWidth.current) {
+        measureBeforeReflow();
+        layoutWidth.current = el.clientWidth;
+        setWidth(el.clientWidth);
+      }
       setViewport({ top: el.scrollTop, height: el.clientHeight });
     };
     sync();
     if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(sync);
+    const ro = new ResizeObserver(() => flushSync(sync));
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [holdReflow, measureBeforeReflow]);
 
   const ids = useMemo(() => cards.map((c) => c.id), [cards]);
   const layout = useMemo(
@@ -166,6 +214,20 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
     }
     // 锚定的图找到了，或已取完全部仍没有（图已不在），都结束恢复。
     if (top !== null || !anchor.current || !cursor) restoring.current = false;
+    const from = beforeReflow.current;
+    beforeReflow.current = new Map();
+    if (!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      const targets = [...el.querySelectorAll<HTMLElement>(".card")].map((node) => ({ node, old: from.get(node.dataset.id!), next: node.getBoundingClientRect() }));
+      for (const { node, old, next } of targets) {
+        if (!old || !next.width || !next.height || typeof node.animate !== "function") continue;
+        const motion = node.animate([
+          { transform: `translate(${old.left - next.left}px, ${old.top - next.top}px) scale(${old.width / next.width}, ${old.height / next.height})` },
+          { transform: "none" },
+        ], { duration: 200, easing: "cubic-bezier(0.2,0.8,0.2,1)" });
+        motions.current.set(node.dataset.id!, motion);
+        motion.onfinish = () => motions.current.delete(node.dataset.id!);
+      }
+    }
     setViewport({ top: el.scrollTop, height: el.clientHeight });
   }, [layout, ids, width, cards.length, cursor]);
 
@@ -174,8 +236,8 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
     setViewport({ top: el.scrollTop, height: el.clientHeight });
     // 自己为锚点做的滚动不重新取锚，否则每次重排都会漂到另一张图。
     const own = settledTop.current !== null && Math.abs(el.scrollTop - settledTop.current) < 1;
-    settledTop.current = null;
     if (own || restoring.current) return;
+    settledTop.current = null;
     anchor.current = captureAnchor(layout, ids, el.scrollTop, el.clientHeight);
     saveAnchor(storeKey, anchor.current);
   };
@@ -185,12 +247,19 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
     if (cursor && viewport.top + viewport.height + OVERSCAN * 2 >= layout.height) void loadMore();
   }, [cursor, viewport, layout.height, loadMore]);
 
-  const mounted = useMemo(
-    () => visible(layout, viewport.top - OVERSCAN, viewport.top + viewport.height + OVERSCAN),
-    [layout, viewport],
-  );
+  const mounted = useMemo(() => {
+    const found = visible(layout, viewport.top - OVERSCAN, viewport.top + viewport.height + OVERSCAN);
+    // 查看器里调整窗口宽度后，最后查看的卡片仍能接回焦点（最多多保留一张）。
+    const last = ids.indexOf(lastOpened.current ?? "");
+    if (last >= 0 && !found.includes(last)) found.push(last);
+    for (const id of [...beforeReflow.current.keys(), ...motions.current.keys()]) {
+      const i = ids.indexOf(id);
+      if (i >= 0 && !found.includes(i)) found.push(i);
+    }
+    return found.sort((a, b) => a - b);
+  }, [layout, viewport, ids, viewerOpen]);
 
-  const select = (id: string, e: MouseEvent) => {
+  const select = (id: string, e: Pick<MouseEvent, "shiftKey" | "ctrlKey" | "metaKey">) => {
     if (e.shiftKey && pivot.current && ids.includes(pivot.current)) {
       const [a, b] = [ids.indexOf(pivot.current), ids.indexOf(id)].sort((x, y) => x - y);
       const next = e.ctrlKey || e.metaKey ? new Set(selected) : new Set<string>();
@@ -221,7 +290,8 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
   };
 
   return (
-    <div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}>
+    <div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
+      role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1}>
       {total === 0 ? (
         <p className="wall-empty">{EMPTY[scope.kind]}</p>
       ) : (
@@ -235,8 +305,15 @@ export function Wall({ libraryId, scope, reloadKey, selected, onSelectionChange 
                 className="card"
                 data-id={card.id}
                 aria-selected={selected.has(card.id)}
+                role="option"
+                tabIndex={0}
                 draggable
                 onClick={(e) => select(card.id, e)}
+                onDoubleClick={() => open(card)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); open(card); }
+                  if (e.key === " ") { e.preventDefault(); select(card.id, e); }
+                }}
                 onDragStart={(e) => dragStart(card.id, e)}
                 style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}
               >

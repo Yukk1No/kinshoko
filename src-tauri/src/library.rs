@@ -83,7 +83,54 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 responder.respond(thumbnail_response(&app, &path));
             });
         })
+        .register_asynchronous_uri_scheme_protocol("reference", |ctx, request, responder| {
+            let app = ctx.app_handle().clone();
+            let path = request.uri().path().trim_start_matches('/').to_owned();
+            tauri::async_runtime::spawn_blocking(move || {
+                responder.respond(display_response(&app, &path));
+            });
+        })
         .build()
+}
+
+/// 只按当前资料库的图 id 取显示文件，URL 不接受任意磁盘路径。
+fn display_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Vec<u8>> {
+    let not_found = || {
+        Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(Vec::new())
+            .expect("响应合法")
+    };
+    let parts: Vec<_> = path.split('/').collect();
+    let [library_id, image_id, px] = parts.as_slice() else {
+        return not_found();
+    };
+    let Ok(px) = px.parse::<u32>() else {
+        return not_found();
+    };
+    let Ok(library) = app.state::<LibraryState>().current() else {
+        return not_found();
+    };
+    if library.info().id != *library_id {
+        return not_found();
+    }
+    let Ok(display) = library.display_image(image_id, px) else {
+        return not_found();
+    };
+    let content_type = match display.path.extension().and_then(|e| e.to_str()) {
+        Some("jpg" | "jpeg") => "image/jpeg",
+        Some("png") => "image/png",
+        Some("webp") => "image/webp",
+        _ => return not_found(),
+    };
+    let Ok(bytes) = std::fs::read(display.path) else {
+        return not_found();
+    };
+    Response::builder()
+        .header(header::CONTENT_TYPE, content_type)
+        .header(header::CACHE_CONTROL, "no-store")
+        .body(bytes)
+        .expect("响应合法")
 }
 
 fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Vec<u8>> {
@@ -315,7 +362,7 @@ async fn pick_files<R: Runtime>(app: AppHandle<R>) -> Result<Vec<PathBuf>, Strin
         Ok(app
             .dialog()
             .file()
-            .add_filter("图片", &["jpg", "jpeg", "png", "webp"])
+            .add_filter("图片", &["jpg", "jpeg", "png", "webp", "gif"])
             .blocking_pick_files()
             .unwrap_or_default()
             .into_iter()

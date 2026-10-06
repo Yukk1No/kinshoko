@@ -130,6 +130,11 @@ export function thumbnailUrl(address: string): string {
   return convertFileSrc("", "thumb") + address;
 }
 
+/** 查看器显示地址。目标宽度为设备像素，原图／sdr 派生图由 Library 决定。 */
+export function displayImageUrl(libraryId: string, imageId: string, targetPx: number): string {
+  return convertFileSrc("", "reference") + `${libraryId}/${imageId}/${targetPx}`;
+}
+
 // 原生文件对话框无法由 WebDriver 操作。冒烟测试先把要“选中”的路径放进
 // window.__KINSHOKO_TEST_PICKS__，有值时按顺序取用，不弹对话框。
 declare global {
