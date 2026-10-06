@@ -100,7 +100,14 @@ pub fn test_spec(key: &str, device: Device, model: &[u8]) -> ModelSpec {
         device,
         vram_need: 1_800_000_000,
         ram_need: 0,
-        thresholds: vec![(0, 0.17), (1, 0.15), (3, 0.24), (4, 0.27), (5, 0.17), (9, 0.41)],
+        thresholds: vec![
+            (0, 0.17),
+            (1, 0.15),
+            (3, 0.24),
+            (4, 0.27),
+            (5, 0.17),
+            (9, 0.41),
+        ],
         rating_category: Some(9),
     }
 }
@@ -130,7 +137,8 @@ fn serve(mut stream: TcpStream, shared: &Mutex<Shared>) {
         (s.files.get(&path).cloned(), cut)
     };
     let Some(data) = data else {
-        let _ = stream.write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+        let _ = stream
+            .write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
         return;
     };
     let start = range.unwrap_or(0).min(data.len() as u64) as usize;

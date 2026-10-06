@@ -10,8 +10,7 @@ use std::time::{Duration, Instant};
 use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::library::{
-    ContentRating, ImageTags, ImportOutcome, ImportSource, TagEdit, TagNamespace, TagOrigin,
-    TagRef,
+    ContentRating, ImageTags, ImportOutcome, ImportSource, TagEdit, TagNamespace, TagOrigin, TagRef,
 };
 use kinshoko_core::tagging::{
     Device, InMemoryTagger, RawTag, Tagging, TaggingConfig, TaggingStatus,
@@ -99,7 +98,10 @@ fn wait_for(tagging: &Tagging, what: &str, f: impl Fn(&TaggingStatus) -> bool) -
         if f(&status) {
             return status;
         }
-        assert!(Instant::now() < deadline, "等待{what}超时，当前状态 {status:?}");
+        assert!(
+            Instant::now() < deadline,
+            "等待{what}超时，当前状态 {status:?}"
+        );
         std::thread::sleep(Duration::from_millis(5));
     }
 }
@@ -144,7 +146,9 @@ fn new_images_get_model_suggestions_and_rating_after_the_model_is_downloaded() {
             raw("explicit", 9, 0.7),
         ],
     );
-    let spec = f.server.publish("gpu", Device::DirectMl, b"fake onnx model");
+    let spec = f
+        .server
+        .publish("gpu", Device::DirectMl, b"fake onnx model");
     let tagging = f.start(f.config(vec![spec]));
 
     let status = wait_for(&tagging, "需要下载模型", |s| {
@@ -187,6 +191,3 @@ fn new_images_get_model_suggestions_and_rating_after_the_model_is_downloaded() {
     assert!(tags_of(&f.library, &f.ids[1]).is_empty());
     assert_eq!(f.fake.tagged().len(), 2);
 }
-
-#[allow(dead_code)]
-fn unused(_: &Path, _: TagEdit, _: TagRef) {}

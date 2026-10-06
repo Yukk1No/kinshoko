@@ -40,7 +40,10 @@ struct Src {
 
 impl Src {
     fn open(path: &Path) -> std::io::Result<Self> {
-        Ok(Self { r: BufReader::with_capacity(1 << 20, File::open(path)?), pos: 0 })
+        Ok(Self {
+            r: BufReader::with_capacity(1 << 20, File::open(path)?),
+            pos: 0,
+        })
     }
 
     fn goto(&mut self, target: u64) -> std::io::Result<()> {
@@ -72,7 +75,10 @@ fn read_varint(r: &mut impl Read) -> std::io::Result<(u64, u64)> {
         }
         shift += 7;
         if shift > 63 {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "varint too long"));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "varint too long",
+            ));
         }
     }
 }
@@ -95,7 +101,12 @@ fn scan(r: &mut Src, start: u64, end: u64) -> std::io::Result<Vec<Field>> {
             5 => (pos + n, pos + n + 4),
             _ => return Err(invalid(format!("wire type {wire}"))),
         };
-        out.push(Field { number, start: pos, payload, end });
+        out.push(Field {
+            number,
+            start: pos,
+            payload,
+            end,
+        });
         pos = end;
         r.goto(pos)?;
     }
@@ -134,7 +145,12 @@ fn parse_node(buf: &[u8]) -> std::io::Result<Node> {
             }
             1 => r = &r[8..],
             5 => r = &r[4..],
-            w => return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("wire type {w}"))),
+            w => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("wire type {w}"),
+                ));
+            }
         }
     }
     Ok(node)
@@ -169,7 +185,13 @@ fn int_attr(name: &str, value: i64) -> Vec<u8> {
 }
 
 /// A GraphProto `node` field (tag included).
-fn node_field(op: &str, name: &str, inputs: &[&str], outputs: &[&str], attrs: &[(&str, i64)]) -> Vec<u8> {
+fn node_field(
+    op: &str,
+    name: &str,
+    inputs: &[&str],
+    outputs: &[&str],
+    attrs: &[(&str, i64)],
+) -> Vec<u8> {
     let mut n = Vec::new();
     for i in inputs {
         put_bytes(&mut n, NODE_INPUT, i.as_bytes());
@@ -192,17 +214,51 @@ fn chunked_nodes(prefix: &str, q: &str, kt: &str, v: &str, out: &str, chunks: u3
     let parts: Vec<String> = (0..chunks).map(|i| format!("{prefix}qchunk_{i}")).collect();
     let part_refs: Vec<&str> = parts.iter().map(String::as_str).collect();
     // Without a `split` input, Split (opset 13+) cuts the axis into equal parts.
-    let mut bytes = node_field("Split", &format!("{prefix}QSplit"), &[q], &part_refs, &[("axis", 2)]);
+    let mut bytes = node_field(
+        "Split",
+        &format!("{prefix}QSplit"),
+        &[q],
+        &part_refs,
+        &[("axis", 2)],
+    );
     let mut outs = Vec::new();
     for (i, part) in parts.iter().enumerate() {
-        let (s, a, o) = (format!("{prefix}c{i}_scores"), format!("{prefix}c{i}_attn"), format!("{prefix}c{i}_out"));
-        bytes.extend(node_field("MatMul", &format!("{prefix}c{i}_MatMul"), &[part, kt], &[&s], &[]));
-        bytes.extend(node_field("Softmax", &format!("{prefix}c{i}_Softmax"), &[&s], &[&a], &[("axis", -1)]));
-        bytes.extend(node_field("MatMul", &format!("{prefix}c{i}_MatMul_1"), &[&a, v], &[&o], &[]));
+        let (s, a, o) = (
+            format!("{prefix}c{i}_scores"),
+            format!("{prefix}c{i}_attn"),
+            format!("{prefix}c{i}_out"),
+        );
+        bytes.extend(node_field(
+            "MatMul",
+            &format!("{prefix}c{i}_MatMul"),
+            &[part, kt],
+            &[&s],
+            &[],
+        ));
+        bytes.extend(node_field(
+            "Softmax",
+            &format!("{prefix}c{i}_Softmax"),
+            &[&s],
+            &[&a],
+            &[("axis", -1)],
+        ));
+        bytes.extend(node_field(
+            "MatMul",
+            &format!("{prefix}c{i}_MatMul_1"),
+            &[&a, v],
+            &[&o],
+            &[],
+        ));
         outs.push(o);
     }
     let out_refs: Vec<&str> = outs.iter().map(String::as_str).collect();
-    bytes.extend(node_field("Concat", &format!("{prefix}QConcat"), &out_refs, &[out], &[("axis", 2)]));
+    bytes.extend(node_field(
+        "Concat",
+        &format!("{prefix}QConcat"),
+        &out_refs,
+        &[out],
+        &[("axis", 2)],
+    ));
     bytes
 }
 
@@ -227,7 +283,10 @@ pub fn chunk_attention(src: &Path, dest: &Path, c: &Chunking) -> std::io::Result
     let len = std::fs::metadata(src)?.len();
     let mut r = Src::open(src)?;
     let top = scan(&mut r, 0, len)?;
-    let graph = *top.iter().find(|f| f.number == MODEL_GRAPH).ok_or_else(|| invalid("没有 graph".into()))?;
+    let graph = *top
+        .iter()
+        .find(|f| f.number == MODEL_GRAPH)
+        .ok_or_else(|| invalid("没有 graph".into()))?;
     let fields = scan(&mut r, graph.payload, graph.end)?;
 
     // Read the nodes (small) and index the ones we rewrite by name.
@@ -240,7 +299,12 @@ pub fn chunk_attention(src: &Path, dest: &Path, c: &Chunking) -> std::io::Result
             nodes.push((i, parse_node(&buf)?));
         }
     }
-    let find = |name: &str| nodes.iter().find(|(_, n)| n.name == name).ok_or_else(|| invalid(format!("找不到节点 {name}")));
+    let find = |name: &str| {
+        nodes
+            .iter()
+            .find(|(_, n)| n.name == name)
+            .ok_or_else(|| invalid(format!("找不到节点 {name}")))
+    };
     let mut edits: Vec<Edit> = fields.iter().map(|_| Edit::Keep).collect();
     for b in &c.blocks {
         let prefix = format!("/blocks.{b}/attn/");
@@ -257,7 +321,14 @@ pub fn chunk_attention(src: &Path, dest: &Path, c: &Chunking) -> std::io::Result
         if !shape_ok {
             return Err(invalid(format!("{prefix} 的结构和预期不同")));
         }
-        edits[*i_mm] = Edit::Replace(chunked_nodes(&prefix, &mm.inputs[0], &mm.inputs[1], &mm1.inputs[1], &mm1.outputs[0], c.chunks));
+        edits[*i_mm] = Edit::Replace(chunked_nodes(
+            &prefix,
+            &mm.inputs[0],
+            &mm.inputs[1],
+            &mm1.inputs[1],
+            &mm1.outputs[0],
+            c.chunks,
+        ));
         edits[*i_sm] = Edit::Drop;
         edits[*i_mm1] = Edit::Drop;
     }

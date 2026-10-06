@@ -85,28 +85,26 @@ const V1_THRESHOLDS: [(u8, f32); 6] = [
 
 /// 内置的模型，按优先顺序：有独显时用 FP16 分块版，没有时退到 CPU 档的 FP32 分块版。
 pub fn catalog() -> Vec<ModelSpec> {
-    let v1 = |key: &str, label: &str, file: &str, size: u64, sha: &str, chunked: &str| {
-        ModelSpec {
-            key: key.into(),
-            label: label.into(),
-            source: "pixai-tagger-v1.0".into(),
-            repo: V1_REPO.into(),
-            revision: V1_REVISION.into(),
-            file: file.into(),
-            size,
-            sha256: sha.into(),
-            tags_file: "selected_tags.csv".into(),
-            chunking: Some(Chunking {
-                blocks: V1_GLOBAL_BLOCKS.to_vec(),
-                chunks: 8,
-                sha256: chunked.into(),
-            }),
-            device: Device::DirectMl,
-            vram_need: 0,
-            ram_need: 0,
-            thresholds: V1_THRESHOLDS.to_vec(),
-            rating_category: Some(9),
-        }
+    let v1 = |key: &str, label: &str, file: &str, size: u64, sha: &str, chunked: &str| ModelSpec {
+        key: key.into(),
+        label: label.into(),
+        source: "pixai-tagger-v1.0".into(),
+        repo: V1_REPO.into(),
+        revision: V1_REVISION.into(),
+        file: file.into(),
+        size,
+        sha256: sha.into(),
+        tags_file: "selected_tags.csv".into(),
+        chunking: Some(Chunking {
+            blocks: V1_GLOBAL_BLOCKS.to_vec(),
+            chunks: 8,
+            sha256: chunked.into(),
+        }),
+        device: Device::DirectMl,
+        vram_need: 0,
+        ram_need: 0,
+        thresholds: V1_THRESHOLDS.to_vec(),
+        rating_category: Some(9),
     };
     vec![
         ModelSpec {
@@ -143,7 +141,10 @@ pub const HUGGING_FACE: &str = "https://huggingface.co";
 /// 准备模型时的阶段，用于显示进度。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PrepareStage {
-    Downloading { downloaded: u64, total: u64 },
+    Downloading {
+        downloaded: u64,
+        total: u64,
+    },
     /// 校验哈希、改写为分块注意力。
     Verifying,
 }
