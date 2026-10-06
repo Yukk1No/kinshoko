@@ -37,6 +37,16 @@ function Detail({
 
   return (
     <div className="selection-detail">
+      <p>{detail.originalName} · 收集于 {new Date(detail.collectedAt).toLocaleString("zh-CN")}</p>
+      {detail.sourceLinks?.length > 0 && (
+        <ul aria-label="来源链接">
+          {detail.sourceLinks.map((url) => (
+            <li key={url}>{/^https?:\/\//i.test(url)
+              ? <a href={url} target="_blank" rel="noreferrer">{url}</a>
+              : <span>{url}</span>}</li>
+          ))}
+        </ul>
+      )}
       <p className="selection-folders">
         {detail.folders.length
           ? `所在文件夹：${detail.folders.map((f) => f.name).join("、")}`
