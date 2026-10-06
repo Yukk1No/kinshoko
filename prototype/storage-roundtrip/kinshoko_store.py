@@ -44,14 +44,14 @@ def sha256_bytes(b):
 
 def sha256_file(path):
     h = hashlib.sha256()
-    with open(path, "rb") as f:
+    with open(lp(path), "rb") as f:
         for b in iter(lambda: f.read(1 << 20), b""):
             h.update(b)
     return h.hexdigest()
 
 
 def fsync_write(path, data):
-    with open(path, "wb") as f:
+    with open(lp(path), "wb") as f:
         f.write(data)
         f.flush()
         os.fsync(f.fileno())
@@ -324,14 +324,15 @@ class Library:
         return report
 
     # ---------- Eagle 导入 ----------
-    def import_eagle(self, eagle_dir, source=None):
-        """source 见 _resolve_source。新位置疑似已登记来源搬家且未指定 source 时，不写任何数据，返回待确认。"""
+    def import_eagle(self, eagle_dir, source=None, allow_any_version=False):
+        """source 见 _resolve_source。新位置疑似已登记来源搬家且未指定 source 时，不写任何数据，返回待确认。
+        allow_any_version：真实库检查时不拒绝 4.x 以外的版本，由调用方记录版本号。"""
         try:
             root_meta = json.load(open(os.path.join(eagle_dir, "metadata.json"), encoding="utf-8"))
             mt = json.load(open(os.path.join(eagle_dir, "mtime.json"), encoding="utf-8"))
         except (OSError, ValueError) as e:
             raise RuntimeError(f"不是可读的 Eagle 资料库：{e}")
-        if not str(root_meta.get("applicationVersion", "")).startswith("4."):
+        if not allow_any_version and not str(root_meta.get("applicationVersion", "")).startswith("4."):
             raise RuntimeError("未支持的 Eagle 版本：" + str(root_meta.get("applicationVersion")))
         index_ids = {k for k in mt if k != "all"}
         img_dir = os.path.join(eagle_dir, "images")
@@ -515,13 +516,13 @@ def save_group(path, g):
     tmp = f"{path}.tmp-{new_id()}"
     fsync_write(tmp, json.dumps(g, ensure_ascii=False, indent=2).encode("utf-8"))
     fault("group_before_replace")
-    os.replace(tmp, path)
+    os.replace(lp(tmp), lp(path))
 
 
 def load_group(path):
-    g = json.load(open(path, encoding="utf-8"))
-    d, base = os.path.split(path)
-    leftovers = [f for f in os.listdir(d or ".") if f.startswith(base + ".tmp-")]
+    g = json.load(open(lp(path), encoding="utf-8"))
+    d, base = os.path.split(lp(path))
+    leftovers = [f for f in os.listdir(d) if f.startswith(base + ".tmp-")]
     return g, {"problems": validate_group(g), "leftover_tmp": leftovers}
 
 
@@ -760,11 +761,12 @@ def export_package(device, g, out_path):
 
 
 def open_package(pkg, dest):
+    dest = lp(dest)  # 包内 originals/<64 位哈希> 同样会超过 260 字符
     with zipfile.ZipFile(pkg) as z:
         z.extractall(dest)
     m = json.load(open(os.path.join(dest, "manifest.json"), encoding="utf-8"))
-    bad = [sha for sha, f in m["files"].items() if sha256_file(os.path.join(dest, f["path"])) != sha]
-    paths = {mid: os.path.join(dest, m["files"][sha]["path"]) for mid, sha in m["members"].items()}
+    bad = [sha for sha, f in m["files"].items() if sha256_file(os.path.join(dest, *f["path"].split("/"))) != sha]
+    paths = {mid: os.path.join(dest, *m["files"][sha]["path"].split("/")) for mid, sha in m["members"].items()}
     return m, paths, bad
 
 

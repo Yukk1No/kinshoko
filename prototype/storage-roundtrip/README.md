@@ -24,7 +24,28 @@ python prototype/storage-roundtrip/run.py
 
 `--images <目录>` 用真实图片字节代替生成的小图来构造批量库，例如 `samples/pixiv`。
 
-## 文件
+## 画师电脑上的真实检查（`eagle_check.py`）
+
+构造样本跑通以后，还要用 Eagle 真正写出的库再跑一遍，并请画师确认恢复结果（[#8](https://github.com/Yukk1No/kinshoko/issues/8)）。`eagle_check.py` 把这一步做成全自动：
+
+1. **找库**：依次试 Eagle 本地 API（`localhost:41595/api/library/history`，Eagle 开着时可用）、`%APPDATA%\Eagle` 里设置文件记录的路径、扫描磁盘。有多个库时默认用最大的。
+2. **挑样本**：按特征分层挑选，最多 300 张、1 GB。特征包括区域评论、多文件夹、链接、备注、回收站、PNG 与其他格式、极端比例、大文件、多标签和同库真实重复，挑完再随机补满。原库只读，样本复制到工作区。
+3. **合成缺的形态**：两库共有原图；同库重复、Eagle 回收站和区域评论在样本里没有时才合成。“画师在 Eagle 里继续整理”由程序直接改副本模拟。合成了哪些都写进报告。
+4. **跑门槛**：与 `run.py` 同一套，共 44 项。中断与部分失败用子进程注入故障；打包成 exe 后，子进程就是 exe 自己。
+5. **画师确认**：打开 `browse.html`，图片引用工作区文件，不内嵌，区域评论画成框。控制台随后问 6 个问题：显示、区域评论坐标、局部、备份放哪、频率、其他。
+6. **报告**：`kinshoko-eagle-check-报告-*.zip`，内含 `report.md` 和 `summary.json`。只有字段名、计数、耗时、容量和硬件型号，路径全部替换成占位符。
+
+画师拿到的是 CI（`.github/workflows/eagle-check.yml`）打的 artifact：单个 exe 加 [使用说明.md](使用说明.md)。CI 用 `make_eagle_fixture.py` 生成一个仿真 Eagle 库和假的 `%APPDATA%\Eagle\Settings`，对 exe 自测，全部通过才上传。
+
+开发时这样跑：
+
+```bash
+python make_eagle_fixture.py <临时目录>/fx --images samples/pixiv
+APPDATA=<临时目录>/fx/appdata python prototype/storage-roundtrip/eagle_check.py --yes --no-open --work <临时目录>/w
+```
+
+**这一步修好的问题**：同样是 Windows 260 字符限制，参考组保存（临时文件＋替换）和组包解压也会超长，现在都走 `lp()`。浏览器按普通路径打开图片，所以 exe 放得太深时，工作区改到 `%LOCALAPPDATA%\kinshoko-check`。
+
 
 | 文件 | 内容 |
 |---|---|
