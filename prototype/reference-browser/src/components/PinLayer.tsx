@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { EyeOff, ImageOff, Lock } from 'lucide-react';
+import { ImageOff, Lock } from 'lucide-react';
+import { SealVeil } from './SealVeil';
 import { isTyping, type Capture, type Pin, type ReferenceImage, type Rotation } from '../model';
 
 type Props = {
@@ -7,6 +8,7 @@ type Props = {
   edgeHidden: boolean;
   resolve: (pin: Pin) => { image?: ReferenceImage; capture?: Capture; missing?: boolean };
   isHidden: (image: ReferenceImage) => boolean;
+  reducedMotion: boolean;
   onChange: (id: string, patch: Partial<Pin>) => void;
   onFront: (id: string) => void;
   onMenu: (pin: Pin, x: number, y: number) => void;
@@ -121,7 +123,7 @@ export function PinLayer(p: Props) {
           {src.missing ? <div className="pin-missing"><ImageOff size={18} /><span>原图缺失</span><small>成员、裁切与布局已保留</small></div>
             : <img src={src.image?.view ?? src.capture?.url} alt="" draggable={false} className={pin.scale >= 2 ? 'pixelated' : ''}
               style={{ width: w * pin.scale, height: h * pin.scale, transform: crop ? `translate(${-crop.x * pin.scale}px, ${-crop.y * pin.scale}px)` : undefined }} />}
-          {veiled && <div className="veil"><EyeOff size={16} /><span>安全模式</span></div>}
+          {src.image && <SealVeil sealed={veiled} reducedMotion={p.reducedMotion} />}
         </div>
         {pin.locked && <span className="pin-lock" aria-label="已锁定"><Lock size={11} /></span>}
         {pin.source.kind === 'capture' && !src.capture?.collectedAs && <span className="pin-badge">截图</span>}

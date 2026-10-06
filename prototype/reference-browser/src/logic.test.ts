@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { captureAnchor, masonry, resolveAnchor, visible } from './layout';
+import { captureAnchor, captureFocal, masonry, resolveAnchor, resolveFocal, visible } from './layout';
 import { emptyCuration, effectiveTags, type ReferenceImage, type TagDef } from './model';
 import { candidates, countTags, indexImages, runSearch, type Condition } from './search';
+import { sealBookSVG } from './sealbook';
 
 const def = (key: string, group: string | null = null, aliases: string[] = []): TagDef => {
   const [ns, name] = key.split(':');
@@ -93,5 +94,34 @@ describe('masonry', () => {
     const top = resolveAnchor(narrow, names, anchor)!;
     const i = names.indexOf(anchor.id);
     expect(top - narrow.boxes[i].y).toBeCloseTo(3000 - wide.boxes[i].y, 6);
+  });
+  it('zooms around the picture at the viewport centre when the picture size changes', () => {
+    const many = Array.from({ length: 300 }, (_, i) => items[i % items.length]);
+    const names = many.map((_, i) => `p${i}`);
+    const small = masonry(many, { ...opts, width: 1200, target: 200 });
+    const focal = captureFocal(small, names, 3000, 800)!;
+    const b = small.boxes[names.indexOf(focal.id)];
+    expect(b.y <= 3400 && 3400 <= b.y + b.h).toBe(true);
+    expect(focal.offset).toBeCloseTo(400, 6);
+    const large = masonry(many, { ...opts, width: 1200, target: 360 });
+    const top = resolveFocal(large, names, focal)!;
+    const after = large.boxes[names.indexOf(focal.id)];
+    expect(after.y + focal.frac * after.h - top).toBeCloseTo(400, 6);
+    // A slider drag keeps zooming around the same picture while it stays in view.
+    expect(captureFocal(large, names, top, 800, focal)).toBe(focal);
+  });
+});
+
+describe('seal book', () => {
+  const col = { ink: 'I', acc: 'A', cut: 'C' };
+  it('draws the closed book with the lock when sealed and the open book with the star when open', () => {
+    const sealed = sealBookSVG(0, col), open = sealBookSVG(1, col);
+    expect(sealed).toContain('fill="A"');
+    expect(sealed).not.toContain('rotate(');
+    expect(open).not.toContain('fill="A"');
+    expect(open).toContain('rotate(');
+  });
+  it('gives a valid drawing at every frame, so a reversal can start anywhere', () => {
+    for (let p = 0; p <= 1; p += 0.01) expect(sealBookSVG(p, col)).not.toMatch(/NaN|Infinity/);
   });
 });

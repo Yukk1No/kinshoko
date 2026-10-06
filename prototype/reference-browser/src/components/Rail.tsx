@@ -1,11 +1,14 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { History, Images, Layers, Settings, Shield, ShieldOff } from 'lucide-react';
+import { History, Images, Layers, Settings } from 'lucide-react';
+import { SealBook } from './SealBook';
 
 export type Section = 'browse' | 'groups' | 'captures';
 type Props = {
   section: Section;
   paneOpen: boolean;
   safeMode: boolean;
+  reducedMotion: boolean;
+  slow: number;
   badges: Partial<Record<Section, number>>;
   onSection: (s: Section) => void;
   onSafeMode: () => void;
@@ -44,10 +47,7 @@ export function Rail(p: Props) {
       </button>)}
     </div>
     <div className="rail-foot">
-      <button className={`rail-btn safe${p.safeMode ? ' is-on' : ''}`} aria-pressed={p.safeMode} aria-label="安全模式" onClick={p.onSafeMode}>
-        {p.safeMode ? <Shield size={20} strokeWidth={1.75} /> : <ShieldOff size={20} strokeWidth={1.75} />}
-        <span className="tip" role="tooltip">安全模式{p.safeMode ? '：开' : '：关'}<kbd>Ctrl+Shift+S</kbd></span>
-      </button>
+      <SealBook sealed={p.safeMode} reducedMotion={p.reducedMotion} slow={p.slow} onToggle={p.onSafeMode} />
       <button className="rail-btn" aria-label="设置" onClick={p.onSettings}>
         <Settings size={20} strokeWidth={1.75} />
         <span className="tip" role="tooltip">设置与样稿说明</span>

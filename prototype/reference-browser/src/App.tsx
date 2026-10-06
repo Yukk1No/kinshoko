@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeftToLine, BookmarkPlus, Brush, ChevronDown, PanelLeft, PanelLeftClose, PinOff } from 'lucide-react';
 import { Rail, type Section } from './components/Rail';
 import { SearchBox, type SearchHandle } from './components/SearchBox';
@@ -11,6 +11,7 @@ import { PinLayer } from './components/PinLayer';
 import { CapturesPane, GroupsPane, ViewThumb } from './components/Panes';
 import { Dialog, Menu, Toasts, type MenuItem, type Toast } from './components/Overlays';
 import { DrawingCanvas } from './components/DrawingCanvas';
+import { DensitySlider } from './components/DensitySlider';
 import { SettingsDialog, HelpDialog, type Settings } from './components/SettingsDialog';
 import {
   emptyCuration, effectiveRating, imageKey, isAdult, isTyping, uid,
@@ -20,8 +21,12 @@ import { countTags, descendants, indexImages, runSearch, termLabel, type Conditi
 import { TAG_GROUPS, dictionary, inflate, seedInfo, seedLibraries } from './seed';
 import { usePersistent, resetPersistent } from './persist';
 import { exportLog, hashOf, log, setLogging } from './log';
+import { MAX_GHOSTS, RELEASE, SEAL, SealFx, type FxReport } from './sealfx';
 
-const DEFAULT_SETTINGS: Settings = { theme: 'system', reducedMotion: false, density: 240, capTall: true, showTitles: false, square: false, inflate: false, logging: false, stats: false };
+const DEFAULT_SETTINGS: Settings = { theme: 'system', reducedMotion: false, density: 240, capTall: true, showTitles: false, square: false, inflate: false, logging: false, stats: false, releaseInput: 'allow', fxSlow: false };
+const systemReduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+// The side pane slides on the wall's resize curve, so its edge and the cards beside it move in step.
+const PANE = { w: 248, ms: 240, ease: 'cubic-bezier(0.2, 0.8, 0.2, 1)' };
 type DialogState =
   | { kind: 'save-group' }
   | { kind: 'open-group'; group: ReferenceGroup }
@@ -45,6 +50,11 @@ export default function App() {
   const [pins, setPins] = usePersistent<Pin[]>('pins', []);
   const [safeMode, setSafeMode] = usePersistent('safe-mode', true);
   const [paneOpen, setPaneOpen] = usePersistent('pane-open', true);
+  const [paneMotion, setPaneMotion] = useState<'opening' | 'closing' | null>(null);
+  /** The pane's width when a motion starts: the first frame draws it there, so the wall measures from it too. */
+  const [paneStart, setPaneStart] = useState(0);
+  const paneFrom = useRef<{ w: number; bars: Map<Element | 'lib', DOMRect> } | null>(null);
+  const paneTimer = useRef(0);
   const [infoOpen, setInfoOpen] = usePersistent('info-open', true);
   const [revealed, setRevealed] = useState<Set<string>>(() => new Set());
   const [captures, setCaptures] = useState<Capture[]>([]);
@@ -63,6 +73,16 @@ export default function App() {
   const wall = useRef<WallHandle>(null);
   const search = useRef<SearchHandle>(null);
   const lastViewed = useRef<string | null>(null);
+  // Seal and release (#27): ghosts fly in a fixed layer; cards they fly to stay hidden until they land.
+  const fxHost = useRef<HTMLDivElement>(null);
+  const fx = useRef<SealFx | null>(null);
+  const [arriving, setArriving] = useState<Set<string>>(() => new Set());
+  const [releasing, setReleasing] = useState(false);
+  const releaseTimer = useRef(0);
+  const pendingRelease = useRef(false);
+  const [fxReport, setFxReport] = useState<FxReport | null>(null);
+  const reduced = settings.reducedMotion || systemReduced();
+  const slow = settings.fxSlow ? 5 : 1;
 
   useEffect(() => { setPins((list) => list.filter((p) => p.source.kind === 'view')); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setLogging(settings.logging); }, [settings.logging]);
@@ -89,14 +109,16 @@ export default function App() {
     return { ...dictionary, ...extra };
   }, [curation.createdTags, library.id]);
   const index = useMemo(() => indexImages(library.images, dict, curation), [library.images, dict, curation]);
-  const liveIndex = useMemo(() => index.filter((e) => !(imageKey(e.image) in curation.trashed)), [index, curation.trashed]);
+  // Safe mode seals adult images out of the wall and search: results, counts and candidates only see the rest (Q97, Q101).
+  const shownIndex = useMemo(() => (safeMode ? index.filter((e) => !isAdult(effectiveRating(e.image, curation))) : index), [index, safeMode, curation]);
+  const liveIndex = useMemo(() => shownIndex.filter((e) => !(imageKey(e.image) in curation.trashed)), [shownIndex, curation.trashed]);
   const counts = useMemo(() => countTags(liveIndex), [liveIndex]);
-  const results = useMemo(() => runSearch(index, conditions, scope, library.folders, curation), [index, conditions, scope, library.folders, curation]);
+  const results = useMemo(() => runSearch(shownIndex, conditions, scope, library.folders, curation), [shownIndex, conditions, scope, library.folders, curation]);
   // The group picker counts within the current results: what is left if this tag is added.
   const resultCounts = useMemo(() => {
     const ids = new Set(results.map((r) => r.id));
-    return countTags(index.filter((e) => ids.has(e.image.id)));
-  }, [index, results]);
+    return countTags(shownIndex.filter((e) => ids.has(e.image.id)));
+  }, [shownIndex, results]);
   const resultKey = useMemo(() => JSON.stringify([library.id, conditions, scope, settings.inflate]), [library.id, conditions, scope, settings.inflate]);
   const folderCounts = useMemo(() => {
     const out = new Map<string, number>();
@@ -117,6 +139,7 @@ export default function App() {
 
   const allImage = useCallback((libraryId: string, imageId: string) => libraries.find((l) => l.id === libraryId)?.images.find((i) => i.id === imageId), [libraries]);
   const isHidden = useCallback((image: ReferenceImage) => safeMode && isAdult(effectiveRating(image, curation)) && !revealed.has(imageKey(image)), [safeMode, curation, revealed]);
+  const adult = (image: ReferenceImage) => isAdult(effectiveRating(image, curation));
 
   const addTerm = (term: Term, mode: 'and' | 'or', negate = false) => setConditions((list) => {
     const same = (t: Term) => (t.kind === 'tag' && term.kind === 'tag' && t.key === term.key) || (t.kind === 'text' && term.kind === 'text' && t.text === term.text);
@@ -128,6 +151,11 @@ export default function App() {
     }
     return [...list, { id: uid('c'), any: [term], negate }];
   });
+  /** Take one tag out of the conditions; a condition left with no alternatives goes too. */
+  const removeTag = (key: TagKey) => setConditions((list) => list.flatMap((c) => {
+    const any = c.any.filter((t) => !(t.kind === 'tag' && t.key === key));
+    return any.length ? [{ ...c, any }] : [];
+  }));
   const findTag = (key: TagKey) => {
     setViewing(null);
     setScope((s) => ({ ...s, folderId: null, trash: false }));
@@ -297,6 +325,114 @@ export default function App() {
     const next = results[(i < 0 ? 0 : i + delta + results.length) % results.length];
     if (next) openImage(next);
   };
+  // ------------------------------------------------------------ seal and release (#27)
+  useEffect(() => {
+    const f = new SealFx(fxHost.current!);
+    f.onReport = (r) => { log('seal-fx', r); setFxReport(r); };
+    fx.current = f;
+    return () => f.clear();
+  }, []);
+  useEffect(() => { if (fx.current) fx.current.slow = slow; }, [slow]);
+  useEffect(() => { if (reduced) { fx.current?.clear(); wall.current?.finishReflow(); setArriving(new Set()); setReleasing(false); } }, [reduced]);
+  const endRelease = () => { clearTimeout(releaseTimer.current); setReleasing(false); };
+  const toggleSafeMode = () => {
+    const next = !safeMode;
+    log('safe-mode', { on: next });
+    setRevealed(new Set());
+    // Q103: the picture being viewed is sealed, so the viewer goes back to the wall.
+    if (next && viewed && adult(viewed)) setViewing(null);
+    const w = wall.current, book = document.querySelector('.seal-book')?.getBoundingClientRect();
+    if (reduced || viewed || !w || !book) {
+      // Q106 (and while the viewer covers the wall): sealed images vanish at once, released ones are simply there.
+      fx.current?.clear(); setArriving(new Set()); endRelease();
+      setSafeMode(next);
+      return;
+    }
+    if (next) {
+      // Seal first (Q111): whatever is still flying out turns back; cards on screen blur and fly in.
+      const onScreen = new Set(w.onScreen());
+      const before = w.prepareReflow({ delay: (SEAL.flyAt + 20) * slow, duration: 620 * slow });
+      const sources = results.filter((i) => onScreen.has(i.id) && adult(i) && !arriving.has(i.id))
+        .flatMap((i) => { const rect = before.get(i.id); return rect ? [{ id: i.id, src: i.thumb, rect }] : []; });
+      fx.current!.seal(sources, book);
+      setArriving(new Set());
+      endRelease();
+    } else {
+      w.prepareReflow({ delay: 40 * slow, duration: 680 * slow });
+      pendingRelease.current = true;
+      setReleasing(true);
+    }
+    setSafeMode(next);
+  };
+  // The release continues once the wall has laid out the returned images: their cards are the targets.
+  useLayoutEffect(() => {
+    if (!pendingRelease.current) return;
+    pendingRelease.current = false;
+    const w = wall.current, book = document.querySelector('.seal-book')?.getBoundingClientRect();
+    if (!w || !book) { endRelease(); return; }
+    const byId = new Map(results.map((i) => [i.id, i]));
+    const ids = w.onScreen().filter((id) => { const i = byId.get(id); return !!i && adult(i); });
+    // Only cards that get a ghost wait for it to land; the rest are simply there.
+    const arrivals = ids.flatMap((id) => {
+      const r = w.rectOf(id);
+      return r ? [{ id, src: byId.get(id)!.thumb, w: r.width, h: r.height, target: () => w.rectOf(id) }] : [];
+    }).slice(0, MAX_GHOSTS);
+    setArriving(new Set(arrivals.map((a) => a.id)));
+    fx.current!.release(arrivals, book, (id) => setArriving((s) => { const n = new Set(s); n.delete(id); return n; }));
+    clearTimeout(releaseTimer.current);
+    const total = Math.max(720, RELEASE.flyAt + arrivals.length * RELEASE.stagger + RELEASE.fly);
+    releaseTimer.current = window.setTimeout(() => setReleasing(false), total * slow);
+  }, [safeMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** Q105 "可打断": any input on the wall during a release plays it to the end at once. */
+  const interruptRelease = () => {
+    if (!releasing || settings.releaseInput !== 'interrupt') return;
+    fx.current?.finish(); wall.current?.finishReflow(); setArriving(new Set()); endRelease();
+  };
+
+  // ------------------------------------------------------------ side pane
+  // The pane's width animates and everything right of it follows its edge in normal flow. The wall lays out
+  // once at its final width (held for the duration) and its cards glide there on the same curve, so on screen
+  // each card travels in a straight line from where it was. The top-bar items that the switch adds or removes
+  // (the expand button, the library switcher) shift the rest of the bar, so those items glide too.
+  const setPane = (open: boolean) => {
+    if (open === paneOpen) return;
+    clearTimeout(paneTimer.current);
+    const pane = document.querySelector<HTMLElement>('.pane');
+    if (reduced) { pane?.getAnimations().forEach((a) => a.cancel()); paneFrom.current = null; setPaneMotion(null); wall.current?.holdWidth(null); setPaneOpen(open); return; }
+    // Measure everything where it is now (mid-motion included) before cancelling anything.
+    const bars = new Map<Element | 'lib', DOMRect>();
+    const moving = [...document.querySelectorAll('.topbar > *, .groupbar > *')];
+    for (const el of moving) if (!el.classList.contains('lib-switch')) bars.set(el, el.getBoundingClientRect());
+    const lib = document.querySelector('.lib-switch');
+    if (lib) bars.set('lib', lib.querySelector('.lib-btn')!.getBoundingClientRect());
+    const w = pane ? pane.getBoundingClientRect().width : 0;
+    [pane, lib, ...moving].forEach((el) => el?.getAnimations().forEach((a) => a.cancel()));
+    if (!matchMedia('(max-width: 820px)').matches) {
+      wall.current?.prepareReflow({ delay: 0, duration: PANE.ms * slow, resize: true });
+      wall.current?.holdWidth(w - (open ? PANE.w : 0));
+    }
+    paneFrom.current = { w, bars };
+    setPaneStart(w);
+    setPaneMotion(open ? 'opening' : 'closing');
+    setPaneOpen(open);
+    paneTimer.current = window.setTimeout(() => { setPaneMotion(null); wall.current?.holdWidth(null); }, PANE.ms * slow + 40);
+  };
+  useLayoutEffect(() => {
+    const from = paneFrom.current;
+    if (!from) return;
+    paneFrom.current = null;
+    const timing = { duration: PANE.ms * slow, easing: PANE.ease };
+    document.querySelector('.pane')?.animate([{ width: `${from.w}px` }, { width: `${paneOpen ? PANE.w : 0}px` }], { ...timing, fill: 'forwards' });
+    // The bar's container moves on the same curve, so an offset that decays on it lands each item in a straight line.
+    for (const [el, old] of from.bars) {
+      const node = el === 'lib' ? document.querySelector('.lib-switch .lib-btn') : el;
+      if (!node?.isConnected) continue;
+      const target = el === 'lib' ? node.closest('.lib-switch')! : node;
+      const now = node.getBoundingClientRect(), dx = old.left - now.left, dy = old.top - now.top;
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) target.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], timing);
+    }
+  }, [paneOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     // Back on the wall, the last viewed picture is in view and focused (返回原位置).
     if (!viewing && lastViewed.current) {
@@ -313,7 +449,6 @@ export default function App() {
       { label: '查看', hint: 'Enter', onSelect: () => openImage(image) },
       { label: '钉住整图', hint: 'P', onSelect: () => pinView(image, null) },
       ...(author ? [{ label: `查找 ${dict[author]?.name ?? ''} 的全部图`, onSelect: () => findTag(author) } as MenuItem] : []),
-      ...(isHidden(image) ? ['sep', { label: '显示这张（确认）', onSelect: () => setRevealed((s) => new Set(s).add(imageKey(image))) }] as MenuItem[] : []),
       'sep',
       inTrash ? { label: '从回收站恢复', onSelect: () => trash(image, false) } : { label: '移到回收站', hint: 'Delete', danger: true, onSelect: () => trash(image, true) },
     ] });
@@ -343,9 +478,9 @@ export default function App() {
       const typing = isTyping(e);
       if (e.key === 'F4') { e.preventDefault(); toggleEdge(); return; }
       if (e.key === 'F3') { e.preventDefault(); pasteClipboard(); return; }
-      if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')) { e.preventDefault(); setSafeMode((v) => { log('safe-mode', { on: !v }); return !v; }); setRevealed(new Set()); return; }
-      if (e.ctrlKey && ['1', '2', '3'].includes(e.key)) { e.preventDefault(); const s = (['browse', 'groups', 'captures'] as Section[])[Number(e.key) - 1]; setSection(s); setPaneOpen(true); return; }
-      if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); setPaneOpen((v) => !v); return; }
+      if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')) { e.preventDefault(); toggleSafeMode(); return; }
+      if (e.ctrlKey && ['1', '2', '3'].includes(e.key)) { e.preventDefault(); const s = (['browse', 'groups', 'captures'] as Section[])[Number(e.key) - 1]; setSection(s); setPane(true); return; }
+      if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); setPane(!paneOpen); return; }
       if (typing || dialog || menu) return;
       if (canvasMode && e.key === 'Escape') { setCanvasMode(false); return; }
       if (viewing) return;
@@ -359,8 +494,12 @@ export default function App() {
 
   // ------------------------------------------------------------ render
   const pinnedCaptureIds = new Set(pins.flatMap((p) => (p.source.kind === 'capture' ? [p.source.captureId] : [])));
-  const trashCount = Object.keys(curation.trashed).filter((k) => k.startsWith(library.id + '/')).length;
+  // Q101: sealed images are not counted, so the badge cannot reveal how many there are.
+  const trashCount = shownIndex.filter((e) => imageKey(e.image) in curation.trashed).length;
   const scopeLabel = scope.trash ? '回收站' : scope.folderId ? library.folders.find((f) => f.id === scope.folderId)?.name : null;
+  // Q110 candidate A: the wall and the side panels ignore input while a release plays.
+  const blockInput = releasing && settings.releaseInput === 'block';
+  const visibleCount = (l: Library) => (safeMode ? l.images.filter((i) => !adult(i)).length : l.images.length);
   const viewerPosition = viewed ? (() => { const i = results.findIndex((r) => r.id === viewed.id); return i < 0 ? '不在当前结果中' : `${i + 1} / ${results.length}`; })() : '';
 
   const empty = seedInfo.missing && !library.images.length ? <div>
@@ -375,17 +514,32 @@ export default function App() {
       {conditions.length > 0 && <button className="tool" onClick={() => setConditions((c) => c.slice(0, -1))}>去掉最后一个条件</button>}
     </div>;
 
+  // One library switcher: it heads the folder pane while that is open, otherwise it sits in the top bar.
+  const libInPane = paneOpen && section === 'browse';
+  const libSwitch = (
+    <div className="lib-switch">
+      <button className="lib-btn" onClick={() => setLibMenu((v) => !v)} aria-expanded={libMenu} aria-haspopup="menu" aria-label={`资料库：${library.name}`} title="切换资料库">
+        <strong>{library.name}</strong><ChevronDown size={14} />
+      </button>
+      {libMenu && <Menu x={(document.querySelector('.lib-btn')?.getBoundingClientRect().left ?? 0)} y={(document.querySelector('.lib-btn')?.getBoundingClientRect().bottom ?? 0) + 4}
+        onClose={() => setLibMenu(false)} items={[
+          ...libraries.map((l): MenuItem => ({ label: `${l.name}　${visibleCount(l)} 张`, checked: l.id === library.id, onSelect: () => { setLibraryId(l.id); setScope({ folderId: null, withDescendants: scope.withDescendants, trash: false }); setViewing(null); } })),
+          'sep', { label: '新建、合并、导入 Eagle（不在本样稿范围）', disabled: true },
+        ]} />}
+    </div>
+  );
+
   return <div className={`app${canvasMode ? ' is-canvas' : ''}`}>
-    <Rail section={section} paneOpen={paneOpen} safeMode={safeMode}
+    <Rail section={section} paneOpen={paneOpen} safeMode={safeMode} reducedMotion={reduced} slow={slow}
       badges={{ groups: groups.length || undefined, captures: captures.length || undefined }}
-      onSection={(s) => { if (s === section) setPaneOpen((v) => !v); else { setSection(s); setPaneOpen(true); } }}
-      onSafeMode={() => { setSafeMode((v) => { log('safe-mode', { on: !v }); return !v; }); setRevealed(new Set()); }}
+      onSection={(s) => { if (s === section) setPane(!paneOpen); else { setSection(s); setPane(true); } }}
+      onSafeMode={toggleSafeMode}
       onSettings={() => setDialog({ kind: 'settings' })} />
 
-    <div className="workspace">
-      {paneOpen && <aside className="pane" inert={!!viewed || undefined} aria-label={section === 'browse' ? '文件夹' : section === 'groups' ? '参考组' : '截图历史'}>
-        <header className="pane-head"><h2>{section === 'browse' ? library.name : section === 'groups' ? '参考组' : '截图历史'}</h2>
-          <button className="icon-tool" onClick={() => setPaneOpen(false)} aria-label="收起侧栏" title="收起（Ctrl+B）"><PanelLeftClose size={16} /></button></header>
+    <div className={`workspace${paneMotion ? ` is-pane-moving is-pane-${paneMotion}` : ''}`}>
+      {(paneOpen || paneMotion === 'closing') && <aside className="pane" style={paneMotion ? { width: paneStart } : undefined} inert={!!viewed || blockInput || !paneOpen || undefined} aria-label={section === 'browse' ? '文件夹' : section === 'groups' ? '参考组' : '截图历史'}>
+        <header className="pane-head">{section === 'browse' ? (libInPane ? libSwitch : <span />) : <h2>{section === 'groups' ? '参考组' : '截图历史'}</h2>}
+          <button className="icon-tool" onClick={() => setPane(false)} aria-label="收起侧栏" title="收起（Ctrl+B）"><PanelLeftClose size={16} /></button></header>
         {section === 'browse' && <FolderPane folders={library.folders} counts={folderCounts} total={liveIndex.length} trashCount={trashCount}
           current={scope.folderId} trash={scope.trash} withDescendants={scope.withDescendants}
           onPick={(id) => { setViewing(null); setScope((s) => ({ ...s, folderId: id, trash: false })); }}
@@ -403,19 +557,10 @@ export default function App() {
           onShow={(c) => { if (!c.collectedAs) return; const img = allImage(c.collectedAs.libraryId, c.collectedAs.imageId); if (img) { setLibraryId(img.libraryId); openImage(img); } }} />}
       </aside>}
 
-      <main className="main" inert={!!viewed || undefined}>
+      <main className="main" inert={!!viewed || blockInput || undefined} onPointerDownCapture={interruptRelease} onWheelCapture={interruptRelease} onKeyDownCapture={interruptRelease}>
         <header className="topbar">
-          {!paneOpen && <button className="icon-tool" onClick={() => setPaneOpen(true)} aria-label="展开侧栏" title="展开（Ctrl+B）"><PanelLeft size={16} /></button>}
-          <div className="lib-switch">
-            <button className="lib-btn" onClick={() => setLibMenu((v) => !v)} aria-expanded={libMenu} aria-haspopup="menu">
-              <span className="muted small">资料库</span><strong>{library.name}</strong><ChevronDown size={14} />
-            </button>
-            {libMenu && <Menu x={(document.querySelector('.lib-btn')?.getBoundingClientRect().left ?? 0)} y={(document.querySelector('.lib-btn')?.getBoundingClientRect().bottom ?? 0) + 4}
-              onClose={() => setLibMenu(false)} items={[
-                ...libraries.map((l): MenuItem => ({ label: `${l.name}　${l.images.length} 张`, checked: l.id === library.id, onSelect: () => { setLibraryId(l.id); setScope({ folderId: null, withDescendants: scope.withDescendants, trash: false }); setViewing(null); } })),
-                'sep', { label: '新建、合并、导入 Eagle（不在本样稿范围）', disabled: true },
-              ]} />}
-          </div>
+          {!paneOpen && <button className="icon-tool" onClick={() => setPane(true)} aria-label="展开侧栏" title="展开（Ctrl+B）"><PanelLeft size={16} /></button>}
+          {!libInPane && libSwitch}
           <SearchBox ref={search} conditions={conditions} dict={dict} counts={counts}
             onAdd={(t, mode) => { setViewing(null); addTerm(t, mode); }}
             onToggleNegate={(id) => setConditions((l) => l.map((c) => (c.id === id ? { ...c, negate: !c.negate } : c)))}
@@ -424,19 +569,21 @@ export default function App() {
           <span className="result-count tabular" aria-live="polite">{scopeLabel && <span className="muted">{scopeLabel} · </span>}{results.length} 张</span>
           <label className="density" title="图片大小">
             <span className="sr-only">图片大小</span>
-            <input type="range" min={140} max={420} step={10} value={settings.density} onChange={(e) => setSettings({ ...settings, density: Number(e.target.value) })} />
+            <DensitySlider value={settings.density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={(v) => setSettings((s) => ({ ...s, density: v }))} />
           </label>
         </header>
-        <TagGroupBar groups={groupsForBar} counts={resultCounts} conditions={conditions} onAdd={(t, mode, negate) => { setViewing(null); addTerm(t, mode, negate); }} />
+        <TagGroupBar groups={groupsForBar} counts={resultCounts} conditions={conditions} onAdd={(t, mode, negate) => { setViewing(null); addTerm(t, mode, negate); }}
+          onRemove={(key) => { setViewing(null); removeTag(key); }} />
         <div className="content">
           <Wall ref={wall} images={results} resultKey={resultKey} density={settings.density} capTall={settings.capTall} showTitles={settings.showTitles} square={settings.square}
-            isHidden={isHidden} onOpen={openImage} onMenu={cardMenu} empty={empty} onStats={settings.stats ? setStats : undefined}
+            isHidden={isHidden} onOpen={openImage} onMenu={cardMenu} empty={empty} onStats={settings.stats ? setStats : undefined} arriving={arriving}
             onKey={(image, e) => {
               if (e.key === 'p' || e.key === 'P') { pinView(image, null); return true; }
               if (e.key === 'Delete') { if (imageKey(image) in curation.trashed) trash(image, false); else trash(image, true); return true; }
               return false;
             }} />
-          {stats && settings.stats && <div className="stats tabular">{stats.total} 张 · {stats.columns} 列 · 挂载 {stats.mounted} 张卡片</div>}
+          {stats && settings.stats && <div className="stats tabular">{stats.total} 张 · {stats.columns} 列 · 挂载 {stats.mounted} 张卡片
+            {fxReport && <><br />{fxReport.kind === 'seal' ? '封印' : '释放'} {fxReport.ms} ms · {fxReport.ghosts} 张飞行 · {Math.round(fxReport.frames / (fxReport.ms / 1000))} fps · 最长一帧 {fxReport.worstFrame} ms</>}</div>}
         </div>
       </main>
       {viewed && <Viewer image={viewed} position={viewerPosition} hidden={isHidden(viewed)} infoOpen={infoOpen}
@@ -456,7 +603,7 @@ export default function App() {
     </div>
 
     {canvasMode && <DrawingCanvas onExit={() => setCanvasMode(false)} />}
-    <PinLayer pins={pins} edgeHidden={edgeHidden} resolve={resolvePin} isHidden={isHidden}
+    <PinLayer pins={pins} edgeHidden={edgeHidden} resolve={resolvePin} isHidden={isHidden} reducedMotion={reduced}
       onChange={updatePin} onFront={toFront} onMenu={pinMenu} onClose={closePin} />
 
     {pins.length > 0 && <div className={`dock${edgeHidden ? ' is-edge' : ''}`} role="toolbar" aria-label="本次钉图">
@@ -467,6 +614,7 @@ export default function App() {
       <button className="tool small" onClick={() => { setPins([]); setEdgeHidden(false); }}><PinOff size={14} />全部关闭</button>
     </div>}
 
+    <div className="fx-layer" ref={fxHost} aria-hidden="true" />
     {menu && <Menu {...menu} onClose={() => setMenu(null)} />}
     <Toasts toasts={toasts} onDismiss={(id) => setToasts((t) => t.filter((x) => x.id !== id))} />
 
@@ -489,7 +637,7 @@ export default function App() {
         setGroups((g) => [group, ...g]);
         setDialog(null);
         setSection('groups');
-        setPaneOpen(true);
+        setPane(true);
         log('group-save', { members: members.length, libraries: new Set(members.map((m) => m.view.libraryId)).size });
         toast(`已保存参考组「${name}」：${members.length} 个成员。`);
       }} />}
@@ -504,7 +652,7 @@ export default function App() {
     </>}><p>只删除这个组的成员与布局。资料库里的参考图、标签和其他参考组不受影响。</p></Dialog>}
     {dialog?.kind === 'collect' && <CollectDialog capture={dialog.capture} libraries={libraries} current={library.id} onClose={() => setDialog(null)}
       onCollect={(libId, folderId) => { const img = collectCapture(dialog.capture, libId, folderId); setDialog(null); toast(`已收藏到「${libraries.find((l) => l.id === libId)?.name}」。`, { label: '查看', run: () => { setLibraryId(libId); openImage(img); } }); }} />}
-    {dialog?.kind === 'settings' && <SettingsDialog settings={settings} onChange={setSettings} onClose={() => setDialog(null)} info={seedInfo}
+    {dialog?.kind === 'settings' && <SettingsDialog settings={settings} onChange={setSettings} onPreviewDensity={(v) => wall.current?.previewDensity(v)} onClose={() => setDialog(null)} info={seedInfo}
       onExportLog={exportLog} onReset={() => { resetPersistent(); location.reload(); }} onHelp={() => setDialog({ kind: 'help' })} />}
     {dialog?.kind === 'help' && <HelpDialog onClose={() => setDialog(null)} />}
   </div>;

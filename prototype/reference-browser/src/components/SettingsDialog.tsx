@@ -1,5 +1,6 @@
 import { Dialog } from './Overlays';
 import { clearLog, readLog } from '../log';
+import { DensitySlider } from './DensitySlider';
 import { useState } from 'react';
 
 export type Settings = {
@@ -12,19 +13,25 @@ export type Settings = {
   inflate: boolean;
   logging: boolean;
   stats: boolean;
+  /** While a release plays (#27): Q110 candidates A / B, or Q105 "可打断". */
+  releaseInput: 'block' | 'allow' | 'interrupt';
+  /** Slow the seal and release effects ×5 for frame-by-frame checks. */
+  fxSlow: boolean;
 };
 
 type Props = {
   settings: Settings;
   info: { missing: boolean; hasPredictions: boolean; skipped: number };
   onChange: (s: Settings) => void;
+  /** Zooms the wall behind the dialog while the size slider moves; the size commits once it settles. */
+  onPreviewDensity: (density: number | null) => void;
   onClose: () => void;
   onExportLog: () => void;
   onReset: () => void;
   onHelp: () => void;
 };
 
-export function SettingsDialog({ settings: s, info, onChange, onClose, onExportLog, onReset, onHelp }: Props) {
+export function SettingsDialog({ settings: s, info, onChange, onPreviewDensity, onClose, onExportLog, onReset, onHelp }: Props) {
   const [entries, setEntries] = useState(() => readLog().length);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => onChange({ ...s, [k]: v });
   return <Dialog title="设置与样稿说明" wide onClose={onClose} actions={<>
@@ -41,8 +48,19 @@ export function SettingsDialog({ settings: s, info, onChange, onClose, onExportL
         <label className="check"><input type="checkbox" checked={s.reducedMotion} onChange={(e) => set('reducedMotion', e.target.checked)} />减少动画（系统设置为减少时也会生效）</label>
       </fieldset>
       <fieldset>
+        <legend>安全模式</legend>
+        <p className="muted small">开启时成人图收进封印书，不出现在图片墙和查找结果里；参考组和钉图里原位模糊。关闭时书打开，图飞回原位。</p>
+        <label className="field"><span>释放期间</span>
+          <select value={s.releaseInput} onChange={(e) => set('releaseInput', e.target.value as Settings['releaseInput'])}>
+            <option value="allow">完整播放，图片墙照常操作（候选 B）</option>
+            <option value="block">完整播放，播完前图片墙和侧栏不响应（候选 A）</option>
+            <option value="interrupt">可打断：在图片墙上一操作就直接播完</option>
+          </select></label>
+        <p className="muted small">释放约 1.2 秒。无论选哪项，释放中途再开启安全模式都会立即掉头封印。</p>
+      </fieldset>
+      <fieldset>
         <legend>图片墙</legend>
-        <label className="field"><span>图片大小</span><input type="range" min={140} max={420} step={10} value={s.density} onChange={(e) => set('density', Number(e.target.value))} /><span className="tabular">{s.density}px</span></label>
+        <label className="field"><span>图片大小</span><DensitySlider value={s.density} onPreview={onPreviewDensity} onCommit={(v) => set('density', v)} showValue /></label>
         <label className="check"><input type="checkbox" checked={s.capTall} onChange={(e) => set('capTall', e.target.checked)} />极长图限高（整张等比缩小，不裁切）</label>
         <label className="check"><input type="checkbox" checked={s.square} onChange={(e) => set('square', e.target.checked)} />改用等尺寸网格（只作空间利用对照）</label>
         <label className="check"><input type="checkbox" checked={s.showTitles} onChange={(e) => set('showTitles', e.target.checked)} />在图片下显示名称</label>
@@ -59,7 +77,8 @@ export function SettingsDialog({ settings: s, info, onChange, onClose, onExportL
       <fieldset>
         <legend>开发者检查</legend>
         <label className="check"><input type="checkbox" checked={s.inflate} onChange={(e) => set('inflate', e.target.checked)} />把「角色参考」重复到 10,000 条（只看布局与 DOM 数量，不代表真实图库性能）</label>
-        <label className="check"><input type="checkbox" checked={s.stats} onChange={(e) => set('stats', e.target.checked)} />显示列数与挂载卡片数</label>
+        <label className="check"><input type="checkbox" checked={s.stats} onChange={(e) => set('stats', e.target.checked)} />显示列数、挂载卡片数与上一次封印／释放的帧率</label>
+        <label className="check"><input type="checkbox" checked={s.fxSlow} onChange={(e) => set('fxSlow', e.target.checked)} />封印／释放特效慢放 ×5（逐帧核对 0.3 秒门槛用）</label>
       </fieldset>
       <fieldset>
         <legend>这份样稿是什么</legend>
