@@ -1,4 +1,4 @@
-//! 应用壳设置：本设备上与具体资料库无关的偏好（开机自启、全局快捷键）。
+//! 应用壳设置：本设备上与具体资料库无关的偏好（开机自启、全局快捷键、相近标签来源标记）。
 //!
 //! 保存在应用配置目录的 `settings.json`。后续的设置（钉图、模型选择、诊断开关等）
 //! 在 [`SettingsFile`] 上加带默认值的字段即可；不认识的字段原样保留，旧版本打开新版本
@@ -63,6 +63,8 @@ struct SettingsFile {
     autostart: bool,
     /// 每个动作的快捷键；`None` 表示画师清除了绑定。没写到的动作用默认键。
     shortcuts: BTreeMap<ShortcutAction, Option<String>>,
+    /// 在查找条件里标出相近标签来自内置还是个人近似对应表（#56），默认不显示。
+    show_approx_source: bool,
     /// 新版本写入、本版本不认识的字段。
     #[serde(flatten)]
     unknown: serde_json::Map<String, serde_json::Value>,
@@ -74,6 +76,7 @@ impl Default for SettingsFile {
             version: FORMAT_VERSION,
             autostart: true,
             shortcuts: BTreeMap::new(),
+            show_approx_source: false,
             unknown: serde_json::Map::new(),
         }
     }
@@ -132,6 +135,15 @@ impl AppSettings {
 
     pub fn set_autostart(&mut self, on: bool) -> Result<(), SettingsError> {
         self.update(|f| f.autostart = on)
+    }
+
+    /// 查找条件里是否标出相近标签的来源（内置／个人）。
+    pub fn show_approx_source(&self) -> bool {
+        self.file.show_approx_source
+    }
+
+    pub fn set_show_approx_source(&mut self, on: bool) -> Result<(), SettingsError> {
+        self.update(|f| f.show_approx_source = on)
     }
 
     /// 动作当前绑定的快捷键；`None` 表示未绑定。

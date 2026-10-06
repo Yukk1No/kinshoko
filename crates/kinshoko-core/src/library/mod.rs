@@ -42,15 +42,16 @@ pub use folders::FolderNode;
 pub use import::ImportTask;
 pub use sidebar::Sidebar;
 pub use tags::{
-    FactSource, ImageTag, ImageTags, LocalizedName, SourceTag, TagAlias, TagCount, TagEdit,
-    TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef, TagTranslation, TagTranslations,
-    Vocabulary, VocabularyTag,
+    FactSource, ImageTag, ImageTags, LocalizedName, PersonalApproxEntry, SourceTag, TagAlias,
+    TagCount, TagEdit, TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef, TagTranslation,
+    TagTranslations, Vocabulary, VocabularyTag,
 };
 pub use types::{
     BrowsePage, BrowseQuery, BrowseScope, ImageCard, ImageSourceRecord, ImportItem, ImportOutcome,
     ImportProgress, ImportReport, ImportSource, LibraryInfo, RecoveryReport,
 };
 
+use crate::approx::ApproxRelation;
 use events::Hub;
 use store::{DB_FILE, Readers, Writer};
 pub(crate) use tags::display_label;
@@ -334,6 +335,22 @@ impl Library {
 
     pub fn delete_tag_group(&self, group_id: &str) -> Result<(), Error> {
         tags::delete_tag_group(&self.inner, group_id)
+    }
+
+    /// 在个人近似对应表中记下 `a` 与 `b` 相近或不相近（无方向）。同一对已有记录时改为这次的判断。
+    /// “以后都不展开”记不相近，“＋”记相近。
+    pub fn set_tag_approx(&self, a: &str, b: &str, relation: ApproxRelation) -> Result<(), Error> {
+        tags::set_tag_approx(&self.inner, a, b, relation)
+    }
+
+    /// 删除个人近似对应表中 `a` 与 `b` 这一对（无方向）；之后按内置近似对应表。
+    pub fn remove_tag_approx(&self, a: &str, b: &str) -> Result<(), Error> {
+        tags::remove_tag_approx(&self.inner, a, b)
+    }
+
+    /// 个人近似对应表的全部条目，最近记下的在前，名称按界面语言 `lang`。
+    pub fn personal_approx(&self, lang: &str) -> Result<Vec<PersonalApproxEntry>, Error> {
+        tags::personal_approx(&self.inner, lang)
     }
 
     /// 侧栏的标签分组及计数，名称按界面语言 `lang`。
