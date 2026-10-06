@@ -81,7 +81,11 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 Some(dir) => PathBuf::from(dir).join("models"),
                 None => app.path().app_local_data_dir()?.join("models"),
             };
-            crate::tagging::setup(app, models_dir);
+            // 模型选择保存在应用壳设置里；这里只读一次，之后由设置命令同步。
+            let preferred = kinshoko_core::AppSettings::open(&app.path().app_config_dir()?)
+                .ok()
+                .and_then(|s| s.tagging_model().map(str::to_owned));
+            crate::tagging::setup(app, models_dir, preferred);
             app.manage(LibraryState {
                 device_dir,
                 current: Mutex::new(None),

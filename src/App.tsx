@@ -11,6 +11,7 @@ import { ImportBar, type RunningImport } from "./library/ImportBar";
 import { SelectionPanel } from "./library/SelectionPanel";
 import { SidebarPane } from "./library/SidebarPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
+import { ModelSettings } from "./ModelSettings";
 import { SettingsPanel } from "./SettingsPanel";
 import { TaggingIndicator } from "./TaggingIndicator";
 import { scopeKey, Wall } from "./wall/Wall";
@@ -178,7 +179,12 @@ export function App() {
           {library === null && <CreateLibrary onCreated={setLibrary} />}
         </main>
       )}
-      {showSettings && <SettingsPanel />}
+      {showSettings && (
+        <>
+          <SettingsPanel />
+          <ModelSettings />
+        </>
+      )}
       <footer className="app-status">
         <span>{info && `${info.productName} ${info.version}`}</span>
         {library && <TaggingIndicator key={library.id} />}

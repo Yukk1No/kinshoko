@@ -158,6 +158,16 @@ pub struct ModelOption {
     pub installed: bool,
 }
 
+/// 设置中“自动标签模型”一节：画师选的模型与可选的模型。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ModelChoice {
+    /// 画师选的模型 key；`None` 表示按本机条件自动选择。
+    pub selected: Option<String>,
+    pub options: Vec<ModelOption>,
+}
+
 /// 默认的下载地址前缀。
 pub const HUGGING_FACE: &str = "https://huggingface.co";
 

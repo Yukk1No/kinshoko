@@ -45,6 +45,7 @@ const detail = (id: string, manual: string | null): ImageDetail => ({
   folders: [{ id: "F1", name: "人物" }],
   note: { manual, sources: [] },
   deletedAt: null,
+  rating: { imageId: id, suggested: null, manual: null, effective: null },
 });
 
 const label = (id: string, namespace: TagLabel["namespace"], name: string): TagLabel => ({

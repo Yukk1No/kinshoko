@@ -19,7 +19,7 @@ mod scheduler;
 
 pub use memory::InMemoryTagger;
 pub use models::{
-    Chunking, HUGGING_FACE, ModelOption, ModelSpec, ModelStore, PrepareStage, catalog,
+    Chunking, HUGGING_FACE, ModelChoice, ModelOption, ModelSpec, ModelStore, PrepareStage, catalog,
 };
 pub use port::{
     Device, DeviceInfo, GpuInfo, PreparedModel, RawTag, SessionStopper, TagFailure, Tagger,
