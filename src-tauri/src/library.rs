@@ -10,8 +10,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use kinshoko_core::library::{
-    BrowsePage, BrowseQuery, ImageDetail, ImageEdit, ImageTags, ImportSource, ImportTask,
-    LibraryEvent, LibraryInfo, RecoveryReport, Sidebar, TagEdit, TagGroupView, Vocabulary,
+    BrowsePage, BrowseQuery, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportSource,
+    ImportTask, LibraryEvent, LibraryInfo, RecoveryReport, Sidebar, TagEdit, TagGroupView,
+    Vocabulary,
 };
 use kinshoko_core::{DeviceRegistry, Library};
 use tauri::http::{Response, StatusCode, header};
@@ -61,7 +62,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             image_tags,
             edit_tags,
             vocabulary,
-            tag_groups
+            tag_groups,
+            image_rating
         ])
         .setup(|app, _api| {
             app.plugin(tauri_plugin_dialog::init())?;
@@ -69,6 +71,12 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 Some(dir) => PathBuf::from(dir),
                 None => app.path().app_data_dir()?,
             };
+            // 打标模型约 1 GB（CPU 档 2 GB），放在本机数据目录，不随漫游配置同步。
+            let models_dir = match std::env::var_os(DATA_DIR_ENV) {
+                Some(dir) => PathBuf::from(dir).join("models"),
+                None => app.path().app_local_data_dir()?.join("models"),
+            };
+            crate::tagging::setup(app, models_dir);
             app.manage(LibraryState {
                 device_dir,
                 current: Mutex::new(None),
@@ -125,14 +133,21 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
 fn activate<R: Runtime>(app: &AppHandle<R>, state: &LibraryState, library: Library) -> LibraryInfo {
     let info = library.info().clone();
     let events = library.events();
-    *lock(&state.current) = Some(Arc::new(library));
+    let library = Arc::new(library);
+    *lock(&state.current) = Some(library.clone());
+    crate::tagging::attach(app, library);
     let (app, tasks) = (app.clone(), state.tasks.clone());
     std::thread::Builder::new()
         .name("kinshoko-library-events".into())
         .spawn(move || {
             for event in events {
-                if let LibraryEvent::TaskFinished { task_id, .. } = &event {
-                    lock(&tasks).remove(task_id);
+                match &event {
+                    LibraryEvent::TaskFinished { task_id, .. } => {
+                        lock(&tasks).remove(task_id);
+                    }
+                    // 有新图进库：自动标签立即检查，不等下一次轮询。
+                    LibraryEvent::ListStale { .. } => crate::tagging::wake(&app),
+                    _ => {}
                 }
                 let _ = app.emit(EVENT, event);
             }
@@ -371,4 +386,14 @@ async fn tag_groups(
 ) -> Result<Vec<TagGroupView>, String> {
     let library = state.current()?;
     blocking(move || library.tag_groups(&lang).map_err(|e| e.to_string())).await
+}
+
+/// 一张参考图的内容分级（自动与有效）。
+#[tauri::command]
+async fn image_rating(
+    state: State<'_, LibraryState>,
+    image_id: String,
+) -> Result<ImageRating, String> {
+    let library = state.current()?;
+    blocking(move || library.image_rating(&image_id).map_err(|e| e.to_string())).await
 }

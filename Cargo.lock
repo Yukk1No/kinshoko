@@ -2052,6 +2052,7 @@ name = "kinshoko"
 version = "0.1.0"
 dependencies = [
  "kinshoko-core",
+ "kinshoko-tagger",
  "serde",
  "serde_json",
  "tauri",

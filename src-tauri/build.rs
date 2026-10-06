@@ -23,6 +23,7 @@ fn main() {
                     "edit_tags",
                     "vocabulary",
                     "tag_groups",
+                    "image_rating",
                 ])
                 .default_permission(tauri_build::DefaultPermissionRule::AllowAllCommands),
         ),
