@@ -2,6 +2,7 @@ import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'reac
 import { Minus, Search, X } from 'lucide-react';
 import type { TagDef, TagKey } from '../model';
 import { candidates, termLabel, type Condition, type Term } from '../search';
+import { Untranslated } from './Untranslated';
 
 export type SearchHandle = { focus: () => void };
 type Props = {
@@ -56,7 +57,7 @@ export const SearchBox = forwardRef<SearchHandle, Props>(function SearchBox(p, r
       <button className="cond-neg" onClick={(e) => { e.stopPropagation(); p.onToggleNegate(c.id); }} title={c.negate ? '改回包含' : '改为排除'} aria-label={c.negate ? '改回包含' : '改为排除'}>
         {c.negate ? <Minus size={11} /> : <span className="dot" />}
       </button>
-      {c.any.map((t, i) => <span key={i} className="cond-term">{i > 0 && <span className="or">或</span>}{termLabel(t, p.dict)}
+      {c.any.map((t, i) => <span key={i} className="cond-term">{i > 0 && <span className="or">或</span>}{termLabel(t, p.dict)}{t.kind === 'tag' && <Untranslated def={p.dict[t.key]} />}
         {c.any.length > 1 && <button className="cond-x-inner" onClick={(e) => { e.stopPropagation(); p.onRemove(c.id, i); }} aria-label="去掉这一项"><X size={10} /></button>}</span>)}
       <button className="cond-x" onClick={(e) => { e.stopPropagation(); p.onRemove(c.id); }} aria-label="移除条件"><X size={11} /></button>
     </span>)}
@@ -74,7 +75,7 @@ export const SearchBox = forwardRef<SearchHandle, Props>(function SearchBox(p, r
       {list.map((c, i) => <li key={c.key} role="option" aria-selected={active === i} className={active === i ? 'is-active' : ''}>
         <button onClick={(e) => commit({ kind: 'tag', key: c.key }, e.altKey ? 'or' : 'and')}>
           <span className={`ns ns-${c.def.ns}`}>{c.def.ns}</span>
-          <span className="name">{c.def.name}</span>
+          <span className="name">{c.def.name}<Untranslated def={c.def} /></span>
           {c.via && <span className="muted">别名 {c.via}</span>}
           <span className="count tabular">{c.count}</span>
         </button>

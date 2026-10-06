@@ -16,7 +16,7 @@ export const dictionary: Record<TagKey, TagDef> = Object.fromEntries(
 );
 
 // Display groups for the quick picker. 标签分组 only affects display, never search (glossary).
-export const TAG_GROUPS = ['发色', '发型', '刘海', '发长', '画面'];
+export const TAG_GROUPS = ['发色', '瞳色', '发型', '发长', '画面'];
 
 const has = (img: RawImage, ...keys: string[]) => img.sourceTags.some((t) => keys.includes(t.tag));
 const works = ['原神', '绝区零', '蔚蓝档案', 'Fate/Grand Order', '明日方舟', '明日方舟：终末地', '碧蓝航线', '鸣潮', '胜利女神：妮姬', '崩坏：星穹铁道', 'hololive', 'VOCALOID'];

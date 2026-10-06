@@ -23,56 +23,68 @@ THUMB_WIDTH = 512
 VIEW_LIMIT = 4096  # originals at or below this long side are copied unchanged
 
 # ---------------------------------------------------------------- tag dictionary
-# Kinshoko tags are library-owned: a namespace, a Chinese display name and aliases.
-# pixiv author tags are the source result; aliases make 中文／日文／Danbooru wording match.
-GENERAL = {
+# Kinshoko tags are library-owned: a namespace, a Chinese display name, aliases and external names
+# (ADR-0003). pixiv author tags are the source result; aliases make 中文／日文 wording match. The Danbooru
+# names PixAI / WD output are external names, not aliases: tagger results land on the tag, typing them finds nothing.
+GENERAL = {  # name: (标签分组, aliases, external names)
     # 标签分组: 发色
-    "金发": ("发色", ["金髪", "blonde_hair", "黄发", "黄毛"]),
-    "黑发": ("发色", ["黒髪", "黑髮", "black_hair", "黑毛"]),
-    "蓝发": ("发色", ["青髪", "blue_hair", "蓝头发", "蓝毛"]),
-    "浅蓝发": ("发色", ["水色髪", "light_blue_hair", "水色头发"]),
-    "白发": ("发色", ["白髪", "white_hair", "白毛"]),
-    "银发": ("发色", ["銀髪", "grey_hair", "白毛", "灰发"]),
-    "红发": ("发色", ["赤髪", "red_hair", "红毛"]),
-    "粉发": ("发色", ["ピンク髪", "pink_hair", "粉毛", "粉色头发"]),
-    "棕发": ("发色", ["茶髪", "brown_hair", "茶发"]),
-    "绿发": ("发色", ["緑髪", "green_hair"]),
-    "紫发": ("发色", ["紫髪", "purple_hair"]),
-    # 发型
-    "双马尾": ("发型", ["ツインテール", "ツインテ", "twintails", "双马"]),
-    "单马尾": ("发型", ["ポニーテール", "ponytail", "马尾"]),
-    "麻花辫": ("发型", ["三つ編み", "braid", "辫子"]),
-    "侧马尾": ("发型", ["ルーズサイドテール", "side_ponytail"]),
-    "丸子头": ("发型", ["お団子頭", "hair_bun"]),
-    "半扎发": ("发型", ["ハーフアップ", "ツーサイドアップ", "half_updo"]),
-    # 刘海
-    "齐刘海": ("刘海", ["ぱっつん", "前髪ぱっつん", "blunt_bangs", "平刘海"]),
-    "姬发式": ("刘海", ["姫カット", "hime_cut", "公主切"]),
-    "中分": ("刘海", ["センター分け", "センターパート", "middle_part", "parted_bangs"]),
-    "遮眼发": ("刘海", ["片目隠れ", "hair_over_one_eye"]),
+    "金发": ("发色", ["金髪", "黄发", "黄毛"], ["blonde_hair"]),
+    "黑发": ("发色", ["黒髪", "黑髮", "黑毛"], ["black_hair"]),
+    "蓝发": ("发色", ["青髪", "蓝头发", "蓝毛"], ["blue_hair"]),
+    "浅蓝发": ("发色", ["水色髪", "水色头发"], ["light_blue_hair"]),
+    "白发": ("发色", ["白髪", "白毛"], ["white_hair"]),
+    "银发": ("发色", ["銀髪", "白毛", "灰发"], ["grey_hair"]),
+    "红发": ("发色", ["赤髪", "红毛"], ["red_hair"]),
+    "粉发": ("发色", ["ピンク髪", "粉毛", "粉色头发"], ["pink_hair"]),
+    "棕发": ("发色", ["茶髪", "茶发"], ["brown_hair"]),
+    "绿发": ("发色", ["緑髪"], ["green_hair"]),
+    "紫发": ("发色", ["紫髪"], ["purple_hair"]),
+    # 瞳色
+    "蓝瞳": ("瞳色", ["碧眼", "青目", "青い目", "青眼", "蓝眼"], ["blue_eyes"]),
+    "水色瞳": ("瞳色", ["水色目"], ["aqua_eyes"]),
+    "红瞳": ("瞳色", ["赤目", "赤眼", "紅眼", "赤い目", "红眼"], ["red_eyes"]),
+    "绿瞳": ("瞳色", ["翠眼", "緑目", "緑眼", "绿眼"], ["green_eyes"]),
+    "紫瞳": ("瞳色", ["紫目", "紫眼"], ["purple_eyes"]),
+    "金瞳": ("瞳色", ["金眼", "金目", "黄瞳"], ["yellow_eyes"]),
+    "粉瞳": ("瞳色", ["ピンク目"], ["pink_eyes"]),
+    "棕瞳": ("瞳色", ["茶目"], ["brown_eyes"]),
+    "灰瞳": ("瞳色", ["灰目"], ["grey_eyes"]),
+    "黑瞳": ("瞳色", ["黒目"], ["black_eyes"]),
+    "异色瞳": ("瞳色", ["オッドアイ", "虹膜异色"], ["heterochromia"]),
+    # 发型（含刘海）
+    "双马尾": ("发型", ["ツインテール", "ツインテ", "双马"], ["twintails"]),
+    "单马尾": ("发型", ["ポニーテール", "马尾"], ["ponytail"]),
+    "麻花辫": ("发型", ["三つ編み", "辫子"], ["braid"]),
+    "侧马尾": ("发型", ["ルーズサイドテール"], ["side_ponytail"]),
+    "丸子头": ("发型", ["お団子頭"], ["hair_bun"]),
+    "半扎发": ("发型", ["ハーフアップ", "ツーサイドアップ"], ["half_updo"]),
+    "齐刘海": ("发型", ["ぱっつん", "前髪ぱっつん", "平刘海"], ["blunt_bangs"]),
+    "姬发式": ("发型", ["姫カット", "公主切"], ["hime_cut"]),
+    "中分": ("发型", ["センター分け", "センターパート"], ["middle_part", "parted_bangs"]),
+    "遮眼发": ("发型", ["片目隠れ"], ["hair_over_one_eye"]),
     # 发长
-    "短发": ("发长", ["ショートカット", "ショートヘア", "ショートヘアー", "short_hair"]),
-    "长发": ("发长", ["ロングヘア", "ロングヘアー", "long_hair"]),
-    "超长发": ("发长", ["超ロングヘア", "very_long_hair"]),
-    "波波头": ("发长", ["ボブ", "ボブカット", "おかっぱ", "bob_cut"]),
+    "短发": ("发长", ["ショートカット", "ショートヘア", "ショートヘアー"], ["short_hair"]),
+    "长发": ("发长", ["ロングヘア", "ロングヘアー"], ["long_hair"]),
+    "超长发": ("发长", ["超ロングヘア"], ["very_long_hair"]),
+    "波波头": ("发长", ["ボブ", "ボブカット", "おかっぱ"], ["bob_cut"]),
     # 画面
-    "线稿": ("画面", ["線画", "ペン画", "lineart"]),
-    "黑白": ("画面", ["モノクロ", "白黒", "モノクロ画", "greyscale", "monochrome", "灰度"]),
-    "厚涂": ("画面", ["厚塗り", "油彩", "thick_paint"]),
-    "逆光": ("画面", ["backlighting"]),
-    "全身": ("画面", ["full_body", "立ち絵"]),
-    "半身": ("画面", ["バストアップ", "upper_body"]),
-    "多人": ("画面", ["集合絵", "group"]),
-    "背景": ("画面", ["風景", "风景", "场景", "scenery"]),
-    "教程": ("画面", ["講座", "メイキング", "描き方", "tips", "技法"]),
-    "原创": (None, ["オリジナル", "創作", "OC", "oc", "オリキャラ", "オリジナルキャラ", "オリジナルキャラクター", "うちの子", "original"]),
-    "女孩": (None, ["女の子", "少女", "美少女"]),
-    "笑脸": (None, ["笑顔"]),
-    "泳装": (None, ["水着"]),
-    "制服": (None, ["セーラー服", "女子高生", "JK"]),
+    "线稿": ("画面", ["線画", "ペン画"], ["lineart"]),
+    "黑白": ("画面", ["モノクロ", "白黒", "モノクロ画", "灰度"], ["greyscale", "monochrome"]),
+    "厚涂": ("画面", ["厚塗り", "油彩"], ["thick_paint"]),
+    "逆光": ("画面", [], ["backlighting"]),
+    "全身": ("画面", ["立ち絵"], ["full_body"]),
+    "半身": ("画面", ["バストアップ"], ["upper_body"]),
+    "多人": ("画面", ["集合絵", "group"], []),
+    "背景": ("画面", ["風景", "风景", "场景"], ["scenery"]),
+    "教程": ("画面", ["講座", "メイキング", "描き方", "tips", "技法"], []),
+    "原创": (None, ["オリジナル", "創作", "OC", "オリキャラ", "オリジナルキャラ", "オリジナルキャラクター", "うちの子", "oc"], ["original"]),
+    "女孩": (None, ["女の子", "少女", "美少女"], []),
+    "笑脸": (None, ["笑顔"], []),
+    "泳装": (None, ["水着"], []),
+    "制服": (None, ["セーラー服", "女子高生", "JK"], []),
 }
 SPLIT_TAGS = {"黒髪ロング": ["黑发", "长发"], "茶髪ロング": ["棕发", "长发"], "黒髪ツインテール": ["黑发", "双马尾"],
-              "銀髪碧眼": ["银发"], "両手にツインテ": ["双马尾"]}
+              "銀髪碧眼": ["银发", "蓝瞳"], "両手にツインテ": ["双马尾"]}
 WORKS = {
     "原神": ["GenshinImpact", "Genshin", "genshinimpact", "genshinimpactfanart"],
     "绝区零": ["ゼンレスゾーンゼロ", "ZenlessZoneZero", "ゼンゼロ", "zzzero", "zzzreo"],
@@ -97,14 +109,17 @@ DROP = re.compile(r"users入り$|^(C108|pr|自分タグ|R-18|クリック推奨|
 
 
 def tag_index():
+    """Words (names and aliases) to tag keys; external names go to their own index under the "外部:" prefix."""
     index, defs = {}, {}
-    def add(ns, name, group, aliases):
+    def add(ns, name, group, aliases, external=()):
         key = f"{ns}:{name}"
-        defs[key] = {"ns": ns, "name": name, "group": group, "aliases": aliases}
+        defs[key] = {"ns": ns, "name": name, "group": group, "aliases": aliases, "external": list(external)}
         for alias in [name, *aliases]:
             index.setdefault(alias, []).append(key)
-    for name, (group, aliases) in GENERAL.items():
-        add("一般", name, group, aliases)
+        for ext in external:
+            index.setdefault(f"外部:{ext}", []).append(key)
+    for name, (group, aliases, external) in GENERAL.items():
+        add("一般", name, group, aliases, external)
     for name, aliases in WORKS.items():
         add("作品", name, None, aliases)
     for name, aliases in CHARACTERS.items():
@@ -124,7 +139,7 @@ def map_pixiv_tags(raw, index, defs):
             for name in SPLIT_TAGS[tag]:
                 push(f"一般:{name}")
             continue
-        hits = index.get(tag, [])
+        hits = index.get(tag) or index.get(f"外部:{tag}", [])
         if len(hits) == 1:  # an ambiguous alias (白毛) is a search word, not a source tag
             push(hits[0])
             continue
@@ -199,6 +214,22 @@ def load_predictions(path):
         if sid and tags and sid not in out:
             out[sid] = {"model": row.get("model", "PixAI"), "tags": tags, "rating": row.get("rating")}
     return out
+
+
+def map_auto_tags(auto, index, defs):
+    """Map tagger names (blue_eyes) to library tags (一般:蓝瞳) through their external names; keep the best
+    score per tag. A name without a translation still becomes a tag (ADR-0003), shown untranslated."""
+    if not auto:
+        return None
+    tags = {}
+    for name, score in auto["tags"].items():
+        hits = index.get(f"外部:{name}", [])
+        key = hits[0] if len(hits) == 1 else f"一般:{name}"
+        if key not in defs:
+            defs[key] = {"ns": "一般", "name": name.replace("_", " "), "group": None, "aliases": [], "external": [name], "untranslated": True}
+            index.setdefault(f"外部:{name}", []).append(key)
+        tags[key] = max(score, tags.get(key, 0))
+    return {**auto, "tags": tags}
 
 
 def write_media(src, stem):
@@ -311,7 +342,7 @@ def main():
         r18 = "r18" in s["coverage"]
         rating = {"value": "explicit" if r18 else ("sensitive" if "sensitive" in s["coverage"] else "general"),
                   "from": "pixiv R-18 标记" if r18 else ("pixiv 敏感标记" if "sensitive" in s["coverage"] else "pixiv 全年龄")}
-        auto = predictions.get(s["id"])
+        auto = map_auto_tags(predictions.get(s["id"]), index, defs)
         images.append({
             "id": s["id"], "sha256": s["sha256"], "title": info.get("title") or f"pixiv {art}",
             "date": info.get("createDate"),
@@ -335,7 +366,7 @@ def main():
         for t in f["tags"]:
             defs.setdefault(f"一般:{t}", {"ns": "一般", "name": t, "group": "显示测试", "aliases": []})
 
-    used = {t["tag"] for im in images for t in im["sourceTags"]}
+    used = {t["tag"] for im in images for t in [*im["sourceTags"], *(im.get("autoTags") or [])]}
     out = {
         "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "samplesRoot": bool(root), "skipped": skipped,

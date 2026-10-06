@@ -23,6 +23,7 @@ python scripts/samples/fetch_pixiv.py   # 仓库根目录：按清单下载并�
 cd prototype/reference-browser
 npm install
 npm run library                          # 生成 .local/library.json 与缩略图
+python scripts/fetch_fonts.py            # 下载并校验 #28 选定的界面字体到 .local/fonts（约 14.6 MB）
 npm run dev                              # http://127.0.0.1:4180
 npm test                                 # 检索语义与瀑布流几何的单元测试
 npm run build                            # 类型检查 + 单文件构建到 dist/
@@ -30,12 +31,14 @@ npm run build                            # 类型检查 + 单文件构建到 dis
 
 `npm run library` 读取 `docs/validation/sample-manifest.pixiv*.json`，在 `samples/`（worktree 中会找主 checkout 的 `samples/`）按 SHA-256 校验原图，生成缩略图和查看用文件；长边超过 4096 px 的原图另存一份 4096 px 副本，其余原样复制。pixiv 作者名与作品标题来自 pixiv 公开的作品接口，缓存在 `.local/pixiv-meta.json`；`--no-fetch` 只用缓存。`--predictions <predictions.jsonl>` 可并入 [打标探测程序](../../tools/tagger-probe/README.md) 的输出，作为自动标签建议显示。`.local/`、`dist/` 和 zip 都不进 git。
 
+界面字体按 [#28 的选型](../../docs/research/font-rendering-and-selection.md)：西文与数字用 Inter 4.1 静态 hinted 400／500／600，中日文用完整思源黑体 SC VF 2.005R，均为官方原始文件，`fetch_fonts.py` 按 SHA-256 校验。字体由 `src/fonts.ts` 从 `index.html` 旁的 `fonts/` 加载（开发服务器从 `.local/fonts` 提供，构建时复制到 `dist/fonts`，随 zip 一起交付），不内联进单文件；没取字体时退回 Windows 系统字体。字号在该文排版起点上实测收紧了一档：界面正文、按钮、标签与树 13／20 px，计数、元数据与说明 12／18 px，面板标题、当前资料库名与作者 14／22 px，备注输入 14／22 px，对话框标题 16／24 px；常态强调用 500，标题用 600，数字列用等宽数字。理由已回报到 #28。
+
 没有样本时样稿仍能构建，只显示 5 张自制显示测试图和获取样本的说明。
 
 ## 一次完整试用
 
 1. 在查找框输入“蓝”，下拉会同时列出“一般：蓝发”“作品：蔚蓝档案”“作品：碧蓝航线”。直接回车按文字匹配全部；方向键选一项只查那个标签。
-2. 点上方“发型”里的“双马尾”，再 Ctrl＋点击“单马尾”，得到“双马尾 或 单马尾”；在“刘海”里右键某个标签可以排除它。分组里的数字是当前结果中的张数。
+2. 点上方“发型”里的“双马尾”，再 Ctrl＋点击“单马尾”，得到“双马尾 或 单马尾”；右键某个标签可以排除它。再点一次已选的标签（或再右键已排除的标签）就取消。分组里的数字是当前结果中的张数。“瞳色”目前来自 pixiv 作者标签（翠眼、赤目等），张数很少；并入打标结果（`--predictions`）后，PixAI 的 `blue_eyes` 等会映射到同一组标签。这些英文名是外部对应，不是别名，输入它们找不到；没有翻译的模型输出以原名显示，后面带一个“文A”小图标（ADR-0003）。
 3. 单击一张图查看。滚轮缩放，“原图像素”按 1 个原图像素对 1 个屏幕像素显示；按 F1 框出脸或发梢，点“钉住局部”或按 Enter。新钉图像 Snipaste 那样处于活动状态，这时 Esc 关闭它；点一下查看器再按 Esc，回到图片墙，刚才那张图仍在原位并有焦点。
 4. 切到资料库「画法练习」，再钉一张。复制一张网上的图片，回到页面按 Ctrl+V，它作为截图钉住。
 5. 在钉图上右键：翻转、旋转、透明度、锁定。按 F4 让全部钉图贴边隐藏，再按一次回来；底部“模拟画布”可以在空白画布上画几笔，感受钉图浮在绘画软件上的样子。
