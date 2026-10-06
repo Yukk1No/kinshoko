@@ -3,7 +3,7 @@ import type { BrowseScope } from "./BrowseScope";
 import type { ConditionTree } from "./ConditionTree";
 
 /**
- * 一次浏览请求。条件树与排序随查找切片加入。
+ * 一次浏览请求：范围＋条件树，keyset 分页。
  */
 export type BrowseQuery = { scope: BrowseScope, 
 /**

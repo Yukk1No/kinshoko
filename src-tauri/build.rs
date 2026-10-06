@@ -23,6 +23,8 @@ fn main() {
                     "edit_tags",
                     "vocabulary",
                     "tag_groups",
+                    "search_candidates",
+                    "resolve_search",
                 ])
                 .default_permission(tauri_build::DefaultPermissionRule::AllowAllCommands),
         ),

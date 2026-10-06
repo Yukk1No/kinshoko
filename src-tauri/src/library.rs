@@ -13,6 +13,7 @@ use kinshoko_core::library::{
     BrowsePage, BrowseQuery, ImageDetail, ImageEdit, ImageTags, ImportSource, ImportTask,
     LibraryEvent, LibraryInfo, RecoveryReport, Sidebar, TagEdit, TagGroupView, Vocabulary,
 };
+use kinshoko_core::search::{Candidate, ConditionTree, Search, SearchInput};
 use kinshoko_core::{DeviceRegistry, Library};
 use tauri::http::{Response, StatusCode, header};
 use tauri::plugin::{Builder, TauriPlugin};
@@ -27,6 +28,8 @@ struct LibraryState {
     device_dir: PathBuf,
     current: Mutex<Option<Arc<Library>>>,
     tasks: Arc<Mutex<HashMap<String, ImportTask>>>,
+    /// 当前资料库词表快照上的 Search；词表或图片变化时清掉，下次查找时重建。
+    search: Arc<Mutex<Option<Arc<Search>>>>,
 }
 
 impl LibraryState {
@@ -61,7 +64,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             image_tags,
             edit_tags,
             vocabulary,
-            tag_groups
+            tag_groups,
+            search_candidates,
+            resolve_search
         ])
         .setup(|app, _api| {
             app.plugin(tauri_plugin_dialog::init())?;
@@ -73,6 +78,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 device_dir,
                 current: Mutex::new(None),
                 tasks: Arc::default(),
+                search: Arc::default(),
             });
             Ok(())
         })
@@ -126,13 +132,23 @@ fn activate<R: Runtime>(app: &AppHandle<R>, state: &LibraryState, library: Libra
     let info = library.info().clone();
     let events = library.events();
     *lock(&state.current) = Some(Arc::new(library));
-    let (app, tasks) = (app.clone(), state.tasks.clone());
+    *lock(&state.search) = None;
+    let (app, tasks, search) = (app.clone(), state.tasks.clone(), state.search.clone());
     std::thread::Builder::new()
         .name("kinshoko-library-events".into())
         .spawn(move || {
             for event in events {
                 if let LibraryEvent::TaskFinished { task_id, .. } = &event {
                     lock(&tasks).remove(task_id);
+                }
+                // 先清掉旧快照再通知前端，前端收到事件后的查找用的是新词表。
+                if matches!(
+                    event,
+                    LibraryEvent::VocabularyChanged { .. }
+                        | LibraryEvent::ImagesChanged { .. }
+                        | LibraryEvent::ListStale { .. }
+                ) {
+                    lock(&search).take();
                 }
                 let _ = app.emit(EVENT, event);
             }
@@ -371,4 +387,42 @@ async fn tag_groups(
 ) -> Result<Vec<TagGroupView>, String> {
     let library = state.current()?;
     blocking(move || library.tag_groups(&lang).map_err(|e| e.to_string())).await
+}
+
+/// 当前资料库的 Search，按需从词表快照建立。
+fn search(state: &LibraryState, library: &Library) -> Result<Arc<Search>, String> {
+    if let Some(search) = lock(&state.search).clone() {
+        return Ok(search);
+    }
+    let search = Arc::new(Search::new(
+        &library.vocabulary().map_err(|e| e.to_string())?,
+    ));
+    *lock(&state.search) = Some(search.clone());
+    Ok(search)
+}
+
+/// 搜索框打字时的候选：按命名空间与别名列出，名称按界面语言 `lang`。
+#[tauri::command]
+async fn search_candidates(
+    state: State<'_, LibraryState>,
+    text: String,
+    lang: String,
+    limit: u32,
+) -> Result<Vec<Candidate>, String> {
+    let library = state.current()?;
+    let state = state.inner();
+    let search = search(state, &library)?;
+    Ok(search.candidates(&text, &lang, limit as usize))
+}
+
+/// 把搜索框里的条件解析成可见的条件树，交给 `browse` 执行。
+#[tauri::command]
+async fn resolve_search(
+    state: State<'_, LibraryState>,
+    input: SearchInput,
+    lang: String,
+) -> Result<ConditionTree, String> {
+    let library = state.current()?;
+    let search = search(state.inner(), &library)?;
+    Ok(search.resolve(&input, &lang))
 }

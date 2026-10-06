@@ -4,6 +4,9 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { AppInfo } from "./bindings/AppInfo";
+import type { Candidate } from "./bindings/Candidate";
+import type { ConditionTree } from "./bindings/ConditionTree";
+import type { SearchInput } from "./bindings/SearchInput";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
 import type { ImageDetail } from "./bindings/ImageDetail";
@@ -119,6 +122,16 @@ export function vocabulary(): Promise<Vocabulary> {
 /** 侧栏的标签分组及计数，名称按界面语言 lang。 */
 export function tagGroups(lang: string): Promise<TagGroupView[]> {
   return invoke<TagGroupView[]>(lib("tag_groups"), { lang });
+}
+
+/** 搜索框打字时的候选：按命名空间与别名列出，最多 limit 个。 */
+export function searchCandidates(text: string, lang: string, limit: number): Promise<Candidate[]> {
+  return invoke<Candidate[]>(lib("search_candidates"), { text, lang, limit });
+}
+
+/** 把搜索框里的条件解析成可见的条件树，交给 browse 执行。 */
+export function resolveSearch(input: SearchInput, lang: string): Promise<ConditionTree> {
+  return invoke<ConditionTree>(lib("resolve_search"), { input, lang });
 }
 
 export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<UnlistenFn> {

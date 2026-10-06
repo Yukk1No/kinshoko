@@ -35,7 +35,7 @@ pub enum BrowseScope {
     Trash,
 }
 
-/// 一次浏览请求。条件树与排序随查找切片加入。
+/// 一次浏览请求：范围＋条件树，keyset 分页。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
