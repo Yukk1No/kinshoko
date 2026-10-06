@@ -9,6 +9,7 @@
 //! 资料库目录：`library.sqlite`（身份与全部整理结果）＋ `originals/<sha 前两位>/<sha>.<ext>`
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
 
+mod colour;
 mod error;
 mod events;
 mod import;
@@ -22,6 +23,9 @@ use std::sync::mpsc::Receiver;
 
 use rusqlite::{OptionalExtension, params};
 
+pub use crate::fidelity::{
+    Cicp, ColourDeclaration, ColourDescription, ColourModel, HdrKind, IccKind, IccSummary,
+};
 pub use error::Error;
 pub use events::LibraryEvent;
 pub use import::ImportTask;
@@ -143,6 +147,11 @@ impl Library {
     /// 参考图在目标像素宽度下的缩略图文件；缓存缺失时现场生成。
     pub fn thumbnail(&self, image_id: &str, target_px: u32) -> Result<PathBuf, Error> {
         thumbnail::get(&self.inner, image_id, target_px)
+    }
+
+    /// 参考图的色彩描述（导入时记录）。
+    pub fn colour(&self, image_id: &str) -> Result<ColourDescription, Error> {
+        colour::get(&self.inner, image_id).map(|(d, ..)| d)
     }
 
     /// 参考图原文件的位置。

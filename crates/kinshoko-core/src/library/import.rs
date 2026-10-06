@@ -1,24 +1,28 @@
-//! 普通文件导入：选择的文件与文件夹（含子文件夹）中的 JPEG、PNG、WebP。
+//! 普通文件导入：选择的文件与文件夹（含子文件夹）中的 JPEG、PNG、WebP、GIF。
+//! 导入时记录色彩描述（#45）。
 //!
 //! 每项的写入顺序：读取并识别格式 → 哈希 → 同库暂存并重新校验 → 发布原文件
 //! （按 SHA-256 命名、拒绝覆盖）→ 写线程上一个短事务提交参考图与来源。
 //! 文件 I/O 与哈希都在任务线程里，事务里只有 SQL。
 //! 崩溃后的 pending 对账由 #46 补上。
 
-use std::io::{Cursor, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use image::{ImageDecoder, ImageFormat, ImageReader, metadata::Orientation};
+use image::ImageFormat;
 use rusqlite::{OptionalExtension, params};
 use sha2::{Digest, Sha256};
 
+use super::colour;
 use super::events::LibraryEvent;
 use super::types::{ImportItem, ImportOutcome, ImportProgress, ImportReport, ImportSource};
 use super::{Inner, ORIGINALS_DIR, STAGING_DIR, now_ms};
+use crate::fidelity::ColourDescription;
+use crate::fidelity::inspect::inspect;
 
 /// 来源标记：普通文件导入。
 const SOURCE_FILE: &str = "file";
@@ -173,43 +177,11 @@ fn collect(path: &Path, files: &mut Vec<PathBuf>, failed: &mut Vec<ImportItem>) 
     }
 }
 
-/// 导入时从文件内容（而不是扩展名）识别出的格式与显示尺寸。
-struct Probed {
-    format: ImageFormat,
-    width: u32,
-    height: u32,
-    orientation: Orientation,
-}
-
-fn probe(bytes: &[u8]) -> Result<Option<Probed>, String> {
-    let format = match image::guess_format(bytes) {
-        Ok(f @ (ImageFormat::Jpeg | ImageFormat::Png | ImageFormat::WebP)) => f,
-        _ => return Ok(None),
-    };
-    let mut reader = ImageReader::new(Cursor::new(bytes));
-    reader.set_format(format);
-    let mut decoder = reader.into_decoder().map_err(|e| e.to_string())?;
-    let (w, h) = decoder.dimensions();
-    let orientation = decoder.orientation().unwrap_or(Orientation::NoTransforms);
-    let (width, height) = match orientation {
-        Orientation::Rotate90
-        | Orientation::Rotate270
-        | Orientation::Rotate90FlipH
-        | Orientation::Rotate270FlipH => (h, w),
-        _ => (w, h),
-    };
-    Ok(Some(Probed {
-        format,
-        width,
-        height,
-        orientation,
-    }))
-}
-
 fn ext(format: ImageFormat) -> &'static str {
     match format {
         ImageFormat::Jpeg => "jpg",
         ImageFormat::Png => "png",
+        ImageFormat::Gif => "gif",
         _ => "webp",
     }
 }
@@ -225,7 +197,7 @@ fn import_one(inner: &Inner, path: &Path) -> ImportOutcome {
         Ok(b) => b,
         Err(e) => return failed(e.to_string()),
     };
-    let probed = match probe(&bytes) {
+    let probed = match inspect(&bytes) {
         Ok(Some(p)) => p,
         Ok(None) => return ImportOutcome::Unsupported,
         Err(reason) => return failed(format!("无法解码：{reason}")),
@@ -245,6 +217,7 @@ fn import_one(inner: &Inner, path: &Path) -> ImportOutcome {
         width: probed.width,
         height: probed.height,
         orientation: probed.orientation.to_exif(),
+        colour: probed.description,
         original_name: path
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
@@ -304,6 +277,7 @@ struct Record {
     width: u32,
     height: u32,
     orientation: u8,
+    colour: ColourDescription,
     original_name: String,
     location: String,
 }
@@ -337,6 +311,7 @@ fn commit(conn: &mut rusqlite::Connection, r: Record) -> rusqlite::Result<Import
                     now
                 ],
             )?;
+            colour::record(&tx, &r.id, &r.colour)?;
             ImportOutcome::Imported { image_id: r.id }
         }
     };

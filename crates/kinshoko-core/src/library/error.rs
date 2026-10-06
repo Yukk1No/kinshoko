@@ -13,6 +13,8 @@ pub enum Error {
     Db(rusqlite::Error),
     Migration(rusqlite_migration::Error),
     Image(image::ImageError),
+    /// 原图无法解码或不再是支持的格式。
+    Undecodable(String),
 }
 
 impl fmt::Display for Error {
@@ -27,6 +29,7 @@ impl fmt::Display for Error {
             Error::Db(e) => write!(f, "资料库数据库出错：{e}"),
             Error::Migration(e) => write!(f, "资料库格式无法升级：{e}"),
             Error::Image(e) => write!(f, "图片解码失败：{e}"),
+            Error::Undecodable(e) => write!(f, "原图无法解码：{e}"),
         }
     }
 }

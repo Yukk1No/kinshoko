@@ -5,6 +5,7 @@
 
 mod app_shell;
 mod device;
+pub mod fidelity;
 pub mod library;
 mod settings;
 mod shortcuts;
