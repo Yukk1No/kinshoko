@@ -50,7 +50,9 @@ export default function App() {
   const [safeMode, setSafeMode] = usePersistent('safe-mode', true);
   const [paneOpen, setPaneOpen] = usePersistent('pane-open', true);
   const [paneMotion, setPaneMotion] = useState<'opening' | 'closing' | null>(null);
-  const paneFrom = useRef<{ x: number; bars: Map<Element | 'lib', DOMRect> } | null>(null);
+  /** The pane's width when a motion starts: the first frame draws it there, so the wall measures from it too. */
+  const [paneStart, setPaneStart] = useState(0);
+  const paneFrom = useRef<{ w: number; bars: Map<Element | 'lib', DOMRect> } | null>(null);
   const paneTimer = useRef(0);
   const [infoOpen, setInfoOpen] = usePersistent('info-open', true);
   const [revealed, setRevealed] = useState<Set<string>>(() => new Set());
@@ -385,48 +387,47 @@ export default function App() {
   };
 
   // ------------------------------------------------------------ side pane
-  // The pane slides under the rail (a translate with a matching clip) while the wall lays out once at its new
-  // width and its cards, the top bar and the tag bar glide there on the same curve, so the pane's edge never
-  // crosses them. Opening lends the wall a left padding under the pane for the cards to start from.
+  // The pane's width animates and everything right of it follows its edge in normal flow. The wall lays out
+  // once at its final width (held for the duration) and its cards glide there on the same curve, so on screen
+  // each card travels in a straight line from where it was. The top-bar items that the switch adds or removes
+  // (the expand button, the library switcher) shift the rest of the bar, so those items glide too.
   const setPane = (open: boolean) => {
     if (open === paneOpen) return;
     clearTimeout(paneTimer.current);
-    if (reduced) { paneFrom.current = null; setPaneMotion(null); setPaneOpen(open); return; }
-    // Measure everything where it is now (mid-slide included) before cancelling anything.
     const pane = document.querySelector<HTMLElement>('.pane');
+    if (reduced) { pane?.getAnimations().forEach((a) => a.cancel()); paneFrom.current = null; setPaneMotion(null); wall.current?.holdWidth(null); setPaneOpen(open); return; }
+    // Measure everything where it is now (mid-motion included) before cancelling anything.
     const bars = new Map<Element | 'lib', DOMRect>();
     const moving = [...document.querySelectorAll('.topbar > *, .groupbar > *')];
     for (const el of moving) if (!el.classList.contains('lib-switch')) bars.set(el, el.getBoundingClientRect());
     const lib = document.querySelector('.lib-switch');
     if (lib) bars.set('lib', lib.querySelector('.lib-btn')!.getBoundingClientRect());
-    const x = pane ? new DOMMatrix(getComputedStyle(pane).transform).m41 : -PANE.w;
+    const w = pane ? pane.getBoundingClientRect().width : 0;
     [pane, lib, ...moving].forEach((el) => el?.getAnimations().forEach((a) => a.cancel()));
-    if (!matchMedia('(max-width: 820px)').matches) wall.current?.prepareReflow({ delay: 0, duration: PANE.ms * slow, resize: true });
-    paneFrom.current = { x, bars };
+    if (!matchMedia('(max-width: 820px)').matches) {
+      wall.current?.prepareReflow({ delay: 0, duration: PANE.ms * slow, resize: true });
+      wall.current?.holdWidth(w - (open ? PANE.w : 0));
+    }
+    paneFrom.current = { w, bars };
+    setPaneStart(w);
     setPaneMotion(open ? 'opening' : 'closing');
     setPaneOpen(open);
-    paneTimer.current = window.setTimeout(() => setPaneMotion(null), PANE.ms * slow + 40);
+    paneTimer.current = window.setTimeout(() => { setPaneMotion(null); wall.current?.holdWidth(null); }, PANE.ms * slow + 40);
   };
   useLayoutEffect(() => {
     const from = paneFrom.current;
     if (!from) return;
     paneFrom.current = null;
     const timing = { duration: PANE.ms * slow, easing: PANE.ease };
-    const to = paneOpen ? 0 : -PANE.w;
-    const lib = document.querySelector('.lib-switch'), libFrom = from.bars.get('lib');
-    if (lib && libFrom) {
-      // The one library switcher changes hands between the pane head and the top bar: it glides across.
-      const now = lib.querySelector('.lib-btn')!.getBoundingClientRect(), riding = lib.closest('.pane') ? from.x - to : 0;
-      lib.animate([{ transform: `translate(${libFrom.left - now.left - riding}px, ${libFrom.top - now.top}px)` }, { transform: 'none' }], timing);
-    }
+    document.querySelector('.pane')?.animate([{ width: `${from.w}px` }, { width: `${paneOpen ? PANE.w : 0}px` }], { ...timing, fill: 'forwards' });
+    // The bar's container moves on the same curve, so an offset that decays on it lands each item in a straight line.
     for (const [el, old] of from.bars) {
-      if (el === 'lib' || !el.isConnected) continue;
-      const now = el.getBoundingClientRect(), dx = old.left - now.left, dy = old.top - now.top;
-      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], timing);
+      const node = el === 'lib' ? document.querySelector('.lib-switch .lib-btn') : el;
+      if (!node?.isConnected) continue;
+      const target = el === 'lib' ? node.closest('.lib-switch')! : node;
+      const now = node.getBoundingClientRect(), dx = old.left - now.left, dy = old.top - now.top;
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) target.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], timing);
     }
-    // The clip keeps the pane off the rail; it is open to the right for the shadow and the arriving switcher.
-    const at = (x: number) => ({ transform: `translateX(${x}px)`, clipPath: `inset(0 -100vw 0 ${-x}px)` });
-    document.querySelector('.pane')?.animate([at(from.x), at(to)], { ...timing, fill: paneOpen ? 'none' : 'forwards' });
   }, [paneOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -532,7 +533,7 @@ export default function App() {
       onSettings={() => setDialog({ kind: 'settings' })} />
 
     <div className={`workspace${paneMotion ? ` is-pane-moving is-pane-${paneMotion}` : ''}`}>
-      {(paneOpen || paneMotion === 'closing') && <aside className="pane" inert={!!viewed || blockInput || !paneOpen || undefined} aria-label={section === 'browse' ? '文件夹' : section === 'groups' ? '参考组' : '截图历史'}>
+      {(paneOpen || paneMotion === 'closing') && <aside className="pane" style={paneMotion ? { width: paneStart } : undefined} inert={!!viewed || blockInput || !paneOpen || undefined} aria-label={section === 'browse' ? '文件夹' : section === 'groups' ? '参考组' : '截图历史'}>
         <header className="pane-head">{section === 'browse' ? (libInPane ? libSwitch : <span />) : <h2>{section === 'groups' ? '参考组' : '截图历史'}</h2>}
           <button className="icon-tool" onClick={() => setPane(false)} aria-label="收起侧栏" title="收起（Ctrl+B）"><PanelLeftClose size={16} /></button></header>
         {section === 'browse' && <FolderPane folders={library.folders} counts={folderCounts} total={liveIndex.length} trashCount={trashCount}
@@ -564,7 +565,7 @@ export default function App() {
           <span className="result-count tabular" aria-live="polite">{scopeLabel && <span className="muted">{scopeLabel} · </span>}{results.length} 张</span>
           <label className="density" title="图片大小">
             <span className="sr-only">图片大小</span>
-            <input type="range" min={140} max={420} step={10} value={settings.density} onChange={(e) => setSettings({ ...settings, density: Number(e.target.value) })} />
+            <DensitySlider value={settings.density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={(v) => setSettings((s) => ({ ...s, density: v }))} />
           </label>
         </header>
         <TagGroupBar groups={groupsForBar} counts={resultCounts} conditions={conditions} onAdd={(t, mode, negate) => { setViewing(null); addTerm(t, mode, negate); }}
@@ -651,6 +652,32 @@ export default function App() {
       onExportLog={exportLog} onReset={() => { resetPersistent(); location.reload(); }} onHelp={() => setDialog({ kind: 'help' })} />}
     {dialog?.kind === 'help' && <HelpDialog onClose={() => setDialog(null)} />}
   </div>;
+}
+
+/** Dragging zooms the laid-out wall (cheap, continuous, no reshuffle); letting go relayouts once and the cards
+ * glide from the zoomed spots to their new places. Keys and wheel commit after a short pause. */
+function DensitySlider(p: { value: number; onPreview: (v: number | null) => void; onCommit: (v: number) => void }) {
+  const [v, setV] = useState(p.value);
+  const timer = useRef(0);
+  const dragging = useRef(false);
+  useEffect(() => setV(p.value), [p.value]);
+  const commit = (x: number) => {
+    clearTimeout(timer.current);
+    dragging.current = false;
+    if (x === p.value) p.onPreview(null); else p.onCommit(x);
+  };
+  return <input type="range" min={140} max={420} step={10} value={v}
+    onPointerDown={() => { dragging.current = true; }}
+    onChange={(e) => {
+      const x = Number(e.target.value);
+      setV(x);
+      p.onPreview(x);
+      clearTimeout(timer.current);
+      if (!dragging.current) timer.current = window.setTimeout(() => commit(x), 220);
+    }}
+    onPointerUp={(e) => commit(Number(e.currentTarget.value))}
+    onPointerCancel={(e) => commit(Number(e.currentTarget.value))}
+    onBlur={(e) => { if (Number(e.currentTarget.value) !== p.value) commit(Number(e.currentTarget.value)); }} />;
 }
 
 function SaveGroupDialog(p: {

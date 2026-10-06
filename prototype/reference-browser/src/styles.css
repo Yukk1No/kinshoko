@@ -119,15 +119,12 @@ kbd { font: 11px/1 var(--font); padding: 2px 5px; border: 1px solid var(--line-2
 /* ------------------------------------------------------------ side pane */
 .pane { width: 248px; flex: none; background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
 @keyframes pane-in { from { opacity: 0.4; transform: translateX(-8px); } }
-/* Collapse and expand (App setPane): the pane rides above the wall and the bars; closing, it leaves the flow at once
-   so the wall lays out once at full width; opening, the wall reaches under it until the cards have glided out. */
-.is-pane-moving .pane { z-index: 8; }
+/* Collapse and expand (App setPane): the width animates; the contents keep their 248px and ride the right edge,
+   clipped at the rail. The clip is open to the right for the library switcher gliding to or from the top bar. */
+.is-pane-moving .pane { z-index: 8; clip-path: inset(0 -100vw 0 0); }
+.is-pane-moving .pane > * { width: 247px; align-self: flex-end; } /* 248 less the border */
 .is-pane-closing .topbar { z-index: auto; }
 .is-pane-closing .topbar .lib-switch { position: relative; z-index: 9; }
-@media (min-width: 821px) {
-  .is-pane-closing .pane { position: absolute; left: 0; top: 0; bottom: 0; }
-  .is-pane-opening .wall { left: -248px; padding-left: 248px; }
-}
 .pane-head { height: 52px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 16px; border-bottom: 1px solid var(--line); }
 .pane-head h2 { font-size: 14px; line-height: 22px; font-weight: 600; }
 .pane-body { flex: 1; overflow: auto; padding: 10px 8px 16px; display: flex; flex-direction: column; gap: 6px; }

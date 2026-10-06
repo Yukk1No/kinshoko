@@ -15,6 +15,10 @@ export type WallHandle = {
   /** Ids of mounted cards whose box intersects the visible part of the wall. */
   onScreen: () => string[];
   finishReflow: () => void;
+  /** Lay out at the current width plus delta until released (null): the side pane moves, the cards glide once. */
+  holdWidth: (delta: number | null) => void;
+  /** While the size slider is dragged: zoom the laid-out wall around the viewport centre; null springs back. */
+  previewDensity: (density: number | null) => void;
 };
 export type WallStats = { columns: number; mounted: number; total: number };
 
@@ -52,6 +56,10 @@ type Reflow = {
 export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
+  const [held, setHeld] = useState<number | null>(null);
+  const heldRef = useRef<number | null>(null);
+  heldRef.current = held;
+  const canvasRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ top: 0, height: 800 });
   const [focusId, setFocusId] = useState<string | null>(null);
   const anchor = useRef<Anchor | null>(null);
@@ -64,9 +72,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
   const cardEl = (id: string) => scroller.current?.querySelector<HTMLElement>(`[data-id="${CSS.escape(id)}"]`) ?? null;
   const ids = useMemo(() => p.images.map((i) => i.id), [p.images]);
   const titleH = p.showTitles ? TITLE : 0;
+  const layoutWidth = held ?? width;
   const boxes = useMemo(() => masonry(p.images, {
-    width, target: p.density, gap: GAP, pad: PAD, capRatio: p.capTall ? 2.6 : null, extra: titleH, square: p.square,
-  }), [p.images, width, p.density, p.capTall, titleH, p.square]);
+    width: layoutWidth, target: p.density, gap: GAP, pad: PAD, capRatio: p.capTall ? 2.6 : null, extra: titleH, square: p.square,
+  }), [p.images, layoutWidth, p.density, p.capTall, titleH, p.square]);
 
   // A size change is caught while rendering, before React commits the new boxes: cards are still where they
   // are on screen, mid-glide included, so each step of a slider drag retargets from there.
@@ -87,9 +96,9 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
   useLayoutEffect(() => {
     const el = scroller.current!;
     const sync = () => {
-      // Content width: an opening side pane lends the wall a left padding to glide in over (see .is-pane-opening).
-      setWidth(el.clientWidth - parseFloat(getComputedStyle(el).paddingLeft));
-      setViewport({ top: el.scrollTop, height: el.clientHeight });
+      // While the side pane moves the layout width is held, so the wall does not relayout every frame.
+      if (heldRef.current === null) setWidth(el.clientWidth);
+      setViewport((v) => (v.top === el.scrollTop && v.height === el.clientHeight ? v : { top: el.scrollTop, height: el.clientHeight }));
     };
     sync();
     // Laid out before this frame paints, so a FLIP prepared for the resize starts from where the cards were.
@@ -144,8 +153,12 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
     const r = reflow.current, el = scroller.current;
     if (!r || !el || r.layout === boxes) return;
     const done = new Set<string>(r.done);
-    // Measured against the canvas, not the scroller, so scroller padding (the pane glide) cancels out.
-    const canvas = el.querySelector('.wall-canvas')!.getBoundingClientRect(), top = el.scrollTop, bottom = top + el.clientHeight;
+    // The slider's preview zoom ends here: the cards' "before" rects were read with it applied.
+    const canvasEl = canvasRef.current!;
+    canvasEl.getAnimations().forEach((a) => a.cancel());
+    canvasEl.style.transform = '';
+    // Measured against the canvas, so a wall whose left edge is moving (the side pane) still lines up.
+    const canvas = canvasEl.getBoundingClientRect(), top = el.scrollTop, bottom = top + el.clientHeight;
     const seen = (y: number, h: number) => y < bottom && y + h > top;
     const easing = r.resize ? 'cubic-bezier(0.2, 0.8, 0.2, 1)' : 'cubic-bezier(0.65, 0, 0.35, 1)';
     for (const card of el.querySelectorAll<HTMLElement>('.card[data-id]')) {
@@ -216,12 +229,32 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
       const top = el.scrollTop, bottom = top + el.clientHeight;
       return rendered.filter((i) => boxes.boxes[i].y < bottom && boxes.boxes[i].y + boxes.boxes[i].h > top).map((i) => ids[i]);
     },
+    holdWidth: (delta) => {
+      const el = scroller.current;
+      if (!el) return;
+      if (delta === null) { setHeld(null); setWidth(el.clientWidth); } else setHeld(el.clientWidth + delta);
+    },
+    previewDensity: (density) => {
+      const el = scroller.current, canvas = canvasRef.current;
+      if (!el || !canvas) return;
+      canvas.getAnimations().forEach((a) => a.cancel());
+      if (density === null || density === p.density) {
+        // Back to the committed size: spring back from wherever the zoom is.
+        const from = canvas.style.transform;
+        canvas.style.transform = '';
+        if (from && !reduced()) canvas.animate([{ transform: from }, { transform: 'none' }], { duration: 160, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+        return;
+      }
+      if (!canvas.style.transform) scroller.current?.querySelectorAll<HTMLElement>('.card[data-id]').forEach((c) => c.getAnimations().forEach((a) => a.finish()));
+      canvas.style.transformOrigin = `${el.clientWidth / 2}px ${el.scrollTop + el.clientHeight / 2}px`;
+      canvas.style.transform = `scale(${density / p.density})`;
+    },
     finishReflow: () => scroller.current?.querySelectorAll<HTMLElement>('.card[data-id]').forEach((c) => c.getAnimations().forEach((a) => a.finish())),
     focusCurrent: () => {
       const id = tabIndexId;
       if (id) scroller.current?.querySelector<HTMLElement>(`[data-id="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
     },
-  }), [reveal, tabIndexId, rendered, boxes, ids]);
+  }), [reveal, tabIndexId, rendered, boxes, ids, p.density]);
 
   const onKeyDown = (event: React.KeyboardEvent, index: number) => {
     const image = p.images[index];
@@ -246,7 +279,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
 
   return <div className="wall" ref={scroller} onScroll={onScroll} aria-label="参考图" inert={p.inert || undefined}>
     {!p.images.length && <div className="wall-empty">{p.empty}</div>}
-    <div className="wall-canvas" style={{ height: p.images.length ? boxes.height : 0 }} role="list">
+    <div className="wall-canvas" ref={canvasRef} style={{ height: p.images.length ? boxes.height : 0 }} role="list">
       {rendered.map((index) => {
         const image = p.images[index];
         const b = boxes.boxes[index];
@@ -270,6 +303,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
     </div>
   </div>;
 });
+
+const reduced = () => getComputedStyle(document.documentElement).getPropertyValue('--t-slow').trim().startsWith('0');
 
 function Thumb({ image }: { image: ReferenceImage }) {
   const [failed, setFailed] = useState(false);
