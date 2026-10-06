@@ -19,6 +19,7 @@ fn migrations() -> Migrations<'static> {
         M::up(include_str!("migrations/0001_library.sql")),
         M::up(include_str!("migrations/0051_tags.sql")),
         M::up(include_str!("migrations/0046_import_pending.sql")),
+        M::up(include_str!("migrations/0052_tagging.sql")),
     ])
 }
 

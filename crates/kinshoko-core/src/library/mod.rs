@@ -7,7 +7,9 @@
 //! - [`Library::thumbnail`]：缩略图（可重建缓存）的本地文件；
 //! - [`Library::edit_tags`] / [`Library::image_tags`]：人工标签决定与一张图的标签；
 //! - [`Library::vocabulary`]：标签词表快照；[`Library::tag_groups`]：侧栏的标签分组；
-//! - [`Library::replace_source_tags`]：按来源分层写入（打标、Eagle 导入等来源用）。
+//! - [`Library::replace_source_tags`]：按来源分层写入（打标、Eagle 导入等来源用）；
+//! - 打标子接口：[`Library::images_to_tag`] 取待打标的图，[`Library::replace_source_rating`]
+//!   按来源写入分级建议，[`Library::finish_tagging`] 记下打标结果；[`Library::image_rating`] 读分级。
 //!
 //! 资料库目录：`library.sqlite`（身份与全部整理结果）＋ `originals/<sha 前两位>/<sha>.<ext>`
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
@@ -16,6 +18,7 @@ mod error;
 mod events;
 mod fault;
 mod import;
+mod rating;
 mod recovery;
 mod store;
 mod tags;
@@ -31,6 +34,7 @@ use rusqlite::{OptionalExtension, params};
 pub use error::Error;
 pub use events::LibraryEvent;
 pub use import::ImportTask;
+pub use rating::{ContentRating, ImageRating, RatingFact, TaggingOutcome};
 pub use tags::{
     FactSource, ImageTag, ImageTags, LocalizedName, SourceTag, TagAlias, TagCount, TagEdit,
     TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef, TagTranslation, TagTranslations,
@@ -230,6 +234,36 @@ impl Library {
         tags: &[SourceTag],
     ) -> Result<(), Error> {
         tags::replace_source_tags(&self.inner, source, image_id, tags)
+    }
+
+    /// 用 `source` 这一层的分级建议替换参考图在该层的旧建议；`None` 表示这一层没有建议。
+    pub fn replace_source_rating(
+        &self,
+        source: &FactSource,
+        image_id: &str,
+        fact: Option<RatingFact>,
+    ) -> Result<(), Error> {
+        rating::replace_source_rating(&self.inner, source, image_id, fact)
+    }
+
+    /// 一张参考图的内容分级（自动与有效）。
+    pub fn image_rating(&self, image_id: &str) -> Result<ImageRating, Error> {
+        rating::image_rating(&self.inner, image_id)
+    }
+
+    /// 模型来源 `source` 还没打过标的参考图，新导入的在前，最多 `limit` 张。
+    pub fn images_to_tag(&self, source: &FactSource, limit: u32) -> Result<Vec<String>, Error> {
+        rating::images_to_tag(&self.inner, source, limit)
+    }
+
+    /// 记下模型来源 `source` 对一张参考图的打标结果；之后它不再是待打标的图。
+    pub fn finish_tagging(
+        &self,
+        source: &FactSource,
+        image_id: &str,
+        outcome: TaggingOutcome,
+    ) -> Result<(), Error> {
+        rating::finish_tagging(&self.inner, source, image_id, outcome)
     }
 
     /// 标签词表快照：标签、各语言名称、别名、命名空间、外部对应与计数。
