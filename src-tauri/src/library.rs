@@ -10,8 +10,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use kinshoko_core::library::{
-    BrowsePage, BrowseQuery, ImageTags, ImportSource, ImportTask, LibraryEvent, LibraryInfo,
-    RecoveryReport, TagEdit, TagGroupView, Vocabulary,
+    BrowsePage, BrowseQuery, ImageDetail, ImageEdit, ImageTags, ImportSource, ImportTask,
+    LibraryEvent, LibraryInfo, RecoveryReport, Sidebar, TagEdit, TagGroupView, Vocabulary,
 };
 use kinshoko_core::{DeviceRegistry, Library};
 use tauri::http::{Response, StatusCode, header};
@@ -47,6 +47,12 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             current_library,
             create_library,
             browse,
+            image,
+            edit,
+            sidebar,
+            create_folder,
+            rename_folder,
+            move_folder,
             recovery,
             start_import,
             cancel_import,
@@ -218,6 +224,75 @@ async fn create_library<R: Runtime>(
 async fn browse(state: State<'_, LibraryState>, query: BrowseQuery) -> Result<BrowsePage, String> {
     let library = state.current()?;
     blocking(move || library.browse(&query).map_err(|e| e.to_string())).await
+}
+
+#[tauri::command]
+async fn image(state: State<'_, LibraryState>, image_id: String) -> Result<ImageDetail, String> {
+    let library = state.current()?;
+    blocking(move || library.image(&image_id).map_err(|e| e.to_string())).await
+}
+
+/// 一次批量整理若干张图，返回重新计算后的详情。
+#[tauri::command]
+async fn edit(
+    state: State<'_, LibraryState>,
+    ids: Vec<String>,
+    edits: Vec<ImageEdit>,
+) -> Result<Vec<ImageDetail>, String> {
+    let library = state.current()?;
+    blocking(move || library.edit(&ids, &edits).map_err(|e| e.to_string())).await
+}
+
+#[tauri::command]
+async fn sidebar(state: State<'_, LibraryState>) -> Result<Sidebar, String> {
+    let library = state.current()?;
+    blocking(move || library.sidebar().map_err(|e| e.to_string())).await
+}
+
+#[tauri::command]
+async fn create_folder(
+    state: State<'_, LibraryState>,
+    name: String,
+    parent: Option<String>,
+) -> Result<String, String> {
+    let library = state.current()?;
+    blocking(move || {
+        library
+            .create_folder(&name, parent.as_deref())
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+#[tauri::command]
+async fn rename_folder(
+    state: State<'_, LibraryState>,
+    folder_id: String,
+    name: String,
+) -> Result<(), String> {
+    let library = state.current()?;
+    blocking(move || {
+        library
+            .rename_folder(&folder_id, &name)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+#[tauri::command]
+async fn move_folder(
+    state: State<'_, LibraryState>,
+    folder_id: String,
+    parent: Option<String>,
+    position: u32,
+) -> Result<(), String> {
+    let library = state.current()?;
+    blocking(move || {
+        library
+            .move_folder(&folder_id, parent.as_deref(), position)
+            .map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// 当前资料库这次打开时的对账结果。

@@ -11,6 +11,8 @@ import type { CaptureAction } from "./bindings/CaptureAction";
 import type { CaptureEntry } from "./bindings/CaptureEntry";
 import type { CollectedCapture } from "./bindings/CollectedCapture";
 import type { FrozenScreen } from "./bindings/FrozenScreen";
+import type { ImageDetail } from "./bindings/ImageDetail";
+import type { ImageEdit } from "./bindings/ImageEdit";
 import type { ImageTags } from "./bindings/ImageTags";
 import type { PinInfo } from "./bindings/PinInfo";
 import type { Region } from "./bindings/Region";
@@ -18,6 +20,7 @@ import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { RecoveryReport } from "./bindings/RecoveryReport";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
+import type { Sidebar } from "./bindings/Sidebar";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { TagEdit } from "./bindings/TagEdit";
 import type { TagGroupView } from "./bindings/TagGroupView";
@@ -41,6 +44,35 @@ export function createLibrary(parent: string, name: string): Promise<LibraryInfo
 
 export function browse(query: BrowseQuery): Promise<BrowsePage> {
   return invoke<BrowsePage>(lib("browse"), { query });
+}
+
+/** 单张参考图的详情。 */
+export function imageDetail(imageId: string): Promise<ImageDetail> {
+  return invoke<ImageDetail>(lib("image"), { imageId });
+}
+
+/** 一次批量整理若干张图，返回重新计算后的详情。 */
+export function editImages(ids: string[], edits: ImageEdit[]): Promise<ImageDetail[]> {
+  return invoke<ImageDetail[]>(lib("edit"), { ids, edits });
+}
+
+/** 侧栏：全部、回收站与文件夹树，计数只算可见的图。 */
+export function sidebar(): Promise<Sidebar> {
+  return invoke<Sidebar>(lib("sidebar"));
+}
+
+/** 新建文件夹，放在 parent 下（null 为顶层）的最后，返回文件夹 id。 */
+export function createFolder(name: string, parent: string | null): Promise<string> {
+  return invoke<string>(lib("create_folder"), { name, parent });
+}
+
+export function renameFolder(folderId: string, name: string): Promise<void> {
+  return invoke<void>(lib("rename_folder"), { folderId, name });
+}
+
+/** 把文件夹移到 parent 下（null 为顶层）的第 position 位，超出时放在最后。 */
+export function moveFolder(folderId: string, parent: string | null, position: number): Promise<void> {
+  return invoke<void>(lib("move_folder"), { folderId, parent, position });
 }
 
 /** 开始导入，立即返回任务 id；进度与结果经 onLibraryEvent 推送。 */

@@ -6,7 +6,7 @@ use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{Error, Inner, thumbnail};
+use super::{Error, Inner, LIVE, thumbnail};
 
 /// 资料库身份与位置。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -19,13 +19,18 @@ pub struct LibraryInfo {
     pub root: PathBuf,
 }
 
-/// 浏览范围。文件夹与回收站随后续切片加入。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
+/// 浏览范围。
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(tag = "kind", rename_all = "camelCase")]
 #[ts(export)]
 pub enum BrowseScope {
+    /// 全部可见的图（不含回收站）。
     #[default]
     All,
+    /// 直接放在某个文件夹里的可见图（不含子文件夹）。
+    Folder { id: String },
+    /// 回收站：可恢复删除的图。
+    Trash,
 }
 
 /// 一次浏览请求。条件树与排序随查找切片加入。
@@ -162,7 +167,6 @@ pub struct ImageSourceRecord {
 const MAX_LIMIT: u32 = 1000;
 
 pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, Error> {
-    let BrowseScope::All = query.scope;
     let after = match &query.cursor {
         None => i64::MAX,
         Some(c) => c.parse::<i64>().map_err(|_| Error::InvalidCursor)?,
@@ -171,12 +175,29 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
     let tier = thumbnail::tier(query.thumbnail_px);
     let library_id = &inner.info.id;
 
+    // 范围条件；?1 是范围参数（没有时为 NULL，不参与）。
+    let (filter, arg): (String, Option<&str>) = match &query.scope {
+        BrowseScope::All => (format!("{LIVE} AND ?1 IS NULL"), None),
+        BrowseScope::Folder { id } => (
+            format!(
+                "{LIVE} AND image.id IN (SELECT image_id FROM folder_member WHERE folder_id = ?1)"
+            ),
+            Some(id),
+        ),
+        BrowseScope::Trash => (format!("NOT ({LIVE}) AND ?1 IS NULL"), None),
+    };
+
     let conn = inner.readers.get();
-    let total: u32 = conn.query_row("SELECT COUNT(*) FROM image", [], |r| r.get(0))?;
-    let mut stmt = conn.prepare_cached(
-        "SELECT seq, id, width, height FROM image WHERE seq < ?1 ORDER BY seq DESC LIMIT ?2",
+    let total: u32 = conn.query_row(
+        &format!("SELECT COUNT(*) FROM image WHERE {filter}"),
+        [arg],
+        |r| r.get(0),
     )?;
-    let rows = stmt.query_map(params![after, limit + 1], |row| {
+    let mut stmt = conn.prepare_cached(&format!(
+        "SELECT seq, id, width, height FROM image WHERE {filter} AND seq < ?2
+         ORDER BY seq DESC LIMIT ?3"
+    ))?;
+    let rows = stmt.query_map(params![arg, after, limit + 1], |row| {
         let id: String = row.get(1)?;
         Ok((
             row.get::<_, i64>(0)?,
