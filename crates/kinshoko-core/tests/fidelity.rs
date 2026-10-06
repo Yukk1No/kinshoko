@@ -141,6 +141,18 @@ fn import_records_how_each_gate_sample_declares_its_colour() {
             false,
         ),
         (
+            "lut-lab.png",
+            "png",
+            8,
+            M::Rgb,
+            D::Icc,
+            Some((IccKind::Lut, "2.1")),
+            false,
+            1,
+            None,
+            false,
+        ),
+        (
             "icc-mismatch.jpg",
             "jpeg",
             8,
@@ -171,6 +183,30 @@ fn import_records_how_each_gate_sample_declares_its_colour() {
             M::Cmyk,
             D::Icc,
             Some((IccKind::Lut, "4.4")),
+            false,
+            1,
+            None,
+            false,
+        ),
+        (
+            "cmyk-lab.jpg",
+            "jpeg",
+            8,
+            M::Cmyk,
+            D::Icc,
+            Some((IccKind::Lut, "2.1")),
+            false,
+            1,
+            None,
+            false,
+        ),
+        (
+            "ycck-lab.jpg",
+            "jpeg",
+            8,
+            M::Cmyk,
+            D::Icc,
+            Some((IccKind::Lut, "2.1")),
             false,
             1,
             None,
@@ -625,7 +661,12 @@ fn every_gated_sample_keeps_its_colour_in_the_thumbnail() {
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "库").unwrap();
     let mut failures = Vec::new();
-    for sample in gate_samples().iter().filter(|s| s.gated) {
+    // lut16＋XYZ PCS 的样本在 WebView2 门槛里只记录（skcms 读法不同），派生图仍须按 ICC 规范。
+    let spec_only = ["lut-a2b0.png", "cmyk-profile.jpg", "ycck-profile.jpg"];
+    for sample in gate_samples()
+        .iter()
+        .filter(|s| s.gated || spec_only.contains(&s.file_name.as_str()))
+    {
         let id = import_sample(&library, dir.path(), sample);
         let width = card_width(&library, &id);
         let thumb = decode_derivative(&library.thumbnail(&id, 128).unwrap());
@@ -705,6 +746,8 @@ fn thumbnails_are_stored_losslessly_in_a_tier_chosen_by_the_source() {
         ),
         ("png16-gray-ramp.png", F::Png, C::Rgb16, None),
         ("cmyk-profile.jpg", F::Png, C::Rgb16, Some(None)),
+        ("lut-lab.png", F::Png, C::Rgb16, Some(None)),
+        ("cmyk-lab.jpg", F::Png, C::Rgb16, Some(None)),
         ("gama-045455.png", F::WebP, C::Rgb8, None),
         ("gama-18.png", F::Png, C::Rgb16, Some(None)),
         ("cicp-p3.png", F::Png, C::Rgb16, Some(None)),
@@ -867,4 +910,19 @@ fn the_gate_run_imports_every_sample_into_a_fresh_library_with_fixed_bytes() {
     names.sort();
     names.dedup();
     assert_eq!(names.len(), run.items.len());
+}
+
+#[test]
+fn lut_profiles_with_an_xyz_pcs_are_record_only_and_lab_pcs_ones_are_gated() {
+    let samples = gate_samples();
+    let find = |name: &str| samples.iter().find(|s| s.file_name == name).unwrap();
+    for name in ["lut-a2b0.png", "cmyk-profile.jpg", "ycck-profile.jpg"] {
+        let s = find(name);
+        assert!(!s.gated, "{name}");
+        // 说明里写明原因：skcms 读 lut16 XYZ PCS 时没有乘 u1Fixed15 系数。
+        assert!(s.note.contains("skcms"), "{name}：{}", s.note);
+    }
+    for name in ["lut-lab.png", "cmyk-lab.jpg", "ycck-lab.jpg"] {
+        assert!(find(name).gated, "{name}");
+    }
 }

@@ -426,8 +426,8 @@ pub fn samples() -> Vec<GateSample> {
     all.push(sample(
         "lut-a2b0.png",
         "2",
-        "只有查找表的 ICC v4：A2B0 为 Display P3，A2B1 为 sRGB",
-        true,
+        "只有查找表的 ICC v4（lut16，PCS 为 XYZ）：A2B0 为 Display P3，A2B1 为 sRGB。WebView2 只记录：skcms 读 lut16（mft2）XYZ PCS 表时没有乘 u1Fixed15 系数（read_tag_mft2），按 0.5 倍线性亮度显示；派生图按 ICC 规范。WebView2 更新后复查",
+        false,
         png(
             W,
             H,
@@ -440,6 +440,28 @@ pub fn samples() -> Vec<GateSample> {
             &[],
         ),
         rgb_patches(&lut_profile),
+    ));
+    // 常见的查找表配置文件（例如 FOGRA39）是 ICC v2、lut16、PCS 为 Lab：计入门槛。
+    let to_lab = |xyz: [f64; 3]| xyz_d50_to_lab(xyz).map(f64::from);
+    let lut_lab_icc = profiles::lut_rgb_lab_icc(33, |d| to_lab(through(p3_xyz)(d)));
+    let lut_lab_profile = ColorProfile::new_from_slice(&lut_lab_icc).expect("可解析");
+    all.push(sample(
+        "lut-lab.png",
+        "2",
+        "只有查找表的 ICC v2.1（lut16，PCS 为 Lab，FOGRA39 式结构）：A2B 为 Display P3",
+        true,
+        png(
+            W,
+            H,
+            png::ColorType::Rgb,
+            png::BitDepth::Eight,
+            blocks.as_raw(),
+            |info| {
+                info.icc_profile = Some(lut_lab_icc.clone().into());
+            },
+            &[],
+        ),
+        rgb_patches(&lut_lab_profile),
     ));
     // RGB 图配 CMYK 配置文件：颜色模型不符，Chromium 丢弃配置文件按 sRGB。
     // 合成 CMYK：油墨按减色混合后落在 Display P3 中，与朴素公式（sRGB）明显不同。
@@ -483,8 +505,8 @@ pub fn samples() -> Vec<GateSample> {
     all.push(sample(
         "cmyk-profile.jpg",
         "3",
-        "CMYK JPEG（Adobe 反相存储）带合成 CMYK 配置文件",
-        true,
+        "CMYK JPEG（Adobe 反相存储）带合成 CMYK 配置文件（lut16，PCS 为 XYZ）。WebView2 只记录：skcms 读 lut16（mft2）XYZ PCS 表时没有乘 u1Fixed15 系数（read_tag_mft2），按 0.5 倍线性亮度显示；派生图按 ICC 规范。WebView2 更新后复查",
+        false,
         jpeg(
             &cmyk_data,
             W,
@@ -498,8 +520,8 @@ pub fn samples() -> Vec<GateSample> {
     all.push(sample(
         "ycck-profile.jpg",
         "3",
-        "YCCK JPEG 带同一 CMYK 配置文件",
-        true,
+        "YCCK JPEG 带同一 CMYK 配置文件（lut16，PCS 为 XYZ）。WebView2 只记录：skcms 读 lut16（mft2）XYZ PCS 表时没有乘 u1Fixed15 系数（read_tag_mft2），按 0.5 倍线性亮度显示；派生图按 ICC 规范。WebView2 更新后复查",
+        false,
         jpeg(
             &cmyk_data,
             W,
@@ -510,6 +532,38 @@ pub fn samples() -> Vec<GateSample> {
         ),
         cmyk_lab,
     ));
+    // 同样的油墨模型，配置文件为 ICC v2.1、lut16、PCS 为 Lab（FOGRA39 式结构，数据为合成）。
+    let cmyk_lab_icc = profiles::cmyk_lab_icc(17, |ink| {
+        let rgb = [ink[0], ink[1], ink[2]].map(|c| (1.0 - c) * (1.0 - ink[3]));
+        to_lab(through(p3_xyz)(rgb))
+    });
+    let cmyk_lab_profile = ColorProfile::new_from_slice(&cmyk_lab_icc).expect("可解析");
+    let cmyk_lab_patches: Vec<Patch> = CMYK_PATCHES
+        .iter()
+        .enumerate()
+        .map(|(i, c)| patch(i, lab(&cmyk_lab_profile, &c.map(unit)), 1.0))
+        .collect();
+    for (name, colour_type, note) in [
+        (
+            "cmyk-lab.jpg",
+            jpeg_encoder::ColorType::Cmyk,
+            "CMYK JPEG 带 Lab PCS 的 CMYK 配置文件（ICC v2.1，lut16）",
+        ),
+        (
+            "ycck-lab.jpg",
+            jpeg_encoder::ColorType::CmykAsYcck,
+            "YCCK JPEG 带 Lab PCS 的 CMYK 配置文件（ICC v2.1，lut16）",
+        ),
+    ] {
+        all.push(sample(
+            name,
+            "3",
+            note,
+            true,
+            jpeg(&cmyk_data, W, H, colour_type, Some(&cmyk_lab_icc), &[]),
+            cmyk_lab_patches.clone(),
+        ));
+    }
     // 无配置文件：Chromium 用朴素公式 R = (255-C)(255-K)/255。
     let naive: Vec<Patch> = CMYK_PATCHES
         .iter()

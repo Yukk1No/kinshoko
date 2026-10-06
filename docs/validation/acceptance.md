@@ -147,10 +147,11 @@
 
 ### 门槛实验的运行方式（#45）
 
-- **样本**：由 `kinshoko_core::fidelity::gate::samples()` 生成，字节固定，任何机器上重新生成都相同；共 35 张，覆盖核查“尚未验证”一节的实验 1～8、13 与动图：ICC v4／v2 Display P3、Adobe RGB、LUT 型 ICC（A2B0 与 A2B1 不同）、颜色模型不符的 ICC、CMYK／YCCK JPEG（合成 CMYK 配置文件；FOGRA39 等不可再分发）与无配置文件的 CMYK、gAMA 0.45455／1/1.8、gAMA＋cHRM、sRGB 块＋矛盾 gAMA、cICP、cICP＋iCCP、16 位 PNG、灰度 ICC、细线与网点、透明边（PNG／WebP）、EXIF 方向 1～8（另有带 eXIf 的 PNG）、GIF／APNG／动态 WebP、增益图标记、PQ／HLG。每个样本的 SHA-256 写在报告里。
+- **样本**：由 `kinshoko_core::fidelity::gate::samples()` 生成，字节固定，任何机器上重新生成都相同；共 38 张，覆盖核查“尚未验证”一节的实验 1～8、13 与动图：ICC v4／v2 Display P3、Adobe RGB、LUT 型 ICC（lut16，PCS 为 XYZ 与 Lab 各一；XYZ 的 A2B0 与 A2B1 不同）、颜色模型不符的 ICC、CMYK／YCCK JPEG（合成 CMYK 配置文件，PCS 为 XYZ 与 Lab 各一；Lab 的按 FOGRA39 的结构：ICC v2.1、lut16、旧式 16 位 Lab 编码；FOGRA39 本身不可再分发）与无配置文件的 CMYK、gAMA 0.45455／1/1.8、gAMA＋cHRM、sRGB 块＋矛盾 gAMA、cICP、cICP＋iCCP、16 位 PNG、灰度 ICC、细线与网点、透明边（PNG／WebP）、EXIF 方向 1～8（另有带 eXIf 的 PNG）、GIF／APNG／动态 WebP、增益图标记、PQ／HLG。每个样本的 SHA-256 写在报告里。
 - **开发机（无人值守）**：`node e2e/fidelity-gate.mjs target/release/kinshoko.exe [报告目录]`，CI 每次构建都跑并上传报告与样本；门槛未通过是要由人判断的实验结果，不让 CI 变红（该步骤 `continue-on-error`）。
 - **画师电脑**：运行 `kinshoko.exe --fidelity-gate`（可加报告目录，默认在桌面的“Kinshoko 还原度报告”）。程序在报告目录下新建只放样本的资料库，不碰画师的资料库；跑完后按 Windows 设置填写 HDR、自动色彩管理与显示器 ICC，点“保存报告”，把生成的 `fidelity-report-*.json` 与 `.md` 发回。
 - **读法**：WebView2 用 `createImageBitmap` 分别解码原图与 128 px 缩略图，画到 `display-p3` canvas 读回，比较色块平均值的 ΔE2000（门槛 < 1）与 alpha（±0.02）。“原图 vs 标称”是 WebView2 自己对色彩声明的解释（例如 LUT 型 ICC 是否被裁到 sRGB），“缩略图 vs 标称”用来区分偏的是哪一边，两栏都只记录。细线、16 位灰度渐变与 PQ／HLG 只记录，由画师目视。
+- **已知差异：lut16＋XYZ PCS**：lut-a2b0.png、cmyk-profile.jpg、ycck-profile.jpg 只记录，不计入门槛。skcms 读 lut16（mft2）A2B 表时，PCS 为 XYZ 也按 v/65535 取值，没有乘 u1Fixed15 的 65535/32768（见 skcms `read_tag_mft2` 与 A2B 管线；mAB 的矩阵才乘），按 ICC 规范写的 1.0（0x8000）被读成 0.5，WebView2 因此按 0.5 倍线性亮度显示这几张原图。派生图按 ICC 规范解释，不跟随 skcms。Rust 侧测试仍检查这三张的派生图与标称值。WebView2 更新后复查。
 - **环境记录**：WebView2 Runtime 版本、Windows 版本与内部版本号、GPU 与驱动版本、显示器及其 ICC 关联（注册表）、页面的 `color-gamut`／`dynamic-range` 媒体查询、WebGL 渲染器、DPR，以及画师填写的 HDR、自动色彩管理与显示器 ICC。
 - **Rust 侧**：`cargo test -p kinshoko-core --test fidelity` 用同一组样本检查缩略图色块与标称 Lab 的 ΔE2000 < 1，与 WebView2 无关。
 

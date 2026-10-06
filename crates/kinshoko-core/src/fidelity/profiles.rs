@@ -94,8 +94,60 @@ pub(crate) fn cmyk(grid: u8, a2b0: impl Fn([f64; 4]) -> [f64; 3]) -> ColorProfil
     p
 }
 
+/// 只由 lut16 A2B 构成、PCS 为 Lab 的 RGB 配置文件，按 ICC v2.1 编码（与 FOGRA39 等
+/// 常见查找表配置文件同样的结构）。`a2b` 把设备 RGB（0～1）映射到 D50 Lab，A2B0 与 A2B1 相同。
+pub(crate) fn lut_rgb_lab_icc(grid: u8, a2b: impl Fn([f64; 3]) -> [f64; 3]) -> Vec<u8> {
+    let mut p = ColorProfile::new_srgb();
+    p.red_trc = None;
+    p.green_trc = None;
+    p.blue_trc = None;
+    p.red_colorant = Default::default();
+    p.green_colorant = Default::default();
+    p.blue_colorant = Default::default();
+    p.cicp = None;
+    p.pcs = DataColorSpace::Lab;
+    let table = lut16_lab(3, grid, |d| a2b([d[0], d[1], d[2]]));
+    p.lut_a_to_b_perceptual = Some(LutWarehouse::Lut(table.clone()));
+    p.lut_a_to_b_colorimetric = Some(LutWarehouse::Lut(table));
+    with_version(
+        encode(&p).expect("Lab PCS 配置文件可编码"),
+        ProfileVersion::V2_1,
+    )
+}
+
+/// CMYK 输出配置文件：lut16 A2B0、PCS 为 Lab，ICC v2.1（FOGRA39 式结构，数据为合成）。
+/// `a2b0` 输入为油墨量 0～1，输出 D50 Lab。
+pub(crate) fn cmyk_lab_icc(grid: u8, a2b0: impl Fn([f64; 4]) -> [f64; 3]) -> Vec<u8> {
+    let mut p = cmyk(2, |_| [0.0; 3]);
+    p.pcs = DataColorSpace::Lab;
+    p.lut_a_to_b_perceptual = Some(LutWarehouse::Lut(lut16_lab(4, grid, |d| {
+        a2b0([d[0], d[1], d[2], d[3]])
+    })));
+    with_version(
+        encode(&p).expect("Lab PCS 配置文件可编码"),
+        ProfileVersion::V2_1,
+    )
+}
+
+/// lut16 的 Lab：旧式 16 位编码，L* 100 为 0xFF00，a*／b* 0 为 0x8000。
+fn lut16_lab(inputs: u8, grid: u8, f: impl Fn(&[f64]) -> [f64; 3]) -> LutDataType {
+    lut16_with(inputs, grid, |d| {
+        let [l, a, b] = f(d);
+        [
+            l / 100.0 * 65280.0,
+            (a + 128.0) * 256.0,
+            (b + 128.0) * 256.0,
+        ]
+    })
+}
+
 /// lut16：恒等输入、输出曲线，`inputs` 维网格，输出三通道 XYZ（u1Fixed15）。
 fn lut16(inputs: u8, grid: u8, f: impl Fn(&[f64]) -> [f64; 3]) -> LutDataType {
+    lut16_with(inputs, grid, |d| f(d).map(|v| v * 32768.0))
+}
+
+/// lut16：恒等输入、输出曲线，`inputs` 维网格；`encode` 给出三通道的 16 位编码值。
+fn lut16_with(inputs: u8, grid: u8, encode: impl Fn(&[f64]) -> [f64; 3]) -> LutDataType {
     let identity: Vec<u16> = vec![0, 65535];
     let points = grid as usize;
     let total = points.pow(inputs as u32);
@@ -108,8 +160,8 @@ fn lut16(inputs: u8, grid: u8, f: impl Fn(&[f64]) -> [f64; 3]) -> LutDataType {
             device[d] = (rest % points) as f64 / (points - 1) as f64;
             rest /= points;
         }
-        for v in f(&device) {
-            clut.push((v * 32768.0).round().clamp(0.0, 65535.0) as u16);
+        for v in encode(&device) {
+            clut.push(v.round().clamp(0.0, 65535.0) as u16);
         }
     }
     LutDataType {
@@ -123,5 +175,89 @@ fn lut16(inputs: u8, grid: u8, f: impl Fn(&[f64]) -> [f64; 3]) -> LutDataType {
         clut_table: LutStore::Store16(clut),
         output_table: LutStore::Store16(identity.repeat(3)),
         lut_type: LutType::Lut16,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn lab_of(profile: &ColorProfile, device: &[f32]) -> [f32; 3] {
+        crate::fidelity::gate::lab(profile, device)
+    }
+
+    fn distance(a: [f32; 3], b: [f64; 3]) -> f64 {
+        (0..3)
+            .map(|i| (a[i] as f64 - b[i]).powi(2))
+            .sum::<f64>()
+            .sqrt()
+    }
+
+    /// 与 FOGRA39 同样的结构：ICC v2.1、lut16（mft2）A2B0、PCS 为 Lab（旧式 16 位编码）。
+    fn header_and_a2b0(bytes: &[u8]) -> (u32, &[u8], &[u8]) {
+        let version = u32::from_be_bytes(bytes[8..12].try_into().unwrap());
+        let pcs = &bytes[20..24];
+        let count = u32::from_be_bytes(bytes[128..132].try_into().unwrap()) as usize;
+        let a2b0 = (0..count)
+            .map(|i| &bytes[132 + i * 12..144 + i * 12])
+            .find(|t| &t[0..4] == b"A2B0")
+            .map(|t| {
+                let offset = u32::from_be_bytes(t[4..8].try_into().unwrap()) as usize;
+                &bytes[offset..offset + 4]
+            })
+            .expect("有 A2B0");
+        (version, pcs, a2b0)
+    }
+
+    #[test]
+    fn lab_pcs_lut_profiles_are_v2_lut16_and_decode_to_their_defining_colours() {
+        // 网格结点上的设备值，解码结果应等于定义函数的 Lab（不受插值影响）。
+        // 色度适中，都落在 BT.2020 中间空间里。
+        let rgb = |d: [f64; 3]| [30.0 + 60.0 * d[1], 30.0 * (d[0] - 0.5), 30.0 * (d[2] - 0.5)];
+        let bytes = lut_rgb_lab_icc(18, rgb);
+        let (version, pcs, a2b0) = header_and_a2b0(&bytes);
+        assert_eq!(version, 0x0210_0000);
+        assert_eq!(pcs, b"Lab ");
+        assert_eq!(a2b0, b"mft2");
+        let parsed = ColorProfile::new_from_slice(&bytes).unwrap();
+        for node in [[0u8, 0, 0], [255, 255, 255], [15, 120, 240], [255, 0, 90]] {
+            let d = node.map(|v| v as f64 / 255.0);
+            let got = lab_of(&parsed, &node.map(|v| v as f32 / 255.0));
+            assert!(
+                distance(got, rgb(d)) < 0.6,
+                "{node:?}: {got:?} vs {:?}",
+                rgb(d)
+            );
+        }
+
+        let cmyk = |i: [f64; 4]| {
+            let k = 1.0 - i[3];
+            [
+                20.0 + 60.0 * k * (1.0 - 0.4 * i[1]),
+                20.0 * (i[1] - i[0]),
+                20.0 * (i[2] - i[0]),
+            ]
+        };
+        let bytes = cmyk_lab_icc(16, cmyk);
+        let (version, pcs, a2b0) = header_and_a2b0(&bytes);
+        assert_eq!(
+            (version, pcs, a2b0),
+            (0x0210_0000, &b"Lab "[..], &b"mft2"[..])
+        );
+        let parsed = ColorProfile::new_from_slice(&bytes).unwrap();
+        for node in [
+            [0u8, 0, 0, 0],
+            [255, 0, 0, 0],
+            [17, 170, 255, 34],
+            [0, 0, 0, 255],
+        ] {
+            let d = node.map(|v| v as f64 / 255.0);
+            let got = lab_of(&parsed, &node.map(|v| v as f32 / 255.0));
+            assert!(
+                distance(got, cmyk(d)) < 0.6,
+                "{node:?}: {got:?} vs {:?}",
+                cmyk(d)
+            );
+        }
     }
 }
