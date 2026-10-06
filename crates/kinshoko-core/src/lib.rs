@@ -4,5 +4,9 @@
 //! 跨越前后端边界的类型带 `#[ts(export)]`，由 ts-rs 在 `cargo test` 时生成到 `src/bindings/`。
 
 mod app_shell;
+mod device;
+pub mod library;
 
 pub use app_shell::{AppInfo, app_info};
+pub use device::{DeviceRegistry, RegisteredLibrary};
+pub use library::Library;

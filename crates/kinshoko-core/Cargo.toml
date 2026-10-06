@@ -8,10 +8,16 @@ publish.workspace = true
 
 [dependencies]
 serde.workspace = true
+serde_json.workspace = true
 ts-rs.workspace = true
+rusqlite = { version = "0.40", features = ["bundled"] }
+rusqlite_migration = "2.6"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4", "v7"] }
 
 [dev-dependencies]
-serde_json.workspace = true
+tempfile = "3"
 
 [lints]
 workspace = true
