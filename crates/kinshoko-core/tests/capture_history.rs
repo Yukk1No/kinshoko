@@ -160,6 +160,7 @@ fn collecting_a_capture_imports_it_as_a_reference_image() {
     let page = library
         .browse(&BrowseQuery {
             scope: Default::default(),
+            conditions: Default::default(),
             cursor: None,
             limit: 10,
             thumbnail_px: 64,

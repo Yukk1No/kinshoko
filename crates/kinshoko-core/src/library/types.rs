@@ -2,11 +2,13 @@
 
 use std::path::PathBuf;
 
-use rusqlite::params;
+use rusqlite::params_from_iter;
+use rusqlite::types::Value;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{Error, Inner, LIVE, thumbnail};
+use super::{Error, Inner, LIVE, filter, thumbnail};
+use crate::search::ConditionTree;
 
 /// 资料库身份与位置。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -33,13 +35,16 @@ pub enum BrowseScope {
     Trash,
 }
 
-/// 一次浏览请求。条件树与排序随查找切片加入。
+/// 一次浏览请求：范围＋条件树，keyset 分页。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct BrowseQuery {
     #[serde(default)]
     pub scope: BrowseScope,
+    /// Search 给出的条件树（#54）；为空时是范围内的全部参考图。
+    #[serde(default)]
+    pub conditions: ConditionTree,
     /// 上一页返回的 `nextCursor`；第一页为空。
     #[serde(default)]
     pub cursor: Option<String>,
@@ -175,29 +180,38 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
     let tier = thumbnail::tier(query.thumbnail_px);
     let library_id = &inner.info.id;
 
-    // 范围条件；?1 是范围参数（没有时为 NULL，不参与）。
-    let (filter, arg): (String, Option<&str>) = match &query.scope {
-        BrowseScope::All => (format!("{LIVE} AND ?1 IS NULL"), None),
-        BrowseScope::Folder { id } => (
+    // 范围条件在前，条件树在后；参数按出现顺序编号。浏览视角的过滤（安全模式等）也加在这里。
+    let mut args: Vec<Value> = Vec::new();
+    let scope = match &query.scope {
+        BrowseScope::All => LIVE.to_owned(),
+        BrowseScope::Folder { id } => {
+            args.push(Value::Text(id.clone()));
             format!(
                 "{LIVE} AND image.id IN (SELECT image_id FROM folder_member WHERE folder_id = ?1)"
-            ),
-            Some(id),
-        ),
-        BrowseScope::Trash => (format!("NOT ({LIVE}) AND ?1 IS NULL"), None),
+            )
+        }
+        BrowseScope::Trash => format!("NOT ({LIVE})"),
     };
+    let conditions = filter::sql(&query.conditions, &mut args);
+    let filter = format!("{scope} AND {conditions}");
 
     let conn = inner.readers.get();
+    // 计数与分页用同一个筛选，结果与计数一致。
     let total: u32 = conn.query_row(
         &format!("SELECT COUNT(*) FROM image WHERE {filter}"),
-        [arg],
+        params_from_iter(&args),
         |r| r.get(0),
     )?;
+    let n = args.len();
+    args.push(Value::Integer(after));
+    args.push(Value::Integer(i64::from(limit) + 1));
     let mut stmt = conn.prepare_cached(&format!(
-        "SELECT seq, id, width, height FROM image WHERE {filter} AND seq < ?2
-         ORDER BY seq DESC LIMIT ?3"
+        "SELECT seq, id, width, height FROM image WHERE {filter} AND seq < ?{}
+         ORDER BY seq DESC LIMIT ?{}",
+        n + 1,
+        n + 2
     ))?;
-    let rows = stmt.query_map(params![arg, after, limit + 1], |row| {
+    let rows = stmt.query_map(params_from_iter(&args), |row| {
         let id: String = row.get(1)?;
         Ok((
             row.get::<_, i64>(0)?,

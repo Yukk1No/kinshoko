@@ -7,8 +7,10 @@ mod app_shell;
 pub mod desktop;
 mod device;
 pub mod library;
+pub mod search;
 mod settings;
 mod shortcuts;
+pub mod tagging;
 
 pub use app_shell::{AppInfo, app_info};
 pub use device::{DeviceRegistry, RegisteredLibrary};
