@@ -7,6 +7,10 @@ fn main() {
                 .commands(&[
                     "current_library",
                     "create_library",
+                    "registered_libraries",
+                    "register_library",
+                    "switch_library",
+                    "unregister_library",
                     "browse",
                     "image",
                     "edit",

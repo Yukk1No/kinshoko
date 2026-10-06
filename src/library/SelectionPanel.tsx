@@ -6,6 +6,7 @@ import type { ImageEdit } from "../bindings/ImageEdit";
 import { editImages, imageDetail, sidebar } from "../ipc";
 
 type Props = {
+  libraryId: string;
   scope: BrowseScope;
   selected: ReadonlySet<string>;
   onClear: () => void;
@@ -68,7 +69,7 @@ function Detail({
 }
 
 /** 选中参考图后的整理操作：放入或移出文件夹、删除或恢复；只选一张时还能写备注。 */
-export function SelectionPanel({ scope, selected, onClear, reloadKey, onError }: Props) {
+export function SelectionPanel({ libraryId, scope, selected, onClear, reloadKey, onError }: Props) {
   const ids = [...selected];
   const single = ids.length === 1 ? ids[0] : null;
   const [folders, setFolders] = useState<{ id: string; label: string }[]>([]);
@@ -76,7 +77,7 @@ export function SelectionPanel({ scope, selected, onClear, reloadKey, onError }:
 
   useEffect(() => {
     let alive = true;
-    sidebar().then(
+    sidebar(libraryId).then(
       (s) => alive && setFolders(flatten(s.folders)),
       () => undefined,
     );
@@ -89,7 +90,7 @@ export function SelectionPanel({ scope, selected, onClear, reloadKey, onError }:
     let alive = true;
     setDetail(null);
     if (single)
-      imageDetail(single).then(
+      imageDetail(libraryId, single).then(
         (d) => alive && setDetail(d),
         (e) => alive && onError(String(e)),
       );
@@ -99,7 +100,7 @@ export function SelectionPanel({ scope, selected, onClear, reloadKey, onError }:
   }, [single, reloadKey, onError]);
 
   const edit = (edits: ImageEdit[], clear = false) =>
-    editImages(ids, edits).then(
+    editImages(libraryId, ids, edits).then(
       (details) => {
         if (single && details[0]) setDetail(details[0]);
         if (clear) onClear();

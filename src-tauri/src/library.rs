@@ -5,15 +5,14 @@
 //! - 资料库事件转发为窗口事件 `library-event`；
 //! - 缩略图走自定义协议 `thumb`：`<资料库 id>/<参考图 id>/<像素档位>`，缓存缺失时现场生成。
 
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, Weak};
 
 use kinshoko_core::library::{
-    BrowsePage, BrowseQuery, ImageDetail, ImageEdit, ImageTags, ImportSource, ImportTask,
-    LibraryEvent, LibraryInfo, RecoveryReport, Sidebar, TagEdit, TagGroupView, Vocabulary,
+    BrowsePage, BrowseQuery, ImageDetail, ImageEdit, ImageTags, ImportSource, LibraryInfo,
+    RecoveryReport, Sidebar, TagEdit, TagGroupView, Vocabulary,
 };
-use kinshoko_core::{DeviceRegistry, Library};
+use kinshoko_core::{DeviceLibraries, DeviceLibraryError, Library, LibraryRegistration};
 use tauri::http::{Response, StatusCode, header};
 use tauri::plugin::{Builder, TauriPlugin};
 use tauri::{AppHandle, Emitter, Manager, Runtime, State};
@@ -25,16 +24,35 @@ const EVENT: &str = "library-event";
 
 struct LibraryState {
     device_dir: PathBuf,
-    current: Mutex<Option<Arc<Library>>>,
-    tasks: Arc<Mutex<HashMap<String, ImportTask>>>,
+    libraries: Arc<Mutex<Option<DeviceLibraries>>>,
+    forwarded: Mutex<Option<Weak<Library>>>,
 }
 
 impl LibraryState {
-    fn current(&self) -> Result<Arc<Library>, String> {
-        lock(&self.current)
-            .clone()
+    fn current(&self, library_id: &str) -> Result<Arc<Library>, String> {
+        with_libraries(&self.device_dir, &self.libraries, |libraries| {
+            libraries.require(library_id)
+        })
+    }
+
+    fn active(&self) -> Result<Arc<Library>, String> {
+        lock(&self.libraries)
+            .as_ref()
+            .and_then(DeviceLibraries::current)
             .ok_or_else(|| "还没有打开资料库".to_owned())
     }
+}
+
+fn with_libraries<T>(
+    device_dir: &Path,
+    state: &Mutex<Option<DeviceLibraries>>,
+    action: impl FnOnce(&mut DeviceLibraries) -> Result<T, DeviceLibraryError>,
+) -> Result<T, String> {
+    let mut state = lock(state);
+    if state.is_none() {
+        *state = Some(DeviceLibraries::open(device_dir).map_err(|error| error.to_string())?);
+    }
+    action(state.as_mut().expect("登记表已打开")).map_err(|error| error.to_string())
 }
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -46,6 +64,10 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .invoke_handler(tauri::generate_handler![
             current_library,
             create_library,
+            registered_libraries,
+            register_library,
+            switch_library,
+            unregister_library,
             browse,
             image,
             edit,
@@ -71,8 +93,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             };
             app.manage(LibraryState {
                 device_dir,
-                current: Mutex::new(None),
-                tasks: Arc::default(),
+                libraries: Arc::default(),
+                forwarded: Mutex::new(None),
             });
             Ok(())
         })
@@ -102,7 +124,7 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     let Ok(px) = px.parse::<u32>() else {
         return not_found();
     };
-    let Ok(library) = app.state::<LibraryState>().current() else {
+    let Ok(library) = app.state::<LibraryState>().active() else {
         return not_found();
     };
     if library.info().id != library_id {
@@ -121,20 +143,36 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     }
 }
 
-/// 设为当前资料库，并把它的事件转发给前端。
-fn activate<R: Runtime>(app: &AppHandle<R>, state: &LibraryState, library: Library) -> LibraryInfo {
+/// 核心已完成切换；每个活动句柄只订阅一次，旧库事件不再转发。
+fn forward_events<R: Runtime>(
+    app: &AppHandle<R>,
+    state: &LibraryState,
+    library: Arc<Library>,
+) -> LibraryInfo {
     let info = library.info().clone();
+    let weak = Arc::downgrade(&library);
+    let mut forwarded = lock(&state.forwarded);
+    if forwarded
+        .as_ref()
+        .is_some_and(|previous| Weak::ptr_eq(previous, &weak))
+    {
+        return info;
+    }
+    *forwarded = Some(weak.clone());
     let events = library.events();
-    *lock(&state.current) = Some(Arc::new(library));
-    let (app, tasks) = (app.clone(), state.tasks.clone());
+    let (app, libraries) = (app.clone(), state.libraries.clone());
     std::thread::Builder::new()
         .name("kinshoko-library-events".into())
         .spawn(move || {
             for event in events {
-                if let LibraryEvent::TaskFinished { task_id, .. } = &event {
-                    lock(&tasks).remove(task_id);
+                let libraries = lock(&libraries);
+                if libraries
+                    .as_ref()
+                    .and_then(DeviceLibraries::current)
+                    .is_some_and(|current| Weak::ptr_eq(&Arc::downgrade(&current), &weak))
+                {
+                    let _ = app.emit(EVENT, event);
                 }
-                let _ = app.emit(EVENT, event);
             }
         })
         .expect("无法启动事件转发线程");
@@ -155,21 +193,20 @@ async fn current_library<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
 ) -> Result<Option<LibraryInfo>, String> {
-    if let Ok(library) = state.current() {
-        return Ok(Some(library.info().clone()));
+    if let Ok(library) = state.active() {
+        return Ok(Some(forward_events(&app, &state, library)));
     }
     let device_dir = state.device_dir.clone();
+    let libraries = state.libraries.clone();
     let opened = blocking(move || {
-        let device = DeviceRegistry::open(&device_dir).map_err(|e| e.to_string())?;
-        match device.last_opened() {
-            None => Ok(None),
-            Some(entry) => Library::open(&entry.root)
-                .map(Some)
-                .map_err(|e| e.to_string()),
-        }
+        with_libraries(
+            &device_dir,
+            &libraries,
+            DeviceLibraries::restore_last_opened,
+        )
     })
     .await?;
-    Ok(opened.map(|library| activate(&app, &state, library)))
+    Ok(opened.map(|library| forward_events(&app, &state, library)))
 }
 
 /// 在 `parent` 下新建名为 `name` 的资料库文件夹，登记到本设备并打开。
@@ -181,27 +218,92 @@ async fn create_library<R: Runtime>(
     name: String,
 ) -> Result<LibraryInfo, String> {
     let device_dir = state.device_dir.clone();
+    let libraries = state.libraries.clone();
     let library = blocking(move || {
-        let library =
-            Library::create(&parent.join(name.trim()), &name).map_err(|e| e.to_string())?;
-        DeviceRegistry::open(&device_dir)
-            .and_then(|mut device| device.register(library.info()))
-            .map_err(|e| e.to_string())?;
-        Ok(library)
+        with_libraries(&device_dir, &libraries, |libraries| {
+            libraries.create(&parent.join(name.trim()), &name)
+        })
     })
     .await?;
-    Ok(activate(&app, &state, library))
+    Ok(forward_events(&app, &state, library))
 }
 
 #[tauri::command]
-async fn browse(state: State<'_, LibraryState>, query: BrowseQuery) -> Result<BrowsePage, String> {
-    let library = state.current()?;
+async fn registered_libraries(
+    state: State<'_, LibraryState>,
+) -> Result<Vec<LibraryRegistration>, String> {
+    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
+    blocking(move || {
+        with_libraries(&device_dir, &libraries, |libraries| {
+            Ok(libraries.registrations())
+        })
+    })
+    .await
+}
+
+#[tauri::command]
+async fn register_library<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+    root: PathBuf,
+) -> Result<LibraryInfo, String> {
+    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
+    let library = blocking(move || {
+        with_libraries(&device_dir, &libraries, |libraries| {
+            libraries.register(&root)
+        })
+    })
+    .await?;
+    Ok(forward_events(&app, &state, library))
+}
+
+#[tauri::command]
+async fn switch_library<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+    library_id: String,
+) -> Result<LibraryInfo, String> {
+    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
+    let library = blocking(move || {
+        with_libraries(&device_dir, &libraries, |libraries| {
+            libraries.switch(&library_id)
+        })
+    })
+    .await?;
+    Ok(forward_events(&app, &state, library))
+}
+
+#[tauri::command]
+async fn unregister_library(
+    state: State<'_, LibraryState>,
+    library_id: String,
+) -> Result<(), String> {
+    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
+    blocking(move || {
+        with_libraries(&device_dir, &libraries, |libraries| {
+            libraries.unregister(&library_id)
+        })
+    })
+    .await
+}
+
+#[tauri::command]
+async fn browse(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    query: BrowseQuery,
+) -> Result<BrowsePage, String> {
+    let library = state.current(&library_id)?;
     blocking(move || library.browse(&query).map_err(|e| e.to_string())).await
 }
 
 #[tauri::command]
-async fn image(state: State<'_, LibraryState>, image_id: String) -> Result<ImageDetail, String> {
-    let library = state.current()?;
+async fn image(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    image_id: String,
+) -> Result<ImageDetail, String> {
+    let library = state.current(&library_id)?;
     blocking(move || library.image(&image_id).map_err(|e| e.to_string())).await
 }
 
@@ -209,26 +311,28 @@ async fn image(state: State<'_, LibraryState>, image_id: String) -> Result<Image
 #[tauri::command]
 async fn edit(
     state: State<'_, LibraryState>,
+    library_id: String,
     ids: Vec<String>,
     edits: Vec<ImageEdit>,
 ) -> Result<Vec<ImageDetail>, String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || library.edit(&ids, &edits).map_err(|e| e.to_string())).await
 }
 
 #[tauri::command]
-async fn sidebar(state: State<'_, LibraryState>) -> Result<Sidebar, String> {
-    let library = state.current()?;
+async fn sidebar(state: State<'_, LibraryState>, library_id: String) -> Result<Sidebar, String> {
+    let library = state.current(&library_id)?;
     blocking(move || library.sidebar().map_err(|e| e.to_string())).await
 }
 
 #[tauri::command]
 async fn create_folder(
     state: State<'_, LibraryState>,
+    library_id: String,
     name: String,
     parent: Option<String>,
 ) -> Result<String, String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || {
         library
             .create_folder(&name, parent.as_deref())
@@ -240,10 +344,11 @@ async fn create_folder(
 #[tauri::command]
 async fn rename_folder(
     state: State<'_, LibraryState>,
+    library_id: String,
     folder_id: String,
     name: String,
 ) -> Result<(), String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || {
         library
             .rename_folder(&folder_id, &name)
@@ -255,11 +360,12 @@ async fn rename_folder(
 #[tauri::command]
 async fn move_folder(
     state: State<'_, LibraryState>,
+    library_id: String,
     folder_id: String,
     parent: Option<String>,
     position: u32,
 ) -> Result<(), String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || {
         library
             .move_folder(&folder_id, parent.as_deref(), position)
@@ -270,31 +376,42 @@ async fn move_folder(
 
 /// 当前资料库这次打开时的对账结果。
 #[tauri::command]
-fn recovery(state: State<'_, LibraryState>) -> Result<RecoveryReport, String> {
-    Ok(state.current()?.recovery().clone())
+async fn recovery(
+    state: State<'_, LibraryState>,
+    library_id: String,
+) -> Result<RecoveryReport, String> {
+    Ok(state.current(&library_id)?.recovery().clone())
 }
 
 /// 开始导入，立即返回任务 id；进度与结果经 `library-event` 推送。
 #[tauri::command]
 async fn start_import(
     state: State<'_, LibraryState>,
+    library_id: String,
     source: ImportSource,
 ) -> Result<String, String> {
-    let library = state.current()?;
-    let task = library.import(source);
-    let id = task.id().to_owned();
-    if !task.is_finished() {
-        lock(&state.tasks).insert(id.clone(), task);
-    }
-    Ok(id)
+    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
+    blocking(move || {
+        with_libraries(&device_dir, &libraries, |libraries| {
+            libraries.start_import(&library_id, source)
+        })
+    })
+    .await
 }
 
 #[tauri::command]
-async fn cancel_import(state: State<'_, LibraryState>, task_id: String) -> Result<(), String> {
-    if let Some(task) = lock(&state.tasks).get(&task_id) {
-        task.cancel();
-    }
-    Ok(())
+async fn cancel_import(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    task_id: String,
+) -> Result<(), String> {
+    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
+    blocking(move || {
+        with_libraries(&device_dir, &libraries, |libraries| {
+            libraries.cancel_import(&library_id, &task_id)
+        })
+    })
+    .await
 }
 
 #[tauri::command]
@@ -329,10 +446,11 @@ async fn pick_files<R: Runtime>(app: AppHandle<R>) -> Result<Vec<PathBuf>, Strin
 #[tauri::command]
 async fn image_tags(
     state: State<'_, LibraryState>,
+    library_id: String,
     image_id: String,
     lang: String,
 ) -> Result<ImageTags, String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || {
         library
             .image_tags(&image_id, &lang)
@@ -345,10 +463,11 @@ async fn image_tags(
 #[tauri::command]
 async fn edit_tags(
     state: State<'_, LibraryState>,
+    library_id: String,
     image_ids: Vec<String>,
     edits: Vec<TagEdit>,
 ) -> Result<(), String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || {
         library
             .edit_tags(&image_ids, &edits)
@@ -358,8 +477,11 @@ async fn edit_tags(
 }
 
 #[tauri::command]
-async fn vocabulary(state: State<'_, LibraryState>) -> Result<Vocabulary, String> {
-    let library = state.current()?;
+async fn vocabulary(
+    state: State<'_, LibraryState>,
+    library_id: String,
+) -> Result<Vocabulary, String> {
+    let library = state.current(&library_id)?;
     blocking(move || library.vocabulary().map_err(|e| e.to_string())).await
 }
 
@@ -367,8 +489,9 @@ async fn vocabulary(state: State<'_, LibraryState>) -> Result<Vocabulary, String
 #[tauri::command]
 async fn tag_groups(
     state: State<'_, LibraryState>,
+    library_id: String,
     lang: String,
 ) -> Result<Vec<TagGroupView>, String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || library.tag_groups(&lang).map_err(|e| e.to_string())).await
 }

@@ -8,6 +8,7 @@ import { cancelImport, libraryRecovery, onFileDrop, pickFiles, pickFolder, start
 export type RunningImport = { taskId: string | null; progress: ImportProgress };
 
 type Props = {
+  libraryId: string;
   libraryName: string;
   running: RunningImport | null;
   report: ImportReport | null;
@@ -30,12 +31,25 @@ function reason(outcome: ImportOutcome): string | null {
  * 导入：选择文件或文件夹，或把它们拖进主窗口；进行中显示进度与取消，结束后逐项列出
  * 没有进来的文件并可只重试读取失败的项。打开资料库时若上次导入中断，提示撤回了哪些文件。
  */
-export function ImportBar({ libraryName, running, report, onStarted, onDismissReport }: Props) {
+export function ImportBar({ libraryId, libraryName, running, report, onStarted, onDismissReport }: Props) {
   const [hovering, setHovering] = useState(false);
   const [recovery, setRecovery] = useState<RecoveryReport | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; };
+  }, []);
 
   const begin = async (paths: string[]) => {
-    if (paths.length) onStarted(await startImport(paths));
+    if (!alive.current || !paths.length) return;
+    try {
+      setError(null);
+      const taskId = await startImport(libraryId, paths);
+      if (alive.current) onStarted(taskId);
+    } catch (e) {
+      if (alive.current) setError(String(e));
+    }
   };
   const importFiles = async () => begin(await pickFiles());
   const importFolder = async () => {
@@ -48,6 +62,7 @@ export function ImportBar({ libraryName, running, report, onStarted, onDismissRe
   latest.current = { running, begin };
   useEffect(() => {
     const unlisten = onFileDrop((drop) => {
+      if (!alive.current) return;
       switch (drop.kind) {
         case "enter":
           setHovering(!latest.current.running);
@@ -68,7 +83,7 @@ export function ImportBar({ libraryName, running, report, onStarted, onDismissRe
 
   useEffect(() => {
     let alive = true;
-    libraryRecovery().then(
+    libraryRecovery(libraryId).then(
       (value) => alive && setRecovery(value),
       () => {},
     );
@@ -89,6 +104,7 @@ export function ImportBar({ libraryName, running, report, onStarted, onDismissRe
 
   return (
     <div className="import-bar">
+      {error && <p role="alert">{error}</p>}
       <div className="import-actions">
         <button type="button" onClick={importFiles} disabled={!!running}>
           导入文件…
@@ -116,7 +132,7 @@ export function ImportBar({ libraryName, running, report, onStarted, onDismissRe
           </span>
           <button
             type="button"
-            onClick={() => running.taskId && cancelImport(running.taskId)}
+            onClick={() => running.taskId && cancelImport(libraryId, running.taskId).catch((e) => alive.current && setError(String(e)))}
             disabled={!running.taskId}
           >
             取消导入

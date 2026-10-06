@@ -11,6 +11,7 @@ import type { ImageEdit } from "./bindings/ImageEdit";
 import type { ImageTags } from "./bindings/ImageTags";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
+import type { LibraryRegistration } from "./bindings/LibraryRegistration";
 import type { RecoveryReport } from "./bindings/RecoveryReport";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { Sidebar } from "./bindings/Sidebar";
@@ -35,51 +36,67 @@ export function createLibrary(parent: string, name: string): Promise<LibraryInfo
   return invoke<LibraryInfo>(lib("create_library"), { parent, name });
 }
 
-export function browse(query: BrowseQuery): Promise<BrowsePage> {
-  return invoke<BrowsePage>(lib("browse"), { query });
+export function registeredLibraries(): Promise<LibraryRegistration[]> {
+  return invoke<LibraryRegistration[]>(lib("registered_libraries"));
+}
+
+export function registerLibrary(root: string): Promise<LibraryInfo> {
+  return invoke<LibraryInfo>(lib("register_library"), { root });
+}
+
+export function switchLibrary(libraryId: string): Promise<LibraryInfo> {
+  return invoke<LibraryInfo>(lib("switch_library"), { libraryId });
+}
+
+export function unregisterLibrary(libraryId: string): Promise<void> {
+  return invoke<void>(lib("unregister_library"), { libraryId });
+}
+
+export function browse(libraryId: string, query: BrowseQuery): Promise<BrowsePage> {
+  return invoke<BrowsePage>(lib("browse"), { libraryId, query });
 }
 
 /** 单张参考图的详情。 */
-export function imageDetail(imageId: string): Promise<ImageDetail> {
-  return invoke<ImageDetail>(lib("image"), { imageId });
+export function imageDetail(libraryId: string, imageId: string): Promise<ImageDetail> {
+  return invoke<ImageDetail>(lib("image"), { libraryId, imageId });
 }
 
 /** 一次批量整理若干张图，返回重新计算后的详情。 */
-export function editImages(ids: string[], edits: ImageEdit[]): Promise<ImageDetail[]> {
-  return invoke<ImageDetail[]>(lib("edit"), { ids, edits });
+export function editImages(libraryId: string, ids: string[], edits: ImageEdit[]): Promise<ImageDetail[]> {
+  return invoke<ImageDetail[]>(lib("edit"), { libraryId, ids, edits });
 }
 
 /** 侧栏：全部、回收站与文件夹树，计数只算可见的图。 */
-export function sidebar(): Promise<Sidebar> {
-  return invoke<Sidebar>(lib("sidebar"));
+export function sidebar(libraryId: string): Promise<Sidebar> {
+  return invoke<Sidebar>(lib("sidebar"), { libraryId });
 }
 
 /** 新建文件夹，放在 parent 下（null 为顶层）的最后，返回文件夹 id。 */
-export function createFolder(name: string, parent: string | null): Promise<string> {
-  return invoke<string>(lib("create_folder"), { name, parent });
+export function createFolder(libraryId: string, name: string, parent: string | null): Promise<string> {
+  return invoke<string>(lib("create_folder"), { libraryId, name, parent });
 }
 
-export function renameFolder(folderId: string, name: string): Promise<void> {
-  return invoke<void>(lib("rename_folder"), { folderId, name });
+export function renameFolder(libraryId: string, folderId: string, name: string): Promise<void> {
+  return invoke<void>(lib("rename_folder"), { libraryId, folderId, name });
 }
 
 /** 把文件夹移到 parent 下（null 为顶层）的第 position 位，超出时放在最后。 */
-export function moveFolder(folderId: string, parent: string | null, position: number): Promise<void> {
-  return invoke<void>(lib("move_folder"), { folderId, parent, position });
+export function moveFolder(libraryId: string, folderId: string, parent: string | null, position: number): Promise<void> {
+  return invoke<void>(lib("move_folder"), { libraryId, folderId, parent, position });
 }
 
 /** 开始导入，立即返回任务 id；进度与结果经 onLibraryEvent 推送。 */
-export function startImport(paths: string[]): Promise<string> {
-  return invoke<string>(lib("start_import"), { source: { paths } });
+export function startImport(libraryId: string, paths: string[]): Promise<string> {
+  return invoke<string>(lib("start_import"), { libraryId, source: { paths } });
 }
 
-export function cancelImport(taskId: string): Promise<void> {
-  return invoke<void>(lib("cancel_import"), { taskId });
+export function cancelImport(libraryId: string, taskId: string): Promise<void> {
+  return invoke<void>(lib("cancel_import"), { libraryId, taskId });
 }
 
 /** 当前资料库这次打开时的对账结果：撤回的中断导入项与不认识的孤立文件。 */
-export function libraryRecovery(): Promise<RecoveryReport> {
-  return invoke<RecoveryReport>(lib("recovery"));
+export function libraryRecovery(libraryId: string): Promise<RecoveryReport> {
+  return invoke<RecoveryReport>(lib("recovery"), { libraryId });
 }
 
 export type FileDrop = { kind: "enter"; paths: string[] } | { kind: "drop"; paths: string[] } | { kind: "leave" };
@@ -102,23 +119,23 @@ export function onFileDrop(handler: (drop: FileDrop) => void): Promise<UnlistenF
 }
 
 /** 一张参考图的有效标签及出处、被否决的标签，名称按界面语言 lang。 */
-export function imageTags(imageId: string, lang: string): Promise<ImageTags> {
-  return invoke<ImageTags>(lib("image_tags"), { imageId, lang });
+export function imageTags(libraryId: string, imageId: string, lang: string): Promise<ImageTags> {
+  return invoke<ImageTags>(lib("image_tags"), { libraryId, imageId, lang });
 }
 
 /** 对若干参考图批量添加、否决或清除标签决定。 */
-export function editTags(imageIds: string[], edits: TagEdit[]): Promise<void> {
-  return invoke<void>(lib("edit_tags"), { imageIds, edits });
+export function editTags(libraryId: string, imageIds: string[], edits: TagEdit[]): Promise<void> {
+  return invoke<void>(lib("edit_tags"), { libraryId, imageIds, edits });
 }
 
 /** 标签词表快照，按 revision 缓存；词表变化时收到 vocabularyChanged 事件。 */
-export function vocabulary(): Promise<Vocabulary> {
-  return invoke<Vocabulary>(lib("vocabulary"));
+export function vocabulary(libraryId: string): Promise<Vocabulary> {
+  return invoke<Vocabulary>(lib("vocabulary"), { libraryId });
 }
 
 /** 侧栏的标签分组及计数，名称按界面语言 lang。 */
-export function tagGroups(lang: string): Promise<TagGroupView[]> {
-  return invoke<TagGroupView[]>(lib("tag_groups"), { lang });
+export function tagGroups(libraryId: string, lang: string): Promise<TagGroupView[]> {
+  return invoke<TagGroupView[]>(lib("tag_groups"), { libraryId, lang });
 }
 
 export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<UnlistenFn> {

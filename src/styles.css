@@ -63,6 +63,27 @@ button.primary {
   height: 100%;
 }
 
+.library-manager {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.library-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.library-actions label { display: flex; align-items: center; gap: 8px; }
+.library-actions select { max-width: 280px; font: inherit; }
+.library-switch-notice { margin: 6px 0; font-size: 12px; opacity: 0.75; }
+.library-registrations summary { cursor: pointer; }
+.library-registrations ul { max-height: 120px; overflow: auto; margin: 6px 0 0; padding: 0; list-style: none; }
+.library-registrations li { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 3px 0; }
+.library-registrations li > span { overflow-wrap: anywhere; }
+.library-registrations li > p { width: 100%; margin: 0; color: var(--accent-strong); }
+
 .app-toolbar {
   display: flex;
   align-items: flex-start;
