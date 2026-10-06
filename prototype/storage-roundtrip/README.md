@@ -37,6 +37,8 @@ python prototype/storage-roundtrip/run.py
 
 画师拿到的是 CI（`.github/workflows/eagle-check.yml`）打的 artifact：单个 exe 加 [使用说明.md](使用说明.md)。CI 用 `make_eagle_fixture.py` 生成仿真 Eagle 库和假的 `%APPDATA%\Eagle\Settings`，对 exe 自测三种情况：自动找到两个库、只有一个 150 张的库、22/20 张的小双库。每种都要 44 项全过、0 项未覆盖。另外测工作区指向资料库时会拒绝运行、原库不变。全部通过才上传。
 
+同一个 artifact 里还有 `eagle_tags.py` 打的 `kinshoko-eagle-tags.exe`：导出全部标签名与使用次数，并标出能否对上 PixAI v1.0 词表（与 tagger-probe 同一固定版本），用于确定导入向导“补外部对应”的规模（[#9](https://github.com/Yukk1No/kinshoko/issues/9) Q19）。这份报告含标签名，发起者已征得画师同意。
+
 开发时这样跑：
 
 ```bash
