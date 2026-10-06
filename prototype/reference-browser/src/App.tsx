@@ -20,7 +20,7 @@ import { countTags, descendants, indexImages, runSearch, termLabel, type Conditi
 import { TAG_GROUPS, dictionary, inflate, seedInfo, seedLibraries } from './seed';
 import { usePersistent, resetPersistent } from './persist';
 import { exportLog, hashOf, log, setLogging } from './log';
-import { RELEASE, SEAL, SealFx, type FxReport } from './sealfx';
+import { MAX_GHOSTS, RELEASE, SEAL, SealFx, type FxReport } from './sealfx';
 
 const DEFAULT_SETTINGS: Settings = { theme: 'system', reducedMotion: false, density: 240, capTall: true, showTitles: false, square: false, inflate: false, logging: false, stats: false, releaseInput: 'allow', fxSlow: false };
 const systemReduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -359,13 +359,15 @@ export default function App() {
     if (!w || !book) { endRelease(); return; }
     const byId = new Map(results.map((i) => [i.id, i]));
     const ids = w.onScreen().filter((id) => { const i = byId.get(id); return !!i && adult(i); });
-    setArriving(new Set(ids));
-    fx.current!.release(ids.flatMap((id) => {
+    // Only cards that get a ghost wait for it to land; the rest are simply there.
+    const arrivals = ids.flatMap((id) => {
       const r = w.rectOf(id);
       return r ? [{ id, src: byId.get(id)!.thumb, w: r.width, h: r.height, target: () => w.rectOf(id) }] : [];
-    }), book, (id) => setArriving((s) => { const n = new Set(s); n.delete(id); return n; }));
+    }).slice(0, MAX_GHOSTS);
+    setArriving(new Set(arrivals.map((a) => a.id)));
+    fx.current!.release(arrivals, book, (id) => setArriving((s) => { const n = new Set(s); n.delete(id); return n; }));
     clearTimeout(releaseTimer.current);
-    const total = Math.max(720, RELEASE.flyAt + ids.length * RELEASE.stagger + RELEASE.fly);
+    const total = Math.max(720, RELEASE.flyAt + arrivals.length * RELEASE.stagger + RELEASE.fly);
     releaseTimer.current = window.setTimeout(() => setReleasing(false), total * slow);
   }, [safeMode]); // eslint-disable-line react-hooks/exhaustive-deps
   /** Q105 "可打断": any input on the wall during a release plays it to the end at once. */
@@ -435,7 +437,8 @@ export default function App() {
 
   // ------------------------------------------------------------ render
   const pinnedCaptureIds = new Set(pins.flatMap((p) => (p.source.kind === 'capture' ? [p.source.captureId] : [])));
-  const trashCount = Object.keys(curation.trashed).filter((k) => k.startsWith(library.id + '/')).length;
+  // Q101: sealed images are not counted, so the badge cannot reveal how many there are.
+  const trashCount = shownIndex.filter((e) => imageKey(e.image) in curation.trashed).length;
   const scopeLabel = scope.trash ? '回收站' : scope.folderId ? library.folders.find((f) => f.id === scope.folderId)?.name : null;
   // Q110 candidate A: the wall and the side panels ignore input while a release plays.
   const blockInput = releasing && settings.releaseInput === 'block';

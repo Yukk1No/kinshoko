@@ -23,7 +23,7 @@ export type FxReport = { kind: 'seal' | 'release'; ms: number; frames: number; w
 /** Timings in ms at normal speed; `slow` stretches them for frame-by-frame checks. */
 export const SEAL = { obscure: 240, flyAt: 260, stagger: 30, fly: 520, fade: 140 };
 export const RELEASE = { burstAt: 120, flyAt: 150, stagger: 55, fly: 760, clearAt: 260, clear: 420 };
-const MAX_GHOSTS = 40;
+export const MAX_GHOSTS = 40;
 
 export class SealFx {
   slow = 1;
