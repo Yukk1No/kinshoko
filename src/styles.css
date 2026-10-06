@@ -557,3 +557,101 @@ button.primary {
   opacity: 0.7;
   font-variant-numeric: tabular-nums;
 }
+
+/* 近似查找（#56）：相近标签以较淡的字列在条件里，可关掉；“精确查找”一键不展开。 */
+.search {
+  position: relative;
+}
+
+.search-similar {
+  margin-left: 4px;
+  opacity: 0.85;
+}
+
+.search-similar-tag > span:first-of-type {
+  border-bottom: 1px dashed var(--line);
+}
+
+.search-similar-source {
+  margin-left: 2px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--line);
+  font-size: 11px;
+}
+
+.search-exact {
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.search-exact[aria-pressed="true"] {
+  border-color: var(--accent-strong);
+  color: var(--accent-strong);
+}
+
+.search-popover {
+  position: absolute;
+  z-index: 11;
+  top: calc(100% + 4px);
+  left: 12px;
+  min-width: 240px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+}
+
+.search-popover p {
+  margin: 0 0 6px;
+}
+
+.search-popover button {
+  margin-right: 6px;
+}
+
+.search-popover input {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-bottom: 6px;
+}
+
+.search-popover-list {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.search-popover-list li {
+  display: flex;
+  gap: 8px;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.search-popover-list li:hover {
+  background: var(--line);
+}
+
+/* 没有外部对应的标签：不参与内置近似对应表。 */
+.no-external::before {
+  content: "⌀";
+  margin-left: 2px;
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+.settings-approx td {
+  padding: 2px 8px 2px 0;
+}

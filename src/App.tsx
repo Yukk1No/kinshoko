@@ -5,7 +5,7 @@ import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
 import type { ImportReport } from "./bindings/ImportReport";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
-import { appInfo, currentLibrary, onLibraryEvent, resolveSearch } from "./ipc";
+import { appInfo, currentLibrary, onLibraryEvent, resolveSearch, shellSettings } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { ImportBar, type RunningImport } from "./library/ImportBar";
 import { SelectionPanel } from "./library/SelectionPanel";
@@ -31,7 +31,9 @@ export function App() {
   const [scope, setScope] = useState<BrowseScope>({ kind: "all" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [problem, setProblem] = useState<string | null>(null);
-  const [search, setSearch] = useState<SearchInput>({ conditions: [] });
+  const [search, setSearch] = useState<SearchInput>({ conditions: [], exact: false });
+  /** 设置“显示相近标签来源（内置／个人）”，默认不显示。 */
+  const [showApproxSource, setShowApproxSource] = useState(false);
   const [tree, setTree] = useState<ConditionTree>({ conditions: [] });
   /** 词表或图片变化时递增：重新解析条件（标签可能改名、删除或新增了叫法）。 */
   const [vocabularyKey, setVocabularyKey] = useState(0);
@@ -44,6 +46,10 @@ export function App() {
   useEffect(() => {
     let alive = true;
     appInfo().then((value) => alive && setInfo(value));
+    shellSettings().then(
+      (view) => alive && view && setShowApproxSource(view.showApproxSource),
+      () => undefined,
+    );
     currentLibrary().then(
       (value) => alive && setLibrary(value),
       (e) => {
@@ -138,6 +144,8 @@ export function App() {
               <SearchBox
                 input={search}
                 tree={searching ? tree : null}
+                showSource={showApproxSource}
+                onError={onError}
                 onChange={(next) => {
                   setSearch(next);
                   setSelected(new Set());
@@ -178,7 +186,12 @@ export function App() {
           {library === null && <CreateLibrary onCreated={setLibrary} />}
         </main>
       )}
-      {showSettings && <SettingsPanel />}
+      {showSettings && (
+        <SettingsPanel
+          library={library ?? null}
+          onChange={(view) => setShowApproxSource(view.showApproxSource)}
+        />
+      )}
       <footer className="app-status">
         <span>{info && `${info.productName} ${info.version}`}</span>
         {library && <TaggingIndicator key={library.id} />}
