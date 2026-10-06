@@ -189,7 +189,10 @@ fn an_image_can_sit_in_several_folders_and_each_folder_lists_it() {
         .unwrap();
     let folders: Vec<&str> = details[0].folders.iter().map(|f| f.name.as_str()).collect();
     assert_eq!(folders, ["姿势"]);
-    assert_eq!(browse(&library, BrowseScope::Folder { id: hair }), ids[1..2]);
+    assert_eq!(
+        browse(&library, BrowseScope::Folder { id: hair }),
+        ids[1..2]
+    );
     assert_eq!(tree(&library.sidebar().unwrap().folders), "发型(1) 姿势(1)");
     assert_eq!(library.image(&ids[0]).unwrap(), details[0]);
 }
@@ -212,8 +215,12 @@ fn a_batch_edit_with_an_unknown_image_or_folder_changes_nothing() {
         library.edit(
             &ids,
             &[
-                ImageEdit::AddToFolder { folder_id: hair.clone() },
-                ImageEdit::AddToFolder { folder_id: "不存在".into() },
+                ImageEdit::AddToFolder {
+                    folder_id: hair.clone()
+                },
+                ImageEdit::AddToFolder {
+                    folder_id: "不存在".into()
+                },
             ]
         ),
         Err(Error::UnknownFolder)
@@ -256,8 +263,114 @@ fn a_note_is_kept_across_reopening_and_can_be_reverted_to_what_the_source_gave()
         library.image(&ids[0]).unwrap().note.manual.as_deref(),
         Some("看左手的透视")
     );
-    assert_eq!(library.image(&ids[1]).unwrap().note.manual.as_deref(), Some(""));
+    assert_eq!(
+        library.image(&ids[1]).unwrap().note.manual.as_deref(),
+        Some("")
+    );
 
     let details = library.edit(&ids, &[ImageEdit::RevertNote]).unwrap();
     assert!(details.iter().all(|d| d.note == none));
+}
+
+#[test]
+fn deleted_images_leave_browsing_and_counts_and_come_back_from_the_trash() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = library_with(dir.path(), 4);
+    let hair = library.create_folder("发型", None).unwrap();
+    library
+        .edit(
+            &ids[0..3],
+            &[ImageEdit::AddToFolder {
+                folder_id: hair.clone(),
+            }],
+        )
+        .unwrap();
+    let in_folder = BrowseScope::Folder { id: hair.clone() };
+
+    // 批量删除两张。
+    let deleted = library.edit(&ids[0..2], &[ImageEdit::Delete]).unwrap();
+    assert!(deleted.iter().all(|d| d.deleted_at.is_some()));
+
+    let mut trash = browse(&library, BrowseScope::Trash);
+    trash.sort();
+    let mut expected = ids[0..2].to_vec();
+    expected.sort();
+    assert_eq!(trash, expected);
+    let all = browse(&library, BrowseScope::All);
+    assert_eq!(all.len(), 2);
+    assert!(!all.contains(&ids[0]) && !all.contains(&ids[1]));
+    assert_eq!(browse(&library, in_folder.clone()), ids[2..3]);
+    let page = library
+        .browse(&BrowseQuery {
+            scope: BrowseScope::All,
+            cursor: None,
+            limit: 1,
+            thumbnail_px: 256,
+        })
+        .unwrap();
+    assert_eq!(page.total, 2);
+    let sidebar = library.sidebar().unwrap();
+    assert_eq!((sidebar.all, sidebar.trash), (2, 2));
+    assert_eq!(tree(&sidebar.folders), "发型(1)");
+    // 回收站里的图仍能查看，仍记得所在的文件夹。
+    assert_eq!(library.image(&ids[0]).unwrap().folders.len(), 1);
+
+    // 重开后仍在回收站；恢复一张，它回到原来的文件夹。
+    drop(library);
+    let library = Library::open(&dir.path().join("lib")).unwrap();
+    assert_eq!(browse(&library, BrowseScope::Trash).len(), 2);
+    let restored = library.edit(&ids[0..1], &[ImageEdit::Restore]).unwrap();
+    assert_eq!(restored[0].deleted_at, None);
+    assert_eq!(browse(&library, BrowseScope::Trash), ids[1..2]);
+    assert_eq!(browse(&library, BrowseScope::All).len(), 3);
+    let mut back = browse(&library, in_folder);
+    back.sort();
+    let mut expected = vec![ids[0].clone(), ids[2].clone()];
+    expected.sort();
+    assert_eq!(back, expected);
+    let sidebar = library.sidebar().unwrap();
+    assert_eq!((sidebar.all, sidebar.trash), (3, 1));
+    assert_eq!(tree(&sidebar.folders), "发型(2)");
+}
+
+#[test]
+fn deleting_again_keeps_the_first_deletion_time() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = library_with(dir.path(), 1);
+    let first = library.edit(&ids, &[ImageEdit::Delete]).unwrap()[0].deleted_at;
+    std::thread::sleep(std::time::Duration::from_millis(5));
+    let again = library.edit(&ids, &[ImageEdit::Delete]).unwrap()[0].deleted_at;
+    assert_eq!(first, again);
+}
+
+#[test]
+fn an_edit_tells_listeners_only_after_it_is_committed() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = library_with(dir.path(), 1);
+    let events = library.events();
+
+    library.edit(&ids, &[ImageEdit::Delete]).unwrap();
+
+    match events
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .unwrap()
+    {
+        kinshoko_core::library::LibraryEvent::ListStale { library_id } => {
+            assert_eq!(library_id, library.info().id);
+            // 收到事件时，变化已经能被读到。
+            assert!(browse(&library, BrowseScope::All).is_empty());
+        }
+        other => panic!("意外的事件：{other:?}"),
+    }
+    // 失败的编辑不推送事件。
+    assert!(
+        library
+            .edit(&["不存在".to_owned()], &[ImageEdit::Delete])
+            .is_err()
+    );
+    assert!(
+        events
+            .recv_timeout(std::time::Duration::from_millis(200))
+            .is_err()
+    );
 }

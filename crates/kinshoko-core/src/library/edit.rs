@@ -9,7 +9,7 @@ use super::{Error, Inner, folders, now_ms};
 
 /// 对参考图的一项编辑。一次 `edit` 把编辑列表按顺序用在每张图上，全部成功才提交。
 ///
-/// 新的编辑种类（例如标签决定、分级）在这里加变体，并在 [`apply`] 里处理。
+/// 新的编辑种类（例如标签决定、分级）在这里加变体，并在本模块的 `apply` 里处理。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 #[ts(export)]
@@ -24,6 +24,11 @@ pub enum ImageEdit {
     SetNote { text: String },
     /// 撤掉画师的备注，退回来源提供的备注。
     RevertNote,
+    /// 可恢复删除：移进回收站，不再出现在浏览与计数中；文件夹与备注保留。
+    /// 已在回收站里的图保持原来的删除时间。
+    Delete,
+    /// 从回收站恢复。
+    Restore,
 }
 
 /// 参考图所在的一个文件夹。
@@ -67,6 +72,9 @@ pub struct ImageDetail {
     /// 所在的文件夹，按名称排序。
     pub folders: Vec<FolderRef>,
     pub note: ImageNote,
+    /// 移进回收站的时间（Unix 毫秒）；不在回收站时为空。
+    #[ts(type = "number | null")]
+    pub deleted_at: Option<i64>,
 }
 
 pub(super) fn edit(
@@ -110,14 +118,16 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<(), Erro
         }
         ImageEdit::RemoveFromFolder { folder_id } => {
             folders::ensure_folder(conn, folder_id)?;
-            let mut stmt = conn
-                .prepare_cached("DELETE FROM folder_member WHERE folder_id = ?1 AND image_id = ?2")?;
+            let mut stmt = conn.prepare_cached(
+                "DELETE FROM folder_member WHERE folder_id = ?1 AND image_id = ?2",
+            )?;
             for id in ids {
                 stmt.execute(params![folder_id, id])?;
             }
         }
         ImageEdit::SetNote { text } => {
-            let mut stmt = conn.prepare_cached("UPDATE image SET note_manual = ?1 WHERE id = ?2")?;
+            let mut stmt =
+                conn.prepare_cached("UPDATE image SET note_manual = ?1 WHERE id = ?2")?;
             for id in ids {
                 stmt.execute(params![text, id])?;
             }
@@ -129,16 +139,32 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<(), Erro
                 stmt.execute([id])?;
             }
         }
+        ImageEdit::Delete => {
+            let mut stmt = conn.prepare_cached(
+                "UPDATE image SET deleted_at = ?1 WHERE id = ?2 AND deleted_at IS NULL",
+            )?;
+            let now = now_ms();
+            for id in ids {
+                stmt.execute(params![now, id])?;
+            }
+        }
+        ImageEdit::Restore => {
+            let mut stmt =
+                conn.prepare_cached("UPDATE image SET deleted_at = NULL WHERE id = ?1")?;
+            for id in ids {
+                stmt.execute([id])?;
+            }
+        }
     }
     Ok(())
 }
 
 pub(super) fn detail(conn: &Connection, id: &str) -> Result<ImageDetail, Error> {
-    let (width, height, manual_note) = conn
+    let (width, height, manual_note, deleted_at) = conn
         .query_row(
-            "SELECT width, height, note_manual FROM image WHERE id = ?1",
+            "SELECT width, height, note_manual, deleted_at FROM image WHERE id = ?1",
             [id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         )
         .optional()?
         .ok_or(Error::UnknownImage)?;
@@ -175,5 +201,6 @@ pub(super) fn detail(conn: &Connection, id: &str) -> Result<ImageDetail, Error> 
             manual: manual_note,
             sources,
         },
+        deleted_at,
     })
 }

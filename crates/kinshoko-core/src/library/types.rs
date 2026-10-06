@@ -29,6 +29,8 @@ pub enum BrowseScope {
     All,
     /// 直接放在某个文件夹里的可见图（不含子文件夹）。
     Folder { id: String },
+    /// 回收站：可恢复删除的图。
+    Trash,
 }
 
 /// 一次浏览请求。条件树与排序随查找切片加入。
@@ -144,6 +146,7 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
             ),
             Some(id),
         ),
+        BrowseScope::Trash => (format!("NOT ({LIVE}) AND ?1 IS NULL"), None),
     };
 
     let conn = inner.readers.get();

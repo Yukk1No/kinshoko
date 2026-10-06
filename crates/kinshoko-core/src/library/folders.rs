@@ -45,7 +45,8 @@ fn siblings(conn: &Connection, parent: Option<&str>) -> Result<Vec<String>, Erro
 }
 
 fn renumber(conn: &Connection, parent: Option<&str>, ids: &[String]) -> Result<(), Error> {
-    let mut stmt = conn.prepare_cached("UPDATE folder SET parent_id = ?1, ord = ?2 WHERE id = ?3")?;
+    let mut stmt =
+        conn.prepare_cached("UPDATE folder SET parent_id = ?1, ord = ?2 WHERE id = ?3")?;
     for (ord, id) in ids.iter().enumerate() {
         stmt.execute(params![parent, ord as i64, id])?;
     }
@@ -73,7 +74,10 @@ pub(super) fn rename(inner: &Inner, id: &str, name: &str) -> Result<(), Error> {
     let name = valid_name(name)?;
     let id = id.to_owned();
     inner.write(move |tx| {
-        match tx.execute("UPDATE folder SET name = ?1 WHERE id = ?2", params![name, id])? {
+        match tx.execute(
+            "UPDATE folder SET name = ?1 WHERE id = ?2",
+            params![name, id],
+        )? {
             0 => Err(Error::UnknownFolder),
             _ => Ok(()),
         }
