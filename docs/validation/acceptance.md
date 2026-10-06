@@ -1,6 +1,6 @@
 # 首个本地版本的验收约定
 
-2026-10-05。来源：[#4 确定首个本地版本的验收样本与指标](https://github.com/Yukk1No/kinshoko/issues/4) 的第十一轮访谈（Q44～Q67，记录见 [alignment.md](../discovery/alignment.md#第十一轮已确认)）；桌面钉图一节按第十二轮（Q68～Q73）修订，内容分级与安全模式一节按第十四轮（Q97～Q111）修订。本文供 [#6](https://github.com/Yukk1No/kinshoko/issues/6)、[#7](https://github.com/Yukk1No/kinshoko/issues/7)、[#8](https://github.com/Yukk1No/kinshoko/issues/8) 等原型使用，不是实现规格；表中数值均为尚未实测的假设，原型结果可以修正，修正前后两版都要保留。
+2026-10-05。来源：[#4 确定首个本地版本的验收样本与指标](https://github.com/Yukk1No/kinshoko/issues/4) 的第十一轮访谈（Q44～Q67，记录见 [alignment.md](../discovery/alignment.md#第十一轮已确认)）；桌面钉图一节按第十二轮（Q68～Q73）修订，内容分级与安全模式一节按第十四轮（Q97～Q111）修订。图片还原度与近似查找两节按 [#9](https://github.com/Yukk1No/kinshoko/issues/9) 新增（2026-10-06）。本文供 [#6](https://github.com/Yukk1No/kinshoko/issues/6)、[#7](https://github.com/Yukk1No/kinshoko/issues/7)、[#8](https://github.com/Yukk1No/kinshoko/issues/8) 等原型使用，不是实现规格；表中数值均为尚未实测的假设，原型结果可以修正，修正前后两版都要保留。
 
 ## 验收原则
 
@@ -127,6 +127,34 @@
 清晰度由画师对照 1:1 原图判断。其他品牌、多显示器、混合缩放和其他绘画软件进入[兼容性矩阵](../../.github/ISSUE_TEMPLATE/compatibility.yml)，由社区填报，不作首版门槛。
 
 </details>
+
+## 图片还原度（#9）
+
+管线见 [ADR-0005](../adr/0005-two-path-display-pipeline.md) 与[图片还原度管线核查](../research/image-fidelity-pipeline.md)。门槛实验是第一颗 tracer bullet 的一部分，在开发机与画师电脑上执行，记录 GPU、驱动、Windows 与 WebView2 Runtime 版本、显示器 ICC、HDR 与自动色彩管理状态。
+
+客观门槛（数值为假设）：
+
+- 原文件 SHA-256 在导入、显示、备份后不变（原图不重编码）。
+- 以 WebView2 对同一原图的解码为基准，在 `display-p3` canvas 中读回，缩略图色块的 ΔE2000 < 1。样本按核查“尚未验证”一节构造：ICC v2／v4、Display P3、Adobe RGB、LUT 型 ICC、CMYK JPEG、16 位 PNG、只有 gAMA 的 PNG、透明边缘、EXIF 方向 1～8、细线。
+- 广色域图在钉图中不被裁到 sRGB。
+- 截图钉图未缩放、未翻转旋转时，显示的像素与截取时屏幕一致（同 #7 一节）。
+
+画师反馈：线性光与编码值空间两种缩小方式的缩略图对比，由画师在自己的屏幕上选择；选定结果补记于此。
+
+只记录：缩略图生成耗时与体积。
+
+## 近似查找（#9）
+
+首版用内置近似对应表与个人近似对应表（[ADR-0003](../adr/0003-tag-identity-and-approximate-search.md)、[技术路线](../discovery/technical-route.md#首版范围)）。
+
+客观门槛：
+
+- 查找时展开的相近标签都显示在条件中，改回精确后结果与精确查找一致。
+- 个人近似对应表中的“不相近”压过内置近似对应表的同一对；更新内置近似对应表后，个人条目不变。
+- 个人近似对应表随资料库备份与恢复往返一致。
+- 安全模式开启时，展开结果与计数不暴露被封印的图。
+
+画师反馈：在“自动标签与内容分级”一节的约 12 条查询上，比较精确与近似展开的“这一屏值得刷吗”。
 
 ## 交互响应
 

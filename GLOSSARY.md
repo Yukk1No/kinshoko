@@ -45,8 +45,13 @@ _Avoid_: 分类
 
 _Avoid_: 模糊搜索、扩展搜索
 
-**近似对应表（Approximate Match Table）**：
-近似查找依据的相近标签对照，按外部对应写成，例如 `aqua_eyes` 与 `blue_eyes` 相近。
+**内置近似对应表（Built-in Approximate Match Table）**：
+随软件维护的相近标签对照，按外部对应写成，例如 `aqua_eyes` 与 `blue_eyes` 相近；没有外部对应的标签不在其中。
+
+_Avoid_: 近似对应表（未说明是哪一份时）
+
+**个人近似对应表（Personal Approximate Match Table）**：
+画师在某个资料库中对相近标签的增减：可以把库内任意两个标签记为相近，也可以否定内置近似对应表中的某一对。随资料库保存，与内置近似对应表冲突时以它为准。
 
 **自动标签建议（Tag Suggestion）**：
 根据参考图内容自动提出的标签候选。
