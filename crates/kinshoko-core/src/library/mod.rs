@@ -28,7 +28,7 @@ use std::sync::mpsc::Receiver;
 
 use rusqlite::{OptionalExtension, params};
 
-pub use edit::{FolderRef, ImageDetail, ImageEdit};
+pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, SourceNote};
 pub use error::Error;
 pub use events::LibraryEvent;
 pub use folders::FolderNode;

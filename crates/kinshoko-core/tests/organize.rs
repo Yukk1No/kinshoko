@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::library::{
-    BrowseQuery, BrowseScope, Error, FolderNode, ImageEdit, ImportOutcome, ImportSource,
+    BrowseQuery, BrowseScope, Error, FolderNode, ImageEdit, ImageNote, ImportOutcome, ImportSource,
 };
 
 fn write_png(path: &Path, seed: u8) -> PathBuf {
@@ -219,4 +219,45 @@ fn a_batch_edit_with_an_unknown_image_or_folder_changes_nothing() {
         Err(Error::UnknownFolder)
     ));
     assert!(browse(&library, BrowseScope::Folder { id: hair }).is_empty());
+}
+
+#[test]
+fn a_note_is_kept_across_reopening_and_can_be_reverted_to_what_the_source_gave() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = library_with(dir.path(), 2);
+    // 普通文件导入不带备注。
+    let none = ImageNote {
+        manual: None,
+        sources: vec![],
+    };
+    assert_eq!(library.image(&ids[0]).unwrap().note, none);
+
+    let details = library
+        .edit(
+            &ids,
+            &[ImageEdit::SetNote {
+                text: "看左手的透视".into(),
+            }],
+        )
+        .unwrap();
+    assert!(
+        details
+            .iter()
+            .all(|d| d.note.manual.as_deref() == Some("看左手的透视"))
+    );
+    // 清空也是画师写下的备注，不退回来源。
+    library
+        .edit(&ids[1..2], &[ImageEdit::SetNote { text: "".into() }])
+        .unwrap();
+    drop(library);
+
+    let library = Library::open(&dir.path().join("lib")).unwrap();
+    assert_eq!(
+        library.image(&ids[0]).unwrap().note.manual.as_deref(),
+        Some("看左手的透视")
+    );
+    assert_eq!(library.image(&ids[1]).unwrap().note.manual.as_deref(), Some(""));
+
+    let details = library.edit(&ids, &[ImageEdit::RevertNote]).unwrap();
+    assert!(details.iter().all(|d| d.note == none));
 }

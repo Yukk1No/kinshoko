@@ -20,6 +20,10 @@ pub enum ImageEdit {
     /// 移出文件夹；不在其中时不变。
     #[serde(rename_all = "camelCase")]
     RemoveFromFolder { folder_id: String },
+    /// 写下画师的备注。空字符串也算画师写的（清空了备注）。
+    SetNote { text: String },
+    /// 撤掉画师的备注，退回来源提供的备注。
+    RevertNote,
 }
 
 /// 参考图所在的一个文件夹。
@@ -29,6 +33,27 @@ pub enum ImageEdit {
 pub struct FolderRef {
     pub id: String,
     pub name: String,
+}
+
+/// 备注：画师写的与来源提供的分开保存。画师写过时显示画师的，否则显示来源的。
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ImageNote {
+    /// 画师写的备注；`None` 表示没有写过（或已退回来源）。
+    pub manual: Option<String>,
+    /// 各来源提供的备注（例如 Eagle 的整图备注）。普通文件导入没有。
+    pub sources: Vec<SourceNote>,
+}
+
+/// 某个来源提供的备注。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SourceNote {
+    /// 来源种类，例如 `file`、`eagle`。
+    pub source: String,
+    pub text: String,
 }
 
 /// 查看单张参考图所需的详情。
@@ -41,6 +66,7 @@ pub struct ImageDetail {
     pub height: u32,
     /// 所在的文件夹，按名称排序。
     pub folders: Vec<FolderRef>,
+    pub note: ImageNote,
 }
 
 pub(super) fn edit(
@@ -90,16 +116,29 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<(), Erro
                 stmt.execute(params![folder_id, id])?;
             }
         }
+        ImageEdit::SetNote { text } => {
+            let mut stmt = conn.prepare_cached("UPDATE image SET note_manual = ?1 WHERE id = ?2")?;
+            for id in ids {
+                stmt.execute(params![text, id])?;
+            }
+        }
+        ImageEdit::RevertNote => {
+            let mut stmt =
+                conn.prepare_cached("UPDATE image SET note_manual = NULL WHERE id = ?1")?;
+            for id in ids {
+                stmt.execute([id])?;
+            }
+        }
     }
     Ok(())
 }
 
 pub(super) fn detail(conn: &Connection, id: &str) -> Result<ImageDetail, Error> {
-    let (width, height) = conn
+    let (width, height, manual_note) = conn
         .query_row(
-            "SELECT width, height FROM image WHERE id = ?1",
+            "SELECT width, height, note_manual FROM image WHERE id = ?1",
             [id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
         .optional()?
         .ok_or(Error::UnknownImage)?;
@@ -115,10 +154,26 @@ pub(super) fn detail(conn: &Connection, id: &str) -> Result<ImageDetail, Error> 
             })
         })?
         .collect::<Result<_, _>>()?;
+    let mut stmt = conn.prepare_cached(
+        "SELECT source, note FROM image_source WHERE image_id = ?1 AND note IS NOT NULL
+         ORDER BY recorded_at, source, location",
+    )?;
+    let sources = stmt
+        .query_map([id], |row| {
+            Ok(SourceNote {
+                source: row.get(0)?,
+                text: row.get(1)?,
+            })
+        })?
+        .collect::<Result<_, _>>()?;
     Ok(ImageDetail {
         id: id.to_owned(),
         width,
         height,
         folders,
+        note: ImageNote {
+            manual: manual_note,
+            sources,
+        },
     })
 }
