@@ -81,6 +81,16 @@ jobs:
       - name: Tauri 原生构建与安装包
         run: npm run build
 
+      # Tauri 官方 WebDriver：tauri-driver 转发给与 WebView2 版本一致的 msedgedriver。
+      - name: 安装 WebDriver 工具
+        run: |
+          cargo install tauri-driver --locked
+          cargo install --git https://github.com/chippers/msedgedriver-tool
+          msedgedriver-tool
+
+      - name: WebDriver 冒烟测试（建库、导入、浏览、重开）
+        run: node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe
+
       - uses: actions/upload-artifact@v4
         with:
           name: kinshoko-setup-${{ github.sha }}

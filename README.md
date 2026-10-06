@@ -24,6 +24,7 @@
 | `src-tauri/` | Tauri 2 应用壳（crate `kinshoko`）。命令层只做转发、类型转换和事件推送。 |
 | `src/` | React 19＋TS＋Vite 前端；`src/ipc.ts` 是调用 Tauri 命令的唯一入口。 |
 | `src/bindings/` | ts-rs 从核心 crate 生成的前后端契约类型，**不要手改**，生成后提交。 |
+| `e2e/` | Tauri WebDriver 冒烟测试（建库、导入、浏览、重开），只用 Node 自带模块。 |
 | `tools/`、`prototype/` | 独立的探测工具与原型，各带自己的锁文件，不在 Cargo 工作区内。 |
 
 ### 环境
@@ -45,6 +46,7 @@ npm run bindings        # 跑核心 crate 测试，并重新生成 src/bindings/
 cargo test -p kinshoko-core
 cargo fmt --all
 cargo clippy --workspace --all-targets -- -D warnings   # 需先 npm run vite:build 产出 dist/
+node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # 需 tauri-driver 与匹配 WebView2 版本的 msedgedriver
 ```
 
 改了跨前后端的 Rust 类型（带 `#[ts(export)]`）后运行 `npm run bindings` 并提交生成物；CI 会重新生成并检查与提交内容一致。CI 在 `windows-latest` 上依次运行格式检查、Clippy、核心 crate 测试、生成物检查、TS 类型检查、前端测试与 Tauri 原生构建，见 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)。
