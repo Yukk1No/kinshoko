@@ -1,0 +1,86 @@
+name: eagle-check
+
+on:
+  push:
+    paths:
+      - "prototype/storage-roundtrip/**"
+      - ".github/workflows/eagle-check.yml"
+  pull_request:
+    paths:
+      - "prototype/storage-roundtrip/**"
+      - ".github/workflows/eagle-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: prototype/storage-roundtrip
+    env:
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pyinstaller==6.*
+      - name: Constructed-sample round trip (run.py)
+        run: python run.py
+      - name: Build exe
+        run: |
+          python -m PyInstaller --onefile --console --name kinshoko-eagle-check --distpath dist eagle_check.py
+          python -m PyInstaller --onefile --console --name kinshoko-eagle-tags --distpath dist eagle_tags.py
+      - name: Self-test exe against fixture libraries
+        shell: pwsh
+        run: |
+          $T = $env:RUNNER_TEMP
+          function Check($work, [string[]]$libs) {
+            ./dist/kinshoko-eagle-check.exe @libs --yes --no-open --work $work
+            $code = $LASTEXITCODE
+            $s = Get-Content "$work/报告/summary.json" -Raw | ConvertFrom-Json
+            if ($code -ne 0 -or $s.passed -ne 44 -or $s.failed -ne 0 -or $s.skipped -ne 0 -or $s.error) {
+              Get-Content "$work/报告/report.md"; throw "$work：退出码 $code，$($s.passed) 通过 / $($s.failed) 未通过 / $($s.skipped) 未覆盖，应为 44/0/0"
+            }
+          }
+          python make_eagle_fixture.py "$T/fx" --n 150
+          python make_eagle_fixture.py "$T/fx22" --n 22
+          $env:APPDATA = "$T/fx/appdata"
+          Check "$T/w-auto" @()                                        # 自动找库，两个库
+          Check "$T/w-one" @("$T/fx/libs/主库.library")                 # 只有一个库，全部图片都进样本
+          Check "$T/w-small" @("$T/fx22/libs/主库.library", "$T/fx22/libs/第二个库.library")  # 小库：批量样本需合成补齐
+          # 工作区与资料库重叠：必须拒绝，原库原样保留
+          $lib = "$T/fx22/libs/主库.library"
+          $before = (Get-ChildItem -Recurse $lib | Measure-Object).Count
+          ./dist/kinshoko-eagle-check.exe $lib --yes --no-open --work $lib
+          if ($LASTEXITCODE -eq 0) { throw "重叠工作区没有被拒绝" }
+          $global:LASTEXITCODE = 0  # 拒绝时退出码 1 是预期的；不让它成为本步骤的退出码
+          if ((Get-ChildItem -Recurse $lib | Measure-Object).Count -ne $before) { throw "重叠工作区改动了原库" }
+          Remove-Item dist/kinshoko-eagle-check-报告-*.zip
+      - name: Self-test tag export
+        shell: pwsh
+        run: |
+          $T = $env:RUNNER_TEMP
+          "tag_id,name,category,count`n1,blue_hair,0,1" | Set-Content "$T/pixai.csv" -Encoding utf8
+          ./dist/kinshoko-eagle-tags.exe "$T/fx/libs/主库.library" --yes --out "$T/tags-out" --pixai-tags "$T/pixai.csv"
+          if ($LASTEXITCODE -ne 0) { throw "标签导出退出码 $LASTEXITCODE" }
+          $zip = Get-ChildItem "$T/tags-out/kinshoko-eagle-tags-*.zip"
+          if (-not $zip) { throw "没有生成标签导出 zip" }
+          Expand-Archive $zip.FullName "$T/tags-x"
+          if (-not (Test-Path "$T/tags-x/library1/tags.csv") -or -not (Test-Path "$T/tags-x/summary.md")) { throw "标签导出 zip 内容不全" }
+      - name: Package
+        shell: pwsh
+        run: |
+          $out = "dist/kinshoko-eagle-check"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          Move-Item dist/kinshoko-eagle-check.exe $out/
+          Move-Item dist/kinshoko-eagle-tags.exe $out/
+          Copy-Item 使用说明.md $out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kinshoko-eagle-check-${{ github.sha }}
+          path: prototype/storage-roundtrip/dist/kinshoko-eagle-check
+          retention-days: 30
