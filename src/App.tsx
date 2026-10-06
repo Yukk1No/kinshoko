@@ -1,16 +1,25 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowseScope } from "./bindings/BrowseScope";
 import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
 import type { ImportReport } from "./bindings/ImportReport";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
-import { appInfo, currentLibrary, onLibraryEvent, resolveSearch, shellSettings } from "./ipc";
+import {
+  appInfo,
+  currentLibrary,
+  onLibraryEvent,
+  resolveSearch,
+  safeMode,
+  setSafeMode,
+  shellSettings,
+} from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { ImportBar, type RunningImport } from "./library/ImportBar";
 import { SelectionPanel } from "./library/SelectionPanel";
 import { SidebarPane } from "./library/SidebarPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
+import { SealBook } from "./SealBook";
 import { SettingsPanel } from "./SettingsPanel";
 import { TaggingIndicator } from "./TaggingIndicator";
 import { scopeKey, Wall } from "./wall/Wall";
@@ -18,6 +27,8 @@ import { scopeKey, Wall } from "./wall/Wall";
 /**
  * 主窗口：打开上次的资料库（没有时引导建库），导入，在侧栏切换全部／文件夹／回收站，
  * 按搜索框的条件查找，在图片墙浏览并整理选中的图；状态栏可打开设置。
+ * 封印书或 Ctrl+Shift+S 切换安全模式（#60）：开启的那一刻先遮住将被封印的图，资料库确认后
+ * 它们离开图片墙，计数与候选随之刷新。
  */
 export function App() {
   const [info, setInfo] = useState<AppInfo | null>(null);
@@ -38,6 +49,23 @@ export function App() {
   /** 词表或图片变化时递增：重新解析条件（标签可能改名、删除或新增了叫法）。 */
   const [vocabularyKey, setVocabularyKey] = useState(0);
   const onError = useCallback((message: string) => setProblem(message), []);
+  /** 安全模式。读到设置之前按开启处理，不会先露出被封印的图。 */
+  const [safe, setSafe] = useState(true);
+  const safeRef = useRef(true);
+  safeRef.current = safe;
+  const toggleSafe = useCallback(() => {
+    const next = !safeRef.current;
+    // 不等后端：这一帧就开始遮蔽（或准备释放）。
+    safeRef.current = next;
+    setSafe(next);
+    setSafeMode(next).catch((e) => {
+      setProblem(`无法切换安全模式：${String(e)}`);
+      safeMode().then(
+        (on) => setSafe(on !== false),
+        () => setSafe(true),
+      );
+    });
+  }, []);
   const changeScope = (next: BrowseScope) => {
     setScope(next);
     setSelected(new Set());
@@ -46,6 +74,10 @@ export function App() {
   useEffect(() => {
     let alive = true;
     appInfo().then((value) => alive && setInfo(value));
+    safeMode().then(
+      (on) => alive && setSafe(on !== false),
+      () => {},
+    );
     shellSettings().then(
       (view) => alive && view && setShowApproxSource(view.showApproxSource),
       () => undefined,
@@ -63,6 +95,17 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        toggleSafe();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [toggleSafe]);
+
   const libraryId = library?.id;
   useEffect(() => {
     if (!libraryId) return;
@@ -74,6 +117,13 @@ export function App() {
           break;
         case "vocabularyChanged":
         case "imagesChanged":
+          setVocabularyKey((k) => k + 1);
+          break;
+        case "safeModeChanged":
+          setSafe(event.on);
+          // 选中的图可能已被封印：开启时清掉选择（查看单张时也就回到图片墙）。
+          if (event.on) setSelected(new Set());
+          setReloadKey((k) => k + 1);
           setVocabularyKey((k) => k + 1);
           break;
         case "taskProgress":
@@ -174,6 +224,7 @@ export function App() {
                 scope={scope}
                 conditions={tree}
                 reloadKey={reloadKey}
+                safeMode={safe}
                 selected={selected}
                 onSelectionChange={setSelected}
               />
@@ -195,6 +246,7 @@ export function App() {
       <footer className="app-status">
         <span>{info && `${info.productName} ${info.version}`}</span>
         {library && <TaggingIndicator key={library.id} />}
+        <SealBook on={safe} onToggle={toggleSafe} />
         <button
           type="button"
           aria-pressed={showSettings}

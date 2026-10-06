@@ -5,4 +5,4 @@ import type { ImportReport } from "./ImportReport";
 /**
  * 资料库推送给界面的事件。
  */
-export type LibraryEvent = { "kind": "listStale", libraryId: string, } | { "kind": "imagesChanged", libraryId: string, imageIds: Array<string>, } | { "kind": "vocabularyChanged", libraryId: string, revision: number, } | { "kind": "taskProgress", libraryId: string, taskId: string, progress: ImportProgress, } | { "kind": "taskFinished", libraryId: string, taskId: string, report: ImportReport, };
+export type LibraryEvent = { "kind": "listStale", libraryId: string, } | { "kind": "imagesChanged", libraryId: string, imageIds: Array<string>, } | { "kind": "vocabularyChanged", libraryId: string, revision: number, } | { "kind": "safeModeChanged", libraryId: string, on: boolean, } | { "kind": "taskProgress", libraryId: string, taskId: string, progress: ImportProgress, } | { "kind": "taskFinished", libraryId: string, taskId: string, report: ImportReport, };

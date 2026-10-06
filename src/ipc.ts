@@ -190,6 +190,16 @@ export function imageRating(imageId: string): Promise<ImageRating> {
   return invoke<ImageRating>(lib("image_rating"), { imageId });
 }
 
+/** 安全模式是否开启（全局设置，新装默认开启）。 */
+export function safeMode(): Promise<boolean> {
+  return invoke<boolean>(lib("safe_mode"));
+}
+
+/** 开关安全模式；当前资料库随后推送 safeModeChanged。 */
+export function setSafeMode(on: boolean): Promise<boolean> {
+  return invoke<boolean>(lib("set_safe_mode"), { on });
+}
+
 /** 自动标签的当前状态；还没打开资料库时 reject。 */
 export function taggingStatus(): Promise<TaggingStatus> {
   return invoke<TaggingStatus>("tagging_status");
