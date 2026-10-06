@@ -362,6 +362,11 @@ fn an_edit_tells_listeners_only_after_it_is_committed() {
         }
         other => panic!("意外的事件：{other:?}"),
     }
+    let rest: Vec<_> = events.try_iter().collect();
+    assert!(rest.iter().any(|e| matches!(
+        e,
+        kinshoko_core::library::LibraryEvent::ImagesChanged { image_ids, .. } if image_ids == &ids
+    )));
     // 失败的编辑不推送事件。
     assert!(
         library
@@ -373,4 +378,40 @@ fn an_edit_tells_listeners_only_after_it_is_committed() {
             .recv_timeout(std::time::Duration::from_millis(200))
             .is_err()
     );
+}
+
+#[test]
+fn tag_counts_leave_out_images_in_the_trash_and_the_vocabulary_moves_on() {
+    use kinshoko_core::library::{TagEdit, TagNamespace, TagRef};
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = library_with(dir.path(), 3);
+    library
+        .edit_tags(
+            &ids,
+            &[TagEdit::Add {
+                tag: TagRef::Named {
+                    namespace: TagNamespace::General,
+                    name: "蓝发".into(),
+                    lang: "zh".into(),
+                },
+            }],
+        )
+        .unwrap();
+    let count = |library: &Library| {
+        let vocabulary = library.vocabulary().unwrap();
+        (vocabulary.revision, vocabulary.tags[0].count)
+    };
+    let (before, n) = count(&library);
+    assert_eq!(n, 3);
+
+    library.edit(&ids[0..2], &[ImageEdit::Delete]).unwrap();
+    let (deleted, n) = count(&library);
+    assert_eq!(n, 1);
+    // 计数变了，词表修订号前进，按修订号缓存的词表快照随之失效。
+    assert!(deleted > before);
+
+    library.edit(&ids[0..1], &[ImageEdit::Restore]).unwrap();
+    let (restored, n) = count(&library);
+    assert_eq!(n, 2);
+    assert!(restored > deleted);
 }

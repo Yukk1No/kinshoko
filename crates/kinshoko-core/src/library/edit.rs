@@ -5,7 +5,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{Error, Inner, folders, now_ms};
+use super::{Error, Inner, LibraryEvent, folders, now_ms, tags};
 
 /// 对参考图的一项编辑。一次 `edit` 把编辑列表按顺序用在每张图上，全部成功才提交。
 ///
@@ -86,15 +86,41 @@ pub(super) fn edit(
     let mut seen = std::collections::HashSet::new();
     ids.retain(|id| seen.insert(id.clone()));
     let edits = edits.to_vec();
-    inner.write(move |tx| {
+    // 删除与恢复改变标签计数：词表修订号随之前进。
+    let recount = edits
+        .iter()
+        .any(|e| matches!(e, ImageEdit::Delete | ImageEdit::Restore));
+    let changed = ids.clone();
+    let (details, revision) = inner.write(move |tx| {
         for id in &ids {
             ensure_image(tx, id)?;
         }
         for edit in &edits {
             apply(tx, &ids, edit)?;
         }
-        ids.iter().map(|id| detail(tx, id)).collect()
-    })
+        let details = ids
+            .iter()
+            .map(|id| detail(tx, id))
+            .collect::<Result<Vec<_>, _>>()?;
+        let revision = if recount {
+            Some(tags::bump_revision(tx)?)
+        } else {
+            None
+        };
+        Ok((details, revision))
+    })?;
+    let library_id = inner.info.id.clone();
+    inner.hub.publish(LibraryEvent::ImagesChanged {
+        library_id: library_id.clone(),
+        image_ids: changed,
+    });
+    if let Some(revision) = revision {
+        inner.hub.publish(LibraryEvent::VocabularyChanged {
+            library_id,
+            revision,
+        });
+    }
+    Ok(details)
 }
 
 fn ensure_image(conn: &Connection, id: &str) -> Result<(), Error> {
