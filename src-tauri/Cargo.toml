@@ -1,0 +1,23 @@
+[package]
+name = "kinshoko"
+description = "Kinshoko 的 Tauri 应用壳：命令层只做转发、类型转换和事件推送。"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+name = "kinshoko_app"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+kinshoko-core.workspace = true
+tauri = { version = "2", features = [] }
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
