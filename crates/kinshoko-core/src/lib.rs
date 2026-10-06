@@ -6,7 +6,13 @@
 mod app_shell;
 mod device;
 pub mod library;
+mod settings;
+mod shortcuts;
 
 pub use app_shell::{AppInfo, app_info};
 pub use device::{DeviceRegistry, RegisteredLibrary};
 pub use library::Library;
+pub use settings::{AppSettings, SettingsError, ShortcutAction};
+pub use shortcuts::{
+    GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutBinding, ShortcutError,
+};

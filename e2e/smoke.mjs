@@ -5,10 +5,10 @@
 // msedgedriver。直接说 W3C WebDriver 协议，不引入 WebdriverIO 等依赖。
 // 原生文件对话框无法由 WebDriver 操作，测试把要“选中”的路径放进 window.__KINSHOKO_TEST_PICKS__。
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
 
 const [, , appArg, edgeDriverArg] = process.argv;
@@ -144,6 +144,16 @@ class Session {
   }
 }
 
+/** 结束被测应用的进程，并等它真正退出。 */
+async function quitApp() {
+  const image = basename(application);
+  spawnSync("taskkill", ["/F", "/T", "/IM", image], { stdio: "ignore" });
+  await until("应用进程退出", () => {
+    const out = spawnSync("tasklist", ["/FI", `IMAGENAME eq ${image}`, "/NH"], { encoding: "utf8" });
+    return !out.stdout.toLowerCase().includes(image.toLowerCase());
+  });
+}
+
 const button = (name) => `//button[normalize-space()='${name}']`;
 
 function assert(ok, message) {
@@ -153,7 +163,7 @@ function assert(ok, message) {
 
 const driverArgs = edgeDriverArg ? ["--native-driver", resolve(edgeDriverArg)] : [];
 const driver = spawn("tauri-driver", driverArgs, {
-  env: { ...process.env, KINSHOKO_DATA_DIR: dataDir },
+  env: { ...process.env, KINSHOKO_DATA_DIR: dataDir, KINSHOKO_SKIP_AUTOSTART: "1" },
   stdio: ["ignore", "inherit", "inherit"],
 });
 
@@ -190,8 +200,11 @@ try {
     `瀑布流按原比例显示（${sorted.map((r) => r.toFixed(2)).join("、")}）`,
   );
 
-  // 关闭后重开
+  // 关闭后重开。应用常驻托盘（#61），关掉窗口进程仍在，单实例插件会把新启动交给它；
+  // 所以结束进程本身，等同“退出”后再启动。
   await session.close();
+  session = null;
+  await quitApp();
   session = await Session.start();
   await session.waitFor("重开后打开上次的资料库", "//h1[normalize-space()='冒烟测试库']");
   const after = await until("重开后的缩略图", async () => {
@@ -207,6 +220,7 @@ try {
   process.exitCode = 1;
 } finally {
   if (session) await session.close().catch(() => {});
+  await quitApp().catch(() => {});
   driver.kill();
   rmSync(work, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
 }

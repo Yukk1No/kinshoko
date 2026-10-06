@@ -5,11 +5,13 @@ import type { LibraryInfo } from "./bindings/LibraryInfo";
 import { appInfo, currentLibrary, onLibraryEvent } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { ImportBar, type RunningImport } from "./library/ImportBar";
+import { SettingsPanel } from "./SettingsPanel";
 import { Wall } from "./wall/Wall";
 
-/** 主窗口：打开上次的资料库（没有时引导建库），导入，并在图片墙浏览。 */
+/** 主窗口：打开上次的资料库（没有时引导建库），导入，并在图片墙浏览；状态栏可打开设置。 */
 export function App() {
   const [info, setInfo] = useState<AppInfo | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   // undefined：还在打开；null：本设备还没有资料库。
   const [library, setLibrary] = useState<LibraryInfo | null | undefined>(undefined);
   const [openError, setOpenError] = useState<string | null>(null);
@@ -85,7 +87,17 @@ export function App() {
           {library === null && <CreateLibrary onCreated={setLibrary} />}
         </main>
       )}
-      <footer className="app-status">{info && `${info.productName} ${info.version}`}</footer>
+      {showSettings && <SettingsPanel />}
+      <footer className="app-status">
+        <span>{info && `${info.productName} ${info.version}`}</span>
+        <button
+          type="button"
+          aria-pressed={showSettings}
+          onClick={() => setShowSettings((shown) => !shown)}
+        >
+          设置
+        </button>
+      </footer>
     </div>
   );
 }

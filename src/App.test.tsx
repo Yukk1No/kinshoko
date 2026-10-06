@@ -148,4 +148,17 @@ describe("主窗口", () => {
     expect(screen.getByText("不支持的格式")).toBeTruthy();
     expect(screen.getByText("读取失败：无法解码")).toBeTruthy();
   });
+
+  it("从状态栏打开设置", async () => {
+    mockIPC((cmd) => {
+      if (cmd === "app_info") return { productName: "Kinshoko", version: "9.9.9" };
+      if (cmd === "shell_settings") return { autostart: true, shortcuts: [] };
+      return undefined;
+    });
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "设置" }));
+
+    expect(await screen.findByRole("region", { name: "设置" })).toBeTruthy();
+  });
 });

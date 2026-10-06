@@ -7,12 +7,14 @@ import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
+import type { ShellSettingsView } from "./bindings/ShellSettingsView";
+import type { ShortcutAction } from "./bindings/ShortcutAction";
 
 export function appInfo(): Promise<AppInfo> {
   return invoke<AppInfo>("app_info");
 }
 
-const lib = (command: string) => `plugin:library|${command}`;
+const lib =(command: string) => `plugin:library|${command}`;
 
 /** 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。 */
 export function currentLibrary(): Promise<LibraryInfo | null> {
@@ -67,4 +69,22 @@ export function pickFolder(): Promise<string | null> {
 export function pickFiles(): Promise<string[]> {
   const t = testPick<string[]>();
   return t ? Promise.resolve(t.value ?? []) : invoke<string[]>(lib("pick_files"));
+}
+
+/** 应用壳设置：开机自启与全局快捷键。 */
+export function shellSettings(): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("shell_settings");
+}
+
+/** 开关开机自启。失败时 reject 一条给画师看的中文原因。 */
+export function setAutostart(on: boolean): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_autostart", { on });
+}
+
+/** 更换全局快捷键，立即生效；`null` 表示清除。失败时 reject 中文原因，原来的键不变。 */
+export function rebindShortcut(
+  action: ShortcutAction,
+  accelerator: string | null,
+): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("rebind_shortcut", { action, accelerator });
 }
