@@ -492,7 +492,7 @@ export default function App() {
           {!paneOpen && <button className="icon-tool" onClick={() => setPaneOpen(true)} aria-label="展开侧栏" title="展开（Ctrl+B）"><PanelLeft size={16} /></button>}
           <div className="lib-switch">
             <button className="lib-btn" onClick={() => setLibMenu((v) => !v)} aria-expanded={libMenu} aria-haspopup="menu">
-              <span className="muted small">资料库</span><strong>{library.name}</strong><ChevronDown size={14} />
+              <span className="lib-label"><span className="muted small">资料库</span><strong>{library.name}</strong></span><ChevronDown size={14} />
             </button>
             {libMenu && <Menu x={(document.querySelector('.lib-btn')?.getBoundingClientRect().left ?? 0)} y={(document.querySelector('.lib-btn')?.getBoundingClientRect().bottom ?? 0) + 4}
               onClose={() => setLibMenu(false)} items={[
