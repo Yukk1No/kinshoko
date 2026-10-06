@@ -3,18 +3,35 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { AppInfo } from "./bindings/AppInfo";
+import type { ApproxRelation } from "./bindings/ApproxRelation";
+import type { PersonalApproxEntry } from "./bindings/PersonalApproxEntry";
+import type { Candidate } from "./bindings/Candidate";
+import type { ConditionTree } from "./bindings/ConditionTree";
+import type { SearchInput } from "./bindings/SearchInput";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
+import type { CaptureAction } from "./bindings/CaptureAction";
+import type { CaptureEntry } from "./bindings/CaptureEntry";
+import type { CollectedCapture } from "./bindings/CollectedCapture";
+import type { FrozenScreen } from "./bindings/FrozenScreen";
+import type { ImageDetail } from "./bindings/ImageDetail";
+import type { ImageEdit } from "./bindings/ImageEdit";
+import type { ImageRating } from "./bindings/ImageRating";
 import type { GatePlan } from "./bindings/GatePlan";
 import type { ImageTags } from "./bindings/ImageTags";
+import type { PinInfo } from "./bindings/PinInfo";
+import type { Region } from "./bindings/Region";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { RecoveryReport } from "./bindings/RecoveryReport";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
+import type { Sidebar } from "./bindings/Sidebar";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { TagEdit } from "./bindings/TagEdit";
 import type { TagGroupView } from "./bindings/TagGroupView";
+import type { TaggingStatus } from "./bindings/TaggingStatus";
 import type { Vocabulary } from "./bindings/Vocabulary";
 
 export function appInfo(): Promise<AppInfo> {
@@ -35,6 +52,35 @@ export function createLibrary(parent: string, name: string): Promise<LibraryInfo
 
 export function browse(query: BrowseQuery): Promise<BrowsePage> {
   return invoke<BrowsePage>(lib("browse"), { query });
+}
+
+/** 单张参考图的详情。 */
+export function imageDetail(imageId: string): Promise<ImageDetail> {
+  return invoke<ImageDetail>(lib("image"), { imageId });
+}
+
+/** 一次批量整理若干张图，返回重新计算后的详情。 */
+export function editImages(ids: string[], edits: ImageEdit[]): Promise<ImageDetail[]> {
+  return invoke<ImageDetail[]>(lib("edit"), { ids, edits });
+}
+
+/** 侧栏：全部、回收站与文件夹树，计数只算可见的图。 */
+export function sidebar(): Promise<Sidebar> {
+  return invoke<Sidebar>(lib("sidebar"));
+}
+
+/** 新建文件夹，放在 parent 下（null 为顶层）的最后，返回文件夹 id。 */
+export function createFolder(name: string, parent: string | null): Promise<string> {
+  return invoke<string>(lib("create_folder"), { name, parent });
+}
+
+export function renameFolder(folderId: string, name: string): Promise<void> {
+  return invoke<void>(lib("rename_folder"), { folderId, name });
+}
+
+/** 把文件夹移到 parent 下（null 为顶层）的第 position 位，超出时放在最后。 */
+export function moveFolder(folderId: string, parent: string | null, position: number): Promise<void> {
+  return invoke<void>(lib("move_folder"), { folderId, parent, position });
 }
 
 /** 开始导入，立即返回任务 id；进度与结果经 onLibraryEvent 推送。 */
@@ -90,6 +136,31 @@ export function tagGroups(lang: string): Promise<TagGroupView[]> {
   return invoke<TagGroupView[]>(lib("tag_groups"), { lang });
 }
 
+/** 搜索框打字时的候选：按命名空间与别名列出，最多 limit 个。 */
+export function searchCandidates(text: string, lang: string, limit: number): Promise<Candidate[]> {
+  return invoke<Candidate[]>(lib("search_candidates"), { text, lang, limit });
+}
+
+/** 把搜索框里的条件解析成可见的条件树，交给 browse 执行。 */
+export function resolveSearch(input: SearchInput, lang: string): Promise<ConditionTree> {
+  return invoke<ConditionTree>(lib("resolve_search"), { input, lang });
+}
+
+/** 在个人近似对应表中记下两个标签相近（“＋”）或不相近（“以后都不展开”）。 */
+export function setTagApprox(a: string, b: string, relation: ApproxRelation): Promise<void> {
+  return invoke<void>(lib("set_tag_approx"), { a, b, relation });
+}
+
+/** 删除个人近似对应表中的一对，之后按内置近似对应表。 */
+export function removeTagApprox(a: string, b: string): Promise<void> {
+  return invoke<void>(lib("remove_tag_approx"), { a, b });
+}
+
+/** 个人近似对应表的条目，最近记下的在前，名称按界面语言 lang。 */
+export function personalApprox(lang: string): Promise<PersonalApproxEntry[]> {
+  return invoke<PersonalApproxEntry[]>(lib("personal_approx"), { lang });
+}
+
 export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<UnlistenFn> {
   return listen<LibraryEvent>("library-event", (e) => handler(e.payload));
 }
@@ -122,6 +193,44 @@ export function pickFiles(): Promise<string[]> {
   return t ? Promise.resolve(t.value ?? []) : invoke<string[]>(lib("pick_files"));
 }
 
+/** 一张参考图的内容分级（自动与有效）。 */
+export function imageRating(imageId: string): Promise<ImageRating> {
+  return invoke<ImageRating>(lib("image_rating"), { imageId });
+}
+
+/** 安全模式是否开启（全局设置，新装默认开启）。 */
+export function safeMode(): Promise<boolean> {
+  return invoke<boolean>(lib("safe_mode"));
+}
+
+/** 开关安全模式；当前资料库随后推送 safeModeChanged。 */
+export function setSafeMode(on: boolean): Promise<boolean> {
+  return invoke<boolean>(lib("set_safe_mode"), { on });
+}
+
+/** 自动标签的当前状态；还没打开资料库时 reject。 */
+export function taggingStatus(): Promise<TaggingStatus> {
+  return invoke<TaggingStatus>("tagging_status");
+}
+
+/** 画师确认后下载打标模型（可续传）。 */
+export function taggingDownload(): Promise<void> {
+  return invoke<void>("tagging_download");
+}
+
+/** 暂停打标：结束打标子进程，归还显存。 */
+export function taggingPause(): Promise<void> {
+  return invoke<void>("tagging_pause");
+}
+
+export function taggingResume(): Promise<void> {
+  return invoke<void>("tagging_resume");
+}
+
+export function onTaggingStatus(handler: (status: TaggingStatus) => void): Promise<UnlistenFn> {
+  return listen<TaggingStatus>("tagging-status", (e) => handler(e.payload));
+}
+
 /** 应用壳设置：开机自启与全局快捷键。 */
 export function shellSettings(): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("shell_settings");
@@ -132,12 +241,101 @@ export function setAutostart(on: boolean): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("set_autostart", { on });
 }
 
+/** 开关查找条件里相近标签的来源标记（内置／个人）。 */
+export function setShowApproxSource(on: boolean): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_show_approx_source", { on });
+}
+
 /** 更换全局快捷键，立即生效；`null` 表示清除。失败时 reject 中文原因，原来的键不变。 */
 export function rebindShortcut(
   action: ShortcutAction,
   accelerator: string | null,
 ): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("rebind_shortcut", { action, accelerator });
+}
+
+// ---------- 截图与钉图（#62） ----------
+
+const desk = (command: string) => `plugin:desktop|${command}`;
+
+/** 开始框选截图（与全局快捷键相同）。 */
+export function startCapture(): Promise<void> {
+  return invoke<void>(desk("start_capture"));
+}
+
+/** 框选窗口：要显示的冻结屏幕；没有进行中的截图时为 null。 */
+export function frozenScreen(): Promise<FrozenScreen | null> {
+  return invoke<FrozenScreen | null>(desk("frozen_screen"));
+}
+
+/** 框选窗口：冻结屏幕已画好，可以显示窗口了。 */
+export function captureReady(): Promise<void> {
+  return invoke<void>(desk("capture_ready"));
+}
+
+/** 框选完成；region 是相对显示器的物理像素。 */
+export function finishCapture(region: Region, action: CaptureAction): Promise<void> {
+  return invoke<void>(desk("finish_capture"), { region, action });
+}
+
+export function cancelCapture(): Promise<void> {
+  return invoke<void>(desk("cancel_capture"));
+}
+
+/** 把剪贴板里的图片钉住；剪贴板没有图片时 reject 中文原因。 */
+export function pinClipboard(): Promise<void> {
+  return invoke<void>(desk("pin_clipboard"));
+}
+
+/** 从截图历史钉住一张截图。 */
+export function pinCapture(id: string): Promise<void> {
+  return invoke<void>(desk("pin_capture"), { id });
+}
+
+export function pinInfo(pin: string): Promise<PinInfo | null> {
+  return invoke<PinInfo | null>(desk("pin_info"), { pin });
+}
+
+/** 钉图窗口：第一帧已画好，可以显示了。 */
+export function pinReady(pin: string): Promise<void> {
+  return invoke<void>(desk("pin_ready"), { pin });
+}
+
+/** 在钉图上弹出右键菜单。 */
+export function pinMenu(pin: string): Promise<void> {
+  return invoke<void>(desk("pin_menu"), { pin });
+}
+
+/** 数位笔与触摸拖动钉图：移到屏幕物理像素 (x, y)。 */
+export function movePin(pin: string, x: number, y: number): Promise<void> {
+  return invoke<void>(desk("move_pin"), { pin, x, y });
+}
+
+export function captureHistory(): Promise<CaptureEntry[]> {
+  return invoke<CaptureEntry[]>(desk("capture_history"));
+}
+
+/** 收藏：经资料库的普通导入入口存进当前资料库。 */
+export function collectCapture(id: string): Promise<CollectedCapture> {
+  return invoke<CollectedCapture>(desk("collect_capture"), { id });
+}
+
+export function deleteCapture(id: string): Promise<void> {
+  return invoke<void>(desk("delete_capture"), { id });
+}
+
+export function onCaptureHistory(handler: (entries: CaptureEntry[]) => void): Promise<UnlistenFn> {
+  return listen<CaptureEntry[]>("capture-history", (e) => handler(e.payload));
+}
+
+/** 发给本钉图窗口的提示（例如“已收藏到…”）。只收发给这个窗口的，不收别的钉图的。 */
+export function onPinNotice(handler: (text: string) => void): Promise<UnlistenFn> {
+  return getCurrentWebviewWindow().listen<string>("pin-notice", (e) => handler(e.payload));
+}
+
+/** 截图历史中的截图或冻结屏幕（自定义协议 capture）转成 <img> 可用的 URL。 */
+export function captureUrl(address: string): string {
+  return convertFileSrc("", "capture") + address;
 }
 
 // ---------- 还原度门槛实验（#45） ----------

@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { DragEvent, MouseEvent } from "react";
+import type { BrowseScope } from "../bindings/BrowseScope";
+import type { ConditionTree } from "../bindings/ConditionTree";
 import type { ImageCard } from "../bindings/ImageCard";
 import { browse, thumbnailUrl } from "../ipc";
 import { captureAnchor, masonry, resolveAnchor, visible, type Anchor } from "./layout";
@@ -13,33 +16,75 @@ const TARGET = 240;
 const CAP_RATIO = 2.6;
 const PAGE = 500;
 
+/** 图片墙上拖出参考图时放进 dataTransfer 的类型，值为 JSON 数组的参考图 id。 */
+export const DRAG_IMAGES = "application/x-kinshoko-images";
+
 type Props = {
   libraryId: string;
+  scope: BrowseScope;
+  /** Search 给出的条件树；没有条件时是范围内的全部。条件变化时由调用方换 key 重建，从顶部看起。 */
+  conditions?: ConditionTree;
   /** 资料库报告列表过期时递增：重新浏览，保持正在看的位置。 */
   reloadKey: number;
+  /**
+   * 安全模式（#60）。开启的一刻，还在墙上的含成人内容的图立即遮蔽（模糊并覆上墨色），
+   * 等重新浏览后离开；关闭后回来的图先遮着，下一帧淡出遮蔽。
+   */
+  safeMode?: boolean;
+  selected: ReadonlySet<string>;
+  onSelectionChange: (selected: Set<string>) => void;
 };
 
-const anchorKey = (libraryId: string) => `kinshoko.wall.anchor.${libraryId}`;
+/** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
+export const scopeKey = (scope: BrowseScope) =>
+  scope.kind === "folder" ? `folder.${scope.id}` : scope.kind;
 
-function loadAnchor(libraryId: string): Anchor | null {
+const anchorKey = (libraryId: string, scope: BrowseScope) =>
+  scope.kind === "all"
+    ? `kinshoko.wall.anchor.${libraryId}`
+    : `kinshoko.wall.anchor.${libraryId}.${scopeKey(scope)}`;
+
+const EMPTY: Record<BrowseScope["kind"], string> = {
+  all: "资料库里还没有参考图。从上方导入图片或文件夹。",
+  folder: "这个文件夹里还没有参考图。选中图片后用“放入文件夹”，或把图片拖到侧栏的文件夹上。",
+  trash: "回收站是空的。",
+};
+
+const NO_CONDITIONS: ConditionTree = { conditions: [] };
+
+function loadAnchor(key: string): Anchor | null {
   try {
-    const raw = localStorage.getItem(anchorKey(libraryId));
+    const raw = localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as Anchor) : null;
   } catch {
     return null;
   }
 }
 
-function saveAnchor(libraryId: string, anchor: Anchor | null) {
+function saveAnchor(key: string, anchor: Anchor | null) {
   try {
-    if (anchor) localStorage.setItem(anchorKey(libraryId), JSON.stringify(anchor));
+    if (anchor) localStorage.setItem(key, JSON.stringify(anchor));
   } catch {
     // 本地存储不可用时只是不记住位置。
   }
 }
 
-/** 图片墙：按资料库记录的尺寸用纯函数排出瀑布流，只挂载视口附近的卡片。 */
-export function Wall({ libraryId, reloadKey }: Props) {
+/**
+ * 图片墙：按资料库记录的尺寸用纯函数排出瀑布流，只挂载视口附近的卡片。
+ * 单击选中一张，Ctrl 单击增减，Shift 单击选中一段；选中的图可以拖到侧栏的文件夹上。
+ * 换范围或条件时由调用方换 key 重建。查找结果不记住位置，新的查找从顶部看起。
+ */
+export function Wall({
+  libraryId,
+  scope,
+  conditions = NO_CONDITIONS,
+  reloadKey,
+  safeMode = true,
+  selected,
+  onSelectionChange,
+}: Props) {
+  const searching = conditions.conditions.length > 0;
+  const storeKey = searching ? null : anchorKey(libraryId, scope);
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [viewport, setViewport] = useState({ top: 0, height: 0 });
@@ -48,7 +93,9 @@ export function Wall({ libraryId, reloadKey }: Props) {
   const [total, setTotal] = useState<number | null>(null);
   const loading = useRef(false);
   /** 正在看的那张图。重开或重新浏览后滚回这里。 */
-  const anchor = useRef<Anchor | null>(loadAnchor(libraryId));
+  const anchor = useRef<Anchor | null>(storeKey ? loadAnchor(storeKey) : null);
+  /** Shift 单击的起点。 */
+  const pivot = useRef<string | null>(null);
   const restoring = useRef(true);
   const settledTop = useRef<number | null>(null);
 
@@ -66,7 +113,13 @@ export function Wall({ libraryId, reloadKey }: Props) {
         let after: string | null = null;
         let count = 0;
         do {
-          const page = await browse({ scope: "all", cursor: after, limit: PAGE, thumbnailPx });
+          const page = await browse({
+            scope,
+            conditions,
+            cursor: after,
+            limit: PAGE,
+            thumbnailPx,
+          });
           next.push(...page.cards);
           after = page.nextCursor;
           count = page.total;
@@ -81,6 +134,7 @@ export function Wall({ libraryId, reloadKey }: Props) {
         loading.current = false;
       }
     },
+    // 范围或条件变化时调用方会换 key 重建，不必列为依赖。
     [thumbnailPx],
   );
 
@@ -88,7 +142,7 @@ export function Wall({ libraryId, reloadKey }: Props) {
     if (loading.current || !cursor) return;
     loading.current = true;
     try {
-      const page = await browse({ scope: "all", cursor, limit: PAGE, thumbnailPx });
+      const page = await browse({ scope, conditions, cursor, limit: PAGE, thumbnailPx });
       setCards((prev) => [...prev, ...page.cards]);
       setCursor(page.nextCursor);
       setTotal(page.total);
@@ -115,6 +169,20 @@ export function Wall({ libraryId, reloadKey }: Props) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  /** 已经放出（不再遮蔽）的含成人内容的图。 */
+  const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    if (safeMode) {
+      setRevealed(new Set());
+      return;
+    }
+    // 先以遮蔽的样子出现，下一帧再放出，遮蔽才有过渡可以淡出。
+    const frame = requestAnimationFrame(() =>
+      setRevealed(new Set(cards.filter((c) => c.adult).map((c) => c.id))),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [cards, safeMode]);
 
   const ids = useMemo(() => cards.map((c) => c.id), [cards]);
   const layout = useMemo(
@@ -148,7 +216,7 @@ export function Wall({ libraryId, reloadKey }: Props) {
     settledTop.current = null;
     if (own || restoring.current) return;
     anchor.current = captureAnchor(layout, ids, el.scrollTop, el.clientHeight);
-    saveAnchor(libraryId, anchor.current);
+    if (storeKey) saveAnchor(storeKey, anchor.current);
   };
 
   // 接近底部时取下一页。
@@ -161,20 +229,56 @@ export function Wall({ libraryId, reloadKey }: Props) {
     [layout, viewport],
   );
 
+  const select = (id: string, e: MouseEvent) => {
+    if (e.shiftKey && pivot.current && ids.includes(pivot.current)) {
+      const [a, b] = [ids.indexOf(pivot.current), ids.indexOf(id)].sort((x, y) => x - y);
+      const next = e.ctrlKey || e.metaKey ? new Set(selected) : new Set<string>();
+      ids.slice(a, b + 1).forEach((x) => next.add(x));
+      onSelectionChange(next);
+      return;
+    }
+    pivot.current = id;
+    if (e.ctrlKey || e.metaKey) {
+      const next = new Set(selected);
+      if (!next.delete(id)) next.add(id);
+      onSelectionChange(next);
+    } else {
+      onSelectionChange(new Set([id]));
+    }
+  };
+
+  const dragStart = (id: string, e: DragEvent) => {
+    // 拖未选中的图时只拖这一张，并改为选中它。
+    let dragged = [...selected];
+    if (!selected.has(id)) {
+      dragged = [id];
+      pivot.current = id;
+      onSelectionChange(new Set(dragged));
+    }
+    e.dataTransfer.setData(DRAG_IMAGES, JSON.stringify(dragged));
+    e.dataTransfer.effectAllowed = "copyMove";
+  };
+
   return (
     <div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}>
       {total === 0 ? (
-        <p className="wall-empty">资料库里还没有参考图。从上方导入图片或文件夹。</p>
+        <p className="wall-empty">{searching ? "没有符合条件的参考图。" : EMPTY[scope.kind]}</p>
       ) : (
         <div className="wall-canvas" style={{ height: layout.height }}>
           {mounted.map((i) => {
             const card = cards[i];
             const b = layout.boxes[i];
+            const veiled = card.adult && (safeMode || !revealed.has(card.id));
             return (
               <div
                 key={card.id}
                 className="card"
                 data-id={card.id}
+                aria-selected={selected.has(card.id)}
+                data-veiled={veiled}
+                draggable
+                onClick={(e) => select(card.id, e)}
+                onDragStart={(e) => dragStart(card.id, e)}
                 style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}
               >
                 <img src={thumbnailUrl(card.thumbnail)} alt="参考图" decoding="async" draggable={false} />

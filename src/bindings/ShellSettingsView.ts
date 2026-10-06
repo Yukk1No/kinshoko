@@ -4,4 +4,8 @@ import type { ShortcutBinding } from "./ShortcutBinding";
 /**
  * 设置界面里应用壳一节的内容。
  */
-export type ShellSettingsView = { autostart: boolean, shortcuts: Array<ShortcutBinding>, };
+export type ShellSettingsView = { autostart: boolean, shortcuts: Array<ShortcutBinding>, 
+/**
+ * 查找条件里标出相近标签的来源（内置／个人）。
+ */
+showApproxSource: boolean, };

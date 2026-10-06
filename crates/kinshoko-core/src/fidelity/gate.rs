@@ -300,6 +300,7 @@ pub fn prepare(dir: &std::path::Path) -> Result<GateRun, crate::library::Error> 
     let cards = library
         .browse(&BrowseQuery {
             scope: Default::default(),
+            conditions: Default::default(),
             cursor: None,
             limit: 1000,
             thumbnail_px: 128,

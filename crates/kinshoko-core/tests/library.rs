@@ -70,6 +70,7 @@ fn all(library: &Library) -> Vec<kinshoko_core::library::ImageCard> {
     library
         .browse(&BrowseQuery {
             scope: Default::default(),
+            conditions: Default::default(),
             cursor: None,
             limit: 1000,
             thumbnail_px: 256,
@@ -197,6 +198,7 @@ fn browsing_pages_through_every_image_once_with_a_keyset_cursor() {
         let page = library
             .browse(&BrowseQuery {
                 scope: Default::default(),
+                conditions: Default::default(),
                 cursor: cursor.take(),
                 limit: 10,
                 thumbnail_px: 256,

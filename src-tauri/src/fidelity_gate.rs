@@ -88,7 +88,7 @@ pub fn start(app: &AppHandle, options: Options) {
     if let Err(e) = WebviewWindowBuilder::new(
         app,
         WINDOW,
-        WebviewUrl::App("index.html#fidelity-gate".into()),
+        WebviewUrl::App("index.html?view=fidelity-gate".into()),
     )
     .title("Kinshoko 还原度门槛实验")
     .inner_size(1100.0, 800.0)

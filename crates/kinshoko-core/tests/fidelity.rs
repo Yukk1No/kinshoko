@@ -594,6 +594,7 @@ fn card_width(library: &Library, id: &str) -> u32 {
     library
         .browse(&BrowseQuery {
             scope: Default::default(),
+            conditions: Default::default(),
             cursor: None,
             limit: 1000,
             thumbnail_px: 128,

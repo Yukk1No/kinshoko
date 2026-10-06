@@ -8,6 +8,7 @@ mod desktop;
 mod fidelity_gate;
 mod library;
 mod shell;
+mod tagging;
 
 use tauri::RunEvent;
 
@@ -22,10 +23,11 @@ pub fn run() {
             },
         ))
         .manage(fidelity_gate::GateState::default())
-        // 对话框插件必须在这里注册：在资料库插件的 setup 里 `app.plugin(...)` 会再次锁住
-        // Tauri 正在初始化插件时持有的插件表，启动时死锁。
+        // 对话框插件要注册在这里：插件的 setup 运行时 Tauri 持有插件表的锁，
+        // 在 setup 里再调用 `app.plugin` 会死锁，应用卡在启动阶段。
         .plugin(tauri_plugin_dialog::init())
         .plugin(library::init())
+        .plugin(desktop::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(
             tauri_plugin_autostart::Builder::new()
@@ -49,6 +51,11 @@ pub fn run() {
             commands::shell_settings,
             commands::set_autostart,
             commands::rebind_shortcut,
+            commands::set_show_approx_source,
+            tagging::tagging_status,
+            tagging::tagging_download,
+            tagging::tagging_pause,
+            tagging::tagging_resume,
             fidelity_gate::gate_plan,
             fidelity_gate::gate_image,
             fidelity_gate::gate_save,
