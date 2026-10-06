@@ -55,6 +55,7 @@ jobs:
           $before = (Get-ChildItem -Recurse $lib | Measure-Object).Count
           ./dist/kinshoko-eagle-check.exe $lib --yes --no-open --work $lib
           if ($LASTEXITCODE -eq 0) { throw "重叠工作区没有被拒绝" }
+          $global:LASTEXITCODE = 0  # 拒绝时退出码 1 是预期的；不让它成为本步骤的退出码
           if ((Get-ChildItem -Recurse $lib | Measure-Object).Count -ne $before) { throw "重叠工作区改动了原库" }
           Remove-Item dist/kinshoko-eagle-check-报告-*.zip
       - name: Package
