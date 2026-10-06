@@ -216,11 +216,8 @@ def from_scan(limit_s=40):
 
 
 def library_summary(p):
-    try:
-        mt = read_json(os.path.join(p, "mtime.json"))
-        n = mt.get("all") if isinstance(mt.get("all"), int) else len([k for k in mt if k != "all"])
-    except (OSError, ValueError):
-        n = len([d for d in os.listdir(os.path.join(p, "images")) if d.endswith(".info")])
+    # 按 images/ 下的条目目录计数。画师电脑上 mtime.json 的 "all" 是 3，而库里实际有 2126 项，不能用来比大小。
+    n = len([d for d in os.listdir(os.path.join(p, "images")) if d.endswith(".info")])
     try:
         ver = read_json(os.path.join(p, "metadata.json")).get("applicationVersion")
     except (OSError, ValueError):
