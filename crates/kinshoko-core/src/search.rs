@@ -96,6 +96,18 @@ pub fn fold(text: &str) -> String {
     text.nfkc().flat_map(char::to_lowercase).collect()
 }
 
+/// 搜索框下拉中的一个候选标签。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Candidate {
+    pub tag: TagLabel,
+    /// 经由别名或其他语言的名称命中时，是那个叫法；按显示名命中时为空。
+    pub via: Option<String>,
+    /// 有这个标签的参考图张数。
+    pub count: u32,
+}
+
 /// 词表中一个标签可被查到的叫法。
 struct Entry {
     id: String,
@@ -103,8 +115,8 @@ struct Entry {
     names: Vec<crate::library::LocalizedName>,
     external: Vec<String>,
     count: u32,
-    /// 各语言名称（尚未翻译时是显示出来的外部名称）与别名，已 [`fold`]。
-    words: Vec<String>,
+    /// 各语言名称（尚未翻译时是显示出来的外部名称）与别名：（[`fold`] 后，原文）。
+    words: Vec<(String, String)>,
 }
 
 impl Entry {
@@ -113,7 +125,7 @@ impl Entry {
     }
 
     fn contains(&self, needle: &str) -> bool {
-        self.words.iter().any(|w| w.contains(needle))
+        self.words.iter().any(|(w, _)| w.contains(needle))
     }
 }
 
@@ -129,12 +141,13 @@ impl Search {
             .tags
             .iter()
             .map(|t| {
-                let mut words: Vec<String> = t.names.iter().map(|n| fold(&n.name)).collect();
+                let word = |w: &str| (fold(w), w.to_owned());
+                let mut words: Vec<_> = t.names.iter().map(|n| word(&n.name)).collect();
                 if t.names.is_empty() {
                     let shown = display_label(&t.id, t.namespace, &t.names, &t.external, "");
-                    words.push(fold(&shown.name));
+                    words.push(word(&shown.name));
                 }
-                words.extend(t.aliases.iter().map(|a| fold(&a.name)));
+                words.extend(t.aliases.iter().map(|a| word(&a.name)));
                 Entry {
                     id: t.id.clone(),
                     namespace: t.namespace,
@@ -154,6 +167,57 @@ impl Search {
     /// 所用词表快照的修订号。
     pub fn revision(&self) -> i64 {
         self.revision
+    }
+
+    /// 打字时的候选：名称或别名含 `text` 的标签，最多 `limit` 个。同一个词命中多个命名空间
+    /// 或别名时各列一个，不替画师选。排序：完全相同 < 开头相同 < 包含，界面语言的名称先于
+    /// 别名与其他语言的名称，再按张数从多到少、名称从短到长。没有图的标签不列出。
+    pub fn candidates(&self, text: &str, lang: &str, limit: usize) -> Vec<Candidate> {
+        let needle = fold(text.trim());
+        if needle.is_empty() {
+            return Vec::new();
+        }
+        let mut found: Vec<(u8, Candidate)> = self
+            .entries
+            .iter()
+            .filter(|e| e.count > 0)
+            .filter_map(|e| {
+                let tag = e.label(lang);
+                let (rank, via) = e
+                    .words
+                    .iter()
+                    .filter_map(|(folded, original)| {
+                        let place = if *folded == needle {
+                            0
+                        } else if folded.starts_with(&needle) {
+                            1
+                        } else if folded.contains(&needle) {
+                            2
+                        } else {
+                            return None;
+                        };
+                        let via = (*original != tag.name).then(|| original.clone());
+                        Some((place * 2 + u8::from(via.is_some()), via))
+                    })
+                    .min_by_key(|(rank, _)| *rank)?;
+                Some((
+                    rank,
+                    Candidate {
+                        tag,
+                        via,
+                        count: e.count,
+                    },
+                ))
+            })
+            .collect();
+        found.sort_by(|(ra, a), (rb, b)| {
+            ra.cmp(rb)
+                .then(b.count.cmp(&a.count))
+                .then(a.tag.name.chars().count().cmp(&b.tag.name.chars().count()))
+                .then_with(|| by_display(&a.tag, &b.tag))
+        });
+        found.truncate(limit);
+        found.into_iter().map(|(_, c)| c).collect()
     }
 
     /// 把搜索框里的条件解析成可见的条件树，标签名按界面语言 `lang`。

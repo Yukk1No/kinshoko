@@ -210,3 +210,70 @@ fn tag_names_in_the_tree_follow_the_interface_language() {
     };
     assert_eq!(tag.name, "青髪");
 }
+
+/// 候选写成“命名空间：名称（经由的别名）×张数”便于比较。
+fn listed(search: &Search, typed: &str) -> Vec<String> {
+    search
+        .candidates(typed, ZH, 10)
+        .into_iter()
+        .map(|c| {
+            let ns = match c.tag.namespace {
+                TagNamespace::General => "",
+                TagNamespace::Artist => "作者：",
+                TagNamespace::Character => "角色：",
+                TagNamespace::Work => "作品：",
+            };
+            let via = c.via.map(|v| format!("（{v}）")).unwrap_or_default();
+            format!("{ns}{}{via}×{}", c.tag.name, c.count)
+        })
+        .collect()
+}
+
+#[test]
+fn one_word_in_several_namespaces_lists_one_candidate_per_namespace() {
+    let search = Search::new(&vocabulary(vec![
+        tag("a1", TagNamespace::Artist, "某某", &[], 3),
+        tag("c1", TagNamespace::Character, "某某", &[], 8),
+        tag("g1", TagNamespace::General, "短发", &[], 4),
+    ]));
+
+    assert_eq!(listed(&search, "某某"), ["角色：某某×8", "作者：某某×3"]);
+    assert!(listed(&search, "  ").is_empty());
+}
+
+#[test]
+fn candidates_rank_exact_then_prefix_then_contains_and_names_before_aliases() {
+    let search = Search::new(&vocabulary(vec![
+        tag("contains", TagNamespace::General, "浅蓝发", &[], 50),
+        tag("prefix", TagNamespace::General, "蓝发挑染", &[], 1),
+        tag("prefix-big", TagNamespace::General, "蓝发少女", &[], 9),
+        tag("alias", TagNamespace::General, "青发", &["蓝发"], 99),
+        tag("exact", TagNamespace::General, "蓝发", &[], 2),
+        tag("unused", TagNamespace::General, "蓝发辫", &[], 0),
+    ]));
+
+    assert_eq!(
+        listed(&search, "蓝发"),
+        [
+            "蓝发×2",
+            "青发（蓝发）×99",
+            "蓝发少女×9",
+            "蓝发挑染×1",
+            "浅蓝发×50",
+        ],
+        "没有图的标签不进候选"
+    );
+    assert_eq!(search.candidates("蓝", ZH, 2).len(), 2);
+}
+
+#[test]
+fn a_name_in_another_language_counts_as_a_way_to_reach_the_tag() {
+    let mut t = tag("a", TagNamespace::General, "蓝发", &[], 1);
+    t.names.push(LocalizedName {
+        lang: "en".into(),
+        name: "Blue Hair".into(),
+    });
+    let search = Search::new(&vocabulary(vec![t]));
+
+    assert_eq!(listed(&search, "blue"), ["蓝发（Blue Hair）×1"]);
+}
