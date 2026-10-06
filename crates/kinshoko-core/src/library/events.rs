@@ -16,6 +16,19 @@ pub enum LibraryEvent {
     /// 有参考图加入或变化，已取得的浏览结果过期，需要重新浏览。
     #[serde(rename_all = "camelCase")]
     ListStale { library_id: String },
+    /// 这些参考图的标签等整理结果变了，已取得的详情需要重新读取。
+    #[serde(rename_all = "camelCase")]
+    ImagesChanged {
+        library_id: String,
+        image_ids: Vec<String>,
+    },
+    /// 标签词表（标签、名称、别名、外部对应、分组或计数）变了，附新的修订号。
+    #[serde(rename_all = "camelCase")]
+    VocabularyChanged {
+        library_id: String,
+        #[ts(type = "number")]
+        revision: i64,
+    },
     /// 任务进度。
     #[serde(rename_all = "camelCase")]
     TaskProgress {
