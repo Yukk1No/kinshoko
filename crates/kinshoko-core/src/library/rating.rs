@@ -105,7 +105,9 @@ pub enum TaggingOutcome {
 /// 有效分级的唯一定义：人工分级（#53）覆盖建议时只改这里。
 pub(super) fn effective_rank_sql(image_id: &str) -> String {
     format!(
-        "(SELECT max(CASE rf.rating WHEN 'general' THEN 0 WHEN 'sensitive' THEN 1          WHEN 'questionable' THEN 2 WHEN 'explicit' THEN 3 END)          FROM rating_fact rf WHERE rf.image_id = {image_id})"
+        "(SELECT max(CASE rf.rating WHEN 'general' THEN 0 WHEN 'sensitive' THEN 1 \
+         WHEN 'questionable' THEN 2 WHEN 'explicit' THEN 3 END) \
+         FROM rating_fact rf WHERE rf.image_id = {image_id})"
     )
 }
 
@@ -121,9 +123,11 @@ pub(super) fn replace_source_rating(
     fact: Option<RatingFact>,
 ) -> Result<(), Error> {
     let (source, id) = (source.as_str().to_owned(), image_id.to_owned());
-    inner.writer.run(move |conn| {
+    let resealed = inner.writer.run(move |conn| {
         let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         require_image(&tx, &id)?;
+        let adult = format!("SELECT {}", adult_sql("?1"));
+        let was_adult: bool = tx.query_row(&adult, [&id], |r| r.get(0))?;
         tx.execute(
             "DELETE FROM rating_fact WHERE image_id = ?1 AND source = ?2",
             params![id, source],
@@ -134,9 +138,16 @@ pub(super) fn replace_source_rating(
                 params![id, source, f.rating.as_str(), f.score],
             )?;
         }
+        let is_adult: bool = tx.query_row(&adult, [&id], |r| r.get(0))?;
         tx.commit()?;
-        Ok::<_, Error>(())
+        Ok::<_, Error>(was_adult != is_adult)
     })?;
+    // 是否含成人内容变了：安全模式下这张图被封印或放出，浏览结果与计数都过期。
+    if resealed {
+        inner.hub.publish(LibraryEvent::ListStale {
+            library_id: inner.info.id.clone(),
+        });
+    }
     inner.hub.publish(LibraryEvent::ImagesChanged {
         library_id: inner.info.id.clone(),
         image_ids: vec![image_id.to_owned()],

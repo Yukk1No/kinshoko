@@ -360,6 +360,26 @@ fn an_image_rated_adult_while_safe_mode_is_on_disappears() {
 }
 
 #[test]
+fn the_wall_is_told_to_refresh_only_when_a_rating_change_seals_or_releases_an_image() {
+    let f = Fixture::new();
+    let events = f.library.events();
+    let stale = || {
+        events
+            .try_iter()
+            .filter(|e| matches!(e, LibraryEvent::ListStale { .. }))
+            .count()
+    };
+    rate(&f.library, &f.unrated, ContentRating::Sensitive);
+    assert_eq!(stale(), 0);
+    rate(&f.library, &f.unrated, ContentRating::Questionable);
+    assert_eq!(stale(), 1);
+    rate(&f.library, &f.unrated, ContentRating::Explicit);
+    assert_eq!(stale(), 0);
+    rate(&f.library, &f.unrated, ContentRating::General);
+    assert_eq!(stale(), 1);
+}
+
+#[test]
 fn the_reference_lens_is_handed_out_once_and_marks_sealed_images() {
     let f = Fixture::new();
     let lens = f.library.take_reference_lens().expect("装配时取得");

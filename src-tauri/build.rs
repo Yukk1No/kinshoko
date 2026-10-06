@@ -26,6 +26,8 @@ fn main() {
                     "search_candidates",
                     "resolve_search",
                     "image_rating",
+                    "safe_mode",
+                    "set_safe_mode",
                 ])
                 .default_permission(tauri_build::DefaultPermissionRule::AllowAllCommands),
         ),
