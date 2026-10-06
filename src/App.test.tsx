@@ -211,6 +211,63 @@ describe("主窗口", () => {
     expect(sent("plugin:library|browse").at(-1)).toMatchObject({ libraryId: "L2" });
   });
 
+  it.each(["进行中", "已结束"])("导入%s时打开新建资料库页再返回，保留结果和重试入口", async (stage) => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+
+    window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
+    fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 2 } });
+    const finish = () => push({
+      kind: "taskFinished",
+      libraryId: "L1",
+      taskId: "T1",
+      report: {
+        cancelled: false,
+        items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: "被占用" } }],
+      },
+    });
+    if (stage === "已结束") await finish();
+
+    fireEvent.click(screen.getByRole("button", { name: "新建资料库…" }));
+    await screen.findByLabelText("资料库名称");
+    // 等待页面切换的事件订阅清理，模拟导入在用户填写表单期间完成。
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    if (stage === "进行中") await finish();
+    fireEvent.click(screen.getByRole("button", { name: "返回资料库" }));
+
+    expect(await screen.findByText("D:\\参考\\坏.png")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+    await waitFor(() => expect(sent("plugin:library|start_import")).toEqual([
+      { libraryId: "L1", source: { paths: ["D:\\参考"] } },
+      { libraryId: "L1", source: { paths: ["D:\\参考\\坏.png"] } },
+    ]));
+  });
+
+  it("新建资料库页不接受拖放导入，返回当前库后恢复拖放", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+
+    const position = { x: 10, y: 10 };
+    const paths = ["D:\\参考\\a.png"];
+    await act(() => emit("tauri://drag-enter", { paths, position }));
+    expect(screen.getByText("松开即可导入到 工作参考")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "新建资料库…" }));
+    await screen.findByLabelText("资料库名称");
+    await act(() => emit("tauri://drag-drop", { paths, position }));
+    expect(sent("plugin:library|start_import")).toEqual([]);
+
+    fireEvent.click(screen.getByRole("button", { name: "返回资料库" }));
+    expect(screen.queryByText("松开即可导入到 工作参考")).toBeNull();
+    await act(() => emit("tauri://drag-drop", { paths, position }));
+    await waitFor(() => expect(sent("plugin:library|start_import")).toEqual([
+      { libraryId: "L1", source: { paths } },
+    ]));
+  });
+
   it("选择导入文件的对话框等待期间切换库，迟到的选择不会导入新库", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
     let resolvePick!: (paths: string[]) => void;

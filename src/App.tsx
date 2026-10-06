@@ -16,8 +16,8 @@ import { SettingsPanel } from "./SettingsPanel";
 import { TaggingIndicator } from "./TaggingIndicator";
 import { scopeKey, Wall } from "./wall/Wall";
 
-/** 每次打开另一资料库时重建整个工作区，选择、进度和迟到回调都留在旧工作区。 */
-function LibraryWorkspace({ library }: { library: LibraryInfo }) {
+/** 真正打开另一资料库时重建工作区；新建表单只隐藏它，继续接收当前库的导入事件。 */
+function LibraryWorkspace({ library, hidden }: { library: LibraryInfo; hidden: boolean }) {
   const [reloadKey, setReloadKey] = useState(0);
   const [running, setRunning] = useState<RunningImport | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
@@ -89,10 +89,10 @@ function LibraryWorkspace({ library }: { library: LibraryInfo }) {
   };
 
   return (
-    <>
+    <div className="app-workspace" hidden={hidden}>
       <header className="app-toolbar">
         <h1 className="app-library-name">{library.name}</h1>
-        <ImportBar libraryId={library.id} libraryName={library.name} running={running} report={report}
+        <ImportBar enabled={!hidden} libraryId={library.id} libraryName={library.name} running={running} report={report}
           onStarted={started} onDismissReport={() => setReport(null)} />
       </header>
       <div className="app-body">
@@ -108,7 +108,7 @@ function LibraryWorkspace({ library }: { library: LibraryInfo }) {
             selected={selected} onSelectionChange={setSelected} />
         </main>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -141,9 +141,10 @@ export function App() {
     <div className="app">
       <LibraryPicker current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />
       {openError && <p className="app-problem" role="alert">上次的资料库无法打开：{openError}</p>}
-      {library && !showCreate ? (
-        <LibraryWorkspace key={`${library.id}/${library.root}`} library={library} />
-      ) : (
+      {library && (
+        <LibraryWorkspace key={`${library.id}/${library.root}`} library={library} hidden={showCreate} />
+      )}
+      {(!library || showCreate) && (
         <main className="app-main app-main-centered">
           {library === undefined ? <p role="status">正在打开资料库…</p> : (
             <>

@@ -63,6 +63,17 @@ button.primary {
   height: 100%;
 }
 
+.app-workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.app-workspace[hidden] {
+  display: none;
+}
+
 .library-manager {
   padding: 8px 12px;
   border-bottom: 1px solid var(--line);

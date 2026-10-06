@@ -8,6 +8,7 @@ import { cancelImport, libraryRecovery, onFileDrop, pickFiles, pickFolder, start
 export type RunningImport = { taskId: string | null; progress: ImportProgress };
 
 type Props = {
+  enabled: boolean;
   libraryId: string;
   libraryName: string;
   running: RunningImport | null;
@@ -31,18 +32,24 @@ function reason(outcome: ImportOutcome): string | null {
  * 导入：选择文件或文件夹，或把它们拖进主窗口；进行中显示进度与取消，结束后逐项列出
  * 没有进来的文件并可只重试读取失败的项。打开资料库时若上次导入中断，提示撤回了哪些文件。
  */
-export function ImportBar({ libraryId, libraryName, running, report, onStarted, onDismissReport }: Props) {
+export function ImportBar({ enabled, libraryId, libraryName, running, report, onStarted, onDismissReport }: Props) {
   const [hovering, setHovering] = useState(false);
   const [recovery, setRecovery] = useState<RecoveryReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const alive = useRef(true);
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
   useEffect(() => {
     alive.current = true;
     return () => { alive.current = false; };
   }, []);
 
+  useEffect(() => {
+    if (!enabled) setHovering(false);
+  }, [enabled]);
+
   const begin = async (paths: string[]) => {
-    if (!alive.current || !paths.length) return;
+    if (!alive.current || !enabledRef.current || !paths.length) return;
     try {
       setError(null);
       const taskId = await startImport(libraryId, paths);
@@ -62,7 +69,7 @@ export function ImportBar({ libraryId, libraryName, running, report, onStarted, 
   latest.current = { running, begin };
   useEffect(() => {
     const unlisten = onFileDrop((drop) => {
-      if (!alive.current) return;
+      if (!alive.current || !enabledRef.current) return;
       switch (drop.kind) {
         case "enter":
           setHovering(!latest.current.running);
