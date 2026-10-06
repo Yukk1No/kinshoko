@@ -125,13 +125,13 @@ pub(super) fn move_to(
     })
 }
 
-/// 文件夹树，计数只算可见的图。
-pub(super) fn tree(conn: &Connection) -> Result<Vec<FolderNode>, Error> {
+/// 文件夹树，计数只算可见的图；`lens` 是浏览视角的过滤条件（安全模式）。
+pub(super) fn tree(conn: &Connection, lens: &str) -> Result<Vec<FolderNode>, Error> {
     let mut counts = std::collections::HashMap::<String, u32>::new();
     {
         let mut stmt = conn.prepare_cached(&format!(
             "SELECT m.folder_id, COUNT(*) FROM folder_member m
-             JOIN image ON image.id = m.image_id WHERE {LIVE} GROUP BY m.folder_id"
+             JOIN image ON image.id = m.image_id WHERE {LIVE} AND {lens} GROUP BY m.folder_id"
         ))?;
         for row in stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))? {
             let (id, n): (String, u32) = row?;

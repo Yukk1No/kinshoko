@@ -5,6 +5,8 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { AppInfo } from "./bindings/AppInfo";
+import type { ApproxRelation } from "./bindings/ApproxRelation";
+import type { PersonalApproxEntry } from "./bindings/PersonalApproxEntry";
 import type { Candidate } from "./bindings/Candidate";
 import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
@@ -143,6 +145,21 @@ export function resolveSearch(input: SearchInput, lang: string): Promise<Conditi
   return invoke<ConditionTree>(lib("resolve_search"), { input, lang });
 }
 
+/** 在个人近似对应表中记下两个标签相近（“＋”）或不相近（“以后都不展开”）。 */
+export function setTagApprox(a: string, b: string, relation: ApproxRelation): Promise<void> {
+  return invoke<void>(lib("set_tag_approx"), { a, b, relation });
+}
+
+/** 删除个人近似对应表中的一对，之后按内置近似对应表。 */
+export function removeTagApprox(a: string, b: string): Promise<void> {
+  return invoke<void>(lib("remove_tag_approx"), { a, b });
+}
+
+/** 个人近似对应表的条目，最近记下的在前，名称按界面语言 lang。 */
+export function personalApprox(lang: string): Promise<PersonalApproxEntry[]> {
+  return invoke<PersonalApproxEntry[]>(lib("personal_approx"), { lang });
+}
+
 export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<UnlistenFn> {
   return listen<LibraryEvent>("library-event", (e) => handler(e.payload));
 }
@@ -180,6 +197,16 @@ export function imageRating(imageId: string): Promise<ImageRating> {
   return invoke<ImageRating>(lib("image_rating"), { imageId });
 }
 
+/** 安全模式是否开启（全局设置，新装默认开启）。 */
+export function safeMode(): Promise<boolean> {
+  return invoke<boolean>(lib("safe_mode"));
+}
+
+/** 开关安全模式；当前资料库随后推送 safeModeChanged。 */
+export function setSafeMode(on: boolean): Promise<boolean> {
+  return invoke<boolean>(lib("set_safe_mode"), { on });
+}
+
 /** 自动标签的当前状态；还没打开资料库时 reject。 */
 export function taggingStatus(): Promise<TaggingStatus> {
   return invoke<TaggingStatus>("tagging_status");
@@ -211,6 +238,11 @@ export function shellSettings(): Promise<ShellSettingsView> {
 /** 开关开机自启。失败时 reject 一条给画师看的中文原因。 */
 export function setAutostart(on: boolean): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("set_autostart", { on });
+}
+
+/** 开关查找条件里相近标签的来源标记（内置／个人）。 */
+export function setShowApproxSource(on: boolean): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_show_approx_source", { on });
 }
 
 /** 更换全局快捷键，立即生效；`null` 表示清除。失败时 reject 中文原因，原来的键不变。 */

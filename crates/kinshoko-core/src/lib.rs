@@ -4,6 +4,7 @@
 //! 跨越前后端边界的类型带 `#[ts(export)]`，由 ts-rs 在 `cargo test` 时生成到 `src/bindings/`。
 
 mod app_shell;
+pub mod approx;
 pub mod desktop;
 mod device;
 pub mod library;

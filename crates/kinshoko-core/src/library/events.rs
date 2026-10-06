@@ -29,6 +29,10 @@ pub enum LibraryEvent {
         #[ts(type = "number")]
         revision: i64,
     },
+    /// 安全模式开关变了。浏览结果、计数、词表、候选与详情都要重新读取；
+    /// 正在查看的图被封印时回到图片墙。
+    #[serde(rename_all = "camelCase")]
+    SafeModeChanged { library_id: String, on: bool },
     /// 任务进度。
     #[serde(rename_all = "camelCase")]
     TaskProgress {

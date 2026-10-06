@@ -395,7 +395,7 @@ impl Worker {
     /// 打一张图并写入。返回 `false` 表示这一批要中止（会话失效等）。
     fn tag_one(&mut self, model: &PreparedModel, source: &FactSource, id: &str) -> bool {
         let spec = &model.spec;
-        let path = match self.library.original_path(id) {
+        let path = match self.library.original_to_tag(id) {
             Ok(path) => path,
             // 图在此期间被删除了。
             Err(LibraryError::UnknownImage) => return true,
