@@ -31,7 +31,7 @@ npm run build                            # 类型检查 + 单文件构建到 dis
 
 `npm run library` 读取 `docs/validation/sample-manifest.pixiv*.json`，在 `samples/`（worktree 中会找主 checkout 的 `samples/`）按 SHA-256 校验原图，生成缩略图和查看用文件；长边超过 4096 px 的原图另存一份 4096 px 副本，其余原样复制。pixiv 作者名与作品标题来自 pixiv 公开的作品接口，缓存在 `.local/pixiv-meta.json`；`--no-fetch` 只用缓存。`--predictions <predictions.jsonl>` 可并入 [打标探测程序](../../tools/tagger-probe/README.md) 的输出，作为自动标签建议显示。`.local/`、`dist/` 和 zip 都不进 git。
 
-界面字体按 [#28 的选型](../../docs/research/font-rendering-and-selection.md)：西文与数字用 Inter 4.1 静态 hinted 400／500／600，中日文用完整思源黑体 SC VF 2.005R，均为官方原始文件，`fetch_fonts.py` 按 SHA-256 校验。字体由 `src/fonts.ts` 从 `index.html` 旁的 `fonts/` 加载（开发服务器从 `.local/fonts` 提供，构建时复制到 `dist/fonts`，随 zip 一起交付），不内联进单文件；没取字体时退回 Windows 系统字体。字号按该文的排版起点：正文与按钮 14 px，密集标签 13 px，计数与说明 12 px，面板标题与当前资料库名 16 px，字重最高 600。
+界面字体按 [#28 的选型](../../docs/research/font-rendering-and-selection.md)：西文与数字用 Inter 4.1 静态 hinted 400／500／600，中日文用完整思源黑体 SC VF 2.005R，均为官方原始文件，`fetch_fonts.py` 按 SHA-256 校验。字体由 `src/fonts.ts` 从 `index.html` 旁的 `fonts/` 加载（开发服务器从 `.local/fonts` 提供，构建时复制到 `dist/fonts`，随 zip 一起交付），不内联进单文件；没取字体时退回 Windows 系统字体。字号在该文排版起点上实测收紧了一档：界面正文、按钮、标签与树 13／20 px，计数、元数据与说明 12／18 px，面板标题、当前资料库名与作者 14／22 px，备注输入 14／22 px，对话框标题 16／24 px；常态强调用 500，标题用 600，数字列用等宽数字。理由已回报到 #28。
 
 没有样本时样稿仍能构建，只显示 5 张自制显示测试图和获取样本的说明。
 
