@@ -110,6 +110,13 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
   const lastResult = useRef(p.resultKey);
   useLayoutEffect(() => {
     const el = scroller.current;
+    // The slider's preview zoom ends with the committed layout, animated or not (reduced motion, a large
+    // library): a reflow reads its "before" rects with the zoom applied, so it is cleared before the FLIP.
+    const canvasEl = canvasRef.current;
+    if (canvasEl?.style.transform) {
+      canvasEl.getAnimations().forEach((a) => a.cancel());
+      canvasEl.style.transform = '';
+    }
     if (!el || !width) return;
     if (lastResult.current !== p.resultKey) {
       // A new search starts at the top: the artist scans the new screen from the beginning.
@@ -153,12 +160,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
     const r = reflow.current, el = scroller.current;
     if (!r || !el || r.layout === boxes) return;
     const done = new Set<string>(r.done);
-    // The slider's preview zoom ends here: the cards' "before" rects were read with it applied.
-    const canvasEl = canvasRef.current!;
-    canvasEl.getAnimations().forEach((a) => a.cancel());
-    canvasEl.style.transform = '';
     // Measured against the canvas, so a wall whose left edge is moving (the side pane) still lines up.
-    const canvas = canvasEl.getBoundingClientRect(), top = el.scrollTop, bottom = top + el.clientHeight;
+    const canvas = canvasRef.current!.getBoundingClientRect(), top = el.scrollTop, bottom = top + el.clientHeight;
     const seen = (y: number, h: number) => y < bottom && y + h > top;
     const easing = r.resize ? 'cubic-bezier(0.2, 0.8, 0.2, 1)' : 'cubic-bezier(0.65, 0, 0.35, 1)';
     for (const card of el.querySelectorAll<HTMLElement>('.card[data-id]')) {

@@ -1,5 +1,6 @@
 import { Dialog } from './Overlays';
 import { clearLog, readLog } from '../log';
+import { DensitySlider } from './DensitySlider';
 import { useState } from 'react';
 
 export type Settings = {
@@ -22,13 +23,15 @@ type Props = {
   settings: Settings;
   info: { missing: boolean; hasPredictions: boolean; skipped: number };
   onChange: (s: Settings) => void;
+  /** Zooms the wall behind the dialog while the size slider moves; the size commits once it settles. */
+  onPreviewDensity: (density: number | null) => void;
   onClose: () => void;
   onExportLog: () => void;
   onReset: () => void;
   onHelp: () => void;
 };
 
-export function SettingsDialog({ settings: s, info, onChange, onClose, onExportLog, onReset, onHelp }: Props) {
+export function SettingsDialog({ settings: s, info, onChange, onPreviewDensity, onClose, onExportLog, onReset, onHelp }: Props) {
   const [entries, setEntries] = useState(() => readLog().length);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => onChange({ ...s, [k]: v });
   return <Dialog title="设置与样稿说明" wide onClose={onClose} actions={<>
@@ -57,7 +60,7 @@ export function SettingsDialog({ settings: s, info, onChange, onClose, onExportL
       </fieldset>
       <fieldset>
         <legend>图片墙</legend>
-        <label className="field"><span>图片大小</span><input type="range" min={140} max={420} step={10} value={s.density} onChange={(e) => set('density', Number(e.target.value))} /><span className="tabular">{s.density}px</span></label>
+        <label className="field"><span>图片大小</span><DensitySlider value={s.density} onPreview={onPreviewDensity} onCommit={(v) => set('density', v)} showValue /></label>
         <label className="check"><input type="checkbox" checked={s.capTall} onChange={(e) => set('capTall', e.target.checked)} />极长图限高（整张等比缩小，不裁切）</label>
         <label className="check"><input type="checkbox" checked={s.square} onChange={(e) => set('square', e.target.checked)} />改用等尺寸网格（只作空间利用对照）</label>
         <label className="check"><input type="checkbox" checked={s.showTitles} onChange={(e) => set('showTitles', e.target.checked)} />在图片下显示名称</label>

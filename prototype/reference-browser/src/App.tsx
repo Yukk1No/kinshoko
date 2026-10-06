@@ -11,6 +11,7 @@ import { PinLayer } from './components/PinLayer';
 import { CapturesPane, GroupsPane, ViewThumb } from './components/Panes';
 import { Dialog, Menu, Toasts, type MenuItem, type Toast } from './components/Overlays';
 import { DrawingCanvas } from './components/DrawingCanvas';
+import { DensitySlider } from './components/DensitySlider';
 import { SettingsDialog, HelpDialog, type Settings } from './components/SettingsDialog';
 import {
   emptyCuration, effectiveRating, imageKey, isAdult, isTyping, uid,
@@ -648,36 +649,10 @@ export default function App() {
     </>}><p>只删除这个组的成员与布局。资料库里的参考图、标签和其他参考组不受影响。</p></Dialog>}
     {dialog?.kind === 'collect' && <CollectDialog capture={dialog.capture} libraries={libraries} current={library.id} onClose={() => setDialog(null)}
       onCollect={(libId, folderId) => { const img = collectCapture(dialog.capture, libId, folderId); setDialog(null); toast(`已收藏到「${libraries.find((l) => l.id === libId)?.name}」。`, { label: '查看', run: () => { setLibraryId(libId); openImage(img); } }); }} />}
-    {dialog?.kind === 'settings' && <SettingsDialog settings={settings} onChange={setSettings} onClose={() => setDialog(null)} info={seedInfo}
+    {dialog?.kind === 'settings' && <SettingsDialog settings={settings} onChange={setSettings} onPreviewDensity={(v) => wall.current?.previewDensity(v)} onClose={() => setDialog(null)} info={seedInfo}
       onExportLog={exportLog} onReset={() => { resetPersistent(); location.reload(); }} onHelp={() => setDialog({ kind: 'help' })} />}
     {dialog?.kind === 'help' && <HelpDialog onClose={() => setDialog(null)} />}
   </div>;
-}
-
-/** Dragging zooms the laid-out wall (cheap, continuous, no reshuffle); letting go relayouts once and the cards
- * glide from the zoomed spots to their new places. Keys and wheel commit after a short pause. */
-function DensitySlider(p: { value: number; onPreview: (v: number | null) => void; onCommit: (v: number) => void }) {
-  const [v, setV] = useState(p.value);
-  const timer = useRef(0);
-  const dragging = useRef(false);
-  useEffect(() => setV(p.value), [p.value]);
-  const commit = (x: number) => {
-    clearTimeout(timer.current);
-    dragging.current = false;
-    if (x === p.value) p.onPreview(null); else p.onCommit(x);
-  };
-  return <input type="range" min={140} max={420} step={10} value={v}
-    onPointerDown={() => { dragging.current = true; }}
-    onChange={(e) => {
-      const x = Number(e.target.value);
-      setV(x);
-      p.onPreview(x);
-      clearTimeout(timer.current);
-      if (!dragging.current) timer.current = window.setTimeout(() => commit(x), 220);
-    }}
-    onPointerUp={(e) => commit(Number(e.currentTarget.value))}
-    onPointerCancel={(e) => commit(Number(e.currentTarget.value))}
-    onBlur={(e) => { if (Number(e.currentTarget.value) !== p.value) commit(Number(e.currentTarget.value)); }} />;
 }
 
 function SaveGroupDialog(p: {
