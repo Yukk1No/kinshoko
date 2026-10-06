@@ -1,12 +1,74 @@
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { AppInfo } from "./bindings/AppInfo";
+import type { BrowsePage } from "./bindings/BrowsePage";
+import type { BrowseQuery } from "./bindings/BrowseQuery";
+import type { LibraryEvent } from "./bindings/LibraryEvent";
+import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
 
 export function appInfo(): Promise<AppInfo> {
   return invoke<AppInfo>("app_info");
+}
+
+const lib =(command: string) => `plugin:library|${command}`;
+
+/** 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。 */
+export function currentLibrary(): Promise<LibraryInfo | null> {
+  return invoke<LibraryInfo | null>(lib("current_library"));
+}
+
+/** 在 parent 下新建名为 name 的资料库，登记到本设备并打开。 */
+export function createLibrary(parent: string, name: string): Promise<LibraryInfo> {
+  return invoke<LibraryInfo>(lib("create_library"), { parent, name });
+}
+
+export function browse(query: BrowseQuery): Promise<BrowsePage> {
+  return invoke<BrowsePage>(lib("browse"), { query });
+}
+
+/** 开始导入，立即返回任务 id；进度与结果经 onLibraryEvent 推送。 */
+export function startImport(paths: string[]): Promise<string> {
+  return invoke<string>(lib("start_import"), { source: { paths } });
+}
+
+export function cancelImport(taskId: string): Promise<void> {
+  return invoke<void>(lib("cancel_import"), { taskId });
+}
+
+export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<UnlistenFn> {
+  return listen<LibraryEvent>("library-event", (e) => handler(e.payload));
+}
+
+/** 卡片上的缩略图地址（自定义协议 thumb）转成 <img> 可用的 URL。 */
+export function thumbnailUrl(address: string): string {
+  return convertFileSrc("", "thumb") + address;
+}
+
+// 原生文件对话框无法由 WebDriver 操作。冒烟测试先把要“选中”的路径放进
+// window.__KINSHOKO_TEST_PICKS__，有值时按顺序取用，不弹对话框。
+declare global {
+  interface Window {
+    __KINSHOKO_TEST_PICKS__?: (string | string[] | null)[];
+  }
+}
+
+function testPick<T>(): { value: T } | null {
+  const queue = window.__KINSHOKO_TEST_PICKS__;
+  return queue && queue.length ? { value: queue.shift() as T } : null;
+}
+
+export function pickFolder(): Promise<string | null> {
+  const t = testPick<string | null>();
+  return t ? Promise.resolve(t.value) : invoke<string | null>(lib("pick_folder"));
+}
+
+export function pickFiles(): Promise<string[]> {
+  const t = testPick<string[]>();
+  return t ? Promise.resolve(t.value ?? []) : invoke<string[]>(lib("pick_files"));
 }
 
 /** 应用壳设置：开机自启与全局快捷键。 */

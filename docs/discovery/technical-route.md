@@ -6,7 +6,7 @@
 
 | 项目 | 决定 | 已验证依据 | 剩余风险 |
 |---|---|---|---|
-| 框架 | Tauri 2 + Rust；React 19＋TS＋Vite；瀑布流用 TanStack Virtual 的 `lanes` | #7 钉图原型（[PR #21](https://github.com/Yukk1No/kinshoko/pull/21)）；#13 浏览样稿（[PR #25](https://github.com/Yukk1No/kinshoko/pull/25)、[PR #35](https://github.com/Yukk1No/kinshoko/pull/35)）；[#28](https://github.com/Yukk1No/kinshoko/pull/28) 字体 | release 包离线安装、无独显机器内存未实测；缩放与贴边动画不能逐帧调原生窗口，需另行设计 |
+| 框架 | Tauri 2 + Rust；React 19＋TS＋Vite；瀑布流沿用 #13 样稿自写的纯函数布局（尺寸取自资料库记录、最短列放置、二分查找可见范围加 overscan），不用 TanStack Virtual（#9 Q27：尺寸已知，TanStack 的测量与锚点修正只增加复杂度） | #7 钉图原型（[PR #21](https://github.com/Yukk1No/kinshoko/pull/21)）；#13 浏览样稿（[PR #25](https://github.com/Yukk1No/kinshoko/pull/25)、[PR #35](https://github.com/Yukk1No/kinshoko/pull/35)）；[#28](https://github.com/Yukk1No/kinshoko/pull/28) 字体 | release 包离线安装、无独显机器内存未实测；缩放与贴边动画不能逐帧调原生窗口，需另行设计 |
 | 进程 | 单进程常驻托盘，开机自启默认开、可关；关闭主窗口时销毁 WebView | #7 原型做通托盘、全局键、截图与贴边 | 常驻内存占用 |
 | 自动标签 | 同一 exe 以子命令启动打标子进程，主进程调度；画师绘画时可结束子进程释放显存 | #6：PixAI v1.0 FP16 分块版经 DirectML 在 RX 6500 XT 4 GB 上约 2.75 秒一张，显存峰值约 1.6 GB | 打标期间优动漫是否卡顿（#6 暂缓项） |
 | 模型分发 | 首次使用时下载，固定版本、校验哈希、本机改写为分块注意力，进度与断点续传；另可从文件导入模型包 | #6 探测程序已跑通同一流程 | 下载约 3 GB；打标完成前导入、浏览、钉图照常可用 |

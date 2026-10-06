@@ -24,6 +24,7 @@
 | `src-tauri/` | Tauri 2 应用壳（crate `kinshoko`）。命令层只做转发、类型转换和事件推送。 |
 | `src/` | React 19＋TS＋Vite 前端；`src/ipc.ts` 是调用 Tauri 命令的唯一入口。 |
 | `src/bindings/` | ts-rs 从核心 crate 生成的前后端契约类型，**不要手改**，生成后提交。 |
+| `e2e/` | Tauri WebDriver 冒烟测试（建库、导入、浏览、重开），只用 Node 自带模块。 |
 | `tools/`、`prototype/` | 独立的探测工具与原型，各带自己的锁文件，不在 Cargo 工作区内。 |
 
 ### 环境
@@ -45,6 +46,7 @@ npm run bindings        # 跑核心 crate 测试，并重新生成 src/bindings/
 cargo test -p kinshoko-core
 cargo fmt --all
 cargo clippy --workspace --all-targets -- -D warnings   # 需先 npm run vite:build 产出 dist/
+node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # 需 tauri-driver 与匹配 WebView2 版本的 msedgedriver
 ```
 
 应用常驻托盘：关闭主窗口只销毁 WebView，从托盘菜单“退出”才结束进程。本设备的设置（开机自启、全局快捷键）保存在 `%APPDATA%\dev.kinshoko\settings.json`。调试构建不写系统的开机自启登记；手动测试 release 构建时可设置环境变量 `KINSHOKO_SKIP_AUTOSTART=1` 达到同样效果。常驻内存实测见 [resident-memory.md](docs/validation/resident-memory.md)。

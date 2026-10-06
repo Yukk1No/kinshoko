@@ -1,23 +1,152 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { emit } from "@tauri-apps/api/event";
 import type { AppInfo } from "./bindings/AppInfo";
+import type { BrowsePage } from "./bindings/BrowsePage";
+import type { LibraryEvent } from "./bindings/LibraryEvent";
+import type { LibraryInfo } from "./bindings/LibraryInfo";
 import { App } from "./App";
 
-afterEach(() => {
+const info: AppInfo = { productName: "Kinshoko", version: "9.9.9" };
+const library: LibraryInfo = { id: "L1", name: "工作参考", root: "D:\\参考\\工作参考" };
+const page: BrowsePage = {
+  cards: [
+    { id: "a", width: 100, height: 200, thumbnail: "L1/a/256" },
+    { id: "b", width: 300, height: 100, thumbnail: "L1/b/256" },
+  ],
+  nextCursor: null,
+  total: 2,
+};
+
+type Call = { cmd: string; args: unknown };
+let calls: Call[];
+
+function backend(opened: LibraryInfo | null) {
+  calls = [];
+  let current = opened;
+  mockIPC(
+    (cmd, args) => {
+      calls.push({ cmd, args });
+      switch (cmd) {
+        case "app_info":
+          return info;
+        case "plugin:library|current_library":
+          return current;
+        case "plugin:library|create_library":
+          current = library;
+          return library;
+        case "plugin:library|browse":
+          return page;
+        case "plugin:library|start_import":
+          return "T1";
+        default:
+          return null;
+      }
+    },
+    { shouldMockEvents: true },
+  );
+}
+
+const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.args);
+const push = (event: LibraryEvent) => act(() => emit("library-event", event));
+
+beforeEach(() => {
+  // jsdom 不做布局：给图片墙一个 1000 × 800 的视口。
+  Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
+  mockConvertFileSrc("windows");
+  window.__KINSHOKO_TEST_PICKS__ = [];
+});
+
+afterEach(async () => {
   cleanup();
+  // 卸载时异步取消事件订阅，等它完成再撤掉模拟。
+  await new Promise((resolve) => setTimeout(resolve, 0));
   clearMocks();
 });
 
 describe("主窗口", () => {
-  it("显示空的主区域，并在状态栏显示核心报告的版本", async () => {
-    const info: AppInfo = { productName: "Kinshoko", version: "9.9.9" };
-    mockIPC((cmd) => (cmd === "app_info" ? info : undefined));
+  it("在状态栏显示核心报告的版本", async () => {
+    backend(library);
+    render(<App />);
+    expect(await screen.findByText("Kinshoko 9.9.9")).toBeTruthy();
+  });
 
+  it("没有资料库时引导建库：选择存放位置后在那里新建并打开", async () => {
+    backend(null);
     render(<App />);
 
-    expect(await screen.findByText("Kinshoko 9.9.9")).toBeTruthy();
-    expect(screen.getByRole("main").childElementCount).toBe(0);
+    fireEvent.change(await screen.findByLabelText("资料库名称"), {
+      target: { value: "工作参考" },
+    });
+    window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
+    fireEvent.click(screen.getByRole("button", { name: "选择存放位置…" }));
+    expect(await screen.findByText("D:\\参考")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "建立资料库" }));
+
+    expect(await screen.findByRole("heading", { name: "工作参考" })).toBeTruthy();
+    expect(sent("plugin:library|create_library")).toEqual([
+      { parent: "D:\\参考", name: "工作参考" },
+    ]);
+  });
+
+  it("打开的资料库在图片墙上按资料库记录的比例显示缩略图", async () => {
+    backend(library);
+    render(<App />);
+
+    const images = await screen.findAllByRole("img");
+    expect(images.map((i) => i.getAttribute("src"))).toEqual([
+      "http://thumb.localhost/L1/a/256",
+      "http://thumb.localhost/L1/b/256",
+    ]);
+    const box = (el: HTMLElement) => el.closest<HTMLElement>("[data-id]")!.style;
+    const ratio = (s: CSSStyleDeclaration) => parseFloat(s.height) / parseFloat(s.width);
+    expect(ratio(box(images[0]))).toBeCloseTo(2, 3);
+    expect(ratio(box(images[1]))).toBeCloseTo(1 / 3, 3);
+  });
+
+  it("导入文件夹时显示进度、可以取消，结束后逐项列出没有进来的文件", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+
+    window.__KINSHOKO_TEST_PICKS__ = ["D:\\下载\\参考"];
+    fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+    await waitFor(() =>
+      expect(sent("plugin:library|start_import")).toEqual([
+        { source: { paths: ["D:\\下载\\参考"] } },
+      ]),
+    );
+
+    await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 4 } });
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("1");
+    expect(screen.getByText("正在导入 1 / 4")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
+    await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ taskId: "T1" }]));
+
+    const browsed = sent("plugin:library|browse").length;
+    await push({ kind: "listStale", libraryId: "L1" });
+    await waitFor(() => expect(sent("plugin:library|browse").length).toBeGreaterThan(browsed));
+
+    await push({
+      kind: "taskFinished",
+      libraryId: "L1",
+      taskId: "T1",
+      report: {
+        cancelled: true,
+        items: [
+          { path: "D:\\下载\\参考\\a.png", outcome: { kind: "imported", imageId: "a" } },
+          { path: "D:\\下载\\参考\\说明.txt", outcome: { kind: "unsupported" } },
+          { path: "D:\\下载\\参考\\坏.png", outcome: { kind: "readFailed", reason: "无法解码" } },
+        ],
+      },
+    });
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.getByText(/已取消/)).toBeTruthy();
+    expect(screen.getByText("D:\\下载\\参考\\说明.txt")).toBeTruthy();
+    expect(screen.getByText("不支持的格式")).toBeTruthy();
+    expect(screen.getByText("读取失败：无法解码")).toBeTruthy();
   });
 
   it("从状态栏打开设置", async () => {

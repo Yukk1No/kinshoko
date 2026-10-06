@@ -5,6 +5,7 @@
 
 mod commands;
 mod desktop;
+mod library;
 mod shell;
 
 use tauri::RunEvent;
@@ -15,6 +16,7 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             shell::open_main_window(app);
         }))
+        .plugin(library::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(
             tauri_plugin_autostart::Builder::new()
