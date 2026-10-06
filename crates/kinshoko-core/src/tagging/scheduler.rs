@@ -446,10 +446,13 @@ impl Worker {
                     .finish_tagging(source, id, TaggingOutcome::Failed(reason))
             }
             Err(failure) => {
-                // 会话已失效：结束它，记一次崩溃，稍后重启。
+                // 会话已失效：结束它，稍后重启。
                 self.session = None;
                 if matches!(failure, TagFailure::DeviceLost(_)) && spec.device == Device::DirectMl {
+                    // 输入尺寸固定，显卡重置或显存溢出不怪这张图：记在显卡头上，多次后退到 CPU 档。
                     self.gpu_failures += 1;
+                    self.fail(failure.to_string());
+                    return false;
                 }
                 let crashes = self.crashes.entry(id.to_owned()).or_default();
                 *crashes += 1;

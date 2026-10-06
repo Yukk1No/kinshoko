@@ -366,3 +366,133 @@ pub fn chunk_attention(src: &Path, dest: &Path, c: &Chunking) -> std::io::Result
     drop(w);
     std::fs::rename(&part, dest)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 一个含一个全局注意力块、一个无关节点和一段“权重”的最小 ModelProto。
+    fn model() -> Vec<u8> {
+        let p = "/blocks.7/attn/";
+        let mut graph = Vec::new();
+        graph.extend(node_field("Relu", "/stem/Relu", &["x"], &["q"], &[]));
+        graph.extend(node_field(
+            "MatMul",
+            &format!("{p}MatMul"),
+            &["q", "kT"],
+            &["s"],
+            &[],
+        ));
+        graph.extend(node_field(
+            "Softmax",
+            &format!("{p}Softmax"),
+            &["s"],
+            &["a"],
+            &[("axis", -1)],
+        ));
+        graph.extend(node_field(
+            "MatMul",
+            &format!("{p}MatMul_1"),
+            &["a", "v"],
+            &["o"],
+            &[],
+        ));
+        // GraphProto.initializer（字段 5）：应原样复制的字节。
+        put_bytes(&mut graph, 5, &[0xAB; 300]);
+        let mut model = Vec::new();
+        put_varint(&mut model, 1 << 3); // ModelProto.ir_version
+        put_varint(&mut model, 8);
+        put_bytes(&mut model, MODEL_GRAPH, &graph);
+        model
+    }
+
+    type NodeView = (String, String, Vec<String>, Vec<String>);
+
+    fn graph_nodes(path: &Path) -> (Vec<NodeView>, Vec<u8>) {
+        let model = std::fs::read(path).unwrap();
+        let mut r = Src::open(path).unwrap();
+        let top = scan(&mut r, 0, model.len() as u64).unwrap();
+        let g = top.iter().find(|f| f.number == MODEL_GRAPH).unwrap();
+        let mut nodes = Vec::new();
+        let mut initializer = Vec::new();
+        for f in scan(&mut r, g.payload, g.end).unwrap() {
+            let bytes = &model[f.payload as usize..f.end as usize];
+            match f.number {
+                GRAPH_NODE => {
+                    let n = parse_node(bytes).unwrap();
+                    nodes.push((n.op_type, n.name, n.inputs, n.outputs));
+                }
+                5 => initializer = bytes.to_vec(),
+                _ => {}
+            }
+        }
+        (nodes, initializer)
+    }
+
+    fn node(op: &str, name: &str, inputs: &[&str], outputs: &[&str]) -> NodeView {
+        let p = "/blocks.7/attn/";
+        let full = |s: &&str| {
+            if s.len() > 2 {
+                format!("{p}{s}")
+            } else {
+                s.to_string()
+            }
+        };
+        (
+            op.into(),
+            format!("{p}{name}"),
+            inputs.iter().map(full).collect(),
+            outputs.iter().map(full).collect(),
+        )
+    }
+
+    #[test]
+    fn global_attention_is_split_into_query_chunks() {
+        let dir = tempfile::tempdir().unwrap();
+        let (src, dest) = (dir.path().join("a.onnx"), dir.path().join("b.onnx"));
+        std::fs::write(&src, model()).unwrap();
+        let c = Chunking {
+            blocks: vec![7],
+            chunks: 2,
+            sha256: String::new(),
+        };
+        chunk_attention(&src, &dest, &c).unwrap();
+
+        let (nodes, initializer) = graph_nodes(&dest);
+        let relu: NodeView = (
+            "Relu".into(),
+            "/stem/Relu".into(),
+            vec!["x".into()],
+            vec!["q".into()],
+        );
+        assert_eq!(
+            nodes,
+            vec![
+                relu,
+                node("Split", "QSplit", &["q"], &["qchunk_0", "qchunk_1"]),
+                node("MatMul", "c0_MatMul", &["qchunk_0", "kT"], &["c0_scores"]),
+                node("Softmax", "c0_Softmax", &["c0_scores"], &["c0_attn"]),
+                node("MatMul", "c0_MatMul_1", &["c0_attn", "v"], &["c0_out"]),
+                node("MatMul", "c1_MatMul", &["qchunk_1", "kT"], &["c1_scores"]),
+                node("Softmax", "c1_Softmax", &["c1_scores"], &["c1_attn"]),
+                node("MatMul", "c1_MatMul_1", &["c1_attn", "v"], &["c1_out"]),
+                node("Concat", "QConcat", &["c0_out", "c1_out"], &["o"]),
+            ]
+        );
+        assert_eq!(initializer, vec![0xAB; 300], "权重原样复制");
+    }
+
+    #[test]
+    fn a_graph_without_the_expected_block_is_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let (src, dest) = (dir.path().join("a.onnx"), dir.path().join("b.onnx"));
+        std::fs::write(&src, model()).unwrap();
+        let c = Chunking {
+            blocks: vec![15],
+            chunks: 2,
+            sha256: String::new(),
+        };
+        assert!(chunk_attention(&src, &dest, &c).is_err());
+        assert!(!dest.exists());
+    }
+}
