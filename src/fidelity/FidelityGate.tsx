@@ -13,6 +13,9 @@ const THRESHOLD = 1;
 const ALPHA_TOLERANCE = 0.02;
 
 interface PatchResult {
+  /** display-p3 canvas 读回的平均编码值（0～1）。 */
+  originalRgb: [number, number, number];
+  thumbnailRgb: [number, number, number];
   original: Lab;
   thumbnail: Lab;
   /** 原图与缩略图（都经 WebView2 解码）的色差：门槛。 */
@@ -30,6 +33,8 @@ interface SampleResult {
   note: string;
   gated: boolean;
   sha256: string;
+  /** WebView2 解码出的尺寸：确认原图与缩略图确实解码了。 */
+  decoded?: { original: [number, number]; thumbnail: [number, number] };
   patches: PatchResult[];
   maxDeltaE: number | null;
   passed: boolean;
@@ -75,6 +80,8 @@ async function measure(item: GateItem): Promise<SampleResult & { canvas: Canvas 
     const ol = p3ToLab(o.rgb);
     const tl = p3ToLab(t.rgb);
     return {
+      originalRgb: o.rgb,
+      thumbnailRgb: t.rgb,
       original: ol,
       thumbnail: tl,
       deltaE: deltaE2000(ol, tl),
@@ -93,6 +100,10 @@ async function measure(item: GateItem): Promise<SampleResult & { canvas: Canvas 
     note: item.note,
     gated: item.gated,
     sha256: item.sha256,
+    decoded: {
+      original: [original.image.width, original.image.height],
+      thumbnail: [thumbnail.image.width, thumbnail.image.height],
+    },
     patches,
     maxDeltaE,
     passed,
