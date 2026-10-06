@@ -11,7 +11,7 @@
 | 自动标签 | 同一 exe 以子命令启动打标子进程，主进程调度；画师绘画时可结束子进程释放显存 | #6：PixAI v1.0 FP16 分块版经 DirectML 在 RX 6500 XT 4 GB 上约 2.75 秒一张，显存峰值约 1.6 GB | 打标期间优动漫是否卡顿（#6 暂缓项） |
 | 模型分发 | 首次使用时下载，固定版本、校验哈希、本机改写为分块注意力，进度与断点续传；另可从文件导入模型包 | #6 探测程序已跑通同一流程 | 下载约 3 GB；打标完成前导入、浏览、钉图照常可用 |
 | 持久化 | 每库一个 SQLite（`rusqlite`＋迁移）＋按 SHA-256 命名的原文件＋可重建缓存；参考组为带版本的 JSON，独立于资料库保存 | #8 在画师真实 Eagle 1.8.2 库 300 张样本上 44/44 通过（Python 原型，[PR #37](https://github.com/Yukk1No/kinshoko/pull/37)） | Rust 重写后须重新通过同一套检查 |
-| 图片管线 | 原图由 WebView2 直接显示；缩略图与缩小显示由 Rust 生成：`image` 解码与方向、`moxcms` 色彩、`fast_image_resize` f32 预乘缩放，无损保存；钉图用物理像素尺寸的 `display-p3` canvas 2D | [图片还原度管线核查](../research/image-fidelity-pipeline.md)（仅文献与源码） | WebView2 154 偏黄回归（WebView2Feedback #5734）；moxcms 与 skcms 的残差；CMYK JPEG 原始采样的取得方式 |
+| 图片管线 | 原图由 WebView2 直接显示；缩略图与缩小显示由 Rust 生成：`image` 解码与方向、`moxcms` 色彩、`fast_image_resize` f32 预乘缩放，无损保存；钉图用物理像素尺寸的 `display-p3` canvas 2D。动图（GIF、动态 WebP、APNG）与带 HDR 标记的原图（增益图、PQ/HLG）首版不走直接显示，任何缩放都用 Rust 生成的 SDR 派生图：动图取首帧，HDR 取增益图的基础图或色调映射 | [图片还原度管线核查](../research/image-fidelity-pipeline.md)（仅文献与源码） | WebView2 154 偏黄回归（WebView2Feedback #5734）；moxcms 与 skcms 的残差；CMYK JPEG 原始采样的取得方式；PQ/HLG 到 SDR 的色调映射由谁实现 |
 | 安装与更新 | 按用户安装的 NSIS 包，WebView2 evergreen bootstrapper；Tauri updater 从 GitHub Releases 检查更新；暂不购买代码签名证书 | — | SmartScreen 提示；updater 签名密钥的保管 |
 
 ## 模块
@@ -40,7 +40,7 @@ Rust 侧六个模块加应用壳。用 codebase-design 的删除测试筛过，L
 
 **进入首版**
 
-- 收集：图片文件、文件夹、拖放、剪贴板、截图收藏。格式 JPEG、PNG、WebP；GIF 保留原文件、显示静态首帧；不支持的格式逐文件报告。
+- 收集：图片文件、文件夹、拖放、剪贴板、截图收藏。格式 JPEG、PNG、WebP、GIF；动图（GIF、动态 WebP、APNG）保留原文件、显示静态首帧；HDR 图片保留原文件、按 SDR 显示；不支持的格式逐文件报告。
 - 自动标签建议与内容分级，人工修正优先；安全模式（封印书）。
 - 基础检索：标签、文字、中文别名，默认同时满足，显式“或”与排除，命名空间候选。
 - 近似查找，默认展开，可改回精确：
