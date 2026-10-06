@@ -1,10 +1,11 @@
 //! 内容分级与打标子接口（#52）。
 //!
 //! - 分级建议按来源分层（[`FactSource`]），和标签事实同一规则：某个来源重写只替换自己那一行。
-//!   人工分级（#53）优先于建议；目前有效分级就是各来源建议中最严格的一档。
+//!   人工分级（#53，`image.rating_manual`）优先于建议；没有人工分级时，有效分级是各来源建议中
+//!   最严格的一档。SQL 里用视图 `effective_rating` 取有效分级。
 //! - 打标进度按模型来源记录：没有记录的图就是待打标的图；无法打标的图记下原因，不再重试。
 
-use rusqlite::{OptionalExtension, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -69,7 +70,9 @@ pub struct ImageRating {
     pub image_id: String,
     /// 自动分级：各来源建议中最严格的一档；还没有建议时为空。
     pub suggested: Option<ContentRating>,
-    /// 有效分级（人工分级优先，#53）。
+    /// 画师修正的分级；没有修正（或已退回）时为空。重新打标不覆盖它。
+    pub manual: Option<ContentRating>,
+    /// 有效分级：人工分级优先，否则是自动分级。
     pub effective: Option<ContentRating>,
 }
 
@@ -113,10 +116,23 @@ pub(super) fn replace_source_rating(
 }
 
 pub(super) fn image_rating(inner: &Inner, image_id: &str) -> Result<ImageRating, Error> {
-    let conn = inner.readers.get();
-    conn.query_row("SELECT 1 FROM image WHERE id = ?1", [image_id], |_| Ok(()))
+    rating_of(&inner.readers.get(), image_id)
+}
+
+/// 一张图的分级：自动（各来源建议中最严格的一档）、人工与有效（人工优先）。
+pub(super) fn rating_of(conn: &Connection, image_id: &str) -> Result<ImageRating, Error> {
+    // 有效分级取自视图 `effective_rating`，与 SQL 里的过滤（安全模式）同一规则。
+    let (manual, effective): (Option<String>, Option<String>) = conn
+        .query_row(
+            "SELECT i.rating_manual, e.rating FROM image i
+             JOIN effective_rating e ON e.image_id = i.id WHERE i.id = ?1",
+            [image_id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
         .optional()?
         .ok_or(Error::UnknownImage)?;
+    let manual = manual.as_deref().and_then(ContentRating::parse);
+    let effective = effective.as_deref().and_then(ContentRating::parse);
     let mut stmt = conn.prepare_cached("SELECT rating FROM rating_fact WHERE image_id = ?1")?;
     let suggested = stmt
         .query_map([image_id], |r| r.get::<_, String>(0))?
@@ -127,8 +143,22 @@ pub(super) fn image_rating(inner: &Inner, image_id: &str) -> Result<ImageRating,
     Ok(ImageRating {
         image_id: image_id.to_owned(),
         suggested,
-        effective: suggested,
+        manual,
+        effective,
     })
+}
+
+/// 设置（`Some`）或退回（`None`）人工分级。
+pub(super) fn set_manual(
+    conn: &Connection,
+    ids: &[String],
+    rating: Option<ContentRating>,
+) -> Result<(), Error> {
+    let mut stmt = conn.prepare_cached("UPDATE image SET rating_manual = ?1 WHERE id = ?2")?;
+    for id in ids {
+        stmt.execute(params![rating.map(ContentRating::as_str), id])?;
+    }
+    Ok(())
 }
 
 pub(super) fn images_to_tag(

@@ -5,6 +5,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use super::rating::{self, ContentRating, ImageRating};
 use super::{Error, Inner, LibraryEvent, folders, now_ms, tags};
 
 /// 对参考图的一项编辑。一次 `edit` 把编辑列表按顺序用在每张图上，全部成功才提交。
@@ -29,6 +30,10 @@ pub enum ImageEdit {
     Delete,
     /// 从回收站恢复。
     Restore,
+    /// 画师修正内容分级：优先于自动分级，重新打标不覆盖。
+    SetRating { rating: ContentRating },
+    /// 撤掉画师的分级，退回自动分级。
+    RevertRating,
 }
 
 /// 参考图所在的一个文件夹。
@@ -75,6 +80,8 @@ pub struct ImageDetail {
     /// 移进回收站的时间（Unix 毫秒）；不在回收站时为空。
     #[ts(type = "number | null")]
     pub deleted_at: Option<i64>,
+    /// 内容分级：自动、人工与有效。
+    pub rating: ImageRating,
 }
 
 pub(super) fn edit(
@@ -181,6 +188,8 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<(), Erro
                 stmt.execute([id])?;
             }
         }
+        ImageEdit::SetRating { rating } => rating::set_manual(conn, ids, Some(*rating))?,
+        ImageEdit::RevertRating => rating::set_manual(conn, ids, None)?,
     }
     Ok(())
 }
@@ -228,5 +237,6 @@ pub(super) fn detail(conn: &Connection, id: &str) -> Result<ImageDetail, Error> 
             sources,
         },
         deleted_at,
+        rating: rating::rating_of(conn, id)?,
     })
 }
