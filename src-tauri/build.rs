@@ -14,6 +14,7 @@ fn main() {
                     "create_folder",
                     "rename_folder",
                     "move_folder",
+                    "recovery",
                     "start_import",
                     "cancel_import",
                     "pick_folder",

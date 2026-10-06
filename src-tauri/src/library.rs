@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 
 use kinshoko_core::library::{
     BrowsePage, BrowseQuery, ImageDetail, ImageEdit, ImageTags, ImportSource, ImportTask,
-    LibraryEvent, LibraryInfo, Sidebar, TagEdit, TagGroupView, Vocabulary,
+    LibraryEvent, LibraryInfo, RecoveryReport, Sidebar, TagEdit, TagGroupView, Vocabulary,
 };
 use kinshoko_core::{DeviceRegistry, Library};
 use tauri::http::{Response, StatusCode, header};
@@ -53,6 +53,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             create_folder,
             rename_folder,
             move_folder,
+            recovery,
             start_import,
             cancel_import,
             pick_folder,
@@ -265,6 +266,12 @@ async fn move_folder(
             .map_err(|e| e.to_string())
     })
     .await
+}
+
+/// 当前资料库这次打开时的对账结果。
+#[tauri::command]
+fn recovery(state: State<'_, LibraryState>) -> Result<RecoveryReport, String> {
+    Ok(state.current()?.recovery().clone())
 }
 
 /// 开始导入，立即返回任务 id；进度与结果经 `library-event` 推送。

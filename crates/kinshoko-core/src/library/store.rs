@@ -18,15 +18,32 @@ fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
         M::up(include_str!("migrations/0001_library.sql")),
         M::up(include_str!("migrations/0051_tags.sql")),
-        // 文件名按工单编号；执行顺序按合入先后（#51 先于 #50 合入），只往后追加。
+        M::up(include_str!("migrations/0046_import_pending.sql")),
+        // 文件名按工单编号；执行顺序按合入先后（#51、#46 先于 #50 合入），只往后追加。
         M::up(include_str!("migrations/0050_folders_notes_trash.sql")),
     ])
 }
 
 pub(super) const DB_FILE: &str = "library.sqlite";
 
+/// SQLite 不会自己处理超过 260 个字符的 Windows 路径；换成 `\\?\` 形式的绝对路径交给它。
+/// 标准库的文件操作已经会自动这样做。
+fn sqlite_path(path: &Path) -> Result<std::path::PathBuf, Error> {
+    let path = std::path::absolute(path)?;
+    if cfg!(windows) {
+        let s = path.to_string_lossy();
+        if !s.starts_with(r"\\") {
+            return Ok(format!(r"\\?\{s}").into());
+        }
+        if let Some(unc) = s.strip_prefix(r"\\").filter(|r| !r.starts_with(['?', '.'])) {
+            return Ok(format!(r"\\?\UNC\{unc}").into());
+        }
+    }
+    Ok(path)
+}
+
 fn connect(path: &Path) -> Result<Connection, Error> {
-    let conn = Connection::open(path)?;
+    let conn = Connection::open(sqlite_path(path)?)?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
     conn.pragma_update(None, "synchronous", "FULL")?;
     conn.pragma_update(None, "foreign_keys", "ON")?;

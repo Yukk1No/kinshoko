@@ -2,6 +2,7 @@
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
@@ -10,6 +11,7 @@ import type { ImageEdit } from "./bindings/ImageEdit";
 import type { ImageTags } from "./bindings/ImageTags";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
+import type { RecoveryReport } from "./bindings/RecoveryReport";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { Sidebar } from "./bindings/Sidebar";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
@@ -73,6 +75,30 @@ export function startImport(paths: string[]): Promise<string> {
 
 export function cancelImport(taskId: string): Promise<void> {
   return invoke<void>(lib("cancel_import"), { taskId });
+}
+
+/** 当前资料库这次打开时的对账结果：撤回的中断导入项与不认识的孤立文件。 */
+export function libraryRecovery(): Promise<RecoveryReport> {
+  return invoke<RecoveryReport>(lib("recovery"));
+}
+
+export type FileDrop = { kind: "enter"; paths: string[] } | { kind: "drop"; paths: string[] } | { kind: "leave" };
+
+/** 文件或文件夹拖进主窗口：进入、松开（带路径）、离开。 */
+export function onFileDrop(handler: (drop: FileDrop) => void): Promise<UnlistenFn> {
+  return getCurrentWebview().onDragDropEvent(({ payload }) => {
+    switch (payload.type) {
+      case "enter":
+        handler({ kind: "enter", paths: payload.paths });
+        break;
+      case "drop":
+        handler({ kind: "drop", paths: payload.paths });
+        break;
+      case "leave":
+        handler({ kind: "leave" });
+        break;
+    }
+  });
 }
 
 /** 一张参考图的有效标签及出处、被否决的标签，名称按界面语言 lang。 */

@@ -18,8 +18,10 @@
 mod edit;
 mod error;
 mod events;
+mod fault;
 mod folders;
 mod import;
+mod recovery;
 mod sidebar;
 mod store;
 mod tags;
@@ -44,8 +46,8 @@ pub use tags::{
     Vocabulary, VocabularyTag,
 };
 pub use types::{
-    BrowsePage, BrowseQuery, BrowseScope, ImageCard, ImportItem, ImportOutcome, ImportProgress,
-    ImportReport, ImportSource, LibraryInfo,
+    BrowsePage, BrowseQuery, BrowseScope, ImageCard, ImageSourceRecord, ImportItem, ImportOutcome,
+    ImportProgress, ImportReport, ImportSource, LibraryInfo, RecoveryReport,
 };
 
 use events::Hub;
@@ -72,6 +74,7 @@ pub(crate) struct Inner {
     writer: Writer,
     readers: Readers,
     hub: Hub,
+    recovery: RecoveryReport,
     translations: RwLock<Arc<tags::TranslationIndex>>,
 }
 
@@ -110,7 +113,7 @@ impl Library {
                 now_ms()
             ],
         )?;
-        Self::start(root, conn)
+        Self::start(root, conn, RecoveryReport::default())
     }
 
     /// 打开已有资料库。
@@ -119,13 +122,24 @@ impl Library {
         if !db.is_file() {
             return Err(Error::NotALibrary(root.to_path_buf()));
         }
-        let conn = store::open_db(&db)?;
+        let mut conn = store::open_db(&db)?;
         std::fs::create_dir_all(root.join(ORIGINALS_DIR))?;
         std::fs::create_dir_all(root.join(STAGING_DIR))?;
-        Self::start(root, conn)
+        // 先对账，再启动读写。
+        let recovery = recovery::reconcile(&mut conn, root)?;
+        Self::start(root, conn, recovery)
     }
 
-    fn start(root: &Path, conn: rusqlite::Connection) -> Result<Library, Error> {
+    /// 本次打开时的对账结果：撤回了哪些中断的导入项、有哪些未知的孤立原文件。
+    pub fn recovery(&self) -> &RecoveryReport {
+        &self.inner.recovery
+    }
+
+    fn start(
+        root: &Path,
+        conn: rusqlite::Connection,
+        recovery: RecoveryReport,
+    ) -> Result<Library, Error> {
         let info = conn
             .query_row("SELECT id, name FROM library", [], |row| {
                 Ok(LibraryInfo {
@@ -148,6 +162,7 @@ impl Library {
                 writer: Writer::spawn(conn),
                 readers,
                 hub: Hub::default(),
+                recovery,
                 translations: RwLock::default(),
             }),
         })
@@ -211,6 +226,27 @@ impl Library {
         position: u32,
     ) -> Result<(), Error> {
         folders::move_to(&self.inner, folder_id, parent, position)
+    }
+
+    /// 参考图的全部来源，按记录先后。之后并入查看器详情 `image(id)`。
+    pub fn image_sources(&self, image_id: &str) -> Result<Vec<ImageSourceRecord>, Error> {
+        let conn = self.inner.readers.get();
+        let mut stmt = conn.prepare_cached(
+            "SELECT source, location FROM image_source WHERE image_id = ?1
+             ORDER BY recorded_at, rowid",
+        )?;
+        let sources = stmt
+            .query_map([image_id], |row| {
+                Ok(ImageSourceRecord {
+                    source: row.get(0)?,
+                    location: PathBuf::from(row.get::<_, String>(1)?),
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        if sources.is_empty() {
+            return Err(Error::UnknownImage);
+        }
+        Ok(sources)
     }
 
     /// 设置翻译表：之后首次进库的外部名称按它取得各语言的初始名称与别名。

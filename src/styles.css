@@ -164,6 +164,22 @@ button.primary {
   accent-color: var(--accent);
 }
 
+/* 拖进主窗口时整窗提示，不拦截指针。 */
+.drop-hint {
+  position: fixed;
+  inset: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px dashed var(--accent-strong);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  color: var(--accent-strong);
+  font-size: 20px;
+  pointer-events: none;
+}
+
 .import-report header {
   display: flex;
   align-items: center;

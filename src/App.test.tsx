@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowsePage } from "./bindings/BrowsePage";
@@ -8,6 +8,7 @@ import type { ImageDetail } from "./bindings/ImageDetail";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { Sidebar } from "./bindings/Sidebar";
+import type { RecoveryReport } from "./bindings/RecoveryReport";
 import { App } from "./App";
 
 const info: AppInfo = { productName: "Kinshoko", version: "9.9.9" };
@@ -45,8 +46,11 @@ const detail = (id: string, manual: string | null): ImageDetail => ({
 type Call = { cmd: string; args: unknown };
 let calls: Call[];
 
-function backend(opened: LibraryInfo | null) {
+const clean: RecoveryReport = { interrupted: [], orphans: [], discardedStaging: 0 };
+
+function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean) {
   calls = [];
+  mockWindows("main");
   let current = opened;
   mockIPC(
     (cmd, args) => {
@@ -72,6 +76,8 @@ function backend(opened: LibraryInfo | null) {
           const note = edits.find((e) => e.kind === "setNote")?.text ?? null;
           return ids.map((id) => detail(id, note));
         }
+        case "plugin:library|recovery":
+          return recovery;
         default:
           return null;
       }
@@ -179,6 +185,73 @@ describe("主窗口", () => {
     expect(screen.getByText("D:\\下载\\参考\\说明.txt")).toBeTruthy();
     expect(screen.getByText("不支持的格式")).toBeTruthy();
     expect(screen.getByText("读取失败：无法解码")).toBeTruthy();
+  });
+
+  it("把图片和文件夹拖进主窗口就开始导入", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+
+    const position = { x: 10, y: 10 };
+    await act(() =>
+      emit("tauri://drag-enter", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }),
+    );
+    expect(screen.getByText("松开即可导入到 工作参考")).toBeTruthy();
+    await act(() => emit("tauri://drag-drop", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }));
+
+    await waitFor(() =>
+      expect(sent("plugin:library|start_import")).toEqual([
+        { source: { paths: ["D:\\图\\a.png", "D:\\一批参考"] } },
+      ]),
+    );
+    expect(screen.queryByText("松开即可导入到 工作参考")).toBeNull();
+  });
+
+  it("导入结束后可以只重试读取失败的项", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+
+    await push({
+      kind: "taskFinished",
+      libraryId: "L1",
+      taskId: "T0",
+      report: {
+        cancelled: false,
+        items: [
+          { path: "D:\\参考\\a.png", outcome: { kind: "imported", imageId: "a" } },
+          { path: "D:\\参考\\说明.txt", outcome: { kind: "unsupported" } },
+          { path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: "被占用" } },
+        ],
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+
+    await waitFor(() =>
+      expect(sent("plugin:library|start_import")).toEqual([
+        { source: { paths: ["D:\\参考\\坏.png"] } },
+      ]),
+    );
+  });
+
+  it("上次导入中断时提示撤回了哪些文件，并可以重新导入", async () => {
+    backend(library, {
+      interrupted: ["D:\\参考\\b.png"],
+      orphans: ["originals/ab/x.png"],
+      discardedStaging: 0,
+    });
+    render(<App />);
+
+    const notice = await screen.findByRole("status", { name: "上次导入中断" });
+    expect(notice.textContent).toContain("D:\\参考\\b.png");
+    expect(notice.textContent).toContain("1 个不认识的文件");
+    fireEvent.click(screen.getByRole("button", { name: "重新导入这些文件" }));
+
+    await waitFor(() =>
+      expect(sent("plugin:library|start_import")).toEqual([
+        { source: { paths: ["D:\\参考\\b.png"] } },
+      ]),
+    );
   });
 
   it("从状态栏打开设置", async () => {
