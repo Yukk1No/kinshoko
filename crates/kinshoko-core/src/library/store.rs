@@ -24,6 +24,7 @@ fn migrations() -> Migrations<'static> {
         M::up(include_str!("migrations/0052_tagging.sql")),
         M::up(include_str!("migrations/0056_personal_approx.sql")),
         M::up(include_str!("migrations/0053_manual_rating.sql")),
+        M::up(include_str!("migrations/0045_image_colour.sql")),
     ])
 }
 

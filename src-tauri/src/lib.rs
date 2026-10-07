@@ -5,6 +5,7 @@
 
 mod commands;
 mod desktop;
+mod fidelity_gate;
 mod library;
 mod shell;
 mod tagging;
@@ -14,9 +15,14 @@ use tauri::RunEvent;
 pub fn run() {
     let app = tauri::Builder::default()
         // 第二次启动（例如开机自启后又双击图标）只把已有进程的主窗口叫出来。
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            shell::open_main_window(app);
-        }))
+        // 带 `--fidelity-gate` 时改为开始还原度门槛实验。
+        .plugin(tauri_plugin_single_instance::init(
+            |app, args, _cwd| match fidelity_gate::options(&args) {
+                Some(options) => fidelity_gate::start(app, options),
+                None => shell::open_main_window(app),
+            },
+        ))
+        .manage(fidelity_gate::GateState::default())
         // 对话框插件要注册在这里：插件的 setup 运行时 Tauri 持有插件表的锁，
         // 在 setup 里再调用 `app.plugin` 会死锁，应用卡在启动阶段。
         .plugin(tauri_plugin_dialog::init())
@@ -32,7 +38,10 @@ pub fn run() {
             let handle = app.handle();
             shell::start(handle)?;
             desktop::create_tray(handle)?;
-            if !std::env::args().any(|arg| arg == shell::AUTOSTART_ARG) {
+            let args: Vec<String> = std::env::args().collect();
+            if let Some(options) = fidelity_gate::options(&args) {
+                fidelity_gate::start(handle, options);
+            } else if !args.iter().any(|arg| arg == shell::AUTOSTART_ARG) {
                 shell::open_main_window(handle);
             }
             Ok(())
@@ -51,6 +60,9 @@ pub fn run() {
             tagging::tagging_set_model,
             tagging::tagging_pick_package,
             tagging::tagging_import_package,
+            fidelity_gate::gate_plan,
+            fidelity_gate::gate_image,
+            fidelity_gate::gate_save,
         ])
         .build(tauri::generate_context!())
         .expect("启动 Kinshoko 失败");

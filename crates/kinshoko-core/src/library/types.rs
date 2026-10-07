@@ -241,3 +241,22 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
         total,
     })
 }
+
+/// 原图在 1:1 与放大时怎样显示（ADR-0005）。由导入时记录的色彩描述决定
+/// （[`crate::fidelity::ColourDescription::needs_sdr_derivative`]）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum DisplayRoute {
+    /// 原文件交给 WebView2 直接解释。
+    Original,
+    /// 原尺寸的 `sdr` 派生图：动图（首帧）、HDR、Chromium 不能精确表示的 ICC 与 CMYK。
+    SdrDerivative,
+}
+
+/// 1:1 与放大时要显示的文件。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DisplayFile {
+    pub route: DisplayRoute,
+    pub path: PathBuf,
+}

@@ -19,6 +19,7 @@ import type { FrozenScreen } from "./bindings/FrozenScreen";
 import type { ImageDetail } from "./bindings/ImageDetail";
 import type { ImageEdit } from "./bindings/ImageEdit";
 import type { ImageRating } from "./bindings/ImageRating";
+import type { GatePlan } from "./bindings/GatePlan";
 import type { ImageTags } from "./bindings/ImageTags";
 import type { SavedPin } from "./bindings/SavedPin";
 import type { Region } from "./bindings/Region";
@@ -168,6 +169,12 @@ export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<
 /** 卡片上的缩略图地址（自定义协议 thumb）转成 <img> 可用的 URL。 */
 export function thumbnailUrl(address: string): string {
   return convertFileSrc("", "thumb") + address;
+}
+
+/** 1:1 与放大时显示的图（看图界面只用这条路）：静态 SDR 原图，或动图、HDR、Chromium 不能
+ * 精确表示的 ICC 与 CMYK 的原尺寸 sdr 派生图（ADR-0005）。 */
+export function displayUrl(libraryId: string, imageId: string): string {
+  return convertFileSrc("", "thumb") + `${libraryId}/${imageId}/full`;
 }
 
 // 原生文件对话框无法由 WebDriver 操作。冒烟测试先把要“选中”的路径放进
@@ -375,4 +382,30 @@ export function onPinNotice(handler: (text: string) => void): Promise<UnlistenFn
 /** 截图历史中的截图或冻结屏幕（自定义协议 capture）转成 <img> 可用的 URL。 */
 export function captureUrl(address: string): string {
   return convertFileSrc("", "capture") + address;
+}
+
+// ---------- 还原度门槛实验（#45） ----------
+
+/** 等样本资料库准备好后取得门槛实验计划。 */
+export function gatePlan(): Promise<GatePlan> {
+  return invoke<GatePlan>("gate_plan");
+}
+
+/** 样本的原文件、应用 1:1 显示的文件（display）或某档缩略图的原始字节。 */
+export async function gateImage(
+  imageId: string,
+  what: "original" | "display" | { thumbnail: number },
+): Promise<Uint8Array<ArrayBuffer>> {
+  // 原始字节在自定义协议 IPC 下是 ArrayBuffer，退回 postMessage 时是数字数组。
+  const raw = await invoke<ArrayBuffer | number[]>("gate_image", {
+    imageId,
+    what: typeof what === "string" ? what : "thumbnail",
+    px: typeof what === "string" ? null : what.thumbnail,
+  });
+  return raw instanceof ArrayBuffer ? new Uint8Array(raw) : Uint8Array.from(raw);
+}
+
+/** 保存报告，返回 JSON 报告的路径。无人值守运行时保存后退出。 */
+export function gateSave(report: unknown, markdown: string, passed: boolean): Promise<string> {
+  return invoke<string>("gate_save", { report, markdown, passed });
 }

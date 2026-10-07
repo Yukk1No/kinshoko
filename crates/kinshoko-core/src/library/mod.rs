@@ -20,6 +20,7 @@
 //! 资料库目录：`library.sqlite`（身份与全部整理结果）＋ `originals/<sha 前两位>/<sha>.<ext>`
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
 
+mod colour;
 mod edit;
 mod error;
 mod events;
@@ -43,6 +44,9 @@ use std::sync::{Arc, RwLock};
 
 use rusqlite::{OptionalExtension, params};
 
+pub use crate::fidelity::{
+    Cicp, ColourDeclaration, ColourDescription, ColourModel, HdrKind, IccKind, IccSummary,
+};
 pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, SourceNote};
 pub use error::Error;
 pub use events::LibraryEvent;
@@ -57,8 +61,9 @@ pub use tags::{
     TagTranslations, Vocabulary, VocabularyTag,
 };
 pub use types::{
-    BrowsePage, BrowseQuery, BrowseScope, ImageCard, ImageSourceRecord, ImportItem, ImportOutcome,
-    ImportProgress, ImportReport, ImportSource, LibraryInfo, RecoveryReport,
+    BrowsePage, BrowseQuery, BrowseScope, DisplayFile, DisplayRoute, ImageCard, ImageSourceRecord,
+    ImportItem, ImportOutcome, ImportProgress, ImportReport, ImportSource, LibraryInfo,
+    RecoveryReport,
 };
 
 use crate::approx::ApproxRelation;
@@ -169,6 +174,13 @@ impl Library {
             .optional()?
             .ok_or_else(|| Error::NotALibrary(root.to_path_buf()))?;
         let root = std::path::absolute(root)?;
+        {
+            // 管线版本变化后，旧缩略图目录整体作废。
+            let root = root.clone();
+            let _ = std::thread::Builder::new()
+                .name("kinshoko-stale-thumbnails".into())
+                .spawn(move || thumbnail::remove_stale(&root));
+        }
         let readers = Readers::open(&root.join(DB_FILE), READERS)?;
         Ok(Library {
             inner: Arc::new(Inner {
@@ -212,6 +224,31 @@ impl Library {
         self.inner
             .require_visible(&self.inner.readers.get(), image_id)?;
         thumbnail::get(&self.inner, image_id, target_px)
+    }
+
+    /// 1:1 与放大时显示的文件（ADR-0005）：静态 SDR 原图交给 WebView2 直接显示；导入时标为
+    /// 动图、HDR、Chromium 不能精确表示的 ICC 或 CMYK 的，给原尺寸的 `sdr` 派生图。
+    /// 应用壳经 `thumb` 协议的 `<资料库 id>/<参考图 id>/full` 提供，看图界面只用这条路。
+    pub fn display(&self, image_id: &str) -> Result<DisplayFile, Error> {
+        self.inner
+            .require_visible(&self.inner.readers.get(), image_id)?;
+        let (description, ..) = colour::get(&self.inner, image_id)?;
+        if description.needs_sdr_derivative() {
+            Ok(DisplayFile {
+                route: DisplayRoute::SdrDerivative,
+                path: thumbnail::full_size(&self.inner, image_id)?,
+            })
+        } else {
+            Ok(DisplayFile {
+                route: DisplayRoute::Original,
+                path: self.inner.original_path(image_id)?,
+            })
+        }
+    }
+
+    /// 参考图的色彩描述（导入时记录）。
+    pub fn colour(&self, image_id: &str) -> Result<ColourDescription, Error> {
+        colour::get(&self.inner, image_id).map(|(d, ..)| d)
     }
 
     /// 安全模式是否开启。

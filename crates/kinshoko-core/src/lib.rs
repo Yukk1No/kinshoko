@@ -7,6 +7,7 @@ mod app_shell;
 pub mod approx;
 pub mod desktop;
 mod device;
+pub mod fidelity;
 pub mod library;
 pub mod search;
 mod settings;
