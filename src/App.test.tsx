@@ -136,6 +136,7 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
   gone = new Set();
   mockWindows("main");
   let current = opened;
+  let tasks = 0;
   mockIPC(
     (cmd, args) => {
       calls.push({ cmd, args });
@@ -165,7 +166,8 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
           safeOn = (args as { on: boolean }).on;
           return safeOn;
         case "plugin:library|start_import":
-          return "T1";
+          // 后端每个任务的 id 都不同。
+          return `T${++tasks}`;
         case "plugin:library|sidebar":
           return side;
         case "plugin:library|image": {
