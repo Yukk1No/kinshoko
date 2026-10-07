@@ -123,7 +123,7 @@ fn browse_cursor_expires_when_visibility_revision_advances() {
     library.set_safe_mode(true);
 
     let first = page(&library, BrowseScope::All, None);
-    assert_eq!(ids(&first), [two.clone()]);
+    assert_eq!(ids(&first), std::slice::from_ref(&two));
     assert_eq!(first.total, 2);
     let cursor = first.next_cursor.clone().expect("还有下一页");
     let before = library.vocabulary_revision().unwrap();
