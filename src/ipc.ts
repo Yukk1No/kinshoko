@@ -36,6 +36,7 @@ import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { TagEdit } from "./bindings/TagEdit";
 import type { TagGroupView } from "./bindings/TagGroupView";
 import type { LibraryTaggingStatus } from "./bindings/LibraryTaggingStatus";
+import type { Turn } from "./bindings/Turn";
 import type { UpdateProgress } from "./bindings/UpdateProgress";
 import type { UpdateStatus } from "./bindings/UpdateStatus";
 import type { Vocabulary } from "./bindings/Vocabulary";
@@ -74,6 +75,14 @@ export function unregisterLibrary(libraryId: string): Promise<void> {
 
 export function browse(libraryId: string, query: BrowseQuery): Promise<BrowsePage> {
   return invoke<BrowsePage>(lib("browse"), { libraryId, query });
+}
+
+/** 资料库的 `UnknownImage`：图不存在、在别的资料库，或安全模式下被封印（#60）。 */
+const UNKNOWN_IMAGE = "资料库中没有这张参考图";
+
+/** 命令失败是不是因为这张图已查不到（应关闭查看它的界面、回到图片墙）。 */
+export function isUnknownImage(error: unknown): boolean {
+  return String(error) === UNKNOWN_IMAGE;
 }
 
 /** 单张参考图的详情。 */
@@ -211,6 +220,12 @@ export function thumbnailUrl(address: string): string {
  * 精确表示的 ICC 与 CMYK 的原尺寸 sdr 派生图（ADR-0005）。 */
 export function displayUrl(libraryId: string, imageId: string): string {
   return convertFileSrc("", "thumb") + `${libraryId}/${imageId}/full`;
+}
+
+/** 查看器缩小显示（适应窗口等）的地址：targetPx 是转正后的设备像素宽度。不小于原图宽度时
+ * 与 displayUrl 相同；更小时是精确尺寸的 sdr 派生图，不交给 Chromium 缩小（#47）。 */
+export function displayScaledUrl(libraryId: string, imageId: string, targetPx: number): string {
+  return convertFileSrc("", "thumb") + `${libraryId}/${imageId}/fit-${targetPx}`;
 }
 
 // 原生文件对话框无法由 WebDriver 操作。冒烟测试先把要“选中”的路径放进
@@ -452,7 +467,8 @@ export function zoomPin(pin: string, scale: number, anchorX: number, anchorY: nu
   return invoke<void>(desk("zoom_pin"), { pin, scale, anchorX, anchorY });
 }
 
-export type PinTurn = "flipHorizontal" | "flipVertical" | "rotateClockwise" | "rotateCounterClockwise";
+/** 翻转与旋转动作，来自 Rust `kinshoko_core::desktop::Turn` 的生成绑定。 */
+export type PinTurn = Turn;
 
 /** 翻转或旋转钉图（中心不动）。新状态以 pin-frame 到达。 */
 export function turnPin(pin: string, turn: PinTurn): Promise<void> {

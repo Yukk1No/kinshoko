@@ -12,6 +12,7 @@ pub enum Error {
     /// 文件夹不能移进它自己或它的子文件夹。
     FolderCycle,
     InvalidCursor,
+    InvalidDisplaySize,
     UnknownTag,
     UnknownTagGroup,
     InvalidTagName,
@@ -47,6 +48,7 @@ impl fmt::Display for Error {
             Error::UnknownFolder => write!(f, "资料库中没有这个文件夹"),
             Error::FolderCycle => write!(f, "文件夹不能移进它自己或它的子文件夹"),
             Error::InvalidCursor => write!(f, "浏览位置无效"),
+            Error::InvalidDisplaySize => write!(f, "显示尺寸必须大于零"),
             Error::UnknownTag => write!(f, "资料库中没有这个标签"),
             Error::UnknownTagGroup => write!(f, "资料库中没有这个标签分组"),
             Error::InvalidTagName => write!(f, "标签名称不能为空"),
