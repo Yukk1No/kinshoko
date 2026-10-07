@@ -283,6 +283,8 @@ struct Header {
 }
 
 /// 本设备的参考组。每个参考组一个文件，可在线程间共享；应用壳把改动串行化（放在锁里）。
+/// 句柄只是目录位置，可以复制：耗时的参考组包导出、导入（只新建文件）不必一直占着锁。
+#[derive(Clone)]
 pub struct ReferenceGroups {
     dir: PathBuf,
 }

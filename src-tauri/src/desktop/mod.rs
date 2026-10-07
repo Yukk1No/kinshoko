@@ -99,6 +99,8 @@ pub fn init() -> TauriPlugin<Wry> {
             groups::rename_reference_group,
             groups::delete_reference_group,
             groups::remove_group_member,
+            groups::export_reference_group_package,
+            groups::import_reference_group_package,
             edge_hide,
             capture_history,
             collect_capture,
