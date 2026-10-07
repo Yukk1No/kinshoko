@@ -3,7 +3,6 @@ import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowseScope } from "./bindings/BrowseScope";
 import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
-import type { ImportReport } from "./bindings/ImportReport";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { ImageCard } from "./bindings/ImageCard";
 import {
@@ -17,7 +16,7 @@ import {
   shellSettings,
 } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
-import { ImportBar, type RunningImport } from "./library/ImportBar";
+import { ImportBar, type FinishedImport, type RunningImport } from "./library/ImportBar";
 import { LibraryPicker } from "./library/LibraryPicker";
 import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
 import { SelectionPanel } from "./library/SelectionPanel";
@@ -57,7 +56,7 @@ function LibraryWorkspace({
 }: WorkspaceProps) {
   const [reloadKey, setReloadKey] = useState(0);
   const [running, setRunning] = useState<RunningImport | null>(null);
-  const [report, setReport] = useState<ImportReport | null>(null);
+  const [report, setReport] = useState<FinishedImport | null>(null);
   const [scope, setScope] = useState<BrowseScope>({ kind: "all" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<ImageCard | null>(null);
@@ -143,7 +142,7 @@ function LibraryWorkspace({
           task.finished.add(event.taskId);
           task.running = null;
           setRunning(null);
-          setReport(event.report);
+          setReport({ taskId: event.taskId, report: event.report });
           break;
       }
     });
@@ -200,7 +199,7 @@ function LibraryWorkspace({
           libraryId={library.id}
           libraryName={library.name}
           running={running}
-          report={report}
+          finished={report}
           onStarted={started}
           onDismissReport={() => setReport(null)}
         />
