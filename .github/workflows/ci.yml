@@ -81,6 +81,13 @@ jobs:
       - name: Tauri 原生构建与安装包
         run: npm run build
 
+      # 静默安装到临时目录：exe 与 DirectML.dll（打标子进程要用，#52）都装上，再静默卸载（#70）。
+      - name: 安装包检查
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          ./scripts/release/check-installer.ps1 $installer.FullName
+
       # Tauri 官方 WebDriver：tauri-driver 转发给与 WebView2 版本一致的 msedgedriver。
       - name: 安装 WebDriver 工具
         run: |
