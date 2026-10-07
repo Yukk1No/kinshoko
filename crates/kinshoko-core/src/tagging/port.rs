@@ -101,10 +101,14 @@ pub trait Tagger: Send + Sync {
     /// 查询本机的推理条件，用来选模型档位。
     fn probe(&self) -> DeviceInfo;
     /// 开始一个会话：加载模型到 `device` 上。
+    ///
+    /// 开始加载之前（子进程一启动）就把这个会话的结束开关交给 `on_stopper`：加载模型可能要几分钟，
+    /// 期间画师暂停或关闭资料库时要能立即结束它。加载中被结束时返回 [`TagFailure::Crashed`]。
     fn start(
         &self,
         model: &PreparedModel,
         device: Device,
+        on_stopper: &dyn Fn(SessionStopper),
     ) -> Result<Box<dyn TaggerSession>, TagFailure>;
 }
 
@@ -112,10 +116,8 @@ pub trait Tagger: Send + Sync {
 pub trait TaggerSession: Send {
     /// 对一张图打标，返回模型的原始结果（按外部名称）。
     fn tag(&mut self, image: &Path) -> Result<Vec<RawTag>, TagFailure>;
-    /// 从别的线程立即结束会话的开关：正在打的图随即以 [`TagFailure::Crashed`] 返回，
-    /// 不等它打完（画师暂停打标时立刻归还显存）。
-    fn stopper(&self) -> SessionStopper;
 }
 
-/// 见 [`TaggerSession::stopper`]。
+/// 从别的线程立即结束会话的开关（见 [`Tagger::start`]）：正在加载的模型或正在打的图随即以
+/// [`TagFailure::Crashed`] 返回，不等它完成（画师暂停打标时立刻归还显存）。可以多次调用。
 pub type SessionStopper = Arc<dyn Fn() + Send + Sync>;

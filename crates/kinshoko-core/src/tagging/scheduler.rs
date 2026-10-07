@@ -167,6 +167,18 @@ impl Shared {
         *self.stopper.lock().unwrap_or_else(|e| e.into_inner()) = stopper;
     }
 
+    /// 登记新会话的结束开关（会话开始加载之前）。已经暂停或停止时立即结束它：暂停先置位再取开关，
+    /// 这里先占住开关再看是否已暂停，两边至少有一边会按到开关，不会漏掉。
+    fn register_stopper(&self, stopper: SessionStopper) {
+        let mut slot = self.stopper.lock().unwrap_or_else(|e| e.into_inner());
+        if self.interrupted() {
+            drop(slot);
+            stopper();
+        } else {
+            *slot = Some(stopper);
+        }
+    }
+
     fn control(&self) -> MutexGuard<'_, Control> {
         self.control.lock().unwrap_or_else(|e| e.into_inner())
     }
@@ -473,10 +485,18 @@ impl Worker {
             .is_none_or(|(key, _)| *key != spec.key)
         {
             self.end_session();
-            match self.tagger.start(model, spec.device) {
+            let shared = self.shared.clone();
+            let started = self.tagger.start(model, spec.device, &move |stopper| {
+                shared.register_stopper(stopper)
+            });
+            match started {
                 Ok(session) => {
-                    self.shared.set_stopper(Some(session.stopper()));
                     self.session = Some((spec.key.clone(), session));
+                }
+                Err(_) if self.shared.interrupted() => {
+                    // 加载中画师暂停（或关闭资料库）结束了子进程：不算出错，恢复后重新开始。
+                    self.end_session();
+                    return false;
                 }
                 Err(failure) => {
                     if spec.device == Device::DirectMl {
@@ -486,7 +506,7 @@ impl Worker {
                     return false;
                 }
             }
-            // 加载模型期间画师暂停了：开关登记得晚，没被按到，这里补上。
+            // 加载刚完成时画师暂停了：开关可能已被按过，这里确保会话结束。
             if self.shared.interrupted() {
                 self.end_session();
                 return false;
