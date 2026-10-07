@@ -99,3 +99,36 @@ fn showing_where_similar_tags_come_from_is_off_until_turned_on_and_then_remember
 
     assert!(AppSettings::open(dir.path()).unwrap().show_approx_source());
 }
+
+#[test]
+fn forcing_srgb_is_off_after_a_fresh_install_and_only_takes_effect_after_a_restart() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(!settings.force_srgb());
+    assert!(!settings.force_srgb_in_effect());
+
+    settings.set_force_srgb(true).unwrap();
+
+    assert!(settings.force_srgb());
+    assert!(
+        !settings.force_srgb_in_effect(),
+        "本次运行的 WebView2 已按旧值启动"
+    );
+    drop(settings);
+
+    let restarted = AppSettings::open(dir.path()).unwrap();
+    assert!(restarted.force_srgb());
+    assert!(restarted.force_srgb_in_effect());
+}
+
+#[test]
+fn the_usage_log_is_off_until_the_artist_turns_it_on_and_then_remembered() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(!settings.usage_log(), "使用日志默认关闭");
+
+    settings.set_usage_log(true).unwrap();
+    drop(settings);
+
+    assert!(AppSettings::open(dir.path()).unwrap().usage_log());
+}

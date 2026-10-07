@@ -196,7 +196,7 @@ impl Default for Found {
     }
 }
 
-fn summarise(icc: &[u8]) -> IccSummary {
+pub(crate) fn summarise(icc: &[u8]) -> IccSummary {
     let version = match icc.get(8..10) {
         Some(&[major, minor]) => format!("{major}.{}", minor >> 4),
         _ => "?".into(),
