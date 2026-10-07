@@ -15,7 +15,11 @@ use super::Error;
 
 /// 只追加，不改已发布的迁移。
 fn migrations() -> Migrations<'static> {
-    Migrations::new(vec![
+    Migrations::new(migration_list())
+}
+
+fn migration_list() -> Vec<M<'static>> {
+    vec![
         M::up(include_str!("migrations/0001_library.sql")),
         M::up(include_str!("migrations/0051_tags.sql")),
         M::up(include_str!("migrations/0046_import_pending.sql")),
@@ -28,7 +32,21 @@ fn migrations() -> Migrations<'static> {
         M::up(include_str!("migrations/0057_eagle_import.sql")),
         M::up(include_str!("migrations/0057_eagle_initial_trash.sql")),
         M::up(include_str!("migrations/0058_eagle_reimport.sql")),
-    ])
+    ]
+}
+
+/// 数据库是最新格式（迁移都已执行）。只读打开、不能升级时用它核对。
+pub(super) fn is_current(conn: &Connection) -> Result<bool, Error> {
+    let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+    let latest = i64::try_from(migration_list().len()).unwrap_or(i64::MAX);
+    Ok(version >= latest)
+}
+
+/// 只读的写连接替身：不在后台另开写入（参考组读取未激活的资料库用，#66）。
+pub(super) fn read_only_writer(path: &Path) -> Result<Writer, Error> {
+    let conn = connect(path)?;
+    conn.pragma_update(None, "query_only", "ON")?;
+    Ok(Writer::spawn(conn))
 }
 
 pub(super) const DB_FILE: &str = "library.sqlite";

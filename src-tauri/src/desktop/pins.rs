@@ -138,6 +138,7 @@ pub fn open(app: &AppHandle, capture: &CaptureEntry, at: ScreenRect) -> Result<(
         },
         opacity: 1.0,
         locked: false,
+        member: None,
     };
     lock(&state(app).history).pin(&capture.id);
     {
