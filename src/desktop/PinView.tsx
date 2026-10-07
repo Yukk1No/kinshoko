@@ -18,6 +18,7 @@ import {
 import {
   ContentMotion,
   HOLD_MS,
+  HOLD_SLOP,
   SLIDE_MS,
   ZOOM_MS,
   contentTransform,
@@ -120,12 +121,15 @@ function latestOnly<A extends unknown[]>(send: (...args: A) => Promise<unknown>)
 type Gesture = {
   pointerId: number;
   pointerType: string;
-  /** 按下处（CSS 像素，相对窗口）与时间，用来判断按住不动打开菜单。 */
+  /**
+   * 按下处与最近一次的位置（屏幕上的 CSS 像素）和按下时间，用来判断按住不动打开菜单。
+   * 用屏幕坐标：拖动时原生窗口跟着走，窗口内坐标几乎不变（#76 UI2）。
+   */
   down: Point;
   last: Point;
   at: number;
-  screenX: number;
-  screenY: number;
+  /** 屏幕位移曾经超过 [`HOLD_SLOP`]：这一笔是拖动，回到起点也不再算按住。 */
+  dragged: boolean;
 } & (
   | { kind: "move"; origin: Point }
   | { kind: "zoom"; origin: Point; start: ZoomStart }
@@ -341,15 +345,14 @@ export function PinView({ pin }: { pin: string }) {
     if (!f) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    const at = { x: e.clientX, y: e.clientY };
+    const at = { x: e.screenX, y: e.screenY };
     const base = {
       pointerId: e.pointerId,
       pointerType: e.pointerType,
       down: at,
       last: at,
       at: performance.now(),
-      screenX: e.screenX,
-      screenY: e.screenY,
+      dragged: false,
     };
     const origin = { x: f.content.x, y: f.content.y };
     if (f.pin.locked) {
@@ -363,7 +366,7 @@ export function PinView({ pin }: { pin: string }) {
     if (e.pointerType !== "mouse") {
       const g = gesture.current;
       setTimeout(() => {
-        if (gesture.current === g && heldForMenu(g.pointerType, g.down, g.last, performance.now() - g.at)) {
+        if (gesture.current === g && !g.dragged && heldForMenu(g.pointerType, g.down, g.last, performance.now() - g.at)) {
           openMenu();
         }
       }, HOLD_MS);
@@ -376,11 +379,12 @@ export function PinView({ pin }: { pin: string }) {
       return;
     }
     if (e.pointerId !== g.pointerId) return;
-    g.last = { x: e.clientX, y: e.clientY };
+    g.last = { x: e.screenX, y: e.screenY };
+    if (Math.hypot(g.last.x - g.down.x, g.last.y - g.down.y) > HOLD_SLOP) g.dragged = true;
     if (g.kind === "hold") return;
     const dpr = window.devicePixelRatio;
-    const dx = (e.screenX - g.screenX) * dpr;
-    const dy = (e.screenY - g.screenY) * dpr;
+    const dx = (g.last.x - g.down.x) * dpr;
+    const dy = (g.last.y - g.down.y) * dpr;
     if (g.kind === "move") {
       send.current.move(Math.round(g.origin.x + dx), Math.round(g.origin.y + dy));
     } else {

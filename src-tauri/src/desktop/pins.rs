@@ -16,9 +16,8 @@ use std::sync::atomic::Ordering;
 use image::RgbaImage;
 use kinshoko_core::desktop::{
     CaptureEntry, PinContent, PinFrame, PinMotion, Placement, SavedPin, ScreenRect, Screenshot,
-    place_new_pin, stage,
+    Turn, place_new_pin, stage,
 };
-use serde::Deserialize;
 use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
@@ -537,16 +536,6 @@ fn zoom(app: &AppHandle, pin: &str, scale: f64, anchor: Option<(f64, f64)>) -> R
     })?;
     show(app, pin, rect, rect, PinMotion::Zoom, false);
     Ok(())
-}
-
-/// 翻转与旋转。
-#[derive(Debug, Clone, Copy, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum Turn {
-    FlipHorizontal,
-    FlipVertical,
-    RotateClockwise,
-    RotateCounterClockwise,
 }
 
 /// 翻转或旋转钉图（中心不动）。快捷键与右键菜单共用。
