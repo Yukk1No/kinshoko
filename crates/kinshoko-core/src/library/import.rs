@@ -1,7 +1,7 @@
 //! 普通文件导入：选择的文件与文件夹（含子文件夹）中的 JPEG、PNG、WebP、GIF。
 //! 导入时记录色彩描述（#45）。
 //!
-//! 每项的写入顺序：读取并识别格式 → 哈希 → 同库暂存并完整校验 → 最小 pending 记录 →
+//! 每项的写入顺序：读取并识别格式 → 完整解码像素 → 哈希 → 同库暂存并完整校验 → 最小 pending 记录 →
 //! 发布原文件（按 SHA-256 命名、拒绝覆盖）→ 写线程上一个短事务提交参考图与来源，并在
 //! 同一事务里结束 pending。同库已有字节相同的原图时跳过暂存与发布，只合并来源。
 //! 文件 I/O 与哈希都在任务线程里，事务里只有 SQL。任何一步中断，重开时由
@@ -24,6 +24,7 @@ use super::types::{ImportItem, ImportOutcome, ImportProgress, ImportReport, Impo
 use super::{Error, Inner, ORIGINALS_DIR, STAGING_DIR, eagle, fault, now_ms, tags};
 use crate::fidelity::ColourDescription;
 use crate::fidelity::inspect::inspect;
+use crate::fidelity::render::verify_pixels;
 
 /// 来源标记：普通文件导入。
 const SOURCE_FILE: &str = "file";
@@ -237,6 +238,10 @@ fn import_one(inner: &Inner, path: &Path) -> (ImportOutcome, bool) {
         Ok(None) => return (ImportOutcome::Unsupported, false),
         Err(reason) => return failed(format!("无法解码：{reason}")),
     };
+    // 文件头有效不代表像素可读：发布前完整解码一遍，坏的作为可重试的读取失败。
+    if let Err(reason) = verify_pixels(&bytes, &probed) {
+        return failed(format!("无法解码：{reason}"));
+    }
     let sha = sha256_hex(&bytes);
     let rel_path = format!("{ORIGINALS_DIR}/{}/{sha}.{}", &sha[..2], ext(probed.format));
     let record = Record {
