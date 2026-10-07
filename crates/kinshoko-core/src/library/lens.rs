@@ -28,11 +28,7 @@ impl Inner {
 
     /// 浏览视角的过滤条件（引用 `image`）：安全模式开启时去掉被封印的图。
     pub(super) fn lens_filter(&self) -> String {
-        if self.safe_mode() {
-            format!("NOT ({})", rating::adult_sql("image.id"))
-        } else {
-            "1".to_owned()
-        }
+        lens_filter(self.safe_mode())
     }
 
     /// 浏览视角下这张图存在：不存在或被封印时都是 [`Error::UnknownImage`]。
@@ -55,6 +51,15 @@ impl Inner {
         ))?;
         let rows = stmt.query_map([], |r| r.get(0))?;
         Ok(rows.collect::<Result<_, _>>()?)
+    }
+}
+
+/// 给定安全模式开关时浏览视角的过滤条件（引用 `image`）。
+pub(super) fn lens_filter(safe: bool) -> String {
+    if safe {
+        format!("NOT ({})", rating::adult_sql("image.id"))
+    } else {
+        "1".to_owned()
     }
 }
 
