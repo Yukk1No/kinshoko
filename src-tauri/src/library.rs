@@ -113,6 +113,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             pick_folder,
             pick_files,
             discover_eagle_libraries,
+            confirm_eagle_location,
             image_tags,
             edit_tags,
             vocabulary,
@@ -583,6 +584,23 @@ async fn pick_files<R: Runtime>(app: AppHandle<R>) -> Result<Vec<PathBuf>, Strin
 #[tauri::command]
 async fn discover_eagle_libraries() -> Result<Vec<EagleLibraryCandidate>, String> {
     blocking(|| Ok(discover_eagle(&EagleDiscoveryOptions::default()))).await
+}
+
+/// 画师确认导入报告里疑似搬家的 Eagle 位置；确认后前端再导入这个位置。
+#[tauri::command]
+async fn confirm_eagle_location(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    path: PathBuf,
+    choice: kinshoko_core::library::EagleLocationChoice,
+) -> Result<(), String> {
+    let library = state.current(&library_id)?;
+    blocking(move || {
+        library
+            .confirm_eagle_location(&path, choice)
+            .map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// 一张参考图的标签，名称按界面语言 `lang`。

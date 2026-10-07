@@ -25,6 +25,7 @@ fn main() {
                         "pick_folder",
                         "pick_files",
                         "discover_eagle_libraries",
+                        "confirm_eagle_location",
                         "image_tags",
                         "edit_tags",
                         "vocabulary",

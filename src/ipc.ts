@@ -13,6 +13,7 @@ import type { SearchInput } from "./bindings/SearchInput";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
 import type { EagleLibraryCandidate } from "./bindings/EagleLibraryCandidate";
+import type { EagleLocationChoice } from "./bindings/EagleLocationChoice";
 import type { CaptureAction } from "./bindings/CaptureAction";
 import type { CaptureEntry } from "./bindings/CaptureEntry";
 import type { CollectedCapture } from "./bindings/CollectedCapture";
@@ -112,6 +113,11 @@ export function startImport(libraryId: string, paths: string[]): Promise<string>
 /** 本机 Eagle 资料库候选；按 images/ 条目数从多到少排列。 */
 export function discoverEagleLibraries(): Promise<EagleLibraryCandidate[]> {
   return invoke<EagleLibraryCandidate[]>(lib("discover_eagle_libraries"));
+}
+
+/** 确认导入报告里疑似搬家的 Eagle 位置；确认后再导入这个位置。 */
+export function confirmEagleLocation(libraryId: string, path: string, choice: EagleLocationChoice): Promise<void> {
+  return invoke<void>(lib("confirm_eagle_location"), { libraryId, path, choice });
 }
 
 export function cancelImport(libraryId: string, taskId: string): Promise<void> {

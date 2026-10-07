@@ -49,6 +49,7 @@ const detail = (id: string, manual: string | null): ImageDetail => ({
   originalName: "参考图",
   collectedAt: 1756571097667,
   sourceLinks: [],
+  versions: { previous: null, newer: [] },
   width: 100,
   height: 200,
   folders: [{ id: "F1", name: "人物" }],
@@ -248,7 +249,7 @@ describe("主窗口", () => {
     await screen.findByRole("heading", { name: "私人收藏" });
     await act(() => resolveOld(page));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 2, total: 4 } });
-    await push({ kind: "taskFinished", libraryId: "L1", taskId: "T1", report: { cancelled: true, items: [] } });
+    await push({ kind: "taskFinished", libraryId: "L1", taskId: "T1", report: { cancelled: true, items: [], eagleMissing: 0, eagleRelocations: [] } });
 
     expect(await screen.findByText("资料库里还没有参考图。从上方导入图片或文件夹。")).toBeTruthy();
     expect(screen.queryByRole("img")).toBeNull();
@@ -273,6 +274,8 @@ describe("主窗口", () => {
       taskId: "T1",
       report: {
         cancelled: false,
+        eagleMissing: 0,
+        eagleRelocations: [],
         items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: "被占用" } }],
       },
     });
@@ -291,6 +294,43 @@ describe("主窗口", () => {
       { libraryId: "L1", source: { paths: ["D:\\参考"] } },
       { libraryId: "L1", source: { paths: ["D:\\参考\\坏.png"] } },
     ]));
+  });
+
+  it.each([
+    ["是搬了家，按原来源重导", { kind: "moved", sourceId: "S1" }],
+    ["是另一个资料库，单独迁入", { kind: "separate" }],
+  ])("Eagle 资料库疑似搬家时先问画师（%s），确认后再迁入", async (button, choice) => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+
+    window.__KINSHOKO_TEST_PICKS__ = ["E:\\新\\主库.library"];
+    fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await push({
+      kind: "taskFinished",
+      libraryId: "L1",
+      taskId: "T1",
+      report: {
+        cancelled: false,
+        items: [],
+        eagleMissing: 0,
+        eagleRelocations: [{ sourceId: "S1", from: "D:\\旧\\主库.library", to: "E:\\新\\主库.library", overlapPercent: 100 }],
+      },
+    });
+
+    const prompt = await screen.findByRole("alert", { name: "Eagle 资料库换了位置？" });
+    expect(within(prompt).getByText(/100% 的条目已经从另一个位置迁入过/)).toBeTruthy();
+    fireEvent.click(within(prompt).getByRole("button", { name: button }));
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(2));
+    expect(sent("plugin:library|confirm_eagle_location")).toEqual([
+      { libraryId: "L1", path: "E:\\新\\主库.library", choice },
+    ]);
+    expect(sent("plugin:library|start_import").at(-1)).toEqual({
+      libraryId: "L1",
+      source: { paths: ["E:\\新\\主库.library"] },
+    });
+    expect(screen.queryByRole("alert", { name: "Eagle 资料库换了位置？" })).toBeNull();
   });
 
   it("新建资料库页不接受拖放导入，返回当前库后恢复拖放", async () => {
@@ -422,6 +462,8 @@ describe("主窗口", () => {
       taskId: "T1",
       report: {
         cancelled: true,
+        eagleMissing: 0,
+        eagleRelocations: [],
         items: [
           { path: "D:\\下载\\参考\\a.png", outcome: { kind: "imported", imageId: "a" } },
           { path: "D:\\下载\\参考\\说明.txt", outcome: { kind: "unsupported" } },
@@ -467,6 +509,8 @@ describe("主窗口", () => {
       taskId: "T0",
       report: {
         cancelled: false,
+        eagleMissing: 0,
+        eagleRelocations: [],
         items: [
           { path: "D:\\参考\\a.png", outcome: { kind: "imported", imageId: "a" } },
           { path: "D:\\参考\\说明.txt", outcome: { kind: "unsupported" } },
