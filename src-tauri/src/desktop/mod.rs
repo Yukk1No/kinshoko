@@ -296,7 +296,8 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
             MENU_CAPTURE => capture::start(app),
             MENU_PIN_CLIPBOARD => pins::pin_clipboard_in_background(app),
             MENU_EDGE_HIDE => edge::toggle_in_background(app),
-            MENU_QUIT => app.exit(0),
+            // 今天还没备份时先备份再退出（#69）。
+            MENU_QUIT => crate::backup::quit(app),
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {

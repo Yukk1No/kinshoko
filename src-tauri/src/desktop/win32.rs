@@ -17,6 +17,23 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     SWP_NOOWNERZORDER, SWP_NOZORDER, SetForegroundWindow, SetWindowPos,
 };
 
+/// 距离画师最后一次键盘、鼠标或笔输入过了多少毫秒（自动备份的“空闲”，#69）。读不到时为 `None`。
+pub fn idle_ms() -> Option<u32> {
+    use windows_sys::Win32::System::SystemInformation::GetTickCount;
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
+    let mut info = LASTINPUTINFO {
+        cbSize: std::mem::size_of::<LASTINPUTINFO>() as u32,
+        dwTime: 0,
+    };
+    // SAFETY：`info` 是本函数持有的结构，cbSize 已按要求填好。
+    if unsafe { GetLastInputInfo(&mut info) } == 0 {
+        return None;
+    }
+    // SAFETY：无参数，只读取系统计时。
+    let now = unsafe { GetTickCount() };
+    Some(now.wrapping_sub(info.dwTime))
+}
+
 /// 前台窗口（句柄按整数传，便于跨线程保存）与它所属的进程 id。没有前台窗口时为 `None`。
 pub fn foreground_window() -> Option<(isize, u32)> {
     // SAFETY：无参数，只读取系统状态。

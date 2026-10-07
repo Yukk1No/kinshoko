@@ -15,7 +15,7 @@ mod scope;
 mod stamp;
 mod target;
 
-pub use plan::{BackupFailure, BackupPlan, BackupPlanView};
+pub use plan::{BackupFailure, BackupPlan, BackupPlanView, BackupPreview, BackupStatus};
 pub use scope::{BackupScope, ScopeItem, ScopeSelection, ScopeStep, Uncovered, compute_scope};
 pub use stamp::Stamp;
 pub use target::{

@@ -382,6 +382,36 @@ pub fn with_references<R: Runtime, T>(
     })
 }
 
+/// 本设备的数据目录：资料库登记表、参考组与备份计划都在这里（`KINSHOKO_DATA_DIR` 覆盖）。
+pub fn data_dir<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
+    app.state::<LibraryState>().device_dir.clone()
+}
+
+/// 本设备登记的资料库（备份范围用，#69）。在切换锁里读：不会读到切换进行到一半的登记表。
+pub fn registered<R: Runtime>(
+    app: &AppHandle<R>,
+) -> Result<Vec<kinshoko_core::RegisteredLibrary>, String> {
+    let state = app.state::<LibraryState>();
+    let _transition = lock(&state.transition);
+    with_libraries(&state.device_dir, &state.libraries, |libraries| {
+        Ok(libraries.libraries().to_vec())
+    })
+}
+
+/// 把恢复出的资料库登记到本设备，不切换过去（#69）。
+pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> Result<(), String> {
+    let state = app.state::<LibraryState>();
+    let _transition = lock(&state.transition);
+    with_libraries(&state.device_dir, &state.libraries, |libraries| {
+        for root in roots {
+            libraries.add_registration(root)?;
+        }
+        Ok(())
+    })?;
+    state.detached.clear();
+    Ok(())
+}
+
 /// 安全模式是否开启（全局设置）；读不到设置时按开启处理。
 pub fn safe_mode_on<R: Runtime>(app: &AppHandle<R>) -> bool {
     saved_safe_mode(app)

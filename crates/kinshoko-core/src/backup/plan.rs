@@ -11,7 +11,9 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{BackupError, ScopeSelection, Stamp};
+use super::{
+    BackupError, BackupEstimate, BackupProgress, BackupReport, BackupScope, ScopeSelection, Stamp,
+};
 
 const FILE: &str = "backup.json";
 const FORMAT: &str = "kinshoko.backup-plan";
@@ -69,6 +71,29 @@ pub struct BackupPlanView {
     pub last_failure: Option<BackupFailure>,
     /// 自动备份到期（下次退出或空闲时进行）。
     pub due: bool,
+}
+
+/// 应用壳推给界面的备份状态。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct BackupStatus {
+    pub plan: BackupPlanView,
+    /// 正在备份时的进度。
+    pub running: Option<BackupProgress>,
+    /// 本次运行里最近一次备份的结果。
+    pub last_report: Option<BackupReport>,
+}
+
+/// 执行前给画师看的范围与容量。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct BackupPreview {
+    pub scope: BackupScope,
+    pub estimate: BackupEstimate,
+    /// 备份目标现在在不在；不在时容量按全部需要复制估计。
+    pub target_available: bool,
 }
 
 /// 本设备的自动备份计划。每次修改都立即写回磁盘。
