@@ -127,6 +127,19 @@ pub struct SavedPin {
     /// 锁定后不响应拖动与缩放（#64）。
     #[serde(default)]
     pub locked: bool,
+    /// 从参考组打开的钉图来自哪个成员（#66）；存回这个参考组时更新那个成员。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub member: Option<GroupMemberRef>,
+}
+
+/// 钉图来自参考组的哪个成员（#66）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct GroupMemberRef {
+    pub group_id: String,
+    pub member_id: String,
 }
 
 fn opaque() -> f64 {
@@ -169,6 +182,7 @@ impl SavedPin {
             placement,
             opacity: 1.0,
             locked: false,
+            member: None,
         })
     }
 

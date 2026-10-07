@@ -19,6 +19,7 @@ fn pin(width: u32, height: u32, x: i32, y: i32) -> SavedPin {
         },
         opacity: 1.0,
         locked: false,
+        member: None,
     }
 }
 

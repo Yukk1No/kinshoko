@@ -66,6 +66,11 @@ pub struct PinFrame {
     /// 原位遮蔽（模糊并显示小圆锁）：安全模式开启时被封印的参考图，或资料库没打开、核对不了的
     /// 参考图（#60、#65）。画师确认显示这一张后为 false；截图钉图总是 false。
     pub veiled: bool,
+    /// 资料库钉图暂时不能显示的原因（资料库没登记、不可用、图已删除、原图缺失，#66）；
+    /// 能显示时没有。钉图保留位置与尺寸，画占位并写出原因。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub unavailable: Option<String>,
     /// 动画结束后页面带着它调用 `settle_pin`；不是最新一帧的就不再改窗口。
     pub generation: u32,
 }

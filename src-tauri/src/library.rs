@@ -20,6 +20,7 @@ use kinshoko_core::library::{
     LibraryInfo, MappedExternal, PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar,
     TagEdit, TagGroupView, TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
 };
+use kinshoko_core::reference_groups::{DetachedLenses, References};
 use kinshoko_core::search::{Candidate, ConditionTree, SearchCache, SearchInput};
 use kinshoko_core::{
     DeviceLibraries, DeviceLibraryError, DeviceRegistry, Library, LibraryRegistration,
@@ -52,6 +53,8 @@ struct LibraryState {
     /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
     /// 与桌面钉图（#65），不经任何命令交给前端。
     reference: Mutex<Option<ReferenceLens>>,
+    /// 未激活资料库的只读参考视角（参考组跨库引用，#66）。切换、登记变化时清掉，释放数据库文件。
+    detached: DetachedLenses,
     /// 随软件分发的内置近似对应表，启动时读取一次。
     builtin_approx: Arc<BuiltinApproxTable>,
     /// 随软件分发的翻译表（见 [`bundled_translations`]）：资料库首次进库的外部名称取它的
@@ -70,6 +73,7 @@ impl LibraryState {
             transition: Mutex::new(()),
             search: Arc::default(),
             reference: Mutex::new(None),
+            detached: DetachedLenses::default(),
             builtin_approx: Arc::new(BuiltinApproxTable::bundled()),
             translations: Arc::new(bundled_translations()),
             external_vocabulary: Mutex::new(None),
@@ -265,6 +269,8 @@ fn forward_events<R: Runtime>(
     state.install_translations(&library);
     let events = library.events();
     *lock(&state.reference) = library.take_reference_lens();
+    // 刚成为活动库的库不再经只读视角读取；其他库按需重开。
+    state.detached.clear();
     state.search.invalidate();
     crate::tagging::attach(app, library);
     let (app, libraries, search) = (app.clone(), state.libraries.clone(), state.search.clone());
@@ -349,6 +355,31 @@ pub fn reference_lens<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Optio
         .as_ref()
         .filter(|lens| lens.library_id() == library_id)
         .cloned()
+}
+
+/// 本设备上按“资料库＋参考图”取图的地方（参考组与桌面钉图用，#66）：活动资料库经它的参考视角
+/// （现取），其他已登记的资料库只读打开，不切换活动库。会读文件，不要在主线程上调用。
+pub fn with_references<R: Runtime, T>(
+    app: &AppHandle<R>,
+    f: impl FnOnce(&References<'_>) -> T,
+) -> T {
+    let state = app.state::<LibraryState>();
+    let registry = lock(&state.libraries)
+        .as_ref()
+        .map(|libraries| libraries.libraries().to_vec())
+        .or_else(|| {
+            DeviceRegistry::open(&state.device_dir)
+                .ok()
+                .map(|device| device.libraries().to_vec())
+        })
+        .unwrap_or_default();
+    let current = lock(&state.reference).clone();
+    f(&References {
+        current,
+        registry: &registry,
+        detached: &state.detached,
+        safe_mode: saved_safe_mode(app),
+    })
 }
 
 /// 安全模式是否开启（全局设置）；读不到设置时按开启处理。
@@ -463,6 +494,7 @@ async fn unregister_library<R: Runtime>(
             *lock(&state.reference) = None;
             crate::tagging::detach(&app);
         }
+        state.detached.clear();
         Ok(())
     })
     .await

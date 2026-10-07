@@ -22,8 +22,8 @@ pub use edge::{DeskPin, EdgeHide, PEEK_SLACK, PinMove, SLIVER, Toggle, Tuck};
 pub use history::{CaptureEntry, CaptureHistory, CollectedCapture, HISTORY_LIMIT, HistoryError};
 pub use motion::{Stage, stage};
 pub use pin::{
-    MAX_SCALE, MIN_OPACITY, MIN_SCALE, MIN_SIDE, PinContent, PinError, PinStore, Placement,
-    RESTORE_KEEP, SavedPin, initial_scale, pull_onto_screen,
+    GroupMemberRef, MAX_SCALE, MIN_OPACITY, MIN_SCALE, MIN_SIDE, PinContent, PinError, PinStore,
+    Placement, RESTORE_KEEP, SavedPin, initial_scale, pull_onto_screen,
 };
 pub use placement::{ScreenRect, place_new_pin};
 pub use screenshot::{Region, Screenshot};

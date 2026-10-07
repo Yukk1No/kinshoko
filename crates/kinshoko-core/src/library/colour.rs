@@ -130,6 +130,11 @@ pub(super) fn get(
         .ok_or_else(|| Error::Undecodable("不支持的格式".into()))?
         .description;
     let (id, d) = (image_id.to_owned(), description.clone());
-    inner.writer.run(move |conn| record(conn, &id, &d))?;
+    // 补记是可重建的缓存：只读打开的资料库（参考组读取未激活的库，#66）记不下也照常显示。
+    if let Err(e) = inner.writer.run(move |conn| record(conn, &id, &d))
+        && !inner.detached
+    {
+        return Err(e.into());
+    }
     Ok((description, sha, path))
 }
