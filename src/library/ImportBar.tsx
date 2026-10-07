@@ -3,7 +3,8 @@ import type { ImportOutcome } from "../bindings/ImportOutcome";
 import type { ImportProgress } from "../bindings/ImportProgress";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { RecoveryReport } from "../bindings/RecoveryReport";
-import { cancelImport, libraryRecovery, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
+import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
+import { cancelImport, discoverEagleLibraries, libraryRecovery, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
 
 export type RunningImport = { taskId: string | null; progress: ImportProgress };
 
@@ -33,14 +34,35 @@ function reason(outcome: ImportOutcome): string | null {
 export function ImportBar({ libraryName, running, report, onStarted, onDismissReport }: Props) {
   const [hovering, setHovering] = useState(false);
   const [recovery, setRecovery] = useState<RecoveryReport | null>(null);
+  const [eagleLibraries, setEagleLibraries] = useState<EagleLibraryCandidate[] | null>(null);
+  const [lookingForEagle, setLookingForEagle] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const begin = async (paths: string[]) => {
-    if (paths.length) onStarted(await startImport(paths));
+    if (!paths.length) return;
+    try {
+      setImportError(null);
+      onStarted(await startImport(paths));
+      setEagleLibraries(null);
+    } catch (error) {
+      setImportError(`无法开始导入：${String(error)}`);
+    }
   };
   const importFiles = async () => begin(await pickFiles());
   const importFolder = async () => {
     const folder = await pickFolder();
     await begin(folder ? [folder] : []);
+  };
+  const findEagle = async () => {
+    setLookingForEagle(true);
+    setImportError(null);
+    try {
+      setEagleLibraries(await discoverEagleLibraries());
+    } catch (error) {
+      setImportError(`无法查找 Eagle 资料库：${String(error)}`);
+    } finally {
+      setLookingForEagle(false);
+    }
   };
 
   // 拖放的回调只注册一次，经 ref 读到最新的状态。
@@ -96,7 +118,30 @@ export function ImportBar({ libraryName, running, report, onStarted, onDismissRe
         <button type="button" onClick={importFolder} disabled={!!running}>
           导入文件夹…
         </button>
+        <button type="button" onClick={findEagle} disabled={!!running || lookingForEagle}>
+          {lookingForEagle ? "正在查找 Eagle 资料库…" : "从 Eagle 迁入…"}
+        </button>
       </div>
+      {importError && <p role="alert">{importError}</p>}
+      {eagleLibraries !== null && (
+        <section className="import-report" aria-label="Eagle 首次迁入">
+          <header>
+            <span>{eagleLibraries.length ? "选择要迁入的 Eagle 资料库" : "没有自动找到可读的 Eagle 资料库"}</span>
+            <button type="button" onClick={importFolder} disabled={!!running}>手动选择 Eagle 资料库…</button>
+            <button type="button" onClick={() => setEagleLibraries(null)}>关闭</button>
+          </header>
+          <p>原图、标签、文件夹、来源链接与备注会迁入当前资料库，Eagle 原库保持不变。回收站中的图会进入可恢复删除；区域评论会保留，暂不显示。</p>
+          <ul>
+            {eagleLibraries.map((candidate) => (
+              <li key={candidate.path}>
+                <span>{candidate.name} · {candidate.items} 项{candidate.version && ` · Eagle ${candidate.version}`}</span>
+                <span className="import-report-path">{candidate.path}</span>
+                <button type="button" disabled={!!running} onClick={() => void begin([candidate.path])}>迁入 {candidate.name}</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {hovering && (
         <div className="drop-hint" aria-live="polite">
           松开即可导入到 {libraryName}

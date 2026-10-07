@@ -20,6 +20,7 @@ fn main() {
                         "cancel_import",
                         "pick_folder",
                         "pick_files",
+                        "discover_eagle_libraries",
                         "image_tags",
                         "edit_tags",
                         "vocabulary",

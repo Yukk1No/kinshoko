@@ -13,11 +13,14 @@ afterEach(() => {
 function detail(rating: Partial<ImageRating>): ImageDetail {
   return {
     id: "img",
+    originalName: "img.png",
     width: 10,
     height: 10,
     folders: [],
     note: { manual: null, sources: [] },
     deletedAt: null,
+    collectedAt: 0,
+    sourceLinks: [],
     rating: { imageId: "img", suggested: "explicit", manual: null, effective: "explicit", ...rating },
   };
 }

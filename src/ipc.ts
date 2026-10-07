@@ -12,6 +12,7 @@ import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
+import type { EagleLibraryCandidate } from "./bindings/EagleLibraryCandidate";
 import type { CaptureAction } from "./bindings/CaptureAction";
 import type { CaptureEntry } from "./bindings/CaptureEntry";
 import type { CollectedCapture } from "./bindings/CollectedCapture";
@@ -89,6 +90,11 @@ export function moveFolder(folderId: string, parent: string | null, position: nu
 /** 开始导入，立即返回任务 id；进度与结果经 onLibraryEvent 推送。 */
 export function startImport(paths: string[]): Promise<string> {
   return invoke<string>(lib("start_import"), { source: { paths } });
+}
+
+/** 本机 Eagle 资料库候选；按 images/ 条目数从多到少排列。 */
+export function discoverEagleLibraries(): Promise<EagleLibraryCandidate[]> {
+  return invoke<EagleLibraryCandidate[]>(lib("discover_eagle_libraries"));
 }
 
 export function cancelImport(taskId: string): Promise<void> {

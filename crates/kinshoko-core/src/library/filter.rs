@@ -84,7 +84,9 @@ fn term(term: &Term, args: &mut Vec<Value>) -> String {
                 format!("instr({FOLD_FN}(coalesce(image.note_manual, '')), {needle}) > 0"),
                 format!(
                     "EXISTS (SELECT 1 FROM image_source s WHERE s.image_id = image.id \
-                     AND (instr({FOLD_FN}(coalesce(s.note, '')), {needle}) > 0                      OR (s.source <> 'file' AND instr({FOLD_FN}(s.location), {needle}) > 0)))"
+                     AND (instr({FOLD_FN}(coalesce(s.note, '')), {needle}) > 0 \
+                     OR instr({FOLD_FN}(coalesce(s.url, '')), {needle}) > 0 \
+                     OR (s.source <> 'file' AND instr({FOLD_FN}(s.location), {needle}) > 0)))"
                 ),
             ];
             any.extend(has_any_tag(
