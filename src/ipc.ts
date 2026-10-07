@@ -79,8 +79,20 @@ export function unregisterLibrary(libraryId: string): Promise<void> {
   return invoke<void>(lib("unregister_library"), { libraryId });
 }
 
+/**
+ * 按查询浏览一页。`query.cursor` 所依据的结果集已经变了（换了视角、查询，或可见集合变化）时
+ * 被拒绝（{@link isCursorExpired}），从第一页重读。
+ */
 export function browse(libraryId: string, query: BrowseQuery): Promise<BrowsePage> {
   return invoke<BrowsePage>(lib("browse"), { libraryId, query });
+}
+
+/** 资料库的 `CursorExpired`：分页游标所依据的结果集已经变了，接着翻会遗漏或重复（#77）。 */
+const CURSOR_EXPIRED = "浏览结果已变化，请从头重新浏览";
+
+/** 浏览失败是不是因为分页游标过期：不是错误，从第一页重新浏览即可。 */
+export function isCursorExpired(error: unknown): boolean {
+  return String(error) === CURSOR_EXPIRED;
 }
 
 /** 资料库的 `UnknownImage`：图不存在、在别的资料库，或安全模式下被封印（#60）。 */

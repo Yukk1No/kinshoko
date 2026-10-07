@@ -546,15 +546,27 @@ fn a_library_from_before_folder_decisions_upgrades_and_keeps_its_folders() {
     let hair = folder_id(&library, "发型参考");
     drop(library);
     {
-        // 退回 #77 之前的数据库结构：没有 folder_decision 及其后的迁移（#68 package_import），
-        // 版本号少二。
+        // 退回 #77 之前的数据库结构：没有 folder_decision、列表修订号（S4）与参考组包导入记录
+        // （#68），版本号少三。
         let conn = rusqlite::Connection::open(root.join("library.sqlite")).unwrap();
         let version: i64 = conn
             .query_row("PRAGMA user_version", [], |r| r.get(0))
             .unwrap();
+        let triggers: Vec<String> = conn
+            .prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'list_revision_%'")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        for name in triggers {
+            conn.execute_batch(&format!("DROP TRIGGER {name};"))
+                .unwrap();
+        }
         conn.execute_batch(&format!(
-            "DROP TABLE folder_decision; DROP TABLE package_import; PRAGMA user_version = {};",
-            version - 2
+            "DROP TABLE folder_decision; DROP TABLE list_revision; DROP TABLE package_import;
+             PRAGMA user_version = {};",
+            version - 3
         ))
         .unwrap();
     }

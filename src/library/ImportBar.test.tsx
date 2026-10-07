@@ -26,13 +26,15 @@ function backend() {
 }
 
 function bar(props: { report: ImportReport | null }) {
+  // 测试里启动命令总是返回 task-1，结束的也是它。
+  const finished = props.report && { taskId: "task-1", report: props.report };
   return (
     <ImportBar
       enabled
       libraryId="L1"
       libraryName="参考"
       running={null}
-      report={props.report}
+      finished={finished}
       onStarted={() => {}}
       onDismissReport={() => {}}
     />

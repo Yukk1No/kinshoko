@@ -75,6 +75,27 @@ describe("自动标签状态", () => {
     expect(actions).toContainEqual({ command: "tagging_resume", libraryId: "L1" });
   });
 
+  // #77 UI-C：加载模型可能要几分钟（子进程已占显存），开始与校验阶段也要能暂停。
+  it.each<[string, TaggingStatus, RegExp]>([
+    ["开始（加载模型）", { state: "starting" }, /自动标签：正在加载打标模型/],
+    ["校验模型", { state: "preparing", model: "PixAI" }, /正在校验打标模型/],
+  ])("%s时可以暂停，迟到的就绪不再显示打标，之后可以继续", async (_, loading, text) => {
+    backend(loading);
+    render(<TaggingIndicator libraryId="L1" />);
+    expect(await screen.findByText(text)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "暂停" }));
+    await waitFor(() => expect(actions).toContainEqual({ command: "tagging_pause", libraryId: "L1" }));
+
+    // 调度结束了加载中的子进程，进入暂停；之后不会再推送 Running（迟到的 Ready 被丢弃，见核心测试）。
+    await act(() => emit("tagging-status", { libraryId: "L1", status: { state: "paused" } }));
+    expect(screen.queryByRole("button", { name: "暂停" })).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "继续" }));
+    await waitFor(() => expect(actions).toContainEqual({ command: "tagging_resume", libraryId: "L1" }));
+
+    await act(() => emit("tagging-status", { libraryId: "L1", status: { state: "starting" } }));
+    expect(await screen.findByRole("button", { name: "暂停" })).toBeTruthy();
+  });
+
   it("另一个资料库的迟到状态不能覆盖当前状态", async () => {
     backend({ state: "paused" });
     render(<TaggingIndicator libraryId="L1" />);

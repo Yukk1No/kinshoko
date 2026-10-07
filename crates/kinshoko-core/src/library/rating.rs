@@ -153,6 +153,8 @@ pub(super) fn replace_source_rating(
         let resealed = was_adult != is_adult;
         // 跨过“含成人内容”：安全模式下可见的词表（标签与计数）变了，修订号随之前进。
         let revision = if resealed {
+            // 安全模式下浏览结果集也变了：旧的分页游标随列表修订号失效（#77 S4）。
+            tx.execute("UPDATE list_revision SET value = value + 1", [])?;
             Some(tags::bump_revision(&tx)?)
         } else {
             None
