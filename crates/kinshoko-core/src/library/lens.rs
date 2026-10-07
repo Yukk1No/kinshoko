@@ -19,7 +19,7 @@ use rusqlite::{Connection, OptionalExtension};
 use serde::Serialize;
 use ts_rs::TS;
 
-use super::{Error, Inner, rating, thumbnail};
+use super::{DisplayFile, Error, Inner, rating, thumbnail};
 
 impl Inner {
     pub(super) fn safe_mode(&self) -> bool {
@@ -88,6 +88,11 @@ pub struct ReferenceLens {
 }
 
 impl ReferenceLens {
+    /// 这个句柄属于哪个资料库。资料库切换后应用壳换上新库的句柄，用前要核对。
+    pub fn library_id(&self) -> &str {
+        &self.inner.info.id
+    }
+
     /// 参考图及是否需要遮蔽。回收站里的图也能取得（参考组成员不随删除消失）。
     pub fn image(&self, image_id: &str) -> Result<ReferenceImage, Error> {
         let conn = self.inner.readers.get();
@@ -113,6 +118,18 @@ impl ReferenceLens {
     /// 缩略图文件，不论是否被封印；遮蔽由显示的一方按 [`ReferenceImage::sealed`] 做。
     pub fn thumbnail(&self, image_id: &str, target_px: u32) -> Result<PathBuf, Error> {
         thumbnail::get(&self.inner, image_id, target_px)
+    }
+
+    /// 1:1 与放大时显示的文件（同 [`Library::display`](super::Library::display)：原图或原尺寸
+    /// `sdr` 派生图），不论是否被封印。桌面钉图不缩小时用它。
+    pub fn display(&self, image_id: &str) -> Result<DisplayFile, Error> {
+        self.inner.display(image_id)
+    }
+
+    /// 按目标宽度显示的文件（同 [`Library::display_scaled`](super::Library::display_scaled)），
+    /// 不论是否被封印。桌面钉图缩小时以它为源，不交给 Chromium 缩小。
+    pub fn display_scaled(&self, image_id: &str, target_px: u32) -> Result<DisplayFile, Error> {
+        self.inner.display_scaled(image_id, target_px)
     }
 
     /// 原图文件，不论是否被封印。

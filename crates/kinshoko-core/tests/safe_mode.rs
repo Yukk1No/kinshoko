@@ -428,6 +428,32 @@ fn the_reference_lens_is_handed_out_once_and_marks_sealed_images() {
 }
 
 #[test]
+fn desktop_pins_get_display_files_for_sealed_images_through_the_reference_lens() {
+    let f = Fixture::new();
+    let lens = f.library.take_reference_lens().unwrap();
+    assert_eq!(lens.library_id(), f.library.info().id);
+
+    // 浏览视角看不见被封印的图；参考视角照样给出显示用的文件，遮蔽由钉图按 sealed 做。
+    assert!(matches!(
+        f.library.display(&f.explicit),
+        Err(Error::UnknownImage)
+    ));
+    assert!(lens.display(&f.explicit).unwrap().path.is_file());
+    assert!(lens.display_scaled(&f.explicit, 2).unwrap().path.is_file());
+    assert!(matches!(
+        lens.display_scaled(&f.explicit, 0),
+        Err(Error::InvalidDisplaySize)
+    ));
+    assert!(matches!(lens.display("不存在"), Err(Error::UnknownImage)));
+
+    // 与浏览视角对可见的图给出同一个文件。
+    assert_eq!(
+        lens.display(&f.general).unwrap(),
+        f.library.display(&f.general).unwrap()
+    );
+}
+
+#[test]
 fn the_tagger_still_reaches_sealed_images() {
     let f = Fixture::new();
     assert!(f.library.original_to_tag(&f.explicit).unwrap().is_file());
