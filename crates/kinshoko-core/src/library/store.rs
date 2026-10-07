@@ -33,6 +33,7 @@ fn migration_list() -> Vec<M<'static>> {
         M::up(include_str!("migrations/0057_eagle_initial_trash.sql")),
         M::up(include_str!("migrations/0058_eagle_reimport.sql")),
         M::up(include_str!("migrations/0077_folder_decision.sql")),
+        M::up(include_str!("migrations/0077_list_revision.sql")),
     ]
 }
 
