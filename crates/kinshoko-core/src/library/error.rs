@@ -27,6 +27,8 @@ pub enum Error {
     EagleReimportRequired,
     /// 个人近似对应表的一条要两个不同的标签。
     SameTag,
+    /// 资料库的安全模式与请求所期望的不同（刚切换过），结果按旧视角作废（#76）。
+    LensChanged,
     Io(std::io::Error),
     Db(rusqlite::Error),
     Migration(rusqlite_migration::Error),
@@ -53,6 +55,7 @@ impl fmt::Display for Error {
             Error::DuplicateTagName(n) => write!(f, "同一命名空间里已有标签叫“{n}”"),
             Error::ExternalTaken(n) => write!(f, "外部名称 {n} 已对应到另一个标签"),
             Error::SameTag => write!(f, "相近标签要选另一个标签"),
+            Error::LensChanged => write!(f, "安全模式刚切换过，请重新查找"),
             Error::NamespaceGroup => write!(f, "这个分组按命名空间列出标签，不能手动调整成员"),
             Error::EagleReimportRequired => {
                 write!(f, "这个 Eagle 条目的内容已变化，需要使用重新迁入")

@@ -19,6 +19,11 @@
 //!   `dismissed` 里，只影响本次查找。
 //!
 //! 安全模式（#60）在 Library 执行条件树时过滤，Search 不参与。
+//! 活动资料库的 Search 由 [`SearchCache`] 按（资料库，词表修订号，安全模式）缓存（#76）。
+
+mod cache;
+
+pub use cache::SearchCache;
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap};

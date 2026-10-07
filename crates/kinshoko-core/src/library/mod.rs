@@ -447,6 +447,11 @@ impl Library {
         tags::vocabulary(&self.inner)
     }
 
+    /// 当前的词表修订号：可见词表变化时前进，安全模式另计。供缓存核对快照是否过期。
+    pub fn vocabulary_revision(&self) -> Result<i64, Error> {
+        tags::revision(&self.inner)
+    }
+
     /// 给标签设置某种语言的名称（改名）。
     pub fn rename_tag(&self, tag_id: &str, lang: &str, name: &str) -> Result<(), Error> {
         tags::rename_tag(&self.inner, tag_id, lang, name)

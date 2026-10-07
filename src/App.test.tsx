@@ -568,6 +568,87 @@ describe("主窗口", () => {
   });
 });
 
+describe("导入任务的终态（#76）", () => {
+  const importButton = () => screen.getByRole("button", { name: "导入文件…" }) as HTMLButtonElement;
+  const failed = (taskId: string) => push({
+    kind: "taskFinished",
+    libraryId: "L1",
+    taskId,
+    report: {
+      cancelled: false,
+      items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: "被占用" } }],
+    },
+  });
+
+  it("结束事件早于启动命令的响应时，迟到的响应和进度不会复活已结束的任务", async () => {
+    let answer!: (taskId: string) => void;
+    const response = new Promise<string>((resolve) => { answer = resolve; });
+    backend(library, clean, (cmd) => (cmd === "plugin:library|start_import" ? response : undefined));
+    render(<App />);
+    await screen.findAllByRole("img");
+    window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考\\坏.png"];
+    fireEvent.click(importButton());
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 1 } });
+    await failed("T1");
+    await act(async () => {
+      answer("T1");
+      await response;
+    });
+    await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 1 } });
+
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.getByText(/导入完成/)).toBeTruthy();
+    expect(screen.getByText("读取失败：被占用")).toBeTruthy();
+    expect(importButton().disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(2));
+  });
+
+  it("进度早于启动命令的响应时，响应到达后仍可取消", async () => {
+    let answer!: (taskId: string) => void;
+    const response = new Promise<string>((resolve) => { answer = resolve; });
+    backend(library, clean, (cmd) => (cmd === "plugin:library|start_import" ? response : undefined));
+    render(<App />);
+    await screen.findAllByRole("img");
+    window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
+    fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 3 } });
+    await act(async () => {
+      answer("T1");
+      await response;
+    });
+
+    expect(screen.getByText("正在导入 1 / 3")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
+    await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ libraryId: "L1", taskId: "T1" }]));
+  });
+
+  it("旧任务与别的资料库的迟到事件不会覆盖新任务", async () => {
+    let next = 0;
+    backend(library, clean, (cmd) => (cmd === "plugin:library|start_import" ? `T${++next}` : undefined));
+    render(<App />);
+    await screen.findAllByRole("img");
+    window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考\\坏.png"];
+    fireEvent.click(importButton());
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await failed("T1");
+    fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(2));
+    await push({ kind: "taskProgress", libraryId: "L1", taskId: "T2", progress: { done: 1, total: 5 } });
+
+    await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 1 } });
+    await failed("T1");
+    await push({ kind: "taskFinished", libraryId: "L2", taskId: "T2", report: { cancelled: true, items: [] } });
+
+    expect(screen.getByText("正在导入 1 / 5")).toBeTruthy();
+    expect(screen.queryByLabelText("导入结果")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
+    await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ libraryId: "L1", taskId: "T2" }]));
+  });
+});
+
 describe("整理", () => {
   const card = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
 
@@ -944,5 +1025,169 @@ describe("安全模式", () => {
     await changed(true);
     await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
     await waitFor(() => expect(sent("plugin:library|sidebar").length).toBeGreaterThan(sidebars));
+  });
+  describe("候选随视角作废（#76）", () => {
+    const adult: Candidate = { tag: label("ADULT", "general", "只在成人图出现的标签"), via: null, count: 1 };
+    const box = () => screen.findByRole("combobox", { name: "查找参考图" });
+    /** 后端核对请求带的视角：与资料库的安全模式不同时拒绝，与真实命令一致。 */
+    const lensChecked = (hold?: () => Promise<Candidate[]> | undefined) => (cmd: string, args: unknown) => {
+      if (cmd !== "plugin:library|search_candidates") return undefined;
+      const { text, safeMode } = args as { text: string; safeMode: boolean };
+      const held = hold?.();
+      if (held) return held;
+      if (safeMode !== safeOn) return Promise.reject("安全模式刚切换过，请重新查找");
+      return text.trim() && !safeOn ? [adult] : [];
+    };
+
+    it.each(["封印书", "快捷键"])("用%s开启安全模式时立即清掉成人图独有的候选与数量，重新聚焦也不再出现", async (entry) => {
+      backend(library, clean, lensChecked(), false);
+      render(<App />);
+      await waitFor(() => expect(cardOf("x")).toBeTruthy());
+      const input = await box();
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "只在成人" } });
+      expect(await screen.findByText("只在成人图出现的标签")).toBeTruthy();
+
+      if (entry === "封印书") fireEvent.click(await book());
+      else fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
+      // 不等后端确认，也不用再打字。
+      expect(screen.queryByText("只在成人图出现的标签")).toBeNull();
+      expect(document.querySelector(".search-candidate-count")).toBeNull();
+
+      await changed(true);
+      fireEvent.blur(input);
+      fireEvent.focus(input);
+      await waitFor(() =>
+        expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ text: "只在成人", safeMode: true }),
+      );
+      expect(screen.queryByText("只在成人图出现的标签")).toBeNull();
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("切换前发出的候选请求迟到时不写回新视角", async () => {
+      let finish!: (value: Candidate[]) => void;
+      const late = new Promise<Candidate[]>((resolve) => { finish = resolve; });
+      let first = true;
+      backend(library, clean, lensChecked(() => {
+        if (!first) return undefined;
+        first = false;
+        return late;
+      }), false);
+      render(<App />);
+      await waitFor(() => expect(cardOf("x")).toBeTruthy());
+      const input = await box();
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "只在成人" } });
+      await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(1));
+      fireEvent.click(await book());
+      await changed(true);
+      await act(async () => {
+        finish([adult]);
+        await late;
+      });
+      expect(screen.queryByText("只在成人图出现的标签")).toBeNull();
+    });
+
+    it("关闭后候选按新视角重新取得，再开启时又立即清掉", async () => {
+      backend(library, clean, lensChecked());
+      render(<App />);
+      await screen.findAllByRole("img");
+      const input = await box();
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "只在成人" } });
+      await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(1));
+      expect(screen.queryByText("只在成人图出现的标签")).toBeNull();
+
+      fireEvent.click(await book());
+      await changed(false);
+      expect(await screen.findByText("只在成人图出现的标签")).toBeTruthy();
+
+      fireEvent.keyDown(window, { key: "S", ctrlKey: true, shiftKey: true });
+      expect(screen.queryByText("只在成人图出现的标签")).toBeNull();
+    });
+
+    it("词表变化后重新取得候选", async () => {
+      let names = ["旧名"];
+      backend(library, clean, (cmd) =>
+        cmd === "plugin:library|search_candidates"
+          ? names.map((name) => ({ tag: label(name, "general", name), via: null, count: 1 }))
+          : undefined,
+      );
+      render(<App />);
+      const input = await box();
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "名" } });
+      expect(await screen.findByText("旧名")).toBeTruthy();
+      names = ["新名"];
+      await push({ kind: "vocabularyChanged", libraryId: "L1", revision: 9 });
+      expect(await screen.findByText("新名")).toBeTruthy();
+      expect(screen.queryByText("旧名")).toBeNull();
+    });
+
+    it("“加相近标签”的候选同样随视角作废，迟到的响应不写回", async () => {
+      let finish!: (value: Candidate[]) => void;
+      const late = new Promise<Candidate[]>((resolve) => { finish = resolve; });
+      let holding = false;
+      backend(library, clean, (cmd, args) => {
+        if (cmd !== "plugin:library|search_candidates") return undefined;
+        const { text, safeMode } = args as { text: string; safeMode: boolean };
+        if (text === "只在成人" && holding) {
+          holding = false;
+          return late;
+        }
+        if (safeMode !== safeOn) return Promise.reject("安全模式刚切换过，请重新查找");
+        if (text === "只在成人") return safeOn ? [] : [adult];
+        return text.trim() ? candidates : [];
+      }, false);
+      render(<App />);
+      await waitFor(() => expect(cardOf("x")).toBeTruthy());
+      const input = await box();
+      fireEvent.change(input, { target: { value: "蓝" } });
+      fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
+      fireEvent.click(await screen.findByRole("button", { name: "给“蓝发”加相近标签" }));
+      const dialog = screen.getByRole("dialog", { name: "加相近标签" });
+      const pick = within(dialog).getByRole("combobox", { name: "挑一个库内标签" });
+      fireEvent.change(pick, { target: { value: "只在成人" } });
+      expect(await within(dialog).findByText("只在成人图出现的标签")).toBeTruthy();
+
+      fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
+      expect(within(dialog).queryByText("只在成人图出现的标签")).toBeNull();
+      await changed(true);
+      await waitFor(() =>
+        expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ text: "只在成人", safeMode: true }),
+      );
+      expect(within(dialog).queryByText("只在成人图出现的标签")).toBeNull();
+
+      // 关掉安全模式时发出的请求，在再次开启之后才返回。
+      holding = true;
+      fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
+      await waitFor(() => expect(holding).toBe(false));
+      fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
+      await act(async () => {
+        finish([adult]);
+        await late;
+      });
+      expect(within(dialog).queryByText("只在成人图出现的标签")).toBeNull();
+    });
+
+    it("条件解析带上当前视角，视角刚切换的拒绝不当作错误显示", async () => {
+      backend(library, clean, (cmd, args) => {
+        if (cmd !== "plugin:library|resolve_search") return undefined;
+        const { input, safeMode } = args as { input: SearchInput; safeMode: boolean };
+        if (safeMode !== safeOn) return Promise.reject("安全模式刚切换过，请重新查找");
+        return resolved(input);
+      }, false);
+      render(<App />);
+      await waitFor(() => expect(cardOf("x")).toBeTruthy());
+      const input = await box();
+      fireEvent.change(input, { target: { value: "蓝" } });
+      fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
+      await waitFor(() => expect(sent("plugin:library|resolve_search").at(-1)).toMatchObject({ safeMode: false }));
+      fireEvent.click(await book());
+      await waitFor(() => expect(sent("plugin:library|resolve_search").at(-1)).toMatchObject({ safeMode: true }));
+      await changed(true);
+      await waitFor(() => expect(screen.getByRole("list", { name: "查找条件" }).textContent).toContain("水色发"));
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
   });
 });
