@@ -518,7 +518,8 @@ fn moved_eagle_library_is_only_proposed_until_the_artist_confirms_it() {
             .filter(|s| s.source == "eagle")
             .collect();
         assert_eq!(eagle_rows.len(), 1, "来源记录跟着搬家：{eagle_rows:?}");
-        assert!(eagle_rows[0].location.starts_with(&moved));
+        // 按物理位置比较：TEMP 可能是短名或另一种大小写写法。
+        assert!(real(&eagle_rows[0].location).starts_with(real(&moved)));
         assert_eq!(library.image(&ids[0]).unwrap().note.sources.len(), 1);
 
         // 另一份副本：确认是另一个来源，相同原图合并进已有记录。
@@ -548,6 +549,116 @@ fn moved_eagle_library_is_only_proposed_until_the_artist_confirms_it() {
         assert!(again.eagle_relocations.is_empty());
         assert_eq!(library.eagle_sources().unwrap().len(), 2);
     }
+}
+
+/// 同一物理位置的规范写法，用来比较路径而不受写法（大小写、短名）影响。
+fn real(path: &Path) -> std::path::PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|e| panic!("{path:?} 不存在：{e}"))
+}
+
+/// 这张图的 Eagle 来源记录：每条都必须指向新位置下真实存在的原图。
+fn assert_eagle_rows_at(library: &Library, image_id: &str, root: &Path) {
+    let rows: Vec<_> = library
+        .image_sources(image_id)
+        .unwrap()
+        .into_iter()
+        .filter(|s| s.source == "eagle")
+        .collect();
+    assert_eq!(rows.len(), 1, "同一来源只有一行记录：{rows:?}");
+    assert!(
+        rows[0].location.exists(),
+        "来源地址指向不存在的位置：{rows:?}"
+    );
+    assert!(
+        real(&rows[0].location).starts_with(real(root)),
+        "来源地址没有跟着搬家：{rows:?}"
+    );
+}
+
+/// 首次迁入用 `spelling` 这种写法，搬家后确认、重导、改备注、重开，来源层都只有一份且指向新位置。
+fn relocation_moves_every_source_row(spelling: impl Fn(&Path) -> std::path::PathBuf) {
+    for version in VERSIONS {
+        let dir = tempfile::tempdir().unwrap();
+        let mut fixture = eagle::build(&dir.path().join("Case-Source.library"), version, 2);
+        let root = dir.path().join("kinshoko");
+        let library = Library::create(&root, "参考").unwrap();
+        let report = import(&library, &spelling(&fixture.root));
+        assert!(
+            report
+                .items
+                .iter()
+                .all(|i| matches!(i.outcome, ImportOutcome::Imported { .. })),
+            "{report:?}"
+        );
+        let id = library.eagle_sources().unwrap()[0]
+            .bindings
+            .iter()
+            .find(|b| b.external_id == "ITEM000000000")
+            .unwrap()
+            .image_id
+            .clone();
+
+        let moved = dir.path().join("Moved.library");
+        std::fs::rename(&fixture.root, &moved).unwrap();
+        fixture.root = moved.clone();
+        let report = import(&library, &spelling(&moved));
+        let proposal = &report.eagle_relocations[0];
+        library
+            .confirm_eagle_location(
+                &spelling(&moved),
+                EagleLocationChoice::Moved {
+                    source_id: proposal.source_id.clone(),
+                },
+            )
+            .unwrap();
+        let report = import(&library, &moved);
+        assert!(
+            report
+                .items
+                .iter()
+                .all(|i| matches!(i.outcome, ImportOutcome::Refreshed { .. })),
+            "{report:?}"
+        );
+        assert_eagle_rows_at(&library, &id, &moved);
+
+        // Eagle 里改了备注：刷新原来源层，旧备注不作为另一来源留下。两种写法重导都是同一来源。
+        fixture.items[0]["annotation"] = json!("搬家后的备注");
+        fixture.save_item(0);
+        import(&library, &spelling(&moved));
+        import(&library, &moved);
+        assert_eagle_rows_at(&library, &id, &moved);
+        let notes: Vec<_> = library
+            .image(&id)
+            .unwrap()
+            .note
+            .sources
+            .into_iter()
+            .map(|n| n.text)
+            .collect();
+        assert_eq!(notes, ["搬家后的备注"]);
+
+        // 关闭重开后仍是同样的来源层。
+        drop(library);
+        let library = Library::open(&root).unwrap();
+        assert_eagle_rows_at(&library, &id, &moved);
+        assert_eq!(library.image(&id).unwrap().note.sources.len(), 1);
+    }
+}
+
+#[test]
+fn eagle_relocation_updates_sources_for_the_spelling_it_was_imported_with() {
+    relocation_moves_every_source_row(Path::to_path_buf);
+}
+
+/// Windows 上同一目录可用不同大小写写出：首次迁入的写法与登记的规范路径大小写不同。
+#[cfg(windows)]
+#[test]
+fn eagle_relocation_updates_sources_for_a_case_alias() {
+    relocation_moves_every_source_row(|path| {
+        let alias = std::path::PathBuf::from(path.to_string_lossy().to_lowercase());
+        assert_ne!(alias, path, "测试路径需要含大写字母");
+        alias
+    });
 }
 
 #[test]

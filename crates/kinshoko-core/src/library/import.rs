@@ -257,10 +257,13 @@ fn import_one(inner: &Inner, path: &Path) -> (ImportOutcome, bool) {
                     .map(|n| n.to_string_lossy().into_owned())
                     .unwrap_or_default()
             }),
-        location: std::path::absolute(path)
-            .unwrap_or_else(|_| path.to_path_buf())
-            .to_string_lossy()
-            .into_owned(),
+        location: match &eagle {
+            Some(item) => item.location.clone(),
+            None => std::path::absolute(path)
+                .unwrap_or_else(|_| path.to_path_buf())
+                .to_string_lossy()
+                .into_owned(),
+        },
         eagle,
     };
 

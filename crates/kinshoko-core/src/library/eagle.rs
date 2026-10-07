@@ -86,6 +86,8 @@ pub(super) struct ItemMetadata {
 pub(super) struct Item {
     pub(super) source_id: String,
     pub(super) original: PathBuf,
+    /// 来源记录里的条目位置：由登记的规范根路径拼出，与导入时用的路径写法无关。
+    pub(super) location: String,
     pub(super) metadata: ItemMetadata,
     raw: String,
     folders: Vec<String>,
@@ -483,6 +485,24 @@ fn plain(location: &str) -> PathBuf {
     }
 }
 
+/// 来源记录里一个条目的位置：`<资料库根>/images/<条目目录>`。
+fn item_location(root: &Path, entry: &std::ffi::OsStr) -> String {
+    root.join("images")
+        .join(entry)
+        .to_string_lossy()
+        .into_owned()
+}
+
+/// 两个路径写法是否指同一位置。Windows 的路径不区分大小写，分隔符可写成 `/` 或 `\`。
+fn same_path(a: &Path, b: &Path) -> bool {
+    if cfg!(windows) {
+        let fold = |p: &Path| p.to_string_lossy().replace('/', "\\").to_lowercase();
+        fold(a) == fold(b)
+    } else {
+        a == b
+    }
+}
+
 /// 画师确认疑似搬家的位置。
 pub(super) fn confirm_location(
     inner: &Inner,
@@ -498,7 +518,6 @@ pub(super) fn confirm_location(
             Ok(())
         }
         EagleLocationChoice::Moved { source_id } => {
-            let item_root = std::path::absolute(path)?;
             inner.write(move |tx| {
                 let old: String = tx
                     .query_row(
@@ -526,22 +545,34 @@ pub(super) fn confirm_location(
                     "UPDATE import_source SET location = ?2, relocated_from = ?3 WHERE id = ?1",
                     params![source_id, location, old],
                 )?;
-                // 来源记录跟着搬家，重导时刷新同一行而不是多出一行。
-                let old_root = plain(&old);
+                // 来源记录跟着搬家，重导时刷新同一行而不是多出一行。按绑定的条目找记录，
+                // 路径比较不受写法影响：首次导入的写法可能与登记的规范路径大小写不同。
+                let (old_root, new_root) = (plain(&old), plain(&location));
                 let mut stmt = tx.prepare(
-                    "SELECT image_id, location FROM image_source
-                     WHERE source = 'eagle'
-                       AND image_id IN (SELECT image_id FROM source_binding WHERE source_id = ?1)",
+                    "SELECT DISTINCT b.image_id, b.external_id, s.location
+                     FROM source_binding b
+                     JOIN image_source s ON s.image_id = b.image_id AND s.source = 'eagle'
+                     WHERE b.source_id = ?1",
                 )?;
-                let rows: Vec<(String, String)> = stmt
-                    .query_map([&source_id], |r| Ok((r.get(0)?, r.get(1)?)))?
+                let rows: Vec<(String, String, String)> = stmt
+                    .query_map([&source_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
                     .collect::<Result<_, _>>()?;
-                for (image_id, at) in rows {
-                    if let Ok(rest) = Path::new(&at).strip_prefix(&old_root) {
+                for (image_id, external_id, at) in rows {
+                    let entry = format!("{external_id}.info");
+                    if !same_path(Path::new(&at), Path::new(&item_location(&old_root, entry.as_ref()))) {
+                        continue;
+                    }
+                    let to = item_location(&new_root, entry.as_ref());
+                    // 新位置已有同一条目的记录（例如搬家前已经重导过）：旧记录并入它。
+                    let moved = tx.execute(
+                        "UPDATE OR IGNORE image_source SET location = ?3
+                         WHERE image_id = ?1 AND source = 'eagle' AND location = ?2",
+                        params![image_id, at, to],
+                    )?;
+                    if moved == 0 {
                         tx.execute(
-                            "UPDATE OR IGNORE image_source SET location = ?3
-                             WHERE image_id = ?1 AND source = 'eagle' AND location = ?2",
-                            params![image_id, at, item_root.join(rest).to_string_lossy()],
+                            "DELETE FROM image_source WHERE image_id = ?1 AND source = 'eagle' AND location = ?2",
+                            params![image_id, at],
                         )?;
                     }
                 }
@@ -557,6 +588,10 @@ pub(super) fn load(inner: &Inner, path: &Path) -> Result<Item, String> {
         .and_then(Path::parent)
         .ok_or("Eagle 条目路径无效")?;
     let source_id = register(inner, root)?;
+    let location = item_location(
+        &plain(&canonical(root)?),
+        path.file_name().ok_or("Eagle 条目路径无效")?,
+    );
     let raw = std::fs::read_to_string(path.join("metadata.json")).map_err(|e| e.to_string())?;
     let metadata: ItemMetadata = parse(&raw)?;
     for (field, value) in [
@@ -603,6 +638,7 @@ pub(super) fn load(inner: &Inner, path: &Path) -> Result<Item, String> {
     Ok(Item {
         source_id,
         original: path.join(format!("{}.{}", metadata.name, metadata.ext)),
+        location,
         metadata,
         raw,
         folders,
