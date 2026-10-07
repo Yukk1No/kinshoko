@@ -442,6 +442,191 @@ fn reimport_applies_eagle_folder_changes_and_keeps_local_folder_adjustments() {
     }
 }
 
+/// Eagle 里把条目 `index` 放进或移出 HAIR，然后重导。
+fn eagle_sets_hair(library: &Library, fixture: &mut eagle::EagleFixture, index: usize, on: bool) {
+    fixture.items[index]["folders"] = if on {
+        json!(["GIRL", "HAIR"])
+    } else {
+        json!(["GIRL"])
+    };
+    fixture.save_item(index);
+    let report = import(library, &fixture.root);
+    assert!(
+        report
+            .items
+            .iter()
+            .all(|i| matches!(i.outcome, ImportOutcome::Refreshed { .. })),
+        "{report:?}"
+    );
+}
+
+fn in_folder(library: &Library, image_id: &str, folder_id: &str) -> bool {
+    library
+        .image(image_id)
+        .unwrap()
+        .folders
+        .iter()
+        .any(|f| f.id == folder_id)
+}
+
+/// 画师在本库对一张图作出的文件夹决定，经 Eagle 反复同向、反向改动与重开都保留；
+/// 画师没碰过的图继续跟随 Eagle。
+fn manual_folder_decision_survives_eagle(manual_in: bool) {
+    for version in VERSIONS {
+        let dir = tempfile::tempdir().unwrap();
+        let mut fixture = eagle::build(&dir.path().join("主库.library"), version, 3);
+        // 0 号是画师要决定的图；1 号是对照，画师不碰。两张起初都与画师的决定相反。
+        for i in 0..2 {
+            fixture.items[i]["folders"] = if manual_in {
+                json!(["GIRL"])
+            } else {
+                json!(["GIRL", "HAIR"])
+            };
+            fixture.save_item(i);
+        }
+        let root = dir.path().join("kinshoko");
+        let mut library = Library::create(&root, "参考").unwrap();
+        let ids = first_import(&library, &fixture);
+        let hair = folder_id(&library, "发型参考");
+        let edit = if manual_in {
+            ImageEdit::AddToFolder {
+                folder_id: hair.clone(),
+            }
+        } else {
+            ImageEdit::RemoveFromFolder {
+                folder_id: hair.clone(),
+            }
+        };
+        library
+            .edit(std::slice::from_ref(&ids[0]), &[edit])
+            .unwrap();
+        assert_eq!(in_folder(&library, &ids[0], &hair), manual_in);
+
+        for round in 0..2 {
+            // Eagle 先与画师同向，再反向；中途关闭重开一次。
+            for eagle_in in [manual_in, !manual_in] {
+                eagle_sets_hair(&library, &mut fixture, 0, eagle_in);
+                eagle_sets_hair(&library, &mut fixture, 1, eagle_in);
+                assert_eq!(
+                    in_folder(&library, &ids[0], &hair),
+                    manual_in,
+                    "{version} 第 {round} 轮 Eagle {eagle_in}：画师的决定被覆盖"
+                );
+                assert_eq!(
+                    in_folder(&library, &ids[1], &hair),
+                    eagle_in,
+                    "{version} 第 {round} 轮：画师没决定的归属应跟随 Eagle"
+                );
+            }
+            drop(library);
+            library = Library::open(&root).unwrap();
+            assert_eq!(in_folder(&library, &ids[0], &hair), manual_in);
+        }
+    }
+}
+
+#[test]
+fn manual_folder_removal_survives_eagle_remove_then_add() {
+    manual_folder_decision_survives_eagle(false);
+}
+
+#[test]
+fn manual_folder_addition_survives_eagle_add_then_remove() {
+    manual_folder_decision_survives_eagle(true);
+}
+
+/// 升级前的库（没有文件夹决定记录）打开后保留原有归属，之后的人工决定照样生效。
+#[test]
+fn a_library_from_before_folder_decisions_upgrades_and_keeps_its_folders() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut fixture = eagle::build(&dir.path().join("主库.library"), "4.0.0", 2);
+    let root = dir.path().join("kinshoko");
+    let library = Library::create(&root, "参考").unwrap();
+    let ids = first_import(&library, &fixture);
+    let hair = folder_id(&library, "发型参考");
+    drop(library);
+    {
+        // 退回 #77 之前的数据库结构：没有 folder_decision，版本号少一。
+        let conn = rusqlite::Connection::open(root.join("library.sqlite")).unwrap();
+        let version: i64 = conn
+            .query_row("PRAGMA user_version", [], |r| r.get(0))
+            .unwrap();
+        conn.execute_batch(&format!(
+            "DROP TABLE folder_decision; PRAGMA user_version = {};",
+            version - 1
+        ))
+        .unwrap();
+    }
+
+    let library = Library::open(&root).unwrap();
+    assert!(in_folder(&library, &ids[0], &hair) && in_folder(&library, &ids[1], &hair));
+    library
+        .edit(
+            std::slice::from_ref(&ids[0]),
+            &[ImageEdit::RemoveFromFolder {
+                folder_id: hair.clone(),
+            }],
+        )
+        .unwrap();
+    eagle_sets_hair(&library, &mut fixture, 0, false);
+    eagle_sets_hair(&library, &mut fixture, 0, true);
+    assert!(!in_folder(&library, &ids[0], &hair));
+    assert!(in_folder(&library, &ids[1], &hair));
+}
+
+#[test]
+fn manual_folder_decision_stays_with_its_own_source() {
+    for version in VERSIONS {
+        let dir = tempfile::tempdir().unwrap();
+        let mut a = eagle::build(&dir.path().join("甲.library"), version, 1);
+        let mut b = eagle::build(&dir.path().join("乙.library"), version, 1);
+        let mut meta: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(b.root.join("metadata.json")).unwrap())
+                .unwrap();
+        meta["folders"][1]["name"] = json!("乙的发型");
+        eagle::write_json(&b.root.join("metadata.json"), &meta);
+        // 乙的条目 id 不同，避免被当成甲搬了家；原图相同，合并为同一张参考图。
+        b.items[0]["id"] = json!("OTHER0000000");
+        std::fs::rename(
+            b.root.join("images/ITEM000000000.info"),
+            b.root.join("images/OTHER0000000.info"),
+        )
+        .unwrap();
+        b.save_item(0);
+
+        let library = Library::create(&dir.path().join("kinshoko"), "参考").unwrap();
+        let id = first_import(&library, &a)[0].clone();
+        let report = import(&library, &b.root);
+        assert!(
+            matches!(report.items[0].outcome, ImportOutcome::Merged { .. }),
+            "{report:?}"
+        );
+        let (hair_a, hair_b) = (
+            folder_id(&library, "发型参考"),
+            folder_id(&library, "乙的发型"),
+        );
+        assert!(in_folder(&library, &id, &hair_a) && in_folder(&library, &id, &hair_b));
+
+        // 画师只把它移出甲的文件夹；乙的文件夹归属照常跟随乙的 Eagle。
+        library
+            .edit(
+                std::slice::from_ref(&id),
+                &[ImageEdit::RemoveFromFolder {
+                    folder_id: hair_a.clone(),
+                }],
+            )
+            .unwrap();
+        eagle_sets_hair(&library, &mut a, 0, false);
+        eagle_sets_hair(&library, &mut a, 0, true);
+        eagle_sets_hair(&library, &mut b, 0, false);
+        assert!(!in_folder(&library, &id, &hair_a));
+        assert!(!in_folder(&library, &id, &hair_b));
+        eagle_sets_hair(&library, &mut b, 0, true);
+        assert!(!in_folder(&library, &id, &hair_a));
+        assert!(in_folder(&library, &id, &hair_b));
+    }
+}
+
 /// 把整个 Eagle 资料库挪到新位置（源库本身的内容不变）。
 fn copy_dir(from: &Path, to: &Path) {
     std::fs::create_dir_all(to).unwrap();

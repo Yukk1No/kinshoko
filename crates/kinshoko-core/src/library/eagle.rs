@@ -733,7 +733,7 @@ pub(super) fn commit(
         })
         .collect();
     tags::replace_source_tags_in(tx, translations, &source, image_id, &source_tags)?;
-    // 文件夹归属只跟随 Eagle 自上次迁入以来的改动：画师在本库放入或移出的不被改回。
+    // 文件夹归属只跟随 Eagle 自上次迁入以来的改动。
     let previous_raw: Option<String> = tx
         .query_row(
             "SELECT raw_item_json FROM source_binding
@@ -757,14 +757,29 @@ pub(super) fn commit(
             }
         }
     }
+    // 画师在本库决定过的归属（放入或移出）由画师说了算，Eagle 之后怎么改都不动。
+    let decided = |folder_id: &str| -> Result<bool, Error> {
+        Ok(tx
+            .query_row(
+                "SELECT 1 FROM folder_decision WHERE folder_id = ?1 AND image_id = ?2",
+                params![folder_id, image_id],
+                |_| Ok(()),
+            )
+            .optional()?
+            .is_some())
+    };
     for folder_id in item.folders.iter().filter(|f| !before.contains(*f)) {
-        tx.execute("INSERT OR IGNORE INTO folder_member (folder_id, image_id, added_at) VALUES (?1, ?2, ?3)", params![folder_id, image_id, now])?;
+        if !decided(folder_id)? {
+            tx.execute("INSERT OR IGNORE INTO folder_member (folder_id, image_id, added_at) VALUES (?1, ?2, ?3)", params![folder_id, image_id, now])?;
+        }
     }
     for folder_id in before.iter().filter(|f| !item.folders.contains(f)) {
-        tx.execute(
-            "DELETE FROM folder_member WHERE folder_id = ?1 AND image_id = ?2",
-            params![folder_id, image_id],
-        )?;
+        if !decided(folder_id)? {
+            tx.execute(
+                "DELETE FROM folder_member WHERE folder_id = ?1 AND image_id = ?2",
+                params![folder_id, image_id],
+            )?;
+        }
     }
     // 每个条目一行来源记录：重导只刷新这一条的备注与链接。
     tx.execute(
