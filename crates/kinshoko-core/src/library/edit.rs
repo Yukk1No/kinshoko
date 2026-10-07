@@ -66,6 +66,17 @@ pub struct SourceNote {
     pub text: String,
 }
 
+/// 同一 Eagle 条目内容变化后留下的新旧版本（只列浏览视角下看得见的）。
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ImageVersions {
+    /// 这张图取代的旧版本。
+    pub previous: Option<String>,
+    /// 取代这张图的新版本，按进库先后。
+    pub newer: Vec<String>,
+}
+
 /// 查看单张参考图所需的详情。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -87,6 +98,8 @@ pub struct ImageDetail {
     pub deleted_at: Option<i64>,
     /// 内容分级：自动、人工与有效。
     pub rating: ImageRating,
+    /// 来源内容变化留下的新旧版本。
+    pub versions: ImageVersions,
 }
 
 pub(super) fn edit(
@@ -114,7 +127,7 @@ pub(super) fn edit(
         }
         let details = ids
             .iter()
-            .map(|id| detail(tx, id))
+            .map(|id| detail(tx, &lens, id))
             .collect::<Result<Vec<_>, _>>()?;
         let revision = if recount {
             Some(tags::bump_revision(tx)?)
@@ -204,7 +217,8 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<bool, Er
     Ok(false)
 }
 
-pub(super) fn detail(conn: &Connection, id: &str) -> Result<ImageDetail, Error> {
+/// `lens` 是浏览视角的过滤条件（安全模式），用于只列出看得见的新旧版本。
+pub(super) fn detail(conn: &Connection, lens: &str, id: &str) -> Result<ImageDetail, Error> {
     let (width, height, manual_note, deleted_at, original_name, collected_at) = conn
         .query_row(
             "SELECT width, height, note_manual, deleted_at, original_name, coalesce(collected_at, imported_at) FROM image WHERE id = ?1",
@@ -213,6 +227,22 @@ pub(super) fn detail(conn: &Connection, id: &str) -> Result<ImageDetail, Error> 
         )
         .optional()?
         .ok_or(Error::UnknownImage)?;
+    let previous = conn
+        .query_row(
+            &format!(
+                "SELECT image.id FROM image JOIN image AS this ON this.previous_image_id = image.id
+                 WHERE this.id = ?1 AND {lens}"
+            ),
+            [id],
+            |row| row.get(0),
+        )
+        .optional()?;
+    let mut stmt = conn.prepare_cached(&format!(
+        "SELECT image.id FROM image WHERE image.previous_image_id = ?1 AND {lens} ORDER BY image.seq"
+    ))?;
+    let newer = stmt
+        .query_map([id], |row| row.get(0))?
+        .collect::<Result<_, _>>()?;
     let mut stmt = conn.prepare_cached(
         "SELECT f.id, f.name FROM folder_member m JOIN folder f ON f.id = m.folder_id
          WHERE m.image_id = ?1 ORDER BY f.name, f.id",
@@ -255,5 +285,6 @@ pub(super) fn detail(conn: &Connection, id: &str) -> Result<ImageDetail, Error> 
         },
         deleted_at,
         rating: rating::rating_of(conn, id)?,
+        versions: ImageVersions { previous, newer },
     })
 }

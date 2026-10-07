@@ -43,6 +43,8 @@ fn kind(outcome: &ImportOutcome) -> &'static str {
         ImportOutcome::Merged { .. } => "merged",
         ImportOutcome::Unsupported => "unsupported",
         ImportOutcome::ReadFailed { .. } => "failed",
+        ImportOutcome::Refreshed { .. } => "refreshed",
+        ImportOutcome::NewVersion { .. } => "newVersion",
     }
 }
 

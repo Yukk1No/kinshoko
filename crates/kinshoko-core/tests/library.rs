@@ -162,6 +162,8 @@ fn a_folder_import_walks_subfolders_and_lists_each_file_that_did_not_come_in() {
                 ImportOutcome::Merged { .. } => "merged",
                 ImportOutcome::Unsupported => "unsupported",
                 ImportOutcome::ReadFailed { .. } => "failed",
+                ImportOutcome::Refreshed { .. } => "refreshed",
+                ImportOutcome::NewVersion { .. } => "newVersion",
             };
             (name.to_string_lossy().replace('\\', "/"), kind)
         })

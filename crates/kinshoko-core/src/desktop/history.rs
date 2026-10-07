@@ -215,13 +215,13 @@ impl CaptureHistory {
         let path = self.file(id).ok_or(HistoryError::Unknown)?;
         let report = library.import(ImportSource { paths: vec![path] }).wait();
         let image_id = match report.items.into_iter().next().map(|item| item.outcome) {
-            Some(ImportOutcome::Imported { image_id } | ImportOutcome::Merged { image_id }) => {
-                image_id
-            }
             Some(ImportOutcome::ReadFailed { reason }) => {
                 return Err(HistoryError::Collect(reason));
             }
-            Some(ImportOutcome::Unsupported) | None => {
+            Some(outcome) if outcome.image_id().is_some() => {
+                outcome.image_id().unwrap_or_default().to_owned()
+            }
+            _ => {
                 return Err(HistoryError::Collect("资料库没有收下这张截图".to_owned()));
             }
         };
