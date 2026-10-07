@@ -198,19 +198,23 @@ pub async fn gate_plan(app: AppHandle) -> Result<GatePlan, String> {
     .map_err(|e| e.to_string())?
 }
 
-/// 样本原文件（`px` 为空）或其缩略图的字节，原样交给 WebView2 解码。
+/// 样本的原文件（`original`）、应用 1:1 显示的文件（`display`，见 `Library::display`）或
+/// `px` 档缩略图（`thumbnail`）的字节，原样交给 WebView2 解码。
 #[tauri::command]
 pub async fn gate_image(
     app: AppHandle,
     image_id: String,
+    what: String,
     px: Option<u32>,
 ) -> Result<Response, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let prepared = app.state::<GateState>().wait()?;
         let library = &prepared.run.library;
-        let path = match px {
-            None => library.original_path(&image_id),
-            Some(px) => library.thumbnail(&image_id, px),
+        let path = match (what.as_str(), px) {
+            ("original", _) => library.original_path(&image_id),
+            ("display", _) => library.display(&image_id).map(|d| d.path),
+            ("thumbnail", Some(px)) => library.thumbnail(&image_id, px),
+            _ => return Err(format!("未知的取图方式：{what}")),
         }
         .map_err(|e| e.to_string())?;
         std::fs::read(path)

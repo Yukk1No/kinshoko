@@ -13,17 +13,19 @@ const THRESHOLD = 1;
 const ALPHA_TOLERANCE = 0.02;
 
 interface PatchResult {
-  /** display-p3 canvas 读回的平均编码值（0～1）。 */
-  originalRgb: [number, number, number];
+  /** display-p3 canvas 读回的平均编码值（0～1）：1:1 显示的图与缩略图。 */
+  shownRgb: [number, number, number];
   thumbnailRgb: [number, number, number];
-  original: Lab;
+  shown: Lab;
   thumbnail: Lab;
-  /** 原图与缩略图（都经 WebView2 解码）的色差：门槛。 */
+  /** 1:1 显示的图与缩略图（都经 WebView2 解码）的色差：门槛。 */
   deltaE: number;
-  /** 原图（WebView2 解码）与样本标称值的色差：WebView2 自己的解释，只记录。 */
+  /** 1:1 显示的图与样本标称值的色差。显示派生图时计入门槛；直接显示原图时是 WebView2 自己的解释，只记录。 */
   deltaENominal: number;
-  /** 缩略图（WebView2 解码）与样本标称值的色差：只记录，用来区分是哪一边偏了。 */
+  /** 缩略图与样本标称值的色差：只记录，用来区分是哪一边偏了。 */
   deltaEThumbnailNominal: number;
+  /** 显示派生图的样本：WebView2 直接解码原图的结果，只记录。 */
+  direct?: { rgb: [number, number, number]; lab: Lab; deltaENominal: number };
   alpha: [number, number];
 }
 
@@ -33,8 +35,10 @@ interface SampleResult {
   note: string;
   gated: boolean;
   sha256: string;
-  /** WebView2 解码出的尺寸：确认原图与缩略图确实解码了。 */
-  decoded?: { original: [number, number]; thumbnail: [number, number] };
+  /** 1:1 显示走哪条路（Library::display）：原图直接显示或原尺寸 sdr 派生图。 */
+  display: GateItem["display"];
+  /** WebView2 解码出的尺寸：确认确实解码了。 */
+  decoded?: { shown: [number, number]; original: [number, number]; thumbnail: [number, number] };
   patches: PatchResult[];
   maxDeltaE: number | null;
   passed: boolean;
@@ -69,30 +73,46 @@ async function decode(bytes: Uint8Array<ArrayBuffer>): Promise<{ image: ImageDat
 }
 
 async function measure(item: GateItem): Promise<SampleResult & { canvas: Canvas }> {
-  const [original, thumbnail] = await Promise.all([
-    gateImage(item.imageId).then(decode),
-    gateImage(item.imageId, THUMB_PX).then(decode),
+  const derivative = item.display === "sdrDerivative";
+  const [original, shownOrNull, thumbnail] = await Promise.all([
+    gateImage(item.imageId, "original").then(decode),
+    derivative ? gateImage(item.imageId, "display").then(decode) : Promise.resolve(null),
+    gateImage(item.imageId, { thumbnail: THUMB_PX }).then(decode),
   ]);
+  // 应用在 1:1 时显示的图：派生图，或交给 WebView2 的原图。
+  const shown = shownOrNull ?? original;
   const scale = thumbnail.image.width / item.width;
   const patches = item.patches.map((p): PatchResult => {
-    const o = patchMean(original.image, p);
+    const o = patchMean(shown.image, p);
     const t = patchMean(thumbnail.image, p, scale);
     const ol = p3ToLab(o.rgb);
     const tl = p3ToLab(t.rgb);
+    let direct: PatchResult["direct"];
+    if (derivative) {
+      const d = patchMean(original.image, p);
+      const dl = p3ToLab(d.rgb);
+      direct = { rgb: d.rgb, lab: dl, deltaENominal: deltaE2000(dl, p.lab as Lab) };
+    }
     return {
-      originalRgb: o.rgb,
+      shownRgb: o.rgb,
       thumbnailRgb: t.rgb,
-      original: ol,
+      shown: ol,
       thumbnail: tl,
       deltaE: deltaE2000(ol, tl),
       deltaENominal: deltaE2000(ol, p.lab as Lab),
       deltaEThumbnailNominal: deltaE2000(tl, p.lab as Lab),
+      direct,
       alpha: [o.alpha, t.alpha],
     };
   });
-  const maxDeltaE = patches.length ? Math.max(...patches.map((p) => p.deltaE)) : null;
+  const maxDeltaE = patches.length
+    ? Math.max(...patches.map((p) => (derivative ? Math.max(p.deltaE, p.deltaENominal) : p.deltaE)))
+    : null;
   const passed = patches.every(
-    (p) => p.deltaE < THRESHOLD && Math.abs(p.alpha[0] - p.alpha[1]) <= ALPHA_TOLERANCE,
+    (p) =>
+      p.deltaE < THRESHOLD &&
+      (!derivative || p.deltaENominal < THRESHOLD) &&
+      Math.abs(p.alpha[0] - p.alpha[1]) <= ALPHA_TOLERANCE,
   );
   return {
     fileName: item.fileName,
@@ -100,14 +120,16 @@ async function measure(item: GateItem): Promise<SampleResult & { canvas: Canvas 
     note: item.note,
     gated: item.gated,
     sha256: item.sha256,
+    display: item.display,
     decoded: {
+      shown: [shown.image.width, shown.image.height],
       original: [original.image.width, original.image.height],
       thumbnail: [thumbnail.image.width, thumbnail.image.height],
     },
     patches,
     maxDeltaE,
     passed,
-    originalUrl: original.url,
+    originalUrl: shown.url,
     thumbnailUrl: thumbnail.url,
     canvas: original.canvas,
   };
@@ -158,17 +180,19 @@ function markdown(plan: GatePlan, results: SampleResult[], env: object, manual: 
     "",
     "## 样本",
     "",
-    "| 样本 | 实验 | 门槛 | 最大 ΔE2000（原图 vs 缩略图） | 原图 vs 标称 | 缩略图 vs 标称 | 结果 | SHA-256 |",
-    "|---|---|---|---|---|---|---|---|",
+    "| 样本 | 实验 | 1:1 显示 | 门槛 | 最大 ΔE2000（门槛） | 1:1 显示 vs 标称 | 缩略图 vs 标称 | WebView2 直接显示原图 vs 标称（只记录） | 结果 | SHA-256 |",
+    "|---|---|---|---|---|---|---|---|---|---|",
   ];
   for (const r of results) {
     const worst = (f: (p: PatchResult) => number) =>
       r.patches.length ? Math.max(...r.patches.map(f)).toFixed(2) : "—";
     const nominal = worst((p) => p.deltaENominal);
     const thumbNominal = worst((p) => p.deltaEThumbnailNominal);
+    const direct = r.display === "sdrDerivative" ? worst((p) => p.direct?.deltaENominal ?? 0) : "—";
+    const route = r.display === "sdrDerivative" ? "派生图" : "原图";
     const verdict = r.error ? `出错：${r.error}` : !r.gated ? "只记录" : r.passed ? "通过" : "未通过";
     lines.push(
-      `| ${r.fileName} | ${r.group} | ${r.gated ? "是" : "否"} | ${r.maxDeltaE?.toFixed(2) ?? "—"} | ${nominal} | ${thumbNominal} | ${verdict} | \`${r.sha256.slice(0, 16)}…\` |`,
+      `| ${r.fileName} | ${r.group} | ${route} | ${r.gated ? "是" : "否"} | ${r.maxDeltaE?.toFixed(2) ?? "—"} | ${nominal} | ${thumbNominal} | ${direct} | ${verdict} | \`${r.sha256.slice(0, 16)}…\` |`,
     );
   }
   return lines.join("\n") + "\n";
@@ -203,6 +227,7 @@ export function FidelityGate() {
             note: item.note,
             gated: item.gated,
             sha256: item.sha256,
+            display: item.display,
             patches: [],
             maxDeltaE: null,
             passed: false,
@@ -245,8 +270,9 @@ export function FidelityGate() {
     <main className="gate">
       <h1>还原度门槛实验</h1>
       <p>
-        WebView2 分别解码原图与缩略图，在 display-p3 canvas 中读回色块，比较 ΔE2000（阈值 {THRESHOLD}，假设值）。
-        “原图 vs 标称”是 WebView2 自己对色彩声明的解释，只记录。
+        WebView2 分别解码应用在 1:1 时显示的图（原图，或动图、HDR、查找表型 ICC 与 CMYK 的原尺寸派生图）与缩略图，
+        在 display-p3 canvas 中读回色块，比较 ΔE2000（阈值 {THRESHOLD}，假设值）；显示派生图的样本还须与标称值相差 &lt; {THRESHOLD}。
+        直接显示原图时“1:1 显示 vs 标称”是 WebView2 自己的解释，只记录。
       </p>
       {error && <p role="alert">出错：{error}</p>}
       {!plan && !error && <p>正在生成样本并导入……</p>}
@@ -296,7 +322,7 @@ export function FidelityGate() {
         <thead>
           <tr>
             <th>样本</th>
-            <th>原图</th>
+            <th>1:1 显示</th>
             <th>缩略图</th>
             <th>最大 ΔE2000</th>
             <th>结果</th>

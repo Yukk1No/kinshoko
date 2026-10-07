@@ -133,16 +133,23 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     else {
         return not_found();
     };
-    let Ok(px) = px.parse::<u32>() else {
-        return not_found();
-    };
     let Ok(library) = app.state::<LibraryState>().current() else {
         return not_found();
     };
     if library.info().id != library_id {
         return not_found();
     }
-    let Ok(path) = library.thumbnail(image_id, px) else {
+    // `full`：1:1 与放大时显示的文件（Library::display，ADR-0005）。看图界面只用这条路，
+    // 不直接读原文件——动图、HDR、Chromium 不能精确表示的 ICC 与 CMYK 要换成 sdr 派生图。
+    let found = if px == "full" {
+        library.display(image_id).map(|d| d.path)
+    } else {
+        let Ok(px) = px.parse::<u32>() else {
+            return not_found();
+        };
+        library.thumbnail(image_id, px)
+    };
+    let Ok(path) = found else {
         return not_found();
     };
     match std::fs::read(&path) {

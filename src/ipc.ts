@@ -171,6 +171,12 @@ export function thumbnailUrl(address: string): string {
   return convertFileSrc("", "thumb") + address;
 }
 
+/** 1:1 与放大时显示的图（看图界面只用这条路）：静态 SDR 原图，或动图、HDR、Chromium 不能
+ * 精确表示的 ICC 与 CMYK 的原尺寸 sdr 派生图（ADR-0005）。 */
+export function displayUrl(libraryId: string, imageId: string): string {
+  return convertFileSrc("", "thumb") + `${libraryId}/${imageId}/full`;
+}
+
 // 原生文件对话框无法由 WebDriver 操作。冒烟测试先把要“选中”的路径放进
 // window.__KINSHOKO_TEST_PICKS__，有值时按顺序取用，不弹对话框。
 declare global {
@@ -385,10 +391,17 @@ export function gatePlan(): Promise<GatePlan> {
   return invoke<GatePlan>("gate_plan");
 }
 
-/** 样本原文件（px 省略）或其缩略图的原始字节。 */
-export async function gateImage(imageId: string, px?: number): Promise<Uint8Array<ArrayBuffer>> {
+/** 样本的原文件、应用 1:1 显示的文件（display）或某档缩略图的原始字节。 */
+export async function gateImage(
+  imageId: string,
+  what: "original" | "display" | { thumbnail: number },
+): Promise<Uint8Array<ArrayBuffer>> {
   // 原始字节在自定义协议 IPC 下是 ArrayBuffer，退回 postMessage 时是数字数组。
-  const raw = await invoke<ArrayBuffer | number[]>("gate_image", { imageId, px: px ?? null });
+  const raw = await invoke<ArrayBuffer | number[]>("gate_image", {
+    imageId,
+    what: typeof what === "string" ? what : "thumbnail",
+    px: typeof what === "string" ? null : what.thumbnail,
+  });
   return raw instanceof ArrayBuffer ? new Uint8Array(raw) : Uint8Array.from(raw);
 }
 
