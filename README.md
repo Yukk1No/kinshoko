@@ -7,6 +7,7 @@
 - [初始设想](docs/discovery/initial-brief.md)：讨论输入，尚未形成规格。
 - [已有调研](docs/research/anime-library-research.md)：2026-09-30 的候选软件调查与证据。
 - [数据实践调查](docs/research/data-model-practices.md)：Eagle 与参考项目的实际存储、导入、合并和参考板实现。
+- [Jev 适用性](docs/research/jev-reranker-evaluation.md)、[社区小判断用途](docs/research/jev-community-use-cases.md)与[多模态 Decisions API 核查](docs/research/multimodal-decisions-evaluation.md)：2026-10-07 按 public beta 更新的研究记录与待验证方案。
 - [验收约定](docs/validation/acceptance.md)：首个本地版本的样本、客观门槛与画师反馈方式。
 - [数据与存储模型提案](docs/discovery/data-storage-model.md)：融合两份方案的身份、元数据、参考组、引用迁移与备份建议；配有 [层级图](docs/discovery/data-hierarchy.md)，区分共识与未决规则。
 
