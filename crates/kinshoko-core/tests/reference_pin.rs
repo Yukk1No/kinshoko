@@ -2,8 +2,8 @@
 //! 重新打开后恢复。通过 `kinshoko_core::desktop` 的对外接口，用临时目录里的真文件。
 
 use kinshoko_core::desktop::{
-    CaptureHistory, PinContent, PinError, PinStore, Placement, Region, SavedPin, ScreenRect,
-    Turn, initial_scale,
+    CaptureHistory, PinContent, PinError, PinStore, Placement, Region, SavedPin, ScreenRect, Turn,
+    initial_scale,
 };
 use kinshoko_core::library::ReferenceImage;
 
@@ -79,7 +79,11 @@ fn a_partial_pin_is_sized_in_original_pixels() {
     .unwrap();
     assert_eq!(pin.crop, Some(region(100, 50, 300, 200)));
     assert_eq!((pin.width, pin.height), (300, 200));
-    assert_eq!(pin.window_size(), (300, 200), "未缩放时一个原图像素一个物理像素");
+    assert_eq!(
+        pin.window_size(),
+        (300, 200),
+        "未缩放时一个原图像素一个物理像素"
+    );
 }
 
 #[test]

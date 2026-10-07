@@ -314,6 +314,25 @@ pub fn current_or_last<R: Runtime>(app: &AppHandle<R>) -> Result<Arc<Library>, S
     restore(app)?.ok_or_else(|| "还没有资料库".to_owned())
 }
 
+/// 界面正在操作的资料库（浏览视角）；已切换或关闭时返回错误。
+pub fn current<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<Arc<Library>, String> {
+    app.state::<LibraryState>().current(library_id)
+}
+
+/// `library_id` 的参考视角句柄，只给桌面钉图（#65）与参考组（#66）。每次现取：切换资料库后
+/// 句柄换成新库的，不是这个库的就没有。不打开资料库。
+pub fn reference_lens<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Option<ReferenceLens> {
+    lock(&app.state::<LibraryState>().reference)
+        .as_ref()
+        .filter(|lens| lens.library_id() == library_id)
+        .cloned()
+}
+
+/// 安全模式是否开启（全局设置）；读不到设置时按开启处理。
+pub fn safe_mode_on<R: Runtime>(app: &AppHandle<R>) -> bool {
+    saved_safe_mode(app)
+}
+
 /// [`current_or_last`] 会用到的资料库的 id 与名称，只读登记表、不打开资料库。
 pub fn current_name<R: Runtime>(app: &AppHandle<R>) -> Option<(String, String)> {
     let state = app.state::<LibraryState>();

@@ -5,7 +5,9 @@
 //! 窗口调用会派发到主线程，而主线程上的回调（快捷键、窗口事件、菜单）也会来拿这些锁。
 //! 抓屏、读写剪贴板与收藏都在别的线程上做。
 //!
-//! - 截图历史与冻结屏幕走自定义协议 `capture`：`screen/<标记>` 或 `<截图 id>`；
+//! - 截图历史、冻结屏幕与资料库钉图的图走自定义协议 `capture`：`screen/<标记>`、`<截图 id>`，
+//!   或 `pin/<钉图 id>/full|fit-<像素>`（#65，经参考视角，只给已钉住的图）；
+//! - 资料库事件（安全模式开关、分级变化）到达时，资料库钉图重新核对要不要遮蔽；
 //! - 截图历史变化时向所有窗口推送 `capture-history`（截图列表，从新到旧）。
 
 mod capture;
@@ -26,7 +28,7 @@ use tauri::http::{Response, StatusCode, header};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::plugin::{Builder, TauriPlugin};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Emitter, Manager, Wry};
+use tauri::{AppHandle, Emitter, Listener, Manager, Wry};
 
 use crate::{library, shell};
 
@@ -34,6 +36,8 @@ use crate::{library, shell};
 const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
 const HISTORY_DIR: &str = "captures";
 const HISTORY_EVENT: &str = "capture-history";
+/// 资料库插件转发给窗口的事件。
+const LIBRARY_EVENT: &str = "library-event";
 
 pub struct DesktopState {
     history: Mutex<CaptureHistory>,
@@ -74,6 +78,8 @@ pub fn init() -> TauriPlugin<Wry> {
             pins::settle_pin,
             pins::set_pin_opacity,
             pins::set_pin_locked,
+            pins::pin_reference,
+            pins::reveal_pin,
             edge_hide,
             capture_history,
             collect_capture,
@@ -95,6 +101,10 @@ pub fn init() -> TauriPlugin<Wry> {
                 edge: Mutex::default(),
             });
             app.on_menu_event(pins::on_menu_event);
+            let handle = app.clone();
+            app.listen_any(LIBRARY_EVENT, move |event| {
+                on_library_event(&handle, event.payload());
+            });
             edge::start(app);
             // 恢复上次的钉图：建窗口要等事件循环跑起来，放到别的线程。
             let handle = app.clone();
@@ -111,18 +121,38 @@ pub fn init() -> TauriPlugin<Wry> {
         .build()
 }
 
-/// 冻结屏幕现场编码；历史中的截图直接读文件。两者都是内嵌显示器配置文件的 PNG。
+/// 资料库转发给窗口的事件里，影响钉图遮蔽的几种：安全模式开关、分级变化（列表过期）。
+fn on_library_event(app: &AppHandle, payload: &str) {
+    let Ok(event) = serde_json::from_str::<serde_json::Value>(payload) else {
+        return;
+    };
+    let turned_on = match event.get("kind").and_then(|k| k.as_str()) {
+        Some("safeModeChanged") => event.get("on").and_then(|on| on.as_bool()) == Some(true),
+        Some("listStale" | "imagesChanged") => false,
+        _ => return,
+    };
+    let app = app.clone();
+    std::thread::spawn(move || pins::references_changed(&app, turned_on));
+}
+
+/// 冻结屏幕现场编码；历史中的截图直接读文件，两者都是内嵌显示器配置文件的 PNG。
+/// 资料库钉图的图是 [`Library::display`](kinshoko_core::Library::display) 给出的文件。
 fn capture_response(app: &AppHandle, path: &str) -> Response<Vec<u8>> {
-    let body = match path.strip_prefix("screen/") {
-        Some(token) => capture::frozen_png(app, token),
-        None => {
-            let file = lock(&state(app).history).file(path);
-            file.and_then(|f| std::fs::read(f).ok())
-        }
+    let mut content_type = "image/png";
+    let body = if let Some(token) = path.strip_prefix("screen/") {
+        capture::frozen_png(app, token)
+    } else if let Some((pin, size)) = path.strip_prefix("pin/").and_then(|p| p.split_once('/')) {
+        pins::reference_file(app, pin, size).and_then(|f| {
+            content_type = library::image_content_type(&f);
+            std::fs::read(f).ok()
+        })
+    } else {
+        let file = lock(&state(app).history).file(path);
+        file.and_then(|f| std::fs::read(f).ok())
     };
     match body {
         Some(bytes) => Response::builder()
-            .header(header::CONTENT_TYPE, "image/png")
+            .header(header::CONTENT_TYPE, content_type)
             .header(header::CACHE_CONTROL, "no-store")
             .body(bytes),
         None => Response::builder()

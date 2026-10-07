@@ -4,11 +4,13 @@ import type { SavedPin } from "../bindings/SavedPin";
 import {
   captureUrl,
   movePin,
+  pinImageUrl,
   onPinFrame,
   onPinNotice,
   pinFrame,
   pinMenu,
   pinReady,
+  revealPin,
   setPinOpacity,
   settlePin,
   turnPin,
@@ -26,73 +28,31 @@ import {
   pressOpensMenu,
   wheelOpacity,
 } from "./motion";
+import { createCanvas2dRenderer, pinSourceSize, type PinRenderer, type PinSource } from "./renderer";
 import {
   cornerZoomScale,
   inZoomCorner,
   pinCanvasSize,
-  pinDrawing,
   wheelZoomScale,
   type Point,
   type ZoomStart,
 } from "./pixels";
 
-/**
- * 钉图的 2D 画布：sRGB 色彩空间，优先用 float16 后备存储。
- *
- * 在开发机（110%，sRGB 显示器配置文件）上实测：sRGB 画布（8 位或 float16）与 <img> 回显逐像素
- * 一致；display-p3 画布即使是 float16 也有约一半像素偏差 1～8 级，不满足截图恒等，所以不用 P3。
- * float16 的 sRGB 画布是扩展范围的，广色域显示器的颜色不会被裁到 sRGB 色域；不支持时退回 8 位。
- */
-function pinContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D | null {
-  const wide = canvas.getContext("2d", {
-    colorSpace: "srgb",
-    colorType: "float16",
-  } as CanvasRenderingContext2DSettings);
-  const attributes = wide?.getContextAttributes() as { colorType?: string } | undefined;
-  if (wide && attributes?.colorType === "float16") return wide;
-  // 同一块 canvas 只能取一次 context，换一块再取普通画布。
-  const fallback = document.createElement("canvas");
-  canvas.replaceWith(fallback);
-  fallback.className = canvas.className;
-  return fallback.getContext("2d", { colorSpace: "srgb" });
-}
-
-/** 按 DPI 像素规则画钉图：canvas 后备尺寸等于钉图的物理像素；先翻转再绕中心旋转，只画裁切部分。 */
-function drawPin(ctx: CanvasRenderingContext2D, image: HTMLImageElement, pin: SavedPin) {
-  const geometry = { width: pin.width, height: pin.height, ...pin.placement };
-  const size = pinCanvasSize(geometry, window.devicePixelRatio);
-  const drawing = pinDrawing(geometry);
-  const c = ctx.canvas;
-  c.width = size.width;
-  c.height = size.height;
-  c.style.width = `${size.cssWidth}px`;
-  c.style.height = `${size.cssHeight}px`;
-  c.style.imageRendering = size.pixelated ? "pixelated" : "auto";
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, size.width, size.height);
-  ctx.imageSmoothingQuality = "high";
-  ctx.translate(size.width / 2, size.height / 2);
-  ctx.rotate(drawing.angle);
-  ctx.scale(drawing.flipX, drawing.flipY);
-  const crop = pin.crop ?? { x: 0, y: 0, width: image.naturalWidth, height: image.naturalHeight };
-  ctx.drawImage(
-    image,
-    crop.x,
-    crop.y,
-    crop.width,
-    crop.height,
-    -drawing.width / 2,
-    -drawing.height / 2,
-    drawing.width,
-    drawing.height,
-  );
-}
-
 /** 画面内容变了才重画 canvas（位置变化只改 CSS 变换）。 */
-function drawKey(pin: SavedPin): string {
+function drawKey(pin: SavedPin, source: string): string {
   const p = pin.placement;
-  return JSON.stringify([pin.width, pin.height, pin.crop, p.scale, p.flipH, p.flipV, p.rotation]);
+  return JSON.stringify([source, pin.width, pin.height, pin.crop, p.scale, p.flipH, p.flipV, p.rotation]);
 }
+
+/** 钉图此刻应该画的源图地址：截图本身，或资料库钉图经参考视角的显示文件（#65）。 */
+function sourceUrl(f: PinFrame): string {
+  const content = f.pin.content;
+  if (content.kind === "capture") return captureUrl(content.captureId);
+  return pinImageUrl(f.pin.id, pinSourceSize(f.pin, f.veiled));
+}
+
+/** 缩放停下这么久后才换源图（派生图按尺寸生成，滚轮连续几格时不每格都生成）。 */
+const SOURCE_IDLE_MS = 150;
 
 /** 只发最新的一次：上一次还没返回时，新的请求替换排队中的那个。拖动时不会积压 IPC。 */
 function latestOnly<A extends unknown[]>(send: (...args: A) => Promise<unknown>) {
@@ -158,6 +118,9 @@ const MENU_DEDUPE_MS = 800;
  * 笔、鼠标与触摸走同一套 pointer 处理（#7：Windows Ink 下笔拖动没有系统拖动需要的鼠标事件）：
  * 按住拖动移动，按住右下角拖动缩放，锁定时都不响应。滚轮以光标为中心缩放，Ctrl+滚轮调透明度；
  * H/V 翻转，R/Shift+R 旋转。右键菜单：鼠标右键、笔的侧键，或笔与触摸按住不动。
+ *
+ * 画面由可替换的钉图渲染器（[`PinRenderer`]，目前只有 canvas 2D）画。资料库钉图（#65）缩小时以
+ * Rust 派生图为源；安全模式下被封印的图原位模糊并显示小圆锁，确认后只显示这一张。
  */
 export function PinView({ pin }: { pin: string }) {
   const host = useRef<HTMLDivElement>(null);
@@ -170,6 +133,9 @@ export function PinView({ pin }: { pin: string }) {
   const [corner, setCorner] = useState(false);
   const [locked, setLocked] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [veiled, setVeiled] = useState(false);
+  const [missing, setMissing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const openMenu = () => {
     const now = performance.now();
@@ -185,8 +151,54 @@ export function PinView({ pin }: { pin: string }) {
     let raf = 0;
     let settle = 0;
     let drawn = "";
-    let ctx: CanvasRenderingContext2D | null = null;
-    let image: HTMLImageElement | null = null;
+    let renderer: PinRenderer | null = null;
+    /** 画着的源图、它的地址，以及它是不是遮蔽时取的小图。 */
+    let source: PinSource | null = null;
+    let sourceAddress = "";
+    let sourceVeiled = false;
+    /** 正在读取或等着读取的地址。 */
+    let wanted = "";
+    let sourceTimer = 0;
+
+    /** 遮蔽要立刻生效，不等 React 渲染：在宿主元素上直接切换。换成清晰的源图之前也保持遮蔽。 */
+    const applyVeil = () => {
+      const f = frame.current;
+      const on = !!f && (f.veiled || sourceVeiled);
+      host.current?.classList.toggle("pin-veiled", on);
+      setVeiled(on);
+      if (!on) setConfirming(false);
+    };
+    const load = async (address: string, veil: boolean): Promise<void> => {
+      wanted = address;
+      const img = new Image();
+      img.src = address;
+      try {
+        await img.decode();
+      } catch {
+        if (!alive || wanted !== address) return;
+        // 资料库没打开、原图缺失：保留已画的；什么都没有时画占位。
+        if (!source) setMissing(true);
+        redraw(true);
+        return;
+      }
+      if (!alive || wanted !== address) return;
+      source = { image: img, width: img.naturalWidth, height: img.naturalHeight };
+      sourceAddress = address;
+      sourceVeiled = veil;
+      setMissing(false);
+      redraw(false);
+      applyVeil();
+    };
+    const pickSource = (immediate: boolean) => {
+      const f = frame.current;
+      if (!f) return;
+      const address = sourceUrl(f);
+      if (address === wanted) return;
+      clearTimeout(sourceTimer);
+      // 变成遮蔽时马上换小图；其余（缩放）等停下来再换。
+      if (immediate || f.veiled) void load(address, f.veiled);
+      else sourceTimer = window.setTimeout(() => void load(address, f.veiled), SOURCE_IDLE_MS);
+    };
 
     const scheduleSettle = () => {
       clearTimeout(settle);
@@ -211,11 +223,11 @@ export function PinView({ pin }: { pin: string }) {
     };
     const redraw = (force: boolean) => {
       const f = frame.current;
-      if (!f || !ctx || !image) return;
-      const key = drawKey(f.pin);
+      if (!f || !renderer) return;
+      const key = drawKey(f.pin, sourceAddress);
       if (force || key !== drawn) {
         drawn = key;
-        drawPin(ctx, image, f.pin);
+        renderer.draw(source, f.pin);
       }
     };
     apply.current = (f) => {
@@ -225,7 +237,9 @@ export function PinView({ pin }: { pin: string }) {
       motion ??= new ContentMotion(f.content, now);
       const duration = first ? 0 : f.motion === "zoom" ? ZOOM_MS : f.motion === "slide" ? SLIDE_MS : 0;
       motion.retarget(f.content, now, duration);
+      applyVeil();
       redraw(false);
+      if (renderer) pickSource(false);
       if (body.current) body.current.style.opacity = String(f.pin.opacity);
       setLocked(f.pin.locked);
       clearTimeout(settle);
@@ -242,21 +256,17 @@ export function PinView({ pin }: { pin: string }) {
     });
     (async () => {
       const first = await pinFrame(pin);
-      if (!first || !alive) return;
-      if (first.pin.content.kind !== "capture") return;
-      const img = new Image();
-      img.src = captureUrl(first.pin.content.captureId);
-      await img.decode();
-      if (!alive || !body.current) return;
-      const canvas = document.createElement("canvas");
-      canvas.className = "pin-canvas";
-      body.current.prepend(canvas);
-      ctx = pinContext(canvas);
-      if (!ctx) return;
-      image = img;
-      // 等图片期间可能已经到了更新的帧。
+      if (!first || !alive || !body.current) return;
+      renderer = createCanvas2dRenderer();
+      if (!renderer) return;
+      body.current.prepend(renderer.element);
+      // 等第一帧期间可能已经到了更新的帧。
       if (!frame.current) apply.current(first);
-      else redraw(true);
+      // 先画好（遮蔽的先取小图）再显示窗口。
+      await load(sourceUrl(frame.current ?? first), (frame.current ?? first).veiled);
+      if (!alive) return;
+      redraw(true);
+      pickSource(true);
       window.addEventListener("resize", onResize);
       await pinReady(pin);
     })();
@@ -265,6 +275,7 @@ export function PinView({ pin }: { pin: string }) {
       alive = false;
       cancelAnimationFrame(raf);
       clearTimeout(settle);
+      clearTimeout(sourceTimer);
       window.removeEventListener("resize", onResize);
       void frames.then((stop) => stop());
       void unlisten.then((stop) => stop());
@@ -402,7 +413,11 @@ export function PinView({ pin }: { pin: string }) {
   return (
     <div
       ref={host}
-      className={locked ? "pin pin-locked" : corner ? "pin pin-corner" : "pin"}
+      className={[
+        "pin",
+        locked ? "pin-locked" : corner ? "pin-corner" : "",
+        veiled ? "pin-veiled" : "",
+      ].filter(Boolean).join(" ")}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endGesture}
@@ -414,6 +429,31 @@ export function PinView({ pin }: { pin: string }) {
     >
       <div ref={body} className="pin-content">
         <div className="pin-appear" aria-hidden />
+        <div className="pin-veil" aria-hidden={!veiled}>
+          {veiled && !confirming && (
+            <button
+              type="button"
+              className="pin-veil-lock"
+              aria-label="安全模式下已遮蔽，点按确认显示"
+              title="安全模式下已遮蔽"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => setConfirming(true)}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+                <path d="M4 6V4.5a3 3 0 0 1 6 0V6" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                <rect x="2.5" y="6" width="9" height="6.5" rx="1.5" fill="currentColor" />
+              </svg>
+            </button>
+          )}
+          {veiled && confirming && (
+            <div className="pin-veil-confirm" role="group" onPointerDown={(e) => e.stopPropagation()}>
+              <span>显示这张图？</span>
+              <button type="button" onClick={() => void revealPin(pin)}>显示</button>
+              <button type="button" onClick={() => setConfirming(false)}>取消</button>
+            </div>
+          )}
+        </div>
+        {missing && <div className="pin-missing">参考图无法读取：资料库没有打开，或原图已缺失</div>}
         {notice && <div className="pin-notice">{notice}</div>}
       </div>
     </div>
