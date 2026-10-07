@@ -157,6 +157,23 @@ pub(super) fn edit(
     Ok(details)
 }
 
+/// 记下画师的文件夹决定：之后 Eagle 重导不再改这些归属。
+fn record_folder_decision(
+    conn: &Connection,
+    folder_id: &str,
+    ids: &[String],
+    member: bool,
+) -> Result<(), Error> {
+    let mut stmt = conn.prepare_cached(
+        "INSERT INTO folder_decision (folder_id, image_id, member) VALUES (?1, ?2, ?3)
+         ON CONFLICT (folder_id, image_id) DO UPDATE SET member = excluded.member",
+    )?;
+    for id in ids {
+        stmt.execute(params![folder_id, id, member])?;
+    }
+    Ok(())
+}
+
 /// 返回是否有图因分级改变而被安全模式封印或放出。
 fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<bool, Error> {
     match edit {
@@ -170,6 +187,7 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<bool, Er
             for id in ids {
                 stmt.execute(params![folder_id, id, now])?;
             }
+            record_folder_decision(conn, folder_id, ids, true)?;
         }
         ImageEdit::RemoveFromFolder { folder_id } => {
             folders::ensure_folder(conn, folder_id)?;
@@ -179,6 +197,7 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<bool, Er
             for id in ids {
                 stmt.execute(params![folder_id, id])?;
             }
+            record_folder_decision(conn, folder_id, ids, false)?;
         }
         ImageEdit::SetNote { text } => {
             let mut stmt =
