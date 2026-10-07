@@ -19,6 +19,9 @@ pub(super) const IMPORT_AFTER_PUBLISH: &str = "import_after_publish";
 /// 导入：提交事务里已写入参考图与来源，COMMIT 之前。
 pub(super) const IMPORT_BEFORE_COMMIT: &str = "import_before_commit";
 
+/// 永久删除：参考图记录已删除并提交，原文件还没有清除。
+pub(super) const PERMANENT_DELETE_AFTER_COMMIT: &str = "permanent_delete_after_commit";
+
 struct Armed {
     point: String,
     nth: u32,

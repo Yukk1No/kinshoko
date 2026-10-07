@@ -364,3 +364,67 @@ fn permanent_delete_preview_finds_the_groups_using_the_images() {
             .is_empty()
     );
 }
+
+/// 永久删除（#67）接上生产实现：预览列出用到这张图的参考组；删除后参考组文件不变，
+/// 成员与布局都在，被删的图标为“已从资料库中删除”，其他成员照常可用。
+#[test]
+fn permanently_deleted_members_stay_in_place_and_are_marked_missing() {
+    let f = Fixture::new();
+    let detached = DetachedLenses::default();
+    let groups = ReferenceGroups::open(&f.dir.path().join("groups")).unwrap();
+    let face = groups
+        .create(
+            "脸",
+            &mut [
+                pin(&f.a_lens, &f.a_images[0], 0),
+                pin(&f.a_lens, &f.a_images[1], 40),
+                f.b_pin(&detached, 0, 80),
+            ],
+        )
+        .unwrap();
+    let doomed = vec![f.a_images[0].clone()];
+    f.a.edit(&doomed, &[ImageEdit::Delete]).unwrap();
+
+    let preview = f.a.preview_permanent_delete(&doomed, &groups).unwrap();
+    assert_eq!(
+        preview.groups,
+        vec![GroupUsage {
+            group_id: face.id.clone(),
+            name: "脸".into(),
+            image_ids: doomed.clone(),
+        }]
+    );
+    f.a.permanent_delete(&doomed, &preview.token, &groups)
+        .unwrap();
+
+    assert_eq!(groups.get(&face.id).unwrap(), face);
+    let states: Vec<_> = resolve(&face, &f.references(&detached, true))
+        .into_iter()
+        .map(|m| m.state)
+        .collect();
+    assert!(matches!(
+        &states[0],
+        MemberState::Unavailable {
+            reason: UnavailableReason::ImageMissing,
+            ..
+        }
+    ));
+    assert_eq!(states[1], MemberState::Available { sealed: false });
+    assert_eq!(states[2], MemberState::Available { sealed: false });
+    // 打开参考组时布局原样：被删的成员也还在原位。
+    assert_eq!(face.pins().len(), 3);
+}
+
+#[test]
+fn permanent_delete_refuses_when_a_group_file_cannot_be_checked() {
+    let f = Fixture::new();
+    let dir = f.dir.path().join("groups");
+    let groups = ReferenceGroups::open(&dir).unwrap();
+    let doomed = vec![f.a_images[0].clone()];
+    f.a.edit(&doomed, &[ImageEdit::Delete]).unwrap();
+    std::fs::write(dir.join("broken.json"), b"{").unwrap();
+    assert!(matches!(
+        f.a.preview_permanent_delete(&doomed, &groups),
+        Err(kinshoko_core::library::Error::ReferenceGroups(_))
+    ));
+}
