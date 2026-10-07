@@ -11,6 +11,7 @@ const DRAG_FOLDER = "application/x-kinshoko-folder";
 const LAST = 2 ** 31;
 
 type Props = {
+  libraryId: string;
   scope: BrowseScope;
   onScope: (scope: BrowseScope) => void;
   /** 资料库报告列表过期时递增：重新取侧栏。 */
@@ -50,7 +51,7 @@ function NameInput(props: {
  * 双击文件夹改名；把文件夹拖到另一个文件夹上移进去，拖到“文件夹”标题上移到顶层；
  * 把图片墙上选中的图拖到文件夹上放进去。
  */
-export function SidebarPane({ scope, onScope, reloadKey, onError }: Props) {
+export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError }: Props) {
   const [data, setData] = useState<Sidebar | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -58,7 +59,7 @@ export function SidebarPane({ scope, onScope, reloadKey, onError }: Props) {
 
   useEffect(() => {
     let alive = true;
-    sidebar().then(
+    sidebar(libraryId).then(
       (value) => alive && setData(value),
       (e) => alive && onError(String(e)),
     );
@@ -73,7 +74,7 @@ export function SidebarPane({ scope, onScope, reloadKey, onError }: Props) {
   const parentForNew = scope.kind === "folder" ? scope.id : null;
   const created = (name: string | null) => {
     setCreating(false);
-    if (name) void run(createFolder(name, parentForNew));
+    if (name) void run(createFolder(libraryId, name, parentForNew));
   };
 
   const accepts = (e: DragEvent) =>
@@ -91,12 +92,12 @@ export function SidebarPane({ scope, onScope, reloadKey, onError }: Props) {
     setDropTarget(null);
     const folder = e.dataTransfer.getData(DRAG_FOLDER);
     if (folder) {
-      if (folder !== folderId) void run(moveFolder(folder, folderId, LAST));
+      if (folder !== folderId) void run(moveFolder(libraryId, folder, folderId, LAST));
       return;
     }
     const images = e.dataTransfer.getData(DRAG_IMAGES);
     if (images && folderId) {
-      void run(editImages(JSON.parse(images) as string[], [{ kind: "addToFolder", folderId }]));
+      void run(editImages(libraryId, JSON.parse(images) as string[], [{ kind: "addToFolder", folderId }]));
     }
   };
 
@@ -123,7 +124,7 @@ export function SidebarPane({ scope, onScope, reloadKey, onError }: Props) {
               initial={node.name}
               onDone={(name) => {
                 setRenaming(null);
-                if (name && name !== node.name) void run(renameFolder(node.id, name));
+                if (name && name !== node.name) void run(renameFolder(libraryId, node.id, name));
               }}
             />
           ) : (

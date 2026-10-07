@@ -26,4 +26,4 @@ pub use port::{
     TaggerSession,
 };
 pub use process::{Backend, Engine, EngineError, ProcessTagger, serve};
-pub use scheduler::{Tagging, TaggingConfig, TaggingStatus};
+pub use scheduler::{LibraryTaggingStatus, Tagging, TaggingConfig, TaggingStatus};

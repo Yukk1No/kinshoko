@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import type { Candidate } from "../bindings/Candidate";
 import type { Condition } from "../bindings/Condition";
@@ -70,6 +70,7 @@ function soleTag(term: Term): TagLabel | null {
 type Place = { condition: number; term: number };
 
 type Props = {
+  libraryId: string;
   input: SearchInput;
   /** 当前条件的可见条件树（Search 解析结果）；还没解析好时为空。 */
   tree: ConditionTree | null;
@@ -87,26 +88,26 @@ type Props = {
  * 近似查找默认开启：标签块里列出展开的相近标签。关掉一个时选“只这次”或“以后都不展开”
  * （记进个人近似对应表）；“＋”从库内标签里挑一个加为相近；“精确查找”一键不展开。
  */
-export function SearchBox({ input, tree, showSource, onChange, onError }: Props) {
+export function SearchBox({ libraryId, input, tree, showSource, onChange, onError }: Props) {
   const [text, setText] = useState("");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [active, setActive] = useState(0);
   const [open, setOpen] = useState(false);
   const [dismissing, setDismissing] = useState<(Place & { similar: SimilarTag }) | null>(null);
   const [adding, setAdding] = useState<TagLabel | null>(null);
-  const asked = useRef("");
 
   useEffect(() => {
-    asked.current = text;
+    let alive = true;
     if (!text.trim()) {
       setCandidates([]);
       return;
     }
-    searchCandidates(text, UI_LANG, LIMIT).then(
-      (found) => asked.current === text && setCandidates(found),
-      () => asked.current === text && setCandidates([]),
+    searchCandidates(libraryId, text, UI_LANG, LIMIT).then(
+      (found) => alive && setCandidates(found),
+      () => alive && setCandidates([]),
     );
-  }, [text]);
+    return () => { alive = false; };
+  }, [libraryId, text]);
 
   const rows: TermInput[] = text.trim()
     ? [
@@ -175,14 +176,14 @@ export function SearchBox({ input, tree, showSource, onChange, onError }: Props)
   /** “以后都不展开”：每一对都记为不相近；词表变化后条件会重新解析。 */
   const dismissForever = (similar: SimilarTag) => {
     setDismissing(null);
-    Promise.all(similar.of.map((id) => setTagApprox(id, similar.tag.id, "notSimilar"))).catch((e) =>
+    Promise.all(similar.of.map((id) => setTagApprox(libraryId, id, similar.tag.id, "notSimilar"))).catch((e) =>
       onError(String(e)),
     );
   };
 
   const addSimilar = (to: TagLabel, tag: TagLabel) => {
     setAdding(null);
-    setTagApprox(to.id, tag.id, "similar").catch((e) => onError(String(e)));
+    setTagApprox(libraryId, to.id, tag.id, "similar").catch((e) => onError(String(e)));
   };
 
   const shown = open && rows.length > 0;
@@ -305,7 +306,7 @@ export function SearchBox({ input, tree, showSource, onChange, onError }: Props)
         </div>
       )}
       {adding && (
-        <AddSimilar to={adding} onPick={(tag) => addSimilar(adding, tag)} onCancel={() => setAdding(null)} />
+        <AddSimilar libraryId={libraryId} to={adding} onPick={(tag) => addSimilar(adding, tag)} onCancel={() => setAdding(null)} />
       )}
     </div>
   );
@@ -363,10 +364,12 @@ function TermView({
 
 /** “＋”：按名称或别名从库内标签里挑一个，加为 `to` 的相近标签。 */
 function AddSimilar({
+  libraryId,
   to,
   onPick,
   onCancel,
 }: {
+  libraryId: string;
   to: TagLabel;
   onPick: (tag: TagLabel) => void;
   onCancel: () => void;
@@ -380,14 +383,14 @@ function AddSimilar({
       setFound([]);
       return;
     }
-    searchCandidates(text, UI_LANG, LIMIT).then(
+    searchCandidates(libraryId, text, UI_LANG, LIMIT).then(
       (list) => alive && setFound(list.filter((c) => c.tag.id !== to.id)),
       () => alive && setFound([]),
     );
     return () => {
       alive = false;
     };
-  }, [text, to.id]);
+  }, [libraryId, text, to.id]);
 
   return (
     <div className="search-popover" role="dialog" aria-label="加相近标签">

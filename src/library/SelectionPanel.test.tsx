@@ -42,6 +42,7 @@ function backend(initial: ImageDetail, afterEdit: ImageDetail) {
 function renderPanel() {
   render(
     <SelectionPanel
+      libraryId="L1"
       scope={{ kind: "all" }}
       selected={new Set(["img"])}
       onClear={() => {}}
@@ -76,6 +77,7 @@ describe("选中一张图：内容分级", () => {
     let cleared = false;
     render(
       <SelectionPanel
+        libraryId="L1"
         scope={{ kind: "all" }}
         selected={new Set(["img"])}
         onClear={() => (cleared = true)}

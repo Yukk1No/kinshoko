@@ -2,25 +2,28 @@
 //! `kinshoko_core::library`。前端以 `plugin:library|<命令>` 调用。
 //!
 //! - 命令都是 async，阻塞工作放进 `spawn_blocking`，不占用主线程；
-//! - 资料库事件转发为窗口事件 `library-event`；
+//! - 本设备可登记多个资料库，同一时间一个活动资料库（#49）。资料库命令都带界面正在操作的
+//!   资料库 id，切换后旧请求得到错误，不会落到新库上；
+//! - 资料库事件转发为窗口事件 `library-event`，只转发活动资料库的事件；
 //! - 缩略图走自定义协议 `thumb`：`<资料库 id>/<参考图 id>/<像素档位>`，缓存缺失时现场生成；
 //! - 安全模式（#60）：开关保存在应用壳设置里，打开资料库与切换时设给当前资料库。这里的命令都是
 //!   浏览视角；参考视角的句柄在装配（打开资料库）时取走，只交给参考组与桌面钉图，不经命令给前端。
 
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, Weak};
 
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::library::{
     BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, ImageDetail, ImageEdit,
-    ImageRating, ImageTags, ImportSource, ImportTask, LibraryEvent, LibraryInfo,
-    PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar, TagEdit, TagGroupView, Vocabulary,
+    ImageRating, ImageTags, ImportSource, LibraryEvent, LibraryInfo, PersonalApproxEntry,
+    RecoveryReport, ReferenceLens, Sidebar, TagEdit, TagGroupView, Vocabulary,
     discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::search::{Candidate, ConditionTree, Search, SearchInput};
-use kinshoko_core::{DeviceRegistry, Library};
+use kinshoko_core::{
+    DeviceLibraries, DeviceLibraryError, DeviceRegistry, Library, LibraryRegistration,
+};
 use tauri::http::{Response, StatusCode, header};
 use tauri::plugin::{Builder, TauriPlugin};
 use tauri::{AppHandle, Emitter, Manager, Runtime, State};
@@ -34,23 +37,54 @@ const EVENT: &str = "library-event";
 
 struct LibraryState {
     device_dir: PathBuf,
-    current: Mutex<Option<Arc<Library>>>,
-    tasks: Arc<Mutex<HashMap<String, ImportTask>>>,
-    /// 当前资料库词表快照上的 Search；词表或图片变化时清掉，下次查找时重建。
-    search: Arc<Mutex<Option<Arc<Search>>>>,
-    /// 当前资料库参考视角的句柄，装配时取走。只交给参考组（#66）与桌面钉图（#65），
-    /// 不经任何命令交给前端。
+    /// 本设备登记表与活动资料库；第一次用到时读取登记表。
+    libraries: Arc<Mutex<Option<DeviceLibraries>>>,
+    /// 已在转发事件的活动资料库句柄；同一句柄只装配一次。
+    forwarded: Mutex<Option<Weak<Library>>>,
+    /// 切换、恢复和取消登记串行完成，包括旧库打标退出。
+    transition: Mutex<()>,
+    /// 活动资料库词表快照上的 Search；词表或图片变化、切换资料库时清掉，下次查找时重建。
+    search: Arc<Mutex<Option<CachedSearch>>>,
+    /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
+    /// 与桌面钉图（#65），不经任何命令交给前端。
     reference: Mutex<Option<ReferenceLens>>,
     /// 随软件分发的内置近似对应表，启动时读取一次。
-    builtin_approx: BuiltinApproxTable,
+    builtin_approx: Arc<BuiltinApproxTable>,
+}
+
+/// Search 快照及它所属的资料库句柄；换了资料库的快照不再使用。
+struct CachedSearch {
+    library: Weak<Library>,
+    search: Arc<Search>,
 }
 
 impl LibraryState {
-    fn current(&self) -> Result<Arc<Library>, String> {
-        lock(&self.current)
-            .clone()
+    /// 界面正在操作的资料库；已切换或关闭时返回错误。
+    fn current(&self, library_id: &str) -> Result<Arc<Library>, String> {
+        with_libraries(&self.device_dir, &self.libraries, |libraries| {
+            libraries.require(library_id)
+        })
+    }
+
+    /// 活动资料库，不核对身份。只给不经界面请求的入口用（缩略图协议、安全模式开关）。
+    fn active(&self) -> Result<Arc<Library>, String> {
+        lock(&self.libraries)
+            .as_ref()
+            .and_then(DeviceLibraries::current)
             .ok_or_else(|| "还没有打开资料库".to_owned())
     }
+}
+
+fn with_libraries<T>(
+    device_dir: &Path,
+    state: &Mutex<Option<DeviceLibraries>>,
+    action: impl FnOnce(&mut DeviceLibraries) -> Result<T, DeviceLibraryError>,
+) -> Result<T, String> {
+    let mut state = lock(state);
+    if state.is_none() {
+        *state = Some(DeviceLibraries::open(device_dir).map_err(|error| error.to_string())?);
+    }
+    action(state.as_mut().expect("登记表已打开")).map_err(|error| error.to_string())
 }
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -62,6 +96,10 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .invoke_handler(tauri::generate_handler![
             current_library,
             create_library,
+            registered_libraries,
+            register_library,
+            switch_library,
+            unregister_library,
             browse,
             image,
             edit,
@@ -105,11 +143,12 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             crate::tagging::setup(app, models_dir, preferred);
             app.manage(LibraryState {
                 device_dir,
-                current: Mutex::new(None),
-                tasks: Arc::default(),
+                libraries: Arc::default(),
+                forwarded: Mutex::new(None),
+                transition: Mutex::new(()),
                 search: Arc::default(),
                 reference: Mutex::new(None),
-                builtin_approx: BuiltinApproxTable::bundled(),
+                builtin_approx: Arc::new(BuiltinApproxTable::bundled()),
             });
             Ok(())
         })
@@ -136,7 +175,8 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     else {
         return not_found();
     };
-    let Ok(library) = app.state::<LibraryState>().current() else {
+    // 只回答活动资料库的图；切换后旧图片墙的迟到请求得到 404。
+    let Ok(library) = app.state::<LibraryState>().active() else {
         return not_found();
     };
     if library.info().id != library_id {
@@ -174,28 +214,45 @@ pub fn image_content_type(path: &std::path::Path) -> &'static str {
     }
 }
 
-/// 设为当前资料库，并把它的事件转发给前端。
-fn activate<R: Runtime>(app: &AppHandle<R>, state: &LibraryState, library: Library) -> LibraryInfo {
+/// 核心已完成切换，这里装配新的活动资料库：设上保存的安全模式、取走参考视角、清掉旧库的
+/// Search 快照、为它开始打标，并转发它的事件。每个活动句柄只装配一次，旧库事件不再转发。
+///
+/// 新打开的资料库在核心里先是封存状态（安全模式开），这里再按设置放开。
+fn forward_events<R: Runtime>(
+    app: &AppHandle<R>,
+    state: &LibraryState,
+    library: Arc<Library>,
+) -> LibraryInfo {
     let info = library.info().clone();
+    let weak = Arc::downgrade(&library);
+    let mut forwarded = lock(&state.forwarded);
+    if forwarded
+        .as_ref()
+        .is_some_and(|previous| Weak::ptr_eq(previous, &weak))
+    {
+        return info;
+    }
+    *forwarded = Some(weak.clone());
     library.set_safe_mode(saved_safe_mode(app));
     let events = library.events();
     *lock(&state.reference) = library.take_reference_lens();
-    let library = Arc::new(library);
-    *lock(&state.current) = Some(library.clone());
     *lock(&state.search) = None;
     crate::tagging::attach(app, library);
-    let (app, tasks, search) = (app.clone(), state.tasks.clone(), state.search.clone());
+    let (app, libraries, search) = (app.clone(), state.libraries.clone(), state.search.clone());
     std::thread::Builder::new()
         .name("kinshoko-library-events".into())
         .spawn(move || {
             for event in events {
-                match &event {
-                    LibraryEvent::TaskFinished { task_id, .. } => {
-                        lock(&tasks).remove(task_id);
-                    }
-                    // 有新图进库：自动标签立即检查，不等下一次轮询。
-                    LibraryEvent::ListStale { .. } => crate::tagging::wake(&app),
-                    _ => {}
+                let active = lock(&libraries)
+                    .as_ref()
+                    .and_then(DeviceLibraries::current)
+                    .is_some_and(|current| Weak::ptr_eq(&Arc::downgrade(&current), &weak));
+                if !active {
+                    continue;
+                }
+                // 有新图进库：自动标签立即检查，不等下一次轮询。
+                if matches!(event, LibraryEvent::ListStale { .. }) {
+                    crate::tagging::wake(&app);
                 }
                 // 先清掉旧快照再通知前端，前端收到事件后的查找用的是新词表。
                 // 安全模式切换后词表计数与可见的标签都变了。
@@ -230,33 +287,31 @@ async fn blocking<T: Send + 'static>(
         .map_err(|e| e.to_string())?
 }
 
-/// 本设备上次打开的资料库；没有时为 `None`。会读文件，不要在主线程上调用。
-fn open_last(device_dir: &std::path::Path) -> Result<Option<Library>, String> {
-    let device = DeviceRegistry::open(device_dir).map_err(|e| e.to_string())?;
-    match device.last_opened() {
-        None => Ok(None),
-        Some(entry) => Library::open(&entry.root)
-            .map(Some)
-            .map_err(|e| e.to_string()),
+/// 活动资料库；还没有时打开本设备上次打开的资料库并装配。会读文件，不要在主线程上调用。
+fn restore<R: Runtime>(app: &AppHandle<R>) -> Result<Option<Arc<Library>>, String> {
+    let state = app.state::<LibraryState>();
+    let _transition = lock(&state.transition);
+    let opened = with_libraries(
+        &state.device_dir,
+        &state.libraries,
+        DeviceLibraries::restore_last_opened,
+    )?;
+    if let Some(library) = &opened {
+        forward_events(app, &state, library.clone());
     }
+    Ok(opened)
 }
 
 /// 当前资料库，还没打开时打开本设备上次打开的资料库。供其他模块（例如收藏截图）使用；
 /// 会读文件，不要在主线程上调用。
 pub fn current_or_last<R: Runtime>(app: &AppHandle<R>) -> Result<Arc<Library>, String> {
-    let state = app.state::<LibraryState>();
-    if let Ok(library) = state.current() {
-        return Ok(library);
-    }
-    let library = open_last(&state.device_dir)?.ok_or_else(|| "还没有资料库".to_owned())?;
-    activate(app, &state, library);
-    state.current()
+    restore(app)?.ok_or_else(|| "还没有资料库".to_owned())
 }
 
 /// [`current_or_last`] 会用到的资料库的 id 与名称，只读登记表、不打开资料库。
 pub fn current_name<R: Runtime>(app: &AppHandle<R>) -> Option<(String, String)> {
     let state = app.state::<LibraryState>();
-    if let Ok(library) = state.current() {
+    if let Ok(library) = state.active() {
         let info = library.info();
         return Some((info.id.clone(), info.name.clone()));
     }
@@ -268,48 +323,120 @@ pub fn current_name<R: Runtime>(app: &AppHandle<R>) -> Option<(String, String)> 
 
 /// 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。
 #[tauri::command]
-async fn current_library<R: Runtime>(
-    app: AppHandle<R>,
-    state: State<'_, LibraryState>,
-) -> Result<Option<LibraryInfo>, String> {
-    if let Ok(library) = state.current() {
-        return Ok(Some(library.info().clone()));
-    }
-    let device_dir = state.device_dir.clone();
-    let opened = blocking(move || open_last(&device_dir)).await?;
-    Ok(opened.map(|library| activate(&app, &state, library)))
+async fn current_library<R: Runtime>(app: AppHandle<R>) -> Result<Option<LibraryInfo>, String> {
+    blocking(move || Ok(restore(&app)?.map(|library| library.info().clone()))).await
 }
 
-/// 在 `parent` 下新建名为 `name` 的资料库文件夹，登记到本设备并打开。
+/// 在 `parent` 下新建名为 `name` 的资料库文件夹，登记到本设备并切换过去。
 #[tauri::command]
 async fn create_library<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     parent: PathBuf,
     name: String,
 ) -> Result<LibraryInfo, String> {
-    let device_dir = state.device_dir.clone();
-    let library = blocking(move || {
-        let library =
-            Library::create(&parent.join(name.trim()), &name).map_err(|e| e.to_string())?;
-        DeviceRegistry::open(&device_dir)
-            .and_then(|mut device| device.register(library.info()))
-            .map_err(|e| e.to_string())?;
-        Ok(library)
+    blocking(move || {
+        let state = app.state::<LibraryState>();
+        let _transition = lock(&state.transition);
+        let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
+            libraries.create(&parent.join(name.trim()), &name)
+        })?;
+        Ok(forward_events(&app, &state, library))
     })
-    .await?;
-    Ok(activate(&app, &state, library))
+    .await
+}
+
+/// 本设备登记的资料库，以及这次检查时不可用的原因（例如移动盘没插）。
+#[tauri::command]
+async fn registered_libraries(
+    state: State<'_, LibraryState>,
+) -> Result<Vec<LibraryRegistration>, String> {
+    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
+    blocking(move || {
+        with_libraries(&device_dir, &libraries, |libraries| {
+            Ok(libraries.registrations())
+        })
+    })
+    .await
+}
+
+/// 登记所选文件夹里的资料库并切换过去；搬家后重新登记同一资料库时只更新位置。
+#[tauri::command]
+async fn register_library<R: Runtime>(
+    app: AppHandle<R>,
+    root: PathBuf,
+) -> Result<LibraryInfo, String> {
+    blocking(move || {
+        let state = app.state::<LibraryState>();
+        let _transition = lock(&state.transition);
+        let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
+            libraries.register(&root)
+        })?;
+        Ok(forward_events(&app, &state, library))
+    })
+    .await
+}
+
+/// 切换到已登记的资料库。旧库的导入在提交当前一项后结束，打标停止。
+#[tauri::command]
+async fn switch_library<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+) -> Result<LibraryInfo, String> {
+    blocking(move || {
+        let state = app.state::<LibraryState>();
+        let _transition = lock(&state.transition);
+        let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
+            libraries.switch(&library_id)
+        })?;
+        Ok(forward_events(&app, &state, library))
+    })
+    .await
+}
+
+/// 取消本设备的登记；资料库文件夹与整理结果原样保留。取消的是活动库时一并关闭它。
+#[tauri::command]
+async fn unregister_library<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+) -> Result<(), String> {
+    blocking(move || {
+        let state = app.state::<LibraryState>();
+        let _transition = lock(&state.transition);
+        let closed = with_libraries(&state.device_dir, &state.libraries, |libraries| {
+            let closed = libraries
+                .current()
+                .is_some_and(|library| library.info().id == library_id);
+            libraries.unregister(&library_id)?;
+            Ok(closed)
+        })?;
+        if closed {
+            *lock(&state.forwarded) = None;
+            *lock(&state.search) = None;
+            *lock(&state.reference) = None;
+            crate::tagging::detach(&app);
+        }
+        Ok(())
+    })
+    .await
 }
 
 #[tauri::command]
-async fn browse(state: State<'_, LibraryState>, query: BrowseQuery) -> Result<BrowsePage, String> {
-    let library = state.current()?;
+async fn browse(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    query: BrowseQuery,
+) -> Result<BrowsePage, String> {
+    let library = state.current(&library_id)?;
     blocking(move || library.browse(&query).map_err(|e| e.to_string())).await
 }
 
 #[tauri::command]
-async fn image(state: State<'_, LibraryState>, image_id: String) -> Result<ImageDetail, String> {
-    let library = state.current()?;
+async fn image(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    image_id: String,
+) -> Result<ImageDetail, String> {
+    let library = state.current(&library_id)?;
     blocking(move || library.image(&image_id).map_err(|e| e.to_string())).await
 }
 
@@ -317,26 +444,28 @@ async fn image(state: State<'_, LibraryState>, image_id: String) -> Result<Image
 #[tauri::command]
 async fn edit(
     state: State<'_, LibraryState>,
+    library_id: String,
     ids: Vec<String>,
     edits: Vec<ImageEdit>,
 ) -> Result<Vec<ImageDetail>, String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || library.edit(&ids, &edits).map_err(|e| e.to_string())).await
 }
 
 #[tauri::command]
-async fn sidebar(state: State<'_, LibraryState>) -> Result<Sidebar, String> {
-    let library = state.current()?;
+async fn sidebar(state: State<'_, LibraryState>, library_id: String) -> Result<Sidebar, String> {
+    let library = state.current(&library_id)?;
     blocking(move || library.sidebar().map_err(|e| e.to_string())).await
 }
 
 #[tauri::command]
 async fn create_folder(
     state: State<'_, LibraryState>,
+    library_id: String,
     name: String,
     parent: Option<String>,
 ) -> Result<String, String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || {
         library
             .create_folder(&name, parent.as_deref())
@@ -348,10 +477,11 @@ async fn create_folder(
 #[tauri::command]
 async fn rename_folder(
     state: State<'_, LibraryState>,
+    library_id: String,
     folder_id: String,
     name: String,
 ) -> Result<(), String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || {
         library
             .rename_folder(&folder_id, &name)
@@ -363,11 +493,12 @@ async fn rename_folder(
 #[tauri::command]
 async fn move_folder(
     state: State<'_, LibraryState>,
+    library_id: String,
     folder_id: String,
     parent: Option<String>,
     position: u32,
 ) -> Result<(), String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || {
         library
             .move_folder(&folder_id, parent.as_deref(), position)
@@ -378,8 +509,11 @@ async fn move_folder(
 
 /// 当前资料库这次打开时的对账结果。
 #[tauri::command]
-fn recovery(state: State<'_, LibraryState>) -> Result<RecoveryReport, String> {
-    Ok(state.current()?.recovery().clone())
+async fn recovery(
+    state: State<'_, LibraryState>,
+    library_id: String,
+) -> Result<RecoveryReport, String> {
+    Ok(state.current(&library_id)?.recovery().clone())
 }
 
 /// 开始导入，立即返回任务 id；进度与结果经 `library-event` 推送。
@@ -387,29 +521,34 @@ fn recovery(state: State<'_, LibraryState>) -> Result<RecoveryReport, String> {
 async fn start_import<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
+    library_id: String,
     source: ImportSource,
 ) -> Result<String, String> {
-    let library = state.current()?;
-    crate::diagnostics::record(
-        &app,
-        UsageEvent::ImportStarted {
-            paths: source.paths.len().min(u32::MAX as usize) as u32,
-        },
-    );
-    let task = library.import(source);
-    let id = task.id().to_owned();
-    if !task.is_finished() {
-        lock(&state.tasks).insert(id.clone(), task);
-    }
+    let paths = source.paths.len().min(u32::MAX as usize) as u32;
+    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
+    let id = blocking(move || {
+        with_libraries(&device_dir, &libraries, |libraries| {
+            libraries.start_import(&library_id, source)
+        })
+    })
+    .await?;
+    crate::diagnostics::record(&app, UsageEvent::ImportStarted { paths });
     Ok(id)
 }
 
 #[tauri::command]
-async fn cancel_import(state: State<'_, LibraryState>, task_id: String) -> Result<(), String> {
-    if let Some(task) = lock(&state.tasks).get(&task_id) {
-        task.cancel();
-    }
-    Ok(())
+async fn cancel_import(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    task_id: String,
+) -> Result<(), String> {
+    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
+    blocking(move || {
+        with_libraries(&device_dir, &libraries, |libraries| {
+            libraries.cancel_import(&library_id, &task_id)
+        })
+    })
+    .await
 }
 
 #[tauri::command]
@@ -450,10 +589,11 @@ async fn discover_eagle_libraries() -> Result<Vec<EagleLibraryCandidate>, String
 #[tauri::command]
 async fn image_tags(
     state: State<'_, LibraryState>,
+    library_id: String,
     image_id: String,
     lang: String,
 ) -> Result<ImageTags, String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || {
         library
             .image_tags(&image_id, &lang)
@@ -466,10 +606,11 @@ async fn image_tags(
 #[tauri::command]
 async fn edit_tags(
     state: State<'_, LibraryState>,
+    library_id: String,
     image_ids: Vec<String>,
     edits: Vec<TagEdit>,
 ) -> Result<(), String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || {
         library
             .edit_tags(&image_ids, &edits)
@@ -479,8 +620,11 @@ async fn edit_tags(
 }
 
 #[tauri::command]
-async fn vocabulary(state: State<'_, LibraryState>) -> Result<Vocabulary, String> {
-    let library = state.current()?;
+async fn vocabulary(
+    state: State<'_, LibraryState>,
+    library_id: String,
+) -> Result<Vocabulary, String> {
+    let library = state.current(&library_id)?;
     blocking(move || library.vocabulary().map_err(|e| e.to_string())).await
 }
 
@@ -488,22 +632,33 @@ async fn vocabulary(state: State<'_, LibraryState>) -> Result<Vocabulary, String
 #[tauri::command]
 async fn tag_groups(
     state: State<'_, LibraryState>,
+    library_id: String,
     lang: String,
 ) -> Result<Vec<TagGroupView>, String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || library.tag_groups(&lang).map_err(|e| e.to_string())).await
 }
 
-/// 当前资料库的 Search，按需从词表快照建立。
-fn search(state: &LibraryState, library: &Library) -> Result<Arc<Search>, String> {
-    if let Some(search) = lock(&state.search).clone() {
-        return Ok(search);
+/// 活动资料库的 Search，按需从词表快照建立；快照属于另一个资料库句柄时重建。
+fn search(
+    cache: &Mutex<Option<CachedSearch>>,
+    library: &Arc<Library>,
+    builtin: &BuiltinApproxTable,
+) -> Result<Arc<Search>, String> {
+    let weak = Arc::downgrade(library);
+    if let Some(cached) = lock(cache).as_ref()
+        && Weak::ptr_eq(&cached.library, &weak)
+    {
+        return Ok(cached.search.clone());
     }
     let search = Arc::new(Search::new(
         &library.vocabulary().map_err(|e| e.to_string())?,
-        &state.builtin_approx,
+        builtin,
     ));
-    *lock(&state.search) = Some(search.clone());
+    *lock(cache) = Some(CachedSearch {
+        library: weak,
+        search: search.clone(),
+    });
     Ok(search)
 }
 
@@ -511,14 +666,17 @@ fn search(state: &LibraryState, library: &Library) -> Result<Arc<Search>, String
 #[tauri::command]
 async fn search_candidates(
     state: State<'_, LibraryState>,
+    library_id: String,
     text: String,
     lang: String,
     limit: u32,
 ) -> Result<Vec<Candidate>, String> {
-    let library = state.current()?;
-    let state = state.inner();
-    let search = search(state, &library)?;
-    Ok(search.candidates(&text, &lang, limit as usize))
+    let library = state.current(&library_id)?;
+    let (cache, builtin) = (state.search.clone(), state.builtin_approx.clone());
+    blocking(move || {
+        Ok(search(&cache, &library, &builtin)?.candidates(&text, &lang, limit as usize))
+    })
+    .await
 }
 
 /// 把搜索框里的条件解析成可见的条件树，交给 `browse` 执行。
@@ -526,18 +684,19 @@ async fn search_candidates(
 async fn resolve_search<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
+    library_id: String,
     input: SearchInput,
     lang: String,
 ) -> Result<ConditionTree, String> {
-    let library = state.current()?;
-    let search = search(state.inner(), &library)?;
+    let library = state.current(&library_id)?;
+    let (cache, builtin) = (state.search.clone(), state.builtin_approx.clone());
     crate::diagnostics::record(
         &app,
         UsageEvent::SearchResolved {
             terms: input.conditions.len().min(u32::MAX as usize) as u32,
         },
     );
-    Ok(search.resolve(&input, &lang))
+    blocking(move || Ok(search(&cache, &library, &builtin)?.resolve(&input, &lang))).await
 }
 
 /// 安全模式是否开启（全局设置）。
@@ -546,7 +705,8 @@ async fn safe_mode<R: Runtime>(app: AppHandle<R>) -> Result<bool, String> {
     Ok(saved_safe_mode(&app))
 }
 
-/// 开关安全模式：先保存设置，再设给当前资料库；资料库推送 `safeModeChanged`。
+/// 开关安全模式：先保存设置，再设给活动资料库；资料库推送 `safeModeChanged`。
+/// 安全模式属于本设备，不随资料库变；之后切换到的资料库按保存的设置打开。
 #[tauri::command]
 async fn set_safe_mode<R: Runtime>(
     app: AppHandle<R>,
@@ -560,7 +720,7 @@ async fn set_safe_mode<R: Runtime>(
             .set_safe_mode(on)
             .map_err(|e| e.to_string())?;
     }
-    if let Ok(library) = state.current() {
+    if let Ok(library) = state.active() {
         library.set_safe_mode(on);
     }
     Ok(on)
@@ -570,11 +730,12 @@ async fn set_safe_mode<R: Runtime>(
 #[tauri::command]
 async fn set_tag_approx(
     state: State<'_, LibraryState>,
+    library_id: String,
     a: String,
     b: String,
     relation: ApproxRelation,
 ) -> Result<(), String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || {
         library
             .set_tag_approx(&a, &b, relation)
@@ -587,10 +748,11 @@ async fn set_tag_approx(
 #[tauri::command]
 async fn remove_tag_approx(
     state: State<'_, LibraryState>,
+    library_id: String,
     a: String,
     b: String,
 ) -> Result<(), String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || library.remove_tag_approx(&a, &b).map_err(|e| e.to_string())).await
 }
 
@@ -598,9 +760,10 @@ async fn remove_tag_approx(
 #[tauri::command]
 async fn personal_approx(
     state: State<'_, LibraryState>,
+    library_id: String,
     lang: String,
 ) -> Result<Vec<PersonalApproxEntry>, String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || library.personal_approx(&lang).map_err(|e| e.to_string())).await
 }
 
@@ -608,8 +771,9 @@ async fn personal_approx(
 #[tauri::command]
 async fn image_rating(
     state: State<'_, LibraryState>,
+    library_id: String,
     image_id: String,
 ) -> Result<ImageRating, String> {
-    let library = state.current()?;
+    let library = state.current(&library_id)?;
     blocking(move || library.image_rating(&image_id).map_err(|e| e.to_string())).await
 }

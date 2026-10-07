@@ -34,3 +34,28 @@ fn a_library_cannot_be_created_in_a_folder_that_already_has_files() {
     assert!(Library::open(dir.path()).is_err());
     assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
 }
+
+#[test]
+fn unregistering_forgets_the_location_without_deleting_the_library() {
+    let dir = tempfile::tempdir().unwrap();
+    let app_data = dir.path().join("app");
+    let library = Library::create(&dir.path().join("工作参考"), "工作参考").unwrap();
+    let id = library.info().id.clone();
+    let mut device = DeviceRegistry::open(&app_data).unwrap();
+    device.register(library.info()).unwrap();
+
+    device.unregister(&id).unwrap();
+    drop(device);
+    drop(library);
+
+    let device = DeviceRegistry::open(&app_data).unwrap();
+    assert!(device.libraries().is_empty());
+    assert_eq!(device.last_opened(), None);
+    assert_eq!(
+        Library::open(&dir.path().join("工作参考"))
+            .unwrap()
+            .info()
+            .id,
+        id
+    );
+}

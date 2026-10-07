@@ -9,26 +9,26 @@ const percent = (part: number, total: number) => (total > 0 ? Math.floor((part /
  * 状态栏里的自动标签：首次使用时显示模型大小、经画师确认后下载（可续传），
  * 显示下载与打标进度，可以暂停（结束打标子进程、归还显存）与继续。
  */
-export function TaggingIndicator() {
+export function TaggingIndicator({ libraryId }: { libraryId: string }) {
   const [status, setStatus] = useState<TaggingStatus | null>(null);
 
   useEffect(() => {
     let alive = true;
-    taggingStatus().then(
-      (s) => alive && setStatus(s),
+    taggingStatus(libraryId).then(
+      (s) => alive && s.libraryId === libraryId && setStatus(s.status),
       () => {},
     );
-    const unlisten = onTaggingStatus((s) => alive && setStatus(s));
+    const unlisten = onTaggingStatus((s) => alive && s.libraryId === libraryId && setStatus(s.status));
     return () => {
       alive = false;
       void unlisten.then((stop) => stop());
     };
-  }, []);
+  }, [libraryId]);
 
   if (!status) return null;
   const act = (f: () => Promise<void>) => () => void f().catch(() => {});
   const pause = (
-    <button type="button" onClick={act(taggingPause)}>
+    <button type="button" onClick={act(() => taggingPause(libraryId))}>
       暂停
     </button>
   );
@@ -41,7 +41,7 @@ export function TaggingIndicator() {
     case "needsDownload":
       return (
         <span className="tagging">
-          <button type="button" onClick={act(taggingDownload)}>
+          <button type="button" onClick={act(() => taggingDownload(libraryId))}>
             {status.downloaded > 0
               ? `继续下载打标模型（已下载 ${percent(status.downloaded, status.size)}%）`
               : `下载打标模型（${mb(status.size)}）`}
@@ -69,7 +69,7 @@ export function TaggingIndicator() {
       return (
         <span className="tagging">
           自动标签已暂停{" "}
-          <button type="button" onClick={act(taggingResume)}>
+          <button type="button" onClick={act(() => taggingResume(libraryId))}>
             继续
           </button>
         </span>
