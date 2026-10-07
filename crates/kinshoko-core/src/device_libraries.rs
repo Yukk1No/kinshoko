@@ -173,6 +173,20 @@ impl DeviceLibraries {
         self.activate(library)
     }
 
+    /// 只登记、不切换（恢复出的资料库，#69）：活动资料库与“上次打开”都不变。
+    pub fn add_registration(
+        &mut self,
+        root: &Path,
+    ) -> Result<RegisteredLibrary, DeviceLibraryError> {
+        let info = Self::inspect(root, None)?;
+        self.device.add(&info)?;
+        Ok(RegisteredLibrary {
+            id: info.id,
+            name: info.name,
+            root: info.root,
+        })
+    }
+
     pub fn switch(&mut self, id: &str) -> Result<Arc<Library>, DeviceLibraryError> {
         let root = self
             .device
