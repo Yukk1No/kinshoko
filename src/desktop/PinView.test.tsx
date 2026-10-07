@@ -9,6 +9,7 @@ const ipc = vi.hoisted(() => ({
   zoom: vi.fn(() => Promise.resolve()),
   turn: vi.fn(() => Promise.resolve()),
   menu: vi.fn(() => Promise.resolve()),
+  reveal: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("../ipc", () => ({
@@ -20,7 +21,9 @@ vi.mock("../ipc", () => ({
   },
   onPinNotice: () => Promise.resolve(() => {}),
   pinFrame: () => Promise.resolve(null),
+  pinImageUrl: () => "unused",
   pinMenu: ipc.menu,
+  revealPin: ipc.reveal,
   pinReady: () => Promise.resolve(),
   setPinOpacity: () => Promise.resolve(),
   settlePin: () => Promise.resolve(),
@@ -44,7 +47,7 @@ function pointer(type: string, at: At, pointerType = "pen", button = 0) {
   });
 }
 
-function frame(locked = false): PinFrame {
+function frame(locked = false, veiled = false): PinFrame {
   return {
     pin: {
       id: "P1",
@@ -59,18 +62,19 @@ function frame(locked = false): PinFrame {
     window: { x: 80, y: 80, width: 300, height: 200 },
     content: { x: 80, y: 80, width: 300, height: 200 },
     motion: "jump",
+    veiled,
     generation: 0,
   };
 }
 
-async function showPin(locked = false): Promise<HTMLDivElement> {
+async function showPin(locked = false, veiled = false): Promise<HTMLDivElement> {
   const { container } = render(<PinView pin="P1" />);
   await act(async () => {
     await Promise.resolve();
   });
   const host = container.querySelector<HTMLDivElement>(".pin")!;
   host.setPointerCapture = () => {};
-  act(() => ipc.frame!(frame(locked)));
+  act(() => ipc.frame!(frame(locked, veiled)));
   // 页面已打开超过菜单去重的时间。
   act(() => vi.advanceTimersByTime(1000));
   return host;
@@ -182,5 +186,35 @@ describe("钉图快捷键与角落缩放", () => {
     expect(ipc.move).not.toHaveBeenCalled();
     hold(500);
     expect(ipc.menu).not.toHaveBeenCalled();
+  });
+});
+
+describe("安全模式下钉图原位遮蔽（#65）", () => {
+  it("被封印的图模糊并显示小圆锁，确认后只请求显示这一张", async () => {
+    const host = await showPin(false, true);
+    expect(host.classList.contains("pin-veiled")).toBe(true);
+    const lock = host.querySelector<HTMLButtonElement>(".pin-veil-lock")!;
+    fireEvent.click(lock);
+    expect(ipc.reveal).not.toHaveBeenCalled();
+    fireEvent.click(host.querySelector<HTMLButtonElement>(".pin-veil-confirm button")!);
+    expect(ipc.reveal).toHaveBeenCalledWith("P1");
+  });
+
+  it("点小圆锁不拖动钉图", async () => {
+    const host = await showPin(false, true);
+    const lock = host.querySelector<HTMLButtonElement>(".pin-veil-lock")!;
+    fireEvent(lock, pointer("pointerdown", { screen: [100, 100], client: [20, 20] }));
+    fireEvent(host, pointer("pointermove", { screen: [140, 100], client: [60, 20] }));
+    expect(ipc.move).not.toHaveBeenCalled();
+  });
+
+  it("应用壳推来遮蔽的帧时立即遮蔽，不再遮蔽时撤掉", async () => {
+    const host = await showPin();
+    expect(host.classList.contains("pin-veiled")).toBe(false);
+    act(() => ipc.frame!(frame(false, true)));
+    expect(host.classList.contains("pin-veiled")).toBe(true);
+    act(() => ipc.frame!(frame(false, false)));
+    expect(host.classList.contains("pin-veiled")).toBe(false);
+    expect(host.querySelector(".pin-veil-lock")).toBeNull();
   });
 });

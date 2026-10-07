@@ -34,6 +34,9 @@ use crate::shell::ShellState;
 /// 指定本设备登记表所在目录；不设时用应用数据目录。WebDriver 冒烟测试用它隔离数据。
 const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
 const EVENT: &str = "library-event";
+/// 安全模式（应用设置）开关后推送，载荷为开关状态。不论有没有打开资料库都推送：
+/// 桌面钉图据此重新核对遮蔽（#65）。
+pub const SAFE_MODE_EVENT: &str = "safe-mode-setting";
 
 struct LibraryState {
     device_dir: PathBuf,
@@ -319,6 +322,25 @@ fn restore<R: Runtime>(app: &AppHandle<R>) -> Result<Option<Arc<Library>>, Strin
 /// 会读文件，不要在主线程上调用。
 pub fn current_or_last<R: Runtime>(app: &AppHandle<R>) -> Result<Arc<Library>, String> {
     restore(app)?.ok_or_else(|| "还没有资料库".to_owned())
+}
+
+/// 界面正在操作的资料库（浏览视角）；已切换或关闭时返回错误。
+pub fn current<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<Arc<Library>, String> {
+    app.state::<LibraryState>().current(library_id)
+}
+
+/// `library_id` 的参考视角句柄，只给桌面钉图（#65）与参考组（#66）。每次现取：切换资料库后
+/// 句柄换成新库的，不是这个库的就没有。不打开资料库。
+pub fn reference_lens<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Option<ReferenceLens> {
+    lock(&app.state::<LibraryState>().reference)
+        .as_ref()
+        .filter(|lens| lens.library_id() == library_id)
+        .cloned()
+}
+
+/// 安全模式是否开启（全局设置）；读不到设置时按开启处理。
+pub fn safe_mode_on<R: Runtime>(app: &AppHandle<R>) -> bool {
+    saved_safe_mode(app)
 }
 
 /// [`current_or_last`] 会用到的资料库的 id 与名称，只读登记表、不打开资料库。
@@ -743,6 +765,7 @@ async fn set_safe_mode<R: Runtime>(
     if let Ok(library) = state.active() {
         library.set_safe_mode(on);
     }
+    let _ = app.emit(SAFE_MODE_EVENT, on);
     Ok(on)
 }
 

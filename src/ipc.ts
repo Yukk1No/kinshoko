@@ -27,6 +27,7 @@ import type { GatePlan } from "./bindings/GatePlan";
 import type { ImageTags } from "./bindings/ImageTags";
 import type { PinFrame } from "./bindings/PinFrame";
 import type { Region } from "./bindings/Region";
+import type { ScreenRect } from "./bindings/ScreenRect";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { LibraryRegistration } from "./bindings/LibraryRegistration";
@@ -489,6 +490,32 @@ export function setPinLocked(pin: string, locked: boolean): Promise<void> {
 /** 钉图窗口：第一帧已画好，可以显示了。 */
 export function pinReady(pin: string): Promise<void> {
   return invoke<void>(desk("pin_ready"), { pin });
+}
+
+/**
+ * 从查看器把参考图钉到桌面（#65）：整图（crop 为 null）或局部（原图像素）。
+ * shown 是这块此刻在查看器里的位置（物理像素，相对窗口客户区），新钉图以它为中心略微错开。
+ */
+export function pinReference(
+  libraryId: string,
+  imageId: string,
+  crop: Region | null,
+  shown: ScreenRect,
+): Promise<void> {
+  return invoke<void>(desk("pin_reference"), { libraryId, imageId, crop, shown });
+}
+
+/** 画师确认显示这张被遮蔽的参考图（安全模式下，只这一张）。 */
+export function revealPin(pin: string): Promise<void> {
+  return invoke<void>(desk("reveal_pin"), { pin });
+}
+
+/**
+ * 资料库钉图的图（经参考视角，只给已钉住的图）。size 为 "full"（1:1，原图或 sdr 派生图）或
+ * 原图整张缩到的宽度（物理像素，精确尺寸的 sdr 派生图）。
+ */
+export function pinImageUrl(pin: string, size: "full" | number): string {
+  return captureUrl(`pin/${pin}/${size === "full" ? "full" : `fit-${size}`}`);
 }
 
 /** 在钉图上弹出右键菜单。 */

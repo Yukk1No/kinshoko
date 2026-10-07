@@ -5,6 +5,7 @@
 //! - [`CaptureHistory`]：最近的截图，可删除，旧截图按规则丢弃，可收藏进资料库；
 //! - [`place_new_pin`]：新钉图略微偏离原位置，并避开已有钉图；
 //! - [`PinStore`]：钉图的位置、裁切、缩放、翻转与旋转，重新打开后恢复；
+//! - [`SavedPin::reference`]：资料库中参考图的整图与局部钉图（#65）；
 //! - [`EdgeHide`]：贴边隐藏收起的位置与碰细边滑出；
 //! - [`stage`]：缩放与贴边动画时窗口的矩形（#64）。
 
@@ -15,14 +16,16 @@ mod pin;
 mod placement;
 mod screenshot;
 mod types;
+mod veil;
 
 pub use edge::{DeskPin, EdgeHide, PEEK_SLACK, PinMove, SLIVER, Toggle, Tuck};
 pub use history::{CaptureEntry, CaptureHistory, CollectedCapture, HISTORY_LIMIT, HistoryError};
 pub use motion::{Stage, stage};
 pub use pin::{
-    MAX_SCALE, MIN_OPACITY, MIN_SCALE, MIN_SIDE, PinContent, PinStore, Placement, RESTORE_KEEP,
-    SavedPin, pull_onto_screen,
+    MAX_SCALE, MIN_OPACITY, MIN_SCALE, MIN_SIDE, PinContent, PinError, PinStore, Placement,
+    RESTORE_KEEP, SavedPin, initial_scale, pull_onto_screen,
 };
 pub use placement::{ScreenRect, place_new_pin};
 pub use screenshot::{Region, Screenshot};
 pub use types::{CaptureAction, FrozenScreen, PinFrame, PinMotion, Turn};
+pub use veil::PinVeils;

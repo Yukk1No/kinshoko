@@ -276,18 +276,7 @@ impl Library {
     pub fn display(&self, image_id: &str) -> Result<DisplayFile, Error> {
         self.inner
             .require_visible(&self.inner.readers.get(), image_id)?;
-        let (description, ..) = colour::get(&self.inner, image_id)?;
-        if description.needs_sdr_derivative() {
-            Ok(DisplayFile {
-                route: DisplayRoute::SdrDerivative,
-                path: thumbnail::full_size(&self.inner, image_id)?,
-            })
-        } else {
-            Ok(DisplayFile {
-                route: DisplayRoute::Original,
-                path: self.inner.original_path(image_id)?,
-            })
-        }
+        self.inner.display(image_id)
     }
 
     /// 查看器按目标宽度（转正后的设备像素）显示的文件：目标不小于原图宽度时同 [`Self::display`]；
@@ -299,10 +288,7 @@ impl Library {
         }
         self.inner
             .require_visible(&self.inner.readers.get(), image_id)?;
-        match display::scaled(&self.inner, image_id, target_px)? {
-            Some(file) => Ok(file),
-            None => self.display(image_id),
-        }
+        self.inner.display_scaled(image_id, target_px)
     }
 
     /// 参考图的色彩描述（导入时记录）。浏览视角：被封印的图当作不存在。
@@ -573,6 +559,33 @@ impl Library {
 }
 
 impl Inner {
+    /// [`Library::display`]，不经过浏览视角。
+    fn display(&self, image_id: &str) -> Result<DisplayFile, Error> {
+        let (description, ..) = colour::get(self, image_id)?;
+        if description.needs_sdr_derivative() {
+            Ok(DisplayFile {
+                route: DisplayRoute::SdrDerivative,
+                path: thumbnail::full_size(self, image_id)?,
+            })
+        } else {
+            Ok(DisplayFile {
+                route: DisplayRoute::Original,
+                path: self.original_path(image_id)?,
+            })
+        }
+    }
+
+    /// [`Library::display_scaled`]，不经过浏览视角。
+    fn display_scaled(&self, image_id: &str, target_px: u32) -> Result<DisplayFile, Error> {
+        if target_px == 0 {
+            return Err(Error::InvalidDisplaySize);
+        }
+        match display::scaled(self, image_id, target_px)? {
+            Some(file) => Ok(file),
+            None => self.display(image_id),
+        }
+    }
+
     /// 原文件位置，不经过浏览视角。
     fn original_path(&self, image_id: &str) -> Result<PathBuf, Error> {
         let conn = self.readers.get();

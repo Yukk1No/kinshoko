@@ -11,6 +11,11 @@ import type { ScreenRect } from "./ScreenRect";
  */
 export type PinFrame = { pin: SavedPin, window: ScreenRect, content: ScreenRect, motion: PinMotion, 
 /**
+ * 原位遮蔽（模糊并显示小圆锁）：安全模式开启时被封印的参考图，或资料库没打开、核对不了的
+ * 参考图（#60、#65）。画师确认显示这一张后为 false；截图钉图总是 false。
+ */
+veiled: boolean, 
+/**
  * 动画结束后页面带着它调用 `settle_pin`；不是最新一帧的就不再改窗口。
  */
 generation: number, };
