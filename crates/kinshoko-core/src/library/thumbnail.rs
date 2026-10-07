@@ -42,6 +42,11 @@ pub(super) fn get(inner: &Inner, image_id: &str, target_px: u32) -> Result<PathB
     cached(inner, image_id, &px.to_string(), px)
 }
 
+/// 精确宽度（设备像素，不取档位）的 `sdr` 派生图，供查看器缩小显示（#47）。
+pub(super) fn exact(inner: &Inner, image_id: &str, px: u32) -> Result<PathBuf, Error> {
+    cached(inner, image_id, &px.to_string(), px)
+}
+
 /// 原尺寸（转正后）的 `sdr` 派生图，供不直接显示的原图在 1:1 与放大时使用。
 pub(super) fn full_size(inner: &Inner, image_id: &str) -> Result<PathBuf, Error> {
     cached(inner, image_id, "full", u32::MAX)

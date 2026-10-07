@@ -184,8 +184,14 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     }
     // `full`：1:1 与放大时显示的文件（Library::display，ADR-0005）。看图界面只用这条路，
     // 不直接读原文件——动图、HDR、Chromium 不能精确表示的 ICC 与 CMYK 要换成 sdr 派生图。
+    // `fit-<像素>`：查看器缩小显示（适应窗口等）的精确尺寸派生图（Library::display_scaled，#47）。
     let found = if px == "full" {
         library.display(image_id).map(|d| d.path)
+    } else if let Some(fit) = px.strip_prefix("fit-") {
+        let Ok(fit) = fit.parse::<u32>() else {
+            return not_found();
+        };
+        library.display_scaled(image_id, fit).map(|d| d.path)
     } else {
         let Ok(px) = px.parse::<u32>() else {
             return not_found();
@@ -569,7 +575,7 @@ async fn pick_files<R: Runtime>(app: AppHandle<R>) -> Result<Vec<PathBuf>, Strin
         Ok(app
             .dialog()
             .file()
-            .add_filter("图片", &["jpg", "jpeg", "png", "webp"])
+            .add_filter("图片", &["jpg", "jpeg", "png", "webp", "gif"])
             .blocking_pick_files()
             .unwrap_or_default()
             .into_iter()

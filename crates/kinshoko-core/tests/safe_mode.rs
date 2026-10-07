@@ -300,6 +300,8 @@ fn a_sealed_image_does_not_exist_when_looked_up_or_edited() {
         unknown(lib.image_sources(id).map(drop));
         unknown(lib.thumbnail(id, 256).map(drop));
         unknown(lib.original_path(id).map(drop));
+        unknown(lib.display(id).map(drop));
+        unknown(lib.display_scaled(id, 64).map(drop));
         unknown(
             lib.edit(std::slice::from_ref(id), &[ImageEdit::Restore])
                 .map(drop),

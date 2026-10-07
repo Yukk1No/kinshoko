@@ -5,6 +5,7 @@ import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
 import type { ImportReport } from "./bindings/ImportReport";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
+import type { ImageCard } from "./bindings/ImageCard";
 import {
   appInfo,
   currentLibrary,
@@ -27,6 +28,7 @@ import { SettingsPanel } from "./SettingsPanel";
 import { TaggingIndicator } from "./TaggingIndicator";
 import { UpdateBanner } from "./Update";
 import { scopeKey, Wall } from "./wall/Wall";
+import { Viewer } from "./viewer/Viewer";
 
 type WorkspaceProps = {
   library: LibraryInfo;
@@ -36,18 +38,30 @@ type WorkspaceProps = {
   /** 资料库确认安全模式已切换（`safeModeChanged`）。 */
   onSafeChanged: (on: boolean) => void;
   showApproxSource: boolean;
+  /** 查看器打开／关闭：工作区外的界面（资料库选择、面板、状态栏）随之不可操作。 */
+  onViewerChange: (open: boolean) => void;
 };
 
 /**
  * 一个资料库的工作区：导入，在侧栏切换全部／文件夹／回收站，按搜索框的条件查找，在图片墙浏览
  * 并整理选中的图。真正打开另一资料库时整个重建，旧库的迟到结果不会出现在新库界面（#49）。
  */
-function LibraryWorkspace({ library, hidden, safe, onSafeChanged, showApproxSource }: WorkspaceProps) {
+function LibraryWorkspace({
+  library,
+  hidden,
+  safe,
+  onSafeChanged,
+  showApproxSource,
+  onViewerChange,
+}: WorkspaceProps) {
   const [reloadKey, setReloadKey] = useState(0);
   const [running, setRunning] = useState<RunningImport | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
   const [scope, setScope] = useState<BrowseScope>({ kind: "all" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [viewing, setViewing] = useState<ImageCard | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarMoving, setSidebarMoving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [search, setSearch] = useState<SearchInput>({ conditions: [], exact: false });
   const [tree, setTree] = useState<ConditionTree>({ conditions: [] });
@@ -60,6 +74,22 @@ function LibraryWorkspace({ library, hidden, safe, onSafeChanged, showApproxSour
     setScope(next);
     setSelected(new Set());
   };
+  const toggleSidebar = () => {
+    setSidebarMoving(!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+    setSidebarCollapsed((collapsed) => !collapsed);
+  };
+  useEffect(() => {
+    if (!sidebarMoving) return;
+    const timer = window.setTimeout(() => setSidebarMoving(false), 280);
+    return () => window.clearTimeout(timer);
+  }, [sidebarCollapsed, sidebarMoving]);
+  const viewerChange = useRef(onViewerChange);
+  viewerChange.current = onViewerChange;
+  const viewerOpen = viewing !== null;
+  useEffect(() => {
+    viewerChange.current(viewerOpen);
+  }, [viewerOpen]);
+  useEffect(() => () => viewerChange.current(false), []);
 
   useEffect(() => {
     let alive = true;
@@ -75,8 +105,11 @@ function LibraryWorkspace({ library, hidden, safe, onSafeChanged, showApproxSour
           break;
         case "safeModeChanged":
           safeChanged.current(event.on);
-          // 选中的图可能已被封印：开启时清掉选择（查看单张时也就回到图片墙）。
-          if (event.on) setSelected(new Set());
+          // 选中或正在查看的图可能已被封印：开启时清掉选择，关闭查看器回到图片墙。
+          if (event.on) {
+            setSelected(new Set());
+            setViewing(null);
+          }
           setReloadKey((k) => k + 1);
           setVocabularyKey((k) => k + 1);
           break;
@@ -124,8 +157,12 @@ function LibraryWorkspace({ library, hidden, safe, onSafeChanged, showApproxSour
   };
 
   return (
-    <div className="app-workspace" hidden={hidden}>
+    <>
+    <div className="app-workspace" hidden={hidden} inert={viewerOpen}>
       <header className="app-toolbar">
+        <button type="button" aria-expanded={!sidebarCollapsed} onClick={toggleSidebar}>
+          {sidebarCollapsed ? "展开侧栏" : "收起侧栏"}
+        </button>
         <h1 className="app-library-name">{library.name}</h1>
         <ImportBar
           enabled={!hidden}
@@ -138,13 +175,35 @@ function LibraryWorkspace({ library, hidden, safe, onSafeChanged, showApproxSour
         />
       </header>
       <div className="app-body">
-        <SidebarPane
-          libraryId={library.id}
-          scope={scope}
-          onScope={changeScope}
-          reloadKey={reloadKey}
-          onError={onError}
-        />
+        <div
+          className="sidebar-slot"
+          data-collapsed={sidebarCollapsed}
+          aria-hidden={sidebarCollapsed}
+          inert={sidebarCollapsed}
+          onTransitionEnd={(e) => {
+            if (e.target === e.currentTarget && e.propertyName === "width") setSidebarMoving(false);
+          }}
+        >
+          <SidebarPane
+            libraryId={library.id}
+            scope={scope}
+            onScope={changeScope}
+            reloadKey={reloadKey}
+            onError={onError}
+          />
+          {/* 整理面板放在侧栏：第一次单击选中不挤动图片墙，双击才能落在同一张图上（#47）。 */}
+          {selected.size > 0 && (
+            <SelectionPanel
+              libraryId={library.id}
+              scope={scope}
+              selected={selected}
+              onClear={() => setSelected(new Set())}
+              reloadKey={reloadKey}
+              onError={onError}
+              safeMode={safe}
+            />
+          )}
+        </div>
         <main className="app-main">
           <SearchBox
             libraryId={library.id}
@@ -165,17 +224,6 @@ function LibraryWorkspace({ library, hidden, safe, onSafeChanged, showApproxSour
               </button>
             </p>
           )}
-          {selected.size > 0 && (
-            <SelectionPanel
-              libraryId={library.id}
-              scope={scope}
-              selected={selected}
-              onClear={() => setSelected(new Set())}
-              reloadKey={reloadKey}
-              onError={onError}
-              safeMode={safe}
-            />
-          )}
           <Wall
             key={`${library.id}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
             libraryId={library.id}
@@ -185,10 +233,22 @@ function LibraryWorkspace({ library, hidden, safe, onSafeChanged, showApproxSour
             safeMode={safe}
             selected={selected}
             onSelectionChange={setSelected}
+            onOpenImage={setViewing}
+            viewerOpen={viewerOpen}
+            holdReflow={sidebarMoving}
           />
         </main>
       </div>
     </div>
+    {viewing && !hidden && (
+      <Viewer
+        libraryId={library.id}
+        card={viewing}
+        onClose={() => setViewing(null)}
+        reloadKey={reloadKey}
+      />
+    )}
+    </>
   );
 }
 
@@ -203,6 +263,8 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCaptures, setShowCaptures] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  /** 查看器打开时，工作区以外的界面不可操作（查看器是模态的）。 */
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   // undefined：还在打开；null：没有活动资料库。
   const [library, setLibrary] = useState<LibraryInfo | null | undefined>(undefined);
@@ -271,7 +333,9 @@ export function App() {
 
   return (
     <div className="app">
-      <LibraryPicker current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />
+      <div inert={viewerOpen}>
+        <LibraryPicker current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />
+      </div>
       {openError && (
         <p className="app-problem" role="alert">
           上次的资料库无法打开：{openError}
@@ -293,6 +357,7 @@ export function App() {
           safe={safe}
           onSafeChanged={setSafe}
           showApproxSource={showApproxSource}
+          onViewerChange={setViewerOpen}
         />
       )}
       {(!library || showCreate) && (
@@ -311,18 +376,22 @@ export function App() {
           )}
         </main>
       )}
-      {showCaptures && <CaptureHistoryPanel libraryId={library?.id} />}
+      {showCaptures && (
+        <div inert={viewerOpen}>
+          <CaptureHistoryPanel libraryId={library?.id} />
+        </div>
+      )}
       {showSettings && (
-        <>
+        <div inert={viewerOpen}>
           <SettingsPanel
             library={library ?? null}
             onChange={(view) => setShowApproxSource(view.showApproxSource)}
           />
           <ModelSettings />
-        </>
+        </div>
       )}
       <UpdateBanner />
-      <footer className="app-status">
+      <footer className="app-status" inert={viewerOpen}>
         <span>{info && `${info.productName} ${info.version}`}</span>
         <span className="app-status-actions">
           {library && <TaggingIndicator key={`${library.id}/${library.root}`} libraryId={library.id} />}
