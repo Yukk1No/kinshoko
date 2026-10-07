@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
+import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { Viewer } from "./Viewer";
 
 // JSDOM 不做布局；原生冒烟另用 getBoundingClientRect 检查最终设备像素位置。
@@ -106,6 +106,72 @@ describe("查看器设备像素", () => {
     fireEvent.keyDown(document.activeElement!, { key: "Tab" });
     expect(document.activeElement).toBe(first);
     fireEvent.keyDown(first, { key: "Escape" });
+    expect(close).toHaveBeenCalledOnce();
+  });
+});
+
+describe("从查看器钉到桌面（#65）", () => {
+  const card = { id: "a", width: 800, height: 600, thumbnail: "", adult: false };
+  let calls: { cmd: string; args: unknown }[];
+  beforeEach(() => {
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 800));
+    calls = [];
+    mockIPC((cmd, args) => {
+      calls.push({ cmd, args });
+      if (cmd === "plugin:library|image") return {};
+      return null;
+    });
+  });
+  afterEach(() => clearMocks());
+  const pins = () => calls.filter((c) => c.cmd === "plugin:desktop|pin_reference").map((c) => c.args);
+
+  it("Shift+拖动按原图像素框出局部，缩放时边界不变，Enter 钉住", async () => {
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    // 适应窗口：800×600 的图居中在 1000×800 的舞台上，左上角 (100, 100)，一个 CSS 像素一个原图像素。
+    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 110, clientY: 110, button: 0, shiftKey: true });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 310, clientY: 210 });
+    fireEvent.pointerUp(stage, { pointerId: 1 });
+    expect(screen.getByText("200 × 100 px（原图像素）")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "放大" }));
+    expect(screen.getByText("200 × 100 px（原图像素）")).toBeTruthy();
+    expect(screen.getByLabelText("选区").style.width).toBe("250px");
+    fireEvent.click(screen.getByRole("button", { name: "适应窗口" }));
+
+    await act(async () => {
+      fireEvent.keyDown(stage, { key: "Enter" });
+    });
+    expect(pins()).toEqual([{
+      libraryId: "L1",
+      imageId: "a",
+      crop: { x: 10, y: 10, width: 200, height: 100 },
+      shown: { x: 110, y: 110, width: 200, height: 100 },
+    }]);
+    expect(await screen.findByText("已钉住局部")).toBeTruthy();
+  });
+
+  it("钉住整图；框选模式下普通拖动也框选；Esc 先清除选区再返回图片墙", async () => {
+    const close = vi.fn();
+    render(<Viewer libraryId="L1" card={card} onClose={close} />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "钉住整图" }));
+    });
+    expect(pins()).toEqual([{ libraryId: "L1", imageId: "a", crop: null, shown: { x: 100, y: 100, width: 800, height: 600 } }]);
+
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.click(screen.getByRole("button", { name: "框选局部" }));
+    fireEvent.pointerDown(stage, { pointerId: 2, clientX: 100, clientY: 100, button: 0 });
+    fireEvent.pointerMove(stage, { pointerId: 2, clientX: 140, clientY: 130 });
+    fireEvent.pointerUp(stage, { pointerId: 2 });
+    expect(screen.getByText("40 × 30 px（原图像素）")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "框选局部" }).getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.keyDown(stage, { key: "Escape" });
+    expect(screen.queryByLabelText("选区")).toBeNull();
+    expect(close).not.toHaveBeenCalled();
+    fireEvent.keyDown(stage, { key: "Escape" });
     expect(close).toHaveBeenCalledOnce();
   });
 });

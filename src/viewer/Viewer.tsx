@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ImageCard } from "../bindings/ImageCard";
-import { displayScaledUrl, displayUrl, imageDetail, isUnknownImage } from "../ipc";
+import type { Region } from "../bindings/Region";
+import { displayScaledUrl, displayUrl, imageDetail, isUnknownImage, pinReference } from "../ipc";
 import type { KeyboardEvent } from "react";
+import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
 
 type Props = {
   libraryId: string;
@@ -20,7 +22,12 @@ function savedBackground(): Background {
   return "mid";
 }
 
-/** 查看器盖在图片墙上，原位置与已加载的卡片保留。 */
+/**
+ * 查看器盖在图片墙上，原位置与已加载的卡片保留。
+ *
+ * 钉到桌面（#65）：“钉住整图”，或 Shift+拖动（或先按“框选局部”）框出一块，按 Enter 或“钉住局部”。
+ * 选区按原图像素记，标出“宽 × 高 px（原图像素）”，缩放平移时边界不变。
+ */
 export function Viewer({ libraryId, card, onClose, reloadKey = 0 }: Props) {
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -34,6 +41,11 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0 }: Props) {
   const [retry, setRetry] = useState(0);
   const [requestedPx, setRequestedPx] = useState(card.width);
   const drag = useRef<{ id: number; x: number; y: number; offset: typeof offset } | null>(null);
+  /** 框选局部：选区（原图像素）、是否在框选模式、拖动中的起点（舞台上的 CSS 像素）。 */
+  const [crop, setCrop] = useState<Region | null>(null);
+  const [selecting, setSelecting] = useState(false);
+  const select = useRef<{ id: number; start: Point } | null>(null);
+  const [pinStatus, setPinStatus] = useState<string | null>(null);
   const { dpr } = viewport;
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -106,8 +118,38 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0 }: Props) {
     imageDetail(libraryId, card.id).catch((e) => { if (alive && isUnknownImage(e)) closeRef.current(); });
     return () => { alive = false; };
   }, [libraryId, card.id, reloadKey, failedSrc]);
+  const shown = { left, top, width, height };
+  const natural = { width: card.width, height: card.height };
+  const cropRect = crop && cropOnScreen(crop, shown, natural);
+  /** 舞台上的点（CSS 像素）。 */
+  const stagePoint = (e: { clientX: number; clientY: number }): Point => {
+    const rect = stage.current!.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+  /** 钉到桌面：整图（crop 为 null）或选区；钉图以它此刻在查看器里的位置为中心出现。 */
+  const pin = (region: Region | null) => {
+    const rect: CssRect = region ? cropOnScreen(region, shown, natural) : { x: left, y: top, width, height };
+    setPinStatus(null);
+    pinReference(libraryId, card.id, region, toScreenRect(rect, viewport, dpr)).then(
+      () => setPinStatus(region ? "已钉住局部" : "已钉住整图"),
+      (e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(`无法钉住：${String(e)}`); },
+    );
+  };
+  useEffect(() => {
+    if (!pinStatus) return;
+    const timer = window.setTimeout(() => setPinStatus(null), 2000);
+    return () => window.clearTimeout(timer);
+  }, [pinStatus]);
   const keyDown = (e: KeyboardEvent<HTMLElement>) => {
-    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onClose(); return; }
+    if (e.key === "Escape") {
+      e.preventDefault(); e.stopPropagation();
+      // 先取消框选，再回到图片墙。
+      if (crop || selecting) { setCrop(null); setSelecting(false); select.current = null; } else onClose();
+      return;
+    }
+    if (e.key === "Enter" && crop && !(e.target as Element).closest?.("button, select")) {
+      e.preventDefault(); pin(crop); return;
+    }
     if (e.key === "Tab") {
       const controls = [...root.current!.querySelectorAll<HTMLElement>("button:not(:disabled), select")];
       const first = controls[0];
@@ -130,6 +172,12 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0 }: Props) {
         <button type="button" aria-label="放大" onClick={() => zoomAt(1.25)}>＋</button>
         <output aria-label="缩放比例">{Math.round(physicalWidth / card.width * 100)}%</output>
         <span>{card.width} × {card.height} px</span>
+        <button type="button" onClick={() => pin(null)}>钉住整图</button>
+        <button type="button" aria-pressed={selecting} onClick={() => setSelecting((on) => !on)}>框选局部</button>
+        {crop && <>
+          <button type="button" onClick={() => pin(crop)}>钉住局部</button>
+          <button type="button" onClick={() => setCrop(null)}>清除选区</button>
+        </>}
         <label className="viewer-background">背景
           <select aria-label="查看器背景" value={background} onChange={(e) => setBackground(e.target.value as Background)}>
             <option value="dark">深灰</option><option value="mid">中灰</option>
@@ -139,19 +187,32 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0 }: Props) {
       </header>
       <div className="viewer-stage" ref={stage} data-background={background}
         onPointerDown={(e) => {
-          if (e.button !== 0 || drag.current || (e.target as Element).closest("button")) return;
+          if (e.button !== 0 || drag.current || select.current || (e.target as Element).closest("button")) return;
           e.preventDefault();
           e.currentTarget.setPointerCapture?.(e.pointerId);
+          if (e.shiftKey || selecting) {
+            select.current = { id: e.pointerId, start: stagePoint(e) };
+            return;
+          }
           drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, offset };
         }}
         onPointerMove={(e) => {
+          const s = select.current;
+          if (s && s.id === e.pointerId) {
+            const next = cropFromDrag(s.start, stagePoint(e), shown, natural);
+            if (next) setCrop(next);
+            return;
+          }
           const start = drag.current;
           if (!start || start.id !== e.pointerId) return;
           setOffset({ x: start.offset.x + e.clientX - start.x, y: start.offset.y + e.clientY - start.y });
         }}
-        onPointerUp={(e) => { if (drag.current?.id === e.pointerId) drag.current = null; }}
-        onPointerCancel={() => { drag.current = null; }}
-        onLostPointerCapture={() => { drag.current = null; }}>
+        onPointerUp={(e) => {
+          if (drag.current?.id === e.pointerId) drag.current = null;
+          if (select.current?.id === e.pointerId) { select.current = null; setSelecting(false); }
+        }}
+        onPointerCancel={() => { drag.current = null; select.current = null; }}
+        onLostPointerCapture={() => { drag.current = null; select.current = null; }}>
         {viewport.width > 0 && <img key={src} src={src} alt="正在查看的参考图"
           draggable={false} onLoad={() => setLoadedSrc(src)} onError={() => setFailedSrc(src)}
           style={{ width, height, left: 0, top: 0, transform: `translate(${left}px, ${top}px)`, imageRendering: scale > 2 ? "pixelated" : "auto", visibility: exactSource && loadedSrc === src ? "visible" : "hidden" }} />}
@@ -159,8 +220,13 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0 }: Props) {
           <p>无法读取这张参考图。请检查资料库文件是否仍可访问。</p>
           <button type="button" onClick={() => setRetry((r) => r + 1)}>重试读取</button>
         </div> : (!exactSource || loadedSrc !== src) && <p className="viewer-message" role="status">正在读取参考图…</p>}
+        {cropRect && crop && <div className="viewer-crop" aria-label="选区"
+          style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }}>
+          <span className="viewer-crop-size">{crop.width} × {crop.height} px（原图像素）</span>
+        </div>}
+        {pinStatus && <p className="viewer-pin-status" role="status">{pinStatus}</p>}
       </div>
-      <footer className="viewer-hint">滚轮缩放 · 拖动平移 · Esc 返回图片墙</footer>
+      <footer className="viewer-hint">滚轮缩放 · 拖动平移 · Shift+拖动框选局部，Enter 钉住 · Esc 返回图片墙</footer>
     </section>
   );
 }

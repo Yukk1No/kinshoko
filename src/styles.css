@@ -665,6 +665,37 @@ button.primary {
 }
 .viewer-message p { margin: 0 0 8px; }
 .viewer-hint { padding: 4px 12px; font-size: 12px; text-align: center; }
+/* 框出的局部（#65）：按原图像素记，随缩放平移换算位置；外面压暗。 */
+.viewer-crop {
+  position: absolute;
+  box-sizing: border-box;
+  outline: 1px solid #e0768f;
+  box-shadow: 0 0 0 100000px rgb(0 0 0 / 0.35);
+  pointer-events: none;
+}
+.viewer-crop-size {
+  position: absolute;
+  left: 0;
+  top: -22px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 0.7);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.viewer-pin-status {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.7);
+  color: #fff;
+  font-size: 12px;
+}
 /* 内容分级（#53）：人工分级优先于自动分级。 */
 .selection-rating {
   display: flex;
