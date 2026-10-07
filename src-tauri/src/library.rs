@@ -14,9 +14,10 @@ use std::sync::{Arc, Mutex};
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::library::{
-    BrowsePage, BrowseQuery, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportSource,
-    ImportTask, LibraryEvent, LibraryInfo, PersonalApproxEntry, RecoveryReport, ReferenceLens,
-    Sidebar, TagEdit, TagGroupView, Vocabulary,
+    BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, ImageDetail, ImageEdit,
+    ImageRating, ImageTags, ImportSource, ImportTask, LibraryEvent, LibraryInfo,
+    PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar, TagEdit, TagGroupView, Vocabulary,
+    discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::search::{Candidate, ConditionTree, Search, SearchInput};
 use kinshoko_core::{DeviceRegistry, Library};
@@ -73,6 +74,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             cancel_import,
             pick_folder,
             pick_files,
+            discover_eagle_libraries,
             image_tags,
             edit_tags,
             vocabulary,
@@ -442,6 +444,12 @@ async fn pick_files<R: Runtime>(app: AppHandle<R>) -> Result<Vec<PathBuf>, Strin
             .collect())
     })
     .await
+}
+
+/// 查找本机 Eagle 资料库；文件读取与磁盘扫描放在阻塞任务里。
+#[tauri::command]
+async fn discover_eagle_libraries() -> Result<Vec<EagleLibraryCandidate>, String> {
+    blocking(|| Ok(discover_eagle(&EagleDiscoveryOptions::default()))).await
 }
 
 /// 一张参考图的标签，名称按界面语言 `lang`。

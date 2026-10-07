@@ -22,6 +22,8 @@
 
 mod colour;
 mod display;
+mod eagle;
+mod eagle_discovery;
 mod edit;
 mod error;
 mod events;
@@ -47,6 +49,10 @@ use rusqlite::{OptionalExtension, params};
 
 pub use crate::fidelity::{
     Cicp, ColourDeclaration, ColourDescription, ColourModel, HdrKind, IccKind, IccSummary,
+};
+pub use eagle::{EagleBinding, EagleRegionNote, EagleSourceSnapshot};
+pub use eagle_discovery::{
+    EagleDiscoveryMethod, EagleDiscoveryOptions, EagleLibraryCandidate, discover_eagle_libraries,
 };
 pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, SourceNote};
 pub use error::Error;
@@ -203,6 +209,11 @@ impl Library {
 
     pub fn info(&self) -> &LibraryInfo {
         &self.inner.info
+    }
+
+    /// Eagle 来源及其原样元数据快照；区域评论的坐标基准未经核验。
+    pub fn eagle_sources(&self) -> Result<Vec<EagleSourceSnapshot>, Error> {
+        eagle::snapshots(&self.inner)
     }
 
     /// 按查询浏览参考图，按导入先后从新到旧，keyset 分页。
