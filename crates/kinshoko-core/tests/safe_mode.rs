@@ -302,6 +302,8 @@ fn a_sealed_image_does_not_exist_when_looked_up_or_edited() {
         unknown(lib.original_path(id).map(drop));
         unknown(lib.display(id).map(drop));
         unknown(lib.display_scaled(id, 64).map(drop));
+        // 色彩描述也是按 id 的浏览读取，不能看出被封印的图存在（#76）。
+        unknown(lib.colour(id).map(drop));
         unknown(
             lib.edit(std::slice::from_ref(id), &[ImageEdit::Restore])
                 .map(drop),
@@ -473,4 +475,58 @@ fn the_effective_rating_decides_what_is_sealed() {
         assert_eq!(rating.effective.is_some_and(ContentRating::is_adult), adult);
     }
     assert_eq!(f.library.image_rating(&f.unrated).unwrap().effective, None);
+}
+
+/// 分级跨过“含成人内容”时，安全模式下可见的词表变了：修订号必须前进并在提交后推送
+/// `VocabularyChanged`，否则按修订号与安全模式缓存的 Search 会继续给出旧候选（#76 S2）。
+/// 人工设置/退回分级与模型来源分级替换都一样，移出与重新进入可见集合都覆盖。
+#[test]
+fn a_rating_that_seals_or_releases_an_image_advances_the_vocabulary_revision() {
+    let f = Fixture::new();
+    tag(&f.library, &[&f.unrated], "只在这张图上");
+    let events = f.library.events();
+    let mut revision = f.library.vocabulary().unwrap().revision;
+    let mut step = |what: &str, visible: bool| {
+        let vocabulary = f.library.vocabulary().unwrap();
+        let shown = vocabulary
+            .tags
+            .iter()
+            .any(|t| t.names.iter().any(|n| n.name == "只在这张图上"));
+        assert_eq!(shown, visible, "{what}：标签是否可见");
+        assert_ne!(
+            vocabulary.revision, revision,
+            "{what}：可见词表变了，修订号却没变"
+        );
+        let announced: Vec<i64> = events
+            .try_iter()
+            .filter_map(|e| match e {
+                LibraryEvent::VocabularyChanged { revision, .. } => Some(revision),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            announced,
+            [vocabulary.revision],
+            "{what}：提交后推送新修订号"
+        );
+        revision = vocabulary.revision;
+    };
+    let id = std::slice::from_ref(&f.unrated);
+    f.library
+        .edit(
+            id,
+            &[ImageEdit::SetRating {
+                rating: ContentRating::Explicit,
+            }],
+        )
+        .unwrap();
+    step("人工设为露骨", false);
+    f.library.set_safe_mode(false);
+    f.library.edit(id, &[ImageEdit::RevertRating]).unwrap();
+    f.library.set_safe_mode(true);
+    step("退回人工分级", true);
+    rate(&f.library, &f.unrated, ContentRating::Questionable);
+    step("模型分级为成人内容", false);
+    rate(&f.library, &f.unrated, ContentRating::General);
+    step("模型分级为全年龄", true);
 }

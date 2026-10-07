@@ -11,7 +11,7 @@ afterEach(async () => {
   clearMocks();
 });
 
-const report: ImportReport = { items: [], cancelled: false };
+const report: ImportReport = { items: [], cancelled: false, eagleMissing: 0, eagleRelocations: [] };
 
 function backend() {
   mockWindows("main");

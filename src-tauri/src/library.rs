@@ -20,7 +20,7 @@ use kinshoko_core::library::{
     LibraryInfo, MappedExternal, PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar,
     TagEdit, TagGroupView, TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
 };
-use kinshoko_core::search::{Candidate, ConditionTree, Search, SearchInput};
+use kinshoko_core::search::{Candidate, ConditionTree, SearchCache, SearchInput};
 use kinshoko_core::{
     DeviceLibraries, DeviceLibraryError, DeviceRegistry, Library, LibraryRegistration,
 };
@@ -43,8 +43,9 @@ struct LibraryState {
     forwarded: Mutex<Option<Weak<Library>>>,
     /// 切换、恢复和取消登记串行完成，包括旧库打标退出。
     transition: Mutex<()>,
-    /// 活动资料库词表快照上的 Search；词表或图片变化、切换资料库时清掉，下次查找时重建。
-    search: Arc<Mutex<Option<CachedSearch>>>,
+    /// 活动资料库词表快照上的 Search，按（资料库，词表修订号，安全模式）校验；词表或图片
+    /// 变化、安全模式切换、切换资料库时清掉，下次查找时重建（#76）。
+    search: Arc<SearchCache>,
     /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
     /// 与桌面钉图（#65），不经任何命令交给前端。
     reference: Mutex<Option<ReferenceLens>>,
@@ -55,12 +56,6 @@ struct LibraryState {
     translations: Arc<TagTranslations>,
     /// 迁入向导的外部词表及它读自哪份模型词表；模型变了才重读。
     external_vocabulary: Mutex<Option<(Option<PathBuf>, ExternalVocabulary)>>,
-}
-
-/// Search 快照及它所属的资料库句柄；换了资料库的快照不再使用。
-struct CachedSearch {
-    library: Weak<Library>,
-    search: Arc<Search>,
 }
 
 impl LibraryState {
@@ -254,7 +249,7 @@ fn forward_events<R: Runtime>(
     library.set_translations((*state.translations).clone());
     let events = library.events();
     *lock(&state.reference) = library.take_reference_lens();
-    *lock(&state.search) = None;
+    state.search.invalidate();
     crate::tagging::attach(app, library);
     let (app, libraries, search) = (app.clone(), state.libraries.clone(), state.search.clone());
     std::thread::Builder::new()
@@ -281,7 +276,7 @@ fn forward_events<R: Runtime>(
                         | LibraryEvent::ListStale { .. }
                         | LibraryEvent::SafeModeChanged { .. }
                 ) {
-                    lock(&search).take();
+                    search.invalidate();
                 }
                 let _ = app.emit(EVENT, event);
             }
@@ -448,7 +443,7 @@ async fn unregister_library<R: Runtime>(
         })?;
         if closed {
             *lock(&state.forwarded) = None;
-            *lock(&state.search) = None;
+            state.search.invalidate();
             *lock(&state.reference) = None;
             crate::tagging::detach(&app);
         }
@@ -693,30 +688,8 @@ async fn tag_groups(
     blocking(move || library.tag_groups(&lang).map_err(|e| e.to_string())).await
 }
 
-/// 活动资料库的 Search，按需从词表快照建立；快照属于另一个资料库句柄时重建。
-fn search(
-    cache: &Mutex<Option<CachedSearch>>,
-    library: &Arc<Library>,
-    builtin: &BuiltinApproxTable,
-) -> Result<Arc<Search>, String> {
-    let weak = Arc::downgrade(library);
-    if let Some(cached) = lock(cache).as_ref()
-        && Weak::ptr_eq(&cached.library, &weak)
-    {
-        return Ok(cached.search.clone());
-    }
-    let search = Arc::new(Search::new(
-        &library.vocabulary().map_err(|e| e.to_string())?,
-        builtin,
-    ));
-    *lock(cache) = Some(CachedSearch {
-        library: weak,
-        search: search.clone(),
-    });
-    Ok(search)
-}
-
-/// 搜索框打字时的候选：按命名空间与别名列出，名称按界面语言 `lang`。
+/// 搜索框打字时的候选：按命名空间与别名列出，名称按界面语言 `lang`。`safe_mode` 是界面
+/// 当前的视角；资料库的安全模式不同（刚切换）时返回错误，候选不会落到另一视角上（#76）。
 #[tauri::command]
 async fn search_candidates(
     state: State<'_, LibraryState>,
@@ -724,16 +697,21 @@ async fn search_candidates(
     text: String,
     lang: String,
     limit: u32,
+    safe_mode: bool,
 ) -> Result<Vec<Candidate>, String> {
     let library = state.current(&library_id)?;
     let (cache, builtin) = (state.search.clone(), state.builtin_approx.clone());
     blocking(move || {
-        Ok(search(&cache, &library, &builtin)?.candidates(&text, &lang, limit as usize))
+        let search = cache
+            .search(&library, &builtin, safe_mode)
+            .map_err(|e| e.to_string())?;
+        Ok(search.candidates(&text, &lang, limit as usize))
     })
     .await
 }
 
-/// 把搜索框里的条件解析成可见的条件树，交给 `browse` 执行。
+/// 把搜索框里的条件解析成可见的条件树，交给 `browse` 执行。`safe_mode` 同
+/// [`search_candidates`]。
 #[tauri::command]
 async fn resolve_search<R: Runtime>(
     app: AppHandle<R>,
@@ -741,6 +719,7 @@ async fn resolve_search<R: Runtime>(
     library_id: String,
     input: SearchInput,
     lang: String,
+    safe_mode: bool,
 ) -> Result<ConditionTree, String> {
     let library = state.current(&library_id)?;
     let (cache, builtin) = (state.search.clone(), state.builtin_approx.clone());
@@ -750,7 +729,13 @@ async fn resolve_search<R: Runtime>(
             terms: input.conditions.len().min(u32::MAX as usize) as u32,
         },
     );
-    blocking(move || Ok(search(&cache, &library, &builtin)?.resolve(&input, &lang))).await
+    blocking(move || {
+        let search = cache
+            .search(&library, &builtin, safe_mode)
+            .map_err(|e| e.to_string())?;
+        Ok(search.resolve(&input, &lang))
+    })
+    .await
 }
 
 /// 安全模式是否开启（全局设置）。

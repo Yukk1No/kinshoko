@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::events::LibraryEvent;
-use super::tags::FactSource;
+use super::tags::{self, FactSource};
 use super::{Error, Inner, now_ms};
 
 /// 内容分级，从宽到严排列。
@@ -134,7 +134,7 @@ pub(super) fn replace_source_rating(
     fact: Option<RatingFact>,
 ) -> Result<(), Error> {
     let (source, id) = (source.as_str().to_owned(), image_id.to_owned());
-    let resealed = inner.writer.run(move |conn| {
+    let (resealed, revision) = inner.writer.run(move |conn| {
         let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         require_image(&tx, &id)?;
         let adult = format!("SELECT {}", adult_sql("?1"));
@@ -150,8 +150,15 @@ pub(super) fn replace_source_rating(
             )?;
         }
         let is_adult: bool = tx.query_row(&adult, [&id], |r| r.get(0))?;
+        let resealed = was_adult != is_adult;
+        // 跨过“含成人内容”：安全模式下可见的词表（标签与计数）变了，修订号随之前进。
+        let revision = if resealed {
+            Some(tags::bump_revision(&tx)?)
+        } else {
+            None
+        };
         tx.commit()?;
-        Ok::<_, Error>(was_adult != is_adult)
+        Ok::<_, Error>((resealed, revision))
     })?;
     // 是否含成人内容变了：安全模式下这张图被封印或放出，浏览结果与计数都过期。
     if resealed {
@@ -163,6 +170,12 @@ pub(super) fn replace_source_rating(
         library_id: inner.info.id.clone(),
         image_ids: vec![image_id.to_owned()],
     });
+    if let Some(revision) = revision {
+        inner.hub.publish(LibraryEvent::VocabularyChanged {
+            library_id: inner.info.id.clone(),
+            revision,
+        });
+    }
     Ok(())
 }
 

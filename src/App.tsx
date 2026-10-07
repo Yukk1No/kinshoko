@@ -9,6 +9,7 @@ import type { ImageCard } from "./bindings/ImageCard";
 import {
   appInfo,
   currentLibrary,
+  isLensChanged,
   onLibraryEvent,
   resolveSearch,
   safeMode,
@@ -65,9 +66,26 @@ function LibraryWorkspace({
   const [problem, setProblem] = useState<string | null>(null);
   const [search, setSearch] = useState<SearchInput>({ conditions: [], exact: false });
   const [tree, setTree] = useState<ConditionTree>({ conditions: [] });
-  /** 词表或图片变化时递增：重新解析条件（标签可能改名、删除或新增了叫法）。 */
+  /** 条件树是在哪个视角下解析的：与当前不同时，搜索框不显示它展开的标签名（#76）。 */
+  const [treeSafe, setTreeSafe] = useState(safe);
+  /**
+   * 词表代次：词表、图片或安全模式变化时递增，重新解析条件、重新取得候选（标签可能改名、
+   * 删除、新增了叫法，或在安全模式下被封印）。与后端 Search 缓存的修订号和安全模式对应。
+   */
   const [vocabularyKey, setVocabularyKey] = useState(0);
   const onError = useCallback((message: string) => setProblem(message), []);
+  /**
+   * 导入任务按 id 记下终态（#76）：结束事件、启动命令的响应与进度事件到达的顺序不定，
+   * 已结束的任务不能被迟到的响应或进度复活，旧任务的事件也不能覆盖正在进行的新任务。
+   */
+  const imports = useRef({
+    finished: new Set<string>(),
+    running: null as string | null,
+    /** 正在进行的是另一个任务。 */
+    other(taskId: string) {
+      return this.running !== null && this.running !== taskId;
+    },
+  });
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
   const changeScope = (next: BrowseScope) => {
@@ -95,6 +113,7 @@ function LibraryWorkspace({
     let alive = true;
     const unlisten = onLibraryEvent((event) => {
       if (!alive || event.libraryId !== library.id) return;
+      const task = imports.current;
       switch (event.kind) {
         case "listStale":
           setReloadKey((k) => k + 1);
@@ -114,9 +133,15 @@ function LibraryWorkspace({
           setVocabularyKey((k) => k + 1);
           break;
         case "taskProgress":
+          // 已结束的任务不再复活；另一个任务正在进行时，旧任务的进度不覆盖它。
+          if (task.finished.has(event.taskId) || task.other(event.taskId)) break;
+          task.running = event.taskId;
           setRunning({ taskId: event.taskId, progress: event.progress });
           break;
         case "taskFinished":
+          if (task.finished.has(event.taskId) || task.other(event.taskId)) break;
+          task.finished.add(event.taskId);
+          task.running = null;
           setRunning(null);
           setReport(event.report);
           break;
@@ -136,24 +161,30 @@ function LibraryWorkspace({
       return;
     }
     let alive = true;
-    resolveSearch(library.id, search, UI_LANG).then(
+    resolveSearch(library.id, search, UI_LANG, safe).then(
       (next) => {
         if (!alive) return;
         setTree(next);
+        setTreeSafe(safe);
         // 同一棵条件树的结果也可能变了（图片的标签变了），保持位置重新浏览。
         if (vocabularyKey) setReloadKey((k) => k + 1);
       },
-      (e) => alive && setProblem(String(e)),
+      // 安全模式刚切换、资料库还没跟上：等它确认（safeModeChanged）后按新视角重新解析。
+      (e) => alive && !isLensChanged(e) && setProblem(String(e)),
     );
     return () => {
       alive = false;
     };
-  }, [library.id, search, searching, vocabularyKey]);
+  }, [library.id, search, searching, vocabularyKey, safe]);
 
   const started = (taskId: string) => {
+    const task = imports.current;
+    // 结束事件可能先于命令返回到达：任务已有终态，迟到的响应不再复活它（#76）。
+    if (task.finished.has(taskId)) return;
+    task.running = taskId;
     setReport(null);
     // 进度事件可能先于命令返回到达，那时已经有了任务。
-    setRunning((r) => r ?? { taskId, progress: { done: 0, total: 0 } });
+    setRunning((r) => (r?.taskId === taskId ? r : { taskId, progress: { done: 0, total: 0 } }));
   };
 
   return (
@@ -207,8 +238,10 @@ function LibraryWorkspace({
         <main className="app-main">
           <SearchBox
             libraryId={library.id}
+            safe={safe}
+            generation={vocabularyKey}
             input={search}
-            tree={searching ? tree : null}
+            tree={searching && treeSafe === safe ? tree : null}
             showSource={showApproxSource}
             onError={onError}
             onChange={(next) => {

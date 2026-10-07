@@ -195,14 +195,36 @@ export function tagGroups(libraryId: string, lang: string): Promise<TagGroupView
   return invoke<TagGroupView[]>(lib("tag_groups"), { libraryId, lang });
 }
 
-/** 搜索框打字时的候选：按命名空间与别名列出，最多 limit 个。 */
-export function searchCandidates(libraryId: string, text: string, lang: string, limit: number): Promise<Candidate[]> {
-  return invoke<Candidate[]>(lib("search_candidates"), { libraryId, text, lang, limit });
+/** 资料库的 `LensChanged`：请求带的安全模式与资料库的不同（刚切换过），结果作废（#76）。 */
+const LENS_CHANGED = "安全模式刚切换过，请重新查找";
+
+/** 查找命令失败是不是因为安全模式刚切换过：不是错误，切换确认后会按新视角重新查找。 */
+export function isLensChanged(error: unknown): boolean {
+  return String(error) === LENS_CHANGED;
 }
 
-/** 把搜索框里的条件解析成可见的条件树，交给 browse 执行。 */
-export function resolveSearch(libraryId: string, input: SearchInput, lang: string): Promise<ConditionTree> {
-  return invoke<ConditionTree>(lib("resolve_search"), { libraryId, input, lang });
+/**
+ * 搜索框打字时的候选：按命名空间与别名列出，最多 limit 个。`safeMode` 是界面当前的视角；
+ * 资料库的安全模式不同时被拒绝（{@link isLensChanged}），候选不会落到另一视角上。
+ */
+export function searchCandidates(
+  libraryId: string,
+  text: string,
+  lang: string,
+  limit: number,
+  safeMode: boolean,
+): Promise<Candidate[]> {
+  return invoke<Candidate[]>(lib("search_candidates"), { libraryId, text, lang, limit, safeMode });
+}
+
+/** 把搜索框里的条件解析成可见的条件树，交给 browse 执行。`safeMode` 同 {@link searchCandidates}。 */
+export function resolveSearch(
+  libraryId: string,
+  input: SearchInput,
+  lang: string,
+  safeMode: boolean,
+): Promise<ConditionTree> {
+  return invoke<ConditionTree>(lib("resolve_search"), { libraryId, input, lang, safeMode });
 }
 
 /** 在个人近似对应表中记下两个标签相近（“＋”）或不相近（“以后都不展开”）。 */

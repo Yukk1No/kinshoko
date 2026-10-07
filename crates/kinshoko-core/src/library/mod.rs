@@ -291,8 +291,10 @@ impl Library {
         self.inner.display_scaled(image_id, target_px)
     }
 
-    /// 参考图的色彩描述（导入时记录）。
+    /// 参考图的色彩描述（导入时记录）。浏览视角：被封印的图当作不存在。
     pub fn colour(&self, image_id: &str) -> Result<ColourDescription, Error> {
+        self.inner
+            .require_visible(&self.inner.readers.get(), image_id)?;
         colour::get(&self.inner, image_id).map(|(d, ..)| d)
     }
 
@@ -444,6 +446,11 @@ impl Library {
     /// 标签词表快照：标签、各语言名称、别名、命名空间、外部对应与计数。
     pub fn vocabulary(&self) -> Result<Vocabulary, Error> {
         tags::vocabulary(&self.inner)
+    }
+
+    /// 当前的词表修订号：可见词表变化时前进，安全模式另计。供缓存核对快照是否过期。
+    pub fn vocabulary_revision(&self) -> Result<i64, Error> {
+        tags::revision(&self.inner)
     }
 
     /// 给标签设置某种语言的名称（改名）。
