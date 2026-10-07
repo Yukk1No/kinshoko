@@ -54,6 +54,21 @@ impl ActiveTagging {
     }
 }
 
+/// 本机已就绪模型的词表 `selected_tags.csv`：优先画师选的模型，没有就绪时取任一已就绪的。
+/// 迁入向导（#59）用它作外部词表；没有模型时返回 `None`。会读文件，不要在主线程上调用。
+pub fn vocabulary_csv<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
+    let state = app.state::<TaggingState>();
+    let store = ModelStore::new(state.models_dir.clone(), HUGGING_FACE);
+    let preferred = lock(&state.preferred).clone();
+    let models = catalog();
+    models
+        .iter()
+        .filter(|m| preferred.as_deref() == Some(m.key.as_str()))
+        .chain(models.iter())
+        .find_map(|m| store.ready(m))
+        .map(|m| m.tags_csv)
+}
+
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }

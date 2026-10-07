@@ -13,6 +13,8 @@ import type { SearchInput } from "./bindings/SearchInput";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
 import type { EagleLibraryCandidate } from "./bindings/EagleLibraryCandidate";
+import type { EagleTagMapping } from "./bindings/EagleTagMapping";
+import type { MappedExternal } from "./bindings/MappedExternal";
 import type { CaptureAction } from "./bindings/CaptureAction";
 import type { CaptureEntry } from "./bindings/CaptureEntry";
 import type { CollectedCapture } from "./bindings/CollectedCapture";
@@ -35,6 +37,7 @@ import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { TagEdit } from "./bindings/TagEdit";
 import type { TagGroupView } from "./bindings/TagGroupView";
 import type { LibraryTaggingStatus } from "./bindings/LibraryTaggingStatus";
+import type { Turn } from "./bindings/Turn";
 import type { UpdateProgress } from "./bindings/UpdateProgress";
 import type { UpdateStatus } from "./bindings/UpdateStatus";
 import type { Vocabulary } from "./bindings/Vocabulary";
@@ -120,6 +123,21 @@ export function startImport(libraryId: string, paths: string[]): Promise<string>
 /** 本机 Eagle 资料库候选；按 images/ 条目数从多到少排列。 */
 export function discoverEagleLibraries(): Promise<EagleLibraryCandidate[]> {
   return invoke<EagleLibraryCandidate[]>(lib("discover_eagle_libraries"));
+}
+
+/** 迁入向导“标签的外部对应”：自动匹配还没有外部对应的 Eagle 标签，返回对上与没对上的。 */
+export function eagleTagMapping(libraryId: string, lang: string): Promise<EagleTagMapping> {
+  return invoke<EagleTagMapping>(lib("eagle_tag_mapping"), { libraryId, lang });
+}
+
+/** 画师给一个标签补上外部对应，之后它参与内置近似对应表。 */
+export function mapTagExternal(libraryId: string, tagId: string, external: string): Promise<MappedExternal> {
+  return invoke<MappedExternal>(lib("map_tag_external"), { libraryId, tagId, external });
+}
+
+/** 补外部对应时的联想（外部词表属于本设备）。 */
+export function externalSuggestions(text: string, limit: number): Promise<string[]> {
+  return invoke<string[]>(lib("external_suggestions"), { text, limit });
 }
 
 export function cancelImport(libraryId: string, taskId: string): Promise<void> {
@@ -482,7 +500,8 @@ export function zoomPin(pin: string, scale: number, anchorX: number, anchorY: nu
   return invoke<void>(desk("zoom_pin"), { pin, scale, anchorX, anchorY });
 }
 
-export type PinTurn = "flipHorizontal" | "flipVertical" | "rotateClockwise" | "rotateCounterClockwise";
+/** 翻转与旋转动作，来自 Rust `kinshoko_core::desktop::Turn` 的生成绑定。 */
+export type PinTurn = Turn;
 
 /** 翻转或旋转钉图（中心不动）。新状态以 pin-frame 到达。 */
 export function turnPin(pin: string, turn: PinTurn): Promise<void> {

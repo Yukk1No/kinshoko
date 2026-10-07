@@ -15,10 +15,10 @@ use std::sync::{Arc, Mutex, Weak};
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::library::{
-    BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, ImageDetail, ImageEdit,
-    ImageRating, ImageTags, ImportSource, LibraryEvent, LibraryInfo, PersonalApproxEntry,
-    RecoveryReport, ReferenceLens, Sidebar, TagEdit, TagGroupView, Vocabulary,
-    discover_eagle_libraries as discover_eagle,
+    BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping,
+    ExternalVocabulary, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportSource, LibraryEvent,
+    LibraryInfo, MappedExternal, PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar,
+    TagEdit, TagGroupView, TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::search::{Candidate, ConditionTree, SearchCache, SearchInput};
 use kinshoko_core::{
@@ -51,6 +51,11 @@ struct LibraryState {
     reference: Mutex<Option<ReferenceLens>>,
     /// 随软件分发的内置近似对应表，启动时读取一次。
     builtin_approx: Arc<BuiltinApproxTable>,
+    /// 随软件分发的翻译表（见 [`bundled_translations`]）：资料库首次进库的外部名称取它的
+    /// 各语言名称，迁入向导也按它匹配 Eagle 标签。
+    translations: Arc<TagTranslations>,
+    /// 迁入向导的外部词表及它读自哪份模型词表；模型变了才重读。
+    external_vocabulary: Mutex<Option<(Option<PathBuf>, ExternalVocabulary)>>,
 }
 
 impl LibraryState {
@@ -117,6 +122,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             set_tag_approx,
             remove_tag_approx,
             personal_approx,
+            eagle_tag_mapping,
+            map_tag_external,
+            external_suggestions,
             image_rating,
             safe_mode,
             set_safe_mode
@@ -144,6 +152,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 search: Arc::default(),
                 reference: Mutex::new(None),
                 builtin_approx: Arc::new(BuiltinApproxTable::bundled()),
+                translations: Arc::new(bundled_translations()),
+                external_vocabulary: Mutex::new(None),
             });
             Ok(())
         })
@@ -235,6 +245,7 @@ fn forward_events<R: Runtime>(
     }
     *forwarded = Some(weak.clone());
     library.set_safe_mode(saved_safe_mode(app));
+    library.set_translations((*state.translations).clone());
     let events = library.events();
     *lock(&state.reference) = library.take_reference_lens();
     state.search.invalidate();
@@ -756,6 +767,79 @@ async fn personal_approx(
 ) -> Result<Vec<PersonalApproxEntry>, String> {
     let library = state.current(&library_id)?;
     blocking(move || library.personal_approx(&lang).map_err(|e| e.to_string())).await
+}
+
+/// 随软件分发的翻译表，启动时取一次。唯一的注入点：还没有随软件分发的翻译表，暂为空；
+/// #76 分发翻译表时只改这里。
+fn bundled_translations() -> TagTranslations {
+    TagTranslations::default()
+}
+
+/// 迁入向导的外部词表：内置近似对应表中的名称、本机已就绪模型的词表与翻译表。
+/// 会读文件，不要在主线程上调用。
+fn external_vocabulary<R: Runtime>(app: &AppHandle<R>) -> Result<ExternalVocabulary, String> {
+    let state = app.state::<LibraryState>();
+    let csv = crate::tagging::vocabulary_csv(app);
+    let mut cached = lock(&state.external_vocabulary);
+    if let Some((path, vocabulary)) = cached.as_ref()
+        && *path == csv
+    {
+        return Ok(vocabulary.clone());
+    }
+    let mut names = ExternalVocabulary::builtin_names(&state.builtin_approx);
+    if let Some(path) = &csv {
+        names.extend(ExternalVocabulary::read_tags_csv(path)?);
+    }
+    let vocabulary = ExternalVocabulary::new(names, &state.translations);
+    *cached = Some((csv, vocabulary.clone()));
+    Ok(vocabulary)
+}
+
+/// 迁入向导“标签的外部对应”：自动匹配还没有外部对应的 Eagle 标签，返回对上与没对上的。
+#[tauri::command]
+async fn eagle_tag_mapping<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+    library_id: String,
+    lang: String,
+) -> Result<EagleTagMapping, String> {
+    let library = state.current(&library_id)?;
+    blocking(move || {
+        let vocabulary = external_vocabulary(&app)?;
+        library
+            .map_eagle_tags(&vocabulary, &lang)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+/// 迁入向导：画师给一个标签补上外部对应。
+#[tauri::command]
+async fn map_tag_external<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+    library_id: String,
+    tag_id: String,
+    external: String,
+) -> Result<MappedExternal, String> {
+    let library = state.current(&library_id)?;
+    blocking(move || {
+        let vocabulary = external_vocabulary(&app)?;
+        library
+            .map_tag_external(&tag_id, &external, &vocabulary)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+/// 补外部对应时的联想。外部词表属于本设备，不带资料库身份。
+#[tauri::command]
+async fn external_suggestions<R: Runtime>(
+    app: AppHandle<R>,
+    text: String,
+    limit: u32,
+) -> Result<Vec<String>, String> {
+    blocking(move || Ok(external_vocabulary(&app)?.suggest(&text, limit as usize))).await
 }
 
 /// 一张参考图的内容分级（自动与有效）。
