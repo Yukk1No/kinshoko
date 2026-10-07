@@ -30,6 +30,9 @@ xcap = "0.9.8"
 arboard = { version = "3.6", default-features = false, features = ["image-data"] }
 tauri-plugin-updater = "2"
 
+[dev-dependencies]
+tempfile = "3.27.0"
+
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Devices_Display", "Win32_Graphics_Gdi", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_UI_ColorSystem", "Win32_UI_WindowsAndMessaging"] }
 

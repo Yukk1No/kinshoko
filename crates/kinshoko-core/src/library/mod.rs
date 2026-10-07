@@ -382,14 +382,17 @@ impl Library {
         Ok(sources)
     }
 
-    /// 设置翻译表：之后首次进库的外部名称按它取得各语言的初始名称与别名。
-    /// 已有标签不受影响。
-    pub fn set_translations(&self, table: TagTranslations) {
+    /// 装上翻译表（ADR-0003 的首次初始化）：之后首次进库的外部名称按它取得各语言的初始名称与
+    /// 别名；库里仍尚未翻译的标签现在就按它补上。已有名称的标签、画师加的别名与人工标签决定
+    /// 不受影响。核心资料库本身不带翻译表，应用壳在打开每个资料库时装上随软件分发的
+    /// [`TagTranslations::bundled`]。
+    pub fn set_translations(&self, table: TagTranslations) -> Result<(), Error> {
         *self
             .inner
             .translations
             .write()
             .unwrap_or_else(|e| e.into_inner()) = tags::index(table);
+        tags::apply_translations(&self.inner)
     }
 
     /// 对若干参考图批量应用标签编辑（添加、否决、清除人工标签决定）。

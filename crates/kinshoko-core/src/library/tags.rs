@@ -7,7 +7,8 @@
 //!   （迁移 0051 中的视图 `effective_tag`，查找与计数都以它为准）。
 //! - 外部名称首次进库时由翻译表（[`TagTranslations`]）给出各语言的初始名称与别名；
 //!   没有翻译的照常进库，显示外部名称并标明尚未翻译。之后名称属于画师的整理数据，
-//!   翻译表更新不改动已有标签。
+//!   翻译表更新不改动已有名称、别名与人工标签决定；只有仍尚未翻译（没有任何名称）的标签
+//!   在装上新表时做首次初始化。随软件分发的表见 [`TagTranslations::bundled`]。
 //!
 //! 编辑入口 [`super::Library::edit_tags`] 只管标签决定；#50 的 `edit(ids, edits)`
 //! 可以把 [`TagEdit`] 包成其中一种编辑。
@@ -170,10 +171,49 @@ pub struct TagTranslation {
     pub aliases: Vec<TagAlias>,
 }
 
-/// 随软件分发的翻译表。只在标签首次进库时使用。
+/// 翻译表。只给标签做首次初始化：外部名称首次进库时，或表装上时仍尚未翻译的标签。
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
 pub struct TagTranslations {
     pub entries: Vec<TagTranslation>,
+}
+
+const BUNDLED_FORMAT: &str = "kinshoko.builtin-translation-table";
+const BUNDLED_FORMAT_VERSION: u32 = 1;
+const BUNDLED: &str = include_str!("../../../../data/builtin-translation-table.json");
+
+/// `data/builtin-translation-table.json` 的文件结构（格式见 `data/README.md`）。
+#[derive(Deserialize)]
+struct BundledFile {
+    format: String,
+    format_version: u32,
+    table_version: u32,
+    entries: Vec<TagTranslation>,
+}
+
+fn bundled_file() -> BundledFile {
+    let file: BundledFile =
+        serde_json::from_str(BUNDLED).expect("随软件分发的翻译表应是有效的 JSON");
+    assert_eq!(file.format, BUNDLED_FORMAT, "不是内置翻译表");
+    assert_eq!(
+        file.format_version, BUNDLED_FORMAT_VERSION,
+        "不认识的内置翻译表格式版本"
+    );
+    file
+}
+
+impl TagTranslations {
+    /// 随软件分发的内置翻译表（`data/builtin-translation-table.json`，由
+    /// `tools/translation-table` 生成）：PixAI v1.0 词表中最常见的一般标签的简体中文名称与别名。
+    pub fn bundled() -> TagTranslations {
+        TagTranslations {
+            entries: bundled_file().entries,
+        }
+    }
+
+    /// 内置翻译表的表版本（内容变化时加一）。
+    pub fn bundled_version() -> u32 {
+        bundled_file().table_version
+    }
 }
 
 pub(super) type TranslationIndex = HashMap<String, TagTranslation>;
@@ -386,6 +426,104 @@ fn find_named(
     Ok(None)
 }
 
+/// 本命名空间里除 `tag_id` 以外的标签是否已用 `text` 作名称或别名。
+fn text_taken(
+    tx: &Transaction,
+    namespace: TagNamespace,
+    tag_id: &str,
+    text: &str,
+) -> Result<bool, Error> {
+    Ok(tx
+        .query_row(
+            "SELECT 1 FROM tag t WHERE t.namespace = ?1 AND t.id <> ?2 AND (
+                 EXISTS (SELECT 1 FROM tag_name n WHERE n.tag_id = t.id AND n.name = ?3)
+                 OR EXISTS (SELECT 1 FROM tag_alias a WHERE a.tag_id = t.id AND a.name = ?3))",
+            params![namespace.as_str(), tag_id, text],
+            |_| Ok(()),
+        )
+        .optional()?
+        .is_some())
+}
+
+/// 标签的首次初始化：按翻译表写入各语言名称与别名。已有的名称、别名不动；与本命名空间
+/// 其他标签的名称或别名相同的跳过（否则画师输入它时对不上唯一的标签），留给画师处理。
+/// 返回是否写入了任何内容。
+fn initialise_names(
+    tx: &Transaction,
+    namespace: TagNamespace,
+    tag_id: &str,
+    translation: &TagTranslation,
+) -> Result<bool, Error> {
+    let mut changed = false;
+    for (lang, name) in &translation.names {
+        if text_taken(tx, namespace, tag_id, name)? {
+            continue;
+        }
+        changed |= tx.execute(
+            "INSERT OR IGNORE INTO tag_name (tag_id, lang, name) VALUES (?1, ?2, ?3)",
+            params![tag_id, lang, name],
+        )? > 0;
+    }
+    for alias in &translation.aliases {
+        if text_taken(tx, namespace, tag_id, &alias.name)? {
+            continue;
+        }
+        changed |= tx.execute(
+            "INSERT OR IGNORE INTO tag_alias (tag_id, name, lang) VALUES (?1, ?2, ?3)",
+            params![tag_id, alias.name, alias.lang],
+        )? > 0;
+    }
+    Ok(changed)
+}
+
+/// 装上（或更新）翻译表：仍尚未翻译（没有任何语言名称）的标签按表做首次初始化（ADR-0003）。
+/// 已有名称的标签——不论名称来自旧表还是画师——不动，人工标签决定也不碰。
+/// 有改动时词表修订号加一并推送事件。
+pub(super) fn apply_translations(inner: &Inner) -> Result<(), Error> {
+    let translations = inner.translations();
+    if translations.is_empty() {
+        return Ok(());
+    }
+    let revision = inner.writer.run(move |conn| {
+        let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        let pending: Vec<(String, String, String)> = {
+            let mut stmt = tx.prepare(
+                "SELECT t.id, t.namespace, e.name FROM tag t JOIN tag_external e ON e.tag_id = t.id
+                 WHERE NOT EXISTS (SELECT 1 FROM tag_name n WHERE n.tag_id = t.id)
+                 ORDER BY t.id, e.name",
+            )?;
+            stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+                .collect::<Result<_, _>>()?
+        };
+        let mut changed = false;
+        let mut done = std::collections::HashSet::new();
+        for (tag_id, namespace, external) in pending {
+            let Some(translation) = translations.get(&external) else {
+                continue;
+            };
+            // 一个标签有多个外部对应时，按名称序第一个有翻译的为准。
+            if !done.insert(tag_id.clone()) {
+                continue;
+            }
+            let namespace = TagNamespace::parse(&namespace)?;
+            changed |= initialise_names(&tx, namespace, &tag_id, translation)?;
+        }
+        if !changed {
+            return Ok::<_, Error>(None);
+        }
+        let revision = bump_revision(&tx)?;
+        tx.commit()?;
+        Ok(Some(revision))
+    })?;
+    if let Some(revision) = revision {
+        inner.hub.publish(LibraryEvent::VocabularyChanged {
+            library_id: inner.info.id.clone(),
+            revision,
+        });
+    }
+    Ok(())
+}
+
 /// 找到或新建 `tag` 指向的标签。`create` 为假时找不到返回 `None`。
 fn resolve(
     tx: &Transaction,
@@ -431,12 +569,17 @@ fn resolve(
             }
             let translation = translations.get(&name);
             // 翻译后的名称已是本命名空间某个标签的名称：外部对应落在那个标签上。
+            // 叫这个名称的标签不止一个时不去猜，当作没有。
             let mut id = None;
             if let Some(t) = translation {
                 for translated in t.names.values() {
-                    if let Some(found) = find_named(tx, *namespace, translated)? {
-                        id = Some(found);
-                        break;
+                    match find_named(tx, *namespace, translated) {
+                        Ok(Some(found)) => {
+                            id = Some(found);
+                            break;
+                        }
+                        Ok(None) | Err(Error::AmbiguousTag(_)) => {}
+                        Err(e) => return Err(e),
                     }
                 }
             }
@@ -445,19 +588,7 @@ fn resolve(
                 None => {
                     let id = new_tag(tx, *namespace)?;
                     if let Some(t) = translation {
-                        for (lang, n) in &t.names {
-                            tx.execute(
-                                "INSERT INTO tag_name (tag_id, lang, name) VALUES (?1, ?2, ?3)",
-                                params![id, lang, n],
-                            )?;
-                        }
-                        for alias in &t.aliases {
-                            tx.execute(
-                                "INSERT OR IGNORE INTO tag_alias (tag_id, name, lang)
-                                 VALUES (?1, ?2, ?3)",
-                                params![id, alias.name, alias.lang],
-                            )?;
-                        }
+                        initialise_names(tx, *namespace, &id, t)?;
                     }
                     id
                 }

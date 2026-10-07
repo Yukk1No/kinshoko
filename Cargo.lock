@@ -2506,6 +2506,7 @@ dependencies = [
  "tauri-plugin-global-shortcut",
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
+ "tempfile",
  "uuid",
  "windows-sys 0.61.2",
  "xcap",

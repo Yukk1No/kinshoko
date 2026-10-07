@@ -132,11 +132,7 @@ pub fn render_sdr(
     let space = space(d);
     let container = container(d);
 
-    let output = match space {
-        Space::Srgb => ColorProfile::new_srgb(),
-        Space::SourceIcc => inspection.profile.clone().ok_or("缺少来源 ICC")?,
-        Space::DisplayP3 => profiles::display_p3(),
-    };
+    let output = output_profile(space, &inspection)?;
     let working = profiles::linear_of(&output);
 
     let (w, h, mut linear) = decode_linear(bytes, &inspection, &working)?;
@@ -177,6 +173,22 @@ pub fn render_sdr(
         width: w,
         height: h,
     })
+}
+
+/// 派生图的存储色彩空间。
+fn output_profile(space: Space, inspection: &Inspection) -> Result<ColorProfile, String> {
+    Ok(match space {
+        Space::Srgb => ColorProfile::new_srgb(),
+        Space::SourceIcc => inspection.profile.clone().ok_or("缺少来源 ICC")?,
+        Space::DisplayP3 => profiles::display_p3(),
+    })
+}
+
+/// 按派生图管线完整解码一遍像素（同样的解码与色彩转换），确认原图真能显示。
+/// 文件头有效、压缩像素却损坏的原图在这里失败；导入在暂存与发布之前调用。
+pub(crate) fn verify_pixels(bytes: &[u8], inspection: &Inspection) -> Result<(), String> {
+    let output = output_profile(space(&inspection.description), inspection)?;
+    decode_linear(bytes, inspection, &profiles::linear_of(&output)).map(|_| ())
 }
 
 fn options() -> TransformOptions {
