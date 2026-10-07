@@ -31,7 +31,13 @@ env:
 jobs:
   app:
     name: Windows 应用
-    runs-on: windows-latest
+    # 固定 windows-2022（WebView2 131）：windows-latest（Windows Server 2025 镜像，WebView2 153）上
+    # msedgedriver 启动应用后 60 秒等不到 DevToolsActivePort，WebDriver 建不了会话。
+    # 与本应用无关，Tauri 官方示例同样失败：
+    # https://github.com/tauri-apps/webdriver-example/actions/runs/37109073064
+    # 对比实验：https://github.com/Yukk1No/kinshoko/actions/runs/37614514097
+    # 等上游修好后再改回 windows-latest，冒烟测试保持阻断。
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
