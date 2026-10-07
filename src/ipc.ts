@@ -20,7 +20,7 @@ import type { ImageDetail } from "./bindings/ImageDetail";
 import type { ImageEdit } from "./bindings/ImageEdit";
 import type { ImageRating } from "./bindings/ImageRating";
 import type { ImageTags } from "./bindings/ImageTags";
-import type { SavedPin } from "./bindings/SavedPin";
+import type { PinFrame } from "./bindings/PinFrame";
 import type { Region } from "./bindings/Region";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
@@ -313,9 +313,29 @@ export function pinCapture(id: string): Promise<void> {
   return invoke<void>(desk("pin_capture"), { id });
 }
 
-/** 钉图窗口要画的内容与摆放（位置、裁切、缩放、翻转、旋转）；钉图已关闭时为 null。 */
-export function pinInfo(pin: string): Promise<SavedPin | null> {
-  return invoke<SavedPin | null>(desk("pin_info"), { pin });
+/** 钉图窗口当前的一帧：要画的钉图、原生窗口与内容的位置；钉图已关闭时为 null。 */
+export function pinFrame(pin: string): Promise<PinFrame | null> {
+  return invoke<PinFrame | null>(desk("pin_frame"), { pin });
+}
+
+/** 发给本钉图窗口的帧（缩放、贴边滑动、翻转旋转、透明度、锁定都经这里，#64）。 */
+export function onPinFrame(handler: (frame: PinFrame) => void): Promise<UnlistenFn> {
+  return getCurrentWebviewWindow().listen<PinFrame>("pin-frame", (e) => handler(e.payload));
+}
+
+/** 动画结束：让应用壳把原生窗口改成静止时的矩形（只认最新一帧的 generation）。 */
+export function settlePin(pin: string, generation: number): Promise<void> {
+  return invoke<void>(desk("settle_pin"), { pin, generation });
+}
+
+/** 透明度 0.1～1。 */
+export function setPinOpacity(pin: string, opacity: number): Promise<void> {
+  return invoke<void>(desk("set_pin_opacity"), { pin, opacity });
+}
+
+/** 锁定后钉图不响应拖动与缩放。 */
+export function setPinLocked(pin: string, locked: boolean): Promise<void> {
+  return invoke<void>(desk("set_pin_locked"), { pin, locked });
 }
 
 /** 钉图窗口：第一帧已画好，可以显示了。 */
@@ -328,21 +348,21 @@ export function pinMenu(pin: string): Promise<void> {
   return invoke<void>(desk("pin_menu"), { pin });
 }
 
-/** 拖动钉图（笔、鼠标、触摸同一套）：移到屏幕物理像素 (x, y)，成为新的原位。 */
+/** 拖动钉图（笔、鼠标、触摸同一套）：移到屏幕物理像素 (x, y)，成为新的原位。锁定时 reject。 */
 export function movePin(pin: string, x: number, y: number): Promise<void> {
   return invoke<void>(desk("move_pin"), { pin, x, y });
 }
 
-/** 缩放钉图；窗口内 (anchorX, anchorY)（物理像素）不动。返回缩放后的状态。 */
-export function zoomPin(pin: string, scale: number, anchorX: number, anchorY: number): Promise<SavedPin> {
-  return invoke<SavedPin>(desk("zoom_pin"), { pin, scale, anchorX, anchorY });
+/** 缩放钉图；屏幕上的 (anchorX, anchorY)（物理像素）不动。新状态以 pin-frame 到达；锁定时 reject。 */
+export function zoomPin(pin: string, scale: number, anchorX: number, anchorY: number): Promise<void> {
+  return invoke<void>(desk("zoom_pin"), { pin, scale, anchorX, anchorY });
 }
 
 export type PinTurn = "flipHorizontal" | "flipVertical" | "rotateClockwise" | "rotateCounterClockwise";
 
-/** 翻转或旋转钉图（中心不动）。返回新的状态。 */
-export function turnPin(pin: string, turn: PinTurn): Promise<SavedPin> {
-  return invoke<SavedPin>(desk("turn_pin"), { pin, turn });
+/** 翻转或旋转钉图（中心不动）。新状态以 pin-frame 到达。 */
+export function turnPin(pin: string, turn: PinTurn): Promise<void> {
+  return invoke<void>(desk("turn_pin"), { pin, turn });
 }
 
 /** 贴边隐藏全部钉图，或让它们回到原位（与全局快捷键相同）。 */

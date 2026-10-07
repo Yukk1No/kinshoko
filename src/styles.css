@@ -881,10 +881,21 @@ button.primary {
   cursor: nwse-resize;
 }
 
-.pin-canvas {
+.pin-locked {
+  cursor: default;
+}
+
+/* 钉图内容：缩放与贴边动画只变换它，不逐帧改原生窗口（#64）。静止时没有变换，逐像素显示。 */
+.pin-content {
   position: absolute;
   left: 0;
   top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.pin-canvas {
+  display: block;
 }
 
 /* 新钉图出现时描一圈渐隐的边，让画师一眼看出钉上了（#7 反馈）。 */

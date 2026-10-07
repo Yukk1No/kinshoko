@@ -1,5 +1,5 @@
 //! 直接调用的 Windows 接口：显示器当前使用的颜色配置文件（ICC，#62）；前台窗口、交还焦点与
-//! 光标位置（贴边隐藏，#63）。
+//! 光标位置（贴边隐藏，#63）；一次调用同时改钉图窗口的位置与尺寸（#64）。
 //!
 //! 这些信息只有 Win32 函数提供，没有安全的 Rust 封装，所以本模块是应用壳里唯一允许
 //! `unsafe` 的地方。每处调用都只传本函数自己持有的缓冲区，句柄在同一函数内创建并释放。
@@ -12,7 +12,8 @@ use windows_sys::Win32::Foundation::{HWND, POINT};
 use windows_sys::Win32::Graphics::Gdi::{CreateDCW, DeleteDC};
 use windows_sys::Win32::UI::ColorSystem::GetICMProfileW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetCursorPos, GetForegroundWindow, GetWindowThreadProcessId, IsWindow, SetForegroundWindow,
+    GetCursorPos, GetForegroundWindow, GetWindowThreadProcessId, IsWindow, SWP_NOACTIVATE,
+    SWP_NOOWNERZORDER, SWP_NOZORDER, SetForegroundWindow, SetWindowPos,
 };
 
 /// 前台窗口（句柄按整数传，便于跨线程保存）与它所属的进程 id。没有前台窗口时为 `None`。
@@ -38,6 +39,23 @@ pub fn set_foreground(hwnd: isize) -> bool {
     }
     // SAFETY：`hwnd` 刚确认是有效窗口。
     unsafe { SetForegroundWindow(hwnd) != 0 }
+}
+
+/// 一次调用同时改窗口外框的位置与尺寸（物理像素）。分成移动、改尺寸两次调用时，
+/// 中间会合成出位置变了尺寸没变的一帧（#64）。不改 Z 序、不激活窗口。
+pub fn set_window_rect(hwnd: isize, x: i32, y: i32, width: u32, height: u32) -> bool {
+    let hwnd = hwnd as HWND;
+    // SAFETY：IsWindow 接受任意值；已销毁的句柄只会让它返回 0。
+    if unsafe { IsWindow(hwnd) } == 0 {
+        return false;
+    }
+    let flags = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER;
+    let (w, h) = (
+        width.min(i32::MAX as u32) as i32,
+        height.min(i32::MAX as u32) as i32,
+    );
+    // SAFETY：`hwnd` 刚确认是有效窗口；其余参数都是值。
+    unsafe { SetWindowPos(hwnd, ptr::null_mut(), x, y, w, h, flags) != 0 }
 }
 
 /// 光标位置，物理像素（进程是每显示器 DPI 感知）。

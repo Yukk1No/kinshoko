@@ -3,6 +3,8 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use super::{SavedPin, ScreenRect};
+
 /// 框选完成后做什么。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -23,4 +25,33 @@ pub struct FrozenScreen {
     pub height: u32,
     /// 冻结屏幕的地址：`screen/<标记>`，由应用壳映射到自定义协议 `capture`。
     pub image: String,
+}
+
+/// 钉图怎样到达新的位置（#64）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum PinMotion {
+    /// 直接到（拖动、翻转、旋转、恢复、动画结束后改窗口）。
+    Jump,
+    /// 缩放动画。
+    Zoom,
+    /// 贴边收起、滑出与回到原位的动画。
+    Slide,
+}
+
+/// 应用壳发给钉图窗口的一帧：画什么、原生窗口此刻在哪、内容要到哪（#64）。
+///
+/// 内容在窗口里变换，不逐帧改原生窗口；`window` 与 `content` 不同时（动画中、收起时），
+/// 页面把内容画在 `content` 相对 `window` 的位置。
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PinFrame {
+    pub pin: SavedPin,
+    pub window: ScreenRect,
+    pub content: ScreenRect,
+    pub motion: PinMotion,
+    /// 动画结束后页面带着它调用 `settle_pin`；不是最新一帧的就不再改窗口。
+    pub generation: u32,
 }
