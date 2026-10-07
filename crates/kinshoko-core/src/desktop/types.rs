@@ -40,6 +40,17 @@ pub enum PinMotion {
     Slide,
 }
 
+/// 钉图的翻转与旋转（中心不动）。快捷键 H/V/R/Shift+R 与右键菜单共用（#63、#64）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum Turn {
+    FlipHorizontal,
+    FlipVertical,
+    RotateClockwise,
+    RotateCounterClockwise,
+}
+
 /// 应用壳发给钉图窗口的一帧：画什么、原生窗口此刻在哪、内容要到哪（#64）。
 ///
 /// 内容在窗口里变换，不逐帧改原生窗口；`window` 与 `content` 不同时（动画中、收起时），

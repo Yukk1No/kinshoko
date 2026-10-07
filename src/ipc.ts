@@ -35,6 +35,7 @@ import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { TagEdit } from "./bindings/TagEdit";
 import type { TagGroupView } from "./bindings/TagGroupView";
 import type { LibraryTaggingStatus } from "./bindings/LibraryTaggingStatus";
+import type { Turn } from "./bindings/Turn";
 import type { UpdateProgress } from "./bindings/UpdateProgress";
 import type { UpdateStatus } from "./bindings/UpdateStatus";
 import type { Vocabulary } from "./bindings/Vocabulary";
@@ -460,7 +461,8 @@ export function zoomPin(pin: string, scale: number, anchorX: number, anchorY: nu
   return invoke<void>(desk("zoom_pin"), { pin, scale, anchorX, anchorY });
 }
 
-export type PinTurn = "flipHorizontal" | "flipVertical" | "rotateClockwise" | "rotateCounterClockwise";
+/** 翻转与旋转动作，来自 Rust `kinshoko_core::desktop::Turn` 的生成绑定。 */
+export type PinTurn = Turn;
 
 /** 翻转或旋转钉图（中心不动）。新状态以 pin-frame 到达。 */
 export function turnPin(pin: string, turn: PinTurn): Promise<void> {
