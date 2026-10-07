@@ -37,6 +37,16 @@ pub struct Toggle {
     pub moves: Vec<PinMove>,
 }
 
+/// 收起的钉图静止时的窗口（#64）。
+///
+/// 窗口盖住收起与滑出两个位置，屏幕上的部分正好是滑出时钉图所在的地方。滑出与收回只在窗口里
+/// 移动内容，不动原生窗口。没滑出时应用壳让这个窗口的点击穿过，只有细边看得见。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Tuck {
+    pub stage: ScreenRect,
+    pub peeking: bool,
+}
+
 #[derive(Debug, Clone)]
 struct Tucked {
     /// 收起时的位置与滑出时的位置。
@@ -105,7 +115,7 @@ impl EdgeHide {
             let want_peek = if t.peeking {
                 contains(rect_at(t.peek, t.size), cursor, PEEK_SLACK as i32)
             } else {
-                let sliver = intersect(rect_at(t.hidden, t.size), t.monitor);
+                let sliver = rect_at(t.hidden, t.size).intersect(&t.monitor);
                 sliver.is_some_and(|s| contains(s, cursor, 0))
             };
             if want_peek != t.peeking {
@@ -125,6 +135,14 @@ impl EdgeHide {
     /// 这个钉图收起着（包括正滑出）。
     pub fn is_hidden(&self, id: &str) -> bool {
         self.tucked.contains_key(id)
+    }
+
+    /// 收起的钉图静止时的窗口；没有收起时为 `None`。
+    pub fn tuck(&self, id: &str) -> Option<Tuck> {
+        self.tucked.get(id).map(|t| Tuck {
+            stage: rect_at(t.hidden, t.size).union(&rect_at(t.peek, t.size)),
+            peeking: t.peeking,
+        })
     }
 
     /// 有收起的钉图：应用壳据此决定是否需要轮询光标。
@@ -177,19 +195,6 @@ fn rect_at((x, y): (i32, i32), (width, height): (u32, u32)) -> ScreenRect {
         width,
         height,
     }
-}
-
-fn intersect(a: ScreenRect, b: ScreenRect) -> Option<ScreenRect> {
-    let left = a.x.max(b.x);
-    let top = a.y.max(b.y);
-    let right = (i64::from(a.x) + i64::from(a.width)).min(i64::from(b.x) + i64::from(b.width));
-    let bottom = (i64::from(a.y) + i64::from(a.height)).min(i64::from(b.y) + i64::from(b.height));
-    (right > i64::from(left) && bottom > i64::from(top)).then(|| ScreenRect {
-        x: left,
-        y: top,
-        width: (right - i64::from(left)) as u32,
-        height: (bottom - i64::from(top)) as u32,
-    })
 }
 
 /// 点在矩形内（向外放宽 `slack`）。右、下边不含。

@@ -8,10 +8,10 @@
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::time::Duration;
 
-use kinshoko_core::desktop::{DeskPin, PinMove, SavedPin};
-use tauri::{AppHandle, Manager, PhysicalPosition};
+use kinshoko_core::desktop::{DeskPin, PinMotion, PinMove, SavedPin, ScreenRect};
+use tauri::{AppHandle, Manager};
 
-use super::pins::{label, monitor_at, open_pins};
+use super::pins::{monitor_at, open_pins, show};
 use super::{lock, state};
 
 const TICK: Duration = Duration::from_millis(60);
@@ -86,12 +86,29 @@ fn desk_pin(pin: &SavedPin) -> DeskPin {
     }
 }
 
-/// 移动窗口。不持有任何锁。
+/// 让钉图滑到新位置（#64）：内容在窗口里动画，原生窗口一次滑动最多改两次。
+/// 收起的钉图静止在 [`Tuck::stage`](kinshoko_core::desktop::Tuck) 里：滑出与收回不动原生窗口，
+/// 没滑出时让点击穿过，只露细边。
 fn apply(app: &AppHandle, moves: &[PinMove]) {
     for m in moves {
-        if let Some(window) = app.get_webview_window(&label(&m.pin)) {
-            let _ = window.set_position(PhysicalPosition::new(m.x, m.y));
-        }
+        let Some((width, height)) = lock(&state(app).store)
+            .get(&m.pin)
+            .map(SavedPin::window_size)
+        else {
+            continue;
+        };
+        let content = ScreenRect {
+            x: m.x,
+            y: m.y,
+            width,
+            height,
+        };
+        let tuck = lock(&state(app).edge).tuck(&m.pin);
+        let (rest, click_through) = match tuck {
+            Some(t) => (t.stage, !t.peeking),
+            None => (content, false),
+        };
+        show(app, &m.pin, content, rest, PinMotion::Slide, click_through);
     }
 }
 

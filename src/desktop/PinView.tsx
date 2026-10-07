@@ -1,23 +1,37 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
+import type { PinFrame } from "../bindings/PinFrame";
 import type { SavedPin } from "../bindings/SavedPin";
 import {
   captureUrl,
   movePin,
+  onPinFrame,
   onPinNotice,
-  pinInfo,
+  pinFrame,
   pinMenu,
   pinReady,
+  setPinOpacity,
+  settlePin,
   turnPin,
   zoomPin,
   type PinTurn,
 } from "../ipc";
+import {
+  ContentMotion,
+  HOLD_MS,
+  SLIDE_MS,
+  ZOOM_MS,
+  contentTransform,
+  heldForMenu,
+  pressOpensMenu,
+  wheelOpacity,
+} from "./motion";
 import {
   cornerZoomScale,
   inZoomCorner,
   pinCanvasSize,
   pinDrawing,
   wheelZoomScale,
+  type Point,
   type ZoomStart,
 } from "./pixels";
 
@@ -42,7 +56,7 @@ function pinContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D | null 
   return fallback.getContext("2d", { colorSpace: "srgb" });
 }
 
-/** 按 DPI 像素规则画钉图：canvas 后备尺寸等于窗口物理像素；先翻转再绕中心旋转，只画裁切部分。 */
+/** 按 DPI 像素规则画钉图：canvas 后备尺寸等于钉图的物理像素；先翻转再绕中心旋转，只画裁切部分。 */
 function drawPin(ctx: CanvasRenderingContext2D, image: HTMLImageElement, pin: SavedPin) {
   const geometry = { width: pin.width, height: pin.height, ...pin.placement };
   const size = pinCanvasSize(geometry, window.devicePixelRatio);
@@ -73,6 +87,12 @@ function drawPin(ctx: CanvasRenderingContext2D, image: HTMLImageElement, pin: Sa
   );
 }
 
+/** 画面内容变了才重画 canvas（位置变化只改 CSS 变换）。 */
+function drawKey(pin: SavedPin): string {
+  const p = pin.placement;
+  return JSON.stringify([pin.width, pin.height, pin.crop, p.scale, p.flipH, p.flipV, p.rotation]);
+}
+
 /** 只发最新的一次：上一次还没返回时，新的请求替换排队中的那个。拖动时不会积压 IPC。 */
 function latestOnly<A extends unknown[]>(send: (...args: A) => Promise<unknown>) {
   let busy = false;
@@ -97,9 +117,21 @@ function latestOnly<A extends unknown[]>(send: (...args: A) => Promise<unknown>)
   return run;
 }
 
-type Gesture =
-  | { kind: "move"; pointerId: number; screenX: number; screenY: number; origin: Promise<{ x: number; y: number }> }
-  | { kind: "zoom"; pointerId: number; screenX: number; screenY: number; start: ZoomStart };
+type Gesture = {
+  pointerId: number;
+  pointerType: string;
+  /** 按下处（CSS 像素，相对窗口）与时间，用来判断按住不动打开菜单。 */
+  down: Point;
+  last: Point;
+  at: number;
+  screenX: number;
+  screenY: number;
+} & (
+  | { kind: "move"; origin: Point }
+  | { kind: "zoom"; origin: Point; start: ZoomStart }
+  /** 锁定的钉图：只等按住打开菜单。 */
+  | { kind: "hold" }
+);
 
 const TURN_KEYS: Record<string, PinTurn> = {
   h: "flipHorizontal",
@@ -108,50 +140,129 @@ const TURN_KEYS: Record<string, PinTurn> = {
   R: "rotateCounterClockwise",
 };
 
+/** 动画结束后等这么久没有新的缩放再改原生窗口：滚轮连续几格时窗口不来回变。 */
+const SETTLE_IDLE_MS = 120;
+/** 同一次按下引出的 pointerdown 与 contextmenu 只开一次菜单。 */
+const MENU_DEDUPE_MS = 800;
+
 /**
  * 钉图窗口：按 DPI 像素规则把截图画在物理像素尺寸的 canvas 上（未缩放时与截图逐像素一致）。
  *
+ * 几何由应用壳以帧（`pin-frame`）推来：原生窗口在哪、内容要到哪。缩放与贴边滑动只在窗口里变换
+ * 内容，不逐帧改原生窗口（#7、#64）；动画结束后请应用壳把窗口改成静止时的矩形。
+ *
  * 笔、鼠标与触摸走同一套 pointer 处理（#7：Windows Ink 下笔拖动没有系统拖动需要的鼠标事件）：
- * 按住拖动移动，按住右下角拖动缩放，都由程序移动窗口。滚轮以光标为中心缩放；H/V 翻转，R/Shift+R
- * 旋转。右键弹出菜单。
+ * 按住拖动移动，按住右下角拖动缩放，锁定时都不响应。滚轮以光标为中心缩放，Ctrl+滚轮调透明度；
+ * H/V 翻转，R/Shift+R 旋转。右键菜单：鼠标右键、笔的侧键，或笔与触摸按住不动。
  */
 export function PinView({ pin }: { pin: string }) {
   const host = useRef<HTMLDivElement>(null);
+  const body = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture | null>(null);
-  const current = useRef<SavedPin | null>(null);
-  const redraw = useRef<(p: SavedPin) => void>(() => {});
+  const frame = useRef<PinFrame | null>(null);
+  const apply = useRef<(f: PinFrame) => void>(() => {});
+  const settleSoon = useRef<() => void>(() => {});
+  const menuAt = useRef(0);
   const [corner, setCorner] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const openMenu = () => {
+    const now = performance.now();
+    if (now - menuAt.current < MENU_DEDUPE_MS) return;
+    menuAt.current = now;
+    gesture.current = null;
+    void pinMenu(pin);
+  };
 
   useEffect(() => {
     let alive = true;
-    const onResize = () => current.current && redraw.current(current.current);
+    let motion: ContentMotion | null = null;
+    let raf = 0;
+    let settle = 0;
+    let drawn = "";
+    let ctx: CanvasRenderingContext2D | null = null;
+    let image: HTMLImageElement | null = null;
+
+    const scheduleSettle = () => {
+      clearTimeout(settle);
+      settle = window.setTimeout(() => {
+        const f = frame.current;
+        if (!f || gesture.current) return;
+        void settlePin(pin, f.generation);
+      }, SETTLE_IDLE_MS);
+    };
+    settleSoon.current = () => {
+      if (motion?.done(performance.now())) scheduleSettle();
+    };
+    const tick = () => {
+      raf = 0;
+      const f = frame.current;
+      const el = body.current;
+      if (!f || !motion || !el) return;
+      const now = performance.now();
+      el.style.transform = contentTransform(motion.at(now), f.content, f.window, window.devicePixelRatio);
+      if (!motion.done(now)) raf = requestAnimationFrame(tick);
+      else if (f.motion !== "jump") scheduleSettle();
+    };
+    const redraw = (force: boolean) => {
+      const f = frame.current;
+      if (!f || !ctx || !image) return;
+      const key = drawKey(f.pin);
+      if (force || key !== drawn) {
+        drawn = key;
+        drawPin(ctx, image, f.pin);
+      }
+    };
+    apply.current = (f) => {
+      const now = performance.now();
+      const first = frame.current === null;
+      frame.current = f;
+      motion ??= new ContentMotion(f.content, now);
+      const duration = first ? 0 : f.motion === "zoom" ? ZOOM_MS : f.motion === "slide" ? SLIDE_MS : 0;
+      motion.retarget(f.content, now, duration);
+      redraw(false);
+      if (body.current) body.current.style.opacity = String(f.pin.opacity);
+      setLocked(f.pin.locked);
+      clearTimeout(settle);
+      if (!raf) tick();
+    };
+    const onResize = () => {
+      // 拖到缩放比例不同的显示器上时，按新的 dpr 重定 CSS 尺寸与偏移。
+      redraw(true);
+      tick();
+    };
+
+    const frames = onPinFrame((f) => {
+      if (alive) apply.current(f);
+    });
     (async () => {
-      const info = await pinInfo(pin);
-      if (!info || !alive) return;
-      if (info.content.kind !== "capture") return;
-      const image = new Image();
-      image.src = captureUrl(info.content.captureId);
-      await image.decode();
-      if (!alive || !host.current) return;
+      const first = await pinFrame(pin);
+      if (!first || !alive) return;
+      if (first.pin.content.kind !== "capture") return;
+      const img = new Image();
+      img.src = captureUrl(first.pin.content.captureId);
+      await img.decode();
+      if (!alive || !body.current) return;
       const canvas = document.createElement("canvas");
       canvas.className = "pin-canvas";
-      host.current.prepend(canvas);
-      const ctx = pinContext(canvas);
+      body.current.prepend(canvas);
+      ctx = pinContext(canvas);
       if (!ctx) return;
-      redraw.current = (p) => {
-        current.current = p;
-        drawPin(ctx, image, p);
-      };
-      redraw.current(info);
-      // 拖到缩放比例不同的显示器上时，按新的 dpr 重定 CSS 尺寸。
+      image = img;
+      // 等图片期间可能已经到了更新的帧。
+      if (!frame.current) apply.current(first);
+      else redraw(true);
       window.addEventListener("resize", onResize);
       await pinReady(pin);
     })();
     const unlisten = onPinNotice((text) => setNotice(text));
     return () => {
       alive = false;
+      cancelAnimationFrame(raf);
+      clearTimeout(settle);
       window.removeEventListener("resize", onResize);
+      void frames.then((stop) => stop());
       void unlisten.then((stop) => stop());
     };
   }, [pin]);
@@ -162,15 +273,13 @@ export function PinView({ pin }: { pin: string }) {
     return () => clearTimeout(timer);
   }, [notice]);
 
-  // 发往应用壳的拖动与缩放，只保留最新的一次。
+  // 发往应用壳的拖动与缩放，只保留最新的一次。新状态以帧推回来。
   const send = useRef({
     move: latestOnly((x: number, y: number) => movePin(pin, x, y)),
-    zoom: latestOnly((scale: number, ax: number, ay: number) =>
-      zoomPin(pin, scale, ax, ay).then((p) => redraw.current(p)),
-    ),
+    zoom: latestOnly((scale: number, ax: number, ay: number) => zoomPin(pin, scale, ax, ay)),
   });
 
-  // 滚轮缩放（React 的 onWheel 是被动监听，不能阻止页面缩放，所以手动加）。
+  // 滚轮缩放与 Ctrl+滚轮透明度（React 的 onWheel 是被动监听，不能阻止页面缩放，所以手动加）。
   useEffect(() => {
     const el = host.current;
     if (!el) return;
@@ -178,17 +287,22 @@ export function PinView({ pin }: { pin: string }) {
     let idle = 0;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const p = current.current;
-      if (!p || gesture.current) return;
+      const f = frame.current;
+      if (!f || gesture.current || e.deltaY === 0) return;
+      if (e.ctrlKey) {
+        void setPinOpacity(pin, wheelOpacity(f.pin.opacity, e.deltaY));
+        return;
+      }
+      if (f.pin.locked) return;
       const dpr = window.devicePixelRatio;
-      target = wheelZoomScale(target ?? p.placement.scale, e.deltaY);
-      send.current.zoom(target, e.clientX * dpr, e.clientY * dpr);
+      target = wheelZoomScale(target ?? f.pin.placement.scale, e.deltaY);
+      send.current.zoom(target, f.window.x + e.clientX * dpr, f.window.y + e.clientY * dpr);
       clearTimeout(idle);
       idle = window.setTimeout(() => (target = null), 300);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [pin]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -201,60 +315,103 @@ export function PinView({ pin }: { pin: string }) {
       const turn = TURN_KEYS[e.shiftKey ? e.key.toUpperCase() : e.key.toLowerCase()];
       if (!turn) return;
       e.preventDefault();
-      void turnPin(pin, turn).then((p) => redraw.current(p));
+      void turnPin(pin, turn);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [pin]);
 
+  /** 指针在内容的右下角缩放区里（CSS 像素，相对窗口）。 */
+  const atCorner = (x: number, y: number) => {
+    const f = frame.current;
+    if (!f || f.pin.locked) return false;
+    const dpr = window.devicePixelRatio;
+    const local = { x: x - (f.content.x - f.window.x) / dpr, y: y - (f.content.y - f.window.y) / dpr };
+    return inZoomCorner(local, f.content.width / dpr, f.content.height / dpr);
+  };
+
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (pressOpensMenu(e.pointerType, e.button)) {
+      e.preventDefault();
+      openMenu();
+      return;
+    }
     if (e.button !== 0) return;
+    const f = frame.current;
+    if (!f) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    const base = { pointerId: e.pointerId, screenX: e.screenX, screenY: e.screenY };
-    const p = current.current;
-    if (p && inZoomCorner({ x: e.clientX, y: e.clientY }, window.innerWidth, window.innerHeight)) {
-      const size = pinCanvasSize({ width: p.width, height: p.height, ...p.placement }, 1);
-      gesture.current = { kind: "zoom", ...base, start: { scale: p.placement.scale, ...size } };
+    const at = { x: e.clientX, y: e.clientY };
+    const base = {
+      pointerId: e.pointerId,
+      pointerType: e.pointerType,
+      down: at,
+      last: at,
+      at: performance.now(),
+      screenX: e.screenX,
+      screenY: e.screenY,
+    };
+    const origin = { x: f.content.x, y: f.content.y };
+    if (f.pin.locked) {
+      gesture.current = { ...base, kind: "hold" };
+    } else if (atCorner(e.clientX, e.clientY)) {
+      const size = pinCanvasSize({ width: f.pin.width, height: f.pin.height, ...f.pin.placement }, 1);
+      gesture.current = { ...base, kind: "zoom", origin, start: { scale: f.pin.placement.scale, ...size } };
     } else {
-      gesture.current = { kind: "move", ...base, origin: getCurrentWindow().outerPosition() };
+      gesture.current = { ...base, kind: "move", origin };
+    }
+    if (e.pointerType !== "mouse") {
+      const g = gesture.current;
+      setTimeout(() => {
+        if (gesture.current === g && heldForMenu(g.pointerType, g.down, g.last, performance.now() - g.at)) {
+          openMenu();
+        }
+      }, HOLD_MS);
     }
   };
   const onPointerMove = (e: PointerEvent) => {
     const g = gesture.current;
     if (!g) {
-      setCorner(inZoomCorner({ x: e.clientX, y: e.clientY }, window.innerWidth, window.innerHeight));
+      setCorner(atCorner(e.clientX, e.clientY));
       return;
     }
     if (e.pointerId !== g.pointerId) return;
+    g.last = { x: e.clientX, y: e.clientY };
+    if (g.kind === "hold") return;
     const dpr = window.devicePixelRatio;
     const dx = (e.screenX - g.screenX) * dpr;
     const dy = (e.screenY - g.screenY) * dpr;
     if (g.kind === "move") {
-      void g.origin.then((o) => send.current.move(Math.round(o.x + dx), Math.round(o.y + dy)));
+      send.current.move(Math.round(g.origin.x + dx), Math.round(g.origin.y + dy));
     } else {
-      send.current.zoom(cornerZoomScale(g.start, dx, dy), 0, 0);
+      send.current.zoom(cornerZoomScale(g.start, dx, dy), g.origin.x, g.origin.y);
     }
   };
   const endGesture = (e: PointerEvent) => {
-    if (gesture.current?.pointerId === e.pointerId) gesture.current = null;
+    const g = gesture.current;
+    if (g?.pointerId !== e.pointerId) return;
+    gesture.current = null;
+    // 拖动中动画已结束的，现在请应用壳把窗口改成静止时的矩形；还在动的，动完再请。
+    settleSoon.current();
   };
 
   return (
     <div
       ref={host}
-      className={corner ? "pin pin-corner" : "pin"}
+      className={locked ? "pin pin-locked" : corner ? "pin pin-corner" : "pin"}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endGesture}
       onPointerCancel={endGesture}
       onContextMenu={(e) => {
         e.preventDefault();
-        void pinMenu(pin);
+        openMenu();
       }}
     >
-      <div className="pin-appear" aria-hidden />
-      {notice && <div className="pin-notice">{notice}</div>}
+      <div ref={body} className="pin-content">
+        <div className="pin-appear" aria-hidden />
+        {notice && <div className="pin-notice">{notice}</div>}
+      </div>
     </div>
   );
 }

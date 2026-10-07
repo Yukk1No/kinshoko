@@ -1,7 +1,9 @@
-//! 桌面钉图窗口：截图钉图、钉剪贴板（F3）、拖动与缩放、翻转旋转、右键菜单（收藏、复制、关闭），
-//! 以及重新打开后的恢复（#63）。
+//! 桌面钉图窗口：截图钉图、钉剪贴板（F3）、拖动与缩放、翻转旋转、右键菜单（翻转、旋转、透明度、
+//! 锁定、收藏、复制、关闭，#64），以及重新打开后的恢复（#63）。
 //!
-//! 每个钉图一个无边框、置顶、不进任务栏的窗口，尺寸等于 [`SavedPin::window_size`]（物理像素）。
+//! 每个钉图一个无边框、置顶、不进任务栏的窗口。静止时窗口等于钉图本身（[`SavedPin::rect`]，物理像素）；
+//! 收起时是 `Tuck::stage`。缩放与贴边动画只在页面里变换内容，原生窗口一次动画最多改两次
+//! （[`stage`]，#64）：几何的每次变化都经 [`show`] 发一帧（[`PinFrame`]）给页面。
 //! 窗口先隐藏建好、定好位置，页面画完第一帧后调用 `pin_ready` 才显示。
 //! 钉图状态在 [`PinStore`]（`pins.json`）里：画师关闭的钉图从中删除；退出程序时窗口也会销毁，
 //! 但这时不删，下次启动照原样恢复。
@@ -13,10 +15,11 @@ use std::sync::atomic::Ordering;
 
 use image::RgbaImage;
 use kinshoko_core::desktop::{
-    CaptureEntry, PinContent, Placement, SavedPin, ScreenRect, Screenshot, place_new_pin,
+    CaptureEntry, PinContent, PinFrame, PinMotion, Placement, SavedPin, ScreenRect, Screenshot,
+    place_new_pin, stage,
 };
 use serde::Deserialize;
-use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem};
+use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
     WindowEvent,
@@ -29,12 +32,25 @@ const OFFSET: f64 = 16.0;
 const LABEL_PREFIX: &str = "pin-";
 const NOTICE_EVENT: &str = "pin-notice";
 const MENU_PREFIX: &str = "pin|";
+const FRAME_EVENT: &str = "pin-frame";
+const CLOSED: &str = "钉图已关闭";
+const LOCKED: &str = "钉图已锁定";
 
 /// 本次运行中打开着的钉图窗口。
 pub struct PinRecord {
     capture_id: String,
     /// 画师正在关闭它（菜单或 Alt+F4）。窗口销毁时据此区分“关闭钉图”和“退出程序”。
     closing: bool,
+    /// 原生窗口此刻的矩形。
+    window: ScreenRect,
+    /// 钉图内容要到（或已在）的位置。收起、滑出时不同于原位。
+    content: ScreenRect,
+    /// 动画结束后窗口的矩形。
+    rest: ScreenRect,
+    /// 最新一帧的编号。
+    generation: u32,
+    /// 窗口让点击穿过（收起且没滑出时）。
+    click_through: bool,
 }
 
 pub fn label(pin: &str) -> String {
@@ -115,6 +131,8 @@ pub fn open(app: &AppHandle, capture: &CaptureEntry, at: ScreenRect) -> Result<(
             y,
             ..Placement::default()
         },
+        opacity: 1.0,
+        locked: false,
     };
     lock(&state(app).history).pin(&capture.id);
     {
@@ -129,11 +147,17 @@ pub fn open(app: &AppHandle, capture: &CaptureEntry, at: ScreenRect) -> Result<(
 /// 为一个钉图建窗口（新钉的，或启动时恢复的）。截图历史此前已经记下它被钉住。
 pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
     let PinContent::Capture { capture_id } = &pin.content;
+    let rect = pin.rect();
     lock(&state(app).pins).insert(
         pin.id.clone(),
         PinRecord {
             capture_id: capture_id.clone(),
             closing: false,
+            window: rect,
+            content: rect,
+            rest: rect,
+            generation: 0,
+            click_through: false,
         },
     );
     let built = WebviewWindowBuilder::new(
@@ -174,12 +198,104 @@ pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
         }
         _ => {}
     });
-    let (w, h) = pin.window_size();
+    place(&window, rect)
+}
+
+/// 一次调用同时改窗口的位置与尺寸（Windows 上），免得合成出只改了一半的一帧。
+fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(), String> {
+    #[cfg(windows)]
+    if let Ok(hwnd) = window.hwnd()
+        && super::win32::set_window_rect(hwnd.0 as isize, rect.x, rect.y, rect.width, rect.height)
+    {
+        return Ok(());
+    }
     // 先移到目标显示器再定尺寸：跨越缩放比例不同的显示器时，移动会先按新比例改一次尺寸。
     window
-        .set_position(PhysicalPosition::new(pin.placement.x, pin.placement.y))
-        .and_then(|_| window.set_size(PhysicalSize::new(w, h)))
+        .set_position(PhysicalPosition::new(rect.x, rect.y))
+        .and_then(|_| window.set_size(PhysicalSize::new(rect.width, rect.height)))
         .map_err(|e| e.to_string())
+}
+
+/// 钉图内容到 `content`，静止时窗口为 `rest`，收起且没滑出时 `click_through`。
+///
+/// 动画（`motion` 不是 `Jump`）时窗口现在改成装得下整个过渡的矩形（已经装得下就不改），
+/// 页面动画结束后调用 `settle_pin` 再改成 `rest`。不逐帧改原生窗口（#7、#64）。
+pub fn show(
+    app: &AppHandle,
+    pin: &str,
+    content: ScreenRect,
+    rest: ScreenRect,
+    motion: PinMotion,
+    click_through: bool,
+) {
+    let Some(saved) = lock(&state(app).store).get(pin).cloned() else {
+        return;
+    };
+    let monitors = match motion {
+        PinMotion::Jump => Vec::new(),
+        _ => monitors(),
+    };
+    let (frame, moved, through_changed) = {
+        let mut pins = lock(&state(app).pins);
+        let Some(r) = pins.get_mut(pin) else {
+            return;
+        };
+        let during = match motion {
+            PinMotion::Jump => rest,
+            _ => stage(r.window, content, rest, &monitors).during,
+        };
+        let moved = r.window != during;
+        let through_changed = r.click_through != click_through;
+        r.generation = r.generation.wrapping_add(1);
+        r.window = during;
+        r.content = content;
+        r.rest = rest;
+        r.click_through = click_through;
+        let frame = PinFrame {
+            pin: saved,
+            window: during,
+            content,
+            motion,
+            generation: r.generation,
+        };
+        (frame, moved, through_changed)
+    };
+    let Some(window) = app.get_webview_window(&label(pin)) else {
+        return;
+    };
+    // 先发帧再改窗口：两者尽量落在同一次合成里。
+    let _ = app.emit_to(label(pin), FRAME_EVENT, &frame);
+    if moved {
+        let _ = place(&window, frame.window);
+    }
+    if through_changed {
+        let _ = window.set_ignore_cursor_events(click_through);
+    }
+}
+
+/// 当前这一帧（不改窗口），例如改了透明度或锁定之后。
+fn current_frame(app: &AppHandle, pin: &str) -> Option<PinFrame> {
+    let saved = lock(&state(app).store).get(pin).cloned()?;
+    let pins = lock(&state(app).pins);
+    let r = pins.get(pin)?;
+    Some(PinFrame {
+        pin: saved,
+        window: r.window,
+        content: r.content,
+        motion: PinMotion::Jump,
+        generation: r.generation,
+    })
+}
+
+fn refresh(app: &AppHandle, pin: &str) {
+    if let Some(frame) = current_frame(app, pin) {
+        let _ = app.emit_to(label(pin), FRAME_EVENT, &frame);
+    }
+}
+
+/// 钉图内容此刻（或动画结束时）在屏幕上的位置。
+fn content_of(app: &AppHandle, pin: &str) -> Option<ScreenRect> {
+    lock(&state(app).pins).get(pin).map(|r| r.content)
 }
 
 fn mark_closing(app: &AppHandle, pin: &str) {
@@ -191,7 +307,10 @@ fn mark_closing(app: &AppHandle, pin: &str) {
 /// 拖到缩放比例不同的显示器上时系统会按新比例改窗口尺寸：改回钉图的物理像素尺寸，
 /// 免得 canvas 被重新采样。
 fn keep_exact_size(app: &AppHandle, pin: &str, size: PhysicalSize<u32>) {
-    let Some((w, h)) = lock(&state(app).store).get(pin).map(SavedPin::window_size) else {
+    let Some((w, h)) = lock(&state(app).pins)
+        .get(pin)
+        .map(|r| (r.window.width, r.window.height))
+    else {
         return;
     };
     if (size.width, size.height) != (w, h)
@@ -312,10 +431,10 @@ pub async fn pin_capture(app: AppHandle, id: String) -> Result<(), String> {
     open(&app, &entry, at)
 }
 
-/// 钉图窗口要画的内容与摆放。
+/// 钉图窗口要画的内容、窗口与内容的位置。钉图已关闭时为 `None`。
 #[tauri::command]
-pub async fn pin_info(app: AppHandle, pin: String) -> Option<SavedPin> {
-    lock(&state(&app).store).get(&pin).cloned()
+pub async fn pin_frame(app: AppHandle, pin: String) -> Option<PinFrame> {
+    current_frame(&app, &pin)
 }
 
 /// 第一帧已画好：显示钉图。
@@ -326,24 +445,74 @@ pub async fn pin_ready(app: AppHandle, pin: String) {
     }
 }
 
-/// 拖动钉图：移到屏幕物理像素 (x, y)，这里成为它的新原位。收起着的钉图被拖出后不再算收起。
+/// 动画结束：`generation` 仍是最新一帧时，把窗口改成静止时的矩形。
 #[tauri::command]
-pub async fn move_pin(app: AppHandle, pin: String, x: i32, y: i32) {
-    let moved = edit(&app, &pin, |p| {
-        p.placement.x = x;
-        p.placement.y = y;
-    });
-    if moved.is_none() {
+pub async fn settle_pin(app: AppHandle, pin: String, generation: u32) {
+    let Some(saved) = lock(&state(&app).store).get(&pin).cloned() else {
         return;
-    }
-    lock(&state(&app).edge).release(&pin);
+    };
+    let frame = {
+        let mut pins = lock(&state(&app).pins);
+        let Some(r) = pins.get_mut(&pin) else {
+            return;
+        };
+        if r.generation != generation || r.window == r.rest {
+            return;
+        }
+        r.window = r.rest;
+        PinFrame {
+            pin: saved,
+            window: r.rest,
+            content: r.content,
+            motion: PinMotion::Jump,
+            generation,
+        }
+    };
     if let Some(window) = app.get_webview_window(&label(&pin)) {
-        let _ = window.set_position(PhysicalPosition::new(x, y));
+        let _ = app.emit_to(label(&pin), FRAME_EVENT, &frame);
+        let _ = place(&window, frame.window);
     }
 }
 
-/// 缩放钉图到 `scale`。窗口内的 (`anchor_x`, `anchor_y`)（物理像素，例如光标或按住的角）
-/// 保持不动。返回缩放后的状态，页面据此按物理像素重画。
+/// 拖动钉图：移到屏幕物理像素 (x, y)，这里成为它的新原位。收起着的钉图被拖出后不再算收起。
+/// 锁定的钉图不动。
+#[tauri::command]
+pub async fn move_pin(app: AppHandle, pin: String, x: i32, y: i32) -> Result<(), String> {
+    let rect = edit(&app, &pin, |p| p.move_to(x, y).then(|| p.rect()))
+        .ok_or(CLOSED)?
+        .ok_or(LOCKED)?;
+    lock(&state(&app).edge).release(&pin);
+    show(&app, &pin, rect, rect, PinMotion::Jump, false);
+    Ok(())
+}
+
+/// 从钉图此刻的位置出发改它：滑出中的钉图改完就留在这里，不再算收起。
+/// `f` 返回 `None`（锁定）时什么都不改。
+fn change_here(
+    app: &AppHandle,
+    pin: &str,
+    f: impl FnOnce(&mut SavedPin) -> bool,
+) -> Result<ScreenRect, String> {
+    let at = content_of(app, pin).ok_or(CLOSED)?;
+    let rect = edit(app, pin, |p| {
+        let before = p.placement;
+        p.placement.x = at.x;
+        p.placement.y = at.y;
+        if f(p) {
+            Some(p.rect())
+        } else {
+            p.placement = before;
+            None
+        }
+    })
+    .ok_or(CLOSED)?
+    .ok_or(LOCKED)?;
+    lock(&state(app).edge).release(pin);
+    Ok(rect)
+}
+
+/// 缩放钉图到 `scale`，屏幕上的 (`anchor_x`, `anchor_y`)（物理像素，例如光标或按住的角）
+/// 保持不动。锁定的钉图不缩放。窗口里的内容以动画到达。
 #[tauri::command]
 pub async fn zoom_pin(
     app: AppHandle,
@@ -351,23 +520,22 @@ pub async fn zoom_pin(
     scale: f64,
     anchor_x: f64,
     anchor_y: f64,
-) -> Result<SavedPin, String> {
-    let window = app.get_webview_window(&label(&pin)).ok_or("钉图已关闭")?;
-    // 以窗口当前的位置为准：滑出中的钉图在这里缩放后就留在这里。
-    let at = window.outer_position().map_err(|e| e.to_string())?;
-    let saved = edit(&app, &pin, |p| {
-        p.placement.x = at.x;
-        p.placement.y = at.y;
-        p.zoom(
-            scale,
-            (f64::from(at.x) + anchor_x, f64::from(at.y) + anchor_y),
+) -> Result<(), String> {
+    zoom(&app, &pin, scale, Some((anchor_x, anchor_y)))
+}
+
+/// `anchor` 为 `None` 时以钉图中心为锚点。
+fn zoom(app: &AppHandle, pin: &str, scale: f64, anchor: Option<(f64, f64)>) -> Result<(), String> {
+    let rect = change_here(app, pin, |p| {
+        let r = p.rect();
+        let centre = (
+            f64::from(r.x) + f64::from(r.width) / 2.0,
+            f64::from(r.y) + f64::from(r.height) / 2.0,
         );
-        p.clone()
-    })
-    .ok_or("钉图已关闭")?;
-    lock(&state(&app).edge).release(&pin);
-    apply(&window, &saved)?;
-    Ok(saved)
+        p.zoom(scale, anchor.unwrap_or(centre))
+    })?;
+    show(app, pin, rect, rect, PinMotion::Zoom, false);
+    Ok(())
 }
 
 /// 翻转与旋转。
@@ -380,49 +548,66 @@ pub enum Turn {
     RotateCounterClockwise,
 }
 
-/// 翻转或旋转钉图（中心不动）。返回新的状态，页面据此重画。右键菜单由 #64 接入同一命令。
+/// 翻转或旋转钉图（中心不动）。快捷键与右键菜单共用。
 #[tauri::command]
-pub async fn turn_pin(app: AppHandle, pin: String, turn: Turn) -> Result<SavedPin, String> {
-    let window = app.get_webview_window(&label(&pin)).ok_or("钉图已关闭")?;
-    let at = window.outer_position().map_err(|e| e.to_string())?;
-    let saved = edit(&app, &pin, |p| {
-        p.placement.x = at.x;
-        p.placement.y = at.y;
+pub async fn turn_pin(app: AppHandle, pin: String, turn: Turn) -> Result<(), String> {
+    turn_here(&app, &pin, turn)
+}
+
+fn turn_here(app: &AppHandle, pin: &str, turn: Turn) -> Result<(), String> {
+    let rect = change_here(app, pin, |p| {
         match turn {
             Turn::FlipHorizontal => p.flip(true),
             Turn::FlipVertical => p.flip(false),
             Turn::RotateClockwise => p.rotate(1),
             Turn::RotateCounterClockwise => p.rotate(-1),
         }
-        p.clone()
-    })
-    .ok_or("钉图已关闭")?;
-    lock(&state(&app).edge).release(&pin);
-    apply(&window, &saved)?;
-    Ok(saved)
+        true
+    })?;
+    show(app, pin, rect, rect, PinMotion::Jump, false);
+    Ok(())
 }
 
-/// 把窗口摆到钉图状态的原位与尺寸。
-fn apply(window: &tauri::WebviewWindow, pin: &SavedPin) -> Result<(), String> {
-    let (w, h) = pin.window_size();
-    window
-        .set_position(PhysicalPosition::new(pin.placement.x, pin.placement.y))
-        .and_then(|_| window.set_size(PhysicalSize::new(w, h)))
-        .map_err(|e| e.to_string())
+/// 透明度（10%～100%）。Ctrl+滚轮与右键菜单共用。
+#[tauri::command]
+pub async fn set_pin_opacity(app: AppHandle, pin: String, opacity: f64) -> Result<(), String> {
+    edit(&app, &pin, |p| p.set_opacity(opacity)).ok_or(CLOSED)?;
+    refresh(&app, &pin);
+    Ok(())
 }
 
+/// 锁定后钉图不响应拖动与缩放。
+#[tauri::command]
+pub async fn set_pin_locked(app: AppHandle, pin: String, locked: bool) -> Result<(), String> {
+    edit(&app, &pin, |p| p.locked = locked).ok_or(CLOSED)?;
+    refresh(&app, &pin);
+    Ok(())
+}
+
+const ACTION_FLIP_H: &str = "flipH";
+const ACTION_FLIP_V: &str = "flipV";
+const ACTION_ROTATE_CW: &str = "rotateCw";
+const ACTION_ROTATE_CCW: &str = "rotateCcw";
+const ACTION_OPACITY: &str = "opacity:";
+const ACTION_LOCK: &str = "lock";
+const ACTION_ACTUAL_SIZE: &str = "actualSize";
 const ACTION_COLLECT: &str = "collect";
 const ACTION_COPY: &str = "copy";
 const ACTION_CLOSE: &str = "close";
 
-/// 钉图的右键菜单。#64 再加入翻转、旋转、透明度、锁定等。
+/// 右键菜单里可选的透明度（百分比）。
+const OPACITY_STEPS: [u32; 10] = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
+
+/// 钉图的右键菜单：翻转、旋转、透明度、锁定、原始大小、收藏、复制、关闭（#64）。
+/// 页面在鼠标右键、笔的侧键或笔按住不动时调用；菜单弹在光标（笔尖）处。
 #[tauri::command]
 pub async fn pin_menu(app: AppHandle, pin: String) -> Result<(), String> {
-    let window = app.get_webview_window(&label(&pin)).ok_or("钉图已关闭")?;
+    let window = app.get_webview_window(&label(&pin)).ok_or(CLOSED)?;
     let capture_id = lock(&state(&app).pins)
         .get(&pin)
         .map(|r| r.capture_id.clone())
-        .ok_or("钉图已关闭")?;
+        .ok_or(CLOSED)?;
+    let saved = lock(&state(&app).store).get(&pin).cloned().ok_or(CLOSED)?;
     let collected = lock(&state(&app).history)
         .entries()
         .into_iter()
@@ -439,29 +624,70 @@ pub async fn pin_menu(app: AppHandle, pin: String) -> Result<(), String> {
             _ => (format!("收藏到「{name}」"), true),
         },
     };
+    let id = |action: &str| format!("{MENU_PREFIX}{pin}|{action}");
+    let err = |e: tauri::Error| e.to_string();
     let item = |action: &str, text: &str, enabled: bool| {
-        MenuItem::with_id(
-            &app,
-            format!("{MENU_PREFIX}{pin}|{action}"),
-            text,
-            enabled,
-            None::<&str>,
-        )
+        MenuItem::with_id(&app, id(action), text, enabled, None::<&str>).map_err(err)
     };
+    let percent = (saved.opacity * 100.0).round() as u32;
+    let opacity_items = OPACITY_STEPS
+        .iter()
+        .map(|&p| {
+            CheckMenuItem::with_id(
+                &app,
+                id(&format!("{ACTION_OPACITY}{p}")),
+                format!("{p}%"),
+                true,
+                p == percent,
+                None::<&str>,
+            )
+            .map_err(err)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let opacity_refs: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> = opacity_items
+        .iter()
+        .map(|i| i as &dyn tauri::menu::IsMenuItem<tauri::Wry>)
+        .collect();
+    let opacity = Submenu::with_items(&app, format!("透明度（{percent}%）"), true, &opacity_refs)
+        .map_err(err)?;
+    let locked = CheckMenuItem::with_id(
+        &app,
+        id(ACTION_LOCK),
+        "锁定位置与大小",
+        true,
+        saved.locked,
+        None::<&str>,
+    )
+    .map_err(err)?;
+    let unscaled = (saved.placement.scale - 1.0).abs() < 1e-9;
+    let separator = || PredefinedMenuItem::separator(&app).map_err(err);
     let menu = Menu::with_items(
         &app,
         &[
-            &item(ACTION_COLLECT, &collect_text, collect_enabled).map_err(|e| e.to_string())?,
-            &item(ACTION_COPY, "复制", true).map_err(|e| e.to_string())?,
-            &PredefinedMenuItem::separator(&app).map_err(|e| e.to_string())?,
-            &item(ACTION_CLOSE, "关闭钉图", true).map_err(|e| e.to_string())?,
+            &item(ACTION_FLIP_H, "水平翻转", true)?,
+            &item(ACTION_FLIP_V, "垂直翻转", true)?,
+            &item(ACTION_ROTATE_CW, "顺时针旋转 90°", true)?,
+            &item(ACTION_ROTATE_CCW, "逆时针旋转 90°", true)?,
+            &separator()?,
+            &opacity,
+            &locked,
+            &item(
+                ACTION_ACTUAL_SIZE,
+                "原始大小（100%）",
+                !saved.locked && !unscaled,
+            )?,
+            &separator()?,
+            &item(ACTION_COLLECT, &collect_text, collect_enabled)?,
+            &item(ACTION_COPY, "复制", true)?,
+            &separator()?,
+            &item(ACTION_CLOSE, "关闭钉图", true)?,
         ],
     )
-    .map_err(|e| e.to_string())?;
-    window.popup_menu(&menu).map_err(|e| e.to_string())
+    .map_err(err)?;
+    window.popup_menu(&menu).map_err(err)
 }
 
-/// 菜单事件在主线程上到达：关闭直接做，收藏和复制放到别的线程。
+/// 菜单事件在主线程上到达：关闭直接做，其余放到别的线程（改窗口、收藏、复制）。
 pub fn on_menu_event(app: &AppHandle, event: MenuEvent) {
     let Some(rest) = event.id().as_ref().strip_prefix(MENU_PREFIX) else {
         return;
@@ -478,25 +704,58 @@ pub fn on_menu_event(app: &AppHandle, event: MenuEvent) {
         return;
     }
     std::thread::spawn(move || {
-        let Some(capture_id) = lock(&state(&app).pins)
-            .get(&pin)
-            .map(|r| r.capture_id.clone())
-        else {
-            return;
-        };
-        let notice = match action.as_str() {
-            ACTION_COLLECT => match collect(&app, &capture_id) {
-                Ok((_, library)) => format!("已收藏到「{library}」"),
-                Err(e) => e,
-            },
-            ACTION_COPY => match copy_capture(&app, &capture_id) {
-                Ok(()) => "已复制".to_owned(),
-                Err(e) => e,
-            },
-            _ => return,
-        };
-        let _ = app.emit_to(label(&pin), NOTICE_EVENT, notice);
+        if let Some(notice) = menu_action(&app, &pin, &action) {
+            let _ = app.emit_to(label(&pin), NOTICE_EVENT, notice);
+        }
     });
+}
+
+/// 做菜单里的一项；返回要在钉图上提示的话。
+fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<String> {
+    let turn = match action {
+        ACTION_FLIP_H => Some(Turn::FlipHorizontal),
+        ACTION_FLIP_V => Some(Turn::FlipVertical),
+        ACTION_ROTATE_CW => Some(Turn::RotateClockwise),
+        ACTION_ROTATE_CCW => Some(Turn::RotateCounterClockwise),
+        _ => None,
+    };
+    if let Some(turn) = turn {
+        return turn_here(app, pin, turn).err();
+    }
+    if let Some(percent) = action.strip_prefix(ACTION_OPACITY) {
+        let percent: f64 = percent.parse().ok()?;
+        edit(app, pin, |p| p.set_opacity(percent / 100.0))?;
+        refresh(app, pin);
+        return None;
+    }
+    match action {
+        ACTION_LOCK => {
+            let locked = edit(app, pin, |p| {
+                p.locked = !p.locked;
+                p.locked
+            })?;
+            refresh(app, pin);
+            Some(if locked { "已锁定" } else { "已解锁" }.to_owned())
+        }
+        ACTION_ACTUAL_SIZE => zoom(app, pin, 1.0, None).err(),
+        ACTION_COLLECT | ACTION_COPY => {
+            let capture_id = lock(&state(app).pins)
+                .get(pin)
+                .map(|r| r.capture_id.clone())?;
+            Some(if action == ACTION_COLLECT {
+                match collect(app, &capture_id) {
+                    Ok((_, library)) => format!("已收藏到「{library}」"),
+                    Err(e) => e,
+                }
+            } else {
+                match copy_capture(app, &capture_id) {
+                    Ok(()) => "已复制".to_owned(),
+                    Err(e) => e,
+                }
+            })
+        }
+        _ => None,
+    }
 }
 
 fn copy_capture(app: &AppHandle, capture_id: &str) -> Result<(), String> {

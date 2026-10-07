@@ -17,6 +17,8 @@ fn pin(width: u32, height: u32, x: i32, y: i32) -> SavedPin {
             y,
             ..Placement::default()
         },
+        opacity: 1.0,
+        locked: false,
     }
 }
 

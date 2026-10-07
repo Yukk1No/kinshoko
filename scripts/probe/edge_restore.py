@@ -41,6 +41,9 @@ from capture_pin import (  # noqa: E402
 
 VK_F1, VK_F4, VK_H, VK_R = 0x70, 0x73, 0x48, 0x52
 SLIVER = 6
+# 贴边滑动动画（200 ms）与动画结束后改窗口（再等约 120 ms）都做完。
+SETTLE = 0.8
+GWL_EXSTYLE, WS_EX_TRANSPARENT = -20, 0x20
 
 
 def click(x, y):
@@ -73,6 +76,38 @@ def visible_part(rect, screen):
     l, t, r, b = rect
     sl, st, sr, sb = screen
     return (max(l, sl), max(t, st), min(r, sr), min(b, sb))
+
+
+def sliver_of(part, hidden, screen, image):
+    """收起后细边在屏幕上的矩形，以及那里应显示的钉图像素（钉图未缩放、未翻转）。"""
+    w, h = image.size
+    if hidden[0] < screen[0]:
+        return (screen[0], part[1], screen[0] + SLIVER, part[1] + h), image.crop((w - SLIVER, 0, w, h))
+    if hidden[2] > screen[2]:
+        return (screen[2] - SLIVER, part[1], screen[2], part[1] + h), image.crop((0, 0, SLIVER, h))
+    if hidden[1] < screen[1]:
+        return (part[0], screen[1], part[0] + w, screen[1] + SLIVER), image.crop((0, h - SLIVER, w, h))
+    if hidden[3] > screen[3]:
+        return (part[0], screen[3] - SLIVER, part[0] + w, screen[3]), image.crop((0, 0, w, SLIVER))
+    return None, None
+
+
+def click_through(pid, title):
+    """进程 `pid` 中标题为 `title` 的可见窗口让点击穿过（WS_EX_TRANSPARENT）。"""
+    found = []
+
+    @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+    def visit(hwnd, _):
+        owner = ctypes.c_ulong()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+        text = ctypes.create_unicode_buffer(256)
+        user32.GetWindowTextW(hwnd, text, 256)
+        if owner.value == pid and text.value == title and user32.IsWindowVisible(hwnd):
+            found.append(user32.GetWindowLongW(hwnd, GWL_EXSTYLE))
+        return True
+
+    user32.EnumWindows(visit, 0)
+    return bool(found) and bool(found[0] & WS_EX_TRANSPARENT)
 
 
 def main():
@@ -127,36 +162,41 @@ def main():
         click((home[0] + home[2]) // 2, (home[1] + home[3]) // 2)
         results["点钉图后焦点在 Kinshoko"] = None if foreground_pid() == app.pid else "焦点不在钉图"
         key(VK_F4)
-        pause(0.5)
+        pause(SETTLE)
+        # 收起的钉图停在一个伸出屏幕的透明窗口里（#64）：屏幕上的部分正好是滑出时的位置，
+        # 没滑出时点击穿过，只有细边画着钉图。所以按屏幕像素检查，而不是按窗口矩形。
         hidden = window_rect(app.pid, "Kinshoko 钉图")
         part = visible_part(hidden, screen)
-        shown_w, shown_h = part[2] - part[0], part[3] - part[1]
+        sliver, strip = sliver_of(part, hidden, screen, before)
         results["F4 后只露 6 像素细边"] = (
-            None if min(shown_w, shown_h) == SLIVER else f"露出 {shown_w}×{shown_h}（{hidden}）"
+            "没有收到屏幕边" if sliver is None else diff(grab(sliver), strip)
+        )
+        results["收起时点击穿过钉图窗口"] = (
+            None if click_through(app.pid, "Kinshoko 钉图") else "收起的钉图窗口挡住点击"
         )
         results["F4 把焦点交还外部窗口"] = (
             None if foreground_pid() == os.getpid() else f"前台进程 {foreground_pid()}"
         )
 
-        # 碰细边滑出，离开收回。
-        move((part[0] + part[2]) // 2, (part[1] + part[3]) // 2)
-        pause(0.5)
-        peek = window_rect(app.pid, "Kinshoko 钉图")
-        peek_part = visible_part(peek, screen)
-        results["指针碰细边时滑出"] = (
-            None
-            if (peek[2] - peek[0], peek[3] - peek[1]) == (home[2] - home[0], home[3] - home[1])
-            and peek_part == peek
-            else f"滑出后 {peek}"
+        # 碰细边滑出，离开收回；滑出与收回都不改原生窗口（#64）。
+        if sliver:
+            move((sliver[0] + sliver[2]) // 2, (sliver[1] + sliver[3]) // 2)
+        pause(SETTLE)
+        results["指针碰细边时滑出"] = diff(grab(part), before)
+        results["滑出与收回不改原生窗口"] = (
+            None if window_rect(app.pid, "Kinshoko 钉图") == hidden else "滑出时窗口变了"
+        )
+        results["滑出后能点到钉图"] = (
+            None if not click_through(app.pid, "Kinshoko 钉图") else "滑出的钉图仍让点击穿过"
         )
         move(screen[2] // 2, screen[3] // 2)
-        pause(0.5)
+        pause(SETTLE)
         results["指针离开后收回"] = (
-            None if window_rect(app.pid, "Kinshoko 钉图") == hidden else "没有收回细边"
+            "没有收到屏幕边" if sliver is None else diff(grab(sliver), strip)
         )
 
         key(VK_F4)
-        pause(0.5)
+        pause(SETTLE)
         results["再按 F4 回到原位"] = (
             None if window_rect(app.pid, "Kinshoko 钉图") == home else f"回到 {window_rect(app.pid, 'Kinshoko 钉图')}"
         )

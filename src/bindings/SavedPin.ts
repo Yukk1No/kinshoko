@@ -14,4 +14,12 @@ crop: Region | null,
 /**
  * 显示部分的像素尺寸（裁切后、未旋转）。
  */
-width: number, height: number, placement: Placement, };
+width: number, height: number, placement: Placement, 
+/**
+ * 透明度，[`MIN_OPACITY`]～1。只属于桌面钉图（#64）。
+ */
+opacity: number, 
+/**
+ * 锁定后不响应拖动与缩放（#64）。
+ */
+locked: boolean, };

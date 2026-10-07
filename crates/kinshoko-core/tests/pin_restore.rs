@@ -35,6 +35,8 @@ fn pin(id: &str, capture_id: &str, x: i32, y: i32) -> SavedPin {
             y,
             ..Placement::default()
         },
+        opacity: 1.0,
+        locked: false,
     }
 }
 
