@@ -621,6 +621,8 @@ describe("导入任务的终态（#76）", () => {
     report: {
       cancelled: false,
       items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: "被占用" } }],
+      eagleMissing: 0,
+      eagleRelocations: [],
     },
   });
 
@@ -684,7 +686,7 @@ describe("导入任务的终态（#76）", () => {
 
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 1 } });
     await failed("T1");
-    await push({ kind: "taskFinished", libraryId: "L2", taskId: "T2", report: { cancelled: true, items: [] } });
+    await push({ kind: "taskFinished", libraryId: "L2", taskId: "T2", report: { cancelled: true, items: [], eagleMissing: 0, eagleRelocations: [] } });
 
     expect(screen.getByText("正在导入 1 / 5")).toBeTruthy();
     expect(screen.queryByLabelText("导入结果")).toBeNull();
