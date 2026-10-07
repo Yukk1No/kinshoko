@@ -361,6 +361,36 @@ button.primary {
   color: #c62828;
 }
 
+/* 诊断与更新（#70） */
+.settings-actions {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+.settings-diagnostics {
+  max-height: 240px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  white-space: pre-wrap;
+  user-select: text;
+}
+
+.update-notes {
+  white-space: pre-wrap;
+}
+
+.update-banner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
 .settings-shortcuts th {
   padding-right: 16px;
   font-weight: normal;

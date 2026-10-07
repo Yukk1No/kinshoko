@@ -12,6 +12,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
+use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::library::{
     BrowsePage, BrowseQuery, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportSource,
     ImportTask, LibraryEvent, LibraryInfo, PersonalApproxEntry, RecoveryReport, ReferenceLens,
@@ -381,11 +382,18 @@ fn recovery(state: State<'_, LibraryState>) -> Result<RecoveryReport, String> {
 
 /// 开始导入，立即返回任务 id；进度与结果经 `library-event` 推送。
 #[tauri::command]
-async fn start_import(
+async fn start_import<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, LibraryState>,
     source: ImportSource,
 ) -> Result<String, String> {
     let library = state.current()?;
+    crate::diagnostics::record(
+        &app,
+        UsageEvent::ImportStarted {
+            paths: source.paths.len().min(u32::MAX as usize) as u32,
+        },
+    );
     let task = library.import(source);
     let id = task.id().to_owned();
     if !task.is_finished() {
@@ -507,13 +515,20 @@ async fn search_candidates(
 
 /// 把搜索框里的条件解析成可见的条件树，交给 `browse` 执行。
 #[tauri::command]
-async fn resolve_search(
+async fn resolve_search<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, LibraryState>,
     input: SearchInput,
     lang: String,
 ) -> Result<ConditionTree, String> {
     let library = state.current()?;
     let search = search(state.inner(), &library)?;
+    crate::diagnostics::record(
+        &app,
+        UsageEvent::SearchResolved {
+            terms: input.conditions.len().min(u32::MAX as usize) as u32,
+        },
+    );
     Ok(search.resolve(&input, &lang))
 }
 

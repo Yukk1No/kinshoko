@@ -18,11 +18,15 @@ const ROLL_BYTES: u64 = 1024 * 1024;
 
 /// 记入使用日志的动作。只能带数量，不能带文字。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(tag = "event", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "event",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum UsageEvent {
     AppStarted,
     MainWindowOpened,
-    ImportStarted { images: u32 },
+    ImportStarted { paths: u32 },
     SearchResolved { terms: u32 },
     CaptureStarted,
     PinnedClipboard,

@@ -21,7 +21,11 @@ pub fn app_info() -> AppInfo {
 
 /// 检查更新的结果（#70）。更新来自 GitHub Releases，安装包的签名由 Tauri updater 校验。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
-#[serde(tag = "state", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "state",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 #[ts(export)]
 pub enum UpdateStatus {
     /// 这个构建没有配置更新公钥（开发构建或未签名的发布），不检查更新。
@@ -36,7 +40,9 @@ pub enum UpdateStatus {
         notes: Option<String>,
     },
     /// 检查或安装失败；`message` 是给画师看的中文。
-    Failed { message: String },
+    Failed {
+        message: String,
+    },
 }
 
 /// 下载更新的进度，经 `update-progress` 事件推送。

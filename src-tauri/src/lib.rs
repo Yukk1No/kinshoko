@@ -5,10 +5,12 @@
 
 mod commands;
 mod desktop;
+mod diagnostics;
 mod fidelity_gate;
 mod library;
 mod shell;
 mod tagging;
+mod updater;
 
 use tauri::RunEvent;
 
@@ -26,6 +28,7 @@ pub fn run() {
         // 对话框插件要注册在这里：插件的 setup 运行时 Tauri 持有插件表的锁，
         // 在 setup 里再调用 `app.plugin` 会死锁，应用卡在启动阶段。
         .plugin(tauri_plugin_dialog::init())
+        .plugin(updater::plugin())
         .plugin(library::init())
         .plugin(desktop::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
@@ -37,6 +40,7 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle();
             shell::start(handle)?;
+            updater::manage(handle);
             desktop::create_tray(handle)?;
             let args: Vec<String> = std::env::args().collect();
             if let Some(options) = fidelity_gate::options(&args) {
@@ -52,6 +56,15 @@ pub fn run() {
             commands::set_autostart,
             commands::rebind_shortcut,
             commands::set_show_approx_source,
+            commands::set_force_srgb,
+            commands::set_usage_log,
+            diagnostics::diagnostics_report,
+            diagnostics::export_diagnostics,
+            diagnostics::export_usage_log,
+            diagnostics::clear_usage_log,
+            updater::update_status,
+            updater::check_update,
+            updater::install_update,
             tagging::tagging_status,
             tagging::tagging_download,
             tagging::tagging_pause,

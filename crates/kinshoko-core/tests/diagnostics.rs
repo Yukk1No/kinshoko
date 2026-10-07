@@ -85,8 +85,11 @@ fn the_report_lists_hardware_webview2_and_each_displays_colour_state() {
         "强制 sRGB：已开启，重启后生效",
         "使用日志：关闭",
     ] {
-        assert!(text.contains(expected), "缺少“{expected}”：
-{text}");
+        assert!(
+            text.contains(expected),
+            "缺少“{expected}”：
+{text}"
+        );
     }
 }
 
@@ -113,7 +116,11 @@ fn a_display_profile_is_described_by_its_name_version_and_kind_never_by_its_file
 fn an_unreadable_display_profile_is_reported_as_such() {
     let text = report(
         &app(),
-        &system(vec![display("屏幕", DisplayColourMode::Sdr, Some(b"bad".to_vec()))]),
+        &system(vec![display(
+            "屏幕",
+            DisplayColourMode::Sdr,
+            Some(b"bad".to_vec()),
+        )]),
         GENERATED_AT,
     );
     assert!(text.contains("无法解析"), "{text}");
@@ -126,15 +133,27 @@ fn paths_and_image_file_names_reported_by_the_system_never_reach_the_report() {
         DisplayColourMode::AutoColourManagement,
         None,
     )]);
-    sys.gpus = vec![r"\\nas\share\参考\pose.jpg".into(), "/home/artist/ref.webp".into()];
+    sys.gpus = vec![
+        r"\\nas\share\参考\pose.jpg".into(),
+        "/home/artist/ref.webp".into(),
+    ];
     sys.cpu = "Intel D:\\私人\\a.txt i7".into();
     sys.webview2 = Some("file:///C:/Users/画师/x.png".into());
 
     let text = report(&app(), &sys, GENERATED_AT);
 
     for leaked in [
-        "画师", "Pictures", "秘密参考", "nas", "share", "pose", "artist", "ref.webp", "私人",
-        "a.txt", "file:",
+        "画师",
+        "Pictures",
+        "秘密参考",
+        "nas",
+        "share",
+        "pose",
+        "artist",
+        "ref.webp",
+        "私人",
+        "a.txt",
+        "file:",
     ] {
         assert!(!text.contains(leaked), "报告泄露了“{leaked}”：\n{text}");
     }

@@ -16,7 +16,7 @@ fn a_disabled_usage_log_writes_nothing_to_disk() {
     let log = UsageLog::open(dir.path(), false);
 
     log.record(UsageEvent::AppStarted);
-    log.record(UsageEvent::ImportStarted { images: 3 });
+    log.record(UsageEvent::ImportStarted { paths: 3 });
 
     assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
     assert_eq!(exported(&log), "");
@@ -28,7 +28,7 @@ fn an_enabled_usage_log_keeps_one_line_per_action_with_counts_only() {
     let log = UsageLog::open(dir.path(), true);
 
     log.record(UsageEvent::AppStarted);
-    log.record(UsageEvent::ImportStarted { images: 3 });
+    log.record(UsageEvent::ImportStarted { paths: 3 });
     log.record(UsageEvent::SearchResolved { terms: 2 });
 
     let text = exported(&log);
@@ -39,9 +39,13 @@ fn an_enabled_usage_log_keeps_one_line_per_action_with_counts_only() {
     assert_eq!(lines.len(), 3);
     assert_eq!(lines[0]["event"], "appStarted");
     assert_eq!(lines[1]["event"], "importStarted");
-    assert_eq!(lines[1]["images"], 3);
+    assert_eq!(lines[1]["paths"], 3);
     assert_eq!(lines[2]["terms"], 2);
-    assert!(lines.iter().all(|l| l["at"].as_u64().unwrap() > 1_700_000_000));
+    assert!(
+        lines
+            .iter()
+            .all(|l| l["at"].as_u64().unwrap() > 1_700_000_000)
+    );
 }
 
 #[test]
@@ -77,8 +81,8 @@ fn clearing_the_log_removes_everything_recorded() {
 fn a_long_running_log_stays_bounded_and_keeps_the_newest_actions() {
     let dir = tempfile::tempdir().unwrap();
     let log = UsageLog::open(dir.path(), true);
-    for images in 0..40_000 {
-        log.record(UsageEvent::ImportStarted { images });
+    for paths in 0..40_000 {
+        log.record(UsageEvent::ImportStarted { paths });
     }
 
     let size: u64 = std::fs::read_dir(dir.path())
@@ -87,6 +91,6 @@ fn a_long_running_log_stays_bounded_and_keeps_the_newest_actions() {
         .sum();
     assert!(size <= 2 * 1024 * 1024 + 4096, "日志占用 {size} 字节");
     let text = exported(&log);
-    assert!(text.ends_with("\"images\":39999}\n"), "最新的一条在最后");
-    assert!(!text.contains("\"images\":0}"), "最早的已滚动掉");
+    assert!(text.ends_with("\"paths\":39999}\n"), "最新的一条在最后");
+    assert!(!text.contains("\"paths\":0}"), "最早的已滚动掉");
 }

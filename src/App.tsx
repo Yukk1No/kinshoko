@@ -24,6 +24,7 @@ import { ModelSettings } from "./ModelSettings";
 import { SealBook } from "./SealBook";
 import { SettingsPanel } from "./SettingsPanel";
 import { TaggingIndicator } from "./TaggingIndicator";
+import { UpdateBanner } from "./Update";
 import { scopeKey, Wall } from "./wall/Wall";
 
 /**
@@ -251,6 +252,7 @@ export function App() {
           <ModelSettings />
         </>
       )}
+      <UpdateBanner />
       <footer className="app-status">
         <span>{info && `${info.productName} ${info.version}`}</span>
         <span className="app-status-actions">
