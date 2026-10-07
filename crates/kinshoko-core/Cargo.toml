@@ -10,7 +10,7 @@ publish.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 ts-rs.workspace = true
-rusqlite = { version = "0.40", features = ["bundled", "functions"] }
+rusqlite = { version = "0.40", features = ["bundled", "functions", "backup"] }
 rusqlite_migration = "2.6"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
 moxcms = "0.9.1"

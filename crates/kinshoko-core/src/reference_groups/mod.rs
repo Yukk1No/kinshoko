@@ -165,6 +165,19 @@ pub struct ReferenceGroup {
     #[ts(type = "number")]
     pub updated_at: i64,
     pub members: Vec<GroupMember>,
+    /// 从备份恢复出来的副本记下原参考组与备份快照（#69）；不是恢复出来的为 `None`。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub restored_from: Option<RestoredFrom>,
+}
+
+/// 恢复出的参考组来自哪个参考组、哪个备份快照。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct RestoredFrom {
+    pub group_id: String,
+    pub backup_id: String,
 }
 
 impl ReferenceGroup {
@@ -310,23 +323,41 @@ impl ReferenceGroups {
             Err(e) if e.kind() == io::ErrorKind::NotFound => return Err(GroupError::UnknownGroup),
             Err(e) => return Err(e.into()),
         };
-        let header: Header =
-            serde_json::from_slice(&bytes).map_err(|e| GroupError::Invalid(e.to_string()))?;
-        if header.format.as_deref() != Some(FORMAT) {
-            return Err(GroupError::Invalid("不是 Kinshoko 参考组".into()));
-        }
-        match header.format_version {
-            Some(FORMAT_VERSION) => {}
-            Some(v) if v > FORMAT_VERSION => return Err(GroupError::UnsupportedVersion(v)),
-            _ => return Err(GroupError::Invalid("格式版本不对".into())),
-        }
-        let file: GroupFile =
-            serde_json::from_slice(&bytes).map_err(|e| GroupError::Invalid(e.to_string()))?;
-        if file.group.id != id {
+        let group = parse(&bytes)?;
+        if group.id != id {
             return Err(GroupError::Invalid("文件名与参考组身份不符".into()));
         }
-        file.group.validate()?;
-        Ok(file.group)
+        Ok(group)
+    }
+
+    /// 备份的快照入口（#69）：参考组文件的原样字节。读不懂的参考组也照样交出。
+    pub fn snapshot(&self, id: &str) -> Result<Vec<u8>, GroupError> {
+        match fs::read(self.path(id)?) {
+            Ok(b) => Ok(b),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Err(GroupError::UnknownGroup),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// 备份的恢复入口（#69）：把快照字节恢复成独立的新参考组。新的参考组身份，记下
+    /// `restored_from`；成员引用的资料库按 `libraries`（原身份 → 恢复出的身份）改连，不在其中的
+    /// 原样保留。成员、局部与摆放不变；不覆盖任何现有参考组。
+    pub fn restore(
+        &self,
+        snapshot: &[u8],
+        libraries: &std::collections::HashMap<String, String>,
+        from: RestoredFrom,
+    ) -> Result<ReferenceGroup, GroupError> {
+        let mut group = parse(snapshot)?;
+        group.id = new_id();
+        group.restored_from = Some(from);
+        for m in &mut group.members {
+            if let Some(new) = libraries.get(&m.library_id) {
+                m.library_id = new.clone();
+            }
+        }
+        self.write(&group)?;
+        Ok(group)
     }
 
     /// 把桌面上的资料库钉图存成新的参考组。截图钉图不进组（要先收藏）；一张也没有时为
@@ -347,6 +378,7 @@ impl ReferenceGroups {
             created_at: now,
             updated_at: now,
             members: Vec::new(),
+            restored_from: None,
         };
         let assigned = merge(&mut group, pins);
         self.write(&group)?;
@@ -500,6 +532,24 @@ fn assign(pins: &mut [SavedPin], assigned: Vec<(usize, GroupMemberRef)>) {
     for (index, member) in assigned {
         pins[index].member = Some(member);
     }
+}
+
+/// 读参考组文件内容：先核对格式与版本，新版本写的文件按版本报错，而不是“已损坏”。
+pub fn parse(bytes: &[u8]) -> Result<ReferenceGroup, GroupError> {
+    let header: Header =
+        serde_json::from_slice(bytes).map_err(|e| GroupError::Invalid(e.to_string()))?;
+    if header.format.as_deref() != Some(FORMAT) {
+        return Err(GroupError::Invalid("不是 Kinshoko 参考组".into()));
+    }
+    match header.format_version {
+        Some(FORMAT_VERSION) => {}
+        Some(v) if v > FORMAT_VERSION => return Err(GroupError::UnsupportedVersion(v)),
+        _ => return Err(GroupError::Invalid("格式版本不对".into())),
+    }
+    let file: GroupFile =
+        serde_json::from_slice(bytes).map_err(|e| GroupError::Invalid(e.to_string()))?;
+    file.group.validate()?;
+    Ok(file.group)
 }
 
 fn valid_name(name: &str) -> Result<String, GroupError> {

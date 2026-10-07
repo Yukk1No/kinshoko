@@ -19,6 +19,9 @@ pub(super) const IMPORT_AFTER_PUBLISH: &str = "import_after_publish";
 /// 导入：提交事务里已写入参考图与来源，COMMIT 之前。
 pub(super) const IMPORT_BEFORE_COMMIT: &str = "import_before_commit";
 
+/// 备份：复制了一个原文件之后（快照还没完成）。
+ pub(crate) const BACKUP_AFTER_COPY: &str = "backup_after_copy";
+
 struct Armed {
     point: String,
     nth: u32,
@@ -44,7 +47,7 @@ fn armed() -> Option<&'static Armed> {
 }
 
 /// 经过注入点 `point`。
-pub(super) fn hit(point: &str) {
+pub(crate) fn hit(point: &str) {
     if let Some(armed) = armed()
         && armed.point == point
         && armed.hits.fetch_add(1, Ordering::SeqCst) + 1 == armed.nth
