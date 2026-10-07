@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { AppInfo } from "./bindings/AppInfo";
@@ -19,11 +19,17 @@ const info: AppInfo = { productName: "Kinshoko", version: "9.9.9" };
 const library: LibraryInfo = { id: "L1", name: "工作参考", root: "D:\\参考\\工作参考" };
 const page: BrowsePage = {
   cards: [
-    { id: "a", width: 100, height: 200, thumbnail: "L1/a/256" },
-    { id: "b", width: 300, height: 100, thumbnail: "L1/b/256" },
+    { id: "a", width: 100, height: 200, thumbnail: "L1/a/256", adult: false },
+    { id: "b", width: 300, height: 100, thumbnail: "L1/b/256", adult: false },
   ],
   nextCursor: null,
   total: 2,
+};
+/** 安全模式关闭时多出一张含成人内容的图。 */
+const released: BrowsePage = {
+  cards: [...page.cards, { id: "x", width: 200, height: 200, thumbnail: "L1/x/256", adult: true }],
+  nextCursor: null,
+  total: 3,
 };
 
 const side: Sidebar = {
@@ -48,51 +54,81 @@ const detail = (id: string, manual: string | null): ImageDetail => ({
   folders: [{ id: "F1", name: "人物" }],
   note: { manual, sources: [] },
   deletedAt: null,
+  rating: { imageId: id, suggested: null, manual: null, effective: null },
 });
 
-const label = (id: string, namespace: TagLabel["namespace"], name: string): TagLabel => ({
+const label = (
+  id: string,
+  namespace: TagLabel["namespace"],
+  name: string,
+  hasExternal = false,
+): TagLabel => ({
   id,
   namespace,
   name,
   untranslated: false,
-  hasExternal: false,
+  hasExternal,
 });
 const tags: Record<string, TagLabel> = {
   A: label("A", "artist", "某某"),
   C: label("C", "character", "某某"),
   B: label("B", "general", "蓝发"),
+  Q: label("Q", "general", "水色发", true),
 };
+/** 模拟的近似对应表：蓝发～水色发（内置）。 */
+const neighbours: Record<string, string[]> = { B: ["Q"], Q: ["B"] };
 const candidates: Candidate[] = [
   { tag: tags.C, via: null, count: 8 },
   { tag: tags.A, via: null, count: 3 },
   { tag: tags.B, via: "某某色", count: 1 },
 ];
 
-/** 模拟 Search：标签项照 id 填上标签名，文字项匹配名称含这段文字的标签。 */
+/** 模拟 Search：标签项照 id 填上标签名，文字项匹配名称含这段文字的标签；按 neighbours 近似展开。 */
 function resolved(input: SearchInput): ConditionTree {
+  const similar = (ids: string[], dismissed: string[]) =>
+    input.exact
+      ? []
+      : [...new Set(ids.flatMap((id) => neighbours[id] ?? []))]
+          .filter((n) => !ids.includes(n) && !dismissed.includes(n))
+          .map((n) => ({
+            tag: tags[n],
+            source: "builtin" as const,
+            of: ids.filter((id) => neighbours[id]?.includes(n)),
+          }));
   return {
     conditions: input.conditions.map((c) => ({
       negate: c.negate,
-      any: c.any.map((t) =>
-        t.kind === "tag"
-          ? { kind: "tag" as const, tag: tags[t.id], similar: [] }
-          : {
-              kind: "text" as const,
-              text: t.text,
-              tags: Object.values(tags).filter((l) => l.name.includes(t.text)),
-            },
-      ),
+      any: c.any.map((t) => {
+        if (t.kind === "tag") {
+          return { kind: "tag" as const, tag: tags[t.id], similar: similar([t.id], t.dismissed) };
+        }
+        const matched = Object.values(tags).filter((l) => l.name.includes(t.text));
+        return {
+          kind: "text" as const,
+          text: t.text,
+          tags: matched,
+          similar: similar(
+            matched.map((l) => l.id),
+            t.dismissed,
+          ),
+        };
+      }),
     })),
   };
 }
 
 type Call = { cmd: string; args: unknown };
+/** 设置中的“显示相近标签来源”。 */
+let showApproxSource = false;
 let calls: Call[];
+/** 后端的安全模式开关。 */
+let safeOn = true;
 
 const clean: RecoveryReport = { interrupted: [], orphans: [], discardedStaging: 0 };
 
-function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean) {
+function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean, safe = true) {
   calls = [];
+  safeOn = safe;
   mockWindows("main");
   let current = opened;
   mockIPC(
@@ -107,7 +143,12 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean) {
           current = library;
           return library;
         case "plugin:library|browse":
-          return page;
+          return safeOn ? page : released;
+        case "plugin:library|safe_mode":
+          return safeOn;
+        case "plugin:library|set_safe_mode":
+          safeOn = (args as { on: boolean }).on;
+          return safeOn;
         case "plugin:library|start_import":
           return "T1";
         case "plugin:library|sidebar":
@@ -125,6 +166,8 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean) {
           return (args as { text: string }).text.trim() ? candidates : [];
         case "plugin:library|resolve_search":
           return resolved((args as { input: SearchInput }).input);
+        case "shell_settings":
+          return { autostart: true, shortcuts: [], showApproxSource };
         default:
           return null;
       }
@@ -142,6 +185,7 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
   window.__KINSHOKO_TEST_PICKS__ = [];
+  showApproxSource = false;
 });
 
 afterEach(async () => {
@@ -447,7 +491,10 @@ describe("查找", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() =>
-      expect(lastInput()).toEqual({ conditions: [{ any: [{ kind: "text", text: "某某" }], negate: false }] }),
+      expect(lastInput()).toEqual({
+        conditions: [{ any: [{ kind: "text", text: "某某", dismissed: [] }], negate: false }],
+        exact: false,
+      }),
     );
     await waitFor(() => expect(lastQuery().conditions).toEqual(resolved(lastInput())));
     const chips = screen.getByRole("list", { name: "查找条件" });
@@ -457,7 +504,7 @@ describe("查找", () => {
     fireEvent.change(input, { target: { value: "某" } });
     fireEvent.click(await screen.findByRole("option", { name: /作者：某某/ }));
     await waitFor(() => expect(lastInput().conditions).toHaveLength(2));
-    expect(lastInput().conditions[1]).toEqual({ any: [{ kind: "tag", id: "A" }], negate: false });
+    expect(lastInput().conditions[1]).toEqual({ any: [{ kind: "tag", id: "A", dismissed: [] }], negate: false });
     await waitFor(() => expect(lastQuery().conditions.conditions).toHaveLength(2));
     expect(chips.textContent).toContain("作者：某某");
   });
@@ -474,7 +521,13 @@ describe("查找", () => {
     fireEvent.click(await screen.findByRole("option", { name: /角色：某某/ }), { ctrlKey: true });
     await waitFor(() =>
       expect(lastInput().conditions).toEqual([
-        { any: [{ kind: "tag", id: "B" }, { kind: "tag", id: "C" }], negate: false },
+        {
+          any: [
+            { kind: "tag", id: "B", dismissed: [] },
+            { kind: "tag", id: "C", dismissed: [] },
+          ],
+          negate: false,
+        },
       ]),
     );
     fireEvent.change(input, { target: { value: "紫发" } });
@@ -489,5 +542,161 @@ describe("查找", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "去掉这个条件" }));
     await waitFor(() => expect(lastQuery().conditions).toEqual({ conditions: [] }));
+  });
+});
+
+describe("近似查找", () => {
+  const box = () => screen.findByRole("combobox", { name: "查找参考图" });
+  const chips = () => screen.getByRole("list", { name: "查找条件" });
+  const lastInput = () => (sent("plugin:library|resolve_search").at(-1) as { input: SearchInput }).input;
+
+  /** 点选“蓝发”作为一个条件。 */
+  async function pickBlue() {
+    const input = await box();
+    fireEvent.change(input, { target: { value: "蓝" } });
+    fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
+    await waitFor(() => expect(chips().textContent).toContain("水色发"));
+  }
+
+  it("默认在条件里列出展开的相近标签，一键改回精确查找", async () => {
+    backend(library);
+    render(<App />);
+    await pickBlue();
+    expect(chips().textContent).toContain("蓝发或相近：水色发");
+    expect(chips().textContent).not.toContain("内置");
+
+    fireEvent.click(screen.getByRole("button", { name: "精确查找", pressed: false }));
+
+    await waitFor(() => expect(lastInput().exact).toBe(true));
+    await waitFor(() => expect(chips().textContent).not.toContain("水色发"));
+    expect(screen.getByRole("button", { name: "精确查找", pressed: true })).toBeTruthy();
+  });
+
+  it("关掉一个相近标签时，“只这次”只改本次条件，“以后都不展开”记进个人近似对应表", async () => {
+    backend(library);
+    render(<App />);
+    await pickBlue();
+
+    fireEvent.click(screen.getByRole("button", { name: "不展开“水色发”" }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: "不展开相近标签" })).getByRole("button", { name: "只这次" }));
+    await waitFor(() =>
+      expect(lastInput().conditions[0].any[0]).toEqual({ kind: "tag", id: "B", dismissed: ["Q"] }),
+    );
+    await waitFor(() => expect(chips().textContent).not.toContain("水色发"));
+    expect(sent("plugin:library|set_tag_approx")).toEqual([]);
+
+    fireEvent.click(screen.getByRole("button", { name: "去掉这个条件" }));
+    await pickBlue();
+    fireEvent.click(screen.getByRole("button", { name: "不展开“水色发”" }));
+    fireEvent.click(screen.getByRole("button", { name: "以后都不展开" }));
+    await waitFor(() =>
+      expect(sent("plugin:library|set_tag_approx")).toEqual([{ a: "B", b: "Q", relation: "notSimilar" }]),
+    );
+    expect(screen.queryByRole("dialog", { name: "不展开相近标签" })).toBeNull();
+  });
+
+  it("用“＋”从库内标签里挑一个加为相近标签", async () => {
+    backend(library);
+    render(<App />);
+    await pickBlue();
+
+    fireEvent.click(screen.getByRole("button", { name: "给“蓝发”加相近标签" }));
+    const dialog = screen.getByRole("dialog", { name: "加相近标签" });
+    fireEvent.change(within(dialog).getByRole("combobox", { name: "挑一个库内标签" }), {
+      target: { value: "某" },
+    });
+    fireEvent.click(await within(dialog).findByRole("option", { name: /作者：某某/ }));
+
+    await waitFor(() =>
+      expect(sent("plugin:library|set_tag_approx")).toEqual([{ a: "B", b: "A", relation: "similar" }]),
+    );
+    expect(screen.queryByRole("dialog", { name: "加相近标签" })).toBeNull();
+  });
+
+  it("设置中开启来源标记后，相近标签旁标出来自内置还是个人近似对应表", async () => {
+    showApproxSource = true;
+    backend(library);
+    render(<App />);
+    await pickBlue();
+
+    await waitFor(() => expect(chips().textContent).toContain("水色发内置"));
+  });
+
+  it("没有外部对应的标签旁显示提示图标，有外部对应的不显示", async () => {
+    backend(library);
+    render(<App />);
+    await pickBlue();
+
+    const hints = within(chips()).getAllByRole("img", { name: "没有外部对应，不参与内置近似对应表" });
+    expect(hints).toHaveLength(1);
+    expect(hints[0].previousElementSibling?.textContent).toBe("蓝发");
+  });
+});
+
+describe("安全模式", () => {
+  const book = () => screen.findByRole("button", { name: /安全模式/ });
+  const cardOf = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`);
+  const changed = (on: boolean) => push({ kind: "safeModeChanged", libraryId: "L1", on });
+
+  it("新装默认开启；点封印书或按 Ctrl+Shift+S 切换", async () => {
+    backend(library);
+    render(<App />);
+    const button = await book();
+    await waitFor(() => expect(button.getAttribute("aria-pressed")).toBe("true"));
+
+    fireEvent.click(button);
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+    await waitFor(() => expect(sent("plugin:library|set_safe_mode")).toEqual([{ on: false }]));
+
+    fireEvent.keyDown(window, { key: "S", ctrlKey: true, shiftKey: true });
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    await waitFor(() =>
+      expect(sent("plugin:library|set_safe_mode")).toEqual([{ on: false }, { on: true }]),
+    );
+  });
+
+  it("开启的同一刻遮住将被封印的图，资料库确认后它们离开图片墙", async () => {
+    backend(library, clean, false);
+    render(<App />);
+    await waitFor(() => expect(cardOf("x")?.dataset.veiled).toBe("false"));
+    expect(cardOf("a")?.dataset.veiled).toBe("false");
+
+    fireEvent.click(await book());
+    // 不等后端：点下的这一帧就开始遮蔽。
+    expect(cardOf("x")?.dataset.veiled).toBe("true");
+    expect(cardOf("a")?.dataset.veiled).toBe("false");
+
+    await changed(true);
+    await waitFor(() => expect(cardOf("x")).toBeNull());
+    expect(cardOf("a")).toBeTruthy();
+  });
+
+  it("关闭后被封印的图回到图片墙；释放未播完时再开启，立即重新遮住", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    expect(cardOf("x")).toBeNull();
+
+    fireEvent.click(await book());
+    await changed(false);
+    await waitFor(() => expect(cardOf("x")).toBeTruthy());
+    await waitFor(() => expect(cardOf("x")?.dataset.veiled).toBe("false"));
+
+    fireEvent.click(await book());
+    expect(cardOf("x")?.dataset.veiled).toBe("true");
+  });
+
+  it("开启后清掉选中的图，侧栏计数随之刷新", async () => {
+    backend(library, clean, false);
+    render(<App />);
+    await waitFor(() => expect(cardOf("x")).toBeTruthy());
+    fireEvent.click(cardOf("x")!);
+    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    const sidebars = sent("plugin:library|sidebar").length;
+
+    fireEvent.click(await book());
+    await changed(true);
+    await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
+    await waitFor(() => expect(sent("plugin:library|sidebar").length).toBeGreaterThan(sidebars));
   });
 });

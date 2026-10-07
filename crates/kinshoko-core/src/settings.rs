@@ -1,4 +1,5 @@
-//! 应用壳设置：本设备上与具体资料库无关的偏好（开机自启、全局快捷键）。
+//! 应用壳设置：本设备上与具体资料库无关的偏好（开机自启、全局快捷键、安全模式、相近标签来源标记、
+//! 诊断开关与使用日志）。
 //!
 //! 保存在应用配置目录的 `settings.json`。后续的设置（钉图、模型选择、诊断开关等）
 //! 在 [`SettingsFile`] 上加带默认值的字段即可；不认识的字段原样保留，旧版本打开新版本
@@ -63,6 +64,17 @@ struct SettingsFile {
     autostart: bool,
     /// 每个动作的快捷键；`None` 表示画师清除了绑定。没写到的动作用默认键。
     shortcuts: BTreeMap<ShortcutAction, Option<String>>,
+    /// 画师选的打标模型（模型 key）；`None` 为按本机条件自动选择。
+    tagging_model: Option<String>,
+    /// 安全模式（#60）：新安装默认开启。
+    safe_mode: bool,
+    /// 在查找条件里标出相近标签来自内置还是个人近似对应表（#56），默认不显示。
+    show_approx_source: bool,
+    /// 诊断开关“强制 sRGB”（ADR-0005）：WebView2 把显示器当作 sRGB，不按显示器配置文件做色彩管理。
+    /// WebView2 环境在进程启动时建好，所以重启后才生效。
+    force_srgb: bool,
+    /// 使用日志（#70）：默认关闭；只写本机，由画师决定是否导出。
+    usage_log: bool,
     /// 新版本写入、本版本不认识的字段。
     #[serde(flatten)]
     unknown: serde_json::Map<String, serde_json::Value>,
@@ -74,6 +86,11 @@ impl Default for SettingsFile {
             version: FORMAT_VERSION,
             autostart: true,
             shortcuts: BTreeMap::new(),
+            tagging_model: None,
+            safe_mode: true,
+            show_approx_source: false,
+            force_srgb: false,
+            usage_log: false,
             unknown: serde_json::Map::new(),
         }
     }
@@ -84,6 +101,8 @@ impl Default for SettingsFile {
 pub struct AppSettings {
     path: PathBuf,
     file: SettingsFile,
+    /// 打开设置时的“强制 sRGB”：本次运行的 WebView2 按它启动，改设置不影响。
+    force_srgb_in_effect: bool,
 }
 
 #[derive(Debug)]
@@ -123,7 +142,11 @@ impl AppSettings {
             Err(e) if e.kind() == io::ErrorKind::NotFound => SettingsFile::default(),
             Err(e) => return Err(e.into()),
         };
-        Ok(AppSettings { path, file })
+        Ok(AppSettings {
+            path,
+            force_srgb_in_effect: file.force_srgb,
+            file,
+        })
     }
 
     pub fn autostart(&self) -> bool {
@@ -132,6 +155,56 @@ impl AppSettings {
 
     pub fn set_autostart(&mut self, on: bool) -> Result<(), SettingsError> {
         self.update(|f| f.autostart = on)
+    }
+
+    /// 画师选的打标模型；`None` 表示自动选择。
+    pub fn tagging_model(&self) -> Option<&str> {
+        self.file.tagging_model.as_deref()
+    }
+
+    pub fn set_tagging_model(&mut self, key: Option<&str>) -> Result<(), SettingsError> {
+        self.update(|f| f.tagging_model = key.map(str::to_owned))
+    }
+
+    /// 安全模式是否开启。
+    pub fn safe_mode(&self) -> bool {
+        self.file.safe_mode
+    }
+
+    pub fn set_safe_mode(&mut self, on: bool) -> Result<(), SettingsError> {
+        self.update(|f| f.safe_mode = on)
+    }
+
+    /// 查找条件里是否标出相近标签的来源（内置／个人）。
+    pub fn show_approx_source(&self) -> bool {
+        self.file.show_approx_source
+    }
+
+    pub fn set_show_approx_source(&mut self, on: bool) -> Result<(), SettingsError> {
+        self.update(|f| f.show_approx_source = on)
+    }
+
+    /// 设置里保存的“强制 sRGB”，下次启动时生效。
+    pub fn force_srgb(&self) -> bool {
+        self.file.force_srgb
+    }
+
+    /// 本次运行实际采用的“强制 sRGB”（启动时读到的值）。
+    pub fn force_srgb_in_effect(&self) -> bool {
+        self.force_srgb_in_effect
+    }
+
+    pub fn set_force_srgb(&mut self, on: bool) -> Result<(), SettingsError> {
+        self.update(|f| f.force_srgb = on)
+    }
+
+    /// 是否记录使用日志。
+    pub fn usage_log(&self) -> bool {
+        self.file.usage_log
+    }
+
+    pub fn set_usage_log(&mut self, on: bool) -> Result<(), SettingsError> {
+        self.update(|f| f.usage_log = on)
     }
 
     /// 动作当前绑定的快捷键；`None` 表示未绑定。

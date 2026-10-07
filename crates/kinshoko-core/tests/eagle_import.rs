@@ -765,14 +765,20 @@ fn imported_eagle_source_links_can_be_found_with_the_integrated_text_search() {
             paths: vec![fixture.root],
         })
         .wait();
-    let conditions = Search::new(&library.vocabulary().unwrap()).resolve(
+    let conditions = Search::new(
+        &library.vocabulary().unwrap(),
+        &kinshoko_core::approx::BuiltinApproxTable::from_pairs(1, []),
+    )
+    .resolve(
         &SearchInput {
             conditions: vec![ConditionInput {
                 any: vec![TermInput::Text {
                     text: "example.com/0".into(),
+                    dismissed: Vec::new(),
                 }],
                 negate: false,
             }],
+            exact: false,
         },
         "zh-CN",
     );

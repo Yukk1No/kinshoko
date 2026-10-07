@@ -1,20 +1,30 @@
-//! 缩略图 v0 管线：按 sRGB 解释（不做色彩管理）、转正 EXIF 方向、Lanczos3 缩小、无损 WebP 保存。
-//! #45 换成还原度管线时提升 [`PIPELINE`]，旧缓存自然失效。
+//! 缩略图：还原度管线（`crate::fidelity`，ADR-0005）生成的 `sdr` 派生图。
 //!
-//! 缩略图是可重建缓存：缓存键 = 内容哈希 + 目标像素 + 管线版本，删掉随时重建。
+//! 缩略图是可重建缓存：`cache/thumbs/<管线版本>/<动态范围变体>/<sha 前两位>/<sha>-<像素|full>.<webp|png>`；
+//! `full` 是不直接显示的原图在 1:1 与放大时用的原尺寸派生图。
+//! 管线版本变化时旧目录整体作废：打开资料库时在后台删除，缩略图按需在新目录重建。
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use image::codecs::webp::WebPEncoder;
-use image::imageops::FilterType;
-use image::metadata::Orientation;
-use image::{DynamicImage, ImageReader};
-use rusqlite::OptionalExtension;
+use super::{CACHE_DIR, Error, Inner, colour};
+use crate::fidelity::{DEFAULT_DOWNSCALE, Downscale, render};
 
-use super::{CACHE_DIR, Error, Inner};
+/// 缩略图管线版本。解码器、色彩策略、缩放或存储格式变化时提升。
+/// v0：#44 的 sRGB 管线；v1：#45 的色彩管理管线。
+/// 缩小方式（#48）也是版本的一部分：改 `DEFAULT_DOWNSCALE` 即换目录，旧缓存整体作废。
+pub(crate) const PIPELINE: &str = pipeline(DEFAULT_DOWNSCALE);
 
-/// 缩略图管线版本。算法或色彩策略变化时提升。
-const PIPELINE: &str = "v0";
+const fn pipeline(downscale: Downscale) -> &'static str {
+    match downscale {
+        Downscale::LinearLight => "v1",
+        Downscale::EncodedValue => "v1-encoded",
+    }
+}
+
+/// 动态范围变体。首版只有 `sdr`；HDR 显示上线时加 `hdr`，不覆盖 `sdr`。
+const SDR: &str = "sdr";
+
+const THUMBS_DIR: &str = "thumbs";
 
 /// 缩略图宽度档位（设备像素）。请求取整到不小于它的最小档位，避免每种列宽各存一份。
 const TIERS: [u32; 9] = [128, 192, 256, 384, 512, 768, 1024, 1536, 2048];
@@ -29,57 +39,63 @@ pub(super) fn tier(px: u32) -> u32 {
 
 pub(super) fn get(inner: &Inner, image_id: &str, target_px: u32) -> Result<PathBuf, Error> {
     let px = tier(target_px);
-    let (sha, rel_path, orientation): (String, String, u8) = inner
-        .readers
-        .get()
-        .query_row(
-            "SELECT sha256, rel_path, orientation FROM image WHERE id = ?1",
-            [image_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-        )
-        .optional()?
-        .ok_or(Error::UnknownImage)?;
+    cached(inner, image_id, &px.to_string(), px)
+}
 
+/// 原尺寸（转正后）的 `sdr` 派生图，供不直接显示的原图在 1:1 与放大时使用。
+pub(super) fn full_size(inner: &Inner, image_id: &str) -> Result<PathBuf, Error> {
+    cached(inner, image_id, "full", u32::MAX)
+}
+
+fn cached(inner: &Inner, image_id: &str, label: &str, max_width: u32) -> Result<PathBuf, Error> {
+    let (description, sha, original) = colour::get(inner, image_id)?;
+    let container = render::container(&description);
     let path = inner
         .root
         .join(CACHE_DIR)
-        .join("thumbs")
+        .join(THUMBS_DIR)
         .join(PIPELINE)
+        .join(SDR)
         .join(&sha[..2])
-        .join(format!("{sha}-{px}.webp"));
+        .join(format!("{sha}-{label}.{}", container.extension()));
     if path.is_file() {
         return Ok(path);
     }
 
-    let mut image = ImageReader::open(inner.root.join(rel_path))?
-        .with_guessed_format()?
-        .decode()?;
-    if let Some(o) = Orientation::from_exif(orientation) {
-        image.apply_orientation(o);
-    }
-    // 不放大：原图比档位窄时按原尺寸保存。
-    if image.width() > px {
-        let height = ((image.height() as f64) * (px as f64) / (image.width() as f64))
-            .round()
-            .max(1.0) as u32;
-        image = image.resize_exact(px, height, FilterType::Lanczos3);
-    }
-    let image = if image.color().has_alpha() {
-        DynamicImage::ImageRgba8(image.to_rgba8())
-    } else {
-        DynamicImage::ImageRgb8(image.to_rgb8())
-    };
-
+    let bytes = std::fs::read(original)?;
+    let rendered =
+        render::render_sdr(&bytes, max_width, DEFAULT_DOWNSCALE).map_err(Error::Undecodable)?;
     std::fs::create_dir_all(path.parent().expect("缓存路径有父目录"))?;
     let tmp = path.with_extension(format!("{}.tmp", uuid::Uuid::new_v4().simple()));
-    let written = (|| -> Result<(), Error> {
-        let file = std::io::BufWriter::new(std::fs::File::create(&tmp)?);
-        image.write_with_encoder(WebPEncoder::new_lossless(file))?;
-        std::fs::rename(&tmp, &path)?;
-        Ok(())
-    })();
+    let written = std::fs::write(&tmp, &rendered.bytes).and_then(|()| std::fs::rename(&tmp, &path));
     if written.is_err() {
         let _ = std::fs::remove_file(&tmp);
     }
-    written.map(|()| path)
+    written?;
+    Ok(path)
+}
+
+/// 删除其他管线版本的缩略图目录。在后台线程里调用；失败只影响磁盘占用。
+pub(super) fn remove_stale(root: &Path) {
+    let Ok(entries) = std::fs::read_dir(root.join(CACHE_DIR).join(THUMBS_DIR)) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        if entry.file_name() != PIPELINE {
+            let _ = std::fs::remove_dir_all(entry.path());
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn changing_the_downscale_changes_the_pipeline_version() {
+        assert_ne!(
+            pipeline(Downscale::LinearLight),
+            pipeline(Downscale::EncodedValue)
+        );
+    }
 }

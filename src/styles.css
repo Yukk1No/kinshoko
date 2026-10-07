@@ -10,6 +10,10 @@
   --line: rgb(43 39 71 / 0.14);
   --wall: #eae9e6;
   --card: #dcdbd7;
+  /* 封印书的锁色（#27）：日间樱色，夜间金色。 */
+  --seal: #c85672;
+  /* 遮蔽被封印的图时覆上的墨色。 */
+  --veil: #2b2747;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,6 +25,8 @@
     --line: rgb(244 236 220 / 0.14);
     --wall: #161618;
     --card: #232326;
+    --seal: #e3b34f;
+    --veil: #0f0e17;
   }
 }
 
@@ -251,6 +257,64 @@ button.primary {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  /* 释放：遮蔽慢慢淡出。 */
+  transition: filter 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* 安全模式（#60）：遮蔽 = 模糊 14px＋92% 墨色。开启时 200ms 内到位（约 170ms 起已无法辨认），
+   释放未播完时开启也从当前样子直接转回遮蔽。 */
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--veil);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.card[data-veiled="true"] img {
+  filter: blur(14px);
+  transition: filter 200ms ease-out;
+}
+
+.card[data-veiled="true"]::after {
+  opacity: 0.92;
+  transition: opacity 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card img,
+  .card::after {
+    transition: none;
+  }
+}
+
+.seal-book {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.seal-book svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.seal-book .seal-book-lock {
+  fill: var(--seal);
+  stroke: var(--seal);
+}
+
+.seal-book .seal-book-key {
+  stroke: var(--bg);
+  stroke-linecap: round;
 }
 
 /* 设置（#61） */
@@ -295,6 +359,36 @@ button.primary {
 
 .settings-error {
   color: #c62828;
+}
+
+/* 诊断与更新（#70） */
+.settings-actions {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+.settings-diagnostics {
+  max-height: 240px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  white-space: pre-wrap;
+  user-select: text;
+}
+
+.update-notes {
+  white-space: pre-wrap;
+}
+
+.update-banner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
 }
 
 .settings-shortcuts th {
@@ -445,6 +539,18 @@ button.primary {
   resize: vertical;
 }
 
+/* 内容分级（#53）：人工分级优先于自动分级。 */
+.selection-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.selection-hint {
+  opacity: 0.6;
+}
+
 /* 搜索框（#54）：条件以标签块排在输入框前，下拉候选浮在图片墙上。 */
 .search {
   display: flex;
@@ -556,4 +662,331 @@ button.primary {
   font-size: 12px;
   opacity: 0.7;
   font-variant-numeric: tabular-nums;
+}
+
+/* 近似查找（#56）：相近标签以较淡的字列在条件里，可关掉；“精确查找”一键不展开。 */
+.search {
+  position: relative;
+}
+
+.search-similar {
+  margin-left: 4px;
+  opacity: 0.85;
+}
+
+.search-similar-tag > span:first-of-type {
+  border-bottom: 1px dashed var(--line);
+}
+
+.search-similar-source {
+  margin-left: 2px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--line);
+  font-size: 11px;
+}
+
+.search-exact {
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.search-exact[aria-pressed="true"] {
+  border-color: var(--accent-strong);
+  color: var(--accent-strong);
+}
+
+.search-popover {
+  position: absolute;
+  z-index: 11;
+  top: calc(100% + 4px);
+  left: 12px;
+  min-width: 240px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+}
+
+.search-popover p {
+  margin: 0 0 6px;
+}
+
+.search-popover button {
+  margin-right: 6px;
+}
+
+.search-popover input {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-bottom: 6px;
+}
+
+.search-popover-list {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.search-popover-list li {
+  display: flex;
+  gap: 8px;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.search-popover-list li:hover {
+  background: var(--line);
+}
+
+/* 没有外部对应的标签：不参与内置近似对应表。 */
+.no-external::before {
+  content: "⌀";
+  margin-left: 2px;
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+.settings-approx td {
+  padding: 2px 8px 2px 0;
+}
+
+.app-status-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* 截图历史（#62） */
+.capture-history {
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.capture-history-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.capture-history-bar h2 {
+  margin: 0 auto 0 0;
+  font-size: 15px;
+}
+
+.capture-history-empty {
+  opacity: 0.7;
+}
+
+.capture-history-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.capture-history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.capture-history-item img {
+  width: 100%;
+  height: 110px;
+  object-fit: contain;
+  background: var(--card);
+}
+
+.capture-history-meta {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.capture-history-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.capture-history-actions button {
+  padding: 2px 8px;
+}
+
+/* 截图框选窗口与钉图窗口：没有页面底色和边距，禁止系统手势（笔与触摸走 pointer 事件，#7）。 */
+:root[data-view="capture"],
+:root[data-view="capture"] body,
+:root[data-view="pin"],
+:root[data-view="pin"] body {
+  background: transparent;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.capture {
+  position: fixed;
+  inset: 0;
+  cursor: crosshair;
+}
+
+.capture-screen {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /* 冻结屏幕按物理像素原位显示，不做平滑。 */
+  image-rendering: pixelated;
+}
+
+.capture-shade {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.25);
+}
+
+.capture-selection {
+  position: absolute;
+  box-sizing: border-box;
+  outline: 1px solid #e0768f;
+  box-shadow: 0 0 0 100000px rgb(0 0 0 / 0.35);
+}
+
+.capture-size {
+  position: absolute;
+  left: 0;
+  top: -22px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 0.7);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.capture-tools {
+  position: absolute;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: default;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.3);
+}
+
+.capture-tip {
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.7);
+  color: #fff;
+}
+
+.pin {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* 右下角按住拖动缩放（笔与鼠标相同）。 */
+.pin-corner {
+  cursor: nwse-resize;
+}
+
+.pin-locked {
+  cursor: default;
+}
+
+/* 钉图内容：缩放与贴边动画只变换它，不逐帧改原生窗口（#64）。静止时没有变换，逐像素显示。 */
+.pin-content {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.pin-canvas {
+  display: block;
+}
+
+/* 新钉图出现时描一圈渐隐的边，让画师一眼看出钉上了（#7 反馈）。 */
+.pin-appear {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px #e0768f;
+  animation: pin-appear 900ms ease-out forwards;
+}
+
+@keyframes pin-appear {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.pin-notice {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 12px);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 0.75);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* 还原度门槛实验（#45） */
+.gate {
+  padding: 16px 24px;
+  overflow: auto;
+  height: 100vh;
+  box-sizing: border-box;
+}
+.gate-manual {
+  display: grid;
+  gap: 8px;
+  max-width: 520px;
+  margin: 12px 0;
+}
+.gate-manual label {
+  display: grid;
+  gap: 4px;
+}
+.gate-table {
+  border-collapse: collapse;
+}
+.gate-table td,
+.gate-table th {
+  border-bottom: 1px solid var(--line);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
 }

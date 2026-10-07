@@ -69,11 +69,15 @@ fn has_any_tag<'a>(ids: impl Iterator<Item = &'a str>, args: &mut Vec<Value>) ->
 fn term(term: &Term, args: &mut Vec<Value>) -> String {
     match term {
         Term::Tag { tag, similar } => has_any_tag(
-            std::iter::once(tag.id.as_str()).chain(similar.iter().map(|t| t.id.as_str())),
+            std::iter::once(tag.id.as_str()).chain(similar.iter().map(|s| s.tag.id.as_str())),
             args,
         )
         .unwrap_or_else(|| "0".to_owned()),
-        Term::Text { text, tags } => {
+        Term::Text {
+            text,
+            tags,
+            similar,
+        } => {
             let needle = param(args, Value::Text(fold(text)));
             let mut any = vec![
                 format!("instr({FOLD_FN}(image.original_name), {needle}) > 0"),
@@ -85,7 +89,12 @@ fn term(term: &Term, args: &mut Vec<Value>) -> String {
                      OR (s.source <> 'file' AND instr({FOLD_FN}(s.location), {needle}) > 0)))"
                 ),
             ];
-            any.extend(has_any_tag(tags.iter().map(|t| t.id.as_str()), args));
+            any.extend(has_any_tag(
+                tags.iter()
+                    .map(|t| t.id.as_str())
+                    .chain(similar.iter().map(|s| s.tag.id.as_str())),
+                args,
+            ));
             format!("({})", any.join(" OR "))
         }
     }

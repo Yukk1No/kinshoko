@@ -114,20 +114,18 @@ pub fn discover_eagle_libraries(options: &EagleDiscoveryOptions) -> Vec<EagleLib
 
 fn from_api(address: SocketAddr) -> Vec<PathBuf> {
     let response = (|| {
-        let client = reqwest::blocking::Client::builder()
-            .no_proxy()
-            .redirect(reqwest::redirect::Policy::none())
+        // 只问本机 Eagle：不走代理、不跟随重定向；非 2xx 状态由 ureq 作为错误返回。
+        let agent = ureq::AgentBuilder::new()
+            .redirects(0)
             .timeout(Duration::from_secs(2))
-            .build()
-            .ok()?;
-        let response = client
-            .get(format!("http://{address}/api/library/history"))
-            .send()
-            .ok()?
-            .error_for_status()
+            .build();
+        let response = agent
+            .get(&format!("http://{address}/api/library/history"))
+            .call()
             .ok()?;
         let mut raw = String::new();
         response
+            .into_reader()
             .take(MAX_JSON_BYTES)
             .read_to_string(&mut raw)
             .ok()?;

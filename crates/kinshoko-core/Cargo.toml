@@ -12,13 +12,23 @@ serde_json.workspace = true
 ts-rs.workspace = true
 rusqlite = { version = "0.40", features = ["bundled", "functions"] }
 rusqlite_migration = "2.6"
-image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
+moxcms = "0.9.1"
+fast_image_resize = "6.1"
+png = "0.18"
+zune-jpeg = "0.5"
+zune-core = "0.5"
+jpeg-encoder = "0.7"
+gif = "0.14"
 sha2 = "0.10"
 uuid = { version = "1", features = ["v4", "v7"] }
-reqwest = { version = "0.13", default-features = false, features = ["blocking", "json"] }
 unicode-normalization = "0.1"
 # 模型下载（阻塞式，断点续传），与 tools/tagger-probe 相同。
 ureq = "2"
+# 离线导入模型包（zip），与 tools/tagger-probe 相同。
+zip = { version = "2", default-features = false, features = ["deflate"] }
+# 校验模型包里的词表，与打标子进程读词表用同一个解析器。
+csv = "1"
 
 [dev-dependencies]
 tempfile = "3.27.0"

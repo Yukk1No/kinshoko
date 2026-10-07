@@ -9,11 +9,14 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{Receiver, RecvTimeoutError, channel};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use super::port::{Device, DeviceInfo, PreparedModel, RawTag, TagFailure, Tagger, TaggerSession};
+use super::port::{
+    Device, DeviceInfo, PreparedModel, RawTag, SessionStopper, TagFailure, Tagger, TaggerSession,
+};
 
 /// 主进程 → 子进程的第一行。
 #[derive(Debug, Serialize, Deserialize)]
@@ -217,7 +220,7 @@ impl ProcessTagger {
             })
             .map_err(|e| e.to_string())?;
         let mut running = Running {
-            child,
+            child: Arc::new(Mutex::new(child)),
             stdin,
             replies: rx,
         };
@@ -229,7 +232,8 @@ impl ProcessTagger {
 }
 
 struct Running {
-    child: Child,
+    /// 别的线程（暂停打标）也要能结束它。
+    child: Arc<Mutex<Child>>,
     stdin: ChildStdin,
     replies: Receiver<Reply>,
 }
@@ -257,7 +261,7 @@ impl Running {
                 )))
             }
             Err(RecvTimeoutError::Disconnected) => {
-                let status = self.child.wait().map(|s| s.to_string());
+                let status = lock_child(&self.child).wait().map(|s| s.to_string());
                 Err(TagFailure::Crashed(format!(
                     "子进程已退出（{}）",
                     status.unwrap_or_else(|e| e.to_string())
@@ -267,9 +271,18 @@ impl Running {
     }
 
     fn kill(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+        kill(&self.child);
     }
+}
+
+fn lock_child(child: &Mutex<Child>) -> MutexGuard<'_, Child> {
+    child.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+fn kill(child: &Mutex<Child>) {
+    let mut child = lock_child(child);
+    let _ = child.kill();
+    let _ = child.wait();
 }
 
 impl Drop for Running {
@@ -333,5 +346,10 @@ impl TaggerSession for ProcessSession {
             Reply::BadImage { reason } => Err(TagFailure::BadImage(reason)),
             other => Err(TagFailure::Crashed(format!("意外的回复：{other:?}"))),
         }
+    }
+
+    fn stopper(&self) -> SessionStopper {
+        let child = self.running.child.clone();
+        Arc::new(move || kill(&child))
     }
 }
