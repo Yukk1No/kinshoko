@@ -10,13 +10,15 @@ import type { EagleRelocation } from "../bindings/EagleRelocation";
 import { cancelImport, confirmEagleLocation, discoverEagleLibraries, libraryRecovery, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
 
 export type RunningImport = { taskId: string | null; progress: ImportProgress };
+/** 已结束的导入任务与它的报告。 */
+export type FinishedImport = { taskId: string; report: ImportReport };
 
 type Props = {
   enabled: boolean;
   libraryId: string;
   libraryName: string;
   running: RunningImport | null;
-  report: ImportReport | null;
+  finished: FinishedImport | null;
   onStarted: (taskId: string) => void;
   onDismissReport: () => void;
 };
@@ -36,14 +38,19 @@ function reason(outcome: ImportOutcome): string | null {
  * 导入：选择文件或文件夹，或把它们拖进主窗口；进行中显示进度与取消，结束后逐项列出
  * 没有进来的文件并可只重试读取失败的项。打开资料库时若上次导入中断，提示撤回了哪些文件。
  */
-export function ImportBar({ enabled, libraryId, libraryName, running, report, onStarted, onDismissReport }: Props) {
+export function ImportBar({ enabled, libraryId, libraryName, running, finished, onStarted, onDismissReport }: Props) {
+  const report = finished?.report ?? null;
   const [hovering, setHovering] = useState(false);
   const [recovery, setRecovery] = useState<RecoveryReport | null>(null);
   const [eagleLibraries, setEagleLibraries] = useState<EagleLibraryCandidate[] | null>(null);
   const [lookingForEagle, setLookingForEagle] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
-  // 正在进行的导入是从 Eagle 迁入；完成后进入“标签的外部对应”一步。
-  const eagleRun = useRef(false);
+  /**
+   * 从 Eagle 迁入的任务 id；它结束后进入“标签的外部对应”一步。结束事件可能先于启动命令的
+   * 响应到达，所以按 task id 把来源与终态对上，哪个先到都只打开一次（#77 UI-E）。
+   */
+  const [eagleTasks, setEagleTasks] = useState<ReadonlySet<string>>(() => new Set());
+  const stepShown = useRef(new Set<string>());
   const [tagStep, setTagStep] = useState(false);
   // 已确认过的搬家提议，不再重复询问。
   const [confirmed, setConfirmed] = useState<string[]>([]);
@@ -68,7 +75,7 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
       setImportError(null);
       const taskId = await startImport(libraryId, paths);
       if (!alive.current) return;
-      eagleRun.current = fromEagle;
+      if (fromEagle) setEagleTasks((tasks) => new Set(tasks).add(taskId));
       setTagStep(false);
       onStarted(taskId);
       setEagleLibraries(null);
@@ -82,12 +89,12 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
     await begin(folder ? [folder] : [], fromEagle);
   };
 
+  const finishedTask = finished?.taskId ?? null;
   useEffect(() => {
-    if (report && eagleRun.current) {
-      eagleRun.current = false;
-      setTagStep(true);
-    }
-  }, [report]);
+    if (finishedTask === null || !eagleTasks.has(finishedTask) || stepShown.current.has(finishedTask)) return;
+    stepShown.current.add(finishedTask);
+    setTagStep(true);
+  }, [finishedTask, eagleTasks]);
   const findEagle = async () => {
     setLookingForEagle(true);
     setImportError(null);
