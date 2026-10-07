@@ -94,6 +94,7 @@ fn grab_and_show(app: &AppHandle) -> Result<(), String> {
     .skip_taskbar(true)
     .always_on_top(true)
     .visible(false)
+    .additional_browser_args(crate::diagnostics::browser_args())
     .build()
     .map_err(|e| e.to_string())?;
     // 先移到目标显示器再定尺寸：跨越缩放比例不同的显示器时，移动会先按新比例改一次尺寸。

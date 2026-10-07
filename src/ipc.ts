@@ -33,6 +33,8 @@ import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { TagEdit } from "./bindings/TagEdit";
 import type { TagGroupView } from "./bindings/TagGroupView";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
+import type { UpdateProgress } from "./bindings/UpdateProgress";
+import type { UpdateStatus } from "./bindings/UpdateStatus";
 import type { Vocabulary } from "./bindings/Vocabulary";
 
 export function appInfo(): Promise<AppInfo> {
@@ -280,6 +282,57 @@ export function rebindShortcut(
   accelerator: string | null,
 ): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("rebind_shortcut", { action, accelerator });
+}
+
+/** 诊断开关“强制 sRGB”：保存后重启 Kinshoko 生效。 */
+export function setForceSrgb(on: boolean): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_force_srgb", { on });
+}
+
+/** 开关使用日志（只写本机），立即生效。 */
+export function setUsageLog(on: boolean): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_usage_log", { on });
+}
+
+// ---------- 诊断与更新（#70） ----------
+
+/** 诊断日志全文：硬件、系统、WebView2 与显示器色彩状态，不含文件名、路径与图片。 */
+export function diagnosticsReport(): Promise<string> {
+  return invoke<string>("diagnostics_report");
+}
+
+/** 把诊断日志存成文件；画师取消时为 false。 */
+export function exportDiagnostics(): Promise<boolean> {
+  return invoke<boolean>("export_diagnostics");
+}
+
+/** 把使用日志导出成文件；画师取消时为 false。 */
+export function exportUsageLog(): Promise<boolean> {
+  return invoke<boolean>("export_usage_log");
+}
+
+/** 删掉已记录的使用日志。 */
+export function clearUsageLog(): Promise<void> {
+  return invoke<void>("clear_usage_log");
+}
+
+/** 上次检查更新的结果。 */
+export function updateStatus(): Promise<UpdateStatus> {
+  return invoke<UpdateStatus>("update_status");
+}
+
+/** 向 GitHub Releases 检查新版本。 */
+export function checkUpdate(): Promise<UpdateStatus> {
+  return invoke<UpdateStatus>("check_update");
+}
+
+/** 下载并安装新版本；成功时 Kinshoko 退出、装好后重新启动。 */
+export function installUpdate(): Promise<void> {
+  return invoke<void>("install_update");
+}
+
+export function onUpdateProgress(handler: (progress: UpdateProgress) => void): Promise<UnlistenFn> {
+  return listen<UpdateProgress>("update-progress", (e) => handler(e.payload));
 }
 
 // ---------- 截图与钉图（#62） ----------

@@ -175,6 +175,7 @@ pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
     .skip_taskbar(true)
     .always_on_top(true)
     .visible(false)
+    .additional_browser_args(crate::diagnostics::browser_args())
     .build();
     let window = match built {
         Ok(w) => w,

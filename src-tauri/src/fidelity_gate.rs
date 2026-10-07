@@ -92,6 +92,7 @@ pub fn start(app: &AppHandle, options: Options) {
     )
     .title("Kinshoko 还原度门槛实验")
     .inner_size(1100.0, 800.0)
+    .additional_browser_args(crate::diagnostics::browser_args())
     .build()
     {
         eprintln!("打开门槛实验窗口失败：{e}");

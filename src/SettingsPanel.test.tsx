@@ -19,6 +19,9 @@ const defaults: ShellSettingsView = {
     { action: "hideAllPins", accelerator: "F4", problem: null },
   ],
   showApproxSource: false,
+  forceSrgb: false,
+  forceSrgbInEffect: false,
+  usageLog: false,
 };
 
 /** 记录前端发出的命令，按给定的处理函数回应。 */
@@ -198,5 +201,85 @@ describe("设置：近似查找", () => {
 
     await waitFor(() => expect(within(table).getAllByRole("row")).toHaveLength(1));
     expect(calls.find((c) => c.cmd === "plugin:library|remove_tag_approx")?.args).toEqual({ a: "B", b: "Q" });
+  });
+});
+
+describe("设置：诊断", () => {
+  it("打开强制 sRGB 后提示重启生效", async () => {
+    const calls = backend((cmd) =>
+      cmd === "set_force_srgb" ? { ...defaults, forceSrgb: true } : undefined,
+    );
+    render(<SettingsPanel />);
+
+    const toggle = await screen.findByRole("checkbox", { name: "强制 sRGB（诊断用）" });
+    expect((toggle as HTMLInputElement).checked).toBe(false);
+    expect(screen.queryByText(/重启 Kinshoko 后生效/)).toBeNull();
+    fireEvent.click(toggle);
+
+    await screen.findByRole("checkbox", { name: "强制 sRGB（诊断用）", checked: true });
+    expect(calls.find((c) => c.cmd === "set_force_srgb")?.args).toEqual({ on: true });
+    expect(screen.getByText(/重启 Kinshoko 后生效/)).toBeTruthy();
+  });
+
+  it("使用日志默认关闭，可以打开、导出与清除", async () => {
+    const calls = backend((cmd) => {
+      if (cmd === "set_usage_log") return { ...defaults, usageLog: true };
+      if (cmd === "export_usage_log") return true;
+      if (cmd === "clear_usage_log") return null;
+      return undefined;
+    });
+    render(<SettingsPanel />);
+
+    const toggle = await screen.findByRole("checkbox", { name: "记录使用日志（只存在本机）" });
+    expect((toggle as HTMLInputElement).checked).toBe(false);
+    fireEvent.click(toggle);
+    await screen.findByRole("checkbox", { name: "记录使用日志（只存在本机）", checked: true });
+    expect(calls.find((c) => c.cmd === "set_usage_log")?.args).toEqual({ on: true });
+
+    fireEvent.click(screen.getByRole("button", { name: "导出使用日志…" }));
+    await waitFor(() => expect(calls.some((c) => c.cmd === "export_usage_log")).toBe(true));
+    fireEvent.click(screen.getByRole("button", { name: "清除使用日志" }));
+    await waitFor(() => expect(calls.some((c) => c.cmd === "clear_usage_log")).toBe(true));
+  });
+
+  it("显示诊断信息并可以存成文件", async () => {
+    const calls = backend((cmd) => {
+      if (cmd === "diagnostics_report") return "Kinshoko 0.1.0 诊断信息\nWebView2：154.0";
+      if (cmd === "export_diagnostics") return true;
+      return undefined;
+    });
+    render(<SettingsPanel />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "显示诊断信息" }));
+
+    expect((await screen.findByLabelText("诊断信息")).textContent).toContain("WebView2：154.0");
+    fireEvent.click(screen.getByRole("button", { name: "存成文件…" }));
+    await waitFor(() => expect(calls.some((c) => c.cmd === "export_diagnostics")).toBe(true));
+  });
+});
+
+describe("设置：更新", () => {
+  it("没有配置更新公钥的构建说明不检查更新", async () => {
+    backend((cmd) => (cmd === "update_status" ? { state: "disabled" } : undefined));
+    render(<SettingsPanel />);
+
+    expect(await screen.findByText("此构建未启用自动更新。")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "检查更新" })).toBeNull();
+  });
+
+  it("检查到新版本后可以安装", async () => {
+    const calls = backend((cmd) => {
+      if (cmd === "update_status") return { state: "unchecked" };
+      if (cmd === "check_update") return { state: "available", version: "0.2.0", notes: "修正钉图" };
+      if (cmd === "install_update") return null;
+      return undefined;
+    });
+    render(<SettingsPanel />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "检查更新" }));
+
+    expect(await screen.findByText("可以更新到 0.2.0")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "安装并重启" }));
+    await waitFor(() => expect(calls.some((c) => c.cmd === "install_update")).toBe(true));
   });
 });
