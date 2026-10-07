@@ -160,10 +160,13 @@ export function PinView({ pin }: { pin: string }) {
     let wanted = "";
     let sourceTimer = 0;
 
-    /** 遮蔽要立刻生效，不等 React 渲染：在宿主元素上直接切换。换成清晰的源图之前也保持遮蔽。 */
+    /**
+     * 遮蔽要立刻生效，不等 React 渲染：在宿主元素上直接切换。换成清晰的源图之前也保持遮蔽；
+     * 遮蔽时取的源图正是此刻要画的（同一地址，如小图 1:1 或缩得很小）时不必再等（#77 UI-D）。
+     */
     const applyVeil = () => {
       const f = frame.current;
-      const on = !!f && (f.veiled || sourceVeiled);
+      const on = !!f && (f.veiled || (sourceVeiled && sourceAddress !== sourceUrl(f)));
       host.current?.classList.toggle("pin-veiled", on);
       setVeiled(on);
       if (!on) setConfirming(false);
