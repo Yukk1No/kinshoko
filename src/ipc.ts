@@ -21,7 +21,7 @@ import type { ImageEdit } from "./bindings/ImageEdit";
 import type { ImageRating } from "./bindings/ImageRating";
 import type { GatePlan } from "./bindings/GatePlan";
 import type { ImageTags } from "./bindings/ImageTags";
-import type { PinInfo } from "./bindings/PinInfo";
+import type { SavedPin } from "./bindings/SavedPin";
 import type { Region } from "./bindings/Region";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
@@ -314,8 +314,9 @@ export function pinCapture(id: string): Promise<void> {
   return invoke<void>(desk("pin_capture"), { id });
 }
 
-export function pinInfo(pin: string): Promise<PinInfo | null> {
-  return invoke<PinInfo | null>(desk("pin_info"), { pin });
+/** 钉图窗口要画的内容与摆放（位置、裁切、缩放、翻转、旋转）；钉图已关闭时为 null。 */
+export function pinInfo(pin: string): Promise<SavedPin | null> {
+  return invoke<SavedPin | null>(desk("pin_info"), { pin });
 }
 
 /** 钉图窗口：第一帧已画好，可以显示了。 */
@@ -328,9 +329,26 @@ export function pinMenu(pin: string): Promise<void> {
   return invoke<void>(desk("pin_menu"), { pin });
 }
 
-/** 数位笔与触摸拖动钉图：移到屏幕物理像素 (x, y)。 */
+/** 拖动钉图（笔、鼠标、触摸同一套）：移到屏幕物理像素 (x, y)，成为新的原位。 */
 export function movePin(pin: string, x: number, y: number): Promise<void> {
   return invoke<void>(desk("move_pin"), { pin, x, y });
+}
+
+/** 缩放钉图；窗口内 (anchorX, anchorY)（物理像素）不动。返回缩放后的状态。 */
+export function zoomPin(pin: string, scale: number, anchorX: number, anchorY: number): Promise<SavedPin> {
+  return invoke<SavedPin>(desk("zoom_pin"), { pin, scale, anchorX, anchorY });
+}
+
+export type PinTurn = "flipHorizontal" | "flipVertical" | "rotateClockwise" | "rotateCounterClockwise";
+
+/** 翻转或旋转钉图（中心不动）。返回新的状态。 */
+export function turnPin(pin: string, turn: PinTurn): Promise<SavedPin> {
+  return invoke<SavedPin>(desk("turn_pin"), { pin, turn });
+}
+
+/** 贴边隐藏全部钉图，或让它们回到原位（与全局快捷键相同）。 */
+export function edgeHide(): Promise<void> {
+  return invoke<void>(desk("edge_hide"));
 }
 
 export function captureHistory(): Promise<CaptureEntry[]> {

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "desktop",
-  "description": "截图框选窗口与钉图窗口的权限（#62）",
+  "description": "截图框选窗口与钉图窗口的权限（#62、#63）。钉图的拖动由程序移动窗口，不用系统拖动",
   "windows": ["capture", "pin-*"],
-  "permissions": ["core:default", "core:window:allow-start-dragging", "desktop:default"]
+  "permissions": ["core:default", "desktop:default"]
 }

@@ -67,13 +67,12 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("启动 Kinshoko 失败");
 
-    app.run(|_app, event| {
+    app.run(|app, event| match event {
         // 最后一个窗口关闭时 code 为 None：留在托盘。`app.exit(code)` 带 code，照常退出。
-        if let RunEvent::ExitRequested {
+        RunEvent::ExitRequested {
             code: None, api, ..
-        } = event
-        {
-            api.prevent_exit();
-        }
+        } => api.prevent_exit(),
+        RunEvent::Exit => desktop::on_exit(app),
+        _ => {}
     });
 }

@@ -1,11 +1,21 @@
-//! 桌面钉图窗口：截图钉图、钉剪贴板（F3）、右键菜单（收藏、复制、关闭）。
+//! 桌面钉图窗口：截图钉图、钉剪贴板（F3）、拖动与缩放、翻转旋转、右键菜单（收藏、复制、关闭），
+//! 以及重新打开后的恢复（#63）。
 //!
-//! 每个钉图一个无边框、置顶、不进任务栏的窗口，尺寸等于图片的物理像素（未缩放）。
+//! 每个钉图一个无边框、置顶、不进任务栏的窗口，尺寸等于 [`SavedPin::window_size`]（物理像素）。
 //! 窗口先隐藏建好、定好位置，页面画完第一帧后调用 `pin_ready` 才显示。
-//! 缩放、翻转旋转、透明度与右键菜单的其余操作由 #64 接入，贴边隐藏与重开恢复由 #63 接入。
+//! 钉图状态在 [`PinStore`]（`pins.json`）里：画师关闭的钉图从中删除；退出程序时窗口也会销毁，
+//! 但这时不删，下次启动照原样恢复。
+//!
+//! 拖动和缩放都由页面的 pointer 事件驱动、由程序移动窗口（笔与鼠标同一套处理；Windows Ink 下
+//! 没有系统拖动需要的鼠标事件，#7）。
+
+use std::sync::atomic::Ordering;
 
 use image::RgbaImage;
-use kinshoko_core::desktop::{CaptureEntry, PinInfo, ScreenRect, Screenshot, place_new_pin};
+use kinshoko_core::desktop::{
+    CaptureEntry, PinContent, Placement, SavedPin, ScreenRect, Screenshot, place_new_pin,
+};
+use serde::Deserialize;
 use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem};
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
@@ -20,19 +30,19 @@ const LABEL_PREFIX: &str = "pin-";
 const NOTICE_EVENT: &str = "pin-notice";
 const MENU_PREFIX: &str = "pin|";
 
-#[derive(Clone)]
+/// 本次运行中打开着的钉图窗口。
 pub struct PinRecord {
     capture_id: String,
-    width: u32,
-    height: u32,
+    /// 画师正在关闭它（菜单或 Alt+F4）。窗口销毁时据此区分“关闭钉图”和“退出程序”。
+    closing: bool,
 }
 
-fn label(pin: &str) -> String {
+pub fn label(pin: &str) -> String {
     format!("{LABEL_PREFIX}{pin}")
 }
 
-/// 显示器的矩形与缩放比例；找不到时按 `at` 自身和 1.0。
-fn monitor_at(x: i32, y: i32) -> Option<(ScreenRect, f64)> {
+/// 显示器的矩形与缩放比例。
+pub fn monitor_at(x: i32, y: i32) -> Option<(ScreenRect, f64)> {
     let m = xcap::Monitor::from_point(x, y).ok()?;
     Some((
         ScreenRect {
@@ -45,21 +55,40 @@ fn monitor_at(x: i32, y: i32) -> Option<(ScreenRect, f64)> {
     ))
 }
 
-/// 已有钉图窗口在屏幕上的位置。
-fn pin_rects(app: &AppHandle) -> Vec<ScreenRect> {
-    let ids: Vec<String> = lock(&state(app).pins).keys().cloned().collect();
-    ids.iter()
-        .filter_map(|id| app.get_webview_window(&label(id)))
-        .filter_map(|w| {
-            let (p, s) = (w.outer_position().ok()?, w.outer_size().ok()?);
+/// 全部显示器的矩形。
+pub fn monitors() -> Vec<ScreenRect> {
+    xcap::Monitor::all()
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|m| {
             Some(ScreenRect {
-                x: p.x,
-                y: p.y,
-                width: s.width,
-                height: s.height,
+                x: m.x().ok()?,
+                y: m.y().ok()?,
+                width: m.width().ok()?,
+                height: m.height().ok()?,
             })
         })
         .collect()
+}
+
+/// 已打开钉图的状态（按 [`PinStore`] 的先后）。
+pub fn open_pins(app: &AppHandle) -> Vec<SavedPin> {
+    let open: Vec<String> = lock(&state(app).pins).keys().cloned().collect();
+    lock(&state(app).store)
+        .pins()
+        .iter()
+        .filter(|p| open.contains(&p.id))
+        .cloned()
+        .collect()
+}
+
+/// 改一个钉图的状态并安排保存。钉图不在时为 `None`。
+fn edit<T>(app: &AppHandle, pin: &str, f: impl FnOnce(&mut SavedPin) -> T) -> Option<T> {
+    let out = lock(&state(app).store).edit(pin, f);
+    if out.is_some() {
+        state(app).dirty.store(true, Ordering::Relaxed);
+    }
+    out
 }
 
 /// 把截图历史中的一张截图钉到桌面。`at` 是图片原本在屏幕上的位置（物理像素）；
@@ -70,24 +99,47 @@ pub fn open(app: &AppHandle, capture: &CaptureEntry, at: ScreenRect) -> Result<(
         .or_else(|| monitor_at(at.x, at.y))
         .unwrap_or((at, 1.0));
     let step = (OFFSET * scale).round() as i32;
-    let (x, y) = place_new_pin(at, monitor, &pin_rects(app), step);
+    let others: Vec<ScreenRect> = open_pins(app).iter().map(SavedPin::rect).collect();
+    let (x, y) = place_new_pin(at, monitor, &others, step);
 
-    let id = uuid::Uuid::new_v4().simple().to_string();
-    lock(&state(app).history).pin(&capture.id);
-    lock(&state(app).pins).insert(
-        id.clone(),
-        PinRecord {
+    let pin = SavedPin {
+        id: uuid::Uuid::new_v4().simple().to_string(),
+        content: PinContent::Capture {
             capture_id: capture.id.clone(),
-            width: capture.width,
-            height: capture.height,
+        },
+        crop: None,
+        width: capture.width,
+        height: capture.height,
+        placement: Placement {
+            x,
+            y,
+            ..Placement::default()
+        },
+    };
+    lock(&state(app).history).pin(&capture.id);
+    {
+        let mut store = lock(&state(app).store);
+        store.put(pin.clone());
+        let _ = store.save();
+    }
+    history_changed(app);
+    open_window(app, &pin)
+}
+
+/// 为一个钉图建窗口（新钉的，或启动时恢复的）。截图历史此前已经记下它被钉住。
+pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
+    let PinContent::Capture { capture_id } = &pin.content;
+    lock(&state(app).pins).insert(
+        pin.id.clone(),
+        PinRecord {
+            capture_id: capture_id.clone(),
+            closing: false,
         },
     );
-    history_changed(app);
-
     let built = WebviewWindowBuilder::new(
         app,
-        label(&id),
-        WebviewUrl::App(format!("index.html?view=pin&pin={id}").into()),
+        label(&pin.id),
+        WebviewUrl::App(format!("index.html?view=pin&pin={}", pin.id).into()),
     )
     .title("Kinshoko 钉图")
     .decorations(false)
@@ -103,32 +155,90 @@ pub fn open(app: &AppHandle, capture: &CaptureEntry, at: ScreenRect) -> Result<(
     let window = match built {
         Ok(w) => w,
         Err(e) => {
-            closed(app, &id);
+            if let Some(record) = lock(&state(app).pins).get_mut(&pin.id) {
+                record.closing = true;
+            }
+            closed(app, &pin.id);
             return Err(format!("无法打开钉图窗口：{e}"));
         }
     };
     let app_for_events = app.clone();
-    let pin_id = id.clone();
-    window.on_window_event(move |event| {
-        if let WindowEvent::Destroyed = event {
+    let pin_id = pin.id.clone();
+    window.on_window_event(move |event| match event {
+        WindowEvent::CloseRequested { .. } => mark_closing(&app_for_events, &pin_id),
+        WindowEvent::Resized(size) => keep_exact_size(&app_for_events, &pin_id, *size),
+        WindowEvent::Destroyed => {
             // 主线程上：截图历史的清理放到别的线程。
             let (app, pin) = (app_for_events.clone(), pin_id.clone());
             std::thread::spawn(move || closed(&app, &pin));
         }
+        _ => {}
     });
+    let (w, h) = pin.window_size();
+    // 先移到目标显示器再定尺寸：跨越缩放比例不同的显示器时，移动会先按新比例改一次尺寸。
     window
-        .set_position(PhysicalPosition::new(x, y))
-        .and_then(|_| window.set_size(PhysicalSize::new(capture.width, capture.height)))
+        .set_position(PhysicalPosition::new(pin.placement.x, pin.placement.y))
+        .and_then(|_| window.set_size(PhysicalSize::new(w, h)))
         .map_err(|e| e.to_string())
 }
 
-/// 钉图窗口关了：截图不再被它钉住，按截图历史的规则丢弃。
+fn mark_closing(app: &AppHandle, pin: &str) {
+    if let Some(record) = lock(&state(app).pins).get_mut(pin) {
+        record.closing = true;
+    }
+}
+
+/// 拖到缩放比例不同的显示器上时系统会按新比例改窗口尺寸：改回钉图的物理像素尺寸，
+/// 免得 canvas 被重新采样。
+fn keep_exact_size(app: &AppHandle, pin: &str, size: PhysicalSize<u32>) {
+    let Some((w, h)) = lock(&state(app).store).get(pin).map(SavedPin::window_size) else {
+        return;
+    };
+    if (size.width, size.height) != (w, h)
+        && let Some(window) = app.get_webview_window(&label(pin))
+    {
+        let _ = window.set_size(PhysicalSize::new(w, h));
+    }
+}
+
+/// 钉图窗口销毁了。画师关闭的：不再恢复，截图不再被它钉住，按截图历史的规则丢弃。
+/// 退出程序时销毁的：状态留着，下次启动恢复。
 fn closed(app: &AppHandle, pin: &str) {
     let Some(record) = lock(&state(app).pins).remove(pin) else {
         return;
     };
+    lock(&state(app).edge).release(pin);
+    if !record.closing {
+        return;
+    }
+    {
+        let mut store = lock(&state(app).store);
+        store.remove(pin);
+        let _ = store.save();
+    }
     lock(&state(app).history).unpin(&record.capture_id);
     history_changed(app);
+}
+
+/// 启动时恢复上次的钉图（位置、裁切、缩放、翻转与旋转）。在别的线程上调用。
+pub fn restore(app: &AppHandle) {
+    let monitors = monitors();
+    let pins = {
+        let mut history = lock(&state(app).history);
+        let mut store = lock(&state(app).store);
+        let pins = store.restore(&mut history, &monitors);
+        let _ = store.save();
+        pins
+    };
+    if pins.is_empty() {
+        return;
+    }
+    history_changed(app);
+    for pin in &pins {
+        if let Err(e) = open_window(app, pin) {
+            eprintln!("恢复钉图失败：{e}");
+        }
+    }
 }
 
 /// 光标处的一个点，作为钉剪贴板和从历史钉住时的“原位置”。
@@ -202,13 +312,10 @@ pub async fn pin_capture(app: AppHandle, id: String) -> Result<(), String> {
     open(&app, &entry, at)
 }
 
+/// 钉图窗口要画的内容与摆放。
 #[tauri::command]
-pub async fn pin_info(app: AppHandle, pin: String) -> Option<PinInfo> {
-    lock(&state(&app).pins).get(&pin).map(|r| PinInfo {
-        capture_id: r.capture_id.clone(),
-        width: r.width,
-        height: r.height,
-    })
+pub async fn pin_info(app: AppHandle, pin: String) -> Option<SavedPin> {
+    lock(&state(&app).store).get(&pin).cloned()
 }
 
 /// 第一帧已画好：显示钉图。
@@ -219,12 +326,89 @@ pub async fn pin_ready(app: AppHandle, pin: String) {
     }
 }
 
-/// 数位笔与触摸拖动：由程序移动窗口（Windows Ink 下没有系统拖动需要的鼠标事件，#7）。
+/// 拖动钉图：移到屏幕物理像素 (x, y)，这里成为它的新原位。收起着的钉图被拖出后不再算收起。
 #[tauri::command]
 pub async fn move_pin(app: AppHandle, pin: String, x: i32, y: i32) {
+    let moved = edit(&app, &pin, |p| {
+        p.placement.x = x;
+        p.placement.y = y;
+    });
+    if moved.is_none() {
+        return;
+    }
+    lock(&state(&app).edge).release(&pin);
     if let Some(window) = app.get_webview_window(&label(&pin)) {
         let _ = window.set_position(PhysicalPosition::new(x, y));
     }
+}
+
+/// 缩放钉图到 `scale`。窗口内的 (`anchor_x`, `anchor_y`)（物理像素，例如光标或按住的角）
+/// 保持不动。返回缩放后的状态，页面据此按物理像素重画。
+#[tauri::command]
+pub async fn zoom_pin(
+    app: AppHandle,
+    pin: String,
+    scale: f64,
+    anchor_x: f64,
+    anchor_y: f64,
+) -> Result<SavedPin, String> {
+    let window = app.get_webview_window(&label(&pin)).ok_or("钉图已关闭")?;
+    // 以窗口当前的位置为准：滑出中的钉图在这里缩放后就留在这里。
+    let at = window.outer_position().map_err(|e| e.to_string())?;
+    let saved = edit(&app, &pin, |p| {
+        p.placement.x = at.x;
+        p.placement.y = at.y;
+        p.zoom(
+            scale,
+            (f64::from(at.x) + anchor_x, f64::from(at.y) + anchor_y),
+        );
+        p.clone()
+    })
+    .ok_or("钉图已关闭")?;
+    lock(&state(&app).edge).release(&pin);
+    apply(&window, &saved)?;
+    Ok(saved)
+}
+
+/// 翻转与旋转。
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Turn {
+    FlipHorizontal,
+    FlipVertical,
+    RotateClockwise,
+    RotateCounterClockwise,
+}
+
+/// 翻转或旋转钉图（中心不动）。返回新的状态，页面据此重画。右键菜单由 #64 接入同一命令。
+#[tauri::command]
+pub async fn turn_pin(app: AppHandle, pin: String, turn: Turn) -> Result<SavedPin, String> {
+    let window = app.get_webview_window(&label(&pin)).ok_or("钉图已关闭")?;
+    let at = window.outer_position().map_err(|e| e.to_string())?;
+    let saved = edit(&app, &pin, |p| {
+        p.placement.x = at.x;
+        p.placement.y = at.y;
+        match turn {
+            Turn::FlipHorizontal => p.flip(true),
+            Turn::FlipVertical => p.flip(false),
+            Turn::RotateClockwise => p.rotate(1),
+            Turn::RotateCounterClockwise => p.rotate(-1),
+        }
+        p.clone()
+    })
+    .ok_or("钉图已关闭")?;
+    lock(&state(&app).edge).release(&pin);
+    apply(&window, &saved)?;
+    Ok(saved)
+}
+
+/// 把窗口摆到钉图状态的原位与尺寸。
+fn apply(window: &tauri::WebviewWindow, pin: &SavedPin) -> Result<(), String> {
+    let (w, h) = pin.window_size();
+    window
+        .set_position(PhysicalPosition::new(pin.placement.x, pin.placement.y))
+        .and_then(|_| window.set_size(PhysicalSize::new(w, h)))
+        .map_err(|e| e.to_string())
 }
 
 const ACTION_COLLECT: &str = "collect";
@@ -287,6 +471,7 @@ pub fn on_menu_event(app: &AppHandle, event: MenuEvent) {
     };
     let (app, pin, action) = (app.clone(), pin.to_owned(), action.to_owned());
     if action == ACTION_CLOSE {
+        mark_closing(&app, &pin);
         if let Some(window) = app.get_webview_window(&label(&pin)) {
             let _ = window.destroy();
         }

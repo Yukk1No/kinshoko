@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { dragSelection, pinCanvasSize, selectionRect, toDevicePx } from "./pixels";
+import {
+  cornerZoomScale,
+  dragSelection,
+  inZoomCorner,
+  pinCanvasSize,
+  pinDrawing,
+  selectionRect,
+  toDevicePx,
+  wheelZoomScale,
+} from "./pixels";
 
 // DPI 像素规则（#7 两轮回归）：canvas 后备尺寸等于钉图的物理像素，CSS 尺寸 = 物理像素 / dpr，
 // 绝不用 100vw 或 innerWidth；否则 110% 下细线变糊、1 px 网格出摩尔纹。
@@ -73,5 +82,73 @@ describe("dragSelection", () => {
   it("按下没有移动（例如双击钉住）时保留原来的选区", () => {
     expect(dragSelection(previous, { x: 30, y: 20 }, { x: 30, y: 20 })).toBe(previous);
     expect(dragSelection(null, { x: 30, y: 20 }, { x: 30, y: 20 })).toBeNull();
+  });
+});
+
+// 翻转与旋转（#63 恢复，#64 菜单）：先翻转图片，再绕中心旋转；画的目标尺寸是旋转前的尺寸。
+describe("pinDrawing", () => {
+  const base = { width: 40, height: 10, scale: 1, rotation: 0, flipH: false, flipV: false };
+
+  it("未翻转旋转时按原尺寸画在原处", () => {
+    expect(pinDrawing(base)).toEqual({ angle: 0, flipX: 1, flipY: 1, width: 40, height: 10 });
+  });
+
+  it("旋转 90° 时画布宽高互换，图片仍按 40×10 画、转四分之一圈", () => {
+    const d = pinDrawing({ ...base, rotation: 1 });
+    expect(d.angle).toBeCloseTo(Math.PI / 2, 12);
+    expect([d.width, d.height]).toEqual([40, 10]);
+    const canvas = pinCanvasSize({ ...base, rotation: 1 }, 1);
+    expect([canvas.width, canvas.height]).toEqual([10, 40]);
+  });
+
+  it("缩放时目标尺寸与画布一致（取整后的物理像素）", () => {
+    const d = pinDrawing({ ...base, width: 101, height: 37, scale: 1.5, rotation: 3 });
+    expect([d.width, d.height]).toEqual([152, 56]);
+  });
+
+  it("翻转是镜像", () => {
+    const d = pinDrawing({ ...base, flipH: true, flipV: true });
+    expect([d.flipX, d.flipY]).toEqual([-1, -1]);
+  });
+});
+
+// 缩放（#63）：笔与鼠标一样拖右下角缩放；滚轮每格 ×1.12。
+describe("cornerZoomScale", () => {
+  const start = { scale: 1, width: 200, height: 100 };
+
+  it("把右下角拖出一倍宽高时放大一倍", () => {
+    expect(cornerZoomScale(start, 200, 100)).toBeCloseTo(2, 12);
+  });
+
+  it("按拖得多的那个方向算，保持宽高比", () => {
+    expect(cornerZoomScale(start, -100, 0)).toBeCloseTo(1, 12);
+    expect(cornerZoomScale(start, -100, -80)).toBeCloseTo(0.5, 12);
+  });
+
+  it("从已缩放的状态继续拖", () => {
+    expect(cornerZoomScale({ ...start, scale: 0.5 }, 200, 0)).toBeCloseTo(1, 12);
+  });
+});
+
+describe("wheelZoomScale", () => {
+  it("向上滚一格放大 1.12 倍，向下缩小", () => {
+    expect(wheelZoomScale(1, -100)).toBeCloseTo(1.12, 12);
+    expect(wheelZoomScale(1.12, 100)).toBeCloseTo(1, 12);
+  });
+
+  it("精细滚动按比例", () => {
+    expect(wheelZoomScale(1, -50)).toBeCloseTo(Math.sqrt(1.12), 12);
+  });
+});
+
+describe("inZoomCorner", () => {
+  it("右下角一小块用来缩放，其余地方拖动", () => {
+    expect(inZoomCorner({ x: 195, y: 95 }, 200, 100)).toBe(true);
+    expect(inZoomCorner({ x: 100, y: 95 }, 200, 100)).toBe(false);
+  });
+
+  it("很小的钉图也留出拖动的地方", () => {
+    expect(inZoomCorner({ x: 5, y: 5 }, 20, 20)).toBe(false);
+    expect(inZoomCorner({ x: 18, y: 18 }, 20, 20)).toBe(true);
   });
 });
