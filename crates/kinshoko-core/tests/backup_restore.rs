@@ -245,7 +245,12 @@ fn a_restored_backup_is_an_independent_copy_and_passes_the_round_trip_check() {
         .collect();
     let restored_into = device.dir.path().join("恢复");
     let restored = target
-        .restore(&report.snapshot_id, &restored_into, &device.groups, at(1, 1))
+        .restore(
+            &report.snapshot_id,
+            &restored_into,
+            &device.groups,
+            at(1, 1),
+        )
         .unwrap();
 
     // 恢复后自动运行的往返检查：原图哈希、整理信息、参考组都一致。
@@ -272,7 +277,10 @@ fn a_restored_backup_is_an_independent_copy_and_passes_the_round_trip_check() {
         assert_eq!(copy.image(id).unwrap(), device.main.image(id).unwrap());
     }
     assert!(
-        copy.image(&device.main_images[2]).unwrap().deleted_at.is_some(),
+        copy.image(&device.main_images[2])
+            .unwrap()
+            .deleted_at
+            .is_some(),
         "回收站里的图也在备份中"
     );
     // 个人近似对应表一起往返。
@@ -303,4 +311,204 @@ fn a_restored_backup_is_an_independent_copy_and_passes_the_round_trip_check() {
             assert_eq!(after.placement, before.placement);
         }
     }
+}
+
+#[test]
+fn a_later_backup_copies_only_the_new_originals_and_holds_the_originals_lease_while_copying() {
+    let device = Device::new();
+    let backups = tempfile::tempdir().unwrap();
+    let target = target(backups.path());
+    let first = device.backup(&target, at(0, 3));
+    assert_eq!((first.copied, first.reused), (5, 0));
+
+    import(&device.main, &device.dir.path().join("in2"), &[4]);
+    let registry = device.registry();
+    let scope = compute_scope(
+        &registry,
+        &device.groups.list().unwrap(),
+        &ScopeSelection::All,
+    );
+    let mut leased_during = Vec::new();
+    let second = target
+        .run(
+            &scope,
+            &BackupSources {
+                libraries: &registry,
+                groups: &device.groups,
+            },
+            at(1, 3),
+            &mut |_| {
+                leased_during.push((
+                    device.main.originals_leased(),
+                    device.old.originals_leased(),
+                ))
+            },
+        )
+        .unwrap();
+    assert!(second.complete);
+    assert_eq!((second.copied, second.reused), (1, 5), "只复制新增的原图");
+    assert!(
+        leased_during.iter().all(|&(a, b)| a && b),
+        "复制原文件期间持有租约，原文件不会被清理"
+    );
+    assert!(!device.main.originals_leased(), "备份结束放下租约");
+    assert_eq!(target.snapshots().unwrap().len(), 2);
+}
+
+#[test]
+fn snapshots_are_kept_seven_daily_and_four_weekly() {
+    let device = Device::new();
+    let backups = tempfile::tempdir().unwrap();
+    let target = target(backups.path());
+    // 连续 40 天每天 11:00（东八区）备份，最后一天另外手动备份两次。
+    for day in 0..40 {
+        device.backup(&target, at(day, 3));
+    }
+    device.backup(&target, at(39, 5));
+    let last = device.backup(&target, at(39, 7));
+
+    let snapshots = target.snapshots().unwrap();
+    let kept: Vec<String> = snapshots
+        .iter()
+        .map(|s| s.created_at.local_date())
+        .collect();
+    // 第 39 天是 2026-11-13（星期五）。每日：11-07…11-13 各一份（11-13 留最新那份）；
+    // 每周：之前 4 周各留最新一份——11-01（周日）、10-25、10-18、10-11。
+    assert_eq!(
+        kept,
+        [
+            "2026-11-13",
+            "2026-11-12",
+            "2026-11-11",
+            "2026-11-10",
+            "2026-11-09",
+            "2026-11-08",
+            "2026-11-07",
+            "2026-11-01",
+            "2026-10-25",
+            "2026-10-18",
+            "2026-10-11",
+        ]
+    );
+    assert_eq!(snapshots[0].id, last.snapshot_id, "同一天留最新的一份");
+    assert!(!last.removed_snapshots.is_empty());
+}
+
+#[test]
+fn an_original_changed_outside_kinshoko_leaves_the_backup_incomplete_and_unrestorable() {
+    let device = Device::new();
+    let backups = tempfile::tempdir().unwrap();
+    let target = target(backups.path());
+    let path = device.main.original_path(&device.main_images[0]).unwrap();
+    let mut bytes = std::fs::read(&path).unwrap();
+    let n = bytes.len();
+    bytes[n - 20] ^= 0xff;
+    std::fs::write(&path, bytes).unwrap();
+
+    let report = device.backup(&target, at(0, 3));
+    assert!(!report.complete);
+    assert_eq!(report.problems.len(), 1, "{:?}", report.problems);
+    assert!(target.snapshots().unwrap().is_empty(), "不完整的快照不列出");
+    let err = target
+        .restore(
+            &report.snapshot_id,
+            &device.dir.path().join("恢复"),
+            &device.groups,
+            at(1, 1),
+        )
+        .unwrap_err();
+    assert!(matches!(err, BackupError::Incomplete(_)), "{err}");
+}
+
+#[test]
+fn a_damaged_backup_is_refused_without_leaving_half_a_library() {
+    let device = Device::new();
+    device.curate();
+    let backups = tempfile::tempdir().unwrap();
+    let target = target(backups.path());
+    let report = device.backup(&target, at(0, 3));
+    // 备份目标里的原文件坏了。
+    let store = backups.path().join("移动盘/kinshoko-backup/originals");
+    for shard in std::fs::read_dir(&store).unwrap() {
+        for file in std::fs::read_dir(shard.unwrap().path()).unwrap() {
+            std::fs::write(file.unwrap().path(), b"broken").unwrap();
+        }
+    }
+
+    let groups_before = device.groups.list().unwrap().len();
+    let into = device.dir.path().join("恢复");
+    assert!(
+        target
+            .restore(&report.snapshot_id, &into, &device.groups, at(1, 1))
+            .is_err()
+    );
+    assert_eq!(device.groups.list().unwrap().len(), groups_before);
+    let leftovers = std::fs::read_dir(&into).map(|d| d.count()).unwrap_or(0);
+    assert_eq!(leftovers, 0, "恢复失败不留下半个资料库");
+}
+
+#[test]
+fn a_missing_target_is_reported_and_a_library_on_an_unplugged_drive_is_skipped() {
+    let device = Device::new();
+    let backups = tempfile::tempdir().unwrap();
+    let missing = BackupTarget::new(&backups.path().join("没插的移动盘"));
+    let registry = device.registry();
+    let scope = compute_scope(
+        &registry,
+        &device.groups.list().unwrap(),
+        &ScopeSelection::All,
+    );
+    let sources = BackupSources {
+        libraries: &registry,
+        groups: &device.groups,
+    };
+    let err = missing
+        .run(&scope, &sources, at(0, 3), &mut |_| {})
+        .unwrap_err();
+    assert!(matches!(err, BackupError::TargetUnavailable(_)));
+    assert!(
+        !backups.path().join("没插的移动盘").exists(),
+        "不在别处建立目标"
+    );
+
+    let mut moved = registry.clone();
+    moved[1].root = device.dir.path().join("拔掉的盘/旧库");
+    let report = target(backups.path())
+        .run(
+            &scope,
+            &BackupSources {
+                libraries: &moved,
+                groups: &device.groups,
+            },
+            at(0, 3),
+            &mut |_| {},
+        )
+        .unwrap();
+    assert!(report.complete);
+    assert_eq!(report.skipped.len(), 1);
+    assert_eq!(report.skipped[0].library.name, "旧库");
+}
+
+#[test]
+fn the_capacity_estimate_counts_only_what_the_target_does_not_have_yet() {
+    let device = Device::new();
+    let backups = tempfile::tempdir().unwrap();
+    let target = target(backups.path());
+    let registry = device.registry();
+    let scope = compute_scope(
+        &registry,
+        &device.groups.list().unwrap(),
+        &ScopeSelection::All,
+    );
+    let sources = BackupSources {
+        libraries: &registry,
+        groups: &device.groups,
+    };
+    let before = target.estimate(&scope, &sources).unwrap();
+    assert_eq!((before.originals, before.new_originals), (5, 5));
+    assert!(before.total_bytes > 0 && before.new_bytes == before.total_bytes);
+    device.backup(&target, at(0, 3));
+    let after = target.estimate(&scope, &sources).unwrap();
+    assert_eq!(after.new_originals, 0);
+    assert!(after.new_bytes < before.new_bytes);
 }

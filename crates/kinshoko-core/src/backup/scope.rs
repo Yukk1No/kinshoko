@@ -42,10 +42,16 @@ pub struct ScopeItem {
 pub enum ScopeStep {
     /// 参考组引用了范围里的资料库，一起带上。
     #[serde(rename_all = "camelCase")]
-    LinkedGroup { library_id: String, group_id: String },
+    LinkedGroup {
+        library_id: String,
+        group_id: String,
+    },
     /// 带上的参考组还引用另一个资料库，整库补选。
     #[serde(rename_all = "camelCase")]
-    AddedLibrary { group_id: String, library_id: String },
+    AddedLibrary {
+        group_id: String,
+        library_id: String,
+    },
 }
 
 /// 这次备份没覆盖的内容。

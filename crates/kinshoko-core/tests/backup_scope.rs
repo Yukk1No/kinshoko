@@ -76,11 +76,13 @@ fn only(ids: &[&str], include_linked: bool) -> ScopeSelection {
 }
 
 #[test]
-fn by_default_every_registered_library_and_group_is_backed_up_including_groups_without_a_library()
-{
+fn by_default_every_registered_library_and_group_is_backed_up_including_groups_without_a_library() {
     let (libs, gs) = device();
     let scope = compute_scope(&libs, &gs, &ScopeSelection::All);
-    assert_eq!(libraries(&scope), BTreeSet::from(["主库", "旧库", "散图库"]));
+    assert_eq!(
+        libraries(&scope),
+        BTreeSet::from(["主库", "旧库", "散图库"])
+    );
     assert_eq!(
         groups(&scope),
         BTreeSet::from(["眼睛参考", "光照", "散图", "空组", "闭环"])
@@ -92,7 +94,10 @@ fn by_default_every_registered_library_and_group_is_backed_up_including_groups_w
 fn narrowing_to_one_library_follows_the_a_b_and_b_c_chains_and_the_c_a_loop_in_one_pass() {
     let (libs, gs) = device();
     let scope = compute_scope(&libs, &gs, &only(&["A"], true));
-    assert_eq!(libraries(&scope), BTreeSet::from(["主库", "旧库", "散图库"]));
+    assert_eq!(
+        libraries(&scope),
+        BTreeSet::from(["主库", "旧库", "散图库"])
+    );
     assert_eq!(
         groups(&scope),
         BTreeSet::from(["眼睛参考", "光照", "散图", "闭环"]),

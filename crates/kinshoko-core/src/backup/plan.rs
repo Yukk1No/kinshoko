@@ -140,11 +140,10 @@ impl BackupPlan {
         {
             return false;
         }
-        !self
-            .file
+        self.file
             .last_failure
             .as_ref()
-            .is_some_and(|f| now.unix_ms - f.at.unix_ms < RETRY_AFTER_MS)
+            .is_none_or(|f| now.unix_ms - f.at.unix_ms >= RETRY_AFTER_MS)
     }
 
     /// 记下一次完整备份。

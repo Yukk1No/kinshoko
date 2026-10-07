@@ -20,7 +20,7 @@ pub(super) const IMPORT_AFTER_PUBLISH: &str = "import_after_publish";
 pub(super) const IMPORT_BEFORE_COMMIT: &str = "import_before_commit";
 
 /// 备份：复制了一个原文件之后（快照还没完成）。
- pub(crate) const BACKUP_AFTER_COPY: &str = "backup_after_copy";
+pub(crate) const BACKUP_AFTER_COPY: &str = "backup_after_copy";
 
 struct Armed {
     point: String,

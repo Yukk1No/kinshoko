@@ -1,5 +1,5 @@
 //! 快照保留：最近 7 份每日快照（每个本地日期最新的一份，取最近 7 天）＋ 4 份每周快照
-//! （在每日快照之前的快照里，每周最新的一份，取最近 4 周）。
+//! （每日快照覆盖的周之前，每周（周一至周日）最新的一份，取最近 4 周）。
 
 use std::collections::BTreeSet;
 
@@ -26,15 +26,18 @@ pub(super) fn keep(snapshots: &[Stamp]) -> BTreeSet<usize> {
             oldest_daily = oldest_daily.min(snapshots[i].unix_ms);
         }
     }
+    // 每日快照已经覆盖的周不再另留每周快照。
+    let daily_weeks: BTreeSet<i64> = kept.iter().map(|&i| snapshots[i].local_week()).collect();
     let mut weeks = BTreeSet::new();
     for &i in &order {
         if weeks.len() == WEEKLY {
             break;
         }
-        if snapshots[i].unix_ms >= oldest_daily {
+        let week = snapshots[i].local_week();
+        if snapshots[i].unix_ms >= oldest_daily || daily_weeks.contains(&week) {
             continue;
         }
-        if weeks.insert(snapshots[i].local_week()) {
+        if weeks.insert(week) {
             kept.insert(i);
         }
     }

@@ -52,11 +52,11 @@ use rusqlite::{OptionalExtension, params};
 pub use crate::fidelity::{
     Cicp, ColourDeclaration, ColourDescription, ColourModel, HdrKind, IccKind, IccSummary,
 };
-pub(crate) use backup::{copy_hashed, hash_file};
 pub use backup::{
     Dependency, LibraryCheck, LibraryDependencies, LibrarySnapshot, OriginalFile, OriginalsLease,
     RestoreProvenance, TableDigest,
 };
+pub(crate) use backup::{copy_hashed, hash_file};
 pub use eagle::{EagleBinding, EagleRegionNote, EagleSourceSnapshot};
 pub use eagle_discovery::{
     EagleDiscoveryMethod, EagleDiscoveryOptions, EagleLibraryCandidate, discover_eagle_libraries,

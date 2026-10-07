@@ -280,7 +280,9 @@ impl Library {
         for file in expected {
             check.originals_checked += 1;
             match present.get(&file.key) {
-                None => check.original_problems.push(format!("缺少原图 {}", file.key)),
+                None => check
+                    .original_problems
+                    .push(format!("缺少原图 {}", file.key)),
                 Some(dep) => match hash_file(&dep.source) {
                     Ok(sha) if sha == file.sha256 && dep.file.sha256 == file.sha256 => {}
                     Ok(_) => check

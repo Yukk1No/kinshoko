@@ -546,14 +546,15 @@ fn a_library_from_before_folder_decisions_upgrades_and_keeps_its_folders() {
     let hair = folder_id(&library, "发型参考");
     drop(library);
     {
-        // 退回 #77 之前的数据库结构：没有 folder_decision，版本号少一。
+        // 退回 #77 之前的数据库结构：没有 folder_decision，也没有之后加的 restore_provenance（#69），
+        // 版本号少二。
         let conn = rusqlite::Connection::open(root.join("library.sqlite")).unwrap();
         let version: i64 = conn
             .query_row("PRAGMA user_version", [], |r| r.get(0))
             .unwrap();
         conn.execute_batch(&format!(
-            "DROP TABLE folder_decision; PRAGMA user_version = {};",
-            version - 1
+            "DROP TABLE folder_decision; DROP TABLE restore_provenance; PRAGMA user_version = {};",
+            version - 2
         ))
         .unwrap();
     }

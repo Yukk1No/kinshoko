@@ -378,12 +378,8 @@ impl BackupTarget {
         let mut snaps = Vec::new();
         for item in &scope.libraries {
             let snap = registered(sources, item).and_then(|reg| {
-                Library::snapshot_at(
-                    &reg.root,
-                    &reg.id,
-                    &work.join("libraries").join(&reg.id),
-                )
-                .map_err(|e| e.to_string())
+                Library::snapshot_at(&reg.root, &reg.id, &work.join("libraries").join(&reg.id))
+                    .map_err(|e| e.to_string())
             });
             match snap {
                 Ok(s) => snaps.push(s),
@@ -396,7 +392,8 @@ impl BackupTarget {
         let total = snaps.iter().map(|s| s.originals.len() as u32).sum();
         let mut done = 0;
         progress(BackupProgress { done, total });
-        for snap in snaps {
+        // 整次备份都持有各资料库的原文件租约（`snaps` 活到函数结束）。
+        for snap in &snaps {
             for dep in &snap.originals {
                 let target = self.stored(&root, &dep.file.sha256);
                 let have = fs::metadata(&target).is_ok_and(|m| m.len() == dep.file.size);
@@ -425,7 +422,6 @@ impl BackupTarget {
                 originals: snap.originals.iter().map(|d| d.file.clone()).collect(),
                 curation: snap.curation.clone(),
             });
-            // 这里放下原文件租约。
         }
 
         let groups_dir = work.join("groups");
@@ -440,9 +436,7 @@ impl BackupTarget {
                         sha256: sha256(&bytes),
                     });
                 }
-                Err(e) => report
-                    .problems
-                    .push(format!("参考组“{}”：{e}", g.name)),
+                Err(e) => report.problems.push(format!("参考组“{}”：{e}", g.name)),
             }
         }
         manifest.skipped = report.skipped.clone();
@@ -561,9 +555,7 @@ impl BackupTarget {
                 &dest,
                 &format!("{}（恢复）", lib.name),
                 &provenance,
-                &mut |file, target| {
-                    fs::copy(self.stored(&root, &file.sha256), target).map(|_| ())
-                },
+                &mut |file, target| fs::copy(self.stored(&root, &file.sha256), target).map(|_| ()),
             )?;
             mapping.insert(lib.id.clone(), info.id.clone());
             report.libraries.push(RestoredLibrary {
@@ -716,14 +708,14 @@ fn check(
             };
             match lens.image(&a.image_id) {
                 Ok(img) if (img.width, img.height) == (a.source_width, a.source_height) => {}
-                Ok(_) => out.groups.problems.push(format!(
-                    "参考组“{}”的成员 {} 原图尺寸不符",
-                    g.name, a.id
-                )),
-                Err(e) => out.groups.problems.push(format!(
-                    "参考组“{}”的成员 {} 取不到原图：{e}",
-                    g.name, a.id
-                )),
+                Ok(_) => out
+                    .groups
+                    .problems
+                    .push(format!("参考组“{}”的成员 {} 原图尺寸不符", g.name, a.id)),
+                Err(e) => out
+                    .groups
+                    .problems
+                    .push(format!("参考组“{}”的成员 {} 取不到原图：{e}", g.name, a.id)),
             }
         }
     }
