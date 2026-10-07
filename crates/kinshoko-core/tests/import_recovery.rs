@@ -84,6 +84,85 @@ fn retrying_after_a_partial_failure_only_processes_the_failed_items_and_never_du
     assert_eq!(count(&library), 3);
 }
 
+/// PNG chunk 用的 CRC-32（IEEE）。
+fn crc32(bytes: &[u8]) -> u32 {
+    let mut crc = !0u32;
+    for &b in bytes {
+        crc ^= u32::from(b);
+        for _ in 0..8 {
+            crc = if crc & 1 == 1 {
+                (crc >> 1) ^ 0xEDB8_8320
+            } else {
+                crc >> 1
+            };
+        }
+    }
+    !crc
+}
+
+/// 容器与尺寸都有效、但像素压缩流损坏的 PNG：IDAT 的 zlib 头改成 0，CRC 重算。
+fn write_png_with_damaged_pixels(path: &Path) {
+    write_png(path, 9);
+    let mut bytes = std::fs::read(path).unwrap();
+    let at = bytes.windows(4).position(|w| w == b"IDAT").unwrap();
+    let len = u32::from_be_bytes(bytes[at - 4..at].try_into().unwrap()) as usize;
+    bytes[at + 4] = 0;
+    bytes[at + 5] = 0;
+    let crc = crc32(&bytes[at..at + 4 + len]);
+    bytes[at + 4 + len..at + 8 + len].copy_from_slice(&crc.to_be_bytes());
+    std::fs::write(path, bytes).unwrap();
+}
+
+fn files_under(dir: &Path) -> usize {
+    std::fs::read_dir(dir).map_or(0, |entries| {
+        entries
+            .map(|e| e.unwrap().path())
+            .map(|p| if p.is_dir() { files_under(&p) } else { 1 })
+            .sum()
+    })
+}
+
+#[test]
+fn damaged_compressed_pixels_are_a_read_failure() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("lib");
+    let library = Library::create(&root, "库").unwrap();
+    let src = dir.path().join("参考");
+    write_png(&src.join("好图.png"), 1);
+    let broken = src.join("坏像素.png");
+    write_png_with_damaged_pixels(&broken);
+    image::open(&broken).expect_err("像素确实不可解码");
+    let (w, h) = image::image_dimensions(&broken).expect("容器与尺寸仍有效");
+    assert_eq!((w, h), (12, 8));
+
+    let first = import(&library, std::slice::from_ref(&src));
+    let outcomes: Vec<_> = first.items.iter().map(|i| kind(&i.outcome)).collect();
+    assert_eq!(outcomes, ["failed", "imported"], "{first:?}");
+    assert_eq!(count(&library), 1, "坏像素不作为参考图发布");
+    let retry = first.retry_source().expect("坏像素是可重试的读取失败");
+    assert_eq!(retry.paths, vec![broken.clone()]);
+    assert_eq!(
+        files_under(&root.join("originals")),
+        1,
+        "不遗留坏图的原文件"
+    );
+    assert_eq!(files_under(&root.join(".staging")), 0, "不遗留暂存");
+
+    // 不留 pending：重开没有要撤回的项。
+    drop(library);
+    let library = Library::open(&root).unwrap();
+    assert!(library.recovery().interrupted.is_empty());
+    assert_eq!(count(&library), 1);
+
+    // 修好后只重试这一项。
+    write_png(&broken, 3);
+    let fixed = import(&library, &retry.paths);
+    assert_eq!(fixed.items.len(), 1);
+    assert_eq!(kind(&fixed.items[0].outcome), "imported");
+    assert_eq!(fixed.retry_source(), None);
+    assert_eq!(count(&library), 2);
+}
+
 /// 在 `base` 下拼出一条总长超过 `min_len` 个字符的文件夹路径。
 fn deep_dir(base: &Path, min_len: usize) -> PathBuf {
     let mut dir = std::path::absolute(base).unwrap();
