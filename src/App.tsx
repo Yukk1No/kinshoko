@@ -23,6 +23,7 @@ import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
 import { ReferenceGroupsPanel } from "./desktop/ReferenceGroupsPanel";
 import { SelectionPanel } from "./library/SelectionPanel";
 import { SidebarPane } from "./library/SidebarPane";
+import { TagGroupsPane } from "./library/TagGroupsPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
 import { ModelSettings } from "./ModelSettings";
 import { SealBook } from "./SealBook";
@@ -223,6 +224,19 @@ function LibraryWorkspace({
             reloadKey={reloadKey}
             onError={onError}
           />
+          <TagGroupsPane
+            libraryId={library.id}
+            safe={safe}
+            generation={vocabularyKey}
+            onBrowse={(ids) => {
+              setSearch((prev) => ({
+                ...prev,
+                conditions: [{ any: ids.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }],
+              }));
+              setSelected(new Set());
+            }}
+            onError={onError}
+          />
           {/* 整理面板放在侧栏：第一次单击选中不挤动图片墙，双击才能落在同一张图上（#47）。 */}
           {selected.size > 0 && (
             <SelectionPanel
@@ -233,6 +247,7 @@ function LibraryWorkspace({
               reloadKey={reloadKey}
               onError={onError}
               safeMode={safe}
+              generation={vocabularyKey}
             />
           )}
         </div>

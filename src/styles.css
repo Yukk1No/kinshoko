@@ -1296,3 +1296,131 @@ button.primary {
   text-align: left;
   vertical-align: top;
 }
+
+/* 标签整理（#77 UI-B）：整理面板里的标签与人工标签决定，侧栏的标签分组。 */
+.tag-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.tag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tag-list-rejected .tag-name {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+}
+
+.tag-origins {
+  display: inline-flex;
+  gap: 4px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.tag-row-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 2px;
+}
+
+.tag-row button,
+.tag-alias-editor button {
+  font: inherit;
+  font-size: 12px;
+  padding: 0 6px;
+}
+
+.tag-empty {
+  opacity: 0.6;
+}
+
+.tag-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.tag-add input,
+.tag-add select,
+.tag-alias-editor input,
+.sidebar-new-group select,
+.sidebar-pick-tag input {
+  font: inherit;
+  min-width: 0;
+}
+
+.tag-add input {
+  flex: 1;
+}
+
+.tag-add .search-popover-list {
+  width: 100%;
+}
+
+.tag-alias-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.tag-alias-editor p {
+  margin: 0;
+}
+
+.tag-aliases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.sidebar-slot .sidebar-tag-groups {
+  box-sizing: border-box;
+  width: 237px;
+  max-height: 40%;
+  overflow: auto;
+  flex-shrink: 0;
+  padding: 0 8px 8px;
+  border-top: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+
+.sidebar-tag-group-head,
+.sidebar-tag {
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-tag .sidebar-item {
+  padding-left: 18px;
+}
+
+.sidebar-new-group,
+.sidebar-pick-tag {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+}

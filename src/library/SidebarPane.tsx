@@ -23,7 +23,7 @@ const same = (a: BrowseScope, b: BrowseScope) =>
   a.kind === b.kind && (a.kind !== "folder" || (b.kind === "folder" && a.id === b.id));
 
 /** 只在文本框里按 Enter 提交、Esc 放弃。 */
-function NameInput(props: {
+export function NameInput(props: {
   label: string;
   initial: string;
   onDone: (name: string | null) => void;

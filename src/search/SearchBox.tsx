@@ -19,12 +19,12 @@ const LIMIT = 8;
  * 当前相同时显示；切换安全模式、词表变化或换了资料库后，旧候选这一帧就不再显示，迟到的
  * 响应也写不回来。后端按同一视角核对（`LensChanged`）。
  */
-type Lens = { libraryId: string; safe: boolean; generation: number };
+export type Lens = { libraryId: string; safe: boolean; generation: number };
 type Found = { key: string; list: Candidate[] };
 const lensKey = (lens: Lens, text: string) => JSON.stringify([lens.libraryId, lens.safe, lens.generation, text]);
 
-/** 按 `lens` 与 `text` 取得候选；身份变了的旧结果不返回。 */
-function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true): Candidate[] {
+/** 按 `lens` 与 `text` 取得候选；身份变了的旧结果不返回。标签整理面板挑标签时也用它。 */
+export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true): Candidate[] {
   const [found, setFound] = useState<Found>({ key: "", list: [] });
   const key = lensKey(lens, text);
   const { libraryId, safe } = lens;

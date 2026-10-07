@@ -18,7 +18,8 @@ use kinshoko_core::library::{
     BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping,
     ExternalVocabulary, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportSource, LibraryEvent,
     LibraryInfo, MappedExternal, PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar,
-    TagEdit, TagGroupView, TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
+    TagAlias, TagEdit, TagGroupView, TagNamespace, TagTranslations, Vocabulary,
+    discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::reference_groups::{DetachedLenses, References};
 use kinshoko_core::search::{Candidate, ConditionTree, SearchCache, SearchInput};
@@ -148,6 +149,13 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             edit_tags,
             vocabulary,
             tag_groups,
+            add_tag_alias,
+            remove_tag_alias,
+            create_tag_group,
+            rename_tag_group,
+            delete_tag_group,
+            add_to_tag_group,
+            remove_from_tag_group,
             search_candidates,
             resolve_search,
             set_tag_approx,
@@ -734,6 +742,119 @@ async fn tag_groups(
 ) -> Result<Vec<TagGroupView>, String> {
     let library = state.current(&library_id)?;
     blocking(move || library.tag_groups(&lang).map_err(|e| e.to_string())).await
+}
+
+/// 给标签加一个别名；之后按这个叫法能查到、能添加这个标签。
+#[tauri::command]
+async fn add_tag_alias(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    tag_id: String,
+    alias: TagAlias,
+) -> Result<(), String> {
+    let library = state.current(&library_id)?;
+    blocking(move || {
+        library
+            .add_tag_alias(&tag_id, &alias)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+#[tauri::command]
+async fn remove_tag_alias(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    tag_id: String,
+    alias: String,
+) -> Result<(), String> {
+    let library = state.current(&library_id)?;
+    blocking(move || {
+        library
+            .remove_tag_alias(&tag_id, &alias)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+/// 建立标签分组，返回分组 id；给出 `namespace` 时分组是该命名空间的全部标签。
+#[tauri::command]
+async fn create_tag_group(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    name: String,
+    namespace: Option<TagNamespace>,
+) -> Result<String, String> {
+    let library = state.current(&library_id)?;
+    blocking(move || {
+        library
+            .create_tag_group(&name, namespace)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+#[tauri::command]
+async fn rename_tag_group(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    group_id: String,
+    name: String,
+) -> Result<(), String> {
+    let library = state.current(&library_id)?;
+    blocking(move || {
+        library
+            .rename_tag_group(&group_id, &name)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+#[tauri::command]
+async fn delete_tag_group(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    group_id: String,
+) -> Result<(), String> {
+    let library = state.current(&library_id)?;
+    blocking(move || {
+        library
+            .delete_tag_group(&group_id)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+#[tauri::command]
+async fn add_to_tag_group(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    group_id: String,
+    tag_ids: Vec<String>,
+) -> Result<(), String> {
+    let library = state.current(&library_id)?;
+    blocking(move || {
+        library
+            .add_to_tag_group(&group_id, &tag_ids)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+#[tauri::command]
+async fn remove_from_tag_group(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    group_id: String,
+    tag_ids: Vec<String>,
+) -> Result<(), String> {
+    let library = state.current(&library_id)?;
+    blocking(move || {
+        library
+            .remove_from_tag_group(&group_id, &tag_ids)
+            .map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// 搜索框打字时的候选：按命名空间与别名列出，名称按界面语言 `lang`。`safe_mode` 是界面

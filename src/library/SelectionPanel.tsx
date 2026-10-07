@@ -6,6 +6,7 @@ import type { FolderNode } from "../bindings/FolderNode";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageEdit } from "../bindings/ImageEdit";
 import { editImages, imageDetail, sidebar } from "../ipc";
+import { TagPanel } from "./TagPanel";
 
 type Props = {
   libraryId: string;
@@ -17,6 +18,8 @@ type Props = {
   onError: (message: string) => void;
   /** 安全模式开启时，改成含成人内容的分级会让图被封印：随即取消选择。 */
   safeMode?: boolean;
+  /** 词表代次（词表、图片或安全模式变化时递增）：标签面板随之刷新。 */
+  generation?: number;
 };
 
 const isAdult = (rating: ContentRating | null) =>
@@ -134,7 +137,7 @@ function Detail({
   );
 }
 
-/** 选中参考图后的整理操作：放入或移出文件夹、删除或恢复；只选一张时还能写备注。 */
+/** 选中参考图后的整理操作：放入或移出文件夹、标签决定、删除或恢复；只选一张时还能写备注。 */
 export function SelectionPanel({
   libraryId,
   scope,
@@ -143,6 +146,7 @@ export function SelectionPanel({
   reloadKey,
   onError,
   safeMode = false,
+  generation = 0,
 }: Props) {
   const ids = [...selected];
   const single = ids.length === 1 ? ids[0] : null;
@@ -224,6 +228,7 @@ export function SelectionPanel({
           取消选择
         </button>
       </div>
+      <TagPanel libraryId={libraryId} ids={ids} safe={safeMode} generation={generation} onError={onError} />
       {detail && <Detail key={detail.id} detail={detail} edit={(e) => void edit(e)} />}
     </aside>
   );
