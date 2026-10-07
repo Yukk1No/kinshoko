@@ -23,6 +23,7 @@
 mod colour;
 mod eagle;
 mod eagle_discovery;
+mod eagle_tags;
 mod edit;
 mod error;
 mod events;
@@ -52,6 +53,10 @@ pub use crate::fidelity::{
 pub use eagle::{EagleBinding, EagleRegionNote, EagleSourceSnapshot};
 pub use eagle_discovery::{
     EagleDiscoveryMethod, EagleDiscoveryOptions, EagleLibraryCandidate, discover_eagle_libraries,
+};
+pub use eagle_tags::{
+    EagleTagMapping, EagleTagMatch, ExternalVocabulary, MappedExternal, MatchBasis,
+    UnmatchedEagleTag,
 };
 pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, SourceNote};
 pub use error::Error;
@@ -449,6 +454,28 @@ impl Library {
 
     pub fn remove_tag_external(&self, tag_id: &str, external: &str) -> Result<(), Error> {
         tags::remove_tag_external(&self.inner, tag_id, external)
+    }
+
+    /// 迁入向导：把还没有外部对应的 Eagle 标签按名称与翻译表精确匹配到 `vocabulary`
+    /// 并写入外部对应（规范化后只对上一个、且没被别的标签占用的才写），返回已对上与没对上的
+    /// Eagle 标签。安全模式开启时不列出只出现在被封印图上的标签。
+    pub fn map_eagle_tags(
+        &self,
+        vocabulary: &ExternalVocabulary,
+        lang: &str,
+    ) -> Result<EagleTagMapping, Error> {
+        eagle_tags::map_eagle_tags(&self.inner, vocabulary, lang)
+    }
+
+    /// 迁入向导：画师给一个标签补上外部对应。输入规范化后在词表中只对上一个名称时写词表的写法，
+    /// 否则原样写入。
+    pub fn map_tag_external(
+        &self,
+        tag_id: &str,
+        input: &str,
+        vocabulary: &ExternalVocabulary,
+    ) -> Result<MappedExternal, Error> {
+        eagle_tags::map_tag_external(&self.inner, tag_id, input, vocabulary)
     }
 
     /// 建立标签分组，排在最后。给出 `namespace` 时分组列出该命名空间的全部标签。

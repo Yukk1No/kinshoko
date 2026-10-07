@@ -293,7 +293,7 @@ pub struct TagGroupView {
 // ---------------------------------------------------------------- 写入
 
 /// 在写线程上执行一个标签写入事务：词表修订号加一，提交后推送事件。
-fn write<T: Send + 'static>(
+pub(super) fn write<T: Send + 'static>(
     inner: &Inner,
     changed_images: Vec<String>,
     f: impl FnOnce(&Transaction, &TranslationIndex) -> Result<T, Error> + Send + 'static,
@@ -735,14 +735,14 @@ pub(super) fn delete_tag_group(inner: &Inner, group_id: &str) -> Result<(), Erro
 
 // ---------------------------------------------------------------- 读取
 
-struct TagRow {
+pub(super) struct TagRow {
     namespace: TagNamespace,
     names: Vec<LocalizedName>,
-    external: Vec<String>,
+    pub(super) external: Vec<String>,
 }
 
 /// 读取若干标签的命名空间、名称与外部对应。
-fn load_tags(
+pub(super) fn load_tags(
     conn: &rusqlite::Connection,
     ids: impl IntoIterator<Item = String>,
 ) -> Result<HashMap<String, TagRow>, Error> {
@@ -786,7 +786,7 @@ fn primary(lang: &str) -> &str {
 }
 
 /// 按界面语言选择显示名：界面语言 → 同一主语言 → 其他语言 → 外部名称（尚未翻译）。
-fn label(id: &str, row: &TagRow, lang: &str) -> TagLabel {
+pub(super) fn label(id: &str, row: &TagRow, lang: &str) -> TagLabel {
     display_label(id, row.namespace, &row.names, &row.external, lang)
 }
 
@@ -894,7 +894,10 @@ pub(super) fn image_tags(inner: &Inner, image_id: &str, lang: &str) -> Result<Im
 }
 
 /// 每个标签的有效张数，只算浏览视角下可见的图（不含回收站与被封印的图）。
-fn counts(inner: &Inner, conn: &rusqlite::Connection) -> Result<HashMap<String, u32>, Error> {
+pub(super) fn counts(
+    inner: &Inner,
+    conn: &rusqlite::Connection,
+) -> Result<HashMap<String, u32>, Error> {
     let mut stmt = conn.prepare_cached(&format!(
         "SELECT e.tag_id, COUNT(*) FROM effective_tag e
          JOIN image ON image.id = e.image_id WHERE {LIVE} AND {} GROUP BY e.tag_id",
