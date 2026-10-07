@@ -24,6 +24,9 @@ import type { ImageDetail } from "./bindings/ImageDetail";
 import type { ImageEdit } from "./bindings/ImageEdit";
 import type { ImageRating } from "./bindings/ImageRating";
 import type { GatePlan } from "./bindings/GatePlan";
+import type { GroupSummary } from "./bindings/GroupSummary";
+import type { ReferenceGroup } from "./bindings/ReferenceGroup";
+import type { ReferenceGroupView } from "./bindings/ReferenceGroupView";
 import type { ImageTags } from "./bindings/ImageTags";
 import type { PinFrame } from "./bindings/PinFrame";
 import type { Region } from "./bindings/Region";
@@ -573,6 +576,50 @@ export function deleteCapture(id: string): Promise<void> {
 
 export function onCaptureHistory(handler: (entries: CaptureEntry[]) => void): Promise<UnlistenFn> {
   return listen<CaptureEntry[]>("capture-history", (e) => handler(e.payload));
+}
+
+// ---------- 参考组（#66） ----------
+
+/** 本设备的参考组，最近保存的在前；读不懂的文件也列出（`problem`）。 */
+export function referenceGroups(): Promise<GroupSummary[]> {
+  return invoke<GroupSummary[]>(desk("reference_groups"));
+}
+
+/** 一个参考组及每个成员此刻能否显示（跨资料库核对）。 */
+export function referenceGroup(groupId: string): Promise<ReferenceGroupView> {
+  return invoke<ReferenceGroupView>(desk("reference_group"), { groupId });
+}
+
+/** 把桌面上的资料库钉图存成新的参考组（截图钉图不进组）。 */
+export function saveReferenceGroup(name: string): Promise<ReferenceGroup> {
+  return invoke<ReferenceGroup>(desk("save_reference_group"), { name });
+}
+
+/** 把桌面上的资料库钉图存进已有的参考组：来自它的更新原成员，其他的加为新成员。 */
+export function savePinsToGroup(groupId: string): Promise<ReferenceGroup> {
+  return invoke<ReferenceGroup>(desk("save_pins_to_group"), { groupId });
+}
+
+/** 打开参考组：成员按保存的局部与摆放钉到桌面；返回新钉出的数量。 */
+export function openReferenceGroup(groupId: string): Promise<number> {
+  return invoke<number>(desk("open_reference_group"), { groupId });
+}
+
+export function renameReferenceGroup(groupId: string, name: string): Promise<ReferenceGroup> {
+  return invoke<ReferenceGroup>(desk("rename_reference_group"), { groupId, name });
+}
+
+export function deleteReferenceGroup(groupId: string): Promise<void> {
+  return invoke<void>(desk("delete_reference_group"), { groupId });
+}
+
+export function removeGroupMember(groupId: string, memberId: string): Promise<ReferenceGroup> {
+  return invoke<ReferenceGroup>(desk("remove_group_member"), { groupId, memberId });
+}
+
+/** 参考组有变化（保存、重命名、删除）：重新读取。 */
+export function onReferenceGroupsChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen("reference-groups", () => handler());
 }
 
 /** 发给本钉图窗口的提示（例如“已收藏到…”）。只收发给这个窗口的，不收别的钉图的。 */

@@ -111,6 +111,8 @@ pub(crate) struct Inner {
     safe_mode: AtomicBool,
     /// 参考视角的句柄是否已经交出。
     reference_taken: AtomicBool,
+    /// 只读打开、不是活动资料库（参考组读取未激活的库，#66）：不写数据库。
+    detached: bool,
 }
 
 impl Inner {
@@ -225,6 +227,7 @@ impl Library {
                 translations: RwLock::default(),
                 safe_mode: AtomicBool::new(true),
                 reference_taken: AtomicBool::new(false),
+                detached: false,
             }),
         })
     }

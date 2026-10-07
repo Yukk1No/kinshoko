@@ -11,15 +11,15 @@
 //! 默认开启，没设之前也不会露出被封印的图。
 
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use rusqlite::{Connection, OptionalExtension};
 use serde::Serialize;
 use ts_rs::TS;
 
-use super::{DisplayFile, Error, Inner, rating, thumbnail};
+use super::{DisplayFile, Error, Inner, rating, store, thumbnail};
 
 impl Inner {
     pub(super) fn safe_mode(&self) -> bool {
@@ -93,6 +93,43 @@ pub struct ReferenceLens {
 }
 
 impl ReferenceLens {
+    /// 只读打开一个未激活的资料库的参考视角（参考组跨库引用，#66）：不对账、不升级、不写数据库，
+    /// 与之后作为活动资料库打开的同一个库可以并存（WAL 下只读与写入并发）。`expected_id` 不符时为
+    /// [`Error::NotALibrary`]；旧版本写成、还没升级的库为 [`Error::OutdatedLibrary`]。
+    /// 安全模式开启（被封印的图标记需要遮蔽），用 [`Self::set_detached_safe_mode`] 跟随设置。
+    pub(crate) fn open_detached(root: &Path, expected_id: &str) -> Result<ReferenceLens, Error> {
+        let info = super::Library::inspect(root)?;
+        if info.id != expected_id {
+            return Err(Error::NotALibrary(root.to_path_buf()));
+        }
+        let db = root.join(store::DB_FILE);
+        if !store::is_current(&store::inspect_db(&db)?)? {
+            return Err(Error::OutdatedLibrary);
+        }
+        let readers = store::Readers::open(&db, 1)?;
+        Ok(ReferenceLens {
+            inner: Arc::new(Inner {
+                root: info.root.clone(),
+                info,
+                writer: store::read_only_writer(&db)?,
+                readers,
+                hub: Default::default(),
+                recovery: Default::default(),
+                translations: Default::default(),
+                safe_mode: AtomicBool::new(true),
+                reference_taken: AtomicBool::new(true),
+                detached: true,
+            }),
+        })
+    }
+
+    /// 只读打开的参考视角跟随安全模式设置；活动资料库的句柄由资料库自己的开关决定，不受影响。
+    pub(crate) fn set_detached_safe_mode(&self, on: bool) {
+        if self.inner.detached {
+            self.inner.safe_mode.store(on, Ordering::SeqCst);
+        }
+    }
+
     /// 这个句柄属于哪个资料库。资料库切换后应用壳换上新库的句柄，用前要核对。
     pub fn library_id(&self) -> &str {
         &self.inner.info.id

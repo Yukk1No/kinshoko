@@ -135,6 +135,8 @@ export function PinView({ pin }: { pin: string }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [veiled, setVeiled] = useState(false);
   const [missing, setMissing] = useState(false);
+  /** 应用壳核对出的不能显示的原因（资料库不可用、图已删除，#66）。 */
+  const [unavailable, setUnavailable] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
   const openMenu = () => {
@@ -242,6 +244,7 @@ export function PinView({ pin }: { pin: string }) {
       if (renderer) pickSource(false);
       if (body.current) body.current.style.opacity = String(f.pin.opacity);
       setLocked(f.pin.locked);
+      setUnavailable(f.unavailable ?? null);
       clearTimeout(settle);
       if (!raf) tick();
     };
@@ -453,7 +456,9 @@ export function PinView({ pin }: { pin: string }) {
             </div>
           )}
         </div>
-        {missing && <div className="pin-missing">参考图无法读取：资料库没有打开，或原图已缺失</div>}
+        {(unavailable || missing) && (
+          <div className="pin-missing">{unavailable ?? "参考图无法读取：资料库没有打开，或原图已缺失"}</div>
+        )}
         {notice && <div className="pin-notice">{notice}</div>}
       </div>
     </div>
