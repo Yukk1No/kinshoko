@@ -4,6 +4,7 @@ import type { ImportProgress } from "../bindings/ImportProgress";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { RecoveryReport } from "../bindings/RecoveryReport";
 import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
+import { EagleTagStep } from "./EagleTagStep";
 import { cancelImport, discoverEagleLibraries, libraryRecovery, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
 
 export type RunningImport = { taskId: string | null; progress: ImportProgress };
@@ -39,6 +40,9 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
   const [eagleLibraries, setEagleLibraries] = useState<EagleLibraryCandidate[] | null>(null);
   const [lookingForEagle, setLookingForEagle] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  // 正在进行的导入是从 Eagle 迁入；完成后进入“标签的外部对应”一步。
+  const eagleRun = useRef(false);
+  const [tagStep, setTagStep] = useState(false);
   // 切换资料库后旧工作区已卸下；新建表单打开时工作区只是隐藏，不接受导入。
   const alive = useRef(true);
   const enabledRef = useRef(enabled);
@@ -54,12 +58,14 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
     if (!enabled) setHovering(false);
   }, [enabled]);
 
-  const begin = async (paths: string[]) => {
+  const begin = async (paths: string[], fromEagle = false) => {
     if (!alive.current || !enabledRef.current || !paths.length) return;
     try {
       setImportError(null);
       const taskId = await startImport(libraryId, paths);
       if (!alive.current) return;
+      eagleRun.current = fromEagle;
+      setTagStep(false);
       onStarted(taskId);
       setEagleLibraries(null);
     } catch (error) {
@@ -67,10 +73,17 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
     }
   };
   const importFiles = async () => begin(await pickFiles());
-  const importFolder = async () => {
+  const importFolder = async (fromEagle = false) => {
     const folder = await pickFolder();
-    await begin(folder ? [folder] : []);
+    await begin(folder ? [folder] : [], fromEagle);
   };
+
+  useEffect(() => {
+    if (report && eagleRun.current) {
+      eagleRun.current = false;
+      setTagStep(true);
+    }
+  }, [report]);
   const findEagle = async () => {
     setLookingForEagle(true);
     setImportError(null);
@@ -135,7 +148,7 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
         <button type="button" onClick={importFiles} disabled={!!running}>
           导入文件…
         </button>
-        <button type="button" onClick={importFolder} disabled={!!running}>
+        <button type="button" onClick={() => void importFolder()} disabled={!!running}>
           导入文件夹…
         </button>
         <button type="button" onClick={findEagle} disabled={!!running || lookingForEagle}>
@@ -147,7 +160,7 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
         <section className="import-report" aria-label="Eagle 首次迁入">
           <header>
             <span>{eagleLibraries.length ? "选择要迁入的 Eagle 资料库" : "没有自动找到可读的 Eagle 资料库"}</span>
-            <button type="button" onClick={importFolder} disabled={!!running}>手动选择 Eagle 资料库…</button>
+            <button type="button" onClick={() => void importFolder(true)} disabled={!!running}>手动选择 Eagle 资料库…</button>
             <button type="button" onClick={() => setEagleLibraries(null)}>关闭</button>
           </header>
           <p>原图、标签、文件夹、来源链接与备注会迁入当前资料库，Eagle 原库保持不变。回收站中的图会进入可恢复删除；区域评论会保留，暂不显示。</p>
@@ -156,7 +169,7 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
               <li key={candidate.path}>
                 <span>{candidate.name} · {candidate.items} 项{candidate.version && ` · Eagle ${candidate.version}`}</span>
                 <span className="import-report-path">{candidate.path}</span>
-                <button type="button" disabled={!!running} onClick={() => void begin([candidate.path])}>迁入 {candidate.name}</button>
+                <button type="button" disabled={!!running} onClick={() => void begin([candidate.path], true)}>迁入 {candidate.name}</button>
               </li>
             ))}
           </ul>
@@ -258,6 +271,7 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
           )}
         </section>
       )}
+      {tagStep && <EagleTagStep libraryId={libraryId} onClose={() => setTagStep(false)} />}
     </div>
   );
 }
