@@ -5,7 +5,9 @@ import type { ImportReport } from "../bindings/ImportReport";
 import type { RecoveryReport } from "../bindings/RecoveryReport";
 import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
 import { EagleTagStep } from "./EagleTagStep";
-import { cancelImport, discoverEagleLibraries, libraryRecovery, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
+import type { EagleLocationChoice } from "../bindings/EagleLocationChoice";
+import type { EagleRelocation } from "../bindings/EagleRelocation";
+import { cancelImport, confirmEagleLocation, discoverEagleLibraries, libraryRecovery, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
 
 export type RunningImport = { taskId: string | null; progress: ImportProgress };
 
@@ -43,6 +45,8 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
   // 正在进行的导入是从 Eagle 迁入；完成后进入“标签的外部对应”一步。
   const eagleRun = useRef(false);
   const [tagStep, setTagStep] = useState(false);
+  // 已确认过的搬家提议，不再重复询问。
+  const [confirmed, setConfirmed] = useState<string[]>([]);
   // 切换资料库后旧工作区已卸下；新建表单打开时工作区只是隐藏，不接受导入。
   const alive = useRef(true);
   const enabledRef = useRef(enabled);
@@ -136,8 +140,22 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
   const counts = report && {
     imported: report.items.filter((i) => i.outcome.kind === "imported").length,
     merged: report.items.filter((i) => i.outcome.kind === "merged").length,
+    refreshed: report.items.filter((i) => i.outcome.kind === "refreshed").length,
+    newVersions: report.items.filter((i) => i.outcome.kind === "newVersion").length,
     rejected: report.items.filter((i) => reason(i.outcome) !== null),
     failed: report.items.filter((i) => i.outcome.kind === "readFailed").map((i) => i.path),
+  };
+  const relocations = (report?.eagleRelocations ?? []).filter((r) => !confirmed.includes(r.to));
+  const confirm = async (relocation: EagleRelocation, choice: EagleLocationChoice) => {
+    try {
+      setImportError(null);
+      await confirmEagleLocation(libraryId, relocation.to, choice);
+      if (!alive.current) return;
+      setConfirmed((done) => [...done, relocation.to]);
+      await begin([relocation.to], true);
+    } catch (error) {
+      if (alive.current) setImportError(`无法确认 Eagle 资料库的位置：${String(error)}`);
+    }
   };
   const interrupted = recovery?.interrupted ?? [];
   const orphans = recovery?.orphans ?? [];
@@ -242,12 +260,34 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
           )}
         </section>
       )}
+      {relocations.map((relocation) => (
+        <section key={relocation.to} className="import-report" role="alert" aria-label="Eagle 资料库换了位置？">
+          <header>
+            <span>
+              这个 Eagle 资料库里有 {relocation.overlapPercent}% 的条目已经从另一个位置迁入过。是同一个资料库搬了家吗？确认前不会迁入任何内容。
+            </span>
+          </header>
+          <p className="import-report-path">新位置：{relocation.to}</p>
+          <p className="import-report-path">原位置：{relocation.from}</p>
+          <div className="import-actions">
+            <button type="button" disabled={!!running} onClick={() => void confirm(relocation, { kind: "moved", sourceId: relocation.sourceId })}>
+              是搬了家，按原来源重导
+            </button>
+            <button type="button" disabled={!!running} onClick={() => void confirm(relocation, { kind: "separate" })}>
+              是另一个资料库，单独迁入
+            </button>
+          </div>
+        </section>
+      ))}
       {report && counts && (
         <section className="import-report" aria-label="导入结果">
           <header>
             <span>
               {report.cancelled ? "导入已取消" : "导入完成"}：新增 {counts.imported} 张
               {counts.merged > 0 && `，与已有图相同而合并 ${counts.merged} 张`}
+              {counts.refreshed > 0 && `，更新 Eagle 信息 ${counts.refreshed} 张（本库整理保留）`}
+              {counts.newVersions > 0 && `，Eagle 中内容变了的 ${counts.newVersions} 张作为新版本进库（旧版本保留）`}
+              {report.eagleMissing > 0 && `；Eagle 中已不存在的 ${report.eagleMissing} 张在本库保留`}
               {counts.rejected.length > 0 && `，${counts.rejected.length} 个文件没有导入`}
             </span>
             {counts.failed.length > 0 && (

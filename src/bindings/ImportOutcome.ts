@@ -3,4 +3,4 @@
 /**
  * 一项导入的结果。
  */
-export type ImportOutcome = { "kind": "imported", imageId: string, } | { "kind": "merged", imageId: string, } | { "kind": "unsupported" } | { "kind": "readFailed", reason: string, };
+export type ImportOutcome = { "kind": "imported", imageId: string, } | { "kind": "merged", imageId: string, } | { "kind": "refreshed", imageId: string, } | { "kind": "newVersion", imageId: string, previousImageId: string, } | { "kind": "unsupported" } | { "kind": "readFailed", reason: string, };

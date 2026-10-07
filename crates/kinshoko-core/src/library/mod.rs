@@ -59,7 +59,7 @@ pub use eagle_tags::{
     EagleTagMapping, EagleTagMatch, ExternalVocabulary, MappedExternal, MatchBasis,
     UnmatchedEagleTag,
 };
-pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, SourceNote};
+pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, ImageVersions, SourceNote};
 pub use error::Error;
 pub use events::LibraryEvent;
 pub use folders::FolderNode;
@@ -73,9 +73,9 @@ pub use tags::{
     TagTranslations, Vocabulary, VocabularyTag,
 };
 pub use types::{
-    BrowsePage, BrowseQuery, BrowseScope, DisplayFile, DisplayRoute, ImageCard, ImageSourceRecord,
-    ImportItem, ImportOutcome, ImportProgress, ImportReport, ImportSource, LibraryInfo,
-    RecoveryReport,
+    BrowsePage, BrowseQuery, BrowseScope, DisplayFile, DisplayRoute, EagleLocationChoice,
+    EagleRelocation, ImageCard, ImageSourceRecord, ImportItem, ImportOutcome, ImportProgress,
+    ImportReport, ImportSource, LibraryInfo, RecoveryReport,
 };
 
 use crate::approx::ApproxRelation;
@@ -238,6 +238,16 @@ impl Library {
         eagle::snapshots(&self.inner)
     }
 
+    /// 画师确认导入报告里疑似搬家的 Eagle 位置（[`EagleRelocation`]）：
+    /// 同一来源搬了家就沿用登记、改记新位置；另一个来源就单独登记。确认后再导入这个位置。
+    pub fn confirm_eagle_location(
+        &self,
+        path: &Path,
+        choice: EagleLocationChoice,
+    ) -> Result<(), Error> {
+        eagle::confirm_location(&self.inner, path, choice)
+    }
+
     /// 按查询浏览参考图，按导入先后从新到旧，keyset 分页。
     pub fn browse(&self, query: &BrowseQuery) -> Result<BrowsePage, Error> {
         types::browse(&self.inner, query)
@@ -334,7 +344,7 @@ impl Library {
     pub fn image(&self, image_id: &str) -> Result<ImageDetail, Error> {
         let conn = self.inner.readers.get();
         self.inner.require_visible(&conn, image_id)?;
-        edit::detail(&conn, image_id)
+        edit::detail(&conn, &self.inner.lens_filter(), image_id)
     }
 
     /// 侧栏：全部、回收站与文件夹树，计数只算可见的图。

@@ -2,6 +2,7 @@
 import type { FolderRef } from "./FolderRef";
 import type { ImageNote } from "./ImageNote";
 import type { ImageRating } from "./ImageRating";
+import type { ImageVersions } from "./ImageVersions";
 
 /**
  * 查看单张参考图所需的详情。
@@ -22,4 +23,8 @@ deletedAt: number | null,
 /**
  * 内容分级：自动、人工与有效。
  */
-rating: ImageRating, };
+rating: ImageRating, 
+/**
+ * 来源内容变化留下的新旧版本。
+ */
+versions: ImageVersions, };

@@ -59,8 +59,8 @@ impl ImportTask {
     /// 等待任务结束，取得逐项结果。
     pub fn wait(self) -> ImportReport {
         self.thread.join().unwrap_or_else(|_| ImportReport {
-            items: Vec::new(),
             cancelled: true,
+            ..Default::default()
         })
     }
 }
@@ -95,7 +95,7 @@ fn run(
     let mut report = ImportReport::default();
     let mut files = Vec::new();
     for path in &source.paths {
-        collect(inner, path, &mut files, &mut report.items);
+        collect(inner, path, &mut files, &mut report);
     }
 
     let mut progress = ImportProgress {
@@ -152,9 +152,9 @@ fn run(
 }
 
 /// 展开文件夹（含子文件夹，按名称排序）。读不了的位置记为读取失败。
-fn collect(inner: &Inner, path: &Path, files: &mut Vec<PathBuf>, failed: &mut Vec<ImportItem>) {
-    let fail = |failed: &mut Vec<ImportItem>, e: std::io::Error| {
-        failed.push(ImportItem {
+fn collect(inner: &Inner, path: &Path, files: &mut Vec<PathBuf>, report: &mut ImportReport) {
+    let fail = |report: &mut ImportReport, e: std::io::Error| {
+        report.items.push(ImportItem {
             path: path.to_path_buf(),
             outcome: ImportOutcome::ReadFailed {
                 reason: e.to_string(),
@@ -163,8 +163,14 @@ fn collect(inner: &Inner, path: &Path, files: &mut Vec<PathBuf>, failed: &mut Ve
     };
     if eagle::is_library(path) {
         match eagle::collect(inner, path) {
-            Ok(items) => files.extend(items),
-            Err(reason) => failed.push(ImportItem {
+            Ok(collected) => {
+                files.extend(collected.items);
+                report.eagle_missing += collected.missing;
+            }
+            Err(eagle::CollectError::Relocation(proposal)) => {
+                report.eagle_relocations.push(proposal);
+            }
+            Err(eagle::CollectError::Failed(reason)) => report.items.push(ImportItem {
                 path: path.to_path_buf(),
                 outcome: ImportOutcome::ReadFailed { reason },
             }),
@@ -176,15 +182,15 @@ fn collect(inner: &Inner, path: &Path, files: &mut Vec<PathBuf>, failed: &mut Ve
         return;
     }
     match std::fs::metadata(path) {
-        Err(e) => fail(failed, e),
+        Err(e) => fail(report, e),
         Ok(meta) if meta.is_dir() => match std::fs::read_dir(path) {
-            Err(e) => fail(failed, e),
+            Err(e) => fail(report, e),
             Ok(entries) => {
                 let mut children: Vec<PathBuf> =
                     entries.filter_map(|e| e.ok().map(|e| e.path())).collect();
                 children.sort();
                 for child in children {
-                    collect(inner, &child, files, failed);
+                    collect(inner, &child, files, report);
                 }
             }
         },
@@ -433,14 +439,16 @@ fn commit_record(
     let (outcome, revision) = inner
         .writer
         .run(move |conn| commit(conn, record, pending.as_deref(), &translations))?;
-    let list_changed = revision.is_some() || matches!(outcome, ImportOutcome::Imported { .. });
+    let list_changed = revision.is_some()
+        || matches!(
+            outcome,
+            ImportOutcome::Imported { .. } | ImportOutcome::NewVersion { .. }
+        );
     if let Some(revision) = revision {
-        let image_id = match &outcome {
-            ImportOutcome::Imported { image_id } | ImportOutcome::Merged { image_id } => {
-                image_id.clone()
-            }
-            _ => unreachable!(),
-        };
+        let image_id = outcome
+            .image_id()
+            .expect("写入了来源事实的结果都有参考图")
+            .to_owned();
         inner.hub.publish(LibraryEvent::ImagesChanged {
             library_id: inner.info.id.clone(),
             image_ids: vec![image_id],
@@ -462,20 +470,36 @@ fn commit(
 ) -> Result<(ImportOutcome, Option<i64>), Error> {
     let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
     let now = now_ms();
+    // Eagle 条目已迁入过：内容相同只刷新来源层；内容变了，新内容作为新版本进库。
+    let mut previous = None;
     if let Some(item) = &r.eagle {
-        let binding: Option<(String, String)> = tx.query_row(
-            "SELECT sha256, image_id FROM source_binding WHERE source_id = ?1 AND external_id = ?2",
-            params![item.source_id, item.metadata.id], |row| Ok((row.get(0)?, row.get(1)?)),
-        ).optional()?;
-        if let Some((sha, image_id)) = binding {
-            if sha != r.sha {
-                return Err(Error::EagleReimportRequired);
+        match eagle::existing(&tx, item, &r.sha)? {
+            eagle::Existing::Bound {
+                image_id,
+                unchanged,
+            } => {
+                let revision = if unchanged {
+                    None
+                } else {
+                    Some(eagle::commit(
+                        &tx,
+                        translations,
+                        item,
+                        &r.sha,
+                        &image_id,
+                        &r.location,
+                        now,
+                    )?)
+                };
+                if let Some(op) = pending {
+                    tx.execute("DELETE FROM import_pending WHERE id = ?1", [op])?;
+                }
+                fault::hit(fault::IMPORT_BEFORE_COMMIT);
+                tx.commit()?;
+                return Ok((ImportOutcome::Refreshed { image_id }, revision));
             }
-            if let Some(op) = pending {
-                tx.execute("DELETE FROM import_pending WHERE id = ?1", [op])?;
-            }
-            tx.commit()?;
-            return Ok((ImportOutcome::Merged { image_id }, None));
+            eagle::Existing::Changed { previous_image_id } => previous = Some(previous_image_id),
+            eagle::Existing::New => {}
         }
     }
     let existing: Option<String> = tx
@@ -484,13 +508,26 @@ fn commit(
         })
         .optional()?;
     let outcome = match existing {
-        Some(image_id) => ImportOutcome::Merged { image_id },
+        Some(image_id) => match previous {
+            Some(previous_image_id) => {
+                tx.execute(
+                    "UPDATE image SET previous_image_id = ?1
+                     WHERE id = ?2 AND previous_image_id IS NULL",
+                    params![previous_image_id, image_id],
+                )?;
+                ImportOutcome::NewVersion {
+                    image_id,
+                    previous_image_id,
+                }
+            }
+            None => ImportOutcome::Merged { image_id },
+        },
         None => {
             tx.execute(
                 "INSERT INTO image (id, sha256, size, format, rel_path, width, height,
                                     orientation, original_name, imported_at, collected_at, deleted_at,
-                                    eagle_initial_trash)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                                    eagle_initial_trash, previous_image_id)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
                 params![
                     r.id,
                     r.sha,
@@ -504,17 +541,21 @@ fn commit(
                     now,
                     r.eagle.as_ref().map_or(now, |item| item.collected_at(now)),
                     r.eagle.as_ref().and_then(|item| item.deleted_at(now)),
-                    r.eagle.as_ref().is_some_and(|item| item.deleted_at(now).is_some())
+                    r.eagle.as_ref().is_some_and(|item| item.deleted_at(now).is_some()),
+                    previous
                 ],
             )?;
             colour::record(&tx, &r.id, &r.colour)?;
-            ImportOutcome::Imported { image_id: r.id }
+            match previous {
+                Some(previous_image_id) => ImportOutcome::NewVersion {
+                    image_id: r.id,
+                    previous_image_id,
+                },
+                None => ImportOutcome::Imported { image_id: r.id },
+            }
         }
     };
-    let image_id = match &outcome {
-        ImportOutcome::Imported { image_id } | ImportOutcome::Merged { image_id } => image_id,
-        _ => unreachable!(),
-    };
+    let image_id = outcome.image_id().expect("进库的结果都有参考图");
     let revision = if let Some(item) = &r.eagle {
         Some(eagle::commit(
             &tx,

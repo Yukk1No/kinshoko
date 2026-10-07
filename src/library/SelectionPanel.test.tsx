@@ -21,6 +21,7 @@ function detail(rating: Partial<ImageRating>): ImageDetail {
     deletedAt: null,
     collectedAt: 0,
     sourceLinks: [],
+    versions: { previous: null, newer: [] },
     rating: { imageId: "img", suggested: "explicit", manual: null, effective: "explicit", ...rating },
   };
 }

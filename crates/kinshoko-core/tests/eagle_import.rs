@@ -280,7 +280,9 @@ fn active_eagle_duplicates_stay_visible_regardless_of_order_or_retry() {
                 assert!(
                     report.items.iter().all(|item| matches!(
                         item.outcome,
-                        ImportOutcome::Imported { .. } | ImportOutcome::Merged { .. }
+                        ImportOutcome::Imported { .. }
+                            | ImportOutcome::Merged { .. }
+                            | ImportOutcome::Refreshed { .. }
                     )),
                     "{report:?}"
                 );
@@ -395,17 +397,17 @@ fn eagle_import_batches_list_refreshes_including_metadata_only_merges() {
         assert!(
             report.items.iter().all(|item| matches!(
                 item.outcome,
-                ImportOutcome::Imported { .. } | ImportOutcome::Merged { .. }
+                ImportOutcome::Imported { .. }
+                    | ImportOutcome::Merged { .. }
+                    | ImportOutcome::Refreshed { .. }
             )),
             "{report:?}"
         );
         if metadata_only {
-            assert!(
-                report
-                    .items
-                    .iter()
-                    .all(|item| matches!(item.outcome, ImportOutcome::Merged { .. }))
-            );
+            assert!(report.items.iter().all(|item| matches!(
+                item.outcome,
+                ImportOutcome::Merged { .. } | ImportOutcome::Refreshed { .. }
+            )));
         }
         let delivered: Vec<_> = events.try_iter().collect();
         let refreshes = delivered
@@ -641,7 +643,7 @@ fn partial_failures_retry_as_eagle_items_and_keep_successes_and_manual_decisions
         repeat
             .items
             .iter()
-            .all(|i| matches!(i.outcome, ImportOutcome::Merged { .. })),
+            .all(|i| matches!(i.outcome, ImportOutcome::Refreshed { .. })),
         "{repeat:?}"
     );
     assert_eq!(library.eagle_sources().unwrap(), before);
