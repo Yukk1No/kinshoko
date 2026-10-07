@@ -30,8 +30,8 @@ use crate::desktop::{
 use crate::library::ReferenceImage;
 
 pub use resolve::{
-    DetachedLenses, MemberState, MemberStatus, ReferenceSource, References, UnavailableReason,
-    resolve,
+    DetachedLenses, MemberState, MemberStatus, ReferenceGroupView, ReferenceSource, References,
+    UnavailableReason, resolve,
 };
 
 const FORMAT: &str = "kinshoko.reference-group";
@@ -330,50 +330,39 @@ impl ReferenceGroups {
     }
 
     /// 把桌面上的资料库钉图存成新的参考组。截图钉图不进组（要先收藏）；一张也没有时为
-    /// [`GroupError::NoMembers`]。
-    pub fn create(&self, name: &str, pins: &[SavedPin]) -> Result<ReferenceGroup, GroupError> {
+    /// [`GroupError::NoMembers`]。存进去的钉图记下自己成了哪个成员（[`SavedPin::member`]），
+    /// 之后存回时更新那个成员。
+    pub fn create(&self, name: &str, pins: &mut [SavedPin]) -> Result<ReferenceGroup, GroupError> {
         let name = valid_name(name)?;
-        let members: Vec<GroupMember> = pins
+        if !pins
             .iter()
-            .filter_map(|p| GroupMember::from_pin(new_id(), p))
-            .collect();
-        if members.is_empty() {
+            .any(|p| matches!(p.content, PinContent::Reference { .. }))
+        {
             return Err(GroupError::NoMembers);
         }
         let now = crate::library::now_ms();
-        let group = ReferenceGroup {
+        let mut group = ReferenceGroup {
             id: new_id(),
             name,
             created_at: now,
             updated_at: now,
-            members,
+            members: Vec::new(),
         };
+        let assigned = merge(&mut group, pins);
         self.write(&group)?;
+        assign(pins, assigned);
         Ok(group)
     }
 
-    /// 把桌面钉图存回参考组 `id`：来自这个参考组成员的钉图更新那个成员（局部、位置、尺寸、缩放、
-    /// 翻转与旋转）；其他资料库钉图加为新成员；不在桌面上的成员原样保留。截图钉图不进组。
-    pub fn save_pins(&self, id: &str, pins: &[SavedPin]) -> Result<ReferenceGroup, GroupError> {
+    /// 把桌面钉图存进参考组 `id`：来自这个参考组成员的钉图更新那个成员（局部、位置、尺寸、缩放、
+    /// 翻转与旋转）；其他资料库钉图（包括来自别的参考组的）加为新成员；不在桌面上的成员原样保留。
+    /// 截图钉图不进组。存进去的钉图之后记得这个参考组里的成员。
+    pub fn save_pins(&self, id: &str, pins: &mut [SavedPin]) -> Result<ReferenceGroup, GroupError> {
         let mut group = self.get(id)?;
-        for pin in pins {
-            let existing = pin
-                .member
-                .as_ref()
-                .filter(|m| m.group_id == group.id)
-                .and_then(|m| group.members.iter().position(|x| x.id == m.member_id));
-            match existing {
-                Some(at) => {
-                    let member_id = group.members[at].id.clone();
-                    if let Some(m) = GroupMember::from_pin(member_id, pin) {
-                        group.members[at] = m;
-                    }
-                }
-                None => group.members.extend(GroupMember::from_pin(new_id(), pin)),
-            }
-        }
+        let assigned = merge(&mut group, pins);
         group.updated_at = crate::library::now_ms();
         self.write(&group)?;
+        assign(pins, assigned);
         Ok(group)
     }
 
@@ -476,6 +465,40 @@ impl ReferenceGroupUsage for ReferenceGroups {
             }
         }
         Ok(out)
+    }
+}
+
+/// 把钉图并进参考组；返回每张钉图（按下标）成了哪个成员。写入成功后才交给 [`assign`]。
+fn merge(group: &mut ReferenceGroup, pins: &[SavedPin]) -> Vec<(usize, GroupMemberRef)> {
+    let mut assigned = Vec::new();
+    for (index, pin) in pins.iter().enumerate() {
+        let existing = pin
+            .member
+            .as_ref()
+            .filter(|m| m.group_id == group.id)
+            .and_then(|m| group.members.iter().position(|x| x.id == m.member_id));
+        let member_id = existing.map_or_else(new_id, |at| group.members[at].id.clone());
+        let Some(member) = GroupMember::from_pin(member_id.clone(), pin) else {
+            continue;
+        };
+        match existing {
+            Some(at) => group.members[at] = member,
+            None => group.members.push(member),
+        }
+        assigned.push((
+            index,
+            GroupMemberRef {
+                group_id: group.id.clone(),
+                member_id,
+            },
+        ));
+    }
+    assigned
+}
+
+fn assign(pins: &mut [SavedPin], assigned: Vec<(usize, GroupMemberRef)>) {
+    for (index, member) in assigned {
+        pins[index].member = Some(member);
     }
 }
 

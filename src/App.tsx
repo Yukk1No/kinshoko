@@ -20,6 +20,7 @@ import { CreateLibrary } from "./library/CreateLibrary";
 import { ImportBar, type RunningImport } from "./library/ImportBar";
 import { LibraryPicker } from "./library/LibraryPicker";
 import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
+import { ReferenceGroupsPanel } from "./desktop/ReferenceGroupsPanel";
 import { SelectionPanel } from "./library/SelectionPanel";
 import { SidebarPane } from "./library/SidebarPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
@@ -295,6 +296,7 @@ export function App() {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showCaptures, setShowCaptures] = useState(false);
+  const [showGroups, setShowGroups] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   /** 查看器打开时，工作区以外的界面不可操作（查看器是模态的）。 */
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -414,6 +416,11 @@ export function App() {
           <CaptureHistoryPanel libraryId={library?.id} />
         </div>
       )}
+      {showGroups && (
+        <div inert={viewerOpen}>
+          <ReferenceGroupsPanel />
+        </div>
+      )}
       {showSettings && (
         <div inert={viewerOpen}>
           <SettingsPanel
@@ -435,6 +442,9 @@ export function App() {
             onClick={() => setShowCaptures((shown) => !shown)}
           >
             截图历史
+          </button>
+          <button type="button" aria-pressed={showGroups} onClick={() => setShowGroups((shown) => !shown)}>
+            参考组
           </button>
           <button
             type="button"

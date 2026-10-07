@@ -133,7 +133,7 @@ fn a_group_resolves_members_from_the_active_and_an_inactive_library() {
     let group = groups
         .create(
             "跨库",
-            &[
+            &mut [
                 pin(&f.a_lens, &f.a_images[0], 0),
                 f.b_pin(&detached, 0, 100),
             ],
@@ -183,7 +183,10 @@ fn sealed_members_in_an_inactive_library_follow_the_safe_mode_setting() {
     let detached = DetachedLenses::default();
     let groups = ReferenceGroups::open(&f.dir.path().join("groups")).unwrap();
     let group = groups
-        .create("组", &[f.b_pin(&detached, 1, 0), f.b_pin(&detached, 0, 50)])
+        .create(
+            "组",
+            &mut [f.b_pin(&detached, 1, 0), f.b_pin(&detached, 0, 50)],
+        )
         .unwrap();
 
     let on = resolve(&group, &f.references(&detached, true));
@@ -202,7 +205,7 @@ fn sealed_members_in_the_active_library_are_marked_through_its_reference_lens() 
     let detached = DetachedLenses::default();
     let groups = ReferenceGroups::open(&f.dir.path().join("groups")).unwrap();
     let group = groups
-        .create("组", &[pin(&f.a_lens, &f.a_images[1], 0)])
+        .create("组", &mut [pin(&f.a_lens, &f.a_images[1], 0)])
         .unwrap();
     f.a.set_safe_mode(true);
     let status = resolve(&group, &f.references(&detached, true));
@@ -232,7 +235,7 @@ fn unavailable_members_keep_their_layout_and_say_why() {
     let group = groups
         .create(
             "组",
-            &[
+            &mut [
                 f.b_pin(&detached, 0, 10),
                 stranger,
                 pin(&f.a_lens, &f.a_images[0], 20),
@@ -330,7 +333,7 @@ fn permanent_delete_preview_finds_the_groups_using_the_images() {
     let face = groups
         .create(
             "脸",
-            &[
+            &mut [
                 pin(&f.a_lens, &f.a_images[0], 0),
                 pin(&f.a_lens, &f.a_images[0], 10),
                 f.b_pin(&detached, 0, 0),
@@ -338,7 +341,7 @@ fn permanent_delete_preview_finds_the_groups_using_the_images() {
         )
         .unwrap();
     groups
-        .create("手", &[pin(&f.a_lens, &f.a_images[1], 0)])
+        .create("手", &mut [pin(&f.a_lens, &f.a_images[1], 0)])
         .unwrap();
 
     let a = f.a.info().id.clone();

@@ -23,6 +23,7 @@ use kinshoko_core::desktop::{
     CaptureEntry, PinContent, PinFrame, PinMotion, Placement, Region, SavedPin, ScreenRect,
     Screenshot, Turn, initial_scale, place_new_pin, stage,
 };
+use kinshoko_core::reference_groups::ReferenceSource;
 use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
@@ -208,25 +209,27 @@ fn pin_reference_here(
     open_window(app, &pin)
 }
 
-/// 钉图此刻要不要原位遮蔽（见 [`PinFrame::veiled`]、[`kinshoko_core::desktop::PinVeils`]）。会查资料库，
-/// 不要持有桌面状态的锁调用。
-fn veiled(app: &AppHandle, pin: &SavedPin) -> bool {
-    // 核对不了（资料库没打开、图已不在）时为 None，安全模式开启时按被封印处理。
-    let sealed = match &pin.content {
+/// 钉图此刻要不要原位遮蔽（见 [`PinFrame::veiled`]、[`kinshoko_core::desktop::PinVeils`]），以及暂时
+/// 不能显示的原因（[`PinFrame::unavailable`]）。资料库钉图经参考视角核对：活动资料库现取句柄，
+/// 未激活的已登记资料库只读打开（#66）。会查资料库，不要持有桌面状态的锁调用。
+fn appearance(app: &AppHandle, pin: &SavedPin) -> (bool, Option<String>) {
+    // 核对不了（资料库没登记、不可用、图已不在）时 sealed 为 None，安全模式开启时按被封印处理。
+    let (sealed, unavailable) = match &pin.content {
         PinContent::Reference {
             library_id,
             image_id,
             ..
-        } => crate::library::reference_lens(app, library_id)
-            .and_then(|lens| lens.image(image_id).ok())
-            .map(|image| image.sealed),
-        PinContent::Capture { .. } => Some(false),
+        } => match crate::library::with_references(app, |refs| refs.image(library_id, image_id)) {
+            Ok(image) => (Some(image.sealed), None),
+            Err(reason) => (None, Some(reason.to_string())),
+        },
+        PinContent::Capture { .. } => (Some(false), None),
     };
-    lock(&state(app).veils).veiled(pin, sealed)
+    (lock(&state(app).veils).veiled(pin, sealed), unavailable)
 }
 
 /// 资料库钉图要显示的文件（`capture` 协议的 `pin/<钉图 id>/full|fit-<像素>`）。经参考视角读取；
-/// 还没打开资料库时打开本设备上次打开的。会读文件，不要在主线程上调用。
+/// 资料库没有激活时只读打开它（不切换活动库，#66）。会读文件，不要在主线程上调用。
 pub fn reference_file(app: &AppHandle, pin: &str, size: &str) -> Option<std::path::PathBuf> {
     let saved = lock(&state(app).store).get(pin).cloned()?;
     let PinContent::Reference {
@@ -237,10 +240,7 @@ pub fn reference_file(app: &AppHandle, pin: &str, size: &str) -> Option<std::pat
     else {
         return None;
     };
-    let lens = crate::library::reference_lens(app, library_id).or_else(|| {
-        crate::library::current_or_last(app).ok()?;
-        crate::library::reference_lens(app, library_id)
-    })?;
+    let lens = crate::library::with_references(app, |refs| refs.lens(library_id)).ok()?;
     let file = if size == "full" {
         lens.display(image_id)
     } else {
@@ -336,7 +336,7 @@ pub fn show(
     let Some(saved) = lock(&state(app).store).get(pin).cloned() else {
         return;
     };
-    let veiled = veiled(app, &saved);
+    let (veiled, unavailable) = appearance(app, &saved);
     let monitors = match motion {
         PinMotion::Jump => Vec::new(),
         _ => monitors(),
@@ -363,6 +363,7 @@ pub fn show(
             content,
             motion,
             veiled,
+            unavailable,
             generation: r.generation,
         };
         (frame, moved, through_changed)
@@ -383,7 +384,7 @@ pub fn show(
 /// 当前这一帧（不改窗口），例如改了透明度或锁定之后。
 fn current_frame(app: &AppHandle, pin: &str) -> Option<PinFrame> {
     let saved = lock(&state(app).store).get(pin).cloned()?;
-    let veiled = veiled(app, &saved);
+    let (veiled, unavailable) = appearance(app, &saved);
     let pins = lock(&state(app).pins);
     let r = pins.get(pin)?;
     Some(PinFrame {
@@ -392,6 +393,7 @@ fn current_frame(app: &AppHandle, pin: &str) -> Option<PinFrame> {
         content: r.content,
         motion: PinMotion::Jump,
         veiled,
+        unavailable,
         generation: r.generation,
     })
 }
@@ -619,7 +621,7 @@ pub async fn settle_pin(app: AppHandle, pin: String, generation: u32) {
     let Some(saved) = lock(&state(&app).store).get(&pin).cloned() else {
         return;
     };
-    let veiled = veiled(&app, &saved);
+    let (veiled, unavailable) = appearance(&app, &saved);
     let frame = {
         let mut pins = lock(&state(&app).pins);
         let Some(r) = pins.get_mut(&pin) else {
@@ -635,6 +637,7 @@ pub async fn settle_pin(app: AppHandle, pin: String, generation: u32) {
             content: r.content,
             motion: PinMotion::Jump,
             veiled,
+            unavailable,
             generation,
         }
     };
@@ -750,6 +753,7 @@ const ACTION_COLLECT: &str = "collect";
 const ACTION_COPY: &str = "copy";
 const ACTION_CLOSE: &str = "close";
 const ACTION_REVEAL: &str = "reveal";
+const ACTION_SAVE_GROUP: &str = "saveGroup";
 
 /// 右键菜单里可选的透明度（百分比）。
 const OPACITY_STEPS: [u32; 10] = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
@@ -846,14 +850,31 @@ pub async fn pin_menu(app: AppHandle, pin: String) -> Result<(), String> {
         menu.append(&item(ACTION_COPY, "复制", true)?)
             .map_err(err)?;
         menu.append(&separator()?).map_err(err)?;
-    } else if frame.veiled {
-        menu.append(&item(
-            ACTION_REVEAL,
-            "显示这张图（安全模式下已遮蔽）",
-            true,
-        )?)
-        .map_err(err)?;
-        menu.append(&separator()?).map_err(err)?;
+    } else {
+        if frame.veiled {
+            menu.append(&item(
+                ACTION_REVEAL,
+                "显示这张图（安全模式下已遮蔽）",
+                true,
+            )?)
+            .map_err(err)?;
+        }
+        // 来自参考组的钉图：把桌面上这个参考组的钉图一起存回（#66）。
+        if let Some(name) = saved
+            .member
+            .as_ref()
+            .and_then(|m| super::groups::group_name(&app, &m.group_id))
+        {
+            menu.append(&item(
+                ACTION_SAVE_GROUP,
+                &format!("存回参考组「{name}」"),
+                true,
+            )?)
+            .map_err(err)?;
+        }
+        if frame.veiled || saved.member.is_some() {
+            menu.append(&separator()?).map_err(err)?;
+        }
     }
     menu.append(&item(ACTION_CLOSE, "关闭钉图", true)?)
         .map_err(err)?;
@@ -916,6 +937,13 @@ fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<String> {
             lock(&state(app).veils).reveal(pin);
             refresh(app, pin);
             None
+        }
+        ACTION_SAVE_GROUP => {
+            let group_id = lock(&state(app).store).get(pin)?.member.clone()?.group_id;
+            Some(match super::groups::save_back(app, &group_id) {
+                Ok(group) => format!("已存回参考组「{}」", group.name),
+                Err(e) => e,
+            })
         }
         ACTION_COLLECT | ACTION_COPY => {
             let capture_id = lock(&state(app).pins)

@@ -61,13 +61,13 @@ fn capture_pin() -> SavedPin {
 #[test]
 fn a_saved_group_reopens_with_each_members_crop_and_layout() {
     let dir = tempfile::tempdir().unwrap();
-    let pins = [
+    let mut pins = [
         pin("p1", "lib-a", "img-1", Some(region(10, 20, 300, 200)), 100),
         pin("p2", "lib-b", "img-2", None, 700),
     ];
     let saved = {
         let groups = ReferenceGroups::open(dir.path()).unwrap();
-        groups.create("头发参考", &pins).unwrap()
+        groups.create("头发参考", &mut pins).unwrap()
     };
     assert_eq!(saved.name, "头发参考");
     assert_eq!(saved.members.len(), 2);
@@ -95,7 +95,7 @@ fn opacity_and_lock_stay_on_the_desktop() {
     let mut p = pin("p1", "lib-a", "img-1", None, 0);
     p.opacity = 0.3;
     p.locked = true;
-    let group = groups.create("组", &[p]).unwrap();
+    let group = groups.create("组", &mut [p]).unwrap();
     let again = &group.pins()[0];
     assert_eq!(again.opacity, 1.0);
     assert!(!again.locked);
@@ -106,11 +106,14 @@ fn screen_captures_are_not_saved_into_a_group() {
     let dir = tempfile::tempdir().unwrap();
     let groups = ReferenceGroups::open(dir.path()).unwrap();
     let group = groups
-        .create("组", &[capture_pin(), pin("p1", "lib-a", "img-1", None, 0)])
+        .create(
+            "组",
+            &mut [capture_pin(), pin("p1", "lib-a", "img-1", None, 0)],
+        )
         .unwrap();
     assert_eq!(group.members.len(), 1);
     assert_eq!(
-        groups.create("空", &[capture_pin()]),
+        groups.create("空", &mut [capture_pin()]),
         Err(GroupError::NoMembers)
     );
 }
@@ -120,12 +123,12 @@ fn groups_are_listed_renamed_and_deleted() {
     let dir = tempfile::tempdir().unwrap();
     let groups = ReferenceGroups::open(dir.path()).unwrap();
     let a = groups
-        .create("A", &[pin("p1", "lib-a", "img-1", None, 0)])
+        .create("A", &mut [pin("p1", "lib-a", "img-1", None, 0)])
         .unwrap();
     let b = groups
         .create(
             "B",
-            &[
+            &mut [
                 pin("p2", "lib-a", "img-1", None, 0),
                 pin("p3", "lib-b", "img-2", None, 0),
             ],
@@ -161,13 +164,13 @@ fn the_same_image_in_two_groups_keeps_independent_member_state() {
     let face = groups
         .create(
             "脸",
-            &[pin("p1", "lib-a", "img-1", Some(region(0, 0, 100, 100)), 0)],
+            &mut [pin("p1", "lib-a", "img-1", Some(region(0, 0, 100, 100)), 0)],
         )
         .unwrap();
     let hand = groups
         .create(
             "手",
-            &[pin(
+            &mut [pin(
                 "p2",
                 "lib-a",
                 "img-1",
@@ -182,7 +185,7 @@ fn the_same_image_in_two_groups_keeps_independent_member_state() {
     opened[0].move_to(900, 900);
     opened[0].rotate(1);
     opened[0].flip(false);
-    groups.save_pins(&face.id, &opened).unwrap();
+    groups.save_pins(&face.id, &mut opened).unwrap();
 
     let face_now = groups.get(&face.id).unwrap();
     assert_eq!(face_now.members.len(), 1, "存回原成员，不另加");
@@ -198,7 +201,7 @@ fn saving_pins_into_a_group_adds_new_pins_and_keeps_members_not_on_the_desktop()
     let group = groups
         .create(
             "组",
-            &[
+            &mut [
                 pin("p1", "lib-a", "img-1", None, 0),
                 pin("p2", "lib-a", "img-2", None, 0),
             ],
@@ -208,13 +211,13 @@ fn saving_pins_into_a_group_adds_new_pins_and_keeps_members_not_on_the_desktop()
     // 只有第一个成员的钉图还开着，另钉了一张新图；第二个成员不在桌面上也保留。
     let fresh = pin("p9", "lib-c", "img-9", None, 5);
     let saved = groups
-        .save_pins(&group.id, &[opened[0].clone(), fresh, capture_pin()])
+        .save_pins(&group.id, &mut [opened[0].clone(), fresh, capture_pin()])
         .unwrap();
     assert_eq!(saved.members.len(), 3);
     assert_eq!(saved.members[1], group.members[1]);
     assert_eq!(saved.members[2].library_id, "lib-c");
     assert_eq!(
-        groups.save_pins("nope", &[opened[0].clone()]),
+        groups.save_pins("nope", &mut [opened[0].clone()]),
         Err(GroupError::UnknownGroup)
     );
 }
@@ -226,7 +229,7 @@ fn a_member_can_be_removed_from_a_group() {
     let group = groups
         .create(
             "组",
-            &[
+            &mut [
                 pin("p1", "lib-a", "img-1", None, 0),
                 pin("p2", "lib-a", "img-2", None, 0),
             ],
@@ -245,7 +248,7 @@ fn the_group_file_is_versioned_json_independent_of_libraries() {
     let group = groups
         .create(
             "组",
-            &[pin("p1", "lib-a", "img-1", Some(region(1, 2, 3, 4)), 0)],
+            &mut [pin("p1", "lib-a", "img-1", Some(region(1, 2, 3, 4)), 0)],
         )
         .unwrap();
     let path = dir.path().join(format!("{}.json", group.id));
@@ -273,7 +276,7 @@ fn unreadable_or_newer_group_files_are_reported_not_silently_dropped() {
     let dir = tempfile::tempdir().unwrap();
     let groups = ReferenceGroups::open(dir.path()).unwrap();
     let good = groups
-        .create("好", &[pin("p1", "lib-a", "img-1", None, 0)])
+        .create("好", &mut [pin("p1", "lib-a", "img-1", None, 0)])
         .unwrap();
     std::fs::write(dir.path().join("broken.json"), b"{not json").unwrap();
     let mut newer: serde_json::Value = serde_json::from_slice(
@@ -313,4 +316,31 @@ fn unreadable_or_newer_group_files_are_reported_not_silently_dropped() {
         Err(GroupError::UnsupportedVersion(99))
     );
     assert!(matches!(groups.get("badcrop"), Err(GroupError::Invalid(_))));
+}
+
+#[test]
+fn pins_remember_the_member_they_were_saved_as() {
+    let dir = tempfile::tempdir().unwrap();
+    let groups = ReferenceGroups::open(dir.path()).unwrap();
+    let mut pins = [pin("p1", "lib-a", "img-1", None, 0), capture_pin()];
+    let a = groups.create("A", &mut pins).unwrap();
+    let member = pins[0].member.clone().expect("存进参考组后记得成员");
+    assert_eq!(member.group_id, a.id);
+    assert_eq!(member.member_id, a.members[0].id);
+    assert_eq!(pins[1].member, None, "截图不进组");
+
+    // 同一张钉图再存进另一个参考组：加为那边的新成员，之后记得新的成员；A 不变。
+    let b = groups
+        .create("B", &mut [pin("p2", "lib-a", "img-2", None, 0)])
+        .unwrap();
+    let b = groups.save_pins(&b.id, &mut pins).unwrap();
+    assert_eq!(b.members.len(), 2);
+    assert_eq!(pins[0].member.as_ref().unwrap().group_id, b.id);
+    assert_eq!(groups.get(&a.id).unwrap(), a);
+
+    // 再存一次 B：更新那个成员，不重复添加。
+    pins[0].move_to(500, 500);
+    let b = groups.save_pins(&b.id, &mut pins).unwrap();
+    assert_eq!(b.members.len(), 2);
+    assert_eq!(b.members[1].placement.x, 500);
 }

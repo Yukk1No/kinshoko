@@ -8,10 +8,12 @@
 //! - 截图历史、冻结屏幕与资料库钉图的图走自定义协议 `capture`：`screen/<标记>`、`<截图 id>`，
 //!   或 `pin/<钉图 id>/full|fit-<像素>`（#65，经参考视角，只给已钉住的图）；
 //! - 资料库事件（安全模式开关、分级变化）到达时，资料库钉图重新核对要不要遮蔽；
-//! - 截图历史变化时向所有窗口推送 `capture-history`（截图列表，从新到旧）。
+//! - 截图历史变化时向所有窗口推送 `capture-history`（截图列表，从新到旧）；
+//! - 参考组（#66）：桌面上的资料库钉图存成参考组、打开参考组把成员钉到桌面（[`groups`]）。
 
 mod capture;
 mod edge;
+mod groups;
 mod pins;
 #[cfg(windows)]
 pub(crate) mod win32;
@@ -26,6 +28,7 @@ use kinshoko_core::desktop::{
     CaptureEntry, CaptureHistory, CollectedCapture, EdgeHide, PinStore, PinVeils,
 };
 use kinshoko_core::diagnostics::UsageEvent;
+use kinshoko_core::reference_groups::ReferenceGroups;
 use tauri::http::{Response, StatusCode, header};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::plugin::{Builder, TauriPlugin};
@@ -37,6 +40,8 @@ use crate::{library, shell};
 /// 与资料库插件相同：设置时截图历史也放进这个目录，WebDriver 测试用它隔离数据。
 const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
 const HISTORY_DIR: &str = "captures";
+/// 参考组独立于资料库，放在应用数据目录（ADR-0002）。
+const GROUPS_DIR: &str = "reference-groups";
 const HISTORY_EVENT: &str = "capture-history";
 /// 资料库插件转发给窗口的事件。
 const LIBRARY_EVENT: &str = "library-event";
@@ -53,6 +58,8 @@ pub struct DesktopState {
     edge: Mutex<EdgeHide>,
     /// 安全模式开关与逐张确认显示的资料库钉图（#65）。
     veils: Mutex<PinVeils>,
+    /// 本设备的参考组（#66）。改动在锁里串行完成。
+    groups: Mutex<ReferenceGroups>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -84,6 +91,14 @@ pub fn init() -> TauriPlugin<Wry> {
             pins::set_pin_locked,
             pins::pin_reference,
             pins::reveal_pin,
+            groups::reference_groups,
+            groups::reference_group,
+            groups::save_reference_group,
+            groups::save_pins_to_group,
+            groups::open_reference_group,
+            groups::rename_reference_group,
+            groups::delete_reference_group,
+            groups::remove_group_member,
             edge_hide,
             capture_history,
             collect_capture,
@@ -96,6 +111,7 @@ pub fn init() -> TauriPlugin<Wry> {
             };
             let history = CaptureHistory::open(&dir.join(HISTORY_DIR))?;
             let store = PinStore::open(&dir)?;
+            let groups = ReferenceGroups::open(&dir.join(GROUPS_DIR))?;
             app.manage(DesktopState {
                 history: Mutex::new(history),
                 capture: Mutex::new(capture::Session::Idle),
@@ -105,6 +121,7 @@ pub fn init() -> TauriPlugin<Wry> {
                 edge: Mutex::default(),
                 // 先按开启处理（主线程上不读应用壳设置）；恢复钉图的线程再按保存的设置核对。
                 veils: Mutex::new(PinVeils::new(true)),
+                groups: Mutex::new(groups),
             });
             app.on_menu_event(pins::on_menu_event);
             let handle = app.clone();

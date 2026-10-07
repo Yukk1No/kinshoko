@@ -90,6 +90,23 @@ pub trait ReferenceSource {
     }
 }
 
+/// 参考组及其成员此刻的状态（主窗口的参考组面板用）。
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ReferenceGroupView {
+    pub group: ReferenceGroup,
+    /// 与 `group.members` 一一对应。
+    pub members: Vec<MemberStatus>,
+}
+
+impl ReferenceGroupView {
+    pub fn new(group: ReferenceGroup, source: &dyn ReferenceSource) -> ReferenceGroupView {
+        let members = resolve(&group, source);
+        ReferenceGroupView { group, members }
+    }
+}
+
 /// 核对参考组的每个成员，按成员的先后。
 pub fn resolve(group: &ReferenceGroup, source: &dyn ReferenceSource) -> Vec<MemberStatus> {
     group

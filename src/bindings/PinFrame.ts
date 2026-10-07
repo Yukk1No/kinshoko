@@ -16,6 +16,11 @@ export type PinFrame = { pin: SavedPin, window: ScreenRect, content: ScreenRect,
  */
 veiled: boolean, 
 /**
+ * 资料库钉图暂时不能显示的原因（资料库没登记、不可用、图已删除、原图缺失，#66）；
+ * 能显示时没有。钉图保留位置与尺寸，画占位并写出原因。
+ */
+unavailable?: string, 
+/**
  * 动画结束后页面带着它调用 `settle_pin`；不是最新一帧的就不再改窗口。
  */
 generation: number, };
