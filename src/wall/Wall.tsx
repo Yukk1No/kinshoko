@@ -4,7 +4,7 @@ import { flushSync } from "react-dom";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { ImageCard } from "../bindings/ImageCard";
-import { browse, thumbnailUrl } from "../ipc";
+import { browse, isCursorExpired, thumbnailUrl } from "../ipc";
 import { captureAnchor, masonry, resolveAnchor, visible, type Anchor } from "./layout";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
@@ -100,12 +100,27 @@ export function Wall({
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const alive = useRef(true);
-  useEffect(() => {
-    alive.current = true;
-    return () => { alive.current = false; };
-  }, []);
-  const loading = useRef(false);
+  /**
+   * 请求代次：重新浏览、视角（资料库、范围、条件、安全模式）变化与卸载时前进。
+   * 响应回来时代次已经不同就整个丢掉，不改卡片、游标、数量、错误与加载状态（#77 UI-A）。
+   */
+  const generation = useRef(0);
+  /** 正在进行的请求所属代次；没有时为 null。被作废的请求不会占着它。 */
+  const inflight = useRef<number | null>(null);
+  /** 当前视角。请求发出时按这里取，不用首次渲染时的值。 */
+  const view = useRef({ libraryId, scope, conditions });
+  view.current = { libraryId, scope, conditions };
+  const lens = `${libraryId}\n${JSON.stringify(scope)}\n${JSON.stringify(conditions)}\n${safeMode}`;
+  useLayoutEffect(() => {
+    // 视角变了：还在路上的请求按旧视角作废，旧游标也不再接着翻；等调用方按新视角重新浏览。
+    generation.current += 1;
+    inflight.current = null;
+    setCursor(null);
+    return () => {
+      generation.current += 1;
+      inflight.current = null;
+    };
+  }, [lens]);
   /** 正在看的那张图。重开或重新浏览后滚回这里。 */
   const anchor = useRef<Anchor | null>(storeKey ? loadAnchor(storeKey) : null);
   /** Shift 单击的起点。 */
@@ -155,59 +170,77 @@ export function Wall({
     [],
   );
 
-  /** 从头取至少 want 张，一次替换，避免列表闪空。 */
+  const loaded = useRef(0);
+  loaded.current = cards.length;
+
+  /** 从头取至少 want 张，一次替换，避免列表闪空。之前还在路上的请求一律作废。 */
   const reload = useCallback(
     async (want: number) => {
-      loading.current = true;
+      const gen = ++generation.current;
+      inflight.current = gen;
+      const { libraryId, scope, conditions } = view.current;
+      const current = () => gen === generation.current;
       try {
-        const next: ImageCard[] = [];
-        let after: string | null = null;
-        let count = 0;
-        do {
-          const page = await browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx });
-          if (!alive.current) return;
-          next.push(...page.cards);
-          after = page.nextCursor;
-          count = page.total;
-          // 恢复位置时一直取到锚定的那张图为止。
-          const target = restoring.current ? anchor.current?.id : undefined;
-          if (next.length >= want && !(target && !next.some((c) => c.id === target))) break;
-        } while (after);
-        measureBeforeReflow();
-        setCards(next);
-        setCursor(after);
-        setTotal(count);
-        setError(null);
+        // 取到一半结果集变了（游标过期）：从头再取，最多几次，仍不稳定才报错。
+        for (let attempt = 0; ; attempt++) {
+          const next: ImageCard[] = [];
+          let after: string | null = null;
+          let count = 0;
+          try {
+            do {
+              const page = await browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx });
+              if (!current()) return;
+              next.push(...page.cards);
+              after = page.nextCursor;
+              count = page.total;
+              // 恢复位置时一直取到锚定的那张图为止。
+              const target = restoring.current ? anchor.current?.id : undefined;
+              if (next.length >= want && !(target && !next.some((c) => c.id === target))) break;
+            } while (after);
+          } catch (e) {
+            if (current() && isCursorExpired(e) && attempt < 3) continue;
+            throw e;
+          }
+          measureBeforeReflow();
+          setCards(next);
+          setCursor(after);
+          setTotal(count);
+          setError(null);
+          return;
+        }
       } catch (e) {
-        if (alive.current) setError(String(e));
+        if (current()) setError(String(e));
       } finally {
-        loading.current = false;
+        if (inflight.current === gen) inflight.current = null;
       }
     },
-    // 范围或条件变化时调用方会换 key 重建，不必列为依赖。
-    [thumbnailPx],
+    [thumbnailPx, measureBeforeReflow],
   );
 
   const loadMore = useCallback(async () => {
-    if (loading.current || !cursor) return;
-    loading.current = true;
+    if (inflight.current !== null || !cursor) return;
+    const gen = generation.current;
+    inflight.current = gen;
+    const { libraryId, scope, conditions } = view.current;
+    let expired = false;
     try {
       const page = await browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx });
-      if (!alive.current) return;
+      if (gen !== generation.current) return;
       measureBeforeReflow();
       setCards((prev) => [...prev, ...page.cards]);
       setCursor(page.nextCursor);
       setTotal(page.total);
       setError(null);
     } catch (e) {
-      if (alive.current) setError(String(e));
+      if (gen !== generation.current) return;
+      // 结果集变了，接着翻会遗漏或重复：从第一页重读，保持正在看的位置。
+      if (isCursorExpired(e)) expired = true;
+      else setError(String(e));
     } finally {
-      loading.current = false;
+      if (inflight.current === gen) inflight.current = null;
     }
-  }, [cursor, thumbnailPx]);
-
-  const loaded = useRef(0);
-  loaded.current = cards.length;
+    if (expired) void reload(Math.max(loaded.current, PAGE));
+  }, [cursor, thumbnailPx, measureBeforeReflow, reload]);
   useEffect(() => {
     void reload(Math.max(loaded.current, PAGE));
   }, [reload, reloadKey]);

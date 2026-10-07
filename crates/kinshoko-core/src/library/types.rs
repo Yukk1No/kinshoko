@@ -7,7 +7,7 @@ use rusqlite::types::Value;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{Error, Inner, LIVE, filter, rating, thumbnail};
+use super::{Error, Inner, LIVE, filter, lens, rating, thumbnail};
 use crate::search::ConditionTree;
 
 /// 资料库身份与位置。
@@ -230,14 +230,80 @@ pub struct ImageSourceRecord {
 
 const MAX_LIMIT: u32 = 1000;
 
+/// 分页游标（#77 S4）。对外是不透明字符串，记下它所依据的结果集：资料库、浏览视角（安全模式）、
+/// 列表修订号、条件查找时的词表修订号与查询指纹，以及最后一张的 `seq`。任何一项与当前不同，
+/// 接着翻都可能遗漏或重复，于是明确失效（[`Error::CursorExpired`]），调用方从第一页重读。
+#[derive(Debug, PartialEq, Eq)]
+struct Cursor {
+    library: String,
+    safe: bool,
+    /// 列表修订号：参考图增删、回收站、文件夹成员、备注、跨过成人线的分级变化时前进。
+    list: i64,
+    /// 有条件时的词表修订号（有效标签变化会改变条件结果）；没有条件时恒为 0，
+    /// 后台打标不打断浏览全部图的分页。
+    vocabulary: i64,
+    query: String,
+    seq: i64,
+}
+
+impl Cursor {
+    const VERSION: &'static str = "v1";
+
+    fn encode(&self) -> String {
+        format!(
+            "{}.{}.{}.{}.{}.{}.{}",
+            Self::VERSION,
+            self.library,
+            if self.safe { "s" } else { "o" },
+            self.list,
+            self.vocabulary,
+            self.query,
+            self.seq
+        )
+    }
+
+    fn decode(text: &str) -> Result<Cursor, Error> {
+        let parts: Vec<&str> = text.split('.').collect();
+        let [version, library, lens, list, vocabulary, query, seq] = parts[..] else {
+            return Err(Error::InvalidCursor);
+        };
+        let number = |s: &str| s.parse::<i64>().map_err(|_| Error::InvalidCursor);
+        if version != Self::VERSION {
+            return Err(Error::InvalidCursor);
+        }
+        let safe = match lens {
+            "s" => true,
+            "o" => false,
+            _ => return Err(Error::InvalidCursor),
+        };
+        Ok(Cursor {
+            library: library.to_owned(),
+            safe,
+            list: number(list)?,
+            vocabulary: number(vocabulary)?,
+            query: query.to_owned(),
+            seq: number(seq)?,
+        })
+    }
+}
+
+/// 查询（范围＋条件树）的指纹：同一查询才接得上同一个游标。
+fn query_fingerprint(query: &BrowseQuery) -> Result<String, Error> {
+    use sha2::{Digest, Sha256};
+    let json = serde_json::to_vec(&(&query.scope, &query.conditions))
+        .map_err(|e| Error::Io(std::io::Error::other(e)))?;
+    let digest = Sha256::digest(json);
+    Ok(digest[..12].iter().map(|b| format!("{b:02x}")).collect())
+}
+
 pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, Error> {
-    let after = match &query.cursor {
-        None => i64::MAX,
-        Some(c) => c.parse::<i64>().map_err(|_| Error::InvalidCursor)?,
-    };
+    let cursor = query.cursor.as_deref().map(Cursor::decode).transpose()?;
     let limit = query.limit.clamp(1, MAX_LIMIT);
     let tier = thumbnail::tier(query.thumbnail_px);
     let library_id = &inner.info.id;
+    // 视角只读一次：过滤条件与游标记下的视角一致。
+    let safe = inner.safe_mode();
+    let fingerprint = query_fingerprint(query)?;
 
     // 范围条件在前，条件树在后；参数按出现顺序编号。浏览视角的过滤（安全模式）加在中间。
     let mut args: Vec<Value> = Vec::new();
@@ -252,11 +318,33 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
         BrowseScope::Trash => format!("NOT ({LIVE})"),
     };
     let conditions = filter::sql(&query.conditions, &mut args);
-    let filter = format!("{scope} AND {} AND {conditions}", inner.lens_filter());
+    let filter = format!("{scope} AND {} AND {conditions}", lens::lens_filter(safe));
 
-    let conn = inner.readers.get();
+    let mut conn = inner.readers.get();
+    // 修订号核对、计数与分页取自同一个读事务：游标与页面对应同一个快照。
+    let tx = conn.transaction()?;
+    let list: i64 = tx.query_row("SELECT value FROM list_revision", [], |r| r.get(0))?;
+    let vocabulary: i64 = if query.conditions.conditions.is_empty() {
+        0
+    } else {
+        tx.query_row("SELECT value FROM vocabulary_revision", [], |r| r.get(0))?
+    };
+    let after = match cursor {
+        None => i64::MAX,
+        Some(c) => {
+            let current = c.library == *library_id
+                && c.safe == safe
+                && c.list == list
+                && c.vocabulary == vocabulary
+                && c.query == fingerprint;
+            if !current {
+                return Err(Error::CursorExpired);
+            }
+            c.seq
+        }
+    };
     // 计数与分页用同一个筛选，结果与计数一致。
-    let total: u32 = conn.query_row(
+    let total: u32 = tx.query_row(
         &format!("SELECT COUNT(*) FROM image WHERE {filter}"),
         params_from_iter(&args),
         |r| r.get(0),
@@ -264,30 +352,43 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
     let n = args.len();
     args.push(Value::Integer(after));
     args.push(Value::Integer(i64::from(limit) + 1));
-    let mut stmt = conn.prepare_cached(&format!(
-        "SELECT seq, id, width, height, {} FROM image WHERE {filter} AND seq < ?{}
-         ORDER BY seq DESC LIMIT ?{}",
-        rating::adult_sql("image.id"),
-        n + 1,
-        n + 2
-    ))?;
-    let rows = stmt.query_map(params_from_iter(&args), |row| {
-        let id: String = row.get(1)?;
-        Ok((
-            row.get::<_, i64>(0)?,
-            ImageCard {
-                thumbnail: format!("{library_id}/{id}/{tier}"),
-                id,
-                width: row.get(2)?,
-                height: row.get(3)?,
-                adult: row.get(4)?,
-            },
-        ))
-    })?;
-    let mut rows = rows.collect::<Result<Vec<_>, _>>()?;
+    let mut rows = {
+        let mut stmt = tx.prepare_cached(&format!(
+            "SELECT seq, id, width, height, {} FROM image WHERE {filter} AND seq < ?{}
+             ORDER BY seq DESC LIMIT ?{}",
+            rating::adult_sql("image.id"),
+            n + 1,
+            n + 2
+        ))?;
+        stmt.query_map(params_from_iter(&args), |row| {
+            let id: String = row.get(1)?;
+            Ok((
+                row.get::<_, i64>(0)?,
+                ImageCard {
+                    thumbnail: format!("{library_id}/{id}/{tier}"),
+                    id,
+                    width: row.get(2)?,
+                    height: row.get(3)?,
+                    adult: row.get(4)?,
+                },
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?
+    };
+    tx.finish()?;
     let next_cursor = if rows.len() > limit as usize {
         rows.truncate(limit as usize);
-        rows.last().map(|(seq, _)| seq.to_string())
+        rows.last().map(|(seq, _)| {
+            Cursor {
+                library: library_id.clone(),
+                safe,
+                list,
+                vocabulary,
+                query: fingerprint,
+                seq: *seq,
+            }
+            .encode()
+        })
     } else {
         None
     };

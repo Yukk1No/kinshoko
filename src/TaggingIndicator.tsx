@@ -34,8 +34,9 @@ export function TaggingIndicator({ libraryId }: { libraryId: string }) {
   );
 
   switch (status.state) {
+    // 加载模型可能要几分钟，子进程已在占用显存：开始与校验阶段同样可以暂停（#77 UI-C）。
     case "starting":
-      return null;
+      return <span className="tagging">自动标签：正在加载打标模型… {pause}</span>;
     case "noDevice":
       return <span className="tagging">自动标签不可用：{status.reason}</span>;
     case "needsDownload":
@@ -56,7 +57,7 @@ export function TaggingIndicator({ libraryId }: { libraryId: string }) {
         </span>
       );
     case "preparing":
-      return <span className="tagging">正在校验打标模型…</span>;
+      return <span className="tagging">正在校验打标模型… {pause}</span>;
     case "running":
       return (
         <span className="tagging">

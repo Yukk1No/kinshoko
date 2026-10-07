@@ -12,6 +12,9 @@ pub enum Error {
     /// 文件夹不能移进它自己或它的子文件夹。
     FolderCycle,
     InvalidCursor,
+    /// 分页游标所依据的结果集已经变了（换了资料库、查询或浏览视角，或可见集合的修订号前进）：
+    /// 接着翻会遗漏或重复，调用方应从第一页重新浏览（#77 S4）。
+    CursorExpired,
     InvalidDisplaySize,
     UnknownTag,
     UnknownTagGroup,
@@ -52,6 +55,7 @@ impl fmt::Display for Error {
             Error::UnknownFolder => write!(f, "资料库中没有这个文件夹"),
             Error::FolderCycle => write!(f, "文件夹不能移进它自己或它的子文件夹"),
             Error::InvalidCursor => write!(f, "浏览位置无效"),
+            Error::CursorExpired => write!(f, "浏览结果已变化，请从头重新浏览"),
             Error::InvalidDisplaySize => write!(f, "显示尺寸必须大于零"),
             Error::UnknownTag => write!(f, "资料库中没有这个标签"),
             Error::UnknownTagGroup => write!(f, "资料库中没有这个标签分组"),
