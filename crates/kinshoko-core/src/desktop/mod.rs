@@ -16,6 +16,7 @@ mod pin;
 mod placement;
 mod screenshot;
 mod types;
+mod veil;
 
 pub use edge::{DeskPin, EdgeHide, PEEK_SLACK, PinMove, SLIVER, Toggle, Tuck};
 pub use history::{CaptureEntry, CaptureHistory, CollectedCapture, HISTORY_LIMIT, HistoryError};
@@ -27,3 +28,4 @@ pub use pin::{
 pub use placement::{ScreenRect, place_new_pin};
 pub use screenshot::{Region, Screenshot};
 pub use types::{CaptureAction, FrozenScreen, PinFrame, PinMotion, Turn};
+pub use veil::PinVeils;

@@ -22,7 +22,9 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Mutex, MutexGuard};
 
 use kinshoko_core::ShortcutAction;
-use kinshoko_core::desktop::{CaptureEntry, CaptureHistory, CollectedCapture, EdgeHide, PinStore};
+use kinshoko_core::desktop::{
+    CaptureEntry, CaptureHistory, CollectedCapture, EdgeHide, PinStore, PinVeils,
+};
 use kinshoko_core::diagnostics::UsageEvent;
 use tauri::http::{Response, StatusCode, header};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -49,6 +51,8 @@ pub struct DesktopState {
     /// 钉图状态改了还没写回文件。
     dirty: AtomicBool,
     edge: Mutex<EdgeHide>,
+    /// 安全模式开关与逐张确认显示的资料库钉图（#65）。
+    veils: Mutex<PinVeils>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -99,11 +103,21 @@ pub fn init() -> TauriPlugin<Wry> {
                 store: Mutex::new(store),
                 dirty: AtomicBool::new(false),
                 edge: Mutex::default(),
+                // 先按开启处理（主线程上不读应用壳设置）；恢复钉图的线程再按保存的设置核对。
+                veils: Mutex::new(PinVeils::new(true)),
             });
             app.on_menu_event(pins::on_menu_event);
             let handle = app.clone();
             app.listen_any(LIBRARY_EVENT, move |event| {
                 on_library_event(&handle, event.payload());
+            });
+            // 安全模式是应用设置：开关时不论有没有打开资料库都到这里。
+            let handle = app.clone();
+            app.listen_any(library::SAFE_MODE_EVENT, move |event| {
+                if let Ok(on) = serde_json::from_str::<bool>(event.payload()) {
+                    let app = handle.clone();
+                    std::thread::spawn(move || pins::safe_mode_changed(&app, on));
+                }
             });
             edge::start(app);
             // 恢复上次的钉图：建窗口要等事件循环跑起来，放到别的线程。
@@ -126,13 +140,16 @@ fn on_library_event(app: &AppHandle, payload: &str) {
     let Ok(event) = serde_json::from_str::<serde_json::Value>(payload) else {
         return;
     };
-    let turned_on = match event.get("kind").and_then(|k| k.as_str()) {
-        Some("safeModeChanged") => event.get("on").and_then(|on| on.as_bool()) == Some(true),
-        Some("listStale" | "imagesChanged") => false,
+    let safe_mode = match event.get("kind").and_then(|k| k.as_str()) {
+        Some("safeModeChanged") => event.get("on").and_then(|on| on.as_bool()),
+        Some("listStale" | "imagesChanged") => None,
         _ => return,
     };
     let app = app.clone();
-    std::thread::spawn(move || pins::references_changed(&app, turned_on));
+    std::thread::spawn(move || match safe_mode {
+        Some(on) => pins::safe_mode_changed(&app, on),
+        None => pins::references_changed(&app),
+    });
 }
 
 /// 冻结屏幕现场编码；历史中的截图直接读文件，两者都是内嵌显示器配置文件的 PNG。

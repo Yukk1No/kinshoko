@@ -34,6 +34,9 @@ use crate::shell::ShellState;
 /// 指定本设备登记表所在目录；不设时用应用数据目录。WebDriver 冒烟测试用它隔离数据。
 const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
 const EVENT: &str = "library-event";
+/// 安全模式（应用设置）开关后推送，载荷为开关状态。不论有没有打开资料库都推送：
+/// 桌面钉图据此重新核对遮蔽（#65）。
+pub const SAFE_MODE_EVENT: &str = "safe-mode-setting";
 
 struct LibraryState {
     device_dir: PathBuf,
@@ -762,6 +765,7 @@ async fn set_safe_mode<R: Runtime>(
     if let Ok(library) = state.active() {
         library.set_safe_mode(on);
     }
+    let _ = app.emit(SAFE_MODE_EVENT, on);
     Ok(on)
 }
 
