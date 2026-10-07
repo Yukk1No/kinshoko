@@ -64,10 +64,13 @@ fn browse(library: &Library, scope: BrowseScope) -> Vec<String> {
         .collect()
 }
 
+/// 假参考组：身份、名称与成员（资料库，参考图）。
+type FakeGroup = (String, String, Vec<(String, String)>);
+
 /// 参考组用途 port 的测试假实现：内存里的参考组，每组按“资料库＋参考图”列出成员。
 #[derive(Default)]
 struct FakeGroups {
-    groups: RefCell<Vec<(String, String, Vec<(String, String)>)>>,
+    groups: RefCell<Vec<FakeGroup>>,
     broken: RefCell<bool>,
 }
 

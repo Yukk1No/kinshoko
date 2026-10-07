@@ -29,7 +29,7 @@ pub struct PermanentDeletePreview {
     pub image_ids: Vec<String>,
     /// 用到这些图的参考组；为空时直接确认。
     pub groups: Vec<GroupUsage>,
-    /// 交回 [`super::Library::permanent_delete`]；回收站、参考组或安全模式变化后失效。
+    /// 执行永久删除时交回；回收站、受影响的参考组或安全模式变化后失效。
     pub token: String,
 }
 

@@ -773,6 +773,54 @@ describe("整理", () => {
     );
   });
 
+  it("回收站里永久删除：先列出受影响的参考组，过期时重新预览后再确认", async () => {
+    let previews = 0;
+    let stale = true;
+    backend(library, clean, (cmd, args) => {
+      if (cmd === "plugin:library|preview_permanent_delete") {
+        previews += 1;
+        const { ids } = args as { ids: string[] };
+        return {
+          imageIds: ids,
+          groups: previews === 1 ? [] : [{ groupId: "G1", name: "手的参考", imageIds: ids }],
+          token: `T${previews}`,
+        };
+      }
+      if (cmd === "plugin:library|permanent_delete") {
+        if (stale) {
+          stale = false;
+          return Promise.reject("回收站或参考组在确认前有变化，请重新查看将受影响的参考组");
+        }
+        return null;
+      }
+      return undefined;
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(screen.getByRole("button", { name: "回收站（1 张）" }));
+    await waitFor(() => expect(card("a")).toBeTruthy());
+    fireEvent.click(card("a"));
+    fireEvent.click(await screen.findByRole("button", { name: "永久删除…" }));
+
+    // 没有受影响的参考组：直接确认。
+    expect(await screen.findByText(/永久删除这 1 张图/)).toBeTruthy();
+    expect(screen.queryByLabelText("受影响的参考组")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
+
+    // 预览之后有参考组用上了这张图：被拒绝，重新列出后再确认。
+    const list = await screen.findByLabelText("受影响的参考组");
+    expect(within(list).getByText("手的参考（1 张）")).toBeTruthy();
+    expect(screen.getByText(/刚有变化/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
+    await waitFor(() =>
+      expect(sent("plugin:library|permanent_delete")).toEqual([
+        { libraryId: "L1", ids: ["a"], token: "T1" },
+        { libraryId: "L1", ids: ["a"], token: "T2" },
+      ]),
+    );
+    await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
+  });
+
   it("只选一张时写备注，并能退回来源的备注", async () => {
     backend(library);
     render(<App />);
