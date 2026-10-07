@@ -8,6 +8,7 @@ import type { ImageEdit } from "../bindings/ImageEdit";
 import { editImages, imageDetail, sidebar } from "../ipc";
 
 type Props = {
+  libraryId: string;
   scope: BrowseScope;
   selected: ReadonlySet<string>;
   onClear: () => void;
@@ -133,6 +134,7 @@ function Detail({
 
 /** 选中参考图后的整理操作：放入或移出文件夹、删除或恢复；只选一张时还能写备注。 */
 export function SelectionPanel({
+  libraryId,
   scope,
   selected,
   onClear,
@@ -147,7 +149,7 @@ export function SelectionPanel({
 
   useEffect(() => {
     let alive = true;
-    sidebar().then(
+    sidebar(libraryId).then(
       (s) => alive && setFolders(flatten(s.folders)),
       () => undefined,
     );
@@ -160,7 +162,7 @@ export function SelectionPanel({
     let alive = true;
     setDetail(null);
     if (single)
-      imageDetail(single).then(
+      imageDetail(libraryId, single).then(
         (d) => alive && setDetail(d),
         (e) => alive && onError(String(e)),
       );
@@ -170,7 +172,7 @@ export function SelectionPanel({
   }, [single, reloadKey, onError]);
 
   const edit = (edits: ImageEdit[], clear = false) =>
-    editImages(ids, edits).then(
+    editImages(libraryId, ids, edits).then(
       (details) => {
         if (single && details[0]) setDetail(details[0]);
         const sealed = safeMode && details.some((d) => isAdult(d.rating.effective));

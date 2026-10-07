@@ -3,7 +3,10 @@ import type { LibraryInfo } from "../bindings/LibraryInfo";
 import { createLibrary, pickFolder } from "../ipc";
 
 /** 建立资料库：起名、选择存放位置，在那里新建同名文件夹，登记到本设备并打开。 */
-export function CreateLibrary({ onCreated }: { onCreated: (library: LibraryInfo) => void }) {
+export function CreateLibrary({ onCreated, onBusyChange }: {
+  onCreated: (library: LibraryInfo) => void;
+  onBusyChange?: (busy: boolean) => void;
+}) {
   const [name, setName] = useState("我的参考");
   const [parent, setParent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -17,6 +20,7 @@ export function CreateLibrary({ onCreated }: { onCreated: (library: LibraryInfo)
   const create = async () => {
     if (!parent) return;
     setBusy(true);
+    onBusyChange?.(true);
     setError(null);
     try {
       onCreated(await createLibrary(parent, name.trim()));
@@ -24,6 +28,7 @@ export function CreateLibrary({ onCreated }: { onCreated: (library: LibraryInfo)
       setError(String(e));
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   };
 

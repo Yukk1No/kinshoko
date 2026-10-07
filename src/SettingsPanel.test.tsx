@@ -200,7 +200,7 @@ describe("设置：近似查找", () => {
     fireEvent.click(within(rows[1]).getByRole("button", { name: "删除" }));
 
     await waitFor(() => expect(within(table).getAllByRole("row")).toHaveLength(1));
-    expect(calls.find((c) => c.cmd === "plugin:library|remove_tag_approx")?.args).toEqual({ a: "B", b: "Q" });
+    expect(calls.find((c) => c.cmd === "plugin:library|remove_tag_approx")?.args).toEqual({ libraryId: "L1", a: "B", b: "Q" });
   });
 });
 

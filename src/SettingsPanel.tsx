@@ -163,7 +163,7 @@ export function SettingsPanel({ library = null, onChange }: Props) {
         />
         显示相近标签来源（内置／个人）
       </label>
-      {library && <PersonalApproxList key={library.id} onError={setError} />}
+      {library && <PersonalApproxList key={library.id} libraryId={library.id} onError={setError} />}
       <h2>诊断</h2>
       <label className="settings-row">
         <input
@@ -226,16 +226,22 @@ function DiagnosticsReport({ onError }: { onError: (message: string) => void }) 
 }
 
 /** 当前资料库的个人近似对应表：每条两个标签与“相近／不相近”，可以删除。 */
-function PersonalApproxList({ onError }: { onError: (message: string) => void }) {
+function PersonalApproxList({
+  libraryId,
+  onError,
+}: {
+  libraryId: string;
+  onError: (message: string) => void;
+}) {
   const [entries, setEntries] = useState<PersonalApproxEntry[] | null>(null);
 
   const load = useCallback(
     () =>
-      personalApprox(UI_LANG).then(
+      personalApprox(libraryId, UI_LANG).then(
         (list) => setEntries(list),
         (e) => onError(String(e)),
       ),
-    [onError],
+    [libraryId, onError],
   );
 
   useEffect(() => {
@@ -244,7 +250,7 @@ function PersonalApproxList({ onError }: { onError: (message: string) => void })
 
   const remove = async (entry: PersonalApproxEntry) => {
     try {
-      await removeTagApprox(entry.a.id, entry.b.id);
+      await removeTagApprox(libraryId, entry.a.id, entry.b.id);
       await load();
     } catch (e) {
       onError(String(e));

@@ -7,6 +7,7 @@ mod app_shell;
 pub mod approx;
 pub mod desktop;
 mod device;
+mod device_libraries;
 pub mod diagnostics;
 pub mod fidelity;
 pub mod library;
@@ -17,6 +18,7 @@ pub mod tagging;
 
 pub use app_shell::{AppInfo, UpdateProgress, UpdateStatus, app_info};
 pub use device::{DeviceRegistry, RegisteredLibrary};
+pub use device_libraries::{DeviceLibraries, DeviceLibraryError, LibraryRegistration};
 pub use library::Library;
 pub use settings::{AppSettings, SettingsError, ShortcutAction};
 pub use shortcuts::{

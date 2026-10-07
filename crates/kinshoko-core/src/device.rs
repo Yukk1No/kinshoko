@@ -24,7 +24,7 @@ pub struct RegisteredLibrary {
     pub root: PathBuf,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct State {
     format: String,
@@ -67,25 +67,40 @@ impl DeviceRegistry {
 
     /// 登记资料库并记为上次打开。同一资料库（按身份）只登记一次，位置与名称随之更新。
     pub fn register(&mut self, info: &LibraryInfo) -> std::io::Result<()> {
+        let mut next = self.state.clone();
         let entry = RegisteredLibrary {
             id: info.id.clone(),
             name: info.name.clone(),
             root: info.root.clone(),
         };
-        match self.state.libraries.iter_mut().find(|l| l.id == info.id) {
+        match next.libraries.iter_mut().find(|l| l.id == info.id) {
             Some(existing) => *existing = entry,
-            None => self.state.libraries.push(entry),
+            None => next.libraries.push(entry),
         }
-        self.state.last_opened = Some(info.id.clone());
-        self.save()
+        next.last_opened = Some(info.id.clone());
+        self.save(&next)?;
+        self.state = next;
+        Ok(())
     }
 
-    fn save(&self) -> std::io::Result<()> {
+    /// 取消本设备的登记；资料库文件与整理结果仍保存在原位置。
+    pub fn unregister(&mut self, id: &str) -> std::io::Result<()> {
+        let mut next = self.state.clone();
+        next.libraries.retain(|library| library.id != id);
+        if next.last_opened.as_deref() == Some(id) {
+            next.last_opened = None;
+        }
+        self.save(&next)?;
+        self.state = next;
+        Ok(())
+    }
+
+    fn save(&self, state: &State) -> std::io::Result<()> {
         if let Some(dir) = self.path.parent() {
             std::fs::create_dir_all(dir)?;
         }
         let tmp = self.path.with_extension("json.tmp");
-        let bytes = serde_json::to_vec_pretty(&self.state).map_err(std::io::Error::other)?;
+        let bytes = serde_json::to_vec_pretty(state).map_err(std::io::Error::other)?;
         {
             use std::io::Write;
             let mut file = std::fs::File::create(&tmp)?;

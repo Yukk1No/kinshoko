@@ -103,9 +103,9 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0 }: Props) {
   // 这张图已不在（被删除，或安全模式下被封印，查询返回 UnknownImage）时回到图片墙。
   useEffect(() => {
     let alive = true;
-    imageDetail(card.id).catch((e) => { if (alive && isUnknownImage(e)) closeRef.current(); });
+    imageDetail(libraryId, card.id).catch((e) => { if (alive && isUnknownImage(e)) closeRef.current(); });
     return () => { alive = false; };
-  }, [card.id, reloadKey, failedSrc]);
+  }, [libraryId, card.id, reloadKey, failedSrc]);
   const keyDown = (e: KeyboardEvent<HTMLElement>) => {
     if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onClose(); return; }
     if (e.key === "Tab") {

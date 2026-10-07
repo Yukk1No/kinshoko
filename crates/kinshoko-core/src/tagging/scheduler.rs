@@ -66,6 +66,15 @@ impl TaggingConfig {
     }
 }
 
+/// 状态与所属资料库一起传给界面，迟到推送不能覆盖另一个库的状态。
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct LibraryTaggingStatus {
+    pub library_id: String,
+    pub status: TaggingStatus,
+}
+
 /// 自动标签的当前状态，供界面显示。
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[serde(tag = "state", rename_all = "camelCase")]

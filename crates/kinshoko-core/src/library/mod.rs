@@ -118,6 +118,23 @@ impl Inner {
 }
 
 impl Library {
+    /// 只读资料库身份与名称，供本设备登记与位置校验使用；不触发迁移或导入对账。
+    pub fn inspect(root: &Path) -> Result<LibraryInfo, Error> {
+        let db = root.join(DB_FILE);
+        if !db.is_file() {
+            return Err(Error::NotALibrary(root.to_path_buf()));
+        }
+        let conn = store::inspect_db(&db)?;
+        let (id, name) = conn.query_row("SELECT id, name FROM library", [], |row| {
+            Ok((row.get(0)?, row.get(1)?))
+        })?;
+        Ok(LibraryInfo {
+            id,
+            name,
+            root: std::path::absolute(root)?,
+        })
+    }
+
     /// 在 `root` 建立新资料库。`root` 必须不存在或是空文件夹。
     pub fn create(root: &Path, name: &str) -> Result<Library, Error> {
         let name = name.trim();

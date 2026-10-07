@@ -99,6 +99,12 @@ export function Wall({
   const [cards, setCards] = useState<ImageCard[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; };
+  }, []);
   const loading = useRef(false);
   /** 正在看的那张图。重开或重新浏览后滚回这里。 */
   const anchor = useRef<Anchor | null>(storeKey ? loadAnchor(storeKey) : null);
@@ -158,13 +164,8 @@ export function Wall({
         let after: string | null = null;
         let count = 0;
         do {
-          const page = await browse({
-            scope,
-            conditions,
-            cursor: after,
-            limit: PAGE,
-            thumbnailPx,
-          });
+          const page = await browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx });
+          if (!alive.current) return;
           next.push(...page.cards);
           after = page.nextCursor;
           count = page.total;
@@ -176,6 +177,9 @@ export function Wall({
         setCards(next);
         setCursor(after);
         setTotal(count);
+        setError(null);
+      } catch (e) {
+        if (alive.current) setError(String(e));
       } finally {
         loading.current = false;
       }
@@ -188,11 +192,15 @@ export function Wall({
     if (loading.current || !cursor) return;
     loading.current = true;
     try {
-      const page = await browse({ scope, conditions, cursor, limit: PAGE, thumbnailPx });
+      const page = await browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx });
+      if (!alive.current) return;
       measureBeforeReflow();
       setCards((prev) => [...prev, ...page.cards]);
       setCursor(page.nextCursor);
       setTotal(page.total);
+      setError(null);
+    } catch (e) {
+      if (alive.current) setError(String(e));
     } finally {
       loading.current = false;
     }
@@ -334,6 +342,7 @@ export function Wall({
   return (
     <div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
       role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1}>
+      {error && <p role="alert">{error}</p>}
       {total === 0 ? (
         <p className="wall-empty">{searching ? "没有符合条件的参考图。" : EMPTY[scope.kind]}</p>
       ) : (
