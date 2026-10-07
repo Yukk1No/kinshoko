@@ -10,6 +10,11 @@ import type { PersonalApproxEntry } from "./bindings/PersonalApproxEntry";
 import type { Candidate } from "./bindings/Candidate";
 import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
+import type { BackupPreview } from "./bindings/BackupPreview";
+import type { BackupStatus } from "./bindings/BackupStatus";
+import type { RestoreReport } from "./bindings/RestoreReport";
+import type { ScopeSelection } from "./bindings/ScopeSelection";
+import type { SnapshotSummary } from "./bindings/SnapshotSummary";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
 import type { EagleLibraryCandidate } from "./bindings/EagleLibraryCandidate";
@@ -444,6 +449,45 @@ export function clearUsageLog(): Promise<void> {
 /** 上次检查更新的结果。 */
 export function updateStatus(): Promise<UpdateStatus> {
   return invoke<UpdateStatus>("update_status");
+}
+
+// ---------- 本地备份与恢复（#69） ----------
+
+/** 备份计划（目标、范围、上次结果）与正在进行的备份。 */
+export function backupStatus(): Promise<BackupStatus> {
+  return invoke<BackupStatus>("backup_status");
+}
+
+/** 选择备份目标目录；`null` 为清除。 */
+export function setBackupTarget(target: string | null): Promise<BackupStatus> {
+  return invoke<BackupStatus>("set_backup_target", { target });
+}
+
+export function setBackupSelection(selection: ScopeSelection): Promise<BackupStatus> {
+  return invoke<BackupStatus>("set_backup_selection", { selection });
+}
+
+/** 执行前的范围、未覆盖内容与容量。 */
+export function backupPreview(selection: ScopeSelection): Promise<BackupPreview> {
+  return invoke<BackupPreview>("backup_preview", { selection });
+}
+
+/** 马上备份一次；进度与结果经 `onBackupStatus` 推送。 */
+export function startBackup(): Promise<void> {
+  return invoke<void>("start_backup");
+}
+
+export function backupSnapshots(): Promise<SnapshotSummary[]> {
+  return invoke<SnapshotSummary[]>("backup_snapshots");
+}
+
+/** 从快照恢复出独立的资料库（放在 `into` 下）与参考组，返回自动运行的往返检查结果。 */
+export function restoreBackup(snapshotId: string, into: string): Promise<RestoreReport> {
+  return invoke<RestoreReport>("restore_backup", { snapshotId, into });
+}
+
+export function onBackupStatus(handler: (status: BackupStatus) => void): Promise<UnlistenFn> {
+  return listen<BackupStatus>("backup-status", (e) => handler(e.payload));
 }
 
 /** 向 GitHub Releases 检查新版本。 */
