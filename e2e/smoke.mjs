@@ -63,7 +63,9 @@ const source = join(work, "参考");
 mkdirSync(libraryParent, { recursive: true });
 mkdirSync(join(source, "人物"), { recursive: true });
 writeFileSync(join(source, "横图.png"), png(300, 150, [200, 80, 80]));
-writeFileSync(join(source, "人物", "竖图.png"), png(100, 300, [80, 160, 200]));
+// 竖图取 1:2：图片墙把高宽比超过 2.6 的长图整体缩小（src/wall/Wall.tsx 的 CAP_RATIO），
+// 这里只验证按原比例显示。
+writeFileSync(join(source, "人物", "竖图.png"), png(100, 200, [80, 160, 200]));
 writeFileSync(join(source, "人物", "方图.png"), png(200, 200, [90, 200, 120]));
 writeFileSync(join(source, "说明.txt"), "不是图片");
 
@@ -97,14 +99,20 @@ async function until(what, fn, timeout = 30000) {
   throw new Error(`等待超时：${what}${last ? `（${last.message}）` : ""}`);
 }
 
-const ELEMENT = "element-6066-11e4-a52e-4f735466cecc";
+// W3C WebDriver 规定的元素引用键（§12.1 web element identifier）。
+const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
 
 class Session {
   static async start() {
-    const value = await wd("POST", "/session", {
-      capabilities: { alwaysMatch: { "tauri:options": { application } } },
-    });
-    return new Session(value.sessionId);
+    try {
+      const value = await wd("POST", "/session", {
+        capabilities: { alwaysMatch: { "tauri:options": { application } } },
+      });
+      return new Session(value.sessionId);
+    } catch (e) {
+      reportProcesses();
+      throw e;
+    }
   }
   constructor(id) {
     this.base = `/session/${id}`;
@@ -114,6 +122,8 @@ class Session {
   }
   async find(xpath) {
     const v = await wd("POST", `${this.base}/element`, { using: "xpath", value: xpath });
+    // 找到了却取不出引用时直接报错，不当作“还没出现”一直等到超时。
+    if (!v?.[ELEMENT]) throw new Error(`元素引用格式不对：${JSON.stringify(v)}`);
     return v[ELEMENT];
   }
   waitFor(what, xpath, timeout) {
@@ -142,6 +152,25 @@ class Session {
   close() {
     return wd("DELETE", this.base);
   }
+}
+
+/**
+ * 建会话失败时打印被测应用与它的 WebView2 进程，供 CI 日志判断：
+ * “DevToolsActivePort file doesn't exist” 说明应用活着但没有可调试的 WebView——
+ * 是主线程卡住（Responding=False）、没建出窗口，还是 WebView2 没带上 msedgedriver 的参数。
+ */
+function reportProcesses() {
+  const script = `
+    [Console]::OutputEncoding = [Text.Encoding]::UTF8
+    Get-Process -Name '${basename(application, ".exe")}' -ErrorAction SilentlyContinue |
+      ForEach-Object { "应用 pid=$($_.Id) responding=$($_.Responding) window='$($_.MainWindowTitle)'" }
+    Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" |
+      Where-Object { $_.CommandLine -match 'webview-exe-name=${basename(application)}' -and $_.CommandLine -notmatch '--type=' } |
+      ForEach-Object { "WebView2 pid=$($_.ProcessId) parent=$($_.ParentProcessId) $($_.CommandLine)" }`;
+  const out = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", script], {
+    encoding: "utf8",
+  });
+  console.error(`建会话失败时的进程：\n${(out.stdout || "").trim() || "（没有被测应用或它的 WebView2 进程）"}`);
 }
 
 /** 结束被测应用的进程，并等它真正退出。 */
@@ -196,7 +225,7 @@ try {
   });
   const sorted = [...before.ratios].sort((a, b) => a - b);
   assert(
-    [0.5, 1, 3].every((r, i) => Math.abs(sorted[i] - r) < 0.05),
+    [0.5, 1, 2].every((r, i) => Math.abs(sorted[i] - r) < 0.05),
     `瀑布流按原比例显示（${sorted.map((r) => r.toFixed(2)).join("、")}）`,
   );
 
