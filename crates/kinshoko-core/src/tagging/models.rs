@@ -9,7 +9,9 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use serde::Serialize;
 use sha2::{Digest, Sha256};
+use ts_rs::TS;
 
 use super::patch;
 use super::port::{Device, PreparedModel};
@@ -135,6 +137,37 @@ pub fn catalog() -> Vec<ModelSpec> {
     ]
 }
 
+/// 设置界面里的一个可选模型：名称、设备档位、显存或内存需求、大小、本机是否已装好。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ModelOption {
+    pub key: String,
+    pub label: String,
+    pub device: Device,
+    /// DirectML 下的显存峰值估计。
+    #[ts(type = "number")]
+    pub vram_need: u64,
+    /// CPU 下的内存峰值估计；0 表示不检查。
+    #[ts(type = "number")]
+    pub ram_need: u64,
+    /// 首次使用要下载的字节数。
+    #[ts(type = "number")]
+    pub size: u64,
+    /// 已下载、校验（并改写）好，不必再下载。
+    pub installed: bool,
+}
+
+/// 设置中“自动标签模型”一节：画师选的模型与可选的模型。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ModelChoice {
+    /// 画师选的模型 key；`None` 表示按本机条件自动选择。
+    pub selected: Option<String>,
+    pub options: Vec<ModelOption>,
+}
+
 /// 默认的下载地址前缀。
 pub const HUGGING_FACE: &str = "https://huggingface.co";
 
@@ -213,6 +246,22 @@ impl ModelStore {
         })
     }
 
+    /// 设置界面的模型列表，按 `models` 的顺序。
+    pub fn options(&self, models: &[ModelSpec]) -> Vec<ModelOption> {
+        models
+            .iter()
+            .map(|spec| ModelOption {
+                key: spec.key.clone(),
+                label: spec.label.clone(),
+                device: spec.device,
+                vram_need: spec.vram_need,
+                ram_need: spec.ram_need,
+                size: spec.download_size(),
+                installed: self.ready(spec).is_some(),
+            })
+            .collect()
+    }
+
     /// 已经下载了多少字节（含上次中断留下的部分）。
     pub fn downloaded(&self, spec: &ModelSpec) -> u64 {
         let p = self.paths(spec);
@@ -261,23 +310,148 @@ impl ModelStore {
                 cancel,
             )?;
         }
-        if let (Some(c), Some((onnx, marker))) = (&spec.chunking, &p.chunked)
-            && (fs::read_to_string(marker).ok().as_deref() != Some(&c.sha256) || !onnx.is_file())
-        {
-            progress(PrepareStage::Verifying);
-            let _ = fs::remove_file(marker);
-            patch::chunk_attention(&p.onnx, onnx, c)
-                .map_err(|e| format!("改写 {} 失败：{e}", spec.label))?;
-            let sha = sha256_file(onnx).map_err(|e| e.to_string())?;
-            if sha != c.sha256 {
-                let _ = fs::remove_file(onnx);
-                return Err(format!("{} 改写结果校验失败（{sha}）", spec.label));
-            }
-            fs::write(marker, &c.sha256).map_err(|e| e.to_string())?;
-        }
+        chunk(spec, &p, progress)?;
         self.ready(spec)
             .ok_or_else(|| format!("{} 准备后仍不完整", spec.label))
     }
+
+    /// 从文件导入模型包（没有网络时）：zip 里有一个模型文件（`.onnx`，名字不限、可在子文件夹里）
+    /// 和词表 `selected_tags.csv`。按大小与 SHA-256 认出是 `models` 中的哪一个，校验通过才装进
+    /// 模型目录（随后在本机改写为分块注意力）；校验不过时什么也不留下。返回装好的模型。
+    pub fn import_package(
+        &self,
+        package: &Path,
+        models: &[ModelSpec],
+    ) -> Result<ModelSpec, String> {
+        let file = fs::File::open(package).map_err(|e| format!("无法打开模型包：{e}"))?;
+        let mut zip =
+            zip::ZipArchive::new(file).map_err(|e| format!("无法读取模型包（不是 zip）：{e}"))?;
+        let unreadable = |e: zip::result::ZipError| format!("无法读取模型包：{e}");
+        let (mut onnx, mut tags) = (None, None);
+        for i in 0..zip.len() {
+            let entry = zip.by_index(i).map_err(unreadable)?;
+            if entry.is_dir() {
+                continue;
+            }
+            let name = entry.name().rsplit(['/', '\\']).next().unwrap_or("");
+            if name.to_ascii_lowercase().ends_with(".onnx") {
+                if onnx.is_some() {
+                    return Err("模型包里有不止一个模型文件（.onnx）".into());
+                }
+                onnx = Some((i, name.to_owned(), entry.size()));
+            } else if name == TAGS_FILE {
+                tags = Some(i);
+            }
+        }
+        let (onnx_index, onnx_name, size) =
+            onnx.ok_or("模型包里没有模型文件（.onnx）".to_owned())?;
+        let tags_index = tags.ok_or(format!("模型包里没有词表 {TAGS_FILE}"))?;
+        let mut tags_csv = Vec::new();
+        zip.by_index(tags_index)
+            .map_err(unreadable)?
+            .read_to_end(&mut tags_csv)
+            .map_err(|e| format!("无法读取模型包：{e}"))?;
+        check_tags_csv(&tags_csv)?;
+        let candidates: Vec<&ModelSpec> = models.iter().filter(|s| s.size == size).collect();
+        if candidates.is_empty() {
+            return Err(format!("模型包里的 {onnx_name} 不是 Kinshoko 支持的模型"));
+        }
+
+        // 先解压到模型目录里的临时文件，边写边算哈希；认出是哪个模型后再改名就位。
+        fs::create_dir_all(&self.dir).map_err(|e| format!("无法建立模型目录：{e}"))?;
+        let tmp = self
+            .dir
+            .join(format!(".import-{}.part", uuid::Uuid::new_v4()));
+        let extracted = zip
+            .by_index(onnx_index)
+            .map_err(unreadable)
+            .and_then(|mut entry| {
+                let mut out = fs::File::create(&tmp).map_err(|e| e.to_string())?;
+                copy_hashing(&mut entry, &mut out).map_err(|e| format!("解压模型失败：{e}"))
+            });
+        let spec = match extracted {
+            Ok(sha) => candidates.into_iter().find(|s| s.sha256 == sha),
+            Err(e) => {
+                let _ = fs::remove_file(&tmp);
+                return Err(e);
+            }
+        };
+        let Some(spec) = spec else {
+            let _ = fs::remove_file(&tmp);
+            return Err(format!(
+                "模型包校验失败：{onnx_name} 已损坏，或不是 Kinshoko 支持的版本"
+            ));
+        };
+        let p = self.paths(spec);
+        let installed = (|| {
+            fs::create_dir_all(&p.dir)?;
+            let _ = fs::remove_file(&p.marker);
+            let _ = fs::remove_file(p.onnx.with_extension("part"));
+            fs::rename(&tmp, &p.onnx)?;
+            fs::write(&p.tags, &tags_csv)?;
+            fs::write(&p.marker, &spec.sha256)
+        })();
+        if let Err(e) = installed {
+            let _ = fs::remove_file(&tmp);
+            return Err(format!("无法安装模型：{e}"));
+        }
+        chunk(spec, &p, &mut |_| {})?;
+        self.ready(spec)
+            .map(|_| spec.clone())
+            .ok_or_else(|| format!("{} 导入后仍不完整", spec.label))
+    }
+}
+
+const TAGS_FILE: &str = "selected_tags.csv";
+
+/// 词表要有 `name` 与 `category` 两列、至少一行，类别是数字（与打标子进程读词表的规则一致）。
+fn check_tags_csv(bytes: &[u8]) -> Result<(), String> {
+    let bad = || format!("模型包里的词表 {TAGS_FILE} 格式不对");
+    let mut reader = csv::Reader::from_reader(bytes);
+    let header = reader.headers().map_err(|_| bad())?.clone();
+    let column = |name: &str| header.iter().position(|h| h.trim() == name);
+    let (Some(name), Some(category)) = (column("name"), column("category")) else {
+        return Err(bad());
+    };
+    let mut rows = 0;
+    for record in reader.records() {
+        let record = record.map_err(|_| bad())?;
+        let ok = record.get(name).is_some_and(|n| !n.is_empty())
+            && record
+                .get(category)
+                .is_some_and(|c| c.trim().parse::<u8>().is_ok());
+        if !ok {
+            return Err(bad());
+        }
+        rows += 1;
+    }
+    if rows == 0 {
+        return Err(bad());
+    }
+    Ok(())
+}
+
+/// 有分块改写时，在本机把模型改写为分块注意力并校验结果。
+fn chunk(
+    spec: &ModelSpec,
+    p: &Paths,
+    progress: &mut dyn FnMut(PrepareStage),
+) -> Result<(), String> {
+    if let (Some(c), Some((onnx, marker))) = (&spec.chunking, &p.chunked)
+        && (fs::read_to_string(marker).ok().as_deref() != Some(&c.sha256) || !onnx.is_file())
+    {
+        progress(PrepareStage::Verifying);
+        let _ = fs::remove_file(marker);
+        patch::chunk_attention(&p.onnx, onnx, c)
+            .map_err(|e| format!("改写 {} 失败：{e}", spec.label))?;
+        let sha = sha256_file(onnx).map_err(|e| e.to_string())?;
+        if sha != c.sha256 {
+            let _ = fs::remove_file(onnx);
+            return Err(format!("{} 改写结果校验失败（{sha}）", spec.label));
+        }
+        fs::write(marker, &c.sha256).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 struct Paths {
@@ -293,16 +467,22 @@ fn file_len(path: &Path) -> Option<u64> {
 }
 
 fn sha256_file(path: &Path) -> std::io::Result<String> {
-    let mut f = fs::File::open(path)?;
+    copy_hashing(&mut fs::File::open(path)?, &mut std::io::sink())
+}
+
+/// 把 `from` 全部写进 `to`，返回内容的 SHA-256。
+fn copy_hashing(from: &mut dyn Read, to: &mut dyn Write) -> std::io::Result<String> {
     let mut h = Sha256::new();
     let mut buf = vec![0u8; 1 << 20];
     loop {
-        let n = f.read(&mut buf)?;
+        let n = from.read(&mut buf)?;
         if n == 0 {
             break;
         }
         h.update(&buf[..n]);
+        to.write_all(&buf[..n])?;
     }
+    to.flush()?;
     Ok(format!("{:x}", h.finalize()))
 }
 

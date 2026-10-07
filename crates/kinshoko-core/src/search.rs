@@ -12,15 +12,22 @@
 //! - 外部对应不是叫法，不参与匹配（ADR-0003）；尚未翻译的标签按显示出来的外部名称匹配。
 //! - 比较前统一做 NFKC 与小写（[`fold`]），全角半角、大小写不影响查找。
 //!
-//! 条件树为后续切片留好位置，调用方不用改：近似查找（#56）把相近标签填进
-//! [`Term::Tag::similar`]；安全模式（#60）在 Library 执行条件树时过滤，Search 不参与。
+//! - 近似查找（#56，ADR-0003）默认开启：标签项与文字项匹配到的标签，按个人近似对应表与
+//!   内置近似对应表展开相近标签，作为可见的“任一”放进条件树（`similar`）。个人近似对应表
+//!   优先：“相近”补上一对，“不相近”压过内置的同一对。相近关系不传递；没有可见的图的标签
+//!   不展开。[`SearchInput::exact`] 改回精确查找；“只这次”不展开的标签记在各项的
+//!   `dismissed` 里，只影响本次查找。
+//!
+//! 安全模式（#60）在 Library 执行条件树时过滤，Search 不参与。
 
 use std::cmp::Ordering;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use unicode_normalization::UnicodeNormalization;
 
+use crate::approx::{ApproxRelation, ApproxSource, BuiltinApproxTable, ordered};
 use crate::library::{TagLabel, Vocabulary, display_label};
 
 /// 搜索框里的一项：点选的标签，或直接输入的文字。
@@ -29,9 +36,19 @@ use crate::library::{TagLabel, Vocabulary, display_label};
 #[ts(export)]
 pub enum TermInput {
     /// 从候选中点选的标签。
-    Tag { id: String },
+    Tag {
+        id: String,
+        /// “只这次”不展开的相近标签（`tag_id`）。
+        #[serde(default)]
+        dismissed: Vec<String>,
+    },
     /// 直接输入的文字。
-    Text { text: String },
+    Text {
+        text: String,
+        /// “只这次”不展开的相近标签（`tag_id`）。
+        #[serde(default)]
+        dismissed: Vec<String>,
+    },
 }
 
 /// 搜索框里的一个条件：各项任一满足；`negate` 时排除满足的图。
@@ -50,6 +67,9 @@ pub struct ConditionInput {
 #[ts(export)]
 pub struct SearchInput {
     pub conditions: Vec<ConditionInput>,
+    /// 精确查找：不展开相近标签。默认展开（近似查找）。
+    #[serde(default)]
+    pub exact: bool,
 }
 
 /// 条件树中的一项，带显示用的标签名，界面照此显示条件。
@@ -60,16 +80,31 @@ pub enum Term {
     /// 有这个有效标签，或有任一相近标签。
     Tag {
         tag: TagLabel,
-        /// 近似查找展开的相近标签（#56），与 `tag` 一起作为任一；精确查找时为空。
+        /// 近似查找展开的相近标签，与 `tag` 一起作为任一；精确查找时为空。
         #[serde(default)]
-        similar: Vec<TagLabel>,
+        similar: Vec<SimilarTag>,
     },
-    /// 直接输入的文字：有名称或别名含这段文字的任一标签，或参考图自身的文字含它。
+    /// 直接输入的文字：有名称或别名含这段文字的任一标签、任一相近标签，或参考图自身的文字含它。
     Text {
         text: String,
         /// 名称或别名含这段文字的标签，按命名空间与名称排序。
         tags: Vec<TagLabel>,
+        /// 近似查找展开的这些标签的相近标签（不含 `tags` 中已有的）；精确查找时为空。
+        #[serde(default)]
+        similar: Vec<SimilarTag>,
     },
+}
+
+/// 近似查找展开出的一个相近标签。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SimilarTag {
+    pub tag: TagLabel,
+    /// 来自哪份近似对应表；同时有两份来源时记个人。
+    pub source: ApproxSource,
+    /// 这一项中与它相近的标签（`tag_id`）。“以后都不展开”把其中每一对记为“不相近”。
+    pub of: Vec<String>,
 }
 
 /// 条件树中的一个条件：各项任一满足；`negate` 时排除。`any` 为空的条件谁都不满足
@@ -133,11 +168,14 @@ impl Entry {
 pub struct Search {
     revision: i64,
     entries: Vec<Entry>,
+    /// 每个标签的相近标签（`entries` 下标）及来源，已按个人近似对应表优先合并。
+    neighbours: HashMap<String, Vec<(usize, ApproxSource)>>,
 }
 
 impl Search {
-    pub fn new(vocabulary: &Vocabulary) -> Search {
-        let entries = vocabulary
+    /// 由词表快照（含个人近似对应表）与内置近似对应表建立。
+    pub fn new(vocabulary: &Vocabulary, builtin: &BuiltinApproxTable) -> Search {
+        let entries: Vec<Entry> = vocabulary
             .tags
             .iter()
             .map(|t| {
@@ -158,9 +196,11 @@ impl Search {
                 }
             })
             .collect();
+        let neighbours = neighbours(&entries, vocabulary, builtin);
         Search {
             revision: vocabulary.revision,
             entries,
+            neighbours,
         }
     }
 
@@ -225,41 +265,43 @@ impl Search {
         let conditions = input
             .conditions
             .iter()
-            .filter_map(|c| self.condition(c, lang))
+            .filter_map(|c| self.condition(c, input.exact, lang))
             .collect();
         ConditionTree { conditions }
     }
 
-    fn condition(&self, input: &ConditionInput, lang: &str) -> Option<Condition> {
+    fn condition(&self, input: &ConditionInput, exact: bool, lang: &str) -> Option<Condition> {
         let mut any = Vec::new();
         let mut expressed = false;
         for term in &input.any {
             match term {
-                TermInput::Text { text } => {
+                TermInput::Text { text, dismissed } => {
                     let text = text.trim();
                     if text.is_empty() {
                         continue;
                     }
                     expressed = true;
                     let needle = fold(text);
-                    let mut tags: Vec<TagLabel> = self
-                        .entries
+                    let matched: Vec<usize> = (0..self.entries.len())
+                        .filter(|&i| self.entries[i].contains(&needle))
+                        .collect();
+                    let mut tags: Vec<TagLabel> = matched
                         .iter()
-                        .filter(|e| e.contains(&needle))
-                        .map(|e| e.label(lang))
+                        .map(|&i| self.entries[i].label(lang))
                         .collect();
                     tags.sort_by(by_display);
                     any.push(Term::Text {
                         text: text.to_owned(),
                         tags,
+                        similar: self.similar(&matched, dismissed, exact, lang),
                     });
                 }
-                TermInput::Tag { id } => {
+                TermInput::Tag { id, dismissed } => {
                     expressed = true;
-                    if let Some(entry) = self.entries.iter().find(|e| &e.id == id) {
+                    if let Some(i) = self.entries.iter().position(|e| &e.id == id) {
                         any.push(Term::Tag {
-                            tag: entry.label(lang),
-                            similar: Vec::new(),
+                            tag: self.entries[i].label(lang),
+                            similar: self.similar(&[i], dismissed, exact, lang),
                         });
                     }
                 }
@@ -270,6 +312,104 @@ impl Search {
             negate: input.negate,
         })
     }
+}
+
+impl Search {
+    /// `primary`（`entries` 下标）各自的相近标签，去掉 `primary` 本身、“只这次”不展开的与
+    /// 没有可见的图的；按张数从多到少、再按命名空间与名称排序。
+    fn similar(
+        &self,
+        primary: &[usize],
+        dismissed: &[String],
+        exact: bool,
+        lang: &str,
+    ) -> Vec<SimilarTag> {
+        if exact {
+            return Vec::new();
+        }
+        let mut found: BTreeMap<usize, (ApproxSource, Vec<String>)> = BTreeMap::new();
+        for &p in primary {
+            let Some(near) = self.neighbours.get(&self.entries[p].id) else {
+                continue;
+            };
+            for &(n, source) in near {
+                let entry = &self.entries[n];
+                if primary.contains(&n) || entry.count == 0 || dismissed.contains(&entry.id) {
+                    continue;
+                }
+                let slot = found.entry(n).or_insert((source, Vec::new()));
+                if source == ApproxSource::Personal {
+                    slot.0 = source;
+                }
+                slot.1.push(self.entries[p].id.clone());
+            }
+        }
+        let mut similar: Vec<(u32, SimilarTag)> = found
+            .into_iter()
+            .map(|(n, (source, of))| {
+                (
+                    self.entries[n].count,
+                    SimilarTag {
+                        tag: self.entries[n].label(lang),
+                        source,
+                        of,
+                    },
+                )
+            })
+            .collect();
+        similar.sort_by(|(ca, a), (cb, b)| cb.cmp(ca).then_with(|| by_display(&a.tag, &b.tag)));
+        similar.into_iter().map(|(_, s)| s).collect()
+    }
+}
+
+/// 合并两份近似对应表：内置表经外部对应落到库内标签，个人表按标签身份覆盖同一对。
+fn neighbours(
+    entries: &[Entry],
+    vocabulary: &Vocabulary,
+    builtin: &BuiltinApproxTable,
+) -> HashMap<String, Vec<(usize, ApproxSource)>> {
+    let index: HashMap<&str, usize> = entries
+        .iter()
+        .enumerate()
+        .map(|(i, e)| (e.id.as_str(), i))
+        .collect();
+    let by_external: HashMap<&str, usize> = entries
+        .iter()
+        .enumerate()
+        .flat_map(|(i, e)| e.external.iter().map(move |x| (x.as_str(), i)))
+        .collect();
+    let mut pairs: BTreeMap<(String, String), ApproxSource> = BTreeMap::new();
+    for (a, b) in builtin.pairs() {
+        if let (Some(&ia), Some(&ib)) = (by_external.get(a), by_external.get(b))
+            && ia != ib
+        {
+            let key = ordered(entries[ia].id.clone(), entries[ib].id.clone());
+            pairs.insert(key, ApproxSource::Builtin);
+        }
+    }
+    for entry in &vocabulary.personal_approx {
+        if entry.a == entry.b {
+            continue;
+        }
+        let key = ordered(entry.a.clone(), entry.b.clone());
+        match entry.relation {
+            ApproxRelation::Similar => {
+                pairs.insert(key, ApproxSource::Personal);
+            }
+            ApproxRelation::NotSimilar => {
+                pairs.remove(&key);
+            }
+        }
+    }
+    let mut neighbours: HashMap<String, Vec<(usize, ApproxSource)>> = HashMap::new();
+    for ((a, b), source) in pairs {
+        let (Some(&ia), Some(&ib)) = (index.get(a.as_str()), index.get(b.as_str())) else {
+            continue;
+        };
+        neighbours.entry(a).or_default().push((ib, source));
+        neighbours.entry(b).or_default().push((ia, source));
+    }
+    neighbours
 }
 
 fn by_display(a: &TagLabel, b: &TagLabel) -> Ordering {

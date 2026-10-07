@@ -81,6 +81,13 @@ jobs:
       - name: Tauri 原生构建与安装包
         run: npm run build
 
+      # 静默安装到临时目录：exe 与 DirectML.dll（打标子进程要用，#52）都装上，再静默卸载（#70）。
+      - name: 安装包检查
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          ./scripts/release/check-installer.ps1 $installer.FullName
+
       # Tauri 官方 WebDriver：tauri-driver 转发给与 WebView2 版本一致的 msedgedriver。
       - name: 安装 WebDriver 工具
         run: |
@@ -90,6 +97,21 @@ jobs:
 
       - name: WebDriver 冒烟测试（建库、导入、浏览、重开）
         run: node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe
+
+      # WebView2 解码原图与缩略图、display-p3 canvas 读回色块比较 ΔE2000（#45）。
+      # 未通过是要由人判断的实验结果（报告随产物上传），不让构建变红。
+      - name: 还原度门槛实验
+        continue-on-error: true
+        run: node e2e/fidelity-gate.mjs target/release/kinshoko.exe "${{ runner.temp }}/fidelity"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fidelity-report-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/fidelity/fidelity-report-*
+            ${{ runner.temp }}/fidelity/run-*/samples/*
+          retention-days: 30
 
       - uses: actions/upload-artifact@v4
         with:

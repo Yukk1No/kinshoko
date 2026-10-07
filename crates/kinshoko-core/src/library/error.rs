@@ -23,10 +23,14 @@ pub enum Error {
     ExternalTaken(String),
     /// 命名空间分组的成员由命名空间决定，不能手动设置。
     NamespaceGroup,
+    /// 个人近似对应表的一条要两个不同的标签。
+    SameTag,
     Io(std::io::Error),
     Db(rusqlite::Error),
     Migration(rusqlite_migration::Error),
     Image(image::ImageError),
+    /// 原图无法解码或不再是支持的格式。
+    Undecodable(String),
 }
 
 impl fmt::Display for Error {
@@ -45,11 +49,13 @@ impl fmt::Display for Error {
             Error::AmbiguousTag(n) => write!(f, "有多个标签叫“{n}”，请从候选中选择"),
             Error::DuplicateTagName(n) => write!(f, "同一命名空间里已有标签叫“{n}”"),
             Error::ExternalTaken(n) => write!(f, "外部名称 {n} 已对应到另一个标签"),
+            Error::SameTag => write!(f, "相近标签要选另一个标签"),
             Error::NamespaceGroup => write!(f, "这个分组按命名空间列出标签，不能手动调整成员"),
             Error::Io(e) => write!(f, "读写文件失败：{e}"),
             Error::Db(e) => write!(f, "资料库数据库出错：{e}"),
             Error::Migration(e) => write!(f, "资料库格式无法升级：{e}"),
             Error::Image(e) => write!(f, "图片解码失败：{e}"),
+            Error::Undecodable(e) => write!(f, "原图无法解码：{e}"),
         }
     }
 }

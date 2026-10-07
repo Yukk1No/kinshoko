@@ -6,6 +6,7 @@
 
 use std::sync::Mutex;
 
+use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::{
     AppSettings, GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutAction,
 };
@@ -38,6 +39,8 @@ impl Shell {
 pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let dir = app.path().app_config_dir()?;
     let settings = AppSettings::open(&dir)?;
+    // 先定下 WebView2 启动参数（强制 sRGB），之后才建窗口。
+    crate::diagnostics::start(app, &settings)?;
     let shortcuts = GlobalShortcuts::start(TauriHotkeys { app: app.clone() }, &settings);
     if let Err(e) = apply_autostart(app, settings.autostart()) {
         eprintln!("同步开机自启失败：{e}");
@@ -84,7 +87,11 @@ pub fn open_main_window(app: &AppHandle) {
     else {
         return;
     };
-    match WebviewWindowBuilder::from_config(app, config).and_then(|b| b.build()) {
+    crate::diagnostics::record(app, UsageEvent::MainWindowOpened);
+    match WebviewWindowBuilder::from_config(app, config).and_then(|b| {
+        b.additional_browser_args(crate::diagnostics::browser_args())
+            .build()
+    }) {
         Ok(window) => {
             let _ = window.set_focus();
         }

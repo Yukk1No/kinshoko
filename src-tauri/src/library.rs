@@ -2,22 +2,33 @@
 //! `kinshoko_core::library`。前端以 `plugin:library|<命令>` 调用。
 //!
 //! - 命令都是 async，阻塞工作放进 `spawn_blocking`，不占用主线程；
-//! - 资料库事件转发为窗口事件 `library-event`；
-//! - 缩略图走自定义协议 `thumb`：`<资料库 id>/<参考图 id>/<像素档位>`，缓存缺失时现场生成。
+//! - 本设备可登记多个资料库，同一时间一个活动资料库（#49）。资料库命令都带界面正在操作的
+//!   资料库 id，切换后旧请求得到错误，不会落到新库上；
+//! - 资料库事件转发为窗口事件 `library-event`，只转发活动资料库的事件；
+//! - 缩略图走自定义协议 `thumb`：`<资料库 id>/<参考图 id>/<像素档位>`，缓存缺失时现场生成；
+//! - 安全模式（#60）：开关保存在应用壳设置里，打开资料库与切换时设给当前资料库。这里的命令都是
+//!   浏览视角；参考视角的句柄在装配（打开资料库）时取走，只交给参考组与桌面钉图，不经命令给前端。
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, Weak};
 
+use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
+use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::library::{
     BrowsePage, BrowseQuery, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportSource,
-    LibraryEvent, LibraryInfo, RecoveryReport, Sidebar, TagEdit, TagGroupView, Vocabulary,
+    LibraryEvent, LibraryInfo, PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar,
+    TagEdit, TagGroupView, Vocabulary,
 };
 use kinshoko_core::search::{Candidate, ConditionTree, Search, SearchInput};
-use kinshoko_core::{DeviceLibraries, DeviceLibraryError, Library, LibraryRegistration};
+use kinshoko_core::{
+    DeviceLibraries, DeviceLibraryError, DeviceRegistry, Library, LibraryRegistration,
+};
 use tauri::http::{Response, StatusCode, header};
 use tauri::plugin::{Builder, TauriPlugin};
 use tauri::{AppHandle, Emitter, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
+
+use crate::shell::ShellState;
 
 /// 指定本设备登记表所在目录；不设时用应用数据目录。WebDriver 冒烟测试用它隔离数据。
 const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
@@ -25,25 +36,36 @@ const EVENT: &str = "library-event";
 
 struct LibraryState {
     device_dir: PathBuf,
+    /// 本设备登记表与活动资料库；第一次用到时读取登记表。
     libraries: Arc<Mutex<Option<DeviceLibraries>>>,
+    /// 已在转发事件的活动资料库句柄；同一句柄只装配一次。
     forwarded: Mutex<Option<Weak<Library>>>,
     /// 切换、恢复和取消登记串行完成，包括旧库打标退出。
     transition: Mutex<()>,
+    /// 活动资料库词表快照上的 Search；词表或图片变化、切换资料库时清掉，下次查找时重建。
     search: Arc<Mutex<Option<CachedSearch>>>,
+    /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
+    /// 与桌面钉图（#65），不经任何命令交给前端。
+    reference: Mutex<Option<ReferenceLens>>,
+    /// 随软件分发的内置近似对应表，启动时读取一次。
+    builtin_approx: Arc<BuiltinApproxTable>,
 }
 
+/// Search 快照及它所属的资料库句柄；换了资料库的快照不再使用。
 struct CachedSearch {
     library: Weak<Library>,
     search: Arc<Search>,
 }
 
 impl LibraryState {
+    /// 界面正在操作的资料库；已切换或关闭时返回错误。
     fn current(&self, library_id: &str) -> Result<Arc<Library>, String> {
         with_libraries(&self.device_dir, &self.libraries, |libraries| {
             libraries.require(library_id)
         })
     }
 
+    /// 活动资料库，不核对身份。只给不经界面请求的入口用（缩略图协议、安全模式开关）。
     fn active(&self) -> Result<Arc<Library>, String> {
         lock(&self.libraries)
             .as_ref()
@@ -95,10 +117,14 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             tag_groups,
             search_candidates,
             resolve_search,
-            image_rating
+            set_tag_approx,
+            remove_tag_approx,
+            personal_approx,
+            image_rating,
+            safe_mode,
+            set_safe_mode
         ])
         .setup(|app, _api| {
-            app.plugin(tauri_plugin_dialog::init())?;
             let device_dir = match std::env::var_os(DATA_DIR_ENV) {
                 Some(dir) => PathBuf::from(dir),
                 None => app.path().app_data_dir()?,
@@ -108,13 +134,19 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 Some(dir) => PathBuf::from(dir).join("models"),
                 None => app.path().app_local_data_dir()?.join("models"),
             };
-            crate::tagging::setup(app, models_dir);
+            // 模型选择保存在应用壳设置里；这里只读一次，之后由设置命令同步。
+            let preferred = kinshoko_core::AppSettings::open(&app.path().app_config_dir()?)
+                .ok()
+                .and_then(|s| s.tagging_model().map(str::to_owned));
+            crate::tagging::setup(app, models_dir, preferred);
             app.manage(LibraryState {
                 device_dir,
                 libraries: Arc::default(),
                 forwarded: Mutex::new(None),
                 transition: Mutex::new(()),
                 search: Arc::default(),
+                reference: Mutex::new(None),
+                builtin_approx: Arc::new(BuiltinApproxTable::bundled()),
             });
             Ok(())
         })
@@ -141,29 +173,49 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     else {
         return not_found();
     };
-    let Ok(px) = px.parse::<u32>() else {
-        return not_found();
-    };
+    // 只回答活动资料库的图；切换后旧图片墙的迟到请求得到 404。
     let Ok(library) = app.state::<LibraryState>().active() else {
         return not_found();
     };
     if library.info().id != library_id {
         return not_found();
     }
-    match library
-        .thumbnail(image_id, px)
-        .map_err(|e| e.to_string())
-        .and_then(|p| std::fs::read(p).map_err(|e| e.to_string()))
-    {
+    // `full`：1:1 与放大时显示的文件（Library::display，ADR-0005）。看图界面只用这条路，
+    // 不直接读原文件——动图、HDR、Chromium 不能精确表示的 ICC 与 CMYK 要换成 sdr 派生图。
+    let found = if px == "full" {
+        library.display(image_id).map(|d| d.path)
+    } else {
+        let Ok(px) = px.parse::<u32>() else {
+            return not_found();
+        };
+        library.thumbnail(image_id, px)
+    };
+    let Ok(path) = found else {
+        return not_found();
+    };
+    match std::fs::read(&path) {
         Ok(bytes) => Response::builder()
-            .header(header::CONTENT_TYPE, "image/webp")
+            .header(header::CONTENT_TYPE, image_content_type(&path))
             .body(bytes)
             .expect("响应合法"),
         Err(_) => not_found(),
     }
 }
 
-/// 核心已完成切换；每个活动句柄只订阅一次，旧库事件不再转发。
+/// 派生图按来源分档存为无损 WebP 或 16 位 PNG（#45）。
+pub fn image_content_type(path: &std::path::Path) -> &'static str {
+    match path.extension().and_then(|e| e.to_str()) {
+        Some("png") => "image/png",
+        Some("jpg" | "jpeg") => "image/jpeg",
+        Some("gif") => "image/gif",
+        _ => "image/webp",
+    }
+}
+
+/// 核心已完成切换，这里装配新的活动资料库：设上保存的安全模式、取走参考视角、清掉旧库的
+/// Search 快照、为它开始打标，并转发它的事件。每个活动句柄只装配一次，旧库事件不再转发。
+///
+/// 新打开的资料库在核心里先是封存状态（安全模式开），这里再按设置放开。
 fn forward_events<R: Runtime>(
     app: &AppHandle<R>,
     state: &LibraryState,
@@ -179,7 +231,9 @@ fn forward_events<R: Runtime>(
         return info;
     }
     *forwarded = Some(weak.clone());
+    library.set_safe_mode(saved_safe_mode(app));
     let events = library.events();
+    *lock(&state.reference) = library.take_reference_lens();
     *lock(&state.search) = None;
     crate::tagging::attach(app, library);
     let (app, libraries, search) = (app.clone(), state.libraries.clone(), state.search.clone());
@@ -187,29 +241,40 @@ fn forward_events<R: Runtime>(
         .name("kinshoko-library-events".into())
         .spawn(move || {
             for event in events {
-                let libraries = lock(&libraries);
-                if libraries
+                let active = lock(&libraries)
                     .as_ref()
                     .and_then(DeviceLibraries::current)
-                    .is_some_and(|current| Weak::ptr_eq(&Arc::downgrade(&current), &weak))
-                {
-                    if matches!(event, LibraryEvent::ListStale { .. }) {
-                        crate::tagging::wake(&app);
-                    }
-                    if matches!(
-                        event,
-                        LibraryEvent::VocabularyChanged { .. }
-                            | LibraryEvent::ImagesChanged { .. }
-                            | LibraryEvent::ListStale { .. }
-                    ) {
-                        lock(&search).take();
-                    }
-                    let _ = app.emit(EVENT, event);
+                    .is_some_and(|current| Weak::ptr_eq(&Arc::downgrade(&current), &weak));
+                if !active {
+                    continue;
                 }
+                // 有新图进库：自动标签立即检查，不等下一次轮询。
+                if matches!(event, LibraryEvent::ListStale { .. }) {
+                    crate::tagging::wake(&app);
+                }
+                // 先清掉旧快照再通知前端，前端收到事件后的查找用的是新词表。
+                // 安全模式切换后词表计数与可见的标签都变了。
+                if matches!(
+                    event,
+                    LibraryEvent::VocabularyChanged { .. }
+                        | LibraryEvent::ImagesChanged { .. }
+                        | LibraryEvent::ListStale { .. }
+                        | LibraryEvent::SafeModeChanged { .. }
+                ) {
+                    lock(&search).take();
+                }
+                let _ = app.emit(EVENT, event);
             }
         })
         .expect("无法启动事件转发线程");
     info
+}
+
+/// 设置里的安全模式；读不到设置时按开启处理。
+fn saved_safe_mode<R: Runtime>(app: &AppHandle<R>) -> bool {
+    app.try_state::<ShellState>()
+        .and_then(|shell| shell.0.lock().ok().map(|s| s.settings.safe_mode()))
+        .unwrap_or(true)
 }
 
 async fn blocking<T: Send + 'static>(
@@ -220,23 +285,47 @@ async fn blocking<T: Send + 'static>(
         .map_err(|e| e.to_string())?
 }
 
+/// 活动资料库；还没有时打开本设备上次打开的资料库并装配。会读文件，不要在主线程上调用。
+fn restore<R: Runtime>(app: &AppHandle<R>) -> Result<Option<Arc<Library>>, String> {
+    let state = app.state::<LibraryState>();
+    let _transition = lock(&state.transition);
+    let opened = with_libraries(
+        &state.device_dir,
+        &state.libraries,
+        DeviceLibraries::restore_last_opened,
+    )?;
+    if let Some(library) = &opened {
+        forward_events(app, &state, library.clone());
+    }
+    Ok(opened)
+}
+
+/// 当前资料库，还没打开时打开本设备上次打开的资料库。供其他模块（例如收藏截图）使用；
+/// 会读文件，不要在主线程上调用。
+pub fn current_or_last<R: Runtime>(app: &AppHandle<R>) -> Result<Arc<Library>, String> {
+    restore(app)?.ok_or_else(|| "还没有资料库".to_owned())
+}
+
+/// [`current_or_last`] 会用到的资料库的 id 与名称，只读登记表、不打开资料库。
+pub fn current_name<R: Runtime>(app: &AppHandle<R>) -> Option<(String, String)> {
+    let state = app.state::<LibraryState>();
+    if let Ok(library) = state.active() {
+        let info = library.info();
+        return Some((info.id.clone(), info.name.clone()));
+    }
+    let device = DeviceRegistry::open(&state.device_dir).ok()?;
+    device
+        .last_opened()
+        .map(|entry| (entry.id.clone(), entry.name.clone()))
+}
+
 /// 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。
 #[tauri::command]
 async fn current_library<R: Runtime>(app: AppHandle<R>) -> Result<Option<LibraryInfo>, String> {
-    blocking(move || {
-        let state = app.state::<LibraryState>();
-        let _transition = lock(&state.transition);
-        let opened = with_libraries(
-            &state.device_dir,
-            &state.libraries,
-            DeviceLibraries::restore_last_opened,
-        )?;
-        Ok(opened.map(|library| forward_events(&app, &state, library)))
-    })
-    .await
+    blocking(move || Ok(restore(&app)?.map(|library| library.info().clone()))).await
 }
 
-/// 在 `parent` 下新建名为 `name` 的资料库文件夹，登记到本设备并打开。
+/// 在 `parent` 下新建名为 `name` 的资料库文件夹，登记到本设备并切换过去。
 #[tauri::command]
 async fn create_library<R: Runtime>(
     app: AppHandle<R>,
@@ -254,6 +343,7 @@ async fn create_library<R: Runtime>(
     .await
 }
 
+/// 本设备登记的资料库，以及这次检查时不可用的原因（例如移动盘没插）。
 #[tauri::command]
 async fn registered_libraries(
     state: State<'_, LibraryState>,
@@ -267,6 +357,7 @@ async fn registered_libraries(
     .await
 }
 
+/// 登记所选文件夹里的资料库并切换过去；搬家后重新登记同一资料库时只更新位置。
 #[tauri::command]
 async fn register_library<R: Runtime>(
     app: AppHandle<R>,
@@ -283,6 +374,7 @@ async fn register_library<R: Runtime>(
     .await
 }
 
+/// 切换到已登记的资料库。旧库的导入在提交当前一项后结束，打标停止。
 #[tauri::command]
 async fn switch_library<R: Runtime>(
     app: AppHandle<R>,
@@ -299,6 +391,7 @@ async fn switch_library<R: Runtime>(
     .await
 }
 
+/// 取消本设备的登记；资料库文件夹与整理结果原样保留。取消的是活动库时一并关闭它。
 #[tauri::command]
 async fn unregister_library<R: Runtime>(
     app: AppHandle<R>,
@@ -317,6 +410,7 @@ async fn unregister_library<R: Runtime>(
         if closed {
             *lock(&state.forwarded) = None;
             *lock(&state.search) = None;
+            *lock(&state.reference) = None;
             crate::tagging::detach(&app);
         }
         Ok(())
@@ -422,18 +516,22 @@ async fn recovery(
 
 /// 开始导入，立即返回任务 id；进度与结果经 `library-event` 推送。
 #[tauri::command]
-async fn start_import(
+async fn start_import<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, LibraryState>,
     library_id: String,
     source: ImportSource,
 ) -> Result<String, String> {
+    let paths = source.paths.len().min(u32::MAX as usize) as u32;
     let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
-    blocking(move || {
+    let id = blocking(move || {
         with_libraries(&device_dir, &libraries, |libraries| {
             libraries.start_import(&library_id, source)
         })
     })
-    .await
+    .await?;
+    crate::diagnostics::record(&app, UsageEvent::ImportStarted { paths });
+    Ok(id)
 }
 
 #[tauri::command]
@@ -533,22 +631,23 @@ async fn tag_groups(
     blocking(move || library.tag_groups(&lang).map_err(|e| e.to_string())).await
 }
 
-/// 当前资料库的 Search，按需从词表快照建立。
+/// 活动资料库的 Search，按需从词表快照建立；快照属于另一个资料库句柄时重建。
 fn search(
     cache: &Mutex<Option<CachedSearch>>,
     library: &Arc<Library>,
+    builtin: &BuiltinApproxTable,
 ) -> Result<Arc<Search>, String> {
-    let mut cache = lock(cache);
     let weak = Arc::downgrade(library);
-    if let Some(cached) = cache.as_ref()
+    if let Some(cached) = lock(cache).as_ref()
         && Weak::ptr_eq(&cached.library, &weak)
     {
         return Ok(cached.search.clone());
     }
     let search = Arc::new(Search::new(
         &library.vocabulary().map_err(|e| e.to_string())?,
+        builtin,
     ));
-    *cache = Some(CachedSearch {
+    *lock(cache) = Some(CachedSearch {
         library: weak,
         search: search.clone(),
     });
@@ -565,21 +664,99 @@ async fn search_candidates(
     limit: u32,
 ) -> Result<Vec<Candidate>, String> {
     let library = state.current(&library_id)?;
-    let cache = state.search.clone();
-    blocking(move || Ok(search(&cache, &library)?.candidates(&text, &lang, limit as usize))).await
+    let (cache, builtin) = (state.search.clone(), state.builtin_approx.clone());
+    blocking(move || {
+        Ok(search(&cache, &library, &builtin)?.candidates(&text, &lang, limit as usize))
+    })
+    .await
 }
 
 /// 把搜索框里的条件解析成可见的条件树，交给 `browse` 执行。
 #[tauri::command]
-async fn resolve_search(
+async fn resolve_search<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, LibraryState>,
     library_id: String,
     input: SearchInput,
     lang: String,
 ) -> Result<ConditionTree, String> {
     let library = state.current(&library_id)?;
-    let cache = state.search.clone();
-    blocking(move || Ok(search(&cache, &library)?.resolve(&input, &lang))).await
+    let (cache, builtin) = (state.search.clone(), state.builtin_approx.clone());
+    crate::diagnostics::record(
+        &app,
+        UsageEvent::SearchResolved {
+            terms: input.conditions.len().min(u32::MAX as usize) as u32,
+        },
+    );
+    blocking(move || Ok(search(&cache, &library, &builtin)?.resolve(&input, &lang))).await
+}
+
+/// 安全模式是否开启（全局设置）。
+#[tauri::command]
+async fn safe_mode<R: Runtime>(app: AppHandle<R>) -> Result<bool, String> {
+    Ok(saved_safe_mode(&app))
+}
+
+/// 开关安全模式：先保存设置，再设给活动资料库；资料库推送 `safeModeChanged`。
+/// 安全模式属于本设备，不随资料库变；之后切换到的资料库按保存的设置打开。
+#[tauri::command]
+async fn set_safe_mode<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+    on: bool,
+) -> Result<bool, String> {
+    if let Some(shell) = app.try_state::<ShellState>() {
+        let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
+        shell
+            .settings
+            .set_safe_mode(on)
+            .map_err(|e| e.to_string())?;
+    }
+    if let Ok(library) = state.active() {
+        library.set_safe_mode(on);
+    }
+    Ok(on)
+}
+
+/// 在个人近似对应表中记下两个标签相近或不相近（“＋”与“以后都不展开”）。
+#[tauri::command]
+async fn set_tag_approx(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    a: String,
+    b: String,
+    relation: ApproxRelation,
+) -> Result<(), String> {
+    let library = state.current(&library_id)?;
+    blocking(move || {
+        library
+            .set_tag_approx(&a, &b, relation)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+/// 删除个人近似对应表中的一对。
+#[tauri::command]
+async fn remove_tag_approx(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    a: String,
+    b: String,
+) -> Result<(), String> {
+    let library = state.current(&library_id)?;
+    blocking(move || library.remove_tag_approx(&a, &b).map_err(|e| e.to_string())).await
+}
+
+/// 资料库设置中列出的个人近似对应表条目，名称按界面语言 `lang`。
+#[tauri::command]
+async fn personal_approx(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    lang: String,
+) -> Result<Vec<PersonalApproxEntry>, String> {
+    let library = state.current(&library_id)?;
+    blocking(move || library.personal_approx(&lang).map_err(|e| e.to_string())).await
 }
 
 /// 一张参考图的内容分级（自动与有效）。

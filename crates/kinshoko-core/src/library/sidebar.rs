@@ -20,19 +20,21 @@ pub struct Sidebar {
 
 pub(super) fn get(inner: &Inner) -> Result<Sidebar, Error> {
     let conn = inner.readers.get();
+    // 浏览视角：安全模式开启时被封印的图不计入任何计数。
+    let lens = inner.lens_filter();
     let all = conn.query_row(
-        &format!("SELECT COUNT(*) FROM image WHERE {LIVE}"),
+        &format!("SELECT COUNT(*) FROM image WHERE {LIVE} AND {lens}"),
         [],
         |r| r.get(0),
     )?;
     let trash = conn.query_row(
-        &format!("SELECT COUNT(*) FROM image WHERE NOT ({LIVE})"),
+        &format!("SELECT COUNT(*) FROM image WHERE NOT ({LIVE}) AND {lens}"),
         [],
         |r| r.get(0),
     )?;
     Ok(Sidebar {
         all,
         trash,
-        folders: folders::tree(&conn)?,
+        folders: folders::tree(&conn, &lens)?,
     })
 }

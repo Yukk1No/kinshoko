@@ -1,10 +1,13 @@
 //! 内容分级与打标子接口（#52）。
 //!
 //! - 分级建议按来源分层（[`FactSource`]），和标签事实同一规则：某个来源重写只替换自己那一行。
-//!   人工分级（#53）优先于建议；目前有效分级就是各来源建议中最严格的一档。
+//!   人工分级（#53，`image.rating_manual`）优先于建议；没有人工分级时，有效分级是各来源建议中
+//!   最严格的一档。
+//! - 有效分级只在 [`effective_rank_sql`] 定义：[`image_rating`] 的 `effective` 与安全模式（#60）的
+//!   封印都由它算出，人工分级接进这里就同时作用于两者。
 //! - 打标进度按模型来源记录：没有记录的图就是待打标的图；无法打标的图记下原因，不再重试。
 
-use rusqlite::{OptionalExtension, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -35,6 +38,21 @@ impl ContentRating {
             ContentRating::Questionable => "questionable",
             ContentRating::Explicit => "explicit",
         }
+    }
+
+    fn from_rank(rank: i64) -> Option<ContentRating> {
+        Some(match rank {
+            0 => ContentRating::General,
+            1 => ContentRating::Sensitive,
+            2 => ContentRating::Questionable,
+            3 => ContentRating::Explicit,
+            _ => return None,
+        })
+    }
+
+    /// 是否含成人内容（questionable 与 explicit）：安全模式开启时封印这样的图。
+    pub fn is_adult(self) -> bool {
+        self >= ContentRating::Questionable
     }
 
     /// 按名称解析，接受 `general`、`rating:g`、`g` 等写法。
@@ -69,7 +87,9 @@ pub struct ImageRating {
     pub image_id: String,
     /// 自动分级：各来源建议中最严格的一档；还没有建议时为空。
     pub suggested: Option<ContentRating>,
-    /// 有效分级（人工分级优先，#53）。
+    /// 画师修正的分级；没有修正（或已退回）时为空。重新打标不覆盖它。
+    pub manual: Option<ContentRating>,
+    /// 有效分级：人工分级优先，否则是自动分级。
     pub effective: Option<ContentRating>,
 }
 
@@ -82,6 +102,31 @@ pub enum TaggingOutcome {
     Failed(String),
 }
 
+/// 参考图有效分级的档位（`general` 0 … `explicit` 3），没有分级时为 NULL。
+/// `image_id` 是引用参考图 id 的 SQL 表达式（例如 `image.id`）。
+///
+/// 有效分级的唯一定义：画师的人工分级（`image.rating_manual`，#53）优先，否则取各来源建议中
+/// 最严格的一档。
+pub(super) fn effective_rank_sql(image_id: &str) -> String {
+    let rank = |col: &str| {
+        format!(
+            "CASE {col} WHEN 'general' THEN 0 WHEN 'sensitive' THEN 1 \
+             WHEN 'questionable' THEN 2 WHEN 'explicit' THEN 3 END"
+        )
+    };
+    format!(
+        "coalesce((SELECT {} FROM image ri WHERE ri.id = {image_id}), \
+         (SELECT max({}) FROM rating_fact rf WHERE rf.image_id = {image_id}))",
+        rank("ri.rating_manual"),
+        rank("rf.rating"),
+    )
+}
+
+/// 有效分级含成人内容（questionable 或 explicit）的条件。还没有分级的图不算。
+pub(super) fn adult_sql(image_id: &str) -> String {
+    format!("coalesce({}, 0) >= 2", effective_rank_sql(image_id))
+}
+
 pub(super) fn replace_source_rating(
     inner: &Inner,
     source: &FactSource,
@@ -89,9 +134,11 @@ pub(super) fn replace_source_rating(
     fact: Option<RatingFact>,
 ) -> Result<(), Error> {
     let (source, id) = (source.as_str().to_owned(), image_id.to_owned());
-    inner.writer.run(move |conn| {
+    let resealed = inner.writer.run(move |conn| {
         let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         require_image(&tx, &id)?;
+        let adult = format!("SELECT {}", adult_sql("?1"));
+        let was_adult: bool = tx.query_row(&adult, [&id], |r| r.get(0))?;
         tx.execute(
             "DELETE FROM rating_fact WHERE image_id = ?1 AND source = ?2",
             params![id, source],
@@ -102,9 +149,16 @@ pub(super) fn replace_source_rating(
                 params![id, source, f.rating.as_str(), f.score],
             )?;
         }
+        let is_adult: bool = tx.query_row(&adult, [&id], |r| r.get(0))?;
         tx.commit()?;
-        Ok::<_, Error>(())
+        Ok::<_, Error>(was_adult != is_adult)
     })?;
+    // 是否含成人内容变了：安全模式下这张图被封印或放出，浏览结果与计数都过期。
+    if resealed {
+        inner.hub.publish(LibraryEvent::ListStale {
+            library_id: inner.info.id.clone(),
+        });
+    }
     inner.hub.publish(LibraryEvent::ImagesChanged {
         library_id: inner.info.id.clone(),
         image_ids: vec![image_id.to_owned()],
@@ -114,7 +168,21 @@ pub(super) fn replace_source_rating(
 
 pub(super) fn image_rating(inner: &Inner, image_id: &str) -> Result<ImageRating, Error> {
     let conn = inner.readers.get();
-    conn.query_row("SELECT 1 FROM image WHERE id = ?1", [image_id], |_| Ok(()))
+    inner.require_visible(&conn, image_id)?;
+    rating_of(&conn, image_id)
+}
+
+/// 一张图的分级：自动、人工与有效（有效分级由 [`effective_rank_sql`] 算出）。
+pub(super) fn rating_of(conn: &Connection, image_id: &str) -> Result<ImageRating, Error> {
+    let (manual, effective): (Option<String>, Option<i64>) = conn
+        .query_row(
+            &format!(
+                "SELECT rating_manual, {} FROM image WHERE id = ?1",
+                effective_rank_sql("?1")
+            ),
+            [image_id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
         .optional()?
         .ok_or(Error::UnknownImage)?;
     let mut stmt = conn.prepare_cached("SELECT rating FROM rating_fact WHERE image_id = ?1")?;
@@ -127,8 +195,28 @@ pub(super) fn image_rating(inner: &Inner, image_id: &str) -> Result<ImageRating,
     Ok(ImageRating {
         image_id: image_id.to_owned(),
         suggested,
-        effective: suggested,
+        manual: manual.as_deref().and_then(ContentRating::parse),
+        effective: effective.and_then(ContentRating::from_rank),
     })
+}
+
+/// 设置（`Some`）或退回（`None`）人工分级。返回是否有图的“含成人内容”因此改变
+/// （安全模式下它们被封印或放出，浏览结果与计数都过期）。
+pub(super) fn set_manual(
+    conn: &Connection,
+    ids: &[String],
+    rating: Option<ContentRating>,
+) -> Result<bool, Error> {
+    let adult = format!("SELECT {}", adult_sql("?1"));
+    let mut update = conn.prepare_cached("UPDATE image SET rating_manual = ?1 WHERE id = ?2")?;
+    let mut resealed = false;
+    for id in ids {
+        let was: bool = conn.query_row(&adult, [id], |r| r.get(0))?;
+        update.execute(params![rating.map(ContentRating::as_str), id])?;
+        let is: bool = conn.query_row(&adult, [id], |r| r.get(0))?;
+        resealed |= was != is;
+    }
+    Ok(resealed)
 }
 
 pub(super) fn images_to_tag(
