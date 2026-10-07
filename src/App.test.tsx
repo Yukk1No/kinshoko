@@ -123,6 +123,8 @@ let showApproxSource = false;
 let calls: Call[];
 /** 后端的安全模式开关。 */
 let safeOn = true;
+/** 后端查不到的图（已删除或被封印）：查询返回 UnknownImage。 */
+let gone = new Set<string>();
 
 const clean: RecoveryReport = { interrupted: [], orphans: [], discardedStaging: 0 };
 
@@ -130,6 +132,7 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
   override?: (cmd: string, args: unknown) => unknown, safe = true) {
   calls = [];
   safeOn = safe;
+  gone = new Set();
   mockWindows("main");
   let current = opened;
   mockIPC(
@@ -164,8 +167,11 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
           return "T1";
         case "plugin:library|sidebar":
           return side;
-        case "plugin:library|image":
-          return detail((args as { imageId: string }).imageId, null);
+        case "plugin:library|image": {
+          const { imageId } = args as { imageId: string };
+          if (gone.has(imageId)) return Promise.reject("资料库中没有这张参考图");
+          return detail(imageId, null);
+        }
         case "plugin:library|edit": {
           const { ids, edits } = args as { ids: string[]; edits: { kind: string; text?: string }[] };
           const note = edits.find((e) => e.kind === "setNote")?.text ?? null;
@@ -209,6 +215,51 @@ afterEach(async () => {
 });
 
 describe("主窗口", () => {
+  it("单击仍选中，双击打开原图；Esc 返回原位置并把焦点交还参考图", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const wall = document.querySelector<HTMLElement>(".wall")!;
+    const card = document.querySelector<HTMLElement>('[data-id="a"]')!;
+    wall.scrollTop = 120;
+    fireEvent.scroll(wall);
+    fireEvent.click(card);
+    expect(screen.queryByRole("dialog", { name: "原图查看器" })).toBeNull();
+    expect(screen.getByText("已选 1 张")).toBeTruthy();
+
+    fireEvent.doubleClick(card);
+    const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
+    expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/L1/a/full");
+    fireEvent.keyDown(viewer, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(wall.scrollTop).toBe(120);
+    expect(document.activeElement).toBe(card);
+
+    fireEvent.keyDown(card, { key: "Enter" });
+    expect(await screen.findByRole("dialog", { name: "原图查看器" })).toBeTruthy();
+  });
+
+  it("开启安全模式时关闭查看器，回到图片墙", async () => {
+    backend(library, clean, undefined, false);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await screen.findByRole("dialog", { name: "原图查看器" });
+    await push({ kind: "safeModeChanged", libraryId: "L1", on: true });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("正在查看的图查不到（UnknownImage）时关闭查看器", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await screen.findByRole("dialog", { name: "原图查看器" });
+    gone.add("a");
+    await push({ kind: "listStale", libraryId: "L1" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
   it("登记已有资料库后打开它，取消登记后可以继续建库或重新登记", async () => {
     backend(library);
     render(<App />);
@@ -655,7 +706,7 @@ describe("查找", () => {
       finishTree(resolved({ conditions: [{ any: [{ kind: "text", text: "旧库条件", dismissed: [] }], negate: false }], exact: false }));
     });
 
-    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(1);
+    expect(within(screen.getByRole("listbox", { name: "" })).getAllByRole("option")).toHaveLength(1);
     expect(screen.getByRole("list", { name: "查找条件" }).children).toHaveLength(0);
     expect(lastQuery().conditions.conditions).toHaveLength(0);
     expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ libraryId: "L2" });
@@ -667,8 +718,8 @@ describe("查找", () => {
     render(<App />);
     fireEvent.change(await box(), { target: { value: "某某" } });
 
-    await waitFor(() => expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(4));
-    expect(within(screen.getByRole("listbox")).getAllByRole("option").map((o) => o.textContent)).toEqual([
+    await waitFor(() => expect(within(screen.getByRole("listbox", { name: "" })).getAllByRole("option")).toHaveLength(4));
+    expect(within(screen.getByRole("listbox", { name: "" })).getAllByRole("option").map((o) => o.textContent)).toEqual([
       "查找“某某”",
       "角色：某某8",
       "作者：某某3",

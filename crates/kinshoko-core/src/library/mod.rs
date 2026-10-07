@@ -21,6 +21,7 @@
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
 
 mod colour;
+mod display;
 mod eagle;
 mod eagle_discovery;
 mod eagle_tags;
@@ -276,6 +277,21 @@ impl Library {
                 route: DisplayRoute::Original,
                 path: self.inner.original_path(image_id)?,
             })
+        }
+    }
+
+    /// 查看器按目标宽度（转正后的设备像素）显示的文件：目标不小于原图宽度时同 [`Self::display`]；
+    /// 更小时（适应窗口等）是精确尺寸的 `sdr` 派生图，不交给 Chromium 缩小（#47）。
+    /// 应用壳经 `thumb` 协议的 `<资料库 id>/<参考图 id>/fit-<像素>` 提供。
+    pub fn display_scaled(&self, image_id: &str, target_px: u32) -> Result<DisplayFile, Error> {
+        if target_px == 0 {
+            return Err(Error::InvalidDisplaySize);
+        }
+        self.inner
+            .require_visible(&self.inner.readers.get(), image_id)?;
+        match display::scaled(&self.inner, image_id, target_px)? {
+            Some(file) => Ok(file),
+            None => self.display(image_id),
         }
     }
 
