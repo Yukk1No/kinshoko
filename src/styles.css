@@ -984,6 +984,86 @@ button.primary {
   padding: 2px 8px;
 }
 
+/* 参考组（#66） */
+.reference-groups {
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.reference-groups-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.reference-groups-bar h2 {
+  margin: 0 auto 0 0;
+  font-size: 15px;
+}
+
+.reference-groups-empty {
+  opacity: 0.7;
+}
+
+.reference-groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reference-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+}
+
+.reference-group-meta,
+.reference-group-problem {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.reference-group-problem {
+  color: var(--accent-strong, currentColor);
+  opacity: 1;
+}
+
+.reference-group-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.reference-group-actions button {
+  padding: 2px 8px;
+}
+
+.reference-group-members {
+  flex-basis: 100%;
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+}
+
+.reference-group-members li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.reference-group-member-unavailable {
+  color: var(--accent-strong, currentColor);
+}
+
 /* 截图框选窗口与钉图窗口：没有页面底色和边距，禁止系统手势（笔与触摸走 pointer 事件，#7）。 */
 :root[data-view="capture"],
 :root[data-view="capture"] body,

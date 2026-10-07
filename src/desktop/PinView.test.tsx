@@ -218,3 +218,14 @@ describe("安全模式下钉图原位遮蔽（#65）", () => {
     expect(host.querySelector(".pin-veil-lock")).toBeNull();
   });
 });
+
+describe("参考组成员暂时不可用（#66）", () => {
+  it("钉图保留位置与尺寸，写出应用壳给的原因；恢复后撤掉", async () => {
+    const host = await showPin();
+    expect(host.querySelector(".pin-missing")).toBeNull();
+    act(() => ipc.frame!({ ...frame(), unavailable: "资料库暂时不可用：移动盘没插" }));
+    expect(host.querySelector(".pin-missing")?.textContent).toBe("资料库暂时不可用：移动盘没插");
+    act(() => ipc.frame!(frame()));
+    expect(host.querySelector(".pin-missing")).toBeNull();
+  });
+});
