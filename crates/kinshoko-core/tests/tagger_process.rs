@@ -3,26 +3,29 @@
 //!
 //! 子进程就是本测试程序自己：设了环境变量时，测试 `child_tagger_worker` 扮演打标子进程，
 //! 用按文件名决定行为的假推理后端跑 [`serve`]（名字含 crash 就直接中止进程、含 hang 就卡住、
-//! 含 bad 就报告坏图，其余返回以文件名为外部名称的标签；也可以用环境变量指定会崩溃的原图）。
+//! 含 bad 就报告坏图，其余返回以文件名为外部名称的标签；也可以用环境变量指定会崩溃的原图，
+//! 或让第一次加载模型卡住，模拟 DirectML 编译图的漫长加载）。
 
 mod support;
 
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use kinshoko_core::Library;
 use kinshoko_core::library::{ImportOutcome, ImportSource};
 use kinshoko_core::tagging::{
     Backend, Device, DeviceInfo, Engine, EngineError, GpuInfo, PreparedModel, ProcessTagger,
-    RawTag, TagFailure, Tagger, Tagging, TaggingConfig, TaggingStatus, serve,
+    RawTag, SessionStopper, TagFailure, Tagger, Tagging, TaggingConfig, TaggingStatus, serve,
 };
 
 const CHILD: &str = "child_tagger_worker";
 const CHILD_ENV: &str = "KINSHOKO_TEST_TAGGER_CHILD";
 /// 打到这张原图时子进程中止。
 const CRASH_ON_ENV: &str = "KINSHOKO_TEST_TAGGER_CRASH_ON";
+/// 这个文件还不存在时，加载模型先把子进程 PID 写进去，然后卡住；之后的加载照常。
+const SLOW_LOAD_ENV: &str = "KINSHOKO_TEST_TAGGER_SLOW_LOAD";
 
 struct FakeBackend;
 
@@ -47,6 +50,14 @@ impl Backend for FakeBackend {
     ) -> Result<Box<dyn Engine>, EngineError> {
         if !onnx.is_file() {
             return Err(EngineError::Fatal("没有模型文件".into()));
+        }
+        if let Some(marker) = std::env::var_os(SLOW_LOAD_ENV).map(PathBuf::from)
+            && !marker.exists()
+        {
+            let tmp = marker.with_extension("tmp");
+            std::fs::write(&tmp, std::process::id().to_string()).unwrap();
+            std::fs::rename(&tmp, &marker).unwrap();
+            std::thread::sleep(Duration::from_secs(3600));
         }
         Ok(Box::new(FakeEngine))
     }
@@ -117,7 +128,9 @@ fn the_subprocess_reports_the_device_and_tags_images() {
         Some("子进程里的显卡".to_owned())
     );
 
-    let mut session = tagger.start(&model(dir.path()), Device::DirectMl).unwrap();
+    let mut session = tagger
+        .start(&model(dir.path()), Device::DirectMl, &|_| {})
+        .unwrap();
     let tags = session.tag(&dir.path().join("blue_eyes.png")).unwrap();
     assert_eq!(tags[0].name, "blue_eyes");
     assert_eq!(
@@ -134,13 +147,13 @@ fn a_crash_or_hang_in_the_subprocess_ends_only_the_session() {
     let tagger = tagger();
     let model = model(dir.path());
 
-    let mut session = tagger.start(&model, Device::DirectMl).unwrap();
+    let mut session = tagger.start(&model, Device::DirectMl, &|_| {}).unwrap();
     assert!(matches!(
         session.tag(&dir.path().join("crash.png")),
         Err(TagFailure::Crashed(_))
     ));
 
-    let mut session = tagger.start(&model, Device::DirectMl).unwrap();
+    let mut session = tagger.start(&model, Device::DirectMl, &|_| {}).unwrap();
     let t = Instant::now();
     assert!(matches!(
         session.tag(&dir.path().join("hang.png")),
@@ -148,7 +161,7 @@ fn a_crash_or_hang_in_the_subprocess_ends_only_the_session() {
     ));
     assert!(t.elapsed() < Duration::from_secs(30), "按超时结束了子进程");
 
-    let mut session = tagger.start(&model, Device::DirectMl).unwrap();
+    let mut session = tagger.start(&model, Device::DirectMl, &|_| {}).unwrap();
     assert!(session.tag(&dir.path().join("ok.png")).is_ok());
 }
 
@@ -157,8 +170,13 @@ fn stopping_a_session_ends_the_subprocess_in_the_middle_of_an_image() {
     let dir = tempfile::tempdir().unwrap();
     let mut tagger = tagger();
     tagger.image_timeout = Duration::from_secs(60);
-    let mut session = tagger.start(&model(dir.path()), Device::DirectMl).unwrap();
-    let stop = session.stopper();
+    let slot: Arc<Mutex<Option<SessionStopper>>> = Arc::default();
+    let mut session = tagger
+        .start(&model(dir.path()), Device::DirectMl, &|stop| {
+            *slot.lock().unwrap() = Some(stop)
+        })
+        .unwrap();
+    let stop = slot.lock().unwrap().take().expect("开始时交出了结束开关");
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_millis(200));
         stop();
@@ -177,7 +195,7 @@ fn loading_a_missing_model_fails_without_hanging() {
     let mut model = model(dir.path());
     model.onnx = dir.path().join("missing.onnx");
     assert!(matches!(
-        tagger().start(&model, Device::Cpu),
+        tagger().start(&model, Device::Cpu, &|_| {}),
         Err(TagFailure::Crashed(_))
     ));
 }
@@ -247,4 +265,134 @@ fn tagging_continues_after_the_subprocess_crashes() {
             .is_empty(),
         "反复崩溃的图记为无法打标，不再重试"
     );
+}
+
+/// 等子进程开始加载模型（卡住的那一次），返回它的 PID。
+fn loading_child(marker: &Path, status: impl Fn() -> String) -> u32 {
+    let deadline = Instant::now() + Duration::from_secs(60);
+    loop {
+        if let Some(pid) = std::fs::read_to_string(marker)
+            .ok()
+            .and_then(|s| s.parse().ok())
+        {
+            return pid;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "子进程没有开始加载：{}",
+            status()
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+/// 进程是否还在（包括已退出但没有被回收、句柄仍开着的僵尸）。
+fn alive(pid: u32) -> bool {
+    let out = std::process::Command::new("tasklist")
+        .args(["/FI", &format!("PID eq {pid}"), "/NH", "/FO", "CSV"])
+        .output()
+        .unwrap();
+    String::from_utf8_lossy(&out.stdout).contains(&format!("\"{pid}\""))
+}
+
+/// 等到 `done` 成立；超过 `limit` 时失败。
+fn within(limit: Duration, what: &str, mut done: impl FnMut() -> bool) {
+    let deadline = Instant::now() + limit;
+    while !done() {
+        assert!(Instant::now() < deadline, "{what}：超过 {limit:?}");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+/// 带一张图的资料库与打标调度；第一次加载模型会卡住。
+fn tagging_with_slow_load(dir: &Path) -> (Arc<Library>, String, Tagging, PathBuf) {
+    let library = Arc::new(Library::create(&dir.join("lib"), "库").unwrap());
+    let id = import(&library, dir, &["first"]).remove(0);
+    let marker = dir.join("loading.pid");
+    let tagger = tagger().env(SLOW_LOAD_ENV, marker.to_str().unwrap());
+    let server = support::ModelServer::start();
+    let spec = server.publish("proc", Device::DirectMl, b"model");
+    let mut config = TaggingConfig::new(dir.join("models"), vec![spec]);
+    config.base_url = server.base_url().to_owned();
+    config.retry_delay = Duration::from_millis(20);
+    config.poll_interval = Duration::from_millis(20);
+    let tagging = Tagging::start(library.clone(), Arc::new(tagger), config);
+    tagging.download();
+    (library, id, tagging, marker)
+}
+
+/// 暂停要立刻结束正在加载模型的子进程、归还显存，不等加载完（#76 Core2）；恢复后照常打标。
+#[test]
+fn pausing_while_the_subprocess_loads_the_model_ends_it_at_once() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, id, tagging, marker) = tagging_with_slow_load(dir.path());
+    let pid = loading_child(&marker, || format!("{:?}", tagging.status()));
+
+    tagging.pause();
+    within(
+        Duration::from_secs(5),
+        "暂停后结束并回收子进程",
+        || matches!(tagging.status(), TaggingStatus::Paused) && !alive(pid),
+    );
+
+    tagging.resume();
+    within(Duration::from_secs(60), "恢复后打完", || {
+        matches!(tagging.status(), TaggingStatus::Idle { .. })
+    });
+    assert_eq!(library.image_tags(&id, "zh-CN").unwrap().tags.len(), 1);
+}
+
+/// 关闭资料库（丢弃调度）时子进程正在加载模型：同样立刻结束并回收，不等加载完。
+#[test]
+fn dropping_tagging_while_the_subprocess_loads_the_model_ends_it_at_once() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_library, _id, tagging, marker) = tagging_with_slow_load(dir.path());
+    let pid = loading_child(&marker, || format!("{:?}", tagging.status()));
+
+    let t = Instant::now();
+    drop(tagging);
+    assert!(t.elapsed() < Duration::from_secs(5), "{:?}", t.elapsed());
+    within(Duration::from_secs(5), "回收子进程", || !alive(pid));
+}
+
+/// 加载超时也要结束并回收子进程。
+#[test]
+fn a_load_timeout_ends_and_reaps_the_subprocess() {
+    let dir = tempfile::tempdir().unwrap();
+    let marker = dir.path().join("loading.pid");
+    let mut tagger = tagger().env(SLOW_LOAD_ENV, marker.to_str().unwrap());
+    tagger.load_timeout = Duration::from_secs(1);
+    let result = tagger.start(&model(dir.path()), Device::DirectMl, &|_| {});
+    assert!(matches!(result, Err(TagFailure::Crashed(_))));
+    let pid = loading_child(&marker, || "已超时".into());
+    within(Duration::from_secs(5), "回收子进程", || !alive(pid));
+}
+
+/// 结束开关在子进程开始加载模型之前就交出来：加载中按下它，子进程立即结束并被回收（#76 Core2）。
+#[test]
+fn the_stopper_ends_the_subprocess_while_it_loads_the_model() {
+    let dir = tempfile::tempdir().unwrap();
+    let marker = dir.path().join("loading.pid");
+    let tagger = tagger().env(SLOW_LOAD_ENV, marker.to_str().unwrap());
+    let model = model(dir.path());
+    let slot: Arc<Mutex<Option<SessionStopper>>> = Arc::default();
+    let registered = slot.clone();
+    let loading = std::thread::spawn(move || {
+        tagger
+            .start(&model, Device::DirectMl, &|stop| {
+                *registered.lock().unwrap() = Some(stop)
+            })
+            .map(|_| ())
+    });
+    let pid = loading_child(&marker, || "加载中".into());
+    let stop = slot.lock().unwrap().take().expect("加载期间已有结束开关");
+
+    let t = Instant::now();
+    stop();
+    assert!(matches!(
+        loading.join().unwrap(),
+        Err(TagFailure::Crashed(_))
+    ));
+    assert!(t.elapsed() < Duration::from_secs(5), "{:?}", t.elapsed());
+    assert!(!alive(pid), "子进程已被回收");
 }

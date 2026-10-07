@@ -24,6 +24,7 @@ mod colour;
 mod display;
 mod eagle;
 mod eagle_discovery;
+mod eagle_tags;
 mod edit;
 mod error;
 mod events;
@@ -54,7 +55,11 @@ pub use eagle::{EagleBinding, EagleRegionNote, EagleSourceSnapshot};
 pub use eagle_discovery::{
     EagleDiscoveryMethod, EagleDiscoveryOptions, EagleLibraryCandidate, discover_eagle_libraries,
 };
-pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, SourceNote};
+pub use eagle_tags::{
+    EagleTagMapping, EagleTagMatch, ExternalVocabulary, MappedExternal, MatchBasis,
+    UnmatchedEagleTag,
+};
+pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, ImageVersions, SourceNote};
 pub use error::Error;
 pub use events::LibraryEvent;
 pub use folders::FolderNode;
@@ -68,9 +73,9 @@ pub use tags::{
     TagTranslations, Vocabulary, VocabularyTag,
 };
 pub use types::{
-    BrowsePage, BrowseQuery, BrowseScope, DisplayFile, DisplayRoute, ImageCard, ImageSourceRecord,
-    ImportItem, ImportOutcome, ImportProgress, ImportReport, ImportSource, LibraryInfo,
-    RecoveryReport,
+    BrowsePage, BrowseQuery, BrowseScope, DisplayFile, DisplayRoute, EagleLocationChoice,
+    EagleRelocation, ImageCard, ImageSourceRecord, ImportItem, ImportOutcome, ImportProgress,
+    ImportReport, ImportSource, LibraryInfo, RecoveryReport,
 };
 
 use crate::approx::ApproxRelation;
@@ -233,6 +238,16 @@ impl Library {
         eagle::snapshots(&self.inner)
     }
 
+    /// 画师确认导入报告里疑似搬家的 Eagle 位置（[`EagleRelocation`]）：
+    /// 同一来源搬了家就沿用登记、改记新位置；另一个来源就单独登记。确认后再导入这个位置。
+    pub fn confirm_eagle_location(
+        &self,
+        path: &Path,
+        choice: EagleLocationChoice,
+    ) -> Result<(), Error> {
+        eagle::confirm_location(&self.inner, path, choice)
+    }
+
     /// 按查询浏览参考图，按导入先后从新到旧，keyset 分页。
     pub fn browse(&self, query: &BrowseQuery) -> Result<BrowsePage, Error> {
         types::browse(&self.inner, query)
@@ -315,7 +330,7 @@ impl Library {
     pub fn image(&self, image_id: &str) -> Result<ImageDetail, Error> {
         let conn = self.inner.readers.get();
         self.inner.require_visible(&conn, image_id)?;
-        edit::detail(&conn, image_id)
+        edit::detail(&conn, &self.inner.lens_filter(), image_id)
     }
 
     /// 侧栏：全部、回收站与文件夹树，计数只算可见的图。
@@ -451,6 +466,28 @@ impl Library {
 
     pub fn remove_tag_external(&self, tag_id: &str, external: &str) -> Result<(), Error> {
         tags::remove_tag_external(&self.inner, tag_id, external)
+    }
+
+    /// 迁入向导：把还没有外部对应的 Eagle 标签按名称与翻译表精确匹配到 `vocabulary`
+    /// 并写入外部对应（规范化后只对上一个、且没被别的标签占用的才写），返回已对上与没对上的
+    /// Eagle 标签。安全模式开启时不列出只出现在被封印图上的标签。
+    pub fn map_eagle_tags(
+        &self,
+        vocabulary: &ExternalVocabulary,
+        lang: &str,
+    ) -> Result<EagleTagMapping, Error> {
+        eagle_tags::map_eagle_tags(&self.inner, vocabulary, lang)
+    }
+
+    /// 迁入向导：画师给一个标签补上外部对应。输入规范化后在词表中只对上一个名称时写词表的写法，
+    /// 否则原样写入。
+    pub fn map_tag_external(
+        &self,
+        tag_id: &str,
+        input: &str,
+        vocabulary: &ExternalVocabulary,
+    ) -> Result<MappedExternal, Error> {
+        eagle_tags::map_tag_external(&self.inner, tag_id, input, vocabulary)
     }
 
     /// 建立标签分组，排在最后。给出 `namespace` 时分组列出该命名空间的全部标签。

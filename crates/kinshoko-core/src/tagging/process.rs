@@ -311,6 +311,7 @@ impl Tagger for ProcessTagger {
         &self,
         model: &PreparedModel,
         device: Device,
+        on_stopper: &dyn Fn(SessionStopper),
     ) -> Result<Box<dyn TaggerSession>, TagFailure> {
         let mut running = self
             .spawn(&Hello::Load {
@@ -319,6 +320,9 @@ impl Tagger for ProcessTagger {
                 device,
             })
             .map_err(TagFailure::Crashed)?;
+        // 等 Ready 之前交出开关：结束子进程后读线程断开，recv 立即返回并回收子进程。
+        let child = running.child.clone();
+        on_stopper(Arc::new(move || kill(&child)));
         match running.recv(self.load_timeout)? {
             Reply::Ready => Ok(Box::new(ProcessSession {
                 running,
@@ -346,10 +350,5 @@ impl TaggerSession for ProcessSession {
             Reply::BadImage { reason } => Err(TagFailure::BadImage(reason)),
             other => Err(TagFailure::Crashed(format!("意外的回复：{other:?}"))),
         }
-    }
-
-    fn stopper(&self) -> SessionStopper {
-        let child = self.running.child.clone();
-        Arc::new(move || kill(&child))
     }
 }

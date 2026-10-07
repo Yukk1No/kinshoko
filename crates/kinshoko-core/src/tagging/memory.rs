@@ -113,14 +113,18 @@ impl Tagger for InMemoryTagger {
         &self,
         model: &PreparedModel,
         device: Device,
+        on_stopper: &dyn Fn(SessionStopper),
     ) -> Result<Box<dyn TaggerSession>, TagFailure> {
+        let dead: Arc<AtomicBool> = Arc::default();
+        let flag = dead.clone();
+        on_stopper(Arc::new(move || flag.store(true, Ordering::SeqCst)));
         let mut s = self.lock();
         s.started.push((model.spec.key.clone(), device));
         s.live += 1;
         Ok(Box::new(Session {
             tagger: self.clone(),
             device,
-            dead: Arc::default(),
+            dead,
         }))
     }
 }
@@ -168,11 +172,6 @@ impl TaggerSession for Session {
         }
         s.tagged.push((image.to_path_buf(), self.device));
         Ok(s.outputs.get(image).cloned().unwrap_or_default())
-    }
-
-    fn stopper(&self) -> SessionStopper {
-        let dead = self.dead.clone();
-        Arc::new(move || dead.store(true, Ordering::SeqCst))
     }
 }
 

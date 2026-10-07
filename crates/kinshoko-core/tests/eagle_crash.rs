@@ -86,7 +86,8 @@ fn interruption_never_publishes_partial_eagle_metadata_and_retry_is_idempotent()
             assert!(
                 retry.items[..3]
                     .iter()
-                    .all(|i| matches!(i.outcome, ImportOutcome::Merged { .. }))
+                    .all(|i| matches!(i.outcome, ImportOutcome::Refreshed { .. })),
+                "已迁入的条目重试时只刷新：{retry:?}"
             );
             assert!(
                 retry.items[3..]

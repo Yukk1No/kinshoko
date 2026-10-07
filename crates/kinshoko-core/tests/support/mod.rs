@@ -96,6 +96,7 @@ pub fn test_spec(key: &str, device: Device, model: &[u8]) -> ModelSpec {
         size: model.len() as u64,
         sha256: sha256(model),
         tags_file: "selected_tags.csv".into(),
+        tags_sha256: sha256(TAGS_CSV.as_bytes()),
         chunking: None,
         device,
         vram_need: 1_800_000_000,

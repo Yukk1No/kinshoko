@@ -110,6 +110,15 @@ pub enum ImportOutcome {
     /// 与资料库中已有原图字节相同，合并为同一条记录并保留来源。
     #[serde(rename_all = "camelCase")]
     Merged { image_id: String },
+    /// 已迁入的 Eagle 条目再次导入且内容未变：只刷新 Eagle 来源层，人工整理不变。
+    #[serde(rename_all = "camelCase")]
+    Refreshed { image_id: String },
+    /// Eagle 条目的原图内容变了：新内容成为新的参考图，旧版本连同它的整理保留。
+    #[serde(rename_all = "camelCase")]
+    NewVersion {
+        image_id: String,
+        previous_image_id: String,
+    },
     /// 不支持的格式。
     Unsupported,
     /// 读取失败，附原因。
@@ -132,6 +141,53 @@ pub struct ImportItem {
 pub struct ImportReport {
     pub items: Vec<ImportItem>,
     pub cancelled: bool,
+    /// 这次迁入的 Eagle 资料库里已经不存在、但本库保留了副本的条目数。
+    pub eagle_missing: u32,
+    /// 像是已登记 Eagle 来源搬了家的新位置。画师确认前不迁入这些位置的任何条目，
+    /// 确认见 [`super::Library::confirm_eagle_location`]。
+    pub eagle_relocations: Vec<EagleRelocation>,
+}
+
+/// 新位置疑似已登记的 Eagle 来源搬了家：已绑定条目至少一半出现在新位置。只是提议。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct EagleRelocation {
+    /// 疑似搬家的已登记来源。
+    pub source_id: String,
+    /// 登记的位置。
+    #[ts(type = "string")]
+    pub from: PathBuf,
+    /// 这次导入的新位置。
+    #[ts(type = "string")]
+    pub to: PathBuf,
+    /// 已绑定条目出现在新位置的比例（百分比，向下取整）。
+    pub overlap_percent: u32,
+}
+
+/// 画师对疑似搬家位置的确认。
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, TS)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+#[ts(export)]
+pub enum EagleLocationChoice {
+    /// 就是这个已登记来源搬了家：沿用登记，之后的重导只刷新。
+    #[serde(rename_all = "camelCase")]
+    Moved { source_id: String },
+    /// 是另一个来源：单独登记，相同原图合并进已有记录。
+    Separate,
+}
+
+impl ImportOutcome {
+    /// 这一项落到的参考图；没有进库时为 `None`。
+    pub fn image_id(&self) -> Option<&str> {
+        match self {
+            ImportOutcome::Imported { image_id }
+            | ImportOutcome::Merged { image_id }
+            | ImportOutcome::Refreshed { image_id }
+            | ImportOutcome::NewVersion { image_id, .. } => Some(image_id),
+            _ => None,
+        }
+    }
 }
 
 impl ImportReport {

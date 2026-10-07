@@ -92,6 +92,8 @@ function Detail({
   return (
     <div className="selection-detail">
       <p>{detail.originalName} · 收集于 {new Date(detail.collectedAt).toLocaleString("zh-CN")}</p>
+      {detail.versions.previous && <p className="selection-version">新版本：Eagle 中这张图的内容变了，旧版本仍保留在资料库里</p>}
+      {detail.versions.newer.length > 0 && <p className="selection-version">旧版本：Eagle 中这张图的内容后来变了，新版本另存为一张图</p>}
       {detail.sourceLinks?.length > 0 && (
         <ul aria-label="来源链接">
           {detail.sourceLinks.map((url) => (

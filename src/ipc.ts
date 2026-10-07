@@ -13,6 +13,9 @@ import type { SearchInput } from "./bindings/SearchInput";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
 import type { EagleLibraryCandidate } from "./bindings/EagleLibraryCandidate";
+import type { EagleTagMapping } from "./bindings/EagleTagMapping";
+import type { MappedExternal } from "./bindings/MappedExternal";
+import type { EagleLocationChoice } from "./bindings/EagleLocationChoice";
 import type { CaptureAction } from "./bindings/CaptureAction";
 import type { CaptureEntry } from "./bindings/CaptureEntry";
 import type { CollectedCapture } from "./bindings/CollectedCapture";
@@ -122,6 +125,26 @@ export function startImport(libraryId: string, paths: string[]): Promise<string>
 /** 本机 Eagle 资料库候选；按 images/ 条目数从多到少排列。 */
 export function discoverEagleLibraries(): Promise<EagleLibraryCandidate[]> {
   return invoke<EagleLibraryCandidate[]>(lib("discover_eagle_libraries"));
+}
+
+/** 迁入向导“标签的外部对应”：自动匹配还没有外部对应的 Eagle 标签，返回对上与没对上的。 */
+export function eagleTagMapping(libraryId: string, lang: string): Promise<EagleTagMapping> {
+  return invoke<EagleTagMapping>(lib("eagle_tag_mapping"), { libraryId, lang });
+}
+
+/** 画师给一个标签补上外部对应，之后它参与内置近似对应表。 */
+export function mapTagExternal(libraryId: string, tagId: string, external: string): Promise<MappedExternal> {
+  return invoke<MappedExternal>(lib("map_tag_external"), { libraryId, tagId, external });
+}
+
+/** 补外部对应时的联想（外部词表属于本设备）。 */
+export function externalSuggestions(text: string, limit: number): Promise<string[]> {
+  return invoke<string[]>(lib("external_suggestions"), { text, limit });
+}
+
+/** 确认导入报告里疑似搬家的 Eagle 位置；确认后再导入这个位置。 */
+export function confirmEagleLocation(libraryId: string, path: string, choice: EagleLocationChoice): Promise<void> {
+  return invoke<void>(lib("confirm_eagle_location"), { libraryId, path, choice });
 }
 
 export function cancelImport(libraryId: string, taskId: string): Promise<void> {

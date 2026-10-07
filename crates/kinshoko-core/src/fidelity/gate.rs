@@ -16,7 +16,7 @@ use serde::Serialize;
 use ts_rs::TS;
 
 use super::profiles;
-use crate::library::{BrowseQuery, DisplayRoute, ImportOutcome, ImportSource, Library};
+use crate::library::{BrowseQuery, DisplayRoute, ImportSource, Library};
 
 /// 一个门槛样本。
 #[derive(Debug, Clone, Serialize, TS)]
@@ -312,9 +312,10 @@ pub fn prepare(dir: &std::path::Path) -> Result<GateRun, crate::library::Error> 
         .cards;
     let mut items = Vec::with_capacity(samples.len());
     for (sample, item) in samples.into_iter().zip(report.items) {
-        let image_id = match item.outcome {
-            ImportOutcome::Imported { image_id } | ImportOutcome::Merged { image_id } => image_id,
-            other => {
+        let image_id = match item.outcome.image_id() {
+            Some(id) => id.to_owned(),
+            None => {
+                let other = &item.outcome;
                 return Err(crate::library::Error::Undecodable(format!(
                     "{}：{other:?}",
                     sample.file_name
