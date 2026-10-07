@@ -65,6 +65,8 @@ fn main() {
                         "settle_pin",
                         "set_pin_opacity",
                         "set_pin_locked",
+                        "pin_reference",
+                        "reveal_pin",
                         "edge_hide",
                         "capture_history",
                         "collect_capture",

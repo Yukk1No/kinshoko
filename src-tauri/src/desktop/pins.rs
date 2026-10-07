@@ -8,6 +8,11 @@
 //! 钉图状态在 [`PinStore`]（`pins.json`）里：画师关闭的钉图从中删除；退出程序时窗口也会销毁，
 //! 但这时不删，下次启动照原样恢复。
 //!
+//! 资料库钉图（#65）：从查看器钉整图或框出的局部（原图像素）。图经参考视角读取，走自定义协议
+//! `capture` 的 `pin/<钉图 id>/full|fit-<像素>`——只给已钉住的图，不按任意 id 给。安全模式开启时
+//! 被封印的图（以及资料库没打开、核对不了的图）原位遮蔽，画师确认后显示这一张；
+//! 安全模式关掉后不再遮蔽，再开启时重新遮蔽。
+//!
 //! 拖动和缩放都由页面的 pointer 事件驱动、由程序移动窗口（笔与鼠标同一套处理；Windows Ink 下
 //! 没有系统拖动需要的鼠标事件，#7）。
 
@@ -15,8 +20,8 @@ use std::sync::atomic::Ordering;
 
 use image::RgbaImage;
 use kinshoko_core::desktop::{
-    CaptureEntry, PinContent, PinFrame, PinMotion, Placement, SavedPin, ScreenRect, Screenshot,
-    Turn, place_new_pin, stage,
+    CaptureEntry, PinContent, PinFrame, PinMotion, Placement, Region, SavedPin, ScreenRect,
+    Screenshot, Turn, initial_scale, place_new_pin, stage,
 };
 use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{
@@ -37,7 +42,8 @@ const LOCKED: &str = "钉图已锁定";
 
 /// 本次运行中打开着的钉图窗口。
 pub struct PinRecord {
-    capture_id: String,
+    /// 钉住的截图；资料库钉图为 `None`。
+    capture_id: Option<String>,
     /// 画师正在关闭它（菜单或 Alt+F4）。窗口销毁时据此区分“关闭钉图”和“退出程序”。
     closing: bool,
     /// 原生窗口此刻的矩形。
@@ -143,14 +149,112 @@ pub fn open(app: &AppHandle, capture: &CaptureEntry, at: ScreenRect) -> Result<(
     open_window(app, &pin)
 }
 
+/// 从查看器把资料库中的一张参考图钉到桌面：整图（`crop` 为 `None`）或局部（原图像素）。
+/// `shown` 是这块在查看器里此刻的位置（物理像素，相对查看器窗口客户区）；新钉图以它为中心、
+/// 略微错开，放不下时缩到显示器的五分之三。只钉浏览视角下看得见的图。
+fn pin_reference_here(
+    app: &AppHandle,
+    window: &tauri::Window,
+    library_id: &str,
+    image_id: &str,
+    crop: Option<Region>,
+    shown: ScreenRect,
+) -> Result<(), String> {
+    crate::library::current(app, library_id)?
+        .image(image_id)
+        .map_err(|e| e.to_string())?;
+    let lens = crate::library::reference_lens(app, library_id).ok_or("资料库已切换")?;
+    let image = lens.image(image_id).map_err(|e| e.to_string())?;
+    let origin = window.inner_position().map_err(|e| e.to_string())?;
+    let centre = (
+        origin.x + shown.x + (shown.width / 2) as i32,
+        origin.y + shown.y + (shown.height / 2) as i32,
+    );
+    let (monitor, dpi) = monitor_at(centre.0, centre.1).unwrap_or((
+        ScreenRect {
+            x: centre.0,
+            y: centre.1,
+            width: shown.width.max(1),
+            height: shown.height.max(1),
+        },
+        1.0,
+    ));
+    let mut pin = SavedPin::reference(
+        &uuid::Uuid::new_v4().simple().to_string(),
+        library_id,
+        &image,
+        crop,
+        Placement::default(),
+    )
+    .map_err(|e| e.to_string())?;
+    pin.placement.scale = initial_scale(pin.width, pin.height, monitor);
+    let (width, height) = pin.window_size();
+    let at = ScreenRect {
+        x: centre.0 - (width / 2) as i32,
+        y: centre.1 - (height / 2) as i32,
+        width,
+        height,
+    };
+    let others: Vec<ScreenRect> = open_pins(app).iter().map(SavedPin::rect).collect();
+    let (x, y) = place_new_pin(at, monitor, &others, (OFFSET * dpi).round() as i32);
+    pin.placement.x = x;
+    pin.placement.y = y;
+    {
+        let mut store = lock(&state(app).store);
+        store.put(pin.clone());
+        let _ = store.save();
+    }
+    open_window(app, &pin)
+}
+
+/// 钉图此刻要不要原位遮蔽（见 [`PinFrame::veiled`]、[`kinshoko_core::desktop::PinVeils`]）。会查资料库，
+/// 不要持有桌面状态的锁调用。
+fn veiled(app: &AppHandle, pin: &SavedPin) -> bool {
+    // 核对不了（资料库没打开、图已不在）时为 None，安全模式开启时按被封印处理。
+    let sealed = match &pin.content {
+        PinContent::Reference {
+            library_id,
+            image_id,
+            ..
+        } => crate::library::reference_lens(app, library_id)
+            .and_then(|lens| lens.image(image_id).ok())
+            .map(|image| image.sealed),
+        PinContent::Capture { .. } => Some(false),
+    };
+    lock(&state(app).veils).veiled(pin, sealed)
+}
+
+/// 资料库钉图要显示的文件（`capture` 协议的 `pin/<钉图 id>/full|fit-<像素>`）。经参考视角读取；
+/// 还没打开资料库时打开本设备上次打开的。会读文件，不要在主线程上调用。
+pub fn reference_file(app: &AppHandle, pin: &str, size: &str) -> Option<std::path::PathBuf> {
+    let saved = lock(&state(app).store).get(pin).cloned()?;
+    let PinContent::Reference {
+        library_id,
+        image_id,
+        ..
+    } = &saved.content
+    else {
+        return None;
+    };
+    let lens = crate::library::reference_lens(app, library_id).or_else(|| {
+        crate::library::current_or_last(app).ok()?;
+        crate::library::reference_lens(app, library_id)
+    })?;
+    let file = if size == "full" {
+        lens.display(image_id)
+    } else {
+        lens.display_scaled(image_id, size.strip_prefix("fit-")?.parse().ok()?)
+    };
+    file.ok().map(|f| f.path)
+}
+
 /// 为一个钉图建窗口（新钉的，或启动时恢复的）。截图历史此前已经记下它被钉住。
 pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
-    let PinContent::Capture { capture_id } = &pin.content;
     let rect = pin.rect();
     lock(&state(app).pins).insert(
         pin.id.clone(),
         PinRecord {
-            capture_id: capture_id.clone(),
+            capture_id: pin.capture_id().map(str::to_owned),
             closing: false,
             window: rect,
             content: rect,
@@ -231,6 +335,7 @@ pub fn show(
     let Some(saved) = lock(&state(app).store).get(pin).cloned() else {
         return;
     };
+    let veiled = veiled(app, &saved);
     let monitors = match motion {
         PinMotion::Jump => Vec::new(),
         _ => monitors(),
@@ -256,6 +361,7 @@ pub fn show(
             window: during,
             content,
             motion,
+            veiled,
             generation: r.generation,
         };
         (frame, moved, through_changed)
@@ -276,6 +382,7 @@ pub fn show(
 /// 当前这一帧（不改窗口），例如改了透明度或锁定之后。
 fn current_frame(app: &AppHandle, pin: &str) -> Option<PinFrame> {
     let saved = lock(&state(app).store).get(pin).cloned()?;
+    let veiled = veiled(app, &saved);
     let pins = lock(&state(app).pins);
     let r = pins.get(pin)?;
     Some(PinFrame {
@@ -283,6 +390,7 @@ fn current_frame(app: &AppHandle, pin: &str) -> Option<PinFrame> {
         window: r.window,
         content: r.content,
         motion: PinMotion::Jump,
+        veiled,
         generation: r.generation,
     })
 }
@@ -290,6 +398,26 @@ fn current_frame(app: &AppHandle, pin: &str) -> Option<PinFrame> {
 fn refresh(app: &AppHandle, pin: &str) {
     if let Some(frame) = current_frame(app, pin) {
         let _ = app.emit_to(label(pin), FRAME_EVENT, &frame);
+    }
+}
+
+/// 资料库变了（分级、切换后的事件）：资料库钉图重新核对要不要遮蔽。在别的线程上调用。
+pub fn references_changed(app: &AppHandle) {
+    let ids: Vec<String> = lock(&state(app).pins)
+        .iter()
+        .filter(|(_, r)| r.capture_id.is_none())
+        .map(|(id, _)| id.clone())
+        .collect();
+    for id in ids {
+        refresh(app, &id);
+    }
+}
+
+/// 安全模式（应用设置）开关了：不论有没有打开资料库，资料库钉图都重新核对；
+/// 重新开启时之前确认显示的也重新遮蔽。在别的线程上调用。
+pub fn safe_mode_changed(app: &AppHandle, on: bool) {
+    if lock(&state(app).veils).set_safe_mode(on) {
+        references_changed(app);
     }
 }
 
@@ -326,6 +454,7 @@ fn closed(app: &AppHandle, pin: &str) {
     let Some(record) = lock(&state(app).pins).remove(pin) else {
         return;
     };
+    lock(&state(app).veils).forget(pin);
     lock(&state(app).edge).release(pin);
     if !record.closing {
         return;
@@ -335,12 +464,16 @@ fn closed(app: &AppHandle, pin: &str) {
         store.remove(pin);
         let _ = store.save();
     }
-    lock(&state(app).history).unpin(&record.capture_id);
-    history_changed(app);
+    if let Some(capture) = &record.capture_id {
+        lock(&state(app).history).unpin(capture);
+        history_changed(app);
+    }
 }
 
 /// 启动时恢复上次的钉图（位置、裁切、缩放、翻转与旋转）。在别的线程上调用。
 pub fn restore(app: &AppHandle) {
+    // 设置在桌面插件装配之后才可读：恢复前按保存的安全模式核对一次。
+    lock(&state(app).veils).set_safe_mode(crate::library::safe_mode_on(app));
     let monitors = monitors();
     let pins = {
         let mut history = lock(&state(app).history);
@@ -353,6 +486,12 @@ pub fn restore(app: &AppHandle) {
         return;
     }
     history_changed(app);
+    // 资料库钉图要经参考视角读图、核对遮蔽：先打开本设备上次打开的资料库。
+    if pins.iter().any(|p| p.capture_id().is_none())
+        && let Err(e) = crate::library::current_or_last(app)
+    {
+        eprintln!("恢复资料库钉图时无法打开资料库：{e}");
+    }
     for pin in &pins {
         if let Err(e) = open_window(app, pin) {
             eprintln!("恢复钉图失败：{e}");
@@ -431,6 +570,34 @@ pub async fn pin_capture(app: AppHandle, id: String) -> Result<(), String> {
     open(&app, &entry, at)
 }
 
+/// 从查看器钉整图或局部（见 [`pin_reference_here`]）。
+#[tauri::command]
+pub async fn pin_reference(
+    app: AppHandle,
+    window: tauri::Window,
+    library_id: String,
+    image_id: String,
+    crop: Option<Region>,
+    shown: ScreenRect,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        pin_reference_here(&app, &window, &library_id, &image_id, crop, shown)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// 画师确认显示这一张被遮蔽的参考图：遮蔽淡出，直到安全模式再次开启或钉图关闭。
+#[tauri::command]
+pub async fn reveal_pin(app: AppHandle, pin: String) -> Result<(), String> {
+    if !lock(&state(&app).pins).contains_key(&pin) {
+        return Err(CLOSED.to_owned());
+    }
+    lock(&state(&app).veils).reveal(&pin);
+    refresh(&app, &pin);
+    Ok(())
+}
+
 /// 钉图窗口要画的内容、窗口与内容的位置。钉图已关闭时为 `None`。
 #[tauri::command]
 pub async fn pin_frame(app: AppHandle, pin: String) -> Option<PinFrame> {
@@ -451,6 +618,7 @@ pub async fn settle_pin(app: AppHandle, pin: String, generation: u32) {
     let Some(saved) = lock(&state(&app).store).get(&pin).cloned() else {
         return;
     };
+    let veiled = veiled(&app, &saved);
     let frame = {
         let mut pins = lock(&state(&app).pins);
         let Some(r) = pins.get_mut(&pin) else {
@@ -465,6 +633,7 @@ pub async fn settle_pin(app: AppHandle, pin: String, generation: u32) {
             window: r.rest,
             content: r.content,
             motion: PinMotion::Jump,
+            veiled,
             generation,
         }
     };
@@ -546,12 +715,7 @@ pub async fn turn_pin(app: AppHandle, pin: String, turn: Turn) -> Result<(), Str
 
 fn turn_here(app: &AppHandle, pin: &str, turn: Turn) -> Result<(), String> {
     let rect = change_here(app, pin, |p| {
-        match turn {
-            Turn::FlipHorizontal => p.flip(true),
-            Turn::FlipVertical => p.flip(false),
-            Turn::RotateClockwise => p.rotate(1),
-            Turn::RotateCounterClockwise => p.rotate(-1),
-        }
+        p.turn(turn);
         true
     })?;
     show(app, pin, rect, rect, PinMotion::Jump, false);
@@ -584,11 +748,13 @@ const ACTION_ACTUAL_SIZE: &str = "actualSize";
 const ACTION_COLLECT: &str = "collect";
 const ACTION_COPY: &str = "copy";
 const ACTION_CLOSE: &str = "close";
+const ACTION_REVEAL: &str = "reveal";
 
 /// 右键菜单里可选的透明度（百分比）。
 const OPACITY_STEPS: [u32; 10] = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
 
 /// 钉图的右键菜单：翻转、旋转、透明度、锁定、原始大小、收藏、复制、关闭（#64）。
+/// 资料库钉图（#65）已在库里，没有收藏与复制；被遮蔽时多一项“显示这张图”。
 /// 页面在鼠标右键、笔的侧键或笔按住不动时调用；菜单弹在光标（笔尖）处。
 #[tauri::command]
 pub async fn pin_menu(app: AppHandle, pin: String) -> Result<(), String> {
@@ -597,12 +763,15 @@ pub async fn pin_menu(app: AppHandle, pin: String) -> Result<(), String> {
         .get(&pin)
         .map(|r| r.capture_id.clone())
         .ok_or(CLOSED)?;
-    let saved = lock(&state(&app).store).get(&pin).cloned().ok_or(CLOSED)?;
-    let collected = lock(&state(&app).history)
-        .entries()
-        .into_iter()
-        .find(|e| e.id == capture_id)
-        .map(|e| e.collected);
+    let frame = current_frame(&app, &pin).ok_or(CLOSED)?;
+    let saved = frame.pin;
+    let collected = capture_id.as_ref().and_then(|capture_id| {
+        lock(&state(&app).history)
+            .entries()
+            .into_iter()
+            .find(|e| &e.id == capture_id)
+            .map(|e| e.collected)
+    });
     // 历史里已删除的截图仍能收藏：文件还在，直到钉图关闭。
     let library = crate::library::current_name(&app);
     let (collect_text, collect_enabled) = match &library {
@@ -667,13 +836,26 @@ pub async fn pin_menu(app: AppHandle, pin: String) -> Result<(), String> {
                 !saved.locked && !unscaled,
             )?,
             &separator()?,
-            &item(ACTION_COLLECT, &collect_text, collect_enabled)?,
-            &item(ACTION_COPY, "复制", true)?,
-            &separator()?,
-            &item(ACTION_CLOSE, "关闭钉图", true)?,
         ],
     )
     .map_err(err)?;
+    if capture_id.is_some() {
+        menu.append(&item(ACTION_COLLECT, &collect_text, collect_enabled)?)
+            .map_err(err)?;
+        menu.append(&item(ACTION_COPY, "复制", true)?)
+            .map_err(err)?;
+        menu.append(&separator()?).map_err(err)?;
+    } else if frame.veiled {
+        menu.append(&item(
+            ACTION_REVEAL,
+            "显示这张图（安全模式下已遮蔽）",
+            true,
+        )?)
+        .map_err(err)?;
+        menu.append(&separator()?).map_err(err)?;
+    }
+    menu.append(&item(ACTION_CLOSE, "关闭钉图", true)?)
+        .map_err(err)?;
     window.popup_menu(&menu).map_err(err)
 }
 
@@ -728,10 +910,16 @@ fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<String> {
             Some(if locked { "已锁定" } else { "已解锁" }.to_owned())
         }
         ACTION_ACTUAL_SIZE => zoom(app, pin, 1.0, None).err(),
+        ACTION_REVEAL => {
+            lock(&state(app).pins).get(pin)?;
+            lock(&state(app).veils).reveal(pin);
+            refresh(app, pin);
+            None
+        }
         ACTION_COLLECT | ACTION_COPY => {
             let capture_id = lock(&state(app).pins)
                 .get(pin)
-                .map(|r| r.capture_id.clone())?;
+                .and_then(|r| r.capture_id.clone())?;
             Some(if action == ACTION_COLLECT {
                 match collect(app, &capture_id) {
                     Ok((_, library)) => format!("已收藏到「{library}」"),

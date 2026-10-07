@@ -665,6 +665,37 @@ button.primary {
 }
 .viewer-message p { margin: 0 0 8px; }
 .viewer-hint { padding: 4px 12px; font-size: 12px; text-align: center; }
+/* 框出的局部（#65）：按原图像素记，随缩放平移换算位置；外面压暗。 */
+.viewer-crop {
+  position: absolute;
+  box-sizing: border-box;
+  outline: 1px solid #e0768f;
+  box-shadow: 0 0 0 100000px rgb(0 0 0 / 0.35);
+  pointer-events: none;
+}
+.viewer-crop-size {
+  position: absolute;
+  left: 0;
+  top: -22px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 0.7);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.viewer-pin-status {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.7);
+  color: #fff;
+  font-size: 12px;
+}
 /* 内容分级（#53）：人工分级优先于自动分级。 */
 .selection-rating {
   display: flex;
@@ -1052,6 +1083,75 @@ button.primary {
 
 .pin-canvas {
   display: block;
+  /* 确认显示后模糊在约 0.4 s 内淡出（Q107）；遮蔽时立即生效，不过渡。 */
+  transition: filter 400ms ease-out;
+}
+
+/* 安全模式下被封印的参考图：原位模糊 14px，盖 92% 墨色，中间一把小圆锁（#60、#65）。 */
+.pin-veil {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--veil);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms ease-out;
+}
+
+.pin-veiled .pin-canvas {
+  filter: blur(14px);
+  transition: none;
+}
+
+.pin-veiled .pin-veil {
+  opacity: 0.92;
+  pointer-events: auto;
+  transition: none;
+}
+
+.pin-veil-lock {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--seal);
+  color: #fff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.pin-veil-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pin-missing {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  color: #fff;
+  font-size: 12px;
+  text-align: center;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-canvas,
+  .pin-veil {
+    transition: none;
+  }
 }
 
 /* 新钉图出现时描一圈渐隐的边，让画师一眼看出钉上了（#7 反馈）。 */

@@ -10,7 +10,8 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{CaptureHistory, Region, ScreenRect};
+use super::{CaptureHistory, Region, ScreenRect, Turn};
+use crate::library::ReferenceImage;
 
 const PINS_FILE: &str = "pins.json";
 const FORMAT_VERSION: u32 = 1;
@@ -57,7 +58,11 @@ impl Default for Placement {
     }
 }
 
-/// 钉图显示的是什么。#65 加入资料库中的参考视图。
+/// 新钉图较长的一边最多占显示器的这一部分（五分之三）；小图不缩小。
+const FIT_NUMERATOR: f64 = 3.0;
+const FIT_DENOMINATOR: f64 = 5.0;
+
+/// 钉图显示的是什么。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase", tag = "kind")]
 #[ts(export)]
@@ -65,6 +70,42 @@ pub enum PinContent {
     /// 截图历史中的一张截图。
     #[serde(rename_all = "camelCase")]
     Capture { capture_id: String },
+    /// 资料库中的一张参考图（参考视图，#65）。经参考视角读取：被封印的图也能钉，原位遮蔽。
+    /// 记下原图尺寸，局部（[`SavedPin::crop`]）总能核对是否在图内。
+    #[serde(rename_all = "camelCase")]
+    Reference {
+        library_id: String,
+        image_id: String,
+        source_width: u32,
+        source_height: u32,
+    },
+}
+
+/// 建钉图时的错误。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PinError {
+    /// 框选的局部是空的，或超出了原图。
+    CropOutsideImage,
+}
+
+impl std::fmt::Display for PinError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PinError::CropOutsideImage => write!(f, "框选的局部是空的，或超出了原图"),
+        }
+    }
+}
+
+impl std::error::Error for PinError {}
+
+/// 新钉图的初始缩放：放得下时为 1（逐像素），否则缩到每边不超过显示器的五分之三。
+pub fn initial_scale(width: u32, height: u32, monitor: ScreenRect) -> f64 {
+    let fit = |screen: u32, side: u32| {
+        f64::from(screen) * FIT_NUMERATOR / FIT_DENOMINATOR / f64::from(side.max(1))
+    };
+    fit(monitor.width, width)
+        .min(fit(monitor.height, height))
+        .clamp(MIN_SCALE, 1.0)
 }
 
 /// 一个桌面钉图要恢复的全部状态。
@@ -93,6 +134,44 @@ fn opaque() -> f64 {
 }
 
 impl SavedPin {
+    /// 资料库中一张参考图的钉图：整图（`crop` 为 `None`），或框出的局部（原图像素）。
+    /// 局部为空或超出原图时为 [`PinError::CropOutsideImage`]。不透明、不锁定。
+    pub fn reference(
+        id: &str,
+        library_id: &str,
+        image: &ReferenceImage,
+        crop: Option<Region>,
+        placement: Placement,
+    ) -> Result<SavedPin, PinError> {
+        let (width, height) = match crop {
+            None => (image.width, image.height),
+            Some(c) => {
+                let inside = |start: u32, len: u32, size: u32| {
+                    len > 0 && start.checked_add(len).is_some_and(|end| end <= size)
+                };
+                if !inside(c.x, c.width, image.width) || !inside(c.y, c.height, image.height) {
+                    return Err(PinError::CropOutsideImage);
+                }
+                (c.width, c.height)
+            }
+        };
+        Ok(SavedPin {
+            id: id.to_owned(),
+            content: PinContent::Reference {
+                library_id: library_id.to_owned(),
+                image_id: image.id.clone(),
+                source_width: image.width,
+                source_height: image.height,
+            },
+            crop,
+            width,
+            height,
+            placement,
+            opacity: 1.0,
+            locked: false,
+        })
+    }
+
     /// 窗口的物理像素尺寸：显示部分按缩放取整，旋转奇数圈时宽高互换。
     /// 与前端 `pinCanvasSize` 的算法相同，canvas 后备尺寸正好等于窗口。
     pub fn window_size(&self) -> (u32, u32) {
@@ -176,6 +255,16 @@ impl SavedPin {
         }
     }
 
+    /// 翻转或旋转（中心不动）。快捷键与右键菜单共用。只改摆放，局部的边界不变。
+    pub fn turn(&mut self, turn: Turn) {
+        match turn {
+            Turn::FlipHorizontal => self.flip(true),
+            Turn::FlipVertical => self.flip(false),
+            Turn::RotateClockwise => self.rotate(1),
+            Turn::RotateCounterClockwise => self.rotate(-1),
+        }
+    }
+
     fn keep_centre(&mut self, before: ScreenRect) {
         let (w, h) = self.window_size();
         let cx = i64::from(before.x) * 2 + i64::from(before.width);
@@ -184,9 +273,11 @@ impl SavedPin {
         self.placement.y = ((cy - i64::from(h)) / 2) as i32;
     }
 
-    fn capture_id(&self) -> &str {
+    /// 钉住的截图；资料库钉图为 `None`。
+    pub fn capture_id(&self) -> Option<&str> {
         match &self.content {
-            PinContent::Capture { capture_id } => capture_id,
+            PinContent::Capture { capture_id } => Some(capture_id),
+            PinContent::Reference { .. } => None,
         }
     }
 }
@@ -222,18 +313,22 @@ impl PinStore {
 
     /// 启动时恢复钉图：去掉截图已不在截图历史中的，把离开了所有显示器的拉回屏幕
     /// （至少 [`RESTORE_KEEP`] 像素可见），并让截图历史知道这些截图仍被钉住。
+    /// 资料库钉图都留着：资料库此刻没打开、原图缺失时钉图显示提示，不丢掉画师的摆放。
     /// 返回要重新打开的钉图，按保存的先后。
     pub fn restore(
         &mut self,
         history: &mut CaptureHistory,
         monitors: &[ScreenRect],
     ) -> Vec<SavedPin> {
-        self.pins.retain(|p| history.file(p.capture_id()).is_some());
+        self.pins
+            .retain(|p| p.capture_id().is_none_or(|c| history.file(c).is_some()));
         for pin in &mut self.pins {
             let (x, y) = pull_onto_screen(pin.rect(), monitors);
             pin.placement.x = x;
             pin.placement.y = y;
-            history.pin(pin.capture_id());
+            if let Some(capture) = pin.capture_id() {
+                history.pin(capture);
+            }
         }
         self.pins.clone()
     }
