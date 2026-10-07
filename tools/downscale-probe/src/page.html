@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Kinshoko 缩小对比</title>
+<style>
+  :root {
+    --bg: #f7f3ea; --ink: #2a2622; --muted: #6f675e; --line: #d8d1c4;
+    --accent: #e0768f; --accent-strong: #b5465f; --wall: #eae9e6;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1e1c2c; --ink: #ece8f4; --muted: #a39fb4; --line: #3a3750;
+      --accent: #e3b34f; --accent-strong: #e3b34f; --wall: #161618; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--wall); color: var(--ink);
+    font: 15px/1.6 "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+  /* 画布铺满窗口，后备尺寸 = 设备像素，缩略图按 1:1 设备像素画上去，不经浏览器缩放。 */
+  #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .bar { position: fixed; left: 0; right: 0; z-index: 1; background: var(--bg); padding: 8px 16px;
+    display: flex; align-items: center; gap: 12px; border-color: var(--line); border-style: solid; border-width: 0; }
+  #top { top: 0; border-bottom-width: 1px; }
+  #bottom { bottom: 0; border-top-width: 1px; flex-wrap: wrap; }
+  #top .side { flex: 1; text-align: center; font-weight: 600; }
+  #info { flex: 2; text-align: center; color: var(--muted); }
+  button { font: inherit; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--line);
+    background: transparent; color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.on { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+  button.primary { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  textarea { font: inherit; color: var(--ink); background: transparent; border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 10px; resize: vertical; }
+  #comment { flex: 1; min-width: 240px; height: 2.4em; }
+  .choices { display: flex; gap: 8px; }
+  .screen { position: fixed; inset: 0; z-index: 2; background: var(--bg); overflow: auto; }
+  .screen > div { max-width: 760px; margin: 48px auto; padding: 0 24px; }
+  .screen h1 { font-size: 24px; margin: 0 0 16px; }
+  .muted { color: var(--muted); }
+  .notice { color: var(--accent-strong); }
+  kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 13px; }
+  #overall { width: 100%; height: 6em; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<div id="top" class="bar">
+  <span class="side" id="label-left">左</span>
+  <span id="info"></span>
+  <span class="side" id="label-right">右</span>
+</div>
+
+<div id="bottom" class="bar">
+  <button id="prev">上一组</button>
+  <div class="choices">
+    <button data-choice="left">左边更还原 <kbd>1</kbd></button>
+    <button data-choice="same">看不出区别 <kbd>2</kbd></button>
+    <button data-choice="right">右边更还原 <kbd>3</kbd></button>
+  </div>
+  <textarea id="comment" placeholder="这一组的留言（可不填）：例如哪里的线更像原图、哪边发灰或发糊"></textarea>
+  <button id="original" title="在同一位置按原图 1:1 显示，按住 O 也可以">对照原图 <kbd>O</kbd></button>
+  <button id="next" class="primary">下一组</button>
+</div>
+
+<div id="intro" class="screen"><div>
+  <h1>Kinshoko 缩小对比</h1>
+  <p>Kinshoko 显示缩略图时要把大图缩小。缩小有两种算法，细黑线、线稿在两种算法下看起来不一样：一种线更浅更细，另一种线更深更实。我们想知道在<b>你的屏幕上</b>哪一种更接近原图。</p>
+  <p>接下来每一组左右各显示同一张图用不同算法缩小的结果，图按屏幕像素 1:1 显示，没有再被缩放。左右与组的顺序是随机的，看不出哪边是哪种算法是正常的。</p>
+  <ul>
+    <li>选出你觉得更还原、更像原图的一边；实在看不出就选“看不出区别”。可以给每一组留言，最后还可以写整体感受。</li>
+    <li>图比窗口大时，用鼠标或笔拖动、用滚轮滚动来看其他部分，左右两边一起移动。</li>
+    <li>“对照原图”在同一位置按原图 1:1 显示一会儿，方便比较；再点一次回到对比。</li>
+    <li>请保持平时作画时的显示器设置（亮度、缩放比例、夜间模式等）。</li>
+    <li>样本是程序画的线稿，以及从 pixiv 下载的几张公开线稿（第一次运行需要联网，约 4 MB）。不读取你自己的图片和文件。</li>
+  </ul>
+  <p>做完后点“保存报告”，桌面上会出现 <b>kinshoko-缩小对比报告-数字.zip</b>，把它发回即可。报告只有每组的选择、留言、用时和屏幕信息，不含文件名和图片。</p>
+  <p><button id="start" class="primary">开始</button></p>
+</div></div>
+
+<div id="loading" class="screen" hidden><div>
+  <h1>正在准备</h1>
+  <p id="progress" class="muted">…</p>
+  <p id="error" class="notice" hidden></p>
+</div></div>
+
+<div id="finish" class="screen" hidden><div>
+  <h1>最后一步</h1>
+  <p id="summary"></p>
+  <p class="notice" id="notice" hidden></p>
+  <p>整体感受（可不填）：哪种更像你在优动漫里缩小看图的样子？哪些线最明显？</p>
+  <textarea id="overall"></textarea>
+  <p><button id="back">回到对比</button> <button id="save" class="primary">保存报告</button></p>
+  <p id="saved" hidden></p>
+  <p id="save-error" class="notice" hidden></p>
+</div></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const post = (msg) => window.ipc.postMessage(JSON.stringify(msg));
+
+let groups = [];
+let index = 0;
+const answers = new Map(); // 组号 → { choice, comment, seconds }
+let shownAt = performance.now();
+let bitmaps = null; // { left, right, original }
+let loadToken = 0;
+let pan = { x: 0, y: 0 }; // 缩略图上的设备像素
+let showOriginal = false;
+let notice = "";
+
+const canvas = $("view");
+let ctx = makeContext();
+let device = { width: 1, height: 1 };
+
+/** 与钉图相同：sRGB 画布，优先 float16（扩展范围，广色域不被裁到 sRGB），不支持时 8 位。 */
+function makeContext() {
+  const wide = canvas.getContext("2d", { colorSpace: "srgb", colorType: "float16" });
+  const attrs = wide && wide.getContextAttributes ? wide.getContextAttributes() : {};
+  if (wide && attrs.colorType === "float16") return wide;
+  return wide || canvas.getContext("2d", { colorSpace: "srgb" });
+}
+
+// 画布后备尺寸取设备像素内容框，CSS 尺寸由 100% 决定，两者一一对应。
+new ResizeObserver((entries) => {
+  const e = entries[0];
+  const box = e.devicePixelContentBoxSize && e.devicePixelContentBoxSize[0];
+  const dpr = window.devicePixelRatio;
+  device = box
+    ? { width: box.inlineSize, height: box.blockSize }
+    : { width: Math.round(e.contentRect.width * dpr), height: Math.round(e.contentRect.height * dpr) };
+  canvas.width = device.width;
+  canvas.height = device.height;
+  draw();
+}).observe(canvas, { box: "device-pixel-content-box" });
+
+function wall() {
+  return getComputedStyle(document.documentElement).getPropertyValue("--wall").trim() || "#eae9e6";
+}
+
+/** 图片区域（设备像素）：上下两条栏之间。 */
+function area() {
+  const dpr = window.devicePixelRatio;
+  const top = Math.ceil($("top").getBoundingClientRect().bottom * dpr) + 12;
+  const bottom = Math.floor($("bottom").getBoundingClientRect().top * dpr) - 12;
+  const gap = 16;
+  const half = Math.floor((device.width - gap * 3) / 2);
+  return { top, height: Math.max(1, bottom - top), gap, half };
+}
+
+function clampPan() {
+  if (!bitmaps) return;
+  const a = area();
+  const b = bitmaps.left;
+  pan.x = Math.round(Math.min(Math.max(0, pan.x), Math.max(0, b.width - a.half)));
+  pan.y = Math.round(Math.min(Math.max(0, pan.y), Math.max(0, b.height - a.height)));
+}
+
+function draw() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = wall();
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (!bitmaps) return;
+  clampPan();
+  const a = area();
+  if (showOriginal && bitmaps.original) {
+    // 原图 1:1：以两边当前可见区域的中心在原图里对应的位置为中心。
+    const o = bitmaps.original;
+    const scale = o.width / bitmaps.left.width;
+    const vw = Math.min(device.width - a.gap * 2, o.width);
+    const vh = Math.min(a.height, o.height);
+    const cx = (pan.x + Math.min(a.half, bitmaps.left.width) / 2) * scale;
+    const cy = (pan.y + Math.min(a.height, bitmaps.left.height) / 2) * scale;
+    const sx = Math.round(Math.min(Math.max(0, cx - vw / 2), o.width - vw));
+    const sy = Math.round(Math.min(Math.max(0, cy - vh / 2), o.height - vh));
+    const ox = Math.floor((device.width - vw) / 2);
+    const oy = a.top + Math.floor((a.height - vh) / 2);
+    ctx.drawImage(o, sx, sy, vw, vh, ox, oy, vw, vh);
+    return;
+  }
+  [bitmaps.left, bitmaps.right].forEach((b, i) => {
+    const vw = Math.min(a.half, b.width);
+    const vh = Math.min(a.height, b.height);
+    const ox = a.gap + i * (a.half + a.gap) + Math.floor((a.half - vw) / 2);
+    const oy = a.top + Math.floor((a.height - vh) / 2);
+    ctx.drawImage(b, pan.x, pan.y, vw, vh, ox, oy, vw, vh);
+  });
+}
+
+async function bitmap(url) {
+  const blob = await (await fetch(url)).blob();
+  return createImageBitmap(blob, { colorSpaceConversion: "default", premultiplyAlpha: "default" });
+}
+
+function rememberTime() {
+  const g = groups[index];
+  if (!g) return;
+  const a = answers.get(g.number) || { choice: null, comment: "", seconds: 0 };
+  a.seconds += (performance.now() - shownAt) / 1000;
+  a.comment = $("comment").value;
+  answers.set(g.number, a);
+  shownAt = performance.now();
+}
+
+async function show(i) {
+  rememberTime();
+  index = i;
+  const g = groups[index];
+  const a = answers.get(g.number) || { choice: null, comment: "", seconds: 0 };
+  $("comment").value = a.comment;
+  $("info").textContent = `第 ${g.number} / ${groups.length} 组 · 缩小到 ${g.scale} · ${g.description}`;
+  $("prev").disabled = index === 0;
+  $("next").textContent = index === groups.length - 1 ? "完成" : "下一组";
+  markChoice(a.choice);
+  toggleOriginal(false);
+  const token = ++loadToken;
+  bitmaps = null;
+  draw();
+  const [left, right] = await Promise.all([
+    bitmap(`/img/${g.number}/left`),
+    bitmap(`/img/${g.number}/right`),
+  ]);
+  if (token !== loadToken) return;
+  bitmaps = { left, right, original: null };
+  // 从图的中心开始看。
+  const ar = area();
+  pan = { x: (left.width - ar.half) / 2, y: (left.height - ar.height) / 2 };
+  draw();
+  shownAt = performance.now();
+  bitmap(`/orig/${g.number}`).then((o) => {
+    if (token === loadToken && bitmaps) bitmaps.original = o;
+  });
+}
+
+function markChoice(choice) {
+  document.querySelectorAll("[data-choice]").forEach((b) => b.classList.toggle("on", b.dataset.choice === choice));
+}
+
+function choose(choice) {
+  const g = groups[index];
+  const a = answers.get(g.number) || { choice: null, comment: "", seconds: 0 };
+  a.choice = choice;
+  answers.set(g.number, a);
+  markChoice(choice);
+}
+
+function next() {
+  if (index < groups.length - 1) show(index + 1);
+  else finish();
+}
+
+function finish() {
+  rememberTime();
+  const done = [...answers.values()].filter((a) => a.choice).length;
+  $("summary").textContent = `已选 ${done} / ${groups.length} 组。没选的组也可以直接保存。`;
+  $("notice").textContent = notice;
+  $("notice").hidden = !notice;
+  $("finish").hidden = false;
+}
+
+function toggleOriginal(on) {
+  showOriginal = on === undefined ? !showOriginal : on;
+  $("original").classList.toggle("on", showOriginal);
+  $("label-left").textContent = showOriginal ? "原图 1:1" : "左";
+  $("label-right").textContent = showOriginal ? "原图 1:1" : "右";
+  draw();
+}
+
+async function environment() {
+  const media = (q) => window.matchMedia(q).matches;
+  const env = {
+    devicePixelRatio: window.devicePixelRatio,
+    screen: { width: screen.width, height: screen.height, colorDepth: screen.colorDepth },
+    canvas: { width: device.width, height: device.height, colorType: (ctx.getContextAttributes && ctx.getContextAttributes().colorType) || "unorm8" },
+    colorGamut: media("(color-gamut: rec2020)") ? "rec2020" : media("(color-gamut: p3)") ? "p3" : "srgb",
+    dynamicRange: media("(dynamic-range: high)") ? "high" : "standard",
+    darkMode: media("(prefers-color-scheme: dark)"),
+    userAgent: navigator.userAgent,
+  };
+  try {
+    const h = await navigator.userAgentData.getHighEntropyValues(["platformVersion", "architecture"]);
+    env.platformVersion = h.platformVersion;
+    env.architecture = h.architecture;
+  } catch (_) {}
+  return env;
+}
+
+// 拖动与滚轮：左右一起移动。
+let drag = null;
+canvas.addEventListener("pointerdown", (e) => {
+  drag = { x: e.clientX, y: e.clientY, pan: { ...pan } };
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const dpr = window.devicePixelRatio;
+  pan = { x: drag.pan.x - (e.clientX - drag.x) * dpr, y: drag.pan.y - (e.clientY - drag.y) * dpr };
+  draw();
+});
+canvas.addEventListener("pointerup", () => (drag = null));
+canvas.addEventListener("pointercancel", () => (drag = null));
+canvas.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  if (e.ctrlKey) return; // 不缩放
+  const dpr = window.devicePixelRatio;
+  pan = e.shiftKey ? { x: pan.x + e.deltaY * dpr, y: pan.y } : { x: pan.x + e.deltaX * dpr, y: pan.y + e.deltaY * dpr };
+  draw();
+}, { passive: false });
+// 禁止页面缩放：缩放会改变设备像素比，1:1 就不成立了（画布会跟着重算，但没必要）。
+window.addEventListener("keydown", (e) => {
+  if (e.ctrlKey && ["+", "-", "=", "0"].includes(e.key)) e.preventDefault();
+  if (e.target.tagName === "TEXTAREA" || !groups.length || !$("finish").hidden) return;
+  if (e.key === "1") choose("left");
+  else if (e.key === "2") choose("same");
+  else if (e.key === "3") choose("right");
+  else if (e.key === "o" || e.key === "O") { if (!e.repeat) toggleOriginal(true); }
+  else if (e.key === "Enter" || e.key === "ArrowRight") next();
+  else if (e.key === "ArrowLeft" && index > 0) show(index - 1);
+});
+window.addEventListener("keyup", (e) => {
+  if ((e.key === "o" || e.key === "O") && e.target.tagName !== "TEXTAREA" && showOriginal) toggleOriginal(false);
+});
+window.addEventListener("resize", draw);
+
+document.querySelectorAll("[data-choice]").forEach((b) => b.addEventListener("click", () => choose(b.dataset.choice)));
+$("prev").addEventListener("click", () => index > 0 && show(index - 1));
+$("next").addEventListener("click", next);
+$("original").addEventListener("click", () => toggleOriginal());
+$("back").addEventListener("click", () => { $("finish").hidden = true; shownAt = performance.now(); });
+$("start").addEventListener("click", () => {
+  $("intro").hidden = true;
+  $("loading").hidden = false;
+  post({ kind: "start" });
+});
+$("save").addEventListener("click", async () => {
+  $("save").disabled = true;
+  const list = [...answers.entries()].map(([group, a]) => ({
+    group, choice: a.choice, comment: a.comment, seconds: Math.round(a.seconds * 10) / 10,
+  }));
+  post({ kind: "save", answers: list, comment: $("overall").value, environment: await environment() });
+});
+
+// Rust 侧调用的入口。
+window.probe = {
+  progress(p) { $("progress").textContent = p.text; },
+  notice(text) { notice = text; },
+  failed(text) {
+    $("save").disabled = false;
+    const el = $("finish").hidden ? $("error") : $("save-error");
+    el.textContent = text;
+    el.hidden = false;
+  },
+  ready(list) {
+    groups = list;
+    $("loading").hidden = true;
+    show(0);
+  },
+  saved(r) {
+    $("save").disabled = false;
+    const p = $("saved");
+    p.innerHTML = "";
+    p.append(`报告已保存到${r.place}：`);
+    const b = document.createElement("b");
+    b.textContent = r.name;
+    p.append(b, "。请把它发回。改了选择可以再保存一次。 ");
+    const open = document.createElement("button");
+    open.textContent = "打开所在文件夹";
+    open.onclick = () => post({ kind: "showReport" });
+    p.append(open);
+    p.hidden = false;
+  },
+};
+</script>
+</body>
+</html>
