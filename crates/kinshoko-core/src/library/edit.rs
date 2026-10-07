@@ -72,6 +72,11 @@ pub struct SourceNote {
 #[ts(export)]
 pub struct ImageDetail {
     pub id: String,
+    pub original_name: String,
+    /// 收集时间（Unix 毫秒）：Eagle btime → modificationTime → 导入时间。
+    #[ts(type = "number")]
+    pub collected_at: i64,
+    pub source_links: Vec<String>,
     pub width: u32,
     pub height: u32,
     /// 所在的文件夹，按名称排序。
@@ -177,7 +182,8 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<bool, Er
         }
         ImageEdit::Delete => {
             let mut stmt = conn.prepare_cached(
-                "UPDATE image SET deleted_at = ?1 WHERE id = ?2 AND deleted_at IS NULL",
+                "UPDATE image SET deleted_at = coalesce(deleted_at, ?1), eagle_initial_trash = 0
+                 WHERE id = ?2",
             )?;
             let now = now_ms();
             for id in ids {
@@ -185,8 +191,9 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<bool, Er
             }
         }
         ImageEdit::Restore => {
-            let mut stmt =
-                conn.prepare_cached("UPDATE image SET deleted_at = NULL WHERE id = ?1")?;
+            let mut stmt = conn.prepare_cached(
+                "UPDATE image SET deleted_at = NULL, eagle_initial_trash = 0 WHERE id = ?1",
+            )?;
             for id in ids {
                 stmt.execute([id])?;
             }
@@ -198,11 +205,11 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<bool, Er
 }
 
 pub(super) fn detail(conn: &Connection, id: &str) -> Result<ImageDetail, Error> {
-    let (width, height, manual_note, deleted_at) = conn
+    let (width, height, manual_note, deleted_at, original_name, collected_at) = conn
         .query_row(
-            "SELECT width, height, note_manual, deleted_at FROM image WHERE id = ?1",
+            "SELECT width, height, note_manual, deleted_at, original_name, coalesce(collected_at, imported_at) FROM image WHERE id = ?1",
             [id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?)),
         )
         .optional()?
         .ok_or(Error::UnknownImage)?;
@@ -230,8 +237,15 @@ pub(super) fn detail(conn: &Connection, id: &str) -> Result<ImageDetail, Error> 
             })
         })?
         .collect::<Result<_, _>>()?;
+    let mut stmt = conn.prepare_cached("SELECT DISTINCT url FROM image_source WHERE image_id = ?1 AND url IS NOT NULL AND url <> '' ORDER BY url")?;
+    let source_links = stmt
+        .query_map([id], |row| row.get(0))?
+        .collect::<Result<_, _>>()?;
     Ok(ImageDetail {
         id: id.to_owned(),
+        original_name,
+        collected_at,
+        source_links,
         width,
         height,
         folders,

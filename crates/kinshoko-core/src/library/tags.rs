@@ -523,22 +523,33 @@ pub(super) fn replace_source_tags(
     let image_id = image_id.to_owned();
     let tags = tags.to_vec();
     write(inner, vec![image_id.clone()], move |tx, translations| {
-        require_image(tx, &image_id)?;
+        replace_source_tags_in(tx, translations, &FactSource(source), &image_id, &tags)
+    })
+}
+
+/// 与导入事务共用来源层写入规则；调用方负责提交后再推送事件。
+pub(super) fn replace_source_tags_in(
+    tx: &Transaction,
+    translations: &TranslationIndex,
+    source: &FactSource,
+    image_id: &str,
+    tags: &[SourceTag],
+) -> Result<(), Error> {
+    require_image(tx, image_id)?;
+    tx.execute(
+        "DELETE FROM tag_fact WHERE image_id = ?1 AND source = ?2",
+        params![image_id, source.as_str()],
+    )?;
+    for t in tags {
+        let tag_id = resolve(tx, translations, &t.tag, true)?.ok_or(Error::UnknownTag)?;
         tx.execute(
-            "DELETE FROM tag_fact WHERE image_id = ?1 AND source = ?2",
-            params![image_id, source],
-        )?;
-        for t in &tags {
-            let tag_id = resolve(tx, translations, &t.tag, true)?.ok_or(Error::UnknownTag)?;
-            tx.execute(
                 "INSERT INTO tag_fact (image_id, tag_id, source, score) VALUES (?1, ?2, ?3, ?4)
                  ON CONFLICT (image_id, tag_id, source)
                  DO UPDATE SET score = max(coalesce(score, excluded.score), coalesce(excluded.score, score))",
-                params![image_id, tag_id, source, t.score],
+                params![image_id, tag_id, source.as_str(), t.score],
             )?;
-        }
-        Ok(())
-    })
+    }
+    Ok(())
 }
 
 pub(super) fn rename_tag(inner: &Inner, tag_id: &str, lang: &str, name: &str) -> Result<(), Error> {

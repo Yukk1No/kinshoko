@@ -3,7 +3,8 @@ import type { ImportOutcome } from "../bindings/ImportOutcome";
 import type { ImportProgress } from "../bindings/ImportProgress";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { RecoveryReport } from "../bindings/RecoveryReport";
-import { cancelImport, libraryRecovery, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
+import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
+import { cancelImport, discoverEagleLibraries, libraryRecovery, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
 
 export type RunningImport = { taskId: string | null; progress: ImportProgress };
 
@@ -35,13 +36,18 @@ function reason(outcome: ImportOutcome): string | null {
 export function ImportBar({ enabled, libraryId, libraryName, running, report, onStarted, onDismissReport }: Props) {
   const [hovering, setHovering] = useState(false);
   const [recovery, setRecovery] = useState<RecoveryReport | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [eagleLibraries, setEagleLibraries] = useState<EagleLibraryCandidate[] | null>(null);
+  const [lookingForEagle, setLookingForEagle] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  // 切换资料库后旧工作区已卸下；新建表单打开时工作区只是隐藏，不接受导入。
   const alive = useRef(true);
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
   useEffect(() => {
     alive.current = true;
-    return () => { alive.current = false; };
+    return () => {
+      alive.current = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -51,17 +57,31 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
   const begin = async (paths: string[]) => {
     if (!alive.current || !enabledRef.current || !paths.length) return;
     try {
-      setError(null);
+      setImportError(null);
       const taskId = await startImport(libraryId, paths);
-      if (alive.current) onStarted(taskId);
-    } catch (e) {
-      if (alive.current) setError(String(e));
+      if (!alive.current) return;
+      onStarted(taskId);
+      setEagleLibraries(null);
+    } catch (error) {
+      if (alive.current) setImportError(`无法开始导入：${String(error)}`);
     }
   };
   const importFiles = async () => begin(await pickFiles());
   const importFolder = async () => {
     const folder = await pickFolder();
     await begin(folder ? [folder] : []);
+  };
+  const findEagle = async () => {
+    setLookingForEagle(true);
+    setImportError(null);
+    try {
+      const found = await discoverEagleLibraries();
+      if (alive.current) setEagleLibraries(found);
+    } catch (error) {
+      if (alive.current) setImportError(`无法查找 Eagle 资料库：${String(error)}`);
+    } finally {
+      if (alive.current) setLookingForEagle(false);
+    }
   };
 
   // 拖放的回调只注册一次，经 ref 读到最新的状态。
@@ -97,7 +117,7 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
     return () => {
       alive = false;
     };
-  }, []);
+  }, [libraryId]);
 
   const { done = 0, total = 0 } = running?.progress ?? {};
   const counts = report && {
@@ -111,7 +131,6 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
 
   return (
     <div className="import-bar">
-      {error && <p role="alert">{error}</p>}
       <div className="import-actions">
         <button type="button" onClick={importFiles} disabled={!!running}>
           导入文件…
@@ -119,7 +138,30 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
         <button type="button" onClick={importFolder} disabled={!!running}>
           导入文件夹…
         </button>
+        <button type="button" onClick={findEagle} disabled={!!running || lookingForEagle}>
+          {lookingForEagle ? "正在查找 Eagle 资料库…" : "从 Eagle 迁入…"}
+        </button>
       </div>
+      {importError && <p role="alert">{importError}</p>}
+      {eagleLibraries !== null && (
+        <section className="import-report" aria-label="Eagle 首次迁入">
+          <header>
+            <span>{eagleLibraries.length ? "选择要迁入的 Eagle 资料库" : "没有自动找到可读的 Eagle 资料库"}</span>
+            <button type="button" onClick={importFolder} disabled={!!running}>手动选择 Eagle 资料库…</button>
+            <button type="button" onClick={() => setEagleLibraries(null)}>关闭</button>
+          </header>
+          <p>原图、标签、文件夹、来源链接与备注会迁入当前资料库，Eagle 原库保持不变。回收站中的图会进入可恢复删除；区域评论会保留，暂不显示。</p>
+          <ul>
+            {eagleLibraries.map((candidate) => (
+              <li key={candidate.path}>
+                <span>{candidate.name} · {candidate.items} 项{candidate.version && ` · Eagle ${candidate.version}`}</span>
+                <span className="import-report-path">{candidate.path}</span>
+                <button type="button" disabled={!!running} onClick={() => void begin([candidate.path])}>迁入 {candidate.name}</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {hovering && (
         <div className="drop-hint" aria-live="polite">
           松开即可导入到 {libraryName}
@@ -139,7 +181,7 @@ export function ImportBar({ enabled, libraryId, libraryName, running, report, on
           </span>
           <button
             type="button"
-            onClick={() => running.taskId && cancelImport(libraryId, running.taskId).catch((e) => alive.current && setError(String(e)))}
+            onClick={() => running.taskId && cancelImport(libraryId, running.taskId).catch((e) => alive.current && setImportError(`无法取消导入：${String(e)}`))}
             disabled={!running.taskId}
           >
             取消导入
