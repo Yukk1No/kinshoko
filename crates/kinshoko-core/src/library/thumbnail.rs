@@ -7,11 +7,19 @@
 use std::path::{Path, PathBuf};
 
 use super::{CACHE_DIR, Error, Inner, colour};
-use crate::fidelity::render;
+use crate::fidelity::{DEFAULT_DOWNSCALE, Downscale, render};
 
 /// 缩略图管线版本。解码器、色彩策略、缩放或存储格式变化时提升。
 /// v0：#44 的 sRGB 管线；v1：#45 的色彩管理管线。
-pub(crate) const PIPELINE: &str = "v1";
+/// 缩小方式（#48）也是版本的一部分：改 `DEFAULT_DOWNSCALE` 即换目录，旧缓存整体作废。
+pub(crate) const PIPELINE: &str = pipeline(DEFAULT_DOWNSCALE);
+
+const fn pipeline(downscale: Downscale) -> &'static str {
+    match downscale {
+        Downscale::LinearLight => "v1",
+        Downscale::EncodedValue => "v1-encoded",
+    }
+}
 
 /// 动态范围变体。首版只有 `sdr`；HDR 显示上线时加 `hdr`，不覆盖 `sdr`。
 const SDR: &str = "sdr";
@@ -55,7 +63,8 @@ fn cached(inner: &Inner, image_id: &str, label: &str, max_width: u32) -> Result<
     }
 
     let bytes = std::fs::read(original)?;
-    let rendered = render::render_sdr(&bytes, max_width).map_err(Error::Undecodable)?;
+    let rendered =
+        render::render_sdr(&bytes, max_width, DEFAULT_DOWNSCALE).map_err(Error::Undecodable)?;
     std::fs::create_dir_all(path.parent().expect("缓存路径有父目录"))?;
     let tmp = path.with_extension(format!("{}.tmp", uuid::Uuid::new_v4().simple()));
     let written = std::fs::write(&tmp, &rendered.bytes).and_then(|()| std::fs::rename(&tmp, &path));
@@ -75,5 +84,18 @@ pub(super) fn remove_stale(root: &Path) {
         if entry.file_name() != PIPELINE {
             let _ = std::fs::remove_dir_all(entry.path());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn changing_the_downscale_changes_the_pipeline_version() {
+        assert_ne!(
+            pipeline(Downscale::LinearLight),
+            pipeline(Downscale::EncodedValue)
+        );
     }
 }
