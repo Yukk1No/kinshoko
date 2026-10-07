@@ -49,7 +49,7 @@ impl TagNamespace {
         }
     }
 
-    fn parse(s: &str) -> rusqlite::Result<TagNamespace> {
+    pub(super) fn parse(s: &str) -> rusqlite::Result<TagNamespace> {
         Ok(match s {
             "general" => TagNamespace::General,
             "artist" => TagNamespace::Artist,
@@ -153,7 +153,7 @@ pub struct TagAlias {
 }
 
 /// 某种语言的标签名。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct LocalizedName {
@@ -681,6 +681,26 @@ pub(super) fn replace_source_tags_in(
             )?;
     }
     Ok(())
+}
+
+/// 同 [`replace_source_tags_in`]，但跳过在目标资料库里有歧义的名称（同一命名空间有多个标签叫它），
+/// 不让一个标签挡住整张图的导入（参考组包快照用，#68）。
+pub(super) fn replace_source_tags_lenient(
+    tx: &Transaction,
+    translations: &TranslationIndex,
+    source: &FactSource,
+    image_id: &str,
+    tags: &[SourceTag],
+) -> Result<(), Error> {
+    let mut resolvable = Vec::new();
+    for t in tags {
+        match resolve(tx, translations, &t.tag, false) {
+            Err(Error::AmbiguousTag(_) | Error::InvalidTagName) => {}
+            Err(e) => return Err(e),
+            Ok(_) => resolvable.push(t.clone()),
+        }
+    }
+    replace_source_tags_in(tx, translations, source, image_id, &resolvable)
 }
 
 pub(super) fn rename_tag(inner: &Inner, tag_id: &str, lang: &str, name: &str) -> Result<(), Error> {

@@ -33,6 +33,7 @@ mod filter;
 mod folders;
 mod import;
 mod lens;
+mod package;
 mod rating;
 mod recovery;
 mod sidebar;
@@ -65,6 +66,7 @@ pub use events::LibraryEvent;
 pub use folders::FolderNode;
 pub use import::ImportTask;
 pub use lens::{ReferenceImage, ReferenceLens};
+pub use package::{ImageSnapshot, PackageOrigin, SnapshotTag};
 pub use rating::{ContentRating, ImageRating, RatingFact, TaggingOutcome};
 pub use sidebar::Sidebar;
 pub use tags::{
@@ -556,6 +558,29 @@ impl Library {
         self.inner
             .require_visible(&self.inner.readers.get(), image_id)?;
         self.inner.original_path(image_id)
+    }
+
+    /// 参考组包（#68）：把包里的一份原图连同导出时的整理信息快照导入，返回它在本库的参考图。
+    /// 走普通导入的写入顺序；字节须与快照的 SHA-256 一致。同库已有字节相同的原图只合并来源，
+    /// 同一个包重复导入不重复建图。快照按 `package:<包 id>` 来源分层写入，不碰人工整理。
+    pub fn import_from_package(
+        &self,
+        origin: &PackageOrigin,
+        bytes: &[u8],
+        snapshot: &ImageSnapshot,
+    ) -> Result<String, Error> {
+        let (outcome, list_changed) =
+            import::import_package_original(&self.inner, origin.clone(), bytes, snapshot.clone());
+        if list_changed {
+            self.inner.hub.publish(LibraryEvent::ListStale {
+                library_id: self.inner.info.id.clone(),
+            });
+        }
+        match outcome {
+            ImportOutcome::ReadFailed { reason } => Err(Error::PackageImage(reason)),
+            ImportOutcome::Unsupported => Err(Error::PackageImage("不是支持的图片格式".into())),
+            other => Ok(other.image_id().expect("进库的结果都有参考图").to_owned()),
+        }
     }
 
     /// 打标子接口：待打标的图的原文件位置，不受安全模式影响（被封印的图也要重新打标）。
