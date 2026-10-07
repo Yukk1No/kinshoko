@@ -1,12 +1,62 @@
 //! 新钉图摆在哪里。
 
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
 /// 屏幕上的矩形，物理像素。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ScreenRect {
     pub x: i32,
     pub y: i32,
     pub width: u32,
     pub height: u32,
+}
+
+impl ScreenRect {
+    fn right(&self) -> i64 {
+        i64::from(self.x) + i64::from(self.width)
+    }
+
+    fn bottom(&self) -> i64 {
+        i64::from(self.y) + i64::from(self.height)
+    }
+
+    fn from_edges(left: i64, top: i64, right: i64, bottom: i64) -> ScreenRect {
+        ScreenRect {
+            x: left as i32,
+            y: top as i32,
+            width: (right - left).max(0) as u32,
+            height: (bottom - top).max(0) as u32,
+        }
+    }
+
+    /// 同时盖住两者的最小矩形。
+    pub fn union(&self, other: &ScreenRect) -> ScreenRect {
+        ScreenRect::from_edges(
+            i64::from(self.x.min(other.x)),
+            i64::from(self.y.min(other.y)),
+            self.right().max(other.right()),
+            self.bottom().max(other.bottom()),
+        )
+    }
+
+    /// 两者重叠的部分；不重叠时为 `None`。
+    pub fn intersect(&self, other: &ScreenRect) -> Option<ScreenRect> {
+        let left = i64::from(self.x.max(other.x));
+        let top = i64::from(self.y.max(other.y));
+        let right = self.right().min(other.right());
+        let bottom = self.bottom().min(other.bottom());
+        (right > left && bottom > top).then(|| ScreenRect::from_edges(left, top, right, bottom))
+    }
+
+    /// `other` 整个在这个矩形里。
+    pub fn contains(&self, other: &ScreenRect) -> bool {
+        other.x >= self.x
+            && other.y >= self.y
+            && other.right() <= self.right()
+            && other.bottom() <= self.bottom()
+    }
 }
 
 /// 最多错开几步；再挤也不会无休止地找下去。

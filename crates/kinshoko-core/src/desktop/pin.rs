@@ -1,4 +1,5 @@
-//! 桌面钉图的状态与持久化（#63）：重新打开后恢复钉图的位置、裁切、翻转与旋转。
+//! 桌面钉图的状态与持久化（#63）：重新打开后恢复钉图的位置、裁切、翻转与旋转，
+//! 以及右键菜单里的透明度与锁定（#64）。
 //!
 //! 保存在应用数据目录的 `pins.json`。每次改动先写临时文件再改名，写到一半断电也不会留下半份。
 
@@ -22,6 +23,8 @@ pub const MIN_SCALE: f64 = 0.05;
 pub const MAX_SCALE: f64 = 10.0;
 /// 缩小时窗口较长的一边不小于这么多物理像素，免得缩成抓不住的一点。
 pub const MIN_SIDE: u32 = 24;
+/// 透明度的下限：再淡就看不见、找不回来了（#64）。
+pub const MIN_OPACITY: f64 = 0.1;
 
 /// 钉图在桌面上的摆放：位置、缩放、翻转与旋转。
 ///
@@ -77,6 +80,16 @@ pub struct SavedPin {
     pub width: u32,
     pub height: u32,
     pub placement: Placement,
+    /// 透明度，[`MIN_OPACITY`]～1。只属于桌面钉图（#64）。
+    #[serde(default = "opaque")]
+    pub opacity: f64,
+    /// 锁定后不响应拖动与缩放（#64）。
+    #[serde(default)]
+    pub locked: bool,
+}
+
+fn opaque() -> f64 {
+    1.0
 }
 
 impl SavedPin {
@@ -104,9 +117,32 @@ impl SavedPin {
         }
     }
 
+    /// 拖动到 (x, y)（原位，物理像素）。锁定时不动，返回 false。
+    pub fn move_to(&mut self, x: i32, y: i32) -> bool {
+        if self.locked {
+            return false;
+        }
+        self.placement.x = x;
+        self.placement.y = y;
+        true
+    }
+
+    /// 透明度限制在 [`MIN_OPACITY`]～1；读不懂的值按不透明。
+    pub fn set_opacity(&mut self, opacity: f64) {
+        self.opacity = if opacity.is_nan() {
+            1.0
+        } else {
+            opacity.clamp(MIN_OPACITY, 1.0)
+        };
+    }
+
     /// 缩放到 `scale`，屏幕上的 `anchor`（物理像素，例如光标）保持不动。
     /// 缩放限制在 [`MIN_SCALE`]～[`MAX_SCALE`]，较长的一边不小于 [`MIN_SIDE`]。
-    pub fn zoom(&mut self, scale: f64, anchor: (f64, f64)) {
+    /// 锁定时不缩放，返回 false。
+    pub fn zoom(&mut self, scale: f64, anchor: (f64, f64)) -> bool {
+        if self.locked {
+            return false;
+        }
         let longest = f64::from(self.width.max(self.height).max(1));
         let floor = (f64::from(MIN_SIDE) / longest).max(MIN_SCALE);
         let scale = scale.clamp(floor.min(MAX_SCALE), MAX_SCALE);
@@ -118,6 +154,7 @@ impl SavedPin {
         let fy = (anchor.1 - f64::from(old.y)) / f64::from(old.height.max(1));
         self.placement.x = (anchor.0 - fx * f64::from(w)).round() as i32;
         self.placement.y = (anchor.1 - fy * f64::from(h)).round() as i32;
+        true
     }
 
     /// 顺时针旋转 `quarter_turns` 个四分之一圈（负数为逆时针），中心不动。
