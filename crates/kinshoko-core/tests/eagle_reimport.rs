@@ -546,8 +546,8 @@ fn a_library_from_before_folder_decisions_upgrades_and_keeps_its_folders() {
     let hair = folder_id(&library, "发型参考");
     drop(library);
     {
-        // 退回 #77 之前的数据库结构：没有 folder_decision、列表修订号（S4）与参考组包导入记录
-        // （#68），版本号少三。
+        // 退回 #77 之前的数据库结构：没有 folder_decision 与列表修订号（S4），也没有之后的
+        // 迁移（#67 的回收站修订号与待清除原文件、#68 的参考组包导入记录），版本号少四。
         let conn = rusqlite::Connection::open(root.join("library.sqlite")).unwrap();
         let version: i64 = conn
             .query_row("PRAGMA user_version", [], |r| r.get(0))
@@ -564,9 +564,16 @@ fn a_library_from_before_folder_decisions_upgrades_and_keeps_its_folders() {
                 .unwrap();
         }
         conn.execute_batch(&format!(
-            "DROP TABLE folder_decision; DROP TABLE list_revision; DROP TABLE package_import;
+            "DROP TABLE package_import;
+             DROP TABLE original_removal;
+             DROP TRIGGER trash_revision_insert;
+             DROP TRIGGER trash_revision_update;
+             DROP TRIGGER trash_revision_delete;
+             DROP TABLE trash_revision;
+             DROP TABLE folder_decision;
+             DROP TABLE list_revision;
              PRAGMA user_version = {};",
-            version - 3
+            version - 4
         ))
         .unwrap();
     }

@@ -20,7 +20,7 @@ use tauri_plugin_dialog::DialogExt as _;
 
 use super::{lock, pins, state};
 
-const CHANGED_EVENT: &str = "reference-groups";
+pub(super) const CHANGED_EVENT: &str = "reference-groups";
 
 fn changed(app: &AppHandle) {
     let _ = app.emit(CHANGED_EVENT, ());

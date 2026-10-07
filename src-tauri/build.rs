@@ -15,6 +15,8 @@ fn main() {
                         "browse",
                         "image",
                         "edit",
+                        "preview_permanent_delete",
+                        "permanent_delete",
                         "sidebar",
                         "create_folder",
                         "rename_folder",

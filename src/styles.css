@@ -708,6 +708,24 @@ button.primary {
   opacity: 0.6;
 }
 
+/* 永久删除的确认（#67）：列出受影响的参考组。 */
+.permanent-delete {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.permanent-delete p,
+.permanent-delete ul {
+  margin: 0;
+}
+
+.permanent-delete ul {
+  padding-left: 1.4em;
+}
+
 /* 搜索框（#54）：条件以标签块排在输入框前，下拉候选浮在图片墙上。 */
 .search {
   display: flex;

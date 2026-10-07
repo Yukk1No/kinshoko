@@ -39,6 +39,12 @@ pub enum Error {
     OutdatedLibrary,
     /// 参考组包里的原图没能进库（读不出、解码失败或与包内记录不符，#68）。
     PackageImage(String),
+    /// 永久删除只删回收站里的图。
+    NotInTrash,
+    /// 永久删除预览之后回收站、受影响的参考组或安全模式变了，要重新预览（#67）。
+    DeletePreviewStale,
+    /// 无法核对参考组（例如有参考组文件读不懂），不能确认永久删除的影响。
+    ReferenceGroups(String),
     Io(std::io::Error),
     Db(rusqlite::Error),
     Migration(rusqlite_migration::Error),
@@ -74,6 +80,14 @@ impl fmt::Display for Error {
             }
             Error::PackageImage(why) => write!(f, "参考组包里的原图没能导入：{why}"),
             Error::NamespaceGroup => write!(f, "这个分组按命名空间列出标签，不能手动调整成员"),
+            Error::NotInTrash => write!(f, "只能永久删除回收站里的图"),
+            Error::DeletePreviewStale => {
+                write!(
+                    f,
+                    "回收站或参考组在确认前有变化，请重新查看将受影响的参考组"
+                )
+            }
+            Error::ReferenceGroups(e) => write!(f, "无法核对参考组，未删除：{e}"),
             Error::Io(e) => write!(f, "读写文件失败：{e}"),
             Error::Db(e) => write!(f, "资料库数据库出错：{e}"),
             Error::Migration(e) => write!(f, "资料库格式无法升级：{e}"),

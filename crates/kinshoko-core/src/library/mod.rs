@@ -7,6 +7,8 @@
 //! - [`Library::thumbnail`]：缩略图（可重建缓存）的本地文件；
 //! - [`Library::edit`]：一次批量整理若干张图，返回重新计算后的详情；[`Library::image`]：单张详情；
 //! - [`Library::sidebar`]：文件夹树与按可见图计算的计数；
+//! - 永久删除两步：[`Library::preview_permanent_delete`] 给出受影响的参考组与令牌，
+//!   [`Library::permanent_delete`] 核对令牌后执行；
 //! - 文件夹编辑：[`Library::create_folder`]、[`Library::rename_folder`]、[`Library::move_folder`]。
 //! - [`Library::edit_tags`] / [`Library::image_tags`]：人工标签决定与一张图的标签；
 //! - [`Library::vocabulary`]：标签词表快照；[`Library::tag_groups`]：侧栏的标签分组；
@@ -34,6 +36,7 @@ mod folders;
 mod import;
 mod lens;
 mod package;
+mod permanent_delete;
 mod rating;
 mod recovery;
 mod sidebar;
@@ -67,6 +70,7 @@ pub use folders::FolderNode;
 pub use import::ImportTask;
 pub use lens::{ReferenceImage, ReferenceLens};
 pub use package::{ImageSnapshot, PackageOrigin, SnapshotTag};
+pub use permanent_delete::PermanentDeletePreview;
 pub use rating::{ContentRating, ImageRating, RatingFact, TaggingOutcome};
 pub use sidebar::Sidebar;
 pub use tags::{
@@ -331,6 +335,28 @@ impl Library {
     /// 返回这些图重新计算后的详情（按 `ids` 顺序、去重）。
     pub fn edit(&self, ids: &[String], edits: &[ImageEdit]) -> Result<Vec<ImageDetail>, Error> {
         edit::edit(&self.inner, ids, edits)
+    }
+
+    /// 永久删除的预览：`ids` 必须都在回收站里（浏览视角）。经参考组用途 port 查出用到它们的
+    /// 参考组，给出令牌。参考组读不懂时无法核对，报错而不是当作没用到。
+    pub fn preview_permanent_delete(
+        &self,
+        ids: &[String],
+        usage: &dyn crate::reference_groups::ReferenceGroupUsage,
+    ) -> Result<PermanentDeletePreview, Error> {
+        permanent_delete::preview(&self.inner, ids, usage)
+    }
+
+    /// 永久删除回收站里的 `ids`：令牌须来自对同一组图的预览，且之后回收站、受影响的参考组与
+    /// 安全模式都没变，否则为 [`Error::DeletePreviewStale`]，要重新预览。删掉参考图的记录、
+    /// 整理结果、原文件与缩略图；参考组文件不改，成员与布局保留，核对时标为已删除。
+    pub fn permanent_delete(
+        &self,
+        ids: &[String],
+        token: &str,
+        usage: &dyn crate::reference_groups::ReferenceGroupUsage,
+    ) -> Result<(), Error> {
+        permanent_delete::execute(&self.inner, ids, token, usage)
     }
 
     /// 单张参考图的详情。
