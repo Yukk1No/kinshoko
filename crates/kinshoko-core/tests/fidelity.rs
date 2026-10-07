@@ -8,7 +8,7 @@ use image::{ImageEncoder, RgbaImage};
 use kinshoko_core::Library;
 use kinshoko_core::fidelity::gate::{self, GateSample};
 use kinshoko_core::library::{
-    BrowseQuery, ColourDeclaration, ColourDescription, ColourModel, HdrKind, IccKind,
+    BrowseQuery, ColourDeclaration, ColourDescription, ColourModel, DisplayRoute, HdrKind, IccKind,
     ImportOutcome, ImportSource,
 };
 
@@ -466,9 +466,12 @@ fn import_records_how_each_gate_sample_declares_its_colour() {
             ),
             "{name}"
         );
+        // 动图、HDR，以及生效的 ICC 不能被 Chromium 精确表示（查找表型，含 CMYK）。
+        let not_exact =
+            declaration == D::Icc && (model == M::Cmyk || matches!(icc, Some((IccKind::Lut, _))));
         assert_eq!(
             d.needs_sdr_derivative(),
-            animated || hdr.is_some(),
+            animated || hdr.is_some() || not_exact,
             "{name}"
         );
     }
@@ -661,12 +664,7 @@ fn every_gated_sample_keeps_its_colour_in_the_thumbnail() {
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "库").unwrap();
     let mut failures = Vec::new();
-    // lut16＋XYZ PCS 的样本在 WebView2 门槛里只记录（skcms 读法不同），派生图仍须按 ICC 规范。
-    let spec_only = ["lut-a2b0.png", "cmyk-profile.jpg", "ycck-profile.jpg"];
-    for sample in gate_samples()
-        .iter()
-        .filter(|s| s.gated || spec_only.contains(&s.file_name.as_str()))
-    {
+    for sample in gate_samples().iter().filter(|s| s.gated) {
         let id = import_sample(&library, dir.path(), sample);
         let width = card_width(&library, &id);
         let thumb = decode_derivative(&library.thumbnail(&id, 128).unwrap());
@@ -891,6 +889,12 @@ fn the_gate_run_imports_every_sample_into_a_fresh_library_with_fixed_bytes() {
     assert_eq!(run.items.len(), gate_samples().len());
     for (item, sample) in run.items.iter().zip(gate_samples()) {
         assert_eq!(item.sample.file_name, sample.file_name);
+        assert_eq!(
+            item.display,
+            run.library.display(&item.image_id).unwrap().route,
+            "{}",
+            sample.file_name
+        );
         // 每次生成的字节相同，哈希可以写进验收约定。
         assert_eq!(item.sample.bytes, sample.bytes, "{}", sample.file_name);
         assert_eq!(
@@ -913,16 +917,70 @@ fn the_gate_run_imports_every_sample_into_a_fresh_library_with_fixed_bytes() {
 }
 
 #[test]
-fn lut_profiles_with_an_xyz_pcs_are_record_only_and_lab_pcs_ones_are_gated() {
+fn lut_and_cmyk_profile_samples_are_gated_on_what_the_app_shows() {
     let samples = gate_samples();
-    let find = |name: &str| samples.iter().find(|s| s.file_name == name).unwrap();
-    for name in ["lut-a2b0.png", "cmyk-profile.jpg", "ycck-profile.jpg"] {
-        let s = find(name);
-        assert!(!s.gated, "{name}");
-        // 说明里写明原因：skcms 读 lut16 XYZ PCS 时没有乘 u1Fixed15 系数。
-        assert!(s.note.contains("skcms"), "{name}：{}", s.note);
+    for name in [
+        "lut-a2b0.png",
+        "cmyk-profile.jpg",
+        "ycck-profile.jpg",
+        "lut-lab.png",
+        "cmyk-lab.jpg",
+        "ycck-lab.jpg",
+    ] {
+        let s = samples.iter().find(|s| s.file_name == name).unwrap();
+        assert!(s.gated, "{name}");
     }
-    for name in ["lut-lab.png", "cmyk-lab.jpg", "ycck-lab.jpg"] {
-        assert!(find(name).gated, "{name}");
+}
+
+#[test]
+fn lut_only_and_cmyk_originals_are_displayed_through_the_full_size_sdr_derivative() {
+    let dir = tempfile::tempdir().unwrap();
+    let library = Library::create(&dir.path().join("lib"), "库").unwrap();
+    // Chromium 不能精确表示的 ICC（只有 A2B 查找表、没有可用的矩阵＋曲线）与全部 CMYK：
+    // WebView2 会退回 sRGB 并按 skcms 的方式读 lut16，直接显示与派生图不一致（ADR-0005）。
+    let derivative = [
+        "lut-a2b0.png",
+        "lut-lab.png",
+        "cmyk-profile.jpg",
+        "ycck-profile.jpg",
+        "cmyk-lab.jpg",
+        "ycck-lab.jpg",
+        "animated.gif",
+        "pq.png",
+    ];
+    // 矩阵型、灰度、被忽略的 ICC、无配置文件的 CMYK 都直接显示。
+    let direct = [
+        "p3-v4.jpg",
+        "adobe-rgb.jpg",
+        "gray-gamma22.jpg",
+        "icc-mismatch.jpg",
+        "cmyk-naive.jpg",
+        "srgb-vs-gama.png",
+        "png16-p3.png",
+    ];
+    for name in derivative {
+        let id = import_sample(&library, dir.path(), gate_sample(name));
+        assert!(
+            library.colour(&id).unwrap().needs_sdr_derivative(),
+            "{name}"
+        );
+        let shown = library.display(&id).unwrap();
+        assert_eq!(shown.route, DisplayRoute::SdrDerivative, "{name}");
+        assert_ne!(shown.path, library.original_path(&id).unwrap(), "{name}");
+        // 1:1 显示用原尺寸（转正后）的派生图。
+        let size = image::image_dimensions(&shown.path).unwrap();
+        assert_eq!(size.0, card_width(&library, &id), "{name}");
+        // 再取一次走缓存。
+        assert_eq!(library.display(&id).unwrap().path, shown.path, "{name}");
+    }
+    for name in direct {
+        let id = import_sample(&library, dir.path(), gate_sample(name));
+        assert!(
+            !library.colour(&id).unwrap().needs_sdr_derivative(),
+            "{name}"
+        );
+        let shown = library.display(&id).unwrap();
+        assert_eq!(shown.route, DisplayRoute::Original, "{name}");
+        assert_eq!(shown.path, library.original_path(&id).unwrap(), "{name}");
     }
 }

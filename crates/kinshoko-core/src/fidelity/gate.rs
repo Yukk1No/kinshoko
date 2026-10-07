@@ -16,7 +16,7 @@ use serde::Serialize;
 use ts_rs::TS;
 
 use super::profiles;
-use crate::library::{BrowseQuery, ImportOutcome, ImportSource, Library};
+use crate::library::{BrowseQuery, DisplayRoute, ImportOutcome, ImportSource, Library};
 
 /// 一个门槛样本。
 #[derive(Debug, Clone, Serialize, TS)]
@@ -265,6 +265,8 @@ pub struct GateItem {
     /// 转正后的原图尺寸。
     pub width: u32,
     pub height: u32,
+    /// 应用在 1:1 与放大时显示什么：原图交给 WebView2，或原尺寸 `sdr` 派生图。
+    pub display: DisplayRoute,
 }
 
 /// 交给门槛实验页面的计划：已入库的样本与本机环境。
@@ -330,6 +332,7 @@ pub fn prepare(dir: &std::path::Path) -> Result<GateRun, crate::library::Error> 
                 .collect(),
             width: card.width,
             height: card.height,
+            display: library.display(&image_id)?.route,
             image_id,
             sample,
         });
@@ -426,8 +429,8 @@ pub fn samples() -> Vec<GateSample> {
     all.push(sample(
         "lut-a2b0.png",
         "2",
-        "只有查找表的 ICC v4（lut16，PCS 为 XYZ）：A2B0 为 Display P3，A2B1 为 sRGB。WebView2 只记录：skcms 读 lut16（mft2）XYZ PCS 表时没有乘 u1Fixed15 系数（read_tag_mft2），按 0.5 倍线性亮度显示；派生图按 ICC 规范。WebView2 更新后复查",
-        false,
+        "只有查找表的 ICC v4（lut16，PCS 为 XYZ）：A2B0 为 Display P3，A2B1 为 sRGB。应用显示 sdr 派生图；WebView2 直接显示只记录：Chromium 不能精确表示时退回 sRGB（skia/ext/color_profile.cc ComputeSkColorSpace），skcms 读 lut16（mft2）XYZ PCS 表时没有乘 u1Fixed15 系数（read_tag_mft2），按 0.5 倍线性亮度显示。WebView2 更新后复查",
+        true,
         png(
             W,
             H,
@@ -448,7 +451,7 @@ pub fn samples() -> Vec<GateSample> {
     all.push(sample(
         "lut-lab.png",
         "2",
-        "只有查找表的 ICC v2.1（lut16，PCS 为 Lab，FOGRA39 式结构）：A2B 为 Display P3",
+        "只有查找表的 ICC v2.1（lut16，PCS 为 Lab，FOGRA39 式结构）：A2B 为 Display P3。应用显示 sdr 派生图；WebView2 直接显示只记录：Chromium 退回 sRGB（ComputeSkColorSpace），skcms 按 v4 编码读 lut16 的旧式 Lab（lab_to_xyz）",
         true,
         png(
             W,
@@ -505,8 +508,8 @@ pub fn samples() -> Vec<GateSample> {
     all.push(sample(
         "cmyk-profile.jpg",
         "3",
-        "CMYK JPEG（Adobe 反相存储）带合成 CMYK 配置文件（lut16，PCS 为 XYZ）。WebView2 只记录：skcms 读 lut16（mft2）XYZ PCS 表时没有乘 u1Fixed15 系数（read_tag_mft2），按 0.5 倍线性亮度显示；派生图按 ICC 规范。WebView2 更新后复查",
-        false,
+        "CMYK JPEG（Adobe 反相存储）带合成 CMYK 配置文件（lut16，PCS 为 XYZ）。应用显示 sdr 派生图；WebView2 直接显示只记录：Chromium 不能精确表示时退回 sRGB（skia/ext/color_profile.cc ComputeSkColorSpace），skcms 读 lut16（mft2）XYZ PCS 表时没有乘 u1Fixed15 系数（read_tag_mft2），按 0.5 倍线性亮度显示。WebView2 更新后复查",
+        true,
         jpeg(
             &cmyk_data,
             W,
@@ -520,8 +523,8 @@ pub fn samples() -> Vec<GateSample> {
     all.push(sample(
         "ycck-profile.jpg",
         "3",
-        "YCCK JPEG 带同一 CMYK 配置文件（lut16，PCS 为 XYZ）。WebView2 只记录：skcms 读 lut16（mft2）XYZ PCS 表时没有乘 u1Fixed15 系数（read_tag_mft2），按 0.5 倍线性亮度显示；派生图按 ICC 规范。WebView2 更新后复查",
-        false,
+        "YCCK JPEG 带同一 CMYK 配置文件（lut16，PCS 为 XYZ）。应用显示 sdr 派生图；WebView2 直接显示只记录：Chromium 不能精确表示时退回 sRGB（skia/ext/color_profile.cc ComputeSkColorSpace），skcms 读 lut16（mft2）XYZ PCS 表时没有乘 u1Fixed15 系数（read_tag_mft2），按 0.5 倍线性亮度显示。WebView2 更新后复查",
+        true,
         jpeg(
             &cmyk_data,
             W,
@@ -547,12 +550,12 @@ pub fn samples() -> Vec<GateSample> {
         (
             "cmyk-lab.jpg",
             jpeg_encoder::ColorType::Cmyk,
-            "CMYK JPEG 带 Lab PCS 的 CMYK 配置文件（ICC v2.1，lut16）",
+            "CMYK JPEG 带 Lab PCS 的 CMYK 配置文件（ICC v2.1，lut16）。应用显示 sdr 派生图；WebView2 直接显示只记录：Chromium 退回 sRGB（ComputeSkColorSpace），skcms 按 v4 编码读 lut16 的旧式 Lab（lab_to_xyz）",
         ),
         (
             "ycck-lab.jpg",
             jpeg_encoder::ColorType::CmykAsYcck,
-            "YCCK JPEG 带 Lab PCS 的 CMYK 配置文件（ICC v2.1，lut16）",
+            "YCCK JPEG 带 Lab PCS 的 CMYK 配置文件（ICC v2.1，lut16）。应用显示 sdr 派生图；WebView2 直接显示只记录：Chromium 退回 sRGB（ComputeSkColorSpace），skcms 按 v4 编码读 lut16 的旧式 Lab（lab_to_xyz）",
         ),
     ] {
         all.push(sample(

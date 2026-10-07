@@ -61,8 +61,9 @@ pub use tags::{
     TagTranslations, Vocabulary, VocabularyTag,
 };
 pub use types::{
-    BrowsePage, BrowseQuery, BrowseScope, ImageCard, ImageSourceRecord, ImportItem, ImportOutcome,
-    ImportProgress, ImportReport, ImportSource, LibraryInfo, RecoveryReport,
+    BrowsePage, BrowseQuery, BrowseScope, DisplayFile, DisplayRoute, ImageCard, ImageSourceRecord,
+    ImportItem, ImportOutcome, ImportProgress, ImportReport, ImportSource, LibraryInfo,
+    RecoveryReport,
 };
 
 use crate::approx::ApproxRelation;
@@ -223,6 +224,26 @@ impl Library {
         self.inner
             .require_visible(&self.inner.readers.get(), image_id)?;
         thumbnail::get(&self.inner, image_id, target_px)
+    }
+
+    /// 1:1 与放大时显示的文件（ADR-0005）：静态 SDR 原图交给 WebView2 直接显示；导入时标为
+    /// 动图、HDR、Chromium 不能精确表示的 ICC 或 CMYK 的，给原尺寸的 `sdr` 派生图。
+    /// 应用壳经 `thumb` 协议的 `<资料库 id>/<参考图 id>/full` 提供，看图界面只用这条路。
+    pub fn display(&self, image_id: &str) -> Result<DisplayFile, Error> {
+        self.inner
+            .require_visible(&self.inner.readers.get(), image_id)?;
+        let (description, ..) = colour::get(&self.inner, image_id)?;
+        if description.needs_sdr_derivative() {
+            Ok(DisplayFile {
+                route: DisplayRoute::SdrDerivative,
+                path: thumbnail::full_size(&self.inner, image_id)?,
+            })
+        } else {
+            Ok(DisplayFile {
+                route: DisplayRoute::Original,
+                path: self.inner.original_path(image_id)?,
+            })
+        }
     }
 
     /// 参考图的色彩描述（导入时记录）。

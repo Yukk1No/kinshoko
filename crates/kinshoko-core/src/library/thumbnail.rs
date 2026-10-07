@@ -1,6 +1,7 @@
 //! 缩略图：还原度管线（`crate::fidelity`，ADR-0005）生成的 `sdr` 派生图。
 //!
-//! 缩略图是可重建缓存：`cache/thumbs/<管线版本>/<动态范围变体>/<sha 前两位>/<sha>-<像素>.<webp|png>`。
+//! 缩略图是可重建缓存：`cache/thumbs/<管线版本>/<动态范围变体>/<sha 前两位>/<sha>-<像素|full>.<webp|png>`；
+//! `full` 是不直接显示的原图在 1:1 与放大时用的原尺寸派生图。
 //! 管线版本变化时旧目录整体作废：打开资料库时在后台删除，缩略图按需在新目录重建。
 
 use std::path::{Path, PathBuf};
@@ -30,6 +31,15 @@ pub(super) fn tier(px: u32) -> u32 {
 
 pub(super) fn get(inner: &Inner, image_id: &str, target_px: u32) -> Result<PathBuf, Error> {
     let px = tier(target_px);
+    cached(inner, image_id, &px.to_string(), px)
+}
+
+/// 原尺寸（转正后）的 `sdr` 派生图，供不直接显示的原图在 1:1 与放大时使用。
+pub(super) fn full_size(inner: &Inner, image_id: &str) -> Result<PathBuf, Error> {
+    cached(inner, image_id, "full", u32::MAX)
+}
+
+fn cached(inner: &Inner, image_id: &str, label: &str, max_width: u32) -> Result<PathBuf, Error> {
     let (description, sha, original) = colour::get(inner, image_id)?;
     let container = render::container(&description);
     let path = inner
@@ -39,13 +49,13 @@ pub(super) fn get(inner: &Inner, image_id: &str, target_px: u32) -> Result<PathB
         .join(PIPELINE)
         .join(SDR)
         .join(&sha[..2])
-        .join(format!("{sha}-{px}.{}", container.extension()));
+        .join(format!("{sha}-{label}.{}", container.extension()));
     if path.is_file() {
         return Ok(path);
     }
 
     let bytes = std::fs::read(original)?;
-    let rendered = render::render_sdr(&bytes, px).map_err(Error::Undecodable)?;
+    let rendered = render::render_sdr(&bytes, max_width).map_err(Error::Undecodable)?;
     std::fs::create_dir_all(path.parent().expect("缓存路径有父目录"))?;
     let tmp = path.with_extension(format!("{}.tmp", uuid::Uuid::new_v4().simple()));
     let written = std::fs::write(&tmp, &rendered.bytes).and_then(|()| std::fs::rename(&tmp, &path));

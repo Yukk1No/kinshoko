@@ -203,16 +203,7 @@ fn summarise(icc: &[u8]) -> IccSummary {
     };
     let kind = match ColorProfile::new_from_slice(icc) {
         Err(_) => IccKind::Invalid,
-        Ok(p) if p.color_space == DataColorSpace::Gray => IccKind::Gray,
-        Ok(p)
-            if p.lut_a_to_b_perceptual.is_some()
-                || p.lut_a_to_b_colorimetric.is_some()
-                || p.lut_a_to_b_saturation.is_some()
-                || p.color_space != DataColorSpace::Rgb =>
-        {
-            IccKind::Lut
-        }
-        Ok(_) => IccKind::Matrix,
+        Ok(p) => exact_kind(&p),
     };
     IccSummary {
         sha256: Sha256::digest(icc)
@@ -221,6 +212,35 @@ fn summarise(icc: &[u8]) -> IccSummary {
             .collect(),
         version,
         kind,
+    }
+}
+
+/// 按 Chromium 能否精确表示来分类，对应 `skia/ext/color_profile.cc` 的
+/// `ColorProfile::ComputeSkColorSpace`：`SkColorSpace::Make` 要 skcms 解析出
+/// `has_toXYZD50`（rXYZ/gXYZ/bXYZ）与 `has_trc`（三条曲线；灰度为 kTRC），并且只有在
+/// `!has_A2B` 时才算精确（skcms 的 `has_A2B` 只看 A2B0、A2B1，见 `skcms_public.h`）。
+/// 否则 Blink 在解码时转换到近似空间——没有矩阵时就是 sRGB，广色域被裁掉；有 A2B 时按
+/// skcms 读查找表（lut16 的 XYZ／Lab 编码与 ICC 规范不一致，见 `read_tag_mft2`、`lab_to_xyz`）。
+/// CMYK 等非 RGB／灰度的配置文件也不能精确表示，一律归为查找表型。
+/// 例外：ICC 里可用的 cicp 标签让 Chromium 精确表示，由 [`ColourDescription::needs_sdr_derivative`] 处理。
+fn exact_kind(p: &ColorProfile) -> IccKind {
+    let has_a2b = p.lut_a_to_b_perceptual.is_some() || p.lut_a_to_b_colorimetric.is_some();
+    match p.color_space {
+        DataColorSpace::Gray if p.gray_trc.is_some() && !has_a2b => IccKind::Gray,
+        DataColorSpace::Rgb => {
+            let m = [p.red_colorant, p.green_colorant, p.blue_colorant];
+            let det = m[0].x * (m[1].y * m[2].z - m[2].y * m[1].z)
+                - m[1].x * (m[0].y * m[2].z - m[2].y * m[0].z)
+                + m[2].x * (m[0].y * m[1].z - m[1].y * m[0].z);
+            let has_matrix = det.abs() > 1e-9;
+            let has_trc = p.red_trc.is_some() && p.green_trc.is_some() && p.blue_trc.is_some();
+            if has_matrix && has_trc && !has_a2b {
+                IccKind::Matrix
+            } else {
+                IccKind::Lut
+            }
+        }
+        _ => IccKind::Lut,
     }
 }
 
@@ -372,4 +392,46 @@ fn gif(bytes: &[u8], found: &mut Found) -> Result<(), String> {
         .map_err(|e| e.to_string())?
         .is_some();
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::fidelity::profiles;
+
+    fn kind(profile: &ColorProfile) -> IccKind {
+        summarise(&profiles::encode(profile).unwrap()).kind
+    }
+
+    /// 与 Chromium `skia::ColorProfile::ComputeSkColorSpace` 判断“精确”的条件一致：
+    /// 有 rXYZ/gXYZ/bXYZ 矩阵与三条曲线、且 skcms 不会改走 A2B0／A2B1 时才算矩阵型。
+    #[test]
+    fn an_icc_is_matrix_only_when_chromium_can_represent_it_exactly() {
+        let p3 = profiles::display_p3();
+        assert_eq!(kind(&p3), IccKind::Matrix);
+
+        // 同时带 A2B0：skcms 优先用查找表（ICC.1-2022-05 8.10），不精确。
+        let mut with_a2b0 = p3.clone();
+        with_a2b0.lut_a_to_b_perceptual = profiles::lut_rgb(2, |d| d, |d| d).lut_a_to_b_perceptual;
+        assert_eq!(kind(&with_a2b0), IccKind::Lut);
+
+        // 只有 A2B2（饱和度）：skcms 只看 A2B0／A2B1，仍按矩阵精确表示。
+        let mut with_a2b2 = p3.clone();
+        with_a2b2.lut_a_to_b_saturation = profiles::lut_rgb(2, |d| d, |d| d).lut_a_to_b_perceptual;
+        assert_eq!(kind(&with_a2b2), IccKind::Matrix);
+
+        // 没有矩阵（原色为零）：Chromium 找不到色域，退回 sRGB。
+        let mut no_matrix = p3.clone();
+        no_matrix.red_colorant = Default::default();
+        no_matrix.green_colorant = Default::default();
+        no_matrix.blue_colorant = Default::default();
+        assert_eq!(kind(&no_matrix), IccKind::Lut);
+
+        // 没有曲线：同样不精确。
+        let mut no_trc = p3;
+        no_trc.red_trc = None;
+        no_trc.green_trc = None;
+        no_trc.blue_trc = None;
+        assert_eq!(kind(&no_trc), IccKind::Lut);
+    }
 }
