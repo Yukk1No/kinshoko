@@ -907,6 +907,11 @@ pub(super) fn counts(
     Ok(rows.collect::<Result<_, _>>()?)
 }
 
+pub(super) fn revision(inner: &Inner) -> Result<i64, Error> {
+    let conn = inner.readers.get();
+    Ok(conn.query_row("SELECT value FROM vocabulary_revision", [], |r| r.get(0))?)
+}
+
 pub(super) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error> {
     let mut conn = inner.readers.get();
     // 修订号与内容取自同一个读事务，保证快照一致。

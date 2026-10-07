@@ -30,6 +30,8 @@ pub enum Error {
     UnknownEagleSource,
     /// 这个位置已经登记为另一个 Eagle 来源。
     EagleLocationTaken,
+    /// 资料库的安全模式与请求所期望的不同（刚切换过），结果按旧视角作废（#76）。
+    LensChanged,
     Io(std::io::Error),
     Db(rusqlite::Error),
     Migration(rusqlite_migration::Error),
@@ -58,6 +60,7 @@ impl fmt::Display for Error {
             Error::SameTag => write!(f, "相近标签要选另一个标签"),
             Error::UnknownEagleSource => write!(f, "资料库里没有登记这个 Eagle 来源"),
             Error::EagleLocationTaken => write!(f, "这个位置已经登记为另一个 Eagle 来源"),
+            Error::LensChanged => write!(f, "安全模式刚切换过，请重新查找"),
             Error::NamespaceGroup => write!(f, "这个分组按命名空间列出标签，不能手动调整成员"),
             Error::Io(e) => write!(f, "读写文件失败：{e}"),
             Error::Db(e) => write!(f, "资料库数据库出错：{e}"),

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import type { Candidate } from "../bindings/Candidate";
 import type { Condition } from "../bindings/Condition";
@@ -13,6 +13,36 @@ import { searchCandidates, setTagApprox } from "../ipc";
 /** 界面语言。多语言界面随后续切片加入。 */
 export const UI_LANG = "zh-CN";
 const LIMIT = 8;
+
+/**
+ * 候选的身份（#76）：资料库、浏览视角（安全模式）、词表代次与输入的文字。候选只在身份与
+ * 当前相同时显示；切换安全模式、词表变化或换了资料库后，旧候选这一帧就不再显示，迟到的
+ * 响应也写不回来。后端按同一视角核对（`LensChanged`）。
+ */
+type Lens = { libraryId: string; safe: boolean; generation: number };
+type Found = { key: string; list: Candidate[] };
+const lensKey = (lens: Lens, text: string) => JSON.stringify([lens.libraryId, lens.safe, lens.generation, text]);
+
+/** 按 `lens` 与 `text` 取得候选；身份变了的旧结果不返回。 */
+function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true): Candidate[] {
+  const [found, setFound] = useState<Found>({ key: "", list: [] });
+  const key = lensKey(lens, text);
+  const { libraryId, safe } = lens;
+  const keepRef = useRef(keep);
+  keepRef.current = keep;
+  useEffect(() => {
+    let alive = true;
+    if (!text.trim()) return;
+    searchCandidates(libraryId, text, UI_LANG, LIMIT, safe).then(
+      (list) => alive && setFound({ key, list: list.filter((c) => keepRef.current(c)) }),
+      () => alive && setFound({ key, list: [] }),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [key, libraryId, safe, text]);
+  return found.key === key && text.trim() ? found.list : [];
+}
 
 const NAMESPACE: Record<TagLabel["namespace"], string> = {
   general: "",
@@ -71,6 +101,10 @@ type Place = { condition: number; term: number };
 
 type Props = {
   libraryId: string;
+  /** 浏览视角：安全模式是否开启（界面当前的状态，切换的这一刻就变）。 */
+  safe: boolean;
+  /** 词表代次：词表、图片或安全模式变化时递增，候选随之重新取得。 */
+  generation: number;
   input: SearchInput;
   /** 当前条件的可见条件树（Search 解析结果）；还没解析好时为空。 */
   tree: ConditionTree | null;
@@ -88,26 +122,14 @@ type Props = {
  * 近似查找默认开启：标签块里列出展开的相近标签。关掉一个时选“只这次”或“以后都不展开”
  * （记进个人近似对应表）；“＋”从库内标签里挑一个加为相近；“精确查找”一键不展开。
  */
-export function SearchBox({ libraryId, input, tree, showSource, onChange, onError }: Props) {
+export function SearchBox({ libraryId, safe, generation, input, tree, showSource, onChange, onError }: Props) {
   const [text, setText] = useState("");
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [active, setActive] = useState(0);
   const [open, setOpen] = useState(false);
   const [dismissing, setDismissing] = useState<(Place & { similar: SimilarTag }) | null>(null);
   const [adding, setAdding] = useState<TagLabel | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    if (!text.trim()) {
-      setCandidates([]);
-      return;
-    }
-    searchCandidates(libraryId, text, UI_LANG, LIMIT).then(
-      (found) => alive && setCandidates(found),
-      () => alive && setCandidates([]),
-    );
-    return () => { alive = false; };
-  }, [libraryId, text]);
+  const lens: Lens = { libraryId, safe, generation };
+  const candidates = useCandidates(lens, text);
 
   const rows: TermInput[] = text.trim()
     ? [
@@ -306,7 +328,7 @@ export function SearchBox({ libraryId, input, tree, showSource, onChange, onErro
         </div>
       )}
       {adding && (
-        <AddSimilar libraryId={libraryId} to={adding} onPick={(tag) => addSimilar(adding, tag)} onCancel={() => setAdding(null)} />
+        <AddSimilar key={adding.id} lens={lens} to={adding} onPick={(tag) => addSimilar(adding, tag)} onCancel={() => setAdding(null)} />
       )}
     </div>
   );
@@ -364,33 +386,18 @@ function TermView({
 
 /** “＋”：按名称或别名从库内标签里挑一个，加为 `to` 的相近标签。 */
 function AddSimilar({
-  libraryId,
+  lens,
   to,
   onPick,
   onCancel,
 }: {
-  libraryId: string;
+  lens: Lens;
   to: TagLabel;
   onPick: (tag: TagLabel) => void;
   onCancel: () => void;
 }) {
   const [text, setText] = useState("");
-  const [found, setFound] = useState<Candidate[]>([]);
-
-  useEffect(() => {
-    let alive = true;
-    if (!text.trim()) {
-      setFound([]);
-      return;
-    }
-    searchCandidates(libraryId, text, UI_LANG, LIMIT).then(
-      (list) => alive && setFound(list.filter((c) => c.tag.id !== to.id)),
-      () => alive && setFound([]),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [libraryId, text, to.id]);
+  const found = useCandidates(lens, text, (c) => c.tag.id !== to.id);
 
   return (
     <div className="search-popover" role="dialog" aria-label="加相近标签">
