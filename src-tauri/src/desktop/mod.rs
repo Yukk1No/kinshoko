@@ -70,6 +70,22 @@ fn state(app: &AppHandle) -> &DesktopState {
     app.state::<DesktopState>().inner()
 }
 
+/// 在参考组的锁里做事（永久删除用，#67）：预览与执行之间、执行期间参考组不会被改。
+/// 桌面插件还没装好时为 `None`。会读文件，不要在主线程上调用。
+pub fn with_groups<R: tauri::Runtime, T>(
+    app: &tauri::AppHandle<R>,
+    f: impl FnOnce(&ReferenceGroups) -> T,
+) -> Option<T> {
+    let state = app.try_state::<DesktopState>()?;
+    let groups = lock(&state.groups);
+    Some(f(&groups))
+}
+
+/// 通知各窗口参考组成员的状态可能变了（例如成员的图被永久删除），重新读取。
+pub fn reference_groups_changed<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    let _ = app.emit(groups::CHANGED_EVENT, ());
+}
+
 pub fn init() -> TauriPlugin<Wry> {
     Builder::new("desktop")
         .invoke_handler(tauri::generate_handler![

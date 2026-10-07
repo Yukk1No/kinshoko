@@ -80,6 +80,28 @@ fn cached(inner: &Inner, image_id: &str, label: &str, max_width: u32) -> Result<
     Ok(path)
 }
 
+/// 删除一个原文件（按 SHA-256）的全部缩略图与派生图（永久删除后）。失败只影响磁盘占用。
+pub(super) fn remove_for(root: &Path, sha: &str) {
+    let Some(prefix) = sha.get(..2) else {
+        return;
+    };
+    let dir = root
+        .join(CACHE_DIR)
+        .join(THUMBS_DIR)
+        .join(PIPELINE)
+        .join(SDR)
+        .join(prefix);
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    let start = format!("{sha}-");
+    for entry in entries.flatten() {
+        if entry.file_name().to_string_lossy().starts_with(&start) {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
+}
+
 /// 删除其他管线版本的缩略图目录。在后台线程里调用；失败只影响磁盘占用。
 pub(super) fn remove_stale(root: &Path) {
     let Ok(entries) = std::fs::read_dir(root.join(CACHE_DIR).join(THUMBS_DIR)) else {

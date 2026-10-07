@@ -22,6 +22,7 @@ import type { CollectedCapture } from "./bindings/CollectedCapture";
 import type { FrozenScreen } from "./bindings/FrozenScreen";
 import type { ImageDetail } from "./bindings/ImageDetail";
 import type { ImageEdit } from "./bindings/ImageEdit";
+import type { PermanentDeletePreview } from "./bindings/PermanentDeletePreview";
 import type { ImageRating } from "./bindings/ImageRating";
 import type { GatePlan } from "./bindings/GatePlan";
 import type { GroupSummary } from "./bindings/GroupSummary";
@@ -111,6 +112,26 @@ export function imageDetail(libraryId: string, imageId: string): Promise<ImageDe
 /** 一次批量整理若干张图，返回重新计算后的详情。 */
 export function editImages(libraryId: string, ids: string[], edits: ImageEdit[]): Promise<ImageDetail[]> {
   return invoke<ImageDetail[]>(lib("edit"), { libraryId, ids, edits });
+}
+
+/**
+ * 永久删除的预览（#67）：回收站里这些图会影响哪些参考组，以及执行时要交回的令牌。
+ * 参考组读不懂时被拒绝，不当作没用到。
+ */
+export function previewPermanentDelete(libraryId: string, ids: string[]): Promise<PermanentDeletePreview> {
+  return invoke<PermanentDeletePreview>(lib("preview_permanent_delete"), { libraryId, ids });
+}
+
+/** 按预览的令牌永久删除回收站里的图；预览之后有变化时被拒绝（{@link isDeletePreviewStale}）。 */
+export function permanentDelete(libraryId: string, ids: string[], token: string): Promise<void> {
+  return invoke<void>(lib("permanent_delete"), { libraryId, ids, token });
+}
+
+const DELETE_PREVIEW_STALE = "回收站或参考组在确认前有变化，请重新查看将受影响的参考组";
+
+/** 永久删除被拒绝：预览之后回收站、参考组或安全模式变了，要重新预览。 */
+export function isDeletePreviewStale(error: unknown): boolean {
+  return String(error) === DELETE_PREVIEW_STALE;
 }
 
 /** 侧栏：全部、回收站与文件夹树，计数只算可见的图。 */

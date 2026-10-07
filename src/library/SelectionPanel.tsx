@@ -5,7 +5,15 @@ import type { ImageRating } from "../bindings/ImageRating";
 import type { FolderNode } from "../bindings/FolderNode";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageEdit } from "../bindings/ImageEdit";
-import { editImages, imageDetail, sidebar } from "../ipc";
+import type { PermanentDeletePreview } from "../bindings/PermanentDeletePreview";
+import {
+  editImages,
+  imageDetail,
+  isDeletePreviewStale,
+  permanentDelete,
+  previewPermanentDelete,
+  sidebar,
+} from "../ipc";
 
 type Props = {
   libraryId: string;
@@ -134,6 +142,90 @@ function Detail({
   );
 }
 
+/**
+ * 永久删除的确认（#67）：列出会受影响的参考组；没有时直接确认。执行时预览已过期（回收站、
+ * 参考组或安全模式变了）就重新预览，让画师看过新的影响再确认。
+ */
+function PermanentDeleteConfirm({
+  libraryId,
+  ids,
+  onDone,
+  onCancel,
+  onError,
+}: {
+  libraryId: string;
+  ids: string[];
+  onDone: () => void;
+  onCancel: () => void;
+  onError: (message: string) => void;
+}) {
+  const [preview, setPreview] = useState<PermanentDeletePreview | null>(null);
+  const [changed, setChanged] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const key = ids.join("\n");
+
+  const load = () =>
+    previewPermanentDelete(libraryId, ids).then(setPreview, (e) => {
+      onError(String(e));
+      onCancel();
+    });
+
+  useEffect(() => {
+    setPreview(null);
+    setChanged(false);
+    void load();
+  }, [libraryId, key]);
+
+  const confirm = () => {
+    if (!preview) return;
+    setBusy(true);
+    permanentDelete(libraryId, preview.imageIds, preview.token).then(
+      () => {
+        setBusy(false);
+        onDone();
+      },
+      (e) => {
+        setBusy(false);
+        if (isDeletePreviewStale(e)) {
+          setChanged(true);
+          setPreview(null);
+          void load();
+        } else {
+          onError(String(e));
+        }
+      },
+    );
+  };
+
+  if (!preview) return <p className="selection-hint">正在核对参考组…</p>;
+  return (
+    <div className="permanent-delete" role="alertdialog" aria-label="永久删除">
+      {changed && <p className="selection-hint">回收站或参考组刚有变化，已按最新情况重新列出。</p>}
+      <p>永久删除这 {preview.imageIds.length} 张图？原图与整理结果都会删除，无法恢复。</p>
+      {preview.groups.length > 0 && (
+        <>
+          <p>以下参考组用到了这些图。删除后成员与布局保留，缺失的图会标出来：</p>
+          <ul aria-label="受影响的参考组">
+            {preview.groups.map((g) => (
+              <li key={g.groupId}>
+                {g.name}（{g.imageIds.length} 张）
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <div className="selection-actions">
+        <button type="button" disabled={busy} onClick={confirm}>
+          确认永久删除
+        </button>
+        <button type="button" disabled={busy} onClick={onCancel}>
+          取消
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** 选中参考图后的整理操作：放入或移出文件夹、删除或恢复；只选一张时还能写备注。 */
 export function SelectionPanel({
   libraryId,
@@ -148,6 +240,10 @@ export function SelectionPanel({
   const single = ids.length === 1 ? ids[0] : null;
   const [folders, setFolders] = useState<{ id: string; label: string }[]>([]);
   const [detail, setDetail] = useState<ImageDetail | null>(null);
+  const [purging, setPurging] = useState(false);
+  const selectionKey = ids.join("\n");
+  // 选择变了就收起永久删除的确认。
+  useEffect(() => setPurging(false), [selectionKey]);
 
   useEffect(() => {
     let alive = true;
@@ -212,9 +308,14 @@ export function SelectionPanel({
           </button>
         )}
         {scope.kind === "trash" ? (
-          <button type="button" onClick={() => void edit([{ kind: "restore" }], true)}>
-            恢复
-          </button>
+          <>
+            <button type="button" onClick={() => void edit([{ kind: "restore" }], true)}>
+              恢复
+            </button>
+            <button type="button" onClick={() => setPurging(true)}>
+              永久删除…
+            </button>
+          </>
         ) : (
           <button type="button" onClick={() => void edit([{ kind: "delete" }], true)}>
             删除
@@ -224,6 +325,18 @@ export function SelectionPanel({
           取消选择
         </button>
       </div>
+      {purging && scope.kind === "trash" && (
+        <PermanentDeleteConfirm
+          libraryId={libraryId}
+          ids={ids}
+          onDone={() => {
+            setPurging(false);
+            onClear();
+          }}
+          onCancel={() => setPurging(false)}
+          onError={onError}
+        />
+      )}
       {detail && <Detail key={detail.id} detail={detail} edit={(e) => void edit(e)} />}
     </aside>
   );
