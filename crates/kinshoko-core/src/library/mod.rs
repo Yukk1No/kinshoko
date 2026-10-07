@@ -290,8 +290,10 @@ impl Library {
         }
     }
 
-    /// 参考图的色彩描述（导入时记录）。
+    /// 参考图的色彩描述（导入时记录）。浏览视角：被封印的图当作不存在。
     pub fn colour(&self, image_id: &str) -> Result<ColourDescription, Error> {
+        self.inner
+            .require_visible(&self.inner.readers.get(), image_id)?;
         colour::get(&self.inner, image_id).map(|(d, ..)| d)
     }
 

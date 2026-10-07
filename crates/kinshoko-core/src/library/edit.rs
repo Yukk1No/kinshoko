@@ -98,7 +98,8 @@ pub(super) fn edit(
     let mut seen = std::collections::HashSet::new();
     ids.retain(|id| seen.insert(id.clone()));
     let edits = edits.to_vec();
-    // 删除与恢复改变标签计数：词表修订号随之前进。
+    // 删除与恢复改变标签计数：词表修订号随之前进。人工分级跨过“含成人内容”时，安全模式下
+    // 可见的词表也变了，同样前进（见下方 `resealed`）。
     let recount = edits
         .iter()
         .any(|e| matches!(e, ImageEdit::Delete | ImageEdit::Restore));
@@ -116,7 +117,7 @@ pub(super) fn edit(
             .iter()
             .map(|id| detail(tx, id))
             .collect::<Result<Vec<_>, _>>()?;
-        let revision = if recount {
+        let revision = if recount || resealed {
             Some(tags::bump_revision(tx)?)
         } else {
             None
