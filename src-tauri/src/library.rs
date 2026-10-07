@@ -59,6 +59,29 @@ struct LibraryState {
 }
 
 impl LibraryState {
+    fn new(device_dir: PathBuf) -> LibraryState {
+        LibraryState {
+            device_dir,
+            libraries: Arc::default(),
+            forwarded: Mutex::new(None),
+            transition: Mutex::new(()),
+            search: Arc::default(),
+            reference: Mutex::new(None),
+            builtin_approx: Arc::new(BuiltinApproxTable::bundled()),
+            translations: Arc::new(bundled_translations()),
+            external_vocabulary: Mutex::new(None),
+        }
+    }
+
+    /// 给刚打开（新建、打开或切换到）的资料库装上随软件分发的翻译表：之后首次进库的模型标签
+    /// 取得初始名称与别名，库里仍尚未翻译的标签现在补上（ADR-0003）。在开始打标之前调用。
+    fn install_translations(&self, library: &Library) {
+        if let Err(e) = library.set_translations((*self.translations).clone()) {
+            // 翻译表已装上，只是补旧标签失败；之后进库的标签照常取得名称，下次打开再补。
+            eprintln!("给资料库尚未翻译的标签补上名称失败：{e}");
+        }
+    }
+
     /// 界面正在操作的资料库；已切换或关闭时返回错误。
     fn current(&self, library_id: &str) -> Result<Arc<Library>, String> {
         with_libraries(&self.device_dir, &self.libraries, |libraries| {
@@ -145,17 +168,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 .ok()
                 .and_then(|s| s.tagging_model().map(str::to_owned));
             crate::tagging::setup(app, models_dir, preferred);
-            app.manage(LibraryState {
-                device_dir,
-                libraries: Arc::default(),
-                forwarded: Mutex::new(None),
-                transition: Mutex::new(()),
-                search: Arc::default(),
-                reference: Mutex::new(None),
-                builtin_approx: Arc::new(BuiltinApproxTable::bundled()),
-                translations: Arc::new(bundled_translations()),
-                external_vocabulary: Mutex::new(None),
-            });
+            app.manage(LibraryState::new(device_dir));
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol("thumb", |ctx, request, responder| {
@@ -246,7 +259,7 @@ fn forward_events<R: Runtime>(
     }
     *forwarded = Some(weak.clone());
     library.set_safe_mode(saved_safe_mode(app));
-    library.set_translations((*state.translations).clone());
+    state.install_translations(&library);
     let events = library.events();
     *lock(&state.reference) = library.take_reference_lens();
     state.search.invalidate();
@@ -787,10 +800,10 @@ async fn personal_approx(
     blocking(move || library.personal_approx(&lang).map_err(|e| e.to_string())).await
 }
 
-/// 随软件分发的翻译表，启动时取一次。唯一的注入点：还没有随软件分发的翻译表，暂为空；
-/// #76 分发翻译表时只改这里。
+/// 随软件分发的翻译表（`data/builtin-translation-table.json`），启动时取一次。唯一的注入点：
+/// 每个打开的资料库在装配时（[`forward_events`]）装上它，迁入向导的外部词表也按它匹配。
 fn bundled_translations() -> TagTranslations {
-    TagTranslations::default()
+    TagTranslations::bundled()
 }
 
 /// 迁入向导的外部词表：内置近似对应表中的名称、本机已就绪模型的词表与翻译表。
@@ -869,4 +882,109 @@ async fn image_rating(
 ) -> Result<ImageRating, String> {
     let library = state.current(&library_id)?;
     blocking(move || library.image_rating(&image_id).map_err(|e| e.to_string())).await
+}
+
+#[cfg(test)]
+mod tests {
+    //! 应用壳的翻译表装配（#76 Core3、#77 C1）：走生产代码同一条路径——[`LibraryState::new`]
+    //! 取 [`bundled_translations`]，[`forward_events`] 调 [`LibraryState::install_translations`]。
+    //! 不启动 Tauri；资料库是临时目录里的真库。
+
+    use kinshoko_core::library::{FactSource, ImportOutcome, SourceTag, TagNamespace, TagRef};
+    use kinshoko_core::search::Search;
+
+    use super::*;
+
+    fn library_with_image(dir: &Path, name: &str) -> (Library, String) {
+        let library = Library::create(&dir.join(name), name).unwrap();
+        let path = dir.join(format!("{name}.png"));
+        image::RgbaImage::from_pixel(4, 4, image::Rgba([1, 2, 3, 255]))
+            .save(&path)
+            .unwrap();
+        let report = library.import(ImportSource { paths: vec![path] }).wait();
+        let ImportOutcome::Imported { image_id } = &report.items[0].outcome else {
+            panic!("未导入：{:?}", report.items[0].outcome);
+        };
+        let id = image_id.clone();
+        (library, id)
+    }
+
+    fn tag_blue_eyes(library: &Library, image_id: &str) {
+        library
+            .replace_source_tags(
+                &FactSource::model("pixai-v1.0"),
+                image_id,
+                &[SourceTag {
+                    tag: TagRef::External {
+                        namespace: TagNamespace::General,
+                        name: "blue_eyes".into(),
+                    },
+                    score: Some(0.9),
+                }],
+            )
+            .unwrap();
+    }
+
+    fn names(library: &Library, image_id: &str) -> Vec<(String, bool)> {
+        library
+            .image_tags(image_id, "zh-CN")
+            .unwrap()
+            .tags
+            .into_iter()
+            .map(|t| (t.tag.name, t.tag.untranslated))
+            .collect()
+    }
+
+    fn state() -> (tempfile::TempDir, LibraryState) {
+        let dir = tempfile::tempdir().unwrap();
+        let state = LibraryState::new(dir.path().join("device"));
+        (dir, state)
+    }
+
+    #[test]
+    fn the_injection_point_hands_out_the_shipped_table() {
+        let (_dir, state) = state();
+        assert_eq!(*state.translations, TagTranslations::bundled());
+        assert!(
+            state
+                .translations
+                .entries
+                .iter()
+                .any(|e| e.external == "blue_eyes" && e.names["zh-CN"] == "蓝瞳")
+        );
+    }
+
+    #[test]
+    fn a_library_assembled_by_the_app_names_model_tags_and_finds_them_by_chinese_names() {
+        let (dir, state) = state();
+        let (library, image) = library_with_image(dir.path(), "new");
+        state.install_translations(&library);
+        tag_blue_eyes(&library, &image);
+
+        assert_eq!(names(&library, &image), [("蓝瞳".to_owned(), false)]);
+        let search = Search::new(&library.vocabulary().unwrap(), &state.builtin_approx);
+        for text in ["蓝瞳", "蓝眼睛"] {
+            let found = search.candidates(text, "zh-CN", 5);
+            assert_eq!(found.len(), 1, "{text}");
+            assert_eq!(found[0].tag.name, "蓝瞳");
+        }
+    }
+
+    #[test]
+    fn opening_a_library_tagged_before_the_table_existed_names_its_untranslated_tags() {
+        let (dir, state) = state();
+        let (library, image) = library_with_image(dir.path(), "old");
+        tag_blue_eyes(&library, &image);
+        assert_eq!(names(&library, &image), [("blue eyes".to_owned(), true)]);
+
+        state.install_translations(&library);
+        assert_eq!(names(&library, &image), [("蓝瞳".to_owned(), false)]);
+    }
+
+    #[test]
+    fn the_eagle_wizard_matches_chinese_tag_names_with_the_same_table() {
+        let (_dir, state) = state();
+        let vocabulary = ExternalVocabulary::new(Vec::new(), &state.translations);
+        assert_eq!(vocabulary.by_translation("蓝瞳"), ["blue_eyes"]);
+    }
 }

@@ -332,7 +332,7 @@ fn translations() -> TagTranslations {
 fn external_names_take_their_first_names_from_the_translation_table_or_come_in_untranslated() {
     let dir = tempfile::tempdir().unwrap();
     let (library, ids) = library_with_images(dir.path(), 1);
-    library.set_translations(translations());
+    library.set_translations(translations()).unwrap();
 
     library
         .replace_source_tags(
@@ -365,7 +365,9 @@ fn external_names_take_their_first_names_from_the_translation_table_or_come_in_u
 
     // 画师之后改的名称属于整理数据；再次进库或更新翻译表不会改回去。
     library.rename_tag(&zh.id, "zh-CN", "蓝色眼睛").unwrap();
-    library.set_translations(TagTranslations::default());
+    library
+        .set_translations(TagTranslations::default())
+        .unwrap();
     library
         .replace_source_tags(
             &FactSource::model("pixai-v1.0"),
@@ -457,7 +459,7 @@ fn a_name_shared_by_two_tags_of_one_namespace_must_be_picked_by_id() {
 fn vocabulary_is_a_snapshot_of_tags_names_aliases_namespaces_externals_and_counts() {
     let dir = tempfile::tempdir().unwrap();
     let (library, ids) = library_with_images(dir.path(), 3);
-    library.set_translations(translations());
+    library.set_translations(translations()).unwrap();
     let before = library.vocabulary().unwrap().revision;
 
     for id in &ids[..2] {
