@@ -27,6 +27,11 @@ type Props = {
   conditions?: ConditionTree;
   /** 资料库报告列表过期时递增：重新浏览，保持正在看的位置。 */
   reloadKey: number;
+  /**
+   * 安全模式（#60）。开启的一刻，还在墙上的含成人内容的图立即遮蔽（模糊并覆上墨色），
+   * 等重新浏览后离开；关闭后回来的图先遮着，下一帧淡出遮蔽。
+   */
+  safeMode?: boolean;
   selected: ReadonlySet<string>;
   onSelectionChange: (selected: Set<string>) => void;
   onOpenImage: (card: ImageCard) => void;
@@ -79,6 +84,7 @@ export function Wall({
   scope,
   conditions = NO_CONDITIONS,
   reloadKey,
+  safeMode = true,
   selected,
   onSelectionChange,
   onOpenImage,
@@ -215,6 +221,20 @@ export function Wall({
     return () => ro.disconnect();
   }, [holdReflow, measureBeforeReflow]);
 
+  /** 已经放出（不再遮蔽）的含成人内容的图。 */
+  const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    if (safeMode) {
+      setRevealed(new Set());
+      return;
+    }
+    // 先以遮蔽的样子出现，下一帧再放出，遮蔽才有过渡可以淡出。
+    const frame = requestAnimationFrame(() =>
+      setRevealed(new Set(cards.filter((c) => c.adult).map((c) => c.id))),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [cards, safeMode]);
+
   const ids = useMemo(() => cards.map((c) => c.id), [cards]);
   const layout = useMemo(
     () =>
@@ -321,6 +341,7 @@ export function Wall({
           {mounted.map((i) => {
             const card = cards[i];
             const b = layout.boxes[i];
+            const veiled = card.adult && (safeMode || !revealed.has(card.id));
             return (
               <div
                 key={card.id}
@@ -329,6 +350,7 @@ export function Wall({
                 aria-selected={selected.has(card.id)}
                 role="option"
                 tabIndex={0}
+                data-veiled={veiled}
                 draggable
                 onClick={(e) => select(card.id, e)}
                 onDoubleClick={() => open(card)}

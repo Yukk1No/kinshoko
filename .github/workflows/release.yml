@@ -1,0 +1,136 @@
+name: release
+
+# 发布（#70）：推送 v* 标签时构建 NSIS 安装包，有签名私钥时同时产出更新包签名与 latest.json，
+# 建一个草稿 Release 上传它们；维护者检查后手动发布，发布后 updater 才能看到新版本。
+# 手动运行（workflow_dispatch）只构建并上传为 Actions 产物，不建 Release。
+#
+# 签名私钥只放在仓库的 Actions secret（TAURI_SIGNING_PRIVATE_KEY、TAURI_SIGNING_PRIVATE_KEY_PASSWORD），
+# 不进仓库；公钥写在 src-tauri/tauri.conf.json 的 plugins.updater.pubkey。步骤见
+# docs/validation/release-checklist.md 的“发布与自动更新”。
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: 安装包与更新清单
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.95"
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: 版本号与标签一致
+        id: version
+        shell: pwsh
+        run: |
+          $pkgid = cargo pkgid -p kinshoko
+          if ($pkgid -notmatch '@(?<v>\d+\.\d+\.\d+[^\s]*)$') { throw "读不出版本号：$pkgid" }
+          $version = $Matches.v
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
+            Write-Error "标签 $env:GITHUB_REF_NAME 与 Cargo.toml 的版本 $version 不一致：先改 [workspace.package] version 再打标签。"
+            exit 1
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      # 有私钥才产出更新包签名；没有时照常构建安装包，只是这个版本不能经自动更新分发。
+      - name: 检查更新签名配置
+        id: signing
+        shell: pwsh
+        env:
+          HAS_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+        run: |
+          $conf = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+          $hasPubkey = -not [string]::IsNullOrWhiteSpace($conf.plugins.updater.pubkey)
+          $hasKey = $env:HAS_KEY -eq 'true'
+          if ($hasKey -and -not $hasPubkey) {
+            Write-Error "有签名私钥，但 tauri.conf.json 的 plugins.updater.pubkey 为空：装好的应用无法校验更新。把配对的公钥写进去再发布。"
+            exit 1
+          }
+          if ($hasPubkey -and -not $hasKey) {
+            if ($env:GITHUB_REF_TYPE -eq 'tag') {
+              Write-Error "tauri.conf.json 已配置更新公钥，但仓库没有 TAURI_SIGNING_PRIVATE_KEY secret：这个版本的更新包无法签名，已安装的用户收不到它。"
+              exit 1
+            }
+            Write-Warning "没有 TAURI_SIGNING_PRIVATE_KEY：跳过更新包签名与 latest.json。"
+          }
+          if (-not $hasKey -and -not $hasPubkey) {
+            Write-Warning "未配置更新签名（私钥 secret 与公钥都没有）：只构建安装包，不产出 latest.json，这个版本不能经自动更新分发。"
+          }
+          "sign=$($hasKey -and $hasPubkey)".ToLower() >> $env:GITHUB_OUTPUT
+
+      - name: 构建安装包（带更新签名）
+        if: steps.signing.outputs.sign == 'true'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --config src-tauri/tauri.updater.conf.json
+
+      - name: 构建安装包（不带更新签名）
+        if: steps.signing.outputs.sign != 'true'
+        run: npx tauri build
+
+      - name: 安装包检查（静默安装，确认 DirectML.dll 随 exe 安装）
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          ./scripts/release/check-installer.ps1 $installer.FullName
+
+      - name: 整理发布文件
+        id: files
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SIGN: ${{ steps.signing.outputs.sign }}
+        run: |
+          $out = "dist-release"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          $installer = Get-ChildItem target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          Copy-Item $installer.FullName $out/
+          if ($env:SIGN -eq 'true') {
+            $sig = "$($installer.FullName).sig"
+            if (-not (Test-Path $sig)) { throw "没有找到更新包签名 $sig" }
+            Copy-Item $sig $out/
+            node scripts/release/latest-json.mjs $env:VERSION $installer.FullName $sig $env:GITHUB_REPOSITORY "$out/latest.json"
+          }
+          Get-ChildItem $out | Format-Table Name, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kinshoko-release-${{ steps.version.outputs.version }}
+          path: dist-release
+          retention-days: 30
+
+      # 草稿 Release：维护者在 GitHub 上检查后点“发布”。发布前 updater 看不到它。
+      - name: 建立草稿 Release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME (Get-ChildItem dist-release).FullName `
+            --draft --title "Kinshoko $env:VERSION" --notes-file docs/install.md --generate-notes

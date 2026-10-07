@@ -26,6 +26,18 @@ fn turning_autostart_off_is_remembered_after_restart() {
 }
 
 #[test]
+fn safe_mode_is_on_after_a_fresh_install_and_turning_it_off_is_remembered() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(settings.safe_mode());
+
+    settings.set_safe_mode(false).unwrap();
+    drop(settings);
+
+    assert!(!AppSettings::open(dir.path()).unwrap().safe_mode());
+}
+
+#[test]
 fn an_unreadable_settings_file_falls_back_to_defaults_and_is_kept_aside() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("settings.json"), "{ 写了一半").unwrap();
@@ -57,4 +69,66 @@ fn settings_written_by_a_newer_version_survive_a_round_trip_through_this_one() {
         serde_json::from_slice(&std::fs::read(dir.path().join("settings.json")).unwrap()).unwrap();
     assert_eq!(saved["pinOpacity"], 0.8);
     assert_eq!(saved["autostart"], false);
+}
+
+#[test]
+fn the_tagging_model_choice_is_automatic_until_the_artist_picks_one() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert_eq!(settings.tagging_model(), None);
+
+    settings
+        .set_tagging_model(Some("pixai-v1.0-fp32-chunked"))
+        .unwrap();
+    drop(settings);
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert_eq!(settings.tagging_model(), Some("pixai-v1.0-fp32-chunked"));
+
+    settings.set_tagging_model(None).unwrap();
+    assert_eq!(AppSettings::open(dir.path()).unwrap().tagging_model(), None);
+}
+
+#[test]
+fn showing_where_similar_tags_come_from_is_off_until_turned_on_and_then_remembered() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(!settings.show_approx_source(), "来源标记默认不显示");
+
+    settings.set_show_approx_source(true).unwrap();
+    drop(settings);
+
+    assert!(AppSettings::open(dir.path()).unwrap().show_approx_source());
+}
+
+#[test]
+fn forcing_srgb_is_off_after_a_fresh_install_and_only_takes_effect_after_a_restart() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(!settings.force_srgb());
+    assert!(!settings.force_srgb_in_effect());
+
+    settings.set_force_srgb(true).unwrap();
+
+    assert!(settings.force_srgb());
+    assert!(
+        !settings.force_srgb_in_effect(),
+        "本次运行的 WebView2 已按旧值启动"
+    );
+    drop(settings);
+
+    let restarted = AppSettings::open(dir.path()).unwrap();
+    assert!(restarted.force_srgb());
+    assert!(restarted.force_srgb_in_effect());
+}
+
+#[test]
+fn the_usage_log_is_off_until_the_artist_turns_it_on_and_then_remembered() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(!settings.usage_log(), "使用日志默认关闭");
+
+    settings.set_usage_log(true).unwrap();
+    drop(settings);
+
+    assert!(AppSettings::open(dir.path()).unwrap().usage_log());
 }

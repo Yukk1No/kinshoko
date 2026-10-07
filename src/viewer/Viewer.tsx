@@ -1,9 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ImageCard } from "../bindings/ImageCard";
-import { displayImageUrl } from "../ipc";
+import { displayScaledUrl, displayUrl, imageDetail, isUnknownImage } from "../ipc";
 import type { KeyboardEvent } from "react";
 
-type Props = { libraryId: string; card: ImageCard; onClose: () => void };
+type Props = {
+  libraryId: string;
+  card: ImageCard;
+  onClose: () => void;
+  /** 资料库报告列表过期时递增：重新确认这张图还在（可能被删除或被安全模式封印）。 */
+  reloadKey?: number;
+};
 type Background = "dark" | "mid" | "light" | "checker";
 
 function savedBackground(): Background {
@@ -15,7 +21,7 @@ function savedBackground(): Background {
 }
 
 /** 查看器盖在图片墙上，原位置与已加载的卡片保留。 */
-export function Viewer({ libraryId, card, onClose }: Props) {
+export function Viewer({ libraryId, card, onClose, reloadKey = 0 }: Props) {
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0, dpr: window.devicePixelRatio || 1 });
@@ -29,6 +35,8 @@ export function Viewer({ libraryId, card, onClose }: Props) {
   const [requestedPx, setRequestedPx] = useState(card.width);
   const drag = useRef<{ id: number; x: number; y: number; offset: typeof offset } | null>(null);
   const { dpr } = viewport;
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useLayoutEffect(() => root.current?.focus(), []);
   useEffect(() => {
     try { localStorage.setItem("kinshoko.viewer.background", background); } catch { /* 仅不记住底色。 */ }
@@ -89,7 +97,15 @@ export function Viewer({ libraryId, card, onClose }: Props) {
   }, [desiredPx, mode, card.width]);
   const sourcePx = mode === "zoom" && desiredPx < card.width ? requestedPx : desiredPx;
   const exactSource = sourcePx === desiredPx;
-  const src = displayImageUrl(libraryId, card.id, sourcePx) + (retry ? `?retry=${retry}` : "");
+  // 1:1 与放大走 Library::display（原图或原尺寸 sdr 派生图）；缩小走精确尺寸派生图。从不直接读原文件。
+  const address = sourcePx >= card.width ? displayUrl(libraryId, card.id) : displayScaledUrl(libraryId, card.id, sourcePx);
+  const src = address + (retry ? `?retry=${retry}` : "");
+  // 这张图已不在（被删除，或安全模式下被封印，查询返回 UnknownImage）时回到图片墙。
+  useEffect(() => {
+    let alive = true;
+    imageDetail(card.id).catch((e) => { if (alive && isUnknownImage(e)) closeRef.current(); });
+    return () => { alive = false; };
+  }, [card.id, reloadKey, failedSrc]);
   const keyDown = (e: KeyboardEvent<HTMLElement>) => {
     if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onClose(); return; }
     if (e.key === "Tab") {

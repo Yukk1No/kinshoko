@@ -7,7 +7,7 @@ use rusqlite::types::Value;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{Error, Inner, LIVE, filter, thumbnail};
+use super::{Error, Inner, LIVE, filter, rating, thumbnail};
 use crate::search::ConditionTree;
 
 /// 资料库身份与位置。
@@ -64,6 +64,9 @@ pub struct ImageCard {
     pub height: u32,
     /// 缩略图地址：`<资料库 id>/<参考图 id>/<像素档位>`，由应用壳映射到自定义协议。
     pub thumbnail: String,
+    /// 含成人内容（有效分级为 questionable 或 explicit）：打开安全模式时会被封印。
+    /// 安全模式开启时浏览结果里没有这样的图，界面据此在开启的一瞬间先把它们遮住。
+    pub adult: bool,
 }
 
 /// 一页浏览结果。
@@ -180,7 +183,7 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
     let tier = thumbnail::tier(query.thumbnail_px);
     let library_id = &inner.info.id;
 
-    // 范围条件在前，条件树在后；参数按出现顺序编号。浏览视角的过滤（安全模式等）也加在这里。
+    // 范围条件在前，条件树在后；参数按出现顺序编号。浏览视角的过滤（安全模式）加在中间。
     let mut args: Vec<Value> = Vec::new();
     let scope = match &query.scope {
         BrowseScope::All => LIVE.to_owned(),
@@ -193,7 +196,7 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
         BrowseScope::Trash => format!("NOT ({LIVE})"),
     };
     let conditions = filter::sql(&query.conditions, &mut args);
-    let filter = format!("{scope} AND {conditions}");
+    let filter = format!("{scope} AND {} AND {conditions}", inner.lens_filter());
 
     let conn = inner.readers.get();
     // 计数与分页用同一个筛选，结果与计数一致。
@@ -206,8 +209,9 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
     args.push(Value::Integer(after));
     args.push(Value::Integer(i64::from(limit) + 1));
     let mut stmt = conn.prepare_cached(&format!(
-        "SELECT seq, id, width, height FROM image WHERE {filter} AND seq < ?{}
+        "SELECT seq, id, width, height, {} FROM image WHERE {filter} AND seq < ?{}
          ORDER BY seq DESC LIMIT ?{}",
+        rating::adult_sql("image.id"),
         n + 1,
         n + 2
     ))?;
@@ -220,6 +224,7 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
                 id,
                 width: row.get(2)?,
                 height: row.get(3)?,
+                adult: row.get(4)?,
             },
         ))
     })?;
@@ -235,4 +240,23 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
         next_cursor,
         total,
     })
+}
+
+/// 原图在 1:1 与放大时怎样显示（ADR-0005）。由导入时记录的色彩描述决定
+/// （[`crate::fidelity::ColourDescription::needs_sdr_derivative`]）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum DisplayRoute {
+    /// 原文件交给 WebView2 直接解释。
+    Original,
+    /// 原尺寸的 `sdr` 派生图：动图（首帧）、HDR、Chromium 不能精确表示的 ICC 与 CMYK。
+    SdrDerivative,
+}
+
+/// 1:1 与放大时要显示的文件。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DisplayFile {
+    pub route: DisplayRoute,
+    pub path: PathBuf,
 }

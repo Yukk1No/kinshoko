@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use kinshoko_core::Library;
-use kinshoko_core::library::{DisplayKind, ImportOutcome, ImportSource};
+use kinshoko_core::library::{DisplayRoute, ImportOutcome, ImportSource};
 
 fn import(library: &Library, path: &Path) -> String {
     let report = library
@@ -15,6 +15,11 @@ fn import(library: &Library, path: &Path) -> String {
         ImportOutcome::Imported { image_id } => image_id.clone(),
         other => panic!("未导入：{other:?}"),
     }
+}
+
+/// 显示文件解码后的尺寸。
+fn size(path: &Path) -> (u32, u32) {
+    image::image_dimensions(path).unwrap()
 }
 
 #[test]
@@ -29,9 +34,9 @@ fn static_sdr_at_original_pixels_and_above_uses_the_unchanged_original() {
     let id = import(&library, &input);
 
     for px in [120, 132, 240, 480] {
-        let display = library.display_image(&id, px).unwrap();
-        assert_eq!(display.kind, DisplayKind::Original);
-        assert_eq!((display.width, display.height), (120, 80));
+        let display = library.display_scaled(&id, px).unwrap();
+        assert_eq!(display, library.display(&id).unwrap());
+        assert_eq!(display.route, DisplayRoute::Original);
         assert_eq!(display.path, library.original_path(&id).unwrap());
         assert_eq!(std::fs::read(display.path).unwrap(), bytes);
     }
@@ -48,16 +53,18 @@ fn fitting_uses_an_exact_size_lossless_derivative_and_rebuilds_a_missing_cache()
     let original = std::fs::read(&input).unwrap();
     let id = import(&library, &input);
 
-    let display = library.display_image(&id, 37).unwrap();
-    assert_eq!(display.kind, DisplayKind::SdrDerivative);
+    let display = library.display_scaled(&id, 37).unwrap();
+    assert_eq!(display.route, DisplayRoute::SdrDerivative);
     assert_ne!(display.path, library.original_path(&id).unwrap());
-    assert_eq!((display.width, display.height), (37, 25));
     let decoded = image::open(&display.path).unwrap().to_rgba8();
     assert_eq!(decoded.dimensions(), (37, 25));
-    assert_eq!(decoded.get_pixel(18, 12).0, [41, 82, 123, 170]);
+    let [r, g, b, a] = decoded.get_pixel(18, 12).0;
+    for (got, want) in [(r, 41), (g, 82), (b, 123), (a, 170)] {
+        assert!(got.abs_diff(want) <= 1, "{:?}", decoded.get_pixel(18, 12));
+    }
 
     std::fs::remove_file(&display.path).unwrap();
-    let rebuilt = library.display_image(&id, 37).unwrap();
+    let rebuilt = library.display_scaled(&id, 37).unwrap();
     assert_eq!(image::open(rebuilt.path).unwrap().to_rgba8(), decoded);
     assert_eq!(
         std::fs::read(library.original_path(&id).unwrap()).unwrap(),
@@ -99,13 +106,14 @@ fn animations_use_a_still_first_frame_at_every_zoom() {
         let original = std::fs::read(&input).unwrap();
         let id = import(&library, &input);
         for px in [6, 12, 24, 48] {
-            let display = library.display_image(&id, px).unwrap();
+            let display = library.display_scaled(&id, px).unwrap();
             assert_eq!(
-                display.kind,
-                DisplayKind::SdrDerivative,
+                display.route,
+                DisplayRoute::SdrDerivative,
                 "{} at {px}",
                 input.display()
             );
+            assert_eq!(size(&display.path).0, px.min(12));
             let decoded = image::open(display.path).unwrap().to_rgba8();
             assert_eq!(
                 decoded
@@ -186,21 +194,14 @@ fn hdr_marked_originals_use_sdr_derivatives_even_at_original_pixels_and_above() 
     for input in inputs {
         let id = import(&library, &input);
         for px in [6, 12, 24] {
-            let display = library.display_image(&id, px).unwrap();
+            let display = library.display_scaled(&id, px).unwrap();
             assert_eq!(
-                display.kind,
-                DisplayKind::SdrDerivative,
+                display.route,
+                DisplayRoute::SdrDerivative,
                 "{} at {px}",
                 input.display()
             );
-            assert_eq!(
-                (display.width, display.height),
-                (px.min(12), px.min(12) * 2 / 3)
-            );
-            assert_eq!(
-                image::guess_format(&std::fs::read(display.path).unwrap()).unwrap(),
-                image::ImageFormat::WebP
-            );
+            assert_eq!(size(&display.path), (px.min(12), px.min(12) * 2 / 3));
         }
     }
 }
@@ -244,13 +245,15 @@ fn all_eight_exif_orientations_keep_original_bytes_and_upright_derivatives() {
         let input = dir.path().join(format!("方向-{orientation}.png"));
         std::fs::write(&input, &bytes).unwrap();
         let id = import(&library, &input);
-        let original = library.display_image(&id, 80).unwrap();
+        let detail = library.image(&id).unwrap();
         assert_eq!(
-            (original.width, original.height),
+            (detail.width, detail.height),
             if orientation < 5 { (40, 24) } else { (24, 40) }
         );
+        let original = library.display_scaled(&id, 80).unwrap();
+        assert_eq!(original.route, DisplayRoute::Original);
         assert_eq!(std::fs::read(original.path).unwrap(), bytes);
-        let display = library.display_image(&id, 20).unwrap();
+        let display = library.display_scaled(&id, 20).unwrap();
         let decoded = image::open(display.path).unwrap().to_rgb8();
         let (w, h) = decoded.dimensions();
         let observed = [(1, 1), (w - 2, 1), (1, h - 2), (w - 2, h - 2)]
@@ -269,11 +272,11 @@ fn invalid_display_requests_have_a_domain_error() {
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "参考").unwrap();
     assert!(matches!(
-        library.display_image("missing", 100),
+        library.display_scaled("missing", 100),
         Err(Error::UnknownImage)
     ));
     assert!(matches!(
-        library.display_image("missing", 0),
+        library.display_scaled("missing", 0),
         Err(Error::InvalidDisplaySize)
     ));
 }

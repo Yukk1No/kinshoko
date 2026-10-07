@@ -15,7 +15,9 @@ use crate::library::{Error as LibraryError, FactSource, Library, TaggingOutcome}
 
 use super::interpret::interpret;
 use super::models::{HUGGING_FACE, ModelSpec, ModelStore, PrepareStage, catalog};
-use super::port::{Device, DeviceInfo, PreparedModel, TagFailure, Tagger, TaggerSession};
+use super::port::{
+    Device, DeviceInfo, PreparedModel, SessionStopper, TagFailure, Tagger, TaggerSession,
+};
 
 /// CPU 档要给系统其他部分留下的内存。
 const RAM_MARGIN: u64 = 1_500_000_000;
@@ -39,6 +41,9 @@ pub struct TaggingConfig {
     pub max_crashes_per_image: u32,
     /// 显卡被重置或会话在显卡上启动失败这么多次后，本次运行不再用显卡，退到 CPU 档。
     pub max_gpu_failures: u32,
+    /// 画师在设置中选的模型（[`ModelSpec::key`]）：本机条件满足时优先用它，否则按 `models`
+    /// 的顺序退让（例如选了显卡模型但没有独显）。`None` 表示自动选择。
+    pub preferred: Option<String>,
 }
 
 impl TaggingConfig {
@@ -51,6 +56,7 @@ impl TaggingConfig {
             poll_interval: Duration::from_secs(1),
             max_crashes_per_image: 2,
             max_gpu_failures: 2,
+            preferred: None,
         }
     }
 
@@ -119,7 +125,10 @@ pub enum TaggingStatus {
 struct Control {
     paused: bool,
     stop: bool,
+    /// 画师确认了下载（对当前选的模型；换模型后要重新确认）。
     download: bool,
+    /// 见 [`TaggingConfig::preferred`]。
+    preferred: Option<String>,
 }
 
 struct Shared {
@@ -128,9 +137,27 @@ struct Shared {
     status: Mutex<TaggingStatus>,
     /// 停止时取消下载。
     cancel: AtomicBool,
+    /// 当前会话的结束开关；暂停或停止时立即结束会话，不等手上那张图。
+    stopper: Mutex<Option<SessionStopper>>,
 }
 
 impl Shared {
+    /// 立即结束当前会话（若有）。
+    fn stop_session(&self) {
+        let stopper = self
+            .stopper
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take();
+        if let Some(stop) = stopper {
+            stop();
+        }
+    }
+
+    fn set_stopper(&self, stopper: Option<SessionStopper>) {
+        *self.stopper.lock().unwrap_or_else(|e| e.into_inner()) = stopper;
+    }
+
     fn control(&self) -> MutexGuard<'_, Control> {
         self.control.lock().unwrap_or_else(|e| e.into_inner())
     }
@@ -164,10 +191,14 @@ impl Tagging {
     /// 在后台开始为 `library` 打标。
     pub fn start(library: Arc<Library>, tagger: Arc<dyn Tagger>, config: TaggingConfig) -> Tagging {
         let shared = Arc::new(Shared {
-            control: Mutex::default(),
+            control: Mutex::new(Control {
+                preferred: config.preferred.clone(),
+                ..Control::default()
+            }),
             wake: Condvar::new(),
             status: Mutex::new(TaggingStatus::Starting),
             cancel: AtomicBool::new(false),
+            stopper: Mutex::new(None),
         });
         let worker = Worker {
             store: ModelStore::new(config.models_dir.clone(), &config.base_url),
@@ -205,9 +236,22 @@ impl Tagging {
         self.shared.wake.notify_all();
     }
 
-    /// 暂停打标：当前这张打完后结束会话，归还显存。
+    /// 暂停打标：立即结束会话（打标子进程），归还显存。打到一半的那张恢复后重打。
     pub fn pause(&self) {
         self.shared.control().paused = true;
+        self.shared.stop_session();
+        self.shared.wake.notify_all();
+    }
+
+    /// 换用画师在设置中选的模型（`None` 为自动）。新模型还没下载时先显示大小，等画师确认；
+    /// 已经打过的图不重打（同一模型的不同精度共用一个来源）。
+    pub fn set_model(&self, key: Option<String>) {
+        let mut control = self.shared.control();
+        if control.preferred != key {
+            control.preferred = key;
+            control.download = false;
+        }
+        drop(control);
         self.shared.wake.notify_all();
     }
 
@@ -226,6 +270,7 @@ impl Drop for Tagging {
     fn drop(&mut self) {
         self.shared.control().stop = true;
         self.shared.cancel.store(true, Ordering::Relaxed);
+        self.shared.stop_session();
         self.shared.wake.notify_all();
         if let Some(t) = self.thread.take() {
             let _ = t.join();
@@ -258,7 +303,7 @@ impl Worker {
                 break;
             }
             if paused {
-                self.session = None;
+                self.end_session();
                 self.shared.set(TaggingStatus::Paused);
                 let c = self.shared.control();
                 if c.paused && !c.stop {
@@ -268,6 +313,12 @@ impl Worker {
             }
             self.step();
         }
+        self.end_session();
+    }
+
+    /// 结束会话（打标子进程），归还显存。
+    fn end_session(&mut self) {
+        self.shared.set_stopper(None);
         self.session = None;
     }
 
@@ -275,14 +326,17 @@ impl Worker {
         self.gpu_failures < self.config.max_gpu_failures
     }
 
-    /// 本机条件满足的第一个模型。
+    /// 本机条件满足的第一个模型；画师选的模型排在最前。
     fn choose(&mut self) -> Result<ModelSpec, String> {
         let info = self
             .device_info
             .get_or_insert_with(|| self.tagger.probe())
             .clone();
+        let preferred = self.shared.control().preferred.clone();
+        let mut order: Vec<&ModelSpec> = self.config.models.iter().collect();
+        order.sort_by_key(|spec| Some(&spec.key) != preferred.as_ref());
         let mut reasons = Vec::new();
-        for spec in &self.config.models {
+        for spec in order {
             match spec.device {
                 Device::DirectMl => match &info.gpu {
                     None => reasons.push("没有独立显卡".to_owned()),
@@ -313,7 +367,7 @@ impl Worker {
         let spec = match self.choose() {
             Ok(spec) => spec,
             Err(reason) => {
-                self.session = None;
+                self.end_session();
                 self.shared.set(TaggingStatus::NoDevice { reason });
                 // 内存可能稍后够用，重新探测。
                 self.device_info = None;
@@ -330,7 +384,7 @@ impl Worker {
             Err(e) => return self.fail(format!("读取待打标的图失败：{e}")),
         };
         if ids.is_empty() {
-            self.session = None;
+            self.end_session();
             self.shared.set(TaggingStatus::Idle {
                 model: spec.label.clone(),
                 device: spec.device,
@@ -353,7 +407,7 @@ impl Worker {
         if let Some(model) = self.store.ready(spec) {
             return Some(model);
         }
-        self.session = None;
+        self.end_session();
         if !self.shared.control().download {
             self.shared.set(TaggingStatus::NeedsDownload {
                 model: spec.label.clone(),
@@ -387,7 +441,7 @@ impl Worker {
     }
 
     fn fail(&mut self, reason: String) {
-        self.session = None;
+        self.end_session();
         self.shared.set(TaggingStatus::Failed { reason });
         self.shared.sleep(self.config.retry_delay);
     }
@@ -395,7 +449,7 @@ impl Worker {
     /// 打一张图并写入。返回 `false` 表示这一批要中止（会话失效等）。
     fn tag_one(&mut self, model: &PreparedModel, source: &FactSource, id: &str) -> bool {
         let spec = &model.spec;
-        let path = match self.library.original_path(id) {
+        let path = match self.library.original_to_tag(id) {
             Ok(path) => path,
             // 图在此期间被删除了。
             Err(LibraryError::UnknownImage) => return true,
@@ -409,9 +463,12 @@ impl Worker {
             .as_ref()
             .is_none_or(|(key, _)| *key != spec.key)
         {
-            self.session = None;
+            self.end_session();
             match self.tagger.start(model, spec.device) {
-                Ok(session) => self.session = Some((spec.key.clone(), session)),
+                Ok(session) => {
+                    self.shared.set_stopper(Some(session.stopper()));
+                    self.session = Some((spec.key.clone(), session));
+                }
                 Err(failure) => {
                     if spec.device == Device::DirectMl {
                         self.gpu_failures += 1;
@@ -419,6 +476,11 @@ impl Worker {
                     self.fail(format!("无法开始打标：{failure}"));
                     return false;
                 }
+            }
+            // 加载模型期间画师暂停了：开关登记得晚，没被按到，这里补上。
+            if self.shared.interrupted() {
+                self.end_session();
+                return false;
             }
         }
         self.shared.set(TaggingStatus::Running {
@@ -445,9 +507,14 @@ impl Worker {
                 self.library
                     .finish_tagging(source, id, TaggingOutcome::Failed(reason))
             }
+            Err(_) if self.shared.interrupted() => {
+                // 画师暂停（或停止）时结束了会话：这张不算出错，恢复后重打。
+                self.end_session();
+                return false;
+            }
             Err(failure) => {
                 // 会话已失效：结束它，稍后重启。
-                self.session = None;
+                self.end_session();
                 if matches!(failure, TagFailure::DeviceLost(_)) && spec.device == Device::DirectMl {
                     // 输入尺寸固定，显卡重置或显存溢出不怪这张图：记在显卡头上，多次后退到 CPU 档。
                     self.gpu_failures += 1;

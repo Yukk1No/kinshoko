@@ -40,6 +40,14 @@ pub struct ShortcutBinding {
 pub struct ShellSettingsView {
     pub autostart: bool,
     pub shortcuts: Vec<ShortcutBinding>,
+    /// 查找条件里标出相近标签的来源（内置／个人）。
+    pub show_approx_source: bool,
+    /// 诊断开关“强制 sRGB”的保存值（下次启动生效）。
+    pub force_srgb: bool,
+    /// 本次运行实际采用的“强制 sRGB”；与保存值不同时界面提示重启。
+    pub force_srgb_in_effect: bool,
+    /// 使用日志是否开启。
+    pub usage_log: bool,
 }
 
 impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
@@ -47,6 +55,10 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
         ShellSettingsView {
             autostart: settings.autostart(),
             shortcuts: self.bindings(settings),
+            show_approx_source: settings.show_approx_source(),
+            force_srgb: settings.force_srgb(),
+            force_srgb_in_effect: settings.force_srgb_in_effect(),
+            usage_log: settings.usage_log(),
         }
     }
 }

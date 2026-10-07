@@ -10,17 +10,18 @@
 
 窗口变化用 FLIP 连续重排；侧栏宽度变化期间保持布局，结束后按最终宽度重排。自身锚定滚动不会重新捕获锚点。`prefers-reduced-motion` 关闭这些动画。
 
-## v0 派生图与 #45 接缝
+## 显示路径与 #45 还原度管线
 
-对外接缝为 `Library::display_image(image_id, target_px)`；`target_px` 是转正后图片的设备像素宽度。Tauri 的 `reference` 协议只接受当前资料库的参考图 ID 和尺寸，由核心选择原图或派生图，不暴露任意文件路径。
+查看器从不直接读原文件，只走 #45 的显示路线（ADR-0005）：
 
-#45 尚未合入 `integration/v1`，按工单允许先用 v0：`image` 解码、EXIF 转正、Lanczos3 缩小、无损 WebP。缓存位于 `cache/viewer/v0/sdr/`，可删除后重建，不修改原图。GIF、动态 WebP、APNG 取静止首帧；APNG 的隐藏默认图片不冒充动画首帧。PNG 的 PQ／HLG cICP、HDR 声明块、JPEG 常见增益图标记及 ICC 的 PQ／HLG 标记都会强制走派生图，包含 1:1 与放大。
+- 1:1 与放大：`Library::display(id)` → `DisplayFile { route: Original | SdrDerivative, path }`，前端 `displayUrl(libraryId, imageId)`（`thumb` 协议 `<资料库 id>/<参考图 id>/full`）。静态 SDR 原图交给 WebView2；动图、HDR、LUT 型 ICC 与 CMYK 换成原尺寸 `sdr` 派生图。
+- 缩小（适应窗口等）：`Library::display_scaled(id, 目标设备像素宽度)`，前端 `displayScaledUrl(libraryId, imageId, px)`（`<资料库 id>/<参考图 id>/fit-<像素>`）。目标不小于原图宽度时等同 `display`；更小时由 `kinshoko_core::fidelity::render_sdr` 生成精确宽度的 `sdr` 派生图，与缩略图共用缓存目录和管线版本（`cache/thumbs/<管线版本>/sdr/`），可删除后重建。
 
-v0 不作 ICC 转换或真正的 HDR 色调映射，编码结果去掉 HDR 声明；实际还原度不能由这次分流测试证明。#45 接管时只需适配核心内部的分类与渲染，提升缓存版本，保留查看器及协议接口。
+派生图的解码、色彩管理、动图首帧与 HDR 判定全部由 `kinshoko_core::fidelity` 负责，查看器不另有实现。安全模式开启（`SafeModeChanged{on:true}`）或查询返回 `UnknownImage` 时，查看器关闭并回到图片墙。
 
 ## 自动验证
 
-核心测试通过公开接口，使用真临时 SQLite 和文件。六项测试覆盖：静态 SDR 原图字节不变、精确尺寸与透明色块、缓存重建、EXIF 方向 1～8、三种动画的首帧、常见 HDR 标记在各缩放档的强制派生图分流、无效请求。
+核心测试通过公开接口，使用真临时 SQLite 和文件。六项测试覆盖：静态 SDR 原图字节不变、精确尺寸与透明色块、缓存重建、EXIF 方向 1～8、三种动画的首帧、常见 HDR 标记在各缩放档的强制派生图分流、无效请求；安全模式测试确认被封印的图 `display`／`display_scaled` 都返回 `UnknownImage`。
 
 前端覆盖 DPR 1／1.25／1.5／2、奇数尺寸、110% 缩放、超过 200% 的插值、工具栏偏移、连续滚轮请求、读取重试、拖动、键盘焦点和图片墙锚点。侧栏 1121→1369→1121 的往返及重复的自身滚动事件不会漂移。
 
@@ -59,8 +60,8 @@ node e2e/viewer.mjs target/debug/kinshoko.exe <msedgedriver.exe> <tauri-driver.e
 | 标准 | 已验证 | 兼容性记录（不阻塞合并） |
 |---|---|---|
 | 1:1／放大的颜色、方向、像素与原文件一致 | 原图不重编码、EXIF 1～8、设备像素尺寸与起点、插值规则 | ICC v2／v4、P3、Adobe RGB、LUT／CMYK、16 位 PNG、gAMA 与透明边缘尚未全面量化；出现颜色问题时对照原文件与屏幕配置 |
-| 适应窗口显示派生图 | 核心精确尺寸测试和原生自然尺寸／显示尺寸比较 | v0 缩小的颜色还原度由 #45 补齐 |
-| 动图与 HDR 全缩放使用 SDR 派生图 | GIF／APNG／WebP 首帧及常见 HDR 标记的分流 | 真正的色调映射由 #45 接管；HDR 显示器上的亮度一致性尚未验证 |
+| 适应窗口显示派生图 | 核心精确尺寸测试和原生自然尺寸／显示尺寸比较 | 缩小的还原度由 #45 的还原度门槛（`--fidelity-gate`）衡量 |
+| 动图与 HDR 全缩放使用 SDR 派生图 | GIF／APNG／WebP 首帧及常见 HDR 标记的分流（#45 管线） | HDR 显示器上的亮度一致性尚未验证 |
 | 返回原位置、窗口与侧栏连续重排 | 单元测试和真实 WebView2 锚点、焦点、宽度往返 | 绘王数位板、用户机 Windows 100%／150% 系统缩放与动画观感尚未实测 |
 | 随软件附带的字体生效 | Inter 400／500／600、思源黑体实际离线加载，许可随包分发 | 用户机上的中文阅读观感尚未实测 |
 

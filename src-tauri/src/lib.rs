@@ -5,21 +5,32 @@
 
 mod commands;
 mod desktop;
+mod diagnostics;
+mod fidelity_gate;
 mod library;
 mod shell;
 mod tagging;
+mod updater;
 
 use tauri::RunEvent;
 
 pub fn run() {
     let app = tauri::Builder::default()
         // 第二次启动（例如开机自启后又双击图标）只把已有进程的主窗口叫出来。
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            shell::open_main_window(app);
-        }))
-        // 依赖插件在 Builder 登记；插件 setup 内再次登记会重复等待 Tauri 的插件锁。
+        // 带 `--fidelity-gate` 时改为开始还原度门槛实验。
+        .plugin(tauri_plugin_single_instance::init(
+            |app, args, _cwd| match fidelity_gate::options(&args) {
+                Some(options) => fidelity_gate::start(app, options),
+                None => shell::open_main_window(app),
+            },
+        ))
+        .manage(fidelity_gate::GateState::default())
+        // 对话框插件要注册在这里：插件的 setup 运行时 Tauri 持有插件表的锁，
+        // 在 setup 里再调用 `app.plugin` 会死锁，应用卡在启动阶段。
         .plugin(tauri_plugin_dialog::init())
+        .plugin(updater::plugin())
         .plugin(library::init())
+        .plugin(desktop::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(
             tauri_plugin_autostart::Builder::new()
@@ -29,8 +40,12 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle();
             shell::start(handle)?;
+            updater::manage(handle);
             desktop::create_tray(handle)?;
-            if !std::env::args().any(|arg| arg == shell::AUTOSTART_ARG) {
+            let args: Vec<String> = std::env::args().collect();
+            if let Some(options) = fidelity_gate::options(&args) {
+                fidelity_gate::start(handle, options);
+            } else if !args.iter().any(|arg| arg == shell::AUTOSTART_ARG) {
                 shell::open_main_window(handle);
             }
             Ok(())
@@ -40,21 +55,37 @@ pub fn run() {
             commands::shell_settings,
             commands::set_autostart,
             commands::rebind_shortcut,
+            commands::set_show_approx_source,
+            commands::set_force_srgb,
+            commands::set_usage_log,
+            diagnostics::diagnostics_report,
+            diagnostics::export_diagnostics,
+            diagnostics::export_usage_log,
+            diagnostics::clear_usage_log,
+            updater::update_status,
+            updater::check_update,
+            updater::install_update,
             tagging::tagging_status,
             tagging::tagging_download,
             tagging::tagging_pause,
             tagging::tagging_resume,
+            tagging::tagging_models,
+            tagging::tagging_set_model,
+            tagging::tagging_pick_package,
+            tagging::tagging_import_package,
+            fidelity_gate::gate_plan,
+            fidelity_gate::gate_image,
+            fidelity_gate::gate_save,
         ])
         .build(tauri::generate_context!())
         .expect("启动 Kinshoko 失败");
 
-    app.run(|_app, event| {
+    app.run(|app, event| match event {
         // 最后一个窗口关闭时 code 为 None：留在托盘。`app.exit(code)` 带 code，照常退出。
-        if let RunEvent::ExitRequested {
+        RunEvent::ExitRequested {
             code: None, api, ..
-        } = event
-        {
-            api.prevent_exit();
-        }
+        } => api.prevent_exit(),
+        RunEvent::Exit => desktop::on_exit(app),
+        _ => {}
     });
 }

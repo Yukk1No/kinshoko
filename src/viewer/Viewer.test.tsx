@@ -18,7 +18,7 @@ describe("查看器设备像素", () => {
   it("工具栏起点不是完整设备像素时，仍按整个窗口对齐图片起点", () => {
     const position = new DOMRect(0.25, 47.25, 1000, 800);
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(position);
-    render(<Viewer libraryId="L1" card={{ id: "a", width: 101, height: 67, thumbnail: "" }} onClose={() => {}} />);
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 101, height: 67, thumbnail: "", adult: false }} onClose={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "原图像素" }));
     const image = screen.getByAltText("正在查看的参考图");
     const [left, top] = translation(image);
@@ -29,22 +29,22 @@ describe("查看器设备像素", () => {
   });
   it("连续缩小时等滚轮停下再请求精确派生图，不缩小旧位图", () => {
     vi.useFakeTimers();
-    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "" }} onClose={() => {}} />);
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
     const image = screen.getByAltText("正在查看的参考图");
     const stage = image.parentElement!;
     fireEvent.load(image);
     fireEvent.wheel(stage, { deltaY: 100, clientX: 500, clientY: 400 });
     fireEvent.wheel(stage, { deltaY: 100, clientX: 500, clientY: 400 });
     const pending = screen.getByAltText("正在查看的参考图");
-    expect(pending.getAttribute("src")).toBe("http://reference.localhost/L1/a/1500");
+    expect(pending.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
     expect(pending.style.visibility).toBe("hidden");
     act(() => vi.advanceTimersByTime(1000));
     const settled = screen.getByAltText("正在查看的参考图");
-    expect(settled.getAttribute("src")).toBe(`http://reference.localhost/L1/a/${Math.round(parseFloat(settled.style.width) * 1.5)}`);
+    expect(settled.getAttribute("src")).toBe(`http://thumb.localhost/L1/a/fit-${Math.round(parseFloat(settled.style.width) * 1.5)}`);
   });
   it.each([1, 1.25, 1.5, 2])("DPR %s 下原图像素与 110％ 缩放都对齐物理像素，超过 200％ 按像素放大", (dpr) => {
     Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: dpr });
-    render(<Viewer libraryId="L1" card={{ id: "odd", width: 101, height: 67, thumbnail: "" }} onClose={() => {}} />);
+    render(<Viewer libraryId="L1" card={{ id: "odd", width: 101, height: 67, thumbnail: "", adult: false }} onClose={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "原图像素" }));
     const image = screen.getByAltText("正在查看的参考图");
     const physical = (property: "width" | "height" | "left" | "top") =>
@@ -61,19 +61,19 @@ describe("查看器设备像素", () => {
     for (let i = 0; i < 4; i++) fireEvent.click(screen.getByRole("button", { name: "放大" }));
     expect(physical("width")).toBeCloseTo(Math.round(physical("width")));
     expect(image.style.imageRendering).toBe("pixelated");
-    expect(image.getAttribute("src")).toBe("http://reference.localhost/L1/odd/101");
+    expect(image.getAttribute("src")).toBe("http://thumb.localhost/L1/odd/full");
   });
 
   it("适应窗口请求精确物理宽度，原图像素按 DPR 除一次", () => {
-    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "" }} onClose={() => {}} />);
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
     let image = screen.getByAltText("正在查看的参考图");
-    expect(image.getAttribute("src")).toBe("http://reference.localhost/L1/a/1500");
+    expect(image.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
     expect(image.style.width).toBe("1000px");
     expect(parseFloat(image.style.height)).toBeCloseTo(1000 / 1.5);
 
     fireEvent.click(screen.getByRole("button", { name: "原图像素" }));
     image = screen.getByAltText("正在查看的参考图");
-    expect(image.getAttribute("src")).toBe("http://reference.localhost/L1/a/2400");
+    expect(image.getAttribute("src")).toBe("http://thumb.localhost/L1/a/full");
     expect(image.style.width).toBe("1600px");
     expect(parseFloat(image.style.height)).toBeCloseTo(1600 / 1.5);
     expect(screen.getByLabelText("缩放比例").textContent).toBe("100%");
@@ -81,7 +81,7 @@ describe("查看器设备像素", () => {
 
   it("读取失败有重试入口，拖动可以观察原图边缘，Tab 留在查看器中", () => {
     const close = vi.fn();
-    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "" }} onClose={close} />);
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={close} />);
     let image = screen.getByAltText("正在查看的参考图");
     fireEvent.error(image);
     expect(screen.getByRole("alert").textContent).toContain("无法读取这张参考图");

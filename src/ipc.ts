@@ -3,18 +3,29 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { AppInfo } from "./bindings/AppInfo";
+import type { ApproxRelation } from "./bindings/ApproxRelation";
+import type { PersonalApproxEntry } from "./bindings/PersonalApproxEntry";
 import type { Candidate } from "./bindings/Candidate";
 import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import type { BrowseQuery } from "./bindings/BrowseQuery";
+import type { CaptureAction } from "./bindings/CaptureAction";
+import type { CaptureEntry } from "./bindings/CaptureEntry";
+import type { CollectedCapture } from "./bindings/CollectedCapture";
+import type { FrozenScreen } from "./bindings/FrozenScreen";
 import type { ImageDetail } from "./bindings/ImageDetail";
 import type { ImageEdit } from "./bindings/ImageEdit";
 import type { ImageRating } from "./bindings/ImageRating";
+import type { GatePlan } from "./bindings/GatePlan";
 import type { ImageTags } from "./bindings/ImageTags";
+import type { PinFrame } from "./bindings/PinFrame";
+import type { Region } from "./bindings/Region";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
+import type { ModelChoice } from "./bindings/ModelChoice";
 import type { RecoveryReport } from "./bindings/RecoveryReport";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { Sidebar } from "./bindings/Sidebar";
@@ -22,6 +33,8 @@ import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { TagEdit } from "./bindings/TagEdit";
 import type { TagGroupView } from "./bindings/TagGroupView";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
+import type { UpdateProgress } from "./bindings/UpdateProgress";
+import type { UpdateStatus } from "./bindings/UpdateStatus";
 import type { Vocabulary } from "./bindings/Vocabulary";
 
 export function appInfo(): Promise<AppInfo> {
@@ -42,6 +55,14 @@ export function createLibrary(parent: string, name: string): Promise<LibraryInfo
 
 export function browse(query: BrowseQuery): Promise<BrowsePage> {
   return invoke<BrowsePage>(lib("browse"), { query });
+}
+
+/** 资料库的 `UnknownImage`：图不存在、在别的资料库，或安全模式下被封印（#60）。 */
+const UNKNOWN_IMAGE = "资料库中没有这张参考图";
+
+/** 命令失败是不是因为这张图已查不到（应关闭查看它的界面、回到图片墙）。 */
+export function isUnknownImage(error: unknown): boolean {
+  return String(error) === UNKNOWN_IMAGE;
 }
 
 /** 单张参考图的详情。 */
@@ -136,6 +157,21 @@ export function resolveSearch(input: SearchInput, lang: string): Promise<Conditi
   return invoke<ConditionTree>(lib("resolve_search"), { input, lang });
 }
 
+/** 在个人近似对应表中记下两个标签相近（“＋”）或不相近（“以后都不展开”）。 */
+export function setTagApprox(a: string, b: string, relation: ApproxRelation): Promise<void> {
+  return invoke<void>(lib("set_tag_approx"), { a, b, relation });
+}
+
+/** 删除个人近似对应表中的一对，之后按内置近似对应表。 */
+export function removeTagApprox(a: string, b: string): Promise<void> {
+  return invoke<void>(lib("remove_tag_approx"), { a, b });
+}
+
+/** 个人近似对应表的条目，最近记下的在前，名称按界面语言 lang。 */
+export function personalApprox(lang: string): Promise<PersonalApproxEntry[]> {
+  return invoke<PersonalApproxEntry[]>(lib("personal_approx"), { lang });
+}
+
 export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<UnlistenFn> {
   return listen<LibraryEvent>("library-event", (e) => handler(e.payload));
 }
@@ -145,9 +181,16 @@ export function thumbnailUrl(address: string): string {
   return convertFileSrc("", "thumb") + address;
 }
 
-/** 查看器显示地址。目标宽度为设备像素，原图／sdr 派生图由 Library 决定。 */
-export function displayImageUrl(libraryId: string, imageId: string, targetPx: number): string {
-  return convertFileSrc("", "reference") + `${libraryId}/${imageId}/${targetPx}`;
+/** 1:1 与放大时显示的图（看图界面只用这条路）：静态 SDR 原图，或动图、HDR、Chromium 不能
+ * 精确表示的 ICC 与 CMYK 的原尺寸 sdr 派生图（ADR-0005）。 */
+export function displayUrl(libraryId: string, imageId: string): string {
+  return convertFileSrc("", "thumb") + `${libraryId}/${imageId}/full`;
+}
+
+/** 查看器缩小显示（适应窗口等）的地址：targetPx 是转正后的设备像素宽度。不小于原图宽度时
+ * 与 displayUrl 相同；更小时是精确尺寸的 sdr 派生图，不交给 Chromium 缩小（#47）。 */
+export function displayScaledUrl(libraryId: string, imageId: string, targetPx: number): string {
+  return convertFileSrc("", "thumb") + `${libraryId}/${imageId}/fit-${targetPx}`;
 }
 
 // 原生文件对话框无法由 WebDriver 操作。冒烟测试先把要“选中”的路径放进
@@ -178,6 +221,16 @@ export function imageRating(imageId: string): Promise<ImageRating> {
   return invoke<ImageRating>(lib("image_rating"), { imageId });
 }
 
+/** 安全模式是否开启（全局设置，新装默认开启）。 */
+export function safeMode(): Promise<boolean> {
+  return invoke<boolean>(lib("safe_mode"));
+}
+
+/** 开关安全模式；当前资料库随后推送 safeModeChanged。 */
+export function setSafeMode(on: boolean): Promise<boolean> {
+  return invoke<boolean>(lib("set_safe_mode"), { on });
+}
+
 /** 自动标签的当前状态；还没打开资料库时 reject。 */
 export function taggingStatus(): Promise<TaggingStatus> {
   return invoke<TaggingStatus>("tagging_status");
@@ -197,6 +250,27 @@ export function taggingResume(): Promise<void> {
   return invoke<void>("tagging_resume");
 }
 
+/** 设置中的打标模型列表与画师选的模型。 */
+export function taggingModels(): Promise<ModelChoice> {
+  return invoke<ModelChoice>("tagging_models");
+}
+
+/** 换用打标模型（`null` 为自动），保存在本设备。 */
+export function taggingSetModel(key: string | null): Promise<ModelChoice> {
+  return invoke<ModelChoice>("tagging_set_model", { key });
+}
+
+/** 选择要导入的模型包（zip）；取消时为 null。 */
+export function pickModelPackage(): Promise<string | null> {
+  const t = testPick<string | null>();
+  return t ? Promise.resolve(t.value) : invoke<string | null>("tagging_pick_package");
+}
+
+/** 从文件导入模型包并校验；校验不过时 reject 中文原因。 */
+export function importModelPackage(path: string): Promise<ModelChoice> {
+  return invoke<ModelChoice>("tagging_import_package", { path });
+}
+
 export function onTaggingStatus(handler: (status: TaggingStatus) => void): Promise<UnlistenFn> {
   return listen<TaggingStatus>("tagging-status", (e) => handler(e.payload));
 }
@@ -211,10 +285,214 @@ export function setAutostart(on: boolean): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("set_autostart", { on });
 }
 
+/** 开关查找条件里相近标签的来源标记（内置／个人）。 */
+export function setShowApproxSource(on: boolean): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_show_approx_source", { on });
+}
+
 /** 更换全局快捷键，立即生效；`null` 表示清除。失败时 reject 中文原因，原来的键不变。 */
 export function rebindShortcut(
   action: ShortcutAction,
   accelerator: string | null,
 ): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("rebind_shortcut", { action, accelerator });
+}
+
+/** 诊断开关“强制 sRGB”：保存后重启 Kinshoko 生效。 */
+export function setForceSrgb(on: boolean): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_force_srgb", { on });
+}
+
+/** 开关使用日志（只写本机），立即生效。 */
+export function setUsageLog(on: boolean): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_usage_log", { on });
+}
+
+// ---------- 诊断与更新（#70） ----------
+
+/** 诊断日志全文：硬件、系统、WebView2 与显示器色彩状态，不含文件名、路径与图片。 */
+export function diagnosticsReport(): Promise<string> {
+  return invoke<string>("diagnostics_report");
+}
+
+/** 把诊断日志存成文件；画师取消时为 false。 */
+export function exportDiagnostics(): Promise<boolean> {
+  return invoke<boolean>("export_diagnostics");
+}
+
+/** 把使用日志导出成文件；画师取消时为 false。 */
+export function exportUsageLog(): Promise<boolean> {
+  return invoke<boolean>("export_usage_log");
+}
+
+/** 删掉已记录的使用日志。 */
+export function clearUsageLog(): Promise<void> {
+  return invoke<void>("clear_usage_log");
+}
+
+/** 上次检查更新的结果。 */
+export function updateStatus(): Promise<UpdateStatus> {
+  return invoke<UpdateStatus>("update_status");
+}
+
+/** 向 GitHub Releases 检查新版本。 */
+export function checkUpdate(): Promise<UpdateStatus> {
+  return invoke<UpdateStatus>("check_update");
+}
+
+/** 下载并安装新版本；成功时 Kinshoko 退出、装好后重新启动。 */
+export function installUpdate(): Promise<void> {
+  return invoke<void>("install_update");
+}
+
+export function onUpdateProgress(handler: (progress: UpdateProgress) => void): Promise<UnlistenFn> {
+  return listen<UpdateProgress>("update-progress", (e) => handler(e.payload));
+}
+
+// ---------- 截图与钉图（#62） ----------
+
+const desk = (command: string) => `plugin:desktop|${command}`;
+
+/** 开始框选截图（与全局快捷键相同）。 */
+export function startCapture(): Promise<void> {
+  return invoke<void>(desk("start_capture"));
+}
+
+/** 框选窗口：要显示的冻结屏幕；没有进行中的截图时为 null。 */
+export function frozenScreen(): Promise<FrozenScreen | null> {
+  return invoke<FrozenScreen | null>(desk("frozen_screen"));
+}
+
+/** 框选窗口：冻结屏幕已画好，可以显示窗口了。 */
+export function captureReady(): Promise<void> {
+  return invoke<void>(desk("capture_ready"));
+}
+
+/** 框选完成；region 是相对显示器的物理像素。 */
+export function finishCapture(region: Region, action: CaptureAction): Promise<void> {
+  return invoke<void>(desk("finish_capture"), { region, action });
+}
+
+export function cancelCapture(): Promise<void> {
+  return invoke<void>(desk("cancel_capture"));
+}
+
+/** 把剪贴板里的图片钉住；剪贴板没有图片时 reject 中文原因。 */
+export function pinClipboard(): Promise<void> {
+  return invoke<void>(desk("pin_clipboard"));
+}
+
+/** 从截图历史钉住一张截图。 */
+export function pinCapture(id: string): Promise<void> {
+  return invoke<void>(desk("pin_capture"), { id });
+}
+
+/** 钉图窗口当前的一帧：要画的钉图、原生窗口与内容的位置；钉图已关闭时为 null。 */
+export function pinFrame(pin: string): Promise<PinFrame | null> {
+  return invoke<PinFrame | null>(desk("pin_frame"), { pin });
+}
+
+/** 发给本钉图窗口的帧（缩放、贴边滑动、翻转旋转、透明度、锁定都经这里，#64）。 */
+export function onPinFrame(handler: (frame: PinFrame) => void): Promise<UnlistenFn> {
+  return getCurrentWebviewWindow().listen<PinFrame>("pin-frame", (e) => handler(e.payload));
+}
+
+/** 动画结束：让应用壳把原生窗口改成静止时的矩形（只认最新一帧的 generation）。 */
+export function settlePin(pin: string, generation: number): Promise<void> {
+  return invoke<void>(desk("settle_pin"), { pin, generation });
+}
+
+/** 透明度 0.1～1。 */
+export function setPinOpacity(pin: string, opacity: number): Promise<void> {
+  return invoke<void>(desk("set_pin_opacity"), { pin, opacity });
+}
+
+/** 锁定后钉图不响应拖动与缩放。 */
+export function setPinLocked(pin: string, locked: boolean): Promise<void> {
+  return invoke<void>(desk("set_pin_locked"), { pin, locked });
+}
+
+/** 钉图窗口：第一帧已画好，可以显示了。 */
+export function pinReady(pin: string): Promise<void> {
+  return invoke<void>(desk("pin_ready"), { pin });
+}
+
+/** 在钉图上弹出右键菜单。 */
+export function pinMenu(pin: string): Promise<void> {
+  return invoke<void>(desk("pin_menu"), { pin });
+}
+
+/** 拖动钉图（笔、鼠标、触摸同一套）：移到屏幕物理像素 (x, y)，成为新的原位。锁定时 reject。 */
+export function movePin(pin: string, x: number, y: number): Promise<void> {
+  return invoke<void>(desk("move_pin"), { pin, x, y });
+}
+
+/** 缩放钉图；屏幕上的 (anchorX, anchorY)（物理像素）不动。新状态以 pin-frame 到达；锁定时 reject。 */
+export function zoomPin(pin: string, scale: number, anchorX: number, anchorY: number): Promise<void> {
+  return invoke<void>(desk("zoom_pin"), { pin, scale, anchorX, anchorY });
+}
+
+export type PinTurn = "flipHorizontal" | "flipVertical" | "rotateClockwise" | "rotateCounterClockwise";
+
+/** 翻转或旋转钉图（中心不动）。新状态以 pin-frame 到达。 */
+export function turnPin(pin: string, turn: PinTurn): Promise<void> {
+  return invoke<void>(desk("turn_pin"), { pin, turn });
+}
+
+/** 贴边隐藏全部钉图，或让它们回到原位（与全局快捷键相同）。 */
+export function edgeHide(): Promise<void> {
+  return invoke<void>(desk("edge_hide"));
+}
+
+export function captureHistory(): Promise<CaptureEntry[]> {
+  return invoke<CaptureEntry[]>(desk("capture_history"));
+}
+
+/** 收藏：经资料库的普通导入入口存进当前资料库。 */
+export function collectCapture(id: string): Promise<CollectedCapture> {
+  return invoke<CollectedCapture>(desk("collect_capture"), { id });
+}
+
+export function deleteCapture(id: string): Promise<void> {
+  return invoke<void>(desk("delete_capture"), { id });
+}
+
+export function onCaptureHistory(handler: (entries: CaptureEntry[]) => void): Promise<UnlistenFn> {
+  return listen<CaptureEntry[]>("capture-history", (e) => handler(e.payload));
+}
+
+/** 发给本钉图窗口的提示（例如“已收藏到…”）。只收发给这个窗口的，不收别的钉图的。 */
+export function onPinNotice(handler: (text: string) => void): Promise<UnlistenFn> {
+  return getCurrentWebviewWindow().listen<string>("pin-notice", (e) => handler(e.payload));
+}
+
+/** 截图历史中的截图或冻结屏幕（自定义协议 capture）转成 <img> 可用的 URL。 */
+export function captureUrl(address: string): string {
+  return convertFileSrc("", "capture") + address;
+}
+
+// ---------- 还原度门槛实验（#45） ----------
+
+/** 等样本资料库准备好后取得门槛实验计划。 */
+export function gatePlan(): Promise<GatePlan> {
+  return invoke<GatePlan>("gate_plan");
+}
+
+/** 样本的原文件、应用 1:1 显示的文件（display）或某档缩略图的原始字节。 */
+export async function gateImage(
+  imageId: string,
+  what: "original" | "display" | { thumbnail: number },
+): Promise<Uint8Array<ArrayBuffer>> {
+  // 原始字节在自定义协议 IPC 下是 ArrayBuffer，退回 postMessage 时是数字数组。
+  const raw = await invoke<ArrayBuffer | number[]>("gate_image", {
+    imageId,
+    what: typeof what === "string" ? what : "thumbnail",
+    px: typeof what === "string" ? null : what.thumbnail,
+  });
+  return raw instanceof ArrayBuffer ? new Uint8Array(raw) : Uint8Array.from(raw);
+}
+
+/** 保存报告，返回 JSON 报告的路径。无人值守运行时保存后退出。 */
+export function gateSave(report: unknown, markdown: string, passed: boolean): Promise<string> {
+  return invoke<string>("gate_save", { report, markdown, passed });
 }

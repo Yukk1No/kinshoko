@@ -7,4 +7,9 @@ export type ImageCard = { id: string, width: number, height: number,
 /**
  * 缩略图地址：`<资料库 id>/<参考图 id>/<像素档位>`，由应用壳映射到自定义协议。
  */
-thumbnail: string, };
+thumbnail: string, 
+/**
+ * 含成人内容（有效分级为 questionable 或 explicit）：打开安全模式时会被封印。
+ * 安全模式开启时浏览结果里没有这样的图，界面据此在开启的一瞬间先把它们遮住。
+ */
+adult: boolean, };
