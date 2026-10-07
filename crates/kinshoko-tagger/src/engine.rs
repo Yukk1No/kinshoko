@@ -132,16 +132,67 @@ impl kinshoko_core::tagging::Engine for OrtEngine {
                 gpu.usage, gpu.budget
             )));
         }
-        Ok(self
-            .vocab
+        pair(&self.vocab, scores)
+    }
+}
+
+/// 把模型输出的分数按词表的行对上名称与类别，只留不低于 [`REPORT_FLOOR`] 的。
+/// 分数个数与词表行数不同时报错：模型与词表不配套，对上的标签都不可信。
+fn pair(vocab: &[VocabEntry], scores: Vec<f32>) -> Result<Vec<RawTag>, EngineError> {
+    if scores.len() != vocab.len() {
+        return Err(EngineError::Fatal(format!(
+            "模型输出 {} 个分数，词表有 {} 行，二者不配套",
+            scores.len(),
+            vocab.len()
+        )));
+    }
+    Ok(vocab
+        .iter()
+        .zip(scores)
+        .filter(|(_, s)| *s >= REPORT_FLOOR)
+        .map(|(v, score)| RawTag {
+            name: v.name.clone(),
+            category: v.category,
+            score,
+        })
+        .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn vocab(names: &[&str]) -> Vec<VocabEntry> {
+        names
             .iter()
-            .zip(scores)
-            .filter(|(_, s)| *s >= REPORT_FLOOR)
-            .map(|(v, score)| RawTag {
-                name: v.name.clone(),
-                category: v.category,
-                score,
+            .map(|n| VocabEntry {
+                name: (*n).to_owned(),
+                category: 0,
             })
-            .collect())
+            .collect()
+    }
+
+    #[test]
+    fn scores_are_paired_with_the_tag_list_row_by_row() {
+        let tags = pair(
+            &vocab(&["blue_eyes", "smile", "solo"]),
+            vec![0.9, 0.01, 0.5],
+        )
+        .unwrap();
+        let names: Vec<_> = tags.iter().map(|t| (t.name.as_str(), t.score)).collect();
+        assert_eq!(names, [("blue_eyes", 0.9), ("solo", 0.5)]);
+    }
+
+    /// 输出与词表行数不同说明模型与词表不配套：不能按 zip 截断后照样写入（#76 Core1）。
+    #[test]
+    fn an_output_whose_length_differs_from_the_tag_list_is_an_error() {
+        let names = vocab(&["blue_eyes", "smile"]);
+        for scores in [vec![0.9], vec![0.9, 0.8, 0.7]] {
+            let n = scores.len();
+            assert!(
+                matches!(pair(&names, scores), Err(EngineError::Fatal(_))),
+                "{n} 个分数"
+            );
+        }
     }
 }

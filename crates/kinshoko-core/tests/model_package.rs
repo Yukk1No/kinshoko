@@ -163,3 +163,69 @@ fn a_package_without_a_tag_list_or_model_is_rejected() {
     let err = store.import_package(&not_zip, &models).unwrap_err();
     assert!(err.contains("模型包"), "{err}");
 }
+
+/// 固定模型的词表也是固定的：内容、顺序与行数都要与模型一致，否则分数会对错标签（#76 Core1）。
+#[test]
+fn a_package_whose_tag_list_does_not_match_the_model_is_rejected() {
+    let dir = tempfile::tempdir().unwrap();
+    let server = ModelServer::start();
+    let (gpu, cpu) = specs(&server);
+    let models = dir.path().join("models");
+    let store = ModelStore::new(models.clone(), server.base_url());
+    for (case, tags) in wrong_tag_lists() {
+        let pkg = package(
+            dir.path(),
+            &[
+                ("model_fp16.onnx", MODEL),
+                ("selected_tags.csv", tags.as_bytes()),
+            ],
+        );
+        let err = store
+            .import_package(&pkg, &[gpu.clone(), cpu.clone()])
+            .expect_err(case);
+        assert!(err.contains("词表"), "{case}：{err}");
+        assert!(store.ready(&gpu).is_none(), "{case}");
+        let leftovers: Vec<_> = std::fs::read_dir(&models)
+            .map(|d| d.flatten().map(|e| e.path()).collect())
+            .unwrap_or_default();
+        assert!(leftovers.is_empty(), "{case}：没有留下文件：{leftovers:?}");
+    }
+}
+
+/// 格式都对、但与测试模型不配套的词表：无关、重排、截断。
+fn wrong_tag_lists() -> Vec<(&'static str, String)> {
+    let lines: Vec<&str> = TAGS_CSV.lines().collect();
+    let mut reordered = lines.clone();
+    reordered.swap(1, 2);
+    vec![
+        ("无关的词表", "name,category\ngeneral,9\n".to_owned()),
+        ("顺序不同", reordered.join("\n") + "\n"),
+        ("少了一行", lines[..lines.len() - 1].join("\n") + "\n"),
+    ]
+}
+
+/// 新校验之前装好的模型目录里可能已有不配套的词表：不算就绪，重新准备时换回固定词表。
+#[test]
+fn an_installed_model_with_a_mismatched_tag_list_is_not_ready_until_prepared_again() {
+    let dir = tempfile::tempdir().unwrap();
+    let server = ModelServer::start();
+    let (gpu, _) = specs(&server);
+    let store = ModelStore::new(dir.path().join("models"), server.base_url());
+    let never = std::sync::atomic::AtomicBool::new(false);
+    let installed = store.prepare(&gpu, &mut |_| {}, &never).unwrap();
+    for (case, tags) in wrong_tag_lists() {
+        std::fs::write(&installed.tags_csv, &tags).unwrap();
+        assert!(store.ready(&gpu).is_none(), "{case}");
+        assert!(
+            !store.options(std::slice::from_ref(&gpu))[0].installed,
+            "{case}"
+        );
+        let again = store.prepare(&gpu, &mut |_| {}, &never).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&again.tags_csv).unwrap(),
+            TAGS_CSV,
+            "{case}"
+        );
+        assert!(store.ready(&gpu).is_some(), "{case}");
+    }
+}

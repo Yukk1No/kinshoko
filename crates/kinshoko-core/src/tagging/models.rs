@@ -44,6 +44,9 @@ pub struct ModelSpec {
     pub sha256: String,
     /// 仓库中的词表文件名（列 `name`、`category`）。
     pub tags_file: String,
+    /// 词表的 SHA-256。模型输出按词表的行一一对应，内容、顺序与行数都随模型固定；
+    /// 不符的词表一律不装、不算就绪。
+    pub tags_sha256: String,
     pub chunking: Option<Chunking>,
     /// 这个模型用的设备档位。
     pub device: Device,
@@ -73,6 +76,8 @@ impl ModelSpec {
 
 const V1_REPO: &str = "Mexes/pixai-tagger-v1.0-onnx-fp32-fp16-int8";
 const V1_REVISION: &str = "0800778563144a0e6fdf41ddadd84aae3cb0dbcf";
+/// 这一修订的 `selected_tags.csv`（与 `data/builtin-approx-table.json` 记录的词表同一文件）。
+const V1_TAGS_SHA256: &str = "a9455cbf0a910d4a3890739f2f70bd986278f4594285ef1049121a03896e2a6d";
 /// PixAI v1.0 配置中的 `global_att_blocks`；5184 个 token 分成 8 块，每块 648。
 const V1_GLOBAL_BLOCKS: [u32; 4] = [7, 15, 23, 31];
 /// PixAI v1.0 模型卡推荐的各类别阈值；第 9 类是分级。
@@ -97,6 +102,7 @@ pub fn catalog() -> Vec<ModelSpec> {
         size,
         sha256: sha.into(),
         tags_file: "selected_tags.csv".into(),
+        tags_sha256: V1_TAGS_SHA256.into(),
         chunking: Some(Chunking {
             blocks: V1_GLOBAL_BLOCKS.to_vec(),
             chunks: 8,
@@ -224,9 +230,10 @@ impl ModelStore {
     /// 模型已就绪时返回它；不下载、不重算哈希。
     pub fn ready(&self, spec: &ModelSpec) -> Option<PreparedModel> {
         let p = self.paths(spec);
+        // 词表很小（PixAI v1.0 约 0.8 MB），每次都重算哈希：校验之前装好的目录、事后被换掉的词表都不算就绪。
         let verified = fs::read_to_string(&p.marker).ok()? == spec.sha256
             && file_len(&p.onnx) == Some(spec.size)
-            && p.tags.is_file();
+            && tags_match(spec, &p.tags);
         if !verified {
             return None;
         }
@@ -301,7 +308,8 @@ impl ModelStore {
             }
             fs::write(&p.marker, &spec.sha256).map_err(|e| e.to_string())?;
         }
-        if !p.tags.is_file() {
+        if !tags_match(spec, &p.tags) {
+            let _ = fs::remove_file(&p.tags);
             download(
                 &self.url(spec, &spec.tags_file),
                 &p.tags,
@@ -309,6 +317,13 @@ impl ModelStore {
                 &mut |_| {},
                 cancel,
             )?;
+            if !tags_match(spec, &p.tags) {
+                let _ = fs::remove_file(&p.tags);
+                return Err(format!(
+                    "{} 的词表校验失败，已删除，稍后重新下载",
+                    spec.label
+                ));
+            }
         }
         chunk(spec, &p, progress)?;
         self.ready(spec)
@@ -382,6 +397,13 @@ impl ModelStore {
                 "模型包校验失败：{onnx_name} 已损坏，或不是 Kinshoko 支持的版本"
             ));
         };
+        if sha256_bytes(&tags_csv) != spec.tags_sha256 {
+            let _ = fs::remove_file(&tmp);
+            return Err(format!(
+                "模型包里的词表 {TAGS_FILE} 与 {} 不配套（内容、顺序或行数不同）",
+                spec.label
+            ));
+        }
         let p = self.paths(spec);
         let installed = (|| {
             fs::create_dir_all(&p.dir)?;
@@ -464,6 +486,15 @@ struct Paths {
 
 fn file_len(path: &Path) -> Option<u64> {
     fs::metadata(path).ok().map(|m| m.len())
+}
+
+/// 词表文件在且与模型固定的词表一致。
+fn tags_match(spec: &ModelSpec, path: &Path) -> bool {
+    sha256_file(path).is_ok_and(|sha| sha == spec.tags_sha256)
+}
+
+fn sha256_bytes(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
 }
 
 fn sha256_file(path: &Path) -> std::io::Result<String> {
