@@ -152,22 +152,25 @@
 - **样本**：由 `kinshoko_core::fidelity::gate::samples()` 生成，字节固定，任何机器上重新生成都相同；共 38 张，覆盖核查“尚未验证”一节的实验 1～8、13 与动图：ICC v4／v2 Display P3、Adobe RGB、LUT 型 ICC（lut16，PCS 为 XYZ 与 Lab 各一；XYZ 的 A2B0 与 A2B1 不同）、颜色模型不符的 ICC、CMYK／YCCK JPEG（合成 CMYK 配置文件，PCS 为 XYZ 与 Lab 各一；Lab 的按 FOGRA39 的结构：ICC v2.1、lut16、旧式 16 位 Lab 编码；FOGRA39 本身不可再分发）与无配置文件的 CMYK、gAMA 0.45455／1/1.8、gAMA＋cHRM、sRGB 块＋矛盾 gAMA、cICP、cICP＋iCCP、16 位 PNG、灰度 ICC、细线与网点、透明边（PNG／WebP）、EXIF 方向 1～8（另有带 eXIf 的 PNG）、GIF／APNG／动态 WebP、增益图标记、PQ／HLG。每个样本的 SHA-256 写在报告里。
 - **开发机（无人值守）**：`node e2e/fidelity-gate.mjs target/release/kinshoko.exe [报告目录]`，CI 每次构建都跑并上传报告与样本；门槛未通过是要由人判断的实验结果，不让 CI 变红（该步骤 `continue-on-error`）。
 - **画师电脑**：运行 `kinshoko.exe --fidelity-gate`（可加报告目录，默认在桌面的“Kinshoko 还原度报告”）。程序在报告目录下新建只放样本的资料库，不碰画师的资料库；跑完后按 Windows 设置填写 HDR、自动色彩管理与显示器 ICC，点“保存报告”，把生成的 `fidelity-report-*.json` 与 `.md` 发回。
-- **读法**：WebView2 用 `createImageBitmap` 分别解码原图与 128 px 缩略图，画到 `display-p3` canvas 读回，比较色块平均值的 ΔE2000（门槛 < 1）与 alpha（±0.02）。“原图 vs 标称”是 WebView2 自己对色彩声明的解释（例如 LUT 型 ICC 是否被裁到 sRGB），“缩略图 vs 标称”用来区分偏的是哪一边，两栏都只记录。细线、16 位灰度渐变与 PQ／HLG 只记录，由画师目视。
-- **已知差异：lut16＋XYZ PCS**：lut-a2b0.png、cmyk-profile.jpg、ycck-profile.jpg 只记录，不计入门槛。skcms 读 lut16（mft2）A2B 表时，PCS 为 XYZ 也按 v/65535 取值，没有乘 u1Fixed15 的 65535/32768（见 skcms `read_tag_mft2` 与 A2B 管线；mAB 的矩阵才乘），按 ICC 规范写的 1.0（0x8000）被读成 0.5，WebView2 因此按 0.5 倍线性亮度显示这几张原图。派生图按 ICC 规范解释，不跟随 skcms。Rust 侧测试仍检查这三张的派生图与标称值。WebView2 更新后复查。
+- **读法**：WebView2 用 `createImageBitmap` 分别解码应用在 1:1 时显示的图（`Library::display`：原图，或原尺寸 `sdr` 派生图）与 128 px 缩略图，画到 `display-p3` canvas 读回，比较色块平均值的 ΔE2000（门槛 < 1）与 alpha（±0.02）。显示派生图的样本（动图、HDR、查找表型 ICC 与 CMYK，见 ADR-0005）还须“派生图 vs 标称” < 1。直接显示原图时“1:1 显示 vs 标称”是 WebView2 自己的解释，只记录；“缩略图 vs 标称”用来区分偏的是哪一边。细线、16 位灰度渐变与 PQ／HLG 只记录，由画师目视。
+- **已知差异：查找表型 ICC 与 CMYK 在 WebView2 中直接显示**：这类原图不直接显示（ADR-0005），报告里“WebView2 直接显示原图 vs 标称”一栏只记录。Chromium 对它们建不出精确色彩空间，解码时转换到 sRGB，广色域被裁掉（`skia/ext/color_profile.cc` 的 `ComputeSkColorSpace`）；skcms 读 lut16（mft2）时，XYZ PCS 按 v/65535 取值、没有乘 u1Fixed15 的 65535/32768（`read_tag_mft2`；mAB 的矩阵才乘），Lab PCS 按 v4 编码读旧式编码（`src/Transform_inl.h` 的 `lab_to_xyz`）。WebView2 更新后复查。
 - **环境记录**：WebView2 Runtime 版本、Windows 版本与内部版本号、GPU 与驱动版本、显示器及其 ICC 关联（注册表）、页面的 `color-gamut`／`dynamic-range` 媒体查询、WebGL 渲染器、DPR，以及画师填写的 HDR、自动色彩管理与显示器 ICC。
 - **Rust 侧**：`cargo test -p kinshoko-core --test fidelity` 用同一组样本检查缩略图色块与标称 Lab 的 ΔE2000 < 1，与 WebView2 无关。
 
 结果（开发机与画师电脑各一份）补记于此。
 
-**开发机，2026-10-07**（Windows 11 25H2 26200.9550，RTX 4070 SUPER 驱动 32.0.16.1714，WebView2 154.0.4258.53，`color-gamut: srgb`，SDR，DPR 1.104；HDR／自动色彩管理未填写）：35 个样本中 3 个门槛样本未通过，其余通过。3 个的缩略图与标称值都在 ΔE2000 < 1 以内，偏的是 WebView2 对原图的解码：
+**开发机，2026-10-07**（Windows 11 25H2 26200.9550，RTX 4070 SUPER 驱动 32.0.16.1714，WebView2 154.0.4258.53，`color-gamut: srgb`，SDR，DPR 1.104；HDR／自动色彩管理未填写）：38 个样本，34 个计入门槛，全部通过；12 个在 1:1 时显示 `sdr` 派生图。查找表型 ICC 与 CMYK 样本：
 
-| 样本 | 原图 vs 缩略图 | 原图 vs 标称 | 缩略图 vs 标称 |
+| 样本 | 派生图 vs 缩略图 | 派生图 vs 标称 | WebView2 直接显示原图 vs 标称（只记录） |
 |---|---|---|---|
-| lut-a2b0.png | 16.35 | 16.43 | 0.89 |
-| cmyk-profile.jpg | 16.35 | 16.36 | 0.31 |
-| ycck-profile.jpg | 16.35 | 16.36 | 0.33 |
+| lut-a2b0.png（lut16，XYZ PCS） | 0.00 | 0.89 | 16.43 |
+| cmyk-profile.jpg（XYZ PCS） | 0.00 | 0.31 | 16.36 |
+| ycck-profile.jpg（XYZ PCS） | 0.00 | 0.33 | 16.36 |
+| lut-lab.png（lut16，Lab PCS，v2.1） | 0.00 | 0.57 | 6.55 |
+| cmyk-lab.jpg（Lab PCS，v2.1） | 0.00 | 0.57 | 6.55 |
+| ycck-lab.jpg（Lab PCS，v2.1） | 0.00 | 0.66 | 6.55 |
 
-- 原图确实解码了（384×256，色块各不相同）。三张数值相同，是因为色块颜色相同，最大值都落在 P3 绿色块上。
-- 原因在 skcms：lut16（mft2）A2B 表的 PCS 为 XYZ 时，skcms 把表值按 v/65535 读，没有乘 u1Fixed15 的 65535/32768（mAB 的矩阵才乘），按 ICC 规范写的 1.0（0x8000）被读成 0.5。实测原图线性亮度正好是缩略图的 0.50 倍（白 L* 74.8／76.2 对 98.3／100）。样本的这两个配置文件都是 lut16＋XYZ PCS；常见的 LUT 型与 CMYK 配置文件多用 Lab PCS，按 skcms 的代码应不受此影响，但尚未实测。
+- WebView2 直接显示原图的偏差：XYZ PCS 的线性亮度正好是 0.50 倍（skcms 读 lut16 XYZ 时不乘 u1Fixed15 系数）；Lab PCS 的 P3 原色被裁成 sRGB 原色（原图红色读回 Lab 54.29／80.85／70.16，与 sRGB 红相同），中性灰 a* 约偏 −1（旧式 Lab 编码按 v4 读）。原图确实解码了（384×256）。
+- 标称值另用 LittleCMS 2.17（Pillow ImageCms）核对：Lab PCS 的两种配置文件与标称值相差 ΔE2000 ≤ 0.74（受 8 位 Lab 精度限制）。
 - gama-045455.png 已改为与 Chromium 一致（没有 cHRM 时，与 1/2.2 相差不到 5% 的 gAMA 按 sRGB），现为 0.00。
 - 本机的 WmiMonitorID 与显示器 ICC 关联读不到（非管理员），以页面上手填为准。
