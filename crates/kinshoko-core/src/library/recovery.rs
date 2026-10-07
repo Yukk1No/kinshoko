@@ -4,6 +4,7 @@
 //!   参考图引用、内容与预期一致、且不是发布前就已存在的文件，也删掉；最后结束 pending。
 //!   先删文件再删记录，对账本身中断后重来也安全。
 //! - `.staging/` 里的文件都还没发布，全部清掉。
+//! - 永久删除（#67）已提交、原文件还没清除的，接着清除。
 //! - `originals/` 里没有参考图引用的其他文件只报告，不删除。
 
 use std::collections::HashSet;
@@ -53,6 +54,11 @@ pub(super) fn reconcile(conn: &mut Connection, root: &Path) -> Result<RecoveryRe
                 report.discarded_staging += 1;
             }
         }
+    }
+
+    // 永久删除提交后没来得及清除的原文件，接着清。
+    for sha in super::permanent_delete::clear_removals(conn, root)? {
+        super::thumbnail::remove_for(root, &sha);
     }
 
     report.orphans = orphans(conn, root)?;

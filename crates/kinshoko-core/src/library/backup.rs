@@ -86,8 +86,9 @@ pub struct LibraryCheck {
     pub curation_problems: Vec<String>,
 }
 
-/// 原文件租约：持有期间不得清理该资料库的原文件。永久删除与缓存清理（#67）要先查
-/// [`Library::originals_leased`]。按资料库身份登记在进程内，资料库在租约期间打开或切换也有效。
+/// 原文件租约：持有期间不清除该资料库的原文件——永久删除（#67）照常删掉记录，原文件留在待清除
+/// 表里，租约放下后的下一次永久删除或打开资料库时再清。按资料库身份登记在进程内，资料库在租约
+/// 期间打开或切换也有效。
 pub struct OriginalsLease {
     library_id: String,
 }
@@ -122,16 +123,26 @@ impl Drop for OriginalsLease {
     }
 }
 
-/// 不进整理信息核对的表：资料库身份、恢复来源、未完成导入的对账记录。
-const NOT_CURATION: &[&str] = &["library", "restore_provenance", "import_pending"];
+/// 资料库 `library_id` 的原文件此刻有租约：永久删除的清除步骤（[`super::permanent_delete`]）据此暂缓。
+pub(super) fn leased(library_id: &str) -> bool {
+    leases()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .contains_key(library_id)
+}
+
+/// 不进整理信息核对的表：资料库身份、恢复来源、未完成导入与待清除原文件的对账记录。
+const NOT_CURATION: &[&str] = &[
+    "library",
+    "restore_provenance",
+    "import_pending",
+    "original_removal",
+];
 
 impl Library {
     /// 有备份正在复制这个资料库的原文件（原文件租约）。持有期间不得清理原文件。
     pub fn originals_leased(&self) -> bool {
-        leases()
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .contains_key(&self.inner.info.id)
+        leased(&self.inner.info.id)
     }
 
     /// 这个资料库的恢复来源，先恢复的在前；不是恢复出来的库为空。

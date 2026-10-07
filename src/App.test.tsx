@@ -136,6 +136,7 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
   gone = new Set();
   mockWindows("main");
   let current = opened;
+  let tasks = 0;
   mockIPC(
     (cmd, args) => {
       calls.push({ cmd, args });
@@ -165,7 +166,8 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
           safeOn = (args as { on: boolean }).on;
           return safeOn;
         case "plugin:library|start_import":
-          return "T1";
+          // 后端每个任务的 id 都不同。
+          return `T${++tasks}`;
         case "plugin:library|sidebar":
           return side;
         case "plugin:library|image": {
@@ -695,6 +697,128 @@ describe("导入任务的终态（#76）", () => {
   });
 });
 
+describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
+  const step = () => screen.queryByRole("region", { name: "标签的外部对应" });
+  const finished = (taskId: string) => push({
+    kind: "taskFinished",
+    libraryId: "L1",
+    taskId,
+    report: { cancelled: false, items: [], eagleMissing: 0, eagleRelocations: [] },
+  });
+  /** 启动命令的响应由测试放出；`fail` 让下一次启动出错。 */
+  function eagleBackend() {
+    const answers: ((taskId: string) => void)[] = [];
+    const failures: string[] = [];
+    backend(library, clean, (cmd) => {
+      switch (cmd) {
+        case "plugin:library|discover_eagle_libraries":
+          return [{ name: "主库", path: "D:/Eagle/主库.library", items: 3, version: "4.0.0", foundBy: "settings" }];
+        case "plugin:library|eagle_tag_mapping":
+          return { matched: [], unmatched: [], vocabularySize: 0 };
+        case "plugin:library|start_import": {
+          const failure = failures.shift();
+          if (failure) return Promise.reject(failure);
+          return new Promise<string>((resolve) => answers.push(resolve));
+        }
+        default:
+          return undefined;
+      }
+    });
+    const answer = (taskId: string) =>
+      act(async () => {
+        answers.shift()!(taskId);
+        for (let i = 0; i < 5; i++) await Promise.resolve();
+      });
+    return { answer, fail: (reason: string) => failures.push(reason) };
+  }
+  async function startEagle() {
+    fireEvent.click(screen.getByRole("button", { name: "从 Eagle 迁入…" }));
+    fireEvent.click(await screen.findByRole("button", { name: "迁入 主库" }));
+  }
+  async function startFiles(count: number) {
+    window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考\\a.png"];
+    fireEvent.click(screen.getByRole("button", { name: "导入文件…" }));
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(count));
+  }
+
+  it("结束事件早于启动命令的响应时，仍保留报告并打开一次这一步", async () => {
+    const { answer } = eagleBackend();
+    render(<App />);
+    await screen.findAllByRole("img");
+    await startEagle();
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await finished("T1");
+    await answer("T1");
+
+    expect(screen.getByRole("region", { name: "导入结果" })).toBeTruthy();
+    expect(await screen.findByRole("region", { name: "标签的外部对应" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    expect(step()).toBeNull();
+    // 之后的重新渲染不再打开。
+    await push({ kind: "listStale", libraryId: "L1" });
+    await finished("T1");
+    expect(step()).toBeNull();
+  });
+
+  it("对照：启动命令的响应先到时同样打开一次", async () => {
+    const { answer } = eagleBackend();
+    render(<App />);
+    await screen.findAllByRole("img");
+    await startEagle();
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await answer("T1");
+    expect(step()).toBeNull();
+    await finished("T1");
+    expect(await screen.findByRole("region", { name: "标签的外部对应" })).toBeTruthy();
+  });
+
+  it("普通文件导入在两种顺序下都不打开这一步", async () => {
+    const { answer } = eagleBackend();
+    render(<App />);
+    await screen.findAllByRole("img");
+    await startFiles(1);
+    await finished("T1");
+    await answer("T1");
+    await screen.findByRole("region", { name: "导入结果" });
+    expect(step()).toBeNull();
+
+    await startFiles(2);
+    await answer("T2");
+    await finished("T2");
+    await screen.findByRole("region", { name: "导入结果" });
+    expect(step()).toBeNull();
+  });
+
+  it("Eagle 迁入与紧接着的普通导入不串结果；启动出错后可以重来", async () => {
+    const { answer, fail } = eagleBackend();
+    render(<App />);
+    await screen.findAllByRole("img");
+    await startEagle();
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await answer("T1");
+    await finished("T1");
+    expect(await screen.findByRole("region", { name: "标签的外部对应" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+
+    await startFiles(2);
+    await finished("T2");
+    await answer("T2");
+    await screen.findByRole("region", { name: "导入结果" });
+    expect(step()).toBeNull();
+
+    // 启动出错：显示错误，不打开这一步；再迁入一次照常。
+    fail("资料库正忙");
+    await startEagle();
+    expect(await screen.findByText("无法开始导入：资料库正忙")).toBeTruthy();
+    expect(step()).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "迁入 主库" }));
+    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(4));
+    await finished("T3");
+    await answer("T3");
+    expect(await screen.findByRole("region", { name: "标签的外部对应" })).toBeTruthy();
+  });
+});
+
 describe("整理", () => {
   const card = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
 
@@ -771,6 +895,54 @@ describe("整理", () => {
     await waitFor(() =>
       expect(sent("plugin:library|edit").at(-1)).toEqual({ libraryId: "L1", ids: ["a"], edits: [{ kind: "restore" }] }),
     );
+  });
+
+  it("回收站里永久删除：先列出受影响的参考组，过期时重新预览后再确认", async () => {
+    let previews = 0;
+    let stale = true;
+    backend(library, clean, (cmd, args) => {
+      if (cmd === "plugin:library|preview_permanent_delete") {
+        previews += 1;
+        const { ids } = args as { ids: string[] };
+        return {
+          imageIds: ids,
+          groups: previews === 1 ? [] : [{ groupId: "G1", name: "手的参考", imageIds: ids }],
+          token: `T${previews}`,
+        };
+      }
+      if (cmd === "plugin:library|permanent_delete") {
+        if (stale) {
+          stale = false;
+          return Promise.reject("回收站或参考组在确认前有变化，请重新查看将受影响的参考组");
+        }
+        return null;
+      }
+      return undefined;
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(screen.getByRole("button", { name: "回收站（1 张）" }));
+    await waitFor(() => expect(card("a")).toBeTruthy());
+    fireEvent.click(card("a"));
+    fireEvent.click(await screen.findByRole("button", { name: "永久删除…" }));
+
+    // 没有受影响的参考组：直接确认。
+    expect(await screen.findByText(/永久删除这 1 张图/)).toBeTruthy();
+    expect(screen.queryByLabelText("受影响的参考组")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
+
+    // 预览之后有参考组用上了这张图：被拒绝，重新列出后再确认。
+    const list = await screen.findByLabelText("受影响的参考组");
+    expect(within(list).getByText("手的参考（1 张）")).toBeTruthy();
+    expect(screen.getByText(/刚有变化/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
+    await waitFor(() =>
+      expect(sent("plugin:library|permanent_delete")).toEqual([
+        { libraryId: "L1", ids: ["a"], token: "T1" },
+        { libraryId: "L1", ids: ["a"], token: "T2" },
+      ]),
+    );
+    await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
   });
 
   it("只选一张时写备注，并能退回来源的备注", async () => {

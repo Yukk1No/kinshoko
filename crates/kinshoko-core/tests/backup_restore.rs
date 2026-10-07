@@ -355,6 +355,58 @@ fn a_later_backup_copies_only_the_new_originals_and_holds_the_originals_lease_wh
     assert_eq!(target.snapshots().unwrap().len(), 2);
 }
 
+/// 备份期间永久删除（#67）：参考图记录照常删掉，原文件留到租约放下之后再清除，快照完整。
+#[test]
+fn a_permanent_delete_during_a_backup_does_not_remove_the_original_until_the_backup_ends() {
+    let device = Device::new();
+    let backups = tempfile::tempdir().unwrap();
+    let target = target(backups.path());
+    let victim = device.main_images[0].clone();
+    let original = device.main.original_path(&victim).unwrap();
+    device
+        .main
+        .edit(std::slice::from_ref(&victim), &[ImageEdit::Delete])
+        .unwrap();
+    let registry = device.registry();
+    let scope = compute_scope(
+        &registry,
+        &device.groups.list().unwrap(),
+        &ScopeSelection::All,
+    );
+    let mut deleted = false;
+    let report = target
+        .run(
+            &scope,
+            &BackupSources {
+                libraries: &registry,
+                groups: &device.groups,
+            },
+            at(0, 3),
+            &mut |progress| {
+                if progress.done == 0 && !deleted {
+                    deleted = true;
+                    let ids = std::slice::from_ref(&victim);
+                    let preview = device
+                        .main
+                        .preview_permanent_delete(ids, &device.groups)
+                        .unwrap();
+                    device
+                        .main
+                        .permanent_delete(ids, &preview.token, &device.groups)
+                        .unwrap();
+                    assert!(original.exists(), "租约期间原文件不清除");
+                }
+            },
+        )
+        .unwrap();
+    assert!(deleted);
+    assert!(report.complete, "{:?}", report.problems);
+    assert_eq!(report.copied, 5, "快照里的原图都复制到了");
+    drop(device.main);
+    Library::open(&device.dir.path().join("主库")).unwrap();
+    assert!(!original.exists(), "租约放下后清除");
+}
+
 #[test]
 fn snapshots_are_kept_seven_daily_and_four_weekly() {
     let device = Device::new();

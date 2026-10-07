@@ -17,8 +17,9 @@ use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::library::{
     BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping,
     ExternalVocabulary, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportSource, LibraryEvent,
-    LibraryInfo, MappedExternal, PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar,
-    TagEdit, TagGroupView, TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
+    LibraryInfo, MappedExternal, PermanentDeletePreview, PersonalApproxEntry, RecoveryReport,
+    ReferenceLens, Sidebar, TagEdit, TagGroupView, TagTranslations, Vocabulary,
+    discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::reference_groups::{DetachedLenses, References};
 use kinshoko_core::search::{Candidate, ConditionTree, SearchCache, SearchInput};
@@ -133,6 +134,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             browse,
             image,
             edit,
+            preview_permanent_delete,
+            permanent_delete,
             sidebar,
             create_folder,
             rename_folder,
@@ -560,6 +563,47 @@ async fn edit(
 ) -> Result<Vec<ImageDetail>, String> {
     let library = state.current(&library_id)?;
     blocking(move || library.edit(&ids, &edits).map_err(|e| e.to_string())).await
+}
+
+/// 永久删除的预览（#67）：回收站里这些图会影响哪些参考组，以及执行时要交回的令牌。
+/// 参考组读不懂时报错，不当作没用到。
+#[tauri::command]
+async fn preview_permanent_delete<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    ids: Vec<String>,
+) -> Result<PermanentDeletePreview, String> {
+    let library = current(&app, &library_id)?;
+    blocking(move || {
+        crate::desktop::with_groups(&app, |groups| {
+            library.preview_permanent_delete(&ids, groups)
+        })
+        .ok_or_else(|| "参考组还没有准备好".to_owned())?
+        .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+/// 按预览的令牌永久删除回收站里的图。预览之后回收站、参考组或安全模式变了时被拒绝，
+/// 界面重新预览。整个执行在参考组的锁里，期间参考组不会被改。
+#[tauri::command]
+async fn permanent_delete<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    ids: Vec<String>,
+    token: String,
+) -> Result<(), String> {
+    let library = current(&app, &library_id)?;
+    blocking(move || {
+        crate::desktop::with_groups(&app, |groups| {
+            library.permanent_delete(&ids, &token, groups)
+        })
+        .ok_or_else(|| "参考组还没有准备好".to_owned())?
+        .map_err(|e| e.to_string())?;
+        crate::desktop::reference_groups_changed(&app);
+        Ok(())
+    })
+    .await
 }
 
 #[tauri::command]

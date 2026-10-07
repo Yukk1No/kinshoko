@@ -622,3 +622,91 @@ fn a_model_with_the_wrong_hash_is_deleted_and_never_used() {
         "已删除"
     );
 }
+
+/// 第一次加载模型时停在“加载中”，等测试放行后才报告就绪（即使会话已被结束开关结束）：
+/// 模拟画师在加载中暂停、子进程的 Ready 却迟到的情形（#77 UI-C）。
+struct LateReady {
+    inner: InMemoryTagger,
+    gate: Arc<(std::sync::Mutex<(bool, bool)>, std::sync::Condvar)>,
+}
+
+impl kinshoko_core::tagging::Tagger for LateReady {
+    fn probe(&self) -> kinshoko_core::tagging::DeviceInfo {
+        self.inner.probe()
+    }
+
+    fn start(
+        &self,
+        model: &kinshoko_core::tagging::PreparedModel,
+        device: Device,
+        on_stopper: &dyn Fn(kinshoko_core::tagging::SessionStopper),
+    ) -> Result<Box<dyn kinshoko_core::tagging::TaggerSession>, kinshoko_core::tagging::TagFailure>
+    {
+        let session = self.inner.start(model, device, on_stopper);
+        let (lock, wake) = &*self.gate;
+        let mut state = lock.lock().unwrap();
+        if !state.1 {
+            // (正在加载, 已放行)
+            state.0 = true;
+            wake.notify_all();
+            while !state.1 {
+                state = wake.wait(state).unwrap();
+            }
+        }
+        session
+    }
+}
+
+#[test]
+fn a_ready_that_arrives_after_pausing_does_not_restart_tagging() {
+    let f = Fixture::new(1);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    let gate = Arc::new((
+        std::sync::Mutex::new((false, false)),
+        std::sync::Condvar::new(),
+    ));
+    let tagger = LateReady {
+        inner: f.fake.clone(),
+        gate: gate.clone(),
+    };
+    let spec = f.server.publish("gpu", Device::DirectMl, b"model");
+    let tagging = Tagging::start(f.library.clone(), Arc::new(tagger), f.config(vec![spec]));
+    tagging.download();
+    {
+        let (lock, wake) = &*gate;
+        let mut state = lock.lock().unwrap();
+        while !state.0 {
+            state = wake.wait(state).unwrap();
+        }
+    }
+    // 刚下载完时加载中仍显示“校验模型”，否则为“开始”：两者界面上都有暂停（#77 UI-C）。
+    let loading = tagging.status();
+
+    tagging.pause();
+    let release = || {
+        let (lock, wake) = &*gate;
+        lock.lock().unwrap().1 = true;
+        wake.notify_all();
+    };
+    release();
+    assert!(
+        matches!(
+            loading,
+            TaggingStatus::Starting | TaggingStatus::Preparing { .. }
+        ),
+        "加载中：{loading:?}"
+    );
+    wait_for(&tagging, "暂停", |s| matches!(s, TaggingStatus::Paused));
+    std::thread::sleep(Duration::from_millis(100));
+    assert_eq!(
+        tagging.status(),
+        TaggingStatus::Paused,
+        "迟到的就绪不重新开始打标"
+    );
+    assert!(f.fake.tagged().is_empty(), "暂停后没有打标");
+    assert_eq!(f.fake.live_sessions(), 0, "迟到就绪的会话已结束");
+
+    tagging.resume();
+    idle(&tagging);
+    assert_eq!(f.fake.tagged().len(), 1, "恢复后照常打标");
+}

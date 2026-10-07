@@ -12,6 +12,9 @@ pub enum Error {
     /// 文件夹不能移进它自己或它的子文件夹。
     FolderCycle,
     InvalidCursor,
+    /// 分页游标所依据的结果集已经变了（换了资料库、查询或浏览视角，或可见集合的修订号前进）：
+    /// 接着翻会遗漏或重复，调用方应从第一页重新浏览（#77 S4）。
+    CursorExpired,
     InvalidDisplaySize,
     UnknownTag,
     UnknownTagGroup,
@@ -34,6 +37,12 @@ pub enum Error {
     LensChanged,
     /// 资料库由旧版本写成，要先作为活动资料库打开一次（升级）才能在别处读取（#66）。
     OutdatedLibrary,
+    /// 永久删除只删回收站里的图。
+    NotInTrash,
+    /// 永久删除预览之后回收站、受影响的参考组或安全模式变了，要重新预览（#67）。
+    DeletePreviewStale,
+    /// 无法核对参考组（例如有参考组文件读不懂），不能确认永久删除的影响。
+    ReferenceGroups(String),
     Io(std::io::Error),
     Db(rusqlite::Error),
     Migration(rusqlite_migration::Error),
@@ -52,6 +61,7 @@ impl fmt::Display for Error {
             Error::UnknownFolder => write!(f, "资料库中没有这个文件夹"),
             Error::FolderCycle => write!(f, "文件夹不能移进它自己或它的子文件夹"),
             Error::InvalidCursor => write!(f, "浏览位置无效"),
+            Error::CursorExpired => write!(f, "浏览结果已变化，请从头重新浏览"),
             Error::InvalidDisplaySize => write!(f, "显示尺寸必须大于零"),
             Error::UnknownTag => write!(f, "资料库中没有这个标签"),
             Error::UnknownTagGroup => write!(f, "资料库中没有这个标签分组"),
@@ -67,6 +77,14 @@ impl fmt::Display for Error {
                 write!(f, "资料库需要先在 Kinshoko 中打开一次以完成升级")
             }
             Error::NamespaceGroup => write!(f, "这个分组按命名空间列出标签，不能手动调整成员"),
+            Error::NotInTrash => write!(f, "只能永久删除回收站里的图"),
+            Error::DeletePreviewStale => {
+                write!(
+                    f,
+                    "回收站或参考组在确认前有变化，请重新查看将受影响的参考组"
+                )
+            }
+            Error::ReferenceGroups(e) => write!(f, "无法核对参考组，未删除：{e}"),
             Error::Io(e) => write!(f, "读写文件失败：{e}"),
             Error::Db(e) => write!(f, "资料库数据库出错：{e}"),
             Error::Migration(e) => write!(f, "资料库格式无法升级：{e}"),

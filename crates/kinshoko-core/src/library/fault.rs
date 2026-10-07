@@ -21,6 +21,8 @@ pub(super) const IMPORT_BEFORE_COMMIT: &str = "import_before_commit";
 
 /// 备份：复制了一个原文件之后（快照还没完成）。
 pub(crate) const BACKUP_AFTER_COPY: &str = "backup_after_copy";
+/// 永久删除：参考图记录已删除并提交，原文件还没有清除。
+pub(super) const PERMANENT_DELETE_AFTER_COMMIT: &str = "permanent_delete_after_commit";
 
 struct Armed {
     point: String,
