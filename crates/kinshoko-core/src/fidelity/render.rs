@@ -1,6 +1,9 @@
 //! 派生图管线：解码 → 按来源色彩声明转到线性光工作空间（f32）→ 转正方向 → 预乘 alpha 的
 //! Lanczos3 缩放 → 转到存储空间、四舍五入量化 → 无损编码。
 //!
+//! 缩放所在的空间是管线参数（[`Downscale`]，#48）：默认线性光；编码值空间则先转到存储空间
+//! 再缩放，与多数绘画软件和浏览器相同。画师用探测程序对比后决定默认值。
+//!
 //! 存储按来源分档（核查第 3 节）：
 //! - sRGB／无声明：8 位无损 WebP，不带 ICC（与原图同按 sRGB 解释）；
 //! - 矩阵型 RGB ICC：保留同一 ICC，8 位无损 WebP；
@@ -59,6 +62,13 @@ impl Container {
             Container::Png16 => "png",
         }
     }
+
+    pub(crate) fn mime(self) -> &'static str {
+        match self {
+            Container::WebP => "image/webp",
+            Container::Png16 => "image/png",
+        }
+    }
 }
 
 fn space(d: &ColourDescription) -> Space {
@@ -86,13 +96,37 @@ pub(crate) fn container(d: &ColourDescription) -> Container {
     }
 }
 
-/// 一张派生图的编码结果。
-pub(crate) struct Rendered {
-    pub bytes: Vec<u8>,
+/// 缩小时在哪个空间里做卷积（核查“线性光缩小是否等于还原”，#48）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Downscale {
+    /// 线性光（物理上正确）：白底黑细线缩小后显得更浅、更细。
+    LinearLight,
+    /// 存储空间的编码值（非线性）：与多数绘画软件、浏览器的缩小相同，细线保持更深。
+    EncodedValue,
 }
 
-/// 生成 `sdr` 派生图：宽度不超过 `max_width`，不放大。
-pub(crate) fn render_sdr(bytes: &[u8], max_width: u32) -> Result<Rendered, String> {
+/// 管线默认的缩小方式。改动它即改变缩略图管线版本（`library::thumbnail`），旧缓存整体作废。
+/// 首版按核查建议用线性光；画师用探测程序（`tools/downscale-probe`）选定后补记在验收约定。
+pub const DEFAULT_DOWNSCALE: Downscale = Downscale::LinearLight;
+
+/// 一张 `sdr` 派生图的编码结果。
+#[derive(Debug, Clone)]
+pub struct SdrDerivative {
+    /// 编码后的文件字节（8 位无损 WebP 或 16 位 PNG）。
+    pub bytes: Vec<u8>,
+    /// 内容类型：`image/webp` 或 `image/png`。
+    pub mime: &'static str,
+    /// 转正后的像素尺寸。
+    pub width: u32,
+    pub height: u32,
+}
+
+/// 生成 `sdr` 派生图：宽度不超过 `max_width`，不放大；`downscale` 决定在哪个空间缩小。
+pub fn render_sdr(
+    bytes: &[u8],
+    max_width: u32,
+    downscale: Downscale,
+) -> Result<SdrDerivative, String> {
     let inspection = inspect(bytes)?.ok_or("不支持的格式")?;
     let d = &inspection.description;
     let space = space(d);
@@ -113,9 +147,22 @@ pub(crate) fn render_sdr(bytes: &[u8], max_width: u32) -> Result<Rendered, Strin
     upright.apply_orientation(inspection.orientation);
     let upright = upright.into_rgba32f();
 
-    let resized = resize(upright, max_width)?;
-    let (w, h) = resized.dimensions();
-    let encoded = to_output(resized.into_raw(), &working, &output)?;
+    let encoded = match downscale {
+        Downscale::LinearLight => {
+            let resized = resize(upright, max_width)?;
+            let (w, h) = resized.dimensions();
+            (w, h, to_output(resized.into_raw(), &working, &output)?)
+        }
+        Downscale::EncodedValue => {
+            let (w, h) = upright.dimensions();
+            let values = to_output(upright.into_raw(), &working, &output)?;
+            let values = Rgba32FImage::from_raw(w, h, values).ok_or("像素缓冲尺寸不符")?;
+            let resized = resize(values, max_width)?;
+            let (w, h) = resized.dimensions();
+            (w, h, resized.into_raw())
+        }
+    };
+    let (w, h, encoded) = encoded;
 
     let icc = match space {
         Space::Srgb => None,
@@ -124,7 +171,12 @@ pub(crate) fn render_sdr(bytes: &[u8], max_width: u32) -> Result<Rendered, Strin
     };
     let alpha = d.alpha;
     let bytes = encode(&encoded, w, h, alpha, container, icc)?;
-    Ok(Rendered { bytes })
+    Ok(SdrDerivative {
+        bytes,
+        mime: container.mime(),
+        width: w,
+        height: h,
+    })
 }
 
 fn options() -> TransformOptions {
@@ -414,7 +466,7 @@ fn tone_map(rgb: [f32; 3], peak: f32) -> [f32; 3] {
     rgb.map(|v| v * scale)
 }
 
-/// 线性光、预乘 alpha 的 Lanczos3 缩放；不放大。
+/// 预乘 alpha 的 Lanczos3 缩放（在传入像素所在的空间里）；不放大。
 fn resize(image: Rgba32FImage, max_width: u32) -> Result<Rgba32FImage, String> {
     let (w, h) = image.dimensions();
     if w <= max_width {
