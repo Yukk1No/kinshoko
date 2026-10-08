@@ -1,6 +1,8 @@
 //! F1 的选区完成动作。原生窗口先固定可见范围和遮挡，再由这里决定参考视图或普通截图。
 use image::RgbaImage;
 
+use super::history::PreparedCapture;
+
 use super::{
     CaptureAction, CaptureEntry, CaptureHistory, HistoryError, PinContent, PinVeils, Region,
     SavedPin, ScreenRect, Screenshot,
@@ -46,6 +48,58 @@ pub enum CaptureOutcome {
     PinCapture(CaptureEntry),
     CopyReference(RgbaImage),
     CopyCapture(RgbaImage),
+}
+
+/// Decoded and encoded selection data. Preparation creates no history files or OS effects.
+/// The application can discard this value if authority is revoked before the final commit.
+#[derive(Debug)]
+pub struct CaptureDraft(PreparedOutcome);
+
+#[derive(Debug)]
+enum PreparedOutcome {
+    PinReference(SavedPin),
+    CopyReference(RgbaImage),
+    Screenshot {
+        action: CaptureAction,
+        shot: Screenshot,
+        history: PreparedCapture,
+    },
+}
+
+impl CaptureDraft {
+    /// Pixels to prepare for the OS clipboard, outside the final authority boundary.
+    pub fn clipboard_image(&self) -> Option<&RgbaImage> {
+        match &self.0 {
+            PreparedOutcome::CopyReference(image) => Some(image),
+            PreparedOutcome::Screenshot {
+                action: CaptureAction::Copy,
+                shot,
+                ..
+            } => Some(&shot.image),
+            _ => None,
+        }
+    }
+
+    /// Persist ordinary history only after the caller revalidates its authority.
+    pub fn commit(self, history: &mut CaptureHistory) -> Result<CaptureOutcome, CaptureError> {
+        Ok(match self.0 {
+            PreparedOutcome::PinReference(pin) => CaptureOutcome::PinReference(pin),
+            PreparedOutcome::CopyReference(image) => CaptureOutcome::CopyReference(image),
+            PreparedOutcome::Screenshot {
+                action,
+                shot,
+                history: prepared,
+            } => {
+                let entry = history
+                    .add_prepared(prepared)
+                    .map_err(CaptureError::History)?;
+                match action {
+                    CaptureAction::Pin => CaptureOutcome::PinCapture(entry),
+                    CaptureAction::Copy => CaptureOutcome::CopyCapture(shot.image),
+                }
+            }
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -97,6 +151,19 @@ impl CaptureSelection<'_> {
         veils: &PinVeils,
         history: &mut CaptureHistory,
     ) -> Result<CaptureOutcome, CaptureError> {
+        self.prepare(action, pin_id, references, veils)?
+            .commit(history)
+    }
+
+    /// Resolve the original crop or prepare an ordinary screenshot entirely in memory.
+    /// No history entry/file or external side effect is created until CaptureDraft::commit.
+    pub fn prepare(
+        &self,
+        action: CaptureAction,
+        pin_id: &str,
+        references: &dyn ReferenceSource,
+        veils: &PinVeils,
+    ) -> Result<CaptureDraft, CaptureError> {
         let selected = self.screen_rect()?;
         let mut candidates = self.references.iter().filter_map(|surface| {
             surface
@@ -135,7 +202,8 @@ impl CaptureSelection<'_> {
                     Some(crop),
                     surface.pin.placement,
                 )
-                .map(CaptureOutcome::PinReference)
+                .map(PreparedOutcome::PinReference)
+                .map(CaptureDraft)
                 .map_err(|_| CaptureError::SourceChanged),
                 CaptureAction::Copy => {
                     let lens = references
@@ -181,7 +249,7 @@ impl CaptureSelection<'_> {
                         3 => image::imageops::rotate270(&copied),
                         _ => copied,
                     };
-                    Ok(CaptureOutcome::CopyReference(copied))
+                    Ok(CaptureDraft(PreparedOutcome::CopyReference(copied)))
                 }
             };
         }
@@ -189,10 +257,11 @@ impl CaptureSelection<'_> {
             .screen
             .crop(self.region)
             .ok_or(CaptureError::EmptySelection)?;
-        let entry = history.add(&shot).map_err(CaptureError::History)?;
-        Ok(match action {
-            CaptureAction::Pin => CaptureOutcome::PinCapture(entry),
-            CaptureAction::Copy => CaptureOutcome::CopyCapture(shot.image),
-        })
+        let history = CaptureHistory::prepare(&shot).map_err(CaptureError::History)?;
+        Ok(CaptureDraft(PreparedOutcome::Screenshot {
+            action,
+            shot,
+            history,
+        }))
     }
 }

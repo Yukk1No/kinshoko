@@ -629,16 +629,8 @@ pub fn pin_clipboard_in_background(app: &AppHandle) {
     });
 }
 
-pub fn copy_to_clipboard(image: &RgbaImage) -> Result<(), String> {
-    arboard::Clipboard::new()
-        .and_then(|mut c| {
-            c.set_image(arboard::ImageData {
-                width: image.width() as usize,
-                height: image.height() as usize,
-                bytes: image.as_raw().into(),
-            })
-        })
-        .map_err(|e| format!("无法写入剪贴板：{e}"))
+pub fn copy_to_clipboard(app: &AppHandle, image: &RgbaImage) -> Result<(), String> {
+    super::clipboard::PreparedImage::prepare(image)?.commit(app)
 }
 
 #[tauri::command]
@@ -1059,5 +1051,5 @@ fn copy_capture(app: &AppHandle, capture_id: &str) -> Result<(), String> {
         .file(capture_id)
         .ok_or("截图已不在截图历史中")?;
     let image = image::open(file).map_err(|e| e.to_string())?.to_rgba8();
-    copy_to_clipboard(&image)
+    copy_to_clipboard(app, &image)
 }

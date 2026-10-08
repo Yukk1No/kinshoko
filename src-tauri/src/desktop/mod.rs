@@ -12,6 +12,7 @@
 //! - 参考组（#66）：桌面上的资料库钉图存成参考组、打开参考组把成员钉到桌面（[`groups`]）。
 
 mod capture;
+mod clipboard;
 mod edge;
 mod groups;
 mod pins;

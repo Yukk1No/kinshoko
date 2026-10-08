@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::fs;
-use std::io::{self, BufWriter};
+use std::io;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -118,6 +118,14 @@ impl From<image::ImageError> for HistoryError {
     }
 }
 
+/// Encoded screenshot data with no persistent side effects yet.
+#[derive(Debug)]
+pub(crate) struct PreparedCapture {
+    png: Vec<u8>,
+    width: u32,
+    height: u32,
+}
+
 /// 截图历史。不是线程安全的；应用壳把它放在锁里。
 pub struct CaptureHistory {
     dir: PathBuf,
@@ -172,17 +180,34 @@ impl CaptureHistory {
 
     /// 存下一张新截图，放在历史最前面。
     pub fn add(&mut self, shot: &Screenshot) -> Result<CaptureEntry, HistoryError> {
-        let stored = Stored {
-            id: uuid::Uuid::now_v7().simple().to_string(),
+        self.add_prepared(Self::prepare(shot)?)
+    }
+
+    pub(crate) fn prepare(shot: &Screenshot) -> Result<PreparedCapture, HistoryError> {
+        let mut png = Vec::new();
+        shot.write_png(&mut png, false)?;
+        Ok(PreparedCapture {
+            png,
             width: shot.image.width(),
             height: shot.image.height(),
+        })
+    }
+
+    pub(crate) fn add_prepared(
+        &mut self,
+        shot: PreparedCapture,
+    ) -> Result<CaptureEntry, HistoryError> {
+        let stored = Stored {
+            id: uuid::Uuid::now_v7().simple().to_string(),
+            width: shot.width,
+            height: shot.height,
             created_at: crate::library::now_ms(),
             deleted: false,
             collected: Vec::new(),
         };
         let path = self.path_of(&stored.id);
         let tmp = path.with_extension("png.tmp");
-        shot.write_png(BufWriter::new(fs::File::create(&tmp)?), false)?;
+        fs::write(&tmp, shot.png)?;
         fs::rename(&tmp, &path)?;
         let entry = self.view(&stored);
         self.entries.insert(0, stored);

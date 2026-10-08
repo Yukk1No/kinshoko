@@ -19,7 +19,7 @@ mod screenshot;
 mod types;
 mod veil;
 
-pub use capture::{CaptureError, CaptureOutcome, CaptureSelection, CaptureSurface};
+pub use capture::{CaptureDraft, CaptureError, CaptureOutcome, CaptureSelection, CaptureSurface};
 pub use edge::{DeskPin, EdgeHide, PEEK_SLACK, PinMove, SLIVER, Toggle, Tuck};
 pub use history::{
     CaptureChoice, CaptureEntry, CaptureHistory, CollectedCapture, HISTORY_LIMIT, HistoryError,

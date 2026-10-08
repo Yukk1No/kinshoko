@@ -949,3 +949,72 @@ fn an_ambiguous_visible_source_is_a_screen_capture_instead_of_choosing_one_libra
     assert_eq!(copied.get_pixel(0, 0).0, [255, 0, 255, 255]);
     assert_eq!(history.entries().len(), 1);
 }
+
+#[test]
+fn ordinary_capture_preparation_can_be_discarded_without_writing_history() {
+    use image::ImageDecoder;
+    let dir = tempfile::tempdir().unwrap();
+    let mut history = CaptureHistory::open(dir.path()).unwrap();
+    let screen = Screenshot {
+        image: RgbaImage::from_fn(12, 10, |x, y| Rgba([x as u8, y as u8, 99, 120])),
+        icc: Some(b"display profile retained by history".to_vec()),
+    };
+    let detached = DetachedLenses::default();
+    let references = References {
+        current: None,
+        registry: &[],
+        detached: &detached,
+        safe_mode: true,
+    };
+    let veils = PinVeils::new(true);
+    let selection = CaptureSelection {
+        screen: &screen,
+        origin: (0, 0),
+        region: Region {
+            x: 3,
+            y: 2,
+            width: 4,
+            height: 3,
+        },
+        references: &[],
+    };
+    let prepared = selection
+        .prepare(CaptureAction::Copy, "discard", &references, &veils)
+        .unwrap();
+    assert_eq!(
+        prepared.clipboard_image().unwrap().get_pixel(0, 0).0,
+        [3, 2, 99, 120]
+    );
+    assert!(history.entries().is_empty());
+    assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
+    drop(prepared); // Revocation discards preparation before the actual commit.
+    assert!(
+        CaptureHistory::open(dir.path())
+            .unwrap()
+            .entries()
+            .is_empty()
+    );
+    assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
+    let prepared = selection
+        .prepare(CaptureAction::Copy, "commit", &references, &veils)
+        .unwrap();
+    let CaptureOutcome::CopyCapture(copied) = prepared.commit(&mut history).unwrap() else {
+        panic!("ordinary copy expected");
+    };
+    let entries = history.entries();
+    assert_eq!(entries.len(), 1);
+    assert_eq!((entries[0].width, entries[0].height), (4, 3));
+    let mut decoder = image::ImageReader::open(history.file(&entries[0].id).unwrap())
+        .unwrap()
+        .with_guessed_format()
+        .unwrap()
+        .into_decoder()
+        .unwrap();
+    assert_eq!(decoder.icc_profile().unwrap(), screen.icc);
+    let saved = image::DynamicImage::from_decoder(decoder)
+        .unwrap()
+        .to_rgba8();
+    assert_eq!(saved, copied);
+    assert_eq!(saved.get_pixel(3, 2).0, [6, 4, 99, 120]);
+    assert_eq!(CaptureHistory::open(dir.path()).unwrap().entries(), entries);
+}

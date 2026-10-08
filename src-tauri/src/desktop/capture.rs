@@ -17,7 +17,7 @@ use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
 };
 
-use super::{history_changed, lock, pins, state};
+use super::{clipboard::PreparedImage, history_changed, lock, pins, state};
 
 pub const CAPTURE_WINDOW: &str = "capture";
 
@@ -511,26 +511,36 @@ pub async fn finish_capture(
             return Err("安全模式已变化，请重新框选".into());
         }
         validate_source(&app, &pending, at)?;
-        let outcome = crate::library::with_references(&app, |sources| {
-            selection.finish(
+        let draft = crate::library::with_references(&app, |sources| {
+            selection.prepare(
                 action,
                 &uuid::Uuid::new_v4().simple().to_string(),
                 sources,
                 &lock(&state(&app).veils),
-                &mut lock(&state(&app).history),
             )
         })
         .map_err(|e| e.to_string())?;
-        // Decoding and its temporary veils/history guards have completed. Mode changes and
-        // complete settings replacement cannot cross this final check -> actual side effect.
+        // PNG compression and DIBV5 conversion finish before taking visibility authority.
+        // Revocation can return while these expensive, discardable preparations are running.
+        let clipboard = draft
+            .clipboard_image()
+            .map(PreparedImage::prepare)
+            .transpose()?;
+        // Mode/settings, source edits, providers and automatic ratings share this commit gate.
+        // Only history persistence and the actual OS/pin side effect occur within it.
         crate::library::with_visibility_commit(&app, |generation| {
             if generation != pending.safe_generation {
                 return Err("安全模式已变化，请重新框选".into());
             }
             validate_source(&app, &pending, at)?;
+            let outcome = draft
+                .commit(&mut lock(&state(&app).history))
+                .map_err(|error| error.to_string())?;
             match outcome {
                 CaptureOutcome::PinReference(pin) => pins::open_reference_selection(&app, pin, at),
-                CaptureOutcome::CopyReference(image) => pins::copy_to_clipboard(&image),
+                CaptureOutcome::CopyReference(_) => clipboard
+                    .expect("copy draft prepared clipboard formats")
+                    .commit(&app),
                 CaptureOutcome::PinCapture(entry) => {
                     history_changed(&app);
                     pins::open(
@@ -543,9 +553,11 @@ pub async fn finish_capture(
                         },
                     )
                 }
-                CaptureOutcome::CopyCapture(image) => {
+                CaptureOutcome::CopyCapture(_) => {
                     history_changed(&app);
-                    pins::copy_to_clipboard(&image)
+                    clipboard
+                        .expect("copy draft prepared clipboard formats")
+                        .commit(&app)
                 }
             }
         })
