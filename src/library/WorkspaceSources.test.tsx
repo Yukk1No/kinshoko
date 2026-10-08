@@ -76,3 +76,16 @@ it("换来源后，旧永久删除的迟到响应不能关闭新来源", async (
   await import("@testing-library/react").then(({ act }) => act(async () => { finish(); await pending; }));
   expect(close).not.toHaveBeenCalled();
 });
+
+it("同名来源显示最短独立路径，保留完整路径供核对", () => {
+  const sameNames = { ...card, sources: card.sources.map((source) => ({ ...source, libraryName: "同名资料库" })) };
+  render(<WorkspaceSources card={sameNames} onClose={vi.fn()} onView={vi.fn()} registrations={[
+    { library: { id: "A", name: "同名资料库", root: "C:\\common\\first\\Art" }, unavailable: null },
+    { library: { id: "B", name: "同名资料库", root: "C:\\common\\second\\Art" }, unavailable: null },
+  ]} />);
+  const a = document.querySelector('[data-source-library-id="A"]')!;
+  const b = document.querySelector('[data-source-library-id="B"]')!;
+  expect(a.textContent).toContain("…\\first\\Art");
+  expect(b.textContent).toContain("…\\second\\Art");
+  expect(a.querySelector(".workspace-source-path")?.getAttribute("title")).toBe("C:\\common\\first\\Art");
+});
