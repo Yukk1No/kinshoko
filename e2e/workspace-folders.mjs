@@ -60,7 +60,13 @@ class Session {
     return result.value;
   }
   async find(xpath) { return (await wd("POST", `${this.base}/element`, { using: "xpath", value: xpath }))[ELEMENT]; }
-  click(xpath) { return this.find(xpath).then((id) => wd("POST", `${this.base}/element/${id}/click`, {})); }
+  async click(xpath) {
+    return until("click " + xpath, async () => {
+      const id = await this.find(xpath);
+      await wd("POST", `${this.base}/element/${id}/click`, {});
+      return true;
+    });
+  }
   async type(xpath, value) { const id = await this.find(xpath); return wd("POST", `${this.base}/element/${id}/value`, { text: value, value: [...value] }); }
   close() { return wd("DELETE", this.base); }
   async screenshot(name) { writeFileSync(join(work, name), Buffer.from(await wd("GET", `${this.base}/screenshot`), "base64")); }
@@ -193,7 +199,8 @@ try {
   assert(forest.providers.find(p => p.registration.library.id === first.info.id).sidebar.folders.find(f => f.id === first.root).children[0].count === 0, "directory counts use the same all-source safety veto");
   await session.screenshot("folder-safety-veto.png");
   await session.click(folderButton(second.info.id, second.other)); await uiTotal(0);
-  await session.invoke("unregister_library", { libraryId: second.info.id });
+  await session.click("//summary[text()='资料库操作']");
+  await session.click(`//li[span[contains(.,'${second.info.root}')]]/button[contains(@aria-label,'取消登记')]`);
   await until("removed selected provider remains invalid scope", () => session.exec("return document.querySelector('.workspace-current-scope')?.textContent.includes('资料库已失效');"));
   assert(await session.exec("return document.querySelector('[aria-label=\"查找范围\"] > button')?.getAttribute('aria-current') !== 'page';"), "removed selected provider does not silently replace range with all libraries");
   assert(await browse(request).then(() => false, () => true), "removed provider query returns an explicit failure");
