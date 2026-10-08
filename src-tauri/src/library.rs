@@ -11,6 +11,7 @@
 
 mod name_migration;
 mod names;
+mod workspace;
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
@@ -61,6 +62,7 @@ struct LibraryState {
     catalog: Arc<Mutex<Option<TagCatalog>>>,
     search_catalog_revision: Arc<AtomicI64>,
     safe_mode_generation: AtomicU64,
+    workspace: Mutex<Option<kinshoko_core::workspace::Workspace>>,
     /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
     /// 与桌面钉图（#65），不经任何命令交给前端。
     reference: Mutex<Option<ReferenceLens>>,
@@ -86,6 +88,7 @@ impl LibraryState {
             catalog: Arc::default(),
             search_catalog_revision: Arc::new(AtomicI64::new(-1)),
             safe_mode_generation: AtomicU64::new(0),
+            workspace: Mutex::default(),
             reference: Mutex::new(None),
             detached: DetachedLenses::default(),
             builtin_approx: Arc::new(BuiltinApproxTable::bundled()),
@@ -177,6 +180,14 @@ fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("library")
         .invoke_handler(tauri::generate_handler![
+            workspace::workspace_status,
+            workspace::workspace_browse,
+            workspace::workspace_resolve,
+            workspace::workspace_candidates,
+            workspace::workspace_image,
+            workspace::workspace_sidebar,
+            workspace::workspace_tag_groups,
+            workspace::workspace_local_tags,
             current_library,
             create_library,
             registered_libraries,
@@ -246,6 +257,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 .and_then(|s| s.tagging_model().map(str::to_owned));
             crate::tagging::setup(app, models_dir, preferred);
             app.manage(LibraryState::new(device_dir));
+            workspace::monitor(app.clone());
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol("thumb", |ctx, request, responder| {
@@ -271,13 +283,13 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     else {
         return not_found();
     };
-    // 只回答活动资料库的图；切换后旧图片墙的迟到请求得到 404。
-    let Ok(library) = app.state::<LibraryState>().active() else {
+    // Registered detached provider. The workspace safety veto includes nonmatching/offline sources.
+    let state = app.state::<LibraryState>();
+    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let safe = saved_safe_mode(app);
+    let Ok(library) = workspace::read(app, library_id, image_id) else {
         return not_found();
     };
-    if library.info().id != library_id {
-        return not_found();
-    }
     // `full`：1:1 与放大时显示的文件（Library::display，ADR-0005）。看图界面只用这条路，
     // 不直接读原文件——动图、HDR、Chromium 不能精确表示的 ICC 与 CMYK 要换成 sdr 派生图。
     // `fit-<像素>`：查看器缩小显示（适应窗口等）的精确尺寸派生图（Library::display_scaled，#47）。
@@ -297,7 +309,17 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     let Ok(path) = found else {
         return not_found();
     };
-    match std::fs::read(&path) {
+    let bytes = match std::fs::read(&path) {
+        Ok(bytes) => bytes,
+        Err(_) => return not_found(),
+    };
+    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
+        || saved_safe_mode(app) != safe
+        || workspace::read(app, library_id, image_id).is_err()
+    {
+        return not_found();
+    }
+    match Ok::<_, std::io::Error>(bytes) {
         Ok(bytes) => Response::builder()
             .header(header::CONTENT_TYPE, image_content_type(&path))
             .body(bytes)

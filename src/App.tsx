@@ -4,13 +4,19 @@ import type { BrowseScope } from "./bindings/BrowseScope";
 import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
-import type { ImageCard } from "./bindings/ImageCard";
+import type { WorkspaceCard } from "./bindings/WorkspaceCard";
+import type { WorkspaceScope } from "./bindings/WorkspaceScope";
+import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
 import {
   appInfo,
   currentLibrary,
   isLensChanged,
   onLibraryEvent,
-  resolveSearch,
+  workspaceResolve,
+  workspaceStatus,
+  workspaceLocalTags,
+  onWorkspaceChanged,
+  onSafeModeSetting,
   safeMode,
   setSafeMode,
   shellSettings,
@@ -19,6 +25,7 @@ import { CreateLibrary } from "./library/CreateLibrary";
 import { type FinishedImport, type RunningImport } from "./library/ImportBar";
 import { ImportMenu } from "./library/ImportMenu";
 import { LegacyNameMigrationNotice } from "./library/LegacyNameMigrationPanel";
+import { WorkspacePane, WorkspaceSources } from "./library/WorkspacePane";
 import { LibraryPicker } from "./library/LibraryPicker";
 import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
 import { ReferenceGroupsPanel } from "./desktop/ReferenceGroupsPanel";
@@ -33,12 +40,12 @@ import { SettingsPanel } from "./SettingsPanel";
 import { BackupReminder, BackupSettings } from "./Backup";
 import { TaggingIndicator } from "./TaggingIndicator";
 import { UpdateBanner } from "./Update";
-import { scopeKey, Wall, type WallHandle } from "./wall/Wall";
+import { scopeKey, Wall, type WallHandle, type BrowserCard } from "./wall/Wall";
 import { DensitySlider } from "./wall/DensitySlider";
 import { Viewer } from "./viewer/Viewer";
 
 type WorkspaceProps = {
-  library: LibraryInfo;
+  library: LibraryInfo | null;
   section: Section;
   paneOpen: boolean;
   onPaneToggle: () => void;
@@ -55,8 +62,8 @@ type WorkspaceProps = {
 };
 
 /**
- * 一个资料库的工作区：导入，在侧栏切换全部／文件夹／回收站，按搜索框的条件查找，在图片墙浏览
- * 并整理选中的图。真正打开另一资料库时整个重建，旧库的迟到结果不会出现在新库界面（#49）。
+ * 同一工作区浏览已登记资料库；查找范围与活动写入资料库分别保存。
+ * 活动资料库变化时取消旧导入和选择视角，保留工作区查找与滚动锚点。
  */
 function LibraryWorkspace({
   library,
@@ -71,15 +78,20 @@ function LibraryWorkspace({
   showApproxSource,
   onViewerChange,
 }: WorkspaceProps) {
+  const libraryId = library?.id ?? "";
+  const [status, setStatus] = useState<WorkspaceStatus | null>(null);
+  const [sources, setSources] = useState<WorkspaceCard | null>(null);
+  const [loadedCards, setLoadedCards] = useState<BrowserCard[]>([]);
+  const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
   const [reloadKey, setReloadKey] = useState(0);
   const [density, setDensity] = useState(240);
   const [resultCount, setResultCount] = useState<number | null>(null);
   const wall = useRef<WallHandle>(null);
   const [running, setRunning] = useState<RunningImport | null>(null);
   const [report, setReport] = useState<FinishedImport | null>(null);
-  const [scope, setScope] = useState<BrowseScope>({ kind: "all" });
+  const scope: BrowseScope = workspaceScope.kind === "library" ? workspaceScope.scope : { kind: "all" };
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [viewing, setViewing] = useState<ImageCard | null>(null);
+  const [viewing, setViewing] = useState<BrowserCard | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [search, setSearch] = useState<SearchInput>({ conditions: [], exact: false });
   const [tree, setTree] = useState<ConditionTree>({ conditions: [] });
@@ -106,21 +118,50 @@ function LibraryWorkspace({
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
   const changeScope = (next: BrowseScope) => {
-    setScope(next);
+    const sourceId = workspaceScope.kind === "library" ? workspaceScope.libraryId : libraryId;
+    if (sourceId) setWorkspaceScope({ kind: "library", libraryId: sourceId, scope: next });
     setSelected(new Set());
   };
   const viewerChange = useRef(onViewerChange);
   viewerChange.current = onViewerChange;
   const viewerOpen = viewing !== null;
+  const modalOpen = viewerOpen || sources !== null;
   useEffect(() => {
-    viewerChange.current(viewerOpen);
-  }, [viewerOpen]);
+    viewerChange.current(modalOpen);
+  }, [modalOpen]);
   useEffect(() => () => viewerChange.current(false), []);
 
   useEffect(() => {
     let alive = true;
+    const refresh = () => workspaceStatus(safe).then((next) => { if (alive) setStatus(next); }, (e) => { if (alive && !isLensChanged(e)) setProblem(String(e)); });
+    void refresh();
+    const stop = onWorkspaceChanged((next) => {
+      if (!alive) return;
+      setStatus(next);
+      setSources(null);
+      setViewing(null);
+      setSelected(new Set());
+      setReloadKey((k) => k + 1);
+      setVocabularyKey((k) => k + 1);
+    });
+    return () => { alive = false; void stop.then((stop) => stop()); };
+  }, [safe]);
+  useEffect(() => {
+    setSources(null);
+    setSelected(new Set());
+    setViewing(null);
+    setReloadKey((k) => k + 1);
+    setVocabularyKey((k) => k + 1);
+  }, [safe]);
+  useEffect(() => {
+    imports.current.running = null;
+    setRunning(null); setReport(null); setSelected(new Set()); setViewing(null); setSources(null);
+    setReloadKey((k) => k + 1);
+  }, [libraryId]);
+  useEffect(() => {
+    let alive = true;
     const unlisten = onLibraryEvent((event) => {
-      if (!alive || event.libraryId !== library.id) return;
+      if (!alive || event.libraryId !== libraryId) return;
       const task = imports.current;
       switch (event.kind) {
         case "listStale":
@@ -159,7 +200,7 @@ function LibraryWorkspace({
       alive = false;
       void unlisten.then((stop) => stop());
     };
-  }, [library.id]);
+  }, [libraryId]);
 
   // 条件变化时由 Search 解析成条件树，图片墙按它浏览。
   const searching = search.conditions.length > 0;
@@ -169,7 +210,7 @@ function LibraryWorkspace({
       return;
     }
     let alive = true;
-    resolveSearch(library.id, search, UI_LANG, safe).then(
+    workspaceResolve(search, UI_LANG, safe).then(
       (next) => {
         if (!alive) return;
         setTree(next);
@@ -183,7 +224,7 @@ function LibraryWorkspace({
     return () => {
       alive = false;
     };
-  }, [library.id, search, searching, vocabularyKey, safe]);
+  }, [libraryId, search, searching, vocabularyKey, safe]);
 
   const started = (taskId: string) => {
     const task = imports.current;
@@ -198,7 +239,7 @@ function LibraryWorkspace({
   const libInPane = paneOpen && section === "browse";
   return (
     <>
-    <div className="app-workspace workspace" hidden={hidden} inert={viewerOpen}>
+    <div className="app-workspace workspace" hidden={hidden} inert={modalOpen}>
       <div className="app-body">
         <aside
           className="sidebar-slot pane"
@@ -208,39 +249,50 @@ function LibraryWorkspace({
           inert={!paneOpen}
         >
           <header className="pane-head">
-            <h1 className="app-library-name">{section === "browse" ? library.name : section === "groups" ? "参考组" : "截图历史"}</h1>
+            <h1 className="app-library-name">{section === "browse" ? (library?.name ?? "全部资料库") : section === "groups" ? "参考组" : "截图历史"}</h1>
             <button type="button" className="icon-tool" aria-label="收起侧栏" title="收起（Ctrl+B）" onClick={onPaneToggle}>‹</button>
           </header>
           <div className="pane-body" hidden={section !== "browse"}>
             {libInPane && libraryControls}
-          <SidebarPane
-            libraryId={library.id}
+          <WorkspacePane status={status} scope={workspaceScope} onScope={(next) => {
+            setWorkspaceScope(next); setSelected(new Set()); setSources(null);
+          }} />
+          {(workspaceScope.kind === "library" || library) && <SidebarPane
+            key={workspaceScope.kind === "library" ? workspaceScope.libraryId : libraryId}
+            libraryId={workspaceScope.kind === "library" ? workspaceScope.libraryId : libraryId}
+            workspace safeMode={safe}
+            scopeSelected={workspaceScope.kind === "library"}
+            readOnly={workspaceScope.kind === "library" && workspaceScope.libraryId !== libraryId}
             scope={scope}
             onScope={changeScope}
             reloadKey={reloadKey}
             onError={onError}
-          />
-          <details className="tag-organize"><summary>整理标签分组</summary>
+          />}
+          {library && <details className="tag-organize"><summary>整理标签分组</summary>
           <TagGroupsPane
-            libraryId={library.id}
+            libraryId={libraryId}
             safe={safe}
             generation={vocabularyKey}
             onBrowse={(ids) => {
-              setSearch((prev) => ({
-                ...prev,
-                conditions: [{ any: ids.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }],
-              }));
-              setSelected(new Set());
+              workspaceLocalTags(libraryId, ids, safe).then((globalIds) => {
+                setSearch((prev) => ({
+                  ...prev,
+                  conditions: [{ any: globalIds.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }],
+                }));
+                setSelected(new Set());
+              }, onError);
             }}
             onError={onError}
           />
-          </details>
+          </details>}
           {/* Ctrl／Shift／空格选择后的整理入口沿用正式 IPC。 */}
-          {selected.size > 0 && (
+          {selected.size > 0 && ((workspaceScope.kind === "library" && workspaceScope.libraryId === libraryId) ||
+            loadedCards.filter((card) => selected.has(card.id)).every((card) => card.sources?.length === 1 && card.sources[0].libraryId === libraryId)) && (
             <SelectionPanel
-              libraryId={library.id}
+              libraryId={libraryId}
               scope={scope}
-              selected={selected}
+              selected={new Set(loadedCards.filter((card) => selected.has(card.id)).flatMap((card) =>
+                card.sources?.filter((source) => source.libraryId === libraryId && !source.unavailable).map((source) => source.imageId) ?? []))}
               onClear={() => setSelected(new Set())}
               reloadKey={reloadKey}
               onError={onError}
@@ -249,15 +301,16 @@ function LibraryWorkspace({
             />
           )}
           </div>
-          {section === "groups" && <ReferenceGroupsPanel libraryId={library.id} />}
-          {section === "captures" && <CaptureHistoryPanel libraryId={library.id} />}
+          {section === "groups" && <ReferenceGroupsPanel libraryId={libraryId || undefined} />}
+          {section === "captures" && <CaptureHistoryPanel libraryId={libraryId || undefined} />}
         </aside>
         <main className="app-main main">
           <header className="topbar">
             {!paneOpen && <button type="button" className="icon-tool" onClick={onPaneToggle} aria-label="展开侧栏" title="展开（Ctrl+B）">›</button>}
             {!libInPane && <div className="collapsed-library">{libraryControls}</div>}
           <SearchBox
-            libraryId={library.id}
+            workspace
+            libraryId="workspace"
             safe={safe}
             generation={vocabularyKey}
             input={search}
@@ -273,17 +326,18 @@ function LibraryWorkspace({
           <label className="density" title="图片大小"><span className="sr-only">图片大小</span>
             <DensitySlider value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
           </label>
-          <ImportMenu enabled={!hidden} libraryId={library.id} libraryName={library.name}
+          {library && <ImportMenu key={libraryId} enabled={!hidden} libraryId={libraryId} libraryName={library.name}
             running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
             onOpenTrash={() => {
               onOpenBrowse();
               setSearch({ conditions: [], exact: false });
-              changeScope({ kind: "trash" });
-            }} />
+              setWorkspaceScope({ kind: "library", libraryId, scope: { kind: "trash" } });
+              setSelected(new Set());
+            }} />}
           </header>
           <div className="app-tagbar">
-          <TagGroupBar libraryId={library.id} safe={safe} generation={vocabularyKey} input={search}
-            onChange={(next) => { setSearch(next); setSelected(new Set()); }} onError={onError} />
+          {library && <TagGroupBar workspace libraryId={libraryId} safe={safe} generation={vocabularyKey} input={search}
+            onChange={(next) => { setSearch(next); setSelected(new Set()); }} onError={onError} />}
           </div>
           {problem && (
             <p className="app-problem" role="alert">
@@ -297,8 +351,11 @@ function LibraryWorkspace({
             ref={wall}
             density={density}
             onTotalChange={setResultCount}
-            key={`${library.id}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
-            libraryId={library.id}
+            key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
+            libraryId={libraryId || "workspace"}
+            workspaceScope={workspaceScope}
+            onInspectSources={setSources}
+            onCardsChange={setLoadedCards}
             scope={scope}
             conditions={tree}
             reloadKey={reloadKey}
@@ -306,15 +363,18 @@ function LibraryWorkspace({
             selected={selected}
             onSelectionChange={setSelected}
             onOpenImage={setViewing}
-            viewerOpen={viewerOpen}
+            viewerOpen={modalOpen}
           />
         </main>
       </div>
     </div>
+    {sources && !hidden && <WorkspaceSources card={sources} onClose={() => setSources(null)} onView={setViewing} />}
     {viewing && !hidden && (
       <Viewer
-        libraryId={library.id}
-        card={viewing}
+        workspace
+        libraryId={viewing.libraryId ?? libraryId}
+        card={{ ...viewing, id: viewing.imageId ?? viewing.id }}
+        sourceName={viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.libraryName}
         onClose={() => setViewing(null)}
         reloadKey={reloadKey}
       />
@@ -341,6 +401,7 @@ export function App() {
   const [creating, setCreating] = useState(false);
   // undefined：还在打开；null：没有活动资料库。
   const [library, setLibrary] = useState<LibraryInfo | null | undefined>(undefined);
+  const [hasProviders, setHasProviders] = useState(false);
   const [openError, setOpenError] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   /** 设置“显示相近标签来源（内置／个人）”，默认不显示。 */
@@ -388,6 +449,19 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    let alive = true;
+    const accept = (status: WorkspaceStatus) => { if (alive) setHasProviders(status.libraries.length > 0); };
+    workspaceStatus(safe).then(accept, () => {});
+    const stop = onWorkspaceChanged(accept);
+    return () => { alive = false; void stop.then((stop) => stop()); };
+  }, [safe]);
+
+  useEffect(() => {
+    const stop = onSafeModeSetting((on) => { safeRef.current = on; setSafe(on); });
+    return () => { void stop.then((stop) => stop()); };
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === "s") {
         e.preventDefault();
@@ -412,6 +486,7 @@ export function App() {
 
   const changed = (value: LibraryInfo | null) => {
     setLibrary(value);
+    workspaceStatus(safe).then((status) => setHasProviders(status.libraries.length > 0), () => {});
     setOpenError(null);
     setShowCreate(false);
   };
@@ -425,7 +500,7 @@ export function App() {
           onSettings={() => { setNameMigrationRequest(0); setShowSettings((shown) => !shown); }} />
       </div>
       <div className="app-column">
-      {!library && <div inert={viewerOpen}>{libraryControls}</div>}
+      {!library && !hasProviders && <div inert={viewerOpen}>{libraryControls}</div>}
       {openError && (
         <p className="app-problem" role="alert">
           上次的资料库无法打开：{openError}
@@ -440,23 +515,23 @@ export function App() {
         </p>
       )}
       {library && <div inert={viewerOpen}><LegacyNameMigrationNotice libraryId={library.id} safe={safe} onOpen={() => { setNameMigrationRequest((request) => request + 1); setShowSettings(true); }} /></div>}
-      {library && (
+      {library !== undefined && (
         <LibraryWorkspace
-          key={`${library.id}/${library.root}`}
+          key="workspace"
           library={library}
           section={section}
           paneOpen={paneOpen}
           onPaneToggle={() => setPaneOpen((open) => !open)}
           onOpenBrowse={() => { setSection("browse"); setPaneOpen(true); }}
           libraryControls={libraryControls}
-          hidden={showCreate}
+          hidden={showCreate || (!library && !hasProviders)}
           safe={safe}
           onSafeChanged={setSafe}
           showApproxSource={showApproxSource}
           onViewerChange={setViewerOpen}
         />
       )}
-      {(!library || showCreate) && (
+      {((!library && !hasProviders) || showCreate) && (
         <div className="app-empty-workspace">
           {!library && paneOpen && section !== "browse" && <aside className="pane empty-context" aria-label={section === "groups" ? "参考组" : "截图历史"}>
             <header className="pane-head"><h2>{section === "groups" ? "参考组" : "截图历史"}</h2><button type="button" className="icon-tool" aria-label="收起侧栏" onClick={() => setPaneOpen(false)}>‹</button></header>

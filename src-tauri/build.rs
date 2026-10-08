@@ -6,6 +6,14 @@ fn main() {
                 "library",
                 tauri_build::InlinedPlugin::new()
                     .commands(&[
+                        "workspace_status",
+                        "workspace_browse",
+                        "workspace_resolve",
+                        "workspace_candidates",
+                        "workspace_image",
+                        "workspace_sidebar",
+                        "workspace_tag_groups",
+                        "workspace_local_tags",
                         "current_library",
                         "create_library",
                         "registered_libraries",

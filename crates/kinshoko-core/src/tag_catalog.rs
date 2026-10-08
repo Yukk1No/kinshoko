@@ -176,16 +176,23 @@ impl CatalogInspection {
     /// A compatibility view: local IDs/primary labels remain usable for Library actions;
     /// the corrected shared definition supplies additional search words and external mappings.
     pub fn search_vocabulary(&self, library_id: &str, vocabulary: &Vocabulary) -> Vocabulary {
+        let mappings = self
+            .mappings
+            .iter()
+            .filter(|m| m.library_id == library_id)
+            .map(|m| (m.local_tag_id.as_str(), m))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        let definitions = self
+            .tags
+            .iter()
+            .map(|tag| (tag.id.as_str(), tag))
+            .collect::<std::collections::BTreeMap<_, _>>();
         let mut view = vocabulary.clone();
         for local in &mut view.tags {
-            let Some(mapping) = self
-                .mappings
-                .iter()
-                .find(|m| m.library_id == library_id && m.local_tag_id == local.id)
-            else {
+            let Some(mapping) = mappings.get(local.id.as_str()) else {
                 continue;
             };
-            let Some(shared) = self.tags.iter().find(|tag| tag.id == mapping.catalog_id) else {
+            let Some(shared) = definitions.get(mapping.catalog_id.as_str()) else {
                 continue;
             };
             if mapping.name_provenance == TagNameProvenance::Catalog {
@@ -536,6 +543,13 @@ impl TagCatalog {
             });
         }
         Ok(CatalogImageTags { image, identities })
+    }
+
+    /// Cheap projection freshness check; does not load any tag definitions.
+    pub fn revision(&self) -> Result<i64, CatalogError> {
+        Ok(self
+            .conn
+            .query_row("SELECT value FROM catalog_revision", [], |row| row.get(0))?)
     }
 
     pub fn inspect(&self) -> Result<CatalogInspection, CatalogError> {
