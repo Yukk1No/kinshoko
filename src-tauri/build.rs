@@ -6,6 +6,13 @@ fn main() {
                 "library",
                 tauri_build::InlinedPlugin::new()
                     .commands(&[
+                        "workspace_preview_source_delete",
+                        "workspace_permanent_source_delete",
+                        "workspace_source_group",
+                        "workspace_source_inspection",
+                        "workspace_source_candidates",
+                        "workspace_edit_source",
+                        "workspace_edit_source_tags",
                         "workspace_status",
                         "workspace_browse",
                         "workspace_resolve",

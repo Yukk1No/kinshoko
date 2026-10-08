@@ -1,0 +1,11 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.36s
+     Running tests\source_actions.rs (target\debug\deps\source_actions-46e50facbab1e5dc.exe)
+
+running 3 tests
+test editing_an_inactive_registered_provider_keeps_the_current_and_last_opened_library ... ok
+test unavailable_or_sealed_selected_sources_are_rejected_without_using_a_duplicate ... ok
+test an_explicit_aggregate_source_edits_only_its_curation_and_rejects_a_changed_byte_identity ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+

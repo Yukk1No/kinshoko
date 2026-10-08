@@ -1,0 +1,13 @@
+{
+  "binarySha256": "60345209555790f8abc078cb99fe2795f11f4bc2c0610f81cd0fac0282622d94",
+  "identifier": "dev.kinshoko.spec78t09test",
+  "ports": [
+    4570,
+    4571
+  ],
+  "source": "36cab7ebe379f4614de7768553492daab5f7ee5e",
+  "config": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\t09-config.json",
+  "builtAt": "2026-10-08T17:07:58.3405981Z",
+  "cargoJobs": 2,
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target\\debug\\kinshoko.exe"
+}

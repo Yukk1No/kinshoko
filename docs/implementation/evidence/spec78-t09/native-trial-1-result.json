@@ -1,0 +1,42 @@
+{
+  "status": "failed",
+  "source": "36cab7ebe379f4614de7768553492daab5f7ee5e",
+  "binarySha256": "60345209555790f8abc078cb99fe2795f11f4bc2c0610f81cd0fac0282622d94",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target\\debug\\kinshoko.exe",
+  "environment": {
+    "devicePixelRatio": 1.1041666269302368,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "viewport": {
+      "height": 801,
+      "width": 1281
+    }
+  },
+  "a": {
+    "id": "1501ae7484cc41a69d1ecc6c9c6989c9",
+    "name": "同名资料库",
+    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479308013\\libraries\\first\\同名资料库",
+    "imageId": "01a11c7ce7f772db8f3fc79afd1adeb6",
+    "folderId": "01a11c7ce8bb73928f879d25b02d5e66"
+  },
+  "b": {
+    "id": "78a44aa752c64b2bb31980200f0b28ad",
+    "name": "同名资料库",
+    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479308013\\libraries\\second\\同名资料库",
+    "imageId": "01a11c7ce94b750f9348d7e91a944432",
+    "folderId": "01a11c7cea377150bc499aeca6528a2c"
+  },
+  "target": {
+    "libraryId": "78a44aa752c64b2bb31980200f0b28ad",
+    "imageId": "01a11c7ce94b750f9348d7e91a944432",
+    "contentId": "d6a3ae41b8bcf6872ded8f94c1ac971e6cdcaf813cce00092e0e9c32b9ed59f5"
+  },
+  "assertions": [
+    "same bytes aggregate across two independently curated providers",
+    "same-name source choices visibly show distinct path suffixes",
+    "editing inactive B note leaves A note unchanged",
+    "source edits do not activate B or change current library",
+    "workspace notification does not interrupt the revalidated explicit source editor",
+    "B manual rating remains independent from A"
+  ],
+  "error": "Error: Timed out: B folder control (POST /session/5aa1b20b3b7d49f31d7ff7d43a372402/element: {\"error\":\"no such element\",\"message\":\"no such element: Unable to locate element: {\\\"method\\\":\\\"xpath\\\",\\\"selector\\\":\\\"//button[text()='移出「B 独立标签目录」']\\\"}\\n  (Session info: MicrosoftEdge=154.0.4258.62)\",\"stacktrace\":\"\\tmsedgedriver!GetHandleVerifier [0x7ff78cc32285+4c15]\\n\\tmsedgedriver!(No symbol) [0x7ff78cb83a74]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff78cfb3bbf+38654f]\\n\\tmsedgedriver!(No symbol) [0x7ff78c952456]\\n\\tmsedgedriver!(No symbol) [0x7ff78c9526da]\\n\\tmsedgedriver!(No symbol) [0x7ff78c9925c7]\\n\\tmsedgedriver!(No symbol) [0x7ff78c9486cf]\\n\\tmsedgedriver!(No symbol) [0x7ff78c9901f8]\\n\\tmsedgedriver!(No symbol) [0x7ff78c947f0c]\\n\\tmsedgedriver!(No symbol) [0x7ff78c94718d]\\n\\tmsedgedriver!(No symbol) [0x7ff78c947d33]\\n\\tmsedgedriver!(No symbol) [0x7ff78ca90c04]\\n\\tmsedgedriver!(No symbol) [0x7ff78ca9ddc8]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff78ccd7a15+aa3a5]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff78ccddd11+b06a1]\\n\\tmsedgedriver!(No symbol) [0x7ff78cb8f6ff]\\n\\tmsedgedriver!(No symbol) [0x7ff78cb8a184]\\n\\tmsedgedriver!(No symbol) [0x7ff78cb8a2aa]\\n\\tmsedgedriver!(No symbol) [0x7ff78cb7b7f8]\\n\\tKERNEL32!BaseThreadInitThunk [0x7ffdf8d6cdf7+17]\\n\\tntdll!RtlUserThreadStart [0x7ffdfad5ee4c+2c]\\n\"})"
+}

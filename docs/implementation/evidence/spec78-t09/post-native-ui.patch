@@ -1,0 +1,41 @@
+diff --git a/src/library/WorkspacePane.tsx b/src/library/WorkspacePane.tsx
+index a67c524..b505e93 100644
+--- a/src/library/WorkspacePane.tsx
++++ b/src/library/WorkspacePane.tsx
+@@ -108,14 +108,13 @@ export function WorkspaceSources({ card, onClose, onView, safe = true, reloadKey
+       <p>同一文件 · 各份来源独立保留整理结果</p>
+       {editing && <WorkspaceSourceEditor key={editing.libraryId + "/" + editing.imageId} card={card} source={editing}
+         safe={safe} registrations={registrations} reloadKey={reloadKey} onSource={setEditing} onClose={onClose} onChanged={onChanged} />}
+-      {!editing && <ul>{card.sources.map((source) => <li key={source.libraryId + "/" + source.imageId} data-source-library-id={source.libraryId}>
++      {!editing && <ul>{card.sources.map((source) => <li key={source.libraryId + "/" + source.imageId} data-source-library-id={source.libraryId} title={source.libraryId + "/" + source.imageId}>
+         <strong>{source.libraryName}</strong>
+         {registrations.find((r) => r.library.id === source.libraryId)?.library.root && <span className="workspace-source-path"
+           title={registrations.find((r) => r.library.id === source.libraryId)!.library.root}>
+           {libraryPathHint(registrations.find((r) => r.library.id === source.libraryId)!.library.root, registrations.map((r) => r.library.root))}
+         </span>}
+         <span>{source.deleted ? "回收站" : source.matches ? "符合当前查找" : "不符合当前查找"}</span>
+-        <code>{source.imageId}</code>
+         {source.unavailable ? <p role="status">{source.unavailable}</p> :
+           <div className="selection-actions"><button type="button" onClick={() => setEditing(source)}>整理此来源</button>
+           <button type="button" onClick={() => { onClose(); onView({ ...card, libraryId: source.libraryId, imageId: source.imageId }); }}>查看此来源</button></div>}
+diff --git a/src/library/WorkspaceSourceEditor.tsx b/src/library/WorkspaceSourceEditor.tsx
+index 31bf20a..74e1328 100644
+--- a/src/library/WorkspaceSourceEditor.tsx
++++ b/src/library/WorkspaceSourceEditor.tsx
+@@ -46,7 +46,7 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onSource,
+       (error) => { if (current.current === key) setProblem(String(error)); })
+       .finally(() => { if (current.current === key) setBusy(false); });
+   };
+-  return <div className="workspace-source-editor" aria-label="整理来源">
++  return <div className="workspace-source-editor" aria-label="整理来源" title={source.libraryId + "/" + source.imageId}>
+     <label>当前操作的来源记录
+       <select aria-label="当前操作的来源记录" value={source.libraryId + "/" + source.imageId} onChange={(event) => {
+         const next = card.sources.find((s) => s.libraryId + "/" + s.imageId === event.target.value);
+@@ -57,7 +57,6 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onSource,
+     </label>
+     <p>只整理「{source.libraryName}」的这份来源。其他资料库的整理保持独立。</p>
+     <p className="workspace-source-path" title={path(source.libraryId)}>{hint(source.libraryId)}</p>
+-    <code>{source.libraryId} / {source.imageId}</code>
+     {problem && <p role="alert">{problem}</p>}
+     {notice && <p role="status">{notice}</p>}
+     {!available && !problem && <p role="status">正在读取该来源…</p>}

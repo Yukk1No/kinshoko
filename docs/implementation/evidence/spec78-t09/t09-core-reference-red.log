@@ -1,0 +1,36 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+error[E0599]: no method named `source_reference` found for struct `Workspace` in the current scope
+   --> crates\kinshoko-core\tests\source_actions.rs:133:29
+    |
+133 |     let mut pin = workspace.source_reference(&device, &mut catalog, &target, true).unwrap();
+    |                             ^^^^^^^^^^^^^^^^ method not found in `Workspace`
+
+error[E0277]: can't compare `String` with `&String`
+   --> crates\kinshoko-core\tests\source_actions.rs:138:101
+    |
+138 | ... library_id, image_id, .. } if library_id == &target.library_id && image_id == &target.image_id));
+    |                                              ^^ no implementation for `String == &String`
+    |
+    = help: the trait `PartialEq<&String>` is not implemented for `String`
+help: consider removing the borrow
+    |
+138 -     assert!(matches!(&pin.content, PinContent::Reference { library_id, image_id, .. } if library_id == &target.library_id && image_id == &target.image_id));
+138 +     assert!(matches!(&pin.content, PinContent::Reference { library_id, image_id, .. } if library_id == target.library_id && image_id == &target.image_id));
+    |
+
+error[E0277]: can't compare `String` with `&String`
+   --> crates\kinshoko-core\tests\source_actions.rs:138:135
+    |
+138 | ...rary_id == &target.library_id && image_id == &target.image_id));
+    |                                              ^^ no implementation for `String == &String`
+    |
+    = help: the trait `PartialEq<&String>` is not implemented for `String`
+help: consider removing the borrow
+    |
+138 -     assert!(matches!(&pin.content, PinContent::Reference { library_id, image_id, .. } if library_id == &target.library_id && image_id == &target.image_id));
+138 +     assert!(matches!(&pin.content, PinContent::Reference { library_id, image_id, .. } if library_id == &target.library_id && image_id == target.image_id));
+    |
+
+Some errors have detailed explanations: E0277, E0599.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `kinshoko-core` (test "source_actions") due to 3 previous errors

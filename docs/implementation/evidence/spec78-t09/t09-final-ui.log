@@ -1,0 +1,13 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/WorkspaceSources.test.tsx src/library/WorkspacePane.test.tsx src/library/SelectionPanel.test.tsx src/App.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+
+ Test Files  4 passed (4)
+      Tests  74 passed (74)
+   Start at  01:14:51
+   Duration  11.28s (tests 58%, environment 31%, import 7%, transform 5%)
+
