@@ -200,6 +200,10 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
 
 const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.args);
 const push = (event: LibraryEvent) => act(() => emit("library-event", event));
+const importAction = (name: string) => {
+  if (!screen.queryByRole("button", { name })) fireEvent.click(screen.getByRole("button", { name: "导入参考图" }));
+  return screen.getByRole("button", { name });
+};
 
 beforeEach(() => {
   // jsdom 不做布局：给图片墙一个 1000 × 800 的视口。
@@ -219,6 +223,27 @@ afterEach(async () => {
 });
 
 describe("主窗口", () => {
+  it("查找头部显示真实结果数，图片大小滑块改变布局，导入操作按需展开", async () => {
+    backend(library, clean, (command, args) => {
+      if (command === "plugin:library|browse" && (args as { query: { scope: { kind: string } } }).query.scope.kind === "folder") return { cards: [page.cards[0]], total: 1, nextCursor: null };
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    const result = screen.getByRole("status", { name: "查找结果" });
+    await waitFor(() => expect(result.textContent).toBe("2 张"));
+    const card = screen.getByRole("listbox", { name: "图片墙" }).querySelector<HTMLElement>(".card")!;
+    const before = parseFloat(card.style.width);
+    const slider = screen.getByRole("slider", { name: "图片大小" });
+    fireEvent.change(slider, { target: { value: "420" } });
+    fireEvent.pointerUp(slider);
+    await waitFor(() => expect(parseFloat(card.style.width)).toBeGreaterThan(before));
+    expect(screen.queryByRole("button", { name: "导入文件夹…" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "导入参考图" }));
+    expect(importAction("导入文件夹…")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "人物（1 张）" }));
+    await waitFor(() => expect(result.textContent).toBe("1 张"));
+  });
+
   it("尚未打开资料库时仍能从图标轨打开截图历史与钉剪贴板入口", async () => {
     backend(null);
     render(<App />);
@@ -389,7 +414,7 @@ describe("主窗口", () => {
     await screen.findAllByRole("img");
 
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
-    fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+    fireEvent.click(importAction("导入文件夹…"));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 2 } });
     const finish = () => push({
@@ -430,7 +455,7 @@ describe("主窗口", () => {
     await screen.findAllByRole("img");
 
     window.__KINSHOKO_TEST_PICKS__ = ["E:\\新\\主库.library"];
-    fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+    fireEvent.click(importAction("导入文件夹…"));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await push({
       kind: "taskFinished",
@@ -492,7 +517,7 @@ describe("主窗口", () => {
     });
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.click(screen.getByRole("button", { name: "导入文件…" }));
+    fireEvent.click(importAction("导入文件…"));
     await waitFor(() => expect(sent("plugin:library|pick_files").length).toBe(1));
     fireEvent.change(screen.getByLabelText("当前资料库"), { target: { value: "L2" } });
     await screen.findByRole("heading", { name: "私人收藏" });
@@ -564,7 +589,7 @@ describe("主窗口", () => {
     await screen.findAllByRole("img");
 
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\下载\\参考"];
-    fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+    fireEvent.click(importAction("导入文件夹…"));
     await waitFor(() =>
       expect(sent("plugin:library|start_import")).toEqual([
       { libraryId: "L1", source: { paths: ["D:\\下载\\参考"] } },
@@ -687,7 +712,7 @@ describe("主窗口", () => {
 });
 
 describe("导入任务的终态（#76）", () => {
-  const importButton = () => screen.getByRole("button", { name: "导入文件…" }) as HTMLButtonElement;
+  const importButton = () => importAction("导入文件…") as HTMLButtonElement;
   const failed = (taskId: string) => push({
     kind: "taskFinished",
     libraryId: "L1",
@@ -732,7 +757,7 @@ describe("导入任务的终态（#76）", () => {
     render(<App />);
     await screen.findAllByRole("img");
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
-    fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+    fireEvent.click(importAction("导入文件夹…"));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 3 } });
     await act(async () => {
@@ -804,12 +829,12 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     return { answer, fail: (reason: string) => failures.push(reason) };
   }
   async function startEagle() {
-    fireEvent.click(screen.getByRole("button", { name: "从 Eagle 迁入…" }));
+    fireEvent.click(importAction("从 Eagle 迁入…"));
     fireEvent.click(await screen.findByRole("button", { name: "迁入 主库" }));
   }
   async function startFiles(count: number) {
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考\\a.png"];
-    fireEvent.click(screen.getByRole("button", { name: "导入文件…" }));
+    fireEvent.click(importAction("导入文件…"));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(count));
   }
 
@@ -820,7 +845,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     const paths = ["D:/Eagle/主库.library"];
     if (entrance === "文件夹") {
       window.__KINSHOKO_TEST_PICKS__ = paths;
-      fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+      fireEvent.click(importAction("导入文件夹…"));
     } else {
       await act(() => emit("tauri://drag-drop", { paths, position: { x: 10, y: 10 } }));
     }

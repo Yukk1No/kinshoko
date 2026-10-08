@@ -1,6 +1,6 @@
 // #79 / #78 stories 1–4: real formal-app import, folders/search, single-click, return, reflow and active-pin Esc.
 // 用法：node e2e/spec78-frontend.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]
-// 本地并行测试宜以独立 identifier 构建；默认使用 4447 / 4448，不占用 #44 的端口。
+// 本地并行测试宜以独立 identifier 构建；默认使用 4467 / 4468，不占用 #44 的端口。
 import { spawn, execFileSync } from "node:child_process";
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -77,6 +77,7 @@ const find = async (xpath) => {
   return element[ELEMENT] ?? element.ELEMENT;
 };
 const click = async (text) => wd("POST", `${base}/element/${await find(`//button[normalize-space()='${text}']`)}/click`, {});
+const key = async (value) => wd("POST", base + "/actions", { actions: [{type:"key",id:"keyboard",actions:[{type:"keyDown",value},{type:"keyUp",value}]}] });
 const image = () => exec(`const i = document.querySelector('.viewer-stage img'); if (!i || !i.complete || !i.naturalWidth || getComputedStyle(i).visibility !== 'visible') return null;
   const r = i.getBoundingClientRect(); return { src: i.src, w: i.naturalWidth, h: i.naturalHeight, physicalW: r.width * devicePixelRatio, physicalH: r.height * devicePixelRatio, physicalLeft: r.left * devicePixelRatio, physicalTop: r.top * devicePixelRatio, interpolation: getComputedStyle(i).imageRendering, dpr: devicePixelRatio };`);
 
@@ -95,14 +96,26 @@ try {
   await until("打开资料库", () => find("//h1[normalize-space()='增量 T01 对照']"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
+  await wd("POST",base+"/element/"+await find("//button[@aria-label='导入参考图']")+"/click",{});
   await click("导入文件夹…");
   await until("导入完成", () => find("//*[contains(normalize-space(), '导入完成：新增 43 张')]"));
   check(true, "导入 43 张测试参考图，未下载打标模型");
+  await click("关闭");
+  await until("关闭导入报告，稳定浏览",()=>exec("return document.querySelector('.import-popup').hidden"));
   const viewport = await exec("return {width:innerWidth,height:innerHeight,dpr:devicePixelRatio,userAgent:navigator.userAgent}");
   await until("缩略图解码", () => exec("return [...document.querySelectorAll('.card img')].every(i=>i.complete && i.naturalWidth>0)"));
   writeFileSync(join(output, "formal-wall.png"), Buffer.from(await wd("GET", base + "/screenshot"), "base64"));
   check(await exec("return !!document.querySelector('nav[aria-label=主导航]') && !!document.querySelector('aside[aria-label=文件夹]') && !!document.querySelector('[role=toolbar][aria-label=标签分组]')"), "认可的图标轨、上下文侧栏和标签分组查找区在同一工作区");
   check(await exec("return [...document.querySelectorAll('.card img')].every(i=>getComputedStyle(i).objectFit==='contain')"), "图片墙完整构图显示，超长图整体缩小而不裁切");
+  const browseMetrics=await exec("const c=document.querySelector('.card');const w=document.querySelector('.wall');return {cardRadius:getComputedStyle(c).borderRadius,wallTop:w.getBoundingClientRect().top,cardTop:c.getBoundingClientRect().top,cardWidth:parseFloat(c.style.width),count:document.querySelector('[aria-label=查找结果]').textContent,density:document.querySelector('.density input').value}");
+  check(browseMetrics.cardRadius==='6px'&&browseMetrics.count==='43 张'&&browseMetrics.density==='240',"稳定浏览保留认可的圆角、真实结果数和图片大小滑块");
+  const densityInput=await find("//input[@type='range']");
+  await wd("POST",base+"/element/"+densityInput+"/click",{}); await key("\uE010");
+  const larger=await until("真实滑块放大卡片",()=>exec("const c=document.querySelector('.card');const d=document.querySelector('.density input');return d.value==='420'&&parseFloat(c.style.width)>arguments[0]?parseFloat(c.style.width):null",[browseMetrics.cardWidth]));
+  await key("\uE011"); for(let i=0;i<10;i++) await key("\uE014");
+  await until("恢复认可默认图片大小",()=>exec("return document.querySelector('.density input').value==='240'&&Math.abs(parseFloat(document.querySelector('.card').style.width)-arguments[0])<.01",[browseMetrics.cardWidth]));
+  check(true,"真实键盘操作滑块改变图片墙密度，再恢复 240px 默认大小");
+  const densityCheck={initial:240,larger:420,restored:240,initialWidth:browseMetrics.cardWidth,largerWidth:larger};
   // Read only public IPC to copy the same imported sample order into the unchanged accepted prototype.
   const samples = await wd("POST", base + "/execute/async", {script: `const done=arguments[arguments.length-1]; (async()=>{ const invoke=window.__TAURI_INTERNALS__.invoke; const library=await invoke('plugin:library|current_library'); const page=await invoke('plugin:library|browse',{libraryId:library.id,query:{scope:{kind:'all'},conditions:{conditions:[]},cursor:null,limit:500,thumbnailPx:256}}); const details=await Promise.all(page.cards.map(c=>invoke('plugin:library|image',{libraryId:library.id,imageId:c.id}))); return details; })().then(done,e=>done({error:String(e)}));`, args:[]});
   if (!Array.isArray(samples)) throw new Error(JSON.stringify(samples));
@@ -122,7 +135,6 @@ try {
   await wd("POST", base + "/element/" + await find("//button[@aria-label='新建文件夹']") + "/click", {});
   const folderName=await find("//input[@aria-label='新文件夹名称']");
   await wd("POST",base+"/element/"+folderName+"/value",{text:"对照选集"});
-  const key = async (value) => wd("POST", base + "/actions", { actions: [{type:"key",id:"keyboard",actions:[{type:"keyDown",value},{type:"keyUp",value}]}] });
   await key("\uE007");
   await until("文件夹已保存",()=>find("//button[@aria-label='对照选集（0 张）']"));
   const selected=await exec("return [...document.querySelectorAll('.card')].slice(0,2)");
@@ -191,9 +203,12 @@ try {
   const reflow=await exec("return window.__T01_REFLOW__");
   check(new Set(reflow.map(f=>f.card.toFixed(2))).size>2,"侧栏动画中连续更新卡片布局，而非只在结束时跳变");
   check(true, "侧栏往返重排保持同一张图的偏移");
+  const resizeViewports=[];
   await wd("POST", `${base}/window/rect`, { width: 1050, height: 800 });
+  resizeViewports.push(await exec("return {width:innerWidth,height:innerHeight}"));
   await until("窗口变窄锚点稳定", anchorStable);
   await wd("POST", `${base}/window/rect`, { width: 1280, height: 800 });
+  resizeViewports.push(await exec("return {width:innerWidth,height:innerHeight}"));
   await until("窗口变宽锚点稳定", anchorStable);
   check(true, "原生窗口宽度往返保持同一张图的偏移");
   // Pin two real native windows, then send Esc in only one of them.
@@ -212,7 +227,7 @@ try {
   await wd("POST",base+"/window",{handle:pinHandles[1]}); await key("\uE00C");
   await wd("POST",base+"/window",{handle:mainHandle});
   const sourceCommit=execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();
-  writeFileSync(join(output, "report.json"), JSON.stringify({status:"passed",humanAcceptance:"unverified",sourceCommit,viewport,fitted,original,enlarged,fonts,fitAfterFonts,anchor,reading,reflow,pinEscape:true,samples:manifest.length}, null, 2));
+  writeFileSync(join(output, "report.json"), JSON.stringify({status:"passed",humanAcceptance:"unverified",sourceCommit,viewport,browseMetrics,densityCheck,fitted,original,enlarged,fonts,fitAfterFonts,anchor,reading,reflow,resizeViewports,pinEscape:true,samples:manifest.length}, null, 2));
   console.log("T01 正式程序端到端检查通过");
 } catch (error) {
   if (base) {

@@ -16,7 +16,8 @@ import {
   shellSettings,
 } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
-import { ImportBar, type FinishedImport, type RunningImport } from "./library/ImportBar";
+import { type FinishedImport, type RunningImport } from "./library/ImportBar";
+import { ImportMenu } from "./library/ImportMenu";
 import { LibraryPicker } from "./library/LibraryPicker";
 import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
 import { ReferenceGroupsPanel } from "./desktop/ReferenceGroupsPanel";
@@ -31,7 +32,8 @@ import { SettingsPanel } from "./SettingsPanel";
 import { BackupReminder, BackupSettings } from "./Backup";
 import { TaggingIndicator } from "./TaggingIndicator";
 import { UpdateBanner } from "./Update";
-import { scopeKey, Wall } from "./wall/Wall";
+import { scopeKey, Wall, type WallHandle } from "./wall/Wall";
+import { DensitySlider } from "./wall/DensitySlider";
 import { Viewer } from "./viewer/Viewer";
 
 type WorkspaceProps = {
@@ -67,6 +69,9 @@ function LibraryWorkspace({
   onViewerChange,
 }: WorkspaceProps) {
   const [reloadKey, setReloadKey] = useState(0);
+  const [density, setDensity] = useState(240);
+  const [resultCount, setResultCount] = useState<number | null>(null);
+  const wall = useRef<WallHandle>(null);
   const [running, setRunning] = useState<RunningImport | null>(null);
   const [report, setReport] = useState<FinishedImport | null>(null);
   const [scope, setScope] = useState<BrowseScope>({ kind: "all" });
@@ -261,15 +266,16 @@ function LibraryWorkspace({
               setSelected(new Set());
             }}
           />
+          <span className="result-count tabular" role="status" aria-label="查找结果">{resultCount === null ? "…" : resultCount + " 张"}</span>
+          <label className="density" title="图片大小"><span className="sr-only">图片大小</span>
+            <DensitySlider value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
+          </label>
+          <ImportMenu enabled={!hidden} libraryId={library.id} libraryName={library.name}
+            running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)} />
           </header>
           <div className="app-tagbar">
           <TagGroupBar libraryId={library.id} safe={safe} generation={vocabularyKey} input={search}
             onChange={(next) => { setSearch(next); setSelected(new Set()); }} onError={onError} />
-          </div>
-          <div className="app-toolbar">
-            <ImportBar enabled={!hidden} libraryId={library.id} libraryName={library.name}
-              running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)} />
-            <span className="selection-hint">单击查看 · Ctrl／Shift 多选 · 空格选择</span>
           </div>
           {problem && (
             <p className="app-problem" role="alert">
@@ -280,6 +286,9 @@ function LibraryWorkspace({
             </p>
           )}
           <Wall
+            ref={wall}
+            density={density}
+            onTotalChange={setResultCount}
             key={`${library.id}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
             libraryId={library.id}
             scope={scope}

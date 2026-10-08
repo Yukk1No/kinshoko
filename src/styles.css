@@ -1662,3 +1662,20 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .app-empty-workspace { display: flex; flex: 1; min-height: 0; }
 .empty-context { width: 248px; flex: none; overflow: auto; background: var(--surface); }
 .empty-context > .capture-history, .empty-context > .reference-groups { padding: 12px; border: 0; }
+
+/* Accepted browse wall/header details: prototype styles.css and DensitySlider. */
+.app { font-size: 13px; line-height: 20px; }
+.card { border-radius: 6px; }
+.topbar { z-index: 5; }
+.result-count { flex: none; color: var(--ink-2); white-space: nowrap; }
+.density { display: flex; flex: none; align-items: center; }
+.density input { width: 96px; accent-color: var(--accent); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.import-menu { position: relative; flex: none; }
+.import-popup { position: absolute; top: calc(100% + 8px); right: 0; width: min(560px, calc(100vw - 88px)); max-height: calc(100vh - 100px); overflow: auto; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
+.import-popup[hidden] { display: none; }
+.import-popup > header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.import-popup .import-actions { flex-wrap: wrap; }
+.import-popup .selection-hint { margin: 10px 0 0; }
+
+.groupbar { min-height: 41px; align-items: center; }
