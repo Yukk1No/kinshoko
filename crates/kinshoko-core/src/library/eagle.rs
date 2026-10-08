@@ -706,9 +706,14 @@ impl Item {
     }
 }
 
+pub(super) struct CommitContext {
+    pub(super) now: i64,
+    pub(super) created_in_this_task: bool,
+}
+
 /// 写入（或刷新）这个条目的 Eagle 来源层，仍处在原图的提交事务中：原样 JSON、绑定状态、
 /// 区域评论、标签（与 Library::replace_source_tags 相同的分层）、来源备注与链接、文件夹归属。
-/// 人工标签决定、本库备注与删除状态都不碰；Eagle 回收站只在第一次见到这个条目时起作用。
+/// 人工整理与已有回收站状态保持；同批新建图的初始 Eagle 状态由同批条目共同决定。
 pub(super) fn commit(
     tx: &Transaction,
     translations: &tags::TranslationIndex,
@@ -716,8 +721,12 @@ pub(super) fn commit(
     sha: &str,
     image_id: &str,
     location: &str,
-    now: i64,
+    context: CommitContext,
 ) -> Result<i64, Error> {
+    let CommitContext {
+        now,
+        created_in_this_task,
+    } = context;
     let source = FactSource::eagle(&format!("{}:{}", item.source_id, item.metadata.id));
     let source_tags: Vec<_> = item
         .metadata
@@ -814,9 +823,9 @@ pub(super) fn commit(
             ],
         )?;
     }
-    // 新的正常条目使重复原图可见；已有人工作出的删除决定不受来源影响。
-    // 之后 Eagle 再移入或移出回收站，只改绑定状态。
-    if first_seen && !item.metadata.is_deleted {
+    // 同一次首次迁入的重复条目共同决定新图的初始状态，不依赖条目顺序。
+    // #78 T14：此前任务已放进回收站的副本不能自动恢复；人工删除会清除 initial 标记。
+    if first_seen && created_in_this_task && !item.metadata.is_deleted {
         tx.execute(
             "UPDATE image SET deleted_at = NULL, eagle_initial_trash = 0
              WHERE id = ?1 AND eagle_initial_trash = 1",

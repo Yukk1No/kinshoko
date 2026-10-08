@@ -1,3 +1,4 @@
+import type { ImportOptions } from "./bindings/ImportOptions";
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
@@ -164,8 +165,13 @@ export function moveFolder(libraryId: string, folderId: string, parent: string |
 }
 
 /** 开始导入，立即返回任务 id；进度与结果经 onLibraryEvent 推送。 */
-export function startImport(libraryId: string, paths: string[]): Promise<string> {
-  return invoke<string>(lib("start_import"), { libraryId, source: { paths } });
+export function startImport(libraryId: string, paths: string[], options?: ImportOptions): Promise<string> {
+  return invoke<string>(lib("start_import"), { libraryId, source: { paths }, ...(options ? { options } : {}) });
+}
+
+/** 与实际导入相同的只读 Eagle 来源识别；用于手选、父文件夹、拖入及重试的统一选择。 */
+export function importContainsEagle(paths: string[]): Promise<boolean> {
+  return invoke<boolean>(lib("import_contains_eagle"), { source: { paths } });
 }
 
 /** 本机 Eagle 资料库候选；按 images/ 条目数从多到少排列。 */

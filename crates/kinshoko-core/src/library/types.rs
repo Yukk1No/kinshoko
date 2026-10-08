@@ -90,6 +90,34 @@ pub struct ImportSource {
     pub paths: Vec<PathBuf>,
 }
 
+impl ImportSource {
+    /// 只读识别来源是否含 Eagle 库或条目，供导入开始前询问本次选择。
+    /// 包含选择的父文件夹；不注册来源、不解码图片，也不写入资料库。
+    pub fn contains_eagle(&self) -> bool {
+        super::import::contains_eagle(self)
+    }
+}
+
+/// Eagle 曾永久删除的同一内容在本次任务中的处理方式，不改写长期删除记忆。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum EagleDeletedContentChoice {
+    /// 默认记住删除决定，跳过没有本库副本的同一内容。
+    #[default]
+    SkipDeleted,
+    /// 画师明确允许这一次重新导入；下一次任务仍使用默认选择。
+    AllowThisImport,
+}
+
+/// 单次导入的选择；原有 [`super::Library::import`] 继续使用默认值。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(default, rename_all = "camelCase")]
+#[ts(export)]
+pub struct ImportOptions {
+    pub eagle_deleted_content: EagleDeletedContentChoice,
+}
+
 /// 导入进度：已处理几项、共几项。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -119,6 +147,11 @@ pub enum ImportOutcome {
         image_id: String,
         previous_image_id: String,
     },
+    /// 与本库回收站的原图字节相同，来源信息可刷新，删除状态保持，恢复由画师决定。
+    #[serde(rename_all = "camelCase")]
+    TrashDuplicate { image_id: String },
+    /// Eagle 同一字节内容曾在本资料库永久删除，本次按默认删除决定跳过。
+    SkippedDeleted,
     /// 不支持的格式。
     Unsupported,
     /// 读取失败，附原因。
@@ -186,7 +219,8 @@ impl ImportOutcome {
             ImportOutcome::Imported { image_id }
             | ImportOutcome::Merged { image_id }
             | ImportOutcome::Refreshed { image_id }
-            | ImportOutcome::NewVersion { image_id, .. } => Some(image_id),
+            | ImportOutcome::NewVersion { image_id, .. }
+            | ImportOutcome::TrashDuplicate { image_id } => Some(image_id),
             _ => None,
         }
     }
