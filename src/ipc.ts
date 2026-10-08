@@ -1,6 +1,7 @@
 import type { WorkspaceQuery } from "./bindings/WorkspaceQuery";
 import type { WorkspacePage } from "./bindings/WorkspacePage";
 import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
+import type { CatalogNameEdit } from "./bindings/CatalogNameEdit";
 import type { ImportOptions } from "./bindings/ImportOptions";
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
@@ -850,4 +851,8 @@ export function workspaceLocalTags(libraryId: string, ids: string[], safeMode: b
 }
 export function onWorkspaceChanged(handler: (status: WorkspaceStatus) => void): Promise<UnlistenFn> {
   return listen<WorkspaceStatus>("workspace-changed", (event) => handler(event.payload));
+}
+
+export function editTagName(catalogId: string, edit: CatalogNameEdit): Promise<TagCatalogWorkspace> {
+  return invoke<TagCatalogWorkspace>(lib("edit_tag_name"), { catalogId, edit });
 }

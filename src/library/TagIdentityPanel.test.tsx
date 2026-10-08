@@ -38,7 +38,7 @@ it.each(["inspect", "correct"])("clears inspected records and discards a late %s
   const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "封印标签" }], aliases: [], external: [], count: 1 };
   const workspace: TagCatalogWorkspace = {
     libraries: [{ library: { id: "a", name: "资料库", root: "a" }, unavailable: null }],
-    catalog: { revision: 1, tags: [{ ...local, id: "shared" }, { ...local, id: "other", names: [{ lang: "zh-CN", name: "另一个身份" }] }], mappings: [{ libraryId: "a", localTagId: "local", catalogId: "shared", legacy: local, basis: "independent", nameProvenance: "pending" }] },
+    catalog: { revision: 1, tags: [{ ...local, id: "shared", defaultNames: local.names, namePreferences: [] }, { ...local, id: "other", defaultNames: local.names, namePreferences: [], names: [{ lang: "zh-CN", name: "另一个身份" }] }], mappings: [{ libraryId: "a", localTagId: "local", catalogId: "shared", legacy: local, basis: "independent", nameProvenance: "pending" }] },
   };
   let inspected = false;
   let finish: (workspace: TagCatalogWorkspace) => void = () => { throw new Error("request was not started"); };
@@ -58,4 +58,15 @@ it.each(["inspect", "correct"])("clears inspected records and discards a late %s
   }
   await act(async () => { await emit("safe-mode-setting", true); finish(workspace); await pending; });
   expect(screen.queryByRole("row", { name: /资料库.*封印标签/ })).toBeNull();
+});
+it("refreshes inspected shared labels after a global name vocabulary event", async () => {
+  const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "旧名称" }], aliases: [], external: [], count: 1 };
+  let current = "默认名称";
+  mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? { libraries: [], catalog: { revision: 1, tags: [{ ...local, id: "shared", names: [{ lang: "zh-CN", name: current }], defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "a", localTagId: "local", catalogId: "shared", legacy: local, basis: "independent", nameProvenance: "catalog" }] } } : undefined, { shouldMockEvents: true });
+  render(<TagIdentityPanel />);
+  fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
+  await screen.findByText("默认名称");
+  current = "新的共享名称";
+  await act(async () => { await emit("library-event", { kind: "vocabularyChanged", libraryId: "a", revision: 1 }); });
+  await screen.findByText("新的共享名称");
 });

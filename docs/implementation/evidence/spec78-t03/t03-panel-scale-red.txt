@@ -1,0 +1,33 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+ ❯ src/library/TagNamePanel.test.tsx (3 tests | 1 failed) 1634ms
+   × edits one selected tag at a time and finds it by a separate alias in a large catalog 1280ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/TagNamePanel.test.tsx > edits one selected tag at a time and finds it by a separate alias in a large catalog
+AssertionError: expected [ …(150) ] to have a length of 1 but got 150
+
+- Expected
++ Received
+
+- 1
++ 150
+
+ ❯ src/library/TagNamePanel.test.tsx:56:59
+     54|   fireEvent.click(screen.getByRole("button", { name: "管理显示名称" }));
+     55|   await screen.findAllByRole("button", { name: "保存偏好" });
+     56|   expect(screen.getAllByRole("button", { name: "保存偏好" })).toHaveLength…
+       |                                                           ^
+     57|   fireEvent.change(screen.getByRole("textbox", { name: "查找要改名称的标签" }),…
+     58|   expect(screen.getByRole("textbox", { name: /偏好名称/ }).getAttribute("v…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  23:17:26
+   Duration  3.28s (tests 52%, environment 38%, import 7%, transform 2%)
+

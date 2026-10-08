@@ -1,0 +1,15 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+error[E0599]: no method named `install_name_defaults` found for struct `TagCatalog` in the current scope
+   --> crates\kinshoko-core\tests\tag_names.rs:165:13
+    |
+165 |     catalog.install_name_defaults(table("分缝发型")).unwrap();
+    |             ^^^^^^^^^^^^^^^^^^^^^
+    |
+help: there is a method `update_name_defaults` with a similar name
+    |
+165 -     catalog.install_name_defaults(table("分缝发型")).unwrap();
+165 +     catalog.update_name_defaults(table("分缝发型")).unwrap();
+    |
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `kinshoko-core` (test "tag_names") due to 1 previous error
