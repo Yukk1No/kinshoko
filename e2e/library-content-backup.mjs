@@ -10,7 +10,7 @@ import { deflateSync } from "node:zlib";
 const [, , appArg, edgeArg, driverArg] = process.argv;
 if (!appArg || !edgeArg) throw Error("Usage: node e2e/library-content-backup.mjs <owned kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]");
 const application = resolve(appArg);
-const work = resolve("work/e2e", `content-backup-${Date.now()}`);
+const work = resolve(process.env.KINSHOKO_E2E_RUN ?? join("work/e2e", `content-backup-${Date.now()}`));
 mkdirSync(work, { recursive: true });
 const port = 4648;
 const url = `http://127.0.0.1:${port}`;
@@ -125,13 +125,15 @@ async function correct(library, local, target) {
 async function create(name, paths) {
   const parent = join(work, "libraries"); mkdirSync(parent, { recursive: true });
   const info = await session.invoke("create_library", { parent, name });
-  await session.invoke("start_import", { libraryId: info.id, source: { paths }, destination: { libraryId: info.id, folderId: null } });
+  const taskId = await session.invoke("start_import", { libraryId: info.id, source: { paths }, destination: { libraryId: info.id, folderId: null } });
+  const receipt = await until("fixed import owner and definition publication " + name, async () => { const task = (await session.invoke("import_tasks")).find(item => item.taskId === taskId); return task?.report && !task.finishing ? task : null; });
+  assert(receipt.destination.libraryId === info.id && receipt.destination.folderId === null && receipt.warnings.length === 0, "fixture import has its explicit owner and completed definition publication: " + name);
   const page = await until("ordinary import " + name, async () => { const p = await session.invoke("browse", { libraryId: info.id, query: { scope: { kind: "all" }, conditions: { conditions: [] }, cursor: null, limit: 100, thumbnailPx: 128 } }); return p.cards.length === paths.length ? p : null; });
   const images = page.cards.map((c) => c.id);
   await session.invoke("edit_tags", { libraryId: info.id, imageIds: images, edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: "白", lang: "zh-CN" } }] });
   const local = (await session.invoke("vocabulary", { libraryId: info.id })).tags.find((t) => t.names.some((n) => n.name === "白")).id;
   await session.refresh(info.id);
-  return { info, images, local };
+  return { info, images, local, receipt };
 }
 async function groupsPane() { if (!await session.exec("return document.querySelector('button[aria-label=参考组]')?.getAttribute('aria-expanded') === 'true';")) await session.click("//button[@aria-label='参考组']"); await until("groups pane", () => session.find("//input[@aria-label='新参考组名称']")); }
 async function pin(library, image, crop) {

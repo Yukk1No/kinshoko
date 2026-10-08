@@ -1,0 +1,158 @@
+[
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-clippy.log",
+    "file": "t12-clippy.txt",
+    "bytes": 1642,
+    "sha256": "98371d9571b1e84e2c840582353051ab2a8d8a43c9fd9ee286c6cf7d8c351efe"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-clippy2.log",
+    "file": "t12-clippy2.txt",
+    "bytes": 1072,
+    "sha256": "ac3832b0ceffb85e369b95bedea5d52c16c2cd086e0c8284441ea434a81d37d8"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-clippy3.log",
+    "file": "t12-clippy3.txt",
+    "bytes": 422,
+    "sha256": "763175989ff21f072aa66e9cabced1003371c59b9c988ba01fa049cd27f10b05"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-core-behaviors.log",
+    "file": "t12-core-behaviors.txt",
+    "bytes": 2544,
+    "sha256": "734dd8750d5a548c78cadffee249d6b76ea41f84cc374a17a1c7b3473bbaacf5"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-green-backup-regression.log",
+    "file": "t12-green-backup-regression.txt",
+    "bytes": 4775,
+    "sha256": "dc335e15989b0958c0dbc1029d1f2b964451bea8fca07d7f3e97245d64ffe4a5"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-green-batch-rollback.log",
+    "file": "t12-green-batch-rollback.txt",
+    "bytes": 512,
+    "sha256": "8c318edf62c80e31a6b98f1e72a4801088b1abd18fea4f3ac79e1d6f79ac6f9a"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-green-current-roundtrip-crash.log",
+    "file": "t12-green-current-roundtrip-crash.txt",
+    "bytes": 1811,
+    "sha256": "d2cec660288d079905ecb6a6207ed502df8c8a77222be0e04b94cc4e44208a8e"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-green-freshness.log",
+    "file": "t12-green-freshness.txt",
+    "bytes": 523,
+    "sha256": "051e2a40ad2404523aaf5d5df4ec8ac5ff7502cf6a9d3fb2e7eae4a3f88bb859"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-green-restore-staging.log",
+    "file": "t12-green-restore-staging.txt",
+    "bytes": 8506,
+    "sha256": "b5175945295574429861c4b2e3c09f3ea2dafe475cb89b49998a355b0ca24d83"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-green-restore-staging2.log",
+    "file": "t12-green-restore-staging2.txt",
+    "bytes": 697,
+    "sha256": "23c85fd9c12102879e152c346b8fa237170eeb5531f3566ae96c9308816a202c"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-green-settings-ownership.log",
+    "file": "t12-green-settings-ownership.txt",
+    "bytes": 614,
+    "sha256": "0376b351ee910de7e693d5a72e48ec6556ea199a2038d0e3da706ff99b2594ea"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-green-target-preflight.log",
+    "file": "t12-green-target-preflight.txt",
+    "bytes": 4219,
+    "sha256": "f3523c25fd360c399cb01ff3efc46d245090f09049589f6ac6b808ff992915ff"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-green-ui.log",
+    "file": "t12-green-ui.txt",
+    "bytes": 475,
+    "sha256": "a16f02e4fa955a3c2cec2682045252c80db1925eaccff87e1c383d8b0c2e0e73"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-red-batch-rollback.log",
+    "file": "t12-red-batch-rollback.txt",
+    "bytes": 1075,
+    "sha256": "976bf57f91376347078aa6fb7c5f393023a824e79b888c1253054d2fea550085"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-red-freshness.log",
+    "file": "t12-red-freshness.txt",
+    "bytes": 1184,
+    "sha256": "b8b385250f00d95184357fbb2ddec9fee260c1f2e944ce4378247146feba1abd"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-red-legacy-snapshot-settings.log",
+    "file": "t12-red-legacy-snapshot-settings.txt",
+    "bytes": 1142,
+    "sha256": "0d28bba69fd025d7d59d6b7d7d76009afca93e550eca48272247c6ee921ab6d7"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-red-settings-ownership.log",
+    "file": "t12-red-settings-ownership.txt",
+    "bytes": 1030,
+    "sha256": "00a57f0606542ab8fa84c4016873ba9815a4f15f52885990501de3c32daf8fec"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-red-target-identity.log",
+    "file": "t12-red-target-identity.txt",
+    "bytes": 1019,
+    "sha256": "0634d7899f59cb82daa62f843552183a6919e8c872235479f96d57eaa1e8b744"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-red-ui.log",
+    "file": "t12-red-ui.txt",
+    "bytes": 4647,
+    "sha256": "ef6960d97a252c4938ba1a91a49450db113c6615787a6ac53c694f3d1f21f09d"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-t06-combined.log",
+    "file": "t12-t06-combined.txt",
+    "bytes": 768,
+    "sha256": "178cee1ae3bc143e228012121c08c9176f8f91c4bf67fd46fde1fec2f636849a"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-t06-typecheck.log",
+    "file": "t12-t06-typecheck.txt",
+    "bytes": 48,
+    "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-t06-ui-all.log",
+    "file": "t12-t06-ui-all.txt",
+    "bytes": 588,
+    "sha256": "5a4a58afc22639467f0de04547fd6dee77ff3758b6ba5f262d42a5f7d7eaa820"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-t06-vite-build.log",
+    "file": "t12-t06-vite-build.txt",
+    "bytes": 408,
+    "sha256": "28519c9b06e28121f3331540f4eca6961619144aa18bccb1f474bc415607cb17"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-typecheck.log",
+    "file": "t12-typecheck.txt",
+    "bytes": 48,
+    "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-ui-all.log",
+    "file": "t12-ui-all.txt",
+    "bytes": 588,
+    "sha256": "234496e72e10e91b6ea62a3b8604018200f3d222fa3f0821c4029545b6130d9e"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t12-workspace-all.log",
+    "file": "t12-workspace-all.txt",
+    "bytes": 66617,
+    "sha256": "f61bcc0640bf763bf70c7534eeedff1d8f37168ac0662fef68bba73a7f2ec465"
+  }
+]

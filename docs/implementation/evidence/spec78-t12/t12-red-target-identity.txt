@@ -1,0 +1,19 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.28s
+     Running tests\backup_content_definitions.rs (target\debug\deps\backup_content_definitions-9aa9b0f8d0b1df11.exe)
+
+running 1 test
+
+thread 'incompatible_stable_identity_is_refused_before_content_is_published' (18280) panicked at crates\kinshoko-core\tests\backup_content_definitions.rs:321:5:
+stable ID with another namespace must fail before content publication
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test incompatible_stable_identity_is_refused_before_content_is_published ... FAILED
+
+failures:
+
+failures:
+    incompatible_stable_identity_is_refused_before_content_is_published
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.40s
+
+error: test failed, to rerun pass `-p kinshoko-core --test backup_content_definitions`

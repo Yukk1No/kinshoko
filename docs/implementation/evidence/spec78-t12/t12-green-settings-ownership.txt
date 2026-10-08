@@ -1,0 +1,10 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.08s
+     Running tests\backup_content_definitions.rs (target\debug\deps\backup_content_definitions-9aa9b0f8d0b1df11.exe)
+
+running 2 tests
+test content_backup_does_not_reimport_legacy_application_groups_or_personal_rules ... ok
+test content_backup_uses_current_pure_definitions_after_read_only_publication_failed ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+

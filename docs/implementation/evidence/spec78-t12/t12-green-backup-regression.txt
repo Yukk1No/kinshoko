@@ -1,0 +1,89 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.11s
+     Running tests\backup_content_definitions.rs (target\debug\deps\backup_content_definitions-9aa9b0f8d0b1df11.exe)
+
+running 7 tests
+test content_restore_fault_child ... ignored, parent executes the fault child through public restore
+test older_content_snapshot_cannot_replay_legacy_program_settings ... ok
+test content_backup_does_not_reimport_legacy_application_groups_or_personal_rules ... ok
+test content_backup_uses_current_pure_definitions_after_read_only_publication_failed ... ok
+test a_later_library_restore_failure_does_not_leave_an_earlier_usable_copy ... ok
+
+running 1 test
+verified content_restore_library_published/exit: recovery=1, existing library/group/preference retained, retry complete
+test independent_content_restore_keeps_existing_app_preferences_and_shared_groups ... ok
+
+running 1 test
+test content_restore_fault_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.11s
+
+verified content_restore_library_published/error: recovery=0, existing library/group/preference retained, retry complete
+
+running 1 test
+verified content_restore_group_published/exit: recovery=1, existing library/group/preference retained, retry complete
+
+running 1 test
+test content_restore_fault_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.12s
+
+verified content_restore_group_published/error: recovery=0, existing library/group/preference retained, retry complete
+test interrupted_and_failed_publication_rolls_back_only_its_batch_then_can_retry ... ok
+
+test result: ok. 6 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 3.49s
+
+     Running tests\backup_crash.rs (target\debug\deps\backup_crash-abc4e0f8d22b001d.exe)
+
+running 2 tests
+test child_backs_up_until_the_fault_point ... ignored, 只在故障注入子进程里运行
+
+running 1 test
+test a_backup_killed_mid_copy_is_never_taken_for_a_complete_one ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+     Running tests\backup_eagle.rs (target\debug\deps\backup_eagle-e9d13d608847917e.exe)
+
+running 1 test
+test an_eagle_migrated_library_round_trips_through_backup_and_restore ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+     Running tests\backup_plan.rs (target\debug\deps\backup_plan-fc482210e4b3a84e.exe)
+
+running 4 tests
+test nothing_is_due_until_a_target_is_chosen ... ok
+test a_successful_backup_is_not_repeated_on_the_same_local_day ... ok
+test a_missing_target_is_remembered_for_a_reminder_and_retried_next_time ... ok
+test choosing_another_target_makes_a_backup_due_again_today ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests\backup_restore.rs (target\debug\deps\backup_restore-331e8d6916fdeacd.exe)
+
+running 10 tests
+test a_missing_target_is_reported_and_a_library_on_an_unplugged_drive_is_skipped ... ok
+test the_capacity_estimate_counts_only_what_the_target_does_not_have_yet ... ok
+test an_original_changed_outside_kinshoko_leaves_the_backup_incomplete_and_unrestorable ... ok
+test a_permanent_delete_during_a_backup_does_not_remove_the_original_until_the_backup_ends ... ok
+test a_later_backup_copies_only_the_new_originals_and_holds_the_originals_lease_while_copying ... ok
+test editing_a_group_while_copying_keeps_the_backup_references_consistent ... ok
+test a_restored_backup_is_an_independent_copy_and_passes_the_round_trip_check ... ok
+test a_damaged_backup_is_refused_without_leaving_half_a_library ... ok
+test a_group_that_outgrows_the_computed_scope_cannot_publish_a_complete_backup ... ok
+test snapshots_are_kept_seven_daily_and_four_weekly ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.46s
+
+     Running tests\backup_scope.rs (target\debug\deps\backup_scope-c59c3ea11bdfeec2.exe)
+
+running 5 tests
+test libraries_not_registered_on_this_device_and_unreadable_groups_are_reported_as_uncovered ... ok
+test by_default_every_registered_library_and_group_is_backed_up_including_groups_without_a_library ... ok
+test narrowing_to_one_library_follows_the_a_b_and_b_c_chains_and_the_c_a_loop_in_one_pass ... ok
+test declining_the_linked_libraries_lists_what_is_left_uncovered ... ok
+test starting_in_the_middle_of_the_chain_lists_both_sides_as_uncovered ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
