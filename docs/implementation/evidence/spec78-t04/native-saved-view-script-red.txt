@@ -1,0 +1,10 @@
+(node:31788) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS opens released v16 旧名称第一库 with stable library identity
+PASS opens released v16 旧名称第二库 with stable library identity
+PASS one shared identity explicitly lists both old library names
+Error: workspace_browse: 安全模式刚切换过，请重新查找
+    at Session.invoke (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:65:31)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async displayed (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:161:16)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:187:3

@@ -9,6 +9,7 @@
 //! - 安全模式（#60）：开关保存在应用壳设置里，打开资料库与切换时设给当前资料库。这里的命令都是
 //!   浏览视角；参考视角的句柄在装配（打开资料库）时取走，只交给参考组与桌面钉图，不经命令给前端。
 
+mod name_migration;
 mod names;
 mod workspace;
 
@@ -216,6 +217,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             inspect_tag_catalog,
             correct_tag_mapping,
             names::edit_tag_name,
+            name_migration::plan_legacy_names,
+            name_migration::preview_legacy_names,
+            name_migration::confirm_legacy_names,
             edit_tags,
             vocabulary,
             tag_groups,

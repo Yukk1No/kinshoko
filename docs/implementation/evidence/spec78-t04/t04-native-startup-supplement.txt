@@ -1,0 +1,12 @@
+PASS only the exact prior T04 fourth-library path can be disconnected
+PASS last active library is the previously upgraded fourth old library
+PASS saved safe=false is confirmed through the public action
+[1009/003819.470:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS before-disconnect-tray-exit: actual native tray Quit callback exits normally with code 0
+PASS saved non-safe view survives disconnected-active-library restart
+PASS disconnected last-active provider has explicit unavailability
+PASS three other upgraded libraries still aggregate with saved safe=false
+PASS formal workspace defaults to all registered providers without an active library
+[1009/003821.783:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS after-disconnect-tray-exit: actual native tray Quit callback exits normally with code 0
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\legacy-name-startup-1791477496325

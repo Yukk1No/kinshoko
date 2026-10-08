@@ -57,3 +57,21 @@ pub(crate) fn hit(point: &str) {
         std::process::exit(EXIT_CODE);
     }
 }
+
+/// A transactional storage boundary. The same subprocess injection can return SQLITE_FULL
+/// instead of terminating when KINSHOKO_FAULT_ACTION=error is explicitly requested.
+pub(crate) fn storage(point: &str) -> rusqlite::Result<()> {
+    if let Some(armed) = armed()
+        && armed.point == point
+        && armed.hits.fetch_add(1, Ordering::SeqCst) + 1 == armed.nth
+    {
+        if std::env::var("KINSHOKO_FAULT_ACTION").as_deref() == Ok("error") {
+            return Err(rusqlite::Error::SqliteFailure(
+                rusqlite::ffi::Error::new(rusqlite::ffi::SQLITE_FULL),
+                Some("injected storage write failure".into()),
+            ));
+        }
+        std::process::exit(EXIT_CODE);
+    }
+    Ok(())
+}
