@@ -1728,3 +1728,16 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 /* Accepted settings fieldset pattern; a portable backup path can be longer than the window. */
 .settings-backup-path { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .settings-backup-path input { box-sizing: border-box; width: 100%; min-width: 0; }
+/* T10: shared explicit save position, adapted from the accepted provider selectors. */
+.save-destination { display: grid; gap: 8px; margin: 8px 0 12px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.save-destination legend { padding: 0 5px; color: var(--muted); font-size: 12px; }
+.save-destination label { display: grid; grid-template-columns: 84px minmax(0, 1fr); align-items: center; gap: 8px; }
+.save-destination select { width: 100%; min-width: 0; }
+.save-destination p { margin: 0; }
+.save-final-position { font-weight: 600; overflow-wrap: anywhere; }
+.save-library-path { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+.import-owner { padding: 8px; margin: 10px 0 0; border-radius: 6px; background: var(--bg); overflow-wrap: anywhere; }
+.save-destination-overlay { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; background: #0008; padding: 24px; }
+.save-destination-dialog { width: min(500px, 100%); max-height: calc(100vh - 48px); overflow: auto; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
+.save-destination-dialog h3 { margin-top: 0; }
+.save-destination-dialog > button { margin: 8px 8px 0 0; }

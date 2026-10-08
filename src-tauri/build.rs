@@ -43,6 +43,9 @@ fn main() {
                         "move_folder",
                         "recovery",
                         "start_import",
+                        "import_tasks",
+                        "dismiss_import",
+                        "workspace_copy_source",
                         "import_contains_eagle",
                         "cancel_import",
                         "pick_folder",
@@ -126,6 +129,7 @@ fn main() {
                         "edge_hide",
                         "capture_history",
                         "collect_capture",
+                        "take_collection_request",
                         "delete_capture",
                     ])
                     .default_permission(tauri_build::DefaultPermissionRule::AllowAllCommands),

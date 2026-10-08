@@ -1,0 +1,78 @@
+{
+  "status": "passed",
+  "scope": "copy-only",
+  "source": "54694d417c1e88acaa3efe79a62840604d9590c3",
+  "binarySha256": "51804ea9c5f6cda4dcf7079affa44eeb31275e884f765fb18778dbcf3429ba0a",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\binary-54694d4\\kinshoko.exe",
+  "environment": {
+    "dpr": 1.1041666269302368,
+    "height": 801,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "width": 1281
+  },
+  "provenance": {
+    "scriptSource": "ac18510c829491457436ba3a6cf99ab179b9e0a9",
+    "scriptSha256": "8cd2c32472cbbb4c10e0b133dfa813ebc150d9aecf0f86b0eaa52b407228722e",
+    "sourceTree": "43c2a2c2d56c5ff30afe6dcf0877f8f3b430fef3",
+    "manifestPath": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\copy-followup-source.json",
+    "driverSha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7"
+  },
+  "a": {
+    "id": "f7f4bb86d96543f592bcab366e1c5f7e",
+    "name": "浏览库 A",
+    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\libraries\\浏览库 A"
+  },
+  "b": {
+    "id": "28637386d5de4e2a99716ec51d818a55",
+    "name": "保存库 B",
+    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\libraries\\保存库 B"
+  },
+  "c": {
+    "id": "41b1110f640d473098ac1a6548d9a7f9",
+    "name": "新浏览库 C",
+    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\libraries\\新浏览库 C"
+  },
+  "receipts": [
+    {
+      "destination": {
+        "folderId": "01a11cda1afe73aca548ff26dc24caf3",
+        "libraryId": "28637386d5de4e2a99716ec51d818a55"
+      },
+      "finishing": false,
+      "folderName": "B 最终目录",
+      "libraryName": "保存库 B",
+      "progress": {
+        "done": 1,
+        "total": 1
+      },
+      "report": {
+        "cancelled": false,
+        "eagleMissing": 0,
+        "eagleRelocations": [],
+        "fromEagle": false,
+        "items": [
+          {
+            "outcome": {
+              "imageId": "01a11cda1e277334a0b7acfb01df5868",
+              "kind": "imported"
+            },
+            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\image.png"
+          }
+        ]
+      },
+      "taskId": "1d8125529a0b4d999a65ae699e62c619",
+      "warnings": []
+    }
+  ],
+  "assertions": [
+    "global import begins with an explicit unchosen destination",
+    "ordinary import receipt keeps the submitted library and folder",
+    "ordinary file is committed into B folder while A remains empty",
+    "saving into B does not activate B or change browsing current A",
+    "cross-library copy retains the original B provenance",
+    "formal cross-library copy preserves the existing target manual note",
+    "copy merges identical bytes without creating a public pool or a duplicate target image",
+    "copy confirmation stays closed after the real source refresh"
+  ],
+  "finishedAt": "2026-10-08T18:50:24.456Z"
+}

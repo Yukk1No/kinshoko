@@ -25,7 +25,10 @@ use super::types::{
     EagleDeletedContentChoice, ImportItem, ImportOptions, ImportOutcome, ImportProgress,
     ImportReport, ImportSource,
 };
-use super::{Error, Inner, ORIGINALS_DIR, STAGING_DIR, eagle, fault, now_ms, package, tags};
+use super::{
+    Error, Inner, ORIGINALS_DIR, STAGING_DIR, SaveDestination, eagle, fault, now_ms, package, save,
+    tags,
+};
 use crate::fidelity::ColourDescription;
 use crate::fidelity::inspect::inspect;
 use crate::fidelity::render::verify_pixels;
@@ -71,6 +74,19 @@ impl ImportTask {
 }
 
 pub(super) fn start(inner: Arc<Inner>, source: ImportSource, options: ImportOptions) -> ImportTask {
+    let destination = SaveDestination {
+        library_id: inner.info.id.clone(),
+        folder_id: None,
+    };
+    start_to(inner, source, options, destination)
+}
+
+pub(super) fn start_to(
+    inner: Arc<Inner>,
+    source: ImportSource,
+    options: ImportOptions,
+    destination: SaveDestination,
+) -> ImportTask {
     let id = uuid::Uuid::new_v4().simple().to_string();
     let cancel = Arc::new(AtomicBool::new(false));
     let progress = Arc::new(Mutex::new(ImportProgress::default()));
@@ -78,7 +94,17 @@ pub(super) fn start(inner: Arc<Inner>, source: ImportSource, options: ImportOpti
         let (id, cancel, progress) = (id.clone(), cancel.clone(), progress.clone());
         std::thread::Builder::new()
             .name("kinshoko-import".into())
-            .spawn(move || run(&inner, &id, &source, options, &cancel, &progress))
+            .spawn(move || {
+                run(
+                    &inner,
+                    &id,
+                    &source,
+                    options,
+                    &destination,
+                    &cancel,
+                    &progress,
+                )
+            })
             .expect("无法启动导入线程")
     };
     ImportTask {
@@ -94,6 +120,7 @@ fn run(
     task_id: &str,
     source: &ImportSource,
     options: ImportOptions,
+    destination: &SaveDestination,
     cancel: &AtomicBool,
     shared: &Mutex<ImportProgress>,
 ) -> ImportReport {
@@ -101,7 +128,16 @@ fn run(
     let mut report = ImportReport::default();
     let mut files = Vec::new();
     for path in &source.paths {
-        collect(inner, path, &mut files, &mut report);
+        if let Err(error) = save::validate(inner, destination) {
+            report.items.push(ImportItem {
+                path: path.clone(),
+                outcome: ImportOutcome::ReadFailed {
+                    reason: format!("保存目标不可用：{error}"),
+                },
+            });
+        } else {
+            collect(inner, path, &mut files, &mut report);
+        }
     }
 
     let mut progress = ImportProgress {
@@ -126,7 +162,8 @@ fn run(
             report.cancelled = true;
             break;
         }
-        let (outcome, list_changed) = import_one(inner, &path, options, &task_created_images);
+        let (outcome, list_changed) =
+            import_one(inner, &path, options, destination, &task_created_images);
         stale |= list_changed;
         report.items.push(ImportItem { path, outcome });
         progress.done += 1;
@@ -237,9 +274,13 @@ fn import_one(
     inner: &Inner,
     path: &Path,
     options: ImportOptions,
+    destination: &SaveDestination,
     task_created_images: &Arc<Mutex<HashSet<String>>>,
 ) -> (ImportOutcome, bool) {
     let failed = |reason: String| (ImportOutcome::ReadFailed { reason }, false);
+    if let Err(error) = save::validate(inner, destination) {
+        return failed(format!("保存目标不可用：{error}"));
+    }
     let eagle = if eagle::is_item(path) {
         match eagle::load(inner, path) {
             Ok(item) => Some(item),
@@ -283,7 +324,10 @@ fn import_one(
             package: None,
         },
         options,
-        task_created_images.clone(),
+        ImportContext {
+            destination: destination.clone(),
+            task_created_images: task_created_images.clone(),
+        },
     )
 }
 
@@ -291,6 +335,12 @@ fn import_one(
 struct Origin {
     eagle: Option<eagle::Item>,
     package: Option<package::PackageFacts>,
+}
+
+/// Fixed destination and task-local journal are carried together through ingestion.
+struct ImportContext {
+    destination: SaveDestination,
+    task_created_images: Arc<Mutex<HashSet<String>>>,
 }
 
 /// 让一份原图字节走完写入顺序：完整解码 → 哈希 → 同库暂存校验 → pending → 发布 → 提交。
@@ -301,9 +351,16 @@ fn ingest(
     location: String,
     origin: Origin,
     options: ImportOptions,
-    task_created_images: Arc<Mutex<HashSet<String>>>,
+    context: ImportContext,
 ) -> (ImportOutcome, bool) {
+    let ImportContext {
+        destination,
+        task_created_images,
+    } = context;
     let failed = |reason: String| (ImportOutcome::ReadFailed { reason }, false);
+    if let Err(error) = save::validate(inner, &destination) {
+        return failed(format!("保存目标不可用：{error}"));
+    }
     let probed = match inspect(bytes) {
         Ok(Some(p)) => p,
         Ok(None) => return (ImportOutcome::Unsupported, false),
@@ -335,6 +392,7 @@ fn ingest(
         eagle: origin.eagle,
         package: origin.package,
         options,
+        destination,
         task_created_images,
     };
 
@@ -533,6 +591,7 @@ struct Record {
     eagle: Option<eagle::Item>,
     package: Option<package::PackageFacts>,
     options: ImportOptions,
+    destination: SaveDestination,
     task_created_images: Arc<Mutex<HashSet<String>>>,
 }
 
@@ -541,12 +600,15 @@ fn commit_record(
     record: Record,
     pending: Option<String>,
 ) -> Result<(ImportOutcome, bool), Error> {
+    save::validate(inner, &record.destination)?;
     let translations = inner.translations();
+    let authority = inner.write_revoked.clone();
     let candidate_id = record.id.clone();
     let task_created_images = record.task_created_images.clone();
-    let (outcome, revision) = inner
-        .writer
-        .run(move |conn| commit(conn, record, pending.as_deref(), &translations))?;
+    let (outcome, revision) = inner.writer.run(move |conn| {
+        save::validate_authority(&authority)?;
+        commit(conn, record, pending.as_deref(), &translations)
+    })?;
     if outcome.image_id() == Some(candidate_id.as_str()) {
         task_created_images
             .lock()
@@ -583,6 +645,7 @@ fn commit(
     translations: &tags::TranslationIndex,
 ) -> Result<(ImportOutcome, Option<i64>), Error> {
     let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+    save::validate_folder(&tx, &r.destination)?;
     let now = now_ms();
     if r.eagle.is_some()
         && r.options.eagle_deleted_content == EagleDeletedContentChoice::SkipDeleted
@@ -632,6 +695,11 @@ fn commit(
                 } else {
                     ImportOutcome::Refreshed { image_id }
                 };
+                save::assign(
+                    &tx,
+                    &r.destination,
+                    outcome.image_id().expect("import outcome"),
+                )?;
                 fault::hit(fault::IMPORT_BEFORE_COMMIT);
                 tx.commit()?;
                 return Ok((outcome, revision));
@@ -726,6 +794,7 @@ fn commit(
         )?;
         None
     };
+    save::assign(&tx, &r.destination, image_id)?;
     let outcome = if was_duplicate
         && r.eagle.is_some()
         && tx.query_row(
@@ -754,6 +823,7 @@ pub(super) fn import_package_original(
     origin: package::PackageOrigin,
     bytes: &[u8],
     snapshot: package::ImageSnapshot,
+    destination: Option<SaveDestination>,
 ) -> (ImportOutcome, bool) {
     let (original_name, location) = (snapshot.original_name.clone(), origin.location.clone());
     ingest(
@@ -766,6 +836,12 @@ pub(super) fn import_package_original(
             package: Some(package::PackageFacts { origin, snapshot }),
         },
         ImportOptions::default(),
-        Arc::new(Mutex::new(HashSet::new())),
+        ImportContext {
+            destination: destination.unwrap_or_else(|| SaveDestination {
+                library_id: inner.info.id.clone(),
+                folder_id: None,
+            }),
+            task_created_images: Arc::new(Mutex::new(HashSet::new())),
+        },
     )
 }

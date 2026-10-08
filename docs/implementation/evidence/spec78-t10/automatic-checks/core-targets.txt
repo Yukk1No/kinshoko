@@ -1,0 +1,41 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.00s
+     Running tests\reference_group_package.rs (target\debug\deps\reference_group_package-72e162d74d9bb4c7.exe)
+
+running 7 tests
+test export_is_refused_when_a_member_original_is_unavailable ... ok
+test package_carries_only_used_originals_once_with_snapshots_of_their_organisation ... ok
+test damaged_package_is_refused_before_anything_is_written ... ok
+test package_import_uses_the_bound_destination_for_every_member_original ... ok
+test importing_merges_into_an_existing_identical_original_without_touching_manual_organisation ... ok
+test importing_writes_the_snapshot_as_a_package_source_layer_and_reimport_does_not_duplicate ... ok
+test imported_package_group_is_usable_elsewhere_with_identical_originals_and_layout ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+
+     Running tests\save_destination.rs (target\debug\deps\save_destination-83d37596c3e2fdd7.exe)
+
+running 7 tests
+test ordinary_import_commits_to_the_explicit_folder_without_changing_other_folders ... ok
+test screenshot_collection_uses_the_explicit_destination_and_keeps_original_bytes ... ok
+test eagle_import_preserves_its_source_folders_and_adds_the_explicit_destination ... ok
+test copying_keeps_source_provenance_and_the_existing_targets_manual_curation ... ok
+test deleting_the_destination_during_import_reports_remaining_failures_instead_of_falling_back ... ok
+test task_receipt_keeps_its_owner_after_current_library_changes ... ok
+test create_reopen_and_unregister_only_affect_their_actual_task_owner ... FAILED
+
+failures:
+
+---- create_reopen_and_unregister_only_affect_their_actual_task_owner stdout ----
+
+thread 'create_reopen_and_unregister_only_affect_their_actual_task_owner' (43492) panicked at crates\kinshoko-core\tests\save_destination.rs:141:112:
+called `Result::unwrap()` on an `Err` value: Timeout
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    create_reopen_and_unregister_only_affect_their_actual_task_owner
+
+test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.22s
+
+error: test failed, to rerun pass `-p kinshoko-core --test save_destination`

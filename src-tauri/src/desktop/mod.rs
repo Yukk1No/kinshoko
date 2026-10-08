@@ -48,6 +48,7 @@ const LIBRARY_EVENT: &str = "library-event";
 
 pub struct DesktopState {
     history: Mutex<CaptureHistory>,
+    pending_collection: Mutex<Option<String>>,
     capture: Mutex<capture::Session>,
     viewer_reference: Mutex<Option<capture::ViewerReport>>,
     /// 本次运行中打开着的钉图窗口。
@@ -131,6 +132,7 @@ pub fn init() -> TauriPlugin<Wry> {
             edge_hide,
             capture_history,
             collect_capture,
+            take_collection_request,
             delete_capture,
         ])
         .setup(|app, _api| {
@@ -143,6 +145,7 @@ pub fn init() -> TauriPlugin<Wry> {
             let groups = ReferenceGroups::open(&dir.join(GROUPS_DIR))?;
             app.manage(DesktopState {
                 history: Mutex::new(history),
+                pending_collection: Mutex::new(None),
                 capture: Mutex::new(capture::Session::Idle),
                 viewer_reference: Mutex::default(),
                 pins: Mutex::default(),
@@ -237,17 +240,16 @@ fn history_changed(app: &AppHandle) {
     let _ = app.emit(HISTORY_EVENT, entries);
 }
 
-/// 收藏：经资料库的普通导入入口，存进当前资料库。会等导入完成，不要在主线程上调用。
-fn collect(app: &AppHandle, capture_id: &str) -> Result<(CollectedCapture, String), String> {
-    let library_id = library::current_or_last(app)?.info().id.clone();
-    let collected = library::with_collection(app, &library_id, |library| {
-        let collected = lock(&state(app).history)
-            .collect(capture_id, library)
-            .map_err(|e| e.to_string())?;
-        Ok((collected, library.info().name.clone()))
-    })?;
-    history_changed(app);
-    Ok(collected)
+/// Native pin menus request a visible destination in the main window before saving.
+fn request_collection(app: &AppHandle, id: &str) {
+    *lock(&state(app).pending_collection) = Some(id.into());
+    shell::open_main_window(app);
+    let _ = app.emit("capture-collection-request", ());
+}
+
+#[tauri::command]
+async fn take_collection_request(app: AppHandle) -> Option<String> {
+    lock(&state(&app).pending_collection).take()
 }
 
 #[tauri::command]
@@ -256,10 +258,22 @@ async fn capture_history(app: AppHandle) -> Vec<CaptureEntry> {
 }
 
 #[tauri::command]
-async fn collect_capture(app: AppHandle, id: String) -> Result<CollectedCapture, String> {
-    tauri::async_runtime::spawn_blocking(move || collect(&app, &id).map(|(c, _)| c))
-        .await
-        .map_err(|e| e.to_string())?
+async fn collect_capture(
+    app: AppHandle,
+    id: String,
+    destination: kinshoko_core::library::SaveDestination,
+) -> Result<CollectedCapture, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let collected = library::with_destination_published(&app, &destination, |library| {
+            lock(&state(&app).history)
+                .collect(&id, library)
+                .map_err(|e| e.to_string())
+        })?;
+        history_changed(&app);
+        Ok(collected)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// 贴边隐藏全部钉图，或让它们回到原位（与全局快捷键相同）。

@@ -1,0 +1,109 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+ ❯ src/library/SaveDestination.test.tsx (5 tests | 1 failed) 709ms
+   × copy keeps its confirmation during a source refresh and closes it after the real reply 92ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/SaveDestination.test.tsx > copy keeps its confirmation during a source refresh and closes it after the real reply
+TestingLibraryElementError: Unable to find an accessible element with the role "dialog" and name "复制此来源"
+
+Here are the accessible roles:
+
+  combobox:
+
+  Name "当前操作的来源记录":
+  <select
+    aria-label="当前操作的来源记录"
+  />
+
+  --------------------------------------------------
+  option:
+
+  Name "浏览库 · A":
+  <option
+    value="A/a"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p />
+
+  Name "":
+  <p
+    class="workspace-source-path"
+  />
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  <p
+    role="status"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      aria-label="整理来源"
+      class="workspace-source-editor"
+      title="A/a"
+    >
+      <label>
+        当前操作的来源记录
+        <select
+          aria-label="当前操作的来源记录"
+        >
+          <option
+            value="A/a"
+          >
+            浏览库
+             · 
+            A
+          </option>
+        </select>
+      </label>
+      <p>
+        只整理「
+        浏览库
+        」的这份来源。其他资料库的整理保持独立。
+      </p>
+      <p
+        class="workspace-source-path"
+      >
+        A
+      </p>
+      <p
+        role="status"
+      >
+        正在读取该来源…
+      </p>
+    </div>
+  </div>
+</body>
+ ❯ Object.getElementError ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/library/SaveDestination.test.tsx:147:17
+    145|   rendered.rerender(view(1));
+    146|   await screen.findByText("正在读取该来源…");
+    147|   expect(screen.getByRole("dialog", { name: "复制此来源" })).toBeTruthy();
+       |                 ^
+    148|   await act(async () => { finishCopy(); await pendingCopy; });
+    149|   await act(async () => { finishInspection(inspection); await pendingI…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  02:33:16
+   Duration  2.42s (environment 45%, tests 31%, transform 15%, import 9%)
+

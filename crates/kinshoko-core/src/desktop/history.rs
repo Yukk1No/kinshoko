@@ -58,6 +58,8 @@ pub struct CollectedCapture {
 pub struct CaptureChoice {
     pub capture_id: String,
     pub library_id: Option<String>,
+    #[serde(default)]
+    pub folder_id: Option<String>,
 }
 
 /// 截图历史保留的张数（#7：5～10 张）。超出的旧截图在没被钉住时丢弃。

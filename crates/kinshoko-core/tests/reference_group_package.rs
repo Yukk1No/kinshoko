@@ -598,3 +598,37 @@ fn export_is_refused_when_a_member_original_is_unavailable() {
         "不写包，也不留临时文件"
     );
 }
+
+#[test]
+fn package_import_uses_the_bound_destination_for_every_member_original() {
+    use kinshoko_core::library::{BrowseQuery, BrowseScope, SaveDestination};
+    let studio = Studio::new();
+    let package = studio.export();
+    let other = OtherComputer::new();
+    other.library.set_safe_mode(false);
+    let folder = other.library.create_folder("包的最终位置", None).unwrap();
+    let destination = SaveDestination {
+        library_id: other.library.info().id.clone(),
+        folder_id: Some(folder.clone()),
+    };
+    let bound = other.library.for_destination(&destination).unwrap();
+    let group = other.groups.import_package(&package, &bound).unwrap();
+    assert!(
+        group
+            .members
+            .iter()
+            .all(|m| m.library_id == other.library.info().id)
+    );
+    let page = other
+        .library
+        .browse(&BrowseQuery {
+            scope: BrowseScope::Folder { id: folder },
+            conditions: Default::default(),
+            cursor: None,
+            limit: 100,
+            thumbnail_px: 256,
+        })
+        .unwrap();
+    assert_eq!(page.total, 3);
+    assert_eq!(image_count(&other.library), 3);
+}
