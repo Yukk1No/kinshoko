@@ -53,9 +53,9 @@ try {
   writeFileSync(join(output, "prototype-wall.png"), Buffer.from(await wd("GET", base + "/screenshot"), "base64"));
   const browseMetrics=await exec("const c=document.querySelector('.card');return {cardRadius:getComputedStyle(c).borderRadius,wallTop:document.querySelector('.wall').getBoundingClientRect().top,cardTop:c.getBoundingClientRect().top,cardWidth:parseFloat(c.style.width),count:document.querySelector('.result-count').textContent,density:document.querySelector('.density input').value}");
   check(browseMetrics.cardRadius==='6px'&&browseMetrics.count==='43 张'&&browseMetrics.density==='240',"Accepted rounded cards, result count and density control match the formal baseline");
-  await click("//input[@type='range']"); await key("\uE010");
+  await click("//input[@type='range']"); await key("\uE010"); await new Promise(r=>setTimeout(r,300));
   const larger=await until("larger density",()=>exec("const c=document.querySelector('.card');return document.querySelector('.density input').value==='420'&&parseFloat(c.style.width)>arguments[0]?parseFloat(c.style.width):null",[browseMetrics.cardWidth]));
-  await key("\uE011");for(let i=0;i<10;i++)await key("\uE014");
+  await key("\uE011");for(let i=0;i<10;i++)await key("\uE014"); await new Promise(r=>setTimeout(r,300));
   await until("restored density",()=>exec("return document.querySelector('.density input').value==='240'&&Math.abs(parseFloat(document.querySelector('.card').style.width)-arguments[0])<.01",[browseMetrics.cardWidth]));
   const densityCheck={initial:240,larger:420,restored:240,initialWidth:browseMetrics.cardWidth,largerWidth:larger};
   const card = await exec("return document.querySelector('[data-id=\"'+arguments[0]+'\"]')",[sample]);

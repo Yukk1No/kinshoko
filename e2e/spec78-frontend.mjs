@@ -110,9 +110,9 @@ try {
   const browseMetrics=await exec("const c=document.querySelector('.card');const w=document.querySelector('.wall');return {cardRadius:getComputedStyle(c).borderRadius,wallTop:w.getBoundingClientRect().top,cardTop:c.getBoundingClientRect().top,cardWidth:parseFloat(c.style.width),count:document.querySelector('[aria-label=查找结果]').textContent,density:document.querySelector('.density input').value}");
   check(browseMetrics.cardRadius==='6px'&&browseMetrics.count==='43 张'&&browseMetrics.density==='240',"稳定浏览保留认可的圆角、真实结果数和图片大小滑块");
   const densityInput=await find("//input[@type='range']");
-  await wd("POST",base+"/element/"+densityInput+"/click",{}); await key("\uE010");
+  await wd("POST",base+"/element/"+densityInput+"/click",{}); await key("\uE010"); await new Promise(r=>setTimeout(r,300));
   const larger=await until("真实滑块放大卡片",()=>exec("const c=document.querySelector('.card');const d=document.querySelector('.density input');return d.value==='420'&&parseFloat(c.style.width)>arguments[0]?parseFloat(c.style.width):null",[browseMetrics.cardWidth]));
-  await key("\uE011"); for(let i=0;i<10;i++) await key("\uE014");
+  await key("\uE011"); for(let i=0;i<10;i++) await key("\uE014"); await new Promise(r=>setTimeout(r,300));
   await until("恢复认可默认图片大小",()=>exec("return document.querySelector('.density input').value==='240'&&Math.abs(parseFloat(document.querySelector('.card').style.width)-arguments[0])<.01",[browseMetrics.cardWidth]));
   check(true,"真实键盘操作滑块改变图片墙密度，再恢复 240px 默认大小");
   const densityCheck={initial:240,larger:420,restored:240,initialWidth:browseMetrics.cardWidth,largerWidth:larger};
