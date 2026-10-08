@@ -21,7 +21,7 @@ use sha2::{Digest, Sha256};
 use super::colour;
 use super::events::LibraryEvent;
 use super::types::{ImportItem, ImportOutcome, ImportProgress, ImportReport, ImportSource};
-use super::{Error, Inner, ORIGINALS_DIR, STAGING_DIR, eagle, fault, now_ms, tags};
+use super::{Error, Inner, ORIGINALS_DIR, STAGING_DIR, eagle, fault, now_ms, package, tags};
 use crate::fidelity::ColourDescription;
 use crate::fidelity::inspect::inspect;
 use crate::fidelity::render::verify_pixels;
@@ -233,16 +233,63 @@ fn import_one(inner: &Inner, path: &Path) -> (ImportOutcome, bool) {
     {
         return failed("Eagle 条目的 size 与原文件字节数不符".into());
     }
-    let probed = match inspect(&bytes) {
+    let original_name = eagle
+        .as_ref()
+        .map(|item| item.metadata.name.clone())
+        .unwrap_or_else(|| {
+            path.file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default()
+        });
+    let location = match &eagle {
+        Some(item) => item.location.clone(),
+        None => std::path::absolute(path)
+            .unwrap_or_else(|_| path.to_path_buf())
+            .to_string_lossy()
+            .into_owned(),
+    };
+    ingest(
+        inner,
+        &bytes,
+        original_name,
+        location,
+        Origin {
+            eagle,
+            package: None,
+        },
+    )
+}
+
+/// 原图从哪里来：普通文件（都为空）、Eagle 条目或参考组包。
+struct Origin {
+    eagle: Option<eagle::Item>,
+    package: Option<package::PackageFacts>,
+}
+
+/// 让一份原图字节走完写入顺序：完整解码 → 哈希 → 同库暂存校验 → pending → 发布 → 提交。
+fn ingest(
+    inner: &Inner,
+    bytes: &[u8],
+    original_name: String,
+    location: String,
+    origin: Origin,
+) -> (ImportOutcome, bool) {
+    let failed = |reason: String| (ImportOutcome::ReadFailed { reason }, false);
+    let probed = match inspect(bytes) {
         Ok(Some(p)) => p,
         Ok(None) => return (ImportOutcome::Unsupported, false),
         Err(reason) => return failed(format!("无法解码：{reason}")),
     };
     // 文件头有效不代表像素可读：发布前完整解码一遍，坏的作为可重试的读取失败。
-    if let Err(reason) = verify_pixels(&bytes, &probed) {
+    if let Err(reason) = verify_pixels(bytes, &probed) {
         return failed(format!("无法解码：{reason}"));
     }
-    let sha = sha256_hex(&bytes);
+    let sha = sha256_hex(bytes);
+    if let Some(facts) = &origin.package
+        && facts.snapshot.sha256 != sha
+    {
+        return failed("与参考组包记录的 SHA-256 不符".into());
+    }
     let rel_path = format!("{ORIGINALS_DIR}/{}/{sha}.{}", &sha[..2], ext(probed.format));
     let record = Record {
         id: uuid::Uuid::now_v7().simple().to_string(),
@@ -254,22 +301,10 @@ fn import_one(inner: &Inner, path: &Path) -> (ImportOutcome, bool) {
         height: probed.height,
         orientation: probed.orientation.to_exif(),
         colour: probed.description,
-        original_name: eagle
-            .as_ref()
-            .map(|item| item.metadata.name.clone())
-            .unwrap_or_else(|| {
-                path.file_name()
-                    .map(|n| n.to_string_lossy().into_owned())
-                    .unwrap_or_default()
-            }),
-        location: match &eagle {
-            Some(item) => item.location.clone(),
-            None => std::path::absolute(path)
-                .unwrap_or_else(|_| path.to_path_buf())
-                .to_string_lossy()
-                .into_owned(),
-        },
-        eagle,
+        original_name,
+        location,
+        eagle: origin.eagle,
+        package: origin.package,
     };
 
     // 同库已有字节相同的原图：不再暂存与发布，直接合并来源。
@@ -280,7 +315,7 @@ fn import_one(inner: &Inner, path: &Path) -> (ImportOutcome, bool) {
         };
     }
 
-    let pending = match stage(inner, &bytes, &record) {
+    let pending = match stage(inner, bytes, &record) {
         Ok(p) => p,
         Err(reason) => return failed(reason),
     };
@@ -436,6 +471,7 @@ struct Record {
     original_name: String,
     location: String,
     eagle: Option<eagle::Item>,
+    package: Option<package::PackageFacts>,
 }
 
 fn commit_record(
@@ -547,7 +583,11 @@ fn commit(
                     r.orientation,
                     r.original_name,
                     now,
-                    r.eagle.as_ref().map_or(now, |item| item.collected_at(now)),
+                    match (&r.eagle, &r.package) {
+                        (Some(item), _) => item.collected_at(now),
+                        (None, Some(facts)) => facts.snapshot.collected_at,
+                        (None, None) => now,
+                    },
                     r.eagle.as_ref().and_then(|item| item.deleted_at(now)),
                     r.eagle.as_ref().is_some_and(|item| item.deleted_at(now).is_some()),
                     previous
@@ -574,6 +614,8 @@ fn commit(
             &r.location,
             now,
         )?)
+    } else if let Some(facts) = &r.package {
+        Some(package::commit(&tx, translations, facts, image_id, now)?)
     } else {
         tx.execute(
             "INSERT OR IGNORE INTO image_source (image_id, source, location, recorded_at)
@@ -588,4 +630,25 @@ fn commit(
     fault::hit(fault::IMPORT_BEFORE_COMMIT);
     tx.commit()?;
     Ok((outcome, revision))
+}
+
+/// 把参考组包里的一份原图连同快照导入（[`super::Library::import_from_package`]）。
+/// 返回进库的结果与浏览列表是否变了；列表过期事件由调用方推送。
+pub(super) fn import_package_original(
+    inner: &Inner,
+    origin: package::PackageOrigin,
+    bytes: &[u8],
+    snapshot: package::ImageSnapshot,
+) -> (ImportOutcome, bool) {
+    let (original_name, location) = (snapshot.original_name.clone(), origin.location.clone());
+    ingest(
+        inner,
+        bytes,
+        original_name,
+        location,
+        Origin {
+            eagle: None,
+            package: Some(package::PackageFacts { origin, snapshot }),
+        },
+    )
 }

@@ -84,6 +84,8 @@ fn main() {
                         "rename_reference_group",
                         "delete_reference_group",
                         "remove_group_member",
+                        "export_reference_group_package",
+                        "import_reference_group_package",
                         "edge_hide",
                         "capture_history",
                         "collect_capture",

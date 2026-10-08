@@ -432,7 +432,7 @@ export function App() {
       )}
       {showGroups && (
         <div inert={viewerOpen}>
-          <ReferenceGroupsPanel />
+          <ReferenceGroupsPanel libraryId={library?.id} />
         </div>
       )}
       {showSettings && (

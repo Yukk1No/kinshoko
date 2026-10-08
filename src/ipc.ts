@@ -673,6 +673,28 @@ export function removeGroupMember(groupId: string, memberId: string): Promise<Re
   return invoke<ReferenceGroup>(desk("remove_group_member"), { groupId, memberId });
 }
 
+/**
+ * 把参考组导出成参考组包（#68）：带上所用原图与标签、备注、来源、分级的快照。
+ * 弹出保存对话框；取消时为 null，成功时为包的位置。
+ */
+export function exportReferenceGroupPackage(groupId: string): Promise<string | null> {
+  const t = testPick<string | null>();
+  if (t && t.value === null) return Promise.resolve(null);
+  return invoke<string | null>(desk("export_reference_group_package"), { groupId, path: t?.value ?? null });
+}
+
+/**
+ * 导入参考组包（#68）到资料库 `libraryId`，另存为新的参考组。弹出选择对话框；取消时为 null。
+ */
+export function importReferenceGroupPackage(libraryId: string): Promise<ReferenceGroup | null> {
+  const t = testPick<string | null>();
+  if (t && t.value === null) return Promise.resolve(null);
+  return invoke<ReferenceGroup | null>(desk("import_reference_group_package"), {
+    libraryId,
+    path: t?.value ?? null,
+  });
+}
+
 /** 参考组有变化（保存、重命名、删除）：重新读取。 */
 export function onReferenceGroupsChanged(handler: () => void): Promise<UnlistenFn> {
   return listen("reference-groups", () => handler());

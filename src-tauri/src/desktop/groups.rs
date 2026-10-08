@@ -1,4 +1,5 @@
-//! 参考组（#66）的命令：把桌面上的资料库钉图存成参考组、存回、打开（成员钉到桌面）、重命名、删除。
+//! 参考组（#66）的命令：把桌面上的资料库钉图存成参考组、存回、打开（成员钉到桌面）、重命名、删除；
+//! 参考组包（#68）的导出与导入。
 //! 规则与存储在 `kinshoko_core::reference_groups`；参考组是应用数据目录 `reference-groups/` 下
 //! 独立于资料库的 JSON（ADR-0002）。
 //!
@@ -9,8 +10,13 @@
 //! 参考组变化后向所有窗口推送 `reference-groups`（无载荷），主窗口据此重新读取列表。
 
 use kinshoko_core::desktop::{SavedPin, pull_onto_screen};
-use kinshoko_core::reference_groups::{GroupSummary, ReferenceGroup, ReferenceGroupView};
+use std::path::PathBuf;
+
+use kinshoko_core::reference_groups::{
+    GroupSummary, PACKAGE_EXTENSION, ReferenceGroup, ReferenceGroupView,
+};
 use tauri::{AppHandle, Emitter};
+use tauri_plugin_dialog::DialogExt as _;
 
 use super::{lock, pins, state};
 
@@ -197,6 +203,63 @@ pub async fn delete_reference_group(app: AppHandle, group_id: String) -> Result<
         }
         changed(&app);
         Ok(())
+    })
+    .await
+}
+
+/// 把参考组导出成参考组包（#68）：带上所用原图与标签、备注、来源、分级的快照。`path` 为空时弹出
+/// 保存对话框；取消时返回 `null`，成功时返回包的位置。有成员取不到原图时不导出并说明。
+#[tauri::command]
+pub async fn export_reference_group_package(
+    app: AppHandle,
+    group_id: String,
+    path: Option<PathBuf>,
+) -> Result<Option<PathBuf>, String> {
+    blocking(move || {
+        let groups = lock(&state(&app).groups).clone();
+        let group = groups.get(&group_id).map_err(|e| e.to_string())?;
+        let Some(path) = path.or_else(|| {
+            app.dialog()
+                .file()
+                .set_file_name(format!("{}.{PACKAGE_EXTENSION}", group.name))
+                .add_filter("参考组包", &[PACKAGE_EXTENSION])
+                .blocking_save_file()
+                .and_then(|p| p.into_path().ok())
+        }) else {
+            return Ok(None);
+        };
+        crate::library::with_references(&app, |refs| groups.export_package(&group_id, refs, &path))
+            .map_err(|e| e.to_string())?;
+        Ok(Some(path))
+    })
+    .await
+}
+
+/// 导入参考组包（#68）到资料库 `library_id`（界面正在操作的资料库），另存为新的参考组。`path` 为空时
+/// 弹出选择对话框；取消时返回 `null`。包有损坏时什么都不写。
+#[tauri::command]
+pub async fn import_reference_group_package(
+    app: AppHandle,
+    library_id: String,
+    path: Option<PathBuf>,
+) -> Result<Option<ReferenceGroup>, String> {
+    blocking(move || {
+        let library = crate::library::current(&app, &library_id)?;
+        let Some(path) = path.or_else(|| {
+            app.dialog()
+                .file()
+                .add_filter("参考组包", &[PACKAGE_EXTENSION])
+                .blocking_pick_file()
+                .and_then(|p| p.into_path().ok())
+        }) else {
+            return Ok(None);
+        };
+        let groups = lock(&state(&app).groups).clone();
+        let group = groups
+            .import_package(&path, &library)
+            .map_err(|e| e.to_string())?;
+        changed(&app);
+        Ok(Some(group))
     })
     .await
 }

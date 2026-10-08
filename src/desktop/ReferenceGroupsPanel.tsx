@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
+import type { ReferenceGroup } from "../bindings/ReferenceGroup";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
 import {
   deleteReferenceGroup,
+  exportReferenceGroupPackage,
+  importReferenceGroupPackage,
   onReferenceGroupsChanged,
   openReferenceGroup,
   referenceGroup,
@@ -28,8 +31,11 @@ function memberState(status: MemberStatus): string {
  * 参考组（#66）：把桌面上的资料库钉图存成参考组，打开参考组把成员按原来的局部与摆放钉回桌面。
  * 参考组独立于资料库保存，成员可来自多个资料库；资料库不可用、图已删除的成员保留布局并写出原因，
  * 安全模式下被封印的成员在钉图上原位遮蔽。
+ *
+ * 参考组包（#68）：导出时带上所用原图与整理信息快照，可带到别的电脑；导入时原图进当前资料库
+ * （`libraryId`），另存为新的参考组。
  */
-export function ReferenceGroupsPanel() {
+export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null }) {
   const [groups, setGroups] = useState<GroupSummary[] | null>(null);
   const [libraryNames, setLibraryNames] = useState<Map<string, string>>(new Map());
   const [name, setName] = useState("");
@@ -106,6 +112,21 @@ export function ReferenceGroupsPanel() {
         >
           把桌面钉图存为参考组
         </button>
+        <button
+          type="button"
+          disabled={!libraryId}
+          title={libraryId ? "原图导入当前资料库，另存为新的参考组" : "先打开一个资料库"}
+          onClick={() =>
+            libraryId &&
+            void run(
+              () => importReferenceGroupPackage(libraryId),
+              (group) =>
+                group ? `已导入参考组「${(group as ReferenceGroup).name}」，原图已收进当前资料库` : null,
+            )
+          }
+        >
+          导入参考组包
+        </button>
       </header>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
@@ -171,6 +192,18 @@ export function ReferenceGroupsPanel() {
                   </button>
                   <button type="button" onClick={() => setRenaming({ id: g.id, name: g.name })}>
                     重命名
+                  </button>
+                  <button
+                    type="button"
+                    title="带上所用原图与标签、备注、来源的快照，可带到别的电脑"
+                    onClick={() =>
+                      void run(
+                        () => exportReferenceGroupPackage(g.id),
+                        (path) => (path ? `已导出参考组包：${String(path)}` : null),
+                      )
+                    }
+                  >
+                    导出参考组包
                   </button>
                 </>
               )}

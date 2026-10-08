@@ -10,9 +10,12 @@
 //! - 成员能否显示由 [`References`] 跨库核对：资料库没登记、不可用、图已删除时标出原因，
 //!   成员与布局原样保留。
 //! - 永久删除（#67）预览时经参考组用途 port（[`ReferenceGroupUsage`]）查询受影响的参考组。
+//! - 参考组包（#68）：[`ReferenceGroups::export_package`] 连同所用原图与整理信息快照导出，
+//!   [`ReferenceGroups::import_package`] 在别处导入后另存为新的参考组（见 [`package`] 模块）。
 //!
 //! 每次改动先写临时文件并落盘，再改名替换，写到一半断电也不会留下半份。
 
+mod package;
 mod resolve;
 
 use std::collections::BTreeSet;
@@ -24,11 +27,15 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use crate::Library;
 use crate::desktop::{
     GroupMemberRef, MAX_SCALE, MIN_SCALE, PinContent, Placement, Region, SavedPin,
 };
 use crate::library::ReferenceImage;
 
+pub use package::{
+    PACKAGE_EXTENSION, PackageImage, PackageManifest, PackageProvenance, read_package,
+};
 pub use resolve::{
     DetachedLenses, MemberState, MemberStatus, ReferenceGroupView, ReferenceSource, References,
     UnavailableReason, resolve,
@@ -53,6 +60,14 @@ pub enum GroupError {
     UnsupportedVersion(u32),
     /// 文件不是合法的参考组。
     Invalid(String),
+    /// 有成员此刻取不到原图，不能导出参考组包；逐个说明。
+    MembersUnavailable(Vec<String>),
+    /// 文件不是 Kinshoko 参考组包。
+    NotAPackage,
+    /// 参考组包已损坏（原图缺失或与清单不符等）。
+    PackageDamaged(String),
+    /// 资料库读写失败。
+    Library(String),
 }
 
 impl fmt::Display for GroupError {
@@ -74,6 +89,14 @@ impl fmt::Display for GroupError {
                 )
             }
             GroupError::Invalid(why) => write!(f, "参考组文件已损坏：{why}"),
+            GroupError::MembersUnavailable(members) => write!(
+                f,
+                "有成员取不到原图，无法导出参考组包：{}",
+                members.join("；")
+            ),
+            GroupError::NotAPackage => write!(f, "这不是 Kinshoko 参考组包"),
+            GroupError::PackageDamaged(why) => write!(f, "参考组包已损坏：{why}"),
+            GroupError::Library(why) => write!(f, "{why}"),
         }
     }
 }
@@ -165,6 +188,10 @@ pub struct ReferenceGroup {
     #[ts(type = "number")]
     pub updated_at: i64,
     pub members: Vec<GroupMember>,
+    /// 从参考组包导入时，来自哪个包（#68）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub imported_from_package: Option<PackageProvenance>,
 }
 
 impl ReferenceGroup {
@@ -256,6 +283,8 @@ struct Header {
 }
 
 /// 本设备的参考组。每个参考组一个文件，可在线程间共享；应用壳把改动串行化（放在锁里）。
+/// 句柄只是目录位置，可以复制：耗时的参考组包导出、导入（只新建文件）不必一直占着锁。
+#[derive(Clone)]
 pub struct ReferenceGroups {
     dir: PathBuf,
 }
@@ -347,6 +376,7 @@ impl ReferenceGroups {
             created_at: now,
             updated_at: now,
             members: Vec::new(),
+            imported_from_package: None,
         };
         let assigned = merge(&mut group, pins);
         self.write(&group)?;
@@ -391,6 +421,30 @@ impl ReferenceGroups {
             Err(e) if e.kind() == io::ErrorKind::NotFound => Err(GroupError::UnknownGroup),
             Err(e) => Err(e.into()),
         }
+    }
+
+    /// 把参考组 `id` 导出成参考组包 `out`：带上所用原图（同一原图只带一次、不重编码）与标签、备注、
+    /// 来源、分级的快照，不带来源库的其他素材。成员引用的资料库可以是未激活的库；有成员此刻取不到
+    /// 原图时不导出（[`GroupError::MembersUnavailable`]）。返回写进包里的清单。
+    pub fn export_package(
+        &self,
+        id: &str,
+        source: &dyn ReferenceSource,
+        out: &Path,
+    ) -> Result<PackageManifest, GroupError> {
+        package::export(&self.get(id)?, source, out)
+    }
+
+    /// 导入参考组包：原图进 `library`（字节相同的合并），快照按参考组包来源分层写入，再另存为新的
+    /// 参考组（新身份，成员、局部与摆放与包里一致，记下 `importedFromPackage`）。包有损坏时什么都不写。
+    pub fn import_package(
+        &self,
+        package: &Path,
+        library: &Library,
+    ) -> Result<ReferenceGroup, GroupError> {
+        let group = package::import(package, library)?;
+        self.write(&group)?;
+        Ok(group)
     }
 
     fn path(&self, id: &str) -> Result<PathBuf, GroupError> {

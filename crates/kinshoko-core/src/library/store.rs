@@ -35,6 +35,7 @@ fn migration_list() -> Vec<M<'static>> {
         M::up(include_str!("migrations/0077_folder_decision.sql")),
         M::up(include_str!("migrations/0077_list_revision.sql")),
         M::up(include_str!("migrations/0067_permanent_delete.sql")),
+        M::up(include_str!("migrations/0068_package_import.sql")),
     ]
 }
 
