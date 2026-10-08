@@ -38,6 +38,7 @@ mod import;
 mod lens;
 mod package;
 mod permanent_delete;
+pub(crate) mod provider;
 mod rating;
 mod recovery;
 mod sidebar;

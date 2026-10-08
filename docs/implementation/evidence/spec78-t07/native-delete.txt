@@ -1,0 +1,3 @@
+PASS permanent delete does not leave a stale detail error in formal UI
+PASS deleted selected source is unavailable to new detail requests
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\workspace-delete-1791474814495

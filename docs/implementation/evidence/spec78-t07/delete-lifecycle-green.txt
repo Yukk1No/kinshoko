@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+
+ Test Files  3 passed (3)
+      Tests  67 passed (67)
+   Start at  23:49:27
+   Duration  12.66s (tests 63%, environment 28%, import 5%, transform 4%)
+

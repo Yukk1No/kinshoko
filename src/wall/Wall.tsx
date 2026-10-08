@@ -4,7 +4,11 @@ import { flushSync } from "react-dom";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { ImageCard } from "../bindings/ImageCard";
-import { browse, isCursorExpired, thumbnailUrl } from "../ipc";
+import type { WorkspaceScope } from "../bindings/WorkspaceScope";
+import type { BrowsePage } from "../bindings/BrowsePage";
+import type { WorkspacePage } from "../bindings/WorkspacePage";
+import type { WorkspaceCard } from "../bindings/WorkspaceCard";
+import { browse, workspaceBrowse, isCursorExpired, isLensChanged, thumbnailUrl } from "../ipc";
 import { captureAnchor, masonry, resolveAnchor, visible, type Anchor } from "./layout";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
@@ -22,7 +26,12 @@ export const DRAG_IMAGES = "application/x-kinshoko-images";
 
 export type WallHandle = { previewDensity: (value: number | null) => void };
 
+export type BrowserCard = ImageCard & Partial<Pick<WorkspaceCard, "libraryId" | "imageId" | "sources">>;
+
 type Props = {
+  workspaceScope?: WorkspaceScope;
+  onInspectSources?: (card: WorkspaceCard) => void;
+  onCardsChange?: (cards: BrowserCard[]) => void;
   /** Artist-selected target card width; preview stays local until the slider commits. */
   density?: number;
   onTotalChange?: (count: number | null) => void;
@@ -39,7 +48,7 @@ type Props = {
   safeMode?: boolean;
   selected: ReadonlySet<string>;
   onSelectionChange: (selected: Set<string>) => void;
-  onOpenImage: (card: ImageCard) => void;
+  onOpenImage: (card: BrowserCard) => void;
   viewerOpen: boolean;
 };
 
@@ -83,6 +92,9 @@ function saveAnchor(key: string, anchor: Anchor | null) {
  * 换范围或条件时由调用方换 key 重建。查找结果不记住位置，新的查找从顶部看起。
  */
 export const Wall = forwardRef<WallHandle, Props>(function Wall({
+  workspaceScope,
+  onInspectSources,
+  onCardsChange,
   density = TARGET,
   onTotalChange,
   libraryId,
@@ -96,12 +108,12 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   viewerOpen,
 }, ref) {
   const searching = conditions.conditions.length > 0;
-  const storeKey = searching ? null : anchorKey(libraryId, scope);
+  const storeKey = searching ? null : workspaceScope ? `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}` : anchorKey(libraryId, scope);
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [previewDensity, setPreviewDensity] = useState<number | null>(null);
   const [viewport, setViewport] = useState({ top: 0, height: 0 });
-  const [cards, setCards] = useState<ImageCard[]>([]);
+  const [cards, setCards] = useState<BrowserCard[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -114,9 +126,9 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   /** 正在进行的请求所属代次；没有时为 null。被作废的请求不会占着它。 */
   const inflight = useRef<number | null>(null);
   /** 当前视角。请求发出时按这里取，不用首次渲染时的值。 */
-  const view = useRef({ libraryId, scope, conditions });
-  view.current = { libraryId, scope, conditions };
-  const lens = `${libraryId}\n${JSON.stringify(scope)}\n${JSON.stringify(conditions)}\n${safeMode}`;
+  const view = useRef({ libraryId, scope, conditions, workspaceScope, safeMode });
+  view.current = { libraryId, scope, conditions, workspaceScope, safeMode };
+  const lens = `${libraryId}\n${JSON.stringify(scope)}\n${JSON.stringify(conditions)}\n${safeMode}\n${JSON.stringify(workspaceScope)}`;
   useLayoutEffect(() => {
     // 视角变了：还在路上的请求按旧视角作废，旧游标也不再接着翻；等调用方按新视角重新浏览。
     generation.current += 1;
@@ -168,7 +180,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     wasViewing.current = viewerOpen;
   }, [viewerOpen]);
 
-  const open = (card: ImageCard) => {
+  const open = (card: BrowserCard) => {
     pivot.current = card.id;
     lastOpened.current = card.id;
     onOpenImage(card);
@@ -179,6 +191,15 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     [density],
   );
 
+  useEffect(() => { onCardsChange?.(cards); }, [cards, onCardsChange]);
+  useLayoutEffect(() => {
+    if (!workspaceScope) return;
+    generation.current += 1;
+    inflight.current = null;
+    setCards([]);
+    setTotal(null);
+    setCursor(null);
+  }, [reloadKey, safeMode, workspaceScope]);
   const loaded = useRef(0);
   loaded.current = cards.length;
 
@@ -187,17 +208,17 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     async (want: number) => {
       const gen = ++generation.current;
       inflight.current = gen;
-      const { libraryId, scope, conditions } = view.current;
+      const { libraryId, scope, conditions, workspaceScope, safeMode } = view.current;
       const current = () => gen === generation.current;
       try {
         // 取到一半结果集变了（游标过期）：从头再取，最多几次，仍不稳定才报错。
         for (let attempt = 0; ; attempt++) {
-          const next: ImageCard[] = [];
+          const next: BrowserCard[] = [];
           let after: string | null = null;
           let count = 0;
           try {
             do {
-              const page = await browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx });
+              const page: BrowsePage | WorkspacePage = await (workspaceScope ? workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, thumbnailPx }, safeMode) : browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx }));
               if (!current()) return;
               next.push(...page.cards);
               after = page.nextCursor;
@@ -230,10 +251,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     if (inflight.current !== null || !cursor) return;
     const gen = generation.current;
     inflight.current = gen;
-    const { libraryId, scope, conditions } = view.current;
+    const { libraryId, scope, conditions, workspaceScope, safeMode } = view.current;
     let expired = false;
     try {
-      const page = await browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx });
+      const page: BrowsePage | WorkspacePage = await (workspaceScope ? workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, thumbnailPx }, safeMode) : browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx }));
       if (gen !== generation.current) return;
       measureBeforeReflow();
       setCards((prev) => [...prev, ...page.cards]);
@@ -244,7 +265,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       if (gen !== generation.current) return;
       // 结果集变了，接着翻会遗漏或重复：从第一页重读，保持正在看的位置。
       if (isCursorExpired(e)) expired = true;
-      else setError(String(e));
+      else if (!isLensChanged(e)) setError(String(e));
     } finally {
       if (inflight.current === gen) inflight.current = null;
     }
@@ -377,7 +398,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       pivot.current = id;
       onSelectionChange(new Set(dragged));
     }
-    e.dataTransfer.setData(DRAG_IMAGES, JSON.stringify(dragged));
+    const sourceIds = workspaceScope?.kind === "library"
+      ? dragged.flatMap((id) => cards.find((c) => c.id === id)?.sources?.filter((s) => s.libraryId === workspaceScope.libraryId && !s.unavailable).map((s) => s.imageId) ?? [])
+      : dragged;
+    e.dataTransfer.setData(DRAG_IMAGES, JSON.stringify(sourceIds));
     e.dataTransfer.effectAllowed = "copyMove";
   };
 
@@ -402,7 +426,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 role="option"
                 tabIndex={0}
                 data-veiled={veiled}
-                draggable
+                draggable={!workspaceScope || workspaceScope.kind === "library"}
                 onClick={(e) => {
                   if (e.ctrlKey || e.metaKey || e.shiftKey) select(card.id, e);
                   else open(card);
@@ -416,6 +440,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}
               >
                 <img src={thumbnailUrl(card.thumbnail)} alt="参考图" decoding="async" draggable={false} />
+                {card.sources && card.libraryId && card.imageId && <button type="button" className="card-sources"
+                  aria-label={`查看 ${card.sources.length} 份资料库来源`}
+                  onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; onInspectSources?.(card as WorkspaceCard); }}
+                  onKeyDown={(e) => e.stopPropagation()}>{card.sources.length} 份来源</button>}
               </div>
             );
           })}
