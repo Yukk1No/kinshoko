@@ -149,7 +149,10 @@ let sourceA, sourceB, sourceIdentity, splitIdentity, sourceGroup, manifest, copi
 try {
   const paths = ["a1", "a2", "b", "existing"].map((name, i) => { const p = join(work, name + ".png"); png(p, 18 + i * 40); return p; });
   await launch("source", "source-app");
-  sourceA = await create("便携来源甲", paths.slice(0, 2)); sourceB = await create("便携来源乙", [paths[2]]);
+  sourceA = await create("便携来源甲", paths.slice(0, 2));
+  await session.invoke("map_tag_external", { libraryId: sourceA.info.id, tagId: sourceA.local, external: "t11_portable_white" });
+  await session.invoke("edit", { libraryId: sourceA.info.id, ids: [sourceA.images[0]], edits: [{ kind: "setNote", text: "原图构图备注" }] });
+  sourceB = await create("便携来源乙", [paths[2]]);
   let view = await catalog(); sourceIdentity = mapping(view, sourceA.info.id, sourceA.local).catalogId;
   assert(mapping(view, sourceB.info.id, sourceB.local).catalogId !== sourceIdentity, "same display names initially retain distinct global identities");
   assert(await correct(sourceB.info, sourceB.local, sourceIdentity) === sourceIdentity, "rendered correction explicitly joins two local IDs to one global identity");
@@ -163,6 +166,8 @@ try {
   await groupsPane(); await session.set("//input[@aria-label='新参考组名称']", "便携布局验收"); await session.click("//button[normalize-space()='把桌面钉图存为参考组']");
   sourceGroup = await until("saved real pins", async () => { const groups = await session.invoke("reference_groups", {}, "desktop"); const g = groups.find((g) => g.name === "便携布局验收"); return g ? (await session.invoke("reference_group", { groupId: g.id }, "desktop")).group : null; });
   assert(sourceGroup.members.length === 3, "rendered save captures all three real reference pins");
+  const transformed = sourceGroup.members.find((m) => m.libraryId === sourceA.info.id && m.imageId === sourceA.images[0]);
+  assert(transformed.crop.x === 10 && transformed.crop.y === 12 && transformed.crop.width === 50 && transformed.crop.height === 40 && transformed.placement.flipH && transformed.placement.rotation === 1 && transformed.placement.scale === 1.5 && transformed.placement.x === 310 && transformed.placement.y === 240, "saved source group contains the specified original-pixel crop and requested native pin transforms");
   await session.screenshot("01-source-group.png");
   await launch("publication-failure", "source-app", true);
   await alias(sourceIdentity, "白雪新别名"); await publish(sourceA.info.name, true);
@@ -174,6 +179,7 @@ try {
   assert(manifest.formatVersion === 2 && manifest.images.every((image) => image.snapshot.tags.every((tag) => Boolean(tag.definition?.id) && Boolean(tag.localTagId))), "formal export contains version-two stable definitions and explicit local mappings");
   assert(!JSON.stringify(manifest).includes("源程序专用显示") && manifest.images.some((image) => image.snapshot.tags.some((t) => t.definition.aliases.some((a) => a.name === "白雪新别名"))), "formal export carries latest real aliases and pure defaults, without source display preferences");
   assert(manifest.images.every((image) => sha(entries.get(image.file)) === image.snapshot.sha256), "package original bytes match every declared SHA-256");
+  assert(manifest.images.some((image) => image.snapshot.note === "原图构图备注") && manifest.images.some((image) => image.snapshot.tags.some((tag) => tag.definition.namespace === "general" && tag.definition.external.some((entry) => entry.vocabulary === "danbooru" && entry.name === "t11_portable_white"))), "formal package preserves the real note, namespace and external vocabulary/value");
   await session.screenshot("04-exported-package.png");
   await stop();
   copiedA = join(work, "copied-a"); copiedB = join(work, "copied-b"); cpSync(sourceA.info.root, copiedA, { recursive: true }); cpSync(sourceB.info.root, copiedB, { recursive: true });
@@ -205,6 +211,12 @@ try {
   assert(byIdentity(view, sourceIdentity).names.some((n) => n.name === "目标应用偏好") && !byIdentity(view, sourceIdentity).aliases.some((a) => a.name === "雪"), "reimport preserves the current application preference and does not resurrect a deleted alias");
   assert(view.catalog.mappings.filter((m) => m.libraryId === existingTarget.info.id).length === 3, "reimport reuses each declared stable identity without adding duplicate local tags");
   await inspectControls(); await session.screenshot("07-existing-preferences.png");
+  await stop();
+  const reimportedCopy = join(work, "reimported-copy"); cpSync(existingTarget.info.root, reimportedCopy, { recursive: true });
+  await launch("reimported-copy", "reimported-copy-app");
+  await session.invoke("register_library", { root: reimportedCopy }); view = await catalog();
+  assert(!byIdentity(view, sourceIdentity).aliases.some((a) => a.name === "雪") && view.catalog.tags.every((tag) => tag.namePreferences.length === 0), "a copied destination library carries its current pure definitions immediately after reimport, without any application preference");
+  await inspectControls(); await session.screenshot("08-reimported-copy.png");
   writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", application, build, harnessSource, harnessSha256, assertions, environments, sourceA, sourceB, sourceIdentity, splitIdentity, sourceGroup, freshTarget, existingTarget, packageSha256: sha(readFileSync(portablePath)), filePicker: "queued existing testPick results; actual rendered actions and native backend", cleanup: "WebDriver session deletion plus own exact executable process cleanup; not a normal tray-quit acceptance" }, null, 2));
   console.log(`Evidence: ${work}`);
 } catch (error) {

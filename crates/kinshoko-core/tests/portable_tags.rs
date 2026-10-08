@@ -272,6 +272,20 @@ fn package_import_preserves_shared_identity_and_target_preferences_without_mergi
         !kept.aliases.iter().any(|alias| alias.name == "雪"),
         "content import must not resurrect a locally removed alias"
     );
+    let target_id = target.info().id.clone();
+    let target_root = target.info().root.clone();
+    drop(target);
+    let copied_root = dir.path().join("reimported-target-copy");
+    copy_tree(&target_root, &copied_root);
+    let provider = Library::open_read_only(&copied_root, &target_id).unwrap();
+    let mut copied_app = TagCatalog::open(&dir.path().join("copied-target-app")).unwrap();
+    let copied = copied_app.synchronize(&provider).unwrap();
+    let carried = copied.tags.iter().find(|tag| tag.id == identity).unwrap();
+    assert!(carried.name_preferences.is_empty());
+    assert!(
+        !carried.aliases.iter().any(|alias| alias.name == "雪"),
+        "a content write must publish the destination application's current pure definitions before the library is carried away"
+    );
 }
 
 fn one_image_package(dir: &Path) -> std::path::PathBuf {
@@ -658,4 +672,88 @@ fn a_carried_seed_identity_can_attach_to_two_library_local_ids_in_one_applicatio
             .name,
         "我的白色"
     );
+}
+
+#[test]
+fn publishing_a_sealed_dependency_keeps_current_raw_definition_without_exposing_its_mapping() {
+    let dir = tempfile::tempdir().unwrap();
+    let (known, _, _) = named_library(dir.path(), "known");
+    let mut definition = known
+        .tag_definition_dependencies()
+        .unwrap()
+        .remove(0)
+        .definition;
+    definition.aliases.push(TagAlias {
+        name: "雪".into(),
+        lang: None,
+    });
+    definition
+        .external
+        .push(kinshoko_core::tag_catalog::ExternalTagIdentity {
+            vocabulary: "custom-provider".into(),
+            name: "portable-white".into(),
+        });
+    let known_local = known.vocabulary().unwrap().tags[0].id.clone();
+    known
+        .publish_tag_definitions(&[kinshoko_core::portable_tags::PortableTagBinding {
+            local_tag_id: known_local,
+            definition: definition.clone(),
+            authoritative: true,
+        }])
+        .unwrap();
+    let mut app = TagCatalog::open(&dir.path().join("application")).unwrap();
+    app.synchronize(&known).unwrap();
+    app.remove_alias(
+        &definition.id,
+        &TagAlias {
+            name: "雪".into(),
+            lang: None,
+        },
+    )
+    .unwrap();
+    let (target, image, local) = named_library(dir.path(), "sealed-target");
+    target
+        .publish_tag_definitions(&[kinshoko_core::portable_tags::PortableTagBinding {
+            local_tag_id: local,
+            definition: definition.clone(),
+            authoritative: true,
+        }])
+        .unwrap();
+    target
+        .edit(
+            &[image],
+            &[kinshoko_core::library::ImageEdit::SetRating {
+                rating: kinshoko_core::library::ContentRating::Explicit,
+            }],
+        )
+        .unwrap();
+    target.set_safe_mode(true);
+    let id = target.info().id.clone();
+    let root = target.info().root.clone();
+    app.publish_library_definitions(&target).unwrap();
+    assert!(
+        !app.inspect()
+            .unwrap()
+            .mappings
+            .iter()
+            .any(|mapping| mapping.library_id == id)
+    );
+    assert!(target.vocabulary().unwrap().tags.is_empty());
+    drop(target);
+    let copy = dir.path().join("copied-sealed-target");
+    copy_tree(&root, &copy);
+    let provider = Library::open_read_only(&copy, &id).unwrap();
+    provider.set_safe_mode(false);
+    let mut fresh = TagCatalog::open(&dir.path().join("fresh-app")).unwrap();
+    let catalog = fresh.synchronize(&provider).unwrap();
+    let carried = catalog
+        .tags
+        .iter()
+        .find(|tag| tag.id == definition.id)
+        .unwrap();
+    assert!(
+        !carried.aliases.iter().any(|alias| alias.name == "雪"),
+        "raw portable definitions must carry current alias deletions even when all uses are sealed"
+    );
+    assert_eq!(carried.external, definition.external);
 }

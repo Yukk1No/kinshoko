@@ -358,8 +358,10 @@ pub(super) fn import(
 
     if let Some(catalog) = catalog {
         catalog
-            .synchronize(library)
-            .map_err(|error| GroupError::Library(error.to_string()))?;
+            .publish_library_definitions(library)
+            .map_err(|error| GroupError::Library(format!(
+                "内容已写入，但资料库标签定义尚未更新：{error}。请重试保存标签定义或重新导入参考组包。"
+            )))?;
     }
     let library_id = library.info().id.clone();
     let now = crate::library::now_ms();

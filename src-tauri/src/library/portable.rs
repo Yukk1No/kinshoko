@@ -55,12 +55,14 @@ pub fn export_package<R: Runtime>(
     path: &Path,
 ) -> Result<(), String> {
     let state = app.state::<LibraryState>();
-    with_catalog(&state.device_dir, &state.catalog, |catalog| {
-        Ok(with_references(app, |references| {
-            groups.export_package_with_catalog(group_id, references, path, catalog)
-        }))
-    })?
-    .map_err(|e| e.to_string())?;
+    // Take the reference registry snapshot before the catalog lock. Workspace readers take
+    // libraries then catalog; holding catalog while reading libraries would invert that order.
+    with_references(app, |references| {
+        with_catalog(&state.device_dir, &state.catalog, |catalog| {
+            Ok(groups.export_package_with_catalog(group_id, references, path, catalog))
+        })?
+        .map_err(|error| error.to_string())
+    })?;
     Ok(())
 }
 
