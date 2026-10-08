@@ -180,6 +180,7 @@ async function restart() {
 try {
   await until("driver ready", () => fetch(`${driverUrl}/status`).then((r) => r.ok));
   session = await Session.start();
+  await session.invoke("set_safe_mode", { on: true });
   await register(first); await register(second);
   let plan = await migration();
   target = plan.plan.groups[0].catalogId;
@@ -224,16 +225,10 @@ try {
   assert(active?.id === fourth.info.id, "last active library is the fourth upgraded old library");
   await session.invoke("set_safe_mode", { on: false });
   assert(await session.invoke("safe_mode") === false, "non-safe view is persisted before normal shutdown");
-  const normalClose = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { $ownedApp = Get-Process -Id $_.ProcessId; if (-not $ownedApp.CloseMainWindow()) { exit 1 } }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, windowsHide: true, encoding: "utf8" });
-  assert(normalClose.status === 0, "normal main-window close is requested for the owned application");
-  await until("owned main window closes normally", () => {
-    const windowCheck = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "@(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { (Get-Process -Id $_.ProcessId).MainWindowHandle } | Where-Object { $_ -ne 0 }).Count"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, windowsHide: true, encoding: "utf8" });
-    return windowCheck.status === 0 && windowCheck.stdout.trim() === "0";
-  });
-  assert(true, "normal main-window close completes before disconnected-library preparation");
-  // Normal window close intentionally leaves Kinshoko in its tray. The test runner removes only
-  // its own resident process before a full-process restart; this is not claimed as a tray-menu quit.
-  quitOwnApp(); await session.close().catch(() => {}); session = null;
+  const exitReceipt = join(work, "normal-tray-exit.json");
+  const normalExit = spawnSync("python", ["e2e/native-tray-exit-t04.py", application, exitReceipt], { windowsHide: true, encoding: "utf8", timeout: 45000 });
+  assert(normalExit.status === 0 && JSON.parse(readFileSync(exitReceipt, "utf8")).processEnded, "verified real tray Quit exits the owned application normally");
+  await session.close().catch(() => {}); session = null;
   const offlineRoot = fourth.info.root + ".offline";
   renameSync(fourth.info.root, offlineRoot);
   try {
@@ -251,7 +246,7 @@ try {
     renameSync(offlineRoot, fourth.info.root);
   }
   session = await Session.start();
-  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, binarySha256, application, stories: [25,26], supplementaryIntegration: "T07 saved safe=false with disconnected last-active library", shutdown: "Normal main-window close, then forced cleanup of the owned tray-resident process before full restart; no tray-menu quit claim.", assertions, target, first, second, third, fourth, environment: await session.exec("return { userAgent: navigator.userAgent, dpr: devicePixelRatio, width: innerWidth, height: innerHeight }") }, null, 2));
+  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, binarySha256, application, stories: [25,26], supplementaryIntegration: "T07 saved safe=false with disconnected last-active library", shutdown: "Verified real native tray Quit callback, normal exit code 0 before disconnected-library restart.", assertions, target, first, second, third, fourth, environment: await session.exec("return { userAgent: navigator.userAgent, dpr: devicePixelRatio, width: innerWidth, height: innerHeight }") }, null, 2));
   console.log(`Evidence: ${work}`);
 } catch (error) {
   console.error(error);
