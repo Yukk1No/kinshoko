@@ -1,7 +1,7 @@
 // #78 T17: production waterfall capture, current geometry, original pixels and native side effects.
 // node e2e/wall-capture.mjs <frozen kinshoko.exe> <msedgedriver.exe> <build-source.json> [--race-only]
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync, readFileSync, copyFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, copyFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, join } from "node:path";
 import { deflateSync } from "node:zlib";
@@ -16,6 +16,9 @@ const manifest = JSON.parse(readFileSync(manifestArg,"utf8").replace(/^\uFEFF/,"
 const sha = path => createHash("sha256").update(readFileSync(path)).digest("hex");
 const result = { status:"running", source:manifest.source, tree:manifest.tree, binarySha256:sha(application), application, manifest:resolve(manifestArg), scriptSha256:sha(new URL(import.meta.url)), scriptSource:spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8",windowsHide:true}).stdout.trim(), mode:raceOnly?"clipboard-revocation":"wall", nativeHelperSha256:sha(resolve("e2e/native-wall-observe.py")), pixelHelperSha256:sha(resolve("e2e/native-wall-pixels.py")), assertions:[], samples:[], work, startedAt:new Date().toISOString() };
 if(result.binarySha256!==manifest.binarySha256.toLowerCase()) throw new Error("Binary differs from frozen source manifest");
+const settingsPath=join(process.env.APPDATA,"dev.kinshoko.spec78t17test","settings.json");
+function recordSettings(phase){const exists=existsSync(settingsPath),entry={path:settingsPath,exists,observedAt:new Date().toISOString()};if(exists){const bytes=readFileSync(settingsPath);writeFileSync(join(work,`settings-${phase}.json`),bytes);entry.sha256=createHash("sha256").update(bytes).digest("hex");}return entry;}
+result.settingsBefore=recordSettings("before");
 const checksum = Array.from({length:256},(_,c)=>{for(let k=0;k<8;k++)c=c&1?0xedb88320^(c>>>1):c>>>1;return c>>>0;});
 function chunk(type,data){const body=Buffer.concat([Buffer.from(type),data]);let crc=0xffffffff;for(const b of body)crc=checksum[(crc^b)&255]^(crc>>>8);const len=Buffer.alloc(4),tail=Buffer.alloc(4);len.writeUInt32BE(data.length);tail.writeUInt32BE((crc^0xffffffff)>>>0);return Buffer.concat([len,body,tail]);}
 function png(path,width,height,seed=0){const header=Buffer.alloc(13);header.writeUInt32BE(width);header.writeUInt32BE(height,4);header[8]=8;header[9]=6;const bytes=Buffer.alloc((width*4+1)*height);for(let y=0;y<height;y++)for(let x=0;x<width;x++){const p=y*(width*4+1)+1+x*4;bytes[p]=(x+seed)%256;bytes[p+1]=y%256;bytes[p+2]=x%2*255;bytes[p+3]=255;}writeFileSync(path,Buffer.concat([Buffer.from("89504e470d0a1a0a","hex"),chunk("IHDR",header),chunk("IDAT",deflateSync(bytes)),chunk("IEND",Buffer.alloc(0))]));}
@@ -86,6 +89,7 @@ try{
   result.race.provedLateWrite=result.race.containsOriginal&&isDeepStrictEqual(result.race.checkpointClipboard.size,[8,8])&&result.race.finalClipboard.observedAtUnix>result.race.checkpointClipboard.observedAtUnix;
   check(isDeepStrictEqual(result.race.checkpointClipboard.size,[8,8]),"actual OS clipboard after mode return still contains the owned seed before slow-copy completion");
   check(!result.race.copy.ok&&!result.race.containsOriginal,"safe-mode revocation during slow original decode cannot commit late original pixels to the real OS clipboard");
+  check(result.race.copy.error?.includes("安全模式已变化")&&isDeepStrictEqual(result.race.finalClipboard.size,[8,8]),"the committed mode generation revokes the actual late write and preserves the seed");
  }else{
   const second=await library("create_library",{parent:join(work,"libraries"),name:"当前独立库 B"});await importFiles(second,[detail]);await reload();
   let shown=await bottomOriginal(firstCard.id);check(shown.thumbWidth<originalWidth,"formal waterfall displays a reduced derivative of the high-resolution original");result.dpr=shown.dpr;
@@ -129,7 +133,7 @@ try{
   await wd("POST",`${base}/window`,{handle:survivor});const nativeClosed=observeNative("close");result.nativeClose=nativeClosed;await until("native main label actually gone",async()=>!(await windows()).includes("main"));
   const reopen=spawn(application,[],{env:{...process.env,KINSHOKO_DATA_DIR:join(work,"app-data"),KINSHOKO_SKIP_AUTOSTART:"1",WEBVIEW2_USER_DATA_FOLDER:join(work,"webview")},windowsHide:true,stdio:"ignore"});
   await new Promise((done,reject)=>{reopen.once("error",reject);reopen.once("exit",done);});
-  const newHandle=await until("re-created native main window",async()=>(await wd("GET",`${base}/window/handles`)).find(h=>h!==survivor));
+  const newHandle=await until("re-created native main window",async()=>{for(const handle of await wd("GET",`${base}/window/handles`)){if(handle===survivor)continue;try{await wd("POST",`${base}/window`,{handle});if(await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label==='main'"))return handle;}catch{}}return null;});
   await wd("POST",`${base}/window`,{handle:newHandle});await until("re-created formal wall",()=>exec("return !!document.querySelector('.wall')"));await observeRequests();
   await exec("window.__lateReport=arguments[0];const el=document.querySelector('.wall');el.scrollTop=el.scrollHeight;el.dispatchEvent(new Event('scroll',{bubbles:true}));",[oldReport]);
   const newNative=mainHwnd();result.hwndRecreation={oldHandle,newHandle,oldNative,newNative,nativeClosed};
@@ -148,5 +152,5 @@ try{
  result.status="passed";
 }catch(error){result.status="failed";result.error=error.stack??String(error);if(base){await screenshot("failure.png").catch(()=>{});await exec("return document.documentElement.outerHTML").then(html=>writeFileSync(join(work,"failure.html"),html)).catch(()=>{});result.requests=await exec("return window.__captureRequests").catch(()=>undefined);result.lateSent=await exec("return window.__lateSent").catch(()=>undefined);}console.error(error);process.exitCode=1;
 }finally{
- result.finishedAt=new Date().toISOString();writeFileSync(join(work,"result.json"),JSON.stringify(result,null,2));if(occluder)occluder.kill();if(base)await wd("DELETE",base).catch(()=>{});killOwn();if(driver?.pid)spawnSync("taskkill",["/PID",String(driver.pid),"/T","/F"],{stdio:"ignore",windowsHide:true});console.log(`Evidence: ${work}`);
+ result.settingsAfter=recordSettings("after");result.finishedAt=new Date().toISOString();writeFileSync(join(work,"result.json"),JSON.stringify(result,null,2));if(occluder)occluder.kill();if(base)await wd("DELETE",base).catch(()=>{});killOwn();if(driver?.pid)spawnSync("taskkill",["/PID",String(driver.pid),"/T","/F"],{stdio:"ignore",windowsHide:true});console.log(`Evidence: ${work}`);
 }

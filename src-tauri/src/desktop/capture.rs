@@ -12,6 +12,7 @@ use kinshoko_core::desktop::{
     CaptureAction, CaptureOutcome, CaptureReferenceFrame, CaptureSelection, CaptureSurface,
     FrozenScreen, Placement, Region, SavedPin, ScreenRect, Screenshot,
 };
+use kinshoko_core::reference_groups::ReferenceSource;
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
 };
@@ -433,6 +434,47 @@ pub async fn cancel_capture(app: AppHandle, token: String) {
     close_owned(&app, &token);
 }
 
+/// Recheck the frozen source after decoding, while the final visibility permit is held.
+/// The frozen geometry remains authoritative; later scrolling does not change its crop.
+fn validate_source(app: &AppHandle, pending: &Pending, selected: ScreenRect) -> Result<(), String> {
+    let mut candidates = pending
+        .references
+        .iter()
+        .filter(|surface| surface.selection.reference_region(selected).is_some());
+    let surface = match (candidates.next(), candidates.next()) {
+        (Some(surface), None) => surface,
+        _ => return Ok(()), // Ordinary screen selection, as in CaptureSelection::finish.
+    };
+    let kinshoko_core::desktop::PinContent::Reference {
+        library_id,
+        image_id,
+        source_width,
+        source_height,
+    } = &surface.selection.pin.content
+    else {
+        return Err("参考图来源已变化，请重新框选".into());
+    };
+    if surface.window == "main" {
+        // Includes the strictest rating of every known byte-identical provider.
+        crate::library::visible_source(app, library_id, image_id)?;
+    } else if app.get_webview_window(&surface.window).is_none() {
+        return Err("参考图已关闭，请重新框选".into());
+    }
+    let image = crate::library::with_references(app, |sources| sources.image(library_id, image_id))
+        .map_err(|error| error.to_string())?;
+    if image.width != *source_width || image.height != *source_height {
+        return Err("参考图来源已变化，请重新框选".into());
+    }
+    let safe = crate::library::safe_mode_on(app);
+    let mut veils = lock(&state(app).veils);
+    // Event delivery may lag the committed setting. Never authorize against an old event.
+    veils.set_safe_mode(safe);
+    if veils.veiled(&surface.selection.pin, Some(image.sealed)) {
+        return Err("参考图已被遮蔽，请重新框选".into());
+    }
+    Ok(())
+}
+
 /// 框选完成。`region` 是相对显示器的物理像素。
 #[tauri::command]
 pub async fn finish_capture(
@@ -468,21 +510,7 @@ pub async fn finish_capture(
         if crate::library::capture_generation(&app) != pending.safe_generation {
             return Err("安全模式已变化，请重新框选".into());
         }
-        // Main-window references also obey the strictest known source rating.
-        for surface in pending
-            .references
-            .iter()
-            .filter(|s| s.window == "main" && s.selection.reference_region(at).is_some())
-        {
-            if let kinshoko_core::desktop::PinContent::Reference {
-                library_id,
-                image_id,
-                ..
-            } = &surface.selection.pin.content
-            {
-                crate::library::visible_source(&app, library_id, image_id)?;
-            }
-        }
+        validate_source(&app, &pending, at)?;
         let outcome = crate::library::with_references(&app, |sources| {
             selection.finish(
                 action,
@@ -493,26 +521,34 @@ pub async fn finish_capture(
             )
         })
         .map_err(|e| e.to_string())?;
-        match outcome {
-            CaptureOutcome::PinReference(pin) => pins::open_reference_selection(&app, pin, at),
-            CaptureOutcome::CopyReference(image) => pins::copy_to_clipboard(&image),
-            CaptureOutcome::PinCapture(entry) => {
-                history_changed(&app);
-                pins::open(
-                    &app,
-                    &entry,
-                    ScreenRect {
-                        width: entry.width,
-                        height: entry.height,
-                        ..at
-                    },
-                )
+        // Decoding and its temporary veils/history guards have completed. Mode changes and
+        // complete settings replacement cannot cross this final check -> actual side effect.
+        crate::library::with_visibility_commit(&app, |generation| {
+            if generation != pending.safe_generation {
+                return Err("安全模式已变化，请重新框选".into());
             }
-            CaptureOutcome::CopyCapture(image) => {
-                history_changed(&app);
-                pins::copy_to_clipboard(&image)
+            validate_source(&app, &pending, at)?;
+            match outcome {
+                CaptureOutcome::PinReference(pin) => pins::open_reference_selection(&app, pin, at),
+                CaptureOutcome::CopyReference(image) => pins::copy_to_clipboard(&image),
+                CaptureOutcome::PinCapture(entry) => {
+                    history_changed(&app);
+                    pins::open(
+                        &app,
+                        &entry,
+                        ScreenRect {
+                            width: entry.width,
+                            height: entry.height,
+                            ..at
+                        },
+                    )
+                }
+                CaptureOutcome::CopyCapture(image) => {
+                    history_changed(&app);
+                    pins::copy_to_clipboard(&image)
+                }
             }
-        }
+        })
     })
     .await
     .map_err(|e| e.to_string())?

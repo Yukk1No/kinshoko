@@ -1,0 +1,28 @@
+{
+  "observedAtUtc": "2026-10-08T19:36:09.2432262Z",
+  "release": {
+    "timestampUtc": "2026-10-08T19:34:53.4743047Z",
+    "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t13\\nativeproof\\5a48939e9056\\kinshoko.exe",
+    "ownedExe": [],
+    "ownedDrivers": [],
+    "ownedWebviews": [],
+    "ports": [],
+    "knownFolderSettingsPresent": false,
+    "frozenExeSha256": "2c9e5a69eee742519ba08ec194662614f2da5b29cb5b68cad12149b14b2102df",
+    "windows": {
+      "Caption": "Microsoft Windows 11 专业版",
+      "Version": "10.0.26300",
+      "BuildNumber": "26300"
+    }
+  },
+  "exactOwnedExes": [
+    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t13\\nativeproof\\5a48939e9056\\kinshoko.exe",
+    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe"
+  ],
+  "ownedProcesses": [],
+  "ports": [],
+  "knownFolderT17Exists": false,
+  "harnessSHA256": "60A1B59674B4331B065BEDBFFA0D68BD510B34B2223969CAB288EC00966EE1D8",
+  "exeSHA256": "787B9855C83467D4AD4EBCB887DC8C5E4319C1617DC0084FF1A2496E9F81CECC",
+  "desktopAvailable": true
+}

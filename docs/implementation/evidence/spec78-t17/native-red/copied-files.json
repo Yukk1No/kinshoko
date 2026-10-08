@@ -1,0 +1,19 @@
+{
+  "wall-capture.mjs": {
+    "sha256": "49c07d1c29bfdc529a4e7ce3353e459300003d2157790a28ff2c8417f2d24ef6",
+    "source": "a745ce7088eaef3813f0dd0ae1037c71218f2e79"
+  },
+  "native-wall-observe.py": {
+    "sha256": "20651bd341a3d06dfb8f921e1e1ce330d0d770c433d060da5c263659cb1ec668",
+    "source": "a745ce7088eaef3813f0dd0ae1037c71218f2e79"
+  },
+  "native-wall-pixels.py": {
+    "sha256": "301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602",
+    "source": "a745ce7088eaef3813f0dd0ae1037c71218f2e79"
+  },
+  "settings-after-red.json": {
+    "sha256": "9e66b93482d7ffe07660626a718ae010b1733b21af132e1dba8f6538bc46e6c9",
+    "observedAfterRun": true,
+    "note": "Observed after the preserved RED and desktop release; not a reconstructed per-run preflight."
+  }
+}
