@@ -7,8 +7,9 @@ import { createHash } from "node:crypto";
 import { deflateSync } from "node:zlib";
 import { initialHiddenPin, inspectNativePin } from "./native-initial-pin-t18.mjs";
 
-const [, , appArg, edgeArg, driverArg = "C:/Users/yuk1no/.cargo/bin/tauri-driver.exe", runArg] = process.argv;
+const [, , appArg, edgeArg, driverArg = "C:/Users/yuk1no/.cargo/bin/tauri-driver.exe", runArg, mode = "full"] = process.argv;
 if (!appArg || !edgeArg) throw Error("Frozen T18 executable and matching WebView2 driver required");
+if (!["full", "main"].includes(mode)) throw Error("T18 scope must be full or main");
 const manifest = JSON.parse(readFileSync("work/t18/native-source.json", "utf8"));
 const application = resolve(appArg), hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 if (application.toLowerCase() !== resolve(manifest.preservedBinary).toLowerCase() || hash(readFileSync(application)) !== manifest.binarySha256) throw Error("Wrong frozen product");
@@ -39,12 +40,13 @@ const expectedKnownFolder = resolve(process.env.USERPROFILE, "AppData", "Roaming
 if (manifest.identifier !== "dev.kinshoko.spec78t18test" || knownFolderConfig.toLowerCase() !== expectedKnownFolder.toLowerCase()) throw Error("Unmatched isolated KnownFolder config");
 if (existsSync(knownFolderConfig)) throw Error("The isolated KnownFolder settings must not preexist: " + knownFolderConfig);
 const report = {
-  story: 51, ticket: 96, source: manifest.commit, tree: manifest.tree, binarySha256: manifest.binarySha256,
+  story: 51, ticket: 96, mode, source: manifest.commit, tree: manifest.tree, binarySha256: manifest.binarySha256,
   identifier: manifest.identifier, ports: manifest.ports, work, application, data, profile,
   harness: { source: gitRead("rev-parse", "HEAD"), tree: gitRead("rev-parse", "HEAD^{tree}"), clean: true, files: Object.fromEntries(harnessFiles.map((path) => [path, hash(readFileSync(path))])), frozenProductionInputsMatch: true, frozenDistMatches: true },
   knownFolder: { config: knownFolderConfig, existedBefore: false },
   limitations: ["Windows 10 unverified: owner has no device/VM", "Controlled JS absence in current Runtime is not an old/absent Runtime", "Basic capabilities and representative display are not a colour-fidelity pass"], checks: [],
 };
+if (mode === "main") report.limitations.push("Main-only run: initial-hidden missing-canvas pin path is not executed or verified by this result");
 function chunk(kind, bytes) {
   const body = Buffer.concat([Buffer.from(kind), bytes]); let crc = 0xffffffff;
   for (const byte of body) { crc ^= byte; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ crc >>> 1 : crc >>> 1; }
@@ -166,6 +168,7 @@ try {
   await click(button("原图像素"));
   report.originalDisplay = await until("original-sized reference", () => exec("const image=document.querySelector('.viewer-stage img');return image?.complete&&image.naturalWidth===400?{src:image.currentSrc,naturalWidth:image.naturalWidth,naturalHeight:image.naturalHeight}:null"));
   await screenshot("representative-original.png"); check(true, "representative original is visible at original size in current Runtime");
+  if (mode === "full") {
   await click(button("钉住整图"));
   pinHandle = await until("native pin window", async () => (await wd("GET", base + "/window/handles")).find((handle) => handle !== mainHandle));
   await wd("POST", base + "/window", { handle: pinHandle });
@@ -205,6 +208,7 @@ try {
   await screenshot("controlled-required-canvas-pin.png");
   await initialPinProof.close();
   await closeCurrentPin();
+  }
   await click(button("返回图片墙")); await click(setting);
   await exec(mainFaultScript);
   await click(`${details}//button[normalize-space()='重新检查运行时']`);
