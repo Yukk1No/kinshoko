@@ -1,0 +1,229 @@
+{
+  "status": "failed",
+  "phase": "source-publication-failed",
+  "error": "Error: Timed out: formal provider publication failure",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-3075331\\kinshoko.exe",
+  "build": {
+    "source": "3075331a5f5bcf780831cf5a92766f331f5f68b9",
+    "tree": "2a4fdb3e999f3766a799acc022e1cd630b42cb1e",
+    "binarySha256": "c77471db1d84ff06336358182d082a6b5da3fe220aa573169cdc157577c62838",
+    "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-3075331\\kinshoko.exe",
+    "identifier": "dev.kinshoko.spec78t12test",
+    "productName": "Kinshoko T12 Test",
+    "buildType": "Tauri CLI debug --no-bundle, tauri/custom-protocol",
+    "buildCommand": "node node_modules/@tauri-apps/cli/tauri.js build --debug --no-bundle --config work/e2e/t12-tauri-config.json",
+    "buildDate": "2026-10-08T19:04:15.449446+00:00",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target",
+    "buildJobs": 2,
+    "driverSha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7",
+    "configSha256": "d3d0d3e2da8828fd1e9fa170978ab7ced39461965ddf446ec93b8a619df8e28a",
+    "beforeBuildManifest": {
+      "file": "work/e2e/t12-source-dist-before-build2.json",
+      "sha256": "47170151fed3f7dbce532f601156084aea4717f5ec6f818e1429592223397487"
+    },
+    "afterBuildManifest": {
+      "file": "work/e2e/t12-source-dist-after-build.json",
+      "sha256": "6eb0cfe7115c30e3a2d4cde905168f12755fb87709c0db62a2f63f70a321d577"
+    },
+    "inputsAndDistUnchangedDuringBuild": true,
+    "files": [
+      {
+        "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
+        "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-3075331\\kinshoko.exe",
+        "bytes": 100617728,
+        "sha256": "c77471db1d84ff06336358182d082a6b5da3fe220aa573169cdc157577c62838"
+      },
+      {
+        "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\DirectML.dll",
+        "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-3075331\\DirectML.dll",
+        "bytes": 18527776,
+        "sha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
+      }
+    ]
+  },
+  "harnessSource": "026897b686526135aa587787817b5395dc80af37",
+  "harnessSha256": "1e3d2acbe53119e4f6d912aa89eba4f4a7bf60df5147c08a2d2d7f40f5bca6d7",
+  "assertions": [
+    "fixture import has its explicit owner and completed definition publication: 备份来源甲",
+    "fixture import has its explicit owner and completed definition publication: 备份来源乙",
+    "three native reference views become one cross-library source group",
+    "app split is saved despite a real provider definition publication failure"
+  ],
+  "environments": [
+    {
+      "phase": "source",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\source-app",
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "source-publication-failed",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\source-app",
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    }
+  ],
+  "sourceA": {
+    "info": {
+      "id": "ff159e53237d4db5957fdce69147244f",
+      "name": "备份来源甲",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\libraries\\备份来源甲"
+    },
+    "images": [
+      "01a11ce97c4276aba2842191e721e510",
+      "01a11ce97c19717f83f38f4206a8f5b6"
+    ],
+    "local": "01a11ce97cb975488aa15d5cf8528386",
+    "receipt": {
+      "destination": {
+        "folderId": null,
+        "libraryId": "ff159e53237d4db5957fdce69147244f"
+      },
+      "finishing": false,
+      "folderName": "未归类",
+      "libraryName": "备份来源甲",
+      "progress": {
+        "done": 2,
+        "total": 2
+      },
+      "report": {
+        "cancelled": false,
+        "eagleMissing": 0,
+        "eagleRelocations": [],
+        "fromEagle": false,
+        "items": [
+          {
+            "outcome": {
+              "imageId": "01a11ce97c19717f83f38f4206a8f5b6",
+              "kind": "imported"
+            },
+            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\a1.png"
+          },
+          {
+            "outcome": {
+              "imageId": "01a11ce97c4276aba2842191e721e510",
+              "kind": "imported"
+            },
+            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\a2.png"
+          }
+        ]
+      },
+      "taskId": "9979ec2cc0b84f8595b7025ce8c9c6f9",
+      "warnings": []
+    }
+  },
+  "sourceB": {
+    "info": {
+      "id": "3e759438721946d98290d54fc1e8c3a0",
+      "name": "备份来源乙",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\libraries\\备份来源乙"
+    },
+    "images": [
+      "01a11ce9809572b9aa408745bb708824"
+    ],
+    "local": "01a11ce9813171079b9eedc88e8f3cdf",
+    "receipt": {
+      "destination": {
+        "folderId": null,
+        "libraryId": "3e759438721946d98290d54fc1e8c3a0"
+      },
+      "finishing": false,
+      "folderName": "未归类",
+      "libraryName": "备份来源乙",
+      "progress": {
+        "done": 1,
+        "total": 1
+      },
+      "report": {
+        "cancelled": false,
+        "eagleMissing": 0,
+        "eagleRelocations": [],
+        "fromEagle": false,
+        "items": [
+          {
+            "outcome": {
+              "imageId": "01a11ce9809572b9aa408745bb708824",
+              "kind": "imported"
+            },
+            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\b.png"
+          }
+        ]
+      },
+      "taskId": "f74d653e6ba642eea8b0a2534b1d5b94",
+      "warnings": []
+    }
+  },
+  "sourceIdentity": "01a11ce97cba75f787dbb614fd7e9806",
+  "splitIdentity": "01a11ce99b5370e4980ab42e7e7bae6c",
+  "sourceGroup": {
+    "createdAt": 1791486430735,
+    "id": "fd70eadaa65b4fd7bd41a4d4a308537f",
+    "members": [
+      {
+        "crop": {
+          "height": 40,
+          "width": 50,
+          "x": 10,
+          "y": 12
+        },
+        "id": "84c8ddd09c3848868e4dd93c6337a196",
+        "imageId": "01a11ce97c4276aba2842191e721e510",
+        "libraryId": "ff159e53237d4db5957fdce69147244f",
+        "placement": {
+          "flipH": true,
+          "flipV": false,
+          "rotation": 1,
+          "scale": 1.5,
+          "x": 783,
+          "y": 688
+        },
+        "sourceHeight": 90,
+        "sourceWidth": 120
+      },
+      {
+        "crop": null,
+        "id": "c8a2bbc0f7ab4b008754dd7743565d4e",
+        "imageId": "01a11ce97c19717f83f38f4206a8f5b6",
+        "libraryId": "ff159e53237d4db5957fdce69147244f",
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 582,
+          "y": 512
+        },
+        "sourceHeight": 90,
+        "sourceWidth": 120
+      },
+      {
+        "crop": {
+          "height": 60,
+          "width": 70,
+          "x": 4,
+          "y": 5
+        },
+        "id": "876b14aef88a446a985d23da5690c857",
+        "imageId": "01a11ce9809572b9aa408745bb708824",
+        "libraryId": "3e759438721946d98290d54fc1e8c3a0",
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 607,
+          "y": 527
+        },
+        "sourceHeight": 90,
+        "sourceWidth": 120
+      }
+    ],
+    "name": "内容备份跨库组",
+    "updatedAt": 1791486430735
+  },
+  "faultResults": []
+}

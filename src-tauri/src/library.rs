@@ -16,8 +16,8 @@ mod names;
 mod portable;
 mod save_destination;
 pub use portable::{
-    export_package as export_reference_package, import_package as import_reference_package,
-    publish_definition_dependencies,
+    content_definitions, export_package as export_reference_package,
+    import_package as import_reference_package, publish_definition_dependencies,
 };
 mod source_actions;
 pub use save_destination::{with_destination, with_destination_published};

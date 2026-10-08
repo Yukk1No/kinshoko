@@ -1,0 +1,8 @@
+PASS fixture import has its explicit owner and completed definition publication: 备份来源甲
+PASS fixture import has its explicit owner and completed definition publication: 备份来源乙
+PASS three native reference views become one cross-library source group
+PASS app split is saved despite a real provider definition publication failure
+Error: provider publication failure is visible in the formal identity controls
+    at assert (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/library-content-backup.mjs:24:45)
+    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/library-content-backup.mjs:218:3
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

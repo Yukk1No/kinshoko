@@ -59,7 +59,7 @@ function useBackupStatus(): [BackupStatus | null, (s: BackupStatus) => void] {
 }
 
 /**
- * 设置里的“备份”一节：备份目录、范围（全部或按库缩小，执行前列出带上的参考组、没覆盖的内容与容量）、
+ * 设置里的“资料库备份”一节：备份目录、范围（全部或按库缩小，执行前列出带上的参考组、没覆盖的内容与容量）、
  * 上次结果、马上备份，以及从快照恢复（恢复后显示往返检查结果）。
  */
 export function BackupSettings() {
@@ -121,8 +121,9 @@ export function BackupSettings() {
   };
 
   return (
-    <section className="settings backup-settings" aria-label="备份">
-      <h2>备份</h2>
+    <section className="settings backup-settings" aria-label="资料库备份">
+      <h2>资料库备份</h2>
+      <p className="settings-hint">备份原图、逐图整理、文件夹、关联参考组和标签定义。恢复资料库保留当前程序设置。名称偏好、标签分组和个人近似规则由程序设置备份保护。</p>
       {plan.target === null ? (
         <p className="settings-hint">还没有选择备份目录。选另一块硬盘或移动盘上的文件夹，每天第一次退出或空闲时自动备份一次。</p>
       ) : (

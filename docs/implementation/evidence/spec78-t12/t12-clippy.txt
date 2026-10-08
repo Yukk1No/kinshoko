@@ -1,0 +1,28 @@
+    Checking kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Checking kinshoko-tagger v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-tagger)
+    Checking kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
+error[E0425]: cannot find type `CatalogInspection` in this scope
+   --> src-tauri\src\library\portable.rs:6:70
+    |
+  6 | pub fn content_definitions<R: Runtime>(app: &AppHandle<R>) -> Result<CatalogInspection, String> {
+    |                                                                      ^^^^^^^^^^^^^^^^^
+    |
+   ::: crates\kinshoko-core\src\tag_catalog.rs:164:1
+    |
+164 | pub enum CatalogCorrection {
+    | -------------------------- similarly named enum `CatalogCorrection` defined here
+    |
+help: an enum with a similar name exists
+    |
+  6 - pub fn content_definitions<R: Runtime>(app: &AppHandle<R>) -> Result<CatalogInspection, String> {
+  6 + pub fn content_definitions<R: Runtime>(app: &AppHandle<R>) -> Result<CatalogCorrection, String> {
+    |
+help: you might be missing a type parameter
+    |
+  6 | pub fn content_definitions<R: Runtime, CatalogInspection>(app: &AppHandle<R>) -> Result<CatalogInspection, String> {
+    |                                      +++++++++++++++++++
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `kinshoko` (lib test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `kinshoko` (lib) due to 1 previous error

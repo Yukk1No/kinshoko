@@ -1,0 +1,21 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.92s
+     Running tests\backup_content_definitions.rs (target\debug\deps\backup_content_definitions-9aa9b0f8d0b1df11.exe)
+
+running 1 test
+
+thread 'a_later_library_restore_failure_does_not_leave_an_earlier_usable_copy' (13332) panicked at crates\kinshoko-core\tests\backup_content_definitions.rs:127:5:
+assertion `left == right` failed: a failed content restore must roll back every copy in its batch
+  left: 1
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test a_later_library_restore_failure_does_not_leave_an_earlier_usable_copy ... FAILED
+
+failures:
+
+failures:
+    a_later_library_restore_failure_does_not_leave_an_earlier_usable_copy
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.41s
+
+error: test failed, to rerun pass `-p kinshoko-core --test backup_content_definitions`

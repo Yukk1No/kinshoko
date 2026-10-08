@@ -66,6 +66,8 @@ describe("设置：备份", () => {
     render(<BackupSettings />);
 
     expect(await screen.findByText(/还没有选择备份目录/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "资料库备份" })).toBeTruthy();
+    expect(screen.getByText(/恢复资料库保留当前程序设置/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "选择备份目录…" }));
     await screen.findByText("E:\\备份");
     expect(calls.find((c) => c.cmd === "set_backup_target")?.args).toEqual({ target: "E:\\备份" });

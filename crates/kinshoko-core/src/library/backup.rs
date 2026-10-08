@@ -64,6 +64,36 @@ pub struct LibrarySnapshot {
     _lease: OriginalsLease,
 }
 
+impl LibrarySnapshot {
+    /// Complete this private snapshot with current pure app definitions. The source stays read-only.
+    pub(crate) fn apply_content_definitions(
+        &mut self,
+        catalog: &crate::tag_catalog::CatalogInspection,
+    ) -> Result<(), Error> {
+        let mut conn = Connection::open(store::sqlite_path(&self.database)?)?;
+        conn.pragma_update(None, "foreign_keys", "ON")?;
+        let tx = conn.transaction()?;
+        super::tag_definitions::seed(&tx)?;
+        tx.commit()?;
+        let dependencies = super::tag_definitions::read(&conn)?;
+        let local_ids = dependencies
+            .iter()
+            .map(|binding| binding.local_tag_id.clone())
+            .collect::<std::collections::BTreeSet<_>>();
+        let mut bindings = catalog
+            .content_bindings(&self.library.id, dependencies)
+            .map_err(|e| Error::TagDefinitions(e.to_string()))?;
+        // A mapping can outlive a tag deleted before the fixed database snapshot.
+        bindings.retain(|binding| local_ids.contains(&binding.local_tag_id));
+        super::tag_definitions::publish(&mut conn, &bindings)?;
+        // These legacy rows are program settings since #78. A new library identity must not
+        // make their migration replay during a later content-only registration.
+        clear_legacy_application_settings(&conn)?;
+        self.curation = curation(&conn, None)?;
+        Ok(())
+    }
+}
+
 /// 这个资料库是从哪个备份恢复出来的。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -84,6 +114,8 @@ pub struct LibraryCheck {
     pub original_problems: Vec<String>,
     /// 与快照不一致的整理信息（表）。
     pub curation_problems: Vec<String>,
+    /// Content tables actually compared; legacy program settings are excluded.
+    pub curation_checked: u32,
 }
 
 /// 原文件租约：持有期间不清除该资料库的原文件——永久删除（#67）照常删掉记录，原文件留在待清除
@@ -211,6 +243,20 @@ impl Library {
         })
     }
 
+    pub(crate) fn snapshot_tag_definitions(
+        database: &Path,
+    ) -> Result<Vec<crate::portable_tags::PortableTagDefinition>, Error> {
+        let conn = store::inspect_db(database)?;
+        let present: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='tag_definition_dependency')", [], |r| r.get(0))?;
+        if !present {
+            return Ok(Vec::new());
+        } // Backups made before portable dependencies remain compatible.
+        Ok(super::tag_definitions::read(&conn)?
+            .into_iter()
+            .map(|binding| binding.definition)
+            .collect())
+    }
+
     /// 从快照恢复出一个新的资料库：放在 `root`（不存在或空文件夹），新的资料库身份、名称 `name`，
     /// 参考图身份不变，记下恢复来源。原文件由 `fetch(文件, 目标位置)` 写到资料库指定的位置，
     /// 写好后在这里核对哈希。失败时删掉已写的部分。
@@ -248,6 +294,9 @@ impl Library {
                     ))));
                 }
             }
+            // Old content snapshots can still contain the former per-library settings.
+            // Restoring content must not give them a new migration identity in the target app.
+            clear_legacy_application_settings(&conn)?;
             let tx = conn.transaction()?;
             tx.execute(
                 "UPDATE library SET id = ?1, name = ?2",
@@ -312,8 +361,17 @@ impl Library {
                 present.len()
             ));
         }
-        let actual = curation(&conn, Some(curation_expected))?;
-        for (want, got) in curation_expected.iter().zip(&actual) {
+        let content_expected = curation_expected
+            .iter()
+            .filter(|digest| {
+                !["tag_group", "tag_group_member", "personal_approx"]
+                    .contains(&digest.table.as_str())
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        check.curation_checked = content_expected.len() as u32;
+        let actual = curation(&conn, Some(&content_expected))?;
+        for (want, got) in content_expected.iter().zip(&actual) {
             if want != got {
                 check.curation_problems.push(format!(
                     "表 {}：快照 {} 行，恢复后 {} 行，内容{}",
@@ -330,6 +388,11 @@ impl Library {
         }
         Ok(check)
     }
+}
+
+fn clear_legacy_application_settings(conn: &Connection) -> Result<(), Error> {
+    conn.execute_batch("BEGIN IMMEDIATE; DELETE FROM tag_group_member; DELETE FROM tag_group; DELETE FROM personal_approx; COMMIT;")?;
+    Ok(())
 }
 
 fn checked_info(root: &Path, expected_id: &str) -> Result<LibraryInfo, Error> {

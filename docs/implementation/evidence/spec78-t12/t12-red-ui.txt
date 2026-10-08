@@ -1,0 +1,189 @@
+npm warn "src/Backup.test.tsx" is being parsed as a normal command line argument.
+npm warn Unknown cli config "--run". This will stop working in the next major version of npm.
+
+> kinshoko@0.1.0 test
+> vitest run src/Backup.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/Backup.test.tsx (6 tests | 1 failed) 304ms
+   ❯ 设置：备份 (4)
+     × 还没有备份目标时提示选择，选好的目录交给核心保存 158ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/Backup.test.tsx > 设置：备份 > 还没有备份目标时提示选择，选好的目录交给核心保存
+TestingLibraryElementError: Unable to find an accessible element with the role "heading" and name "资料库备份"
+
+Here are the accessible roles:
+
+  region:
+
+  Name "备份":
+  <section
+    aria-label="备份"
+    class="settings backup-settings"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "备份":
+  <h2 />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="settings-hint"
+  />
+
+  Name "":
+  <p
+    class="settings-actions"
+  />
+
+  Name "":
+  <p
+    class="settings-actions"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "选择备份目录…":
+  <button
+    type="button"
+  />
+
+  Name "马上备份":
+  <button
+    disabled=""
+    type="button"
+  />
+
+  Name "从备份恢复…":
+  <button
+    type="button"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "范围":
+  <fieldset
+    class="backup-scope"
+  />
+
+  --------------------------------------------------
+  radio:
+
+  Name "本设备的全部资料库与参考组":
+  <input
+    checked=""
+    name="backup-scope"
+    type="radio"
+  />
+
+  Name "只备份所选资料库":
+  <input
+    name="backup-scope"
+    type="radio"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <section
+      aria-label="备份"
+      class="settings backup-settings"
+    >
+      <h2>
+        备份
+      </h2>
+      <p
+        class="settings-hint"
+      >
+        还没有选择备份目录。选另一块硬盘或移动盘上的文件夹，每天第一次退出或空闲时自动备份一次。
+      </p>
+      <p
+        class="settings-actions"
+      >
+        <button
+          type="button"
+        >
+          选择备份目录…
+        </button>
+        <button
+          disabled=""
+          type="button"
+        >
+          马上备份
+        </button>
+      </p>
+      <fieldset
+        class="backup-scope"
+      >
+        <legend>
+          范围
+        </legend>
+        <label
+          class="settings-row"
+        >
+          <input
+            checked=""
+            name="backup-scope"
+            type="radio"
+          />
+          本设备的全部资料库与参考组
+        </label>
+        <label
+          class="settings-row"
+        >
+          <input
+            name="backup-scope"
+            type="radio"
+          />
+          只备份所选资料库
+        </label>
+      </fieldset>
+      <div
+        class="backup-restore"
+      >
+        <p
+          class="settings-actions"
+        >
+          <button
+            type="button"
+          >
+            从备份恢复…
+          </button>
+        </p>
+      </div>
+    </section>
+  </div>
+</body>
+ ❯ Object.getElementError ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/Backup.test.tsx:69:19
+     67|
+     68|     expect(await screen.findByText(/还没有选择备份目录/)).toBeTruthy();
+     69|     expect(screen.getByRole("heading", { name: "资料库备份" })).toBeTruthy(…
+       |                   ^
+     70|     expect(screen.getByText(/恢复资料库保留当前程序设置/)).toBeTruthy();
+     71|     fireEvent.click(screen.getByRole("button", { name: "选择备份目录…" }));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  02:31:36
+   Duration  1.76s (environment 66%, tests 19%, import 11%, transform 5%)
+
