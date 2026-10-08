@@ -1,0 +1,267 @@
+<div id="kinshoko-folder-workspace" lang="zh-CN">
+  <div class="fw-app" aria-label="以资料库为根的文件夹目录方案">
+    <header class="fw-header"><strong>Kinshoko</strong><span>目录方案 · 未确认 · 示例数据</span></header>
+    <div class="fw-layout">
+      <nav class="fw-rail" aria-label="主要页面">
+        <button class="cursor-interaction" type="button" aria-current="page"><i data-lucide="images" aria-hidden="true"></i><span>浏览</span></button>
+        <button class="cursor-interaction" type="button" data-page="标签目录"><i data-lucide="tags" aria-hidden="true"></i><span>标签</span></button>
+        <button class="cursor-interaction" type="button" data-page="参考组"><i data-lucide="pin" aria-hidden="true"></i><span>参考组</span></button>
+        <button class="cursor-interaction" type="button" data-page="程序设置"><i data-lucide="settings" aria-hidden="true"></i><span>设置</span></button>
+      </nav>
+      <aside class="fw-sidebar" aria-label="资料库和文件夹目录">
+        <button type="button" class="fw-global cursor-interaction" data-scope="all">全部资料库</button>
+        <h3>资料库</h3><div id="fw-tree"></div>
+        <h3>标签分组 · 跨库共用</h3>
+        <button type="button" class="cursor-interaction" data-tag="蓝发">发色 / 蓝发</button>
+        <button type="button" class="cursor-interaction" data-tag="">全部标签</button>
+      </aside>
+      <main class="fw-main">
+        <div class="fw-breadcrumb" id="fw-breadcrumb" aria-live="polite"></div>
+        <div class="fw-tools">
+          <button type="button" class="fw-primary cursor-interaction" data-operation="import">导入图片…</button>
+          <button type="button" class="cursor-interaction" data-operation="folder">新建文件夹…</button>
+          <label id="fw-descendants-label"><input id="fw-descendants" type="checkbox" checked>包含子文件夹</label>
+        </div>
+        <div class="fw-filter" id="fw-filter"></div>
+        <div class="fw-count" id="fw-count"></div>
+        <div class="fw-wall" id="fw-wall" aria-label="参考图结果"></div>
+      </main>
+      <aside class="fw-detail" id="fw-detail" aria-label="来源记录和文件夹归属"></aside>
+    </div>
+    <div id="fw-status" class="fw-status" aria-live="polite">查看范围与写入目标分别确定。</div>
+    <div id="fw-modal"></div>
+  </div>
+</div>
+
+<style>
+  #kinshoko-folder-workspace .fw-app {
+    --fw-bg: light-dark(#f7f3ea, #1e1c2c);
+    --fw-text: light-dark(#2b2747, #f4ecdc);
+    --fw-panel: light-dark(#fffdf8, #272436);
+    --fw-wall: light-dark(#eae9e6, #161618);
+    --fw-line: light-dark(rgb(43 39 71 / .16), rgb(244 236 220 / .18));
+    --fw-muted: light-dark(#625e70, #bbb4c5);
+    --fw-accent: light-dark(#b5465f, #e3b34f);
+    --fw-on-accent: light-dark(#ffffff, #1e1c2c);
+    --fw-selected: light-dark(#f4dce3, #423a26);
+    --fw-scrim: light-dark(rgb(43 39 71 / .38), rgb(0 0 0 / .55));
+    font-family: "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+    font-size: 14px; line-height: 1.5; color-scheme: light dark;
+    background: var(--fw-bg); color: var(--fw-text); position: relative; isolation: isolate;
+    border: 1px solid var(--fw-line); border-radius: 10px; overflow: clip;
+  }
+  #kinshoko-folder-workspace .fw-app * { box-sizing: border-box; }
+  #kinshoko-folder-workspace .fw-app h2,
+  #kinshoko-folder-workspace .fw-app h3,
+  #kinshoko-folder-workspace .fw-app p { margin: 0; font: inherit; }
+  #kinshoko-folder-workspace .fw-app strong,
+  #kinshoko-folder-workspace .fw-app h2,
+  #kinshoko-folder-workspace .fw-app h3 { font-weight: 500; }
+  #kinshoko-folder-workspace .fw-app button,
+  #kinshoko-folder-workspace .fw-app input,
+  #kinshoko-folder-workspace .fw-app select {
+    font: inherit; color: var(--fw-text); background: var(--fw-bg);
+    border: 1px solid var(--fw-line); border-radius: 5px; min-height: 34px; padding: 5px 8px; min-width: 0;
+  }
+  #kinshoko-folder-workspace .fw-app button { overflow-wrap: anywhere; }
+  #kinshoko-folder-workspace .fw-app button:disabled { opacity: .55; }
+  #kinshoko-folder-workspace .fw-app button[aria-current="page"],
+  #kinshoko-folder-workspace .fw-app button[aria-pressed="true"] { background: var(--fw-selected); }
+  #kinshoko-folder-workspace .fw-app .fw-primary { background: var(--fw-accent); color: var(--fw-on-accent); border-color: var(--fw-accent); }
+  #kinshoko-folder-workspace .fw-header { padding: 13px 100px 13px 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; border-bottom: 1px solid var(--fw-line); }
+  #kinshoko-folder-workspace .fw-header strong { font-size: 17px; }
+  #kinshoko-folder-workspace .fw-header span { color: var(--fw-muted); font-size: 12px; }
+  #kinshoko-folder-workspace .fw-layout { display: grid; grid-template-columns: 62px 225px minmax(0, 1fr) 245px; min-height: 680px; }
+  #kinshoko-folder-workspace .fw-rail { border-right: 1px solid var(--fw-line); padding: 8px 4px; }
+  #kinshoko-folder-workspace .fw-rail button { display: grid; justify-items: center; width: 100%; gap: 4px; margin-bottom: 8px; border-color: transparent; }
+  #kinshoko-folder-workspace .fw-sidebar { min-width: 0; padding: 12px 10px; border-right: 1px solid var(--fw-line); }
+  #kinshoko-folder-workspace .fw-sidebar h3 { margin: 16px 5px 8px; color: var(--fw-muted); font-size: 12px; }
+  #kinshoko-folder-workspace .fw-sidebar > button { width: 100%; text-align: left; border-color: transparent; }
+  #kinshoko-folder-workspace .fw-root { display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; margin-top: 8px; }
+  #kinshoko-folder-workspace .fw-root button { border-color: transparent; text-align: left; }
+  #kinshoko-folder-workspace .fw-expand { padding: 4px !important; }
+  #kinshoko-folder-workspace .fw-folder { display: flex; gap: 5px; align-items: center; width: 100%; text-align: left; border-color: transparent !important; padding-left: calc(14px + var(--fw-depth, 0) * 14px) !important; }
+  #kinshoko-folder-workspace .fw-folder .fw-label { flex: 1; min-width: 0; }
+  #kinshoko-folder-workspace .fw-folder .fw-number { color: var(--fw-muted); font-size: 12px; }
+  #kinshoko-folder-workspace .fw-folder svg { flex: none; width: 14px; height: 14px; }
+  #kinshoko-folder-workspace .fw-main { background: var(--fw-wall); min-width: 0; padding: 15px; }
+  #kinshoko-folder-workspace .fw-breadcrumb { font-weight: 500; overflow-wrap: anywhere; margin-bottom: 12px; }
+  #kinshoko-folder-workspace .fw-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+  #kinshoko-folder-workspace .fw-tools label { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+  #kinshoko-folder-workspace input[type="checkbox"] { width: 15px; min-height: 15px; height: 15px; margin: 0; }
+  #kinshoko-folder-workspace .fw-filter { margin-top: 12px; }
+  #kinshoko-folder-workspace .fw-count { color: var(--fw-muted); font-size: 12px; margin: 10px 0; }
+  #kinshoko-folder-workspace .fw-wall { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); gap: 10px; align-items: start; }
+  #kinshoko-folder-workspace .fw-card { text-align: left; display: block; padding: 0 !important; overflow: hidden; }
+  #kinshoko-folder-workspace .fw-thumb { display: grid; place-items: center; min-height: 125px; color: var(--fw-muted); background: var(--fw-panel); padding: 12px; }
+  #kinshoko-folder-workspace .fw-card-meta { display: block; padding: 8px; }
+  #kinshoko-folder-workspace .fw-card-meta small { display: block; font-size: 12px; margin-top: 5px; color: var(--fw-muted); }
+  #kinshoko-folder-workspace .fw-detail { min-width: 0; padding: 14px; border-left: 1px solid var(--fw-line); background: var(--fw-panel); overflow-wrap: anywhere; }
+  #kinshoko-folder-workspace .fw-detail h3 { margin-bottom: 12px; }
+  #kinshoko-folder-workspace .fw-detail label { display: block; margin: 12px 0 6px; }
+  #kinshoko-folder-workspace .fw-detail select { width: 100%; }
+  #kinshoko-folder-workspace .fw-detail ul { padding-left: 18px; margin: 8px 0 14px; }
+  #kinshoko-folder-workspace .fw-detail li { margin: 6px 0; }
+  #kinshoko-folder-workspace .fw-detail .fw-small { font-size: 12px; color: var(--fw-muted); margin: 9px 0; }
+  #kinshoko-folder-workspace .fw-status { padding: 10px 14px; border-top: 1px solid var(--fw-line); font-size: 12px; }
+  #kinshoko-folder-workspace .fw-overlay { position: absolute; inset: 0; z-index: 3; background: var(--fw-scrim); display: flex; justify-content: center; align-items: start; padding: 75px 16px 16px; }
+  #kinshoko-folder-workspace .fw-dialog { width: min(440px, 100%); background: var(--fw-panel); color: var(--fw-text); padding: 18px; border: 1px solid var(--fw-line); border-radius: 10px; }
+  #kinshoko-folder-workspace .fw-dialog h2 { margin-bottom: 12px; }
+  #kinshoko-folder-workspace .fw-dialog label { display: block; margin: 12px 0; }
+  #kinshoko-folder-workspace .fw-dialog select,
+  #kinshoko-folder-workspace .fw-dialog input { display: block; width: 100%; margin-top: 5px; }
+  #kinshoko-folder-workspace .fw-dialog .fw-actions { display: flex; justify-content: end; gap: 8px; margin-top: 16px; }
+  #kinshoko-folder-workspace [hidden] { display: none !important; }
+  @media (max-width: 900px) {
+    #kinshoko-folder-workspace .fw-layout { grid-template-columns: 56px 210px minmax(0, 1fr); }
+    #kinshoko-folder-workspace .fw-detail { grid-column: 3; border-top: 1px solid var(--fw-line); }
+    #kinshoko-folder-workspace .fw-rail, #kinshoko-folder-workspace .fw-sidebar { grid-row: 1 / span 2; }
+  }
+  @media (max-width: 590px) {
+    #kinshoko-folder-workspace .fw-layout { display: block; }
+    #kinshoko-folder-workspace .fw-rail { display: flex; gap: 5px; padding: 6px; border-bottom: 1px solid var(--fw-line); border-right: 0; }
+    #kinshoko-folder-workspace .fw-rail button { margin: 0; }
+    #kinshoko-folder-workspace .fw-sidebar { border-right: 0; border-bottom: 1px solid var(--fw-line); }
+    #kinshoko-folder-workspace .fw-detail { border-left: 0; }
+    #kinshoko-folder-workspace .fw-overlay { padding-top: 25px; }
+    #kinshoko-folder-workspace .fw-app button { min-height: 40px; }
+    #kinshoko-folder-workspace .fw-header { padding-right: 96px; }
+  }
+</style>
+
+<script>
+(() => {
+  const root = document.getElementById('kinshoko-folder-workspace');
+  const get = name => root.querySelector('#fw-' + name);
+  const libraries = { a: '角色参考', b: '画法练习', c: '移动盘参考' };
+  const folders = [
+    { id: 'a-paint', library: 'a', parent: null, name: '画法' },
+    { id: 'a-thick', library: 'a', parent: 'a-paint', name: '厚涂' },
+    { id: 'a-people', library: 'a', parent: null, name: '人物' },
+    { id: 'a-action', library: 'a', parent: 'a-people', name: '动作' },
+    { id: 'b-thick', library: 'b', parent: null, name: '厚涂' },
+    { id: 'b-selected', library: 'b', parent: null, name: '练习精选' }
+  ];
+  const records = [
+    { id: 'a-1', library: 'a', hash: 'same-paint', name: '厚涂光影.png', folders: ['a-thick'], tags: ['蓝发', '短发'] },
+    { id: 'a-2', library: 'a', hash: 'action', name: '动作结构.jpg', folders: ['a-action'], tags: ['短发'] },
+    { id: 'a-3', library: 'a', hash: 'unassigned', name: '未归类参考.png', folders: [], tags: [] },
+    { id: 'b-1', library: 'b', hash: 'same-paint', name: '厚涂光影.png', folders: ['b-thick', 'b-selected'], tags: ['蓝发'] },
+    { id: 'b-2', library: 'b', hash: 'practice', name: '色块练习.png', folders: ['b-thick'], tags: [] }
+  ];
+  let state = { library: 'all', folder: '', tag: '', descendants: true, selected: 'same-paint', source: 'a-1', expanded: { a: true, b: true, c: true }, modal: null, status: '查看范围与写入目标分别确定。' };
+  const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+  const path = id => {
+    const folder = folders.find(item => item.id === id);
+    return folder ? (folder.parent ? path(folder.parent) + ' / ' : '') + folder.name : '';
+  };
+  const contained = (id, ancestor) => id === ancestor || !!(folders.find(item => item.id === id)?.parent && contained(folders.find(item => item.id === id).parent, ancestor));
+  const folderRecords = (library, folder, descendants) => records.filter(record => record.library === library && (folder === 'unassigned' ? record.folders.length === 0 : !folder || record.folders.some(id => descendants ? contained(id, folder) : id === folder)));
+  const visibleRecords = () => records.filter(record => (state.library === 'all' || record.library === state.library) && (!state.folder || (state.folder === 'unassigned' ? record.folders.length === 0 : record.folders.some(id => state.descendants ? contained(id, state.folder) : id === state.folder))) && (!state.tag || record.tags.includes(state.tag)));
+  function save() {
+    if (!window.openai || typeof window.openai.setWidgetState !== 'function') return;
+    Promise.resolve(window.openai.setWidgetState({ modelContent: { visualization: '资料库目录树方案', scope: libraries[state.library] || '全部资料库', folder: state.folder === 'unassigned' ? '未归类' : path(state.folder), sourceRecord: state.source, tag: state.tag || null }, privateContent: { schema: 'kinshoko-folder-workspace-1', state: { ...state, modal: null } } })).catch(() => {});
+  }
+  function hydrate(saved) {
+    const content = saved && saved.privateContent;
+    if (!content || content.schema !== 'kinshoko-folder-workspace-1') return;
+    const incoming = content.state;
+    if (!incoming || !['all', 'a', 'b', 'c'].includes(incoming.library)) return;
+    if (incoming.folder && incoming.folder !== 'unassigned' && !folders.some(folder => folder.id === incoming.folder && folder.library === incoming.library)) return;
+    state = { ...state, ...incoming, modal: state.modal };
+  }
+  const button = (label, extra) => '<button type="button" class="cursor-interaction" ' + extra + '>' + label + '</button>';
+  function folderRows(library, parent = null, depth = 0) {
+    return folders.filter(folder => folder.library === library && folder.parent === parent).map(folder => '<button type="button" class="fw-folder cursor-interaction" style="--fw-depth:' + depth + '" data-folder="' + folder.id + '" data-library="' + library + '" aria-label="查看' + libraries[library] + '：' + path(folder.id) + '" aria-pressed="' + (state.library === library && state.folder === folder.id) + '"><i data-lucide="folder" aria-hidden="true"></i><span class="fw-label">' + folder.name + '</span><span class="fw-number">' + folderRecords(library, folder.id, true).length + '</span></button>' + folderRows(library, folder.id, depth + 1)).join('');
+  }
+  function renderTree() {
+    root.querySelector('[data-scope="all"]').setAttribute('aria-pressed', state.library === 'all');
+    get('tree').innerHTML = Object.entries(libraries).map(([library, name]) => '<div class="fw-root">' + button(state.expanded[library] ? '−' : '+', 'data-expand="' + library + '" aria-label="展开或收起' + name + '" aria-expanded="' + !!state.expanded[library] + '"') + button(name + (library === 'c' ? ' · 未连接' : ''), 'data-scope="' + library + '" aria-pressed="' + (state.library === library && !state.folder) + '"') + '</div><div' + (state.expanded[library] ? '' : ' hidden') + '>' + (library === 'c' ? '' : '<button type="button" class="fw-folder cursor-interaction" data-library="' + library + '" data-folder="unassigned" aria-pressed="' + (state.library === library && state.folder === 'unassigned') + '"><span class="fw-label">未归类</span><span class="fw-number">' + folderRecords(library, 'unassigned', false).length + '</span></button>' + folderRows(library)) + '</div>').join('');
+  }
+  function renderDetail(grouped) {
+    const matching = grouped.find(group => group.hash === state.selected);
+    if (!matching) { get('detail').innerHTML = '<h3>图片来源</h3><p>' + (state.library === 'c' ? '资料库未连接。内容当前无法读取。' : '当前范围没有结果。') + '</p>'; return; }
+    const copies = records.filter(record => record.hash === state.selected);
+    if (!copies.some(record => record.id === state.source)) state.source = matching.records[0].id;
+    const source = copies.find(record => record.id === state.source);
+    get('detail').innerHTML = '<h3>' + escape(source.name) + '</h3><p>全部来源记录</p><ul>' + copies.map(record => '<li>' + libraries[record.library] + '<br>' + (record.folders.length ? record.folders.map(id => escape(path(id))).join('<br>') : '未归类') + '</li>').join('') + '<label for="fw-source">当前操作的来源记录</label><select id="fw-source">' + copies.map(record => '<option value="' + record.id + '"' + (record.id === state.source ? ' selected' : '') + '>' + libraries[record.library] + '</option>').join('') + '</select><p class="fw-small">当前记录的标签：' + (source.tags.join('、') || '无') + '</p><p class="fw-small">当前记录的文件夹：' + (source.folders.length ? source.folders.map(id => escape(path(id))).join('；') : '未归类') + '</p><button type="button" class="cursor-interaction" data-operation="copy">复制到资料库…</button>';
+  }
+  function renderModal() {
+    if (!state.modal) { get('modal').innerHTML = ''; return; }
+    const modal = state.modal;
+    const titles = { import: '导入图片', folder: '新建文件夹', copy: '复制到资料库' };
+    const parentOptions = folders.filter(folder => folder.library === modal.library).map(folder => '<option value="' + folder.id + '"' + (modal.folder === folder.id ? ' selected' : '') + '>' + path(folder.id) + '</option>').join('');
+    get('modal').innerHTML = '<div class="fw-overlay"><section class="fw-dialog" role="dialog" aria-modal="true" aria-label="' + titles[modal.operation] + '"><h2>' + titles[modal.operation] + '</h2><label>目标资料库<select id="fw-destination">' + (!modal.library ? '<option value="" disabled selected>请选择资料库</option>' : '') + ['a', 'b'].map(library => '<option value="' + library + '"' + (modal.library === library ? ' selected' : '') + '>' + libraries[library] + '</option>').join('') + '</select></label><label>' + (modal.operation === 'folder' ? '父文件夹' : '目标文件夹') + '<select id="fw-destination-folder"' + (!modal.library ? ' disabled' : '') + '><option value="">' + (modal.operation === 'folder' ? '资料库根目录' : '未归类') + '</option>' + parentOptions + '</select></label>' + (modal.operation === 'folder' ? '<label>文件夹名称<input id="fw-folder-name" value="' + escape(modal.name) + '"></label>' : '<p>' + (modal.operation === 'copy' ? '原来源记录保留。目标已有同一文件时，增加目标文件夹归属。' : '新参考.png 保存到所选资料库和文件夹。') + '</p>') + '<div class="fw-actions">' + button('取消', 'data-close="true"') + '<button type="button" class="fw-primary cursor-interaction" data-preview="true"' + (!modal.library ? ' disabled' : '') + '>查看操作结果</button></div></section></div>';
+    const folderSelect = root.querySelector('#fw-destination-folder');
+    folderSelect.value = modal.folder;
+    root.querySelector('.fw-layout').inert = true;
+  }
+  function render() {
+    const focusedId = document.activeElement?.id;
+    root.querySelector('.fw-layout').inert = false;
+    renderTree();
+    const visible = visibleRecords();
+    const grouped = [];
+    visible.forEach(record => {
+      let group = grouped.find(item => item.hash === record.hash);
+      if (!group) { group = { hash: record.hash, records: [] }; grouped.push(group); }
+      group.records.push(record);
+    });
+    if (!grouped.some(group => group.hash === state.selected)) {
+      state.selected = grouped[0]?.hash || '';
+      state.source = grouped[0]?.records[0].id || '';
+    }
+    get('breadcrumb').textContent = state.library === 'all' ? '全部资料库 / 全部图片' : libraries[state.library] + (state.folder ? ' / ' + (state.folder === 'unassigned' ? '未归类' : path(state.folder)) : ' / 全部图片');
+    get('descendants-label').hidden = !state.folder || state.folder === 'unassigned';
+    get('descendants').checked = state.descendants;
+    get('filter').textContent = state.tag ? '标签条件：' + state.tag : '';
+    get('count').textContent = state.library === 'c' ? '资料库未连接；当前结果未包含这份资料库。' : grouped.length + ' 张图片 · 当前范围 ' + visible.length + ' 份来源记录';
+    get('wall').innerHTML = grouped.map(group => '<button type="button" class="fw-card cursor-interaction" data-image="' + group.hash + '" aria-pressed="' + (state.selected === group.hash) + '"><span class="fw-thumb">参考图</span><span class="fw-card-meta">' + escape(group.records[0].name) + '<small>' + group.records.map(record => libraries[record.library]).join(' · ') + '</small><small>' + group.records.length + ' 份匹配记录</small></span></button>').join('');
+    renderDetail(grouped);
+    get('status').textContent = state.status;
+    renderModal();
+    if (state.modal) (root.querySelector('#' + (focusedId && focusedId.startsWith('fw-') ? focusedId : 'fw-destination')) || root.querySelector('#fw-destination')).focus({ preventScroll: true });
+    if (globalThis.lucide) lucide.createIcons({ attrs: { width: 16, height: 16 } });
+  }
+  root.addEventListener('click', event => {
+    const target = event.target.closest('button');
+    if (!target) return;
+    if (target.dataset.scope) { state.library = target.dataset.scope; state.folder = ''; state.selected = ''; state.status = '查看范围改变；各资料库目录保持原有归属。'; }
+    if (target.dataset.folder) { state.library = target.dataset.library; state.folder = target.dataset.folder; state.selected = ''; state.status = '查看目录：' + libraries[state.library] + ' / ' + (state.folder === 'unassigned' ? '未归类' : path(state.folder)); }
+    if (target.dataset.expand) state.expanded[target.dataset.expand] = !state.expanded[target.dataset.expand];
+    if (target.dataset.tag !== undefined) { state.tag = target.dataset.tag; state.selected = ''; }
+    if (target.dataset.image) { state.selected = target.dataset.image; state.source = visibleRecords().find(record => record.hash === state.selected).id; }
+    if (target.dataset.operation) {
+      const library = ['a', 'b'].includes(state.library) ? state.library : '';
+      state.modal = { operation: target.dataset.operation, library, folder: state.folder && state.folder !== 'unassigned' ? state.folder : '', name: '新文件夹' };
+    }
+    if (target.dataset.close) state.modal = null;
+    if (target.dataset.preview) {
+      const modal = state.modal;
+      const suffix = modal.folder ? path(modal.folder) : modal.operation === 'folder' ? '根目录' : '未归类';
+      const name = modal.operation === 'folder' ? modal.name.trim() || '新文件夹' : modal.operation === 'copy' ? records.find(record => record.id === state.source).name : '新参考.png';
+      state.status = '示例操作：' + name + ' → ' + libraries[modal.library] + ' / ' + suffix + '。查看范围保持原值。';
+      state.modal = null;
+    }
+    if (target.dataset.page) state.status = target.dataset.page + '是应用层入口；文件夹仍按资料库分别保存。';
+    render(); save();
+  });
+  root.addEventListener('change', event => {
+    const target = event.target;
+    if (target.id === 'fw-folder-name') return;
+    if (target.id === 'fw-source') { state.source = target.value; state.status = '当前操作记录：' + libraries[records.find(record => record.id === state.source).library]; }
+    if (target.id === 'fw-descendants') state.descendants = target.checked;
+    if (target.id === 'fw-destination') { state.modal.library = target.value; state.modal.folder = ''; }
+    if (target.id === 'fw-destination-folder') state.modal.folder = target.value;
+    render(); save();
+  });
+  root.addEventListener('input', event => { if (event.target.id === 'fw-folder-name' && state.modal) state.modal.name = event.target.value; });
+  root.addEventListener('keydown', event => { if (event.key === 'Escape' && state.modal) { state.modal = null; render(); } });
+  window.addEventListener('openai:set_globals', event => {
+    const globals = event.detail && event.detail.globals;
+    if (globals && Object.prototype.hasOwnProperty.call(globals, 'widgetState')) { hydrate(globals.widgetState); render(); }
+  });
+  hydrate(window.openai && window.openai.widgetState);
+  render();
+})();
+</script>

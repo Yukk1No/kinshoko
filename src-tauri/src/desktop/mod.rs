@@ -108,6 +108,7 @@ pub fn init() -> TauriPlugin<Wry> {
             pins::pin_frame,
             pins::pin_ready,
             pins::pin_menu,
+            pins::close_pin,
             pins::move_pin,
             pins::zoom_pin,
             pins::turn_pin,

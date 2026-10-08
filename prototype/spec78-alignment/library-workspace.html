@@ -1,0 +1,347 @@
+<div id="kinshoko-provider-ui">
+  <div class="viz-carousel" aria-label="跨资料库工作区方案" data-previous-label="上一方案" data-next-label="下一方案">
+    <section data-variant="资料库侧栏（推荐）" aria-label="资料库侧栏方案">
+      <div class="kp-app" data-design="sidebar" aria-label="资料库侧栏：查找与导入目标"></div>
+    </section>
+    <section data-variant="范围下拉" aria-label="范围下拉方案" hidden>
+      <div class="kp-app" data-design="compact" aria-label="范围下拉：查找与导入目标"></div>
+    </section>
+  </div>
+</div>
+
+<style>
+  #kinshoko-provider-ui { container-type: inline-size; }
+  #kinshoko-provider-ui .kp-app {
+    --kp-bg: light-dark(#f7f3ea, #1e1c2c);
+    --kp-text: light-dark(#2b2747, #f4ecdc);
+    --kp-accent: light-dark(#b5465f, #e3b34f);
+    --kp-on-accent: light-dark(#ffffff, #1e1c2c);
+    --kp-line: light-dark(rgb(43 39 71 / .16), rgb(244 236 220 / .18));
+    --kp-wall: light-dark(#eae9e6, #161618);
+    --kp-photo: light-dark(#dcdbd7, #29282d);
+    --kp-panel: light-dark(#fffdf8, #272436);
+    --kp-muted: light-dark(#625e70, #bbb4c5);
+    --kp-selected: light-dark(#f4dce3, #423a26);
+    --kp-scrim: light-dark(rgb(43 39 71 / .38), rgb(0 0 0 / .55));
+    --kp-thumb-width: 150px;
+    color-scheme: light dark;
+    position: relative;
+    isolation: isolate;
+    min-width: 0;
+    min-height: 740px;
+    border: 1px solid var(--kp-line);
+    border-radius: 10px;
+    overflow: clip;
+    background: var(--kp-bg);
+    color: var(--kp-text);
+    font-family: "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  #kinshoko-provider-ui .kp-app * { box-sizing: border-box; }
+  #kinshoko-provider-ui .kp-app h2,
+  #kinshoko-provider-ui .kp-app h3,
+  #kinshoko-provider-ui .kp-app p { margin: 0; font-size: inherit; line-height: inherit; }
+  #kinshoko-provider-ui .kp-app h2,
+  #kinshoko-provider-ui .kp-app h3,
+  #kinshoko-provider-ui .kp-app strong { font-weight: 500; }
+  #kinshoko-provider-ui .kp-app button,
+  #kinshoko-provider-ui .kp-app input,
+  #kinshoko-provider-ui .kp-app textarea,
+  #kinshoko-provider-ui .kp-app select {
+    min-width: 0;
+    min-height: 32px;
+    padding: 5px 9px;
+    border: 1px solid var(--kp-line);
+    border-radius: 6px;
+    background: var(--kp-bg);
+    color: var(--kp-text);
+    font: inherit;
+  }
+  #kinshoko-provider-ui .kp-app button:disabled { opacity: .55; }
+  #kinshoko-provider-ui .kp-app select { width: 100%; }
+  #kinshoko-provider-ui .kp-app label { display: block; }
+  #kinshoko-provider-ui .kp-app .kp-primary {
+    background: var(--kp-accent);
+    color: var(--kp-on-accent);
+    border-color: var(--kp-accent);
+  }
+  #kinshoko-provider-ui .kp-app .kp-subtle { color: var(--kp-muted); font-size: 12px; }
+  #kinshoko-provider-ui .kp-app .kp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  #kinshoko-provider-ui .kp-brand { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; padding: 13px 96px 10px 14px; }
+  #kinshoko-provider-ui .kp-brand strong { font-size: 17px; }
+  #kinshoko-provider-ui .kp-app-nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 12px 10px; border-bottom: 1px solid var(--kp-line); }
+  #kinshoko-provider-ui .kp-app-nav button { border-color: transparent; }
+  #kinshoko-provider-ui .kp-app button[aria-current="page"],
+  #kinshoko-provider-ui .kp-app button[aria-pressed="true"] { background: var(--kp-selected); color: var(--kp-text); }
+  #kinshoko-provider-ui .kp-write-bar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--kp-line); }
+  #kinshoko-provider-ui .kp-write-bar label { width: 170px; }
+  #kinshoko-provider-ui .kp-write-bar label > span,
+  #kinshoko-provider-ui .kp-scope label > span,
+  #kinshoko-provider-ui .kp-detail label > span,
+  #kinshoko-provider-ui .kp-dialog label > span { display: block; margin-bottom: 4px; }
+  #kinshoko-provider-ui .kp-body { display: grid; grid-template-columns: 168px minmax(210px, 1fr) 246px; align-items: stretch; min-height: 470px; }
+  #kinshoko-provider-ui .kp-app[data-design="compact"] .kp-body { grid-template-columns: minmax(210px, 1fr) 278px; }
+  #kinshoko-provider-ui .kp-sidebar { padding: 14px 10px; border-right: 1px solid var(--kp-line); }
+  #kinshoko-provider-ui .kp-sidebar h3 { margin: 0 5px 6px; }
+  #kinshoko-provider-ui .kp-sidebar button { display: block; width: 100%; margin: 3px 0; text-align: start; border-color: transparent; }
+  #kinshoko-provider-ui .kp-sidebar .kp-section { margin-top: 18px; }
+  #kinshoko-provider-ui .kp-sidebar .kp-child { padding-left: 22px; }
+  #kinshoko-provider-ui .kp-results { min-width: 0; padding: 14px; background: var(--kp-wall); }
+  #kinshoko-provider-ui .kp-scope { margin-bottom: 12px; }
+  #kinshoko-provider-ui .kp-scope h2 { margin-bottom: 9px; }
+  #kinshoko-provider-ui .kp-search { display: flex; gap: 6px; margin-top: 9px; }
+  #kinshoko-provider-ui .kp-search input { width: auto; flex: 1; }
+  #kinshoko-provider-ui .kp-search button { flex: none; white-space: nowrap; }
+  #kinshoko-provider-ui .kp-scope-select { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  #kinshoko-provider-ui .kp-tags { margin: 10px 0; }
+  #kinshoko-provider-ui .kp-wall { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--kp-thumb-width)), 1fr)); gap: 10px; margin-top: 10px; }
+  #kinshoko-provider-ui .kp-app .kp-image { display: block; padding: 0; overflow: hidden; text-align: start; background: var(--kp-bg); }
+  #kinshoko-provider-ui .kp-app .kp-image[aria-pressed="true"] { outline: 2px solid var(--kp-accent); outline-offset: -2px; background: var(--kp-bg); }
+  #kinshoko-provider-ui .kp-picture { display: grid; min-height: 132px; place-items: center; padding: 16px; background: var(--kp-photo); color: var(--kp-muted); text-align: center; }
+  #kinshoko-provider-ui .kp-image-meta { padding: 8px; overflow-wrap: anywhere; }
+  #kinshoko-provider-ui .kp-image-meta span { display: block; margin-top: 4px; }
+  #kinshoko-provider-ui .kp-detail { padding: 14px; border-left: 1px solid var(--kp-line); min-width: 0; background: var(--kp-panel); }
+  #kinshoko-provider-ui .kp-detail h3 { margin-bottom: 12px; overflow-wrap: anywhere; }
+  #kinshoko-provider-ui .kp-detail .kp-picture { min-height: 95px; margin-bottom: 12px; }
+  #kinshoko-provider-ui .kp-detail label { margin: 12px 0; }
+  #kinshoko-provider-ui .kp-detail textarea { width: 100%; min-height: 70px; resize: vertical; }
+  #kinshoko-provider-ui .kp-detail .kp-location { margin: 8px 0; overflow-wrap: anywhere; }
+  #kinshoko-provider-ui .kp-status { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 40px; padding: 9px 14px; border-top: 1px solid var(--kp-line); }
+  #kinshoko-provider-ui .kp-page { padding: 18px; min-height: 570px; }
+  #kinshoko-provider-ui .kp-page h2 { margin-bottom: 16px; }
+  #kinshoko-provider-ui .kp-page h3 { margin: 18px 0 8px; }
+  #kinshoko-provider-ui .kp-page ul { margin: 0; padding-left: 20px; }
+  #kinshoko-provider-ui .kp-entry { padding: 14px 0; border-bottom: 1px solid var(--kp-line); }
+  #kinshoko-provider-ui .kp-entry .kp-row { margin-top: 9px; }
+  #kinshoko-provider-ui .kp-overlay { position: absolute; z-index: 3; inset: 0; display: flex; justify-content: center; align-items: start; padding: 90px 18px 18px; background: var(--kp-scrim); }
+  #kinshoko-provider-ui .kp-dialog { width: min(440px, 100%); padding: 18px; border: 1px solid var(--kp-line); border-radius: 10px; background: var(--kp-panel); }
+  #kinshoko-provider-ui .kp-dialog h2 { margin-bottom: 12px; font-weight: 500; }
+  #kinshoko-provider-ui .kp-dialog label { margin: 14px 0; }
+  #kinshoko-provider-ui .kp-dialog .kp-check { display: flex; align-items: start; gap: 8px; }
+  #kinshoko-provider-ui .kp-check input { width: 16px; min-height: 16px; height: 16px; margin: 3px 0 0; }
+  #kinshoko-provider-ui .kp-dialog .kp-row { justify-content: end; margin-top: 18px; }
+  #kinshoko-provider-ui [hidden] { display: none !important; }
+  @container (max-width: 850px) {
+    #kinshoko-provider-ui .kp-body { grid-template-columns: 160px minmax(0, 1fr); }
+    #kinshoko-provider-ui .kp-detail { grid-column: 2; border-top: 1px solid var(--kp-line); }
+    #kinshoko-provider-ui .kp-sidebar { grid-row: 1 / span 2; }
+    #kinshoko-provider-ui .kp-app[data-design="compact"] .kp-body { grid-template-columns: minmax(0, 1fr); }
+    #kinshoko-provider-ui .kp-app[data-design="compact"] .kp-detail { grid-column: 1; border-left: 0; }
+    #kinshoko-provider-ui .kp-app { min-height: 1170px; }
+  }
+  @container (max-width: 520px) {
+    #kinshoko-provider-ui .kp-app { min-height: 1600px; }
+    #kinshoko-provider-ui .kp-wall { grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); }
+    #kinshoko-provider-ui .kp-picture { min-height: 100px; }
+    #kinshoko-provider-ui .kp-body { display: block; }
+    #kinshoko-provider-ui .kp-sidebar { border-right: 0; border-bottom: 1px solid var(--kp-line); padding: 10px; }
+    #kinshoko-provider-ui .kp-sidebar .kp-section { margin-top: 10px; }
+    #kinshoko-provider-ui .kp-sidebar button { width: auto; display: inline-block; }
+    #kinshoko-provider-ui .kp-detail { border-left: 0; }
+    #kinshoko-provider-ui .kp-write-bar label { width: 100%; }
+    #kinshoko-provider-ui .kp-write-bar button { flex: 1; }
+    #kinshoko-provider-ui .kp-scope-select { grid-template-columns: minmax(0, 1fr); }
+    #kinshoko-provider-ui .kp-brand strong { font-size: 16px; }
+    #kinshoko-provider-ui .kp-app button,
+    #kinshoko-provider-ui .kp-app input,
+    #kinshoko-provider-ui .kp-app select { min-height: 40px; }
+    #kinshoko-provider-ui .kp-dialog input { min-height: 16px; }
+    #kinshoko-provider-ui .kp-overlay { padding: 24px 10px; }
+  }
+</style>
+
+<script>
+(() => {
+  const root = document.getElementById('kinshoko-provider-ui');
+  const libraries = { a: '插画参考', b: '摄影素材', c: '移动盘参考' };
+  const folders = { a: ['未分类', '人物 / 发型'], b: ['未分类', '截图参考'] };
+  const groups = { '发色': ['蓝发', '紫发'], '发型': ['短发', '分缝发型'] };
+  const baseAssets = [
+    { id: 'hair', name: '蓝发侧脸.png', tags: ['蓝发', '分缝发型'], copies: ['a', 'b'], notes: { a: '观察发丝的走向。', b: '适合侧脸光影参考。' } },
+    { id: 'short', name: '短发结构.jpg', tags: ['短发'], copies: ['a'], notes: { a: '观察后脑的轮廓。' } },
+    { id: 'fringe', name: '刘海结构.png', tags: ['分缝发型'], copies: ['b'], notes: { b: '观察刘海与眉毛的关系。' } }
+  ];
+  const states = {};
+  const validPages = ['search', 'groups', 'captures', 'libraries', 'settings'];
+  const validScopes = ['all', 'a', 'b', 'c'];
+  const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+  const fresh = () => ({ page: 'search', scope: 'all', folder: '', target: 'a', lastTarget: 'a', selected: 'hair', source: 'a', query: '', modal: null, remember: true, thumbWidth: 150, notice: '', noticeTarget: null, assets: JSON.parse(JSON.stringify(baseAssets)), group: [] });
+
+  function hydrate(saved) {
+    const content = saved && saved.privateContent;
+    if (!content || content.schema !== 'kinshoko-provider-ui-1') return;
+    for (const design of ['sidebar', 'compact']) {
+      const candidate = content.states && content.states[design];
+      if (!candidate || !validPages.includes(candidate.page) || !validScopes.includes(candidate.scope) || !['', 'a', 'b'].includes(candidate.target) || !Array.isArray(candidate.assets)) continue;
+      const modal = candidate.modal && ['import', 'copy', 'capture'].includes(candidate.modal.kind) ? candidate.modal : null;
+      Object.assign(states[design], fresh(), candidate, { modal });
+    }
+  }
+
+  function remember(design) {
+    if (!window.openai || typeof window.openai.setWidgetState !== 'function') return;
+    const state = states[design];
+    const snapshot = {
+      modelContent: { visualization: '聚合查找页与保存目标方案', design: design === 'sidebar' ? '资料库侧栏' : '范围下拉', viewingScope: state.scope === 'all' ? '全部资料库' : libraries[state.scope], importTarget: libraries[state.target], selectedRecord: libraries[state.source], page: state.page },
+      privateContent: { schema: 'kinshoko-provider-ui-1', states }
+    };
+    Promise.resolve(window.openai.setWidgetState(snapshot)).catch(() => {});
+  }
+
+  const button = (label, action, extra = '') => '<button type="button" class="cursor-interaction" data-action="' + action + '" ' + extra + '>' + label + '</button>';
+  const libraryOptions = (selected, all = false) => (all ? '<option value="all"' + (selected === 'all' ? ' selected' : '') + '>全部资料库</option>' : !selected ? '<option value="" selected disabled>选择可写资料库</option>' : '') + Object.entries(libraries).map(([id, name]) => '<option value="' + id + '"' + (id === selected ? ' selected' : '') + (id === 'c' ? ' disabled' : '') + '>' + name + (id === 'c' ? '（暂时不可用）' : '') + '</option>').join('');
+  const folderOptions = (target, selected = '') => (folders[target] || []).map(name => '<option' + (name === selected ? ' selected' : '') + '>' + name + '</option>').join('');
+  const itemFolder = (asset, provider) => asset.locations && asset.locations[provider] || (provider === 'a' ? '人物 / 发型' : '截图参考');
+
+  function filtered(state) {
+    return state.assets.filter(asset => (state.scope === 'all' || asset.copies.includes(state.scope)) && (!state.folder || asset.copies.some(provider => (state.scope === 'all' || provider === state.scope) && itemFolder(asset, provider) === state.folder)) && (!state.query || (groups[state.query] ? groups[state.query].some(tag => asset.tags.includes(tag)) : (asset.name + ' ' + asset.tags.join(' ')).includes(state.query))));
+  }
+
+  function navigateScope(state, scope) {
+    state.scope = scope;
+    state.folder = '';
+    state.page = 'search';
+    state.target = scope === 'a' || scope === 'b' ? scope : scope === 'all' ? state.lastTarget : '';
+    if (scope === 'a' || scope === 'b') state.source = scope;
+    state.notice = '';
+    state.noticeTarget = null;
+  }
+
+  function sidebar(state) {
+    return '<aside class="kp-sidebar" aria-label="资料库与标签导航"><h3>查看范围</h3>' +
+      button('全部资料库', 'scope', 'data-value="all" aria-pressed="' + (state.scope === 'all') + '"') +
+      Object.entries(libraries).map(([id, name]) => button(name + (id === 'c' ? ' · 离线' : ''), 'scope', 'data-value="' + id + '" aria-pressed="' + (state.scope === id) + '"')).join('') +
+      (state.scope === 'a' || state.scope === 'b' ? '<div class="kp-section"><h3>库内文件夹</h3>' + button('全部图片', 'folder', 'data-value="" aria-pressed="' + !state.folder + '"') + folders[state.scope].map(name => button(escape(name), 'folder', 'data-value="' + escape(name) + '" aria-pressed="' + (state.folder === name) + '"')).join('') + '</div>' : '') +
+      '<div class="kp-section"><h3>标签分组</h3>' + button('发色 · 蓝发、紫发', 'tag', 'data-value="发色"') + button('发型 · 短发、分缝发型', 'tag', 'data-value="发型"') + '</div></aside>';
+  }
+
+  function resultPage(state, design) {
+    const assets = filtered(state);
+    if (!assets.some(asset => asset.id === state.selected)) state.selected = assets[0] && assets[0].id;
+    const asset = state.assets.find(item => item.id === state.selected);
+    if (asset && !asset.copies.includes(state.source)) state.source = asset.copies.includes(state.scope) ? state.scope : asset.copies[0];
+    const scopeName = state.scope === 'all' ? '全部资料库' : libraries[state.scope];
+    const compactScope = design === 'compact' ? '<div class="kp-scope-select"><label><span>查看范围</span><select data-field="scope" aria-label="查看范围">' + libraryOptions(state.scope, true) + '</select></label>' + ((state.scope === 'a' || state.scope === 'b') ? '<label><span>库内文件夹</span><select data-field="folder" aria-label="库内文件夹"><option value="">全部图片</option>' + folderOptions(state.scope, state.folder) + '</select></label>' : '') + '</div>' : '';
+    const wall = '<main class="kp-results"><div class="kp-scope"><h2>查找 / ' + scopeName + (state.folder ? ' / ' + escape(state.folder) : '') + '</h2>' + compactScope + '<form class="kp-search" data-form="search"><input aria-label="查找标签或名称" placeholder="查找标签或名称" value="' + escape(state.query) + '"><button class="cursor-interaction" type="submit">查找</button></form></div>' + (design === 'compact' ? '<div class="kp-row kp-tags"><span class="kp-subtle">标签分组</span>' + button('蓝发', 'tag', 'data-value="蓝发"') + button('分缝发型', 'tag', 'data-value="分缝发型"') + '</div>' : '') + '<p class="kp-subtle">' + (state.scope === 'c' ? '资料库暂时不可用' : assets.length + ' 张参考图 · 同文件合并显示') + '</p><div class="kp-wall">' + assets.map(item => '<button class="kp-image cursor-interaction" type="button" data-action="select" data-id="' + item.id + '" aria-pressed="' + (state.selected === item.id) + '"><span class="kp-picture">示例原图</span><span class="kp-image-meta">' + escape(item.name) + '<span class="kp-subtle">' + item.copies.map(provider => libraries[provider]).join(' · ') + '</span><span>' + item.copies.length + ' 份资料库记录</span></span></button>').join('') + '</div></main>';
+    const detail = '<aside class="kp-detail" aria-label="图片来源与整理">' + (asset ? '<h3>' + escape(asset.name) + '</h3><div class="kp-picture">示例原图</div><p>保存位置</p>' + asset.copies.map(provider => '<p class="kp-location kp-subtle">' + libraries[provider] + ' / ' + itemFolder(asset, provider) + '</p>').join('') + '<label><span>当前操作的来源记录</span><select data-field="source" aria-label="当前操作的来源记录">' + asset.copies.map(provider => '<option value="' + provider + '"' + (provider === state.source ? ' selected' : '') + '>' + libraries[provider] + '</option>').join('') + '</select></label><p class="kp-subtle">标签：' + asset.tags.join('、') + '</p><label><span>' + libraries[state.source] + '的备注</span><textarea aria-label="来源记录的备注" data-field="note">' + escape(asset.notes[state.source] || '') + '</textarea></label><div class="kp-row">' + button('保存这份备注', 'note') + '</div><div class="kp-row" style="margin-top:12px">' + button('钉到桌面', 'pin') + button('存入参考组', 'group') + button('复制到资料库…', 'copy') + '</div>' : '<h3>图片详情</h3><p class="kp-subtle">选择一张图片后显示来源记录。</p>') + '</aside>';
+    return '<div class="kp-body">' + (design === 'sidebar' ? sidebar(state) : '') + wall + detail + '</div>';
+  }
+
+  function otherPage(state) {
+    if (state.page === 'groups') return '<main class="kp-page"><h2>参考组</h2><div class="kp-entry"><h3>发型观察</h3>' + (state.group.length ? state.group.map(ref => '<p>' + escape((state.assets.find(asset => asset.id === ref.id) || {}).name || ref.id) + ' · ' + libraries[ref.source] + '</p>').join('') : '<p class="kp-subtle">尚未加入参考图</p>') + '</div><p class="kp-subtle" style="margin-top:14px">参考组独立保存。成员引用各资料库中的原图。</p></main>';
+    if (state.page === 'captures') return '<main class="kp-page"><h2>截图历史</h2><div class="kp-entry"><div class="kp-picture">示例截图</div><h3>最近的截图</h3><p class="kp-subtle">未收藏</p><div class="kp-row">' + button('收藏到资料库…', 'capture') + '</div></div></main>';
+    if (state.page === 'libraries') return '<main class="kp-page"><h2>资料库管理</h2>' + Object.entries(libraries).map(([id, name]) => '<div class="kp-entry"><strong>' + name + '</strong><p class="kp-subtle">' + (id === 'c' ? '暂时不可用' : '本地资料库 · 可以写入') + '</p><div class="kp-row">' + button('查看这个资料库', 'scope', 'data-value="' + id + '"') + '</div></div>').join('') + '<h3>资料库备份</h3><p>原图、图片整理信息、关联参考组与依赖</p></main>';
+    return '<main class="kp-page"><h2>程序设置</h2><h3>跨资料库的个人设置</h3><ul><li>标签目录与名称偏好</li><li>标签分组</li><li>个人近似规则</li><li>快捷键与显示设置</li></ul><h3>程序设置备份</h3><p>恢复时，默认用备份值替换现有设置。</p><h3>新图的保存位置</h3><p>聚合页默认使用上次成功导入的资料库。</p><p>单库页默认使用这个资料库。</p></main>';
+  }
+
+  function dialog(state) {
+    if (!state.modal) return '';
+    const operation = state.modal.kind;
+    const asset = state.assets.find(item => item.id === state.selected);
+    const title = operation === 'copy' ? '复制到资料库' : operation === 'capture' ? '收藏截图' : '导入图片';
+    const filename = operation === 'copy' && asset ? asset.name : operation === 'capture' ? '截图.png' : '新参考.png';
+    const targetHasCopy = operation === 'copy' && asset && asset.copies.includes(state.target);
+    const commitLabel = state.target ? (operation === 'copy' ? '复制到' : operation === 'capture' ? '收藏到' : '导入到') + '「' + libraries[state.target] + '」' : '选择目标资料库';
+    return '<div class="kp-overlay"><section class="kp-dialog" role="dialog" aria-modal="true" aria-label="' + title + '"><h2>' + title + '</h2><p class="kp-subtle">保存位置</p><p style="margin-top:10px">文件：' + escape(filename) + '</p><label><span>保存到资料库</span><select data-field="destination" aria-label="保存到资料库">' + libraryOptions(state.target) + '</select></label><label><span>库内文件夹</span><select data-field="destination-folder" aria-label="保存位置的文件夹"' + (state.target ? '' : ' disabled') + '>' + folderOptions(state.target, state.modal.folder) + '</select></label>' + (targetHasCopy ? '<p class="kp-subtle">这个资料库已有同一文件，将合并导入记录。</p>' : '<p class="kp-subtle">原图与这份整理记录保存在所选资料库。</p>') + '<label class="kp-check"><input type="checkbox" data-field="remember"' + (state.remember ? ' checked' : '') + '><span>记住这个资料库，供聚合页下次导入使用</span></label><div class="kp-row">' + button('取消', 'cancel') + '<button class="kp-primary cursor-interaction" type="button" data-action="commit"' + (state.target ? '' : ' disabled') + '>' + commitLabel + '</button></div></section></div>';
+  }
+
+  function render(design) {
+    const app = root.querySelector('[data-design="' + design + '"]');
+    const state = states[design];
+    const focusedField = app.querySelector(':focus') && app.querySelector(':focus').dataset.field;
+    app.style.setProperty('--kp-thumb-width', state.thumbWidth + 'px');
+    const header = '<header><div class="kp-brand"><strong>Kinshoko</strong><span class="kp-subtle">方案示意 · 示例数据</span></div><nav class="kp-app-nav" aria-label="主要页面">' + [['search','查找'],['groups','参考组'],['captures','截图历史'],['libraries','资料库管理'],['settings','程序设置']].map(([page, label]) => button(label, 'page', 'data-value="' + page + '"' + (state.page === page ? ' aria-current="page"' : ''))).join('') + '</nav></header>';
+    const importBar = '<div class="kp-write-bar"><label><span>新图导入目标</span><select data-field="target" aria-label="新图导入目标">' + libraryOptions(state.target) + '</select></label><button type="button" class="kp-primary cursor-interaction" data-action="import"' + (state.target ? '' : ' disabled') + '>导入图片…</button><span class="kp-subtle">安全模式：开启</span></div>';
+    const content = state.page === 'search' ? importBar + resultPage(state, design) : otherPage(state);
+    const status = '<div class="kp-status" aria-live="polite">' + (state.notice ? '<span>' + escape(state.notice) + '</span>' + (state.noticeTarget ? button('查看目标资料库', 'scope', 'data-value="' + state.noticeTarget + '"') : '') : '<span class="kp-subtle">' + (design === 'sidebar' ? '资料库侧栏方案' : '范围下拉方案') + ' · ' + (state.page === 'search' ? '查看范围与导入目标分别显示' : '应用层页面') + '</span>') + '</div>';
+    app.innerHTML = '<div' + (state.modal ? ' inert' : '') + '>' + header + content + status + '</div>' + dialog(state);
+    if (state.modal) {
+      const nextFocus = focusedField && app.querySelector('.kp-dialog [data-field="' + focusedField + '"]') || app.querySelector('.kp-dialog [data-field="destination"]');
+      if (nextFocus) nextFocus.focus({ preventScroll: true });
+    }
+  }
+
+  function act(app, action, target) {
+    const design = app.dataset.design;
+    const state = states[design];
+    const asset = state.assets.find(item => item.id === state.selected);
+    if (action === 'page') { state.page = target.dataset.value; state.notice = ''; state.noticeTarget = null; }
+    if (action === 'scope') navigateScope(state, target.dataset.value);
+    if (action === 'folder') state.folder = target.dataset.value;
+    if (action === 'tag') { state.query = target.dataset.value; }
+    if (action === 'select') { state.selected = target.dataset.id; const selected = state.assets.find(item => item.id === state.selected); state.source = selected.copies.includes(state.scope) ? state.scope : selected.copies[0]; }
+    if (action === 'import' || action === 'capture' || action === 'copy') { state.modal = { kind: action, folder: '未分类' }; state.notice = ''; }
+    if (action === 'cancel') state.modal = null;
+    if (action === 'note' && asset) { asset.notes[state.source] = app.querySelector('[data-field="note"]').value; state.notice = '已完成：更新「' + libraries[state.source] + '」的这份备注。'; state.noticeTarget = null; }
+    if (action === 'pin' && asset) { state.notice = '演示：桌面钉图引用「' + libraries[state.source] + '」中的原图。'; state.noticeTarget = null; }
+    if (action === 'group' && asset) { if (!state.group.some(ref => ref.id === asset.id && ref.source === state.source)) state.group.push({ id: asset.id, source: state.source }); state.notice = '已完成：加入独立参考组「发型观察」。来源为「' + libraries[state.source] + '」。'; state.noticeTarget = null; }
+    if (action === 'commit' && state.modal && ['a', 'b'].includes(state.target)) {
+      const kind = state.modal.kind;
+      const id = kind === 'copy' && asset ? asset.id : kind === 'capture' ? 'capture' : 'new';
+      let saved = state.assets.find(item => item.id === id);
+      if (!saved) { saved = { id, name: kind === 'capture' ? '截图.png' : '新参考.png', tags: [], copies: [], notes: {}, locations: {} }; state.assets.push(saved); }
+      if (!saved.copies.includes(state.target)) saved.copies.push(state.target);
+      saved.notes[state.target] = saved.notes[state.target] || '';
+      saved.locations = saved.locations || {};
+      saved.locations[state.target] = state.modal.folder || '未分类';
+      if (state.remember) state.lastTarget = state.target;
+      state.notice = '已完成：「' + saved.name + '」保存到「' + libraries[state.target] + ' / ' + saved.locations[state.target] + '」。';
+      state.noticeTarget = state.target;
+      state.modal = null;
+    }
+    render(design); remember(design);
+  }
+
+  root.addEventListener('click', event => {
+    const target = event.target.closest('[data-action]');
+    const app = target && target.closest('.kp-app');
+    if (app) act(app, target.dataset.action, target);
+  });
+  root.addEventListener('change', event => {
+    const target = event.target;
+    const app = target.closest('.kp-app');
+    if (!app || !target.dataset.field) return;
+    const design = app.dataset.design;
+    const state = states[design];
+    const field = target.dataset.field;
+    if (field === 'scope') navigateScope(state, target.value);
+    if (field === 'folder') state.folder = target.value;
+    if (field === 'target') state.target = target.value;
+    if (field === 'source') state.source = target.value;
+    if (field === 'destination') { state.target = target.value; state.modal.folder = '未分类'; }
+    if (field === 'destination-folder') state.modal.folder = target.value;
+    if (field === 'remember') state.remember = target.checked;
+    if (field !== 'note') { render(design); remember(design); }
+  });
+  root.addEventListener('submit', event => {
+    if (!event.target.matches('[data-form="search"]')) return;
+    event.preventDefault();
+    const app = event.target.closest('.kp-app');
+    states[app.dataset.design].query = event.target.querySelector('input').value.trim();
+    render(app.dataset.design); remember(app.dataset.design);
+  });
+  root.addEventListener('keydown', event => {
+    const app = event.target.closest('.kp-app');
+    if (event.key === 'Escape' && app && states[app.dataset.design].modal) {
+      states[app.dataset.design].modal = null;
+      render(app.dataset.design); remember(app.dataset.design);
+    }
+  });
+
+  for (const design of ['sidebar', 'compact']) states[design] = fresh();
+  hydrate(window.openai && window.openai.widgetState);
+  for (const design of ['sidebar', 'compact']) {
+    render(design);
+    if (globalThis.Tweak) {
+      const app = root.querySelector('[data-design="' + design + '"]');
+      const tweak = new Tweak({ container: app, onChange: () => render(design) });
+      tweak.addSlider(states[design], 'thumbWidth', { label: '缩略图宽度', min: 140, max: 200, step: 10, unit: 'px', reference: '--kp-thumb-width' });
+    }
+  }
+  window.addEventListener('openai:set_globals', event => {
+    const globals = event.detail && event.detail.globals;
+    if (globals && Object.prototype.hasOwnProperty.call(globals, 'widgetState')) { hydrate(globals.widgetState); for (const design of ['sidebar', 'compact']) render(design); }
+  });
+})();
+</script>

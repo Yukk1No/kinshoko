@@ -640,6 +640,11 @@ export function pinImageUrl(pin: string, size: "full" | number): string {
   return captureUrl(`pin/${pin}/${size === "full" ? "full" : `fit-${size}`}`);
 }
 
+/** 只关闭收到 Esc 的活动钉图窗口，沿用原生关闭后的保存与截图历史清理。 */
+export function closePin(pin: string): Promise<void> {
+  return invoke<void>(desk("close_pin"), { pin });
+}
+
 /** 在钉图上弹出右键菜单。 */
 export function pinMenu(pin: string): Promise<void> {
   return invoke<void>(desk("pin_menu"), { pin });

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
@@ -200,6 +200,10 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
 
 const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.args);
 const push = (event: LibraryEvent) => act(() => emit("library-event", event));
+const importAction = (name: string) => {
+  if (!screen.queryByRole("button", { name })) fireEvent.click(screen.getByRole("button", { name: "导入参考图" }));
+  return screen.getByRole("button", { name });
+};
 
 beforeEach(() => {
   // jsdom 不做布局：给图片墙一个 1000 × 800 的视口。
@@ -215,10 +219,105 @@ afterEach(async () => {
   // 卸载时异步取消事件订阅，等它完成再撤掉模拟。
   await new Promise((resolve) => setTimeout(resolve, 0));
   clearMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("主窗口", () => {
-  it("单击仍选中，双击打开原图；Esc 返回原位置并把焦点交还参考图", async () => {
+  it("查找头部显示真实结果数，图片大小滑块改变布局，导入操作按需展开", async () => {
+    backend(library, clean, (command, args) => {
+      if (command === "plugin:library|browse" && (args as { query: { scope: { kind: string } } }).query.scope.kind === "folder") return { cards: [page.cards[0]], total: 1, nextCursor: null };
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    const result = screen.getByRole("status", { name: "查找结果" });
+    await waitFor(() => expect(result.textContent).toBe("2 张"));
+    const card = screen.getByRole("listbox", { name: "图片墙" }).querySelector<HTMLElement>(".card")!;
+    const before = parseFloat(card.style.width);
+    const slider = screen.getByRole("slider", { name: "图片大小" });
+    fireEvent.change(slider, { target: { value: "420" } });
+    fireEvent.pointerUp(slider);
+    await waitFor(() => expect(parseFloat(card.style.width)).toBeGreaterThan(before));
+    expect(screen.queryByRole("button", { name: "导入文件夹…" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "导入参考图" }));
+    expect(importAction("导入文件夹…")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "人物（1 张）" }));
+    await waitFor(() => expect(result.textContent).toBe("1 张"));
+  });
+
+  it("尚未打开资料库时仍能从图标轨打开截图历史与钉剪贴板入口", async () => {
+    backend(null);
+    render(<App />);
+    await screen.findByRole("button", { name: "建立资料库" });
+    fireEvent.click(screen.getByRole("button", { name: "截图历史" }));
+    expect(await screen.findByRole("region", { name: "截图历史" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "钉剪贴板" })).toBeTruthy();
+  });
+
+  it("查找区域的标签分组展开后可以添加、取消条件，并保留文件夹范围", async () => {
+    backend(library, clean, (command) => command === "plugin:library|tag_groups" ? [{
+      id: "G1", name: "发色", namespace: null, tags: [{ tag: tags.B, count: 1 }],
+    }] : undefined);
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "人物（1 张）" }));
+    const bar = await screen.findByRole("toolbar", { name: "标签分组" });
+    fireEvent.click(within(bar).getByRole("button", { name: "发色" }));
+    fireEvent.click(within(bar).getByRole("button", { name: /蓝发/ }));
+    expect(await screen.findByRole("list", { name: "查找条件" })).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("list", { name: "查找条件" }).textContent).toContain("蓝发"));
+    expect(screen.getByRole("button", { name: "人物（1 张）" }).getAttribute("aria-current")).toBe("page");
+    fireEvent.click(within(bar).getByRole("button", { name: /蓝发/ }));
+    await waitFor(() => expect(screen.getByRole("list", { name: "查找条件" }).textContent).toBe(""));
+  });
+
+  it("收起侧栏过程中按每次可用宽度连续重排，并保持阅读偏移", async () => {
+    let available = 1000;
+    const observers = new Set<() => void>();
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => available });
+    vi.stubGlobal("ResizeObserver", class {
+      callback: () => void;
+      constructor(callback: () => void) { this.callback = callback; observers.add(callback); }
+      observe() {}
+      disconnect() { observers.delete(this.callback); }
+    });
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const wall = screen.getByRole("listbox", { name: "图片墙" });
+    const card = document.querySelector<HTMLElement>('[data-id="a"]')!;
+    wall.scrollTop = 60;
+    fireEvent.scroll(wall);
+    const offset = parseFloat(card.style.top) - wall.scrollTop;
+    const initial = parseFloat(card.style.width);
+    fireEvent.click(screen.getByRole("button", { name: "收起侧栏" }));
+    available = 1100;
+    act(() => observers.forEach((resize) => resize()));
+    expect(parseFloat(card.style.width)).toBeGreaterThan(initial);
+    expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
+    available = 1248;
+    act(() => observers.forEach((resize) => resize()));
+    expect(parseFloat(card.style.width)).toBeCloseTo(238.4);
+    expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
+  });
+
+  it("图标轨切换上下文侧栏时保留查找和图片墙，重复点按收起侧栏", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const wall = screen.getByRole("listbox", { name: "图片墙" });
+    const nav = screen.getByRole("navigation", { name: "主导航" });
+    const groups = within(nav).getByRole("button", { name: "参考组" });
+    fireEvent.click(groups);
+    expect(await screen.findByRole("complementary", { name: "参考组" })).toBeTruthy();
+    expect(screen.getByRole("listbox", { name: "图片墙" })).toBe(wall);
+    expect(screen.getByRole("combobox", { name: "查找参考图" })).toBeTruthy();
+    fireEvent.click(groups);
+    expect(groups.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(within(nav).getByRole("button", { name: "图片与文件夹" }));
+    expect(screen.getByRole("complementary", { name: "文件夹" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "新建文件夹" })).toBeTruthy();
+  });
+
+  it("单击打开原图；Esc 返回原位置并把焦点交还参考图", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
@@ -227,10 +326,6 @@ describe("主窗口", () => {
     wall.scrollTop = 120;
     fireEvent.scroll(wall);
     fireEvent.click(card);
-    expect(screen.queryByRole("dialog", { name: "原图查看器" })).toBeNull();
-    expect(screen.getByText("已选 1 张")).toBeTruthy();
-
-    fireEvent.doubleClick(card);
     const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
     expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/L1/a/full");
     fireEvent.keyDown(viewer, { key: "Escape" });
@@ -268,6 +363,7 @@ describe("主窗口", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "工作参考" });
     window.__KINSHOKO_TEST_PICKS__ = ["E:\\私人收藏"];
+    fireEvent.click(await screen.findByText("资料库操作"));
     fireEvent.click(screen.getByRole("button", { name: "登记已有资料库…" }));
 
     expect(await screen.findByRole("heading", { name: "私人收藏" })).toBeTruthy();
@@ -294,7 +390,7 @@ describe("主窗口", () => {
     });
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.click(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 4 } });
     delayed = true;
     await push({ kind: "listStale", libraryId: "L1" });
@@ -318,7 +414,7 @@ describe("主窗口", () => {
     await screen.findAllByRole("img");
 
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
-    fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+    fireEvent.click(importAction("导入文件夹…"));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 2 } });
     const finish = () => push({
@@ -334,6 +430,7 @@ describe("主窗口", () => {
     });
     if (stage === "已结束") await finish();
 
+    fireEvent.click(screen.getByText("资料库操作"));
     fireEvent.click(screen.getByRole("button", { name: "新建资料库…" }));
     await screen.findByLabelText("资料库名称");
     // 等待页面切换的事件订阅清理，模拟导入在用户填写表单期间完成。
@@ -358,7 +455,7 @@ describe("主窗口", () => {
     await screen.findAllByRole("img");
 
     window.__KINSHOKO_TEST_PICKS__ = ["E:\\新\\主库.library"];
-    fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+    fireEvent.click(importAction("导入文件夹…"));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await push({
       kind: "taskFinished",
@@ -420,7 +517,7 @@ describe("主窗口", () => {
     });
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.click(screen.getByRole("button", { name: "导入文件…" }));
+    fireEvent.click(importAction("导入文件…"));
     await waitFor(() => expect(sent("plugin:library|pick_files").length).toBe(1));
     fireEvent.change(screen.getByLabelText("当前资料库"), { target: { value: "L2" } });
     await screen.findByRole("heading", { name: "私人收藏" });
@@ -492,7 +589,7 @@ describe("主窗口", () => {
     await screen.findAllByRole("img");
 
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\下载\\参考"];
-    fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+    fireEvent.click(importAction("导入文件夹…"));
     await waitFor(() =>
       expect(sent("plugin:library|start_import")).toEqual([
       { libraryId: "L1", source: { paths: ["D:\\下载\\参考"] } },
@@ -615,7 +712,7 @@ describe("主窗口", () => {
 });
 
 describe("导入任务的终态（#76）", () => {
-  const importButton = () => screen.getByRole("button", { name: "导入文件…" }) as HTMLButtonElement;
+  const importButton = () => importAction("导入文件…") as HTMLButtonElement;
   const failed = (taskId: string) => push({
     kind: "taskFinished",
     libraryId: "L1",
@@ -660,7 +757,7 @@ describe("导入任务的终态（#76）", () => {
     render(<App />);
     await screen.findAllByRole("img");
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
-    fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+    fireEvent.click(importAction("导入文件夹…"));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 3 } });
     await act(async () => {
@@ -732,12 +829,12 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     return { answer, fail: (reason: string) => failures.push(reason) };
   }
   async function startEagle() {
-    fireEvent.click(screen.getByRole("button", { name: "从 Eagle 迁入…" }));
+    fireEvent.click(importAction("从 Eagle 迁入…"));
     fireEvent.click(await screen.findByRole("button", { name: "迁入 主库" }));
   }
   async function startFiles(count: number) {
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考\\a.png"];
-    fireEvent.click(screen.getByRole("button", { name: "导入文件…" }));
+    fireEvent.click(importAction("导入文件…"));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(count));
   }
 
@@ -748,7 +845,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     const paths = ["D:/Eagle/主库.library"];
     if (entrance === "文件夹") {
       window.__KINSHOKO_TEST_PICKS__ = paths;
-      fireEvent.click(screen.getByRole("button", { name: "导入文件夹…" }));
+      fireEvent.click(importAction("导入文件夹…"));
     } else {
       await act(() => emit("tauri://drag-drop", { paths, position: { x: 10, y: 10 } }));
     }
@@ -890,7 +987,7 @@ describe("整理", () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.click(card("a"));
+    fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(card("b"), { ctrlKey: true });
     expect(screen.getByText("已选 2 张")).toBeTruthy();
 
@@ -910,7 +1007,7 @@ describe("整理", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "回收站（1 张）" }));
     await waitFor(() => expect(card("a")).toBeTruthy());
-    fireEvent.click(card("a"));
+    fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(await screen.findByRole("button", { name: "恢复" }));
     await waitFor(() =>
       expect(sent("plugin:library|edit").at(-1)).toEqual({ libraryId: "L1", ids: ["a"], edits: [{ kind: "restore" }] }),
@@ -943,7 +1040,7 @@ describe("整理", () => {
     await screen.findAllByRole("img");
     fireEvent.click(screen.getByRole("button", { name: "回收站（1 张）" }));
     await waitFor(() => expect(card("a")).toBeTruthy());
-    fireEvent.click(card("a"));
+    fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(await screen.findByRole("button", { name: "永久删除…" }));
 
     // 没有受影响的参考组：直接确认。
@@ -969,7 +1066,7 @@ describe("整理", () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.click(card("a"));
+    fireEvent.keyDown(card("a"), { key: " " });
     expect(await screen.findByText("所在文件夹：人物")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("备注"), { target: { value: "看左手" } });
@@ -1255,7 +1352,7 @@ describe("安全模式", () => {
     backend(library, clean, undefined, false);
     render(<App />);
     await waitFor(() => expect(cardOf("x")).toBeTruthy());
-    fireEvent.click(cardOf("x")!);
+    fireEvent.keyDown(cardOf("x")!, { key: " " });
     expect(screen.getByText("已选 1 张")).toBeTruthy();
     const sidebars = sent("plugin:library|sidebar").length;
 
