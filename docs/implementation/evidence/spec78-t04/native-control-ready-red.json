@@ -1,0 +1,16 @@
+{
+  "status": "failed",
+  "source": "b45941dfe605c1509f47871a87e33bc852641d9b",
+  "binarySha256": "1ed64c1061f148b5a42fff93e565c63833f236dd743cb9b30519a8991bee327b",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "error": "Error: Timed out: selected write target",
+  "assertions": [
+    "opens released v16 旧名称第一库 with stable library identity",
+    "opens released v16 旧名称第二库 with stable library identity",
+    "one shared identity explicitly lists both old library names"
+  ],
+  "stories": [
+    25,
+    26
+  ]
+}

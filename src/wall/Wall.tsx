@@ -54,7 +54,7 @@ type Props = {
 
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
 export const scopeKey = (scope: BrowseScope) =>
-  scope.kind === "folder" ? `folder.${scope.id}` : scope.kind;
+  (scope.kind === "folder" || scope.kind === "folderTree") ? `${scope.kind}.${scope.id}` : scope.kind;
 
 const anchorKey = (libraryId: string, scope: BrowseScope) =>
   scope.kind === "all"
@@ -64,6 +64,8 @@ const anchorKey = (libraryId: string, scope: BrowseScope) =>
 const EMPTY: Record<BrowseScope["kind"], string> = {
   all: "资料库里还没有参考图。从上方导入图片或文件夹。",
   folder: "这个文件夹里还没有参考图。选中图片后用“放入文件夹”，或把图片拖到侧栏的文件夹上。",
+  folderTree: "这个文件夹及其子文件夹还没有参考图。",
+  unassigned: "这份资料库没有未归类的参考图。",
   trash: "回收站是空的。",
 };
 

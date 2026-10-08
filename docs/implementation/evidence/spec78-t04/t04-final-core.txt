@@ -1,0 +1,55 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.78s
+     Running tests\legacy_name_migration.rs (target\debug\deps\legacy_name_migration-feb7b253794ed71a.exe)
+
+running 8 tests
+test child_confirms_until_fault ... ignored, subprocess entry for fault injection
+
+running 1 test
+test following_default_preserves_displaced_global_and_old_names_as_removable_aliases ... ok
+test cancelling_keeps_old_displays_and_confirmation_applies_one_shared_choice_atomically ... ok
+test follow_default_preview_uses_the_actual_other_language_fallback ... ok
+test equal_default_legacy_choice_remains_explicit_after_default_upgrade_and_keep_preference_acknowledges_only_new_sources ... ok
+
+running 1 test
+test child_confirms_until_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.02s
+
+test interruption_and_write_failure_leave_the_entire_batch_pending_then_retry_is_stable ... ok
+test explicit_preferences_do_not_hide_unconfirmed_old_sources_and_follow_default_removes_only_that_language ... ok
+test a_large_legacy_batch_resolves_by_identity_and_keeps_existing_global_preference_explicit ... ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 4.67s
+
+     Running tests\tag_catalog.rs (target\debug\deps\tag_catalog-7806d7ca2f95e347.exe)
+
+running 11 tests
+test inspecting_an_unsafe_snapshot_never_changes_the_active_library_safe_mode ... ok
+test attaching_legacy_tags_keeps_untranslated_display_until_name_provenance_is_migrated ... ok
+test different_library_local_ids_share_an_explicit_external_identity_after_reopen ... ok
+test adding_an_external_correspondence_after_attachment_is_available_to_the_next_library ... ok
+test same_named_tags_without_external_correspondence_remain_independent_across_libraries ... ok
+test namespaces_remain_distinct_and_an_explicit_split_survives_external_reattachment ... ok
+test catalog_can_inspect_registered_libraries_without_switching_or_changing_local_data ... ok
+test ambiguous_aliases_stay_separate_until_correction_and_manual_decisions_stay_local ... ok
+test a_late_explicit_external_correspondence_uses_an_existing_identity_unless_user_corrected ... ok
+test explicit_external_correspondences_extend_a_shared_identity_without_relying_on_names ... ok
+test conflicting_external_correspondences_are_inspectable_and_require_an_explicit_choice ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.65s
+
+     Running tests\tag_names.rs (target\debug\deps\tag_names-8e9d62deaabcb8a5.exe)
+
+running 8 tests
+test bundled_defaults_use_the_accepted_names_and_keep_the_replaced_names_as_aliases ... ok
+test a_corrected_legacy_mapping_adopts_the_existing_explicit_global_choice ... ok
+test installed_defaults_apply_to_later_tags_and_hidden_legacy_tags_keep_pending_provenance ... ok
+test group_labels_refresh_from_shared_names_without_changing_local_membership_or_counts ... ok
+test aliases_are_global_search_words_without_becoming_display_preferences ... ok
+test default_updates_keep_equal_default_preferences_and_reset_deletes_the_override ... ok
+test preference_is_shared_by_identity_and_language_and_survives_reopen ... ok
+test legacy_names_remain_pending_until_an_explicit_global_preference_choice ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+

@@ -4,13 +4,17 @@ import type { WorkspaceSource } from "../bindings/WorkspaceSource";
 import type { WorkspaceSourceTarget } from "../bindings/WorkspaceSourceTarget";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import { pinReference, referenceGroups, workspaceSourceGroup, workspaceSourceInspection } from "../ipc";
+import { libraryPathHint } from "./library-path";
+import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { SelectionPanel } from "./SelectionPanel";
 
 /** Adapted from library-workspace.html's explicit source selector, note editor and source actions. */
-export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onSource, onClose, onChanged }: {
-  card: WorkspaceCard; source: WorkspaceSource; safe: boolean; reloadKey: number;
+export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onSource, onClose, onChanged, registrations = [] }: {
+  card: WorkspaceCard; source: WorkspaceSource; safe: boolean; reloadKey: number; registrations?: LibraryRegistration[];
   onSource: (source: WorkspaceSource) => void; onClose: () => void; onChanged?: () => void;
 }) {
+  const path = (id: string) => registrations.find((r) => r.library.id === id)?.library.root;
+  const hint = (id: string) => path(id) ? libraryPathHint(path(id)!, registrations.map((r) => r.library.root)) : id;
   const target: WorkspaceSourceTarget = { libraryId: source.libraryId, imageId: source.imageId, contentId: card.id };
   const key = JSON.stringify([target, safe, reloadKey]);
   const current = useRef(key); current.current = key;
@@ -48,10 +52,11 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onSource,
         const next = card.sources.find((s) => s.libraryId + "/" + s.imageId === event.target.value);
         if (next) onSource(next);
       }}>{card.sources.map((s) => <option key={s.libraryId + "/" + s.imageId} value={s.libraryId + "/" + s.imageId} disabled={!!s.unavailable}>
-        {s.libraryName}{s.deleted ? " · 回收站" : ""}{s.unavailable ? " · 暂时不可用" : ""}
+        {s.libraryName} · {hint(s.libraryId)}{s.deleted ? " · 回收站" : ""}{s.unavailable ? " · 暂时不可用" : ""}
       </option>)}</select>
     </label>
     <p>只整理「{source.libraryName}」的这份来源。其他资料库的整理保持独立。</p>
+    <p className="workspace-source-path" title={path(source.libraryId)}>{hint(source.libraryId)}</p>
     <code>{source.libraryId} / {source.imageId}</code>
     {problem && <p role="alert">{problem}</p>}
     {notice && <p role="status">{notice}</p>}

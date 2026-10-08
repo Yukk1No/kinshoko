@@ -1,0 +1,94 @@
+{
+  "status": "passed",
+  "source": "c1ba9504c9f0481b792313d78fcd69bbe9288be7",
+  "tree": "be6d6dc66a8dc9d5764a1598b47f74f797a5d95b",
+  "binarySha256": "113b6f37b51faccb004e14eef369310e6136ba3d6ba7de1c7c3c6496a75e7b98",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t08-native.exe",
+  "harnessSource": "41ff3b5bb4a6f8021333b85ab3c47a12a2e28124",
+  "harnessSha256": "543dfb71ef695b3c69a481f986dedc5788ab16f00fe927ff46634bc38c874568",
+  "environment": {
+    "dpr": 1.1041666269302368,
+    "height": 801,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "width": 1281
+  },
+  "first": {
+    "info": {
+      "id": "dc022728eef04cd58f38e27a43e7a91f",
+      "name": "目录参考",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-folders-1791477705967\\libraries\\a\\目录参考"
+    },
+    "images": {
+      "unassigned.png": "01a11c6472e4762fa724e0bb142623eb",
+      "nested.png": "01a11c6472ca7141bd6073ae40d57742",
+      "direct.png": "01a11c6472b0764eb5f34cfb56cbc230"
+    },
+    "root": "01a11c64746d751e8ecec7cbbb5b54ab",
+    "child": "01a11c6474737168a5da04664ea46533",
+    "other": "01a11c6474797087b1f371068f68dc81"
+  },
+  "second": {
+    "info": {
+      "id": "fb88975c5ab345be97703e477858b6c6",
+      "name": "目录参考",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-folders-1791477705967\\libraries\\b\\目录参考"
+    },
+    "images": {
+      "second.png": "01a11c6474ef7622bda7ec2f5ca15307",
+      "nested.png": "01a11c6474db70a7b125838d7b048103"
+    },
+    "root": "01a11c6477e77416a374dd5a2aa97435",
+    "child": "01a11c6477ed737493ce67a86778f7f7",
+    "other": "01a11c6477f371e88987a03b4a62943e"
+  },
+  "originalBefore": {
+    "a": {
+      "originals\\7b\\7b3da7a10231a958bda696dca846344ac569a65e1acdd147b5197e8badb4ca14.png": "7b3da7a10231a958bda696dca846344ac569a65e1acdd147b5197e8badb4ca14",
+      "originals\\bc\\bc7160f6af9be08f523b9fb591433cfb4831385a3dc8049a9d20f4cf34b5632e.png": "bc7160f6af9be08f523b9fb591433cfb4831385a3dc8049a9d20f4cf34b5632e",
+      "originals\\ec\\ecf9597c875f3ae4d1c70caad6b1e45ef5af494b01d274932c407c7fee56f929.png": "ecf9597c875f3ae4d1c70caad6b1e45ef5af494b01d274932c407c7fee56f929"
+    },
+    "b": {
+      "originals\\0e\\0ebc12bd90cecf81a74e138424077daabdce68b711647c4bdcc11aec33963721.png": "0ebc12bd90cecf81a74e138424077daabdce68b711647c4bdcc11aec33963721",
+      "originals\\bc\\bc7160f6af9be08f523b9fb591433cfb4831385a3dc8049a9d20f4cf34b5632e.png": "bc7160f6af9be08f523b9fb591433cfb4831385a3dc8049a9d20f4cf34b5632e"
+    }
+  },
+  "originalAfter": {
+    "a": {
+      "originals\\7b\\7b3da7a10231a958bda696dca846344ac569a65e1acdd147b5197e8badb4ca14.png": "7b3da7a10231a958bda696dca846344ac569a65e1acdd147b5197e8badb4ca14",
+      "originals\\bc\\bc7160f6af9be08f523b9fb591433cfb4831385a3dc8049a9d20f4cf34b5632e.png": "bc7160f6af9be08f523b9fb591433cfb4831385a3dc8049a9d20f4cf34b5632e",
+      "originals\\ec\\ecf9597c875f3ae4d1c70caad6b1e45ef5af494b01d274932c407c7fee56f929.png": "ecf9597c875f3ae4d1c70caad6b1e45ef5af494b01d274932c407c7fee56f929"
+    },
+    "b": {
+      "originals\\0e\\0ebc12bd90cecf81a74e138424077daabdce68b711647c4bdcc11aec33963721.png": "0ebc12bd90cecf81a74e138424077daabdce68b711647c4bdcc11aec33963721",
+      "originals\\bc\\bc7160f6af9be08f523b9fb591433cfb4831385a3dc8049a9d20f4cf34b5632e.png": "bc7160f6af9be08f523b9fb591433cfb4831385a3dc8049a9d20f4cf34b5632e"
+    }
+  },
+  "assertions": [
+    "same-named libraries retain independent complete directory trees",
+    "formal roots show distinct paths for same-named libraries",
+    "folder selection defaults to including descendants",
+    "default directory badge counts visible descendant images",
+    "directory browsing does not activate another library or change write target",
+    "unchecked descendants queries only direct membership",
+    "unchecked directory badge counts direct membership only",
+    "folder matching is complete per source before byte deduplication",
+    "multiple folder memberships remain visible through formal source detail",
+    "unassigned range belongs only to the chosen provider",
+    "existing create-folder action updates its explicit provider root",
+    "rename changes only the chosen library's folder tree",
+    "moving a subtree rejects the old scope pagination cursor",
+    "moved subtree membership follows its actual new parent",
+    "folder organizing leaves original image file paths and bytes unchanged",
+    "out-of-scope Adult source still vetoes the shared card in a descendant scope",
+    "directory counts use the same all-source safety veto",
+    "descendant counts retain all-source Adult veto outside the folder scope",
+    "removed selected provider does not silently replace range with all libraries",
+    "removed provider query returns an explicit failure",
+    "disconnected provider keeps an explicit disabled root and discards cached folder controls"
+  ],
+  "stories": [
+    6,
+    7,
+    8
+  ]
+}

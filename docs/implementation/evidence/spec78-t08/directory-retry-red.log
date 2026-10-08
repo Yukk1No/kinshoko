@@ -1,0 +1,33 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/library/WorkspacePane.test.tsx (4 tests | 1 failed) 260ms
+   × 读取时目录修订改变会自动重读，不留下要求用户操作的过期提示 9ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/WorkspacePane.test.tsx > 读取时目录修订改变会自动重读，不留下要求用户操作的过期提示
+AssertionError: expected [ { safeMode: true, …(2) } ] to have a length of 2 but got 1
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ src/library/WorkspacePane.test.tsx:85:19
+     83|   await act(async () => pending[0].reject("浏览结果已变化，请从头重新浏览"));
+     84|   await settle();
+     85|   expect(pending).toHaveLength(2);
+       |                   ^
+     86|   await act(async () => pending[1].resolve(forest("fresh")));
+     87|   expect(document.querySelectorAll("[data-folder-id]")).toHaveLength(4…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  00:25:45
+   Duration  1.93s (environment 67%, tests 15%, import 12%, transform 6%)
+

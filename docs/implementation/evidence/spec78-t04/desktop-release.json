@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-10-09T00:39:03.0253729+08:00",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "applicationProcesses": [],
+  "driverProcesses": [],
+  "webviewProcesses": [],
+  "listeners": [],
+  "normalTrayReceipts": [
+    "work/e2e/legacy-name-startup-1791477496325/before-disconnect-tray-exit.json",
+    "work/e2e/legacy-name-startup-1791477496325/after-disconnect-tray-exit.json"
+  ]
+}

@@ -1,0 +1,44 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+warning: unused import: `ImageEdit`
+ --> crates\kinshoko-core\tests\workspace_folders.rs:4:57
+  |
+4 | use kinshoko_core::library::{BrowseScope, ImportSource, ImageEdit};
+  |                                                         ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `import` is never used
+ --> crates\kinshoko-core\tests\workspace_folders.rs:7:4
+  |
+7 | fn import(library: &Library, dir: &std::path::Path, seed: u8) -> String {
+  |    ^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `query` is never used
+  --> crates\kinshoko-core\tests\workspace_folders.rs:12:4
+   |
+12 | fn query(library: &Library, scope: BrowseScope) -> WorkspaceQuery {
+   |    ^^^^^
+
+warning: `kinshoko-core` (test "workspace_folders") generated 3 warnings (run `cargo fix --test "workspace_folders" -p kinshoko-core` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.99s
+     Running tests\workspace_folders.rs (target\debug\deps\workspace_folders-74c205195e20e7ae.exe)
+
+running 1 test
+
+thread 'folder_structure_changes_invalidate_workspace_directory_and_pagination_revisions' (42436) panicked at crates\kinshoko-core\tests\workspace_folders.rs:26:5:
+assertion `left != right` failed: new folders must refresh the visible forest
+  left: "2595ad773c33951ed90e805fa5ae99ab"
+ right: "2595ad773c33951ed90e805fa5ae99ab"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test folder_structure_changes_invalidate_workspace_directory_and_pagination_revisions ... FAILED
+
+failures:
+
+failures:
+    folder_structure_changes_invalidate_workspace_directory_and_pagination_revisions
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+error: test failed, to rerun pass `-p kinshoko-core --test workspace_folders`

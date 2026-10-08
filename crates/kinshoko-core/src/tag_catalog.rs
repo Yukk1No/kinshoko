@@ -2,7 +2,12 @@
 //!
 //! Local IDs and image decisions remain in each Library. Only an explicit external identity
 //! in the same namespace joins identities automatically; names and aliases never do.
+mod migration;
 mod names;
+pub use migration::{
+    LegacyNameDecision, LegacyNameGroup, LegacyNameMigration, LegacyNameMigrationPreview,
+    LegacyNameMigrationWorkspace, LegacyNameOutcome, LegacyNameResolution, LegacyNameSource,
+};
 pub use names::CatalogNameEdit;
 
 use std::collections::BTreeSet;
@@ -29,6 +34,8 @@ pub enum CatalogError {
     NamespaceMismatch,
     UnsupportedFormat,
     InvalidName,
+    StaleNameMigration,
+    IncompleteNameMigration,
 }
 impl fmt::Display for CatalogError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -41,6 +48,8 @@ impl fmt::Display for CatalogError {
             Self::UnknownMapping => write!(f, "资料库中没有这个标签对应"),
             Self::NamespaceMismatch => write!(f, "命名空间不同的标签不能对应同一身份"),
             Self::InvalidName => write!(f, "名称与语言不能为空"),
+            Self::StaleNameMigration => write!(f, "名称或标签对应已变化，请重新打开迁移向导"),
+            Self::IncompleteNameMigration => write!(f, "请为本批次的每个名称选择归属后再确认"),
             Self::UnsupportedFormat => write!(f, "统一标签目录由更新版本创建，请更新 Kinshoko"),
         }
     }
@@ -234,7 +243,7 @@ impl TagCatalog {
         let conn = Connection::open(dir.join("tag-catalog.sqlite"))?;
         conn.busy_timeout(std::time::Duration::from_secs(5))?;
         let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
-        if version > 2 {
+        if version > 3 {
             return Err(CatalogError::UnsupportedFormat);
         }
         conn.execute_batch(
@@ -254,6 +263,7 @@ impl TagCatalog {
             COMMIT;",
         )?;
         names::initialize(&conn, version)?;
+        migration::initialize(&conn)?;
         Ok(Self {
             conn,
             name_defaults: None,

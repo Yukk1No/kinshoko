@@ -24,12 +24,12 @@ import {
 import { CreateLibrary } from "./library/CreateLibrary";
 import { type FinishedImport, type RunningImport } from "./library/ImportBar";
 import { ImportMenu } from "./library/ImportMenu";
+import { LegacyNameMigrationNotice } from "./library/LegacyNameMigrationPanel";
 import { WorkspacePane, WorkspaceSources } from "./library/WorkspacePane";
 import { LibraryPicker } from "./library/LibraryPicker";
 import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
 import { ReferenceGroupsPanel } from "./desktop/ReferenceGroupsPanel";
 import { SelectionPanel } from "./library/SelectionPanel";
-import { SidebarPane } from "./library/SidebarPane";
 import { TagGroupsPane } from "./library/TagGroupsPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
 import { TagGroupBar } from "./search/TagGroupBar";
@@ -117,11 +117,6 @@ function LibraryWorkspace({
   });
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
-  const changeScope = (next: BrowseScope) => {
-    const sourceId = workspaceScope.kind === "library" ? workspaceScope.libraryId : libraryId;
-    if (sourceId) setWorkspaceScope({ kind: "library", libraryId: sourceId, scope: next });
-    setSelected(new Set());
-  };
   const viewerChange = useRef(onViewerChange);
   viewerChange.current = onViewerChange;
   const viewerOpen = viewing !== null;
@@ -256,25 +251,15 @@ function LibraryWorkspace({
           inert={!paneOpen}
         >
           <header className="pane-head">
-            <h1 className="app-library-name">{section === "browse" ? (library?.name ?? "全部资料库") : section === "groups" ? "参考组" : "截图历史"}</h1>
+            <h1 className="app-library-name">{section === "browse" ? "资料库目录" : section === "groups" ? "参考组" : "截图历史"}</h1>
             <button type="button" className="icon-tool" aria-label="收起侧栏" title="收起（Ctrl+B）" onClick={onPaneToggle}>‹</button>
           </header>
           <div className="pane-body" hidden={section !== "browse"}>
             {libInPane && libraryControls}
-          <WorkspacePane status={status} scope={workspaceScope} onScope={(next) => {
-            setWorkspaceScope(next); setSelected(new Set()); setSources(null);
-          }} />
-          {(workspaceScope.kind === "library" || library) && <SidebarPane
-            key={workspaceScope.kind === "library" ? workspaceScope.libraryId : libraryId}
-            libraryId={workspaceScope.kind === "library" ? workspaceScope.libraryId : libraryId}
-            workspace safeMode={safe}
-            scopeSelected={workspaceScope.kind === "library"}
-            readOnly={workspaceScope.kind === "library" && workspaceScope.libraryId !== libraryId}
-            scope={scope}
-            onScope={changeScope}
-            reloadKey={reloadKey}
-            onError={onError}
-          />}
+          <WorkspacePane status={status} scope={workspaceScope} activeLibraryId={libraryId} safeMode={safe}
+            reloadKey={reloadKey} onError={onError} onScope={(next) => {
+              setWorkspaceScope(next); setSelected(new Set()); setSources(null);
+            }} />
           {library && <details className="tag-organize"><summary>整理标签分组</summary>
           <TagGroupsPane
             libraryId={libraryId}
@@ -375,7 +360,7 @@ function LibraryWorkspace({
         </main>
       </div>
     </div>
-    {sources && !hidden && <WorkspaceSources card={sources} safe={safe} reloadKey={reloadKey} onClose={() => setSources(null)} onView={setViewing}
+    {sources && !hidden && <WorkspaceSources card={sources} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => setSources(null)} onView={setViewing}
       onChanged={() => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); }} />}
     {viewing && !hidden && (
       <Viewer
@@ -400,6 +385,7 @@ function LibraryWorkspace({
 export function App() {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [nameMigrationRequest, setNameMigrationRequest] = useState(0);
   const [section, setSection] = useState<Section>("browse");
   const [paneOpen, setPaneOpen] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -504,7 +490,7 @@ export function App() {
       <div className="rail-slot" inert={viewerOpen}>
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
           onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
-          onSettings={() => setShowSettings((shown) => !shown)} />
+          onSettings={() => { setNameMigrationRequest(0); setShowSettings((shown) => !shown); }} />
       </div>
       <div className="app-column">
       {!library && !hasProviders && <div inert={viewerOpen}>{libraryControls}</div>}
@@ -521,6 +507,7 @@ export function App() {
           </button>
         </p>
       )}
+      {library && <div inert={viewerOpen}><LegacyNameMigrationNotice libraryId={library.id} safe={safe} onOpen={() => { setNameMigrationRequest((request) => request + 1); setShowSettings(true); }} /></div>}
       {library !== undefined && (
         <LibraryWorkspace
           key="workspace"
@@ -563,6 +550,7 @@ export function App() {
         <div className="settings-overlay" role="dialog" aria-label="程序设置" inert={viewerOpen}>
           <header><h2>程序设置</h2><button type="button" onClick={() => setShowSettings(false)}>关闭设置</button></header>
           <SettingsPanel
+            nameMigrationRequest={nameMigrationRequest}
             library={library ?? null}
             onChange={(view) => setShowApproxSource(view.showApproxSource)}
           />

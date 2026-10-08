@@ -1,6 +1,8 @@
 //! Workspace adapter: detached provider reads, revisions and global safe-mode boundaries.
 use super::*;
-use kinshoko_core::workspace::{Workspace, WorkspacePage, WorkspaceQuery, WorkspaceStatus};
+use kinshoko_core::workspace::{
+    Workspace, WorkspaceDirectories, WorkspacePage, WorkspaceQuery, WorkspaceStatus,
+};
 
 pub(super) const EVENT: &str = "workspace-changed";
 fn action<R: Runtime, T>(
@@ -193,4 +195,12 @@ pub(super) async fn workspace_local_tags<R: Runtime>(
         })
     })
     .await
+}
+
+#[tauri::command]
+pub(super) async fn workspace_directories<R: Runtime>(
+    app: AppHandle<R>,
+    safe_mode: bool,
+) -> Result<WorkspaceDirectories, String> {
+    blocking(move || stable(&app, safe_mode, |w, d, c| w.directories(d, c, safe_mode))).await
 }

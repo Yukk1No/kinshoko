@@ -1,0 +1,5 @@
+* -text
+*.txt -whitespace
+*.log -whitespace
+*.json text eol=lf
+.gitattributes text eol=lf

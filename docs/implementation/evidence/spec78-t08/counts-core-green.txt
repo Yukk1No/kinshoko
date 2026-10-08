@@ -1,0 +1,15 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.11s
+     Running tests\workspace_folders.rs (target\debug\deps\workspace_folders-74c205195e20e7ae.exe)
+
+running 7 tests
+test folder_structure_changes_invalidate_workspace_directory_and_pagination_revisions ... ok
+test moving_a_subtree_changes_descendant_results_and_rejects_old_cursors ... ok
+test a_directory_forest_keeps_same_named_libraries_and_folders_independent ... ok
+test invalid_or_unavailable_scopes_are_explicit_and_never_expand_to_another_provider ... ok
+test exact_and_descendant_scopes_preserve_each_source_folder_memberships_and_file_paths ... ok
+test directory_descendant_counts_deduplicate_memberships_and_apply_global_safety ... ok
+test folder_and_unassigned_counts_keep_the_all_source_adult_veto ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
