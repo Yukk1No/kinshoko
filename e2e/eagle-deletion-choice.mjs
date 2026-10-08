@@ -78,7 +78,7 @@ const detail = id => lib("image", { imageId: id });
 const policy = () => exec("return !!document.querySelector('[aria-label=\"Eagle 重导选择\"]')");
 const defaultChecked = () => exec("return [...document.querySelectorAll('[aria-label=\"Eagle 重导选择\"] input')].map(i=>i.checked)");
 async function closeTagStep() {
-  if (await exec("return !!document.querySelector('[aria-label=\"标签的外部对应\"]')")) await click("完成");
+  if (await exec("return !!document.querySelector('[aria-label=\"标签的外部对应\"]')")) await clickXPath("//*[@aria-label='标签的外部对应']/header/button");
 }
 async function importMenu(open) {
   const current = await exec("const b=document.querySelector('button[aria-label=\"导入参考图\"]'); return b ? b.getAttribute('aria-expanded')==='true' : null;");
