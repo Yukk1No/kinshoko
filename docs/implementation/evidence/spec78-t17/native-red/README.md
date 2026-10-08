@@ -2,7 +2,10 @@
 
 This is an actual product failure on Windows 11, before the final visibility commit permit.
 `result.json` is an unmodified copy of `work/e2e/wall-capture-race-1791490083077/result.json`.
-The matching frozen source/EXE manifest and byte-identical harnesses are included.
+The matching frozen source/EXE manifest is included. The byte-identical harnesses here are
+**reconstructed copies**, not original working-file archives. Each is recovered from the
+recorded a745ce7 Git blob, then matched to the raw result SHA-256. `copied-files.json` records
+the exact blob ID and LF/CRLF reconstruction method. The historical index covers all 14 runs.
 The EXE is retained at the absolute path in the manifest, outside Git.
 
 The public production import receives a synthetic 10000×8000 PNG. Global mode is off,
