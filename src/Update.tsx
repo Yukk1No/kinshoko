@@ -39,7 +39,7 @@ function useInstall() {
 
 /**
  * 设置里的“更新”一节：当前状态、检查更新、有新版本时安装。
- * 私有阶段说明安装包更新方式；公开构建缺少条件时说明原因。
+ * 手动更新构建说明安装包步骤；自动更新构建缺少条件时说明原因。
  */
 export function UpdateSection() {
   const [status, setStatus] = useState<UpdateStatus | null>(null);

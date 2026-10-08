@@ -3,7 +3,7 @@ use kinshoko_core::{UpdatePolicy, UpdateStatus};
 const ENDPOINT: &str = "https://github.com/Yukk1No/kinshoko/releases/latest/download/latest.json";
 
 #[test]
-fn private_builds_explain_manual_updates_even_when_signing_is_configured() {
+fn manual_builds_explain_package_updates_without_claiming_repository_visibility() {
     let policy = UpdatePolicy::for_build(
         Some("private"),
         Some("paired-public-key"),
@@ -12,7 +12,7 @@ fn private_builds_explain_manual_updates_even_when_signing_is_configured() {
     assert_eq!(
         policy.initial_status(),
         UpdateStatus::Manual {
-            message: "当前为私有阶段，请使用新版安装包手动更新。".to_owned(),
+            message: "当前使用安装包手动更新。".to_owned(),
         }
     );
     assert!(policy.require_automatic().unwrap_err().contains("手动更新"));

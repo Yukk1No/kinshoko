@@ -55,13 +55,13 @@ describe("主窗口的更新提示", () => {
 });
 
 describe("设置中的更新方式", () => {
-  it("私有阶段明确用安装包更新，并且没有自动检查和安装按钮", async () => {
+  it("手动更新构建说明安装包步骤，并且没有自动检查和安装按钮", async () => {
     const calls = backend((cmd) => cmd === "update_status" ? {
-      state: "manual", message: "当前为私有阶段，请使用新版安装包手动更新。",
+      state: "manual", message: "当前使用安装包手动更新。",
     } : null);
     render(<UpdateSection />);
 
-    expect(await screen.findByText("当前为私有阶段，请使用新版安装包手动更新。")).toBeTruthy();
+    expect(await screen.findByText("当前使用安装包手动更新。")).toBeTruthy();
     expect(screen.getByText(/从托盘退出 Kinshoko/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "检查更新" })).toBeNull();
     expect(screen.queryByRole("button", { name: "安装并重启" })).toBeNull();

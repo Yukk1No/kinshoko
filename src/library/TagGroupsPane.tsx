@@ -99,7 +99,7 @@ function PickTag({ lens, onPick, onCancel }: { lens: Lens; onPick: (tag: TagLabe
 /** Reuses the formal sidebar editor and the accepted prototype's tag-chip structure.
  * Shared IDs are already query identities. Group actions never edit an image's tags. */
 export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "标签分组" }: Props) {
-  const [found, setFound] = useState<{ key: string; view: string; groups: CatalogGroupView[] }>({ key: "", view: "", groups: [] });
+  const [found, setFound] = useState<{ key: string; safe: boolean | null; groups: CatalogGroupView[] }>({ key: "", safe: null, groups: [] });
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [picking, setPicking] = useState<string | null>(null);
@@ -108,19 +108,26 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
   const view = JSON.stringify([safe, generation]);
   const key = JSON.stringify([view, refresh]);
   const current = useRef(key); current.current = key;
-  const groups = found.view === view ? found.groups : [];
+  // Preserve editor identity during refresh, but never display stale server labels or members.
+  const groups = found.safe === safe ? found.groups : [];
+  const fresh = found.key === key;
   const busy = pendingKey === key;
   const lens: Lens = { libraryId: "workspace", safe, generation, workspace: true };
 
   useEffect(() => {
     let alive = true;
     sharedTagGroups(UI_LANG, safe).then(
-      (value) => { if (alive && current.current === key) setFound({ key, view, groups: value ?? [] }); },
+      (value) => { if (alive && current.current === key) setFound({ key, safe, groups: value ?? [] }); },
       (error) => { if (alive && current.current === key) onError(String(error)); },
     );
     return () => { alive = false; };
   }, [key, safe, onError]);
-  useEffect(() => { setCreating(false); setRenaming(null); setPicking(null); }, [safe, generation]);
+  useEffect(() => { setCreating(false); setRenaming(null); setPicking(null); }, [safe]);
+  useEffect(() => {
+    if (!fresh) return;
+    setRenaming((id) => id !== null && !groups.some((group) => group.id === id) ? null : id);
+    setPicking((id) => id !== null && !groups.some((group) => group.id === id) ? null : id);
+  }, [fresh, groups]);
   const run = async (action: Promise<unknown>) => {
     setPendingKey(key);
     try {
@@ -137,21 +144,22 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
     return result;
   };
   return (
-    <section className="sidebar-tag-groups" aria-label={label} aria-busy={busy}>
+    <section className="sidebar-tag-groups" aria-label={label} aria-busy={busy || !fresh}>
       <div className="sidebar-heading">
         <span>{label}</span>
-        <button type="button" className="sidebar-add" aria-label="新建标签分组" disabled={busy} onClick={() => setCreating(true)}>＋</button>
+        <button type="button" className="sidebar-add" aria-label="新建标签分组" disabled={busy || !fresh} onClick={() => setCreating(true)}>＋</button>
       </div>
       {creating && <NewGroup onDone={(group) => {
         setCreating(false);
         if (group) void run(createSharedTagGroup(group.name, group.namespace));
       }} />}
+      {!fresh && <p role="status">正在更新标签分组…</p>}
       {groups.map((group, index) => (
-        <div key={group.id} role="group" aria-label={group.name} className="sidebar-tag-group">
+        <div key={group.id} role="group" aria-label={fresh ? group.name : undefined} className="sidebar-tag-group">
           {renaming === group.id ? <NameInput label="标签分组名称" initial={group.name} onDone={(name) => {
             setRenaming(null);
             if (name && name !== group.name) void edit({ kind: "rename", groupId: group.id, name });
-          }} /> : <>
+          }} /> : fresh && <>
             <div className="sidebar-tag-group-head">
               <button type="button" className="sidebar-item" aria-label={`${group.name}（${group.tags.length} 个标签）`}
                 title="按分组中任一标签查找；双击改名" disabled={busy || !onBrowse || !group.tags.length}
@@ -168,11 +176,11 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
                 title="只删除分组，图片标签不变" onClick={() => void edit({ kind: "delete", groupId: group.id })}>×</button>
             </div>
           </>}
-          {!!group.sources?.length && <p className="tag-group-origin">来自：{group.sources.map((source) => `${source.libraryName} / ${source.groupName}`).join("；")}</p>}
+          {fresh && !!group.sources?.length && <p className="tag-group-origin">来自：{group.sources.map((source) => `${source.libraryName} / ${source.groupName}`).join("；")}</p>}
           {picking === group.id && <PickTag lens={lens} onCancel={() => setPicking(null)} onPick={(tag) => {
             setPicking(null); void edit({ kind: "addMembers", groupId: group.id, tagIds: [tag.id] });
           }} />}
-          <ul className="sidebar-tree">
+          {fresh && <ul className="sidebar-tree">
             {group.tags.map(({ tag, count }, memberIndex) => {
               const name = tagName(tag);
               return <li key={tag.id} className="sidebar-tag">
@@ -190,7 +198,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
                 </>}
               </li>;
             })}
-          </ul>
+          </ul>}
         </div>
       ))}
     </section>

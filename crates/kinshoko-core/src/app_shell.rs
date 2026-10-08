@@ -32,7 +32,7 @@ pub enum UpdateStatus {
     Disabled {
         message: String,
     },
-    /// 私有阶段由画师运行安装包更新。
+    /// 此构建由画师运行安装包更新。
     Manual {
         message: String,
     },
@@ -73,7 +73,7 @@ impl UpdatePolicy {
             "https://github.com/Yukk1No/kinshoko/releases/latest/download/latest.json";
         let status = match stage.unwrap_or("private") {
             "private" => UpdateStatus::Manual {
-                message: "当前为私有阶段，请使用新版安装包手动更新。".to_owned(),
+                message: "当前使用安装包手动更新。".to_owned(),
             },
             "public" if pubkey.is_none_or(|key| key.trim().is_empty()) => UpdateStatus::Disabled {
                 message: "未配置更新公钥，自动更新未启用。请使用新版安装包手动更新。".to_owned(),

@@ -1610,7 +1610,17 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .sidebar-slot .reference-groups-bar h2, .sidebar-slot .capture-history-bar h2 { display: none; }
 .sidebar-slot .capture-history-list { display: flex; flex-direction: column; }
 .sidebar-slot .capture-history-item { min-width: 0; width: 100%; }
-.sidebar-slot .reference-group-actions { flex-wrap: wrap; }
+/* Full-height pane and stacked cards adapted from the accepted prototype's pane-body/group-card. */
+.sidebar-slot > .reference-groups { flex: 1; max-height: none; min-width: 0; }
+.sidebar-slot .reference-groups-bar input { width: 100%; min-width: 0; }
+.sidebar-slot .reference-group { flex-direction: column; align-items: stretch; gap: 4px; min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.sidebar-slot .reference-group-name, .sidebar-slot .reference-group-meta, .sidebar-slot .reference-group-problem,
+.sidebar-slot .reference-groups > p, .sidebar-slot .reference-group-members span { min-width: 0; overflow-wrap: anywhere; }
+.sidebar-slot span.reference-group-name { display: flex; flex-wrap: wrap; gap: 4px; }
+.sidebar-slot .reference-group-name input { width: 100%; min-width: 0; }
+.sidebar-slot .reference-group-actions { flex-wrap: wrap; margin-left: 0; }
+.sidebar-slot .reference-group-members { flex-basis: auto; }
+.sidebar-slot .reference-group-members li { flex-wrap: wrap; gap: 4px 8px; }
 .icon-tool { width: 28px; height: 28px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 7px; font-size: 22px; color: var(--ink-2); }
 .icon-tool:hover { background: var(--hover); color: var(--ink); }
 .topbar { display: flex; align-items: center; min-height: 52px; flex: none; padding: 8px 12px; gap: 8px; background: var(--surface); border-bottom: 1px solid var(--line); z-index: 2; }
