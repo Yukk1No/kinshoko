@@ -1,3 +1,4 @@
+import { SaveDestinationDialog } from "../library/SaveDestination";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
 import type { CaptureEntry } from "../bindings/CaptureEntry";
@@ -19,8 +20,10 @@ const time = (ms: number) =>
  * 截图历史：最近的截图，从新到旧。可以再钉住、收藏进当前资料库、删除。
  * 没收藏也没钉住的旧截图会被自动丢弃；`libraryId` 是当前资料库，用来显示“已收藏”。
  */
-export function CaptureHistoryPanel({ libraryId }: { libraryId: string | undefined }) {
+export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { libraryId: string | undefined; request?:{id:string;stamp:number}|null;onRequestHandled?:()=>void }) {
   const [entries, setEntries] = useState<CaptureEntry[] | null>(null);
+  const [collecting,setCollecting]=useState<string|null>(null);
+  useEffect(()=>{if(request){setCollecting(request.id);onRequestHandled?.();}},[request,onRequestHandled]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -78,10 +81,9 @@ export function CaptureHistoryPanel({ libraryId }: { libraryId: string | undefin
                 </button>
                 <button
                   type="button"
-                  disabled={!libraryId || collected}
-                  onClick={() => run(collectCapture(entry.id))}
+                  onClick={() => setCollecting(entry.id)}
                 >
-                  {collected ? "已收藏" : "收藏"}
+                  {collected ? "再次收藏…" : "收藏…"}
                 </button>
                 <button type="button" onClick={() => run(deleteCapture(entry.id))}>
                   删除
@@ -91,6 +93,7 @@ export function CaptureHistoryPanel({ libraryId }: { libraryId: string | undefin
           );
         })}
       </ul>
+      {collecting&&<SaveDestinationDialog title="收藏截图" onClose={()=>setCollecting(null)} onConfirm={destination=>collectCapture(collecting,destination)}/>}
     </section>
   );
 }

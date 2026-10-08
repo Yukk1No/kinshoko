@@ -1,7 +1,7 @@
+import { SaveDestinationDialog, useSaveDestination, folderChoices, destinationAvailable, destinationLabel } from "../library/SaveDestination";
 import { useCallback, useEffect, useState } from "react";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
-import type { ReferenceGroup } from "../bindings/ReferenceGroup";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
 import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { CaptureChoice } from "../bindings/CaptureChoice";
@@ -24,7 +24,7 @@ import {
 } from "../ipc";
 
 type SaveTarget = { name: string } | { groupId: string };
-type CaptureSave = { target: SaveTarget; entries: CaptureEntry[]; choices: Record<string, string> };
+type CaptureSave = { target: SaveTarget; entries: CaptureEntry[]; choices: Record<string, string>; folders:Record<string,string|null> };
 
 function memberState(status: MemberStatus): string {
   switch (status.state.kind) {
@@ -43,7 +43,8 @@ function memberState(status: MemberStatus): string {
  * 参考组包（#68）：导出时带上所用原图与整理信息快照，可带到别的电脑；导入时原图进当前资料库
  * （`libraryId`），另存为新的参考组。
  */
-export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null }) {
+export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
+  const saveContext=useSaveDestination();
   const [groups, setGroups] = useState<GroupSummary[] | null>(null);
   const [libraryNames, setLibraryNames] = useState<Map<string, string>>(new Map());
   const [libraryOptions, setLibraryOptions] = useState<LibraryRegistration[]>([]);
@@ -54,6 +55,7 @@ export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null 
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [captureSave, setCaptureSave] = useState<CaptureSave | null>(null);
+  const [importing,setImporting]=useState(false);
   const [saving, setSaving] = useState(false);
 
   const reload = useCallback(() => {
@@ -125,7 +127,7 @@ export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null 
         choices[entry.id] = collected && libraryOptions.some((l) => l.library.id === collected.libraryId && !l.unavailable)
           ? collected.libraryId : "";
       }
-      setCaptureSave({ target, entries, choices });
+      setCaptureSave({ target, entries, choices, folders:{} });
     } finally { setSaving(false); }
   };
   const confirmCaptures = async () => {
@@ -135,6 +137,7 @@ export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null 
       await run(() => save(captureSave.target, captureSave.entries.map((entry) => ({
         captureId: entry.id,
         libraryId: captureSave.choices[entry.id] === "skip" ? null : captureSave.choices[entry.id],
+        folderId: captureSave.folders[entry.id]??null,
       }))));
     } finally { setSaving(false); }
   };
@@ -156,34 +159,24 @@ export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null 
         >
           把桌面钉图存为参考组
         </button>
-        <button
-          type="button"
-          disabled={!libraryId}
-          title={libraryId ? "原图导入当前资料库，另存为新的参考组" : "先打开一个资料库"}
-          onClick={() =>
-            libraryId &&
-            void run(
-              () => importReferenceGroupPackage(libraryId),
-              (group) =>
-                group ? `已导入参考组「${(group as ReferenceGroup).name}」，原图已收进当前资料库` : null,
-            )
-          }
-        >
-          导入参考组包
-        </button>
+        <button type="button" onClick={()=>setImporting(true)}>导入参考组包</button>
       </header>
+      {importing&&<SaveDestinationDialog title="导入参考组包" confirmLabel="选择参考组包并导入" onClose={()=>setImporting(false)} onConfirm={async destination=>{
+        const group=await importReferenceGroupPackage(destination.libraryId,destination);
+        if(group)setNotice(`已导入参考组「${group.name}」，原图保存到所选资料库和目录`);
+      }}/>}
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
       {captureSave && (
         <section role="dialog" aria-modal="true" aria-label="收藏截图并保存参考组" className="capture-group-save">
-          <p>逐张选择截图的资料库，收藏后一起加入参考组。也可以明确不加入这张截图。</p>
+          <p>逐张选择截图的资料库和文件夹，收藏后一起加入参考组。也可以明确不加入这张截图。</p>
           {captureSave.entries.map((entry, i) => (
             <label key={entry.id}>
               <img src={captureUrl(entry.id)} alt={`截图 ${i + 1}`} width={96} />
               <span>截图 {i + 1} · {entry.width}×{entry.height}</span>
               <select aria-label={`截图 ${i + 1} 的资料库`} disabled={saving}
                 value={captureSave.choices[entry.id]}
-                onChange={(e) => setCaptureSave({ ...captureSave, choices: { ...captureSave.choices, [entry.id]: e.target.value } })}>
+                onChange={(e) => setCaptureSave({ ...captureSave, choices: { ...captureSave.choices, [entry.id]: e.target.value }, folders:{...captureSave.folders,[entry.id]:null} })}>
                 <option value="">请选择资料库…</option>
                 {libraryOptions.map((option) => (
                   <option key={option.library.id} value={option.library.id} disabled={!!option.unavailable}>
@@ -192,9 +185,16 @@ export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null 
                 ))}
                 <option value="skip">不加入参考组</option>
               </select>
+              {captureSave.choices[entry.id]&&captureSave.choices[entry.id]!=="skip"&&<>
+                <span>文件夹</span><select aria-label={`截图 ${i+1} 的文件夹`} disabled={saving} value={captureSave.folders[entry.id]??""} onChange={event=>setCaptureSave({...captureSave,folders:{...captureSave.folders,[entry.id]:event.target.value||null}})}>
+                  <option value="">未归类</option>
+                  {folderChoices(saveContext.providers.find(p=>p.registration.library.id===captureSave.choices[entry.id])?.sidebar?.folders??[]).map(folder=><option key={folder.id} value={folder.id}>{folder.path}</option>)}
+                </select>
+                <span>最终位置：{destinationLabel({libraryId:captureSave.choices[entry.id],folderId:captureSave.folders[entry.id]??null},saveContext.providers)}</span>
+              </>}
             </label>
           ))}
-          <button type="button" disabled={saving || captureSave.entries.some((e) => !captureSave.choices[e.id])}
+          <button type="button" disabled={saving || !saveContext.ready || captureSave.entries.some((e) => captureSave.choices[e.id]!=="skip"&&!destinationAvailable({libraryId:captureSave.choices[e.id],folderId:captureSave.folders[e.id]??null},saveContext.providers))}
             onClick={() => void confirmCaptures()}>{saving ? "正在收藏并保存…" : "确认并保存"}</button>
           <button type="button" disabled={saving} onClick={() => setCaptureSave(null)}>取消</button>
         </section>

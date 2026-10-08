@@ -22,7 +22,9 @@ pub mod workspace;
 
 pub use app_shell::{AppInfo, UpdatePolicy, UpdateProgress, UpdateStatus, app_info};
 pub use device::{DeviceRegistry, RegisteredLibrary};
-pub use device_libraries::{DeviceLibraries, DeviceLibraryError, LibraryRegistration};
+pub use device_libraries::{
+    DeviceLibraries, DeviceLibraryError, ImportTaskSnapshot, LibraryRegistration,
+};
 pub use library::Library;
 pub use settings::{AppSettings, SettingsError, ShortcutAction};
 pub use shortcuts::{

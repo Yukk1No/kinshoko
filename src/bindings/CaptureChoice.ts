@@ -3,4 +3,4 @@
 /**
  * 保存参考组时对一张截图的决定。空资料库表示明确不把它加入参考组。
  */
-export type CaptureChoice = { captureId: string, libraryId: string | null, };
+export type CaptureChoice = { captureId: string, libraryId: string | null, folderId: string | null, };

@@ -81,7 +81,11 @@ fn prepare_pins(app: &AppHandle, choices: &[CaptureChoice]) -> Result<Vec<SavedP
         let Some(library_id) = &choice.library_id else {
             continue;
         };
-        let reference = crate::library::with_collection(app, library_id, |library| {
+        let destination = kinshoko_core::library::SaveDestination {
+            library_id: library_id.clone(),
+            folder_id: choice.folder_id.clone(),
+        };
+        let reference = crate::library::with_destination_published(app, &destination, |library| {
             lock(&state(app).history)
                 .collect_pin(&pin, library)
                 .map_err(|e| e.to_string())
@@ -295,10 +299,17 @@ pub async fn export_reference_group_package(
 pub async fn import_reference_group_package(
     app: AppHandle,
     library_id: String,
+    destination: Option<kinshoko_core::library::SaveDestination>,
     path: Option<PathBuf>,
 ) -> Result<Option<ReferenceGroup>, String> {
     blocking(move || {
-        crate::library::current(&app, &library_id)?;
+        let destination = destination.unwrap_or(kinshoko_core::library::SaveDestination {
+            library_id: library_id.clone(),
+            folder_id: None,
+        });
+        if destination.library_id != library_id {
+            return Err("保存目标资料库与任务归属不一致".into());
+        }
         let Some(path) = path.or_else(|| {
             app.dialog()
                 .file()
@@ -309,7 +320,7 @@ pub async fn import_reference_group_package(
             return Ok(None);
         };
         let groups = lock(&state(&app).groups).clone();
-        let group = crate::library::with_current(&app, &library_id, |library| {
+        let group = crate::library::with_destination(&app, &destination, |library| {
             groups
                 .import_package(&path, library)
                 .map_err(|e| e.to_string())
