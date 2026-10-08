@@ -233,6 +233,13 @@ try {
   await uiTotal(2);
   assert(await session.exec("return document.querySelectorAll('.search-chip').length === 1 && document.body.textContent.includes('紫发') && document.body.textContent.includes('蓝发')"), "group click expands visible members into one OR search condition");
   await session.screenshot("formal-visible-or-condition.png");
+  for (const library of [first, second]) {
+    await session.select("//select[@aria-label='当前资料库']", library.info.id);
+    await until("active provider switched", async () => (await session.invoke("current_library"))?.id === library.info.id);
+    await until("same shared group remains in formal bar", () => session.find("//div[@role='toolbar' and @aria-label='标签分组']//button[contains(.,'两库发色')]"));
+    assert((await readGroups()).find((g) => g.id === sharedGroup.id)?.tags.map((t) => t.tag.id).join() === definitionIds.join(), `switching to ${library.info.name} preserves unified group membership and order`);
+    await uiTotal(2);
+  }
   const resolved = await session.invoke("workspace_resolve", { input: { conditions: [{ any: definitionIds.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }], exact: true }, lang: "zh-CN", safeMode: true });
   const scoped = await session.invoke("workspace_browse", { query: { scope: { kind: "library", libraryId: second.info.id, scope: { kind: "all" } }, conditions: resolved, cursor: null, limit: 20, thumbnailPx: 128 }, safeMode: true });
   assert(scoped.total === 2 && scoped.cards.every((card) => card.sources.some((source) => source.libraryId === second.info.id && source.matches)), "OR membership translates to different local IDs in an explicit provider");
