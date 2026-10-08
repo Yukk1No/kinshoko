@@ -116,6 +116,7 @@ impl ReferenceLens {
                 hub: Default::default(),
                 recovery: Default::default(),
                 translations: Default::default(),
+                package_publication_gate: Default::default(),
                 safe_mode: AtomicBool::new(true),
                 reference_taken: AtomicBool::new(true),
                 detached: true,

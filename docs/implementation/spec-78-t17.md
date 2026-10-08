@@ -60,7 +60,10 @@ OS 提交一旦开始则按同一锁串行，撤销可能等待该次短提交�
 准备、格式登记、窗口句柄或打开剪贴板失败时尚未清空旧内容。
 Windows 不提供多格式事务：开始实际 set 后，OS 写入失败不能保证回滚；第二格式失败会报告部分互操作失败。
 程序内模型自动分级纳入边界。其他进程直接修改 SQLite 或原图不受此进程的锁串行，最终读取只提供观察时校验。
-生产路径审计另发现参考组包 metadata 直接写 rating_fact，目前在 catalog 锁内导入，尚未加入 gate。此为静态候选，没有原生复现；不能伪装成外部进程限制，也不能在持 catalog 时直接取 gate 造成锁序倒置。
+参考组包和跨库复制通过同一 `PackageFacts` 提交点发布分级。`Library::use_package_publication_gate` 注入共享 Arc；`for_destination` 保留同一 inner。许可在调用线程进入 `writer.run` 前取得，仅覆盖短事务，不在 writer 闭包里反向等待许可。
+参考组包先对固定 `CatalogInspection` 校验同一清单，再校验全部原图、读取、解码和导入；长 IO 不持 catalog 或 gate。`PackageImport` 暂不保存新组，App 在 gate→catalog 发布定义后才 finish。定义发布失败时保留已导入内容，参考组尚未保存。
+普通/Eagle 导入的 `Origin.package` 固定为 None，不写 `rating_fact` 或 `rating_manual`，也不把已存在的可见图自动移入回收站。它们不取此 gate，因此注销 settle 的既有 import worker 不等待这把锁。Eagle 只可恢复同批刚创建且有初始回收站标记的图；不撤销已有可见来源。
+真实资料库与真实参考组包的公开 RED 显示两条入口在许可被占用时均完成，已有同字节图有效分级均变为 Explicit；修复后等待许可释放再发布。包/复制尚无原生漏洞复现，此公开 RED 不冒称 native RED。完整写入点和锁序见 [写入审计](evidence/spec78-t17/package-publication/write-inventory.md)。
 
 ## 已保留的证据
 

@@ -1,0 +1,31 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+error[E0373]: closure may outlive the current function, but it borrows `ready`, which is owned by the current function
+   --> crates\kinshoko-core\tests\reference_group_package.rs:660:34
+    |
+658 |     let (finished_while_held, rating_while_held) = std::thread::scope(|scope| {
+    |                                                                        ----- has type `&'1 Scope<'1, '_>`
+659 |         let ready = ready.clone();
+660 |         let worker = scope.spawn(|| {
+    |                                  ^^ may outlive borrowed value `ready`
+661 |             ready.wait();
+    |             ----- `ready` is borrowed here
+    |
+note: function requires argument type to outlive `'1`
+   --> crates\kinshoko-core\tests\reference_group_package.rs:660:22
+    |
+660 |           let worker = scope.spawn(|| {
+    |  ______________________^
+661 | |             ready.wait();
+662 | |             if copy {
+663 | |                 other.library.copy_from(&studio.a, source_id).unwrap();
+...   |
+667 | |             let _ = done_tx.send(());
+668 | |         });
+    | |__________^
+help: to force the closure to take ownership of `ready` (and any other referenced variables), use the `move` keyword
+    |
+660 |         let worker = scope.spawn(move || {
+    |                                  ++++
+
+For more information about this error, try `rustc --explain E0373`.
+error: could not compile `kinshoko-core` (test "reference_group_package") due to 1 previous error

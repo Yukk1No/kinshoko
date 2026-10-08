@@ -119,6 +119,7 @@ impl LibraryState {
     /// New tags receive bundled initial names; old display text awaits explicit migration.
     fn install_translations(&self, library: &Library) {
         library.use_translations_for_new_tags((*self.translations).clone());
+        library.use_package_publication_gate(self.visibility_commit.clone());
     }
 
     /// 界面正在操作的资料库；已切换或关闭时返回错误。
