@@ -20,7 +20,7 @@ pub(crate) mod win32;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
 use kinshoko_core::ShortcutAction;
@@ -51,6 +51,7 @@ pub struct DesktopState {
     pending_collection: Mutex<Option<String>>,
     capture: Mutex<capture::Session>,
     capture_frames: capture::FrameChannel,
+    capture_geometry_generation: AtomicU64,
     /// 本次运行中打开着的钉图窗口。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
     /// 钉图状态（`pins.json`），重新打开后恢复。
@@ -76,6 +77,20 @@ fn state(app: &AppHandle) -> &DesktopState {
 pub fn clear_viewer_reference(app: &AppHandle) {
     if let Some(state) = app.try_state::<DesktopState>() {
         state.capture_frames.invalidate();
+        state
+            .capture_geometry_generation
+            .fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+/// Native geometry changes are causal even when a window returns to exactly the same rectangle.
+pub fn capture_geometry_changed<R: tauri::Runtime>(app: &tauri::AppHandle<R>, label: &str) {
+    if (label == "main" || label.starts_with("pin-"))
+        && let Some(state) = app.try_state::<DesktopState>()
+    {
+        state
+            .capture_geometry_generation
+            .fetch_add(1, Ordering::SeqCst);
     }
 }
 
@@ -149,6 +164,7 @@ pub fn init() -> TauriPlugin<Wry> {
                 pending_collection: Mutex::new(None),
                 capture: Mutex::new(capture::Session::Idle),
                 capture_frames: capture::FrameChannel::default(),
+                capture_geometry_generation: AtomicU64::new(0),
                 pins: Mutex::default(),
                 store: Mutex::new(store),
                 dirty: AtomicBool::new(false),

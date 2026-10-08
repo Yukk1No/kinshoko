@@ -4,6 +4,7 @@
 //! 建一个隐藏的框选窗口 → 页面载入冻结屏幕后调用 `capture_ready` 才显示，免得先闪一下空窗口。
 //! 选区以相对显示器的物理像素传回；落在未遮挡参考图内时保留来源，否则裁下后存入截图历史。
 
+use std::sync::atomic::Ordering;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
@@ -306,6 +307,9 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
     let safe_generation = crate::library::capture_generation(app);
     let mut frozen = None;
     for _ in 0..5 {
+        let geometry_generation = state(app)
+            .capture_geometry_generation
+            .load(Ordering::SeqCst);
         let metrics = main_metrics(app)?;
         let before = metrics
             .as_ref()
@@ -324,7 +328,12 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
             continue;
         }
         let confirmed = references(app, metrics.as_ref().zip(after.as_ref()))?;
-        if !same_surfaces(&before_surfaces, &confirmed) {
+        if state(app)
+            .capture_geometry_generation
+            .load(Ordering::SeqCst)
+            != geometry_generation
+            || !same_surfaces(&before_surfaces, &confirmed)
+        {
             continue;
         }
         if crate::library::capture_generation(app) != safe_generation {
