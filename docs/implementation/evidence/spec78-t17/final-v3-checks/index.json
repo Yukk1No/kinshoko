@@ -1,0 +1,76 @@
+{
+  "checkedSource": "2da427ee5fb0666b7d7ba3c9e647c124ed65bfc7",
+  "checkedTree": "8a70d4960e0758347f502af6d17b7ff4107d1dba",
+  "statusBefore": "clean",
+  "statusAfter": "clean",
+  "trackedFileHashesCompared": 2166,
+  "mismatches": [],
+  "rawBeforeManifest": {
+    "path": "work\\t17\\final-v3-precheck-manifest.json",
+    "sha256": "667162d271ceaea9d60e252f58e3521c6eb6fe33a0a7660e01eb3595aba43853",
+    "archive": "precheck-manifest.json.gz",
+    "archiveMethod": "gzip mtime=0; decompresses to exact original bytes"
+  },
+  "checks": {
+    "ui": "40 files / 286 passed / 0 failed; default config, one whole run",
+    "rust": "76 parent targets / 710 passed / 0 failed / 12 ignored; 7 nested results excluded",
+    "clippy": "cargo clippy --workspace --all-targets -- -D warnings; exit0",
+    "typecheck": "tsc --noEmit; exit0; no stdout file created",
+    "fmt": "cargo fmt --all -- --check; exit0; no stdout file created",
+    "syntax": "wall-capture and original-v3 Node checks exit0; native-wall-observe and native-wall-pixels Python AST pass"
+  },
+  "previousFailure": "The earlier 38-file 280/281 whole UI failure and its unknown cause remain recorded; this single required final whole run does not erase or explain it.",
+  "nativeStatus": "Not run on this source. Root desktop grant required.",
+  "files": [
+    {
+      "path": "final-v3-clippy-exit.txt",
+      "bytes": 1,
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "path": "final-v3-clippy.txt",
+      "bytes": 183,
+      "sha256": "97667b420248b906dd389f90cc8f2d3ac36b1f7e694c1bee2d164e2f2b119292"
+    },
+    {
+      "path": "final-v3-fmt-exit.txt",
+      "bytes": 1,
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "path": "final-v3-typecheck-exit.txt",
+      "bytes": 1,
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "path": "final-v3-ui-exit.txt",
+      "bytes": 1,
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "path": "final-v3-ui-whole.txt",
+      "bytes": 552,
+      "sha256": "826daf42f221174e85eb88c8304a19e0cd3fd91ff0df0d3e1be444d2b9478ad0"
+    },
+    {
+      "path": "final-v3-workspace-exit.txt",
+      "bytes": 1,
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "path": "final-v3-workspace-summary.json",
+      "bytes": 18825,
+      "sha256": "36f0669f43eaa04f3fe5a27d5b6bc927fbb23a32280c6716d6f043bc349585c4"
+    },
+    {
+      "path": "final-v3-workspace-tests.txt",
+      "bytes": 72410,
+      "sha256": "0db6065f78f217b87d4dca4847c555b3cb2be3f97e43d2e651199b3e59d7b89b"
+    },
+    {
+      "path": "precheck-manifest.json.gz",
+      "bytes": 109876,
+      "sha256": "a9de1bd795c5ec78e4846980420b62c70473ed6843ddc8fdc207c8fd92441772"
+    }
+  ]
+}

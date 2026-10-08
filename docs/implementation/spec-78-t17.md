@@ -101,3 +101,13 @@ Rust 全量 76 targets：698 passed、0 failed、12 ignored；不重复计故障
 旧多轮只能按完整轮或部分轮分别记，不能累加已走过断言作为整轮成功。
 Windows 10、系统 100/125/150% 与混合 DPI、实体 F1 和笔输入尚未验证。
 强制 WebView DPR 不是系统 DPI 验证。最终仍需开发者真机验收。
+
+
+## 最终构建前固定检查（2da427e）
+
+此轮先合入根 b856，再在 clean `2da427ee5fb0666b7d7ba3c9e647c124ed65bfc7` / tree `8a70d4960e0758347f502af6d17b7ff4107d1dba` 执行一次必要完整检查。
+前后 2166 个跟踪文件逐 SHA 相同，bindings 无差异。检查前完整清单以确定 mtime 的 gzip 逐字节保全。
+前端 40 文件、286 测试全部通过；Rust 76 个父 target、710 成功、0 失败、12 ignored，另排除 7 个内嵌子进程结果。
+strict workspace/all-targets Clippy、TypeScript、fmt 和验收脚本语法检查通过。原始输出、退出码及派生索引见 [final-v3-checks](evidence/spec78-t17/final-v3-checks/index.json)。
+此前 280/281 的原始失败和未知原因仍保留，此次必要完整检查不追溯改写旧轮结果。
+新程序原生 Wall、真实关闭贴图权限，以及 mode/provider/rating 准备阶段撤销仍未执行，等待固定新产物和根独立桌面授权。
