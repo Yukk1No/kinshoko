@@ -1,16 +1,18 @@
 // #78 T04: legacy v16 libraries, explicit name ownership, cancellation and conflicts.
 // Setup uses public Tauri actions; preference, alias, library selection and search use rendered controls.
-// Usage: node e2e/tag-names.mjs <owned kinshoko.exe> <matching msedgedriver.exe>
+// Usage: node e2e/legacy-tag-names.mjs <owned kinshoko.exe> <matching msedgedriver.exe>
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, renameSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { createHash } from "node:crypto";
 import { deflateSync } from "node:zlib";
 
 const [, , appArg, edgeArg] = process.argv;
-if (!appArg || !edgeArg) throw new Error("Usage: node e2e/tag-names.mjs <kinshoko.exe> <msedgedriver.exe>");
+if (!appArg || !edgeArg) throw new Error("Usage: node e2e/legacy-tag-names.mjs <kinshoko.exe> <msedgedriver.exe>");
 const application = resolve(appArg);
+const source = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", windowsHide: true }).stdout.trim();
+const binarySha256 = createHash("sha256").update(readFileSync(application)).digest("hex");
 const work = resolve("work", "e2e", `legacy-names-${Date.now()}`);
 mkdirSync(work, { recursive: true });
 const libraries = join(work, "libraries");
@@ -80,7 +82,7 @@ class Session {
 function quitOwnApp() {
   return spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, windowsHide: true, stdio: "ignore" });
 }
-const driver = spawn(process.argv[4] ?? "tauri-driver", ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], { env: { ...process.env, APPDATA: join(work, "roaming"), LOCALAPPDATA: join(work, "local"), KINSHOKO_DATA_DIR: join(work, "app-data"), KINSHOKO_SKIP_AUTOSTART: "1" }, windowsHide: true, stdio: ["ignore", "inherit", "inherit"] });
+const driver = spawn(process.argv[4] ?? "tauri-driver", ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], { env: { ...process.env, APPDATA: join(work, "roaming"), LOCALAPPDATA: join(work, "local"), KINSHOKO_DATA_DIR: join(work, "app-data"), KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") }, windowsHide: true, stdio: ["ignore", "inherit", "inherit"] });
 let session;
 const setting = "//button[@aria-label='设置' or normalize-space()='设置']";
 
@@ -200,12 +202,41 @@ try {
   await closeSettings(); await restart();
   assert((await migration()).plan.groups.length === 0, "repeat opening does not repeat or overwrite confirmed choices");
   for (const library of [first, second, third, fourth]) assert(createHash("sha256").update(readFileSync(library.original)).digest("hex") === library.sha, `${library.info.name} keeps original file bytes`);
-  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", application, stories: [25,26], assertions, target, first, second, third, fourth, environment: await session.exec("return { userAgent: navigator.userAgent, dpr: devicePixelRatio, width: innerWidth, height: innerHeight }") }, null, 2));
+  // T07 final startup branch: the saved view must apply before detached providers open.
+  const active = await session.invoke("current_library");
+  assert(active?.id === fourth.info.id, "last active library is the fourth upgraded old library");
+  await session.invoke("set_safe_mode", { on: false });
+  assert(await session.invoke("safe_mode") === false, "non-safe view is persisted before normal shutdown");
+  const normalClose = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { $ownedApp = Get-Process -Id $_.ProcessId; if (-not $ownedApp.CloseMainWindow()) { exit 1 } }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, windowsHide: true, encoding: "utf8" });
+  assert(normalClose.status === 0, "normal main-window close is requested for the owned application");
+  await until("owned application exits normally", () => {
+    const processCheck = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "@(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE }).Count"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, windowsHide: true, encoding: "utf8" });
+    return processCheck.status === 0 && processCheck.stdout.trim() === "0";
+  });
+  await session.close().catch(() => {}); session = null;
+  const offlineRoot = fourth.info.root + ".offline";
+  renameSync(fourth.info.root, offlineRoot);
+  try {
+    session = await Session.start();
+    await until("workspace renders when active path is disconnected", () => session.exec("return document.querySelector('.wall')?.dataset.total === '1'"));
+    assert(await session.invoke("safe_mode") === false, "saved non-safe view survives disconnected-active-library restart");
+    const status = await session.invoke("workspace_status", { safeMode: false });
+    assert(status.libraries.some((entry) => entry.library.id === fourth.info.id && entry.unavailable), "disconnected active provider has explicit unavailability");
+    const page = await session.invoke("workspace_browse", { query: { scope: { kind: "all" }, conditions: { conditions: [] }, cursor: null, limit: 20, thumbnailPx: 128 }, safeMode: false });
+    assert(page.total === 1 && page.cards[0].sources.filter((entry) => !entry.unavailable).length === 3, "other upgraded registered libraries still aggregate after disconnected-active startup");
+    assert(await session.exec("return document.querySelector('[aria-label=\"查找范围\"] button[aria-current=page]')?.textContent === '全部资料库'"), "formal startup workspace defaults to all providers without an active library");
+    await session.screenshot("formal-disconnected-active-startup.png");
+  } finally {
+    if (session) await session.close().catch(() => {}); session = null; quitOwnApp();
+    renameSync(offlineRoot, fourth.info.root);
+  }
+  session = await Session.start();
+  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, binarySha256, application, stories: [25,26], supplementaryIntegration: "T07 saved safe=false with disconnected last-active library", assertions, target, first, second, third, fourth, environment: await session.exec("return { userAgent: navigator.userAgent, dpr: devicePixelRatio, width: innerWidth, height: innerHeight }") }, null, 2));
   console.log(`Evidence: ${work}`);
 } catch (error) {
   console.error(error);
   if (session) await session.screenshot("failure.png").catch(() => {});
-  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "failed", application, error: String(error), assertions, stories: [25,26] }, null, 2));
+  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "failed", source, binarySha256, application, error: String(error), assertions, stories: [25,26] }, null, 2));
   process.exitCode = 1;
 } finally {
   if (session) await session.close().catch(() => {});
