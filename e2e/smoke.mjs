@@ -1,23 +1,27 @@
 // Tauri WebDriver 冒烟测试（#44）：建库 → 导入文件夹 → 浏览 → 关闭后重开。
 //
-// 用法：node e2e/smoke.mjs <kinshoko.exe> [msedgedriver.exe]
+// 用法：node e2e/smoke.mjs <kinshoko.exe> [msedgedriver.exe] [tauri-driver.exe]
 // 需要 PATH 中有 tauri-driver（cargo install tauri-driver --locked），以及与 WebView2 版本一致的
 // msedgedriver。直接说 W3C WebDriver 协议，不引入 WebdriverIO 等依赖。
 // 原生文件对话框无法由 WebDriver 操作，测试把要“选中”的路径放进 window.__KINSHOKO_TEST_PICKS__。
 
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
 
 const [, , appArg, edgeDriverArg] = process.argv;
 if (!appArg) {
-  console.error("用法：node e2e/smoke.mjs <kinshoko.exe> [msedgedriver.exe]");
+  console.error("用法：node e2e/smoke.mjs <kinshoko.exe> [msedgedriver.exe] [tauri-driver.exe]");
   process.exit(2);
 }
 const application = resolve(appArg);
-const DRIVER = "http://127.0.0.1:4444";
+const port = Number(process.env.KINSHOKO_SMOKE_PORT ?? 4444);
+if (!Number.isInteger(port) || port < 1024 || port > 65534) throw new Error("冒烟端口无效");
+const DRIVER = `http://127.0.0.1:${port}`;
 
 // ---------- 样本 ----------
 
@@ -56,11 +60,21 @@ function png(w, h, [r, g, b]) {
   ]);
 }
 
-const work = mkdtempSync(join(tmpdir(), "kinshoko-smoke-"));
+const evidenceRoot = resolve(process.env.KINSHOKO_SMOKE_WORK_ROOT ?? tmpdir());
+mkdirSync(evidenceRoot, { recursive: true });
+const work = mkdtempSync(join(evidenceRoot, "kinshoko-smoke-"));
 const dataDir = join(work, "app-data");
 const libraryParent = join(work, "libraries");
 const source = join(work, "参考");
 mkdirSync(libraryParent, { recursive: true });
+console.log(`冒烟证据：${work}`);
+const result = {
+  source: process.env.GITHUB_SHA ?? process.env.KINSHOKO_SMOKE_SOURCE ?? null,
+  application,
+  binarySha256: createHash("sha256").update(readFileSync(application)).digest("hex"),
+  harnessSha256: createHash("sha256").update(readFileSync(fileURLToPath(import.meta.url))).digest("hex"),
+  startedAt: new Date().toISOString(), assertions: [],
+};
 mkdirSync(join(source, "人物"), { recursive: true });
 writeFileSync(join(source, "横图.png"), png(300, 150, [200, 80, 80]));
 // 竖图取 1:2：图片墙把高宽比超过 2.6 的长图整体缩小（src/wall/Wall.tsx 的 CAP_RATIO），
@@ -139,6 +153,13 @@ class Session {
   pick(value) {
     return this.exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]];", [value]);
   }
+  currentLibrary(name) {
+    return this.exec(`
+      const select = document.querySelector('select[aria-label="当前资料库"]');
+      const option = select?.selectedOptions[0];
+      return select && !select.disabled && select.value && option?.textContent.trim() === arguments[0]
+        ? { id: select.value, name: option.textContent.trim() } : null;`, [name]);
+  }
   /** 图片墙上已挂载的卡片 id，以及缩略图是否都已解码。 */
   wall() {
     return this.exec(`
@@ -169,17 +190,28 @@ function reportProcesses() {
       ForEach-Object { "WebView2 pid=$($_.ProcessId) parent=$($_.ParentProcessId) $($_.CommandLine)" }`;
   const out = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", script], {
     encoding: "utf8",
+    windowsHide: true,
   });
   console.error(`建会话失败时的进程：\n${(out.stdout || "").trim() || "（没有被测应用或它的 WebView2 进程）"}`);
 }
 
-/** 结束被测应用的进程，并等它真正退出。 */
+/** Force this exact test executable to exit; this is a restart check, not normal tray Quit. */
 async function quitApp() {
-  const image = basename(application);
-  spawnSync("taskkill", ["/F", "/T", "/IM", image], { stdio: "ignore" });
+  const script = `
+    $own = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_SMOKE_EXE })
+    $own | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    $own.ProcessId | ConvertTo-Json -Compress`;
+  const stopped = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", script], {
+    env: { ...process.env, KINSHOKO_SMOKE_EXE: application }, windowsHide: true, encoding: "utf8",
+  });
+  if (stopped.status !== 0) throw new Error(`无法核对测试程序：${stopped.stderr}`);
   await until("应用进程退出", () => {
-    const out = spawnSync("tasklist", ["/FI", `IMAGENAME eq ${image}`, "/NH"], { encoding: "utf8" });
-    return !out.stdout.toLowerCase().includes(image.toLowerCase());
+    const out = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command",
+      "@(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_SMOKE_EXE }).Count"], {
+      env: { ...process.env, KINSHOKO_SMOKE_EXE: application }, windowsHide: true, encoding: "utf8",
+    });
+    if (out.status !== 0) throw new Error(out.stderr);
+    return out.stdout.trim() === "0";
   });
 }
 
@@ -187,12 +219,14 @@ const button = (name) => `//button[normalize-space()='${name}']`;
 
 function assert(ok, message) {
   if (!ok) throw new Error(`断言失败：${message}`);
+  result.assertions.push(message);
   console.log(`✓ ${message}`);
 }
 
-const driverArgs = edgeDriverArg ? ["--native-driver", resolve(edgeDriverArg)] : [];
-const driver = spawn("tauri-driver", driverArgs, {
-  env: { ...process.env, KINSHOKO_DATA_DIR: dataDir, KINSHOKO_SKIP_AUTOSTART: "1" },
+const driverArgs = ["--port", String(port), "--native-port", String(port + 1), ...(edgeDriverArg ? ["--native-driver", resolve(edgeDriverArg)] : [])];
+const driver = spawn(process.argv[4] ?? "tauri-driver", driverArgs, {
+  env: { ...process.env, KINSHOKO_DATA_DIR: dataDir, KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") },
+  windowsHide: true,
   stdio: ["ignore", "inherit", "inherit"],
 });
 
@@ -208,10 +242,12 @@ try {
   await session.click(await session.find(button("选择存放位置…")));
   await session.waitFor("显示所选位置", `//*[normalize-space()='${libraryParent}']`);
   await session.click(await session.find(button("建立资料库")));
-  await session.waitFor("打开新资料库", "//h1[normalize-space()='冒烟测试库']");
+  const created = await until("打开新资料库", () => session.currentLibrary("冒烟测试库"));
+  result.library = created;
   assert(true, "建立资料库并打开");
 
   // 导入文件夹（含子文件夹）
+  await session.click(await session.find("//button[@aria-label='导入参考图']"));
   await session.pick(source);
   await session.click(await session.find(button("导入文件夹…")));
   await session.waitFor("导入完成", "//*[contains(normalize-space(), '导入完成：新增 3 张')]", 60000);
@@ -230,12 +266,13 @@ try {
   );
 
   // 关闭后重开。应用常驻托盘（#61），关掉窗口进程仍在，单实例插件会把新启动交给它；
-  // 所以结束进程本身，等同“退出”后再启动。
+  // 所以只结束精确测试 exe，检查进程重启后的恢复；不声称正常托盘退出通过。
   await session.close();
   session = null;
   await quitApp();
   session = await Session.start();
-  await session.waitFor("重开后打开上次的资料库", "//h1[normalize-space()='冒烟测试库']");
+  const reopened = await until("重开后打开上次的资料库", () => session.currentLibrary("冒烟测试库"));
+  assert(reopened.id === created.id, "重开后仍使用同一资料库身份");
   const after = await until("重开后的缩略图", async () => {
     const w = await session.wall();
     return w.ids.length === 3 && w.loaded ? w : null;
@@ -243,13 +280,21 @@ try {
   assert(JSON.stringify(after.ids) === JSON.stringify(before.ids), "重开后资料库与图片墙原样恢复");
   await session.close();
   session = null;
+  result.status = "passed";
   console.log("冒烟测试通过");
 } catch (e) {
+  result.status = "failed";
+  result.error = String(e);
+  if (session) {
+    await session.exec("return document.documentElement.outerHTML").then(html => writeFileSync(join(work, "failure.html"), html)).catch(() => {});
+    await wd("GET", `${session.base}/screenshot`).then(data => writeFileSync(join(work, "failure.png"), Buffer.from(data, "base64"))).catch(() => {});
+  }
   console.error(e);
   process.exitCode = 1;
 } finally {
   if (session) await session.close().catch(() => {});
   await quitApp().catch(() => {});
   driver.kill();
-  rmSync(work, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
+  result.completedAt = new Date().toISOString();
+  writeFileSync(join(work, "result.json"), JSON.stringify(result, null, 2));
 }
