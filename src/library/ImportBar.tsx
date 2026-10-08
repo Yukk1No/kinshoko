@@ -1,3 +1,4 @@
+import { SealedImportPreview } from "./SealedImportPreview";
 import type { SaveDestination } from "../bindings/SaveDestination";
 import { useEffect, useRef, useState } from "react";
 import type { ImportOptions } from "../bindings/ImportOptions";
@@ -17,6 +18,7 @@ export type FinishedImport = { taskId: string; report: ImportReport; libraryId?:
 
 type Props = {
   enabled: boolean;
+  previewContextActive?: boolean;
   libraryId: string;
   libraryName: string;
   destination?:SaveDestination|null;
@@ -47,8 +49,10 @@ function reason(outcome: ImportOutcome): string | null {
  * 导入：选择文件或文件夹，或把它们拖进主窗口；进行中显示进度与取消，结束后逐项列出
  * 没有进来的文件并可只重试读取失败的项。打开资料库时若上次导入中断，提示撤回了哪些文件。
  */
-export function ImportBar({ enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, onShowRequested }: Props) {
+export function ImportBar({ previewContextActive=true, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, onShowRequested }: Props) {
   const report = finished?.report ?? null;
+  const [preview, setPreview] = useState<string | null>(null);
+  useEffect(() => { setPreview(null); }, [finished?.taskId, previewContextActive, enabled]);
   const [hovering, setHovering] = useState(false);
   const [recovery, setRecovery] = useState<RecoveryReport | null>(null);
   const [eagleLibraries, setEagleLibraries] = useState<EagleLibraryCandidate[] | null>(null);
@@ -363,11 +367,11 @@ export function ImportBar({ enabled, libraryId, libraryName, destination, destin
         <section className="import-report" aria-label="导入结果">
           <header>
             <span>
-              {report.cancelled ? "导入已取消" : "导入完成"}：新增 {counts.imported} 张
+              {report.cancelled ? "导入已取消" : "导入完成"}{report.privateSummary ? "，内容处理结果已保留" : <>：新增 {counts.imported} 张
               {counts.merged > 0 && `，与已有图相同而合并 ${counts.merged} 张`}
               {counts.refreshed > 0 && `，更新 Eagle 信息 ${counts.refreshed} 张（本库整理保留）`}
               {counts.newVersions > 0 && `，Eagle 中内容变了的 ${counts.newVersions} 张作为新版本进库（旧版本保留）`}
-              {report.eagleMissing > 0 && `；Eagle 中已不存在的 ${report.eagleMissing} 张在本库保留`}
+              {report.eagleMissing > 0 && `；Eagle 中已不存在的 ${report.eagleMissing} 张在本库保留`}</>}
               {counts.rejected.length > 0 && `，${counts.rejected.length} 个文件没有导入`}
             </span>
             {counts.failed.length > 0 && (
@@ -379,12 +383,14 @@ export function ImportBar({ enabled, libraryId, libraryName, destination, destin
               关闭
             </button>
           </header>
+          {report.sealedDuplicates && <p className="sealed-import-prompt"><span>有封印项重复，是否展开看看</span>
+            <button type="button" onClick={() => finished && setPreview(finished.taskId)}>展开本次重复项</button></p>}
           {counts.skippedDeleted.length > 0 && (
             <p>曾永久删除的同一内容已跳过。
               <button type="button" disabled={busy} onClick={() => void begin(counts.skippedDeleted, true, undefined, finished?.destination)}>重新选择永久删除重导策略…</button>
             </p>
           )}
-          {counts.trashDuplicate && (
+          {(counts.trashDuplicate || report.trashDuplicates) && (
             <p>有内容与回收站重复，已保持删除状态。
               {onOpenTrash && <button type="button" onClick={()=>onOpenTrash?.(finished?.libraryId??libraryId)}>前往回收站恢复</button>}
             </p>
@@ -401,6 +407,7 @@ export function ImportBar({ enabled, libraryId, libraryName, destination, destin
           )}
         </section>
       )}
+      {finished && preview === finished.taskId && previewContextActive && enabled && <SealedImportPreview key={finished.taskId} libraryId={finished.libraryId ?? libraryId} taskId={finished.taskId} onClose={() => setPreview(null)} />}
       {tagStep && <EagleTagStep libraryId={finished?.libraryId??libraryId} onClose={() => setTagStep(false)} />}
     </div>
   );

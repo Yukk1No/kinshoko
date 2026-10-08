@@ -936,3 +936,16 @@ export function sharedPersonalApprox(lang: string, safeMode: boolean) {
 export function editSharedApprox(edit: import("./bindings/CatalogApproxEdit").CatalogApproxEdit, safeMode: boolean) {
   return invoke<void>(lib("edit_shared_approx"), { edit, safeMode });
 }
+
+
+/** Consent only to the backend-owned receipt; arbitrary image IDs are never accepted. */
+export function openImportPreview(libraryId: string, taskId: string): Promise<import("./bindings/ImportPreviewSession").ImportPreviewSession> {
+  return invoke(lib("open_import_preview"), { libraryId, taskId });
+}
+export function closeImportPreview(sessionId: string | null): Promise<void> {
+  return invoke(lib("close_import_preview"), { sessionId });
+}
+export async function readImportPreview(sessionId: string, itemId: string, targetPx = 640): Promise<Uint8Array<ArrayBuffer>> {
+  const raw = await invoke<ArrayBuffer | number[]>(lib("read_import_preview"), { sessionId, itemId, targetPx });
+  return raw instanceof ArrayBuffer ? new Uint8Array(raw) : Uint8Array.from(raw);
+}

@@ -42,7 +42,7 @@ export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceS
    <SaveDestinationPicker value={context.destination} onChange={context.setDestination}/>
    {problem&&<p role="alert">{problem}</p>}
    {tasks.length>1&&<label>查看导入任务<select aria-label="查看导入任务" value={task?.taskId??""} onChange={e=>setSelectedTask(e.target.value)}>{tasks.map(t=><option key={t.taskId} value={t.taskId}>{t.libraryName} / {t.folderName} · {t.report?"已结束":"进行中"}</option>)}</select></label>}
-   <ImportBar {...p} libraryId={context.destination?.libraryId??""} libraryName={library?.name??"尚未选择"}
+   <ImportBar {...p} previewContextActive={open} libraryId={context.destination?.libraryId??""} libraryName={library?.name??"尚未选择"}
     destination={context.destination} destinationReady={context.ready&&destinationAvailable(context.destination,context.providers)} running={running} finished={finished}
     onStarted={(id,fixed)=>{
       if(fixed){

@@ -11,6 +11,7 @@
 
 mod approx;
 mod groups;
+mod import_preview;
 mod name_migration;
 mod names;
 mod portable;
@@ -73,6 +74,7 @@ struct LibraryState {
     catalog: Arc<Mutex<Option<TagCatalog>>>,
     search_catalog_revision: Arc<AtomicI64>,
     safe_mode_generation: AtomicU64,
+    import_preview_generation: AtomicU64,
     workspace: Mutex<Option<kinshoko_core::workspace::Workspace>>,
     /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
     /// 与桌面钉图（#65），不经任何命令交给前端。
@@ -100,6 +102,7 @@ impl LibraryState {
             catalog: Arc::default(),
             search_catalog_revision: Arc::new(AtomicI64::new(-1)),
             safe_mode_generation: AtomicU64::new(0),
+            import_preview_generation: AtomicU64::new(0),
             workspace: Mutex::default(),
             reference: Mutex::new(None),
             detached: DetachedLenses::default(),
@@ -226,6 +229,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             recovery,
             start_import,
             save_destination::import_tasks,
+            import_preview::open_import_preview,
+            import_preview::read_import_preview,
+            import_preview::close_import_preview,
             save_destination::dismiss_import,
             save_destination::workspace_copy_source,
             import_contains_eagle,
@@ -410,7 +416,7 @@ fn forward_events<R: Runtime>(
     std::thread::Builder::new()
         .name("kinshoko-library-events".into())
         .spawn(move || {
-            for event in events {
+            for mut event in events {
                 let active = lock(&libraries)
                     .as_ref()
                     .and_then(DeviceLibraries::current)
@@ -432,6 +438,11 @@ fn forward_events<R: Runtime>(
                         | LibraryEvent::SafeModeChanged { .. }
                 ) {
                     search.invalidate();
+                }
+                // Task-finished events may race the all-provider projection. Raw success details
+                // stay in the fixed task owner; polling returns the checked ordinary receipt.
+                if let LibraryEvent::TaskFinished { report, .. } = &mut event {
+                    *report = report.clone().without_content_details();
                 }
                 let _ = app.emit(EVENT, event);
             }
@@ -546,6 +557,10 @@ pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> R
 }
 
 /// 安全模式是否开启（全局设置）；读不到设置时按开启处理。
+pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
+    import_preview::revoke(app);
+}
+
 pub fn safe_mode_on<R: Runtime>(app: &AppHandle<R>) -> bool {
     saved_safe_mode(app)
 }
@@ -1248,6 +1263,7 @@ async fn set_safe_mode<R: Runtime>(
     on: bool,
 ) -> Result<bool, String> {
     state.safe_mode_generation.fetch_add(1, Ordering::SeqCst);
+    import_preview::revoke(&app);
     if let Some(shell) = app.try_state::<ShellState>() {
         let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
         shell

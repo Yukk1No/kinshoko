@@ -1,5 +1,10 @@
 //! Default workspace over registered, detached read-only content providers.
 //! Each source executes the complete Library query; only afterwards are byte identities joined.
+mod import_preview;
+pub(crate) use import_preview::ImportPreviewAuthorization;
+pub use import_preview::{
+    ImportPreviewContent, ImportPreviewSession, PreparedImportPreview, ResolvedImportPreview,
+};
 mod source;
 pub use source::{WorkspaceSourceInspection, WorkspaceSourceTarget};
 

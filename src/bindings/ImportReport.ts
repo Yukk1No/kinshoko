@@ -5,7 +5,15 @@ import type { ImportItem } from "./ImportItem";
 /**
  * 导入任务的逐项结果。取消时只列出取消前处理过的项。
  */
-export type ImportReport = { items: Array<ImportItem>, cancelled: boolean, 
+export type ImportReport = { 
+/**
+ * A boolean prompt only. The ordinary receipt never exposes the sealed subset size.
+ */
+sealedDuplicates: boolean, 
+/**
+ * Success details are intentionally coarsened together so subtraction cannot reveal a subset.
+ */
+privateSummary: boolean, trashDuplicates: boolean, items: Array<ImportItem>, cancelled: boolean, 
 /**
  * 导入器识别到了 Eagle 来源，与画师使用的入口无关。
  */

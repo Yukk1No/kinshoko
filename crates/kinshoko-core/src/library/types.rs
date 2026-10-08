@@ -176,6 +176,11 @@ pub struct ImportItem {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct ImportReport {
+    /// A boolean prompt only. The ordinary receipt never exposes the sealed subset size.
+    pub sealed_duplicates: bool,
+    /// Success details are intentionally coarsened together so subtraction cannot reveal a subset.
+    pub private_summary: bool,
+    pub trash_duplicates: bool,
     pub items: Vec<ImportItem>,
     pub cancelled: bool,
     /// 导入器识别到了 Eagle 来源，与画师使用的入口无关。
@@ -231,6 +236,25 @@ impl ImportOutcome {
 }
 
 impl ImportReport {
+    /// Safe transport fallback before all-provider receipt projection is available.
+    /// Failures keep their real retry paths; successful content identities/names/counts do not leave.
+    pub fn without_content_details(mut self) -> Self {
+        self.private_summary = true;
+        self.trash_duplicates |= self
+            .items
+            .iter()
+            .any(|item| matches!(item.outcome, ImportOutcome::TrashDuplicate { .. }));
+        self.items.retain(|item| {
+            matches!(
+                item.outcome,
+                ImportOutcome::ReadFailed { .. }
+                    | ImportOutcome::Unsupported
+                    | ImportOutcome::SkippedDeleted
+            )
+        });
+        self.eagle_missing = 0;
+        self
+    }
     /// 只含读取失败项的导入来源，供重试；没有失败项时为 `None`。
     /// 重试不会重复创建已成功的图：字节相同的原图总是合并为同一条记录。
     pub fn retry_source(&self) -> Option<ImportSource> {
