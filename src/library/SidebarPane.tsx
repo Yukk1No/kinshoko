@@ -11,6 +11,12 @@ const DRAG_FOLDER = "application/x-kinshoko-folder";
 const LAST = 2 ** 31;
 
 type Props = {
+  directory?: Sidebar;
+  unassigned?: number;
+  descendantCounts?: { [id: string]: number | undefined };
+  includeDescendants?: boolean;
+  libraryName?: string;
+  embedded?: boolean;
   workspace?: boolean;
   scopeSelected?: boolean;
   safeMode?: boolean;
@@ -24,7 +30,8 @@ type Props = {
 };
 
 const same = (a: BrowseScope, b: BrowseScope) =>
-  a.kind === b.kind && (a.kind !== "folder" || (b.kind === "folder" && a.id === b.id));
+  (a.kind === b.kind || ([a.kind, b.kind].every((kind) => kind === "folder" || kind === "folderTree"))) &&
+  ((a.kind !== "folder" && a.kind !== "folderTree") || ((b.kind === "folder" || b.kind === "folderTree") && a.id === b.id));
 
 /** 只在文本框里按 Enter 提交、Esc 放弃。 */
 export function NameInput(props: {
@@ -55,13 +62,15 @@ export function NameInput(props: {
  * 双击文件夹改名；把文件夹拖到另一个文件夹上移进去，拖到“文件夹”标题上移到顶层；
  * 把图片墙上选中的图拖到文件夹上放进去。
  */
-export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, workspace = false, safeMode = true, readOnly = false, scopeSelected = true }: Props) {
-  const [data, setData] = useState<Sidebar | null>(null);
+export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, workspace = false, safeMode = true, readOnly = false, scopeSelected = true, directory, unassigned, descendantCounts, includeDescendants = false, libraryName, embedded = false }: Props) {
+  const [loadedData, setData] = useState<Sidebar | null>(null);
+  const data = directory ?? loadedData;
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   useEffect(() => {
+    if (directory) return;
     let alive = true;
     (workspace ? workspaceSidebar(libraryId, safeMode) : sidebar(libraryId)).then(
       (value) => alive && setData(value),
@@ -70,12 +79,12 @@ export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, wor
     return () => {
       alive = false;
     };
-  }, [libraryId, reloadKey, onError, workspace, safeMode]);
+  }, [libraryId, reloadKey, onError, workspace, safeMode, directory]);
 
   const run = (p: Promise<unknown>) => p.catch((e) => onError(String(e)));
 
   // 新建的文件夹放在当前打开的文件夹里，否则放在顶层。
-  const parentForNew = scope.kind === "folder" ? scope.id : null;
+  const parentForNew = (scope.kind === "folder" || scope.kind === "folderTree") ? scope.id : null;
   const created = (name: string | null) => {
     setCreating(false);
     if (name) void run(createFolder(libraryId, name, parentForNew));
@@ -119,6 +128,8 @@ export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, wor
     </button>
   );
 
+  const count = (node: FolderNode) => includeDescendants ? descendantCounts?.[node.id] ?? node.count : node.count;
+
   const tree = (nodes: FolderNode[]) => (
     <ul role="group" className="sidebar-tree">
       {nodes.map((node) => (
@@ -135,10 +146,11 @@ export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, wor
           ) : (
             <button
               type="button"
+              data-folder-id={node.id}
               className="sidebar-item"
               data-drop={dropTarget === node.id || undefined}
               aria-current={scopeSelected && same(scope, { kind: "folder", id: node.id }) ? "page" : undefined}
-              aria-label={`${node.name}（${node.count} 张）`}
+              aria-label={`${node.name}（${count(node)} 张）`}
               draggable={!readOnly}
               onClick={() => onScope({ kind: "folder", id: node.id })}
               onDoubleClick={() => !readOnly && setRenaming(node.id)}
@@ -149,10 +161,10 @@ export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, wor
               onDragOver={over(node.id)}
               onDragLeave={() => setDropTarget(null)}
               onDrop={drop(node.id)}
-              title="双击改名；拖到别的文件夹上移进去"
+              title={readOnly ? "这份资料库当前仅供浏览" : "双击改名；拖到别的文件夹上移进去"}
             >
               <span className="sidebar-label">{node.name}</span>
-              <span className="sidebar-count">{node.count}</span>
+              <span className="sidebar-count">{count(node)}</span>
             </button>
           )}
           {node.children.length > 0 && tree(node.children)}
@@ -162,8 +174,9 @@ export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, wor
   );
 
   return (
-    <nav className="sidebar" aria-label="侧栏">
-      {item({ kind: "all" }, "全部", data?.all)}
+    <nav className="sidebar" aria-label={libraryName ? `${libraryName}的目录` : "侧栏"}>
+      {!embedded && item({ kind: "all" }, "全部", data?.all)}
+      {unassigned !== undefined && item({ kind: "unassigned" }, "未归类", unassigned)}
       <div
         className="sidebar-heading"
         data-drop={dropTarget === "" || undefined}
@@ -177,7 +190,7 @@ export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, wor
           className="sidebar-add"
           aria-label="新建文件夹"
           disabled={readOnly}
-          title={parentForNew ? "在当前文件夹里新建" : "新建文件夹"}
+          title={readOnly ? "这份资料库当前仅供浏览" : parentForNew ? "在当前文件夹里新建" : "新建文件夹"}
           onClick={() => setCreating(true)}
         >
           ＋

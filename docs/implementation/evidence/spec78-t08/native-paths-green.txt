@@ -1,0 +1,3 @@
+PASS same-named libraries retain independent complete directory trees
+PASS same-named roots show distinct readable suffixes and retain complete paths
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\workspace-folders-1791477986786

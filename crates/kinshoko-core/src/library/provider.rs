@@ -2,7 +2,7 @@
 //! Queries use the same SQL condition interpreter as Library::browse.
 use super::{BrowseScope, Error, Library, filter, rating};
 use crate::search::ConditionTree;
-use rusqlite::{params_from_iter, types::Value};
+use rusqlite::params_from_iter;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,16 +38,9 @@ impl Library {
         tree: &ConditionTree,
     ) -> Result<std::collections::BTreeSet<String>, Error> {
         let mut args = Vec::new();
-        let scope = match scope {
-            BrowseScope::All => "image.deleted_at IS NULL".to_owned(),
-            BrowseScope::Trash => "image.deleted_at IS NOT NULL".to_owned(),
-            BrowseScope::Folder { id } => {
-                args.push(Value::Text(id.clone()));
-                "image.deleted_at IS NULL AND image.id IN (SELECT image_id FROM folder_member WHERE folder_id=?1)".into()
-            }
-        };
-        let conditions = filter::sql(tree, &mut args);
         let conn = self.inner.readers.get();
+        let scope = super::types::scope_sql(&conn, scope, &mut args)?;
+        let conditions = filter::sql(tree, &mut args);
         let mut stmt = conn.prepare(&format!(
             "SELECT id FROM image WHERE ({scope}) AND ({conditions})"
         ))?;

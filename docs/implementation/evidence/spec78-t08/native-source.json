@@ -1,0 +1,10 @@
+{
+  "source": "4b50e1777e5de007df1afeb466b7293d6ebdfa3c",
+  "tree": "1de68929b9ba31d5b021ce57543931707368ada7",
+  "binarySha256": "910E84BCDF4642517EB523D1F690B98F63FF83CD6F438C16719E7F04D5C6568A",
+  "identifier": "dev.kinshoko.spec78t08test",
+  "buildType": "debug with tauri/custom-protocol",
+  "buildDate": "2026-10-09T00:45:08.9691546+08:00",
+  "target": "C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/target",
+  "driverSha256": "0F4600639201CCD2E84C72C3977AC33C67E19152E197C89EB16A6591D1FBE9F7"
+}

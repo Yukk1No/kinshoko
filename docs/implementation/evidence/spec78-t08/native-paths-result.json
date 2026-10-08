@@ -1,0 +1,52 @@
+{
+  "status": "passed",
+  "validation": "supplemental native path presentation",
+  "source": "4b50e1777e5de007df1afeb466b7293d6ebdfa3c",
+  "tree": "1de68929b9ba31d5b021ce57543931707368ada7",
+  "binarySha256": "910e84bcdf4642517eb523d1f690b98f63ff83cd6f438c16719e7f04d5c6568a",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t08-native.exe",
+  "harnessSource": "d04343b2bf798442b4f370192fb98593bc21c617",
+  "harnessSha256": "d097584b1b259ef77684f25be87447d1ebf506afe400f1a63087230e200080e2",
+  "environment": {
+    "dpr": 1.1041666269302368,
+    "height": 801,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "width": 1281
+  },
+  "first": {
+    "info": {
+      "id": "fed4aabcc2f0487b8e1e40051f775d67",
+      "name": "目录参考",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-folders-1791477986786\\libraries\\a\\目录参考"
+    },
+    "images": {
+      "unassigned.png": "01a11c68bbec72c6b9815fa4c6f0de18",
+      "nested.png": "01a11c68bbd2703997a5400621cec715",
+      "direct.png": "01a11c68bbba71f5ac13c22ac4cf65b4"
+    },
+    "root": "01a11c68bcd572ec902467aef17f5c39",
+    "child": "01a11c68bcdd73159223e8c87d78eca0",
+    "other": "01a11c68bce3779595be74e09bdac494"
+  },
+  "second": {
+    "info": {
+      "id": "9275ccdce5fd4fe8b9e389c589437909",
+      "name": "目录参考",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-folders-1791477986786\\libraries\\b\\目录参考"
+    },
+    "images": {
+      "second.png": "01a11c68bd6170da856eccafde6258ae",
+      "nested.png": "01a11c68bd4877a7b37d70e9e5932c07"
+    },
+    "root": "01a11c68c091760aa91b9088b473f549",
+    "child": "01a11c68c099728f87cf9ba4205c0de9",
+    "other": "01a11c68c0a476d2bb4fd776ec4e9419"
+  },
+  "assertions": [
+    "same-named libraries retain independent complete directory trees",
+    "same-named roots show distinct readable suffixes and retain complete paths"
+  ],
+  "stories": [
+    6
+  ]
+}

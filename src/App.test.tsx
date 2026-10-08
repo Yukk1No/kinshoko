@@ -265,7 +265,7 @@ afterEach(async () => {
 describe("主窗口", () => {
   it("查找头部显示真实结果数，图片大小滑块改变布局，导入操作按需展开", async () => {
     backend(library, clean, (command, args) => {
-      if (command === "plugin:library|browse" && (args as { query: { scope: { kind: string } } }).query.scope.kind === "folder") return { cards: [page.cards[0]], total: 1, nextCursor: null };
+      if (command === "plugin:library|browse" && (args as { query: { scope: { kind: string } } }).query.scope.kind.startsWith("folder")) return { cards: [page.cards[0]], total: 1, nextCursor: null };
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -401,12 +401,12 @@ describe("主窗口", () => {
   it("登记已有资料库后打开它，取消登记后可以继续建库或重新登记", async () => {
     backend(library);
     render(<App />);
-    await screen.findByRole("heading", { name: "工作参考" });
+    await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L1"));
     window.__KINSHOKO_TEST_PICKS__ = ["E:\\私人收藏"];
     fireEvent.click(await screen.findByText("资料库操作"));
     fireEvent.click(screen.getByRole("button", { name: "登记已有资料库…" }));
 
-    expect(await screen.findByRole("heading", { name: "私人收藏" })).toBeTruthy();
+    await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L2"));
     expect(sent("plugin:library|register_library")).toEqual([{ root: "E:\\私人收藏" }]);
     fireEvent.click(await screen.findByRole("button", { name: "取消登记 私人收藏" }));
     await waitFor(() => expect(sent("plugin:library|unregister_library")).toEqual([{ libraryId: "L2" }]));
@@ -435,7 +435,7 @@ describe("主窗口", () => {
     delayed = true;
     await push({ kind: "listStale", libraryId: "L1" });
     fireEvent.change(screen.getByLabelText("当前资料库"), { target: { value: "L2" } });
-    await screen.findByRole("heading", { name: "私人收藏" });
+    await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L2"));
     await act(() => resolveOld(page));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 2, total: 4 } });
     await push({ kind: "taskFinished", libraryId: "L1", taskId: "T1", report: { cancelled: true, items: [], fromEagle: false, eagleMissing: 0, eagleRelocations: [] } });
@@ -562,7 +562,7 @@ describe("主窗口", () => {
     fireEvent.click(importAction("导入文件…"));
     await waitFor(() => expect(sent("plugin:library|pick_files").length).toBe(1));
     fireEvent.change(screen.getByLabelText("当前资料库"), { target: { value: "L2" } });
-    await screen.findByRole("heading", { name: "私人收藏" });
+    await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L2"));
     await act(() => resolvePick(["D:\\参考.png"]));
     expect(sent("plugin:library|start_import")).toEqual([]);
   });
@@ -581,7 +581,7 @@ describe("主窗口", () => {
     expect(await screen.findByRole("option", { name: "移动盘参考（暂时不可用）" })).toBeTruthy();
     fireEvent.change(screen.getByLabelText("当前资料库"), { target: { value: "L2" } });
     expect((await screen.findByRole("alert")).textContent).toContain("移动盘已连接");
-    expect(screen.getByRole("heading", { name: "工作参考" })).toBeTruthy();
+    expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L1");
     expect(screen.getByRole("button", { name: "登记已有资料库…" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "取消登记 移动盘参考" })).toBeTruthy();
   });
@@ -604,7 +604,7 @@ describe("主窗口", () => {
     expect(await screen.findByText("D:\\参考")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "建立资料库" }));
 
-    expect(await screen.findByRole("heading", { name: "工作参考" })).toBeTruthy();
+    await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L1"));
     expect(sent("plugin:library|create_library")).toEqual([
       { parent: "D:\\参考", name: "工作参考" },
     ]);
@@ -985,16 +985,16 @@ describe("整理", () => {
   it("侧栏列出全部、文件夹树与回收站及其计数，点文件夹按文件夹浏览", async () => {
     backend(library);
     render(<App />);
-    const nav = await screen.findByRole("navigation", { name: "侧栏" });
+    const nav = await screen.findByRole("navigation", { name: /工作参考.*的目录/ });
     await waitFor(() => expect(nav.textContent).toContain("发型"));
-    expect(screen.getByRole("button", { name: "全部（2 张）" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "工作参考（2 张）" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "人物（1 张）" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "回收站（1 张）" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "发型（0 张）" }));
     await waitFor(() =>
       expect(sent("plugin:library|browse").at(-1)).toMatchObject({
-        query: { scope: { kind: "folder", id: "F2" } },
+        query: { scope: { kind: "folderTree", id: "F2" } },
       }),
     );
     fireEvent.click(screen.getByRole("button", { name: "回收站（1 张）" }));
@@ -1157,7 +1157,7 @@ describe("查找", () => {
     fireEvent.keyDown(input, { key: "Enter" });
     await waitFor(() => expect(sent("plugin:library|resolve_search")).toHaveLength(1));
     fireEvent.change(screen.getByLabelText("当前资料库"), { target: { value: "L2" } });
-    await screen.findByRole("heading", { name: "私人收藏" });
+    await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L2"));
     fireEvent.change(await box(), { target: { value: "某" } });
     await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(2));
     await act(() => {

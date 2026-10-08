@@ -1,0 +1,46 @@
+{
+  "physicalTree": "C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko",
+  "artifactRoot": "work/e2e",
+  "binaryCopies": [
+    {
+      "path": "work/e2e/t08-native-c1ba950.exe",
+      "source": "c1ba9504c9f0481b792313d78fcd69bbe9288be7",
+      "sha256": "113B6F37B51FACCB004E14EEF369310E6136BA3D6BA7DE1C7C3C6496A75E7B98",
+      "manifest": "work/e2e/t08-c1ba950-build-source.json",
+      "validation": "21 native business assertions passed"
+    },
+    {
+      "path": "work/e2e/t08-native-4b50e17.exe",
+      "source": "4b50e1777e5de007df1afeb466b7293d6ebdfa3c",
+      "sha256": "910E84BCDF4642517EB523D1F690B98F63FF83CD6F438C16719E7F04D5C6568A",
+      "manifest": "work/e2e/t08-build-source.json",
+      "validation": "2 supplemental native path assertions passed"
+    }
+  ],
+  "rawRuns": [
+    {
+      "path": "work/e2e/workspace-folders-1791477627623",
+      "status": "failed",
+      "reason": "harness WebDriver clear ended edit on blur"
+    },
+    {
+      "path": "work/e2e/workspace-folders-1791477705967",
+      "status": "passed",
+      "scope": "21 business assertions"
+    },
+    {
+      "path": "work/e2e/workspace-folders-1791477909045",
+      "status": "passed",
+      "scope": "2 paths assertions; screenshot caught startup refresh"
+    },
+    {
+      "path": "work/e2e/workspace-folders-1791477986786",
+      "status": "passed",
+      "scope": "2 paths assertions; settled complete forest screenshot"
+    }
+  ],
+  "cleanup": "work/e2e/t08-native-cleanup.json",
+  "logsPattern": "work/e2e/t08-*",
+  "driver": "work/e2e/tools/msedgedriver.exe",
+  "driverSha256": "0F4600639201CCD2E84C72C3977AC33C67E19152E197C89EB16A6591D1FBE9F7"
+}
