@@ -159,10 +159,10 @@ export function SettingsPanel({ onChange, onRestored, nameMigrationRequest = 0 }
           })}
         </tbody>
       </table>
-      <TagIdentityPanel key={settingsGeneration} />
-      <TagNamePanel key={settingsGeneration} />
-      <LegacyNameMigrationPanel key={settingsGeneration} openRequest={nameMigrationRequest} />
-      <SharedTagGroupsSettings key={settingsGeneration} onError={setError} />
+      <TagIdentityPanel key={`identity/${settingsGeneration}`} />
+      <TagNamePanel key={`names/${settingsGeneration}`} />
+      <LegacyNameMigrationPanel key={`name-migration/${settingsGeneration}`} openRequest={nameMigrationRequest} />
+      <SharedTagGroupsSettings key={`groups/${settingsGeneration}`} onError={setError} />
       <h2>近似查找</h2>
       <label className="settings-row">
         <input
@@ -172,7 +172,7 @@ export function SettingsPanel({ onChange, onRestored, nameMigrationRequest = 0 }
         />
         显示相近标签来源（内置／个人）
       </label>
-      <SharedPersonalApproxSettings key={settingsGeneration} onError={setError} />
+      <SharedPersonalApproxSettings key={`approx/${settingsGeneration}`} onError={setError} />
       <h2>诊断</h2>
       <RuntimeDetails />
       <label className="settings-row">
