@@ -1,0 +1,119 @@
+{
+  "status": "passed",
+  "source": "49c39e0c4a7df150183e48d27883e0c5fca82c9f",
+  "harnessSource": "3a3c4fbfc579c12d487dbcc5ab60afb2a3fbe374",
+  "binarySha256": "aae236fd854c72221dfdd5b95b59e27d016c49314fb25621d542ecf10a47a3a7",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "stories": [
+    30,
+    31,
+    32
+  ],
+  "oldSchemaSha256": "b78cfdfd0c7cd40dc92330d63caa70c4d4e08a3d2e47b7bc884d8c4a8a311f89",
+  "webviewEnvironment": {
+    "devicePixelRatio": 1.1041666269302368,
+    "innerHeight": 801,
+    "innerWidth": 1281,
+    "outerHeight": 801,
+    "outerWidth": 1280,
+    "screenHeight": 1305,
+    "screenWidth": 2319,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0"
+  },
+  "assertions": [
+    "released v16 旧判断 A opens with stable identity",
+    "released v16 旧判断 B opens with stable identity",
+    "opposite old rules remain pending rather than becoming a saved NotSimilar",
+    "conflict retains both named provider origins",
+    "global rule settings hide a label vetoed by another byte-identical Adult source",
+    "formal settings distinguish pending conflict from saved rejection",
+    "conflict choice preserves global safe mode",
+    "formal search visibly expands the saved pair with source marks off by default",
+    "once changes the current lookup without removing the saved Similar rule",
+    "new lookup restores a once-dismissed expansion",
+    "forever records a global NotSimilar and defeats the built-in pair",
+    "plus saves a visible tag without external correspondence",
+    "旧判断 A applies shared rules through its distinct local IDs",
+    "旧判断 B applies shared rules through its distinct local IDs",
+    "switching the active library keeps the same application judgments",
+    "exact search suppresses the visible personal expansion",
+    "exclusion keeps the same expanded condition semantics",
+    "normal restart retains rejection and removed plus rule without reintroducing legacy conflict",
+    "safe projection did not delete the complete hidden personal definition",
+    "returning to safe mode revokes hidden rule labels in formal settings",
+    "application settings remain manageable without an active provider",
+    "deleting a migrated rule stays deleted across restart while the legacy provider still exists",
+    "deleting a personal rejection restores the built-in pair in the remaining provider",
+    "旧判断 A original f182cc338e4c67cf6fd174378f0fc6cf unchanged",
+    "旧判断 A original db481da6b683fb4227b53a40fdbc9eec unchanged",
+    "旧判断 A original 7af8adb83059b7cf50cdafdb80bd867f unchanged",
+    "旧判断 B original 1ff3cd111c6832ce2b9cad7ec6ff0a46 unchanged",
+    "旧判断 B original 0f542a9fbd3c3eedf6864552f6d2a9b8 unchanged",
+    "旧判断 B original bcb963504f3966f5a3de1e458639b183 unchanged",
+    "旧判断 B original 16d540416e426363089b219d9f2ddd31 unchanged"
+  ],
+  "first": {
+    "info": {
+      "id": "f19810d1cb04eef302841f2d263e926e",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-approx-1791484030845\\libraries\\旧判断 A",
+      "name": "旧判断 A"
+    },
+    "tags": {
+      "blue_eyes": "213ece475a7f57ea5019e1093ba69bf0",
+      "aqua_eyes": "6c4d02ba0150381b7b8a8f80e163f245",
+      "spec78_secret": "648e1b0597543d9d26aa8ac309f33f65"
+    },
+    "originals": [
+      {
+        "imageId": "f182cc338e4c67cf6fd174378f0fc6cf",
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-approx-1791484030845\\libraries\\旧判断 A\\originals\\a5\\a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
+        "sha": "a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6"
+      },
+      {
+        "imageId": "db481da6b683fb4227b53a40fdbc9eec",
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-approx-1791484030845\\libraries\\旧判断 A\\originals\\9e\\9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09.png",
+        "sha": "9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09"
+      },
+      {
+        "imageId": "7af8adb83059b7cf50cdafdb80bd867f",
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-approx-1791484030845\\libraries\\旧判断 A\\originals\\9e\\9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f.png",
+        "sha": "9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f"
+      }
+    ]
+  },
+  "second": {
+    "info": {
+      "id": "32ee108069918b1d8aa0b95368f0da3a",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-approx-1791484030845\\libraries\\旧判断 B",
+      "name": "旧判断 B"
+    },
+    "tags": {
+      "blue_eyes": "af9ddfc4094ca8b7750c369989696165",
+      "aqua_eyes": "af75c026b25a1c1eaa8b69d9de1839f4",
+      "spec78_secret": "1b8fcd01497f760e962bd507f17090a4",
+      "sky": "16d540416e426363089b219d9f2ddd31"
+    },
+    "originals": [
+      {
+        "imageId": "1ff3cd111c6832ce2b9cad7ec6ff0a46",
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-approx-1791484030845\\libraries\\旧判断 B\\originals\\ab\\abccafb2ea4bdce24caca86f9290f5304ac06925d2da8778c90de15a459b912d.png",
+        "sha": "abccafb2ea4bdce24caca86f9290f5304ac06925d2da8778c90de15a459b912d"
+      },
+      {
+        "imageId": "0f542a9fbd3c3eedf6864552f6d2a9b8",
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-approx-1791484030845\\libraries\\旧判断 B\\originals\\ca\\cacccbe69720c9cdac62c85ee7e4ce72ab8e6213340e04eb5805f4a9669660fe.png",
+        "sha": "cacccbe69720c9cdac62c85ee7e4ce72ab8e6213340e04eb5805f4a9669660fe"
+      },
+      {
+        "imageId": "bcb963504f3966f5a3de1e458639b183",
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-approx-1791484030845\\libraries\\旧判断 B\\originals\\9e\\9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f.png",
+        "sha": "9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f"
+      },
+      {
+        "imageId": "16d540416e426363089b219d9f2ddd31",
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-approx-1791484030845\\libraries\\旧判断 B\\originals\\8c\\8cd0bd59a1f3bfb503e882b3eedcef73be62f61efd32e2c491ffe01919ef344e.png",
+        "sha": "8cd0bd59a1f3bfb503e882b3eedcef73be62f61efd32e2c491ffe01919ef344e"
+      }
+    ]
+  }
+}

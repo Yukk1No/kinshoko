@@ -1528,23 +1528,26 @@ describe("安全模式", () => {
       expect(await within(dialog).findByText("只在成人图出现的标签")).toBeTruthy();
 
       fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
-      expect(within(dialog).queryByText("只在成人图出现的标签")).toBeNull();
+      expect(screen.queryByRole("dialog", { name: "加相近标签" })).toBeNull();
       await changed(true);
-      await waitFor(() =>
-        expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ text: "只在成人", safeMode: true }),
-      );
-      expect(within(dialog).queryByText("只在成人图出现的标签")).toBeNull();
+      fireEvent.click(await screen.findByRole("button", { name: "给“蓝发”加相近标签" }));
+      const safeDialog = screen.getByRole("dialog", { name: "加相近标签" });
+      fireEvent.change(within(safeDialog).getByRole("combobox"), { target: { value: "只在成人" } });
+      await waitFor(() => expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ text: "只在成人", safeMode: true }));
+      expect(within(safeDialog).queryByText("只在成人图出现的标签")).toBeNull();
 
-      // 关掉安全模式时发出的请求，在再次开启之后才返回。
+      // An unsafe request may finish after its dialog and lens have been revoked.
       holding = true;
       fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
+      await changed(false);
+      fireEvent.click(await screen.findByRole("button", { name: "给“蓝发”加相近标签" }));
+      fireEvent.change(within(screen.getByRole("dialog", { name: "加相近标签" })).getByRole("combobox"), { target: { value: "只在成人" } });
       await waitFor(() => expect(holding).toBe(false));
       fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
-      await act(async () => {
-        finish([adult]);
-        await late;
-      });
-      expect(within(dialog).queryByText("只在成人图出现的标签")).toBeNull();
+      await changed(true);
+      await act(async () => { finish([adult]); await late; });
+      expect(screen.queryByRole("dialog", { name: "加相近标签" })).toBeNull();
+      expect(screen.queryByText("只在成人图出现的标签")).toBeNull();
     });
 
     it("条件解析带上当前视角，视角刚切换的拒绝不当作错误显示", async () => {

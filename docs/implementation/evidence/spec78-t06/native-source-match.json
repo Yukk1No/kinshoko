@@ -1,0 +1,35 @@
+{
+  "checkedAt": "2026-10-08T18:29:49.578Z",
+  "checkedCommit": "7516158aabee4a779d91adac324f3008f766f51b",
+  "nativeSource": "49c39e0c4a7df150183e48d27883e0c5fca82c9f",
+  "nativeBinarySha256": "aae236fd854c72221dfdd5b95b59e27d016c49314fb25621d542ecf10a47a3a7",
+  "currentBinarySha256": "aae236fd854c72221dfdd5b95b59e27d016c49314fb25621d542ecf10a47a3a7",
+  "productSourceFilesMatch": true,
+  "allSourceFileChanges": [
+    {
+      "path": "src/library/TagIdentityPanel.test.tsx",
+      "expected": "3a5698d59f2212fea59750801706eb64fd8b28fe521a116ea0b01b5dc64b16e7",
+      "actual": "e34645c20df098a2af3f2b858dafa43f61a1bfeb613b25fc4182203a76458004",
+      "kind": "test-only"
+    }
+  ],
+  "distFilesMatch": true,
+  "distFileChanges": [],
+  "testConfigMatches": true,
+  "runtimeMatches": true,
+  "prototype": [
+    {
+      "path": "prototype/reference-browser/src/components/SearchBox.tsx",
+      "unchanged": true
+    },
+    {
+      "path": "prototype/reference-browser/src/search.ts",
+      "unchanged": true
+    }
+  ],
+  "preservedFiles": {
+    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t06\\nativeproof\\49c39e0\\DirectML.dll": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1",
+    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t06\\nativeproof\\49c39e0\\kinshoko.exe": "aae236fd854c72221dfdd5b95b59e27d016c49314fb25621d542ecf10a47a3a7",
+    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t06\\nativeproof\\49c39e0\\tauri.test.json": "f90c835ca47d64de73e2e6839e6d45a7ae5ffffe270150a4de163f8e421ecc9b"
+  }
+}
