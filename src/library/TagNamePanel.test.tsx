@@ -57,3 +57,14 @@ it("edits one selected tag at a time and finds it by a separate alias in a large
   fireEvent.change(screen.getByRole("textbox", { name: "查找要改名称的标签" }), { target: { value: "目标别名" } });
   expect(screen.getByRole("textbox", { name: /偏好名称/ }).getAttribute("value")).toBe("发型 149");
 });
+
+it("can select an untranslated tag and find it by its external name", async () => {
+  const data = workspace();
+  data.catalog.tags = [{ ...tag(), names: [], defaultNames: [], aliases: [], external: [{ vocabulary: "danbooru", name: "untranslated_hair" }] }];
+  mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? data : undefined);
+  render(<TagNamePanel />);
+  fireEvent.click(screen.getByRole("button", { name: "管理显示名称" }));
+  await screen.findByRole("button", { name: "保存偏好" });
+  fireEvent.change(screen.getByRole("textbox", { name: "查找要改名称的标签" }), { target: { value: "untranslated_hair" } });
+  expect(screen.getByRole("textbox", { name: /偏好名称/ }).getAttribute("value")).toBe("untranslated hair");
+});

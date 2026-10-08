@@ -33,7 +33,7 @@ export function TagNamePanel() {
     catch (reason) { if (request === generation.current) setError(String(reason)); }
     finally { if (request === generation.current) setBusy(false); }
   };
-  const matches = workspace?.catalog.tags.filter((tag) => (!preferencesOnly || tag.namePreferences.some((entry) => entry.lang === lang.trim())) && [...tag.names, ...tag.aliases].some((entry) => entry.name.toLocaleLowerCase().includes(filter.trim().toLocaleLowerCase()))) ?? [];
+  const matches = workspace?.catalog.tags.filter((tag) => (!preferencesOnly || tag.namePreferences.some((entry) => entry.lang === lang.trim())) && [currentName(tag, lang.trim()), ...tag.names.map((entry) => entry.name), ...tag.aliases.map((entry) => entry.name), ...tag.external.map((entry) => entry.name)].some((name) => name.toLocaleLowerCase().includes(filter.trim().toLocaleLowerCase()))) ?? [];
   const options = matches.slice(0, 80);
   const selectedTag = options.find((tag) => tag.id === selected) ?? options[0];
   return <fieldset aria-label="标签显示名称">
