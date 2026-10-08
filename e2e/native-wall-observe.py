@@ -47,15 +47,16 @@ try:
     def visit(hwnd,_):
         owner = w.DWORD()
         u.GetWindowThreadProcessId(hwnd,ctypes.byref(owner))
-        if u.IsWindowVisible(hwnd) and not u.IsIconic(hwnd):
+        if owner.value == pid or (u.IsWindowVisible(hwnd) and not u.IsIconic(hwnd)):
             rect = w.RECT()
             if u.GetWindowRect(hwnd,ctypes.byref(rect)):
                 item = {"pid":owner.value,"hwnd":int(hwnd),"rect":{"x":rect.left,"y":rect.top,"width":rect.right-rect.left,"height":rect.bottom-rect.top}}
-                found.append(item)
+                if u.IsWindowVisible(hwnd) and not u.IsIconic(hwnd):
+                    found.append(item)
                 if owner.value == pid:
                     title=ctypes.create_unicode_buffer(1024)
                     u.GetWindowTextW(hwnd,title,len(title))
-                    owned.append({**item,"title":title.value})
+                    owned.append({**item,"title":title.value,"visible":bool(u.IsWindowVisible(hwnd)),"iconic":bool(u.IsIconic(hwnd))})
         return True
     callback=callback_type(visit)
     assert u.EnumWindows(callback,0)
@@ -64,7 +65,10 @@ try:
     u.SetForegroundWindow.argtypes = [w.HWND]
     u.GetForegroundWindow.restype = w.HWND
     activated = None
+    before_main = main[0].copy()
     if mode=="focus":
+        u.ShowWindow.argtypes = [w.HWND,ctypes.c_int]
+        u.ShowWindow(main[0]["hwnd"],9)
         activated=bool(u.SetForegroundWindow(main[0]["hwnd"]))
         time.sleep(.15)
         found.clear(); owned.clear()
@@ -72,13 +76,14 @@ try:
     foreground=u.GetForegroundWindow()
     foreground_pid=w.DWORD()
     u.GetWindowThreadProcessId(foreground,ctypes.byref(foreground_pid))
-    above=found[:next(i for i,item in enumerate(found) if item["hwnd"]==main[0]["hwnd"])]
+    position=next((i for i,item in enumerate(found) if item["hwnd"]==main[0]["hwnd"]),None)
+    above=found[:position] if position is not None else found
     point=None
     if len(sys.argv)>5:
         point=[int(sys.argv[4]),int(sys.argv[5])]
         r=main[0]["rect"]
         assert r["x"]<=point[0]<r["x"]+r["width"] and r["y"]<=point[1]<r["y"]+r["height"], "Only owned main bounds may be observed"
         above=[item for item in above if item["rect"]["x"]<=point[0]<item["rect"]["x"]+item["rect"]["width"] and item["rect"]["y"]<=point[1]<item["rect"]["y"]+item["rect"]["height"]]
-    print(json.dumps({"application":path.value,"pid":pid,"mainHwnd":main[0]["hwnd"],"foregroundHwnd":int(foreground or 0),"foregroundPid":foreground_pid.value,"activated":activated,"point":point,"covering":above,"owned":owned}))
+    print(json.dumps({"application":path.value,"pid":pid,"mainHwnd":main[0]["hwnd"],"foregroundHwnd":int(foreground or 0),"foregroundPid":foreground_pid.value,"activated":activated,"beforeMain":before_main,"mainInVisibleZOrder":position is not None,"point":point,"covering":above,"owned":owned}))
 finally:
     k.CloseHandle(handle)
