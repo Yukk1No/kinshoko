@@ -1,0 +1,24 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.93s
+     Running tests\tag_names.rs (target\debug\deps\tag_names-8e9d62deaabcb8a5.exe)
+
+running 1 test
+test a_corrected_legacy_mapping_adopts_the_existing_explicit_global_choice ... FAILED
+
+failures:
+
+---- a_corrected_legacy_mapping_adopts_the_existing_explicit_global_choice stdout ----
+
+thread 'a_corrected_legacy_mapping_adopts_the_existing_explicit_global_choice' (45476) panicked at crates\kinshoko-core\tests\tag_names.rs:386:5:
+assertion `left == right` failed
+  left: "分开的头发"
+ right: "自然分缝"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    a_corrected_legacy_mapping_adopts_the_existing_explicit_global_choice
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.25s
+
+error: test failed, to rerun pass `-p kinshoko-core --test tag_names`

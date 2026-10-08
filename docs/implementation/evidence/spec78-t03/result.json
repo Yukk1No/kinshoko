@@ -1,0 +1,55 @@
+{
+  "status": "passed",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "stories": [
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    27
+  ],
+  "assertions": [
+    "two real libraries use distinct local IDs for one shared identity",
+    "accepted long_hair_between_eyes default reaches formal app",
+    "saving text equal to the default creates an explicit persisted preference",
+    "名称第二库 displays 自然分缝 in the actual tag panel",
+    "formal search for 分发 returns 1 image(s) with 自然分缝",
+    "名称第一库 displays 自然分缝 in the actual tag panel",
+    "formal search for 自然分缝 returns 1 image(s) with 自然分缝",
+    "independent language preferences survive full application restart",
+    "reset deletes only Chinese preference and retains English preference",
+    "名称第二库 displays 分缝发型 in the actual tag panel",
+    "formal search for 中间发缝 returns 1 image(s) with 分缝发型",
+    "名称第一库 displays 分缝发型 in the actual tag panel",
+    "formal search for 中间发缝 returns 1 image(s) with 分缝发型",
+    "deleted old alias stays deleted after bundled-table reinstallation on restart",
+    "formal search for 分发 returns 0 image(s) with no tag candidate"
+  ],
+  "first": {
+    "info": {
+      "id": "7f6cfe0abb5d45b983567af8deb7453c",
+      "name": "名称第一库",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\tag-names-1791473617790\\libraries\\名称第一库"
+    },
+    "imageId": "01a11c26160b72979db56e7dd6025e83",
+    "localId": "01a11c2616c572fba4dc0330618c2910"
+  },
+  "second": {
+    "info": {
+      "id": "665388c721d94677b0ed8a0a21d3bd3f",
+      "name": "名称第二库",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\tag-names-1791473617790\\libraries\\名称第二库"
+    },
+    "imageId": "01a11c26188b70d1842b601d2b865e1f",
+    "localId": "01a11c2618c2744e88f8e22dee194ecb"
+  },
+  "target": "01a11c2616d371dfb310af5d135f95cd",
+  "environment": {
+    "dpr": 1.1041666269302368,
+    "height": 801,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "width": 1281
+  }
+}

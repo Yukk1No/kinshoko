@@ -1,0 +1,152 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+ ❯ src/library/TagNamePanel.test.tsx (4 tests | 1 failed) 1396ms
+   × can select an untranslated tag and find it by its external name 1015ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/TagNamePanel.test.tsx > can select an untranslated tag and find it by its external name
+TestingLibraryElementError: Unable to find role="button" and name "保存偏好"
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <fieldset
+      aria-label="标签显示名称"
+    >
+      <legend>
+        标签显示名称
+      </legend>
+      <p
+        class="settings-hint"
+      >
+        显示名称先用显式偏好，没有偏好时跟随默认。保存偏好会在各资料库生效；恢复默认撤回该语言的偏好。其他叫法单独用于查找。
+      </p>
+      <button
+        type="button"
+      >
+        管理显示名称
+      </button>
+      <label
+        class="settings-row"
+      >
+        名称语言
+        <input
+          aria-label="名称语言"
+          placeholder="zh-CN"
+          value="zh-CN"
+        />
+      </label>
+      <label
+        class="settings-row"
+      >
+        查找标签
+        <input
+          aria-label="查找要改名称的标签"
+          placeholder="名称或其他叫法"
+          value=""
+        />
+      </label>
+      <label
+        class="settings-row"
+      >
+        <input
+          type="checkbox"
+        />
+        只看本语言已保存的偏好
+      </label>
+      <label
+        class="settings-row"
+      >
+        选择标签
+        <select
+          aria-label="选择标签"
+        />
+      </label>
+      <p>
+        没有匹配的标签。
+      </p>
+    </fieldset>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <fieldset
+      aria-label="标签显示名称"
+    >
+      <legend>
+        标签显示名称
+      </legend>
+      <p
+        class="settings-hint"
+      >
+        显示名称先用显式偏好，没有偏好时跟随默认。保存偏好会在各资料库生效；恢复默认撤回该语言的偏好。其他叫法单独用于查找。
+      </p>
+      <button
+        type="button"
+      >
+        管理显示名称
+      </button>
+      <label
+        class="settings-row"
+      >
+        名称语言
+        <input
+          aria-label="名称语言"
+          placeholder="zh-CN"
+          value="zh-CN"
+        />
+      </label>
+      <label
+        class="settings-row"
+      >
+        查找标签
+        <input
+          aria-label="查找要改名称的标签"
+          placeholder="名称或其他叫法"
+          value=""
+        />
+      </label>
+      <label
+        class="settings-row"
+      >
+        <input
+          type="checkbox"
+        />
+        只看本语言已保存的偏好
+      </label>
+      <label
+        class="settings-row"
+      >
+        选择标签
+        <select
+          aria-label="选择标签"
+        />
+      </label>
+      <p>
+        没有匹配的标签。
+      </p>
+    </fieldset>
+  </div>
+</body>
+ ❯ waitForWrapper ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/library/TagNamePanel.test.tsx:67:16
+     65|   render(<TagNamePanel />);
+     66|   fireEvent.click(screen.getByRole("button", { name: "管理显示名称" }));
+     67|   await screen.findByRole("button", { name: "保存偏好" });
+       |                ^
+     68|   fireEvent.change(screen.getByRole("textbox", { name: "查找要改名称的标签" }),…
+     69|   expect(screen.getByRole("textbox", { name: /偏好名称/ }).getAttribute("v…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  23:36:52
+   Duration  3.05s (tests 48%, environment 42%, import 7%, transform 3%)
+

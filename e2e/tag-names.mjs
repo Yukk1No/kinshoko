@@ -197,5 +197,5 @@ try {
 } finally {
   if (session) await session.close().catch(() => {});
   quitOwnApp();
-  if (driver.pid) spawnSync("taskkill", ["/PID", String(driver.pid), "/T", "/F"], { windowsHide: true, windowsHide: true, stdio: "ignore" });
+  if (driver.pid) spawnSync("taskkill", ["/PID", String(driver.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
 }

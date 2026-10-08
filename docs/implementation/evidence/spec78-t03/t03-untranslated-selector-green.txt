@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  23:37:12
+   Duration  2.16s (environment 62%, tests 22%, import 11%, transform 4%)
+
