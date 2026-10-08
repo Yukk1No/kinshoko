@@ -14,8 +14,8 @@ mod name_migration;
 mod names;
 mod portable;
 pub use portable::{
-    export_package as export_reference_package, import_package as import_reference_package,
-    publish_definition_dependencies,
+    content_definitions, export_package as export_reference_package,
+    import_package as import_reference_package, publish_definition_dependencies,
 };
 mod source_actions;
 mod workspace;

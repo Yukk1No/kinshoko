@@ -96,6 +96,19 @@ fn publish(app: &AppHandle) {
 /// 应用启动时调用：管理状态，开始每分钟检查一次“空闲且到期”。
 pub fn manage(app: &AppHandle) {
     app.manage(BackupState::default());
+    // Before opening the main window, undo only recorded new identities from interrupted restores.
+    if let Err(error) = groups(app).and_then(|groups| {
+        kinshoko_core::backup::recover_restores(&groups).map_err(|e| e.to_string())
+    }) {
+        let _ = with_plan(app, |plan| {
+            plan.record_problem(
+                now(),
+                format!("上次资料库恢复尚未回退：{error}。重试恢复时会再次回退"),
+                false,
+            )
+            .map_err(|e| e.to_string())
+        });
+    }
     let app = app.clone();
     let _ = std::thread::Builder::new()
         .name("kinshoko-backup-idle".into())
@@ -170,13 +183,15 @@ fn run(app: &AppHandle) {
             &groups.list().map_err(|e| e.to_string())?,
             &selection,
         );
+        let catalog = crate::library::content_definitions(app)?;
         let mut last = std::time::Instant::now();
-        let result = BackupTarget::new(&target).run(
+        let result = BackupTarget::new(&target).run_with_catalog(
             &scope,
             &BackupSources {
                 libraries: &registry,
                 groups: &groups,
             },
+            &catalog,
             started,
             &mut |progress| {
                 *lock(&app.state::<BackupState>().running) = Some(progress);
@@ -330,8 +345,9 @@ pub async fn restore_backup(
             let target = with_plan(&app, |p| Ok(p.target().map(PathBuf::from)))?
                 .ok_or_else(|| "还没有选择备份目标".to_owned())?;
             let groups = groups(&app)?;
+            let catalog = crate::library::content_definitions(&app)?;
             let report = BackupTarget::new(&target)
-                .restore(&snapshot_id, &into, &groups, now())
+                .restore_with_catalog(&snapshot_id, &into, &groups, now(), &catalog)
                 .map_err(|e| e.to_string())?;
             let roots: Vec<PathBuf> = report
                 .libraries

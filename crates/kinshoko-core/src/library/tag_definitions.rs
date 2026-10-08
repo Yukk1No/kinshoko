@@ -105,30 +105,48 @@ impl Library {
     /// are absent from the type. A read-only provider returns its ordinary read-only storage error.
     pub fn publish_tag_definitions(&self, bindings: &[PortableTagBinding]) -> Result<(), Error> {
         let bindings = bindings.to_vec();
-        self.inner.writer.run(move |conn| {
-            let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-            let mut definitions = BTreeMap::new();
-            let mut local_ids = std::collections::BTreeSet::new();
-            for binding in &bindings {
-                binding.definition.validate().map_err(Error::TagDefinitions)?;
-                if !local_ids.insert(&binding.local_tag_id) { return Err(Error::TagDefinitions("本地标签对应重复".into())); }
-                if let Some(prior) = definitions.insert(&binding.definition.id, &binding.definition)
-                    && prior != &binding.definition { return Err(Error::TagDefinitions("同一身份包含不同定义".into())); }
-                let namespace = tx.query_row("SELECT namespace FROM tag WHERE id=?1", [&binding.local_tag_id], |r| r.get::<_,String>(0)).optional()?.ok_or(Error::UnknownTag)?;
-                if TagNamespace::parse(&namespace)? != binding.definition.namespace {
-                    return Err(Error::TagDefinitions("命名空间不一致".into()));
-                }
-            }
-            seed(&tx)?;
-            for binding in bindings {
-                tx.execute("INSERT INTO tag_definition_dependency(local_tag_id,catalog_id,definition,authoritative) VALUES (?1,?2,?3,?4) ON CONFLICT(local_tag_id) DO UPDATE SET catalog_id=excluded.catalog_id,definition=excluded.definition,authoritative=excluded.authoritative",
-                    params![binding.local_tag_id,binding.definition.id,serde_json::to_string(&binding.definition).map_err(|e| Error::TagDefinitions(e.to_string()))?,binding.authoritative])?;
-                super::fault::storage("portable_tags_publish_row")?;
-            }
-            tx.commit()?;
-            Ok(())
-        })
+        self.inner.writer.run(move |conn| publish(conn, &bindings))
     }
+}
+
+/// Write only the supplied connection; callers own the destination lifecycle.
+pub(super) fn publish(conn: &mut Connection, bindings: &[PortableTagBinding]) -> Result<(), Error> {
+    let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+    let mut definitions = BTreeMap::new();
+    let mut local_ids = std::collections::BTreeSet::new();
+    for binding in bindings {
+        binding
+            .definition
+            .validate()
+            .map_err(Error::TagDefinitions)?;
+        if !local_ids.insert(&binding.local_tag_id) {
+            return Err(Error::TagDefinitions("本地标签对应重复".into()));
+        }
+        if let Some(prior) = definitions.insert(&binding.definition.id, &binding.definition)
+            && prior != &binding.definition
+        {
+            return Err(Error::TagDefinitions("同一身份包含不同定义".into()));
+        }
+        let namespace = tx
+            .query_row(
+                "SELECT namespace FROM tag WHERE id=?1",
+                [&binding.local_tag_id],
+                |r| r.get::<_, String>(0),
+            )
+            .optional()?
+            .ok_or(Error::UnknownTag)?;
+        if TagNamespace::parse(&namespace)? != binding.definition.namespace {
+            return Err(Error::TagDefinitions("命名空间不一致".into()));
+        }
+    }
+    seed(&tx)?;
+    for binding in bindings {
+        tx.execute("INSERT INTO tag_definition_dependency(local_tag_id,catalog_id,definition,authoritative) VALUES (?1,?2,?3,?4) ON CONFLICT(local_tag_id) DO UPDATE SET catalog_id=excluded.catalog_id,definition=excluded.definition,authoritative=excluded.authoritative",
+                    params![binding.local_tag_id,binding.definition.id,serde_json::to_string(&binding.definition).map_err(|e| Error::TagDefinitions(e.to_string()))?,binding.authoritative])?;
+        super::fault::storage("portable_tags_publish_row")?;
+    }
+    tx.commit()?;
+    Ok(())
 }
 
 /// Modern snapshots resolve exactly by their declared stable identity. Same names, aliases,
