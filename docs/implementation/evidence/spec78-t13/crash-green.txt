@@ -1,0 +1,27 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+warning: method `directory` is never used
+   --> crates\kinshoko-core\src\settings.rs:144:19
+    |
+143 | impl AppSettings {
+    | ---------------- method in this implementation
+144 |     pub(crate) fn directory(&self) -> &Path { self.path.parent().expect("settings directory") }
+    |                   ^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `kinshoko-core` (lib) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 22.40s
+     Running tests\application_settings_backup.rs (target\debug\deps\application_settings_backup-be81416567d29a46.exe)
+
+running 6 tests
+test child_restores_until_configuration_fault ... ignored, executed by the crash parent with a real persistent configuration
+
+running 1 test
+test a_settings_write_failure_keeps_the_old_complete_configuration ... ok
+test restoring_settings_keeps_current_library_identity_corrections_and_every_image_fact ... ok
+test restart_recovers_one_complete_configuration_after_catalog_publication_is_interrupted ... ok
+test a_blank_application_restores_the_explicit_default_name_and_shell_preferences ... ok
+test replacement_keeps_deleted_aliases_and_migrated_rules_deleted_after_reconnect ... ok
+
+test result: ok. 5 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.50s
+

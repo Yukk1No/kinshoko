@@ -1,0 +1,161 @@
+{
+  "status": "passed",
+  "task": "#78 T13 / #92 independent merge",
+  "integrationBefore": "545bd5891f7aebece2fbfe806445d8323fbbe688",
+  "workerTip": "e53d78a16920354ad7dbbf8dbac4cd5c5d38af78",
+  "mergeCommit": "152e652311b7c70425f707faece7253ea6f76872",
+  "mergeTree": "090970ebda061eb5be9d8567028999129538685a",
+  "parents": [
+    "545bd5891f7aebece2fbfe806445d8323fbbe688",
+    "e53d78a16920354ad7dbbf8dbac4cd5c5d38af78"
+  ],
+  "conflicts": [],
+  "treeEqualsWorker": true,
+  "productDeltaFromFixedAffectedChecks": "Only docs/implementation/spec-78-t13.md differs from a8edbfbe; no product input changed.",
+  "review": {
+    "blockingFindings": [],
+    "scope": [
+      "Complete raw catalog snapshot and pure tag definition dependencies; explicit preferences equal to defaults.",
+      "Name adoption, alias deletion tombstones, global group/member order, approximate decisions and legacy migration/deletion memory.",
+      "Default replacement of missing settings while retaining current provider/local-tag identity and necessary definition dependencies.",
+      "Per-image original bytes, notes, tags, ratings and directories remain content-owned.",
+      "Durable complete catalog/settings undo journal; journal retained until the selected complete pair is usable.",
+      "T13 early startup recovery precedes preferred model/shell settings reads. T12 content journal independently owns new library/group identities and does not replace application settings.",
+      "Live shortcuts/model/logging/safe-mode adoption; generation changes even for same-mode replacement; references, captures, veils and caches invalidated.",
+      "Viewer background migration before direct UI backup; restored field wins and missing portable field defaults to Mid; scroll anchors remain device-local.",
+      "IPC names, handlers, inline plugin command permissions, library:default main capability and generated TypeScript bindings agree.",
+      "No new production test-only IPC or unsafe block."
+    ],
+    "sourceReferences": [
+      "crates/kinshoko-core/src/application_settings_backup.rs",
+      "crates/kinshoko-core/src/tag_catalog/settings.rs",
+      "crates/kinshoko-core/src/settings.rs",
+      "crates/kinshoko-core/tests/application_settings_backup.rs",
+      "src-tauri/src/library/settings_backup.rs",
+      "src-tauri/src/library.rs",
+      "src-tauri/src/backup.rs",
+      "crates/kinshoko-core/src/backup/restore.rs",
+      "src-tauri/src/desktop/mod.rs",
+      "src-tauri/build.rs",
+      "src/ApplicationSettingsBackup.tsx",
+      "src/viewer/Viewer.tsx"
+    ]
+  },
+  "checks": {
+    "independent": [
+      {
+        "name": "fmt",
+        "command": "cargo fmt --all -- --check",
+        "exitCode": 0,
+        "log": "fmt.txt"
+      },
+      {
+        "name": "typescript",
+        "command": "npm.cmd run typecheck",
+        "exitCode": 0,
+        "log": "typescript.txt"
+      },
+      {
+        "name": "affected public frontend",
+        "command": "npx.cmd vitest run src/SettingsPanel.test.tsx src/ModelSettings.test.tsx src/Backup.test.tsx src/library/TagIdentityPanel.test.tsx src/viewer/Viewer.test.tsx",
+        "exitCode": 0,
+        "files": 5,
+        "testsPassed": 45,
+        "log": "ui.txt",
+        "environment": "TEMP/TMP set to this merge16-checks/tmp directory"
+      },
+      {
+        "name": "e2e script syntax and whitespace",
+        "command": "node --check e2e/application-settings-backup.mjs; Python AST parse of both T13 Python helpers; git diff --check 545bd5891f7aebece2fbfe806445d8323fbbe688 HEAD",
+        "exitCode": 0,
+        "log": "syntax-whitespace.txt"
+      },
+      {
+        "name": "frozen evidence and source audit",
+        "command": "python work/v1-handoff/follow-up-spec/merge16-checks/audit.py",
+        "exitCode": 0,
+        "log": "audit.txt",
+        "report": "evidence-audit.json"
+      }
+    ],
+    "environmentFailure": {
+      "log": "ui-sandbox-failure.txt",
+      "exitCode": 1,
+      "output": "ENOENT opening Vitest client files under the sandbox TEMP path; 5 suites collected 0 tests.",
+      "resolution": "Retry with workspace TEMP/TMP passed all 45 tests. No product code change."
+    },
+    "archivedFixedAffected": {
+      "status": "verified_archived_not_rerun",
+      "source": "a8edbfbe5c65b9435f85721cb35ef49ac2de1fdc",
+      "tree": "b7d4ac8978d010620444e13ca71dac5b61e44c7f",
+      "listedInputs": 522,
+      "beforeAfterHashesUnchanged": true,
+      "workerCurrentRawHashesMatch": true,
+      "rootContentMatches": true,
+      "rootCheckoutEolDifferenceCount": 34,
+      "coreTargets": 11,
+      "parentTestsPassed": 83,
+      "ignoredChildEntrypoints": 5,
+      "actualFaultChildrenExecuted": true,
+      "t13FaultScenarios": 6,
+      "tauriStrictClippy": {
+        "command": "cargo clippy -p kinshoko --all-targets -- -D warnings",
+        "status": "passed",
+        "log": "../evidence/t13-native/build-and-checks/final-integration-shell-clippy.txt"
+      },
+      "reasonNotRerun": "Conflict-free merge equals the worker tree. Fixed affected inputs are unchanged and no new integration interaction was found."
+    },
+    "earlierWorkspace": {
+      "source": null,
+      "parentTestsPassed": 659,
+      "ignoredChildEntrypoints": 10,
+      "exactCommitAttribution": "unverified; never assigned to b3f519e or 5a"
+    }
+  },
+  "evidence": {
+    "rootArchive": "../evidence/t13-native/root-preservation.json",
+    "archiveFiles": 238,
+    "archiveBytes": 127070176,
+    "everyArchivedSizeAndSha256Verified": true,
+    "native": {
+      "productSource": "5a48939e905652b9d15a4a5f47a0844012e7a8f7",
+      "productTree": "d8a88fa33bacd02512149e689e7defd1666a512a",
+      "binarySha256": "2c9e5a69eee742519ba08ec194662614f2da5b29cb5b68cad12149b14b2102df",
+      "harnessSource": "99a7fd5735fd758d3cc78ed308e65f551094c76d",
+      "run": "../evidence/t13-native/application-settings-1791488008375",
+      "assertions": 47,
+      "pendingRequests": 48,
+      "pendingRejections": 48,
+      "normalTrayQuitCount": 7,
+      "normalTrayExitCode": 0,
+      "actualFaultExitCode": 99,
+      "actualRecoveryAndFormalRetry": "recorded in the successful run",
+      "reexecuted": false,
+      "nativeManifestSourceFilesCheckedAgainstGit": 1034,
+      "nativeManifestExcludedTrackedEvidenceFiles": 655,
+      "sourceEolOnlyDifferences": "see evidence-audit.json",
+      "distPreflightFiles": 10,
+      "screenshots": {
+        "inspected": [
+          "configured-target-confirmation.png",
+          "restored-viewer-background.png"
+        ],
+        "confirmation": "Replacement scope and explicit buttons are visible before replacement.",
+        "viewer": "Checker background and option only; original image is still loading."
+      }
+    }
+  },
+  "limitations": [
+    "No native application or system hotkey action launched by this merger; T17 retains exclusive desktop ownership.",
+    "Native 5a evidence predates T12. Final a8 evidence covers affected public core/UI/TS/fmt/Tauri strict clippy, not a final full workspace or native rerun.",
+    "Windows 10 and unexecuted hardware/runtime environments remain unverified.",
+    "Debug/KINSHOKO_SKIP_AUTOSTART bypasses real system autostart registration; configuration roundtrip only.",
+    "Viewer screenshot does not verify completed original rendering, color fidelity or capture pixels.",
+    "Old color failures and signed public update acceptance remain separate.",
+    "No GitHub operation, push, other worker mutation or native cleanup performed."
+  ],
+  "rootWorkingTreeClean": true,
+  "workerReadOnlyCleanCheck": "require_escalated with GIT_OPTIONAL_LOCKS=0 verified clean HEAD e53d78a",
+  "released": true
+}
+

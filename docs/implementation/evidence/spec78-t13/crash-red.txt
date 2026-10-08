@@ -1,0 +1,23 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.46s
+     Running tests\application_settings_backup.rs (target\debug\deps\application_settings_backup-be81416567d29a46.exe)
+
+running 1 test
+
+running 1 test
+
+thread 'restart_recovers_one_complete_configuration_after_catalog_publication_is_interrupted' (456) panicked at crates\kinshoko-core\tests\application_settings_backup.rs:174:5:
+assertion `left == right` failed
+  left: "备份配置"
+ right: "现有配置"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test restart_recovers_one_complete_configuration_after_catalog_publication_is_interrupted ... FAILED
+
+failures:
+
+failures:
+    restart_recovers_one_complete_configuration_after_catalog_publication_is_interrupted
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.17s
+
+error: test failed, to rerun pass `-p kinshoko-core --test application_settings_backup`

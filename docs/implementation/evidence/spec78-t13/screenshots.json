@@ -1,0 +1,49 @@
+{
+  "run": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375",
+  "productSource": "5a48939e905652b9d15a4a5f47a0844012e7a8f7",
+  "harnessSource": "99a7fd5735fd758d3cc78ed308e65f551094c76d",
+  "screenshots": [
+    {
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\configured-settings-backed-up.png",
+      "sha256": "d680859b2823edf0107e110de9be81f87319287d574cba561bd044a081b0ede5",
+      "proves": "正式程序设置备份完成，存在真实设置包",
+      "limits": "不单独证明包的完整定义；由核心测试与包内容检查补足"
+    },
+    {
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\configured-target-confirmation.png",
+      "sha256": "8dd960df450da7cb5d80a6f0c922cc44686484c98f8dfaaabccc9dfdaa6991a2",
+      "proves": "已有配置目标的替换范围与显式确认按钮",
+      "limits": "此刻尚未执行替换"
+    },
+    {
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\blank-target-confirmation.png",
+      "sha256": "e46b8ddeb7ff23112d5b44825da6b648275d28127151c3518b9afee871401378",
+      "proves": "空白目标读取同一真实包后的替换确认",
+      "limits": "不单独证明设备登记为空或原库离线；由公共读回和夹具记录补足"
+    },
+    {
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\restored-settings-live.png",
+      "sha256": "da032b4ffe118df91632a5209c30c22be623dde25fa18adfcd61949d7bb1aa8b",
+      "proves": "恢复后正式快捷键显示 F9、钉剪贴板未设置",
+      "limits": "系统热键实际生效由 SendInput 回执和 captureStarted 日志证明"
+    },
+    {
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\restored-viewer-background.png",
+      "sha256": "e8c77d70d8ecb228c8460e2817c79c7ca83a9ef2b648dd8e4e4178a231b452a9",
+      "proves": "实际查看器背景选项为棋盘格、舞台显示棋盘格",
+      "limits": "原图仍在加载；不证明原图显示完成、色彩保真或截图像素链路"
+    },
+    {
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\retry-after-crash-confirmation.png",
+      "sha256": "ee0ae0c55e9477d493522779ac2f2367859cf94a2e22f448f1c5c8b3512b8b9f",
+      "proves": "实际进程故障、启动恢复后再次从正式界面确认替换",
+      "limits": "故障99和正常退出0由独立原生回执证明"
+    },
+    {
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\recovered-and-retried.png",
+      "sha256": "869f2d4979a087c9f892ed8504e62aac44fa1144651c7b804af2b3f29429b4d7",
+      "proves": "实际启动恢复后从正式界面重试，恢复完成消息可见",
+      "limits": "配置完整性与六份原图一致由公开读回、SQL/文件检查和原始结果补足"
+    }
+  ]
+}
