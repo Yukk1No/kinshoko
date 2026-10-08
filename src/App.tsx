@@ -433,7 +433,6 @@ export function App() {
       (view) => alive && view && setShowApproxSource(view.showApproxSource),
       () => undefined,
     );
-    workspaceStatus(true).then((status) => alive && setHasProviders(status.libraries.length > 0), () => {});
     currentLibrary().then(
       (value) => alive && setLibrary(value),
       (e) => {
@@ -446,6 +445,14 @@ export function App() {
       alive = false;
     };
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const accept = (status: WorkspaceStatus) => { if (alive) setHasProviders(status.libraries.length > 0); };
+    workspaceStatus(safe).then(accept, () => {});
+    const stop = onWorkspaceChanged(accept);
+    return () => { alive = false; void stop.then((stop) => stop()); };
+  }, [safe]);
 
   useEffect(() => {
     const stop = onSafeModeSetting((on) => { safeRef.current = on; setSafe(on); });
