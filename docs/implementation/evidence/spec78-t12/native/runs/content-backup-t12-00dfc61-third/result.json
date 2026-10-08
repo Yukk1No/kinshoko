@@ -1,0 +1,255 @@
+{
+  "status": "failed",
+  "phase": "fresh-restore",
+  "error": "Error: Timed out: actual restore response and rendered roundtrip result",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+  "build": {
+    "source": "00dfc611577361a679221dc8f06f99fdcedd466f",
+    "tree": "1ffabb0724b1f6e308968dfb55092ae7c88361e2",
+    "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
+    "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+    "identifier": "dev.kinshoko.spec78t12test",
+    "productName": "Kinshoko T12 Test",
+    "buildType": "Tauri CLI debug --no-bundle, tauri/custom-protocol",
+    "buildCommand": "node node_modules/@tauri-apps/cli/tauri.js build --debug --no-bundle --config work/e2e/t12-tauri-config.json",
+    "buildDate": "2026-10-08T19:14:05.014607+00:00",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target",
+    "buildJobs": 2,
+    "driverSha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7",
+    "configSha256": "d3d0d3e2da8828fd1e9fa170978ab7ced39461965ddf446ec93b8a619df8e28a",
+    "beforeBuildManifest": {
+      "file": "work/e2e/t12-final-source-dist-before-build.json",
+      "sha256": "deae030f6e03dbd2b2e15c216ca888a546edad1a3eb6e3ef5f5809322cec5672"
+    },
+    "afterBuildManifest": {
+      "file": "work/e2e/t12-final-source-dist-after-build.json",
+      "sha256": "d7153c9bcf8c8f017d00dd53ef00bd31fcec58b973ca4389111882a3625fcb44"
+    },
+    "inputsAndDistUnchangedDuringBuild": true,
+    "files": [
+      {
+        "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
+        "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+        "bytes": 100617216,
+        "sha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c"
+      },
+      {
+        "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\DirectML.dll",
+        "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\DirectML.dll",
+        "bytes": 18527776,
+        "sha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
+      }
+    ],
+    "harnessSource": "00dfc611577361a679221dc8f06f99fdcedd466f",
+    "harnessSha256": "355ea149b2c171b3680b3c632d8a5fc7f33790c8e32200720cb9d3d97a777de0",
+    "run": "work/e2e/content-backup-t12-00dfc61-third"
+  },
+  "harnessSource": "00dfc611577361a679221dc8f06f99fdcedd466f",
+  "harnessSha256": "355ea149b2c171b3680b3c632d8a5fc7f33790c8e32200720cb9d3d97a777de0",
+  "assertions": [
+    "fixture import has its explicit owner and completed definition publication: 备份来源甲",
+    "fixture import has its explicit owner and completed definition publication: 备份来源乙",
+    "three native reference views become one cross-library source group",
+    "app split is saved despite a real provider definition publication failure",
+    "provider publication failure is visible in the formal identity controls",
+    "source has an actual application personal rule before content backup",
+    "actual backup preview covers both providers, their group and all originals",
+    "formal library-backup entry states the content/settings boundary",
+    "manual content backup completes after failed publication without skipping providers"
+  ],
+  "environments": [
+    {
+      "phase": "source",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\source-app",
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "source-publication-failed",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\source-app",
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "fresh-restore",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\fresh-app",
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    }
+  ],
+  "sourceA": {
+    "info": {
+      "id": "411c415704b345098c9a760a40324f73",
+      "name": "备份来源甲",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\libraries\\备份来源甲"
+    },
+    "images": [
+      "01a11cf0bbbd7482a604011e070f140b",
+      "01a11cf0bb877317bc221f36b7d40c78"
+    ],
+    "local": "01a11cf0bc2e769b817ff15f0141e44a",
+    "receipt": {
+      "destination": {
+        "folderId": null,
+        "libraryId": "411c415704b345098c9a760a40324f73"
+      },
+      "finishing": false,
+      "folderName": "未归类",
+      "libraryName": "备份来源甲",
+      "progress": {
+        "done": 2,
+        "total": 2
+      },
+      "report": {
+        "cancelled": false,
+        "eagleMissing": 0,
+        "eagleRelocations": [],
+        "fromEagle": false,
+        "items": [
+          {
+            "outcome": {
+              "imageId": "01a11cf0bb877317bc221f36b7d40c78",
+              "kind": "imported"
+            },
+            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\a1.png"
+          },
+          {
+            "outcome": {
+              "imageId": "01a11cf0bbbd7482a604011e070f140b",
+              "kind": "imported"
+            },
+            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\a2.png"
+          }
+        ]
+      },
+      "taskId": "31d3fdaadcc1456289d71120afae6743",
+      "warnings": []
+    }
+  },
+  "sourceB": {
+    "info": {
+      "id": "7ae836ef28794c8f945458068788ae78",
+      "name": "备份来源乙",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\libraries\\备份来源乙"
+    },
+    "images": [
+      "01a11cf0c13c735a83bf5f0b18c7fc4e"
+    ],
+    "local": "01a11cf0c1dd74dfb0d0b915abed7b9c",
+    "receipt": {
+      "destination": {
+        "folderId": null,
+        "libraryId": "7ae836ef28794c8f945458068788ae78"
+      },
+      "finishing": false,
+      "folderName": "未归类",
+      "libraryName": "备份来源乙",
+      "progress": {
+        "done": 1,
+        "total": 1
+      },
+      "report": {
+        "cancelled": false,
+        "eagleMissing": 0,
+        "eagleRelocations": [],
+        "fromEagle": false,
+        "items": [
+          {
+            "outcome": {
+              "imageId": "01a11cf0c13c735a83bf5f0b18c7fc4e",
+              "kind": "imported"
+            },
+            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\b.png"
+          }
+        ]
+      },
+      "taskId": "65cdb0e43de947dfbdca6b7e7d8b7f4f",
+      "warnings": []
+    }
+  },
+  "sourceIdentity": "01a11cf0bc2e769b817ff16041351013",
+  "splitIdentity": "01a11cf0de9270349335389474d8f725",
+  "sourceGroup": {
+    "createdAt": 1791486906410,
+    "id": "bcc5aa4b28284bbd8bd7144c5552cf9f",
+    "members": [
+      {
+        "crop": {
+          "height": 40,
+          "width": 50,
+          "x": 10,
+          "y": 12
+        },
+        "id": "5603d83e68a545c99127ac2c2de1a05c",
+        "imageId": "01a11cf0bbbd7482a604011e070f140b",
+        "libraryId": "411c415704b345098c9a760a40324f73",
+        "placement": {
+          "flipH": true,
+          "flipV": false,
+          "rotation": 1,
+          "scale": 1.5,
+          "x": 657,
+          "y": 562
+        },
+        "sourceHeight": 90,
+        "sourceWidth": 120
+      },
+      {
+        "crop": null,
+        "id": "7f80430e9df149069e98dcbb784b1a18",
+        "imageId": "01a11cf0bb877317bc221f36b7d40c78",
+        "libraryId": "411c415704b345098c9a760a40324f73",
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 498,
+          "y": 428
+        },
+        "sourceHeight": 90,
+        "sourceWidth": 120
+      },
+      {
+        "crop": {
+          "height": 60,
+          "width": 70,
+          "x": 4,
+          "y": 5
+        },
+        "id": "2f338a187e82470e8be633cafe59805a",
+        "imageId": "01a11cf0c13c735a83bf5f0b18c7fc4e",
+        "libraryId": "7ae836ef28794c8f945458068788ae78",
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 523,
+          "y": 443
+        },
+        "sourceHeight": 90,
+        "sourceWidth": 120
+      }
+    ],
+    "name": "内容备份跨库组",
+    "updatedAt": 1791486906410
+  },
+  "backupReport": {
+    "complete": true,
+    "copied": 3,
+    "copiedBytes": 68163,
+    "problems": [],
+    "removedSnapshots": [],
+    "reused": 0,
+    "skipped": [],
+    "snapshotId": "20261009-031511-08c01d"
+  },
+  "faultResults": []
+}

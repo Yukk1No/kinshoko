@@ -1,0 +1,15 @@
+{
+  "collectedAt": "2026-10-08T18:56:34.9302819Z",
+  "os": {
+    "Caption": "Microsoft Windows 11 专业版",
+    "Version": "10.0.26300",
+    "BuildNumber": "26300",
+    "OSArchitecture": "64 位"
+  },
+  "powershell": "7.6.6",
+  "settingsPath": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+  "settingsExistedBefore": false,
+  "existingListeners": [],
+  "edgeDriver": "0F4600639201CCD2E84C72C3977AC33C67E19152E197C89EB16A6591D1FBE9F7",
+  "tauriDriver": "14FCADB6ADBB5C2956263EA6BBDCBE5F9C190D3B6A6C12BC5C47953CB6AA272D"
+}

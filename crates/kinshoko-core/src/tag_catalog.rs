@@ -618,43 +618,8 @@ impl TagCatalog {
     /// Publish current content dependencies without exporting application preferences.
     pub fn publish_library_definitions(&mut self, library: &Library) -> Result<(), CatalogError> {
         let snapshot = self.synchronize(library)?;
-        let definitions = snapshot
-            .tags
-            .iter()
-            .map(|tag| (tag.id.as_str(), portable::content_definition(tag)))
-            .collect::<std::collections::BTreeMap<_, _>>();
-        // Keep every raw dependency, including safe-mode-hidden tags with no visible mapping.
-        // An authoritative identity already known by this app uses its current pure definition.
-        let mut bindings = library
-            .tag_definition_dependencies()?
-            .into_iter()
-            .map(|mut binding| {
-                if binding.authoritative
-                    && let Some(definition) = definitions.get(binding.definition.id.as_str())
-                {
-                    binding.definition = definition.clone();
-                }
-                (binding.local_tag_id.clone(), binding)
-            })
-            .collect::<std::collections::BTreeMap<_, _>>();
-        for mapping in snapshot
-            .mappings
-            .iter()
-            .filter(|mapping| mapping.library_id == library.info().id)
-        {
-            bindings.insert(
-                mapping.local_tag_id.clone(),
-                crate::portable_tags::PortableTagBinding {
-                    local_tag_id: mapping.local_tag_id.clone(),
-                    definition: definitions
-                        .get(mapping.catalog_id.as_str())
-                        .ok_or(CatalogError::UnknownTag)?
-                        .clone(),
-                    authoritative: true,
-                },
-            );
-        }
-        let bindings = bindings.into_values().collect::<Vec<_>>();
+        let bindings = snapshot
+            .content_bindings(&library.info().id, library.tag_definition_dependencies()?)?;
         library.publish_tag_definitions(&bindings)?;
         Ok(())
     }

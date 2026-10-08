@@ -311,6 +311,20 @@ impl ReferenceGroups {
         })
     }
 
+    pub(crate) fn restore_journal_dir(&self) -> PathBuf {
+        self.dir.join("restore-transactions")
+    }
+
+    /// Only a fully staged content-restore batch publishes these already allocated identities.
+    pub(crate) fn publish_restored(&self, group: &ReferenceGroup) -> Result<(), GroupError> {
+        if group.restored_from.is_none() || self.path(&group.id)?.exists() {
+            return Err(GroupError::Invalid(
+                "恢复身份已存在，未覆盖现有参考组".into(),
+            ));
+        }
+        self.write(group)
+    }
+
     /// 全部参考组，按最近保存的在前。
     pub fn list(&self) -> Result<Vec<GroupSummary>, GroupError> {
         let mut out = Vec::new();

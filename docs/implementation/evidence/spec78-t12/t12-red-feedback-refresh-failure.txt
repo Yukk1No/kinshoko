@@ -1,0 +1,34 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/TagIdentityPanel.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/library/TagIdentityPanel.test.tsx (6 tests | 1 failed) 543ms
+   × keeps a correction publication failure through queued and later vocabulary refreshes until an explicit retry 102ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/TagIdentityPanel.test.tsx > keeps a correction publication failure through queued and later vocabulary refreshes until an explicit retry
+AssertionError: expected 'Error: 自动读取暂时失败' to contain '标签对应已保存在程序中，但资料库定义尚未更新：磁盘已满。请在统一标签目录中…'
+
+Expected: "标签对应已保存在程序中，但资料库定义尚未更新：磁盘已满。请在统一标签目录中重试保存标签定义。"
+Received: "Error: 自动读取暂时失败"
+
+ ❯ src/library/TagIdentityPanel.test.tsx:132:49
+    130|   await act(async () => { await emit("library-event", { kind: "vocabul…
+    131|   await waitFor(() => expect(inspections).toBe(4));
+    132|   expect(screen.getByRole("alert").textContent).toContain(failure);
+       |                                                 ^
+    133|   fireEvent.click(screen.getByRole("button", { name: "保存 画稿库 的标签定义" })…
+    134|   await screen.findByText("标签定义已保存到资料库。");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  03:10:51
+   Duration  1.99s (environment 57%, tests 29%, import 10%, transform 4%)
+

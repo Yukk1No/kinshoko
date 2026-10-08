@@ -40,3 +40,11 @@ T10 新的保存位置确认接入后，完整 smoke 还需按正式入口同步
 release exe SHA256 为 `877fcdc5a1aebfe1f0b08383691469ce88e1e4a3a1e3af0ea13bff2df76ede9d`。原 smoke 脚本 `49fa759e…` 在 18:59:31–18:59:46Z 完成 5 项。该来源包括 T06，不扩大为之后 T10／T12 或最终组合成功。
 
 同轮非阻断颜色实验仍为 34 个门槛样本中 11 项失败，实际 Server 2022／Hyper-V／WebView2 131 环境保持。原始 `fidelity-report-20261008-185952Z.json`、样本与来源在 ignored `work/v1-handoff/follow-up-spec/evidence/ci-37826656513/`，43 文件／2456412 字节由逐文件 SHA 清单保存。CI 成功不代表颜色门槛成功。
+
+## T10 保存目标接入后的实际 CI
+
+[CI 37830066280](https://github.com/Yukk1No/kinshoko/actions/runs/37830066280) 完整成功，head `8fc3f522fb1243dd39e97b8927554efc17d10dab`。实际PR合成checkout `2d5d264e60d07b5221fe394e6492a72feeb13c41`，GitHub commit API验证parents为536cc43/8fc，tree `0c422841c29b878dbdba209d9e398bbd4753c552`。[实际步骤](evidence/spec78-ci-smoke/t10-ci-green-run.json)、[smoke原件](evidence/spec78-ci-smoke/t10-ci-green-result.json)、[来源](evidence/spec78-ci-smoke/t10-ci-origin-meta.json) 分别保留。
+
+release exe SHA256为 `6999c1809069cc3a970eec3487045851c65591c0f32b561a46353661ff210af9`。脚本 `d9df46a1c82641e8677d9434dca9d631a43370a1037d6217b05e539141c7e01a` 使用正式目标选择与导入确认，在19:26:27–19:26:43Z完成5项。包含T10，不包含之后T12/T13/T17，也不是最终组合结果。downscale37830066214成功。
+
+同轮 `fidelity-report-20261008-192650Z.json` 仍为34门槛样本中11项失败；CI成功未清除颜色门槛。原件、样本和来源独立保存于ignored `evidence/ci-37830066280/`，43文件/2455867字节。Installer artifact未下载或在本机执行，CI自己的安装检查不代替最终本机真实升级。
