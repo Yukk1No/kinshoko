@@ -87,7 +87,9 @@ async function launch(name, profile, fault = null) {
   driver = spawn(driverArg ?? "tauri-driver", ["--port", String(port), "--native-port", "4649", "--native-driver", resolve(edgeArg)], { env, windowsHide: true, stdio: ["ignore", "inherit", "inherit"] });
   await until("driver ready", () => fetch(url + "/status").then((r) => r.ok));
   session = await Session.start();
-  environments.push({ phase, dataDir, ...(await session.exec("return { dpr: devicePixelRatio, width: innerWidth, height: innerHeight, userAgent: navigator.userAgent };")) });
+  const settingsPath = join(process.env.APPDATA, build.identifier, "settings.json");
+  const settingsExists = existsSync(settingsPath);
+  environments.push({ phase, dataDir, knownFolder: { path: settingsPath, exists: settingsExists, sha256: settingsExists ? sha(readFileSync(settingsPath)) : null, value: settingsExists ? JSON.parse(readFileSync(settingsPath, "utf8")) : null }, shellSettings: await command("shell_settings"), ...(await session.exec("const descriptor = Object.getOwnPropertyDescriptor(window.__TAURI_INTERNALS__, 'invoke'); return { dpr: devicePixelRatio, width: innerWidth, height: innerHeight, userAgent: navigator.userAgent, invokeDescriptor: { writable: descriptor?.writable, configurable: descriptor?.configurable } };")) });
 }
 function png(path, seed) {
   const chunk = (type, data) => { const body = Buffer.concat([Buffer.from(type), data]); let crc = 0xffffffff; for (const b of body) { crc ^= b; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1; } const length = Buffer.alloc(4); length.writeUInt32BE(data.length); const checksum = Buffer.alloc(4); checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0); return Buffer.concat([length, body, checksum]); };
@@ -146,27 +148,45 @@ async function command(command, args = {}) {
   if (result.failure) throw Error(`${command}: ${result.failure}`);
   return result.value;
 }
-async function observeRestore() {
-  await session.exec("window.__KINSHOKO_RESTORE_OBSERVED__ = null; const old = window.__TAURI_INTERNALS__.invoke; if (!window.__KINSHOKO_RESTORE_OBSERVER__) { window.__KINSHOKO_RESTORE_OBSERVER__ = true; window.__TAURI_INTERNALS__.invoke = function(command, args, ...rest) { const result = old.call(this, command, args, ...rest); if (command === 'restore_backup') result.then(value => { window.__KINSHOKO_RESTORE_OBSERVED__ = { value }; }, error => { window.__KINSHOKO_RESTORE_OBSERVED__ = { error: String(error) }; }); return result; }; }");
-}
 async function backupSettings() { await settings(); await until("library backup settings", () => session.find("//section[@aria-label='资料库备份']//h2[normalize-space()='资料库备份']")); }
 const backupSection = "//section[@aria-label='资料库备份']";
 async function chooseBackup(path) {
   await backupSettings(); await session.pick(path); await session.click(`${backupSection}//button[normalize-space()='选择备份目录…']`);
   await until("saved backup destination", async () => (await command("backup_status")).plan.target === path);
 }
+function restoreProvenance(libraries) {
+  const script = "import sqlite3,json,sys,pathlib; result=[]\nfor root in json.loads(sys.argv[1]):\n db=sqlite3.connect((pathlib.Path(root)/'library.sqlite').resolve().as_uri()+'?mode=ro',uri=True)\n db.execute('PRAGMA query_only=ON')\n rows=db.execute('SELECT old_library_id, backup_id, restored_at FROM restore_provenance ORDER BY restored_at,rowid').fetchall()\n result.append({'root':root,'provenance':[{'oldLibraryId':row[0],'backupId':row[1],'restoredAt':row[2]} for row in rows]})\n db.close()\nprint(json.dumps(result))";
+  const read = spawnSync("python", ["-c", script, JSON.stringify(libraries.map(library => library.root))], { encoding: "utf8", windowsHide: true, env: { ...process.env, PYTHONUTF8: "1" } });
+  if (read.status !== 0) throw Error("Read-only restored provenance: " + read.stderr);
+  return JSON.parse(read.stdout);
+}
 async function restoreRendered(into) {
-  mkdirSync(into, { recursive: true }); await backupSettings(); await observeRestore();
+  mkdirSync(into, { recursive: true }); await backupSettings();
+  const beforeLibraries = new Set((await session.invoke("registered_libraries")).map(entry => entry.library.id));
+  const beforeGroups = new Set((await session.invoke("reference_groups", {}, "desktop")).map(group => group.id));
   await session.click(`${backupSection}//button[normalize-space()='从备份恢复…']`);
   await session.pick(into); await session.click(`${backupSection}//button[starts-with(@aria-label,'恢复 ')]`);
-  const report = await until("actual restore response and rendered roundtrip result", async () => {
-    const observed = await session.exec("return window.__KINSHOKO_RESTORE_OBSERVED__;");
-    if (observed?.error) throw Error(observed.error);
-    if (!observed?.value) return null;
-    return await session.exec("return document.querySelector('[aria-label=往返检查]')?.innerText.includes('往返检查通过');") ? observed.value : null;
+  const completed = await until("rendered roundtrip success and actual new registrations/groups", async () => {
+    const libraries = (await session.invoke("registered_libraries")).filter(entry => !beforeLibraries.has(entry.library.id)).map(entry => entry.library);
+    const groups = (await session.invoke("reference_groups", {}, "desktop")).filter(group => !beforeGroups.has(group.id));
+    const rendered = await session.exec("const result = document.querySelector('[aria-label=往返检查]'); const buttons = [...document.querySelectorAll('.backup-snapshots button')]; return result && result.innerText.includes('往返检查通过') && buttons.every(button => !button.disabled) ? result.innerText : null;");
+    return libraries.length === 2 && groups.length === 1 && rendered ? { libraries, groups, rendered } : null;
   }, 45000);
-  assert(report.snapshotId === backupReport.snapshotId && report.check.originals.problems.length === 0 && report.check.curation.problems.length === 0 && report.check.groups.problems.length === 0, "rendered content restore reports matching originals, curation and groups");
-  return report;
+  const provenance = restoreProvenance(completed.libraries);
+  const libraries = completed.libraries.map(library => {
+    const rows = provenance.find(entry => entry.root === library.root).provenance;
+    const from = rows.at(-1);
+    assert(from?.backupId === backupReport.snapshotId, "actual restored library provenance names the selected content snapshot");
+    return { library, oldId: from.oldLibraryId, provenance: rows };
+  });
+  const groups = [];
+  for (const summary of completed.groups) {
+    const group = (await session.invoke("reference_group", { groupId: summary.id }, "desktop")).group;
+    assert(group.restoredFrom?.backupId === backupReport.snapshotId, "actual restored reference-group provenance names the selected content snapshot");
+    groups.push({ oldId: group.restoredFrom.groupId, id: group.id, name: group.name });
+  }
+  assert(completed.rendered.includes("往返检查通过") && /原图 3 张/.test(completed.rendered) && /参考组 1 个/.test(completed.rendered), "rendered content restore reports matching originals, curation and groups");
+  return { observation: "Actual rendered completion plus public registrations/groups and read-only SQLite provenance; not an intercepted restore_backup response", snapshotId: backupReport.snapshotId, libraries, groups, renderedCheck: completed.rendered };
 }
 async function openRestored(info) {
   await closeSettings();
@@ -293,7 +313,7 @@ try {
     groupsBefore = await session.invoke("reference_groups", {}, "desktop");
     registrationsBefore.splice(0, registrationsBefore.length, ...(await session.invoke("registered_libraries")));
   }
-  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", application, build, harnessSource, harnessSha256, assertions, environments, sourceA, sourceB, sourceIdentity, splitIdentity, sourceGroup, backupReport, freshReport, existingReport, faultResults, expectedOriginals, filePicker: "existing testPick result queue; actual rendered controls/native backend", observer: "read-only capture of actual restore_backup IPC response; request and response are not changed", cleanup: "forced exact executable restarts; not normal tray-quit acceptance" }, null, 2));
+  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", application, build, harnessSource, harnessSha256, assertions, environments, sourceA, sourceB, sourceIdentity, splitIdentity, sourceGroup, backupReport, freshReport, existingReport, faultResults, expectedOriginals, filePicker: "existing testPick result queue; actual rendered controls/native backend", observer: "actual rendered roundtrip completion, public registrations/reference groups, and SQLite mode=ro/query_only provenance; no invoke replacement or synthetic IPC response", cleanup: "forced exact executable restarts; not normal tray-quit acceptance" }, null, 2));
   console.log(`Evidence: ${work}`);
 } catch (error) {
   console.error(error);
