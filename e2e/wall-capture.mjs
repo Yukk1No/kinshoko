@@ -95,10 +95,12 @@ try{
   // Add unique content to force actual virtualization, then scroll out and back before F1.
   const extra=Array.from({length:120},(_,i)=>{const path=join(work,"sources",`other-${i}.png`);png(path,80+(i%3)*20,100+(i%4)*30,i+1);return path;});await importFiles(second,extra);await reload();
   await until("updated 121-card production wall",()=>exec("return document.querySelector('.wall')?.dataset.total==='121'&&document.querySelector('.card img')?.complete"));
-  const initialIds=await exec("return [...document.querySelectorAll('.card')].map(n=>n.dataset.id)");
+  await exec("const w=document.querySelector('.wall');w.scrollTop=0;w.dispatchEvent(new Event('scroll',{bubbles:true}));");
+  await until("top population before virtual scroll",()=>exec("return document.querySelector('.wall').scrollTop<1&&document.querySelectorAll('.card').length>0&&![...document.querySelectorAll('.card')].some(n=>n.dataset.id===arguments[0])",[firstCard.id]));
+  const initialIds=await exec("return [...document.querySelectorAll('.card')].map(n=>n.dataset.id)");result.virtualScroll={initialIds};
   await exec("const el=document.querySelector('.wall');el.scrollTop=el.scrollHeight;el.dispatchEvent(new Event('scroll',{bubbles:true}));");
   await until("recycled bottom population",()=>exec("return [...document.querySelectorAll('.card')].some(n=>!arguments[0].includes(n.dataset.id))",[initialIds]));
-  check(await exec("return [...document.querySelectorAll('.card')].some(n=>!arguments[0].includes(n.dataset.id))",[initialIds]),"actual virtualized wall recycles visible card population");
+  result.virtualScroll.bottomIds=await exec("return [...document.querySelectorAll('.card')].map(n=>n.dataset.id)");check(result.virtualScroll.bottomIds.some(id=>!initialIds.includes(id)),"actual virtualized wall recycles visible card population");
   await bottomOriginal(firstCard.id);
   await exec("const el=document.querySelector('.wall');el.scrollTop=0;el.dispatchEvent(new Event('scroll',{bubbles:true}));");
   await until("original virtualized out",()=>exec("return ![...document.querySelectorAll('.card')].some(n=>n.dataset.id===arguments[0])",[firstCard.id]));
