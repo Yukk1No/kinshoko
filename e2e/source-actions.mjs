@@ -74,7 +74,17 @@ class Session {
     return wd("POST", `${this.base}/element/${id}/value`, { text: value, value: [...value] });
   }
   async find(xpath) { return (await wd("POST", `${this.base}/element`, { using: "xpath", value: xpath }))[ELEMENT]; }
-  click(xpath) { return this.find(xpath).then((id) => wd("POST", `${this.base}/element/${id}/click`, {})); }
+  async click(xpath) {
+    const end = Date.now() + 10000;
+    for (;;) {
+      try { const id = await this.find(xpath); return await wd("POST", `${this.base}/element/${id}/click`, {}); }
+      catch (error) {
+        // These WebDriver errors mean the click did not run. Resolve the refreshed control once more.
+        if (Date.now() >= end || !/stale element reference|no such element/.test(String(error))) throw error;
+        await delay(150);
+      }
+    }
+  }
   close() { return wd("DELETE", this.base); }
   async screenshot(name) { writeFileSync(join(work, name), Buffer.from(await wd("GET", `${this.base}/screenshot`), "base64")); }
 }
@@ -173,12 +183,15 @@ try {
   await until("B new tag", async () => (await inspect()).tags.image.tags.some(t => t.tag.name === "B 新人工标签"));
   assert(!(await inspect(aTarget)).tags.image.tags.some(t => t.tag.name === "B 新人工标签"), "new B manual tag never changes A tags");
   assert((await session.invoke("workspace_source_candidates", { target, safeMode: true, text: "B 新", lang: "zh-CN" }))[0]?.tag.name === "B 新人工标签", "source picker uses B local tag identities through actual native ACL");
+  await delay(1800); // Let the real workspace monitor publish the tag revision before the next user action.
   await until("B controls ready", () => session.find("//button[text()='钉住此来源']"));
   await session.screenshot("explicit-inactive-source-after.png");
   await session.click("//button[text()='钉住此来源']");
   await until("B pin saved", () => { pin = pinState().find(p => stableReference(p.content)); return pin; });
   assert(stableReference(pin.content), "direct pin saves the explicitly chosen inactive library/image identity");
+  await until("source usage ready", () => session.exec("const input=document.querySelector('[aria-label=\"新参考组名称\"]'); return input && !input.closest('fieldset').disabled;"));
   await session.type("//*[@aria-label='新参考组名称']", "T09 指定 B 来源");
+  await until("group action enabled", () => session.exec("return [...document.querySelectorAll('button')].some(button => button.textContent === '加入参考组' && !button.disabled && !button.closest('fieldset').disabled);"));
   await session.click("//button[text()='加入参考组']");
   const groups = await until("source group created", async () => {
     const groups = await session.desktop("reference_groups"); return groups.some(g => g.name === "T09 指定 B 来源") ? groups : null;
