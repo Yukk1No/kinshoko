@@ -18,7 +18,7 @@ describe("查看器设备像素", () => {
   it("只向 F1 报告已经显示的原图范围，关闭查看器后清除来源", async () => {
     const reports: unknown[] = [];
     mockIPC((command, args) => {
-      if (command === "plugin:desktop|set_capture_reference") reports.push(args?.reference);
+      if (command === "plugin:desktop|set_capture_reference" && args && "reference" in args) reports.push(args.reference);
       return undefined;
     });
     const { unmount } = render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);

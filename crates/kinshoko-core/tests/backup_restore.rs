@@ -224,6 +224,54 @@ fn target(dir: &Path) -> BackupTarget {
 }
 
 #[test]
+fn a_group_that_outgrows_the_computed_scope_cannot_publish_a_complete_backup() {
+    let device = Device::new();
+    let group = device
+        .groups
+        .create(
+            "范围会变化",
+            &mut [device.pin(&device.main, &device.main_images[0], None, 10)],
+        )
+        .unwrap();
+    let registry = device.registry();
+    let selection = ScopeSelection::Libraries {
+        ids: vec![device.main.info().id.clone()],
+        include_linked: true,
+    };
+    let scope = compute_scope(&registry, &device.groups.list().unwrap(), &selection);
+    assert_eq!(scope.libraries.len(), 1);
+    device
+        .groups
+        .save_pins(
+            &group.id,
+            &mut [device.pin(&device.old, &device.old_images[0], None, 40)],
+        )
+        .unwrap();
+    let backups = tempfile::tempdir().unwrap();
+    let target = target(backups.path());
+    let sources = BackupSources {
+        libraries: &registry,
+        groups: &device.groups,
+    };
+    let stale = target.run(&scope, &sources, at(0, 3), &mut |_| {}).unwrap();
+    assert!(!stale.complete, "新增依赖未覆盖时不能发布完整快照");
+    assert!(!stale.problems.is_empty());
+    assert!(target.snapshots().unwrap().is_empty());
+    let fresh = compute_scope(&registry, &device.groups.list().unwrap(), &selection);
+    let retried = target.run(&fresh, &sources, at(0, 4), &mut |_| {}).unwrap();
+    assert!(retried.complete, "重新计算范围后可正常备份");
+    let restored = target
+        .restore(
+            &retried.snapshot_id,
+            &device.dir.path().join("恢复"),
+            &device.groups,
+            at(1, 1),
+        )
+        .unwrap();
+    assert!(restored.check.passed(), "{:?}", restored.check);
+}
+
+#[test]
 fn editing_a_group_while_copying_keeps_the_backup_references_consistent() {
     let device = Device::new();
     let group = device

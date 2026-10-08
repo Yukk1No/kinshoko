@@ -100,7 +100,10 @@ pub fn run() {
             label,
             event: tauri::WindowEvent::Destroyed,
             ..
-        } if label == shell::MAIN_WINDOW => backup::on_main_window_closed(app),
+        } if label == shell::MAIN_WINDOW => {
+            desktop::clear_viewer_reference(app);
+            backup::on_main_window_closed(app);
+        }
         _ => {}
     });
 }

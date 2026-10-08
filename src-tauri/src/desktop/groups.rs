@@ -81,10 +81,11 @@ fn prepare_pins(app: &AppHandle, choices: &[CaptureChoice]) -> Result<Vec<SavedP
         let Some(library_id) = &choice.library_id else {
             continue;
         };
-        let library = crate::library::for_collection(app, library_id)?;
-        let reference = lock(&state(app).history)
-            .collect_pin(&pin, &library)
-            .map_err(|e| e.to_string())?;
+        let reference = crate::library::with_collection(app, library_id, |library| {
+            lock(&state(app).history)
+                .collect_pin(&pin, library)
+                .map_err(|e| e.to_string())
+        })?;
         prepared.push(reference);
     }
     super::history_changed(app);
@@ -297,7 +298,7 @@ pub async fn import_reference_group_package(
     path: Option<PathBuf>,
 ) -> Result<Option<ReferenceGroup>, String> {
     blocking(move || {
-        let library = crate::library::current(&app, &library_id)?;
+        crate::library::current(&app, &library_id)?;
         let Some(path) = path.or_else(|| {
             app.dialog()
                 .file()
@@ -308,9 +309,11 @@ pub async fn import_reference_group_package(
             return Ok(None);
         };
         let groups = lock(&state(&app).groups).clone();
-        let group = groups
-            .import_package(&path, &library)
-            .map_err(|e| e.to_string())?;
+        let group = crate::library::with_current(&app, &library_id, |library| {
+            groups
+                .import_package(&path, library)
+                .map_err(|e| e.to_string())
+        })?;
         changed(&app);
         Ok(Some(group))
     })

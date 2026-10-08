@@ -42,6 +42,13 @@ pub(super) struct ReferenceSurface {
     pub covered: Vec<ScreenRect>,
 }
 
+#[derive(Clone)]
+pub(super) struct ViewerReport {
+    reference: CaptureReference,
+    #[cfg(windows)]
+    window: isize,
+}
+
 /// 查看器只报告已经画出的图；坐标相对客户区，截图冻结时才换成屏幕坐标。
 #[tauri::command]
 pub fn set_capture_reference(
@@ -52,7 +59,13 @@ pub fn set_capture_reference(
     if window.label() != "main" {
         return Err("只有主查看器能报告参考图范围".into());
     }
-    *lock(&state(&app).viewer_reference) = reference;
+    #[cfg(windows)]
+    let hwnd = window.hwnd().map_err(|e| e.to_string())?.0 as isize;
+    *lock(&state(&app).viewer_reference) = reference.map(|reference| ViewerReport {
+        reference,
+        #[cfg(windows)]
+        window: hwnd,
+    });
     Ok(())
 }
 
@@ -60,8 +73,14 @@ fn references(app: &AppHandle) -> Vec<ReferenceSurface> {
     let mut surfaces = pins::capture_surfaces(app);
     let viewer = lock(&state(app).viewer_reference).clone();
     let main = (|| -> Option<ReferenceSurface> {
-        let viewer = viewer?;
+        let report = viewer?;
+        let viewer = report.reference;
         let window = app.get_webview_window("main")?;
+        // 窗口标签会复用，旧 WebView 的迟到报告不能用于重建后的窗口。
+        #[cfg(windows)]
+        if window.hwnd().ok()?.0 as isize != report.window {
+            return None;
+        }
         if !window.is_visible().ok()? {
             return None;
         }

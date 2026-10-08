@@ -87,6 +87,7 @@ pub fn open_main_window(app: &AppHandle) {
     else {
         return;
     };
+    crate::desktop::clear_viewer_reference(app);
     crate::diagnostics::record(app, UsageEvent::MainWindowOpened);
     match WebviewWindowBuilder::from_config(app, config).and_then(|b| {
         b.additional_browser_args(crate::diagnostics::browser_args())

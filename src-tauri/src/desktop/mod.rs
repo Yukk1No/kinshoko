@@ -25,7 +25,7 @@ use std::sync::{Mutex, MutexGuard};
 
 use kinshoko_core::ShortcutAction;
 use kinshoko_core::desktop::{
-    CaptureEntry, CaptureHistory, CaptureReference, CollectedCapture, EdgeHide, PinStore, PinVeils,
+    CaptureEntry, CaptureHistory, CollectedCapture, EdgeHide, PinStore, PinVeils,
 };
 use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::reference_groups::ReferenceGroups;
@@ -49,7 +49,7 @@ const LIBRARY_EVENT: &str = "library-event";
 pub struct DesktopState {
     history: Mutex<CaptureHistory>,
     capture: Mutex<capture::Session>,
-    viewer_reference: Mutex<Option<CaptureReference>>,
+    viewer_reference: Mutex<Option<capture::ViewerReport>>,
     /// 本次运行中打开着的钉图窗口。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
     /// 钉图状态（`pins.json`），重新打开后恢复。
@@ -69,6 +69,13 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 
 fn state(app: &AppHandle) -> &DesktopState {
     app.state::<DesktopState>().inner()
+}
+
+/// 原生主窗口销毁或重建时也必须清除来源；WebView 销毁不运行 React 的 unmount。
+pub fn clear_viewer_reference(app: &AppHandle) {
+    if let Some(state) = app.try_state::<DesktopState>() {
+        *lock(&state.viewer_reference) = None;
+    }
 }
 
 /// 在参考组的锁里做事（永久删除用，#67）：预览与执行之间、执行期间参考组不会被改。
@@ -226,12 +233,15 @@ fn history_changed(app: &AppHandle) {
 
 /// 收藏：经资料库的普通导入入口，存进当前资料库。会等导入完成，不要在主线程上调用。
 fn collect(app: &AppHandle, capture_id: &str) -> Result<(CollectedCapture, String), String> {
-    let library = library::current_or_last(app)?;
-    let collected = lock(&state(app).history)
-        .collect(capture_id, &library)
-        .map_err(|e| e.to_string())?;
+    let library_id = library::current_or_last(app)?.info().id.clone();
+    let collected = library::with_collection(app, &library_id, |library| {
+        let collected = lock(&state(app).history)
+            .collect(capture_id, library)
+            .map_err(|e| e.to_string())?;
+        Ok((collected, library.info().name.clone()))
+    })?;
     history_changed(app);
-    Ok((collected, library.info().name.clone()))
+    Ok(collected)
 }
 
 #[tauri::command]

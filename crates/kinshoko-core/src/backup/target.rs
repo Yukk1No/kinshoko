@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::retention;
-use super::{BackupScope, ScopeItem, Stamp};
+use super::{BackupScope, ScopeItem, Stamp, Uncovered};
 use crate::RegisteredLibrary;
 use crate::library::{
     self, Library, LibraryInfo, OriginalFile, ReferenceLens, RestoreProvenance, TableDigest,
@@ -389,6 +389,27 @@ impl BackupTarget {
         for g in &scope.groups {
             match sources.groups.snapshot(&g.id) {
                 Ok(bytes) => {
+                    let libraries = match ReferenceGroups::snapshot_libraries(&bytes) {
+                        Ok(libraries) => libraries,
+                        Err(e) => {
+                            report.problems.push(format!("参考组“{}”：{e}", g.name));
+                            continue;
+                        }
+                    };
+                    if libraries.iter().any(|id| {
+                        !scope.libraries.iter().any(|l| &l.id == id)
+                            && !scope.uncovered.iter().any(|u| {
+                                matches!(u,
+                                Uncovered::Library { group, library_id, .. }
+                                    if group.id == g.id && library_id == id)
+                            })
+                    }) {
+                        report.problems.push(format!(
+                            "参考组“{}”有新的资料库引用，请重新计算备份范围后重试",
+                            g.name
+                        ));
+                        continue;
+                    }
                     write_synced(&groups_dir.join(format!("{}.json", g.id)), &bytes)?;
                     manifest.groups.push(ManifestGroup {
                         id: g.id.clone(),

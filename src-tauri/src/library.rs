@@ -358,6 +358,19 @@ pub fn current<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<Arc<L
     app.state::<LibraryState>().current(library_id)
 }
 
+/// 同步完成一次目标活动库的操作，期间不允许切换或重新打开资料库。
+/// 文件选择框等交互应在调用前完成，回调不交出未完成的导入任务。
+pub fn with_current<T>(
+    app: &AppHandle,
+    library_id: &str,
+    action: impl FnOnce(&Library) -> Result<T, String>,
+) -> Result<T, String> {
+    let state = app.state::<LibraryState>();
+    let _transition = lock(&state.transition);
+    let library = state.current(library_id)?;
+    action(&library)
+}
+
 /// `library_id` 的参考视角句柄，只给桌面钉图（#65）与参考组（#66）。每次现取：切换资料库后
 /// 句柄换成新库的，不是这个库的就没有。不打开资料库。
 pub fn reference_lens<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Option<ReferenceLens> {
@@ -408,13 +421,22 @@ pub fn registered<R: Runtime>(
     })
 }
 
-/// 收藏到画师明确选择的已登记资料库，不切换活动库。磁盘 I/O 在调用方的工作线程上。
-pub fn for_collection(app: &AppHandle, library_id: &str) -> Result<Arc<Library>, String> {
+/// 收藏到画师明确选择的已登记资料库，不切换活动库。整个收藏与库切换串行，防止
+/// 切换时重新打开同一个库、把仍在进行的导入当作中断清理。临时句柄不离开这个作用域。
+pub fn with_collection<T>(
+    app: &AppHandle,
+    library_id: &str,
+    collect: impl FnOnce(&Library) -> Result<T, String>,
+) -> Result<T, String> {
     let state = app.state::<LibraryState>();
+    let _transition = lock(&state.transition);
     if let Ok(library) = state.current(library_id) {
-        return Ok(library);
+        return collect(&library);
     }
-    let registration = registered(app)?
+    let registrations = with_libraries(&state.device_dir, &state.libraries, |libraries| {
+        Ok(libraries.libraries().to_vec())
+    })?;
+    let registration = registrations
         .into_iter()
         .find(|r| r.id == library_id)
         .ok_or("本设备没有登记这个资料库")?;
@@ -424,7 +446,7 @@ pub fn for_collection(app: &AppHandle, library_id: &str) -> Result<Arc<Library>,
     }
     state.install_translations(&library);
     library.set_safe_mode(saved_safe_mode(app));
-    Ok(Arc::new(library))
+    collect(&library)
 }
 
 /// 把恢复出的资料库登记到本设备，不切换过去（#69）。

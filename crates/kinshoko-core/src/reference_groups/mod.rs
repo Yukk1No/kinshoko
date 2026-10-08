@@ -368,6 +368,11 @@ impl ReferenceGroups {
         }
     }
 
+    /// 固定快照里实际引用的资料库；备份据此核对执行前的范围，调用方不解析组文件格式。
+    pub fn snapshot_libraries(snapshot: &[u8]) -> Result<Vec<String>, GroupError> {
+        Ok(parse(snapshot)?.library_ids())
+    }
+
     /// 备份的恢复入口（#69）：把快照字节恢复成独立的新参考组。新的参考组身份，记下
     /// `restored_from`；成员引用的资料库按 `libraries`（原身份 → 恢复出的身份）改连，不在其中的
     /// 原样保留。成员、局部与摆放不变；不覆盖任何现有参考组。
