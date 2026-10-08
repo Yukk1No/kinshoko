@@ -88,7 +88,7 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onSource,
         )}>加入参考组</button>
       </fieldset>
     </>}
-    {copying&&available&&<SaveDestinationDialog title="复制此来源" confirmLabel="确认复制" onClose={()=>setCopying(false)} onConfirm={async destination=>{
+    {copying&&<SaveDestinationDialog title="复制此来源" confirmLabel="确认复制" onClose={()=>setCopying(false)} onConfirm={async destination=>{
       await workspaceCopySource(target,destination,safe);if(current.current===key){setNotice("已复制此来源，目标已有人工整理保持不变");onChanged?.();}
     }}/>}
   </div>;

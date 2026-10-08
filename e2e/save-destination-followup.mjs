@@ -1,6 +1,6 @@
-// #78 T10: explicit save destinations and real running-task ownership in the formal application.
+// #78 T10 native follow-up: visible running owner and copy confirmation after source refresh.
 // Setup uses public Tauri actions; curation uses the rendered explicit-source controls.
-// Usage: node e2e/save-destination.mjs <owned kinshoko.exe> <matching msedgedriver.exe>
+// Usage: node e2e/save-destination-followup.mjs <owned kinshoko.exe> <matching msedgedriver.exe>
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, renameSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -8,9 +8,9 @@ import { resolve, join } from "node:path";
 import { deflateSync } from "node:zlib";
 
 const [, , appArg, edgeArg] = process.argv;
-if (!appArg || !edgeArg) throw new Error("Usage: node e2e/save-destination.mjs <owned kinshoko.exe> <msedgedriver.exe>");
+if (!appArg || !edgeArg) throw new Error("Usage: node e2e/save-destination-followup.mjs <owned kinshoko.exe> <msedgedriver.exe>");
 const application = resolve(appArg);
-const work = resolve("work", "e2e", `save-destination-${Date.now()}`);
+const work = resolve("work", "e2e", `save-destination-followup-${Date.now()}`);
 mkdirSync(work, { recursive: true });
 const libraries = join(work, "libraries");
 mkdirSync(libraries);
@@ -175,63 +175,7 @@ try{
  const completed=await finish(long);receipts.push(completed);
  assert(!completed.report.cancelled&&completed.report.items.length===2000,"B task completes all 2000 entries after current/create/target changes");
  assert((await local(a.id)).total===0&&(await local(c.id)).total===0&&(await local(b.id,bFolder)).total===1,"completed content stays in B rather than new current or newly selected A");
- // Remove a real target folder while the selected task is visibly running.
- await session.invoke("switch_library",{libraryId:b.id});
- const vanished=await session.invoke("create_folder",{libraryId:b.id,name:"运行中失效目录",parent:null});
- await session.invoke("switch_library",{libraryId:c.id});
- const failing=await begin(Array(1200).fill(imagePath),b.id,vanished);
- const deletionPhase=await running(failing);
- const deletion=spawnSync("python",["-c","import sqlite3,sys,json; c=sqlite3.connect(sys.argv[1],timeout=10); c.execute('DELETE FROM folder_member WHERE folder_id=?',(sys.argv[2],)); c.execute('DELETE FROM folder_decision WHERE folder_id=?',(sys.argv[2],)); c.execute('DELETE FROM folder WHERE id=?',(sys.argv[2],)); c.commit(); print(json.dumps({'externalFolderRemoved':sys.argv[2]}))",join(b.root,"library.sqlite"),vanished],{windowsHide:true,encoding:"utf8"});
- if(deletion.status!==0)throw new Error(deletion.stderr);
- await choose(a.id,aFolder);
- const failed=await finish(failing);receipts.push({phase:"external-folder-loss-while-running",before:deletionPhase,operation:JSON.parse(deletion.stdout),after:failed});
- const successful=failed.report.items.filter(item=>["imported","merged","refreshed","newVersion"].includes(item.outcome.kind));
- const rejected=failed.report.items.filter(item=>item.outcome.kind==="readFailed");
- assert(successful.length>0&&rejected.length>0&&failed.report.items.length===1200,"running target loss reports completed and failed items instead of a whole-batch success");
- assert(rejected.every(item=>/保存目标不可用|没有这个文件夹/.test(item.outcome.reason)),"remaining failures name the actual unavailable destination");
- assert((await local(a.id)).total===0&&(await local(c.id)).total===0,"failed target does not fall back into the newly chosen or current library");
- await session.screenshot("actual-partial-import-result.png");
- // Explicit UI cancellation follows its original owner after the next target changes.
- const cancelledTask=await begin(Array(1200).fill(imagePath),b.id,bFolder);
- const cancelBefore=await running(cancelledTask);await choose(a.id,aFolder);
- await session.click("//button[normalize-space()='取消导入']");
- const cancelled=await finish(cancelledTask);receipts.push({phase:"owner-cancel-after-target-change",before:cancelBefore,after:cancelled});
- assert(cancelled.report.cancelled&&cancelled.destination.libraryId===b.id,"formal cancel applies to original B even when the next target is A");
- assert((await local(a.id)).total===0,"cancelled B work never writes into the next A target");
- // Eagle uses the same destination and retains its provider folders.
- const eagleRoot=join(work,"eagle.library");mkdirSync(join(eagleRoot,"images","ITEM1.info"),{recursive:true});
- writeFileSync(join(eagleRoot,"images","ITEM1.info","eagle.png"),readFileSync(imagePath));
- writeFileSync(join(eagleRoot,"images","ITEM1.info","metadata.json"),JSON.stringify({id:"ITEM1",name:"eagle",ext:"png",width,height,size:readFileSync(imagePath).length,tags:["T10 Eagle"],folders:["SOURCE"],annotation:"原 Eagle 来源",url:"https://example.com/t10",isDeleted:false,btime:1,mtime:2,modificationTime:3}));
- writeFileSync(join(eagleRoot,"metadata.json"),JSON.stringify({applicationVersion:"4.0.0",folders:[{id:"SOURCE",name:"Eagle 原目录",children:[]}]}));
- const eagleTask=await begin([eagleRoot],b.id,bFolder,true);const eagleReceipt=await finish(eagleTask);receipts.push(eagleReceipt);
- assert(eagleReceipt.report.fromEagle&&eagleReceipt.report.items[0].outcome.kind!=="readFailed"&&eagleReceipt.destination.folderId===bFolder,"real Eagle entry uses the chosen final folder");
  const bCard=(await local(b.id,bFolder)).cards[0];
- const target={libraryId:b.id,imageId:bCard.imageId,contentId:bCard.id};
- const sourceGroup=await session.invoke("workspace_source_group",{target,safeMode:true,name:"T10 原来源包",groupId:null});
- const packagePath=join(work,"source.kinshoko-group");
- await session.desktop("export_reference_group_package",{groupId:sourceGroup.id,path:packagePath});
- await session.click("//button[@aria-label='参考组']");
- await session.click("//button[normalize-space()='导入参考组包']");
- await choose(a.id,aFolder);await session.exec("window.__KINSHOKO_TEST_PICKS__=[arguments[0]];",[packagePath]);
- await session.click("//button[normalize-space()='选择参考组包并导入']");
- await until("package saved to A",async()=>(await local(a.id,aFolder)).total===1);
- assert((await session.invoke("current_library")).id===c.id,"formal package import into A keeps current C");
- await session.screenshot("package-explicit-destination.png");
- // The real clipboard entry creates capture history. Collection then uses the shared dialog.
- const copied=spawnSync("powershell",["-NoProfile","-NonInteractive","-STA","-Command","Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; $t10Image=[System.Drawing.Image]::FromFile($env:KINSHOKO_T10_CLIPBOARD); [System.Windows.Forms.Clipboard]::SetImage($t10Image); $t10Image.Dispose()"],{env:{...process.env,KINSHOKO_T10_CLIPBOARD:imagePath},windowsHide:true,encoding:"utf8"});
- if(copied.status!==0)throw new Error(copied.stderr);
- await session.desktop("pin_clipboard");
- // Move the genuine always-on-top capture pin away from the controls under test.
- const nativeWindows=await wd("POST",`${session.base}/execute/async`,{script:"const done=arguments[arguments.length-1];window.__TAURI_INTERNALS__.invoke('plugin:window|get_all_windows').then(done);",args:[]});
- for(const label of nativeWindows)if(label.startsWith("pin-"))await session.desktop("move_pin",{pin:label.slice(4),x:1400,y:800});
- const capture=(await session.desktop("capture_history"))[0];
- await session.click("//button[@aria-label='截图历史']");
- await session.click("//*[contains(@class,'capture-history')]//button[normalize-space()='收藏…']");
- await choose(b.id,bFolder);await session.click("//*[@aria-label='收藏截图']//button[normalize-space()='确认保存']");
- const collected=await until("actual collected capture",async()=>{const entry=(await session.desktop("capture_history")).find(e=>e.id===capture.id);return entry?.collected.find(c=>c.libraryId===b.id);});
- const captureSha=createHash("sha256").update(readFileSync(join(appData,"captures",capture.id+".png"))).digest("hex");
- assert((await local(b.id,bFolder)).cards.some(card=>card.id===captureSha&&card.imageId===collected.imageId),"screenshot collection preserves the capture bytes in the chosen B folder");
- await session.screenshot("capture-explicit-destination.png");
  // Existing independent target curation survives explicit source copying.
  const cImport=await session.invoke("start_import",{libraryId:c.id,source:{paths:[imagePath]},destination:{libraryId:c.id,folderId:null}});await finish(cImport);
  const cCard=(await local(c.id)).cards.find(card=>card.id===bCard.id);

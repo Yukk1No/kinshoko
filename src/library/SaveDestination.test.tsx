@@ -4,6 +4,8 @@ import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-app
 import { App } from "../App";
 import { ImportMenu } from "./ImportMenu";
 import { SaveDestinationProvider } from "./SaveDestination";
+import { WorkspaceSourceEditor } from "./WorkspaceSourceEditor";
+import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 const a={ id:"A",name:"浏览库",root:"C:/a" }, b={ id:"B",name:"保存库",root:"D:/b" };
 const libraries=[a,b].map(library=>({library,unavailable:null}));
 beforeEach(()=>{
@@ -110,4 +112,40 @@ it("a concrete folder entry prefills its provider and folder without activating 
  expect(await screen.findByText("最终位置：保存库 / 具体目录")).toBeTruthy();
  expect((screen.getByRole("combobox",{name:"保存到资料库"}) as HTMLSelectElement).value).toBe("B");
  expect((screen.getByRole("combobox",{name:"保存到文件夹"}) as HTMLSelectElement).value).toBe("folder-b");
+});
+
+
+it("copy keeps its confirmation during a source refresh and closes it after the real reply", async () => {
+  let finishCopy!: () => void;
+  const pendingCopy = new Promise<void>(resolve => { finishCopy = resolve; });
+  let finishInspection!: (value: unknown) => void;
+  const pendingInspection = new Promise(resolve => { finishInspection = resolve; });
+  let refreshed = false;
+  const inspection = {
+    detail: { id: "a", originalName: "same.png", width: 100, height: 200, folders: [], note: { manual: "原来源备注", sources: [] }, collectedAt: 0, sourceLinks: [], deletedAt: null, rating: { imageId: "a", suggested: null, manual: null, effective: null }, versions: { previous: null, newer: [] } },
+    tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 1, trash: 0, folders: [] },
+  };
+  const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, thumbnail: "A/a/256", adult: false, libraryId: "A", imageId: "a", sources: [{ libraryId: "A", libraryName: "浏览库", imageId: "a", matches: true, unavailable: null, deleted: false }] };
+  mockIPC(cmd => {
+    if (cmd === "plugin:library|workspace_directories") return { status: { revision: "test", libraries }, providers: libraries.map(registration => ({ registration, sidebar: inspection.sidebar, unassigned: 0, descendants: {} })) };
+    if (cmd === "plugin:library|workspace_source_inspection") return refreshed ? pendingInspection : inspection;
+    if (cmd === "plugin:library|workspace_sidebar") return inspection.sidebar;
+    if (cmd === "plugin:desktop|reference_groups") return [];
+    if (cmd === "plugin:library|workspace_copy_source") return pendingCopy;
+    return null;
+  }, { shouldMockEvents: true });
+  const view = (reloadKey: number) => <SaveDestinationProvider safe><WorkspaceSourceEditor card={card} source={card.sources[0]} safe reloadKey={reloadKey} onSource={() => {}} onClose={() => {}} /></SaveDestinationProvider>;
+  const rendered = render(view(0));
+  fireEvent.click(await screen.findByRole("button", { name: "复制到资料库…" }));
+  const dialog = screen.getByRole("dialog", { name: "复制此来源" });
+  fireEvent.change(await within(dialog).findByRole("combobox", { name: "保存到资料库" }), { target: { value: "B" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "确认复制" }));
+  await screen.findByRole("button", { name: "正在保存…" });
+  refreshed = true;
+  rendered.rerender(view(1));
+  await screen.findByText("正在读取该来源…");
+  expect(screen.getByRole("dialog", { name: "复制此来源" })).toBeTruthy();
+  await act(async () => { finishCopy(); await pendingCopy; });
+  await act(async () => { finishInspection(inspection); await pendingInspection; });
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "复制此来源" })).toBeNull());
 });
