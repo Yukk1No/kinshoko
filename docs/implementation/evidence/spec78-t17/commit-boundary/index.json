@@ -1,0 +1,70 @@
+{
+  "status": "Offline checks and preserved failures; native repaired build not yet run.",
+  "files": [
+    {
+      "path": "tagging-publication-red.txt",
+      "bytes": 1034,
+      "sha256": "15b5cf7d194fee22decb9ab6daf8511bbbfbc6dddf40cdc7165914b1fff96bdd"
+    },
+    {
+      "path": "tagging-publication-green.txt",
+      "bytes": 487,
+      "sha256": "e56bf80752b9a55cdaf6f26accd469a537ac16b9744d5b00eef491509353ca07"
+    },
+    {
+      "path": "tagging-publication-pause-negative-control.txt",
+      "bytes": 1433,
+      "sha256": "884fcfda0cb057ca3f9a160e64fa50282b232b406025c742f49335fa01102fb3"
+    },
+    {
+      "path": "tagging-publication-all-green.txt",
+      "bytes": 1772,
+      "sha256": "97b283f2de45d6b280fabe704bb90d048b535b0d6f722fe8d99abf4eaec22e2a"
+    },
+    {
+      "path": "history-preparation-api-red.txt",
+      "bytes": 1047,
+      "sha256": "6d984032903ae8ac98567cba01b51bddc5cc6c3c81067e27e1d53dad043289be"
+    },
+    {
+      "path": "history-preparation-green.txt",
+      "bytes": 2402,
+      "sha256": "70f82bebe2388d88be89f1fa4facea78fa2cb5fdbcdff9229852c35ff34d810b"
+    },
+    {
+      "path": "wall-anchor-formal-red.txt",
+      "bytes": 1189,
+      "sha256": "674537f0eb27d875026a5290baec988e552207aa5718201c55c30b06f74182ab"
+    },
+    {
+      "path": "wall-anchor-formal-green.txt",
+      "bytes": 243,
+      "sha256": "44e6f4930880da21102fed74106806a5e029b1eb8ba3b0906c24a6aed537d078"
+    },
+    {
+      "path": "final-preparation-workspace-summary.json",
+      "bytes": 279,
+      "sha256": "f272dbc863f575f65411e297e5116e2fb678f7df58c5454c1c9584254fd6dac0"
+    },
+    {
+      "path": "final-preparation-clippy.txt",
+      "bytes": 437,
+      "sha256": "222794050e1022cc144989ca21ad1a8432f62b8f28ae6bdc19d0c4ba4311e378"
+    },
+    {
+      "path": "final-preparation-ui-tests.txt",
+      "bytes": 13493,
+      "sha256": "31d84a310c7841ca82cdacf9fccf87cc33d099c528f6dcecb41faa2b364edb4a"
+    },
+    {
+      "path": "shared-approx-isolated-after-full-failure.txt",
+      "bytes": 242,
+      "sha256": "fe2468fb8d7384750a539a8613c9122f8fa54cb73f30f8f4a68aaacbfb51d851"
+    },
+    {
+      "path": "clipboard-formats-with-diagnostics.txt",
+      "bytes": 809,
+      "sha256": "6825cf5f532e27cee49df14f54a415d61a06d20970afd8c9b1c4d440d26af567"
+    }
+  ]
+}
