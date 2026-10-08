@@ -48,7 +48,7 @@ public static class T18SaveControls {
   [DllImport("user32.dll")] public static extern int GetDlgCtrlID(IntPtr hwnd);
   [DllImport("user32.dll")] public static extern bool IsChild(IntPtr parent, IntPtr child);
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetClassName(IntPtr hwnd, StringBuilder name, int length);
-  [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr hwnd, StringBuilder text, int length);
+  [DllImport("user32.dll", EntryPoint="SendMessageTimeoutW", CharSet=CharSet.Unicode)] public static extern IntPtr GetTextMessage(IntPtr hwnd, uint message, UIntPtr length, StringBuilder text, uint flags, uint timeout, out UIntPtr result);
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr SendMessageTimeout(IntPtr hwnd, uint message, UIntPtr wparam, string text, uint flags, uint timeout, out UIntPtr result);
   [DllImport("user32.dll", EntryPoint="SendMessageTimeoutW")] public static extern IntPtr SendButtonMessage(IntPtr hwnd, uint message, UIntPtr wparam, IntPtr lparam, uint flags, uint timeout, out UIntPtr result);
 }
@@ -73,8 +73,9 @@ else {
   if ([T18SaveControls]::SendMessageTimeout($taskEditHwnd, 0x000C, [UIntPtr]::Zero, $taskDestination, 2, 2000, [ref]$taskResult) -eq [IntPtr]::Zero -or $taskResult -eq [UIntPtr]::Zero) { throw 'Owned filename text write failed' }
 }
 $taskActualText = [System.Text.StringBuilder]::new(32768)
-[void][T18SaveControls]::GetWindowText($taskEditHwnd, $taskActualText, $taskActualText.Capacity)
-if ($taskActualText.ToString() -ne $taskDestination) { throw 'Owned filename readback differs' }
+[UIntPtr]$taskReadResult = [UIntPtr]::Zero
+if ([T18SaveControls]::GetTextMessage($taskEditHwnd, 0x000D, [UIntPtr]([uint32]$taskActualText.Capacity), $taskActualText, 2, 2000, [ref]$taskReadResult) -eq [IntPtr]::Zero) { throw 'Owned filename readback timed out' }
+if ($taskActualText.ToString() -ne $taskDestination) { throw ('Owned filename readback differs; actual length=' + $taskActualText.Length + ', expected length=' + $taskDestination.Length + ', method=' + $taskEditMethod) }
 $taskReceipt = @{ pid=$taskProcessId; dialog=$taskDialog.Current.Name; filenameEdit=@{name=$taskEdits[0].Current.Name;id=$taskEdits[0].Current.AutomationId;hwnd=$taskEditHwnd.ToInt64();method=$taskEditMethod}; saveButton=@{name=$taskButtons[0].Current.Name;id=$taskButtons[0].Current.AutomationId;hwnd=$taskSaveHwnd.ToInt64()}; destination=$taskDestination; controls=$taskControls }
 $taskPattern = $null
 if ($taskButtons[0].TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern, [ref]$taskPattern)) { $taskReceipt.saveButton.method='InvokePattern'; $taskPattern.Invoke() }
