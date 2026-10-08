@@ -165,7 +165,7 @@ async function restoreRendered(into) {
     if (!observed?.value) return null;
     return await session.exec("return document.querySelector('[aria-label=往返检查]')?.innerText.includes('往返检查通过');") ? observed.value : null;
   }, 45000);
-  assert(report.check.originals.problems.length === 0 && report.check.curation.problems.length === 0 && report.check.groups.problems.length === 0, "rendered content restore reports matching originals, curation and groups");
+  assert(report.snapshotId === backupReport.snapshotId && report.check.originals.problems.length === 0 && report.check.curation.problems.length === 0 && report.check.groups.problems.length === 0, "rendered content restore reports matching originals, curation and groups");
   return report;
 }
 async function openRestored(info) {
@@ -215,7 +215,7 @@ try {
   await launch("source-publication-failed", "source-app", { point: "portable_tags_publish_row@1", action: "error" });
   splitIdentity = await correct(sourceB.info, sourceB.local, "separate");
   assert(splitIdentity !== sourceIdentity, "app split is saved despite a real provider definition publication failure");
-  assert(await session.exec("return [...document.querySelectorAll('[role=alert]')].some(e => e.textContent.includes('标签定义') && e.textContent.includes('重试'));"), "provider publication failure is visible in the formal identity controls");
+  assert(await until("formal provider publication failure", () => session.exec("return [...document.querySelectorAll('[role=alert]')].some(e => e.textContent.includes('程序中的对应和名称选择已保留') && e.textContent.includes('重试'));")), "provider publication failure is visible in the formal identity controls");
   await removeAlias(sourceIdentity, "旧别名"); await alias(sourceIdentity, "白雪新别名");
   await session.invoke("edit_shared_approx", { safeMode: true, edit: { kind: "set", rules: [{ a: sourceIdentity, b: splitIdentity, relation: "similar" }] } });
   assert((await session.invoke("shared_personal_approx", { lang: "zh-CN", safeMode: true })).entries.some(entry => entry.relation === "similar"), "source has an actual application personal rule before content backup");
