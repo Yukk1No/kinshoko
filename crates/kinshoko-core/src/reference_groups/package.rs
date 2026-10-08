@@ -360,7 +360,14 @@ pub(super) fn import(
         let bytes = read_original(&mut zip, image)?;
         let id = library
             .import_from_package(&origin, &bytes, &image.snapshot)
-            .map_err(|e| GroupError::Library(e.to_string()))?;
+            .map_err(|e| {
+                GroupError::Library(format!(
+                    "包导入已完成 {} / {} 项，第 {} 项失败：{e}。已写入内容保留；参考组尚未保存。",
+                    imported.len(),
+                    manifest.images.len(),
+                    imported.len() + 1
+                ))
+            })?;
         imported.insert((image.library_id.clone(), image.image_id.clone()), id);
     }
 

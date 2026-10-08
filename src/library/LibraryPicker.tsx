@@ -69,9 +69,9 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, c
         <button type="button" disabled={disabled} onClick={() => void register()}>登记已有资料库…</button>
         <button type="button" disabled={disabled} onClick={onCreate}>新建资料库…</button>
         <button type="button" disabled={disabled} onClick={() => setRevision((value) => value + 1)}>刷新登记</button>
-        {busy && <span role="status">正在处理资料库，等待旧库任务结束…</span>}
+        {busy && <span role="status">正在处理资料库…</span>}
       </div>
-      <p className="library-switch-notice">切换或取消当前登记时会取消未完成的导入，已成功的图片保留。</p>
+      <p className="library-switch-notice">切换资料库不改变导入目标。取消登记只取消该资料库的未完成导入，已完成项保留。</p>
       {error && <p role="alert">{error}</p>}
       {entries.length > 0 && (
         <details className="library-registrations" open>

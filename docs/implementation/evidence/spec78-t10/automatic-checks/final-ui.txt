@@ -1,0 +1,318 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+ ❯ src/library/TagIdentityPanel.test.tsx (5 tests | 1 failed) 2114ms
+   × inspects ambiguous local tags and saves an explicit shared correspondence 1656ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/TagIdentityPanel.test.tsx > inspects ambiguous local tags and saves an explicit shared correspondence
+AssertionError: expected true to be false // Object.is equality
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <fieldset
+        aria-label="统一标签目录"
+      >
+        <legend>
+          统一标签目录
+        </legend>
+        <p
+          class="settings-hint"
+        >
+          检查不同资料库的标签对应。同名和别名重合的标签保持独立；纠正对应后，各库的人工添加和否决继续独立保存。
+        </p>
+        <button
+          type="button"
+        >
+          检查标签对应
+        </button>
+        <p
+          class="settings-hint"
+        >
+          带走资料库前，保存最新标签定义。默认名称、别名与标签对应随资料库携带；显示名称偏好留在程序设置中。只读或离线时可以保留程序中的选择，稍后重试保存。
+        </p>
+        <div
+          class="settings-actions"
+        >
+          <span
+            title="a"
+          >
+            第一库
+             · 
+            a
+          </span>
+          <button
+            aria-label="保存 第一库 的标签定义"
+            type="button"
+          >
+            保存标签定义到资料库
+          </button>
+        </div>
+        <div
+          class="settings-actions"
+        >
+          <span
+            title="b"
+          >
+            第二库
+             · 
+            b
+          </span>
+          <button
+            aria-label="保存 第二库 的标签定义"
+            type="button"
+          >
+            保存标签定义到资料库
+          </button>
+        </div>
+        <table
+          class="settings-shortcuts"
+        >
+          <thead>
+            <tr>
+              <th>
+                资料库与原显示
+              </th>
+              <th>
+                统一标签身份
+              </th>
+              <th>
+                纠正对应
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              data-library-id="a"
+              data-local-tag-id="local-a"
+            >
+              <th
+                scope="row"
+              >
+                <span>
+                  第一库
+                   · 
+                </span>
+                <span>
+                  蓝发
+                </span>
+                <small>
+                   · 
+                  一般
+                </small>
+                <details>
+                  <summary>
+                    本地定义
+                  </summary>
+                  <p>
+                    库内 ID：
+                    local-a
+                  </p>
+                  <p>
+                    别名：
+                    无
+                  </p>
+                  <p>
+                    外部对应：
+                    无
+                  </p>
+                  <p>
+                    名称来源待处理：迁移选择前保留原显示。
+                  </p>
+                </details>
+              </th>
+              <td>
+                <span>
+                  蓝发
+                </span>
+                <small>
+                   · 
+                  独立身份
+                </small>
+                <details>
+                  <summary>
+                    统一定义
+                  </summary>
+                  <p>
+                    统一 ID：
+                    blue
+                  </p>
+                  <p>
+                    外部对应：
+                    无
+                  </p>
+                </details>
+              </td>
+              <td>
+                <select
+                  aria-label="纠正 第一库 的 蓝发 对应"
+                >
+                  <option
+                    value="blue"
+                  >
+                    蓝发
+                     · 
+                    一般
+                     · 
+                    blue
+                  </option>
+                  <option
+                    value="azure"
+                  >
+                    青丝
+                     · 
+                    一般
+                     · 
+                    azure
+                  </option>
+                  <option
+                    value="separate"
+                  >
+                    拆成独立标签
+                  </option>
+                </select>
+                <button
+                  disabled=""
+                  type="button"
+                >
+                  保存对应
+                </button>
+              </td>
+            </tr>
+            <tr
+              data-library-id="b"
+              data-local-tag-id="local-b"
+            >
+              <th
+                scope="row"
+              >
+                <span>
+                  第二库
+                   · 
+                </span>
+                <span>
+                  青丝
+                </span>
+                <small>
+                   · 
+                  一般
+                </small>
+                <details>
+                  <summary>
+                    本地定义
+                  </summary>
+                  <p>
+                    库内 ID：
+                    local-b
+                  </p>
+                  <p>
+                    别名：
+                    无
+                  </p>
+                  <p>
+                    外部对应：
+                    无
+                  </p>
+                  <p>
+                    名称来源待处理：迁移选择前保留原显示。
+                  </p>
+                </details>
+              </th>
+              <td>
+                <span>
+                  青丝
+                </span>
+                <small>
+                   · 
+                  独立身份
+                </small>
+                <details>
+                  <summary>
+                    统一定义
+                  </summary>
+                  <p>
+                    统一 ID：
+                    azure
+                  </p>
+                  <p>
+                    外部对应：
+                    无
+                  </p>
+                </details>
+              </td>
+              <td>
+                <select
+                  aria-label="纠正 第二库 的 青丝 对应"
+                >
+                  <option
+                    value="blue"
+                  >
+                    蓝发
+                     · 
+                    一般
+                     · 
+                    blue
+                  </option>
+                  <option
+                    value="azure"
+                  >
+                    青丝
+                     · 
+                    一般
+                     · 
+                    azure
+                  </option>
+                  <option
+                    value="separate"
+                  >
+                    拆成独立标签
+                  </option>
+                </select>
+                <button
+                  disabled=""
+                  type="button"
+                >
+                  保存对应
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </fieldset>
+    </div>
+  </body>
+</html>
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/library/TagIdentityPanel.test.tsx:31:109
+     29|   const row = await screen.findByRole("row", { name: /第二库.*青丝/ });
+     30|   fireEvent.change(within(row).getByRole("combobox"), { target: { valu…
+     31|   await waitFor(() => expect(within(row).getByRole<HTMLButtonElement>(…
+       |                                                                                                             ^
+     32|   fireEvent.click(within(row).getByRole("button", { name: "保存对应" }));
+     33|   const corrected = await screen.findByRole("row", { name: /第二库.*青丝.*已…
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 32 passed (33)
+      Tests  1 failed | 257 passed (258)
+   Start at  02:20:21
+   Duration  20.08s (environment 63%, tests 25%, import 9%, transform 3%)
+
+Environment  jsdom was created 33 times · 107.37s total, 63% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

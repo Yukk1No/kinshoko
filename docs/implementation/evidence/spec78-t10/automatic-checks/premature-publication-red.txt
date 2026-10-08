@@ -1,0 +1,37 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+ ❯ src/library/SaveDestination.test.tsx (6 tests | 1 failed) 704ms
+   × running import does not claim that content is complete before the actual report 15ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/SaveDestination.test.tsx > running import does not claim that content is complete before the actual report
+AssertionError: expected <p role="status"></p> to be null
+
+- Expected:
+null
+
++ Received:
+<p
+  role="status"
+>
+  内容已处理，正在发布此资料库的标签定义…
+</p>
+
+ ❯ src/library/SaveDestination.test.tsx:163:54
+    161|   render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="…
+    162|   await screen.findByText("任务保存位置：保存库 / 未归类");
+    163|   expect(screen.queryByText("内容已处理，正在发布此资料库的标签定义…")).toBeNull();
+       |                                                      ^
+    164|   receipt.progress = { done: 2000, total: 2000 };
+    165|   receipt.report = { items: [], cancelled: false, fromEagle: false, ea…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  02:39:36
+   Duration  2.44s (environment 45%, tests 30%, transform 15%, import 9%)
+

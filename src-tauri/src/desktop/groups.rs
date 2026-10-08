@@ -69,6 +69,7 @@ fn prepare_pins(app: &AppHandle, choices: &[CaptureChoice]) -> Result<Vec<SavedP
         }
     }
     let mut prepared = Vec::new();
+    let mut completed_captures = 0;
     for pin in open {
         let Some(id) = pin.capture_id() else {
             prepared.push(pin);
@@ -81,11 +82,19 @@ fn prepare_pins(app: &AppHandle, choices: &[CaptureChoice]) -> Result<Vec<SavedP
         let Some(library_id) = &choice.library_id else {
             continue;
         };
-        let reference = crate::library::with_collection(app, library_id, |library| {
+        let destination = kinshoko_core::library::SaveDestination {
+            library_id: library_id.clone(),
+            folder_id: choice.folder_id.clone(),
+        };
+        let reference = crate::library::with_destination_published(app, &destination, |library| {
             lock(&state(app).history)
                 .collect_pin(&pin, library)
                 .map_err(|e| e.to_string())
+        }).map_err(|error| {
+            super::history_changed(app);
+            format!("第 {} 张截图的收藏未完成：{error}。之前完成的 {completed_captures} 张收藏已保留；参考组尚未保存。",completed_captures+1)
         })?;
+        completed_captures += 1;
         prepared.push(reference);
     }
     super::history_changed(app);
@@ -288,16 +297,23 @@ pub async fn export_reference_group_package(
     .await
 }
 
-/// 导入参考组包（#68）到资料库 `library_id`（界面正在操作的资料库），另存为新的参考组。`path` 为空时
+/// 导入参考组包（#68）到明确选择的资料库和文件夹，另存为新的参考组。`path` 为空时
 /// 弹出选择对话框；取消时返回 `null`。包有损坏时什么都不写。
 #[tauri::command]
 pub async fn import_reference_group_package(
     app: AppHandle,
     library_id: String,
+    destination: Option<kinshoko_core::library::SaveDestination>,
     path: Option<PathBuf>,
 ) -> Result<Option<ReferenceGroup>, String> {
     blocking(move || {
-        crate::library::current(&app, &library_id)?;
+        let destination = destination.unwrap_or(kinshoko_core::library::SaveDestination {
+            library_id: library_id.clone(),
+            folder_id: None,
+        });
+        if destination.library_id != library_id {
+            return Err("保存目标资料库与任务归属不一致".into());
+        }
         let Some(path) = path.or_else(|| {
             app.dialog()
                 .file()
@@ -308,7 +324,7 @@ pub async fn import_reference_group_package(
             return Ok(None);
         };
         let groups = lock(&state(&app).groups).clone();
-        let group = crate::library::with_current(&app, &library_id, |library| {
+        let group = crate::library::with_destination(&app, &destination, |library| {
             crate::library::import_reference_package(&app, &groups, &path, library)
         })?;
         changed(&app);

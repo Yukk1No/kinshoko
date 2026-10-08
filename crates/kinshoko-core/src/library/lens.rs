@@ -119,6 +119,7 @@ impl ReferenceLens {
                 safe_mode: AtomicBool::new(true),
                 reference_taken: AtomicBool::new(true),
                 detached: true,
+                write_revoked: Arc::new(AtomicBool::new(false)),
             }),
         })
     }

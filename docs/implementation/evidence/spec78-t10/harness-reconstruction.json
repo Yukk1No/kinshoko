@@ -1,0 +1,30 @@
+[
+  {
+    "source": "a2f2c3ec72e761320182448b54dc360d2b90617f:e2e/save-destination.mjs",
+    "copy": "native-first/harness.mjs",
+    "method": "Git blob with core.autocrlf Windows checkout CRLF",
+    "sha256": "43867F703F0DAD99CD42901F90252DC7E2BD2BF7B039EC44BD53B615D109C6D4",
+    "verifiedAgainst": "original runtime result / original build manifest"
+  },
+  {
+    "source": "56bedde489d7fd45eb8658be90c3f03fb9f94769:e2e/save-destination-followup.mjs",
+    "copy": "native-followup-first-failed/harness.mjs",
+    "method": "Git blob with core.autocrlf Windows checkout CRLF",
+    "sha256": "E2A3EB4C953CAD98FE6781802F802F5E288B96E1B8F1BDF226BE9927DA16DA5A",
+    "verifiedAgainst": "original runtime result / original build manifest"
+  },
+  {
+    "source": "54694d417c1e88acaa3efe79a62840604d9590c3:e2e/save-destination-followup.mjs",
+    "copy": "native-followup-second-fixture-failed/harness.mjs",
+    "method": "Git blob with core.autocrlf Windows checkout CRLF",
+    "sha256": "6791432DDBC8C26F0DFFA924CCA9D385DDE48A1C9D5DD90E352B06176336AA0A",
+    "verifiedAgainst": "original runtime result / original build manifest"
+  },
+  {
+    "source": "ac18510c829491457436ba3a6cf99ab179b9e0a9:e2e/save-destination-followup.mjs",
+    "copy": "native-copy-passed/harness.mjs",
+    "method": "Git blob with core.autocrlf Windows checkout CRLF",
+    "sha256": "8CD2C32472CBBB4C10E0B133DFA813EBC150D9AECF0F86B0EAA52B407228722E",
+    "verifiedAgainst": "original runtime result / original build manifest"
+  }
+]

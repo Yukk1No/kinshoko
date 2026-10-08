@@ -1,0 +1,30 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.41s
+     Running tests\device_libraries.rs (target\debug\deps\device_libraries-2a4d20ba66dc302f.exe)
+
+running 7 tests
+test a_failed_registry_write_keeps_the_current_library_and_registration_unchanged ... ok
+test relocating_a_library_and_registering_it_again_preserves_identity_originals_and_curation ... ok
+test a_restored_library_is_registered_without_switching_to_it ... ok
+test registered_libraries_can_be_switched_and_the_last_choice_survives_restart ... ok
+test unavailable_libraries_stay_registered_and_a_failed_switch_keeps_the_current_library ... ok
+test switching_refuses_a_different_library_at_the_registered_location ... ok
+test switching_keeps_import_running_in_its_original_library ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.69s
+
+     Running tests\save_destination.rs (target\debug\deps\save_destination-83d37596c3e2fdd7.exe)
+
+running 9 tests
+test ordinary_import_commits_to_the_explicit_folder_without_changing_other_folders ... ok
+test screenshot_collection_uses_the_explicit_destination_and_keeps_original_bytes ... ok
+test publication_failure_stays_on_its_original_task_receipt_after_browsing_changes ... ok
+test a_synchronous_save_keeps_its_writer_and_unregister_revokes_its_bound_destination ... ok
+test eagle_import_preserves_its_source_folders_and_adds_the_explicit_destination ... ok
+test copying_keeps_source_provenance_and_the_existing_targets_manual_curation ... ok
+test deleting_the_destination_during_import_reports_remaining_failures_instead_of_falling_back ... ok
+test task_receipt_keeps_its_owner_after_current_library_changes ... ok
+test create_reopen_and_unregister_only_affect_their_actual_task_owner ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.01s
+

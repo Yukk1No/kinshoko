@@ -1,3 +1,5 @@
+import type { SaveDestination } from "./bindings/SaveDestination";
+import type { ImportTaskSnapshot } from "./bindings/ImportTaskSnapshot";
 import type { CatalogGroupView } from "./bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "./bindings/CatalogGroupEdit";
 import type { WorkspaceDirectories } from "./bindings/WorkspaceDirectories";
@@ -175,8 +177,8 @@ export function moveFolder(libraryId: string, folderId: string, parent: string |
 }
 
 /** 开始导入，立即返回任务 id；进度与结果经 onLibraryEvent 推送。 */
-export function startImport(libraryId: string, paths: string[], options?: ImportOptions): Promise<string> {
-  return invoke<string>(lib("start_import"), { libraryId, source: { paths }, ...(options ? { options } : {}) });
+export function startImport(libraryId: string, paths: string[], options?: ImportOptions, destination?: SaveDestination): Promise<string> {
+  return invoke<string>(lib("start_import"), { libraryId, source: { paths }, ...(options ? { options } : {}), ...(destination ? { destination } : {}) });
 }
 
 /** 与实际导入相同的只读 Eagle 来源识别；用于手选、父文件夹、拖入及重试的统一选择。 */
@@ -694,8 +696,8 @@ export function captureHistory(): Promise<CaptureEntry[]> {
 }
 
 /** 收藏：经资料库的普通导入入口存进当前资料库。 */
-export function collectCapture(id: string): Promise<CollectedCapture> {
-  return invoke<CollectedCapture>(desk("collect_capture"), { id });
+export function collectCapture(id: string, destination:SaveDestination): Promise<CollectedCapture> {
+  return invoke<CollectedCapture>(desk("collect_capture"), { id, destination });
 }
 
 export function deleteCapture(id: string): Promise<void> {
@@ -767,11 +769,11 @@ export function exportReferenceGroupPackage(groupId: string): Promise<string | n
 /**
  * 导入参考组包（#68）到资料库 `libraryId`，另存为新的参考组。弹出选择对话框；取消时为 null。
  */
-export function importReferenceGroupPackage(libraryId: string): Promise<ReferenceGroup | null> {
+export function importReferenceGroupPackage(libraryId: string, destination?:SaveDestination): Promise<ReferenceGroup | null> {
   const t = testPick<string | null>();
   if (t && t.value === null) return Promise.resolve(null);
   return invoke<ReferenceGroup | null>(desk("import_reference_group_package"), {
-    libraryId,
+    libraryId, ...(destination?{destination}:{}),
     path: t?.value ?? null,
   });
 }
@@ -909,6 +911,12 @@ export function previewLegacyNames(revision: number, decisions: LegacyNameDecisi
   return invoke<LegacyNameMigrationPreview>(lib("preview_legacy_names"), { revision, decisions });
 }
 
+export function importTasks(): Promise<ImportTaskSnapshot[]> { return invoke<ImportTaskSnapshot[]>(lib("import_tasks")); }
+export function dismissImport(libraryId:string,taskId:string): Promise<void> { return invoke<void>(lib("dismiss_import"),{libraryId,taskId}); }
+
+export function takeCollectionRequest(): Promise<string|null> { return invoke<string|null>(desk("take_collection_request")); }
+export function onCollectionRequest(handler:()=>void): Promise<UnlistenFn> { return listen("capture-collection-request",handler); }
+export function workspaceCopySource(target:import("./bindings/WorkspaceSourceTarget").WorkspaceSourceTarget,destination:SaveDestination,safeMode:boolean): Promise<string> { return invoke<string>(lib("workspace_copy_source"),{target,destination,safeMode}); }
 /** Application groups are independent of the active provider; counts use all-source safety. */
 export function sharedTagGroups(lang: string, safeMode: boolean): Promise<CatalogGroupView[]> {
   return invoke<CatalogGroupView[]>(lib("shared_tag_groups"), { lang, safeMode });

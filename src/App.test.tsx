@@ -169,6 +169,8 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
         case "plugin:library|set_safe_mode":
           safeOn = (args as { on: boolean }).on;
           return safeOn;
+        case "plugin:library|import_tasks":
+          return [];
         case "plugin:library|start_import":
           // 后端每个任务的 id 都不同。
           return `T${++tasks}`;
@@ -242,8 +244,16 @@ const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.ar
 const push = (event: LibraryEvent) => act(() => emit("library-event", event));
 const importAction = (name: string) => {
   if (!screen.queryByRole("button", { name })) fireEvent.click(screen.getByRole("button", { name: "导入参考图" }));
+  const selector=screen.queryByRole("combobox",{name:"保存到资料库"}) as HTMLSelectElement|null;
+  if(selector&&!selector.value&&Array.from(selector.options).some(o=>o.value==="L1"))fireEvent.change(selector,{target:{value:"L1"}});
   return screen.getByRole("button", { name });
 };
+async function confirmImport() {
+  importAction("导入文件…");
+  const button=await screen.findByRole("button",{name:/^开始(?: Eagle)? 导入$|^开始导入$/});
+  await waitFor(()=>expect((button as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(button);
+}
 
 beforeEach(() => {
   // jsdom 不做布局：给图片墙一个 1000 × 800 的视口。
@@ -455,6 +465,7 @@ describe("主窗口", () => {
 
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
     fireEvent.click(importAction("导入文件夹…"));
+    await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 2 } });
     const finish = () => push({
@@ -480,9 +491,10 @@ describe("主窗口", () => {
 
     expect(await screen.findByText("D:\\参考\\坏.png")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+    await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toEqual([
-      { libraryId: "L1", source: { paths: ["D:\\参考"] } },
-      { libraryId: "L1", source: { paths: ["D:\\参考\\坏.png"] } },
+      { libraryId: "L1", source: { paths: ["D:\\参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
+      { libraryId: "L1", source: { paths: ["D:\\参考\\坏.png"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
     ]));
   });
 
@@ -496,6 +508,7 @@ describe("主窗口", () => {
 
     window.__KINSHOKO_TEST_PICKS__ = ["E:\\新\\主库.library"];
     fireEvent.click(importAction("导入文件夹…"));
+    await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await push({
       kind: "taskFinished",
@@ -521,6 +534,7 @@ describe("主窗口", () => {
       libraryId: "L1",
       source: { paths: ["E:\\新\\主库.library"] },
       options: { eagleDeletedContent: "skipDeleted" },
+      destination:{libraryId:"L1",folderId:null},
     });
     expect(screen.queryByRole("alert", { name: "Eagle 资料库换了位置？" })).toBeNull();
   });
@@ -530,6 +544,7 @@ describe("主窗口", () => {
     render(<App />);
     await screen.findAllByRole("img");
 
+    importAction("导入文件…");
     const position = { x: 10, y: 10 };
     const paths = ["D:\\参考\\a.png"];
     await act(() => emit("tauri://drag-enter", { paths, position }));
@@ -542,8 +557,9 @@ describe("主窗口", () => {
     fireEvent.click(screen.getByRole("button", { name: "返回资料库" }));
     expect(screen.queryByText("松开即可导入到 工作参考")).toBeNull();
     await act(() => emit("tauri://drag-drop", { paths, position }));
+    await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toEqual([
-      { libraryId: "L1", source: { paths } },
+      { libraryId: "L1", source: { paths }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
     ]));
   });
 
@@ -632,9 +648,10 @@ describe("主窗口", () => {
 
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\下载\\参考"];
     fireEvent.click(importAction("导入文件夹…"));
+    await confirmImport();
     await waitFor(() =>
       expect(sent("plugin:library|start_import")).toEqual([
-      { libraryId: "L1", source: { paths: ["D:\\下载\\参考"] } },
+      { libraryId: "L1", source: { paths: ["D:\\下载\\参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
       ]),
     );
 
@@ -675,16 +692,18 @@ describe("主窗口", () => {
     render(<App />);
     await screen.findAllByRole("img");
 
+    importAction("导入文件…");
     const position = { x: 10, y: 10 };
     await act(() =>
       emit("tauri://drag-enter", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }),
     );
     expect(screen.getByText("松开即可导入到 工作参考")).toBeTruthy();
     await act(() => emit("tauri://drag-drop", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }));
+    await confirmImport();
 
     await waitFor(() =>
       expect(sent("plugin:library|start_import")).toEqual([
-        { libraryId: "L1", source: { paths: ["D:\\图\\a.png", "D:\\一批参考"] } },
+        { libraryId: "L1", source: { paths: ["D:\\图\\a.png", "D:\\一批参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
       ]),
     );
     expect(screen.queryByText("松开即可导入到 工作参考")).toBeNull();
@@ -711,10 +730,11 @@ describe("主窗口", () => {
       },
     });
     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+    await confirmImport();
 
     await waitFor(() =>
       expect(sent("plugin:library|start_import")).toEqual([
-        { libraryId: "L1", source: { paths: ["D:\\参考\\坏.png"] } },
+        { libraryId: "L1", source: { paths: ["D:\\参考\\坏.png"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
       ]),
     );
   });
@@ -731,10 +751,11 @@ describe("主窗口", () => {
     expect(notice.textContent).toContain("D:\\参考\\b.png");
     expect(notice.textContent).toContain("1 个不认识的文件");
     fireEvent.click(screen.getByRole("button", { name: "重新导入这些文件" }));
+    await confirmImport();
 
     await waitFor(() =>
       expect(sent("plugin:library|start_import")).toEqual([
-        { libraryId: "L1", source: { paths: ["D:\\参考\\b.png"] } },
+        { libraryId: "L1", source: { paths: ["D:\\参考\\b.png"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
       ]),
     );
   });
@@ -773,8 +794,9 @@ describe("导入任务的终态（#76）", () => {
     backend(library, clean, (cmd) => (cmd === "plugin:library|start_import" ? response : undefined));
     render(<App />);
     await screen.findAllByRole("img");
-    window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考\\坏.png"];
+    window.__KINSHOKO_TEST_PICKS__ = [["D:\\参考\\坏.png"]];
     fireEvent.click(importButton());
+    await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 1 } });
     await failed("T1");
@@ -789,6 +811,7 @@ describe("导入任务的终态（#76）", () => {
     expect(screen.getByText("读取失败：被占用")).toBeTruthy();
     expect(importButton().disabled).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+    await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(2));
   });
 
@@ -800,6 +823,7 @@ describe("导入任务的终态（#76）", () => {
     await screen.findAllByRole("img");
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
     fireEvent.click(importAction("导入文件夹…"));
+    await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 3 } });
     await act(async () => {
@@ -817,11 +841,13 @@ describe("导入任务的终态（#76）", () => {
     backend(library, clean, (cmd) => (cmd === "plugin:library|start_import" ? `T${++next}` : undefined));
     render(<App />);
     await screen.findAllByRole("img");
-    window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考\\坏.png"];
+    window.__KINSHOKO_TEST_PICKS__ = [["D:\\参考\\坏.png"]];
     fireEvent.click(importButton());
+    await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await failed("T1");
     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+    await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(2));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T2", progress: { done: 1, total: 5 } });
 
@@ -876,8 +902,9 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     fireEvent.click(await screen.findByRole("button", { name: "开始 Eagle 导入" }));
   }
   async function startFiles(count: number) {
-    window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考\\a.png"];
+    window.__KINSHOKO_TEST_PICKS__ = [["D:\\参考\\a.png"]];
     fireEvent.click(importAction("导入文件…"));
+    await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(count));
   }
 
@@ -889,8 +916,11 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     if (entrance === "文件夹") {
       window.__KINSHOKO_TEST_PICKS__ = paths;
       fireEvent.click(importAction("导入文件夹…"));
+    await confirmImport();
     } else {
+      importAction("导入文件…");
       await act(() => emit("tauri://drag-drop", { paths, position: { x: 10, y: 10 } }));
+      await confirmImport();
     }
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await finished("T1", true);
