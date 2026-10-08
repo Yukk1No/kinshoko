@@ -3,7 +3,7 @@ import type { CatalogTag } from "../bindings/CatalogTag";
 import type { LibraryTagMapping } from "../bindings/LibraryTagMapping";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
 import type { TagNamespace } from "../bindings/TagNamespace";
-import { correctTagMapping, inspectTagCatalog, onSafeModeSetting } from "../ipc";
+import { correctTagMapping, inspectTagCatalog, onLibraryEvent, onSafeModeSetting } from "../ipc";
 
 const namespaces: Record<TagNamespace, string> = { general: "一般", artist: "作者", character: "角色", work: "作品" };
 const basis = { independent: "独立身份", external: "外部对应", conflictingExternal: "外部对应有歧义", corrected: "已纠正" };
@@ -16,28 +16,40 @@ export function TagIdentityPanel() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const generation = useRef(0);
+  const inspected = useRef(false);
+  const running = useRef(false);
+  const dirty = useRef(false);
   useEffect(() => {
     let alive = true;
     const unlisten = onSafeModeSetting(() => {
       if (!alive) return;
       generation.current++;
+      inspected.current = false; running.current = false; dirty.current = false;
       setWorkspace(null);
       setError(null);
       setBusy(false);
     });
+    const vocabulary = onLibraryEvent((event) => {
+      if (!alive || event.kind !== "vocabularyChanged" || !inspected.current) return;
+      if (running.current) dirty.current = true;
+      else void run(inspectTagCatalog);
+    });
     return () => {
       alive = false;
+      inspected.current = false; dirty.current = false;
       generation.current++;
       void unlisten.then((stop) => stop()).catch(() => {});
+      void vocabulary.then((stop) => stop()).catch(() => {});
     };
   }, []);
   const run = async (action: () => Promise<TagCatalogWorkspace>) => {
     const request = ++generation.current;
+    inspected.current = true; running.current = true;
     setBusy(true);
     setError(null);
     try { const next = await action(); if (request === generation.current) setWorkspace(next); }
     catch (reason) { if (request === generation.current) setError(String(reason)); }
-    finally { if (request === generation.current) setBusy(false); }
+    finally { if (request === generation.current) { setBusy(false); running.current = false; if (dirty.current) { dirty.current = false; void run(inspectTagCatalog); } } }
   };
   return <fieldset aria-label="统一标签目录">
     <legend>统一标签目录</legend>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { PersonalApproxEntry } from "./bindings/PersonalApproxEntry";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
@@ -10,6 +10,8 @@ import {
   exportDiagnostics,
   exportUsageLog,
   personalApprox,
+  onLibraryEvent,
+  onSafeModeSetting,
   rebindShortcut,
   removeTagApprox,
   setAutostart,
@@ -238,19 +240,29 @@ function PersonalApproxList({
   onError: (message: string) => void;
 }) {
   const [entries, setEntries] = useState<PersonalApproxEntry[] | null>(null);
+  const generation = useRef(0);
 
-  const load = useCallback(
-    () =>
-      personalApprox(libraryId, UI_LANG).then(
-        (list) => setEntries(list),
-        (e) => onError(String(e)),
-      ),
-    [libraryId, onError],
-  );
+  const load = useCallback(() => {
+    const request = ++generation.current;
+    return personalApprox(libraryId, UI_LANG).then(
+      (list) => { if (request === generation.current) setEntries(list); },
+      (error) => { if (request === generation.current) onError(String(error)); },
+    );
+  }, [libraryId, onError]);
 
   useEffect(() => {
+    let alive = true;
     void load();
-  }, [load]);
+    const vocabulary = onLibraryEvent((event) => {
+      if (alive && event.libraryId === libraryId && (event.kind === "vocabularyChanged" || event.kind === "safeModeChanged")) void load();
+    });
+    const mode = onSafeModeSetting(() => { if (alive) { generation.current++; setEntries([]); } });
+    return () => {
+      alive = false; generation.current++;
+      void vocabulary.then((stop) => stop()).catch(() => {});
+      void mode.then((stop) => stop()).catch(() => {});
+    };
+  }, [libraryId, load]);
 
   const remove = async (entry: PersonalApproxEntry) => {
     try {

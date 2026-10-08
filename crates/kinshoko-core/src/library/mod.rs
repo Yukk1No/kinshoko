@@ -500,7 +500,6 @@ impl Library {
         rating::finish_tagging(&self.inner, source, image_id, outcome)
     }
 
-    /// 标签词表快照：标签、各语言名称、别名、命名空间、外部对应与计数。
     // Only identities are recorded for name provenance. Hidden labels remain private to the library.
     pub(crate) fn catalog_existing_tag_ids(&self) -> Result<Vec<String>, Error> {
         let conn = self.inner.readers.get();
@@ -510,6 +509,7 @@ impl Library {
             .collect::<Result<_, _>>()?)
     }
 
+    /// 标签词表快照：标签、各语言名称、别名、命名空间、外部对应与计数。
     pub fn vocabulary(&self) -> Result<Vocabulary, Error> {
         tags::vocabulary(&self.inner)
     }
