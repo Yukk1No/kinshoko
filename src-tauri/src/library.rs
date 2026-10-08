@@ -1018,7 +1018,8 @@ async fn correct_tag_mapping<R: Runtime>(
 
 /// 对若干参考图批量添加、否决或清除标签决定。
 #[tauri::command]
-async fn edit_tags(
+async fn edit_tags<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, LibraryState>,
     library_id: String,
     image_ids: Vec<String>,
@@ -1026,9 +1027,8 @@ async fn edit_tags(
 ) -> Result<(), String> {
     let library = state.current(&library_id)?;
     blocking(move || {
-        library
-            .edit_tags(&image_ids, &edits)
-            .map_err(|e| e.to_string())
+        library.edit_tags(&image_ids, &edits).map_err(|e| e.to_string())?;
+        publish_definition_dependencies(&app, &library_id).map_err(|error| format!("标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))
     })
     .await
 }

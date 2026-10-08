@@ -675,6 +675,23 @@ fn insert_tag_with_id(
     local: &VocabularyTag,
     initial_id: Option<&str>,
 ) -> Result<String, CatalogError> {
+    if let Some(id) = initial_id {
+        let existing = tx
+            .query_row(
+                "SELECT definition FROM catalog_tag WHERE id=?1",
+                [id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        if let Some(raw) = existing {
+            let tag: CatalogTag = serde_json::from_str(&raw)?;
+            if tag.namespace != local.namespace {
+                return Err(CatalogError::NamespaceMismatch);
+            }
+            // The content identity is already known. Keep this application's names and rules.
+            return Ok(id.to_owned());
+        }
+    }
     let id = initial_id
         .map(str::to_owned)
         .unwrap_or_else(|| uuid::Uuid::now_v7().simple().to_string());

@@ -4,7 +4,7 @@ import type { PortableTagDefinition } from "./PortableTagDefinition";
 import type { TagNamespace } from "./TagNamespace";
 
 /**
- * 快照里的一个标签：命名空间、各语言名称与外部名称，导入时据此在目标资料库中找到或新建标签。
+ * 快照标签：新版按稳定定义对应，旧版保留名称与外部对应的兼容解释。默认名称不包含程序偏好。
  */
 export type SnapshotTag = { 
 /**

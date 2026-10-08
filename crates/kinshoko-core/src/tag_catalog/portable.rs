@@ -92,3 +92,39 @@ impl TagCatalog {
         Ok(())
     }
 }
+
+impl CatalogInspection {
+    /// Replace provider-local snapshot labels with the current portable content definitions.
+    /// Uses the complete catalog, never a UI-filtered view or resolved name preferences.
+    /// Legacy tags without an application mapping keep the library snapshot dependency.
+    pub fn apply_content_definitions(
+        &self,
+        library_id: &str,
+        snapshot: &mut crate::library::ImageSnapshot,
+    ) -> Result<(), CatalogError> {
+        for tag in &mut snapshot.tags {
+            let mapping = self.mappings.iter().find(|mapping| {
+                mapping.library_id == library_id
+                    && Some(&mapping.local_tag_id) == tag.local_tag_id.as_ref()
+            });
+            if let Some(mapping) = mapping {
+                let shared = self
+                    .tags
+                    .iter()
+                    .find(|tag| tag.id == mapping.catalog_id)
+                    .ok_or(CatalogError::UnknownTag)?;
+                let definition = content_definition(shared);
+                tag.namespace = definition.namespace;
+                tag.names = definition.default_names.clone();
+                tag.external = definition
+                    .external
+                    .iter()
+                    .filter(|external| external.vocabulary == "danbooru")
+                    .map(|external| external.name.clone())
+                    .collect();
+                tag.definition = Some(definition);
+            }
+        }
+        Ok(())
+    }
+}

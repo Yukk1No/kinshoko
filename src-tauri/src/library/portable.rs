@@ -1,7 +1,7 @@
 //! Explicit writable publication; registered provider reads remain read-only.
 use super::*;
 
-/// Reuse the application's owned writable handle. T09 replaces require with the checked write pool.
+/// Reuse T09's registered, identity-checked writable pool without activating the provider.
 /// Do not call while already holding LibraryState.transition.
 pub fn publish_definition_dependencies<R: Runtime>(
     app: &AppHandle<R>,
@@ -10,7 +10,7 @@ pub fn publish_definition_dependencies<R: Runtime>(
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
     let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-        libraries.require(library_id)
+        libraries.write(library_id)
     })?;
     state.install_translations(&library);
     library.set_safe_mode(saved_safe_mode(app));

@@ -606,3 +606,56 @@ fn publishing_a_new_external_tag_carries_the_same_identity_already_used_by_anoth
     assert_eq!(fresh.local_tag_ids(&id, &first_identity).unwrap(), [b]);
     assert_eq!(provider.image_tags(&image, "zh-CN").unwrap().tags.len(), 1);
 }
+
+#[test]
+fn a_carried_seed_identity_can_attach_to_two_library_local_ids_in_one_application() {
+    let dir = tempfile::tempdir().unwrap();
+    let (first, _, first_local) = named_library(dir.path(), "first-seed");
+    let (second, _, second_local) = named_library(dir.path(), "second-seed");
+    let mut binding = first.tag_definition_dependencies().unwrap().remove(0);
+    let identity = binding.definition.id.clone();
+    assert!(!binding.authoritative);
+    binding.local_tag_id = second_local.clone();
+    second.publish_tag_definitions(&[binding]).unwrap();
+    let mut app = TagCatalog::open(&dir.path().join("application")).unwrap();
+    app.synchronize(&first).unwrap();
+    app.set_name_preference(
+        &identity,
+        &LocalizedName {
+            lang: "zh-CN".into(),
+            name: "我的白色".into(),
+        },
+    )
+    .unwrap();
+    let catalog = app
+        .synchronize(&second)
+        .expect("one carried stable identity may be used by different library-local tags");
+    assert_eq!(
+        catalog
+            .mappings
+            .iter()
+            .find(|m| m.local_tag_id == first_local)
+            .unwrap()
+            .catalog_id,
+        identity
+    );
+    assert_eq!(
+        catalog
+            .mappings
+            .iter()
+            .find(|m| m.local_tag_id == second_local)
+            .unwrap()
+            .catalog_id,
+        identity
+    );
+    assert_eq!(
+        catalog
+            .tags
+            .iter()
+            .find(|tag| tag.id == identity)
+            .unwrap()
+            .name_preferences[0]
+            .name,
+        "我的白色"
+    );
+}

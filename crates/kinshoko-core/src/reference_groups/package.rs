@@ -153,35 +153,9 @@ pub(super) fn export(
         let library_error = |e: crate::library::Error| GroupError::Library(e.to_string());
         let mut snapshot = lens.snapshot(&m.image_id).map_err(library_error)?;
         if let Some(catalog) = catalog {
-            for tag in &mut snapshot.tags {
-                let mapping = catalog.mappings.iter().find(|mapping| {
-                    mapping.library_id == m.library_id
-                        && Some(&mapping.local_tag_id) == tag.local_tag_id.as_ref()
-                });
-                if let Some(mapping) = mapping {
-                    let shared = catalog
-                        .tags
-                        .iter()
-                        .find(|tag| tag.id == mapping.catalog_id)
-                        .ok_or_else(|| damaged("标签对应缺少定义"))?;
-                    let definition = crate::portable_tags::PortableTagDefinition {
-                        id: shared.id.clone(),
-                        namespace: shared.namespace,
-                        default_names: shared.default_names.clone(),
-                        aliases: shared.aliases.clone(),
-                        external: shared.external.clone(),
-                    };
-                    tag.namespace = definition.namespace;
-                    tag.names = definition.default_names.clone();
-                    tag.external = definition
-                        .external
-                        .iter()
-                        .filter(|e| e.vocabulary == "danbooru")
-                        .map(|e| e.name.clone())
-                        .collect();
-                    tag.definition = Some(definition);
-                }
-            }
+            catalog
+                .apply_content_definitions(&m.library_id, &mut snapshot)
+                .map_err(|error| GroupError::Library(error.to_string()))?;
         }
         let original = lens.original_path(&m.image_id).map_err(library_error)?;
         let ext = original
