@@ -108,14 +108,13 @@ export function WorkspaceSources({ card, onClose, onView, safe = true, reloadKey
       <p>同一文件 · 各份来源独立保留整理结果</p>
       {editing && <WorkspaceSourceEditor key={editing.libraryId + "/" + editing.imageId} card={card} source={editing}
         safe={safe} registrations={registrations} reloadKey={reloadKey} onSource={setEditing} onClose={onClose} onChanged={onChanged} />}
-      {!editing && <ul>{card.sources.map((source) => <li key={source.libraryId + "/" + source.imageId} data-source-library-id={source.libraryId}>
+      {!editing && <ul>{card.sources.map((source) => <li key={source.libraryId + "/" + source.imageId} data-source-library-id={source.libraryId} title={source.libraryId + "/" + source.imageId}>
         <strong>{source.libraryName}</strong>
         {registrations.find((r) => r.library.id === source.libraryId)?.library.root && <span className="workspace-source-path"
           title={registrations.find((r) => r.library.id === source.libraryId)!.library.root}>
           {libraryPathHint(registrations.find((r) => r.library.id === source.libraryId)!.library.root, registrations.map((r) => r.library.root))}
         </span>}
         <span>{source.deleted ? "回收站" : source.matches ? "符合当前查找" : "不符合当前查找"}</span>
-        <code>{source.imageId}</code>
         {source.unavailable ? <p role="status">{source.unavailable}</p> :
           <div className="selection-actions"><button type="button" onClick={() => setEditing(source)}>整理此来源</button>
           <button type="button" onClick={() => { onClose(); onView({ ...card, libraryId: source.libraryId, imageId: source.imageId }); }}>查看此来源</button></div>}

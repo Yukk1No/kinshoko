@@ -46,7 +46,7 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onSource,
       (error) => { if (current.current === key) setProblem(String(error)); })
       .finally(() => { if (current.current === key) setBusy(false); });
   };
-  return <div className="workspace-source-editor" aria-label="整理来源">
+  return <div className="workspace-source-editor" aria-label="整理来源" title={source.libraryId + "/" + source.imageId}>
     <label>当前操作的来源记录
       <select aria-label="当前操作的来源记录" value={source.libraryId + "/" + source.imageId} onChange={(event) => {
         const next = card.sources.find((s) => s.libraryId + "/" + s.imageId === event.target.value);
@@ -57,7 +57,6 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onSource,
     </label>
     <p>只整理「{source.libraryName}」的这份来源。其他资料库的整理保持独立。</p>
     <p className="workspace-source-path" title={path(source.libraryId)}>{hint(source.libraryId)}</p>
-    <code>{source.libraryId} / {source.imageId}</code>
     {problem && <p role="alert">{problem}</p>}
     {notice && <p role="status">{notice}</p>}
     {!available && !problem && <p role="status">正在读取该来源…</p>}
