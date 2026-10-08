@@ -1,0 +1,1858 @@
+{
+  "status": "passed",
+  "productSource": "f7ef52b12681ed679927f7fef034629b923ae8ec",
+  "filesChecked": 370,
+  "files": [
+    {
+      "path": "Cargo.lock",
+      "expected": "c650697694e4fa1c224970d7376bab6ed5db3ae9414934a0fd50b24ad40c5f79",
+      "actual": "c650697694e4fa1c224970d7376bab6ed5db3ae9414934a0fd50b24ad40c5f79"
+    },
+    {
+      "path": "Cargo.toml",
+      "expected": "9c4e5985c84fb528d89f3f26af84a90547601a817e3ea3407eb6308b6b6f4466",
+      "actual": "9c4e5985c84fb528d89f3f26af84a90547601a817e3ea3407eb6308b6b6f4466"
+    },
+    {
+      "path": "crates/kinshoko-core/Cargo.toml",
+      "expected": "dd9216c617adb2e104d6808954aae3baecfdacd80563c9cc18de251fa6578df5",
+      "actual": "dd9216c617adb2e104d6808954aae3baecfdacd80563c9cc18de251fa6578df5"
+    },
+    {
+      "path": "crates/kinshoko-core/src/app_shell.rs",
+      "expected": "79b98f3527d32f829233000cc86c17434f216404990203545fd6890bfb0f7315",
+      "actual": "79b98f3527d32f829233000cc86c17434f216404990203545fd6890bfb0f7315"
+    },
+    {
+      "path": "crates/kinshoko-core/src/approx.rs",
+      "expected": "05dd66b4e1f6be9ca1b0336342e8c169e2744d1cd15d5978bddebc454617c9d2",
+      "actual": "05dd66b4e1f6be9ca1b0336342e8c169e2744d1cd15d5978bddebc454617c9d2"
+    },
+    {
+      "path": "crates/kinshoko-core/src/backup/mod.rs",
+      "expected": "52c773c4ab725005c6009ceb19f6c36bb2548baba4fdfaa0ba572d47f456def9",
+      "actual": "52c773c4ab725005c6009ceb19f6c36bb2548baba4fdfaa0ba572d47f456def9"
+    },
+    {
+      "path": "crates/kinshoko-core/src/backup/plan.rs",
+      "expected": "4935524a51af782f6fcd461879689e12822b68a9e8ab8389222b572c463f14fb",
+      "actual": "4935524a51af782f6fcd461879689e12822b68a9e8ab8389222b572c463f14fb"
+    },
+    {
+      "path": "crates/kinshoko-core/src/backup/retention.rs",
+      "expected": "7dc3126845bf995fd37f131e943c7693045386de1eddf3e75c42257098a550cb",
+      "actual": "7dc3126845bf995fd37f131e943c7693045386de1eddf3e75c42257098a550cb"
+    },
+    {
+      "path": "crates/kinshoko-core/src/backup/scope.rs",
+      "expected": "190a91dd61bfc488fc474cb0646eebf9b051a54da338d7badd8dee718d3a3ab7",
+      "actual": "190a91dd61bfc488fc474cb0646eebf9b051a54da338d7badd8dee718d3a3ab7"
+    },
+    {
+      "path": "crates/kinshoko-core/src/backup/stamp.rs",
+      "expected": "28a4189a11ab6c85e3ce98e7dbb0c7ea23491da90d623dcd50ab4cbeccb3b5e3",
+      "actual": "28a4189a11ab6c85e3ce98e7dbb0c7ea23491da90d623dcd50ab4cbeccb3b5e3"
+    },
+    {
+      "path": "crates/kinshoko-core/src/backup/target.rs",
+      "expected": "9185eab8be30b0b8dfc9b3977604807992a052f7ec6a038ca0bb61cdf5eb29c6",
+      "actual": "9185eab8be30b0b8dfc9b3977604807992a052f7ec6a038ca0bb61cdf5eb29c6"
+    },
+    {
+      "path": "crates/kinshoko-core/src/desktop/capture.rs",
+      "expected": "1f0aba4b642443e0ed78e5f8ac00d170b0bc1e12955e204751c9f361f428b80e",
+      "actual": "1f0aba4b642443e0ed78e5f8ac00d170b0bc1e12955e204751c9f361f428b80e"
+    },
+    {
+      "path": "crates/kinshoko-core/src/desktop/edge.rs",
+      "expected": "29383c9d59f186d0260d5e468b8f3c832640cff7a3b1ce76a86561fe186dd20f",
+      "actual": "29383c9d59f186d0260d5e468b8f3c832640cff7a3b1ce76a86561fe186dd20f"
+    },
+    {
+      "path": "crates/kinshoko-core/src/desktop/history.rs",
+      "expected": "4eb3718fdaccee9d2c5d5abf47099c82e57f126189f4f60565bfa29ff70000f5",
+      "actual": "4eb3718fdaccee9d2c5d5abf47099c82e57f126189f4f60565bfa29ff70000f5"
+    },
+    {
+      "path": "crates/kinshoko-core/src/desktop/mod.rs",
+      "expected": "d48b7aef66594f744ea2fc07896da4a088e86dd9f0c39fd35b772940360a29b5",
+      "actual": "d48b7aef66594f744ea2fc07896da4a088e86dd9f0c39fd35b772940360a29b5"
+    },
+    {
+      "path": "crates/kinshoko-core/src/desktop/motion.rs",
+      "expected": "319657b2d6c639602b0fb16724c48d1108204ef58eb2211c99b7a63aee92f1ab",
+      "actual": "319657b2d6c639602b0fb16724c48d1108204ef58eb2211c99b7a63aee92f1ab"
+    },
+    {
+      "path": "crates/kinshoko-core/src/desktop/pin.rs",
+      "expected": "e3410cb9fac60e6c10147e4c80e77abbafe76b67fafb973a0e878af19e139e38",
+      "actual": "e3410cb9fac60e6c10147e4c80e77abbafe76b67fafb973a0e878af19e139e38"
+    },
+    {
+      "path": "crates/kinshoko-core/src/desktop/placement.rs",
+      "expected": "9f403bf7dabf0cdc8befc5df03ee38a731414f844fca7c71c7f3a7a7bdffef97",
+      "actual": "9f403bf7dabf0cdc8befc5df03ee38a731414f844fca7c71c7f3a7a7bdffef97"
+    },
+    {
+      "path": "crates/kinshoko-core/src/desktop/screenshot.rs",
+      "expected": "c992fae066409798c0bfe1ade548a4179f2ec2874ea9b47fde0a252abf95d8a8",
+      "actual": "c992fae066409798c0bfe1ade548a4179f2ec2874ea9b47fde0a252abf95d8a8"
+    },
+    {
+      "path": "crates/kinshoko-core/src/desktop/types.rs",
+      "expected": "cb9098b9e67d84ab1bc7a056c07c44413c2b1eded949b599b7330fb25e325b15",
+      "actual": "cb9098b9e67d84ab1bc7a056c07c44413c2b1eded949b599b7330fb25e325b15"
+    },
+    {
+      "path": "crates/kinshoko-core/src/desktop/veil.rs",
+      "expected": "aa6310046e49ae26cda0b6b37dd00be263f9680861110ea31f07093ecfb4d309",
+      "actual": "aa6310046e49ae26cda0b6b37dd00be263f9680861110ea31f07093ecfb4d309"
+    },
+    {
+      "path": "crates/kinshoko-core/src/device.rs",
+      "expected": "68b21b5ed41a97f790e95c2734025175a4cc411a9461266a48071d58e1434360",
+      "actual": "68b21b5ed41a97f790e95c2734025175a4cc411a9461266a48071d58e1434360"
+    },
+    {
+      "path": "crates/kinshoko-core/src/device_libraries.rs",
+      "expected": "2b83cfeb8184fe676996fb2dba47143f40cc0842b69ed1a697d9e199cc984ed3",
+      "actual": "2b83cfeb8184fe676996fb2dba47143f40cc0842b69ed1a697d9e199cc984ed3"
+    },
+    {
+      "path": "crates/kinshoko-core/src/diagnostics/mod.rs",
+      "expected": "aae2256f0fb6681a6c4f4674c4db50b4dc95594f1aaf16477d210bc478a7d6ba",
+      "actual": "aae2256f0fb6681a6c4f4674c4db50b4dc95594f1aaf16477d210bc478a7d6ba"
+    },
+    {
+      "path": "crates/kinshoko-core/src/diagnostics/usage.rs",
+      "expected": "4481bc0aea2be11c5c27840132b9447a9edd4da87b30ba5abd626e9ffd7b6a93",
+      "actual": "4481bc0aea2be11c5c27840132b9447a9edd4da87b30ba5abd626e9ffd7b6a93"
+    },
+    {
+      "path": "crates/kinshoko-core/src/fidelity/description.rs",
+      "expected": "ea6adb8b9db8b67e5f8ae8392093547cc66952717d67171533d1249be1795c2e",
+      "actual": "ea6adb8b9db8b67e5f8ae8392093547cc66952717d67171533d1249be1795c2e"
+    },
+    {
+      "path": "crates/kinshoko-core/src/fidelity/gate.rs",
+      "expected": "08b11264e43299555a75ea20ce50b5420c81f53652e5344667aee10c05669b56",
+      "actual": "08b11264e43299555a75ea20ce50b5420c81f53652e5344667aee10c05669b56"
+    },
+    {
+      "path": "crates/kinshoko-core/src/fidelity/inspect.rs",
+      "expected": "96e9b4a92f8f95e84f53593e38c9af22469ad330816874dc6dc0f286289130de",
+      "actual": "96e9b4a92f8f95e84f53593e38c9af22469ad330816874dc6dc0f286289130de"
+    },
+    {
+      "path": "crates/kinshoko-core/src/fidelity/mod.rs",
+      "expected": "a2915482df2ba2599981ee90317bc51b0b9b347f16298b94a1009910db0e1a78",
+      "actual": "a2915482df2ba2599981ee90317bc51b0b9b347f16298b94a1009910db0e1a78"
+    },
+    {
+      "path": "crates/kinshoko-core/src/fidelity/profiles.rs",
+      "expected": "28008e219a445e63d971f60da60adc0481ce6a3bf4b66c9c85b5ab1e908510fe",
+      "actual": "28008e219a445e63d971f60da60adc0481ce6a3bf4b66c9c85b5ab1e908510fe"
+    },
+    {
+      "path": "crates/kinshoko-core/src/fidelity/render.rs",
+      "expected": "00a55c4aaa072f485a3e6cbef333824cef069cd668f432295953b3e975ddf88a",
+      "actual": "00a55c4aaa072f485a3e6cbef333824cef069cd668f432295953b3e975ddf88a"
+    },
+    {
+      "path": "crates/kinshoko-core/src/lib.rs",
+      "expected": "a5b860ea171ebd2a637736a08dd9ea826d0bdaff9ead73ec43557615722d8a80",
+      "actual": "a5b860ea171ebd2a637736a08dd9ea826d0bdaff9ead73ec43557615722d8a80"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/backup.rs",
+      "expected": "4ff48292d8c520292fbe293ec84e82c8837972ed204548e8fe9834aff4f54c9f",
+      "actual": "4ff48292d8c520292fbe293ec84e82c8837972ed204548e8fe9834aff4f54c9f"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/colour.rs",
+      "expected": "e024d9d4df49933e4b23512d628cd480e7ee694328d86e2bbddddb6942e6b8b7",
+      "actual": "e024d9d4df49933e4b23512d628cd480e7ee694328d86e2bbddddb6942e6b8b7"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/display.rs",
+      "expected": "67849954619efed1aaadb32edd2d2ee2e4f0a52db2f2505449a68d9f3b5bee3f",
+      "actual": "67849954619efed1aaadb32edd2d2ee2e4f0a52db2f2505449a68d9f3b5bee3f"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/eagle.rs",
+      "expected": "e37b95dfc6e225b6bcf1bd9c910aa0c10573bf0b7fcf0734deec960fdc42ace0",
+      "actual": "e37b95dfc6e225b6bcf1bd9c910aa0c10573bf0b7fcf0734deec960fdc42ace0"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/eagle_discovery.rs",
+      "expected": "7fcbbae7032dc8c6420faa2e19dba48e961ea26a8e51ee38714d8673ec1ce327",
+      "actual": "7fcbbae7032dc8c6420faa2e19dba48e961ea26a8e51ee38714d8673ec1ce327"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/eagle_tags.rs",
+      "expected": "ab2bcc6d65a1130789f904a62d2205adc45146a02b8cbe4942472b1216f92a9f",
+      "actual": "ab2bcc6d65a1130789f904a62d2205adc45146a02b8cbe4942472b1216f92a9f"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/edit.rs",
+      "expected": "8ac910b3f66ee160bad1cd88feb00bae6f14819d13afefc3f2c6b7a6ac418645",
+      "actual": "8ac910b3f66ee160bad1cd88feb00bae6f14819d13afefc3f2c6b7a6ac418645"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/error.rs",
+      "expected": "7278e6ec482740adfe6f16e3463c8fbff12aa78404ad14a09140c6fd7358b9fe",
+      "actual": "7278e6ec482740adfe6f16e3463c8fbff12aa78404ad14a09140c6fd7358b9fe"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/events.rs",
+      "expected": "4bc16d03b10d5c0b1a1dab2cbd2d7a3fb736859e316abd5c21515256cde776db",
+      "actual": "4bc16d03b10d5c0b1a1dab2cbd2d7a3fb736859e316abd5c21515256cde776db"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/fault.rs",
+      "expected": "b7209098f62c9a4a0cf1376d298ece972454111940882bc8585aa61798c2e02b",
+      "actual": "b7209098f62c9a4a0cf1376d298ece972454111940882bc8585aa61798c2e02b"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/filter.rs",
+      "expected": "df78bce5069885995723873e6a5433519046328e1a5db0f760e258e1cc2a2c52",
+      "actual": "df78bce5069885995723873e6a5433519046328e1a5db0f760e258e1cc2a2c52"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/folders.rs",
+      "expected": "bddd9dcdabc32f2a5bfe635ae681a83c0ed5e5dd31cefdb0987021dc4d2330e5",
+      "actual": "bddd9dcdabc32f2a5bfe635ae681a83c0ed5e5dd31cefdb0987021dc4d2330e5"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/import.rs",
+      "expected": "3f669bba22e9b558aa746544153f726243d3b7e6e3639b0ba5f789fac6cc6a01",
+      "actual": "3f669bba22e9b558aa746544153f726243d3b7e6e3639b0ba5f789fac6cc6a01"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/lens.rs",
+      "expected": "9500126f30dc479f6ef8b7819a363beb7fb13f54629d3f08f419ceb7429b5ff2",
+      "actual": "9500126f30dc479f6ef8b7819a363beb7fb13f54629d3f08f419ceb7429b5ff2"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0001_library.sql",
+      "expected": "8780c41cd3fb3941b6ede042c8dc347b6325c0a50bc9cbdacc2c985d6cfa40bd",
+      "actual": "8780c41cd3fb3941b6ede042c8dc347b6325c0a50bc9cbdacc2c985d6cfa40bd"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0045_image_colour.sql",
+      "expected": "cf4212ce15b9f2430731a6440b23d28b1a5b1a3637fbb2c54073ebacbf437784",
+      "actual": "cf4212ce15b9f2430731a6440b23d28b1a5b1a3637fbb2c54073ebacbf437784"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0046_import_pending.sql",
+      "expected": "6205ee74cac529886088bcb8665760179f7a955a269eb4c0b8ecae0e6bd6c812",
+      "actual": "6205ee74cac529886088bcb8665760179f7a955a269eb4c0b8ecae0e6bd6c812"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0050_folders_notes_trash.sql",
+      "expected": "45fb5975fb404ccade311b21468f6e12ffd7c61ad9f2394955d5a98b7e5d2ab2",
+      "actual": "45fb5975fb404ccade311b21468f6e12ffd7c61ad9f2394955d5a98b7e5d2ab2"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0051_tags.sql",
+      "expected": "d24a1b492d242e0ffa4c8988c9d7fd6ce6213548efc3c0d81c5a384a175e5401",
+      "actual": "d24a1b492d242e0ffa4c8988c9d7fd6ce6213548efc3c0d81c5a384a175e5401"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0052_tagging.sql",
+      "expected": "36a2e091e8a162d9fbc7362ce026842c539b881b29fbc0c655b6f42848a02bbc",
+      "actual": "36a2e091e8a162d9fbc7362ce026842c539b881b29fbc0c655b6f42848a02bbc"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0053_manual_rating.sql",
+      "expected": "0dd4cb4d81ee60f7c310e581e4ef40d1dcf41d26e4e4771b55c4e87c70cc954e",
+      "actual": "0dd4cb4d81ee60f7c310e581e4ef40d1dcf41d26e4e4771b55c4e87c70cc954e"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0056_personal_approx.sql",
+      "expected": "5a897aec3d41489cc39bb38cd32a661ae99cd25020fd183605e19e9c6b3b5e46",
+      "actual": "5a897aec3d41489cc39bb38cd32a661ae99cd25020fd183605e19e9c6b3b5e46"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0057_eagle_import.sql",
+      "expected": "adf5459fed88eab2ef25ced44877e760c763f5db1ea307999edcc6ccdfd2a65b",
+      "actual": "adf5459fed88eab2ef25ced44877e760c763f5db1ea307999edcc6ccdfd2a65b"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0057_eagle_initial_trash.sql",
+      "expected": "e6932896c78e2306faca496c1d3dadfe36bfea14613c6a4ce6039d63865ff1ee",
+      "actual": "e6932896c78e2306faca496c1d3dadfe36bfea14613c6a4ce6039d63865ff1ee"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0058_eagle_reimport.sql",
+      "expected": "933afca8e91af5b8c5ba6e6be4c2cbb1118ec7433d1c3070dfcffc8433a747aa",
+      "actual": "933afca8e91af5b8c5ba6e6be4c2cbb1118ec7433d1c3070dfcffc8433a747aa"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0067_permanent_delete.sql",
+      "expected": "bcff8be8e35ecbbe68086c6fe188c5b30fe477c9e89e27de074a1e1e0c557475",
+      "actual": "bcff8be8e35ecbbe68086c6fe188c5b30fe477c9e89e27de074a1e1e0c557475"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0068_package_import.sql",
+      "expected": "a2b028450520df2dffe654de537e1f02713e78a052f1da3822d7538c37123111",
+      "actual": "a2b028450520df2dffe654de537e1f02713e78a052f1da3822d7538c37123111"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0069_restore_provenance.sql",
+      "expected": "9b27609656be19690bcac6ab6faae3aeedaadf9e8c1cf6d195a8033c559790dd",
+      "actual": "9b27609656be19690bcac6ab6faae3aeedaadf9e8c1cf6d195a8033c559790dd"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0077_folder_decision.sql",
+      "expected": "57a064b6502ccc78e60bddf2a5f41d1261d61add933d69139cce857be1fae9db",
+      "actual": "57a064b6502ccc78e60bddf2a5f41d1261d61add933d69139cce857be1fae9db"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0077_list_revision.sql",
+      "expected": "21a616ce0a6fff6885d9bc6a64f50d87788c7e7722fa8e8ec7d4dd518d588d5e",
+      "actual": "21a616ce0a6fff6885d9bc6a64f50d87788c7e7722fa8e8ec7d4dd518d588d5e"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0087_folder_revision.sql",
+      "expected": "f7474271af321db384a2977f953b386caa0dfcff7f94ef4a36fc64876bc78699",
+      "actual": "f7474271af321db384a2977f953b386caa0dfcff7f94ef4a36fc64876bc78699"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/migrations/0093_eagle_deleted_content.sql",
+      "expected": "676252cf9b47fb749da784412bb80e765c3f771539e9d94f62e8bd08b480a9c4",
+      "actual": "676252cf9b47fb749da784412bb80e765c3f771539e9d94f62e8bd08b480a9c4"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/mod.rs",
+      "expected": "8f528e509069d5469b6a485702511802d77666f5e654d04b83bdbb8d268af197",
+      "actual": "8f528e509069d5469b6a485702511802d77666f5e654d04b83bdbb8d268af197"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/package.rs",
+      "expected": "fce14a69dc757ab734f83e9231291d22cd3e940e2e43c6c4fa3d5e6df30ddd1a",
+      "actual": "fce14a69dc757ab734f83e9231291d22cd3e940e2e43c6c4fa3d5e6df30ddd1a"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/permanent_delete.rs",
+      "expected": "049113035c1e9a30e7866866933f6e38ea290854d90001daab8242a1f7de23e1",
+      "actual": "049113035c1e9a30e7866866933f6e38ea290854d90001daab8242a1f7de23e1"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/provider.rs",
+      "expected": "e3857ad0e8b87f070732145fff78f60042b5e3b3cd5dcbef2e27cf61a2ac66e9",
+      "actual": "e3857ad0e8b87f070732145fff78f60042b5e3b3cd5dcbef2e27cf61a2ac66e9"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/rating.rs",
+      "expected": "54783736174473520efb4df7168a24d3381b1eb4afb5c644e4f38e1bc8d4d6f1",
+      "actual": "54783736174473520efb4df7168a24d3381b1eb4afb5c644e4f38e1bc8d4d6f1"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/recovery.rs",
+      "expected": "78545af97b55151c31f032b833ee31e5f4006c4a4fa1cad3fdd6a35a52f855fc",
+      "actual": "78545af97b55151c31f032b833ee31e5f4006c4a4fa1cad3fdd6a35a52f855fc"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/sidebar.rs",
+      "expected": "3e59c7b8a429aa28e82a34c275210b04d1b6aaf250b845031a652bac8b06eba0",
+      "actual": "3e59c7b8a429aa28e82a34c275210b04d1b6aaf250b845031a652bac8b06eba0"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/store.rs",
+      "expected": "6232b6155ddf14d6dd8c4468f867ff6f0c56968bfa787222a16124247c339e08",
+      "actual": "6232b6155ddf14d6dd8c4468f867ff6f0c56968bfa787222a16124247c339e08"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/tags.rs",
+      "expected": "fa6e17d0170299ed0b9d0e7eda99902f0c3997743526601286f7bce53214fc12",
+      "actual": "fa6e17d0170299ed0b9d0e7eda99902f0c3997743526601286f7bce53214fc12"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/thumbnail.rs",
+      "expected": "24a07924dc8e95fdcc994274b86e48789e581a47bb4b49b21ff1b0b7b4ff84f1",
+      "actual": "24a07924dc8e95fdcc994274b86e48789e581a47bb4b49b21ff1b0b7b4ff84f1"
+    },
+    {
+      "path": "crates/kinshoko-core/src/library/types.rs",
+      "expected": "24c8c64c5534222dce400e5fcaf88b7cb62cff8a867d50a97ffce1323d3a549b",
+      "actual": "24c8c64c5534222dce400e5fcaf88b7cb62cff8a867d50a97ffce1323d3a549b"
+    },
+    {
+      "path": "crates/kinshoko-core/src/reference_groups/mod.rs",
+      "expected": "19fae45bd062fc631f45fa27c41622c4030727c79c9461a67820ebc236b608d3",
+      "actual": "19fae45bd062fc631f45fa27c41622c4030727c79c9461a67820ebc236b608d3"
+    },
+    {
+      "path": "crates/kinshoko-core/src/reference_groups/package.rs",
+      "expected": "d2c8bb9d88584feb0da52a4781c42fd1a10c3d46a3f40c984e6b8acccdc8b894",
+      "actual": "d2c8bb9d88584feb0da52a4781c42fd1a10c3d46a3f40c984e6b8acccdc8b894"
+    },
+    {
+      "path": "crates/kinshoko-core/src/reference_groups/resolve.rs",
+      "expected": "6113386b35eea3588a99781d9a5bf81c7a69514ec6f591e0ea962bb6a0c5b138",
+      "actual": "6113386b35eea3588a99781d9a5bf81c7a69514ec6f591e0ea962bb6a0c5b138"
+    },
+    {
+      "path": "crates/kinshoko-core/src/search.rs",
+      "expected": "41304fde3fb3b7fed90ad36d53c2ed6e0caf8b0b69f416e87a69398b2c93d966",
+      "actual": "41304fde3fb3b7fed90ad36d53c2ed6e0caf8b0b69f416e87a69398b2c93d966"
+    },
+    {
+      "path": "crates/kinshoko-core/src/search/cache.rs",
+      "expected": "03738d2e50b54c1d414d0e7ffbbe4b3991ad2efaa8496ca08f13b7c259297c8e",
+      "actual": "03738d2e50b54c1d414d0e7ffbbe4b3991ad2efaa8496ca08f13b7c259297c8e"
+    },
+    {
+      "path": "crates/kinshoko-core/src/settings.rs",
+      "expected": "1de19655e851dd51c9fec4165366715d982da7b98326d6d86233116d9b4c1664",
+      "actual": "1de19655e851dd51c9fec4165366715d982da7b98326d6d86233116d9b4c1664"
+    },
+    {
+      "path": "crates/kinshoko-core/src/shortcuts.rs",
+      "expected": "d75906b6ac9b8a0821cfe39b6437737aad12c345a0f8f39124d26520073bc109",
+      "actual": "d75906b6ac9b8a0821cfe39b6437737aad12c345a0f8f39124d26520073bc109"
+    },
+    {
+      "path": "crates/kinshoko-core/src/tag_catalog.rs",
+      "expected": "1a5c8bf3d07fc105a0c9e48ea7db8c1ac80629f52463a5bb2c3e8efc20ba15ad",
+      "actual": "1a5c8bf3d07fc105a0c9e48ea7db8c1ac80629f52463a5bb2c3e8efc20ba15ad"
+    },
+    {
+      "path": "crates/kinshoko-core/src/tag_catalog/groups.rs",
+      "expected": "7caa21f3b969f542f7fc38dbac484d578ba3ef20e502a1d3d17f7309bfa03312",
+      "actual": "7caa21f3b969f542f7fc38dbac484d578ba3ef20e502a1d3d17f7309bfa03312"
+    },
+    {
+      "path": "crates/kinshoko-core/src/tag_catalog/migration.rs",
+      "expected": "640fcc3537d1dd764cca480c3093fdf29b287436811c546cd62057164422618e",
+      "actual": "640fcc3537d1dd764cca480c3093fdf29b287436811c546cd62057164422618e"
+    },
+    {
+      "path": "crates/kinshoko-core/src/tag_catalog/names.rs",
+      "expected": "d02ca43614312a2aab857a5e8c55d737dcbeb6877bbc62ec1ac8d4c55afbbddd",
+      "actual": "d02ca43614312a2aab857a5e8c55d737dcbeb6877bbc62ec1ac8d4c55afbbddd"
+    },
+    {
+      "path": "crates/kinshoko-core/src/tagging/interpret.rs",
+      "expected": "44b44a0b0f2bcb99fb25f0250fa6fc5dfe7eba204c96148a2025c627570ed44d",
+      "actual": "44b44a0b0f2bcb99fb25f0250fa6fc5dfe7eba204c96148a2025c627570ed44d"
+    },
+    {
+      "path": "crates/kinshoko-core/src/tagging/memory.rs",
+      "expected": "fb347f75bf5af480e11cd3934d29785081c53a00ea9a368a204ed0653f6c0fc6",
+      "actual": "fb347f75bf5af480e11cd3934d29785081c53a00ea9a368a204ed0653f6c0fc6"
+    },
+    {
+      "path": "crates/kinshoko-core/src/tagging/mod.rs",
+      "expected": "cb65d16abf1dc1732089cabdb11d245ebc7fe2d531214aee532ab7e1c840795f",
+      "actual": "cb65d16abf1dc1732089cabdb11d245ebc7fe2d531214aee532ab7e1c840795f"
+    },
+    {
+      "path": "crates/kinshoko-core/src/tagging/models.rs",
+      "expected": "84e8922cd09aa6ef6af77ed557a8ae7f3c24509d369cbdc5ff4935aeff0f5253",
+      "actual": "84e8922cd09aa6ef6af77ed557a8ae7f3c24509d369cbdc5ff4935aeff0f5253"
+    },
+    {
+      "path": "crates/kinshoko-core/src/tagging/patch.rs",
+      "expected": "1c580f012a6cb7f24394561591eb2946d9c3e33f4c42019d457ac5a641b88225",
+      "actual": "1c580f012a6cb7f24394561591eb2946d9c3e33f4c42019d457ac5a641b88225"
+    },
+    {
+      "path": "crates/kinshoko-core/src/tagging/port.rs",
+      "expected": "85e04948644070a8041ed9d6f929c4598645d3c11fdd1976e1c14610e7c54acc",
+      "actual": "85e04948644070a8041ed9d6f929c4598645d3c11fdd1976e1c14610e7c54acc"
+    },
+    {
+      "path": "crates/kinshoko-core/src/tagging/process.rs",
+      "expected": "06d69b48ac461e07163d6b739f05a11037deb575e3e07efa5d9eec751f2b7edb",
+      "actual": "06d69b48ac461e07163d6b739f05a11037deb575e3e07efa5d9eec751f2b7edb"
+    },
+    {
+      "path": "crates/kinshoko-core/src/tagging/scheduler.rs",
+      "expected": "9f962bd968ddc22d33743ecebfef9def0d671fd1259f49c7ded978362663c4f7",
+      "actual": "9f962bd968ddc22d33743ecebfef9def0d671fd1259f49c7ded978362663c4f7"
+    },
+    {
+      "path": "crates/kinshoko-core/src/workspace.rs",
+      "expected": "33466e7809716ab1f807f5244545b00d443d2765ae18ed7656487cd5d73548f6",
+      "actual": "33466e7809716ab1f807f5244545b00d443d2765ae18ed7656487cd5d73548f6"
+    },
+    {
+      "path": "crates/kinshoko-core/src/workspace/source.rs",
+      "expected": "89293dc903952b2d14fe7f6b8cebaf621511d9ae840a5f68ddc8df4afdf76c5b",
+      "actual": "89293dc903952b2d14fe7f6b8cebaf621511d9ae840a5f68ddc8df4afdf76c5b"
+    },
+    {
+      "path": "crates/kinshoko-tagger/Cargo.toml",
+      "expected": "751fa2815c08952aa8b10e1e2162ca59f4d61936660380c38e6ed94cb0f7472d",
+      "actual": "751fa2815c08952aa8b10e1e2162ca59f4d61936660380c38e6ed94cb0f7472d"
+    },
+    {
+      "path": "crates/kinshoko-tagger/src/engine.rs",
+      "expected": "949cb9edf4129513af5c57b25b8eed36f9a2c3f28213df39c2f29cf01380eb85",
+      "actual": "949cb9edf4129513af5c57b25b8eed36f9a2c3f28213df39c2f29cf01380eb85"
+    },
+    {
+      "path": "crates/kinshoko-tagger/src/lib.rs",
+      "expected": "48ef102d27945dc83d6a92cc089c8b5dc090fc37a07f1b6afb924086b2324ee1",
+      "actual": "48ef102d27945dc83d6a92cc089c8b5dc090fc37a07f1b6afb924086b2324ee1"
+    },
+    {
+      "path": "crates/kinshoko-tagger/src/preprocess.rs",
+      "expected": "ee7af2f6c88db91f49d5c29fa864ff1cdd85925e52021baa0c293482169f1712",
+      "actual": "ee7af2f6c88db91f49d5c29fa864ff1cdd85925e52021baa0c293482169f1712"
+    },
+    {
+      "path": "crates/kinshoko-tagger/src/sysinfo.rs",
+      "expected": "3c5600a96ca92a94a9b708000305ed9f3ad2402f111e418fda72286c80ce46b5",
+      "actual": "3c5600a96ca92a94a9b708000305ed9f3ad2402f111e418fda72286c80ce46b5"
+    },
+    {
+      "path": "index.html",
+      "expected": "3e3c59b380b6fcbad87750116474aa93bd238fce373dbb903f9bc9e8fc45c1aa",
+      "actual": "3e3c59b380b6fcbad87750116474aa93bd238fce373dbb903f9bc9e8fc45c1aa"
+    },
+    {
+      "path": "package-lock.json",
+      "expected": "35c2ff72c555f2cf3d0914178028141aea8f17f24f410e4c5167b8c3d0788527",
+      "actual": "35c2ff72c555f2cf3d0914178028141aea8f17f24f410e4c5167b8c3d0788527"
+    },
+    {
+      "path": "package.json",
+      "expected": "552518c57dda529124d339b9053aa9b5c545b3f2dcbce71eaf84f26caa686aa7",
+      "actual": "552518c57dda529124d339b9053aa9b5c545b3f2dcbce71eaf84f26caa686aa7"
+    },
+    {
+      "path": "public/fonts/Inter-LICENSE.txt",
+      "expected": "b3195af0fb14368d1b3b10fb9d3fe503b7163ea083859d2ee553bc74da07c320",
+      "actual": "b3195af0fb14368d1b3b10fb9d3fe503b7163ea083859d2ee553bc74da07c320"
+    },
+    {
+      "path": "public/fonts/Inter-Medium-hinted.woff2",
+      "expected": "7e80d9f65861ee6836a0081d4e75d88fb8789e5651d05edbc49640442a9610ee",
+      "actual": "7e80d9f65861ee6836a0081d4e75d88fb8789e5651d05edbc49640442a9610ee"
+    },
+    {
+      "path": "public/fonts/Inter-Regular-hinted.woff2",
+      "expected": "338239f6b590b8ced3bf857654d32da3fd3663294cd3003651ed57aa3abd7aa1",
+      "actual": "338239f6b590b8ced3bf857654d32da3fd3663294cd3003651ed57aa3abd7aa1"
+    },
+    {
+      "path": "public/fonts/Inter-SemiBold-hinted.woff2",
+      "expected": "5013f48d77ab627b1db7c2415914284ef09abc3f60a8e0d0d8f3cd1bfebefb5e",
+      "actual": "5013f48d77ab627b1db7c2415914284ef09abc3f60a8e0d0d8f3cd1bfebefb5e"
+    },
+    {
+      "path": "public/fonts/README.md",
+      "expected": "4021ee08a54221dbfea8c42e5a70f79b4d0030fe1df1004f74794bc9828d9c11",
+      "actual": "4021ee08a54221dbfea8c42e5a70f79b4d0030fe1df1004f74794bc9828d9c11"
+    },
+    {
+      "path": "public/fonts/SourceHanSans-LICENSE.txt",
+      "expected": "1953855bf1927e7214385bbdd8adb04cc5e8a0ecd0e6eaedeb1bdc281b009481",
+      "actual": "1953855bf1927e7214385bbdd8adb04cc5e8a0ecd0e6eaedeb1bdc281b009481"
+    },
+    {
+      "path": "public/fonts/SourceHanSansSC-VF.ttf.woff2",
+      "expected": "cfec773cdc2ea964de8713471c6fd20774bc40617f5567f92efeeccaca6604b0",
+      "actual": "cfec773cdc2ea964de8713471c6fd20774bc40617f5567f92efeeccaca6604b0"
+    },
+    {
+      "path": "src-tauri/Cargo.toml",
+      "expected": "32d42b75a115d2262c2540600664f0112c9a8cbacd0c8d389dbe2577e436cffc",
+      "actual": "32d42b75a115d2262c2540600664f0112c9a8cbacd0c8d389dbe2577e436cffc"
+    },
+    {
+      "path": "src-tauri/build.rs",
+      "expected": "1d59b1a44c26b4c52a66eea2b121ae68bdc6feaa190778ce2649d665cd54545c",
+      "actual": "1d59b1a44c26b4c52a66eea2b121ae68bdc6feaa190778ce2649d665cd54545c"
+    },
+    {
+      "path": "src-tauri/capabilities/default.json",
+      "expected": "0c6ad1b2512452e4785c2a0dcd7b3d588c85cbe4eef7929e2ddd7e002414c4e2",
+      "actual": "0c6ad1b2512452e4785c2a0dcd7b3d588c85cbe4eef7929e2ddd7e002414c4e2"
+    },
+    {
+      "path": "src-tauri/capabilities/desktop.json",
+      "expected": "6ef7dfe5863c5b63a4201bfb21101c7d02c8b28092155764eb2ce8b063248809",
+      "actual": "6ef7dfe5863c5b63a4201bfb21101c7d02c8b28092155764eb2ce8b063248809"
+    },
+    {
+      "path": "src-tauri/icons/128x128.png",
+      "expected": "7e22c14cba1b1cfe3a438d3aa9be57ec7be5cff633ea81ccf1dbbdaddf8565ff",
+      "actual": "7e22c14cba1b1cfe3a438d3aa9be57ec7be5cff633ea81ccf1dbbdaddf8565ff"
+    },
+    {
+      "path": "src-tauri/icons/128x128@2x.png",
+      "expected": "d38c35c92530eda194b88bf1a810f2bb1be626f5b502b7e6065b53bef4cacf8e",
+      "actual": "d38c35c92530eda194b88bf1a810f2bb1be626f5b502b7e6065b53bef4cacf8e"
+    },
+    {
+      "path": "src-tauri/icons/32x32.png",
+      "expected": "c4393f2d8ae105270cd0c67e88ae954b44ee6697b10e7ab7a3de94351bea6212",
+      "actual": "c4393f2d8ae105270cd0c67e88ae954b44ee6697b10e7ab7a3de94351bea6212"
+    },
+    {
+      "path": "src-tauri/icons/icon.ico",
+      "expected": "bb5eb0db26a8f9a00bb0f3b5d53893a1656e2200325976436af601f7abc4402d",
+      "actual": "bb5eb0db26a8f9a00bb0f3b5d53893a1656e2200325976436af601f7abc4402d"
+    },
+    {
+      "path": "src-tauri/icons/icon.png",
+      "expected": "02fdb72abe231fbec74a5e14ebcd678eeee8d356dd19df24c1706fc760ebff57",
+      "actual": "02fdb72abe231fbec74a5e14ebcd678eeee8d356dd19df24c1706fc760ebff57"
+    },
+    {
+      "path": "src-tauri/installer-hooks.nsh",
+      "expected": "37927fe35332cd74ccfe797efb8917a4b19dd81f148bdc5ec3b0881bc89663ff",
+      "actual": "37927fe35332cd74ccfe797efb8917a4b19dd81f148bdc5ec3b0881bc89663ff"
+    },
+    {
+      "path": "src-tauri/src/backup.rs",
+      "expected": "910f880b2362d2c6288d253392b5cbd4751af45fdc146556b2478488d97eecdc",
+      "actual": "910f880b2362d2c6288d253392b5cbd4751af45fdc146556b2478488d97eecdc"
+    },
+    {
+      "path": "src-tauri/src/commands.rs",
+      "expected": "b71327cd398329301e91b536021b821a231fce47cc2f0b1f92c5488f66dd755f",
+      "actual": "b71327cd398329301e91b536021b821a231fce47cc2f0b1f92c5488f66dd755f"
+    },
+    {
+      "path": "src-tauri/src/desktop/capture.rs",
+      "expected": "66f2a599573ee387e20f6e18030e0f2cc6236ee38265859052394c114e3c8bc5",
+      "actual": "66f2a599573ee387e20f6e18030e0f2cc6236ee38265859052394c114e3c8bc5"
+    },
+    {
+      "path": "src-tauri/src/desktop/edge.rs",
+      "expected": "ea8f68ba12ae114ab9ed50a8348dd136052aa4ed49720d64ee22f34b957e5779",
+      "actual": "ea8f68ba12ae114ab9ed50a8348dd136052aa4ed49720d64ee22f34b957e5779"
+    },
+    {
+      "path": "src-tauri/src/desktop/groups.rs",
+      "expected": "89fb67408b29fad5cc324a8e7373ba026c47aaf6a851472c3604ec51965f17ac",
+      "actual": "89fb67408b29fad5cc324a8e7373ba026c47aaf6a851472c3604ec51965f17ac"
+    },
+    {
+      "path": "src-tauri/src/desktop/mod.rs",
+      "expected": "eab36d6010161fa566e1d9c9f7e22ee496d7ede481fffd8084ae6784c06be600",
+      "actual": "eab36d6010161fa566e1d9c9f7e22ee496d7ede481fffd8084ae6784c06be600"
+    },
+    {
+      "path": "src-tauri/src/desktop/pins.rs",
+      "expected": "1ae182a886bb21247279a3a3a5294906db591433422ee293516b492dc39c244d",
+      "actual": "1ae182a886bb21247279a3a3a5294906db591433422ee293516b492dc39c244d"
+    },
+    {
+      "path": "src-tauri/src/desktop/win32.rs",
+      "expected": "bab82b4da99fbac7ad44e5f8636354e73039df7ec6da64b6dc533b054749650e",
+      "actual": "bab82b4da99fbac7ad44e5f8636354e73039df7ec6da64b6dc533b054749650e"
+    },
+    {
+      "path": "src-tauri/src/diagnostics.rs",
+      "expected": "37ab58d31e037299a9b8af7bb1b131b96741e22b1f0baa43c5ae28e907f2e1ea",
+      "actual": "37ab58d31e037299a9b8af7bb1b131b96741e22b1f0baa43c5ae28e907f2e1ea"
+    },
+    {
+      "path": "src-tauri/src/fidelity_gate.rs",
+      "expected": "a3a81db28d3ee0be8d2dd7baa5aa6012de9a9ae3efeac1a4c2e630504eb94e8b",
+      "actual": "a3a81db28d3ee0be8d2dd7baa5aa6012de9a9ae3efeac1a4c2e630504eb94e8b"
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "expected": "cb70bf7228421dc514c3a36eb27c041ff7cf32a144c91c89ef5e63cf16333412",
+      "actual": "cb70bf7228421dc514c3a36eb27c041ff7cf32a144c91c89ef5e63cf16333412"
+    },
+    {
+      "path": "src-tauri/src/library.rs",
+      "expected": "f02c6252a3a30cbfffee6bc86c7a1a5b5a3ed430a54c2c1738ecd199f6cf3070",
+      "actual": "f02c6252a3a30cbfffee6bc86c7a1a5b5a3ed430a54c2c1738ecd199f6cf3070"
+    },
+    {
+      "path": "src-tauri/src/library/groups.rs",
+      "expected": "55c9c8f285b291ee7bc1aa378663b10791cd4d36fac9b9c1929386af9689f817",
+      "actual": "55c9c8f285b291ee7bc1aa378663b10791cd4d36fac9b9c1929386af9689f817"
+    },
+    {
+      "path": "src-tauri/src/library/name_migration.rs",
+      "expected": "4e0ecf36605df2a2269644e0b8bf42247bac0153935fc8e6e883c73ba577c3e0",
+      "actual": "4e0ecf36605df2a2269644e0b8bf42247bac0153935fc8e6e883c73ba577c3e0"
+    },
+    {
+      "path": "src-tauri/src/library/names.rs",
+      "expected": "7787dfa8e92059b228de3f22aa9978ac062234fc84d2ed6b0c16f95e093f83cc",
+      "actual": "7787dfa8e92059b228de3f22aa9978ac062234fc84d2ed6b0c16f95e093f83cc"
+    },
+    {
+      "path": "src-tauri/src/library/source_actions.rs",
+      "expected": "ef79f5039d48b6796f263a1646bba0b3b29d9e335e763408f980dc7d203a8478",
+      "actual": "ef79f5039d48b6796f263a1646bba0b3b29d9e335e763408f980dc7d203a8478"
+    },
+    {
+      "path": "src-tauri/src/library/workspace.rs",
+      "expected": "f7943c8a0e8a48b361e9325285ed6a7db66348e0da9e9b2ccab101a506f2f019",
+      "actual": "f7943c8a0e8a48b361e9325285ed6a7db66348e0da9e9b2ccab101a506f2f019"
+    },
+    {
+      "path": "src-tauri/src/main.rs",
+      "expected": "41cb9df0145fdf9830d9280ae52710d316e6430dd906fb2a928ccec1773a30b2",
+      "actual": "41cb9df0145fdf9830d9280ae52710d316e6430dd906fb2a928ccec1773a30b2"
+    },
+    {
+      "path": "src-tauri/src/shell.rs",
+      "expected": "197726dd75a390fce6a7a088c9e05f332c8532fa338d92fcadca2064ce3eac51",
+      "actual": "197726dd75a390fce6a7a088c9e05f332c8532fa338d92fcadca2064ce3eac51"
+    },
+    {
+      "path": "src-tauri/src/tagging.rs",
+      "expected": "b82d9e9e48d4460ade3df40a3c8e9a00e39699304f9945e25c8b8dbc3cc27ff6",
+      "actual": "b82d9e9e48d4460ade3df40a3c8e9a00e39699304f9945e25c8b8dbc3cc27ff6"
+    },
+    {
+      "path": "src-tauri/src/updater.rs",
+      "expected": "a7e2530b4ce3b7558666153e8d932ebf2385c63b32761b869a8f80c4b9dbb057",
+      "actual": "a7e2530b4ce3b7558666153e8d932ebf2385c63b32761b869a8f80c4b9dbb057"
+    },
+    {
+      "path": "src-tauri/tauri.conf.json",
+      "expected": "80fdd5afc56cc254b412dcc25ae15215ad80a33bd2b727283d85487daf89fb71",
+      "actual": "80fdd5afc56cc254b412dcc25ae15215ad80a33bd2b727283d85487daf89fb71"
+    },
+    {
+      "path": "src-tauri/tauri.updater.conf.json",
+      "expected": "14a0d454aae4d4227207d67776074d01aa4d3ef6a05beb0fd79d3197265be1e8",
+      "actual": "14a0d454aae4d4227207d67776074d01aa4d3ef6a05beb0fd79d3197265be1e8"
+    },
+    {
+      "path": "src/App.tsx",
+      "expected": "f3ba0c31c24383b1268b82e5493799459806e200e838a4cace1f7c0f2fec1bbb",
+      "actual": "f3ba0c31c24383b1268b82e5493799459806e200e838a4cace1f7c0f2fec1bbb"
+    },
+    {
+      "path": "src/Backup.tsx",
+      "expected": "068a7c350778fd20302940c9963065c3c59c0329d342e90cadadbd4bb44d7412",
+      "actual": "068a7c350778fd20302940c9963065c3c59c0329d342e90cadadbd4bb44d7412"
+    },
+    {
+      "path": "src/ModelSettings.tsx",
+      "expected": "aa8cdb45e108c5a9d976e50947b3055c17769111cde0086afd223fe9783e7209",
+      "actual": "aa8cdb45e108c5a9d976e50947b3055c17769111cde0086afd223fe9783e7209"
+    },
+    {
+      "path": "src/SealBook.tsx",
+      "expected": "b1973309ec2e0a951aa1ff70d3867deb5af92d8f906ab7c191ebdc77fc07d624",
+      "actual": "b1973309ec2e0a951aa1ff70d3867deb5af92d8f906ab7c191ebdc77fc07d624"
+    },
+    {
+      "path": "src/SettingsPanel.tsx",
+      "expected": "7fa8917f77af5f4183ac6ef13b96e210ebaac1fb45b6d0a0b2f9560c930cbcce",
+      "actual": "7fa8917f77af5f4183ac6ef13b96e210ebaac1fb45b6d0a0b2f9560c930cbcce"
+    },
+    {
+      "path": "src/TaggingIndicator.tsx",
+      "expected": "1752ad16b34a9fbd05896cfbf02a9c1be1567f7043d1d3c9d6f82e9b308d7038",
+      "actual": "1752ad16b34a9fbd05896cfbf02a9c1be1567f7043d1d3c9d6f82e9b308d7038"
+    },
+    {
+      "path": "src/Update.tsx",
+      "expected": "d1ea66822e9f356d570c321a01f9fa42456f85b870fe855310f48f4b8926240f",
+      "actual": "d1ea66822e9f356d570c321a01f9fa42456f85b870fe855310f48f4b8926240f"
+    },
+    {
+      "path": "src/bindings/AppInfo.ts",
+      "expected": "9b5b87c5a44068a2c15eaff8d82d8be31c696f98f13dd1d20cacc9ce57c95516",
+      "actual": "9b5b87c5a44068a2c15eaff8d82d8be31c696f98f13dd1d20cacc9ce57c95516"
+    },
+    {
+      "path": "src/bindings/ApproxRelation.ts",
+      "expected": "3b0a673485c98befc2add18cb720792284e9cf34b7b996a44ba8819c1f10bc99",
+      "actual": "3b0a673485c98befc2add18cb720792284e9cf34b7b996a44ba8819c1f10bc99"
+    },
+    {
+      "path": "src/bindings/ApproxSource.ts",
+      "expected": "71d497cefed93a0a28917b3c495eef28f4c1463012ffb08c2130b33792b4c64b",
+      "actual": "71d497cefed93a0a28917b3c495eef28f4c1463012ffb08c2130b33792b4c64b"
+    },
+    {
+      "path": "src/bindings/BackupEstimate.ts",
+      "expected": "fab3fc6f2f5535d9b7792099204adbc7b4e179a92eaa08d73052573c17458261",
+      "actual": "fab3fc6f2f5535d9b7792099204adbc7b4e179a92eaa08d73052573c17458261"
+    },
+    {
+      "path": "src/bindings/BackupFailure.ts",
+      "expected": "c9950b1572be50836f445d983ea515f9bde94e51a2f54e21747b6c3cf3e1d14e",
+      "actual": "c9950b1572be50836f445d983ea515f9bde94e51a2f54e21747b6c3cf3e1d14e"
+    },
+    {
+      "path": "src/bindings/BackupPlanView.ts",
+      "expected": "f3ae6585c6e3bd931cee170b239e94a035de91cd0e65fb0fcd70592e40c1ad7b",
+      "actual": "f3ae6585c6e3bd931cee170b239e94a035de91cd0e65fb0fcd70592e40c1ad7b"
+    },
+    {
+      "path": "src/bindings/BackupPreview.ts",
+      "expected": "cdf04c7a3fe19d07f21987eea5c9b5cc223d5ae4db7eda45973c24f793158297",
+      "actual": "cdf04c7a3fe19d07f21987eea5c9b5cc223d5ae4db7eda45973c24f793158297"
+    },
+    {
+      "path": "src/bindings/BackupProgress.ts",
+      "expected": "048ac54f684684973c026a809469c14a6d4dd2fae2d808d22fde61cd24f739f3",
+      "actual": "048ac54f684684973c026a809469c14a6d4dd2fae2d808d22fde61cd24f739f3"
+    },
+    {
+      "path": "src/bindings/BackupReport.ts",
+      "expected": "1169050ab52813e40ea7bfaf8837d3e8bd3f710d2f32751090e204a927ecc417",
+      "actual": "1169050ab52813e40ea7bfaf8837d3e8bd3f710d2f32751090e204a927ecc417"
+    },
+    {
+      "path": "src/bindings/BackupScope.ts",
+      "expected": "253b4fb65c972bd2d3e9a3931deda5553d47864d584ec0b75f55214575c74cd9",
+      "actual": "253b4fb65c972bd2d3e9a3931deda5553d47864d584ec0b75f55214575c74cd9"
+    },
+    {
+      "path": "src/bindings/BackupStatus.ts",
+      "expected": "77161179e07163066c2abec07aceb84bf59ca48e75d0a0f0798dd2662714beeb",
+      "actual": "77161179e07163066c2abec07aceb84bf59ca48e75d0a0f0798dd2662714beeb"
+    },
+    {
+      "path": "src/bindings/BrowsePage.ts",
+      "expected": "57c3773785bff924502da102df04b0338344063df00d900fc1577e4d1214fc54",
+      "actual": "57c3773785bff924502da102df04b0338344063df00d900fc1577e4d1214fc54"
+    },
+    {
+      "path": "src/bindings/BrowseQuery.ts",
+      "expected": "f6a59c394bf3e4881611b33b47936ddfaa216677177c94eacc5c8c4648ceeff4",
+      "actual": "f6a59c394bf3e4881611b33b47936ddfaa216677177c94eacc5c8c4648ceeff4"
+    },
+    {
+      "path": "src/bindings/BrowseScope.ts",
+      "expected": "1adb227cdb86462ba57d81ac1fa7c56a60b4b44d2f05fa9d47b50cb79421d6f4",
+      "actual": "1adb227cdb86462ba57d81ac1fa7c56a60b4b44d2f05fa9d47b50cb79421d6f4"
+    },
+    {
+      "path": "src/bindings/Candidate.ts",
+      "expected": "4b2291335a7de94aa756a37afab3c4ea22fc2e8dbc30458dd0702706e896cdae",
+      "actual": "4b2291335a7de94aa756a37afab3c4ea22fc2e8dbc30458dd0702706e896cdae"
+    },
+    {
+      "path": "src/bindings/CaptureAction.ts",
+      "expected": "012cc33fd9425ef0887844914fce98ddf23a3a16e464075dec0c917bf12445ae",
+      "actual": "012cc33fd9425ef0887844914fce98ddf23a3a16e464075dec0c917bf12445ae"
+    },
+    {
+      "path": "src/bindings/CaptureChoice.ts",
+      "expected": "3addaf63c86c12c8df855d12c3d837d1abbd88d41d16075f7aa5ad09969cf268",
+      "actual": "3addaf63c86c12c8df855d12c3d837d1abbd88d41d16075f7aa5ad09969cf268"
+    },
+    {
+      "path": "src/bindings/CaptureEntry.ts",
+      "expected": "a32ce39f5cf3772c6795c6ba702acd96c2b99c02b294f8bbcad1445eecdc91bf",
+      "actual": "a32ce39f5cf3772c6795c6ba702acd96c2b99c02b294f8bbcad1445eecdc91bf"
+    },
+    {
+      "path": "src/bindings/CaptureReference.ts",
+      "expected": "8f1501608aaae3e3269eaf7d417fcab1ec1379868b8df5ba14cdae13e121faa3",
+      "actual": "8f1501608aaae3e3269eaf7d417fcab1ec1379868b8df5ba14cdae13e121faa3"
+    },
+    {
+      "path": "src/bindings/CatalogCorrection.ts",
+      "expected": "1fec5301653524c0b1780d81e59b9b36e0d92d8793d7ba2542937b123211c12d",
+      "actual": "1fec5301653524c0b1780d81e59b9b36e0d92d8793d7ba2542937b123211c12d"
+    },
+    {
+      "path": "src/bindings/CatalogGroupDefinition.ts",
+      "expected": "ab9c1600ec4939935e0f211231b5c9b035385226079e0b21853c2420da24bad1",
+      "actual": "ab9c1600ec4939935e0f211231b5c9b035385226079e0b21853c2420da24bad1"
+    },
+    {
+      "path": "src/bindings/CatalogGroupEdit.ts",
+      "expected": "9879c219291758f3200b1941734d3894ca94ea9ff781692f7d6ffc3ce4ab498b",
+      "actual": "9879c219291758f3200b1941734d3894ca94ea9ff781692f7d6ffc3ce4ab498b"
+    },
+    {
+      "path": "src/bindings/CatalogGroupMigration.ts",
+      "expected": "8c3977e8681213977051031c01c8cdc61cf5c99e74ac17e1a02ba348754ff2b3",
+      "actual": "8c3977e8681213977051031c01c8cdc61cf5c99e74ac17e1a02ba348754ff2b3"
+    },
+    {
+      "path": "src/bindings/CatalogGroupOrigin.ts",
+      "expected": "ea0004abb7c4c5c278d3ccdf86c7b2ec90c4ea1fc50343a1e578040c07acf568",
+      "actual": "ea0004abb7c4c5c278d3ccdf86c7b2ec90c4ea1fc50343a1e578040c07acf568"
+    },
+    {
+      "path": "src/bindings/CatalogGroupSource.ts",
+      "expected": "519d1e030ec5047bf118740a2742bce0dff2c0715584937af1ed169f8f2b1bf8",
+      "actual": "519d1e030ec5047bf118740a2742bce0dff2c0715584937af1ed169f8f2b1bf8"
+    },
+    {
+      "path": "src/bindings/CatalogGroupView.ts",
+      "expected": "ebefc956eb048b4db99178f5ae66273e91768433764eb4de6433d696eb48e3ac",
+      "actual": "ebefc956eb048b4db99178f5ae66273e91768433764eb4de6433d696eb48e3ac"
+    },
+    {
+      "path": "src/bindings/CatalogImageTags.ts",
+      "expected": "0989e70ac9cbcf40ebe929f272123bccbf3e29264d4e093ccdefc48be2c50a6f",
+      "actual": "0989e70ac9cbcf40ebe929f272123bccbf3e29264d4e093ccdefc48be2c50a6f"
+    },
+    {
+      "path": "src/bindings/CatalogInspection.ts",
+      "expected": "4806fd1620379d3b424b18a0fe3083e74e45f086c1d636059dd745f36428d187",
+      "actual": "4806fd1620379d3b424b18a0fe3083e74e45f086c1d636059dd745f36428d187"
+    },
+    {
+      "path": "src/bindings/CatalogMatchBasis.ts",
+      "expected": "257e27412a8b81a097d2400c677b5ad4cbce112201d1f0ba66e08cbd0c35a492",
+      "actual": "257e27412a8b81a097d2400c677b5ad4cbce112201d1f0ba66e08cbd0c35a492"
+    },
+    {
+      "path": "src/bindings/CatalogNameEdit.ts",
+      "expected": "4465f24ba96048f696d3bcd0007129df608a7333294c94cd39131995a5707aea",
+      "actual": "4465f24ba96048f696d3bcd0007129df608a7333294c94cd39131995a5707aea"
+    },
+    {
+      "path": "src/bindings/CatalogTag.ts",
+      "expected": "55c1c9388711aede9a176ec3e5f51e9e142d84dede663979baf881414f225e5f",
+      "actual": "55c1c9388711aede9a176ec3e5f51e9e142d84dede663979baf881414f225e5f"
+    },
+    {
+      "path": "src/bindings/CheckPart.ts",
+      "expected": "8f0f2427553d0f37a782b8ea192fd691373ceb74db5c8198b874d83598916bb5",
+      "actual": "8f0f2427553d0f37a782b8ea192fd691373ceb74db5c8198b874d83598916bb5"
+    },
+    {
+      "path": "src/bindings/Cicp.ts",
+      "expected": "20d4c763870fd0e7e75226c13d61fa96923ced0c559171c9bc7f57a781e927dc",
+      "actual": "20d4c763870fd0e7e75226c13d61fa96923ced0c559171c9bc7f57a781e927dc"
+    },
+    {
+      "path": "src/bindings/CollectedCapture.ts",
+      "expected": "1c287dbc1ac7e6133b24bb5532acb3945e7ac649c55e3688229c97336279f376",
+      "actual": "1c287dbc1ac7e6133b24bb5532acb3945e7ac649c55e3688229c97336279f376"
+    },
+    {
+      "path": "src/bindings/ColourDeclaration.ts",
+      "expected": "ee0b76205013e12c770c9feff3cbaaaad8a1e34ee34faf64f5d4926191e669a1",
+      "actual": "ee0b76205013e12c770c9feff3cbaaaad8a1e34ee34faf64f5d4926191e669a1"
+    },
+    {
+      "path": "src/bindings/ColourDescription.ts",
+      "expected": "0efc0526ab773d1bec495a48b11b3313ffccf183bd712e91f595710989aebe67",
+      "actual": "0efc0526ab773d1bec495a48b11b3313ffccf183bd712e91f595710989aebe67"
+    },
+    {
+      "path": "src/bindings/ColourModel.ts",
+      "expected": "22b6422851eb46d6064036243596f3e1edfcec08af0a0e7eb74174586611d656",
+      "actual": "22b6422851eb46d6064036243596f3e1edfcec08af0a0e7eb74174586611d656"
+    },
+    {
+      "path": "src/bindings/Condition.ts",
+      "expected": "b9aaa13b740efc182493926f73766db2c9ae7b5582e9303a60700b0cd9c8ad61",
+      "actual": "b9aaa13b740efc182493926f73766db2c9ae7b5582e9303a60700b0cd9c8ad61"
+    },
+    {
+      "path": "src/bindings/ConditionInput.ts",
+      "expected": "7478a44bd37bb2973ef54b75a05dfede3a7655e6be3ecdc28c6e1ce0df0cc392",
+      "actual": "7478a44bd37bb2973ef54b75a05dfede3a7655e6be3ecdc28c6e1ce0df0cc392"
+    },
+    {
+      "path": "src/bindings/ConditionTree.ts",
+      "expected": "9cf21b0fc9963b0ead4be6696cc1b09c0c6b3ff27b8ec8460ec91ff438d21f91",
+      "actual": "9cf21b0fc9963b0ead4be6696cc1b09c0c6b3ff27b8ec8460ec91ff438d21f91"
+    },
+    {
+      "path": "src/bindings/ContentRating.ts",
+      "expected": "1637d3a5228b52ed28d9e9472f9db2c9e387aa551bb63b6a657ab5033841fd56",
+      "actual": "1637d3a5228b52ed28d9e9472f9db2c9e387aa551bb63b6a657ab5033841fd56"
+    },
+    {
+      "path": "src/bindings/Device.ts",
+      "expected": "9c6d81613a660192efaec3da430a5e1b0ab92b0ab0fc1cf0a396273a5816c33a",
+      "actual": "9c6d81613a660192efaec3da430a5e1b0ab92b0ab0fc1cf0a396273a5816c33a"
+    },
+    {
+      "path": "src/bindings/DisplayRoute.ts",
+      "expected": "4dddeccc6b74cce6dd9b5972066c96a71688d7138690fc68d7ed4249e3f1efcf",
+      "actual": "4dddeccc6b74cce6dd9b5972066c96a71688d7138690fc68d7ed4249e3f1efcf"
+    },
+    {
+      "path": "src/bindings/EagleDeletedContentChoice.ts",
+      "expected": "3be08ba2f9f0eaa18fa1f3424404d01ba657964b5f2049755f6bd262126d9b20",
+      "actual": "3be08ba2f9f0eaa18fa1f3424404d01ba657964b5f2049755f6bd262126d9b20"
+    },
+    {
+      "path": "src/bindings/EagleDiscoveryMethod.ts",
+      "expected": "8b6315605358c4ca1f0f75be48c24a70e6f8efa6363d492bd305dd721c2b83f4",
+      "actual": "8b6315605358c4ca1f0f75be48c24a70e6f8efa6363d492bd305dd721c2b83f4"
+    },
+    {
+      "path": "src/bindings/EagleLibraryCandidate.ts",
+      "expected": "1ca78fe9315ae3b562dcf46e93e3e60b657bb1b5543d794ff50464e08b4b1b87",
+      "actual": "1ca78fe9315ae3b562dcf46e93e3e60b657bb1b5543d794ff50464e08b4b1b87"
+    },
+    {
+      "path": "src/bindings/EagleLocationChoice.ts",
+      "expected": "011e598bc02a333c91bc11641eac6ddee418f34e77c3f20a52c5c390f64b21fd",
+      "actual": "011e598bc02a333c91bc11641eac6ddee418f34e77c3f20a52c5c390f64b21fd"
+    },
+    {
+      "path": "src/bindings/EagleRelocation.ts",
+      "expected": "6c8b3806661459e729aedd645d256d4ff47ba3a16942eb9551484b2d29aed1ff",
+      "actual": "6c8b3806661459e729aedd645d256d4ff47ba3a16942eb9551484b2d29aed1ff"
+    },
+    {
+      "path": "src/bindings/EagleTagMapping.ts",
+      "expected": "18fbce4b36dfac9cc9b3b4ce3faaf276d45ab9ef917dd31a3e2714645e886bf4",
+      "actual": "18fbce4b36dfac9cc9b3b4ce3faaf276d45ab9ef917dd31a3e2714645e886bf4"
+    },
+    {
+      "path": "src/bindings/EagleTagMatch.ts",
+      "expected": "9b25b85b49a6342de2bf88c31bd47f29729b64b3ab0d450ee3fc4702eb6dc5c5",
+      "actual": "9b25b85b49a6342de2bf88c31bd47f29729b64b3ab0d450ee3fc4702eb6dc5c5"
+    },
+    {
+      "path": "src/bindings/ExternalTagIdentity.ts",
+      "expected": "d375fd85eb99bfe652baff931d05c4809ea9ed397e645fbfe894bf2c3c443ba9",
+      "actual": "d375fd85eb99bfe652baff931d05c4809ea9ed397e645fbfe894bf2c3c443ba9"
+    },
+    {
+      "path": "src/bindings/FolderNode.ts",
+      "expected": "1940600b7e49f5f51cb4d155bf585edddb9ffb42fbffaa20aee6356826e69236",
+      "actual": "1940600b7e49f5f51cb4d155bf585edddb9ffb42fbffaa20aee6356826e69236"
+    },
+    {
+      "path": "src/bindings/FolderRef.ts",
+      "expected": "9e777aa601c473572ad4c817914cb2363290d1133e4f8ee79d0a957413d0deea",
+      "actual": "9e777aa601c473572ad4c817914cb2363290d1133e4f8ee79d0a957413d0deea"
+    },
+    {
+      "path": "src/bindings/FrozenScreen.ts",
+      "expected": "1a6b151323c9571e30c25f325f6b5c6dddfc44494db3fa0b1b1d7019a1abe148",
+      "actual": "1a6b151323c9571e30c25f325f6b5c6dddfc44494db3fa0b1b1d7019a1abe148"
+    },
+    {
+      "path": "src/bindings/GateItem.ts",
+      "expected": "742d471bb4cb8e76531eb6f77c7fd4987432bcbb4d61f2c54ed377faf4f80870",
+      "actual": "742d471bb4cb8e76531eb6f77c7fd4987432bcbb4d61f2c54ed377faf4f80870"
+    },
+    {
+      "path": "src/bindings/GatePlan.ts",
+      "expected": "efe73d82e558033c123b79744168b4f1d9362f97de44237f63eabefa55292a52",
+      "actual": "efe73d82e558033c123b79744168b4f1d9362f97de44237f63eabefa55292a52"
+    },
+    {
+      "path": "src/bindings/GateSample.ts",
+      "expected": "da578f12ed61062b039034ff6bcbfd7ff5d71b1b82b8939d24f31b865b9447de",
+      "actual": "da578f12ed61062b039034ff6bcbfd7ff5d71b1b82b8939d24f31b865b9447de"
+    },
+    {
+      "path": "src/bindings/GroupMember.ts",
+      "expected": "450b1907349a020ee818af2dd2648e9bb4d2aa6c190d003b0e49801350eb4f66",
+      "actual": "450b1907349a020ee818af2dd2648e9bb4d2aa6c190d003b0e49801350eb4f66"
+    },
+    {
+      "path": "src/bindings/GroupMemberRef.ts",
+      "expected": "adcecd99a6023bd0d188c6116ddfaab65530fde5cb1c48e5341e6fb196053cfe",
+      "actual": "adcecd99a6023bd0d188c6116ddfaab65530fde5cb1c48e5341e6fb196053cfe"
+    },
+    {
+      "path": "src/bindings/GroupSummary.ts",
+      "expected": "17c0626b02b215b8ed0c99c5ad7c658966affdb76cf2907970561984d1267e1a",
+      "actual": "17c0626b02b215b8ed0c99c5ad7c658966affdb76cf2907970561984d1267e1a"
+    },
+    {
+      "path": "src/bindings/GroupUsage.ts",
+      "expected": "bf5d0ec0dc98f06fc9d19d0c995800ac6fbe4f63cce26a31de386ccb824260d7",
+      "actual": "bf5d0ec0dc98f06fc9d19d0c995800ac6fbe4f63cce26a31de386ccb824260d7"
+    },
+    {
+      "path": "src/bindings/HdrKind.ts",
+      "expected": "236c0df80e5a63cff7797a2d2e9a198e4667c61993d3ea8f7c5d85e67f5f58db",
+      "actual": "236c0df80e5a63cff7797a2d2e9a198e4667c61993d3ea8f7c5d85e67f5f58db"
+    },
+    {
+      "path": "src/bindings/IccKind.ts",
+      "expected": "d9cb5697562ee00558be016aaeaeefd935e424a3e7e84cb811ab67cdccfb3883",
+      "actual": "d9cb5697562ee00558be016aaeaeefd935e424a3e7e84cb811ab67cdccfb3883"
+    },
+    {
+      "path": "src/bindings/IccSummary.ts",
+      "expected": "38348465eca320a8a44d9c83162d1ba3a7eb098e8675740e61149fd93708a186",
+      "actual": "38348465eca320a8a44d9c83162d1ba3a7eb098e8675740e61149fd93708a186"
+    },
+    {
+      "path": "src/bindings/ImageCard.ts",
+      "expected": "9e7cc1ad32e04b4fe780361e2358d492e4d6aa34043dae93b8ed46474c54d3d1",
+      "actual": "9e7cc1ad32e04b4fe780361e2358d492e4d6aa34043dae93b8ed46474c54d3d1"
+    },
+    {
+      "path": "src/bindings/ImageDetail.ts",
+      "expected": "abf0266861a49e4bffc56a10f49abc606c730530762f1cf6e23580a5f2a2fec4",
+      "actual": "abf0266861a49e4bffc56a10f49abc606c730530762f1cf6e23580a5f2a2fec4"
+    },
+    {
+      "path": "src/bindings/ImageEdit.ts",
+      "expected": "b0a842a971d812394c6e9cad455d99f1929cce91227c1504de03574c4e86d8ac",
+      "actual": "b0a842a971d812394c6e9cad455d99f1929cce91227c1504de03574c4e86d8ac"
+    },
+    {
+      "path": "src/bindings/ImageNote.ts",
+      "expected": "a910d8b8bad733dd3d83cc59ca5d1a414d708b6bbdf1dd7dfe493a7723988224",
+      "actual": "a910d8b8bad733dd3d83cc59ca5d1a414d708b6bbdf1dd7dfe493a7723988224"
+    },
+    {
+      "path": "src/bindings/ImageRating.ts",
+      "expected": "be5363d17046621fdf1e2d90d3d19788764fa515932246511f6de4572cd858b7",
+      "actual": "be5363d17046621fdf1e2d90d3d19788764fa515932246511f6de4572cd858b7"
+    },
+    {
+      "path": "src/bindings/ImageSnapshot.ts",
+      "expected": "8b6ab5e9886628b4f50d457c3a0d9316dbaa7d43133fbd4fa67c7ab8c34b8579",
+      "actual": "8b6ab5e9886628b4f50d457c3a0d9316dbaa7d43133fbd4fa67c7ab8c34b8579"
+    },
+    {
+      "path": "src/bindings/ImageTag.ts",
+      "expected": "0cfa52894320440d74e15c95657e3a9687630ffe4f8e232d86e06cf4f37216cf",
+      "actual": "0cfa52894320440d74e15c95657e3a9687630ffe4f8e232d86e06cf4f37216cf"
+    },
+    {
+      "path": "src/bindings/ImageTags.ts",
+      "expected": "a88f510108cce06e21a770faa4f89a1013675b807129994ea093588bfc4f610a",
+      "actual": "a88f510108cce06e21a770faa4f89a1013675b807129994ea093588bfc4f610a"
+    },
+    {
+      "path": "src/bindings/ImageVersions.ts",
+      "expected": "b29e011038d83e72beacffe1adb84776b4ff32c840648717074f72af2060378b",
+      "actual": "b29e011038d83e72beacffe1adb84776b4ff32c840648717074f72af2060378b"
+    },
+    {
+      "path": "src/bindings/ImportItem.ts",
+      "expected": "b8ab505d6360aa81dc4ed3503830c75871b3f29a907e2d42e95b07b49c40f003",
+      "actual": "b8ab505d6360aa81dc4ed3503830c75871b3f29a907e2d42e95b07b49c40f003"
+    },
+    {
+      "path": "src/bindings/ImportOptions.ts",
+      "expected": "e2b2b1aeae79e19ba4179f525ae6225ba9d3d96e95f38865cb5bef6ee7a32439",
+      "actual": "e2b2b1aeae79e19ba4179f525ae6225ba9d3d96e95f38865cb5bef6ee7a32439"
+    },
+    {
+      "path": "src/bindings/ImportOutcome.ts",
+      "expected": "07e708963e87b29db9a1898deede6544ea7f6b22339971b3b7fee4cf693c26e8",
+      "actual": "07e708963e87b29db9a1898deede6544ea7f6b22339971b3b7fee4cf693c26e8"
+    },
+    {
+      "path": "src/bindings/ImportProgress.ts",
+      "expected": "1ccc093f54cc3824c256961deee3fa619bab8f8ff5230d9f4b2bddf2da065952",
+      "actual": "1ccc093f54cc3824c256961deee3fa619bab8f8ff5230d9f4b2bddf2da065952"
+    },
+    {
+      "path": "src/bindings/ImportReport.ts",
+      "expected": "e210266bf1e2dcf775e81548267f926336f9a9770f0ce723f3eb6e9dd520605f",
+      "actual": "e210266bf1e2dcf775e81548267f926336f9a9770f0ce723f3eb6e9dd520605f"
+    },
+    {
+      "path": "src/bindings/ImportSource.ts",
+      "expected": "ca843432bbb6037e277649a0b8ed043b32c7829763db7505f96731553f62768a",
+      "actual": "ca843432bbb6037e277649a0b8ed043b32c7829763db7505f96731553f62768a"
+    },
+    {
+      "path": "src/bindings/LegacyNameDecision.ts",
+      "expected": "1c776ede150d6381addf7f251dcac3d9b0cffac5f3b06f7d07a61dcea32302d6",
+      "actual": "1c776ede150d6381addf7f251dcac3d9b0cffac5f3b06f7d07a61dcea32302d6"
+    },
+    {
+      "path": "src/bindings/LegacyNameGroup.ts",
+      "expected": "6a9c3990a6cdbf11a8e76295c002f8f03e637d339b95777400ca9b969d41c109",
+      "actual": "6a9c3990a6cdbf11a8e76295c002f8f03e637d339b95777400ca9b969d41c109"
+    },
+    {
+      "path": "src/bindings/LegacyNameMigration.ts",
+      "expected": "20202b6ec9c6b836496f5f7de7f9053d5881a4ea2247a81c334777f30a6ff0af",
+      "actual": "20202b6ec9c6b836496f5f7de7f9053d5881a4ea2247a81c334777f30a6ff0af"
+    },
+    {
+      "path": "src/bindings/LegacyNameMigrationPreview.ts",
+      "expected": "9af3efba5df50f237c7349b7380b834d5106e66da0992a229d914c75070b04ce",
+      "actual": "9af3efba5df50f237c7349b7380b834d5106e66da0992a229d914c75070b04ce"
+    },
+    {
+      "path": "src/bindings/LegacyNameMigrationWorkspace.ts",
+      "expected": "15d082446ceb3d06756e0697c559989c4eb56919fa0cbc2bb1880b37f7549551",
+      "actual": "15d082446ceb3d06756e0697c559989c4eb56919fa0cbc2bb1880b37f7549551"
+    },
+    {
+      "path": "src/bindings/LegacyNameOutcome.ts",
+      "expected": "b656ab1c2024a6d1140cdeb1ff3825a2e509d9b83183229a8a59593272d61b29",
+      "actual": "b656ab1c2024a6d1140cdeb1ff3825a2e509d9b83183229a8a59593272d61b29"
+    },
+    {
+      "path": "src/bindings/LegacyNameResolution.ts",
+      "expected": "b8e859aad5c61df32c2bf712c99339832f21c6bb085701899ea62817e8a03579",
+      "actual": "b8e859aad5c61df32c2bf712c99339832f21c6bb085701899ea62817e8a03579"
+    },
+    {
+      "path": "src/bindings/LegacyNameSource.ts",
+      "expected": "330b072553f6d307387af27110b9a5da5288224a2e2b2f6ba3d57b9b484df42e",
+      "actual": "330b072553f6d307387af27110b9a5da5288224a2e2b2f6ba3d57b9b484df42e"
+    },
+    {
+      "path": "src/bindings/LibraryEvent.ts",
+      "expected": "b47e27daece69074768e11fa99c05b4a7df99b27201050c860a3d40a7b912bec",
+      "actual": "b47e27daece69074768e11fa99c05b4a7df99b27201050c860a3d40a7b912bec"
+    },
+    {
+      "path": "src/bindings/LibraryInfo.ts",
+      "expected": "4d1b5c00808845a161253eafde9acfef86133846f4d4f1a1eeaa6ffa89474c88",
+      "actual": "4d1b5c00808845a161253eafde9acfef86133846f4d4f1a1eeaa6ffa89474c88"
+    },
+    {
+      "path": "src/bindings/LibraryRegistration.ts",
+      "expected": "44cc3838d27264ecfdfa3e56781daa338745dd4d1f4932316ff93ea18a97dfce",
+      "actual": "44cc3838d27264ecfdfa3e56781daa338745dd4d1f4932316ff93ea18a97dfce"
+    },
+    {
+      "path": "src/bindings/LibraryTagMapping.ts",
+      "expected": "d3f20426078efa05425ec6cd412824e415c5947207a60bd47b1ea1dfea44eeb1",
+      "actual": "d3f20426078efa05425ec6cd412824e415c5947207a60bd47b1ea1dfea44eeb1"
+    },
+    {
+      "path": "src/bindings/LibraryTaggingStatus.ts",
+      "expected": "027b4a27c8c524ec029aa5a38fe5e1567384eab9e4af3e27e2d0761bd8cc7140",
+      "actual": "027b4a27c8c524ec029aa5a38fe5e1567384eab9e4af3e27e2d0761bd8cc7140"
+    },
+    {
+      "path": "src/bindings/LocalizedName.ts",
+      "expected": "995d3b61f70bd65cac926cb6ce55e2b04bb9e54b207786060544024b112701b0",
+      "actual": "995d3b61f70bd65cac926cb6ce55e2b04bb9e54b207786060544024b112701b0"
+    },
+    {
+      "path": "src/bindings/MappedExternal.ts",
+      "expected": "c2c8ffecc27f5a2b223816e5e02d75e3406b15f3f19ba2f0237d6e83f0d47b44",
+      "actual": "c2c8ffecc27f5a2b223816e5e02d75e3406b15f3f19ba2f0237d6e83f0d47b44"
+    },
+    {
+      "path": "src/bindings/MatchBasis.ts",
+      "expected": "ce5b24171e912d765e7500392cdd8115df7d383d765285574586e313e1b3b245",
+      "actual": "ce5b24171e912d765e7500392cdd8115df7d383d765285574586e313e1b3b245"
+    },
+    {
+      "path": "src/bindings/MemberState.ts",
+      "expected": "f1e7bb264afb40cc6cf6dd0145bb152c3319b1c46cd8e7292ce988f596287b5f",
+      "actual": "f1e7bb264afb40cc6cf6dd0145bb152c3319b1c46cd8e7292ce988f596287b5f"
+    },
+    {
+      "path": "src/bindings/MemberStatus.ts",
+      "expected": "942ff21e858039cfd77f2097e853244325bcf06ddadaa0c251258bdfd1c65360",
+      "actual": "942ff21e858039cfd77f2097e853244325bcf06ddadaa0c251258bdfd1c65360"
+    },
+    {
+      "path": "src/bindings/ModelChoice.ts",
+      "expected": "cd228ce4861629d72838aa0eef64b4e5fcc898154a1ca0dc3cac87a35d16693d",
+      "actual": "cd228ce4861629d72838aa0eef64b4e5fcc898154a1ca0dc3cac87a35d16693d"
+    },
+    {
+      "path": "src/bindings/ModelOption.ts",
+      "expected": "6d72c0c11ac1a77c992423e890990b454dc7cffc661f4d9f36036ea30966fb1d",
+      "actual": "6d72c0c11ac1a77c992423e890990b454dc7cffc661f4d9f36036ea30966fb1d"
+    },
+    {
+      "path": "src/bindings/PackageImage.ts",
+      "expected": "fdaac30c0d030286886dfeb882d7634561502e5bedbdea48225e19fb75b77027",
+      "actual": "fdaac30c0d030286886dfeb882d7634561502e5bedbdea48225e19fb75b77027"
+    },
+    {
+      "path": "src/bindings/PackageManifest.ts",
+      "expected": "0c7b08adf3bf4f8798fba4c00d5ea356088d44b607cfde9ca67d8288e0bf77a1",
+      "actual": "0c7b08adf3bf4f8798fba4c00d5ea356088d44b607cfde9ca67d8288e0bf77a1"
+    },
+    {
+      "path": "src/bindings/PackageProvenance.ts",
+      "expected": "fdf2ca492e1d6b4e75dc2505baa3a410b705a23688c97101091fcf7f1144a083",
+      "actual": "fdf2ca492e1d6b4e75dc2505baa3a410b705a23688c97101091fcf7f1144a083"
+    },
+    {
+      "path": "src/bindings/Patch.ts",
+      "expected": "3cdb4062b1516289bf34ba2d9a5909d8286d0274dd77eea38321f4b5e2f20e14",
+      "actual": "3cdb4062b1516289bf34ba2d9a5909d8286d0274dd77eea38321f4b5e2f20e14"
+    },
+    {
+      "path": "src/bindings/PermanentDeletePreview.ts",
+      "expected": "76ad1057b7e11cd19d5a1704d495c2098274bb23046cfa6837eefcc7c0c2ad0f",
+      "actual": "76ad1057b7e11cd19d5a1704d495c2098274bb23046cfa6837eefcc7c0c2ad0f"
+    },
+    {
+      "path": "src/bindings/PersonalApprox.ts",
+      "expected": "261b5aafd7792c5f6bea6b56d703925ebe05c228829039c5e1153de750104cbf",
+      "actual": "261b5aafd7792c5f6bea6b56d703925ebe05c228829039c5e1153de750104cbf"
+    },
+    {
+      "path": "src/bindings/PersonalApproxEntry.ts",
+      "expected": "6f3528f704d5e93f6fbf94051fe925521a9353fbb831b7c108038af47c8fc392",
+      "actual": "6f3528f704d5e93f6fbf94051fe925521a9353fbb831b7c108038af47c8fc392"
+    },
+    {
+      "path": "src/bindings/PinContent.ts",
+      "expected": "4bfe750edc4526291fd3807ab9f7c106843e2d989f4b381253b7d90b76633f0f",
+      "actual": "4bfe750edc4526291fd3807ab9f7c106843e2d989f4b381253b7d90b76633f0f"
+    },
+    {
+      "path": "src/bindings/PinFrame.ts",
+      "expected": "3c51734961a8024302900fab597479f545448e4ee1a185fb480fd79376d3f3e1",
+      "actual": "3c51734961a8024302900fab597479f545448e4ee1a185fb480fd79376d3f3e1"
+    },
+    {
+      "path": "src/bindings/PinMotion.ts",
+      "expected": "77890f38cf9e7b59da57e46b5237b23f24569515d655af103aaf099a7f006075",
+      "actual": "77890f38cf9e7b59da57e46b5237b23f24569515d655af103aaf099a7f006075"
+    },
+    {
+      "path": "src/bindings/Placement.ts",
+      "expected": "3145a3db33edd13ed7302ce5d2aacdb8f1a7f042a54e680bb41bf00dee937f0b",
+      "actual": "3145a3db33edd13ed7302ce5d2aacdb8f1a7f042a54e680bb41bf00dee937f0b"
+    },
+    {
+      "path": "src/bindings/RatingFact.ts",
+      "expected": "11ec99b034e704e9e3de7013405aa03841f71b2490947edd1baefc30a6e73d74",
+      "actual": "11ec99b034e704e9e3de7013405aa03841f71b2490947edd1baefc30a6e73d74"
+    },
+    {
+      "path": "src/bindings/RecoveryReport.ts",
+      "expected": "cc1fd7be13c130603f95fc73870ac47befa38bbb08016af04004f031212c1495",
+      "actual": "cc1fd7be13c130603f95fc73870ac47befa38bbb08016af04004f031212c1495"
+    },
+    {
+      "path": "src/bindings/ReferenceGroup.ts",
+      "expected": "f9ed974a3d8a166fcc0721317d0422d0782b778d48679be64a15e534ffa2c0f1",
+      "actual": "f9ed974a3d8a166fcc0721317d0422d0782b778d48679be64a15e534ffa2c0f1"
+    },
+    {
+      "path": "src/bindings/ReferenceGroupView.ts",
+      "expected": "470aa081e00204b9ce436ee491f8351808aa401fb35b79b3646e3d1a47ba404c",
+      "actual": "470aa081e00204b9ce436ee491f8351808aa401fb35b79b3646e3d1a47ba404c"
+    },
+    {
+      "path": "src/bindings/ReferenceImage.ts",
+      "expected": "d7374879769926fd9532752019e9134010a1a1be7420d3feca3ed7ee72cd8c6e",
+      "actual": "d7374879769926fd9532752019e9134010a1a1be7420d3feca3ed7ee72cd8c6e"
+    },
+    {
+      "path": "src/bindings/Region.ts",
+      "expected": "c14d1010f2837a0e9d2de2165f8314337221c50deb1b27f75fae684b44051cb4",
+      "actual": "c14d1010f2837a0e9d2de2165f8314337221c50deb1b27f75fae684b44051cb4"
+    },
+    {
+      "path": "src/bindings/RegisteredLibrary.ts",
+      "expected": "3b8462a4c4a6e76c93992622a257bc570c6a1ade667d9a79d2a4cb08c57a4931",
+      "actual": "3b8462a4c4a6e76c93992622a257bc570c6a1ade667d9a79d2a4cb08c57a4931"
+    },
+    {
+      "path": "src/bindings/ResolvedTagIdentity.ts",
+      "expected": "96a9debd91e4a1f4ecf57c236dff61e513dd4afbcaa1ad73f1e434bbdb1aff22",
+      "actual": "96a9debd91e4a1f4ecf57c236dff61e513dd4afbcaa1ad73f1e434bbdb1aff22"
+    },
+    {
+      "path": "src/bindings/RestoreProvenance.ts",
+      "expected": "8ae47272adabc744344d929bf837e99204a8db4e33806b400a78386bc98035c2",
+      "actual": "8ae47272adabc744344d929bf837e99204a8db4e33806b400a78386bc98035c2"
+    },
+    {
+      "path": "src/bindings/RestoreReport.ts",
+      "expected": "8104948f8af4c6fcea546c05a87a69c0b51f3d5c4e84939db465ac38cc5e1f53",
+      "actual": "8104948f8af4c6fcea546c05a87a69c0b51f3d5c4e84939db465ac38cc5e1f53"
+    },
+    {
+      "path": "src/bindings/RestoredFrom.ts",
+      "expected": "505c7006e095d6f1deb2b085522e485d314928e3e65df260aa31e0fdbb9480ea",
+      "actual": "505c7006e095d6f1deb2b085522e485d314928e3e65df260aa31e0fdbb9480ea"
+    },
+    {
+      "path": "src/bindings/RestoredGroup.ts",
+      "expected": "dd5ab26907afb5c30ae75bd2c38742c4fa46f61b2627007b0f10557e029c0da6",
+      "actual": "dd5ab26907afb5c30ae75bd2c38742c4fa46f61b2627007b0f10557e029c0da6"
+    },
+    {
+      "path": "src/bindings/RestoredLibrary.ts",
+      "expected": "a96ae367c8dd82fe328c3dfd5511fe88a0105804c3cabd20994bbda470197ced",
+      "actual": "a96ae367c8dd82fe328c3dfd5511fe88a0105804c3cabd20994bbda470197ced"
+    },
+    {
+      "path": "src/bindings/RoundTripCheck.ts",
+      "expected": "65005254061f72dff245dfecef0e0336d58fc3482b7ad6b0a3c3cab7674a5f74",
+      "actual": "65005254061f72dff245dfecef0e0336d58fc3482b7ad6b0a3c3cab7674a5f74"
+    },
+    {
+      "path": "src/bindings/SavedPin.ts",
+      "expected": "2745dcb13956f391035303e2d775268988941e3b30118ce2eff4b16b6dba1242",
+      "actual": "2745dcb13956f391035303e2d775268988941e3b30118ce2eff4b16b6dba1242"
+    },
+    {
+      "path": "src/bindings/ScopeItem.ts",
+      "expected": "a3175f464c5f7d9d1ed05a18b0fd811f1c56bf0b090f242f56758f5a52025295",
+      "actual": "a3175f464c5f7d9d1ed05a18b0fd811f1c56bf0b090f242f56758f5a52025295"
+    },
+    {
+      "path": "src/bindings/ScopeSelection.ts",
+      "expected": "f6a8cc2091e6ad76e4c9fe0f81fce1c840d4ab0214539c201d6e5937e05154d9",
+      "actual": "f6a8cc2091e6ad76e4c9fe0f81fce1c840d4ab0214539c201d6e5937e05154d9"
+    },
+    {
+      "path": "src/bindings/ScopeStep.ts",
+      "expected": "d212822ff1dca77c61b6029fc29b62836fc387893ce69231469cdbd472c2902c",
+      "actual": "d212822ff1dca77c61b6029fc29b62836fc387893ce69231469cdbd472c2902c"
+    },
+    {
+      "path": "src/bindings/ScreenRect.ts",
+      "expected": "c117bdac7ec14a2e1437aa7410b4146c9ee8336ecbdd678570c23fbb7910e105",
+      "actual": "c117bdac7ec14a2e1437aa7410b4146c9ee8336ecbdd678570c23fbb7910e105"
+    },
+    {
+      "path": "src/bindings/SearchInput.ts",
+      "expected": "bc59c8c44d155ea024e29c435bf5cb28dbb904e5bbcbcd07ed6cf680aac3424e",
+      "actual": "bc59c8c44d155ea024e29c435bf5cb28dbb904e5bbcbcd07ed6cf680aac3424e"
+    },
+    {
+      "path": "src/bindings/ShellSettingsView.ts",
+      "expected": "ed3534246e6bbedb43847839492f9181bc3060983e54af5d0ec739d4c3a0f48e",
+      "actual": "ed3534246e6bbedb43847839492f9181bc3060983e54af5d0ec739d4c3a0f48e"
+    },
+    {
+      "path": "src/bindings/ShortcutAction.ts",
+      "expected": "416cf3d87377bc658e81fb09242dc8a2d115bd6d7413b9fec11c2a41a00091e3",
+      "actual": "416cf3d87377bc658e81fb09242dc8a2d115bd6d7413b9fec11c2a41a00091e3"
+    },
+    {
+      "path": "src/bindings/ShortcutBinding.ts",
+      "expected": "a6c35c98b49de933863c813e45f31d7b02c782948a662de47d7379db5bb8855f",
+      "actual": "a6c35c98b49de933863c813e45f31d7b02c782948a662de47d7379db5bb8855f"
+    },
+    {
+      "path": "src/bindings/Sidebar.ts",
+      "expected": "711440d97d0618c234974b1dd4f799b1da83c7ad0b7ee47e048715863be4745f",
+      "actual": "711440d97d0618c234974b1dd4f799b1da83c7ad0b7ee47e048715863be4745f"
+    },
+    {
+      "path": "src/bindings/SimilarTag.ts",
+      "expected": "f693d7a24c23cf8a3f347a535916563a6cb0981490c16641768ef57d7718edf0",
+      "actual": "f693d7a24c23cf8a3f347a535916563a6cb0981490c16641768ef57d7718edf0"
+    },
+    {
+      "path": "src/bindings/SkippedLibrary.ts",
+      "expected": "7e2b7879bdfd5164dfdc7c815cdfa23890abd970897eeb713a2cf8ba238f3ae2",
+      "actual": "7e2b7879bdfd5164dfdc7c815cdfa23890abd970897eeb713a2cf8ba238f3ae2"
+    },
+    {
+      "path": "src/bindings/SnapshotSummary.ts",
+      "expected": "a76842df596b2a69bc0726b1a8dc1116f052791c23c7bf84b82ca5604c9e87e0",
+      "actual": "a76842df596b2a69bc0726b1a8dc1116f052791c23c7bf84b82ca5604c9e87e0"
+    },
+    {
+      "path": "src/bindings/SnapshotTag.ts",
+      "expected": "96be759bee0d1e21189fc80827bf4fb9ebe612bd63236e8499372c317f8efee0",
+      "actual": "96be759bee0d1e21189fc80827bf4fb9ebe612bd63236e8499372c317f8efee0"
+    },
+    {
+      "path": "src/bindings/SourceNote.ts",
+      "expected": "35b12c064b150b0903cb15911d953e0b21bb611a328c784ebbb6e451f8866976",
+      "actual": "35b12c064b150b0903cb15911d953e0b21bb611a328c784ebbb6e451f8866976"
+    },
+    {
+      "path": "src/bindings/Stamp.ts",
+      "expected": "d1da44b45461ac21feb0430fdee33ff5a7b7124395d9a6a721c5d364e785337c",
+      "actual": "d1da44b45461ac21feb0430fdee33ff5a7b7124395d9a6a721c5d364e785337c"
+    },
+    {
+      "path": "src/bindings/TagAlias.ts",
+      "expected": "3a776a1437bb7a32ca5ac40bf0c674cb2003b7ad9c6bc49bf5b3addbc26655d8",
+      "actual": "3a776a1437bb7a32ca5ac40bf0c674cb2003b7ad9c6bc49bf5b3addbc26655d8"
+    },
+    {
+      "path": "src/bindings/TagCatalogWorkspace.ts",
+      "expected": "4bf18e1aaee531542f984e752096a881fbff432ef3b68249d3b6dc697578e8ea",
+      "actual": "4bf18e1aaee531542f984e752096a881fbff432ef3b68249d3b6dc697578e8ea"
+    },
+    {
+      "path": "src/bindings/TagCount.ts",
+      "expected": "53b2c624b10c8287fbf1cb2b622e552b3ccead737289035832b8a74368ad0e62",
+      "actual": "53b2c624b10c8287fbf1cb2b622e552b3ccead737289035832b8a74368ad0e62"
+    },
+    {
+      "path": "src/bindings/TagEdit.ts",
+      "expected": "e1dfe2602f3b84f87bab4e6bac5747cb31b3c2a41dc5f095000e92a37f8c280b",
+      "actual": "e1dfe2602f3b84f87bab4e6bac5747cb31b3c2a41dc5f095000e92a37f8c280b"
+    },
+    {
+      "path": "src/bindings/TagGroupDefinition.ts",
+      "expected": "721ccfb40bdf0d77f4c1fd6ab6d452e8d442bd5f83314d66a2dd975902ab5b60",
+      "actual": "721ccfb40bdf0d77f4c1fd6ab6d452e8d442bd5f83314d66a2dd975902ab5b60"
+    },
+    {
+      "path": "src/bindings/TagGroupView.ts",
+      "expected": "390ea6105506086d1ef5dade15f0ae8eec25c5cb06a3f5f5ad61a46857ac916a",
+      "actual": "390ea6105506086d1ef5dade15f0ae8eec25c5cb06a3f5f5ad61a46857ac916a"
+    },
+    {
+      "path": "src/bindings/TagLabel.ts",
+      "expected": "c166b4c04637bdea4c131240dc0917fd62aa1bab0e75d54cb8387cd8a35ce0ee",
+      "actual": "c166b4c04637bdea4c131240dc0917fd62aa1bab0e75d54cb8387cd8a35ce0ee"
+    },
+    {
+      "path": "src/bindings/TagNameProvenance.ts",
+      "expected": "ac874b6183cb3179cee6d08d387d4f0e2050e8582092d46f97afc3db067ff787",
+      "actual": "ac874b6183cb3179cee6d08d387d4f0e2050e8582092d46f97afc3db067ff787"
+    },
+    {
+      "path": "src/bindings/TagNamespace.ts",
+      "expected": "18ebd740bfb26e4dc81db1018b95ff0811c8ea22c469a5c31b34416a5ca77d67",
+      "actual": "18ebd740bfb26e4dc81db1018b95ff0811c8ea22c469a5c31b34416a5ca77d67"
+    },
+    {
+      "path": "src/bindings/TagOrigin.ts",
+      "expected": "8427cc1dafb583849ef7c301a1abf2b74ab2bfacca2d00ff0c15f64f9e80fad9",
+      "actual": "8427cc1dafb583849ef7c301a1abf2b74ab2bfacca2d00ff0c15f64f9e80fad9"
+    },
+    {
+      "path": "src/bindings/TagRef.ts",
+      "expected": "eefa047b494fbc61d4d2d065bcea321eea1f0144be24c05b7cfee71710947eb5",
+      "actual": "eefa047b494fbc61d4d2d065bcea321eea1f0144be24c05b7cfee71710947eb5"
+    },
+    {
+      "path": "src/bindings/TaggingStatus.ts",
+      "expected": "b761c60ba11fadf8b90b1388cc1e79b8c8c4a6fe2023ff606d79f711f813c065",
+      "actual": "b761c60ba11fadf8b90b1388cc1e79b8c8c4a6fe2023ff606d79f711f813c065"
+    },
+    {
+      "path": "src/bindings/Term.ts",
+      "expected": "f98ee6f590525d1b6728bfdf8b99b08f97d7089c56cb35c5212995d708973c27",
+      "actual": "f98ee6f590525d1b6728bfdf8b99b08f97d7089c56cb35c5212995d708973c27"
+    },
+    {
+      "path": "src/bindings/TermInput.ts",
+      "expected": "860608fc4fc09806a875d53b7d93517f886e97271786c9b34a8746332e94b789",
+      "actual": "860608fc4fc09806a875d53b7d93517f886e97271786c9b34a8746332e94b789"
+    },
+    {
+      "path": "src/bindings/Turn.ts",
+      "expected": "2b6d4750d3709c6e9af6f33f7f7de2ab3d68e8eca3b53bb9cc492eadfd032f63",
+      "actual": "2b6d4750d3709c6e9af6f33f7f7de2ab3d68e8eca3b53bb9cc492eadfd032f63"
+    },
+    {
+      "path": "src/bindings/UnavailableReason.ts",
+      "expected": "9af468e58e45ff7721f6fc30a21bb573a63fd761cb607d8e05af2333594dc37c",
+      "actual": "9af468e58e45ff7721f6fc30a21bb573a63fd761cb607d8e05af2333594dc37c"
+    },
+    {
+      "path": "src/bindings/Uncovered.ts",
+      "expected": "44a6fc32ddc47c450b2971773cc7c215e620970f708bd3ec42ab1e45ed8ee7bd",
+      "actual": "44a6fc32ddc47c450b2971773cc7c215e620970f708bd3ec42ab1e45ed8ee7bd"
+    },
+    {
+      "path": "src/bindings/UnmatchedEagleTag.ts",
+      "expected": "0880e6244d895fda1c7cc877b4a92ea97c17c06294dfd6e6122ea729ef8bd4ae",
+      "actual": "0880e6244d895fda1c7cc877b4a92ea97c17c06294dfd6e6122ea729ef8bd4ae"
+    },
+    {
+      "path": "src/bindings/UpdateProgress.ts",
+      "expected": "b32358a039fd7064584884eac4314b151e2c405306c9973d7e4594d232ccf924",
+      "actual": "b32358a039fd7064584884eac4314b151e2c405306c9973d7e4594d232ccf924"
+    },
+    {
+      "path": "src/bindings/UpdateStatus.ts",
+      "expected": "38e9a068ed39d4c330b8a9632dcff04bfb3c211f18af7ede5ab2591891529a7c",
+      "actual": "38e9a068ed39d4c330b8a9632dcff04bfb3c211f18af7ede5ab2591891529a7c"
+    },
+    {
+      "path": "src/bindings/Vocabulary.ts",
+      "expected": "3a3c5e519a66bab9e7f067d9779b7f2079a790be05071e5348ad6697e4a7aed0",
+      "actual": "3a3c5e519a66bab9e7f067d9779b7f2079a790be05071e5348ad6697e4a7aed0"
+    },
+    {
+      "path": "src/bindings/VocabularyTag.ts",
+      "expected": "303f622bac0f24115627574202a20fb60b8c329912b389224b6c542f687605d3",
+      "actual": "303f622bac0f24115627574202a20fb60b8c329912b389224b6c542f687605d3"
+    },
+    {
+      "path": "src/bindings/WorkspaceCard.ts",
+      "expected": "199dcfe63f70b08aabf785010e3719f80380e4397dc145394b8e1075da07d049",
+      "actual": "199dcfe63f70b08aabf785010e3719f80380e4397dc145394b8e1075da07d049"
+    },
+    {
+      "path": "src/bindings/WorkspaceDirectories.ts",
+      "expected": "30dd8b91e29d2d067acea52599f72353277ac4df3a88d84af370c7034ae734be",
+      "actual": "30dd8b91e29d2d067acea52599f72353277ac4df3a88d84af370c7034ae734be"
+    },
+    {
+      "path": "src/bindings/WorkspaceDirectory.ts",
+      "expected": "876b84818bfebdc3f296824222b3c1a10991a05af5563814989fa0c4bc33f7dc",
+      "actual": "876b84818bfebdc3f296824222b3c1a10991a05af5563814989fa0c4bc33f7dc"
+    },
+    {
+      "path": "src/bindings/WorkspacePage.ts",
+      "expected": "794c887ae1b94a00e88f25e0ed92871d91df5b726821c0141b988731e904701e",
+      "actual": "794c887ae1b94a00e88f25e0ed92871d91df5b726821c0141b988731e904701e"
+    },
+    {
+      "path": "src/bindings/WorkspaceQuery.ts",
+      "expected": "3b5380ce2c21e8ae4aade20765a6f77e09b4fd945dc2a43f5438194a5044f900",
+      "actual": "3b5380ce2c21e8ae4aade20765a6f77e09b4fd945dc2a43f5438194a5044f900"
+    },
+    {
+      "path": "src/bindings/WorkspaceScope.ts",
+      "expected": "9056d91ff0dd81ae1b3f929fda937b0c78b2dba44d7c4e8398e51439ceca59c7",
+      "actual": "9056d91ff0dd81ae1b3f929fda937b0c78b2dba44d7c4e8398e51439ceca59c7"
+    },
+    {
+      "path": "src/bindings/WorkspaceSource.ts",
+      "expected": "7e1e5f6d4cefebe04fe197e6f024f11e7c7ae7e8b13dbda7a81f84e76d420751",
+      "actual": "7e1e5f6d4cefebe04fe197e6f024f11e7c7ae7e8b13dbda7a81f84e76d420751"
+    },
+    {
+      "path": "src/bindings/WorkspaceSourceInspection.ts",
+      "expected": "86cde2354f46b24c87c1964d6f2ab7c9a1617908f2d97bc7ad5db67477cfc901",
+      "actual": "86cde2354f46b24c87c1964d6f2ab7c9a1617908f2d97bc7ad5db67477cfc901"
+    },
+    {
+      "path": "src/bindings/WorkspaceSourceTarget.ts",
+      "expected": "d0c7532f79a80e5f7c789c2115576619a32f8b99eae0c1d5df99396528dfe090",
+      "actual": "d0c7532f79a80e5f7c789c2115576619a32f8b99eae0c1d5df99396528dfe090"
+    },
+    {
+      "path": "src/bindings/WorkspaceStatus.ts",
+      "expected": "3998e2c8c6285e1c54df0ba332ce0ce05067d707b088d02e653e252b301ec757",
+      "actual": "3998e2c8c6285e1c54df0ba332ce0ce05067d707b088d02e653e252b301ec757"
+    },
+    {
+      "path": "src/desktop/CaptureHistoryPanel.tsx",
+      "expected": "67fef622aaa60395827bb04dc52ec3b750a37d93b271ce4b11b709227eb07f93",
+      "actual": "67fef622aaa60395827bb04dc52ec3b750a37d93b271ce4b11b709227eb07f93"
+    },
+    {
+      "path": "src/desktop/CaptureOverlay.tsx",
+      "expected": "b5617017435f5f4b1374a0c9f2bcb88f98e7df747be5e9865d83b10f5eadfe6b",
+      "actual": "b5617017435f5f4b1374a0c9f2bcb88f98e7df747be5e9865d83b10f5eadfe6b"
+    },
+    {
+      "path": "src/desktop/PinView.tsx",
+      "expected": "d9370d1aa66e3f999369f4b1cf34f350a0ef71a2b2204e2dfa327ef281217dac",
+      "actual": "d9370d1aa66e3f999369f4b1cf34f350a0ef71a2b2204e2dfa327ef281217dac"
+    },
+    {
+      "path": "src/desktop/ReferenceGroupsPanel.tsx",
+      "expected": "de90aea84a3dba8c1cc0e430065bde5332ade2bf7482c64bdc796070433f51f4",
+      "actual": "de90aea84a3dba8c1cc0e430065bde5332ade2bf7482c64bdc796070433f51f4"
+    },
+    {
+      "path": "src/desktop/motion.ts",
+      "expected": "64b180f8078df309f3ffe8258266b0e090692a5e3d8e82bef12acf40a62dd3c7",
+      "actual": "64b180f8078df309f3ffe8258266b0e090692a5e3d8e82bef12acf40a62dd3c7"
+    },
+    {
+      "path": "src/desktop/pixels.ts",
+      "expected": "630f0be7cb66de5a9a3aec0bcbd48f6876a5239b52e8cb31bac9fe08c8144e89",
+      "actual": "630f0be7cb66de5a9a3aec0bcbd48f6876a5239b52e8cb31bac9fe08c8144e89"
+    },
+    {
+      "path": "src/desktop/renderer.ts",
+      "expected": "13478c788989917f2d14a43e9f001f949eee1d2d217e7ec2b9910d484cb9c040",
+      "actual": "13478c788989917f2d14a43e9f001f949eee1d2d217e7ec2b9910d484cb9c040"
+    },
+    {
+      "path": "src/fidelity/FidelityGate.tsx",
+      "expected": "834cb44d9c60ea2a5978f5e4bacc17d06610007cf04982bc72d374d3687e4887",
+      "actual": "834cb44d9c60ea2a5978f5e4bacc17d06610007cf04982bc72d374d3687e4887"
+    },
+    {
+      "path": "src/fidelity/colour.ts",
+      "expected": "8d2bbc70f702f11cb6f6b8b161aedd8819e47d1340a9454d2bcbcaf27090e452",
+      "actual": "8d2bbc70f702f11cb6f6b8b161aedd8819e47d1340a9454d2bcbcaf27090e452"
+    },
+    {
+      "path": "src/ipc.ts",
+      "expected": "063749c843f11060bdba02b810ae98d32f48a8d0549190268f8f8634a6f442f0",
+      "actual": "063749c843f11060bdba02b810ae98d32f48a8d0549190268f8f8634a6f442f0"
+    },
+    {
+      "path": "src/library/CreateLibrary.tsx",
+      "expected": "4261ae55db0576bcd99244fe9f09bef49f8b7ce535041ed643b8659efe4319ec",
+      "actual": "4261ae55db0576bcd99244fe9f09bef49f8b7ce535041ed643b8659efe4319ec"
+    },
+    {
+      "path": "src/library/EagleTagStep.tsx",
+      "expected": "71b21668905b5519ffb89f7d804d46546037905784c8e464f3c44e23027eb4e5",
+      "actual": "71b21668905b5519ffb89f7d804d46546037905784c8e464f3c44e23027eb4e5"
+    },
+    {
+      "path": "src/library/ImportBar.tsx",
+      "expected": "83251cff90c091e0313de5af964cd91e8df7021b6d51ef3e39cc150ddd7fccaa",
+      "actual": "83251cff90c091e0313de5af964cd91e8df7021b6d51ef3e39cc150ddd7fccaa"
+    },
+    {
+      "path": "src/library/ImportMenu.tsx",
+      "expected": "dd06c5bc82500f36d5563ee6c42d341445fdeef3288b084c3046ca0b09f61a60",
+      "actual": "dd06c5bc82500f36d5563ee6c42d341445fdeef3288b084c3046ca0b09f61a60"
+    },
+    {
+      "path": "src/library/LegacyNameMigrationPanel.tsx",
+      "expected": "a7b1978ccde5614984f56cdfc56cb776546bf1ae77d80d6c69cecbea861bc477",
+      "actual": "a7b1978ccde5614984f56cdfc56cb776546bf1ae77d80d6c69cecbea861bc477"
+    },
+    {
+      "path": "src/library/LibraryPicker.tsx",
+      "expected": "573842a35c6d67ada0db6c49aab770dd7402bc793da84252372ce082971507b3",
+      "actual": "573842a35c6d67ada0db6c49aab770dd7402bc793da84252372ce082971507b3"
+    },
+    {
+      "path": "src/library/SelectionPanel.tsx",
+      "expected": "6bc4fc03611c33d745d27e6989a5ee0f600355470389bc487299f26c80fe374a",
+      "actual": "6bc4fc03611c33d745d27e6989a5ee0f600355470389bc487299f26c80fe374a"
+    },
+    {
+      "path": "src/library/SidebarPane.tsx",
+      "expected": "92cf4052a61276642dd6748edd5ee6af3cb38c2872d80afb6cd4230fef01d95a",
+      "actual": "92cf4052a61276642dd6748edd5ee6af3cb38c2872d80afb6cd4230fef01d95a"
+    },
+    {
+      "path": "src/library/TagGroupsPane.tsx",
+      "expected": "55f9e1ebb2eb363585d67d56c2951ee9355b552a08827d2cdf5ea06a57347fea",
+      "actual": "55f9e1ebb2eb363585d67d56c2951ee9355b552a08827d2cdf5ea06a57347fea"
+    },
+    {
+      "path": "src/library/TagIdentityPanel.tsx",
+      "expected": "3b59d9414a5706b0405deb67dc3565310257291543c353c3bb851a6f2bf58ee2",
+      "actual": "3b59d9414a5706b0405deb67dc3565310257291543c353c3bb851a6f2bf58ee2"
+    },
+    {
+      "path": "src/library/TagNamePanel.tsx",
+      "expected": "32bd2657336df6010744aa4f540d4de458a3099c72e47ba5a6d6ac41aa33cf4b",
+      "actual": "32bd2657336df6010744aa4f540d4de458a3099c72e47ba5a6d6ac41aa33cf4b"
+    },
+    {
+      "path": "src/library/TagPanel.tsx",
+      "expected": "1ad1f45372e1f38cb99b6fb2b723c4444f0ab8b3e06b12161d311bc5410b9b3a",
+      "actual": "1ad1f45372e1f38cb99b6fb2b723c4444f0ab8b3e06b12161d311bc5410b9b3a"
+    },
+    {
+      "path": "src/library/WorkspacePane.tsx",
+      "expected": "f30927af80c2c4ec3aea90ab05c5850ddf7ec1c668d8f8933e321ac3e41dca2f",
+      "actual": "f30927af80c2c4ec3aea90ab05c5850ddf7ec1c668d8f8933e321ac3e41dca2f"
+    },
+    {
+      "path": "src/library/WorkspaceSourceEditor.tsx",
+      "expected": "276335ee0b1dd0f10898650dfc79fdb0515f2ba6b6d30fa7ade2d1921b9c733a",
+      "actual": "276335ee0b1dd0f10898650dfc79fdb0515f2ba6b6d30fa7ade2d1921b9c733a"
+    },
+    {
+      "path": "src/library/library-path.ts",
+      "expected": "f66025bff04fef3c2ef08ca63588bffb29a207704463dbe79ac6e0a4836cda4f",
+      "actual": "f66025bff04fef3c2ef08ca63588bffb29a207704463dbe79ac6e0a4836cda4f"
+    },
+    {
+      "path": "src/main.tsx",
+      "expected": "af56b7882c62688415fa698a06db166e2fd2af25773d8f1974e9490c512deb57",
+      "actual": "af56b7882c62688415fa698a06db166e2fd2af25773d8f1974e9490c512deb57"
+    },
+    {
+      "path": "src/search/SearchBox.tsx",
+      "expected": "ffe7e8175eb9b27c4ec63ebc58ae469ed541bff68b554dea9bfcf6b559b334f6",
+      "actual": "ffe7e8175eb9b27c4ec63ebc58ae469ed541bff68b554dea9bfcf6b559b334f6"
+    },
+    {
+      "path": "src/search/TagGroupBar.tsx",
+      "expected": "1e1f687f94b74d1d00abb05c4ec0cee1a06a04dd9d18d2376a2de55899be724c",
+      "actual": "1e1f687f94b74d1d00abb05c4ec0cee1a06a04dd9d18d2376a2de55899be724c"
+    },
+    {
+      "path": "src/shell/Rail.tsx",
+      "expected": "6743fdc3478b61fc8c661e00f40bf85ce9a5967b8bab045eafabbe4bcaf5ff40",
+      "actual": "6743fdc3478b61fc8c661e00f40bf85ce9a5967b8bab045eafabbe4bcaf5ff40"
+    },
+    {
+      "path": "src/styles.css",
+      "expected": "d8358bcb9e7e8268ca129c0249bf04e3b00172962abfd604e36e43010955ffe2",
+      "actual": "d8358bcb9e7e8268ca129c0249bf04e3b00172962abfd604e36e43010955ffe2"
+    },
+    {
+      "path": "src/viewer/Viewer.tsx",
+      "expected": "9cf090d68fb1a12164641b5239f9a44f7944f0a2e0e4c7419ceb33485f728ff1",
+      "actual": "9cf090d68fb1a12164641b5239f9a44f7944f0a2e0e4c7419ceb33485f728ff1"
+    },
+    {
+      "path": "src/viewer/crop.ts",
+      "expected": "06c849c5966596526e7582581d5872dac1dcf2942bb90f11529c59b14474768e",
+      "actual": "06c849c5966596526e7582581d5872dac1dcf2942bb90f11529c59b14474768e"
+    },
+    {
+      "path": "src/wall/DensitySlider.tsx",
+      "expected": "fa30afa4506b6304a7fdc01724b1a0597d2d9226d543b12eeb0d0f4b33c3d9be",
+      "actual": "fa30afa4506b6304a7fdc01724b1a0597d2d9226d543b12eeb0d0f4b33c3d9be"
+    },
+    {
+      "path": "src/wall/Wall.tsx",
+      "expected": "9fbb9ea89ca9da739671d4c4dd02d2b90f7c4009a8a62431f5ae4872d584c79c",
+      "actual": "9fbb9ea89ca9da739671d4c4dd02d2b90f7c4009a8a62431f5ae4872d584c79c"
+    },
+    {
+      "path": "src/wall/layout.ts",
+      "expected": "bc56a7265b2c877a08a6ed326c8f25d1bc4b2e31a54934299b8cf3c8e169735d",
+      "actual": "bc56a7265b2c877a08a6ed326c8f25d1bc4b2e31a54934299b8cf3c8e169735d"
+    },
+    {
+      "path": "tsconfig.json",
+      "expected": "5c4be8202e6f4080a8ee01542f1c92ebb2b539f8c8b702d4d9eab75a4b5e7789",
+      "actual": "5c4be8202e6f4080a8ee01542f1c92ebb2b539f8c8b702d4d9eab75a4b5e7789"
+    },
+    {
+      "path": "vite.config.ts",
+      "expected": "a1e04858aeb250e2732201aba74a37be3d95a5294295bec65001807cec3d01a7",
+      "actual": "a1e04858aeb250e2732201aba74a37be3d95a5294295bec65001807cec3d01a7"
+    },
+    {
+      "path": "dist/assets/index-BX4yaQwo.css",
+      "expected": "fcc26bb8a13a485b7bab36ef3677a7d2a7ab72b569250bb1f8a4765bd5b67a82",
+      "actual": "fcc26bb8a13a485b7bab36ef3677a7d2a7ab72b569250bb1f8a4765bd5b67a82"
+    },
+    {
+      "path": "dist/assets/index-CGKJ6PIO.js",
+      "expected": "ad7bb622497b8b29e87d4137e9f3c960c87015500851bcc756c15519d913c65a",
+      "actual": "ad7bb622497b8b29e87d4137e9f3c960c87015500851bcc756c15519d913c65a"
+    },
+    {
+      "path": "dist/fonts/Inter-LICENSE.txt",
+      "expected": "b3195af0fb14368d1b3b10fb9d3fe503b7163ea083859d2ee553bc74da07c320",
+      "actual": "b3195af0fb14368d1b3b10fb9d3fe503b7163ea083859d2ee553bc74da07c320"
+    },
+    {
+      "path": "dist/fonts/Inter-Medium-hinted.woff2",
+      "expected": "7e80d9f65861ee6836a0081d4e75d88fb8789e5651d05edbc49640442a9610ee",
+      "actual": "7e80d9f65861ee6836a0081d4e75d88fb8789e5651d05edbc49640442a9610ee"
+    },
+    {
+      "path": "dist/fonts/Inter-Regular-hinted.woff2",
+      "expected": "338239f6b590b8ced3bf857654d32da3fd3663294cd3003651ed57aa3abd7aa1",
+      "actual": "338239f6b590b8ced3bf857654d32da3fd3663294cd3003651ed57aa3abd7aa1"
+    },
+    {
+      "path": "dist/fonts/Inter-SemiBold-hinted.woff2",
+      "expected": "5013f48d77ab627b1db7c2415914284ef09abc3f60a8e0d0d8f3cd1bfebefb5e",
+      "actual": "5013f48d77ab627b1db7c2415914284ef09abc3f60a8e0d0d8f3cd1bfebefb5e"
+    },
+    {
+      "path": "dist/fonts/README.md",
+      "expected": "4021ee08a54221dbfea8c42e5a70f79b4d0030fe1df1004f74794bc9828d9c11",
+      "actual": "4021ee08a54221dbfea8c42e5a70f79b4d0030fe1df1004f74794bc9828d9c11"
+    },
+    {
+      "path": "dist/fonts/SourceHanSans-LICENSE.txt",
+      "expected": "1953855bf1927e7214385bbdd8adb04cc5e8a0ecd0e6eaedeb1bdc281b009481",
+      "actual": "1953855bf1927e7214385bbdd8adb04cc5e8a0ecd0e6eaedeb1bdc281b009481"
+    },
+    {
+      "path": "dist/fonts/SourceHanSansSC-VF.ttf.woff2",
+      "expected": "cfec773cdc2ea964de8713471c6fd20774bc40617f5567f92efeeccaca6604b0",
+      "actual": "cfec773cdc2ea964de8713471c6fd20774bc40617f5567f92efeeccaca6604b0"
+    },
+    {
+      "path": "dist/index.html",
+      "expected": "164ac5312ac6e44f138287ec39e5700de1841a3d99fe28ba85bf02fbb61115b2",
+      "actual": "164ac5312ac6e44f138287ec39e5700de1841a3d99fe28ba85bf02fbb61115b2"
+    }
+  ],
+  "reason": "Later commits change only test harnesses, documents and evidence; product source and embedded dist remain byte-identical."
+}

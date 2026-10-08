@@ -1,3 +1,4 @@
+import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
 import { workspaceFixture } from "../test/workspace-fixture";
 // 标签整理（#77 UI-B，#51，#42 用户故事 58、59、64、65、81）：在主窗口里查看单图的有效标签与
 // 出处，添加、否决、清除人工标签决定（含批量），给标签加别名并按别名查到，建立与编辑标签分组并
@@ -241,6 +242,8 @@ function backend() {
           return fake.vocabulary();
         case "plugin:library|tag_groups":
           return fake.tagGroups();
+        case "plugin:library|shared_tag_groups":
+          return fake.tagGroups().map((group) => ({ ...group, sources: [] }));
         case "plugin:library|search_candidates":
           return fake.candidates(a.text);
         case "plugin:library|resolve_search":
@@ -256,31 +259,30 @@ function backend() {
           announce([]);
           return null;
         }
-        case "plugin:library|create_tag_group": {
+        case "plugin:library|create_shared_tag_group": {
           const id = `G${fake.groups.length + 1}`;
           fake.groups.push({ id, name: a.name, namespace: a.namespace, members: [] });
           announce([]);
           return id;
         }
-        case "plugin:library|rename_tag_group":
-          fake.groups.find((g) => g.id === a.groupId)!.name = a.name;
-          announce([]);
-          return null;
-        case "plugin:library|delete_tag_group":
-          fake.groups = fake.groups.filter((g) => g.id !== a.groupId);
-          announce([]);
-          return null;
-        case "plugin:library|add_to_tag_group": {
-          const g = fake.groups.find((x) => x.id === a.groupId)!;
-          for (const t of a.tagIds as string[]) if (!g.members.includes(t)) g.members.push(t);
-          announce([]);
-          return null;
-        }
-        case "plugin:library|remove_from_tag_group": {
-          const g = fake.groups.find((x) => x.id === a.groupId)!;
-          g.members = g.members.filter((t) => !(a.tagIds as string[]).includes(t));
-          announce([]);
-          return null;
+        case "plugin:library|edit_shared_tag_group": {
+          const edit = (args as { edit: CatalogGroupEdit }).edit;
+          switch (edit.kind) {
+            case "rename": fake.groups.find((g) => g.id === edit.groupId)!.name = edit.name; break;
+            case "delete": fake.groups = fake.groups.filter((g) => g.id !== edit.groupId); break;
+            case "addMembers": {
+              const group = fake.groups.find((g) => g.id === edit.groupId)!;
+              for (const id of edit.tagIds) if (!group.members.includes(id)) group.members.push(id);
+              break;
+            }
+            case "removeMembers": {
+              const group = fake.groups.find((g) => g.id === edit.groupId)!;
+              group.members = group.members.filter((id) => !edit.tagIds.includes(id)); break;
+            }
+            case "orderMembers": fake.groups.find((g) => g.id === edit.groupId)!.members = edit.tagIds; break;
+            case "orderGroups": fake.groups.sort((a, b) => edit.groupIds.indexOf(a.id) - edit.groupIds.indexOf(b.id)); break;
+          }
+          announce([]); return null;
         }
         case "tagging_status":
           return { libraryId: "L1", status: { state: "starting" } };
@@ -454,7 +456,7 @@ describe("标签别名", () => {
 });
 
 describe("标签分组", () => {
-  it("建立分组、从库内标签挑成员，侧栏按分组列出计数；点标签按它浏览", async () => {
+  it("建立全局分组、从统一标签挑成员，侧栏按分组列出计数；点标签按它浏览", async () => {
     render(<App />);
     const groups = await screen.findByRole("region", { name: "标签分组" });
     fireEvent.click(within(groups).getByRole("button", { name: "新建标签分组" }));
@@ -462,17 +464,17 @@ describe("标签分组", () => {
     fireEvent.change(name, { target: { value: "发色" } });
     fireEvent.keyDown(name, { key: "Enter" });
     await waitFor(() =>
-      expect(sent("plugin:library|create_tag_group")).toEqual([{ libraryId: "L1", name: "发色", namespace: null }]),
+      expect(sent("plugin:library|create_shared_tag_group")).toEqual([{ name: "发色", namespace: null }]),
     );
     const hair = await within(groups).findByRole("group", { name: "发色" });
 
     fireEvent.click(within(hair).getByRole("button", { name: "给“发色”加标签" }));
-    fireEvent.change(within(hair).getByRole("combobox", { name: "挑一个库内标签" }), { target: { value: "蓝" } });
+    fireEvent.change(within(hair).getByRole("combobox", { name: "挑一个统一标签" }), { target: { value: "蓝" } });
     fireEvent.click(await within(hair).findByRole("option", { name: /蓝发/ }));
     await waitFor(() =>
-      expect(sent("plugin:library|add_to_tag_group")).toEqual([{ libraryId: "L1", groupId: "G1", tagIds: ["T-blue"] }]),
+      expect(sent("plugin:library|edit_shared_tag_group")).toEqual([{ edit: { kind: "addMembers", groupId: "G1", tagIds: ["T-blue"] }, safeMode: true }]),
     );
-    const blue = await within(hair).findByRole("button", { name: "蓝发（1 张）" });
+    const blue = await within(groups).findByRole("button", { name: "蓝发（1 张）" });
 
     fireEvent.click(blue);
     await waitFor(() =>
@@ -504,15 +506,16 @@ describe("标签分组", () => {
     await within(hair).findByRole("button", { name: "微笑（1 张）" });
 
     fireEvent.click(within(hair).getByRole("button", { name: "把“微笑”移出“发色”" }));
-    await waitFor(() => expect(within(hair).queryByRole("button", { name: "微笑（1 张）" })).toBeNull());
-    expect(sent("plugin:library|remove_from_tag_group")).toEqual([{ libraryId: "L1", groupId: "G1", tagIds: ["T-smile"] }]);
+    await waitFor(() => expect(within(groups).queryByRole("button", { name: "微笑（1 张）" })).toBeNull());
+    expect(sent("plugin:library|edit_shared_tag_group").at(-1)).toEqual({ edit: { kind: "removeMembers", groupId: "G1", tagIds: ["T-smile"] }, safeMode: true });
 
-    fireEvent.doubleClick(within(hair).getByRole("button", { name: /^发色/ }));
+    const currentHair = await within(groups).findByRole("group", { name: "发色" });
+    fireEvent.doubleClick(within(currentHair).getByRole("button", { name: /^发色/ }));
     const rename = within(groups).getByRole("textbox", { name: "标签分组名称" });
     fireEvent.change(rename, { target: { value: "头发颜色" } });
     fireEvent.keyDown(rename, { key: "Enter" });
     expect(await within(groups).findByRole("group", { name: "头发颜色" })).toBeTruthy();
-    expect(sent("plugin:library|rename_tag_group")).toEqual([{ libraryId: "L1", groupId: "G1", name: "头发颜色" }]);
+    expect(sent("plugin:library|edit_shared_tag_group").at(-1)).toEqual({ edit: { kind: "rename", groupId: "G1", name: "头发颜色" }, safeMode: true });
 
     fireEvent.click(within(groups).getByRole("button", { name: "新建标签分组" }));
     fireEvent.change(within(groups).getByRole("combobox", { name: "分组内容" }), { target: { value: "general" } });
@@ -525,21 +528,21 @@ describe("标签分组", () => {
 
     fireEvent.click(within(groups).getByRole("button", { name: "删除标签分组“头发颜色”" }));
     await waitFor(() => expect(within(groups).queryByRole("group", { name: "头发颜色" })).toBeNull());
-    expect(sent("plugin:library|delete_tag_group")).toEqual([{ libraryId: "L1", groupId: "G1" }]);
+    expect(sent("plugin:library|edit_shared_tag_group").at(-1)).toEqual({ edit: { kind: "delete", groupId: "G1" }, safeMode: true });
   });
 
   it("安全模式切换后重新取得分组（被封印的图上的标签由资料库藏起）", async () => {
     render(<App />);
     await screen.findByRole("region", { name: "标签分组" });
-    await waitFor(() => expect(sent("plugin:library|tag_groups").length).toBeGreaterThan(0));
-    const before = sent("plugin:library|tag_groups").length;
+    await waitFor(() => expect(sent("plugin:library|shared_tag_groups").length).toBeGreaterThan(0));
+    const before = sent("plugin:library|shared_tag_groups").length;
     await act(() => emit("library-event", { kind: "safeModeChanged", libraryId: "L1", on: false }));
-    await waitFor(() => expect(sent("plugin:library|tag_groups").length).toBeGreaterThan(before));
+    await waitFor(() => expect(sent("plugin:library|shared_tag_groups").length).toBeGreaterThan(before));
   });
 });
 
 describe("重新打开资料库", () => {
-  it("标签决定、别名与分组由资料库保存，重开后照样显示", async () => {
+  it("标签决定与别名随资料库，全局分组随程序，重开后照样显示", async () => {
     fake.editTags(["a"], [{ kind: "reject", tag: { kind: "id", id: "T-smile" } }]);
     fake.tags.get("T-blue")!.aliases.push({ name: "蓝头发", lang: "zh-CN" });
     fake.groups.push({ id: "G1", name: "发色", namespace: null, members: ["T-blue"] });

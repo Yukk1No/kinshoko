@@ -1,0 +1,11 @@
+(node:2764) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS released v16 角色参考 opens with stable identity
+PASS released v16 画法参考 opens with stable identity
+[1009/013130.808:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+Error: POST /session: {"error":"session not created","message":"session not created\nfrom unknown error: cannot parse internal JSON template: EOF while parsing a value at line 1 column 0","stacktrace":"\tmsedgedriver!GetHandleVerifier [0x7ff6697b2285+4c15]\n\tmsedgedriver!(No symbol) [0x7ff669703a74]\n\tmsedgedriver!GetHandleVerifier [0x7ff669b33bbf+38654f]\n\tmsedgedriver!(No symbol) [0x7ff6694c2c39]\n\tmsedgedriver!(No symbol) [0x7ff6694c335b]\n\tmsedgedriver!(No symbol) [0x7ff6694be0bf]\n\tmsedgedriver!(No symbol) [0x7ff6694bbe20]\n\tmsedgedriver!(No symbol) [0x7ff6694fe51b]\n\tmsedgedriver!(No symbol) [0x7ff6694fdea6]\n\tmsedgedriver!(No symbol) [0x7ff6694c7f0c]\n\tmsedgedriver!(No symbol) [0x7ff6694c718d]\n\tmsedgedriver!(No symbol) [0x7ff6694c7d33]\n\tmsedgedriver!(No symbol) [0x7ff669610c04]\n\tmsedgedriver!(No symbol) [0x7ff66961ddc8]\n\tmsedgedriver!GetHandleVerifier [0x7ff669857a15+aa3a5]\n\tmsedgedriver!GetHandleVerifier [0x7ff66985dd11+b06a1]\n\tmsedgedriver!(No symbol) [0x7ff66970f6ff]\n\tmsedgedriver!(No symbol) [0x7ff66970a184]\n\tmsedgedriver!(No symbol) [0x7ff66970a2aa]\n\tmsedgedriver!(No symbol) [0x7ff6696fb7f8]\n\tKERNEL32!BaseThreadInitThunk [0x7ffdf8d6cdf7+17]\n\tntdll!RtlUserThreadStart [0x7ffdfad5ee4c+2c]\n"}
+    at wd (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-tag-groups.mjs:42:50)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Session.start (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-tag-groups.mjs:59:20)
+    at async restart (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-tag-groups.mjs:193:38)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-tag-groups.mjs:203:3

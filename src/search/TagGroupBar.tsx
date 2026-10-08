@@ -17,18 +17,20 @@ type Props = {
 };
 
 export function TagGroupBar(p: Props) {
-  const [groups, setGroups] = useState<TagGroupView[]>([]);
+  const [found, setFound] = useState<{ key: string; groups: TagGroupView[] }>({ key: "", groups: [] });
+  const key = JSON.stringify([p.libraryId, p.safe, p.generation, p.workspace]);
+  const current = useRef(key); current.current = key;
+  const groups = found.key === key ? found.groups : [];
   const [open, setOpen] = useState<string | null>(null);
   const bar = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let alive = true;
-    setGroups([]);
     (p.workspace ? workspaceTagGroups(p.libraryId, UI_LANG, p.safe) : tagGroups(p.libraryId, UI_LANG)).then(
-      (next) => { if (alive) setGroups(next ?? []); },
-      (error) => { if (alive) p.onError(String(error)); },
+      (next) => { if (alive && current.current === key) setFound({ key, groups: next ?? [] }); },
+      (error) => { if (alive && current.current === key) p.onError(String(error)); },
     );
     return () => { alive = false; };
-  }, [p.libraryId, p.safe, p.generation, p.onError, p.workspace]);
+  }, [key, p.libraryId, p.safe, p.onError, p.workspace]);
   useEffect(() => {
     if (!open) return;
     const close = (e: PointerEvent) => { if (!bar.current?.contains(e.target as Node)) setOpen(null); };
@@ -60,6 +62,11 @@ export function TagGroupBar(p: Props) {
           {g.name}{picked > 0 && <span className="badge tabular">{picked}</span>}<span aria-hidden>⌄</span>
         </button>
         {open === g.id && <div className="group-pop" role="group" aria-label={`${g.name}标签`}>
+          <button type="button" className="group-any" aria-label={`按“${g.name}”任一标签查找`} disabled={!g.tags.length}
+            onClick={() => {
+              p.onChange({ ...p.input, conditions: [...p.input.conditions, { any: g.tags.map(({ tag }) => ({ kind: "tag", id: tag.id, dismissed: [] })), negate: false }] });
+              setOpen(null);
+            }}>任一成员</button>
           <div className="chips">
             {g.tags.map(({ tag, count }) => {
               const c = used(tag.id);
