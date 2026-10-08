@@ -77,4 +77,3 @@ it("公开阶段未满足自动更新条件时显示原因且不提供操作", a
   expect(await screen.findByText(/未配置原仓库的公开更新入口/)).toBeTruthy();
   expect(screen.queryByRole("button", { name: "检查更新" })).toBeNull();
 });
-

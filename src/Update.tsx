@@ -158,5 +158,3 @@ export function UpdateBanner() {
     </div>
   );
 }
-
-
