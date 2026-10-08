@@ -1,3 +1,6 @@
+import type { WorkspaceQuery } from "./bindings/WorkspaceQuery";
+import type { WorkspacePage } from "./bindings/WorkspacePage";
+import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
@@ -812,4 +815,33 @@ export function correctTagMapping(libraryId: string, localTagId: string, correct
 
 export function catalogImageTags(libraryId: string, imageId: string, lang: string): Promise<CatalogImageTags> {
   return invoke<CatalogImageTags>(lib("catalog_image_tags"), { libraryId, imageId, lang });
+}
+
+/** Application workspace queries. These never switch an active library or write destination. */
+export function workspaceBrowse(query: WorkspaceQuery, safeMode: boolean): Promise<WorkspacePage> {
+  return invoke<WorkspacePage>(lib("workspace_browse"), { query, safeMode });
+}
+export function workspaceStatus(safeMode: boolean): Promise<WorkspaceStatus> {
+  return invoke<WorkspaceStatus>(lib("workspace_status"), { safeMode });
+}
+export function workspaceResolve(input: SearchInput, lang: string, safeMode: boolean): Promise<ConditionTree> {
+  return invoke<ConditionTree>(lib("workspace_resolve"), { input, lang, safeMode });
+}
+export function workspaceCandidates(text: string, lang: string, limit: number, safeMode: boolean): Promise<Candidate[]> {
+  return invoke<Candidate[]>(lib("workspace_candidates"), { text, lang, limit, safeMode });
+}
+export function workspaceImage(libraryId: string, imageId: string): Promise<ImageDetail> {
+  return invoke<ImageDetail>(lib("workspace_image"), { libraryId, imageId });
+}
+export function workspaceSidebar(libraryId: string, safeMode: boolean): Promise<Sidebar> {
+  return invoke<Sidebar>(lib("workspace_sidebar"), { libraryId, safeMode });
+}
+export function workspaceTagGroups(libraryId: string, lang: string, safeMode: boolean): Promise<TagGroupView[]> {
+  return invoke<TagGroupView[]>(lib("workspace_tag_groups"), { libraryId, lang, safeMode });
+}
+export function workspaceLocalTags(libraryId: string, ids: string[], safeMode: boolean): Promise<string[]> {
+  return invoke<string[]>(lib("workspace_local_tags"), { libraryId, ids, safeMode });
+}
+export function onWorkspaceChanged(handler: (status: WorkspaceStatus) => void): Promise<UnlistenFn> {
+  return listen<WorkspaceStatus>("workspace-changed", (event) => handler(event.payload));
 }

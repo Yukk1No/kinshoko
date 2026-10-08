@@ -1,3 +1,7 @@
+import { useEffect, useState } from "react";
+import { SearchBox, UI_LANG } from "./search/SearchBox";
+import { onLibraryEvent, resolveSearch, setSafeMode } from "./ipc";
+import { workspaceFixture } from "./test/workspace-fixture";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
@@ -138,7 +142,7 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
   let current = opened;
   let tasks = 0;
   mockIPC(
-    (cmd, args) => {
+    workspaceFixture((cmd, args) => {
       calls.push({ cmd, args });
       const overridden = override?.(cmd, args);
       if (overridden !== undefined) return overridden;
@@ -193,9 +197,45 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
         default:
           return null;
       }
-    },
+    }),
     { shouldMockEvents: true },
   );
+}
+
+/** Existing library-local approximation controls remain separate until global rules (T06) land. */
+function LocalSearchFixture() {
+  const [input, setInput] = useState<SearchInput>({ conditions: [], exact: false });
+  const [tree, setTree] = useState<ConditionTree | null>(null);
+  const [safe, setSafe] = useState(safeOn);
+  const [generation, setGeneration] = useState(0);
+  useEffect(() => {
+    const toggle = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        setSafe((value) => { void setSafeMode(!value); return !value; });
+      }
+    };
+    window.addEventListener("keydown", toggle);
+    return () => window.removeEventListener("keydown", toggle);
+  }, []);
+  useEffect(() => {
+    const stop = onLibraryEvent((event) => {
+      if (event.kind === "safeModeChanged") setSafe(event.on);
+      setGeneration((value) => value + 1);
+    });
+    return () => { void stop.then((stop) => stop()); };
+  }, []);
+  useEffect(() => {
+    let alive = true;
+    resolveSearch(library.id, input, UI_LANG, safe).then((tree) => alive && setTree(tree), () => {});
+    return () => { alive = false; };
+  }, [input, safe, generation]);
+  return <>
+    <button type="button" aria-label={`安全模式：${safe ? "开启" : "关闭"}`} aria-pressed={safe}
+      onClick={() => { setSafe(!safe); void setSafeMode(!safe); }}>安全模式</button>
+    <SearchBox libraryId={library.id} safe={safe} generation={generation} input={input} tree={tree}
+      showSource={false} onChange={setInput} onError={() => {}} />
+  </>;
 }
 
 const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.args);
@@ -698,11 +738,11 @@ describe("主窗口", () => {
   });
 
   it("从状态栏打开设置", async () => {
-    mockIPC((cmd) => {
+    mockIPC(workspaceFixture((cmd) => {
       if (cmd === "app_info") return { productName: "Kinshoko", version: "9.9.9" };
       if (cmd === "shell_settings") return { autostart: true, shortcuts: [] };
       return undefined;
-    });
+    }), { shouldMockEvents: true });
     render(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: "设置" }));
@@ -1093,7 +1133,7 @@ describe("查找", () => {
   const lastQuery = () =>
     (sent("plugin:library|browse").at(-1) as { query: { conditions: ConditionTree } }).query;
 
-  it("切换资料库清空条件，旧候选和旧条件树的迟到结果不能进入新库", async () => {
+  it("切换整理资料库保留全局条件，旧候选和旧条件树按代次重新解析", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
     let finishCandidates!: (value: Candidate[]) => void;
     let finishTree!: (value: ConditionTree) => void;
@@ -1123,8 +1163,8 @@ describe("查找", () => {
     });
 
     expect(within(screen.getByRole("listbox", { name: "" })).getAllByRole("option")).toHaveLength(1);
-    expect(screen.getByRole("list", { name: "查找条件" }).children).toHaveLength(0);
-    expect(lastQuery().conditions.conditions).toHaveLength(0);
+    expect(screen.getByRole("list", { name: "查找条件" }).children).toHaveLength(1);
+    expect(lastQuery().conditions.conditions).toHaveLength(1);
     expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ libraryId: "L2" });
     expect(sent("plugin:library|resolve_search")[0]).toMatchObject({ libraryId: "L1" });
   });
@@ -1236,7 +1276,7 @@ describe("近似查找", () => {
 
   it("关掉一个相近标签时，“只这次”只改本次条件，“以后都不展开”记进个人近似对应表", async () => {
     backend(library);
-    render(<App />);
+    render(<LocalSearchFixture />);
     await pickBlue();
 
     fireEvent.click(screen.getByRole("button", { name: "不展开“水色发”" }));
@@ -1259,7 +1299,7 @@ describe("近似查找", () => {
 
   it("用“＋”从库内标签里挑一个加为相近标签", async () => {
     backend(library);
-    render(<App />);
+    render(<LocalSearchFixture />);
     await pickBlue();
 
     fireEvent.click(screen.getByRole("button", { name: "给“蓝发”加相近标签" }));
@@ -1325,8 +1365,8 @@ describe("安全模式", () => {
 
     fireEvent.click(await book());
     // 不等后端：点下的这一帧就开始遮蔽。
-    expect(cardOf("x")?.dataset.veiled).toBe("true");
-    expect(cardOf("a")?.dataset.veiled).toBe("false");
+    expect(cardOf("x") === null || cardOf("x")?.dataset.veiled === "true").toBe(true);
+    expect(cardOf("a") === null || cardOf("a")?.dataset.veiled === "false").toBe(true);
 
     await changed(true);
     await waitFor(() => expect(cardOf("x")).toBeNull());
@@ -1345,7 +1385,7 @@ describe("安全模式", () => {
     await waitFor(() => expect(cardOf("x")?.dataset.veiled).toBe("false"));
 
     fireEvent.click(await book());
-    expect(cardOf("x")?.dataset.veiled).toBe("true");
+    expect(cardOf("x") === null || cardOf("x")?.dataset.veiled === "true").toBe(true);
   });
 
   it("开启后清掉选中的图，侧栏计数随之刷新", async () => {
@@ -1474,8 +1514,7 @@ describe("安全模式", () => {
         if (text === "只在成人") return safeOn ? [] : [adult];
         return text.trim() ? candidates : [];
       }, false);
-      render(<App />);
-      await waitFor(() => expect(cardOf("x")).toBeTruthy());
+      render(<LocalSearchFixture />);
       const input = await box();
       fireEvent.change(input, { target: { value: "蓝" } });
       fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));

@@ -459,6 +459,13 @@ impl TagCatalog {
         Ok(CatalogImageTags { image, identities })
     }
 
+    /// Cheap projection freshness check; does not load any tag definitions.
+    pub fn revision(&self) -> Result<i64, CatalogError> {
+        Ok(self
+            .conn
+            .query_row("SELECT value FROM catalog_revision", [], |row| row.get(0))?)
+    }
+
     pub fn inspect(&self) -> Result<CatalogInspection, CatalogError> {
         let revision = self
             .conn

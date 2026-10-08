@@ -190,7 +190,7 @@ fn external_names_are_not_a_way_to_find_a_tag_unless_it_is_still_untranslated() 
 }
 
 #[test]
-fn blank_words_are_ignored_but_a_condition_on_a_deleted_tag_matches_nothing() {
+fn blank_words_are_ignored_but_explicit_empty_groups_and_deleted_tags_match_nothing() {
     let search = plain(&vocabulary(vec![tag(
         "a",
         TagNamespace::General,
@@ -210,7 +210,11 @@ fn blank_words_are_ignored_but_a_condition_on_a_deleted_tag_matches_nothing() {
     );
     assert_eq!(
         shape(&tree),
-        [(false, vec![]), (false, vec!["text:蓝[a]".to_owned()])]
+        [
+            (false, vec![]),
+            (false, vec![]),
+            (false, vec!["text:蓝[a]".to_owned()])
+        ]
     );
     assert_eq!(
         search.resolve(&SearchInput::default(), ZH),

@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { TagGroupView } from "../bindings/TagGroupView";
 import type { SearchInput } from "../bindings/SearchInput";
-import { tagGroups } from "../ipc";
+import { tagGroups, workspaceTagGroups } from "../ipc";
 import { TagMarks, UI_LANG, tagName } from "./SearchBox";
 
 type Props = {
+  workspace?: boolean;
   libraryId: string;
   safe: boolean;
   generation: number;
@@ -22,12 +23,12 @@ export function TagGroupBar(p: Props) {
   useEffect(() => {
     let alive = true;
     setGroups([]);
-    tagGroups(p.libraryId, UI_LANG).then(
+    (p.workspace ? workspaceTagGroups(p.libraryId, UI_LANG, p.safe) : tagGroups(p.libraryId, UI_LANG)).then(
       (next) => { if (alive) setGroups(next ?? []); },
       (error) => { if (alive) p.onError(String(error)); },
     );
     return () => { alive = false; };
-  }, [p.libraryId, p.safe, p.generation, p.onError]);
+  }, [p.libraryId, p.safe, p.generation, p.onError, p.workspace]);
   useEffect(() => {
     if (!open) return;
     const close = (e: PointerEvent) => { if (!bar.current?.contains(e.target as Node)) setOpen(null); };
