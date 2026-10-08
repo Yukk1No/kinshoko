@@ -468,7 +468,12 @@ describe("标签分组", () => {
     );
     const hair = await within(groups).findByRole("group", { name: "发色" });
 
-    fireEvent.click(within(hair).getByRole("button", { name: "给“发色”加标签" }));
+    const addMember = await waitFor(() => {
+      const button = within(hair).getByRole<HTMLButtonElement>("button", { name: "给“发色”加标签" });
+      expect(button.disabled).toBe(false);
+      return button;
+    });
+    fireEvent.click(addMember);
     fireEvent.change(within(hair).getByRole("combobox", { name: "挑一个统一标签" }), { target: { value: "蓝" } });
     fireEvent.click(await within(hair).findByRole("option", { name: /蓝发/ }));
     await waitFor(() =>
