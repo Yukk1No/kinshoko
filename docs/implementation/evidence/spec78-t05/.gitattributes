@@ -1,1 +1,2 @@
-* -text
+# Raw verification artifacts retain original bytes and whitespace.
+* -text -whitespace

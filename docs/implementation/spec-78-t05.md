@@ -68,7 +68,7 @@
 
 Clippy 首轮两处测试的多余 clone 告警已修复，原日志保留。最初版本采集调用 `tauri-driver --version` 被 CLI 拒绝，没有启动 driver 服务；最终版本从 `cargo install --list` 记录。不能把版本采集失败说成 Cargo 构建失败。
 
-实际命令和原始输出在本单 [证据目录](evidence/spec78-t05/)：
+实际命令和原始输出在本单 [证据目录](evidence/spec78-t05/)。目录属性保留原始字节和空白，避免改写 Windows 原始输出；产品与文档继续检查空白。证据文件哈希在 `evidence-hashes.json`：
 
 ```powershell
 $env:CARGO_BUILD_JOBS = '2'

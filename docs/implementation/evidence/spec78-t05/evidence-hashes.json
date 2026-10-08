@@ -3,8 +3,8 @@
   "files": [
     {
       "path": ".gitattributes",
-      "bytes": 9,
-      "sha256": "8b9c3028d6467ff3be7c793141927841d70f47f52d0590677438f488ca154992"
+      "bytes": 87,
+      "sha256": "f19a0ef0cbfbee043e3045ddc9b47363cee5e9b182d9932b6db8c04c612847fc"
     },
     {
       "path": "after-global-edits-normal-quit.json",
