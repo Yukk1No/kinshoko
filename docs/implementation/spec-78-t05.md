@@ -105,6 +105,10 @@ node e2e/shared-group-draft.mjs target/debug/kinshoko.exe <matching-msedgedriver
 
 已查看旧组来源、分组排序、OR 条件和草稿截图。`no-active-library-global-settings.png` 抓在改名后组数据重新加载期间，不用它证明最终显示；无活动库下的正式创建／改名动作、公开回读和正常重启持久化由脚本实际完成。完整原始目录保留供复核。 根代理另存了五个原始运行、日志、固定程序／DirectML、脚本和实际 KnownFolder 设置，共 155 文件、122883624 字节。见 [根保存清单](evidence/spec78-t05/root-preservation.json)，实际副本在根工作树 `work/v1-handoff/follow-up-spec/evidence/t05-native/`。
 
+## 根整合与证据保留
+
+根代理独立合入提交为 `77e7a9bfba8e9afe2ee82b241884a4680e31ec4e`，产品 Git tree 与实现者完成树相同。70 项已提交证据及根归档的 155 个文件逐项 SHA256 匹配；原始五轮运行、固定 exe／DirectML、工作日志、harness 与实际 KnownFolder 设置共 122883624 字节，归档入口为 ignored `work/v1-handoff/follow-up-spec/evidence/t05-native/root-preservation.json`。源码清单绑定 worker 构建时原始字节；根 checkout 的 15 项仅有 LF／CRLF 差异，规范化后与 Git blob 一致，没有修改文件强配哈希。生成绑定 `TagGroupDefinition.ts:7` 的尾空格按 ts-rs 原样保留，CI 继续重新生成核对字节。
+
 ## 未验证
 
 开发者实际安装环境和真实旧库的人工验收未执行。自动原生操作不等于人工体验认可。Windows 10 没有设备／虚拟机，用户已接受保留未验证状态。实际系统 DPI、多显示器、笔输入和广色域硬件不在本单已执行范围。T13 程序设置恢复由后续工单实现。
