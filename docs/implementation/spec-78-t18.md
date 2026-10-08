@@ -73,3 +73,11 @@ root 在固定83da源码对两个独立响应边界做三轮受控探针，每�
 较新的历史 CI 对应 head1e8eb709、实际 synthetic checkout `82a0501814888bbd0465b03678e8c260374473be`／tree `b769e51ace895e7632380b24cc4d740ae485fe92`，smoke5完成；颜色34个gated样本仍11失败。CI总状态成功不表示颜色达标，也不属于T18提交。
 
 Windows 10、真实较旧／缺失 Runtime、数值最低支持版本及最终硬件颜色门槛未验证。仓库实际公开但没有 Releases；应用仍处于手动更新阶段，生产公钥为空。本单没有更改可见性、Release、生产签名或自动更新开关。
+
+## 独立集成复核
+
+新独立合入代理从clean897ebe13合并final96b54da，得到 `bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c`，parents为897ebe13与96b54da，tree为 `b33f5bca54cd0e88136e22163738888a094ac88d`，没有冲突或新增产品修正。该固定源码的核心诊断8项、前端8文件110项、真实ts-rs绑定导出193项、core+Tauri all-targets strict clippy、types、fmt、完整T18增量空白和6个harness语法均成功。110项是独立代理本轮的实际集合，含正确SharedApprox5项，不冒称worker原105项集合。
+
+独立证据审计254项成功。13轮109份原件逐字节匹配；旧根归档含107份，缺少的两份run1791493596411前后记录另存ignored supplement，不修改旧保全索引。两份既有混合换行源码的实际字节匹配冻结SHA，LF规范化内容另与Git blob匹配，初次审计失败保留。根任务重新计算40份独立复核文件的SHA与字节数，全部匹配。9张截图逐张查看，不含私人Save目录。明确派生结果见 [独立合入摘要](evidence/spec78-t18/independent-merge-summary.json)。原始复核输出仍在本机ignored。
+
+合入代理没有启动原生程序、操作GitHub或推送。2026-10-08T22:37:44.928938Z停止tracked/Git写入并释放root。本次复核不替代最终Standards／Spec双轴审查，不消除早期TagOrganize失败或独立picker刷新回归，也不扩大原生和硬件覆盖。

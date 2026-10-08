@@ -11,3 +11,5 @@
 B 补验 `1791497038707` 在 clean83da0065 的隔离 testbundle 配置给 pin-* 增加公开 hide 权限，以同步框架隐藏状态。该轮5/5通过。其范围是 framework-hide 后的错误显示，不代表首次脚本状态、真实旧/缺失 Runtime 或 Windows 10。
 
 基础操作、接口声明和代表性截图都不代表色彩还原度通过。正式托盘退出、外部浏览器页面显示、Windows 10、真实旧/缺失 Runtime 与硬件颜色门槛仍依实际证据分别标记。
+
+`independent-merge-summary.json` 是根任务从独立合入代理原始结果明确派生的最小摘要。它记录bc1a5aec固定源码的独立检查、来源边界与原件SHA，不复制原始日志或私人Save控件。根任务逐一重算40份ignored复核文件，字节数和SHA均匹配。旧根归档缺少的两份native记录只补到新的ignored supplement，旧索引及初次失败保持原样。本摘要不是最终双轴审查。
