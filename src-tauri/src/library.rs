@@ -77,7 +77,7 @@ struct LibraryState {
     safe_mode_generation: AtomicU64,
     import_preview_generation: AtomicU64,
     /// Serialize visibility revocation with the final externally visible side effect.
-    visibility_commit: Mutex<()>,
+    visibility_commit: Arc<Mutex<()>>,
     workspace: Mutex<Option<kinshoko_core::workspace::Workspace>>,
     /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
     /// 与桌面钉图（#65），不经任何命令交给前端。
@@ -106,7 +106,7 @@ impl LibraryState {
             search_catalog_revision: Arc::new(AtomicI64::new(-1)),
             safe_mode_generation: AtomicU64::new(0),
             import_preview_generation: AtomicU64::new(0),
-            visibility_commit: Mutex::new(()),
+            visibility_commit: Arc::new(Mutex::new(())),
             workspace: Mutex::default(),
             reference: Mutex::new(None),
             detached: DetachedLenses::default(),
@@ -483,11 +483,13 @@ async fn blocking<T: Send + 'static>(
 fn restore<R: Runtime>(app: &AppHandle<R>) -> Result<Option<Arc<Library>>, String> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
-    let opened = with_libraries(
-        &state.device_dir,
-        &state.libraries,
-        DeviceLibraries::restore_last_opened,
-    )?;
+    let opened = with_visibility_commit(app, |_| {
+        with_libraries(
+            &state.device_dir,
+            &state.libraries,
+            DeviceLibraries::restore_last_opened,
+        )
+    })?;
     if let Some(library) = &opened {
         forward_events(app, &state, library.clone());
     }
@@ -589,7 +591,8 @@ pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
     });
 }
 
-/// Commit a final visibility-authorized side effect atomically with mode/settings revocation.
+/// Commit a final visibility-authorized side effect atomically with mode/settings,
+/// provider/source edits and background rating publication.
 /// Decode first, outside this closure. Revalidate the caller's capability against the supplied
 /// generation, then perform the actual send/copy/pin before returning. This does not reject
 /// safe mode itself: an explicit, scoped preview capability can be valid while safe mode is on.
@@ -605,6 +608,12 @@ pub(crate) fn with_visibility_commit<R: Runtime, T>(
     let state = app.state::<LibraryState>();
     let _visibility = lock(&state.visibility_commit);
     commit(state.safe_mode_generation.load(Ordering::SeqCst))
+}
+
+/// The same pure Rust gate is injected into background result publication.
+/// Lifecycle code must release it before stopping/joining a scheduler worker.
+pub(crate) fn visibility_publication_gate<R: Runtime>(app: &AppHandle<R>) -> Arc<Mutex<()>> {
+    app.state::<LibraryState>().visibility_commit.clone()
 }
 
 /// 安全模式是否开启（全局设置）；读不到设置时按开启处理。
@@ -713,6 +722,8 @@ async fn unregister_library<R: Runtime>(
             *lock(&state.forwarded) = None;
             state.search.invalidate();
             *lock(&state.reference) = None;
+            // Tagging::drop joins a worker that may be waiting for visibility_commit.
+            // Registry revocation has committed and released that gate before this join.
             crate::tagging::detach(&app);
         }
         state.detached.clear();
@@ -743,14 +754,20 @@ async fn image(
 
 /// 一次批量整理若干张图，返回重新计算后的详情。
 #[tauri::command]
-async fn edit(
-    state: State<'_, LibraryState>,
+async fn edit<R: Runtime>(
+    app: AppHandle<R>,
     library_id: String,
     ids: Vec<String>,
     edits: Vec<ImageEdit>,
 ) -> Result<Vec<ImageDetail>, String> {
-    let library = state.current(&library_id)?;
-    blocking(move || library.edit(&ids, &edits).map_err(|e| e.to_string())).await
+    blocking(move || {
+        with_visibility_commit(&app, |_| {
+            current(&app, &library_id)?
+                .edit(&ids, &edits)
+                .map_err(|e| e.to_string())
+        })
+    })
+    .await
 }
 
 /// 永久删除的预览（#67）：回收站里这些图会影响哪些参考组，以及执行时要交回的令牌。
@@ -781,13 +798,15 @@ async fn permanent_delete<R: Runtime>(
     ids: Vec<String>,
     token: String,
 ) -> Result<(), String> {
-    let library = current(&app, &library_id)?;
     blocking(move || {
-        crate::desktop::with_groups(&app, |groups| {
-            library.permanent_delete(&ids, &token, groups)
-        })
-        .ok_or_else(|| "参考组还没有准备好".to_owned())?
-        .map_err(|e| e.to_string())?;
+        with_visibility_commit(&app, |_| {
+            let library = current(&app, &library_id)?;
+            crate::desktop::with_groups(&app, |groups| {
+                library.permanent_delete(&ids, &token, groups)
+            })
+            .ok_or_else(|| "参考组还没有准备好".to_owned())?
+            .map_err(|e| e.to_string())
+        })?;
         crate::desktop::reference_groups_changed(&app);
         Ok(())
     })
