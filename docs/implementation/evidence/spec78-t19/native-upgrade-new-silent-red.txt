@@ -1,0 +1,16 @@
+PASS old real NSIS installed exe, DirectML and uninstaller
+PASS old installed executable matches the NSIS-patched source artifact
+PASS old installed PE product version matches the upgrade package version
+PASS fixed baseline old installed app starts with unsigned updater disabled
+READY OLD FOR NORMAL TRAY EXIT
+[1009/001705.845:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS old app exited normally through its verified real native tray Quit menu
+node:internal/modules/run_main:122
+    triggerUncaughtException(
+    ^
+
+Error: new installer failed: 2 
+    at install (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:51:34)
+    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:115:3
+
+Node.js v22.15.0

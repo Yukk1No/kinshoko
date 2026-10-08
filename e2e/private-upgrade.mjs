@@ -1,5 +1,5 @@
 // Real isolated NSIS old -> new installation. Uses production UI/IPC, never edits storage internals.
-// Run only in the coordinated native slot. Quit each installed app from its tray when READY is printed.
+// Run only in the coordinated native slot. The guarded helper selects each real native tray Quit item.
 // node e2e/private-upgrade.mjs <old-setup.exe> <new-setup.exe> <evidence-dir> <msedgedriver.exe>
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -7,6 +7,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { join, resolve } from "node:path";
 import { release } from "node:os";
 import { deflateSync } from "node:zlib";
+import { fileURLToPath } from "node:url";
 
 const [, , oldArg, newArg, outputArg, edgeArg] = process.argv;
 if (!oldArg || !newArg || !outputArg || !edgeArg) throw new Error("old/new installers, evidence directory and msedgedriver required");
@@ -18,7 +19,9 @@ for (const kind of ["old", "new"]) if (hash(packages[kind]) !== provenance[kind]
 const work = join(output, `run-${Date.now()}`), data = join(work, "app-data"), parent = join(work, "libraries"), source = join(work, "source");
 for (const dir of [output, work, data, parent, source, join(work, "roaming"), join(work, "local")]) mkdirSync(dir, { recursive: true });
 const port = Number(process.env.KINSHOKO_WEBDRIVER_PORT ?? 4534), endpoint = `http://127.0.0.1:${port}`;
-const report = { ticket: 97, stories: [50], sourceRevision: provenance.new.sourceRevision, oldSourceRevision: provenance.old.sourceRevision, windows: release(), provenance, work, installDir, checks: [], status: "running" };
+const nativeTrayHelper = fileURLToPath(new URL("./native-tray-exit.py", import.meta.url));
+const fileLocksHelper = fileURLToPath(new URL("./nsis-file-locks.py", import.meta.url));
+const report = { harnessSha256: hash(new URL(import.meta.url)), nativeTrayHelperSha256: hash(nativeTrayHelper), fileLocksHelperSha256: hash(fileLocksHelper), ticket: 97, stories: [50], sourceRevision: provenance.new.sourceRevision, oldSourceRevision: provenance.old.sourceRevision, windows: release(), provenance, work, installDir, checks: [], status: "running" };
 const elementKey = "element-6066-11e4-a52e-4f735466cecf";
 function hash(file) { return createHash("sha256").update(readFileSync(file)).digest("hex"); }
 function save() { writeFileSync(join(output, "report.json"), JSON.stringify(report, null, 2)); }
@@ -45,11 +48,19 @@ async function screenshot(name) { writeFileSync(join(output, `${name}.png`), Buf
 function isRunning() { const result = spawnSync("tasklist", ["/FI", "IMAGENAME eq kinshoko-t19-upgrade.exe", "/NH"], { windowsHide: true, encoding: "utf8" }); return result.stdout.toLowerCase().includes("kinshoko-t19-upgrade.exe"); }
 function install(kind) {
   if (isRunning()) throw new Error("Probe app must exit before installing");
-  const result = spawnSync(packages[kind], ["/S", `/D=${installDir}`], { windowsHide: true, timeout: 120000, encoding: "utf8" });
+  const locks = spawnSync(process.env.KINSHOKO_NATIVE_PYTHON ?? "python", [fileLocksHelper, application], { windowsHide: true, timeout: 10000, encoding: "utf8" });
+  if (locks.status !== 0) throw new Error(`cannot inspect NSIS RestartManager users: ${locks.stderr}`);
+  report[`${kind}PreinstallLocks`] = JSON.parse(locks.stdout);
+  check(report[`${kind}PreinstallLocks`].users.length === 0, `${kind} target executable has no RestartManager users before real NSIS installation`);
+  const installerArguments = ["/S", "/UPDATE", `/D=${installDir}`];
+  const result = spawnSync(packages[kind], installerArguments, { windowsHide: true, timeout: 120000, encoding: "utf8" });
+  report[`${kind}Installer`] = { arguments: installerArguments, exitCode: result.status, error: result.error?.message ?? null }; save();
   if (result.status !== 0) throw new Error(`${kind} installer failed: ${result.status} ${result.error ?? result.stderr}`);
   check(existsSync(application) && existsSync(join(installDir, "DirectML.dll")) && existsSync(join(installDir, "uninstall.exe")), `${kind} real NSIS installed exe, DirectML and uninstaller`);
-  check(hash(application) === provenance[kind].exeSha256, `${kind} installed executable matches built source artifact`);
+  check(hash(application) === provenance[kind].packagedExeSha256, `${kind} installed executable matches the NSIS-patched source artifact`);
   report[`${kind}InstalledVersion`] = spawnSync("powershell", ["-NoProfile", "-Command", `(Get-Item -LiteralPath '${application.replaceAll("'", "''")}').VersionInfo | Select-Object FileVersion,ProductVersion | ConvertTo-Json -Compress`], { windowsHide: true, encoding: "utf8" }).stdout.trim();
+  const installedVersion = JSON.parse(report[`${kind}InstalledVersion`]);
+  check(installedVersion.ProductVersion === provenance[kind].bundleVersion, `${kind} installed PE product version matches the upgrade package version`);
   save();
 }
 async function start() {
@@ -66,8 +77,13 @@ async function stopDriver() {
 }
 async function trayExit(kind) {
   report.phase = `${kind}-ready-for-tray-exit`; save(); console.log(`READY ${kind.toUpperCase()} FOR NORMAL TRAY EXIT`);
-  await until("normal tray exit", () => !isRunning(), 900000);
-  check(true, `${kind} app exited normally through native tray menu (operator action)`);
+  const receiptPath = join(output, `${kind}-tray-exit.json`);
+  const quit = spawnSync(process.env.KINSHOKO_NATIVE_PYTHON ?? "python", [nativeTrayHelper, application, receiptPath], { windowsHide: true, timeout: 40000, encoding: "utf8" });
+  if (quit.status !== 0) throw new Error(`normal native tray selection failed: ${quit.error ?? quit.stderr}`);
+  const receipt = JSON.parse(readFileSync(receiptPath, "utf8"));
+  report[`${kind}TrayExit`] = receipt;
+  await until("normal tray exit", () => !isRunning());
+  check(receipt.method === "automated-native-menu-dispatch" && receipt.processEnded && receipt.exitCode === 0, `${kind} app exited normally through its verified real native tray Quit menu`);
   await stopDriver(); await delay(500);
 }
 function png() {
@@ -101,6 +117,7 @@ try {
   await desktop("move_pin", { pin: pinId, x: 160, y: 120 }); await desktop("set_pin_opacity", { pin: pinId, opacity: 0.6 }); await desktop("set_pin_locked", { pin: pinId, locked: true });
   const group = await desktop("save_reference_group", { name: "T19 旧版升级参考组", captures: [] });
   before = { library, imageId, registrations: await lib("registered_libraries"), settings: settings(await invoke("shell_settings")), group: (await desktop("reference_group", { groupId: group.id })).group, pin: (await desktop("pin_frame", { pin: pinId })).pin, safeMode: await lib("safe_mode") };
+  report.dpr = await exec("return devicePixelRatio"); report.diagnostics = await invoke("diagnostics_report");
   report.before = before; save(); await screenshot("old-installed-state"); await trayExit("old");
   install("new"); check(provenance.old.exeSha256 !== provenance.new.exeSha256, "old and new installed program bytes differ"); await start();
   const libraryAfter = await until("new restores library", () => lib("current_library"));
@@ -122,6 +139,7 @@ try {
   await click("//button[@aria-label='设置' or @title='设置' or normalize-space()='设置']");
   await until("new private update UI", () => exec("return document.body.textContent.includes('当前为私有阶段，请使用新版安装包手动更新。')"));
   check(await exec("return ![...document.querySelectorAll('button')].some(b=>['检查更新','安装并重启'].includes(b.textContent.trim()))"), "new installed settings show manual guidance without automatic actions");
+  await exec("[...document.querySelectorAll('.settings-hint')].find(p=>p.textContent.includes('当前为私有阶段'))?.scrollIntoView({block:'center'})");
   await screenshot("new-manual-update-settings");
   report.after = { library: libraryAfter, settings: settings(await invoke("shell_settings")), group: groupAfter, pin: frame.pin, updateStatus: status }; save();
   await trayExit("new");

@@ -1,0 +1,61 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/Update.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+ ❯ src/Update.test.tsx (4 tests | 1 failed) 1201ms
+   ❯ 设置中的更新方式 (1)
+     × 私有阶段明确用安装包更新，并且没有自动检查和安装按钮 1015ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/Update.test.tsx > 设置中的更新方式 > 私有阶段明确用安装包更新，并且没有自动检查和安装按钮
+TestingLibraryElementError: Unable to find an element with the text: 当前为私有阶段，请使用新版安装包手动更新。. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <h2>
+      更新
+    </h2>
+    <button
+      type="button"
+    >
+      检查更新
+    </button>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <h2>
+      更新
+    </h2>
+    <button
+      type="button"
+    >
+      检查更新
+    </button>
+  </div>
+</body>
+ ❯ waitForWrapper ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/Update.test.tsx:64:25
+     62|     render(<UpdateSection />);
+     63|
+     64|     expect(await screen.findByText("当前为私有阶段，请使用新版安装包手动更新。")).toBeTruth…
+       |                         ^
+     65|     expect(screen.getByText(/从托盘退出 Kinshoko/)).toBeTruthy();
+     66|     expect(screen.queryByRole("button", { name: "检查更新" })).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  23:33:23
+   Duration  2.86s (environment 45%, tests 45%, import 7%, transform 3%)
+

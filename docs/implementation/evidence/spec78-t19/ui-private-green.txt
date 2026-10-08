@@ -1,0 +1,13 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/Update.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  23:33:41
+   Duration  2.25s (environment 64%, import 16%, tests 16%, transform 4%)
+

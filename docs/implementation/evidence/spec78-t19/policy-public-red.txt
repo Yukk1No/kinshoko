@@ -1,0 +1,25 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.03s
+     Running tests\update_policy.rs (target\debug\deps\update_policy-50efd11641d63e31.exe)
+
+running 2 tests
+test private_builds_explain_manual_updates_even_when_signing_is_configured ... ok
+test public_builds_need_the_original_public_endpoint_and_a_signing_key ... FAILED
+
+failures:
+
+---- public_builds_need_the_original_public_endpoint_and_a_signing_key stdout ----
+
+thread 'public_builds_need_the_original_public_endpoint_and_a_signing_key' (41048) panicked at crates\kinshoko-core\tests\update_policy.rs:17:5:
+assertion `left == right` failed
+  left: Manual { message: "当前为私有阶段，请使用新版安装包手动更新。" }
+ right: Unchecked
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    public_builds_need_the_original_public_endpoint_and_a_signing_key
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p kinshoko-core --test update_policy`
