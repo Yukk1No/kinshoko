@@ -157,10 +157,12 @@ try {
   pinHandle = await until("native pin window", async () => (await wd("GET", base + "/window/handles")).find((handle) => handle !== mainHandle));
   await wd("POST", base + "/window", { handle: pinHandle });
   report.currentPinCanvas = await until("native pin canvas has drawn decoded source", pinCanvasSource);
+  await until("pin native visibility and appearance feedback complete", async () => await exec("const feedback=document.querySelector('.pin-appear');return feedback&&getComputedStyle(feedback).opacity==='0'") && await invoke("plugin:window|is_visible", { label: await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label") }));
   await screenshot("representative-pin.png"); pinScreenshotSamples("representative-pin.png"); check(true, "representative pin uses the production renderer and decoded source");
   const fallbackScript = "window.__T18_CONTROLLED_ABSENCE__='float16 and optional createImageBitmap in current Runtime';const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(kind,options){if(kind==='2d'&&options?.colorType==='float16')throw new TypeError('controlled float16 absence');return original.apply(this,arguments)};window.createImageBitmap=undefined;";
   const fallbackScriptId = await injectNextDocument(fallbackScript);
   report.fallbackPinCanvas = await until("controlled fallback pin drew source", async () => { const canvas = await pinCanvasSource(); return canvas && canvas.attributes.colorType !== "float16" && !await exec("return Boolean(document.querySelector('[aria-label=运行时能力提示]'))") ? canvas : false; });
+  await until("fallback pin appearance feedback complete", () => exec("const feedback=document.querySelector('.pin-appear');return feedback&&getComputedStyle(feedback).opacity==='0'"));
   await screenshot("controlled-float16-fallback-pin.png"); pinScreenshotSamples("controlled-float16-fallback-pin.png"); check(true, "controlled float16/createImageBitmap absence uses 8-bit pin without blocking display");
   await cdp("Page.removeScriptToEvaluateOnNewDocument", { identifier: fallbackScriptId });
   const hidden = spawnSync("python", ["e2e/native-pin-hide-t18.py", application], { windowsHide: true, encoding: "utf8", timeout: 15000 });
