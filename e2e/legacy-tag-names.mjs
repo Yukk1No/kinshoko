@@ -66,7 +66,15 @@ class Session {
     return result.value;
   }
   async find(xpath) { return (await wd("POST", `${this.base}/element`, { using: "xpath", value: xpath }))[ELEMENT]; }
-  click(xpath) { return this.find(xpath).then((id) => wd("POST", `${this.base}/element/${id}/click`, {})); }
+  async click(xpath) {
+    for (let attempt = 0; ; attempt++) {
+      try { return await this.find(xpath).then((id) => wd("POST", `${this.base}/element/${id}/click`, {})); }
+      catch (error) {
+        if (attempt >= 4 || !/stale element reference|no such element/.test(error.message)) throw error;
+        await delay(150);
+      }
+    }
+  }
   async set(xpath, value) {
     await this.exec("const element = document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (!element) throw Error('control missing'); const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(element, arguments[1]); element.dispatchEvent(new Event('input', { bubbles: true }));", [xpath, value]);
   }
