@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
-import { TagGroupsPane } from "./TagGroupsPane";
+import { SharedTagGroupsSettings, TagGroupsPane } from "./TagGroupsPane";
+import { emit } from "@tauri-apps/api/event";
 import { TagGroupBar } from "../search/TagGroupBar";
 import { SettingsPanel } from "../SettingsPanel";
 const blue = { id: "shared-blue", namespace: "general" as const, name: "蓝发", untranslated: false, hasExternal: true };
@@ -20,6 +21,7 @@ function backend(read: () => unknown = () => groups) {
     if (cmd === "plugin:library|shared_tag_groups" || cmd === "plugin:library|workspace_tag_groups") return read();
     if (cmd === "shell_settings") return { autostart: false, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false, usageLog: false };
     if (cmd === "plugin:library|safe_mode") return true;
+    if (cmd === "plugin:library|workspace_status") return { revision: "R1", libraries: [] };
     return null;
   }, { shouldMockEvents: true });
   return calls;
@@ -41,6 +43,14 @@ describe("T05 shared groups", () => {
     backend(); render(<SettingsPanel />);
     const settingsGroups = await screen.findByRole("region", { name: "全局标签分组" });
     expect(await within(settingsGroups).findByRole("group", { name: "发色" })).toBeTruthy();
+  });
+  it("keeps a settings rename draft when the monitor repeats the current revision", async () => {
+    backend(); render(<SharedTagGroupsSettings onError={vi.fn()} />);
+    const group = await screen.findByRole("group", { name: "发色" });
+    fireEvent.click(within(group).getByRole("button", { name: "改名标签分组“发色”" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "标签分组名称" }), { target: { value: "正在整理" } });
+    await act(async () => { await emit("workspace-changed", { revision: "R1", libraries: [] }); });
+    expect(screen.getByRole<HTMLInputElement>("textbox", { name: "标签分组名称" }).value).toBe("正在整理");
   });
   it("does not show an old unsafe response after safe mode changes", async () => {
     let finish: (value: CatalogGroupView[]) => void = () => {};

@@ -3,7 +3,7 @@ import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagNamespace } from "../bindings/TagNamespace";
-import { createSharedTagGroup, editSharedTagGroup, sharedTagGroups, onSafeModeSetting, onWorkspaceChanged, safeMode } from "../ipc";
+import { createSharedTagGroup, editSharedTagGroup, sharedTagGroups, onSafeModeSetting, onWorkspaceChanged, safeMode, workspaceStatus, isLensChanged } from "../ipc";
 import { TagMarks, UI_LANG, tagName, useCandidates, type Lens } from "../search/SearchBox";
 import { NameInput } from "./SidebarPane";
 
@@ -199,19 +199,44 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
 
 /** The same application configuration editor is available without a current library. */
 export function SharedTagGroupsSettings({ onError }: { onError: (message: string) => void }) {
-  const [safe, setSafe] = useState(true);
+  const [safe, setSafe] = useState<boolean | null>(null);
   const [generation, setGeneration] = useState(0);
   const modeRevision = useRef(0);
+  const workspaceRevision = useRef<string | null>(null);
+  const workspaceEvent = useRef(0);
   useEffect(() => {
     let alive = true; const revision = modeRevision.current;
-    void safeMode().then((value) => { if (alive && modeRevision.current === revision && typeof value === "boolean") setSafe(value); }).catch((error) => alive && onError(String(error)));
-    const mode = onSafeModeSetting((on) => { if (alive) { modeRevision.current++; setSafe(on); setGeneration((n) => n + 1); } });
-    const workspace = onWorkspaceChanged(() => { if (alive) setGeneration((n) => n + 1); });
+    const baseline = async (on: boolean, mode: number) => {
+      const event = workspaceEvent.current;
+      try {
+        const status = await workspaceStatus(on);
+        if (alive && modeRevision.current === mode && workspaceEvent.current === event) workspaceRevision.current = status?.revision ?? null;
+      } catch (error) {
+        if (alive && modeRevision.current === mode && !isLensChanged(error)) onError(String(error));
+      }
+    };
+    void safeMode().then(async (value) => {
+      if (!alive || modeRevision.current !== revision || typeof value !== "boolean") return;
+      // Establish the monitor revision before exposing editable drafts, and the actual saved safety mode.
+      await baseline(value, revision);
+      if (alive && modeRevision.current === revision) setSafe(value);
+    }).catch((error) => { if (alive && modeRevision.current === revision) onError(String(error)); });
+    const mode = onSafeModeSetting((on) => {
+      if (!alive) return;
+      modeRevision.current++; setSafe(on); setGeneration((n) => n + 1);
+      void baseline(on, modeRevision.current);
+    });
+    const workspace = onWorkspaceChanged((status) => {
+      if (!alive) return;
+      workspaceEvent.current++;
+      if (workspaceRevision.current === status.revision) return;
+      workspaceRevision.current = status.revision; setGeneration((n) => n + 1);
+    });
     return () => { alive = false; for (const stop of [mode, workspace]) void stop.then((unlisten) => unlisten()).catch(() => {}); };
   }, [onError]);
   return <>
     <h2>全局标签分组</h2>
     <p className="settings-hint">分组在各资料库共用。按分组查找表示满足任一成员，图片标签保持原样。同名旧分组分别保留，并列出原资料库。</p>
-    <TagGroupsPane label="全局标签分组" safe={safe} generation={generation} onError={onError} />
+    {safe === null ? <p role="status">正在读取分组设置…</p> : <TagGroupsPane label="全局标签分组" safe={safe} generation={generation} onError={onError} />}
   </>;
 }
