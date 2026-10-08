@@ -99,12 +99,14 @@ try {
   await session.click("//button[@aria-label='关闭重复项预览']");
   await until("UI re-veiled", () => session.exec("return !document.querySelector('dialog.sealed-import-preview');"));
   await safe("UI closed"); await session.screenshot("closed-reveiled.png");
-  const uiCloseStartedAt = Date.now();
   await session.click("//button[normalize-space()='展开本次重复项']");
   await until("real modal reading before close", () => session.exec("return Boolean(document.querySelector('dialog.sealed-import-preview'));"));
+  const uiPendingBeforeClose = await session.exec("return {images:document.querySelectorAll('dialog.sealed-import-preview img').length,loading:document.querySelector('dialog.sealed-import-preview')?.textContent.includes('正在读取本次重复项')};");
+  assert(uiPendingBeforeClose.images === 0 && uiPendingBeforeClose.loading, "real UI is still loading before close, separately from the backend transfer race");
+  const uiCloseStartedAt = Date.now();
   await session.click("//button[@aria-label='关闭重复项预览']");
   await until("UI hides pending content", () => session.exec("return !document.querySelector('dialog.sealed-import-preview');"));
-  result.uiPendingClose = { elapsedMs: Date.now() - uiCloseStartedAt, hiddenAt: new Date().toISOString() };
+  result.uiPendingClose = { beforeClose: uiPendingBeforeClose, elapsedMs: Date.now() - uiCloseStartedAt, hiddenAt: new Date().toISOString() };
   await delay(3500);
   assert(!await session.exec("return Boolean(document.querySelector('dialog.sealed-import-preview,dialog.sealed-import-preview img'));"), "closed real UI does not revive a completed image after pending decode or Channel completion");
   result.uiPendingClose.noRevivalObservedAt = new Date().toISOString();
