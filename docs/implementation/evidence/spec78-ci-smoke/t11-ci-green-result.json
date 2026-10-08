@@ -1,0 +1,20 @@
+{
+  "source": "20a44ee3a7c4ae7d95d67b5ec231a8730e5b29ea",
+  "application": "D:\\a\\kinshoko\\kinshoko\\target\\release\\kinshoko.exe",
+  "binarySha256": "4265979635b8cb2f834ab1246892e2b8f0fcc825d62602dd6fa708d298718943",
+  "harnessSha256": "49fa759e3f6356c5600ef3efa3609cfc05cce080247bf60e4ca056e361dd4e23",
+  "startedAt": "2026-10-08T18:33:01.925Z",
+  "assertions": [
+    "建立资料库并打开",
+    "导入 3 张图，不支持的文件逐个列出",
+    "瀑布流按原比例显示（0.50、1.00、2.00）",
+    "重开后仍使用同一资料库身份",
+    "重开后资料库与图片墙原样恢复"
+  ],
+  "library": {
+    "id": "f077a8b048664ccbbbf060d813ec649f",
+    "name": "冒烟测试库"
+  },
+  "status": "passed",
+  "completedAt": "2026-10-08T18:33:16.492Z"
+}
