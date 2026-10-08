@@ -69,9 +69,16 @@ fn interruption_never_publishes_partial_eagle_metadata_and_retry_is_idempotent()
             let interrupted = if point == "import_after_staging" {
                 vec![]
             } else {
-                vec![std::path::absolute(fixture.item_dir(3)).unwrap()]
+                vec![std::fs::canonicalize(fixture.item_dir(3)).unwrap()]
             };
-            assert_eq!(library.recovery().interrupted, interrupted);
+            // Windows CI 的 TEMP 可能含 8.3 别名；核对文件身份，不比较路径的拼写。
+            let actual: Vec<_> = library
+                .recovery()
+                .interrupted
+                .iter()
+                .map(|path| std::fs::canonicalize(path).unwrap())
+                .collect();
+            assert_eq!(actual, interrupted);
             assert_eq!(
                 std::fs::read(library.original_path(&source.bindings[0].image_id).unwrap())
                     .unwrap(),
