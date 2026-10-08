@@ -1,0 +1,24 @@
+{
+  "identifier": "dev.kinshoko.spec78t19upgrade",
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "releaseStage": "private"
+    }
+  },
+  "version": "0.1.1",
+  "productName": "Kinshoko T19 Upgrade Probe",
+  "mainBinaryName": "kinshoko-t19-upgrade",
+  "bundle": {
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "installerHooks": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\debug-installer-hooks.nsh"
+      }
+    },
+    "createUpdaterArtifacts": false
+  },
+  "build": {
+    "devUrl": null
+  }
+}

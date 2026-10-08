@@ -1,0 +1,16 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+error[E0432]: unresolved import `kinshoko_core::UpdatePolicy`
+ --> crates\kinshoko-core\tests\update_policy.rs:1:21
+  |
+1 | use kinshoko_core::{UpdatePolicy, UpdateStatus};
+  |                     ^^^^^^^^^^^^ no `UpdatePolicy` in the root
+
+error[E0599]: no variant named `Manual` found for enum `UpdateStatus`
+ --> crates\kinshoko-core\tests\update_policy.rs:8:55
+  |
+8 |     assert_eq!(policy.initial_status(), UpdateStatus::Manual {
+  |                                                       ^^^^^^ variant not found in `UpdateStatus`
+
+Some errors have detailed explanations: E0432, E0599.
+For more information about an error, try `rustc --explain E0432`.
+error: could not compile `kinshoko-core` (test "update_policy") due to 2 previous errors

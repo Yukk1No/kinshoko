@@ -1,0 +1,267 @@
+{
+  "harnessSha256": "a3f1fbcde0c858a0dd4c7f4977fad348dbed28b05491947341b691ada302cdcc",
+  "nativeTrayHelperSha256": "dd6dcc442ac0d4123a4c36ea93f77306f4c7afa9f584495f1326505d44432b48",
+  "ticket": 97,
+  "stories": [
+    50
+  ],
+  "sourceRevision": "5082f317b6a48c1ddf1dabeb1cbdc4e23fa11193",
+  "oldSourceRevision": "536cc43c1933e44fc33836f8a439de8cdb0da018",
+  "windows": "10.0.26300",
+  "provenance": {
+    "mainBinaryName": "kinshoko-t19-upgrade",
+    "targetDirectory": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
+    "identifier": "dev.kinshoko.spec78t19upgrade",
+    "buildProfile": "debug",
+    "old": {
+      "sourceTreeClean": true,
+      "exeSha256": "67caca7581021f68156a093adfa2f830d17038790f0389931758b45c4ffe0ccf",
+      "directmlSha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1",
+      "bundleVersion": "0.1.0",
+      "configSha256": "f02d0c07d052ddc0e47e84aa4d6f34435fb6bc65aba87543596004f22f470cc3",
+      "installerSha256": "b1ee1339bbc0e9e2981d50f6519409aab81b73f3574504a857a6fd0afb2a8e91",
+      "workspaceVersion": "0.1.0",
+      "sourceRevision": "536cc43c1933e44fc33836f8a439de8cdb0da018",
+      "packagedExeSha256": "8dfd1074c1fe51d9166316b0c0b68bcbe3cc9cae1b53da3cbff618bee85cca5f"
+    },
+    "debugHookSha256": "9475fbe0ba9df344b4ae5b37892861ca3212e0f313ee19e0a4b8cd6c11241621",
+    "productName": "Kinshoko T19 Upgrade Probe",
+    "new": {
+      "installerSha256": "f480139602bba172c657554ceff87028be6c64fc457af1d344a7ad6d36175dec",
+      "configSha256": "077000e9b1f2b4a1d1c6bdebec10a5a15eba45671ffe7e26f609648bccffaf7d",
+      "workspaceVersion": "0.1.0",
+      "bundleVersion": "0.1.1",
+      "sourceTreeClean": true,
+      "exeSha256": "62ea84a1e3379775a73eb61568e18f0e55a20a297fb3d8837daa164b81934f8b",
+      "sourceRevision": "5082f317b6a48c1ddf1dabeb1cbdc4e23fa11193",
+      "directmlSha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1",
+      "packagedExeSha256": "3186f8a91de22aff88927187003bfde3056fbb0a8ae31cb69793f55a44f535df"
+    },
+    "binaryPatching": {
+      "source": "https://github.com/tauri-apps/tauri/blob/tauri-cli-v2.12.1/crates/tauri-bundler/src/bundle.rs",
+      "oldReversePatchSha256": "67caca7581021f68156a093adfa2f830d17038790f0389931758b45c4ffe0ccf",
+      "operation": "first __TAURI_BUNDLE_TYPE_VAR_UNK replaced by __TAURI_BUNDLE_TYPE_VAR_NSS for NSIS; target exe restored after bundle",
+      "changedBytes": 3,
+      "newTokenOffset": 76014112,
+      "oldTokenOffset": 75418480
+    }
+  },
+  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476214063",
+  "installDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed",
+  "checks": [
+    "old real NSIS installed exe, DirectML and uninstaller",
+    "old installed executable matches the NSIS-patched source artifact",
+    "old installed PE product version matches the upgrade package version",
+    "fixed baseline old installed app starts with unsigned updater disabled",
+    "old app exited normally through its verified real native tray Quit menu"
+  ],
+  "status": "failed",
+  "oldInstalledVersion": "{\"FileVersion\":\"0.1.0\",\"ProductVersion\":\"0.1.0\"}",
+  "runtime": {
+    "acceptInsecureCerts": false,
+    "browserName": "webview2",
+    "browserVersion": "154.0.4258.62",
+    "fedcm:accounts": true,
+    "goog:processID": 37268,
+    "ms:edgeOptions": {
+      "debuggerAddress": "localhost:10901"
+    },
+    "msedge": {
+      "msedgedriverVersion": "154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)",
+      "userDataDir": ""
+    },
+    "networkConnectionEnabled": false,
+    "pageLoadStrategy": "normal",
+    "platformName": "windows",
+    "proxy": {},
+    "setWindowRect": true,
+    "strictFileInteractability": false,
+    "timeouts": {
+      "implicit": 0,
+      "pageLoad": 300000,
+      "script": 30000
+    },
+    "unhandledPromptBehavior": "dismiss and notify",
+    "webauthn:extension:cmtgKey": true,
+    "webauthn:extension:credBlob": true,
+    "webauthn:extension:largeBlob": true,
+    "webauthn:extension:minPinLength": true,
+    "webauthn:extension:prf": true,
+    "webauthn:virtualAuthenticators": true
+  },
+  "dpr": 1.1041666269302368,
+  "diagnostics": "Kinshoko 0.1.0 诊断信息\n生成时间：2026-10-08 16:17:05 UTC\n本报告不含文件名、路径与图片。\n\n[系统]\n系统：Windows 11 Professional 26H2（26300.9550）\n处理器：AMD Ryzen 7 5800X 8-Core Processor\n内存：31.9 GB\n显卡：NVIDIA GeForce RTX 4070 SUPER\n显卡：GameViewer Virtual Display Adapter\nWebView2：154.0.4258.62\n\n[显示器]\n1. VG27AQL1A（主显示器）：2560×1440，缩放 110%，SDR（自动色彩管理），每通道 8 位\n   配置文件：sRGB IEC61966-2.1，ICC 2.1，矩阵＋曲线，SHA-256 2b3aa1645779\n\n[Kinshoko 设置]\n强制 sRGB：关闭\n使用日志：开启\n",
+  "before": {
+    "library": {
+      "id": "102819aab6aa4dbf89ff81d85a563404",
+      "name": "T19 升级资料库",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476214063\\libraries\\T19 升级资料库"
+    },
+    "imageId": "01a11c4dd2d677ceb218cc44960952b8",
+    "registrations": [
+      {
+        "library": {
+          "id": "102819aab6aa4dbf89ff81d85a563404",
+          "name": "T19 升级资料库",
+          "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476214063\\libraries\\T19 升级资料库"
+        },
+        "unavailable": null
+      }
+    ],
+    "settings": {
+      "autostart": false,
+      "showApproxSource": true,
+      "forceSrgb": false,
+      "usageLog": true,
+      "shortcuts": [
+        {
+          "action": "capture",
+          "accelerator": null
+        },
+        {
+          "action": "pinClipboard",
+          "accelerator": null
+        },
+        {
+          "action": "hideAllPins",
+          "accelerator": null
+        }
+      ]
+    },
+    "group": {
+      "createdAt": 1791476225197,
+      "id": "8290aaeb41a946ef8ab7d2798c1e461b",
+      "members": [
+        {
+          "crop": {
+            "height": 160,
+            "width": 200,
+            "x": 32,
+            "y": 24
+          },
+          "id": "6fb2d084b19f47ea9c46b68832f2ef9d",
+          "imageId": "01a11c4dd2d677ceb218cc44960952b8",
+          "libraryId": "102819aab6aa4dbf89ff81d85a563404",
+          "placement": {
+            "flipH": true,
+            "flipV": false,
+            "rotation": 1,
+            "scale": 0.75,
+            "x": 160,
+            "y": 120
+          },
+          "sourceHeight": 320,
+          "sourceWidth": 512
+        }
+      ],
+      "name": "T19 旧版升级参考组",
+      "updatedAt": 1791476225197
+    },
+    "pin": {
+      "content": {
+        "imageId": "01a11c4dd2d677ceb218cc44960952b8",
+        "kind": "reference",
+        "libraryId": "102819aab6aa4dbf89ff81d85a563404",
+        "sourceHeight": 320,
+        "sourceWidth": 512
+      },
+      "crop": {
+        "height": 160,
+        "width": 200,
+        "x": 32,
+        "y": 24
+      },
+      "height": 160,
+      "id": "8909321e605f4ab1acd0a83075f4b638",
+      "locked": true,
+      "member": {
+        "groupId": "8290aaeb41a946ef8ab7d2798c1e461b",
+        "memberId": "6fb2d084b19f47ea9c46b68832f2ef9d"
+      },
+      "opacity": 0.6,
+      "placement": {
+        "flipH": true,
+        "flipV": false,
+        "rotation": 1,
+        "scale": 0.75,
+        "x": 160,
+        "y": 120
+      },
+      "width": 200
+    },
+    "safeMode": true
+  },
+  "phase": "old-ready-for-tray-exit",
+  "oldTrayExit": {
+    "method": "automated-native-menu-dispatch",
+    "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed\\kinshoko-t19-upgrade.exe",
+    "pid": 37268,
+    "tray": {
+      "hwnd": 4982410,
+      "pid": 37268,
+      "thread": 35824,
+      "class": "tray_icon_app"
+    },
+    "popup": {
+      "hwnd": 1250256,
+      "pid": 37268,
+      "thread": 35824,
+      "class": "#32768"
+    },
+    "popupOwner": 4982410,
+    "menu": 252315389,
+    "items": [
+      {
+        "index": 0,
+        "id": 1000,
+        "text": "打开 Kinshoko",
+        "state": 0
+      },
+      {
+        "index": 1,
+        "id": 1001,
+        "text": "截图",
+        "state": 0
+      },
+      {
+        "index": 2,
+        "id": 1002,
+        "text": "钉剪贴板",
+        "state": 0
+      },
+      {
+        "index": 3,
+        "id": 1003,
+        "text": "贴边隐藏／显示钉图",
+        "state": 0
+      },
+      {
+        "index": 4,
+        "id": 1004,
+        "text": "",
+        "state": 2051
+      },
+      {
+        "index": 5,
+        "id": 1005,
+        "text": "退出",
+        "state": 0
+      }
+    ],
+    "openMessage": {
+      "message": 6002,
+      "lParam": 517
+    },
+    "selectionMessage": {
+      "message": 273,
+      "wParam": 1005,
+      "lParam": 0
+    },
+    "menuClosedBeforeDispatch": true,
+    "closeMenuMessage": 31,
+    "exitCode": 0,
+    "processEnded": true
+  },
+  "error": "Error: new installer failed: 2 \n    at install (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:51:34)\n    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:115:3",
+  "finishedAt": "2026-10-08T16:17:07.769Z"
+}
