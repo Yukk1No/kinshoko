@@ -72,6 +72,7 @@ fn main() {
                         "pin_frame",
                         "pin_ready",
                         "pin_menu",
+                        "close_pin",
                         "move_pin",
                         "zoom_pin",
                         "turn_pin",

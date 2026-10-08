@@ -1,0 +1,55 @@
+{
+  "postMergeSourceCommit": "b91cda81e3aa641bc511399e5ad1c1e873bbb3e8",
+  "frontend": {
+    "command": "node node_modules/vitest/vitest.mjs run --reporter=dot",
+    "files": 25,
+    "tests": 219,
+    "status": "passed"
+  },
+  "typecheck": {
+    "command": "node node_modules/typescript/bin/tsc --noEmit",
+    "status": "passed"
+  },
+  "core": {
+    "command": "cargo test -p kinshoko-core --locked --test library --test organize --test viewer --test pin_restore --test pin_menu --test reference_capture_actions --test tag_catalog",
+    "suiteCounts": [
+      7,
+      10,
+      5,
+      7,
+      9,
+      11,
+      6
+    ],
+    "tests": 55,
+    "status": "passed",
+    "realSQLiteAndFiles": true
+  },
+  "native": {
+    "command": "node e2e/spec78-frontend.mjs target/debug/kinshoko.exe work/e2e/tools/msedgedriver.exe C:/Users/yuk1no/.cargo/bin/tauri-driver.exe",
+    "checks": 19,
+    "status": "passed",
+    "buildSourceCommit": "0069dc8d61762a3be94486671be86d92c0c6f1b5",
+    "recordedHarnessHead": "c1eab3d7f1a17db33d5ed9425d296abaa85937d9",
+    "runtimeTreeEquivalent": true,
+    "nativeRunPredatesFinalT02Merge": true
+  },
+  "prototype": {
+    "command": "node e2e/spec78-prototype.mjs work/e2e/tools/msedgedriver.exe",
+    "status": "comparison-completed",
+    "historicalSourceUnchanged": true,
+    "logicTests": 15,
+    "humanAcceptance": "unverified"
+  },
+  "format": {
+    "command": "cargo fmt --all --check",
+    "status": "passed"
+  },
+  "sharedCargoTargetEvidence": "excluded",
+  "humanAcceptance": "unverified",
+  "clippy": {
+    "command": "cargo clippy -p kinshoko --all-targets --locked -- -D warnings",
+    "status": "passed",
+    "postMerge": true
+  }
+}

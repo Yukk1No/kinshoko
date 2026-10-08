@@ -313,7 +313,7 @@ afterEach(async () => {
 
 async function selectOnly(id: string) {
   await screen.findAllByRole("img");
-  fireEvent.click(card(id));
+  fireEvent.keyDown(card(id), { key: " " });
 }
 
 describe("单张图的标签与人工标签决定", () => {
@@ -386,7 +386,7 @@ describe("批量标签决定", () => {
   it("选中多张图后一次添加或否决，所有选中的图都记下决定", async () => {
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.click(card("a"));
+    fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(card("b"), { ctrlKey: true });
     expect(await screen.findByText("已选 2 张")).toBeTruthy();
     expect(screen.queryByRole("list", { name: "有效标签" })).toBeNull();
@@ -443,7 +443,7 @@ describe("标签别名", () => {
     fake.tags.get("T-blue")!.aliases.push({ name: "蓝头发", lang: "zh-CN" });
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.click(card("b"));
+    fireEvent.keyDown(card("b"), { key: " " });
     await screen.findByRole("list", { name: "有效标签" });
     fireEvent.change(screen.getByRole("combobox", { name: "标签名" }), { target: { value: "蓝头发" } });
     fireEvent.click(screen.getByRole("button", { name: "添加标签" }));
@@ -488,7 +488,7 @@ describe("标签分组", () => {
     expect(await within(groups).findByRole("button", { name: "蓝发（1 张）" })).toBeTruthy();
 
     await screen.findAllByRole("img");
-    fireEvent.click(card("b"));
+    fireEvent.keyDown(card("b"), { key: " " });
     await screen.findByRole("list", { name: "有效标签" });
     fireEvent.change(screen.getByRole("combobox", { name: "标签名" }), { target: { value: "蓝发" } });
     fireEvent.click(screen.getByRole("button", { name: "添加标签" }));

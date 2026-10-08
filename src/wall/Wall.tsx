@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, MouseEvent } from "react";
 import { flushSync } from "react-dom";
 import type { BrowseScope } from "../bindings/BrowseScope";
@@ -20,7 +20,12 @@ const PAGE = 500;
 /** 图片墙上拖出参考图时放进 dataTransfer 的类型，值为 JSON 数组的参考图 id。 */
 export const DRAG_IMAGES = "application/x-kinshoko-images";
 
+export type WallHandle = { previewDensity: (value: number | null) => void };
+
 type Props = {
+  /** Artist-selected target card width; preview stays local until the slider commits. */
+  density?: number;
+  onTotalChange?: (count: number | null) => void;
   libraryId: string;
   scope: BrowseScope;
   /** Search 给出的条件树；没有条件时是范围内的全部。条件变化时由调用方换 key 重建，从顶部看起。 */
@@ -36,8 +41,6 @@ type Props = {
   onSelectionChange: (selected: Set<string>) => void;
   onOpenImage: (card: ImageCard) => void;
   viewerOpen: boolean;
-  /** 侧栏宽度动画期间保留布局；结束后按最终宽度重排一次。 */
-  holdReflow?: boolean;
 };
 
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
@@ -76,10 +79,12 @@ function saveAnchor(key: string, anchor: Anchor | null) {
 
 /**
  * 图片墙：按资料库记录的尺寸用纯函数排出瀑布流，只挂载视口附近的卡片。
- * 单击选中一张，Ctrl 单击增减，Shift 单击选中一段；选中的图可以拖到侧栏的文件夹上。
+ * 单击打开（沿用认可原型），Ctrl 单击增减选择，Shift 单击选中一段；选中的图可以拖到文件夹上。
  * 换范围或条件时由调用方换 key 重建。查找结果不记住位置，新的查找从顶部看起。
  */
-export function Wall({
+export const Wall = forwardRef<WallHandle, Props>(function Wall({
+  density = TARGET,
+  onTotalChange,
   libraryId,
   scope,
   conditions = NO_CONDITIONS,
@@ -89,17 +94,18 @@ export function Wall({
   onSelectionChange,
   onOpenImage,
   viewerOpen,
-  holdReflow = false,
-}: Props) {
+}, ref) {
   const searching = conditions.conditions.length > 0;
   const storeKey = searching ? null : anchorKey(libraryId, scope);
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
+  const [previewDensity, setPreviewDensity] = useState<number | null>(null);
   const [viewport, setViewport] = useState({ top: 0, height: 0 });
   const [cards, setCards] = useState<ImageCard[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => { onTotalChange?.(total); }, [onTotalChange, total]);
   /**
    * 请求代次：重新浏览、视角（资料库、范围、条件、安全模式）变化与卸载时前进。
    * 响应回来时代次已经不同就整个丢掉，不改卡片、游标、数量、错误与加载状态（#77 UI-A）。
@@ -151,6 +157,8 @@ export function Wall({
   }, []);
 
   useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
+  useImperativeHandle(ref, () => ({ previewDensity(value) { measureBeforeReflow(); setPreviewDensity(value); } }), [measureBeforeReflow]);
+  useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 
   useLayoutEffect(() => {
     if (wasViewing.current && !viewerOpen && lastOpened.current) {
@@ -161,13 +169,14 @@ export function Wall({
   }, [viewerOpen]);
 
   const open = (card: ImageCard) => {
+    pivot.current = card.id;
     lastOpened.current = card.id;
     onOpenImage(card);
   };
 
   const thumbnailPx = useMemo(
-    () => Math.ceil(TARGET * 1.5 * (window.devicePixelRatio || 1)),
-    [],
+    () => Math.ceil(density * 1.5 * (window.devicePixelRatio || 1)),
+    [density],
   );
 
   const loaded = useRef(0);
@@ -248,7 +257,7 @@ export function Wall({
   useLayoutEffect(() => {
     const el = scroller.current!;
     const sync = () => {
-      if (!holdReflow && el.clientWidth !== layoutWidth.current) {
+      if (el.clientWidth !== layoutWidth.current) {
         measureBeforeReflow();
         layoutWidth.current = el.clientWidth;
         setWidth(el.clientWidth);
@@ -260,7 +269,7 @@ export function Wall({
     const ro = new ResizeObserver(() => flushSync(sync));
     ro.observe(el);
     return () => ro.disconnect();
-  }, [holdReflow, measureBeforeReflow]);
+  }, [measureBeforeReflow]);
 
   /** 已经放出（不再遮蔽）的含成人内容的图。 */
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
@@ -281,9 +290,9 @@ export function Wall({
     () =>
       masonry(
         cards.map((c) => ({ w: c.width, h: c.height })),
-        { width, target: TARGET, gap: GAP, pad: PAD, capRatio: CAP_RATIO },
+        { width, target: previewDensity ?? density, gap: GAP, pad: PAD, capRatio: CAP_RATIO },
       ),
-    [cards, width],
+    [cards, width, density, previewDensity],
   );
 
   // 布局变化（宽度、新的一批卡片）后把锚定的图放回原来的位置。
@@ -394,7 +403,10 @@ export function Wall({
                 tabIndex={0}
                 data-veiled={veiled}
                 draggable
-                onClick={(e) => select(card.id, e)}
+                onClick={(e) => {
+                  if (e.ctrlKey || e.metaKey || e.shiftKey) select(card.id, e);
+                  else open(card);
+                }}
                 onDoubleClick={() => open(card)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") { e.preventDefault(); open(card); }
@@ -411,4 +423,4 @@ export function Wall({
       )}
     </div>
   );
-}
+});

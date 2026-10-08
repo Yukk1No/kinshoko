@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-08",
+  "authority": "Owner answers Q17 / Q26–28, spec #78; separate from the earlier browse acceptance",
+  "originalDirectory": "C:/Users/yuk1no/.codex/visualizations/2026/10/08/01a11999-1f51-79a1-8137-005f450368e1",
+  "files": [
+    {
+      "name": "tag-name-model.html",
+      "sha256": "862701a61b09ba2f972380f9baa47bfbe44e41d108048874ce6a3ed1e274ffff"
+    },
+    {
+      "name": "library-workspace.html",
+      "sha256": "6db5981ec94b3b1875baff9bd3c8df7271918ecf9759718c09eb6f0376ab6c80"
+    },
+    {
+      "name": "folder-workspace.html",
+      "sha256": "931f44da177d5ed2f0831da36cc21532af72b108fa51bb619d659138773fd7a1"
+    }
+  ]
+}

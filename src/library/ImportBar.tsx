@@ -21,6 +21,8 @@ type Props = {
   finished: FinishedImport | null;
   onStarted: (taskId: string) => void;
   onDismissReport: () => void;
+  /** Compact hosts reveal recovery and file-drop feedback when it becomes relevant. */
+  onShowRequested?: () => void;
 };
 
 function reason(outcome: ImportOutcome): string | null {
@@ -38,7 +40,7 @@ function reason(outcome: ImportOutcome): string | null {
  * 导入：选择文件或文件夹，或把它们拖进主窗口；进行中显示进度与取消，结束后逐项列出
  * 没有进来的文件并可只重试读取失败的项。打开资料库时若上次导入中断，提示撤回了哪些文件。
  */
-export function ImportBar({ enabled, libraryId, libraryName, running, finished, onStarted, onDismissReport }: Props) {
+export function ImportBar({ enabled, libraryId, libraryName, running, finished, onStarted, onDismissReport, onShowRequested }: Props) {
   const report = finished?.report ?? null;
   const [hovering, setHovering] = useState(false);
   const [recovery, setRecovery] = useState<RecoveryReport | null>(null);
@@ -143,6 +145,10 @@ export function ImportBar({ enabled, libraryId, libraryName, running, finished, 
       alive = false;
     };
   }, [libraryId]);
+
+  useEffect(() => {
+    if (hovering || recovery?.interrupted.length || recovery?.orphans.length) onShowRequested?.();
+  }, [hovering, recovery, onShowRequested]);
 
   const { done = 0, total = 0 } = running?.progress ?? {};
   const counts = report && {
