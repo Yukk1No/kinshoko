@@ -8,4 +8,3 @@ test absent_stage_defaults_to_private_and_unknown_stage_never_enables_actions ..
 test public_builds_need_the_original_public_endpoint_and_a_signing_key ... ok
 
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-

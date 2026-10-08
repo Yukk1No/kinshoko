@@ -9,7 +9,7 @@ node:internal/modules/run_main:122
     triggerUncaughtException(
     ^
 
-Error: new installer failed: 2 
+Error: new installer failed: 2
     at install (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:51:34)
     at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:115:3
 

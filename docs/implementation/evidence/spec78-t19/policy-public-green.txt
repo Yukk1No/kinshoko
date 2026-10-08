@@ -7,4 +7,3 @@ test private_builds_explain_manual_updates_even_when_signing_is_configured ... o
 test public_builds_need_the_original_public_endpoint_and_a_signing_key ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-

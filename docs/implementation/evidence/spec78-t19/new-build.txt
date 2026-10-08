@@ -24,4 +24,3 @@ dist/assets/index-Djk7wjk-.js   384.03 kB │ gzip: 116.73 kB
      Running makensis to produce C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\target\debug\bundle\nsis\Kinshoko T19 Upgrade Probe_0.1.1_x64-setup.exe
     Finished 1 bundle at:
         C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\target\debug\bundle\nsis\Kinshoko T19 Upgrade Probe_0.1.1_x64-setup.exe (36.58 MiB)
-

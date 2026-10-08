@@ -11,6 +11,7 @@
 - 合入 T03：`df31f33`，包含集成 `29433ed89f5dc1c8caed31e3362b38c99cc87117`。保留其新增名称刷新测试，相关前端 19 项通过。
 - 新包产品源码：`5082f317b6a48c1ddf1dabeb1cbdc4e23fa11193`，含 lint 等价表达式修正。
 - 旧包产品源码：固定基线 `536cc43c1933e44fc33836f8a439de8cdb0da018`。
+- 原生完成后合入最新集成 `71e635dabe38ff4e7ef55695088addd8bfa9881b`（T07），合并提交 `fce6fc7e04a9767455e15ef06a61db2e411e8b8d`。原生包未为这次后合组合重建；本单不把 `5082f31` 包的通过回填为最终组合通过，组合由 T20 承接。
 
 阅读并对照固定 `bd8aea44c4a311571ee3c07382cb7755f87f3153` 的实际原型 `prototype/reference-browser/src/components/SettingsDialog.tsx`。原型没有安装更新业务；本单在 T01 已接入的正式设置结构中扩展现有 `UpdateSection`，保留设置段落、提示样式和原更新提示行为。没有修改认可原型，也没有用原型状态代替真实存储。
 
@@ -41,6 +42,8 @@
 | Tauri 命令层 | `cargo check -p kinshoko -j2` 通过 | `tauri-check.txt` |
 | Lint | `cargo clippy -p kinshoko-core -p kinshoko --all-targets -j2 -- -D warnings` 通过；最初布尔表达式提示已修正 | `clippy-final.txt` |
 | Rust IPC 类型 | `app_shell` 3 个导出测试通过，更新生成的 `UpdateStatus.ts` | `policy-bindings.txt` |
+| 合最新集成后的前端 | Update/Settings/App/bootstrap 79 项通过，TypeScript 通过 | `post-integration-ui.txt` / `post-integration-typecheck.txt` |
+| 合最新集成后的 Rust | 核心阶段策略 3 项通过；core/Tauri 全 targets Clippy deny warnings 通过 | `post-integration-policy.txt` / `post-integration-clippy.txt` |
 
 上述证据位于 [evidence/spec78-t19](evidence/spec78-t19/)。构建使用 `CARGO_BUILD_JOBS=2` 及本工作树独立 `target`。只共享依赖缓存，未使用其他树的 workspace 产物。
 
@@ -79,12 +82,13 @@
 - 托盘观察工具返回 `Computer Use app approval timed out`。该轮 15 分钟退出等待超时，未记为正常退出。原生 End/Enter 消息未选择菜单，SendInput 的前台 PID guard 拒绝向其他窗口输入。第二轮仅 dispatch 菜单 id 未先收起模态菜单，也失败。原件与实际自动化方法见 `tray-automation-notes.md`。
 - 第一次完成旧版正常退出后，新包仅用 `/S` 返回 2，旧 PE 仍为 `0.1.0`。根因未确认。保留 `report-new-silent-red.json` 与日志；未当作通过。随后在未卸载旧产品的情况下，以同一新包的 `/S /UPDATE` 重试成功，PE 版本变为 `0.1.1`、实际 payload 哈希匹配，记录在 `supported-update-retry.json`。最终又以官方支持的 `/UPDATE` 路径完整重跑新样本，两个安装器退出码 0，RestartManager 无占用，25 项全部通过。原 `/S` 失败不被后来的成功覆盖。
 
-实际运行的三个 harness 的 SHA256 均由最终 `report.json` 记录。正式红绿、编译、构建、配置、hook、完整 before/after、托盘回执、截图、原生失败和成功日志已归档到 [evidence/spec78-t19](evidence/spec78-t19/)。安装器二进制与真实数据仍留在 ignored 工作证据目录。
+实际运行的三个 harness 的 SHA256 均由最终 `report.json` 记录。正式红绿、编译、构建、配置、hook、完整 before/after、托盘回执、截图、原生失败和成功日志已归档到 [evidence/spec78-t19](evidence/spec78-t19/)。安装器二进制与真实数据仍留在 ignored 工作证据目录。原始日志不改写；归档 `.txt` 仅规范换行、行尾空白和末尾空行，原件哈希见 `original-log-hashes.json`。
 
 
 ## 未验证与边界
 
 - 真实公开仓库的更新清单、生产 Minisign 签名、下载与安装重启：未验证，由 #99 承接。核心配置检查和本地手动包不代表公开自动更新通过。
+- 普通双击及交互安装向导：本单未验证。实际通过仅覆盖隔离 debug 包的 `/S /UPDATE` 真实安装入口，不外推全部安装方式；原 `/S` 返回 2 的根因仍未确认。产品界面的“运行新版安装包”是手动更新步骤，不代表本单已验证所有交互入口。
 - release 安装包性能、颜色质量及干净无开发环境系统：未验证。本单 debug 包只验证功能升级和状态保留。
 - Windows 10：未验证；负责人已确认当前没有测试环境。
 - 实际系统 DPI、多显示器、笔输入、广色域和主观体验：本单没有新增结论，仍在对应验收范围。
