@@ -32,6 +32,7 @@ fn main() {
                         "catalog_image_tags",
                         "inspect_tag_catalog",
                         "correct_tag_mapping",
+                        "edit_tag_name",
                         "edit_tags",
                         "vocabulary",
                         "tag_groups",
