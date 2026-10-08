@@ -181,7 +181,7 @@ async function mode(on) {
 async function uiTotal(total) { await until(`wall total ${total}`, () => session.exec("return Number(document.querySelector('.wall')?.dataset.total) === arguments[0]", [total])); }
 async function normalQuit(label) {
   const receipt = join(work, `${label}-normal-quit.json`);
-  const quit = spawnSync("python", ["e2e/native-tray-exit.py", application, receipt], { windowsHide: true, encoding: "utf8", timeout: 45000 });
+  const quit = spawnSync("python", ["e2e/native-tray-exit-t05.py", application, receipt], { windowsHide: true, encoding: "utf8", timeout: 45000 });
   if (quit.status !== 0 || !JSON.parse(readFileSync(receipt, "utf8")).processEnded) throw new Error(`Normal Quit failed (${label}): ${quit.stderr}`);
   await session.close().catch(() => {}); session = null;
 }
