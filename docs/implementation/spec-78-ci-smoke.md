@@ -18,6 +18,6 @@
 
 脚本保存产品／脚本 SHA、实际结果，失败时保留 DOM 与截图。CI 上传这些报告，避免下次只得到超时文字。诊断脚本存证在证据目录，两个原始运行与真实数据留在 ignored 工作目录；不在产品加入诊断入口。
 
-最小原生 RED→GREEN、脚本语法与增量 diff-check 通过。完整修正 smoke 正在等待 T11 固定构建后的实际运行，当前不计为通过；后续 CI 亦需实际完成。T10 新的保存位置确认接入后，完整 smoke 还需按正式入口同步并再执行。
+最小原生 RED→GREEN、脚本语法与增量 diff-check 通过。完整修正 smoke 随后在 T11 固定 debug 构建实际运行，5 项通过：建库、真实导入及逐项失败、原比例图片墙、相同资料库 ID 重启和图片墙恢复。[完整结果](evidence/spec78-ci-smoke/full-green-t11.json)绑定产品 `a99fd7683e5c00b896c99aaa49129ebfe2eefdf5`、exe SHA256 `6de689c8bb36e8fa0f1d7d037766d3d595ccbdb0a8e280c2177a80b9b495ed58` 与实际脚本 SHA256 `49fa759e3f6356c5600ef3efa3609cfc05cce080247bf60e4ca056e361dd4e23`。实际步骤使用 T11 的隔离 identifier、数据、profile 和 4568／4569；T11 负责精确进程清点后接续自己的原生流程。这个结果不是 CI release 产物的重测；修正后 CI `37820345166` 仍需实际完成。T10 新的保存位置确认接入后，完整 smoke 还需按正式入口同步并再执行。
 
 两轮诊断只强制清理各自精确归档 exe，未操作用户程序。[清点](evidence/spec78-ci-smoke/desktop-release.json)确认 own app／WebView／driver 与端口均为空，桌面交还 T11。
