@@ -2,16 +2,21 @@
 // Controlled absences do not represent Windows 10 or an actual older/absent Runtime.
 import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { deflateSync } from "node:zlib";
 
-const [, , appArg, edgeArg, driverArg = "C:/Users/yuk1no/.cargo/bin/tauri-driver.exe"] = process.argv;
+const [, , appArg, edgeArg, driverArg = "C:/Users/yuk1no/.cargo/bin/tauri-driver.exe", runArg] = process.argv;
 if (!appArg || !edgeArg) throw Error("Frozen T18 executable and matching WebView2 driver required");
 const manifest = JSON.parse(readFileSync("work/t18/native-source.json", "utf8"));
 const application = resolve(appArg), hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 if (application.toLowerCase() !== resolve(manifest.preservedBinary).toLowerCase() || hash(readFileSync(application)) !== manifest.binarySha256) throw Error("Wrong frozen product");
-const work = resolve("work/e2e", "runtime-capabilities-" + Date.now());
+for (const [name, path] of [["edge", edgeArg], ["tauri", driverArg]]) {
+  const frozen = manifest.drivers[name];
+  if (resolve(path).toLowerCase() !== resolve(frozen.path).toLowerCase() || hash(readFileSync(path)) !== frozen.sha256) throw Error("Wrong frozen " + name + " driver");
+}
+const work = resolve(runArg ?? join("work/e2e", "runtime-capabilities-" + Date.now()));
+if (dirname(work) !== resolve("work/e2e") || !/^runtime-capabilities-\d+$/.test(basename(work)) || existsSync(work)) throw Error("A new owned T18 evidence directory is required");
 const data = join(work, "app-data"), profile = join(work, "webview"), parent = join(work, "libraries"), source = join(work, "source");
 for (const path of [data, profile, parent, source]) mkdirSync(path, { recursive: true });
 const knownFolderConfig = resolve(manifest.knownFolderConfig);
