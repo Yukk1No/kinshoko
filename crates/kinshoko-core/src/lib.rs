@@ -4,6 +4,7 @@
 //! 跨越前后端边界的类型带 `#[ts(export)]`，由 ts-rs 在 `cargo test` 时生成到 `src/bindings/`。
 
 mod app_shell;
+pub mod application_settings_backup;
 pub mod approx;
 pub mod backup;
 pub mod desktop;
@@ -25,7 +26,9 @@ pub use app_shell::{AppInfo, UpdatePolicy, UpdateProgress, UpdateStatus, app_inf
 pub use device::{DeviceRegistry, RegisteredLibrary};
 pub use device_libraries::{DeviceLibraries, DeviceLibraryError, LibraryRegistration};
 pub use library::Library;
-pub use settings::{AppSettings, SettingsError, ShortcutAction};
+pub use settings::{
+    AppSettings, SettingsError, SettingsSnapshot, ShortcutAction, ViewerBackground,
+};
 pub use shortcuts::{
     GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutBinding, ShortcutError,
 };

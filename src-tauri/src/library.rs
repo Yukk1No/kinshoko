@@ -14,6 +14,7 @@ mod groups;
 mod name_migration;
 mod names;
 mod portable;
+mod settings_backup;
 pub use portable::{
     export_package as export_reference_package, import_package as import_reference_package,
     publish_definition_dependencies,
@@ -188,6 +189,10 @@ fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("library")
         .invoke_handler(tauri::generate_handler![
+            settings_backup::pick_application_settings,
+            settings_backup::export_application_settings,
+            settings_backup::preview_application_settings,
+            settings_backup::restore_application_settings,
             source_actions::workspace_preview_source_delete,
             source_actions::workspace_permanent_source_delete,
             source_actions::workspace_source_group,
@@ -268,6 +273,11 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 Some(dir) => PathBuf::from(dir),
                 None => app.path().app_data_dir()?,
             };
+            kinshoko_core::application_settings_backup::ApplicationSettingsBackup::recover(
+                &device_dir,
+                &app.path().app_config_dir()?,
+            )
+            .map_err(std::io::Error::other)?;
             // 打标模型约 1 GB（CPU 档 2 GB），放在本机数据目录，不随漫游配置同步。
             let models_dir = match std::env::var_os(DATA_DIR_ENV) {
                 Some(dir) => PathBuf::from(dir).join("models"),

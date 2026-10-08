@@ -2,7 +2,7 @@
 //! 诊断开关与使用日志）。
 //!
 //! 保存在应用配置目录的 `settings.json`。后续的设置（钉图、模型选择、诊断开关等）
-//! 在 [`SettingsFile`] 上加带默认值的字段即可；不认识的字段原样保留，旧版本打开新版本
+//! 在 [`SettingsSnapshot`] 上加带默认值的字段即可；不认识的字段原样保留，旧版本打开新版本
 //! 写的文件不会丢掉它们。
 
 use std::collections::BTreeMap;
@@ -17,6 +17,15 @@ use ts_rs::TS;
 const FILE_NAME: &str = "settings.json";
 const BROKEN_FILE_NAME: &str = "settings.broken.json";
 const FORMAT_VERSION: u32 = 1;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum ViewerBackground {
+    Dark,
+    Mid,
+    Light,
+    Checker,
+}
 
 /// 可以绑定全局快捷键的动作。默认键沿用 Snipaste 的习惯。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, TS)]
@@ -59,7 +68,7 @@ impl ShortcutAction {
 /// 磁盘上的格式。字段都有默认值，缺了就按新安装处理。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
-struct SettingsFile {
+pub struct SettingsSnapshot {
     version: u32,
     autostart: bool,
     /// 每个动作的快捷键；`None` 表示画师清除了绑定。没写到的动作用默认键。
@@ -73,6 +82,7 @@ struct SettingsFile {
     /// 诊断开关“强制 sRGB”（ADR-0005）：WebView2 把显示器当作 sRGB，不按显示器配置文件做色彩管理。
     /// WebView2 环境在进程启动时建好，所以重启后才生效。
     force_srgb: bool,
+    viewer_background: Option<ViewerBackground>,
     /// 使用日志（#70）：默认关闭；只写本机，由画师决定是否导出。
     usage_log: bool,
     /// 新版本写入、本版本不认识的字段。
@@ -80,9 +90,9 @@ struct SettingsFile {
     unknown: serde_json::Map<String, serde_json::Value>,
 }
 
-impl Default for SettingsFile {
+impl Default for SettingsSnapshot {
     fn default() -> Self {
-        SettingsFile {
+        SettingsSnapshot {
             version: FORMAT_VERSION,
             autostart: true,
             shortcuts: BTreeMap::new(),
@@ -90,6 +100,7 @@ impl Default for SettingsFile {
             safe_mode: true,
             show_approx_source: false,
             force_srgb: false,
+            viewer_background: None,
             usage_log: false,
             unknown: serde_json::Map::new(),
         }
@@ -97,10 +108,10 @@ impl Default for SettingsFile {
 }
 
 /// 本设备的应用壳设置。每次修改都立即写回磁盘。
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AppSettings {
     path: PathBuf,
-    file: SettingsFile,
+    file: SettingsSnapshot,
     /// 打开设置时的“强制 sRGB”：本次运行的 WebView2 按它启动，改设置不影响。
     force_srgb_in_effect: bool,
 }
@@ -126,6 +137,41 @@ impl From<io::Error> for SettingsError {
     }
 }
 
+impl SettingsSnapshot {
+    pub(crate) fn complete_portable(&self) -> Self {
+        let mut snapshot = self.clone();
+        snapshot
+            .viewer_background
+            .get_or_insert(ViewerBackground::Mid);
+        snapshot
+    }
+    pub(crate) fn safe_mode(&self) -> bool {
+        self.safe_mode
+    }
+    pub(crate) fn force_srgb(&self) -> bool {
+        self.force_srgb
+    }
+    pub(crate) fn validate(&self) -> Result<(), String> {
+        if self.version != FORMAT_VERSION {
+            return Err("设置包由不兼容版本创建，请更新 Kinshoko".into());
+        }
+        let mut used = std::collections::BTreeSet::new();
+        for action in ShortcutAction::ALL {
+            let accelerator = match self.shortcuts.get(&action) {
+                Some(value) => value.as_deref(),
+                None => Some(action.default_accelerator()),
+            };
+            if let Some(accelerator) = accelerator {
+                let normalized =
+                    crate::shortcuts::normalize(accelerator).map_err(|e| e.to_string())?;
+                if !used.insert(normalized) {
+                    return Err("设置包中多个动作使用同一快捷键".into());
+                }
+            }
+        }
+        Ok(())
+    }
+}
 impl AppSettings {
     /// 打开 `dir` 下的设置；目录或文件不存在时按新安装的默认值。
     pub fn open(dir: &Path) -> Result<Self, SettingsError> {
@@ -136,10 +182,10 @@ impl AppSettings {
                 Err(_) => {
                     // 读不懂的设置不能让常驻进程起不来：留一份原样副本备查，按默认值继续。
                     fs::write(dir.join(BROKEN_FILE_NAME), &bytes)?;
-                    SettingsFile::default()
+                    SettingsSnapshot::default()
                 }
             },
-            Err(e) if e.kind() == io::ErrorKind::NotFound => SettingsFile::default(),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => SettingsSnapshot::default(),
             Err(e) => return Err(e.into()),
         };
         Ok(AppSettings {
@@ -149,6 +195,24 @@ impl AppSettings {
         })
     }
 
+    pub fn viewer_background(&self) -> Option<ViewerBackground> {
+        self.file.viewer_background
+    }
+    pub fn set_viewer_background(
+        &mut self,
+        background: ViewerBackground,
+    ) -> Result<(), SettingsError> {
+        self.update(|f| f.viewer_background = Some(background))
+    }
+    pub fn migrate_viewer_background(
+        &mut self,
+        legacy: ViewerBackground,
+    ) -> Result<(), SettingsError> {
+        if self.file.viewer_background.is_none() {
+            self.set_viewer_background(legacy)?;
+        }
+        Ok(())
+    }
     pub fn autostart(&self) -> bool {
         self.file.autostart
     }
@@ -226,8 +290,19 @@ impl AppSettings {
         })
     }
 
+    /// Complete portable settings, including explicit cleared shortcuts and future fields.
+    pub fn snapshot(&self) -> SettingsSnapshot {
+        self.file.clone()
+    }
+
+    pub fn replace(&mut self, snapshot: &SettingsSnapshot) -> Result<(), SettingsError> {
+        write_atomically(&self.path, snapshot)?;
+        self.file = snapshot.clone();
+        Ok(())
+    }
+
     /// 改动先写入磁盘，成功后才生效；写入失败时内存里的设置保持原样。
-    fn update(&mut self, change: impl FnOnce(&mut SettingsFile)) -> Result<(), SettingsError> {
+    fn update(&mut self, change: impl FnOnce(&mut SettingsSnapshot)) -> Result<(), SettingsError> {
         let mut next = self.file.clone();
         change(&mut next);
         next.version = FORMAT_VERSION;
@@ -238,12 +313,16 @@ impl AppSettings {
 }
 
 /// 先写同目录的临时文件再改名，断电或崩溃时不会留下写了一半的设置。
-fn write_atomically(path: &Path, file: &SettingsFile) -> io::Result<()> {
+fn write_atomically(path: &Path, file: &SettingsSnapshot) -> io::Result<()> {
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir)?;
     }
     let bytes = serde_json::to_vec_pretty(file).map_err(io::Error::other)?;
     let tmp = path.with_extension("json.tmp");
-    fs::write(&tmp, bytes)?;
+    use std::io::Write as _;
+    let mut file = fs::File::create(&tmp)?;
+    file.write_all(&bytes)?;
+    file.sync_all()?;
+    drop(file);
     fs::rename(&tmp, path)
 }

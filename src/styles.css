@@ -1724,3 +1724,7 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .workspace-provider .sidebar-item:disabled { cursor: default; opacity: .6; }
 
 .workspace-source-path { font-size: 12px; color: var(--ink-2); overflow-wrap: anywhere; width: 100%; }
+
+/* Accepted settings fieldset pattern; a portable backup path can be longer than the window. */
+.settings-backup-path { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.settings-backup-path input { box-sizing: border-box; width: 100%; min-width: 0; }

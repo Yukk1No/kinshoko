@@ -3,6 +3,8 @@
 //! Local IDs and image decisions remain in each Library. Only an explicit external identity
 //! in the same namespace joins identities automatically; names and aliases never do.
 mod approx;
+mod settings;
+pub use settings::CatalogSettingsSnapshot;
 mod groups;
 mod migration;
 mod names;
@@ -140,7 +142,7 @@ pub enum TagNameProvenance {
     Catalog,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct LibraryTagMapping {
