@@ -282,8 +282,7 @@ pub async fn export_reference_group_package(
         }) else {
             return Ok(None);
         };
-        crate::library::with_references(&app, |refs| groups.export_package(&group_id, refs, &path))
-            .map_err(|e| e.to_string())?;
+        crate::library::export_reference_package(&app, &groups, &group_id, &path)?;
         Ok(Some(path))
     })
     .await
@@ -310,9 +309,7 @@ pub async fn import_reference_group_package(
         };
         let groups = lock(&state(&app).groups).clone();
         let group = crate::library::with_current(&app, &library_id, |library| {
-            groups
-                .import_package(&path, library)
-                .map_err(|e| e.to_string())
+            crate::library::import_reference_package(&app, &groups, &path, library)
         })?;
         changed(&app);
         Ok(Some(group))

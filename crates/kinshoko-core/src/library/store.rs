@@ -39,6 +39,7 @@ fn migration_list() -> Vec<M<'static>> {
         M::up(include_str!("migrations/0069_restore_provenance.sql")),
         M::up(include_str!("migrations/0093_eagle_deleted_content.sql")),
         M::up(include_str!("migrations/0087_folder_revision.sql")),
+        M::up(include_str!("migrations/0090_portable_tags.sql")),
     ]
 }
 

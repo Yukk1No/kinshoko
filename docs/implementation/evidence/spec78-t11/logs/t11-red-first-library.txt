@@ -1,0 +1,21 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 18.40s
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 1 test
+
+thread 'first_tag_write_carries_identity_when_the_library_is_copied_to_a_fresh_application' (37484) panicked at crates\kinshoko-core\tests\portable_tags.rs:45:5:
+assertion `left == right` failed: copying ordinary content must not invent another application tag identity
+  left: "01a11c7d018f757db46a3780b17d4833"
+ right: "01a11c7d014e771cad965cdbfebc490f"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test first_tag_write_carries_identity_when_the_library_is_copied_to_a_fresh_application ... FAILED
+
+failures:
+
+failures:
+    first_tag_write_carries_identity_when_the_library_is_copied_to_a_fresh_application
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+error: test failed, to rerun pass `-p kinshoko-core --test portable_tags`

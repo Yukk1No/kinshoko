@@ -1,0 +1,438 @@
+{
+  "collectedAt": "2026-10-08T18:04:24.4327509Z",
+  "notes": "Collected after actual native verification. Originals retained in ignored work directories. Every copied file SHA256 was checked against its original bytes.",
+  "files": [
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-app-tagger-tests.txt",
+      "file": "logs/t11-app-tagger-tests.txt",
+      "sha256": "F7B51C85E63C8596078E381D1D3FB8CFE2CBF34398707D9A69E597D9AE81BA6D",
+      "bytes": 2022
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-clippy-pass1.txt",
+      "file": "logs/t11-clippy-pass1.txt",
+      "sha256": "A54BB9EBD16A38974691581EC7756D7ABA978C328B90AC71B5C06F7D0459F4E7",
+      "bytes": 422
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-clippy-pass2.txt",
+      "file": "logs/t11-clippy-pass2.txt",
+      "sha256": "1A9113C998BFA2ACA6EB26621B5A1626CC53ACB60F85D4B56A88D6DEF759CA5C",
+      "bytes": 422
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-clippy-pass3.txt",
+      "file": "logs/t11-clippy-pass3.txt",
+      "sha256": "EB2863E4A01BF6E9DEAE93C2945E29CF6070EBDC2DE0C9C3489AB09830FBF442",
+      "bytes": 422
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-core-all.txt",
+      "file": "logs/t11-core-all.txt",
+      "sha256": "811381A9C9DE2A07592802B415BE9282DCDD0FE894463932B4CE815EC44A8F54",
+      "bytes": 31773
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-core-clippy-final-validation.txt",
+      "file": "logs/t11-core-clippy-final-validation.txt",
+      "sha256": "D3506054D36DAFA360A49D0C26EED65BAD499240B37876D90A4AE6D7033680AC",
+      "bytes": 1367
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-core-final-pass1.txt",
+      "file": "logs/t11-core-final-pass1.txt",
+      "sha256": "151400514BECADFEDCE4BE23588888680675C16FA2A2239165D535179CE5DF44",
+      "bytes": 59497
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-definition-validation.txt",
+      "file": "logs/t11-green-definition-validation.txt",
+      "sha256": "4FD069E5F11A0E6905544A207B5861BEF626915432244BAEF6DE863588C010ED",
+      "bytes": 890
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-first-library.txt",
+      "file": "logs/t11-green-first-library.txt",
+      "sha256": "2D14233E2A9EFBFBC188AFB954B0421C82B5FB92318D36E93E162B07539CDA77",
+      "bytes": 937
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-hidden-dependency-publication.txt",
+      "file": "logs/t11-green-hidden-dependency-publication.txt",
+      "sha256": "367052AD38E23BABDF5178D49BD0F80C2C37E47AD90B1B195FA5CA990319A735",
+      "bytes": 4509
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-import-current-definitions.txt",
+      "file": "logs/t11-green-import-current-definitions.txt",
+      "sha256": "B51279EB806592FDFA3E8AD5062F336FF5F80AB5B2B9EB3509126E3497C68551",
+      "bytes": 508
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-live-catalog-export.txt",
+      "file": "logs/t11-green-live-catalog-export.txt",
+      "sha256": "DFA61B83A57A72466EA730A9FF35D8FB6D82F80EDB2D5F7ADEE28B41D489D5BD",
+      "bytes": 2711
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-local-mapping.txt",
+      "file": "logs/t11-green-local-mapping.txt",
+      "sha256": "B335E9A0D7157E12D64B17AD776AC6379E98B4082551E255E448F6C7D51A848E",
+      "bytes": 2446
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-package.txt",
+      "file": "logs/t11-green-package.txt",
+      "sha256": "463FC635D6F1921FC8FFF9D7C3C75D143456C86AEE80E6F85B325FC46FEC6D41",
+      "bytes": 2711
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-publication-atomicity.txt",
+      "file": "logs/t11-green-publication-atomicity.txt",
+      "sha256": "8D02F8ADF0CB2154B20523EB4ED73DA4F0F4EBDFBA8C4D147DB3A384AD9FE379",
+      "bytes": 1204
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-publish-ui.txt",
+      "file": "logs/t11-green-publish-ui.txt",
+      "sha256": "C4147D3E94A3FD16B4C32668AE968A1ADB1DA32A0DB3986D013991D1C535898F",
+      "bytes": 315
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-reused-seed.txt",
+      "file": "logs/t11-green-reused-seed.txt",
+      "sha256": "C67D1DCE4C68509964C753AD11AF7D2FC39C5609DEE5A756E4C77D4F917F2D92",
+      "bytes": 3653
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-shared-content-adapter-correct-target.txt",
+      "file": "logs/t11-green-shared-content-adapter-correct-target.txt",
+      "sha256": "43194C138FC6EF5D902545C1BFB57E3DFA9F619532B13AFB37D01E57530D881C",
+      "bytes": 2248
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-shared-content-adapter.txt",
+      "file": "logs/t11-green-shared-content-adapter.txt",
+      "sha256": "E9854A14A97803A4355C9A4CCF5B580C1FBCC84D94D2940777E24C0AD3866226",
+      "bytes": 1258
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-split-library.txt",
+      "file": "logs/t11-green-split-library.txt",
+      "sha256": "8D1F3E2FCFE90079BAA2F72F8243ABE5C3EA5E01DA870C20C9E7F9E82EA5824F",
+      "bytes": 603
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-green-target-identity-conflict.txt",
+      "file": "logs/t11-green-target-identity-conflict.txt",
+      "sha256": "A33123DAA3C7158B72F5A67E5C3C45F3E3861DBBD7F646820A7425936D1CA0A5",
+      "bytes": 2434
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-hidden-dependency-test-compile-error.txt",
+      "file": "logs/t11-hidden-dependency-test-compile-error.txt",
+      "sha256": "041E93CA719446F91F5E05EA37ADEBBC97F5C42ACBF4F589B93C6B18F25BDE1F",
+      "bytes": 626
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-native-build-final.txt",
+      "file": "logs/t11-native-build-final.txt",
+      "sha256": "7FD091D2DFF87538B957037C1602BBB335348A29337D7D8A20EF479BCE522BE9",
+      "bytes": 178
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-native-build-pass1.txt",
+      "file": "logs/t11-native-build-pass1.txt",
+      "sha256": "3CF6943A192A9EF27C735E26B652A17174E115CC1D02CD0AD7F1930FF3ADED29",
+      "bytes": 422
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-native-ci-smoke.txt",
+      "file": "logs/t11-native-ci-smoke.txt",
+      "sha256": "C53BAE542134109D5C9F0665E8D820A75C237E8D8A49EC0394AEC3FD071EA81F",
+      "bytes": 376
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-native-portable-controls.txt",
+      "file": "logs/t11-native-portable-controls.txt",
+      "sha256": "CA19BC05BDE3184F9C49E8F27436BF533D064D240BBE3D831E9549230EF81B0F",
+      "bytes": 2369
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-native-portable-first.txt",
+      "file": "logs/t11-native-portable-first.txt",
+      "sha256": "A1B6ED9463CA17AB898C50DB7D0E5E1FF49411DF180BC4F093273F10B4DC81D3",
+      "bytes": 411
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-red-first-library.txt",
+      "file": "logs/t11-red-first-library.txt",
+      "sha256": "30926A25F4E735700A567798F4E9A1650C508081683420617D36A25DD19341C2",
+      "bytes": 1138
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-red-hidden-dependency-publication.txt",
+      "file": "logs/t11-red-hidden-dependency-publication.txt",
+      "sha256": "A08A1FD84FC6BF0F600A0EC157E0C4E16EC69C13B0892BFA8C4F4EA73AD46DA9",
+      "bytes": 1162
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-red-import-current-definitions.txt",
+      "file": "logs/t11-red-import-current-definitions.txt",
+      "sha256": "2AA9661556D9771A48E9C7E3B6B0653C1FEE849A225AF64D6F1A1F0EE2D83A27",
+      "bytes": 1199
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-red-live-catalog-export.txt",
+      "file": "logs/t11-red-live-catalog-export.txt",
+      "sha256": "5716DEDF7ED7E4F382C9B4C9E9A1427CFBE26D9543EB8E8A167BB88AF30F284A",
+      "bytes": 1085
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-red-missing-definition.txt",
+      "file": "logs/t11-red-missing-definition.txt",
+      "sha256": "5150DD94780541AD830ACEC6ED4A508E23C3D10643ECE07DFEE3E5AD2C860AF9",
+      "bytes": 1564
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-red-missing-local-mapping.txt",
+      "file": "logs/t11-red-missing-local-mapping.txt",
+      "sha256": "30C7321665C5227D4F4FEC2AD5DBF5BFE7FFB0942D283024A5E65FD10DE2CD0F",
+      "bytes": 1677
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-red-package.txt",
+      "file": "logs/t11-red-package.txt",
+      "sha256": "D2F5591AB814CFD4B6910F01FB847D434348931B135743927618AED7EAAD179B",
+      "bytes": 1084
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-red-publish-ui.txt",
+      "file": "logs/t11-red-publish-ui.txt",
+      "sha256": "D84067B8B4C947C3590FB21892EEC050A09D5B3206B87791007072AF8B13AB1F",
+      "bytes": 7858
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-red-reused-seed.txt",
+      "file": "logs/t11-red-reused-seed.txt",
+      "sha256": "C33D1F4393F20987B5C9ECF961E93389F408C6D187D49E8CC32A01CBB220108A",
+      "bytes": 1237
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-red-split-library.txt",
+      "file": "logs/t11-red-split-library.txt",
+      "sha256": "36E9AFCF242FC426FFB2F43151361B02B8D6973E6D122BDB65418EB3143EFEC3",
+      "bytes": 1577
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-red-target-identity-conflict.txt",
+      "file": "logs/t11-red-target-identity-conflict.txt",
+      "sha256": "57F32B261C686A2C0EB124770318CE23BA3837808D2670972C4E2E4575426287",
+      "bytes": 2195
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-t05-combined-clippy.txt",
+      "file": "logs/t11-t05-combined-clippy.txt",
+      "sha256": "2F712F9C41EDB8DC75E6EAE82FEDDF17C1A43BA163E6B5D40115F27DCB0E8892",
+      "bytes": 422
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-t05-combined-typecheck.txt",
+      "file": "logs/t11-t05-combined-typecheck.txt",
+      "sha256": "B306B214DDC8B026C0E3F727C09F2434C3BE54D416CE4814DFC4CDB6DBB3015A",
+      "bytes": 48
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-t05-combined-ui.txt",
+      "file": "logs/t11-t05-combined-ui.txt",
+      "sha256": "85DE8849178733E4DF0AAFED1E78B0AC71BF2BC600A98592385748081C693AE4",
+      "bytes": 588
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-t05-combined-vite.txt",
+      "file": "logs/t11-t05-combined-vite.txt",
+      "sha256": "D14D18584B8B64122AF118260B5C8156DDAD259EB52B410E5F340C4AF5074672",
+      "bytes": 408
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-t05-combined-workspace.txt",
+      "file": "logs/t11-t05-combined-workspace.txt",
+      "sha256": "9D7D59F784CB7A1F783F3CDA3356435845CB9CD220BBD2F7D76742F390EB1005",
+      "bytes": 63477
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-tauri-check.txt",
+      "file": "logs/t11-tauri-check.txt",
+      "sha256": "FD6D48700DB78F5D7EA78337F88E1161D7D226768E320EA5ED44E2B5B0480B02",
+      "bytes": 422
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-tauri-clippy-export-order.txt",
+      "file": "logs/t11-tauri-clippy-export-order.txt",
+      "sha256": "8347495B63F6567F9378F6AB34D005D5280C49BD85543944582C4257A245CC06",
+      "bytes": 177
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-typecheck-initial.txt",
+      "file": "logs/t11-typecheck-initial.txt",
+      "sha256": "B306B214DDC8B026C0E3F727C09F2434C3BE54D416CE4814DFC4CDB6DBB3015A",
+      "bytes": 48
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-typecheck.txt",
+      "file": "logs/t11-typecheck.txt",
+      "sha256": "B306B214DDC8B026C0E3F727C09F2434C3BE54D416CE4814DFC4CDB6DBB3015A",
+      "bytes": 48
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-ui-all.txt",
+      "file": "logs/t11-ui-all.txt",
+      "sha256": "FA624B6C0AA3744B7D9DC77942CD454DB465A666EF072D280C24CACB7AC94699",
+      "bytes": 588
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\t11-vite-build.txt",
+      "file": "logs/t11-vite-build.txt",
+      "sha256": "49BA0E0D4583EA3D4FD0D2999BECA440091517955E0640681D7C9198E9ED9C1B",
+      "bytes": 408
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\01-source-group.png",
+      "file": "native-passed/01-source-group.png",
+      "sha256": "EC35F31AB21ECA7178F777479FB49B3282C1057E1C94F939358503B7CD28CB1E",
+      "bytes": 69601
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\02-publication-failure.png",
+      "file": "native-passed/02-publication-failure.png",
+      "sha256": "9B22BBAE2B9CDB3CC19D2EF8F727836CA0A0DA8101F1709CCCFCE12D8F2EBD31",
+      "bytes": 172808
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\03-publication-retry.png",
+      "file": "native-passed/03-publication-retry.png",
+      "sha256": "87DBD1F496A89813F872FD2A72BE1149492258BA95295C052FA2D80422BC3C3F",
+      "bytes": 161512
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\04-exported-package.png",
+      "file": "native-passed/04-exported-package.png",
+      "sha256": "C5FD16A0B6CEC4BB308A4FB86D7D047191E9B8FF19FA366C139ED861758911AA",
+      "bytes": 66511
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\05-copied-library-identities.png",
+      "file": "native-passed/05-copied-library-identities.png",
+      "sha256": "BA92BBBF27A00EA407F4625370C34770BC9B9DA3F214B855213C9AA2860B248B",
+      "bytes": 161021
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\06-fresh-package-group.png",
+      "file": "native-passed/06-fresh-package-group.png",
+      "sha256": "91F5C0385928E451AA0702181FA1B0F2FBCBD3319E7254929980DAAA60A8A175",
+      "bytes": 69250
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\07-existing-preferences.png",
+      "file": "native-passed/07-existing-preferences.png",
+      "sha256": "38E23CC99C267B26875E8050CD6CA8534075168AF7CE69524F2B9B38803AE201",
+      "bytes": 167505
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\08-reimported-copy.png",
+      "file": "native-passed/08-reimported-copy.png",
+      "sha256": "70B4C93CE478412DF30EC8D9EADE02C2088AA493F6257535EE4AA105E8913405",
+      "bytes": 111323
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\a1.png",
+      "file": "native-passed/a1.png",
+      "sha256": "78120C3ECE2FE83A7A5D29DCD34E9C094FADA49415758E5041A39D9FD81F9333",
+      "bytes": 22545
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\a2.png",
+      "file": "native-passed/a2.png",
+      "sha256": "F2FEC983C266BD3B0B19A852D37EC9E6FC019E9FFAFCF9D9E1F7F0A8C61BB67D",
+      "bytes": 22533
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\b.png",
+      "file": "native-passed/b.png",
+      "sha256": "404D04BC1FF6612A2A6C39DFCBF9D9BC6CDE471C332BC312495D57C25C152154",
+      "bytes": 22880
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\existing.png",
+      "file": "native-passed/existing.png",
+      "sha256": "570F84C306FDC4C127A9BFF7A14D01835E3E71DAF3C42A60A718401754399DE2",
+      "bytes": 23174
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\portable.kinshoko-group",
+      "file": "native-passed/portable.kinshoko-group",
+      "sha256": "B145EEE09701FEB9AAA3D679D68999469FAED3C52C12DB8973C8C88B7DA95805",
+      "bytes": 75060
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\result.json",
+      "file": "native-passed/result.json",
+      "sha256": "2AF951F023C1EF88C177CE11356D7CE844240602AE16966ACEFD9E9E1FF78B6E",
+      "bytes": 9387
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482358437\\failure-source.html",
+      "file": "native-first-failed/failure-source.html",
+      "sha256": "B42F5828515EA21D75177E925772781544851FCF9699FBD832B9976BF22865FE",
+      "bytes": 21632
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482358437\\failure-source.png",
+      "file": "native-first-failed/failure-source.png",
+      "sha256": "C245C9E9753A46897E7D17B73CBB0836C04F2DC87807C744E9C2A1ED271E52FA",
+      "bytes": 156722
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482358437\\result.json",
+      "file": "native-first-failed/result.json",
+      "sha256": "8F47F93EC7F76D859B69E1D216BCD584BD2BA5D38228B20A239083FA60F1CE52",
+      "bytes": 2597
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\portable-tags.mjs",
+      "file": "portable-tags.mjs",
+      "sha256": "C5264F13BC3365B543B8C882773F089E5CD39671CEF3D331551504AFE23029FB",
+      "bytes": 28914
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t11-build-source.json",
+      "file": "build-source.json",
+      "sha256": "36E47F3DF18EB4A5452248E841D53A166C9B07C38510D17482F3D920591AC476",
+      "bytes": 746
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t11-tauri-config.json",
+      "file": "tauri-config.json",
+      "sha256": "6BC6FFD4CFD9F2DFA02B7BF8E1737212FD2867A3868AACA27FF2381D12DB0B7E",
+      "bytes": 79
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t11-portable-release.json",
+      "file": "native-release.json",
+      "sha256": "AAB82478047FC7E5669CA0862932CE920A9D4BCC8E9AC434C94A2E1692F7FE17",
+      "bytes": 222
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t11-ci-smoke-release.json",
+      "file": "ci-smoke-release.json",
+      "sha256": "45BEF9256077DB162947001C126B0B04CC03E6045CDA0AF0331AF55C570D47EA",
+      "bytes": 88
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t11-ci-smoke\\kinshoko-smoke-eLrrSv\\result.json",
+      "file": "ci-smoke-result.json",
+      "sha256": "25ADA0E2DA8402A87ECE1EDFA703C2FA90C6831FCC09DC7468168A8B3027FF80",
+      "bytes": 820
+    }
+  ]
+}

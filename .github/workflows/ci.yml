@@ -103,6 +103,18 @@ jobs:
 
       - name: WebDriver 冒烟测试（建库、导入、浏览、重开）
         run: node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe
+        env:
+          KINSHOKO_SMOKE_WORK_ROOT: ${{ runner.temp }}/kinshoko-smoke
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-report-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/kinshoko-smoke/*/result.json
+            ${{ runner.temp }}/kinshoko-smoke/*/failure.html
+            ${{ runner.temp }}/kinshoko-smoke/*/failure.png
+          retention-days: 30
 
       # WebView2 解码原图与缩略图、display-p3 canvas 读回色块比较 ΔE2000（#45）。
       # 未通过是要由人判断的实验结果（报告随产物上传），不让构建变红。

@@ -1,0 +1,21 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.99s
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 1 test
+
+thread 'an_existing_catalog_namespace_conflict_is_rejected_before_package_content_changes' (43272) panicked at crates\kinshoko-core\tests\portable_tags.rs:284:5:
+assertion `left == right` failed: content import must validate the catalog's exact identity before changing the target
+  left: ImageTags { image_id: "01a11c8a03c2738b95fe324808c5a4b9", tags: [ImageTag { tag: TagLabel { id: "01a11c8a03cc73578b0bcbf459d20e08", namespace: General, name: "白", untranslated: false, has_external: false }, origins: [Manual] }, ImageTag { tag: TagLabel { id: "01a11c8a041576258517a64d4f123695", namespace: General, name: "白", untranslated: false, has_external: false }, origins: [Source { source: "package:8fa3d896d56d4cbaaf45a8fa22e59d8f:7dff0c90cad54f4abc35ea0d4089fd30:01a11c8a0356767a9fb9fa0cbfa7d5b6", score: None }] }, ImageTag { tag: TagLabel { id: "01a11c8a03d0736ba6914e1710a5cbc8", namespace: Artist, name: "白", untranslated: false, has_external: false }, origins: [Manual] }], rejected: [] }
+ right: ImageTags { image_id: "01a11c8a03c2738b95fe324808c5a4b9", tags: [ImageTag { tag: TagLabel { id: "01a11c8a03cc73578b0bcbf459d20e08", namespace: General, name: "白", untranslated: false, has_external: false }, origins: [Manual] }, ImageTag { tag: TagLabel { id: "01a11c8a03d0736ba6914e1710a5cbc8", namespace: Artist, name: "白", untranslated: false, has_external: false }, origins: [Manual] }], rejected: [] }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test an_existing_catalog_namespace_conflict_is_rejected_before_package_content_changes ... FAILED
+
+failures:
+
+failures:
+    an_existing_catalog_namespace_conflict_is_rejected_before_package_content_changes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.26s
+
+error: test failed, to rerun pass `-p kinshoko-core --test portable_tags`

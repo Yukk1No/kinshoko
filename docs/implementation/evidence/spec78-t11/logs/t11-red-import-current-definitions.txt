@@ -1,0 +1,22 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.11s
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 1 test
+test package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names ... FAILED
+
+failures:
+
+---- package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names stdout ----
+
+thread 'package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names' (45884) panicked at crates\kinshoko-core\tests\portable_tags.rs:285:5:
+a content write must publish the destination application's current pure definitions before the library is carried away
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.40s
+
+error: test failed, to rerun pass `-p kinshoko-core --test portable_tags`

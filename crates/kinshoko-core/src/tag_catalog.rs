@@ -10,6 +10,7 @@ pub use approx::{
     CatalogApproxConflict, CatalogApproxDecision, CatalogApproxEdit, CatalogApproxEntry,
     CatalogApproxMigration, CatalogApproxOrigin, CatalogApproxSource, CatalogApproxView,
 };
+mod portable;
 pub use groups::{
     CatalogGroupDefinition, CatalogGroupEdit, CatalogGroupMigration, CatalogGroupOrigin,
     CatalogGroupSource, CatalogGroupView,
@@ -40,6 +41,7 @@ pub enum CatalogError {
     Data(serde_json::Error),
     Library(crate::library::Error),
     UnknownTag,
+    InvalidDefinition(String),
     UnknownGroup,
     InvalidGroupMembers,
     UnknownMapping,
@@ -57,6 +59,7 @@ impl fmt::Display for CatalogError {
             Self::Storage(e) => write!(f, "无法读取统一标签目录：{e}"),
             Self::Data(e) => write!(f, "统一标签目录中的定义无效：{e}"),
             Self::Library(e) => e.fmt(f),
+            Self::InvalidDefinition(why) => write!(f, "标签定义无效：{why}"),
             Self::InvalidGroupMembers => write!(f, "分组成员无效，命名空间分组会自动列出该类标签"),
             Self::UnknownGroup => write!(f, "没有这个全局标签分组"),
             Self::UnknownTag => write!(f, "统一标签目录中没有这个标签"),
@@ -296,6 +299,11 @@ impl TagCatalog {
     /// the original names awaiting migration. A matching name or alias is never evidence of identity.
     pub fn synchronize(&mut self, library: &Library) -> Result<CatalogInspection, CatalogError> {
         let vocabulary = library.vocabulary()?;
+        let dependencies = library.tag_definition_dependencies()?;
+        let dependency_bindings = dependencies
+            .iter()
+            .map(|b| (b.local_tag_id.as_str(), b))
+            .collect::<std::collections::BTreeMap<_, _>>();
         let library_id = &library.info().id;
         let tx = self
             .conn
@@ -356,7 +364,14 @@ impl TagCatalog {
                 changed |= names::adopt_existing_choice(&tx, library_id, &local.id, &target)?;
                 continue;
             }
-            let (id, basis) = if candidates.len() == 1 {
+            let dependency = dependency_bindings
+                .get(local.id.as_str())
+                .copied()
+                .filter(|b| b.authoritative);
+            let (id, basis) = if let Some(binding) = dependency {
+                portable::import_definition(&tx, &binding.definition)?;
+                (binding.definition.id.clone(), CatalogMatchBasis::Corrected)
+            } else if candidates.len() == 1 {
                 let id = candidates.into_iter().next().expect("one candidate");
                 extend_externals(&tx, &id, &local.external)?;
                 (id, CatalogMatchBasis::External)
@@ -368,7 +383,16 @@ impl TagCatalog {
                     CatalogMatchBasis::ConflictingExternal,
                 )
             } else {
-                (insert_tag(&tx, &local)?, CatalogMatchBasis::Independent)
+                (
+                    insert_tag_with_id(
+                        &tx,
+                        &local,
+                        dependency_bindings
+                            .get(local.id.as_str())
+                            .map(|b| b.definition.id.as_str()),
+                    )?,
+                    CatalogMatchBasis::Independent,
+                )
             };
             tx.execute("INSERT INTO library_tag_mapping (library_id,local_tag_id,catalog_id,legacy,basis) VALUES (?1,?2,?3,?4,?5)", params![library_id, local.id, id, serde_json::to_string(&local)?, serde_json::to_string(&basis)?])?;
             let adopted = tx
@@ -379,7 +403,8 @@ impl TagCatalog {
                 )
                 .optional()?
                 .is_some();
-            if adopted
+            if dependency.is_some()
+                || adopted
                 || tx
                     .query_row(
                         "SELECT 1 FROM catalog_legacy_tag WHERE library_id=?1 AND local_tag_id=?2",
@@ -588,6 +613,50 @@ impl TagCatalog {
         })
     }
 
+    /// Publish current content dependencies without exporting application preferences.
+    pub fn publish_library_definitions(&mut self, library: &Library) -> Result<(), CatalogError> {
+        let snapshot = self.synchronize(library)?;
+        let definitions = snapshot
+            .tags
+            .iter()
+            .map(|tag| (tag.id.as_str(), portable::content_definition(tag)))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        // Keep every raw dependency, including safe-mode-hidden tags with no visible mapping.
+        // An authoritative identity already known by this app uses its current pure definition.
+        let mut bindings = library
+            .tag_definition_dependencies()?
+            .into_iter()
+            .map(|mut binding| {
+                if binding.authoritative
+                    && let Some(definition) = definitions.get(binding.definition.id.as_str())
+                {
+                    binding.definition = definition.clone();
+                }
+                (binding.local_tag_id.clone(), binding)
+            })
+            .collect::<std::collections::BTreeMap<_, _>>();
+        for mapping in snapshot
+            .mappings
+            .iter()
+            .filter(|mapping| mapping.library_id == library.info().id)
+        {
+            bindings.insert(
+                mapping.local_tag_id.clone(),
+                crate::portable_tags::PortableTagBinding {
+                    local_tag_id: mapping.local_tag_id.clone(),
+                    definition: definitions
+                        .get(mapping.catalog_id.as_str())
+                        .ok_or(CatalogError::UnknownTag)?
+                        .clone(),
+                    authoritative: true,
+                },
+            );
+        }
+        let bindings = bindings.into_values().collect::<Vec<_>>();
+        library.publish_tag_definitions(&bindings)?;
+        Ok(())
+    }
+
     /// Resolve the application identity without assuming equality with any library's local ID.
     pub fn local_tag_ids(
         &self,
@@ -602,7 +671,34 @@ impl TagCatalog {
 }
 
 fn insert_tag(tx: &Transaction<'_>, local: &VocabularyTag) -> Result<String, CatalogError> {
-    let id = uuid::Uuid::now_v7().simple().to_string();
+    insert_tag_with_id(tx, local, None)
+}
+
+fn insert_tag_with_id(
+    tx: &Transaction<'_>,
+    local: &VocabularyTag,
+    initial_id: Option<&str>,
+) -> Result<String, CatalogError> {
+    if let Some(id) = initial_id {
+        let existing = tx
+            .query_row(
+                "SELECT definition FROM catalog_tag WHERE id=?1",
+                [id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        if let Some(raw) = existing {
+            let tag: CatalogTag = serde_json::from_str(&raw)?;
+            if tag.namespace != local.namespace {
+                return Err(CatalogError::NamespaceMismatch);
+            }
+            // The content identity is already known. Keep this application's names and rules.
+            return Ok(id.to_owned());
+        }
+    }
+    let id = initial_id
+        .map(str::to_owned)
+        .unwrap_or_else(|| uuid::Uuid::now_v7().simple().to_string());
     let ns = serde_json::to_string(&local.namespace)?;
     let mut tag = CatalogTag {
         id: id.clone(),
