@@ -33,20 +33,20 @@ pub struct RuntimeCapabilities {
     pub canvas_buffer: CanvasBuffer,
 }
 
+/// 仅列检查实际失败的原因。不根据 OS、Runtime 版本或可选 API 推断。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct RuntimeAssessment {
-    /// 仅列检查实际失败的原因。不根据 OS、Runtime 版本或可选 API 推断。
     pub problems: Vec<String>,
     pub uses_8bit_fallback: bool,
 }
 
+/// WebView2 可用版本查询与本窗口能力检查。版本查询不独立证明实际运行进程的版本。
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct RuntimeStatus {
-    /// 查询实际启动的 WebView2；失败时不猜版本。
     pub webview2: Option<String>,
     pub assessment: RuntimeAssessment,
 }

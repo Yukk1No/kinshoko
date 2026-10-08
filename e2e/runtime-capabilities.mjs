@@ -9,13 +9,19 @@ import { initialHiddenPin, inspectNativePin } from "./native-initial-pin-t18.mjs
 
 const [, , appArg, edgeArg, driverArg = "C:/Users/yuk1no/.cargo/bin/tauri-driver.exe", runArg, mode = "full"] = process.argv;
 if (!appArg || !edgeArg) throw Error("Frozen T18 executable and matching WebView2 driver required");
-if (!["full", "main"].includes(mode)) throw Error("T18 scope must be full or main");
+if (!["full", "main", "pin-error"].includes(mode)) throw Error("T18 scope must be full, main, or pin-error");
 const manifest = JSON.parse(readFileSync("work/t18/native-source.json", "utf8"));
 const application = resolve(appArg), hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 if (application.toLowerCase() !== resolve(manifest.preservedBinary).toLowerCase() || hash(readFileSync(application)) !== manifest.binarySha256) throw Error("Wrong frozen product");
 for (const [name, path] of [["edge", edgeArg], ["tauri", driverArg]]) {
   const frozen = manifest.drivers[name];
   if (resolve(path).toLowerCase() !== resolve(frozen.path).toLowerCase() || hash(readFileSync(path)) !== frozen.sha256) throw Error("Wrong frozen " + name + " driver");
+}
+if (hash(readFileSync(manifest.buildConfig.path)) !== manifest.buildConfig.sha256) throw Error("Frozen test-bundle configuration changed");
+if (mode === "pin-error") {
+  const config = JSON.parse(readFileSync(manifest.buildConfig.path, "utf8"));
+  const expected = ["default", "desktop", { identifier: "t18-test-pin-hide", description: "Isolated native test bundle only: framework hide before a controlled pin failure", windows: ["pin-*"], permissions: ["core:window:allow-hide"] }];
+  if (JSON.stringify(config.app?.security?.capabilities) !== JSON.stringify(expected)) throw Error("Pin-error scope requires the exact isolated test-only hide capability");
 }
 const work = resolve(runArg ?? join("work/e2e", "runtime-capabilities-" + Date.now()));
 if (dirname(work) !== resolve("work/e2e") || !/^runtime-capabilities-\d+$/.test(basename(work)) || existsSync(work)) throw Error("A new owned T18 evidence directory is required");
@@ -41,12 +47,14 @@ if (manifest.identifier !== "dev.kinshoko.spec78t18test" || knownFolderConfig.to
 if (existsSync(knownFolderConfig)) throw Error("The isolated KnownFolder settings must not preexist: " + knownFolderConfig);
 const report = {
   story: 51, ticket: 96, mode, source: manifest.commit, tree: manifest.tree, binarySha256: manifest.binarySha256,
+  scope: mode === "pin-error" ? "Framework-hide then controlled required-canvas failure; production ready must show the same native HWND" : mode === "main" ? "Independent main-window continuation; no pin error path" : "Full runtime capability attempt",
   identifier: manifest.identifier, ports: manifest.ports, work, application, data, profile,
   harness: { source: gitRead("rev-parse", "HEAD"), tree: gitRead("rev-parse", "HEAD^{tree}"), clean: true, files: Object.fromEntries(harnessFiles.map((path) => [path, hash(readFileSync(path))])), frozenProductionInputsMatch: true, frozenDistMatches: true },
   knownFolder: { config: knownFolderConfig, existedBefore: false },
   limitations: ["Windows 10 unverified: owner has no device/VM", "Controlled JS absence in current Runtime is not an old/absent Runtime", "Basic capabilities and representative display are not a colour-fidelity pass"], checks: [],
 };
 if (mode === "main") report.limitations.push("Main-only run: initial-hidden missing-canvas pin path is not executed or verified by this result");
+if (mode === "pin-error") report.limitations.push("Test bundle alone grants public framework hide to pin-*; this does not verify the first-script initial-hidden path or a genuinely older Runtime");
 function chunk(kind, bytes) {
   const body = Buffer.concat([Buffer.from(kind), bytes]); let crc = 0xffffffff;
   for (const byte of body) { crc ^= byte; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ crc >>> 1 : crc >>> 1; }
@@ -149,6 +157,7 @@ try {
   if (runtimeProcesses.status !== 0) throw Error("Running WebView process facts: " + runtimeProcesses.stderr);
   report.runningWebviewProcesses = JSON.parse(runtimeProcesses.stdout);
   check(report.runningWebviewProcesses.length > 0, "actual isolated running WebView executable versions recorded separately from installed-version query");
+  if (mode !== "pin-error") {
   await click(setting);
   await until("real current Runtime capability operations complete", () => exec("return document.querySelector('[aria-label=本机运行时]')?.textContent.includes('基础图片解码与钉图绘制检查完成。')"));
   check(!await exec("return Boolean(document.querySelector('[aria-label=运行时能力提示]'))"), "current Runtime has no required capability warning");
@@ -159,15 +168,18 @@ try {
   await screenshot("runtime-current.png");
   check((await diagnosticFile("runtime-current.txt")).includes("内置 PNG 解码：完成"), "formal native export retains current measured capabilities");
   await click(button("关闭设置"));
+  }
   const library = await invoke("plugin:library|create_library", { parent, name: "T18 Runtime Reference" });
   const task = await invoke("plugin:library|start_import", { libraryId: library.id, source: { paths: [sampleFile] }, destination: { libraryId: library.id, folderId: null } });
   await until("real import complete", async () => (await invoke("plugin:library|import_tasks")).find((entry) => entry.taskId === task && entry.report && !entry.finishing));
   await exec("location.reload()"); await until("formal imported card", () => exec("return document.querySelector('.card img')?.complete && document.querySelector('.card img')?.naturalWidth > 0"));
   await click("//*[contains(@class,'card') and @data-id][1]");
   await until("representative original visible", () => exec("return document.querySelector('.viewer-stage img')?.complete && document.querySelector('.viewer-stage img')?.naturalWidth > 0"));
+  if (mode !== "pin-error") {
   await click(button("原图像素"));
   report.originalDisplay = await until("original-sized reference", () => exec("const image=document.querySelector('.viewer-stage img');return image?.complete&&image.naturalWidth===400?{src:image.currentSrc,naturalWidth:image.naturalWidth,naturalHeight:image.naturalHeight}:null"));
   await screenshot("representative-original.png"); check(true, "representative original is visible at original size in current Runtime");
+  }
   if (mode === "full") {
   await click(button("钉住整图"));
   pinHandle = await until("native pin window", async () => (await wd("GET", base + "/window/handles")).find((handle) => handle !== mainHandle));
@@ -209,6 +221,37 @@ try {
   await initialPinProof.close();
   await closeCurrentPin();
   }
+  if (mode === "pin-error") {
+    // Establish a normal production pin only as a precondition. This scope does not repeat its full display checks.
+    await click(button("钉住整图"));
+    pinHandle = await until("owned production pin precondition", async () => (await wd("GET", base + "/window/handles")).find((handle) => handle !== mainHandle));
+    await wd("POST", base + "/window", { handle: pinHandle });
+    await until("production pin ready precondition", async () => await pinCanvasSource() && await invoke("plugin:window|is_visible", { label: await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label") }));
+    const label = await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label");
+    const beforeHide = inspectNativePin(application);
+    if (!beforeHide.visible) throw Error("Framework-hide precondition requires the actual owned native pin to be visible");
+    await invoke("plugin:window|hide", { label });
+    const afterHide = inspectNativePin(application);
+    const tauriHidden = !await invoke("plugin:window|is_visible", { label });
+    report.frameworkHide = { label, beforeHide, afterHide, tauriHidden };
+    check(beforeHide.hwnd === afterHide.hwnd && !afterHide.visible && tauriHidden, "public Tauri hide synchronizes the same owned HWND and framework visibility to false");
+    await injectNextDocument("window.__T18_CONTROLLED_ABSENCE__='canvas2d unavailable after framework hide in current Runtime';const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(kind){return kind==='2d'?null:original.apply(this,arguments)};");
+    await until("controlled required-canvas error after framework hide", () => exec("return document.querySelector('[role=alert]')?.textContent.includes('无法建立二维画布，钉图无法显示')"));
+    report.missingCanvasPin = { label, message: await exec("return document.querySelector('[role=alert]').textContent"), productionCanvasPresent: await exec("return Boolean(document.querySelector('.pin-canvas'))"), visibilityObservations: [] };
+    check(!report.missingCanvasPin.productionCanvasPresent, "controlled missing-canvas pin has its specific reason and no production canvas");
+    const started = Date.now();
+    await until("production ready shows framework-hidden pin error", async () => {
+      const visible = await invoke("plugin:window|is_visible", { label });
+      report.missingCanvasPin.visibilityObservations.push({ elapsedMs: Date.now() - started, visible });
+      return visible;
+    }, 5000);
+    const afterReady = inspectNativePin(application);
+    report.missingCanvasPin.nativeAfterReady = afterReady;
+    check(afterReady.hwnd === beforeHide.hwnd && afterReady.visible, "production ready shows the same framework-hidden native HWND with its capability error");
+    await until("pin error appearance feedback complete", () => exec("const feedback=document.querySelector('.pin-appear');return feedback&&getComputedStyle(feedback).opacity==='0'"));
+    await screenshot("framework-hidden-required-canvas-pin.png");
+    await closeCurrentPin();
+  } else {
   await click(button("返回图片墙")); await click(setting);
   await exec(mainFaultScript);
   await click(`${details}//button[normalize-space()='重新检查运行时']`);
@@ -232,6 +275,7 @@ try {
   await click(`${details}//button[normalize-space()='重新检查运行时']`);
   await until("current Runtime recovered after controlled absence", () => exec("return document.querySelector('[aria-label=本机运行时]')?.textContent.includes('基础图片解码与钉图绘制检查完成。')&&!document.querySelector('[aria-label=运行时能力提示]')"));
   await screenshot("runtime-recovered.png");
+  }
   check(hash(readFileSync(sampleFile)) === originalHash, "runtime checks and diagnostics preserve original file bytes");
   report.knownFolder.existedAfter = existsSync(knownFolderConfig);
   if (report.knownFolder.existedAfter) report.knownFolder.settingsSha256 = hash(readFileSync(knownFolderConfig));
