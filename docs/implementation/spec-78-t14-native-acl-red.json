@@ -1,0 +1,28 @@
+{
+  "stories": [
+    38,
+    39,
+    40
+  ],
+  "ticket": 93,
+  "windows": "10.0.26300",
+  "sourceRevision": "8190801b87fa999039a016ce052333be6074297c",
+  "identifier": "dev.kinshoko.spec78t14test",
+  "ports": [
+    4480,
+    4481
+  ],
+  "checks": [
+    "Created an isolated real target library through the production UI"
+  ],
+  "runtime": {
+    "browserName": "webview2",
+    "browserVersion": "154.0.4258.62",
+    "platformName": "windows"
+  },
+  "dpr": 1.1041666269302368,
+  "diagnostics": "Kinshoko 0.1.0 诊断信息\n生成时间：2026-10-08 15:20:19 UTC\n本报告不含文件名、路径与图片。\n\n[系统]\n系统：Windows 11 Professional 26H2（26300.9550）\n处理器：AMD Ryzen 7 5800X 8-Core Processor\n内存：31.9 GB\n显卡：NVIDIA GeForce RTX 4070 SUPER\n显卡：GameViewer Virtual Display Adapter\nWebView2：154.0.4258.62\n\n[显示器]\n1. VG27AQL1A（主显示器）：2560×1440，缩放 110%，SDR（自动色彩管理），每通道 8 位\n   配置文件：sRGB IEC61966-2.1，ICC 2.1，矩阵＋曲线，SHA-256 2b3aa1645779\n\n[Kinshoko 设置]\n强制 sRGB：关闭\n使用日志：关闭\n",
+  "status": "failed",
+  "error": "Error: Timed out: Eagle policy step\n    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/eagle-deletion-choice.mjs:62:9)\n    at async prepare (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/eagle-deletion-choice.mjs:90:3)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/eagle-deletion-choice.mjs:141:3",
+  "finishedAt": "2026-10-08T15:20:49.667Z"
+}
