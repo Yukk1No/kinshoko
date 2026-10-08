@@ -7,8 +7,8 @@
 use std::sync::Arc;
 
 use kinshoko_core::desktop::{
-    CaptureAction, CaptureReference, FrozenScreen, Placement, Region, SavedPin, ScreenRect,
-    Screenshot,
+    CaptureAction, CaptureOutcome, CaptureReference, CaptureSelection, CaptureSurface,
+    FrozenScreen, Placement, Region, SavedPin, ScreenRect, Screenshot,
 };
 use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
 
@@ -36,10 +36,7 @@ pub struct Pending {
 
 pub(super) struct ReferenceSurface {
     pub window: String,
-    pub pin: SavedPin,
-    pub shown: ScreenRect,
-    pub visible: ScreenRect,
-    pub covered: Vec<ScreenRect>,
+    pub selection: CaptureSurface,
 }
 
 #[derive(Clone)]
@@ -109,10 +106,12 @@ fn references(app: &AppHandle) -> Vec<ReferenceSurface> {
         };
         Some(ReferenceSurface {
             window: "main".into(),
-            pin,
-            shown: screen(viewer.shown),
-            visible: screen(viewer.visible),
-            covered: Vec::new(),
+            selection: CaptureSurface {
+                pin,
+                shown: screen(viewer.shown),
+                visible: screen(viewer.visible),
+                covered: Vec::new(),
+            },
         })
     })();
     surfaces.extend(main);
@@ -136,7 +135,7 @@ fn freeze_visibility(app: &AppHandle, surface: &mut ReferenceSurface) -> bool {
         let Some(covered) = super::win32::covering_windows(hwnd.0 as isize) else {
             return false;
         };
-        surface.covered = covered;
+        surface.selection.covered = covered;
         true
     }
     #[cfg(not(windows))]
@@ -296,46 +295,50 @@ pub async fn finish_capture(
         }
     };
     close(&app);
-    let selected = ScreenRect {
-        x: pending.origin.0 + region.x as i32,
-        y: pending.origin.1 + region.y as i32,
-        width: region.width,
-        height: region.height,
-    };
-    for surface in &pending.references {
-        if !surface.visible.contains(&selected)
-            || surface
-                .covered
-                .iter()
-                .any(|r| r.intersect(&selected).is_some())
-        {
-            continue;
-        }
-        if let Some(crop) = surface.pin.reference_region(surface.shown, selected) {
-            return match action {
-                CaptureAction::Pin => pins::open_reference_crop(&app, &surface.pin, crop, selected),
-                CaptureAction::Copy => {
-                    let shot = pending.screen.crop(region).ok_or("选区是空的")?;
-                    pins::copy_to_clipboard(&shot.image)
-                }
-            };
-        }
-    }
-    let shot = pending.screen.crop(region).ok_or("选区是空的")?;
-    let entry = lock(&state(&app).history)
-        .add(&shot)
+    tauri::async_runtime::spawn_blocking(move || {
+        let references: Vec<_> = pending
+            .references
+            .iter()
+            .map(|s| s.selection.clone())
+            .collect();
+        let selection = CaptureSelection {
+            screen: &pending.screen,
+            origin: pending.origin,
+            region,
+            references: &references,
+        };
+        let at = selection.screen_rect().map_err(|e| e.to_string())?;
+        let outcome = crate::library::with_references(&app, |sources| {
+            selection.finish(
+                action,
+                &uuid::Uuid::new_v4().simple().to_string(),
+                sources,
+                &lock(&state(&app).veils),
+                &mut lock(&state(&app).history),
+            )
+        })
         .map_err(|e| e.to_string())?;
-    history_changed(&app);
-    match action {
-        CaptureAction::Pin => {
-            let at = ScreenRect {
-                x: pending.origin.0 + region.x as i32,
-                y: pending.origin.1 + region.y as i32,
-                width: entry.width,
-                height: entry.height,
-            };
-            pins::open(&app, &entry, at)
+        match outcome {
+            CaptureOutcome::PinReference(pin) => pins::open_reference_selection(&app, pin, at),
+            CaptureOutcome::CopyReference(image) => pins::copy_to_clipboard(&image),
+            CaptureOutcome::PinCapture(entry) => {
+                history_changed(&app);
+                pins::open(
+                    &app,
+                    &entry,
+                    ScreenRect {
+                        width: entry.width,
+                        height: entry.height,
+                        ..at
+                    },
+                )
+            }
+            CaptureOutcome::CopyCapture(image) => {
+                history_changed(&app);
+                pins::copy_to_clipboard(&image)
+            }
         }
-        CaptureAction::Copy => pins::copy_to_clipboard(&shot.image),
-    }
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
