@@ -1,0 +1,10 @@
+PASS same bytes aggregate across two independently curated providers
+PASS same-name source choices visibly show distinct path suffixes
+PASS editing inactive B note leaves A note unchanged
+PASS source edits do not activate B or change current library
+PASS workspace notification does not interrupt the revalidated explicit source editor
+PASS B manual rating remains independent from A
+PASS removing B folder membership preserves A folder membership
+Error: Timed out: B folder restored
+    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/source-actions.mjs:48:9)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/source-actions.mjs:161:3

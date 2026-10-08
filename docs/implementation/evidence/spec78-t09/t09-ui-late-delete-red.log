@@ -1,0 +1,40 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/WorkspaceSources.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+ ❯ src/library/WorkspaceSources.test.tsx (2 tests | 1 failed) 325ms
+   × 换到 B 后，A 的迟到删除响应不能关闭 B 的整理面板 89ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/WorkspaceSources.test.tsx > 换到 B 后，A 的迟到删除响应不能关闭 B 的整理面板
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array []
+
+
+Number of calls: 1
+
+ ❯ src/library/WorkspaceSources.test.tsx:53:21
+     51|   await waitFor(() => expect((screen.getByRole("textbox", { name: "备注"…
+     52|   await import("@testing-library/react").then(({ act }) => act(async (…
+     53|   expect(close).not.toHaveBeenCalled();
+       |                     ^
+     54| });
+     55|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  00:48:11
+   Duration  1.96s (environment 65%, tests 18%, import 10%, transform 6%)
+

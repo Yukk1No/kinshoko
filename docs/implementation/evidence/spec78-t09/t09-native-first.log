@@ -1,0 +1,9 @@
+PASS same bytes aggregate across two independently curated providers
+PASS same-name source choices visibly show distinct path suffixes
+PASS editing inactive B note leaves A note unchanged
+PASS source edits do not activate B or change current library
+PASS workspace notification does not interrupt the revalidated explicit source editor
+PASS B manual rating remains independent from A
+Error: Timed out: B folder control (POST /session/5aa1b20b3b7d49f31d7ff7d43a372402/element: {"error":"no such element","message":"no such element: Unable to locate element: {\"method\":\"xpath\",\"selector\":\"//button[text()='移出「B 独立标签目录」']\"}\n  (Session info: MicrosoftEdge=154.0.4258.62)","stacktrace":"\tmsedgedriver!GetHandleVerifier [0x7ff78cc32285+4c15]\n\tmsedgedriver!(No symbol) [0x7ff78cb83a74]\n\tmsedgedriver!GetHandleVerifier [0x7ff78cfb3bbf+38654f]\n\tmsedgedriver!(No symbol) [0x7ff78c952456]\n\tmsedgedriver!(No symbol) [0x7ff78c9526da]\n\tmsedgedriver!(No symbol) [0x7ff78c9925c7]\n\tmsedgedriver!(No symbol) [0x7ff78c9486cf]\n\tmsedgedriver!(No symbol) [0x7ff78c9901f8]\n\tmsedgedriver!(No symbol) [0x7ff78c947f0c]\n\tmsedgedriver!(No symbol) [0x7ff78c94718d]\n\tmsedgedriver!(No symbol) [0x7ff78c947d33]\n\tmsedgedriver!(No symbol) [0x7ff78ca90c04]\n\tmsedgedriver!(No symbol) [0x7ff78ca9ddc8]\n\tmsedgedriver!GetHandleVerifier [0x7ff78ccd7a15+aa3a5]\n\tmsedgedriver!GetHandleVerifier [0x7ff78ccddd11+b06a1]\n\tmsedgedriver!(No symbol) [0x7ff78cb8f6ff]\n\tmsedgedriver!(No symbol) [0x7ff78cb8a184]\n\tmsedgedriver!(No symbol) [0x7ff78cb8a2aa]\n\tmsedgedriver!(No symbol) [0x7ff78cb7b7f8]\n\tKERNEL32!BaseThreadInitThunk [0x7ffdf8d6cdf7+17]\n\tntdll!RtlUserThreadStart [0x7ffdfad5ee4c+2c]\n"})
+    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/source-actions.mjs:48:9)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/source-actions.mjs:156:3

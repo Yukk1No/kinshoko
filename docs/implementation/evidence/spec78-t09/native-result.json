@@ -1,0 +1,96 @@
+{
+  "status": "passed",
+  "source": "36cab7ebe379f4614de7768553492daab5f7ee5e",
+  "binarySha256": "60345209555790f8abc078cb99fe2795f11f4bc2c0610f81cd0fac0282622d94",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target\\debug\\kinshoko.exe",
+  "environment": {
+    "devicePixelRatio": 1.1041666269302368,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "viewport": {
+      "height": 801,
+      "width": 1281
+    }
+  },
+  "provenance": {
+    "scriptSource": "5bd6c20b05491fd1332824dcb8939acfbc375039",
+    "scriptSha256": "e33569781da0943bf732c0651e5203c8924689a772d72592f2ab59e5e9750632",
+    "sourceTree": "5253be6317a8f2bee7596e78bea21b3e24298cc3",
+    "manifestPath": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\t09-build-manifest.json",
+    "driverSha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7"
+  },
+  "a": {
+    "id": "1a74af8b3e94421ba781e7a1d6461e0e",
+    "name": "同名资料库",
+    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479547691\\libraries\\first\\同名资料库",
+    "imageId": "01a11c808de277899283909634848c05",
+    "folderId": "01a11c808e3372cfa0d2b71a6063690a"
+  },
+  "b": {
+    "id": "f933bb95f63e41ac89d5e79fac6c1502",
+    "name": "同名资料库",
+    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479547691\\libraries\\second\\同名资料库",
+    "imageId": "01a11c808ea6712f866a3536d1b13295",
+    "folderId": "01a11c808f4372a69f5560478da2eaff"
+  },
+  "target": {
+    "libraryId": "f933bb95f63e41ac89d5e79fac6c1502",
+    "imageId": "01a11c808ea6712f866a3536d1b13295",
+    "contentId": "d6a3ae41b8bcf6872ded8f94c1ac971e6cdcaf813cce00092e0e9c32b9ed59f5"
+  },
+  "groupId": "a1b409d288274ba3b2a90dab6ad33cfe",
+  "pin": {
+    "id": "c6d79e80c7d84c4bb94e5ee41b6aec15",
+    "content": {
+      "kind": "reference",
+      "libraryId": "f933bb95f63e41ac89d5e79fac6c1502",
+      "imageId": "01a11c808ea6712f866a3536d1b13295",
+      "sourceWidth": 160,
+      "sourceHeight": 120
+    },
+    "crop": null,
+    "width": 160,
+    "height": 120,
+    "placement": {
+      "x": 810,
+      "y": 1145,
+      "scale": 1,
+      "flipH": false,
+      "flipV": false,
+      "rotation": 0
+    },
+    "opacity": 1,
+    "locked": false
+  },
+  "assertions": [
+    "same bytes aggregate across two independently curated providers",
+    "same-name source choices visibly show distinct path suffixes",
+    "editing inactive B note leaves A note unchanged",
+    "source edits do not activate B or change current library",
+    "workspace notification does not interrupt the revalidated explicit source editor",
+    "B manual rating remains independent from A",
+    "removing B folder membership preserves A folder membership",
+    "new B manual tag never changes A tags",
+    "source picker uses B local tag identities through actual native ACL",
+    "direct pin saves the explicitly chosen inactive library/image identity",
+    "direct source group contains only B original reference",
+    "requery and default-scope changes do not relink saved B references to A",
+    "restart with disconnected B keeps B group member and reports unavailable instead of binding A",
+    "restart preserves the unavailable pin source identity",
+    "disconnected source inspection explicitly rejects B",
+    "disconnected B write never falls back to available A bytes",
+    "A curation remains unchanged after B edits and disconnected requests",
+    "source editing and restart preserve last-opened A",
+    "B independent curation persists across process restarts",
+    "deleting B leaves aggregate A card and A original live",
+    "inactive-source permanent-delete preview reports B reference-group impact",
+    "permanent B deletion preserves A duplicate and its curation",
+    "permanent deletion retains B member identity and reports image missing",
+    "changed byte identity is rejected instead of targeting a current aggregate card",
+    "stale safe-mode generation is rejected at the native write boundary"
+  ],
+  "stories": [
+    12,
+    13
+  ],
+  "finishedAt": "2026-10-08T17:12:56.063Z"
+}
