@@ -37,7 +37,7 @@ if ($taskFileHosts.Count -ne 1) { throw 'Cannot uniquely identify observed filen
 $taskFileId = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::AutomationIdProperty, '1001')
 $taskEdits = @($taskFileHosts[0].FindAll([System.Windows.Automation.TreeScope]::Descendants, $taskFileId))
 if ($taskEdits.Count -ne 1) { throw ('Cannot uniquely identify filename edit: ' + ($taskControls | ConvertTo-Json -Compress)) }
-$taskButtons = @($taskAll | Where-Object { $_.Current.AutomationId -eq '1' })
+$taskButtons = @($taskAll | Where-Object { $_.Current.AutomationId -eq '1' -and $_.Current.ClassName -eq 'Button' })
 if ($taskButtons.Count -ne 1) { throw ('Cannot uniquely identify Save button: ' + ($taskControls | ConvertTo-Json -Compress)) }
 Add-Type -TypeDefinition @'
 using System;
