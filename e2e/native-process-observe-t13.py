@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 
 mode, argument = sys.argv[1:3]
 application = Path(argument).resolve()
@@ -41,7 +42,7 @@ try:
         code = w.DWORD()
         assert k.GetExitCodeProcess(handle, ctypes.byref(code))
         receipt.write_text(json.dumps({"application":path.value,"pid":pid,"exitCode":code.value},indent=2),encoding="utf-8")
-    elif mode == "windows":
+    elif mode in ("windows", "hotkey"):
         callback_type = ctypes.WINFUNCTYPE(w.BOOL,w.HWND,w.LPARAM)
         u.EnumWindows.argtypes = [callback_type,w.LPARAM]
         u.GetWindowThreadProcessId.argtypes = [w.HWND,ctypes.POINTER(w.DWORD)]
@@ -58,7 +59,40 @@ try:
             return True
         callback=callback_type(visit)
         assert u.EnumWindows(callback,0)
-        print(json.dumps(found,ensure_ascii=False))
+        if mode == "windows":
+            print(json.dumps(found))
+        else:
+            key = sys.argv[3]
+            assert key in ("F9", "F10"), key
+            main = [item for item in found if item["title"] == "Kinshoko"]
+            assert len(main) == 1, main
+            u.SetForegroundWindow.argtypes = [w.HWND]
+            u.GetForegroundWindow.restype = w.HWND
+            u.GetAsyncKeyState.argtypes = [ctypes.c_int]
+            u.GetAsyncKeyState.restype = ctypes.c_short
+            u.SetForegroundWindow(main[0]["hwnd"])
+            time.sleep(.15)
+            foreground = u.GetForegroundWindow()
+            foreground_pid = w.DWORD()
+            u.GetWindowThreadProcessId(foreground,ctypes.byref(foreground_pid))
+            assert foreground_pid.value == pid, "Refusing to send input to another program"
+            virtual = 0x78 if key == "F9" else 0x79
+            assert not any(u.GetAsyncKeyState(vk) & 0x8000 for vk in (0x11,0x12,virtual)), "User is holding a required key"
+            class MouseInput(ctypes.Structure):
+                _fields_=[("dx",w.LONG),("dy",w.LONG),("mouseData",w.DWORD),("dwFlags",w.DWORD),("time",w.DWORD),("dwExtraInfo",ctypes.c_size_t)]
+            class KeyboardInput(ctypes.Structure):
+                _fields_=[("wVk",w.WORD),("wScan",w.WORD),("dwFlags",w.DWORD),("time",w.DWORD),("dwExtraInfo",ctypes.c_size_t)]
+            class InputUnion(ctypes.Union):
+                _fields_=[("mi",MouseInput),("ki",KeyboardInput)]
+            class Input(ctypes.Structure):
+                _anonymous_=("event",)
+                _fields_=[("type",w.DWORD),("event",InputUnion)]
+            events=[(0x11,0),(0x12,0),(virtual,0),(virtual,2),(0x12,2),(0x11,2)]
+            inputs=(Input*len(events))(*(Input(type=1,event=InputUnion(ki=KeyboardInput(wVk=vk,dwFlags=flags))) for vk,flags in events))
+            u.SendInput.argtypes=[w.UINT,ctypes.POINTER(Input),ctypes.c_int]
+            sent=u.SendInput(len(inputs),inputs,ctypes.sizeof(Input))
+            assert sent == len(inputs), f"SendInput failed: {ctypes.get_last_error()}"
+            print(json.dumps({"method":"SendInput","application":path.value,"pid":pid,"foregroundHwnd":int(foreground),"foregroundPid":foreground_pid.value,"key":"Ctrl+Alt+"+key,"events":events,"sent":sent}))
     else:
         raise ValueError(mode)
 finally:
