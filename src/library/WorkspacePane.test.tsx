@@ -5,7 +5,7 @@ import { WorkspacePane } from "./WorkspacePane";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 const registrations = ["A", "B"].map((id) => ({ library: { id, name: "参考", root: `D:\\${id}\\参考` }, unavailable: null }));
-const forest = (revision = "r"): WorkspaceDirectories => ({ status: { revision, libraries: registrations }, providers: registrations.map((registration) => ({ registration, unassigned: 1, descendants: { [registration.library.id + "-root"]: 2, [registration.library.id + "-child"]: 1 }, sidebar: { all: 3, trash: 0, folders: [{ id: registration.library.id + "-root", name: "人物", count: 1, children: [{ id: registration.library.id + "-child", name: "动作", count: 1, children: [] }] }] } })) });
+const forest = (revision = "r"): WorkspaceDirectories => ({ status: { revision, libraries: registrations }, providers: registrations.map((registration) => ({ registration: { ...registration, library: { ...registration.library } }, unassigned: 1, descendants: { [registration.library.id + "-root"]: 2, [registration.library.id + "-child"]: 1 }, sidebar: { all: 3, trash: 0, folders: [{ id: registration.library.id + "-root", name: "人物", count: 1, children: [{ id: registration.library.id + "-child", name: "动作", count: 1, children: [] }] }] } })) });
 let pending: { safeMode: boolean; resolve: (value: WorkspaceDirectories) => void; reject: (error: unknown) => void }[];
 const props = { status: { revision: "r", libraries: registrations }, scope: { kind: "all" } as WorkspaceScope, activeLibraryId: "B", safeMode: true, reloadKey: 0, onScope: vi.fn(), onError: vi.fn() };
 const settle = () => act(async () => { await Promise.resolve(); });
@@ -88,4 +88,24 @@ it("读取时目录修订改变会自动重读，不留下要求用户操作的�
   await act(async () => pending[1].resolve(forest("fresh")));
   expect(document.querySelectorAll("[data-folder-id]")).toHaveLength(4);
   expect(props.onError).not.toHaveBeenCalled();
+});
+
+it("同名库的长路径优先显示区分位置，仅驱动器不同的路径仍保留差异", async () => {
+  const value = forest("paths");
+  value.providers[0].registration = { ...value.providers[0].registration, library: { ...value.providers[0].registration.library, root: "C:\\Users\\Owner\\Libraries\\a\\参考" } };
+  value.providers[1].registration = { ...value.providers[1].registration, library: { ...value.providers[1].registration.library, root: "C:\\Users\\Owner\\Libraries\\b\\参考" } };
+  const view = render(<WorkspacePane {...props} />);
+  await settle();
+  await act(async () => pending[0].resolve(value));
+  const a = document.querySelector<HTMLElement>('[data-library-id="A"]')!;
+  const b = document.querySelector<HTMLElement>('[data-library-id="B"]')!;
+  expect(within(a).getByText("…\\a\\参考").title).toBe(value.providers[0].registration.library.root);
+  expect(within(b).getByText("…\\b\\参考").title).toBe(value.providers[1].registration.library.root);
+  view.rerender(<WorkspacePane {...props} reloadKey={1} />);
+  const drives = forest("drives");
+  drives.providers[0].registration = { ...drives.providers[0].registration, library: { ...drives.providers[0].registration.library, root: "C:/Users/Owner/Libraries/same/参考" } };
+  drives.providers[1].registration = { ...drives.providers[1].registration, library: { ...drives.providers[1].registration.library, root: "D:/Users/Owner/Libraries/same/参考" } };
+  await act(async () => pending[1].resolve(drives));
+  expect(within(a).getByText("C:/Users/Owner/Libraries/same/参考").title).toBe(drives.providers[0].registration.library.root);
+  expect(within(b).getByText("D:/Users/Owner/Libraries/same/参考").title).toBe(drives.providers[1].registration.library.root);
 });

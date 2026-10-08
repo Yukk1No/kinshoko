@@ -1698,6 +1698,6 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .workspace-descendants { display: flex; align-items: center; gap: 6px; padding: 4px 8px 12px; font-size: 12px; }
 .workspace-provider-root { display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; margin-top: 8px; }
 .workspace-expand { border: 0; background: transparent; color: inherit; min-height: 30px; cursor: pointer; }
-.provider-path { font-size: 10px; color: var(--muted); padding: 0 8px 4px 26px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.provider-path { font-size: 10px; color: var(--muted); padding: 0 8px 4px 26px; overflow-wrap: anywhere; }
 .workspace-provider > .sidebar { padding-left: 16px; }
 .workspace-provider .sidebar-item:disabled { cursor: default; opacity: .6; }
