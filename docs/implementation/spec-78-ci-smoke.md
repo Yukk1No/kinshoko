@@ -26,4 +26,10 @@
 
 T10 新的保存位置确认接入后，完整 smoke 还需按正式入口同步并再执行。
 
+## T11 合入后的实际 CI
+
+[CI 37823311722](https://github.com/Yukk1No/kinshoko/actions/runs/37823311722) 随后完整成功，head 为 `e9be4ea11fdd610270936e13e257e600d199d01f`，实际 PR 合成 checkout 为 `20a44ee3a7c4ae7d95d67b5ec231a8730e5b29ea`（parents `536cc43`／`e9be4ea`）。该轮 release exe SHA256 为 `4265979635b8cb2f834ab1246892e2b8f0fcc825d62602dd6fa708d298718943`，仍使用脚本 `49fa759e`，完整 smoke 5 项成功。见[原始结果](evidence/spec78-ci-smoke/t11-ci-green-result.json)及[实际步骤](evidence/spec78-ci-smoke/t11-ci-green-run.json)。同 head 的 downscale workflow `37823311786` 成功。
+
+该轮 `fidelity-report-20261008-183322Z.json` 仍为 34 个门槛样本中 11 个失败，环境仍是 Server 2022／WebView2 `131.0.2903.86`。下载原件、样本与报告保留在 ignored `work/v1-handoff/follow-up-spec/evidence/ci-37823311722/`。没有覆盖较早失败，也没有把 CI 成功扩大为颜色、Windows 10、之后 T06／T10 或最终组合通过。
+
 两轮诊断只强制清理各自精确归档 exe，未操作用户程序。[清点](evidence/spec78-ci-smoke/desktop-release.json)确认 own app／WebView／driver 与端口均为空，桌面交还 T11。
