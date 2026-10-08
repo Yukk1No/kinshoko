@@ -1,3 +1,5 @@
+import { SaveDestinationDialog } from "./SaveDestination";
+import { workspaceCopySource } from "../ipc";
 import { useEffect, useRef, useState } from "react";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceSource } from "../bindings/WorkspaceSource";
@@ -24,6 +26,7 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onSource,
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [groupId, setGroupId] = useState("");
   const [name, setName] = useState("");
+  const [copying,setCopying]=useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let alive = true;
@@ -74,6 +77,7 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onSource,
             width: Math.round(200 * dpr), height: Math.round(200 * card.height / card.width * dpr),
           }), `已钉住「${source.libraryName}」的原图`);
         }}>钉住此来源</button>
+        <button type="button" onClick={()=>setCopying(true)}>复制到资料库…</button>
         <label>加入哪个参考组<select aria-label="加入哪个参考组" value={groupId} onChange={(event) => setGroupId(event.target.value)}>
           <option value="">新建参考组</option>{groups.filter((g) => !g.problem).map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
         </select></label>
@@ -84,5 +88,8 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onSource,
         )}>加入参考组</button>
       </fieldset>
     </>}
+    {copying&&<SaveDestinationDialog title="复制此来源" confirmLabel="确认复制" onClose={()=>setCopying(false)} onConfirm={async destination=>{
+      await workspaceCopySource(target,destination,safe);if(current.current===key){setNotice("已复制此来源，目标已有人工整理保持不变");onChanged?.();}
+    }}/>}
   </div>;
 }

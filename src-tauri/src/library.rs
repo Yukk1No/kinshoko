@@ -2,9 +2,9 @@
 //! `kinshoko_core::library`。前端以 `plugin:library|<命令>` 调用。
 //!
 //! - 命令都是 async，阻塞工作放进 `spawn_blocking`，不占用主线程；
-//! - 本设备可登记多个资料库，同一时间一个活动资料库（#49）。资料库命令都带界面正在操作的
+//! - 本设备可登记多个资料库，同一时间一个活动资料库（#49）。保存命令固定库和目录；来源整理命令带明确来源。浏览命令带界面正在操作的
 //!   资料库 id，切换后旧请求得到错误，不会落到新库上；
-//! - 资料库事件转发为窗口事件 `library-event`，只转发活动资料库的事件；
+//! - 资料库事件转发为窗口事件 `library-event`，按来源身份转发；导入回执独立保留任务所属库和目录；
 //! - 缩略图走自定义协议 `thumb`：`<资料库 id>/<参考图 id>/<像素档位>`，缓存缺失时现场生成；
 //! - 安全模式（#60）：开关保存在应用壳设置里，打开资料库与切换时设给当前资料库。这里的命令都是
 //!   浏览视角；参考视角的句柄在装配（打开资料库）时取走，只交给参考组与桌面钉图，不经命令给前端。
@@ -14,11 +14,13 @@ mod groups;
 mod name_migration;
 mod names;
 mod portable;
+mod save_destination;
 pub use portable::{
     content_definitions, export_package as export_reference_package,
     import_package as import_reference_package, publish_definition_dependencies,
 };
 mod source_actions;
+pub use save_destination::{with_destination, with_destination_published};
 mod workspace;
 
 use std::path::{Path, PathBuf};
@@ -62,6 +64,7 @@ struct LibraryState {
     libraries: Arc<Mutex<Option<DeviceLibraries>>>,
     /// 已在转发事件的活动资料库句柄；同一句柄只装配一次。
     forwarded: Mutex<Option<Weak<Library>>>,
+    forwarded_handles: Mutex<Vec<Weak<Library>>>,
     /// 切换、恢复和取消登记串行完成，包括旧库打标退出。
     transition: Mutex<()>,
     /// 活动资料库词表快照上的 Search，按（资料库，词表修订号，安全模式）校验；词表或图片
@@ -91,6 +94,7 @@ impl LibraryState {
             device_dir,
             libraries: Arc::default(),
             forwarded: Mutex::new(None),
+            forwarded_handles: Mutex::new(Vec::new()),
             transition: Mutex::new(()),
             search: Arc::default(),
             catalog: Arc::default(),
@@ -221,6 +225,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             move_folder,
             recovery,
             start_import,
+            save_destination::import_tasks,
+            save_destination::dismiss_import,
+            save_destination::workspace_copy_source,
             import_contains_eagle,
             cancel_import,
             pick_folder,
@@ -392,6 +399,13 @@ fn forward_events<R: Runtime>(
     state.detached.clear();
     state.search.invalidate();
     crate::tagging::attach(app, library);
+    let mut handles = lock(&state.forwarded_handles);
+    handles.retain(|handle| handle.strong_count() > 0);
+    if handles.iter().any(|handle| Weak::ptr_eq(handle, &weak)) {
+        return info;
+    }
+    handles.push(weak.clone());
+    drop(handles);
     let (app, libraries, search) = (app.clone(), state.libraries.clone(), state.search.clone());
     std::thread::Builder::new()
         .name("kinshoko-library-events".into())
@@ -476,19 +490,6 @@ pub fn visible_source<R: Runtime>(
     workspace::read(app, library_id, image_id)
 }
 
-/// 同步完成一次目标活动库的操作，期间不允许切换或重新打开资料库。
-/// 文件选择框等交互应在调用前完成，回调不交出未完成的导入任务。
-pub fn with_current<T>(
-    app: &AppHandle,
-    library_id: &str,
-    action: impl FnOnce(&Library) -> Result<T, String>,
-) -> Result<T, String> {
-    let state = app.state::<LibraryState>();
-    let _transition = lock(&state.transition);
-    let library = state.current(library_id)?;
-    action(&library)
-}
-
 /// 本设备上按“资料库＋参考图”取图的地方（参考组与桌面钉图用，#66）：活动资料库经它的参考视角
 /// （现取），其他已登记的资料库只读打开，不切换活动库。会读文件，不要在主线程上调用。
 pub fn with_references<R: Runtime, T>(
@@ -530,23 +531,6 @@ pub fn registered<R: Runtime>(
     })
 }
 
-/// 收藏到画师明确选择的已登记资料库，不切换活动库。整个收藏与库切换串行，防止
-/// 切换时重新打开同一个库、把仍在进行的导入当作中断清理。临时句柄不离开这个作用域。
-pub fn with_collection<T>(
-    app: &AppHandle,
-    library_id: &str,
-    collect: impl FnOnce(&Library) -> Result<T, String>,
-) -> Result<T, String> {
-    let state = app.state::<LibraryState>();
-    let _transition = lock(&state.transition);
-    let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-        libraries.write(library_id)
-    })?;
-    state.install_translations(&library);
-    library.set_safe_mode(saved_safe_mode(app));
-    collect(&library)
-}
-
 /// 把恢复出的资料库登记到本设备，不切换过去（#69）。
 pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> Result<(), String> {
     let state = app.state::<LibraryState>();
@@ -564,19 +548,6 @@ pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> R
 /// 安全模式是否开启（全局设置）；读不到设置时按开启处理。
 pub fn safe_mode_on<R: Runtime>(app: &AppHandle<R>) -> bool {
     saved_safe_mode(app)
-}
-
-/// [`current_or_last`] 会用到的资料库的 id 与名称，只读登记表、不打开资料库。
-pub fn current_name<R: Runtime>(app: &AppHandle<R>) -> Option<(String, String)> {
-    let state = app.state::<LibraryState>();
-    if let Ok(library) = state.active() {
-        let info = library.info();
-        return Some((info.id.clone(), info.name.clone()));
-    }
-    let device = DeviceRegistry::open(&state.device_dir).ok()?;
-    device
-        .last_opened()
-        .map(|entry| (entry.id.clone(), entry.name.clone()))
 }
 
 /// 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。
@@ -814,24 +785,31 @@ async fn recovery(
     state: State<'_, LibraryState>,
     library_id: String,
 ) -> Result<RecoveryReport, String> {
-    Ok(state.current(&library_id)?.recovery().clone())
+    with_libraries(&state.device_dir, &state.libraries, |device| {
+        Ok(device.write(&library_id)?.recovery().clone())
+    })
 }
 
 /// 开始导入，立即返回任务 id；进度与结果经 `library-event` 推送。
 #[tauri::command]
 async fn start_import<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
     source: ImportSource,
     options: Option<ImportOptions>,
+    destination: Option<kinshoko_core::library::SaveDestination>,
 ) -> Result<String, String> {
     let paths = source.paths.len().min(u32::MAX as usize) as u32;
-    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
+    let destination = destination.unwrap_or(kinshoko_core::library::SaveDestination {
+        library_id: library_id.clone(),
+        folder_id: None,
+    });
+    if destination.library_id != library_id {
+        return Err("保存目标资料库与任务归属不一致".into());
+    }
+    let worker = app.clone();
     let id = blocking(move || {
-        with_libraries(&device_dir, &libraries, |libraries| {
-            libraries.start_import_with_options(&library_id, source, options.unwrap_or_default())
-        })
+        save_destination::begin(&worker, destination, source, options.unwrap_or_default())
     })
     .await?;
     crate::diagnostics::record(&app, UsageEvent::ImportStarted { paths });
@@ -895,13 +873,19 @@ async fn discover_eagle_libraries() -> Result<Vec<EagleLibraryCandidate>, String
 
 /// 画师确认导入报告里疑似搬家的 Eagle 位置；确认后前端再导入这个位置。
 #[tauri::command]
-async fn confirm_eagle_location(
-    state: State<'_, LibraryState>,
+async fn confirm_eagle_location<R: Runtime>(
+    app: AppHandle<R>,
     library_id: String,
     path: PathBuf,
     choice: kinshoko_core::library::EagleLocationChoice,
 ) -> Result<(), String> {
-    let library = state.current(&library_id)?;
+    let library = save_destination::fixed_library(
+        &app,
+        &kinshoko_core::library::SaveDestination {
+            library_id,
+            folder_id: None,
+        },
+    )?;
     blocking(move || {
         library
             .confirm_eagle_location(&path, choice)
@@ -1361,16 +1345,23 @@ fn external_vocabulary<R: Runtime>(app: &AppHandle<R>) -> Result<ExternalVocabul
 #[tauri::command]
 async fn eagle_tag_mapping<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
     lang: String,
 ) -> Result<EagleTagMapping, String> {
-    let library = state.current(&library_id)?;
+    let library = save_destination::fixed_library(
+        &app,
+        &kinshoko_core::library::SaveDestination {
+            library_id,
+            folder_id: None,
+        },
+    )?;
     blocking(move || {
         let vocabulary = external_vocabulary(&app)?;
-        library
+        let mapping = library
             .map_eagle_tags(&vocabulary, &lang)
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        save_destination::publish_saved(&app, &library)?;
+        Ok(mapping)
     })
     .await
 }
@@ -1379,17 +1370,24 @@ async fn eagle_tag_mapping<R: Runtime>(
 #[tauri::command]
 async fn map_tag_external<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
     tag_id: String,
     external: String,
 ) -> Result<MappedExternal, String> {
-    let library = state.current(&library_id)?;
+    let library = save_destination::fixed_library(
+        &app,
+        &kinshoko_core::library::SaveDestination {
+            library_id,
+            folder_id: None,
+        },
+    )?;
     blocking(move || {
         let vocabulary = external_vocabulary(&app)?;
-        library
+        let mapping = library
             .map_tag_external(&tag_id, &external, &vocabulary)
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        save_destination::publish_saved(&app, &library)?;
+        Ok(mapping)
     })
     .await
 }

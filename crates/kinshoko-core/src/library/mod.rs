@@ -41,6 +41,7 @@ mod permanent_delete;
 pub(crate) mod provider;
 mod rating;
 mod recovery;
+mod save;
 mod sidebar;
 mod store;
 pub(crate) mod tag_definitions;
@@ -80,6 +81,7 @@ pub use lens::{ReferenceImage, ReferenceLens};
 pub use package::{ImageSnapshot, PackageOrigin, SnapshotTag};
 pub use permanent_delete::PermanentDeletePreview;
 pub use rating::{ContentRating, ImageRating, RatingFact, TaggingOutcome};
+pub use save::SaveDestination;
 pub use sidebar::Sidebar;
 pub use tags::{
     FactSource, ImageTag, ImageTags, LocalizedName, PersonalApproxEntry, SourceTag, TagAlias,
@@ -110,6 +112,7 @@ pub(crate) const LIVE: &str = "image.deleted_at IS NULL";
 
 /// 一个打开的资料库。可在线程间共享（`Arc<Library>`）。
 pub struct Library {
+    save_destination: Option<SaveDestination>,
     inner: Arc<Inner>,
 }
 
@@ -127,6 +130,7 @@ pub(crate) struct Inner {
     reference_taken: AtomicBool,
     /// 只读打开、不是活动资料库（参考组读取未激活的库，#66）：不写数据库。
     detached: bool,
+    write_revoked: Arc<AtomicBool>,
 }
 
 impl Inner {
@@ -160,7 +164,10 @@ impl Library {
     /// Existing local-ID read actions remain available; write actions return a read-only error.
     pub fn open_read_only(root: &Path, expected_id: &str) -> Result<Library, Error> {
         let lens = ReferenceLens::open_detached(root, expected_id)?;
-        Ok(Library { inner: lens.inner })
+        Ok(Library {
+            inner: lens.inner,
+            save_destination: None,
+        })
     }
 
     /// 在 `root` 建立新资料库。`root` 必须不存在或是空文件夹。
@@ -235,6 +242,7 @@ impl Library {
         }
         let readers = Readers::open(&root.join(DB_FILE), READERS)?;
         Ok(Library {
+            save_destination: None,
             inner: Arc::new(Inner {
                 info: LibraryInfo {
                     root: root.clone(),
@@ -249,6 +257,7 @@ impl Library {
                 safe_mode: AtomicBool::new(true),
                 reference_taken: AtomicBool::new(false),
                 detached: false,
+                write_revoked: Arc::new(AtomicBool::new(false)),
             }),
         })
     }
@@ -284,7 +293,12 @@ impl Library {
 
     /// 按本次选择导入；允许重导不清除内容版本的永久删除记忆。
     pub fn import_with_options(&self, source: ImportSource, options: ImportOptions) -> ImportTask {
-        import::start(self.inner.clone(), source, options)
+        match &self.save_destination {
+            Some(destination) => {
+                import::start_to(self.inner.clone(), source, options, destination.clone())
+            }
+            None => import::start(self.inner.clone(), source, options),
+        }
     }
 
     /// 订阅变更事件。事件在事务提交后才推送。
@@ -652,8 +666,13 @@ impl Library {
         bytes: &[u8],
         snapshot: &ImageSnapshot,
     ) -> Result<String, Error> {
-        let (outcome, list_changed) =
-            import::import_package_original(&self.inner, origin.clone(), bytes, snapshot.clone());
+        let (outcome, list_changed) = import::import_package_original(
+            &self.inner,
+            origin.clone(),
+            bytes,
+            snapshot.clone(),
+            self.save_destination.clone(),
+        );
         if list_changed {
             self.inner.hub.publish(LibraryEvent::ListStale {
                 library_id: self.inner.info.id.clone(),

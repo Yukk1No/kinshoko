@@ -30,7 +30,7 @@ use tauri::{
     WindowEvent,
 };
 
-use super::{collect, history_changed, lock, state};
+use super::{history_changed, lock, request_collection, state};
 
 /// 新钉图相对原位置错开的距离，逻辑像素（按显示器缩放换算成物理像素）。
 const OFFSET: f64 = 16.0;
@@ -871,23 +871,11 @@ pub async fn pin_menu(app: AppHandle, pin: String) -> Result<(), String> {
         .ok_or(CLOSED)?;
     let frame = current_frame(&app, &pin).ok_or(CLOSED)?;
     let saved = frame.pin;
-    let collected = capture_id.as_ref().and_then(|capture_id| {
-        lock(&state(&app).history)
-            .entries()
-            .into_iter()
-            .find(|e| &e.id == capture_id)
-            .map(|e| e.collected)
-    });
-    // 历史里已删除的截图仍能收藏：文件还在，直到钉图关闭。
-    let library = crate::library::current_name(&app);
-    let (collect_text, collect_enabled) = match &library {
-        None => ("收藏（还没有资料库）".to_owned(), false),
-        Some((id, name)) => match collected {
-            Some(c) if c.iter().any(|c| &c.library_id == id) => {
-                (format!("已收藏到「{name}」"), false)
-            }
-            _ => (format!("收藏到「{name}」"), true),
-        },
+    let collect_enabled = !crate::library::registered(&app)?.is_empty();
+    let collect_text = if collect_enabled {
+        "收藏到…"
+    } else {
+        "收藏（还没有资料库）"
     };
     let id = |action: &str| format!("{MENU_PREFIX}{pin}|{action}");
     let err = |e: tauri::Error| e.to_string();
@@ -946,7 +934,7 @@ pub async fn pin_menu(app: AppHandle, pin: String) -> Result<(), String> {
     )
     .map_err(err)?;
     if capture_id.is_some() {
-        menu.append(&item(ACTION_COLLECT, &collect_text, collect_enabled)?)
+        menu.append(&item(ACTION_COLLECT, collect_text, collect_enabled)?)
             .map_err(err)?;
         menu.append(&item(ACTION_COPY, "复制", true)?)
             .map_err(err)?;
@@ -1051,9 +1039,9 @@ fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<String> {
                 .get(pin)
                 .and_then(|r| r.capture_id.clone())?;
             Some(if action == ACTION_COLLECT {
-                match collect(app, &capture_id) {
-                    Ok((_, library)) => format!("已收藏到「{library}」"),
-                    Err(e) => e,
+                {
+                    request_collection(app, &capture_id);
+                    "请在主窗口选择保存位置".into()
                 }
             } else {
                 match copy_capture(app, &capture_id) {

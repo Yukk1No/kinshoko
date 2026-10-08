@@ -1,3 +1,5 @@
+import { onCollectionRequest, takeCollectionRequest } from "./ipc";
+import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowseScope } from "./bindings/BrowseScope";
@@ -44,6 +46,8 @@ import { Viewer } from "./viewer/Viewer";
 
 type WorkspaceProps = {
   library: LibraryInfo | null;
+  captureRequest?:{id:string;stamp:number}|null;
+  onCaptureRequestHandled?:()=>void;
   section: Section;
   paneOpen: boolean;
   onPaneToggle: () => void;
@@ -65,6 +69,8 @@ type WorkspaceProps = {
  */
 function LibraryWorkspace({
   library,
+  captureRequest,
+  onCaptureRequestHandled,
   section,
   paneOpen,
   onPaneToggle,
@@ -91,6 +97,7 @@ function LibraryWorkspace({
   const scope: BrowseScope = workspaceScope.kind === "library" ? workspaceScope.scope : { kind: "all" };
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<BrowserCard | null>(null);
+  useEffect(()=>{if(captureRequest){setViewing(null);setSources(null);}},[captureRequest]);
   const [problem, setProblem] = useState<string | null>(null);
   const [search, setSearch] = useState<SearchInput>({ conditions: [], exact: false });
   const [tree, setTree] = useState<ConditionTree>({ conditions: [] });
@@ -290,7 +297,7 @@ function LibraryWorkspace({
           )}
           </div>
           {section === "groups" && <ReferenceGroupsPanel libraryId={libraryId || undefined} />}
-          {section === "captures" && <CaptureHistoryPanel libraryId={libraryId || undefined} />}
+          {section === "captures" && <CaptureHistoryPanel libraryId={libraryId || undefined} request={captureRequest} onRequestHandled={onCaptureRequestHandled} />}
         </aside>
         <main className="app-main main">
           <header className="topbar">
@@ -314,14 +321,14 @@ function LibraryWorkspace({
           <label className="density" title="图片大小"><span className="sr-only">图片大小</span>
             <DensitySlider value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
           </label>
-          {library && <ImportMenu key={libraryId} enabled={!hidden} libraryId={libraryId} libraryName={library.name}
+          <ImportMenu scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
             running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
-            onOpenTrash={() => {
+            onOpenTrash={(owner=libraryId) => {
               onOpenBrowse();
               setSearch({ conditions: [], exact: false });
-              setWorkspaceScope({ kind: "library", libraryId, scope: { kind: "trash" } });
+              setWorkspaceScope({ kind: "library", libraryId:owner, scope: { kind: "trash" } });
               setSelected(new Set());
-            }} />}
+            }} />
           </header>
           <div className="app-tagbar">
           <TagGroupBar workspace libraryId="workspace" safe={safe} generation={vocabularyKey} input={search}
@@ -382,6 +389,8 @@ export function App() {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [nameMigrationRequest, setNameMigrationRequest] = useState(0);
+  const [captureRequest,setCaptureRequest]=useState<{id:string;stamp:number}|null>(null);
+  const collectionHandled=useCallback(()=>setCaptureRequest(null),[]);
   const [section, setSection] = useState<Section>("browse");
   const [paneOpen, setPaneOpen] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -412,6 +421,13 @@ export function App() {
       );
     });
   }, []);
+
+  useEffect(()=>{
+    let alive=true,stamp=0,sequence=0;
+    const accept=()=>{const request=++sequence;void takeCollectionRequest().then(id=>{if(alive&&request===sequence&&id){setCaptureRequest({id,stamp:++stamp});setSection("captures");setPaneOpen(true);}});};
+    const stop=onCollectionRequest(accept).then(fn=>{if(alive)accept();return fn;});
+    return()=>{alive=false;void stop.then(fn=>fn());};
+  },[]);
 
   useEffect(() => {
     let alive = true;
@@ -482,7 +498,7 @@ export function App() {
 
   const libraryControls = <LibraryPicker current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} compact={!!library} />;
   return (
-    <div className="app app-shell">
+    <SaveDestinationProvider safe={safe}><div className="app app-shell">
       <div className="rail-slot" inert={viewerOpen}>
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
           onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
@@ -508,6 +524,8 @@ export function App() {
         <LibraryWorkspace
           key="workspace"
           library={library}
+          captureRequest={captureRequest}
+          onCaptureRequestHandled={collectionHandled}
           section={section}
           paneOpen={paneOpen}
           onPaneToggle={() => setPaneOpen((open) => !open)}
@@ -524,7 +542,7 @@ export function App() {
         <div className="app-empty-workspace">
           {!library && paneOpen && section !== "browse" && <aside className="pane empty-context" aria-label={section === "groups" ? "参考组" : "截图历史"}>
             <header className="pane-head"><h2>{section === "groups" ? "参考组" : "截图历史"}</h2><button type="button" className="icon-tool" aria-label="收起侧栏" onClick={() => setPaneOpen(false)}>‹</button></header>
-            {section === "groups" ? <ReferenceGroupsPanel libraryId={undefined} /> : <CaptureHistoryPanel libraryId={undefined} />}
+            {section === "groups" ? <ReferenceGroupsPanel libraryId={undefined} /> : <CaptureHistoryPanel libraryId={undefined} request={captureRequest} onRequestHandled={collectionHandled} />}
           </aside>}
         <main className="app-main app-main-centered">
           {library === undefined ? (
@@ -563,6 +581,6 @@ export function App() {
         </span>
       </footer>
       </div>
-    </div>
+    </div></SaveDestinationProvider>
   );
 }

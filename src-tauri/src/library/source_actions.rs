@@ -2,7 +2,7 @@
 use super::*;
 use kinshoko_core::workspace::{Workspace, WorkspaceSourceInspection, WorkspaceSourceTarget};
 
-fn action<R: Runtime, T>(
+pub(super) fn action<R: Runtime, T>(
     app: &AppHandle<R>,
     target: &WorkspaceSourceTarget,
     safe: bool,
