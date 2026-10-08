@@ -157,3 +157,13 @@ F3 使用公开 opaque `PreparedCapture`：PNG 编码在锁外完成，再持锁
 编译 RED 只证明新增公共接缝尚不存在，不冒称旧静态链的运行时复现。
 普通历史提交仍需短暂持锁写文件/索引，OS 和文件系统可能延迟；没有新增硬实时上限承诺。最终授权仍重验真实 mode、membership 与 veils。
 新程序完整检查、重新构建和独立原生租约尚待后续完成。
+
+
+## 历史接缝修正后的完整检查（20e39e3）
+
+clean `20e39e388d26137472fd3e62b5567cfcf57d24bb` / tree `d9c71f0d61106856615d750a698463853cc75cd5` 完整检查通过。
+Rust 76 个父 target、714 成功、0 失败、12 ignored，排除 7 个内嵌子进程结果。strict workspace/all-targets Clippy、fmt、Node/AST 语法全部通过。
+检查前后 2217 个跟踪文件 SHA 相同，bindings 无差异。前端产品自已完整验证的 2da 未变化，因此沿用其 40 文件/286 成功与 tsc0 证据。
+中间 cd927 的 710 项与 Clippy0 单独保留，不代替此最新修正后的检查。
+原始日志、退出码、实际检查前清单和检查后回执见 [final-v5-checks](evidence/spec78-t17/final-v5-checks/index.json)。旧全量 UI 的 280/281 原失败仍不改写。
+新程序仍未构建或原生运行；旧 c443/DD37 两轮 failed 的原件保持原样。下一步为独立核对新构建源/EXE/配置/全部脚本，再按单轮桌面授权执行。
