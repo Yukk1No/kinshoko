@@ -76,9 +76,14 @@ function png(path, seed) {
   writeFileSync(path, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header), chunk("IDAT", deflateSync(Buffer.concat(Array.from({ length: 90 }, () => row)))), chunk("IEND", Buffer.alloc(0))]));
 }
 
-const source = spawnSync("git", ["--work-tree=" + process.cwd(), "rev-parse", "HEAD"], { encoding: "utf8", windowsHide: true }).stdout.trim();
-const tree = spawnSync("git", ["--work-tree=" + process.cwd(), "rev-parse", "HEAD^{tree}"], { encoding: "utf8", windowsHide: true }).stdout.trim();
+const harnessSource = spawnSync("git", ["--work-tree=" + process.cwd(), "rev-parse", "HEAD"], { encoding: "utf8", windowsHide: true }).stdout.trim();
+const harnessSha256 = createHash("sha256").update(readFileSync(resolve(process.argv[1]))).digest("hex");
+const build = JSON.parse(readFileSync(resolve("work/e2e/t08-build-source.json"), "utf8").replace(/^\uFEFF/, ""));
+const source = build.source;
+const tree = build.tree;
 const binarySha256 = createHash("sha256").update(readFileSync(application)).digest("hex");
+if (binarySha256.toLowerCase() !== build.binarySha256.toLowerCase()) throw new Error("native binary does not match the recorded product build");
+let environment;
 const driver = spawn("tauri-driver", ["--port", String(port), "--native-port", "4559", "--native-driver", resolve(edgeArg)], {
   env: { ...process.env, KINSHOKO_DATA_DIR: join(work, "app-data"), KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") },
   stdio: ["ignore", "inherit", "inherit"], windowsHide: true,
@@ -111,6 +116,7 @@ let first, second, originalBefore, originalAfter;
 try {
   await until("driver ready", () => fetch(`${driverUrl}/status`).then((response) => response.ok));
   session = await Session.start();
+  environment = await session.exec("return { dpr: devicePixelRatio, width: innerWidth, height: innerHeight, userAgent: navigator.userAgent }; ");
   const paths = ["direct", "nested", "unassigned", "second"].map((name, i) => { const path = join(work, name + ".png"); png(path, 18 + i * 19); return path; });
   const create = async (parentName, selected) => {
     const parent = join(libraries, parentName); mkdirSync(parent);
@@ -199,12 +205,12 @@ try {
   await until("disconnected root visible", () => session.exec("return document.querySelector('.workspace-provider')?.textContent.includes('暂时不可用');"));
   assert(await session.exec("return document.querySelector('.workspace-provider-root .sidebar-item')?.disabled && !document.querySelector('[data-folder-id]');"), "disconnected provider keeps an explicit disabled root and discards cached folder controls");
   await session.screenshot("disconnected-root.png");
-  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, tree, binarySha256, application, first, second, originalBefore, originalAfter, assertions, stories: [6, 7, 8] }, null, 2));
+  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, tree, binarySha256, application, harnessSource, harnessSha256, environment, first, second, originalBefore, originalAfter, assertions, stories: [6, 7, 8] }, null, 2));
   console.log(`Evidence: ${work}`);
 } catch (error) {
   console.error(error);
   if (session) await session.screenshot("failure.png").catch(() => {});
-  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "failed", source, tree, binarySha256, application, first, second, assertions, error: String(error) }, null, 2));
+  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "failed", source, tree, binarySha256, application, harnessSource, harnessSha256, environment, first, second, assertions, error: String(error) }, null, 2));
   process.exitCode = 1;
 } finally {
   if (session) await session.close().catch(() => {});
