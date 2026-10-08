@@ -1,0 +1,38 @@
+[
+  {
+    "command": "inspect_tag_catalog",
+    "handler": true,
+    "build": true,
+    "generatedDefault": true,
+    "generatedAllow": true,
+    "capability": true,
+    "publicIpc": true
+  },
+  {
+    "command": "correct_tag_mapping",
+    "handler": true,
+    "build": true,
+    "generatedDefault": true,
+    "generatedAllow": true,
+    "capability": true,
+    "publicIpc": true
+  },
+  {
+    "command": "publish_tag_definitions",
+    "handler": true,
+    "build": true,
+    "generatedDefault": true,
+    "generatedAllow": true,
+    "capability": true,
+    "publicIpc": true
+  },
+  {
+    "command": "registered_libraries",
+    "handler": true,
+    "build": true,
+    "generatedDefault": true,
+    "generatedAllow": true,
+    "capability": true,
+    "publicIpc": true
+  }
+]

@@ -90,3 +90,5 @@
 Windows 10 未验证。用户明确没有相应设备或虚拟机，并接受保留该状态。
 
 T13 程序设置备份、T20 全流程组合、规模性能和发行门槛由各自工单验收。本单不继承其通过状态。根任务负责独立合并审查、GitHub 交付和关闭工单。
+
+独立合入完成于 `2db1c68bacaa781186a20f9c1f0f29f483770bc7`，tree与worker相同。fmt、TypeScript、脚本、whitespace和4个公开前端套件73项成功。[独立结果](evidence/spec78-t12/independent-merge-result.json) 另列证据审计。111条副本中107份是原始字节，4份历史harness从Git LF blob重建；smoke物理原件另为CRLF。逐阶段KnownFolder观察与root源码换行差异按证据索引限定，未把缺失观察补成事实。

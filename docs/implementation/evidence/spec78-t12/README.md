@@ -14,7 +14,7 @@
 
 ## 正式原生原件
 
-[native-original-copies.json](native-original-copies.json) 记录正式构建、配置、清单、日志、四轮结果/DOM/截图/实际脚本，以及同 exe smoke 的逐字节副本。文件均保留原始字节。数据库、原图、WebView profile 和 exe 大文件未放入 Git；本树 ignored `work/e2e/` 原件由根任务另行保存。
+[native-original-copies.json](native-original-copies.json) 共111条：107份直接原始副本，另4份历史 harness 从相应 Git LF blob 重建，字节匹配该轮记录的执行 SHA。重建脚本不冒称旧工作文件原件。smoke harness 则保存原始物理 CRLF 字节，并另核对与 Git LF 等价。数据库、原图和 exe 大文件由根任务另行归档；WebView缓存不纳入根归档，不把缓存排除解释为内容缺失。
 
 最终冻结产品为 `00dfc611577361a679221dc8f06f99fdcedd466f`，exe SHA256 为 `8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c`。实际通过脚本为 `846edf227d5b2c43692289dea06a11a97d38a17f`。两者产品输入无差异。构建对象内原先计划的 third-run 字段保留；每份结果的顶层 `harnessSource` / `harnessSha256` 才是该轮实际脚本。
 
@@ -37,3 +37,11 @@
 KnownFolder 设置文件实际不存在。独立数据目录未被当作清空程序设置文件的证据。通过轮七个阶段的实际 `shell_settings`、KnownFolder exists/sha、WebView/视口和 invoke 属性均在原始结果内。此前进度消息误称文件存在，已按原始 `exists:false`、`sha:null` 更正。
 
 [释放原件](native/t12-native-release.json) 记录自有进程与端口为空、KnownFolder 仍不存在。强制精确测试进程结束只证明重启恢复，不证明正常托盘 Quit。桌面已释放给 T13。
+
+## 独立合入补记
+
+独立 merger 在 `2db1c68bacaa781186a20f9c1f0f29f483770bc7` 核对119个提交证据文件与worker/index/commit一致，树与worker相同。107份原始副本和4份Git LF重建分别记录，根归档251文件/253143631字节全部复核。[独立结果](independent-merge-result.json) 固定的是该次合入快照；本补记随后只澄清证据范围，没有改原始结果、脚本或运行状态。
+
+538项worker源码和10项dist在构建前/后/结束相同；root物理检出有29项源码仅换行不同，不声称root物理文件全部字节相同。初次启动前与第三轮前独立元数据观察KnownFolder为不存在；第四轮七阶段、smoke前置/释放记录为false/null。前三轮逐阶段结果只有shellSettings，不推断不存在的逐阶段文件观察。
+
+独立检查fmt、TypeScript、脚本、whitespace和4个公开前端套件73项成功。没有重新运行原生或扩大完整Rust的实际来源。
