@@ -154,9 +154,9 @@ try{
   const coveredBefore=(await desktop("capture_history")).length;const coveredCopy=await capture(shown,"copy",false);check((await desktop("capture_history")).length===coveredBefore+1,"external topmost HWND prevents original-source capture under its coverage");const coveredEntry=(await desktop("capture_history"))[0];check(coveredEntry.width===coveredCopy.region.width&&coveredEntry.height===coveredCopy.region.height,"native occluded selection preserves screen rather than original dimensions");occluder.kill();occluder=null;
   await clearPins();shown=await bottomOriginal(firstCard.id);const invalidBefore=(await desktop("capture_history")).length,invalid=await begin(),invalidSelected=selection(shown,invalid);
   result.knownInvalid={source:{libraryId:aggregate.libraryId,imageId:aggregate.imageId,contentId:aggregate.id},frozenPixels:await frozenPatch(invalid,shown,invalidSelected),clipboardBefore:readClipboard("known-invalid-before")};
-  await library("workspace_edit_source",{target:result.knownInvalid.source,safeMode:true,edits:[{kind:"delete"}]});
+  await library("unregister_library",{libraryId:result.knownInvalid.source.libraryId});
   result.knownInvalid.finish=await desktop("finish_capture",{token:invalid.token,region:invalidSelected.region,action:"copy"}).then(()=>({ok:true}),error=>({error:String(error)}));result.knownInvalid.clipboardAfter=readClipboard("known-invalid-after");
-  check(!result.knownInvalid.finish.ok&&(await desktop("capture_history")).length===invalidBefore,"a deleted known frozen source rejects capture without a screen-frame history fallback");
+  check(!result.knownInvalid.finish.ok&&(await desktop("capture_history")).length===invalidBefore,"an unregistered known frozen source rejects capture without a screen-frame history fallback");
   check(sha(result.knownInvalid.clipboardBefore.artifact)===sha(result.knownInvalid.clipboardAfter.artifact),"known invalid source rejection preserves the actual OS clipboard bytes");
   check(sha(detail)===sourceHash,"original high-resolution file bytes remain unchanged");
   result.requests=await exec("return window.__captureRequests");result.lateSent=await exec("return window.__lateSent");await screenshot("wall-after-reflow-and-capture.png");
