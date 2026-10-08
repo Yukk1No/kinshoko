@@ -75,7 +75,7 @@ impl UpdatePolicy {
             "private" => UpdateStatus::Manual {
                 message: "当前为私有阶段，请使用新版安装包手动更新。".to_owned(),
             },
-            "public" if !pubkey.is_some_and(|key| !key.trim().is_empty()) => {
+            "public" if pubkey.is_none_or(|key| key.trim().is_empty()) => {
                 UpdateStatus::Disabled {
                     message: "未配置更新公钥，自动更新未启用。请使用新版安装包手动更新。"
                         .to_owned(),
