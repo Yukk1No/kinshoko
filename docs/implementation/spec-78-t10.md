@@ -48,6 +48,10 @@ Windows 11 的保存目标与任务归属已按实际来源分轮验证。[各�
 
 最新根 `b190770fc3d004c6f4fa101af1ff29cf8871b28f` 合并为 `f81badf6ccdc2e43cad505d5f741304877fc2903`。546固定产品至该整合的产品Git blobs没有变化，后续只修改验收脚本和文档。验收后记录487个源码文件与10个dist文件的实际字节，不称为构建前清单。
 
+根独立合并为 `b7ebe9a294ad4474db7f7344fa7f3a3f58553d24`，tree 与最终 worker 一致。[独立结果](evidence/spec78-t10/independent-merge-result.json) 核对 100 份 tracked 证据、91 份原件／脚本复原件及根归档 210 文件／312613246 字节。fmt、TypeScript、三个脚本语法和四套界面共 78 项成功。首轮 UI 因 sandbox 临时 Vite 文件 ENOENT 失败，原件保留；使用工作区 TEMP 后完成重查，没有改产品。
+
+独立检查另发现 ts-rs 在字段文档前生成一处行尾空白。根只把同一说明移至 Rust struct 文档，并运行真正的 `export_bindings_savedestination` 重新生成类型，未手改生成物。[生成器检查](evidence/spec78-t10/binding-doc-regeneration.log) 为 1 项成功；fmt、TypeScript 和完整差异空白检查成功。字段与运行逻辑不变，原始合并结果保持原样，不把后续文档修正冒充原生编译来源。
+
 [最终释放记录](evidence/spec78-t10/native-final-release.json) 覆盖全部六轮data/profile、三个精确exe及4586/4587。own app/driver/WebView进程和端口为空，独立identifier的Roaming/Local目录不存在。只移除实际为空的Local临时目录。清理使用WebDriver会话关闭和精确进程结束，不声明正常托盘退出。
 
 Windows 10 未验证，用户接受保留该状态。多截图参考组的分项目标有渲染和核心检查，本单未单列原生多截图建组验收。最终全规格组合界面、开发者真机验收和发布边界仍由T20/T21承担，不由本单关闭替代。
