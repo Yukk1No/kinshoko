@@ -238,13 +238,14 @@ try{
  await session.invoke("workspace_edit_source",{target:cTarget,safeMode:true,edits:[{kind:"setNote",text:"C 独立人工备注"}]});
  await session.click("//button[@aria-label='图片与文件夹']").catch(()=>{});
  await session.click("//button[normalize-space()='全部资料库']");
- await until("aggregate source choices",()=>session.find("//*[@data-id]//button[contains(.,'份来源')]"));
- await session.click("//*[@data-id]//button[contains(.,'份来源')]");
+ await until("aggregate source choices",()=>session.find(`//*[@data-id='${bCard.id}']//button[contains(.,'份来源')]`));
+ await session.click(`//*[@data-id='${bCard.id}']//button[contains(.,'份来源')]`);
  await session.click(`//*[@data-source-library-id='${b.id}']//button[normalize-space()='整理此来源']`);
  await session.click("//button[normalize-space()='复制到资料库…']");
  await choose(c.id,null);await session.click("//*[@aria-label='复制此来源']//button[normalize-space()='确认复制']");
  await until("source copy finished",()=>session.exec("return !document.querySelector('[aria-label=\"复制此来源\"]');"));
- const cAfter=await session.invoke("workspace_source_inspection",{target:cTarget,safeMode:true,lang:"zh-CN"});
+ const cAfter=await until("copy source facts saved",async()=>{const value=await session.invoke("workspace_source_inspection",{target:cTarget,safeMode:true,lang:"zh-CN"});return value.detail.note.sources.some(s=>s.source.includes(b.id))?value:null;});
+ assert(cAfter.detail.note.sources.some(s=>s.source.includes(b.id)),"cross-library copy retains the original B provenance");
  assert(cAfter.detail.note.manual==="C 独立人工备注","formal cross-library copy preserves the existing target manual note");
  assert((await local(c.id)).total===1,"copy merges identical bytes without creating a public pool or a duplicate target image");
  await session.screenshot("copy-preserves-independent-curation.png");

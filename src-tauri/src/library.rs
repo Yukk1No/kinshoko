@@ -1354,9 +1354,11 @@ async fn eagle_tag_mapping<R: Runtime>(
     )?;
     blocking(move || {
         let vocabulary = external_vocabulary(&app)?;
-        library
+        let mapping = library
             .map_eagle_tags(&vocabulary, &lang)
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        save_destination::publish_saved(&app, &library)?;
+        Ok(mapping)
     })
     .await
 }
@@ -1378,9 +1380,11 @@ async fn map_tag_external<R: Runtime>(
     )?;
     blocking(move || {
         let vocabulary = external_vocabulary(&app)?;
-        library
+        let mapping = library
             .map_tag_external(&tag_id, &external, &vocabulary)
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        save_destination::publish_saved(&app, &library)?;
+        Ok(mapping)
     })
     .await
 }

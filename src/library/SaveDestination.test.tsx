@@ -98,3 +98,16 @@ it("retry starts at its original target and an explicit new choice matches the f
  fireEvent.click(screen.getByRole("button",{name:"开始导入"}));
  await waitFor(()=>expect(submitted).toMatchObject({libraryId:"A",destination:{libraryId:"A",folderId:null}}));
 });
+
+it("a concrete folder entry prefills its provider and folder without activating it",async()=>{
+ mockIPC(cmd=>{
+  if(cmd==="plugin:library|workspace_directories")return {status:{revision:"test",libraries},providers:libraries.map(registration=>({registration,sidebar:{all:0,trash:0,folders:[{id:"folder-b",name:"具体目录",children:[],count:0}]},unassigned:0,descendants:{}}))};
+  if(cmd==="plugin:library|import_tasks")return [];
+  return null;
+ },{shouldMockEvents:true});
+ render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" scope={{kind:"library",libraryId:"B",scope:{kind:"folder",id:"folder-b"}}} running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
+ fireEvent.click(screen.getByRole("button",{name:"导入参考图"}));
+ expect(await screen.findByText("最终位置：保存库 / 具体目录")).toBeTruthy();
+ expect((screen.getByRole("combobox",{name:"保存到资料库"}) as HTMLSelectElement).value).toBe("B");
+ expect((screen.getByRole("combobox",{name:"保存到文件夹"}) as HTMLSelectElement).value).toBe("folder-b");
+});

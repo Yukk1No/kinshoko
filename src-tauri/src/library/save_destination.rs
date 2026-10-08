@@ -51,7 +51,10 @@ pub fn with_destination_published<R: Runtime, T>(
 ) -> Result<T, String> {
     save(app, destination, true, f)
 }
-fn publish_saved<R: Runtime>(app: &AppHandle<R>, library: &Library) -> Result<(), String> {
+pub(super) fn publish_saved<R: Runtime>(
+    app: &AppHandle<R>,
+    library: &Library,
+) -> Result<(), String> {
     let state = app.state::<LibraryState>();
     library
         .validate_destination(&SaveDestination {
