@@ -1,0 +1,46 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 29.79s
+     Running tests\catalog_groups.rs (target\debug\deps\catalog_groups-4b9a3a89dcaf56f7.exe)
+
+running 7 tests
+test new_group_can_be_created_without_an_active_library_and_survives_restart ... ok
+test namespace_groups_follow_new_members_and_current_shared_name_preferences ... ok
+test same_named_legacy_groups_keep_distinct_members_and_sources_and_deleted_group_does_not_return ... ok
+test legacy_group_is_shared_across_libraries_and_restart_without_rewriting_image_tags ... ok
+test shared_group_query_is_visible_or_for_each_source_and_missing_mapping_is_not_dropped ... ok
+test artist_can_rename_reorder_and_organize_shared_members_without_changing_images ... ok
+test cross_source_adult_veto_hides_group_members_and_atomic_edit_preserves_them ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
+
+     Running tests\catalog_visibility.rs (target\debug\deps\catalog_visibility-e727c5712750dd72.exe)
+
+running 2 tests
+test ordinary_name_settings_do_not_expose_tags_from_globally_vetoed_copies ... ok
+test names_and_groups_share_online_and_known_offline_veto_without_losing_unused_definitions ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.53s
+
+     Running tests\source_actions.rs (target\debug\deps\source_actions-46e50facbab1e5dc.exe)
+
+running 4 tests
+test editing_an_inactive_registered_provider_keeps_the_current_and_last_opened_library ... ok
+test unavailable_or_sealed_selected_sources_are_rejected_without_using_a_duplicate ... ok
+test pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnection ... ok
+test an_explicit_aggregate_source_edits_only_its_curation_and_rejects_a_changed_byte_identity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
+
+     Running tests\workspace.rs (target\debug\deps\workspace-0ca34ce5cb6e9673.exe)
+
+running 7 tests
+test an_explicit_empty_any_group_never_becomes_an_unconditional_workspace_query ... ok
+test each_source_must_match_all_conditions_before_identical_bytes_are_aggregated ... ok
+test adult_in_nonmatching_out_of_scope_source_vetoes_cards_counts_and_candidates_without_changing_active_lens ... ok
+test unavailable_known_adult_source_keeps_veto_after_restart_until_refresh_or_explicit_unregister ... ok
+test mapped_local_synonyms_are_or_within_one_global_condition_and_and_between_conditions ... ok
+test paging_counts_stable_hash_ids_and_stale_provider_catalog_scope_and_safe_revisions_agree ... ok
+test real_multiple_directories_reuse_visible_safety_facts_and_report_action_timings ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.94s
+

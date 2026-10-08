@@ -1,0 +1,35 @@
+(node:27292) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS released v16 角色参考 opens with stable identity
+PASS released v16 画法参考 opens with stable identity
+[1009/013210.528:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS same-name legacy groups do not overwrite one another
+PASS old group members and distinct provider provenance survive migration
+PASS global group read does not reveal all-source vetoed member names
+PASS ordinary name settings apply the same all-source Adult veto
+PASS legacy name wizard hides names from globally vetoed copies
+PASS formal editor uses unified member identities across libraries
+PASS group click expands visible members into one OR search condition
+PASS switching to 角色参考 preserves unified group membership and order
+PASS switching to 画法参考 preserves unified group membership and order
+PASS OR membership translates to different local IDs in an explicit provider
+PASS safe management view hides duplicate Adult member despite an Unknown copy
+PASS safe rename/add/remove/reorder retains hidden member on public unsafe readback
+PASS group management leaves source image identity and version links unchanged
+[1009/013221.496:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS global edits and deleted legacy migration memory survive a normal full restart
+PASS dynamic namespace group excludes same-name artist identities
+[1009/013223.106:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS last-opened IPC reports the disconnected provider explicitly
+PASS missing last-active provider leaves no active library in the formal picker
+PASS other provider remains available without activation
+PASS global settings create and rename empty groups without an active provider
+[1009/013225.664:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS no-active-library edits persist across restart
+[1009/013238.075:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS 角色参考 original f563a0648a226e51cb32e682f5e3e509 unchanged
+PASS 角色参考 original 92451dcec739a429fac8759bc259164e unchanged
+PASS 画法参考 original 4411574475cfcd97c36d780c297a3e5d unchanged
+PASS 画法参考 original 54eddee588103a83280b07c2ca46cda5 unchanged
+PASS 画法参考 original f468cc8584495dc5595c05f45763f220 unchanged
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\shared-groups-1791480727533

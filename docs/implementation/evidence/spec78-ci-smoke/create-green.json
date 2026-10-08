@@ -1,0 +1,36 @@
+{
+  "productSource": "f7ef52b12681ed679927f7fef034629b923ae8ec",
+  "binarySha256": "7dca4915d39d648f5b0e7b615671d316b3e63b187ee97a44d4cbb2f8ed3ff239",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t05-native\\worker-t05\\nativeproof\\f7ef52b1\\kinshoko.exe",
+  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\ci-smoke-probe-1791481724663",
+  "identifier": "dev.kinshoko.spec78t05test",
+  "ciSource": "fad93218cc56ee31b77460e1b4ef0b1d8127ab3b",
+  "ports": [
+    4478,
+    4479
+  ],
+  "current": {
+    "value": {
+      "id": "df0e417e2e8a4adf9020e43ae6214835",
+      "name": "冒烟测试库",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\ci-smoke-probe-1791481724663\\libraries\\冒烟测试库"
+    }
+  },
+  "dom": {
+    "headings": [
+      "资料库目录"
+    ],
+    "selected": [
+      {
+        "text": "冒烟测试库",
+        "value": "df0e417e2e8a4adf9020e43ae6214835"
+      }
+    ],
+    "text": "图片与文件夹Ctrl+1\n参考组Ctrl+2\n截图历史Ctrl+3\n程序设置\n资料库目录\n‹\n当前资料库\n尚未打开\n冒烟测试库\n资料库操作\n范围：全部资料库\n全部资料库\n−\n冒烟测试库\n0\n…\\libraries\\冒烟测试库\n未归类\n0\n文件夹\n＋\n回收站\n0\n整理标签分组\n精确查找\n0 张\n图片大小\n导入\n在侧栏整理标签分组后，可在这里点选标签。\n\n资料库里还没有参考图。从上方导入图片或文件夹。\n\nKinshoko 0.1.0\n下载打标模型（993 MB）"
+  },
+  "originalPredicate": false,
+  "correctedPredicate": true,
+  "status": "passed",
+  "cleanupInventory": "",
+  "cleanupError": ""
+}

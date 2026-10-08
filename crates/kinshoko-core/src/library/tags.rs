@@ -323,6 +323,18 @@ pub struct TagCount {
     pub count: u32,
 }
 
+/// Durable legacy configuration, without image labels or visible counts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct TagGroupDefinition {
+    pub id: String,
+    pub name: String,
+    pub namespace: Option<TagNamespace>,
+    /// Local identities, in the artist's chosen order. Namespace groups are dynamic.
+    pub members: Vec<String>,
+}
+
 /// 侧栏上的一个标签分组。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -1274,6 +1286,41 @@ pub(super) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error> {
         tags: tags.into_values().collect(),
         personal_approx,
     })
+}
+
+pub(super) fn tag_group_definitions(inner: &Inner) -> Result<Vec<TagGroupDefinition>, Error> {
+    let mut conn = inner.readers.get();
+    let tx = conn.transaction()?;
+    let mut groups = tx
+        .prepare_cached("SELECT id, name, namespace FROM tag_group ORDER BY ord, created_at, id")?;
+    let mut members = tx.prepare_cached(
+        "SELECT tag_id FROM tag_group_member WHERE group_id=?1 ORDER BY ord, tag_id",
+    )?;
+    let mut out = Vec::new();
+    for row in groups.query_map([], |r| {
+        Ok((
+            r.get::<_, String>(0)?,
+            r.get::<_, String>(1)?,
+            r.get::<_, Option<String>>(2)?,
+        ))
+    })? {
+        let (id, name, namespace) = row?;
+        let namespace = namespace.as_deref().map(TagNamespace::parse).transpose()?;
+        let tag_ids = if namespace.is_none() {
+            members
+                .query_map([&id], |r| r.get(0))?
+                .collect::<Result<Vec<_>, _>>()?
+        } else {
+            Vec::new()
+        };
+        out.push(TagGroupDefinition {
+            id,
+            name,
+            namespace,
+            members: tag_ids,
+        });
+    }
+    Ok(out)
 }
 
 pub(super) fn tag_groups(inner: &Inner, lang: &str) -> Result<Vec<TagGroupView>, Error> {

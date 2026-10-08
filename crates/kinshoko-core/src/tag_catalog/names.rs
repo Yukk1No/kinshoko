@@ -14,7 +14,10 @@ pub(super) fn initialize(conn: &Connection, old_version: i64) -> Result<(), Cata
         PRIMARY KEY(library_id,local_tag_id));
         CREATE TABLE IF NOT EXISTS catalog_name_adoption (catalog_id TEXT PRIMARY KEY REFERENCES catalog_tag(id));
         CREATE TABLE IF NOT EXISTS catalog_removed_alias (catalog_id TEXT NOT NULL REFERENCES catalog_tag(id), name TEXT NOT NULL, lang TEXT NOT NULL, PRIMARY KEY(catalog_id,name,lang));
-        PRAGMA user_version=3;")?;
+        ")?;
+    if old_version < 3 {
+        tx.pragma_update(None, "user_version", 3)?;
+    }
     tx.commit()?;
     Ok(())
 }

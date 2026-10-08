@@ -1,0 +1,140 @@
+{
+  "status": "passed",
+  "source": "f7ef52b12681ed679927f7fef034629b923ae8ec",
+  "harnessSource": "77870f5e40ee47afe467f58bb00496afbed11a23",
+  "binarySha256": "7dca4915d39d648f5b0e7b615671d316b3e63b187ee97a44d4cbb2f8ed3ff239",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "stories": [
+    28,
+    29
+  ],
+  "oldSchemaSha256": "b78cfdfd0c7cd40dc92330d63caa70c4d4e08a3d2e47b7bc884d8c4a8a311f89",
+  "legacySource": "536cc43c1933e44fc33836f8a439de8cdb0da018 migrations 1-16",
+  "assertions": [
+    "released v16 角色参考 opens with stable identity",
+    "released v16 画法参考 opens with stable identity",
+    "same-name legacy groups do not overwrite one another",
+    "old group members and distinct provider provenance survive migration",
+    "global group read does not reveal all-source vetoed member names",
+    "ordinary name settings apply the same all-source Adult veto",
+    "legacy name wizard hides names from globally vetoed copies",
+    "formal editor uses unified member identities across libraries",
+    "group click expands visible members into one OR search condition",
+    "switching to 角色参考 preserves unified group membership and order",
+    "switching to 画法参考 preserves unified group membership and order",
+    "OR membership translates to different local IDs in an explicit provider",
+    "safe management view hides duplicate Adult member despite an Unknown copy",
+    "safe rename/add/remove/reorder retains hidden member on public unsafe readback",
+    "group management leaves source image identity and version links unchanged",
+    "global edits and deleted legacy migration memory survive a normal full restart",
+    "dynamic namespace group excludes same-name artist identities",
+    "last-opened IPC reports the disconnected provider explicitly",
+    "missing last-active provider leaves no active library in the formal picker",
+    "other provider remains available without activation",
+    "global settings create and rename empty groups without an active provider",
+    "no-active-library edits persist across restart",
+    "角色参考 original f563a0648a226e51cb32e682f5e3e509 unchanged",
+    "角色参考 original 92451dcec739a429fac8759bc259164e unchanged",
+    "画法参考 original 4411574475cfcd97c36d780c297a3e5d unchanged",
+    "画法参考 original 54eddee588103a83280b07c2ca46cda5 unchanged",
+    "画法参考 original f468cc8584495dc5595c05f45763f220 unchanged"
+  ],
+  "first": {
+    "info": {
+      "id": "6f2d705f513ab656d7e7a3b691e2c9ef",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-groups-1791480727533\\libraries\\角色参考",
+      "name": "角色参考"
+    },
+    "groupId": "18d606462598b84422a11e167f061701",
+    "primaryId": "f563a0648a226e51cb32e682f5e3e509",
+    "secretId": "92451dcec739a429fac8759bc259164e",
+    "tags": {
+      "blue_hairgeneral": "25cdef25f5c2e6395c52c512d1341890",
+      "purple_hairgeneral": "534a996b55ae1ed4f32f61f80fce5abc",
+      "spec78_secretgeneral": "d52029ea51d3280561b0e6eb293b81d9",
+      "星海work": "72023e4a7e479307293c6b91fb477867",
+      "星海artist": "baa63e43536f22f3758c393e53e01790"
+    },
+    "originals": [
+      {
+        "imageId": "f563a0648a226e51cb32e682f5e3e509",
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-groups-1791480727533\\libraries\\角色参考\\originals\\a5\\a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
+        "sha": "a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6"
+      },
+      {
+        "imageId": "92451dcec739a429fac8759bc259164e",
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-groups-1791480727533\\libraries\\角色参考\\originals\\9e\\9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f.png",
+        "sha": "9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f"
+      }
+    ]
+  },
+  "second": {
+    "info": {
+      "id": "529d208e88b87adb6ea0c0948ab9098f",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-groups-1791480727533\\libraries\\画法参考",
+      "name": "画法参考"
+    },
+    "groupId": "10d769026efb64e863aa080ef6f1b838",
+    "primaryId": "4411574475cfcd97c36d780c297a3e5d",
+    "secretId": "54eddee588103a83280b07c2ca46cda5",
+    "tags": {
+      "blue_hairgeneral": "8f08a5ffcf6bfdf7f28d3315b67a1287",
+      "purple_hairgeneral": "f32ec524e61c8bff768f00dd1280a1c1",
+      "spec78_secretgeneral": "a537ed8c2a4d3ac0cc4154917eed2f62",
+      "星海work": "661d7ef1b1a6ae9989da81c0017d3aab",
+      "星海artist": "2eb6cf2fc2400dc1243fbc5010e7715a"
+    },
+    "originals": [
+      {
+        "imageId": "4411574475cfcd97c36d780c297a3e5d",
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-groups-1791480727533\\libraries\\画法参考\\originals\\9e\\9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09.png",
+        "sha": "9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09"
+      },
+      {
+        "imageId": "54eddee588103a83280b07c2ca46cda5",
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-groups-1791480727533\\libraries\\画法参考\\originals\\9e\\9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f.png",
+        "sha": "9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f"
+      },
+      {
+        "imageId": "f468cc8584495dc5595c05f45763f220",
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-groups-1791480727533\\libraries\\画法参考\\originals\\a5\\a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
+        "sha": "a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6"
+      }
+    ]
+  },
+  "sharedGroup": {
+    "id": "01a11c929066761c94c1fcf124257431",
+    "name": "两库发色",
+    "namespace": null,
+    "sources": [
+      {
+        "groupId": "18d606462598b84422a11e167f061701",
+        "groupName": "发色",
+        "libraryId": "6f2d705f513ab656d7e7a3b691e2c9ef",
+        "libraryName": "角色参考"
+      }
+    ],
+    "tags": [
+      {
+        "count": 1,
+        "tag": {
+          "hasExternal": true,
+          "id": "01a11c929065713ba717d75c6c7c18c6",
+          "name": "紫发",
+          "namespace": "general",
+          "untranslated": false
+        }
+      },
+      {
+        "count": 1,
+        "tag": {
+          "hasExternal": true,
+          "id": "01a11c929065713ba717d75b24c0a94e",
+          "name": "蓝发",
+          "namespace": "general",
+          "untranslated": false
+        }
+      }
+    ]
+  }
+}

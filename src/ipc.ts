@@ -1,5 +1,7 @@
 import type { SaveDestination } from "./bindings/SaveDestination";
 import type { ImportTaskSnapshot } from "./bindings/ImportTaskSnapshot";
+import type { CatalogGroupView } from "./bindings/CatalogGroupView";
+import type { CatalogGroupEdit } from "./bindings/CatalogGroupEdit";
 import type { WorkspaceDirectories } from "./bindings/WorkspaceDirectories";
 import type { LegacyNameMigrationPreview } from "./bindings/LegacyNameMigrationPreview";
 import type { LegacyNameMigrationWorkspace } from "./bindings/LegacyNameMigrationWorkspace";
@@ -911,3 +913,13 @@ export function dismissImport(libraryId:string,taskId:string): Promise<void> { r
 export function takeCollectionRequest(): Promise<string|null> { return invoke<string|null>(desk("take_collection_request")); }
 export function onCollectionRequest(handler:()=>void): Promise<UnlistenFn> { return listen("capture-collection-request",handler); }
 export function workspaceCopySource(target:import("./bindings/WorkspaceSourceTarget").WorkspaceSourceTarget,destination:SaveDestination,safeMode:boolean): Promise<string> { return invoke<string>(lib("workspace_copy_source"),{target,destination,safeMode}); }
+/** Application groups are independent of the active provider; counts use all-source safety. */
+export function sharedTagGroups(lang: string, safeMode: boolean): Promise<CatalogGroupView[]> {
+  return invoke<CatalogGroupView[]>(lib("shared_tag_groups"), { lang, safeMode });
+}
+export function createSharedTagGroup(name: string, namespace: TagNamespace | null): Promise<string> {
+  return invoke<string>(lib("create_shared_tag_group"), { name, namespace });
+}
+export function editSharedTagGroup(edit: CatalogGroupEdit, safeMode: boolean): Promise<void> {
+  return invoke<void>(lib("edit_shared_tag_group"), { edit, safeMode });
+}

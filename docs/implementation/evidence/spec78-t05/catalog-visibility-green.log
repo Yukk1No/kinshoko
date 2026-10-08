@@ -1,0 +1,75 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 20.81s
+     Running tests\catalog_groups.rs (target\debug\deps\catalog_groups-4b9a3a89dcaf56f7.exe)
+
+running 7 tests
+test new_group_can_be_created_without_an_active_library_and_survives_restart ... ok
+test same_named_legacy_groups_keep_distinct_members_and_sources_and_deleted_group_does_not_return ... ok
+test namespace_groups_follow_new_members_and_current_shared_name_preferences ... ok
+test legacy_group_is_shared_across_libraries_and_restart_without_rewriting_image_tags ... ok
+test artist_can_rename_reorder_and_organize_shared_members_without_changing_images ... ok
+test shared_group_query_is_visible_or_for_each_source_and_missing_mapping_is_not_dropped ... ok
+test cross_source_adult_veto_hides_group_members_and_atomic_edit_preserves_them ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s
+
+     Running tests\catalog_visibility.rs (target\debug\deps\catalog_visibility-e727c5712750dd72.exe)
+
+running 2 tests
+test names_and_groups_share_online_and_known_offline_veto_without_losing_unused_definitions ... ok
+test ordinary_name_settings_do_not_expose_tags_from_globally_vetoed_copies ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
+
+     Running tests\legacy_name_migration.rs (target\debug\deps\legacy_name_migration-feb7b253794ed71a.exe)
+
+running 8 tests
+test child_confirms_until_fault ... ignored, subprocess entry for fault injection
+
+running 1 test
+test following_default_preserves_displaced_global_and_old_names_as_removable_aliases ... ok
+test follow_default_preview_uses_the_actual_other_language_fallback ... ok
+test cancelling_keeps_old_displays_and_confirmation_applies_one_shared_choice_atomically ... ok
+test equal_default_legacy_choice_remains_explicit_after_default_upgrade_and_keep_preference_acknowledges_only_new_sources ... ok
+
+running 1 test
+test child_confirms_until_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.02s
+
+test interruption_and_write_failure_leave_the_entire_batch_pending_then_retry_is_stable ... ok
+test explicit_preferences_do_not_hide_unconfirmed_old_sources_and_follow_default_removes_only_that_language ... ok
+test a_large_legacy_batch_resolves_by_identity_and_keeps_existing_global_preference_explicit ... ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 4.81s
+
+     Running tests\tag_catalog.rs (target\debug\deps\tag_catalog-7806d7ca2f95e347.exe)
+
+running 11 tests
+test inspecting_an_unsafe_snapshot_never_changes_the_active_library_safe_mode ... ok
+test different_library_local_ids_share_an_explicit_external_identity_after_reopen ... ok
+test same_named_tags_without_external_correspondence_remain_independent_across_libraries ... ok
+test attaching_legacy_tags_keeps_untranslated_display_until_name_provenance_is_migrated ... ok
+test adding_an_external_correspondence_after_attachment_is_available_to_the_next_library ... ok
+test namespaces_remain_distinct_and_an_explicit_split_survives_external_reattachment ... ok
+test a_late_explicit_external_correspondence_uses_an_existing_identity_unless_user_corrected ... ok
+test ambiguous_aliases_stay_separate_until_correction_and_manual_decisions_stay_local ... ok
+test catalog_can_inspect_registered_libraries_without_switching_or_changing_local_data ... ok
+test conflicting_external_correspondences_are_inspectable_and_require_an_explicit_choice ... ok
+test explicit_external_correspondences_extend_a_shared_identity_without_relying_on_names ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+
+     Running tests\workspace.rs (target\debug\deps\workspace-0ca34ce5cb6e9673.exe)
+
+running 7 tests
+test an_explicit_empty_any_group_never_becomes_an_unconditional_workspace_query ... ok
+test adult_in_nonmatching_out_of_scope_source_vetoes_cards_counts_and_candidates_without_changing_active_lens ... ok
+test each_source_must_match_all_conditions_before_identical_bytes_are_aggregated ... ok
+test unavailable_known_adult_source_keeps_veto_after_restart_until_refresh_or_explicit_unregister ... ok
+test mapped_local_synonyms_are_or_within_one_global_condition_and_and_between_conditions ... ok
+test paging_counts_stable_hash_ids_and_stale_provider_catalog_scope_and_safe_revisions_agree ... ok
+test real_multiple_directories_reuse_visible_safety_facts_and_report_action_timings ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.88s
+
