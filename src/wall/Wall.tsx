@@ -199,6 +199,9 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     if (!workspaceScope) return;
     generation.current += 1;
     inflight.current = null;
+    // Emptying the canvas clamps browser scrollTop. Preserve the user's anchor
+    // until the new authorized page restores it.
+    restoring.current = true;
     setCards([]);
     setTotal(null);
     setCursor(null);
