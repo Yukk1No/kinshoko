@@ -155,7 +155,11 @@ async function openSettings() {
 }
 async function closeSettings() { await session.click("//button[normalize-space()='关闭设置']"); }
 const groupPath = (name) => `//section[@aria-label='全局标签分组']//div[@role='group' and @aria-label='${name}']`;
-async function clickGroupControl(name, label) { await session.click(`${groupPath(name)}//button[@aria-label='${label}']`); }
+async function clickGroupControl(name, label) {
+  const xpath = `${groupPath(name)}//button[@aria-label='${label}']`;
+  await until("enabled group control", () => session.exec("const button = document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; return button && !button.disabled;", [xpath]));
+  await session.click(xpath);
+}
 async function renameGroup(name, next) {
   await clickGroupControl(name, `改名标签分组“${name}”`);
   await session.set("//input[@aria-label='标签分组名称']", next); await session.key("\uE007");
