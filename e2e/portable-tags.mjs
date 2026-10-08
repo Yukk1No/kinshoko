@@ -40,7 +40,14 @@ class Session {
   static async start() {
     const result = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application } } } });
     const session = new Session(result.sessionId);
-    await until("formal main window", () => session.exec("return Boolean(window.__TAURI_INTERNALS__?.invoke) && Boolean(document.querySelector('button[aria-label=设置]'));"));
+    await until("formal main window", async () => {
+      const handles = await wd("GET", `${session.base}/window/handles`);
+      for (const handle of handles) {
+        await wd("POST", `${session.base}/window`, { handle });
+        if (await session.exec("return Boolean(window.__TAURI_INTERNALS__?.invoke) && Boolean(document.querySelector('button[aria-label=设置]'));")) return true;
+      }
+      return false;
+    });
     return session;
   }
   constructor(id) { this.base = `/session/${id}`; }
