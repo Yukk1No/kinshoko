@@ -1,0 +1,41 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/search/SharedApprox.test.tsx src/SettingsPanel.test.tsx src/App.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+ ❯ src/App.test.tsx (60 tests | 1 failed) 7032ms
+   ❯ 安全模式 (11)
+     ❯ 候选随视角作废（#76） (7)
+       × “加相近标签”的候选同样随视角作废，迟到的响应不写回 75ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/App.test.tsx > 安全模式 > 候选随视角作废（#76） > “加相近标签”的候选同样随视角作废，迟到的响应不写回
+AssertionError: expected <span></span> to be null
+
+- Expected:
+null
+
++ Received:
+<span>
+  只在成人图出现的标签
+</span>
+
+ ❯ src/App.test.tsx:1531:56
+    1529|
+    1530|       fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: t…
+    1531|       expect(within(dialog).queryByText("只在成人图出现的标签")).toBeNull();
+       |                                                        ^
+    1532|       await changed(true);
+    1533|       await waitFor(() =>
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 78 passed (79)
+   Start at  02:10:02
+   Duration  8.92s (tests 62%, environment 26%, import 6%, transform 5%)
+

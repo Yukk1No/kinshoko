@@ -2,7 +2,7 @@ import { emit } from "@tauri-apps/api/event";
 import { afterEach, describe, expect, it } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import type { PersonalApproxEntry } from "./bindings/PersonalApproxEntry";
+import type { CatalogApproxEntry } from "./bindings/CatalogApproxEntry";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { TagLabel } from "./bindings/TagLabel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -32,6 +32,8 @@ function backend(handle: (cmd: string, args: Record<string, unknown>) => unknown
     const a = (args ?? {}) as Record<string, unknown>;
     calls.push({ cmd, args: a });
     if (cmd === "shell_settings") return defaults;
+    if (cmd === "plugin:library|safe_mode") return true;
+    if (cmd === "plugin:library|workspace_status") return { revision: "r1", libraries: [] };
     return handle(cmd, a);
   });
   return calls;
@@ -157,9 +159,9 @@ describe("设置：近似查找", () => {
     untranslated: false,
     hasExternal,
   });
-  const entries: PersonalApproxEntry[] = [
-    { a: label("B", "蓝瞳", true), b: label("S", "天空色", false), relation: "similar" },
-    { a: label("B", "蓝瞳", true), b: label("Q", "水色瞳", true), relation: "notSimilar" },
+  const entries: CatalogApproxEntry[] = [
+    { a: label("B", "蓝瞳", true), b: label("S", "天空色", false), relation: "similar", sources: [] },
+    { a: label("B", "蓝瞳", true), b: label("Q", "水色瞳", true), relation: "notSimilar", sources: [] },
   ];
 
   it("相近标签来源标记默认关闭，打开后告诉主窗口", async () => {
@@ -178,12 +180,13 @@ describe("设置：近似查找", () => {
     expect(seen.at(-1)?.showApproxSource).toBe(true);
   });
 
-  it("资料库设置中列出个人近似对应表的条目，可以删除", async () => {
+  it("程序设置中列出全局个人近似对应表，可以删除", async () => {
     let listed = entries;
     const calls = backend((cmd, args) => {
-      if (cmd === "plugin:library|personal_approx") return listed;
-      if (cmd === "plugin:library|remove_tag_approx") {
-        listed = listed.filter((e) => !(e.a.id === args.a && e.b.id === args.b));
+      if (cmd === "plugin:library|shared_personal_approx") return { revision: 1, entries: listed, conflicts: [] };
+      if (cmd === "plugin:library|edit_shared_approx") {
+        const edit = args.edit as { a: string; b: string };
+        listed = listed.filter((e) => !(e.a.id === edit.a && e.b.id === edit.b));
         return null;
       }
       return undefined;
@@ -200,8 +203,8 @@ describe("设置：近似查找", () => {
 
     fireEvent.click(within(rows[1]).getByRole("button", { name: "删除" }));
 
-    await waitFor(() => expect(within(table).getAllByRole("row")).toHaveLength(1));
-    expect(calls.find((c) => c.cmd === "plugin:library|remove_tag_approx")?.args).toEqual({ libraryId: "L1", a: "B", b: "Q" });
+    await waitFor(() => expect(within(screen.getByRole("table", { name: "个人近似对应表" })).getAllByRole("row")).toHaveLength(1));
+    expect(calls.find((c) => c.cmd === "plugin:library|edit_shared_approx")?.args).toEqual({ edit: { kind: "remove", a: "B", b: "Q" }, safeMode: true });
   });
 });
 
@@ -287,10 +290,10 @@ describe("设置：更新", () => {
 
 it("refreshes personal approximate labels when shared display names change", async () => {
   let current = "旧显示名称";
-  mockIPC((cmd) => cmd === "shell_settings" ? defaults : cmd.endsWith("personal_approx") ? [{ a: { id: "a", namespace: "general", name: current, untranslated: false, hasExternal: false }, b: { id: "b", namespace: "general", name: "另一个标签", untranslated: false, hasExternal: false }, relation: "similar" }] : undefined, { shouldMockEvents: true });
+  mockIPC((cmd) => cmd === "shell_settings" ? defaults : cmd.endsWith("safe_mode") ? true : cmd.endsWith("workspace_status") ? { revision: "r1", libraries: [] } : cmd.endsWith("shared_personal_approx") ? { revision: 1, conflicts: [], entries: [{ a: { id: "a", namespace: "general", name: current, untranslated: false, hasExternal: false }, b: { id: "b", namespace: "general", name: "另一个标签", untranslated: false, hasExternal: false }, relation: "similar", sources: [] }] } : undefined, { shouldMockEvents: true });
   render(<SettingsPanel library={{ id: "library", name: "资料库", root: "library" }} />);
   await screen.findByText(/旧显示名称/);
   current = "新的共享名称";
-  await act(async () => { await emit("library-event", { kind: "vocabularyChanged", libraryId: "library", revision: 1 }); });
+  await act(async () => { await emit("workspace-changed", { revision: "r2", libraries: [] }); });
   await screen.findByText(/新的共享名称/);
 });

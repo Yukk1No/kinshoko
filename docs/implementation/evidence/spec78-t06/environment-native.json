@@ -1,0 +1,12 @@
+{
+  "os": {
+    "Caption": "Microsoft Windows 11 专业版",
+    "Version": "10.0.26300",
+    "BuildNumber": "26300"
+  },
+  "rust": "rustc 1.95.0 (59807616e 2026-04-14)",
+  "node": "v22.15.0",
+  "edgeDriver": "Microsoft Edge WebDriver 154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)",
+  "tauriDriver": "tauri-driver v2.1.0:",
+  "settingsPath": "C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t06test/settings.json"
+}

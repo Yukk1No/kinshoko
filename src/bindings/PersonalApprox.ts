@@ -2,6 +2,6 @@
 import type { ApproxRelation } from "./ApproxRelation";
 
 /**
- * 个人近似对应表中的一条：两个库内标签（`tag_id`，无方向）与画师的判断。
+ * 个人近似对应表中的一条：两个标签身份（无方向）与画师的判断。旧 Library 接口仍使用本地 ID；应用规则使用统一 ID。
  */
 export type PersonalApprox = { a: string, b: string, relation: ApproxRelation, };

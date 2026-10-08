@@ -1,0 +1,361 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/search/SharedApprox.test.tsx src/SettingsPanel.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+ ❯ src/SettingsPanel.test.tsx (14 tests | 1 failed) 1690ms
+   ❯ 设置：近似查找 (2)
+     × 程序设置中列出全局个人近似对应表，可以删除 1057ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/SettingsPanel.test.tsx > 设置：近似查找 > 程序设置中列出全局个人近似对应表，可以删除
+AssertionError: expected [ <tr><td>…(1)</td>
+…(2)</tr>, …(1) ] to have a length of 1 but got 2
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <section
+        aria-label="设置"
+        class="settings"
+      >
+        <h2>
+          常驻与快捷键
+        </h2>
+        <label
+          class="settings-row"
+        >
+          <input
+            checked=""
+            type="checkbox"
+          />
+          开机时启动 Kinshoko
+        </label>
+        <p
+          class="settings-hint"
+        >
+          关闭主窗口后 Kinshoko 留在托盘，截图、钉图与快捷键照常可用。
+        </p>
+        <table
+          class="settings-shortcuts"
+        >
+          <tbody>
+            <tr
+              aria-label="截图"
+            >
+              <th
+                scope="row"
+              >
+                截图
+              </th>
+              <td>
+                <kbd>
+                  F1
+                </kbd>
+                <span
+                  class="settings-problem"
+                >
+                  未注册：
+                  已被其他程序占用
+                </span>
+              </td>
+              <td>
+                <button
+                  type="button"
+                >
+                  更换
+                </button>
+                <button
+                  type="button"
+                >
+                  清除
+                </button>
+              </td>
+            </tr>
+            <tr
+              aria-label="钉剪贴板"
+            >
+              <th
+                scope="row"
+              >
+                钉剪贴板
+              </th>
+              <td>
+                <kbd>
+                  F3
+                </kbd>
+              </td>
+              <td>
+                <button
+                  type="button"
+                >
+                  更换
+                </button>
+                <button
+                  type="button"
+                >
+                  清除
+                </button>
+              </td>
+            </tr>
+            <tr
+              aria-label="收起全部钉图"
+            >
+              <th
+                scope="row"
+              >
+                收起全部钉图
+              </th>
+              <td>
+                <kbd>
+                  F4
+                </kbd>
+              </td>
+              <td>
+                <button
+                  type="button"
+                >
+                  更换
+                </button>
+                <button
+                  type="button"
+                >
+                  清除
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <fieldset
+          aria-label="统一标签目录"
+        >
+          <legend>
+            统一标签目录
+          </legend>
+          <p
+            class="settings-hint"
+          >
+            检查不同资料库的标签对应。同名和别名重合的标签保持独立；纠正对应后，各库的人工添加和否决继续独立保存。
+          </p>
+          <button
+            type="button"
+          >
+            检查标签对应
+          </button>
+        </fieldset>
+        <fieldset
+          aria-label="标签显示名称"
+        >
+          <legend>
+            标签显示名称
+          </legend>
+          <p
+            class="settings-hint"
+          >
+            显示名称先用显式偏好，没有偏好时跟随默认。保存偏好会在各资料库生效；恢复默认撤回该语言的偏好。其他叫法单独用于查找。
+          </p>
+          <button
+            type="button"
+          >
+            管理显示名称
+          </button>
+          <label
+            class="settings-row"
+          >
+            名称语言
+            <input
+              aria-label="名称语言"
+              placeholder="zh-CN"
+              value="zh-CN"
+            />
+          </label>
+        </fieldset>
+        <fieldset
+          aria-label="旧资料库名称迁移"
+          class="legacy-name-migration"
+        >
+          <legend>
+            旧资料库名称迁移
+          </legend>
+          <p
+            class="settings-hint"
+          >
+            旧名称缺少来源记录。选择前保留旧显示；已有显式偏好继续优先。每个统一标签和语言只选一条全局规则，后接入的旧库仍须确认。取消会放弃本次草稿。
+          </p>
+          <button
+            type="button"
+          >
+            迁移旧库名称
+          </button>
+        </fieldset>
+        <h2>
+          全局标签分组
+        </h2>
+        <p
+          class="settings-hint"
+        >
+          分组在各资料库共用。按分组查找表示满足任一成员，图片标签保持原样。同名旧分组分别保留，并列出原资料库。
+        </p>
+        <section
+          aria-busy="false"
+          aria-label="全局标签分组"
+          class="sidebar-tag-groups"
+        >
+          <div
+            class="sidebar-heading"
+          >
+            <span>
+              全局标签分组
+            </span>
+            <button
+              aria-label="新建标签分组"
+              class="sidebar-add"
+              type="button"
+            >
+              ＋
+            </button>
+          </div>
+        </section>
+        <h2>
+          近似查找
+        </h2>
+        <label
+          class="settings-row"
+        >
+          <input
+            type="checkbox"
+          />
+          显示相近标签来源（内置／个人）
+        </label>
+        <section
+          aria-busy="false"
+          aria-label="全局个人近似规则"
+        >
+          <p
+            class="settings-hint"
+          >
+            个人规则在各资料库共用。“只这次”仅改当前查找；“以后都不展开”和“＋”保存长期判断。
+          </p>
+          <table
+            aria-label="个人近似对应表"
+            class="settings-approx"
+          >
+            <tbody>
+              <tr>
+                <td>
+                  蓝瞳
+                  ～
+                  天空色
+                  <span
+                    aria-label="没有外部对应，不参与内置近似对应表"
+                    class="no-external"
+                    role="img"
+                    title="没有外部对应，不参与内置近似对应表"
+                  />
+                </td>
+                <td>
+                  相近
+                </td>
+                <td>
+                  <button
+                    type="button"
+                  >
+                    删除
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+        <h2>
+          诊断
+        </h2>
+        <label
+          class="settings-row"
+        >
+          <input
+            type="checkbox"
+          />
+          强制 sRGB（诊断用）
+        </label>
+        <p
+          class="settings-hint"
+        >
+          让 WebView2 把显示器当作 sRGB、不按显示器配置文件校色。只在排查颜色问题时打开。
+        </p>
+        <p
+          class="settings-actions"
+        >
+          <button
+            type="button"
+          >
+            显示诊断信息
+          </button>
+          <button
+            type="button"
+          >
+            存成文件…
+          </button>
+        </p>
+        <label
+          class="settings-row"
+        >
+          <input
+            type="checkbox"
+          />
+          记录使用日志（只存在本机）
+        </label>
+        <p
+          class="settings-hint"
+        >
+          只记下做了哪类操作与数量（例如导入了几项、查找用了几个条件），不记文件名、路径、标签与图片，也不会自动上传。
+        </p>
+        <p
+          class="settings-actions"
+        >
+          <button
+            type="button"
+          >
+            导出使用日志…
+          </button>
+          <button
+            type="button"
+          >
+            清除使用日志
+          </button>
+        </p>
+      </section>
+    </div>
+  </body>
+</html>
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/SettingsPanel.test.tsx:206:67
+    204|     fireEvent.click(within(rows[1]).getByRole("button", { name: "删除" }…
+    205|
+    206|     await waitFor(() => expect(within(table).getAllByRole("row")).toHa…
+       |                                                                   ^
+    207|     expect(calls.find((c) => c.cmd === "plugin:library|edit_shared_app…
+    208|   });
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 18 passed (19)
+   Start at  02:09:15
+   Duration  3.33s (environment 45%, tests 40%, import 8%, transform 6%)
+

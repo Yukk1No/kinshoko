@@ -115,6 +115,7 @@ struct Provider {
     revision: i64,
 }
 struct Snapshot {
+    personal_approx: Vec<crate::approx::PersonalApprox>,
     providers: Vec<Provider>,
     catalog: CatalogInspection,
     status: WorkspaceStatus,
@@ -291,6 +292,7 @@ impl Workspace {
             libraries: providers.iter().map(|p| p.registration.clone()).collect(),
         };
         let snapshot = std::sync::Arc::new(Snapshot {
+            personal_approx: catalog.approx_search_rules()?,
             providers,
             catalog: inspection,
             status,
@@ -879,7 +881,7 @@ fn build_vocabulary(snapshot: &Snapshot, safe: bool) -> Vocabulary {
     Vocabulary {
         revision: snapshot.catalog.revision,
         tags: tags.into_values().collect(),
-        personal_approx: vec![],
+        personal_approx: snapshot.personal_approx.clone(),
     }
 }
 
@@ -893,5 +895,31 @@ impl Workspace {
     ) -> Result<(), CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
         catalog.edit_group(edit, management_vocabulary(&snapshot, safe))
+    }
+}
+
+impl Workspace {
+    pub fn edit_approx(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        edit: &crate::tag_catalog::CatalogApproxEdit,
+        safe: bool,
+    ) -> Result<(), CatalogError> {
+        let snapshot = self.snapshot(device, catalog)?;
+        catalog.edit_approx(edit, management_vocabulary(&snapshot, safe))
+    }
+}
+
+impl Workspace {
+    pub fn personal_approx(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        lang: &str,
+        safe: bool,
+    ) -> Result<crate::tag_catalog::CatalogApproxView, CatalogError> {
+        let snapshot = self.snapshot(device, catalog)?;
+        catalog.approx_view(management_vocabulary(&snapshot, safe), lang)
     }
 }
