@@ -1,0 +1,22 @@
+(node:48544) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS opens released v16 旧名称第一库 with stable library identity
+PASS opens released v16 旧名称第二库 with stable library identity
+PASS one shared identity explicitly lists both old library names
+PASS 旧名称第一库 remains available as an explicit workspace source
+STATE {"alerts":[],"labels":["分发"],"library":"ee54694460e5342687f5ff81cc8c8762","scopes":["旧名称第一库"],"selected":["99e9da67e5aa4ea0c4fd623f3210e213d9d6985a4f8198a875d36c4561f274e3"],"selection":"已选 1 张还没有文件夹删除取消选择分发统一：分缝发型模型 0.90人工添加清除⊘别名一般作者角色作品添加标签否决标签清除标签决定old.png · 收集于 1970/1/1 08:00:01不在任何文件夹里内容分级自动（尚未分级）全年龄轻微敏感可疑露骨备注保存备注退回来源备注"}
+TAGS {"imageId":"c54df845d36f42eb37589e84ca552808","rejected":[],"tags":[{"origins":[{"kind":"source","score":0.9,"source":"model:old"},{"kind":"manual"}],"tag":{"hasExternal":true,"id":"fb95d71fc15200ddf523bc6992c00a86","name":"分发","namespace":"general","untranslated":false}}]}
+PASS 旧名称第一库 retains local ID and manual decision while displaying 分发
+PASS 旧名称第二库 remains available as an explicit workspace source
+STATE {"alerts":[],"labels":["分开的头发"],"library":"07edb775ec028cd4b896b49862819be5","scopes":["旧名称第二库"],"selected":["99e9da67e5aa4ea0c4fd623f3210e213d9d6985a4f8198a875d36c4561f274e3"],"selection":"已选 1 张还没有文件夹删除取消选择分开的头发统一：分缝发型模型 0.90人工添加清除⊘别名一般作者角色作品添加标签否决标签清除标签决定old.png · 收集于 1970/1/1 08:00:01不在任何文件夹里内容分级自动（尚未分级）全年龄轻微敏感可疑露骨备注保存备注退回来源备注"}
+TAGS {"imageId":"932d8e5c14288630c1ba54e837cf4d5d","rejected":[],"tags":[{"origins":[{"kind":"source","score":0.9,"source":"model:old"},{"kind":"manual"}],"tag":{"hasExternal":true,"id":"dfaa0c287b8bca03bfdb38f56ff0719e","name":"分开的头发","namespace":"general","untranslated":false}}]}
+PASS 旧名称第二库 retains local ID and manual decision while displaying 分开的头发
+PASS formal wizard lists different old names and their stable identity mapping
+PASS cancel persists no ownership or preference
+PASS 旧名称第一库 remains available as an explicit workspace source
+STATE {"alerts":[],"labels":[],"library":"ee54694460e5342687f5ff81cc8c8762","scopes":["旧名称第一库"],"selected":["99e9da67e5aa4ea0c4fd623f3210e213d9d6985a4f8198a875d36c4561f274e3"],"selection":"已选 1 张还没有文件夹删除取消选择一般作者角色作品添加标签否决标签清除标签决定"}
+TAGS {"imageId":"c54df845d36f42eb37589e84ca552808","rejected":[],"tags":[{"origins":[{"kind":"source","score":0.9,"source":"model:old"},{"kind":"manual"}],"tag":{"hasExternal":true,"id":"fb95d71fc15200ddf523bc6992c00a86","name":"分发","namespace":"general","untranslated":false}}]}
+Error: Timed out: rendered image label
+    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:50:9)
+    at async displayed (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:159:3)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:183:3

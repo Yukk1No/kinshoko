@@ -1,0 +1,70 @@
+{
+  "method": "automated-native-menu-dispatch",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "pid": 37524,
+  "tray": {
+    "hwnd": 1638614,
+    "pid": 37524,
+    "thread": 34724,
+    "class": "tray_icon_app"
+  },
+  "popup": {
+    "hwnd": 5116752,
+    "pid": 37524,
+    "thread": 34724,
+    "class": "#32768"
+  },
+  "popupOwner": 1638614,
+  "menu": 707072553,
+  "items": [
+    {
+      "index": 0,
+      "id": 1000,
+      "text": "打开 Kinshoko",
+      "state": 0
+    },
+    {
+      "index": 1,
+      "id": 1001,
+      "text": "截图",
+      "state": 0
+    },
+    {
+      "index": 2,
+      "id": 1002,
+      "text": "钉剪贴板",
+      "state": 0
+    },
+    {
+      "index": 3,
+      "id": 1003,
+      "text": "贴边隐藏／显示钉图",
+      "state": 0
+    },
+    {
+      "index": 4,
+      "id": 1004,
+      "text": "",
+      "state": 2051
+    },
+    {
+      "index": 5,
+      "id": 1005,
+      "text": "退出",
+      "state": 0
+    }
+  ],
+  "openMessage": {
+    "message": 6002,
+    "lParam": 517
+  },
+  "selectionMessage": {
+    "message": 273,
+    "wParam": 1005,
+    "lParam": 0
+  },
+  "menuClosedBeforeDispatch": true,
+  "closeMenuMessage": 31,
+  "exitCode": 0,
+  "processEnded": true
+}

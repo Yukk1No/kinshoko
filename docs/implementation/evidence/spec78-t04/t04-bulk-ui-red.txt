@@ -1,0 +1,374 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+ ❯ src/library/LegacyNameMigrationPanel.test.tsx (5 tests | 1 failed) 1372ms
+   × bulk-follows only unchosen non-conflicting names and pages the complete preview without replacing existing preferences 1021ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/LegacyNameMigrationPanel.test.tsx > bulk-follows only unchosen non-conflicting names and pages the complete preview without replacing existing preferences
+TestingLibraryElementError: Unable to find role="button" and name `/^未选无冲突项跟随默认/`
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <fieldset
+      aria-label="旧资料库名称迁移"
+      class="legacy-name-migration"
+    >
+      <legend>
+        旧资料库名称迁移
+      </legend>
+      <p
+        class="settings-hint"
+      >
+        旧名称缺少来源记录。选择前保留旧显示；已有显式偏好继续优先。每个统一标签和语言只选一条全局规则，后接入的旧库仍须确认。取消会放弃本次草稿。
+      </p>
+      <button
+        type="button"
+      >
+        重新读取迁移记录
+      </button>
+      <p
+        role="status"
+      >
+        第 
+        1
+         / 
+        252
+         项 · 已选择 
+        0
+         / 
+        252
+      </p>
+      <details>
+        <summary>
+          统一标签对应
+        </summary>
+        <p>
+          general
+           · 
+          simple-0
+           · 
+          zh-CN
+        </p>
+      </details>
+      <p>
+        名称语言：
+        zh-CN
+      </p>
+      <p>
+        本语言默认：
+        分缝发型
+      </p>
+      <p>
+        已有全局偏好：
+        无
+      </p>
+      <table
+        class="settings-shortcuts"
+      >
+        <thead>
+          <tr>
+            <th>
+              旧记录来源
+            </th>
+            <th>
+              旧文字
+            </th>
+            <th>
+              当前显示
+            </th>
+            <th>
+              名称来源
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th
+              scope="row"
+            >
+              旧库 a
+              <small>
+                 · 
+                local-0
+              </small>
+            </th>
+            <td>
+              旧名称 0
+            </td>
+            <td>
+              自然分缝
+            </td>
+            <td>
+              待确认
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <label
+        class="settings-row"
+      >
+        名称归属
+        <select
+          aria-label="名称归属"
+        >
+          <option
+            value=""
+          >
+            请选择…
+          </option>
+          <option
+            value="default"
+          >
+            跟随默认：
+            分缝发型
+          </option>
+          <option
+            value="legacy:0"
+          >
+            保留为全局偏好：
+            旧名称 0
+            （
+            旧库 a
+            ）
+          </option>
+        </select>
+      </label>
+      <p
+        aria-live="polite"
+      >
+        尚未选择名称归属。
+      </p>
+      <p
+        class="settings-hint"
+      >
+        影响的资料库：
+        旧库 a、旧库 b
+        ；以后对应到这个身份的资料库也采用共享规则。其他语言的已有偏好保持独立。旧文字保留为可删除的其他叫法。
+      </p>
+      <p
+        class="settings-actions"
+      >
+        <button
+          disabled=""
+          type="button"
+        >
+          上一项
+        </button>
+        <button
+          type="button"
+        >
+          下一项
+        </button>
+      </p>
+      <p
+        class="settings-actions"
+      >
+        <button
+          disabled=""
+          type="button"
+        >
+          确认本批次名称归属
+        </button>
+        <button
+          type="button"
+        >
+          取消迁移
+        </button>
+      </p>
+    </fieldset>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <fieldset
+      aria-label="旧资料库名称迁移"
+      class="legacy-name-migration"
+    >
+      <legend>
+        旧资料库名称迁移
+      </legend>
+      <p
+        class="settings-hint"
+      >
+        旧名称缺少来源记录。选择前保留旧显示；已有显式偏好继续优先。每个统一标签和语言只选一条全局规则，后接入的旧库仍须确认。取消会放弃本次草稿。
+      </p>
+      <button
+        type="button"
+      >
+        重新读取迁移记录
+      </button>
+      <p
+        role="status"
+      >
+        第 
+        1
+         / 
+        252
+         项 · 已选择 
+        0
+         / 
+        252
+      </p>
+      <details>
+        <summary>
+          统一标签对应
+        </summary>
+        <p>
+          general
+           · 
+          simple-0
+           · 
+          zh-CN
+        </p>
+      </details>
+      <p>
+        名称语言：
+        zh-CN
+      </p>
+      <p>
+        本语言默认：
+        分缝发型
+      </p>
+      <p>
+        已有全局偏好：
+        无
+      </p>
+      <table
+        class="settings-shortcuts"
+      >
+        <thead>
+          <tr>
+            <th>
+              旧记录来源
+            </th>
+            <th>
+              旧文字
+            </th>
+            <th>
+              当前显示
+            </th>
+            <th>
+              名称来源
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th
+              scope="row"
+            >
+              旧库 a
+              <small>
+                 · 
+                local-0
+              </small>
+            </th>
+            <td>
+              旧名称 0
+            </td>
+            <td>
+              自然分缝
+            </td>
+            <td>
+              待确认
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <label
+        class="settings-row"
+      >
+        名称归属
+        <select
+          aria-label="名称归属"
+        >
+          <option
+            value=""
+          >
+            请选择…
+          </option>
+          <option
+            value="default"
+          >
+            跟随默认：
+            分缝发型
+          </option>
+          <option
+            value="legacy:0"
+          >
+            保留为全局偏好：
+            旧名称 0
+            （
+            旧库 a
+            ）
+          </option>
+        </select>
+      </label>
+      <p
+        aria-live="polite"
+      >
+        尚未选择名称归属。
+      </p>
+      <p
+        class="settings-hint"
+      >
+        影响的资料库：
+        旧库 a、旧库 b
+        ；以后对应到这个身份的资料库也采用共享规则。其他语言的已有偏好保持独立。旧文字保留为可删除的其他叫法。
+      </p>
+      <p
+        class="settings-actions"
+      >
+        <button
+          disabled=""
+          type="button"
+        >
+          上一项
+        </button>
+        <button
+          type="button"
+        >
+          下一项
+        </button>
+      </p>
+      <p
+        class="settings-actions"
+      >
+        <button
+          disabled=""
+          type="button"
+        >
+          确认本批次名称归属
+        </button>
+        <button
+          type="button"
+        >
+          取消迁移
+        </button>
+      </p>
+    </fieldset>
+  </div>
+</body>
+ ❯ waitForWrapper ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/library/LegacyNameMigrationPanel.test.tsx:97:32
+     95|   render(<LegacyNameMigrationPanel />);
+     96|   fireEvent.click(screen.getByRole("button", { name: "迁移旧库名称" }));
+     97|   fireEvent.click(await screen.findByRole("button", { name: /^未选无冲突项跟随…
+       |                                ^
+     98|   expect(screen.getByText(/已选择 250 \/ 252/)).toBeTruthy();
+     99|   expect(screen.getByRole("button", { name: "确认本批次名称归属" }).hasAttribut…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  00:14:24
+   Duration  2.92s (tests 49%, environment 41%, import 6%, transform 3%)
+

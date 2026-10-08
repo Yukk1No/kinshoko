@@ -1,0 +1,36 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+error[E0432]: unresolved imports `kinshoko_core::tag_catalog::LegacyNameDecision`, `kinshoko_core::tag_catalog::LegacyNameResolution`
+ --> crates\kinshoko-core\tests\legacy_name_migration.rs:4:44
+  |
+4 | use kinshoko_core::{Library, tag_catalog::{LegacyNameDecision, LegacyNameResolution, TagCatalog}};
+  |                                            ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^ no `LegacyNameResolution` in `tag_catalog`
+  |                                            |
+  |                                            no `LegacyNameDecision` in `tag_catalog`
+
+error[E0599]: no method named `plan_name_migration` found for struct `TagCatalog` in the current scope
+  --> crates\kinshoko-core\tests\legacy_name_migration.rs:36:24
+   |
+36 |     let plan = catalog.plan_name_migration(&snapshot).unwrap();
+   |                        ^^^^^^^^^^^^^^^^^^^ method not found in `TagCatalog`
+
+error[E0599]: no method named `plan_name_migration` found for struct `TagCatalog` in the current scope
+  --> crates\kinshoko-core\tests\legacy_name_migration.rs:44:24
+   |
+44 |     let plan = catalog.plan_name_migration(&catalog.inspect().unwrap()).unwrap();
+   |                        ^^^^^^^^^^^^^^^^^^^ method not found in `TagCatalog`
+
+error[E0599]: no method named `confirm_name_migration` found for struct `TagCatalog` in the current scope
+  --> crates\kinshoko-core\tests\legacy_name_migration.rs:45:13
+   |
+45 |     catalog.confirm_name_migration(&plan, &[LegacyNameDecision { catalog_id: plan.groups[0].catalog_id.clone(), lang: "zh-CN".into()...
+   |             ^^^^^^^^^^^^^^^^^^^^^^ method not found in `TagCatalog`
+
+error[E0599]: no method named `plan_name_migration` found for struct `TagCatalog` in the current scope
+  --> crates\kinshoko-core\tests\legacy_name_migration.rs:48:21
+   |
+48 |     assert!(catalog.plan_name_migration(&catalog.inspect().unwrap()).unwrap().groups.is_empty());
+   |                     ^^^^^^^^^^^^^^^^^^^ method not found in `TagCatalog`
+
+Some errors have detailed explanations: E0432, E0599.
+For more information about an error, try `rustc --explain E0432`.
+error: could not compile `kinshoko-core` (test "legacy_name_migration") due to 5 previous errors

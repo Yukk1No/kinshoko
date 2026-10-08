@@ -1,0 +1,42 @@
+(node:45612) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS opens released v16 旧名称第一库 with stable library identity
+PASS opens released v16 旧名称第二库 with stable library identity
+PASS one shared identity explicitly lists both old library names
+PASS 旧名称第一库 remains available as an explicit workspace source
+PASS 旧名称第一库 retains local ID and manual decision while displaying 分发
+PASS 旧名称第二库 remains available as an explicit workspace source
+PASS 旧名称第二库 retains local ID and manual decision while displaying 分开的头发
+PASS formal wizard lists different old names and their stable identity mapping
+PASS cancel persists no ownership or preference
+PASS 旧名称第一库 remains available as an explicit workspace source
+PASS 旧名称第一库 retains local ID and manual decision while displaying 分发
+PASS 旧名称第二库 remains available as an explicit workspace source
+PASS 旧名称第二库 retains local ID and manual decision while displaying 分开的头发
+PASS 旧名称第一库 remains available as an explicit workspace source
+PASS 旧名称第一库 retains local ID and manual decision while displaying 分开的头发
+PASS 旧名称第二库 remains available as an explicit workspace source
+PASS 旧名称第二库 retains local ID and manual decision while displaying 分开的头发
+PASS confirmed sources remain resolved across full restart
+PASS opens released v16 旧名称第三库 with stable library identity
+PASS later old library still exposes its old-name conflict while global preference stays highest priority
+PASS follow-default preview explicitly explains removal of the existing global preference
+PASS 旧名称第一库 remains available as an explicit workspace source
+PASS 旧名称第一库 retains local ID and manual decision while displaying 分缝发型
+PASS 旧名称第三库 remains available as an explicit workspace source
+PASS 旧名称第三库 retains local ID and manual decision while displaying 分缝发型
+PASS follow-default deletes the explicit preference
+PASS opens released v16 旧名称第四库 with stable library identity
+PASS keeping an old name equal to the current default saves an explicit preference
+PASS replaced old names remain separate removable aliases
+PASS repeat opening does not repeat or overwrite confirmed choices
+PASS 旧名称第一库 keeps original file bytes
+PASS 旧名称第二库 keeps original file bytes
+PASS 旧名称第三库 keeps original file bytes
+PASS 旧名称第四库 keeps original file bytes
+PASS last active library is the fourth upgraded old library
+PASS non-safe view is persisted before normal shutdown
+PASS normal main-window close is requested for the owned application
+Error: Timed out: owned application exits normally
+    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:50:9)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:229:3

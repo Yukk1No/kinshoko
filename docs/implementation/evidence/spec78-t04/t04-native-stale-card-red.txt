@@ -1,0 +1,22 @@
+(node:47700) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS opens released v16 旧名称第一库 with stable library identity
+PASS opens released v16 旧名称第二库 with stable library identity
+PASS one shared identity explicitly lists both old library names
+PASS 旧名称第一库 remains available as an explicit workspace source
+PASS 旧名称第一库 retains local ID and manual decision while displaying 分发
+PASS 旧名称第二库 remains available as an explicit workspace source
+PASS 旧名称第二库 retains local ID and manual decision while displaying 分开的头发
+PASS formal wizard lists different old names and their stable identity mapping
+PASS cancel persists no ownership or preference
+PASS 旧名称第一库 remains available as an explicit workspace source
+PASS 旧名称第一库 retains local ID and manual decision while displaying 分发
+PASS 旧名称第二库 remains available as an explicit workspace source
+PASS 旧名称第二库 retains local ID and manual decision while displaying 分开的头发
+PASS 旧名称第一库 remains available as an explicit workspace source
+Error: POST /session/bd2afb1d614148fb9783c8663c010372/element/f.3F2308202EBC5E963A9683F6C7189492.d.E0741E4E07056353545196CF37E990DE.e.90/click: {"error":"stale element reference","message":"stale element reference: stale element not found in the current frame\n  (Session info: MicrosoftEdge=154.0.4258.62)","stacktrace":"\tmsedgedriver!GetHandleVerifier [0x7ff6d1862285+4c15]\n\tmsedgedriver!(No symbol) [0x7ff6d17b3a74]\n\tmsedgedriver!GetHandleVerifier [0x7ff6d1be3bbf+38654f]\n\tmsedgedriver!(No symbol) [0x7ff6d153ced1]\n\tmsedgedriver!(No symbol) [0x7ff6d153f305]\n\tmsedgedriver!(No symbol) [0x7ff6d153f3cf]\n\tmsedgedriver!(No symbol) [0x7ff6d1584273]\n\tmsedgedriver!(No symbol) [0x7ff6d1578be9]\n\tmsedgedriver!(No symbol) [0x7ff6d15a328a]\n\tmsedgedriver!(No symbol) [0x7ff6d15786cf]\n\tmsedgedriver!(No symbol) [0x7ff6d15785cd]\n\tmsedgedriver!(No symbol) [0x7ff6d15786cf]\n\tmsedgedriver!(No symbol) [0x7ff6d15c01f8]\n\tmsedgedriver!(No symbol) [0x7ff6d1577f0c]\n\tmsedgedriver!(No symbol) [0x7ff6d157718d]\n\tmsedgedriver!(No symbol) [0x7ff6d1577d33]\n\tmsedgedriver!(No symbol) [0x7ff6d16c0c04]\n\tmsedgedriver!(No symbol) [0x7ff6d16cddc8]\n\tmsedgedriver!GetHandleVerifier [0x7ff6d1907a15+aa3a5]\n\tmsedgedriver!GetHandleVerifier [0x7ff6d190dd11+b06a1]\n\tmsedgedriver!(No symbol) [0x7ff6d17bf6ff]\n\tmsedgedriver!(No symbol) [0x7ff6d17ba184]\n\tmsedgedriver!(No symbol) [0x7ff6d17ba2aa]\n\tmsedgedriver!(No symbol) [0x7ff6d17ab7f8]\n\tKERNEL32!BaseThreadInitThunk [0x7ffdf8d6cdf7+17]\n\tntdll!RtlUserThreadStart [0x7ffdfad5ee4c+2c]\n"}
+    at wd (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:39:50)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Session.controlClick (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:80:11)
+    at async displayed (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:157:3)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:191:3

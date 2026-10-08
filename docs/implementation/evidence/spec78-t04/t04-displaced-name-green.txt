@@ -1,0 +1,9 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.89s
+     Running tests\legacy_name_migration.rs (target\debug\deps\legacy_name_migration-feb7b253794ed71a.exe)
+
+running 1 test
+test following_default_preserves_displaced_global_and_old_names_as_removable_aliases ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.65s
+

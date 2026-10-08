@@ -1,0 +1,23 @@
+{
+  "status": "failed",
+  "source": "52a35982243999dcf430659568423a562f7544d5",
+  "binarySha256": "1ed64c1061f148b5a42fff93e565c63833f236dd743cb9b30519a8991bee327b",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "error": "Error: Timed out: rendered image label",
+  "assertions": [
+    "opens released v16 旧名称第一库 with stable library identity",
+    "opens released v16 旧名称第二库 with stable library identity",
+    "one shared identity explicitly lists both old library names",
+    "旧名称第一库 remains available as an explicit workspace source",
+    "旧名称第一库 retains local ID and manual decision while displaying 分发",
+    "旧名称第二库 remains available as an explicit workspace source",
+    "旧名称第二库 retains local ID and manual decision while displaying 分开的头发",
+    "formal wizard lists different old names and their stable identity mapping",
+    "cancel persists no ownership or preference",
+    "旧名称第一库 remains available as an explicit workspace source"
+  ],
+  "stories": [
+    25,
+    26
+  ]
+}

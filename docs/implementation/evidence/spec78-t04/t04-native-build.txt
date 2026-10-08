@@ -1,0 +1,6 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\src-tauri)
+   Compiling kinshoko-tagger v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-tagger)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 12s
+   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 19.18s
