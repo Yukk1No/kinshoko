@@ -1,0 +1,9 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+error[E0599]: no variant named `Remove` found for enum `CatalogApproxEdit`
+   --> crates\kinshoko-core\tests\catalog_approx.rs:163:68
+    |
+163 |     workspace.edit_approx(&device,&mut catalog,&CatalogApproxEdit::Remove {a:blue.clone(),b:aqua.clone()},true).unwrap();
+    |                                                                    ^^^^^^ variant not found in `CatalogApproxEdit`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `kinshoko-core` (test "catalog_approx") due to 1 previous error

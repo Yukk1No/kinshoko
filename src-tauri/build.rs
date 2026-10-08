@@ -55,6 +55,8 @@ fn main() {
                         "publish_tag_definitions",
                         "edit_tag_name",
                         "shared_tag_groups",
+                        "shared_personal_approx",
+                        "edit_shared_approx",
                         "create_shared_tag_group",
                         "edit_shared_tag_group",
                         "plan_legacy_names",

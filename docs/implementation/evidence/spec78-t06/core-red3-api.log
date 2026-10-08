@@ -1,0 +1,22 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+error[E0432]: unresolved import `kinshoko_core::tag_catalog::CatalogApproxEdit`
+  --> crates\kinshoko-core\tests\catalog_approx.rs:87:5
+   |
+87 | use kinshoko_core::tag_catalog::CatalogApproxEdit;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `CatalogApproxEdit` in `tag_catalog`
+   |
+help: a similar name exists in the module
+   |
+87 - use kinshoko_core::tag_catalog::CatalogApproxEdit;
+87 + use kinshoko_core::tag_catalog::CatalogGroupEdit;
+   |
+
+error[E0599]: no method named `edit_approx` found for struct `Workspace` in the current scope
+   --> crates\kinshoko-core\tests\catalog_approx.rs:108:15
+    |
+108 |     workspace.edit_approx(&device, &mut catalog, &CatalogApproxEdit::Set { rules: vec![kinshoko_core::approx::PersonalApprox { a:bl...
+    |               ^^^^^^^^^^^ method not found in `Workspace`
+
+Some errors have detailed explanations: E0432, E0599.
+For more information about an error, try `rustc --explain E0432`.
+error: could not compile `kinshoko-core` (test "catalog_approx") due to 2 previous errors

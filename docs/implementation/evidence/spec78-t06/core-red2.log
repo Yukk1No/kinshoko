@@ -1,0 +1,12 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+error[E0502]: cannot borrow `catalog` as immutable because it is also borrowed as mutable
+  --> crates\kinshoko-core\tests\catalog_approx.rs:79:76
+   |
+79 | ...   let tree = workspace.resolve(&device, &mut catalog, &input(&shared(&catalog, "blue_eyes")), "en", true, &BuiltinApproxTable::b...
+   |                            -------          ------------                 ^^^^^^^^ immutable borrow occurs here
+   |                            |                |
+   |                            |                mutable borrow occurs here
+   |                            mutable borrow later used by call
+
+For more information about this error, try `rustc --explain E0502`.
+error: could not compile `kinshoko-core` (test "catalog_approx") due to 1 previous error

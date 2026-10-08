@@ -1,0 +1,24 @@
+{
+  "status": "failed",
+  "source": "49c39e0c4a7df150183e48d27883e0c5fca82c9f",
+  "harnessSource": "49c39e0c4a7df150183e48d27883e0c5fca82c9f",
+  "binarySha256": "aae236fd854c72221dfdd5b95b59e27d016c49314fb25621d542ecf10a47a3a7",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "assertions": [
+    "released v16 旧判断 A opens with stable identity",
+    "released v16 旧判断 B opens with stable identity",
+    "opposite old rules remain pending rather than becoming a saved NotSimilar",
+    "conflict retains both named provider origins",
+    "global rule settings hide a label vetoed by another byte-identical Adult source",
+    "formal settings distinguish pending conflict from saved rejection",
+    "conflict choice preserves global safe mode",
+    "formal search visibly expands the saved pair with source marks off by default",
+    "once changes the current lookup without removing the saved Similar rule",
+    "new lookup restores a once-dismissed expansion",
+    "forever records a global NotSimilar and defeats the built-in pair",
+    "plus saves a visible tag without external correspondence",
+    "旧判断 A applies shared rules through its distinct local IDs",
+    "旧判断 B applies shared rules through its distinct local IDs"
+  ],
+  "error": "Error: Timed out: enabled select option"
+}

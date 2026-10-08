@@ -1,0 +1,57 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+error[E0599]: no method named `personal_approx` found for struct `Workspace` in the current scope
+   --> crates\kinshoko-core\tests\catalog_approx.rs:133:24
+    |
+133 |     let view=workspace.personal_approx(&device,&mut catalog,"en",true).unwrap();
+    |                        ^^^^^^^^^^^^^^^
+    |
+help: there is a method `edit_approx` with a similar name
+    |
+133 -     let view=workspace.personal_approx(&device,&mut catalog,"en",true).unwrap();
+133 +     let view=workspace.edit_approx(&device,&mut catalog,"en",true).unwrap();
+    |
+
+error[E0599]: no variant named `ResolveConflict` found for enum `CatalogApproxEdit`
+   --> crates\kinshoko-core\tests\catalog_approx.rs:142:68
+    |
+142 |     workspace.edit_approx(&device,&mut catalog,&CatalogApproxEdit::ResolveConflict {a:conflict.a.id.clone(),b:conflict.b.id.clone()...
+    |                                                                    ^^^^^^^^^^^^^^^ variant not found in `CatalogApproxEdit`
+
+error[E0599]: no method named `personal_approx` found for struct `Workspace` in the current scope
+   --> crates\kinshoko-core\tests\catalog_approx.rs:143:23
+    |
+143 |     assert!(workspace.personal_approx(&device,&mut catalog,"en",true).unwrap().conflicts.is_empty());
+    |                       ^^^^^^^^^^^^^^^
+    |
+help: there is a method `edit_approx` with a similar name
+    |
+143 -     assert!(workspace.personal_approx(&device,&mut catalog,"en",true).unwrap().conflicts.is_empty());
+143 +     assert!(workspace.edit_approx(&device,&mut catalog,"en",true).unwrap().conflicts.is_empty());
+    |
+
+error[E0599]: no method named `approx_decisions` found for struct `TagCatalog` in the current scope
+   --> crates\kinshoko-core\tests\catalog_approx.rs:145:21
+    |
+145 |     assert!(catalog.approx_decisions().unwrap().iter().any(|d|d.explicit && d.relation.is_none()));
+    |                     ^^^^^^^^^^^^^^^^
+    |
+help: there is a method `approx_definitions` with a similar name
+    |
+145 -     assert!(catalog.approx_decisions().unwrap().iter().any(|d|d.explicit && d.relation.is_none()));
+145 +     assert!(catalog.approx_definitions().unwrap().iter().any(|d|d.explicit && d.relation.is_none()));
+    |
+
+error[E0599]: no method named `personal_approx` found for struct `Workspace` in the current scope
+   --> crates\kinshoko-core\tests\catalog_approx.rs:148:24
+    |
+148 |     let view=workspace.personal_approx(&device,&mut catalog,"en",true).unwrap();assert!(view.conflicts.is_empty());assert!(view.ent...
+    |                        ^^^^^^^^^^^^^^^
+    |
+help: there is a method `edit_approx` with a similar name
+    |
+148 -     let view=workspace.personal_approx(&device,&mut catalog,"en",true).unwrap();assert!(view.conflicts.is_empty());assert!(view.entries.is_empty());
+148 +     let view=workspace.edit_approx(&device,&mut catalog,"en",true).unwrap();assert!(view.conflicts.is_empty());assert!(view.entries.is_empty());
+    |
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `kinshoko-core` (test "catalog_approx") due to 5 previous errors
