@@ -85,15 +85,24 @@ try{
   const extra=Array.from({length:120},(_,i)=>{const path=join(work,"sources",`other-${i}.png`);png(path,80+(i%3)*20,100+(i%4)*30,i+1);return path;});await importFiles(second,extra);await reload();
   const initialIds=await exec("return [...document.querySelectorAll('.card')].map(n=>n.dataset.id)");
   await exec("const el=document.querySelector('.wall');el.scrollTop=el.scrollHeight;el.dispatchEvent(new Event('scroll',{bubbles:true}));");
-  await until("original virtualized out",()=>exec("return ![...document.querySelectorAll('.card')].some(n=>n.dataset.id===arguments[0])",[firstCard.id]));
+  await until("recycled bottom population",()=>exec("return [...document.querySelectorAll('.card')].some(n=>!arguments[0].includes(n.dataset.id))",[initialIds]));
   check(await exec("return [...document.querySelectorAll('.card')].some(n=>!arguments[0].includes(n.dataset.id))",[initialIds]),"actual virtualized wall recycles visible card population");
+  await shownCard(firstCard.id);
   await exec("const el=document.querySelector('.wall');el.scrollTop=0;el.dispatchEvent(new Event('scroll',{bubbles:true}));");
+  await until("original virtualized out",()=>exec("return ![...document.querySelectorAll('.card')].some(n=>n.dataset.id===arguments[0])",[firstCard.id]));
+  await exec("const el=document.querySelector('.wall');el.scrollTop=el.scrollHeight;el.dispatchEvent(new Event('scroll',{bubbles:true}));");
   shown=await shownCard(firstCard.id);await verifyOriginal(shown,aggregate,"immediate virtual return");
   const size=await native("inner_size");await native("set_size","main",{value:{type:"Physical",data:{width:Math.max(850,size.width-220),height:size.height}}});
   await verifyOriginal(await shownCard(firstCard.id),aggregate,"native width reflow");
   await native("set_size","main",{value:{type:"Physical",data:size}});await verifyOriginal(await shownCard(firstCard.id),aggregate,"continuous resize return");
+  const reloadedReports=await exec("return window.__captureReports");
+  const priorInstance=reloadedReports.at(-1)?.frame.instance;
+  await reload();
+  await exec("const el=document.querySelector('.wall');el.scrollTop=el.scrollHeight;el.dispatchEvent(new Event('scroll',{bubbles:true}));");
+  await verifyOriginal(await shownCard(firstCard.id),aggregate,"document re-creation");
+  check((await exec("return window.__captureReports.at(-1)?.frame.instance"))!==priorInstance,"re-created WebView document has a fresh source instance");
   // Cross-card/toolbar regions stay ordinary screen captures.
-  const ordinaryBefore=(await desktop("capture_history")).length, outside=await begin();await desktop("finish_capture",{token:outside.token,region:{x:30,y:30,width:80,height:60},action:"copy"});const ordinary=(await desktop("capture_history"))[0];check((await desktop("capture_history")).length===ordinaryBefore+1&&ordinary.width===80&&ordinary.height===60,"outside a single reference remains a native screen capture");
+  const ordinaryBefore=(await desktop("capture_history")).length, outside=await begin();await desktop("finish_capture",{token:outside.token,region:{x:(await native("inner_position")).x+30-outside.origin.x,y:(await native("inner_position")).y+30-outside.origin.y,width:80,height:60},action:"copy"});const ordinary=(await desktop("capture_history"))[0];check((await desktop("capture_history")).length===ordinaryBefore+1&&ordinary.width===80&&ordinary.height===60,"outside a single reference remains a native screen capture");
   // A genuine topmost external native window occludes the source.
   shown=await shownCard(firstCard.id);const covering={x:shown.x+Math.floor(shown.width/4)-8,y:shown.y+Math.floor(shown.height/4)-8,width:Math.floor(shown.width/8)+30,height:Math.floor(shown.height/8)+30};
   const formScript=join(work,"occluder.ps1");writeFileSync(formScript,`Add-Type -AssemblyName System.Windows.Forms\nAdd-Type -AssemblyName System.Drawing\n$f=New-Object System.Windows.Forms.Form\n$f.FormBorderStyle='None'\n$f.StartPosition='Manual'\n$f.Location=New-Object System.Drawing.Point(${covering.x},${covering.y})\n$f.ClientSize=New-Object System.Drawing.Size(${covering.width},${covering.height})\n$f.TopMost=$true\n$f.BackColor=[System.Drawing.Color]::FromArgb(3,17,229)\n$f.Add_Shown({[IO.File]::WriteAllText('${join(work,"occluder-ready.txt").replaceAll("'","''")}','ready')})\n[System.Windows.Forms.Application]::Run($f)\n`);

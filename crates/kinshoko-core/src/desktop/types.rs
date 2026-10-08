@@ -34,6 +34,7 @@ pub struct CaptureReference {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct CaptureReferenceFrame {
+    pub instance: String,
     #[ts(type = "number")]
     pub generation: u64,
     pub dpr: f64,

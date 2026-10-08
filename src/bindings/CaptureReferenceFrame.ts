@@ -4,4 +4,4 @@ import type { CaptureReference } from "./CaptureReference";
 /**
  * A current WebView frame, confirmed again after native screen capture.
  */
-export type CaptureReferenceFrame = { generation: number, dpr: number, references: Array<CaptureReference>, };
+export type CaptureReferenceFrame = { instance: string, generation: number, dpr: number, references: Array<CaptureReference>, };

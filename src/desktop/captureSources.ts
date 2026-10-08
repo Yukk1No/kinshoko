@@ -6,6 +6,7 @@ import type { ScreenRect } from "../bindings/ScreenRect";
 
 type Provider = { priority: number; read: () => CaptureReference[] | null };
 const providers = new Set<Provider>();
+const instance = crypto.randomUUID();
 let generation = 0;
 let installation = 0;
 
@@ -72,7 +73,7 @@ function install() {
     if (version !== installation || request !== requestGeneration || !providers.size) return;
     if (observer.takeRecords().length || document.getAnimations?.().some((a) => a.playState === "running" && a.effect instanceof KeyframeEffect && a.effect.target instanceof Element && a.effect.target.closest(".card,.viewer-stage"))) dirty();
     const references = [...providers].sort((a, b) => b.priority - a.priority).map((p) => p.read()).find((r) => r !== null) ?? [];
-    await reportCaptureReferences(payload.request, { generation, dpr: window.devicePixelRatio || 1, references }).catch(() => {});
+    await reportCaptureReferences(payload.request, { instance, generation, dpr: window.devicePixelRatio || 1, references }).catch(() => {});
   }).then((off) => { if (version === installation) unlisten = off; else off(); }).catch(() => {});
   stop = () => {
     installation += 1; requestGeneration += 1; unlisten?.(); observer.disconnect(); resize?.disconnect();
