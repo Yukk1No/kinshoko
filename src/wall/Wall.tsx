@@ -36,8 +36,6 @@ type Props = {
   onSelectionChange: (selected: Set<string>) => void;
   onOpenImage: (card: ImageCard) => void;
   viewerOpen: boolean;
-  /** 侧栏宽度动画期间保留布局；结束后按最终宽度重排一次。 */
-  holdReflow?: boolean;
 };
 
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
@@ -76,7 +74,7 @@ function saveAnchor(key: string, anchor: Anchor | null) {
 
 /**
  * 图片墙：按资料库记录的尺寸用纯函数排出瀑布流，只挂载视口附近的卡片。
- * 单击选中一张，Ctrl 单击增减，Shift 单击选中一段；选中的图可以拖到侧栏的文件夹上。
+ * 单击打开（沿用认可原型），Ctrl 单击增减选择，Shift 单击选中一段；选中的图可以拖到文件夹上。
  * 换范围或条件时由调用方换 key 重建。查找结果不记住位置，新的查找从顶部看起。
  */
 export function Wall({
@@ -89,7 +87,6 @@ export function Wall({
   onSelectionChange,
   onOpenImage,
   viewerOpen,
-  holdReflow = false,
 }: Props) {
   const searching = conditions.conditions.length > 0;
   const storeKey = searching ? null : anchorKey(libraryId, scope);
@@ -161,6 +158,7 @@ export function Wall({
   }, [viewerOpen]);
 
   const open = (card: ImageCard) => {
+    pivot.current = card.id;
     lastOpened.current = card.id;
     onOpenImage(card);
   };
@@ -248,7 +246,7 @@ export function Wall({
   useLayoutEffect(() => {
     const el = scroller.current!;
     const sync = () => {
-      if (!holdReflow && el.clientWidth !== layoutWidth.current) {
+      if (el.clientWidth !== layoutWidth.current) {
         measureBeforeReflow();
         layoutWidth.current = el.clientWidth;
         setWidth(el.clientWidth);
@@ -260,7 +258,7 @@ export function Wall({
     const ro = new ResizeObserver(() => flushSync(sync));
     ro.observe(el);
     return () => ro.disconnect();
-  }, [holdReflow, measureBeforeReflow]);
+  }, [measureBeforeReflow]);
 
   /** 已经放出（不再遮蔽）的含成人内容的图。 */
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
@@ -394,7 +392,10 @@ export function Wall({
                 tabIndex={0}
                 data-veiled={veiled}
                 draggable
-                onClick={(e) => select(card.id, e)}
+                onClick={(e) => {
+                  if (e.ctrlKey || e.metaKey || e.shiftKey) select(card.id, e);
+                  else open(card);
+                }}
                 onDoubleClick={() => open(card)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") { e.preventDefault(); open(card); }
