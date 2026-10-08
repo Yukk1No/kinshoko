@@ -1679,3 +1679,12 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .import-popup .selection-hint { margin: 10px 0 0; }
 
 .groupbar { min-height: 41px; align-items: center; }
+
+.legacy-name-notice { display: flex; align-items: center; gap: 12px; margin: 0; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--surface); font-size: 12px; }
+
+.legacy-name-migration .settings-shortcuts { width: 100%; table-layout: fixed; }
+.legacy-name-migration .settings-shortcuts th, .legacy-name-migration .settings-shortcuts td { vertical-align: top; overflow-wrap: anywhere; }
+.legacy-name-migration .settings-shortcuts small { display: block; opacity: .6; font-size: 11px; }
+
+.legacy-name-migration { min-width: 0; }
+.legacy-name-migration .settings-row select { min-width: 0; max-width: 100%; }

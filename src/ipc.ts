@@ -1,3 +1,6 @@
+import type { LegacyNameMigrationPreview } from "./bindings/LegacyNameMigrationPreview";
+import type { LegacyNameMigrationWorkspace } from "./bindings/LegacyNameMigrationWorkspace";
+import type { LegacyNameDecision } from "./bindings/LegacyNameDecision";
 import type { CatalogNameEdit } from "./bindings/CatalogNameEdit";
 import type { ImportOptions } from "./bindings/ImportOptions";
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
@@ -823,4 +826,16 @@ export function catalogImageTags(libraryId: string, imageId: string, lang: strin
 
 export function editTagName(catalogId: string, edit: CatalogNameEdit): Promise<TagCatalogWorkspace> {
   return invoke<TagCatalogWorkspace>(lib("edit_tag_name"), { catalogId, edit });
+}
+
+/** Unknown legacy names: read a safe-mode-filtered plan; confirm all choices atomically. */
+export function planLegacyNames(): Promise<LegacyNameMigrationWorkspace> {
+  return invoke<LegacyNameMigrationWorkspace>(lib("plan_legacy_names"));
+}
+export function confirmLegacyNames(revision: number, decisions: LegacyNameDecision[]): Promise<LegacyNameMigrationWorkspace> {
+  return invoke<LegacyNameMigrationWorkspace>(lib("confirm_legacy_names"), { revision, decisions });
+}
+
+export function previewLegacyNames(revision: number, decisions: LegacyNameDecision[]): Promise<LegacyNameMigrationPreview> {
+  return invoke<LegacyNameMigrationPreview>(lib("preview_legacy_names"), { revision, decisions });
 }
