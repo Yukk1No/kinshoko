@@ -83,8 +83,15 @@ function quitOwnApp() {
 }
 
 const appData = join(work, "app-data");
-const source = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", windowsHide: true }).stdout.trim();
+const scriptSource = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", windowsHide: true }).stdout.trim();
+const scriptSha256 = createHash("sha256").update(readFileSync(new URL(import.meta.url))).digest("hex");
 const binarySha256 = createHash("sha256").update(readFileSync(application)).digest("hex");
+const manifestPath = resolve(process.argv[4] ?? "work/e2e/t09-build-manifest.json");
+const manifest = JSON.parse(readFileSync(manifestPath, "utf8").replace(/^\uFEFF/, ""));
+if (manifest.binarySha256.toLowerCase() !== binarySha256) throw new Error("Binary does not match the build manifest");
+const source = manifest.source;
+const sourceTree = spawnSync("git", ["rev-parse", source + "^{tree}"], { encoding: "utf8", windowsHide: true }).stdout.trim();
+const provenance = { scriptSource, scriptSha256, sourceTree, manifestPath, driverSha256: createHash("sha256").update(readFileSync(resolve(edgeArg))).digest("hex") };
 const driver = spawn("tauri-driver", ["--port", String(port), "--native-port", "4571", "--native-driver", resolve(edgeArg)], {
   env: { ...process.env, KINSHOKO_DATA_DIR: appData, KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") },
   stdio: ["ignore", "inherit", "inherit"], windowsHide: true,
@@ -157,8 +164,10 @@ try {
   await session.click("//button[normalize-space(.)='移出「B 独立标签目录」']");
   await until("B folder removed", async () => (await inspect()).detail.folders.length === 0);
   assert((await inspect(aTarget)).detail.folders[0].id === a.folderId, "removing B folder membership preserves A folder membership");
-  await session.exec("const select=document.querySelector('[aria-label=\"放入文件夹\"]'); select.value=arguments[0]; select.dispatchEvent(new Event('change',{bubbles:true}));", [b.folderId]);
+  await until("B folder option ready", () => session.exec("const select=document.querySelector('[aria-label=\"放入文件夹\"]'); return select && !select.disabled && [...select.options].some(option => option.value === arguments[0]);", [b.folderId]));
+  await session.click(`//select[@aria-label='放入文件夹']/option[@value='${b.folderId}']`);
   await until("B folder restored", async () => (await inspect()).detail.folders.some(f => f.id === b.folderId));
+  await until("B tag input ready", () => session.find("//*[@aria-label='标签名']"));
   await session.type("//*[@aria-label='标签名']", "B 新人工标签");
   await session.click("//button[text()='添加标签']");
   await until("B new tag", async () => (await inspect()).tags.image.tags.some(t => t.tag.name === "B 新人工标签"));
@@ -214,11 +223,11 @@ try {
   assert(await session.invoke("workspace_edit_source", { target: aTarget, safeMode: true, edits: [{ kind: "delete" }] }).then(() => false, e => String(e).includes("安全模式")), "stale safe-mode generation is rejected at the native write boundary");
   await session.invoke("set_safe_mode", { on: true });
   await session.screenshot("after-source-deletion.png");
-  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, binarySha256, application, environment, a, b, target, groupId, pin, assertions, stories: [12, 13], finishedAt: new Date().toISOString() }, null, 2));
+  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, binarySha256, application, environment, provenance, a, b, target, groupId, pin, assertions, stories: [12, 13], finishedAt: new Date().toISOString() }, null, 2));
   console.log(`Evidence: ${work}`);
 } catch (error) {
-  console.error(error); if (session) await session.screenshot("failure.png").catch(() => {});
-  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "failed", source, binarySha256, application, environment, a, b, target, groupId, assertions, error: String(error) }, null, 2)); process.exitCode = 1;
+  console.error(error); if (session) { await session.screenshot("failure.png").catch(() => {}); await session.exec("return document.documentElement.outerHTML;").then(html => writeFileSync(join(work, "failure.html"), html)).catch(() => {}); }
+  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "failed", source, binarySha256, application, environment, provenance, a, b, target, groupId, assertions, error: String(error) }, null, 2)); process.exitCode = 1;
 } finally {
   await stopApp();
   if (driver.pid) spawnSync("taskkill", ["/PID", String(driver.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
