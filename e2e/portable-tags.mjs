@@ -58,7 +58,7 @@ class Session {
     return result.value;
   }
   async find(xpath) { return (await wd("POST", `${this.base}/element`, { using: "xpath", value: xpath }))[ELEMENT]; }
-  click(xpath) { return until("click " + xpath, async () => { const id = await this.find(xpath); await wd("POST", `${this.base}/element/${id}/click`, {}); return true; }); }
+  click(xpath) { return until("click " + xpath, async () => { const id = await this.find(xpath); if (!await wd("GET", `${this.base}/element/${id}/enabled`)) return false; await wd("POST", `${this.base}/element/${id}/click`, {}); return true; }); }
   set(xpath, value) { return this.exec("const e = document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (!e) throw Error('control missing'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, arguments[1]); e.dispatchEvent(new Event('input', { bubbles: true }));", [xpath, value]); }
   select(xpath, value) { return this.exec("const e = document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (!e) throw Error('select missing'); e.value = arguments[1]; e.dispatchEvent(new Event('change', { bubbles: true }));", [xpath, value]); }
   pick(path) { return this.exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]];", [path]); }
@@ -119,10 +119,10 @@ async function settings() {
   if (!await session.exec("return Boolean(document.querySelector('[aria-label=关闭设置]') || [...document.querySelectorAll('button')].some(e => e.textContent.trim() === '关闭设置'));")) await session.click("//button[@aria-label='设置']");
 }
 async function closeSettings() { await session.click("//button[normalize-space()='关闭设置']"); }
-async function names(id) { await settings(); await session.click("//button[normalize-space()='管理显示名称']"); await until("name selector", () => session.find("//select[@aria-label='选择标签']")); await session.select("//select[@aria-label='选择标签']", id); await until("name row", () => session.find(nameRow(id))); }
+async function names(id) { await settings(); await session.click("//button[normalize-space()='管理显示名称']"); await until("name controls ready", () => session.exec("return [...document.querySelectorAll('fieldset[aria-label=标签显示名称] button')].find(e => e.textContent.trim() === '管理显示名称')?.disabled === false && Boolean(document.querySelector('select[aria-label=选择标签]'));")); await session.select("//select[@aria-label='选择标签']", id); await until("name row", () => session.find(nameRow(id))); }
 async function prefer(id, value) { await names(id); await session.set(`${nameRow(id)}//input[contains(@aria-label,'偏好名称')]`, value); await session.click(`${nameRow(id)}//button[normalize-space()='保存偏好']`); await until("preference saved", async () => byIdentity(await catalog(), id)?.namePreferences.some((n) => n.name === value)); }
 async function alias(id, value) { await names(id); await session.set(`${nameRow(id)}//input[contains(@aria-label,'新别名')]`, value); await session.click(`${nameRow(id)}//button[normalize-space()='加别名']`); await until("alias saved", async () => byIdentity(await catalog(), id)?.aliases.some((a) => a.name === value)); }
-async function inspectControls() { await settings(); await session.click("//button[normalize-space()='检查标签对应']"); await until("publication controls", () => session.find("//button[normalize-space()='保存标签定义到资料库']")); }
+async function inspectControls() { await settings(); await session.click("//button[normalize-space()='检查标签对应']"); await until("identity controls ready", () => session.exec("return [...document.querySelectorAll('fieldset[aria-label=统一标签目录] button')].find(e => e.textContent.trim() === '检查标签对应')?.disabled === false && [...document.querySelectorAll('button')].some(e => e.textContent.trim() === '保存标签定义到资料库');")); }
 async function publish(name, failure = false) {
   await inspectControls(); await session.click(`//button[@aria-label='保存 ${name} 的标签定义']`);
   await until(failure ? "visible publication failure" : "visible publication success", () => session.exec(failure ? "return [...document.querySelectorAll('[role=alert]')].some(e => e.textContent.includes('程序中的对应和名称选择已保留') && e.textContent.includes('重试'));" : "return [...document.querySelectorAll('[role=status]')].some(e => e.textContent.includes('标签定义已保存到资料库'));"));
