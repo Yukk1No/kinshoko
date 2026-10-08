@@ -2,8 +2,13 @@
 //!
 //! Local IDs and image decisions remain in each Library. Only an explicit external identity
 //! in the same namespace joins identities automatically; names and aliases never do.
+mod groups;
 mod migration;
 mod names;
+pub use groups::{
+    CatalogGroupDefinition, CatalogGroupEdit, CatalogGroupMigration, CatalogGroupOrigin,
+    CatalogGroupSource, CatalogGroupView,
+};
 pub use migration::{
     LegacyNameDecision, LegacyNameGroup, LegacyNameMigration, LegacyNameMigrationPreview,
     LegacyNameMigrationWorkspace, LegacyNameOutcome, LegacyNameResolution, LegacyNameSource,
@@ -30,6 +35,8 @@ pub enum CatalogError {
     Data(serde_json::Error),
     Library(crate::library::Error),
     UnknownTag,
+    UnknownGroup,
+    InvalidGroupMembers,
     UnknownMapping,
     NamespaceMismatch,
     UnsupportedFormat,
@@ -44,6 +51,8 @@ impl fmt::Display for CatalogError {
             Self::Storage(e) => write!(f, "无法读取统一标签目录：{e}"),
             Self::Data(e) => write!(f, "统一标签目录中的定义无效：{e}"),
             Self::Library(e) => e.fmt(f),
+            Self::InvalidGroupMembers => write!(f, "分组成员无效，命名空间分组会自动列出该类标签"),
+            Self::UnknownGroup => write!(f, "没有这个全局标签分组"),
             Self::UnknownTag => write!(f, "统一标签目录中没有这个标签"),
             Self::UnknownMapping => write!(f, "资料库中没有这个标签对应"),
             Self::NamespaceMismatch => write!(f, "命名空间不同的标签不能对应同一身份"),
@@ -243,7 +252,7 @@ impl TagCatalog {
         let conn = Connection::open(dir.join("tag-catalog.sqlite"))?;
         conn.busy_timeout(std::time::Duration::from_secs(5))?;
         let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
-        if version > 3 {
+        if version > 4 {
             return Err(CatalogError::UnsupportedFormat);
         }
         conn.execute_batch(
@@ -264,6 +273,7 @@ impl TagCatalog {
         )?;
         names::initialize(&conn, version)?;
         migration::initialize(&conn)?;
+        groups::initialize(&conn)?;
         Ok(Self {
             conn,
             name_defaults: None,
@@ -371,6 +381,7 @@ impl TagCatalog {
             }
             changed = true;
         }
+        changed |= groups::migrate(&tx, library)?;
         if changed {
             tx.execute("UPDATE catalog_revision SET value=value+1", [])?;
         }

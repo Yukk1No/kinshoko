@@ -1701,3 +1701,9 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .workspace-sources li { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .workspace-sources code { display: block; width: 100%; font-size: 11px; overflow-wrap: anywhere; opacity: .65; }
 .workspace-sources p { font-size: 12px; }
+
+.tag-group-origin { margin: 2px 8px 6px; color: var(--ink-3); font-size: 11px; overflow-wrap: anywhere; }
+.sidebar-tag-group-head { flex-wrap: wrap; }
+.sidebar-tag-group-head > .sidebar-item { flex: 1 1 100%; }
+.group-any { margin-bottom: 8px; font-size: 12px; }
+.settings .sidebar-tag-groups { max-width: 680px; }

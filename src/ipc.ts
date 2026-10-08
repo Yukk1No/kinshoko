@@ -1,3 +1,5 @@
+import type { CatalogGroupView } from "./bindings/CatalogGroupView";
+import type { CatalogGroupEdit } from "./bindings/CatalogGroupEdit";
 import type { LegacyNameMigrationPreview } from "./bindings/LegacyNameMigrationPreview";
 import type { LegacyNameMigrationWorkspace } from "./bindings/LegacyNameMigrationWorkspace";
 import type { LegacyNameDecision } from "./bindings/LegacyNameDecision";
@@ -870,4 +872,15 @@ export function confirmLegacyNames(revision: number, decisions: LegacyNameDecisi
 
 export function previewLegacyNames(revision: number, decisions: LegacyNameDecision[]): Promise<LegacyNameMigrationPreview> {
   return invoke<LegacyNameMigrationPreview>(lib("preview_legacy_names"), { revision, decisions });
+}
+
+/** Application groups are independent of the active provider; counts use all-source safety. */
+export function sharedTagGroups(lang: string, safeMode: boolean): Promise<CatalogGroupView[]> {
+  return invoke<CatalogGroupView[]>(lib("shared_tag_groups"), { lang, safeMode });
+}
+export function createSharedTagGroup(name: string, namespace: TagNamespace | null): Promise<string> {
+  return invoke<string>(lib("create_shared_tag_group"), { name, namespace });
+}
+export function editSharedTagGroup(edit: CatalogGroupEdit, safeMode: boolean): Promise<void> {
+  return invoke<void>(lib("edit_shared_tag_group"), { edit, safeMode });
 }

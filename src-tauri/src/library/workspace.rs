@@ -3,7 +3,7 @@ use super::*;
 use kinshoko_core::workspace::{Workspace, WorkspacePage, WorkspaceQuery, WorkspaceStatus};
 
 pub(super) const EVENT: &str = "workspace-changed";
-fn action<R: Runtime, T>(
+pub(super) fn action<R: Runtime, T>(
     app: &AppHandle<R>,
     safe: bool,
     f: impl FnOnce(&mut Workspace, &DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
@@ -22,19 +22,23 @@ fn action<R: Runtime, T>(
         }))
     })?
 }
-fn generation<R: Runtime>(app: &AppHandle<R>) -> u64 {
+pub(super) fn generation<R: Runtime>(app: &AppHandle<R>) -> u64 {
     app.state::<LibraryState>()
         .safe_mode_generation
         .load(Ordering::SeqCst)
 }
-fn current<R: Runtime>(app: &AppHandle<R>, safe: bool, expected: u64) -> Result<(), String> {
+pub(super) fn current<R: Runtime>(
+    app: &AppHandle<R>,
+    safe: bool,
+    expected: u64,
+) -> Result<(), String> {
     if generation(app) != expected || saved_safe_mode(app) != safe {
         Err(kinshoko_core::library::Error::LensChanged.to_string())
     } else {
         Ok(())
     }
 }
-fn stable<R: Runtime, T>(
+pub(super) fn stable<R: Runtime, T>(
     app: &AppHandle<R>,
     safe: bool,
     f: impl FnOnce(&mut Workspace, &DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,

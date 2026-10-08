@@ -457,53 +457,27 @@ impl Workspace {
             .into_iter()
             .collect())
     }
-    /// Compatibility projection for a provider's existing local groups. Global group storage is separate.
+    /// Shared groups use unified identities and the workspace's all-source safety view.
     pub fn tag_groups(
         &mut self,
         device: &DeviceLibraries,
         catalog: &mut TagCatalog,
-        library_id: &str,
+        _library_id: &str,
         lang: &str,
         safe: bool,
     ) -> Result<Vec<crate::library::TagGroupView>, CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
-        let vocabulary = global_vocabulary(&snapshot, safe);
-        let library = device
-            .read(library_id)
-            .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
-        library.set_safe_mode(false);
-        let mut groups = library.tag_groups(lang)?;
-        for group in &mut groups {
-            let mut seen = BTreeSet::new();
-            group.tags = group
-                .tags
-                .iter()
-                .filter_map(|local| {
-                    let mapping =
-                        snapshot.catalog.mappings.iter().find(|m| {
-                            m.library_id == library_id && m.local_tag_id == local.tag.id
-                        })?;
-                    let tag = vocabulary
-                        .tags
-                        .iter()
-                        .find(|t| t.id == mapping.catalog_id)?;
-                    if !seen.insert(tag.id.clone()) {
-                        return None;
-                    }
-                    Some(crate::library::TagCount {
-                        tag: crate::library::display_label(
-                            &tag.id,
-                            tag.namespace,
-                            &tag.names,
-                            &tag.external,
-                            lang,
-                        ),
-                        count: tag.count,
-                    })
-                })
-                .collect();
-        }
-        Ok(groups)
+        catalog.groups(global_vocabulary(&snapshot, safe), lang)
+    }
+    pub fn shared_tag_groups(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        lang: &str,
+        safe: bool,
+    ) -> Result<Vec<crate::tag_catalog::CatalogGroupView>, CatalogError> {
+        let snapshot = self.snapshot(device, catalog)?;
+        catalog.group_views(global_vocabulary(&snapshot, safe), lang)
     }
     /// All directory counts reuse one immutable safety snapshot.
     pub fn sidebar(
@@ -704,5 +678,18 @@ fn build_vocabulary(snapshot: &Snapshot, safe: bool) -> Vocabulary {
         revision: snapshot.catalog.revision,
         tags: tags.into_values().collect(),
         personal_approx: vec![],
+    }
+}
+
+impl Workspace {
+    pub fn edit_group(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        edit: &crate::tag_catalog::CatalogGroupEdit,
+        safe: bool,
+    ) -> Result<(), CatalogError> {
+        let snapshot = self.snapshot(device, catalog)?;
+        catalog.edit_group(edit, global_vocabulary(&snapshot, safe))
     }
 }
