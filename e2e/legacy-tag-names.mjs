@@ -141,8 +141,14 @@ async function closeSettings() { await session.click("//button[normalize-space()
 async function tags(library) { return session.invoke("image_tags", { libraryId: library.info.id, imageId: library.imageId, lang: "zh-CN" }); }
 async function displayed(library, expected) {
   await session.select("//select[@aria-label='当前资料库']", library.info.id);
-  await until("selected library and wall", async () => (await session.invoke("current_library"))?.id === library.info.id && await session.find(`//*[@data-id='${library.imageId}']`));
-  await session.controlClick(`//*[@data-id='${library.imageId}']`);
+  await until("selected write target", async () => (await session.invoke("current_library"))?.id === library.info.id);
+  await until("library scope control", () => session.find(`//nav[@aria-label='查找范围']//*[@data-library-id='${library.info.id}']/button`));
+  await session.click(`//nav[@aria-label='查找范围']//*[@data-library-id='${library.info.id}']/button`);
+  const page = await session.invoke("workspace_browse", { query: { scope: { kind: "library", libraryId: library.info.id, scope: { kind: "all" } }, conditions: { conditions: [] }, cursor: null, limit: 20, thumbnailPx: 128 }, safeMode: true });
+  const card = page.cards.find((entry) => entry.sources.some((source) => source.libraryId === library.info.id && source.imageId === library.imageId));
+  assert(Boolean(card), `${library.info.name} remains available as an explicit workspace source`);
+  await until("scoped aggregate card", () => session.find(`//*[@data-id='${card.id}']`));
+  await session.controlClick(`//*[@data-id='${card.id}']`);
   await until("rendered image label", () => session.exec("return [...document.querySelectorAll('.tag-panel .tag-name')].some((node) => node.textContent === arguments[0]);", [expected]));
   const value = await tags(library);
   assert(value.tags[0].tag.id === library.localId && value.tags[0].origins.some((origin) => origin.kind === "manual"), `${library.info.name} retains local ID and manual decision while displaying ${expected}`);
