@@ -19,6 +19,7 @@ import {
   shellSettings,
 } from "./ipc";
 import { TagMarks, tagName, UI_LANG } from "./search/SearchBox";
+import { TagIdentityPanel } from "./library/TagIdentityPanel";
 import { UpdateSection } from "./Update";
 
 const ACTION_LABELS: Record<ShortcutAction, string> = {
@@ -154,6 +155,7 @@ export function SettingsPanel({ library = null, onChange }: Props) {
           })}
         </tbody>
       </table>
+      <TagIdentityPanel />
       <h2>近似查找</h2>
       <label className="settings-row">
         <input
