@@ -58,6 +58,7 @@ describe("导入栏：Eagle 迁入后的标签外部对应", () => {
     const { rerender } = render(bar({ report: null }));
     fireEvent.click(screen.getByRole("button", { name: "从 Eagle 迁入…" }));
     fireEvent.click(await screen.findByRole("button", { name: "迁入 主库" }));
+    fireEvent.click(await screen.findByRole("button", { name: "开始 Eagle 导入" }));
     // 迁入开始后选择资料库的面板收起。
     await waitFor(() => expect(screen.queryByRole("region", { name: "Eagle 首次迁入" })).toBeNull());
     rerender(bar({ report }));

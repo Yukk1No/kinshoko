@@ -48,6 +48,7 @@ type WorkspaceProps = {
   section: Section;
   paneOpen: boolean;
   onPaneToggle: () => void;
+  onOpenBrowse: () => void;
   libraryControls: ReactNode;
   /** 新建资料库表单打开时只隐藏工作区，继续接收当前库的导入事件。 */
   hidden: boolean;
@@ -68,6 +69,7 @@ function LibraryWorkspace({
   section,
   paneOpen,
   onPaneToggle,
+  onOpenBrowse,
   libraryControls,
   hidden,
   safe,
@@ -323,8 +325,14 @@ function LibraryWorkspace({
           <label className="density" title="图片大小"><span className="sr-only">图片大小</span>
             <DensitySlider value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
           </label>
-          {library && <ImportMenu key={libraryId} enabled={!hidden} libraryId={libraryId} libraryName={(library?.name ?? "全部资料库")}
-            running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)} />}
+          {library && <ImportMenu key={libraryId} enabled={!hidden} libraryId={libraryId} libraryName={library.name}
+            running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
+            onOpenTrash={() => {
+              onOpenBrowse();
+              setSearch({ conditions: [], exact: false });
+              setWorkspaceScope({ kind: "library", libraryId, scope: { kind: "trash" } });
+              setSelected(new Set());
+            }} />}
           </header>
           <div className="app-tagbar">
           {library && <TagGroupBar workspace libraryId={libraryId} safe={safe} generation={vocabularyKey} input={search}
@@ -504,6 +512,7 @@ export function App() {
           section={section}
           paneOpen={paneOpen}
           onPaneToggle={() => setPaneOpen((open) => !open)}
+          onOpenBrowse={() => { setSection("browse"); setPaneOpen(true); }}
           libraryControls={libraryControls}
           hidden={showCreate || (!library && !hasProviders)}
           safe={safe}

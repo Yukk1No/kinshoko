@@ -86,9 +86,9 @@ pub use tags::{
     TagTranslations, Vocabulary, VocabularyTag,
 };
 pub use types::{
-    BrowsePage, BrowseQuery, BrowseScope, DisplayFile, DisplayRoute, EagleLocationChoice,
-    EagleRelocation, ImageCard, ImageSourceRecord, ImportItem, ImportOutcome, ImportProgress,
-    ImportReport, ImportSource, LibraryInfo, RecoveryReport,
+    BrowsePage, BrowseQuery, BrowseScope, DisplayFile, DisplayRoute, EagleDeletedContentChoice,
+    EagleLocationChoice, EagleRelocation, ImageCard, ImageSourceRecord, ImportItem, ImportOptions,
+    ImportOutcome, ImportProgress, ImportReport, ImportSource, LibraryInfo, RecoveryReport,
 };
 
 use crate::approx::ApproxRelation;
@@ -278,7 +278,12 @@ impl Library {
 
     /// 开始导入，立即返回任务。文件 I/O 与哈希在任务自己的线程里做。
     pub fn import(&self, source: ImportSource) -> ImportTask {
-        import::start(self.inner.clone(), source)
+        self.import_with_options(source, ImportOptions::default())
+    }
+
+    /// 按本次选择导入；允许重导不清除内容版本的永久删除记忆。
+    pub fn import_with_options(&self, source: ImportSource, options: ImportOptions) -> ImportTask {
+        import::start(self.inner.clone(), source, options)
     }
 
     /// 订阅变更事件。事件在事务提交后才推送。

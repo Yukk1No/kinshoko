@@ -8,7 +8,7 @@ use std::sync::Arc;
 use serde::Serialize;
 use ts_rs::TS;
 
-use crate::library::{ImportSource, ImportTask};
+use crate::library::{ImportOptions, ImportSource, ImportTask};
 use crate::{DeviceRegistry, Library, RegisteredLibrary};
 
 /// 给画师看的登记与切换错误。
@@ -138,9 +138,19 @@ impl DeviceLibraries {
         library_id: &str,
         source: ImportSource,
     ) -> Result<String, DeviceLibraryError> {
+        self.start_import_with_options(library_id, source, ImportOptions::default())
+    }
+
+    /// 为这个任务固定导入选择；保持既有 start_import 的默认入口。
+    pub fn start_import_with_options(
+        &mut self,
+        library_id: &str,
+        source: ImportSource,
+        options: ImportOptions,
+    ) -> Result<String, DeviceLibraryError> {
         let library = self.require(library_id)?;
         self.tasks.retain(|_, task| !task.is_finished());
-        let task = library.import(source);
+        let task = library.import_with_options(source, options);
         let id = task.id().to_owned();
         self.tasks.insert(id.clone(), task);
         Ok(id)
