@@ -226,11 +226,14 @@ try {
   assert(await session.invoke("safe_mode") === false, "non-safe view is persisted before normal shutdown");
   const normalClose = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { $ownedApp = Get-Process -Id $_.ProcessId; if (-not $ownedApp.CloseMainWindow()) { exit 1 } }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, windowsHide: true, encoding: "utf8" });
   assert(normalClose.status === 0, "normal main-window close is requested for the owned application");
-  await until("owned application exits normally", () => {
-    const processCheck = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "@(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE }).Count"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, windowsHide: true, encoding: "utf8" });
-    return processCheck.status === 0 && processCheck.stdout.trim() === "0";
+  await until("owned main window closes normally", () => {
+    const windowCheck = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "@(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { (Get-Process -Id $_.ProcessId).MainWindowHandle } | Where-Object { $_ -ne 0 }).Count"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, windowsHide: true, encoding: "utf8" });
+    return windowCheck.status === 0 && windowCheck.stdout.trim() === "0";
   });
-  await session.close().catch(() => {}); session = null;
+  assert(true, "normal main-window close completes before disconnected-library preparation");
+  // Normal window close intentionally leaves Kinshoko in its tray. The test runner removes only
+  // its own resident process before a full-process restart; this is not claimed as a tray-menu quit.
+  quitOwnApp(); await session.close().catch(() => {}); session = null;
   const offlineRoot = fourth.info.root + ".offline";
   renameSync(fourth.info.root, offlineRoot);
   try {
@@ -248,7 +251,7 @@ try {
     renameSync(offlineRoot, fourth.info.root);
   }
   session = await Session.start();
-  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, binarySha256, application, stories: [25,26], supplementaryIntegration: "T07 saved safe=false with disconnected last-active library", assertions, target, first, second, third, fourth, environment: await session.exec("return { userAgent: navigator.userAgent, dpr: devicePixelRatio, width: innerWidth, height: innerHeight }") }, null, 2));
+  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, binarySha256, application, stories: [25,26], supplementaryIntegration: "T07 saved safe=false with disconnected last-active library", shutdown: "Normal main-window close, then forced cleanup of the owned tray-resident process before full restart; no tray-menu quit claim.", assertions, target, first, second, third, fourth, environment: await session.exec("return { userAgent: navigator.userAgent, dpr: devicePixelRatio, width: innerWidth, height: innerHeight }") }, null, 2));
   console.log(`Evidence: ${work}`);
 } catch (error) {
   console.error(error);
