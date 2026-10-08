@@ -33,3 +33,10 @@ T10 新的保存位置确认接入后，完整 smoke 还需按正式入口同步
 该轮 `fidelity-report-20261008-183322Z.json` 仍为 34 个门槛样本中 11 个失败，环境仍是 Server 2022／WebView2 `131.0.2903.86`。下载原件、样本与报告保留在 ignored `work/v1-handoff/follow-up-spec/evidence/ci-37823311722/`。没有覆盖较早失败，也没有把 CI 成功扩大为颜色、Windows 10、之后 T06／T10 或最终组合通过。
 
 两轮诊断只强制清理各自精确归档 exe，未操作用户程序。[清点](evidence/spec78-ci-smoke/desktop-release.json)确认 own app／WebView／driver 与端口均为空，桌面交还 T11。
+## T06 合入后的独立 CI 记录
+
+后续 [CI 37826656513](https://github.com/Yukk1No/kinshoko/actions/runs/37826656513) 完整成功，head 为 `b190770fc3d004c6f4fa101af1ff29cf8871b28f`。实际 PR 合成 checkout 为 `ba18417470a74fe34c121a1c286db9535e3099ee`；GitHub commit API 核对 parents 为前置 `536cc43` 与该 head，tree 为 `19df69897f2b8642bd8825d4a46cdb13b27b8917`。[原始 run](evidence/spec78-ci-smoke/t06-ci-green-run.json)、[smoke](evidence/spec78-ci-smoke/t06-ci-green-result.json) 和 [来源记录](evidence/spec78-ci-smoke/t06-ci-origin-meta.json) 单独保留。
+
+release exe SHA256 为 `877fcdc5a1aebfe1f0b08383691469ce88e1e4a3a1e3af0ea13bff2df76ede9d`。原 smoke 脚本 `49fa759e…` 在 18:59:31–18:59:46Z 完成 5 项。该来源包括 T06，不扩大为之后 T10／T12 或最终组合成功。
+
+同轮非阻断颜色实验仍为 34 个门槛样本中 11 项失败，实际 Server 2022／Hyper-V／WebView2 131 环境保持。原始 `fidelity-report-20261008-185952Z.json`、样本与来源在 ignored `work/v1-handoff/follow-up-spec/evidence/ci-37826656513/`，43 文件／2456412 字节由逐文件 SHA 清单保存。CI 成功不代表颜色门槛成功。

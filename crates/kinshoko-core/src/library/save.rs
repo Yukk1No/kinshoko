@@ -3,12 +3,12 @@ use super::{Error, ImportOptions, ImportSource, ImportTask, Library};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+/// Explicit library and folder for saving. No folder means the library's unassigned area.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct SaveDestination {
     pub library_id: String,
-    /// None explicitly means this library's unassigned area.
     pub folder_id: Option<String>,
 }
 
