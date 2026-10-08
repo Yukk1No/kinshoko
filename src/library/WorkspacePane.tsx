@@ -3,6 +3,7 @@ import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { FolderNode } from "../bindings/FolderNode";
 import { isCursorExpired, isLensChanged, workspaceDirectories } from "../ipc";
 import { SidebarPane } from "./SidebarPane";
+import { libraryPathHint } from "./library-path";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
@@ -15,21 +16,6 @@ function folderPath(nodes: FolderNode[], id: string, parent: string[] = []): str
     if (found) return found;
   }
   return null;
-}
-
-/** Keep the shortest distinct path suffix visible; full paths remain available in the tooltip. */
-function pathHint(root: string, roots: string[]): string {
-  const parts = (path: string) => path.replaceAll("\\", "/").split("/").filter(Boolean);
-  const segments = parts(root);
-  if (segments.length <= 3) return root;
-  for (let depth = 2; depth < segments.length; depth++) {
-    const suffix = segments.slice(-depth).join("/").toLowerCase();
-    if (roots.every((other) => other === root || parts(other).slice(-depth).join("/").toLowerCase() !== suffix)) {
-      const separator = root.includes("\\") ? "\\" : "/";
-      return "…" + separator + segments.slice(-depth).join(separator);
-    }
-  }
-  return root;
 }
 
 /** Adapted from prototype/spec78-alignment/folder-workspace.html: independent roots, paths and descendant switch. */
@@ -95,7 +81,7 @@ export function WorkspacePane({ status, scope, onScope, activeLibraryId, safeMod
             {unavailable ? <span className="provider-state">暂时不可用</span> : <span className="sidebar-count">{sidebar?.all ?? "…"}</span>}
           </button>
         </div>
-        <div className="provider-path" title={library.root}>{pathHint(library.root, providers.map((p) => p.registration.library.root))}</div>
+        <div className="provider-path" title={library.root}>{libraryPathHint(library.root, providers.map((p) => p.registration.library.root))}</div>
         {unavailable && <p className="provider-problem" role="status">{unavailable}</p>}
         {expanded && sidebar && <SidebarPane directory={sidebar} unassigned={unassigned} descendantCounts={counts} includeDescendants={descendants} embedded libraryName={library.name + " / " + library.root}
           libraryId={library.id} workspace safeMode={safeMode} readOnly={library.id !== activeLibraryId}
