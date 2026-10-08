@@ -514,15 +514,28 @@ pub async fn finish_capture(
             return Err("安全模式已变化，请重新框选".into());
         }
         validate_source(&app, &pending, at)?;
+        // Only the final validation grants authority. Do not keep the veil mutex through
+        // original decoding: a mode commit must be able to revoke while this work runs.
+        let veils = lock(&state(&app).veils).clone();
+        #[cfg(debug_assertions)]
+        let prepare_started = Instant::now();
+        #[cfg(debug_assertions)]
+        eprintln!("capture.source.prepare.begin at={}", now_ms());
         let draft = crate::library::with_references(&app, |sources| {
             selection.prepare(
                 action,
                 &uuid::Uuid::new_v4().simple().to_string(),
                 sources,
-                &lock(&state(&app).veils),
+                &veils,
             )
         })
         .map_err(|e| e.to_string())?;
+        #[cfg(debug_assertions)]
+        eprintln!(
+            "capture.source.prepare.end at={} ms={}",
+            now_ms(),
+            prepare_started.elapsed().as_millis()
+        );
         // PNG compression and DIBV5 conversion finish before taking visibility authority.
         // Revocation can return while these expensive, discardable preparations are running.
         let clipboard = draft
@@ -567,4 +580,12 @@ pub async fn finish_capture(
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+#[cfg(debug_assertions)]
+fn now_ms() -> u128 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
 }

@@ -16,7 +16,7 @@ const manifest = JSON.parse(readFileSync(manifestArg,"utf8").replace(/^\uFEFF/,"
 const sha = path => createHash("sha256").update(readFileSync(path)).digest("hex");
 const result = { status:"running", source:manifest.source, tree:manifest.tree, binarySha256:sha(application), application, manifest:resolve(manifestArg), scriptSha256:sha(new URL(import.meta.url)), scriptSource:spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8",windowsHide:true}).stdout.trim(), mode:raceOnly?"clipboard-revocation":"wall", nativeHelperSha256:sha(resolve("e2e/native-wall-observe.py")), pixelHelperSha256:sha(resolve("e2e/native-wall-pixels.py")), assertions:[], samples:[], work, startedAt:new Date().toISOString() };
 if(result.binarySha256!==manifest.binarySha256.toLowerCase()) throw new Error("Binary differs from frozen source manifest");
-for(const name of ["wall-capture.mjs","native-wall-observe.py","native-wall-pixels.py"])copyFileSync(resolve("e2e",name),join(work,name));
+for(const name of ["wall-capture.mjs","native-wall-observe.py","native-wall-pixels.py","native-clipboard-observe.py"])copyFileSync(resolve("e2e",name),join(work,name));
 copyFileSync(resolve(manifestArg),join(work,"frozen-build-manifest.json"));
 const settingsPath=join(process.env.APPDATA,"dev.kinshoko.spec78t17test","settings.json");
 function recordSettings(phase){const exists=existsSync(settingsPath),entry={path:settingsPath,exists,observedAt:new Date().toISOString()};if(exists){const bytes=readFileSync(settingsPath);writeFileSync(join(work,`settings-${phase}.json`),bytes);entry.sha256=createHash("sha256").update(bytes).digest("hex");}return entry;}
@@ -34,6 +34,19 @@ const delay=ms=>new Promise(done=>setTimeout(done,ms));
 async function until(label,read,timeout=45000){const end=Date.now()+timeout;let last;while(Date.now()<end){try{const v=await read();if(v)return v;}catch(e){last=e;}await delay(100);}throw new Error(`Timed out ${label}${last?`: ${last.message}`:""}`);}
 function check(value,label){if(!value)throw new Error(label);result.assertions.push(label);console.log(`PASS ${label}`);}
 let base, driver, occluder;
+const nativeLog={events:[],stdout:"",stderr:""};
+function observeNativeLog(stream,bytes){
+ appendFileSync(join(work,"native-driver-"+stream+".log"),bytes);
+ process[stream].write(bytes);nativeLog[stream]+=bytes.toString("utf8");
+ let end;
+ while((end=nativeLog[stream].indexOf("\n"))>=0){
+  const line=nativeLog[stream].slice(0,end).trim();nativeLog[stream]=nativeLog[stream].slice(end+1);
+  if(line.startsWith("clipboard.")||line.startsWith("capture.source.prepare.")){const at=line.match(/ at=(\d+)/);nativeLog.events.push({receivedAt:Date.now(),at:at?Number(at[1]):null,line});}
+ }
+}
+function clipboardMetadata(){const r=spawnSync(process.env.KINSHOKO_PYTHON??"python",["e2e/native-clipboard-observe.py"],{encoding:"utf8",windowsHide:true});if(r.status!==0)throw new Error(r.stderr);return JSON.parse(r.stdout);}
+result.clipboardMetadataHelperSha256=sha("e2e/native-clipboard-observe.py");
+
 const exec=(script,args=[])=>wd("POST",`${base}/execute/sync`,{script,args});
 async function invoke(command,args={}){const v=await wd("POST",`${base}/execute/async`,{script:"const done=arguments[arguments.length-1]; window.__TAURI_INTERNALS__.invoke(arguments[0],arguments[1]).then(value=>done({value}),error=>done({failure:String(error)}));",args:[command,args]});if(v.failure)throw new Error(`${command}: ${v.failure}`);return v.value;}
 const library=(name,args)=>invoke(`plugin:library|${name}`,args), desktop=(name,args)=>invoke(`plugin:desktop|${name}`,args);
@@ -73,7 +86,8 @@ function observeNative(mode,point){const r=spawnSync(process.env.KINSHOKO_PYTHON
 function nativeBounds(resize,focus=false){const script="Add-Type -AssemblyName UIAutomationClient; $owned=Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | Select-Object -First 1; $condition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty,[int]$owned.ProcessId); $element=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children,$condition) | Where-Object { $_.Current.Name -eq 'Kinshoko' } | Select-Object -First 1; if(!$element){throw 'Owned main HWND absent'}; if($env:KINSHOKO_E2E_RESIZE_WIDTH){$transform=$element.GetCurrentPattern([System.Windows.Automation.TransformPattern]::Pattern); $transform.Resize([double]$env:KINSHOKO_E2E_RESIZE_WIDTH,[double]$env:KINSHOKO_E2E_RESIZE_HEIGHT)}; if($env:KINSHOKO_E2E_FOCUS){$element.SetFocus()}; $r=$element.Current.BoundingRectangle; @{x=$r.X;y=$r.Y;width=$r.Width;height=$r.Height;hwnd=$element.Current.NativeWindowHandle} | ConvertTo-Json -Compress";const r=spawnSync("powershell",["-NoProfile","-NonInteractive","-Command",script],{env:{...process.env,KINSHOKO_E2E_EXECUTABLE:application,...(focus?{KINSHOKO_E2E_FOCUS:"1"}:{}),...(resize?{KINSHOKO_E2E_RESIZE_WIDTH:String(resize.width),KINSHOKO_E2E_RESIZE_HEIGHT:String(resize.height)}:{})},encoding:"utf8",windowsHide:true});if(r.status!==0)throw new Error(r.stderr);return JSON.parse(r.stdout);}
 function killOwn(){return spawnSync("powershell",["-NoProfile","-NonInteractive","-Command","Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"],{env:{...process.env,KINSHOKO_E2E_EXECUTABLE:application},encoding:"utf8",windowsHide:true});}
 try{
- driver=spawn(process.env.KINSHOKO_TAURI_DRIVER??"C:/Users/yuk1no/.cargo/bin/tauri-driver.exe",["--port",String(port),"--native-port",String(port+1),"--native-driver",resolve(edgeArg)],{env:{...process.env,KINSHOKO_DATA_DIR:join(work,"app-data"),KINSHOKO_SKIP_AUTOSTART:"1",WEBVIEW2_USER_DATA_FOLDER:join(work,"webview")},stdio:["ignore","inherit","inherit"],windowsHide:true});
+ driver=spawn(process.env.KINSHOKO_TAURI_DRIVER??"C:/Users/yuk1no/.cargo/bin/tauri-driver.exe",["--port",String(port),"--native-port",String(port+1),"--native-driver",resolve(edgeArg)],{env:{...process.env,KINSHOKO_DATA_DIR:join(work,"app-data"),KINSHOKO_SKIP_AUTOSTART:"1",WEBVIEW2_USER_DATA_FOLDER:join(work,"webview")},stdio:["ignore","pipe","pipe"],windowsHide:true});
+ driver.stdout.on("data",bytes=>observeNativeLog("stdout",bytes));driver.stderr.on("data",bytes=>observeNativeLog("stderr",bytes));
  await until("driver",()=>fetch(endpoint+"/status").then(r=>r.ok));await startSession();
  result.environment=await invoke("diagnostics_report",{purpose:"T17 original wall capture"});
  const first=await library("create_library",{parent:join(work,"libraries"),name:"原图来源 A"});await importFiles(first,[detail]);
@@ -82,16 +96,28 @@ try{
   await library("set_safe_mode",{on:false});await library("edit",{libraryId:first.id,ids:[firstCard.imageId],edits:[{kind:"setRating",rating:"explicit"}]});await reload();await until("adult visible with global mode off",()=>exec("return document.querySelector('.card')?.dataset.veiled==='false'"));
   const seed=await begin(),mainOrigin=await native("inner_position");
   await desktop("finish_capture",{token:seed.token,region:{x:mainOrigin.x+20-seed.origin.x,y:mainOrigin.y+20-seed.origin.y,width:8,height:8},action:"copy"});
-  result.clipboardSeed={width:8,height:8,history:(await desktop("capture_history")).length};
+  result.clipboardSeed={clipboard:readClipboard("clipboard-seed"),metadata:clipboardMetadata(),history:await desktop("capture_history")};
   const shown=await bottomOriginal(firstCard.id),frozen=await begin(),selected=selection(shown,frozen);
-  result.race={shown,selected,frozenPixels:await frozenPatch(frozen,shown,selected),startedAt:new Date().toISOString()};
+  result.race={shown,selected,frozenPixels:await frozenPatch(frozen,shown,selected),startedAt:new Date().toISOString(),startedUnix:Date.now(),nativeLogOffset:nativeLog.events.length};
   await exec("window.__copyResult={pending:true}; window.__TAURI_INTERNALS__.invoke('plugin:desktop|finish_capture',arguments[0]).then(()=>window.__copyResult={ok:true,at:Date.now()},error=>window.__copyResult={error:String(error),at:Date.now()});",[{token:frozen.token,region:selected.region,action:"copy"}]);
   await delay(Number(process.env.KINSHOKO_RACE_DELAY??400));
   result.race.beforeRevocation=await exec("return window.__copyResult");
   check(result.race.beforeRevocation.pending===true,"slow decode is genuinely still running before mode revocation");
-  result.race.modeRequestAt=new Date().toISOString();await library("set_safe_mode",{on:true});result.race.modeReturnedAt=new Date().toISOString();result.race.modeReturnedUnix=Date.now();result.race.afterModeCopy=await exec("return window.__copyResult");result.race.checkpointClipboard=readClipboard("clipboard-after-mode-return");
+  result.race.modeRequestAt=new Date().toISOString();await library("set_safe_mode",{on:true});result.race.modeReturnedAt=new Date().toISOString();result.race.modeReturnedUnix=Date.now();result.race.afterModeCopy=await exec("return window.__copyResult");result.race.checkpointClipboard=readClipboard("clipboard-after-mode-return");result.race.checkpointMetadata=clipboardMetadata();
   result.race.copy=await until("slow original completion",()=>exec("return window.__copyResult&&!window.__copyResult.pending?window.__copyResult:null"),120000);
   result.race.completedAfterRevocation=result.race.copy.at>=result.race.modeReturnedUnix;result.race.finalClipboard=readClipboard("clipboard-after-copy-complete");
+  result.race.finalMetadata=clipboardMetadata();result.race.finalHistory=await desktop("capture_history");
+  const timing=nativeLog.events.slice(result.race.nativeLogOffset).filter(e=>e.at>=result.race.startedUnix);
+  result.race.sourcePreparationBegin=timing.find(e=>e.line.startsWith("capture.source.prepare.begin "));
+  result.race.sourcePreparationEnd=timing.find(e=>e.line.startsWith("capture.source.prepare.end "));
+  result.race.formatPreparationBegin=timing.find(e=>e.line.startsWith("clipboard.prepare.begin "));
+  result.race.formatPreparationEnd=timing.find(e=>e.line.startsWith("clipboard.prepare.end "));
+  result.race.modeReturnedDuringSourcePreparation=result.race.sourcePreparationBegin?.at<result.race.modeReturnedUnix&&result.race.modeReturnedUnix<result.race.sourcePreparationEnd?.at;
+  result.race.sameSeedPng=sha(result.clipboardSeed.clipboard.artifact)===sha(result.race.checkpointClipboard.artifact)&&sha(result.race.checkpointClipboard.artifact)===sha(result.race.finalClipboard.artifact);
+  result.race.sameClipboardSequence=[result.clipboardSeed.metadata,result.race.checkpointMetadata,result.race.finalMetadata].every(m=>m.stableSequence&&m.formats>0&&m.formatsLastError===0&&m.sequence===result.clipboardSeed.metadata.sequence);
+  result.race.sameHistory=isDeepStrictEqual(result.clipboardSeed.history,result.race.finalHistory);
+  check(result.race.modeReturnedDuringSourcePreparation,"actual mode commit returns while the real source decode/crop preparation is still running");
+  check(result.race.sameSeedPng&&result.race.sameClipboardSequence&&result.race.sameHistory,"mode revocation preserves actual seed PNG bytes, stable OS sequence and screenshot history");
   await desktop("pin_clipboard");const entry=(await desktop("capture_history"))[0];result.race.clipboard=clipboardFile(entry);
   result.race.containsOriginal=JSON.stringify(result.race.clipboard.size)===JSON.stringify([selected.crop.width,selected.crop.height])&&JSON.stringify(result.race.clipboard.corners)===JSON.stringify(corners(selected.crop));
   result.race.provedLateWrite=result.race.containsOriginal&&isDeepStrictEqual(result.race.checkpointClipboard.size,[8,8])&&result.race.finalClipboard.observedAtUnix>result.race.checkpointClipboard.observedAtUnix;
@@ -216,5 +242,5 @@ try{
  result.status="passed";
 }catch(error){result.status="failed";result.error=error.stack??String(error);if(base){await screenshot("failure.png").catch(()=>{});await exec("return document.documentElement.outerHTML").then(html=>writeFileSync(join(work,"failure.html"),html)).catch(()=>{});await wallState("failure").catch(()=>{});try{result.failureNative=observeNative("observe");}catch(nativeError){result.failureNative={error:String(nativeError)};}result.requests=await exec("return window.__captureRequests").catch(()=>undefined);result.lateSent=await exec("return window.__lateSent").catch(()=>undefined);}console.error(error);process.exitCode=1;
 }finally{
- result.settingsAfter=recordSettings("after");result.finishedAt=new Date().toISOString();writeFileSync(join(work,"result.json"),JSON.stringify(result,null,2));if(occluder)occluder.kill();if(base)await wd("DELETE",base).catch(()=>{});killOwn();if(driver?.pid)spawnSync("taskkill",["/PID",String(driver.pid),"/T","/F"],{stdio:"ignore",windowsHide:true});console.log(`Evidence: ${work}`);
+ result.nativeClipboardDiagnostics=nativeLog.events;result.settingsAfter=recordSettings("after");result.finishedAt=new Date().toISOString();writeFileSync(join(work,"result.json"),JSON.stringify(result,null,2));if(occluder)occluder.kill();if(base)await wd("DELETE",base).catch(()=>{});killOwn();if(driver?.pid)spawnSync("taskkill",["/PID",String(driver.pid),"/T","/F"],{stdio:"ignore",windowsHide:true});console.log(`Evidence: ${work}`);
 }

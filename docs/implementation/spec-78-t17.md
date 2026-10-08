@@ -123,3 +123,15 @@ strict workspace/all-targets Clippy、TypeScript、fmt 和验收脚本语法检�
 两轮实际原件、脚本、设置、释放回执和选定 OS 图以 [native-c443-first](evidence/spec78-t17/native-c443-first/index.json) 保全。gzip 解压后原始结果 SHA 相同，完整大文件仍在根归档。
 后续仅修 harness：按 [WebDriver HTTP 状态合同](https://www.w3.org/TR/webdriver2/#errors) 区分协议错误，保留业务 error 值及真实 HTTP 状态；蓝窗一次 BeginInvoke 置顶是未验证候选，另核实际点命中、原始 Z 列表、窗口样式和冻结蓝像素。
 这些 harness 修改尚未原生验证，产品和 c443 EXE 保持不变，等待新的精确单轮授权。
+
+
+## 原图准备不持贴图权限锁
+
+c443 mode 轮真实请求 23:28:41.334，返回 45.417；原图准备后进入格式准备的真实日志为 45.414。
+这段约 4.08 秒等待与静态锁持有一致，但原件没有独立 decode 起止，不把相关性冒充完整时序证明。
+原先 `selection.prepare(..., &lock(veils))` 使临时 guard 覆盖原图解码；同步 mode 提交需要同一锁。
+现在先克隆 `PinVeils` 短快照并释放锁，再执行解码和裁切。快照只用于可丢弃的准备，最终 gate 仍核真实 veils、当前 mode/generation 和 provider membership。
+此壳内锁没有合适的公开 Rust 并发接口；不为测试新增开关或镜像业务。既有公开核心/真实库测试继续验证授权行为，新的正式程序轮验证实际等待边界。
+调试包记录真实 `capture.source.prepare` 起止，明确它包含来源读取、解码和裁切，不称纯解码计时。格式压缩另有独立 `clipboard.prepare` 起止。
+mode harness 另外记录原始 seed PNG SHA、真实稳定 clipboard sequence、格式/API 错误及公开历史前后；只有实际 mode 返回早于 source prepare 结束才判该时间窗成立。
+产品已变化，c443/DD37 保留为旧试件。新的完整源/EXE/hash 和独立桌面授权仍待重新冻结，不沿用已撤回的 d66 预约。
