@@ -1,0 +1,16 @@
+    Blocking waiting for file lock on artifact directory
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.69s
+     Running tests\workspace.rs (target\debug\deps\workspace-0ca34ce5cb6e9673.exe)
+
+running 7 tests
+test an_explicit_empty_any_group_never_becomes_an_unconditional_workspace_query ... ok
+test each_source_must_match_all_conditions_before_identical_bytes_are_aggregated ... ok
+test adult_in_nonmatching_out_of_scope_source_vetoes_cards_counts_and_candidates_without_changing_active_lens ... ok
+test unavailable_known_adult_source_keeps_veto_after_restart_until_refresh_or_explicit_unregister ... ok
+test mapped_local_synonyms_are_or_within_one_global_condition_and_and_between_conditions ... ok
+test paging_counts_stable_hash_ids_and_stale_provider_catalog_scope_and_safe_revisions_agree ... ok
+test real_multiple_directories_reuse_visible_safety_facts_and_report_action_timings ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.90s
+

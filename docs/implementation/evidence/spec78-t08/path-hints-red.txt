@@ -1,0 +1,196 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/library/WorkspacePane.test.tsx (5 tests | 1 failed) 252ms
+   × 同名库的长路径优先显示区分位置，仅驱动器不同的路径仍保留差异 12ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/WorkspacePane.test.tsx > 同名库的长路径优先显示区分位置，仅驱动器不同的路径仍保留差异
+TestingLibraryElementError: Unable to find an element with the text: …\a\参考. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<section
+  class="workspace-provider"
+  data-library-id="A"
+>
+  <div
+    class="workspace-provider-root"
+  >
+    <button
+      aria-expanded="true"
+      aria-label="收起参考：C:\\Users\\Owner\\Libraries\\a\\参考"
+      class="workspace-expand"
+      type="button"
+    >
+      −
+    </button>
+    <button
+      aria-label="参考（暂时不可用）"
+      class="sidebar-item"
+      disabled=""
+      title="C:\\Users\\Owner\\Libraries\\a\\参考"
+      type="button"
+    >
+      <span
+        class="sidebar-label"
+      >
+        参考
+      </span>
+      <span
+        class="provider-state"
+      >
+        暂时不可用
+      </span>
+    </button>
+  </div>
+  <div
+    class="provider-path"
+    title="C:\\Users\\Owner\\Libraries\\a\\参考"
+  >
+    C:\Users\Owner\Libraries\a\参考
+  </div>
+  <p
+    class="provider-problem"
+    role="status"
+  >
+    未连接
+  </p>
+  <nav
+    aria-label="参考 / C:\\Users\\Owner\\Libraries\\a\\参考的目录"
+    class="sidebar"
+  >
+    <button
+      aria-label="未归类（1 张）"
+      class="sidebar-item"
+      type="button"
+    >
+      <span
+        class="sidebar-label"
+      >
+        未归类
+      </span>
+      <span
+        class="sidebar-count"
+      >
+        1
+      </span>
+    </button>
+    <div
+      class="sidebar-heading"
+    >
+      <span>
+        文件夹
+      </span>
+      <button
+        aria-label="新建文件夹"
+        class="sidebar-add"
+        disabled=""
+        title="这份资料库当前仅供浏览"
+        type="button"
+      >
+        ＋
+      </button>
+    </div>
+    <div
+      aria-label="文件夹"
+      class="sidebar-folders"
+      role="tree"
+    >
+      <ul
+        class="sidebar-tree"
+        role="group"
+      >
+        <li
+          aria-label="人物"
+          role="treeitem"
+        >
+          <button
+            aria-label="人物（2 张）"
+            class="sidebar-item"
+            data-folder-id="A-root"
+            draggable="false"
+            title="这份资料库当前仅供浏览"
+            type="button"
+          >
+            <span
+              class="sidebar-label"
+            >
+              人物
+            </span>
+            <span
+              class="sidebar-count"
+            >
+              2
+            </span>
+          </button>
+          <ul
+            class="sidebar-tree"
+            role="group"
+          >
+            <li
+              aria-label="动作"
+              role="treeitem"
+            >
+              <button
+                aria-label="动作（1 张）"
+                class="sidebar-item"
+                data-folder-id="A-child"
+                draggable="false"
+                title="这份资料库当前仅供浏览"
+                type="button"
+              >
+                <span
+                  class="sidebar-label"
+                >
+                  动作
+                </span>
+                <span
+                  class="sidebar-count"
+                >
+                  1
+                </span>
+              </button>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    <button
+      aria-label="回收站（0 张）"
+      class="sidebar-item"
+      type="button"
+    >
+      <span
+        class="sidebar-label"
+      >
+        回收站
+      </span>
+      <span
+        class="sidebar-count"
+      >
+        0
+      </span>
+    </button>
+  </nav>
+</section>
+ ❯ Object.getElementError ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/library/WorkspacePane.test.tsx:102:20
+    100|   const a = document.querySelector<HTMLElement>('[data-library-id="A"]…
+    101|   const b = document.querySelector<HTMLElement>('[data-library-id="B"]…
+    102|   expect(within(a).getByText("…\\a\\参考").title).toBe(value.providers[0…
+       |                    ^
+    103|   expect(within(b).getByText("…\\b\\参考").title).toBe(value.providers[1…
+    104|   view.rerender(<WorkspacePane {...props} reloadKey={1} />);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  00:43:07
+   Duration  1.78s (environment 67%, tests 15%, import 11%, transform 6%)
+
