@@ -23,6 +23,7 @@ fn main() {
                         "move_folder",
                         "recovery",
                         "start_import",
+                        "import_contains_eagle",
                         "cancel_import",
                         "pick_folder",
                         "pick_files",

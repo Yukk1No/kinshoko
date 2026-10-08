@@ -7,6 +7,7 @@
 //! 文件 I/O 与哈希都在任务线程里，事务里只有 SQL。任何一步中断，重开时由
 //! [`super::recovery`] 按 pending 撤回，不留下半张图或幽灵记录。
 
+use std::collections::HashSet;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -20,7 +21,10 @@ use sha2::{Digest, Sha256};
 
 use super::colour;
 use super::events::LibraryEvent;
-use super::types::{ImportItem, ImportOutcome, ImportProgress, ImportReport, ImportSource};
+use super::types::{
+    EagleDeletedContentChoice, ImportItem, ImportOptions, ImportOutcome, ImportProgress,
+    ImportReport, ImportSource,
+};
 use super::{Error, Inner, ORIGINALS_DIR, STAGING_DIR, eagle, fault, now_ms, package, tags};
 use crate::fidelity::ColourDescription;
 use crate::fidelity::inspect::inspect;
@@ -66,7 +70,7 @@ impl ImportTask {
     }
 }
 
-pub(super) fn start(inner: Arc<Inner>, source: ImportSource) -> ImportTask {
+pub(super) fn start(inner: Arc<Inner>, source: ImportSource, options: ImportOptions) -> ImportTask {
     let id = uuid::Uuid::new_v4().simple().to_string();
     let cancel = Arc::new(AtomicBool::new(false));
     let progress = Arc::new(Mutex::new(ImportProgress::default()));
@@ -74,7 +78,7 @@ pub(super) fn start(inner: Arc<Inner>, source: ImportSource) -> ImportTask {
         let (id, cancel, progress) = (id.clone(), cancel.clone(), progress.clone());
         std::thread::Builder::new()
             .name("kinshoko-import".into())
-            .spawn(move || run(&inner, &id, &source, &cancel, &progress))
+            .spawn(move || run(&inner, &id, &source, options, &cancel, &progress))
             .expect("无法启动导入线程")
     };
     ImportTask {
@@ -89,6 +93,7 @@ fn run(
     inner: &Inner,
     task_id: &str,
     source: &ImportSource,
+    options: ImportOptions,
     cancel: &AtomicBool,
     shared: &Mutex<ImportProgress>,
 ) -> ImportReport {
@@ -115,12 +120,13 @@ fn run(
 
     let (mut last_progress, mut last_stale) = (Instant::now(), Instant::now());
     let mut stale = false;
+    let task_created_images = Arc::new(Mutex::new(HashSet::new()));
     for path in files {
         if cancel.load(Ordering::SeqCst) {
             report.cancelled = true;
             break;
         }
-        let (outcome, list_changed) = import_one(inner, &path);
+        let (outcome, list_changed) = import_one(inner, &path, options, &task_created_images);
         stale |= list_changed;
         report.items.push(ImportItem { path, outcome });
         progress.done += 1;
@@ -150,6 +156,18 @@ fn run(
         report: report.clone(),
     });
     report
+}
+
+/// 与 collect 相同的 Eagle 识别边界，预检只读取目录，不提前登记或刷新来源。
+pub(super) fn contains_eagle(source: &ImportSource) -> bool {
+    fn contains(path: &Path) -> bool {
+        eagle::is_library(path)
+            || eagle::is_item(path)
+            || (path.is_dir()
+                && std::fs::read_dir(path)
+                    .is_ok_and(|entries| entries.flatten().any(|entry| contains(&entry.path()))))
+    }
+    source.paths.iter().any(|path| contains(path))
 }
 
 /// 展开文件夹（含子文件夹，按名称排序）。读不了的位置记为读取失败。
@@ -215,7 +233,12 @@ pub(super) fn sha256_hex(bytes: &[u8]) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-fn import_one(inner: &Inner, path: &Path) -> (ImportOutcome, bool) {
+fn import_one(
+    inner: &Inner,
+    path: &Path,
+    options: ImportOptions,
+    task_created_images: &Arc<Mutex<HashSet<String>>>,
+) -> (ImportOutcome, bool) {
     let failed = |reason: String| (ImportOutcome::ReadFailed { reason }, false);
     let eagle = if eagle::is_item(path) {
         match eagle::load(inner, path) {
@@ -259,6 +282,8 @@ fn import_one(inner: &Inner, path: &Path) -> (ImportOutcome, bool) {
             eagle,
             package: None,
         },
+        options,
+        task_created_images.clone(),
     )
 }
 
@@ -275,6 +300,8 @@ fn ingest(
     original_name: String,
     location: String,
     origin: Origin,
+    options: ImportOptions,
+    task_created_images: Arc<Mutex<HashSet<String>>>,
 ) -> (ImportOutcome, bool) {
     let failed = |reason: String| (ImportOutcome::ReadFailed { reason }, false);
     let probed = match inspect(bytes) {
@@ -307,10 +334,26 @@ fn ingest(
         location,
         eagle: origin.eagle,
         package: origin.package,
+        options,
+        task_created_images,
     };
 
+    // 在暂存前快速跳过；事务提交时再次核对，覆盖导入与永久删除并发的情况。
+    if record.eagle.is_some()
+        && record.options.eagle_deleted_content == EagleDeletedContentChoice::SkipDeleted
+    {
+        match skip_deleted(&inner.readers.get(), &record.sha) {
+            Ok(true) => return (ImportOutcome::SkippedDeleted, false),
+            Ok(false) => {}
+            Err(e) => return failed(format!("读取删除记忆失败：{e}")),
+        }
+    }
+
     // 同库已有字节相同的原图：不再暂存与发布，直接合并来源。
-    if already_stored(inner, &record.sha) {
+    if already_stored(inner, &record.sha)
+        && !(record.eagle.is_some()
+            && record.options.eagle_deleted_content == EagleDeletedContentChoice::AllowThisImport)
+    {
         return match commit_record(inner, record, None) {
             Ok(outcome) => outcome,
             Err(e) => failed(format!("写入资料库失败：{e}")),
@@ -337,12 +380,27 @@ fn ingest(
     fault::hit(fault::IMPORT_AFTER_PUBLISH);
 
     match commit_record(inner, record, Some(pending.id.clone())) {
-        Ok(outcome) => outcome,
+        Ok(outcome) => {
+            if matches!(outcome.0, ImportOutcome::SkippedDeleted) {
+                abandon(inner, pending);
+            }
+            outcome
+        }
         Err(e) => {
             abandon(inner, pending);
             failed(format!("写入资料库失败：{e}"))
         }
     }
+}
+
+/// 记忆只挡住没有本库副本的内容；明确允许后，已有活图和回收站仍正常刷新来源信息。
+fn skip_deleted(conn: &rusqlite::Connection, sha: &str) -> Result<bool, Error> {
+    Ok(conn.query_row(
+        "SELECT EXISTS (SELECT 1 FROM eagle_deleted_content WHERE sha256 = ?1)
+         AND NOT EXISTS (SELECT 1 FROM image WHERE sha256 = ?1)",
+        [sha],
+        |row| row.get(0),
+    )?)
 }
 
 fn already_stored(inner: &Inner, sha: &str) -> bool {
@@ -474,6 +532,8 @@ struct Record {
     location: String,
     eagle: Option<eagle::Item>,
     package: Option<package::PackageFacts>,
+    options: ImportOptions,
+    task_created_images: Arc<Mutex<HashSet<String>>>,
 }
 
 fn commit_record(
@@ -482,9 +542,17 @@ fn commit_record(
     pending: Option<String>,
 ) -> Result<(ImportOutcome, bool), Error> {
     let translations = inner.translations();
+    let candidate_id = record.id.clone();
+    let task_created_images = record.task_created_images.clone();
     let (outcome, revision) = inner
         .writer
         .run(move |conn| commit(conn, record, pending.as_deref(), &translations))?;
+    if outcome.image_id() == Some(candidate_id.as_str()) {
+        task_created_images
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(candidate_id);
+    }
     let list_changed = revision.is_some()
         || matches!(
             outcome,
@@ -516,6 +584,13 @@ fn commit(
 ) -> Result<(ImportOutcome, Option<i64>), Error> {
     let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
     let now = now_ms();
+    if r.eagle.is_some()
+        && r.options.eagle_deleted_content == EagleDeletedContentChoice::SkipDeleted
+        && skip_deleted(&tx, &r.sha)?
+    {
+        // pending 留给调用方撤回；中断时由下次打开资料库的对账撤回。
+        return Ok((ImportOutcome::SkippedDeleted, None));
+    }
     // Eagle 条目已迁入过：内容相同只刷新来源层；内容变了，新内容作为新版本进库。
     let mut previous = None;
     if let Some(item) = &r.eagle {
@@ -534,15 +609,32 @@ fn commit(
                         &r.sha,
                         &image_id,
                         &r.location,
-                        now,
+                        eagle::CommitContext {
+                            now,
+                            created_in_this_task: r
+                                .task_created_images
+                                .lock()
+                                .unwrap_or_else(|e| e.into_inner())
+                                .contains(&image_id),
+                        },
                     )?)
                 };
                 if let Some(op) = pending {
                     tx.execute("DELETE FROM import_pending WHERE id = ?1", [op])?;
                 }
+                let in_trash: bool = tx.query_row(
+                    "SELECT deleted_at IS NOT NULL FROM image WHERE id = ?1",
+                    [&image_id],
+                    |row| row.get(0),
+                )?;
+                let outcome = if in_trash {
+                    ImportOutcome::TrashDuplicate { image_id }
+                } else {
+                    ImportOutcome::Refreshed { image_id }
+                };
                 fault::hit(fault::IMPORT_BEFORE_COMMIT);
                 tx.commit()?;
-                return Ok((ImportOutcome::Refreshed { image_id }, revision));
+                return Ok((outcome, revision));
             }
             eagle::Existing::Changed { previous_image_id } => previous = Some(previous_image_id),
             eagle::Existing::New => {}
@@ -553,6 +645,7 @@ fn commit(
             row.get(0)
         })
         .optional()?;
+    let was_duplicate = existing.is_some();
     let outcome = match existing {
         Some(image_id) => match previous {
             Some(previous_image_id) => {
@@ -614,7 +707,14 @@ fn commit(
             &r.sha,
             image_id,
             &r.location,
-            now,
+            eagle::CommitContext {
+                now,
+                created_in_this_task: r
+                    .task_created_images
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .contains(image_id),
+            },
         )?)
     } else if let Some(facts) = &r.package {
         Some(package::commit(&tx, translations, facts, image_id, now)?)
@@ -625,6 +725,19 @@ fn commit(
             params![image_id, SOURCE_FILE, r.location, now],
         )?;
         None
+    };
+    let outcome = if was_duplicate
+        && r.eagle.is_some()
+        && tx.query_row(
+            "SELECT deleted_at IS NOT NULL FROM image WHERE id = ?1",
+            [image_id],
+            |row| row.get::<_, bool>(0),
+        )? {
+        ImportOutcome::TrashDuplicate {
+            image_id: image_id.to_owned(),
+        }
+    } else {
+        outcome
     };
     if let Some(op) = pending {
         tx.execute("DELETE FROM import_pending WHERE id = ?1", [op])?;
@@ -652,5 +765,7 @@ pub(super) fn import_package_original(
             eagle: None,
             package: Some(package::PackageFacts { origin, snapshot }),
         },
+        ImportOptions::default(),
+        Arc::new(Mutex::new(HashSet::new())),
     )
 }
