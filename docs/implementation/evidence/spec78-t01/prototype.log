@@ -1,0 +1,17 @@
+Starting msedgedriver 154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a) on port 4470
+To submit feedback, report a bug, or suggest new features, please visit https://github.com/MicrosoftEdge/EdgeWebDriver
+
+Only local connections are allowed.
+Please see https://aka.ms/WebDriverSecurity for suggestions on keeping Microsoft Edge WebDriver safe.
+msedgedriver was started successfully on port 4470.
+
+  VITE v8.3.2  ready in 292 ms
+
+  ➜  Local:   http://127.0.0.1:4180/
+✓ Prototype and formal app use the same CSS viewport and DPR
+✓ Accepted prototype uses the same shipped fonts offline
+✓ Accepted rounded cards, result count and density control match the formal baseline
+✓ Unchanged accepted prototype single-clicks and returns focus to the same card
+✓ Headless resize rounding recorded separately from the exact initial screenshot viewport
+✓ Headless resize rounding recorded separately from the exact initial screenshot viewport
+✓ Same density, single-click, return, sidebar and window-width actions completed; historical baseline differences recorded separately
