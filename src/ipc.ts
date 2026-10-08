@@ -579,17 +579,17 @@ export function frozenScreen(): Promise<FrozenScreen | null> {
 }
 
 /** 框选窗口：冻结屏幕已画好，可以显示窗口了。 */
-export function captureReady(): Promise<void> {
-  return invoke<void>(desk("capture_ready"));
+export function captureReady(token: string): Promise<void> {
+  return invoke<void>(desk("capture_ready"), { token });
 }
 
 /** 框选完成；region 是相对显示器的物理像素。 */
-export function finishCapture(region: Region, action: CaptureAction): Promise<void> {
-  return invoke<void>(desk("finish_capture"), { region, action });
+export function finishCapture(region: Region, action: CaptureAction, token: string): Promise<void> {
+  return invoke<void>(desk("finish_capture"), { region, action, token });
 }
 
-export function cancelCapture(): Promise<void> {
-  return invoke<void>(desk("cancel_capture"));
+export function cancelCapture(token: string): Promise<void> {
+  return invoke<void>(desk("cancel_capture"), { token });
 }
 
 /** 把剪贴板里的图片钉住；剪贴板没有图片时 reject 中文原因。 */
@@ -935,4 +935,9 @@ export function sharedPersonalApprox(lang: string, safeMode: boolean) {
 }
 export function editSharedApprox(edit: import("./bindings/CatalogApproxEdit").CatalogApproxEdit, safeMode: boolean) {
   return invoke<void>(lib("edit_shared_approx"), { edit, safeMode });
+}
+
+/** Reply only to this native capture request; delayed replies cannot replace a newer frame. */
+export function reportCaptureReferences(request: string, frame: { generation: number; dpr: number; references: import("./bindings/CaptureReference").CaptureReference[] }): Promise<void> {
+  return invoke<void>(desk("report_capture_references"), { request, frame });
 }

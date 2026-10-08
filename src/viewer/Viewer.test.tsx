@@ -3,6 +3,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { Viewer } from "./Viewer";
 
+const events = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>());
+vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async (name, callback) => { events.set(name, callback); return () => events.delete(name); }) }));
+
 // JSDOM 不做布局；原生冒烟另用 getBoundingClientRect 检查最终设备像素位置。
 const translation = (image: HTMLElement) => image.style.transform.slice("translate(".length).split(",").map(parseFloat);
 
@@ -15,22 +18,24 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe("查看器设备像素", () => {
-  it("只向 F1 报告已经显示的原图范围，关闭查看器后清除来源", async () => {
-    const reports: unknown[] = [];
+  it("F1 reads only the currently loaded image through a fresh native request", async () => {
+    const reports: any[] = [];
     mockIPC((command, args) => {
-      if (command === "plugin:desktop|set_capture_reference" && args && "reference" in args) reports.push(args.reference);
-      return undefined;
+      if (command === "plugin:desktop|report_capture_references") reports.push(args);
     });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 800));
     const { unmount } = render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
-    expect(reports.at(-1)).toBeNull();
-    fireEvent.load(screen.getByAltText("正在查看的参考图"));
-    await waitFor(() => expect(reports.at(-1)).toEqual({
-      libraryId: "L1", imageId: "a",
-      shown: { x: 0, y: 100, width: 1500, height: 1000 },
-      visible: { x: 0, y: 100, width: 1500, height: 1000 },
-    }));
+    await waitFor(() => expect(events.has("capture-reference-request")).toBe(true));
+    await act(async () => events.get("capture-reference-request")!({ payload: { request: "unloaded" } }));
+    await waitFor(() => expect(reports).toHaveLength(1));
+    expect(reports[0].frame.references).toEqual([]);
+    const image = screen.getByAltText("正在查看的参考图");
+    Object.defineProperties(image, { complete: { configurable: true, value: true }, naturalWidth: { configurable: true, value: 1500 }, naturalHeight: { configurable: true, value: 1000 } });
+    fireEvent.load(image);
+    await act(async () => events.get("capture-reference-request")!({ payload: { request: "loaded" } }));
+    await waitFor(() => expect(reports).toHaveLength(2));
+    expect(reports[1]).toMatchObject({ request: "loaded", frame: { references: [{ libraryId: "L1", imageId: "a", shown: { x: 0, y: 100, width: 1500, height: 1000 }, visible: { x: 0, y: 100, width: 1500, height: 1000 } }] } });
     unmount();
-    await waitFor(() => expect(reports.at(-1)).toBeNull());
     clearMocks();
   });
 

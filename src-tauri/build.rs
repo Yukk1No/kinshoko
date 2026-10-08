@@ -93,6 +93,7 @@ fn main() {
                     .commands(&[
                         "start_capture",
                         "set_capture_reference",
+                        "report_capture_references",
                         "frozen_screen",
                         "capture_ready",
                         "finish_capture",

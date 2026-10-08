@@ -4,13 +4,16 @@
 //! 建一个隐藏的框选窗口 → 页面载入冻结屏幕后调用 `capture_ready` 才显示，免得先闪一下空窗口。
 //! 选区以相对显示器的物理像素传回；落在未遮挡参考图内时保留来源，否则裁下后存入截图历史。
 
-use std::sync::Arc;
+use std::sync::{Arc, Condvar, Mutex};
+use std::time::{Duration, Instant};
 
 use kinshoko_core::desktop::{
-    CaptureAction, CaptureOutcome, CaptureReference, CaptureSelection, CaptureSurface,
-    FrozenScreen, Placement, Region, SavedPin, ScreenRect, Screenshot,
+    CaptureAction, CaptureOutcome, CaptureReference, CaptureReferenceFrame, CaptureSelection,
+    CaptureSurface, FrozenScreen, Placement, Region, SavedPin, ScreenRect, Screenshot,
 };
-use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
+use tauri::{
+    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
+};
 
 use super::{history_changed, lock, pins, state};
 
@@ -20,7 +23,7 @@ pub const CAPTURE_WINDOW: &str = "capture";
 pub enum Session {
     Idle,
     /// 正在抓屏、建窗口。
-    Grabbing,
+    Grabbing(String),
     /// 冻结屏幕已就绪，等画师框选。
     Ready(Pending),
 }
@@ -32,6 +35,7 @@ pub struct Pending {
     /// 冻结屏幕的一次性标记，防止页面拿到上一次的图。
     token: String,
     references: Vec<ReferenceSurface>,
+    safe_generation: u64,
 }
 
 pub(super) struct ReferenceSurface {
@@ -39,84 +43,188 @@ pub(super) struct ReferenceSurface {
     pub selection: CaptureSurface,
 }
 
-#[derive(Clone)]
-pub(super) struct ViewerReport {
-    reference: CaptureReference,
-    #[cfg(windows)]
+/// Only one one-shot native request can receive a WebView reply. HWND is part of its identity.
+#[derive(Default)]
+pub(super) struct FrameChannel {
+    pending: Mutex<Option<FrameRequest>>,
+    changed: Condvar,
+}
+struct FrameRequest {
+    token: String,
     window: isize,
+    frame: Option<CaptureReferenceFrame>,
+}
+impl FrameChannel {
+    pub(super) fn invalidate(&self) {
+        *lock(&self.pending) = None;
+        self.changed.notify_all();
+    }
 }
 
-/// 查看器只报告已经画出的图；坐标相对客户区，截图冻结时才换成屏幕坐标。
+// Compatibility command: persistent geometry reports have no authority for a new capture.
 #[tauri::command]
 pub fn set_capture_reference(
-    app: AppHandle,
+    _app: AppHandle,
     window: tauri::WebviewWindow,
     reference: Option<CaptureReference>,
 ) -> Result<(), String> {
     if window.label() != "main" {
-        return Err("只有主查看器能报告参考图范围".into());
+        return Err("只有主窗口能报告参考图范围".into());
     }
-    #[cfg(windows)]
-    let hwnd = window.hwnd().map_err(|e| e.to_string())?.0 as isize;
-    *lock(&state(&app).viewer_reference) = reference.map(|reference| ViewerReport {
-        reference,
-        #[cfg(windows)]
-        window: hwnd,
-    });
+    let _ = reference;
     Ok(())
 }
 
-fn references(app: &AppHandle) -> Vec<ReferenceSurface> {
-    let mut surfaces = pins::capture_surfaces(app);
-    let viewer = lock(&state(app).viewer_reference).clone();
-    let main = (|| -> Option<ReferenceSurface> {
-        let report = viewer?;
-        let viewer = report.reference;
-        let window = app.get_webview_window("main")?;
-        // 窗口标签会复用，旧 WebView 的迟到报告不能用于重建后的窗口。
-        #[cfg(windows)]
-        if window.hwnd().ok()?.0 as isize != report.window {
-            return None;
-        }
-        if !window.is_visible().ok()? {
-            return None;
-        }
-        let image = crate::library::current(app, &viewer.library_id)
-            .ok()?
-            .image(&viewer.image_id)
-            .ok()?;
-        let pin = SavedPin::reference(
-            "viewer",
-            &viewer.library_id,
-            &kinshoko_core::library::ReferenceImage {
-                id: viewer.image_id,
-                width: image.width,
-                height: image.height,
-                sealed: false,
-            },
-            None,
-            Placement::default(),
-        )
-        .ok()?;
-        let origin = window.inner_position().ok()?;
-        let screen = |r: ScreenRect| ScreenRect {
-            x: origin.x + r.x,
-            y: origin.y + r.y,
-            ..r
+#[tauri::command]
+pub fn report_capture_references(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    request: String,
+    frame: CaptureReferenceFrame,
+) -> Result<(), String> {
+    if window.label() != "main" || !frame.dpr.is_finite() || frame.dpr <= 0.0 {
+        return Err("参考图范围报告无效".into());
+    }
+    let identity = window_identity(&window)?;
+    let channel = &state(&app).capture_frames;
+    let mut pending = lock(&channel.pending);
+    if let Some(pending) = pending.as_mut()
+        && pending.token == request
+        && pending.window == identity
+        && pending.frame.is_none()
+    {
+        pending.frame = Some(frame);
+        channel.changed.notify_all();
+    }
+    Ok(())
+}
+
+fn window_identity(window: &tauri::WebviewWindow) -> Result<isize, String> {
+    #[cfg(windows)]
+    {
+        Ok(window.hwnd().map_err(|e| e.to_string())?.0 as isize)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = window;
+        Ok(0)
+    }
+}
+
+#[derive(PartialEq)]
+struct MainMetrics {
+    identity: isize,
+    origin: tauri::PhysicalPosition<i32>,
+    size: tauri::PhysicalSize<u32>,
+    dpi: u64,
+}
+fn main_metrics(app: &AppHandle) -> Result<Option<MainMetrics>, String> {
+    let Some(window) = app.get_webview_window("main") else {
+        return Ok(None);
+    };
+    if !window.is_visible().map_err(|e| e.to_string())?
+        || window.is_minimized().map_err(|e| e.to_string())?
+    {
+        return Ok(None);
+    }
+    Ok(Some(MainMetrics {
+        identity: window_identity(&window)?,
+        origin: window.inner_position().map_err(|e| e.to_string())?,
+        size: window.inner_size().map_err(|e| e.to_string())?,
+        dpi: window.scale_factor().map_err(|e| e.to_string())?.to_bits(),
+    }))
+}
+fn request_main_frame(
+    app: &AppHandle,
+    metrics: &MainMetrics,
+) -> Result<CaptureReferenceFrame, String> {
+    let token = uuid::Uuid::new_v4().simple().to_string();
+    let channel = &state(app).capture_frames;
+    *lock(&channel.pending) = Some(FrameRequest {
+        token: token.clone(),
+        window: metrics.identity,
+        frame: None,
+    });
+    app.emit_to(
+        "main",
+        "capture-reference-request",
+        serde_json::json!({ "request": token }),
+    )
+    .map_err(|e| e.to_string())?;
+    let deadline = Instant::now() + Duration::from_secs(3);
+    let mut pending = lock(&channel.pending);
+    loop {
+        let Some(request) = pending.as_mut().filter(|p| p.token == token) else {
+            return Err("主窗口已重建，请重新框选".into());
         };
-        Some(ReferenceSurface {
-            window: "main".into(),
-            selection: CaptureSurface {
-                pin,
-                shown: screen(viewer.shown),
-                visible: screen(viewer.visible),
-                covered: Vec::new(),
-            },
-        })
-    })();
-    surfaces.extend(main);
+        if let Some(frame) = request.frame.take() {
+            *pending = None;
+            return Ok(frame);
+        }
+        let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
+            *pending = None;
+            return Err("无法确认当前可见参考图，请重新框选".into());
+        };
+        pending = channel
+            .changed
+            .wait_timeout(pending, remaining)
+            .unwrap_or_else(|e| e.into_inner())
+            .0;
+    }
+}
+
+fn references(
+    app: &AppHandle,
+    main: Option<(&MainMetrics, &CaptureReferenceFrame)>,
+) -> Result<Vec<ReferenceSurface>, String> {
+    let mut surfaces = pins::capture_surfaces(app);
+    if let Some((metrics, frame)) = main {
+        for source in &frame.references {
+            let library =
+                crate::library::visible_source(app, &source.library_id, &source.image_id)?;
+            let image = library.image(&source.image_id).map_err(|e| e.to_string())?;
+            let pin = SavedPin::reference(
+                &format!("wall-{}-{}", source.library_id, source.image_id),
+                &source.library_id,
+                &kinshoko_core::library::ReferenceImage {
+                    id: source.image_id.clone(),
+                    width: image.width,
+                    height: image.height,
+                    sealed: false,
+                },
+                None,
+                Placement::default(),
+            )
+            .map_err(|e| e.to_string())?;
+            let screen = |r: ScreenRect| ScreenRect {
+                x: metrics.origin.x + r.x,
+                y: metrics.origin.y + r.y,
+                ..r
+            };
+            surfaces.push(ReferenceSurface {
+                window: "main".into(),
+                selection: CaptureSurface {
+                    pin,
+                    shown: screen(source.shown),
+                    visible: screen(source.visible),
+                    covered: source.covered.iter().copied().map(screen).collect(),
+                },
+            });
+        }
+    }
     surfaces.retain_mut(|surface| freeze_visibility(app, surface));
-    surfaces
+    Ok(surfaces)
+}
+
+fn same_surfaces(before: &[ReferenceSurface], after: &[ReferenceSurface]) -> bool {
+    before.len() == after.len()
+        && before.iter().zip(after).all(|(a, b)| {
+            a.window == b.window
+                && a.selection.pin == b.selection.pin
+                && a.selection.shown == b.selection.shown
+                && a.selection.visible == b.selection.visible
+                && a.selection.covered == b.selection.covered
+        })
 }
 
 // 与图像一起固定遮挡关系；框选窗口出现后，当前 Z 序已不再代表被冻结的屏幕。
@@ -135,7 +243,7 @@ fn freeze_visibility(app: &AppHandle, surface: &mut ReferenceSurface) -> bool {
         let Some(covered) = super::win32::covering_windows(hwnd.0 as isize) else {
             return false;
         };
-        surface.selection.covered = covered;
+        surface.selection.covered.extend(covered);
         true
     }
     #[cfg(not(windows))]
@@ -150,20 +258,22 @@ pub fn start(app: &AppHandle) {
         let _ = window.set_focus();
         return;
     }
+    let token = uuid::Uuid::new_v4().simple().to_string();
     {
         let mut session = lock(&state(app).capture);
         if !matches!(*session, Session::Idle) {
             return;
         }
-        *session = Session::Grabbing;
+        *session = Session::Grabbing(token.clone());
     }
     let worker = app.clone();
+    let worker_token = token.clone();
     let spawned = std::thread::Builder::new()
         .name("kinshoko-capture".into())
         .spawn(move || {
-            if let Err(e) = grab_and_show(&worker) {
+            if let Err(e) = grab_and_show(&worker, &worker_token) {
                 eprintln!("截图失败：{e}");
-                close(&worker);
+                close_owned(&worker, &worker_token);
             }
         });
     if spawned.is_err() {
@@ -171,32 +281,80 @@ pub fn start(app: &AppHandle) {
     }
 }
 
-/// 结束截图，关掉框选窗口。
-fn close(app: &AppHandle) {
-    *lock(&state(app).capture) = Session::Idle;
-    if let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
+fn close_owned(app: &AppHandle, token: &str) {
+    let owns = {
+        let mut session = lock(&state(app).capture);
+        let owns = match &*session {
+            Session::Ready(p) => p.token == token,
+            Session::Grabbing(t) => t == token,
+            Session::Idle => false,
+        };
+        if owns {
+            *session = Session::Idle;
+        }
+        owns
+    };
+    if owns && let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
         let _ = window.destroy();
     }
 }
 
-fn grab_and_show(app: &AppHandle) -> Result<(), String> {
-    let references = references(app);
+fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
     let cursor = app.cursor_position().map_err(|e| e.to_string())?;
     let monitor = xcap::Monitor::from_point(cursor.x.floor() as i32, cursor.y.floor() as i32)
         .map_err(|e| e.to_string())?;
-    let image = monitor.capture_image().map_err(|e| e.to_string())?;
+    let safe_generation = crate::library::capture_generation(app);
+    let mut frozen = None;
+    for _ in 0..5 {
+        let metrics = main_metrics(app)?;
+        let before = metrics
+            .as_ref()
+            .map(|m| request_main_frame(app, m))
+            .transpose()?;
+        if main_metrics(app)? != metrics {
+            continue;
+        }
+        let before_surfaces = references(app, metrics.as_ref().zip(before.as_ref()))?;
+        let image = monitor.capture_image().map_err(|e| e.to_string())?;
+        let after = metrics
+            .as_ref()
+            .map(|m| request_main_frame(app, m))
+            .transpose()?;
+        if main_metrics(app)? != metrics || before != after {
+            continue;
+        }
+        let confirmed = references(app, metrics.as_ref().zip(after.as_ref()))?;
+        if !same_surfaces(&before_surfaces, &confirmed) {
+            continue;
+        }
+        if crate::library::capture_generation(app) != safe_generation {
+            return Err("安全模式已变化，请重新框选".into());
+        }
+        frozen = Some((image, before_surfaces));
+        break;
+    }
+    let (image, references) = frozen.ok_or_else(|| "参考图正在移动，请重新框选".to_owned())?;
     let origin = (
         monitor.x().map_err(|e| e.to_string())?,
         monitor.y().map_err(|e| e.to_string())?,
     );
     let icc = monitor.name().ok().and_then(|name| display_profile(&name));
     let (width, height) = image.dimensions();
-    *lock(&state(app).capture) = Session::Ready(Pending {
-        screen: Arc::new(Screenshot { image, icc }),
-        origin,
-        token: uuid::Uuid::new_v4().simple().to_string(),
-        references,
-    });
+    {
+        let mut session = lock(&state(app).capture);
+        if !matches!(&*session, Session::Grabbing(t) if t == token)
+            || crate::library::capture_generation(app) != safe_generation
+        {
+            return Err("截图会话已失效，请重新框选".into());
+        }
+        *session = Session::Ready(Pending {
+            screen: Arc::new(Screenshot { image, icc }),
+            origin,
+            token: token.to_owned(),
+            references,
+            safe_generation,
+        });
+    }
 
     let window = WebviewWindowBuilder::new(
         app,
@@ -265,7 +423,10 @@ pub async fn frozen_screen(app: AppHandle) -> Option<FrozenScreen> {
 
 /// 冻结屏幕已经画好：显示框选窗口。
 #[tauri::command]
-pub async fn capture_ready(app: AppHandle) {
+pub async fn capture_ready(app: AppHandle, token: String) {
+    if !matches!(&*lock(&state(&app).capture), Session::Ready(p) if p.token == token) {
+        return;
+    }
     if let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
         let _ = window.show();
         let _ = window.set_focus();
@@ -273,8 +434,8 @@ pub async fn capture_ready(app: AppHandle) {
 }
 
 #[tauri::command]
-pub async fn cancel_capture(app: AppHandle) {
-    close(&app);
+pub async fn cancel_capture(app: AppHandle, token: String) {
+    close_owned(&app, &token);
 }
 
 /// 框选完成。`region` 是相对显示器的物理像素。
@@ -283,18 +444,19 @@ pub async fn finish_capture(
     app: AppHandle,
     region: Region,
     action: CaptureAction,
+    token: String,
 ) -> Result<(), String> {
     let pending = {
         let mut session = lock(&state(&app).capture);
-        match std::mem::replace(&mut *session, Session::Grabbing) {
-            Session::Ready(p) => p,
+        match std::mem::replace(&mut *session, Session::Grabbing(token.clone())) {
+            Session::Ready(p) if p.token == token => p,
             other => {
                 *session = other;
                 return Err("没有进行中的截图".to_owned());
             }
         }
     };
-    close(&app);
+    close_owned(&app, &token);
     tauri::async_runtime::spawn_blocking(move || {
         let references: Vec<_> = pending
             .references
@@ -308,6 +470,24 @@ pub async fn finish_capture(
             references: &references,
         };
         let at = selection.screen_rect().map_err(|e| e.to_string())?;
+        if crate::library::capture_generation(&app) != pending.safe_generation {
+            return Err("安全模式已变化，请重新框选".into());
+        }
+        // Main-window references also obey the strictest known source rating.
+        for surface in pending
+            .references
+            .iter()
+            .filter(|s| s.window == "main" && s.selection.reference_region(at).is_some())
+        {
+            if let kinshoko_core::desktop::PinContent::Reference {
+                library_id,
+                image_id,
+                ..
+            } = &surface.selection.pin.content
+            {
+                crate::library::visible_source(&app, library_id, image_id)?;
+            }
+        }
         let outcome = crate::library::with_references(&app, |sources| {
             selection.finish(
                 action,

@@ -25,6 +25,18 @@ pub struct CaptureReference {
     pub image_id: String,
     pub shown: ScreenRect,
     pub visible: ScreenRect,
+    #[serde(default)]
+    pub covered: Vec<ScreenRect>,
+}
+
+/// A current WebView frame, confirmed again after native screen capture.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CaptureReferenceFrame {
+    pub generation: u64,
+    pub dpr: f64,
+    pub references: Vec<CaptureReference>,
 }
 
 /// 框选窗口要显示的冻结屏幕：整台显示器的物理像素尺寸，以及取图用的一次性标记。

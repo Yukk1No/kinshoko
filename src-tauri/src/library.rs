@@ -545,6 +545,11 @@ pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> R
     Ok(())
 }
 
+/// Current authority generation for native capture actions.
+pub fn capture_generation<R: Runtime>(app: &AppHandle<R>) -> u64 {
+    workspace::generation(app)
+}
+
 /// 安全模式是否开启（全局设置）；读不到设置时按开启处理。
 pub fn safe_mode_on<R: Runtime>(app: &AppHandle<R>) -> bool {
     saved_safe_mode(app)

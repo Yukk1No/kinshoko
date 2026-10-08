@@ -50,7 +50,7 @@ pub struct DesktopState {
     history: Mutex<CaptureHistory>,
     pending_collection: Mutex<Option<String>>,
     capture: Mutex<capture::Session>,
-    viewer_reference: Mutex<Option<capture::ViewerReport>>,
+    capture_frames: capture::FrameChannel,
     /// 本次运行中打开着的钉图窗口。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
     /// 钉图状态（`pins.json`），重新打开后恢复。
@@ -75,7 +75,7 @@ fn state(app: &AppHandle) -> &DesktopState {
 /// 原生主窗口销毁或重建时也必须清除来源；WebView 销毁不运行 React 的 unmount。
 pub fn clear_viewer_reference(app: &AppHandle) {
     if let Some(state) = app.try_state::<DesktopState>() {
-        *lock(&state.viewer_reference) = None;
+        state.capture_frames.invalidate();
     }
 }
 
@@ -100,6 +100,7 @@ pub fn init() -> TauriPlugin<Wry> {
         .invoke_handler(tauri::generate_handler![
             capture::start_capture,
             capture::set_capture_reference,
+            capture::report_capture_references,
             capture::frozen_screen,
             capture::capture_ready,
             capture::finish_capture,
@@ -147,7 +148,7 @@ pub fn init() -> TauriPlugin<Wry> {
                 history: Mutex::new(history),
                 pending_collection: Mutex::new(None),
                 capture: Mutex::new(capture::Session::Idle),
-                viewer_reference: Mutex::default(),
+                capture_frames: capture::FrameChannel::default(),
                 pins: Mutex::default(),
                 store: Mutex::new(store),
                 dirty: AtomicBool::new(false),

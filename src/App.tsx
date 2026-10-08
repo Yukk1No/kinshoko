@@ -1,3 +1,4 @@
+import { useCaptureSources } from "./desktop/captureSources";
 import { onCollectionRequest, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -386,6 +387,7 @@ function LibraryWorkspace({
  * 它们离开图片墙，计数与候选随之刷新。安全模式属于本设备，切换资料库后沿用。
  */
 export function App() {
+  useCaptureSources(() => [], -100);
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [nameMigrationRequest, setNameMigrationRequest] = useState(0);
