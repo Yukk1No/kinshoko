@@ -47,27 +47,16 @@ try:
     u.IsWindowVisible.argtypes = [w.HWND]
     u.IsIconic.argtypes = [w.HWND]
     u.GetWindowRect.argtypes = [w.HWND,ctypes.POINTER(w.RECT)]
-    u.GetWindowLongPtrW.argtypes = [w.HWND,ctypes.c_int]
-    u.GetWindowLongPtrW.restype = ctypes.c_ssize_t
-    u.WindowFromPoint.argtypes = [w.POINT]
-    u.WindowFromPoint.restype = w.HWND
-    u.GetAncestor.argtypes = [w.HWND,w.UINT]
-    u.GetAncestor.restype = w.HWND
     found = []
     owned = []
     fixture = []
-    def extended_style(hwnd):
-        ctypes.set_last_error(0)
-        value = int(u.GetWindowLongPtrW(hwnd,-20))
-        error = ctypes.get_last_error()
-        return {"value":value,"lastError":error,"topmost":bool(value & 8)}
     def visit(hwnd,_):
         owner = w.DWORD()
         u.GetWindowThreadProcessId(hwnd,ctypes.byref(owner))
         if owner.value in (pid, extra_pid) or (u.IsWindowVisible(hwnd) and not u.IsIconic(hwnd)):
             rect = w.RECT()
             if u.GetWindowRect(hwnd,ctypes.byref(rect)):
-                item = {"pid":owner.value,"hwnd":int(hwnd),"rect":{"x":rect.left,"y":rect.top,"width":rect.right-rect.left,"height":rect.bottom-rect.top},"extendedStyle":extended_style(hwnd)}
+                item = {"pid":owner.value,"hwnd":int(hwnd),"rect":{"x":rect.left,"y":rect.top,"width":rect.right-rect.left,"height":rect.bottom-rect.top}}
                 if u.IsWindowVisible(hwnd) and not u.IsIconic(hwnd):
                     found.append(item)
                 if owner.value == extra_pid:
@@ -108,21 +97,12 @@ try:
     u.GetWindowThreadProcessId(foreground,ctypes.byref(foreground_pid))
     position=next((i for i,item in enumerate(found) if item["hwnd"]==main[0]["hwnd"]),None)
     above=found[:position] if position is not None else found
-    raw_visible_z_order = [{**item,"index":i} for i,item in enumerate(found)]
     point=None
-    point_window=None
     if len(sys.argv)>5 and not sys.argv[4].startswith("--"):
         point=[int(sys.argv[4]),int(sys.argv[5])]
-        ctypes.set_last_error(0)
-        hit=u.WindowFromPoint(w.POINT(*point)); hit_error=ctypes.get_last_error()
-        ctypes.set_last_error(0)
-        root=u.GetAncestor(hit,2) if hit else None; root_error=ctypes.get_last_error()
-        root_pid=w.DWORD()
-        if root: u.GetWindowThreadProcessId(root,ctypes.byref(root_pid))
-        point_window={"hwnd":int(hit or 0),"lastError":hit_error,"rootHwnd":int(root or 0),"rootLastError":root_error,"rootPid":root_pid.value}
         r=main[0]["rect"]
         assert r["x"]<=point[0]<r["x"]+r["width"] and r["y"]<=point[1]<r["y"]+r["height"], "Only owned main bounds may be observed"
         above=[item for item in above if item["rect"]["x"]<=point[0]<item["rect"]["x"]+item["rect"]["width"] and item["rect"]["y"]<=point[1]<item["rect"]["y"]+item["rect"]["height"]]
-    print(json.dumps({"application":path.value,"pid":pid,"mainHwnd":main[0]["hwnd"],"foregroundHwnd":int(foreground or 0),"foregroundPid":foreground_pid.value,"activated":activated,"destroyed":closed,"beforeMain":before_main,"mainInVisibleZOrder":position is not None,"point":point,"pointWindow":point_window,"rawVisibleZOrder":raw_visible_z_order,"mainZIndex":position,"covering":above,"owned":owned,"testOccluderPid":extra_pid,"testOccluderWindows":fixture,"dpiCoordinates":"per-monitor-v2 physical"}))
+    print(json.dumps({"application":path.value,"pid":pid,"mainHwnd":main[0]["hwnd"],"foregroundHwnd":int(foreground or 0),"foregroundPid":foreground_pid.value,"activated":activated,"destroyed":closed,"beforeMain":before_main,"mainInVisibleZOrder":position is not None,"point":point,"covering":above,"owned":owned,"testOccluderPid":extra_pid,"testOccluderWindows":fixture,"dpiCoordinates":"per-monitor-v2 physical"}))
 finally:
     k.CloseHandle(handle)

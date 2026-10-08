@@ -1,0 +1,162 @@
+PASS synthetic originals import through production task
+PASS synthetic originals import through production task
+PASS formal waterfall displays a reduced derivative of the high-resolution original
+PASS real identical originals aggregate with two independent registered sources
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+clipboard.prepare.begin at=1791501747219 size=591x400
+clipboard.prepare.end at=1791501747243 ms=24 size=591x400
+clipboard.commit.begin at=1791501747276
+clipboard.commit.end at=1791501747293 ms=16
+PASS initial aggregate waterfall: original copy adds no screenshot history
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+PASS initial aggregate waterfall: pin keeps exact library/image source
+PASS initial aggregate waterfall: pin preserves original pixel crop
+PASS initial aggregate waterfall: reference pin adds no screenshot history
+PASS initial aggregate waterfall: actual OS clipboard retains original crop dimensions
+PASS initial aggregate waterfall: actual OS clipboard retains original fine-detail corner bytes
+PASS actual foreground HWND belongs to the exact frozen application
+PASS actual foreground HWND belongs to the exact frozen application
+PASS late old cancel does not close the next native capture
+PASS late old finish cannot consume a new native capture
+PASS public production capture requests are observed without replacing immutable invoke
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+clipboard.prepare.begin at=1791501757798 size=591x400
+clipboard.prepare.end at=1791501757821 ms=23 size=591x400
+clipboard.commit.begin at=1791501757852
+clipboard.commit.end at=1791501757853 ms=0
+PASS late prior source report: original copy adds no screenshot history
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+PASS late prior source report: pin keeps exact library/image source
+PASS late prior source report: pin preserves original pixel crop
+PASS late prior source report: reference pin adds no screenshot history
+PASS late prior source report: actual OS clipboard retains original crop dimensions
+PASS late prior source report: actual OS clipboard retains original fine-detail corner bytes
+PASS synthetic originals import through production task
+PASS actual virtualized wall recycles visible card population
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+clipboard.prepare.begin at=1791501775763 size=591x400
+clipboard.prepare.end at=1791501775786 ms=23 size=591x400
+clipboard.commit.begin at=1791501775818
+clipboard.commit.end at=1791501775818 ms=0
+PASS immediate virtual return: original copy adds no screenshot history
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+PASS immediate virtual return: pin keeps exact library/image source
+PASS immediate virtual return: pin preserves original pixel crop
+PASS immediate virtual return: reference pin adds no screenshot history
+PASS immediate virtual return: actual OS clipboard retains original crop dimensions
+PASS immediate virtual return: actual OS clipboard retains original fine-detail corner bytes
+PASS UIAutomation changes the real native main client width
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+clipboard.prepare.begin at=1791501785394 size=597x399
+clipboard.prepare.end at=1791501785418 ms=24 size=597x399
+clipboard.commit.begin at=1791501785451
+clipboard.commit.end at=1791501785451 ms=0
+PASS native width reflow: original copy adds no screenshot history
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+PASS native width reflow: pin keeps exact library/image source
+PASS native width reflow: pin preserves original pixel crop
+PASS native width reflow: reference pin adds no screenshot history
+PASS native width reflow: actual OS clipboard retains original crop dimensions
+PASS native width reflow: actual OS clipboard retains original fine-detail corner bytes
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+clipboard.prepare.begin at=1791501794609 size=591x400
+clipboard.prepare.end at=1791501794633 ms=23 size=591x400
+clipboard.commit.begin at=1791501794665
+clipboard.commit.end at=1791501794666 ms=0
+PASS continuous resize return: original copy adds no screenshot history
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+PASS continuous resize return: pin keeps exact library/image source
+PASS continuous resize return: pin preserves original pixel crop
+PASS continuous resize return: reference pin adds no screenshot history
+PASS continuous resize return: actual OS clipboard retains original crop dimensions
+PASS continuous resize return: actual OS clipboard retains original fine-detail corner bytes
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+clipboard.prepare.begin at=1791501805481 size=591x400
+clipboard.prepare.end at=1791501805505 ms=23 size=591x400
+clipboard.commit.begin at=1791501805536
+clipboard.commit.end at=1791501805537 ms=0
+PASS document re-creation: original copy adds no screenshot history
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+PASS document re-creation: pin keeps exact library/image source
+PASS document re-creation: pin preserves original pixel crop
+PASS document re-creation: reference pin adds no screenshot history
+PASS document re-creation: actual OS clipboard retains original crop dimensions
+PASS document re-creation: actual OS clipboard retains original fine-detail corner bytes
+PASS real WebView document is re-created before the next source handshake
+PASS public production capture requests are observed without replacing immutable invoke
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+PASS real main HWND is destroyed and re-created
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+clipboard.prepare.begin at=1791501821322 size=591x400
+clipboard.prepare.end at=1791501821346 ms=24 size=591x400
+clipboard.commit.begin at=1791501821379
+clipboard.commit.end at=1791501821380 ms=0
+PASS native HWND re-creation with late old report: original copy adds no screenshot history
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+PASS native HWND re-creation with late old report: pin keeps exact library/image source
+PASS native HWND re-creation with late old report: pin preserves original pixel crop
+PASS native HWND re-creation with late old report: reference pin adds no screenshot history
+PASS native HWND re-creation with late old report: actual OS clipboard retains original crop dimensions
+PASS native HWND re-creation with late old report: actual OS clipboard retains original fine-detail corner bytes
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS selected position is inside the original's distinct grid on the actual frozen screen
+PASS actual foreground HWND belongs to the exact frozen application
+clipboard.prepare.begin at=1791501832072 size=73x50
+clipboard.prepare.end at=1791501832073 ms=0 size=73x50
+clipboard.commit.begin at=1791501832074
+clipboard.commit.end at=1791501832075 ms=1
+PASS visible pin baseline reads its exact original crop without screenshot history
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS close command is sent from the exact owned reference pin WebView
+PASS a removed frozen reference pin rejects original copy without a screenshot fallback
+PASS removed pin rejection preserves the actual OS clipboard image
+PASS actual foreground HWND belongs to the exact frozen application
+clipboard.prepare.begin at=1791501837405 size=80x60
+clipboard.prepare.end at=1791501837405 ms=0 size=80x60
+clipboard.commit.begin at=1791501837414
+clipboard.commit.end at=1791501837444 ms=30
+PASS outside a single reference remains a native screen capture
+PASS two different loaded cards are actually visible for the cross-card selection
+PASS actual foreground HWND belongs to the exact frozen application
+clipboard.prepare.begin at=1791501839582 size=526x21
+clipboard.prepare.end at=1791501839584 ms=1 size=526x21
+clipboard.commit.begin at=1791501839586
+clipboard.commit.end at=1791501839620 ms=34
+PASS cross-card selection uses native screen pixels and adds ordinary screenshot history
+PASS fixture HWND is tied to the exact spawned child PID
+Error: actual owned external HWND has the requested physical bounds and covers the selected point
+    at check (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:35:45)
+    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:202:3
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\e2e\wall-capture-1791501732795

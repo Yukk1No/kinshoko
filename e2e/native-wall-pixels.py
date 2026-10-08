@@ -24,7 +24,7 @@ if mode == "frozen":
         green = [im.getpixel((im.width//2,y))[1] for y in range(im.height)]
         return {"red":sum(a<128<=b for a,b in zip(red,red[1:])), "green":sum(a<128<=b for a,b in zip(green,green[1:]))}
     source.save(output)
-    result={"webdriverRaster":raster,"screen":image.size,"shown":shown,"selected":selected,"sourcePattern":pattern(source),"selectedPattern":pattern(selection),"artifact":str(output)}
+    result={"webdriverRaster":raster,"screen":image.size,"shown":shown,"selected":selected,"sourcePattern":pattern(source),"selectedPattern":pattern(selection),"selectedCorners":[selection.getpixel((0,0)),selection.getpixel((selection.width-1,0)),selection.getpixel((0,selection.height-1)),selection.getpixel((selection.width-1,selection.height-1))],"selectedUniformBlue":all(pixel==(3,17,229) for pixel in selection.getdata()),"artifact":str(output)}
 elif mode == "clipboard":
     image = ImageGrab.grabclipboard()
     assert isinstance(image,Image.Image), "The synthetic owned clipboard must contain an image"

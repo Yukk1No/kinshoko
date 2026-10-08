@@ -111,3 +111,15 @@ Windows 10、系统 100/125/150% 与混合 DPI、实体 F1 和笔输入尚未验
 strict workspace/all-targets Clippy、TypeScript、fmt 和验收脚本语法检查通过。原始输出、退出码及派生索引见 [final-v3-checks](evidence/spec78-t17/final-v3-checks/index.json)。
 此前 280/281 的原始失败和未知原因仍保留，此次必要完整检查不追溯改写旧轮结果。
 新程序原生 Wall、真实关闭贴图权限，以及 mode/provider/rating 准备阶段撤销仍未执行，等待固定新产物和根独立桌面授权。
+
+
+## 新 c443 构建前两轮原生记录
+
+实际构建源码为 c443f77，EXE SHA `DD37D7FF6B7014A917CF73F04BAE400289A110C23E7077C3A2CE03FAE3024F81`。较已全量检查的 2da 仅增加文档证据。
+完整 Wall run1791501732795 为原始 failed：118 断言通过后，蓝窗覆盖前置失败。物理几何、PID/HWND、visible 均成立，尚未记录真实点命中或样式，不能认定产品遮挡失败。
+本轮真实虚拟回收返回、连续重排、文档与 HWND 重建均通过。新关闭贴图检查已确认原图 baseline/nohistory，实际关闭后窗口消失且公开 pin_frame=None；旧 token 被拒绝，真实 OS PNG 不变。该部分成功不称整轮成功。
+独立 mode run1791502082523 原始 failed：程序返回带真实 at 的“安全模式已变化”业务结果，脚本 wd(value.error) 将其当协议异常后持续等待至超时。
+该原件记录模式真实返回和当时 8×8 剪贴板种子；没有 HTTP status 或最终剪贴板快照，不补称完整 GREEN。
+两轮实际原件、脚本、设置、释放回执和选定 OS 图以 [native-c443-first](evidence/spec78-t17/native-c443-first/index.json) 保全。gzip 解压后原始结果 SHA 相同，完整大文件仍在根归档。
+后续仅修 harness：按 [WebDriver HTTP 状态合同](https://www.w3.org/TR/webdriver2/#errors) 区分协议错误，保留业务 error 值及真实 HTTP 状态；蓝窗一次 BeginInvoke 置顶是未验证候选，另核实际点命中、原始 Z 列表、窗口样式和冻结蓝像素。
+这些 harness 修改尚未原生验证，产品和 c443 EXE 保持不变，等待新的精确单轮授权。
