@@ -1,0 +1,42 @@
+   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
+   Compiling kinshoko-tagger v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-tagger)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 48.60s
+     Running unittests src\lib.rs (target\debug\deps\kinshoko_app-db23d374e5d9c3cc.exe)
+
+running 5 tests
+test diagnostics::tests::the_report_of_this_machine_lists_its_displays_without_paths ... ok
+test library::tests::the_injection_point_hands_out_the_shipped_table ... ok
+test library::tests::the_eagle_wizard_matches_chinese_tag_names_with_the_same_table ... ok
+test library::tests::a_library_assembled_by_the_app_names_model_tags_and_finds_them_by_chinese_names ... ok
+test library::tests::opening_a_legacy_library_preserves_untranslated_display_until_explicit_migration ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running unittests src\main.rs (target\debug\deps\kinshoko-adf955e915b4ec54.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\debug\deps\kinshoko_tagger-a1b60a36fdd4a065.exe)
+
+running 4 tests
+test engine::tests::an_output_whose_length_differs_from_the_tag_list_is_an_error ... ok
+test engine::tests::scores_are_paired_with_the_tag_list_row_by_row ... ok
+test preprocess::tests::transparent_pixels_become_white ... ok
+test preprocess::tests::a_wide_image_is_scaled_to_1008_and_padded_black_above_and_below ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.71s
+
+   Doc-tests kinshoko_app
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kinshoko_tagger
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

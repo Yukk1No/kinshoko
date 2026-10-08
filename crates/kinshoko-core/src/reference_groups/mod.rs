@@ -469,7 +469,21 @@ impl ReferenceGroups {
         source: &dyn ReferenceSource,
         out: &Path,
     ) -> Result<PackageManifest, GroupError> {
-        package::export(&self.get(id)?, source, out)
+        package::export(&self.get(id)?, source, out, None)
+    }
+
+    /// Export using the current application definition, without publishing to read-only providers.
+    pub fn export_package_with_catalog(
+        &self,
+        id: &str,
+        source: &dyn ReferenceSource,
+        out: &Path,
+        catalog: &crate::tag_catalog::TagCatalog,
+    ) -> Result<PackageManifest, GroupError> {
+        let snapshot = catalog
+            .inspect()
+            .map_err(|e| GroupError::Library(e.to_string()))?;
+        package::export(&self.get(id)?, source, out, Some(&snapshot))
     }
 
     /// 导入参考组包：原图进 `library`（字节相同的合并），快照按参考组包来源分层写入，再另存为新的
@@ -479,7 +493,19 @@ impl ReferenceGroups {
         package: &Path,
         library: &Library,
     ) -> Result<ReferenceGroup, GroupError> {
-        let group = package::import(package, library)?;
+        let group = package::import(package, library, None)?;
+        self.write(&group)?;
+        Ok(group)
+    }
+
+    /// Import content against the current application catalog while preserving its settings.
+    pub fn import_package_with_catalog(
+        &self,
+        package: &Path,
+        library: &Library,
+        catalog: &mut crate::tag_catalog::TagCatalog,
+    ) -> Result<ReferenceGroup, GroupError> {
+        let group = package::import(package, library, Some(catalog))?;
         self.write(&group)?;
         Ok(group)
     }

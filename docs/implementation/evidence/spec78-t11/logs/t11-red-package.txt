@@ -1,0 +1,21 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.09s
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 1 test
+
+thread 'package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names' (2516) panicked at crates\kinshoko-core\tests\portable_tags.rs:112:5:
+assertion `left == right` failed: package must preserve explicit identity, not infer by its name
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names ... FAILED
+
+failures:
+
+failures:
+    package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.30s
+
+error: test failed, to rerun pass `-p kinshoko-core --test portable_tags`

@@ -34,7 +34,7 @@ use crate::Library;
 use crate::library::{ImageSnapshot, PackageOrigin};
 
 const FORMAT: &str = "kinshoko.reference-group-package";
-const FORMAT_VERSION: u32 = 1;
+const FORMAT_VERSION: u32 = 2;
 const MANIFEST: &str = "manifest.json";
 /// 参考组包文件的扩展名。
 pub const PACKAGE_EXTENSION: &str = "kinshoko-group";
@@ -122,6 +122,7 @@ pub(super) fn export(
     group: &ReferenceGroup,
     source: &dyn ReferenceSource,
     out: &Path,
+    catalog: Option<&crate::tag_catalog::CatalogInspection>,
 ) -> Result<PackageManifest, GroupError> {
     let unavailable: Vec<String> = resolve(group, source)
         .into_iter()
@@ -150,7 +151,12 @@ pub(super) fn export(
             .lens(&m.library_id)
             .map_err(|reason| GroupError::MembersUnavailable(vec![reason.to_string()]))?;
         let library_error = |e: crate::library::Error| GroupError::Library(e.to_string());
-        let snapshot = lens.snapshot(&m.image_id).map_err(library_error)?;
+        let mut snapshot = lens.snapshot(&m.image_id).map_err(library_error)?;
+        if let Some(catalog) = catalog {
+            catalog
+                .apply_content_definitions(&m.library_id, &mut snapshot)
+                .map_err(|error| GroupError::Library(error.to_string()))?;
+        }
         let original = lens.original_path(&m.image_id).map_err(library_error)?;
         let ext = original
             .extension()
@@ -243,12 +249,39 @@ fn read_manifest(zip: &mut ZipArchive<fs::File>) -> Result<PackageManifest, Grou
         return Err(GroupError::NotAPackage);
     }
     match header.format_version {
-        Some(FORMAT_VERSION) => {}
+        Some(1 | FORMAT_VERSION) => {}
         Some(v) if v > FORMAT_VERSION => return Err(GroupError::UnsupportedVersion(v)),
         _ => return Err(damaged("格式版本不对")),
     }
     let file: ManifestFile = serde_json::from_slice(&bytes).map_err(damaged)?;
     let manifest = file.manifest;
+    let mut definitions = BTreeMap::new();
+    for image in &manifest.images {
+        for tag in &image.snapshot.tags {
+            if header.format_version == Some(FORMAT_VERSION) && tag.definition.is_none() {
+                return Err(damaged("新版参考组包缺少标签身份定义"));
+            }
+            if header.format_version == Some(FORMAT_VERSION)
+                && tag
+                    .local_tag_id
+                    .as_ref()
+                    .is_none_or(|id| id.trim().is_empty())
+            {
+                return Err(damaged("新版参考组包缺少来源本地标签对应"));
+            }
+            if let Some(definition) = &tag.definition {
+                definition.validate().map_err(damaged)?;
+                if definition.namespace != tag.namespace {
+                    return Err(damaged("标签定义命名空间不同"));
+                }
+                if let Some(previous) = definitions.insert(&definition.id, definition)
+                    && previous != definition
+                {
+                    return Err(damaged("同一标签身份包含不同定义"));
+                }
+            }
+        }
+    }
     manifest.group.validate().map_err(|e| match e {
         GroupError::Invalid(why) => damaged(why),
         other => other,
@@ -278,9 +311,24 @@ fn read_original(
 }
 
 /// 导入参考组包到 `library`，另存为新的参考组（由 [`super::ReferenceGroups::import_package`] 写入）。
-pub(super) fn import(path: &Path, library: &Library) -> Result<ReferenceGroup, GroupError> {
+pub(super) fn import(
+    path: &Path,
+    library: &Library,
+    catalog: Option<&mut crate::tag_catalog::TagCatalog>,
+) -> Result<ReferenceGroup, GroupError> {
     let mut zip = open(path)?;
     let manifest = read_manifest(&mut zip)?;
+    if let Some(catalog) = catalog.as_deref() {
+        let definitions = manifest
+            .images
+            .iter()
+            .flat_map(|image| image.snapshot.tags.iter())
+            .filter_map(|tag| tag.definition.clone())
+            .collect::<Vec<_>>();
+        catalog
+            .validate_content_dependencies(&definitions)
+            .map_err(|error| GroupError::Library(error.to_string()))?;
+    }
     // 先核对全部原图，包有损坏时资料库里什么都不写。
     for image in &manifest.images {
         let mut entry = zip
@@ -316,6 +364,13 @@ pub(super) fn import(path: &Path, library: &Library) -> Result<ReferenceGroup, G
         imported.insert((image.library_id.clone(), image.image_id.clone()), id);
     }
 
+    if let Some(catalog) = catalog {
+        catalog
+            .publish_library_definitions(library)
+            .map_err(|error| GroupError::Library(format!(
+                "内容已写入，但资料库标签定义尚未更新：{error}。请重试保存标签定义或重新导入参考组包。"
+            )))?;
+    }
     let library_id = library.info().id.clone();
     let now = crate::library::now_ms();
     let members = manifest

@@ -1,0 +1,292 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/TagIdentityPanel.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/library/TagIdentityPanel.test.tsx (5 tests | 1 failed) 1422ms
+   × offers an explicit provider publication retry without discarding the saved application mapping 1023ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/TagIdentityPanel.test.tsx > offers an explicit provider publication retry without discarding the saved application mapping
+TestingLibraryElementError: Unable to find role="button" and name "保存 画稿库 的标签定义"
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <fieldset
+      aria-label="统一标签目录"
+    >
+      <legend>
+        统一标签目录
+      </legend>
+      <p
+        class="settings-hint"
+      >
+        检查不同资料库的标签对应。同名和别名重合的标签保持独立；纠正对应后，各库的人工添加和否决继续独立保存。
+      </p>
+      <button
+        type="button"
+      >
+        检查标签对应
+      </button>
+      <table
+        class="settings-shortcuts"
+      >
+        <thead>
+          <tr>
+            <th>
+              资料库与原显示
+            </th>
+            <th>
+              统一标签身份
+            </th>
+            <th>
+              纠正对应
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            data-library-id="b"
+            data-local-tag-id="local"
+          >
+            <th
+              scope="row"
+            >
+              <span>
+                画稿库
+                 · 
+              </span>
+              <span>
+                白
+              </span>
+              <small>
+                 · 
+                一般
+              </small>
+              <details>
+                <summary>
+                  本地定义
+                </summary>
+                <p>
+                  库内 ID：
+                  local
+                </p>
+                <p>
+                  别名：
+                  无
+                </p>
+                <p>
+                  外部对应：
+                  无
+                </p>
+                <p>
+                  名称规则：使用统一目录的默认与显式偏好。
+                </p>
+              </details>
+            </th>
+            <td>
+              <span>
+                白
+              </span>
+              <small>
+                 · 
+                已纠正
+              </small>
+              <details>
+                <summary>
+                  统一定义
+                </summary>
+                <p>
+                  统一 ID：
+                  split
+                </p>
+                <p>
+                  外部对应：
+                  无
+                </p>
+              </details>
+            </td>
+            <td>
+              <select
+                aria-label="纠正 画稿库 的 白 对应"
+              >
+                <option
+                  value="split"
+                >
+                  白
+                   · 
+                  一般
+                   · 
+                  split
+                </option>
+                <option
+                  value="separate"
+                >
+                  拆成独立标签
+                </option>
+              </select>
+              <button
+                disabled=""
+                type="button"
+              >
+                保存对应
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </fieldset>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <fieldset
+      aria-label="统一标签目录"
+    >
+      <legend>
+        统一标签目录
+      </legend>
+      <p
+        class="settings-hint"
+      >
+        检查不同资料库的标签对应。同名和别名重合的标签保持独立；纠正对应后，各库的人工添加和否决继续独立保存。
+      </p>
+      <button
+        type="button"
+      >
+        检查标签对应
+      </button>
+      <table
+        class="settings-shortcuts"
+      >
+        <thead>
+          <tr>
+            <th>
+              资料库与原显示
+            </th>
+            <th>
+              统一标签身份
+            </th>
+            <th>
+              纠正对应
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            data-library-id="b"
+            data-local-tag-id="local"
+          >
+            <th
+              scope="row"
+            >
+              <span>
+                画稿库
+                 · 
+              </span>
+              <span>
+                白
+              </span>
+              <small>
+                 · 
+                一般
+              </small>
+              <details>
+                <summary>
+                  本地定义
+                </summary>
+                <p>
+                  库内 ID：
+                  local
+                </p>
+                <p>
+                  别名：
+                  无
+                </p>
+                <p>
+                  外部对应：
+                  无
+                </p>
+                <p>
+                  名称规则：使用统一目录的默认与显式偏好。
+                </p>
+              </details>
+            </th>
+            <td>
+              <span>
+                白
+              </span>
+              <small>
+                 · 
+                已纠正
+              </small>
+              <details>
+                <summary>
+                  统一定义
+                </summary>
+                <p>
+                  统一 ID：
+                  split
+                </p>
+                <p>
+                  外部对应：
+                  无
+                </p>
+              </details>
+            </td>
+            <td>
+              <select
+                aria-label="纠正 画稿库 的 白 对应"
+              >
+                <option
+                  value="split"
+                >
+                  白
+                   · 
+                  一般
+                   · 
+                  split
+                </option>
+                <option
+                  value="separate"
+                >
+                  拆成独立标签
+                </option>
+              </select>
+              <button
+                disabled=""
+                type="button"
+              >
+                保存对应
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </fieldset>
+  </div>
+</body>
+ ❯ waitForWrapper ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/library/TagIdentityPanel.test.tsx:88:32
+     86|   render(<TagIdentityPanel />);
+     87|   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
+     88|   const publish = await screen.findByRole("button", { name: "保存 画稿库 的标…
+       |                                ^
+     89|   fireEvent.click(publish);
+     90|   expect(await screen.findByRole("alert")).toHaveTextContent("程序中的对应已保…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  01:18:56
+   Duration  3.08s (tests 48%, environment 41%, import 7%, transform 3%)
+

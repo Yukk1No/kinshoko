@@ -1,0 +1,59 @@
+{
+  "status": "failed",
+  "phase": "source",
+  "error": "Error: Timed out: saved correction",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
+  "build": {
+    "source": "a99fd7683e5c00b896c99aaa49129ebfe2eefdf5",
+    "tree": "411ed9a68e23f968fe05b820579f8d1de743f5d3",
+    "binarySha256": "6DE689C8BB36E8FA0F1D7D037766D3D595CCBDB0A8E280C2177A80B9B495ED58",
+    "identifier": "dev.kinshoko.spec78t11test",
+    "buildType": "debug with tauri/custom-protocol",
+    "buildDate": "2026-10-09T01:55:56.4256835+08:00",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target",
+    "driverSha256": "0F4600639201CCD2E84C72C3977AC33C67E19152E197C89EB16A6591D1FBE9F7",
+    "configSha256": "6BC6FFD4CFD9F2DFA02B7BF8E1737212FD2867A3868AACA27FF2381D12DB0B7E",
+    "includesT05": "77e7a9bfba8e9afe2ee82b241884a4680e31ec4e",
+    "includesT09": "23867c1755840821f44493448e3148d55b621190"
+  },
+  "harnessSource": "a99fd7683e5c00b896c99aaa49129ebfe2eefdf5",
+  "harnessSha256": "c9043feefe7b96547e9aa5311bc97939f2f40c9cadfd05a3bbcd950c4192de12",
+  "assertions": [
+    "same display names initially retain distinct global identities",
+    "rendered correction explicitly joins two local IDs to one global identity"
+  ],
+  "environments": [
+    {
+      "phase": "source",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482358437\\source-app",
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    }
+  ],
+  "sourceA": {
+    "info": {
+      "id": "d0699d9580dc471f9468ec6fe52c79cb",
+      "name": "便携来源甲",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482358437\\libraries\\便携来源甲"
+    },
+    "images": [
+      "01a11cab743370d49f01bc2d8f91cdfa",
+      "01a11cab741770d9932e721f1df2799d"
+    ],
+    "local": "01a11cab74b0769ab75544c8772f724a"
+  },
+  "sourceB": {
+    "info": {
+      "id": "9398353b92394ae58b593024745430e2",
+      "name": "便携来源乙",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482358437\\libraries\\便携来源乙"
+    },
+    "images": [
+      "01a11cab777374b08cac81cc7c86d84f"
+    ],
+    "local": "01a11cab787f7085b2a4e63efcb5fb80"
+  },
+  "sourceIdentity": "01a11cab74b175d4ab5d6ccc9a4683f0"
+}

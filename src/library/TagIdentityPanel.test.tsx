@@ -71,3 +71,27 @@ it("refreshes inspected shared labels after a global name vocabulary event", asy
   await act(async () => { await emit("library-event", { kind: "vocabularyChanged", libraryId: "a", revision: 1 }); });
   await screen.findByText("新的共享名称");
 });
+
+it("offers an explicit provider publication retry without discarding the saved application mapping", async () => {
+  const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "白" }], aliases: [], external: [], count: 1 };
+  const workspace: TagCatalogWorkspace = { libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }], catalog: { revision: 2, tags: [{ ...local, id: "split", defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "b", localTagId: "local", catalogId: "split", legacy: local, basis: "corrected", nameProvenance: "catalog" }] } };
+  let attempt = 0;
+  mockIPC((cmd, args) => {
+    if (cmd.endsWith("inspect_tag_catalog")) return workspace;
+    if (cmd.endsWith("publish_tag_definitions")) {
+      expect(args).toEqual({ libraryId: "b" });
+      if (++attempt === 1) throw new Error("标签定义未保存：磁盘已满。程序中的对应已保留，请重试。");
+      return workspace;
+    }
+  });
+  render(<TagIdentityPanel />);
+  fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
+  const publish = await screen.findByRole("button", { name: "保存 画稿库 的标签定义" });
+  fireEvent.click(publish);
+  expect((await screen.findByRole("alert")).textContent).toContain("程序中的对应已保留");
+  expect(screen.getByText(/已纠正/)).toBeTruthy();
+  fireEvent.click(publish);
+  await screen.findByText("标签定义已保存到资料库。");
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+

@@ -12,6 +12,11 @@
 mod groups;
 mod name_migration;
 mod names;
+mod portable;
+pub use portable::{
+    export_package as export_reference_package, import_package as import_reference_package,
+    publish_definition_dependencies,
+};
 mod source_actions;
 mod workspace;
 
@@ -225,6 +230,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             catalog_image_tags,
             inspect_tag_catalog,
             correct_tag_mapping,
+            portable::publish_tag_definitions,
             names::edit_tag_name,
             groups::shared_tag_groups,
             groups::create_shared_tag_group,
@@ -979,6 +985,7 @@ async fn correct_tag_mapping<R: Runtime>(
     );
     let generation = state.safe_mode_generation.load(Ordering::SeqCst);
     let safe = saved_safe_mode(&app);
+    let publish_library_id = library_id.clone();
     let result = blocking(move || {
         with_libraries(&dir, &libraries, |libraries| {
             let library = libraries.read(&library_id)?;
@@ -990,6 +997,9 @@ async fn correct_tag_mapping<R: Runtime>(
         })?
     })
     .await?;
+    let publish_app = app.clone();
+    let publication =
+        blocking(move || publish_definition_dependencies(&publish_app, &publish_library_id)).await;
     state.search.invalidate();
     // Compatibility event refreshes current candidates, conditions and selected image labels.
     if let Ok(active) = state.active() {
@@ -1006,12 +1016,14 @@ async fn correct_tag_mapping<R: Runtime>(
     {
         return Err("安全模式已变化，请重新检查标签对应".into());
     }
+    publication.map_err(|error| format!("标签对应已保存在程序中，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))?;
     Ok(result)
 }
 
 /// 对若干参考图批量添加、否决或清除标签决定。
 #[tauri::command]
-async fn edit_tags(
+async fn edit_tags<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, LibraryState>,
     library_id: String,
     image_ids: Vec<String>,
@@ -1019,9 +1031,8 @@ async fn edit_tags(
 ) -> Result<(), String> {
     let library = state.current(&library_id)?;
     blocking(move || {
-        library
-            .edit_tags(&image_ids, &edits)
-            .map_err(|e| e.to_string())
+        library.edit_tags(&image_ids, &edits).map_err(|e| e.to_string())?;
+        publish_definition_dependencies(&app, &library_id).map_err(|error| format!("标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))
     })
     .await
 }

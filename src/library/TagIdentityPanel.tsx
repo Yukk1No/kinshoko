@@ -3,7 +3,9 @@ import type { CatalogTag } from "../bindings/CatalogTag";
 import type { LibraryTagMapping } from "../bindings/LibraryTagMapping";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
 import type { TagNamespace } from "../bindings/TagNamespace";
-import { correctTagMapping, inspectTagCatalog, onLibraryEvent, onSafeModeSetting } from "../ipc";
+import { correctTagMapping, inspectTagCatalog, onLibraryEvent, onSafeModeSetting, publishTagDefinitions } from "../ipc";
+
+import { libraryPathHint } from "./library-path";
 
 const namespaces: Record<TagNamespace, string> = { general: "一般", artist: "作者", character: "角色", work: "作品" };
 const basis = { independent: "独立身份", external: "外部对应", conflictingExternal: "外部对应有歧义", corrected: "已纠正" };
@@ -14,6 +16,7 @@ const localName = (mapping: LibraryTagMapping) => mapping.legacy.names.find((n) 
 export function TagIdentityPanel() {
   const [workspace, setWorkspace] = useState<TagCatalogWorkspace | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const generation = useRef(0);
   const inspected = useRef(false);
@@ -26,7 +29,7 @@ export function TagIdentityPanel() {
       generation.current++;
       inspected.current = false; running.current = false; dirty.current = false;
       setWorkspace(null);
-      setError(null);
+      setError(null); setNotice(null);
       setBusy(false);
     });
     const vocabulary = onLibraryEvent((event) => {
@@ -42,12 +45,12 @@ export function TagIdentityPanel() {
       void vocabulary.then((stop) => stop()).catch(() => {});
     };
   }, []);
-  const run = async (action: () => Promise<TagCatalogWorkspace>) => {
+  const run = async (action: () => Promise<TagCatalogWorkspace>, success?: string) => {
     const request = ++generation.current;
     inspected.current = true; running.current = true;
     setBusy(true);
-    setError(null);
-    try { const next = await action(); if (request === generation.current) setWorkspace(next); }
+    setError(null); setNotice(null);
+    try { const next = await action(); if (request === generation.current) { setWorkspace(next); setNotice(success ?? null); } }
     catch (reason) { if (request === generation.current) setError(String(reason)); }
     finally { if (request === generation.current) { setBusy(false); running.current = false; if (dirty.current) { dirty.current = false; void run(inspectTagCatalog); } } }
   };
@@ -57,7 +60,13 @@ export function TagIdentityPanel() {
     <button type="button" disabled={busy} onClick={() => void run(inspectTagCatalog)}>检查标签对应</button>
     {busy && <p role="status">正在读取标签对应…</p>}
     {error && <p role="alert">{error}</p>}
+    {notice && <p role="status">{notice}</p>}
     {workspace && <>
+      <p className="settings-hint">带走资料库前，保存最新标签定义。默认名称、别名与标签对应随资料库携带；显示名称偏好留在程序设置中。只读或离线时可以保留程序中的选择，稍后重试保存。</p>
+      {workspace.libraries.map(({library, unavailable}) => <div key={"definitions-" + library.id} className="settings-actions">
+        <span title={library.root}>{library.name} · {libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span>
+        <button type="button" aria-label={"保存 " + library.name + " 的标签定义"} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), "标签定义已保存到资料库。")}>保存标签定义到资料库</button>
+      </div>)}
       {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} role="status">{library.name}：{unavailable}</p>)}
       {workspace.catalog.mappings.length === 0 ? <p>可用资料库中还没有标签。</p> : <table className="settings-shortcuts">
         <thead><tr><th>资料库与原显示</th><th>统一标签身份</th><th>纠正对应</th></tr></thead>
