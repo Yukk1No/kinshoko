@@ -442,7 +442,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 <img src={thumbnailUrl(card.thumbnail)} alt="参考图" decoding="async" draggable={false} />
                 {card.sources && card.libraryId && card.imageId && <button type="button" className="card-sources"
                   aria-label={`查看 ${card.sources.length} 份资料库来源`}
-                  onClick={(e) => { e.stopPropagation(); onInspectSources?.(card as WorkspaceCard); }}
+                  onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; onInspectSources?.(card as WorkspaceCard); }}
                   onKeyDown={(e) => e.stopPropagation()}>{card.sources.length} 份来源</button>}
               </div>
             );

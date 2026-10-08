@@ -362,7 +362,7 @@ function LibraryWorkspace({
             selected={selected}
             onSelectionChange={setSelected}
             onOpenImage={setViewing}
-            viewerOpen={viewerOpen}
+            viewerOpen={modalOpen}
           />
         </main>
       </div>
