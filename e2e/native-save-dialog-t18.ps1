@@ -1,6 +1,7 @@
 # Operates only the observed Save dialog belonging to the frozen T18 executable.
 param([Parameter(Mandatory=$true)][string]$Executable, [Parameter(Mandatory=$true)][string]$Destination)
 $ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 $taskExe = [System.IO.Path]::GetFullPath($Executable)

@@ -19,6 +19,20 @@ const work = resolve(runArg ?? join("work/e2e", "runtime-capabilities-" + Date.n
 if (dirname(work) !== resolve("work/e2e") || !/^runtime-capabilities-\d+$/.test(basename(work)) || existsSync(work)) throw Error("A new owned T18 evidence directory is required");
 const data = join(work, "app-data"), profile = join(work, "webview"), parent = join(work, "libraries"), source = join(work, "source");
 for (const path of [data, profile, parent, source]) mkdirSync(path, { recursive: true });
+const gitRead = (...args) => {
+  const result = spawnSync("git", args, { windowsHide: true, encoding: "utf8" });
+  if (result.status !== 0) throw Error(result.stderr);
+  return result.stdout.trim();
+};
+if (gitRead("status", "--porcelain")) throw Error("A clean harness source is required");
+const productionChanges = Object.entries(manifest.sourceFiles).filter(([path, expected]) => !path.startsWith("e2e/") && hash(readFileSync(path)) !== expected).map(([path]) => path);
+if (productionChanges.length) throw Error("Frozen production inputs changed: " + productionChanges.join(", "));
+if (Object.entries(manifest.distFiles).some(([path, expected]) => hash(readFileSync(path)) !== expected)) throw Error("Frozen frontend dist changed");
+const harnessFiles = ["e2e/runtime-capabilities.mjs", "e2e/native-save-dialog-t18.ps1", "e2e/native-pin-hide-t18.py"];
+mkdirSync(join(work, "harness"));
+for (const path of harnessFiles) copyFileSync(path, join(work, "harness", basename(path)));
+copyFileSync("work/t18/native-source.json", join(work, "native-source.json"));
+copyFileSync(manifest.buildConfig.path, join(work, "tauri.test.json"));
 const knownFolderConfig = resolve(manifest.knownFolderConfig);
 const expectedKnownFolder = resolve(process.env.USERPROFILE, "AppData", "Roaming", "dev.kinshoko.spec78t18test", "settings.json");
 if (manifest.identifier !== "dev.kinshoko.spec78t18test" || knownFolderConfig.toLowerCase() !== expectedKnownFolder.toLowerCase()) throw Error("Unmatched isolated KnownFolder config");
@@ -26,6 +40,7 @@ if (existsSync(knownFolderConfig)) throw Error("The isolated KnownFolder setting
 const report = {
   story: 51, ticket: 96, source: manifest.commit, tree: manifest.tree, binarySha256: manifest.binarySha256,
   identifier: manifest.identifier, ports: manifest.ports, work, application, data, profile,
+  harness: { source: gitRead("rev-parse", "HEAD"), tree: gitRead("rev-parse", "HEAD^{tree}"), clean: true, files: Object.fromEntries(harnessFiles.map((path) => [path, hash(readFileSync(path))])), frozenProductionInputsMatch: true, frozenDistMatches: true },
   knownFolder: { config: knownFolderConfig, existedBefore: false },
   limitations: ["Windows 10 unverified: owner has no device/VM", "Controlled JS absence in current Runtime is not an old/absent Runtime", "Basic capabilities and representative display are not a colour-fidelity pass"], checks: [],
 };
@@ -88,7 +103,7 @@ function reportPrivacy(text) {
 async function diagnosticFile(name, prefix = "") {
   const file = join(work, name);
   await click(`${prefix}//button[normalize-space()='存成文件…']`);
-  const saved = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-File", "e2e/native-save-dialog-t18.ps1", application, file], { windowsHide: true, encoding: "utf8", timeout: 25000 });
+  const saved = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "e2e/native-save-dialog-t18.ps1", application, file], { windowsHide: true, encoding: "utf8", timeout: 25000 });
   writeFileSync(join(work, name + ".save-dialog.json"), saved.stdout);
   if (saved.status !== 0) throw Error("Native report Save dialog: " + saved.stderr);
   await until("native diagnostic file saved", () => existsSync(file));
@@ -104,6 +119,10 @@ try {
   base = "/session/" + session.sessionId; mainHandle = await wd("GET", base + "/window");
   await until("formal app ready", () => find(setting));
   report.browser = await exec("return {userAgent:navigator.userAgent,dpr:devicePixelRatio,width:innerWidth,height:innerHeight,screen:{width:screen.width,height:screen.height,colorDepth:screen.colorDepth},gamutP3:matchMedia('(color-gamut: p3)').matches,hdr:matchMedia('(dynamic-range: high)').matches}");
+  const runtimeProcesses = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "$ErrorActionPreference='Stop'; ConvertTo-Json -InputObject @(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'msedgewebview2.exe' -and $_.CommandLine -like ('*'+$env:KINSHOKO_T18_PROFILE+'*') } | ForEach-Object { @{pid=$_.ProcessId;path=$_.ExecutablePath;fileVersion=(Get-Item -LiteralPath $_.ExecutablePath).VersionInfo.FileVersion} })"], { windowsHide: true, encoding: "utf8", env: { ...process.env, KINSHOKO_T18_PROFILE: profile } });
+  if (runtimeProcesses.status !== 0) throw Error("Running WebView process facts: " + runtimeProcesses.stderr);
+  report.runningWebviewProcesses = JSON.parse(runtimeProcesses.stdout);
+  check(report.runningWebviewProcesses.length > 0, "actual isolated running WebView executable versions recorded separately from installed-version query");
   await click(setting);
   await until("real current Runtime capability operations complete", () => exec("return document.querySelector('[aria-label=本机运行时]')?.textContent.includes('基础图片解码与钉图绘制检查完成。')"));
   check(!await exec("return Boolean(document.querySelector('[aria-label=运行时能力提示]'))"), "current Runtime has no required capability warning");
@@ -184,9 +203,9 @@ try {
   const cleanup = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_T18_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"], { windowsHide: true, encoding: "utf8", env: { ...process.env, KINSHOKO_T18_EXECUTABLE: application } });
   report.cleanupCommand = { status: cleanup.status, stderr: cleanup.stderr };
   if (driver?.pid) { driver.kill(); await delay(800); }
-  const inventory = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "ConvertTo-Json -InputObject @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_T18_EXECUTABLE -or ($_.Name -eq 'msedgewebview2.exe' -and $_.CommandLine -like ('*'+$env:KINSHOKO_T18_PROFILE+'*')) -or ($_.Name -in @('tauri-driver.exe','msedgedriver.exe') -and $_.CommandLine -match '(4618|4619)') } | Select-Object ProcessId,Name,ExecutablePath,CommandLine) -Depth 4"], { windowsHide: true, encoding: "utf8", env: { ...process.env, KINSHOKO_T18_EXECUTABLE: application, KINSHOKO_T18_PROFILE: profile } });
+  const inventory = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "$ErrorActionPreference='Stop'; ConvertTo-Json -InputObject @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_T18_EXECUTABLE -or ($_.Name -eq 'msedgewebview2.exe' -and $_.CommandLine -like ('*'+$env:KINSHOKO_T18_PROFILE+'*')) -or ($_.Name -in @('tauri-driver.exe','msedgedriver.exe') -and $_.CommandLine -match '(4618|4619)') } | Select-Object ProcessId,Name,ExecutablePath,CommandLine) -Depth 4"], { windowsHide: true, encoding: "utf8", env: { ...process.env, KINSHOKO_T18_EXECUTABLE: application, KINSHOKO_T18_PROFILE: profile } });
   report.cleanupInventory = inventory.stdout.trim(); report.cleanupInventoryError = inventory.stderr;
-  if (inventory.status !== 0 || report.cleanupInventory !== "[]") {
+  if (inventory.status !== 0 || JSON.parse(report.cleanupInventory).length !== 0) {
     report.status = "failed"; process.exitCode = 1; report.cleanupFailure = "Owned process inventory was not empty; KnownFolder retained";
   } else {
     report.knownFolder.existedAfterRun = existsSync(knownFolderConfig);
