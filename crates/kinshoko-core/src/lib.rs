@@ -19,7 +19,7 @@ mod shortcuts;
 pub mod tag_catalog;
 pub mod tagging;
 
-pub use app_shell::{AppInfo, UpdateProgress, UpdateStatus, app_info};
+pub use app_shell::{AppInfo, UpdatePolicy, UpdateProgress, UpdateStatus, app_info};
 pub use device::{DeviceRegistry, RegisteredLibrary};
 pub use device_libraries::{DeviceLibraries, DeviceLibraryError, LibraryRegistration};
 pub use library::Library;
