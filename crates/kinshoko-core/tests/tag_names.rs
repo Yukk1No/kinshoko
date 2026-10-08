@@ -313,7 +313,7 @@ fn installed_defaults_apply_to_later_tags_and_hidden_legacy_tags_keep_pending_pr
     attach(&old, &old_image);
     old.set_safe_mode(false);
     old.edit(
-        &[old_image.clone()],
+        std::slice::from_ref(&old_image),
         &[kinshoko_core::library::ImageEdit::SetRating {
             rating: kinshoko_core::library::ContentRating::Explicit,
         }],
@@ -390,7 +390,7 @@ fn a_corrected_legacy_mapping_adopts_the_existing_explicit_global_choice() {
     let (b, image_b) = library(dir.path(), "b");
     for (lib, image, name) in [(&a, &image_a, "分发"), (&b, &image_b, "分开的头发")] {
         lib.edit_tags(
-            &[image.clone()],
+            std::slice::from_ref(image),
             &[kinshoko_core::library::TagEdit::Add {
                 tag: TagRef::Named {
                     namespace: TagNamespace::General,
