@@ -35,13 +35,14 @@
 - `t11-red-missing-definition.txt` → `t11-green-definition-validation.txt`：新包缺定义时拒绝，旧版本 1 仍可导入。
 - `t11-red-target-identity-conflict.txt` → `t11-green-target-identity-conflict.txt`：目标程序已有同 ID、不同命名空间时，导入前拒绝。
 - `t11-red-reused-seed.txt` → `t11-green-reused-seed.txt`：同一稳定种子进入第二个本地标签时复用身份，保留本机偏好。
+- `t11-red-missing-local-mapping.txt` → `t11-green-local-mapping.txt`：新版包缺来源本地映射时，在写入前拒绝。
 - `t11-red-import-current-definitions.txt` → `t11-green-import-current-definitions.txt`：包导入完成后立即复制目标库，携带本机当前纯定义。
 - `t11-red-hidden-dependency-publication.txt` → `t11-green-hidden-dependency-publication.txt`：全部使用被封印时，原始依赖仍更新已有权威身份的纯定义与外部词表。
 - `t11-red-publish-ui.txt` → `t11-green-publish-ui.txt`：界面发布失败说明与重试。该渲染测试为补充验证，不替代原生调用。
 
 故障测试实际在子进程中向资料库发布事务注入 SQLITE_FULL 和退出码 99。失败后旧批次完整保留，重试完整提交。ignored 的 `publication_subprocess` 是父公开测试主动启动的入口，不是未执行的验收。`t11-green-publication-atomicity.txt` 和后续完整日志保留真实结果。
 
-初次完整 core 检查 `t11-core-final-pass1.txt` 为 605 passed、0 failed、9 ignored。应用 5 项、tagger 4 项另行通过。此前完整检查暴露的历史 Eagle 迁移夹具错误留在 `t11-core-all.txt`；夹具补上新迁移表和触发器的回退，13 项 Eagle 再导入回归通过。新增种子复用与共用适配器之后，11 项便携行为、6 项包往返、11 项统一目录、8 项名称公开检查通过。严格 workspace/all-targets Clippy 通过。
+初次完整 core 检查 `t11-core-final-pass1.txt` 为 605 passed、0 failed、9 ignored。应用 5 项、tagger 4 项另行通过。此前完整检查暴露的历史 Eagle 迁移夹具错误留在 `t11-core-all.txt`；夹具补上新迁移表和触发器的回退，13 项 Eagle 再导入回归通过。新增种子复用与共用适配器之后，12 项便携行为、6 项包往返、11 项统一目录、8 项名称公开检查通过。严格 workspace/all-targets Clippy 通过。
 
 完整前端为 31 文件、250 项通过。TypeScript 与 Vite 构建通过。原始日志为 `t11-ui-all.txt`、`t11-typecheck.txt`、`t11-vite-build.txt`。新增命令 `publish_tag_definitions` 同时登记在 handler 和 `build.rs` inline commands，沿用主窗口 `library:default`。
 

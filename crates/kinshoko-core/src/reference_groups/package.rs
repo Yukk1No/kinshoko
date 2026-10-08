@@ -261,6 +261,14 @@ fn read_manifest(zip: &mut ZipArchive<fs::File>) -> Result<PackageManifest, Grou
             if header.format_version == Some(FORMAT_VERSION) && tag.definition.is_none() {
                 return Err(damaged("新版参考组包缺少标签身份定义"));
             }
+            if header.format_version == Some(FORMAT_VERSION)
+                && tag
+                    .local_tag_id
+                    .as_ref()
+                    .is_none_or(|id| id.trim().is_empty())
+            {
+                return Err(damaged("新版参考组包缺少来源本地标签对应"));
+            }
             if let Some(definition) = &tag.definition {
                 definition.validate().map_err(damaged)?;
                 if definition.namespace != tag.namespace {

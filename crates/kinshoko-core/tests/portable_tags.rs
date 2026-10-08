@@ -757,3 +757,43 @@ fn publishing_a_sealed_dependency_keeps_current_raw_definition_without_exposing_
     );
     assert_eq!(carried.external, definition.external);
 }
+
+#[test]
+fn modern_package_without_its_explicit_source_local_mapping_is_rejected_before_writing() {
+    let dir = tempfile::tempdir().unwrap();
+    let package = one_image_package(dir.path());
+    let damaged = dir.path().join("missing-local.kinshoko-group");
+    rewrite_manifest(&package, &damaged, |manifest| {
+        manifest["images"][0]["snapshot"]["tags"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("localTagId");
+    });
+    let target = Library::create(&dir.path().join("target"), "目标").unwrap();
+    let groups = ReferenceGroups::open(&dir.path().join("target-groups")).unwrap();
+    let result = groups.import_package(&damaged, &target);
+    assert!(
+        matches!(
+            result,
+            Err(kinshoko_core::reference_groups::GroupError::PackageDamaged(
+                _
+            ))
+        ),
+        "{result:?}"
+    );
+    assert!(groups.list().unwrap().is_empty());
+    assert!(target.tag_definition_dependencies().unwrap().is_empty());
+    assert_eq!(
+        target
+            .browse(&kinshoko_core::library::BrowseQuery {
+                scope: Default::default(),
+                conditions: Default::default(),
+                cursor: None,
+                limit: 10,
+                thumbnail_px: 100
+            })
+            .unwrap()
+            .total,
+        0
+    );
+}
