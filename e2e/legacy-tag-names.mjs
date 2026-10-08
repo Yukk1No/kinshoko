@@ -155,7 +155,12 @@ async function displayed(library, expected) {
   assert(Boolean(card), `${library.info.name} remains available as an explicit workspace source`);
   await until("scoped aggregate card", () => session.find(`//*[@data-id='${card.id}']`));
   await session.controlClick(`//*[@data-id='${card.id}']`);
-  await until("rendered image label", () => session.exec("return [...document.querySelectorAll('.tag-panel .tag-name')].some((node) => node.textContent === arguments[0]);", [expected]));
+  await until("rendered image label", async () => {
+    if (await session.exec("return [...document.querySelectorAll('.tag-panel .tag-name')].some((node) => node.textContent === arguments[0]);", [expected])) return true;
+    // The real workspace monitor can legitimately clear selection after startup/registration.
+    if (!await session.exec("return [...document.querySelectorAll('.card')].some((node) => node.dataset.id === arguments[0] && node.getAttribute('aria-selected') === 'true')", [card.id])) await session.controlClick(`//*[@data-id='${card.id}']`);
+    return false;
+  });
   const value = await tags(library);
   assert(value.tags[0].tag.id === library.localId && value.tags[0].origins.some((origin) => origin.kind === "manual"), `${library.info.name} retains local ID and manual decision while displaying ${expected}`);
 }
