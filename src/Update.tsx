@@ -39,7 +39,7 @@ function useInstall() {
 
 /**
  * 设置里的“更新”一节：当前状态、检查更新、有新版本时安装。
- * 没有配置更新公钥的构建（开发构建）只说明不检查更新。
+ * 私有阶段说明安装包更新方式；公开构建缺少条件时说明原因。
  */
 export function UpdateSection() {
   const [status, setStatus] = useState<UpdateStatus | null>(null);
@@ -75,8 +75,13 @@ export function UpdateSection() {
   return (
     <>
       <h2>更新</h2>
-      {status.state === "disabled" ? (
-        <p className="settings-hint">此构建未启用自动更新。</p>
+      {status.state === "manual" ? (
+        <>
+          <p className="settings-hint">{status.message}</p>
+          <p className="settings-hint">从托盘退出 Kinshoko 后，运行开发者提供的新版安装包，安装到原位置。装好后重新打开，继续使用已有资料库、设置、参考组和钉图。</p>
+        </>
+      ) : status.state === "disabled" ? (
+        <p className="settings-hint">{status.message}</p>
       ) : (
         <>
           {status.state === "upToDate" && <p className="settings-hint">已是最新版本。</p>}

@@ -1,0 +1,46 @@
+{
+  "harnessSha256": "944961125f63a182c9e18b08c862eee60a0280b528887358c5946aa9f8246054",
+  "ticket": 97,
+  "stories": [
+    50
+  ],
+  "sourceRevision": "5082f317b6a48c1ddf1dabeb1cbdc4e23fa11193",
+  "oldSourceRevision": "536cc43c1933e44fc33836f8a439de8cdb0da018",
+  "windows": "10.0.26300",
+  "provenance": {
+    "mainBinaryName": "kinshoko-t19-upgrade",
+    "targetDirectory": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
+    "identifier": "dev.kinshoko.spec78t19upgrade",
+    "buildProfile": "debug",
+    "old": {
+      "sourceTreeClean": true,
+      "exeSha256": "67caca7581021f68156a093adfa2f830d17038790f0389931758b45c4ffe0ccf",
+      "directmlSha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1",
+      "bundleVersion": "0.1.0",
+      "configSha256": "f02d0c07d052ddc0e47e84aa4d6f34435fb6bc65aba87543596004f22f470cc3",
+      "installerSha256": "b1ee1339bbc0e9e2981d50f6519409aab81b73f3574504a857a6fd0afb2a8e91",
+      "workspaceVersion": "0.1.0",
+      "sourceRevision": "536cc43c1933e44fc33836f8a439de8cdb0da018"
+    },
+    "debugHookSha256": "9475fbe0ba9df344b4ae5b37892861ca3212e0f313ee19e0a4b8cd6c11241621",
+    "productName": "Kinshoko T19 Upgrade Probe",
+    "new": {
+      "installerSha256": "f480139602bba172c657554ceff87028be6c64fc457af1d344a7ad6d36175dec",
+      "configSha256": "077000e9b1f2b4a1d1c6bdebec10a5a15eba45671ffe7e26f609648bccffaf7d",
+      "workspaceVersion": "0.1.0",
+      "bundleVersion": "0.1.1",
+      "sourceTreeClean": true,
+      "exeSha256": "62ea84a1e3379775a73eb61568e18f0e55a20a297fb3d8837daa164b81934f8b",
+      "sourceRevision": "5082f317b6a48c1ddf1dabeb1cbdc4e23fa11193",
+      "directmlSha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
+    }
+  },
+  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791474894605",
+  "installDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed",
+  "checks": [
+    "old real NSIS installed exe, DirectML and uninstaller"
+  ],
+  "status": "failed",
+  "error": "Error: old installed executable matches built source artifact\n    at check (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:25:44)\n    at install (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:51:3)\n    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:87:3\n    at ModuleJob.run (node:internal/modules/esm/module_job:274:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)",
+  "finishedAt": "2026-10-08T15:54:58.908Z"
+}
