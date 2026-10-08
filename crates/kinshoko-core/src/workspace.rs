@@ -4,7 +4,7 @@ use crate::approx::BuiltinApproxTable;
 use crate::library::provider::ProviderImage;
 use crate::library::{BrowseScope, Error, TagAlias, TagLabel, Vocabulary, VocabularyTag};
 use crate::search::{Candidate, Condition, ConditionTree, Search, SearchInput, Term};
-use crate::tag_catalog::{CatalogError, CatalogInspection, TagCatalog};
+use crate::tag_catalog::{CatalogError, CatalogInspection, TagCatalog, TagCatalogWorkspace};
 use crate::{DeviceLibraries, LibraryRegistration};
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
@@ -119,6 +119,8 @@ struct Snapshot {
     identities: BTreeMap<(String, String), String>,
     safe_vocabulary: std::sync::OnceLock<Vocabulary>,
     full_vocabulary: std::sync::OnceLock<Vocabulary>,
+    safe_management_vocabulary: std::sync::OnceLock<Vocabulary>,
+    full_management_vocabulary: std::sync::OnceLock<Vocabulary>,
 }
 impl Snapshot {
     fn status(&self, safe: bool) -> WorkspaceStatus {
@@ -293,9 +295,28 @@ impl Workspace {
             identities,
             safe_vocabulary: std::sync::OnceLock::new(),
             full_vocabulary: std::sync::OnceLock::new(),
+            safe_management_vocabulary: std::sync::OnceLock::new(),
+            full_management_vocabulary: std::sync::OnceLock::new(),
         });
         self.cache = Some(snapshot.clone());
         Ok(snapshot)
+    }
+    /// Names and group management share browse safety, while unused definitions remain manageable.
+    pub(crate) fn inspect_catalog(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        safe: bool,
+    ) -> Result<TagCatalogWorkspace, CatalogError> {
+        let snapshot = self.snapshot(device, catalog)?;
+        let visible = visible_catalog(&snapshot, safe);
+        if self.snapshot(device, catalog)?.status.revision != snapshot.status.revision {
+            return Err(Error::CursorExpired.into());
+        }
+        Ok(TagCatalogWorkspace {
+            catalog: visible,
+            libraries: snapshot.status.libraries.clone(),
+        })
     }
     pub fn status(
         &mut self,
@@ -499,7 +520,7 @@ impl Workspace {
         safe: bool,
     ) -> Result<Vec<crate::library::TagGroupView>, CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
-        catalog.groups(global_vocabulary(&snapshot, safe), lang)
+        catalog.groups(management_vocabulary(&snapshot, safe), lang)
     }
     pub fn shared_tag_groups(
         &mut self,
@@ -509,7 +530,7 @@ impl Workspace {
         safe: bool,
     ) -> Result<Vec<crate::tag_catalog::CatalogGroupView>, CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
-        catalog.group_views(global_vocabulary(&snapshot, safe), lang)
+        catalog.group_views(management_vocabulary(&snapshot, safe), lang)
     }
     /// Every registered root and its complete directory tree share one safety/revision snapshot.
     pub fn directories(
@@ -692,6 +713,83 @@ fn local_tree(tree: &ConditionTree, catalog: &CatalogInspection, library: &str) 
             .collect(),
     }
 }
+/// Preserve definitions with no effective usage. Hide only definitions whose usage is all vetoed.
+/// Deleted images still establish usage, matching Library's sealed-only rule; counts exclude trash.
+fn visible_catalog(snapshot: &Snapshot, safe: bool) -> CatalogInspection {
+    let mut visible = BTreeSet::new();
+    for provider in &snapshot.providers {
+        let Some(vocabulary) = &provider.vocabulary else {
+            continue;
+        };
+        let mut sealed = BTreeSet::new();
+        let mut unsealed = BTreeSet::new();
+        if safe {
+            for image in &provider.images {
+                let target = if snapshot.adult.contains(&image.sha256) {
+                    &mut sealed
+                } else {
+                    &mut unsealed
+                };
+                target.extend(image.tags.iter().map(String::as_str));
+            }
+        }
+        visible.extend(
+            vocabulary
+                .tags
+                .iter()
+                .filter(|tag| {
+                    !sealed.contains(tag.id.as_str()) || unsealed.contains(tag.id.as_str())
+                })
+                .map(|tag| (provider.registration.library.id.as_str(), tag.id.as_str())),
+        );
+    }
+    let mut catalog = snapshot.catalog.clone();
+    catalog.mappings.retain(|mapping| {
+        visible.contains(&(mapping.library_id.as_str(), mapping.local_tag_id.as_str()))
+    });
+    let ids = catalog
+        .mappings
+        .iter()
+        .map(|mapping| mapping.catalog_id.as_str())
+        .collect::<BTreeSet<_>>();
+    catalog.tags.retain(|tag| ids.contains(tag.id.as_str()));
+    catalog
+}
+/// Search candidates remain tied to live effective usage. Management also retains legitimate zero-use definitions.
+fn management_vocabulary(snapshot: &Snapshot, safe: bool) -> &Vocabulary {
+    let cache = if safe {
+        &snapshot.safe_management_vocabulary
+    } else {
+        &snapshot.full_management_vocabulary
+    };
+    cache.get_or_init(|| {
+        let mut vocabulary = global_vocabulary(snapshot, safe).clone();
+        let present = vocabulary
+            .tags
+            .iter()
+            .map(|tag| tag.id.clone())
+            .collect::<BTreeSet<_>>();
+        for tag in visible_catalog(snapshot, safe).tags {
+            if !present.contains(&tag.id) {
+                vocabulary.tags.push(VocabularyTag {
+                    id: tag.id,
+                    namespace: tag.namespace,
+                    names: tag.names,
+                    aliases: tag.aliases,
+                    external: tag
+                        .external
+                        .into_iter()
+                        .filter(|entry| entry.vocabulary == "danbooru")
+                        .map(|entry| entry.name)
+                        .collect(),
+                    count: 0,
+                });
+            }
+        }
+        vocabulary.tags.sort_by(|a, b| a.id.cmp(&b.id));
+        vocabulary
+    })
+}
 fn global_vocabulary(snapshot: &Snapshot, safe: bool) -> &Vocabulary {
     let cache = if safe {
         &snapshot.safe_vocabulary
@@ -791,6 +889,6 @@ impl Workspace {
         safe: bool,
     ) -> Result<(), CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
-        catalog.edit_group(edit, global_vocabulary(&snapshot, safe))
+        catalog.edit_group(edit, management_vocabulary(&snapshot, safe))
     }
 }

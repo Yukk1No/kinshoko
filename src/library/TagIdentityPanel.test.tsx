@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
@@ -28,10 +28,11 @@ it("inspects ambiguous local tags and saves an explicit shared correspondence", 
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
   const row = await screen.findByRole("row", { name: /第二库.*青丝/ });
   fireEvent.change(within(row).getByRole("combobox"), { target: { value: "blue" } });
+  await waitFor(() => expect(within(row).getByRole<HTMLButtonElement>("button", { name: "保存对应" }).disabled).toBe(false));
   fireEvent.click(within(row).getByRole("button", { name: "保存对应" }));
-  await within(row).findByText(/已纠正/);
-  expect(within(row).getByText("青丝")).toBeTruthy();
-  expect(within(row).getByText(/名称来源待处理/)).toBeTruthy();
+  const corrected = await screen.findByRole("row", { name: /第二库.*青丝.*已纠正/ });
+  expect(within(corrected).getByText("青丝")).toBeTruthy();
+  expect(within(corrected).getByText(/名称来源待处理/)).toBeTruthy();
 });
 
 it.each(["inspect", "correct"])("clears inspected records and discards a late %s result when safe mode changes", async (action) => {

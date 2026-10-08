@@ -332,9 +332,11 @@ fn same_named_legacy_groups_keep_distinct_members_and_sources_and_deleted_group_
     let (_, blue) = image(&a, dir.path(), "blue", 71, "blue_hair");
     let (_, red) = image(&b, dir.path(), "red", 72, "red_hair");
     let ga = a.create_tag_group("发色", None).unwrap();
-    a.set_tag_group_tags(&ga, &[blue.clone()]).unwrap();
+    a.set_tag_group_tags(&ga, std::slice::from_ref(&blue))
+        .unwrap();
     let gb = b.create_tag_group("发色", None).unwrap();
-    b.set_tag_group_tags(&gb, &[red.clone()]).unwrap();
+    b.set_tag_group_tags(&gb, std::slice::from_ref(&red))
+        .unwrap();
     let mut catalog = TagCatalog::open(&app).unwrap();
     let mut w = Workspace::open(&app).unwrap();
     w.tag_groups(&device, &mut catalog, "", "en", true).unwrap();
