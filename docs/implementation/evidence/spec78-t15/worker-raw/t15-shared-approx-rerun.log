@@ -1,0 +1,13 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/search/SharedApprox.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  04:22:09
+   Duration  2.05s (environment 59%, tests 20%, import 11%, transform 10%)
+

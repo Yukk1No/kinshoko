@@ -1,0 +1,2 @@
+[codex/spec-78-integration 2d6bb1a] docs(import): regenerate receipt type without field-comment whitespace
+ 2 files changed, 18 insertions(+), 27 deletions(-)

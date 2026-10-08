@@ -1,0 +1,19 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.67s
+     Running tests\import_preview.rs (target\debug\deps\import_preview-8bc69e9aa5ded5ee.exe)
+
+running 1 test
+
+thread 'explicit_consent_uses_only_the_actual_completed_cross_library_duplicate_receipt' (29040) panicked at crates\kinshoko-core\tests\import_preview.rs:70:108:
+called `Result::unwrap()` on an `Err` value: Library(UnknownImage)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test explicit_consent_uses_only_the_actual_completed_cross_library_duplicate_receipt ... FAILED
+
+failures:
+
+failures:
+    explicit_consent_uses_only_the_actual_completed_cross_library_duplicate_receipt
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.27s
+
+error: test failed, to rerun pass `-p kinshoko-core --test import_preview`

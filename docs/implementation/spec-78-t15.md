@@ -98,3 +98,11 @@ v3-retry1 于 2026-10-08 21:16:51.240–21:17:27.486 UTC 完整通过 43 项。�
 21:18:06 UTC 已 release。`cleanup.json` 记录 own EXE/profile WebView/drivers 和 4676/4677 均空；KnownFolder 原不存在→实际 safeMode=true / SHA256 `7ab1eb0d453365c6f8c4b1de3a6c10bac9185790bf3b49e047f5e64b0391c2dd`（已复制到 run `known-folder-after`）→仅恢复该独立目录为不存在。清理使用 WebDriver DELETE 和精确 EXE/driver 强制清理，没有称为正常 tray Quit。主脚本、helper、manifest/fixture 原字节、preflight、config、console、settings 和截图都在该 run 保留；全量 raw 索引为 `work/e2e/t15-evidence-index-final.json`。v1 passed36 原件及新增期望 RED、v2 未执行包、v3 failed23 原件分别保留，不与最终 passed43 合并。
 
 完成边界不变：原型用于代码和体验适配；自动原生检查不代替用户主观认可。Windows 10 无设备，按负责人指示明确未验证；多显示器、系统 DPI、笔输入与色彩品质没有由本单合成图结果外推为通过。审批拒绝的拟议 mode 修改从未执行，原文已保全；最终安全替代是完全不改变 mode 的只读回执 capability，无待批准的该动作。
+
+## 独立合并与可审阅原件
+
+独立 merger 核对交付 `2cdf025` clean、556 source / 10 dist、87 raw、三轮原生原始状态、45 份真实 fixture 文件，以及根归档 51 份 / 81,416,509 字节的源与副本 SHA。原合并 `d93e7f803e160c73862a9692935471b072fc027a` 没有冲突，tree `79bb1657860296aa0d4be07bd155b63de2334dce` 与 worker 完全相同；双亲为 `1e8eb709` / `2cdf025`。
+
+独立检查在该合并实际执行核心 6 targets / 65 项父检查、3 ignored，另由 T13 父检查启动的 3 份故障子进程没有重复计数；前端 5 files / 87 项、TypeScript、fmt、两份脚本语法及 strict Tauri all-targets clippy 均成功。首次 diff-check 实际失败：ts-rs 字段文档产生三处行尾空白。后续 `2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9` 只把字段说明归到 Rust struct 文档并运行真实 `export_bindings_importreport`。Rust 非文档代码、TypeScript 非注释声明与字段顺序保持相同；生成器、fmt、TypeScript、完整 diff-check 和 strict clippy 重新执行成功。原始失败保留，不手改生成物。
+
+[可审阅原件索引](evidence/spec78-t15/README.md)、[逐文件复制校验](evidence/spec78-t15/copied-files.json)、[最终原生结果](evidence/spec78-t15/native-final/result.json)与[独立合并报告](evidence/spec78-t15/merger/result.json)记录各自固定来源。165 份原始文件共 6,817,379 字节按原字节加入证据目录。最终原生 43 项始终归属实际编译源 `473bdb1` 和 harness `364cdac`；上述合并和文档提交没有冒充新原生构建。T17 的普通截图历史与来源变更提交边界候选、#98 最终组合和最终 Standards / Spec 审查继续单独处理。

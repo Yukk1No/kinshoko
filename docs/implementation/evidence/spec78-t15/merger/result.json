@@ -1,0 +1,565 @@
+{
+  "status": "passed",
+  "task": "#78 T15 / #94 independent merger",
+  "completedAtUtc": "2026-10-08T21:35:56.463594+00:00",
+  "integrationBefore": "1e8eb709eb0906f62ced84c4ccf203e6f3121c94",
+  "workerTip": "2cdf025c4bed72e21178b64e22a501f562363f2c",
+  "workerTree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+  "mergeCommit": "d93e7f803e160c73862a9692935471b072fc027a",
+  "mergeTree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+  "parents": [
+    "1e8eb709eb0906f62ced84c4ccf203e6f3121c94",
+    "2cdf025c4bed72e21178b64e22a501f562363f2c"
+  ],
+  "conflicts": [],
+  "mergeTreeEqualsWorker": true,
+  "tip": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
+  "tipTree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
+  "postMergeDocumentationCommit": {
+    "before": "d93e7f803e160c73862a9692935471b072fc027a",
+    "changedFiles": [
+      "crates/kinshoko-core/src/library/types.rs",
+      "src/bindings/ImportReport.ts"
+    ],
+    "rustCodeWithoutDocCommentsIdentical": true,
+    "typescriptDeclarationsWithoutCommentsAndWhitespaceIdentical": true,
+    "patchSha256": "488715cd944fe5ee8d707d2fd0c967b1b702f9ee840573c95e5ccb8d7efdd205",
+    "files": [
+      {
+        "file": "crates/kinshoko-core/src/library/types.rs",
+        "sha256": "202237eb6a53b81adc8063cfbde813450b84b29b5e00dd9799ad534f2552b73a",
+        "bytes": 19264
+      },
+      {
+        "file": "src/bindings/ImportReport.ts",
+        "sha256": "54a36d3791478971ba9107e9e835caa3c573e6b71fe1a4b52762372524053b0f",
+        "bytes": 1141
+      }
+    ],
+    "after": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
+    "afterTree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
+    "cleanAfterActualRegeneration": true
+  },
+  "review": {
+    "blockingFindings": [],
+    "resolvedFindings": [
+      {
+        "file": "src/bindings/ImportReport.ts",
+        "oldLines": [
+          8,
+          12,
+          16
+        ],
+        "finding": "ts-rs emitted added trailing spaces at field-documentation boundaries.",
+        "originalLog": "diff-whitespace.txt",
+        "originalExitCode": 2,
+        "resolution": "Move report field notes to the Rust struct documentation and run the actual ts-rs export test. No field or field-order change; no manual generated-file editing.",
+        "commit": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
+        "fixedLog": "diff-whitespace-fixed.txt",
+        "fixedExitCode": 0
+      }
+    ],
+    "scope": [
+      "Backend-owned fixed T10 receipt; ordinary progress/report privacy across all-known-provider Adult classification, including offline/out-of-scope providers.",
+      "Unknown content remains visible. Mixed successful categories and completed totals are coarsened together; real failure paths remain available for retry.",
+      "Explicit consent accepts actual task identity only. Opaque items are limited to live sealed duplicates on that actual completed receipt.",
+      "Detached readonly provider reads one immutable original buffer, verifies its SHA, and uses the existing SDR path without mode, curation or derivative-cache mutation.",
+      "Public prepare/resolve/complete boundaries and guarded chunk commits revoke on close, replacement consent, receipt dismissal, library context, source revision and mode/settings generation changes.",
+      "Shared final visibility permit uses transition -> permit -> resource locks. Decode releases device/task locks first. The window-destruction callback only fences atomically and dispatches a worker; it does not wait for the permit.",
+      "Each Channel publication is <=1023 bytes, under the locked Tauri 2.12.1 direct callback threshold; permit and resource locks end between chunks. Empty end marker is separately guarded.",
+      "Frontend requires end marker and command acknowledgment, rejects partial/revoked transfer, disposes Blob URLs and binds consent to receipt plus current-library UI context while retaining the original task owner.",
+      "Plugin handler names, build-time inline permissions, main capability and generated public TypeScript types agree.",
+      "No new unsafe, production test-only IPC or mode-off exception. The rejected reader-mode proposal remained unexecuted; the readonly capability alternative is complete."
+    ],
+    "sourceReferences": [
+      "crates/kinshoko-core/src/workspace/import_preview.rs:80",
+      "crates/kinshoko-core/src/workspace/import_preview.rs:159",
+      "crates/kinshoko-core/src/workspace/import_preview.rs:318",
+      "crates/kinshoko-core/src/workspace/import_preview.rs:345",
+      "crates/kinshoko-core/src/library/mod.rs:337",
+      "crates/kinshoko-core/src/device_libraries.rs:348",
+      "src-tauri/src/library.rs:575",
+      "src-tauri/src/library.rs:596",
+      "src-tauri/src/library/import_preview.rs:98",
+      "src-tauri/src/library/settings_backup.rs:59",
+      "src/library/ImportMenu.tsx",
+      "src/library/ImportBar.tsx",
+      "src/library/SealedImportPreview.tsx",
+      "src/ipc.ts:941"
+    ],
+    "separateT17Candidates": "Ordinary capture-history pre-permit publication and provider/source mutation serialization remain T17/T20 review candidates. This merger neither claims them fixed nor treats unconfirmed static candidates as demonstrated T15 failures.",
+    "notFinalStandardsSpecReview": true
+  },
+  "checks": {
+    "executed": [
+      {
+        "name": "rust",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "kinshoko-core",
+          "--locked",
+          "--test",
+          "import_preview",
+          "--test",
+          "workspace",
+          "--test",
+          "save_destination",
+          "--test",
+          "safe_mode",
+          "--test",
+          "eagle_deleted_content",
+          "--test",
+          "application_settings_backup"
+        ],
+        "exitCode": 0,
+        "startedAtUtc": "2026-10-08T21:28:05.993228+00:00",
+        "finishedAtUtc": "2026-10-08T21:29:08.768406+00:00",
+        "durationSeconds": 62.611417800006166,
+        "source": "d93e7f803e160c73862a9692935471b072fc027a",
+        "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+        "log": "rust.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      },
+      {
+        "name": "ui",
+        "command": [
+          "npx.cmd",
+          "vitest",
+          "run",
+          "src/library/ImportMenu.test.tsx",
+          "src/library/ImportBar.test.tsx",
+          "src/import-preview-ipc.test.ts",
+          "src/App.test.tsx",
+          "src/SettingsPanel.test.tsx"
+        ],
+        "exitCode": 0,
+        "startedAtUtc": "2026-10-08T21:28:06.009702+00:00",
+        "finishedAtUtc": "2026-10-08T21:28:24.284480+00:00",
+        "durationSeconds": 18.118178000004264,
+        "source": "d93e7f803e160c73862a9692935471b072fc027a",
+        "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+        "log": "ui.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      },
+      {
+        "name": "fmt",
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "exitCode": 0,
+        "startedAtUtc": "2026-10-08T21:28:05.987106+00:00",
+        "finishedAtUtc": "2026-10-08T21:28:09.335324+00:00",
+        "durationSeconds": 3.199192600004608,
+        "source": "d93e7f803e160c73862a9692935471b072fc027a",
+        "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+        "log": "fmt.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      },
+      {
+        "name": "typescript",
+        "command": [
+          "npm.cmd",
+          "run",
+          "typecheck"
+        ],
+        "exitCode": 0,
+        "startedAtUtc": "2026-10-08T21:28:09.336183+00:00",
+        "finishedAtUtc": "2026-10-08T21:28:12.721263+00:00",
+        "durationSeconds": 3.2627189999984694,
+        "source": "d93e7f803e160c73862a9692935471b072fc027a",
+        "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+        "log": "typescript.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      },
+      {
+        "name": "harness-syntax",
+        "command": [
+          "node",
+          "--check",
+          "e2e/sealed-import-preview.mjs"
+        ],
+        "exitCode": 0,
+        "startedAtUtc": "2026-10-08T21:28:12.721993+00:00",
+        "finishedAtUtc": "2026-10-08T21:28:12.914962+00:00",
+        "durationSeconds": 0.07558659999631345,
+        "source": "d93e7f803e160c73862a9692935471b072fc027a",
+        "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+        "log": "harness-syntax.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      },
+      {
+        "name": "helper-syntax",
+        "command": [
+          "node",
+          "--check",
+          "scripts/check-sealed-preview-revocation.mjs"
+        ],
+        "exitCode": 0,
+        "startedAtUtc": "2026-10-08T21:28:12.915803+00:00",
+        "finishedAtUtc": "2026-10-08T21:28:13.121894+00:00",
+        "durationSeconds": 0.08933239999896614,
+        "source": "d93e7f803e160c73862a9692935471b072fc027a",
+        "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+        "log": "helper-syntax.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      },
+      {
+        "name": "diff-whitespace",
+        "command": [
+          "git",
+          "diff",
+          "--check",
+          "1e8eb709eb0906f62ced84c4ccf203e6f3121c94",
+          "HEAD"
+        ],
+        "exitCode": 2,
+        "startedAtUtc": "2026-10-08T21:28:13.122582+00:00",
+        "finishedAtUtc": "2026-10-08T21:28:13.342281+00:00",
+        "durationSeconds": 0.10973519999970449,
+        "source": "d93e7f803e160c73862a9692935471b072fc027a",
+        "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+        "log": "diff-whitespace.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      },
+      {
+        "name": "clippy",
+        "command": [
+          "cargo",
+          "clippy",
+          "-p",
+          "kinshoko",
+          "--all-targets",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "exitCode": 0,
+        "startedAtUtc": "2026-10-08T21:29:37.109281+00:00",
+        "finishedAtUtc": "2026-10-08T21:30:02.808951+00:00",
+        "durationSeconds": 25.62186539999675,
+        "source": "d93e7f803e160c73862a9692935471b072fc027a",
+        "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+        "log": "clippy.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      },
+      {
+        "name": "binding-doc-regeneration-fixed",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "kinshoko-core",
+          "--lib",
+          "--locked",
+          "export_bindings_importreport"
+        ],
+        "exitCode": 0,
+        "startedAtUtc": "2026-10-08T21:33:51.688446+00:00",
+        "finishedAtUtc": "2026-10-08T21:33:52.401298+00:00",
+        "durationSeconds": 0.6344553000017186,
+        "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
+        "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
+        "log": "binding-doc-regeneration-fixed.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      },
+      {
+        "name": "fmt-after-binding-doc",
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "exitCode": 0,
+        "startedAtUtc": "2026-10-08T21:33:52.401831+00:00",
+        "finishedAtUtc": "2026-10-08T21:33:53.532150+00:00",
+        "durationSeconds": 1.055700999997498,
+        "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
+        "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
+        "log": "fmt-after-binding-doc.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      },
+      {
+        "name": "typescript-after-binding-doc",
+        "command": [
+          "npm.cmd",
+          "run",
+          "typecheck"
+        ],
+        "exitCode": 0,
+        "startedAtUtc": "2026-10-08T21:33:53.532667+00:00",
+        "finishedAtUtc": "2026-10-08T21:33:55.323532+00:00",
+        "durationSeconds": 1.7164849000037066,
+        "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
+        "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
+        "log": "typescript-after-binding-doc.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      },
+      {
+        "name": "diff-whitespace-fixed",
+        "command": [
+          "git",
+          "diff",
+          "--check",
+          "1e8eb709eb0906f62ced84c4ccf203e6f3121c94",
+          "HEAD"
+        ],
+        "exitCode": 0,
+        "startedAtUtc": "2026-10-08T21:33:55.324366+00:00",
+        "finishedAtUtc": "2026-10-08T21:33:55.462157+00:00",
+        "durationSeconds": 0.0627669000023161,
+        "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
+        "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
+        "log": "diff-whitespace-fixed.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      },
+      {
+        "name": "clippy-after-binding-doc",
+        "command": [
+          "cargo",
+          "clippy",
+          "-p",
+          "kinshoko",
+          "--all-targets",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "exitCode": 0,
+        "startedAtUtc": "2026-10-08T21:33:58.938545+00:00",
+        "finishedAtUtc": "2026-10-08T21:34:08.543645+00:00",
+        "durationSeconds": 9.525192300003255,
+        "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
+        "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
+        "log": "clippy-after-binding-doc.txt",
+        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "cargoBuildJobs": "2",
+        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+      }
+    ],
+    "independentCore": {
+      "source": "d93e7f803e160c73862a9692935471b072fc027a",
+      "targets": [
+        {
+          "target": "Running tests\\application_settings_backup.rs (target\\debug\\deps\\application_settings_backup-be81416567d29a46.exe)",
+          "passed": 7,
+          "ignored": 1,
+          "nestedSuccessfulSummaries": 3
+        },
+        {
+          "target": "Running tests\\eagle_deleted_content.rs (target\\debug\\deps\\eagle_deleted_content-193df7a0aff921b5.exe)",
+          "passed": 11,
+          "ignored": 2,
+          "nestedSuccessfulSummaries": 0
+        },
+        {
+          "target": "Running tests\\import_preview.rs (target\\debug\\deps\\import_preview-8bc69e9aa5ded5ee.exe)",
+          "passed": 13,
+          "ignored": 0,
+          "nestedSuccessfulSummaries": 0
+        },
+        {
+          "target": "Running tests\\safe_mode.rs (target\\debug\\deps\\safe_mode-4f7f007a236ebebf.exe)",
+          "passed": 18,
+          "ignored": 0,
+          "nestedSuccessfulSummaries": 0
+        },
+        {
+          "target": "Running tests\\save_destination.rs (target\\debug\\deps\\save_destination-83d37596c3e2fdd7.exe)",
+          "passed": 9,
+          "ignored": 0,
+          "nestedSuccessfulSummaries": 0
+        },
+        {
+          "target": "Running tests\\workspace.rs (target\\debug\\deps\\workspace-0ca34ce5cb6e9673.exe)",
+          "passed": 7,
+          "ignored": 0,
+          "nestedSuccessfulSummaries": 0
+        }
+      ],
+      "parentTestsPassed": 65,
+      "ignoredChildEntrypoints": 3,
+      "nestedSuccessfulFaultChildRuns": 3,
+      "nestedChildRunsAddedToParentTotal": false,
+      "log": "rust.txt"
+    },
+    "independentUi": {
+      "source": "d93e7f803e160c73862a9692935471b072fc027a",
+      "files": 5,
+      "testsPassed": 87,
+      "log": "ui.txt"
+    },
+    "postDoc": {
+      "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
+      "actualExportTestPassed": 1,
+      "generatedOutputUnchangedBySecondExport": true,
+      "fmt": "passed",
+      "typescript": "passed",
+      "fullDeltaWhitespace": "passed",
+      "tauriAllTargetsStrictClippy": "passed"
+    },
+    "workerArchivedFullUi": {
+      "log": "work/e2e/t15-current-library-all-ui.log",
+      "files": 36,
+      "testsPassed": 279,
+      "rawBytesAndSummaryVerified": true,
+      "reexecutedByMerger": false,
+      "sourceAttribution": "Log does not itself embed a full Git SHA; fixed product/worker input provenance is separately audited. Independent merger rerun covers the 87 affected public UI tests at the exact clean merge SHA."
+    },
+    "environment": {
+      "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+      "cargoBuildJobs": 2,
+      "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp",
+      "workerTargetReused": false,
+      "note": "Workspace TEMP/TMP used from the first execution. Initial binding export emitted an incremental-cache hard-link warning and copied files instead; the export test succeeded. Raw warning preserved."
+    }
+  },
+  "evidence": {
+    "auditBefore": "evidence-audit-premerge.json",
+    "auditAfterMerge": "evidence-audit-postmerge.json",
+    "rawFilesChecked": 87,
+    "sourceFilesChecked": 556,
+    "distFilesChecked": 10,
+    "sourceBeforeAfterIdentical": true,
+    "sourceGitEolOnlyCount": 325,
+    "rootVsWorkerEolOnlyCount": 36,
+    "rootArchive": {
+      "index": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\root-preservation-v3-final.json",
+      "files": 51,
+      "bytes": 81416509,
+      "allSourceAndCopyHashesMatch": true
+    },
+    "native": {
+      "source": "473bdb1dc4802577d805534c17b4201a01a38aa8",
+      "tree": "e4a0caf90bf8c5e789df485d5385f2b1e37456fb",
+      "binarySha256": "7e083e5c0c44375dae6d17691e495bffab5f4941e74792e5730c8d97dcd39e0e",
+      "harnessSource": "364cdac297bb8b8b1eac3541033edf1caf503a77",
+      "harnessSha256": "9656f6bf40d661ae8bdb725526b28042874d12ca807eaec2b7b116aeb5320003",
+      "status": "passed",
+      "assertions": 43,
+      "safeStatesOn": 7,
+      "chunkRaces": [
+        {
+          "action": {
+            "command": "plugin:library|close_import_preview",
+            "args": {
+              "sessionId": "5f03a704426346afa52c8614b45ac942"
+            }
+          },
+          "actionElapsedMs": 1.0999999940395355,
+          "length": 6138,
+          "chunks": 6,
+          "bytesAfterActionResponse": 0,
+          "chunksAfterActionResponse": 0,
+          "completionMarkerAt": null
+        },
+        {
+          "action": {
+            "command": "plugin:library|set_safe_mode",
+            "args": {
+              "on": true
+            }
+          },
+          "actionElapsedMs": 9.5,
+          "length": 12276,
+          "chunks": 12,
+          "bytesAfterActionResponse": 0,
+          "chunksAfterActionResponse": 0,
+          "completionMarkerAt": null
+        }
+      ],
+      "reexecuted": false
+    },
+    "historicalNativeRuns": [
+      {
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v1",
+        "files": 12,
+        "status": "passed",
+        "assertions": 36
+      },
+      {
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3",
+        "files": 20,
+        "status": "failed",
+        "assertions": 23
+      },
+      {
+        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1",
+        "files": 21,
+        "status": "passed",
+        "assertions": 43
+      }
+    ],
+    "v2Status": "frozen package never executed natively",
+    "screenshots": {
+      "inspected": [
+        "default-sealed-prompt.png",
+        "explicit-receipt-preview.png",
+        "closed-reveiled.png",
+        "current-library-reveiled.png"
+      ],
+      "sameBytes": [
+        {
+          "first": "current-library-reveiled.png",
+          "second": "pending-current-library-no-revival.png",
+          "byteIdentical": true
+        },
+        {
+          "first": "default-sealed-prompt.png",
+          "second": "pending-ui-close-no-revival.png",
+          "byteIdentical": true
+        }
+      ],
+      "observation": "Default and closed views contain the generic prompt, actual retry failure and no sealed image/name/success total. Explicit consent shows one synthetic noise image. Current-library change shows the original task receipt and no preview dialog. These are script/screenshot observations, not subjective hardware acceptance."
+    }
+  },
+  "limitations": [
+    "v1 original passed36 retained; its new transmission revocation expectation was RED",
+    "v2 package never executed natively",
+    "v3 status failed23 retained: returned race metadata omitted afterFirstChunk; trace independently proves close substep interrupted",
+    "v3-retry1 completed passed43; no mode-off action; seven actual safe-mode samples true",
+    "Windows 10 unverified by explicit owner instruction; synthetic SDR/noise screenshots do not prove human approval, pen input, multiple display/DPI or colour quality",
+    "shutdown was exact forced cleanup after WebDriver DELETE, not normal tray Quit",
+    "proposed reader mode mutation was rejected before execution; exact text and unexecuted state retained; readonly capability alternative completed",
+    "Merger did not launch native apps, inspect or alter the currently reserved desktop, or mutate other worker trees.",
+    "No push, GitHub operation, PR status change, Release publication or managed worktree cleanup performed.",
+    "Final combined T20 native and full Standards/Spec review remain root-owned.",
+    "Original #42/#71 bodies, status and evidence were not modified.",
+    "The exact merge tree equals the worker. The subsequent tip differs only in two verified Rust/TypeScript documentation files; it is not the native product compilation source."
+  ],
+  "rootWorkingTreeClean": true,
+  "released": true
+}

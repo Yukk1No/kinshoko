@@ -1,0 +1,10 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 18.76s
+     Running tests\import_preview.rs (target\debug\deps\import_preview-8bc69e9aa5ded5ee.exe)
+
+running 2 tests
+test explicit_consent_uses_only_the_actual_completed_cross_library_duplicate_receipt ... ok
+test default_receipt_does_not_expose_sealed_duplicate_ids_or_success_totals ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+

@@ -1,0 +1,19 @@
+{
+  "collectedAt": "2026-10-08T21:13:04.7365398Z",
+  "cleanup": "WebDriver session DELETE; harness exact executable forced Stop-Process and exact spawned driver PID tree taskkill; verified no remaining actual native processes or task ports; not normal tray Quit",
+  "finalAdditionalForcedProcesses": [],
+  "ownedRemaining": [],
+  "driversRemaining": [],
+  "portsRemaining": [],
+  "knownFolder": {
+    "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t15test",
+    "beforeExists": false,
+    "settingsAfterExists": false,
+    "directoryAfterExists": false
+  },
+  "os": {
+    "Caption": "Microsoft Windows 11 专业版",
+    "Version": "10.0.26300",
+    "BuildNumber": "26300"
+  }
+}

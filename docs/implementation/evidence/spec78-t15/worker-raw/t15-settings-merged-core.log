@@ -1,0 +1,56 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 22.36s
+     Running tests\application_settings_backup.rs (target\debug\deps\application_settings_backup-be81416567d29a46.exe)
+
+running 8 tests
+test child_restores_until_configuration_fault ... ignored, executed by the crash parent with a real persistent configuration
+
+running 1 test
+test invalid_or_changed_packages_leave_existing_configuration_usable ... ok
+test a_settings_write_failure_keeps_the_old_complete_configuration ... ok
+test restoring_settings_keeps_current_library_identity_corrections_and_every_image_fact ... ok
+test a_blank_application_restores_the_explicit_default_name_and_shell_preferences ... ok
+test replacement_keeps_deleted_aliases_and_migrated_rules_deleted_after_reconnect ... ok
+test restored_external_ownership_does_not_change_when_two_portable_identities_share_a_word ... ok
+
+running 1 test
+test child_restores_until_configuration_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.03s
+
+
+running 1 test
+
+running 1 test
+test child_restores_until_configuration_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.03s
+
+
+running 1 test
+
+running 1 test
+test child_restores_until_configuration_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.05s
+
+test restart_recovers_one_complete_configuration_after_catalog_publication_is_interrupted ... ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.70s
+
+     Running tests\import_preview.rs (target\debug\deps\import_preview-8bc69e9aa5ded5ee.exe)
+
+running 10 tests
+test mode_transition_and_library_switch_revoke_a_completed_but_unreleased_read ... ok
+test replacing_original_bytes_cannot_reuse_an_old_receipt_as_a_display_capability ... ok
+test eagle_refreshed_successes_do_not_leak_a_sealed_only_total ... ok
+test default_receipt_does_not_expose_sealed_duplicate_ids_or_success_totals ... ok
+test explicit_consent_uses_only_the_actual_completed_cross_library_duplicate_receipt ... ok
+test unavailable_known_adult_source_still_seals_receipts_and_removal_revokes_pending_content ... ok
+test report_dismissal_and_identity_replacement_reject_pending_content ... ok
+test mixed_receipt_coarsens_all_successes_keeps_real_failures_and_does_not_change_curation ... ok
+test deleted_and_permanently_deleted_content_never_revives_through_an_old_receipt ... ok
+test close_and_next_receipt_generation_reject_late_bytes_foreign_ids_and_historical_tokens ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.92s
+

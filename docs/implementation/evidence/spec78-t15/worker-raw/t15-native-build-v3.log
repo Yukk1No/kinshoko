@@ -1,0 +1,19 @@
+        Info Looking up installed tauri packages to check mismatched versions...
+     Running beforeBuildCommand `npm run vite:build`
+
+> kinshoko@0.1.0 vite:build
+> vite build
+
+vite v8.3.3 building client environment for production...
+transforming...
+✓ 68 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.40 kB │ gzip:   0.27 kB
+dist/assets/index-Cho8IVmZ.css   36.85 kB │ gzip:   7.85 kB
+dist/assets/index-DWqfnfs_.js   433.95 kB │ gzip: 130.79 kB
+
+✓ built in 200ms
+   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 11.19s
+       Built application at: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\target\debug\kinshoko.exe

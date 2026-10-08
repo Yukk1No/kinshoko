@@ -1,0 +1,64 @@
+
+> kinshoko@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+stderr | src/search/SharedApprox.test.tsx > does not release a late unsafe rule list after safe mode changes
+Encountered two children with the same key, `0`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+Encountered two children with the same key, `0`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+Encountered two children with the same key, `0`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+Encountered two children with the same key, `0`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+
+ ❯ src/search/SharedApprox.test.tsx (5 tests | 1 failed) 856ms
+   × does not release a late unsafe rule list after safe mode changes 45ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/search/SharedApprox.test.tsx > does not release a late unsafe rule list after safe mode changes
+AssertionError: expected <td><span …(4)></span>
+…(1)</td> to be null
+
+- Expected:
+null
+
++ Received:
+<td>
+  封印旧标签
+  <span
+    aria-label="没有外部对应，不参与内置近似对应表"
+    class="no-external"
+    role="img"
+    title="没有外部对应，不参与内置近似对应表"
+  />
+  ～
+  另一标签
+  <span
+    aria-label="没有外部对应，不参与内置近似对应表"
+    class="no-external"
+    role="img"
+    title="没有外部对应，不参与内置近似对应表"
+  />
+</td>
+
+ ❯ src/search/SharedApprox.test.tsx:63:39
+     61|   await act(async()=>{await emit("safe-mode-setting",true);});
+     62|   await act(async()=>{resolveOld({revision:1,entries:[{a:label("secret…
+     63|   expect(screen.queryByText(/封印旧标签/)).toBeNull();
+       |                                       ^
+     64| });
+     65| it("workspace plus chooses an unmapped visible tag and saves one globa…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 35 passed (36)
+      Tests  1 failed | 276 passed (277)
+   Start at  04:21:06
+   Duration  21.24s (environment 67%, tests 20%, import 12%, transform 1%)
+
+Environment  jsdom was created 36 times · 138.00s total, 67% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

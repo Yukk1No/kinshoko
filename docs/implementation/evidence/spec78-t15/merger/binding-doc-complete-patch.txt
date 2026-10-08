@@ -1,0 +1,77 @@
+diff --git a/crates/kinshoko-core/src/library/types.rs b/crates/kinshoko-core/src/library/types.rs
+index b841c91..4d1b3cc 100644
+--- a/crates/kinshoko-core/src/library/types.rs
++++ b/crates/kinshoko-core/src/library/types.rs
+@@ -172,23 +172,26 @@ pub struct ImportItem {
+ }
+ 
+ /// 导入任务的逐项结果。取消时只列出取消前处理过的项。
++///
++/// `sealed_duplicates` is a boolean prompt only; the ordinary receipt never exposes the
++/// sealed subset size. `private_summary` coarsens success details together so subtraction
++/// cannot reveal a subset.
++///
++/// `from_eagle` 表示导入器识别到了 Eagle 来源，与画师使用的入口无关。
++/// `eagle_missing` 是这次迁入的 Eagle 资料库里已经不存在、但本库保留了副本的条目数。
++/// `eagle_relocations` 表示疑似已登记 Eagle 来源搬了家的新位置；画师确认前不迁入这些位置。
++/// 确认见 [`super::Library::confirm_eagle_location`]。
+ #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, TS)]
+ #[serde(rename_all = "camelCase")]
+ #[ts(export)]
+ pub struct ImportReport {
+-    /// A boolean prompt only. The ordinary receipt never exposes the sealed subset size.
+     pub sealed_duplicates: bool,
+-    /// Success details are intentionally coarsened together so subtraction cannot reveal a subset.
+     pub private_summary: bool,
+     pub trash_duplicates: bool,
+     pub items: Vec<ImportItem>,
+     pub cancelled: bool,
+-    /// 导入器识别到了 Eagle 来源，与画师使用的入口无关。
+     pub from_eagle: bool,
+-    /// 这次迁入的 Eagle 资料库里已经不存在、但本库保留了副本的条目数。
+     pub eagle_missing: u32,
+-    /// 像是已登记 Eagle 来源搬了家的新位置。画师确认前不迁入这些位置的任何条目，
+-    /// 确认见 [`super::Library::confirm_eagle_location`]。
+     pub eagle_relocations: Vec<EagleRelocation>,
+ }
+ 
+diff --git a/src/bindings/ImportReport.ts b/src/bindings/ImportReport.ts
+index bd3f313..3b6266b 100644
+--- a/src/bindings/ImportReport.ts
++++ b/src/bindings/ImportReport.ts
+@@ -4,26 +4,14 @@ import type { ImportItem } from "./ImportItem";
+ 
+ /**
+  * 导入任务的逐项结果。取消时只列出取消前处理过的项。
+- */
+-export type ImportReport = { 
+-/**
+- * A boolean prompt only. The ordinary receipt never exposes the sealed subset size.
+- */
+-sealedDuplicates: boolean, 
+-/**
+- * Success details are intentionally coarsened together so subtraction cannot reveal a subset.
+- */
+-privateSummary: boolean, trashDuplicates: boolean, items: Array<ImportItem>, cancelled: boolean, 
+-/**
+- * 导入器识别到了 Eagle 来源，与画师使用的入口无关。
+- */
+-fromEagle: boolean, 
+-/**
+- * 这次迁入的 Eagle 资料库里已经不存在、但本库保留了副本的条目数。
+- */
+-eagleMissing: number, 
+-/**
+- * 像是已登记 Eagle 来源搬了家的新位置。画师确认前不迁入这些位置的任何条目，
++ *
++ * `sealed_duplicates` is a boolean prompt only; the ordinary receipt never exposes the
++ * sealed subset size. `private_summary` coarsens success details together so subtraction
++ * cannot reveal a subset.
++ *
++ * `from_eagle` 表示导入器识别到了 Eagle 来源，与画师使用的入口无关。
++ * `eagle_missing` 是这次迁入的 Eagle 资料库里已经不存在、但本库保留了副本的条目数。
++ * `eagle_relocations` 表示疑似已登记 Eagle 来源搬了家的新位置；画师确认前不迁入这些位置。
+  * 确认见 [`super::Library::confirm_eagle_location`]。
+  */
+-eagleRelocations: Array<EagleRelocation>, };
++export type ImportReport = { sealedDuplicates: boolean, privateSummary: boolean, trashDuplicates: boolean, items: Array<ImportItem>, cancelled: boolean, fromEagle: boolean, eagleMissing: number, eagleRelocations: Array<EagleRelocation>, };

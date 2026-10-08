@@ -1,0 +1,39 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/ImportBar.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/library/ImportBar.test.tsx (6 tests | 1 failed) 453ms
+   × 切换到另一张回执不会自动沿用前一张回执的明确同意 32ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/ImportBar.test.tsx > 切换到另一张回执不会自动沿用前一张回执的明确同意
+AssertionError: expected [ 'task-first', 'task-next' ] to deeply equal [ 'task-first' ]
+
+- Expected
++ Received
+
+  [
+    "task-first",
++   "task-next",
+  ]
+
+ ❯ src/library/ImportBar.test.tsx:136:18
+    134|   rerender(receiptBar("task-next"));
+    135|   await new Promise(resolve => setTimeout(resolve, 0));
+    136|   expect(opened).toEqual(["task-first"]);
+       |                  ^
+    137|   expect(screen.queryByRole("dialog")).toBeNull();
+    138| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  04:05:47
+   Duration  2.06s (environment 61%, tests 24%, import 10%, transform 5%)
+
