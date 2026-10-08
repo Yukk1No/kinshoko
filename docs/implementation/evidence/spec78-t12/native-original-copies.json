@@ -1,0 +1,431 @@
+[
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-00dfc61-build-source.json",
+    "file": "native/t12-00dfc61-build-source.json",
+    "bytes": 2356,
+    "sha256": "775767591f078b717f3fcb9c836154b9fb32bae1cc5a8bc4fe982c9b23f69695"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-3075331-build-source.json",
+    "file": "native/t12-3075331-build-source.json",
+    "bytes": 2138,
+    "sha256": "5da53858559830b7ef384396a7a33c2ab89f0e79f10a5f58385dcd6aa42c45dd"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-before-third-environment.json",
+    "file": "native/t12-before-third-environment.json",
+    "bytes": 251,
+    "sha256": "ce734e00ee1cd425b4c41853f8e4ac54e832e25b1c4eba9dcecafed769560eea"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-build-source.json",
+    "file": "native/t12-build-source.json",
+    "bytes": 2356,
+    "sha256": "775767591f078b717f3fcb9c836154b9fb32bae1cc5a8bc4fe982c9b23f69695"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-feedback-native-build.log",
+    "file": "native/t12-feedback-native-build.txt",
+    "bytes": 840,
+    "sha256": "72da25eaaf120bca06e15fec8b7b1eff1bb5b3a3617e927f5c19d4002b6c0e0f"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-feedback-source-dist-after-build.json",
+    "file": "native/t12-feedback-source-dist-after-build.json",
+    "bytes": 129691,
+    "sha256": "e346c4ba58efde56e345b345133dac0125daa5e5494842f66ee2257854b029a0"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-feedback-source-dist-before-build.json",
+    "file": "native/t12-feedback-source-dist-before-build.json",
+    "bytes": 129692,
+    "sha256": "1821490ffcef4a4cb8626a6747f8861753f82cd4751bf25c73e0bfff25630036"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-final-native-build.log",
+    "file": "native/t12-final-native-build.txt",
+    "bytes": 1084,
+    "sha256": "5b549fb84a0a2c02fb946b9fbaa581d4b983066add46e24851bfa5750a6a0f99"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-final-source-dist-after-build.json",
+    "file": "native/t12-final-source-dist-after-build.json",
+    "bytes": 129688,
+    "sha256": "d7153c9bcf8c8f017d00dd53ef00bd31fcec58b973ca4389111882a3625fcb44"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-final-source-dist-before-build.json",
+    "file": "native/t12-final-source-dist-before-build.json",
+    "bytes": 129689,
+    "sha256": "deae030f6e03dbd2b2e15c216ca888a546edad1a3eb6e3ef5f5809322cec5672"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fourth-harness-source.json",
+    "file": "native/t12-fourth-harness-source.json",
+    "bytes": 384,
+    "sha256": "c98f3a419a33a2f174374b5b5e49014320cf88f9bdcf220bd0a96a4097105b54"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-manifest.py",
+    "file": "native/t12-manifest.py",
+    "bytes": 1658,
+    "sha256": "46157d591b6d8ca1d0c31ff6f09764920e25d190cd579225876a61eb5aeb80e3"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-native-build.log",
+    "file": "native/t12-native-build.txt",
+    "bytes": 1537,
+    "sha256": "9d5c4695bf5bbb9743cc289183959f66362c2fb60a595270d76e8a478756d2b0"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-native-build2.log",
+    "file": "native/t12-native-build2.txt",
+    "bytes": 840,
+    "sha256": "22dc1c5ecbe329c14d5fea3c86cf01970b6188eed95fa6847ce3c645575f7dc2"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-native-environment-before.json",
+    "file": "native/t12-native-environment-before.json",
+    "bytes": 574,
+    "sha256": "ee8fafb0b37c607e68258e91d98140827ce8f75fe16c1ab89a56924201c4dfef"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-native-first.log",
+    "file": "native/t12-native-first.txt",
+    "bytes": 752,
+    "sha256": "eee74f0592d94a62d7cfa5ace0ab773f654160c1b1120d8963ac381be15c91bf"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-native-fourth.log",
+    "file": "native/t12-native-fourth.txt",
+    "bytes": 4997,
+    "sha256": "7066a9aa23dc095204cec43cb27c2ece295ea61c3a6a102a845301f0df506501"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-native-release.json",
+    "file": "native/t12-native-release.json",
+    "bytes": 1291,
+    "sha256": "264c4aa95cf7643c1a2fb7d6c00a0b4db3ca67c1e9a306a83798178c277a6028"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-native-second.log",
+    "file": "native/t12-native-second.txt",
+    "bytes": 648,
+    "sha256": "062a290a7bcebb85493f7442fc17c4047c61fd1a7954d2b100bfd70a53535595"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-native-smoke.log",
+    "file": "native/t12-native-smoke.txt",
+    "bytes": 382,
+    "sha256": "39d518e2afc860cc73151598cf6c8c3d462ee0b8236c38cf7028dda7db45485d"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-native-third.log",
+    "file": "native/t12-native-third.txt",
+    "bytes": 1201,
+    "sha256": "62a05afd53e336546b53acb9fd48c5067d8dc03e94fd65e654e362c6c79b79e9"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-post-native-source-dist.json",
+    "file": "native/t12-post-native-source-dist.json",
+    "bytes": 129689,
+    "sha256": "9aa1d6bcdebe10c8693531e63428f4ea56d32e6881a43948cb792a5dcb40990c"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-second-harness-source.json",
+    "file": "native/t12-second-harness-source.json",
+    "bytes": 502,
+    "sha256": "ec557d4b55dd8eec8bc4bc706ee6f6823dfd071f401d123a5222167dd04d1223"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-smoke-preflight.json",
+    "file": "native/t12-smoke-preflight.json",
+    "bytes": 744,
+    "sha256": "71ce7c8324c629f607879dfbe23e409da1d5b801d196c8ed99e4fcc8645e41e7"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-source-dist-after-build.json",
+    "file": "native/t12-source-dist-after-build.json",
+    "bytes": 129681,
+    "sha256": "6eb0cfe7115c30e3a2d4cde905168f12755fb87709c0db62a2f63f70a321d577"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-source-dist-before-build.json",
+    "file": "native/t12-source-dist-before-build.json",
+    "bytes": 129682,
+    "sha256": "998009e95e88ec31cfd0757c401a99d8432fad675dc591ce37d69d061b1e3e2d"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-source-dist-before-build2.json",
+    "file": "native/t12-source-dist-before-build2.json",
+    "bytes": 129688,
+    "sha256": "47170151fed3f7dbce532f601156084aea4717f5ec6f818e1429592223397487"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-tauri-config.json",
+    "file": "native/t12-tauri-config.json",
+    "bytes": 78,
+    "sha256": "d3d0d3e2da8828fd1e9fa170978ab7ced39461965ddf446ec93b8a619df8e28a"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-third-knownfolder-observation.json",
+    "file": "native/t12-third-knownfolder-observation.json",
+    "bytes": 716,
+    "sha256": "e3823316e892daa71d51c92c7ad6dcab022e5ed8825951c0faeb9666fac8e417"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-unused-4c77eaf-exe-sha.txt",
+    "file": "native/t12-unused-4c77eaf-exe-sha.txt",
+    "bytes": 66,
+    "sha256": "2a4555f66fda0c74c125bb08726549786ce65be9b6aede9f87790cbf3dffdf71"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\01-source-group.png",
+    "file": "native/runs/content-backup-t12-3075331-first/01-source-group.png",
+    "bytes": 67569,
+    "sha256": "2083a0f2f8328bfa8f77805cfb1cb146ff4e7a174734c4f3326e412ecfbb3435"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\a1.png",
+    "file": "native/runs/content-backup-t12-3075331-first/a1.png",
+    "bytes": 22547,
+    "sha256": "0f4f8e1d216856b82e3ef7f469b4583ea146085f141be5295c863c94037daded"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\a2.png",
+    "file": "native/runs/content-backup-t12-3075331-first/a2.png",
+    "bytes": 22605,
+    "sha256": "ce4a9fb1d7f490710320f787462d2121622a0b15428cfcf757de8b2f17a312f6"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\b.png",
+    "file": "native/runs/content-backup-t12-3075331-first/b.png",
+    "bytes": 23011,
+    "sha256": "c41dd3431c33f1f604c80d6b718c59802cf1d84bf2fda6bce602ddf28bf9cbce"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\failure-source-publication-failed.html",
+    "file": "native/runs/content-backup-t12-3075331-first/failure-source-publication-failed.html",
+    "bytes": 21753,
+    "sha256": "915724bee44ed27f5cdc42b204603cd19f1a98399a0a73630066a6261293f6a3"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\failure-source-publication-failed.png",
+    "file": "native/runs/content-backup-t12-3075331-first/failure-source-publication-failed.png",
+    "bytes": 166577,
+    "sha256": "863848471a4053bab372dbca7a65a0922485e6f5670cb5bfbd640cd40db69aaf"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\result.json",
+    "file": "native/runs/content-backup-t12-3075331-first/result.json",
+    "bytes": 8473,
+    "sha256": "f288b493734e16c081610a53f92737f3fed98e797d44159dc349098b75ea94b3"
+  },
+  {
+    "gitSource": "3075331a5f5bcf780831cf5a92766f331f5f68b9:e2e/library-content-backup.mjs",
+    "file": "native/runs/content-backup-t12-3075331-first/harness.mjs",
+    "bytes": 35254,
+    "sha256": "eaaf396903187c8f3086c0f430d5184d827850c8d2186a5a7b7936990461bb07"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\01-source-group.png",
+    "file": "native/runs/content-backup-t12-3075331-second/01-source-group.png",
+    "bytes": 69220,
+    "sha256": "07f58bd7b04ae789f11e467bf94e9c71168af4faa1430395c467450f37660d4a"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\a1.png",
+    "file": "native/runs/content-backup-t12-3075331-second/a1.png",
+    "bytes": 22547,
+    "sha256": "0f4f8e1d216856b82e3ef7f469b4583ea146085f141be5295c863c94037daded"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\a2.png",
+    "file": "native/runs/content-backup-t12-3075331-second/a2.png",
+    "bytes": 22605,
+    "sha256": "ce4a9fb1d7f490710320f787462d2121622a0b15428cfcf757de8b2f17a312f6"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\b.png",
+    "file": "native/runs/content-backup-t12-3075331-second/b.png",
+    "bytes": 23011,
+    "sha256": "c41dd3431c33f1f604c80d6b718c59802cf1d84bf2fda6bce602ddf28bf9cbce"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\failure-source-publication-failed.html",
+    "file": "native/runs/content-backup-t12-3075331-second/failure-source-publication-failed.html",
+    "bytes": 27501,
+    "sha256": "60b49df60dfff43889ded3b5521b24b2cdd4a204d9647e8adc07e542e61b3d60"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\failure-source-publication-failed.png",
+    "file": "native/runs/content-backup-t12-3075331-second/failure-source-publication-failed.png",
+    "bytes": 177248,
+    "sha256": "99109044663a42ef9572d49761ef3a506d8a62e51d31f7a3b0c8ccd3dd3cd6c6"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\result.json",
+    "file": "native/runs/content-backup-t12-3075331-second/result.json",
+    "bytes": 8455,
+    "sha256": "2163a7ec2229468e39d982320841feab076851ae1b4c9518243906ff54baf1f3"
+  },
+  {
+    "gitSource": "026897b686526135aa587787817b5395dc80af37:e2e/library-content-backup.mjs",
+    "file": "native/runs/content-backup-t12-3075331-second/harness.mjs",
+    "bytes": 35385,
+    "sha256": "1e3d2acbe53119e4f6d912aa89eba4f4a7bf60df5147c08a2d2d7f40f5bca6d7"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\01-source-group.png",
+    "file": "native/runs/content-backup-t12-00dfc61-third/01-source-group.png",
+    "bytes": 69862,
+    "sha256": "c14b4ed8f66c2f4678f0009a29f3df9cd953f6b93ec886df8d1e969fbb7cd647"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\02-backup-preview.png",
+    "file": "native/runs/content-backup-t12-00dfc61-third/02-backup-preview.png",
+    "bytes": 179623,
+    "sha256": "e07ea89efa4f06b433195a89e4ac756cfb1762b864512ae061ed18e22e6b9ebf"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\a1.png",
+    "file": "native/runs/content-backup-t12-00dfc61-third/a1.png",
+    "bytes": 22547,
+    "sha256": "0f4f8e1d216856b82e3ef7f469b4583ea146085f141be5295c863c94037daded"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\a2.png",
+    "file": "native/runs/content-backup-t12-00dfc61-third/a2.png",
+    "bytes": 22605,
+    "sha256": "ce4a9fb1d7f490710320f787462d2121622a0b15428cfcf757de8b2f17a312f6"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\b.png",
+    "file": "native/runs/content-backup-t12-00dfc61-third/b.png",
+    "bytes": 23011,
+    "sha256": "c41dd3431c33f1f604c80d6b718c59802cf1d84bf2fda6bce602ddf28bf9cbce"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\failure-fresh-restore.html",
+    "file": "native/runs/content-backup-t12-00dfc61-third/failure-fresh-restore.html",
+    "bytes": 20389,
+    "sha256": "83af0045997bb8c7873e3925445f67ffde788dce8210208386f0d69ab436456e"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\failure-fresh-restore.png",
+    "file": "native/runs/content-backup-t12-00dfc61-third/failure-fresh-restore.png",
+    "bytes": 178711,
+    "sha256": "4713bec0cefa7aa52b6e9cbad2b5cec81baa399d842dc15b38315767043540e6"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\result.json",
+    "file": "native/runs/content-backup-t12-00dfc61-third/result.json",
+    "bytes": 9703,
+    "sha256": "4804a63947347510e8b4451725d5e2e38a40980d5fd8dd1ded2371351ffe2bb8"
+  },
+  {
+    "gitSource": "00dfc611577361a679221dc8f06f99fdcedd466f:e2e/library-content-backup.mjs",
+    "file": "native/runs/content-backup-t12-00dfc61-third/harness.mjs",
+    "bytes": 35433,
+    "sha256": "355ea149b2c171b3680b3c632d8a5fc7f33790c8e32200720cb9d3d97a777de0"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\01-source-group.png",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/01-source-group.png",
+    "bytes": 69852,
+    "sha256": "78d6c6feab154457e516c4aed9f3e9bd0e5ffe426e3fffde1bc2b36338e13768"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\02-backup-preview.png",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/02-backup-preview.png",
+    "bytes": 179812,
+    "sha256": "35fe3357b7fd95027916a54a02aaf0d023379270738cce837660ec681e24341d"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\03-fresh-restore-result.png",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/03-fresh-restore-result.png",
+    "bytes": 174999,
+    "sha256": "2798ba7a3d9bd50c243784da270e6ba59e3338ac9847f8ca0b94f4102079383c"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\04-open-restored-group.png",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/04-open-restored-group.png",
+    "bytes": 79580,
+    "sha256": "4685137b4b20b1d21967bcef37aa46ed76c19034fedf12b3f1973114c8583e4a"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\05-existing-settings.png",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/05-existing-settings.png",
+    "bytes": 190734,
+    "sha256": "4dc6ec6be71387cebb3d2d61d164facda6035718b3ab51df4b6f78a1800543e8"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\06-recovered-group.png",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/06-recovered-group.png",
+    "bytes": 194708,
+    "sha256": "f504935abe8292fe50a9aa28bf9a1897322701f5d2cd17ee519fa1b219612126"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\06-recovered-library.png",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/06-recovered-library.png",
+    "bytes": 193271,
+    "sha256": "08a174a2da4497be5063fb0ff6a328468a46771fa8f4f4921a2a12f90f7a68f6"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\a1.png",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/a1.png",
+    "bytes": 22547,
+    "sha256": "0f4f8e1d216856b82e3ef7f469b4583ea146085f141be5295c863c94037daded"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\a2.png",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/a2.png",
+    "bytes": 22605,
+    "sha256": "ce4a9fb1d7f490710320f787462d2121622a0b15428cfcf757de8b2f17a312f6"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\b.png",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/b.png",
+    "bytes": 23011,
+    "sha256": "c41dd3431c33f1f604c80d6b718c59802cf1d84bf2fda6bce602ddf28bf9cbce"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-journal-original-655a172a0c14410a811c557725eacfa9.json",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/fault-journal-original-655a172a0c14410a811c557725eacfa9.json",
+    "bytes": 1076,
+    "sha256": "a5bf16900c4e032852404aa9712490e8f07d0a2f95b52f42aaddd4457075b03b"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-journal-original-655a172a0c14410a811c557725eacfa9.json.source.json",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/fault-journal-original-655a172a0c14410a811c557725eacfa9.json.source.json",
+    "bytes": 477,
+    "sha256": "33e0eeec2ffdda9c0d545343097baecd19d7a5553b80f8dc42d4ae75fc7188c9"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\result.json",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/result.json",
+    "bytes": 32975,
+    "sha256": "6092f71ad10cd0553cb6adc766677b6387b2dcdd6322b197383399cef3057efb"
+  },
+  {
+    "gitSource": "846edf227d5b2c43692289dea06a11a97d38a17f:e2e/library-content-backup.mjs",
+    "file": "native/runs/content-backup-t12-00dfc61-fourth/harness.mjs",
+    "bytes": 38010,
+    "sha256": "3d2422c8ece631968393fe00b47afedeceb4d77f4f6736f82a40a78b1cae868c"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-same-exe-smoke\\kinshoko-smoke-VK50PY\\result.json",
+    "file": "native/smoke/result.json",
+    "bytes": 841,
+    "sha256": "0dffbd3d07bbd57c92ff4ee9fe662dba063f7d9ed32cb96e93b7255c3733d188"
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\smoke.mjs",
+    "file": "native/smoke/harness.mjs",
+    "bytes": 14052,
+    "sha256": "d9df46a1c82641e8677d9434dca9d631a43370a1037d6217b05e539141c7e01a",
+    "gitSource": "846edf227d5b2c43692289dea06a11a97d38a17f:e2e/smoke.mjs",
+    "gitBytesSha256": "64481a9b22388c5305f6fec57ec8a544682e29d815d1bad664bd1774f17dfb8d",
+    "checkoutLineEndings": "CRLF"
+  }
+]

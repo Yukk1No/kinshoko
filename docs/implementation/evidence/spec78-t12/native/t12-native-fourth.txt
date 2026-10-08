@@ -1,0 +1,59 @@
+PASS fixture import has its explicit owner and completed definition publication: 备份来源甲
+PASS fixture import has its explicit owner and completed definition publication: 备份来源乙
+PASS three native reference views become one cross-library source group
+PASS app split is saved despite a real provider definition publication failure
+PASS provider publication failure is visible in the formal identity controls
+PASS source has an actual application personal rule before content backup
+PASS actual backup preview covers both providers, their group and all originals
+PASS formal library-backup entry states the content/settings boundary
+PASS manual content backup completes after failed publication without skipping providers
+PASS actual restored library provenance names the selected content snapshot
+PASS actual restored library provenance names the selected content snapshot
+PASS actual restored reference-group provenance names the selected content snapshot
+PASS rendered content restore reports matching originals, curation and groups
+PASS fresh restoration creates independent library and reference-group identities
+PASS fresh content restoration preserves every original byte hash
+PASS fresh app interprets the current corrected and split identities without the source catalog
+PASS content defaults never become source application preferences
+PASS content backup captures current alias deletion and additions after stale provider publication
+PASS restored tags retain namespaces and external correspondence
+PASS source application groups and personal rules are absent from fresh content restoration
+PASS restored group provenance, remapped members, crops and layouts match the source
+PASS opening the restored library exposes the original note and directory curation
+PASS restored group opens as three real native reference pins
+PASS actual restored library provenance names the selected content snapshot
+PASS actual restored library provenance names the selected content snapshot
+PASS actual restored reference-group provenance names the selected content snapshot
+PASS rendered content restore reports matching originals, curation and groups
+PASS existing app keeps its explicit preference and deleted alias after another content restore
+PASS existing program group definition survives content restoration
+PASS existing personal approximate decisions survive content restoration
+PASS restoring into an existing environment preserves original bytes again
+[1009/031956.326:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1411
+PASS native process interruption after library publication prevents a success response
+PASS native library interruption leaves one durable batch recovery record
+PASS native library interruption actually occurs after the required publication boundary
+PASS native startup rolls back the full interrupted library publication batch
+PASS startup recovery keeps every pre-existing reference group after library interruption
+PASS startup recovery keeps all pre-existing library registrations after library interruption
+PASS startup recovery retains current preferences, alias deletion, program groups and personal rules after library interruption
+PASS startup recovery preserves every pre-existing original byte after library interruption
+PASS actual restored library provenance names the selected content snapshot
+PASS actual restored library provenance names the selected content snapshot
+PASS actual restored reference-group provenance names the selected content snapshot
+PASS rendered content restore reports matching originals, curation and groups
+PASS rendered retry completes all libraries and groups after library interruption
+PASS native process interruption after group publication prevents a success response
+PASS native group interruption leaves one durable batch recovery record
+PASS native group interruption actually occurs after the required publication boundary
+PASS native startup rolls back the full interrupted group publication batch
+PASS startup recovery keeps every pre-existing reference group after group interruption
+PASS startup recovery keeps all pre-existing library registrations after group interruption
+PASS startup recovery retains current preferences, alias deletion, program groups and personal rules after group interruption
+PASS startup recovery preserves every pre-existing original byte after group interruption
+PASS actual restored library provenance names the selected content snapshot
+PASS actual restored library provenance names the selected content snapshot
+PASS actual restored reference-group provenance names the selected content snapshot
+PASS rendered content restore reports matching originals, curation and groups
+PASS rendered retry completes all libraries and groups after group interruption
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\content-backup-t12-00dfc61-fourth

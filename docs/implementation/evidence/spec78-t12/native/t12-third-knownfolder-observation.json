@@ -1,0 +1,27 @@
+{
+  "collectedAt": "2026-10-08T19:16:04.3052946Z",
+  "file": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+  "exists": false,
+  "directories": [
+    {
+      "Name": "backup",
+      "CreationTimeUtc": "2026-10-08T19:14:57.7902989Z"
+    },
+    {
+      "Name": "fresh-app",
+      "CreationTimeUtc": "2026-10-08T19:15:14.0928898Z"
+    },
+    {
+      "Name": "fresh-restored",
+      "CreationTimeUtc": "2026-10-08T19:15:15.2588658Z"
+    },
+    {
+      "Name": "source-app",
+      "CreationTimeUtc": "2026-10-08T19:14:58.7582375Z"
+    },
+    {
+      "Name": "source-libraries-disconnected",
+      "CreationTimeUtc": "2026-10-08T19:15:00.7017811Z"
+    }
+  ]
+}

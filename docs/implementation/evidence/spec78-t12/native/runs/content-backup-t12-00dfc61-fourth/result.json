@@ -1,0 +1,765 @@
+{
+  "status": "passed",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+  "build": {
+    "source": "00dfc611577361a679221dc8f06f99fdcedd466f",
+    "tree": "1ffabb0724b1f6e308968dfb55092ae7c88361e2",
+    "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
+    "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+    "identifier": "dev.kinshoko.spec78t12test",
+    "productName": "Kinshoko T12 Test",
+    "buildType": "Tauri CLI debug --no-bundle, tauri/custom-protocol",
+    "buildCommand": "node node_modules/@tauri-apps/cli/tauri.js build --debug --no-bundle --config work/e2e/t12-tauri-config.json",
+    "buildDate": "2026-10-08T19:14:05.014607+00:00",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target",
+    "buildJobs": 2,
+    "driverSha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7",
+    "configSha256": "d3d0d3e2da8828fd1e9fa170978ab7ced39461965ddf446ec93b8a619df8e28a",
+    "beforeBuildManifest": {
+      "file": "work/e2e/t12-final-source-dist-before-build.json",
+      "sha256": "deae030f6e03dbd2b2e15c216ca888a546edad1a3eb6e3ef5f5809322cec5672"
+    },
+    "afterBuildManifest": {
+      "file": "work/e2e/t12-final-source-dist-after-build.json",
+      "sha256": "d7153c9bcf8c8f017d00dd53ef00bd31fcec58b973ca4389111882a3625fcb44"
+    },
+    "inputsAndDistUnchangedDuringBuild": true,
+    "files": [
+      {
+        "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
+        "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+        "bytes": 100617216,
+        "sha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c"
+      },
+      {
+        "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\DirectML.dll",
+        "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\DirectML.dll",
+        "bytes": 18527776,
+        "sha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
+      }
+    ],
+    "harnessSource": "00dfc611577361a679221dc8f06f99fdcedd466f",
+    "harnessSha256": "355ea149b2c171b3680b3c632d8a5fc7f33790c8e32200720cb9d3d97a777de0",
+    "run": "work/e2e/content-backup-t12-00dfc61-third"
+  },
+  "harnessSource": "846edf227d5b2c43692289dea06a11a97d38a17f",
+  "harnessSha256": "3d2422c8ece631968393fe00b47afedeceb4d77f4f6736f82a40a78b1cae868c",
+  "assertions": [
+    "fixture import has its explicit owner and completed definition publication: 备份来源甲",
+    "fixture import has its explicit owner and completed definition publication: 备份来源乙",
+    "three native reference views become one cross-library source group",
+    "app split is saved despite a real provider definition publication failure",
+    "provider publication failure is visible in the formal identity controls",
+    "source has an actual application personal rule before content backup",
+    "actual backup preview covers both providers, their group and all originals",
+    "formal library-backup entry states the content/settings boundary",
+    "manual content backup completes after failed publication without skipping providers",
+    "actual restored library provenance names the selected content snapshot",
+    "actual restored library provenance names the selected content snapshot",
+    "actual restored reference-group provenance names the selected content snapshot",
+    "rendered content restore reports matching originals, curation and groups",
+    "fresh restoration creates independent library and reference-group identities",
+    "fresh content restoration preserves every original byte hash",
+    "fresh app interprets the current corrected and split identities without the source catalog",
+    "content defaults never become source application preferences",
+    "content backup captures current alias deletion and additions after stale provider publication",
+    "restored tags retain namespaces and external correspondence",
+    "source application groups and personal rules are absent from fresh content restoration",
+    "restored group provenance, remapped members, crops and layouts match the source",
+    "opening the restored library exposes the original note and directory curation",
+    "restored group opens as three real native reference pins",
+    "actual restored library provenance names the selected content snapshot",
+    "actual restored library provenance names the selected content snapshot",
+    "actual restored reference-group provenance names the selected content snapshot",
+    "rendered content restore reports matching originals, curation and groups",
+    "existing app keeps its explicit preference and deleted alias after another content restore",
+    "existing program group definition survives content restoration",
+    "existing personal approximate decisions survive content restoration",
+    "restoring into an existing environment preserves original bytes again",
+    "native process interruption after library publication prevents a success response",
+    "native library interruption leaves one durable batch recovery record",
+    "native library interruption actually occurs after the required publication boundary",
+    "native startup rolls back the full interrupted library publication batch",
+    "startup recovery keeps every pre-existing reference group after library interruption",
+    "startup recovery keeps all pre-existing library registrations after library interruption",
+    "startup recovery retains current preferences, alias deletion, program groups and personal rules after library interruption",
+    "startup recovery preserves every pre-existing original byte after library interruption",
+    "actual restored library provenance names the selected content snapshot",
+    "actual restored library provenance names the selected content snapshot",
+    "actual restored reference-group provenance names the selected content snapshot",
+    "rendered content restore reports matching originals, curation and groups",
+    "rendered retry completes all libraries and groups after library interruption",
+    "native process interruption after group publication prevents a success response",
+    "native group interruption leaves one durable batch recovery record",
+    "native group interruption actually occurs after the required publication boundary",
+    "native startup rolls back the full interrupted group publication batch",
+    "startup recovery keeps every pre-existing reference group after group interruption",
+    "startup recovery keeps all pre-existing library registrations after group interruption",
+    "startup recovery retains current preferences, alias deletion, program groups and personal rules after group interruption",
+    "startup recovery preserves every pre-existing original byte after group interruption",
+    "actual restored library provenance names the selected content snapshot",
+    "actual restored library provenance names the selected content snapshot",
+    "actual restored reference-group provenance names the selected content snapshot",
+    "rendered content restore reports matching originals, curation and groups",
+    "rendered retry completes all libraries and groups after group interruption"
+  ],
+  "environments": [
+    {
+      "phase": "source",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\source-app",
+      "knownFolder": {
+        "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+        "exists": false,
+        "sha256": null,
+        "value": null
+      },
+      "shellSettings": {
+        "autostart": true,
+        "forceSrgb": false,
+        "forceSrgbInEffect": false,
+        "shortcuts": [
+          {
+            "accelerator": "F1",
+            "action": "capture",
+            "problem": null
+          },
+          {
+            "accelerator": "F3",
+            "action": "pinClipboard",
+            "problem": null
+          },
+          {
+            "accelerator": "F4",
+            "action": "hideAllPins",
+            "problem": null
+          }
+        ],
+        "showApproxSource": false,
+        "usageLog": false
+      },
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "invokeDescriptor": {
+        "configurable": false,
+        "writable": false
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "source-publication-failed",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\source-app",
+      "knownFolder": {
+        "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+        "exists": false,
+        "sha256": null,
+        "value": null
+      },
+      "shellSettings": {
+        "autostart": true,
+        "forceSrgb": false,
+        "forceSrgbInEffect": false,
+        "shortcuts": [
+          {
+            "accelerator": "F1",
+            "action": "capture",
+            "problem": null
+          },
+          {
+            "accelerator": "F3",
+            "action": "pinClipboard",
+            "problem": null
+          },
+          {
+            "accelerator": "F4",
+            "action": "hideAllPins",
+            "problem": null
+          }
+        ],
+        "showApproxSource": false,
+        "usageLog": false
+      },
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "invokeDescriptor": {
+        "configurable": false,
+        "writable": false
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "fresh-restore",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+      "knownFolder": {
+        "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+        "exists": false,
+        "sha256": null,
+        "value": null
+      },
+      "shellSettings": {
+        "autostart": true,
+        "forceSrgb": false,
+        "forceSrgbInEffect": false,
+        "shortcuts": [
+          {
+            "accelerator": "F1",
+            "action": "capture",
+            "problem": null
+          },
+          {
+            "accelerator": "F3",
+            "action": "pinClipboard",
+            "problem": null
+          },
+          {
+            "accelerator": "F4",
+            "action": "hideAllPins",
+            "problem": null
+          }
+        ],
+        "showApproxSource": false,
+        "usageLog": false
+      },
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "invokeDescriptor": {
+        "configurable": false,
+        "writable": false
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "fault-library",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+      "knownFolder": {
+        "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+        "exists": false,
+        "sha256": null,
+        "value": null
+      },
+      "shellSettings": {
+        "autostart": true,
+        "forceSrgb": false,
+        "forceSrgbInEffect": false,
+        "shortcuts": [
+          {
+            "accelerator": "F1",
+            "action": "capture",
+            "problem": null
+          },
+          {
+            "accelerator": "F3",
+            "action": "pinClipboard",
+            "problem": null
+          },
+          {
+            "accelerator": "F4",
+            "action": "hideAllPins",
+            "problem": null
+          }
+        ],
+        "showApproxSource": false,
+        "usageLog": false
+      },
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "invokeDescriptor": {
+        "configurable": false,
+        "writable": false
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "recover-library",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+      "knownFolder": {
+        "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+        "exists": false,
+        "sha256": null,
+        "value": null
+      },
+      "shellSettings": {
+        "autostart": true,
+        "forceSrgb": false,
+        "forceSrgbInEffect": false,
+        "shortcuts": [
+          {
+            "accelerator": "F1",
+            "action": "capture",
+            "problem": null
+          },
+          {
+            "accelerator": "F3",
+            "action": "pinClipboard",
+            "problem": null
+          },
+          {
+            "accelerator": "F4",
+            "action": "hideAllPins",
+            "problem": null
+          }
+        ],
+        "showApproxSource": false,
+        "usageLog": false
+      },
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "invokeDescriptor": {
+        "configurable": false,
+        "writable": false
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "fault-group",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+      "knownFolder": {
+        "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+        "exists": false,
+        "sha256": null,
+        "value": null
+      },
+      "shellSettings": {
+        "autostart": true,
+        "forceSrgb": false,
+        "forceSrgbInEffect": false,
+        "shortcuts": [
+          {
+            "accelerator": "F1",
+            "action": "capture",
+            "problem": null
+          },
+          {
+            "accelerator": "F3",
+            "action": "pinClipboard",
+            "problem": null
+          },
+          {
+            "accelerator": "F4",
+            "action": "hideAllPins",
+            "problem": null
+          }
+        ],
+        "showApproxSource": false,
+        "usageLog": false
+      },
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "invokeDescriptor": {
+        "configurable": false,
+        "writable": false
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "recover-group",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+      "knownFolder": {
+        "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+        "exists": false,
+        "sha256": null,
+        "value": null
+      },
+      "shellSettings": {
+        "autostart": true,
+        "forceSrgb": false,
+        "forceSrgbInEffect": false,
+        "shortcuts": [
+          {
+            "accelerator": "F1",
+            "action": "capture",
+            "problem": null
+          },
+          {
+            "accelerator": "F3",
+            "action": "pinClipboard",
+            "problem": null
+          },
+          {
+            "accelerator": "F4",
+            "action": "hideAllPins",
+            "problem": null
+          }
+        ],
+        "showApproxSource": false,
+        "usageLog": false
+      },
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "invokeDescriptor": {
+        "configurable": false,
+        "writable": false
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    }
+  ],
+  "sourceA": {
+    "info": {
+      "id": "e6e45a83160e41a0b812706c5f90e272",
+      "name": "备份来源甲",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\libraries\\备份来源甲"
+    },
+    "images": [
+      "01a11cf4ec5670b8b7a4aacfefbd86bd",
+      "01a11cf4ebfb7738bb8d048da14c962c"
+    ],
+    "local": "01a11cf4ed3c707f929b45dfd3dd8bdc",
+    "receipt": {
+      "destination": {
+        "folderId": null,
+        "libraryId": "e6e45a83160e41a0b812706c5f90e272"
+      },
+      "finishing": false,
+      "folderName": "未归类",
+      "libraryName": "备份来源甲",
+      "progress": {
+        "done": 2,
+        "total": 2
+      },
+      "report": {
+        "cancelled": false,
+        "eagleMissing": 0,
+        "eagleRelocations": [],
+        "fromEagle": false,
+        "items": [
+          {
+            "outcome": {
+              "imageId": "01a11cf4ebfb7738bb8d048da14c962c",
+              "kind": "imported"
+            },
+            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\a1.png"
+          },
+          {
+            "outcome": {
+              "imageId": "01a11cf4ec5670b8b7a4aacfefbd86bd",
+              "kind": "imported"
+            },
+            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\a2.png"
+          }
+        ]
+      },
+      "taskId": "beb28c7a2541484e8c62071196157255",
+      "warnings": []
+    }
+  },
+  "sourceB": {
+    "info": {
+      "id": "f0e91a69459e4eb0b95d21846371e7c4",
+      "name": "备份来源乙",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\libraries\\备份来源乙"
+    },
+    "images": [
+      "01a11cf4f0f273fd98a6398e23762e21"
+    ],
+    "local": "01a11cf4f1917547b143ced3b61fcf0e",
+    "receipt": {
+      "destination": {
+        "folderId": null,
+        "libraryId": "f0e91a69459e4eb0b95d21846371e7c4"
+      },
+      "finishing": false,
+      "folderName": "未归类",
+      "libraryName": "备份来源乙",
+      "progress": {
+        "done": 1,
+        "total": 1
+      },
+      "report": {
+        "cancelled": false,
+        "eagleMissing": 0,
+        "eagleRelocations": [],
+        "fromEagle": false,
+        "items": [
+          {
+            "outcome": {
+              "imageId": "01a11cf4f0f273fd98a6398e23762e21",
+              "kind": "imported"
+            },
+            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\b.png"
+          }
+        ]
+      },
+      "taskId": "f911df10755a4158801b04779d5f4cc3",
+      "warnings": []
+    }
+  },
+  "sourceIdentity": "01a11cf4ed3c707f929b45e0a77baf9f",
+  "splitIdentity": "01a11cf50a9c7725afab8bcae4950e78",
+  "sourceGroup": {
+    "createdAt": 1791487180316,
+    "id": "ec97619a46a9420d97c341f511abedb4",
+    "members": [
+      {
+        "crop": {
+          "height": 40,
+          "width": 50,
+          "x": 10,
+          "y": 12
+        },
+        "id": "38e08454722c47bbb68b697f409877e0",
+        "imageId": "01a11cf4ec5670b8b7a4aacfefbd86bd",
+        "libraryId": "e6e45a83160e41a0b812706c5f90e272",
+        "placement": {
+          "flipH": true,
+          "flipV": false,
+          "rotation": 1,
+          "scale": 1.5,
+          "x": 741,
+          "y": 646
+        },
+        "sourceHeight": 90,
+        "sourceWidth": 120
+      },
+      {
+        "crop": null,
+        "id": "00a28cca175b48c3b65367847fc5b1c9",
+        "imageId": "01a11cf4ebfb7738bb8d048da14c962c",
+        "libraryId": "e6e45a83160e41a0b812706c5f90e272",
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 554,
+          "y": 484
+        },
+        "sourceHeight": 90,
+        "sourceWidth": 120
+      },
+      {
+        "crop": {
+          "height": 60,
+          "width": 70,
+          "x": 4,
+          "y": 5
+        },
+        "id": "1f1ca9a6b754426cab98b77129b44b40",
+        "imageId": "01a11cf4f0f273fd98a6398e23762e21",
+        "libraryId": "f0e91a69459e4eb0b95d21846371e7c4",
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 579,
+          "y": 499
+        },
+        "sourceHeight": 90,
+        "sourceWidth": 120
+      }
+    ],
+    "name": "内容备份跨库组",
+    "updatedAt": 1791487180316
+  },
+  "backupReport": {
+    "complete": true,
+    "copied": 3,
+    "copiedBytes": 68163,
+    "problems": [],
+    "removedSnapshots": [],
+    "reused": 0,
+    "skipped": [],
+    "snapshotId": "20261009-031944-e1d95b"
+  },
+  "freshReport": {
+    "observation": "Actual rendered completion plus public registrations/groups and read-only SQLite provenance; not an intercepted restore_backup response",
+    "snapshotId": "20261009-031944-e1d95b",
+    "libraries": [
+      {
+        "library": {
+          "id": "83bb1ec3b8124eec94ccdeb094a1dd14",
+          "name": "备份来源甲（恢复）",
+          "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-restored\\备份来源甲（恢复 2026-10-09）"
+        },
+        "oldId": "e6e45a83160e41a0b812706c5f90e272",
+        "provenance": [
+          {
+            "oldLibraryId": "e6e45a83160e41a0b812706c5f90e272",
+            "backupId": "20261009-031944-e1d95b",
+            "restoredAt": 1791487188219
+          }
+        ]
+      },
+      {
+        "library": {
+          "id": "a44fa776d6434298901f2ba93aa70748",
+          "name": "备份来源乙（恢复）",
+          "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-restored\\备份来源乙（恢复 2026-10-09）"
+        },
+        "oldId": "f0e91a69459e4eb0b95d21846371e7c4",
+        "provenance": [
+          {
+            "oldLibraryId": "f0e91a69459e4eb0b95d21846371e7c4",
+            "backupId": "20261009-031944-e1d95b",
+            "restoredAt": 1791487188219
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "oldId": "ec97619a46a9420d97c341f511abedb4",
+        "id": "c381eb45745f4918a3387c46b75f2cba",
+        "name": "内容备份跨库组"
+      }
+    ],
+    "renderedCheck": "往返检查通过：原图 3 张哈希一致、整理信息 50 张表、参考组 1 个一致。\n\n恢复出的资料库：备份来源甲（恢复）、备份来源乙（恢复）（已登记，可从资料库列表打开）；参考组：内容备份跨库组"
+  },
+  "existingReport": {
+    "observation": "Actual rendered completion plus public registrations/groups and read-only SQLite provenance; not an intercepted restore_backup response",
+    "snapshotId": "20261009-031944-e1d95b",
+    "libraries": [
+      {
+        "library": {
+          "id": "0f061397b0664aa6bbbb3837f134edb6",
+          "name": "备份来源甲（恢复）",
+          "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\existing-restored\\备份来源甲（恢复 2026-10-09）"
+        },
+        "oldId": "e6e45a83160e41a0b812706c5f90e272",
+        "provenance": [
+          {
+            "oldLibraryId": "e6e45a83160e41a0b812706c5f90e272",
+            "backupId": "20261009-031944-e1d95b",
+            "restoredAt": 1791487191398
+          }
+        ]
+      },
+      {
+        "library": {
+          "id": "4a11a5f20c564e57bb61f3d1d4ad1809",
+          "name": "备份来源乙（恢复）",
+          "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\existing-restored\\备份来源乙（恢复 2026-10-09）"
+        },
+        "oldId": "f0e91a69459e4eb0b95d21846371e7c4",
+        "provenance": [
+          {
+            "oldLibraryId": "f0e91a69459e4eb0b95d21846371e7c4",
+            "backupId": "20261009-031944-e1d95b",
+            "restoredAt": 1791487191398
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "oldId": "ec97619a46a9420d97c341f511abedb4",
+        "id": "138f6cd0d02d4d069038d44c61d40a5a",
+        "name": "内容备份跨库组"
+      }
+    ],
+    "renderedCheck": "往返检查通过：原图 3 张哈希一致、整理信息 50 张表、参考组 1 个一致。\n\n恢复出的资料库：备份来源甲（恢复）、备份来源乙（恢复）（已登记，可从资料库列表打开）；参考组：内容备份跨库组"
+  },
+  "faultResults": [
+    {
+      "point": "content_restore_library_published",
+      "failure": "Error: Timed out: rendered roundtrip success and actual new registrations/groups (POST /session/9d06c0b4797f888b42238708c8d5dc6d/execute/async: {\"error\":\"no such window\",\"message\":\"no such window: target window already closed\\nfrom unknown error: web view not found\\n  (Session info: MicrosoftEdge=154.0.4258.62)\",\"stacktrace\":\"\\tmsedgedriver!GetHandleVerifier [0x7ff6f0c02285+4c15]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0b53a74]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff6f0f83bbf+38654f]\\n\\tmsedgedriver!(No symbol) [0x7ff6f08b9872]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0948196]\\n\\tmsedgedriver!(No symbol) [0x7ff6f095faff]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0917f0c]\\n\\tmsedgedriver!(No symbol) [0x7ff6f091718d]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0917d33]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0a60c04]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0a6ddc8]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff6f0ca7a15+aa3a5]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff6f0cadd11+b06a1]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0b5f6ff]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0b5a184]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0b5a2aa]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0b4b7f8]\\n\\tKERNEL32!BaseThreadInitThunk [0x7ffdf8d6cdf7+17]\\n\\tntdll!RtlUserThreadStart [0x7ffdfad5ee4c+2c]\\n\"})",
+      "pendingJournals": [
+        "10726146db54475992f5de31cb49444c.json"
+      ],
+      "interrupted": {
+        "version": 1,
+        "id": "10726146db54475992f5de31cb49444c",
+        "backupId": "20261009-031944-e1d95b",
+        "stage": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-library-restored\\.kinshoko-restore-10726146db54475992f5de31cb49444c.incomplete",
+        "libraries": [
+          {
+            "id": "96e515b3f03946c181fbff49043f55f9",
+            "old_id": "e6e45a83160e41a0b812706c5f90e272",
+            "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-library-restored\\备份来源甲（恢复 2026-10-09）"
+          },
+          {
+            "id": "ee4899a6e22a4cb49b0e271273e4a701",
+            "old_id": "f0e91a69459e4eb0b95d21846371e7c4",
+            "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-library-restored\\备份来源乙（恢复 2026-10-09）"
+          }
+        ],
+        "groups": [
+          {
+            "id": "cf9c97b533ab4b88bcfdf826b7add7f2",
+            "old_id": "ec97619a46a9420d97c341f511abedb4"
+          }
+        ]
+      },
+      "publishedLibraries": [
+        {
+          "id": "96e515b3f03946c181fbff49043f55f9",
+          "old_id": "e6e45a83160e41a0b812706c5f90e272",
+          "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-library-restored\\备份来源甲（恢复 2026-10-09）"
+        }
+      ],
+      "publishedGroups": [],
+      "partialDestinations": [
+        ".kinshoko-restore-10726146db54475992f5de31cb49444c.incomplete",
+        "备份来源甲（恢复 2026-10-09）"
+      ]
+    },
+    {
+      "point": "content_restore_group_published",
+      "failure": "Error: Timed out: rendered roundtrip success and actual new registrations/groups (POST /session/c46a6db37b157648678e79d5ab3031cd/execute/async: {\"error\":\"no such window\",\"message\":\"no such window: target window already closed\\nfrom unknown error: web view not found\\n  (Session info: MicrosoftEdge=154.0.4258.62)\",\"stacktrace\":\"\\tmsedgedriver!GetHandleVerifier [0x7ff6f0c02285+4c15]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0b53a74]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff6f0f83bbf+38654f]\\n\\tmsedgedriver!(No symbol) [0x7ff6f08b9872]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0948196]\\n\\tmsedgedriver!(No symbol) [0x7ff6f095faff]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0917f0c]\\n\\tmsedgedriver!(No symbol) [0x7ff6f091718d]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0917d33]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0a60c04]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0a6ddc8]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff6f0ca7a15+aa3a5]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff6f0cadd11+b06a1]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0b5f6ff]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0b5a184]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0b5a2aa]\\n\\tmsedgedriver!(No symbol) [0x7ff6f0b4b7f8]\\n\\tKERNEL32!BaseThreadInitThunk [0x7ffdf8d6cdf7+17]\\n\\tntdll!RtlUserThreadStart [0x7ffdfad5ee4c+2c]\\n\"})",
+      "pendingJournals": [
+        "655a172a0c14410a811c557725eacfa9.json"
+      ],
+      "interrupted": {
+        "version": 1,
+        "id": "655a172a0c14410a811c557725eacfa9",
+        "backupId": "20261009-031944-e1d95b",
+        "stage": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-group-restored\\.kinshoko-restore-655a172a0c14410a811c557725eacfa9.incomplete",
+        "libraries": [
+          {
+            "id": "7a2c30d6e5bc4055aa0586390ac70363",
+            "old_id": "e6e45a83160e41a0b812706c5f90e272",
+            "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-group-restored\\备份来源甲（恢复 2026-10-09）"
+          },
+          {
+            "id": "5fe084724e4d47de8d6da9d6eadf97a8",
+            "old_id": "f0e91a69459e4eb0b95d21846371e7c4",
+            "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-group-restored\\备份来源乙（恢复 2026-10-09）"
+          }
+        ],
+        "groups": [
+          {
+            "id": "3c12795882064f908194d801c32d92f8",
+            "old_id": "ec97619a46a9420d97c341f511abedb4"
+          }
+        ]
+      },
+      "publishedLibraries": [
+        {
+          "id": "7a2c30d6e5bc4055aa0586390ac70363",
+          "old_id": "e6e45a83160e41a0b812706c5f90e272",
+          "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-group-restored\\备份来源甲（恢复 2026-10-09）"
+        },
+        {
+          "id": "5fe084724e4d47de8d6da9d6eadf97a8",
+          "old_id": "f0e91a69459e4eb0b95d21846371e7c4",
+          "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-group-restored\\备份来源乙（恢复 2026-10-09）"
+        }
+      ],
+      "publishedGroups": [
+        {
+          "id": "3c12795882064f908194d801c32d92f8",
+          "old_id": "ec97619a46a9420d97c341f511abedb4"
+        }
+      ],
+      "partialDestinations": [
+        ".kinshoko-restore-655a172a0c14410a811c557725eacfa9.incomplete",
+        "备份来源乙（恢复 2026-10-09）",
+        "备份来源甲（恢复 2026-10-09）"
+      ]
+    }
+  ],
+  "expectedOriginals": [
+    "0f4f8e1d216856b82e3ef7f469b4583ea146085f141be5295c863c94037daded",
+    "c41dd3431c33f1f604c80d6b718c59802cf1d84bf2fda6bce602ddf28bf9cbce",
+    "ce4a9fb1d7f490710320f787462d2121622a0b15428cfcf757de8b2f17a312f6"
+  ],
+  "filePicker": "existing testPick result queue; actual rendered controls/native backend",
+  "observer": "actual rendered roundtrip completion, public registrations/reference groups, and SQLite mode=ro/query_only provenance; no invoke replacement or synthetic IPC response",
+  "cleanup": "forced exact executable restarts; not normal tray-quit acceptance"
+}

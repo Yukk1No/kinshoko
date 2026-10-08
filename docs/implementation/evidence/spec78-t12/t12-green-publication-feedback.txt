@@ -1,0 +1,13 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/TagIdentityPanel.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  03:10:15
+   Duration  2.04s (environment 56%, tests 29%, import 10%, transform 4%)
+
