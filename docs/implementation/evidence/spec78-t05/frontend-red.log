@@ -1,0 +1,584 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/SharedTagGroups.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+ ❯ src/library/SharedTagGroups.test.tsx (4 tests | 3 failed) 2088ms
+   ❯ T05 shared groups (4)
+     × manages global groups without an active library and exposes migration provenance and sorting 1023ms
+     × renders global groups in settings with no current library 1012ms
+     × the accepted popover can add a visible OR group condition 45ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/SharedTagGroups.test.tsx > T05 shared groups > manages global groups without an active library and exposes migration provenance and sorting
+TestingLibraryElementError: Unable to find role="group" and name "发色"
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <section
+      aria-label="标签分组"
+      class="sidebar-tag-groups"
+    >
+      <div
+        class="sidebar-heading"
+      >
+        <span>
+          标签分组
+        </span>
+        <button
+          aria-label="新建标签分组"
+          class="sidebar-add"
+          type="button"
+        >
+          ＋
+        </button>
+      </div>
+    </section>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <section
+      aria-label="标签分组"
+      class="sidebar-tag-groups"
+    >
+      <div
+        class="sidebar-heading"
+      >
+        <span>
+          标签分组
+        </span>
+        <button
+          aria-label="新建标签分组"
+          class="sidebar-add"
+          type="button"
+        >
+          ＋
+        </button>
+      </div>
+    </section>
+  </div>
+</body>
+ ❯ waitForWrapper ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/library/SharedTagGroups.test.tsx:31:32
+     29|     const calls = backend(); const browse = vi.fn();
+     30|     render(<TagGroupsPane libraryId="" safe generation={0} onBrowse={b…
+     31|     const group = await screen.findByRole("group", { name: "发色" });
+       |                                ^
+     32|     expect(within(group).getByText(/角色参考/)).toBeTruthy();
+     33|     fireEvent.click(within(group).getByRole("button", { name: "发色（2 个标…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/library/SharedTagGroups.test.tsx > T05 shared groups > renders global groups in settings with no current library
+TestingLibraryElementError: Unable to find role="region" and name "全局标签分组"
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <section
+      aria-label="设置"
+      class="settings"
+    >
+      <h2>
+        常驻与快捷键
+      </h2>
+      <label
+        class="settings-row"
+      >
+        <input
+          type="checkbox"
+        />
+        开机时启动 Kinshoko
+      </label>
+      <p
+        class="settings-hint"
+      >
+        关闭主窗口后 Kinshoko 留在托盘，截图、钉图与快捷键照常可用。
+      </p>
+      <table
+        class="settings-shortcuts"
+      >
+        <tbody />
+      </table>
+      <fieldset
+        aria-label="统一标签目录"
+      >
+        <legend>
+          统一标签目录
+        </legend>
+        <p
+          class="settings-hint"
+        >
+          检查不同资料库的标签对应。同名和别名重合的标签保持独立；纠正对应后，各库的人工添加和否决继续独立保存。
+        </p>
+        <button
+          type="button"
+        >
+          检查标签对应
+        </button>
+      </fieldset>
+      <fieldset
+        aria-label="标签显示名称"
+      >
+        <legend>
+          标签显示名称
+        </legend>
+        <p
+          class="settings-hint"
+        >
+          显示名称先用显式偏好，没有偏好时跟随默认。保存偏好会在各资料库生效；恢复默认撤回该语言的偏好。其他叫法单独用于查找。
+        </p>
+        <button
+          type="button"
+        >
+          管理显示名称
+        </button>
+        <label
+          class="settings-row"
+        >
+          名称语言
+          <input
+            aria-label="名称语言"
+            placeholder="zh-CN"
+            value="zh-CN"
+          />
+        </label>
+      </fieldset>
+      <fieldset
+        aria-label="旧资料库名称迁移"
+        class="legacy-name-migration"
+      >
+        <legend>
+          旧资料库名称迁移
+        </legend>
+        <p
+          class="settings-hint"
+        >
+          旧名称缺少来源记录。选择前保留旧显示；已有显式偏好继续优先。每个统一标签和语言只选一条全局规则，后接入的旧库仍须确认。取消会放弃本次草稿。
+        </p>
+        <button
+          type="button"
+        >
+          迁移旧库名称
+        </button>
+      </fieldset>
+      <h2>
+        近似查找
+      </h2>
+      <label
+        class="settings-row"
+      >
+        <input
+          type="checkbox"
+        />
+        显示相近标签来源（内置／个人）
+      </label>
+      <h2>
+        诊断
+      </h2>
+      <label
+        class="settings-row"
+      >
+        <input
+          type="checkbox"
+        />
+        强制 sRGB（诊断用）
+      </label>
+      <p
+        class="settings-hint"
+      >
+        让 WebView2 把显示器当作 sRGB、不按显示器配置文件校色。只在排查颜色问题时打开。
+      </p>
+      <p
+        class="settings-actions"
+      >
+        <button
+          type="button"
+        >
+          显示诊断信息
+        </button>
+        <button
+          type="button"
+        >
+          存成文件…
+        </button>
+      </p>
+      <label
+        class="settings-row"
+      >
+        <input
+          type="checkbox"
+        />
+        记录使用日志（只存在本机）
+      </label>
+      <p
+        class="settings-hint"
+      >
+        只记下做了哪类操作与数量（例如导入了几项、查找用了几个条件），不记文件名、路径、标签与图片，也不会自动上传。
+      </p>
+      <p
+        class="settings-actions"
+      >
+        <button
+          type="button"
+        >
+          导出使用日志…
+        </button>
+        <button
+          type="button"
+        >
+          清除使用日志
+        </button>
+      </p>
+    </section>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <section
+      aria-label="设置"
+      class="settings"
+    >
+      <h2>
+        常驻与快捷键
+      </h2>
+      <label
+        class="settings-row"
+      >
+        <input
+          type="checkbox"
+        />
+        开机时启动 Kinshoko
+      </label>
+      <p
+        class="settings-hint"
+      >
+        关闭主窗口后 Kinshoko 留在托盘，截图、钉图与快捷键照常可用。
+      </p>
+      <table
+        class="settings-shortcuts"
+      >
+        <tbody />
+      </table>
+      <fieldset
+        aria-label="统一标签目录"
+      >
+        <legend>
+          统一标签目录
+        </legend>
+        <p
+          class="settings-hint"
+        >
+          检查不同资料库的标签对应。同名和别名重合的标签保持独立；纠正对应后，各库的人工添加和否决继续独立保存。
+        </p>
+        <button
+          type="button"
+        >
+          检查标签对应
+        </button>
+      </fieldset>
+      <fieldset
+        aria-label="标签显示名称"
+      >
+        <legend>
+          标签显示名称
+        </legend>
+        <p
+          class="settings-hint"
+        >
+          显示名称先用显式偏好，没有偏好时跟随默认。保存偏好会在各资料库生效；恢复默认撤回该语言的偏好。其他叫法单独用于查找。
+        </p>
+        <button
+          type="button"
+        >
+          管理显示名称
+        </button>
+        <label
+          class="settings-row"
+        >
+          名称语言
+          <input
+            aria-label="名称语言"
+            placeholder="zh-CN"
+            value="zh-CN"
+          />
+        </label>
+      </fieldset>
+      <fieldset
+        aria-label="旧资料库名称迁移"
+        class="legacy-name-migration"
+      >
+        <legend>
+          旧资料库名称迁移
+        </legend>
+        <p
+          class="settings-hint"
+        >
+          旧名称缺少来源记录。选择前保留旧显示；已有显式偏好继续优先。每个统一标签和语言只选一条全局规则，后接入的旧库仍须确认。取消会放弃本次草稿。
+        </p>
+        <button
+          type="button"
+        >
+          迁移旧库名称
+        </button>
+      </fieldset>
+      <h2>
+        近似查找
+      </h2>
+      <label
+        class="settings-row"
+      >
+        <input
+          type="checkbox"
+        />
+        显示相近标签来源（内置／个人）
+      </label>
+      <h2>
+        诊断
+      </h2>
+      <label
+        class="settings-row"
+      >
+        <input
+          type="checkbox"
+        />
+        强制 sRGB（诊断用）
+      </label>
+      <p
+        class="settings-hint"
+      >
+        让 WebView2 把显示器当作 sRGB、不按显示器配置文件校色。只在排查颜色问题时打开。
+      </p>
+      <p
+        class="settings-actions"
+      >
+        <button
+          type="button"
+        >
+          显示诊断信息
+        </button>
+        <button
+          type="button"
+        >
+          存成文件…
+        </button>
+      </p>
+      <label
+        class="settings-row"
+      >
+        <input
+          type="checkbox"
+        />
+        记录使用日志（只存在本机）
+      </label>
+      <p
+        class="settings-hint"
+      >
+        只记下做了哪类操作与数量（例如导入了几项、查找用了几个条件），不记文件名、路径、标签与图片，也不会自动上传。
+      </p>
+      <p
+        class="settings-actions"
+      >
+        <button
+          type="button"
+        >
+          导出使用日志…
+        </button>
+        <button
+          type="button"
+        >
+          清除使用日志
+        </button>
+      </p>
+    </section>
+  </div>
+</body>
+ ❯ waitForWrapper ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/library/SharedTagGroups.test.tsx:42:41
+     40|   it("renders global groups in settings with no current library", asyn…
+     41|     backend(); render(<SettingsPanel />);
+     42|     const settingsGroups = await screen.findByRole("region", { name: "…
+       |                                         ^
+     43|     expect(await within(settingsGroups).findByRole("group", { name: "发…
+     44|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/library/SharedTagGroups.test.tsx > T05 shared groups > the accepted popover can add a visible OR group condition
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "按“发色”任一标签查找"
+
+Here are the accessible roles:
+
+  toolbar:
+
+  Name "标签分组":
+  <div
+    aria-label="标签分组"
+    class="groupbar"
+    role="toolbar"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "发色":
+  <button
+    aria-expanded="true"
+    class="group-btn is-open"
+    type="button"
+  />
+
+  Name "蓝发1":
+  <button
+    aria-pressed="false"
+    class="chip pick"
+    type="button"
+  />
+
+  Name "紫发1":
+  <button
+    aria-pressed="false"
+    class="chip pick"
+    type="button"
+  />
+
+  Name "作品":
+  <button
+    aria-expanded="false"
+    class="group-btn"
+    type="button"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "发色标签":
+  <div
+    aria-label="发色标签"
+    class="group-pop"
+    role="group"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="pop-hint"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      aria-label="标签分组"
+      class="groupbar"
+      role="toolbar"
+    >
+      <div
+        class="group"
+      >
+        <button
+          aria-expanded="true"
+          class="group-btn is-open"
+          type="button"
+        >
+          发色
+          <span
+            aria-hidden="true"
+          >
+            ⌄
+          </span>
+        </button>
+        <div
+          aria-label="发色标签"
+          class="group-pop"
+          role="group"
+        >
+          <div
+            class="chips"
+          >
+            <button
+              aria-pressed="false"
+              class="chip pick"
+              type="button"
+            >
+              蓝发
+              <span
+                class="count tabular"
+              >
+                1
+              </span>
+            </button>
+            <button
+              aria-pressed="false"
+              class="chip pick"
+              type="button"
+            >
+              紫发
+              <span
+                class="count tabular"
+              >
+                1
+              </span>
+            </button>
+          </div>
+          <p
+            class="pop-hint"
+          >
+            点击：同时满足，再点取消 · Ctrl＋点击：与上一个条件任一 · 右键：排除，再右键取消
+          </p>
+        </div>
+      </div>
+      <div
+        class="group"
+      >
+        <button
+          aria-expanded="false"
+          class="group-btn"
+          type="button"
+        >
+          作品
+          <span
+            aria-hidden="true"
+          >
+            ⌄
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+ ❯ Object.getElementError ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/library/SharedTagGroups.test.tsx:61:28
+     59|     render(<TagGroupBar workspace libraryId="" safe generation={0} inp…
+     60|     fireEvent.click(await screen.findByRole("button", { name: /发色/ }));
+     61|     fireEvent.click(screen.getByRole("button", { name: "按“发色”任一标签查找" }…
+       |                            ^
+     62|     expect(change).toHaveBeenCalledWith({ exact: true, conditions: [{ …
+     63|       { kind: "tag", id: "shared-blue", dismissed: [] }, { kind: "tag"…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 1 passed (4)
+   Start at  00:59:51
+   Duration  4.02s (tests 54%, environment 33%, import 7%, transform 6%)
+

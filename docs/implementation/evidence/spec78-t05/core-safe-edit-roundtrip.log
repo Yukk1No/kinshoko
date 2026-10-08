@@ -1,0 +1,15 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 25.00s
+     Running tests\catalog_groups.rs (target\debug\deps\catalog_groups-4b9a3a89dcaf56f7.exe)
+
+running 7 tests
+test new_group_can_be_created_without_an_active_library_and_survives_restart ... ok
+test namespace_groups_follow_new_members_and_current_shared_name_preferences ... ok
+test same_named_legacy_groups_keep_distinct_members_and_sources_and_deleted_group_does_not_return ... ok
+test legacy_group_is_shared_across_libraries_and_restart_without_rewriting_image_tags ... ok
+test shared_group_query_is_visible_or_for_each_source_and_missing_mapping_is_not_dropped ... ok
+test artist_can_rename_reorder_and_organize_shared_members_without_changing_images ... ok
+test cross_source_adult_veto_hides_group_members_and_atomic_edit_preserves_them ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.83s
+

@@ -1,0 +1,511 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/SharedTagGroups.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+ ❯ src/library/SharedTagGroups.test.tsx (5 tests | 1 failed) 274ms
+   ❯ T05 shared groups (5)
+     × keeps a settings rename draft when the monitor repeats the current revision 72ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/SharedTagGroups.test.tsx > T05 shared groups > keeps a settings rename draft when the monitor repeats the current revision
+TestingLibraryElementError: Unable to find an accessible element with the role "textbox" and name "标签分组名称"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "全局标签分组":
+  <h2 />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="settings-hint"
+  />
+
+  Name "":
+  <p
+    class="tag-group-origin"
+  />
+
+  --------------------------------------------------
+  region:
+
+  Name "全局标签分组":
+  <section
+    aria-busy="false"
+    aria-label="全局标签分组"
+    class="sidebar-tag-groups"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "新建标签分组":
+  <button
+    aria-label="新建标签分组"
+    class="sidebar-add"
+    type="button"
+  />
+
+  Name "发色（2 个标签）":
+  <button
+    aria-label="发色（2 个标签）"
+    class="sidebar-item"
+    disabled=""
+    title="按分组中任一标签查找；双击改名"
+    type="button"
+  />
+
+  Name "改名标签分组“发色”":
+  <button
+    aria-label="改名标签分组“发色”"
+    class="sidebar-add"
+    type="button"
+  />
+
+  Name "上移标签分组“发色”":
+  <button
+    aria-label="上移标签分组“发色”"
+    class="sidebar-add"
+    disabled=""
+    type="button"
+  />
+
+  Name "下移标签分组“发色”":
+  <button
+    aria-label="下移标签分组“发色”"
+    class="sidebar-add"
+    type="button"
+  />
+
+  Name "给“发色”加标签":
+  <button
+    aria-label="给“发色”加标签"
+    class="sidebar-add"
+    type="button"
+  />
+
+  Name "删除标签分组“发色”":
+  <button
+    aria-label="删除标签分组“发色”"
+    class="sidebar-add"
+    title="只删除分组，图片标签不变"
+    type="button"
+  />
+
+  Name "蓝发（1 张）":
+  <button
+    aria-label="蓝发（1 张）"
+    class="sidebar-item"
+    disabled=""
+    type="button"
+  />
+
+  Name "上移“蓝发”在“发色”中的顺序":
+  <button
+    aria-label="上移“蓝发”在“发色”中的顺序"
+    class="sidebar-add"
+    disabled=""
+    type="button"
+  />
+
+  Name "下移“蓝发”在“发色”中的顺序":
+  <button
+    aria-label="下移“蓝发”在“发色”中的顺序"
+    class="sidebar-add"
+    type="button"
+  />
+
+  Name "把“蓝发”移出“发色”":
+  <button
+    aria-label="把“蓝发”移出“发色”"
+    class="sidebar-add"
+    type="button"
+  />
+
+  Name "紫发（1 张）":
+  <button
+    aria-label="紫发（1 张）"
+    class="sidebar-item"
+    disabled=""
+    type="button"
+  />
+
+  Name "上移“紫发”在“发色”中的顺序":
+  <button
+    aria-label="上移“紫发”在“发色”中的顺序"
+    class="sidebar-add"
+    type="button"
+  />
+
+  Name "下移“紫发”在“发色”中的顺序":
+  <button
+    aria-label="下移“紫发”在“发色”中的顺序"
+    class="sidebar-add"
+    disabled=""
+    type="button"
+  />
+
+  Name "把“紫发”移出“发色”":
+  <button
+    aria-label="把“紫发”移出“发色”"
+    class="sidebar-add"
+    type="button"
+  />
+
+  Name "作品（0 个标签）":
+  <button
+    aria-label="作品（0 个标签）"
+    class="sidebar-item"
+    disabled=""
+    title="按分组中任一标签查找；双击改名"
+    type="button"
+  />
+
+  Name "改名标签分组“作品”":
+  <button
+    aria-label="改名标签分组“作品”"
+    class="sidebar-add"
+    type="button"
+  />
+
+  Name "上移标签分组“作品”":
+  <button
+    aria-label="上移标签分组“作品”"
+    class="sidebar-add"
+    type="button"
+  />
+
+  Name "下移标签分组“作品”":
+  <button
+    aria-label="下移标签分组“作品”"
+    class="sidebar-add"
+    disabled=""
+    type="button"
+  />
+
+  Name "删除标签分组“作品”":
+  <button
+    aria-label="删除标签分组“作品”"
+    class="sidebar-add"
+    title="只删除分组，图片标签不变"
+    type="button"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "发色":
+  <div
+    aria-label="发色"
+    class="sidebar-tag-group"
+    role="group"
+  />
+
+  Name "作品":
+  <div
+    aria-label="作品"
+    class="sidebar-tag-group"
+    role="group"
+  />
+
+  --------------------------------------------------
+  list:
+
+  Name "":
+  <ul
+    class="sidebar-tree"
+  />
+
+  Name "":
+  <ul
+    class="sidebar-tree"
+  />
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  <li
+    class="sidebar-tag"
+  />
+
+  Name "":
+  <li
+    class="sidebar-tag"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <h2>
+      全局标签分组
+    </h2>
+    <p
+      class="settings-hint"
+    >
+      分组在各资料库共用。按分组查找表示满足任一成员，图片标签保持原样。同名旧分组分别保留，并列出原资料库。
+    </p>
+    <section
+      aria-busy="false"
+      aria-label="全局标签分组"
+      class="sidebar-tag-groups"
+    >
+      <div
+        class="sidebar-heading"
+      >
+        <span>
+          全局标签分组
+        </span>
+        <button
+          aria-label="新建标签分组"
+          class="sidebar-add"
+          type="button"
+        >
+          ＋
+        </button>
+      </div>
+      <div
+        aria-label="发色"
+        class="sidebar-tag-group"
+        role="group"
+      >
+        <div
+          class="sidebar-tag-group-head"
+        >
+          <button
+            aria-label="发色（2 个标签）"
+            class="sidebar-item"
+            disabled=""
+            title="按分组中任一标签查找；双击改名"
+            type="button"
+          >
+            <span
+              class="sidebar-label"
+            >
+              发色
+            </span>
+          </button>
+          <button
+            aria-label="改名标签分组“发色”"
+            class="sidebar-add"
+            type="button"
+          >
+            ✎
+          </button>
+          <button
+            aria-label="上移标签分组“发色”"
+            class="sidebar-add"
+            disabled=""
+            type="button"
+          >
+            ↑
+          </button>
+          <button
+            aria-label="下移标签分组“发色”"
+            class="sidebar-add"
+            type="button"
+          >
+            ↓
+          </button>
+          <button
+            aria-label="给“发色”加标签"
+            class="sidebar-add"
+            type="button"
+          >
+            ＋
+          </button>
+          <button
+            aria-label="删除标签分组“发色”"
+            class="sidebar-add"
+            title="只删除分组，图片标签不变"
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+        <p
+          class="tag-group-origin"
+        >
+          来自：
+          角色参考 / 发色
+        </p>
+        <ul
+          class="sidebar-tree"
+        >
+          <li
+            class="sidebar-tag"
+          >
+            <button
+              aria-label="蓝发（1 张）"
+              class="sidebar-item"
+              disabled=""
+              type="button"
+            >
+              <span
+                class="sidebar-label"
+              >
+                蓝发
+              </span>
+              <span
+                class="sidebar-count"
+              >
+                1
+              </span>
+            </button>
+            <button
+              aria-label="上移“蓝发”在“发色”中的顺序"
+              class="sidebar-add"
+              disabled=""
+              type="button"
+            >
+              ↑
+            </button>
+            <button
+              aria-label="下移“蓝发”在“发色”中的顺序"
+              class="sidebar-add"
+              type="button"
+            >
+              ↓
+            </button>
+            <button
+              aria-label="把“蓝发”移出“发色”"
+              class="sidebar-add"
+              type="button"
+            >
+              ×
+            </button>
+          </li>
+          <li
+            class="sidebar-tag"
+          >
+            <button
+              aria-label="紫发（1 张）"
+              class="sidebar-item"
+              disabled=""
+              type="button"
+            >
+              <span
+                class="sidebar-label"
+              >
+                紫发
+              </span>
+              <span
+                class="sidebar-count"
+              >
+                1
+              </span>
+            </button>
+            <button
+              aria-label="上移“紫发”在“发色”中的顺序"
+              class="sidebar-add"
+              type="button"
+            >
+              ↑
+            </button>
+            <button
+              aria-label="下移“紫发”在“发色”中的顺序"
+              class="sidebar-add"
+              disabled=""
+              type="button"
+            >
+              ↓
+            </button>
+            <button
+              aria-label="把“紫发”移出“发色”"
+              class="sidebar-add"
+              type="button"
+            >
+              ×
+            </button>
+          </li>
+        </ul>
+      </div>
+      <div
+        aria-label="作品"
+        class="sidebar-tag-group"
+        role="group"
+      >
+        <div
+          class="sidebar-tag-group-head"
+        >
+          <button
+            aria-label="作品（0 个标签）"
+            class="sidebar-item"
+            disabled=""
+            title="按分组中任一标签查找；双击改名"
+            type="button"
+          >
+            <span
+              class="sidebar-label"
+            >
+              作品
+            </span>
+          </button>
+          <button
+            aria-label="改名标签分组“作品”"
+            class="sidebar-add"
+            type="button"
+          >
+            ✎
+          </button>
+          <button
+            aria-label="上移标签分组“作品”"
+            class="sidebar-add"
+            type="button"
+          >
+            ↑
+          </button>
+          <button
+            aria-label="下移标签分组“作品”"
+            class="sidebar-add"
+            disabled=""
+            type="button"
+          >
+            ↓
+          </button>
+          <button
+            aria-label="删除标签分组“作品”"
+            class="sidebar-add"
+            title="只删除分组，图片标签不变"
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+        <ul
+          class="sidebar-tree"
+        />
+      </div>
+    </section>
+  </div>
+</body>
+ ❯ Object.getElementError ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/library/SharedTagGroups.test.tsx:53:19
+     51|     fireEvent.change(screen.getByRole("textbox", { name: "标签分组名称" }), …
+     52|     await act(async () => { await emit("workspace-changed", { revision…
+     53|     expect(screen.getByRole<HTMLInputElement>("textbox", { name: "标签分组…
+       |                   ^
+     54|   });
+     55|   it("does not show an old unsafe response after safe mode changes", a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  01:22:53
+   Duration  2.16s (environment 66%, tests 13%, import 12%, transform 9%)
+

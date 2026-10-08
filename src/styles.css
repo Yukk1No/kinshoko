@@ -1702,6 +1702,11 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .workspace-sources code { display: block; width: 100%; font-size: 11px; overflow-wrap: anywhere; opacity: .65; }
 .workspace-sources p { font-size: 12px; }
 
+.tag-group-origin { margin: 2px 8px 6px; color: var(--ink-3); font-size: 11px; overflow-wrap: anywhere; }
+.sidebar-tag-group-head { flex-wrap: wrap; }
+.sidebar-tag-group-head > .sidebar-item { flex: 1 1 100%; }
+.group-any { margin-bottom: 8px; font-size: 12px; }
+.settings .sidebar-tag-groups { max-width: 680px; }
 .workspace-source-editor { display: grid; gap: 12px; margin-top: 14px; }
 .workspace-source-editor > label, .workspace-source-editor fieldset label { display: grid; gap: 6px; font-size: 12px; }
 .workspace-source-editor select, .workspace-source-editor input { min-width: 0; max-width: 100%; }

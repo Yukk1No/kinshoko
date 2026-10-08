@@ -1,0 +1,21 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.99s
+     Running tests\catalog_groups.rs (target\debug\deps\catalog_groups-4b9a3a89dcaf56f7.exe)
+
+running 1 test
+
+thread 'legacy_group_is_shared_across_libraries_and_restart_without_rewriting_image_tags' (44612) panicked at crates\kinshoko-core\tests\catalog_groups.rs:38:5:
+assertion `left == right` failed: A's group is available while B is active
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test legacy_group_is_shared_across_libraries_and_restart_without_rewriting_image_tags ... FAILED
+
+failures:
+
+failures:
+    legacy_group_is_shared_across_libraries_and_restart_without_rewriting_image_tags
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+error: test failed, to rerun pass `-p kinshoko-core --test catalog_groups`

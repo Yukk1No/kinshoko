@@ -22,6 +22,7 @@ import {
 } from "./ipc";
 import { TagMarks, tagName, UI_LANG } from "./search/SearchBox";
 import { LegacyNameMigrationPanel } from "./library/LegacyNameMigrationPanel";
+import { SharedTagGroupsSettings } from "./library/TagGroupsPane";
 import { TagNamePanel } from "./library/TagNamePanel";
 import { TagIdentityPanel } from "./library/TagIdentityPanel";
 import { UpdateSection } from "./Update";
@@ -163,6 +164,7 @@ export function SettingsPanel({ library = null, onChange, nameMigrationRequest =
       <TagIdentityPanel />
       <TagNamePanel />
       <LegacyNameMigrationPanel openRequest={nameMigrationRequest} />
+      <SharedTagGroupsSettings onError={setError} />
       <h2>近似查找</h2>
       <label className="settings-row">
         <input

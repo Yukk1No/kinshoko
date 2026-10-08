@@ -83,8 +83,8 @@ pub use rating::{ContentRating, ImageRating, RatingFact, TaggingOutcome};
 pub use sidebar::Sidebar;
 pub use tags::{
     FactSource, ImageTag, ImageTags, LocalizedName, PersonalApproxEntry, SourceTag, TagAlias,
-    TagCount, TagEdit, TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef, TagTranslation,
-    TagTranslations, Vocabulary, VocabularyTag,
+    TagCount, TagEdit, TagGroupDefinition, TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef,
+    TagTranslation, TagTranslations, Vocabulary, VocabularyTag,
 };
 pub use types::{
     BrowsePage, BrowseQuery, BrowseScope, DisplayFile, DisplayRoute, EagleDeletedContentChoice,
@@ -623,6 +623,12 @@ impl Library {
     /// 个人近似对应表的全部条目，最近记下的在前，名称按界面语言 `lang`。
     pub fn personal_approx(&self, lang: &str) -> Result<Vec<PersonalApproxEntry>, Error> {
         tags::personal_approx(&self.inner, lang)
+    }
+
+    /// Legacy group configuration for application migration. It carries only local member
+    /// identities, never hidden image names/counts, and never changes the Library's safe mode.
+    pub fn tag_group_definitions(&self) -> Result<Vec<TagGroupDefinition>, Error> {
+        tags::tag_group_definitions(&self.inner)
     }
 
     /// 侧栏的标签分组及计数，名称按界面语言 `lang`。

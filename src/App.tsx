@@ -14,7 +14,6 @@ import {
   onLibraryEvent,
   workspaceResolve,
   workspaceStatus,
-  workspaceLocalTags,
   onWorkspaceChanged,
   onSafeModeSetting,
   safeMode,
@@ -260,23 +259,20 @@ function LibraryWorkspace({
             reloadKey={reloadKey} onError={onError} onScope={(next) => {
               setWorkspaceScope(next); setSelected(new Set()); setSources(null);
             }} />
-          {library && <details className="tag-organize"><summary>整理标签分组</summary>
+          <details className="tag-organize"><summary>整理标签分组</summary>
           <TagGroupsPane
-            libraryId={libraryId}
             safe={safe}
             generation={vocabularyKey}
-            onBrowse={(ids) => {
-              workspaceLocalTags(libraryId, ids, safe).then((globalIds) => {
+            onBrowse={(globalIds) => {
                 setSearch((prev) => ({
                   ...prev,
                   conditions: [{ any: globalIds.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }],
                 }));
                 setSelected(new Set());
-              }, onError);
             }}
             onError={onError}
           />
-          </details>}
+          </details>
           {/* Ctrl／Shift／空格选择后的整理入口沿用正式 IPC。 */}
           {selected.size > 0 && ((workspaceScope.kind === "library" && workspaceScope.libraryId === libraryId) ||
             loadedCards.filter((card) => selected.has(card.id)).every((card) => card.sources?.length === 1 && card.sources[0].libraryId === libraryId)) && (
@@ -328,8 +324,8 @@ function LibraryWorkspace({
             }} />}
           </header>
           <div className="app-tagbar">
-          {library && <TagGroupBar workspace libraryId={libraryId} safe={safe} generation={vocabularyKey} input={search}
-            onChange={(next) => { setSearch(next); setSelected(new Set()); }} onError={onError} />}
+          <TagGroupBar workspace libraryId="workspace" safe={safe} generation={vocabularyKey} input={search}
+            onChange={(next) => { setSearch(next); setSelected(new Set()); }} onError={onError} />
           </div>
           {problem && (
             <p className="app-problem" role="alert">

@@ -2,9 +2,14 @@
 //!
 //! Local IDs and image decisions remain in each Library. Only an explicit external identity
 //! in the same namespace joins identities automatically; names and aliases never do.
+mod groups;
 mod migration;
 mod names;
 mod portable;
+pub use groups::{
+    CatalogGroupDefinition, CatalogGroupEdit, CatalogGroupMigration, CatalogGroupOrigin,
+    CatalogGroupSource, CatalogGroupView,
+};
 pub use migration::{
     LegacyNameDecision, LegacyNameGroup, LegacyNameMigration, LegacyNameMigrationPreview,
     LegacyNameMigrationWorkspace, LegacyNameOutcome, LegacyNameResolution, LegacyNameSource,
@@ -32,6 +37,8 @@ pub enum CatalogError {
     Library(crate::library::Error),
     UnknownTag,
     InvalidDefinition(String),
+    UnknownGroup,
+    InvalidGroupMembers,
     UnknownMapping,
     NamespaceMismatch,
     UnsupportedFormat,
@@ -47,6 +54,8 @@ impl fmt::Display for CatalogError {
             Self::Data(e) => write!(f, "统一标签目录中的定义无效：{e}"),
             Self::Library(e) => e.fmt(f),
             Self::InvalidDefinition(why) => write!(f, "标签定义无效：{why}"),
+            Self::InvalidGroupMembers => write!(f, "分组成员无效，命名空间分组会自动列出该类标签"),
+            Self::UnknownGroup => write!(f, "没有这个全局标签分组"),
             Self::UnknownTag => write!(f, "统一标签目录中没有这个标签"),
             Self::UnknownMapping => write!(f, "资料库中没有这个标签对应"),
             Self::NamespaceMismatch => write!(f, "命名空间不同的标签不能对应同一身份"),
@@ -236,6 +245,7 @@ pub struct TagCatalogWorkspace {
 
 /// Application data, not a cache. Opening or synchronizing never writes a Library.
 pub struct TagCatalog {
+    dir: std::path::PathBuf,
     conn: Connection,
     name_defaults: Option<crate::library::TagTranslations>,
 }
@@ -246,7 +256,7 @@ impl TagCatalog {
         let conn = Connection::open(dir.join("tag-catalog.sqlite"))?;
         conn.busy_timeout(std::time::Duration::from_secs(5))?;
         let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
-        if version > 3 {
+        if version > 4 {
             return Err(CatalogError::UnsupportedFormat);
         }
         conn.execute_batch(
@@ -267,7 +277,9 @@ impl TagCatalog {
         )?;
         names::initialize(&conn, version)?;
         migration::initialize(&conn)?;
+        groups::initialize(&conn)?;
         Ok(Self {
+            dir: dir.to_owned(),
             conn,
             name_defaults: None,
         })
@@ -396,6 +408,7 @@ impl TagCatalog {
             }
             changed = true;
         }
+        changed |= groups::migrate(&tx, library)?;
         if changed {
             tx.execute("UPDATE catalog_revision SET value=value+1", [])?;
         }
@@ -413,47 +426,10 @@ impl TagCatalog {
         libraries: &DeviceLibraries,
         safe_mode: bool,
     ) -> Result<TagCatalogWorkspace, CatalogError> {
-        let mut registrations = Vec::new();
-        let mut visible = BTreeSet::new();
-        for registration in libraries.libraries() {
-            let unavailable = match libraries.read(&registration.id) {
-                Ok(library) => {
-                    library.set_safe_mode(safe_mode);
-                    match library.vocabulary() {
-                        Ok(vocabulary) => {
-                            visible.extend(
-                                vocabulary
-                                    .tags
-                                    .into_iter()
-                                    .map(|tag| (registration.id.clone(), tag.id)),
-                            );
-                            self.synchronize(&library)?;
-                            None
-                        }
-                        Err(error) => Some(error.to_string()),
-                    }
-                }
-                Err(error) => Some(error.to_string()),
-            };
-            registrations.push(LibraryRegistration {
-                library: registration.clone(),
-                unavailable,
-            });
-        }
-        let mut catalog = self.inspect()?;
-        catalog
-            .mappings
-            .retain(|m| visible.contains(&(m.library_id.clone(), m.local_tag_id.clone())));
-        let identities = catalog
-            .mappings
-            .iter()
-            .map(|m| m.catalog_id.clone())
-            .collect::<BTreeSet<_>>();
-        catalog.tags.retain(|tag| identities.contains(&tag.id));
-        Ok(TagCatalogWorkspace {
-            catalog,
-            libraries: registrations,
-        })
+        // The same durable all-source facts as workspace browsing, including known offline vetoes.
+        // Detached readers leave the active Library lens unchanged; the catalog retains raw definitions.
+        let mut workspace = crate::workspace::Workspace::open(&self.dir)?;
+        workspace.inspect_catalog(libraries, self, safe_mode)
     }
 
     /// Correct one local mapping. The local tag must still exist. Explicit choices survive
