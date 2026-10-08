@@ -132,6 +132,7 @@ try {
   await wd("POST", `${base}/actions`, { actions: [{ type: "pointer", id: "mouse", parameters: { pointerType: "mouse" }, actions: [{ type: "pointerMove", duration: 0, origin: card, x: 0, y: 0 }, { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 }, { type: "pause", duration: 80 }, { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 }] }] });
   const fitted = await until("缩小查看器", image);
   report.dpr = fitted.dpr;
+  if (dpr) check(Math.abs(fitted.dpr - Number(dpr)) < 0.001, "WebView2 使用指定的测试 DPR");
   check(fitted.naturalWidth < 2400, "真实查看器缩小显示 2400×1600 原图");
   const sourcePath = new URL(fitted.src).pathname.split("/").filter(Boolean);
   const mainOrigin = await native("inner_position", "main");
