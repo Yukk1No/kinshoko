@@ -1,0 +1,13 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+
+ Test Files  33 passed (33)
+      Tests  259 passed (259)
+   Start at  02:21:51
+   Duration  33.55s (environment 59%, tests 31%, import 8%, transform 2%)
+
+Environment  jsdom was created 33 times · 36.30s total, 59% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

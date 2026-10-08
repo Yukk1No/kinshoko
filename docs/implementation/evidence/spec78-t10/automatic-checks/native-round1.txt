@@ -1,0 +1,21 @@
+PASS global import begins with an explicit unchosen destination
+PASS ordinary import receipt keeps the submitted library and folder
+PASS ordinary file is committed into B folder while A remains empty
+PASS saving into B does not activate B or change browsing current A
+PASS changing current by creating C and selecting save A while running keeps B task ownership
+PASS formal progress visibly reports original B position after selecting A
+PASS wrong-owner cancellation is rejected during the real task
+PASS B task completes all 2000 entries after current/create/target changes
+PASS completed content stays in B rather than new current or newly selected A
+PASS running target loss reports completed and failed items instead of a whole-batch success
+PASS remaining failures name the actual unavailable destination
+PASS failed target does not fall back into the newly chosen or current library
+PASS formal cancel applies to original B even when the next target is A
+PASS cancelled B work never writes into the next A target
+PASS real Eagle entry uses the chosen final folder
+PASS formal package import into A keeps current C
+PASS screenshot collection preserves the capture bytes in the chosen B folder
+PASS cross-library copy retains the original B provenance
+PASS formal cross-library copy preserves the existing target manual note
+PASS copy merges identical bytes without creating a public pool or a duplicate target image
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\e2e\save-destination-1791484143122

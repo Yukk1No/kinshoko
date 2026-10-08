@@ -1,0 +1,20 @@
+{
+  "source": "a2f2c3ec72e761320182448b54dc360d2b90617f",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\binary-a2f2c3e\\kinshoko.exe",
+  "binarySha256": "c1d59e4d2207533ab42bca666b2dcfe7f9c2e1b2b571200717c378a9ec1c83e9",
+  "harnessSha256": "d9df46a1c82641e8677d9434dca9d631a43370a1037d6217b05e539141c7e01a",
+  "startedAt": "2026-10-08T18:30:11.877Z",
+  "assertions": [
+    "建立资料库并打开",
+    "导入 3 张图，不支持的文件逐个列出",
+    "瀑布流按原比例显示（0.50、1.00、2.00）",
+    "重开后仍使用同一资料库身份",
+    "重开后资料库与图片墙原样恢复"
+  ],
+  "library": {
+    "id": "f789b6c12aa549d09d215c40a043a773",
+    "name": "冒烟测试库"
+  },
+  "status": "passed",
+  "completedAt": "2026-10-08T18:30:17.579Z"
+}

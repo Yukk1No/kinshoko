@@ -1,0 +1,9 @@
+PASS global import begins with an explicit unchosen destination
+PASS ordinary import receipt keeps the submitted library and folder
+PASS ordinary file is committed into B folder while A remains empty
+PASS saving into B does not activate B or change browsing current A
+PASS cross-library copy retains the original B provenance
+PASS formal cross-library copy preserves the existing target manual note
+PASS copy merges identical bytes without creating a public pool or a duplicate target image
+PASS copy confirmation stays closed after the real source refresh
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\e2e\save-destination-followup-1791485416325

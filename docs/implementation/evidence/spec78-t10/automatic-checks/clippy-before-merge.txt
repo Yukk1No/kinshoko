@@ -1,0 +1,20 @@
+    Checking kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\src-tauri)
+error: this function has too many arguments (8/7)
+   --> crates\kinshoko-core\src\library\import.rs:339:1
+    |
+339 | / fn ingest(
+340 | |     inner: &Inner,
+341 | |     bytes: &[u8],
+342 | |     original_name: String,
+...   |
+347 | |     task_created_images: Arc<Mutex<HashSet<String>>>,
+348 | | ) -> (ImportOutcome, bool) {
+    | |__________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#too_many_arguments
+    = note: `-D clippy::too-many-arguments` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::too_many_arguments)]`
+
+error: could not compile `kinshoko-core` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

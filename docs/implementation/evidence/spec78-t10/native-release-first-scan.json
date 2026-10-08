@@ -1,0 +1,29 @@
+{
+  "observedAt": "2026-10-09T02:30:38.2593969+08:00",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\binary-a2f2c3e\\kinshoko.exe",
+  "nativeData": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-1791484143122",
+  "smokeData": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\kinshoko-smoke-iFe3Bd",
+  "ownProcesses": [
+    {
+      "ProcessId": 32400,
+      "ParentProcessId": 8200,
+      "Name": "pwsh.exe",
+      "ExecutablePath": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "CommandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoProfile -Command \"try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}\n$taskRoot = (Get-Location).Path; $nativeRoot = Join-Path $taskRoot 'work/e2e/save-destination-1791484143122'; $smokeRoot = Join-Path $taskRoot 'work/e2e/spec78-t10/kinshoko-smoke-iFe3Bd'; $ownExe = Join-Path $taskRoot 'work/e2e/spec78-t10/binary-a2f2c3e/kinshoko.exe'; $ownProcesses = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $ownExe -or ($_.CommandLine -and ($_.CommandLine.Contains($nativeRoot) -or $_.CommandLine.Contains($smokeRoot) -or $_.CommandLine.Contains('dev.kinshoko.spec78t10test'))) } | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine); $ports = @(Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -in @(4586,4587) } | Select-Object LocalAddress,LocalPort,OwningProcess); $knownFolders = @($env:APPDATA,$env:LOCALAPPDATA) | ForEach-Object { $candidate=Join-Path $_ 'dev.kinshoko.spec78t10test'; [pscustomobject]@{path=$candidate;exists=(Test-Path -LiteralPath $candidate);items=@(Get-ChildItem -LiteralPath $candidate -ErrorAction SilentlyContinue | Select-Object Name,Length,Attributes)} }; $cleanup=[ordered]@{observedAt=[DateTimeOffset]::Now.ToString('o');application=$ownExe;nativeData=$nativeRoot;smokeData=$smokeRoot;ownProcesses=$ownProcesses;listeningPorts=$ports;knownFolders=$knownFolders;method='WebDriver session close, then exact owned exe and exact driver PID tree termination. No normal tray-exit claim.'}; $cleanup | ConvertTo-Json -Depth 7 | Set-Content -LiteralPath 'work/e2e/spec78-t10/native-release.json' -Encoding utf8; $cleanup | ConvertTo-Json -Depth 7\""
+    }
+  ],
+  "listeningPorts": [],
+  "knownFolders": [
+    {
+      "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t10test",
+      "exists": false,
+      "items": []
+    },
+    {
+      "path": "C:\\Users\\yuk1no\\AppData\\Local\\dev.kinshoko.spec78t10test",
+      "exists": true,
+      "items": []
+    }
+  ],
+  "method": "WebDriver session close, then exact owned exe and exact driver PID tree termination. No normal tray-exit claim."
+}
