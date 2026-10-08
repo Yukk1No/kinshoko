@@ -85,6 +85,7 @@ pub struct WorkspacePage {
     pub status: WorkspaceStatus,
 }
 /// One provider root. Missing providers keep their identity and reason, without stale folders/counts.
+/// `descendants` counts live visible images per subtree, deduplicated across folder memberships.
 #[derive(Debug, Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -92,7 +93,6 @@ pub struct WorkspaceDirectory {
     pub registration: LibraryRegistration,
     pub sidebar: Option<crate::library::Sidebar>,
     pub unassigned: u32,
-    /// Live visible images per subtree, deduplicated across all folder memberships.
     pub descendants: BTreeMap<String, u32>,
 }
 #[derive(Debug, Clone, Serialize, TS)]

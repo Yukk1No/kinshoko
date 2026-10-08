@@ -4,9 +4,6 @@ import type { Sidebar } from "./Sidebar";
 
 /**
  * One provider root. Missing providers keep their identity and reason, without stale folders/counts.
+ * `descendants` counts live visible images per subtree, deduplicated across folder memberships.
  */
-export type WorkspaceDirectory = { registration: LibraryRegistration, sidebar: Sidebar | null, unassigned: number, 
-/**
- * Live visible images per subtree, deduplicated across all folder memberships.
- */
-descendants: { [key in string]: number }, };
+export type WorkspaceDirectory = { registration: LibraryRegistration, sidebar: Sidebar | null, unassigned: number, descendants: { [key in string]: number }, };
