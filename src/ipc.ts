@@ -938,6 +938,6 @@ export function editSharedApprox(edit: import("./bindings/CatalogApproxEdit").Ca
 }
 
 /** Reply only to this native capture request; delayed replies cannot replace a newer frame. */
-export function reportCaptureReferences(request: string, frame: { generation: number; dpr: number; references: import("./bindings/CaptureReference").CaptureReference[] }): Promise<void> {
+export function reportCaptureReferences(request: string, frame: import("./bindings/CaptureReferenceFrame").CaptureReferenceFrame): Promise<void> {
   return invoke<void>(desk("report_capture_references"), { request, frame });
 }
