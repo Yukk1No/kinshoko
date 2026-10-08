@@ -19,6 +19,7 @@ export type FinishedImport = { taskId: string; report: ImportReport; libraryId?:
 type Props = {
   enabled: boolean;
   previewContextActive?: boolean;
+  previewContextKey?: string;
   libraryId: string;
   libraryName: string;
   destination?:SaveDestination|null;
@@ -49,10 +50,11 @@ function reason(outcome: ImportOutcome): string | null {
  * 导入：选择文件或文件夹，或把它们拖进主窗口；进行中显示进度与取消，结束后逐项列出
  * 没有进来的文件并可只重试读取失败的项。打开资料库时若上次导入中断，提示撤回了哪些文件。
  */
-export function ImportBar({ previewContextActive=true, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, onShowRequested }: Props) {
+export function ImportBar({ previewContextActive=true, previewContextKey, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, onShowRequested }: Props) {
   const report = finished?.report ?? null;
-  const [preview, setPreview] = useState<string | null>(null);
-  useEffect(() => { setPreview(null); }, [finished?.taskId, previewContextActive, enabled]);
+  const contextKey = previewContextKey ?? libraryId;
+  const [preview, setPreview] = useState<{ taskId: string; contextKey: string } | null>(null);
+  useEffect(() => { setPreview(null); }, [finished?.taskId, contextKey, previewContextActive, enabled]);
   const [hovering, setHovering] = useState(false);
   const [recovery, setRecovery] = useState<RecoveryReport | null>(null);
   const [eagleLibraries, setEagleLibraries] = useState<EagleLibraryCandidate[] | null>(null);
@@ -384,7 +386,7 @@ export function ImportBar({ previewContextActive=true, enabled, libraryId, libra
             </button>
           </header>
           {report.sealedDuplicates && <p className="sealed-import-prompt"><span>有封印项重复，是否展开看看</span>
-            <button type="button" onClick={() => finished && setPreview(finished.taskId)}>展开本次重复项</button></p>}
+            <button type="button" onClick={() => finished && setPreview({ taskId: finished.taskId, contextKey })}>展开本次重复项</button></p>}
           {counts.skippedDeleted.length > 0 && (
             <p>曾永久删除的同一内容已跳过。
               <button type="button" disabled={busy} onClick={() => void begin(counts.skippedDeleted, true, undefined, finished?.destination)}>重新选择永久删除重导策略…</button>
@@ -407,7 +409,7 @@ export function ImportBar({ previewContextActive=true, enabled, libraryId, libra
           )}
         </section>
       )}
-      {finished && preview === finished.taskId && previewContextActive && enabled && <SealedImportPreview key={finished.taskId} libraryId={finished.libraryId ?? libraryId} taskId={finished.taskId} onClose={() => setPreview(null)} />}
+      {finished && preview?.taskId === finished.taskId && preview.contextKey === contextKey && previewContextActive && enabled && <SealedImportPreview key={finished.taskId} libraryId={finished.libraryId ?? libraryId} taskId={finished.taskId} onClose={() => setPreview(null)} />}
       {tagStep && <EagleTagStep libraryId={finished?.libraryId??libraryId} onClose={() => setTagStep(false)} />}
     </div>
   );
