@@ -103,3 +103,11 @@ Windows 10 未验证；负责人明确保留此状态。debug 验证按既有实
 公开核心 target 为 app_settings、application_settings_backup、backup_content_definitions、backup_crash、backup_restore、catalog_approx、catalog_groups、catalog_visibility、portable_tags、tag_catalog、tag_names。计数取各 target 最后一条汇总，不重复计入其子进程。T13 的 6 个实际 crash/error 子场景随父测试再次执行。
 
 没有在此次合入后重复原生启动。固定原生结果只归属于上述 5a 产品及实际 harness 来源。此次定向结果不称为最终源码的全 workspace 或完整原生结果。独立合并复核与工单状态由根任务负责。
+
+## 独立合并复核
+
+独立合并为 `152e652311b7c70425f707faece7253ea6f76872`，tree `090970ebda061eb5be9d8567028999129538685a` 与最终 worker `e53d78a` 相同。没有冲突。独立审查核对完整配置替换、当前provider绑定、T12/T13各自恢复边界、即时采用和IPC登记，未发现阻塞问题。
+
+独立 fmt、TypeScript、脚本语法、diff检查及5文件45项前端检查成功。首次 Vitest 受 sandbox TEMP ENOENT 影响，0项测试；指定本工作区 TEMP/TMP 后成功，没有修改产品。522项固定输入在worker前后逐字节不变；根checkout的34项只存在LF/CRLF差异，不宣称根与worker物理字节全部相同。
+
+根归档238文件/127070176字节，全部大小和SHA256经独立核对。[证据索引](evidence/spec78-t13/README.md)提供39份逐字节原始副本，包括公开核心日志、实际原生结果、系统热键与正常托盘退出回执、实际故障退出和限定范围的截图。原始失败轮与来源纠正前元数据保留于完整ignored归档。本次复核未启动原生程序，不扩大5a与a8的验证范围。

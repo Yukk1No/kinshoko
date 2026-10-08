@@ -1,0 +1,35 @@
+{
+  "method": "SendInput",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t13\\nativeproof\\5a48939e9056\\kinshoko.exe",
+  "pid": 32112,
+  "foregroundHwnd": 26940228,
+  "foregroundPid": 32112,
+  "key": "Ctrl+Alt+F10",
+  "events": [
+    [
+      17,
+      0
+    ],
+    [
+      18,
+      0
+    ],
+    [
+      121,
+      0
+    ],
+    [
+      121,
+      2
+    ],
+    [
+      18,
+      2
+    ],
+    [
+      17,
+      2
+    ]
+  ],
+  "sent": 6
+}

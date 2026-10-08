@@ -1,0 +1,241 @@
+{
+  "observedAtUtc": "2026-10-08T20:07:02.9181157Z",
+  "method": "original byte-for-byte copies; no reconstruction",
+  "merge": "152e652311b7c70425f707faece7253ea6f76872",
+  "files": [
+    {
+      "source": "merge16-checks/result.json",
+      "copy": "independent-merge-result.json",
+      "bytes": 7650,
+      "sha256": "90C5E6AAA85A31412DA04443ACC2C7615B2FF982834FE3DDCC05DB50CCC6C8B7"
+    },
+    {
+      "source": "merge16-checks/evidence-audit.json",
+      "copy": "independent-audit.json",
+      "bytes": 5735,
+      "sha256": "6CC183AFC3811446D510939DA55EE1DD1DD22A398F4BECF861999B0E31232E56"
+    },
+    {
+      "source": "merge16-checks/ui.txt",
+      "copy": "independent-ui.txt",
+      "bytes": 506,
+      "sha256": "2015F3920D52FBBE99E82ED62FA8E846C82F15F4E6E4671E440A09F18F039B02"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/result.json",
+      "copy": "native-result.json",
+      "bytes": 130861,
+      "sha256": "4E639214254108E6A7218B6AEEF90054734F970B4CB0849E9D1F64593897E4B3"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/native-release.json",
+      "copy": "native-release.json",
+      "bytes": 543,
+      "sha256": "376A12490FBB978D79496A2CD6AD60B1753EB6EA4E459B4718A1EACA3187DEF8"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/checks.json",
+      "copy": "checks.json",
+      "bytes": 5088,
+      "sha256": "1D8DA6FAD11AFED58C98B5F61764E19EF1C506DA842F8535B582792D71D07CE1"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/screenshots.json",
+      "copy": "screenshots.json",
+      "bytes": 3363,
+      "sha256": "F94CD82EE49BEC4C1CAF6707869C8AC53B0035E9F873F5A5CBB43BFBF519F859"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/name-red-valid.txt",
+      "copy": "name-red-valid.txt",
+      "bytes": 1099,
+      "sha256": "51F3E0A8171038369A05633F61776E1C78FCE4C4D25E391E21B93C5E03A2FD91"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/name-green.txt",
+      "copy": "name-green.txt",
+      "bytes": 526,
+      "sha256": "1017A55ED466E17166FBD77A9DF7538DE9FB1CA6BED89F333555E1EDB4FB05F8"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/rules-red-product.txt",
+      "copy": "rules-red-product.txt",
+      "bytes": 1082,
+      "sha256": "C3E04440C23209933E63E87D43A2C748E050A67DA84E53EF8447DE7F053C445C"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/rules-green.txt",
+      "copy": "rules-green.txt",
+      "bytes": 617,
+      "sha256": "56E256F815D4DCF17F3A4AD78E4FA73A2A2ACBFA1317A0B9A7FDD63510A97916"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/bindings-red-product.txt",
+      "copy": "bindings-red-product.txt",
+      "bytes": 1185,
+      "sha256": "1CC5B3DAAA26E36B5909FD35CA3C6E47E9534641829057B9E12C69A69400084D"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/bindings-green.txt",
+      "copy": "bindings-green.txt",
+      "bytes": 713,
+      "sha256": "B2BB702D95B2348A491C652CFB712D1BEE624E5B24932C9DE2B5A46BA9DE0C94"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/write-failure-red.txt",
+      "copy": "write-failure-red.txt",
+      "bytes": 1036,
+      "sha256": "10ECE7F82327936E979D27F1B35F10CBDDC27978E7722B1EE59D9237AC592591"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/write-failure-green.txt",
+      "copy": "write-failure-green.txt",
+      "bytes": 510,
+      "sha256": "E8229C1B92CD1AC077D954E2B2627AE8E6743C5A005136C0875DA78FE984806A"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/crash-red.txt",
+      "copy": "crash-red.txt",
+      "bytes": 1105,
+      "sha256": "A8A4BE0F17033FA068A0E7287406B434650E59E478DBA205E1A2630E30992F72"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/crash-green.txt",
+      "copy": "crash-green.txt",
+      "bytes": 1487,
+      "sha256": "A4C15E0C09053FB0D3B3FDBA18F3186EE6C881A65745336925E909B5C166E741"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/external-owner-red.txt",
+      "copy": "external-owner-red.txt",
+      "bytes": 1208,
+      "sha256": "F8BEFE886CF1CA9C8E9F44911DF1E34F288C0FF689FABEBDCDE0D66789C316A2"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/external-owner-green.txt",
+      "copy": "external-owner-green.txt",
+      "bytes": 1755,
+      "sha256": "A3611C9FC504672A505EDB0B05E3F2FF4F38B20EEEE162B59C8D33BADEA33412"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/viewer-background-red.txt",
+      "copy": "viewer-background-red.txt",
+      "bytes": 1177,
+      "sha256": "C21E0B774ECCFED3D38A61DBD3E40858C3182937FF34F8F551AE883E52391FA0"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/viewer-background-green.txt",
+      "copy": "viewer-background-green.txt",
+      "bytes": 310,
+      "sha256": "57B611D20B1126868B458E750BBE5DE208F0CDDF57DF9E99AA83204797AB07E8"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/final-integration-core.txt",
+      "copy": "final-integration-core.txt",
+      "bytes": 11665,
+      "sha256": "6E38185ACE90953BF265965C47458FCFDDD6527CA44D4A486592B98A31F2866C"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/final-integration-core-result.json",
+      "copy": "final-integration-core-result.json",
+      "bytes": 1972,
+      "sha256": "C7DD60C4C800CB148D0054D0F188534387F641111BFFB2D279B4419F7846197E"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/final-integration-ui.txt",
+      "copy": "final-integration-ui.txt",
+      "bytes": 422,
+      "sha256": "C9EBDB5C0E16060DFDB3EA3DCA89B631A215D12315B48C56D0A2D39E9FC533A1"
+    },
+    {
+      "source": "evidence/t13-native/build-and-checks/final-integration-shell-clippy.txt",
+      "copy": "final-integration-shell-clippy.txt",
+      "bytes": 434,
+      "sha256": "3E2EDE81A839108E12261010AAE2E6392D0E511757A52A5930EE7F4335C43C8E"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/configured-target-confirmation.png",
+      "copy": "configured-target-confirmation.png",
+      "bytes": 166094,
+      "sha256": "8DD960DF450DA7CB5D80A6F0C922CC44686484C98F8DFAAABCCC9DFDAA6991A2"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/restored-settings-live.png",
+      "copy": "restored-settings-live.png",
+      "bytes": 145284,
+      "sha256": "DA032B4FFE118DF91632A5209C30C22BE623DDE25FA18ADFCD61949D7BB1AA8B"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/restored-viewer-background.png",
+      "copy": "restored-viewer-background.png",
+      "bytes": 54571,
+      "sha256": "E8C77D70D8ECB228C8460E2817C79C7CA83A9EF2B648DD8E4E4178A231B452A9"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/actual-app-fault-exit.json",
+      "copy": "actual-app-fault-exit.json",
+      "bytes": 184,
+      "sha256": "20983553943574681157F78ED852C03B88B16B8372BF52A765490DB32785833F"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/in-flight-results.json",
+      "copy": "in-flight-results.json",
+      "bytes": 4170,
+      "sha256": "D3BAEB8FF45BDD3A70CF2E071E15B6FAE9699F01C4D3F27B5AB656A71D879E68"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/native-hotkey-F9.json",
+      "copy": "native-hotkey-F9.json",
+      "bytes": 486,
+      "sha256": "94D7903F32953E04292005E9B7BC0FC44AFE9A711CD7E6AD28219DEB6EC576C6"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/native-hotkey-F10.json",
+      "copy": "native-hotkey-F10.json",
+      "bytes": 487,
+      "sha256": "BBFDD2F568E8556444D595A097AF6270F4BEC71E87AB82ACEAF9ED41E943F220"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/enrollment-normal-quit.json",
+      "copy": "enrollment-normal-quit.json",
+      "bytes": 1370,
+      "sha256": "8EE341B62947D16D4B15162FD51AD19AD0F78460C6DD5A64D47B0393832013F1"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/force-srgb-restart-normal-quit.json",
+      "copy": "force-srgb-restart-normal-quit.json",
+      "bytes": 1369,
+      "sha256": "EA4C37337CF86E25A591E7B6F8624DFB68834E400DF2F09D1E29CEA2FFFC7F80"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/before-blank-target-normal-quit.json",
+      "copy": "before-blank-target-normal-quit.json",
+      "bytes": 1373,
+      "sha256": "11B243C254F7A3016486BB9900759DE18D1B89053C3038CF6E94E4EE0ADA14DF"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/blank-offline-restored-normal-quit.json",
+      "copy": "blank-offline-restored-normal-quit.json",
+      "bytes": 1370,
+      "sha256": "9F4937221EA6F540C65BECBCF4DA9C73DC5F818523CE0EEC223DCB5C747BCE9D"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/blank-reconnect-normal-quit.json",
+      "copy": "blank-reconnect-normal-quit.json",
+      "bytes": 1370,
+      "sha256": "F5567DF450A75A0A98D7FB515268374D838798B91D39EBCDC88F83A544BD1F59"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/before-fault-normal-quit.json",
+      "copy": "before-fault-normal-quit.json",
+      "bytes": 1369,
+      "sha256": "0A8983B56AC71B7D3AF6B55A24FCBFCB6C4F9E02606A6437D91E0FBE536F0EE8"
+    },
+    {
+      "source": "evidence/t13-native/application-settings-1791488008375/finished-normal-quit.json",
+      "copy": "finished-normal-quit.json",
+      "bytes": 1371,
+      "sha256": "59DE544C7C07B611E111EADA5484415EFE64D5778019A5D1D48C1637E783FF09"
+    }
+  ]
+}
