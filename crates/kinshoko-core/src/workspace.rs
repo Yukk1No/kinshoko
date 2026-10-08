@@ -99,6 +99,8 @@ struct Snapshot {
     status: WorkspaceStatus,
     adult: BTreeSet<String>,
     identities: BTreeMap<(String, String), String>,
+    safe_vocabulary: std::sync::OnceLock<Vocabulary>,
+    full_vocabulary: std::sync::OnceLock<Vocabulary>,
 }
 impl Snapshot {
     fn status(&self, safe: bool) -> WorkspaceStatus {
@@ -271,6 +273,8 @@ impl Workspace {
             status,
             adult,
             identities,
+            safe_vocabulary: std::sync::OnceLock::new(),
+            full_vocabulary: std::sync::OnceLock::new(),
         });
         self.cache = Some(snapshot.clone());
         Ok(snapshot)
@@ -413,7 +417,7 @@ impl Workspace {
         builtin: &BuiltinApproxTable,
     ) -> Result<ConditionTree, CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
-        Ok(Search::new(&global_vocabulary(&snapshot, safe), builtin).resolve(input, lang))
+        Ok(Search::new(global_vocabulary(&snapshot, safe), builtin).resolve(input, lang))
     }
     #[allow(clippy::too_many_arguments)]
     pub fn candidates(
@@ -427,7 +431,7 @@ impl Workspace {
         builtin: &BuiltinApproxTable,
     ) -> Result<Vec<Candidate>, CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
-        Ok(Search::new(&global_vocabulary(&snapshot, safe), builtin).candidates(text, lang, limit))
+        Ok(Search::new(global_vocabulary(&snapshot, safe), builtin).candidates(text, lang, limit))
     }
     pub fn local_tags(
         &mut self,
@@ -613,7 +617,15 @@ fn local_tree(tree: &ConditionTree, catalog: &CatalogInspection, library: &str) 
             .collect(),
     }
 }
-fn global_vocabulary(snapshot: &Snapshot, safe: bool) -> Vocabulary {
+fn global_vocabulary(snapshot: &Snapshot, safe: bool) -> &Vocabulary {
+    let cache = if safe {
+        &snapshot.safe_vocabulary
+    } else {
+        &snapshot.full_vocabulary
+    };
+    cache.get_or_init(|| build_vocabulary(snapshot, safe))
+}
+fn build_vocabulary(snapshot: &Snapshot, safe: bool) -> Vocabulary {
     let hidden = &snapshot.adult;
     let mut counts = BTreeMap::<String, BTreeSet<String>>::new();
     let mut tags = BTreeMap::<String, VocabularyTag>::new();
@@ -624,33 +636,44 @@ fn global_vocabulary(snapshot: &Snapshot, safe: bool) -> Vocabulary {
         let vocabulary = snapshot
             .catalog
             .search_vocabulary(&provider.registration.library.id, local_vocabulary);
+        let mappings = snapshot
+            .catalog
+            .mappings
+            .iter()
+            .filter(|m| m.library_id == provider.registration.library.id)
+            .map(|m| (m.local_tag_id.as_str(), m.catalog_id.as_str()))
+            .collect::<BTreeMap<_, _>>();
+        // One pass over effective memberships; no vocabulary × image scan.
+        let mut visible = BTreeMap::<&str, BTreeSet<String>>::new();
+        for image in &provider.images {
+            if image.deleted || (safe && hidden.contains(&image.sha256)) {
+                continue;
+            }
+            for local_id in &image.tags {
+                visible
+                    .entry(local_id.as_str())
+                    .or_default()
+                    .insert(image.sha256.clone());
+            }
+        }
         for local in &vocabulary.tags {
-            let Some(mapping) = snapshot.catalog.mappings.iter().find(|m| {
-                m.library_id == provider.registration.library.id && m.local_tag_id == local.id
-            }) else {
+            let Some(catalog_id) = mappings.get(local.id.as_str()) else {
                 continue;
             };
-            let hashes = provider
-                .images
-                .iter()
-                .filter(|i| {
-                    !i.deleted
-                        && (!safe || !hidden.contains(i.sha256.as_str()))
-                        && i.tags.contains(&local.id)
-                })
-                .map(|i| i.sha256.clone())
-                .collect::<BTreeSet<_>>();
+            let Some(hashes) = visible.remove(local.id.as_str()) else {
+                continue;
+            };
             if hashes.is_empty() {
                 continue;
             }
             counts
-                .entry(mapping.catalog_id.clone())
+                .entry((*catalog_id).to_owned())
                 .or_default()
                 .extend(hashes);
             let entry = tags
-                .entry(mapping.catalog_id.clone())
+                .entry((*catalog_id).to_owned())
                 .or_insert_with(|| VocabularyTag {
-                    id: mapping.catalog_id.clone(),
+                    id: (*catalog_id).to_owned(),
                     count: 0,
                     ..local.clone()
                 });

@@ -337,7 +337,7 @@ fn mapped_local_synonyms_are_or_within_one_global_condition_and_and_between_cond
     let bi = files(dir.path(), &[&b], 60)[0].clone();
     tag(&a, &ai, &["blue_eyes", "short_hair"]);
     b.edit_tags(
-        &[bi.clone()],
+        std::slice::from_ref(&bi),
         &[TagEdit::Add {
             tag: TagRef::Named {
                 namespace: TagNamespace::General,
