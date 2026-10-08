@@ -11,6 +11,7 @@
 
 mod approx;
 mod groups;
+mod import_preview;
 mod name_migration;
 mod names;
 mod portable;
@@ -74,6 +75,9 @@ struct LibraryState {
     catalog: Arc<Mutex<Option<TagCatalog>>>,
     search_catalog_revision: Arc<AtomicI64>,
     safe_mode_generation: AtomicU64,
+    import_preview_generation: AtomicU64,
+    /// Serialize visibility revocation with the final externally visible side effect.
+    visibility_commit: Mutex<()>,
     workspace: Mutex<Option<kinshoko_core::workspace::Workspace>>,
     /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
     /// 与桌面钉图（#65），不经任何命令交给前端。
@@ -101,6 +105,8 @@ impl LibraryState {
             catalog: Arc::default(),
             search_catalog_revision: Arc::new(AtomicI64::new(-1)),
             safe_mode_generation: AtomicU64::new(0),
+            import_preview_generation: AtomicU64::new(0),
+            visibility_commit: Mutex::new(()),
             workspace: Mutex::default(),
             reference: Mutex::new(None),
             detached: DetachedLenses::default(),
@@ -231,6 +237,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             recovery,
             start_import,
             save_destination::import_tasks,
+            import_preview::open_import_preview,
+            import_preview::read_import_preview,
+            import_preview::close_import_preview,
             save_destination::dismiss_import,
             save_destination::workspace_copy_source,
             import_contains_eagle,
@@ -420,7 +429,7 @@ fn forward_events<R: Runtime>(
     std::thread::Builder::new()
         .name("kinshoko-library-events".into())
         .spawn(move || {
-            for event in events {
+            for mut event in events {
                 let active = lock(&libraries)
                     .as_ref()
                     .and_then(DeviceLibraries::current)
@@ -442,6 +451,11 @@ fn forward_events<R: Runtime>(
                         | LibraryEvent::SafeModeChanged { .. }
                 ) {
                     search.invalidate();
+                }
+                // Task-finished events may race the all-provider projection. Raw success details
+                // stay in the fixed task owner; polling returns the checked ordinary receipt.
+                if let LibraryEvent::TaskFinished { report, .. } = &mut event {
+                    *report = report.clone().without_content_details();
                 }
                 let _ = app.emit(EVENT, event);
             }
@@ -545,14 +559,47 @@ pub fn registered<R: Runtime>(
 pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> Result<(), String> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
-    with_libraries(&state.device_dir, &state.libraries, |libraries| {
-        for root in roots {
-            libraries.add_registration(root)?;
-        }
-        Ok(())
+    with_visibility_commit(app, |_| {
+        with_libraries(&state.device_dir, &state.libraries, |libraries| {
+            for root in roots {
+                libraries.add_registration(root)?;
+            }
+            Ok(())
+        })
     })?;
     state.detached.clear();
     Ok(())
+}
+
+/// Revoke receipt consent when its main window is destroyed.
+pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
+    // Never wait for the visibility permit on the window thread. Fence pending sends
+    // immediately, then retire the session in the normal permit -> resources order.
+    app.state::<LibraryState>()
+        .import_preview_generation
+        .fetch_add(1, Ordering::SeqCst);
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        with_visibility_commit(&app, |_| import_preview::revoke(&app))
+    });
+}
+
+/// Commit a final visibility-authorized side effect atomically with mode/settings revocation.
+/// Decode first, outside this closure. Revalidate the caller's capability against the supplied
+/// generation, then perform the actual send/copy/pin before returning. This does not reject
+/// safe mode itself: an explicit, scoped preview capability can be valid while safe mode is on.
+///
+/// Worker threads only; never await, re-enter, or acquire this while holding resource locks.
+/// Lock order: transition (when needed), visibility_commit, then library/catalog/workspace/Shell
+/// and desktop resources. Main-thread callbacks must not wait for this permit or ShellState;
+/// registrations and native window creation may synchronously dispatch to that thread.
+pub(crate) fn with_visibility_commit<R: Runtime, T>(
+    app: &AppHandle<R>,
+    commit: impl FnOnce(u64) -> T,
+) -> T {
+    let state = app.state::<LibraryState>();
+    let _visibility = lock(&state.visibility_commit);
+    commit(state.safe_mode_generation.load(Ordering::SeqCst))
 }
 
 /// 安全模式是否开启（全局设置）；读不到设置时按开启处理。
@@ -576,8 +623,10 @@ async fn create_library<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            libraries.create(&parent.join(name.trim()), &name)
+        let library = with_visibility_commit(&app, |_| {
+            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                libraries.create(&parent.join(name.trim()), &name)
+            })
         })?;
         Ok(forward_events(&app, &state, library))
     })
@@ -608,8 +657,10 @@ async fn register_library<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            libraries.register(&root)
+        let library = with_visibility_commit(&app, |_| {
+            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                libraries.register(&root)
+            })
         })?;
         Ok(forward_events(&app, &state, library))
     })
@@ -625,8 +676,10 @@ async fn switch_library<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            libraries.switch(&library_id)
+        let library = with_visibility_commit(&app, |_| {
+            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                libraries.switch(&library_id)
+            })
         })?;
         Ok(forward_events(&app, &state, library))
     })
@@ -642,12 +695,14 @@ async fn unregister_library<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        let closed = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            let closed = libraries
-                .current()
-                .is_some_and(|library| library.info().id == library_id);
-            libraries.unregister(&library_id)?;
-            Ok(closed)
+        let closed = with_visibility_commit(&app, |_| {
+            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                let closed = libraries
+                    .current()
+                    .is_some_and(|library| library.info().id == library_id);
+                libraries.unregister(&library_id)?;
+                Ok(closed)
+            })
         })?;
         if closed {
             *lock(&state.forwarded) = None;
@@ -1257,16 +1312,21 @@ async fn set_safe_mode<R: Runtime>(
     state: State<'_, LibraryState>,
     on: bool,
 ) -> Result<bool, String> {
-    state.safe_mode_generation.fetch_add(1, Ordering::SeqCst);
-    if let Some(shell) = app.try_state::<ShellState>() {
-        let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
-        shell
-            .settings
-            .set_safe_mode(on)
-            .map_err(|e| e.to_string())?;
-    }
-    if let Ok(library) = state.active() {
-        library.set_safe_mode(on);
+    {
+        let _visibility = lock(&state.visibility_commit);
+        // Revoke even a repeated setting or failed save; pending work must revalidate.
+        state.safe_mode_generation.fetch_add(1, Ordering::SeqCst);
+        import_preview::revoke(&app);
+        if let Some(shell) = app.try_state::<ShellState>() {
+            let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
+            shell
+                .settings
+                .set_safe_mode(on)
+                .map_err(|e| e.to_string())?;
+        }
+        if let Ok(library) = state.active() {
+            library.set_safe_mode(on);
+        }
     }
     let _ = app.emit(SAFE_MODE_EVENT, on);
     Ok(on)

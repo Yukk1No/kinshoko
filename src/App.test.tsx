@@ -448,7 +448,7 @@ describe("主窗口", () => {
     await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L2"));
     await act(() => resolveOld(page));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 2, total: 4 } });
-    await push({ kind: "taskFinished", libraryId: "L1", taskId: "T1", report: { cancelled: true, items: [], fromEagle: false, eagleMissing: 0, eagleRelocations: [] } });
+    await push({ kind: "taskFinished", libraryId: "L1", taskId: "T1", report: { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] } });
 
     expect(await screen.findByText("资料库里还没有参考图。从上方导入图片或文件夹。")).toBeTruthy();
     expect(screen.queryByRole("img")).toBeNull();
@@ -474,7 +474,7 @@ describe("主窗口", () => {
       taskId: "T1",
       report: {
         cancelled: false,
-        fromEagle: false, eagleMissing: 0,
+        fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
         eagleRelocations: [],
         items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: "被占用" } }],
       },
@@ -517,7 +517,7 @@ describe("主窗口", () => {
       report: {
         cancelled: false,
         items: [],
-        fromEagle: false, eagleMissing: 0,
+        fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
         eagleRelocations: [{ sourceId: "S1", from: "D:\\旧\\主库.library", to: "E:\\新\\主库.library", overlapPercent: 100 }],
       },
     });
@@ -671,7 +671,7 @@ describe("主窗口", () => {
       taskId: "T1",
       report: {
         cancelled: true,
-        fromEagle: false, eagleMissing: 0,
+        fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
         eagleRelocations: [],
         items: [
           { path: "D:\\下载\\参考\\a.png", outcome: { kind: "imported", imageId: "a" } },
@@ -720,7 +720,7 @@ describe("主窗口", () => {
       taskId: "T0",
       report: {
         cancelled: false,
-        fromEagle: false, eagleMissing: 0,
+        fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
         eagleRelocations: [],
         items: [
           { path: "D:\\参考\\a.png", outcome: { kind: "imported", imageId: "a" } },
@@ -783,7 +783,7 @@ describe("导入任务的终态（#76）", () => {
     report: {
       cancelled: false,
       items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: "被占用" } }],
-      fromEagle: false, eagleMissing: 0,
+      fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
       eagleRelocations: [],
     },
   });
@@ -853,7 +853,7 @@ describe("导入任务的终态（#76）", () => {
 
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 1 } });
     await failed("T1");
-    await push({ kind: "taskFinished", libraryId: "L2", taskId: "T2", report: { cancelled: true, items: [], fromEagle: false, eagleMissing: 0, eagleRelocations: [] } });
+    await push({ kind: "taskFinished", libraryId: "L2", taskId: "T2", report: { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] } });
 
     expect(screen.getByText("正在导入 1 / 5")).toBeTruthy();
     expect(screen.queryByLabelText("导入结果")).toBeNull();
@@ -868,7 +868,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     kind: "taskFinished",
     libraryId: "L1",
     taskId,
-    report: { cancelled: false, items: [], fromEagle, eagleMissing: 0, eagleRelocations: [] },
+    report: { cancelled: false, items: [], fromEagle, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] },
   });
   /** 启动命令的响应由测试放出；`fail` 让下一次启动出错。 */
   function eagleBackend() {

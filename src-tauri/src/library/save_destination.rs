@@ -123,22 +123,24 @@ pub(super) fn begin<R: Runtime>(
 }
 
 #[tauri::command]
-pub(super) async fn import_tasks(
-    state: State<'_, LibraryState>,
+pub(super) async fn import_tasks<R: Runtime>(
+    app: AppHandle<R>,
 ) -> Result<Vec<ImportTaskSnapshot>, String> {
-    let (dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
-    blocking(move || with_libraries(&dir, &libraries, |device| Ok(device.import_tasks()))).await
+    blocking(move || import_preview::receipts(&app)).await
 }
 #[tauri::command]
-pub(super) async fn dismiss_import(
-    state: State<'_, LibraryState>,
+pub(super) async fn dismiss_import<R: Runtime>(
+    app: AppHandle<R>,
     library_id: String,
     task_id: String,
 ) -> Result<(), String> {
-    let (dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
     blocking(move || {
-        with_libraries(&dir, &libraries, |device| {
-            device.dismiss_import(&library_id, &task_id)
+        with_visibility_commit(&app, |_| {
+            import_preview::revoke(&app);
+            let state = app.state::<LibraryState>();
+            with_libraries(&state.device_dir, &state.libraries, |device| {
+                device.dismiss_import(&library_id, &task_id)
+            })
         })
     })
     .await
