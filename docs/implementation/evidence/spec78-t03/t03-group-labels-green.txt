@@ -1,0 +1,15 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.81s
+     Running tests\tag_names.rs (target\debug\deps\tag_names-8e9d62deaabcb8a5.exe)
+
+running 7 tests
+test bundled_defaults_use_the_accepted_names_and_keep_the_replaced_names_as_aliases ... ok
+test aliases_are_global_search_words_without_becoming_display_preferences ... ok
+test preference_is_shared_by_identity_and_language_and_survives_reopen ... ok
+test installed_defaults_apply_to_later_tags_and_hidden_legacy_tags_keep_pending_provenance ... ok
+test group_labels_refresh_from_shared_names_without_changing_local_membership_or_counts ... ok
+test default_updates_keep_equal_default_preferences_and_reset_deletes_the_override ... ok
+test legacy_names_remain_pending_until_an_explicit_global_preference_choice ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+

@@ -1,3 +1,4 @@
+import type { CatalogNameEdit } from "./bindings/CatalogNameEdit";
 import type { ImportOptions } from "./bindings/ImportOptions";
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
@@ -818,4 +819,8 @@ export function correctTagMapping(libraryId: string, localTagId: string, correct
 
 export function catalogImageTags(libraryId: string, imageId: string, lang: string): Promise<CatalogImageTags> {
   return invoke<CatalogImageTags>(lib("catalog_image_tags"), { libraryId, imageId, lang });
+}
+
+export function editTagName(catalogId: string, edit: CatalogNameEdit): Promise<TagCatalogWorkspace> {
+  return invoke<TagCatalogWorkspace>(lib("edit_tag_name"), { catalogId, edit });
 }

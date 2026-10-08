@@ -1,0 +1,16 @@
+PASS two real libraries use distinct local IDs for one shared identity
+PASS accepted long_hair_between_eyes default reaches formal app
+PASS saving text equal to the default creates an explicit persisted preference
+PASS 名称第二库 displays 自然分缝 in the actual tag panel
+PASS formal search for 分发 returns 1 image(s) with 自然分缝
+PASS 名称第一库 displays 自然分缝 in the actual tag panel
+PASS formal search for 自然分缝 returns 1 image(s) with 自然分缝
+PASS independent language preferences survive full application restart
+PASS reset deletes only Chinese preference and retains English preference
+PASS 名称第二库 displays 分缝发型 in the actual tag panel
+PASS formal search for 中间发缝 returns 1 image(s) with 分缝发型
+PASS 名称第一库 displays 分缝发型 in the actual tag panel
+PASS formal search for 中间发缝 returns 1 image(s) with 分缝发型
+PASS deleted old alias stays deleted after bundled-table reinstallation on restart
+PASS formal search for 分发 returns 0 image(s) with no tag candidate
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\tag-names-1791473617790

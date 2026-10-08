@@ -1,0 +1,15 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+error[E0599]: no method named `add_alias` found for struct `TagCatalog` in the current scope
+   --> crates\kinshoko-core\tests\tag_names.rs:145:13
+    |
+145 |     catalog.add_alias(&id, &alias).unwrap();
+    |             ^^^^^^^^^ method not found in `TagCatalog`
+
+error[E0599]: no method named `add_alias` found for struct `TagCatalog` in the current scope
+   --> crates\kinshoko-core\tests\tag_names.rs:152:13
+    |
+152 |     catalog.add_alias(&id, &alias).unwrap();
+    |             ^^^^^^^^^ method not found in `TagCatalog`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `kinshoko-core` (test "tag_names") due to 2 previous errors
