@@ -949,3 +949,10 @@ export async function readImportPreview(sessionId: string, itemId: string, targe
   const raw = await invoke<ArrayBuffer | number[]>(lib("read_import_preview"), { sessionId, itemId, targetPx });
   return raw instanceof ArrayBuffer ? new Uint8Array(raw) : Uint8Array.from(raw);
 }
+// ---------- 程序设置备份（#78 T13）；与资料库内容备份分开 ----------
+export function pickApplicationSettings(save: boolean): Promise<string | null> { return invoke<string | null>(lib("pick_application_settings"), { save }); }
+export function exportApplicationSettings(path: string): Promise<void> { return invoke<void>(lib("export_application_settings"), { path }); }
+export function previewApplicationSettings(path: string): Promise<import("./bindings/ApplicationSettingsPreview").ApplicationSettingsPreview> { return invoke(lib("preview_application_settings"), { path }); }
+export function restoreApplicationSettings(path: string, fingerprint: string): Promise<import("./bindings/ApplicationSettingsRestored").ApplicationSettingsRestored> { return invoke(lib("restore_application_settings"), { path, fingerprint }); }
+export function setViewerBackground(background: import("./bindings/ViewerBackground").ViewerBackground): Promise<ShellSettingsView> { return invoke("set_viewer_background", { background }); }
+export function migrateViewerBackground(background: import("./bindings/ViewerBackground").ViewerBackground): Promise<ShellSettingsView> { return invoke("migrate_viewer_background", { background }); }

@@ -219,10 +219,7 @@ pub async fn tagging_set_model(
         .settings
         .set_tagging_model(key.as_deref())
         .map_err(|e| e.to_string())?;
-    *lock(&state.preferred) = key.clone();
-    if let Some(t) = lock(&state.current).as_ref() {
-        t.tagging.set_model(key);
-    }
+    apply_model(&state, key);
     Ok(state.choice())
 }
 
@@ -254,4 +251,14 @@ pub async fn tagging_import_package(app: AppHandle, path: PathBuf) -> Result<Mod
         t.tagging.wake();
     }
     Ok(state.choice())
+}
+
+fn apply_model(state: &TaggingState, key: Option<String>) {
+    *lock(&state.preferred) = key.clone();
+    if let Some(t) = lock(&state.current).as_ref() {
+        t.tagging.set_model(key);
+    }
+}
+pub fn apply_model_setting<R: Runtime>(app: &AppHandle<R>, key: Option<String>) {
+    apply_model(&app.state::<TaggingState>(), key);
 }

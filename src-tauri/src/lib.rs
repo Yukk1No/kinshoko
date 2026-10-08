@@ -60,6 +60,8 @@ pub fn run() {
             commands::set_show_approx_source,
             commands::set_force_srgb,
             commands::set_usage_log,
+            commands::set_viewer_background,
+            commands::migrate_viewer_background,
             diagnostics::diagnostics_report,
             diagnostics::export_diagnostics,
             diagnostics::export_usage_log,

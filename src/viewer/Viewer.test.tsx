@@ -194,3 +194,38 @@ describe("从查看器钉到桌面（#65）", () => {
     expect(close).toHaveBeenCalledOnce();
   });
 });
+
+
+describe("查看器程序配置", () => {
+  const card = { id: "background", width: 800, height: 600, thumbnail: "", adult: false };
+  afterEach(() => { clearMocks(); localStorage.clear(); });
+
+  it("已恢复的背景优先于本机旧缓存，并保存后续选择", async () => {
+    localStorage.setItem("kinshoko.viewer.background", "dark");
+    const writes: unknown[] = [];
+    mockIPC((command, args) => {
+      if (command === "shell_settings") return { viewerBackground: "light" };
+      if (command === "set_viewer_background") writes.push(args);
+      if (command === "migrate_viewer_background") throw new Error("must not migrate again");
+      return null;
+    });
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    await waitFor(() => expect((screen.getByRole("combobox", { name: "查看器背景" }) as HTMLSelectElement).value).toBe("light"));
+    expect(writes).toEqual([{ background: "light" }]);
+    fireEvent.change(screen.getByRole("combobox", { name: "查看器背景" }), { target: { value: "checker" } });
+    await waitFor(() => expect(writes.at(-1)).toEqual({ background: "checker" }));
+  });
+
+  it("首次读取程序配置失败时不把旧缓存写回", async () => {
+    localStorage.setItem("kinshoko.viewer.background", "dark");
+    const writes: unknown[] = [];
+    mockIPC((command, args) => {
+      if (command === "shell_settings") throw new Error("temporarily unavailable");
+      if (command === "set_viewer_background" || command === "migrate_viewer_background") writes.push(args);
+      return null;
+    });
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    await act(async () => {});
+    expect(writes).toEqual([]);
+  });
+});
