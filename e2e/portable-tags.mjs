@@ -238,6 +238,10 @@ try {
   writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", application, build, harnessSource, harnessSha256, assertions, environments, sourceA, sourceB, sourceIdentity, splitIdentity, sourceGroup, freshTarget, existingTarget, packageSha256: sha(readFileSync(portablePath)), filePicker: "queued existing testPick results; actual rendered actions and native backend", cleanup: "WebDriver session deletion plus own exact executable process cleanup; not a normal tray-quit acceptance" }, null, 2));
   console.log(`Evidence: ${work}`);
 } catch (error) {
-  console.error(error); if (session) await session.screenshot(`failure-${phase}.png`).catch(() => {});
+  console.error(error);
+  if (session) {
+    await session.screenshot(`failure-${phase}.png`).catch(() => {});
+    await session.exec("return document.documentElement.outerHTML;").then((html) => writeFileSync(join(work, `failure-${phase}.html`), html)).catch(() => {});
+  }
   writeFileSync(join(work, "result.json"), JSON.stringify({ status: "failed", phase, error: String(error), application, build, harnessSource, harnessSha256, assertions, environments, sourceA, sourceB, sourceIdentity, splitIdentity, sourceGroup }, null, 2)); process.exitCode = 1;
 } finally { await stop(); }
