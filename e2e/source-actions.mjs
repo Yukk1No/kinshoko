@@ -153,8 +153,8 @@ try {
   await session.exec("const select=document.querySelector('[aria-label=\"内容分级\"]'); select.value='sensitive'; select.dispatchEvent(new Event('change',{bubbles:true}));");
   await until("B rating", async () => (await inspect()).detail.rating.manual === "sensitive");
   assert((await inspect(aTarget)).detail.rating.manual === null, "B manual rating remains independent from A");
-  await until("B folder control", () => session.find("//button[text()='移出「B 独立标签目录」']"));
-  await session.click("//button[text()='移出「B 独立标签目录」']");
+  await until("B folder control", () => session.find("//button[normalize-space(.)='移出「B 独立标签目录」']"));
+  await session.click("//button[normalize-space(.)='移出「B 独立标签目录」']");
   await until("B folder removed", async () => (await inspect()).detail.folders.length === 0);
   assert((await inspect(aTarget)).detail.folders[0].id === a.folderId, "removing B folder membership preserves A folder membership");
   await session.exec("const select=document.querySelector('[aria-label=\"放入文件夹\"]'); select.value=arguments[0]; select.dispatchEvent(new Event('change',{bubbles:true}));", [b.folderId]);
