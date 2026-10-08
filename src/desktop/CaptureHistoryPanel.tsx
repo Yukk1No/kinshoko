@@ -17,7 +17,7 @@ const time = (ms: number) =>
   new Date(ms).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
 
 /**
- * 截图历史：最近的截图，从新到旧。可以再钉住、收藏进当前资料库、删除。
+ * 截图历史：最近的截图，从新到旧。可以再钉住、选择资料库和文件夹收藏、删除。
  * 没收藏也没钉住的旧截图会被自动丢弃；`libraryId` 是当前资料库，用来显示“已收藏”。
  */
 export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { libraryId: string | undefined; request?:{id:string;stamp:number}|null;onRequestHandled?:()=>void }) {

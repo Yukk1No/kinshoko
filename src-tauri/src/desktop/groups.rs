@@ -69,6 +69,7 @@ fn prepare_pins(app: &AppHandle, choices: &[CaptureChoice]) -> Result<Vec<SavedP
         }
     }
     let mut prepared = Vec::new();
+    let mut completed_captures=0;
     for pin in open {
         let Some(id) = pin.capture_id() else {
             prepared.push(pin);
@@ -89,7 +90,11 @@ fn prepare_pins(app: &AppHandle, choices: &[CaptureChoice]) -> Result<Vec<SavedP
             lock(&state(app).history)
                 .collect_pin(&pin, library)
                 .map_err(|e| e.to_string())
+        }).map_err(|error| {
+            super::history_changed(app);
+            format!("第 {} 张截图的收藏未完成：{error}。之前完成的 {completed_captures} 张收藏已保留；参考组尚未保存。",completed_captures+1)
         })?;
+        completed_captures+=1;
         prepared.push(reference);
     }
     super::history_changed(app);
@@ -293,7 +298,7 @@ pub async fn export_reference_group_package(
     .await
 }
 
-/// 导入参考组包（#68）到资料库 `library_id`（界面正在操作的资料库），另存为新的参考组。`path` 为空时
+/// 导入参考组包（#68）到明确选择的资料库和文件夹，另存为新的参考组。`path` 为空时
 /// 弹出选择对话框；取消时返回 `null`。包有损坏时什么都不写。
 #[tauri::command]
 pub async fn import_reference_group_package(
