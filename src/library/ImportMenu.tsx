@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
 import { ImportBar } from "./ImportBar";
+import type { ImportReport } from "../bindings/ImportReport";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
-import { dismissImport, importTasks } from "../ipc";
+import { dismissImport, importTasks, onSafeModeSetting, onWorkspaceChanged } from "../ipc";
 import { destinationAvailable, folderChoices, SaveDestinationPicker, useSaveDestination } from "./SaveDestination";
+
+// A mode/workspace event can arrive before a fresh backend receipt. Keep retry failures,
+// but remove every successful category together until the new context is projected.
+function concealSuccesses(report: ImportReport): ImportReport {
+ return {...report,privateSummary:true,eagleMissing:0,
+  trashDuplicates:report.trashDuplicates||report.items.some(item=>item.outcome.kind==="trashDuplicate"),
+  items:report.items.filter(item=>["readFailed","unsupported","skippedDeleted"].includes(item.outcome.kind))};
+}
 
 /** Compact accepted-prototype entry; task receipts stay mounted across browse/current changes. */
 export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceScope}) {
@@ -13,15 +22,17 @@ export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceS
  const dismissed=useRef(new Set<string>());
  const show=useCallback(()=>setOpen(true),[]);
  useEffect(()=>{
-  let alive=true,timer:ReturnType<typeof setTimeout>;
-  const refresh=()=>void importTasks().then(value=>{if(alive&&Array.isArray(value)){for(const t of value)optimistic.current.delete(t.taskId);setTasks([...value,...optimistic.current.values()].filter(t=>!dismissed.current.has(t.taskId)));}},error=>{if(alive)setProblem(String(error));}).finally(()=>{if(alive)timer=setTimeout(refresh,400);});
-  refresh();return()=>{alive=false;clearTimeout(timer);};
+  let alive=true,epoch=0,timer:ReturnType<typeof setTimeout>;
+  const invalidate=()=>{epoch++;setTasks(previous=>previous.map(task=>({...task,report:task.report?concealSuccesses(task.report):null})));};
+  const safe=onSafeModeSetting(invalidate),workspace=onWorkspaceChanged(invalidate);
+  const refresh=()=>{const expected=epoch;void importTasks().then(value=>{if(alive&&expected===epoch&&Array.isArray(value)){for(const t of value)optimistic.current.delete(t.taskId);setTasks([...value,...optimistic.current.values()].filter(t=>!dismissed.current.has(t.taskId)));}},error=>{if(alive&&expected===epoch)setProblem(String(error));}).finally(()=>{if(alive)timer=setTimeout(refresh,400);});};
+  refresh();return()=>{alive=false;clearTimeout(timer);void safe.then(stop=>stop());void workspace.then(stop=>stop());};
  },[]);
  const selected=tasks.find(t=>t.taskId===selectedTask)??tasks.find(t=>t.report===null)??tasks.at(-1);
- const task=selected?{...selected,report:selected.report??(p.finished?.taskId===selected.taskId?p.finished.report:null),
+ const task=selected?{...selected,report:selected.report??(p.finished?.taskId===selected.taskId?concealSuccesses(p.finished.report):null),
    progress:p.running?.taskId===selected.taskId?p.running.progress:selected.progress}:undefined;
  const running=task&&(task.report===null||task.finishing)?{taskId:task.taskId,progress:task.progress,libraryId:task.destination.libraryId,destination:task.destination,libraryName:task.libraryName,folderName:task.folderName}:task?null:p.running;
- const finished=task?.report&&!task.finishing?{taskId:task.taskId,report:task.report,libraryId:task.destination.libraryId,destination:task.destination,libraryName:task.libraryName,folderName:task.folderName}:task?null:p.finished;
+ const finished=task?.report&&!task.finishing?{taskId:task.taskId,report:task.report,libraryId:task.destination.libraryId,destination:task.destination,libraryName:task.libraryName,folderName:task.folderName}:task?null:p.finished?{...p.finished,report:concealSuccesses(p.finished.report)}:null;
  const active=running!==null;
  useEffect(()=>{if(active||finished)show();},[active,finished?.taskId,show]);
  useEffect(()=>{
