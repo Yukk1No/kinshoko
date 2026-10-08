@@ -280,7 +280,7 @@ pub struct ImageTags {
 }
 
 /// 词表中的一个标签。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct VocabularyTag {
