@@ -1,0 +1,24 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 18.34s
+     Running tests\workspace.rs (target\debug\deps\workspace-0ca34ce5cb6e9673.exe)
+
+running 1 test
+test an_explicit_empty_any_group_never_becomes_an_unconditional_workspace_query ... FAILED
+
+failures:
+
+---- an_explicit_empty_any_group_never_becomes_an_unconditional_workspace_query stdout ----
+
+thread 'an_explicit_empty_any_group_never_becomes_an_unconditional_workspace_query' (11708) panicked at crates\kinshoko-core\tests\workspace.rs:208:5:
+assertion `left == right` failed
+  left: 1
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    an_explicit_empty_any_group_never_becomes_an_unconditional_workspace_query
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.14s
+
+error: test failed, to rerun pass `-p kinshoko-core --test workspace`

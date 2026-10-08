@@ -18,6 +18,7 @@ mod settings;
 mod shortcuts;
 pub mod tag_catalog;
 pub mod tagging;
+pub mod workspace;
 
 pub use app_shell::{AppInfo, UpdateProgress, UpdateStatus, app_info};
 pub use device::{DeviceRegistry, RegisteredLibrary};

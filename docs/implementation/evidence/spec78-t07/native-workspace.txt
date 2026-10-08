@@ -1,0 +1,26 @@
+PASS old detached provider explicitly needs upgrade instead of empty or silently upgraded
+PASS active startup library follows writable migration path
+PASS formal workspace defaults to all available registered providers
+PASS byte-identical files aggregate while similar pixels remain separate
+PASS unknown-rating images remain visible in safe mode
+PASS complete per-source all query rejects split-tag false match
+PASS nonmatching known source remains inspectable
+PASS one complete source makes aggregated card match
+PASS browse scope change does not switch active write target
+PASS formal source controls show out-of-scope source independently
+PASS nonactive source detail and image read leave active target unchanged
+PASS viewer reads explicitly chosen source rather than hash card ID
+PASS Esc keeps wall return position
+PASS workspace page counts and opaque cursors are consistent
+PASS safe-mode revision rejects old page cursor
+PASS mode mismatch rejects stale candidate action
+PASS Adult in out-of-scope nonmatching source vetoes whole card
+PASS safe candidates/counts omit globally vetoed identity
+PASS detail read cannot bypass cross-source Adult veto
+PASS rating refresh restores deduplicated candidate count
+PASS unavailable registered provider has explicit state after restart
+PASS known offline Adult veto survives full application restart
+PASS known offline source remains inspectable on available bytes
+PASS unavailable provider cached definitions never enter candidates
+PASS explicit unregister removes conservative offline veto
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\workspace-1791474706835

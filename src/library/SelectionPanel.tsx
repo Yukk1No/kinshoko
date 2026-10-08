@@ -263,7 +263,8 @@ export function SelectionPanel({
   useEffect(() => {
     let alive = true;
     setDetail(null);
-    if (single)
+    // Delete confirmation owns the selection now; listStale must not start another detail read.
+    if (single && !purging)
       imageDetail(libraryId, single).then(
         (d) => alive && setDetail(d),
         (e) => alive && onError(String(e)),
@@ -271,7 +272,7 @@ export function SelectionPanel({
     return () => {
       alive = false;
     };
-  }, [single, reloadKey, onError]);
+  }, [libraryId, single, reloadKey, onError, purging]);
 
   const edit = (edits: ImageEdit[], clear = false) =>
     editImages(libraryId, ids, edits).then(
@@ -341,8 +342,8 @@ export function SelectionPanel({
           onError={onError}
         />
       )}
-      <TagPanel libraryId={libraryId} ids={ids} safe={safeMode} generation={generation} onError={onError} />
-      {detail && <Detail key={detail.id} detail={detail} edit={(e) => void edit(e)} />}
+      {!purging && <TagPanel libraryId={libraryId} ids={ids} safe={safeMode} generation={generation} onError={onError} />}
+      {!purging && detail && <Detail key={detail.id} detail={detail} edit={(e) => void edit(e)} />}
     </aside>
   );
 }

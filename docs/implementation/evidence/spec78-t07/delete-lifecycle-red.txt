@@ -1,0 +1,35 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/library/SelectionPanel.test.tsx (5 tests | 1 failed) 387ms
+   × 永久删除确认使旧详情请求失效，删除后迟到的缺失错误不进入全局提示 55ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/SelectionPanel.test.tsx > 永久删除确认使旧详情请求失效，删除后迟到的缺失错误不进入全局提示
+AssertionError: expected [ '资料库中没有这张参考图' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "资料库中没有这张参考图",
++ ]
+
+ ❯ src/library/SelectionPanel.test.tsx:125:20
+    123|   await screen.findByRole("button", { name: "确认永久删除" });
+    124|   await act(async () => { fail("资料库中没有这张参考图"); await pending.catch(() …
+    125|   expect(problems).toEqual([]);
+       |                    ^
+    126| });
+    127|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  23:49:11
+   Duration  2.65s (environment 69%, tests 16%, import 11%, transform 5%)
+

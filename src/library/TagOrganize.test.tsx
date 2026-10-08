@@ -1,3 +1,4 @@
+import { workspaceFixture } from "../test/workspace-fixture";
 // 标签整理（#77 UI-B，#51，#42 用户故事 58、59、64、65、81）：在主窗口里查看单图的有效标签与
 // 出处，添加、否决、清除人工标签决定（含批量），给标签加别名并按别名查到，建立与编辑标签分组并
 // 在侧栏按分组浏览。后端是有状态的模拟资料库：写入后像核心一样推送 vocabularyChanged／
@@ -210,7 +211,7 @@ function backend() {
   calls = [];
   mockWindows("main");
   mockIPC(
-    (cmd, args) => {
+    workspaceFixture((cmd, args) => {
       calls.push({ cmd, args });
       const a = args as Record<string, never>;
       switch (cmd) {
@@ -288,7 +289,7 @@ function backend() {
         default:
           return null;
       }
-    },
+    }),
     { shouldMockEvents: true },
   );
 }
