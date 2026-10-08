@@ -170,6 +170,7 @@ try{
  const during=await task(long);receipts.push({phase:"after-current-create-target-change",receipt:during});
  assert(during.report===null&&during.destination.libraryId===b.id&&during.destination.folderId===bFolder,"changing current by creating C and selecting save A while running keeps B task ownership");
  assert(await session.exec("const owner=document.querySelector('.import-owner');return owner?.getClientRects().length>0&&owner.textContent.includes('保存库 B / B 最终目录');"),"formal progress visibly reports original B position after selecting A");
+ assert(!await session.exec("return document.querySelector('.import-popup')?.textContent.includes('内容已处理，正在发布');"),"running task does not claim content completion before its actual report");
  assert(await session.invoke("cancel_import",{libraryId:a.id,taskId:long}).then(()=>false,()=>true),"wrong-owner cancellation is rejected during the real task");
  await session.screenshot("running-owner-after-current-and-target-change.png");
  const completed=await finish(long);receipts.push(completed);
