@@ -147,6 +147,7 @@ async function tags(library) { return session.invoke("image_tags", { libraryId: 
 async function displayed(library, expected) {
   await session.select("//select[@aria-label='当前资料库']", library.info.id);
   await until("selected write target", async () => (await session.invoke("current_library"))?.id === library.info.id);
+  await until("formal active library completes its switch", () => session.exec("const select = document.querySelector('select[aria-label=当前资料库]'); return select && !select.disabled && select.value === arguments[0] && document.querySelector('.app-library-name')?.textContent === arguments[1]", [library.info.id, library.info.name]));
   await until("library scope control", () => session.find(`//nav[@aria-label='查找范围']//*[@data-library-id='${library.info.id}']/button`));
   await session.click(`//nav[@aria-label='查找范围']//*[@data-library-id='${library.info.id}']/button`);
   const page = await session.invoke("workspace_browse", { query: { scope: { kind: "library", libraryId: library.info.id, scope: { kind: "all" } }, conditions: { conditions: [] }, cursor: null, limit: 20, thumbnailPx: 128 }, safeMode: true });
@@ -238,7 +239,10 @@ try {
   console.log(`Evidence: ${work}`);
 } catch (error) {
   console.error(error);
-  if (session) await session.screenshot("failure.png").catch(() => {});
+  if (session) {
+    await session.screenshot("failure.png").catch(() => {});
+    await session.exec("return document.body.outerHTML").then((html) => writeFileSync(join(work, "failure.html"), html)).catch(() => {});
+  }
   writeFileSync(join(work, "result.json"), JSON.stringify({ status: "failed", source, binarySha256, application, error: String(error), assertions, stories: [25,26] }, null, 2));
   process.exitCode = 1;
 } finally {
