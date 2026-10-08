@@ -1,0 +1,25 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.84s
+     Running tests\source_actions.rs (target\debug\deps\source_actions-46e50facbab1e5dc.exe)
+
+running 4 tests
+test editing_an_inactive_registered_provider_keeps_the_current_and_last_opened_library ... ok
+test pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnection ... FAILED
+test unavailable_or_sealed_selected_sources_are_rejected_without_using_a_duplicate ... ok
+test an_explicit_aggregate_source_edits_only_its_curation_and_rejects_a_changed_byte_identity ... ok
+
+failures:
+
+---- pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnection stdout ----
+
+thread 'pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnection' (2748) panicked at crates\kinshoko-core\tests\source_actions.rs:133:84:
+called `Result::unwrap()` on an `Err` value: Library(SourceChanged)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnection
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+error: test failed, to rerun pass `-p kinshoko-core --test source_actions`

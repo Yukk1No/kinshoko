@@ -1,0 +1,180 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/WorkspaceSources.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+ ❯ src/library/WorkspaceSources.test.tsx (1 test | 1 failed) 147ms
+   × 明确选择未活动来源后复用备注整理，发送完整来源身份 146ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/WorkspaceSources.test.tsx > 明确选择未活动来源后复用备注整理，发送完整来源身份
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "整理此来源"
+
+Here are the accessible roles:
+
+  dialog:
+
+  Name "资料库来源":
+  <div
+    aria-label="资料库来源"
+    aria-modal="true"
+    class="workspace-sources-overlay"
+    role="dialog"
+  />
+
+  --------------------------------------------------
+  banner:
+
+  Name "":
+  <header />
+
+  --------------------------------------------------
+  heading:
+
+  Name "资料库来源":
+  <h2 />
+
+  --------------------------------------------------
+  button:
+
+  Name "关闭来源":
+  <button
+    type="button"
+  />
+
+  Name "查看此来源":
+  <button
+    type="button"
+  />
+
+  Name "查看此来源":
+  <button
+    type="button"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p />
+
+  --------------------------------------------------
+  list:
+
+  Name "":
+  <ul />
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  <li />
+
+  Name "":
+  <li />
+
+  --------------------------------------------------
+  strong:
+
+  Name "":
+  <strong />
+
+  Name "":
+  <strong />
+
+  --------------------------------------------------
+  code:
+
+  Name "":
+  <code />
+
+  Name "":
+  <code />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      aria-label="资料库来源"
+      aria-modal="true"
+      class="workspace-sources-overlay"
+      role="dialog"
+    >
+      <section
+        class="workspace-sources"
+      >
+        <header>
+          <h2>
+            资料库来源
+          </h2>
+          <button
+            type="button"
+          >
+            关闭来源
+          </button>
+        </header>
+        <p>
+          同一文件 · 各份来源独立保留整理结果
+        </p>
+        <ul>
+          <li>
+            <strong>
+              工作参考
+            </strong>
+            <span>
+              符合当前查找
+            </span>
+            <code>
+              a
+            </code>
+            <button
+              type="button"
+            >
+              查看此来源
+            </button>
+          </li>
+          <li>
+            <strong>
+              移动盘参考
+            </strong>
+            <span>
+              符合当前查找
+            </span>
+            <code>
+              b
+            </code>
+            <button
+              type="button"
+            >
+              查看此来源
+            </button>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</body>
+ ❯ Object.getElementError ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+ ❯ src/library/WorkspaceSources.test.tsx:25:26
+     23|   });
+     24|   render(<WorkspaceSources card={card} onClose={vi.fn()} onView={vi.fn…
+     25|   fireEvent.click(screen.getAllByRole("button", { name: "整理此来源" })[1]);
+       |                          ^
+     26|   const note = await screen.findByRole("textbox", { name: "备注" });
+     27|   expect((note as HTMLTextAreaElement).value).toBe("B 的备注");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  00:46:09
+   Duration  1.71s (environment 76%, import 12%, tests 9%, transform 3%)
+

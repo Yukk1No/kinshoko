@@ -1,0 +1,40 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+error[E0432]: unresolved import `kinshoko_core::workspace::WorkspaceSourceTarget`
+  --> crates\kinshoko-core\tests\source_actions.rs:34:63
+   |
+34 |     use kinshoko_core::workspace::{Workspace, WorkspaceQuery, WorkspaceSourceTarget};
+   |                                                               ^^^^^^^^^^^^^^^^^^^^^ no `WorkspaceSourceTarget` in `workspace`
+   |
+help: a similar name exists in the module
+   |
+34 -     use kinshoko_core::workspace::{Workspace, WorkspaceQuery, WorkspaceSourceTarget};
+34 +     use kinshoko_core::workspace::{Workspace, WorkspaceQuery, WorkspaceSource};
+   |
+
+error[E0599]: no method named `write_source` found for struct `Workspace` in the current scope
+  --> crates\kinshoko-core\tests\source_actions.rs:53:15
+   |
+53 |     workspace.write_source(&mut device, &mut catalog, &target, true, |library| {
+   |     ----------^^^^^^^^^^^^ method not found in `Workspace`
+
+error[E0599]: no method named `read_source` found for struct `Workspace` in the current scope
+  --> crates\kinshoko-core\tests\source_actions.rs:57:28
+   |
+57 |     let detail = workspace.read_source(&device, &mut catalog, &target, true).unwrap().image(&target.image_id).unwrap();
+   |                            ^^^^^^^^^^^ method not found in `Workspace`
+
+error[E0599]: no method named `write_source` found for struct `Workspace` in the current scope
+  --> crates\kinshoko-core\tests\source_actions.rs:68:27
+   |
+68 |     let error = workspace.write_source(&mut device, &mut catalog, &changed, true, |library| library.edit(&[target.image_id.clone()],...
+   |                           ^^^^^^^^^^^^ method not found in `Workspace`
+
+error[E0599]: no method named `write_source` found for struct `Workspace` in the current scope
+  --> crates\kinshoko-core\tests\source_actions.rs:71:15
+   |
+71 |     workspace.write_source(&mut device, &mut catalog, &target, true, |library| library.edit(&[target.image_id.clone()], &[ImageEdit:...
+   |               ^^^^^^^^^^^^ method not found in `Workspace`
+
+Some errors have detailed explanations: E0432, E0599.
+For more information about an error, try `rustc --explain E0432`.
+error: could not compile `kinshoko-core` (test "source_actions") due to 5 previous errors

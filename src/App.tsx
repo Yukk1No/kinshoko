@@ -78,6 +78,7 @@ function LibraryWorkspace({
 }: WorkspaceProps) {
   const libraryId = library?.id ?? "";
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
+  const statusRevision = useRef<string | null>(null);
   const [sources, setSources] = useState<WorkspaceCard | null>(null);
   const [loadedCards, setLoadedCards] = useState<BrowserCard[]>([]);
   const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
@@ -126,12 +127,19 @@ function LibraryWorkspace({
 
   useEffect(() => {
     let alive = true;
-    const refresh = () => workspaceStatus(safe).then((next) => { if (alive) setStatus(next); }, (e) => { if (alive && !isLensChanged(e)) setProblem(String(e)); });
-    void refresh();
+    let notifications = 0;
+    statusRevision.current = null;
+    // A response started before a notification cannot roll back the newer provider facts.
+    void workspaceStatus(safe).then((next) => {
+      if (alive && notifications === 0) { statusRevision.current = next.revision; setStatus(next); }
+    }, (e) => { if (alive && notifications === 0 && !isLensChanged(e)) setProblem(String(e)); });
     const stop = onWorkspaceChanged((next) => {
       if (!alive) return;
+      notifications += 1;
+      if (statusRevision.current === next.revision) return;
+      statusRevision.current = next.revision;
       setStatus(next);
-      setSources(null);
+      // Keep the explicit source dialog; it revokes stale content and revalidates on reloadKey.
       setViewing(null);
       setSelected(new Set());
       setReloadKey((k) => k + 1);
@@ -348,7 +356,8 @@ function LibraryWorkspace({
         </main>
       </div>
     </div>
-    {sources && !hidden && <WorkspaceSources card={sources} onClose={() => setSources(null)} onView={setViewing} />}
+    {sources && !hidden && <WorkspaceSources card={sources} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => setSources(null)} onView={setViewing}
+      onChanged={() => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); }} />}
     {viewing && !hidden && (
       <Viewer
         workspace

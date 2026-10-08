@@ -1,0 +1,13 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/WorkspaceSources.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  00:52:52
+   Duration  1.94s (environment 60%, tests 22%, import 11%, transform 7%)
+

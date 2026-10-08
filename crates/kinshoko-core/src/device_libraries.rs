@@ -65,6 +65,8 @@ pub struct DeviceLibraries {
     device: DeviceRegistry,
     current: Option<Arc<Library>>,
     tasks: HashMap<String, ImportTask>,
+    /// Writable providers are reused without changing current or last-opened state.
+    writers: HashMap<String, Arc<Library>>,
 }
 
 impl DeviceLibraries {
@@ -74,6 +76,7 @@ impl DeviceLibraries {
             device: DeviceRegistry::open(dir)?,
             current: None,
             tasks: HashMap::new(),
+            writers: HashMap::new(),
         })
     }
 
@@ -131,6 +134,43 @@ impl DeviceLibraries {
                 root: registration.root.clone(),
                 reason: error.to_string(),
             })
+    }
+
+    /// Resolve an explicitly selected registered provider for writing. Every action
+    /// rechecks its on-disk identity and path; a matching duplicate in another library
+    /// is never a replacement target. Reuse avoids reopening a provider with live work.
+    pub fn write(&mut self, library_id: &str) -> Result<Arc<Library>, DeviceLibraryError> {
+        let registration = self
+            .libraries()
+            .iter()
+            .find(|r| r.id == library_id)
+            .cloned()
+            .ok_or(DeviceLibraryError::UnknownLibrary)?;
+        Self::inspect(&registration.root, Some(library_id))?;
+        if let Some(library) = self
+            .current
+            .as_ref()
+            .filter(|library| library.info().id == library_id)
+            .or_else(|| self.writers.get(library_id))
+            && std::fs::canonicalize(&library.info().root)
+                .ok()
+                .is_some_and(|root| Some(root) == std::fs::canonicalize(&registration.root).ok())
+        {
+            return Ok(library.clone());
+        }
+        let library =
+            Library::open(&registration.root).map_err(|error| DeviceLibraryError::Unavailable {
+                root: registration.root.clone(),
+                reason: error.to_string(),
+            })?;
+        if library.info().id != library_id {
+            return Err(DeviceLibraryError::IdentityChanged {
+                root: registration.root,
+            });
+        }
+        let library = Arc::new(library);
+        self.writers.insert(library_id.into(), library.clone());
+        Ok(library)
     }
 
     pub fn start_import(
@@ -250,6 +290,7 @@ impl DeviceLibraries {
 
     pub fn unregister(&mut self, id: &str) -> Result<(), DeviceLibraryError> {
         self.device.unregister(id)?;
+        self.writers.remove(id);
         if self
             .current
             .as_ref()

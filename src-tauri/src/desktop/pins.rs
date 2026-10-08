@@ -249,11 +249,11 @@ fn pin_reference_here(
     crop: Option<Region>,
     shown: ScreenRect,
 ) -> Result<(), String> {
-    crate::library::current(app, library_id)?
+    crate::library::visible_source(app, library_id, image_id)?
         .image(image_id)
         .map_err(|e| e.to_string())?;
-    let lens = crate::library::reference_lens(app, library_id).ok_or("资料库已切换")?;
-    let image = lens.image(image_id).map_err(|e| e.to_string())?;
+    let image = crate::library::with_references(app, |refs| refs.image(library_id, image_id))
+        .map_err(|e| e.to_string())?;
     let origin = window.inner_position().map_err(|e| e.to_string())?;
     let centre = (
         origin.x + shown.x + (shown.width / 2) as i32,

@@ -1,0 +1,13 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/WorkspaceSources.test.tsx src/library/TagIdentityPanel.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+
+ Test Files  2 passed (2)
+      Tests  8 passed (8)
+   Start at  01:04:50
+   Duration  2.17s (environment 63%, tests 21%, import 10%, transform 5%)
+
