@@ -62,6 +62,10 @@ class Session {
   set(xpath, value) { return this.exec("const e = document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (!e) throw Error('control missing'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, arguments[1]); e.dispatchEvent(new Event('input', { bubbles: true }));", [xpath, value]); }
   select(xpath, value) { return this.exec("const e = document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (!e) throw Error('select missing'); e.value = arguments[1]; e.dispatchEvent(new Event('change', { bubbles: true }));", [xpath, value]); }
   pick(path) { return this.exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]];", [path]); }
+  async refresh(libraryId) {
+    await wd("POST", `${this.base}/refresh`, {});
+    await until("rendered fixture library", () => this.exec("return document.querySelector('select[aria-label=当前资料库]')?.value === arguments[0];", [libraryId]));
+  }
   async screenshot(name) { writeFileSync(join(work, name), Buffer.from(await wd("GET", `${this.base}/screenshot`), "base64")); }
   close() { return wd("DELETE", this.base); }
 }
@@ -137,6 +141,7 @@ async function create(name, paths) {
   const images = page.cards.map((c) => c.id);
   await session.invoke("edit_tags", { libraryId: info.id, imageIds: images, edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: "白", lang: "zh-CN" } }] });
   const local = (await session.invoke("vocabulary", { libraryId: info.id })).tags.find((t) => t.names.some((n) => n.name === "白")).id;
+  await session.refresh(info.id);
   return { info, images, local };
 }
 async function groupsPane() { if (!await session.exec("return document.querySelector('button[aria-label=参考组]')?.getAttribute('aria-expanded') === 'true';")) await session.click("//button[@aria-label='参考组']"); await until("groups pane", () => session.find("//input[@aria-label='新参考组名称']")); }
@@ -193,12 +198,12 @@ try {
   renameSync(join(work, "libraries"), join(work, "source-libraries-disconnected")); renameSync(join(work, "source-app"), join(work, "source-app-disconnected"));
   assert(!existsSync(sourceA.info.root) && !existsSync(join(work, "source-app")), "fresh application has no access to the original library or original application directory");
   await launch("copied-libraries", "copied-app");
-  await session.invoke("register_library", { root: copiedA }); await session.invoke("register_library", { root: copiedB }); view = await catalog();
+  await session.invoke("register_library", { root: copiedA }); await session.invoke("register_library", { root: copiedB }); await session.refresh(sourceB.info.id); view = await catalog();
   assert(mapping(view, sourceA.info.id, sourceA.local).catalogId === sourceIdentity && mapping(view, sourceB.info.id, sourceB.local).catalogId === splitIdentity, "ordinary copied libraries restore the published correction/split identities in an empty application");
   assert(byIdentity(view, sourceIdentity).namePreferences.length === 0 && byIdentity(view, sourceIdentity).defaultNames.some((n) => n.name === "白") && byIdentity(view, sourceIdentity).aliases.some((a) => a.name === "白雪新别名"), "ordinary copied library restores current defaults and aliases without program preferences");
   await inspectControls(); await session.screenshot("05-copied-library-identities.png");
   await launch("fresh-package", "fresh-app");
-  const targetParent = join(work, "targets"); mkdirSync(targetParent); freshTarget = await session.invoke("create_library", { parent: targetParent, name: "空应用包目标" });
+  const targetParent = join(work, "targets"); mkdirSync(targetParent); freshTarget = await session.invoke("create_library", { parent: targetParent, name: "空应用包目标" }); await session.refresh(freshTarget.id);
   await groupsPane(); const imported = await importRendered(portablePath); view = await catalog();
   assert(imported.members.length === 3 && imported.members.every((m) => m.libraryId === freshTarget.id), "rendered package import creates a new group with all members remapped to the chosen library");
   assert(imported.members.every((m, i) => JSON.stringify(m.crop) === JSON.stringify(sourceGroup.members[i].crop) && JSON.stringify(m.placement) === JSON.stringify(sourceGroup.members[i].placement)), "native package roundtrip preserves every member crop, flip, rotation, scale and layout");
@@ -227,7 +232,7 @@ try {
   await stop();
   const reimportedCopy = join(work, "reimported-copy"); cpSync(existingTarget.info.root, reimportedCopy, { recursive: true });
   await launch("reimported-copy", "reimported-copy-app");
-  await session.invoke("register_library", { root: reimportedCopy }); view = await catalog();
+  await session.invoke("register_library", { root: reimportedCopy }); await session.refresh(existingTarget.info.id); view = await catalog();
   assert(!byIdentity(view, sourceIdentity).aliases.some((a) => a.name === "雪") && view.catalog.tags.every((tag) => tag.namePreferences.length === 0), "a copied destination library carries its current pure definitions immediately after reimport, without any application preference");
   await inspectControls(); await session.screenshot("08-reimported-copy.png");
   writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", application, build, harnessSource, harnessSha256, assertions, environments, sourceA, sourceB, sourceIdentity, splitIdentity, sourceGroup, freshTarget, existingTarget, packageSha256: sha(readFileSync(portablePath)), filePicker: "queued existing testPick results; actual rendered actions and native backend", cleanup: "WebDriver session deletion plus own exact executable process cleanup; not a normal tray-quit acceptance" }, null, 2));
