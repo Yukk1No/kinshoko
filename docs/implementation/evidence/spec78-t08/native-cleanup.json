@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-10-09T00:46:47.0592910+08:00",
+  "remainingOwnedProcesses": [],
+  "remainingListeners": [],
+  "operatingSystem": {
+    "Caption": "Microsoft Windows 11 专业版",
+    "Version": "10.0.26300",
+    "BuildNumber": "26300",
+    "OSArchitecture": "64 位"
+  },
+  "cleanup": "WebDriver session delete followed by exact own app fallback termination; own driver PID subtree cleanup"
+}

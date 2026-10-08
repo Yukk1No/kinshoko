@@ -1,0 +1,22 @@
+PASS same-named libraries retain independent complete directory trees
+PASS formal roots show distinct paths for same-named libraries
+PASS folder selection defaults to including descendants
+PASS default directory badge counts visible descendant images
+PASS directory browsing does not activate another library or change write target
+PASS unchecked descendants queries only direct membership
+PASS unchecked directory badge counts direct membership only
+PASS folder matching is complete per source before byte deduplication
+PASS multiple folder memberships remain visible through formal source detail
+PASS unassigned range belongs only to the chosen provider
+PASS existing create-folder action updates its explicit provider root
+PASS rename changes only the chosen library's folder tree
+PASS moving a subtree rejects the old scope pagination cursor
+PASS moved subtree membership follows its actual new parent
+PASS folder organizing leaves original image file paths and bytes unchanged
+PASS out-of-scope Adult source still vetoes the shared card in a descendant scope
+PASS directory counts use the same all-source safety veto
+PASS descendant counts retain all-source Adult veto outside the folder scope
+PASS removed selected provider does not silently replace range with all libraries
+PASS removed provider query returns an explicit failure
+PASS disconnected provider keeps an explicit disabled root and discards cached folder controls
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\workspace-folders-1791477705967

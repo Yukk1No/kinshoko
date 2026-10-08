@@ -12,6 +12,7 @@ fn main() {
                         "workspace_candidates",
                         "workspace_image",
                         "workspace_sidebar",
+                        "workspace_directories",
                         "workspace_tag_groups",
                         "workspace_local_tags",
                         "current_library",

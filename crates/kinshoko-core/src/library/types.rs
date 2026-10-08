@@ -31,6 +31,10 @@ pub enum BrowseScope {
     All,
     /// 直接放在某个文件夹里的可见图（不含子文件夹）。
     Folder { id: String },
+    /// 某个文件夹及其全部子文件夹中的图，每张图只计算一次。
+    FolderTree { id: String },
+    /// 没有任何文件夹归属的可见图。
+    Unassigned,
     /// 回收站：可恢复删除的图。
     Trash,
 }
@@ -343,22 +347,12 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
 
     // 范围条件在前，条件树在后；参数按出现顺序编号。浏览视角的过滤（安全模式）加在中间。
     let mut args: Vec<Value> = Vec::new();
-    let scope = match &query.scope {
-        BrowseScope::All => LIVE.to_owned(),
-        BrowseScope::Folder { id } => {
-            args.push(Value::Text(id.clone()));
-            format!(
-                "{LIVE} AND image.id IN (SELECT image_id FROM folder_member WHERE folder_id = ?1)"
-            )
-        }
-        BrowseScope::Trash => format!("NOT ({LIVE})"),
-    };
+    let mut conn = inner.readers.get();
+    // Scope validation, structure, revisions and rows share the same read transaction.
+    let tx = conn.transaction()?;
+    let scope = scope_sql(&tx, &query.scope, &mut args)?;
     let conditions = filter::sql(&query.conditions, &mut args);
     let filter = format!("{scope} AND {} AND {conditions}", lens::lens_filter(safe));
-
-    let mut conn = inner.readers.get();
-    // 修订号核对、计数与分页取自同一个读事务：游标与页面对应同一个快照。
-    let tx = conn.transaction()?;
     let list: i64 = tx.query_row("SELECT value FROM list_revision", [], |r| r.get(0))?;
     let vocabulary: i64 = if query.conditions.conditions.is_empty() {
         0
@@ -432,6 +426,36 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
         cards: rows.into_iter().map(|(_, card)| card).collect(),
         next_cursor,
         total,
+    })
+}
+
+/// Shared scope interpreter for local browsing and detached workspace providers.
+pub(super) fn scope_sql(
+    conn: &rusqlite::Connection,
+    scope: &BrowseScope,
+    args: &mut Vec<Value>,
+) -> Result<String, Error> {
+    Ok(match scope {
+        BrowseScope::All => LIVE.to_owned(),
+        BrowseScope::Trash => format!("NOT ({LIVE})"),
+        BrowseScope::Unassigned => {
+            format!("{LIVE} AND NOT EXISTS (SELECT 1 FROM folder_member WHERE image_id = image.id)")
+        }
+        BrowseScope::Folder { id } | BrowseScope::FolderTree { id } => {
+            super::folders::ensure_folder(conn, id)?;
+            args.push(Value::Text(id.clone()));
+            let parameter = args.len();
+            let folders = if matches!(scope, BrowseScope::FolderTree { .. }) {
+                format!(
+                    "IN (WITH RECURSIVE descendants(id) AS (SELECT id FROM folder WHERE id=?{parameter} UNION ALL SELECT folder.id FROM folder JOIN descendants ON folder.parent_id=descendants.id) SELECT id FROM descendants)"
+                )
+            } else {
+                format!("=?{parameter}")
+            };
+            format!(
+                "{LIVE} AND image.id IN (SELECT image_id FROM folder_member WHERE folder_id {folders})"
+            )
+        }
     })
 }
 

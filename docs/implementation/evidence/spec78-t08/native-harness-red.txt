@@ -1,0 +1,17 @@
+PASS same-named libraries retain independent complete directory trees
+PASS formal roots show distinct paths for same-named libraries
+PASS folder selection defaults to including descendants
+PASS default directory badge counts visible descendant images
+PASS directory browsing does not activate another library or change write target
+PASS unchecked descendants queries only direct membership
+PASS unchecked directory badge counts direct membership only
+PASS folder matching is complete per source before byte deduplication
+PASS multiple folder memberships remain visible through formal source detail
+PASS unassigned range belongs only to the chosen provider
+PASS existing create-folder action updates its explicit provider root
+Error: POST /session/fa7e87dfc7300a92a4cd4d6f4234e979/element: {"error":"no such element","message":"no such element: Unable to locate element: {\"method\":\"xpath\",\"selector\":\"//input[@aria-label='文件夹名称']\"}\n  (Session info: MicrosoftEdge=154.0.4258.62)","stacktrace":"\tmsedgedriver!GetHandleVerifier [0x7ff6d1862285+4c15]\n\tmsedgedriver!(No symbol) [0x7ff6d17b3a74]\n\tmsedgedriver!GetHandleVerifier [0x7ff6d1be3bbf+38654f]\n\tmsedgedriver!(No symbol) [0x7ff6d1582456]\n\tmsedgedriver!(No symbol) [0x7ff6d15826da]\n\tmsedgedriver!(No symbol) [0x7ff6d15c25c7]\n\tmsedgedriver!(No symbol) [0x7ff6d15786cf]\n\tmsedgedriver!(No symbol) [0x7ff6d15c01f8]\n\tmsedgedriver!(No symbol) [0x7ff6d1577f0c]\n\tmsedgedriver!(No symbol) [0x7ff6d157718d]\n\tmsedgedriver!(No symbol) [0x7ff6d1577d33]\n\tmsedgedriver!(No symbol) [0x7ff6d16c0c04]\n\tmsedgedriver!(No symbol) [0x7ff6d16cddc8]\n\tmsedgedriver!GetHandleVerifier [0x7ff6d1907a15+aa3a5]\n\tmsedgedriver!GetHandleVerifier [0x7ff6d190dd11+b06a1]\n\tmsedgedriver!(No symbol) [0x7ff6d17bf6ff]\n\tmsedgedriver!(No symbol) [0x7ff6d17ba184]\n\tmsedgedriver!(No symbol) [0x7ff6d17ba2aa]\n\tmsedgedriver!(No symbol) [0x7ff6d17ab7f8]\n\tKERNEL32!BaseThreadInitThunk [0x7ffdf8d6cdf7+17]\n\tntdll!RtlUserThreadStart [0x7ffdfad5ee4c+2c]\n"}
+    at wd (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/workspace-folders.mjs:33:50)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Session.find (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/workspace-folders.mjs:62:31)
+    at async Session.type (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/workspace-folders.mjs:70:41)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/workspace-folders.mjs:185:3

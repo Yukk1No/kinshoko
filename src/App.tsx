@@ -29,7 +29,6 @@ import { LibraryPicker } from "./library/LibraryPicker";
 import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
 import { ReferenceGroupsPanel } from "./desktop/ReferenceGroupsPanel";
 import { SelectionPanel } from "./library/SelectionPanel";
-import { SidebarPane } from "./library/SidebarPane";
 import { TagGroupsPane } from "./library/TagGroupsPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
 import { TagGroupBar } from "./search/TagGroupBar";
@@ -116,11 +115,6 @@ function LibraryWorkspace({
   });
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
-  const changeScope = (next: BrowseScope) => {
-    const sourceId = workspaceScope.kind === "library" ? workspaceScope.libraryId : libraryId;
-    if (sourceId) setWorkspaceScope({ kind: "library", libraryId: sourceId, scope: next });
-    setSelected(new Set());
-  };
   const viewerChange = useRef(onViewerChange);
   viewerChange.current = onViewerChange;
   const viewerOpen = viewing !== null;
@@ -248,25 +242,15 @@ function LibraryWorkspace({
           inert={!paneOpen}
         >
           <header className="pane-head">
-            <h1 className="app-library-name">{section === "browse" ? (library?.name ?? "全部资料库") : section === "groups" ? "参考组" : "截图历史"}</h1>
+            <h1 className="app-library-name">{section === "browse" ? "资料库目录" : section === "groups" ? "参考组" : "截图历史"}</h1>
             <button type="button" className="icon-tool" aria-label="收起侧栏" title="收起（Ctrl+B）" onClick={onPaneToggle}>‹</button>
           </header>
           <div className="pane-body" hidden={section !== "browse"}>
             {libInPane && libraryControls}
-          <WorkspacePane status={status} scope={workspaceScope} onScope={(next) => {
-            setWorkspaceScope(next); setSelected(new Set()); setSources(null);
-          }} />
-          {(workspaceScope.kind === "library" || library) && <SidebarPane
-            key={workspaceScope.kind === "library" ? workspaceScope.libraryId : libraryId}
-            libraryId={workspaceScope.kind === "library" ? workspaceScope.libraryId : libraryId}
-            workspace safeMode={safe}
-            scopeSelected={workspaceScope.kind === "library"}
-            readOnly={workspaceScope.kind === "library" && workspaceScope.libraryId !== libraryId}
-            scope={scope}
-            onScope={changeScope}
-            reloadKey={reloadKey}
-            onError={onError}
-          />}
+          <WorkspacePane status={status} scope={workspaceScope} activeLibraryId={libraryId} safeMode={safe}
+            reloadKey={reloadKey} onError={onError} onScope={(next) => {
+              setWorkspaceScope(next); setSelected(new Set()); setSources(null);
+            }} />
           <details className="tag-organize"><summary>整理标签分组</summary>
           <TagGroupsPane
             safe={safe}

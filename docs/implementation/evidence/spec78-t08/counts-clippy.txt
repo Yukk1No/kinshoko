@@ -1,0 +1,4 @@
+    Checking kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
+    Checking kinshoko-tagger v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-tagger)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 23.32s

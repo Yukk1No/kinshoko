@@ -1,0 +1,24 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.66s
+     Running tests\workspace_folders.rs (target\debug\deps\workspace_folders-74c205195e20e7ae.exe)
+
+running 1 test
+test directory_descendant_counts_deduplicate_memberships_and_apply_global_safety ... FAILED
+
+failures:
+
+---- directory_descendant_counts_deduplicate_memberships_and_apply_global_safety stdout ----
+
+thread 'directory_descendant_counts_deduplicate_memberships_and_apply_global_safety' (3652) panicked at crates\kinshoko-core\tests\workspace_folders.rs:429:9:
+assertion `left == right` failed: each visible image is counted once across parent and multiple child memberships
+  left: Null
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    directory_descendant_counts_deduplicate_memberships_and_apply_global_safety
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.34s
+
+error: test failed, to rerun pass `-p kinshoko-core --test workspace_folders`

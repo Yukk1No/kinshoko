@@ -3,4 +3,4 @@
 /**
  * 浏览范围。
  */
-export type BrowseScope = { "kind": "all" } | { "kind": "folder", id: string, } | { "kind": "trash" };
+export type BrowseScope = { "kind": "all" } | { "kind": "folder", id: string, } | { "kind": "folderTree", id: string, } | { "kind": "unassigned" } | { "kind": "trash" };

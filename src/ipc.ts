@@ -1,5 +1,6 @@
 import type { CatalogGroupView } from "./bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "./bindings/CatalogGroupEdit";
+import type { WorkspaceDirectories } from "./bindings/WorkspaceDirectories";
 import type { LegacyNameMigrationPreview } from "./bindings/LegacyNameMigrationPreview";
 import type { LegacyNameMigrationWorkspace } from "./bindings/LegacyNameMigrationWorkspace";
 import type { LegacyNameDecision } from "./bindings/LegacyNameDecision";
@@ -860,6 +861,10 @@ export function onWorkspaceChanged(handler: (status: WorkspaceStatus) => void): 
 
 export function editTagName(catalogId: string, edit: CatalogNameEdit): Promise<TagCatalogWorkspace> {
   return invoke<TagCatalogWorkspace>(lib("edit_tag_name"), { catalogId, edit });
+}
+
+export function workspaceDirectories(safeMode: boolean): Promise<WorkspaceDirectories> {
+  return invoke<WorkspaceDirectories>(lib("workspace_directories"), { safeMode });
 }
 
 /** Unknown legacy names: read a safe-mode-filtered plan; confirm all choices atomically. */
