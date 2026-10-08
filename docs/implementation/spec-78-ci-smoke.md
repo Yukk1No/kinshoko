@@ -48,3 +48,11 @@ release exe SHA256 为 `877fcdc5a1aebfe1f0b08383691469ce88e1e4a3a1e3af0ea13bff2d
 release exe SHA256为 `6999c1809069cc3a970eec3487045851c65591c0f32b561a46353661ff210af9`。脚本 `d9df46a1c82641e8677d9434dca9d631a43370a1037d6217b05e539141c7e01a` 使用正式目标选择与导入确认，在19:26:27–19:26:43Z完成5项。包含T10，不包含之后T12/T13/T17，也不是最终组合结果。downscale37830066214成功。
 
 同轮 `fidelity-report-20261008-192650Z.json` 仍为34门槛样本中11项失败；CI成功未清除颜色门槛。原件、样本和来源独立保存于ignored `evidence/ci-37830066280/`，43文件/2455867字节。Installer artifact未下载或在本机执行，CI自己的安装检查不代替最终本机真实升级。
+
+## T12 内容备份合入后的实际 CI
+
+[CI37834445118](https://github.com/Yukk1No/kinshoko/actions/runs/37834445118) 完整成功，head `545bd5891f7aebece2fbfe806445d8323fbbe688`。实际PR合成checkout为 `eda6a0b6b8847aec107264518125df633f0c376a`，tree `870cda0403a325547c167b52db88fd51b1e8025c`；commit API核对parents为536cc43/545bd589。[实际步骤](evidence/spec78-ci-smoke/t12-ci-green-run.json)、[smoke原件](evidence/spec78-ci-smoke/t12-ci-green-result.json)和[来源](evidence/spec78-ci-smoke/t12-ci-origin-meta.json)分别保留。
+
+release exe SHA256为 `32391d1ab839029d4b739bd587ca37b3ccb6a4cd16c0d3ce550b260d0da5e13e`。相同实际脚本 `d9df46a1...` 在20:00:58–20:01:17Z完成5项，正式导入包含目标确认。此来源包含T12，不包含之后T13/T17或最终组合。downscale37834444945成功。
+
+同轮报告38样本、34门槛样本、11项失败。失败文件与上一轮相同，实际环境仍为Server2022/WebView131/SwiftShader。CI成功不清除颜色门槛。完整ignored原件与样本归档 `evidence/ci-37834445118/` 为43文件/2455848字节；没有下载或本机执行installer产物。
