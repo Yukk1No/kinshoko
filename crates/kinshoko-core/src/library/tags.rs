@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::events::LibraryEvent;
-use super::{Error, Inner, LIVE, lens, now_ms};
+use super::{Error, Inner, LIVE, lens, now_ms, rating};
 use crate::approx::{ApproxRelation, PersonalApprox};
 
 /// 标签命名空间。名称相同、命名空间不同的是两个标签。
@@ -383,6 +383,29 @@ fn require_tag(tx: &Transaction, tag_id: &str) -> Result<TagNamespace, Error> {
     .ok_or(Error::UnknownTag)
 }
 
+/// 浏览视角下这个标签存在：`safe`（安全模式开启）时，只在被封印的图上出现的标签当作不存在
+/// （与 [`Inner::sealed_only_tags`] 同一规则），画师看不见它，也不能经 id 整理它。
+fn require_visible_tag(tx: &Transaction, safe: bool, tag_id: &str) -> Result<TagNamespace, Error> {
+    let namespace = require_tag(tx, tag_id)?;
+    if safe {
+        let adult = rating::adult_sql("image.id");
+        let sealed_only: bool = tx.query_row(
+            &format!(
+                "SELECT EXISTS (SELECT 1 FROM effective_tag e JOIN image ON image.id = e.image_id
+                                WHERE e.tag_id = ?1 AND {adult})
+                    AND NOT EXISTS (SELECT 1 FROM effective_tag e JOIN image ON image.id = e.image_id
+                                    WHERE e.tag_id = ?1 AND NOT ({adult}))"
+            ),
+            [tag_id],
+            |r| r.get(0),
+        )?;
+        if sealed_only {
+            return Err(Error::UnknownTag);
+        }
+    }
+    Ok(namespace)
+}
+
 fn clean(name: &str) -> Result<String, Error> {
     let name = name.trim();
     if name.is_empty() {
@@ -713,8 +736,9 @@ pub(super) fn add_tag_alias(inner: &Inner, tag_id: &str, alias: &TagAlias) -> Re
         name: clean(&alias.name)?,
         lang: alias.lang.clone(),
     };
+    let safe = inner.safe_mode();
     write(inner, Vec::new(), move |tx, _| {
-        require_tag(tx, &tag_id)?;
+        require_visible_tag(tx, safe, &tag_id)?;
         tx.execute(
             "INSERT INTO tag_alias (tag_id, name, lang) VALUES (?1, ?2, ?3)
              ON CONFLICT (tag_id, name) DO UPDATE SET lang = excluded.lang",
@@ -726,8 +750,9 @@ pub(super) fn add_tag_alias(inner: &Inner, tag_id: &str, alias: &TagAlias) -> Re
 
 pub(super) fn remove_tag_alias(inner: &Inner, tag_id: &str, alias: &str) -> Result<(), Error> {
     let (tag_id, alias) = (tag_id.to_owned(), alias.trim().to_owned());
+    let safe = inner.safe_mode();
     write(inner, Vec::new(), move |tx, _| {
-        require_tag(tx, &tag_id)?;
+        require_visible_tag(tx, safe, &tag_id)?;
         tx.execute(
             "DELETE FROM tag_alias WHERE tag_id = ?1 AND name = ?2",
             params![tag_id, alias],
@@ -835,6 +860,50 @@ pub(super) fn set_tag_group_tags(
             tx.execute(
                 "INSERT OR IGNORE INTO tag_group_member (group_id, tag_id, ord) VALUES (?1, ?2, ?3)",
                 params![group_id, tag_id, ord as i64],
+            )?;
+        }
+        Ok(())
+    })
+}
+
+pub(super) fn add_to_tag_group(
+    inner: &Inner,
+    group_id: &str,
+    tag_ids: &[String],
+) -> Result<(), Error> {
+    let (group_id, tag_ids) = (group_id.to_owned(), tag_ids.to_vec());
+    let safe = inner.safe_mode();
+    write(inner, Vec::new(), move |tx, _| {
+        if require_group(tx, &group_id)?.is_some() {
+            return Err(Error::NamespaceGroup);
+        }
+        for tag_id in &tag_ids {
+            require_visible_tag(tx, safe, tag_id)?;
+            tx.execute(
+                "INSERT OR IGNORE INTO tag_group_member (group_id, tag_id, ord)
+                 VALUES (?1, ?2,
+                         (SELECT coalesce(max(ord), -1) + 1 FROM tag_group_member WHERE group_id = ?1))",
+                params![group_id, tag_id],
+            )?;
+        }
+        Ok(())
+    })
+}
+
+pub(super) fn remove_from_tag_group(
+    inner: &Inner,
+    group_id: &str,
+    tag_ids: &[String],
+) -> Result<(), Error> {
+    let (group_id, tag_ids) = (group_id.to_owned(), tag_ids.to_vec());
+    write(inner, Vec::new(), move |tx, _| {
+        if require_group(tx, &group_id)?.is_some() {
+            return Err(Error::NamespaceGroup);
+        }
+        for tag_id in &tag_ids {
+            tx.execute(
+                "DELETE FROM tag_group_member WHERE group_id = ?1 AND tag_id = ?2",
+                params![group_id, tag_id],
             )?;
         }
         Ok(())

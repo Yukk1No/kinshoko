@@ -40,7 +40,9 @@ import type { RecoveryReport } from "./bindings/RecoveryReport";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { Sidebar } from "./bindings/Sidebar";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
+import type { TagAlias } from "./bindings/TagAlias";
 import type { TagEdit } from "./bindings/TagEdit";
+import type { TagNamespace } from "./bindings/TagNamespace";
 import type { TagGroupView } from "./bindings/TagGroupView";
 import type { LibraryTaggingStatus } from "./bindings/LibraryTaggingStatus";
 import type { Turn } from "./bindings/Turn";
@@ -229,6 +231,39 @@ export function vocabulary(libraryId: string): Promise<Vocabulary> {
 /** 侧栏的标签分组及计数，名称按界面语言 lang。 */
 export function tagGroups(libraryId: string, lang: string): Promise<TagGroupView[]> {
   return invoke<TagGroupView[]>(lib("tag_groups"), { libraryId, lang });
+}
+
+/** 给标签加一个别名（按语言 lang 区分，null 为不区分）；之后按这个叫法能查到、能添加它。 */
+export function addTagAlias(libraryId: string, tagId: string, alias: TagAlias): Promise<void> {
+  return invoke<void>(lib("add_tag_alias"), { libraryId, tagId, alias });
+}
+
+export function removeTagAlias(libraryId: string, tagId: string, alias: string): Promise<void> {
+  return invoke<void>(lib("remove_tag_alias"), { libraryId, tagId, alias });
+}
+
+/** 建立标签分组，返回分组 id；给出 namespace 时分组是该命名空间的全部标签。 */
+export function createTagGroup(libraryId: string, name: string, namespace: TagNamespace | null): Promise<string> {
+  return invoke<string>(lib("create_tag_group"), { libraryId, name, namespace });
+}
+
+export function renameTagGroup(libraryId: string, groupId: string, name: string): Promise<void> {
+  return invoke<void>(lib("rename_tag_group"), { libraryId, groupId, name });
+}
+
+/** 删除标签分组；标签本身与标签决定不受影响。 */
+export function deleteTagGroup(libraryId: string, groupId: string): Promise<void> {
+  return invoke<void>(lib("delete_tag_group"), { libraryId, groupId });
+}
+
+/** 把标签加进画师整理的分组，排在最后。 */
+export function addToTagGroup(libraryId: string, groupId: string, tagIds: string[]): Promise<void> {
+  return invoke<void>(lib("add_to_tag_group"), { libraryId, groupId, tagIds });
+}
+
+/** 把标签移出画师整理的分组；安全模式下看不见的成员不受影响。 */
+export function removeFromTagGroup(libraryId: string, groupId: string, tagIds: string[]): Promise<void> {
+  return invoke<void>(lib("remove_from_tag_group"), { libraryId, groupId, tagIds });
 }
 
 /** 资料库的 `LensChanged`：请求带的安全模式与资料库的不同（刚切换过），结果作废（#76）。 */

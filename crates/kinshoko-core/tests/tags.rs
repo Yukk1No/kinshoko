@@ -665,3 +665,51 @@ fn editing_an_unknown_image_changes_nothing() {
     assert_eq!(library.vocabulary().unwrap(), before);
     assert!(library.image_tags(&ids[0], ZH).unwrap().tags.is_empty());
 }
+
+#[test]
+fn tags_join_and_leave_a_group_one_at_a_time_keeping_the_others_in_order() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = library_with_images(dir.path(), 1);
+    library
+        .edit_tags(&ids, &[add("黑发"), add("金发"), add("银发")])
+        .unwrap();
+    let [black, gold, silver] =
+        ["黑发", "金发", "银发"].map(|name| tag_id(&library, &ids[0], name));
+    let hair = library.create_tag_group("发色", None).unwrap();
+
+    library
+        .add_to_tag_group(&hair, &[gold.clone(), black.clone()])
+        .unwrap();
+    // 已在分组里的标签再加一次不重复、不改位置。
+    library
+        .add_to_tag_group(&hair, &[silver.clone(), gold.clone()])
+        .unwrap();
+    library
+        .remove_from_tag_group(&hair, std::slice::from_ref(&black))
+        .unwrap();
+
+    let names = |library: &Library| -> Vec<String> {
+        library.tag_groups(ZH).unwrap()[0]
+            .tags
+            .iter()
+            .map(|t| t.tag.name.clone())
+            .collect()
+    };
+    assert_eq!(names(&library), ["金发", "银发"]);
+
+    let works = library
+        .create_tag_group("作品", Some(TagNamespace::Work))
+        .unwrap();
+    assert!(matches!(
+        library.add_to_tag_group(&works, std::slice::from_ref(&gold)),
+        Err(Error::NamespaceGroup)
+    ));
+    assert!(matches!(
+        library.add_to_tag_group("没有这个分组", std::slice::from_ref(&gold)),
+        Err(Error::UnknownTagGroup)
+    ));
+
+    drop(library);
+    let reopened = Library::open(&dir.path().join("lib")).unwrap();
+    assert_eq!(names(&reopened), ["金发", "银发"]);
+}

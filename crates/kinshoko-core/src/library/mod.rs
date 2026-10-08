@@ -547,6 +547,18 @@ impl Library {
         tags::set_tag_group_tags(&self.inner, group_id, tag_ids)
     }
 
+    /// 把标签加进画师整理的分组，排在最后；已在分组里的不动。安全模式开启时，只在被封印的图上
+    /// 出现的标签当作不存在（[`Error::UnknownTag`]）。
+    pub fn add_to_tag_group(&self, group_id: &str, tag_ids: &[String]) -> Result<(), Error> {
+        tags::add_to_tag_group(&self.inner, group_id, tag_ids)
+    }
+
+    /// 把标签移出画师整理的分组。浏览视角看不见的成员不受影响（与 `set_tag_group_tags` 不同，
+    /// 界面整理分组时用它）。
+    pub fn remove_from_tag_group(&self, group_id: &str, tag_ids: &[String]) -> Result<(), Error> {
+        tags::remove_from_tag_group(&self.inner, group_id, tag_ids)
+    }
+
     /// 按给出的顺序排列标签分组。
     pub fn order_tag_groups(&self, group_ids: &[String]) -> Result<(), Error> {
         tags::order_tag_groups(&self.inner, group_ids)
