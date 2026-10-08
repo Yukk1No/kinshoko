@@ -2,6 +2,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { App } from "../App";
+import { ImportMenu } from "./ImportMenu";
+import { SaveDestinationProvider } from "./SaveDestination";
 const a={ id:"A",name:"浏览库",root:"C:/a" }, b={ id:"B",name:"保存库",root:"D:/b" };
 const libraries=[a,b].map(library=>({library,unavailable:null}));
 beforeEach(()=>{
@@ -74,4 +76,25 @@ it("a late start reply and cancel keep the submitted owner after selecting anoth
  fireEvent.click(await screen.findByRole("button",{name:"取消导入"}));
  await waitFor(()=>expect(cancelled).toEqual({libraryId:"B",taskId:"late-task"}));
  expect(screen.getByText("最终位置：浏览库 / 未归类")).toBeTruthy();
+});
+
+it("retry starts at its original target and an explicit new choice matches the final submitted target",async()=>{
+ let submitted:unknown;
+ const receipt={taskId:"failed-B",destination:{libraryId:"B",folderId:null},libraryName:"保存库",folderName:"未归类",progress:{done:1,total:1},finishing:false,warnings:[],report:{items:[{path:"C:/failed.png",outcome:{kind:"readFailed",reason:"locked"}}],cancelled:false,fromEagle:false,eagleMissing:0,eagleRelocations:[]}};
+ mockIPC((cmd,args)=>{
+  if(cmd==="plugin:library|workspace_directories")return {status:{revision:"test",libraries},providers:libraries.map(registration=>({registration,sidebar:{all:0,trash:0,folders:[]},unassigned:0,descendants:{}}))};
+  if(cmd==="plugin:library|import_tasks")return [receipt];
+  if(cmd==="plugin:library|import_contains_eagle")return false;
+  if(cmd==="plugin:library|start_import"){submitted=args;return "retry-task";}
+  if(cmd==="plugin:library|recovery")return {interrupted:[],orphans:[]};
+  return null;
+ },{shouldMockEvents:true});
+ render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
+ fireEvent.click(await screen.findByRole("button",{name:"重试失败的 1 项"}));
+ await screen.findByRole("button",{name:"开始导入"});
+ expect((screen.getByRole("combobox",{name:"保存到资料库"}) as HTMLSelectElement).value).toBe("B");
+ fireEvent.change(screen.getByRole("combobox",{name:"保存到资料库"}),{target:{value:"A"}});
+ expect(screen.getByText("最终位置：浏览库 / 未归类")).toBeTruthy();
+ fireEvent.click(screen.getByRole("button",{name:"开始导入"}));
+ await waitFor(()=>expect(submitted).toMatchObject({libraryId:"A",destination:{libraryId:"A",folderId:null}}));
 });

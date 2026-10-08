@@ -184,12 +184,19 @@ try{
  if(deletion.status!==0)throw new Error(deletion.stderr);
  await choose(a.id,aFolder);
  const failed=await finish(failing);receipts.push({phase:"external-folder-loss-while-running",before:deletionPhase,operation:JSON.parse(deletion.stdout),after:failed});
- const successful=failed.report.items.filter(item=>["imported","merged","eagleRefreshed","newVersion"].includes(item.outcome.kind));
+ const successful=failed.report.items.filter(item=>["imported","merged","refreshed","newVersion"].includes(item.outcome.kind));
  const rejected=failed.report.items.filter(item=>item.outcome.kind==="readFailed");
  assert(successful.length>0&&rejected.length>0&&failed.report.items.length===1200,"running target loss reports completed and failed items instead of a whole-batch success");
  assert(rejected.every(item=>/保存目标不可用|没有这个文件夹/.test(item.outcome.reason)),"remaining failures name the actual unavailable destination");
  assert((await local(a.id)).total===0&&(await local(c.id)).total===0,"failed target does not fall back into the newly chosen or current library");
  await session.screenshot("actual-partial-import-result.png");
+ // Explicit UI cancellation follows its original owner after the next target changes.
+ const cancelledTask=await begin(Array(1200).fill(imagePath),b.id,bFolder);
+ const cancelBefore=await running(cancelledTask);await choose(a.id,aFolder);
+ await session.click("//button[normalize-space()='取消导入']");
+ const cancelled=await finish(cancelledTask);receipts.push({phase:"owner-cancel-after-target-change",before:cancelBefore,after:cancelled});
+ assert(cancelled.report.cancelled&&cancelled.destination.libraryId===b.id,"formal cancel applies to original B even when the next target is A");
+ assert((await local(a.id)).total===0,"cancelled B work never writes into the next A target");
  // Eagle uses the same destination and retains its provider folders.
  const eagleRoot=join(work,"eagle.library");mkdirSync(join(eagleRoot,"images","ITEM1.info"),{recursive:true});
  writeFileSync(join(eagleRoot,"images","ITEM1.info","eagle.png"),readFileSync(imagePath));

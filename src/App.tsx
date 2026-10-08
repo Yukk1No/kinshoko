@@ -423,9 +423,9 @@ export function App() {
   }, []);
 
   useEffect(()=>{
-    let alive=true,stamp=0;
-    const accept=()=>void takeCollectionRequest().then(id=>{if(alive&&id){setCaptureRequest({id,stamp:++stamp});setSection("captures");setPaneOpen(true);}});
-    accept();const stop=onCollectionRequest(accept);
+    let alive=true,stamp=0,sequence=0;
+    const accept=()=>{const request=++sequence;void takeCollectionRequest().then(id=>{if(alive&&request===sequence&&id){setCaptureRequest({id,stamp:++stamp});setSection("captures");setPaneOpen(true);}});};
+    const stop=onCollectionRequest(accept).then(fn=>{if(alive)accept();return fn;});
     return()=>{alive=false;void stop.then(fn=>fn());};
   },[]);
 

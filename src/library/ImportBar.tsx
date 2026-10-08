@@ -55,7 +55,7 @@ export function ImportBar({ enabled, libraryId, libraryName, destination, destin
   const [lookingForEagle, setLookingForEagle] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
-  const [plan, setPlan] = useState<{ paths: string[]; options: ImportOptions; eagle:boolean; destination?:SaveDestination } | null>(null);
+  const [plan, setPlan] = useState<{ paths: string[]; options: ImportOptions; eagle:boolean } | null>(null);
   const optionsByTask = useRef(new Map<string, ImportOptions>());
   const busy = !!running || preparing || plan !== null;
   /**
@@ -108,7 +108,7 @@ export function ImportBar({ enabled, libraryId, libraryName, destination, destin
       const isEagle = fromEagle || await importContainsEagle(paths);
       if (!alive.current || !enabledRef.current) return;
       if (isEagle || destination !== undefined) {
-        setPlan({ paths, options: options ?? { eagleDeletedContent: "skipDeleted" }, eagle:isEagle, destination:fixed });
+        setPlan({ paths, options: options ?? { eagleDeletedContent: "skipDeleted" }, eagle:isEagle });
       } else {
         await start(paths, false, options, fixed);
       }
@@ -121,7 +121,7 @@ export function ImportBar({ enabled, libraryId, libraryName, destination, destin
   const startPlan = async () => {
     if (!plan || running || preparing || !destinationReady) return;
     setPreparing(true);
-    await start(plan.paths, plan.eagle, plan.options, plan.destination);
+    await start(plan.paths, plan.eagle, plan.options, destination??undefined);
     if (alive.current) setPreparing(false);
   };
   const importFiles = async () => begin(await pickFiles());
