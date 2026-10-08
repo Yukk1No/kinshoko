@@ -1,0 +1,96 @@
+[
+  {
+    "name": "fmt",
+    "command": [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-08T21:28:05.987106+00:00",
+    "finishedAtUtc": "2026-10-08T21:28:09.335324+00:00",
+    "durationSeconds": 3.199192600004608,
+    "source": "d93e7f803e160c73862a9692935471b072fc027a",
+    "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+    "log": "fmt.txt",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "cargoBuildJobs": "2",
+    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+  },
+  {
+    "name": "typescript",
+    "command": [
+      "npm.cmd",
+      "run",
+      "typecheck"
+    ],
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-08T21:28:09.336183+00:00",
+    "finishedAtUtc": "2026-10-08T21:28:12.721263+00:00",
+    "durationSeconds": 3.2627189999984694,
+    "source": "d93e7f803e160c73862a9692935471b072fc027a",
+    "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+    "log": "typescript.txt",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "cargoBuildJobs": "2",
+    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+  },
+  {
+    "name": "harness-syntax",
+    "command": [
+      "node",
+      "--check",
+      "e2e/sealed-import-preview.mjs"
+    ],
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-08T21:28:12.721993+00:00",
+    "finishedAtUtc": "2026-10-08T21:28:12.914962+00:00",
+    "durationSeconds": 0.07558659999631345,
+    "source": "d93e7f803e160c73862a9692935471b072fc027a",
+    "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+    "log": "harness-syntax.txt",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "cargoBuildJobs": "2",
+    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+  },
+  {
+    "name": "helper-syntax",
+    "command": [
+      "node",
+      "--check",
+      "scripts/check-sealed-preview-revocation.mjs"
+    ],
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-08T21:28:12.915803+00:00",
+    "finishedAtUtc": "2026-10-08T21:28:13.121894+00:00",
+    "durationSeconds": 0.08933239999896614,
+    "source": "d93e7f803e160c73862a9692935471b072fc027a",
+    "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+    "log": "helper-syntax.txt",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "cargoBuildJobs": "2",
+    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+  },
+  {
+    "name": "diff-whitespace",
+    "command": [
+      "git",
+      "diff",
+      "--check",
+      "1e8eb709eb0906f62ced84c4ccf203e6f3121c94",
+      "HEAD"
+    ],
+    "exitCode": 2,
+    "startedAtUtc": "2026-10-08T21:28:13.122582+00:00",
+    "finishedAtUtc": "2026-10-08T21:28:13.342281+00:00",
+    "durationSeconds": 0.10973519999970449,
+    "source": "d93e7f803e160c73862a9692935471b072fc027a",
+    "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+    "log": "diff-whitespace.txt",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "cargoBuildJobs": "2",
+    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+  }
+]

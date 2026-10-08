@@ -1,0 +1,19 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 24.21s
+     Running tests\import_preview.rs (target\debug\deps\import_preview-8bc69e9aa5ded5ee.exe)
+
+running 1 test
+
+thread 'default_receipt_does_not_expose_sealed_duplicate_ids_or_success_totals' (31484) panicked at crates\kinshoko-core\tests\import_preview.rs:45:5:
+default receipt leaks a sealed duplicate image ID and exact merged count: {"items":[{"path":"C:\\Users\\yuk1no\\AppData\\Local\\Temp\\.tmpsmzbzy\\sealed-file-name.png","outcome":{"kind":"merged","imageId":"01a11d1124f370e9be6960b91974a8f6"}}],"cancelled":false,"fromEagle":false,"eagleMissing":0,"eagleRelocations":[]}
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test default_receipt_does_not_expose_sealed_duplicate_ids_or_success_totals ... FAILED
+
+failures:
+
+failures:
+    default_receipt_does_not_expose_sealed_duplicate_ids_or_success_totals
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+error: test failed, to rerun pass `-p kinshoko-core --test import_preview`

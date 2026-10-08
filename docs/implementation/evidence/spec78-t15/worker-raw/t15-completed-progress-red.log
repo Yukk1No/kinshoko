@@ -1,0 +1,24 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.42s
+     Running tests\import_preview.rs (target\debug\deps\import_preview-8bc69e9aa5ded5ee.exe)
+
+running 1 test
+test completed_progress_minus_failures_cannot_reveal_the_sealed_success_count ... FAILED
+
+failures:
+
+---- completed_progress_minus_failures_cannot_reveal_the_sealed_success_count stdout ----
+
+thread 'completed_progress_minus_failures_cannot_reveal_the_sealed_success_count' (28440) panicked at crates\kinshoko-core\tests\import_preview.rs:761:5:
+assertion `left == right` failed: completed progress minus the public failure must not reveal one sealed success
+  left: (2, 2)
+ right: (0, 0)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    completed_progress_minus_failures_cannot_reveal_the_sealed_success_count
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.35s
+
+error: test failed, to rerun pass `-p kinshoko-core --test import_preview`

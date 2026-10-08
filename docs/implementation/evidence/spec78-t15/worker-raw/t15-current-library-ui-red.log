@@ -1,0 +1,64 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/ImportMenu.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/library/ImportMenu.test.tsx (3 tests | 1 failed) 1093ms
+   × 当前资料库改变立即遮蔽已解码预览，保留实际任务回执并要求再次同意 77ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/ImportMenu.test.tsx > 当前资料库改变立即遮蔽已解码预览，保留实际任务回执并要求再次同意
+AssertionError: expected <dialog …(3)>…(3)</dialog> to be null
+
+- Expected:
+null
+
++ Received:
+<dialog
+  aria-label="本次封印重复项预览"
+  class="sealed-import-preview"
+  open=""
+>
+  <header>
+    <h2>
+      本次封印重复项
+    </h2>
+    <button
+      aria-label="关闭重复项预览"
+      type="button"
+    >
+      ×
+    </button>
+  </header>
+  <p>
+    只读预览。安全模式保持开启，关闭后重新遮蔽。
+  </p>
+  <div
+    class="sealed-import-preview-images"
+  >
+    <img
+      alt="本次导入的重复项"
+      src="blob:actual-receipt-preview"
+    />
+  </div>
+</dialog>
+
+ ❯ src/library/ImportMenu.test.tsx:72:40
+     70|   expect(await screen.findByRole("img", { name: "本次导入的重复项" })).toBeTru…
+     71|   rerender(current("L2"));
+     72|   expect(screen.queryByRole("dialog")).toBeNull();
+       |                                        ^
+     73|   expect(screen.queryByRole("img")).toBeNull();
+     74|   await waitFor(() => expect(closed).toContain("actual-receipt-session…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  04:53:03
+   Duration  2.60s (tests 44%, environment 43%, import 8%, transform 5%)
+

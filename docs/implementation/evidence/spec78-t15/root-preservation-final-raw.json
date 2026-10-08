@@ -1,0 +1,542 @@
+{
+  "observedAtUtc": "2026-10-08T21:26:26.901238+00:00",
+  "scope": "All87 final worker raw inputs, original final evidence index and implementation document; every indexed raw/native/fixture hash validated against the final2cdf source. Native/fixtures/frozen binaries separately preserved. Old status and rejected-but-unexecuted proposal retained.",
+  "files": 89,
+  "bytes": 1421526,
+  "entries": [
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-adapter-check.log",
+      "file": "worker-raw\\work\\e2e\\t15-adapter-check.log",
+      "bytes": 422,
+      "sha256": "7b1bca18073636c5efbbc923c662ddfec791ed06b6bd889d8bcae296f781fd8b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-approval-rejection.txt",
+      "file": "worker-raw\\work\\e2e\\t15-approval-rejection.txt",
+      "bytes": 1101,
+      "sha256": "4687bf81cd330981779507edb920bf3603fc42ffa2d7d7d84b7aad5af32a9194"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-bindings.log",
+      "file": "worker-raw\\work\\e2e\\t15-bindings.log",
+      "bytes": 11572,
+      "sha256": "e724e3154217654ba861e1d21bc2fe028f17e87e7f9827fcbef6d239032101f7"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-build-source-v1.json",
+      "file": "worker-raw\\work\\e2e\\t15-build-source-v1.json",
+      "bytes": 135307,
+      "sha256": "3a5df024e787dfa5e82051be37aa1c46a8382ded505a6d24cb33b2659cbced0e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-build-source-v2.json",
+      "file": "worker-raw\\work\\e2e\\t15-build-source-v2.json",
+      "bytes": 135775,
+      "sha256": "614430a3d2d208d649958a91da511bd8293d0077191d89635c1c7438ca699e9c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-build-source-v3-retry1.json",
+      "file": "worker-raw\\work\\e2e\\t15-build-source-v3-retry1.json",
+      "bytes": 136349,
+      "sha256": "c2d504df48a32ede553730c9b03b3fee00698f3f5c38a36c877d51395d1eb359"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-build-source-v3.json",
+      "file": "worker-raw\\work\\e2e\\t15-build-source-v3.json",
+      "bytes": 136039,
+      "sha256": "165565643c0e475ecafd148693a48c0de96eab89d16a4c24b021e2a8ac1a6443"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-build-source.json",
+      "file": "worker-raw\\work\\e2e\\t15-build-source.json",
+      "bytes": 136349,
+      "sha256": "c2d504df48a32ede553730c9b03b3fee00698f3f5c38a36c877d51395d1eb359"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-channel-clippy-fixed.log",
+      "file": "worker-raw\\work\\e2e\\t15-channel-clippy-fixed.log",
+      "bytes": 297,
+      "sha256": "cde374cc7025cea39350b6e7db6c4ad4cd4c9b2a7923453f97ac55ae5e6b6c59"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-channel-clippy.log",
+      "file": "worker-raw\\work\\e2e\\t15-channel-clippy.log",
+      "bytes": 4012,
+      "sha256": "bacb2cd7f29a500aca1f02a2246674eef48f6a2724d83087fe731534f31060a8"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-channel-core.log",
+      "file": "worker-raw\\work\\e2e\\t15-channel-core.log",
+      "bytes": 2736,
+      "sha256": "c53ec4970ea7c82fe7b638f1ec4d9046b4fde04cc8d9c50fbb424b855425426c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-channel-types.log",
+      "file": "worker-raw\\work\\e2e\\t15-channel-types.log",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-channel-ui-rerun.log",
+      "file": "worker-raw\\work\\e2e\\t15-channel-ui-rerun.log",
+      "bytes": 589,
+      "sha256": "e6f51dae9f7706c4add238014b9b4b388fe1b1305f3d075b44c0891eff711e2d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-channel-ui.log",
+      "file": "worker-raw\\work\\e2e\\t15-channel-ui.log",
+      "bytes": 3166,
+      "sha256": "1e19c566d11f3dd63e31776e7e952e90f4e66b367ff2831dc39fc05a9c0dd91b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-completed-progress-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-completed-progress-green.log",
+      "bytes": 1386,
+      "sha256": "3f528e25a386297b0e9fc0249c71abaf71266398fd1867e1d6ef264a72e9e9e9"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-completed-progress-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-completed-progress-red.log",
+      "bytes": 1157,
+      "sha256": "53a7dcbfc23f976a3bddb54925dbae984d7eb866e55cbf3a8541a35b61771b28"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-consent-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-consent-green.log",
+      "bytes": 584,
+      "sha256": "53da5bc31a94bc5cabb93d3f676d7b1a39cfe3d1eae24dd2007803001eb1e0c4"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-consent-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-consent-red.log",
+      "bytes": 1006,
+      "sha256": "4814a1740e198dc3a0fd6f1e3e5eea80b930bd4eca2c168c2069d2afe3a10165"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-consent-transfer-ui-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-consent-transfer-ui-green.log",
+      "bytes": 308,
+      "sha256": "b5b1a10dc0155ec1a250724ab4455e9273a0dac9eb6e0e13cddc8ceed587c0f4"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-consent-transfer-ui-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-consent-transfer-ui-red.log",
+      "bytes": 1211,
+      "sha256": "fc1797349e01840b5219b24f3c34f2aa7147717278ba961588758ac7ca26c9b0"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-core-boundaries-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-core-boundaries-green.log",
+      "bytes": 1137,
+      "sha256": "c47f9d4d2fbef8691044d3bc55127068834892c4c63d98a5602843864a8ff92d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-core-boundaries.log",
+      "file": "worker-raw\\work\\e2e\\t15-core-boundaries.log",
+      "bytes": 1641,
+      "sha256": "a72a56b6b34cbc3461e2585b8b1da92e5386d35dce6f23596c4934615f1d197e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-core-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-core-red.log",
+      "bytes": 1229,
+      "sha256": "bf3b05dac31cc45dab113668718f1c934fe56a7180c77b2ba9352b3da43c7c98"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-core-regression.log",
+      "file": "worker-raw\\work\\e2e\\t15-core-regression.log",
+      "bytes": 6409,
+      "sha256": "2d545ea5f36176010591c183539bc87bb23e3a9814833a14091a9c28df1eec28"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-current-library-all-ui.log",
+      "file": "worker-raw\\work\\e2e\\t15-current-library-all-ui.log",
+      "bytes": 588,
+      "sha256": "c71ff629c11f6835a414ab57bacdf83ae663d1418f28d1c21b2f62d3bda87018"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-current-library-types.log",
+      "file": "worker-raw\\work\\e2e\\t15-current-library-types.log",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-current-library-ui-green-final.log",
+      "file": "worker-raw\\work\\e2e\\t15-current-library-ui-green-final.log",
+      "bytes": 372,
+      "sha256": "7525cf579f164a40d241b5216720896dfe7121c6e7375a4569701487f2983bef"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-current-library-ui-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-current-library-ui-green.log",
+      "bytes": 372,
+      "sha256": "164916965f44f5bb812cc896ec978f8244e940f4aa4d54afe6bf22fa2ec8f978"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-current-library-ui-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-current-library-ui-red.log",
+      "bytes": 1867,
+      "sha256": "7ee1237593d8080c3aa7a68b01b81eb44535dd59c53f3a6bce74dcdf4ef70fda"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-evidence-index-before-v3-native.json",
+      "file": "worker-raw\\work\\e2e\\t15-evidence-index-before-v3-native.json",
+      "bytes": 19269,
+      "sha256": "8926302eca4dbb3b822a06cb8c752587d1309f420ca877f9ad0881bb947a7053"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-final-clippy.log",
+      "file": "worker-raw\\work\\e2e\\t15-final-clippy.log",
+      "bytes": 422,
+      "sha256": "932357f3d63610f3e2f3ba0c16fb485f7ec08d66576789be6fe12cf425aec1ae"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-final-core.log",
+      "file": "worker-raw\\work\\e2e\\t15-final-core.log",
+      "bytes": 2942,
+      "sha256": "d5370de541db43b2a7264cc2ee0d9bef57c5bd19ba3ed0c20d26c1dde4a96f2f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-final-types.log",
+      "file": "worker-raw\\work\\e2e\\t15-final-types.log",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-final-ui.log",
+      "file": "worker-raw\\work\\e2e\\t15-final-ui.log",
+      "bytes": 589,
+      "sha256": "0058456511ee8a103a272b85a8e88724267c1fa14b5523d6a1df5d67b16420e8"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-fixture-v1.json",
+      "file": "worker-raw\\work\\e2e\\t15-fixture-v1.json",
+      "bytes": 2204,
+      "sha256": "f7c1ad84746cb05c14861fc70e0f942f343d8261bbde4bca0304064afac6122e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-fixture-v2.json",
+      "file": "worker-raw\\work\\e2e\\t15-fixture-v2.json",
+      "bytes": 2204,
+      "sha256": "a990f9ab44ac58bae33643095e15a78b97781d2b4982d8606c7e9bf220a4a499"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-fixture-v3.json",
+      "file": "worker-raw\\work\\e2e\\t15-fixture-v3.json",
+      "bytes": 2204,
+      "sha256": "a990f9ab44ac58bae33643095e15a78b97781d2b4982d8606c7e9bf220a4a499"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-fixture-v4-build.log",
+      "file": "worker-raw\\work\\e2e\\t15-fixture-v4-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-fixture-v4.json",
+      "file": "worker-raw\\work\\e2e\\t15-fixture-v4.json",
+      "bytes": 2069,
+      "sha256": "41346728eba0309928677eddb2503ef52204e099fe7f679b70140d2abf0c8a56"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-fixture.json",
+      "file": "worker-raw\\work\\e2e\\t15-fixture.json",
+      "bytes": 2069,
+      "sha256": "41346728eba0309928677eddb2503ef52204e099fe7f679b70140d2abf0c8a56"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-library-context-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-library-context-red.log",
+      "bytes": 979,
+      "sha256": "fcf7dca686e4b80c0888ebd4b00ab33b5c5d3d3f431b16db8fb76a9552991d1d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-menu-context-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-menu-context-green.log",
+      "bytes": 339,
+      "sha256": "561f017b6ec47b8811de72fcd6fa6b33121a34c2e56fc3f5acd7975c72f6b11e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-menu-context-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-menu-context-red.log",
+      "bytes": 1885,
+      "sha256": "a5c909642b55eac315d1ad95f1ab5f12bb9df3f9a685d7c9fe662917f6bd97f2"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-merged-clippy.log",
+      "file": "worker-raw\\work\\e2e\\t15-merged-clippy.log",
+      "bytes": 422,
+      "sha256": "fe122dc103a8223a545ae5920b8e1784d890e37f7f85286527acb6f532f5a3c7"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-merged-types.log",
+      "file": "worker-raw\\work\\e2e\\t15-merged-types.log",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-merged-ui.log",
+      "file": "worker-raw\\work\\e2e\\t15-merged-ui.log",
+      "bytes": 588,
+      "sha256": "230308624d62db632f82e706542f593e3ab1fba828d37337593a92ca617eefd8"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-build-fixed.log",
+      "file": "worker-raw\\work\\e2e\\t15-native-build-fixed.log",
+      "bytes": 1084,
+      "sha256": "f42179c1335c7c582d2d22ae1fa965647f09c7d7e43d78b36cac5994ae363d0c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-build-v2.log",
+      "file": "worker-raw\\work\\e2e\\t15-native-build-v2.log",
+      "bytes": 1084,
+      "sha256": "ae34ced9ec82db812e2bb2c0a617f5b3ae593087bb47f5c653a40fd85d74c1a2"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-build-v3.log",
+      "file": "worker-raw\\work\\e2e\\t15-native-build-v3.log",
+      "bytes": 840,
+      "sha256": "8808717b773e76573fe849554a4945239b39445268249f0b910816fc7ff5bea1"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-build.log",
+      "file": "worker-raw\\work\\e2e\\t15-native-build.log",
+      "bytes": 1537,
+      "sha256": "eb565d4edcdb8051673e27ecfa79bb51e1486494ce3c69511d80412efef9e896"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-console-v3-retry1.log",
+      "file": "worker-raw\\work\\e2e\\t15-native-console-v3-retry1.log",
+      "bytes": 3675,
+      "sha256": "a1acb284a6fc01a3fe2d40a9a5595b3ee3bd67709c56bb140c5758169fbc9110"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-console-v3.log",
+      "file": "worker-raw\\work\\e2e\\t15-native-console-v3.log",
+      "bytes": 2103,
+      "sha256": "dd47f585634ce879a2c9387f53ca7f6a9a1ed5e1efbec4e0284c668dafdeaceb"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-preflight-v3-first-failed.txt",
+      "file": "worker-raw\\work\\e2e\\t15-native-preflight-v3-first-failed.txt",
+      "bytes": 328,
+      "sha256": "c80f5913c7ad4701e69b348f9789a0e2ae50f7f9c74238ad3364db2165d4eeb7"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-preflight-v3-retry1.json",
+      "file": "worker-raw\\work\\e2e\\t15-native-preflight-v3-retry1.json",
+      "bytes": 1508,
+      "sha256": "fb1713b2afb419ce6630a616efdd2fe600043068098a9191958255ac4e311396"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-preflight-v3.json",
+      "file": "worker-raw\\work\\e2e\\t15-native-preflight-v3.json",
+      "bytes": 1354,
+      "sha256": "354d5c6eebe14a798e2733aa243c7f9cacda5d7675e5cc99792a0113013661b2"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-preview-channel-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-preview-channel-green.log",
+      "bytes": 372,
+      "sha256": "a80a86d6b3c0ace77a17dadc6c4d4efe74e3c1158e81f2f91b9655f69e8eda64"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-preview-channel-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-preview-channel-red.log",
+      "bytes": 1186,
+      "sha256": "7c8d4e14ae70b4758386cdf3219ab1c25123640fb4c846b282e8d69029176a1a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-projection-green-fixed.log",
+      "file": "worker-raw\\work\\e2e\\t15-projection-green-fixed.log",
+      "bytes": 490,
+      "sha256": "502a5a1e17c0cccfada1b681538e96873181dcbd0cfb2ff0a9c1fbffd9175b4a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-projection-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-projection-green.log",
+      "bytes": 1300,
+      "sha256": "2809e8e5ca2ae938dbd0cb40e5f829f80db835fe9e27151416772e1820cf05bd"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-replaced-bytes-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-replaced-bytes-green.log",
+      "bytes": 1228,
+      "sha256": "08bb5825cd71f213b29b84a9310b05653bdfa4c55fb715fb3d58abd0ffcc8e74"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-replaced-bytes-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-replaced-bytes-red.log",
+      "bytes": 998,
+      "sha256": "81a9d350b698fab31be924b3d0d8266a1cc4348be4cdfe3291220a40b1722d73"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-settings-merged-core.log",
+      "file": "worker-raw\\work\\e2e\\t15-settings-merged-core.log",
+      "bytes": 2857,
+      "sha256": "cf633ff600e8d83b7a58823623f8f69e06221216724611cb59b95554a484fc70"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-shared-approx-rerun.log",
+      "file": "worker-raw\\work\\e2e\\t15-shared-approx-rerun.log",
+      "bytes": 311,
+      "sha256": "13ae3220bc48176110229afbfcae3c197cdf8be520361713f7cdb87fe1985f8a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-source-before-build-v1.json",
+      "file": "worker-raw\\work\\e2e\\t15-source-before-build-v1.json",
+      "bytes": 134276,
+      "sha256": "bf1aac314f7bf3e5974d05027c39d42c5cfc243b0dac5b0c36e88cf9ade08d6f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-source-before-build-v2.json",
+      "file": "worker-raw\\work\\e2e\\t15-source-before-build-v2.json",
+      "bytes": 134521,
+      "sha256": "73e3c321d18df987c7688ce8b2a6869d6c25f35981b74361a9af2cb75907fa89"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-source-before-build-v3.json",
+      "file": "worker-raw\\work\\e2e\\t15-source-before-build-v3.json",
+      "bytes": 134521,
+      "sha256": "1e54152ac52975f5c5817de27f5c8fb7dc796781399582f5ad06d8a95afa620d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-source-before-build.json",
+      "file": "worker-raw\\work\\e2e\\t15-source-before-build.json",
+      "bytes": 134276,
+      "sha256": "bf1aac314f7bf3e5974d05027c39d42c5cfc243b0dac5b0c36e88cf9ade08d6f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-stream-clippy.log",
+      "file": "worker-raw\\work\\e2e\\t15-stream-clippy.log",
+      "bytes": 422,
+      "sha256": "133320bf449f6ec30aba626fb9c09c3a1081d05cc7966b460d3f3686a2f791b1"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-stream-final-clippy.log",
+      "file": "worker-raw\\work\\e2e\\t15-stream-final-clippy.log",
+      "bytes": 422,
+      "sha256": "d13ed6b2c593bdc414ee2a54140cb5fffc54290394113d2355552d311c8c8bda"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-stream-final-core.log",
+      "file": "worker-raw\\work\\e2e\\t15-stream-final-core.log",
+      "bytes": 1552,
+      "sha256": "b6ee543873dc9cca57c5060aeb0f930d79e5574e9a269263078982f53407869a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-stream-regression.log",
+      "file": "worker-raw\\work\\e2e\\t15-stream-regression.log",
+      "bytes": 8097,
+      "sha256": "b3ee93df82628fbf0637c04a8681a60b7238aa366a98c60d73eb969158099640"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-stream-types.log",
+      "file": "worker-raw\\work\\e2e\\t15-stream-types.log",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-stream-ui.log",
+      "file": "worker-raw\\work\\e2e\\t15-stream-ui.log",
+      "bytes": 372,
+      "sha256": "e6387424fa7d766afeb3154cfe2d66aa69c3f459431fbd8642ee08466b32b3b2"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-tauri-config.json",
+      "file": "worker-raw\\work\\e2e\\t15-tauri-config.json",
+      "bytes": 79,
+      "sha256": "e938f42825b18b4a07920cf8a57c98128365b6d1d242ccce8f13cebe25c2c62a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-transition-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-transition-green.log",
+      "bytes": 670,
+      "sha256": "f887b4179cbcb7d9bfd209572ca4ae7a41f97cff15c5a78361dd9c0cf3c78168"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-transition-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-transition-red.log",
+      "bytes": 980,
+      "sha256": "d4012c15e54aca58b2178dd0a63bb19266dca0a27d8878a7ed45b18b36acb771"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-transmission-boundaries-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-transmission-boundaries-green.log",
+      "bytes": 1551,
+      "sha256": "fecf7ade6bc461d160f7db7410359c8bc3e11bb1305a8b5628d17f2fd2775ed8"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-transmission-core-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-transmission-core-green.log",
+      "bytes": 1463,
+      "sha256": "d4a881abf1be1d9015208d3666d14cb4746f82f5950afd92f62ae0feaff90f05"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-transmission-core-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-transmission-core-red.log",
+      "bytes": 1055,
+      "sha256": "e892836cf1c211d9ded7fa53673c6bf50c3b3978b48e296156a2db1a49da7a6e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-transmission-native-trace-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-transmission-native-trace-red.log",
+      "bytes": 533,
+      "sha256": "1b047b4c2679bbb53deb2ce9dc85399b584117da36a5f2e12364a2e4ca62dc4b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-typecheck-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-typecheck-green.log",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-typecheck.log",
+      "file": "worker-raw\\work\\e2e\\t15-typecheck.log",
+      "bytes": 2665,
+      "sha256": "0851ed000699fc5f128fe40a6e14fffa400e6c18594c337d4740a71a8285e031"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-ui-boundaries-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-ui-boundaries-green.log",
+      "bytes": 308,
+      "sha256": "89d6b376def39fd38df71b10e8d7bc5edad0f47294a78fbf2ec1fa616800e517"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-ui-green.log",
+      "file": "worker-raw\\work\\e2e\\t15-ui-green.log",
+      "bytes": 308,
+      "sha256": "3242f9c5da8ca855ab0069dd069560b936c7b63561547d5ecddbdd8e6f04c69e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-ui-red.log",
+      "file": "worker-raw\\work\\e2e\\t15-ui-red.log",
+      "bytes": 3416,
+      "sha256": "2e1ce4af8db03d44fe864f0ab30b1a8dcf6a481f1952fbf88c4bd9010dc9d7cf"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-v3-retry1-trace-check.log",
+      "file": "worker-raw\\work\\e2e\\t15-v3-retry1-trace-check.log",
+      "bytes": 584,
+      "sha256": "1154d02004dd21722b148ff58a9205f67884c72137f3b5448593840861e05673"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-v3-trace-recheck.log",
+      "file": "worker-raw\\work\\e2e\\t15-v3-trace-recheck.log",
+      "bytes": 303,
+      "sha256": "c1740043c21850805a85397dd83c77a5f86c0ff5b120f7b1ecd941d4b6c806e7"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-evidence-index-final.json",
+      "file": "worker-final-evidence-index.json",
+      "bytes": 55757,
+      "sha256": "56e830b8f380238246c23447b64af836105aff48758608e45b87c8c78806e54b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\docs\\implementation\\spec-78-t15.md",
+      "file": "worker-final-document-original.md",
+      "bytes": 19686,
+      "sha256": "7d56a1dd4d4764146342991a036101dc7170e545a5efa7bdd7a9ed9a564944c1"
+    }
+  ]
+}

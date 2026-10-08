@@ -1,0 +1,43 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/import-preview-ipc.test.ts
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/import-preview-ipc.test.ts (2 tests | 1 failed) 11ms
+   × 只从本次预览Channel组合字节，不把命令确认体当作内容 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/import-preview-ipc.test.ts > 只从本次预览Channel组合字节，不把命令确认体当作内容
+AssertionError: expected [ 9, 9 ] to deeply equal [ 137, 80, 78, 71 ]
+
+- Expected
++ Received
+
+  [
+-   137,
+-   80,
+-   78,
+-   71,
++   9,
++   9,
+  ]
+
+ ❯ src/import-preview-ipc.test.ts:17:74
+     15|     return [9, 9];
+     16|   });
+     17|   expect([...await readImportPreview("receipt-session", "opaque-item")…
+       |                                                                          ^
+     18| });
+     19|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  04:18:35
+   Duration  1.41s (environment 92%, transform 5%, import 2%, tests 1%, worker 1%)
+

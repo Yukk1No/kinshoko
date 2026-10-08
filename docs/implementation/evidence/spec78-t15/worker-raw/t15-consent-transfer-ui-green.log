@@ -1,0 +1,13 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/ImportBar.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  04:06:02
+   Duration  2.41s (environment 62%, tests 22%, import 11%, transform 5%)
+

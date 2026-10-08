@@ -1,0 +1,21 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.07s
+     Running tests\import_preview.rs (target\debug\deps\import_preview-8bc69e9aa5ded5ee.exe)
+
+running 13 tests
+test completed_progress_minus_failures_cannot_reveal_the_sealed_success_count ... ok
+test explicit_consent_uses_only_the_actual_completed_cross_library_duplicate_receipt ... ok
+test eagle_refreshed_successes_do_not_leak_a_sealed_only_total ... ok
+test replacing_original_bytes_cannot_reuse_an_old_receipt_as_a_display_capability ... ok
+test closing_after_the_first_published_chunk_stops_remaining_content ... ok
+test unavailable_known_adult_source_still_seals_receipts_and_removal_revokes_pending_content ... ok
+test default_receipt_does_not_expose_sealed_duplicate_ids_or_success_totals ... ok
+test mode_transition_and_library_switch_revoke_a_completed_but_unreleased_read ... ok
+test report_dismissal_and_identity_replacement_reject_pending_content ... ok
+test deleted_and_permanently_deleted_content_never_revives_through_an_old_receipt ... ok
+test close_and_next_receipt_generation_reject_late_bytes_foreign_ids_and_historical_tokens ... ok
+test mixed_receipt_coarsens_all_successes_keeps_real_failures_and_does_not_change_curation ... ok
+test streamed_content_is_revoked_by_new_consent_library_mode_and_source_changes ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.95s
+

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "clippy-after-binding-doc",
+    "command": [
+      "cargo",
+      "clippy",
+      "-p",
+      "kinshoko",
+      "--all-targets",
+      "--locked",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-08T21:33:58.938545+00:00",
+    "finishedAtUtc": "2026-10-08T21:34:08.543645+00:00",
+    "durationSeconds": 9.525192300003255,
+    "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
+    "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
+    "log": "clippy-after-binding-doc.txt",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "cargoBuildJobs": "2",
+    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+  }
+]

@@ -1,0 +1,25 @@
+    Checking kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\src-tauri)
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\target\debug\incremental\build_script_build-17hluvbfxnw02\s-hn15fm8bd8-0412hi1-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\target\debug\incremental\kinshoko_core-24lzfncog83vn\s-hn15fm8b86-0qv6rpo-working`
+
+warning: `kinshoko` (build script) generated 1 warning
+warning: `kinshoko-core` (lib) generated 1 warning
+    Checking kinshoko-tagger v0.1.0 (C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\crates\kinshoko-tagger)
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\target\debug\incremental\kinshoko_tagger-2iszydobg67ke\s-hn15frua3h-10noihm-working`
+
+warning: `kinshoko-tagger` (lib) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\target\debug\incremental\kinshoko_app-0u80z59aohnb3\s-hn15fs6bwn-1c09wp8-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\target\debug\incremental\kinshoko_app-1cy56voh0ucur\s-hn15fs6evf-16riuy8-working`
+
+warning: `kinshoko` (lib test) generated 1 warning
+warning: `kinshoko` (lib) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\target\debug\incremental\kinshoko-26ugixgb9fdzt\s-hn15fxftx7-1xsqwul-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\target\debug\incremental\kinshoko-1hr9v31j8q502\s-hn15fxfwwi-1ouz8in-working`
+
+warning: `kinshoko` (bin "kinshoko" test) generated 1 warning
+warning: `kinshoko` (bin "kinshoko") generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 25.45s

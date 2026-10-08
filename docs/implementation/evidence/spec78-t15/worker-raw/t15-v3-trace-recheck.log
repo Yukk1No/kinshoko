@@ -1,0 +1,1 @@
+{"passed":true,"command":"plugin:library|close_import_preview","expected":"first-chunk revocation interrupts remaining content and rejects completion","receivedBytes":33759,"originalBytes":12962853,"chunks":33,"failure":"安全模式刚切换过，请重新查找","actionElapsedMs":5.699999995529652}

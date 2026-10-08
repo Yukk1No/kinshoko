@@ -1,0 +1,22 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.04s
+     Running tests\import_preview.rs (target\debug\deps\import_preview-8bc69e9aa5ded5ee.exe)
+
+running 1 test
+test closing_after_the_first_published_chunk_stops_remaining_content ... FAILED
+
+failures:
+
+---- closing_after_the_first_published_chunk_stops_remaining_content stdout ----
+
+thread 'closing_after_the_first_published_chunk_stops_remaining_content' (27516) panicked at crates\kinshoko-core\tests\import_preview.rs:803:5:
+close must reject the remaining real original bytes before they are published
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    closing_after_the_first_published_chunk_stops_remaining_content
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.34s
+
+error: test failed, to rerun pass `-p kinshoko-core --test import_preview`

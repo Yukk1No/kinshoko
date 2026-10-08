@@ -1,0 +1,314 @@
+{
+  "observedAtUtc": "2026-10-08T21:20:09.150575+00:00",
+  "scope": "Actual final T15 native full43 on product473bdb1/EXE7e083e5 and harness364cdac/9656f6bf. First-chunk close1.1ms and repeated safe-mode9.5ms revoke incomplete13MB read; no completion marker or bytes after response. Real current-library decoded/pending UI re-veils, receipt owner retained, all seven sampled global modes true. KnownFolder before absent/after copied true then restored absent; forced cleanup is not tray Quit. Prior failures preserved separately; v2 never native-executed.",
+  "files": 51,
+  "bytes": 81416509,
+  "entries": [
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\app-data\\device.json",
+      "file": "sealed-preview-v3-final\\app-data\\device.json",
+      "bytes": 578,
+      "sha256": "081f167149e8d7be3499f0a636b4d30609d3f114fee6219a6b7c7f6734614ac6"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\app-data\\pins.json",
+      "file": "sealed-preview-v3-final\\app-data\\pins.json",
+      "bytes": 38,
+      "sha256": "bbc25d11ad961c561cf06e1636431bd3343ef1de390bc9fbd50b0025e91f17b4"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\app-data\\tag-catalog.sqlite",
+      "file": "sealed-preview-v3-final\\app-data\\tag-catalog.sqlite",
+      "bytes": 135168,
+      "sha256": "5415aaf3d2d00b96f10fff0bf874ddb9b36868045a41501b5d5f50e0257ef48f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\app-data\\workspace.sqlite",
+      "file": "sealed-preview-v3-final\\app-data\\workspace.sqlite",
+      "bytes": 12288,
+      "sha256": "c28d7f50801798893c9ef5652e16413584d83a925024231420a3c5e542a3e970"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\build-source.json",
+      "file": "sealed-preview-v3-final\\build-source.json",
+      "bytes": 136349,
+      "sha256": "c2d504df48a32ede553730c9b03b3fee00698f3f5c38a36c877d51395d1eb359"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\check-sealed-preview-revocation.mjs",
+      "file": "sealed-preview-v3-final\\check-sealed-preview-revocation.mjs",
+      "bytes": 1203,
+      "sha256": "546de0d04c8667af024186e2027d7517ae7bfb0a0780e01fd30948e053d90496"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\cleanup.json",
+      "file": "sealed-preview-v3-final\\cleanup.json",
+      "bytes": 1141,
+      "sha256": "3443a349411799413f25152eb84c1972871232abfe85bbf3bf848c5595eb1f58"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\closed-reveiled.png",
+      "file": "sealed-preview-v3-final\\closed-reveiled.png",
+      "bytes": 136369,
+      "sha256": "b34fef70008e5da0b867e10c1e41ca12dbdb5047d44e6b292a5c074a4cf3ddbc"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\console.log",
+      "file": "sealed-preview-v3-final\\console.log",
+      "bytes": 3675,
+      "sha256": "a1acb284a6fc01a3fe2d40a9a5595b3ee3bd67709c56bb140c5758169fbc9110"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\current-library-reveiled.png",
+      "file": "sealed-preview-v3-final\\current-library-reveiled.png",
+      "bytes": 137490,
+      "sha256": "e4ea718f7b9a483805af4c1c41e3222affc7fb8122b3540be531c60aa101aa9b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\default-sealed-prompt.png",
+      "file": "sealed-preview-v3-final\\default-sealed-prompt.png",
+      "bytes": 136368,
+      "sha256": "3e05e788c457a9c69a46b6c5cba75b0b33a7c07938ab791c548241bbaba60376"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\explicit-receipt-preview.png",
+      "file": "sealed-preview-v3-final\\explicit-receipt-preview.png",
+      "bytes": 876658,
+      "sha256": "80bde288201d25d60837ac531e27f98447150a069db34148d2f44b8a463d126d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\fixture.json",
+      "file": "sealed-preview-v3-final\\fixture.json",
+      "bytes": 2069,
+      "sha256": "41346728eba0309928677eddb2503ef52204e099fe7f679b70140d2abf0c8a56"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\known-folder-after\\settings.json",
+      "file": "sealed-preview-v3-final\\known-folder-after\\settings.json",
+      "bytes": 203,
+      "sha256": "7ab1eb0d453365c6f8c4b1de3a6c10bac9185790bf3b49e047f5e64b0391c2dd"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\native-config.json",
+      "file": "sealed-preview-v3-final\\native-config.json",
+      "bytes": 79,
+      "sha256": "e938f42825b18b4a07920cf8a57c98128365b6d1d242ccce8f13cebe25c2c62a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\pending-current-library-no-revival.png",
+      "file": "sealed-preview-v3-final\\pending-current-library-no-revival.png",
+      "bytes": 137490,
+      "sha256": "e4ea718f7b9a483805af4c1c41e3222affc7fb8122b3540be531c60aa101aa9b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\pending-ui-close-no-revival.png",
+      "file": "sealed-preview-v3-final\\pending-ui-close-no-revival.png",
+      "bytes": 136368,
+      "sha256": "3e05e788c457a9c69a46b6c5cba75b0b33a7c07938ab791c548241bbaba60376"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\preflight.json",
+      "file": "sealed-preview-v3-final\\preflight.json",
+      "bytes": 1508,
+      "sha256": "fb1713b2afb419ce6630a616efdd2fe600043068098a9191958255ac4e311396"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\result.json",
+      "file": "sealed-preview-v3-final\\result.json",
+      "bytes": 162365,
+      "sha256": "24edfa1e2f26f0c4cc749b7572fa2a59abf286211cb2fada07261324cc70f363"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\same-settings.kinshoko-settings",
+      "file": "sealed-preview-v3-final\\same-settings.kinshoko-settings",
+      "bytes": 1786,
+      "sha256": "4e198ac9c268b66ef620752420325932f6122b129aa503cbc3e059929b35ec4a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1\\sealed-import-preview.mjs",
+      "file": "sealed-preview-v3-final\\sealed-import-preview.mjs",
+      "bytes": 26466,
+      "sha256": "9656f6bf40d661ae8bdb725526b28042874d12ca807eaec2b7b116aeb5320003"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\adult\\library.sqlite",
+      "file": "fixtures\\v3\\adult\\library.sqlite",
+      "bytes": 335872,
+      "sha256": "cedf948dc463739f87748ab8c56c3f671a29a15b0c3e2d79c55da2344be163e6"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\adult\\originals\\52\\524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30.png",
+      "file": "fixtures\\v3\\adult\\originals\\52\\524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30.png",
+      "bytes": 4491,
+      "sha256": "524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\adult\\originals\\cb\\cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png",
+      "file": "fixtures\\v3\\adult\\originals\\cb\\cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png",
+      "bytes": 12962853,
+      "sha256": "cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\new-unknown.png",
+      "file": "fixtures\\v3\\new-unknown.png",
+      "bytes": 4134,
+      "sha256": "9979ed50b2187f4cf45daa52b3a11b4e2cadfcd1c88434d447f812a3b31e6c4c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\sealed-duplicate.png",
+      "file": "fixtures\\v3\\sealed-duplicate.png",
+      "bytes": 12962853,
+      "sha256": "cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\target\\cache\\thumbs\\v1\\sdr\\1b\\1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139-512.webp",
+      "file": "fixtures\\v3\\target\\cache\\thumbs\\v1\\sdr\\1b\\1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139-512.webp",
+      "bytes": 324,
+      "sha256": "84d4bda1b65d6ea74c78b074384bf74d45d57369c2f4a9132aaea35958f85b1c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\target\\cache\\thumbs\\v1\\sdr\\99\\9979ed50b2187f4cf45daa52b3a11b4e2cadfcd1c88434d447f812a3b31e6c4c-512.webp",
+      "file": "fixtures\\v3\\target\\cache\\thumbs\\v1\\sdr\\99\\9979ed50b2187f4cf45daa52b3a11b4e2cadfcd1c88434d447f812a3b31e6c4c-512.webp",
+      "bytes": 334,
+      "sha256": "28f1767827c46cbf9b1c4ec71558ba18b4de6018a5791625c9546163dfb6b311"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\target\\library.sqlite",
+      "file": "fixtures\\v3\\target\\library.sqlite",
+      "bytes": 335872,
+      "sha256": "2399218d74485079f82845aabbf8688d2ad86c87791b7142cb7820f84085bbae"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\target\\library.sqlite-shm",
+      "file": "fixtures\\v3\\target\\library.sqlite-shm",
+      "bytes": 32768,
+      "sha256": "fb8e73943f98ea264a5ddcb889940619bbc5311bbd4d5550d75d1cbfc565f657"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\target\\library.sqlite-wal",
+      "file": "fixtures\\v3\\target\\library.sqlite-wal",
+      "bytes": 65952,
+      "sha256": "f60ea9a74c193ec937f3a842000cca92982cf11ebcb36d3d680260ea9315aba7"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\target\\originals\\1b\\1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139.png",
+      "file": "fixtures\\v3\\target\\originals\\1b\\1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139.png",
+      "bytes": 3217,
+      "sha256": "1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\target\\originals\\99\\9979ed50b2187f4cf45daa52b3a11b4e2cadfcd1c88434d447f812a3b31e6c4c.png",
+      "file": "fixtures\\v3\\target\\originals\\99\\9979ed50b2187f4cf45daa52b3a11b4e2cadfcd1c88434d447f812a3b31e6c4c.png",
+      "bytes": 4134,
+      "sha256": "9979ed50b2187f4cf45daa52b3a11b4e2cadfcd1c88434d447f812a3b31e6c4c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\target\\originals\\cb\\cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png",
+      "file": "fixtures\\v3\\target\\originals\\cb\\cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png",
+      "bytes": 12962853,
+      "sha256": "cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\unknown-visible.png",
+      "file": "fixtures\\v3\\unknown-visible.png",
+      "bytes": 3217,
+      "sha256": "1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\unrelated-sealed.png",
+      "file": "fixtures\\v3\\unrelated-sealed.png",
+      "bytes": 4491,
+      "sha256": "524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\adult\\library.sqlite",
+      "file": "fixtures\\v4\\adult\\library.sqlite",
+      "bytes": 335872,
+      "sha256": "84c8158345736c6010239dde3d90092031006d3a32903de68e62724a90d7c4b4"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\adult\\originals\\52\\524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30.png",
+      "file": "fixtures\\v4\\adult\\originals\\52\\524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30.png",
+      "bytes": 4491,
+      "sha256": "524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\adult\\originals\\cb\\cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png",
+      "file": "fixtures\\v4\\adult\\originals\\cb\\cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png",
+      "bytes": 12962853,
+      "sha256": "cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\new-unknown.png",
+      "file": "fixtures\\v4\\new-unknown.png",
+      "bytes": 4134,
+      "sha256": "9979ed50b2187f4cf45daa52b3a11b4e2cadfcd1c88434d447f812a3b31e6c4c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\sealed-duplicate.png",
+      "file": "fixtures\\v4\\sealed-duplicate.png",
+      "bytes": 12962853,
+      "sha256": "cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\target\\cache\\thumbs\\v1\\sdr\\1b\\1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139-512.webp",
+      "file": "fixtures\\v4\\target\\cache\\thumbs\\v1\\sdr\\1b\\1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139-512.webp",
+      "bytes": 324,
+      "sha256": "84d4bda1b65d6ea74c78b074384bf74d45d57369c2f4a9132aaea35958f85b1c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\target\\cache\\thumbs\\v1\\sdr\\99\\9979ed50b2187f4cf45daa52b3a11b4e2cadfcd1c88434d447f812a3b31e6c4c-512.webp",
+      "file": "fixtures\\v4\\target\\cache\\thumbs\\v1\\sdr\\99\\9979ed50b2187f4cf45daa52b3a11b4e2cadfcd1c88434d447f812a3b31e6c4c-512.webp",
+      "bytes": 334,
+      "sha256": "28f1767827c46cbf9b1c4ec71558ba18b4de6018a5791625c9546163dfb6b311"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\target\\library.sqlite",
+      "file": "fixtures\\v4\\target\\library.sqlite",
+      "bytes": 335872,
+      "sha256": "bf84507337efb1a92df6ac3885433265e121daf367e31f177eeeb5db1a28cdbe"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\target\\library.sqlite-shm",
+      "file": "fixtures\\v4\\target\\library.sqlite-shm",
+      "bytes": 32768,
+      "sha256": "8ca5c18c8566eefdfaa38f2e450fe80e235de935e4e49a167567e1b9b0f88d0b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\target\\library.sqlite-wal",
+      "file": "fixtures\\v4\\target\\library.sqlite-wal",
+      "bytes": 70072,
+      "sha256": "55914d4a7c9772219b80855febecf5d5698c9dcd19a764e155146ef1fcffe318"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\target\\originals\\1b\\1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139.png",
+      "file": "fixtures\\v4\\target\\originals\\1b\\1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139.png",
+      "bytes": 3217,
+      "sha256": "1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\target\\originals\\99\\9979ed50b2187f4cf45daa52b3a11b4e2cadfcd1c88434d447f812a3b31e6c4c.png",
+      "file": "fixtures\\v4\\target\\originals\\99\\9979ed50b2187f4cf45daa52b3a11b4e2cadfcd1c88434d447f812a3b31e6c4c.png",
+      "bytes": 4134,
+      "sha256": "9979ed50b2187f4cf45daa52b3a11b4e2cadfcd1c88434d447f812a3b31e6c4c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\target\\originals\\cb\\cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png",
+      "file": "fixtures\\v4\\target\\originals\\cb\\cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png",
+      "bytes": 12962853,
+      "sha256": "cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\unknown-visible.png",
+      "file": "fixtures\\v4\\unknown-visible.png",
+      "bytes": 3217,
+      "sha256": "1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4\\unrelated-sealed.png",
+      "file": "fixtures\\v4\\unrelated-sealed.png",
+      "bytes": 4491,
+      "sha256": "524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30"
+    }
+  ]
+}

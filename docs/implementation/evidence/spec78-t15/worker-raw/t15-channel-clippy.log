@@ -1,0 +1,62 @@
+    Checking kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
+error[E0283]: type annotations needed
+   --> src-tauri\src\library\import_preview.rs:130:25
+    |
+130 |                         Err(kinshoko_core::library::Error::LensChanged.into())
+    |                         ^^^                                            ---- type must be known at this point
+    |                         |
+    |                         cannot infer type of the type parameter `E` declared on the enum `Result`
+    |
+    = note: multiple `impl`s satisfying `_: std::convert::From<kinshoko_core::library::Error>` found in the `kinshoko_core` crate:
+            - impl std::convert::From<kinshoko_core::library::Error> for kinshoko_core::backup::BackupError;
+            - impl std::convert::From<kinshoko_core::library::Error> for kinshoko_core::tag_catalog::CatalogError;
+    = note: required for `kinshoko_core::library::Error` to implement `std::convert::Into<_>`
+help: consider specifying the generic arguments
+    |
+130 |                         Err::<(), E>(kinshoko_core::library::Error::LensChanged.into())
+    |                            +++++++++
+
+error[E0283]: type annotations needed
+   --> src-tauri\src\library\import_preview.rs:130:25
+    |
+130 |                         Err(kinshoko_core::library::Error::LensChanged.into())
+    |                         ^^^ cannot infer type of the type parameter `E` declared on the enum `Result`
+...
+144 |                     ensure_current()?;
+    |                                     - type must be known at this point
+    |
+    = note: multiple `impl`s satisfying `kinshoko_core::tag_catalog::CatalogError: std::convert::From<_>` found in the following crates: `core`, `kinshoko_core`:
+            - impl std::convert::From<kinshoko_core::library::Error> for kinshoko_core::tag_catalog::CatalogError;
+            - impl std::convert::From<rusqlite::error::Error> for kinshoko_core::tag_catalog::CatalogError;
+            - impl std::convert::From<serde_json::Error> for kinshoko_core::tag_catalog::CatalogError;
+            - impl std::convert::From<std::io::Error> for kinshoko_core::tag_catalog::CatalogError;
+            - impl<T> std::convert::From<T> for T;
+help: consider specifying the generic arguments
+    |
+130 |                         Err::<(), E>(kinshoko_core::library::Error::LensChanged.into())
+    |                            +++++++++
+
+error[E0283]: type annotations needed
+   --> src-tauri\src\library\import_preview.rs:130:25
+    |
+130 |                         Err(kinshoko_core::library::Error::LensChanged.into())
+    |                         ^^^ cannot infer type of the type parameter `E` declared on the enum `Result`
+...
+147 |                 ensure_current()?;
+    |                                 - type must be known at this point
+    |
+    = note: multiple `impl`s satisfying `kinshoko_core::tag_catalog::CatalogError: std::convert::From<_>` found in the following crates: `core`, `kinshoko_core`:
+            - impl std::convert::From<kinshoko_core::library::Error> for kinshoko_core::tag_catalog::CatalogError;
+            - impl std::convert::From<rusqlite::error::Error> for kinshoko_core::tag_catalog::CatalogError;
+            - impl std::convert::From<serde_json::Error> for kinshoko_core::tag_catalog::CatalogError;
+            - impl std::convert::From<std::io::Error> for kinshoko_core::tag_catalog::CatalogError;
+            - impl<T> std::convert::From<T> for T;
+help: consider specifying the generic arguments
+    |
+130 |                         Err::<(), E>(kinshoko_core::library::Error::LensChanged.into())
+    |                            +++++++++
+
+For more information about this error, try `rustc --explain E0283`.
+error: could not compile `kinshoko` (lib test) due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `kinshoko` (lib) due to 3 previous errors
