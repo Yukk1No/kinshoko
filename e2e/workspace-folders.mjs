@@ -155,6 +155,8 @@ try {
   let forest = await session.invoke("workspace_directories", { safeMode: true });
   assert(forest.providers.length === 2 && forest.providers.every(p => p.sidebar.folders.some(f => f.name === "人物" && f.children[0]?.name === "动作")), "same-named libraries retain independent complete directory trees");
   assert(await session.exec(`const a = ${rootElement(first.info.id)}.querySelector('.provider-path'); const b = ${rootElement(second.info.id)}.querySelector('.provider-path'); return a.title === arguments[0] && b.title === arguments[1] && a.textContent !== b.textContent && a.textContent.includes('a\\\\目录参考') && b.textContent.includes('b\\\\目录参考') && a.scrollWidth <= a.clientWidth && b.scrollWidth <= b.clientWidth;`, [first.info.root, second.info.root]), "same-named roots show distinct readable suffixes and retain complete paths");
+  const forestReady = () => session.exec("return document.querySelector('.wall')?.dataset.total === '4' && [...document.querySelectorAll('.workspace-provider')].filter(el => el.querySelectorAll('[data-folder-id]').length === 3).length === 2;");
+  await until("settled directory forest screenshot", async () => { if (!await forestReady()) return false; await delay(250); return forestReady(); });
   await session.screenshot("directory-forest.png");
   if (pathsOnly) {
     writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", validation: "supplemental native path presentation", source, tree, binarySha256, application, harnessSource, harnessSha256, environment, first, second, assertions, stories: [6] }, null, 2));
