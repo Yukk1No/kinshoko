@@ -1,7 +1,7 @@
 {
   "format": "kinshoko.builtin-translation-table",
   "format_version": 1,
-  "table_version": 1,
+  "table_version": 3,
   "vocabulary": {"name": "PixAI Tagger v1.0 (Mexes/pixai-tagger-v1.0-onnx-fp32-fp16-int8)", "url": "https://huggingface.co/Mexes/pixai-tagger-v1.0-onnx-fp32-fp16-int8/resolve/0800778563144a0e6fdf41ddadd84aae3cb0dbcf/selected_tags.csv", "sha256": "a9455cbf0a910d4a3890739f2f70bd986278f4594285ef1049121a03896e2a6d"},
   "languages": ["zh-CN"],
   "entries": [
@@ -1605,7 +1605,7 @@
     {"external": "long_eyelashes", "names": {"zh-CN": "长睫毛"}, "aliases": []},
     {"external": "long_fingernails", "names": {"zh-CN": "长指甲"}, "aliases": []},
     {"external": "long_hair", "names": {"zh-CN": "长发"}, "aliases": [{"name": "长头发", "lang": "zh-CN"}]},
-    {"external": "long_hair_between_eyes", "names": {"zh-CN": "长眼间发"}, "aliases": []},
+    {"external": "long_hair_between_eyes", "names": {"zh-CN": "两眼间长发"}, "aliases": [{"name": "长眼间发", "lang": "zh-CN"}]},
     {"external": "long_legs", "names": {"zh-CN": "长腿"}, "aliases": [{"name": "大长腿", "lang": "zh-CN"}]},
     {"external": "long_sideburns", "names": {"zh-CN": "长鬓角"}, "aliases": []},
     {"external": "long_sidelocks", "names": {"zh-CN": "长鬓发"}, "aliases": [{"name": "长侧发", "lang": "zh-CN"}]},
@@ -1954,7 +1954,7 @@
     {"external": "parent_and_child", "names": {"zh-CN": "亲子"}, "aliases": [{"name": "父母与孩子", "lang": "zh-CN"}]},
     {"external": "parody", "names": {"zh-CN": "恶搞"}, "aliases": [{"name": "戏仿", "lang": "zh-CN"}]},
     {"external": "parted_bangs", "names": {"zh-CN": "中分刘海"}, "aliases": [{"name": "分开的刘海", "lang": "zh-CN"}]},
-    {"external": "parted_hair", "names": {"zh-CN": "分发"}, "aliases": [{"name": "分开的头发", "lang": "zh-CN"}]},
+    {"external": "parted_hair", "names": {"zh-CN": "分缝发型"}, "aliases": [{"name": "分开的头发", "lang": "zh-CN"}, {"name": "分发", "lang": "zh-CN"}]},
     {"external": "parted_lips", "names": {"zh-CN": "微张的嘴唇"}, "aliases": [{"name": "嘴唇微张", "lang": "zh-CN"}]},
     {"external": "partially_colored", "names": {"zh-CN": "部分上色"}, "aliases": []},
     {"external": "partially_fingerless_gloves", "names": {"zh-CN": "半露指手套"}, "aliases": []},

@@ -1,0 +1,23 @@
+[
+  {
+    "source": "C:\\Users\\yuk1no\\Documents\\GitHub\\kinshoko\\.claude\\worktrees\\codex-comment-review-30-faa59d\\data\\builtin-translation-table.json",
+    "sha256": "C74A5F5B7688687B5A4F8F7D37FDFDAF7D4DBDC1C376FDD37B29A8A61B411DCC",
+    "copy": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\translation-input\\builtin-translation-table.json",
+    "currentSha256": "C74A5F5B7688687B5A4F8F7D37FDFDAF7D4DBDC1C376FDD37B29A8A61B411DCC",
+    "unchanged": true
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\Documents\\GitHub\\kinshoko\\.claude\\worktrees\\codex-comment-review-30-faa59d\\tools\\translation-table\\review.tsv",
+    "sha256": "CB27038E670AD23717747E988BCB4842D0EF8197F25A7E076313A77E8A8EE1F4",
+    "copy": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\translation-input\\review.tsv",
+    "currentSha256": "CB27038E670AD23717747E988BCB4842D0EF8197F25A7E076313A77E8A8EE1F4",
+    "unchanged": true
+  },
+  {
+    "source": "C:\\Users\\yuk1no\\Documents\\GitHub\\kinshoko\\.claude\\worktrees\\codex-comment-review-30-faa59d\\tools\\translation-table\\translations.tsv",
+    "sha256": "B89B905F88A167BA040FED5EF59C20EECDA5100D73D6FD1367E7D2F562A7EED0",
+    "copy": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\translation-input\\translations.tsv",
+    "currentSha256": "B89B905F88A167BA040FED5EF59C20EECDA5100D73D6FD1367E7D2F562A7EED0",
+    "unchanged": true
+  }
+]

@@ -1,5 +1,6 @@
+import { emit } from "@tauri-apps/api/event";
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { PersonalApproxEntry } from "./bindings/PersonalApproxEntry";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
@@ -284,3 +285,12 @@ describe("设置：更新", () => {
   });
 });
 
+it("refreshes personal approximate labels when shared display names change", async () => {
+  let current = "旧显示名称";
+  mockIPC((cmd) => cmd === "shell_settings" ? defaults : cmd.endsWith("personal_approx") ? [{ a: { id: "a", namespace: "general", name: current, untranslated: false, hasExternal: false }, b: { id: "b", namespace: "general", name: "另一个标签", untranslated: false, hasExternal: false }, relation: "similar" }] : undefined, { shouldMockEvents: true });
+  render(<SettingsPanel library={{ id: "library", name: "资料库", root: "library" }} />);
+  await screen.findByText(/旧显示名称/);
+  current = "新的共享名称";
+  await act(async () => { await emit("library-event", { kind: "vocabularyChanged", libraryId: "library", revision: 1 }); });
+  await screen.findByText(/新的共享名称/);
+});

@@ -3,7 +3,7 @@ import type { CatalogTag } from "../bindings/CatalogTag";
 import type { LibraryTagMapping } from "../bindings/LibraryTagMapping";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
 import type { TagNamespace } from "../bindings/TagNamespace";
-import { correctTagMapping, inspectTagCatalog, onSafeModeSetting } from "../ipc";
+import { correctTagMapping, inspectTagCatalog, onLibraryEvent, onSafeModeSetting } from "../ipc";
 
 const namespaces: Record<TagNamespace, string> = { general: "一般", artist: "作者", character: "角色", work: "作品" };
 const basis = { independent: "独立身份", external: "外部对应", conflictingExternal: "外部对应有歧义", corrected: "已纠正" };
@@ -16,28 +16,40 @@ export function TagIdentityPanel() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const generation = useRef(0);
+  const inspected = useRef(false);
+  const running = useRef(false);
+  const dirty = useRef(false);
   useEffect(() => {
     let alive = true;
     const unlisten = onSafeModeSetting(() => {
       if (!alive) return;
       generation.current++;
+      inspected.current = false; running.current = false; dirty.current = false;
       setWorkspace(null);
       setError(null);
       setBusy(false);
     });
+    const vocabulary = onLibraryEvent((event) => {
+      if (!alive || event.kind !== "vocabularyChanged" || !inspected.current) return;
+      if (running.current) dirty.current = true;
+      else void run(inspectTagCatalog);
+    });
     return () => {
       alive = false;
+      inspected.current = false; dirty.current = false;
       generation.current++;
       void unlisten.then((stop) => stop()).catch(() => {});
+      void vocabulary.then((stop) => stop()).catch(() => {});
     };
   }, []);
   const run = async (action: () => Promise<TagCatalogWorkspace>) => {
     const request = ++generation.current;
+    inspected.current = true; running.current = true;
     setBusy(true);
     setError(null);
     try { const next = await action(); if (request === generation.current) setWorkspace(next); }
     catch (reason) { if (request === generation.current) setError(String(reason)); }
-    finally { if (request === generation.current) setBusy(false); }
+    finally { if (request === generation.current) { setBusy(false); running.current = false; if (dirty.current) { dirty.current = false; void run(inspectTagCatalog); } } }
   };
   return <fieldset aria-label="统一标签目录">
     <legend>统一标签目录</legend>
@@ -63,7 +75,7 @@ function MappingRow({ mapping, workspace, busy, onSave }: { mapping: LibraryTagM
   const candidates = workspace.catalog.tags.filter((tag) => tag.namespace === mapping.legacy.namespace);
   return <tr data-library-id={mapping.libraryId} data-local-tag-id={mapping.localTagId}>
     <th scope="row"><span>{library?.name ?? mapping.libraryId} · </span><span>{localName(mapping)}</span><small> · {namespaces[mapping.legacy.namespace]}</small>
-      <details><summary>本地定义</summary><p>库内 ID：{mapping.localTagId}</p><p>别名：{mapping.legacy.aliases.map((a) => a.name).join("、") || "无"}</p><p>外部对应：{mapping.legacy.external.map((name) => `danbooru:${name}`).join("、") || "无"}</p><p>名称来源待处理：迁移选择前保留原显示。</p></details>
+      <details><summary>本地定义</summary><p>库内 ID：{mapping.localTagId}</p><p>别名：{mapping.legacy.aliases.map((a) => a.name).join("、") || "无"}</p><p>外部对应：{mapping.legacy.external.map((name) => `danbooru:${name}`).join("、") || "无"}</p><p>{mapping.nameProvenance === "pending" ? "名称来源待处理：迁移选择前保留原显示。" : "名称规则：使用统一目录的默认与显式偏好。"}</p></details>
     </th>
     <td><span>{shared ? nameOf(shared) : mapping.catalogId}</span><small> · {basis[mapping.basis]}</small><details><summary>统一定义</summary><p>统一 ID：{mapping.catalogId}</p><p>外部对应：{shared?.external.map((e) => `${e.vocabulary}:${e.name}`).join("、") || "无"}</p></details></td>
     <td><select aria-label={`纠正 ${library?.name ?? mapping.libraryId} 的 ${localName(mapping)} 对应`} value={target} disabled={busy} onChange={(event) => setTarget(event.target.value)}>

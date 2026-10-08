@@ -1,0 +1,24 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.13s
+     Running tests\tag_names.rs (target\debug\deps\tag_names-8e9d62deaabcb8a5.exe)
+
+running 1 test
+test legacy_names_remain_pending_until_an_explicit_global_preference_choice ... FAILED
+
+failures:
+
+---- legacy_names_remain_pending_until_an_explicit_global_preference_choice stdout ----
+
+thread 'legacy_names_remain_pending_until_an_explicit_global_preference_choice' (31064) panicked at crates\kinshoko-core\tests\tag_names.rs:112:5:
+assertion `left == right` failed
+  left: "分发"
+ right: "自然分缝"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    legacy_names_remain_pending_until_an_explicit_global_preference_choice
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.25s
+
+error: test failed, to rerun pass `-p kinshoko-core --test tag_names`
