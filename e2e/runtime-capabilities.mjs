@@ -173,7 +173,16 @@ try {
   const missingScriptId = await injectNextDocument("window.__T18_CONTROLLED_ABSENCE__='canvas2d unavailable in current Runtime';const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(kind){return kind==='2d'?null:original.apply(this,arguments)};");
   await until("actual missing canvas pin reason visible", () => exec("return document.querySelector('[role=alert]')?.textContent.includes('无法建立二维画布，钉图无法显示')"));
   const pinLabel = await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label");
-  report.missingCanvasPin = { label: pinLabel, visible: await invoke("plugin:window|is_visible", { label: pinLabel }), message: await exec("return document.querySelector('[role=alert]').textContent") };
+  report.missingCanvasPin = { label: pinLabel, visible: false, message: await exec("return document.querySelector('[role=alert]').textContent"), visibilityObservations: [] };
+  const visibilityStarted = Date.now();
+  // React can commit the error before the production pinReady IPC finishes showing the window.
+  // Observe its actual native result; never invoke ready/show from this harness to make it pass.
+  await until("production missing-canvas pin ready makes the native window visible", async () => {
+    const visible = await invoke("plugin:window|is_visible", { label: pinLabel });
+    report.missingCanvasPin.visibilityObservations.push({ elapsedMs: Date.now() - visibilityStarted, visible });
+    report.missingCanvasPin.visible = visible;
+    return visible && await exec("return document.querySelector('[role=alert]')?.textContent.includes('无法建立二维画布，钉图无法显示')");
+  }, 5000);
   check(report.missingCanvasPin.visible, "controlled required canvas absence shows native pin error instead of silent hiding");
   await screenshot("controlled-required-canvas-pin.png");
   await cdp("Page.removeScriptToEvaluateOnNewDocument", { identifier: missingScriptId });
