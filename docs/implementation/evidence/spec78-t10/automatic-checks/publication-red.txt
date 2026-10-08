@@ -1,0 +1,22 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.75s
+     Running tests\save_destination.rs (target\debug\deps\save_destination-83d37596c3e2fdd7.exe)
+
+running 1 test
+test publication_failure_stays_on_its_original_task_receipt_after_browsing_changes ... FAILED
+
+failures:
+
+---- publication_failure_stays_on_its_original_task_receipt_after_browsing_changes stdout ----
+
+thread 'publication_failure_stays_on_its_original_task_receipt_after_browsing_changes' (34904) panicked at crates\kinshoko-core\tests\save_destination.rs:189:5:
+保存内容后的定义发布也必须属于原任务
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    publication_failure_stays_on_its_original_task_receipt_after_browsing_changes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.10s
+
+error: test failed, to rerun pass `-p kinshoko-core --test save_destination`

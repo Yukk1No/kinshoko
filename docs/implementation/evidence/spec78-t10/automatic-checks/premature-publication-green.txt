@@ -1,0 +1,12 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+
+ Test Files  3 passed (3)
+      Tests  70 passed (70)
+   Start at  02:39:54
+   Duration  10.73s (tests 70%, environment 21%, import 4%, transform 4%)
+
+    Isolate  3 workers spawned · ~1.18s startup each (spawn + environment, per file)
+             at least ~591ms faster with isolate: false — reuses workers across files instead of one per file
+

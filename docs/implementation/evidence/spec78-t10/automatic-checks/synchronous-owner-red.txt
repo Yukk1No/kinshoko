@@ -1,0 +1,22 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.70s
+     Running tests\save_destination.rs (target\debug\deps\save_destination-83d37596c3e2fdd7.exe)
+
+running 1 test
+test a_synchronous_save_keeps_its_writer_and_unregister_revokes_its_bound_destination ... FAILED
+
+failures:
+
+---- a_synchronous_save_keeps_its_writer_and_unregister_revokes_its_bound_destination stdout ----
+
+thread 'a_synchronous_save_keeps_its_writer_and_unregister_revokes_its_bound_destination' (40596) panicked at crates\kinshoko-core\tests\save_destination.rs:210:5:
+同步保存持有的 writer 也必须跨 current 切换复用
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    a_synchronous_save_keeps_its_writer_and_unregister_revokes_its_bound_destination
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.13s
+
+error: test failed, to rerun pass `-p kinshoko-core --test save_destination`
