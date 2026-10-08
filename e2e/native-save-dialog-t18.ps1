@@ -10,7 +10,11 @@ $taskWorkspace = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $taskEvidenceRoot = [System.IO.Path]::GetFullPath((Join-Path $taskWorkspace 'work/e2e')) + [System.IO.Path]::DirectorySeparatorChar
 if (-not $taskDestination.StartsWith($taskEvidenceRoot, [System.StringComparison]::OrdinalIgnoreCase)) { throw 'Destination must be in this T18 evidence directory' }
 $taskManifest = Get-Content -LiteralPath (Join-Path $taskWorkspace 'work/t18/native-source.json') -Raw | ConvertFrom-Json
-if ($taskExe -ne $taskManifest.preservedBinary -or (Get-FileHash -LiteralPath $taskExe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskManifest.binarySha256) { throw 'Unmatched frozen executable' }
+$taskHashing = [System.Security.Cryptography.SHA256]::Create()
+$taskExeStream = [System.IO.File]::OpenRead($taskExe)
+try { $taskExeHash = [System.BitConverter]::ToString($taskHashing.ComputeHash($taskExeStream)).Replace('-', '').ToLowerInvariant() }
+finally { $taskExeStream.Dispose(); $taskHashing.Dispose() }
+if ($taskExe -ne $taskManifest.preservedBinary -or $taskExeHash -ne $taskManifest.binarySha256) { throw 'Unmatched frozen executable' }
 $taskProcesses = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $taskExe })
 if ($taskProcesses.Count -ne 1) { throw 'Exactly one owned T18 process is required' }
 $taskProcessId = [int]$taskProcesses[0].ProcessId
