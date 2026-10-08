@@ -113,41 +113,50 @@ pub(super) async fn read_import_preview<R: Runtime>(
             w.prepare_import_preview(d, c, &session_id, &item_id, true, target_px)
         })?;
         let resolved = request.resolve().map_err(|error| error.to_string())?;
-        with_visibility_commit(&app, |current_mode_generation| {
+        let content = with_visibility_commit(&app, |current_mode_generation| {
             if current_mode_generation != mode_generation {
                 return Err(kinshoko_core::library::Error::LensChanged.to_string());
             }
             workspace::current(&app, true, mode_generation)?;
             action(&app, |w, d, c| {
-                let content = w.complete_import_preview(d, c, resolved, true)?;
-                let ensure_current = || -> Result<(), CatalogError> {
-                    if app
+                w.complete_import_preview(d, c, resolved, true)
+            })
+        })?;
+        let mut offset = 0;
+        loop {
+            let is_end = offset == content.bytes().len();
+            offset = with_visibility_commit(&app, |current_mode_generation| {
+                if current_mode_generation != mode_generation
+                    || app
                         .state::<LibraryState>()
                         .import_preview_generation
                         .load(Ordering::SeqCst)
                         != generation
-                    {
-                        Err(kinshoko_core::library::Error::LensChanged.into())
-                    } else {
-                        Ok(())
-                    }
-                };
-                let send = |bytes| {
-                    on_chunk
-                        .send(tauri::ipc::Response::new(bytes))
-                        .map_err(|error| CatalogError::Io(std::io::Error::other(error.to_string())))
-                };
-                // Tauri 2.12.1 queues raw messages >=1024 bytes for a later generic fetch.
-                // Strictly smaller direct callbacks publish within this same permit instead.
-                // No content is stored in an unscoped fetch queue after receipt revocation.
-                for chunk in content.bytes.chunks(1023) {
-                    ensure_current()?;
-                    send(chunk.to_vec())?;
+                {
+                    return Err(kinshoko_core::library::Error::LensChanged.to_string());
                 }
-                ensure_current()?;
-                send(Vec::new()) // End marker; the ordinary command response contains no bytes.
-            })
-        })
+                workspace::current(&app, true, mode_generation)?;
+                let state = app.state::<LibraryState>();
+                with_libraries(&state.device_dir, &state.libraries, |device| {
+                    Ok(
+                        device.commit_import_preview_chunk(&content, offset, 1023, true, |chunk| {
+                            on_chunk
+                                .send(tauri::ipc::Response::new(chunk.to_vec()))
+                                .map_err(|error| {
+                                    CatalogError::Io(std::io::Error::other(error.to_string()))
+                                })
+                        }),
+                    )
+                })?
+                .map_err(|error| error.to_string())
+            })?;
+            if is_end {
+                return Ok(());
+            }
+            // The permit and all resource locks end after each bounded publication.
+            // Let a waiting close/context/mode command revoke before the next chunk.
+            std::thread::yield_now();
+        }
     })
     .await
 }

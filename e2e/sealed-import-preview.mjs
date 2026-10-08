@@ -4,6 +4,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, join } from "node:path";
+import { transferWasRevokedBeforeCompletion } from "../scripts/check-sealed-preview-revocation.mjs";
 const [, , appArg, edgeArg, driverArg] = process.argv;
 if (!appArg || !edgeArg) throw Error("Usage: node e2e/sealed-import-preview.mjs <frozen exe> <msedgedriver> [tauri-driver]");
 const application = resolve(appArg), work = resolve(process.env.KINSHOKO_E2E_RUN ?? `work/e2e/sealed-preview-${Date.now()}`);
@@ -21,24 +22,28 @@ const delay = ms => new Promise(done => setTimeout(done, ms));
 async function until(label, read, timeout = 30000) { let error; for (const end = Date.now() + timeout; Date.now() < end; await delay(150)) { try { const value = await read(); if (value) return value; } catch (reason) { error = reason; } } throw Error(`Timed out: ${label}${error ? ` (${error.message})` : ""}`); }
 async function wd(method, path, body) { const response = await fetch(url + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) }); const data = await response.json(); if (!response.ok || data.value?.error) throw Error(`${method} ${path}: ${JSON.stringify(data.value)}`); return data.value; }
 // Serialised into the real webview; this is the same public Channel protocol as src/ipc.ts.
-function receiptRead(args, onFirstChunk) {
+function receiptRead(args, onFirstChunk, actionReturnedAt) {
   return new Promise(resolve => {
     const ipc = window.__TAURI_INTERNALS__, startedAt = performance.now();
-    let length = 0, chunks = 0, maximumChunkBytes = 0, firstChunkAt = null, lastChunkAt = null, acknowledgedAt = null, done = false, acknowledged = false, settled = false;
-    const stats = () => ({ length, chunks, maximumChunkBytes, startedAt, firstChunkAt, lastChunkAt, acknowledgedAt, endedAt: performance.now(), elapsedMs: performance.now() - startedAt });
-    const finish = () => { if (done && acknowledged && !settled) { settled = true; resolve(stats()); } };
+    let length = 0, chunks = 0, maximumChunkBytes = 0, firstChunkAt = null, lastChunkAt = null, completionMarkerAt = null, channelEndedAt = null, acknowledgedAt = null, rejectedAt = null, chunksAfterActionResponse = 0, bytesAfterActionResponse = 0, acknowledged = false, failure = null, settled = false;
+    const stats = () => ({ length, chunks, maximumChunkBytes, startedAt, firstChunkAt, lastChunkAt, completionMarkerAt, channelEndedAt, acknowledgedAt, rejectedAt, chunksAfterActionResponse, bytesAfterActionResponse, endedAt: performance.now(), elapsedMs: performance.now() - startedAt });
+    const finish = () => {
+      if (settled || channelEndedAt === null) return;
+      if (failure !== null) { settled = true; resolve({ ...stats(), failure }); }
+      else if (completionMarkerAt !== null && acknowledged) { settled = true; resolve(stats()); }
+    };
     const callback = ipc.transformCallback(raw => {
-      if (raw.end) { ipc.unregisterCallback(callback); return; }
-      if (settled) return;
+      if (raw.end) { channelEndedAt = performance.now(); ipc.unregisterCallback(callback); finish(); return; }
       const count = raw.message.byteLength ?? raw.message.length;
-      if (count === 0) done = true;
+      if (count === 0) completionMarkerAt = performance.now();
       else {
         length += count; chunks++; maximumChunkBytes = Math.max(maximumChunkBytes, count); lastChunkAt = performance.now();
+        if (actionReturnedAt?.() != null) { chunksAfterActionResponse++; bytesAfterActionResponse += count; }
         if (firstChunkAt === null) { firstChunkAt = lastChunkAt; onFirstChunk?.(); }
       }
       finish();
     });
-    ipc.invoke('plugin:library|read_import_preview', { ...args, onChunk: '__CHANNEL__:' + callback }).then(() => { acknowledged = true; acknowledgedAt = performance.now(); finish(); }, error => { settled = true; resolve({ ...stats(), failure: String(error) }); });
+    ipc.invoke('plugin:library|read_import_preview', { ...args, onChunk: '__CHANNEL__:' + callback }).then(() => { acknowledged = true; acknowledgedAt = performance.now(); finish(); }, error => { rejectedAt = performance.now(); failure = String(error); finish(); });
   });
 }
 const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
@@ -53,7 +58,7 @@ class Session {
   close() { return wd("DELETE", this.base); }
   async bytes(sessionId, itemId, targetPx = 640) { const value = await wd("POST", `${this.base}/execute/async`, { script: `const done=arguments[arguments.length-1];(${receiptRead})(arguments[0]).then(done);`, args: [{ sessionId, itemId, targetPx }] }); result.transfers.push({ sessionId, itemId, targetPx, ...value }); return value; }
   async readRace(preview, action, afterFirstChunk = false, targetPx = 319) {
-    const value = await wd("POST", `${this.base}/execute/async`, { script: `const done=arguments[arguments.length-1],args=arguments[0],action=arguments[1],afterFirst=arguments[2],readPreview=${receiptRead};let ended=false,actionPromise,actionStartedAt,pendingAtAction;const act=()=>{if(actionPromise)return;pendingAtAction=!ended;actionStartedAt=performance.now();actionPromise=window.__TAURI_INTERNALS__.invoke(action.command,action.args).then(value=>({value,actionEndedAt:performance.now()}),error=>({failure:String(error),actionEndedAt:performance.now()}));};const read=readPreview(args,afterFirst?act:undefined).then(value=>{ended=true;return value;});if(!afterFirst)Promise.resolve().then(act);read.then(async value=>{if(!actionPromise)act();done({...value,pendingAtAction,actionStartedAt,...await actionPromise});});`, args: [{ sessionId: preview.id, itemId: preview.items[0], targetPx }, action, afterFirstChunk] });
+    const value = await wd("POST", `${this.base}/execute/async`, { script: `const done=arguments[arguments.length-1],args=arguments[0],action=arguments[1],afterFirst=arguments[2],readPreview=${receiptRead};let ended=false,actionPromise,actionStartedAt,pendingAtAction,actionReturnedAt=null;const act=()=>{if(actionPromise)return;pendingAtAction=!ended;actionStartedAt=performance.now();actionPromise=window.__TAURI_INTERNALS__.invoke(action.command,action.args).then(value=>{actionReturnedAt=performance.now();return {value,actionEndedAt:actionReturnedAt};},error=>{actionReturnedAt=performance.now();return {actionFailure:String(error),actionEndedAt:actionReturnedAt};});};const read=readPreview(args,afterFirst?act:undefined,()=>actionReturnedAt).then(value=>{ended=true;return value;});if(!afterFirst)Promise.resolve().then(act);read.then(async value=>{if(!actionPromise)act();done({...value,pendingAtAction,actionStartedAt,...await actionPromise});});`, args: [{ sessionId: preview.id, itemId: preview.items[0], targetPx }, action, afterFirstChunk] });
     result.races.push({ action, afterFirstChunk, targetPx, ...value, actionElapsedMs: value.actionEndedAt - value.actionStartedAt }); return value;
   }
 }
@@ -94,6 +99,16 @@ try {
   await session.click("//button[@aria-label='关闭重复项预览']");
   await until("UI re-veiled", () => session.exec("return !document.querySelector('dialog.sealed-import-preview');"));
   await safe("UI closed"); await session.screenshot("closed-reveiled.png");
+  const uiCloseStartedAt = Date.now();
+  await session.click("//button[normalize-space()='展开本次重复项']");
+  await until("real modal reading before close", () => session.exec("return Boolean(document.querySelector('dialog.sealed-import-preview'));"));
+  await session.click("//button[@aria-label='关闭重复项预览']");
+  await until("UI hides pending content", () => session.exec("return !document.querySelector('dialog.sealed-import-preview');"));
+  result.uiPendingClose = { elapsedMs: Date.now() - uiCloseStartedAt, hiddenAt: new Date().toISOString() };
+  await delay(3500);
+  assert(!await session.exec("return Boolean(document.querySelector('dialog.sealed-import-preview,dialog.sealed-import-preview img'));"), "closed real UI does not revive a completed image after pending decode or Channel completion");
+  result.uiPendingClose.noRevivalObservedAt = new Date().toISOString();
+  await session.screenshot("pending-ui-close-no-revival.png");
   const first = await explicit(receipt.taskId); assert(first.items.length === 1, "public preview capability derives exactly one actual receipt duplicate");
   assert((await session.bytes(first.id, first.items[0])).length > 0, "explicit receipt capability resolves real original content through the SDR path");
   assert(Boolean((await session.bytes(first.id, fixture.targetImage)).failure), "an arbitrary real UI image ID is not a preview capability item");
@@ -105,11 +120,11 @@ try {
   const large = await explicit(receipt.taskId), transfer = await session.bytes(large.id, large.items[0], 2400);
   assert(!transfer.failure && transfer.length === result.largeOriginal.bytes && transfer.chunks > 100 && transfer.maximumChunkBytes < 1024, "actual large original travels only in bounded direct receipt Channel chunks");
   const sendingClose = await session.readRace(large, { command: 'plugin:library|close_import_preview', args: { sessionId: large.id } }, true, 2400);
-  assert(!sendingClose.failure && sendingClose.lastChunkAt <= sendingClose.actionEndedAt, "large transfer commits before close returns, without a later content fetch");
+  assert(transferWasRevokedBeforeCompletion(sendingClose, result.largeOriginal.bytes), "first-chunk close interrupts remaining content and rejects incomplete image completion");
   assert(Boolean((await session.bytes(large.id, large.items[0])).failure), "large-transfer close remains effective after the actual send");
   const largeMode = await explicit(receipt.taskId);
   const sendingMode = await session.readRace(largeMode, { command: 'plugin:library|set_safe_mode', args: { on: true } }, true, 2400);
-  assert(!sendingMode.failure && sendingMode.lastChunkAt <= sendingMode.actionEndedAt, "large transfer commits before same-mode generation transition returns");
+  assert(transferWasRevokedBeforeCompletion(sendingMode, result.largeOriginal.bytes), "first-chunk same-mode transition interrupts remaining content and rejects incomplete image completion");
   assert(Boolean((await session.bytes(largeMode.id, largeMode.items[0])).failure), "same-mode transition revokes the large-transfer receipt session"); await safe("large transfer same-mode transition");
   const switched = await explicit(receipt.taskId), switchRace = await session.readRace(switched, { command: 'plugin:library|switch_library', args: { libraryId: fixture.adult.id } });
   assert(switchRace.pendingAtAction && Boolean(switchRace.failure) && switchRace.length === 0, "pending image read cannot publish after current-library context changes");

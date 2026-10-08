@@ -33,8 +33,22 @@ pub struct ResolvedImportPreview {
     content: ImportPreviewContent,
 }
 pub struct ImportPreviewContent {
-    pub bytes: Vec<u8>,
-    pub mime_type: String,
+    bytes: Vec<u8>,
+    mime_type: String,
+    guard: Option<ImportPreviewChunkGuard>,
+}
+impl ImportPreviewContent {
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+    pub fn mime_type(&self) -> &str {
+        &self.mime_type
+    }
+}
+struct ImportPreviewChunkGuard {
+    authorization: Arc<ImportPreviewAuthorization>,
+    library: Arc<crate::Library>,
+    revision: (i64, i64),
 }
 impl PreparedImportPreview {
     pub fn resolve(self) -> Result<ResolvedImportPreview, CatalogError> {
@@ -52,11 +66,53 @@ impl PreparedImportPreview {
         Ok(ResolvedImportPreview {
             authorization: self.authorization,
             entry: self.entry,
-            content: ImportPreviewContent { bytes, mime_type },
+            content: ImportPreviewContent {
+                bytes,
+                mime_type,
+                guard: None,
+            },
         })
     }
 }
 impl DeviceLibraries {
+    /// Publish one bounded part of a previously resolved receipt; callers serialize this
+    /// action with their visibility transitions. The callback is the actual side effect.
+    pub fn commit_import_preview_chunk(
+        &mut self,
+        content: &ImportPreviewContent,
+        offset: usize,
+        max_bytes: usize,
+        safe: bool,
+        send: impl FnOnce(&[u8]) -> Result<(), CatalogError>,
+    ) -> Result<usize, CatalogError> {
+        let guard = content.guard.as_ref().ok_or(Error::LensChanged)?;
+        if !safe {
+            self.close_import_preview(Some(&guard.authorization.id));
+        }
+        if !safe
+            || !guard.authorization.active.load(Ordering::SeqCst)
+            || !self
+                .import_preview
+                .as_ref()
+                .is_some_and(|current| Arc::ptr_eq(current, &guard.authorization))
+        {
+            return Err(Error::LensChanged.into());
+        }
+        // Use the retained read-only provider's cheap revision check. The real task owner
+        // already revokes this same authorization on dismissal or provider/context changes.
+        if guard.library.provider_revision()? != guard.revision {
+            self.close_import_preview(Some(&guard.authorization.id));
+            return Err(Error::SourceChanged.into());
+        }
+        if offset > content.bytes.len() {
+            return Err(Error::SourceChanged.into());
+        }
+        let end = offset
+            .saturating_add(max_bytes.max(1))
+            .min(content.bytes.len());
+        send(&content.bytes[offset..end])?;
+        Ok(end)
+    }
     /// Close this preview or revoke every preview when its UI context is lost.
     /// A late close for an older session cannot cancel newer explicit consent.
     pub fn close_import_preview(&mut self, session_id: Option<&str>) -> bool {
@@ -278,7 +334,13 @@ impl Workspace {
         }) {
             return Err(Error::SourceChanged.into());
         }
-        Ok(resolved.content)
+        let mut content = resolved.content;
+        content.guard = Some(ImportPreviewChunkGuard {
+            authorization: resolved.authorization,
+            library,
+            revision: (current.list_revision, current.vocabulary_revision),
+        });
+        Ok(content)
     }
     pub fn import_receipts(
         &mut self,

@@ -299,7 +299,7 @@ fn close_and_next_receipt_generation_reject_late_bytes_foreign_ids_and_historica
         .workspace
         .complete_import_preview(&mut f.device, &mut f.catalog, read, true)
         .unwrap();
-    assert_eq!(bytes.bytes, std::fs::read(&f.same).unwrap());
+    assert_eq!(bytes.bytes(), std::fs::read(&f.same).unwrap());
     let late = f.resolve(&first);
     f.device.close_import_preview(Some(&first.id));
     assert!(
@@ -787,4 +787,120 @@ fn completed_progress_minus_failures_cannot_reveal_the_sealed_success_count() {
         (0, 0),
         "completed progress minus the public failure must not reveal one sealed success"
     );
+}
+
+#[test]
+fn closing_after_the_first_published_chunk_stops_remaining_content() {
+    let mut f = Fixture::new();
+    let session = f.open();
+    let resolved = f.resolve(&session);
+    let content = f
+        .workspace
+        .complete_import_preview(&mut f.device, &mut f.catalog, resolved, true)
+        .unwrap();
+    let mut published = Vec::new();
+    let offset = f
+        .device
+        .commit_import_preview_chunk(&content, 0, 1, true, |bytes| {
+            published.extend_from_slice(bytes);
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(
+        published,
+        [137],
+        "the actual PNG's first byte is published while consent is current"
+    );
+    f.device.close_import_preview(Some(&session.id));
+    let next = f
+        .device
+        .commit_import_preview_chunk(&content, offset, 1023, true, |bytes| {
+            published.extend_from_slice(bytes);
+            Ok(())
+        });
+    assert!(
+        next.is_err(),
+        "close must reject the remaining real original bytes before they are published"
+    );
+    assert_eq!(
+        published,
+        [137],
+        "no late remainder or completion marker may follow close"
+    );
+}
+
+#[test]
+fn streamed_content_is_revoked_by_new_consent_library_mode_and_source_changes() {
+    for boundary in [
+        "new consent",
+        "library switch",
+        "mode generation",
+        "source edit",
+    ] {
+        let mut f = Fixture::new();
+        let session = f.open();
+        let resolved = f.resolve(&session);
+        let content = f
+            .workspace
+            .complete_import_preview(&mut f.device, &mut f.catalog, resolved, true)
+            .unwrap();
+        let mut published = Vec::new();
+        let offset = f
+            .device
+            .commit_import_preview_chunk(&content, 0, 1, true, |bytes| {
+                published.extend_from_slice(bytes);
+                Ok(())
+            })
+            .unwrap();
+        match boundary {
+            "new consent" => {
+                f.open();
+            }
+            "library switch" => {
+                f.device
+                    .switch(&f.adult.as_ref().unwrap().info().id)
+                    .unwrap();
+            }
+            "mode generation" => {
+                assert!(
+                    f.device
+                        .commit_import_preview_chunk(&content, offset, 1, false, |_| Ok(()))
+                        .is_err()
+                );
+            }
+            "source edit" => {
+                f.target
+                    .edit(std::slice::from_ref(&f.target_image), &[ImageEdit::Delete])
+                    .unwrap();
+            }
+            _ => unreachable!(),
+        }
+        assert!(
+            f.device
+                .commit_import_preview_chunk(&content, offset, 1023, true, |bytes| {
+                    published.extend_from_slice(bytes);
+                    Ok(())
+                })
+                .is_err(),
+            "{boundary} must stop a partial stream"
+        );
+        assert!(
+            f.device
+                .commit_import_preview_chunk(&content, content.bytes().len(), 1023, true, |_| {
+                    published.push(0);
+                    Ok(())
+                })
+                .is_err(),
+            "{boundary} must also reject a late completion marker"
+        );
+        assert_eq!(
+            published,
+            [137],
+            "{boundary} must not publish a remainder or complete image"
+        );
+        assert!(
+            f.target.safe_mode(),
+            "scoped preview must not turn off the provider mode"
+        );
+    }
 }
