@@ -83,6 +83,18 @@ async function invoke(command, args = {}) {
 async function find(xpath) { return (await wd("POST", base + "/element", { using: "xpath", value: xpath }))[elementKey]; }
 async function click(xpath) { return wd("POST", base + "/element/" + await find(xpath) + "/click", {}); }
 const button = (name) => `//button[normalize-space()='${name}']`;
+async function closeCurrentPin() {
+  const label = await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label");
+  const handle = await wd("GET", base + "/window");
+  if (!label.startsWith("pin-") || handle === mainHandle) throw Error("Only the current owned production pin can be closed");
+  // Destruction can remove this WebView before its async callback reaches WebDriver.
+  // Accept a null response only for this operation, paired with actual handle removal.
+  const response = await wd("POST", base + "/execute/async", { script: "const done=arguments[arguments.length-1];window.__TAURI_INTERNALS__.invoke('plugin:desktop|close_pin',{pin:arguments[0]}).then(value=>done({value}),error=>done({failure:String(error)}));", args: [label.slice(4)] });
+  (report.pinCloseObservations ??= []).push({ label, handle, response });
+  if (response?.failure) throw Error("close_pin: " + response.failure);
+  await until("closed production pin handle removed", async () => !(await wd("GET", base + "/window/handles")).includes(handle));
+  await wd("POST", base + "/window", { handle: mainHandle });
+}
 const screenshot = async (name) => writeFileSync(join(work, name), Buffer.from(await wd("GET", base + "/screenshot"), "base64"));
 function check(ok, label) { if (!ok) throw Error(label); report.checks.push(label); console.log("PASS " + label); }
 async function pinCanvasSource() {
@@ -166,8 +178,7 @@ try {
   await until("fallback pin appearance feedback complete", () => exec("const feedback=document.querySelector('.pin-appear');return feedback&&getComputedStyle(feedback).opacity==='0'"));
   await screenshot("controlled-float16-fallback-pin.png"); pinScreenshotSamples("controlled-float16-fallback-pin.png"); check(true, "controlled float16/createImageBitmap absence uses 8-bit pin without blocking display");
   await cdp("Page.removeScriptToEvaluateOnNewDocument", { identifier: fallbackScriptId });
-  await invoke("plugin:desktop|close_pin", { pin: (await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label")).slice(4) });
-  await wd("POST", base + "/window", { handle: mainHandle });
+  await closeCurrentPin();
   initialPinProof = await initialHiddenPin({ application, profile, work, openPin: () => click(button("钉住整图")) });
   report.pinHiddenBeforeMissingCheck = initialPinProof.receipt.beforeResume;
   check(!report.pinHiddenBeforeMissingCheck.visible, "controlled missing canvas starts from a new production pin with actual native initial visibility false");
@@ -176,7 +187,8 @@ try {
   await until("initial controlled pin script applied", () => exec("return window.__T18_CONTROLLED_ABSENCE__==='canvas2d unavailable in current Runtime'"));
   await until("actual missing canvas pin reason visible", () => exec("return document.querySelector('[role=alert]')?.textContent.includes('无法建立二维画布，钉图无法显示')"));
   const pinLabel = await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label");
-  report.missingCanvasPin = { label: pinLabel, visible: false, message: await exec("return document.querySelector('[role=alert]').textContent"), visibilityObservations: [] };
+  report.missingCanvasPin = { label: pinLabel, visible: false, message: await exec("return document.querySelector('[role=alert]').textContent"), productionCanvasPresent: await exec("return Boolean(document.querySelector('.pin-canvas'))"), visibilityObservations: [] };
+  if (report.missingCanvasPin.productionCanvasPresent) throw Error("Controlled initial canvas-absence precondition failed: production canvas already exists");
   const visibilityStarted = Date.now();
   // React can commit the error before the production pinReady IPC finishes showing the window.
   // Observe its actual native result; never invoke ready/show from this harness to make it pass.
@@ -192,8 +204,7 @@ try {
   check(report.missingCanvasPin.visible, "controlled required canvas absence shows native pin error instead of silent hiding");
   await screenshot("controlled-required-canvas-pin.png");
   await initialPinProof.close();
-  await invoke("plugin:desktop|close_pin", { pin: pinLabel.slice(4) });
-  await wd("POST", base + "/window", { handle: mainHandle });
+  await closeCurrentPin();
   await click(button("返回图片墙")); await click(setting);
   await exec(mainFaultScript);
   await click(`${details}//button[normalize-space()='重新检查运行时']`);
