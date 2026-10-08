@@ -48,6 +48,7 @@
   },
   "plugins": {
     "updater": {
+      "releaseStage": "private",
       "pubkey": "",
       "endpoints": [
         "https://github.com/Yukk1No/kinshoko/releases/latest/download/latest.json"

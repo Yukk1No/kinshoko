@@ -1,0 +1,8 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.21s
+     Running tests\update_policy.rs (target\debug\deps\update_policy-50efd11641d63e31.exe)
+
+running 1 test
+test private_builds_explain_manual_updates_even_when_signing_is_configured ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

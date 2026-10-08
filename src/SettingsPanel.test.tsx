@@ -261,10 +261,10 @@ describe("设置：诊断", () => {
 
 describe("设置：更新", () => {
   it("没有配置更新公钥的构建说明不检查更新", async () => {
-    backend((cmd) => (cmd === "update_status" ? { state: "disabled" } : undefined));
+    backend((cmd) => (cmd === "update_status" ? { state: "disabled", message: "未配置更新公钥，自动更新未启用。请使用新版安装包手动更新。" } : undefined));
     render(<SettingsPanel />);
 
-    expect(await screen.findByText("此构建未启用自动更新。")).toBeTruthy();
+    expect(await screen.findByText(/未配置更新公钥/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "检查更新" })).toBeNull();
   });
 
