@@ -94,3 +94,43 @@ it("offers an explicit provider publication retry without discarding the saved a
   await screen.findByText("标签定义已保存到资料库。");
   expect(screen.queryByRole("alert")).toBeNull();
 });
+
+it("keeps a correction publication failure through queued and later vocabulary refreshes until an explicit retry", async () => {
+  const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "白" }], aliases: [], external: [], count: 1 };
+  const workspace: TagCatalogWorkspace = { libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }], catalog: { revision: 2, tags: [{ ...local, id: "old", defaultNames: local.names, namePreferences: [] }, { ...local, id: "split", names: [{ lang: "zh-CN", name: "独立的白" }], defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "b", localTagId: "local", catalogId: "old", legacy: local, basis: "independent", nameProvenance: "catalog" }] } };
+  const corrected: TagCatalogWorkspace = { ...workspace, catalog: { ...workspace.catalog, revision: 3, mappings: [{ ...workspace.catalog.mappings[0], catalogId: "split", basis: "corrected" }] } };
+  const failure = "标签对应已保存在程序中，但资料库定义尚未更新：磁盘已满。请在统一标签目录中重试保存标签定义。";
+  let rejectCorrection: (reason: string) => void = () => { throw Error("correction did not start"); };
+  const pending = new Promise<TagCatalogWorkspace>((_, reject) => { rejectCorrection = reject; });
+  let inspections = 0;
+  mockIPC((cmd) => {
+    if (cmd.endsWith("inspect_tag_catalog")) {
+      if (++inspections === 4) throw new Error("自动读取暂时失败");
+      return inspections === 1 ? workspace : corrected;
+    }
+    if (cmd.endsWith("correct_tag_mapping")) return pending;
+    if (cmd.endsWith("publish_tag_definitions")) return corrected;
+  }, { shouldMockEvents: true });
+  render(<TagIdentityPanel />);
+  fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
+  const row = await screen.findByRole("row", { name: /画稿库.*白/ });
+  fireEvent.change(within(row).getByRole("combobox"), { target: { value: "split" } });
+  fireEvent.click(within(row).getByRole("button", { name: "保存对应" }));
+  await act(async () => {
+    await emit("library-event", { kind: "vocabularyChanged", libraryId: "b", revision: 3 });
+    rejectCorrection(failure);
+    await pending.catch(() => {});
+  });
+  await waitFor(() => expect(inspections).toBe(2));
+  await screen.findByRole("row", { name: /画稿库.*白.*已纠正/ });
+  expect(screen.getByRole("alert").textContent).toContain(failure);
+  await act(async () => { await emit("library-event", { kind: "vocabularyChanged", libraryId: "b", revision: 4 }); });
+  await waitFor(() => expect(inspections).toBe(3));
+  expect(screen.getByRole("alert").textContent).toContain(failure);
+  await act(async () => { await emit("library-event", { kind: "vocabularyChanged", libraryId: "b", revision: 5 }); });
+  await waitFor(() => expect(inspections).toBe(4));
+  expect(screen.getByRole("alert").textContent).toContain(failure);
+  fireEvent.click(screen.getByRole("button", { name: "保存 画稿库 的标签定义" }));
+  await screen.findByText("标签定义已保存到资料库。");
+  expect(screen.queryByRole("alert")).toBeNull();
+});
