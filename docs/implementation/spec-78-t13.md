@@ -39,7 +39,7 @@
 | 同一固定产品 | fmt、strict clippy `--workspace --all-targets -- -D warnings`、TypeScript 成功 | `work/t13/after-8fc-{fmt,clippy,types}.txt` |
 | 同一固定产品 | 前端 34 文件、269 项成功 | `work/t13/after-8fc-ui.txt` |
 
-全 Rust 计数按每个 Cargo target 的最后一条汇总计算，排除嵌入的子进程汇总。`work/t13/checks.json` 保存计数来源。未将合并前全 workspace 的结果称为合并后全量结果。
+早期全 workspace 的 `source=null`。没有冻结源码清单，不能归给 b3 或 5a。全 Rust 计数按每个 Cargo target 的最后一条汇总计算，排除嵌入的子进程汇总。`work/t13/checks.json` 保存计数来源。未将合并前全 workspace 的结果称为合并后全量结果。
 
 ## 正式原生验证
 
@@ -87,4 +87,19 @@ EXE SHA-256：`2c9e5a69eee742519ba08ec194662614f2da5b29cb5b68cad12149b14b2102df`
 
 Windows 10 未验证；负责人明确保留此状态。debug 验证按既有实现不写系统自启登记；本单验证自启配置往返，未验证 release 的系统自启登记。没有新增 unsafe。截图像素链路与最终组合显示验收由对应独立工单继续处理。
 
-根任务确认 T12 稳定 tip 后再合入。本单固定原生结果只归属于上述 5a 产品及实际 harness 来源。最终集成的受影响检查另列，不把旧 EXE 的结果冒充为新源码完整原生结果。
+## 最终合入验证
+
+根任务独立复核 T12 后给出稳定提交 `545bd5891f7aebece2fbfe806445d8323fbbe688`。T13 无冲突合入。T12 的 staged definitions、批次回退与独立内容 journal 保留。T13 程序设置恢复仍在 library 插件早期执行，先于模型与壳设置读取。
+
+本次固定检查来源为 `a8edbfbe5c65b9435f85721cb35ef49ac2de1fdc`，tree 为 `b7d4ac8978d010620444e13ca71dac5b61e44c7f`。检查前后均 clean。522 个编译、前端及 e2e 受检文件哈希一致。原始清单为 `work/t13/final-integration-{before,after}.json`。
+
+| 本次检查 | 结果 | 原始记录 |
+| --- | --- | --- |
+| 11 个受影响公开核心 target | 83 个父测试成功、5 个 ignored 子进程入口；父测试实际执行故障子进程 | `work/t13/final-integration-core.txt`、`final-integration-core-result.json` |
+| 正式设置、模型、资料库备份、标签身份、查看器前端 | 5 文件、45 项成功 | `work/t13/final-integration-ui.txt` |
+| TypeScript、fmt、提交 diff 检查 | 成功 | `work/t13/final-integration-{types,fmt,diff}.txt` |
+| Tauri 装配 strict clippy，`-p kinshoko --all-targets -- -D warnings` | 成功 | `work/t13/final-integration-shell-clippy.txt` |
+
+公开核心 target 为 app_settings、application_settings_backup、backup_content_definitions、backup_crash、backup_restore、catalog_approx、catalog_groups、catalog_visibility、portable_tags、tag_catalog、tag_names。计数取各 target 最后一条汇总，不重复计入其子进程。T13 的 6 个实际 crash/error 子场景随父测试再次执行。
+
+没有在此次合入后重复原生启动。固定原生结果只归属于上述 5a 产品及实际 harness 来源。此次定向结果不称为最终源码的全 workspace 或完整原生结果。独立合并复核与工单状态由根任务负责。
