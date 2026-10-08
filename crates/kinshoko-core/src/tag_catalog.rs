@@ -2,9 +2,14 @@
 //!
 //! Local IDs and image decisions remain in each Library. Only an explicit external identity
 //! in the same namespace joins identities automatically; names and aliases never do.
+mod approx;
 mod groups;
 mod migration;
 mod names;
+pub use approx::{
+    CatalogApproxConflict, CatalogApproxDecision, CatalogApproxEdit, CatalogApproxEntry,
+    CatalogApproxMigration, CatalogApproxOrigin, CatalogApproxSource, CatalogApproxView,
+};
 pub use groups::{
     CatalogGroupDefinition, CatalogGroupEdit, CatalogGroupMigration, CatalogGroupOrigin,
     CatalogGroupSource, CatalogGroupView,
@@ -42,6 +47,7 @@ pub enum CatalogError {
     UnsupportedFormat,
     InvalidName,
     StaleNameMigration,
+    StaleApproxConflict,
     IncompleteNameMigration,
 }
 impl fmt::Display for CatalogError {
@@ -57,6 +63,9 @@ impl fmt::Display for CatalogError {
             Self::UnknownMapping => write!(f, "资料库中没有这个标签对应"),
             Self::NamespaceMismatch => write!(f, "命名空间不同的标签不能对应同一身份"),
             Self::InvalidName => write!(f, "名称与语言不能为空"),
+            Self::StaleApproxConflict => {
+                write!(f, "个人近似规则或来源已变化，请重新查看冲突后选择")
+            }
             Self::StaleNameMigration => write!(f, "名称或标签对应已变化，请重新打开迁移向导"),
             Self::IncompleteNameMigration => write!(f, "请为本批次的每个名称选择归属后再确认"),
             Self::UnsupportedFormat => write!(f, "统一标签目录由更新版本创建，请更新 Kinshoko"),
@@ -253,7 +262,7 @@ impl TagCatalog {
         let conn = Connection::open(dir.join("tag-catalog.sqlite"))?;
         conn.busy_timeout(std::time::Duration::from_secs(5))?;
         let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
-        if version > 4 {
+        if version > 5 {
             return Err(CatalogError::UnsupportedFormat);
         }
         conn.execute_batch(
@@ -275,6 +284,7 @@ impl TagCatalog {
         names::initialize(&conn, version)?;
         migration::initialize(&conn)?;
         groups::initialize(&conn)?;
+        approx::initialize(&conn)?;
         Ok(Self {
             dir: dir.to_owned(),
             conn,
@@ -384,6 +394,7 @@ impl TagCatalog {
             changed = true;
         }
         changed |= groups::migrate(&tx, library)?;
+        changed |= approx::migrate(&tx, library, &vocabulary.personal_approx)?;
         if changed {
             tx.execute("UPDATE catalog_revision SET value=value+1", [])?;
         }

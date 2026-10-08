@@ -915,3 +915,12 @@ export function createSharedTagGroup(name: string, namespace: TagNamespace | nul
 export function editSharedTagGroup(edit: CatalogGroupEdit, safeMode: boolean): Promise<void> {
   return invoke<void>(lib("edit_shared_tag_group"), { edit, safeMode });
 }
+
+
+/** Application-wide personal judgments; labels obey every known provider's safe-mode veto. */
+export function sharedPersonalApprox(lang: string, safeMode: boolean) {
+  return invoke<import("./bindings/CatalogApproxView").CatalogApproxView>(lib("shared_personal_approx"), { lang, safeMode });
+}
+export function editSharedApprox(edit: import("./bindings/CatalogApproxEdit").CatalogApproxEdit, safeMode: boolean) {
+  return invoke<void>(lib("edit_shared_approx"), { edit, safeMode });
+}
