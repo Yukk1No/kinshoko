@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::Screenshot;
+use super::{PinContent, SavedPin, Screenshot};
 use crate::Library;
 use crate::library::{ImportOutcome, ImportSource};
 
@@ -49,6 +49,15 @@ struct Stored {
 pub struct CollectedCapture {
     pub library_id: String,
     pub image_id: String,
+}
+
+/// 保存参考组时对一张截图的决定。空资料库表示明确不把它加入参考组。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CaptureChoice {
+    pub capture_id: String,
+    pub library_id: Option<String>,
 }
 
 /// 截图历史保留的张数（#7：5～10 张）。超出的旧截图在没被钉住时丢弃。
@@ -189,6 +198,14 @@ impl CaptureHistory {
             .collect()
     }
 
+    /// 已删除但仍被钉住的截图也可用，保存参考组时不能无声漏掉。
+    pub fn entry(&self, id: &str) -> Option<CaptureEntry> {
+        self.entries
+            .iter()
+            .find(|e| e.id == id)
+            .map(|e| self.view(e))
+    }
+
     /// 从历史中删除一张截图。还有钉图在显示它时，文件留到钉图关闭。
     pub fn delete(&mut self, id: &str) -> Result<(), HistoryError> {
         let stored = self
@@ -236,6 +253,28 @@ impl CaptureHistory {
             self.save()?;
         }
         Ok(collected)
+    }
+
+    /// 收藏截图钉图并连接成为的参考图。裁切、摆放、透明度与锁定保持原样。
+    /// 返回值可直接交给 ReferenceGroups；普通参考图钉图原样返回。
+    pub fn collect_pin(
+        &mut self,
+        pin: &SavedPin,
+        library: &Library,
+    ) -> Result<SavedPin, HistoryError> {
+        let PinContent::Capture { capture_id } = &pin.content else {
+            return Ok(pin.clone());
+        };
+        let entry = self.entry(capture_id).ok_or(HistoryError::Unknown)?;
+        let collected = self.collect(capture_id, library)?;
+        let mut reference = pin.clone();
+        reference.content = PinContent::Reference {
+            library_id: collected.library_id,
+            image_id: collected.image_id,
+            source_width: entry.width,
+            source_height: entry.height,
+        };
+        Ok(reference)
     }
 
     /// 一个钉图开始显示这张截图。

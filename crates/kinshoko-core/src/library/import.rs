@@ -165,6 +165,7 @@ fn collect(inner: &Inner, path: &Path, files: &mut Vec<PathBuf>, report: &mut Im
     if eagle::is_library(path) {
         match eagle::collect(inner, path) {
             Ok(collected) => {
+                report.from_eagle = true;
                 files.extend(collected.items);
                 report.eagle_missing += collected.missing;
             }
@@ -179,6 +180,7 @@ fn collect(inner: &Inner, path: &Path, files: &mut Vec<PathBuf>, report: &mut Im
         return;
     }
     if eagle::is_item(path) {
+        report.from_eagle = true;
         files.push(path.to_path_buf());
         return;
     }

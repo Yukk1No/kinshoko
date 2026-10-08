@@ -11,7 +11,7 @@ afterEach(async () => {
   clearMocks();
 });
 
-const report: ImportReport = { items: [], cancelled: false, eagleMissing: 0, eagleRelocations: [] };
+const report: ImportReport = { items: [], cancelled: false, fromEagle: false, eagleMissing: 0, eagleRelocations: [] };
 
 function backend() {
   mockWindows("main");
@@ -42,6 +42,17 @@ function bar(props: { report: ImportReport | null }) {
 }
 
 describe("导入栏：Eagle 迁入后的标签外部对应", () => {
+  it("通用入口被后端识别为 Eagle 时，也进入标签对应步骤且只打开一次", async () => {
+    backend();
+    const { rerender } = render(bar({ report: null }));
+    const detected = { ...report, fromEagle: true };
+    rerender(bar({ report: detected }));
+    expect(await screen.findByRole("region", { name: "标签的外部对应" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    rerender(bar({ report: { ...detected } }));
+    expect(screen.queryByRole("region", { name: "标签的外部对应" })).toBeNull();
+  });
+
   it("从 Eagle 迁入完成后进入“标签的外部对应”一步", async () => {
     backend();
     const { rerender } = render(bar({ report: null }));

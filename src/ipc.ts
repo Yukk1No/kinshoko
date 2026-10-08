@@ -691,13 +691,22 @@ export function referenceGroup(groupId: string): Promise<ReferenceGroupView> {
 }
 
 /** 把桌面上的资料库钉图存成新的参考组（截图钉图不进组）。 */
-export function saveReferenceGroup(name: string): Promise<ReferenceGroup> {
-  return invoke<ReferenceGroup>(desk("save_reference_group"), { name });
+export function saveReferenceGroup(name: string, captures: import("./bindings/CaptureChoice").CaptureChoice[] = []): Promise<ReferenceGroup> {
+  return invoke<ReferenceGroup>(desk("save_reference_group"), { name, captures });
 }
 
 /** 把桌面上的资料库钉图存进已有的参考组：来自它的更新原成员，其他的加为新成员。 */
-export function savePinsToGroup(groupId: string): Promise<ReferenceGroup> {
-  return invoke<ReferenceGroup>(desk("save_pins_to_group"), { groupId });
+export function savePinsToGroup(groupId: string, captures: import("./bindings/CaptureChoice").CaptureChoice[] = []): Promise<ReferenceGroup> {
+  return invoke<ReferenceGroup>(desk("save_pins_to_group"), { groupId, captures });
+}
+
+export function groupSaveCaptures(): Promise<CaptureEntry[]> {
+  return invoke<CaptureEntry[]>(desk("group_save_captures"));
+}
+
+/** 报告查看器已显示的参考图范围；全局 F1 据此保留来源与原图像素裁切。 */
+export function setCaptureReference(reference: import("./bindings/CaptureReference").CaptureReference | null): Promise<void> {
+  return invoke<void>(desk("set_capture_reference"), { reference });
 }
 
 /** 打开参考组：成员按保存的局部与摆放钉到桌面；返回新钉出的数量。 */

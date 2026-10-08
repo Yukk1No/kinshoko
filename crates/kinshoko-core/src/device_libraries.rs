@@ -82,7 +82,12 @@ impl DeviceLibraries {
     }
 
     pub fn registrations(&self) -> Vec<LibraryRegistration> {
-        self.libraries()
+        Self::inspect_registrations(self.libraries())
+    }
+
+    /// 检查登记表的副本。调用方先放开活动库状态锁，网络盘的 I/O 不阻塞正常库操作。
+    pub fn inspect_registrations(libraries: &[RegisteredLibrary]) -> Vec<LibraryRegistration> {
+        libraries
             .iter()
             .map(|library| LibraryRegistration {
                 library: library.clone(),

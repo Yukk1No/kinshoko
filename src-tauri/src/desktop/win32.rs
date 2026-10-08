@@ -9,13 +9,52 @@
 use std::path::PathBuf;
 use std::ptr;
 
-use windows_sys::Win32::Foundation::{HWND, POINT};
+use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
 use windows_sys::Win32::Graphics::Gdi::{CreateDCW, DeleteDC};
 use windows_sys::Win32::UI::ColorSystem::GetICMProfileW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetCursorPos, GetForegroundWindow, GetWindowThreadProcessId, IsWindow, SWP_NOACTIVATE,
+    GW_HWNDNEXT, GetCursorPos, GetForegroundWindow, GetTopWindow, GetWindow, GetWindowRect,
+    GetWindowThreadProcessId, IsIconic, IsWindow, IsWindowVisible, SWP_NOACTIVATE,
     SWP_NOOWNERZORDER, SWP_NOZORDER, SetForegroundWindow, SetWindowPos,
 };
+
+/// 冻结截图时位于目标上方的窗口矩形。透明或异形窗口也保守地算遮挡，避免误连来源。
+/// 目标消失或 Z 序遍历不稳定时返回 None，调用方按普通截图处理。
+pub fn covering_windows(target: isize) -> Option<Vec<kinshoko_core::desktop::ScreenRect>> {
+    let mut covered = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    // SAFETY：空句柄表示桌面顶层窗口；只查询系统管理的借用句柄。
+    let mut window = unsafe { GetTopWindow(ptr::null_mut()) };
+    while !window.is_null() && seen.len() < 10_000 && seen.insert(window as isize) {
+        if window as isize == target {
+            return Some(covered);
+        }
+        // SAFETY：系统返回的借用句柄；窗口销毁时这些查询返回失败。
+        if unsafe { IsWindowVisible(window) != 0 && IsIconic(window) == 0 } {
+            let mut rect: RECT = RECT {
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+            };
+            // SAFETY：rect 是本函数持有的有效输出缓冲区。
+            if unsafe { GetWindowRect(window, &mut rect) } == 0 {
+                return None;
+            }
+            if rect.right > rect.left && rect.bottom > rect.top {
+                covered.push(kinshoko_core::desktop::ScreenRect {
+                    x: rect.left,
+                    y: rect.top,
+                    width: rect.right.abs_diff(rect.left),
+                    height: rect.bottom.abs_diff(rect.top),
+                });
+            }
+        }
+        // SAFETY：只查询下一借用句柄；seen 与数量上限保证窗口变化时也会终止。
+        window = unsafe { GetWindow(window, GW_HWNDNEXT) };
+    }
+    None
+}
 
 /// 距离画师最后一次键盘、鼠标或笔输入过了多少毫秒（自动备份的“空闲”，#69）。读不到时为 `None`。
 pub fn idle_ms() -> Option<u32> {

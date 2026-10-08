@@ -7,6 +7,7 @@ import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
 const ipc = vi.hoisted(() => ({
   groups: vi.fn(),
   group: vi.fn(),
+  captures: vi.fn(() => Promise.resolve<Array<{ id: string; width: number; height: number; collected: unknown[] }>>([])),
   save: vi.fn(() => Promise.resolve()),
   saveInto: vi.fn(() => Promise.resolve()),
   open: vi.fn(() => Promise.resolve(2)),
@@ -20,6 +21,8 @@ const ipc = vi.hoisted(() => ({
 vi.mock("../ipc", () => ({
   referenceGroups: ipc.groups,
   referenceGroup: ipc.group,
+  groupSaveCaptures: ipc.captures,
+  captureUrl: (id: string) => `capture://${id}`,
   saveReferenceGroup: ipc.save,
   savePinsToGroup: ipc.saveInto,
   openReferenceGroup: ipc.open,
@@ -113,6 +116,18 @@ describe("参考组面板", () => {
       fireEvent.click(screen.getByRole("button", { name: "把桌面钉图存为参考组" }));
     });
     expect(ipc.save).toHaveBeenCalledWith("手部");
+  });
+
+  it("保存前逐张选择截图的收藏资料库，再把选择交给保存入口", async () => {
+    ipc.captures.mockResolvedValueOnce([{ id: "shot-1", width: 100, height: 80, collected: [] }]);
+    await show();
+    fireEvent.change(screen.getByLabelText("新参考组名称"), { target: { value: "截图参考" } });
+    fireEvent.click(screen.getByRole("button", { name: "把桌面钉图存为参考组" }));
+    expect(await screen.findByRole("dialog", { name: "收藏截图并保存参考组" })).toBeTruthy();
+    expect(ipc.save).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("截图 1 的资料库"), { target: { value: "lib-a" } });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "确认并保存" })); });
+    expect(ipc.save).toHaveBeenCalledWith("截图参考", [{ captureId: "shot-1", libraryId: "lib-a" }]);
   });
 
   it("打开参考组把成员钉到桌面", async () => {

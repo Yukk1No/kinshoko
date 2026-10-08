@@ -408,6 +408,25 @@ pub fn registered<R: Runtime>(
     })
 }
 
+/// 收藏到画师明确选择的已登记资料库，不切换活动库。磁盘 I/O 在调用方的工作线程上。
+pub fn for_collection(app: &AppHandle, library_id: &str) -> Result<Arc<Library>, String> {
+    let state = app.state::<LibraryState>();
+    if let Ok(library) = state.current(library_id) {
+        return Ok(library);
+    }
+    let registration = registered(app)?
+        .into_iter()
+        .find(|r| r.id == library_id)
+        .ok_or("本设备没有登记这个资料库")?;
+    let library = Library::open(&registration.root).map_err(|e| e.to_string())?;
+    if library.info().id != registration.id {
+        return Err("资料库位置已是另一个资料库，请重新登记".into());
+    }
+    state.install_translations(&library);
+    library.set_safe_mode(saved_safe_mode(app));
+    Ok(Arc::new(library))
+}
+
 /// 把恢复出的资料库登记到本设备，不切换过去（#69）。
 pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> Result<(), String> {
     let state = app.state::<LibraryState>();
@@ -471,9 +490,10 @@ async fn registered_libraries(
 ) -> Result<Vec<LibraryRegistration>, String> {
     let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
     blocking(move || {
-        with_libraries(&device_dir, &libraries, |libraries| {
-            Ok(libraries.registrations())
-        })
+        let registered = with_libraries(&device_dir, &libraries, |libraries| {
+            Ok(libraries.libraries().to_vec())
+        })?;
+        Ok(DeviceLibraries::inspect_registrations(&registered))
     })
     .await
 }

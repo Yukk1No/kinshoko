@@ -1108,6 +1108,24 @@ button.primary {
   color: var(--accent-strong, currentColor);
 }
 
+.capture-group-save {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.capture-group-save label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.capture-group-save img {
+  max-height: 80px;
+  object-fit: contain;
+}
+
 /* 截图框选窗口与钉图窗口：没有页面底色和边距，禁止系统手势（笔与触摸走 pointer 事件，#7）。 */
 :root[data-view="capture"],
 :root[data-view="capture"] body,

@@ -36,6 +36,55 @@ fn read_back(path: &Path) -> (RgbaImage, Option<Vec<u8>>) {
 const PROFILE: &[u8] = b"fake display profile bytes for the identity round trip";
 
 #[test]
+fn collecting_a_capture_pin_makes_it_a_group_member_without_changing_its_crop_or_placement() {
+    use kinshoko_core::desktop::{PinContent, Placement, Region, SavedPin};
+    use kinshoko_core::reference_groups::ReferenceGroups;
+    let dir = tempfile::tempdir().unwrap();
+    let mut history = CaptureHistory::open(&dir.path().join("captures")).unwrap();
+    let capture = history.add(&shot(37, 21, 7, None)).unwrap();
+    let library = Library::create(&dir.path().join("library"), "参考").unwrap();
+    // 已经手动收藏的截图也使用同一入口，按字节合并。
+    let collected = history.collect(&capture.id, &library).unwrap();
+    let pin = SavedPin {
+        id: "capture-pin".into(),
+        content: PinContent::Capture {
+            capture_id: capture.id,
+        },
+        crop: Some(Region {
+            x: 2,
+            y: 3,
+            width: 10,
+            height: 8,
+        }),
+        width: 10,
+        height: 8,
+        placement: Placement {
+            x: 100,
+            y: 50,
+            scale: 1.5,
+            rotation: 1,
+            ..Default::default()
+        },
+        opacity: 0.6,
+        locked: true,
+        member: None,
+    };
+    let mut prepared = history.collect_pin(&pin, &library).unwrap();
+    assert_eq!(prepared.crop, pin.crop);
+    assert_eq!(prepared.placement, pin.placement);
+    assert_eq!((prepared.opacity, prepared.locked), (0.6, true));
+    let groups = ReferenceGroups::open(&dir.path().join("groups")).unwrap();
+    let group = groups
+        .create("截图参考", std::slice::from_mut(&mut prepared))
+        .unwrap();
+    assert_eq!(group.members.len(), 1);
+    assert_eq!(group.members[0].library_id, collected.library_id);
+    assert_eq!(group.members[0].image_id, collected.image_id);
+    assert_eq!(group.members[0].crop, pin.crop);
+    assert_eq!(group.members[0].placement, pin.placement);
+}
+
+#[test]
 fn a_capture_is_kept_losslessly_with_the_display_profile_it_was_taken_under() {
     let dir = tempfile::tempdir().unwrap();
     let mut history = CaptureHistory::open(dir.path()).unwrap();

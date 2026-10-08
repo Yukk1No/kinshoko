@@ -27,6 +27,7 @@ fn first_import_reads_items_not_thumbnails_or_mtime_and_preserves_original_bytes
             .wait();
 
         assert_eq!(report.items.len(), 1, "只枚举 images 下的条目：{report:?}");
+        assert!(report.from_eagle, "通用导入报告必须标明识别到的 Eagle 来源");
         let ImportOutcome::Imported { image_id } = &report.items[0].outcome else {
             panic!("Eagle {version} 应成功迁入：{report:?}");
         };

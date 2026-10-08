@@ -210,6 +210,70 @@ impl SavedPin {
         }
     }
 
+    /// 屏幕上的框选完整落在参考图内时，反算原图像素。先撤销旋转，再撤销翻转，
+    /// 最后加回原有局部的起点。整数比例向外取整，不受缩放或浮点误差影响。
+    pub fn reference_region(&self, shown: ScreenRect, selected: ScreenRect) -> Option<Region> {
+        let PinContent::Reference {
+            source_width,
+            source_height,
+            ..
+        } = self.content
+        else {
+            return None;
+        };
+        let right = |r: ScreenRect| i64::from(r.x) + i64::from(r.width);
+        let bottom = |r: ScreenRect| i64::from(r.y) + i64::from(r.height);
+        if shown.width == 0
+            || shown.height == 0
+            || selected.width == 0
+            || selected.height == 0
+            || selected.x < shown.x
+            || selected.y < shown.y
+            || right(selected) > right(shown)
+            || bottom(selected) > bottom(shown)
+        {
+            return None;
+        }
+        let original = self.crop.unwrap_or(Region {
+            x: 0,
+            y: 0,
+            width: source_width,
+            height: source_height,
+        });
+        let mut bounds = (u32::MAX, u32::MAX, 0, 0);
+        for sx in [i64::from(selected.x), right(selected)] {
+            for sy in [i64::from(selected.y), bottom(selected)] {
+                let x = ((sx - i64::from(shown.x)) as u64, u64::from(shown.width));
+                let y = ((sy - i64::from(shown.y)) as u64, u64::from(shown.height));
+                let reverse = |(n, d): (u64, u64)| (d - n, d);
+                let (mut u, mut v) = match self.placement.rotation % 4 {
+                    0 => (x, y),
+                    1 => (y, reverse(x)),
+                    2 => (reverse(x), reverse(y)),
+                    _ => (reverse(y), x),
+                };
+                if self.placement.flip_h {
+                    u = reverse(u);
+                }
+                if self.placement.flip_v {
+                    v = reverse(v);
+                }
+                let floor = |(n, d): (u64, u64), size: u32| (n * u64::from(size) / d) as u32;
+                let ceil = |(n, d): (u64, u64), size: u32| (n * u64::from(size)).div_ceil(d) as u32;
+                bounds.0 = bounds.0.min(floor(u, original.width));
+                bounds.1 = bounds.1.min(floor(v, original.height));
+                bounds.2 = bounds.2.max(ceil(u, original.width));
+                bounds.3 = bounds.3.max(ceil(v, original.height));
+            }
+        }
+        Some(Region {
+            x: original.x + bounds.0,
+            y: original.y + bounds.1,
+            width: bounds.2 - bounds.0,
+            height: bounds.3 - bounds.1,
+        })
+    }
+
     /// 拖动到 (x, y)（原位，物理像素）。锁定时不动，返回 false。
     pub fn move_to(&mut self, x: i32, y: i32) -> bool {
         if self.locked {

@@ -141,6 +141,8 @@ pub struct ImportItem {
 pub struct ImportReport {
     pub items: Vec<ImportItem>,
     pub cancelled: bool,
+    /// 导入器识别到了 Eagle 来源，与画师使用的入口无关。
+    pub from_eagle: bool,
     /// 这次迁入的 Eagle 资料库里已经不存在、但本库保留了副本的条目数。
     pub eagle_missing: u32,
     /// 像是已登记 Eagle 来源搬了家的新位置。画师确认前不迁入这些位置的任何条目，

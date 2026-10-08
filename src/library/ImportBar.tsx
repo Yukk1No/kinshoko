@@ -73,10 +73,10 @@ export function ImportBar({ enabled, libraryId, libraryName, running, finished, 
     if (!alive.current || !enabledRef.current || !paths.length) return;
     try {
       setImportError(null);
+      setTagStep(false);
       const taskId = await startImport(libraryId, paths);
       if (!alive.current) return;
       if (fromEagle) setEagleTasks((tasks) => new Set(tasks).add(taskId));
-      setTagStep(false);
       onStarted(taskId);
       setEagleLibraries(null);
     } catch (error) {
@@ -90,11 +90,12 @@ export function ImportBar({ enabled, libraryId, libraryName, running, finished, 
   };
 
   const finishedTask = finished?.taskId ?? null;
+  const detectedEagle = finished?.report.fromEagle ?? false;
   useEffect(() => {
-    if (finishedTask === null || !eagleTasks.has(finishedTask) || stepShown.current.has(finishedTask)) return;
+    if (finishedTask === null || (!detectedEagle && !eagleTasks.has(finishedTask)) || stepShown.current.has(finishedTask)) return;
     stepShown.current.add(finishedTask);
     setTagStep(true);
-  }, [finishedTask, eagleTasks]);
+  }, [finishedTask, detectedEagle, eagleTasks]);
   const findEagle = async () => {
     setLookingForEagle(true);
     setImportError(null);

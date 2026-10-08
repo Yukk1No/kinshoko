@@ -104,6 +104,110 @@ pub fn open_pins(app: &AppHandle) -> Vec<SavedPin> {
         .collect()
 }
 
+/// 入组后记下成员关系；已收藏的截图钉图改连参考图，保持当前几何和窗口状态。
+pub fn remember_group_members(app: &AppHandle, saved: &[SavedPin]) {
+    let mut converted = Vec::new();
+    {
+        let mut store = lock(&state(app).store);
+        for pin in saved {
+            store.edit(&pin.id, |p| {
+                p.member = pin.member.clone();
+                if p.capture_id().is_some() && matches!(pin.content, PinContent::Reference { .. }) {
+                    p.content = pin.content.clone();
+                    converted.push(pin.id.clone());
+                }
+            });
+        }
+        let _ = store.save();
+    }
+    for id in &converted {
+        let capture = lock(&state(app).pins)
+            .get_mut(id)
+            .and_then(|r| r.capture_id.take());
+        if let Some(capture) = capture {
+            lock(&state(app).history).unpin(&capture);
+        }
+        refresh(app, id);
+    }
+    if !converted.is_empty() {
+        history_changed(app);
+    }
+}
+
+/// F1 冻结前记录可见的资料库钉图。遮蔽、不可用和动画中的内容不作原图裁切。
+pub(super) fn capture_surfaces(app: &AppHandle) -> Vec<super::capture::ReferenceSurface> {
+    open_pins(app)
+        .into_iter()
+        .filter_map(|pin| {
+            if !matches!(pin.content, PinContent::Reference { .. }) {
+                return None;
+            }
+            let frame = current_frame(app, &pin.id)?;
+            if frame.veiled || frame.unavailable.is_some() {
+                return None;
+            }
+            let record = lock(&state(app).pins);
+            let r = record.get(&pin.id)?;
+            if r.click_through || r.window != r.rest {
+                return None;
+            }
+            Some(super::capture::ReferenceSurface {
+                window: label(&pin.id),
+                pin,
+                shown: r.content,
+                visible: r.content.intersect(&r.window)?,
+                covered: Vec::new(),
+            })
+        })
+        .collect()
+}
+
+/// 从 F1 的参考视图裁切建立新钉图，仍连接原库与原图，不进入截图历史。
+pub(super) fn open_reference_crop(
+    app: &AppHandle,
+    source: &SavedPin,
+    crop: Region,
+    at: ScreenRect,
+) -> Result<(), String> {
+    let PinContent::Reference {
+        library_id,
+        image_id,
+        ..
+    } = &source.content
+    else {
+        return Err("不是参考图".into());
+    };
+    let image = crate::library::with_references(app, |refs| refs.image(library_id, image_id))
+        .map_err(|e| e.to_string())?;
+    let mut pin = SavedPin::reference(
+        &uuid::Uuid::new_v4().simple().to_string(),
+        library_id,
+        &image,
+        Some(crop),
+        source.placement,
+    )
+    .map_err(|e| e.to_string())?;
+    let (monitor, dpi) = monitor_at(at.x, at.y).unwrap_or((at, 1.0));
+    pin.placement.scale = initial_scale(pin.width, pin.height, monitor);
+    let (width, height) = pin.window_size();
+    let origin = ScreenRect {
+        x: at.x,
+        y: at.y,
+        width,
+        height,
+    };
+    let others: Vec<_> = open_pins(app).iter().map(SavedPin::rect).collect();
+    let (x, y) = place_new_pin(origin, monitor, &others, (OFFSET * dpi).round() as i32);
+    pin.placement.x = x;
+    pin.placement.y = y;
+    {
+        let mut store = lock(&state(app).store);
+        store.put(pin.clone());
+        let _ = store.save();
+    }
+    open_window(app, &pin)
+}
+
 /// 改一个钉图的状态并安排保存。钉图不在时为 `None`。
 fn edit<T>(app: &AppHandle, pin: &str, f: impl FnOnce(&mut SavedPin) -> T) -> Option<T> {
     let out = lock(&state(app).store).edit(pin, f);

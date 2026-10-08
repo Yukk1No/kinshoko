@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { Viewer } from "./Viewer";
 
@@ -15,6 +15,25 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe("查看器设备像素", () => {
+  it("只向 F1 报告已经显示的原图范围，关闭查看器后清除来源", async () => {
+    const reports: unknown[] = [];
+    mockIPC((command, args) => {
+      if (command === "plugin:desktop|set_capture_reference") reports.push(args?.reference);
+      return undefined;
+    });
+    const { unmount } = render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
+    expect(reports.at(-1)).toBeNull();
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    await waitFor(() => expect(reports.at(-1)).toEqual({
+      libraryId: "L1", imageId: "a",
+      shown: { x: 0, y: 100, width: 1500, height: 1000 },
+      visible: { x: 0, y: 100, width: 1500, height: 1000 },
+    }));
+    unmount();
+    await waitFor(() => expect(reports.at(-1)).toBeNull());
+    clearMocks();
+  });
+
   it("工具栏起点不是完整设备像素时，仍按整个窗口对齐图片起点", () => {
     const position = new DOMRect(0.25, 47.25, 1000, 800);
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(position);

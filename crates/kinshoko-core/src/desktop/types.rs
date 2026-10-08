@@ -16,6 +16,17 @@ pub enum CaptureAction {
     Copy,
 }
 
+/// 查看器当前显示的参考图与客户区内的物理像素范围。F1 用它恢复来源与原图裁切。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CaptureReference {
+    pub library_id: String,
+    pub image_id: String,
+    pub shown: ScreenRect,
+    pub visible: ScreenRect,
+}
+
 /// 框选窗口要显示的冻结屏幕：整台显示器的物理像素尺寸，以及取图用的一次性标记。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]

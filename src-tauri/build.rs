@@ -59,6 +59,7 @@ fn main() {
                 tauri_build::InlinedPlugin::new()
                     .commands(&[
                         "start_capture",
+                        "set_capture_reference",
                         "frozen_screen",
                         "capture_ready",
                         "finish_capture",
@@ -78,6 +79,7 @@ fn main() {
                         "reveal_pin",
                         "reference_groups",
                         "reference_group",
+                        "group_save_captures",
                         "save_reference_group",
                         "save_pins_to_group",
                         "open_reference_group",

@@ -3,10 +3,15 @@ import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
 import type { ReferenceGroup } from "../bindings/ReferenceGroup";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
+import type { CaptureEntry } from "../bindings/CaptureEntry";
+import type { CaptureChoice } from "../bindings/CaptureChoice";
+import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import {
+  captureUrl,
   deleteReferenceGroup,
   exportReferenceGroupPackage,
   importReferenceGroupPackage,
+  groupSaveCaptures,
   onReferenceGroupsChanged,
   openReferenceGroup,
   referenceGroup,
@@ -17,6 +22,9 @@ import {
   savePinsToGroup,
   saveReferenceGroup,
 } from "../ipc";
+
+type SaveTarget = { name: string } | { groupId: string };
+type CaptureSave = { target: SaveTarget; entries: CaptureEntry[]; choices: Record<string, string> };
 
 function memberState(status: MemberStatus): string {
   switch (status.state.kind) {
@@ -38,19 +46,25 @@ function memberState(status: MemberStatus): string {
 export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null }) {
   const [groups, setGroups] = useState<GroupSummary[] | null>(null);
   const [libraryNames, setLibraryNames] = useState<Map<string, string>>(new Map());
+  const [libraryOptions, setLibraryOptions] = useState<LibraryRegistration[]>([]);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<ReferenceGroupView | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [captureSave, setCaptureSave] = useState<CaptureSave | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const reload = useCallback(() => {
     referenceGroups()
       .then(setGroups)
       .catch((e) => setError(String(e)));
     registeredLibraries()
-      .then((list) => setLibraryNames(new Map(list.map((r) => [r.library.id, r.library.name]))))
+      .then((list) => {
+        setLibraryNames(new Map(list.map((r) => [r.library.id, r.library.name])));
+        setLibraryOptions(list);
+      })
       .catch(() => {});
   }, []);
 
@@ -76,7 +90,7 @@ export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null 
     setNotice(null);
     try {
       const value = await action();
-      setNotice(done?.(value) ?? null);
+      if (done) setNotice(done(value) ?? null);
     } catch (e) {
       setError(String(e));
     }
@@ -86,6 +100,44 @@ export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null 
 
   const toggleMembers = (id: string) =>
     expanded?.group.id === id ? setExpanded(null) : void run(() => referenceGroup(id).then(setExpanded));
+
+  const save = async (target: SaveTarget, choices: CaptureChoice[]) => {
+    if ("name" in target) {
+      if (choices.length) await saveReferenceGroup(target.name, choices);
+      else await saveReferenceGroup(target.name);
+      setName("");
+      setNotice("已把桌面钉图存为参考组");
+    } else {
+      if (choices.length) await savePinsToGroup(target.groupId, choices);
+      else await savePinsToGroup(target.groupId);
+      setNotice("已把桌面钉图存进这个参考组");
+    }
+    setCaptureSave(null);
+  };
+  const beginSave = async (target: SaveTarget) => {
+    setSaving(true);
+    try {
+      const entries = await groupSaveCaptures();
+      if (!entries.length) { await save(target, []); return; }
+      const choices: Record<string, string> = {};
+      for (const entry of entries) {
+        const collected = entry.collected.length === 1 ? entry.collected[0] : null;
+        choices[entry.id] = collected && libraryOptions.some((l) => l.library.id === collected.libraryId && !l.unavailable)
+          ? collected.libraryId : "";
+      }
+      setCaptureSave({ target, entries, choices });
+    } finally { setSaving(false); }
+  };
+  const confirmCaptures = async () => {
+    if (!captureSave) return;
+    setSaving(true);
+    try {
+      await run(() => save(captureSave.target, captureSave.entries.map((entry) => ({
+        captureId: entry.id,
+        libraryId: captureSave.choices[entry.id] === "skip" ? null : captureSave.choices[entry.id],
+      }))));
+    } finally { setSaving(false); }
+  };
 
   return (
     <section className="reference-groups" aria-label="参考组">
@@ -99,16 +151,8 @@ export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null 
         />
         <button
           type="button"
-          disabled={!name.trim()}
-          onClick={() =>
-            void run(
-              () => saveReferenceGroup(name),
-              () => {
-                setName("");
-                return "已把桌面上的资料库钉图存为参考组";
-              },
-            )
-          }
+          disabled={!name.trim() || !!captureSave || saving}
+          onClick={() => void run(() => beginSave({ name }))}
         >
           把桌面钉图存为参考组
         </button>
@@ -130,9 +174,34 @@ export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null 
       </header>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
+      {captureSave && (
+        <section role="dialog" aria-modal="true" aria-label="收藏截图并保存参考组" className="capture-group-save">
+          <p>逐张选择截图的资料库，收藏后一起加入参考组。也可以明确不加入这张截图。</p>
+          {captureSave.entries.map((entry, i) => (
+            <label key={entry.id}>
+              <img src={captureUrl(entry.id)} alt={`截图 ${i + 1}`} width={96} />
+              <span>截图 {i + 1} · {entry.width}×{entry.height}</span>
+              <select aria-label={`截图 ${i + 1} 的资料库`} disabled={saving}
+                value={captureSave.choices[entry.id]}
+                onChange={(e) => setCaptureSave({ ...captureSave, choices: { ...captureSave.choices, [entry.id]: e.target.value } })}>
+                <option value="">请选择资料库…</option>
+                {libraryOptions.map((option) => (
+                  <option key={option.library.id} value={option.library.id} disabled={!!option.unavailable}>
+                    {option.library.name}{option.unavailable ? "（暂时不可用）" : entry.collected.some((c) => c.libraryId === option.library.id) ? "（已收藏）" : ""}
+                  </option>
+                ))}
+                <option value="skip">不加入参考组</option>
+              </select>
+            </label>
+          ))}
+          <button type="button" disabled={saving || captureSave.entries.some((e) => !captureSave.choices[e.id])}
+            onClick={() => void confirmCaptures()}>{saving ? "正在收藏并保存…" : "确认并保存"}</button>
+          <button type="button" disabled={saving} onClick={() => setCaptureSave(null)}>取消</button>
+        </section>
+      )}
       {groups && groups.length === 0 && (
         <p className="reference-groups-empty">
-          还没有参考组。把资料库里的整图或局部钉到桌面、摆好，再在这里存为参考组；截图要先收藏进资料库。
+          还没有参考组。把整图或局部钉到桌面、摆好，再在这里保存；截图会在保存时逐张选择资料库收藏。
         </p>
       )}
       <ul className="reference-groups-list">
@@ -183,7 +252,8 @@ export function ReferenceGroupsPanel({ libraryId }: { libraryId?: string | null 
                   <button
                     type="button"
                     title="来自这个参考组的钉图更新原成员，其他资料库钉图加为新成员"
-                    onClick={() => void run(() => savePinsToGroup(g.id), () => "已把桌面钉图存进这个参考组")}
+                    disabled={!!captureSave || saving}
+                    onClick={() => void run(() => beginSave({ groupId: g.id }))}
                   >
                     存入桌面钉图
                   </button>

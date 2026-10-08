@@ -25,7 +25,7 @@ use std::sync::{Mutex, MutexGuard};
 
 use kinshoko_core::ShortcutAction;
 use kinshoko_core::desktop::{
-    CaptureEntry, CaptureHistory, CollectedCapture, EdgeHide, PinStore, PinVeils,
+    CaptureEntry, CaptureHistory, CaptureReference, CollectedCapture, EdgeHide, PinStore, PinVeils,
 };
 use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::reference_groups::ReferenceGroups;
@@ -49,6 +49,7 @@ const LIBRARY_EVENT: &str = "library-event";
 pub struct DesktopState {
     history: Mutex<CaptureHistory>,
     capture: Mutex<capture::Session>,
+    viewer_reference: Mutex<Option<CaptureReference>>,
     /// 本次运行中打开着的钉图窗口。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
     /// 钉图状态（`pins.json`），重新打开后恢复。
@@ -90,6 +91,7 @@ pub fn init() -> TauriPlugin<Wry> {
     Builder::new("desktop")
         .invoke_handler(tauri::generate_handler![
             capture::start_capture,
+            capture::set_capture_reference,
             capture::frozen_screen,
             capture::capture_ready,
             capture::finish_capture,
@@ -109,6 +111,7 @@ pub fn init() -> TauriPlugin<Wry> {
             pins::reveal_pin,
             groups::reference_groups,
             groups::reference_group,
+            groups::group_save_captures,
             groups::save_reference_group,
             groups::save_pins_to_group,
             groups::open_reference_group,
@@ -133,6 +136,7 @@ pub fn init() -> TauriPlugin<Wry> {
             app.manage(DesktopState {
                 history: Mutex::new(history),
                 capture: Mutex::new(capture::Session::Idle),
+                viewer_reference: Mutex::default(),
                 pins: Mutex::default(),
                 store: Mutex::new(store),
                 dirty: AtomicBool::new(false),
