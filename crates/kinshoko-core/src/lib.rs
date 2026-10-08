@@ -16,6 +16,7 @@ pub mod reference_groups;
 pub mod search;
 mod settings;
 mod shortcuts;
+pub mod tag_catalog;
 pub mod tagging;
 
 pub use app_shell::{AppInfo, UpdateProgress, UpdateStatus, app_info};

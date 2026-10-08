@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ResolvedTagIdentity } from "../bindings/ResolvedTagIdentity";
 import type { ImageTags } from "../bindings/ImageTags";
 import type { TagEdit } from "../bindings/TagEdit";
 import type { TagLabel } from "../bindings/TagLabel";
@@ -6,7 +7,7 @@ import type { TagNamespace } from "../bindings/TagNamespace";
 import type { TagOrigin } from "../bindings/TagOrigin";
 import type { TagRef } from "../bindings/TagRef";
 import type { VocabularyTag } from "../bindings/VocabularyTag";
-import { addTagAlias, editTags, imageTags, removeTagAlias, vocabulary } from "../ipc";
+import { addTagAlias, catalogImageTags, editTags, imageTags, removeTagAlias, vocabulary } from "../ipc";
 import { TagMarks, UI_LANG, tagName, useCandidates } from "../search/SearchBox";
 
 type Props = {
@@ -48,6 +49,7 @@ const byId = (tag: TagLabel): TagRef => ({ kind: "id", id: tag.id });
  */
 export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
   const single = ids.length === 1 ? ids[0] : null;
+  const [identities, setIdentities] = useState<ResolvedTagIdentity[]>([]);
   const [tags, setTags] = useState<ImageTags | null>(null);
   const [aliasFor, setAliasFor] = useState<TagLabel | null>(null);
   const [namespace, setNamespace] = useState<TagNamespace>("general");
@@ -59,8 +61,14 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
     let alive = true;
     if (!single) {
       setTags(null);
+      setIdentities([]);
       return;
     }
+    setIdentities([]);
+    catalogImageTags(libraryId, single, UI_LANG).then(
+      (value) => alive && setIdentities(value?.identities ?? []),
+      (error) => alive && onError(String(error)),
+    );
     imageTags(libraryId, single, UI_LANG).then(
       (value) => alive && setTags(value),
       (e) => alive && onError(String(e)),
@@ -102,6 +110,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
                 <li key={tag.id} className="tag-row">
                   <span className="tag-name">{name}</span>
                   <TagMarks tag={tag} />
+                  {identities.filter((identity) => identity.localTagId === tag.id).map((identity) => <small key={identity.catalogId} className="tag-origin" title={`统一 ID：${identity.catalogId}`}>统一：{tagName(identity.tag)}</small>)}
                   <span className="tag-origins">
                     {origins.map((o, i) => (
                       <span key={i} className="tag-origin">
