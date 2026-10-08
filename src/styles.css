@@ -1692,3 +1692,12 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .workspace-sources li { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .workspace-sources code { display: block; width: 100%; font-size: 11px; overflow-wrap: anywhere; opacity: .65; }
 .workspace-sources p { font-size: 12px; }
+
+/* #78 T08: adapt the accepted folder workspace's separate provider roots and path hints. */
+.workspace-current-scope { padding: 8px; font-size: 12px; overflow-wrap: anywhere; }
+.workspace-descendants { display: flex; align-items: center; gap: 6px; padding: 4px 8px 12px; font-size: 12px; }
+.workspace-provider-root { display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; margin-top: 8px; }
+.workspace-expand { border: 0; background: transparent; color: inherit; min-height: 30px; cursor: pointer; }
+.provider-path { font-size: 10px; color: var(--muted); padding: 0 8px 4px 26px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-provider > .sidebar { padding-left: 16px; }
+.workspace-provider .sidebar-item:disabled { cursor: default; opacity: .6; }

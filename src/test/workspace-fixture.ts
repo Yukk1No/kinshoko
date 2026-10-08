@@ -1,5 +1,7 @@
 // Existing one-provider UI fixtures projected onto the workspace IPC contract.
 // The product never uses this adapter; real provider semantics are tested in Rust/native E2E.
+import type { Sidebar } from "../bindings/Sidebar";
+import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { BrowsePage } from "../bindings/BrowsePage";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
@@ -19,6 +21,14 @@ export function workspaceFixture(handler: Handler): Handler {
       return Promise.resolve(handler("plugin:library|registered_libraries")).then((libraries) => ({
         revision: "fixture", libraries: (libraries ?? []) as LibraryRegistration[],
       }));
+    }
+    if (command === "plugin:library|workspace_directories") {
+      return Promise.resolve(handler("plugin:library|registered_libraries")).then(async (value) => {
+        const libraries = (value ?? []) as LibraryRegistration[];
+        return { status: { revision: "fixture", libraries }, providers: await Promise.all(libraries.map(async (registration) => ({
+          registration, unassigned: 0, sidebar: registration.unavailable ? null : await handler("plugin:library|sidebar", { libraryId: registration.library.id }) as Sidebar,
+        }))) } satisfies WorkspaceDirectories;
+      });
     }
     if (command === "plugin:library|workspace_local_tags") return args.ids;
     if (command === "plugin:library|workspace_browse") {

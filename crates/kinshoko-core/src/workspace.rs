@@ -84,6 +84,22 @@ pub struct WorkspacePage {
     pub total: u32,
     pub status: WorkspaceStatus,
 }
+/// One provider root. Missing providers keep their identity and reason, without stale folders/counts.
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct WorkspaceDirectory {
+    pub registration: LibraryRegistration,
+    pub sidebar: Option<crate::library::Sidebar>,
+    pub unassigned: u32,
+}
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct WorkspaceDirectories {
+    pub status: WorkspaceStatus,
+    pub providers: Vec<WorkspaceDirectory>,
+}
 #[derive(Clone)]
 struct Provider {
     registration: LibraryRegistration,
@@ -296,6 +312,20 @@ impl Workspace {
     ) -> Result<WorkspacePage, CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
         let status = snapshot.status(safe);
+        if let WorkspaceScope::Library { library_id, .. } = &query.scope {
+            let provider = snapshot
+                .providers
+                .iter()
+                .find(|p| p.registration.library.id == *library_id)
+                .ok_or_else(|| {
+                    CatalogError::Io(std::io::Error::other(
+                        "本设备没有登记这个资料库；当前查找范围保持原值",
+                    ))
+                })?;
+            if let Some(reason) = &provider.registration.unavailable {
+                return Err(CatalogError::Io(std::io::Error::other(reason.clone())));
+            }
+        }
         let key = digest(&serde_json::to_vec(&(
             &status.revision,
             &query.scope,
@@ -505,7 +535,52 @@ impl Workspace {
         }
         Ok(groups)
     }
-    /// All directory counts reuse one immutable safety snapshot.
+    /// Every registered root and its complete directory tree share one safety/revision snapshot.
+    pub fn directories(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        safe: bool,
+    ) -> Result<WorkspaceDirectories, CatalogError> {
+        let snapshot = self.snapshot(device, catalog)?;
+        let mut providers = Vec::new();
+        for provider in &snapshot.providers {
+            let (sidebar, unassigned) = if provider.registration.unavailable.is_none() {
+                let library = device
+                    .read(&provider.registration.library.id)
+                    .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
+                let sidebar = directory_sidebar(&snapshot, provider, &library, safe)?;
+                if library.provider_revision()? != (provider.list, provider.revision) {
+                    return Err(Error::CursorExpired.into());
+                }
+                let unassigned = provider
+                    .images
+                    .iter()
+                    .filter(|i| {
+                        !i.deleted
+                            && i.folders.is_empty()
+                            && (!safe || !snapshot.adult.contains(&i.sha256))
+                    })
+                    .count() as u32;
+                (Some(sidebar), unassigned)
+            } else {
+                (None, 0)
+            };
+            providers.push(WorkspaceDirectory {
+                registration: provider.registration.clone(),
+                sidebar,
+                unassigned,
+            });
+        }
+        if self.snapshot(device, catalog)?.status.revision != snapshot.status.revision {
+            return Err(Error::CursorExpired.into());
+        }
+        Ok(WorkspaceDirectories {
+            status: snapshot.status(safe),
+            providers,
+        })
+    }
+    /// Compatibility projection of one provider; forest reads use `directories`.
     pub fn sidebar(
         &mut self,
         device: &DeviceLibraries,
@@ -517,31 +592,12 @@ impl Workspace {
         let library = device
             .read(library_id)
             .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
-        library.set_safe_mode(false);
-        let mut sidebar = library.sidebar()?;
         let provider = snapshot
             .providers
             .iter()
             .find(|p| p.registration.library.id == library_id)
             .ok_or(CatalogError::UnknownMapping)?;
-        let visible = provider
-            .images
-            .iter()
-            .filter(|i| !safe || !snapshot.adult.contains(&i.sha256))
-            .collect::<Vec<_>>();
-        sidebar.all = visible.iter().filter(|i| !i.deleted).count() as u32;
-        sidebar.trash = visible.iter().filter(|i| i.deleted).count() as u32;
-        fn folders(nodes: &mut [crate::library::FolderNode], images: &[&ProviderImage]) {
-            for node in nodes {
-                node.count = images
-                    .iter()
-                    .filter(|i| !i.deleted && i.folders.contains(&node.id))
-                    .count() as u32;
-                folders(&mut node.children, images);
-            }
-        }
-        folders(&mut sidebar.folders, &visible);
-        Ok(sidebar)
+        directory_sidebar(&snapshot, provider, &library, safe)
     }
     /// O(log n) authorization after bounded provider/catalog revision checks, including trash views.
     pub fn contains(
@@ -561,6 +617,33 @@ impl Workspace {
         };
         Ok(!safe || !snapshot.adult.contains(hash))
     }
+}
+fn directory_sidebar(
+    snapshot: &Snapshot,
+    provider: &Provider,
+    library: &crate::Library,
+    safe: bool,
+) -> Result<crate::library::Sidebar, CatalogError> {
+    // Folder structure is independent of local safety; every count is replaced from the global snapshot.
+    let mut sidebar = library.sidebar()?;
+    let visible = provider
+        .images
+        .iter()
+        .filter(|i| !safe || !snapshot.adult.contains(&i.sha256))
+        .collect::<Vec<_>>();
+    sidebar.all = visible.iter().filter(|i| !i.deleted).count() as u32;
+    sidebar.trash = visible.iter().filter(|i| i.deleted).count() as u32;
+    fn folders(nodes: &mut [crate::library::FolderNode], images: &[&ProviderImage]) {
+        for node in nodes {
+            node.count = images
+                .iter()
+                .filter(|i| !i.deleted && i.folders.contains(&node.id))
+                .count() as u32;
+            folders(&mut node.children, images);
+        }
+    }
+    folders(&mut sidebar.folders, &visible);
+    Ok(sidebar)
 }
 fn digest(bytes: &[u8]) -> String {
     Sha256::digest(bytes)[..16]

@@ -1,3 +1,4 @@
+import type { WorkspaceDirectories } from "./bindings/WorkspaceDirectories";
 import type { WorkspaceQuery } from "./bindings/WorkspaceQuery";
 import type { WorkspacePage } from "./bindings/WorkspacePage";
 import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
@@ -855,4 +856,8 @@ export function onWorkspaceChanged(handler: (status: WorkspaceStatus) => void): 
 
 export function editTagName(catalogId: string, edit: CatalogNameEdit): Promise<TagCatalogWorkspace> {
   return invoke<TagCatalogWorkspace>(lib("edit_tag_name"), { catalogId, edit });
+}
+
+export function workspaceDirectories(safeMode: boolean): Promise<WorkspaceDirectories> {
+  return invoke<WorkspaceDirectories>(lib("workspace_directories"), { safeMode });
 }
