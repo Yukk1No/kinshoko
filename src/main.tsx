@@ -4,6 +4,7 @@ import { App } from "./App";
 import { CaptureOverlay } from "./desktop/CaptureOverlay";
 import { PinView } from "./desktop/PinView";
 import { FidelityGate } from "./fidelity/FidelityGate";
+import { RuntimeProvider } from "./RuntimeSupport";
 import "./styles.css";
 
 // 同一个页面承载四种窗口：主窗口、截图框选窗口（?view=capture）、钉图窗口（?view=pin&pin=<id>）
@@ -18,11 +19,11 @@ createRoot(document.getElementById("root")!).render(
     {view === "capture" ? (
       <CaptureOverlay />
     ) : view === "pin" && pin ? (
-      <PinView pin={pin} />
+      <RuntimeProvider><PinView pin={pin} /></RuntimeProvider>
     ) : view === "fidelity-gate" ? (
       <FidelityGate />
     ) : (
-      <App />
+      <RuntimeProvider><App /></RuntimeProvider>
     )}
   </StrictMode>,
 );

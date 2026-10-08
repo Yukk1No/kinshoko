@@ -1111,7 +1111,11 @@ describe("整理", () => {
     });
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.click(screen.getByRole("button", { name: "回收站（1 张）" }));
+    // 目录与图片独立载入，先确认该库的目标控件实际就绪。
+    const directory = await screen.findByRole("navigation", { name: `${library.name} / ${library.root}的目录` });
+    const trash = within(directory).getByRole("button", { name: "回收站（1 张）" });
+    expect(trash).toHaveProperty("disabled", false);
+    fireEvent.click(trash);
     await waitFor(() => expect(card("a")).toBeTruthy());
     fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(await screen.findByRole("button", { name: "永久删除…" }));

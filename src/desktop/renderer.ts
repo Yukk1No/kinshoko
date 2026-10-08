@@ -21,6 +21,12 @@ export interface PinRenderer {
   draw(source: PinSource | null, pin: SavedPin): void;
 }
 
+export interface Canvas2dRenderer extends PinRenderer {
+  readonly element: HTMLCanvasElement;
+  /** 仅说明运行时选择的后备存储；不代表色彩还原度通过。 */
+  readonly colorType: "float16" | "uint8";
+}
+
 /** 遮蔽时只取这么宽的派生图：模糊与墨色罩之下看不出细节，原图像素不必进到钉图窗口。 */
 export const VEILED_SOURCE_PX = 64;
 
@@ -58,29 +64,48 @@ export function pinSourceRect(pin: SavedPin, source: { width: number; height: nu
  *
  * 在开发机（110%，sRGB 显示器配置文件）上实测：sRGB 画布（8 位或 float16）与 <img> 回显逐像素
  * 一致；display-p3 画布即使是 float16 也有约一半像素偏差 1～8 级，不满足截图恒等，所以不用 P3。
- * float16 的 sRGB 画布是扩展范围的，广色域的图不会被裁到 sRGB 色域；不支持时退回 8 位。
+ * float16 仅按运行时声明选择；广色域与颜色是否正确仍须独立量化读回。不支持时退回 8 位。
  */
-function pinContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D | null {
-  const wide = canvas.getContext("2d", {
-    colorSpace: "srgb",
-    colorType: "float16",
-  } as CanvasRenderingContext2DSettings);
-  const attributes = wide?.getContextAttributes() as { colorType?: string } | undefined;
-  if (wide && attributes?.colorType === "float16") return wide;
+function pinContext(canvas: HTMLCanvasElement): { ctx: CanvasRenderingContext2D; colorType: "float16" | "uint8" } | null {
+  try {
+    const wide = canvas.getContext("2d", {
+      colorSpace: "srgb",
+      colorType: "float16",
+    } as CanvasRenderingContext2DSettings);
+    const attributes = wide?.getContextAttributes?.() as { colorType?: string } | undefined;
+    if (wide && attributes?.colorType === "float16") return { ctx: wide, colorType: "float16" };
+  } catch {
+    // 运行时可以拒绝新选项；普通 8 位画布仍是有效的降级路径。
+  }
   // 同一块 canvas 只能取一次 context，换一块再取普通画布。
   const fallback = document.createElement("canvas");
   fallback.className = canvas.className;
-  return fallback.getContext("2d", { colorSpace: "srgb" });
+  try {
+    const ctx = fallback.getContext("2d", { colorSpace: "srgb" });
+    if (ctx) return { ctx, colorType: "uint8" };
+  } catch {
+    // 新字典也可被拒绝；默认 2D context 仍是 sRGB 8 位路径。
+  }
+  const plain = document.createElement("canvas");
+  plain.className = canvas.className;
+  try {
+    const ctx = plain.getContext("2d");
+    return ctx ? { ctx, colorType: "uint8" } : null;
+  } catch {
+    return null;
+  }
 }
 
 /** canvas 2D 实现。浏览器不给 2D context 时为 null。 */
-export function createCanvas2dRenderer(): PinRenderer | null {
+export function createCanvas2dRenderer(): Canvas2dRenderer | null {
   const canvas = document.createElement("canvas");
   canvas.className = "pin-canvas";
-  const ctx = pinContext(canvas);
-  if (!ctx) return null;
+  const context = pinContext(canvas);
+  if (!context) return null;
+  const { ctx, colorType } = context;
   return {
     element: ctx.canvas,
+    colorType,
     draw(source, pin) {
       // 按 DPI 像素规则：canvas 后备尺寸等于钉图的物理像素；先翻转再绕中心旋转，只画局部。
       const geometry = { width: pin.width, height: pin.height, ...pin.placement };
