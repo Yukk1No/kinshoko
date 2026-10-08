@@ -63,6 +63,8 @@ pub fn run() {
             commands::set_viewer_background,
             commands::migrate_viewer_background,
             diagnostics::diagnostics_report,
+            diagnostics::runtime_status,
+            diagnostics::open_runtime_update,
             diagnostics::export_diagnostics,
             diagnostics::export_usage_log,
             diagnostics::clear_usage_log,

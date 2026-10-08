@@ -1,0 +1,89 @@
+{
+  "kind": "minimal derivation of root controlled response-order exploration",
+  "source": "83da0065853e44a80bc899812289a80015d07a15",
+  "tree": "6c6892f183925a41fec5b456236c1c42c25aca86",
+  "notesSha256": "9332fbc44446ba247f81e0119aaffa466b7c59f0090431635542fb707b30b7d3",
+  "probeSha256": "d4aff8780465c53053be3ccd5b6da145785fffdc12c0857d38e8b31be2e1cebf",
+  "sourceManifestSha256": "83f28b5dfdf4dc6d65b5c2501ffd1c95bdd3313c9a52ebc32730320a03b051e1",
+  "runs": [
+    {
+      "label": "sequence-v1",
+      "passed": 2,
+      "failed": 1,
+      "expectedRed": 1,
+      "reportSha256": "d5d870ddf41b253bc6d8521fae7cf7400b78c629eb357bdef08ccbcf728bf2ba",
+      "tests": [
+        {
+          "name": "original_image_ready_assumption_requires_trash_button",
+          "status": "failed",
+          "rawSha256": "1f542eb0cd6d85ef4e9a83a9883cdec3a1708cc464b8cfacb8acd78e5caf06e1"
+        },
+        {
+          "name": "browse_first_then_directories_yields_usable_trash_and_delete_confirmation",
+          "status": "passed",
+          "rawSha256": "a80d5b64bc9bdac6749bf94e0859f5fc680deca3589679e3187c9e38e86cda4f"
+        },
+        {
+          "name": "directories_first_trash_is_ready_before_any_card_image",
+          "status": "passed",
+          "rawSha256": "0e50f21087c0cac4c7b4ff78dec1c1cd9acf2a0f92bb6d61a548d7a5934151f6"
+        }
+      ]
+    },
+    {
+      "label": "sequence-v2",
+      "passed": 2,
+      "failed": 1,
+      "expectedRed": 1,
+      "reportSha256": "71225b485196b104aa1566e822fd23880ffe06d3fbbfc6a11193ca96d17aae24",
+      "tests": [
+        {
+          "name": "original_image_ready_assumption_requires_trash_button",
+          "status": "failed",
+          "rawSha256": "19113c116a37c5c770de3ddf127beb6c01bf421e20e26e1863f424623fe41ec6"
+        },
+        {
+          "name": "browse_first_then_directories_yields_usable_trash_and_delete_confirmation",
+          "status": "passed",
+          "rawSha256": "388f323445412f90226b42b63e5dd6103e228edaadc41efbe0f87433008278ac"
+        },
+        {
+          "name": "directories_first_trash_is_ready_before_any_card_image",
+          "status": "passed",
+          "rawSha256": "cdddb2e643fb6a2f66785aecf9a8f4a59b7c20d8aaf7fe720d13c181b9e9dae0"
+        }
+      ]
+    },
+    {
+      "label": "sequence-v2-repeat",
+      "passed": 2,
+      "failed": 1,
+      "expectedRed": 1,
+      "reportSha256": "079fc31893100c1af82e37d72d85f2fc1cdea18fea3c08eb096b7116b2c7e963",
+      "tests": [
+        {
+          "name": "original_image_ready_assumption_requires_trash_button",
+          "status": "failed",
+          "rawSha256": "5ea1e738a174f6877f503f64a1b47c7fb84f98452cdcfe402bde91a6cc7bbdd9"
+        },
+        {
+          "name": "browse_first_then_directories_yields_usable_trash_and_delete_confirmation",
+          "status": "passed",
+          "rawSha256": "e13b23524d9435bf20c271587c2f18347ca9138cd74d08ba815aa4625edd8766"
+        },
+        {
+          "name": "directories_first_trash_is_ready_before_any_card_image",
+          "status": "passed",
+          "rawSha256": "0c30e4bf480f668bda65b84ca35b03b7974fee5757b6417993360a2bda9333ee"
+        }
+      ]
+    }
+  ],
+  "established": "With real App, images can be visible while the separate directory response remains pending; releasing that response permits the full recycle-bin/stale-token flow",
+  "notEstablished": "The exact request/event order of the original104/105 execution; native/SQLite scheduling",
+  "correction": {
+    "source": "deb1da162584184cfecd40530aa7e2370c81a32f",
+    "file": "src/App.test.tsx",
+    "scope": "Wait for the correct library directory navigation, require its recycle-bin count1 control enabled, then preserve the original operation/assertions"
+  }
+}

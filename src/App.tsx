@@ -44,6 +44,7 @@ import { UpdateBanner } from "./Update";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "./wall/Wall";
 import { DensitySlider } from "./wall/DensitySlider";
 import { Viewer } from "./viewer/Viewer";
+import { RuntimeNotice } from "./RuntimeSupport";
 
 type WorkspaceProps = {
   library: LibraryInfo | null;
@@ -508,6 +509,7 @@ export function App() {
           onSettings={() => { setNameMigrationRequest(0); setShowSettings((shown) => !shown); }} />
       </div>
       <div className="app-column">
+      <RuntimeNotice hidden={showSettings || viewerOpen} />
       {!library && !hasProviders && <div inert={viewerOpen}>{libraryControls}</div>}
       {openError && (
         <p className="app-problem" role="alert">

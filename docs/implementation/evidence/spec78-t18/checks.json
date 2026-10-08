@@ -1,0 +1,184 @@
+{
+  "kind": "derived minimal check results; original logs remain unchanged locally",
+  "story": 51,
+  "ticket": 96,
+  "cleanChecks": [
+    {
+      "source": "83da0065853e44a80bc899812289a80015d07a15",
+      "tree": "6c6892f183925a41fec5b456236c1c42c25aca86",
+      "scope": "core diagnostics",
+      "passed": 8,
+      "total": 8,
+      "original": {
+        "localRaw": "work/t18/postmerge-core.txt",
+        "sha256": "9015eb0a60e567261b8d2899ebb6b185f7f892637e9dc9e45b321dd427925cb8",
+        "bytes": 955
+      }
+    },
+    {
+      "source": "83da0065853e44a80bc899812289a80015d07a15",
+      "tree": "6c6892f183925a41fec5b456236c1c42c25aca86",
+      "scope": "core + Tauri all-targets strict clippy; own target/jobs2",
+      "status": "passed",
+      "original": {
+        "localRaw": "work/t18/postmerge-clippy.txt",
+        "sha256": "0285652961bdd0be43af35148f90e391fe57d773340eecd347b024efa3e16ff6",
+        "bytes": 434
+      }
+    },
+    {
+      "source": "83da0065853e44a80bc899812289a80015d07a15",
+      "tree": "6c6892f183925a41fec5b456236c1c42c25aca86",
+      "scope": "original eight affected UI files",
+      "status": "failed",
+      "passed": 104,
+      "total": 105,
+      "original": {
+        "localRaw": "work/t18/postmerge-ui.txt",
+        "sha256": "1a4b7a646cf2011c75d9950112c285f9f8507593c65963d7d9f496f5049d846d",
+        "bytes": 14090
+      },
+      "failure": "App.test.tsx1114: recycle-bin button absent; original run scheduling cause unconfirmed"
+    },
+    {
+      "source": "83da0065853e44a80bc899812289a80015d07a15",
+      "tree": "6c6892f183925a41fec5b456236c1c42c25aca86",
+      "scope": "same App interaction alone before correction",
+      "passed": 1,
+      "skipped": 59,
+      "original": {
+        "localRaw": "work/t18/postmerge-app-trash-isolated.txt",
+        "sha256": "6e7eb7bff06bfb3ade6b823adf970163d7b5e737ee282f0cf9bdd3601966875f",
+        "bytes": 255
+      },
+      "doesNotEstablishFailureCause": true
+    },
+    {
+      "source": "83da0065853e44a80bc899812289a80015d07a15",
+      "tree": "6c6892f183925a41fec5b456236c1c42c25aca86",
+      "scope": "correct src/search/SharedApprox.test.tsx in independent run",
+      "passed": 5,
+      "total": 5,
+      "original": {
+        "localRaw": "work/t18/postmerge-shared-approx.txt",
+        "sha256": "290c858cad0725eb7d7a3a46c2b6109aa32673f8f921ad1caa9a3820a29a26f4",
+        "bytes": 241
+      }
+    },
+    {
+      "source": "deb1da162584184cfecd40530aa7e2370c81a32f",
+      "tree": "fbf909e97de754a862f4b85dee030d79cf5cdb3c",
+      "scope": "App interaction after public control-ready precondition correction",
+      "passed": 1,
+      "skipped": 59,
+      "original": {
+        "localRaw": "work/t18/app-trash-ready-green.txt",
+        "sha256": "066fbe2818f8204b69f476617e296b9fceadf181fb69b078615d564b90b3bb9f",
+        "bytes": 255
+      }
+    },
+    {
+      "source": "deb1da162584184cfecd40530aa7e2370c81a32f",
+      "tree": "fbf909e97de754a862f4b85dee030d79cf5cdb3c",
+      "scope": "original eight affected UI files, new complete execution",
+      "passed": 105,
+      "total": 105,
+      "original": {
+        "localRaw": "work/t18/app-trash-ready-ui-group.txt",
+        "sha256": "f9bd813485228f3e0abac680d4bc4846dcc66517ca1a0ad85689ab2851a0216d",
+        "bytes": 244
+      }
+    },
+    {
+      "source": "deb1da162584184cfecd40530aa7e2370c81a32f",
+      "tree": "fbf909e97de754a862f4b85dee030d79cf5cdb3c",
+      "scope": "TypeScript",
+      "status": "passed",
+      "original": {
+        "localRaw": "work/t18/final-types.txt",
+        "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a",
+        "bytes": 48
+      }
+    },
+    {
+      "source": "deb1da162584184cfecd40530aa7e2370c81a32f",
+      "tree": "fbf909e97de754a862f4b85dee030d79cf5cdb3c",
+      "scope": "Rust fmt",
+      "status": "passed",
+      "original": {
+        "localRaw": "work/t18/final-fmt.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "source": "deb1da162584184cfecd40530aa7e2370c81a32f",
+      "tree": "fbf909e97de754a862f4b85dee030d79cf5cdb3c",
+      "scope": "full T18 increment whitespace",
+      "status": "passed",
+      "original": {
+        "localRaw": "work/t18/final-whitespace.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "source": "83da0065853e44a80bc899812289a80015d07a15",
+      "tree": "6c6892f183925a41fec5b456236c1c42c25aca86",
+      "scope": "runtime harness syntax",
+      "status": "passed",
+      "original": {
+        "localRaw": "work/t18/postmerge-harness-syntax.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    }
+  ],
+  "bindingGeneration": {
+    "status": "passed",
+    "exports": 193,
+    "origin": "Actual ts-rs execution on the uncommitted Rust doc correction after d73de914; generated bytes match83da",
+    "original": {
+      "localRaw": "work/t18/binding-doc-regeneration.txt",
+      "sha256": "0b27cc26e56e001832c9c3c88e771b28663b5576bdf81a778121aa664fd93d04",
+      "bytes": 26669
+    },
+    "beforeWhitespaceFailure": {
+      "localRaw": "work/t18/binding-doc-whitespace-before.txt",
+      "sha256": "c76dce093aa24be02aa59b8f582ea15db118d67d8764364e7105be1c0f16be36",
+      "bytes": 184
+    },
+    "afterWhitespace": {
+      "localRaw": "work/t18/binding-doc-whitespace-after.txt",
+      "sha256": "d428e3d830ab15e5d44d1c6784257ac08c84ad384cf355a3005be9c10e42db3c",
+      "bytes": 263
+    },
+    "files": {
+      "crates/kinshoko-core/src/diagnostics/runtime.rs": "a0e63f15ba527c737b9de5ec1c43b351593d4d077be8a9b123978fba0c674c8a",
+      "src/bindings/RuntimeStatus.ts": "4b7a51a97fa04ab37d3c93d4b10d908530631d9d91b8cc8e1b9eda0f3222ed1f",
+      "src/bindings/RuntimeAssessment.ts": "c16d63249100e642e65eadcadd56b6bb5778d73173e5d76027893f860fa557aa"
+    }
+  },
+  "initialFullUi": {
+    "origin": "Unfrozen T18 implementation on fixed start152e652; no exact commit snapshot exists",
+    "passed": 272,
+    "total": 273,
+    "status": "failed",
+    "failure": "TagOrganize.test.tsx472; original event order unconfirmed",
+    "original": {
+      "localRaw": "work/t18/ui-full.txt",
+      "sha256": "4182141bfad0c2222496f91f109b034a38a2d0c14854883381f25cc02b25cc85",
+      "bytes": 4599
+    },
+    "isolated": {
+      "localRaw": "work/t18/tag-organize-isolated.txt",
+      "sha256": "30f83b3b7c47b7385730741efc3aa1efaa80ac710973715168a23c6b524aa19c",
+      "bytes": 242
+    }
+  },
+  "limitations": [
+    "Independent results are not added into one complete execution",
+    "The first broad UI command named a nonexistent src/library/SharedApprox.test.tsx; that file was not executed",
+    "Root controlled response-order probe proves the old readiness precondition is insufficient; it does not retroactively establish the original104/105 scheduling cause"
+  ]
+}

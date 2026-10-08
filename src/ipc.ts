@@ -11,6 +11,8 @@ import type { WorkspacePage } from "./bindings/WorkspacePage";
 import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
 import type { CatalogNameEdit } from "./bindings/CatalogNameEdit";
 import type { ImportOptions } from "./bindings/ImportOptions";
+import type { RuntimeCapabilities } from "./bindings/RuntimeCapabilities";
+import type { RuntimeStatus } from "./bindings/RuntimeStatus";
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
 import { Channel, convertFileSrc, invoke } from "@tauri-apps/api/core";
@@ -487,13 +489,23 @@ export function setUsageLog(on: boolean): Promise<ShellSettingsView> {
 // ---------- 诊断与更新（#70） ----------
 
 /** 诊断日志全文：硬件、系统、WebView2 与显示器色彩状态，不含文件名、路径与图片。 */
-export function diagnosticsReport(): Promise<string> {
-  return invoke<string>("diagnostics_report");
+export function diagnosticsReport(runtime?: RuntimeCapabilities): Promise<string> {
+  return invoke<string>("diagnostics_report", { runtime });
 }
 
 /** 把诊断日志存成文件；画师取消时为 false。 */
-export function exportDiagnostics(): Promise<boolean> {
-  return invoke<boolean>("export_diagnostics");
+export function exportDiagnostics(runtime?: RuntimeCapabilities): Promise<boolean> {
+  return invoke<boolean>("export_diagnostics", { runtime });
+}
+
+/** 当前窗口实际渲染能力的解释；不根据 Runtime 版本猜测。 */
+export function runtimeStatus(runtime: RuntimeCapabilities): Promise<RuntimeStatus> {
+  return invoke("runtime_status", { runtime });
+}
+
+/** 只打开固定的微软 WebView2 下载页，不下载或安装运行时。 */
+export function openRuntimeUpdate(): Promise<void> {
+  return invoke("open_runtime_update");
 }
 
 /** 把使用日志导出成文件；画师取消时为 false。 */
