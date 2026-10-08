@@ -1,6 +1,6 @@
 // Same generated samples and CSS viewport as e2e/spec78-frontend.mjs, using the unchanged accepted prototype.
 // Usage: node e2e/spec78-prototype.mjs <msedgedriver.exe> [evidence-directory]
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join, dirname, basename } from "node:path";
@@ -31,6 +31,16 @@ const until = async (label, read) => {
   throw new Error("Timeout: " + label);
 };
 const check = (ok, label) => { if (!ok) throw new Error(label); console.log("✓ " + label); };
+const setViewport = async (target) => {
+  for (let i=0;i<12;i++) {
+    const now=await exec("return {width:innerWidth,height:innerHeight}");
+    if(now.width===target.width&&now.height===target.height)return now;
+    const outer=await wd("GET",base+"/window/rect");
+    await wd("POST",base+"/window/rect",{width:outer.width+target.width-now.width,height:outer.height+target.height-now.height});
+    await new Promise(r=>setTimeout(r,100));
+  }
+  return exec("return {width:innerWidth,height:innerHeight}");
+};
 try {
   await until("prototype server", () => fetch("http://127.0.0.1:4180").then(r => r.ok));
   await until("driver", () => fetch(DRIVER + "/status").then(r => r.ok));
@@ -38,12 +48,7 @@ try {
   base = "/session/" + session.sessionId;
   await wd("POST", base + "/url", { url: "http://127.0.0.1:4180" });
   const target = formal.viewport;
-  for (let i = 0; i < 4; i++) {
-    const now = await exec("return {width:innerWidth,height:innerHeight}");
-    if (now.width === target.width && now.height === target.height) break;
-    const outer = await wd("GET", base + "/window/rect");
-    await wd("POST", base + "/window/rect", { width: outer.width + target.width - now.width, height: outer.height + target.height - now.height });
-  }
+  await setViewport(target);
   await until("same sample image decode", () => exec("return document.querySelectorAll('.card[data-id]').length > 0 && [...document.querySelectorAll('.card img')].every(i=>i.complete&&i.naturalWidth>0)"));
   const viewport = await exec("return {width:innerWidth,height:innerHeight,dpr:devicePixelRatio,userAgent:navigator.userAgent}");
   check(viewport.width === target.width && viewport.height === target.height && viewport.dpr === target.dpr, "Prototype and formal app use the same CSS viewport and DPR");
@@ -68,23 +73,42 @@ try {
   await wd("POST", base + "/actions", { actions: [{ type: "key", id: "keyboard", actions: [{ type: "keyDown", value: "\uE00C" }, { type: "keyUp", value: "\uE00C" }] }] });
   await until("return focus", () => exec("return !document.querySelector('.viewer') && document.activeElement?.dataset.id===arguments[0]", [sample]));
   check(true, "Unchanged accepted prototype single-clicks and returns focus to the same card");
+  const reading=await exec("const w=document.querySelector('.wall');w.scrollTop=720;w.dispatchEvent(new Event('scroll'));const top=w.getBoundingClientRect().top;const c=[...w.querySelectorAll('.card')].find(c=>{const r=c.getBoundingClientRect();return r.top>=top&&r.bottom<=top+w.clientHeight});c.focus({preventScroll:true});return {id:c.dataset.id,top:w.scrollTop}");
+  await key("\uE007");await until("keyboard viewer decoded",()=>exec("const i=document.querySelector('.stage-image');return i&&i.complete&&i.naturalWidth>0"));await key("\uE00C");
+  await until("keyboard return focus",()=>exec("return !document.querySelector('.viewer')&&document.activeElement?.dataset.id===arguments[0].id",[reading]));
+  const returned=await exec("return {id:document.activeElement?.dataset.id,top:document.querySelector('.wall').scrollTop}");
+  const baselineDifferences=[];
+  if(Math.abs(returned.top-reading.top)>=.1) baselineDifferences.push({step:"keyboard-return",detail:"Historical reveal(id) adds a 4px edge margin and may scroll a fully visible edge card",before:reading.top,after:returned.top});
   const anchor=await exec("const w=document.querySelector('.wall');w.scrollTop=720;w.dispatchEvent(new Event('scroll'));const top=w.getBoundingClientRect().top;const cards=[...w.querySelectorAll('.card')].map(c=>({id:c.dataset.id,r:c.getBoundingClientRect()})).filter(c=>c.r.bottom>top+8&&c.r.top<top+w.clientHeight).sort((a,b)=>a.r.top-b.r.top||a.r.left-b.r.left);return {id:cards[0].id,offset:cards[0].r.top-top}");
-  const reading=await exec("const w=document.querySelector('.wall');const top=w.getBoundingClientRect().top;const c=[...w.querySelectorAll('.card')].find(c=>{const r=c.getBoundingClientRect();return r.top>=top&&r.bottom<=top+w.clientHeight});c.focus({preventScroll:true});return {id:c.dataset.id,top:w.scrollTop}");
-  await key("\uE007");await until("keyboard viewer",()=>exec("return !!document.querySelector('.viewer')"));await key("\uE00C");
-  await until("same scroll and focus",()=>exec("return !document.querySelector('.viewer')&&document.activeElement?.dataset.id===arguments[0].id&&Math.abs(document.querySelector('.wall').scrollTop-arguments[0].top)<.1",[reading]));
-  const anchorStable=()=>exec("const w=document.querySelector('.wall');const c=w.querySelector('[data-id=\"'+arguments[0].id+'\"]');return c&&!c.getAnimations().some(a=>a.playState==='running')&&Math.abs(c.getBoundingClientRect().top-w.getBoundingClientRect().top-arguments[0].offset)<1",[anchor]);
-  await exec("window.__T01_REFLOW__=[];document.querySelector('button[aria-label=收起侧栏]').addEventListener('click',()=>{const end=performance.now()+500;const frame=()=>{const w=document.querySelector('.wall');const c=document.querySelector('.card');window.__T01_REFLOW__.push({width:w.clientWidth,card:parseFloat(c.style.width)});if(performance.now()<end)requestAnimationFrame(frame)};requestAnimationFrame(frame)},{once:true})");
-  await click("//button[@aria-label='收起侧栏']");await until("collapse anchor",anchorStable);
+  const anchorOffset=()=>exec("const w=document.querySelector('.wall');const c=w.querySelector('[data-id=\"'+arguments[0].id+'\"]');return c?c.getBoundingClientRect().top-w.getBoundingClientRect().top:null",[anchor]);
+  const settled=()=>exec("return !document.querySelector('.workspace').className.includes('is-pane-moving')&&![...document.querySelectorAll('.card')].some(c=>c.getAnimations().some(a=>a.playState==='running'))");
+  await exec("window.__T01_REFLOW__=[];document.querySelector('button[aria-label=收起侧栏]').addEventListener('click',()=>{const end=performance.now()+800;const frame=()=>{const w=document.querySelector('.wall');const c=document.querySelector('.card');window.__T01_REFLOW__.push({width:w.clientWidth,card:parseFloat(c.style.width),visual:c.getBoundingClientRect().width});if(performance.now()<end)requestAnimationFrame(frame)};requestAnimationFrame(frame)},{once:true})");
+  await click("//button[@aria-label='收起侧栏']");await until("collapse settled",async()=>await exec("return !document.querySelector('.pane')")&&await settled());
+  const collapsedOffset=await anchorOffset();
   writeFileSync(join(output,"prototype-collapsed.png"),Buffer.from(await wd("GET",base+"/screenshot"),"base64"));
-  await click("//button[@aria-label='展开侧栏']");await until("expand anchor",anchorStable);
+  await click("//button[@aria-label='展开侧栏']");await until("expand settled",async()=>await exec("return !!document.querySelector('.pane')")&&await settled());
+  const expandedOffset=await anchorOffset();
   const reflow=await exec("return window.__T01_REFLOW__");
-  check(new Set(reflow.map(f=>f.card.toFixed(2))).size>2,"Accepted prototype continuously reflows and retains its reading anchor");
+  const distinctLayoutWidths=new Set(reflow.map(f=>f.card.toFixed(2))).size;
+  const distinctVisualWidths=new Set(reflow.map(f=>f.visual.toFixed(2))).size;
+  baselineDifferences.push({step:"sidebar-reflow",detail:"Historical prototype holds the layout width during the sidebar motion and animates the final boxes with FLIP; formal app updates layout on each width change",distinctLayoutWidths,distinctVisualWidths});
+  if(Math.abs(collapsedOffset-anchor.offset)>=1||Math.abs(expandedOffset-anchor.offset)>=1)baselineDifferences.push({step:"sidebar-anchor",detail:"Historical prototype prioritizes focused-card reveal/focal anchoring",initialOffset:anchor.offset,collapsedOffset,expandedOffset});
+  const resizeObservations=[];
+  const harnessLimits=[];
   for(const size of formal.resizeViewports){
-    for(let i=0;i<4;i++){const now=await exec("return {width:innerWidth,height:innerHeight}");if(now.width===size.width&&now.height===size.height)break;const outer=await wd("GET",base+"/window/rect");await wd("POST",base+"/window/rect",{width:outer.width+size.width-now.width,height:outer.height+size.height-now.height});}
-    await until("window resize anchor",anchorStable);
+    const resized=await setViewport(size);
+    if(resized.width!==size.width||resized.height!==size.height)harnessLimits.push({step:"headless-window-resize",requested:size,observed:resized,detail:"Windows/Edge headless WebDriver rectangle rounding at the matched fractional DPR; initial screenshot viewport is exact"});
+    check(Math.abs(resized.width-size.width)<=2&&Math.abs(resized.height-size.height)<=2,"Headless resize rounding recorded separately from the exact initial screenshot viewport");
+    await until("window resize settled",settled);
+    resizeObservations.push({requested:size,viewport:await exec("return {width:innerWidth,height:innerHeight}"),offset:await anchorOffset()});
   }
-  check(true,"Same density, single-click, return, sidebar and window-width steps completed in both apps");
-  writeFileSync(join(output, "prototype-report.json"), JSON.stringify({ status: "passed", sourceCommit: "bd8aea44c4a311571ee3c07382cb7755f87f3153", viewport, fonts, browseMetrics,densityCheck,anchor,reading,reflow,resizeViewports:formal.resizeViewports,samples: formal.samples, singleClickReturnFocus: true, humanAcceptance: "unverified" }, null, 2));
+  check(true,"Same density, single-click, return, sidebar and window-width actions completed; historical baseline differences recorded separately");
+  writeFileSync(join(output, "prototype-report.json"), JSON.stringify({ status: "comparison-completed", harnessCommit:execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(), sourceCommit: "bd8aea44c4a311571ee3c07382cb7755f87f3153", viewport, fonts, browseMetrics,densityCheck,anchor,reading,returned,reflow,distinctLayoutWidths,distinctVisualWidths,collapsedOffset,expandedOffset,resizeObservations,baselineDifferences,harnessLimits,samples: formal.samples,sameLargeSample:sample,singleClickReturnFocus:true,humanAcceptance:"unverified" }, null, 2));
+} catch(error) {
+  const state=base?await exec("return {url:location.href,active:document.activeElement?.outerHTML,scrollTop:document.querySelector('.wall')?.scrollTop,viewer:!!document.querySelector('.viewer'),html:document.body.innerHTML}").catch(()=>null):null;
+  writeFileSync(join(output,"prototype-failure.json"),JSON.stringify({status:"failed",message:error.message,state},null,2));
+  if(base){const shot=await wd("GET",base+"/screenshot").catch(()=>null);if(shot)writeFileSync(join(output,"prototype-failure.png"),Buffer.from(shot,"base64"));}
+  throw error;
 } finally {
   if (base) await wd("DELETE", base).catch(() => {});
   driver.kill(); vite.kill();
