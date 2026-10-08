@@ -84,6 +84,17 @@ async function click(xpath) { return wd("POST", base + "/element/" + await find(
 const button = (name) => `//button[normalize-space()='${name}']`;
 const screenshot = async (name) => writeFileSync(join(work, name), Buffer.from(await wd("GET", base + "/screenshot"), "base64"));
 function check(ok, label) { if (!ok) throw Error(label); report.checks.push(label); console.log("PASS " + label); }
+async function pinCanvasSource() {
+  return exec("const c=document.querySelector('.pin-canvas');if(!c||!c.width||!c.height)return false;const ctx=c.getContext('2d'),attributes=ctx.getContextAttributes();try{const d=ctx.getImageData(Math.floor(c.width/2),Math.floor(c.height/2),1,1).data;return d[3]===255&&!(d[0]===138&&d[1]===138&&d[2]===142)?{width:c.width,height:c.height,attributes,pixelReadback:'available'}:false}catch(error){if(error.name==='SecurityError')return {width:c.width,height:c.height,attributes,pixelReadback:'blocked by actual cross-origin source'};throw error}");
+}
+function pinScreenshotSamples(name) {
+  const measured = spawnSync("python", ["-c", "from PIL import Image; import json,sys; im=Image.open(sys.argv[1]).convert('RGB'); w,h=im.size; points=[(2,2),(w-3,2),(2,h-3),(w-3,h-3),(w//2,h//2)]; print(json.dumps({'size':[w,h],'samples':[list(im.getpixel(p)) for p in points]}))", join(work, name)], { windowsHide: true, encoding: "utf8" });
+  if (measured.status !== 0) throw Error("Owned pin screenshot read: " + measured.stderr);
+  const pixels = JSON.parse(measured.stdout), centre = pixels.samples[4];
+  // Only establish that the synthetic white-border gradient is visible, not colour fidelity.
+  check(pixels.samples.slice(0, 4).every((pixel) => pixel.every((channel) => channel >= 240)) && centre[0] >= 80 && centre[0] <= 180 && centre[1] >= 80 && centre[1] <= 180 && centre[2] >= 50 && centre[2] <= 150, "native screenshot shows the synthetic pin gradient and white border: " + name);
+  (report.pinScreenshots ??= {})[name] = pixels;
+}
 async function cdp(command, params) {
   let failure;
   for (const prefix of ["ms", "goog"]) {
@@ -145,12 +156,12 @@ try {
   await click(button("钉住整图"));
   pinHandle = await until("native pin window", async () => (await wd("GET", base + "/window/handles")).find((handle) => handle !== mainHandle));
   await wd("POST", base + "/window", { handle: pinHandle });
-  await until("native pin canvas has decoded image", () => exec("const c=document.querySelector('.pin-canvas');if(!c)return false;const d=c.getContext('2d').getImageData(Math.floor(c.width/2),Math.floor(c.height/2),1,1).data;return d[3]===255&&!(d[0]===138&&d[1]===138&&d[2]===142)"));
-  await screenshot("representative-pin.png"); check(true, "representative pin uses the production renderer and decoded source");
+  report.currentPinCanvas = await until("native pin canvas has drawn decoded source", pinCanvasSource);
+  await screenshot("representative-pin.png"); pinScreenshotSamples("representative-pin.png"); check(true, "representative pin uses the production renderer and decoded source");
   const fallbackScript = "window.__T18_CONTROLLED_ABSENCE__='float16 and optional createImageBitmap in current Runtime';const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(kind,options){if(kind==='2d'&&options?.colorType==='float16')throw new TypeError('controlled float16 absence');return original.apply(this,arguments)};window.createImageBitmap=undefined;";
   const fallbackScriptId = await injectNextDocument(fallbackScript);
-  await until("controlled fallback pin drew source", () => exec("const c=document.querySelector('.pin-canvas');if(!c)return false;const ctx=c.getContext('2d'),d=ctx.getImageData(Math.floor(c.width/2),Math.floor(c.height/2),1,1).data;return ctx.getContextAttributes().colorType!=='float16'&&d[3]===255&&!(d[0]===138&&d[1]===138&&d[2]===142)&&!document.querySelector('[aria-label=运行时能力提示]')"));
-  await screenshot("controlled-float16-fallback-pin.png"); check(true, "controlled float16/createImageBitmap absence uses 8-bit pin without blocking display");
+  report.fallbackPinCanvas = await until("controlled fallback pin drew source", async () => { const canvas = await pinCanvasSource(); return canvas && canvas.attributes.colorType !== "float16" && !await exec("return Boolean(document.querySelector('[aria-label=运行时能力提示]'))") ? canvas : false; });
+  await screenshot("controlled-float16-fallback-pin.png"); pinScreenshotSamples("controlled-float16-fallback-pin.png"); check(true, "controlled float16/createImageBitmap absence uses 8-bit pin without blocking display");
   await cdp("Page.removeScriptToEvaluateOnNewDocument", { identifier: fallbackScriptId });
   const hidden = spawnSync("python", ["e2e/native-pin-hide-t18.py", application], { windowsHide: true, encoding: "utf8", timeout: 15000 });
   writeFileSync(join(work, "controlled-pin-hidden.json"), hidden.stdout);
