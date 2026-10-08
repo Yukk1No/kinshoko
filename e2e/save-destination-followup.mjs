@@ -154,6 +154,11 @@ try{
  assert((await local(b.id,bFolder)).total===1&&(await local(a.id)).total===0,"ordinary file is committed into B folder while A remains empty");
  assert((await session.invoke("current_library")).id===a.id,"saving into B does not activate B or change browsing current A");
  await session.screenshot("explicit-import-destination.png");
+ if(process.argv.includes("--copy-only")){
+   c=await session.invoke("create_library",{parent:libraries,name:"新浏览库 C"});
+   await session.exec("location.reload();");
+   await until("formal current C",()=>session.exec("return document.querySelector('[aria-label=\"当前资料库\"]')?.value===arguments[0];",[c.id]));
+ }else{
  const long=await begin(Array(2000).fill(imagePath),b.id,bFolder);
  const before=await running(long);receipts.push({phase:"before-current-create-target-change",receipt:before});
  // The actual new-library page must preserve the running task while its current provider changes.
@@ -176,7 +181,9 @@ try{
  const completed=await finish(long);receipts.push(completed);
  assert(!completed.report.cancelled&&completed.report.items.length===2000,"B task completes all 2000 entries after current/create/target changes");
  assert((await local(a.id)).total===0&&(await local(c.id)).total===0&&(await local(b.id,bFolder)).total===1,"completed content stays in B rather than new current or newly selected A");
+ }
  const bCard=(await local(b.id,bFolder)).cards[0];
+ await session.invoke("workspace_edit_source",{target:{libraryId:b.id,imageId:bCard.imageId,contentId:bCard.id},safeMode:true,edits:[{kind:"setNote",text:"B 原来源备注"}]});
  // Existing independent target curation survives explicit source copying.
  const cImport=await session.invoke("start_import",{libraryId:c.id,source:{paths:[imagePath]},destination:{libraryId:c.id,folderId:null}});await finish(cImport);
  const cCard=(await local(c.id)).cards.find(card=>card.id===bCard.id);
@@ -198,11 +205,11 @@ try{
  await delay(500);
  assert(await session.exec("return !document.querySelector('[aria-label=\"复制此来源\"]');"),"copy confirmation stays closed after the real source refresh");
  await session.screenshot("copy-preserves-independent-curation.png");
- writeFileSync(join(work,"result.json"),JSON.stringify({status:"passed",source,binarySha256,application,environment,provenance,a,b,c,receipts,assertions,finishedAt:new Date().toISOString()},null,2));
+ writeFileSync(join(work,"result.json"),JSON.stringify({status:"passed",scope:process.argv.includes("--copy-only")?"copy-only":"visible-owner-and-copy",source,binarySha256,application,environment,provenance,a,b,c,receipts,assertions,finishedAt:new Date().toISOString()},null,2));
  console.log(`Evidence: ${work}`);
 }catch(error){
  console.error(error);if(session){await session.screenshot("failure.png").catch(()=>{});await session.exec("return document.documentElement.outerHTML;").then(html=>writeFileSync(join(work,"failure.html"),html)).catch(()=>{});}
- writeFileSync(join(work,"result.json"),JSON.stringify({status:"failed",source,binarySha256,application,environment,provenance,a,b,c,receipts,assertions,error:String(error)},null,2));process.exitCode=1;
+ writeFileSync(join(work,"result.json"),JSON.stringify({status:"failed",scope:process.argv.includes("--copy-only")?"copy-only":"visible-owner-and-copy",source,binarySha256,application,environment,provenance,a,b,c,receipts,assertions,error:String(error)},null,2));process.exitCode=1;
 }finally{
  await stopApp();if(driver.pid)spawnSync("taskkill",["/PID",String(driver.pid),"/T","/F"],{stdio:"ignore",windowsHide:true});
 }
