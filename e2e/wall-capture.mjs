@@ -47,7 +47,8 @@ async function staleInput(){const requests=await exec("return window.__captureRe
 async function importFiles(info,paths){const id=await library("start_import",{libraryId:info.id,source:{paths},destination:{libraryId:info.id,folderId:null}});return until("import complete",async()=>{const task=(await library("import_tasks")).find(t=>t.taskId===id);if(task?.report&&!task.finishing){check(task.report.items.every(i=>["imported","merged"].includes(i.outcome.kind)),"synthetic originals import through production task");return task.report;}return null;},120000);}
 const browse=(id,safeMode=true)=>library("workspace_browse",{query:{scope:{kind:"library",libraryId:id,scope:{kind:"all"}},conditions:{conditions:[]},cursor:null,limit:500,thumbnailPx:256},safeMode});
 async function shownCard(contentId){const box=await until("loaded visible waterfall image",()=>exec("const card=[...document.querySelectorAll('.card')].find(n=>n.dataset.id===arguments[0]);const i=card?.querySelector('img');if(!i?.complete||!i.naturalWidth||card.dataset.veiled==='true')return null;const b=i.getBoundingClientRect(),v=document.querySelector('.wall').getBoundingClientRect();if(b.bottom<=v.top||b.top>=v.bottom)return null;return {left:b.left,top:b.top,width:b.width,height:b.height,dpr:devicePixelRatio,thumbWidth:i.naturalWidth};",[contentId]));const scale=Math.min(box.width/originalWidth,box.height/originalHeight),dpr=box.dpr;const left=Math.round((box.left+(box.width-originalWidth*scale)/2)*dpr),top=Math.round((box.top+(box.height-originalHeight*scale)/2)*dpr);const right=Math.round((box.left+(box.width+originalWidth*scale)/2)*dpr),bottom=Math.round((box.top+(box.height+originalHeight*scale)/2)*dpr);const origin=await native("inner_position");return {...box,x:origin.x+left,y:origin.y+top,width:right-left,height:bottom-top};}
-async function begin(){await desktop("start_capture");await until("frozen native window",()=>native("is_visible","capture"));const frozen=await desktop("frozen_screen");return {frozen,token:frozen.image.slice("screen/".length),origin:await native("inner_position","capture")};}
+async function bottomOriginal(contentId){await until("original visible after real paginated wall scroll",async()=>{await exec("const w=document.querySelector('.wall');w.scrollTop=w.scrollHeight;w.dispatchEvent(new Event('scroll',{bubbles:true}));");return exec("const n=[...document.querySelectorAll('.card')].find(n=>n.dataset.id===arguments[0]),i=n?.querySelector('img'),w=document.querySelector('.wall');if(!i?.complete||!i.naturalWidth)return false;const b=i.getBoundingClientRect(),v=w.getBoundingClientRect();return b.bottom>v.top&&b.top<v.bottom",[contentId]);});return shownCard(contentId);}
+async function begin(){if(await exec("return !!document.querySelector('.import-popup:not([hidden])')"))await click("//button[@aria-label='关闭导入操作']");await desktop("start_capture");await until("frozen native window",()=>native("is_visible","capture"));const frozen=await desktop("frozen_screen");return {frozen,token:frozen.image.slice("screen/".length),origin:await native("inner_position","capture")};}
 function selection(shown,capture){const offsetX=Math.max(4,Math.floor(shown.width/4)),offsetY=Math.max(4,Math.floor(shown.height/4)),width=Math.max(4,Math.floor(shown.width/8)),height=Math.max(4,Math.floor(shown.height/8));return {region:{x:shown.x+offsetX-capture.origin.x,y:shown.y+offsetY-capture.origin.y,width,height},crop:{x:Math.floor(offsetX*originalWidth/shown.width),y:Math.floor(offsetY*originalHeight/shown.height),width:Math.ceil((offsetX+width)*originalWidth/shown.width)-Math.floor(offsetX*originalWidth/shown.width),height:Math.ceil((offsetY+height)*originalHeight/shown.height)-Math.floor(offsetY*originalHeight/shown.height)}};}
 async function capture(shown,action){const before=await windows(),frozen=await begin(),selected=selection(shown,frozen);await desktop("finish_capture",{token:frozen.token,region:selected.region,action});let pin;if(action==="pin"){const label=await until("new native reference pin",async()=>(await windows()).find(w=>w.startsWith("pin-")&&!before.includes(w)));pin=await desktop("pin_frame",{pin:label.slice(4)});await until("native pin shown",()=>native("is_visible",label));}return {...selected,pin};}
 async function clearPins(){const main=await wd("GET",`${base}/window`);for(const handle of await wd("GET",`${base}/window/handles`)){if(handle===main)continue;await wd("POST",`${base}/window`,{handle});const label=await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label");if(label.startsWith("pin-"))await exec("void window.__TAURI_INTERNALS__.invoke('plugin:desktop|close_pin',{pin:arguments[0]});return true",[label.slice(4)]);await wd("POST",`${base}/window`,{handle:main});if(label.startsWith("pin-"))await until("own pin closed",async()=>!(await windows()).includes(label));}}
@@ -67,7 +68,7 @@ try{
   const seed=await begin(),mainOrigin=await native("inner_position");
   await desktop("finish_capture",{token:seed.token,region:{x:mainOrigin.x+20-seed.origin.x,y:mainOrigin.y+20-seed.origin.y,width:8,height:8},action:"copy"});
   result.clipboardSeed={width:8,height:8,history:(await desktop("capture_history")).length};
-  const shown=await shownCard(firstCard.id),frozen=await begin(),selected=selection(shown,frozen);
+  const shown=await bottomOriginal(firstCard.id),frozen=await begin(),selected=selection(shown,frozen);
   result.race={shown,selected,startedAt:new Date().toISOString()};
   await exec("window.__copyResult={pending:true}; window.__TAURI_INTERNALS__.invoke('plugin:desktop|finish_capture',arguments[0]).then(()=>window.__copyResult={ok:true,at:Date.now()},error=>window.__copyResult={error:String(error),at:Date.now()});",[{token:frozen.token,region:selected.region,action:"copy"}]);
   await delay(Number(process.env.KINSHOKO_RACE_DELAY??400));
@@ -81,7 +82,7 @@ try{
   check(!result.race.copy.ok&&!result.race.containsOriginal,"safe-mode revocation during slow original decode cannot commit late original pixels to the real OS clipboard");
  }else{
   const second=await library("create_library",{parent:join(work,"libraries"),name:"当前独立库 B"});await importFiles(second,[detail]);await reload();
-  let shown=await shownCard(firstCard.id);check(shown.thumbWidth<originalWidth,"formal waterfall displays a reduced derivative of the high-resolution original");result.dpr=shown.dpr;
+  let shown=await bottomOriginal(firstCard.id);check(shown.thumbWidth<originalWidth,"formal waterfall displays a reduced derivative of the high-resolution original");result.dpr=shown.dpr;
   if(process.env.KINSHOKO_CAPTURE_DPR)check(Math.abs(shown.dpr-Number(process.env.KINSHOKO_CAPTURE_DPR))<.001,"requested WebView DPR is actual; this is not system DPI acceptance");
   let aggregate=(await library("workspace_browse",{query:{scope:{kind:"all"},conditions:{conditions:[]},cursor:null,limit:500,thumbnailPx:256},safeMode:true})).cards.find(c=>c.id===firstCard.id);
   check(aggregate.sources.length===2,"real identical originals aggregate with two independent registered sources");
@@ -90,31 +91,32 @@ try{
   await desktop("cancel_capture",{token:prior.token});check((await desktop("frozen_screen"))?.image===fresh.frozen.image,"late old cancel does not close the next native capture");
   const selected=selection(shown,fresh);const rejected=await desktop("finish_capture",{token:prior.token,region:selected.region,action:"copy"}).then(()=>false,()=>true);check(rejected&&(await desktop("frozen_screen"))?.image===fresh.frozen.image,"late old finish cannot consume a new native capture");await desktop("cancel_capture",{token:fresh.token});
   result.staleInput=await staleInput();await exec("window.__lateReport=arguments[0]",[result.staleInput]);
-  await verifyOriginal(await shownCard(firstCard.id),aggregate,"late prior source report");
+  await verifyOriginal(await bottomOriginal(firstCard.id),aggregate,"late prior source report");
   // Add unique content to force actual virtualization, then scroll out and back before F1.
   const extra=Array.from({length:120},(_,i)=>{const path=join(work,"sources",`other-${i}.png`);png(path,80+(i%3)*20,100+(i%4)*30,i+1);return path;});await importFiles(second,extra);await reload();
+  await until("updated 121-card production wall",()=>exec("return document.querySelector('.wall')?.dataset.total==='121'&&document.querySelector('.card img')?.complete"));
   const initialIds=await exec("return [...document.querySelectorAll('.card')].map(n=>n.dataset.id)");
   await exec("const el=document.querySelector('.wall');el.scrollTop=el.scrollHeight;el.dispatchEvent(new Event('scroll',{bubbles:true}));");
   await until("recycled bottom population",()=>exec("return [...document.querySelectorAll('.card')].some(n=>!arguments[0].includes(n.dataset.id))",[initialIds]));
   check(await exec("return [...document.querySelectorAll('.card')].some(n=>!arguments[0].includes(n.dataset.id))",[initialIds]),"actual virtualized wall recycles visible card population");
-  await shownCard(firstCard.id);
+  await bottomOriginal(firstCard.id);
   await exec("const el=document.querySelector('.wall');el.scrollTop=0;el.dispatchEvent(new Event('scroll',{bubbles:true}));");
   await until("original virtualized out",()=>exec("return ![...document.querySelectorAll('.card')].some(n=>n.dataset.id===arguments[0])",[firstCard.id]));
   await exec("const el=document.querySelector('.wall');el.scrollTop=el.scrollHeight;el.dispatchEvent(new Event('scroll',{bubbles:true}));");
-  shown=await shownCard(firstCard.id);await verifyOriginal(shown,aggregate,"immediate virtual return");
+  shown=await bottomOriginal(firstCard.id);await verifyOriginal(shown,aggregate,"immediate virtual return");
   const size=await native("inner_size");await native("set_size","main",{value:{type:"Physical",data:{width:Math.max(850,size.width-220),height:size.height}}});
-  await verifyOriginal(await shownCard(firstCard.id),aggregate,"native width reflow");
-  await native("set_size","main",{value:{type:"Physical",data:size}});await verifyOriginal(await shownCard(firstCard.id),aggregate,"continuous resize return");
+  await verifyOriginal(await bottomOriginal(firstCard.id),aggregate,"native width reflow");
+  await native("set_size","main",{value:{type:"Physical",data:size}});await verifyOriginal(await bottomOriginal(firstCard.id),aggregate,"continuous resize return");
   const priorInstance=await exec("return window.__documentMarker");
   await reload();
   await exec("const el=document.querySelector('.wall');el.scrollTop=el.scrollHeight;el.dispatchEvent(new Event('scroll',{bubbles:true}));");
-  await verifyOriginal(await shownCard(firstCard.id),aggregate,"document re-creation");
+  await verifyOriginal(await bottomOriginal(firstCard.id),aggregate,"document re-creation");
   check((await exec("return window.__documentMarker"))!==priorInstance,"real WebView document is re-created before the next source handshake");
   // Destroy and re-create the real main HWND while a reference pin keeps the WebDriver browser alive.
   const oldReport=await staleInput();
   const oldHandle=await wd("GET",`${base}/window`),oldNative=mainHwnd();
   const beforeHandles=await wd("GET",`${base}/window/handles`);
-  await capture(await shownCard(firstCard.id),"pin");
+  await capture(await bottomOriginal(firstCard.id),"pin");
   const survivor=await until("spare native WebView",async()=>(await wd("GET",`${base}/window/handles`)).find(h=>!beforeHandles.includes(h)));
   await wd("DELETE",`${base}/window`);await wd("POST",`${base}/window`,{handle:survivor});
   const reopen=spawn(application,[],{env:{...process.env,KINSHOKO_DATA_DIR:join(work,"app-data"),KINSHOKO_SKIP_AUTOSTART:"1",WEBVIEW2_USER_DATA_FOLDER:join(work,"webview")},windowsHide:true,stdio:"ignore"});
@@ -124,11 +126,11 @@ try{
   await exec("window.__lateReport=arguments[0];const el=document.querySelector('.wall');el.scrollTop=el.scrollHeight;el.dispatchEvent(new Event('scroll',{bubbles:true}));",[oldReport]);
   const newNative=mainHwnd();result.hwndRecreation={oldHandle,newHandle,oldNative,newNative};
   check(oldNative.length===1&&newNative.length===1&&oldNative[0]!==newNative[0],"real main HWND is destroyed and re-created");
-  await verifyOriginal(await shownCard(firstCard.id),aggregate,"native HWND re-creation with late old report");
+  await verifyOriginal(await bottomOriginal(firstCard.id),aggregate,"native HWND re-creation with late old report");
   // Cross-card/toolbar regions stay ordinary screen captures.
   const ordinaryBefore=(await desktop("capture_history")).length, outside=await begin();await desktop("finish_capture",{token:outside.token,region:{x:(await native("inner_position")).x+30-outside.origin.x,y:(await native("inner_position")).y+30-outside.origin.y,width:80,height:60},action:"copy"});const ordinary=(await desktop("capture_history"))[0];check((await desktop("capture_history")).length===ordinaryBefore+1&&ordinary.width===80&&ordinary.height===60,"outside a single reference remains a native screen capture");
   // A genuine topmost external native window occludes the source.
-  shown=await shownCard(firstCard.id);const covering={x:shown.x+Math.floor(shown.width/4)-8,y:shown.y+Math.floor(shown.height/4)-8,width:Math.floor(shown.width/8)+30,height:Math.floor(shown.height/8)+30};
+  shown=await bottomOriginal(firstCard.id);const covering={x:shown.x+Math.floor(shown.width/4)-8,y:shown.y+Math.floor(shown.height/4)-8,width:Math.floor(shown.width/8)+30,height:Math.floor(shown.height/8)+30};
   const formScript=join(work,"occluder.ps1");writeFileSync(formScript,`Add-Type -AssemblyName System.Windows.Forms\nAdd-Type -AssemblyName System.Drawing\n$f=New-Object System.Windows.Forms.Form\n$f.FormBorderStyle='None'\n$f.StartPosition='Manual'\n$f.Location=New-Object System.Drawing.Point(${covering.x},${covering.y})\n$f.ClientSize=New-Object System.Drawing.Size(${covering.width},${covering.height})\n$f.TopMost=$true\n$f.BackColor=[System.Drawing.Color]::FromArgb(3,17,229)\n$f.Add_Shown({[IO.File]::WriteAllText('${join(work,"occluder-ready.txt").replaceAll("'","''")}','ready')})\n[System.Windows.Forms.Application]::Run($f)\n`);
   occluder=spawn("powershell",["-NoProfile","-NonInteractive","-ExecutionPolicy","Bypass","-STA","-File",formScript],{windowsHide:true,stdio:"ignore"});await until("real external HWND visible",()=>{try{return readFileSync(join(work,"occluder-ready.txt"),"utf8")==="ready";}catch{return false;}});
   const coveredBefore=(await desktop("capture_history")).length;const coveredCopy=await capture(shown,"copy");check((await desktop("capture_history")).length===coveredBefore+1,"external topmost HWND prevents original-source capture under its coverage");const coveredEntry=(await desktop("capture_history"))[0];check(coveredEntry.width===coveredCopy.region.width&&coveredEntry.height===coveredCopy.region.height,"native occluded selection preserves screen rather than original dimensions");occluder.kill();occluder=null;
