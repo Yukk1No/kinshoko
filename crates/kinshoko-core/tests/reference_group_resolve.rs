@@ -428,3 +428,32 @@ fn permanent_delete_refuses_when_a_group_file_cannot_be_checked() {
         Err(kinshoko_core::library::Error::ReferenceGroups(_))
     ));
 }
+
+#[test]
+fn reference_authorization_uses_the_current_mode_instead_of_an_active_lens_cache() {
+    let f = Fixture::new();
+    f.a.set_safe_mode(false);
+    rate_explicit(&f.a, &f.a_images[1]);
+    let detached = DetachedLenses::default();
+    let safe_references = f.references(&detached, true);
+    // A delayed read action has restored the shared library cache to the former off value.
+    // Authorization carries the current on value and must still seal this real source.
+    assert!(!f.a_lens.image(&f.a_images[1]).unwrap().sealed);
+    assert!(
+        safe_references
+            .image(&f.a.info().id, &f.a_images[1])
+            .unwrap()
+            .sealed
+    );
+    assert!(
+        !f.a_lens.image(&f.a_images[1]).unwrap().sealed,
+        "authorization must not mutate the shared cache"
+    );
+    f.a.set_safe_mode(true);
+    assert!(
+        !f.references(&detached, false)
+            .image(&f.a.info().id, &f.a_images[1])
+            .unwrap()
+            .sealed
+    );
+}

@@ -48,6 +48,8 @@ T13 同模式恢复也递增代次并清除旧 reference、capture session 和�
 模型加载、推理与结果解释在锁外，标签、建议分级和完成标记在一个结果发布边界内写入。
 取得锁后再次核对暂停/停止，迟到推理结果可被丢弃，恢复后可以重新打标。
 
+参考授权按本次 `References.safe_mode` 与数据库中的有效分级计算 sealed，不信任共享 Library 的模式缓存。真实库公开 RED 复现了 active cache=off、操作 mode=on 时错误放行；修复后两个模式方向均按操作参数，且不修改共享缓存。此为公开行为证明，未复现 native 线程交错。
+
 锁序是 transition（需要时）→ visibility_commit → device/catalog/workspace/Shell/desktop 资源。
 不得持资源锁进入 gate，不得在 gate 内 await、重入或 join 调度线程。
 create/register/switch/初次恢复先完成来源状态，再在锁外 forward_events → attach；attach 先 detach 旧 worker。

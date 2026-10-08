@@ -139,6 +139,16 @@ impl ReferenceLens {
 
     /// 参考图及是否需要遮蔽。回收站里的图也能取得（参考组成员不随删除消失）。
     pub fn image(&self, image_id: &str) -> Result<ReferenceImage, Error> {
+        self.image_with_mode(image_id, self.inner.safe_mode())
+    }
+
+    /// Application authorization supplies its current mode. A shared library cache can have
+    /// been updated by a delayed read and is not the authority for this reference operation.
+    pub(crate) fn image_with_mode(
+        &self,
+        image_id: &str,
+        safe_mode: bool,
+    ) -> Result<ReferenceImage, Error> {
         let conn = self.inner.readers.get();
         let (width, height, adult) = conn
             .query_row(
@@ -155,7 +165,7 @@ impl ReferenceLens {
             id: image_id.to_owned(),
             width,
             height,
-            sealed: adult && self.inner.safe_mode(),
+            sealed: adult && safe_mode,
         })
     }
 
