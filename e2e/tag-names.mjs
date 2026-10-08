@@ -85,6 +85,7 @@ let first, second, target;
 async function openNames() {
   await until("settings button", () => session.find(setting));
   await session.click(setting);
+  await until("name management controls", () => session.find("//button[normalize-space()='管理显示名称']"));
   await session.click("//button[normalize-space()='管理显示名称']");
   await until("name selector", () => session.find("//select[@aria-label='选择标签']"));
   await session.select("//select[@aria-label='选择标签']", target);
