@@ -205,6 +205,10 @@ function LibraryWorkspace({
           finished={report}
           onStarted={started}
           onDismissReport={() => setReport(null)}
+          onOpenTrash={() => {
+            setSearch({ conditions: [], exact: false });
+            changeScope({ kind: "trash" });
+          }}
         />
       </header>
       <div className="app-body">

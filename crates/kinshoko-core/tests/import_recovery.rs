@@ -45,6 +45,8 @@ fn kind(outcome: &ImportOutcome) -> &'static str {
         ImportOutcome::ReadFailed { .. } => "failed",
         ImportOutcome::Refreshed { .. } => "refreshed",
         ImportOutcome::NewVersion { .. } => "newVersion",
+        ImportOutcome::TrashDuplicate { .. } => "trashDuplicate",
+        ImportOutcome::SkippedDeleted => "skippedDeleted",
     }
 }
 

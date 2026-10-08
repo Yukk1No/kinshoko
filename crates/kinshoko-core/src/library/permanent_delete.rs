@@ -194,6 +194,12 @@ fn remove_image(tx: &Transaction, id: &str) -> Result<(), Error> {
         )
         .optional()?
         .ok_or(Error::UnknownImage)?;
+    // 内容版本的删除决定与参考图、来源绑定的删除一起提交，不能留下已删但可重导的窗口。
+    tx.execute(
+        "INSERT INTO eagle_deleted_content (sha256, deleted_at) VALUES (?1, ?2)
+         ON CONFLICT(sha256) DO UPDATE SET deleted_at = excluded.deleted_at",
+        params![sha, super::now_ms()],
+    )?;
     tx.execute(
         "INSERT OR IGNORE INTO original_removal (rel_path, sha256) VALUES (?1, ?2)",
         params![rel_path, sha],
@@ -234,16 +240,17 @@ pub(super) fn clear_removals(conn: &Connection, root: &Path) -> Result<Vec<Strin
     };
     let mut removed = Vec::new();
     for (rel_path, sha) in pending {
-        let in_use = conn
-            .query_row(
-                "SELECT 1 FROM image WHERE rel_path = ?1
-                 UNION ALL SELECT 1 FROM import_pending WHERE rel_path = ?1",
-                [&rel_path],
-                |_| Ok(()),
-            )
-            .optional()?
-            .is_some();
-        if !in_use {
+        let (image_uses, import_uses): (bool, bool) = conn.query_row(
+            "SELECT EXISTS (SELECT 1 FROM image WHERE rel_path = ?1),
+                    EXISTS (SELECT 1 FROM import_pending WHERE rel_path = ?1)",
+            [&rel_path],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+        // pending 只暂时保护文件，不能取消永久删除：导入撤回后还要继续清除。
+        if !image_uses && import_uses {
+            continue;
+        }
+        if !image_uses {
             match std::fs::remove_file(root.join(&rel_path)) {
                 Ok(()) => removed.push(sha),
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => removed.push(sha),

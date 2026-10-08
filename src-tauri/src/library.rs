@@ -16,10 +16,10 @@ use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::library::{
     BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping,
-    ExternalVocabulary, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportSource, LibraryEvent,
-    LibraryInfo, MappedExternal, PermanentDeletePreview, PersonalApproxEntry, RecoveryReport,
-    ReferenceLens, Sidebar, TagAlias, TagEdit, TagGroupView, TagNamespace, TagTranslations,
-    Vocabulary, discover_eagle_libraries as discover_eagle,
+    ExternalVocabulary, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportOptions,
+    ImportSource, LibraryEvent, LibraryInfo, MappedExternal, PermanentDeletePreview,
+    PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar, TagAlias, TagEdit, TagGroupView,
+    TagNamespace, TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::reference_groups::{DetachedLenses, References};
 use kinshoko_core::search::{Candidate, ConditionTree, SearchCache, SearchInput};
@@ -142,6 +142,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             move_folder,
             recovery,
             start_import,
+            import_contains_eagle,
             cancel_import,
             pick_folder,
             pick_files,
@@ -726,17 +727,24 @@ async fn start_import<R: Runtime>(
     state: State<'_, LibraryState>,
     library_id: String,
     source: ImportSource,
+    options: Option<ImportOptions>,
 ) -> Result<String, String> {
     let paths = source.paths.len().min(u32::MAX as usize) as u32;
     let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
     let id = blocking(move || {
         with_libraries(&device_dir, &libraries, |libraries| {
-            libraries.start_import(&library_id, source)
+            libraries.start_import_with_options(&library_id, source, options.unwrap_or_default())
         })
     })
     .await?;
     crate::diagnostics::record(&app, UsageEvent::ImportStarted { paths });
     Ok(id)
+}
+
+/// 来源预检只读取文件夹，所有入口在开始 Eagle 任务前使用同一个选择步骤。
+#[tauri::command]
+async fn import_contains_eagle(source: ImportSource) -> Result<bool, String> {
+    blocking(move || Ok(source.contains_eagle())).await
 }
 
 #[tauri::command]

@@ -375,6 +375,7 @@ describe("主窗口", () => {
     const prompt = await screen.findByRole("alert", { name: "Eagle 资料库换了位置？" });
     expect(within(prompt).getByText(/100% 的条目已经从另一个位置迁入过/)).toBeTruthy();
     fireEvent.click(within(prompt).getByRole("button", { name: button }));
+    fireEvent.click(await screen.findByRole("button", { name: "开始 Eagle 导入" }));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(2));
     expect(sent("plugin:library|confirm_eagle_location")).toEqual([
       { libraryId: "L1", path: "E:\\新\\主库.library", choice },
@@ -382,6 +383,7 @@ describe("主窗口", () => {
     expect(sent("plugin:library|start_import").at(-1)).toEqual({
       libraryId: "L1",
       source: { paths: ["E:\\新\\主库.library"] },
+      options: { eagleDeletedContent: "skipDeleted" },
     });
     expect(screen.queryByRole("alert", { name: "Eagle 资料库换了位置？" })).toBeNull();
   });
@@ -734,6 +736,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
   async function startEagle() {
     fireEvent.click(screen.getByRole("button", { name: "从 Eagle 迁入…" }));
     fireEvent.click(await screen.findByRole("button", { name: "迁入 主库" }));
+    fireEvent.click(await screen.findByRole("button", { name: "开始 Eagle 导入" }));
   }
   async function startFiles(count: number) {
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考\\a.png"];
@@ -831,7 +834,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     await startEagle();
     expect(await screen.findByText("无法开始导入：资料库正忙")).toBeTruthy();
     expect(step()).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "迁入 主库" }));
+    fireEvent.click(screen.getByRole("button", { name: "开始 Eagle 导入" }));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(4));
     await finished("T3");
     await answer("T3");
