@@ -128,7 +128,11 @@ try {
   await until("controlled fallback pin drew source", () => exec("const c=document.querySelector('.pin-canvas');if(!c)return false;const ctx=c.getContext('2d'),d=ctx.getImageData(Math.floor(c.width/2),Math.floor(c.height/2),1,1).data;return ctx.getContextAttributes().colorType!=='float16'&&d[3]===255&&!(d[0]===138&&d[1]===138&&d[2]===142)&&!document.querySelector('[aria-label=运行时能力提示]')"));
   await screenshot("controlled-float16-fallback-pin.png"); check(true, "controlled float16/createImageBitmap absence uses 8-bit pin without blocking display");
   await cdp("Page.removeScriptToEvaluateOnNewDocument", { identifier: fallbackScriptId });
-  try { await invoke("plugin:window|hide", { label: await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label") }); report.pinHiddenBeforeMissingCheck = true; } catch (error) { report.pinHideLimitation = String(error); }
+  const hidden = spawnSync("python", ["e2e/native-pin-hide-t18.py", application], { windowsHide: true, encoding: "utf8", timeout: 15000 });
+  writeFileSync(join(work, "controlled-pin-hidden.json"), hidden.stdout);
+  if (hidden.status !== 0) throw Error("Owned pin hide setup: " + hidden.stderr);
+  report.pinHiddenBeforeMissingCheck = JSON.parse(hidden.stdout);
+  check(!await invoke("plugin:window|is_visible", { label: await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label") }), "controlled missing canvas starts from a truly hidden owned native pin");
   const missingScriptId = await injectNextDocument("window.__T18_CONTROLLED_ABSENCE__='canvas2d unavailable in current Runtime';const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(kind){return kind==='2d'?null:original.apply(this,arguments)};");
   await until("actual missing canvas pin reason visible", () => exec("return document.querySelector('[role=alert]')?.textContent.includes('无法建立二维画布，钉图无法显示')"));
   const pinLabel = await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label");
