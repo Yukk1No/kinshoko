@@ -1,0 +1,37 @@
+[workspace]
+resolver = "3"
+members = ["crates/kinshoko-core", "crates/kinshoko-tagger", "src-tauri"]
+# 探测工具与原型各自带 Cargo.lock，不并入工作区。
+exclude = ["tools", "prototype"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[workspace.dependencies]
+kinshoko-core = { path = "crates/kinshoko-core" }
+kinshoko-tagger = { path = "crates/kinshoko-tagger" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ts-rs = "12"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+lto = "thin"
+
+# 图片解码、色彩管理与缩放在未优化构建里慢一两个数量级，测试与开发运行时都受影响。
+[profile.dev.package]
+image = { opt-level = 3 }
+moxcms = { opt-level = 3 }
+fast_image_resize = { opt-level = 3 }
+zune-jpeg = { opt-level = 3 }
+png = { opt-level = 3 }
+image-webp = { opt-level = 3 }
+gif = { opt-level = 3 }
+jpeg-encoder = { opt-level = 3 }
+fdeflate = { opt-level = 3 }
+miniz_oxide = { opt-level = 3 }

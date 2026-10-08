@@ -1,0 +1,126 @@
+name: ci
+
+on:
+  push:
+    branches: [main, "integration/**"]
+    paths-ignore:
+      - "docs/**"
+      - "design/**"
+      - "tools/**"
+      - "prototype/**"
+      - "**/*.md"
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "design/**"
+      - "tools/**"
+      - "prototype/**"
+      - "**/*.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  app:
+    name: Windows 应用
+    # 固定 windows-2022（WebView2 131）：windows-latest（Windows Server 2025 镜像，WebView2 153）上
+    # msedgedriver 启动应用后 60 秒等不到 DevToolsActivePort，WebDriver 建不了会话。
+    # 与本应用无关，Tauri 官方示例同样失败：
+    # https://github.com/tauri-apps/webdriver-example/actions/runs/37109073064
+    # 对比实验：https://github.com/Yukk1No/kinshoko/actions/runs/37614514097
+    # 等上游修好后再改回 windows-latest，冒烟测试保持阻断。
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      # 工具链版本以 rust-toolchain.toml 为准，这里只保证组件齐全。
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.95"
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Rust 格式检查
+        run: cargo fmt --all --check
+
+      # 应用壳编译时要读到前端产物（tauri.conf.json 的 frontendDist），先构建前端。
+      - name: 前端构建
+        run: npm run vite:build
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: 核心 crate 测试（同时重新生成 ts-rs 类型）
+        run: npm run bindings -- --locked
+
+      - name: ts-rs 生成物与提交内容一致
+        shell: pwsh
+        run: |
+          $changes = git status --porcelain -- src/bindings
+          if ($changes) {
+            git status -- src/bindings
+            git diff -- src/bindings
+            Write-Error "src/bindings 与 Rust 类型不一致：运行 npm run bindings 后提交生成物。"
+            exit 1
+          }
+
+      - name: TS 类型检查
+        run: npm run typecheck
+
+      - name: 前端测试
+        run: npm test
+
+      - name: Tauri 原生构建与安装包
+        run: npm run build
+
+      # 静默安装到临时目录：exe 与 DirectML.dll（打标子进程要用，#52）都装上，再静默卸载（#70）。
+      - name: 安装包检查
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          ./scripts/release/check-installer.ps1 $installer.FullName
+
+      # Tauri 官方 WebDriver：tauri-driver 转发给与 WebView2 版本一致的 msedgedriver。
+      - name: 安装 WebDriver 工具
+        run: |
+          cargo install tauri-driver --locked
+          cargo install --git https://github.com/chippers/msedgedriver-tool
+          msedgedriver-tool
+
+      - name: WebDriver 冒烟测试（建库、导入、浏览、重开）
+        run: node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe
+
+      # WebView2 解码原图与缩略图、display-p3 canvas 读回色块比较 ΔE2000（#45）。
+      # 未通过是要由人判断的实验结果（报告随产物上传），不让构建变红。
+      - name: 还原度门槛实验
+        continue-on-error: true
+        run: node e2e/fidelity-gate.mjs target/release/kinshoko.exe "${{ runner.temp }}/fidelity"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fidelity-report-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/fidelity/fidelity-report-*
+            ${{ runner.temp }}/fidelity/run-*/samples/*
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kinshoko-setup-${{ github.sha }}
+          path: target/release/bundle/nsis/*.exe
+          retention-days: 14
