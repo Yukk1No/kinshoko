@@ -501,6 +501,15 @@ impl Library {
     }
 
     /// 标签词表快照：标签、各语言名称、别名、命名空间、外部对应与计数。
+    // Only identities are recorded for name provenance. Hidden labels remain private to the library.
+    pub(crate) fn catalog_existing_tag_ids(&self) -> Result<Vec<String>, Error> {
+        let conn = self.inner.readers.get();
+        let mut statement = conn.prepare("SELECT id FROM tag")?;
+        Ok(statement
+            .query_map([], |row| row.get(0))?
+            .collect::<Result<_, _>>()?)
+    }
+
     pub fn vocabulary(&self) -> Result<Vocabulary, Error> {
         tags::vocabulary(&self.inner)
     }

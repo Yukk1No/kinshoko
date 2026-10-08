@@ -63,7 +63,7 @@ function MappingRow({ mapping, workspace, busy, onSave }: { mapping: LibraryTagM
   const candidates = workspace.catalog.tags.filter((tag) => tag.namespace === mapping.legacy.namespace);
   return <tr data-library-id={mapping.libraryId} data-local-tag-id={mapping.localTagId}>
     <th scope="row"><span>{library?.name ?? mapping.libraryId} · </span><span>{localName(mapping)}</span><small> · {namespaces[mapping.legacy.namespace]}</small>
-      <details><summary>本地定义</summary><p>库内 ID：{mapping.localTagId}</p><p>别名：{mapping.legacy.aliases.map((a) => a.name).join("、") || "无"}</p><p>外部对应：{mapping.legacy.external.map((name) => `danbooru:${name}`).join("、") || "无"}</p><p>名称来源待处理：迁移选择前保留原显示。</p></details>
+      <details><summary>本地定义</summary><p>库内 ID：{mapping.localTagId}</p><p>别名：{mapping.legacy.aliases.map((a) => a.name).join("、") || "无"}</p><p>外部对应：{mapping.legacy.external.map((name) => `danbooru:${name}`).join("、") || "无"}</p><p>{mapping.nameProvenance === "pending" ? "名称来源待处理：迁移选择前保留原显示。" : "名称规则：使用统一目录的默认与显式偏好。"}</p></details>
     </th>
     <td><span>{shared ? nameOf(shared) : mapping.catalogId}</span><small> · {basis[mapping.basis]}</small><details><summary>统一定义</summary><p>统一 ID：{mapping.catalogId}</p><p>外部对应：{shared?.external.map((e) => `${e.vocabulary}:${e.name}`).join("、") || "无"}</p></details></td>
     <td><select aria-label={`纠正 ${library?.name ?? mapping.libraryId} 的 ${localName(mapping)} 对应`} value={target} disabled={busy} onChange={(event) => setTarget(event.target.value)}>

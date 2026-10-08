@@ -5,6 +5,6 @@ import type { TagAlias } from "./TagAlias";
 import type { TagNamespace } from "./TagNamespace";
 
 /**
- * Initial definitions only. Name defaults, preferences and provenance migration are later actions.
+ * Resolved shared names, with defaults and explicit preferences kept independently.
  */
-export type CatalogTag = { id: string, namespace: TagNamespace, names: Array<LocalizedName>, aliases: Array<TagAlias>, external: Array<ExternalTagIdentity>, };
+export type CatalogTag = { id: string, namespace: TagNamespace, names: Array<LocalizedName>, defaultNames: Array<LocalizedName>, namePreferences: Array<LocalizedName>, aliases: Array<TagAlias>, external: Array<ExternalTagIdentity>, };

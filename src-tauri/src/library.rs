@@ -9,6 +9,8 @@
 //! - 安全模式（#60）：开关保存在应用壳设置里，打开资料库与切换时设给当前资料库。这里的命令都是
 //!   浏览视角；参考视角的句柄在装配（打开资料库）时取走，只交给参考组与桌面钉图，不经命令给前端。
 
+mod names;
+
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, Weak};
@@ -131,7 +133,11 @@ fn with_catalog<T>(
 ) -> Result<T, String> {
     let mut state = lock(state);
     if state.is_none() {
-        *state = Some(TagCatalog::open(device_dir).map_err(|e| e.to_string())?);
+        let mut catalog = TagCatalog::open(device_dir).map_err(|e| e.to_string())?;
+        catalog
+            .install_name_defaults(bundled_translations())
+            .map_err(|e| e.to_string())?;
+        *state = Some(catalog);
     }
     action(state.as_mut().expect("统一目录已打开")).map_err(|e| e.to_string())
 }
@@ -196,6 +202,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             catalog_image_tags,
             inspect_tag_catalog,
             correct_tag_mapping,
+            names::edit_tag_name,
             edit_tags,
             vocabulary,
             tag_groups,
@@ -867,10 +874,11 @@ async fn image_tags(
     lang: String,
 ) -> Result<ImageTags, String> {
     let library = state.current(&library_id)?;
+    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
     blocking(move || {
-        library
-            .image_tags(&image_id, &lang)
-            .map_err(|e| e.to_string())
+        with_catalog(&dir, &catalog, |catalog| {
+            Ok(catalog.image_tags(&library, &image_id, &lang)?.image)
+        })
     })
     .await
 }
@@ -988,7 +996,13 @@ async fn vocabulary(
     library_id: String,
 ) -> Result<Vocabulary, String> {
     let library = state.current(&library_id)?;
-    blocking(move || library.vocabulary().map_err(|e| e.to_string())).await
+    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    blocking(move || {
+        with_catalog(&dir, &catalog, |catalog| {
+            catalog.search_vocabulary(&library)
+        })
+    })
+    .await
 }
 
 /// 侧栏的标签分组及计数，名称按界面语言 `lang`。
@@ -999,39 +1013,49 @@ async fn tag_groups(
     lang: String,
 ) -> Result<Vec<TagGroupView>, String> {
     let library = state.current(&library_id)?;
-    blocking(move || library.tag_groups(&lang).map_err(|e| e.to_string())).await
+    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    blocking(move || {
+        with_catalog(&dir, &catalog, |catalog| {
+            catalog.tag_groups(&library, &lang)
+        })
+    })
+    .await
 }
 
 /// 给标签加一个别名；之后按这个叫法能查到、能添加这个标签。
 #[tauri::command]
-async fn add_tag_alias(
+async fn add_tag_alias<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, LibraryState>,
     library_id: String,
     tag_id: String,
     alias: TagAlias,
 ) -> Result<(), String> {
-    let library = state.current(&library_id)?;
-    blocking(move || {
-        library
-            .add_tag_alias(&tag_id, &alias)
-            .map_err(|e| e.to_string())
-    })
+    names::edit_local_alias(
+        app,
+        &state,
+        library_id,
+        tag_id,
+        names::LocalAliasEdit::Add(alias),
+    )
     .await
 }
 
 #[tauri::command]
-async fn remove_tag_alias(
+async fn remove_tag_alias<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, LibraryState>,
     library_id: String,
     tag_id: String,
     alias: String,
 ) -> Result<(), String> {
-    let library = state.current(&library_id)?;
-    blocking(move || {
-        library
-            .remove_tag_alias(&tag_id, &alias)
-            .map_err(|e| e.to_string())
-    })
+    names::edit_local_alias(
+        app,
+        &state,
+        library_id,
+        tag_id,
+        names::LocalAliasEdit::Remove(alias),
+    )
     .await
 }
 
@@ -1242,7 +1266,19 @@ async fn personal_approx(
     lang: String,
 ) -> Result<Vec<PersonalApproxEntry>, String> {
     let library = state.current(&library_id)?;
-    blocking(move || library.personal_approx(&lang).map_err(|e| e.to_string())).await
+    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    blocking(move || {
+        with_catalog(&dir, &catalog, |catalog| {
+            let snapshot = catalog.synchronize(&library)?;
+            let mut entries = library.personal_approx(&lang)?;
+            for entry in &mut entries {
+                entry.a = snapshot.display_label(&library.info().id, &entry.a, &lang);
+                entry.b = snapshot.display_label(&library.info().id, &entry.b, &lang);
+            }
+            Ok(entries)
+        })
+    })
+    .await
 }
 
 /// 随软件分发的翻译表（`data/builtin-translation-table.json`），启动时取一次。唯一的注入点：

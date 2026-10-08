@@ -2102,7 +2102,7 @@ braided_bangs	编发刘海	辫子刘海
 red_gem	红宝石	红色宝石
 shimenawa	注连绳
 wagashi	和果子
-long_hair_between_eyes	长眼间发
+long_hair_between_eyes	两眼间长发	长眼间发	改：长眼间发 → 两眼间长发，采用负责人认可的默认显示名称；原名称保留为可删除别名
 coin	硬币	金币
 blue_choker	蓝色颈带
 merfolk	人鱼族	鱼人
@@ -2816,7 +2816,7 @@ fashion	时尚	时装
 turn_pale	脸色发白	脸色苍白
 heart-shaped_box	爱心盒子	心形礼盒
 teamwork_(sexual)			弃：原译 协作（性）；含义不直观（多人配合的性行为），拿不准中文惯用说法
-parted_hair	分发	分开的头发
+parted_hair	分缝发型	分开的头发|分发	改：分发 → 分缝发型，采用负责人认可的默认显示名称；原名称与已有别名继续用于查找
 red_bra	红色胸罩
 leather_jacket	皮夹克	皮衣
 reverse_cowgirl_position	反向骑乘位	背向女上位

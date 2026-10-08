@@ -2,6 +2,9 @@
 //!
 //! Local IDs and image decisions remain in each Library. Only an explicit external identity
 //! in the same namespace joins identities automatically; names and aliases never do.
+mod names;
+pub use names::CatalogNameEdit;
+
 use std::collections::BTreeSet;
 use std::fmt;
 use std::path::Path;
@@ -25,6 +28,7 @@ pub enum CatalogError {
     UnknownMapping,
     NamespaceMismatch,
     UnsupportedFormat,
+    InvalidName,
 }
 impl fmt::Display for CatalogError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -36,6 +40,7 @@ impl fmt::Display for CatalogError {
             Self::UnknownTag => write!(f, "统一标签目录中没有这个标签"),
             Self::UnknownMapping => write!(f, "资料库中没有这个标签对应"),
             Self::NamespaceMismatch => write!(f, "命名空间不同的标签不能对应同一身份"),
+            Self::InvalidName => write!(f, "名称与语言不能为空"),
             Self::UnsupportedFormat => write!(f, "统一标签目录由更新版本创建，请更新 Kinshoko"),
         }
     }
@@ -71,7 +76,7 @@ pub struct ExternalTagIdentity {
     pub name: String,
 }
 
-/// Initial definitions only. Name defaults, preferences and provenance migration are later actions.
+/// Resolved shared names, with defaults and explicit preferences kept independently.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -79,6 +84,10 @@ pub struct CatalogTag {
     pub id: String,
     pub namespace: TagNamespace,
     pub names: Vec<LocalizedName>,
+    #[serde(default)]
+    pub default_names: Vec<LocalizedName>,
+    #[serde(default)]
+    pub name_preferences: Vec<LocalizedName>,
     pub aliases: Vec<TagAlias>,
     pub external: Vec<ExternalTagIdentity>,
 }
@@ -98,6 +107,7 @@ pub enum CatalogMatchBasis {
 #[ts(export)]
 pub enum TagNameProvenance {
     Pending,
+    Catalog,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -169,6 +179,10 @@ impl CatalogInspection {
             let Some(shared) = self.tags.iter().find(|tag| tag.id == mapping.catalog_id) else {
                 continue;
             };
+            if mapping.name_provenance == TagNameProvenance::Catalog {
+                local.names = shared.names.clone();
+                local.aliases = shared.aliases.clone();
+            }
             for alias in shared
                 .aliases
                 .iter()
@@ -204,6 +218,7 @@ pub struct TagCatalogWorkspace {
 /// Application data, not a cache. Opening or synchronizing never writes a Library.
 pub struct TagCatalog {
     conn: Connection,
+    name_defaults: Option<crate::library::TagTranslations>,
 }
 
 impl TagCatalog {
@@ -212,7 +227,7 @@ impl TagCatalog {
         let conn = Connection::open(dir.join("tag-catalog.sqlite"))?;
         conn.busy_timeout(std::time::Duration::from_secs(5))?;
         let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
-        if version > 1 {
+        if version > 2 {
             return Err(CatalogError::UnsupportedFormat);
         }
         conn.execute_batch(
@@ -229,10 +244,13 @@ impl TagCatalog {
                 library_id TEXT NOT NULL, local_tag_id TEXT NOT NULL,
                 catalog_id TEXT NOT NULL REFERENCES catalog_tag(id), legacy TEXT NOT NULL,
                 basis TEXT NOT NULL, PRIMARY KEY(library_id, local_tag_id));
-            PRAGMA user_version=1;
             COMMIT;",
         )?;
-        Ok(Self { conn })
+        names::initialize(&conn, version)?;
+        Ok(Self {
+            conn,
+            name_defaults: None,
+        })
     }
 
     /// Attach visible local definitions. Repeated attachment retains explicit corrections and
@@ -243,6 +261,23 @@ impl TagCatalog {
         let tx = self
             .conn
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        let enrolled = tx
+            .query_row(
+                "SELECT 1 FROM catalog_library_enrollment WHERE library_id=?1",
+                [library_id],
+                |_| Ok(()),
+            )
+            .optional()?
+            .is_some();
+        if !enrolled {
+            for id in library.catalog_existing_tag_ids()? {
+                tx.execute("INSERT OR IGNORE INTO catalog_legacy_tag (library_id,local_tag_id) VALUES (?1,?2)", params![library_id, id])?;
+            }
+            tx.execute(
+                "INSERT INTO catalog_library_enrollment (library_id) VALUES (?1)",
+                [library_id],
+            )?;
+        }
         let mut changed = false;
         for local in vocabulary.tags {
             let existing = tx.query_row("SELECT catalog_id,basis FROM library_tag_mapping WHERE library_id=?1 AND local_tag_id=?2", params![library_id, local.id], |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))).optional()?;
@@ -279,6 +314,7 @@ impl TagCatalog {
                 if candidates.len() <= 1 {
                     changed |= extend_externals(&tx, &target, &local.external)?;
                 }
+                changed |= names::adopt_existing_choice(&tx, library_id, &local.id, &target)?;
                 continue;
             }
             let (id, basis) = if candidates.len() == 1 {
@@ -296,12 +332,35 @@ impl TagCatalog {
                 (insert_tag(&tx, &local)?, CatalogMatchBasis::Independent)
             };
             tx.execute("INSERT INTO library_tag_mapping (library_id,local_tag_id,catalog_id,legacy,basis) VALUES (?1,?2,?3,?4,?5)", params![library_id, local.id, id, serde_json::to_string(&local)?, serde_json::to_string(&basis)?])?;
+            let adopted = tx
+                .query_row(
+                    "SELECT 1 FROM catalog_name_adoption WHERE catalog_id=?1",
+                    [&id],
+                    |_| Ok(()),
+                )
+                .optional()?
+                .is_some();
+            if adopted
+                || tx
+                    .query_row(
+                        "SELECT 1 FROM catalog_legacy_tag WHERE library_id=?1 AND local_tag_id=?2",
+                        params![library_id, local.id],
+                        |_| Ok(()),
+                    )
+                    .optional()?
+                    .is_none()
+            {
+                tx.execute("UPDATE library_tag_mapping SET name_provenance='catalog' WHERE library_id=?1 AND local_tag_id=?2", params![library_id, local.id])?;
+            }
             changed = true;
         }
         if changed {
             tx.execute("UPDATE catalog_revision SET value=value+1", [])?;
         }
         tx.commit()?;
+        if changed && let Some(table) = self.name_defaults.clone() {
+            return self.update_name_defaults(&table);
+        }
         self.inspect()
     }
 
@@ -398,6 +457,7 @@ impl TagCatalog {
             }
         };
         tx.execute("UPDATE library_tag_mapping SET catalog_id=?3,basis=?4 WHERE library_id=?1 AND local_tag_id=?2", params![library.info().id, local_tag_id, catalog_id, serde_json::to_string(&CatalogMatchBasis::Corrected)?])?;
+        names::adopt_existing_choice(&tx, &library.info().id, local_tag_id, &catalog_id)?;
         tx.execute("UPDATE catalog_revision SET value=value+1", [])?;
         tx.commit()?;
         self.inspect()
@@ -416,14 +476,14 @@ impl TagCatalog {
         image_id: &str,
         lang: &str,
     ) -> Result<CatalogImageTags, CatalogError> {
-        let image = library.image_tags(image_id, lang)?;
+        let mut image = library.image_tags(image_id, lang)?;
         let snapshot = self.synchronize(library)?;
         let mut identities = Vec::new();
         for label in image
             .tags
-            .iter()
-            .map(|t| &t.tag)
-            .chain(image.rejected.iter())
+            .iter_mut()
+            .map(|t| &mut t.tag)
+            .chain(image.rejected.iter_mut())
         {
             let Some(mapping) = snapshot
                 .mappings
@@ -444,6 +504,15 @@ impl TagCatalog {
                 .iter()
                 .map(|e| e.name.clone())
                 .collect::<Vec<_>>();
+            if mapping.name_provenance == TagNameProvenance::Catalog {
+                *label = crate::library::display_label(
+                    &label.id,
+                    shared.namespace,
+                    &shared.names,
+                    &external,
+                    lang,
+                );
+            }
             identities.push(ResolvedTagIdentity {
                 local_tag_id: label.id.clone(),
                 catalog_id: shared.id.clone(),
@@ -466,11 +535,14 @@ impl TagCatalog {
         let mut stmt = self
             .conn
             .prepare("SELECT definition FROM catalog_tag ORDER BY id")?;
-        let tags = stmt
+        let mut tags: Vec<CatalogTag> = stmt
             .query_map([], |row| row.get::<_, String>(0))?
             .map(|row| Ok(serde_json::from_str(&row?)?))
             .collect::<Result<Vec<_>, CatalogError>>()?;
-        let mut stmt = self.conn.prepare("SELECT library_id,local_tag_id,catalog_id,legacy,basis FROM library_tag_mapping ORDER BY library_id,local_tag_id")?;
+        for tag in &mut tags {
+            names::resolve(&self.conn, tag)?;
+        }
+        let mut stmt = self.conn.prepare("SELECT library_id,local_tag_id,catalog_id,legacy,basis,name_provenance FROM library_tag_mapping ORDER BY library_id,local_tag_id")?;
         let rows = stmt.query_map([], |row| {
             Ok((
                 row.get::<_, String>(0)?,
@@ -478,18 +550,23 @@ impl TagCatalog {
                 row.get::<_, String>(2)?,
                 row.get::<_, String>(3)?,
                 row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
             ))
         })?;
         let mappings = rows
             .map(|row| {
-                let (library_id, local_tag_id, catalog_id, legacy, basis) = row?;
+                let (library_id, local_tag_id, catalog_id, legacy, basis, provenance) = row?;
                 Ok(LibraryTagMapping {
                     library_id,
                     local_tag_id,
                     catalog_id,
                     legacy: serde_json::from_str(&legacy)?,
                     basis: serde_json::from_str(&basis)?,
-                    name_provenance: TagNameProvenance::Pending,
+                    name_provenance: if provenance == "catalog" {
+                        TagNameProvenance::Catalog
+                    } else {
+                        TagNameProvenance::Pending
+                    },
                 })
             })
             .collect::<Result<Vec<_>, CatalogError>>()?;
@@ -520,6 +597,8 @@ fn insert_tag(tx: &Transaction<'_>, local: &VocabularyTag) -> Result<String, Cat
         id: id.clone(),
         namespace: local.namespace,
         names: local.names.clone(),
+        default_names: Vec::new(),
+        name_preferences: Vec::new(),
         aliases: local.aliases.clone(),
         external: Vec::new(),
     };

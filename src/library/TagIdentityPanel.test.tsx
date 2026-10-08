@@ -38,7 +38,7 @@ it.each(["inspect", "correct"])("clears inspected records and discards a late %s
   const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "封印标签" }], aliases: [], external: [], count: 1 };
   const workspace: TagCatalogWorkspace = {
     libraries: [{ library: { id: "a", name: "资料库", root: "a" }, unavailable: null }],
-    catalog: { revision: 1, tags: [{ ...local, id: "shared" }, { ...local, id: "other", names: [{ lang: "zh-CN", name: "另一个身份" }] }], mappings: [{ libraryId: "a", localTagId: "local", catalogId: "shared", legacy: local, basis: "independent", nameProvenance: "pending" }] },
+    catalog: { revision: 1, tags: [{ ...local, id: "shared", defaultNames: local.names, namePreferences: [] }, { ...local, id: "other", defaultNames: local.names, namePreferences: [], names: [{ lang: "zh-CN", name: "另一个身份" }] }], mappings: [{ libraryId: "a", localTagId: "local", catalogId: "shared", legacy: local, basis: "independent", nameProvenance: "pending" }] },
   };
   let inspected = false;
   let finish: (workspace: TagCatalogWorkspace) => void = () => { throw new Error("request was not started"); };

@@ -19,6 +19,7 @@ import {
   shellSettings,
 } from "./ipc";
 import { TagMarks, tagName, UI_LANG } from "./search/SearchBox";
+import { TagNamePanel } from "./library/TagNamePanel";
 import { TagIdentityPanel } from "./library/TagIdentityPanel";
 import { UpdateSection } from "./Update";
 
@@ -156,6 +157,7 @@ export function SettingsPanel({ library = null, onChange }: Props) {
         </tbody>
       </table>
       <TagIdentityPanel />
+      <TagNamePanel />
       <h2>近似查找</h2>
       <label className="settings-row">
         <input
