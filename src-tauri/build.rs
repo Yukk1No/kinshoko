@@ -42,6 +42,7 @@ fn main() {
                         "catalog_image_tags",
                         "inspect_tag_catalog",
                         "correct_tag_mapping",
+                        "publish_tag_definitions",
                         "edit_tag_name",
                         "plan_legacy_names",
                         "preview_legacy_names",

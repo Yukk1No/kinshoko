@@ -40,7 +40,7 @@ pub enum TagNamespace {
 }
 
 impl TagNamespace {
-    fn as_str(self) -> &'static str {
+    pub(super) fn as_str(self) -> &'static str {
         match self {
             TagNamespace::General => "general",
             TagNamespace::Artist => "artist",
@@ -367,6 +367,7 @@ pub(super) fn write<T: Send + 'static>(
 
 /// 词表修订号加一，返回新值。词表内容或计数变化的写入事务里调用。
 pub(super) fn bump_revision(tx: &Transaction) -> Result<i64, Error> {
+    super::tag_definitions::seed(tx)?;
     Ok(tx.query_row(
         "UPDATE vocabulary_revision SET value = value + 1 RETURNING value",
         [],
@@ -739,6 +740,9 @@ fn resolve_snapshot_tag(
     translations: &TranslationIndex,
     tag: &super::package::SnapshotTag,
 ) -> Result<Option<String>, Error> {
+    if let Some(definition) = &tag.definition {
+        return super::tag_definitions::resolve_snapshot(tx, definition, tag.namespace).map(Some);
+    }
     let mut identity = None;
     for external in &tag.external {
         identity = resolve(

@@ -43,6 +43,7 @@ mod rating;
 mod recovery;
 mod sidebar;
 mod store;
+pub(crate) mod tag_definitions;
 mod tags;
 mod thumbnail;
 mod types;

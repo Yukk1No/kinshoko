@@ -43,6 +43,14 @@ pub struct ImageSnapshot {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct SnapshotTag {
+    /// Present in modern content packages. Legacy packages continue through their compatibility resolver.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub definition: Option<crate::portable_tags::PortableTagDefinition>,
+    /// Only a source correspondence, never the identity on the destination library.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub local_tag_id: Option<String>,
     pub namespace: TagNamespace,
     pub names: Vec<LocalizedName>,
     pub external: Vec<String>,
@@ -129,9 +137,24 @@ fn snapshot(conn: &Connection, image_id: &str) -> Result<ImageSnapshot, Error> {
         conn.prepare_cached("SELECT lang, name FROM tag_name WHERE tag_id = ?1 ORDER BY lang")?;
     let mut external =
         conn.prepare_cached("SELECT name FROM tag_external WHERE tag_id = ?1 ORDER BY name")?;
+    let library_id: String = conn.query_row("SELECT id FROM library", [], |r| r.get(0))?;
     let mut tags = Vec::new();
     for (id, namespace) in ids {
-        tags.push(SnapshotTag {
+        let definition = conn
+            .query_row(
+                "SELECT definition FROM tag_definition_dependency WHERE local_tag_id=?1",
+                [&id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?
+            .map(|json| {
+                serde_json::from_str::<crate::portable_tags::PortableTagDefinition>(&json)
+                    .map_err(|e| Error::TagDefinitions(e.to_string()))
+            })
+            .transpose()?;
+        let mut snapshot_tag = SnapshotTag {
+            definition,
+            local_tag_id: Some(id.clone()),
             namespace: TagNamespace::parse(&namespace)?,
             names: names
                 .query_map([&id], |r| {
@@ -144,7 +167,42 @@ fn snapshot(conn: &Connection, image_id: &str) -> Result<ImageSnapshot, Error> {
             external: external
                 .query_map([&id], |r| r.get(0))?
                 .collect::<Result<_, _>>()?,
-        });
+        };
+        if snapshot_tag.definition.is_none() {
+            let mut aliases =
+                conn.prepare("SELECT name,lang FROM tag_alias WHERE tag_id=?1 ORDER BY name")?;
+            snapshot_tag.definition = Some(crate::portable_tags::PortableTagDefinition {
+                id: format!("legacy-{library_id}-{id}"),
+                namespace: snapshot_tag.namespace,
+                default_names: snapshot_tag.names.clone(),
+                aliases: aliases
+                    .query_map([&id], |r| {
+                        Ok(super::TagAlias {
+                            name: r.get(0)?,
+                            lang: r.get(1)?,
+                        })
+                    })?
+                    .collect::<Result<_, _>>()?,
+                external: snapshot_tag
+                    .external
+                    .iter()
+                    .map(|name| crate::tag_catalog::ExternalTagIdentity {
+                        vocabulary: "danbooru".into(),
+                        name: name.clone(),
+                    })
+                    .collect(),
+            });
+        }
+        if let Some(definition) = &snapshot_tag.definition {
+            snapshot_tag.names = definition.default_names.clone();
+            snapshot_tag.external = definition
+                .external
+                .iter()
+                .filter(|e| e.vocabulary == "danbooru")
+                .map(|e| e.name.clone())
+                .collect();
+        }
+        tags.push(snapshot_tag);
     }
     Ok(ImageSnapshot {
         sha256,

@@ -5,6 +5,7 @@ use std::path::PathBuf;
 #[derive(Debug)]
 pub enum Error {
     InvalidName,
+    TagDefinitions(String),
     NotEmpty(PathBuf),
     NotALibrary(PathBuf),
     UnknownImage,
@@ -56,6 +57,7 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Error::TagDefinitions(why) => write!(f, "标签定义未保存：{why}"),
             Error::InvalidName => write!(f, "资料库名称不能为空"),
             Error::NotEmpty(p) => write!(f, "所选位置不是空文件夹：{}", p.display()),
             Error::NotALibrary(p) => write!(f, "这里没有 Kinshoko 资料库：{}", p.display()),

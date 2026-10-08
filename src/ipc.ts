@@ -824,6 +824,10 @@ export function correctTagMapping(libraryId: string, localTagId: string, correct
   return invoke<TagCatalogWorkspace>(lib("correct_tag_mapping"), { libraryId, localTagId, correction });
 }
 
+export function publishTagDefinitions(libraryId: string): Promise<TagCatalogWorkspace> {
+  return invoke<TagCatalogWorkspace>(lib("publish_tag_definitions"), { libraryId });
+}
+
 export function catalogImageTags(libraryId: string, imageId: string, lang: string): Promise<CatalogImageTags> {
   return invoke<CatalogImageTags>(lib("catalog_image_tags"), { libraryId, imageId, lang });
 }

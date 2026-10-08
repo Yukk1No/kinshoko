@@ -11,6 +11,11 @@
 
 mod name_migration;
 mod names;
+mod portable;
+pub use portable::{
+    export_package as export_reference_package, import_package as import_reference_package,
+    publish_definition_dependencies,
+};
 mod workspace;
 
 use std::path::{Path, PathBuf};
@@ -216,6 +221,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             catalog_image_tags,
             inspect_tag_catalog,
             correct_tag_mapping,
+            portable::publish_tag_definitions,
             names::edit_tag_name,
             name_migration::plan_legacy_names,
             name_migration::preview_legacy_names,
@@ -978,6 +984,7 @@ async fn correct_tag_mapping<R: Runtime>(
     );
     let generation = state.safe_mode_generation.load(Ordering::SeqCst);
     let safe = saved_safe_mode(&app);
+    let publish_library_id = library_id.clone();
     let result = blocking(move || {
         with_libraries(&dir, &libraries, |libraries| {
             let library = libraries.read(&library_id)?;
@@ -989,6 +996,9 @@ async fn correct_tag_mapping<R: Runtime>(
         })?
     })
     .await?;
+    let publish_app = app.clone();
+    let publication =
+        blocking(move || publish_definition_dependencies(&publish_app, &publish_library_id)).await;
     state.search.invalidate();
     // Compatibility event refreshes current candidates, conditions and selected image labels.
     if let Ok(active) = state.active() {
@@ -1005,6 +1015,7 @@ async fn correct_tag_mapping<R: Runtime>(
     {
         return Err("安全模式已变化，请重新检查标签对应".into());
     }
+    publication.map_err(|error| format!("标签对应已保存在程序中，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))?;
     Ok(result)
 }
 
