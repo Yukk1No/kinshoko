@@ -457,3 +457,22 @@ fn reference_authorization_uses_the_current_mode_instead_of_an_active_lens_cache
             .sealed
     );
 }
+
+#[test]
+fn withdrawing_registration_revokes_a_retained_active_reference_lens() {
+    let f = Fixture::new();
+    let detached = DetachedLenses::default();
+    let registry = vec![f.b.clone()];
+    let references = References {
+        current: Some(f.a_lens.clone()),
+        registry: &registry,
+        detached: &detached,
+        safe_mode: false,
+    };
+    assert_eq!(
+        references
+            .image(&f.a.info().id, &f.a_images[0])
+            .unwrap_err(),
+        UnavailableReason::LibraryNotRegistered
+    );
+}

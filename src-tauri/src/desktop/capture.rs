@@ -457,7 +457,9 @@ fn validate_source(app: &AppHandle, pending: &Pending, selected: ScreenRect) -> 
     if surface.window == "main" {
         // Includes the strictest rating of every known byte-identical provider.
         crate::library::visible_source(app, library_id, image_id)?;
-    } else if app.get_webview_window(&surface.window).is_none() {
+    } else if !pins::capture_source_open(app, &surface.selection.pin.id)
+        || app.get_webview_window(&surface.window).is_none()
+    {
         return Err("参考图已关闭，请重新框选".into());
     }
     let image = crate::library::with_references(app, |sources| sources.image(library_id, image_id))
@@ -466,8 +468,9 @@ fn validate_source(app: &AppHandle, pending: &Pending, selected: ScreenRect) -> 
         return Err("参考图来源已变化，请重新框选".into());
     }
     let safe = crate::library::safe_mode_on(app);
-    let mut veils = lock(&state(app).veils);
-    // Event delivery may lag the committed setting. Never authorize against an old event.
+    let mut veils = lock(&state(app).veils).clone();
+    // This function also runs before decoding, outside the commit gate. Adjust only
+    // this local view; committed veil mutations are serialized by visibility authority.
     veils.set_safe_mode(safe);
     if veils.veiled(&surface.selection.pin, Some(image.sealed)) {
         return Err("参考图已被遮蔽，请重新框选".into());

@@ -147,6 +147,43 @@ try{
   const newNative=mainHwnd();result.hwndRecreation={oldHandle,newHandle,oldNative,newNative,nativeClosed};
   check(oldNative.length===1&&newNative.length===1&&nativeClosed.destroyed===true,"real main HWND is destroyed and re-created");
   await verifyOriginal(await bottomOriginal(firstCard.id),aggregate,"native HWND re-creation with late old report");
+  // Prove a visible reference pin uses its original before revoking that exact native view.
+  await clearPins();
+  const sourcePin = (await capture(await bottomOriginal(firstCard.id),"pin")).pin;
+  const pinId = sourcePin.pin.id, pinLabel = `pin-${pinId}`;
+  const pinFrame = await until("loaded reference pin for close proof",async()=>{
+    const frame=await desktop("pin_frame",{pin:pinId});
+    return frame&&!frame.veiled&&!frame.unavailable&&await native("is_visible",pinLabel)?frame:null;
+  });
+  const selectPin = frozen => {
+    const selected=selection(pinFrame.content,frozen), shown=pinFrame.content, pin=pinFrame.pin;
+    const ox=selected.region.x+frozen.origin.x-shown.x,oy=selected.region.y+frozen.origin.y-shown.y;
+    selected.crop={x:(pin.crop?.x??0)+Math.floor(ox*pin.width/shown.width),y:(pin.crop?.y??0)+Math.floor(oy*pin.height/shown.height),width:Math.ceil((ox+selected.region.width)*pin.width/shown.width)-Math.floor(ox*pin.width/shown.width),height:Math.ceil((oy+selected.region.height)*pin.height/shown.height)-Math.floor(oy*pin.height/shown.height)};
+    return selected;
+  };
+  const pinHistory=(await desktop("capture_history")).length,pinBaseline=await begin(),pinBaselineSelection=selectPin(pinBaseline);
+  await desktop("finish_capture",{token:pinBaseline.token,region:pinBaselineSelection.region,action:"copy"});
+  const pinBaselineClipboard=readClipboard("closed-pin-baseline");
+  check((await desktop("capture_history")).length===pinHistory&&isDeepStrictEqual(pinBaselineClipboard.size,[pinBaselineSelection.crop.width,pinBaselineSelection.crop.height])&&isDeepStrictEqual(pinBaselineClipboard.corners,corners(pinBaselineSelection.crop)),"visible pin baseline reads its exact original crop without screenshot history");
+  const pinFrozen=await begin(),pinSelected=selectPin(pinFrozen);
+  result.closedPin={pinId,pinLabel,frame:pinFrame,baseline:{selected:pinBaselineSelection,clipboard:pinBaselineClipboard},token:pinFrozen.token,selected:pinSelected,frozenPixels:await frozenPatch(pinFrozen,pinFrame.content,pinSelected),beforeClipboard:readClipboard("closed-pin-before")};
+  const pinMainHandle=await wd("GET",`${base}/window`);
+  let pinHandle;
+  for(const handle of await wd("GET",`${base}/window/handles`)){
+    if(handle===pinMainHandle)continue;
+    await wd("POST",`${base}/window`,{handle});
+    if(await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label===arguments[0]",[pinLabel])){pinHandle=handle;break;}
+  }
+  check(!!pinHandle,"close command is sent from the exact owned reference pin WebView");
+  result.closedPin.closeRequestedAt=new Date().toISOString();
+  await exec("void window.__TAURI_INTERNALS__.invoke('plugin:desktop|close_pin',{pin:arguments[0]});return true",[pinId]);
+  await wd("POST",`${base}/window`,{handle:pinMainHandle});
+  await until("reference pin removed after public close",async()=>!(await windows()).includes(pinLabel)&&await desktop("pin_frame",{pin:pinId})===null);
+  result.closedPin.removedObservedAt=new Date().toISOString();
+  result.closedPin.finish=await desktop("finish_capture",{token:pinFrozen.token,region:pinSelected.region,action:"copy"}).then(()=>({ok:true}),error=>({error:String(error)}));
+  result.closedPin.afterClipboard=readClipboard("closed-pin-after");
+  check(!result.closedPin.finish.ok&&(await desktop("capture_history")).length===pinHistory,"a removed frozen reference pin rejects original copy without a screenshot fallback");
+  check(sha(result.closedPin.beforeClipboard.artifact)===sha(result.closedPin.afterClipboard.artifact),"removed pin rejection preserves the actual OS clipboard image");
   // Cross-card/toolbar regions stay ordinary screen captures.
   const ordinaryBefore=(await desktop("capture_history")).length, outside=await begin();await desktop("finish_capture",{token:outside.token,region:{x:(await native("inner_position")).x+30-outside.origin.x,y:(await native("inner_position")).y+30-outside.origin.y,width:80,height:60},action:"copy"});const ordinary=(await desktop("capture_history"))[0];check((await desktop("capture_history")).length===ordinaryBefore+1&&ordinary.width===80&&ordinary.height===60,"outside a single reference remains a native screen capture");
   const crossCards=await exec("const w=document.querySelector('.wall').getBoundingClientRect();return [...document.querySelectorAll('.card img')].filter(i=>i.complete&&i.naturalWidth).map(i=>{const b=i.getBoundingClientRect(),left=Math.max(b.left,w.left),right=Math.min(b.right,w.right),top=Math.max(b.top,w.top),bottom=Math.min(b.bottom,w.bottom);return {id:i.closest('.card').dataset.id,x:(left+right)/2,y:(top+bottom)/2,visible:right-left>8&&bottom-top>8};}).filter(b=>b.visible).slice(0,2)");

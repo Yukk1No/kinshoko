@@ -22,7 +22,7 @@ pub fn publish_definition_dependencies<R: Runtime>(
     let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
         libraries.write(library_id)
     })?;
-    state.install_translations(&library);
+    state.configure_library(&library);
     library.set_safe_mode(saved_safe_mode(app));
     with_catalog(&state.device_dir, &state.catalog, |catalog| {
         catalog.publish_library_definitions(&library)

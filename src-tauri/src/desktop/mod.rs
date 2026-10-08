@@ -386,7 +386,16 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+/// Update reveal authority during the actual mode commit, before emitting delayed events.
+/// Caller holds visibility_commit; this performs no window operations or dispatch.
+pub fn safe_mode_committed<R: tauri::Runtime>(app: &AppHandle<R>, safe: bool) {
+    if let Some(state) = app.try_state::<DesktopState>() {
+        lock(&state.veils).set_safe_mode(safe);
+    }
+}
+
 /// Revoke previous configuration views immediately, including same-mode explicit pin reveals.
+/// Caller holds visibility_commit. Native destruction callbacks only dispatch background cleanup.
 pub fn settings_restored<R: tauri::Runtime>(app: &AppHandle<R>, safe: bool) {
     let state = app.state::<DesktopState>();
     *lock(&state.veils) = PinVeils::new(safe);

@@ -116,8 +116,9 @@ impl LibraryState {
         }
     }
 
-    /// New tags receive bundled initial names; old display text awaits explicit migration.
-    fn install_translations(&self, library: &Library) {
+    /// Configure shared writer policy before application actions: initial names and the
+    /// same final visibility gate used by package/copy rating publication.
+    fn configure_library(&self, library: &Library) {
         library.use_translations_for_new_tags((*self.translations).clone());
         library.use_package_publication_gate(self.visibility_commit.clone());
     }
@@ -412,7 +413,7 @@ fn forward_events<R: Runtime>(
     }) {
         eprintln!("接入统一标签目录失败：{error}");
     }
-    state.install_translations(&library);
+    state.configure_library(&library);
     let events = library.events();
     *lock(&state.reference) = library.take_reference_lens();
     // 刚成为活动库的库不再经只读视角读取；其他库按需重开。
@@ -1352,6 +1353,8 @@ async fn set_safe_mode<R: Runtime>(
         if let Ok(library) = state.active() {
             library.set_safe_mode(on);
         }
+        // Do not let delayed/reordered event workers preserve a reveal across off -> on.
+        crate::desktop::safe_mode_committed(&app, on);
     }
     let _ = app.emit(SAFE_MODE_EVENT, on);
     Ok(on)
@@ -1511,7 +1514,7 @@ async fn image_rating(
 #[cfg(test)]
 mod tests {
     //! 应用壳的翻译表装配（#76 Core3、#77 C1）：走生产代码同一条路径——[`LibraryState::new`]
-    //! 取 [`bundled_translations`]，[`forward_events`] 调 [`LibraryState::install_translations`]。
+    //! 取 [`bundled_translations`]，[`forward_events`] 调 [`LibraryState::configure_library`]。
     //! 不启动 Tauri；资料库是临时目录里的真库。
 
     use kinshoko_core::library::{FactSource, ImportOutcome, SourceTag, TagNamespace, TagRef};
@@ -1582,7 +1585,7 @@ mod tests {
     fn a_library_assembled_by_the_app_names_model_tags_and_finds_them_by_chinese_names() {
         let (dir, state) = state();
         let (library, image) = library_with_image(dir.path(), "new");
-        state.install_translations(&library);
+        state.configure_library(&library);
         tag_blue_eyes(&library, &image);
 
         assert_eq!(names(&library, &image), [("蓝瞳".to_owned(), false)]);
@@ -1601,7 +1604,7 @@ mod tests {
         tag_blue_eyes(&library, &image);
         assert_eq!(names(&library, &image), [("blue eyes".to_owned(), true)]);
 
-        state.install_translations(&library);
+        state.configure_library(&library);
         assert_eq!(names(&library, &image), [("blue eyes".to_owned(), true)]);
     }
 

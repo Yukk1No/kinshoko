@@ -8,6 +8,14 @@ use kinshoko_core::desktop::{
 use kinshoko_core::library::{ImportOutcome, ImportSource};
 use kinshoko_core::reference_groups::{DetachedLenses, References};
 
+fn registered(library: &Library) -> [kinshoko_core::RegisteredLibrary; 1] {
+    [kinshoko_core::RegisteredLibrary {
+        id: library.info().id.clone(),
+        name: library.info().name.clone(),
+        root: library.info().root.clone(),
+    }]
+}
+
 #[test]
 fn copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_source() {
     let dir = tempfile::tempdir().unwrap();
@@ -71,9 +79,10 @@ fn copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_so
         references: &surfaces,
     };
     let detached = DetachedLenses::default();
+    let registry = registered(&library);
     let references = References {
         current: Some(lens),
-        registry: &[],
+        registry: &registry,
         detached: &detached,
         safe_mode: true,
     };
@@ -212,9 +221,10 @@ fn selecting_a_transformed_prior_crop_copies_the_same_original_region_as_the_new
         references: &surfaces,
     };
     let detached = DetachedLenses::default();
+    let registry = registered(&library);
     let references = References {
         current: Some(lens),
-        registry: &[],
+        registry: &registry,
         detached: &detached,
         safe_mode: true,
     };
@@ -328,9 +338,10 @@ fn a_reference_resealed_after_freezing_is_not_read_and_an_explicitly_revealed_pi
         references: &surfaces,
     };
     let detached = DetachedLenses::default();
+    let registry = registered(&library);
     let references = References {
         current: Some(lens),
-        registry: &[],
+        registry: &registry,
         detached: &detached,
         safe_mode: true,
     };
@@ -418,8 +429,10 @@ fn missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels() {
         icc: None,
     };
     let detached = DetachedLenses::default();
+    let registry = registered(&library);
     let mut references = References {
-        current: None,
+        // Registry withdrawal must revoke even an active reference retained in memory.
+        current: Some(lens.clone()),
         registry: &[],
         detached: &detached,
         safe_mode: true,
@@ -447,6 +460,7 @@ fn missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels() {
         ));
     }
     references.current = Some(lens);
+    references.registry = &registry;
     if let PinContent::Reference { source_width, .. } = &mut surfaces[0].pin.content {
         *source_width = 999;
     }
@@ -726,9 +740,10 @@ fn copying_honors_all_original_exif_orientations_without_rewriting_originals() {
     let library = Library::create(&dir.path().join("library"), "方向").unwrap();
     let lens = library.take_reference_lens().unwrap();
     let detached = DetachedLenses::default();
+    let registry = registered(&library);
     let references = References {
         current: Some(lens),
-        registry: &[],
+        registry: &registry,
         detached: &detached,
         safe_mode: true,
     };
@@ -797,9 +812,10 @@ fn copying_respects_declared_color_and_the_sdr_animation_first_frame_route() {
     let library = Library::create(&dir.path().join("library"), "显示管线").unwrap();
     let lens = library.take_reference_lens().unwrap();
     let detached = DetachedLenses::default();
+    let registry = registered(&library);
     let references = References {
         current: Some(lens),
-        registry: &[],
+        registry: &registry,
         detached: &detached,
         safe_mode: true,
     };

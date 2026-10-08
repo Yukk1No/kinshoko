@@ -50,11 +50,17 @@ T13 同模式恢复也递增代次并清除旧 reference、capture session 和�
 
 参考授权按本次 `References.safe_mode` 与数据库中的有效分级计算 sealed，不信任共享 Library 的模式缓存。真实库公开 RED 复现了 active cache=off、操作 mode=on 时错误放行；修复后两个模式方向均按操作参数，且不修改共享缓存。此为公开行为证明，未复现 native 线程交错。
 
+参考来源先核本次登记表，再取 active lens。注销先移除登记时，仍存活的旧 Arc 不能授权原图。真实库公开 RED 返回了不应可读的 ReferenceImage；修复后失败来源不会回落普通屏幕截图。原图动作的五个旧有效夹具补上真实登记，第六个失效夹具保留旧 lens 与空登记；原失败记录不改。
+逐张揭示、模式提交中的揭示撤销、后台 forget 和 close 命令使用同一 gate。真实模式提交同步更新 PinVeils，避免事件跳过 off→on→off 时遗留揭示。事件线程只读取最新已提交设置，不重放迟到 bool；刷新窗口在 gate 外执行。
+最终校验使用 PinVeils 的局部副本，早期解码前校验不会在 gate 外改实际揭示状态。最终 pin 来源同时要求记录仍存在且未 closing，并且原生窗口仍存在。
+Destroyed 主线程只安排后台清理，不等待 gate；后台才按 gate→pins/veils/store/history 撤销。窗口构建失败的同步 closed 也改为后台，避免最终 pin 提交已经持 gate 时重入。公开 close 命令的 mark_closing 和 destroy 在 worker 的 gate 内串行。
+物理 Destroyed 是异步通知，不把通知返回称为同步撤销完成；已经开始的最终 OS 提交可以先完成。关闭/removed 的新原生用例会先证明同一钉图原图命中，再通过真实 close 和 pin_frame=None 观察撤销，要求旧 frozen token 被拒绝且 OS 内容/历史不变。此用例当前仅语法检查，尚未执行。
+
 锁序是 transition（需要时）→ visibility_commit → device/catalog/workspace/Shell/desktop 资源。
 不得持资源锁进入 gate，不得在 gate 内 await、重入或 join 调度线程。
 create/register/switch/初次恢复先完成来源状态，再在锁外 forward_events → attach；attach 先 detach 旧 worker。
 unregister 先撤销并释放 gate，再 detach/drop/join worker，避免 worker 等 gate 而注销等 worker。
-DeviceLibraries 的导入 settle 会等待导入任务；该任务不取得此 gate。T13 模型设置只改 control 并 notify，不 join。
+DeviceLibraries 的导入 settle 会等待导入任务；普通/Eagle 任务不取得此 gate。T13 模型设置只改 control 并 notify，不 join。
 原生窗口创建可能同步派发主线程；相关窗口回调不取 gate 或 Shell 锁，Destroyed 的历史清理转交后台线程。
 
 准备期间撤销可以先返回，准备结果随后必须被最终校验拒绝。

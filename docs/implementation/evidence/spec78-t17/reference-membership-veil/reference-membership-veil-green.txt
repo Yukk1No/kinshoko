@@ -1,0 +1,72 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.20s
+     Running tests\pin_veil.rs (target\debug\deps\pin_veil-5317d7bace13ed34.exe)
+
+running 3 tests
+test a_confirmed_pin_is_shown_until_safe_mode_is_turned_on_again ... ok
+test capture_pins_are_never_veiled ... ok
+test turning_safe_mode_on_with_no_library_open_veils_shown_library_pins ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\reference_capture_actions.rs (target\debug\deps\reference_capture_actions-a3ee2ad6dad1477e.exe)
+
+running 10 tests
+test ordinary_capture_preparation_can_be_discarded_without_writing_history ... ok
+test occluded_clipped_cross_boundary_and_external_selections_keep_the_screen_capture_path ... ok
+test copying_respects_declared_color_and_the_sdr_animation_first_frame_route ... FAILED
+test copying_honors_all_original_exif_orientations_without_rewriting_originals ... FAILED
+test a_reference_resealed_after_freezing_is_not_read_and_an_explicitly_revealed_pin_remains_usable ... FAILED
+test missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels ... FAILED
+test an_ambiguous_visible_source_is_a_screen_capture_instead_of_choosing_one_library ... ok
+test copying_uses_the_explicit_inactive_library_even_when_another_library_is_current ... ok
+test selecting_a_transformed_prior_crop_copies_the_same_original_region_as_the_new_pin ... FAILED
+test copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_source ... FAILED
+
+failures:
+
+---- copying_respects_declared_color_and_the_sdr_animation_first_frame_route stdout ----
+
+thread 'copying_respects_declared_color_and_the_sdr_animation_first_frame_route' (10792) panicked at crates\kinshoko-core\tests\reference_capture_actions.rs:639:64:
+called `Result::unwrap()` on an `Err` value: LibraryNotRegistered
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- copying_honors_all_original_exif_orientations_without_rewriting_originals stdout ----
+
+thread 'copying_honors_all_original_exif_orientations_without_rewriting_originals' (34284) panicked at crates\kinshoko-core\tests\reference_capture_actions.rs:639:64:
+called `Result::unwrap()` on an `Err` value: LibraryNotRegistered
+
+---- a_reference_resealed_after_freezing_is_not_read_and_an_explicitly_revealed_pin_remains_usable stdout ----
+
+thread 'a_reference_resealed_after_freezing_is_not_read_and_an_explicitly_revealed_pin_remains_usable' (5852) panicked at crates\kinshoko-core\tests\reference_capture_actions.rs:349:9:
+assertion failed: matches!(selection.finish(action, "new", &references, &veils, &mut history),
+    Err(CaptureError::Sealed))
+
+---- missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels stdout ----
+
+thread 'missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels' (9060) panicked at crates\kinshoko-core\tests\reference_capture_actions.rs:459:5:
+assertion failed: matches!(selection.finish(CaptureAction::Copy, "new", &references, &veils,
+    &mut history), Err(CaptureError::SourceChanged))
+
+---- selecting_a_transformed_prior_crop_copies_the_same_original_region_as_the_new_pin stdout ----
+
+thread 'selecting_a_transformed_prior_crop_copies_the_same_original_region_as_the_new_pin' (37692) panicked at crates\kinshoko-core\tests\reference_capture_actions.rs:231:10:
+called `Result::unwrap()` on an `Err` value: SourceUnavailable(LibraryNotRegistered)
+
+---- copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_source stdout ----
+
+thread 'copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_source' (47176) panicked at crates\kinshoko-core\tests\reference_capture_actions.rs:90:10:
+called `Result::unwrap()` on an `Err` value: SourceUnavailable(LibraryNotRegistered)
+
+
+failures:
+    a_reference_resealed_after_freezing_is_not_read_and_an_explicitly_revealed_pin_remains_usable
+    copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_source
+    copying_honors_all_original_exif_orientations_without_rewriting_originals
+    copying_respects_declared_color_and_the_sdr_animation_first_frame_route
+    missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels
+    selecting_a_transformed_prior_crop_copies_the_same_original_region_as_the_new_pin
+
+test result: FAILED. 4 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+error: test failed, to rerun pass `-p kinshoko-core --test reference_capture_actions`

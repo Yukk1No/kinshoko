@@ -200,6 +200,13 @@ impl ReferenceSource for References<'_> {
     }
 
     fn lens(&self, library_id: &str) -> Result<ReferenceLens, UnavailableReason> {
+        // A retained active Arc is not registration authority. Unregister commits the
+        // registry first; asynchronous reference cleanup may not have run yet.
+        let library = self
+            .registry
+            .iter()
+            .find(|l| l.id == library_id)
+            .ok_or(UnavailableReason::LibraryNotRegistered)?;
         if let Some(lens) = self
             .current
             .as_ref()
@@ -207,11 +214,6 @@ impl ReferenceSource for References<'_> {
         {
             return Ok(lens.clone());
         }
-        let library = self
-            .registry
-            .iter()
-            .find(|l| l.id == library_id)
-            .ok_or(UnavailableReason::LibraryNotRegistered)?;
         self.detached.get(library, self.safe_mode)
     }
 }

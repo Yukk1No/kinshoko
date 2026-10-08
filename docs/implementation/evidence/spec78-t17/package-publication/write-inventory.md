@@ -14,7 +14,7 @@
 | Eagle 导入/重导 | ImportTask 的 Origin.package=None，eagle::commit | 来源层标签、备注、链接、绑定和文件夹更新；不写分级，不因 Eagle 删除而删除已有可见图；同批新图可清初始 trash 标记 |
 
 所有评级 SQL 写入已搜索 rating_fact/rating_manual；schema migrations 不是运行中的结果发布入口。
-应用的目标句柄在 fixed_library / forward_events 统一配置，for_destination 共用 inner。只读提供方禁止写入，默认无配置保留 core 独立使用。
+应用的目标句柄在 fixed_library / forward_events 调用 configure_library 统一配置，for_destination 共用 inner。只读提供方禁止写入，默认无配置保留 core 独立使用。
 
 ## 锁序和等待
 
