@@ -42,6 +42,8 @@
 
 Channel 变更后严格 clippy 与 TypeScript 通过（`t15-channel-clippy-fixed.log`、`t15-channel-types.log`）；初次 clippy 的闭包类型推断失败单独留在 `t15-channel-clippy.log`。完整前端首次复验 276/277 成功，既有 `SharedApprox.test.tsx` 的迟到 unsafe 列表用例失败，原日志 `t15-channel-ui.log`；单独复验该文件 5/5 成功，`t15-shared-approx-rerun.log`，尚未将该次完整复验记录成通过。随后第二次完整复验 36 文件、277 项成功（`t15-channel-ui-rerun.log`），保留首次失败，不将两次结果合并。
 
+完成进度公开动作补充 RED/GREEN 后，最终 T15 核心 11 项、T13 核心 7 项（含真实恢复故障子进程）、strict workspace clippy 与 TypeScript 成功。合入独立共享许可小提交 `23b53db6030000f2389cabede22f8f401bf92ec4` 和 SettingsPanel key 小提交 `00ded51640fec5a8bbc26fd6d0f25691be06636b` 后，完整前端 36 文件、277 项成功且无重复 key 警告。最终预冻结日志为 `t15-final-core.log`、`t15-final-clippy.log`、`t15-final-types.log`、`t15-final-ui.log`。
+
 ## 原生验证与完成边界
 
 原生隔离配置：`dev.kinshoko.spec78t15test` / `Kinshoko T15 Test`，driver 端口 4676/4677，跳过开机自启。正式运行前冻结 clean source/tree、逐文件 source/dist 清单、配置和 EXE SHA，根代理串行预约后才启动。样本由 `spec78_import_preview_fixture` 通过公开核心动作创建，均为可分发的合成 PNG。`e2e/sealed-import-preview.mjs` 使用真实正式命令与渲染控件；既有 picker 队列仅替代系统文件选择结果，不新增生产 bypass。
