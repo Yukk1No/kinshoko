@@ -172,18 +172,26 @@ pub struct ImportItem {
 }
 
 /// 导入任务的逐项结果。取消时只列出取消前处理过的项。
+///
+/// `sealed_duplicates` is a boolean prompt only; the ordinary receipt never exposes the
+/// sealed subset size. `private_summary` coarsens success details together so subtraction
+/// cannot reveal a subset.
+///
+/// `from_eagle` 表示导入器识别到了 Eagle 来源，与画师使用的入口无关。
+/// `eagle_missing` 是这次迁入的 Eagle 资料库里已经不存在、但本库保留了副本的条目数。
+/// `eagle_relocations` 表示疑似已登记 Eagle 来源搬了家的新位置；画师确认前不迁入这些位置。
+/// 确认见 [`super::Library::confirm_eagle_location`]。
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct ImportReport {
+    pub sealed_duplicates: bool,
+    pub private_summary: bool,
+    pub trash_duplicates: bool,
     pub items: Vec<ImportItem>,
     pub cancelled: bool,
-    /// 导入器识别到了 Eagle 来源，与画师使用的入口无关。
     pub from_eagle: bool,
-    /// 这次迁入的 Eagle 资料库里已经不存在、但本库保留了副本的条目数。
     pub eagle_missing: u32,
-    /// 像是已登记 Eagle 来源搬了家的新位置。画师确认前不迁入这些位置的任何条目，
-    /// 确认见 [`super::Library::confirm_eagle_location`]。
     pub eagle_relocations: Vec<EagleRelocation>,
 }
 
@@ -231,6 +239,25 @@ impl ImportOutcome {
 }
 
 impl ImportReport {
+    /// Safe transport fallback before all-provider receipt projection is available.
+    /// Failures keep their real retry paths; successful content identities/names/counts do not leave.
+    pub fn without_content_details(mut self) -> Self {
+        self.private_summary = true;
+        self.trash_duplicates |= self
+            .items
+            .iter()
+            .any(|item| matches!(item.outcome, ImportOutcome::TrashDuplicate { .. }));
+        self.items.retain(|item| {
+            matches!(
+                item.outcome,
+                ImportOutcome::ReadFailed { .. }
+                    | ImportOutcome::Unsupported
+                    | ImportOutcome::SkippedDeleted
+            )
+        });
+        self.eagle_missing = 0;
+        self
+    }
     /// 只含读取失败项的导入来源，供重试；没有失败项时为 `None`。
     /// 重试不会重复创建已成功的图：字节相同的原图总是合并为同一条记录。
     pub fn retry_source(&self) -> Option<ImportSource> {

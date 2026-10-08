@@ -4,18 +4,14 @@ import type { ImportItem } from "./ImportItem";
 
 /**
  * 导入任务的逐项结果。取消时只列出取消前处理过的项。
- */
-export type ImportReport = { items: Array<ImportItem>, cancelled: boolean, 
-/**
- * 导入器识别到了 Eagle 来源，与画师使用的入口无关。
- */
-fromEagle: boolean, 
-/**
- * 这次迁入的 Eagle 资料库里已经不存在、但本库保留了副本的条目数。
- */
-eagleMissing: number, 
-/**
- * 像是已登记 Eagle 来源搬了家的新位置。画师确认前不迁入这些位置的任何条目，
+ *
+ * `sealed_duplicates` is a boolean prompt only; the ordinary receipt never exposes the
+ * sealed subset size. `private_summary` coarsens success details together so subtraction
+ * cannot reveal a subset.
+ *
+ * `from_eagle` 表示导入器识别到了 Eagle 来源，与画师使用的入口无关。
+ * `eagle_missing` 是这次迁入的 Eagle 资料库里已经不存在、但本库保留了副本的条目数。
+ * `eagle_relocations` 表示疑似已登记 Eagle 来源搬了家的新位置；画师确认前不迁入这些位置。
  * 确认见 [`super::Library::confirm_eagle_location`]。
  */
-eagleRelocations: Array<EagleRelocation>, };
+export type ImportReport = { sealedDuplicates: boolean, privateSummary: boolean, trashDuplicates: boolean, items: Array<ImportItem>, cancelled: boolean, fromEagle: boolean, eagleMissing: number, eagleRelocations: Array<EagleRelocation>, };

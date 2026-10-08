@@ -1,0 +1,40 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/ImportMenu.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/library/ImportMenu.test.tsx (2 tests | 2 failed) 938ms
+   ❯ 导入回执上下文撤销 (2)
+     × safe-mode-setting 隐去旧成功统计，并拒绝迟到的旧快照 475ms
+     × workspace-changed 隐去旧成功统计，并拒绝迟到的旧快照 461ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/ImportMenu.test.tsx > 导入回执上下文撤销 > safe-mode-setting 隐去旧成功统计，并拒绝迟到的旧快照
+ FAIL  src/library/ImportMenu.test.tsx > 导入回执上下文撤销 > workspace-changed 隐去旧成功统计，并拒绝迟到的旧快照
+AssertionError: expected '导入完成：新增 0 张，与已有图相同而合并 1 张，更新 Eagle 信息…' not to match /新增|合并|更新 Eagle/
+
+- Expected:
+/新增|合并|更新 Eagle/
+
++ Received:
+"导入完成：新增 0 张，与已有图相同而合并 1 张，更新 Eagle 信息 1 张（本库整理保留），1 个文件没有导入重试失败的 1 项关闭missing.png读取失败：missing"
+
+ ❯ src/library/ImportMenu.test.tsx:35:38
+     33|       await waitFor(() => expect(calls).toBe(2));
+     34|       await act(() => emit(event, payload));
+     35|       expect(region.textContent).not.toMatch(/新增|合并|更新 Eagle/);
+       |                                      ^
+     36|       expect(region.textContent).toContain("missing.png");
+     37|       await act(async () => { release([receipt]); await pending; });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  04:15:31
+   Duration  2.43s (environment 46%, tests 41%, import 8%, transform 5%)
+

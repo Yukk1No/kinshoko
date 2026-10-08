@@ -334,6 +334,53 @@ impl Library {
         self.inner.display_scaled(image_id, target_px)
     }
 
+    /// Receipt capability only: a detached provider and an exact live byte identity.
+    /// Render from one verified immutable byte buffer; no mode, metadata or cache is changed.
+    pub(crate) fn read_import_duplicate(
+        &self,
+        image_id: &str,
+        sha256: &str,
+        target_px: u32,
+    ) -> Result<(Vec<u8>, String), Error> {
+        use rusqlite::OptionalExtension;
+        use sha2::{Digest, Sha256};
+        if !self.inner.detached {
+            return Err(Error::UnknownImage);
+        }
+        let width: Option<u32> = self
+            .inner
+            .readers
+            .get()
+            .query_row(
+                "SELECT width FROM image WHERE id=?1 AND sha256=?2 AND deleted_at IS NULL",
+                [image_id, sha256],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let width = width.ok_or(Error::UnknownImage)?;
+        let (description, _, original) = colour::get(&self.inner, image_id)?;
+        let bytes = std::fs::read(original)?;
+        if format!("{:x}", Sha256::digest(&bytes)) != sha256 {
+            return Err(Error::SourceChanged);
+        }
+        if target_px < width || description.needs_sdr_derivative() {
+            let rendered = crate::fidelity::render::render_sdr(
+                &bytes,
+                target_px,
+                crate::fidelity::DEFAULT_DOWNSCALE,
+            )
+            .map_err(Error::Undecodable)?;
+            return Ok((rendered.bytes, rendered.mime.into()));
+        }
+        let mime = match description.format.as_str() {
+            "png" => "image/png",
+            "jpeg" | "jpg" => "image/jpeg",
+            "gif" => "image/gif",
+            _ => "image/webp",
+        };
+        Ok((bytes, mime.into()))
+    }
+
     /// 参考图的色彩描述（导入时记录）。浏览视角：被封印的图当作不存在。
     pub fn colour(&self, image_id: &str) -> Result<ColourDescription, Error> {
         self.inner

@@ -106,6 +106,7 @@ impl OwnedImport {
 
 /// 当前进程的资料库与本设备登记。调用方将它放在互斥锁中，串行处理切换。
 pub struct DeviceLibraries {
+    pub(crate) import_preview: Option<Arc<crate::workspace::ImportPreviewAuthorization>>,
     device: DeviceRegistry,
     current: Option<Arc<Library>>,
     tasks: HashMap<String, OwnedImport>,
@@ -118,6 +119,7 @@ impl DeviceLibraries {
     pub fn open(dir: &Path) -> Result<Self, DeviceLibraryError> {
         Ok(Self {
             device: DeviceRegistry::open(dir)?,
+            import_preview: None,
             current: None,
             tasks: HashMap::new(),
             writers: HashMap::new(),
@@ -151,6 +153,7 @@ impl DeviceLibraries {
 
     /// 建立、登记并切换到新资料库。
     pub fn create(&mut self, root: &Path, name: &str) -> Result<Arc<Library>, DeviceLibraryError> {
+        self.close_import_preview(None);
         let library = Library::create(root, name).map_err(DeviceLibraryError::Library)?;
         self.activate(library)
     }
@@ -356,6 +359,13 @@ impl DeviceLibraries {
                 return Err(DeviceLibraryError::StaleLibrary);
             }
         }
+        if self
+            .import_preview
+            .as_ref()
+            .is_some_and(|preview| preview.task_id == task_id)
+        {
+            self.close_import_preview(None);
+        }
         self.tasks.remove(task_id);
         Ok(())
     }
@@ -402,6 +412,7 @@ impl DeviceLibraries {
 
     /// 登记所选位置并打开；同一身份再次登记时更新位置。
     pub fn register(&mut self, root: &Path) -> Result<Arc<Library>, DeviceLibraryError> {
+        self.close_import_preview(None);
         self.open_at(root, None)
     }
 
@@ -461,6 +472,7 @@ impl DeviceLibraries {
     }
 
     pub fn switch(&mut self, id: &str) -> Result<Arc<Library>, DeviceLibraryError> {
+        self.close_import_preview(None);
         let root = self
             .device
             .libraries()
@@ -489,6 +501,7 @@ impl DeviceLibraries {
     }
 
     pub fn unregister(&mut self, id: &str) -> Result<(), DeviceLibraryError> {
+        self.close_import_preview(None);
         self.device.unregister(id)?;
         if let Some(library) = self.writers.get(id).or_else(|| {
             self.current

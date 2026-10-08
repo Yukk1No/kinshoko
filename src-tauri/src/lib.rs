@@ -112,6 +112,7 @@ pub fn run() {
             ..
         } if label == shell::MAIN_WINDOW => {
             desktop::clear_viewer_reference(app);
+            library::revoke_import_preview_context(app);
             backup::on_main_window_closed(app);
         }
         _ => {}

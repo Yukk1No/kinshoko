@@ -1,0 +1,36 @@
+PASS actual global safe mode stays on: before import
+PASS unknown target copy of a known Adult stays hidden while the ordinary unknown image remains visible
+PASS real import retains the fixed target owner
+PASS mixed default receipt exposes only real failure details, without success category counts or sealed IDs
+PASS completed private progress cannot reveal sealed successes by subtracting failures
+PASS rendered default report contains no exact success counts or sealed filename
+PASS no preview content exists before explicit consent
+PASS rendered consent shows only this receipt's sealed duplicate
+PASS actual global safe mode stays on: UI expanded
+PASS actual global safe mode stays on: UI closed
+PASS public preview capability derives exactly one actual receipt duplicate
+PASS explicit receipt capability resolves real original content through the SDR path
+PASS an arbitrary real UI image ID is not a preview capability item
+PASS closed backend session cannot read content again
+PASS request begun before close cannot publish late image bytes
+PASS actual large original travels only in bounded direct receipt Channel chunks
+PASS large transfer commits before close returns, without a later content fetch
+PASS large-transfer close remains effective after the actual send
+PASS large transfer commits before same-mode generation transition returns
+PASS same-mode transition revokes the large-transfer receipt session
+PASS actual global safe mode stays on: large transfer same-mode transition
+PASS pending image read cannot publish after current-library context changes
+PASS restoring the same safe-mode setting revokes the existing receipt capability
+PASS actual global safe mode stays on: same-mode settings restored
+PASS opening another receipt revokes pending old receipt content
+PASS second receipt cannot consume an earlier receipt item
+PASS same-mode generation transition revokes consent
+PASS actual global safe mode stays on: same-mode transition
+PASS receipt dismissal revokes image access
+PASS ordinary candidates never reveal the hidden duplicate's tag
+PASS real preview leaves manual note, tags and unknown target classification unchanged
+PASS ordinary browse and counts remain safe after preview
+PASS original SHA unchanged: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t15-native-fixture-v2\adult\originals/52/524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30.png
+PASS original SHA unchanged: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t15-native-fixture-v2\adult\originals/cb/cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png
+PASS original SHA unchanged: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t15-native-fixture-v2\target\originals/1b/1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139.png
+PASS original SHA unchanged: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t15-native-fixture-v2\target\originals/cb/cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png
