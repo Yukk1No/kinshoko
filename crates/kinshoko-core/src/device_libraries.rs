@@ -115,6 +115,24 @@ impl DeviceLibraries {
             .ok_or(DeviceLibraryError::StaleLibrary)
     }
 
+    /// Resolve a registered content provider without switching the active library or
+    /// changing last-opened state. Every reader is isolated, read-only and identity-checked.
+    pub fn read(&self, library_id: &str) -> Result<Arc<Library>, DeviceLibraryError> {
+        let registration = self
+            .libraries()
+            .iter()
+            .find(|entry| entry.id == library_id)
+            .ok_or(DeviceLibraryError::UnknownLibrary)?;
+
+        Self::inspect(&registration.root, Some(library_id))?;
+        Library::open_read_only(&registration.root, library_id)
+            .map(Arc::new)
+            .map_err(|error| DeviceLibraryError::Unavailable {
+                root: registration.root.clone(),
+                reason: error.to_string(),
+            })
+    }
+
     pub fn start_import(
         &mut self,
         library_id: &str,

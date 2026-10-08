@@ -10,6 +10,7 @@
 //!   浏览视角；参考视角的句柄在装配（打开资料库）时取走，只交给参考组与桌面钉图，不经命令给前端。
 
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
@@ -22,7 +23,10 @@ use kinshoko_core::library::{
     TagNamespace, TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::reference_groups::{DetachedLenses, References};
-use kinshoko_core::search::{Candidate, ConditionTree, SearchCache, SearchInput};
+use kinshoko_core::search::{Candidate, ConditionTree, Search, SearchCache, SearchInput};
+use kinshoko_core::tag_catalog::{
+    CatalogCorrection, CatalogError, CatalogImageTags, TagCatalog, TagCatalogWorkspace,
+};
 use kinshoko_core::{
     DeviceLibraries, DeviceLibraryError, DeviceRegistry, Library, LibraryRegistration,
 };
@@ -51,6 +55,9 @@ struct LibraryState {
     /// 活动资料库词表快照上的 Search，按（资料库，词表修订号，安全模式）校验；词表或图片
     /// 变化、安全模式切换、切换资料库时清掉，下次查找时重建（#76）。
     search: Arc<SearchCache>,
+    catalog: Arc<Mutex<Option<TagCatalog>>>,
+    search_catalog_revision: Arc<AtomicI64>,
+    safe_mode_generation: AtomicU64,
     /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
     /// 与桌面钉图（#65），不经任何命令交给前端。
     reference: Mutex<Option<ReferenceLens>>,
@@ -73,6 +80,9 @@ impl LibraryState {
             forwarded: Mutex::new(None),
             transition: Mutex::new(()),
             search: Arc::default(),
+            catalog: Arc::default(),
+            search_catalog_revision: Arc::new(AtomicI64::new(-1)),
+            safe_mode_generation: AtomicU64::new(0),
             reference: Mutex::new(None),
             detached: DetachedLenses::default(),
             builtin_approx: Arc::new(BuiltinApproxTable::bundled()),
@@ -81,13 +91,9 @@ impl LibraryState {
         }
     }
 
-    /// 给刚打开（新建、打开或切换到）的资料库装上随软件分发的翻译表：之后首次进库的模型标签
-    /// 取得初始名称与别名，库里仍尚未翻译的标签现在补上（ADR-0003）。在开始打标之前调用。
+    /// New tags receive bundled initial names; old display text awaits explicit migration.
     fn install_translations(&self, library: &Library) {
-        if let Err(e) = library.set_translations((*self.translations).clone()) {
-            // 翻译表已装上，只是补旧标签失败；之后进库的标签照常取得名称，下次打开再补。
-            eprintln!("给资料库尚未翻译的标签补上名称失败：{e}");
-        }
+        library.use_translations_for_new_tags((*self.translations).clone());
     }
 
     /// 界面正在操作的资料库；已切换或关闭时返回错误。
@@ -116,6 +122,45 @@ fn with_libraries<T>(
         *state = Some(DeviceLibraries::open(device_dir).map_err(|error| error.to_string())?);
     }
     action(state.as_mut().expect("登记表已打开")).map_err(|error| error.to_string())
+}
+
+fn with_catalog<T>(
+    device_dir: &Path,
+    state: &Mutex<Option<TagCatalog>>,
+    action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,
+) -> Result<T, String> {
+    let mut state = lock(state);
+    if state.is_none() {
+        *state = Some(TagCatalog::open(device_dir).map_err(|e| e.to_string())?);
+    }
+    action(state.as_mut().expect("统一目录已打开")).map_err(|e| e.to_string())
+}
+
+fn catalog_search(
+    device_dir: &Path,
+    catalog: &Mutex<Option<TagCatalog>>,
+    revision: &AtomicI64,
+    cache: &SearchCache,
+    library: &Arc<Library>,
+    builtin: &BuiltinApproxTable,
+    safe_mode: bool,
+) -> Result<Arc<Search>, String> {
+    // Hold catalog serialization until the cached projection has been built. A correction
+    // cannot race an older snapshot back into the cache after invalidation.
+    with_catalog(device_dir, catalog, |catalog| {
+        let snapshot = catalog.synchronize(library)?;
+        if revision.swap(snapshot.revision, Ordering::SeqCst) != snapshot.revision {
+            cache.invalidate();
+        }
+        cache
+            .search_with(library, safe_mode, |vocabulary| {
+                Search::new(
+                    &snapshot.search_vocabulary(&library.info().id, vocabulary),
+                    builtin,
+                )
+            })
+            .map_err(CatalogError::Library)
+    })
 }
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -149,6 +194,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             discover_eagle_libraries,
             confirm_eagle_location,
             image_tags,
+            catalog_image_tags,
+            inspect_tag_catalog,
+            correct_tag_mapping,
             edit_tags,
             vocabulary,
             tag_groups,
@@ -277,6 +325,11 @@ fn forward_events<R: Runtime>(
     }
     *forwarded = Some(weak.clone());
     library.set_safe_mode(saved_safe_mode(app));
+    if let Err(error) = with_catalog(&state.device_dir, &state.catalog, |catalog| {
+        catalog.synchronize(&library)
+    }) {
+        eprintln!("接入统一标签目录失败：{error}");
+    }
     state.install_translations(&library);
     let events = library.events();
     *lock(&state.reference) = library.take_reference_lens();
@@ -830,6 +883,96 @@ async fn image_tags(
     .await
 }
 
+#[tauri::command]
+async fn catalog_image_tags(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    image_id: String,
+    lang: String,
+) -> Result<CatalogImageTags, String> {
+    let library = state.current(&library_id)?;
+    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    blocking(move || {
+        with_catalog(&dir, &catalog, |catalog| {
+            catalog.image_tags(&library, &image_id, &lang)
+        })
+    })
+    .await
+}
+
+#[tauri::command]
+async fn inspect_tag_catalog<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+) -> Result<TagCatalogWorkspace, String> {
+    let (dir, libraries, catalog) = (
+        state.device_dir.clone(),
+        state.libraries.clone(),
+        state.catalog.clone(),
+    );
+    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let safe = saved_safe_mode(&app);
+    let result = blocking(move || {
+        with_libraries(&dir, &libraries, |libraries| {
+            Ok(with_catalog(&dir, &catalog, |catalog| {
+                catalog.inspect_libraries(libraries, safe)
+            }))
+        })?
+    })
+    .await?;
+    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
+        || saved_safe_mode(&app) != safe
+    {
+        return Err("安全模式已变化，请重新检查标签对应".into());
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+async fn correct_tag_mapping<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+    library_id: String,
+    local_tag_id: String,
+    correction: CatalogCorrection,
+) -> Result<TagCatalogWorkspace, String> {
+    let (dir, libraries, catalog) = (
+        state.device_dir.clone(),
+        state.libraries.clone(),
+        state.catalog.clone(),
+    );
+    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let safe = saved_safe_mode(&app);
+    let result = blocking(move || {
+        with_libraries(&dir, &libraries, |libraries| {
+            let library = libraries.read(&library_id)?;
+            library.set_safe_mode(safe);
+            Ok(with_catalog(&dir, &catalog, |catalog| {
+                catalog.correct(&library, &local_tag_id, correction)?;
+                catalog.inspect_libraries(libraries, safe)
+            }))
+        })?
+    })
+    .await?;
+    state.search.invalidate();
+    // Compatibility event refreshes current candidates, conditions and selected image labels.
+    if let Ok(active) = state.active() {
+        let _ = app.emit(
+            EVENT,
+            LibraryEvent::VocabularyChanged {
+                library_id: active.info().id.clone(),
+                revision: active.vocabulary_revision().map_err(|e| e.to_string())?,
+            },
+        );
+    }
+    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
+        || saved_safe_mode(&app) != safe
+    {
+        return Err("安全模式已变化，请重新检查标签对应".into());
+    }
+    Ok(result)
+}
+
 /// 对若干参考图批量添加、否决或清除标签决定。
 #[tauri::command]
 async fn edit_tags(
@@ -993,10 +1136,15 @@ async fn search_candidates(
 ) -> Result<Vec<Candidate>, String> {
     let library = state.current(&library_id)?;
     let (cache, builtin) = (state.search.clone(), state.builtin_approx.clone());
+    let (dir, catalog, revision) = (
+        state.device_dir.clone(),
+        state.catalog.clone(),
+        state.search_catalog_revision.clone(),
+    );
     blocking(move || {
-        let search = cache
-            .search(&library, &builtin, safe_mode)
-            .map_err(|e| e.to_string())?;
+        let search = catalog_search(
+            &dir, &catalog, &revision, &cache, &library, &builtin, safe_mode,
+        )?;
         Ok(search.candidates(&text, &lang, limit as usize))
     })
     .await
@@ -1015,6 +1163,11 @@ async fn resolve_search<R: Runtime>(
 ) -> Result<ConditionTree, String> {
     let library = state.current(&library_id)?;
     let (cache, builtin) = (state.search.clone(), state.builtin_approx.clone());
+    let (dir, catalog, revision) = (
+        state.device_dir.clone(),
+        state.catalog.clone(),
+        state.search_catalog_revision.clone(),
+    );
     crate::diagnostics::record(
         &app,
         UsageEvent::SearchResolved {
@@ -1022,9 +1175,9 @@ async fn resolve_search<R: Runtime>(
         },
     );
     blocking(move || {
-        let search = cache
-            .search(&library, &builtin, safe_mode)
-            .map_err(|e| e.to_string())?;
+        let search = catalog_search(
+            &dir, &catalog, &revision, &cache, &library, &builtin, safe_mode,
+        )?;
         Ok(search.resolve(&input, &lang))
     })
     .await
@@ -1044,6 +1197,7 @@ async fn set_safe_mode<R: Runtime>(
     state: State<'_, LibraryState>,
     on: bool,
 ) -> Result<bool, String> {
+    state.safe_mode_generation.fetch_add(1, Ordering::SeqCst);
     if let Some(shell) = app.try_state::<ShellState>() {
         let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
         shell
@@ -1270,14 +1424,14 @@ mod tests {
     }
 
     #[test]
-    fn opening_a_library_tagged_before_the_table_existed_names_its_untranslated_tags() {
+    fn opening_a_legacy_library_preserves_untranslated_display_until_explicit_migration() {
         let (dir, state) = state();
         let (library, image) = library_with_image(dir.path(), "old");
         tag_blue_eyes(&library, &image);
         assert_eq!(names(&library, &image), [("blue eyes".to_owned(), true)]);
 
         state.install_translations(&library);
-        assert_eq!(names(&library, &image), [("蓝瞳".to_owned(), false)]);
+        assert_eq!(names(&library, &image), [("blue eyes".to_owned(), true)]);
     }
 
     #[test]

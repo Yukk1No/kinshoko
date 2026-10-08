@@ -5,6 +5,9 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import type { CatalogCorrection } from "./bindings/CatalogCorrection";
+import type { CatalogImageTags } from "./bindings/CatalogImageTags";
+import type { TagCatalogWorkspace } from "./bindings/TagCatalogWorkspace";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { ApproxRelation } from "./bindings/ApproxRelation";
 import type { PersonalApproxEntry } from "./bindings/PersonalApproxEntry";
@@ -329,6 +332,10 @@ export function personalApprox(libraryId: string, lang: string): Promise<Persona
   return invoke<PersonalApproxEntry[]>(lib("personal_approx"), { libraryId, lang });
 }
 
+/** Global safe-mode setting changes invalidate asynchronous browser inspection results. */
+export function onSafeModeSetting(handler: (on: boolean) => void): Promise<UnlistenFn> {
+  return listen<boolean>("safe-mode-setting", (event) => handler(event.payload));
+}
 export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<UnlistenFn> {
   return listen<LibraryEvent>("library-event", (e) => handler(e.payload));
 }
@@ -639,6 +646,11 @@ export function pinImageUrl(pin: string, size: "full" | number): string {
   return captureUrl(`pin/${pin}/${size === "full" ? "full" : `fit-${size}`}`);
 }
 
+/** 只关闭收到 Esc 的活动钉图窗口，沿用原生关闭后的保存与截图历史清理。 */
+export function closePin(pin: string): Promise<void> {
+  return invoke<void>(desk("close_pin"), { pin });
+}
+
 /** 在钉图上弹出右键菜单。 */
 export function pinMenu(pin: string): Promise<void> {
   return invoke<void>(desk("pin_menu"), { pin });
@@ -793,4 +805,17 @@ export async function gateImage(
 /** 保存报告，返回 JSON 报告的路径。无人值守运行时保存后退出。 */
 export function gateSave(report: unknown, markdown: string, passed: boolean): Promise<string> {
   return invoke<string>("gate_save", { report, markdown, passed });
+}
+
+/** Inspect registered content providers and durable application-level tag mappings. */
+export function inspectTagCatalog(): Promise<TagCatalogWorkspace> {
+  return invoke<TagCatalogWorkspace>(lib("inspect_tag_catalog"));
+}
+
+export function correctTagMapping(libraryId: string, localTagId: string, correction: CatalogCorrection): Promise<TagCatalogWorkspace> {
+  return invoke<TagCatalogWorkspace>(lib("correct_tag_mapping"), { libraryId, localTagId, correction });
+}
+
+export function catalogImageTags(libraryId: string, imageId: string, lang: string): Promise<CatalogImageTags> {
+  return invoke<CatalogImageTags>(lib("catalog_image_tags"), { libraryId, imageId, lang });
 }

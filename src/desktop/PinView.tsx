@@ -3,6 +3,7 @@ import type { PinFrame } from "../bindings/PinFrame";
 import type { SavedPin } from "../bindings/SavedPin";
 import {
   captureUrl,
+  closePin,
   movePin,
   pinImageUrl,
   onPinFrame,
@@ -333,6 +334,12 @@ export function PinView({ pin }: { pin: string }) {
         return;
       }
       if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        gesture.current = null;
+        void closePin(pin).catch((error) => setNotice(String(error)));
+        return;
+      }
       const turn = TURN_KEYS[e.shiftKey ? e.key.toUpperCase() : e.key.toLowerCase()];
       if (!turn) return;
       e.preventDefault();

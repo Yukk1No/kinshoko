@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowseScope } from "./bindings/BrowseScope";
 import type { ConditionTree } from "./bindings/ConditionTree";
@@ -16,7 +16,8 @@ import {
   shellSettings,
 } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
-import { ImportBar, type FinishedImport, type RunningImport } from "./library/ImportBar";
+import { type FinishedImport, type RunningImport } from "./library/ImportBar";
+import { ImportMenu } from "./library/ImportMenu";
 import { LibraryPicker } from "./library/LibraryPicker";
 import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
 import { ReferenceGroupsPanel } from "./desktop/ReferenceGroupsPanel";
@@ -24,17 +25,24 @@ import { SelectionPanel } from "./library/SelectionPanel";
 import { SidebarPane } from "./library/SidebarPane";
 import { TagGroupsPane } from "./library/TagGroupsPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
+import { TagGroupBar } from "./search/TagGroupBar";
 import { ModelSettings } from "./ModelSettings";
-import { SealBook } from "./SealBook";
+import { Rail, type Section } from "./shell/Rail";
 import { SettingsPanel } from "./SettingsPanel";
 import { BackupReminder, BackupSettings } from "./Backup";
 import { TaggingIndicator } from "./TaggingIndicator";
 import { UpdateBanner } from "./Update";
-import { scopeKey, Wall } from "./wall/Wall";
+import { scopeKey, Wall, type WallHandle } from "./wall/Wall";
+import { DensitySlider } from "./wall/DensitySlider";
 import { Viewer } from "./viewer/Viewer";
 
 type WorkspaceProps = {
   library: LibraryInfo;
+  section: Section;
+  paneOpen: boolean;
+  onPaneToggle: () => void;
+  onOpenBrowse: () => void;
+  libraryControls: ReactNode;
   /** 新建资料库表单打开时只隐藏工作区，继续接收当前库的导入事件。 */
   hidden: boolean;
   safe: boolean;
@@ -51,6 +59,11 @@ type WorkspaceProps = {
  */
 function LibraryWorkspace({
   library,
+  section,
+  paneOpen,
+  onPaneToggle,
+  onOpenBrowse,
+  libraryControls,
   hidden,
   safe,
   onSafeChanged,
@@ -58,13 +71,14 @@ function LibraryWorkspace({
   onViewerChange,
 }: WorkspaceProps) {
   const [reloadKey, setReloadKey] = useState(0);
+  const [density, setDensity] = useState(240);
+  const [resultCount, setResultCount] = useState<number | null>(null);
+  const wall = useRef<WallHandle>(null);
   const [running, setRunning] = useState<RunningImport | null>(null);
   const [report, setReport] = useState<FinishedImport | null>(null);
   const [scope, setScope] = useState<BrowseScope>({ kind: "all" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<ImageCard | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarMoving, setSidebarMoving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [search, setSearch] = useState<SearchInput>({ conditions: [], exact: false });
   const [tree, setTree] = useState<ConditionTree>({ conditions: [] });
@@ -94,15 +108,6 @@ function LibraryWorkspace({
     setScope(next);
     setSelected(new Set());
   };
-  const toggleSidebar = () => {
-    setSidebarMoving(!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
-    setSidebarCollapsed((collapsed) => !collapsed);
-  };
-  useEffect(() => {
-    if (!sidebarMoving) return;
-    const timer = window.setTimeout(() => setSidebarMoving(false), 280);
-    return () => window.clearTimeout(timer);
-  }, [sidebarCollapsed, sidebarMoving]);
   const viewerChange = useRef(onViewerChange);
   viewerChange.current = onViewerChange;
   const viewerOpen = viewing !== null;
@@ -189,38 +194,24 @@ function LibraryWorkspace({
     setRunning((r) => (r?.taskId === taskId ? r : { taskId, progress: { done: 0, total: 0 } }));
   };
 
+  const libInPane = paneOpen && section === "browse";
   return (
     <>
-    <div className="app-workspace" hidden={hidden} inert={viewerOpen}>
-      <header className="app-toolbar">
-        <button type="button" aria-expanded={!sidebarCollapsed} onClick={toggleSidebar}>
-          {sidebarCollapsed ? "展开侧栏" : "收起侧栏"}
-        </button>
-        <h1 className="app-library-name">{library.name}</h1>
-        <ImportBar
-          enabled={!hidden}
-          libraryId={library.id}
-          libraryName={library.name}
-          running={running}
-          finished={report}
-          onStarted={started}
-          onDismissReport={() => setReport(null)}
-          onOpenTrash={() => {
-            setSearch({ conditions: [], exact: false });
-            changeScope({ kind: "trash" });
-          }}
-        />
-      </header>
+    <div className="app-workspace workspace" hidden={hidden} inert={viewerOpen}>
       <div className="app-body">
-        <div
-          className="sidebar-slot"
-          data-collapsed={sidebarCollapsed}
-          aria-hidden={sidebarCollapsed}
-          inert={sidebarCollapsed}
-          onTransitionEnd={(e) => {
-            if (e.target === e.currentTarget && e.propertyName === "width") setSidebarMoving(false);
-          }}
+        <aside
+          className="sidebar-slot pane"
+          data-collapsed={!paneOpen}
+          aria-label={section === "browse" ? "文件夹" : section === "groups" ? "参考组" : "截图历史"}
+          aria-hidden={!paneOpen}
+          inert={!paneOpen}
         >
+          <header className="pane-head">
+            <h1 className="app-library-name">{section === "browse" ? library.name : section === "groups" ? "参考组" : "截图历史"}</h1>
+            <button type="button" className="icon-tool" aria-label="收起侧栏" title="收起（Ctrl+B）" onClick={onPaneToggle}>‹</button>
+          </header>
+          <div className="pane-body" hidden={section !== "browse"}>
+            {libInPane && libraryControls}
           <SidebarPane
             libraryId={library.id}
             scope={scope}
@@ -228,6 +219,7 @@ function LibraryWorkspace({
             reloadKey={reloadKey}
             onError={onError}
           />
+          <details className="tag-organize"><summary>整理标签分组</summary>
           <TagGroupsPane
             libraryId={library.id}
             safe={safe}
@@ -241,7 +233,8 @@ function LibraryWorkspace({
             }}
             onError={onError}
           />
-          {/* 整理面板放在侧栏：第一次单击选中不挤动图片墙，双击才能落在同一张图上（#47）。 */}
+          </details>
+          {/* Ctrl／Shift／空格选择后的整理入口沿用正式 IPC。 */}
           {selected.size > 0 && (
             <SelectionPanel
               libraryId={library.id}
@@ -254,8 +247,14 @@ function LibraryWorkspace({
               generation={vocabularyKey}
             />
           )}
-        </div>
-        <main className="app-main">
+          </div>
+          {section === "groups" && <ReferenceGroupsPanel libraryId={library.id} />}
+          {section === "captures" && <CaptureHistoryPanel libraryId={library.id} />}
+        </aside>
+        <main className="app-main main">
+          <header className="topbar">
+            {!paneOpen && <button type="button" className="icon-tool" onClick={onPaneToggle} aria-label="展开侧栏" title="展开（Ctrl+B）">›</button>}
+            {!libInPane && <div className="collapsed-library">{libraryControls}</div>}
           <SearchBox
             libraryId={library.id}
             safe={safe}
@@ -269,6 +268,22 @@ function LibraryWorkspace({
               setSelected(new Set());
             }}
           />
+          <span className="result-count tabular" role="status" aria-label="查找结果">{resultCount === null ? "…" : resultCount + " 张"}</span>
+          <label className="density" title="图片大小"><span className="sr-only">图片大小</span>
+            <DensitySlider value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
+          </label>
+          <ImportMenu enabled={!hidden} libraryId={library.id} libraryName={library.name}
+            running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
+            onOpenTrash={() => {
+              onOpenBrowse();
+              setSearch({ conditions: [], exact: false });
+              changeScope({ kind: "trash" });
+            }} />
+          </header>
+          <div className="app-tagbar">
+          <TagGroupBar libraryId={library.id} safe={safe} generation={vocabularyKey} input={search}
+            onChange={(next) => { setSearch(next); setSelected(new Set()); }} onError={onError} />
+          </div>
           {problem && (
             <p className="app-problem" role="alert">
               {problem}
@@ -278,6 +293,9 @@ function LibraryWorkspace({
             </p>
           )}
           <Wall
+            ref={wall}
+            density={density}
+            onTotalChange={setResultCount}
             key={`${library.id}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
             libraryId={library.id}
             scope={scope}
@@ -288,7 +306,6 @@ function LibraryWorkspace({
             onSelectionChange={setSelected}
             onOpenImage={setViewing}
             viewerOpen={viewerOpen}
-            holdReflow={sidebarMoving}
           />
         </main>
       </div>
@@ -314,8 +331,8 @@ function LibraryWorkspace({
 export function App() {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [showCaptures, setShowCaptures] = useState(false);
-  const [showGroups, setShowGroups] = useState(false);
+  const [section, setSection] = useState<Section>("browse");
+  const [paneOpen, setPaneOpen] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   /** 查看器打开时，工作区以外的界面不可操作（查看器是模态的）。 */
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -379,17 +396,34 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [toggleSafe]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (viewerOpen || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+      if (e.key.toLowerCase() === "b") { e.preventDefault(); setPaneOpen((open) => !open); }
+      if (["1", "2", "3"].includes(e.key)) {
+        e.preventDefault(); setSection((["browse", "groups", "captures"] as Section[])[Number(e.key) - 1]); setPaneOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [viewerOpen]);
+
   const changed = (value: LibraryInfo | null) => {
     setLibrary(value);
     setOpenError(null);
     setShowCreate(false);
   };
 
+  const libraryControls = <LibraryPicker current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} compact={!!library} />;
   return (
-    <div className="app">
-      <div inert={viewerOpen}>
-        <LibraryPicker current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />
+    <div className="app app-shell">
+      <div className="rail-slot" inert={viewerOpen}>
+        <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
+          onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
+          onSettings={() => setShowSettings((shown) => !shown)} />
       </div>
+      <div className="app-column">
+      {!library && <div inert={viewerOpen}>{libraryControls}</div>}
       {openError && (
         <p className="app-problem" role="alert">
           上次的资料库无法打开：{openError}
@@ -407,6 +441,11 @@ export function App() {
         <LibraryWorkspace
           key={`${library.id}/${library.root}`}
           library={library}
+          section={section}
+          paneOpen={paneOpen}
+          onPaneToggle={() => setPaneOpen((open) => !open)}
+          onOpenBrowse={() => { setSection("browse"); setPaneOpen(true); }}
+          libraryControls={libraryControls}
           hidden={showCreate}
           safe={safe}
           onSafeChanged={setSafe}
@@ -415,6 +454,11 @@ export function App() {
         />
       )}
       {(!library || showCreate) && (
+        <div className="app-empty-workspace">
+          {!library && paneOpen && section !== "browse" && <aside className="pane empty-context" aria-label={section === "groups" ? "参考组" : "截图历史"}>
+            <header className="pane-head"><h2>{section === "groups" ? "参考组" : "截图历史"}</h2><button type="button" className="icon-tool" aria-label="收起侧栏" onClick={() => setPaneOpen(false)}>‹</button></header>
+            {section === "groups" ? <ReferenceGroupsPanel libraryId={undefined} /> : <CaptureHistoryPanel libraryId={undefined} />}
+          </aside>}
         <main className="app-main app-main-centered">
           {library === undefined ? (
             <p role="status">正在打开资料库…</p>
@@ -429,19 +473,11 @@ export function App() {
             </>
           )}
         </main>
-      )}
-      {showCaptures && (
-        <div inert={viewerOpen}>
-          <CaptureHistoryPanel libraryId={library?.id} />
-        </div>
-      )}
-      {showGroups && (
-        <div inert={viewerOpen}>
-          <ReferenceGroupsPanel libraryId={library?.id} />
         </div>
       )}
       {showSettings && (
-        <div inert={viewerOpen}>
+        <div className="settings-overlay" role="dialog" aria-label="程序设置" inert={viewerOpen}>
+          <header><h2>程序设置</h2><button type="button" onClick={() => setShowSettings(false)}>关闭设置</button></header>
           <SettingsPanel
             library={library ?? null}
             onChange={(view) => setShowApproxSource(view.showApproxSource)}
@@ -456,26 +492,9 @@ export function App() {
         <span>{info && `${info.productName} ${info.version}`}</span>
         <span className="app-status-actions">
           {library && <TaggingIndicator key={`${library.id}/${library.root}`} libraryId={library.id} />}
-          <SealBook on={safe} onToggle={toggleSafe} />
-          <button
-            type="button"
-            aria-pressed={showCaptures}
-            onClick={() => setShowCaptures((shown) => !shown)}
-          >
-            截图历史
-          </button>
-          <button type="button" aria-pressed={showGroups} onClick={() => setShowGroups((shown) => !shown)}>
-            参考组
-          </button>
-          <button
-            type="button"
-            aria-pressed={showSettings}
-            onClick={() => setShowSettings((shown) => !shown)}
-          >
-            设置
-          </button>
         </span>
       </footer>
+      </div>
     </div>
   );
 }

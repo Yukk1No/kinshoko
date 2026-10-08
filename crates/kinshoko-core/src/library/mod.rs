@@ -154,6 +154,13 @@ impl Library {
         })
     }
 
+    /// Read an inactive provider without reconciliation, migrations, or content writes.
+    /// Existing local-ID read actions remain available; write actions return a read-only error.
+    pub fn open_read_only(root: &Path, expected_id: &str) -> Result<Library, Error> {
+        let lens = ReferenceLens::open_detached(root, expected_id)?;
+        Ok(Library { inner: lens.inner })
+    }
+
     /// 在 `root` 建立新资料库。`root` 必须不存在或是空文件夹。
     pub fn create(root: &Path, name: &str) -> Result<Library, Error> {
         let name = name.trim();
@@ -435,6 +442,16 @@ impl Library {
             .write()
             .unwrap_or_else(|e| e.into_inner()) = tags::index(table);
         tags::apply_translations(&self.inner)
+    }
+
+    /// Install initial names for future tags without changing any existing label.
+    /// Application attachment uses this while legacy name provenance awaits migration.
+    pub fn use_translations_for_new_tags(&self, table: TagTranslations) {
+        *self
+            .inner
+            .translations
+            .write()
+            .unwrap_or_else(|e| e.into_inner()) = tags::index(table);
     }
 
     /// 对若干参考图批量应用标签编辑（添加、否决、清除人工标签决定）。

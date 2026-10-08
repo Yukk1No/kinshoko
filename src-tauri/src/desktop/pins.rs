@@ -694,6 +694,20 @@ pub async fn pin_frame(app: AppHandle, pin: String) -> Option<PinFrame> {
     current_frame(&app, &pin)
 }
 
+/// Esc 只关闭收到按键的钉图，后续沿用窗口销毁时的持久状态与截图历史清理。
+#[tauri::command]
+pub async fn close_pin(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    pin: String,
+) -> Result<(), String> {
+    if window.label() != label(&pin) {
+        return Err("只能关闭当前钉图".to_owned());
+    }
+    mark_closing(&app, &pin);
+    window.destroy().map_err(|e| e.to_string())
+}
+
 /// 第一帧已画好：显示钉图。
 #[tauri::command]
 pub async fn pin_ready(app: AppHandle, pin: String) {
