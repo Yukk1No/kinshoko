@@ -1,0 +1,19 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.95s
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 1 test
+
+thread 'modern_package_with_a_missing_identity_is_rejected_before_any_content_is_imported' (45284) panicked at crates\kinshoko-core\tests\portable_tags.rs:169:5:
+Ok(ReferenceGroup { id: "17f04ed67a1f43f083d0860b66917350", name: "包", created_at: 1791479804042, updated_at: 1791479804042, members: [GroupMember { id: "ab5d07e85e344df8bf9cbbf7a575dfb1", library_id: "f71be0e3a8b8401e9756a714f15b7f28", image_id: "01a11c84707f768da0a37b86c9c9ce19", source_width: 12, source_height: 10, crop: None, placement: Placement { x: 0, y: 0, scale: 1.0, flip_h: false, flip_v: false, rotation: 0 } }], imported_from_package: Some(PackageProvenance { package_id: "190c9ff088b44aeb9745ee3a6846ba17", group_id: "5b2f98ee858845e5973724ac34670dce", exported_at: 1791479803976 }), restored_from: None })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test modern_package_with_a_missing_identity_is_rejected_before_any_content_is_imported ... FAILED
+
+failures:
+
+failures:
+    modern_package_with_a_missing_identity_is_rejected_before_any_content_is_imported
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.15s
+
+error: test failed, to rerun pass `-p kinshoko-core --test portable_tags`

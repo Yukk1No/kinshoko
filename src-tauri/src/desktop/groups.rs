@@ -69,7 +69,7 @@ fn prepare_pins(app: &AppHandle, choices: &[CaptureChoice]) -> Result<Vec<SavedP
         }
     }
     let mut prepared = Vec::new();
-    let mut completed_captures=0;
+    let mut completed_captures = 0;
     for pin in open {
         let Some(id) = pin.capture_id() else {
             prepared.push(pin);
@@ -94,7 +94,7 @@ fn prepare_pins(app: &AppHandle, choices: &[CaptureChoice]) -> Result<Vec<SavedP
             super::history_changed(app);
             format!("第 {} 张截图的收藏未完成：{error}。之前完成的 {completed_captures} 张收藏已保留；参考组尚未保存。",completed_captures+1)
         })?;
-        completed_captures+=1;
+        completed_captures += 1;
         prepared.push(reference);
     }
     super::history_changed(app);
@@ -291,8 +291,7 @@ pub async fn export_reference_group_package(
         }) else {
             return Ok(None);
         };
-        crate::library::with_references(&app, |refs| groups.export_package(&group_id, refs, &path))
-            .map_err(|e| e.to_string())?;
+        crate::library::export_reference_package(&app, &groups, &group_id, &path)?;
         Ok(Some(path))
     })
     .await
@@ -326,9 +325,7 @@ pub async fn import_reference_group_package(
         };
         let groups = lock(&state(&app).groups).clone();
         let group = crate::library::with_destination(&app, &destination, |library| {
-            groups
-                .import_package(&path, library)
-                .map_err(|e| e.to_string())
+            crate::library::import_reference_package(&app, &groups, &path, library)
         })?;
         changed(&app);
         Ok(Some(group))

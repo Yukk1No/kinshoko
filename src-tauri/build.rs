@@ -52,6 +52,7 @@ fn main() {
                         "catalog_image_tags",
                         "inspect_tag_catalog",
                         "correct_tag_mapping",
+                        "publish_tag_definitions",
                         "edit_tag_name",
                         "shared_tag_groups",
                         "create_shared_tag_group",

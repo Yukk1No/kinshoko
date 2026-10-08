@@ -1,0 +1,24 @@
+{
+  "collectedAt": "2026-10-08T18:07:44.2682536Z",
+  "collectionStage": "After native verification",
+  "os": {
+    "Caption": "Microsoft Windows 11 专业版",
+    "Version": "10.0.26300",
+    "BuildNumber": "26300",
+    "OSArchitecture": "64 位"
+  },
+  "displayVersion": "26H2",
+  "node": "v22.15.0",
+  "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+  "edgeDriverVersion": "Microsoft Edge WebDriver 154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)",
+  "edgeDriverSha256": "0F4600639201CCD2E84C72C3977AC33C67E19152E197C89EB16A6591D1FBE9F7",
+  "tauriDriverSha256": "14FCADB6ADBB5C2956263EA6BBDCBE5F9C190D3B6A6C12BC5C47953CB6AA272D",
+  "nativeRuntimeDlls": [
+    {
+      "file": "DirectML.dll",
+      "sha256": "9C9E6D822561C6C41B90E6994B3E8857CF1D66DBFB1E0C4C799C7C89B4E92DA1",
+      "bytes": 18527776
+    }
+  ],
+  "windows10": "unverified, accepted by user"
+}

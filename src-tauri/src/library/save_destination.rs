@@ -53,8 +53,18 @@ pub fn with_destination_published<R: Runtime, T>(
 }
 fn publish_saved<R: Runtime>(app: &AppHandle<R>, library: &Library) -> Result<(), String> {
     let state = app.state::<LibraryState>();
+    library
+        .validate_destination(&SaveDestination {
+            library_id: library.info().id.clone(),
+            folder_id: None,
+        })
+        .map_err(|error| {
+            format!(
+                "内容处理结果已保留，资料库标签定义未更新：{error}。可在统一标签目录重试保存定义。"
+            )
+        })?;
     with_catalog(&state.device_dir, &state.catalog, |catalog| {
-        catalog.synchronize(library).map(|_| ())
+        catalog.publish_library_definitions(library)
     })
     .map_err(|e| format!("内容已保存，资料库标签定义未更新：{e}。可在统一标签目录重试保存定义。"))
 }
@@ -147,9 +157,26 @@ pub(super) async fn workspace_copy_source<R: Runtime>(
                 workspace.read_source(device, catalog, target, safe_mode)
             },
         )?;
+        let mut snapshot = source
+            .content_snapshot(&target.image_id)
+            .map_err(|e| e.to_string())?;
+        let state = app.state::<LibraryState>();
+        // Source access completed before taking catalog; never invert device → catalog order.
+        with_catalog(&state.device_dir, &state.catalog, |catalog| {
+            catalog.synchronize(&source)?;
+            catalog
+                .inspect()?
+                .apply_content_definitions(&source.info().id, &mut snapshot)?;
+            let definitions = snapshot
+                .tags
+                .iter()
+                .filter_map(|tag| tag.definition.clone())
+                .collect::<Vec<_>>();
+            catalog.validate_content_dependencies(&definitions)
+        })?;
         with_destination_published(&app, &destination, |library| {
             library
-                .copy_from(&source, &target.image_id)
+                .copy_snapshot_from(&source, &target.image_id, &snapshot)
                 .map_err(|e| e.to_string())
         })
     })

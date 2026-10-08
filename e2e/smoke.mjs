@@ -248,8 +248,13 @@ try {
 
   // 导入文件夹（含子文件夹）
   await session.click(await session.find("//button[@aria-label='导入参考图']"));
+  await until("保存目标资料库已加载", () => session.exec("return [...document.querySelector('select[aria-label=\"保存到资料库\"]').options].some(o=>o.value===arguments[0]);", [created.id]));
+  await session.exec("const s=document.querySelector('select[aria-label=\"保存到资料库\"]');s.value=arguments[0];s.dispatchEvent(new Event('change',{bubbles:true}));",[created.id]);
+  await session.exec("const s=document.querySelector('select[aria-label=\"保存到文件夹\"]');s.value='';s.dispatchEvent(new Event('change',{bubbles:true}));");
   await session.pick(source);
   await session.click(await session.find(button("导入文件夹…")));
+  await session.waitFor("目标确认", button("开始导入"));
+  await session.click(await session.find(button("开始导入")));
   await session.waitFor("导入完成", "//*[contains(normalize-space(), '导入完成：新增 3 张')]", 60000);
   await session.find(`//li[contains(., '说明.txt') and contains(., '不支持的格式')]`);
   assert(true, "导入 3 张图，不支持的文件逐个列出");
