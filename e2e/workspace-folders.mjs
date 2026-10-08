@@ -179,10 +179,15 @@ try {
   await session.type("//input[@aria-label='新文件夹名称']", "原生新建");
   await until("created folder rendered", () => session.exec(`return ${rootElement(second.info.id)}.textContent.includes('原生新建');`));
   assert((await session.invoke("workspace_directories", { safeMode: true })).providers.find(p => p.registration.library.id === second.info.id).sidebar.folders.some(f => f.name === "原生新建"), "existing create-folder action updates its explicit provider root");
-  await session.exec("const button = document.querySelector('[data-folder-id=\"' + arguments[0] + '\"]'); button.dispatchEvent(new MouseEvent('dblclick', {bubbles:true}));", [second.child]);
-  const renameId = await session.find("//input[@aria-label='文件夹名称']");
-  await wd("POST", `${session.base}/element/${renameId}/clear`, {});
-  await session.type("//input[@aria-label='文件夹名称']", "动作改名");
+  await session.click(folderButton(second.info.id, second.child));
+  const folderId = await session.find(folderButton(second.info.id, second.child));
+  await wd("POST", `${session.base}/actions`, { actions: [{ type: "pointer", id: "folder-mouse", parameters: { pointerType: "mouse" }, actions: [
+    { type: "pointerMove", origin: { [ELEMENT]: folderId }, x: 0, y: 0 },
+    { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 }, { type: "pause", duration: 70 },
+    { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 },
+  ] }] });
+  await until("rename input ready", () => session.find("//input[@aria-label='文件夹名称']"));
+  await session.type("//input[@aria-label='文件夹名称']", "\uE009a\uE000动作改名\uE007");
   await until("renamed folder rendered", () => session.exec(`return ${rootElement(second.info.id)}.textContent.includes('动作改名');`));
   assert(!(await session.invoke("workspace_directories", { safeMode: true })).providers.find(p => p.registration.library.id === first.info.id).sidebar.folders.some(f => f.children.some(c => c.name === "动作改名")), "rename changes only the chosen library's folder tree");
   let request = scoped(second.info.id, { kind: "folderTree", id: second.root });
