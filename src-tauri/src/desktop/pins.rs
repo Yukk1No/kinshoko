@@ -20,8 +20,8 @@ use std::sync::atomic::Ordering;
 
 use image::RgbaImage;
 use kinshoko_core::desktop::{
-    CaptureEntry, PinContent, PinFrame, PinMotion, Placement, Region, SavedPin, ScreenRect,
-    Screenshot, Turn, initial_scale, place_new_pin, stage,
+    CaptureEntry, CaptureSurface, PinContent, PinFrame, PinMotion, Placement, Region, SavedPin,
+    ScreenRect, Screenshot, Turn, initial_scale, place_new_pin, stage,
 };
 use kinshoko_core::reference_groups::ReferenceSource;
 use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
@@ -153,40 +153,23 @@ pub(super) fn capture_surfaces(app: &AppHandle) -> Vec<super::capture::Reference
             }
             Some(super::capture::ReferenceSurface {
                 window: label(&pin.id),
-                pin,
-                shown: r.content,
-                visible: r.content.intersect(&r.window)?,
-                covered: Vec::new(),
+                selection: CaptureSurface {
+                    pin,
+                    shown: r.content,
+                    visible: r.content.intersect(&r.window)?,
+                    covered: Vec::new(),
+                },
             })
         })
         .collect()
 }
 
 /// 从 F1 的参考视图裁切建立新钉图，仍连接原库与原图，不进入截图历史。
-pub(super) fn open_reference_crop(
+pub(super) fn open_reference_selection(
     app: &AppHandle,
-    source: &SavedPin,
-    crop: Region,
+    mut pin: SavedPin,
     at: ScreenRect,
 ) -> Result<(), String> {
-    let PinContent::Reference {
-        library_id,
-        image_id,
-        ..
-    } = &source.content
-    else {
-        return Err("不是参考图".into());
-    };
-    let image = crate::library::with_references(app, |refs| refs.image(library_id, image_id))
-        .map_err(|e| e.to_string())?;
-    let mut pin = SavedPin::reference(
-        &uuid::Uuid::new_v4().simple().to_string(),
-        library_id,
-        &image,
-        Some(crop),
-        source.placement,
-    )
-    .map_err(|e| e.to_string())?;
     let (monitor, dpi) = monitor_at(at.x, at.y).unwrap_or((at, 1.0));
     pin.placement.scale = initial_scale(pin.width, pin.height, monitor);
     let (width, height) = pin.window_size();
