@@ -66,7 +66,8 @@ class Session {
   async bytes(sessionId, itemId, targetPx = 640) { const value = await wd("POST", `${this.base}/execute/async`, { script: `const done=arguments[arguments.length-1];(${receiptRead})(arguments[0]).then(done);`, args: [{ sessionId, itemId, targetPx }] }); result.transfers.push({ sessionId, itemId, targetPx, ...value }); return value; }
   async readRace(preview, action, afterFirstChunk = false, targetPx = 319) {
     const value = await wd("POST", `${this.base}/execute/async`, { script: `const done=arguments[arguments.length-1],args=arguments[0],action=arguments[1],afterFirst=arguments[2],readPreview=${receiptRead};let ended=false,actionPromise,actionStartedAt,pendingAtAction,actionReturnedAt=null;const act=()=>{if(actionPromise)return;pendingAtAction=!ended;actionStartedAt=performance.now();actionPromise=window.__TAURI_INTERNALS__.invoke(action.command,action.args).then(value=>{actionReturnedAt=performance.now();return {value,actionEndedAt:actionReturnedAt};},error=>{actionReturnedAt=performance.now();return {actionFailure:String(error),actionEndedAt:actionReturnedAt};});};const read=readPreview(args,afterFirst?act:undefined,()=>actionReturnedAt).then(value=>{ended=true;return value;});if(!afterFirst)Promise.resolve().then(act);read.then(async value=>{if(!actionPromise)act();done({...value,pendingAtAction,actionStartedAt,...await actionPromise});});`, args: [{ sessionId: preview.id, itemId: preview.items[0], targetPx }, action, afterFirstChunk] });
-    result.races.push({ action, afterFirstChunk, targetPx, ...value, actionElapsedMs: value.actionEndedAt - value.actionStartedAt }); return value;
+    const race = { action, afterFirstChunk, targetPx, ...value, actionElapsedMs: value.actionEndedAt - value.actionStartedAt };
+    result.races.push(race); return race;
   }
 }
 let session, driver;

@@ -60,3 +60,7 @@ v1 在 20:36:33 UTC 完成精确 cleanup：own EXE/profile/WebView/driver 与 46
 预备 v2 包 source `4a919563a1f9eb0b96515019c8a534e1e0b7826b` 已冻结但没有执行 native：排队期间公开界面测试发现当前资料库变化后已显示预览仍留存，RED 原件保留；预约随后撤销。修复同意的当前上下文边界后重新冻结，v2 包与清单保留为未执行记录，不代替新固定包的原生结果。
 
 当前资料库界面修复后受影响 12 项界面检查、TypeScript 与完整前端 36 文件 / 279 项通过，日志 `t15-current-library-ui-green.log`、`t15-current-library-types.log`、`t15-current-library-all-ui.log`。该修复只限定预览同意的界面上下文；没有变更 T10 任务归属或核心权限。
+
+原生 v3 固定产品 source `473bdb1dc4802577d805534c17b4201a01a38aa8` / tree `e4a0caf90bf8c5e789df485d5385f2b1e37456fb`、EXE SHA `7e083e5c0c44375dae6d17691e495bffab5f4941e74792e5730c8d97dcd39e0e` 于 21:11:20.318–21:11:48.891 UTC 实际运行。`t15-native-run-v3/result.json` 保持 status failed：`readRace` 把 `afterFirstChunk` 只加入保存的记录，没有包含在即时返回给断言的值中，导致断言读到 undefined；不是把不满足的传输重写成通过。原件中真实首块后 close 在 5.7ms 返回，33 块 / 33,759 字节后读拒绝、没有完成标记、响应后 0 字节；完整 12,962,853 字节 / 12,672 块正常发送为 2686ms。独立脚本直接按该原件完整记录重判此子步骤为通过（`t15-v3-trace-recheck.log`），完整原生验收尚需同产品的新 run 继续验证模式撤销及后续场景。
+
+v3 已显示图片的真实当前资料库控件切换在 185ms 内隐藏预览，待读取切换为 163ms，后续观察没有图片复活，固定原任务 owner 保持；待读取关闭为 34ms。四个实际 safe-mode 样本均 true。启动预检最初误将 observer pwsh 命令行包含的 run 名当作自有进程，未启动程序；原说明 `t15-native-preflight-v3-first-failed.txt` 保留，修正仅限只读 observer 过滤。21:13:04 UTC 已 release，own EXE/profile WebView/drivers/4676/77 均空，KnownFolder 不存在→不存在，清理事实写于 v3 `cleanup.json`。本轮固定文件夹仅含 EXE，没有借用其他任务 DLL。每次 run 的主脚本和 helper 实际源码/hash、manifest/fixture 原字节均已保存。
