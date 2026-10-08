@@ -4,7 +4,7 @@
 //!   内容分级），不论是否被封印。快照只是导出时的样子，不反向更新来源库。
 //! - 导入：[`Library::import_from_package`](super::Library::import_from_package) 让包里的原图走
 //!   普通导入的写入顺序（完整解码 → 同库暂存校验 → pending → 发布 → 短事务提交），同库已有字节
-//!   相同的原图只合并来源。快照按 `package:<包 id>` 来源分层写入：只替换这一层，不碰人工标签决定、
+//!   相同的原图只合并来源。快照按 `package:<包 id>:<来源库 id>:<来源图 id>` 来源分层写入：只替换这一层，不碰人工标签决定、
 //!   本库备注与人工分级；同一个包重复导入不重复建图。包本身记在 `package_import`。
 
 use rusqlite::{Connection, OptionalExtension, Transaction, params};
@@ -14,7 +14,7 @@ use ts_rs::TS;
 use super::Error;
 use super::lens::ReferenceLens;
 use super::rating::{self, ContentRating};
-use super::tags::{self, FactSource, LocalizedName, SourceTag, TagNamespace, TagRef};
+use super::tags::{self, FactSource, LocalizedName, TagNamespace};
 
 /// 参考组包里一张参考图在导出时的整理信息快照。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -52,6 +52,9 @@ pub struct SnapshotTag {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackageOrigin {
     pub package_id: String,
+    /// 包内快照的来源身份；不同库的同字节原图仍有各自的整理信息。
+    pub source_library_id: String,
+    pub source_image_id: String,
     /// 导出它的参考组。
     pub group_id: String,
     pub group_name: String,
@@ -162,7 +165,7 @@ pub(super) struct PackageFacts {
     pub(super) snapshot: ImageSnapshot,
 }
 
-/// 写入（或刷新）这张图的 `package:<包 id>` 来源层，仍处在原图的提交事务中；返回新的词表修订号。
+/// 写入（或刷新）这张图的 `package:<包 id>:<来源库 id>:<来源图 id>` 来源层，仍处在原图的提交事务中；返回新的词表修订号。
 pub(super) fn commit(
     tx: &Transaction,
     translations: &tags::TranslationIndex,
@@ -171,7 +174,11 @@ pub(super) fn commit(
     now: i64,
 ) -> Result<i64, Error> {
     let (origin, snapshot) = (&facts.origin, &facts.snapshot);
-    let source = FactSource::package(&origin.package_id);
+    let source = FactSource::package_image(
+        &origin.package_id,
+        &origin.source_library_id,
+        &origin.source_image_id,
+    );
     tx.execute(
         "DELETE FROM image_source WHERE image_id = ?1 AND source = ?2",
         params![image_id, source.as_str()],
@@ -200,26 +207,7 @@ pub(super) fn commit(
             ],
         )?;
     }
-    let source_tags: Vec<SourceTag> = snapshot
-        .tags
-        .iter()
-        .filter_map(|t| {
-            let tag = match (t.external.first(), t.names.first()) {
-                (Some(name), _) => TagRef::External {
-                    namespace: t.namespace,
-                    name: name.clone(),
-                },
-                (None, Some(name)) => TagRef::Named {
-                    namespace: t.namespace,
-                    name: name.name.clone(),
-                    lang: name.lang.clone(),
-                },
-                (None, None) => return None,
-            };
-            Some(SourceTag { tag, score: None })
-        })
-        .collect();
-    tags::replace_source_tags_lenient(tx, translations, &source, image_id, &source_tags)?;
+    tags::replace_snapshot_tags(tx, translations, &source, image_id, &snapshot.tags)?;
     tx.execute(
         "DELETE FROM rating_fact WHERE image_id = ?1 AND source = ?2",
         params![image_id, source.as_str()],

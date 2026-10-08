@@ -12,7 +12,7 @@
 //! 只是导出时的样子，不反向更新来源库。
 //!
 //! 导入时先逐个核对原图的 SHA-256，包有损坏就什么都不写；然后原图经资料库的导入流程进库（字节相同
-//! 的合并为同一条记录），快照按 `package:<包 id>` 来源分层写入；最后另存为新的参考组：新身份，
+//! 的合并为同一条记录），快照按 `package:<包 id>:<来源库 id>:<来源图 id>` 来源分层写入；最后另存为新的参考组：新身份，
 //! 成员、局部与摆放逐字一致，改指向导入它的资料库，并记下 `importedFromPackage`。
 //! 中途失败时已进库的图留着，重新导入同一个包会合并到它们上面，不会重复。
 
@@ -294,19 +294,21 @@ pub(super) fn import(path: &Path, library: &Library) -> Result<ReferenceGroup, G
         }
     }
 
-    let origin = PackageOrigin {
-        package_id: manifest.package_id.clone(),
-        group_id: manifest.group.id.clone(),
-        group_name: manifest.group.name.clone(),
-        exported_at: manifest.exported_at,
-        location: std::path::absolute(path)
-            .unwrap_or_else(|_| path.to_path_buf())
-            .to_string_lossy()
-            .into_owned(),
-    };
     // 来源库中的“资料库＋参考图” → 本库的参考图。
     let mut imported: HashMap<(String, String), String> = HashMap::new();
     for image in &manifest.images {
+        let origin = PackageOrigin {
+            package_id: manifest.package_id.clone(),
+            source_library_id: image.library_id.clone(),
+            source_image_id: image.image_id.clone(),
+            group_id: manifest.group.id.clone(),
+            group_name: manifest.group.name.clone(),
+            exported_at: manifest.exported_at,
+            location: std::path::absolute(path)
+                .unwrap_or_else(|_| path.to_path_buf())
+                .to_string_lossy()
+                .into_owned(),
+        };
         let bytes = read_original(&mut zip, image)?;
         let id = library
             .import_from_package(&origin, &bytes, &image.snapshot)

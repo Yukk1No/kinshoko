@@ -224,6 +224,63 @@ fn target(dir: &Path) -> BackupTarget {
 }
 
 #[test]
+fn editing_a_group_while_copying_keeps_the_backup_references_consistent() {
+    let device = Device::new();
+    let group = device
+        .groups
+        .create(
+            "正在使用",
+            &mut [device.pin(&device.main, &device.main_images[0], None, 10)],
+        )
+        .unwrap();
+    let registry = device.registry();
+    let scope = compute_scope(
+        &registry,
+        &device.groups.list().unwrap(),
+        &ScopeSelection::All,
+    );
+    let target = target(device.dir.path());
+    let mut changed = false;
+    let report = target
+        .run(
+            &scope,
+            &BackupSources {
+                libraries: &registry,
+                groups: &device.groups,
+            },
+            at(0, 3),
+            &mut |_| {
+                if changed {
+                    return;
+                }
+                changed = true;
+                let added = import(&device.main, &device.dir.path().join("later"), &[29]);
+                device
+                    .groups
+                    .save_pins(
+                        &group.id,
+                        &mut [device.pin(&device.main, &added[0], None, 200)],
+                    )
+                    .unwrap();
+            },
+        )
+        .unwrap();
+    assert!(report.complete, "{:?}", report.problems);
+    let restored = target
+        .restore(
+            &report.snapshot_id,
+            &device.dir.path().join("restored"),
+            &device.groups,
+            at(1, 3),
+        )
+        .unwrap();
+    assert!(restored.check.passed(), "{:?}", restored.check);
+    let saved = device.groups.get(&restored.groups[0].id).unwrap();
+    assert_eq!(saved.members.len(), 1);
+    assert_eq!(saved.members[0].image_id, device.main_images[0]);
+}
+
+#[test]
 fn a_restored_backup_is_an_independent_copy_and_passes_the_round_trip_check() {
     let device = Device::new();
     device.curate();

@@ -231,9 +231,17 @@ struct Manifest {
 struct ManifestLibrary {
     id: String,
     name: String,
+    /// Library 返回的快照文件键，Backup 不推断资料库的磁盘布局。
+    #[serde(default = "legacy_database_key")]
+    database_key: PathBuf,
     database_sha256: String,
     originals: Vec<OriginalFile>,
     curation: Vec<TableDigest>,
+}
+
+// 早期格式 v1 清单没有记录文件键；这是旧备份格式的固定值，不用于新快照。
+fn legacy_database_key() -> PathBuf {
+    "library.sqlite".into()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -375,6 +383,23 @@ impl BackupTarget {
             skipped: Vec::new(),
         };
 
+        // 先固定组引用，再取库快照。复制期间保存的新成员不混入本次备份。
+        let groups_dir = work.join("groups");
+        fs::create_dir_all(&groups_dir)?;
+        for g in &scope.groups {
+            match sources.groups.snapshot(&g.id) {
+                Ok(bytes) => {
+                    write_synced(&groups_dir.join(format!("{}.json", g.id)), &bytes)?;
+                    manifest.groups.push(ManifestGroup {
+                        id: g.id.clone(),
+                        name: g.name.clone(),
+                        sha256: sha256(&bytes),
+                    });
+                }
+                Err(e) => report.problems.push(format!("参考组“{}”：{e}", g.name)),
+            }
+        }
+
         let mut snaps = Vec::new();
         for item in &scope.libraries {
             let snap = registered(sources, item).and_then(|reg| {
@@ -418,27 +443,17 @@ impl BackupTarget {
             manifest.libraries.push(ManifestLibrary {
                 id: snap.library.id.clone(),
                 name: snap.library.name.clone(),
+                database_key: snap
+                    .database
+                    .strip_prefix(work.join("libraries").join(&snap.library.id))
+                    .map_err(std::io::Error::other)?
+                    .to_path_buf(),
                 database_sha256: library::hash_file(&snap.database)?,
                 originals: snap.originals.iter().map(|d| d.file.clone()).collect(),
                 curation: snap.curation.clone(),
             });
         }
 
-        let groups_dir = work.join("groups");
-        fs::create_dir_all(&groups_dir)?;
-        for g in &scope.groups {
-            match sources.groups.snapshot(&g.id) {
-                Ok(bytes) => {
-                    write_synced(&groups_dir.join(format!("{}.json", g.id)), &bytes)?;
-                    manifest.groups.push(ManifestGroup {
-                        id: g.id.clone(),
-                        name: g.name.clone(),
-                        sha256: sha256(&bytes),
-                    });
-                }
-                Err(e) => report.problems.push(format!("参考组“{}”：{e}", g.name)),
-            }
-        }
         manifest.skipped = report.skipped.clone();
         let bytes = serde_json::to_vec_pretty(&manifest).map_err(std::io::Error::other)?;
         write_synced(&work.join(MANIFEST), &bytes)?;
@@ -514,7 +529,7 @@ impl BackupTarget {
         let manifest = read_manifest(&dir).map_err(BackupError::Incomplete)?;
         // 先核对快照本身，有问题就不动本设备。
         for lib in &manifest.libraries {
-            let db = dir.join("libraries").join(&lib.id).join("library.sqlite");
+            let db = dir.join("libraries").join(&lib.id).join(&lib.database_key);
             if library::hash_file(&db).ok().as_deref() != Some(&lib.database_sha256) {
                 return Err(BackupError::Incomplete(format!(
                     "资料库“{}”的数据库快照不符",
@@ -551,7 +566,7 @@ impl BackupTarget {
                 restored_at: at.unix_ms,
             };
             let info = Library::restore_at(
-                &dir.join("libraries").join(&lib.id).join("library.sqlite"),
+                &dir.join("libraries").join(&lib.id).join(&lib.database_key),
                 &dest,
                 &format!("{}（恢复）", lib.name),
                 &provenance,
@@ -770,6 +785,17 @@ fn read_manifest(dir: &Path) -> Result<Manifest, String> {
             "由更新版本的 Kinshoko 写成（格式版本 {}）",
             m.format_version
         ));
+    }
+    for lib in &m.libraries {
+        if !valid_id(&lib.id)
+            || lib.database_key.as_os_str().is_empty()
+            || !lib
+                .database_key
+                .components()
+                .all(|p| matches!(p, std::path::Component::Normal(_)))
+        {
+            return Err("数据库快照文件键无效".into());
+        }
     }
     Ok(m)
 }

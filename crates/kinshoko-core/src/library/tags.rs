@@ -91,6 +91,11 @@ impl FactSource {
         FactSource(format!("package:{package_id}"))
     }
 
+    /// 包内每个来源快照各占一层，同字节去重不合并整理信息的身份。
+    pub fn package_image(package_id: &str, library_id: &str, image_id: &str) -> FactSource {
+        FactSource(format!("package:{package_id}:{library_id}:{image_id}"))
+    }
+
     /// 从备份恢复。
     pub fn restore() -> FactSource {
         FactSource("restore".into())
@@ -706,24 +711,95 @@ pub(super) fn replace_source_tags_in(
     Ok(())
 }
 
-/// 同 [`replace_source_tags_in`]，但跳过在目标资料库里有歧义的名称（同一命名空间有多个标签叫它），
-/// 不让一个标签挡住整张图的导入（参考组包快照用，#68）。
-pub(super) fn replace_source_tags_lenient(
+/// 快照先按外部对应、再按名称找身份，再补全名称与对应。目标库已有的整理不覆盖；
+/// 新标签直接使用快照的全部语言名称，只有无名称时才按内置翻译表初始化。
+pub(super) fn replace_snapshot_tags(
     tx: &Transaction,
     translations: &TranslationIndex,
     source: &FactSource,
     image_id: &str,
-    tags: &[SourceTag],
+    tags: &[super::package::SnapshotTag],
 ) -> Result<(), Error> {
     let mut resolvable = Vec::new();
     for t in tags {
-        match resolve(tx, translations, &t.tag, false) {
-            Err(Error::AmbiguousTag(_) | Error::InvalidTagName) => {}
+        match resolve_snapshot_tag(tx, translations, t) {
+            Ok(Some(id)) => resolvable.push(SourceTag {
+                tag: TagRef::Id { id },
+                score: None,
+            }),
+            Ok(None) | Err(Error::AmbiguousTag(_) | Error::InvalidTagName) => {}
             Err(e) => return Err(e),
-            Ok(_) => resolvable.push(t.clone()),
         }
     }
     replace_source_tags_in(tx, translations, source, image_id, &resolvable)
+}
+
+fn resolve_snapshot_tag(
+    tx: &Transaction,
+    translations: &TranslationIndex,
+    tag: &super::package::SnapshotTag,
+) -> Result<Option<String>, Error> {
+    let mut identity = None;
+    for external in &tag.external {
+        identity = resolve(
+            tx,
+            translations,
+            &TagRef::External {
+                namespace: tag.namespace,
+                name: external.clone(),
+            },
+            false,
+        )?;
+        if identity.is_some() {
+            break;
+        }
+    }
+    if identity.is_none() {
+        for name in &tag.names {
+            identity = find_named(tx, tag.namespace, &clean(&name.name)?)?;
+            if identity.is_some() {
+                break;
+            }
+        }
+    }
+    if identity.is_none() && tag.names.is_empty() && tag.external.is_empty() {
+        return Ok(None);
+    }
+    let id = match identity {
+        Some(id) => id,
+        None => new_tag(tx, tag.namespace)?,
+    };
+    let namespace = require_tag(tx, &id)?;
+    for name in &tag.names {
+        let text = clean(&name.name)?;
+        if !text_taken(tx, namespace, &id, &text)? {
+            tx.execute(
+                "INSERT OR IGNORE INTO tag_name (tag_id, lang, name) VALUES (?1, ?2, ?3)",
+                params![id, name.lang, text],
+            )?;
+        }
+    }
+    for external in &tag.external {
+        let name = clean(external)?;
+        tx.execute(
+            "INSERT OR IGNORE INTO tag_external (name, tag_id) VALUES (?1, ?2)",
+            params![name, id],
+        )?;
+    }
+    let has_names: bool = tx.query_row(
+        "SELECT EXISTS (SELECT 1 FROM tag_name WHERE tag_id = ?1)",
+        [&id],
+        |r| r.get(0),
+    )?;
+    if !has_names {
+        for external in &tag.external {
+            if let Some(translation) = translations.get(external) {
+                initialise_names(tx, namespace, &id, translation)?;
+                break;
+            }
+        }
+    }
+    Ok(Some(id))
 }
 
 pub(super) fn rename_tag(inner: &Inner, tag_id: &str, lang: &str, name: &str) -> Result<(), Error> {
