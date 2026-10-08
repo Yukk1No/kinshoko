@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ResolvedTagIdentity } from "../bindings/ResolvedTagIdentity";
 import type { ImageTags } from "../bindings/ImageTags";
 import type { TagEdit } from "../bindings/TagEdit";
@@ -7,10 +7,11 @@ import type { TagNamespace } from "../bindings/TagNamespace";
 import type { TagOrigin } from "../bindings/TagOrigin";
 import type { TagRef } from "../bindings/TagRef";
 import type { VocabularyTag } from "../bindings/VocabularyTag";
-import { addTagAlias, catalogImageTags, editTags, imageTags, removeTagAlias, vocabulary } from "../ipc";
+import { addTagAlias, catalogImageTags, editTags, imageTags, removeTagAlias, vocabulary, workspaceSourceInspection, workspaceEditSourceTags } from "../ipc";
 import { TagMarks, UI_LANG, tagName, useCandidates } from "../search/SearchBox";
 
 type Props = {
+  sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
   libraryId: string;
   /** 选中的参考图；只有一张时列出它的标签。 */
   ids: string[];
@@ -47,7 +48,7 @@ const byId = (tag: TagLabel): TagRef => ({ kind: "id", id: tag.id });
  * 人工标签决定，给标签加别名；选几张都能按命名空间与名称（或别名）一次添加、否决或清除。
  * 人工标签决定优先于来源事实，重新打标或重新迁入不会覆盖。
  */
-export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
+export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarget }: Props) {
   const single = ids.length === 1 ? ids[0] : null;
   const [identities, setIdentities] = useState<ResolvedTagIdentity[]>([]);
   const [tags, setTags] = useState<ImageTags | null>(null);
@@ -55,7 +56,11 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
   const [namespace, setNamespace] = useState<TagNamespace>("general");
   const [text, setText] = useState("");
   const [refresh, setRefresh] = useState(0);
-  const candidates = useCandidates({ libraryId, safe, generation }, text);
+  const candidates = useCandidates({ libraryId, safe, generation, sourceTarget }, text);
+  const identityKey = JSON.stringify([libraryId, ids, safe, generation, sourceTarget]);
+  const currentKey = useRef(identityKey);
+  currentKey.current = identityKey;
+  useEffect(() => { currentKey.current = identityKey; return () => { currentKey.current = ""; }; }, [identityKey]);
 
   useEffect(() => {
     let alive = true;
@@ -65,6 +70,14 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
       return;
     }
     setIdentities([]);
+    setTags(null);
+    if (sourceTarget) {
+      workspaceSourceInspection(sourceTarget, safe, UI_LANG).then(
+        (value) => { if (alive) { setTags(value.tags.image); setIdentities(value.tags.identities); } },
+        (error) => alive && onError(String(error)),
+      );
+      return () => { alive = false; };
+    }
     catalogImageTags(libraryId, single, UI_LANG).then(
       (value) => alive && setIdentities(value?.identities ?? []),
       (error) => alive && onError(String(error)),
@@ -76,15 +89,15 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
     return () => {
       alive = false;
     };
-  }, [libraryId, single, generation, refresh, onError]);
+  }, [libraryId, single, safe, generation, refresh, onError, identityKey]);
 
   // 换了选中的图，别名编辑跟着关掉。
   useEffect(() => setAliasFor(null), [single]);
 
   const edit = (edits: TagEdit[]) =>
-    editTags(libraryId, ids, edits).then(
-      () => setRefresh((n) => n + 1),
-      (e) => onError(String(e)),
+    (sourceTarget ? workspaceEditSourceTags(sourceTarget, safe, edits) : editTags(libraryId, ids, edits)).then(
+      () => { if (currentKey.current === identityKey) setRefresh((n) => n + 1); },
+      (e) => { if (currentKey.current === identityKey) onError(String(e)); },
     );
 
   const typed = (): TagRef | null => {
@@ -146,9 +159,9 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
                     >
                       ⊘
                     </button>
-                    <button type="button" aria-label={`“${name}”的别名`} onClick={() => setAliasFor(tag)}>
+                    {!sourceTarget && <button type="button" aria-label={`“${name}”的别名`} onClick={() => setAliasFor(tag)}>
                       别名
-                    </button>
+                    </button>}
                   </span>
                 </li>
               );

@@ -865,6 +865,32 @@ export function editTagName(catalogId: string, edit: CatalogNameEdit): Promise<T
   return invoke<TagCatalogWorkspace>(lib("edit_tag_name"), { catalogId, edit });
 }
 
+
+// Explicit aggregate-source actions keep browsing and the current library independent.
+export function workspaceSourceInspection(target: import("./bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, lang: string): Promise<import("./bindings/WorkspaceSourceInspection").WorkspaceSourceInspection> {
+  return invoke(lib("workspace_source_inspection"), { target, safeMode, lang });
+}
+export function workspaceEditSource(target: import("./bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, edits: ImageEdit[]): Promise<void> {
+  return invoke(lib("workspace_edit_source"), { target, safeMode, edits });
+}
+export function workspaceEditSourceTags(target: import("./bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, edits: TagEdit[]): Promise<void> {
+  return invoke(lib("workspace_edit_source_tags"), { target, safeMode, edits });
+}
+export function workspaceSourceCandidates(target: import("./bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, text: string, lang: string, safeMode: boolean): Promise<Candidate[]> {
+  return invoke(lib("workspace_source_candidates"), { target, text, lang, safeMode });
+}
+
+export function workspaceSourceGroup(target: import("./bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, choice: { groupId: string; name?: never } | { name: string; groupId?: never }): Promise<ReferenceGroup> {
+  return invoke(lib("workspace_source_group"), { target, safeMode, groupId: choice.groupId ?? null, name: choice.name ?? null });
+}
+
+export function workspacePreviewSourceDelete(target: import("./bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean): Promise<PermanentDeletePreview> {
+  return invoke(lib("workspace_preview_source_delete"), { target, safeMode });
+}
+export function workspacePermanentSourceDelete(target: import("./bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, token: string): Promise<void> {
+  return invoke(lib("workspace_permanent_source_delete"), { target, safeMode, token });
+}
+
 export function workspaceDirectories(safeMode: boolean): Promise<WorkspaceDirectories> {
   return invoke<WorkspaceDirectories>(lib("workspace_directories"), { safeMode });
 }

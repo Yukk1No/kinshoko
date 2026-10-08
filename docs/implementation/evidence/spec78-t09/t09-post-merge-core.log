@@ -1,0 +1,51 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 26.02s
+     Running tests\device_libraries.rs (target\debug\deps\device_libraries-2a4d20ba66dc302f.exe)
+
+running 7 tests
+test relocating_a_library_and_registering_it_again_preserves_identity_originals_and_curation ... ok
+test a_failed_registry_write_keeps_the_current_library_and_registration_unchanged ... ok
+test unavailable_libraries_stay_registered_and_a_failed_switch_keeps_the_current_library ... ok
+test registered_libraries_can_be_switched_and_the_last_choice_survives_restart ... ok
+test a_restored_library_is_registered_without_switching_to_it ... ok
+test switching_refuses_a_different_library_at_the_registered_location ... ok
+test switching_finishes_cancelled_imports_and_keeps_successful_images_in_the_old_library ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+     Running tests\source_actions.rs (target\debug\deps\source_actions-46e50facbab1e5dc.exe)
+
+running 4 tests
+test editing_an_inactive_registered_provider_keeps_the_current_and_last_opened_library ... ok
+test unavailable_or_sealed_selected_sources_are_rejected_without_using_a_duplicate ... ok
+test pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnection ... ok
+test an_explicit_aggregate_source_edits_only_its_curation_and_rejects_a_changed_byte_identity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+
+     Running tests\workspace.rs (target\debug\deps\workspace-0ca34ce5cb6e9673.exe)
+
+running 7 tests
+test an_explicit_empty_any_group_never_becomes_an_unconditional_workspace_query ... ok
+test each_source_must_match_all_conditions_before_identical_bytes_are_aggregated ... ok
+test adult_in_nonmatching_out_of_scope_source_vetoes_cards_counts_and_candidates_without_changing_active_lens ... ok
+test mapped_local_synonyms_are_or_within_one_global_condition_and_and_between_conditions ... ok
+test unavailable_known_adult_source_keeps_veto_after_restart_until_refresh_or_explicit_unregister ... ok
+test paging_counts_stable_hash_ids_and_stale_provider_catalog_scope_and_safe_revisions_agree ... ok
+test real_multiple_directories_reuse_visible_safety_facts_and_report_action_timings ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.91s
+
+     Running tests\workspace_folders.rs (target\debug\deps\workspace_folders-74c205195e20e7ae.exe)
+
+running 7 tests
+test folder_structure_changes_invalidate_workspace_directory_and_pagination_revisions ... ok
+test moving_a_subtree_changes_descendant_results_and_rejects_old_cursors ... ok
+test a_directory_forest_keeps_same_named_libraries_and_folders_independent ... ok
+test invalid_or_unavailable_scopes_are_explicit_and_never_expand_to_another_provider ... ok
+test exact_and_descendant_scopes_preserve_each_source_folder_memberships_and_file_paths ... ok
+test folder_and_unassigned_counts_keep_the_all_source_adult_veto ... ok
+test directory_descendant_counts_deduplicate_memberships_and_apply_global_safety ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+

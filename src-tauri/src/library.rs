@@ -16,6 +16,7 @@ pub use portable::{
     export_package as export_reference_package, import_package as import_reference_package,
     publish_definition_dependencies,
 };
+mod source_actions;
 mod workspace;
 
 use std::path::{Path, PathBuf};
@@ -185,6 +186,13 @@ fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("library")
         .invoke_handler(tauri::generate_handler![
+            source_actions::workspace_preview_source_delete,
+            source_actions::workspace_permanent_source_delete,
+            source_actions::workspace_source_group,
+            source_actions::workspace_source_inspection,
+            source_actions::workspace_source_candidates,
+            source_actions::workspace_edit_source,
+            source_actions::workspace_edit_source_tags,
             workspace::workspace_status,
             workspace::workspace_browse,
             workspace::workspace_resolve,
@@ -452,6 +460,15 @@ pub fn current<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<Arc<L
     app.state::<LibraryState>().current(library_id)
 }
 
+/// Validate the exact visible workspace source before creating a desktop reference.
+pub fn visible_source<R: Runtime>(
+    app: &AppHandle<R>,
+    library_id: &str,
+    image_id: &str,
+) -> Result<Arc<Library>, String> {
+    workspace::read(app, library_id, image_id)
+}
+
 /// 同步完成一次目标活动库的操作，期间不允许切换或重新打开资料库。
 /// 文件选择框等交互应在调用前完成，回调不交出未完成的导入任务。
 pub fn with_current<T>(
@@ -463,15 +480,6 @@ pub fn with_current<T>(
     let _transition = lock(&state.transition);
     let library = state.current(library_id)?;
     action(&library)
-}
-
-/// `library_id` 的参考视角句柄，只给桌面钉图（#65）与参考组（#66）。每次现取：切换资料库后
-/// 句柄换成新库的，不是这个库的就没有。不打开资料库。
-pub fn reference_lens<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Option<ReferenceLens> {
-    lock(&app.state::<LibraryState>().reference)
-        .as_ref()
-        .filter(|lens| lens.library_id() == library_id)
-        .cloned()
 }
 
 /// 本设备上按“资料库＋参考图”取图的地方（参考组与桌面钉图用，#66）：活动资料库经它的参考视角
@@ -524,20 +532,9 @@ pub fn with_collection<T>(
 ) -> Result<T, String> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
-    if let Ok(library) = state.current(library_id) {
-        return collect(&library);
-    }
-    let registrations = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-        Ok(libraries.libraries().to_vec())
+    let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
+        libraries.write(library_id)
     })?;
-    let registration = registrations
-        .into_iter()
-        .find(|r| r.id == library_id)
-        .ok_or("本设备没有登记这个资料库")?;
-    let library = Library::open(&registration.root).map_err(|e| e.to_string())?;
-    if library.info().id != registration.id {
-        return Err("资料库位置已是另一个资料库，请重新登记".into());
-    }
     state.install_translations(&library);
     library.set_safe_mode(saved_safe_mode(app));
     collect(&library)

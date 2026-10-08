@@ -1,0 +1,18 @@
+{
+  "nativeProductSource": "36cab7ebe379f4614de7768553492daab5f7ee5e",
+  "finalProductSource": "32ef871ecf80ee0795af8a34b31134e84dabf8c8",
+  "productFilesChangedAfterNative": [
+    "src/library/WorkspacePane.tsx",
+    "src/library/WorkspaceSourceEditor.tsx"
+  ],
+  "change": "Only visible internal ID rows moved to title. Existing 74 affected UI tests and TypeScript passed. Native 25 assertions still bind the earlier binary; final UI is not claimed natively rerun.",
+  "legacyTrialSourceField": {
+    "native-trial-1-result.json": "source is the actual native build source",
+    "native-trial-2-result.json": "source was captured from script HEAD 7bcd704; actual unchanged binary source is 36cab7e from build manifest",
+    "native-trial-3-result.json": "source is actual native build source; scriptSource and script SHA are separate"
+  },
+  "preservedBinary": "work/e2e/t09-binary-36cab7e/kinshoko.exe",
+  "settingsPath": "C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t09test/settings.json",
+  "rootPreservation": "C:/Users/yuk1no/.codex/worktrees/7dea/kinshoko/work/v1-handoff/follow-up-spec/evidence/t09-native/root-preservation.json",
+  "fullData": "work/e2e/source-actions-1791479547691"
+}

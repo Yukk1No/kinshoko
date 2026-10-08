@@ -1,0 +1,14 @@
+PASS same bytes aggregate across two independently curated providers
+PASS same-name source choices visibly show distinct path suffixes
+PASS editing inactive B note leaves A note unchanged
+PASS source edits do not activate B or change current library
+PASS workspace notification does not interrupt the revalidated explicit source editor
+PASS B manual rating remains independent from A
+PASS removing B folder membership preserves A folder membership
+PASS new B manual tag never changes A tags
+PASS source picker uses B local tag identities through actual native ACL
+PASS direct pin saves the explicitly chosen inactive library/image identity
+Error: POST /session/4d7156fbb4acf39c53cb5dae4aa491c6/element/f.48B4E7F4AF7E4DB664CD9361DB49641A.d.0FC83A0DF211B4F39CAF5E5645CA8FC5.e.141/click: {"error":"stale element reference","message":"stale element reference: stale element not found in the current frame\n  (Session info: MicrosoftEdge=154.0.4258.62)","stacktrace":"\tmsedgedriver!GetHandleVerifier [0x7ff71bd42285+4c15]\n\tmsedgedriver!(No symbol) [0x7ff71bc93a74]\n\tmsedgedriver!GetHandleVerifier [0x7ff71c0c3bbf+38654f]\n\tmsedgedriver!(No symbol) [0x7ff71ba1ced1]\n\tmsedgedriver!(No symbol) [0x7ff71ba1f305]\n\tmsedgedriver!(No symbol) [0x7ff71ba1f3cf]\n\tmsedgedriver!(No symbol) [0x7ff71ba634dc]\n\tmsedgedriver!(No symbol) [0x7ff71ba65306]\n\tmsedgedriver!(No symbol) [0x7ff71ba6392d]\n\tmsedgedriver!(No symbol) [0x7ff71ba58f4f]\n\tmsedgedriver!(No symbol) [0x7ff71ba8328a]\n\tmsedgedriver!(No symbol) [0x7ff71ba586cf]\n\tmsedgedriver!(No symbol) [0x7ff71ba585cd]\n\tmsedgedriver!(No symbol) [0x7ff71ba586cf]\n\tmsedgedriver!(No symbol) [0x7ff71baa01f8]\n\tmsedgedriver!(No symbol) [0x7ff71ba57f0c]\n\tmsedgedriver!(No symbol) [0x7ff71ba5718d]\n\tmsedgedriver!(No symbol) [0x7ff71ba57d33]\n\tmsedgedriver!(No symbol) [0x7ff71bba0c04]\n\tmsedgedriver!(No symbol) [0x7ff71bbaddc8]\n\tmsedgedriver!GetHandleVerifier [0x7ff71bde7a15+aa3a5]\n\tmsedgedriver!GetHandleVerifier [0x7ff71bdedd11+b06a1]\n\tmsedgedriver!(No symbol) [0x7ff71bc9f6ff]\n\tmsedgedriver!(No symbol) [0x7ff71bc9a184]\n\tmsedgedriver!(No symbol) [0x7ff71bc9a2aa]\n\tmsedgedriver!(No symbol) [0x7ff71bc8b7f8]\n\tKERNEL32!BaseThreadInitThunk [0x7ffdf8d6cdf7+17]\n\tntdll!RtlUserThreadStart [0x7ffdfad5ee4c+2c]\n"}
+    at wd (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/source-actions.mjs:37:50)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/source-actions.mjs:182:3
