@@ -278,7 +278,13 @@ try {
   const offlineRoot = second.info.root + ".offline"; renameSync(second.info.root, offlineRoot);
   try {
     session = await Session.start(); await until("workspace without active library", () => session.find(setting));
-    assert(await session.invoke("current_library") === null, "missing last-active provider leaves no active library");
+    let restored = null;
+    try { restored = await session.invoke("current_library"); }
+    catch (error) {
+      assert(String(error).includes("资料库暂时不可用") && String(error).includes(second.info.root), "last-opened IPC reports the disconnected provider explicitly");
+    }
+    await until("formal no-active provider picker", () => session.exec("const select = document.querySelector('select[aria-label=当前资料库]'); return select && !select.disabled && select.value === '';"));
+    assert(restored === null, "missing last-active provider leaves no active library in the formal picker");
     const available = await session.invoke("workspace_status", { safeMode: true });
     assert(available.libraries.some((entry) => entry.library.id === first.info.id && !entry.unavailable), "other provider remains available without activation");
     await openSettings(); await createGroup("无活动库分组"); await renameGroup("无活动库分组", "无活动库仍可整理");
