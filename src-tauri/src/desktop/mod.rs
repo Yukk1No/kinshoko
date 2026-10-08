@@ -114,7 +114,6 @@ pub fn init() -> TauriPlugin<Wry> {
     Builder::new("desktop")
         .invoke_handler(tauri::generate_handler![
             capture::start_capture,
-            capture::set_capture_reference,
             capture::report_capture_references,
             capture::frozen_screen,
             capture::capture_ready,

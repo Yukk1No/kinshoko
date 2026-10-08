@@ -9,8 +9,8 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
 use kinshoko_core::desktop::{
-    CaptureAction, CaptureOutcome, CaptureReference, CaptureReferenceFrame, CaptureSelection,
-    CaptureSurface, FrozenScreen, Placement, Region, SavedPin, ScreenRect, Screenshot,
+    CaptureAction, CaptureOutcome, CaptureReferenceFrame, CaptureSelection, CaptureSurface,
+    FrozenScreen, Placement, Region, SavedPin, ScreenRect, Screenshot,
 };
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
@@ -60,20 +60,6 @@ impl FrameChannel {
         *lock(&self.pending) = None;
         self.changed.notify_all();
     }
-}
-
-// Compatibility command: persistent geometry reports have no authority for a new capture.
-#[tauri::command]
-pub fn set_capture_reference(
-    _app: AppHandle,
-    window: tauri::WebviewWindow,
-    reference: Option<CaptureReference>,
-) -> Result<(), String> {
-    if window.label() != "main" {
-        return Err("只有主窗口能报告参考图范围".into());
-    }
-    let _ = reference;
-    Ok(())
 }
 
 #[tauri::command]

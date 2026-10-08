@@ -92,7 +92,6 @@ fn main() {
                 tauri_build::InlinedPlugin::new()
                     .commands(&[
                         "start_capture",
-                        "set_capture_reference",
                         "report_capture_references",
                         "frozen_screen",
                         "capture_ready",

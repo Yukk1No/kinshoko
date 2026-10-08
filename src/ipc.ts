@@ -734,11 +734,6 @@ export function groupSaveCaptures(): Promise<CaptureEntry[]> {
   return invoke<CaptureEntry[]>(desk("group_save_captures"));
 }
 
-/** 报告查看器已显示的参考图范围；全局 F1 据此保留来源与原图像素裁切。 */
-export function setCaptureReference(reference: import("./bindings/CaptureReference").CaptureReference | null): Promise<void> {
-  return invoke<void>(desk("set_capture_reference"), { reference });
-}
-
 /** 打开参考组：成员按保存的局部与摆放钉到桌面；返回新钉出的数量。 */
 export function openReferenceGroup(groupId: string): Promise<number> {
   return invoke<number>(desk("open_reference_group"), { groupId });
