@@ -1,0 +1,252 @@
+{
+  "status": "passed",
+  "source": "7e5cd98ab760181e610f1689dc211209162d3c78",
+  "binarySha256": "9f5846e559b69160eb1725accd2f4792f59c406e4bda23a5e3fe65533df59bc3",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
+  "legacySource": "22c60f248915329e4bf85dcfb38633210190f558",
+  "first": {
+    "info": {
+      "id": "1834944303be4a9da1baea66d217d9fc",
+      "name": "工作区甲库",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-1791474706835\\libraries\\工作区甲库"
+    },
+    "page": {
+      "cards": [
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36bb96733c9eb9978e1e9089bf",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36bb96733c9eb9978e1e9089bf/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36bb6f7406b151e1b53e9fab6f",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36bb6f7406b151e1b53e9fab6f/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36bb4577e793e6266e1c7f9469",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36bb4577e793e6266e1c7f9469/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36bb1e7741b5e4570b53eb0a0c",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36bb1e7741b5e4570b53eb0a0c/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36baf7775382c223b160b0139f",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36baf7775382c223b160b0139f/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36baca7548953395fff082fa85",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36baca7548953395fff082fa85/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36baa273e9922450f6024458b0",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36baa273e9922450f6024458b0/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36ba787012a53d85fe43c90dc3",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36ba787012a53d85fe43c90dc3/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36ba5177ab9f370c0ef26ecde4",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36ba5177ab9f370c0ef26ecde4/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36ba2f74d5b8ee5c24f860ffc5",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36ba2f74d5b8ee5c24f860ffc5/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36ba0e74178f7e605a18f5fe64",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36ba0e74178f7e605a18f5fe64/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b9e67433bdc74af163a2065a",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b9e67433bdc74af163a2065a/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b9c77544931dfa4eb5587040",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b9c77544931dfa4eb5587040/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b99672118a57baae9d69db2f",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b99672118a57baae9d69db2f/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b96e71b6bee89cfbe647deff",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b96e71b6bee89cfbe647deff/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b93774308542188f233235eb",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b93774308542188f233235eb/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b90a70a78fa87aae618331da",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b90a70a78fa87aae618331da/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b8e470feb1e684e2b004ee03",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b8e470feb1e684e2b004ee03/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b8c27743a9ae1f1b763f931e",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b8c27743a9ae1f1b763f931e/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b8a175f289bbacd66740d7f2",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b8a175f289bbacd66740d7f2/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b88174b09fe88b53bb24b704",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b88174b09fe88b53bb24b704/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b86376199b1f6326a346e85c",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b86376199b1f6326a346e85c/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b847723e91fd4f5122da79a2",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b847723e91fd4f5122da79a2/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36b82670f1b70c50ae01865e86",
+          "thumbnail": "1834944303be4a9da1baea66d217d9fc/01a11c36b82670f1b70c50ae01865e86/128",
+          "width": 120
+        }
+      ],
+      "nextCursor": null,
+      "total": 24
+    },
+    "imageId": "01a11c36b82670f1b70c50ae01865e86"
+  },
+  "second": {
+    "info": {
+      "id": "42461a5addae4667b4f0b33b0550eacf",
+      "name": "工作区乙库",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-1791474706835\\libraries\\工作区乙库"
+    },
+    "page": {
+      "cards": [
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36c342776eb67843ad283da13e",
+          "thumbnail": "42461a5addae4667b4f0b33b0550eacf/01a11c36c342776eb67843ad283da13e/128",
+          "width": 120
+        },
+        {
+          "adult": false,
+          "height": 90,
+          "id": "01a11c36c32571abb0a9467d9fba2430",
+          "thumbnail": "42461a5addae4667b4f0b33b0550eacf/01a11c36c32571abb0a9467d9fba2430/128",
+          "width": 120
+        }
+      ],
+      "nextCursor": null,
+      "total": 2
+    },
+    "imageId": "01a11c36c32571abb0a9467d9fba2430"
+  },
+  "assertions": [
+    "old detached provider explicitly needs upgrade instead of empty or silently upgraded",
+    "active startup library follows writable migration path",
+    "formal workspace defaults to all available registered providers",
+    "byte-identical files aggregate while similar pixels remain separate",
+    "unknown-rating images remain visible in safe mode",
+    "complete per-source all query rejects split-tag false match",
+    "nonmatching known source remains inspectable",
+    "one complete source makes aggregated card match",
+    "browse scope change does not switch active write target",
+    "formal source controls show out-of-scope source independently",
+    "nonactive source detail and image read leave active target unchanged",
+    "viewer reads explicitly chosen source rather than hash card ID",
+    "Esc keeps wall return position",
+    "workspace page counts and opaque cursors are consistent",
+    "safe-mode revision rejects old page cursor",
+    "mode mismatch rejects stale candidate action",
+    "Adult in out-of-scope nonmatching source vetoes whole card",
+    "safe candidates/counts omit globally vetoed identity",
+    "detail read cannot bypass cross-source Adult veto",
+    "rating refresh restores deduplicated candidate count",
+    "unavailable registered provider has explicit state after restart",
+    "known offline Adult veto survives full application restart",
+    "known offline source remains inspectable on available bytes",
+    "unavailable provider cached definitions never enter candidates",
+    "explicit unregister removes conservative offline veto"
+  ],
+  "stories": [
+    5,
+    9,
+    10,
+    11,
+    16,
+    44
+  ]
+}
