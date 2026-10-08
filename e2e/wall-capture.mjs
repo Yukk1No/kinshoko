@@ -106,9 +106,9 @@ try{
   await until("original virtualized out",()=>exec("return ![...document.querySelectorAll('.card')].some(n=>n.dataset.id===arguments[0])",[firstCard.id]));
   await exec("const el=document.querySelector('.wall');el.scrollTop=el.scrollHeight;el.dispatchEvent(new Event('scroll',{bubbles:true}));");
   shown=await bottomOriginal(firstCard.id);await verifyOriginal(shown,aggregate,"immediate virtual return");
-  const size=await native("inner_size");await native("set_size","main",{value:{type:"Physical",data:{width:Math.max(850,size.width-220),height:size.height}}});
+  const size=await wd("GET",`${base}/window/rect`);result.resize={before:size,beforeInner:await native("inner_size")};await wd("POST",`${base}/window/rect`,{width:Math.max(850,size.width-220),height:size.height});result.resize.afterInner=await native("inner_size");check(result.resize.beforeInner.width!==result.resize.afterInner.width,"WebDriver changes the real native main client width");
   await verifyOriginal(await bottomOriginal(firstCard.id),aggregate,"native width reflow");
-  await native("set_size","main",{value:{type:"Physical",data:size}});await verifyOriginal(await bottomOriginal(firstCard.id),aggregate,"continuous resize return");
+  await wd("POST",`${base}/window/rect`,{width:size.width,height:size.height});await verifyOriginal(await bottomOriginal(firstCard.id),aggregate,"continuous resize return");
   const priorInstance=await exec("return window.__documentMarker");
   await reload();
   await exec("const el=document.querySelector('.wall');el.scrollTop=el.scrollHeight;el.dispatchEvent(new Event('scroll',{bubbles:true}));");
