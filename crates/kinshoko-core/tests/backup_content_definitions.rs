@@ -207,6 +207,8 @@ fn content_backup_does_not_reimport_legacy_application_groups_or_personal_rules(
         copy.personal_approx("zh-CN").unwrap().is_empty(),
         "legacy personal rules belong to program settings"
     );
+    assert!(fresh.approx_decisions().unwrap().is_empty());
+    assert!(fresh.approx_migrations().unwrap().is_empty());
     assert_eq!(source.tag_group_definitions().unwrap().len(), 1);
     assert_eq!(source.personal_approx("zh-CN").unwrap().len(), 1);
 }
@@ -444,6 +446,28 @@ fn independent_content_restore_keeps_existing_app_preferences_and_shared_groups(
         .unwrap();
     target_app.remove_alias(&shared_a, &alias).unwrap();
     let global_group = target_app.create_group("目标程序分组", None).unwrap();
+    let mut device = kinshoko_core::DeviceLibraries::open(&temp.path().join("target-app")).unwrap();
+    for restored in &first.libraries {
+        device.add_registration(&restored.library.root).unwrap();
+    }
+    let mut workspace =
+        kinshoko_core::workspace::Workspace::open(&temp.path().join("target-app")).unwrap();
+    workspace
+        .edit_approx(
+            &device,
+            &mut target_app,
+            &kinshoko_core::tag_catalog::CatalogApproxEdit::Set {
+                rules: vec![kinshoko_core::approx::PersonalApprox {
+                    a: shared_a.clone(),
+                    b: shared_b.clone(),
+                    relation: kinshoko_core::approx::ApproxRelation::NotSimilar,
+                }],
+            },
+            false,
+        )
+        .unwrap();
+    let before_approx = target_app.approx_decisions().unwrap();
+    let before_migrations = target_app.approx_migrations().unwrap();
     let before_groups = target_app.group_definitions().unwrap();
     let second = backup
         .restore(
@@ -488,6 +512,8 @@ fn independent_content_restore_keeps_existing_app_preferences_and_shared_groups(
     assert_eq!(tag.name_preferences[0].name, "目标程序偏好");
     assert!(!tag.aliases.iter().any(|a| a.name == "旧别名"));
     assert_eq!(target_app.group_definitions().unwrap(), before_groups);
+    assert_eq!(target_app.approx_decisions().unwrap(), before_approx);
+    assert_eq!(target_app.approx_migrations().unwrap(), before_migrations);
     assert_eq!(before_groups[0].id, global_group);
     assert_ne!(second.groups[0].id, source_group.id);
     let restored_group = destination_groups.get(&second.groups[0].id).unwrap();
