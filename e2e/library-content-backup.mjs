@@ -272,13 +272,21 @@ try {
     await launch(`fault-${label}`, "fresh-app", { point: `${point}@1`, action: "exit" });
     let failure; try { await restoreRendered(into); } catch (error) { failure = String(error); }
     assert(Boolean(failure), `native process interruption after ${label} publication prevents a success response`);
-    faultResults.push({ point, failure, pendingJournals: readdirSync(join(dataDir, "reference-groups", "restore-transactions")), partialDestinations: readdirSync(into) });
+    const journalDir = join(dataDir, "reference-groups", "restore-transactions");
+    const pendingJournals = readdirSync(journalDir).filter(name => name.endsWith(".json"));
+    assert(pendingJournals.length === 1, `native ${label} interruption leaves one durable batch recovery record`);
+    const interrupted = JSON.parse(readFileSync(join(journalDir, pendingJournals[0]), "utf8"));
+    const publishedLibraries = interrupted.libraries.filter(library => existsSync(library.root));
+    const publishedGroups = interrupted.groups.filter(group => existsSync(join(dataDir, "reference-groups", group.id + ".json")));
+    assert(interrupted.libraries.length === 2 && interrupted.groups.length === 1 && publishedLibraries.length === (label === "library" ? 1 : 2) && publishedGroups.length === (label === "library" ? 0 : 1), `native ${label} interruption actually occurs after the required publication boundary`);
+    faultResults.push({ point, failure, pendingJournals, interrupted, publishedLibraries, publishedGroups, partialDestinations: readdirSync(into) });
     await launch(`recover-${label}`, "fresh-app");
     assert(readdirSync(into).length === 0, `native startup rolls back the full interrupted ${label} publication batch`);
     assert(groupState(await session.invoke("reference_groups", {}, "desktop")) === groupState(groupsBefore), `startup recovery keeps every pre-existing reference group after ${label} interruption`);
     assert((await session.invoke("registered_libraries")).map(entry => entry.library.id).sort().join() === registrationsBefore.map(entry => entry.library.id).sort().join(), `startup recovery keeps all pre-existing library registrations after ${label} interruption`);
     view = await catalog(); const currentApprox = await session.invoke("shared_personal_approx", { lang: "zh-CN", safeMode: true });
-    assert(byIdentity(view, sourceIdentity).namePreferences.some(name => name.name === "目标程序偏好") && currentApprox.entries.some(entry => entry.relation === "notSimilar"), `startup recovery retains current preferences and personal rules after ${label} interruption`);
+    assert(byIdentity(view, sourceIdentity).namePreferences.some(name => name.name === "目标程序偏好") && !byIdentity(view, sourceIdentity).aliases.some(alias => alias.name === "白雪新别名") && JSON.stringify(personalRules(currentApprox)) === JSON.stringify(personalRules(approxBefore)) && JSON.stringify(programGroups(await session.invoke("shared_tag_groups", { lang: "zh-CN", safeMode: true }))) === JSON.stringify(programGroups(groupsSettingsBefore)), `startup recovery retains current preferences, alias deletion, program groups and personal rules after ${label} interruption`);
+    assert(JSON.stringify(reportFiles(freshReport)) === JSON.stringify(expectedOriginals) && JSON.stringify(reportFiles(existingReport)) === JSON.stringify(expectedOriginals), `startup recovery preserves every pre-existing original byte after ${label} interruption`);
     const retry = await restoreRendered(into);
     assert(retry.libraries.length === 2 && retry.groups.length === 1 && JSON.stringify(reportFiles(retry)) === JSON.stringify(expectedOriginals), `rendered retry completes all libraries and groups after ${label} interruption`);
     await session.screenshot(`06-recovered-${label}.png`);
