@@ -44,6 +44,28 @@ fn registered_libraries_can_be_switched_and_the_last_choice_survives_restart() {
     );
 }
 
+/// 恢复出的资料库（#69）登记到本设备，但不切换过去，也不改“上次打开”。
+#[test]
+fn a_restored_library_is_registered_without_switching_to_it() {
+    let dir = tempfile::tempdir().unwrap();
+    let a = create(&dir.path().join("工作参考"), "工作参考");
+    let restored = create(&dir.path().join("工作参考（恢复）"), "工作参考（恢复）");
+    let device_dir = dir.path().join("app");
+    let mut libraries = DeviceLibraries::open(&device_dir).unwrap();
+    libraries.register(&a.root).unwrap();
+    libraries.add_registration(&restored.root).unwrap();
+    assert_eq!(libraries.current().unwrap().info().id, a.id);
+    assert_eq!(libraries.libraries().len(), 2);
+    drop(libraries);
+
+    let mut reopened = DeviceLibraries::open(&device_dir).unwrap();
+    assert_eq!(
+        reopened.restore_last_opened().unwrap().unwrap().info().id,
+        a.id
+    );
+    reopened.switch(&restored.id).unwrap();
+}
+
 #[test]
 fn unavailable_libraries_stay_registered_and_a_failed_switch_keeps_the_current_library() {
     let dir = tempfile::tempdir().unwrap();

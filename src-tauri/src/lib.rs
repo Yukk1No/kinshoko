@@ -3,6 +3,7 @@
 //! 进程常驻托盘（ADR-0004）：关闭主窗口只销毁它的 WebView，进程、托盘与全局快捷键
 //! 继续运行；从托盘重新打开时按配置重建主窗口。只有托盘菜单的“退出”结束进程。
 
+mod backup;
 mod commands;
 mod desktop;
 mod diagnostics;
@@ -41,6 +42,7 @@ pub fn run() {
             let handle = app.handle();
             shell::start(handle)?;
             updater::manage(handle);
+            backup::manage(handle);
             desktop::create_tray(handle)?;
             let args: Vec<String> = std::env::args().collect();
             if let Some(options) = fidelity_gate::options(&args) {
@@ -65,6 +67,13 @@ pub fn run() {
             updater::update_status,
             updater::check_update,
             updater::install_update,
+            backup::backup_status,
+            backup::set_backup_target,
+            backup::set_backup_selection,
+            backup::backup_preview,
+            backup::start_backup,
+            backup::backup_snapshots,
+            backup::restore_backup,
             tagging::tagging_status,
             tagging::tagging_download,
             tagging::tagging_pause,
@@ -86,6 +95,12 @@ pub fn run() {
             code: None, api, ..
         } => api.prevent_exit(),
         RunEvent::Exit => desktop::on_exit(app),
+        // 关闭主窗口是画师眼里的“退出”：今天第一次时在后台自动备份（#69）。
+        RunEvent::WindowEvent {
+            label,
+            event: tauri::WindowEvent::Destroyed,
+            ..
+        } if label == shell::MAIN_WINDOW => backup::on_main_window_closed(app),
         _ => {}
     });
 }

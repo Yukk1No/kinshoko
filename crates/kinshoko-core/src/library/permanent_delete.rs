@@ -222,6 +222,11 @@ fn remove_image(tx: &Transaction, id: &str) -> Result<(), Error> {
 /// 清除记下的原文件，返回已清除的 SHA-256（供删除缩略图）。文件又被参考图或进行中的导入
 /// 使用时只删记录；删除失败的留到下次打开资料库再试。
 pub(super) fn clear_removals(conn: &Connection, root: &Path) -> Result<Vec<String>, Error> {
+    // 有备份正在复制这个资料库（原文件租约，#69）：一个也不清，留到之后的永久删除或下次打开。
+    let library_id: String = conn.query_row("SELECT id FROM library", [], |r| r.get(0))?;
+    if super::backup::leased(&library_id) {
+        return Ok(Vec::new());
+    }
     let pending: Vec<(String, String)> = {
         let mut stmt = conn.prepare("SELECT rel_path, sha256 FROM original_removal")?;
         stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?

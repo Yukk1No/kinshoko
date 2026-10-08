@@ -22,6 +22,7 @@
 //! 资料库目录：`library.sqlite`（身份与全部整理结果）＋ `originals/<sha 前两位>/<sha>.<ext>`
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
 
+mod backup;
 mod colour;
 mod display;
 mod eagle;
@@ -30,7 +31,7 @@ mod eagle_tags;
 mod edit;
 mod error;
 mod events;
-mod fault;
+pub(crate) mod fault;
 mod filter;
 mod folders;
 mod import;
@@ -55,6 +56,11 @@ use rusqlite::{OptionalExtension, params};
 pub use crate::fidelity::{
     Cicp, ColourDeclaration, ColourDescription, ColourModel, HdrKind, IccKind, IccSummary,
 };
+pub use backup::{
+    Dependency, LibraryCheck, LibraryDependencies, LibrarySnapshot, OriginalFile, OriginalsLease,
+    RestoreProvenance, TableDigest,
+};
+pub(crate) use backup::{copy_hashed, hash_file};
 pub use eagle::{EagleBinding, EagleRegionNote, EagleSourceSnapshot};
 pub use eagle_discovery::{
     EagleDiscoveryMethod, EagleDiscoveryOptions, EagleLibraryCandidate, discover_eagle_libraries,

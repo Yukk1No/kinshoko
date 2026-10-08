@@ -27,6 +27,7 @@ import { SearchBox, UI_LANG } from "./search/SearchBox";
 import { ModelSettings } from "./ModelSettings";
 import { SealBook } from "./SealBook";
 import { SettingsPanel } from "./SettingsPanel";
+import { BackupReminder, BackupSettings } from "./Backup";
 import { TaggingIndicator } from "./TaggingIndicator";
 import { UpdateBanner } from "./Update";
 import { scopeKey, Wall } from "./wall/Wall";
@@ -442,9 +443,11 @@ export function App() {
             onChange={(view) => setShowApproxSource(view.showApproxSource)}
           />
           <ModelSettings />
+          <BackupSettings />
         </div>
       )}
       <UpdateBanner />
+      <BackupReminder />
       <footer className="app-status" inert={viewerOpen}>
         <span>{info && `${info.productName} ${info.version}`}</span>
         <span className="app-status-actions">

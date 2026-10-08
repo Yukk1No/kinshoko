@@ -337,6 +337,7 @@ pub(super) fn import(path: &Path, library: &Library) -> Result<ReferenceGroup, G
             group_id: manifest.group.id,
             exported_at: manifest.exported_at,
         }),
+        restored_from: None,
     };
     group.validate()?;
     Ok(group)

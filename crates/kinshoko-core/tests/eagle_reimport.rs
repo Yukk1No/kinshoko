@@ -546,12 +546,16 @@ fn a_library_from_before_folder_decisions_upgrades_and_keeps_its_folders() {
     let hair = folder_id(&library, "发型参考");
     drop(library);
     {
-        // 退回 #77 之前的数据库结构：没有 folder_decision 与列表修订号（S4），也没有之后的
-        // 迁移（#67 的回收站修订号与待清除原文件、#68 的参考组包导入记录），版本号少四。
+        // 退回 folder_decision 之前的结构。按迁移名确定历史版本，不受后续追加数量影响。
         let conn = rusqlite::Connection::open(root.join("library.sqlite")).unwrap();
-        let version: i64 = conn
-            .query_row("PRAGMA user_version", [], |r| r.get(0))
-            .unwrap();
+        let version = include_str!("../src/library/store.rs")
+            .lines()
+            .filter_map(|line| {
+                line.split_once("include_str!(\"migrations/")
+                    .map(|(_, name)| name)
+            })
+            .position(|name| name.starts_with("0077_folder_decision.sql\""))
+            .expect("folder_decision 迁移必须存在");
         let triggers: Vec<String> = conn
             .prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'list_revision_%'")
             .unwrap()
@@ -565,6 +569,7 @@ fn a_library_from_before_folder_decisions_upgrades_and_keeps_its_folders() {
         }
         conn.execute_batch(&format!(
             "DROP TABLE package_import;
+             DROP TABLE restore_provenance;
              DROP TABLE original_removal;
              DROP TRIGGER trash_revision_insert;
              DROP TRIGGER trash_revision_update;
@@ -573,7 +578,7 @@ fn a_library_from_before_folder_decisions_upgrades_and_keeps_its_folders() {
              DROP TABLE folder_decision;
              DROP TABLE list_revision;
              PRAGMA user_version = {};",
-            version - 4
+            version
         ))
         .unwrap();
     }

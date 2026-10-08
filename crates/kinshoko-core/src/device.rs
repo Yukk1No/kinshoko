@@ -83,6 +83,23 @@ impl DeviceRegistry {
         Ok(())
     }
 
+    /// 只登记，不记为上次打开（恢复出的资料库）。同一身份已登记时更新位置与名称。
+    pub fn add(&mut self, info: &LibraryInfo) -> std::io::Result<()> {
+        let mut next = self.state.clone();
+        let entry = RegisteredLibrary {
+            id: info.id.clone(),
+            name: info.name.clone(),
+            root: info.root.clone(),
+        };
+        match next.libraries.iter_mut().find(|l| l.id == info.id) {
+            Some(existing) => *existing = entry,
+            None => next.libraries.push(entry),
+        }
+        self.save(&next)?;
+        self.state = next;
+        Ok(())
+    }
+
     /// 取消本设备的登记；资料库文件与整理结果仍保存在原位置。
     pub fn unregister(&mut self, id: &str) -> std::io::Result<()> {
         let mut next = self.state.clone();

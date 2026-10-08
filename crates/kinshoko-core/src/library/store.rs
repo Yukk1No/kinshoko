@@ -36,6 +36,7 @@ fn migration_list() -> Vec<M<'static>> {
         M::up(include_str!("migrations/0077_list_revision.sql")),
         M::up(include_str!("migrations/0067_permanent_delete.sql")),
         M::up(include_str!("migrations/0068_package_import.sql")),
+        M::up(include_str!("migrations/0069_restore_provenance.sql")),
     ]
 }
 
@@ -57,7 +58,7 @@ pub(super) const DB_FILE: &str = "library.sqlite";
 
 /// SQLite 不会自己处理超过 260 个字符的 Windows 路径；换成 `\\?\` 形式的绝对路径交给它。
 /// 标准库的文件操作已经会自动这样做。
-fn sqlite_path(path: &Path) -> Result<std::path::PathBuf, Error> {
+pub(super) fn sqlite_path(path: &Path) -> Result<std::path::PathBuf, Error> {
     let path = std::path::absolute(path)?;
     if cfg!(windows) {
         let s = path.to_string_lossy();
