@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "source": "f7ef52b12681ed679927f7fef034629b923ae8ec",
+  "harnessSource": "125a58f76e268e3d9e1dec9ccec70fca9f6c0477",
+  "binarySha256": "7dca4915d39d648f5b0e7b615671d316b3e63b187ee97a44d4cbb2f8ed3ff239",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "fixtureCopyFrom": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\shared-groups-1791480727533",
+  "priorResultSha256": "811214748f1a03e22f57c36ba1293bb83e3bfc608e4f034c9a876246dc2fcbaa",
+  "elapsedMs": 2310,
+  "before": {
+    "focused": true,
+    "value": "跨周期整理完成"
+  },
+  "after": {
+    "focused": true,
+    "value": "跨周期整理完成"
+  },
+  "revisionBefore": "36bd98523d57806e08c787c875eecfb4",
+  "revisionAfter": "36bd98523d57806e08c787c875eecfb4",
+  "assertions": [
+    "formal rename draft has focus and the typed text",
+    "native draft remains in an unchanged workspace across the 1.5 second monitor period",
+    "monitor period preserves rename text and keyboard focus",
+    "Enter saves the preserved native rename draft through public group IPC",
+    "draft supplement exits through the verified real tray Quit callback"
+  ]
+}

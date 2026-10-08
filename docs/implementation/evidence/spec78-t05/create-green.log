@@ -1,0 +1,10 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.20s
+     Running tests\catalog_groups.rs (target\debug\deps\catalog_groups-4b9a3a89dcaf56f7.exe)
+
+running 2 tests
+test new_group_can_be_created_without_an_active_library_and_survives_restart ... ok
+test legacy_group_is_shared_across_libraries_and_restart_without_rewriting_image_tags ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+

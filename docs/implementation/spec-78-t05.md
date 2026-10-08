@@ -2,7 +2,7 @@
 
 本单对应 #84、故事 28／29。用户整理一次分组后，在各资料库共用。分组展开为可见成员的任一条件，图片的标签与原文件保持原样。
 
-这是独立增量。复用前置代码基线 `536cc43c1933e44fc33836f8a439de8cdb0da018`，没有改写 #42／PR #71 或旧验收状态。分支 `codex/spec-78-t05` 从集成 `16c8760e016be0a8e1bcc9d97ac362b8feab9c7d` 开始，实际工作树为已结束 T04 的 managed tree `spec78-t02-tag-identity/kinshoko`，未清理旧 ignored 证据。已合入 T08 `748e4c62e6db8e2b4e7b92db4f92597c182bf976`。
+这是独立增量。复用前置代码基线 `536cc43c1933e44fc33836f8a439de8cdb0da018`，没有改写 #42／PR #71 或旧验收状态。分支 `codex/spec-78-t05` 从集成 `16c8760e016be0a8e1bcc9d97ac362b8feab9c7d` 开始，实际工作树为已结束 T04 的 managed tree `spec78-t02-tag-identity/kinshoko`，未清理旧 ignored 证据。已合入 T08 `748e4c62e6db8e2b4e7b92db4f92597c182bf976`、T09 `23867c1755840821f44493448e3148d55b621190` 和最新集成的文档提交 `fad93218cc56ee31b77460e1b4ef0b1d8127ab3b`。
 
 ## 核心行为与持久状态
 
@@ -48,17 +48,62 @@
 | 正式设置无活动库、来源／排序、迟到视图与认可弹层 OR | 新组件或操作缺失 | `frontend-red.log` → `frontend-regression-03.log` |
 | 名称设置与分组的全来源 Adult 规则／未使用定义 | 封印专用词泄露；未使用成员返回 UnknownTag | `catalog-visibility-red.log` → `catalog-visibility-green.log` |
 
-新增公开核心检查 9 项：`catalog_groups.rs` 7 项，`catalog_visibility.rs` 2 项。新增前端分组检查 4 项，现有分组检查 11 项适配全局 IPC。完整前端首轮 247／248，标签对应 fixture 捕获的旧控件未及时更新；补等待实际可点击状态并重新查询当前行，完整复跑 31 文件 248 项通过。原始失败日志保留，未把首轮说成通过。
+新增公开核心检查 9 项：`catalog_groups.rs` 7 项，`catalog_visibility.rs` 2 项。新增前端分组检查 5 项，现有分组检查 11 项适配全局 IPC。完整前端首轮 247／248，标签对应 fixture 捕获的旧控件未及时更新；补等待实际可点击状态并重新查询当前行，完整复跑 31 文件 248 项通过。原始失败日志保留，未把首轮说成通过。另补同修订监测通知的公开 UI RED：改名输入框消失。正式设置先取得实际保存的安全模式与工作区修订，再显示编辑器；相同修订不清空草稿。新增检查通过，见 `group-settings-revision-red.log`／`group-settings-revision-green.log`。
 
 ## 实际检查与来源
 
-2026-10-09，Windows 11。Cargo 只使用本工作树 `target`，并发 2。完整前端 248 项、TypeScript 和 Vite 已通过。Rust 完整工作区在组合可见性修复前通过；修复后的完整检查正在完成。Clippy 首轮两处测试的多余 clone 告警已修复，保留原日志。
+2026-10-09（Asia/Shanghai），Windows 11 专业版 `10.0.26300`，Rust `1.95.0`，Node `v22.15.0`，WebView2／EdgeDriver `154.0.4258.62`，tauri-driver `2.1.0`。Cargo 只使用本工作树 `target`，并发 2。
+
+| 检查 | 实际范围与结果 |
+| --- | --- |
+| 修复组合可见性后的完整 Rust 工作区 | 通过，`workspace-tests-final.log`；之后 T09 合入只补受影响范围 |
+| 合入 T09 后的核心 | 分组 7、组合可见性 2、明确来源动作 4、工作区 7，共 20 项通过 |
+| 完整前端 | 31 文件 248 项通过，早于之后增加的同修订草稿回归与 T09 合入 |
+| 草稿修复的设置／分组专项 | 3 文件 30 项通过，含新增第 5 项分组行为 |
+| 合入 T09 后受影响前端 | 5 文件 94 项通过：App、明确来源、共享分组、既有分组、设置 |
+| TypeScript／Vite | 合入 T09 后通过；实际嵌入 dist 固定在 native source 清单 |
+| Clippy／fmt | 合入 T09 后 all-targets 严格检查与格式通过 |
+| 原生构建 | 本树独立 identifier 构建通过，1m11s；只在构建后修改验收脚本与文档 |
+| 完整原生流程／草稿补验 | 27 项／5 项通过；分别记录自己的实际脚本来源 |
+
+Clippy 首轮两处测试的多余 clone 告警已修复，原日志保留。最初版本采集调用 `tauri-driver --version` 被 CLI 拒绝，没有启动 driver 服务；最终版本从 `cargo install --list` 记录。不能把版本采集失败说成 Cargo 构建失败。
+
+实际命令和原始输出在本单 [证据目录](evidence/spec78-t05/)：
+
+```powershell
+$env:CARGO_BUILD_JOBS = '2'
+$env:CARGO_TARGET_DIR = Join-Path (Get-Location) 'target'
+cargo test --workspace --locked -j2
+cargo test -p kinshoko-core --test catalog_groups --test catalog_visibility --test workspace --test source_actions --locked -j2
+cargo clippy --workspace --all-targets --locked -j2 -- -D warnings
+cargo fmt --all --check
+npm test
+npm test -- src/App.test.tsx src/library/WorkspaceSources.test.tsx src/library/SharedTagGroups.test.tsx src/library/TagOrganize.test.tsx src/SettingsPanel.test.tsx
+npm run typecheck
+npm run vite:build
+$env:TAURI_CONFIG = '{"identifier":"dev.kinshoko.spec78t05test"}'
+cargo build -p kinshoko --features tauri/custom-protocol --locked -j2
+node e2e/shared-tag-groups.mjs target/debug/kinshoko.exe <matching-msedgedriver> C:/Users/yuk1no/.cargo/bin/tauri-driver.exe
+node e2e/shared-group-draft.mjs target/debug/kinshoko.exe <matching-msedgedriver> work/e2e/shared-groups-1791480727533 C:/Users/yuk1no/.cargo/bin/tauri-driver.exe
+```
 
 ## 原生正式程序
 
-原生验收脚本 [`shared-tag-groups.mjs`](../../e2e/shared-tag-groups.mjs) 使用冻结 v16 schema、真 PNG、两份旧库、独立 identifier／配置目录／WebView profile／端口。脚本将记录产品提交、逐文件来源、dist、二进制哈希、driver、真实公开 IPC 与 UI 操作结果；正常重启通过已观察的托盘“退出”菜单回调完成。
+[`shared-tag-groups.mjs`](../../e2e/shared-tag-groups.mjs) 创建冻结 v16 schema、真实 PNG、两份旧库。全部组动作通过正式 UI 或公开 IPC 执行。[完整结果](evidence/spec78-t05/native-result.json) **27 项通过**，实际运行目录 `work/e2e/shared-groups-1791480727533/`。
 
-状态：尚未执行。构建后补本轮实际证据，不能继承 T04 或 T09 的原生通过结果。
+实际产品来源 `f7ef52b12681ed679927f7fef034629b923ae8ec`，包含 T08 和 T09；通过流程的脚本来源 `77870f5e40ee47afe467f58bb00496afbed11a23`。二进制 SHA256 `7dca4915d39d648f5b0e7b615671d316b3e63b187ee97a44d4cbb2f8ed3ff239`，原件在 `work/t05/nativeproof/f7ef52b1/kinshoko.exe`。[源码清单](evidence/spec78-t05/native-source.json) 记录 360 个源码／配置文件、10 个 dist 文件、sidecar 与 driver 哈希。[最终匹配检查](evidence/spec78-t05/native-source-match.json) 确认后续脚本与文档提交没有改变这些产品文件。 `native-source.json.harnessCommit` 是首次准备构建时的 `2acd42963a04e9920dc1ece6b6fd69dbb1f194b4`，不代表之后通过的完整脚本或草稿脚本；两轮实际来源分别记录在各自 result 中。
+
+实际步骤包括：正式打开两份真旧 v16 库；同名不同成员的分组分别保留来源；在设置改名、添加跨库成员、排序成员和分组；认可弹层展开一条可见 OR 条件；正式切换两库后统一成员及顺序不变；明确来源查询转换成不同的本地 ID；安全模式隐藏同字节 Adult 的专用成员，合法改名／添加／移除／排序后关闭安全模式仍能读到原隐藏成员；普通名称设置和旧名向导也不泄露该词；删除旧组、修改名称偏好后正常重启，删除记忆与当前名称保留；动态作品组不混入同名作者；断开最后活动库后，正式界面没有活动库，其他 provider 可用，设置仍能创建和改名空组，并经正常重启保留；五份原文件哈希全部不变。三个新增 IPC 在真实 WebView 权限下都执行成功。
+
+[`shared-group-draft.mjs`](../../e2e/shared-group-draft.mjs) 只补草稿与焦点，**5 项通过**。它复制完整通过轮已关闭的 app-data 到独立目录，不改写前一轮报告。产品与二进制相同，脚本来源 `125a58f76e268e3d9e1dec9ccec70fca9f6c0477`。正式输入“跨周期整理完成”，实际等待 **2310ms**；前后 workspace revision 相同，输入文字和键盘焦点均保持；按 Enter 经公开动作保存成功。见 [补验结果](evidence/spec78-t05/native-draft-result.json) 与 [实际输入截图](evidence/spec78-t05/rename-draft-after-monitor-period.png)。这不把首轮未执行的检查算作通过。
+
+[`native-tray-exit-t05.py`](../../e2e/native-tray-exit-t05.py) 复用前置验证过的正常退出方法，限制本树精确绝对 exe 路径和唯一实际 PID。每次读取 fresh 原生托盘菜单、owner、“退出”的文字／状态／ID，收起菜单后进入普通菜单回调。完整流程五次退出和草稿补验一次退出，receipt 均为 `processEnded=true`、退出码 0，没有用 WM_QUIT 或强杀替代通过路径的正常退出。失败路径的清理只针对本树 exe 与本次 driver PID。WebView 清理的 class unregister 1412 日志没有改变实际正常退出结果。
+
+独立 identifier `dev.kinshoko.spec78t05test`，端口 4464／4465，`KINSHOKO_SKIP_AUTOSTART=1`。设备目录、资料库与 WebView profile 在本次运行目录。Windows 已知目录 API 仍把壳设置放在 `AppData/Roaming/dev.kinshoko.spec78t05test`；不声称 APPDATA 覆盖隔离了全部设置。生产 identifier 未使用。[桌面清点](evidence/spec78-t05/desktop-release.json) 确认本单程序、两类独立 WebView、driver 和端口监听均为空，桌面已释放。
+
+前三轮失败保留原状：[第一轮](evidence/spec78-t05/native-first-result.json) 在安全模式变化后过早找控件；第二轮把 `current_library` 的明确断连错误误当应返回 null；第三轮在正常退出后的新 WebDriver 会话创建时遇到内部 JSON EOF，未进入余下产品断言。最终脚本等待实际控件，核对断连错误及界面无活动库；第四轮同一产品完整通过。没有把这些失败改写为成功。
+
+已查看旧组来源、分组排序、OR 条件和草稿截图。`no-active-library-global-settings.png` 抓在改名后组数据重新加载期间，不用它证明最终显示；无活动库下的正式创建／改名动作、公开回读和正常重启持久化由脚本实际完成。完整原始目录保留供复核。 根代理另存了五个原始运行、日志、固定程序／DirectML、脚本和实际 KnownFolder 设置，共 155 文件、122883624 字节。见 [根保存清单](evidence/spec78-t05/root-preservation.json)，实际副本在根工作树 `work/v1-handoff/follow-up-spec/evidence/t05-native/`。
 
 ## 未验证
 

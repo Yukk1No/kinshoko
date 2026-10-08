@@ -1,0 +1,23 @@
+    Checking kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\src-tauri)
+    Checking kinshoko-tagger v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-tagger)
+error: this call to `clone` can be replaced with `std::slice::from_ref`
+   --> crates\kinshoko-core\tests\catalog_groups.rs:335:31
+    |
+335 |     a.set_tag_group_tags(&ga, &[blue.clone()]).unwrap();
+    |                               ^^^^^^^^^^^^^^^ help: try: `std::slice::from_ref(&blue)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#cloned_ref_to_slice_refs
+    = note: `-D clippy::cloned-ref-to-slice-refs` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::cloned_ref_to_slice_refs)]`
+
+error: this call to `clone` can be replaced with `std::slice::from_ref`
+   --> crates\kinshoko-core\tests\catalog_groups.rs:337:31
+    |
+337 |     b.set_tag_group_tags(&gb, &[red.clone()]).unwrap();
+    |                               ^^^^^^^^^^^^^^ help: try: `std::slice::from_ref(&red)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#cloned_ref_to_slice_refs
+
+error: could not compile `kinshoko-core` (test "catalog_groups") due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...

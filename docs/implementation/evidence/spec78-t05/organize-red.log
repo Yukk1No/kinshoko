@@ -1,0 +1,19 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.49s
+     Running tests\catalog_groups.rs (target\debug\deps\catalog_groups-4b9a3a89dcaf56f7.exe)
+
+running 1 test
+
+thread 'artist_can_rename_reorder_and_organize_shared_members_without_changing_images' (35048) panicked at crates\kinshoko-core\tests\catalog_groups.rs:129:173:
+called `Result::unwrap()` on an `Err` value: UnknownGroup
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test artist_can_rename_reorder_and_organize_shared_members_without_changing_images ... FAILED
+
+failures:
+
+failures:
+    artist_can_rename_reorder_and_organize_shared_members_without_changing_images
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.28s
+
+error: test failed, to rerun pass `-p kinshoko-core --test catalog_groups`
