@@ -60,7 +60,7 @@ export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceS
       }
       p.onDismissReport();setOpen(false);
     }}/>
-   {task?.finishing&&<p role="status">内容已处理，正在发布此资料库的标签定义…</p>}
+   {task?.report&&task.finishing&&<p role="status">内容已处理，正在发布此资料库的标签定义…</p>}
    {task?.warnings.map((warning,index)=><p role="alert" key={index}>{warning}</p>)}
    {task&&<p className="import-owner" role="status">任务保存位置：{task.libraryName} / {task.folderName}</p>}
    <p className="selection-hint">单击查看 · Ctrl／Shift 多选 · 空格选择</p>

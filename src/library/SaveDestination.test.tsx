@@ -149,3 +149,19 @@ it("copy keeps its confirmation during a source refresh and closes it after the 
   await act(async () => { finishInspection(inspection); await pendingInspection; });
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "复制此来源" })).toBeNull());
 });
+
+
+it("running import does not claim that content is complete before the actual report", async () => {
+  const receipt = { taskId: "publishing-B", destination: { libraryId: "B", folderId: null }, libraryName: "保存库", folderName: "未归类", progress: { done: 47, total: 2000 }, finishing: true, warnings: [], report: null as null | { items: never[]; cancelled: boolean; fromEagle: boolean; eagleMissing: number; eagleRelocations: never[] } };
+  mockIPC(cmd => {
+    if (cmd === "plugin:library|workspace_directories") return { status: { revision: "test", libraries }, providers: libraries.map(registration => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
+    if (cmd === "plugin:library|import_tasks") return [{ ...receipt }];
+    return null;
+  }, { shouldMockEvents: true });
+  render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider>);
+  await screen.findByText("任务保存位置：保存库 / 未归类");
+  expect(screen.queryByText("内容已处理，正在发布此资料库的标签定义…")).toBeNull();
+  receipt.progress = { done: 2000, total: 2000 };
+  receipt.report = { items: [], cancelled: false, fromEagle: false, eagleMissing: 0, eagleRelocations: [] };
+  expect(await screen.findByText("内容已处理，正在发布此资料库的标签定义…")).toBeTruthy();
+});

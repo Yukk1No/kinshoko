@@ -181,7 +181,7 @@ try{
  const cCard=(await local(c.id)).cards.find(card=>card.id===bCard.id);
  const cTarget={libraryId:c.id,imageId:cCard.imageId,contentId:cCard.id};
  await session.invoke("workspace_edit_source",{target:cTarget,safeMode:true,edits:[{kind:"setNote",text:"C 独立人工备注"}]});
- await session.click("//button[@aria-label='图片与文件夹']").catch(()=>{});
+ if(!await session.exec("return document.querySelector('[aria-label=\"图片与文件夹\"]')?.getAttribute('aria-pressed')==='true';"))await session.click("//button[@aria-label='图片与文件夹']");
  await session.click("//button[normalize-space()='全部资料库']");
  await until("aggregate source choices",()=>session.find(`//*[@data-id='${bCard.id}']//button[contains(.,'份来源')]`));
  await session.click(`//*[@data-id='${bCard.id}']//button[contains(.,'份来源')]`);
