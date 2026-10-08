@@ -5,6 +5,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFil
 import { basename, dirname, join, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { deflateSync } from "node:zlib";
+import { initialHiddenPin, inspectNativePin } from "./native-initial-pin-t18.mjs";
 
 const [, , appArg, edgeArg, driverArg = "C:/Users/yuk1no/.cargo/bin/tauri-driver.exe", runArg] = process.argv;
 if (!appArg || !edgeArg) throw Error("Frozen T18 executable and matching WebView2 driver required");
@@ -28,7 +29,7 @@ if (gitRead("status", "--porcelain")) throw Error("A clean harness source is req
 const productionChanges = Object.entries(manifest.sourceFiles).filter(([path, expected]) => !path.startsWith("e2e/") && hash(readFileSync(path)) !== expected).map(([path]) => path);
 if (productionChanges.length) throw Error("Frozen production inputs changed: " + productionChanges.join(", "));
 if (Object.entries(manifest.distFiles).some(([path, expected]) => hash(readFileSync(path)) !== expected)) throw Error("Frozen frontend dist changed");
-const harnessFiles = ["e2e/runtime-capabilities.mjs", "e2e/native-save-dialog-t18.ps1", "e2e/native-pin-hide-t18.py"];
+const harnessFiles = ["e2e/runtime-capabilities.mjs", "e2e/native-save-dialog-t18.ps1", "e2e/native-pin-inspect-t18.py", "e2e/native-initial-pin-t18.mjs"];
 mkdirSync(join(work, "harness"));
 for (const path of harnessFiles) copyFileSync(path, join(work, "harness", basename(path)));
 copyFileSync("work/t18/native-source.json", join(work, "native-source.json"));
@@ -61,7 +62,7 @@ writeFileSync(sampleFile, Buffer.concat([Buffer.from("89504e470d0a1a0a", "hex"),
 const originalHash = hash(readFileSync(sampleFile));
 const port = manifest.ports[0], endpoint = `http://127.0.0.1:${port}`, elementKey = "element-6066-11e4-a52e-4f735466cecf";
 const delay = (ms) => new Promise((done) => setTimeout(done, ms));
-let driver, base, mainHandle, pinHandle;
+let driver, base, mainHandle, pinHandle, initialPinProof;
 async function wd(method, path, body) {
   const response = await fetch(endpoint + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(60000) });
   const result = await response.json();
@@ -165,12 +166,14 @@ try {
   await until("fallback pin appearance feedback complete", () => exec("const feedback=document.querySelector('.pin-appear');return feedback&&getComputedStyle(feedback).opacity==='0'"));
   await screenshot("controlled-float16-fallback-pin.png"); pinScreenshotSamples("controlled-float16-fallback-pin.png"); check(true, "controlled float16/createImageBitmap absence uses 8-bit pin without blocking display");
   await cdp("Page.removeScriptToEvaluateOnNewDocument", { identifier: fallbackScriptId });
-  const hidden = spawnSync("python", ["e2e/native-pin-hide-t18.py", application], { windowsHide: true, encoding: "utf8", timeout: 15000 });
-  writeFileSync(join(work, "controlled-pin-hidden.json"), hidden.stdout);
-  if (hidden.status !== 0) throw Error("Owned pin hide setup: " + hidden.stderr);
-  report.pinHiddenBeforeMissingCheck = JSON.parse(hidden.stdout);
-  check(!await invoke("plugin:window|is_visible", { label: await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label") }), "controlled missing canvas starts from a truly hidden owned native pin");
-  const missingScriptId = await injectNextDocument("window.__T18_CONTROLLED_ABSENCE__='canvas2d unavailable in current Runtime';const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(kind){return kind==='2d'?null:original.apply(this,arguments)};");
+  await invoke("plugin:desktop|close_pin", { pin: (await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label")).slice(4) });
+  await wd("POST", base + "/window", { handle: mainHandle });
+  initialPinProof = await initialHiddenPin({ application, profile, work, openPin: () => click(button("钉住整图")) });
+  report.pinHiddenBeforeMissingCheck = initialPinProof.receipt.beforeResume;
+  check(!report.pinHiddenBeforeMissingCheck.visible, "controlled missing canvas starts from a new production pin with actual native initial visibility false");
+  pinHandle = await until("new controlled native pin window", async () => (await wd("GET", base + "/window/handles")).find((handle) => handle !== mainHandle));
+  await wd("POST", base + "/window", { handle: pinHandle });
+  await until("initial controlled pin script applied", () => exec("return window.__T18_CONTROLLED_ABSENCE__==='canvas2d unavailable in current Runtime'"));
   await until("actual missing canvas pin reason visible", () => exec("return document.querySelector('[role=alert]')?.textContent.includes('无法建立二维画布，钉图无法显示')"));
   const pinLabel = await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label");
   report.missingCanvasPin = { label: pinLabel, visible: false, message: await exec("return document.querySelector('[role=alert]').textContent"), visibilityObservations: [] };
@@ -183,9 +186,12 @@ try {
     report.missingCanvasPin.visible = visible;
     return visible && await exec("return document.querySelector('[role=alert]')?.textContent.includes('无法建立二维画布，钉图无法显示')");
   }, 5000);
+  report.missingCanvasPin.readyTrace = await exec("return {installed:window.__T18_READY_TRACE_INSTALLED__,timeOrigin:performance.timeOrigin,events:window.__T18_READY_OBSERVATIONS__}");
+  report.missingCanvasPin.nativeAfterReady = inspectNativePin(application);
+  check(report.missingCanvasPin.nativeAfterReady.hwnd === report.pinHiddenBeforeMissingCheck.hwnd && report.missingCanvasPin.nativeAfterReady.visible, "same initially hidden native HWND is visible after the production ready path");
   check(report.missingCanvasPin.visible, "controlled required canvas absence shows native pin error instead of silent hiding");
   await screenshot("controlled-required-canvas-pin.png");
-  await cdp("Page.removeScriptToEvaluateOnNewDocument", { identifier: missingScriptId });
+  await initialPinProof.close();
   await invoke("plugin:desktop|close_pin", { pin: pinLabel.slice(4) });
   await wd("POST", base + "/window", { handle: mainHandle });
   await click(button("返回图片墙")); await click(setting);
@@ -217,9 +223,11 @@ try {
   report.status = "passed";
 } catch (error) {
   report.status = "failed"; report.failure = String(error); process.exitCode = 1;
+  if (initialPinProof && base) report.initialPinFailureTrace = await exec("return {installed:window.__T18_READY_TRACE_INSTALLED__,timeOrigin:performance.timeOrigin,events:window.__T18_READY_OBSERVATIONS__}").catch(() => null);
   if (base) { await screenshot("failure.png").catch(() => {}); report.failurePage = await exec("return {url:location.href,text:document.body.innerText}").catch(() => null); }
   console.error(error);
 } finally {
+  if (initialPinProof) await initialPinProof.close();
   if (base) await wd("DELETE", base).catch(() => {});
   // Own frozen executable only. No other task/user process is touched.
   const cleanup = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_T18_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"], { windowsHide: true, encoding: "utf8", env: { ...process.env, KINSHOKO_T18_EXECUTABLE: application } });
