@@ -34,7 +34,7 @@
 
 | 来源 | 结果 | 原始记录 |
 | --- | --- | --- |
-| T13 实现、合入 T10 前，`b3f519eaac341ca1e0cdf63131f18e72ffbe8ca9` | 全 Rust workspace，659 个父测试成功、10 个 ignored 入口；父测试另执行真实故障子进程 | `work/t13/rust-workspace.txt` |
+| T13 实现工作区、合入 T10 前（未冻结源码清单） | 全 Rust workspace，659 个父测试成功、10 个 ignored 入口；父测试另执行真实故障子进程 | `work/t13/rust-workspace.txt` |
 | 固定产品 `5a48939e905652b9d15a4a5f47a0844012e7a8f7` | T13 核心 7 项成功、6 个实际故障子进程完成 | `work/t13/after-8fc-core.txt` |
 | 同一固定产品 | fmt、strict clippy `--workspace --all-targets -- -D warnings`、TypeScript 成功 | `work/t13/after-8fc-{fmt,clippy,types}.txt` |
 | 同一固定产品 | 前端 34 文件、269 项成功 | `work/t13/after-8fc-ui.txt` |
