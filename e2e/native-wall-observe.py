@@ -15,7 +15,7 @@ import time
 application = Path(sys.argv[1]).resolve()
 manifest = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8-sig"))
 mode = sys.argv[3]
-assert mode in ("focus", "observe")
+assert mode in ("focus", "observe", "close")
 assert os.path.normcase(str(application)) == os.path.normcase(str(Path(manifest["application"]).resolve()))
 assert hashlib.sha256(application.read_bytes()).hexdigest() == manifest["binarySha256"].lower()
 listed = subprocess.check_output(["powershell", "-NoProfile", "-NonInteractive", "-Command", "ConvertTo-Json -InputObject @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_T17_EXECUTABLE } | Select-Object -ExpandProperty ProcessId)"], env={**os.environ,"KINSHOKO_T17_EXECUTABLE":str(application)}, creationflags=0x08000000)
@@ -73,6 +73,17 @@ try:
         time.sleep(.15)
         found.clear(); owned.clear()
         assert u.EnumWindows(callback,0)
+    closed = None
+    if mode == "close":
+        # WM_CLOSE is the native title-bar close action, restricted to the checked owned main HWND.
+        u.PostMessageW.argtypes = [w.HWND,w.UINT,w.WPARAM,w.LPARAM]
+        u.IsWindow.argtypes = [w.HWND]
+        assert u.PostMessageW(main[0]["hwnd"],0x0010,0,0)
+        deadline=time.monotonic()+5
+        while u.IsWindow(main[0]["hwnd"]) and time.monotonic()<deadline:
+            time.sleep(.05)
+        closed = not bool(u.IsWindow(main[0]["hwnd"]))
+        assert closed, "The owned main HWND did not actually close"
     foreground=u.GetForegroundWindow()
     foreground_pid=w.DWORD()
     u.GetWindowThreadProcessId(foreground,ctypes.byref(foreground_pid))
@@ -84,6 +95,6 @@ try:
         r=main[0]["rect"]
         assert r["x"]<=point[0]<r["x"]+r["width"] and r["y"]<=point[1]<r["y"]+r["height"], "Only owned main bounds may be observed"
         above=[item for item in above if item["rect"]["x"]<=point[0]<item["rect"]["x"]+item["rect"]["width"] and item["rect"]["y"]<=point[1]<item["rect"]["y"]+item["rect"]["height"]]
-    print(json.dumps({"application":path.value,"pid":pid,"mainHwnd":main[0]["hwnd"],"foregroundHwnd":int(foreground or 0),"foregroundPid":foreground_pid.value,"activated":activated,"beforeMain":before_main,"mainInVisibleZOrder":position is not None,"point":point,"covering":above,"owned":owned}))
+    print(json.dumps({"application":path.value,"pid":pid,"mainHwnd":main[0]["hwnd"],"foregroundHwnd":int(foreground or 0),"foregroundPid":foreground_pid.value,"activated":activated,"destroyed":closed,"beforeMain":before_main,"mainInVisibleZOrder":position is not None,"point":point,"covering":above,"owned":owned}))
 finally:
     k.CloseHandle(handle)
