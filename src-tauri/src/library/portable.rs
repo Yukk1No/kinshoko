@@ -1,5 +1,15 @@
 //! Explicit writable publication; registered provider reads remain read-only.
 use super::*;
+use kinshoko_core::tag_catalog::CatalogInspection;
+
+/// Complete content dependencies for private backup/export adapters, never ordinary UI responses.
+/// This reads the app catalog without activating or writing any provider.
+pub fn content_definitions<R: Runtime>(app: &AppHandle<R>) -> Result<CatalogInspection, String> {
+    let state = app.state::<LibraryState>();
+    with_catalog(&state.device_dir, &state.catalog, |catalog| {
+        catalog.inspect()
+    })
+}
 
 /// Reuse T09's registered, identity-checked writable pool without activating the provider.
 /// Do not call while already holding LibraryState.transition.

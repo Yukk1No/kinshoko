@@ -1,0 +1,42 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/viewer/Viewer.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+ ❯ src/viewer/Viewer.test.tsx (13 tests | 1 failed) 496ms
+   ❯ 查看器程序配置 (2)
+     × 首次读取程序配置失败时不把旧缓存写回 15ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/Viewer.test.tsx > 查看器程序配置 > 首次读取程序配置失败时不把旧缓存写回
+AssertionError: expected [ { background: 'dark' } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "background": "dark",
++   },
++ ]
+
+ ❯ src/viewer/Viewer.test.tsx:229:20
+
+    227|     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    228|     await act(async () => {});
+    229|     expect(writes).toEqual([]);
+       |                    ^
+    230|   });
+    231| });
+ Test Files  1 failed (1)
+      Tests  1 failed | 12 passed (13)
+   Start at  03:13:21
+   Duration  2.00s (environment 59%, tests 26%, import 10%, transform 5%)
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

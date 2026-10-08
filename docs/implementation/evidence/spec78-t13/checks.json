@@ -1,0 +1,158 @@
+{
+  "source": "5a48939e905652b9d15a4a5f47a0844012e7a8f7",
+  "tree": "d8a88fa33bacd02512149e689e7defd1666a512a",
+  "sourceFileChanges": [],
+  "distFileChanges": [],
+  "preservedBinaryMatch": true,
+  "afterMerge": {
+    "fmt": "passed",
+    "core": {
+      "passed": 7,
+      "ignoredEntrypoints": 1,
+      "actualFaultChildren": 6,
+      "log": "work/t13/after-8fc-core.txt"
+    },
+    "strictClippy": {
+      "status": "passed",
+      "log": "work/t13/after-8fc-clippy.txt"
+    },
+    "typescript": {
+      "status": "passed",
+      "log": "work/t13/after-8fc-types.txt"
+    },
+    "ui": {
+      "files": 34,
+      "passed": 269,
+      "log": "work/t13/after-8fc-ui.txt"
+    }
+  },
+  "beforeMergeWorkspace": {
+    "source": null,
+    "log": "work/t13/rust-workspace.txt",
+    "topLevelTargets": 73,
+    "parentTestsPassed": 659,
+    "parentTestsIgnored": 10,
+    "note": "implementation worktree before T10 merge; no frozen source manifest; do not attribute to an exact commit. Last result per Cargo target excludes subprocess child result lines; fault child outcomes recorded separately."
+  },
+  "native": {
+    "status": "passed",
+    "productSource": "5a48939e905652b9d15a4a5f47a0844012e7a8f7",
+    "productTree": "d8a88fa33bacd02512149e689e7defd1666a512a",
+    "harnessSource": "99a7fd5735fd758d3cc78ed308e65f551094c76d",
+    "run": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375",
+    "assertions": 47,
+    "rejectedInflight": 48,
+    "afterManifest": "work/t13/native-after.json",
+    "release": "work/t13/native-release.json"
+  },
+  "finalIntegration": {
+    "source": "a8edbfbe5c65b9435f85721cb35ef49ac2de1fdc",
+    "tree": "b7d4ac8978d010620444e13ca71dac5b61e44c7f",
+    "mergedIntegration": "545bd5891f7aebece2fbfe806445d8323fbbe688",
+    "fixedFileCount": 522,
+    "sourceFilesChanged": [],
+    "core": {
+      "source": "a8edbfbe5c65b9435f85721cb35ef49ac2de1fdc",
+      "tree": "b7d4ac8978d010620444e13ca71dac5b61e44c7f",
+      "command": "cargo test -p kinshoko-core --test application_settings_backup --test backup_content_definitions --test backup_restore --test backup_crash --test portable_tags --test tag_catalog --test tag_names --test catalog_groups --test catalog_approx --test catalog_visibility --test app_settings",
+      "parentPassed": 83.0,
+      "ignoredEntrypoints": 5.0,
+      "targetCount": 11,
+      "targets": [
+        {
+          "target": "app_settings.rs",
+          "passed": 9,
+          "ignored": 0,
+          "failed": 0
+        },
+        {
+          "target": "application_settings_backup.rs",
+          "passed": 7,
+          "ignored": 1,
+          "failed": 0
+        },
+        {
+          "target": "backup_content_definitions.rs",
+          "passed": 8,
+          "ignored": 2,
+          "failed": 0
+        },
+        {
+          "target": "backup_crash.rs",
+          "passed": 1,
+          "ignored": 1,
+          "failed": 0
+        },
+        {
+          "target": "backup_restore.rs",
+          "passed": 10,
+          "ignored": 0,
+          "failed": 0
+        },
+        {
+          "target": "catalog_approx.rs",
+          "passed": 8,
+          "ignored": 0,
+          "failed": 0
+        },
+        {
+          "target": "catalog_groups.rs",
+          "passed": 7,
+          "ignored": 0,
+          "failed": 0
+        },
+        {
+          "target": "catalog_visibility.rs",
+          "passed": 2,
+          "ignored": 0,
+          "failed": 0
+        },
+        {
+          "target": "portable_tags.rs",
+          "passed": 12,
+          "ignored": 1,
+          "failed": 0
+        },
+        {
+          "target": "tag_catalog.rs",
+          "passed": 11,
+          "ignored": 0,
+          "failed": 0
+        },
+        {
+          "target": "tag_names.rs",
+          "passed": 8,
+          "ignored": 0,
+          "failed": 0
+        }
+      ],
+      "note": "Last result in each Cargo target; embedded real subprocess summaries excluded from parent count. application_settings_backup parent separately executes six crash/error children."
+    },
+    "ui": {
+      "status": "passed",
+      "files": 5,
+      "passed": 45,
+      "log": "work/t13/final-integration-ui.txt"
+    },
+    "typescript": {
+      "status": "passed",
+      "log": "work/t13/final-integration-types.txt"
+    },
+    "fmt": {
+      "status": "passed",
+      "log": "work/t13/final-integration-fmt.txt"
+    },
+    "diff": {
+      "status": "passed",
+      "log": "work/t13/final-integration-diff.txt"
+    },
+    "shellClippy": {
+      "status": "passed",
+      "command": "cargo clippy -p kinshoko --all-targets -- -D warnings",
+      "log": "work/t13/final-integration-shell-clippy.txt"
+    },
+    "beforeManifest": "work/t13/final-integration-before.json",
+    "afterManifest": "work/t13/final-integration-after.json",
+    "native": "not rerun; fixed 5a product native evidence remains independently attributed"
+  }
+}

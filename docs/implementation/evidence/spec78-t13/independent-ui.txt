@@ -1,0 +1,12 @@
+Command:
+$env:TEMP=(Resolve-Path -LiteralPath 'work/v1-handoff/follow-up-spec/merge16-checks/tmp').Path
+$env:TMP=$env:TEMP
+npx.cmd vitest run src/SettingsPanel.test.tsx src/ModelSettings.test.tsx src/Backup.test.tsx src/library/TagIdentityPanel.test.tsx src/viewer/Viewer.test.tsx
+Exit code: 0
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/7dea/kinshoko
+
+ Test Files  5 passed (5)
+      Tests  45 passed (45)
+   Start at  03:59:44
+   Duration  4.78s (environment 72%, tests 14%, import 12%, transform 2%)

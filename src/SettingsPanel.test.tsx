@@ -297,3 +297,25 @@ it("refreshes personal approximate labels when shared display names change", asy
   await act(async () => { await emit("workspace-changed", { revision: "r2", libraries: [] }); });
   await screen.findByText(/新的共享名称/);
 });
+
+
+describe("程序设置备份", () => {
+  it("只在读取兼容备份并确认替换范围后恢复，显示重启条件", async () => {
+    const calls = backend((cmd) => {
+      if (cmd === "plugin:library|preview_application_settings") return { fingerprint: "fixed-backup", safeMode: true, forceSrgb: true };
+      if (cmd === "plugin:library|restore_application_settings") return { settings: { ...defaults, forceSrgb: true, forceSrgbInEffect: false, showApproxSource: true }, safeMode: true, problems: [] };
+      return undefined;
+    });
+    render(<SettingsPanel />);
+    const file = await screen.findByRole("textbox", { name: "程序设置备份文件" });
+    fireEvent.change(file, { target: { value: "C:/backup/选择.kinshoko-settings" } });
+    expect(screen.queryByRole("button", { name: "替换程序设置" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "读取程序设置备份" }));
+    const restore = await screen.findByRole("button", { name: "替换程序设置" });
+    expect(screen.getByText(/缺席的名称偏好和个人规则会删除/)).toBeTruthy();
+    expect(calls.some((c) => c.cmd === "plugin:library|restore_application_settings")).toBe(false);
+    fireEvent.click(restore);
+    expect(await screen.findByText("程序设置恢复完成。强制 sRGB 从托盘退出并重启后生效。")).toBeTruthy();
+    expect(calls.find((c) => c.cmd === "plugin:library|restore_application_settings")?.args).toEqual({ path: "C:/backup/选择.kinshoko-settings", fingerprint: "fixed-backup" });
+  });
+});

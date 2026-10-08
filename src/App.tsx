@@ -389,6 +389,7 @@ function LibraryWorkspace({
 export function App() {
   useCaptureSources(() => [], -100);
   const [info, setInfo] = useState<AppInfo | null>(null);
+  const [settingsRevision,setSettingsRevision] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [nameMigrationRequest, setNameMigrationRequest] = useState(0);
   const [captureRequest,setCaptureRequest]=useState<{id:string;stamp:number}|null>(null);
@@ -566,11 +567,12 @@ export function App() {
         <div className="settings-overlay" role="dialog" aria-label="程序设置" inert={viewerOpen}>
           <header><h2>程序设置</h2><button type="button" onClick={() => setShowSettings(false)}>关闭设置</button></header>
           <SettingsPanel
+            onRestored={()=>setSettingsRevision((revision)=>revision+1)}
             nameMigrationRequest={nameMigrationRequest}
             library={library ?? null}
             onChange={(view) => setShowApproxSource(view.showApproxSource)}
           />
-          <ModelSettings />
+          <ModelSettings key={settingsRevision} />
           <BackupSettings />
         </div>
       )}

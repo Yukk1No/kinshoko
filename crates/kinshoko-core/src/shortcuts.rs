@@ -48,6 +48,8 @@ pub struct ShellSettingsView {
     pub force_srgb_in_effect: bool,
     /// 使用日志是否开启。
     pub usage_log: bool,
+    #[ts(optional)]
+    pub viewer_background: Option<crate::ViewerBackground>,
 }
 
 impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
@@ -59,6 +61,7 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
             force_srgb: settings.force_srgb(),
             force_srgb_in_effect: settings.force_srgb_in_effect(),
             usage_log: settings.usage_log(),
+            viewer_background: settings.viewer_background(),
         }
     }
 }
@@ -114,6 +117,24 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
         }
     }
 
+    /// Adopt a complete restored configuration; unavailable OS keys remain visible as problems.
+    pub fn reload(&mut self, previous: &AppSettings, next: &AppSettings) {
+        for action in ShortcutAction::ALL {
+            if !self.problems.contains_key(&action)
+                && let Some(key) = previous.shortcut(action)
+            {
+                self.registrar.unregister(key);
+            }
+        }
+        self.problems.clear();
+        for action in ShortcutAction::ALL {
+            if let Some(key) = next.shortcut(action)
+                && let Err(why) = self.registrar.register(action, key)
+            {
+                self.problems.insert(action, why);
+            }
+        }
+    }
     /// 把 `action` 换成新的快捷键（`None` 为清除），立即生效并写入设置。
     ///
     /// 新键注册不上时什么都不改，旧键继续生效。
@@ -214,7 +235,7 @@ const TYPING_KEYS: [&str; 15] = [
 ///
 /// 主键接受 `KeyboardEvent.code` 的名称，也接受单个字符。字母、数字和标点要配合
 /// Ctrl、Alt 或 Win，否则画师在别的程序里打字时会被吞掉。
-fn normalize(accelerator: &str) -> Result<String, ShortcutError> {
+pub(crate) fn normalize(accelerator: &str) -> Result<String, ShortcutError> {
     let mut modifiers = [false; MODIFIERS.len()];
     let mut main_key: Option<String> = None;
     for part in accelerator.split('+').map(str::trim) {

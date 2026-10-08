@@ -1,0 +1,1818 @@
+{
+  "collectedAtUtc": "2026-10-08T19:42:04.592693+00:00",
+  "status": "passed",
+  "failures": [],
+  "mergeTip": "2db1c68bacaa781186a20f9c1f0f29f483770bc7",
+  "mergeTree": "ddd67c048215eff654652767cd17a896c3e93c3d",
+  "mergeParents": [
+    "8fc3f522fb1243dd39e97b8927554efc17d10dab",
+    "ebacbd53cd8119fae9b81c12f4e0ba89dad5841f"
+  ],
+  "workerTip": "ebacbd53cd8119fae9b81c12f4e0ba89dad5841f",
+  "workerTree": "ddd67c048215eff654652767cd17a896c3e93c3d",
+  "rootClean": true,
+  "trackedEvidence": {
+    "files": 119,
+    "rootWorkerIndexCommitRawEqual": true,
+    "filesManifest": [
+      {
+        "file": "docs/implementation/evidence/spec78-t12/.gitattributes",
+        "bytes": 21,
+        "sha256": "ffe82f3c5b968ed009c2577fa38f32c83be167799ee565d40a18e3440c57b342",
+        "gitBlob": "2e32c6e55cc94880beb1d27b662ba662aa20db39"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/README.md",
+        "bytes": 4204,
+        "sha256": "19a0cf5c881b2b83ef65fad8df9982a115fd20ada316e8ee0b05c278d153ef56",
+        "gitBlob": "035603a7220fa1c65e5039a8eb66b90aa9c769e2"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/checks-t10.json",
+        "bytes": 14902,
+        "sha256": "6d3afac8a4c8d2c57572552442ad4fe9f73fac86872a65036e31139239e864fc",
+        "gitBlob": "24302835480f8dc9bece7229fe2be1788d4a0c11"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/checks.json",
+        "bytes": 14686,
+        "sha256": "86e742499f856b127c4fa272334442ce97211b62a7bf8bd81433213ccea14c6a",
+        "gitBlob": "ae85b9d32d6f010168763e8ac3a8d2055f941387"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/final-validation.json",
+        "bytes": 6863,
+        "sha256": "d072b7ffb7439cbebed7c1ad9aa0b0e43b1180157b8baf5173f5a7e7cf266de0",
+        "gitBlob": "059b8d8ee052c1441a54c3f8b70668f1d8ac1231"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native-original-copies.json",
+        "bytes": 22896,
+        "sha256": "2bbb1de83eb09ee82be84781a51757c452934e0b5d8e445b68af033e8f586cd8",
+        "gitBlob": "762a057baf771bc3184189f588d6ef9f0a04bea4"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/01-source-group.png",
+        "bytes": 69852,
+        "sha256": "78d6c6feab154457e516c4aed9f3e9bd0e5ffe426e3fffde1bc2b36338e13768",
+        "gitBlob": "877a1e87b7f3d9ac298d101344b41dd19708b201"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/02-backup-preview.png",
+        "bytes": 179812,
+        "sha256": "35fe3357b7fd95027916a54a02aaf0d023379270738cce837660ec681e24341d",
+        "gitBlob": "28d1c6dc34f9a040475bbaf1e3fb5d085d261a24"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/03-fresh-restore-result.png",
+        "bytes": 174999,
+        "sha256": "2798ba7a3d9bd50c243784da270e6ba59e3338ac9847f8ca0b94f4102079383c",
+        "gitBlob": "2fde3a276066c5974f100e0deef69aa4b99c029c"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/04-open-restored-group.png",
+        "bytes": 79580,
+        "sha256": "4685137b4b20b1d21967bcef37aa46ed76c19034fedf12b3f1973114c8583e4a",
+        "gitBlob": "f39161178ffd5913b58bfa2399d9f2fe5e2fea5d"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/05-existing-settings.png",
+        "bytes": 190734,
+        "sha256": "4dc6ec6be71387cebb3d2d61d164facda6035718b3ab51df4b6f78a1800543e8",
+        "gitBlob": "d50f642c0c88fa2dee4a9ea70cb1681d07468f7c"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/06-recovered-group.png",
+        "bytes": 194708,
+        "sha256": "f504935abe8292fe50a9aa28bf9a1897322701f5d2cd17ee519fa1b219612126",
+        "gitBlob": "0d521bde51486518a40c0f11be668ca5a0e9a3f2"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/06-recovered-library.png",
+        "bytes": 193271,
+        "sha256": "08a174a2da4497be5063fb0ff6a328468a46771fa8f4f4921a2a12f90f7a68f6",
+        "gitBlob": "d03ac15a1f8b8fddb3ba04562d0c0fbe1429d496"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/a1.png",
+        "bytes": 22547,
+        "sha256": "0f4f8e1d216856b82e3ef7f469b4583ea146085f141be5295c863c94037daded",
+        "gitBlob": "622810a596985cb69d0e85b01831c0d2b52b8946"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/a2.png",
+        "bytes": 22605,
+        "sha256": "ce4a9fb1d7f490710320f787462d2121622a0b15428cfcf757de8b2f17a312f6",
+        "gitBlob": "e0d91d7a32df0b66a9a7ae61e001d5794876091a"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/b.png",
+        "bytes": 23011,
+        "sha256": "c41dd3431c33f1f604c80d6b718c59802cf1d84bf2fda6bce602ddf28bf9cbce",
+        "gitBlob": "7af7ba51057b5d50abe93fcb86c0d97592b26563"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/fault-journal-original-655a172a0c14410a811c557725eacfa9.json",
+        "bytes": 1076,
+        "sha256": "a5bf16900c4e032852404aa9712490e8f07d0a2f95b52f42aaddd4457075b03b",
+        "gitBlob": "d1caeff55ed0ec40c08c5d72e88404f97f165331"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/fault-journal-original-655a172a0c14410a811c557725eacfa9.json.source.json",
+        "bytes": 477,
+        "sha256": "33e0eeec2ffdda9c0d545343097baecd19d7a5553b80f8dc42d4ae75fc7188c9",
+        "gitBlob": "8f3aa7c770c88d8fd57e68392a7afe83908f3caa"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/harness.mjs",
+        "bytes": 38010,
+        "sha256": "3d2422c8ece631968393fe00b47afedeceb4d77f4f6736f82a40a78b1cae868c",
+        "gitBlob": "f14eaf0ffe27740cdc8e71912ae79f1e4bc12158"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-fourth/result.json",
+        "bytes": 32975,
+        "sha256": "6092f71ad10cd0553cb6adc766677b6387b2dcdd6322b197383399cef3057efb",
+        "gitBlob": "f2554aa886f6cd1d8dfc32d4ef66b55df5c763ca"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-third/01-source-group.png",
+        "bytes": 69862,
+        "sha256": "c14b4ed8f66c2f4678f0009a29f3df9cd953f6b93ec886df8d1e969fbb7cd647",
+        "gitBlob": "471e4618cd7dba91c718406e2e47a7d75f5bf26a"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-third/02-backup-preview.png",
+        "bytes": 179623,
+        "sha256": "e07ea89efa4f06b433195a89e4ac756cfb1762b864512ae061ed18e22e6b9ebf",
+        "gitBlob": "144c483af3a19f8dd438b529d389ee87c4b63940"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-third/a1.png",
+        "bytes": 22547,
+        "sha256": "0f4f8e1d216856b82e3ef7f469b4583ea146085f141be5295c863c94037daded",
+        "gitBlob": "622810a596985cb69d0e85b01831c0d2b52b8946"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-third/a2.png",
+        "bytes": 22605,
+        "sha256": "ce4a9fb1d7f490710320f787462d2121622a0b15428cfcf757de8b2f17a312f6",
+        "gitBlob": "e0d91d7a32df0b66a9a7ae61e001d5794876091a"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-third/b.png",
+        "bytes": 23011,
+        "sha256": "c41dd3431c33f1f604c80d6b718c59802cf1d84bf2fda6bce602ddf28bf9cbce",
+        "gitBlob": "7af7ba51057b5d50abe93fcb86c0d97592b26563"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-third/failure-fresh-restore.html",
+        "bytes": 20389,
+        "sha256": "83af0045997bb8c7873e3925445f67ffde788dce8210208386f0d69ab436456e",
+        "gitBlob": "2fde794c324c2192f21c46eb16c7ed45a7d12035"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-third/failure-fresh-restore.png",
+        "bytes": 178711,
+        "sha256": "4713bec0cefa7aa52b6e9cbad2b5cec81baa399d842dc15b38315767043540e6",
+        "gitBlob": "7ab85f0e588045138039a66c6b3e8ac78866ab2c"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-third/harness.mjs",
+        "bytes": 35433,
+        "sha256": "355ea149b2c171b3680b3c632d8a5fc7f33790c8e32200720cb9d3d97a777de0",
+        "gitBlob": "1a35414e8e4d836012869c57968917e9b7a32559"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-00dfc61-third/result.json",
+        "bytes": 9703,
+        "sha256": "4804a63947347510e8b4451725d5e2e38a40980d5fd8dd1ded2371351ffe2bb8",
+        "gitBlob": "8a001317fa267d6fad86711206116e71f485beda"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-first/01-source-group.png",
+        "bytes": 67569,
+        "sha256": "2083a0f2f8328bfa8f77805cfb1cb146ff4e7a174734c4f3326e412ecfbb3435",
+        "gitBlob": "3768d6bd35023944f9b48c752b6208cdcbd47cea"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-first/a1.png",
+        "bytes": 22547,
+        "sha256": "0f4f8e1d216856b82e3ef7f469b4583ea146085f141be5295c863c94037daded",
+        "gitBlob": "622810a596985cb69d0e85b01831c0d2b52b8946"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-first/a2.png",
+        "bytes": 22605,
+        "sha256": "ce4a9fb1d7f490710320f787462d2121622a0b15428cfcf757de8b2f17a312f6",
+        "gitBlob": "e0d91d7a32df0b66a9a7ae61e001d5794876091a"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-first/b.png",
+        "bytes": 23011,
+        "sha256": "c41dd3431c33f1f604c80d6b718c59802cf1d84bf2fda6bce602ddf28bf9cbce",
+        "gitBlob": "7af7ba51057b5d50abe93fcb86c0d97592b26563"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-first/failure-source-publication-failed.html",
+        "bytes": 21753,
+        "sha256": "915724bee44ed27f5cdc42b204603cd19f1a98399a0a73630066a6261293f6a3",
+        "gitBlob": "aafdb86765e1b8a144f02eb418fa54926f1d713b"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-first/failure-source-publication-failed.png",
+        "bytes": 166577,
+        "sha256": "863848471a4053bab372dbca7a65a0922485e6f5670cb5bfbd640cd40db69aaf",
+        "gitBlob": "1aa7807e407d1ecf12bbdbfadcf003870862ef94"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-first/harness.mjs",
+        "bytes": 35254,
+        "sha256": "eaaf396903187c8f3086c0f430d5184d827850c8d2186a5a7b7936990461bb07",
+        "gitBlob": "21a566534a231c76c3229e43b1aacba2d4dd3295"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-first/result.json",
+        "bytes": 8473,
+        "sha256": "f288b493734e16c081610a53f92737f3fed98e797d44159dc349098b75ea94b3",
+        "gitBlob": "ac80d68a8a667440cdff6c13f35a828c2b31e992"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-second/01-source-group.png",
+        "bytes": 69220,
+        "sha256": "07f58bd7b04ae789f11e467bf94e9c71168af4faa1430395c467450f37660d4a",
+        "gitBlob": "adf00e19f00911c444f74ed13cfc10069605e8fb"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-second/a1.png",
+        "bytes": 22547,
+        "sha256": "0f4f8e1d216856b82e3ef7f469b4583ea146085f141be5295c863c94037daded",
+        "gitBlob": "622810a596985cb69d0e85b01831c0d2b52b8946"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-second/a2.png",
+        "bytes": 22605,
+        "sha256": "ce4a9fb1d7f490710320f787462d2121622a0b15428cfcf757de8b2f17a312f6",
+        "gitBlob": "e0d91d7a32df0b66a9a7ae61e001d5794876091a"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-second/b.png",
+        "bytes": 23011,
+        "sha256": "c41dd3431c33f1f604c80d6b718c59802cf1d84bf2fda6bce602ddf28bf9cbce",
+        "gitBlob": "7af7ba51057b5d50abe93fcb86c0d97592b26563"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-second/failure-source-publication-failed.html",
+        "bytes": 27501,
+        "sha256": "60b49df60dfff43889ded3b5521b24b2cdd4a204d9647e8adc07e542e61b3d60",
+        "gitBlob": "8d2d0e5e732deea183c6d05e7a8b8ee5ec472d0c"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-second/failure-source-publication-failed.png",
+        "bytes": 177248,
+        "sha256": "99109044663a42ef9572d49761ef3a506d8a62e51d31f7a3b0c8ccd3dd3cd6c6",
+        "gitBlob": "fd43673f00a9ea36a01d32f03bd76ee549e369ff"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-second/harness.mjs",
+        "bytes": 35385,
+        "sha256": "1e3d2acbe53119e4f6d912aa89eba4f4a7bf60df5147c08a2d2d7f40f5bca6d7",
+        "gitBlob": "e116860b229096cc54c782683337fe722434d61c"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/runs/content-backup-t12-3075331-second/result.json",
+        "bytes": 8455,
+        "sha256": "2163a7ec2229468e39d982320841feab076851ae1b4c9518243906ff54baf1f3",
+        "gitBlob": "5f0cff0eb8a90d38687a164c48d76b5300bc6563"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/screenshots.md",
+        "bytes": 2593,
+        "sha256": "cfd16e6ff8fd6319d1630c98b42170790fe874b8dd3ef709a90ec81dfae3ecc8",
+        "gitBlob": "b43d1a5b3fabeecf356569882447e480d3308ba9"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/smoke/harness.mjs",
+        "bytes": 14052,
+        "sha256": "d9df46a1c82641e8677d9434dca9d631a43370a1037d6217b05e539141c7e01a",
+        "gitBlob": "ccb9a798cb91fe96db64de2a1fe6c04041ae00aa"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/smoke/result.json",
+        "bytes": 841,
+        "sha256": "0dffbd3d07bbd57c92ff4ee9fe662dba063f7d9ed32cb96e93b7255c3733d188",
+        "gitBlob": "5497599ec9a191a9597797d44f51e5f36a5b4bbe"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-00dfc61-build-source.json",
+        "bytes": 2356,
+        "sha256": "775767591f078b717f3fcb9c836154b9fb32bae1cc5a8bc4fe982c9b23f69695",
+        "gitBlob": "5b390ca3ee7e40217b05dd02871cd15d22bad31a"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-3075331-build-source.json",
+        "bytes": 2138,
+        "sha256": "5da53858559830b7ef384396a7a33c2ab89f0e79f10a5f58385dcd6aa42c45dd",
+        "gitBlob": "d25fb3a8865c026a0c61ca4e43e1d070916613ea"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-before-third-environment.json",
+        "bytes": 251,
+        "sha256": "ce734e00ee1cd425b4c41853f8e4ac54e832e25b1c4eba9dcecafed769560eea",
+        "gitBlob": "155ef31c28fb78f255bba27f30fa6a170d32caf5"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-build-source.json",
+        "bytes": 2356,
+        "sha256": "775767591f078b717f3fcb9c836154b9fb32bae1cc5a8bc4fe982c9b23f69695",
+        "gitBlob": "5b390ca3ee7e40217b05dd02871cd15d22bad31a"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-feedback-native-build.txt",
+        "bytes": 840,
+        "sha256": "72da25eaaf120bca06e15fec8b7b1eff1bb5b3a3617e927f5c19d4002b6c0e0f",
+        "gitBlob": "f1b2f84e650cb2e08045a0beaea8667682502099"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-feedback-source-dist-after-build.json",
+        "bytes": 129691,
+        "sha256": "e346c4ba58efde56e345b345133dac0125daa5e5494842f66ee2257854b029a0",
+        "gitBlob": "a7780d2ce036ca16d9266ba243a927a83a0081bf"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-feedback-source-dist-before-build.json",
+        "bytes": 129692,
+        "sha256": "1821490ffcef4a4cb8626a6747f8861753f82cd4751bf25c73e0bfff25630036",
+        "gitBlob": "6d84e5cc5a4f651f4dbc5929bc73cc776cc83f49"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-final-native-build.txt",
+        "bytes": 1084,
+        "sha256": "5b549fb84a0a2c02fb946b9fbaa581d4b983066add46e24851bfa5750a6a0f99",
+        "gitBlob": "caf73991963fb7a6ff57d994a17844c37e4acc14"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-final-source-dist-after-build.json",
+        "bytes": 129688,
+        "sha256": "d7153c9bcf8c8f017d00dd53ef00bd31fcec58b973ca4389111882a3625fcb44",
+        "gitBlob": "839f4b7f933f162bc0950cd34a3d311a1e6e13f2"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-final-source-dist-before-build.json",
+        "bytes": 129689,
+        "sha256": "deae030f6e03dbd2b2e15c216ca888a546edad1a3eb6e3ef5f5809322cec5672",
+        "gitBlob": "bb2ff86c2768d57c5dbb02398921d698504147d3"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-fourth-harness-source.json",
+        "bytes": 384,
+        "sha256": "c98f3a419a33a2f174374b5b5e49014320cf88f9bdcf220bd0a96a4097105b54",
+        "gitBlob": "f49534eec8304bc1446c8e68c089ab9dfb4cc0cc"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-manifest.py",
+        "bytes": 1658,
+        "sha256": "46157d591b6d8ca1d0c31ff6f09764920e25d190cd579225876a61eb5aeb80e3",
+        "gitBlob": "d6abb6bbaeb69b71722aa438d2ad40c464655e72"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-native-build.txt",
+        "bytes": 1537,
+        "sha256": "9d5c4695bf5bbb9743cc289183959f66362c2fb60a595270d76e8a478756d2b0",
+        "gitBlob": "55c6eddcfef785ee2f6481e4c9703eb4b1b097ff"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-native-build2.txt",
+        "bytes": 840,
+        "sha256": "22dc1c5ecbe329c14d5fea3c86cf01970b6188eed95fa6847ce3c645575f7dc2",
+        "gitBlob": "624a0c0c4e4303a5a0d00ecbd140e13068fd7b7b"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-native-environment-before.json",
+        "bytes": 574,
+        "sha256": "ee8fafb0b37c607e68258e91d98140827ce8f75fe16c1ab89a56924201c4dfef",
+        "gitBlob": "1438d0de093cf047265faeab897ae2c328cff48d"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-native-first.txt",
+        "bytes": 752,
+        "sha256": "eee74f0592d94a62d7cfa5ace0ab773f654160c1b1120d8963ac381be15c91bf",
+        "gitBlob": "6134c306385abcb5573b03eaf0b5b5852c401b40"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-native-fourth.txt",
+        "bytes": 4997,
+        "sha256": "7066a9aa23dc095204cec43cb27c2ece295ea61c3a6a102a845301f0df506501",
+        "gitBlob": "1e446603caa9a6af518f4c533d55ae2a80644c96"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-native-release.json",
+        "bytes": 1291,
+        "sha256": "264c4aa95cf7643c1a2fb7d6c00a0b4db3ca67c1e9a306a83798178c277a6028",
+        "gitBlob": "055fa87231d44634e9b06fd67dc073acd01af87f"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-native-second.txt",
+        "bytes": 648,
+        "sha256": "062a290a7bcebb85493f7442fc17c4047c61fd1a7954d2b100bfd70a53535595",
+        "gitBlob": "dac5c2fb9b3763aa7b27caf3d49969e63016faa3"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-native-smoke.txt",
+        "bytes": 382,
+        "sha256": "39d518e2afc860cc73151598cf6c8c3d462ee0b8236c38cf7028dda7db45485d",
+        "gitBlob": "38b3e6f82efaf2a79994bf6af1765f44378ff6eb"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-native-third.txt",
+        "bytes": 1201,
+        "sha256": "62a05afd53e336546b53acb9fd48c5067d8dc03e94fd65e654e362c6c79b79e9",
+        "gitBlob": "bae2c16067a70bfee0f3706030ae23af869f8b09"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-post-native-source-dist.json",
+        "bytes": 129689,
+        "sha256": "9aa1d6bcdebe10c8693531e63428f4ea56d32e6881a43948cb792a5dcb40990c",
+        "gitBlob": "cfb1d76f6d56d9eb0e96cb7b1193541674c96331"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-second-harness-source.json",
+        "bytes": 502,
+        "sha256": "ec557d4b55dd8eec8bc4bc706ee6f6823dfd071f401d123a5222167dd04d1223",
+        "gitBlob": "09a0f793ddf8cafb870459ea7f3308be36990853"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-smoke-preflight.json",
+        "bytes": 744,
+        "sha256": "71ce7c8324c629f607879dfbe23e409da1d5b801d196c8ed99e4fcc8645e41e7",
+        "gitBlob": "c9dc759405b741f66b566e5c6477264d11e105c6"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-source-dist-after-build.json",
+        "bytes": 129681,
+        "sha256": "6eb0cfe7115c30e3a2d4cde905168f12755fb87709c0db62a2f63f70a321d577",
+        "gitBlob": "4eeaced69f0608a2c7f49e8e46c3801c48801094"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-source-dist-before-build.json",
+        "bytes": 129682,
+        "sha256": "998009e95e88ec31cfd0757c401a99d8432fad675dc591ce37d69d061b1e3e2d",
+        "gitBlob": "6f5c2172bd27e9d19d1083b1d5eefd5c3f39379b"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-source-dist-before-build2.json",
+        "bytes": 129688,
+        "sha256": "47170151fed3f7dbce532f601156084aea4717f5ec6f818e1429592223397487",
+        "gitBlob": "982bee405e428b4a651af4ec2a0df18e3cf6f140"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-tauri-config.json",
+        "bytes": 78,
+        "sha256": "d3d0d3e2da8828fd1e9fa170978ab7ced39461965ddf446ec93b8a619df8e28a",
+        "gitBlob": "1a7e22eba20057de25f071d8c39062593fdd28cf"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-third-knownfolder-observation.json",
+        "bytes": 716,
+        "sha256": "e3823316e892daa71d51c92c7ad6dcab022e5ed8825951c0faeb9666fac8e417",
+        "gitBlob": "ff27a823f39d0364113fa3d8ac6b6eb2928757ae"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/native/t12-unused-4c77eaf-exe-sha.txt",
+        "bytes": 66,
+        "sha256": "2a4555f66fda0c74c125bb08726549786ce65be9b6aede9f87790cbf3dffdf71",
+        "gitBlob": "c70c0d67a69f8e681d0564539f491dc9fac3217f"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/original-log-copies.json",
+        "bytes": 10873,
+        "sha256": "dd0f73cb147d2147d827748efac616a76bbd3ac1b0621cccfbaee07723765066",
+        "gitBlob": "08ea53688f69fc5afeeae2b014db726e87d38ff2"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-clippy.txt",
+        "bytes": 1642,
+        "sha256": "98371d9571b1e84e2c840582353051ab2a8d8a43c9fd9ee286c6cf7d8c351efe",
+        "gitBlob": "8e7fde85c6b0d15b1ca6fc27cbf4f60090e6c96f"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-clippy2.txt",
+        "bytes": 1072,
+        "sha256": "ac3832b0ceffb85e369b95bedea5d52c16c2cd086e0c8284441ea434a81d37d8",
+        "gitBlob": "8eaf0273e47f059d8341410791a826692f37ec38"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-clippy3.txt",
+        "bytes": 422,
+        "sha256": "763175989ff21f072aa66e9cabced1003371c59b9c988ba01fa049cd27f10b05",
+        "gitBlob": "8ac151b79eba4e36f4f14c48201c7fff88c1dfed"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-core-behaviors.txt",
+        "bytes": 2544,
+        "sha256": "734dd8750d5a548c78cadffee249d6b76ea41f84cc374a17a1c7b3473bbaacf5",
+        "gitBlob": "4457d4854e85fc169825794aec237de2a569a681"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-feedback-final-typecheck.txt",
+        "bytes": 48,
+        "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a",
+        "gitBlob": "eb84ebab6b22ca8508cc111bee416818636182fa"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-feedback-final-ui.txt",
+        "bytes": 587,
+        "sha256": "9272fea6008b122ab1f8b6c35d50c25c5813a4f30be8220ac001196e16a9c00a",
+        "gitBlob": "4fb87c0abc08350ffe4bb6ad3134716af9bfebf8"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-feedback-final-vite.txt",
+        "bytes": 408,
+        "sha256": "c96b4ac8e293299dd6fc16cd4d2e347bd2e30836e5f4d088ec1c9da4e07b9e4b",
+        "gitBlob": "89d355d550a2daaf9c148db1214afd7440a74459"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-feedback-typecheck.txt",
+        "bytes": 48,
+        "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a",
+        "gitBlob": "eb84ebab6b22ca8508cc111bee416818636182fa"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-green-backup-regression.txt",
+        "bytes": 4775,
+        "sha256": "dc335e15989b0958c0dbc1029d1f2b964451bea8fca07d7f3e97245d64ffe4a5",
+        "gitBlob": "004b095c8c260cdc195bb12095bfbb61971a9fea"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-green-batch-rollback.txt",
+        "bytes": 512,
+        "sha256": "8c318edf62c80e31a6b98f1e72a4801088b1abd18fea4f3ac79e1d6f79ac6f9a",
+        "gitBlob": "31d5b6b7f54bd3ade3db017285f1241a96df44bf"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-green-current-roundtrip-crash.txt",
+        "bytes": 1811,
+        "sha256": "d2cec660288d079905ecb6a6207ed502df8c8a77222be0e04b94cc4e44208a8e",
+        "gitBlob": "17cbfb29e7c327da37916aee9198d3f6947a4f0b"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-green-feedback-refresh-failure.txt",
+        "bytes": 315,
+        "sha256": "879ec0533a40afa132b8d01965f8c9835c65ace36a921e49aa8ad38a5dcf0d98",
+        "gitBlob": "4942472f2a4532d0c4bfa45fc466cb7d5efa12b5"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-green-freshness.txt",
+        "bytes": 523,
+        "sha256": "051e2a40ad2404523aaf5d5df4ec8ac5ff7502cf6a9d3fb2e7eae4a3f88bb859",
+        "gitBlob": "ba14943645ea10f08142cb170d306976808ceb6f"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-green-publication-feedback.txt",
+        "bytes": 315,
+        "sha256": "67f44e8230861dd6cc7e10c15acd9443a87584dce1d878e381e1f1477b0d76fc",
+        "gitBlob": "f5f7c6208e0b786795452810cca2779f534918c9"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-green-restore-staging.txt",
+        "bytes": 8506,
+        "sha256": "b5175945295574429861c4b2e3c09f3ea2dafe475cb89b49998a355b0ca24d83",
+        "gitBlob": "372e5625b14eb41c7bc387982f49ad69edc12df4"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-green-restore-staging2.txt",
+        "bytes": 697,
+        "sha256": "23c85fd9c12102879e152c346b8fa237170eeb5531f3566ae96c9308816a202c",
+        "gitBlob": "c37ce1bd63869594522d1902c09b9fd618a44c50"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-green-settings-ownership.txt",
+        "bytes": 614,
+        "sha256": "0376b351ee910de7e693d5a72e48ec6556ea199a2038d0e3da706ff99b2594ea",
+        "gitBlob": "c21e4d2ecd123924b48458d3b0832025f3c072e9"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-green-target-preflight.txt",
+        "bytes": 4219,
+        "sha256": "f3523c25fd360c399cb01ff3efc46d245090f09049589f6ac6b808ff992915ff",
+        "gitBlob": "139994275c68d24964305aade815187d6eab6e50"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-green-ui.txt",
+        "bytes": 475,
+        "sha256": "a16f02e4fa955a3c2cec2682045252c80db1925eaccff87e1c383d8b0c2e0e73",
+        "gitBlob": "23a76078035807c2f1d915ca4e94b89f9ab5142a"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-red-batch-rollback.txt",
+        "bytes": 1075,
+        "sha256": "976bf57f91376347078aa6fb7c5f393023a824e79b888c1253054d2fea550085",
+        "gitBlob": "522c29339ac1809f4b7b7516bfa8979699ad388a"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-red-feedback-refresh-failure.txt",
+        "bytes": 1731,
+        "sha256": "15c5b0253a62e6c94dd51615beb9ddbd6090072db0c95f40958d6d259c174184",
+        "gitBlob": "e4ad94f75472ae834b07e8e7984141a5e69a6260"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-red-freshness.txt",
+        "bytes": 1184,
+        "sha256": "b8b385250f00d95184357fbb2ddec9fee260c1f2e944ce4378247146feba1abd",
+        "gitBlob": "679c1028ea1a9da8078741faaa9d3994e14c4d91"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-red-legacy-snapshot-settings.txt",
+        "bytes": 1142,
+        "sha256": "0d28bba69fd025d7d59d6b7d7d76009afca93e550eca48272247c6ee921ab6d7",
+        "gitBlob": "533f0c6acff679ad7f6d45004562b97e75987633"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-red-publication-feedback.txt",
+        "bytes": 8589,
+        "sha256": "3e4e27a1ecb06b7cb777157fe466242c5c797782f8eacb59d2b7fd0fa6ecba71",
+        "gitBlob": "301c08c31f1815745c0beef2369c8dfe428e7496"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-red-settings-ownership.txt",
+        "bytes": 1030,
+        "sha256": "00a57f0606542ab8fa84c4016873ba9815a4f15f52885990501de3c32daf8fec",
+        "gitBlob": "5d3a482145a5789ef57b54dc3d0d26f5117efae0"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-red-target-identity.txt",
+        "bytes": 1019,
+        "sha256": "0634d7899f59cb82daa62f843552183a6919e8c872235479f96d57eaa1e8b744",
+        "gitBlob": "f38635ce32f39c88ccf377a67af9ed0edae57fbe"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-red-ui.txt",
+        "bytes": 4647,
+        "sha256": "ef6960d97a252c4938ba1a91a49450db113c6615787a6ac53c694f3d1f21f09d",
+        "gitBlob": "4b8c2661139af02c79ff80033eb474291e1775d7"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-t06-combined.txt",
+        "bytes": 768,
+        "sha256": "178cee1ae3bc143e228012121c08c9176f8f91c4bf67fd46fde1fec2f636849a",
+        "gitBlob": "62668484ab86f5b6d2944fcafb5bac8b6e9b44e1"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-t06-typecheck.txt",
+        "bytes": 48,
+        "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a",
+        "gitBlob": "eb84ebab6b22ca8508cc111bee416818636182fa"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-t06-ui-all.txt",
+        "bytes": 588,
+        "sha256": "5a4a58afc22639467f0de04547fd6dee77ff3758b6ba5f262d42a5f7d7eaa820",
+        "gitBlob": "db706249298a22470d0fea1a9221123848cf05c7"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-t06-vite-build.txt",
+        "bytes": 408,
+        "sha256": "28519c9b06e28121f3331540f4eca6961619144aa18bccb1f474bc415607cb17",
+        "gitBlob": "3d6d36f78bb6662b3220d892db65fd4cfa9bc67e"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-t10-clippy.txt",
+        "bytes": 422,
+        "sha256": "b2ebd3221acece94b928f400342729279759c3ff90b4722aac62695ebcf5944c",
+        "gitBlob": "bb7011215ad09880590e86a6f58eada400593a1c"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-t10-fmt.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-t10-typecheck.txt",
+        "bytes": 48,
+        "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a",
+        "gitBlob": "eb84ebab6b22ca8508cc111bee416818636182fa"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-t10-ui-all.txt",
+        "bytes": 588,
+        "sha256": "b9974a95df341fd9fb83612779ba543f081d41fd20ca2f8d6760f81659208c56",
+        "gitBlob": "d42334d554d60c8c367d6a30a5bd0437f3d86b79"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-t10-vite.txt",
+        "bytes": 408,
+        "sha256": "a98ea56740d31444966c3682de46d0e38c5966c652b6a66cf205fed149dcb7cc",
+        "gitBlob": "c9527e0d29cd29b37d06a7b03bf0c738a6eb5675"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-t10-workspace.txt",
+        "bytes": 67806,
+        "sha256": "6062c40d8755dd175aa9d1892ff51fda04559be882d30670dd5d46ab8ce0082b",
+        "gitBlob": "e59604b959370cda12633c0ce7024f57d4aa3c19"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-typecheck.txt",
+        "bytes": 48,
+        "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a",
+        "gitBlob": "eb84ebab6b22ca8508cc111bee416818636182fa"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-ui-all.txt",
+        "bytes": 588,
+        "sha256": "234496e72e10e91b6ea62a3b8604018200f3d222fa3f0821c4029545b6130d9e",
+        "gitBlob": "4a85a63438f9057b127b58b73719946d5a6922ce"
+      },
+      {
+        "file": "docs/implementation/evidence/spec78-t12/t12-workspace-all.txt",
+        "bytes": 66617,
+        "sha256": "f61bcc0640bf763bf70c7534eeedff1d8f37168ac0662fef68bba73a7f2ec465",
+        "gitBlob": "5614c79956fdeb78ff3d01caebdc796ff09bd9de"
+      }
+    ]
+  },
+  "copies": {
+    "total": 111,
+    "rawOriginals": 107,
+    "reconstructions": [
+      {
+        "file": "native/runs/content-backup-t12-3075331-first/harness.mjs",
+        "source": "3075331a5f5bcf780831cf5a92766f331f5f68b9:e2e/library-content-backup.mjs",
+        "kind": "Git LF blob",
+        "sha256": "eaaf396903187c8f3086c0f430d5184d827850c8d2186a5a7b7936990461bb07",
+        "byteOriginalClaim": false
+      },
+      {
+        "file": "native/runs/content-backup-t12-3075331-second/harness.mjs",
+        "source": "026897b686526135aa587787817b5395dc80af37:e2e/library-content-backup.mjs",
+        "kind": "Git LF blob",
+        "sha256": "1e3d2acbe53119e4f6d912aa89eba4f4a7bf60df5147c08a2d2d7f40f5bca6d7",
+        "byteOriginalClaim": false
+      },
+      {
+        "file": "native/runs/content-backup-t12-00dfc61-third/harness.mjs",
+        "source": "00dfc611577361a679221dc8f06f99fdcedd466f:e2e/library-content-backup.mjs",
+        "kind": "Git LF blob",
+        "sha256": "355ea149b2c171b3680b3c632d8a5fc7f33790c8e32200720cb9d3d97a777de0",
+        "byteOriginalClaim": false
+      },
+      {
+        "file": "native/runs/content-backup-t12-00dfc61-fourth/harness.mjs",
+        "source": "846edf227d5b2c43692289dea06a11a97d38a17f:e2e/library-content-backup.mjs",
+        "kind": "Git LF blob",
+        "sha256": "3d2422c8ece631968393fe00b47afedeceb4d77f4f6736f82a40a78b1cae868c",
+        "byteOriginalClaim": false
+      }
+    ],
+    "rootArchiveRawMatches": [
+      {
+        "tracked": "native/t12-00dfc61-build-source.json",
+        "archived": "build-and-harness/t12-00dfc61-build-source.json"
+      },
+      {
+        "tracked": "native/t12-3075331-build-source.json",
+        "archived": "build-and-harness/t12-3075331-build-source.json"
+      },
+      {
+        "tracked": "native/t12-before-third-environment.json",
+        "archived": "build-and-harness/t12-before-third-environment.json"
+      },
+      {
+        "tracked": "native/t12-build-source.json",
+        "archived": "build-and-harness/t12-build-source.json"
+      },
+      {
+        "tracked": "native/t12-feedback-native-build.txt",
+        "archived": "build-and-harness/t12-feedback-native-build.log"
+      },
+      {
+        "tracked": "native/t12-feedback-source-dist-after-build.json",
+        "archived": "build-and-harness/t12-feedback-source-dist-after-build.json"
+      },
+      {
+        "tracked": "native/t12-feedback-source-dist-before-build.json",
+        "archived": "build-and-harness/t12-feedback-source-dist-before-build.json"
+      },
+      {
+        "tracked": "native/t12-final-native-build.txt",
+        "archived": "build-and-harness/t12-final-native-build.log"
+      },
+      {
+        "tracked": "native/t12-final-source-dist-after-build.json",
+        "archived": "build-and-harness/t12-final-source-dist-after-build.json"
+      },
+      {
+        "tracked": "native/t12-final-source-dist-before-build.json",
+        "archived": "build-and-harness/t12-final-source-dist-before-build.json"
+      },
+      {
+        "tracked": "native/t12-fourth-harness-source.json",
+        "archived": "build-and-harness/t12-fourth-harness-source.json"
+      },
+      {
+        "tracked": "native/t12-manifest.py",
+        "archived": "build-and-harness/t12-manifest.py"
+      },
+      {
+        "tracked": "native/t12-native-build.txt",
+        "archived": "build-and-harness/t12-native-build.log"
+      },
+      {
+        "tracked": "native/t12-native-build2.txt",
+        "archived": "build-and-harness/t12-native-build2.log"
+      },
+      {
+        "tracked": "native/t12-native-environment-before.json",
+        "archived": "build-and-harness/t12-native-environment-before.json"
+      },
+      {
+        "tracked": "native/t12-native-first.txt",
+        "archived": "build-and-harness/t12-native-first.log"
+      },
+      {
+        "tracked": "native/t12-native-fourth.txt",
+        "archived": "build-and-harness/t12-native-fourth.log"
+      },
+      {
+        "tracked": "native/t12-native-release.json",
+        "archived": "build-and-harness/t12-native-release.json"
+      },
+      {
+        "tracked": "native/t12-native-second.txt",
+        "archived": "build-and-harness/t12-native-second.log"
+      },
+      {
+        "tracked": "native/t12-native-smoke.txt",
+        "archived": "build-and-harness/t12-native-smoke.log"
+      },
+      {
+        "tracked": "native/t12-native-third.txt",
+        "archived": "build-and-harness/t12-native-third.log"
+      },
+      {
+        "tracked": "native/t12-post-native-source-dist.json",
+        "archived": "build-and-harness/t12-post-native-source-dist.json"
+      },
+      {
+        "tracked": "native/t12-second-harness-source.json",
+        "archived": "build-and-harness/t12-second-harness-source.json"
+      },
+      {
+        "tracked": "native/t12-smoke-preflight.json",
+        "archived": "build-and-harness/t12-smoke-preflight.json"
+      },
+      {
+        "tracked": "native/t12-source-dist-after-build.json",
+        "archived": "build-and-harness/t12-source-dist-after-build.json"
+      },
+      {
+        "tracked": "native/t12-source-dist-before-build.json",
+        "archived": "build-and-harness/t12-source-dist-before-build.json"
+      },
+      {
+        "tracked": "native/t12-source-dist-before-build2.json",
+        "archived": "build-and-harness/t12-source-dist-before-build2.json"
+      },
+      {
+        "tracked": "native/t12-tauri-config.json",
+        "archived": "build-and-harness/t12-tauri-config.json"
+      },
+      {
+        "tracked": "native/t12-third-knownfolder-observation.json",
+        "archived": "build-and-harness/t12-third-knownfolder-observation.json"
+      },
+      {
+        "tracked": "native/t12-unused-4c77eaf-exe-sha.txt",
+        "archived": "build-and-harness/t12-unused-4c77eaf-exe-sha.txt"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-first/01-source-group.png",
+        "archived": "content-backup-t12-3075331-first/01-source-group.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-first/a1.png",
+        "archived": "content-backup-t12-3075331-first/a1.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-first/a2.png",
+        "archived": "content-backup-t12-3075331-first/a2.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-first/b.png",
+        "archived": "content-backup-t12-3075331-first/b.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-first/failure-source-publication-failed.html",
+        "archived": "content-backup-t12-3075331-first/failure-source-publication-failed.html"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-first/failure-source-publication-failed.png",
+        "archived": "content-backup-t12-3075331-first/failure-source-publication-failed.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-first/result.json",
+        "archived": "content-backup-t12-3075331-first/result.json"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-second/01-source-group.png",
+        "archived": "content-backup-t12-3075331-second/01-source-group.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-second/a1.png",
+        "archived": "content-backup-t12-3075331-second/a1.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-second/a2.png",
+        "archived": "content-backup-t12-3075331-second/a2.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-second/b.png",
+        "archived": "content-backup-t12-3075331-second/b.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-second/failure-source-publication-failed.html",
+        "archived": "content-backup-t12-3075331-second/failure-source-publication-failed.html"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-second/failure-source-publication-failed.png",
+        "archived": "content-backup-t12-3075331-second/failure-source-publication-failed.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-3075331-second/result.json",
+        "archived": "content-backup-t12-3075331-second/result.json"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-third/01-source-group.png",
+        "archived": "content-backup-t12-00dfc61-third/01-source-group.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-third/02-backup-preview.png",
+        "archived": "content-backup-t12-00dfc61-third/02-backup-preview.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-third/a1.png",
+        "archived": "content-backup-t12-00dfc61-third/a1.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-third/a2.png",
+        "archived": "content-backup-t12-00dfc61-third/a2.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-third/b.png",
+        "archived": "content-backup-t12-00dfc61-third/b.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-third/failure-fresh-restore.html",
+        "archived": "content-backup-t12-00dfc61-third/failure-fresh-restore.html"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-third/failure-fresh-restore.png",
+        "archived": "content-backup-t12-00dfc61-third/failure-fresh-restore.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-third/result.json",
+        "archived": "content-backup-t12-00dfc61-third/result.json"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/01-source-group.png",
+        "archived": "content-backup-t12-00dfc61-fourth/01-source-group.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/02-backup-preview.png",
+        "archived": "content-backup-t12-00dfc61-fourth/02-backup-preview.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/03-fresh-restore-result.png",
+        "archived": "content-backup-t12-00dfc61-fourth/03-fresh-restore-result.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/04-open-restored-group.png",
+        "archived": "content-backup-t12-00dfc61-fourth/04-open-restored-group.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/05-existing-settings.png",
+        "archived": "content-backup-t12-00dfc61-fourth/05-existing-settings.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/06-recovered-group.png",
+        "archived": "content-backup-t12-00dfc61-fourth/06-recovered-group.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/06-recovered-library.png",
+        "archived": "content-backup-t12-00dfc61-fourth/06-recovered-library.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/a1.png",
+        "archived": "content-backup-t12-00dfc61-fourth/a1.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/a2.png",
+        "archived": "content-backup-t12-00dfc61-fourth/a2.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/b.png",
+        "archived": "content-backup-t12-00dfc61-fourth/b.png"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/fault-journal-original-655a172a0c14410a811c557725eacfa9.json",
+        "archived": "content-backup-t12-00dfc61-fourth/fault-journal-original-655a172a0c14410a811c557725eacfa9.json"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/fault-journal-original-655a172a0c14410a811c557725eacfa9.json.source.json",
+        "archived": "content-backup-t12-00dfc61-fourth/fault-journal-original-655a172a0c14410a811c557725eacfa9.json.source.json"
+      },
+      {
+        "tracked": "native/runs/content-backup-t12-00dfc61-fourth/result.json",
+        "archived": "content-backup-t12-00dfc61-fourth/result.json"
+      },
+      {
+        "tracked": "native/smoke/result.json",
+        "archived": "t12-same-exe-smoke/kinshoko-smoke-VK50PY/result.json"
+      }
+    ],
+    "outsideNativeArchive": [
+      {
+        "file": "t12-clippy.txt",
+        "source": "work/t12-clippy.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-clippy2.txt",
+        "source": "work/t12-clippy2.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-clippy3.txt",
+        "source": "work/t12-clippy3.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-core-behaviors.txt",
+        "source": "work/t12-core-behaviors.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-feedback-final-typecheck.txt",
+        "source": "work/t12-feedback-final-typecheck.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-feedback-final-ui.txt",
+        "source": "work/t12-feedback-final-ui.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-feedback-final-vite.txt",
+        "source": "work/t12-feedback-final-vite.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-feedback-typecheck.txt",
+        "source": "work/t12-feedback-typecheck.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-green-backup-regression.txt",
+        "source": "work/t12-green-backup-regression.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-green-batch-rollback.txt",
+        "source": "work/t12-green-batch-rollback.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-green-current-roundtrip-crash.txt",
+        "source": "work/t12-green-current-roundtrip-crash.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-green-feedback-refresh-failure.txt",
+        "source": "work/t12-green-feedback-refresh-failure.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-green-freshness.txt",
+        "source": "work/t12-green-freshness.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-green-publication-feedback.txt",
+        "source": "work/t12-green-publication-feedback.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-green-restore-staging.txt",
+        "source": "work/t12-green-restore-staging.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-green-restore-staging2.txt",
+        "source": "work/t12-green-restore-staging2.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-green-settings-ownership.txt",
+        "source": "work/t12-green-settings-ownership.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-green-target-preflight.txt",
+        "source": "work/t12-green-target-preflight.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-green-ui.txt",
+        "source": "work/t12-green-ui.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-red-batch-rollback.txt",
+        "source": "work/t12-red-batch-rollback.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-red-feedback-refresh-failure.txt",
+        "source": "work/t12-red-feedback-refresh-failure.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-red-freshness.txt",
+        "source": "work/t12-red-freshness.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-red-legacy-snapshot-settings.txt",
+        "source": "work/t12-red-legacy-snapshot-settings.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-red-publication-feedback.txt",
+        "source": "work/t12-red-publication-feedback.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-red-settings-ownership.txt",
+        "source": "work/t12-red-settings-ownership.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-red-target-identity.txt",
+        "source": "work/t12-red-target-identity.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-red-ui.txt",
+        "source": "work/t12-red-ui.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-t06-combined.txt",
+        "source": "work/t12-t06-combined.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-t06-typecheck.txt",
+        "source": "work/t12-t06-typecheck.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-t06-ui-all.txt",
+        "source": "work/t12-t06-ui-all.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-t06-vite-build.txt",
+        "source": "work/t12-t06-vite-build.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-t10-clippy.txt",
+        "source": "work/t12-t10-clippy.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-t10-fmt.txt",
+        "source": "work/t12-t10-fmt.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-t10-typecheck.txt",
+        "source": "work/t12-t10-typecheck.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-t10-ui-all.txt",
+        "source": "work/t12-t10-ui-all.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-t10-vite.txt",
+        "source": "work/t12-t10-vite.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-t10-workspace.txt",
+        "source": "work/t12-t10-workspace.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-typecheck.txt",
+        "source": "work/t12-typecheck.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-ui-all.txt",
+        "source": "work/t12-ui-all.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "t12-workspace-all.txt",
+        "source": "work/t12-workspace-all.log",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      },
+      {
+        "file": "native/smoke/harness.mjs",
+        "source": "e2e/smoke.mjs",
+        "reason": "Not in the native-only root archive; matched against worker original and committed raw bytes."
+      }
+    ]
+  },
+  "rootArchive": {
+    "files": 251,
+    "bytes": 253143631,
+    "allActualBytesVerified": true,
+    "exactInventory": true
+  },
+  "frozenProduct": {
+    "source": "00dfc611577361a679221dc8f06f99fdcedd466f",
+    "tree": "1ffabb0724b1f6e308968dfb55092ae7c88361e2",
+    "sourceFiles": 538,
+    "distFiles": 10,
+    "workerPhysicalBytesMatch": true,
+    "rootSourceNewlineOnlyDifferences": [
+      "crates/kinshoko-core/examples/spec78_workspace_fixture.rs",
+      "crates/kinshoko-core/src/backup/mod.rs",
+      "crates/kinshoko-core/src/backup/restore.rs",
+      "crates/kinshoko-core/src/backup/target.rs",
+      "crates/kinshoko-core/src/desktop/pin.rs",
+      "crates/kinshoko-core/src/library/backup.rs",
+      "crates/kinshoko-core/src/library/migrations/0087_folder_revision.sql",
+      "crates/kinshoko-core/src/library/tag_definitions.rs",
+      "crates/kinshoko-core/src/library/types.rs",
+      "crates/kinshoko-core/src/portable_tags.rs",
+      "crates/kinshoko-core/src/reference_groups/mod.rs",
+      "crates/kinshoko-core/src/tag_catalog/portable.rs",
+      "crates/kinshoko-core/tests/backup_content_definitions.rs",
+      "crates/kinshoko-core/tests/capture_history.rs",
+      "crates/kinshoko-core/tests/eagle_crash.rs",
+      "crates/kinshoko-core/tests/portable_tags.rs",
+      "crates/kinshoko-core/tests/reference_capture.rs",
+      "crates/kinshoko-core/tests/reference_group_snapshot.rs",
+      "crates/kinshoko-core/tests/search.rs",
+      "crates/kinshoko-core/tests/workspace_folders.rs",
+      "src-tauri/src/backup.rs",
+      "src-tauri/src/desktop/win32.rs",
+      "src/desktop/PinView.escape.test.tsx",
+      "src/desktop/PinView.tsx",
+      "src/library/TagIdentityPanel.test.tsx",
+      "src/library/TagIdentityPanel.tsx",
+      "src/shell/Rail.tsx",
+      "src/wall/DensitySlider.tsx",
+      "src/wall/Wall.test.tsx"
+    ],
+    "manifestTiming": [
+      {
+        "file": "native/t12-final-source-dist-before-build.json",
+        "stage": "before-final-native-build",
+        "at": "2026-10-08T19:12:58.762659+00:00",
+        "source": "00dfc611577361a679221dc8f06f99fdcedd466f"
+      },
+      {
+        "file": "native/t12-final-source-dist-after-build.json",
+        "stage": "after-final-native-build",
+        "at": "2026-10-08T19:14:03.898305+00:00",
+        "source": "00dfc611577361a679221dc8f06f99fdcedd466f"
+      },
+      {
+        "file": "native/t12-post-native-source-dist.json",
+        "stage": "post-native-clean-product",
+        "at": "2026-10-08T19:27:34.752482+00:00",
+        "source": "846edf227d5b2c43692289dea06a11a97d38a17f"
+      }
+    ],
+    "productDeltaToWorkerTip": [],
+    "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c"
+  },
+  "nativeRuns": [
+    {
+      "run": "content-backup-t12-3075331-first",
+      "status": "failed",
+      "assertions": 4,
+      "productSource": "3075331a5f5bcf780831cf5a92766f331f5f68b9",
+      "exeSha256": "c77471db1d84ff06336358182d082a6b5da3fe220aa573169cdc157577c62838",
+      "harnessSource": "3075331a5f5bcf780831cf5a92766f331f5f68b9",
+      "harnessSha256": "eaaf396903187c8f3086c0f430d5184d827850c8d2186a5a7b7936990461bb07",
+      "failure": "Error: provider publication failure is visible in the formal identity controls",
+      "environments": [
+        {
+          "phase": "source",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\source-app",
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        },
+        {
+          "phase": "source-publication-failed",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\source-app",
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        }
+      ],
+      "perPhaseKnownFolderRecorded": false
+    },
+    {
+      "run": "content-backup-t12-3075331-second",
+      "status": "failed",
+      "assertions": 4,
+      "productSource": "3075331a5f5bcf780831cf5a92766f331f5f68b9",
+      "exeSha256": "c77471db1d84ff06336358182d082a6b5da3fe220aa573169cdc157577c62838",
+      "harnessSource": "026897b686526135aa587787817b5395dc80af37",
+      "harnessSha256": "1e3d2acbe53119e4f6d912aa89eba4f4a7bf60df5147c08a2d2d7f40f5bca6d7",
+      "failure": "Error: Timed out: formal provider publication failure",
+      "environments": [
+        {
+          "phase": "source",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\source-app",
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        },
+        {
+          "phase": "source-publication-failed",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\source-app",
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        }
+      ],
+      "perPhaseKnownFolderRecorded": false
+    },
+    {
+      "run": "content-backup-t12-00dfc61-third",
+      "status": "failed",
+      "assertions": 9,
+      "productSource": "00dfc611577361a679221dc8f06f99fdcedd466f",
+      "exeSha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
+      "harnessSource": "00dfc611577361a679221dc8f06f99fdcedd466f",
+      "harnessSha256": "355ea149b2c171b3680b3c632d8a5fc7f33790c8e32200720cb9d3d97a777de0",
+      "failure": "Error: Timed out: actual restore response and rendered roundtrip result",
+      "environments": [
+        {
+          "phase": "source",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\source-app",
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        },
+        {
+          "phase": "source-publication-failed",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\source-app",
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        },
+        {
+          "phase": "fresh-restore",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\fresh-app",
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        }
+      ],
+      "perPhaseKnownFolderRecorded": false
+    },
+    {
+      "run": "content-backup-t12-00dfc61-fourth",
+      "status": "passed",
+      "assertions": 57,
+      "productSource": "00dfc611577361a679221dc8f06f99fdcedd466f",
+      "exeSha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
+      "harnessSource": "846edf227d5b2c43692289dea06a11a97d38a17f",
+      "harnessSha256": "3d2422c8ece631968393fe00b47afedeceb4d77f4f6736f82a40a78b1cae868c",
+      "failure": null,
+      "environments": [
+        {
+          "phase": "source",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\source-app",
+          "knownFolder": {
+            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "exists": false,
+            "sha256": null,
+            "value": null
+          },
+          "shellSettings": {
+            "autostart": true,
+            "forceSrgb": false,
+            "forceSrgbInEffect": false,
+            "shortcuts": [
+              {
+                "accelerator": "F1",
+                "action": "capture",
+                "problem": null
+              },
+              {
+                "accelerator": "F3",
+                "action": "pinClipboard",
+                "problem": null
+              },
+              {
+                "accelerator": "F4",
+                "action": "hideAllPins",
+                "problem": null
+              }
+            ],
+            "showApproxSource": false,
+            "usageLog": false
+          },
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "invokeDescriptor": {
+            "configurable": false,
+            "writable": false
+          },
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        },
+        {
+          "phase": "source-publication-failed",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\source-app",
+          "knownFolder": {
+            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "exists": false,
+            "sha256": null,
+            "value": null
+          },
+          "shellSettings": {
+            "autostart": true,
+            "forceSrgb": false,
+            "forceSrgbInEffect": false,
+            "shortcuts": [
+              {
+                "accelerator": "F1",
+                "action": "capture",
+                "problem": null
+              },
+              {
+                "accelerator": "F3",
+                "action": "pinClipboard",
+                "problem": null
+              },
+              {
+                "accelerator": "F4",
+                "action": "hideAllPins",
+                "problem": null
+              }
+            ],
+            "showApproxSource": false,
+            "usageLog": false
+          },
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "invokeDescriptor": {
+            "configurable": false,
+            "writable": false
+          },
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        },
+        {
+          "phase": "fresh-restore",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+          "knownFolder": {
+            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "exists": false,
+            "sha256": null,
+            "value": null
+          },
+          "shellSettings": {
+            "autostart": true,
+            "forceSrgb": false,
+            "forceSrgbInEffect": false,
+            "shortcuts": [
+              {
+                "accelerator": "F1",
+                "action": "capture",
+                "problem": null
+              },
+              {
+                "accelerator": "F3",
+                "action": "pinClipboard",
+                "problem": null
+              },
+              {
+                "accelerator": "F4",
+                "action": "hideAllPins",
+                "problem": null
+              }
+            ],
+            "showApproxSource": false,
+            "usageLog": false
+          },
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "invokeDescriptor": {
+            "configurable": false,
+            "writable": false
+          },
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        },
+        {
+          "phase": "fault-library",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+          "knownFolder": {
+            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "exists": false,
+            "sha256": null,
+            "value": null
+          },
+          "shellSettings": {
+            "autostart": true,
+            "forceSrgb": false,
+            "forceSrgbInEffect": false,
+            "shortcuts": [
+              {
+                "accelerator": "F1",
+                "action": "capture",
+                "problem": null
+              },
+              {
+                "accelerator": "F3",
+                "action": "pinClipboard",
+                "problem": null
+              },
+              {
+                "accelerator": "F4",
+                "action": "hideAllPins",
+                "problem": null
+              }
+            ],
+            "showApproxSource": false,
+            "usageLog": false
+          },
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "invokeDescriptor": {
+            "configurable": false,
+            "writable": false
+          },
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        },
+        {
+          "phase": "recover-library",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+          "knownFolder": {
+            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "exists": false,
+            "sha256": null,
+            "value": null
+          },
+          "shellSettings": {
+            "autostart": true,
+            "forceSrgb": false,
+            "forceSrgbInEffect": false,
+            "shortcuts": [
+              {
+                "accelerator": "F1",
+                "action": "capture",
+                "problem": null
+              },
+              {
+                "accelerator": "F3",
+                "action": "pinClipboard",
+                "problem": null
+              },
+              {
+                "accelerator": "F4",
+                "action": "hideAllPins",
+                "problem": null
+              }
+            ],
+            "showApproxSource": false,
+            "usageLog": false
+          },
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "invokeDescriptor": {
+            "configurable": false,
+            "writable": false
+          },
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        },
+        {
+          "phase": "fault-group",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+          "knownFolder": {
+            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "exists": false,
+            "sha256": null,
+            "value": null
+          },
+          "shellSettings": {
+            "autostart": true,
+            "forceSrgb": false,
+            "forceSrgbInEffect": false,
+            "shortcuts": [
+              {
+                "accelerator": "F1",
+                "action": "capture",
+                "problem": null
+              },
+              {
+                "accelerator": "F3",
+                "action": "pinClipboard",
+                "problem": null
+              },
+              {
+                "accelerator": "F4",
+                "action": "hideAllPins",
+                "problem": null
+              }
+            ],
+            "showApproxSource": false,
+            "usageLog": false
+          },
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "invokeDescriptor": {
+            "configurable": false,
+            "writable": false
+          },
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        },
+        {
+          "phase": "recover-group",
+          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+          "knownFolder": {
+            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "exists": false,
+            "sha256": null,
+            "value": null
+          },
+          "shellSettings": {
+            "autostart": true,
+            "forceSrgb": false,
+            "forceSrgbInEffect": false,
+            "shortcuts": [
+              {
+                "accelerator": "F1",
+                "action": "capture",
+                "problem": null
+              },
+              {
+                "accelerator": "F3",
+                "action": "pinClipboard",
+                "problem": null
+              },
+              {
+                "accelerator": "F4",
+                "action": "hideAllPins",
+                "problem": null
+              }
+            ],
+            "showApproxSource": false,
+            "usageLog": false
+          },
+          "dpr": 1.1041666269302368,
+          "height": 801,
+          "invokeDescriptor": {
+            "configurable": false,
+            "writable": false
+          },
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+          "width": 1281
+        }
+      ],
+      "perPhaseKnownFolderRecorded": true
+    }
+  ],
+  "nativeAssertionsMustNotBeSummed": true,
+  "faultActualCounts": [
+    {
+      "point": "content_restore_library_published",
+      "pendingJournals": 1,
+      "publishedLibraries": 1,
+      "publishedGroups": 0,
+      "recordedLibraries": 2,
+      "recordedGroups": 1
+    },
+    {
+      "point": "content_restore_group_published",
+      "pendingJournals": 1,
+      "publishedLibraries": 2,
+      "publishedGroups": 1,
+      "recordedLibraries": 2,
+      "recordedGroups": 1
+    }
+  ],
+  "archivedSqliteProvenance": [
+    {
+      "report": "freshReport",
+      "id": "83bb1ec3b8124eec94ccdeb094a1dd14",
+      "oldId": "e6e45a83160e41a0b812706c5f90e272",
+      "provenance": [
+        [
+          "e6e45a83160e41a0b812706c5f90e272",
+          "20261009-031944-e1d95b",
+          1791487188219
+        ]
+      ],
+      "method": "Byte-for-byte DB/WAL/SHM audit copies, SQLite mode=ro and query_only=ON; preserved originals not opened by SQLite."
+    },
+    {
+      "report": "freshReport",
+      "id": "a44fa776d6434298901f2ba93aa70748",
+      "oldId": "f0e91a69459e4eb0b95d21846371e7c4",
+      "provenance": [
+        [
+          "f0e91a69459e4eb0b95d21846371e7c4",
+          "20261009-031944-e1d95b",
+          1791487188219
+        ]
+      ],
+      "method": "Byte-for-byte DB/WAL/SHM audit copies, SQLite mode=ro and query_only=ON; preserved originals not opened by SQLite."
+    },
+    {
+      "report": "existingReport",
+      "id": "0f061397b0664aa6bbbb3837f134edb6",
+      "oldId": "e6e45a83160e41a0b812706c5f90e272",
+      "provenance": [
+        [
+          "e6e45a83160e41a0b812706c5f90e272",
+          "20261009-031944-e1d95b",
+          1791487191398
+        ]
+      ],
+      "method": "Byte-for-byte DB/WAL/SHM audit copies, SQLite mode=ro and query_only=ON; preserved originals not opened by SQLite."
+    },
+    {
+      "report": "existingReport",
+      "id": "4a11a5f20c564e57bb61f3d1d4ad1809",
+      "oldId": "f0e91a69459e4eb0b95d21846371e7c4",
+      "provenance": [
+        [
+          "f0e91a69459e4eb0b95d21846371e7c4",
+          "20261009-031944-e1d95b",
+          1791487191398
+        ]
+      ],
+      "method": "Byte-for-byte DB/WAL/SHM audit copies, SQLite mode=ro and query_only=ON; preserved originals not opened by SQLite."
+    }
+  ],
+  "archivedReferenceGroups": [
+    {
+      "report": "freshReport",
+      "id": "c381eb45745f4918a3387c46b75f2cba",
+      "oldId": "ec97619a46a9420d97c341f511abedb4",
+      "remappedMembers": 3
+    },
+    {
+      "report": "existingReport",
+      "id": "138f6cd0d02d4d069038d44c61d40a5a",
+      "oldId": "ec97619a46a9420d97c341f511abedb4",
+      "remappedMembers": 3
+    }
+  ],
+  "knownFolderEvidenceLimit": "First/second/third raw per-phase environments record shell settings without per-phase KnownFolder exists/hash. Separate actual metadata proves absence before first launch and before third; fourth records all seven phases, and smoke preflight/release record absence. No missing historical observation is inferred.",
+  "smoke": {
+    "source": "00dfc611577361a679221dc8f06f99fdcedd466f",
+    "status": "passed",
+    "assertions": 5,
+    "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
+    "harnessSha256": "d9df46a1c82641e8677d9434dca9d631a43370a1037d6217b05e539141c7e01a"
+  },
+  "rustHistorical": {
+    "source": "aa27349b9f6032f46b5d23c7c55534830551f055",
+    "suites": 74,
+    "passed": 669,
+    "failed": 0,
+    "ignored": 11,
+    "countMethod": "Last result in each top-level Running or Doc-tests segment; child process output is not double-counted.",
+    "rerunByMerger": false
+  },
+  "releaseRecordVerified": true,
+  "normalTrayQuit": "unverified",
+  "windows10": "unverified"
+}

@@ -1,0 +1,21 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.08s
+     Running tests\application_settings_backup.rs (target\debug\deps\application_settings_backup-be81416567d29a46.exe)
+
+running 1 test
+
+thread 'restoring_settings_keeps_current_library_identity_corrections_and_every_image_fact' (14816) panicked at crates\kinshoko-core\tests\application_settings_backup.rs:117:5:
+assertion `left == right` failed: settings restore must not undo the current provider identity
+  left: "01a11cdc0f2075189a72d5888277dc45"
+ right: "01a11cdc0f607753b1bdf56566fe94d6"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test restoring_settings_keeps_current_library_identity_corrections_and_every_image_fact ... FAILED
+
+failures:
+
+failures:
+    restoring_settings_keeps_current_library_identity_corrections_and_every_image_fact
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.19s
+
+error: test failed, to rerun pass `-p kinshoko-core --test application_settings_backup`

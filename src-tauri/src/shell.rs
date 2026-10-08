@@ -56,7 +56,7 @@ pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 ///
 /// 调试构建与设置了 `KINSHOKO_SKIP_AUTOSTART` 时不写系统，免得把 `target/` 里的开发版
 /// 登记成开机启动；设置本身照常保存。
-pub fn apply_autostart(app: &AppHandle, on: bool) -> Result<(), String> {
+pub fn apply_autostart<R: tauri::Runtime>(app: &AppHandle<R>, on: bool) -> Result<(), String> {
     if cfg!(debug_assertions) || std::env::var_os("KINSHOKO_SKIP_AUTOSTART").is_some() {
         return Ok(());
     }

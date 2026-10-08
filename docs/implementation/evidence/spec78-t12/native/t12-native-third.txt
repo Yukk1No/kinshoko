@@ -1,0 +1,13 @@
+PASS fixture import has its explicit owner and completed definition publication: 备份来源甲
+PASS fixture import has its explicit owner and completed definition publication: 备份来源乙
+PASS three native reference views become one cross-library source group
+PASS app split is saved despite a real provider definition publication failure
+PASS provider publication failure is visible in the formal identity controls
+PASS source has an actual application personal rule before content backup
+PASS actual backup preview covers both providers, their group and all originals
+PASS formal library-backup entry states the content/settings boundary
+PASS manual content backup completes after failed publication without skipping providers
+Error: Timed out: actual restore response and rendered roundtrip result
+    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/library-content-backup.mjs:31:9)
+    at async restoreRendered (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/library-content-backup.mjs:162:18)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/library-content-backup.mjs:232:17

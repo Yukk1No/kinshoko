@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ImageCard } from "../bindings/ImageCard";
 import type { Region } from "../bindings/Region";
-import { displayScaledUrl, displayUrl, imageDetail, workspaceImage, isUnknownImage, pinReference } from "../ipc";
+import { displayScaledUrl, displayUrl, imageDetail, workspaceImage, isUnknownImage, pinReference, shellSettings, migrateViewerBackground, setViewerBackground } from "../ipc";
+import { legacyViewerBackground, rememberViewerBackground } from "./background";
 import type { KeyboardEvent } from "react";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
@@ -17,13 +18,6 @@ type Props = {
 };
 type Background = "dark" | "mid" | "light" | "checker";
 
-function savedBackground(): Background {
-  try {
-    const saved = localStorage.getItem("kinshoko.viewer.background");
-    if (saved === "dark" || saved === "mid" || saved === "light" || saved === "checker") return saved;
-  } catch { /* 本地存储不可用时用中灰。 */ }
-  return "mid";
-}
 
 /**
  * 查看器盖在图片墙上，原位置与已加载的卡片保留。
@@ -38,7 +32,8 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   const [mode, setMode] = useState<"fit" | "pixels" | "zoom">("fit");
   const [zoomScale, setZoomScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [background, setBackground] = useState<Background>(savedBackground);
+  const [background, setBackground] = useState<Background>(legacyViewerBackground);
+  const [backgroundReady, setBackgroundReady] = useState(false);
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
@@ -54,8 +49,16 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   closeRef.current = onClose;
   useLayoutEffect(() => root.current?.focus(), []);
   useEffect(() => {
-    try { localStorage.setItem("kinshoko.viewer.background", background); } catch { /* 仅不记住底色。 */ }
-  }, [background]);
+    let alive = true;
+    shellSettings().then(async (view) => view?.viewerBackground ?? (await migrateViewerBackground(legacyViewerBackground()))?.viewerBackground ?? "mid")
+      .then((value) => { if (alive) { setBackground(value); setBackgroundReady(true); } }, () => { /* A failed read must never write legacy cache over restored settings. */ });
+    return () => { alive = false; };
+  }, []);
+  useEffect(() => {
+    if (!backgroundReady) return;
+    rememberViewerBackground(background);
+    void setViewerBackground(background).catch(() => {});
+  }, [background, backgroundReady]);
   useLayoutEffect(() => {
     const el = stage.current!;
     const sync = () => setViewport((prev) => {

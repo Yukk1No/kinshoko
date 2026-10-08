@@ -1,0 +1,21 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.81s
+     Running tests\application_settings_backup.rs (target\debug\deps\application_settings_backup-be81416567d29a46.exe)
+
+running 1 test
+
+thread 'restored_external_ownership_does_not_change_when_two_portable_identities_share_a_word' (26996) panicked at crates\kinshoko-core\tests\application_settings_backup.rs:524:5:
+assertion `left == right` failed: explicit external ownership is configuration, not alphabetical tag order
+  left: "000-independent-portable-identity"
+ right: "01a11ce9a0be711491b91db326d06638"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test restored_external_ownership_does_not_change_when_two_portable_identities_share_a_word ... FAILED
+
+failures:
+
+failures:
+    restored_external_ownership_does_not_change_when_two_portable_identities_share_a_word
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.36s
+
+error: test failed, to rerun pass `-p kinshoko-core --test application_settings_backup`

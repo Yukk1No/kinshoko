@@ -1,0 +1,17 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/Backup.test.tsx src/library/TagIdentityPanel.test.tsx src/App.test.tsx src/App.workspace-bootstrap.test.tsx --maxWorkers=2
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/7dea/kinshoko
+
+
+ Test Files  4 passed (4)
+      Tests  73 passed (73)
+   Start at  03:35:59
+   Duration  13.19s (tests 46%, environment 45%, import 7%, transform 3%)
+
+Environment  jsdom was created 4 times · 10.24s total, 45% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

@@ -62,6 +62,16 @@ impl TagCatalog {
         &self,
         definitions: &[PortableTagDefinition],
     ) -> Result<(), CatalogError> {
+        self.inspect()?.validate_content_dependencies(definitions)
+    }
+}
+
+impl CatalogInspection {
+    /// Validate a content dependency batch without changing any target program setting.
+    pub fn validate_content_dependencies(
+        &self,
+        definitions: &[PortableTagDefinition],
+    ) -> Result<(), CatalogError> {
         let mut identities = std::collections::BTreeMap::new();
         for definition in definitions {
             definition
@@ -74,26 +84,56 @@ impl TagCatalog {
                     "同一身份包含不同定义".into(),
                 ));
             }
-            if let Some(raw) = self
-                .conn
-                .query_row(
-                    "SELECT definition FROM catalog_tag WHERE id=?1",
-                    [&definition.id],
-                    |r| r.get::<_, String>(0),
-                )
-                .optional()?
+            if let Some(existing) = self.tags.iter().find(|tag| tag.id == definition.id)
+                && existing.namespace != definition.namespace
             {
-                let existing: CatalogTag = serde_json::from_str(&raw)?;
-                if existing.namespace != definition.namespace {
-                    return Err(CatalogError::NamespaceMismatch);
-                }
+                return Err(CatalogError::NamespaceMismatch);
             }
         }
         Ok(())
     }
-}
+    /// Current pure definitions for a fixed content snapshot. Raw sealed dependencies stay intact.
+    pub(crate) fn content_bindings(
+        &self,
+        library_id: &str,
+        dependencies: Vec<crate::portable_tags::PortableTagBinding>,
+    ) -> Result<Vec<crate::portable_tags::PortableTagBinding>, CatalogError> {
+        let definitions = self
+            .tags
+            .iter()
+            .map(|tag| (tag.id.as_str(), content_definition(tag)))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        let mut bindings = dependencies
+            .into_iter()
+            .map(|mut binding| {
+                if binding.authoritative
+                    && let Some(definition) = definitions.get(binding.definition.id.as_str())
+                {
+                    binding.definition = definition.clone();
+                }
+                (binding.local_tag_id.clone(), binding)
+            })
+            .collect::<std::collections::BTreeMap<_, _>>();
+        for mapping in self
+            .mappings
+            .iter()
+            .filter(|mapping| mapping.library_id == library_id)
+        {
+            bindings.insert(
+                mapping.local_tag_id.clone(),
+                crate::portable_tags::PortableTagBinding {
+                    local_tag_id: mapping.local_tag_id.clone(),
+                    definition: definitions
+                        .get(mapping.catalog_id.as_str())
+                        .ok_or(CatalogError::UnknownTag)?
+                        .clone(),
+                    authoritative: true,
+                },
+            );
+        }
+        Ok(bindings.into_values().collect())
+    }
 
-impl CatalogInspection {
     /// Replace provider-local snapshot labels with the current portable content definitions.
     /// Uses the complete catalog, never a UI-filtered view or resolved name preferences.
     /// Legacy tags without an application mapping keep the library snapshot dependency.

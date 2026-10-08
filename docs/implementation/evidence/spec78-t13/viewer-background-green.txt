@@ -1,0 +1,13 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/viewer/Viewer.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  03:13:32
+   Duration  2.09s (environment 59%, tests 25%, import 10%, transform 5%)
+

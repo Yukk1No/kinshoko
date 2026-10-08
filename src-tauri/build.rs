@@ -6,6 +6,10 @@ fn main() {
                 "library",
                 tauri_build::InlinedPlugin::new()
                     .commands(&[
+                        "pick_application_settings",
+                        "export_application_settings",
+                        "preview_application_settings",
+                        "restore_application_settings",
                         "workspace_preview_source_delete",
                         "workspace_permanent_source_delete",
                         "workspace_source_group",

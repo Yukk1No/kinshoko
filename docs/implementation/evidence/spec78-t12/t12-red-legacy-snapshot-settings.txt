@@ -1,0 +1,21 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.98s
+     Running tests\backup_content_definitions.rs (target\debug\deps\backup_content_definitions-9aa9b0f8d0b1df11.exe)
+
+running 1 test
+
+thread 'older_content_snapshot_cannot_replay_legacy_program_settings' (28040) panicked at crates\kinshoko-core\tests\backup_content_definitions.rs:292:5:
+assertion `left == right` failed: old content restore must not replay source settings
+  left: ["01a11ccb264375869c694d3fc14b522c", "01a11ccb264c745a93eccf3f16b5c687"]
+ right: ["01a11ccb264375869c694d3fc14b522c"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test older_content_snapshot_cannot_replay_legacy_program_settings ... FAILED
+
+failures:
+
+failures:
+    older_content_snapshot_cannot_replay_legacy_program_settings
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.29s
+
+error: test failed, to rerun pass `-p kinshoko-core --test backup_content_definitions`

@@ -20,6 +20,7 @@ import { LegacyNameMigrationPanel } from "./library/LegacyNameMigrationPanel";
 import { SharedTagGroupsSettings } from "./library/TagGroupsPane";
 import { TagNamePanel } from "./library/TagNamePanel";
 import { TagIdentityPanel } from "./library/TagIdentityPanel";
+import { ApplicationSettingsBackup } from "./ApplicationSettingsBackup";
 import { UpdateSection } from "./Update";
 
 const ACTION_LABELS: Record<ShortcutAction, string> = {
@@ -47,6 +48,7 @@ function acceleratorFromKey(e: KeyboardEvent): string | null {
 
 type Props = {
   nameMigrationRequest?: number;
+  onRestored?: () => void;
   /** 兼容现有调用；个人规则不依赖当前资料库。 */
   library?: LibraryInfo | null;
   /** 应用壳设置保存后的结果，主窗口据此更新（例如相近标签来源标记）。 */
@@ -58,7 +60,8 @@ type Props = {
  * “近似查找”一节（来源标记开关，全局个人近似对应表及旧规则冲突）；
  * “诊断”一节（强制 sRGB、诊断信息、使用日志）；“更新”一节。
  */
-export function SettingsPanel({ onChange, nameMigrationRequest = 0 }: Props) {
+export function SettingsPanel({ onChange, onRestored, nameMigrationRequest = 0 }: Props) {
+  const [settingsGeneration,setSettingsGeneration] = useState(0);
   const [view, setView] = useState<ShellSettingsView | null>(null);
   const [recording, setRecording] = useState<ShortcutAction | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +103,7 @@ export function SettingsPanel({ onChange, nameMigrationRequest = 0 }: Props) {
 
   return (
     <section className="settings" aria-label="设置">
+      <ApplicationSettingsBackup onRestored={(next)=>{setView(next);onChange?.(next);setSettingsGeneration((generation)=>generation+1);onRestored?.();}} />
       <h2>常驻与快捷键</h2>
       <label className="settings-row">
         <input
@@ -156,10 +160,10 @@ export function SettingsPanel({ onChange, nameMigrationRequest = 0 }: Props) {
           })}
         </tbody>
       </table>
-      <TagIdentityPanel />
-      <TagNamePanel />
-      <LegacyNameMigrationPanel openRequest={nameMigrationRequest} />
-      <SharedTagGroupsSettings onError={setError} />
+      <TagIdentityPanel key={settingsGeneration} />
+      <TagNamePanel key={settingsGeneration} />
+      <LegacyNameMigrationPanel key={settingsGeneration} openRequest={nameMigrationRequest} />
+      <SharedTagGroupsSettings key={settingsGeneration} onError={setError} />
       <h2>近似查找</h2>
       <label className="settings-row">
         <input
@@ -169,7 +173,7 @@ export function SettingsPanel({ onChange, nameMigrationRequest = 0 }: Props) {
         />
         显示相近标签来源（内置／个人）
       </label>
-      <SharedPersonalApproxSettings onError={setError} />
+      <SharedPersonalApproxSettings key={settingsGeneration} onError={setError} />
       <h2>诊断</h2>
       <label className="settings-row">
         <input

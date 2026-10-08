@@ -35,7 +35,7 @@ export function TagIdentityPanel() {
     const vocabulary = onLibraryEvent((event) => {
       if (!alive || event.kind !== "vocabularyChanged" || !inspected.current) return;
       if (running.current) dirty.current = true;
-      else void run(inspectTagCatalog);
+      else void run(inspectTagCatalog, undefined, true);
     });
     return () => {
       alive = false;
@@ -45,14 +45,15 @@ export function TagIdentityPanel() {
       void vocabulary.then((stop) => stop()).catch(() => {});
     };
   }, []);
-  const run = async (action: () => Promise<TagCatalogWorkspace>, success?: string) => {
+  const run = async (action: () => Promise<TagCatalogWorkspace>, success?: string, automatic = false) => {
     const request = ++generation.current;
     inspected.current = true; running.current = true;
     setBusy(true);
-    setError(null); setNotice(null);
-    try { const next = await action(); if (request === generation.current) { setWorkspace(next); setNotice(success ?? null); } }
-    catch (reason) { if (request === generation.current) setError(String(reason)); }
-    finally { if (request === generation.current) { setBusy(false); running.current = false; if (dirty.current) { dirty.current = false; void run(inspectTagCatalog); } } }
+    // Vocabulary refreshes update rows without dismissing an unresolved publication failure.
+    if (!automatic) { setError(null); setNotice(null); }
+    try { const next = await action(); if (request === generation.current) { setWorkspace(next); if (!automatic) setNotice(success ?? null); } }
+    catch (reason) { if (request === generation.current) setError((previous) => automatic && previous !== null ? previous : String(reason)); }
+    finally { if (request === generation.current) { setBusy(false); running.current = false; if (dirty.current) { dirty.current = false; void run(inspectTagCatalog, undefined, true); } } }
   };
   return <fieldset aria-label="统一标签目录">
     <legend>统一标签目录</legend>

@@ -93,3 +93,28 @@ pub async fn rebind_shortcut(
         .map_err(|e| e.to_string())?;
     Ok(shell.view())
 }
+
+#[tauri::command]
+pub async fn set_viewer_background(
+    state: State<'_, ShellState>,
+    background: kinshoko_core::ViewerBackground,
+) -> Result<ShellSettingsView, String> {
+    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+    shell
+        .settings
+        .set_viewer_background(background)
+        .map_err(|e| e.to_string())?;
+    Ok(shell.view())
+}
+#[tauri::command]
+pub async fn migrate_viewer_background(
+    state: State<'_, ShellState>,
+    background: kinshoko_core::ViewerBackground,
+) -> Result<ShellSettingsView, String> {
+    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+    shell
+        .settings
+        .migrate_viewer_background(background)
+        .map_err(|e| e.to_string())?;
+    Ok(shell.view())
+}

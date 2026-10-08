@@ -74,7 +74,7 @@ fn state(app: &AppHandle) -> &DesktopState {
 }
 
 /// 原生主窗口销毁或重建时也必须清除来源；WebView 销毁不运行 React 的 unmount。
-pub fn clear_viewer_reference(app: &AppHandle) {
+pub fn clear_viewer_reference<R: tauri::Runtime>(app: &AppHandle<R>) {
     if let Some(state) = app.try_state::<DesktopState>() {
         state.capture_frames.invalidate();
         state
@@ -184,6 +184,11 @@ pub fn init() -> TauriPlugin<Wry> {
                     let app = handle.clone();
                     std::thread::spawn(move || pins::safe_mode_changed(&app, on));
                 }
+            });
+            let settings_handle = app.clone();
+            app.listen_any("application-settings-restored", move |_| {
+                let app = settings_handle.clone();
+                std::thread::spawn(move || pins::references_changed(&app));
             });
             edge::start(app);
             // 恢复上次的钉图：建窗口要等事件循环跑起来，放到别的线程。
@@ -378,4 +383,16 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     }
     tray.build(app)?;
     Ok(())
+}
+
+/// Revoke previous configuration views immediately, including same-mode explicit pin reveals.
+pub fn settings_restored<R: tauri::Runtime>(app: &AppHandle<R>, safe: bool) {
+    let state = app.state::<DesktopState>();
+    *lock(&state.veils) = PinVeils::new(safe);
+    clear_viewer_reference(app);
+    *lock(&state.capture) = capture::Session::Idle;
+    if let Some(window) = app.get_webview_window(capture::CAPTURE_WINDOW) {
+        let _ = window.destroy();
+    }
+    let _ = app.emit("application-settings-restored", ());
 }

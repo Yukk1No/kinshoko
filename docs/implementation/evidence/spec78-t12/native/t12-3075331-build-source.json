@@ -1,0 +1,38 @@
+{
+  "source": "3075331a5f5bcf780831cf5a92766f331f5f68b9",
+  "tree": "2a4fdb3e999f3766a799acc022e1cd630b42cb1e",
+  "binarySha256": "c77471db1d84ff06336358182d082a6b5da3fe220aa573169cdc157577c62838",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-3075331\\kinshoko.exe",
+  "identifier": "dev.kinshoko.spec78t12test",
+  "productName": "Kinshoko T12 Test",
+  "buildType": "Tauri CLI debug --no-bundle, tauri/custom-protocol",
+  "buildCommand": "node node_modules/@tauri-apps/cli/tauri.js build --debug --no-bundle --config work/e2e/t12-tauri-config.json",
+  "buildDate": "2026-10-08T19:04:15.449446+00:00",
+  "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target",
+  "buildJobs": 2,
+  "driverSha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7",
+  "configSha256": "d3d0d3e2da8828fd1e9fa170978ab7ced39461965ddf446ec93b8a619df8e28a",
+  "beforeBuildManifest": {
+    "file": "work/e2e/t12-source-dist-before-build2.json",
+    "sha256": "47170151fed3f7dbce532f601156084aea4717f5ec6f818e1429592223397487"
+  },
+  "afterBuildManifest": {
+    "file": "work/e2e/t12-source-dist-after-build.json",
+    "sha256": "6eb0cfe7115c30e3a2d4cde905168f12755fb87709c0db62a2f63f70a321d577"
+  },
+  "inputsAndDistUnchangedDuringBuild": true,
+  "files": [
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
+      "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-3075331\\kinshoko.exe",
+      "bytes": 100617728,
+      "sha256": "c77471db1d84ff06336358182d082a6b5da3fe220aa573169cdc157577c62838"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\DirectML.dll",
+      "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-3075331\\DirectML.dll",
+      "bytes": 18527776,
+      "sha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
+    }
+  ]
+}
