@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import type { PinFrame } from "../bindings/PinFrame";
 import type { SavedPin } from "../bindings/SavedPin";
+import { RuntimeFailure, RuntimeNotice } from "../RuntimeSupport";
 import {
   captureUrl,
   closePin,
@@ -136,6 +137,7 @@ export function PinView({ pin }: { pin: string }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [veiled, setVeiled] = useState(false);
   const [missing, setMissing] = useState(false);
+  const [rendererMissing, setRendererMissing] = useState(false);
   /** 应用壳核对出的不能显示的原因（资料库不可用、图已删除，#66）。 */
   const [unavailable, setUnavailable] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -265,7 +267,13 @@ export function PinView({ pin }: { pin: string }) {
       const first = await pinFrame(pin);
       if (!first || !alive || !body.current) return;
       renderer = createCanvas2dRenderer();
-      if (!renderer) return;
+      if (!renderer) {
+        setRendererMissing(true);
+        if (!frame.current) apply.current(first);
+        await pinReady(pin);
+        return;
+      }
+      setRendererMissing(false);
       body.current.prepend(renderer.element);
       // 等第一帧期间可能已经到了更新的帧。
       if (!frame.current) apply.current(first);
@@ -440,6 +448,11 @@ export function PinView({ pin }: { pin: string }) {
         openMenu();
       }}
     >
+      <div onPointerDown={(e) => e.stopPropagation()} onContextMenu={(e) => e.stopPropagation()}>
+        {rendererMissing
+          ? <RuntimeFailure className="pin-runtime-problem" problems={["当前 WebView2 无法建立二维画布，钉图无法显示。"]} />
+          : <RuntimeNotice className="pin-runtime-problem" />}
+      </div>
       <div ref={body} className="pin-content">
         <div className="pin-appear" aria-hidden />
         <div className="pin-veil" aria-hidden={!veiled}>

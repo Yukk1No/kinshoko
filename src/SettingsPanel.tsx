@@ -5,8 +5,6 @@ import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { ShortcutBinding } from "./bindings/ShortcutBinding";
 import {
   clearUsageLog,
-  diagnosticsReport,
-  exportDiagnostics,
   exportUsageLog,
   rebindShortcut,
   setAutostart,
@@ -22,6 +20,7 @@ import { TagNamePanel } from "./library/TagNamePanel";
 import { TagIdentityPanel } from "./library/TagIdentityPanel";
 import { ApplicationSettingsBackup } from "./ApplicationSettingsBackup";
 import { UpdateSection } from "./Update";
+import { DiagnosticsReport, RuntimeDetails } from "./RuntimeSupport";
 
 const ACTION_LABELS: Record<ShortcutAction, string> = {
   capture: "截图",
@@ -175,6 +174,7 @@ export function SettingsPanel({ onChange, onRestored, nameMigrationRequest = 0 }
       </label>
       <SharedPersonalApproxSettings key={settingsGeneration} onError={setError} />
       <h2>诊断</h2>
+      <RuntimeDetails />
       <label className="settings-row">
         <input
           type="checkbox"
@@ -209,28 +209,5 @@ export function SettingsPanel({ onChange, onRestored, nameMigrationRequest = 0 }
       </p>
       <UpdateSection />
     </section>
-  );
-}
-
-/** 诊断信息：按需生成，显示全文，可以存成文件贴到问题反馈里。 */
-function DiagnosticsReport({ onError }: { onError: (message: string) => void }) {
-  const [text, setText] = useState<string | null>(null);
-  const show = () => diagnosticsReport().then(setText, (e) => onError(String(e)));
-  return (
-    <>
-      <p className="settings-actions">
-        <button type="button" onClick={() => void show()}>
-          显示诊断信息
-        </button>
-        <button type="button" onClick={() => void exportDiagnostics().catch((e) => onError(String(e)))}>
-          存成文件…
-        </button>
-      </p>
-      {text !== null && (
-        <pre className="settings-diagnostics" aria-label="诊断信息">
-          {text}
-        </pre>
-      )}
-    </>
   );
 }

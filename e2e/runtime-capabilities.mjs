@@ -1,0 +1,194 @@
+// #78 T18 / #96 story 51. Current native WebView2, plus explicitly controlled JS absences.
+// Controlled absences do not represent Windows 10 or an actual older/absent Runtime.
+import { spawn, spawnSync } from "node:child_process";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { deflateSync } from "node:zlib";
+
+const [, , appArg, edgeArg, driverArg = "C:/Users/yuk1no/.cargo/bin/tauri-driver.exe"] = process.argv;
+if (!appArg || !edgeArg) throw Error("Frozen T18 executable and matching WebView2 driver required");
+const manifest = JSON.parse(readFileSync("work/t18/native-source.json", "utf8"));
+const application = resolve(appArg), hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
+if (application.toLowerCase() !== resolve(manifest.preservedBinary).toLowerCase() || hash(readFileSync(application)) !== manifest.binarySha256) throw Error("Wrong frozen product");
+const work = resolve("work/e2e", "runtime-capabilities-" + Date.now());
+const data = join(work, "app-data"), profile = join(work, "webview"), parent = join(work, "libraries"), source = join(work, "source");
+for (const path of [data, profile, parent, source]) mkdirSync(path, { recursive: true });
+const knownFolderConfig = resolve(manifest.knownFolderConfig);
+const expectedKnownFolder = resolve(process.env.USERPROFILE, "AppData", "Roaming", "dev.kinshoko.spec78t18test", "settings.json");
+if (manifest.identifier !== "dev.kinshoko.spec78t18test" || knownFolderConfig.toLowerCase() !== expectedKnownFolder.toLowerCase()) throw Error("Unmatched isolated KnownFolder config");
+if (existsSync(knownFolderConfig)) throw Error("The isolated KnownFolder settings must not preexist: " + knownFolderConfig);
+const report = {
+  story: 51, ticket: 96, source: manifest.commit, tree: manifest.tree, binarySha256: manifest.binarySha256,
+  identifier: manifest.identifier, ports: manifest.ports, work, application, data, profile,
+  knownFolder: { config: knownFolderConfig, existedBefore: false },
+  limitations: ["Windows 10 unverified: owner has no device/VM", "Controlled JS absence in current Runtime is not an old/absent Runtime", "Basic capabilities and representative display are not a colour-fidelity pass"], checks: [],
+};
+function chunk(kind, bytes) {
+  const body = Buffer.concat([Buffer.from(kind), bytes]); let crc = 0xffffffff;
+  for (const byte of body) { crc ^= byte; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ crc >>> 1 : crc >>> 1; }
+  const size = Buffer.alloc(4), tail = Buffer.alloc(4); size.writeUInt32BE(bytes.length); tail.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
+  return Buffer.concat([size, body, tail]);
+}
+const header = Buffer.alloc(13); header.writeUInt32BE(400); header.writeUInt32BE(300, 4); header[8] = 8; header[9] = 2;
+const pixels = Buffer.alloc((400 * 3 + 1) * 300);
+for (let y = 0; y < 300; y++) for (let x = 0; x < 400; x++) {
+  const at = y * 1201 + 1 + x * 3; const border = x < 8 || x > 391 || y < 8 || y > 291;
+  pixels[at] = border ? 255 : Math.round(x / 400 * 255); pixels[at + 1] = border ? 255 : Math.round(y / 300 * 255); pixels[at + 2] = border ? 255 : 100;
+}
+const sampleFile = join(source, "PRIVATE_REFERENCE_NAME.png");
+writeFileSync(sampleFile, Buffer.concat([Buffer.from("89504e470d0a1a0a", "hex"), chunk("IHDR", header), chunk("IDAT", deflateSync(pixels)), chunk("IEND", Buffer.alloc(0))]));
+const originalHash = hash(readFileSync(sampleFile));
+const port = manifest.ports[0], endpoint = `http://127.0.0.1:${port}`, elementKey = "element-6066-11e4-a52e-4f735466cecf";
+const delay = (ms) => new Promise((done) => setTimeout(done, ms));
+let driver, base, mainHandle, pinHandle;
+async function wd(method, path, body) {
+  const response = await fetch(endpoint + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(60000) });
+  const result = await response.json();
+  if (!response.ok || result.value?.error) throw Error(`${method} ${path}: ${JSON.stringify(result.value)}`);
+  return result.value;
+}
+async function until(label, read, timeout = 30000) {
+  let error; const end = Date.now() + timeout;
+  while (Date.now() < end) { try { const value = await read(); if (value) return value; } catch (reason) { error = reason; } await delay(100); }
+  throw Error(`Timed out: ${label}${error ? ": " + error.message : ""}`);
+}
+const exec = (script, args = []) => wd("POST", base + "/execute/sync", { script, args });
+async function invoke(command, args = {}) {
+  const result = await wd("POST", base + "/execute/async", { script: "const done=arguments[arguments.length-1];window.__TAURI_INTERNALS__.invoke(arguments[0],arguments[1]).then(value=>done({value}),error=>done({failure:String(error)}));", args: [command, args] });
+  if (result.failure) throw Error(command + ": " + result.failure);
+  return result.value;
+}
+async function find(xpath) { return (await wd("POST", base + "/element", { using: "xpath", value: xpath }))[elementKey]; }
+async function click(xpath) { return wd("POST", base + "/element/" + await find(xpath) + "/click", {}); }
+const button = (name) => `//button[normalize-space()='${name}']`;
+const screenshot = async (name) => writeFileSync(join(work, name), Buffer.from(await wd("GET", base + "/screenshot"), "base64"));
+function check(ok, label) { if (!ok) throw Error(label); report.checks.push(label); console.log("PASS " + label); }
+async function cdp(command, params) {
+  let failure;
+  for (const prefix of ["ms", "goog"]) {
+    try { return await wd("POST", base + `/${prefix}/cdp/execute`, { cmd: command, params }); } catch (error) { failure = error; }
+  }
+  throw failure;
+}
+async function injectNextDocument(script) {
+  const added = await cdp("Page.addScriptToEvaluateOnNewDocument", { source: script });
+  await exec("location.reload()");
+  await until("pin production document reloaded", () => exec("return document.querySelector('.pin') && window.__T18_CONTROLLED_ABSENCE__"));
+  return added.identifier;
+}
+function reportPrivacy(text) {
+  for (const secret of ["PRIVATE_REFERENCE_NAME", sampleFile, work, "\\Users\\", "/Users/", "yuk1no"]) check(!text.includes(secret), "diagnostic text excludes " + secret.replaceAll(work, "<owned evidence path>"));
+}
+async function diagnosticFile(name, prefix = "") {
+  const file = join(work, name);
+  await click(`${prefix}//button[normalize-space()='存成文件…']`);
+  const saved = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-File", "e2e/native-save-dialog-t18.ps1", application, file], { windowsHide: true, encoding: "utf8", timeout: 25000 });
+  writeFileSync(join(work, name + ".save-dialog.json"), saved.stdout);
+  if (saved.status !== 0) throw Error("Native report Save dialog: " + saved.stderr);
+  await until("native diagnostic file saved", () => existsSync(file));
+  const text = readFileSync(file, "utf8"); reportPrivacy(text); return text;
+}
+const setting = "//button[@aria-label='设置']";
+const details = "//section[@aria-label='本机运行时']";
+const mainFaultScript = "window.__T18_ORIGINAL_CONTEXT__ ??= HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext=function(kind,options){if(kind==='2d' && options?.colorType==='float16')throw new TypeError('Controlled current Runtime float16 absence');return window.__T18_ORIGINAL_CONTEXT__.apply(this,arguments)};window.__T18_ORIGINAL_BITMAP__=window.createImageBitmap;window.createImageBitmap=undefined;";
+try {
+  driver = spawn(driverArg, ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], { windowsHide: true, stdio: ["ignore", "inherit", "inherit"], env: { ...process.env, KINSHOKO_DATA_DIR: data, KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: profile, APPDATA: join(work, "env-roaming"), LOCALAPPDATA: join(work, "env-local") } });
+  await until("driver ready", () => fetch(endpoint + "/status").then((r) => r.ok));
+  const session = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application, webviewOptions: { userDataFolder: profile } } } } });
+  base = "/session/" + session.sessionId; mainHandle = await wd("GET", base + "/window");
+  await until("formal app ready", () => find(setting));
+  report.browser = await exec("return {userAgent:navigator.userAgent,dpr:devicePixelRatio,width:innerWidth,height:innerHeight,screen:{width:screen.width,height:screen.height,colorDepth:screen.colorDepth},gamutP3:matchMedia('(color-gamut: p3)').matches,hdr:matchMedia('(dynamic-range: high)').matches}");
+  await click(setting);
+  await until("real current Runtime capability operations complete", () => exec("return document.querySelector('[aria-label=本机运行时]')?.textContent.includes('基础图片解码与钉图绘制检查完成。')"));
+  check(!await exec("return Boolean(document.querySelector('[aria-label=运行时能力提示]'))"), "current Runtime has no required capability warning");
+  await click(button("显示诊断信息"));
+  report.currentDiagnostic = await until("real diagnostic report", () => exec("return document.querySelector('[aria-label=诊断信息]')?.textContent"));
+  check(report.currentDiagnostic.includes("[运行时能力]") && report.currentDiagnostic.includes("不代表色彩门槛通过"), "current report binds operations without declaring colour correctness");
+  reportPrivacy(report.currentDiagnostic);
+  await screenshot("runtime-current.png");
+  check((await diagnosticFile("runtime-current.txt")).includes("内置 PNG 解码：完成"), "formal native export retains current measured capabilities");
+  await click(button("关闭设置"));
+  const library = await invoke("plugin:library|create_library", { parent, name: "T18 Runtime Reference" });
+  const task = await invoke("plugin:library|start_import", { libraryId: library.id, source: { paths: [sampleFile] }, destination: { libraryId: library.id, folderId: null } });
+  await until("real import complete", async () => (await invoke("plugin:library|import_tasks")).find((entry) => entry.taskId === task && entry.report && !entry.finishing));
+  await exec("location.reload()"); await until("formal imported card", () => exec("return document.querySelector('.card img')?.complete && document.querySelector('.card img')?.naturalWidth > 0"));
+  await click("//*[contains(@class,'card') and @data-id][1]");
+  await until("representative original visible", () => exec("return document.querySelector('.viewer-stage img')?.complete && document.querySelector('.viewer-stage img')?.naturalWidth > 0"));
+  await click(button("原图像素"));
+  report.originalDisplay = await until("original-sized reference", () => exec("const image=document.querySelector('.viewer-stage img');return image?.complete&&image.naturalWidth===400?{src:image.currentSrc,naturalWidth:image.naturalWidth,naturalHeight:image.naturalHeight}:null"));
+  await screenshot("representative-original.png"); check(true, "representative original is visible at original size in current Runtime");
+  await click(button("钉住整图"));
+  pinHandle = await until("native pin window", async () => (await wd("GET", base + "/window/handles")).find((handle) => handle !== mainHandle));
+  await wd("POST", base + "/window", { handle: pinHandle });
+  await until("native pin canvas has decoded image", () => exec("const c=document.querySelector('.pin-canvas');if(!c)return false;const d=c.getContext('2d').getImageData(Math.floor(c.width/2),Math.floor(c.height/2),1,1).data;return d[3]===255&&!(d[0]===138&&d[1]===138&&d[2]===142)"));
+  await screenshot("representative-pin.png"); check(true, "representative pin uses the production renderer and decoded source");
+  const fallbackScript = "window.__T18_CONTROLLED_ABSENCE__='float16 and optional createImageBitmap in current Runtime';const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(kind,options){if(kind==='2d'&&options?.colorType==='float16')throw new TypeError('controlled float16 absence');return original.apply(this,arguments)};window.createImageBitmap=undefined;";
+  const fallbackScriptId = await injectNextDocument(fallbackScript);
+  await until("controlled fallback pin drew source", () => exec("const c=document.querySelector('.pin-canvas');if(!c)return false;const ctx=c.getContext('2d'),d=ctx.getImageData(Math.floor(c.width/2),Math.floor(c.height/2),1,1).data;return ctx.getContextAttributes().colorType!=='float16'&&d[3]===255&&!(d[0]===138&&d[1]===138&&d[2]===142)&&!document.querySelector('[aria-label=运行时能力提示]')"));
+  await screenshot("controlled-float16-fallback-pin.png"); check(true, "controlled float16/createImageBitmap absence uses 8-bit pin without blocking display");
+  await cdp("Page.removeScriptToEvaluateOnNewDocument", { identifier: fallbackScriptId });
+  try { await invoke("plugin:window|hide", { label: await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label") }); report.pinHiddenBeforeMissingCheck = true; } catch (error) { report.pinHideLimitation = String(error); }
+  const missingScriptId = await injectNextDocument("window.__T18_CONTROLLED_ABSENCE__='canvas2d unavailable in current Runtime';const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(kind){return kind==='2d'?null:original.apply(this,arguments)};");
+  await until("actual missing canvas pin reason visible", () => exec("return document.querySelector('[role=alert]')?.textContent.includes('无法建立二维画布，钉图无法显示')"));
+  const pinLabel = await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label");
+  report.missingCanvasPin = { label: pinLabel, visible: await invoke("plugin:window|is_visible", { label: pinLabel }), message: await exec("return document.querySelector('[role=alert]').textContent") };
+  check(report.missingCanvasPin.visible, "controlled required canvas absence shows native pin error instead of silent hiding");
+  await screenshot("controlled-required-canvas-pin.png");
+  await cdp("Page.removeScriptToEvaluateOnNewDocument", { identifier: missingScriptId });
+  await invoke("plugin:desktop|close_pin", { pin: pinLabel.slice(4) });
+  await wd("POST", base + "/window", { handle: mainHandle });
+  await click(button("返回图片墙")); await click(setting);
+  await exec(mainFaultScript);
+  await click(`${details}//button[normalize-space()='重新检查运行时']`);
+  await until("current Runtime fallback status", () => exec("return document.querySelector('[aria-label=本机运行时]')?.textContent.includes('钉图使用 8 位画布降级')"));
+  check(!await exec("return Boolean(document.querySelector('[aria-label=运行时能力提示]'))"), "controlled optional absence does not warn that ordinary browsing is blocked");
+  await screenshot("controlled-fallback-details.png");
+  await exec("HTMLCanvasElement.prototype.getContext=function(kind){return kind==='2d'?null:window.__T18_ORIGINAL_CONTEXT__.apply(this,arguments)}");
+  await click(`${details}//button[normalize-space()='重新检查运行时']`);
+  await until("main required capability reason", () => exec("return document.querySelector('[aria-label=运行时能力提示] [role=alert]')?.textContent.includes('无法建立二维画布，钉图无法显示')"));
+  await click("//aside[@aria-label='运行时能力提示']//button[normalize-space()='打开微软 WebView2 下载页']");
+  await delay(500);
+  check(!await exec("return document.querySelector('[aria-label=运行时能力提示]')?.textContent.includes('无法打开微软')"), "formal fixed Microsoft download action reports no launch failure");
+  await screenshot("controlled-required-canvas-main.png");
+  const missingReport = await diagnosticFile("controlled-required-canvas.txt", "//aside[@aria-label='运行时能力提示']");
+  check(missingReport.includes("无法建立二维画布，钉图无法显示"), "exported local report preserves actual required capability failure reason");
+  await exec("HTMLCanvasElement.prototype.getContext=window.__T18_ORIGINAL_CONTEXT__;window.createImageBitmap=window.__T18_ORIGINAL_BITMAP__;window.__T18_ORIGINAL_DECODE__=HTMLImageElement.prototype.decode;HTMLImageElement.prototype.decode=undefined");
+  await click(`${details}//button[normalize-space()='重新检查运行时']`);
+  await until("missing decode API actual reason", () => exec("return document.querySelector('[aria-label=运行时能力提示]')?.textContent.includes('缺少图片解码接口（HTMLImageElement.decode）')"));
+  await screenshot("controlled-required-decode-main.png"); check(true, "controlled missing decode API has its specific reason");
+  await exec("HTMLImageElement.prototype.decode=window.__T18_ORIGINAL_DECODE__");
+  await click(`${details}//button[normalize-space()='重新检查运行时']`);
+  await until("current Runtime recovered after controlled absence", () => exec("return document.querySelector('[aria-label=本机运行时]')?.textContent.includes('基础图片解码与钉图绘制检查完成。')&&!document.querySelector('[aria-label=运行时能力提示]')"));
+  await screenshot("runtime-recovered.png");
+  check(hash(readFileSync(sampleFile)) === originalHash, "runtime checks and diagnostics preserve original file bytes");
+  report.knownFolder.existedAfter = existsSync(knownFolderConfig);
+  if (report.knownFolder.existedAfter) report.knownFolder.settingsSha256 = hash(readFileSync(knownFolderConfig));
+  report.status = "passed";
+} catch (error) {
+  report.status = "failed"; report.failure = String(error); process.exitCode = 1;
+  if (base) { await screenshot("failure.png").catch(() => {}); report.failurePage = await exec("return {url:location.href,text:document.body.innerText}").catch(() => null); }
+  console.error(error);
+} finally {
+  if (base) await wd("DELETE", base).catch(() => {});
+  // Own frozen executable only. No other task/user process is touched.
+  const cleanup = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_T18_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"], { windowsHide: true, encoding: "utf8", env: { ...process.env, KINSHOKO_T18_EXECUTABLE: application } });
+  report.cleanupCommand = { status: cleanup.status, stderr: cleanup.stderr };
+  if (driver?.pid) { driver.kill(); await delay(800); }
+  const inventory = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "ConvertTo-Json -InputObject @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_T18_EXECUTABLE -or ($_.Name -eq 'msedgewebview2.exe' -and $_.CommandLine -like ('*'+$env:KINSHOKO_T18_PROFILE+'*')) -or ($_.Name -in @('tauri-driver.exe','msedgedriver.exe') -and $_.CommandLine -match '(4618|4619)') } | Select-Object ProcessId,Name,ExecutablePath,CommandLine) -Depth 4"], { windowsHide: true, encoding: "utf8", env: { ...process.env, KINSHOKO_T18_EXECUTABLE: application, KINSHOKO_T18_PROFILE: profile } });
+  report.cleanupInventory = inventory.stdout.trim(); report.cleanupInventoryError = inventory.stderr;
+  if (inventory.status !== 0 || report.cleanupInventory !== "[]") {
+    report.status = "failed"; process.exitCode = 1; report.cleanupFailure = "Owned process inventory was not empty; KnownFolder retained";
+  } else {
+    report.knownFolder.existedAfterRun = existsSync(knownFolderConfig);
+    if (report.knownFolder.existedAfterRun) {
+      report.knownFolder.settingsSha256 = hash(readFileSync(knownFolderConfig));
+      report.knownFolder.archivedTo = join(work, "known-folder-settings.json");
+      copyFileSync(knownFolderConfig, report.knownFolder.archivedTo);
+      unlinkSync(knownFolderConfig);
+    }
+    report.knownFolder.existsAfterCleanup = existsSync(knownFolderConfig);
+  }
+  writeFileSync(join(work, "result.json"), JSON.stringify(report, null, 2) + "\n");
+  console.log(JSON.stringify({ status: report.status, work, checks: report.checks.length, source: report.source, tree: report.tree, binarySha256: report.binarySha256, cleanup: report.cleanupInventory }));
+}

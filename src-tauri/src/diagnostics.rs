@@ -9,8 +9,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use kinshoko_core::AppSettings;
 use kinshoko_core::diagnostics::{
-    AppFacts, DisplayColourMode, DisplayFacts, SystemFacts, UsageEvent, UsageLog, report,
-    webview_browser_args,
+    AppFacts, DisplayColourMode, DisplayFacts, RuntimeCapabilities, RuntimeStatus, SystemFacts,
+    UsageEvent, UsageLog, report_with_runtime, scrub, webview_browser_args,
 };
 use tauri::{AppHandle, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt as _;
@@ -118,11 +118,16 @@ fn app_facts(state: &State<'_, ShellState>) -> Result<AppFacts, String> {
 
 /// 诊断日志全文（纯文本），设置界面显示并可复制。
 #[tauri::command]
-pub async fn diagnostics_report(state: State<'_, ShellState>) -> Result<String, String> {
+pub async fn diagnostics_report(
+    state: State<'_, ShellState>,
+    runtime: Option<RuntimeCapabilities>,
+) -> Result<String, String> {
     let app = app_facts(&state)?;
-    tauri::async_runtime::spawn_blocking(move || report(&app, &system_facts(), now()))
-        .await
-        .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        report_with_runtime(&app, &system_facts(), now(), runtime.as_ref())
+    })
+    .await
+    .map_err(|e| e.to_string())
 }
 
 /// 把诊断日志存成文本文件；画师取消时返回 false。
@@ -130,10 +135,11 @@ pub async fn diagnostics_report(state: State<'_, ShellState>) -> Result<String, 
 pub async fn export_diagnostics(
     app: AppHandle,
     state: State<'_, ShellState>,
+    runtime: Option<RuntimeCapabilities>,
 ) -> Result<bool, String> {
     let facts = app_facts(&state)?;
     tauri::async_runtime::spawn_blocking(move || {
-        let text = report(&facts, &system_facts(), now());
+        let text = report_with_runtime(&facts, &system_facts(), now(), runtime.as_ref());
         let Some(path) = save_dialog(&app, "kinshoko-诊断信息.txt", "文本", "txt") else {
             return Ok(false);
         };
@@ -143,6 +149,30 @@ pub async fn export_diagnostics(
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// 只解释当前窗口实测状态。版本查询失败不能替代能力检查，也不能用版本豁免质量失败。
+#[tauri::command]
+pub fn runtime_status(runtime: RuntimeCapabilities) -> RuntimeStatus {
+    RuntimeStatus {
+        webview2: tauri::webview_version().ok().map(|version| scrub(&version)),
+        assessment: runtime.assess(),
+    }
+}
+
+/// 固定的官方入口。只由用户点击打开，不接收任意 URL，不下载安装、不重启或退出程序。
+#[tauri::command]
+pub fn open_runtime_update() -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        std::process::Command::new("explorer.exe")
+            .arg("https://developer.microsoft.com/en-us/microsoft-edge/webview2/")
+            .spawn()
+            .map(|_| ())
+            .map_err(|_| "无法打开微软 WebView2 下载页。请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/".to_owned())
+    }
+    #[cfg(not(windows))]
+    Err("请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/".to_owned())
 }
 
 /// 把使用日志导出成文件；画师取消时返回 false。
@@ -195,7 +225,7 @@ mod tests {
             usage_log: false,
         };
         let facts = system_facts();
-        let text = report(&app, &facts, now());
+        let text = report_with_runtime(&app, &facts, now(), None);
         println!("{text}");
         assert_eq!(
             facts.displays.len(),
