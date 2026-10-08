@@ -1568,3 +1568,15 @@ describe("安全模式", () => {
     });
   });
 });
+
+describe("聚合来源操作的工作区通知", () => {
+  it("已加载的同一修订通知不会取消正在整理的选择", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
+    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    await act(() => emit("workspace-changed", { revision: "fixture", libraries: [{ library, unavailable: null }] }));
+    expect(screen.getByText("已选 1 张")).toBeTruthy();
+  });
+});

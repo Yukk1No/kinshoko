@@ -1692,3 +1692,10 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .workspace-sources li { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .workspace-sources code { display: block; width: 100%; font-size: 11px; overflow-wrap: anywhere; opacity: .65; }
 .workspace-sources p { font-size: 12px; }
+
+.workspace-source-editor { display: grid; gap: 12px; margin-top: 14px; }
+.workspace-source-editor > label, .workspace-source-editor fieldset label { display: grid; gap: 6px; font-size: 12px; }
+.workspace-source-editor select, .workspace-source-editor input { min-width: 0; max-width: 100%; }
+.workspace-source-editor fieldset { display: grid; gap: 10px; border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+.workspace-source-editor .selection { border-top: 1px solid var(--line); padding-top: 12px; }
+.workspace-source-editor .selection-hint { white-space: normal; }

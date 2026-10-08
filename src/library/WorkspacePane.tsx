@@ -1,3 +1,6 @@
+import { useState } from "react";
+import type { WorkspaceSource } from "../bindings/WorkspaceSource";
+import { WorkspaceSourceEditor } from "./WorkspaceSourceEditor";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
@@ -21,21 +24,26 @@ export function WorkspacePane({ status, scope, onScope }: {
   </nav>;
 }
 
-export function WorkspaceSources({ card, onClose, onView }: {
+export function WorkspaceSources({ card, onClose, onView, safe = true, reloadKey = 0, onChanged }: {
   card: WorkspaceCard; onClose: () => void; onView: (card: WorkspaceCard) => void;
+  safe?: boolean; reloadKey?: number; onChanged?: () => void;
 }) {
+  const [editing, setEditing] = useState<WorkspaceSource | null>(null);
   return <div className="workspace-sources-overlay" role="dialog" aria-modal="true" aria-label="资料库来源"
     onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } }}>
     <section className="workspace-sources">
       <header><h2>资料库来源</h2><button type="button" autoFocus onClick={onClose}>关闭来源</button></header>
       <p>同一文件 · 各份来源独立保留整理结果</p>
-      <ul>{card.sources.map((source) => <li key={source.libraryId + "/" + source.imageId}>
+      {editing && <WorkspaceSourceEditor key={editing.libraryId + "/" + editing.imageId} card={card} source={editing}
+        safe={safe} reloadKey={reloadKey} onSource={setEditing} onClose={onClose} onChanged={onChanged} />}
+      {!editing && <ul>{card.sources.map((source) => <li key={source.libraryId + "/" + source.imageId} data-source-library-id={source.libraryId}>
         <strong>{source.libraryName}</strong>
         <span>{source.deleted ? "回收站" : source.matches ? "符合当前查找" : "不符合当前查找"}</span>
         <code>{source.imageId}</code>
         {source.unavailable ? <p role="status">{source.unavailable}</p> :
-          <button type="button" onClick={() => { onClose(); onView({ ...card, libraryId: source.libraryId, imageId: source.imageId }); }}>查看此来源</button>}
-      </li>)}</ul>
+          <div className="selection-actions"><button type="button" onClick={() => setEditing(source)}>整理此来源</button>
+          <button type="button" onClick={() => { onClose(); onView({ ...card, libraryId: source.libraryId, imageId: source.imageId }); }}>查看此来源</button></div>}
+      </li>)}</ul>}
     </section>
   </div>;
 }

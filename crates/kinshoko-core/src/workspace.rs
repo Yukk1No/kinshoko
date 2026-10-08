@@ -1,5 +1,8 @@
 //! Default workspace over registered, detached read-only content providers.
 //! Each source executes the complete Library query; only afterwards are byte identities joined.
+mod source;
+pub use source::{WorkspaceSourceInspection, WorkspaceSourceTarget};
+
 use crate::approx::BuiltinApproxTable;
 use crate::library::provider::ProviderImage;
 use crate::library::{BrowseScope, Error, TagAlias, TagLabel, Vocabulary, VocabularyTag};
