@@ -282,8 +282,12 @@ async fn collect_capture(
 ) -> Result<CollectedCapture, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let collected = library::with_destination_published(&app, &destination, |library| {
+            let pending = lock(&state(&app).history)
+                .prepare_collect(&id)
+                .map_err(|e| e.to_string())?;
+            let collected = pending.import(library).map_err(|e| e.to_string())?;
             lock(&state(&app).history)
-                .collect(&id, library)
+                .finish_collect(collected)
                 .map_err(|e| e.to_string())
         })?;
         history_changed(&app);

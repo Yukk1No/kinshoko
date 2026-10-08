@@ -637,8 +637,11 @@ fn pin_from_clipboard(app: &AppHandle) -> Result<(), String> {
     )
     .ok_or("剪贴板里的图片无法识别")?;
     // 剪贴板图片不带显示器配置文件，按 sRGB 解释。
+    let prepared =
+        kinshoko_core::desktop::CaptureHistory::prepare(&Screenshot { image, icc: None })
+            .map_err(|e| e.to_string())?;
     let entry = lock(&state(app).history)
-        .add(&Screenshot { image, icc: None })
+        .add_prepared(prepared)
         .map_err(|e| e.to_string())?;
     history_changed(app);
     open(app, &entry, at_cursor(app, entry.width, entry.height)?)

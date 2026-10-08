@@ -550,7 +550,7 @@ pub async fn finish_capture(
             }
             validate_source(&app, &pending, at)?;
             let outcome = draft
-                .commit(&mut lock(&state(&app).history))
+                .commit_with_history(|prepared| lock(&state(&app).history).add_prepared(prepared))
                 .map_err(|error| error.to_string())?;
             match outcome {
                 CaptureOutcome::PinReference(pin) => pins::open_reference_selection(&app, pin, at),

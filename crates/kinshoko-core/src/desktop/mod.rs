@@ -22,7 +22,8 @@ mod veil;
 pub use capture::{CaptureDraft, CaptureError, CaptureOutcome, CaptureSelection, CaptureSurface};
 pub use edge::{DeskPin, EdgeHide, PEEK_SLACK, PinMove, SLIVER, Toggle, Tuck};
 pub use history::{
-    CaptureChoice, CaptureEntry, CaptureHistory, CollectedCapture, HISTORY_LIMIT, HistoryError,
+    CaptureChoice, CaptureCollection, CaptureEntry, CaptureHistory, CollectedCapture,
+    CollectedCaptureDraft, HISTORY_LIMIT, HistoryError, PreparedCapture,
 };
 pub use motion::{Stage, stage};
 pub use pin::{

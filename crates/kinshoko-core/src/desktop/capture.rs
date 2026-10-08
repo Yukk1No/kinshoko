@@ -82,6 +82,15 @@ impl CaptureDraft {
 
     /// Persist ordinary history only after the caller revalidates its authority.
     pub fn commit(self, history: &mut CaptureHistory) -> Result<CaptureOutcome, CaptureError> {
+        self.commit_with_history(|prepared| history.add_prepared(prepared))
+    }
+
+    /// Acquire history only when ordinary screenshot data actually needs persistence.
+    /// Reference copy/pin never calls this closure and cannot wait on the history mutex.
+    pub fn commit_with_history(
+        self,
+        persist: impl FnOnce(PreparedCapture) -> Result<CaptureEntry, HistoryError>,
+    ) -> Result<CaptureOutcome, CaptureError> {
         Ok(match self.0 {
             PreparedOutcome::PinReference(pin) => CaptureOutcome::PinReference(pin),
             PreparedOutcome::CopyReference(image) => CaptureOutcome::CopyReference(image),
@@ -90,9 +99,7 @@ impl CaptureDraft {
                 shot,
                 history: prepared,
             } => {
-                let entry = history
-                    .add_prepared(prepared)
-                    .map_err(CaptureError::History)?;
+                let entry = persist(prepared).map_err(CaptureError::History)?;
                 match action {
                     CaptureAction::Pin => CaptureOutcome::PinCapture(entry),
                     CaptureAction::Copy => CaptureOutcome::CopyCapture(shot.image),

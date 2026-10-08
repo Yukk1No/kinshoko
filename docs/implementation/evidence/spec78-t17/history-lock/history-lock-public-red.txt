@@ -1,0 +1,177 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+error[E0624]: associated function `prepare` is private
+   --> crates\kinshoko-core\tests\capture_history.rs:93:36
+    |
+ 93 |     let prepared = CaptureHistory::prepare(&original).unwrap();
+    |                                    ^^^^^^^ private associated function
+    |
+   ::: crates\kinshoko-core\src\desktop\history.rs:186:5
+    |
+186 |     pub(crate) fn prepare(shot: &Screenshot) -> Result<PreparedCapture, HistoryError> {
+    |     --------------------------------------------------------------------------------- private associated function defined here
+
+error[E0624]: method `add_prepared` is private
+   --> crates\kinshoko-core\tests\capture_history.rs:96:25
+    |
+ 96 |       let entry = history.add_prepared(prepared).unwrap();
+    |                           ^^^^^^^^^^^^ private method
+    |
+   ::: crates\kinshoko-core\src\desktop\history.rs:196:5
+    |
+196 | /     pub(crate) fn add_prepared(
+197 | |         &mut self,
+198 | |         shot: PreparedCapture,
+199 | |     ) -> Result<CaptureEntry, HistoryError> {
+    | |___________________________________________- private method defined here
+
+error[E0599]: no method named `commit_with_history` found for struct `CaptureDraft` in the current scope
+  --> crates\kinshoko-core\tests\reference_capture_actions.rs:94:10
+   |
+91 |       let CaptureOutcome::CopyReference(copied) = selection
+   |  _________________________________________________-
+92 | |         .prepare(CaptureAction::Copy, "copy", &references, &veils)
+93 | |         .unwrap()
+94 | |         .commit_with_history(|_| panic!("原图复制不应申请截图历史锁"))
+   | |         -^^^^^^^^^^^^^^^^^^^ method not found in `CaptureDraft`
+   | |_________|
+   |
+
+error[E0599]: no method named `prepare_collect` found for struct `std::sync::MutexGuard<'_, CaptureHistory>` in the current scope
+   --> crates\kinshoko-core\tests\capture_history.rs:318:29
+    |
+318 |         let first = history.prepare_collect(&entry.id).unwrap();
+    |                             ^^^^^^^^^^^^^^^ method not found in `std::sync::MutexGuard<'_, CaptureHistory>`
+
+error[E0599]: no method named `prepare_collect` found for struct `std::sync::MutexGuard<'_, CaptureHistory>` in the current scope
+   --> crates\kinshoko-core\tests\capture_history.rs:319:30
+    |
+319 |         let second = history.prepare_collect(&entry.id).unwrap();
+    |                              ^^^^^^^^^^^^^^^ method not found in `std::sync::MutexGuard<'_, CaptureHistory>`
+
+error[E0599]: no method named `commit_with_history` found for struct `CaptureDraft` in the current scope
+   --> crates\kinshoko-core\tests\reference_capture_actions.rs:110:10
+    |
+107 |       let CaptureOutcome::PinReference(pinned) = selection
+    |  ________________________________________________-
+108 | |         .prepare(CaptureAction::Pin, "new-pin", &references, &veils)
+109 | |         .unwrap()
+110 | |         .commit_with_history(|_| panic!("原图钉住不应申请截图历史锁"))
+    | |         -^^^^^^^^^^^^^^^^^^^ method not found in `CaptureDraft`
+    | |_________|
+    |
+
+error[E0599]: no method named `finish_collect` found for struct `std::sync::MutexGuard<'_, CaptureHistory>` in the current scope
+   --> crates\kinshoko-core\tests\capture_history.rs:338:27
+    |
+338 |     let collected = guard.finish_collect(result.unwrap()).unwrap();
+    |                           ^^^^^^^^^^^^^^
+    |
+help: there is a method `collect` with a similar name, but with different arguments
+   --> crates\kinshoko-core\src\desktop\history.rs:254:5
+    |
+254 | /     pub fn collect(
+255 | |         &mut self,
+256 | |         id: &str,
+257 | |         library: &Library,
+258 | |     ) -> Result<CollectedCapture, HistoryError> {
+    | |_______________________________________________^
+
+error[E0599]: no method named `prepare_collect` found for struct `CaptureHistory` in the current scope
+   --> crates\kinshoko-core\tests\capture_history.rs:352:31
+    |
+352 |         let pending = history.prepare_collect(&entry.id).unwrap();
+    |                               ^^^^^^^^^^^^^^^ method not found in `CaptureHistory`
+
+error[E0599]: no method named `prepare_collect` found for struct `CaptureHistory` in the current scope
+   --> crates\kinshoko-core\tests\capture_history.rs:372:27
+    |
+372 |     let pending = history.prepare_collect(&entry.id).unwrap();
+    |                           ^^^^^^^^^^^^^^^ method not found in `CaptureHistory`
+
+error[E0599]: no method named `prepare_collect` found for struct `CaptureHistory` in the current scope
+   --> crates\kinshoko-core\tests\capture_history.rs:409:27
+    |
+409 |     let pending = history.prepare_collect(&entry.id).unwrap();
+    |                           ^^^^^^^^^^^^^^^ method not found in `CaptureHistory`
+
+error[E0599]: no method named `commit_with_history` found for struct `CaptureDraft` in the current scope
+    --> crates\kinshoko-core\tests\reference_capture_actions.rs:1010:10
+     |
+1009 |       let CaptureOutcome::CopyCapture(copied) = prepared
+     |  _______________________________________________-
+1010 | |         .commit_with_history(|prepared| history.add_prepared(prepared))
+     | |         -^^^^^^^^^^^^^^^^^^^ method not found in `CaptureDraft`
+     | |_________|
+     |
+
+error[E0624]: method `add_prepared` is private
+    --> crates\kinshoko-core\tests\reference_capture_actions.rs:1010:49
+     |
+1010 |           .commit_with_history(|prepared| history.add_prepared(prepared))
+     |                                                   ^^^^^^^^^^^^ private method
+     |
+    ::: crates\kinshoko-core\src\desktop\history.rs:196:5
+     |
+ 196 | /     pub(crate) fn add_prepared(
+ 197 | |         &mut self,
+ 198 | |         shot: PreparedCapture,
+ 199 | |     ) -> Result<CaptureEntry, HistoryError> {
+     | |___________________________________________- private method defined here
+
+error[E0599]: no method named `finish_collect_pin` found for struct `CaptureHistory` in the current scope
+   --> crates\kinshoko-core\tests\capture_history.rs:417:29
+    |
+417 |     let reference = history.finish_collect_pin(&pin, collected).unwrap();
+    |                             ^^^^^^^^^^^^^^^^^^
+    |
+help: there is a method `collect_pin` with a similar name
+    |
+417 -     let reference = history.finish_collect_pin(&pin, collected).unwrap();
+417 +     let reference = history.collect_pin(&pin, collected).unwrap();
+    |
+
+error[E0277]: can't compare `String` with `&String`
+   --> crates\kinshoko-core\tests\capture_history.rs:421:5
+    |
+421 |     assert_eq!(library_id, &library.info().id);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no implementation for `String == &String`
+    |
+    = help: the trait `PartialEq<&String>` is not implemented for `String`
+
+error[E0614]: type `u32` cannot be dereferenced
+   --> crates\kinshoko-core\tests\capture_history.rs:422:17
+    |
+422 |     assert_eq!((*source_width, *source_height), (37, 21));
+    |                 ^^^^^^^^^^^^^ can't be dereferenced
+
+error[E0614]: type `u32` cannot be dereferenced
+   --> crates\kinshoko-core\tests\capture_history.rs:422:32
+    |
+422 |     assert_eq!((*source_width, *source_height), (37, 21));
+    |                                ^^^^^^^^^^^^^^ can't be dereferenced
+
+error[E0308]: mismatched types
+   --> crates\kinshoko-core\tests\capture_history.rs:423:49
+    |
+423 |     assert_eq!(read_back(&library.original_path(image_id).unwrap()).0, shot(37, 21, 7, None).image);
+    |                                   ------------- ^^^^^^^^ expected `&str`, found `String`
+    |                                   |
+    |                                   arguments to this method are incorrect
+    |
+note: method defined here
+   --> crates\kinshoko-core\src\library\mod.rs:716:12
+    |
+716 |     pub fn original_path(&self, image_id: &str) -> Result<PathBuf, Error> {
+    |            ^^^^^^^^^^^^^
+help: consider borrowing here
+    |
+423 |     assert_eq!(read_back(&library.original_path(&image_id).unwrap()).0, shot(37, 21, 7, None).image);
+    |                                                 +
+
+Some errors have detailed explanations: E0599, E0624.
+For more information about an error, try `rustc --explain E0599`.
+error: could not compile `kinshoko-core` (test "reference_capture_actions") due to 4 previous errors
+warning: build failed, waiting for other jobs to finish...
+Some errors have detailed explanations: E0277, E0308, E0599, E0614, E0624.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `kinshoko-core` (test "capture_history") due to 13 previous errors

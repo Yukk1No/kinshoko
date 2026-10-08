@@ -87,15 +87,11 @@ fn copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_so
         safe_mode: true,
     };
     let veils = PinVeils::new(true);
-    let mut history = CaptureHistory::open(&dir.path().join("captures")).unwrap();
+    let history = CaptureHistory::open(&dir.path().join("captures")).unwrap();
     let CaptureOutcome::CopyReference(copied) = selection
-        .finish(
-            CaptureAction::Copy,
-            "copy",
-            &references,
-            &veils,
-            &mut history,
-        )
+        .prepare(CaptureAction::Copy, "copy", &references, &veils)
+        .unwrap()
+        .commit_with_history(|_| panic!("原图复制不应申请截图历史锁"))
         .unwrap()
     else {
         panic!("应得到复制内容");
@@ -109,13 +105,9 @@ fn copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_so
     assert_eq!(copied.get_pixel(1, 1).0, [201, 101, 255, 170]);
     assert_eq!(copied.get_pixel(119, 79).0, [63, 179, 255, 170]);
     let CaptureOutcome::PinReference(pinned) = selection
-        .finish(
-            CaptureAction::Pin,
-            "new-pin",
-            &references,
-            &veils,
-            &mut history,
-        )
+        .prepare(CaptureAction::Pin, "new-pin", &references, &veils)
+        .unwrap()
+        .commit_with_history(|_| panic!("原图钉住不应申请截图历史锁"))
         .unwrap()
     else {
         panic!("应得到参考视图");
@@ -1014,7 +1006,10 @@ fn ordinary_capture_preparation_can_be_discarded_without_writing_history() {
     let prepared = selection
         .prepare(CaptureAction::Copy, "commit", &references, &veils)
         .unwrap();
-    let CaptureOutcome::CopyCapture(copied) = prepared.commit(&mut history).unwrap() else {
+    let CaptureOutcome::CopyCapture(copied) = prepared
+        .commit_with_history(|prepared| history.add_prepared(prepared))
+        .unwrap()
+    else {
         panic!("ordinary copy expected");
     };
     let entries = history.entries();
