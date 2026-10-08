@@ -1,0 +1,51 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 20.48s
+     Running tests\legacy_name_migration.rs (target\debug\deps\legacy_name_migration-feb7b253794ed71a.exe)
+
+running 8 tests
+test child_confirms_until_fault ... ignored, subprocess entry for fault injection
+
+running 1 test
+test following_default_preserves_displaced_global_and_old_names_as_removable_aliases ... ok
+test cancelling_keeps_old_displays_and_confirmation_applies_one_shared_choice_atomically ... ok
+test follow_default_preview_uses_the_actual_other_language_fallback ... ok
+test equal_default_legacy_choice_remains_explicit_after_default_upgrade_and_keep_preference_acknowledges_only_new_sources ... ok
+
+running 1 test
+test child_confirms_until_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.02s
+
+test interruption_and_write_failure_leave_the_entire_batch_pending_then_retry_is_stable ... ok
+test explicit_preferences_do_not_hide_unconfirmed_old_sources_and_follow_default_removes_only_that_language ... ok
+test a_large_legacy_batch_resolves_by_identity_and_keeps_existing_global_preference_explicit ... ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 4.66s
+
+     Running tests\tag_names.rs (target\debug\deps\tag_names-8e9d62deaabcb8a5.exe)
+
+running 8 tests
+test bundled_defaults_use_the_accepted_names_and_keep_the_replaced_names_as_aliases ... ok
+test a_corrected_legacy_mapping_adopts_the_existing_explicit_global_choice ... ok
+test aliases_are_global_search_words_without_becoming_display_preferences ... ok
+test group_labels_refresh_from_shared_names_without_changing_local_membership_or_counts ... ok
+test installed_defaults_apply_to_later_tags_and_hidden_legacy_tags_keep_pending_provenance ... ok
+test preference_is_shared_by_identity_and_language_and_survives_reopen ... ok
+test default_updates_keep_equal_default_preferences_and_reset_deletes_the_override ... ok
+test legacy_names_remain_pending_until_an_explicit_global_preference_choice ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+
+     Running tests\workspace.rs (target\debug\deps\workspace-0ca34ce5cb6e9673.exe)
+
+running 7 tests
+test an_explicit_empty_any_group_never_becomes_an_unconditional_workspace_query ... ok
+test each_source_must_match_all_conditions_before_identical_bytes_are_aggregated ... ok
+test adult_in_nonmatching_out_of_scope_source_vetoes_cards_counts_and_candidates_without_changing_active_lens ... ok
+test unavailable_known_adult_source_keeps_veto_after_restart_until_refresh_or_explicit_unregister ... ok
+test mapped_local_synonyms_are_or_within_one_global_condition_and_and_between_conditions ... ok
+test paging_counts_stable_hash_ids_and_stale_provider_catalog_scope_and_safe_revisions_agree ... ok
+test real_multiple_directories_reuse_visible_safety_facts_and_report_action_timings ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.92s
+

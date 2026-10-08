@@ -24,6 +24,7 @@ import {
 import { CreateLibrary } from "./library/CreateLibrary";
 import { type FinishedImport, type RunningImport } from "./library/ImportBar";
 import { ImportMenu } from "./library/ImportMenu";
+import { LegacyNameMigrationNotice } from "./library/LegacyNameMigrationPanel";
 import { WorkspacePane, WorkspaceSources } from "./library/WorkspacePane";
 import { LibraryPicker } from "./library/LibraryPicker";
 import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
@@ -391,6 +392,7 @@ function LibraryWorkspace({
 export function App() {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [nameMigrationRequest, setNameMigrationRequest] = useState(0);
   const [section, setSection] = useState<Section>("browse");
   const [paneOpen, setPaneOpen] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -495,7 +497,7 @@ export function App() {
       <div className="rail-slot" inert={viewerOpen}>
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
           onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
-          onSettings={() => setShowSettings((shown) => !shown)} />
+          onSettings={() => { setNameMigrationRequest(0); setShowSettings((shown) => !shown); }} />
       </div>
       <div className="app-column">
       {!library && !hasProviders && <div inert={viewerOpen}>{libraryControls}</div>}
@@ -512,6 +514,7 @@ export function App() {
           </button>
         </p>
       )}
+      {library && <div inert={viewerOpen}><LegacyNameMigrationNotice libraryId={library.id} safe={safe} onOpen={() => { setNameMigrationRequest((request) => request + 1); setShowSettings(true); }} /></div>}
       {library !== undefined && (
         <LibraryWorkspace
           key="workspace"
@@ -554,6 +557,7 @@ export function App() {
         <div className="settings-overlay" role="dialog" aria-label="程序设置" inert={viewerOpen}>
           <header><h2>程序设置</h2><button type="button" onClick={() => setShowSettings(false)}>关闭设置</button></header>
           <SettingsPanel
+            nameMigrationRequest={nameMigrationRequest}
             library={library ?? null}
             onChange={(view) => setShowApproxSource(view.showApproxSource)}
           />

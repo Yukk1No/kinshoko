@@ -14,7 +14,7 @@ pub(super) fn initialize(conn: &Connection, old_version: i64) -> Result<(), Cata
         PRIMARY KEY(library_id,local_tag_id));
         CREATE TABLE IF NOT EXISTS catalog_name_adoption (catalog_id TEXT PRIMARY KEY REFERENCES catalog_tag(id));
         CREATE TABLE IF NOT EXISTS catalog_removed_alias (catalog_id TEXT NOT NULL REFERENCES catalog_tag(id), name TEXT NOT NULL, lang TEXT NOT NULL, PRIMARY KEY(catalog_id,name,lang));
-        PRAGMA user_version=2;")?;
+        PRAGMA user_version=3;")?;
     tx.commit()?;
     Ok(())
 }
@@ -78,7 +78,7 @@ impl TagCatalog {
     }
 }
 
-fn raw_tag(conn: &Connection, id: &str) -> Result<CatalogTag, CatalogError> {
+pub(super) fn raw_tag(conn: &Connection, id: &str) -> Result<CatalogTag, CatalogError> {
     let text = conn
         .query_row(
             "SELECT definition FROM catalog_tag WHERE id=?1",
@@ -89,14 +89,14 @@ fn raw_tag(conn: &Connection, id: &str) -> Result<CatalogTag, CatalogError> {
         .ok_or(CatalogError::UnknownTag)?;
     Ok(serde_json::from_str(&text)?)
 }
-fn save_tag(tx: &Transaction<'_>, tag: &CatalogTag) -> Result<(), CatalogError> {
+pub(super) fn save_tag(tx: &Transaction<'_>, tag: &CatalogTag) -> Result<(), CatalogError> {
     tx.execute(
         "UPDATE catalog_tag SET definition=?2 WHERE id=?1",
         params![tag.id, serde_json::to_string(tag)?],
     )?;
     Ok(())
 }
-fn removed(conn: &Connection, id: &str, alias: &TagAlias) -> Result<bool, CatalogError> {
+pub(super) fn removed(conn: &Connection, id: &str, alias: &TagAlias) -> Result<bool, CatalogError> {
     Ok(conn
         .query_row(
             "SELECT 1 FROM catalog_removed_alias WHERE catalog_id=?1 AND name=?2 AND lang=?3",

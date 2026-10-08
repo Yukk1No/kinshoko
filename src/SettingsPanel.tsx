@@ -21,6 +21,7 @@ import {
   shellSettings,
 } from "./ipc";
 import { TagMarks, tagName, UI_LANG } from "./search/SearchBox";
+import { LegacyNameMigrationPanel } from "./library/LegacyNameMigrationPanel";
 import { TagNamePanel } from "./library/TagNamePanel";
 import { TagIdentityPanel } from "./library/TagIdentityPanel";
 import { UpdateSection } from "./Update";
@@ -49,6 +50,7 @@ function acceleratorFromKey(e: KeyboardEvent): string | null {
 }
 
 type Props = {
+  nameMigrationRequest?: number;
   /** 当前资料库；有时列出它的个人近似对应表。 */
   library?: LibraryInfo | null;
   /** 应用壳设置保存后的结果，主窗口据此更新（例如相近标签来源标记）。 */
@@ -60,7 +62,7 @@ type Props = {
  * “近似查找”一节（来源标记开关，当前资料库的个人近似对应表条目及删除）；
  * “诊断”一节（强制 sRGB、诊断信息、使用日志）；“更新”一节。
  */
-export function SettingsPanel({ library = null, onChange }: Props) {
+export function SettingsPanel({ library = null, onChange, nameMigrationRequest = 0 }: Props) {
   const [view, setView] = useState<ShellSettingsView | null>(null);
   const [recording, setRecording] = useState<ShortcutAction | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -160,6 +162,7 @@ export function SettingsPanel({ library = null, onChange }: Props) {
       </table>
       <TagIdentityPanel />
       <TagNamePanel />
+      <LegacyNameMigrationPanel openRequest={nameMigrationRequest} />
       <h2>近似查找</h2>
       <label className="settings-row">
         <input

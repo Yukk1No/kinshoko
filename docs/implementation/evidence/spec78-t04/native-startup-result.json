@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "source": "5d4d85ec59b2084a8db6fb67700c9454e597afef",
+  "binarySha256": "1ed64c1061f148b5a42fff93e565c63833f236dd743cb9b30519a8991bee327b",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "priorMigrationRun": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\legacy-names-1791477190716",
+  "supplementaryIntegration": "T07 saved safe=false, normal real tray quit, disconnected last-active path",
+  "assertions": [
+    "only the exact prior T04 fourth-library path can be disconnected",
+    "last active library is the previously upgraded fourth old library",
+    "saved safe=false is confirmed through the public action",
+    "before-disconnect-tray-exit: actual native tray Quit callback exits normally with code 0",
+    "saved non-safe view survives disconnected-active-library restart",
+    "disconnected last-active provider has explicit unavailability",
+    "three other upgraded libraries still aggregate with saved safe=false",
+    "formal workspace defaults to all registered providers without an active library",
+    "after-disconnect-tray-exit: actual native tray Quit callback exits normally with code 0"
+  ],
+  "environment": {
+    "configPath": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t04test\\settings.json",
+    "profile": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\legacy-name-startup-1791477496325\\webview"
+  }
+}
