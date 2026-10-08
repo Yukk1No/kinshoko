@@ -57,6 +57,9 @@ try{
  const firstCard=(await browse(first.id)).cards[0];result.first={info:first,card:firstCard};
  if(raceOnly){
   await library("set_safe_mode",{on:false});await library("edit",{libraryId:first.id,ids:[firstCard.imageId],edits:[{kind:"setRating",rating:"explicit"}]});await reload();await until("adult visible with global mode off",()=>exec("return document.querySelector('.card')?.dataset.veiled==='false'"));
+  const seed=await begin(),mainOrigin=await native("inner_position");
+  await desktop("finish_capture",{token:seed.token,region:{x:mainOrigin.x+20-seed.origin.x,y:mainOrigin.y+20-seed.origin.y,width:8,height:8},action:"copy"});
+  result.clipboardSeed={width:8,height:8,history:(await desktop("capture_history")).length};
   const shown=await shownCard(firstCard.id),frozen=await begin(),selected=selection(shown,frozen);
   result.race={shown,selected,startedAt:new Date().toISOString()};
   await exec("window.__copyResult={pending:true}; window.__TAURI_INTERNALS__.invoke('plugin:desktop|finish_capture',arguments[0]).then(()=>window.__copyResult={ok:true,at:Date.now()},error=>window.__copyResult={error:String(error),at:Date.now()});",[{token:frozen.token,region:selected.region,action:"copy"}]);
