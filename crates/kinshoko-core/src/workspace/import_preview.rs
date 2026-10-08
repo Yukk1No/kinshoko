@@ -333,6 +333,9 @@ impl Workspace {
             }
             if hidden {
                 *report = report.clone().without_content_details();
+                // The completed total minus retained failures would reveal a sealed-only
+                // success count. Live task progress remains in the existing task owner.
+                receipt.progress = Default::default();
             }
         }
         Ok(receipts)

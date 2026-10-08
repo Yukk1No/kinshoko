@@ -32,11 +32,22 @@ fn main() {
         (&new, 85, 400, 480),
     ] {
         RgbImage::from_fn(w, h, |x, y| {
-            Rgb([
-                seed.wrapping_add((x / 25) as u8),
-                30u8.wrapping_add((y / 20) as u8),
-                120,
-            ])
+            // Deterministic high-entropy large original exercises real decode and transport,
+            // while other samples retain easy-to-recognise synthetic colour blocks.
+            if seed == 40 {
+                let mut value = (u64::from(x) << 32) | u64::from(y);
+                value = value.wrapping_add(0x9e3779b97f4a7c15);
+                value = (value ^ (value >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+                value = (value ^ (value >> 27)).wrapping_mul(0x94d049bb133111eb);
+                value ^= value >> 31;
+                Rgb([value as u8, (value >> 8) as u8, (value >> 16) as u8])
+            } else {
+                Rgb([
+                    seed.wrapping_add((x / 25) as u8),
+                    30u8.wrapping_add((y / 20) as u8),
+                    120,
+                ])
+            }
         })
         .save(path)
         .unwrap();

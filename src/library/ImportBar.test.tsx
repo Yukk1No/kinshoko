@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import type { Channel } from "@tauri-apps/api/core";
 import type { ImportReport } from "../bindings/ImportReport";
 import { ImportBar } from "./ImportBar";
 
@@ -91,12 +92,12 @@ describe("封印重复项回执", () => {
 it("关闭期间迟到的预览字节不会创建图片，且回执仍需重新明确展开", async () => {
   mockWindows("main");
   const calls: string[] = [];
-  let release!: (bytes: number[]) => void;
-  const pending = new Promise<number[]>(resolve => { release = resolve; });
-  mockIPC(cmd => {
+  let release!: () => void, channel: Channel<ArrayBuffer> | undefined;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  mockIPC((cmd, args) => {
     calls.push(cmd);
     if (cmd === "plugin:library|open_import_preview") return { id: "receipt-session", items: ["opaque-item"] };
-    if (cmd === "plugin:library|read_import_preview") return pending;
+    if (cmd === "plugin:library|read_import_preview") { channel = (args as { onChunk: Channel<ArrayBuffer> }).onChunk; return pending; }
     return undefined;
   }, { shouldMockEvents: true });
   const create = vi.fn(() => "blob:preview");
@@ -108,7 +109,9 @@ it("关闭期间迟到的预览字节不会创建图片，且回执仍需重新�
   await waitFor(() => expect(calls).toContain("plugin:library|read_import_preview"));
   fireEvent.click(screen.getByRole("button", { name: "关闭重复项预览" }));
   await waitFor(() => expect(calls).toContain("plugin:library|close_import_preview"));
-  release([137,80,78,71]);
+  channel!.onmessage(new Uint8Array([137,80,78,71]).buffer);
+  channel!.onmessage(new ArrayBuffer(0));
+  release();
   await new Promise(resolve => setTimeout(resolve, 0));
   expect(create).not.toHaveBeenCalled();
   expect(screen.queryByRole("dialog")).toBeNull();

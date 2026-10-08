@@ -23,7 +23,7 @@ export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceS
  const show=useCallback(()=>setOpen(true),[]);
  useEffect(()=>{
   let alive=true,epoch=0,timer:ReturnType<typeof setTimeout>;
-  const invalidate=()=>{epoch++;setTasks(previous=>previous.map(task=>({...task,report:task.report?concealSuccesses(task.report):null})));};
+  const invalidate=()=>{epoch++;setTasks(previous=>previous.map(task=>({...task,progress:task.report?{done:0,total:0}:task.progress,report:task.report?concealSuccesses(task.report):null})));};
   const safe=onSafeModeSetting(invalidate),workspace=onWorkspaceChanged(invalidate);
   const refresh=()=>{const expected=epoch;void importTasks().then(value=>{if(alive&&expected===epoch&&Array.isArray(value)){for(const t of value)optimistic.current.delete(t.taskId);setTasks([...value,...optimistic.current.values()].filter(t=>!dismissed.current.has(t.taskId)));}},error=>{if(alive&&expected===epoch)setProblem(String(error));}).finally(()=>{if(alive)timer=setTimeout(refresh,400);});};
   refresh();return()=>{alive=false;clearTimeout(timer);void safe.then(stop=>stop());void workspace.then(stop=>stop());};

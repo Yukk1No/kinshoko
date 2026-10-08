@@ -559,11 +559,13 @@ pub fn registered<R: Runtime>(
 pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> Result<(), String> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
-    with_libraries(&state.device_dir, &state.libraries, |libraries| {
-        for root in roots {
-            libraries.add_registration(root)?;
-        }
-        Ok(())
+    with_visibility_commit(app, |_| {
+        with_libraries(&state.device_dir, &state.libraries, |libraries| {
+            for root in roots {
+                libraries.add_registration(root)?;
+            }
+            Ok(())
+        })
     })?;
     state.detached.clear();
     Ok(())
@@ -571,7 +573,15 @@ pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> R
 
 /// Revoke receipt consent when its main window is destroyed.
 pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
-    import_preview::revoke(app);
+    // Never wait for the visibility permit on the window thread. Fence pending sends
+    // immediately, then retire the session in the normal permit -> resources order.
+    app.state::<LibraryState>()
+        .import_preview_generation
+        .fetch_add(1, Ordering::SeqCst);
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        with_visibility_commit(&app, |_| import_preview::revoke(&app))
+    });
 }
 
 /// Commit a final visibility-authorized side effect atomically with mode/settings revocation.
@@ -613,8 +623,10 @@ async fn create_library<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            libraries.create(&parent.join(name.trim()), &name)
+        let library = with_visibility_commit(&app, |_| {
+            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                libraries.create(&parent.join(name.trim()), &name)
+            })
         })?;
         Ok(forward_events(&app, &state, library))
     })
@@ -645,8 +657,10 @@ async fn register_library<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            libraries.register(&root)
+        let library = with_visibility_commit(&app, |_| {
+            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                libraries.register(&root)
+            })
         })?;
         Ok(forward_events(&app, &state, library))
     })
@@ -662,8 +676,10 @@ async fn switch_library<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            libraries.switch(&library_id)
+        let library = with_visibility_commit(&app, |_| {
+            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                libraries.switch(&library_id)
+            })
         })?;
         Ok(forward_events(&app, &state, library))
     })
@@ -679,12 +695,14 @@ async fn unregister_library<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        let closed = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            let closed = libraries
-                .current()
-                .is_some_and(|library| library.info().id == library_id);
-            libraries.unregister(&library_id)?;
-            Ok(closed)
+        let closed = with_visibility_commit(&app, |_| {
+            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                let closed = libraries
+                    .current()
+                    .is_some_and(|library| library.info().id == library_id);
+                libraries.unregister(&library_id)?;
+                Ok(closed)
+            })
         })?;
         if closed {
             *lock(&state.forwarded) = None;

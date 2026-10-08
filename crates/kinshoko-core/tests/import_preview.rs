@@ -437,8 +437,14 @@ fn mixed_receipt_coarsens_all_successes_keeps_real_failures_and_does_not_change_
     let r = receipts.into_iter().find(|r| r.task_id == task).unwrap();
     assert_eq!(
         (r.progress.done, r.progress.total),
+        (0, 0),
+        "completed private totals cannot reveal the hidden subset"
+    );
+    let raw = f.device.import_task(&task).unwrap();
+    assert_eq!(
+        (raw.progress.done, raw.progress.total),
         (4, 4),
-        "normal processing progress stays useful"
+        "the real task owner retains useful normal processing progress"
     );
     let report = r.report.unwrap();
     assert!(report.private_summary && report.sealed_duplicates);
@@ -746,4 +752,39 @@ fn eagle_refreshed_successes_do_not_leak_a_sealed_only_total() {
     assert!(report.sealed_duplicates && report.private_summary && report.items.is_empty());
     let json = serde_json::to_string(&report).unwrap();
     assert!(!json.contains("refreshed") && !json.contains("imageId") && !json.contains("图0000"));
+}
+
+#[test]
+fn completed_progress_minus_failures_cannot_reveal_the_sealed_success_count() {
+    let mut f = Fixture::new();
+    let missing = f.same.parent().unwrap().join("actual-missing-file.png");
+    let task = receipt(
+        &mut f.device,
+        &f.target.info().id,
+        vec![f.same.clone(), missing],
+    );
+    let raw = f.device.import_task(&task).unwrap();
+    assert_eq!(
+        (raw.progress.done, raw.progress.total),
+        (2, 2),
+        "the real task owner retains normal processing progress"
+    );
+    let projected = f
+        .workspace
+        .import_receipts(&mut f.device, &mut f.catalog, true)
+        .unwrap()
+        .into_iter()
+        .find(|r| r.task_id == task)
+        .unwrap();
+    assert!(projected.report.as_ref().unwrap().sealed_duplicates);
+    assert_eq!(
+        projected.report.as_ref().unwrap().items.len(),
+        1,
+        "real retry failure remains available"
+    );
+    assert_eq!(
+        (projected.progress.done, projected.progress.total),
+        (0, 0),
+        "completed progress minus the public failure must not reveal one sealed success"
+    );
 }

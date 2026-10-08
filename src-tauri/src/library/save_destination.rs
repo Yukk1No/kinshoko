@@ -134,11 +134,13 @@ pub(super) async fn dismiss_import<R: Runtime>(
     library_id: String,
     task_id: String,
 ) -> Result<(), String> {
-    import_preview::revoke(&app);
     blocking(move || {
-        let state = app.state::<LibraryState>();
-        with_libraries(&state.device_dir, &state.libraries, |device| {
-            device.dismiss_import(&library_id, &task_id)
+        with_visibility_commit(&app, |_| {
+            import_preview::revoke(&app);
+            let state = app.state::<LibraryState>();
+            with_libraries(&state.device_dir, &state.libraries, |device| {
+                device.dismiss_import(&library_id, &task_id)
+            })
         })
     })
     .await

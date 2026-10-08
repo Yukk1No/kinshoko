@@ -6,13 +6,17 @@
 
 复用 T10 `DeviceLibraries` 的固定目标任务及真实完成回执，不建立第二套导入 owner。普通 IPC 回执经 `Workspace::import_receipts` 使用与浏览相同的全部已知 provider 分级索引，包含查询范围之外和断连来源的已知 Adult。尚无分级继续可见。
 
-默认只显示“有封印项重复，是否展开看看”。隐藏封印图身份、文件名和内容。当本次成功结果包含封印内容时，同一回执的全部成功类别一起收敛，避免用 imported/merged/refreshed/newVersion 与其他成功项做差得到封印子集数量。普通处理进度 done/total 和真实读取失败/重试路径保留；成功项明细、Eagle missing 数量不从保密回执返回。TaskFinished 事件使用无内容明细的传输回退；正式轮询返回检查后的回执。回收站只给通用提示，不自动恢复，也不进入预览。
+默认只显示“有封印项重复，是否展开看看”。隐藏封印图身份、文件名和内容。当本次成功结果包含封印内容时，同一回执的全部成功类别一起收敛，避免用 imported/merged/refreshed/newVersion 与其他成功项做差得到封印子集数量。进行中的正常处理进度与真实读取失败/重试路径保留；保密完成回执的 done/total 同样收敛，避免与失败数做差反推封印成功数量；成功项明细、Eagle missing 数量不从保密回执返回。TaskFinished 事件使用无内容明细的传输回退；正式轮询返回检查后的回执。回收站只给通用提示，不自动恢复，也不进入预览。
 
 明确点击后，后端从保存的真实 task/library 回执建立一次只读 capability。调用方只能提供 task identity；不能自报图片列表。预览 item 是后端生成的不透明身份，仅包含本次实际成功重复项中的 live 且全来源判为 Adult 的图。普通未知图、无关成人图、历史预览 item 和任意真实 image ID 均不能复用该 capability。
 
 预览在专用只读 provider 中从真实原图读取一次不可变 buffer，验证 SHA 后调用既有 SDR renderer。原图、人工整理、数据库与派生缓存不写入；没有新增任何 mode 修改。解码不持 device/task 锁；结果在释放字节前再次检查会话、模式代次、回执归属、provider revision、live 状态与内容身份。关闭、失去 UI 上下文、回执撤销、下一次预览生成、切库/登记、来源移除、同模式代次更新及程序设置恢复都会使旧授权失效。程序设置恢复与 T13 的当前绑定保留逻辑共存。
 
-前端 Dialog 的结构、showModal/cancel/close 与焦点生命周期直接适配固定认可原型 `prototype/reference-browser/src/components/Overlays.tsx::Dialog`。弹窗仅加载该回执返回的 opaque item，关闭撤销后端会话并撤销 Blob URL。明确同意按 task ID 保存，换回执不会短暂沿用上一张回执的同意。原型是体验来源，不是正式数据或原生验收。
+最终发送复用 T17 的 `with_visibility_commit` 公共壳内许可，和安全模式设置、T13 设置恢复使用同一撤销边界。锁序为 transition（如需）→许可→device/catalog/workspace/Shell→desktop；读取与解码先释放资源锁。会话 close/dismiss、provider context 变更也在许可内提交。主窗口销毁只立即增加代次，再派发工作线程完成许可内撤销，避免主线程等待原生同步调用。
+
+字节通过当前 receipt 的 Channel 发送，普通命令只返回确认。这里依据本机锁定的 `tauri 2.12.1/src/ipc/channel.rs`（SHA256 `9d20fad897f8377484c7bd7f63b030653501a08b36f03def9cc5123c2a98623e`）实际实现：raw 长度严格小于 1024 时直接发送 callback，长度达到 1024 时存入通用 fetch 队列。本单固定每块最多 1023 字节，在许可和会话锁内同步核对并发布所有块及结束标记，避免关闭后的通用 fetch 留存内容。前端同时等待结束标记和命令确认，撤销或错误时丢弃片段；关闭后的迟到片段不会创建 Blob。
+
+前端 Dialog 的结构、showModal/cancel/close 与焦点生命周期直接适配固定认可原型 `prototype/reference-browser/src/components/Overlays.tsx::Dialog`。弹窗仅加载该回执返回的 opaque item，关闭撤销后端会话并撤销 Blob URL。明确同意按 task ID 保存，换回执不会短暂沿用上一张回执的同意。原型是体验来源，不是正式数据或原生验收。模式或工作区事件立即收敛旧回执成功统计，并增加界面代次，拒绝旧轮询的迟到响应。
 
 ## RED / GREEN
 
@@ -25,13 +29,18 @@
 | 解码结果等待释放时模式变化、切库 | `t15-transition-red.log`、`t15-library-context-red.log` | `t15-transition-green.log` |
 | 磁盘原图被替换，旧回执/记录 SHA 不足以限定读取 | `t15-replaced-bytes-red.log` | `t15-replaced-bytes-green.log` |
 | 默认正式导入栏提示与隐藏成功计数 | `t15-ui-red.log` | `t15-ui-green.log` |
+| 完成进度减去失败项可算出封印成功数量 | `t15-completed-progress-red.log` | `t15-completed-progress-green.log` |
+| UI 模式/工作区变化后仍显示成功统计及接受旧快照 | `t15-menu-context-red.log` | `t15-menu-context-green.log` |
+| 预览字节不能通过普通命令确认体返回 | `t15-preview-channel-red.log` | `t15-preview-channel-green.log` |
 | React 换回执时短暂将布尔同意传给下一任务 | `t15-consent-transfer-ui-red.log` | `t15-consent-transfer-ui-green.log` |
 
 早期 `t15-projection-green.log` 包含 Python 默认编码异常并仍执行旧测试，不是 GREEN；原记录保留。`t15-core-boundaries.log` 是回收站提示补充 RED；之后在 `t15-core-boundaries-green.log` 已通过。自动审批曾拒绝一条尚未执行的拟议写入命令，理由是拟在专用 reader 调用 `set_safe_mode(false)` 读取预览。该命令没有执行。拒绝原文及未执行状态原样保存于 `t15-approval-rejection.txt`。最终使用上述完全不改变 mode 的只读 verified-buffer capability，安全替代已完成，无待批准的该动作。
 
-`crates/kinshoko-core/tests/import_preview.rs` 现有 10 项公开动作检查：真实多库分级、未知目标副本、混合重复/新增/失败、Eagle refreshed、旧/外来回执与图 ID、关闭/解码后/下一回执/切库/模式撤销、断连已知 Adult、注销/换身份/真实原图替换、回收站/永久删除、普通 candidates/counts、原图 SHA/notes/tags 不变。没有私表断言或测试专用生产入口。
+`crates/kinshoko-core/tests/import_preview.rs` 现有 11 项公开动作检查：真实多库分级、未知目标副本、混合重复/新增/失败、Eagle refreshed、旧/外来回执与图 ID、关闭/解码后/下一回执/切库/模式撤销、断连已知 Adult、注销/换身份/真实原图替换、回收站/永久删除、普通 candidates/counts、原图 SHA/notes/tags 不变。没有私表断言或测试专用生产入口。
 
-已执行的相关核心回归共 55 项成功、2 个真实故障子进程入口 ignored：import_preview 10、workspace 7、save_destination 9、safe_mode 18、eagle_deleted_content 11。日志 `t15-core-regression.log`。合入 T13 后严格 workspace clippy（all-targets，-D warnings）及 TypeScript 通过。完整前端 34 文件、273 项通过，见 `t15-merged-clippy.log`、`t15-merged-types.log`、`t15-merged-ui.log`。
+已执行的相关核心回归共 55 项成功、2 个真实故障子进程入口 ignored：import_preview 10、workspace 7、save_destination 9、safe_mode 18、eagle_deleted_content 11。日志 `t15-core-regression.log`。合入 T13 后严格 workspace clippy（all-targets，-D warnings）及 TypeScript 通过。该阶段完整前端 34 文件、273 项通过，见 `t15-merged-clippy.log`、`t15-merged-types.log`、`t15-merged-ui.log`。
+
+Channel 变更后严格 clippy 与 TypeScript 通过（`t15-channel-clippy-fixed.log`、`t15-channel-types.log`）；初次 clippy 的闭包类型推断失败单独留在 `t15-channel-clippy.log`。完整前端首次复验 276/277 成功，既有 `SharedApprox.test.tsx` 的迟到 unsafe 列表用例失败，原日志 `t15-channel-ui.log`；单独复验该文件 5/5 成功，`t15-shared-approx-rerun.log`，尚未将该次完整复验记录成通过。随后第二次完整复验 36 文件、277 项成功（`t15-channel-ui-rerun.log`），保留首次失败，不将两次结果合并。
 
 ## 原生验证与完成边界
 
