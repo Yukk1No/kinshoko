@@ -158,11 +158,13 @@ try {
   await session.click(folderButton(first.info.id, first.root));
   await uiTotal(2);
   assert(await session.exec("return document.querySelector('.workspace-descendants input')?.checked === true;"), "folder selection defaults to including descendants");
+  assert(await session.exec("return document.querySelector('[data-folder-id=\"' + arguments[0] + '\"]')?.getAttribute('aria-label') === '人物（2 张）';", [first.root]), "default directory badge counts visible descendant images");
   assert((await session.invoke("current_library")).id === second.info.id, "directory browsing does not activate another library or change write target");
   await session.click("//label[contains(.,'包含子文件夹')]/input");
   await uiTotal(1);
   const direct = await browse(scoped(first.info.id, { kind: "folder", id: first.root }));
   assert(direct.total === 1 && direct.cards[0].imageId === first.images["direct.png"], "unchecked descendants queries only direct membership");
+  assert(await session.exec("return document.querySelector('[data-folder-id=\"' + arguments[0] + '\"]')?.getAttribute('aria-label') === '人物（1 张）';", [first.root]), "unchecked directory badge counts direct membership only");
   await session.click("//label[contains(.,'包含子文件夹')]/input");
   await uiTotal(2);
   const nested = (await browse(scoped(first.info.id, { kind: "folderTree", id: first.root }))).cards.find(c => c.imageId === first.images["nested.png"]);
@@ -197,6 +199,7 @@ try {
   assert((await browse(scoped(first.info.id, { kind: "folderTree", id: first.root }))).total === 1, "out-of-scope Adult source still vetoes the shared card in a descendant scope");
   forest = await session.invoke("workspace_directories", { safeMode: true });
   assert(forest.providers.find(p => p.registration.library.id === first.info.id).sidebar.folders.find(f => f.id === first.root).children[0].count === 0, "directory counts use the same all-source safety veto");
+  assert(forest.providers.find(p => p.registration.library.id === first.info.id).descendants[first.root] === 1, "descendant counts retain all-source Adult veto outside the folder scope");
   await session.screenshot("folder-safety-veto.png");
   await session.click(folderButton(second.info.id, second.other)); await uiTotal(0);
   await session.click("//summary[text()='资料库操作']");

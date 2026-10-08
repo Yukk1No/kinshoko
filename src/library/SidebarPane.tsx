@@ -13,6 +13,8 @@ const LAST = 2 ** 31;
 type Props = {
   directory?: Sidebar;
   unassigned?: number;
+  descendantCounts?: { [id: string]: number | undefined };
+  includeDescendants?: boolean;
   libraryName?: string;
   embedded?: boolean;
   workspace?: boolean;
@@ -60,7 +62,7 @@ export function NameInput(props: {
  * 双击文件夹改名；把文件夹拖到另一个文件夹上移进去，拖到“文件夹”标题上移到顶层；
  * 把图片墙上选中的图拖到文件夹上放进去。
  */
-export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, workspace = false, safeMode = true, readOnly = false, scopeSelected = true, directory, unassigned, libraryName, embedded = false }: Props) {
+export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, workspace = false, safeMode = true, readOnly = false, scopeSelected = true, directory, unassigned, descendantCounts, includeDescendants = false, libraryName, embedded = false }: Props) {
   const [loadedData, setData] = useState<Sidebar | null>(null);
   const data = directory ?? loadedData;
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -126,6 +128,8 @@ export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, wor
     </button>
   );
 
+  const count = (node: FolderNode) => includeDescendants ? descendantCounts?.[node.id] ?? node.count : node.count;
+
   const tree = (nodes: FolderNode[]) => (
     <ul role="group" className="sidebar-tree">
       {nodes.map((node) => (
@@ -146,7 +150,7 @@ export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, wor
               className="sidebar-item"
               data-drop={dropTarget === node.id || undefined}
               aria-current={scopeSelected && same(scope, { kind: "folder", id: node.id }) ? "page" : undefined}
-              aria-label={`${node.name}（${node.count} 张）`}
+              aria-label={`${node.name}（${count(node)} 张）`}
               draggable={!readOnly}
               onClick={() => onScope({ kind: "folder", id: node.id })}
               onDoubleClick={() => !readOnly && setRenaming(node.id)}
@@ -160,7 +164,7 @@ export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, wor
               title={readOnly ? "这份资料库当前仅供浏览" : "双击改名；拖到别的文件夹上移进去"}
             >
               <span className="sidebar-label">{node.name}</span>
-              <span className="sidebar-count">{node.count}</span>
+              <span className="sidebar-count">{count(node)}</span>
             </button>
           )}
           {node.children.length > 0 && tree(node.children)}

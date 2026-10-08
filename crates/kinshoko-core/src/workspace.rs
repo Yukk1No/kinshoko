@@ -92,6 +92,8 @@ pub struct WorkspaceDirectory {
     pub registration: LibraryRegistration,
     pub sidebar: Option<crate::library::Sidebar>,
     pub unassigned: u32,
+    /// Live visible images per subtree, deduplicated across all folder memberships.
+    pub descendants: BTreeMap<String, u32>,
 }
 #[derive(Debug, Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -545,11 +547,13 @@ impl Workspace {
         let snapshot = self.snapshot(device, catalog)?;
         let mut providers = Vec::new();
         for provider in &snapshot.providers {
-            let (sidebar, unassigned) = if provider.registration.unavailable.is_none() {
+            let (sidebar, unassigned, descendants) = if provider.registration.unavailable.is_none()
+            {
                 let library = device
                     .read(&provider.registration.library.id)
                     .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
-                let sidebar = directory_sidebar(&snapshot, provider, &library, safe)?;
+                let (sidebar, descendants) =
+                    directory_sidebar(&snapshot, provider, &library, safe)?;
                 if library.provider_revision()? != (provider.list, provider.revision) {
                     return Err(Error::CursorExpired.into());
                 }
@@ -562,14 +566,15 @@ impl Workspace {
                             && (!safe || !snapshot.adult.contains(&i.sha256))
                     })
                     .count() as u32;
-                (Some(sidebar), unassigned)
+                (Some(sidebar), unassigned, descendants)
             } else {
-                (None, 0)
+                (None, 0, BTreeMap::new())
             };
             providers.push(WorkspaceDirectory {
                 registration: provider.registration.clone(),
                 sidebar,
                 unassigned,
+                descendants,
             });
         }
         if self.snapshot(device, catalog)?.status.revision != snapshot.status.revision {
@@ -597,7 +602,7 @@ impl Workspace {
             .iter()
             .find(|p| p.registration.library.id == library_id)
             .ok_or(CatalogError::UnknownMapping)?;
-        directory_sidebar(&snapshot, provider, &library, safe)
+        Ok(directory_sidebar(&snapshot, provider, &library, safe)?.0)
     }
     /// O(log n) authorization after bounded provider/catalog revision checks, including trash views.
     pub fn contains(
@@ -623,7 +628,7 @@ fn directory_sidebar(
     provider: &Provider,
     library: &crate::Library,
     safe: bool,
-) -> Result<crate::library::Sidebar, CatalogError> {
+) -> Result<(crate::library::Sidebar, BTreeMap<String, u32>), CatalogError> {
     // Folder structure is independent of local safety; every count is replaced from the global snapshot.
     let mut sidebar = library.sidebar()?;
     let visible = provider
@@ -633,17 +638,30 @@ fn directory_sidebar(
         .collect::<Vec<_>>();
     sidebar.all = visible.iter().filter(|i| !i.deleted).count() as u32;
     sidebar.trash = visible.iter().filter(|i| i.deleted).count() as u32;
-    fn folders(nodes: &mut [crate::library::FolderNode], images: &[&ProviderImage]) {
-        for node in nodes {
-            node.count = images
-                .iter()
-                .filter(|i| !i.deleted && i.folders.contains(&node.id))
-                .count() as u32;
-            folders(&mut node.children, images);
+    let mut direct: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
+    for image in visible.iter().filter(|i| !i.deleted) {
+        for folder in &image.folders {
+            direct.entry(folder).or_default().insert(&image.id);
         }
     }
-    folders(&mut sidebar.folders, &visible);
-    Ok(sidebar)
+    fn folders<'a>(
+        nodes: &mut [crate::library::FolderNode],
+        direct: &BTreeMap<&str, BTreeSet<&'a str>>,
+        counts: &mut BTreeMap<String, u32>,
+    ) -> BTreeSet<&'a str> {
+        let mut all = BTreeSet::new();
+        for node in nodes {
+            let mut images = direct.get(node.id.as_str()).cloned().unwrap_or_default();
+            node.count = images.len() as u32;
+            images.extend(folders(&mut node.children, direct, counts));
+            counts.insert(node.id.clone(), images.len() as u32);
+            all.extend(images);
+        }
+        all
+    }
+    let mut descendants = BTreeMap::new();
+    folders(&mut sidebar.folders, &direct, &mut descendants);
+    Ok((sidebar, descendants))
 }
 fn digest(bytes: &[u8]) -> String {
     Sha256::digest(bytes)[..16]

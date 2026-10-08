@@ -47,7 +47,7 @@ export function WorkspacePane({ status, scope, onScope, activeLibraryId, safeMod
   }, [key, safeMode, onError]);
   // A changed safety/provider revision hides old controls before a new request can complete.
   const forest = loaded?.key === key ? loaded.forest : null;
-  const providers = forest?.providers ?? status?.libraries.map((registration) => ({ registration, sidebar: null, unassigned: 0 })) ?? [];
+  const providers = forest?.providers ?? status?.libraries.map((registration) => ({ registration, sidebar: null, unassigned: 0, descendants: {} })) ?? [];
   const selected = scope.kind === "library" ? providers.find((p) => p.registration.library.id === scope.libraryId) : undefined;
   const local = scope.kind === "library" ? scope.scope : null;
   const isFolder = local?.kind === "folder" || local?.kind === "folderTree";
@@ -63,7 +63,7 @@ export function WorkspacePane({ status, scope, onScope, activeLibraryId, safeMod
     </label>}
     <button type="button" className="sidebar-item" aria-current={scope.kind === "all" ? "page" : undefined}
       onClick={() => onScope({ kind: "all" })}>全部资料库</button>
-    {providers.map(({ registration: { library, unavailable }, sidebar, unassigned }) => {
+    {providers.map(({ registration: { library, unavailable }, sidebar, unassigned, descendants: counts }) => {
       const expanded = !collapsed.has(library.id);
       const selectedRoot = scope.kind === "library" && scope.libraryId === library.id;
       return <section key={library.id} className="workspace-provider" data-library-id={library.id}>
@@ -82,7 +82,7 @@ export function WorkspacePane({ status, scope, onScope, activeLibraryId, safeMod
         </div>
         <div className="provider-path" title={library.root}>{library.root}</div>
         {unavailable && <p className="provider-problem" role="status">{unavailable}</p>}
-        {expanded && sidebar && <SidebarPane directory={sidebar} unassigned={unassigned} embedded libraryName={library.name + " / " + library.root}
+        {expanded && sidebar && <SidebarPane directory={sidebar} unassigned={unassigned} descendantCounts={counts} includeDescendants={descendants} embedded libraryName={library.name + " / " + library.root}
           libraryId={library.id} workspace safeMode={safeMode} readOnly={library.id !== activeLibraryId}
           scopeSelected={selectedRoot} scope={selectedRoot ? scope.scope : { kind: "all" }}
           onScope={(next) => onScope({ kind: "library", libraryId: library.id, scope: next.kind === "folder" || next.kind === "folderTree" ? { kind: descendants ? "folderTree" : "folder", id: next.id } : next })}

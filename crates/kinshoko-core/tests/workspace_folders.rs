@@ -392,3 +392,91 @@ fn folder_and_unassigned_counts_keep_the_all_source_adult_veto() {
         "the cached Adult source veto survives disconnect and process restart"
     );
 }
+
+#[test]
+fn directory_descendant_counts_deduplicate_memberships_and_apply_global_safety() {
+    use kinshoko_core::library::ContentRating;
+    let dir = tempfile::tempdir().unwrap();
+    let app = dir.path().join("app");
+    let mut device = DeviceLibraries::open(&app).unwrap();
+    let a = device.create(&dir.path().join("a"), "参考").unwrap();
+    let b = device.create(&dir.path().join("b"), "参考").unwrap();
+    let root = a.create_folder("人物", None).unwrap();
+    let first = a.create_folder("动作", Some(&root)).unwrap();
+    let second = a.create_folder("表情", Some(&root)).unwrap();
+    let direct = import(&a, dir.path(), 121);
+    let nested = import(&a, dir.path(), 122);
+    let shared = import(&a, dir.path(), 123);
+    let adult_source = import(&b, dir.path(), 123);
+    a.edit(
+        &[direct],
+        &[ImageEdit::AddToFolder {
+            folder_id: root.clone(),
+        }],
+    )
+    .unwrap();
+    a.edit(
+        &[nested],
+        &[
+            ImageEdit::AddToFolder {
+                folder_id: first.clone(),
+            },
+            ImageEdit::AddToFolder {
+                folder_id: second.clone(),
+            },
+        ],
+    )
+    .unwrap();
+    a.edit(
+        &[shared],
+        &[
+            ImageEdit::AddToFolder {
+                folder_id: root.clone(),
+            },
+            ImageEdit::AddToFolder {
+                folder_id: first.clone(),
+            },
+            ImageEdit::AddToFolder {
+                folder_id: second.clone(),
+            },
+        ],
+    )
+    .unwrap();
+    b.edit(
+        &[adult_source],
+        &[ImageEdit::SetRating {
+            rating: ContentRating::Explicit,
+        }],
+    )
+    .unwrap();
+    let mut catalog = TagCatalog::open(&app).unwrap();
+    let mut workspace = Workspace::open(&app).unwrap();
+    for (safe, direct_count, descendant_count) in [(true, 1, 2), (false, 2, 3)] {
+        let forest = workspace.directories(&device, &mut catalog, safe).unwrap();
+        let provider = forest
+            .providers
+            .iter()
+            .find(|p| p.registration.library.id == a.info().id)
+            .unwrap();
+        assert_eq!(
+            provider.sidebar.as_ref().unwrap().folders[0].count,
+            direct_count
+        );
+        let serialized = serde_json::to_value(provider).unwrap();
+        assert_eq!(
+            serialized["descendants"][&root], descendant_count,
+            "each visible image is counted once across parent and multiple child memberships"
+        );
+        assert_eq!(serialized["descendants"][&first], direct_count);
+        assert_eq!(serialized["descendants"][&second], direct_count);
+        assert_eq!(
+            workspace
+                .sidebar(&device, &mut catalog, &a.info().id, safe)
+                .unwrap()
+                .folders[0]
+                .count,
+            direct_count,
+            "the legacy sidebar keeps direct-level count semantics"
+        );
+    }
+}
