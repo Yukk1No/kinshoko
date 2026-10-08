@@ -1,0 +1,17 @@
+
+> kinshoko@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+
+ Test Files  31 passed (31)
+      Tests  250 passed (250)
+   Start at  01:27:26
+   Duration  18.59s (environment 68%, tests 21%, import 9%, transform 2%)
+
+Environment  jsdom was created 31 times · 111.87s total, 68% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

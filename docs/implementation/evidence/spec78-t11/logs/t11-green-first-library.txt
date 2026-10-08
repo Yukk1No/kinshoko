@@ -1,0 +1,18 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+warning: unused import: `OptionalExtension`
+ --> crates\kinshoko-core\src\library\tag_definitions.rs:3:28
+  |
+3 | use rusqlite::{Connection, OptionalExtension, Transaction, params};
+  |                            ^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `kinshoko-core` (lib) generated 1 warning (run `cargo fix --lib -p kinshoko-core` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 27.07s
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 1 test
+test first_tag_write_carries_identity_when_the_library_is_copied_to_a_fresh_application ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+

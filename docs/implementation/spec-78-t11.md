@@ -26,7 +26,7 @@
 
 ## 红灯与公开检查
 
-公开检查使用真实 Library、TagCatalog、ReferenceGroups、SQLite、原图和 ZIP。原始日志留在本工作树的 ignored `work/`，失败记录保留。
+公开检查使用真实 Library、TagCatalog、ReferenceGroups、SQLite、原图和 ZIP。原始日志留在本工作树的 ignored `work/`，失败记录保留。逐字节副本、来源与 SHA256 已收纳到 [独立 T11 证据目录](evidence/spec78-t11/README.md)。
 
 - `t11-red-first-library.txt` → `t11-green-first-library.txt`：普通首次标签写入后直接复制库，空应用保留全局身份。
 - `t11-red-split-library.txt` → `t11-green-split-library.txt`：纠正、拆分与定义发布后复制库；默认、别名随库，程序偏好不随库。
@@ -46,12 +46,26 @@
 
 完整前端为 31 文件、250 项通过。TypeScript 与 Vite 构建通过。原始日志为 `t11-ui-all.txt`、`t11-typecheck.txt`、`t11-vite-build.txt`。新增命令 `publish_tag_definitions` 同时登记在 handler 和 `build.rs` inline commands，沿用主窗口 `library:default`。
 
+组合检查基于 `fd1b62c5a654d10ac81781524494e162dfe5711f`。该提交到下述原生构建提交的产品 Git blobs 没有变化。最终 workspace 为 **633 passed、0 failed、9 ignored**，71 个顶层套件。子进程自己的结果不重复计入。最终前端为 **32 文件、255 项通过**。严格 workspace/all-targets Clippy、TypeScript 和 Vite 构建通过。对应 `t11-t05-combined-*` 原始日志与 [计算明细](evidence/spec78-t11/checks.json) 保留。
+
 ## 正式原生验收
 
-待最终组合源码与二进制固定后填入精确结果。本段目前不表示通过。
+Windows 11 正式桌面程序通过 **26 项**便携流程断言。开发者逐张检查了 8 张实际 WebDriver 截图。固定产品源码为 `a99fd7683e5c00b896c99aaa49129ebfe2eefdf5`，tree 为 `411ed9a68e23f968fe05b820579f8d1de743f5d3`。二进制为本工作树 `target/debug/kinshoko.exe`，SHA256 为 `6DE689C8BB36E8FA0F1D7D037766D3D595CCBDB0A8E280C2177A80B9B495ED58`。构建使用 `tauri/custom-protocol`、独立 identifier `dev.kinshoko.spec78t11test` 及本树 target。包含 T05 的全来源安全筛选和 T09 的缓存写池。
+
+通过轮的验收脚本提交为 `a07e073d63e905e05644fb7ef0925466ac4e7cfc`，脚本 SHA256 为 `c5264f13bc3365b543b8c882773f089e5cd39671cef3d331551504afe23029fb`。夹具创建通过公开 IPC；纠正、拆分、名称偏好、别名、定义发布、参考组保存、包导出与导入使用实际渲染控件。文件选择器沿用既有测试结果队列。后端、SQLite、ZIP、原图及原生钉图都实际执行。
+
+通过范围包括：两库同名身份独立，明确合并及拆分，显示偏好与定义分离，真实 SQLITE_FULL 发布失败的可见说明及重试，原始目录断开后空应用登记复制库，全新应用及已有偏好环境导入包，原图 SHA、备注、命名空间和外部词表完整，成员裁剪、翻转、旋转、缩放与布局往返，来源记录、真实钉图可打开，同名目标保持独立，全局分组保持，重复导入复用本地映射、保留名称偏好且不恢复已删除别名。导入完成后立即复制目标库，空应用仍还原目标当前纯定义。
+
+首轮在拆分等待超时。实际 DOM 仍显示旧身份；脚本在目录异步读取时过早操作控件。补充启用状态及读取完成等待后，同一个产品二进制通过全部流程。首轮截图、DOM、结果和日志仍保留于 [首轮原件](evidence/spec78-t11/native-first-failed/result.json)。通过轮原件见 [26 项结果](evidence/spec78-t11/native-passed/result.json)。没有通过改写失败原件制造通过状态。
+
+同一个固定二进制另完成根任务修正后的完整 smoke，**5 项通过**，包含真实建库、导入、瀑布流比例、强制重启后的库身份和图片墙恢复。该脚本 SHA256 为 `49FA759E3F6356C5600EF3EFA3609CFC05CCE080247BF60E4CA056E361DD4E23`，见 [实际结果](evidence/spec78-t11/ci-smoke-result.json)。该 CI 修复由根任务独立记录。
+
+本轮端口 4568/4569。结束后精确 exe、驱动、该轮 WebView 与监听端口均为空，见 [释放记录](evidence/spec78-t11/native-release.json)。清理使用 WebDriver 会话关闭和精确进程结束。这里没有宣称完成正常托盘退出验收。
+
+[源码和 dist 逐文件清单](evidence/spec78-t11/source-dist-after-native.json) 在 `2026-10-08T18:05:07Z` 原生验收后采集，包含 516 个源码输入和 10 个 dist 文件。它不是构建前清单。当前 dist 的 JS/CSS 名称与实际 Vite 日志、原生 DOM 中资源地址一致。已合入根最新 `423bd64519917c40fba7407b721789d6684dd4a6`，合并提交为 `a9e813df4c0986e0e9e1ee513917fdddb7daaa10`；固定构建提交到合并提交的产品 Git blobs 无变化。后续只收纳证据和更新本单记录。
 
 ## 未验证与后续
 
 Windows 10 未验证。用户已明确接受保留此状态。本机为 Windows 11。
 
-T12 后续复用便携定义模块处理资料库及程序设置备份。T10 的后台任务归属和目标路径由其工单独立验收。全流程组合、规模性能门槛和发行外部门槛仍属于对应后续工单；本单没有继承它们的通过状态。
+T12 后续复用便携定义模块处理资料库内容备份。T13 独立处理程序设置备份。T10 的后台任务归属和目标路径由其工单独立验收。全流程组合、规模性能门槛和发行外部门槛仍属于对应后续工单；本单没有继承它们的通过状态。

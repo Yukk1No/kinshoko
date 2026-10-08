@@ -1,0 +1,22 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.20s
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 1 test
+test modern_package_without_its_explicit_source_local_mapping_is_rejected_before_writing ... FAILED
+
+failures:
+
+---- modern_package_without_its_explicit_source_local_mapping_is_rejected_before_writing stdout ----
+
+thread 'modern_package_without_its_explicit_source_local_mapping_is_rejected_before_writing' (48996) panicked at crates\kinshoko-core\tests\portable_tags.rs:772:5:
+Ok(ReferenceGroup { id: "5ec57acc450d4d179c77b6734037fac0", name: "包", created_at: 1791481639257, updated_at: 1791481639257, members: [GroupMember { id: "6bbc1309abae46989569c7627d393b0e", library_id: "bbd29bb84fa94f4bbfb8e0832af533fd", image_id: "01a11ca0714d7249a4af3b21871c079a", source_width: 12, source_height: 10, crop: None, placement: Placement { x: 0, y: 0, scale: 1.0, flip_h: false, flip_v: false, rotation: 0 } }], imported_from_package: Some(PackageProvenance { package_id: "57cd1f61a34b47f181d74d6a031f761f", group_id: "42a82cee6bb24f16b3cc983add9cc8d0", exported_at: 1791481639184 }), restored_from: None })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    modern_package_without_its_explicit_source_local_mapping_is_rejected_before_writing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.17s
+
+error: test failed, to rerun pass `-p kinshoko-core --test portable_tags`

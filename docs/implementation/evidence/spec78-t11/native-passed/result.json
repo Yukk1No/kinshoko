@@ -1,0 +1,207 @@
+{
+  "status": "passed",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
+  "build": {
+    "source": "a99fd7683e5c00b896c99aaa49129ebfe2eefdf5",
+    "tree": "411ed9a68e23f968fe05b820579f8d1de743f5d3",
+    "binarySha256": "6DE689C8BB36E8FA0F1D7D037766D3D595CCBDB0A8E280C2177A80B9B495ED58",
+    "identifier": "dev.kinshoko.spec78t11test",
+    "buildType": "debug with tauri/custom-protocol",
+    "buildDate": "2026-10-09T01:55:56.4256835+08:00",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target",
+    "driverSha256": "0F4600639201CCD2E84C72C3977AC33C67E19152E197C89EB16A6591D1FBE9F7",
+    "configSha256": "6BC6FFD4CFD9F2DFA02B7BF8E1737212FD2867A3868AACA27FF2381D12DB0B7E",
+    "includesT05": "77e7a9bfba8e9afe2ee82b241884a4680e31ec4e",
+    "includesT09": "23867c1755840821f44493448e3148d55b621190"
+  },
+  "harnessSource": "a07e073d63e905e05644fb7ef0925466ac4e7cfc",
+  "harnessSha256": "c5264f13bc3365b543b8c882773f089e5cd39671cef3d331551504afe23029fb",
+  "assertions": [
+    "same display names initially retain distinct global identities",
+    "rendered correction explicitly joins two local IDs to one global identity",
+    "rendered split creates another stable identity despite the same display name",
+    "rendered save captures all three real reference pins",
+    "saved source group contains the specified original-pixel crop and requested native pin transforms",
+    "a real SQLITE_FULL publication error retains program name preferences",
+    "rendered retry succeeds after the one-shot real storage error",
+    "formal export contains version-two stable definitions and explicit local mappings",
+    "formal export carries latest real aliases and pure defaults, without source display preferences",
+    "package original bytes match every declared SHA-256",
+    "formal package preserves the real note, namespace and external vocabulary/value",
+    "fresh application has no access to the original library or original application directory",
+    "ordinary copied libraries restore the published correction/split identities in an empty application",
+    "ordinary copied library restores current defaults and aliases without program preferences",
+    "rendered package import creates a new group with all members remapped to the chosen library",
+    "native package roundtrip preserves every member crop, flip, rotation, scale and layout",
+    "native package import retains source group and package provenance",
+    "empty application imports both stable tag identities and no source preferences",
+    "fresh destination stores the exact original image bytes",
+    "rendered imported members are available and open as three real native reference pins",
+    "content import preserves the destination application's existing global group definition and order",
+    "same-named target tag remains independent and its existing preference survives import",
+    "reimport preserves the current application preference and does not resurrect a deleted alias",
+    "reimport reuses each declared stable identity without adding duplicate local tags",
+    "content reimport also keeps the current global group unchanged",
+    "a copied destination library carries its current pure definitions immediately after reimport, without any application preference"
+  ],
+  "environments": [
+    {
+      "phase": "source",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\source-app",
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "publication-failure",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\source-app",
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "copied-libraries",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\copied-app",
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "fresh-package",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\fresh-app",
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "existing-package",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\existing-app",
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    {
+      "phase": "reimported-copy",
+      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\reimported-copy-app",
+      "dpr": 1.1041666269302368,
+      "height": 801,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    }
+  ],
+  "sourceA": {
+    "info": {
+      "id": "b0f0eaec414f4f01beac89b334087b1e",
+      "name": "便携来源甲",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\libraries\\便携来源甲"
+    },
+    "images": [
+      "01a11cad3fca76daaa8719b746029eeb",
+      "01a11cad3fae7206b5a7b68cfd7a6643"
+    ],
+    "local": "01a11cad404874118727910cd353471e"
+  },
+  "sourceB": {
+    "info": {
+      "id": "c3c60d3f6d9b40809bec2ace04ac4377",
+      "name": "便携来源乙",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\libraries\\便携来源乙"
+    },
+    "images": [
+      "01a11cad4382759ab2fefb92f5b9f4c7"
+    ],
+    "local": "01a11cad44a377518ca928bb1bf903b4"
+  },
+  "sourceIdentity": "01a11cad404874118727910d1e206bdb",
+  "splitIdentity": "01a11cad4b5b74e49a40fa8258584805",
+  "sourceGroup": {
+    "createdAt": 1791482483701,
+    "id": "820618a0ef6d4ea6acefd5ff93869977",
+    "members": [
+      {
+        "crop": {
+          "height": 40,
+          "width": 50,
+          "x": 10,
+          "y": 12
+        },
+        "id": "ac54c82273b74d2eab3e99719d9d0193",
+        "imageId": "01a11cad3fca76daaa8719b746029eeb",
+        "libraryId": "b0f0eaec414f4f01beac89b334087b1e",
+        "placement": {
+          "flipH": true,
+          "flipV": false,
+          "rotation": 1,
+          "scale": 1.5,
+          "x": 310,
+          "y": 240
+        },
+        "sourceHeight": 90,
+        "sourceWidth": 120
+      },
+      {
+        "crop": null,
+        "id": "42b5cab650c94e749d53e25142e48ced",
+        "imageId": "01a11cad3fae7206b5a7b68cfd7a6643",
+        "libraryId": "b0f0eaec414f4f01beac89b334087b1e",
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 414,
+          "y": 344
+        },
+        "sourceHeight": 90,
+        "sourceWidth": 120
+      },
+      {
+        "crop": {
+          "height": 60,
+          "width": 70,
+          "x": 4,
+          "y": 5
+        },
+        "id": "52afbca83d2e40369534834f70b64eef",
+        "imageId": "01a11cad4382759ab2fefb92f5b9f4c7",
+        "libraryId": "c3c60d3f6d9b40809bec2ace04ac4377",
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 439,
+          "y": 359
+        },
+        "sourceHeight": 90,
+        "sourceWidth": 120
+      }
+    ],
+    "name": "便携布局验收",
+    "updatedAt": 1791482483701
+  },
+  "freshTarget": {
+    "id": "77c9f993630d4037ad76aa319d60d995",
+    "name": "空应用包目标",
+    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\targets\\空应用包目标"
+  },
+  "existingTarget": {
+    "info": {
+      "id": "c133d843fe8a4dfcb87956c1f3b14b2a",
+      "name": "已有偏好目标",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\libraries\\已有偏好目标"
+    },
+    "images": [
+      "01a11cad8c5473678cc64c861c8c4876"
+    ],
+    "local": "01a11cad8cf07159935ec8deb6340cd7"
+  },
+  "packageSha256": "b145eee09701feb9aaa3d679d68999469faed3c52c12db8973c8c88b7da95805",
+  "filePicker": "queued existing testPick results; actual rendered actions and native backend",
+  "cleanup": "WebDriver session deletion plus own exact executable process cleanup; not a normal tray-quit acceptance"
+}
