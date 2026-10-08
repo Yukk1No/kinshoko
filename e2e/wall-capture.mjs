@@ -64,8 +64,11 @@ try{
   result.race={shown,selected,startedAt:new Date().toISOString()};
   await exec("window.__copyResult={pending:true}; window.__TAURI_INTERNALS__.invoke('plugin:desktop|finish_capture',arguments[0]).then(()=>window.__copyResult={ok:true,at:Date.now()},error=>window.__copyResult={error:String(error),at:Date.now()});",[{token:frozen.token,region:selected.region,action:"copy"}]);
   await delay(Number(process.env.KINSHOKO_RACE_DELAY??400));
-  result.race.modeRequestAt=new Date().toISOString();await library("set_safe_mode",{on:true});result.race.modeReturnedAt=new Date().toISOString();
+  result.race.beforeRevocation=await exec("return window.__copyResult");
+  check(result.race.beforeRevocation.pending===true,"slow decode is genuinely still running before mode revocation");
+  result.race.modeRequestAt=new Date().toISOString();await library("set_safe_mode",{on:true});result.race.modeReturnedAt=new Date().toISOString();result.race.modeReturnedUnix=Date.now();
   result.race.copy=await until("slow original completion",()=>exec("return window.__copyResult&&!window.__copyResult.pending?window.__copyResult:null"),120000);
+  result.race.completedAfterRevocation=result.race.copy.at>=result.race.modeReturnedUnix;
   await desktop("pin_clipboard");const entry=(await desktop("capture_history"))[0];result.race.clipboard=clipboardFile(entry);
   result.race.containsOriginal=JSON.stringify(result.race.clipboard.size)===JSON.stringify([selected.crop.width,selected.crop.height])&&JSON.stringify(result.race.clipboard.corners)===JSON.stringify(corners(selected.crop));
   check(!result.race.copy.ok&&!result.race.containsOriginal,"safe-mode revocation during slow original decode cannot commit late original pixels to the real OS clipboard");
