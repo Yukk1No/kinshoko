@@ -21,13 +21,14 @@ export async function runCombined(planPath,desktopGrant) {
   // Fail before boot rather than recording a partial old-EXE run as completed combination.
   const originalPath=join(dirname(fileURLToPath(import.meta.url)),"spec78-combination-original.mjs");
   if(!existsSync(originalPath))throw Error("Final T17 original-crop/copy stage is still unprepared; no native process started");
-  const {originalCombination}=await import(pathToFileURL(originalPath).href);
-  if(typeof originalCombination!=="function")throw Error("Missing final public originalCombination stage");
+  const {originalCombination,checkOriginalPreparation}=await import(pathToFileURL(originalPath).href);
+  if(typeof originalCombination!=="function"||typeof checkOriginalPreparation!=="function")throw Error("Missing final public originalCombination stage and preboot source gate");
+  const originalPreparation=checkOriginalPreparation(plan);
   const work=ownedWork(join(fixture.root,"native"));
   if(existsSync(work))throw Error("Native round already exists; retain it and use a fresh fixture/plan");
   mkdirSync(work,{recursive:true});
   const before=preserveKnownFolder(work),d=new CombinationDriver({application:plan.application.path,edgeDriver:plan.edgeDriver.path,tauriDriver:plan.tauriDriver.path,port:plan.port,work,data:join(work,"app-data"),profile:join(work,"webview")});
-  const workflow=new CombinationWorkflow(d,fixture),report={kind:"spec78-t20-combined-run",status:"running",startedAt:new Date().toISOString(),plan:fileRecord(planPath),desktopGrant,buildSource:plan.build.source,buildTree:plan.build.tree,observationSource:sourceRecord(),application:plan.application,runtime:plan.runtime,buildAttribution:plan.build.buildAttribution,config:plan.build.config,fixture:fileRecord(plan.fixture.path),knownFolderBefore:before,mainSession:null,lifecycles:null,installer:"not-executed-by-this-harness",prototype:"not-executed-by-this-harness",windows10:"unverified-accepted-by-owner",fullT20Acceptance:false};
+  const workflow=new CombinationWorkflow(d,fixture),report={kind:"spec78-t20-combined-run",status:"running",startedAt:new Date().toISOString(),plan:fileRecord(planPath),desktopGrant,buildSource:plan.build.source,buildTree:plan.build.tree,observationSource:sourceRecord(),originalPreparation,application:plan.application,runtime:plan.runtime,buildAttribution:plan.build.buildAttribution,config:plan.build.config,fixture:fileRecord(plan.fixture.path),knownFolderBefore:before,mainSession:null,lifecycles:null,installer:"not-executed-by-this-harness",prototype:"not-executed-by-this-harness",windows10:"unverified-accepted-by-owner",fullT20Acceptance:false};
   try {
     await d.boot();report.mainSession=d.session;
     report.environment=await d.exec("return {userAgent:navigator.userAgent,viewport:{width:innerWidth,height:innerHeight},outer:{width:outerWidth,height:outerHeight},dpr:devicePixelRatio,screen:{width:screen.width,height:screen.height,colorDepth:screen.colorDepth,pixelDepth:screen.pixelDepth},timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone};");

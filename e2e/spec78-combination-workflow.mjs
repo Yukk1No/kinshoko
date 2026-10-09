@@ -285,7 +285,16 @@ export class CombinationWorkflow {
     d.save("actual-diagnostics.json",{text:diagnostics,visibility:diagnosticVisibility});await d.screenshot("10c-actual-diagnostics-visible-capability-block.png");
     const update=await d.invoke("update_status",{},null);
     d.assert(update.state==="manual"&&update.message==="当前使用安装包手动更新。","the actual build reports manual package updating without a repository-visibility claim",update);
-    const updateUI=await until("actual manual update instructions rendered",()=>d.exec("const message=[...document.querySelectorAll('[role=dialog][aria-label=程序设置] p')].find(node=>node.textContent.trim()===arguments[0]),steps=message?.nextElementSibling;if(!steps?.textContent.includes('从托盘退出 Kinshoko 后，运行开发者提供的新版安装包'))return null;steps.scrollIntoView({block:'center'});return {message:message.textContent,steps:steps.textContent,buttons:[...document.querySelectorAll('[role=dialog][aria-label=程序设置] button')].map(node=>node.textContent.trim())};",[update.message]));
+    const updateUI=await until("actual complete manual update instructions visibly rendered",()=>d.exec(`
+const message=[...document.querySelectorAll('[role=dialog][aria-label=程序设置] p')].find(node=>node.textContent.trim()===arguments[0]),steps=message?.nextElementSibling;
+if(!steps?.textContent.includes('从托盘退出 Kinshoko 后，运行开发者提供的新版安装包'))return null;
+steps.scrollIntoView({block:'center'});
+const a=message.getBoundingClientRect(),b=steps.getBoundingClientRect(),whole={top:Math.min(a.top,b.top),bottom:Math.max(a.bottom,b.bottom),left:Math.min(a.left,b.left),right:Math.max(a.right,b.right)};
+let top=0,bottom=innerHeight,left=0,right=innerWidth;
+for(let node=message.parentElement;node;node=node.parentElement){const style=getComputedStyle(node),box=node.getBoundingClientRect();if(/auto|scroll|hidden|clip/.test(style.overflowY)){top=Math.max(top,box.top+node.clientTop);bottom=Math.min(bottom,box.top+node.clientTop+node.clientHeight);}if(/auto|scroll|hidden|clip/.test(style.overflowX)){left=Math.max(left,box.left+node.clientLeft);right=Math.min(right,box.left+node.clientLeft+node.clientWidth);}}
+if(whole.top<top||whole.bottom>bottom||whole.left<left||whole.right>right)return null;
+return {message:message.textContent,steps:steps.textContent,visibility:{whole,clip:{top,bottom,left,right},message:a.toJSON(),steps:b.toJSON()},buttons:[...document.querySelectorAll('[role=dialog][aria-label=程序设置] button')].map(node=>node.textContent.trim())};
+`,[update.message]));
     d.assert(!updateUI.buttons.includes("检查更新")&&!updateUI.buttons.includes("安装并重启")&&updateUI.steps.includes("安装到原位置")&&updateUI.steps.includes("继续使用已有资料库、设置、参考组和钉图"),"formal settings show the complete supported manual-update steps",updateUI);
     await d.screenshot("10d-manual-update-instructions.png");
     await this.closeSettings();this.state.runtimeAndUpdate={runtime,diagnosticVisibility,update,updateUI,colorGate:"independent-existing-results-unchanged"};this.save();

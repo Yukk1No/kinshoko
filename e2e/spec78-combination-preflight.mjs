@@ -97,17 +97,43 @@ function sameSnapshot(before,after,label) {
   if(before.source!==after.source||before.tree!==after.tree||before.branch!==after.branch)throw Error(label+" commit/tree changed");
   sameFiles(before.files,after.files,label+" files");
 }
-function buildRecipe(configPath,profile) {
+export function absentBuildOverrides(environment=process.env) {
+  const state=Object.fromEntries(["CARGO_BUILD_TARGET","TAURI_CONFIG"].map(key=>[key,{present:Object.hasOwn(environment,key),value:Object.hasOwn(environment,key)?environment[key]:null}]));
+  if(Object.values(state).some(item=>item.present))throw Error("CARGO_BUILD_TARGET and TAURI_CONFIG must both be absent, including empty values: "+JSON.stringify(state));
+  return state;
+}
+export function rustHost(version) {
+  const matches=[...version.matchAll(/^host: ([a-zA-Z0-9_.-]+)\r?$/gm)];
+  if(matches.length!==1||!matches[0][1].endsWith("-pc-windows-msvc"))throw Error("The actual Rust version must identify one Windows MSVC host");
+  return matches[0][1];
+}
+function buildRecipe(configPath,profile,rust) {
   if(!["debug","release"].includes(profile))throw Error("Choose an explicit debug or release build profile");
-  const config=isolatedConfig(configPath),target=resolve("target");
+  const config=isolatedConfig(configPath),target=resolve("target"),host=rustHost(text(rust.probes[0].stdout.path));
+  if(host!==rust.target||rustHost(text(rust.probes[1].stdout.path))!==host)throw Error("Recorded Rust and Cargo hosts must match the explicitly selected native target");
   return {
-    cwd:resolve("."),profile,target,node:fileRecord(process.execPath),nodeVersion:process.version,
-    environment:{CARGO_BUILD_JOBS:"2",CARGO_TARGET_DIR:target,KINSHOKO_SKIP_AUTOSTART:"1"},
+    cwd:resolve("."),profile,target,artifactDirectory:join(target,host,profile),rust,node:fileRecord(process.execPath),nodeVersion:process.version,
+    environment:{CARGO_BUILD_JOBS:"2",CARGO_TARGET_DIR:target,KINSHOKO_SKIP_AUTOSTART:"1",RUSTC:rust.compiler.path,CARGO_BUILD_RUSTC:rust.compiler.path},
+    absentOverrides:absentBuildOverrides(),
     frontend:{executable:process.execPath,args:[resolve("node_modules/vite/bin/vite.js"),"build"]},
-    native:{executable:process.execPath,args:[resolve("node_modules/@tauri-apps/cli/tauri.js"),"build",...(profile==="debug"?["--debug"]:[]),"--no-bundle","--config",config.path]},
+    native:{executable:process.execPath,args:[resolve("node_modules/@tauri-apps/cli/tauri.js"),"build",...(profile==="debug"?["--debug"]:[]),"--no-bundle","--target",host,"--config",config.path]},
     tools:{vite:fileRecord("node_modules/vite/bin/vite.js"),tauri:fileRecord("node_modules/@tauri-apps/cli/tauri.js")},
-    inheritedBuildEnvironment:Object.fromEntries(["RUSTFLAGS","CARGO_ENCODED_RUSTFLAGS","RUSTC","RUSTC_WRAPPER","CARGO_BUILD_RUSTC_WRAPPER","CARGO_BUILD_TARGET","TS_RS_EXPORT_DIR"].filter(key=>process.env[key]!==undefined).map(key=>[key,process.env[key]])),
+    inheritedBuildEnvironment:Object.fromEntries(["PATH","RUSTUP_TOOLCHAIN","RUSTFLAGS","CARGO_ENCODED_RUSTFLAGS","RUSTC","CARGO_BUILD_RUSTC","RUSTC_WRAPPER","RUSTC_WORKSPACE_WRAPPER","CARGO_BUILD_RUSTC_WRAPPER","TS_RS_EXPORT_DIR"].filter(key=>process.env[key]!==undefined).map(key=>[key,process.env[key]])),
   };
+}
+function actualRustToolchain(work,recordProbe) {
+  const probeRecipe={cwd:resolve("."),environment:{CARGO_BUILD_JOBS:"2",CARGO_TARGET_DIR:resolve("target"),KINSHOKO_SKIP_AUTOSTART:"1"}};
+  const probes=[];
+  for(const [label,executable,args] of [["rustc-version","rustc",["-vV"]],["cargo-version","cargo",["-vV"]],["rustc-sysroot","rustc",["--print","sysroot"]]]) {
+    const probe=runBuildCommand(label,{executable,args},probeRecipe,work);probes.push(probe);recordProbe(probe);
+    if(probe.exit!==0||probe.error)throw Error("The actual Rust toolchain probe failed: "+label);
+  }
+  const target=rustHost(text(probes[0].stdout.path)),sysroot=resolve(text(probes[2].stdout.path).trim());
+  if(rustHost(text(probes[1].stdout.path))!==target)throw Error("Actual Cargo and Rust hosts differ");
+  const compiler=fileRecord(join(sysroot,"bin","rustc.exe"));
+  const compilerProbe=runBuildCommand("selected-compiler-version",{executable:compiler.path,args:["-vV"]},probeRecipe,work);probes.push(compilerProbe);recordProbe(compilerProbe);
+  if(compilerProbe.exit!==0||compilerProbe.error||text(compilerProbe.stdout.path)!==text(probes[0].stdout.path))throw Error("The selected explicit compiler differs from the probed active toolchain");
+  return {target,sysroot,compiler,probes};
 }
 function runBuildCommand(label,command,recipe,work) {
   const stdoutPath=join(work,label+"-stdout.txt"),stderrPath=join(work,label+"-stderr.txt");
@@ -122,12 +148,14 @@ function runBuildCommand(label,command,recipe,work) {
 export function recordAttributedBuild({configPath,work,profile}) {
   const root=ownedWork(work);
   if(existsSync(root))throw Error("Preserve the existing build round; choose a new owned directory");
-  if(process.env.TAURI_CONFIG)throw Error("Remove inherited TAURI_CONFIG before the explicitly attributed isolated build");
-  const recipe=buildRecipe(configPath,profile),before={source:sourceRecord(),config:isolatedConfig(configPath),knownFolder:knownFolderState(),retainedT19:knownFolderState("dev.kinshoko.spec78t19upgrade")};
+  const absentOverrides=absentBuildOverrides();
+  if(!["debug","release"].includes(profile))throw Error("Choose an explicit debug or release build profile");
+  const before={source:sourceRecord(),config:isolatedConfig(configPath),knownFolder:knownFolderState(),retainedT19:knownFolderState("dev.kinshoko.spec78t19upgrade")};
   mkdirSync(root,{recursive:true});
-  const path=join(root,"build-receipt.json"),receipt={kind:"spec78-t20-attributed-build",status:"running",startedAt:new Date().toISOString(),recipe,before,steps:[],nativeExecuted:false,installerExecuted:false};
+  const path=join(root,"build-receipt.json"),receipt={kind:"spec78-t20-attributed-build",status:"running",startedAt:new Date().toISOString(),absentOverrides,recipe:null,before,rustProbeSteps:[],steps:[],nativeExecuted:false,installerExecuted:false};
   const save=()=>writeFileSync(path,JSON.stringify(receipt,null,2));save();
   try {
+    const rust=actualRustToolchain(root,probe=>{receipt.rustProbeSteps.push(probe);save();}),recipe=buildRecipe(configPath,profile,rust);receipt.recipe=recipe;save();
     const frontend=runBuildCommand("frontend",recipe.frontend,recipe,root);receipt.steps.push(frontend);save();
     if(frontend.exit!==0||frontend.error)throw Error("The actual frontend build failed; preserve its raw logs");
     receipt.afterFrontend={source:sourceRecord(),config:isolatedConfig(configPath),dist:directoryRecord("dist")};
@@ -144,7 +172,7 @@ export function recordAttributedBuild({configPath,work,profile}) {
     sameFiles(receipt.beforeNative.dist.files,receipt.afterNative.dist.files,"Embedded dist during native build");
     knownUnchanged(before.knownFolder,receipt.afterNative.knownFolder);
     knownUnchanged(before.retainedT19,receipt.afterNative.retainedT19);
-    const sourceDirectory=join(recipe.target,profile),frozenDirectory=join(root,"frozen-runtime");
+    const sourceDirectory=recipe.artifactDirectory,frozenDirectory=join(root,"frozen-runtime");
     const names=readdirSync(sourceDirectory).filter(name=>/\.dll$/i.test(name)).sort();
     if(!names.some(name=>name.toLowerCase()==="directml.dll"))throw Error("The actual native build must supply DirectML.dll beside kinshoko.exe");
     mkdirSync(frozenDirectory);
@@ -170,8 +198,18 @@ export function checkAttributedBuild(receiptPath) {
   if(receipt.kind!=="spec78-t20-attributed-build"||receipt.status!=="built-frozen")throw Error("A successful actual attributed build receipt is required; separate current EXE/config hashes are insufficient");
   const {recipe,before,afterFrontend,beforeNative,afterNative,steps,artifacts}=receipt;
   if(receipt.nativeExecuted!==false||receipt.installerExecuted!==false||recipe.cwd!==resolve(".")||recipe.target!==resolve("target"))throw Error("The build receipt belongs to another checkout or lifecycle");
-  const expected=buildRecipe(before.config.path,recipe.profile);
-  for(const key of ["frontend","native","environment"])if(JSON.stringify(recipe[key])!==JSON.stringify(expected[key]))throw Error("The exact isolated build recipe differs: "+key);
+  if(JSON.stringify(receipt.absentOverrides)!==JSON.stringify(absentBuildOverrides())||JSON.stringify(recipe.absentOverrides)!==JSON.stringify(receipt.absentOverrides))throw Error("Actual build override absence is missing or changed");
+  if(!recipe.rust?.compiler||recipe.rust.probes?.length!==4||JSON.stringify(receipt.rustProbeSteps)!==JSON.stringify(recipe.rust.probes))throw Error("Actual Rust target, compiler and four version/sysroot command observations are required");
+  verifyRecord(recipe.rust.compiler,"Recorded explicit Rust compiler");
+  const expectedProbes=[["rustc",["-vV"]],["cargo",["-vV"]],["rustc",["--print","sysroot"]],[recipe.rust.compiler.path,["-vV"]]];
+  for(const [index,probe] of recipe.rust.probes.entries()) {
+    const [executable,args]=expectedProbes[index];
+    if(probe.exit!==0||probe.error||probe.cwd!==recipe.cwd||probe.executable!==executable||JSON.stringify(probe.args)!==JSON.stringify(args))throw Error("Actual Rust toolchain command/exit is missing or differs");
+    verifyRecord(probe.stdout,"Rust probe stdout");verifyRecord(probe.stderr,"Rust probe stderr");
+  }
+  if(resolve(text(recipe.rust.probes[2].stdout.path).trim())!==recipe.rust.sysroot||recipe.rust.compiler.path!==join(recipe.rust.sysroot,"bin","rustc.exe")||text(recipe.rust.probes[3].stdout.path)!==text(recipe.rust.probes[0].stdout.path))throw Error("Rust sysroot/compiler attribution differs");
+  const expected=buildRecipe(before.config.path,recipe.profile,recipe.rust);
+  for(const key of ["frontend","native","environment","artifactDirectory"])if(JSON.stringify(recipe[key])!==JSON.stringify(expected[key]))throw Error("The exact isolated build recipe differs: "+key);
   verifyRecord(recipe.node,"Recorded Node runtime");
   for(const [name,tool] of Object.entries(recipe.tools))verifyRecord(tool,"Recorded build tool "+name);
   if(steps.length!==2)throw Error("Both actual frontend and native build commands are required");
@@ -190,11 +228,11 @@ export function checkAttributedBuild(receiptPath) {
   verifyRecord(before.config,"Attributed isolated config");
   knownUnchanged(before.knownFolder,afterNative.knownFolder);knownUnchanged(before.retainedT19,afterNative.retainedT19);
   ownedWork(artifacts.directory);
-  if(dirname(artifacts.application.frozen.path)!==artifacts.directory||artifacts.application.source.path!==join(recipe.target,recipe.profile,"kinshoko.exe"))throw Error("Application provenance is not the actual isolated target output and owned frozen copy");
+  if(dirname(artifacts.application.frozen.path)!==artifacts.directory||artifacts.application.source.path!==join(recipe.artifactDirectory,"kinshoko.exe"))throw Error("Application provenance is not the actual isolated target output and owned frozen copy");
   const entries=[["kinshoko.exe",artifacts.application],...Object.entries(artifacts.runtime)];
   if(!entries.some(([name])=>name.toLowerCase()==="directml.dll"))throw Error("Frozen DirectML runtime is required");
   for(const [name,item] of entries) {
-    if(dirname(item.frozen.path)!==artifacts.directory||item.frozen.path!==join(artifacts.directory,name)||item.source.path!==join(recipe.target,recipe.profile,name))throw Error("A frozen runtime path escaped its exact build directory");
+    if(dirname(item.frozen.path)!==artifacts.directory||item.frozen.path!==join(artifacts.directory,name)||item.source.path!==join(recipe.artifactDirectory,name))throw Error("A frozen runtime path escaped its exact build directory");
     verifyRecord(item.frozen,"Frozen native "+name);
     if(item.source.sha256!==item.frozen.sha256||item.source.bytes!==item.frozen.bytes)throw Error("The frozen native file differs from its actual build output: "+name);
   }

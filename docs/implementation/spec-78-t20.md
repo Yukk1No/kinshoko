@@ -24,7 +24,7 @@
 
 ## 离线组合脚本准备
 
-入口：[spec78-combination.mjs](../../e2e/spec78-combination.mjs)。本阶段没有构建或启动程序。缺少最终 `spec78-combination-original.mjs` 时，入口在启动驱动前拒绝原生执行。最终 T17 仍须先合入。
+入口：[spec78-combination.mjs](../../e2e/spec78-combination.mjs)。本阶段没有构建或启动程序。当前已新增 `spec78-combination-original.mjs`。入口仍在启动驱动前要求真实构建包含已审查的 T17 来源，并绑定本轮观察器／像素工具 SHA。最终 T17 尚未合入本工作树；原生阶段未执行。
 
 - `fixture` 与 `preflight` 生成本轮独立 v16 A/B、位置及透明度原图、13MB 封印样本、144张瀑布流样本。Eagle 输入复用 T14 的实际像素及 metadata 结构，保留源脚本 SHA。冻结记录绑定实际源码文件、dist、隔离配置、EXE、驱动、未使用的输入及两种 KnownFolder 路径。
 - `workflow` 在同一会话连续操作 A/B：登记与迁移、按来源 AND／去重、独立整理、明确 B 来源的钉图／组／复制、导出与再导入、输入后真实 catalog 变更触发监视器，以及任务提交目标与当前库／查找范围／下次保存目标分离。
@@ -55,7 +55,7 @@
 
 ## 尚未执行的构建与桌面门槛
 
-最终 T17 合入和原图阶段收口后，根代理先指定 clean commit/tree、profile 和独立配置，再执行本树的显式 `--build <build-input.json>`。输入只包含 `configPath`、新的 owned `work` 路径和明确的 `profile`（`debug` 或 `release`）。此动作依次实际运行本地 Vite CLI 和 Tauri `build --no-bundle --config <exact-config>`，记录命令、cwd、jobs=2／本树 target、退出状态和原始 stdout／stderr。构建动作不会由 import、freeze、plan 或 run 自动触发。
+最终 T17 合入和原图阶段收口后，根代理先指定 clean commit/tree、profile 和独立配置，再执行本树的显式 `--build <build-input.json>`。输入只包含 `configPath`、新的 owned `work` 路径和明确的 `profile`（`debug` 或 `release`）。此动作依次实际运行本地 Vite CLI 和 Tauri `build --no-bundle --target <actual-Rust-host> --config <exact-config>`，记录命令、cwd、jobs=2／本树 target、退出状态和原始 stdout／stderr。构建动作不会由 import、freeze、plan 或 run 自动触发。
 
 回执必须记录前端构建前、前端构建后、native 构建前、native 构建后的实际源码文件；包含 data/.cargo。所有源码和隔离 config 必须一致。前端产出的 dist 必须与 native 构建前后相同。记录 T20 与已有 T19 的 requested／resolved KnownFolder 字节状态。失败回执保留，不能生成可运行计划。
 
@@ -66,6 +66,26 @@
 原型对照仍须从本轮正式程序的实际 A 范围卡片／顺序和已核 SHA 的同样本生成输入，使用认可原型 `bd8aea44c4a311571ee3c07382cb7755f87f3153`、同 CSS viewport／DPR／字体，并另记聚合入口的有意差异。没有运行原型或读取屏幕。
 
 NSIS 仍须另做实际 release 构建、干净安装和旧→新升级。不能把 debug 包计为 release。可复用 T19 实际0.1.0旧包（SHA `b1ee1339bbc0e9e2981d50f6519409aab81b73f3574504a857a6fd0afb2a8e91`），但必须明确它原本是 debug baseline。新包保留该隔离产品身份，单独记录命令／退出、实际 release hook 和 runtime、bare EXE／NSIS packaged EXE／安装后 EXE 的区别、PE版本及两路径设置前后。已有 T19 设置和正式 HKCU Run 必须先由 root 核对并保全。这些安装步骤尚未执行。
+
+## 原图组合阶段的新增离线准备
+
+新增 [spec78-combination-original.mjs](../../e2e/spec78-combination-original.mjs) 和纯文件 [spec78-combination-original-pixels.py](../../e2e/spec78-combination-original-pixels.py)。本段是待运行的脚本行为。没有启动程序、原型、CIM、编译器或构建，也没有读取屏幕或剪贴板。
+
+脚本直接读取固定 T17 `1d188e52a9639319dbaf90de9fe46a9a6fcea9b3` 的公开 capture、PinFrame 和像素工具契约。没有 import 旧顶层 runner。当前部分产品 `b856` 即使已加入该脚本，也会在启动前被祖先门槛拒绝。最终来源仍须由根代理合入后重新冻结。原生观察器由真实集成带入，不预先拷贝或修改冻结 T17 输入。
+
+同一真实 A/B 会话内，脚本计划核对图片墙、虚拟返回与真实侧栏重排、适应窗口的 A 查看器，以及明确 B 来源的局部钉图。钉图实际经过水平翻转、顺时针四分之一圈和缩放。选区由真实 overlay 的 pointer 拖动与实际物理选区读取；截图必须显示完整尺寸和三个操作按钮。复制后直接只读实际 OS 剪贴板，再将完整 RGBA、透明度和尺寸与原图区域比较。原图动作不得增加普通截图历史。新钉图须保留明确 provider／image、原图 crop 和变换。
+
+两类失效检查保留同一会话：从实际 B pin WebView 调用其有权限的 `close_pin`，确认该窗口销毁而冻结选区仍存在；另将明确 A 来源移入回收站，确认 byte-identical B 仍可用。两次完成动作均须返回真实业务错误，剪贴板 RGBA／尺寸和普通历史保持原样。A 之后通过明确恢复动作还原。没有通过 main 关闭 pin，也没有放宽正式 ACL。
+
+纯文件 oracle 用精确分数反解几何边缘，读取本轮已导入原图的真实 RGBA。它不调用 ImageGrab 或 Win32。原生观察器只会在根代理新 grant 的正式阶段执行。钉图手工 rAF 动画还必须等实际 canvas BCR×DPR 与 native content 完全对齐，不能只看 `getAnimations()`。画布若禁止 JS 读回，会保留该状态；实际冻结选区仍须显示非占位的图片细节。不能把未执行的像素比较称为原图质量通过。
+
+构建门槛另要求 `CARGO_BUILD_TARGET` 与 `TAURI_CONFIG` 两个变量均不存在，空值也拒绝。实际构建动作才运行并保留 `rustc -vV`、`cargo -vV`、`rustc --print sysroot` 和明确 compiler 的版本命令／退出／原始日志。选用的 compiler SHA、实际 Windows MSVC host、显式 `--target`、继承环境及 jobs=2 均记录。产物从 `<own-target>/<actual-host>/<profile>` 冻结，不能从继承 target 猜路径。失败的工具链观察也保留在失败回执。
+
+本轮离线检查原件在 ignored `work/e2e/spec78-t20-original-preparation-1791508193093/`。前四个检查器轮次分别保留：缺 Babel parser；错误假设 TypeScript 7 提供旧 API；错误 EOF 名称造成约30秒 Node heap OOM／退出134；有界扫描后发现当前未集成树缺 T17 原生观察器。它们属于检查器或未满足的集成前提，不属于正式程序结果。根代理已核对 OOM 负载没有与 T17 fullwall 轮重叠。诊断独占期间已暂停扫描和检查。根代理确认释放后，最终有界8项辅助检查通过；纯文件7项检查通过，含16种翻转／四分之一圈组合。最终原件另存在 `work/e2e/spec78-t20-original-final-checks-1791509076541/`。嵌入的浏览器脚本只做语法编译，没有执行。当前缺失观察器仍按未满足记录；T17 合入后必须再核真实依赖。
+
+最小派生记录：[combination-original-preparation.json](evidence/spec78-t20/combination-original-preparation.json)。全部原始输入、失败和最终检查分别绑定实际字节与 SHA。不能累计为正式组合验收。
+
+原型输入采用探索记录 `prototype-final-packet-notes.md`（仓库外 SHA `450ce2c43ffa10b78edbbce25a9586ef21a633b364e573100830a0da409580e3`）。正式包使用本轮 public A 全页顺序、逐来源真实 collectedAt 和 exact 原图；不能继承旧43张、编日期或取子集凑一致。认可原型的 date DESC stable sort 必须实际保持同序。旧 `.local` 全目录和既有 browser profile 均须保留。该方案尚未执行。
 
 ## 最终验收仍在准备
 
