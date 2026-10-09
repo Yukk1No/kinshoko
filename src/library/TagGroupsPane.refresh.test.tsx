@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "../App";
@@ -64,7 +64,12 @@ async function openPicker(beforePicker?: () => Promise<void>) {
   render(<App />);
   fireEvent.click(await screen.findByText("整理标签分组"));
   const region = await screen.findByRole("region", { name: "标签分组" });
-  fireEvent.click(within(region).getByRole("button", { name: "新建标签分组" }));
+  // The create button stays disabled until the first group refresh settles.
+  fireEvent.click(await waitFor(() => {
+    const button = within(region).getByRole<HTMLButtonElement>("button", { name: "新建标签分组" });
+    expect(button.disabled).toBe(false);
+    return button;
+  }));
   const name = within(region).getByRole("textbox", { name: "新标签分组名称" });
   fireEvent.change(name, { target: { value: "发色" } });
   fireEvent.keyDown(name, { key: "Enter" });

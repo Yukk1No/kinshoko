@@ -459,7 +459,13 @@ describe("标签分组", () => {
   it("建立全局分组、从统一标签挑成员，侧栏按分组列出计数；点标签按它浏览", async () => {
     render(<App />);
     const groups = await screen.findByRole("region", { name: "标签分组" });
-    fireEvent.click(within(groups).getByRole("button", { name: "新建标签分组" }));
+    // The region appears before its first group refresh settles; the create button stays disabled until then.
+    const create = await waitFor(() => {
+      const button = within(groups).getByRole<HTMLButtonElement>("button", { name: "新建标签分组" });
+      expect(button.disabled).toBe(false);
+      return button;
+    });
+    fireEvent.click(create);
     const name = within(groups).getByRole("textbox", { name: "新标签分组名称" });
     fireEvent.change(name, { target: { value: "发色" } });
     fireEvent.keyDown(name, { key: "Enter" });
@@ -522,7 +528,11 @@ describe("标签分组", () => {
     expect(await within(groups).findByRole("group", { name: "头发颜色" })).toBeTruthy();
     expect(sent("plugin:library|edit_shared_tag_group").at(-1)).toEqual({ edit: { kind: "rename", groupId: "G1", name: "头发颜色" }, safeMode: true });
 
-    fireEvent.click(within(groups).getByRole("button", { name: "新建标签分组" }));
+    fireEvent.click(await waitFor(() => {
+      const button = within(groups).getByRole<HTMLButtonElement>("button", { name: "新建标签分组" });
+      expect(button.disabled).toBe(false);
+      return button;
+    }));
     fireEvent.change(within(groups).getByRole("combobox", { name: "分组内容" }), { target: { value: "general" } });
     const name = within(groups).getByRole("textbox", { name: "新标签分组名称" });
     fireEvent.change(name, { target: { value: "一般" } });
