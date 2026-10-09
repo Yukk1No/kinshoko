@@ -136,8 +136,8 @@ fmt 通过；workspace 全目标 strict Clippy 通过；绑定重新生成后无
 
 ### 产品修正（均先有公开行为 RED）
 
-- `src/wall/Wall.tsx:198`：再次选中同一范围会传入值相同的新对象。清空卡片的 effect 按对象身份触发，重新浏览的 effect 不触发，图片墙停在“无卡片、无数量、无错误”。r5/r6 实际复现；诊断 diag3 观察 60 秒仍为空，同时公开 browse 约 50 ms 返回 1 张。改为按范围值触发。公开组件 RED→GREEN：`Wall.workspace.test.tsx`。
-- `src/library/LibraryPicker.tsx:30`：内容恢复在空白环境中登记的新资料库已出现在工作区侧栏，但“当前资料库”只有“尚未打开”，需手动“刷新登记”（r10 实际复现）。改为在工作区资料库集合变化时重读登记。RED→GREEN：`LibraryPicker.test.tsx`。
+- `src/wall/Wall.tsx:200`：再次选中同一范围会传入值相同的新对象。清空卡片的 effect 按对象身份触发，重新浏览的 effect 不触发，图片墙停在“无卡片、无数量、无错误”。r5/r6 实际复现；诊断 diag3 观察 60 秒仍为空，同时公开 browse 约 50 ms 返回 1 张。改为按范围值触发。公开组件 RED→GREEN：`Wall.workspace.test.tsx`。
+- `src/library/LibraryPicker.tsx:34`：内容恢复在空白环境中登记的新资料库已出现在工作区侧栏，但“当前资料库”只有“尚未打开”，需手动“刷新登记”（r10 实际复现）。改为在工作区资料库集合变化时重读登记。RED→GREEN：`LibraryPicker.test.tsx`。
 
 ### 计划内界面观察的复核
 
