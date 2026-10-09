@@ -10,6 +10,13 @@ export async function until(label,read,timeout=30000) {
   while(Date.now()<end) {try {const value=await read();if(value)return value;} catch(error){last=error;} await sleep(100);}
   throw Error(`Timed out: ${label}${last?` (${last.message})`:""}`);
 }
+// Release polling: an observation failure or collision ends the poll immediately.
+// Unlike until, it never retries past an error into a later empty "released" state.
+export async function untilStrict(label,read,timeout=30000) {
+  const end=Date.now()+timeout;
+  while(Date.now()<end) {const value=await read();if(value)return value;await sleep(100);}
+  throw Error(`Timed out: ${label}`);
+}
 export class CombinationDriver {
   constructor({application,edgeDriver,tauriDriver,work,port,data,profile}) {
     this.application=resolve(application);this.edgeDriver=resolve(edgeDriver);this.tauriDriver=resolve(tauriDriver);
@@ -163,7 +170,7 @@ $ports=@([System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperti
   async waitReleased(label) {
     let last;
     try {
-      last=await until(label,()=>{const state=this.observeOwned();this.rememberOwned(state);last=state;return !state.processes.length&&!state.ports.length?state:null;},15000);
+      last=await untilStrict(label,()=>{const state=this.observeOwned();this.rememberOwned(state);last=state;return !state.processes.length&&!state.ports.length?state:null;},15000);
       return last;
     } catch(error) {this.save("release-unconfirmed.json",{status:"failed-release",error:String(error),last});throw error;}
   }

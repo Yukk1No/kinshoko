@@ -5,7 +5,7 @@ import {spawn,spawnSync} from "node:child_process";
 import {closeSync,existsSync,mkdirSync,openSync,readFileSync,realpathSync,writeFileSync} from "node:fs";
 import {dirname,isAbsolute,join,relative,resolve,sep} from "node:path";
 import {pathToFileURL} from "node:url";
-import {CombinationDriver,until} from "./spec78-combination-driver.mjs";
+import {CombinationDriver,until,untilStrict} from "./spec78-combination-driver.mjs";
 import {compareAcceptedPrototype,localInventory} from "./spec78-combination-prototype.mjs";
 import {fileRecord,ownedWork,readJson,sameSnapshot,sourceRecord,verifyRecord} from "./spec78-combination-preflight.mjs";
 
@@ -29,28 +29,29 @@ function argument(tokens,name,value) {
 function exactIdentity(item) {
   return Number.isSafeInteger(item?.pid)&&item.pid>0&&Number.isSafeInteger(item.parentPid)&&item.parentPid>=0&&typeof item.created==="string"&&Number.isFinite(Date.parse(item.created))&&typeof item.executable==="string"&&isAbsolute(item.executable);
 }
-// Pure identity classifier. A basename/old PID or profile-prefix match never owns a process.
+function exactSpawnBirth(item) {
+  const birth=item?.birth,created=Date.parse(item?.created);
+  return exactIdentity(item)&&birth&&[birth.startedAt,birth.returnedAt,birth.observedAt].every(Number.isSafeInteger)&&birth.startedAt<=created&&created<=birth.returnedAt&&birth.returnedAt<=birth.observedAt&&birth.childPid===item.pid&&birth.creatorPid===item.parentPid&&birth.creatorPid===process.pid&&norm(birth.executable)===norm(item.executable);
+}
+// Only this round's captured ChildProcess birth, or a previously verified descendant
+// of that birth, can own a process. Path/port/profile matches are collision evidence.
 export function classifyPrototypeProcesses(snapshot,binding,historical=[]) {
   if(!Array.isArray(snapshot?.processes)||!Array.isArray(snapshot?.ports))fail("A successful complete CIM/port observation is required");
   const current=snapshot.processes,selected=new Map(),spawned=binding.spawned??[];
+  const checkedAt=Date.parse(snapshot.checkedAt);
+  if(!Number.isFinite(checkedAt)||checkedAt>Date.now())fail("The process observation time is unconfirmed or in the future");
   for(const prior of spawned) {
+    if(!exactSpawnBirth(prior))fail("A spawned root lacks its bounded ChildProcess birth identity");
     const item=current.find(process=>process.pid===prior.pid);
     if(item&&!sameInstance(item,prior))fail("The spawned server/driver PID was reused or its exact identity changed");
   }
   for(const item of current) {
-    const tokens=commandTokens(item.commandLine),path=norm(item.executable),prior=historical.find(old=>sameInstance(item,old));
-    let ownership=null;
-    if(spawned.some(old=>sameInstance(item,old)))ownership="initial-spawned-path-pid-creation";
-    else if(prior)ownership="previously-observed-exact-instance";
-    else if(path===norm(binding.edgeDriver)&&argument(tokens,"--port",binding.ports.driver))ownership="exact-edge-driver-path-and-port";
-    else if(path===norm(binding.node)&&tokens.some(token=>norm(token)===norm(binding.viteCli))&&argument(tokens,"--config",binding.viteConfig)&&argument(tokens,"--port",binding.ports.vite))ownership="exact-owned-vite-cli-config-and-port";
-    else if(argument(tokens,"--user-data-dir",binding.profile)) {
-      if(path!==norm(binding.browserBinary))fail("The exact owned profile is used by an unexpected executable");
-      ownership="exact-browser-path-and-profile-argument";
-    }
-    if(ownership) {
-      if(!exactIdentity(item))fail("Owned process observation lacks exact PID/path/creation");
-      selected.set(item.pid,{...item,ownership});
+    const root=spawned.find(old=>sameInstance(item,old)),prior=historical.find(old=>sameInstance(item,old));
+    if(root)selected.set(item.pid,{...item,ownership:"initial-spawned-path-pid-creation",rootPid:root.pid,rootCreated:root.created,rootExecutable:root.executable});
+    else if(prior) {
+      const origin=spawned.find(old=>old.pid===prior.rootPid&&old.created===prior.rootCreated&&norm(old.executable)===norm(prior.rootExecutable));
+      if(!origin||!exactIdentity(item)||Date.parse(item.created)<Date.parse(origin.created))fail("Historical ownership has no verified birth root");
+      selected.set(item.pid,{...item,ownership:"previously-verified-exact-descendant",rootPid:origin.pid,rootCreated:origin.created,rootExecutable:origin.executable});
     }
   }
   for(const item of selected.values()) {
@@ -62,17 +63,26 @@ export function classifyPrototypeProcesses(snapshot,binding,historical=[]) {
     for(const item of current) {
       if(selected.has(item.pid)||!selected.has(item.parentPid))continue;
       const parent=selected.get(item.parentPid);
-      if(!exactIdentity(item)||Date.parse(item.created)<Date.parse(parent.created))fail("Owned descendant identity/creation is unconfirmed");
+      if(!exactIdentity(item)||Date.parse(item.created)<Date.parse(parent.created)||Date.parse(item.created)>checkedAt)fail("Owned descendant identity/creation is unconfirmed");
       const tokens=commandTokens(item.commandLine),hasProfile=tokens.some(token=>token==="--user-data-dir"||token.startsWith("--user-data-dir="));
       if((hasProfile||norm(parent.executable)===norm(binding.edgeDriver)&&norm(item.executable)===norm(binding.browserBinary))&&!argument(tokens,"--user-data-dir",binding.profile))fail("An owned descendant has an unconfirmed or conflicting browser profile");
       if(!inDirectory(item.executable,dirname(binding.browserBinary))&&!inDirectory(item.executable,binding.dependencies))fail("Unexpected executable descended from an owned browser/server; preserve unconfirmed release");
-      selected.set(item.pid,{...item,ownership:"verified-current-parent-exact-path-descendant"});changed=true;
+      selected.set(item.pid,{...item,ownership:"verified-current-parent-exact-path-descendant",rootPid:parent.rootPid,rootCreated:parent.rootCreated,rootExecutable:parent.rootExecutable});changed=true;
     }
     if(!changed)break;if(pass===current.length)fail("Unexpected cyclic process ancestry");
   }
   const ports=snapshot.ports.filter(port=>[binding.ports.driver,binding.ports.vite].includes(port.port));
-  for(const port of ports)if(!Number.isSafeInteger(port.pid)||!selected.has(port.pid))fail("A reserved prototype listener belongs to an unowned process");
-  return {processes:[...selected.values()],ports,checkedAt:snapshot.checkedAt,observedProcessCount:current.length};
+  const collisions=[];
+  for(const item of current) {
+    if(selected.has(item.pid))continue;
+    const tokens=commandTokens(item.commandLine),path=norm(item.executable);let reason;
+    if(path===norm(binding.edgeDriver)&&argument(tokens,"--port",binding.ports.driver))reason="foreign-exact-driver-path-port";
+    else if(path===norm(binding.node)&&tokens.some(token=>norm(token)===norm(binding.viteCli))&&argument(tokens,"--config",binding.viteConfig)&&argument(tokens,"--port",binding.ports.vite))reason="foreign-exact-vite-path-config-port";
+    else if(argument(tokens,"--user-data-dir",binding.profile))reason="foreign-exact-profile-argument";
+    if(reason)collisions.push({pid:item.pid,parentPid:item.parentPid,executable:item.executable,created:item.created,reason});
+  }
+  for(const port of ports)if(!Number.isSafeInteger(port.pid)||!selected.has(port.pid))collisions.push({pid:port.pid,port:port.port,reason:"foreign-reserved-listener"});
+  return {processes:[...selected.values()],ports,collisions,checkedAt:snapshot.checkedAt,observedProcessCount:current.length};
 }
 export const browserObservationScript=String.raw`
 $ErrorActionPreference='Stop'
@@ -134,28 +144,33 @@ export class OwnedPrototypeBrowser {
     this.plan=plan;this.input=input;this.work=plan.work;this.profile=plan.profile;this.binding=structuredClone(plan.binding);
     this.url="http://127.0.0.1:"+plan.ports.driver;this.session=null;this.trace=[];this.assertions=[];this.ownedProcesses=[];this.release=null;this.children=[];this.logs=[];this.process=null;
   }
-  observeOwned() {
+  querySnapshot() {
     const observed=spawnSync(this.plan.powershell.path,["-NoProfile","-NonInteractive","-Command",browserObservationScript],{windowsHide:true,encoding:"utf8"});
     if(observed.status!==0||observed.error)fail("Exact prototype CIM/listener query failed: "+observed.stderr);
     const snapshot=JSON.parse(observed.stdout.trim().replace(/^\uFEFF/,""));
     // The full CIM result is used in memory only. Reports contain the filtered owned
     // identities; unrelated human process command lines are never persisted.
-    return classifyPrototypeProcesses(snapshot,this.binding,this.ownedProcesses);
+    return snapshot;
   }
-  initialSpawn(child,path,label) {
-    const state=this.observeOwned(),item=state.processes.find(process=>process.pid===child.pid);
-    if(!item||norm(item.executable)!==norm(path)||!item.created||child.exitCode!==null||child.signalCode!==null)fail("The initially spawned "+label+" is not a live exact executable/PID/creation instance");
-    this.binding.spawned.push(item);this.rememberOwned(state);this.record("prototype-initial-spawn",{label,item});return item;
+  observeOwned() {
+    return classifyPrototypeProcesses(this.querySnapshot(),this.binding,this.ownedProcesses);
+  }
+  initialSpawn(child,path,label,birth) {
+    const snapshot=this.querySnapshot(),observedAt=Date.now(),observed=snapshot.processes.find(process=>process.pid===child.pid),item=observed?{...observed,birth:{...birth,observedAt,childPid:child.pid,creatorPid:process.pid,executable:path}}:null;
+    this.record("prototype-spawn-birth-observation",{label,startedAt:birth.startedAt,returnedAt:birth.returnedAt,observedAt,childPid:child.pid,created:observed?.created??null,executable:observed?.executable??null,parentPid:observed?.parentPid??null});
+    if(!this.children.includes(child)||!exactSpawnBirth(item)||norm(item.executable)!==norm(path)||child.exitCode!==null||child.signalCode!==null)fail("The initially spawned "+label+" is not a live exact executable/PID/creation/parent instance");
+    this.binding.spawned.push(item);this.rememberOwned(classifyPrototypeProcesses(snapshot,this.binding,this.ownedProcesses));this.record("prototype-initial-spawn",{label,item});return item;
   }
   spawnOwned(label,executable,args,cwd) {
     const out=openSync(join(this.work,label+"-stdout.txt"),"wx"),err=openSync(join(this.work,label+"-stderr.txt"),"wx");
     this.logs.push(out,err);
-    const child=spawn(executable,args,{cwd,windowsHide:true,stdio:["ignore",out,err]});this.children.push(child);
+    const startedAt=Date.now(),child=this.launchProcess(executable,args,cwd,["ignore",out,err]),returnedAt=Date.now();this.children.push(child);
     child.on("error",error=>this.record("spawn-error",{label,error:String(error)}));
-    this.initialSpawn(child,executable,label);return child;
+    this.initialSpawn(child,executable,label,{startedAt,returnedAt});return child;
   }
+  launchProcess(executable,args,cwd,stdio) {return spawn(executable,args,{cwd,windowsHide:true,stdio});}
   async boot() {
-    const before=this.observeOwned();this.assert(before.processes.length===0&&before.ports.length===0,"prototype exact server/driver/profile/ports are unused before boot",before);
+    const before=this.observeOwned();this.assert(before.processes.length===0&&before.ports.length===0&&before.collisions.length===0,"prototype exact server/driver/profile/ports are unused before boot",before);
     if(existsSync(this.profile))fail("Never reuse or clear an existing browser profile");
     const server=this.spawnOwned("vite",this.plan.node.path,[this.binding.viteCli,"--config",this.binding.viteConfig,"--host","127.0.0.1","--port",String(this.plan.ports.vite),"--strictPort"],this.input.mirror);
     await until("owned Vite listener ready",async()=>{if(server.exitCode!==null||server.signalCode!==null)fail("Owned Vite exited during startup");const state=this.observeOwned();this.rememberOwned(state);return state.ports.some(port=>port.port===this.plan.ports.vite&&port.pid===server.pid)&&await fetch("http://127.0.0.1:"+this.plan.ports.vite).then(response=>response.ok);});
@@ -165,7 +180,7 @@ export class OwnedPrototypeBrowser {
     if(!created?.sessionId)fail("Actual owned Edge session response has no session ID");
     this.session="/session/"+created.sessionId;this.record("actual-prototype-capabilities",created.capabilities);
     const state=this.observeOwned();this.rememberOwned(state);
-    const roots=state.processes.filter(process=>process.ownership==="exact-browser-path-and-profile-argument"&&process.parentPid===driver.pid);
+    const roots=state.processes.filter(process=>process.parentPid===driver.pid&&norm(process.executable)===norm(this.binding.browserBinary)&&argument(commandTokens(process.commandLine),"--user-data-dir",this.profile));
     this.assert(roots.length===1,"one new actual Edge root belongs to the exact spawned driver and fresh profile",roots);
     await this.request("POST",this.session+"/url",{url:"http://127.0.0.1:"+this.plan.ports.vite});
     this.assert(await this.exec("return location.origin===arguments[0];",["http://127.0.0.1:"+this.plan.ports.vite]),"actual browser loads the owned accepted-prototype Vite origin");
@@ -181,6 +196,28 @@ export class OwnedPrototypeBrowser {
     const path=join(this.work,name);if(existsSync(path))fail("Preserve the actual prototype screenshot");
     writeFileSync(path,Buffer.from(await this.request("GET",this.session+"/screenshot"),"base64"),{flag:"wx"});
   }
+  async waitReleased(label) {
+    return untilStrict(label,()=>{
+      const state=this.observeOwned();this.rememberOwned(state);
+      if(state.collisions.length)fail("Foreign prototype collision remains; it cannot be stopped or counted as released");
+      return !state.processes.length&&!state.ports.length?state:null;
+    },15000);
+  }
+  async cleanup() {
+    this.release=null;
+    try {
+      if(this.session)await this.request("DELETE",this.session).catch(error=>this.record("session-delete-failed",{error:String(error)}));this.session=null;
+      const before=this.observeOwned();this.rememberOwned(before);
+      const termination=before.processes.length?this.terminateOwned(before.processes,"forced-owned-prototype-cleanup"):null;
+      const observed=this.observeOwned();this.rememberOwned(observed);
+      if(observed.collisions.length)fail("Foreign prototype collision remains; cleanup only handles this round's proven spawn lineage");
+      const after=await this.waitReleased("cleanup releases exact spawned prototype lineage and reserved ports");
+      this.release={released:true,before,termination,after};this.save("release.json",this.release);return this.release;
+    }catch(error) {
+      let remaining;try{remaining=this.observeOwned();this.rememberOwned(remaining);}catch(observation){remaining={unconfirmed:true,error:String(observation)};}
+      this.release={released:false,error:String(error),remaining};this.save("release.json",this.release);throw error;
+    }finally{this.save("command-trace.json",this.trace);}
+  }
   async finish() {
     try{return await this.cleanup();}
     finally{for(const fd of this.logs)closeSync(fd);this.logs=[];}
@@ -188,7 +225,7 @@ export class OwnedPrototypeBrowser {
 }
 // Share only the reviewed public WebDriver protocol and exact release state loop.
 // Native boot, tray helpers, application/window commands and profile rules are not inherited.
-for(const name of ["request","exec","async","find","click","enabled","key","record","assert","save","rememberOwned","waitReleased","cleanup"]) {
+for(const name of ["request","exec","async","find","click","enabled","key","record","assert","save","rememberOwned"]) {
   Object.defineProperty(OwnedPrototypeBrowser.prototype,name,{value:CombinationDriver.prototype[name]});
 }
 export async function runPrototypeBrowser(planPath,rootGrant) {
