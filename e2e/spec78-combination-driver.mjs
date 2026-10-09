@@ -3,6 +3,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, join, sep } from "node:path";
+import { createHash } from "node:crypto";
 const ELEMENT="element-6066-11e4-a52e-4f735466cecf";
 const sleep=(ms)=>new Promise(done=>setTimeout(done,ms));
 export async function until(label,read,timeout=30000) {
@@ -176,7 +177,9 @@ $ports=@([System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperti
   }
   async normalQuit(label) {
     const receipt=join(this.work,label+"-normal-quit.json");
-    const result=spawnSync("python",["e2e/native-tray-exit-t13.py",this.application,receipt],{windowsHide:true,encoding:"utf8",timeout:45000});
+    // The T13 helper binds T13's own frozen binary; T20 binds its exact frozen path and bytes.
+    const applicationSha256=createHash("sha256").update(readFileSync(this.application)).digest("hex");
+    const result=spawnSync("python",["e2e/native-tray-exit-t20.py",this.application,applicationSha256,receipt],{windowsHide:true,encoding:"utf8",timeout:45000});
     if(result.status!==0)throw Error(`Normal tray Quit failed ${label}: ${result.stderr}`);
     const value=JSON.parse(readFileSync(receipt,"utf8"));if(!value.processEnded)throw Error("Tray Quit did not end the owned process");
     this.record("normal-tray-quit",{label,receipt,value});
