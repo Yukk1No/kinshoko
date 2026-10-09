@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
-import { pickFolder, registeredLibraries, registerLibrary, switchLibrary, unregisterLibrary } from "../ipc";
+import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, switchLibrary, unregisterLibrary } from "../ipc";
 
 /** 本设备的资料库登记、切换与取消登记。不可用的登记仍可重试或取消。 */
 export function LibraryPicker({ current, onChanged, onCreate, blocked = false, compact = false }: {
@@ -26,6 +26,19 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, c
     );
     return () => { alive = false; };
   }, [current?.id, current?.root, current === undefined, revision]);
+
+  // Registrations can also change outside this picker (content restore, unregistration elsewhere).
+  // Re-read the list when the workspace's provider set changes.
+  useEffect(() => {
+    let ids: string | null = null;
+    const stop = onWorkspaceChanged((status) => {
+      const next = status.libraries.map((entry) => entry.library.id).sort().join("|");
+      if (ids !== null && next === ids) return;
+      ids = next;
+      setRevision((value) => value + 1);
+    });
+    return () => { void stop.then((unlisten) => unlisten()); };
+  }, []);
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
