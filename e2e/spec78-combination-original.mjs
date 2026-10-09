@@ -208,6 +208,28 @@ const b=size.getBoundingClientRect();return {region,size:size.textContent.trim()
     sample.status="verified-rejection";save();
   };
 
+  // r8 observed that moving the frozen A source to the recycle bin does not reject finish_capture: the spec
+  // ("known invalid source" vs. trash still being viewable) does not settle whether trash is invalidation.
+  // Record the actual outcome; either way the copy must never fall back to screen pixels or ordinary history.
+  const trashedSourceCopy=async sample=>{
+    await d.main();
+    const response=await d.async("const done=arguments[arguments.length-1];window.__TAURI_INTERNALS__.invoke('plugin:desktop|finish_capture',arguments[0]).then(value=>done({ok:true,value}),error=>done({ok:false,failure:String(error)}));",[{token:sample.token,region:sample.region,action:"copy"}]);
+    sample.finish=response;await waitCaptureGone(sample);
+    sample.afterHistory=await history();
+    d.assert(JSON.stringify(sample.beforeHistory)===JSON.stringify(sample.afterHistory),"a trashed frozen source never adds ordinary screenshot history: "+sample.label,response);
+    if(response.ok){
+      sample.afterClipboard=await until("trashed-source copy commits a stable clipboard image",()=>{const value=clipboardMetadata();return value.stableSequence&&value.sequence!==sample.clipboardBefore.sequence?value:null;}).catch(()=>clipboardMetadata());
+      sample.clipboard=readClipboard(sample.label+"-after");
+      sample.comparison=purePixels({mode:"compare",original:original.path,source:sample.source,selected:sample.selected,actual:sample.clipboard.file.path});
+      d.assert(sample.comparison.exit===0&&sample.comparison.value.matches,"an allowed trashed-source copy is the exact A original region, never screen pixels: "+sample.label,sample.comparison);
+      sample.policy="copy-allowed-from-trashed-source-original";
+    } else {
+      sample.afterClipboard=readClipboard(sample.label+"-after");
+      d.assert(sample.clipboardBefore.pixels.rgbaSha256===sample.afterClipboard.pixels.rgbaSha256,"a rejected trashed-source copy preserves the actual clipboard: "+sample.label,{before:sample.clipboardBefore,after:sample.afterClipboard});
+      sample.policy="rejected-as-invalid-source";
+    }
+    sample.status="observed-trashed-source-"+sample.policy;save();
+  };
   await workflow.current(workflow.a.id);await workflow.scope(workflow.a.id,workflow.folderA);await workflow.clearSearch();await closePopup();
   const first=await capture("wall-copy",prepareWall,"copy");
   d.assert(first.source.thumbnail.width<original.width,"the real wall displays a reduced derivative before original copy",first.source.thumbnail);
@@ -261,7 +283,7 @@ const b=size.getBoundingClientRect();return {region,size:size.textContent.trim()
   await d.main();await d.invoke("workspace_edit_source",{target:workflow.targetA,safeMode:true,edits:[{kind:"delete"}]});
   const deleted=await d.invoke("image",{libraryId:workflow.a.id,imageId:workflow.targetA.imageId}),bVisible=await workflow.inspect(workflow.targetB);
   d.assert(deleted.deletedAt!==null&&bVisible.detail.deletedAt===null,"only the frozen A source is deleted while byte-identical B stays registered and available",{deleted,bVisible});
-  state.invalidSource=invalid;await rejectedCopy(invalid);
+  state.invalidSource=invalid;await trashedSourceCopy(invalid);
   await d.invoke("workspace_edit_source",{target:workflow.targetA,safeMode:true,edits:[{kind:"restore"}]});
   d.assert((await workflow.inspect(workflow.targetA)).detail.deletedAt===null,"an explicit same-session action restores the original A source");
   await workflow.scope(workflow.a.id,workflow.folderA);await workflow.clearSearch();await prepareWall();
