@@ -8,6 +8,7 @@ import { CombinationDriver } from "./spec78-combination-driver.mjs";
 import { CombinationWorkflow } from "./spec78-combination-workflow.mjs";
 import { combinedBackups } from "./spec78-combination-backup.mjs";
 import { eagleReimportCombination } from "./spec78-combination-eagle.mjs";
+import { freezeFormalPrototypePacket } from "./spec78-combination-prototype.mjs";
 import { sealedTransferBoundaries } from "./spec78-combination-sealed.mjs";
 import { restartAndOffline, blankEnvironment } from "./spec78-combination-lifecycle.mjs";
 import { IDENTIFIER, readJson, ownedWork, fileRecord, recordAttributedBuild, freezeBuild, makeNativePlan, checkNativePlan, sourceRecord, knownFolderState, preserveKnownFolder, restoreKnownFolder } from "./spec78-combination-preflight.mjs";
@@ -34,6 +35,7 @@ export async function runCombined(planPath,desktopGrant) {
     report.environment=await d.exec("return {userAgent:navigator.userAgent,viewport:{width:innerWidth,height:innerHeight},outer:{width:outerWidth,height:outerHeight},dpr:devicePixelRatio,screen:{width:screen.width,height:screen.height,colorDepth:screen.colorDepth,pixelDepth:screen.pixelDepth},timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone};");
     d.assert(await d.invoke("safe_mode")===true,"isolated final formal program begins with global safe mode on");
     await workflow.registerAndMigrate();await workflow.importAndCurate();await workflow.sourceActions();await workflow.latePickerAndRules();await workflow.fixedImportOwner();
+    report.prototypePacket=await freezeFormalPrototypePacket(workflow,plan);
     await eagleReimportCombination(workflow);
     await originalCombination(workflow,plan);
     await workflow.strictAdultAndConsent();await sealedTransferBoundaries(workflow);await combinedBackups(workflow);await workflow.runtimeAndUpdateUI();
