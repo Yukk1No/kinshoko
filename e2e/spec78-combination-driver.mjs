@@ -187,6 +187,13 @@ $ports=@([System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperti
     await this.stopDriver();const released=await this.waitReleased("normal Quit releases exact app/profile/drivers/ports");
     this.record("normal-quit-release",{label,released});
   }
+  // Tauri's WebDriver window/rect leaves the WebView2 host unchanged; resize the owned main HWND.
+  nativeResize(deltaCss,dpr) {
+    const applicationSha256=createHash("sha256").update(readFileSync(this.application)).digest("hex");
+    const result=spawnSync("python",["e2e/native-window-resize-t20.py",this.application,applicationSha256,String(Math.round(deltaCss.width*dpr)),String(Math.round(deltaCss.height*dpr))],{windowsHide:true,encoding:"utf8",timeout:30000});
+    if(result.status!==0)throw Error("Owned main window resize failed: "+result.stderr);
+    const value=JSON.parse(result.stdout.trim());this.record("owned-main-native-resize",value);return value;
+  }
   terminateOwned(expected,label) {
     if(expected.some(item=>!Number.isInteger(item.pid)||item.pid<=0||!item.created||!item.executable))throw Error("An exact termination requires PID, creation time and executable for every instance");
     const script=String.raw`

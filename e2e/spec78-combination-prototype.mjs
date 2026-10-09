@@ -180,9 +180,9 @@ export async function setExactViewport(d,target) {
   for(let index=0;index<12;index++) {
     const now=await d.exec("return {width:innerWidth,height:innerHeight,dpr:devicePixelRatio};");
     if(now.width===target.width&&now.height===target.height)return {viewport:{width:now.width,height:now.height},dpr:now.dpr,observations};
-    const outer=await d.request("GET",d.session+"/window/rect");
-    const desired={width:outer.width+target.width-now.width,height:outer.height+target.height-now.height};
-    await d.request("POST",d.session+"/window/rect",desired);
+    let outer,desired;
+    if(typeof d.nativeResize==="function"){outer=d.nativeResize({width:target.width-now.width,height:target.height-now.height},now.dpr);desired="owned-main-SetWindowPos";}
+    else{outer=await d.request("GET",d.session+"/window/rect");desired={width:outer.width+target.width-now.width,height:outer.height+target.height-now.height};await d.request("POST",d.session+"/window/rect",desired);}
     const after=await until("real viewport responds to the actual rectangle request",()=>d.exec("return innerWidth!==arguments[0].width||innerHeight!==arguments[0].height?{width:innerWidth,height:innerHeight,dpr:devicePixelRatio}:null;",[now]));
     observations.push({now,outer,desired,after});
   }
