@@ -52,7 +52,7 @@ export async function originalCombination(workflow,plan) {
   const history=()=>desktop("capture_history");
   const assertSession=async label=>{
     await d.main();const registered=await d.invoke("registered_libraries");
-    d.assert(d.session===session&&await d.invoke("safe_mode")===true&&JSON.stringify(registered.map(item=>item.id).sort())===JSON.stringify([...state.providers].sort()),"original stage keeps the same real A/B session and global safe mode: "+label,{session:d.session,registered});
+    d.assert(d.session===session&&await d.invoke("safe_mode")===true&&JSON.stringify(registered.map(item=>item.library.id).sort())===JSON.stringify([...state.providers].sort()),"original stage keeps the same real A/B session and global safe mode: "+label,{session:d.session,registered});
   };
   const originalBefore=fileRecord(original.path);
   d.assert(originalBefore.sha256===original.sha256&&originalBefore.bytes===original.bytes,"this same-session capture oracle uses the original imported fixture bytes",originalBefore);
