@@ -1,6 +1,6 @@
 """T17: observe/focus the manifest-bound app; explicitly place its owned test fixture once.
 Adapted from the independently archived T13 process/foreground observer.
-No keyboard or mouse input is sent. Other windows contribute only HWND/PID/bounds.
+No keyboard or mouse input is sent. Other windows are only observed.
 """
 import ctypes
 from ctypes import wintypes as w
@@ -26,7 +26,7 @@ if mode == "focus-fixture":
     assert fixture_script.name == "occluder.ps1" and fixture_script.is_relative_to((Path.cwd() / "work/e2e").resolve())
     fixture_process = json.loads(subprocess.check_output([
         "powershell", "-NoProfile", "-NonInteractive", "-Command",
-        "Get-CimInstance Win32_Process -Filter ('ProcessId=' + $env:KINSHOKO_T17_FIXTURE_PID) | ForEach-Object { @{ProcessId=$_.ProcessId;ExecutablePath=$_.ExecutablePath;CommandLine=$_.CommandLine;createdUnixMs=([DateTimeOffset]$_.CreationDate.ToUniversalTime()).ToUnixTimeMilliseconds()} } | ConvertTo-Json -Compress"
+        "$ErrorActionPreference='Stop'; Get-CimInstance Win32_Process -Filter ('ProcessId=' + $env:KINSHOKO_T17_FIXTURE_PID) -ErrorAction Stop | ForEach-Object { @{ProcessId=$_.ProcessId;ExecutablePath=$_.ExecutablePath;CommandLine=$_.CommandLine;createdUnixMs=([DateTimeOffset]$_.CreationDate.ToUniversalTime()).ToUnixTimeMilliseconds()} } | ConvertTo-Json -Compress"
     ], env={**os.environ, "KINSHOKO_T17_FIXTURE_PID": str(extra_pid)}, creationflags=0x08000000))
     assert fixture_process["ProcessId"] == extra_pid
     assert Path(fixture_process["ExecutablePath"]).name.lower() == "powershell.exe"
@@ -83,6 +83,19 @@ try:
         value = int(u.GetWindowLongPtrW(hwnd,-20))
         error = ctypes.get_last_error()
         return {"value":value,"lastError":error,"topmost":bool(value & 8)}
+    def point_hit(x, y):
+        ctypes.set_last_error(0)
+        hit = u.WindowFromPoint(w.POINT(x, y)); hit_error = ctypes.get_last_error()
+        ctypes.set_last_error(0)
+        root = u.GetAncestor(hit, 2) if hit else None; root_error = ctypes.get_last_error()
+        root_pid = w.DWORD()
+        if root: u.GetWindowThreadProcessId(root, ctypes.byref(root_pid))
+        return {"hwnd": int(hit or 0), "lastError": hit_error, "rootHwnd": int(root or 0),
+                "rootLastError": root_error, "rootPid": root_pid.value}
+    def native_order_at(x, y):
+        return {"point": [x, y], "pointWindow": point_hit(x, y),
+                "rawVisibleZOrder": [{**item, "index": i} for i, item in enumerate(found)],
+                "mainZIndex": next((i for i, item in enumerate(found) if item["hwnd"] == main[0]["hwnd"]), None)}
     def visit(hwnd,_):
         owner = w.DWORD()
         u.GetWindowThreadProcessId(hwnd,ctypes.byref(owner))
@@ -122,12 +135,16 @@ try:
         rect = target["rect"]
         assert rect["x"] <= point_x < rect["x"] + rect["width"] and rect["y"] <= point_y < rect["y"] + rect["height"]
         fixture_placement["beforeWindow"] = target
+        fixture_placement["beforeNative"] = native_order_at(point_x, point_y)
         u.SetWindowPos.argtypes = [w.HWND, w.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, w.UINT]
         u.SetWindowPos.restype = w.BOOL
         ctypes.set_last_error(0)
         placed = bool(u.SetWindowPos(fixture_hwnd, w.HWND(-1), rect["x"], rect["y"], rect["width"], rect["height"], 0x50))
         fixture_placement["setWindowPos"] = {"returned": placed, "lastError": ctypes.get_last_error(), "flags": 0x50, "insertAfter": -1}
         fixture_placement["immediateStyle"] = extended_style(fixture_hwnd)
+        found.clear(); owned.clear(); fixture.clear()
+        assert u.EnumWindows(callback,0)
+        fixture_placement["immediateNative"] = native_order_at(point_x, point_y)
         time.sleep(.15)
         found.clear(); owned.clear(); fixture.clear()
         assert u.EnumWindows(callback,0)
@@ -152,13 +169,7 @@ try:
     point_window=None
     if len(sys.argv)>5 and not sys.argv[4].startswith("--"):
         point=[int(sys.argv[4]),int(sys.argv[5])]
-        ctypes.set_last_error(0)
-        hit=u.WindowFromPoint(w.POINT(*point)); hit_error=ctypes.get_last_error()
-        ctypes.set_last_error(0)
-        root=u.GetAncestor(hit,2) if hit else None; root_error=ctypes.get_last_error()
-        root_pid=w.DWORD()
-        if root: u.GetWindowThreadProcessId(root,ctypes.byref(root_pid))
-        point_window={"hwnd":int(hit or 0),"lastError":hit_error,"rootHwnd":int(root or 0),"rootLastError":root_error,"rootPid":root_pid.value}
+        point_window = point_hit(*point)
         r=main[0]["rect"]
         assert r["x"]<=point[0]<r["x"]+r["width"] and r["y"]<=point[1]<r["y"]+r["height"], "Only owned main bounds may be observed"
         above=[item for item in above if item["rect"]["x"]<=point[0]<item["rect"]["x"]+item["rect"]["width"] and item["rect"]["y"]<=point[1]<item["rect"]["y"]+item["rect"]["height"]]
