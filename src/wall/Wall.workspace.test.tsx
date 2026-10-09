@@ -66,3 +66,19 @@ it("安全模式和资料库范围改变时，旧候选页立即作废", async (
   await act(async () => calls[0].resolve(page([{ ...card, adult: true }])));
   expect(document.querySelector(".card")).toBeNull();
 });
+
+it("再次选中同一范围（值相同的新范围对象）时，图片墙不会清空成既无卡片也无数量的状态", async () => {
+  // T20 r5/r6：Eagle 步骤再次点击已选中的文件夹后，墙上没有卡片、没有数量、也没有错误。
+  const folder = () => ({ kind: "library" as const, libraryId: "B", scope: { kind: "folder" as const, id: "eagle" } });
+  const view = render(<Wall {...base} reloadKey={0} workspaceScope={folder()} safeMode />);
+  await settle();
+  await act(async () => calls[0].resolve(page([card])));
+  expect(document.querySelector(".card")?.getAttribute("data-id")).toBe("bytes");
+
+  view.rerender(<Wall {...base} reloadKey={0} workspaceScope={folder()} safeMode />);
+  await settle();
+  for (const call of calls.slice(1)) await act(async () => call.resolve(page([card])));
+  await settle();
+  expect(document.querySelector(".card")?.getAttribute("data-id")).toBe("bytes");
+  expect(document.querySelector<HTMLElement>(".wall")?.dataset.total).toBe("1");
+});

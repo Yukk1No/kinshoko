@@ -195,8 +195,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   );
 
   useEffect(() => { onCardsChange?.(cards); }, [cards, onCardsChange]);
+  // Keyed by value: re-selecting the same range creates a new but equal object. Clearing on that
+  // identity change emptied the wall without the reload below ever running again (T20 r5/r6).
+  const workspaceKey = workspaceScope ? JSON.stringify(workspaceScope) : null;
   useLayoutEffect(() => {
-    if (!workspaceScope) return;
+    if (!workspaceKey) return;
     generation.current += 1;
     inflight.current = null;
     // Emptying the canvas clamps browser scrollTop. Preserve the user's anchor
@@ -205,7 +208,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     setCards([]);
     setTotal(null);
     setCursor(null);
-  }, [reloadKey, safeMode, workspaceScope]);
+  }, [reloadKey, safeMode, workspaceKey]);
   useCaptureSources(() => {
     if (viewerOpen || !scroller.current || document.querySelector('[role="dialog"]')) return null;
     return [...scroller.current.querySelectorAll<HTMLImageElement>(".card img")].flatMap((image) => {
