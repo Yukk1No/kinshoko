@@ -54,7 +54,7 @@ export class CombinationWorkflow {
     return this.allPages({ kind: "library", libraryId, scope: folderId === null ? { kind: "all" } : { kind: "folder", id: folderId } }, blank, safeMode);
   }
   async task(id) { return (await this.d.invoke("import_tasks")).find(task => task.taskId === id); }
-  finish(id) { return until("real completed import receipt " + id, async () => { const task = await this.task(id); return task?.report && !task.finishing ? task : null; }, 90000); }
+  finish(id, timeout = 90000) { return until("real completed import receipt " + id, async () => { const task = await this.task(id); return task?.report && !task.finishing ? task : null; }, timeout); }
   async openImport() {
     if (!await this.d.exec("return document.querySelector('[aria-label=导入参考图]')?.getAttribute('aria-expanded')==='true';")) await this.readyClick("//button[@aria-label='导入参考图']");
   }
@@ -276,7 +276,8 @@ export class CombinationWorkflow {
     d.assert(await d.exec("return document.querySelector('.import-owner')?.textContent.includes('同名资料库 / 同名目录');"),"visible running receipt reports the fixed original provider and folder");
     d.assert(await d.invoke("cancel_import",{libraryId:this.a.id,taskId:id}).then(()=>false,()=>true),"a real pending task rejects cancellation through the wrong provider");
     await d.screenshot("05-fixed-owner-with-independent-browse-and-save.png");
-    const completed=await this.finish(id);this.receipts.push(completed);
+    // r3 observed ~14 entries/s for this 2000-entry debug-build task; 90s was a harness bound, not a product limit.
+    const completed=await this.finish(id,900000);this.receipts.push(completed);
     d.assert(!completed.report.cancelled&&completed.report.items.length===this.fixture.longImportCount,"same task completes every submitted entry after current, scope and next-save changes",completed);
     const source=async(libraryId)=>(await this.local(libraryId)).cards.find(card=>card.width===this.fixture.inputs.incoming.width&&card.height===this.fixture.inputs.incoming.height);
     d.assert(await source(this.b.id)&&!await source(this.a.id),"incoming original exists only in submitted B, never in browse/next-save A");
