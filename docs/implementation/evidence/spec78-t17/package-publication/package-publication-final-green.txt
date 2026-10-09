@@ -1,0 +1,18 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.41s
+     Running tests\reference_group_package.rs (target\debug\deps\reference_group_package-72e162d74d9bb4c7.exe)
+
+running 10 tests
+test export_is_refused_when_a_member_original_is_unavailable ... ok
+test package_carries_only_used_originals_once_with_snapshots_of_their_organisation ... ok
+test damaged_package_is_refused_before_anything_is_written ... ok
+test imported_package_group_is_usable_elsewhere_with_identical_originals_and_layout ... ok
+test package_import_uses_the_bound_destination_for_every_member_original ... ok
+test importing_merges_into_an_existing_identical_original_without_touching_manual_organisation ... ok
+test importing_writes_the_snapshot_as_a_package_source_layer_and_reimport_does_not_duplicate ... ok
+test imported_content_waits_for_definition_publication_before_saving_a_new_group ... ok
+test copied_rating_publication_waits_for_the_final_visibility_commit ... ok
+test package_rating_publication_waits_for_the_final_visibility_commit ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.21s
+

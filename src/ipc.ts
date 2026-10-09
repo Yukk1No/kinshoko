@@ -591,17 +591,17 @@ export function frozenScreen(): Promise<FrozenScreen | null> {
 }
 
 /** 框选窗口：冻结屏幕已画好，可以显示窗口了。 */
-export function captureReady(): Promise<void> {
-  return invoke<void>(desk("capture_ready"));
+export function captureReady(token: string): Promise<void> {
+  return invoke<void>(desk("capture_ready"), { token });
 }
 
 /** 框选完成；region 是相对显示器的物理像素。 */
-export function finishCapture(region: Region, action: CaptureAction): Promise<void> {
-  return invoke<void>(desk("finish_capture"), { region, action });
+export function finishCapture(region: Region, action: CaptureAction, token: string): Promise<void> {
+  return invoke<void>(desk("finish_capture"), { region, action, token });
 }
 
-export function cancelCapture(): Promise<void> {
-  return invoke<void>(desk("cancel_capture"));
+export function cancelCapture(token: string): Promise<void> {
+  return invoke<void>(desk("cancel_capture"), { token });
 }
 
 /** 把剪贴板里的图片钉住；剪贴板没有图片时 reject 中文原因。 */
@@ -744,11 +744,6 @@ export function savePinsToGroup(groupId: string, captures: import("./bindings/Ca
 
 export function groupSaveCaptures(): Promise<CaptureEntry[]> {
   return invoke<CaptureEntry[]>(desk("group_save_captures"));
-}
-
-/** 报告查看器已显示的参考图范围；全局 F1 据此保留来源与原图像素裁切。 */
-export function setCaptureReference(reference: import("./bindings/CaptureReference").CaptureReference | null): Promise<void> {
-  return invoke<void>(desk("set_capture_reference"), { reference });
 }
 
 /** 打开参考组：成员按保存的局部与摆放钉到桌面；返回新钉出的数量。 */
@@ -949,6 +944,10 @@ export function editSharedApprox(edit: import("./bindings/CatalogApproxEdit").Ca
   return invoke<void>(lib("edit_shared_approx"), { edit, safeMode });
 }
 
+/** Reply only to this native capture request; delayed replies cannot replace a newer frame. */
+export function reportCaptureReferences(request: string, frame: import("./bindings/CaptureReferenceFrame").CaptureReferenceFrame): Promise<void> {
+  return invoke<void>(desk("report_capture_references"), { request, frame });
+}
 
 /** Consent only to the backend-owned receipt; arbitrary image IDs are never accepted. */
 export function openImportPreview(libraryId: string, taskId: string): Promise<import("./bindings/ImportPreviewSession").ImportPreviewSession> {

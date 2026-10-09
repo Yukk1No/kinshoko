@@ -99,6 +99,14 @@ pub fn run() {
             code: None, api, ..
         } => api.prevent_exit(),
         RunEvent::Exit => desktop::on_exit(app),
+        RunEvent::WindowEvent {
+            label,
+            event:
+                tauri::WindowEvent::Moved(_)
+                | tauri::WindowEvent::Resized(_)
+                | tauri::WindowEvent::ScaleFactorChanged { .. },
+            ..
+        } => desktop::capture_geometry_changed(app, &label),
         // 关闭主窗口是画师眼里的“退出”：今天第一次时在后台自动备份（#69）。
         RunEvent::WindowEvent {
             label,

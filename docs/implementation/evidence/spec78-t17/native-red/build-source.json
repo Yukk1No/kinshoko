@@ -1,0 +1,2516 @@
+﻿{
+    "source":  "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
+    "tree":  "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
+    "application":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+    "binarySha256":  "787B9855C83467D4AD4EBCB887DC8C5E4319C1617DC0084FF1A2496E9F81CECC",
+    "buildType":  "debug tauri/custom-protocol",
+    "identifier":  "dev.kinshoko.spec78t17test",
+    "configSha256":  "6669C4A7B5B1F21EE2B8E93A7D84E9525C9B8CE0AECE811AED91A2A94B917FC5",
+    "scriptSha256":  "E2C31EECE3FF7DEDF0F6D78F120E3D4C1C3DB8F25B017C02014E6C489AE21BC1",
+    "target":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
+    "gitStatus":  [
+
+                  ],
+    "observedAfterBuild":  "2026-10-08T19:33:26.9994083Z",
+    "sources":  [
+                    {
+                        "path":  "Cargo.lock",
+                        "size":  177702,
+                        "sha256":  "C650697694E4FA1C224970D7376BAB6ED5DB3AE9414934A0FD50B24AD40C5F79"
+                    },
+                    {
+                        "path":  "Cargo.toml",
+                        "size":  1061,
+                        "sha256":  "9C4E5985C84FB528D89F3F26AF84A90547601A817E3EA3407EB6308B6B6F4466"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/Cargo.toml",
+                        "size":  1162,
+                        "sha256":  "DD9216C617ADB2E104D6808954AAE3BAECFDACD80563C9CC18DE251FA6578DF5"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/examples/spec78_workspace_fixture.rs",
+                        "size":  1548,
+                        "sha256":  "13607C9CBADBC6A4F3B113611EB2E170968069B3F5F51B6B281583BB011E63CC"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/app_shell.rs",
+                        "size":  3942,
+                        "sha256":  "79B98F3527D32F829233000CC86C17434F216404990203545FD6890BFB0F7315"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/approx.rs",
+                        "size":  5423,
+                        "sha256":  "D0C8F299597B0236CEF9AAB236E06A017C94DFBCE85BCDEFE0691C14D01E9CE3"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/backup/mod.rs",
+                        "size":  1312,
+                        "sha256":  "52C773C4AB725005C6009CEB19F6C36BB2548BABA4FDFAA0BA572D47F456DEF9"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/backup/plan.rs",
+                        "size":  7523,
+                        "sha256":  "4935524A51AF782F6FCD461879689E12822B68A9E8AB8389222B572C463F14FB"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/backup/retention.rs",
+                        "size":  1536,
+                        "sha256":  "7DC3126845BF995FD37F131E943C7693045386DE1EDDF3E75C42257098A550CB"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/backup/scope.rs",
+                        "size":  6384,
+                        "sha256":  "190A91DD61BFC488FC474CB0646EEBF9B051A54DA338D7BADD8DEE718D3A3AB7"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/backup/stamp.rs",
+                        "size":  2366,
+                        "sha256":  "28A4189A11AB6C85E3CE98E7DBB0C7EA23491DA90D623DCD50AB4CBECCB3B5E3"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/backup/target.rs",
+                        "size":  32392,
+                        "sha256":  "9185EAB8BE30B0B8DFC9B3977604807992A052F7EC6A038CA0BB61CDF5EB29C6"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/desktop/capture.rs",
+                        "size":  8316,
+                        "sha256":  "1F0ABA4B642443E0ED78E5F8AC00D170B0BC1E12955E204751C9F361F428B80E"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/desktop/edge.rs",
+                        "size":  7266,
+                        "sha256":  "29383C9D59F186D0260D5E468B8F3C832640CFF7A3B1CE76A86561FE186DD20F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/desktop/history.rs",
+                        "size":  12921,
+                        "sha256":  "332350F7FA702F0684E7A5823AAA42425465BC0545FF2FD992642C59DF2186D8"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/desktop/mod.rs",
+                        "size":  1749,
+                        "sha256":  "DBCADFAFF89BD1821950747BB99910CE7B9EAB374A655DE8FCBD020BAF2CE4BF"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/desktop/motion.rs",
+                        "size":  1938,
+                        "sha256":  "319657B2D6C639602B0FB16724C48D1108204EF58EB2211C99B7A63AEE92F1AB"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/desktop/pin.rs",
+                        "size":  18762,
+                        "sha256":  "E3410CB9FAC60E6C10147E4C80E77ABBAFE76B67FAFB973A0E878AF19E139E38"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/desktop/placement.rs",
+                        "size":  3365,
+                        "sha256":  "9F403BF7DABF0CDC8BEFC5DF03EE38A731414F844FCA7C71C7F3A7A7BDFFEF97"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/desktop/screenshot.rs",
+                        "size":  2853,
+                        "sha256":  "C992FAE066409798C0BFE1ADE548A4179F2EC2874EA9B47FDE0A252ABF95D8A8"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/desktop/types.rs",
+                        "size":  3686,
+                        "sha256":  "43BB12ABF5D2E568A41065327787EE7D97EE839204AEB7889BB9F884EAF22964"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/desktop/veil.rs",
+                        "size":  2045,
+                        "sha256":  "AA6310046E49AE26CDA0B6B37DD00BE263F9680861110EA31F07093ECFB4D309"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/device.rs",
+                        "size":  4425,
+                        "sha256":  "68B21B5ED41A97F790E95C2734025175A4CC411A9461266A48071D58E1434360"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/device_libraries.rs",
+                        "size":  18780,
+                        "sha256":  "6044A4E8086718B5CF37534604375200CFFC9C7C4C6537C9949EB62C879693CA"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/diagnostics/mod.rs",
+                        "size":  9772,
+                        "sha256":  "AAE2256F0FB6681A6C4F4674C4DB50B4DC95594F1AAF16477D210BC478A7D6BA"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/diagnostics/usage.rs",
+                        "size":  4676,
+                        "sha256":  "4481BC0AEA2BE11C5C27840132B9447A9EDD4DA87B30BA5ABD626E9FFD7B6A93"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/fidelity/description.rs",
+                        "size":  4669,
+                        "sha256":  "EA6ADB8B9DB8B67E5F8AE8392093547CC66952717D67171533D1249BE1795C2E"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/fidelity/gate.rs",
+                        "size":  40836,
+                        "sha256":  "08B11264E43299555A75EA20CE50B5420C81F53652E5344667AEE10C05669B56"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/fidelity/inspect.rs",
+                        "size":  17097,
+                        "sha256":  "96E9B4A92F8F95E84F53593E38C9AF22469AD330816874DC6DC0F286289130DE"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/fidelity/mod.rs",
+                        "size":  847,
+                        "sha256":  "A2915482DF2BA2599981EE90317BC51B0B9B347F16298B94A1009910DB0E1A78"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/fidelity/profiles.rs",
+                        "size":  9900,
+                        "sha256":  "28008E219A445E63D971F60DA60ADC0481CE6A3BF4B66C9C85B5AB1E908510FE"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/fidelity/render.rs",
+                        "size":  23851,
+                        "sha256":  "00A55C4AAA072F485A3E6CBEF333824CEF069CD668F432295953B3E975DDF88A"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/lib.rs",
+                        "size":  1066,
+                        "sha256":  "E8B49EEC3D7949A69AF3D178CFDED4050B3F4781729209932181D964202209A1"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/backup.rs",
+                        "size":  18903,
+                        "sha256":  "4FF48292D8C520292FBE293EC84E82C8837972ED204548E8FE9834AFF4F54C9F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/colour.rs",
+                        "size":  5025,
+                        "sha256":  "E024D9D4DF49933E4B23512D628CD480E7EE694328D86E2BBDDDDB6942E6B8B7"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/display.rs",
+                        "size":  1257,
+                        "sha256":  "67849954619EFED1AAADB32EDD2D2EE2E4F0A52DB2F2505449A68D9F3B5BEE3F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/eagle.rs",
+                        "size":  34336,
+                        "sha256":  "E37B95DFC6E225B6BCF1BD9C910AA0C10573BF0B7FCF0734DEEC960FDC42ACE0"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/eagle_discovery.rs",
+                        "size":  9387,
+                        "sha256":  "7FCBBAE7032DC8C6420FAA2E19DBA48E961EA26A8E51EE38714D8673EC1CE327"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/eagle_tags.rs",
+                        "size":  15612,
+                        "sha256":  "AB2BCC6D65A1130789F904A62D2205ADC45146A02B8CBE4942472B1216F92A9F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/edit.rs",
+                        "size":  11741,
+                        "sha256":  "8AC910B3F66EE160BAD1CD88FEB00BAE6F14819D13AFEFC3F2C6B7A6AC418645"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/error.rs",
+                        "size":  6241,
+                        "sha256":  "92AB2A1F73361AC0547BB02A1207B30DF867FB9693C5951F4A0011CDD9F8A541"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/events.rs",
+                        "size":  2382,
+                        "sha256":  "4BC16D03B10D5C0B1A1DAB2CBD2D7A3FB736859E316ABD5C21515256CDE776DB"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/fault.rs",
+                        "size":  3098,
+                        "sha256":  "B7209098F62C9A4A0CF1376D298ECE972454111940882BC8585AA61798C2E02B"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/filter.rs",
+                        "size":  3832,
+                        "sha256":  "DF78BCE5069885995723873E6A5433519046328E1A5DB0F760E258E1CC2A2C52"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/folders.rs",
+                        "size":  5853,
+                        "sha256":  "BDDD9DCDABC32F2A5BFE635AE681A83C0ED5E5DD31CEFDB0987021DC4D2330E5"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/import.rs",
+                        "size":  29523,
+                        "sha256":  "E0C67A2A0F88EAB1F03A7D37A1980D121C344A9C14360545E678F7C35E2768EF"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/lens.rs",
+                        "size":  8062,
+                        "sha256":  "75E0E0788E81B42C19F5CE473E19F12CAB4395A67BCC85D59C88C9534ABBC6D9"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0001_library.sql",
+                        "size":  1215,
+                        "sha256":  "8780C41CD3FB3941B6EDE042C8DC347B6325C0A50BC9CBDACC2C985D6CFA40BD"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0045_image_colour.sql",
+                        "size":  1156,
+                        "sha256":  "CF4212CE15B9F2430731A6440B23D28B1A5B1A3637FBB2C54073EBACBF437784"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0046_import_pending.sql",
+                        "size":  775,
+                        "sha256":  "6205EE74CAC529886088BCB8665760179F7A955A269EB4C0B8ECAE0E6BD6C812"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0050_folders_notes_trash.sql",
+                        "size":  1281,
+                        "sha256":  "45FB5975FB404CCADE311B21468F6E12FFD7C61AD9F2394955D5A98B7E5D2AB2"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0051_tags.sql",
+                        "size":  3591,
+                        "sha256":  "D24A1B492D242E0FFA4C8988C9D7FD6CE6213548EFC3C0D81C5A384A175E5401"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0052_tagging.sql",
+                        "size":  994,
+                        "sha256":  "36A2E091E8A162D9FBC7362CE026842C539B881B29FBC0C655B6F42848A02BBC"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0053_manual_rating.sql",
+                        "size":  380,
+                        "sha256":  "0DD4CB4D81EE60F7C310E581E4EF40D1DCF41D26E4E4771B55C4E87C70CC954E"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0056_personal_approx.sql",
+                        "size":  791,
+                        "sha256":  "5A897AEC3D41489CC39BB38CD32A661AE99CD25020FD183605E19E9C6B3B5E46"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0057_eagle_import.sql",
+                        "size":  1693,
+                        "sha256":  "ADF5459FED88EAB2EF25CED44877E760C763F5DB1EA307999EDCC6CCDFD2A65B"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0057_eagle_initial_trash.sql",
+                        "size":  306,
+                        "sha256":  "E6932896C78E2306FACA496C1D3DADFE36BFEA14613C6A4CE6039D63865FF1EE"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0058_eagle_reimport.sql",
+                        "size":  401,
+                        "sha256":  "933AFCA8E91AF5B8C5BA6E6BE4C2CBB1118EC7433D1C3070DFCFFC8433A747AA"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0067_permanent_delete.sql",
+                        "size":  1308,
+                        "sha256":  "BCFF8BE8E35ECBBE68086C6FE188C5B30FE477C9E89E27DE074A1E1E0C557475"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0068_package_import.sql",
+                        "size":  603,
+                        "sha256":  "A2B028450520DF2DFFE654DE537E1F02713E78A052F1DA3822D7538C37123111"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0069_restore_provenance.sql",
+                        "size":  375,
+                        "sha256":  "9B27609656BE19690BCAC6AB6FAAE3AEEDAADF9E8C1CF6D195A8033C559790DD"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0077_folder_decision.sql",
+                        "size":  558,
+                        "sha256":  "57A064B6502CCC78E60BDDF2A5F41D1261D61ADD933D69139CCE857BE1FAE9DB"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0077_list_revision.sql",
+                        "size":  1994,
+                        "sha256":  "21A616CE0A6FFF6885D9BC6A64F50D87788C7E7722FA8E8EC7D4DD518D588D5E"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0087_folder_revision.sql",
+                        "size":  594,
+                        "sha256":  "F7474271AF321DB384A2977F953B386CAA0DFCFF7F94EF4A36FC64876BC78699"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0090_portable_tags.sql",
+                        "size":  2375,
+                        "sha256":  "1D08EC52236C538F8A9B17B85D188E8E83330D887FF3F537680EEEFA882653E1"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/migrations/0093_eagle_deleted_content.sql",
+                        "size":  305,
+                        "sha256":  "676252CF9B47FB749DA784412BB80E765C3F771539E9D94F62E8BD08B480A9C4"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/mod.rs",
+                        "size":  32547,
+                        "sha256":  "D4D0B02A933387D799285F747BAF4C36F440AE674FE4DD9F02771E6E206E5A6D"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/package.rs",
+                        "size":  11840,
+                        "sha256":  "A56FD3F384A70C0D8FA659D8247BE326D6149308316EDE64B93139ABCB4A803F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/permanent_delete.rs",
+                        "size":  10097,
+                        "sha256":  "049113035C1E9A30E7866866933F6E38EA290854D90001DAAB8242A1F7DE23E1"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/provider.rs",
+                        "size":  4166,
+                        "sha256":  "E3857AD0E8B87F070732145FFF78F60042B5E3B3CD5DCBEF2E27CF61A2AC66E9"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/rating.rs",
+                        "size":  11131,
+                        "sha256":  "54783736174473520EFB4DF7168A24D3381B1EB4AFB5C644E4F38E1BC8D4D6F1"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/recovery.rs",
+                        "size":  4606,
+                        "sha256":  "78545AF97B55151C31F032B833EE31E5F4006C4A4FA1CAD3FDD6A35A52F855FC"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/save.rs",
+                        "size":  4990,
+                        "sha256":  "B235790DC2E7D03E0CD9B2BC818D6BA84C6DFEA75EB7D4EC460D1CD2F16EF9F8"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/sidebar.rs",
+                        "size":  1203,
+                        "sha256":  "3E59C7B8A429AA28E82A34C275210B04D1B6AAF250B845031A652BAC8B06EBA0"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/store.rs",
+                        "size":  6782,
+                        "sha256":  "F8D05563F21A432295870A418AED90335AFE8B9811A000CB639EF7321767A332"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/tag_definitions.rs",
+                        "size":  8976,
+                        "sha256":  "17C7A313996D6CE435CAD18000EE43293C58BA40D1E38B985E31412A5A8C538C"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/tags.rs",
+                        "size":  52229,
+                        "sha256":  "4303104EA5903CF3F91B7EF63C25B24CE4E606566EBB21B62667AA2902E2B452"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/thumbnail.rs",
+                        "size":  4767,
+                        "sha256":  "24A07924DC8E95FDCC994274B86E48789E581A47BB4B49B21FF1B0B7B4FF84F1"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/library/types.rs",
+                        "size":  18134,
+                        "sha256":  "24C8C64C5534222DCE400E5FCAF88B7CB62CFF8A867D50A97FFCE1323D3A549B"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/portable_tags.rs",
+                        "size":  2399,
+                        "sha256":  "1B0AAF9965DE7BADA2264B663DDE957C11353BE78ED1B13CA586580DC07D1A67"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/reference_groups/mod.rs",
+                        "size":  25275,
+                        "sha256":  "BE6A812D9A6D6C689F82B7BAFA0B376A680999400E9309EBBDA4116213FA3995"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/reference_groups/package.rs",
+                        "size":  15697,
+                        "sha256":  "AF6EEC3B09CC1428835FF4EF60BA172541638811EBBAEEBF0BD14FC361AF1832"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/reference_groups/resolve.rs",
+                        "size":  7978,
+                        "sha256":  "6113386B35EEA3588A99781D9A5BF81C7A69514EC6F591E0EA962BB6A0C5B138"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/search.rs",
+                        "size":  16873,
+                        "sha256":  "41304FDE3FB3B7FED90AD36D53C2ED6E0CAF8B0B69F416E87A69398B2C93D966"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/search/cache.rs",
+                        "size":  3937,
+                        "sha256":  "03738D2E50B54C1D414D0E7FFBBE4B3991AD2EFAA8496CA08F13B7C259297C8E"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/settings.rs",
+                        "size":  8764,
+                        "sha256":  "1DE19655E851DD51C9FEC4165366715D982DA7B98326D6D86233116D9B4C1664"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/shortcuts.rs",
+                        "size":  10175,
+                        "sha256":  "D75906B6AC9B8A0821CFE39B6437737AAD12C345A0F8F39124D26520073BC109"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tag_catalog.rs",
+                        "size":  30657,
+                        "sha256":  "73722F34A79512E94C9AC3C1DA392B51DDECCC0809B1E8EAB4636BF103C2C646"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tag_catalog/approx.rs",
+                        "size":  16699,
+                        "sha256":  "D0F3A709838091371733A76BC6742E01D8F96E10B2E4829B1FC6DFBC96E419C0"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tag_catalog/groups.rs",
+                        "size":  17463,
+                        "sha256":  "19416A1AF0E6942B687C1D62901AB43D4EA192E44B48DD5DB6962B8235628A18"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tag_catalog/migration.rs",
+                        "size":  16727,
+                        "sha256":  "31AD3558072219C3660C6143E196853E2B22F6D3F5DA1C4A1479AE01408B7B64"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tag_catalog/names.rs",
+                        "size":  14069,
+                        "sha256":  "7F9E4DC22DCB813AD12E1465EB4706848812C6E883EC0C945AFCC991C680391F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tag_catalog/portable.rs",
+                        "size":  5116,
+                        "sha256":  "D3BE9B6142B4567065C06D12B51A9583E016333BFC48BA9046F201D03B103B51"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tagging/interpret.rs",
+                        "size":  1878,
+                        "sha256":  "44B44A0B0F2BCB99FB25F0250FA6FC5DFE7EBA204C96148A2025C627570ED44D"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tagging/memory.rs",
+                        "size":  5899,
+                        "sha256":  "FB347F75BF5AF480E11CD3934D29785081C53A00EA9A368A204ED0653F6C0FC6"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tagging/mod.rs",
+                        "size":  1532,
+                        "sha256":  "CB65D16ABF1DC1732089CABDB11D245EBC7FE2D531214AEE532AB7E1C840795F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tagging/models.rs",
+                        "size":  22419,
+                        "sha256":  "84E8922CD09AA6EF6AF77ED557A8AE7F3C24509D369CBDC5FF4935AEFF0F5253"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tagging/patch.rs",
+                        "size":  15983,
+                        "sha256":  "1C580F012A6CB7F24394561591EB2946D9C3E33F4C42019D457AC5A641B88225"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tagging/port.rs",
+                        "size":  4408,
+                        "sha256":  "85E04948644070A8041ED9D6F929C4598645D3C11FDD1976E1C14610E7C54ACC"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tagging/process.rs",
+                        "size":  11617,
+                        "sha256":  "06D69B48AC461E07163D6B739F05A11037DEB575E3E07EFA5D9EEC751F2B7EDB"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/tagging/scheduler.rs",
+                        "size":  20609,
+                        "sha256":  "9F962BD968DDC22D33743ECEBFEF9DEF0D671FD1259F49C7DED978362663C4F7"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/workspace.rs",
+                        "size":  35923,
+                        "sha256":  "E55447BD352391ED298C5EFC082066D163C2F81FDE44A420C91BDB72E9FFBBF1"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/src/workspace/source.rs",
+                        "size":  6568,
+                        "sha256":  "C1AD6CEEE3D89795FF208371F8FFFB77D3CA78C75E0656772A22E8D1F53078DC"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/app_info.rs",
+                        "size":  584,
+                        "sha256":  "6B3C5A35AA90C1BC2806D8248190B560C86BA83AC00D558ABA886A21869A8B95"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/app_settings.rs",
+                        "size":  4575,
+                        "sha256":  "9B8AB5F4FD6E34C30052825B7C7CB9F2CB4C39C3F642D8059C785860447B7FA8"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/approx_library.rs",
+                        "size":  7657,
+                        "sha256":  "B51B5197E1015FC4ECC347FEC93369D96FBD8AC36F9E521FEF96518FC915EDA5"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/approx_search.rs",
+                        "size":  9420,
+                        "sha256":  "0522ABCB61AE4D0C9BBCFC6AF7B7026B7C60FA9CE576FF11ED440B12BA469C5E"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/backup_crash.rs",
+                        "size":  4431,
+                        "sha256":  "51DF3EB64C7D89C10881023E4288E018B8BB2264C601E9D825793508A4BC3373"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/backup_eagle.rs",
+                        "size":  3485,
+                        "sha256":  "4F5727B1C2F19E65D1CF0E8063137FE2676B29805FE6403D378B002C2F438F78"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/backup_plan.rs",
+                        "size":  2856,
+                        "sha256":  "E4E2AB63F2BEDA0487A13F5FF7CA51A9883B4010721B476A65931AD843C0420F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/backup_restore.rs",
+                        "size":  23408,
+                        "sha256":  "576F130EAF3A74C33CB2787AD021262BDAA45B739E928D254930D9029328A65F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/backup_scope.rs",
+                        "size":  6395,
+                        "sha256":  "C316338DA926A26D370D33C3DBB017E1F3EF27F815F3E896D56B00A64607D501"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/browse_cursor.rs",
+                        "size":  10590,
+                        "sha256":  "8CAB50833A540D14130BBD7B848865BC9F21D833AC083C7D83FB7F317F7424F7"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/browse_search.rs",
+                        "size":  13797,
+                        "sha256":  "001425CF98F91C68AC96DC38343B92FD269B8526E3E7EAA794F8D2C819A55498"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/capture_history.rs",
+                        "size":  11535,
+                        "sha256":  "79B557A0C9119AF0304D95F4B87CE4DBA6755D72E5E89E62E10A4CE46C71B036"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/capture_region.rs",
+                        "size":  1598,
+                        "sha256":  "C9468A605DD80BE9A2A40BD4F6BD447B524B63EC77653D149412E31C78A4E776"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/catalog_approx.rs",
+                        "size":  25345,
+                        "sha256":  "746ECFAE9B70F81345BD8DBA97DEB985C7E396CDD2CB8C2D4C2C28032D2FDF1F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/catalog_groups.rs",
+                        "size":  20441,
+                        "sha256":  "382648C6B4183874E406840E205E1D2FD8D88D588D7C9BFCD0ED121FB2066B06"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/catalog_visibility.rs",
+                        "size":  8780,
+                        "sha256":  "AC78F028CCAB90461F2A1B3601AC1C8BA21050F4CBCF53DC81461FFC4CF75D81"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/device.rs",
+                        "size":  2271,
+                        "sha256":  "0FB6FFA86719CE9C827CB60942E0DAFD2FD70A55DFAC520FDC552DC96F3ECD06"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/device_libraries.rs",
+                        "size":  10357,
+                        "sha256":  "7D46921E8D8CA1FF1354FE4FFAFE4989E7EB0D5D837C72BB991FE0045749489F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/diagnostics.rs",
+                        "size":  4954,
+                        "sha256":  "EF60C3E01E48EA04B02E8A50A6E1F34F27519EDF43782C383F90CC39BEAE0EBE"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/downscale.rs",
+                        "size":  2170,
+                        "sha256":  "E3FE71DAFF812307D9A2BA391C6FB54C73775D08DBF2457DE23BA21907C2C5EF"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/eagle_crash.rs",
+                        "size":  4677,
+                        "sha256":  "787A723D199F0FF82F412ECC9A50A2231B0F10260116AF55C09F3CB75C8C1EE1"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/eagle_deleted_content.rs",
+                        "size":  21610,
+                        "sha256":  "048A8FC745D58BF0B4275489BF2DC3A8D8F4C9C20B9F8835CA3D720A7663EAB9"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/eagle_import.rs",
+                        "size":  31503,
+                        "sha256":  "B2202E36C7F4DF4BB9A8CD46684BF3D1110DA29353E100A452CAF1A962BB5835"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/eagle_reimport.rs",
+                        "size":  36089,
+                        "sha256":  "6C2A9739582483E47360E975239782C38DA043BC3C401D87D85F1781956BD64C"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/eagle_tag_mapping.rs",
+                        "size":  10815,
+                        "sha256":  "CC61B349320CED427ABFC2613C122A53BA4273F2FF4132BEAE1D260418200776"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/edge_hide.rs",
+                        "size":  4055,
+                        "sha256":  "DDDC8543D3B834A38BBDB8C12E9A6C5D83BEE897694A261E4E58F61AC739CB05"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/fidelity.rs",
+                        "size":  31817,
+                        "sha256":  "A2DCC5B196A5C20F0DD283FB10A6989B77596AEBBD3637126D907945078CA7B0"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/fixtures/spec78-legacy-v16.sql",
+                        "size":  17664,
+                        "sha256":  "B78CFDFD0C7CD40DC92330D63CAA70C4D4E08A3D2E47B7BC884D8C4A8A311F89"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/global_shortcuts.rs",
+                        "size":  8268,
+                        "sha256":  "CF2E34BAEDEA107D149E2D35F2DC23D56340632DE6C50E60969A56124459D202"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/import_crash.rs",
+                        "size":  7214,
+                        "sha256":  "81FADB51B8DC06873772454565640115948528AC2BB8FD7C7D05667C8860CE59"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/import_recovery.rs",
+                        "size":  9451,
+                        "sha256":  "52BB4B08B4F6B649400AF7C8F6304453E8C20876097E844163E063D475E236D4"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/legacy_name_migration.rs",
+                        "size":  21364,
+                        "sha256":  "E588D7AA9BD8C04CC9306293D305878268882D2262C79104A62F4665B6D632F6"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/library.rs",
+                        "size":  13269,
+                        "sha256":  "7D10A650BADACD1AC4260A97D8689AE6720CEAC6E5E67835BA0A849B33523CAC"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/model_package.rs",
+                        "size":  9216,
+                        "sha256":  "5CB145F3081C312B314CB66EF59DD22B14E7F5984653070D3B1BB32B308FB2B7"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/organize.rs",
+                        "size":  14541,
+                        "sha256":  "E4B43B79029F37DE38E198CDA8F6467A8C1C7CCC6AB9201D8D4689A7E4CDC823"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/permanent_delete.rs",
+                        "size":  18565,
+                        "sha256":  "863F613CD883DCB0C204E95CFA0835E6315FC70DEED9EE264B4EA87B842E136C"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/pin_geometry.rs",
+                        "size":  2511,
+                        "sha256":  "2A7AE9DFDA8A6B808D450EFCD8775345AD11B16BA9688F0505FD15D52D00AE2D"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/pin_menu.rs",
+                        "size":  3550,
+                        "sha256":  "7741AEC4046C8FE534DBC5E84E57006ADD84D37C4CA18BC80383B4BC99CAEA3F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/pin_motion.rs",
+                        "size":  3961,
+                        "sha256":  "EF2FA04DF2034ECCDAA264F13D96EDCCDF86D3C9A756BC4BE258C1A534FE9656"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/pin_placement.rs",
+                        "size":  2132,
+                        "sha256":  "70625699E6887BA65697F4CBFFD89323AE9E11B345BAC89E8DB883FC318AC046"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/pin_restore.rs",
+                        "size":  5993,
+                        "sha256":  "0C57656E9203C2C55FA48493776696CE0F22B3CE4A0F735E6AA5A507EA198F39"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/pin_veil.rs",
+                        "size":  2290,
+                        "sha256":  "63DD1B397149CB4AFDE1673A26BEDD6C2A81E72A3304C36712AEEE61A49F41C9"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/portable_tags.rs",
+                        "size":  29056,
+                        "sha256":  "874813EB6005B4DF33768EB414AD43D5C017CD05C158E68249447F08F7686B04"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/rating.rs",
+                        "size":  6450,
+                        "sha256":  "2B70C6F0141BD76949C5B4AE9F7E9BDBA22F25685A87E444558774ECBD067CDF"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/reference_capture.rs",
+                        "size":  2005,
+                        "sha256":  "76153FD521B47B017955FBAE0EFACA9A2F72E6D5D52945C4AD63811A85B67E7A"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/reference_capture_actions.rs",
+                        "size":  30403,
+                        "sha256":  "DE754E970283BAB3BA3F3033A8A33AD842F35D13FB415233FF60EF90D133CF84"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/reference_group_package.rs",
+                        "size":  21697,
+                        "sha256":  "D398AB10878CE56475AFD6660CF110EC02CDC20E589C4D7EA2303012D2A1E486"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/reference_group_resolve.rs",
+                        "size":  14677,
+                        "sha256":  "A0C6D72112CF416353F20249681E9001F5406BA8F1031D971A97921F0F8DDB71"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/reference_group_snapshot.rs",
+                        "size":  7857,
+                        "sha256":  "E187692709E7874F96AEA03A818DD3976C57266E4E5C03434BB1971C7AA5195A"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/reference_groups.rs",
+                        "size":  12048,
+                        "sha256":  "48D5F56836917603E738F601C60A0AC73D6D268AD455A6BD52D39F7D4ED3BFB2"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/reference_pin.rs",
+                        "size":  5489,
+                        "sha256":  "68F0204CC0B1441FC36DD089A6FAD777885799E4FFCC45B8DCC61776BD29844F"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/safe_mode.rs",
+                        "size":  20688,
+                        "sha256":  "57E9CF00173534A06D451879C83FDA408D863BF11173E0B253B9BC62DACA0C14"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/save_destination.rs",
+                        "size":  16643,
+                        "sha256":  "1171182412F0D542D79AF5544802A83654E963DB5F4CABA82454A59D23263B69"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/search.rs",
+                        "size":  10361,
+                        "sha256":  "7F10AA6EA6048FC23CDC66B0AF0F49582C1ADC4063142714139D4D2A0B7B9076"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/search_cache.rs",
+                        "size":  7154,
+                        "sha256":  "AFFAA824D02E5516CCA5D2349CACB2DC347636284426434105A8A647EDCD9FC9"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/source_actions.rs",
+                        "size":  13414,
+                        "sha256":  "943EE9EB3716760A17140D27F90A5381A627705E16FBA74F895CD7B7D62636CC"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/support/eagle.rs",
+                        "size":  4168,
+                        "sha256":  "B62A21CA279F4AA669891219D8F5067A8FCB83D05FA13563BEC8B381997A86CE"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/support/mod.rs",
+                        "size":  5759,
+                        "sha256":  "50FB9CC263F33B4DA6B09402E9E8BCF6DAC8F8BF1A48DBCB00BFB5E4D8B766F1"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/tag_catalog.rs",
+                        "size":  19231,
+                        "sha256":  "6DCFE9FBBD022C7FEE24415CAF5CB6AF2C88FE8AFE8B3156B05B143BB014832D"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/tag_names.rs",
+                        "size":  16265,
+                        "sha256":  "7388D5907C3D6D7D0B8228C69FF2DDD047385092039C2F3FFD2A979E3174514B"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/tagger_process.rs",
+                        "size":  14974,
+                        "sha256":  "377AAE9A39D0DAD0E45D44E87AACF3F5D57A22C7422CCD6597C5B0CD4BF6FB32"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/tagging.rs",
+                        "size":  24298,
+                        "sha256":  "AC500678D8ED976ECADB4E5F32ADF1A85ED162FAF74B178DFF6238EBFF2685DC"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/tags.rs",
+                        "size":  23397,
+                        "sha256":  "435672F3C10719A8867A5077657092880526D3A045F754E3DE4E859DB7ACECD2"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/translations.rs",
+                        "size":  9993,
+                        "sha256":  "E35DEA86B0E221F104C3FF02DD15412082C9CCEBD57E8F57F25537288796E44B"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/update_policy.rs",
+                        "size":  2756,
+                        "sha256":  "1B8D0710FBF27237901E1B598D808FBB770776D4E35048A08FBD53F17506AD89"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/usage_log.rs",
+                        "size":  3265,
+                        "sha256":  "40921F0905DFD155B84B0B1744545B7475374C3EEEAA0406AF4BFFBF6B271B07"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/viewer.rs",
+                        "size":  11195,
+                        "sha256":  "EB9A6D5EFFAD2ADBD645F943CE71AB431EF15BC1EC6E56965D05EAED612E1E11"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/workspace.rs",
+                        "size":  24542,
+                        "sha256":  "21CB76D8F169D5788CCE6597CBFC430E90C5A4D28706E077428B65304419682B"
+                    },
+                    {
+                        "path":  "crates/kinshoko-core/tests/workspace_folders.rs",
+                        "size":  17372,
+                        "sha256":  "5EB052948FCCEB9E30FC969D7D4C2A3914709D7C81EE5CFA4C278BF395DA4480"
+                    },
+                    {
+                        "path":  "crates/kinshoko-tagger/Cargo.toml",
+                        "size":  1089,
+                        "sha256":  "751FA2815C08952AA8B10E1E2162CA59F4D61936660380C38E6ED94CB0F7472D"
+                    },
+                    {
+                        "path":  "crates/kinshoko-tagger/src/engine.rs",
+                        "size":  6974,
+                        "sha256":  "949CB9EDF4129513AF5C57B25B8EED36F9A2C3F28213DF39C2F29CF01380EB85"
+                    },
+                    {
+                        "path":  "crates/kinshoko-tagger/src/lib.rs",
+                        "size":  1556,
+                        "sha256":  "48EF102D27945DC83D6A92CC089C8B5DC090FC37A07F1B6AFB924086B2324EE1"
+                    },
+                    {
+                        "path":  "crates/kinshoko-tagger/src/preprocess.rs",
+                        "size":  3257,
+                        "sha256":  "EE7AF2F6C88DB91F49D5C29FA864FF1CDD85925E52021BAA0C293482169F1712"
+                    },
+                    {
+                        "path":  "crates/kinshoko-tagger/src/sysinfo.rs",
+                        "size":  3093,
+                        "sha256":  "3C5600A96CA92A94A9B708000305ED9F3AD2402F111E418FDA72286C80CE46B5"
+                    },
+                    {
+                        "path":  "data/.gitattributes",
+                        "size":  20,
+                        "sha256":  "8B6BB6BCB9BA3A682E10DE1303DE9DD9E27841641BC478A8114426E97531722B"
+                    },
+                    {
+                        "path":  "data/README.md",
+                        "size":  4935,
+                        "sha256":  "E1445E5EB31FF7ABB1CD05D263E30B9B915F3AF08D8D8C1FCB411D19DFE29BE2"
+                    },
+                    {
+                        "path":  "data/builtin-approx-table.json",
+                        "size":  7041,
+                        "sha256":  "9E3E2D670C98E3B5C9B31A1C4E9CEEFF2939B02651BF5F4EC040A7AF1CDC019E"
+                    },
+                    {
+                        "path":  "data/builtin-translation-table.json",
+                        "size":  324150,
+                        "sha256":  "78B601B50F841F1A800CF85B4AD28C3A19B76F5ADBFA245693EC0E139C0356FE"
+                    },
+                    {
+                        "path":  "index.html",
+                        "size":  310,
+                        "sha256":  "3E3C59B380B6FCBAD87750116474AA93BD238FCE373DBB903F9BC9E8FC45C1AA"
+                    },
+                    {
+                        "path":  "package-lock.json",
+                        "size":  86890,
+                        "sha256":  "35C2FF72C555F2CF3D0914178028141AEA8F17F24F410E4C5167B8C3D0788527"
+                    },
+                    {
+                        "path":  "package.json",
+                        "size":  902,
+                        "sha256":  "552518C57DDA529124D339B9053AA9B5C545B3F2DCBCE71EAF84F26CAA686AA7"
+                    },
+                    {
+                        "path":  "src-tauri/Cargo.toml",
+                        "size":  1815,
+                        "sha256":  "32D42B75A115D2262C2540600664F0112C9A8CBACD0C8D389DBE2577E436CFFC"
+                    },
+                    {
+                        "path":  "src-tauri/build.rs",
+                        "size":  6017,
+                        "sha256":  "E95FA45ED925EAFFF074F789BA75CD16D176E6F94E839A2E86416DD533C4653F"
+                    },
+                    {
+                        "path":  "src-tauri/capabilities/default.json",
+                        "size":  331,
+                        "sha256":  "0C6AD1B2512452E4785C2A0DCD7B3D588C85CBE4EEF7929E2DDD7E002414C4E2"
+                    },
+                    {
+                        "path":  "src-tauri/capabilities/desktop.json",
+                        "size":  315,
+                        "sha256":  "6EF7DFE5863C5B63A4201BFB21101C7D02C8B28092155764EB2CE8B063248809"
+                    },
+                    {
+                        "path":  "src-tauri/icons/128x128.png",
+                        "size":  12550,
+                        "sha256":  "7E22C14CBA1B1CFE3A438D3AA9BE57EC7BE5CFF633EA81CCF1DBBDADDF8565FF"
+                    },
+                    {
+                        "path":  "src-tauri/icons/128x128@2x.png",
+                        "size":  39527,
+                        "sha256":  "D38C35C92530EDA194B88BF1A810F2BB1BE626F5B502B7E6065B53BEF4CACF8E"
+                    },
+                    {
+                        "path":  "src-tauri/icons/32x32.png",
+                        "size":  1767,
+                        "sha256":  "C4393F2D8AE105270CD0C67E88AE954B44EE6697B10E7AB7A3DE94351BEA6212"
+                    },
+                    {
+                        "path":  "src-tauri/icons/icon.ico",
+                        "size":  72843,
+                        "sha256":  "BB5EB0DB26A8F9A00BB0F3B5D53893A1656E2200325976436AF601F7ABC4402D"
+                    },
+                    {
+                        "path":  "src-tauri/icons/icon.png",
+                        "size":  140285,
+                        "sha256":  "02FDB72ABE231FBEC74A5E14EBCD678EEEE8D356DD19DF24C1706FC760EBFF57"
+                    },
+                    {
+                        "path":  "src-tauri/installer-hooks.nsh",
+                        "size":  912,
+                        "sha256":  "37927FE35332CD74CCFE797EFB8917A4B19DD81F148BDC5EC3B0881BC89663FF"
+                    },
+                    {
+                        "path":  "src-tauri/src/backup.rs",
+                        "size":  12216,
+                        "sha256":  "910F880B2362D2C6288D253392B5CBD4751AF45FDC146556B2478488D97EECDC"
+                    },
+                    {
+                        "path":  "src-tauri/src/commands.rs",
+                        "size":  3165,
+                        "sha256":  "B71327CD398329301E91B536021B821A231FCE47CC2F0B1F92C5488F66DD755F"
+                    },
+                    {
+                        "path":  "src-tauri/src/desktop/capture.rs",
+                        "size":  17483,
+                        "sha256":  "1824A473FE6B78AB33200F1F5B984B687FA08BDDBFBE1F1EBF0F9020AE605A60"
+                    },
+                    {
+                        "path":  "src-tauri/src/desktop/edge.rs",
+                        "size":  4892,
+                        "sha256":  "EA8F68BA12AE114AB9ED50A8348DD136052AA4ED49720D64EE22F34B957E5779"
+                    },
+                    {
+                        "path":  "src-tauri/src/desktop/groups.rs",
+                        "size":  12787,
+                        "sha256":  "3357B34B19E2343169DC04FDC72B6764AE10BE4C591A81DD6AD71FF19A940457"
+                    },
+                    {
+                        "path":  "src-tauri/src/desktop/mod.rs",
+                        "size":  15718,
+                        "sha256":  "F2E3C906D76F36861F004E6A473EDABF9FEEA9EED624F6E2E88F6C2E453B524C"
+                    },
+                    {
+                        "path":  "src-tauri/src/desktop/pins.rs",
+                        "size":  38210,
+                        "sha256":  "C4DEC9A15B3BF4A4437A8700345012C642730B9A89B7567D2C9659114F17A417"
+                    },
+                    {
+                        "path":  "src-tauri/src/desktop/win32.rs",
+                        "size":  17377,
+                        "sha256":  "BAB82B4DA99FBAC7AD44E5F8636354E73039DF7EC6DA64B6DC533B054749650E"
+                    },
+                    {
+                        "path":  "src-tauri/src/diagnostics.rs",
+                        "size":  7423,
+                        "sha256":  "37AB58D31E037299A9B8AF7BB1B131B96741E22B1F0BAA43C5AE28E907F2E1EA"
+                    },
+                    {
+                        "path":  "src-tauri/src/fidelity_gate.rs",
+                        "size":  10084,
+                        "sha256":  "A3A81DB28D3EE0BE8D2DD7BAA5AA6012DE9A9AE3EFEAC1A4C2E630504EB94E8B"
+                    },
+                    {
+                        "path":  "src-tauri/src/lib.rs",
+                        "size":  4556,
+                        "sha256":  "ED49B4F5778292B5D3F8BC7BD71B771FB36F46FA7B7F9DCE2D249AC6E4F09B04"
+                    },
+                    {
+                        "path":  "src-tauri/src/library.rs",
+                        "size":  55922,
+                        "sha256":  "A1F4FA9CC5C9DB9D9D7F9D253AF28F9BD8E59773FBAB1A246F38786D3987948D"
+                    },
+                    {
+                        "path":  "src-tauri/src/library/approx.rs",
+                        "size":  1184,
+                        "sha256":  "18DD2CE12097CF897B1E0D2AA6065C203894D26C264817A2853A6772248F7BFE"
+                    },
+                    {
+                        "path":  "src-tauri/src/library/groups.rs",
+                        "size":  1667,
+                        "sha256":  "477721DCB9737813AC619F980C2A088EFC9BA2F742992302796F567B88A1A38A"
+                    },
+                    {
+                        "path":  "src-tauri/src/library/name_migration.rs",
+                        "size":  4082,
+                        "sha256":  "2E26FCE817BC4F348DD2D3A24790591AD51C788E77045B516AA386CE66964D41"
+                    },
+                    {
+                        "path":  "src-tauri/src/library/names.rs",
+                        "size":  4418,
+                        "sha256":  "0FF38024151F65C5534CE086419FA332160C39C7B6C8D2F0B31963C9DC94B415"
+                    },
+                    {
+                        "path":  "src-tauri/src/library/portable.rs",
+                        "size":  3310,
+                        "sha256":  "87FE6A96598050506BDA8B2940BEC8BDC0203A38DA14BE3F67A25A75B24C725F"
+                    },
+                    {
+                        "path":  "src-tauri/src/library/save_destination.rs",
+                        "size":  6800,
+                        "sha256":  "A158BB6D6800658194B113AC01B58A0C2E1C5E2B24C70320AC71BA7DF482D62D"
+                    },
+                    {
+                        "path":  "src-tauri/src/library/source_actions.rs",
+                        "size":  6374,
+                        "sha256":  "41B843B5B15B14B5EEDAFA8240C5AD882FFA48D7B782B1CB3BE449B14063CA38"
+                    },
+                    {
+                        "path":  "src-tauri/src/library/workspace.rs",
+                        "size":  7121,
+                        "sha256":  "F7943C8A0E8A48B361E9325285ED6A7DB66348E0DA9E9B2CCAB101A506F2F019"
+                    },
+                    {
+                        "path":  "src-tauri/src/main.rs",
+                        "size":  420,
+                        "sha256":  "41CB9DF0145FDF9830D9280AE52710D316E6430DD906FB2A928CCEC1773A30B2"
+                    },
+                    {
+                        "path":  "src-tauri/src/shell.rs",
+                        "size":  5156,
+                        "sha256":  "197726DD75A390FCE6A7A088C9E05F332C8532FA338D92FCADCA2064CE3EAC51"
+                    },
+                    {
+                        "path":  "src-tauri/src/tagging.rs",
+                        "size":  9305,
+                        "sha256":  "B82D9E9E48D4460ADE3DF40A3C8E9A00E39699304F9945E25C8B8DBC3CC27FF6"
+                    },
+                    {
+                        "path":  "src-tauri/src/updater.rs",
+                        "size":  6120,
+                        "sha256":  "A7E2530B4CE3B7558666153E8D932EBF2385C63B32761B869A8F80C4B9DBB057"
+                    },
+                    {
+                        "path":  "src-tauri/tauri.conf.json",
+                        "size":  1491,
+                        "sha256":  "41035203E9FC30662F6BAC4B5B86E68F45833AC2DD1AB9F4B32E6E11760CD82F"
+                    },
+                    {
+                        "path":  "src-tauri/tauri.updater.conf.json",
+                        "size":  113,
+                        "sha256":  "14A0D454AAE4D4227207D67776074D01AA4D3EF6A05BEB0FD79D3197265BE1E8"
+                    },
+                    {
+                        "path":  "src/App.test.tsx",
+                        "size":  77032,
+                        "sha256":  "F937409C1D86323AF5C3A7F62B33E8ABFBFEAAE553C3CBB81689C1548D7C6B05"
+                    },
+                    {
+                        "path":  "src/App.tsx",
+                        "size":  26772,
+                        "sha256":  "11C0BC9712C9783693B78B34E15FCA460BDBA51BBA6DEA4B9CDB168A38AB0D74"
+                    },
+                    {
+                        "path":  "src/App.workspace-bootstrap.test.tsx",
+                        "size":  2742,
+                        "sha256":  "F69C6F75EC32EBA88B6E4F1A4BAE2AFD8D00695763A2933020536D57DCA8BE80"
+                    },
+                    {
+                        "path":  "src/Backup.test.tsx",
+                        "size":  8031,
+                        "sha256":  "455E6FA69F086AB909592E163A0B74BC4C158EB6D451CE08974D94F4B27951C0"
+                    },
+                    {
+                        "path":  "src/Backup.tsx",
+                        "size":  12626,
+                        "sha256":  "068A7C350778FD20302940C9963065C3C59C0329D342E90CADADBD4BB44D7412"
+                    },
+                    {
+                        "path":  "src/ModelSettings.test.tsx",
+                        "size":  4574,
+                        "sha256":  "66F11A2F2F46363355CE3D0EC18595792105398021E7E354FDC13AB0A48C5D18"
+                    },
+                    {
+                        "path":  "src/ModelSettings.tsx",
+                        "size":  3535,
+                        "sha256":  "AA8CDB45E108C5A9D976E50947B3055C17769111CDE0086AFD223FE9783E7209"
+                    },
+                    {
+                        "path":  "src/SealBook.tsx",
+                        "size":  1484,
+                        "sha256":  "B1973309EC2E0A951AA1FF70D3867DEB5AF92D8F906AB7C191EBDC77FC07D624"
+                    },
+                    {
+                        "path":  "src/SettingsPanel.test.tsx",
+                        "size":  13777,
+                        "sha256":  "DDD6788FED745ABBC001C76BB8D40DC39C977388A2061DDAC950AE1E527D5F75"
+                    },
+                    {
+                        "path":  "src/SettingsPanel.tsx",
+                        "size":  8672,
+                        "sha256":  "9EE7BF495914B83724852CCA963350AED74171F6C243867E68E556A9F901B97B"
+                    },
+                    {
+                        "path":  "src/TaggingIndicator.test.tsx",
+                        "size":  5430,
+                        "sha256":  "78BB802181EFC090D13E985FD496B76A6650DAFB4B48E8AA3164986217E5A5F9"
+                    },
+                    {
+                        "path":  "src/TaggingIndicator.tsx",
+                        "size":  3243,
+                        "sha256":  "1752AD16B34A9FBD05896CFBF02A9C1BE1567F7043D1D3C9D6F82E9B308D7038"
+                    },
+                    {
+                        "path":  "src/Update.test.tsx",
+                        "size":  3278,
+                        "sha256":  "DEAE9E7107A1CA3E6E5CCEA6614792AA21DBFA3BA11CAA9D5366638FA6D20844"
+                    },
+                    {
+                        "path":  "src/Update.tsx",
+                        "size":  5433,
+                        "sha256":  "174A58C78F7D2AEE5D74285B73437C37CDAF0FB86AC376891A7CD2FA674193F9"
+                    },
+                    {
+                        "path":  "src/bindings/AppInfo.ts",
+                        "size":  256,
+                        "sha256":  "9B5B87C5A44068A2C15EAFF8D82D8BE31C696F98F13DD1D20CACC9CE57C95516"
+                    },
+                    {
+                        "path":  "src/bindings/ApproxRelation.ts",
+                        "size":  225,
+                        "sha256":  "3B0A673485C98BEFC2ADD18CB720792284E9CF34B7B996A44BA8819C1F10BC99"
+                    },
+                    {
+                        "path":  "src/bindings/ApproxSource.ts",
+                        "size":  236,
+                        "sha256":  "71D497CEFED93A0A28917B3C495EEF28F4C1463012FFB08C2130B33792B4C64B"
+                    },
+                    {
+                        "path":  "src/bindings/BackupEstimate.ts",
+                        "size":  582,
+                        "sha256":  "FAB3FC6F2F5535D9B7792099204ADBC7B4E179A92EAA08D73052573C17458261"
+                    },
+                    {
+                        "path":  "src/bindings/BackupFailure.ts",
+                        "size":  327,
+                        "sha256":  "C9950B1572BE50836F445D983EA515F9BDE94E51A2F54E21747B6C3CF3E1D14E"
+                    },
+                    {
+                        "path":  "src/bindings/BackupPlanView.ts",
+                        "size":  623,
+                        "sha256":  "F3AE6585C6E3BD931CEE170B239E94A035DE91CD0E65FB0FCD70592E40C1AD7B"
+                    },
+                    {
+                        "path":  "src/bindings/BackupPreview.ts",
+                        "size":  463,
+                        "sha256":  "CDF04C7A3FE19D07F21987EEA5C9B5CC223D5AE4DB7EDA45973C24F793158297"
+                    },
+                    {
+                        "path":  "src/bindings/BackupProgress.ts",
+                        "size":  227,
+                        "sha256":  "048AC54F684684973C026A809469C14A6D4DD2FAE2D808D22FDE61CD24F739F3"
+                    },
+                    {
+                        "path":  "src/bindings/BackupReport.ts",
+                        "size":  656,
+                        "sha256":  "1169050AB52813E40EA7BFAF8837D3E8BD3F710D2F32751090E204A927ECC417"
+                    },
+                    {
+                        "path":  "src/bindings/BackupScope.ts",
+                        "size":  472,
+                        "sha256":  "253B4FB65C972BD2D3E9A3931DEDA5553D47864D584EC0B75F55214575C74CD9"
+                    },
+                    {
+                        "path":  "src/bindings/BackupStatus.ts",
+                        "size":  542,
+                        "sha256":  "77161179E07163066C2ABEC07ACEB84BF59CA48E75D0A0F0798DD2662714BEEB"
+                    },
+                    {
+                        "path":  "src/bindings/BrowsePage.ts",
+                        "size":  369,
+                        "sha256":  "57C3773785BFF924502DA102DF04B0338344063DF00D900FC1577E4D1214FC54"
+                    },
+                    {
+                        "path":  "src/bindings/BrowseQuery.ts",
+                        "size":  732,
+                        "sha256":  "F6A59C394BF3E4881611B33B47936DDFAA216677177C94EACC5C8C4648CEEFF4"
+                    },
+                    {
+                        "path":  "src/bindings/BrowseScope.ts",
+                        "size":  307,
+                        "sha256":  "1ADB227CDB86462BA57D81AC1FA7C56A60B4B44D2F05FA9D47B50CB79421D6F4"
+                    },
+                    {
+                        "path":  "src/bindings/Candidate.ts",
+                        "size":  445,
+                        "sha256":  "4B2291335A7DE94AA756A37AFAB3C4EA22FC2E8DBC30458DD0702706E896CDAE"
+                    },
+                    {
+                        "path":  "src/bindings/CaptureAction.ts",
+                        "size":  193,
+                        "sha256":  "012CC33FD9425EF0887844914FCE98DDF23A3A16E464075DEC0C917BF12445AE"
+                    },
+                    {
+                        "path":  "src/bindings/CaptureChoice.ts",
+                        "size":  321,
+                        "sha256":  "3F3A6F0FA9D11E3DB262D262FF73A0CD9918AE55CC6D61159D66187117F54C75"
+                    },
+                    {
+                        "path":  "src/bindings/CaptureEntry.ts",
+                        "size":  532,
+                        "sha256":  "A32CE39F5CF3772C6795C6BA702ACD96C2B99C02B294F8BBCAD1445EECDC91BF"
+                    },
+                    {
+                        "path":  "src/bindings/CaptureReference.ts",
+                        "size":  421,
+                        "sha256":  "D59C79BB629F4125706F61C8AB6444576623C30BBC2E06AE39B5286F41D1574B"
+                    },
+                    {
+                        "path":  "src/bindings/CaptureReferenceFrame.ts",
+                        "size":  380,
+                        "sha256":  "37FEFE989EC179E1D56DC852EEA5C52AEA64A5968E13D3E7E3DED0F560930DAE"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogApproxConflict.ts",
+                        "size":  412,
+                        "sha256":  "2A488EF7796E1C0C5DFE12168706C2F61437EE98718FD8AB229F89C73691057E"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogApproxDecision.ts",
+                        "size":  389,
+                        "sha256":  "36684A015C01E7D8E2D2CDF9B39C2FAAE1CE9DDFF19C36352E16B2296F20D3AF"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogApproxEdit.ts",
+                        "size":  456,
+                        "sha256":  "8D4D90EC30AA495C37FDCF8211BB8C0F9A671D682535DC1D764BBA5EB9E98F74"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogApproxEntry.ts",
+                        "size":  403,
+                        "sha256":  "03CEF416936FFA653F4491C9AFB38B32CA6462E409B51FF10226F7F0E8734020"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogApproxMigration.ts",
+                        "size":  289,
+                        "sha256":  "2ABF0704BC2D51E67250363664A1F1AE4FD1862A42AB77CE12AE5FF7CB867480"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogApproxOrigin.ts",
+                        "size":  292,
+                        "sha256":  "39A0CD681E8C0F1FC3D102AE29F49A8FBFEAC08442E8F524898C7AE12A69740C"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogApproxSource.ts",
+                        "size":  288,
+                        "sha256":  "7EE9834BCA308734BA2C62490B77A05CC79F3F664AE22A04ADF032501180960C"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogApproxView.ts",
+                        "size":  376,
+                        "sha256":  "760715FC42AD9785862E8DAB5E9B9ECA775016020E8292FA17A7B29EEAC468CE"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogCorrection.ts",
+                        "size":  206,
+                        "sha256":  "1FEC5301653524C0B1780D81E59B9B36E0D92D8793D7BA2542937B123211C12D"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogGroupDefinition.ts",
+                        "size":  386,
+                        "sha256":  "AB9C1600EC4939935E0F211231B5C9B035385226079E0B21853C2420DA24BAD1"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogGroupEdit.ts",
+                        "size":  499,
+                        "sha256":  "9879C219291758F3200B1941734D3894CA94EA9FF781692F7D6FFC3CE4AB498B"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogGroupMigration.ts",
+                        "size":  353,
+                        "sha256":  "8C3977E8681213977051031C01C8CDC61CF5C99E74AC17E1A02BA348754FF2B3"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogGroupOrigin.ts",
+                        "size":  323,
+                        "sha256":  "EA0004ABB7C4C5C278D3CCDF86C7B2EC90C4EA1FC50343A1E578040C07ACF568"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogGroupSource.ts",
+                        "size":  279,
+                        "sha256":  "519D1E030EC5047BF118740A2742BCE0DFF2C0715584937AF1ED169F8F2B1BF8"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogGroupView.ts",
+                        "size":  423,
+                        "sha256":  "EBEFC956EB048B4DB99178F5AE66273E91768433764EB4DE6433D696EB48E3AC"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogImageTags.ts",
+                        "size":  316,
+                        "sha256":  "0989E70AC9CBCF40EBE929F272123BCCBF3E29264D4E093CCDEFC48BE2C50A6F"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogInspection.ts",
+                        "size":  336,
+                        "sha256":  "4806FD1620379D3B424B18A0FE3083E74E45F086C1D636059DD745F36428D187"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogMatchBasis.ts",
+                        "size":  208,
+                        "sha256":  "257E27412A8B81A097D2400C677B5AD4CBCE112201D1F0BA66E08CBD0C35A492"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogNameEdit.ts",
+                        "size":  408,
+                        "sha256":  "4465F24BA96048F696D3BCD0007129DF608A7333294C94CD39131995A5707AEA"
+                    },
+                    {
+                        "path":  "src/bindings/CatalogTag.ts",
+                        "size":  654,
+                        "sha256":  "55C1C9388711AEDE9A176EC3E5F51E9E142D84DEDE663979BAF881414F225E5F"
+                    },
+                    {
+                        "path":  "src/bindings/CheckPart.ts",
+                        "size":  217,
+                        "sha256":  "8F0F2427553D0F37A782B8EA192FD691373CEB74DB5C8198B874D83598916BB5"
+                    },
+                    {
+                        "path":  "src/bindings/Cicp.ts",
+                        "size":  252,
+                        "sha256":  "20D4C763870FD0E7E75226C13D61FA96923CED0C559171C9BC7F57A781E927DC"
+                    },
+                    {
+                        "path":  "src/bindings/CollectedCapture.ts",
+                        "size":  242,
+                        "sha256":  "1C287DBC1AC7E6133B24BB5532ACB3945E7AC649C55E3688229C97336279F376"
+                    },
+                    {
+                        "path":  "src/bindings/ColourDeclaration.ts",
+                        "size":  340,
+                        "sha256":  "EE0B76205013E12C770C9FEFF3CBAAAAD8A1E34EE34FAF64F5D4926191E669A1"
+                    },
+                    {
+                        "path":  "src/bindings/ColourDescription.ts",
+                        "size":  1365,
+                        "sha256":  "0EFC0526AB773D1BEC495A48B11B3313FFCCF183BD712E91F595710989AEBE67"
+                    },
+                    {
+                        "path":  "src/bindings/ColourModel.ts",
+                        "size":  161,
+                        "sha256":  "22B6422851EB46D6064036243596F3E1EDFCEC08AF0A0E7EB74174586611D656"
+                    },
+                    {
+                        "path":  "src/bindings/Condition.ts",
+                        "size":  376,
+                        "sha256":  "B9AAA13B740EFC182493926F73766DB2C9AE7B5582E9303A60700B0CD9C8AD61"
+                    },
+                    {
+                        "path":  "src/bindings/ConditionInput.ts",
+                        "size":  326,
+                        "sha256":  "7478A44BD37BB2973EF54B75A05DFEDE3A7655E6BE3ECDC28C6E1CE0DF0CC392"
+                    },
+                    {
+                        "path":  "src/bindings/ConditionTree.ts",
+                        "size":  312,
+                        "sha256":  "9CF21B0FC9963B0EAD4BE6696CC1B09C0C6B3FF27B8EC8460EC91FF438D21F91"
+                    },
+                    {
+                        "path":  "src/bindings/ContentRating.ts",
+                        "size":  241,
+                        "sha256":  "1637D3A5228B52ED28D9E9472F9DB2C9E387AA551BB63B6A657AB5033841FD56"
+                    },
+                    {
+                        "path":  "src/bindings/Device.ts",
+                        "size":  184,
+                        "sha256":  "9C6D81613A660192EFAEC3DA430A5E1B0AB92B0AB0FC1CF0A396273A5816C33A"
+                    },
+                    {
+                        "path":  "src/bindings/DisplayRoute.ts",
+                        "size":  346,
+                        "sha256":  "4DDDECCC6B74CCE6DD9B5972066C96A71688D7138690FC68D7ED4249E3F1EFCF"
+                    },
+                    {
+                        "path":  "src/bindings/EagleDeletedContentChoice.ts",
+                        "size":  299,
+                        "sha256":  "3BE08BA2F9F0EAA18FA1F3424404D01BA657964B5F2049755F6BD262126D9B20"
+                    },
+                    {
+                        "path":  "src/bindings/EagleDiscoveryMethod.ts",
+                        "size":  174,
+                        "sha256":  "8B6315605358C4CA1F0F75BE48C24A70E6F8EFA6363D492BD305DD721C2B83F4"
+                    },
+                    {
+                        "path":  "src/bindings/EagleLibraryCandidate.ts",
+                        "size":  317,
+                        "sha256":  "1CA78FE9315AE3B562DCF46E93E3E60B657BB1B5543D794FF50464E08B4B1B87"
+                    },
+                    {
+                        "path":  "src/bindings/EagleLocationChoice.ts",
+                        "size":  260,
+                        "sha256":  "011E598BC02A333C91BC11641EAC6DDEE418F34E77C3F20A52C5C390F64B21FD"
+                    },
+                    {
+                        "path":  "src/bindings/EagleRelocation.ts",
+                        "size":  545,
+                        "sha256":  "6C8B3806661459E729AEDD645D256D4FF47BA3A16942EB9551484B2D29AED1FF"
+                    },
+                    {
+                        "path":  "src/bindings/EagleTagMapping.ts",
+                        "size":  544,
+                        "sha256":  "18FBCE4B36DFAC9CC9B3B4CE3FAAF276D45AB9EF917DD31A3E2714645E886BF4"
+                    },
+                    {
+                        "path":  "src/bindings/EagleTagMatch.ts",
+                        "size":  358,
+                        "sha256":  "9B25B85B49A6342DE2BF88C31BD47F29729B64B3AB0D450EE3FC4702EB6DC5C5"
+                    },
+                    {
+                        "path":  "src/bindings/ExternalTagIdentity.ts",
+                        "size":  273,
+                        "sha256":  "D375FD85EB99BFE652BAFF931D05C4809EA9ED397E645FBFE894BF2C3C443BA9"
+                    },
+                    {
+                        "path":  "src/bindings/FolderNode.ts",
+                        "size":  373,
+                        "sha256":  "1940600B7E49F5F51CB4D155BF585EDDDB9FFB42FBFFAA20AEE6356826E69236"
+                    },
+                    {
+                        "path":  "src/bindings/FolderRef.ts",
+                        "size":  213,
+                        "sha256":  "9E777AA601C473572AD4C817914CB2363290D1133E4F8EE79D0A957413D0DEEA"
+                    },
+                    {
+                        "path":  "src/bindings/FrozenScreen.ts",
+                        "size":  420,
+                        "sha256":  "1A6B151323C9571E30C25F325F6B5C6DDDFC44494DB3FA0B1B1D7019A1ABE148"
+                    },
+                    {
+                        "path":  "src/bindings/GateItem.ts",
+                        "size":  915,
+                        "sha256":  "742D471BB4CB8E76531EB6F77C7FD4987432BCBB4D61F2C54ED377FAF4F80870"
+                    },
+                    {
+                        "path":  "src/bindings/GatePlan.ts",
+                        "size":  607,
+                        "sha256":  "EFE73D82E558033C123B79744168B4F1D9362F97DE44237F63EABEFA55292A52"
+                    },
+                    {
+                        "path":  "src/bindings/GateSample.ts",
+                        "size":  587,
+                        "sha256":  "DA578F12ED61062B039034FF6BCBFD7FF5D71B1B82B8939D24F31B865B9447DE"
+                    },
+                    {
+                        "path":  "src/bindings/GroupMember.ts",
+                        "size":  756,
+                        "sha256":  "450B1907349A020EE818AF2DD2648E9BB4D2AA6C190D003B0E49801350EB4F66"
+                    },
+                    {
+                        "path":  "src/bindings/GroupMemberRef.ts",
+                        "size":  239,
+                        "sha256":  "ADCECD99A6023BD0D188C6116DDFAAB65530FDE5CB1C48E5341E6FB196053CFE"
+                    },
+                    {
+                        "path":  "src/bindings/GroupSummary.ts",
+                        "size":  478,
+                        "sha256":  "17C0626B02B215B8ED0C99C5AD7C658966AFFDB76CF2907970561984D1267E1A"
+                    },
+                    {
+                        "path":  "src/bindings/GroupUsage.ts",
+                        "size":  353,
+                        "sha256":  "BF5D0EC0DC98F06FC9D19D0C995800AC6FBE4F63CCE26A31DE386CCB824260D7"
+                    },
+                    {
+                        "path":  "src/bindings/HdrKind.ts",
+                        "size":  158,
+                        "sha256":  "236C0DF80E5A63CFF7797A2D2E9A198E4667C61993D3EA8F7C5D85E67F5F58DB"
+                    },
+                    {
+                        "path":  "src/bindings/IccKind.ts",
+                        "size":  287,
+                        "sha256":  "D9CB5697562EE00558BE016AAEAEEFD935E424A3E7E84CB811AB67CDCCFB3883"
+                    },
+                    {
+                        "path":  "src/bindings/IccSummary.ts",
+                        "size":  332,
+                        "sha256":  "38348465ECA320A8A44D9C83162D1BA3A7EB098E8675740E61149FD93708A186"
+                    },
+                    {
+                        "path":  "src/bindings/ImageCard.ts",
+                        "size":  688,
+                        "sha256":  "9E7CC1AD32E04B4FE780361E2358D492E4D6AA34043DAE93B8ED46474C54D3D1"
+                    },
+                    {
+                        "path":  "src/bindings/ImageDetail.ts",
+                        "size":  961,
+                        "sha256":  "ABF0266861A49E4BFFC56A10F49ABC606C730530762F1CF6E23580A5F2A2FEC4"
+                    },
+                    {
+                        "path":  "src/bindings/ImageEdit.ts",
+                        "size":  721,
+                        "sha256":  "B0A842A971D812394C6E9CAD455D99F1929CCE91227C1504DE03574C4E86D8AC"
+                    },
+                    {
+                        "path":  "src/bindings/ImageNote.ts",
+                        "size":  548,
+                        "sha256":  "A910D8B8BAD733DD3D83CC59CA5D1A414D708B6BBDF1DD7DFE493A7723988224"
+                    },
+                    {
+                        "path":  "src/bindings/ImageRating.ts",
+                        "size":  626,
+                        "sha256":  "BE5363D17046621FDF1E2D90D3D19788764FA515932246511F6DE4572CD858B7"
+                    },
+                    {
+                        "path":  "src/bindings/ImageSnapshot.ts",
+                        "size":  916,
+                        "sha256":  "8B6AB5E9886628B4F50D457C3A0D9316DBAA7D43133FBD4FA67C7AB8C34B8579"
+                    },
+                    {
+                        "path":  "src/bindings/ImageTag.ts",
+                        "size":  270,
+                        "sha256":  "0CFA52894320440D74E15C95657E3A9687630FFE4F8E232D86E06CF4F37216CF"
+                    },
+                    {
+                        "path":  "src/bindings/ImageTags.ts",
+                        "size":  387,
+                        "sha256":  "A88F510108CCE06E21A770FAA4F89A1013675B807129994EA093588BFC4F610A"
+                    },
+                    {
+                        "path":  "src/bindings/ImageVersions.ts",
+                        "size":  403,
+                        "sha256":  "B29E011038D83E72BEACFFE1ADB84776B4FF32C840648717074F72AF2060378B"
+                    },
+                    {
+                        "path":  "src/bindings/ImportItem.ts",
+                        "size":  232,
+                        "sha256":  "B8AB505D6360AA81DC4ED3503830C75871B3F29A907E2D42E95B07B49C40F003"
+                    },
+                    {
+                        "path":  "src/bindings/ImportOptions.ts",
+                        "size":  363,
+                        "sha256":  "E2B2B1AEAE79E19BA4179F525AE6225BA9D3D96E95F38865CB5BEF6EE7A32439"
+                    },
+                    {
+                        "path":  "src/bindings/ImportOutcome.ts",
+                        "size":  523,
+                        "sha256":  "07E708963E87B29DB9A1898DEEDE6544EA7F6B22339971B3B7FEE4CF693C26E8"
+                    },
+                    {
+                        "path":  "src/bindings/ImportProgress.ts",
+                        "size":  230,
+                        "sha256":  "1CCC093F54CC3824C256961DEEE3FA619BAB8F8FF5230D9F4B2BDDF2DA065952"
+                    },
+                    {
+                        "path":  "src/bindings/ImportReport.ts",
+                        "size":  830,
+                        "sha256":  "E210266BF1E2DCF775E81548267F926336F9A9770F0CE723F3EB6E9DD520605F"
+                    },
+                    {
+                        "path":  "src/bindings/ImportSource.ts",
+                        "size":  234,
+                        "sha256":  "CA843432BBB6037E277649A0B8ED043B32C7829763DB7505F96731553F62768A"
+                    },
+                    {
+                        "path":  "src/bindings/ImportTaskSnapshot.ts",
+                        "size":  590,
+                        "sha256":  "CE99A6F6368EA272DAA105516787DD858CA6BCE81BA01F300B1CE408F829F3CA"
+                    },
+                    {
+                        "path":  "src/bindings/LegacyNameDecision.ts",
+                        "size":  283,
+                        "sha256":  "1C776EDE150D6381ADDF7F251DCAC3D9B0CFFAC5F3B06F7D07A61DCEA32302D6"
+                    },
+                    {
+                        "path":  "src/bindings/LegacyNameGroup.ts",
+                        "size":  546,
+                        "sha256":  "6A9C3990A6CDBF11A8E76295C002F8F03E637D339B95777400CA9B969D41C109"
+                    },
+                    {
+                        "path":  "src/bindings/LegacyNameMigration.ts",
+                        "size":  257,
+                        "sha256":  "20202B6EC9C6B836496F5F7DE7F9053D5881A4EA2247A81C334777F30A6FF0AF"
+                    },
+                    {
+                        "path":  "src/bindings/LegacyNameMigrationPreview.ts",
+                        "size":  272,
+                        "sha256":  "9AF3EFBA5DF50F237C7349B7380B834D5106E66DA0992A229D914C75070B04CE"
+                    },
+                    {
+                        "path":  "src/bindings/LegacyNameMigrationWorkspace.ts",
+                        "size":  356,
+                        "sha256":  "15D082446CEB3D06756E0697C559989C4EB56919FA0CBC2BB1880B37F7549551"
+                    },
+                    {
+                        "path":  "src/bindings/LegacyNameOutcome.ts",
+                        "size":  232,
+                        "sha256":  "B656AB1C2024A6D1140CDEB1FF3825A2E509D9B83183229A8A59593272D61B29"
+                    },
+                    {
+                        "path":  "src/bindings/LegacyNameResolution.ts",
+                        "size":  272,
+                        "sha256":  "B8E859AAD5C61DF32C2BF712C99339832F21C6BB085701899EA62817E8A03579"
+                    },
+                    {
+                        "path":  "src/bindings/LegacyNameSource.ts",
+                        "size":  226,
+                        "sha256":  "330B072553F6D307387AF27110B9A5DA5288224A2E2B2F6BA3D57B9B484DF42E"
+                    },
+                    {
+                        "path":  "src/bindings/LibraryEvent.ts",
+                        "size":  728,
+                        "sha256":  "B47E27DAECE69074768E11FA99C05B4A7DF99B27201050C860A3D40A7B912BEC"
+                    },
+                    {
+                        "path":  "src/bindings/LibraryInfo.ts",
+                        "size":  220,
+                        "sha256":  "4D1B5C00808845A161253EAFDE9ACFEF86133846F4D4F1A1EEAA6FFA89474C88"
+                    },
+                    {
+                        "path":  "src/bindings/LibraryRegistration.ts",
+                        "size":  393,
+                        "sha256":  "44CC3838D27264ECFDFA3E56781DAA338745DD4D1F4932316FF93EA18A97DFCE"
+                    },
+                    {
+                        "path":  "src/bindings/LibraryTagMapping.ts",
+                        "size":  562,
+                        "sha256":  "D3F20426078EFA05425EC6CD412824E415C5947207A60BD47B1EA1DFEA44EEB1"
+                    },
+                    {
+                        "path":  "src/bindings/LibraryTaggingStatus.ts",
+                        "size":  351,
+                        "sha256":  "027B4A27C8C524EC029AA5A38FE5E1567384EAB9E4AF3E27E2D0761BD8CC7140"
+                    },
+                    {
+                        "path":  "src/bindings/LocalizedName.ts",
+                        "size":  210,
+                        "sha256":  "995D3B61F70BD65CAC926CB6CE55E2B04BB9E54B207786060544024B112701B0"
+                    },
+                    {
+                        "path":  "src/bindings/MappedExternal.ts",
+                        "size":  438,
+                        "sha256":  "C2C8FFECC27F5A2B223816E5E02D75E3406B15F3F19BA2F0237D6E83F0D47B44"
+                    },
+                    {
+                        "path":  "src/bindings/MatchBasis.ts",
+                        "size":  216,
+                        "sha256":  "CE5B24171E912D765E7500392CDD8115DF7D383D765285574586E313E1B3B245"
+                    },
+                    {
+                        "path":  "src/bindings/MemberState.ts",
+                        "size":  350,
+                        "sha256":  "F1E7BB264AFB40CC6CF6DD0145BB152C3319B1C46CD8E7292CE988F596287B5F"
+                    },
+                    {
+                        "path":  "src/bindings/MemberStatus.ts",
+                        "size":  308,
+                        "sha256":  "942FF21E858039CFD77F2097E853244325BCF06DDADAA0C251258BDFD1C65360"
+                    },
+                    {
+                        "path":  "src/bindings/ModelChoice.ts",
+                        "size":  419,
+                        "sha256":  "CD228CE4861629D72838AA0EEF64B4E5FCC898154A1CA0DC3CAC87A35D16693D"
+                    },
+                    {
+                        "path":  "src/bindings/ModelOption.ts",
+                        "size":  658,
+                        "sha256":  "6D72C0C11AC1A77C992423E890990B454DC7CFFC661F4D9F36036EA30966FB1D"
+                    },
+                    {
+                        "path":  "src/bindings/PackageImage.ts",
+                        "size":  471,
+                        "sha256":  "FDAAC30C0D030286886DFEB882D7634561502E5BEDBDEA48225E19FB75B77027"
+                    },
+                    {
+                        "path":  "src/bindings/PackageManifest.ts",
+                        "size":  526,
+                        "sha256":  "0C7B08ADF3BF4F8798FBA4C00D5EA356088D44B607CFDE9CA67D8288E0BF77A1"
+                    },
+                    {
+                        "path":  "src/bindings/PackageProvenance.ts",
+                        "size":  368,
+                        "sha256":  "FDF2CA492E1D6B4E75DC2505BAA3A410B705A23688C97101091FCF7F1144A083"
+                    },
+                    {
+                        "path":  "src/bindings/Patch.ts",
+                        "size":  376,
+                        "sha256":  "3CDB4062B1516289BF34BA2D9A5909D8286D0274DD77EEA38321F4B5E2F20E14"
+                    },
+                    {
+                        "path":  "src/bindings/PermanentDeletePreview.ts",
+                        "size":  624,
+                        "sha256":  "76AD1057B7E11CD19D5A1704D495C2098274BB23046CFA6837EEFCC7C0C2AD0F"
+                    },
+                    {
+                        "path":  "src/bindings/PersonalApprox.ts",
+                        "size":  419,
+                        "sha256":  "296E21654B992F23E7B6D8D6E06A85E5DB6B138CC1F103774D13CB0266B2A574"
+                    },
+                    {
+                        "path":  "src/bindings/PersonalApproxEntry.ts",
+                        "size":  376,
+                        "sha256":  "6F3528F704D5E93F6FBF94051FE925521A9353FBB831B7C108038AF47C8FC392"
+                    },
+                    {
+                        "path":  "src/bindings/PinContent.ts",
+                        "size":  323,
+                        "sha256":  "4BFE750EDC4526291FD3807AB9F7C106843E2D989F4B381253B7D90B76633F0F"
+                    },
+                    {
+                        "path":  "src/bindings/PinFrame.ts",
+                        "size":  1275,
+                        "sha256":  "3C51734961A8024302900FAB597479F545448E4EE1A185FB480FD79376D3F3E1"
+                    },
+                    {
+                        "path":  "src/bindings/PinMotion.ts",
+                        "size":  215,
+                        "sha256":  "77890F38CF9E7B59DA57E46B5237B23F24569515D655AF103AAF099A7F006075"
+                    },
+                    {
+                        "path":  "src/bindings/Placement.ts",
+                        "size":  651,
+                        "sha256":  "3145A3DB33EDD13ED7302CE5D2AACDB8F1A7F042A54E680BB41BF00DEE937F0B"
+                    },
+                    {
+                        "path":  "src/bindings/PortableTagBinding.ts",
+                        "size":  499,
+                        "sha256":  "A3D037F8D533C6FA475567BFE22E0387C89B14A2ED14FC086F38995AEB9C8C6C"
+                    },
+                    {
+                        "path":  "src/bindings/PortableTagDefinition.ts",
+                        "size":  603,
+                        "sha256":  "E61D257D2C0459C5670BC3E887B2C5F782EBC46A74C05CAD150DB0CACB24410C"
+                    },
+                    {
+                        "path":  "src/bindings/RatingFact.ts",
+                        "size":  324,
+                        "sha256":  "11EC99B034E704E9E3DE7013405AA03841F71B2490947EDD1BAEFC30A6E73D74"
+                    },
+                    {
+                        "path":  "src/bindings/RecoveryReport.ts",
+                        "size":  524,
+                        "sha256":  "CC1FD7BE13C130603F95FC73870AC47BEFA38BBB08016AF04004F031212C1495"
+                    },
+                    {
+                        "path":  "src/bindings/ReferenceGroup.ts",
+                        "size":  721,
+                        "sha256":  "F9ED974A3D8A166FCC0721317D0422D0782B778D48679BE64A15E534FFA2C0F1"
+                    },
+                    {
+                        "path":  "src/bindings/ReferenceGroupView.ts",
+                        "size":  444,
+                        "sha256":  "470AA081E00204B9CE436EE491F8351808AA401FB35B79B3646E3D1A47BA404C"
+                    },
+                    {
+                        "path":  "src/bindings/ReferenceImage.ts",
+                        "size":  406,
+                        "sha256":  "D7374879769926FD9532752019E9134010A1A1BE7420D3FECA3ED7EE72CD8C6E"
+                    },
+                    {
+                        "path":  "src/bindings/Region.ts",
+                        "size":  276,
+                        "sha256":  "C14D1010F2837A0E9D2DE2165F8314337221C50DEB1B27F75FAE684B44051CB4"
+                    },
+                    {
+                        "path":  "src/bindings/RegisteredLibrary.ts",
+                        "size":  241,
+                        "sha256":  "3B8462A4C4A6E76C93992622A257BC570C6A1ADE667D9A79D2A4CB08C57A4931"
+                    },
+                    {
+                        "path":  "src/bindings/ResolvedTagIdentity.ts",
+                        "size":  346,
+                        "sha256":  "96A9DEBD91E4A1F4ECF57C236DFF61E513DD4AFBCAA1AD73F1E434BBDB1AFF22"
+                    },
+                    {
+                        "path":  "src/bindings/RestoreProvenance.ts",
+                        "size":  270,
+                        "sha256":  "8AE47272ADABC744344D929BF837E99204A8DB4E33806B400A78386BC98035C2"
+                    },
+                    {
+                        "path":  "src/bindings/RestoreReport.ts",
+                        "size":  455,
+                        "sha256":  "8104948F8AF4C6FCEA546C05A87A69C0B51F3D5C4E84939DB465AC38CC5E1F53"
+                    },
+                    {
+                        "path":  "src/bindings/RestoredFrom.ts",
+                        "size":  255,
+                        "sha256":  "505C7006E095D6F1DEB2B085522E485D314928E3E65DF260AA31E0FDBB9480EA"
+                    },
+                    {
+                        "path":  "src/bindings/RestoredGroup.ts",
+                        "size":  220,
+                        "sha256":  "DD5AB26907AFB5C30AE75BD2C38742C4FA46F61B2627007B0F10557E029C0DA6"
+                    },
+                    {
+                        "path":  "src/bindings/RestoredLibrary.ts",
+                        "size":  268,
+                        "sha256":  "A96AE367C8DD82FE328C3DFD5511FE88A0105804C3CABD20994BBDA470197CED"
+                    },
+                    {
+                        "path":  "src/bindings/RoundTripCheck.ts",
+                        "size":  333,
+                        "sha256":  "65005254061F72DFF245DFECEF0E0336D58FC3482B7AD6B0A3C3CAB7674A5F74"
+                    },
+                    {
+                        "path":  "src/bindings/SaveDestination.ts",
+                        "size":  287,
+                        "sha256":  "560B551A6031C0CD5F36940D491BA233976ED1EEA4A312E77D7000BAF34E1CA0"
+                    },
+                    {
+                        "path":  "src/bindings/SavedPin.ts",
+                        "size":  954,
+                        "sha256":  "2745DCB13956F391035303E2D775268988941E3B30118CE2EFF4B16B6DBA1242"
+                    },
+                    {
+                        "path":  "src/bindings/ScopeItem.ts",
+                        "size":  219,
+                        "sha256":  "A3175F464C5F7D9D1ED05A18B0FD811F1C56BF0B090F242F56758F5A52025295"
+                    },
+                    {
+                        "path":  "src/bindings/ScopeSelection.ts",
+                        "size":  268,
+                        "sha256":  "F6A8CC2091E6AD76E4C9FE0F81FCE1C840D4AB0214539C201D6E5937E05154D9"
+                    },
+                    {
+                        "path":  "src/bindings/ScopeStep.ts",
+                        "size":  321,
+                        "sha256":  "D212822FF1DCA77C61B6029FC29B62836FC387893CE69231469CDBD472C2902C"
+                    },
+                    {
+                        "path":  "src/bindings/ScreenRect.ts",
+                        "size":  241,
+                        "sha256":  "C117BDAC7EC14A2E1437AA7410B4146C9EE8336ECBDD678570C23FBB7910E105"
+                    },
+                    {
+                        "path":  "src/bindings/SearchInput.ts",
+                        "size":  414,
+                        "sha256":  "BC59C8C44D155EA024E29C435BF5CB28DBB904E5BBCBCD07ED6CF680AAC3424E"
+                    },
+                    {
+                        "path":  "src/bindings/ShellSettingsView.ts",
+                        "size":  710,
+                        "sha256":  "ED3534246E6BBEDB43847839492F9181BC3060983E54AF5D0EC739D4C3A0F48E"
+                    },
+                    {
+                        "path":  "src/bindings/ShortcutAction.ts",
+                        "size":  271,
+                        "sha256":  "416CF3D87377BC658E81FB09242DC8A2D115BD6D7413B9FEC11C2A41A00091E3"
+                    },
+                    {
+                        "path":  "src/bindings/ShortcutBinding.ts",
+                        "size":  526,
+                        "sha256":  "A6C35C98B49DE933863C813E45F31D7B02C782948A662DE47D7379DB5BB8855F"
+                    },
+                    {
+                        "path":  "src/bindings/Sidebar.ts",
+                        "size":  411,
+                        "sha256":  "711440D97D0618C234974B1DD4F799B1DA83C7AD0B7EE47E048715863BE4745F"
+                    },
+                    {
+                        "path":  "src/bindings/SimilarTag.ts",
+                        "size":  557,
+                        "sha256":  "F693D7A24C23CF8A3F347A535916563A6CB0981490C16641768EF57D7718EDF0"
+                    },
+                    {
+                        "path":  "src/bindings/SkippedLibrary.ts",
+                        "size":  307,
+                        "sha256":  "7E2B7879BDFD5164DFDC7C815CDFA23890ABD970897EEB713A2CF8BA238F3AE2"
+                    },
+                    {
+                        "path":  "src/bindings/SnapshotSummary.ts",
+                        "size":  453,
+                        "sha256":  "A76842DF596B2A69BC0726B1A8DC1116F052791C23C7BF84B82CA5604C9E87E0"
+                    },
+                    {
+                        "path":  "src/bindings/SnapshotTag.ts",
+                        "size":  797,
+                        "sha256":  "E75043DBF79A1EEA3A918A8AB93C10244B992BA9D5DDC7FFD26220389E316DFF"
+                    },
+                    {
+                        "path":  "src/bindings/SourceNote.ts",
+                        "size":  266,
+                        "sha256":  "35B12C064B150B0903CB15911D953E0B21BB611A328C784EBBB6E451F8866976"
+                    },
+                    {
+                        "path":  "src/bindings/Stamp.ts",
+                        "size":  247,
+                        "sha256":  "D1DA44B45461AC21FEB0430FDEE33FF5A7B7124395D9A6A721C5D364E785337C"
+                    },
+                    {
+                        "path":  "src/bindings/TagAlias.ts",
+                        "size":  237,
+                        "sha256":  "3A776A1437BB7A32CA5AC40BF0C674CB2003B7AD9C6BC49BF5B3ADDBC26655D8"
+                    },
+                    {
+                        "path":  "src/bindings/TagCatalogWorkspace.ts",
+                        "size":  344,
+                        "sha256":  "4BF18E1AAEE531542F984E752096A881FBFF432EF3B68249D3B6DC697578E8EA"
+                    },
+                    {
+                        "path":  "src/bindings/TagCount.ts",
+                        "size":  212,
+                        "sha256":  "53B2C624B10C8287FBF1CB2B622E552B3CCEAD737289035832B8A74368AD0E62"
+                    },
+                    {
+                        "path":  "src/bindings/TagEdit.ts",
+                        "size":  326,
+                        "sha256":  "E1DFE2602F3B84F87BAB4E6BAC5747CB31B3C2A41DC5F095000E92A37F8C280B"
+                    },
+                    {
+                        "path":  "src/bindings/TagGroupDefinition.ts",
+                        "size":  453,
+                        "sha256":  "721CCFB40BDF0D77F4C1FD6AB6D452E8D442BD5F83314D66A2DD975902AB5B60"
+                    },
+                    {
+                        "path":  "src/bindings/TagGroupView.ts",
+                        "size":  440,
+                        "sha256":  "390EA6105506086D1EF5DADE15F0AE8EEC25C5CB06A3F5F5AD61A46857AC916A"
+                    },
+                    {
+                        "path":  "src/bindings/TagLabel.ts",
+                        "size":  617,
+                        "sha256":  "C166B4C04637BDEA4C131240DC0917FD62AA1BAB0E75D54CB8387CD8A35CE0EE"
+                    },
+                    {
+                        "path":  "src/bindings/TagNameProvenance.ts",
+                        "size":  165,
+                        "sha256":  "AC874B6183CB3179CEE6D08D387D4F0E2050E8582092D46F97AFC3DB067FF787"
+                    },
+                    {
+                        "path":  "src/bindings/TagNamespace.ts",
+                        "size":  269,
+                        "sha256":  "18EBD740BFB26E4DC81DB1018B95FF0811C8EA22C469A5C31B34416A5CA77D67"
+                    },
+                    {
+                        "path":  "src/bindings/TagOrigin.ts",
+                        "size":  285,
+                        "sha256":  "8427CC1DAFB583849EF7C301A1ABF2B74AB2BFACCA2D00FF0C15F64F9E80FAD9"
+                    },
+                    {
+                        "path":  "src/bindings/TagRef.ts",
+                        "size":  463,
+                        "sha256":  "EEFA047B494FBC61D4D2D065BCEA321EEA1F0144BE24C05B7CFEE71710947EB5"
+                    },
+                    {
+                        "path":  "src/bindings/TaggingStatus.ts",
+                        "size":  702,
+                        "sha256":  "B761C60BA11FADF8B90B1388CC1E79B8C8C4A6FE2023FF606D79F711F813C065"
+                    },
+                    {
+                        "path":  "src/bindings/Term.ts",
+                        "size":  773,
+                        "sha256":  "F98EE6F590525D1B6728BFDF8B99B08F97D7089C56CB35C5212995D708973C27"
+                    },
+                    {
+                        "path":  "src/bindings/TermInput.ts",
+                        "size":  473,
+                        "sha256":  "860608FC4FC09806A875D53B7D93517F886E97271786C9B34A8746332E94B789"
+                    },
+                    {
+                        "path":  "src/bindings/Turn.ts",
+                        "size":  331,
+                        "sha256":  "2B6D4750D3709C6E9AF6F33F7F7DE2AB3D68E8ECA3B53BB9CC492EADFD032F63"
+                    },
+                    {
+                        "path":  "src/bindings/UnavailableReason.ts",
+                        "size":  390,
+                        "sha256":  "9AF468E58E45FF7721F6FC30A21BB573A63FD761CB607D8E05AF2333594DC37C"
+                    },
+                    {
+                        "path":  "src/bindings/Uncovered.ts",
+                        "size":  382,
+                        "sha256":  "44A6FC32DDC47C450B2971773CC7C215E620970F708BD3EC42AB1E45ED8EE7BD"
+                    },
+                    {
+                        "path":  "src/bindings/UnmatchedEagleTag.ts",
+                        "size":  550,
+                        "sha256":  "0880E6244D895FDA1C7CC877B4A92EA97C17C06294DFD6E6122EA729EF8BD4AE"
+                    },
+                    {
+                        "path":  "src/bindings/UpdateProgress.ts",
+                        "size":  259,
+                        "sha256":  "B32358A039FD7064584884EAC4314B151E2C405306C9973D7E4594D232CCF924"
+                    },
+                    {
+                        "path":  "src/bindings/UpdateStatus.ts",
+                        "size":  533,
+                        "sha256":  "38E9A068ED39D4C330B8A9632DCFF04BFB3C211F18AF7EDE5AB2591891529A7C"
+                    },
+                    {
+                        "path":  "src/bindings/Vocabulary.ts",
+                        "size":  464,
+                        "sha256":  "3A3C5E519A66BAB9E7F067D9779B7F2079A790BE05071E5348AD6697E4A7AED0"
+                    },
+                    {
+                        "path":  "src/bindings/VocabularyTag.ts",
+                        "size":  519,
+                        "sha256":  "303F622BAC0F24115627574202A20FB60B8C329912B389224B6C542F687605D3"
+                    },
+                    {
+                        "path":  "src/bindings/WorkspaceCard.ts",
+                        "size":  506,
+                        "sha256":  "199DCFE63F70B08AABF785010E3719F80380E4397DC145394B8E1075DA07D049"
+                    },
+                    {
+                        "path":  "src/bindings/WorkspaceDirectories.ts",
+                        "size":  335,
+                        "sha256":  "30DD8B91E29D2D067ACEA52599F72353277AC4DF3A88D84AF370C7034AE734BE"
+                    },
+                    {
+                        "path":  "src/bindings/WorkspaceDirectory.ts",
+                        "size":  585,
+                        "sha256":  "876B84818BFEBDC3F296824222B3C1A10991A05AF5563814989FA0C4BC33F7DC"
+                    },
+                    {
+                        "path":  "src/bindings/WorkspacePage.ts",
+                        "size":  351,
+                        "sha256":  "794C887AE1B94A00E88F25E0ED92871D91DF5B726821C0141B988731E904701E"
+                    },
+                    {
+                        "path":  "src/bindings/WorkspaceQuery.ts",
+                        "size":  363,
+                        "sha256":  "3B5380CE2C21E8AE4AADE20765A6F77E09B4FD945DC2A43F5438194A5044F900"
+                    },
+                    {
+                        "path":  "src/bindings/WorkspaceScope.ts",
+                        "size":  272,
+                        "sha256":  "9056D91FF0DD81AE1B3F929FDA937B0C78B2DBA44D7C4E8398E51439CECA59C7"
+                    },
+                    {
+                        "path":  "src/bindings/WorkspaceSource.ts",
+                        "size":  266,
+                        "sha256":  "7E1E5F6D4CEFEBE04FE197E6F024F11E7C7AE7E8B13DBDA7A81F84E76D420751"
+                    },
+                    {
+                        "path":  "src/bindings/WorkspaceSourceInspection.ts",
+                        "size":  370,
+                        "sha256":  "86CDE2354F46B24C87C1964D6F2AB7C9A1617908F2D97BC7AD5DB67477CFC901"
+                    },
+                    {
+                        "path":  "src/bindings/WorkspaceSourceTarget.ts",
+                        "size":  206,
+                        "sha256":  "D0C7532F79A80E5F7C789C2115576619A32F8B99EAE0C1D5DF99396528DFE090"
+                    },
+                    {
+                        "path":  "src/bindings/WorkspaceStatus.ts",
+                        "size":  268,
+                        "sha256":  "3998E2C8C6285E1C54DF0BA332CE0CE05067D707B088D02E653E252B301EC757"
+                    },
+                    {
+                        "path":  "src/desktop/CaptureHistoryPanel.tsx",
+                        "size":  3947,
+                        "sha256":  "B4A8E87E68FC5FAF3EC99D3676F70EE98975AF8D9FAD1111FB7F274F41931550"
+                    },
+                    {
+                        "path":  "src/desktop/CaptureOverlay.tsx",
+                        "size":  4958,
+                        "sha256":  "BE56FDB152A678654DAB3E584869FE158E7536827C75332BC2C708DF62229CC6"
+                    },
+                    {
+                        "path":  "src/desktop/PinView.escape.test.tsx",
+                        "size":  914,
+                        "sha256":  "3ED5517CD5BC7CDAC21ED4533A6120118E106ADB1EE0F46407462A34E934BBDC"
+                    },
+                    {
+                        "path":  "src/desktop/PinView.test.tsx",
+                        "size":  9294,
+                        "sha256":  "FAC47CD2F5730F161B1F3FBC111FA715CCF3A6AD9A639A723A0531D52CB4152A"
+                    },
+                    {
+                        "path":  "src/desktop/PinView.tsx",
+                        "size":  17805,
+                        "sha256":  "D9370D1AA66E3F999369F4B1CF34F350A0EF71A2B2204E2DFA327EF281217DAC"
+                    },
+                    {
+                        "path":  "src/desktop/PinView.veil.test.tsx",
+                        "size":  5905,
+                        "sha256":  "FE73F0966B0D7A5BF6FDC41B4D341749FA1854256F484FEA691B4481BA9B1300"
+                    },
+                    {
+                        "path":  "src/desktop/ReferenceGroupsPanel.test.tsx",
+                        "size":  8951,
+                        "sha256":  "76E585876F39017389ED09FA45257CBAA3BE9EF949D9AE7FEE3CC96AE62C9D6E"
+                    },
+                    {
+                        "path":  "src/desktop/ReferenceGroupsPanel.tsx",
+                        "size":  15397,
+                        "sha256":  "995AB194ABB8FD520C35D2320ADFE86D0FFEF88D96066278B53B1471F9D07BD5"
+                    },
+                    {
+                        "path":  "src/desktop/captureSources.ts",
+                        "size":  5938,
+                        "sha256":  "6FB94E4DCAB6B2D034001F01426EFFD6F91C8F8E227E7BC7909BA8F9411F593C"
+                    },
+                    {
+                        "path":  "src/desktop/motion.test.ts",
+                        "size":  4078,
+                        "sha256":  "0AE45DE2E84CDB7E50F69ABC2FEDB700B75AB5CE8FBF4653533524CF79E75F82"
+                    },
+                    {
+                        "path":  "src/desktop/motion.ts",
+                        "size":  3993,
+                        "sha256":  "64B180F8078DF309F3FFE8258266B0E090692A5E3D8E82BEF12ACF40A62DD3C7"
+                    },
+                    {
+                        "path":  "src/desktop/pixels.test.ts",
+                        "size":  5867,
+                        "sha256":  "0EA871742F299A4BAFFA16B7377C51B25D4157923B5AF41B9160A7466E29F753"
+                    },
+                    {
+                        "path":  "src/desktop/pixels.ts",
+                        "size":  4099,
+                        "sha256":  "630F0BE7CB66DE5A9A3AEC0BCBD48F6876A5239B52E8CB31BAC9FE08C8144E89"
+                    },
+                    {
+                        "path":  "src/desktop/renderer.test.ts",
+                        "size":  2816,
+                        "sha256":  "54F0B8222D19399636292CAF5AFADB137C840D3C278C36797265149CC50B6772"
+                    },
+                    {
+                        "path":  "src/desktop/renderer.ts",
+                        "size":  5430,
+                        "sha256":  "13478C788989917F2D14A43E9F001F949EEE1D2D217E7EC2B9910D484CB9C040"
+                    },
+                    {
+                        "path":  "src/fidelity/FidelityGate.tsx",
+                        "size":  14064,
+                        "sha256":  "834CB44D9C60EA2A5978F5E4BACC17D06610007CF04982BC72D374D3687E4887"
+                    },
+                    {
+                        "path":  "src/fidelity/colour.test.ts",
+                        "size":  1628,
+                        "sha256":  "398EEE802AC4A25CA15EFB2C1317CFCF162C641616D88C6742CEF535CC17754C"
+                    },
+                    {
+                        "path":  "src/fidelity/colour.ts",
+                        "size":  4258,
+                        "sha256":  "8D2BBC70F702F11CB6F6B8B161AEDD8819E47D1340A9454D2BCBCAF27090E452"
+                    },
+                    {
+                        "path":  "src/ipc.ts",
+                        "size":  46144,
+                        "sha256":  "10855B12847119B1284AE97BF82C9D7DB15BE80DC607CE3E5D23D152DCF6B4A2"
+                    },
+                    {
+                        "path":  "src/library/CreateLibrary.tsx",
+                        "size":  2001,
+                        "sha256":  "4261AE55DB0576BCD99244FE9F09BEF49F8B7CE535041ED643B8659EFE4319EC"
+                    },
+                    {
+                        "path":  "src/library/EagleTagStep.test.tsx",
+                        "size":  3521,
+                        "sha256":  "E12AE1F7B9B9088A8844837FA24C88C71727D92F25421CB8D818C5BA0488E5A6"
+                    },
+                    {
+                        "path":  "src/library/EagleTagStep.tsx",
+                        "size":  6227,
+                        "sha256":  "71B21668905B5519FFB89F7D804D46546037905784C8E464F3C44E23027EB4E5"
+                    },
+                    {
+                        "path":  "src/library/ImportBar.test.tsx",
+                        "size":  3373,
+                        "sha256":  "83AFFBDDC28220F198838E5CC14E530B034AB8F3A9C4D99D205A00321E169150"
+                    },
+                    {
+                        "path":  "src/library/ImportBar.tsx",
+                        "size":  19576,
+                        "sha256":  "967FE1FD1F2360C83FB09EAE75E53932D0DDF02730FD6E481C8D94EDB8A8E27F"
+                    },
+                    {
+                        "path":  "src/library/ImportMenu.tsx",
+                        "size":  6010,
+                        "sha256":  "9E515FF4DB9544D40F914A4115C17300345E85566A2502D064B04A12C8B7AA42"
+                    },
+                    {
+                        "path":  "src/library/LegacyNameMigrationPanel.test.tsx",
+                        "size":  11243,
+                        "sha256":  "9437D9227FCCA2F28448A380261681C1202B042BD0D7D909DC616A6C501A8D1A"
+                    },
+                    {
+                        "path":  "src/library/LegacyNameMigrationPanel.tsx",
+                        "size":  12555,
+                        "sha256":  "A7B1978CCDE5614984F56CDFC56CB776546BF1AE77D80D6C69CECBEA861BC477"
+                    },
+                    {
+                        "path":  "src/library/LibraryPicker.tsx",
+                        "size":  4217,
+                        "sha256":  "1967BB8E9277584C39DC44DF2CCD38B1D33C6B00BF421ECCED4E533E8F0E5CB2"
+                    },
+                    {
+                        "path":  "src/library/SaveDestination.test.tsx",
+                        "size":  13233,
+                        "sha256":  "2666FEE17B2CC81D98B13F2CF719D3337A3331E8477E91361F388F23528CF7B1"
+                    },
+                    {
+                        "path":  "src/library/SaveDestination.tsx",
+                        "size":  8229,
+                        "sha256":  "9AAF33C4FD9ECB82428FCC4CC5884B8FF256D73A238CA97038889DCE1B029744"
+                    },
+                    {
+                        "path":  "src/library/SelectionPanel.test.tsx",
+                        "size":  5271,
+                        "sha256":  "0676EC48845D2484378B750B8BCAD2C516829E897736095D387199FE1767B227"
+                    },
+                    {
+                        "path":  "src/library/SelectionPanel.tsx",
+                        "size":  14634,
+                        "sha256":  "6BC4FC03611C33D745D27E6989A5EE0F600355470389BC487299F26C80FE374A"
+                    },
+                    {
+                        "path":  "src/library/SharedTagGroups.test.tsx",
+                        "size":  5373,
+                        "sha256":  "A768111D1D64809008655376EAA3A7F48DD731AB5F7B76F62772C03B1184F5E1"
+                    },
+                    {
+                        "path":  "src/library/SidebarPane.tsx",
+                        "size":  8305,
+                        "sha256":  "92CF4052A61276642DD6748EDD5EE6AF3CB38C2872D80AFB6CD4230FEF01D95A"
+                    },
+                    {
+                        "path":  "src/library/TagGroupsPane.tsx",
+                        "size":  13257,
+                        "sha256":  "55F9E1EBB2EB363585D67D56C2951EE9355B552A08827D2CDF5EA06A57347FEA"
+                    },
+                    {
+                        "path":  "src/library/TagIdentityPanel.test.tsx",
+                        "size":  7348,
+                        "sha256":  "E34645C20DF098A2AF3F2B858DAFA43F61A1BFEB613B25FC4182203A76458004"
+                    },
+                    {
+                        "path":  "src/library/TagIdentityPanel.tsx",
+                        "size":  7583,
+                        "sha256":  "B55F1467015CED6A6A6D6E3E223B21EBF2FF6FAB1AF80ACA22B870CEAC2CBB6F"
+                    },
+                    {
+                        "path":  "src/library/TagNamePanel.test.tsx",
+                        "size":  5001,
+                        "sha256":  "D6412CCB60E98DFF9C420C035CA1F75889F47BB89CCDB64A2F2E73CD680DCE11"
+                    },
+                    {
+                        "path":  "src/library/TagNamePanel.tsx",
+                        "size":  7181,
+                        "sha256":  "32BD2657336DF6010744AA4F540D4DE458A3099C72E47BA5A6D6AC41AA33CF4B"
+                    },
+                    {
+                        "path":  "src/library/TagOrganize.test.tsx",
+                        "size":  26661,
+                        "sha256":  "8C193BC71604B4E5CA6FD9A9D70F97BCE0C9D33912E0D4F7A916B78BED6BA6F9"
+                    },
+                    {
+                        "path":  "src/library/TagPanel.tsx",
+                        "size":  13134,
+                        "sha256":  "1AD1F45372E1F38CB99B6FB2B723C4444F0AB8B3E06B12161D311BC5410B9B3A"
+                    },
+                    {
+                        "path":  "src/library/WorkspacePane.test.tsx",
+                        "size":  8455,
+                        "sha256":  "3493E8B7F268E8317B37D016303D2530D848B619C558CB773EE9E2FD92E10AB0"
+                    },
+                    {
+                        "path":  "src/library/WorkspacePane.tsx",
+                        "size":  9094,
+                        "sha256":  "F30927AF80C2C4EC3AEA90AB05C5850DDF7EC1C668D8F8933E321AC3E41DCA2F"
+                    },
+                    {
+                        "path":  "src/library/WorkspaceSourceEditor.tsx",
+                        "size":  6347,
+                        "sha256":  "4B57B2C1385F3CEC4A074DFA69E28471790055E45074CC2C3A3989D403828D86"
+                    },
+                    {
+                        "path":  "src/library/WorkspaceSources.test.tsx",
+                        "size":  6813,
+                        "sha256":  "55315219A847C4C6A07B3FB427920C6DD99048DD989AE6A41D284CEC05DB94E8"
+                    },
+                    {
+                        "path":  "src/library/library-path.ts",
+                        "size":  755,
+                        "sha256":  "F66025BFF04FEF3C2EF08CA63588BFFB29A207704463DBE79AC6E0A4836CDA4F"
+                    },
+                    {
+                        "path":  "src/main.tsx",
+                        "size":  982,
+                        "sha256":  "AF56B7882C62688415FA698A06DB166E2FD2AF25773D8F1974E9490C512DEB57"
+                    },
+                    {
+                        "path":  "src/search/SearchBox.tsx",
+                        "size":  17686,
+                        "sha256":  "025ED3E6235C63E0D28AAAA2B90EB292836DE836F699D832295D1D5DE656A86A"
+                    },
+                    {
+                        "path":  "src/search/SharedApprox.test.tsx",
+                        "size":  6687,
+                        "sha256":  "7904646AEC8CBD31368BE175F9E4B58BE8596BB9AAF714F7AECBF627526CD25D"
+                    },
+                    {
+                        "path":  "src/search/SharedPersonalApproxSettings.tsx",
+                        "size":  5594,
+                        "sha256":  "AD5DDFABA442D5EBD244DCBB28EF5B71F271E6780A98E3A23893ABE608A9CFA6"
+                    },
+                    {
+                        "path":  "src/search/TagGroupBar.tsx",
+                        "size":  5041,
+                        "sha256":  "1E1F687F94B74D1D00ABB05C4EC0CEE1A06A04DD9D18D2376A2DE55899BE724C"
+                    },
+                    {
+                        "path":  "src/shell/Rail.tsx",
+                        "size":  3596,
+                        "sha256":  "6743FDC3478B61FC8C661E00F40BF85CE9A5967B8BAB045EAFABBE4BCAF5FF40"
+                    },
+                    {
+                        "path":  "src/styles.css",
+                        "size":  48064,
+                        "sha256":  "DE0C641F3CC784CB740028892665B65235BD9313B0B0ACF8088E9B3C3D69991C"
+                    },
+                    {
+                        "path":  "src/test/workspace-fixture.ts",
+                        "size":  3723,
+                        "sha256":  "9FB4FE03AD86F1A786D13EFA621809D91A6EE1120BB02FB0D013D958507A19B1"
+                    },
+                    {
+                        "path":  "src/viewer/Viewer.test.tsx",
+                        "size":  12091,
+                        "sha256":  "D7B6DC356FE9980E28DDE0A2096A64B2B6E61BCEC9D435D1FC7DB8BBD8929837"
+                    },
+                    {
+                        "path":  "src/viewer/Viewer.tsx",
+                        "size":  14440,
+                        "sha256":  "105878A038A881793A88ED5AA5B2DF3777FB5BC3DE473995D2CFE547297111A3"
+                    },
+                    {
+                        "path":  "src/viewer/crop.test.ts",
+                        "size":  2599,
+                        "sha256":  "34D93D1BF6BC2A20A4E3F755867B9688A0347648CCB6299FAA1ECBF05583778F"
+                    },
+                    {
+                        "path":  "src/viewer/crop.ts",
+                        "size":  2619,
+                        "sha256":  "06C849C5966596526E7582581D5872DAC1DCF2942BB90F11529C59B14474768E"
+                    },
+                    {
+                        "path":  "src/wall/DensitySlider.tsx",
+                        "size":  1895,
+                        "sha256":  "FA30AFA4506B6304A7FDC01724B1A0597D2D9226D543B12EEB0D0F4B33C3D9BE"
+                    },
+                    {
+                        "path":  "src/wall/Wall.capture.test.tsx",
+                        "size":  3577,
+                        "sha256":  "28A677069F662EE6FF3A5C5A1F08E11BA5BE99C9BFC5B1701F586E61BFEE56EC"
+                    },
+                    {
+                        "path":  "src/wall/Wall.safe-response-order.test.tsx",
+                        "size":  7219,
+                        "sha256":  "99930F3447ED322DF10F555FE30B1069D92951C35F36C4551CA603E74B37A658"
+                    },
+                    {
+                        "path":  "src/wall/Wall.test.tsx",
+                        "size":  1962,
+                        "sha256":  "3C88C9032D9CE4ACE4826023C8E2CEB7C7449293E482B4A402E7194E2D8B1348"
+                    },
+                    {
+                        "path":  "src/wall/Wall.tsx",
+                        "size":  21190,
+                        "sha256":  "87A5A88C5EE5313816F18FCF6BA3BDB2831DB02B1C905C51640B056098B50B33"
+                    },
+                    {
+                        "path":  "src/wall/Wall.workspace.test.tsx",
+                        "size":  4109,
+                        "sha256":  "7A68A5CBE9317F34C176BE0E3585D770C59409EBC80C71B9CCD035D70B3C0284"
+                    },
+                    {
+                        "path":  "src/wall/layout.test.ts",
+                        "size":  2392,
+                        "sha256":  "51D1DE238573AAC980A053AB56422571CA228B6E69DC5243C77C955794DE4119"
+                    },
+                    {
+                        "path":  "src/wall/layout.ts",
+                        "size":  3643,
+                        "sha256":  "BC56A7265B2C877A08A6ED326C8F25D1BC4B2E31A54934299B8CF3C8E169735D"
+                    },
+                    {
+                        "path":  "tsconfig.json",
+                        "size":  501,
+                        "sha256":  "5C4BE8202E6F4080A8EE01542F1C92EBB2B539F8C8B702D4D9EAB75A4B5E7789"
+                    },
+                    {
+                        "path":  "vite.config.ts",
+                        "size":  596,
+                        "sha256":  "A1E04858AEB250E2732201ABA74A37BE3D95A5294295BEC65001807CEC3D01A7"
+                    }
+                ],
+    "dist":  [
+                 {
+                     "path":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\index.html",
+                     "size":  408,
+                     "sha256":  "72DEBA704528D8D7CB16A78EF77DEEA096CE6A5A088500CA0F5B1301618D2741"
+                 },
+                 {
+                     "path":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\assets\\index-DEmN6Gxb.js",
+                     "size":  428729,
+                     "sha256":  "850FB0FDECC69FC06B3B81B85D499DD05FECB1CCA2377827620BD4CC958E44D9"
+                 },
+                 {
+                     "path":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\assets\\index-T8rZJrtt.css",
+                     "size":  35984,
+                     "sha256":  "10B0EC625DE807D56E8528C7FA1D0BD93D42B56E5CFEE13C1F16753A7585BD17"
+                 },
+                 {
+                     "path":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-LICENSE.txt",
+                     "size":  4472,
+                     "sha256":  "B3195AF0FB14368D1B3B10FB9D3FE503B7163EA083859D2EE553BC74DA07C320"
+                 },
+                 {
+                     "path":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-Medium-hinted.woff2",
+                     "size":  143664,
+                     "sha256":  "7E80D9F65861EE6836A0081D4E75D88FB8789E5651D05EDBC49640442A9610EE"
+                 },
+                 {
+                     "path":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-Regular-hinted.woff2",
+                     "size":  140944,
+                     "sha256":  "338239F6B590B8CED3BF857654D32DA3FD3663294CD3003651ED57AA3ABD7AA1"
+                 },
+                 {
+                     "path":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-SemiBold-hinted.woff2",
+                     "size":  144628,
+                     "sha256":  "5013F48D77AB627B1DB7C2415914284EF09ABC3F60A8E0D0D8F3CD1BFEBEFB5E"
+                 },
+                 {
+                     "path":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\README.md",
+                     "size":  1307,
+                     "sha256":  "4021EE08A54221DBFEA8C42E5A70F79B4D0030FE1DF1004F74794BC9828D9C11"
+                 },
+                 {
+                     "path":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\SourceHanSans-LICENSE.txt",
+                     "size":  4559,
+                     "sha256":  "1953855BF1927E7214385BBDD8ADB04CC5E8A0ECD0E6EAEDEB1BDC281B009481"
+                 },
+                 {
+                     "path":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\SourceHanSansSC-VF.ttf.woff2",
+                     "size":  14129688,
+                     "sha256":  "CFEC773CDC2EA964DE8713471C6FD20774BC40617F5567F92EFEECCACA6604B0"
+                 }
+             ],
+    "runtime":  [
+                    {
+                        "path":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\DirectML.dll",
+                        "size":  18527776,
+                        "sha256":  "9C9E6D822561C6C41B90E6994B3E8857CF1D66DBFB1E0C4C799C7C89B4E92DA1"
+                    },
+                    {
+                        "path":  "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+                        "size":  100511744,
+                        "sha256":  "787B9855C83467D4AD4EBCB887DC8C5E4319C1617DC0084FF1A2496E9F81CECC"
+                    }
+                ]
+}

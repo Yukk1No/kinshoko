@@ -1,0 +1,8 @@
+{
+  "targets": 76,
+  "passed": 698,
+  "failed": 0,
+  "ignored": 12,
+  "rawSha256": "ec750ccd30485d3aa20604c7dcb2faf9a9b18c28739820276d6a21e1e1ae138b",
+  "method": "Last result within each actual Running target / Doc-tests section; nested fault child summaries excluded."
+}

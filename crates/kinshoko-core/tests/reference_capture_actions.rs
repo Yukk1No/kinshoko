@@ -8,6 +8,14 @@ use kinshoko_core::desktop::{
 use kinshoko_core::library::{ImportOutcome, ImportSource};
 use kinshoko_core::reference_groups::{DetachedLenses, References};
 
+fn registered(library: &Library) -> [kinshoko_core::RegisteredLibrary; 1] {
+    [kinshoko_core::RegisteredLibrary {
+        id: library.info().id.clone(),
+        name: library.info().name.clone(),
+        root: library.info().root.clone(),
+    }]
+}
+
 #[test]
 fn copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_source() {
     let dir = tempfile::tempdir().unwrap();
@@ -71,22 +79,19 @@ fn copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_so
         references: &surfaces,
     };
     let detached = DetachedLenses::default();
+    let registry = registered(&library);
     let references = References {
         current: Some(lens),
-        registry: &[],
+        registry: &registry,
         detached: &detached,
         safe_mode: true,
     };
     let veils = PinVeils::new(true);
-    let mut history = CaptureHistory::open(&dir.path().join("captures")).unwrap();
+    let history = CaptureHistory::open(&dir.path().join("captures")).unwrap();
     let CaptureOutcome::CopyReference(copied) = selection
-        .finish(
-            CaptureAction::Copy,
-            "copy",
-            &references,
-            &veils,
-            &mut history,
-        )
+        .prepare(CaptureAction::Copy, "copy", &references, &veils)
+        .unwrap()
+        .commit_with_history(|_| panic!("原图复制不应申请截图历史锁"))
         .unwrap()
     else {
         panic!("应得到复制内容");
@@ -100,13 +105,9 @@ fn copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_so
     assert_eq!(copied.get_pixel(1, 1).0, [201, 101, 255, 170]);
     assert_eq!(copied.get_pixel(119, 79).0, [63, 179, 255, 170]);
     let CaptureOutcome::PinReference(pinned) = selection
-        .finish(
-            CaptureAction::Pin,
-            "new-pin",
-            &references,
-            &veils,
-            &mut history,
-        )
+        .prepare(CaptureAction::Pin, "new-pin", &references, &veils)
+        .unwrap()
+        .commit_with_history(|_| panic!("原图钉住不应申请截图历史锁"))
         .unwrap()
     else {
         panic!("应得到参考视图");
@@ -212,9 +213,10 @@ fn selecting_a_transformed_prior_crop_copies_the_same_original_region_as_the_new
         references: &surfaces,
     };
     let detached = DetachedLenses::default();
+    let registry = registered(&library);
     let references = References {
         current: Some(lens),
-        registry: &[],
+        registry: &registry,
         detached: &detached,
         safe_mode: true,
     };
@@ -328,9 +330,10 @@ fn a_reference_resealed_after_freezing_is_not_read_and_an_explicitly_revealed_pi
         references: &surfaces,
     };
     let detached = DetachedLenses::default();
+    let registry = registered(&library);
     let references = References {
         current: Some(lens),
-        registry: &[],
+        registry: &registry,
         detached: &detached,
         safe_mode: true,
     };
@@ -418,8 +421,10 @@ fn missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels() {
         icc: None,
     };
     let detached = DetachedLenses::default();
+    let registry = registered(&library);
     let mut references = References {
-        current: None,
+        // Registry withdrawal must revoke even an active reference retained in memory.
+        current: Some(lens.clone()),
         registry: &[],
         detached: &detached,
         safe_mode: true,
@@ -447,6 +452,7 @@ fn missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels() {
         ));
     }
     references.current = Some(lens);
+    references.registry = &registry;
     if let PinContent::Reference { source_width, .. } = &mut surfaces[0].pin.content {
         *source_width = 999;
     }
@@ -726,9 +732,10 @@ fn copying_honors_all_original_exif_orientations_without_rewriting_originals() {
     let library = Library::create(&dir.path().join("library"), "方向").unwrap();
     let lens = library.take_reference_lens().unwrap();
     let detached = DetachedLenses::default();
+    let registry = registered(&library);
     let references = References {
         current: Some(lens),
-        registry: &[],
+        registry: &registry,
         detached: &detached,
         safe_mode: true,
     };
@@ -797,9 +804,10 @@ fn copying_respects_declared_color_and_the_sdr_animation_first_frame_route() {
     let library = Library::create(&dir.path().join("library"), "显示管线").unwrap();
     let lens = library.take_reference_lens().unwrap();
     let detached = DetachedLenses::default();
+    let registry = registered(&library);
     let references = References {
         current: Some(lens),
-        registry: &[],
+        registry: &registry,
         detached: &detached,
         safe_mode: true,
     };
@@ -948,4 +956,76 @@ fn an_ambiguous_visible_source_is_a_screen_capture_instead_of_choosing_one_libra
     assert_eq!(copied.dimensions(), (8, 8));
     assert_eq!(copied.get_pixel(0, 0).0, [255, 0, 255, 255]);
     assert_eq!(history.entries().len(), 1);
+}
+
+#[test]
+fn ordinary_capture_preparation_can_be_discarded_without_writing_history() {
+    use image::ImageDecoder;
+    let dir = tempfile::tempdir().unwrap();
+    let mut history = CaptureHistory::open(dir.path()).unwrap();
+    let screen = Screenshot {
+        image: RgbaImage::from_fn(12, 10, |x, y| Rgba([x as u8, y as u8, 99, 120])),
+        icc: Some(b"display profile retained by history".to_vec()),
+    };
+    let detached = DetachedLenses::default();
+    let references = References {
+        current: None,
+        registry: &[],
+        detached: &detached,
+        safe_mode: true,
+    };
+    let veils = PinVeils::new(true);
+    let selection = CaptureSelection {
+        screen: &screen,
+        origin: (0, 0),
+        region: Region {
+            x: 3,
+            y: 2,
+            width: 4,
+            height: 3,
+        },
+        references: &[],
+    };
+    let prepared = selection
+        .prepare(CaptureAction::Copy, "discard", &references, &veils)
+        .unwrap();
+    assert_eq!(
+        prepared.clipboard_image().unwrap().get_pixel(0, 0).0,
+        [3, 2, 99, 120]
+    );
+    assert!(history.entries().is_empty());
+    assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
+    drop(prepared); // Revocation discards preparation before the actual commit.
+    assert!(
+        CaptureHistory::open(dir.path())
+            .unwrap()
+            .entries()
+            .is_empty()
+    );
+    assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
+    let prepared = selection
+        .prepare(CaptureAction::Copy, "commit", &references, &veils)
+        .unwrap();
+    let CaptureOutcome::CopyCapture(copied) = prepared
+        .commit_with_history(|prepared| history.add_prepared(prepared))
+        .unwrap()
+    else {
+        panic!("ordinary copy expected");
+    };
+    let entries = history.entries();
+    assert_eq!(entries.len(), 1);
+    assert_eq!((entries[0].width, entries[0].height), (4, 3));
+    let mut decoder = image::ImageReader::open(history.file(&entries[0].id).unwrap())
+        .unwrap()
+        .with_guessed_format()
+        .unwrap()
+        .into_decoder()
+        .unwrap();
+    assert_eq!(decoder.icc_profile().unwrap(), screen.icc);
+    let saved = image::DynamicImage::from_decoder(decoder)
+        .unwrap()
+        .to_rgba8();
+    assert_eq!(saved, copied);
+    assert_eq!(saved.get_pixel(3, 2).0, [6, 4, 99, 120]);
+    assert_eq!(CaptureHistory::open(dir.path()).unwrap().entries(), entries);
 }

@@ -6,8 +6,10 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::fs;
-use std::io::{self, BufWriter};
+use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Weak};
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -118,13 +120,84 @@ impl From<image::ImageError> for HistoryError {
     }
 }
 
+/// Encoded screenshot data with no persistent side effects yet.
+#[derive(Debug)]
+pub struct PreparedCapture {
+    png: Vec<u8>,
+    width: u32,
+    height: u32,
+}
+
+/// A screenshot retained for one collection, independently of visible desktop pins.
+/// Import may decode and copy the complete image; run it outside the history mutex.
+#[derive(Debug)]
+pub struct CaptureCollection {
+    capture_id: String,
+    width: u32,
+    height: u32,
+    file: Arc<CollectionFile>,
+}
+
+/// A completed import awaiting a short history update.
+#[derive(Debug)]
+pub struct CollectedCaptureDraft {
+    source: CaptureCollection,
+    collected: CollectedCapture,
+}
+
+#[derive(Debug)]
+struct CollectionFile {
+    path: PathBuf,
+    discarded: AtomicBool,
+}
+
+impl Drop for CollectionFile {
+    fn drop(&mut self) {
+        if self.discarded.load(Ordering::SeqCst) {
+            // A failed removal leaves a stray for the next startup, as with normal eviction.
+            let _ = fs::remove_file(&self.path);
+        }
+    }
+}
+
+impl CaptureCollection {
+    /// Import the retained PNG through the ordinary library entrance, with no history access.
+    /// Failure or abandonment releases this request's file retention automatically.
+    pub fn import(self, library: &Library) -> Result<CollectedCaptureDraft, HistoryError> {
+        let report = library
+            .import(ImportSource {
+                paths: vec![self.file.path.clone()],
+            })
+            .wait();
+        let image_id = match report.items.into_iter().next().map(|item| item.outcome) {
+            Some(ImportOutcome::ReadFailed { reason }) => {
+                return Err(HistoryError::Collect(reason));
+            }
+            Some(outcome) if outcome.image_id().is_some() => {
+                outcome.image_id().unwrap_or_default().to_owned()
+            }
+            _ => return Err(HistoryError::Collect("资料库没有收下这张截图".to_owned())),
+        };
+        Ok(CollectedCaptureDraft {
+            source: self,
+            collected: CollectedCapture {
+                library_id: library.info().id.clone(),
+                image_id,
+            },
+        })
+    }
+}
+
 /// 截图历史。不是线程安全的；应用壳把它放在锁里。
+/// 同目录只有一个运行中的历史实例；重新打开目录前应结束该实例的收藏请求。
 pub struct CaptureHistory {
     dir: PathBuf,
     /// 从新到旧。
     entries: Vec<Stored>,
     /// 每张截图正被几个钉图显示。只在本次运行中有效，不写入索引。
     pins: HashMap<String, usize>,
+    /// Pending collections retain files, but never set CaptureEntry.pinned.
+    collections: HashMap<String, Weak<CollectionFile>>,
 }
 
 impl CaptureHistory {
@@ -144,6 +217,7 @@ impl CaptureHistory {
             dir: dir.to_path_buf(),
             entries: index.entries,
             pins: HashMap::new(),
+            collections: HashMap::new(),
         };
         if trusted {
             history.remove_strays();
@@ -171,18 +245,35 @@ impl CaptureHistory {
     }
 
     /// 存下一张新截图，放在历史最前面。
+    /// 持锁调用方应先在锁外 prepare，再在锁内 add_prepared，避免带锁编码。
     pub fn add(&mut self, shot: &Screenshot) -> Result<CaptureEntry, HistoryError> {
-        let stored = Stored {
-            id: uuid::Uuid::now_v7().simple().to_string(),
+        self.add_prepared(Self::prepare(shot)?)
+    }
+
+    /// Encode without accessing history or writing files. Call before taking its mutex.
+    pub fn prepare(shot: &Screenshot) -> Result<PreparedCapture, HistoryError> {
+        let mut png = Vec::new();
+        shot.write_png(&mut png, false)?;
+        Ok(PreparedCapture {
+            png,
             width: shot.image.width(),
             height: shot.image.height(),
+        })
+    }
+
+    /// Persist already encoded data in one history update.
+    pub fn add_prepared(&mut self, shot: PreparedCapture) -> Result<CaptureEntry, HistoryError> {
+        let stored = Stored {
+            id: uuid::Uuid::now_v7().simple().to_string(),
+            width: shot.width,
+            height: shot.height,
             created_at: crate::library::now_ms(),
             deleted: false,
             collected: Vec::new(),
         };
         let path = self.path_of(&stored.id);
         let tmp = path.with_extension("png.tmp");
-        shot.write_png(BufWriter::new(fs::File::create(&tmp)?), false)?;
+        fs::write(&tmp, shot.png)?;
         fs::rename(&tmp, &path)?;
         let entry = self.view(&stored);
         self.entries.insert(0, stored);
@@ -226,55 +317,94 @@ impl CaptureHistory {
     ///
     /// 原文件按字节收进资料库、从不重编码，截取时的显示器配置文件随文件保留。
     /// 同一截图再次收藏时，资料库按内容去重，得到同一张参考图。
+    /// 此便利方法会等待完整导入。持锁调用方应拆成 prepare_collect、锁外 import、finish_collect。
     pub fn collect(
         &mut self,
         id: &str,
         library: &Library,
     ) -> Result<CollectedCapture, HistoryError> {
-        let path = self.file(id).ok_or(HistoryError::Unknown)?;
-        let report = library.import(ImportSource { paths: vec![path] }).wait();
-        let image_id = match report.items.into_iter().next().map(|item| item.outcome) {
-            Some(ImportOutcome::ReadFailed { reason }) => {
-                return Err(HistoryError::Collect(reason));
-            }
-            Some(outcome) if outcome.image_id().is_some() => {
-                outcome.image_id().unwrap_or_default().to_owned()
-            }
-            _ => {
-                return Err(HistoryError::Collect("资料库没有收下这张截图".to_owned()));
+        let collected = self.prepare_collect(id)?.import(library)?;
+        self.finish_collect(collected)
+    }
+
+    /// Fix dimensions and retain the PNG in a short history update.
+    /// Deletion/eviction may hide the entry while this request is importing.
+    pub fn prepare_collect(&mut self, id: &str) -> Result<CaptureCollection, HistoryError> {
+        let entry = self.entry(id).ok_or(HistoryError::Unknown)?;
+        self.collections.retain(|_, file| file.strong_count() != 0);
+        let file = match self.collections.get(id).and_then(Weak::upgrade) {
+            Some(file) => file,
+            None => {
+                let file = Arc::new(CollectionFile {
+                    path: self.path_of(id),
+                    discarded: AtomicBool::new(false),
+                });
+                self.collections
+                    .insert(id.to_owned(), Arc::downgrade(&file));
+                file
             }
         };
-        let collected = CollectedCapture {
-            library_id: library.info().id.clone(),
-            image_id,
-        };
-        if let Some(stored) = self.entries.iter_mut().find(|s| s.id == id)
-            && !stored.collected.contains(&collected)
+        Ok(CaptureCollection {
+            capture_id: id.to_owned(),
+            width: entry.width,
+            height: entry.height,
+            file,
+        })
+    }
+
+    /// Remember a completed collection if its entry still exists; never resurrect an evicted entry.
+    /// Consuming the draft releases its file retention, including when saving the index fails.
+    pub fn finish_collect(
+        &mut self,
+        draft: CollectedCaptureDraft,
+    ) -> Result<CollectedCapture, HistoryError> {
+        if draft.source.file.path != self.path_of(&draft.source.capture_id) {
+            return Err(HistoryError::Unknown);
+        }
+        if let Some(stored) = self
+            .entries
+            .iter_mut()
+            .find(|s| s.id == draft.source.capture_id)
+            && !stored.collected.contains(&draft.collected)
         {
-            stored.collected.push(collected.clone());
+            stored.collected.push(draft.collected.clone());
             self.save()?;
         }
-        Ok(collected)
+        Ok(draft.collected)
     }
 
     /// 收藏截图钉图并连接成为的参考图。裁切、摆放、透明度与锁定保持原样。
     /// 返回值可直接交给 ReferenceGroups；普通参考图钉图原样返回。
+    /// 持锁调用方应拆成 prepare_collect、锁外 import、finish_collect_pin。
     pub fn collect_pin(
         &mut self,
         pin: &SavedPin,
         library: &Library,
     ) -> Result<SavedPin, HistoryError> {
-        let PinContent::Capture { capture_id } = &pin.content else {
+        let Some(id) = pin.capture_id() else {
             return Ok(pin.clone());
         };
-        let entry = self.entry(capture_id).ok_or(HistoryError::Unknown)?;
-        let collected = self.collect(capture_id, library)?;
+        let collected = self.prepare_collect(id)?.import(library)?;
+        self.finish_collect_pin(pin, collected)
+    }
+
+    /// Finish a capture pin's collection using its fixed source dimensions, preserving its layout.
+    pub fn finish_collect_pin(
+        &mut self,
+        pin: &SavedPin,
+        draft: CollectedCaptureDraft,
+    ) -> Result<SavedPin, HistoryError> {
+        if pin.capture_id() != Some(draft.source.capture_id.as_str()) {
+            return Err(HistoryError::Unknown);
+        }
+        let (source_width, source_height) = (draft.source.width, draft.source.height);
+        let collected = self.finish_collect(draft)?;
         let mut reference = pin.clone();
         reference.content = PinContent::Reference {
             library_id: collected.library_id,
             image_id: collected.image_id,
-            source_width: entry.width,
-            source_height: entry.height,
+            source_width,
+            source_height,
         };
         Ok(reference)
     }
@@ -321,8 +451,13 @@ impl CaptureHistory {
             }
         }
         for id in &discarded {
-            // 删不掉（例如被别的程序占用）只是留下一个孤立文件，下次打开时清理。
-            let _ = fs::remove_file(self.path_of(id));
+            if let Some(file) = self.collections.remove(id).and_then(|file| file.upgrade()) {
+                // The last real collection request removes it after all imports stop using it.
+                file.discarded.store(true, Ordering::SeqCst);
+            } else {
+                // 删不掉（例如被别的程序占用）只是留下一个孤立文件，下次打开时清理。
+                let _ = fs::remove_file(self.path_of(id));
+            }
         }
         !discarded.is_empty()
     }

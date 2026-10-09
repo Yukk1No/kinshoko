@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ImageCard } from "../bindings/ImageCard";
 import type { Region } from "../bindings/Region";
-import { displayScaledUrl, displayUrl, imageDetail, workspaceImage, isUnknownImage, pinReference, setCaptureReference, shellSettings, migrateViewerBackground, setViewerBackground } from "../ipc";
+import { displayScaledUrl, displayUrl, imageDetail, workspaceImage, isUnknownImage, pinReference, shellSettings, migrateViewerBackground, setViewerBackground } from "../ipc";
 import { legacyViewerBackground, rememberViewerBackground } from "./background";
 import type { KeyboardEvent } from "react";
+import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
 
 type Props = {
@@ -117,19 +118,12 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   // 1:1 与放大走 Library::display（原图或原尺寸 sdr 派生图）；缩小走精确尺寸派生图。从不直接读原文件。
   const address = sourcePx >= card.width ? displayUrl(libraryId, card.id) : displayScaledUrl(libraryId, card.id, sourcePx);
   const src = address + (retry ? `?retry=${retry}` : "");
-  useEffect(() => {
-    const visibleLeft = Math.max(0, left);
-    const visibleTop = Math.max(0, top);
-    const visibleWidth = Math.min(viewport.width, left + width) - visibleLeft;
-    const visibleHeight = Math.min(viewport.height, top + height) - visibleTop;
-    const reference = exactSource && loadedSrc === src && failedSrc !== src && visibleWidth > 0 && visibleHeight > 0 ? {
-      libraryId, imageId: card.id,
-      shown: toScreenRect({ x: left, y: top, width, height }, viewport, dpr),
-      visible: toScreenRect({ x: visibleLeft, y: visibleTop, width: visibleWidth, height: visibleHeight }, viewport, dpr),
-    } : null;
-    void setCaptureReference(reference).catch(() => {});
-  }, [libraryId, card.id, left, top, width, height, viewport, dpr, exactSource, loadedSrc, failedSrc, src]);
-  useEffect(() => () => { void setCaptureReference(null).catch(() => {}); }, []);
+  useCaptureSources(() => {
+    const image = stage.current?.querySelector("img");
+    if (!image || !exactSource || loadedSrc !== src || failedSrc === src) return [];
+    const reference = captureImage(image, stage.current!, libraryId, card.id, card.width, card.height);
+    return reference ? [reference] : [];
+  }, 100);
   // 这张图已不在（被删除，或安全模式下被封印，查询返回 UnknownImage）时回到图片墙。
   useEffect(() => {
     let alive = true;

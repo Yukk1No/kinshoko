@@ -277,6 +277,21 @@ pub trait ReferenceGroupUsage {
     ) -> Result<Vec<GroupUsage>, GroupError>;
 }
 
+/// Imported package content whose new group is not saved yet. Application adapters can
+/// publish tag definitions after all package IO, then finish without exposing group file details.
+/// Dropping this result keeps imported content and leaves no new group, so re-import is safe.
+pub struct PackageImport<'a> {
+    groups: &'a ReferenceGroups,
+    group: ReferenceGroup,
+}
+
+impl PackageImport<'_> {
+    pub fn finish(self) -> Result<ReferenceGroup, GroupError> {
+        self.groups.write(&self.group)?;
+        Ok(self.group)
+    }
+}
+
 /// 磁盘上的参考组文件。
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -507,9 +522,22 @@ impl ReferenceGroups {
         package: &Path,
         library: &Library,
     ) -> Result<ReferenceGroup, GroupError> {
-        let group = package::import(package, library, None)?;
-        self.write(&group)?;
-        Ok(group)
+        self.prepare_package_import(package, library, None)?
+            .finish()
+    }
+
+    /// Check the same package manifest against a fixed catalog inspection and import its
+    /// content without holding the application catalog lock during file IO or decoding.
+    pub fn prepare_package_import(
+        &self,
+        package: &Path,
+        library: &Library,
+        catalog: Option<&crate::tag_catalog::CatalogInspection>,
+    ) -> Result<PackageImport<'_>, GroupError> {
+        Ok(PackageImport {
+            groups: self,
+            group: package::import(package, library, catalog)?,
+        })
     }
 
     /// Import content against the current application catalog while preserving its settings.
@@ -519,9 +547,14 @@ impl ReferenceGroups {
         library: &Library,
         catalog: &mut crate::tag_catalog::TagCatalog,
     ) -> Result<ReferenceGroup, GroupError> {
-        let group = package::import(package, library, Some(catalog))?;
-        self.write(&group)?;
-        Ok(group)
+        let snapshot = catalog
+            .inspect()
+            .map_err(|error| GroupError::Library(error.to_string()))?;
+        let imported = self.prepare_package_import(package, library, Some(&snapshot))?;
+        catalog.publish_library_definitions(library).map_err(|error| GroupError::Library(format!(
+            "内容已写入，但资料库标签定义尚未更新：{error}。请重试保存标签定义或重新导入参考组包。"
+        )))?;
+        imported.finish()
     }
 
     fn path(&self, id: &str) -> Result<PathBuf, GroupError> {

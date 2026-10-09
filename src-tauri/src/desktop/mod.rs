@@ -12,6 +12,7 @@
 //! - 参考组（#66）：桌面上的资料库钉图存成参考组、打开参考组把成员钉到桌面（[`groups`]）。
 
 mod capture;
+mod clipboard;
 mod edge;
 mod groups;
 mod pins;
@@ -20,7 +21,7 @@ pub(crate) mod win32;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
 use kinshoko_core::ShortcutAction;
@@ -50,7 +51,8 @@ pub struct DesktopState {
     history: Mutex<CaptureHistory>,
     pending_collection: Mutex<Option<String>>,
     capture: Mutex<capture::Session>,
-    viewer_reference: Mutex<Option<capture::ViewerReport>>,
+    capture_frames: capture::FrameChannel,
+    capture_geometry_generation: AtomicU64,
     /// 本次运行中打开着的钉图窗口。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
     /// 钉图状态（`pins.json`），重新打开后恢复。
@@ -75,7 +77,21 @@ fn state(app: &AppHandle) -> &DesktopState {
 /// 原生主窗口销毁或重建时也必须清除来源；WebView 销毁不运行 React 的 unmount。
 pub fn clear_viewer_reference<R: tauri::Runtime>(app: &AppHandle<R>) {
     if let Some(state) = app.try_state::<DesktopState>() {
-        *lock(&state.viewer_reference) = None;
+        state.capture_frames.invalidate();
+        state
+            .capture_geometry_generation
+            .fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+/// Native geometry changes are causal even when a window returns to exactly the same rectangle.
+pub fn capture_geometry_changed<R: tauri::Runtime>(app: &tauri::AppHandle<R>, label: &str) {
+    if (label == "main" || label.starts_with("pin-"))
+        && let Some(state) = app.try_state::<DesktopState>()
+    {
+        state
+            .capture_geometry_generation
+            .fetch_add(1, Ordering::SeqCst);
     }
 }
 
@@ -99,7 +115,7 @@ pub fn init() -> TauriPlugin<Wry> {
     Builder::new("desktop")
         .invoke_handler(tauri::generate_handler![
             capture::start_capture,
-            capture::set_capture_reference,
+            capture::report_capture_references,
             capture::frozen_screen,
             capture::capture_ready,
             capture::finish_capture,
@@ -147,7 +163,8 @@ pub fn init() -> TauriPlugin<Wry> {
                 history: Mutex::new(history),
                 pending_collection: Mutex::new(None),
                 capture: Mutex::new(capture::Session::Idle),
-                viewer_reference: Mutex::default(),
+                capture_frames: capture::FrameChannel::default(),
+                capture_geometry_generation: AtomicU64::new(0),
                 pins: Mutex::default(),
                 store: Mutex::new(store),
                 dirty: AtomicBool::new(false),
@@ -265,8 +282,12 @@ async fn collect_capture(
 ) -> Result<CollectedCapture, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let collected = library::with_destination_published(&app, &destination, |library| {
+            let pending = lock(&state(&app).history)
+                .prepare_collect(&id)
+                .map_err(|e| e.to_string())?;
+            let collected = pending.import(library).map_err(|e| e.to_string())?;
             lock(&state(&app).history)
-                .collect(&id, library)
+                .finish_collect(collected)
                 .map_err(|e| e.to_string())
         })?;
         history_changed(&app);
@@ -369,7 +390,16 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+/// Update reveal authority during the actual mode commit, before emitting delayed events.
+/// Caller holds visibility_commit; this performs no window operations or dispatch.
+pub fn safe_mode_committed<R: tauri::Runtime>(app: &AppHandle<R>, safe: bool) {
+    if let Some(state) = app.try_state::<DesktopState>() {
+        lock(&state.veils).set_safe_mode(safe);
+    }
+}
+
 /// Revoke previous configuration views immediately, including same-mode explicit pin reveals.
+/// Caller holds visibility_commit. Native destruction callbacks only dispatch background cleanup.
 pub fn settings_restored<R: tauri::Runtime>(app: &AppHandle<R>, safe: bool) {
     let state = app.state::<DesktopState>();
     *lock(&state.veils) = PinVeils::new(safe);

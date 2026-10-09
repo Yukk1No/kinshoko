@@ -77,7 +77,7 @@ struct LibraryState {
     safe_mode_generation: AtomicU64,
     import_preview_generation: AtomicU64,
     /// Serialize visibility revocation with the final externally visible side effect.
-    visibility_commit: Mutex<()>,
+    visibility_commit: Arc<Mutex<()>>,
     workspace: Mutex<Option<kinshoko_core::workspace::Workspace>>,
     /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
     /// 与桌面钉图（#65），不经任何命令交给前端。
@@ -106,7 +106,7 @@ impl LibraryState {
             search_catalog_revision: Arc::new(AtomicI64::new(-1)),
             safe_mode_generation: AtomicU64::new(0),
             import_preview_generation: AtomicU64::new(0),
-            visibility_commit: Mutex::new(()),
+            visibility_commit: Arc::new(Mutex::new(())),
             workspace: Mutex::default(),
             reference: Mutex::new(None),
             detached: DetachedLenses::default(),
@@ -116,9 +116,11 @@ impl LibraryState {
         }
     }
 
-    /// New tags receive bundled initial names; old display text awaits explicit migration.
-    fn install_translations(&self, library: &Library) {
+    /// Configure shared writer policy before application actions: initial names and the
+    /// same final visibility gate used by package/copy rating publication.
+    fn configure_library(&self, library: &Library) {
         library.use_translations_for_new_tags((*self.translations).clone());
+        library.use_package_publication_gate(self.visibility_commit.clone());
     }
 
     /// 界面正在操作的资料库；已切换或关闭时返回错误。
@@ -411,7 +413,7 @@ fn forward_events<R: Runtime>(
     }) {
         eprintln!("接入统一标签目录失败：{error}");
     }
-    state.install_translations(&library);
+    state.configure_library(&library);
     let events = library.events();
     *lock(&state.reference) = library.take_reference_lens();
     // 刚成为活动库的库不再经只读视角读取；其他库按需重开。
@@ -483,11 +485,13 @@ async fn blocking<T: Send + 'static>(
 fn restore<R: Runtime>(app: &AppHandle<R>) -> Result<Option<Arc<Library>>, String> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
-    let opened = with_libraries(
-        &state.device_dir,
-        &state.libraries,
-        DeviceLibraries::restore_last_opened,
-    )?;
+    let opened = with_visibility_commit(app, |_| {
+        with_libraries(
+            &state.device_dir,
+            &state.libraries,
+            DeviceLibraries::restore_last_opened,
+        )
+    })?;
     if let Some(library) = &opened {
         forward_events(app, &state, library.clone());
     }
@@ -571,6 +575,11 @@ pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> R
     Ok(())
 }
 
+/// Current authority generation for native capture actions.
+pub fn capture_generation<R: Runtime>(app: &AppHandle<R>) -> u64 {
+    workspace::generation(app)
+}
+
 /// Revoke receipt consent when its main window is destroyed.
 pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
     // Never wait for the visibility permit on the window thread. Fence pending sends
@@ -584,7 +593,8 @@ pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
     });
 }
 
-/// Commit a final visibility-authorized side effect atomically with mode/settings revocation.
+/// Commit a final visibility-authorized side effect atomically with mode/settings,
+/// provider/source edits and background rating publication.
 /// Decode first, outside this closure. Revalidate the caller's capability against the supplied
 /// generation, then perform the actual send/copy/pin before returning. This does not reject
 /// safe mode itself: an explicit, scoped preview capability can be valid while safe mode is on.
@@ -600,6 +610,12 @@ pub(crate) fn with_visibility_commit<R: Runtime, T>(
     let state = app.state::<LibraryState>();
     let _visibility = lock(&state.visibility_commit);
     commit(state.safe_mode_generation.load(Ordering::SeqCst))
+}
+
+/// The same pure Rust gate is injected into background result publication.
+/// Lifecycle code must release it before stopping/joining a scheduler worker.
+pub(crate) fn visibility_publication_gate<R: Runtime>(app: &AppHandle<R>) -> Arc<Mutex<()>> {
+    app.state::<LibraryState>().visibility_commit.clone()
 }
 
 /// 安全模式是否开启（全局设置）；读不到设置时按开启处理。
@@ -708,6 +724,8 @@ async fn unregister_library<R: Runtime>(
             *lock(&state.forwarded) = None;
             state.search.invalidate();
             *lock(&state.reference) = None;
+            // Tagging::drop joins a worker that may be waiting for visibility_commit.
+            // Registry revocation has committed and released that gate before this join.
             crate::tagging::detach(&app);
         }
         state.detached.clear();
@@ -738,14 +756,20 @@ async fn image(
 
 /// 一次批量整理若干张图，返回重新计算后的详情。
 #[tauri::command]
-async fn edit(
-    state: State<'_, LibraryState>,
+async fn edit<R: Runtime>(
+    app: AppHandle<R>,
     library_id: String,
     ids: Vec<String>,
     edits: Vec<ImageEdit>,
 ) -> Result<Vec<ImageDetail>, String> {
-    let library = state.current(&library_id)?;
-    blocking(move || library.edit(&ids, &edits).map_err(|e| e.to_string())).await
+    blocking(move || {
+        with_visibility_commit(&app, |_| {
+            current(&app, &library_id)?
+                .edit(&ids, &edits)
+                .map_err(|e| e.to_string())
+        })
+    })
+    .await
 }
 
 /// 永久删除的预览（#67）：回收站里这些图会影响哪些参考组，以及执行时要交回的令牌。
@@ -776,13 +800,15 @@ async fn permanent_delete<R: Runtime>(
     ids: Vec<String>,
     token: String,
 ) -> Result<(), String> {
-    let library = current(&app, &library_id)?;
     blocking(move || {
-        crate::desktop::with_groups(&app, |groups| {
-            library.permanent_delete(&ids, &token, groups)
-        })
-        .ok_or_else(|| "参考组还没有准备好".to_owned())?
-        .map_err(|e| e.to_string())?;
+        with_visibility_commit(&app, |_| {
+            let library = current(&app, &library_id)?;
+            crate::desktop::with_groups(&app, |groups| {
+                library.permanent_delete(&ids, &token, groups)
+            })
+            .ok_or_else(|| "参考组还没有准备好".to_owned())?
+            .map_err(|e| e.to_string())
+        })?;
         crate::desktop::reference_groups_changed(&app);
         Ok(())
     })
@@ -1327,6 +1353,8 @@ async fn set_safe_mode<R: Runtime>(
         if let Ok(library) = state.active() {
             library.set_safe_mode(on);
         }
+        // Do not let delayed/reordered event workers preserve a reveal across off -> on.
+        crate::desktop::safe_mode_committed(&app, on);
     }
     let _ = app.emit(SAFE_MODE_EVENT, on);
     Ok(on)
@@ -1486,7 +1514,7 @@ async fn image_rating(
 #[cfg(test)]
 mod tests {
     //! 应用壳的翻译表装配（#76 Core3、#77 C1）：走生产代码同一条路径——[`LibraryState::new`]
-    //! 取 [`bundled_translations`]，[`forward_events`] 调 [`LibraryState::install_translations`]。
+    //! 取 [`bundled_translations`]，[`forward_events`] 调 [`LibraryState::configure_library`]。
     //! 不启动 Tauri；资料库是临时目录里的真库。
 
     use kinshoko_core::library::{FactSource, ImportOutcome, SourceTag, TagNamespace, TagRef};
@@ -1557,7 +1585,7 @@ mod tests {
     fn a_library_assembled_by_the_app_names_model_tags_and_finds_them_by_chinese_names() {
         let (dir, state) = state();
         let (library, image) = library_with_image(dir.path(), "new");
-        state.install_translations(&library);
+        state.configure_library(&library);
         tag_blue_eyes(&library, &image);
 
         assert_eq!(names(&library, &image), [("蓝瞳".to_owned(), false)]);
@@ -1576,7 +1604,7 @@ mod tests {
         tag_blue_eyes(&library, &image);
         assert_eq!(names(&library, &image), [("blue eyes".to_owned(), true)]);
 
-        state.install_translations(&library);
+        state.configure_library(&library);
         assert_eq!(names(&library, &image), [("blue eyes".to_owned(), true)]);
     }
 

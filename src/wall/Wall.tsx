@@ -9,6 +9,7 @@ import type { BrowsePage } from "../bindings/BrowsePage";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import { browse, workspaceBrowse, isCursorExpired, isLensChanged, thumbnailUrl } from "../ipc";
+import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { captureAnchor, masonry, resolveAnchor, visible, type Anchor } from "./layout";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
@@ -198,10 +199,23 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     if (!workspaceScope) return;
     generation.current += 1;
     inflight.current = null;
+    // Emptying the canvas clamps browser scrollTop. Preserve the user's anchor
+    // until the new authorized page restores it.
+    restoring.current = true;
     setCards([]);
     setTotal(null);
     setCursor(null);
   }, [reloadKey, safeMode, workspaceScope]);
+  useCaptureSources(() => {
+    if (viewerOpen || !scroller.current || document.querySelector('[role="dialog"]')) return null;
+    return [...scroller.current.querySelectorAll<HTMLImageElement>(".card img")].flatMap((image) => {
+      const node = image.closest<HTMLElement>(".card")!;
+      const card = cards.find((item) => item.id === node.dataset.id);
+      if (!card || node.dataset.veiled === "true") return [];
+      const reference = captureImage(image, scroller.current!, card.libraryId ?? libraryId, card.imageId ?? card.id, card.width, card.height);
+      return reference ? [reference] : [];
+    });
+  }, 10);
   const loaded = useRef(0);
   loaded.current = cards.length;
 

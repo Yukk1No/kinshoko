@@ -1,0 +1,100 @@
+{
+  "fixedProductSource": "20e39e388d26137472fd3e62b5567cfcf57d24bb",
+  "tree": "d9c71f0d61106856615d750a698463853cc75cd5",
+  "checkedTrackedFiles": 2217,
+  "mismatches": [],
+  "workspace": "76 parent targets,714passed,0failed,12ignored;7 nested child results excluded",
+  "clippy": "workspace/all-targets/locked/-D warnings exit0",
+  "fmt": "exit0",
+  "frontend": "byte-identical to2da, which has actual40files/286passed and tsc0; no frontend rerun for Rust-only changes",
+  "intermediateV4": "cd927 before history seam:76targets/710passed/0failed/12ignored and clippy0, retained honestly; it does not substitute for20e",
+  "native": "No new build or native launch; c443 DD37 remains the prior failed specimen",
+  "files": [
+    {
+      "path": "final-v4-workspace-tests.txt",
+      "bytes": 72156,
+      "sha256": "ecbc2f1d65326c7e5ae4838e38f970f864df5453b622301c5c708f8a17c38508"
+    },
+    {
+      "path": "final-v4-workspace-exit.txt",
+      "bytes": 1,
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "path": "final-v4-workspace-summary.json",
+      "bytes": 18816,
+      "sha256": "2c465248c2337e0fca868b88fd42c94e177e367323c5590c1d358906ee899c19"
+    },
+    {
+      "path": "final-v4-clippy.txt",
+      "bytes": 182,
+      "sha256": "41345282d5bfbce94d4295b239757f46d9fbfd84b8baa80f200f21ff6ad4c623"
+    },
+    {
+      "path": "final-v4-clippy-exit.txt",
+      "bytes": 1,
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "path": "final-v5-workspace-tests.txt",
+      "bytes": 72739,
+      "sha256": "aeb7bf6b8b17f8597c9dabd516d01fa8fc465c643154dde8c91514a84ac25fd2"
+    },
+    {
+      "path": "final-v5-workspace-exit.txt",
+      "bytes": 3,
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+    },
+    {
+      "path": "final-v5-workspace-summary.json",
+      "bytes": 18885,
+      "sha256": "c6ec7b61a9ea3fb790e8b0760f95b04be437c0c661e75a17d61c0e1a11c86282"
+    },
+    {
+      "path": "final-v5-clippy.txt",
+      "bytes": 437,
+      "sha256": "cf598ab329c3531d641d86ec80c4b3f0a46870f194e533ccf6556bfc1343f5f0"
+    },
+    {
+      "path": "final-v5-clippy-exit.txt",
+      "bytes": 3,
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+    },
+    {
+      "path": "final-v5-fmt.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "final-v5-fmt-exit.txt",
+      "bytes": 3,
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+    },
+    {
+      "path": "final-v5-harness-syntax.json",
+      "bytes": 946,
+      "sha256": "4e26ace23be73c7e432691d1186ff39de6601512d737b41d914190f902ea5b23"
+    },
+    {
+      "path": "final-v5-postcheck.json",
+      "bytes": 460,
+      "sha256": "9784b9558fbf34f0d1dccb9f249899707ad409697694c4d6497349501522c620"
+    },
+    {
+      "path": "final-v4-precheck-manifest.json.gz",
+      "bytes": 111012,
+      "sha256": "29dc294d7b8a549ef8c4f0156b30ce84863b164e788322f69e64843c617c63c5",
+      "uncompressedBytes": 429003,
+      "uncompressedSha256": "cb398359d208a625a07507da19597b385717cd1ae6e240bdf4c460306c416b21",
+      "compression": "gzip mtime=0; decompress equals actual precheck bytes"
+    },
+    {
+      "path": "final-v5-precheck-manifest.json.gz",
+      "bytes": 111718,
+      "sha256": "ab7047084d3a5d7443f0c75f2bd52629062c87a0ba0be779ccaf438167939246",
+      "uncompressedBytes": 432620,
+      "uncompressedSha256": "e41bf3a51b7c92e5e71f3882e134de07a7d4f85326a3c61d0ed633c99d070c88",
+      "compression": "gzip mtime=0; decompress equals actual precheck bytes"
+    }
+  ]
+}

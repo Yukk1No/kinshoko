@@ -22,7 +22,7 @@ pub fn publish_definition_dependencies<R: Runtime>(
     let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
         libraries.write(library_id)
     })?;
-    state.install_translations(&library);
+    state.configure_library(&library);
     library.set_safe_mode(saved_safe_mode(app));
     with_catalog(&state.device_dir, &state.catalog, |catalog| {
         catalog.publish_library_definitions(&library)
@@ -83,8 +83,21 @@ pub fn import_package<R: Runtime>(
     library: &Library,
 ) -> Result<kinshoko_core::reference_groups::ReferenceGroup, String> {
     let state = app.state::<LibraryState>();
-    with_catalog(&state.device_dir, &state.catalog, |catalog| {
-        Ok(groups.import_package_with_catalog(path, library, catalog))
-    })?
-    .map_err(|error| error.to_string())
+    let catalog = content_definitions(app)?;
+    let imported = groups
+        .prepare_package_import(path, library, Some(&catalog))
+        .map_err(|error| error.to_string())?;
+    // Per-image rating publication already uses this gate. No package IO or decoding is
+    // performed while holding either lock; always take the final gate before the catalog.
+    with_visibility_commit(app, |_| {
+        with_catalog(&state.device_dir, &state.catalog, |catalog| {
+            catalog.publish_library_definitions(library)
+        })
+    })
+    .map_err(|error| {
+        format!(
+            "内容已写入，但资料库标签定义尚未更新：{error}。请重试保存标签定义或重新导入参考组包。"
+        )
+    })?;
+    imported.finish().map_err(|error| error.to_string())
 }

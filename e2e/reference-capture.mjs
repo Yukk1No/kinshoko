@@ -72,7 +72,8 @@ async function capture(shown, action) {
   const height = Math.max(4, Math.floor(shown.height / 8));
   if (x < origin.x || y < origin.y) throw new Error("当前光标显示器不包含测试参考图；请将光标与测试窗口置于同一显示器");
   const region = { x: x - origin.x, y: y - origin.y, width, height };
-  await desktop("finish_capture", { region, action });
+  const frozen = await desktop("frozen_screen");
+  await desktop("finish_capture", { region, action, token: frozen.image.slice("screen/".length) });
   await until("冻结窗口已关闭", async () => !(await windows()).includes("capture"));
   return { offsetX: x - shown.x, offsetY: y - shown.y, width, height };
 }

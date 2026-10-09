@@ -1,0 +1,14 @@
+{
+  "observedAfterChecks": "2026-10-08T23:59:52.653161+00:00",
+  "source": "20e39e388d26137472fd3e62b5567cfcf57d24bb",
+  "tree": "d9c71f0d61106856615d750a698463853cc75cd5",
+  "beforeManifestSha256": "e41bf3a51b7c92e5e71f3882e134de07a7d4f85326a3c61d0ed633c99d070c88",
+  "trackedFilesCompared": 2217,
+  "mismatches": [],
+  "gitStatus": "",
+  "bindingsDiff": "",
+  "frontendDiffSince2da": "",
+  "workspaceExit": 0,
+  "clippyExit": 0,
+  "fmtExit": 0
+}

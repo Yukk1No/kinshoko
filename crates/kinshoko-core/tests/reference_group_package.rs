@@ -632,3 +632,119 @@ fn package_import_uses_the_bound_destination_for_every_member_original() {
     assert_eq!(page.total, 3);
     assert_eq!(image_count(&other.library), 3);
 }
+
+/// Package snapshots and cross-library copy both merge suggested ratings into existing content.
+/// The app's final clipboard commit uses the same gate as this real destination library.
+fn assert_rating_publication_waits_for_final_commit(copy: bool) {
+    use std::sync::{Arc, Barrier, Mutex, mpsc};
+    use std::time::Duration;
+
+    let studio = Studio::new();
+    let package = studio.export();
+    let other = OtherComputer::new();
+    other.library.set_safe_mode(false);
+    let source_id = &studio.a_images[0];
+    let original = studio.a_lens.original_path(source_id).unwrap();
+    let report = other
+        .library
+        .import(ImportSource {
+            paths: vec![original],
+        })
+        .wait();
+    let target_id = report.items[0].outcome.image_id().unwrap().to_owned();
+    assert_eq!(
+        other.library.image_rating(&target_id).unwrap().effective,
+        None
+    );
+
+    let gate = Arc::new(Mutex::new(()));
+    other.library.use_package_publication_gate(gate.clone());
+    let ready = Arc::new(Barrier::new(2));
+    let (done_tx, done_rx) = mpsc::channel();
+    let permit = gate.lock().unwrap();
+    let (finished_while_held, rating_while_held) = std::thread::scope(|scope| {
+        let worker_ready = ready.clone();
+        let target = &other;
+        let source = &studio.a;
+        let package = &package;
+        let worker = scope.spawn(move || {
+            worker_ready.wait();
+            if copy {
+                target.library.copy_from(source, source_id).unwrap();
+            } else {
+                target
+                    .groups
+                    .import_package(package, &target.library)
+                    .unwrap();
+            }
+            let _ = done_tx.send(());
+        });
+        ready.wait();
+        let finished = done_rx.recv_timeout(Duration::from_millis(300)).is_ok();
+        let rating = other.library.image_rating(&target_id).unwrap().effective;
+        drop(permit);
+        worker.join().unwrap();
+        (finished, rating)
+    });
+    assert_eq!(
+        other.library.image_rating(&target_id).unwrap().effective,
+        Some(ContentRating::Explicit)
+    );
+    assert!(
+        !finished_while_held,
+        "rating publication completed while final commit held the gate; effective while held: {rating_while_held:?}"
+    );
+    assert_eq!(
+        rating_while_held, None,
+        "existing content became sealed during another authorized final commit"
+    );
+}
+
+#[test]
+fn package_rating_publication_waits_for_the_final_visibility_commit() {
+    assert_rating_publication_waits_for_final_commit(false);
+}
+
+#[test]
+fn copied_rating_publication_waits_for_the_final_visibility_commit() {
+    assert_rating_publication_waits_for_final_commit(true);
+}
+
+#[test]
+fn imported_content_waits_for_definition_publication_before_saving_a_new_group() {
+    let studio = Studio::new();
+    let package = studio.export();
+    let other = OtherComputer::new();
+    other.library.set_safe_mode(false);
+    let prepared = other
+        .groups
+        .prepare_package_import(&package, &other.library, None)
+        .unwrap();
+    assert!(other.groups.list().unwrap().is_empty());
+    assert_eq!(
+        other
+            .library
+            .browse(&kinshoko_core::library::BrowseQuery {
+                scope: Default::default(),
+                conditions: Default::default(),
+                cursor: None,
+                limit: 100,
+                thumbnail_px: 100,
+            })
+            .unwrap()
+            .total,
+        3
+    );
+    // A failed application-definition publication drops this opaque result. Content remains
+    // available for retry; no group file was saved prematurely.
+    drop(prepared);
+    assert!(other.groups.list().unwrap().is_empty());
+    let imported = other
+        .groups
+        .prepare_package_import(&package, &other.library, None)
+        .unwrap()
+        .finish()
+        .unwrap();
+    assert_eq!(other.groups.list().unwrap().len(), 1);
+    assert_eq!(imported.members.len(), studio.group.members.len());
+}

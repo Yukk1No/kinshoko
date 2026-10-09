@@ -1,0 +1,247 @@
+{
+  "status": "failed",
+  "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
+  "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
+  "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "scriptSha256": "6c1944ee96060db3ecd913947ef76bcc5e3af7224bed4518763856a8bd3733cc",
+  "scriptSource": "4b5e1ac7f50fa117d7238768376b287a5237c87d",
+  "mode": "wall",
+  "assertions": [
+    "synthetic originals import through production task",
+    "synthetic originals import through production task",
+    "formal waterfall displays a reduced derivative of the high-resolution original",
+    "real identical originals aggregate with two independent registered sources",
+    "initial aggregate waterfall: original copy adds no screenshot history",
+    "initial aggregate waterfall: pin keeps exact library/image source",
+    "initial aggregate waterfall: pin preserves original pixel crop",
+    "initial aggregate waterfall: reference pin adds no screenshot history",
+    "initial aggregate waterfall: actual OS clipboard retains original crop dimensions",
+    "initial aggregate waterfall: actual OS clipboard retains original fine-detail corner bytes"
+  ],
+  "samples": [
+    {
+      "label": "initial aggregate waterfall",
+      "shown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "x": 497,
+        "y": 289
+      },
+      "copy": {
+        "region": {
+          "x": 560,
+          "y": 331,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 1200,
+          "y": 800,
+          "width": 591,
+          "height": 400
+        }
+      },
+      "pinned": {
+        "region": {
+          "x": 560,
+          "y": 331,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 1200,
+          "y": 800,
+          "width": 591,
+          "height": 400
+        },
+        "pin": {
+          "content": {
+            "height": 400,
+            "width": 591,
+            "x": 578,
+            "y": 349
+          },
+          "generation": 0,
+          "motion": "jump",
+          "pin": {
+            "content": {
+              "imageId": "01a11d093e5677a2bab255e8a6431e6a",
+              "kind": "reference",
+              "libraryId": "6080abcb8d6a48429a6cd4c900d5271e",
+              "sourceHeight": 3200,
+              "sourceWidth": 4800
+            },
+            "crop": {
+              "height": 400,
+              "width": 591,
+              "x": 1200,
+              "y": 800
+            },
+            "height": 400,
+            "id": "144c701bdd1947a1af8b958a96ee632f",
+            "locked": false,
+            "opacity": 1,
+            "placement": {
+              "flipH": false,
+              "flipV": false,
+              "rotation": 0,
+              "scale": 1,
+              "x": 578,
+              "y": 349
+            },
+            "width": 591
+          },
+          "veiled": false,
+          "window": {
+            "height": 400,
+            "width": 591,
+            "x": 578,
+            "y": 349
+          }
+        }
+      },
+      "pin": {
+        "content": {
+          "imageId": "01a11d093e5677a2bab255e8a6431e6a",
+          "kind": "reference",
+          "libraryId": "6080abcb8d6a48429a6cd4c900d5271e",
+          "sourceHeight": 3200,
+          "sourceWidth": 4800
+        },
+        "crop": {
+          "height": 400,
+          "width": 591,
+          "x": 1200,
+          "y": 800
+        },
+        "height": 400,
+        "id": "144c701bdd1947a1af8b958a96ee632f",
+        "locked": false,
+        "opacity": 1,
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 578,
+          "y": 349
+        },
+        "width": 591
+      },
+      "clipboard": {
+        "size": [
+          591,
+          400
+        ],
+        "corners": [
+          [
+            176,
+            32,
+            0,
+            255
+          ],
+          [
+            254,
+            32,
+            0,
+            255
+          ],
+          [
+            176,
+            175,
+            0,
+            255
+          ],
+          [
+            254,
+            175,
+            0,
+            255
+          ]
+        ]
+      }
+    }
+  ],
+  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488505260",
+  "startedAt": "2026-10-08T19:41:45.378Z",
+  "capabilities": {
+    "acceptInsecureCerts": false,
+    "browserName": "webview2",
+    "browserVersion": "154.0.4258.62",
+    "fedcm:accounts": true,
+    "goog:processID": 35872,
+    "ms:edgeOptions": {
+      "debuggerAddress": "localhost:4734"
+    },
+    "msedge": {
+      "msedgedriverVersion": "154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)",
+      "userDataDir": ""
+    },
+    "networkConnectionEnabled": false,
+    "pageLoadStrategy": "normal",
+    "platformName": "windows",
+    "proxy": {},
+    "setWindowRect": true,
+    "strictFileInteractability": false,
+    "timeouts": {
+      "implicit": 0,
+      "pageLoad": 300000,
+      "script": 30000
+    },
+    "unhandledPromptBehavior": "dismiss and notify",
+    "webauthn:extension:cmtgKey": true,
+    "webauthn:extension:credBlob": true,
+    "webauthn:extension:largeBlob": true,
+    "webauthn:extension:minPinLength": true,
+    "webauthn:extension:prf": true,
+    "webauthn:virtualAuthenticators": true
+  },
+  "environment": "Kinshoko 0.1.0 诊断信息\n生成时间：2026-10-08 19:41:46 UTC\n本报告不含文件名、路径与图片。\n\n[系统]\n系统：Windows 11 Professional 26H2（26300.9550）\n处理器：AMD Ryzen 7 5800X 8-Core Processor\n内存：31.9 GB\n显卡：NVIDIA GeForce RTX 4070 SUPER\n显卡：GameViewer Virtual Display Adapter\nWebView2：154.0.4258.62\n\n[显示器]\n1. VG27AQL1A（主显示器）：2560×1440，缩放 110%，SDR（自动色彩管理），每通道 8 位\n   配置文件：sRGB IEC61966-2.1，ICC 2.1，矩阵＋曲线，SHA-256 2b3aa1645779\n\n[Kinshoko 设置]\n强制 sRGB：关闭\n使用日志：关闭\n",
+  "first": {
+    "info": {
+      "id": "6080abcb8d6a48429a6cd4c900d5271e",
+      "name": "原图来源 A",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488505260\\libraries\\原图来源 A"
+    },
+    "card": {
+      "adult": false,
+      "height": 3200,
+      "id": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+      "imageId": "01a11d093e5677a2bab255e8a6431e6a",
+      "libraryId": "6080abcb8d6a48429a6cd4c900d5271e",
+      "sources": [
+        {
+          "deleted": false,
+          "imageId": "01a11d093e5677a2bab255e8a6431e6a",
+          "libraryId": "6080abcb8d6a48429a6cd4c900d5271e",
+          "libraryName": "原图来源 A",
+          "matches": true,
+          "unavailable": null
+        }
+      ],
+      "thumbnail": "6080abcb8d6a48429a6cd4c900d5271e/01a11d093e5677a2bab255e8a6431e6a/256",
+      "width": 4800
+    }
+  },
+  "invokeDescriptor": {
+    "configurable": false,
+    "hasSetter": false,
+    "writable": false
+  },
+  "dpr": 1.1041666269302368,
+  "error": "Error: plugin:desktop|close_pin: 只能关闭当前钉图\n    at invoke (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:33:307)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async clearPins (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:53:91)\n    at async verifyOriginal (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:56:1222)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:88:3",
+  "requests": [
+    "19302cbfeed04297af448de696bc2531",
+    "346656bc531d488983fb91ee654ba700",
+    "d3424603a18e44c7b2a378caa9043b95",
+    "bec9381be568499da34d2ed1610b1da5"
+  ],
+  "lateSent": null,
+  "finishedAt": "2026-10-08T19:41:58.573Z"
+}
