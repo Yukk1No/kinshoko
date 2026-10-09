@@ -23,7 +23,7 @@ if mode in ("focus-fixture", "close-fixture"):
     assert extra_pid is not None and all(flag in sys.argv for flag in ("--fixture-hwnd", "--fixture-class", "--fixture-script", "--fixture-spawn-after-ms", "--fixture-spawn-before-ms"))
     fixture_hwnd = int(sys.argv[sys.argv.index("--fixture-hwnd") + 1])
     fixture_class = sys.argv[sys.argv.index("--fixture-class") + 1]
-    assert fixture_class.startswith("KinshokoT17Raw_" + str(extra_pid) + "_")
+    assert fixture_class.startswith("KinshokoT17RawCreate_" + str(extra_pid) + "_")
     fixture_script = Path(sys.argv[sys.argv.index("--fixture-script") + 1]).resolve()
     assert fixture_script.name == "occluder.ps1" and fixture_script.is_relative_to((Path.cwd() / "work/e2e").resolve())
     fixture_process = json.loads(subprocess.check_output([

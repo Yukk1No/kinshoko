@@ -1,4 +1,4 @@
-// Test-only raw Win32 blue occluder, extracted from the observed T17 fixture probe.
+// Test-only qualification candidate: one raw window is created with WS_EX_TOPMOST.
 // Compile offline before freezing a native lease. Run once in its own 64-bit STA process.
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
 
-public static class T17RawWallOccluder {
+public static class T17RawCreateTopmost {
   [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate IntPtr WindowProc(IntPtr h,uint m,IntPtr w,IntPtr l);
   [StructLayout(LayoutKind.Sequential)] struct Point {public int X,Y;}
   [StructLayout(LayoutKind.Sequential)] struct Message {public IntPtr Hwnd;public uint Id;public IntPtr WParam,LParam;public uint Time;public Point Position;public uint Private;}
@@ -17,7 +17,6 @@ public static class T17RawWallOccluder {
   [StructLayout(LayoutKind.Sequential)] struct WindowPos {public IntPtr Hwnd,InsertAfter;public int X,Y,Cx,Cy;public uint Flags;}
   [StructLayout(LayoutKind.Sequential,CharSet=CharSet.Unicode)] struct WindowClass {public uint Size,Style;public IntPtr Proc;public int ClassExtra,WindowExtra;public IntPtr Instance,Icon,Cursor,Background;public string Menu,Name;public IntPtr SmallIcon;}
   [DllImport("user32.dll",SetLastError=true)] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr value);
-  [DllImport("user32.dll",SetLastError=true)] static extern bool SetWindowPos(IntPtr h,IntPtr after,int x,int y,int width,int height,uint flags);
   [DllImport("user32.dll",EntryPoint="GetWindowLongPtrW",SetLastError=true)] static extern IntPtr GetWindowLong(IntPtr h,int index);
   [DllImport("user32.dll",SetLastError=true)] static extern bool GetWindowRect(IntPtr h,out Rect r);
   [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
@@ -51,17 +50,20 @@ public static class T17RawWallOccluder {
     if(IntPtr.Size!=8)throw new InvalidOperationException("Requires 64-bit host.");
     if(width<21||height<21)throw new ArgumentOutOfRangeException("width","Fixture must include interior test points.");
     IntPtr hwnd=IntPtr.Zero,brush=IntPtr.Zero,instance=GetModuleHandle(null),previousDpi=IntPtr.Zero;bool registered=false,ready=false;WindowProc callback=Procedure;
-    string className="KinshokoT17Raw_"+Process.GetCurrentProcess().Id+"_"+Guid.NewGuid().ToString("N");
+    string className="KinshokoT17RawCreate_"+Process.GetCurrentProcess().Id+"_"+Guid.NewGuid().ToString("N");
     var output=Map("schema",1,"status","starting","pid",Process.GetCurrentProcess().Id,"className",className,"beginUnixMs",Now());
     try{
       SetLastError(0);previousDpi=SetThreadDpiAwarenessContext(new IntPtr(-4));int dpiError=Marshal.GetLastWin32Error();output.Add("dpi",Map("previous",previousDpi.ToInt64(),"lastError",dpiError));if(previousDpi==IntPtr.Zero)throw new InvalidOperationException("Per-monitor DPI context was not established.");
       brush=CreateSolidBrush(0x00e51103);if(brush==IntPtr.Zero)throw new InvalidOperationException("CreateSolidBrush failed.");
       WindowClass c=new WindowClass();c.Size=(uint)Marshal.SizeOf(typeof(WindowClass));c.Proc=Marshal.GetFunctionPointerForDelegate(callback);c.Instance=instance;c.Background=brush;c.Name=className;
       SetLastError(0);ushort atom=RegisterClassEx(ref c);int classError=Marshal.GetLastWin32Error();output.Add("registration",Map("atom",atom,"lastError",classError));if(atom==0)throw new InvalidOperationException("RegisterClassEx failed.");registered=true;
-      SetLastError(0);hwnd=CreateWindowEx(0x40000,className,"Kinshoko owned T17 raw fixture",0x80000000,x,y,width,height,IntPtr.Zero,IntPtr.Zero,instance,IntPtr.Zero);int createError=Marshal.GetLastWin32Error();output.Add("creation",Map("hwnd",hwnd.ToInt64(),"lastError",createError));if(hwnd==IntPtr.Zero)throw new InvalidOperationException("CreateWindowEx failed.");
-      ShowWindow(hwnd,4);Pump(100);Phase="single-topmost-placement";object before=Window(hwnd);long begin=Now();SetLastError(0);bool placed=SetWindowPos(hwnd,new IntPtr(-1),x,y,width,height,0x50);int error=Marshal.GetLastWin32Error();long end=Now();object immediate=Window(hwnd);Pump(150);object delayed=Window(hwnd);
-      var report=Map("schema",1,"status","ready","pid",Process.GetCurrentProcess().Id,"hwnd",hwnd.ToInt64(),"className",className,"placed",placed,"previousDpiContext",previousDpi.ToInt64(),"placement",Map("beginUnixMs",begin,"endUnixMs",end,"returned",placed,"lastError",error,"insertAfter",-1,"flags",0x50,"explicitCallCount",1,"before",before,"immediate",immediate,"delayed",delayed),"positionMessages",Positions.ToArray());
-      Save(readyPath,report);ready=true;output.Add("ready",report);if(!placed)throw new InvalidOperationException("Single owned SetWindowPos failed.");Phase="message-loop";
+      var createArgs=Map("api","CreateWindowExW","extendedStyle",0x40008,"className",className,"title","Kinshoko owned T17 raw create-topmost fixture","style",0x80000000u,"x",x,"y",y,"width",width,"height",height,"parentHwnd",0,"menu",0,"instance",instance.ToInt64(),"parameter",0);
+      Phase="single-create-topmost";long createBegin=Now();SetLastError(0);hwnd=CreateWindowEx(0x40008,className,"Kinshoko owned T17 raw create-topmost fixture",0x80000000,x,y,width,height,IntPtr.Zero,IntPtr.Zero,instance,IntPtr.Zero);int createError=Marshal.GetLastWin32Error();long createEnd=Now();
+      var creation=Map("arguments",createArgs,"beginUnixMs",createBegin,"endUnixMs",createEnd,"hwnd",hwnd.ToInt64(),"lastError",createError,"explicitCallCount",1);output.Add("creation",creation);if(hwnd==IntPtr.Zero)throw new InvalidOperationException("CreateWindowEx failed.");creation.Add("afterCreation",Window(hwnd));
+      Phase="single-show";long showBegin=Now();bool previouslyVisible=ShowWindow(hwnd,4);long showEnd=Now();var show=Map("api","ShowWindow","command",4,"explicitCallCount",1,"beginUnixMs",showBegin,"endUnixMs",showEnd,"returnedPreviouslyVisible",previouslyVisible,"returnScope","ShowWindow return describes prior visibility; actual visible state is measured separately.","afterShow",Window(hwnd));output.Add("show",show);
+      Phase="post-show-pump";Pump(100);object afterPump=Window(hwnd);Phase="delayed-observation";Pump(150);object delayed=Window(hwnd);
+      var report=Map("schema",1,"status","ready","pid",Process.GetCurrentProcess().Id,"hwnd",hwnd.ToInt64(),"className",className,"previousDpiContext",previousDpi.ToInt64(),"creation",creation,"show",show,"afterPump100ms",afterPump,"delayedAfter150ms",delayed,"explicitSetWindowPosCalls",0,"positionMessages",Positions.ToArray());
+      Save(readyPath,report);ready=true;output.Add("ready",report);Phase="message-loop";
       for(;;){Message m;SetLastError(0);int got=GetMessage(out m,IntPtr.Zero,0,0);int getError=Marshal.GetLastWin32Error();if(got==0)break;if(got==-1)throw new InvalidOperationException("GetMessage failed: "+getError);TranslateMessage(ref m);DispatchMessage(ref m);}
       output["status"]="closed";
     }catch(Exception ex){output["status"]="failed";output.Add("error",Map("type",ex.GetType().FullName,"message",ex.Message));if(!ready)Save(readyPath,output);}
