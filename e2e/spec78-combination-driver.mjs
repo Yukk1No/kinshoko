@@ -143,7 +143,7 @@ $app=NormalPath $env:KINSHOKO_T20_EXECUTABLE
 $profile=NormalPath $env:KINSHOKO_T20_PROFILE
 $tauri=NormalPath $env:KINSHOKO_T20_TAURI_DRIVER
 $spawned=ConvertFrom-Json $env:KINSHOKO_T20_SPAWNED_DRIVER
-$known=@(ConvertFrom-Json $env:KINSHOKO_T20_OWNED_PROCESSES)
+$known=@((ConvertFrom-Json $env:KINSHOKO_T20_OWNED_PROCESSES) | ForEach-Object { $_ })
 $selected=@{}
 foreach($item in $all) {
  $path=NormalPath $item.ExecutablePath; $command=NormalPath $item.CommandLine; $reason=$null
@@ -191,7 +191,7 @@ $ports=@([System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperti
     if(expected.some(item=>!Number.isInteger(item.pid)||item.pid<=0||!item.created||!item.executable))throw Error("An exact termination requires PID, creation time and executable for every instance");
     const script=String.raw`
 $ErrorActionPreference='Stop'
-$expected=@(ConvertFrom-Json $env:KINSHOKO_T20_TERMINATE)
+$expected=@((ConvertFrom-Json $env:KINSHOKO_T20_TERMINATE) | ForEach-Object { $_ })
 function SameInstance($item,$prior) { return $null -ne $item -and $item.CreationDate.ToUniversalTime().ToString('o') -eq $prior.created -and $item.ExecutablePath -eq $prior.executable }
 function CurrentProcess($prior) { return Get-CimInstance Win32_Process -Filter ('ProcessId = '+[string][uint32]$prior.pid) -ErrorAction Stop | Select-Object -First 1 }
 $terminated=@(); $alreadyEnded=@()

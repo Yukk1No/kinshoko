@@ -98,7 +98,7 @@ export const browserTerminationScript=String.raw`
 $ErrorActionPreference='Stop'
 $moduleRoot=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\Modules'
 Import-Module (Join-Path $moduleRoot 'CimCmdlets\CimCmdlets.psd1') -ErrorAction Stop
-$expected=@(ConvertFrom-Json $env:KINSHOKO_T20_BROWSER_TERMINATE)
+$expected=@((ConvertFrom-Json $env:KINSHOKO_T20_BROWSER_TERMINATE) | ForEach-Object { $_ })
 $terminated=@();$alreadyEnded=@()
 foreach($prior in $expected) {
  $item=Get-CimInstance Win32_Process -Filter ('ProcessId = '+[string][uint32]$prior.pid) -ErrorAction Stop | Select-Object -First 1

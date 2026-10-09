@@ -116,7 +116,9 @@ function buildRecipe(configPath,profile,rust) {
     environment:{CARGO_BUILD_JOBS:"2",CARGO_TARGET_DIR:target,KINSHOKO_SKIP_AUTOSTART:"1",RUSTC:rust.compiler.path,CARGO_BUILD_RUSTC:rust.compiler.path},
     absentOverrides:absentBuildOverrides(),
     frontend:{executable:process.execPath,args:[resolve("node_modules/vite/bin/vite.js"),"build"]},
-    native:{executable:process.execPath,args:[resolve("node_modules/@tauri-apps/cli/tauri.js"),"build",...(profile==="debug"?["--debug"]:[]),"--no-bundle","--target",host,"--config",config.path]},
+    native:{executable:process.execPath,args:[resolve("node_modules/@tauri-apps/cli/tauri.js"),"build",...(profile==="debug"?["--debug"]:[]),"--no-bundle",
+      // The first T20 debug build without this feature loaded dist as a file:// directory listing.
+      "--features","tauri/custom-protocol","--target",host,"--config",config.path]},
     tools:{vite:fileRecord("node_modules/vite/bin/vite.js"),tauri:fileRecord("node_modules/@tauri-apps/cli/tauri.js")},
     inheritedBuildEnvironment:Object.fromEntries(["PATH","RUSTUP_TOOLCHAIN","RUSTFLAGS","CARGO_ENCODED_RUSTFLAGS","RUSTC","CARGO_BUILD_RUSTC","RUSTC_WRAPPER","RUSTC_WORKSPACE_WRAPPER","CARGO_BUILD_RUSTC_WRAPPER","TS_RS_EXPORT_DIR"].filter(key=>process.env[key]!==undefined).map(key=>[key,process.env[key]])),
   };
