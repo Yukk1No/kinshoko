@@ -1,0 +1,48 @@
+{
+  "kind": "spec78-t20-final-combination-derived",
+  "note": "Minimal derived record. Raw rounds, receipts, traces and screenshots stay in ignored work/e2e/spec78-t20-final-*/ of the worker tree.",
+  "integrationMerged": "4ae84740a6b6e33423cfc93a43c393eee99ecb0c",
+  "finalBuild": {
+    "source": "7f2f852c28934293dd29c8a7ba5e9936d5f7541e",
+    "tree": "9e90e88562a35d3718a18ffec82fe682b299a358",
+    "profile": "debug, embedded frontend (custom-protocol), no bundle",
+    "isolatedIdentifier": "dev.kinshoko.spec78t20test",
+    "exeSha256": "c45a80a4199678a9162e9cec5f9a6bea1367f01a04abd5480060362d5d208c87",
+    "exeBytes": 101864448,
+    "directMlSha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1",
+    "rustHost": "x86_64-pc-windows-msvc",
+    "jobs": 2
+  },
+  "checks": {
+    "source": "11e91102404c0bb937a6af2fbcba284664e59943",
+    "productInputsSameAs": "7f2f852 (later commits change e2e/ only)",
+    "fmt": "pass",
+    "clippyWorkspaceAllTargetsDenyWarnings": "pass",
+    "bindingsRegenerationDiff": "empty (kinshoko-core 711 passed)",
+    "cargoTestWorkspace": {"passed": 721, "failed": 0, "ignored": 12},
+    "tsc": "pass",
+    "vitest": {"files": 42, "tests": 294, "failed": 0},
+    "e2eNodeCheck": {"files": 43, "failed": 0},
+    "retainedEarlierFailure": "af0eaf8 full UI 291/292: TagOrganize clicked a disabled create-group button (test precondition, fixed in 9439a4b)"
+  },
+  "nativeRounds": [
+    {"round": "r1", "build": "9439a4b", "exit": 1, "pass": 0, "cause": "absolute frontendDist parsed as URL; WebView showed a file:// listing (harness config)"},
+    {"round": "r2", "build": "e3bb600", "exit": 1, "pass": 25, "cause": "harness compared non-manual source origins after copy"},
+    {"round": "r3", "build": "e3bb600", "exit": 1, "pass": 37, "cause": "90s bound for a 2000-entry import (~14/s)"},
+    {"round": "r4", "build": "e3bb600", "exit": 1, "pass": 43, "cause": "WebDriver window/rect does not resize Tauri WebView2"},
+    {"round": "r5", "build": "e3bb600", "exit": 1, "pass": 56, "cause": "product: wall emptied with no total/error after re-selecting the same folder"},
+    {"round": "r6", "build": "e3bb600", "exit": 1, "pass": 56, "cause": "same as r5 (reproduction with IPC observation; wrapper did not capture)"},
+    {"round": "r7", "build": "df46ab6", "exit": 1, "pass": 69, "cause": "harness read registration id shape wrongly"},
+    {"round": "r8", "build": "df46ab6", "exit": 1, "pass": 193, "cause": "trashed frozen A source: finish_capture copy allowed (spec question, now recorded)"},
+    {"round": "r9", "build": "df46ab6", "exit": 1, "pass": 242, "cause": "harness used current-library image command for restored B"},
+    {"round": "r10", "build": "df46ab6", "exit": 1, "pass": 284, "cause": "product: current-library picker missed restored registrations in blank environment"},
+    {"round": "r11", "build": "7f2f852", "exit": 0, "status": "verified-combined-native-flow", "mainContinuousAssertions": 254, "mainDriverAssertions": 266, "blankEnvironmentAssertions": 18, "cleanupErrors": 0, "releaseVerified": true, "knownFolderRestored": true, "prototypePacket": {"cards": 148, "exactPrototypeOrder": true}, "trashedSourceCapturePolicy": "copy-allowed-from-trashed-source-original (exact original pixels, no history)"}
+  ],
+  "diagnostics": ["diag1", "diag2", "diag3 (e3bb600): wall stuck 60s with cards=[] total=null error=null inflight=null while backend browse returned 1 card in ~50ms"],
+  "prototypeComparison": {
+    "accepted": "bd8aea44c4a311571ee3c07382cb7755f87f3153",
+    "firstAttempt": "failed: viewport oscillated 1282x800 <-> 1280x802 at DPR 1.25 (harness)",
+    "final": {"harness": "11e9110", "status": "observed-same-input-baseline-tasks", "assertions": 8, "cards": 148, "viewport": "1280x800", "dpr": 1.25, "browser": "headless Edge 155, fresh profile", "anchorOffsetPx": {"formal": 386.0, "prototype": 466.8}}
+  },
+  "notExecuted": ["release NSIS clean install / 0.1.0 -> 0.1.2 upgrade", "#99 signed automatic update", "Windows 10", "human visual acceptance", "physical DPI / pen input"]
+}

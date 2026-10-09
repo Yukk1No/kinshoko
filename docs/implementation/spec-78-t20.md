@@ -119,3 +119,46 @@ NSIS 编译期 helper 计划直接观测已被实际 bundler 修改的 EXE，将
 本候选有界纯检查：browser 身份第一轮8成功／1失败，因已被独立识别的 child 创建时间没有与已识别 parent 比较；补相同身份层的时序门槛后9成功。原型 public packet 8成功，installer 准备9成功，helper 5成功。21段浏览器程序只做语法编译、0执行；两段 PowerShell 观察／终止程序只被解析为 AST、0执行。旧8／1失败原件、旧 installer 版本边界 RED 和80d旧轮均保留。合成 `.exe` 文件只是 marker 测试数据，没有被执行。
 
 原件在 `work/e2e/spec78-t20-offline-wrapper-preparation-v1/`，最小派生索引为 [combination-browser-installer-preparation.json](evidence/spec78-t20/combination-browser-installer-preparation.json)。本段为 additive T20 准备，不修改前置进度。真实 clean install 和 actual0.1.0 创建／保存→托盘正常退出→0.1.2 release `/UPDATE` 生命周期 runner 继续准备；两个 KnownFolder aliases 的既有 T19 字节、正式 Kinshoko Run 值和隔离安装归属必须重新核对并保全。浏览器、本机、安装、硬件和完整 T20 仍未验证。
+
+## 最终组合运行（2026-10-09/10，本机 Win11）
+
+本节为实际执行结果。最小派生记录：[final-combination.json](evidence/spec78-t20/final-combination.json)。原始轮次、构建回执、命令轨迹和截图只保存在本工作树 ignored `work/e2e/spec78-t20-final-*/`，每轮失败原件保持不变。
+
+### 来源与构建
+
+- 合入集成 `4ae84740a6b6e33423cfc93a43c393eee99ecb0c`（含 T15/T17/T18），无冲突。
+- 最终产品提交 `7f2f852c28934293dd29c8a7ba5e9936d5f7541e`，tree `9e90e88562a35d3718a18ffec82fe682b299a358`。显式 `--build` 实际执行 Vite 与 `tauri build --debug --no-bundle --features tauri/custom-protocol --target x86_64-pc-windows-msvc`，jobs=2、本树 target。冻结 EXE SHA256 `c45a80a4199678a9162e9cec5f9a6bea1367f01a04abd5480060362d5d208c87`（101,864,448 B），DirectML.dll `9c9e6d82…2da1`。隔离 identifier `dev.kinshoko.spec78t20test`，`KINSHOKO_SKIP_AUTOSTART=1`，独立数据、WebView profile 与端口 4630/4631。
+- 之后的 `11e9110` 只改 e2e，按计划记录为 harness-only 观察来源。
+
+### 自动检查（`11e9110`，产品输入与 `7f2f852` 相同）
+
+fmt 通过；workspace 全目标 strict Clippy 通过；绑定重新生成后无差异（core 711 通过）；Rust workspace 721 通过／0 失败／12 忽略；tsc 通过；前端 42 文件 294 项通过；43 个 e2e 模块 `node --check` 通过。合入后首轮 `af0eaf8` 的前端为 291/292：`TagOrganize` 在首次分组刷新期间点击了仍为 disabled 的“新建标签分组”（原始失败 DOM 可见 `disabled`）。只把测试前提改为等待该按钮可用，原失败保留。
+
+### 产品修正（均先有公开行为 RED）
+
+- `src/wall/Wall.tsx:198`：再次选中同一范围会传入值相同的新对象。清空卡片的 effect 按对象身份触发，重新浏览的 effect 不触发，图片墙停在“无卡片、无数量、无错误”。r5/r6 实际复现；诊断 diag3 观察 60 秒仍为空，同时公开 browse 约 50 ms 返回 1 张。改为按范围值触发。公开组件 RED→GREEN：`Wall.workspace.test.tsx`。
+- `src/library/LibraryPicker.tsx:30`：内容恢复在空白环境中登记的新资料库已出现在工作区侧栏，但“当前资料库”只有“尚未打开”，需手动“刷新登记”（r10 实际复现）。改为在工作区资料库集合变化时重读登记。RED→GREEN：`LibraryPicker.test.tsx`。
+
+### 计划内界面观察的复核
+
+- 参考组侧栏：最终来源截图中长组名、长导出路径换行，卡片按钮可读，使用满高，无水平滚动。
+- 来源编辑：只在跨库复制后的重新校验期间短暂显示“正在读取该来源…”，随后完成加载。没有复现持续加载，未改产品；工作流改为等待加载完成后截图。
+- 标签选择器迟到事件：正式程序中输入后真实目录变更触发的通知没有关闭选择器，焦点与输入保留，回车成功加入成员。
+- 更新面板：显示“当前使用安装包手动更新。”及手动安装步骤。
+
+### 原生轮次
+
+r1–r10 均失败并保留原件；每次修正后用新夹具重新完整运行，没有累计子项。失败原因依次为：绝对 `frontendDist` 被 Tauri 解析为 URL（r1）；复制后比较了非人工来源（r2）；2000 项导入等待上限过短（r3）；WebDriver 改窗口尺寸对 Tauri WebView2 无效，改为对本轮主 HWND 调 `SetWindowPos`（r4）；上述图片墙缺陷（r5/r6）；登记 ID 字段读错（r7）；回收站来源截图策略（r8，见下）；对非当前库调用 `image` 命令（r9）；上述资料库选择缺陷（r10）。另修正：Windows PowerShell 把 JSON 数组整体当作一个对象，导致精确 PID 终止失败（r1 清理只结束本轮自有 PID 后手工确认释放）；T20 专用托盘退出助手；KnownFolder 在删除后被包重定向时仅接受“仍不存在”的情形；Eagle 选择前等待修订稳定；分页遇到快照过期从头重读。
+
+r11（产品 `7f2f852`，2026-10-09T21:45:10–21:51:37Z）退出 0，状态 `verified-combined-native-flow`：同一会话 254 项连续断言，主驱动合计 266 项（含正常托盘退出／重启和 B 目录断开／重连），空白环境另 18 项；精确进程与端口释放已确认，KnownFolder 恢复。会话内原型检查点冻结 148 张 A 公开卡片，顺序与认可原型一致。
+
+### 原型对照
+
+认可原型 `bd8aea44c4a311571ee3c07382cb7755f87f3153`，新镜像与新 headless Edge 155 profile，同一份包、1280×800、DPR 1.25：8 项断言通过，148 张。首次尝试在 DPR 1.25 下视口在 1282×800 与 1280×802 间振荡而失败（harness），原件保留；改为逐维调整后通过。单击／回车返回后的卡片锚点偏移实际不同：正式程序 386 px，原型 466.8 px，按差异记录。
+
+### 未验证与待定
+
+- 回收站来源：框选冻结在 A 上，随后 A 移入回收站，复制仍成功，结果与 A 原图区域逐像素一致，普通截图历史不变。规格没有明确回收站是否属于“来源失效”，需负责人决定；本轮只记录实际行为。
+- 新观察、未修：复制、导入等连续变更后，会出现常驻的“浏览结果已变化，请从头重新浏览／知道了”横幅（多张最终截图可见）。多个工作区读取在修订变化时返回此错误，部分界面直接显示。根因未逐一确认。
+- release NSIS 干净安装与 0.1.0→0.1.2 升级未执行（另行任务）。#99 签名自动更新、Windows 10、人工视觉验收、物理 DPI 与笔输入均未验证。旧 11 项 CI 色彩失败与前置未完成验收保持原状态。
+- 本地审阅截图在 root `work/v1-handoff/follow-up-spec/t20-gui-review/`，含本机路径，不直接公开。
