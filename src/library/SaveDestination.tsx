@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import type { SaveDestination } from "../bindings/SaveDestination";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import type { FolderNode } from "../bindings/FolderNode";
-import { onWorkspaceChanged, workspaceDirectories } from "../ipc";
+import { isCursorExpired, onWorkspaceChanged, workspaceDirectories } from "../ipc";
 import { libraryPathHint } from "./library-path";
 
 type SaveContext = {
@@ -33,7 +33,10 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
         revision = value.status.revision;
         setProviders(value.providers); setProblem(null); setReady(true);
       }, error => {
-        if (alive && request === sequence) { setProblem(String(error)); setReady(false); }
+        if (!alive || request !== sequence) return;
+        // 读取期间修订变了：结果已过时，按新修订重读，不把它当作问题显示（#98）。
+        if (isCursorExpired(error)) { refresh(); return; }
+        setProblem(String(error)); setReady(false);
       });
     };
     refresh();

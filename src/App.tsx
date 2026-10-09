@@ -13,6 +13,7 @@ import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
 import {
   appInfo,
   currentLibrary,
+  isCursorExpired,
   isLensChanged,
   onLibraryEvent,
   workspaceResolve,
@@ -110,7 +111,16 @@ function LibraryWorkspace({
    * 删除、新增了叫法，或在安全模式下被封印）。与后端 Search 缓存的修订号和安全模式对应。
    */
   const [vocabularyKey, setVocabularyKey] = useState(0);
-  const onError = useCallback((message: string) => setProblem(message), []);
+  /**
+   * 工作区读取期间修订变了（CursorExpired）：那次读到的结果已经过时，不是要用户处理的问题。
+   * 像收到变更通知一样按新修订重读；变更停下后读取成功，不留下常驻横幅（#98）。
+   * 同修订的变更通知会被略过，所以不能只等通知来补读。
+   */
+  const onError = useCallback((message: string) => {
+    if (!isCursorExpired(message)) { setProblem(message); return; }
+    setReloadKey((k) => k + 1);
+    setVocabularyKey((k) => k + 1);
+  }, []);
   /**
    * 导入任务按 id 记下终态（#76）：结束事件、启动命令的响应与进度事件到达的顺序不定，
    * 已结束的任务不能被迟到的响应或进度复活，旧任务的事件也不能覆盖正在进行的新任务。
@@ -229,12 +239,12 @@ function LibraryWorkspace({
         if (vocabularyKey) setReloadKey((k) => k + 1);
       },
       // 安全模式刚切换、资料库还没跟上：等它确认（safeModeChanged）后按新视角重新解析。
-      (e) => alive && !isLensChanged(e) && setProblem(String(e)),
+      (e) => alive && !isLensChanged(e) && onError(String(e)),
     );
     return () => {
       alive = false;
     };
-  }, [libraryId, search, searching, vocabularyKey, safe]);
+  }, [libraryId, search, searching, vocabularyKey, safe, onError]);
 
   const started = (taskId: string) => {
     const task = imports.current;
