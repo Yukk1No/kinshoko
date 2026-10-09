@@ -63,7 +63,9 @@ export function isolatedConfig(path) {
   if (config.build?.devUrl !== null) throw Error("Native checks require the embedded frontend, with devUrl=null");
   ownedWork(dirname(record.path));
   if (config.build?.beforeBuildCommand !== null || config.build?.beforeDevCommand !== null) throw Error("The attributed build invokes its two recorded commands explicitly; config build hooks must be null");
-  if (resolve(config.build?.frontendDist ?? "") !== resolve("dist")) throw Error("The isolated config must embed this checkout's exact dist");
+  // Tauri parses an absolute Windows path ("C:\...") as a URL with scheme "c" and navigates to it.
+  // Keep the relative directory form, which Tauri resolves against src-tauri.
+  if (typeof config.build?.frontendDist !== "string" || /^[a-z][a-z0-9+.-]*:/i.test(config.build.frontendDist) || resolve("src-tauri", config.build.frontendDist) !== resolve("dist")) throw Error("The isolated config must embed this checkout's exact dist as a relative directory");
   if (config.bundle?.active !== false) throw Error("This native plan must not build or run an installer");
   if (config.plugins?.updater?.pubkey) throw Error("Do not add a production updater key for T20");
   return { ...record, identifier: config.identifier, productName: config.productName };
@@ -117,7 +119,8 @@ function buildRecipe(configPath,profile,rust) {
     absentOverrides:absentBuildOverrides(),
     frontend:{executable:process.execPath,args:[resolve("node_modules/vite/bin/vite.js"),"build"]},
     native:{executable:process.execPath,args:[resolve("node_modules/@tauri-apps/cli/tauri.js"),"build",...(profile==="debug"?["--debug"]:[]),"--no-bundle",
-      // The first T20 debug build without this feature loaded dist as a file:// directory listing.
+      // Explicit embedded-frontend feature. (Adding it did not change the 9439a4b EXE bytes; r1's
+      // file:// listing came from the absolute frontendDist being parsed as a URL.)
       "--features","tauri/custom-protocol","--target",host,"--config",config.path]},
     tools:{vite:fileRecord("node_modules/vite/bin/vite.js"),tauri:fileRecord("node_modules/@tauri-apps/cli/tauri.js")},
     inheritedBuildEnvironment:Object.fromEntries(["PATH","RUSTUP_TOOLCHAIN","RUSTFLAGS","CARGO_ENCODED_RUSTFLAGS","RUSTC","CARGO_BUILD_RUSTC","RUSTC_WRAPPER","RUSTC_WORKSPACE_WRAPPER","CARGO_BUILD_RUSTC_WRAPPER","TS_RS_EXPORT_DIR"].filter(key=>process.env[key]!==undefined).map(key=>[key,process.env[key]])),

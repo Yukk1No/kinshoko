@@ -33,7 +33,7 @@ export function oldInstallerInputs({installerPath,configPath,evidencePath}) {
 export function validateInstallerConfig(config,version,work,repo=resolve(".")) {
   if(!/^0\.1\.(?:[2-9]|[1-9][0-9]+)$/.test(version))fail("Use an explicit isolated bundle version after the actual 0.1.0/0.1.1 baselines");
   for(const [key,value] of Object.entries(INSTALLER_IDENTITY))if(config[key]!==value)fail("The NSIS config must retain the exact isolated T19 identity");
-  if(config.version!==version||config.build?.devUrl!==null||config.build?.beforeBuildCommand!==null||config.build?.beforeDevCommand!==null||resolve(repo,config.build.frontendDist)!==join(repo,"dist"))fail("Use the exact embedded final frontend with explicit recorded build commands");
+  if(config.version!==version||config.build?.devUrl!==null||config.build?.beforeBuildCommand!==null||config.build?.beforeDevCommand!==null||typeof config.build.frontendDist!=="string"||/^[a-z][a-z0-9+.-]*:/i.test(config.build.frontendDist)||resolve(repo,"src-tauri",config.build.frontendDist)!==join(repo,"dist"))fail("Use the exact embedded final frontend with explicit recorded build commands");
   if(config.bundle?.active!==true||!eq(config.bundle.targets,["nsis"])||config.bundle.createUpdaterArtifacts!==false||config.bundle.windows?.nsis?.installMode!=="currentUser"||config.bundle.windows.nsis.installerHooks!==join(work,"release-installer-hooks.nsh"))fail("This plan must produce isolated current-user release NSIS only");
   if(config.plugins?.updater?.pubkey||config.plugins?.updater?.releaseStage!=="private")fail("Do not enable public signed updates as part of this local installer test");
   return config;
@@ -42,7 +42,7 @@ export function prepareInstallerBuild({work,installerPath,configPath,evidencePat
   const root=ownedWork(work);if(existsSync(root))fail("Use a new owned release installer preparation");
   const old=oldInstallerInputs({installerPath,configPath,evidencePath}),source=sourceRecord(),base=readJson("src-tauri/tauri.conf.json");
   absentBuildOverrides();
-  const config={...base,...INSTALLER_IDENTITY,version,build:{...base.build,devUrl:null,beforeBuildCommand:null,beforeDevCommand:null,frontendDist:resolve("dist")},bundle:{...base.bundle,active:true,targets:["nsis"],createUpdaterArtifacts:false,windows:{...base.bundle.windows,nsis:{...base.bundle.windows.nsis,installMode:"currentUser",installerHooks:join(root,"release-installer-hooks.nsh")}}}};
+  const config={...base,...INSTALLER_IDENTITY,version,build:{...base.build,devUrl:null,beforeBuildCommand:null,beforeDevCommand:null,frontendDist:"../dist"},bundle:{...base.bundle,active:true,targets:["nsis"],createUpdaterArtifacts:false,windows:{...base.bundle.windows,nsis:{...base.bundle.windows.nsis,installMode:"currentUser",installerHooks:join(root,"release-installer-hooks.nsh")}}}};
   validateInstallerConfig(config,version,root);
   mkdirSync(root,{recursive:true});writeNew(join(root,"release.conf.json"),config);
   const plan={kind:"spec78-t20-release-installer-build-plan",status:"prepared-not-built",at:new Date().toISOString(),repository,source,old,version,identity:INSTALLER_IDENTITY,profile:"release",config:fileRecord(join(root,"release.conf.json")),productionHook:fileRecord("src-tauri/installer-hooks.nsh"),harness:fileRecord("e2e/spec78-combination-installer.mjs"),work:root,actualRustTarget:"pending explicit build probe",runtimeHook:"generated from actual release runtime after native build, before bundle",installerExecuted:false,nativeExecuted:false,fullT20Acceptance:false};

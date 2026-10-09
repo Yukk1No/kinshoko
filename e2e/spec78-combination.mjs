@@ -61,7 +61,7 @@ export async function runCombined(planPath,desktopGrant) {
 export async function main(args=process.argv.slice(2)) {
   const [action,...rest]=args;
   if(action==="--prepare"&&rest.length===1){const fixture=createCombinationFixture(rest[0]);return {status:"offline-fixture-prepared",path:join(fixture.root,"fixture.json"),sha256:sha256(readFileSync(join(fixture.root,"fixture.json"))),nativeExecuted:false};}
-  if(action==="--config"&&rest.length===1){const base=readJson("src-tauri/tauri.conf.json");const config={...base,productName:"Kinshoko T20 Combination Probe",identifier:IDENTIFIER,build:{...base.build,devUrl:null,beforeBuildCommand:null,beforeDevCommand:null,frontendDist:resolve("dist")},bundle:{...base.bundle,active:false}};saveNew(rest[0],config);return {status:"isolated-native-config-prepared",file:fileRecord(rest[0]),nativeExecuted:false};}
+  if(action==="--config"&&rest.length===1){const base=readJson("src-tauri/tauri.conf.json");const config={...base,productName:"Kinshoko T20 Combination Probe",identifier:IDENTIFIER,build:{...base.build,devUrl:null,beforeBuildCommand:null,beforeDevCommand:null,frontendDist:"../dist"},bundle:{...base.bundle,active:false}};saveNew(rest[0],config);return {status:"isolated-native-config-prepared",file:fileRecord(rest[0]),nativeExecuted:false};}
   if(action==="--build"&&rest.length===1)return recordAttributedBuild(readJson(rest[0]));
   if(action==="--freeze"&&rest.length===3)return freezeBuild(...rest);
   if(action==="--plan"&&rest.length===1)return makeNativePlan(readJson(rest[0]));
