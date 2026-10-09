@@ -234,13 +234,18 @@ try{
   shown=await bottomOriginal(firstCard.id);const covering={x:shown.x+Math.floor(shown.width/4)-8,y:shown.y+Math.floor(shown.height/4)-8,width:Math.floor(shown.width/8)+30,height:Math.floor(shown.height/8)+30};
   const formScript=join(work,"occluder.ps1"),fixtureAssembly=join(work,"native-wall-occluder.dll"),fixtureSource=join(work,"native-wall-occluder.cs");
   writeFileSync(formScript,`$ErrorActionPreference='Stop'
+function Get-OwnedFileSha256([string]$FilePath){
+  $taskHashAlgorithm=[Security.Cryptography.SHA256]::Create()
+  try {return [BitConverter]::ToString($taskHashAlgorithm.ComputeHash([IO.File]::ReadAllBytes($FilePath))).Replace('-','').ToLowerInvariant()}
+  finally {$taskHashAlgorithm.Dispose()}
+}
 $dll='${fixtureAssembly.replaceAll("'","''")}'
 $source='${fixtureSource.replaceAll("'","''")}'
-if((Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash -ne '${sha(fixtureAssembly)}'){throw 'Frozen raw DLL mismatch'}
-if((Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash -ne '${sha(fixtureSource)}'){throw 'Frozen raw source mismatch'}
+if((Get-OwnedFileSha256 $dll) -ne '${sha(fixtureAssembly)}'){throw 'Frozen raw DLL mismatch'}
+if((Get-OwnedFileSha256 $source) -ne '${sha(fixtureSource)}'){throw 'Frozen raw source mismatch'}
 Add-Type -Path $dll
 Add-Type -AssemblyName System.Web.Extensions
-$modules=@(@([T17RawWallOccluder],[System.Web.Script.Serialization.JavaScriptSerializer],[object])|ForEach-Object {$a=$_.Assembly;@{type=$_.FullName;assemblyFullName=$a.FullName;location=$a.Location;fileVersion=[Diagnostics.FileVersionInfo]::GetVersionInfo($a.Location).FileVersion;sha256=(Get-FileHash -LiteralPath $a.Location -Algorithm SHA256).Hash}})
+$modules=@(@([T17RawWallOccluder],[System.Web.Script.Serialization.JavaScriptSerializer],[object])|ForEach-Object {$a=$_.Assembly;@{type=$_.FullName;assemblyFullName=$a.FullName;location=$a.Location;fileVersion=[Diagnostics.FileVersionInfo]::GetVersionInfo($a.Location).FileVersion;sha256=(Get-OwnedFileSha256 $a.Location)}})
 [IO.File]::WriteAllText('${join(work,"occluder-inputs.json").replaceAll("'","''")}',($modules|ConvertTo-Json -Depth 6))
 $outcome=[T17RawWallOccluder]::Run('${join(work,"occluder-ready.json").replaceAll("'","''")}','${join(work,"occluder-cleanup.json").replaceAll("'","''")}',${covering.x},${covering.y},${covering.width},${covering.height})
 $outcome|ConvertTo-Json -Depth 20
