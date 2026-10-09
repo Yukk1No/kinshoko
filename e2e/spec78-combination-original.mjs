@@ -242,6 +242,7 @@ const b=size.getBoundingClientRect();return {region,size:size.textContent.trim()
   await desktop("turn_pin",{pin:affineId,turn:"flipHorizontal"});await desktop("turn_pin",{pin:affineId,turn:"rotateClockwise"});
   await desktop("zoom_pin",{pin:affineId,scale:.45,anchorX:sourcePin.shown.x+sourcePin.shown.width/2,anchorY:sourcePin.shown.y+sourcePin.shown.height/2});
   sourcePin=await pinReady(affineId);
+  await d.screenshot("09-b-original-crop-affine-pin.png");
   d.assert(sourcePin.frame.pin.content.libraryId===workflow.b.id&&sourcePin.placement.flipH&&sourcePin.placement.rotation===1&&sourcePin.placement.scale===.45&&sameRect(sourcePin.crop,crop),"the same-session B pin is genuinely cropped, flipped, quarter-turned and zoomed",sourcePin);
   const affineSource=()=>pinReady(affineId);
   await capture("affine-pin-copy",affineSource,"copy");await capture("affine-pin-pin",affineSource,"pin");

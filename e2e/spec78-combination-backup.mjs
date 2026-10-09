@@ -90,6 +90,7 @@ export async function restoreContent(workflow,backup,into,label) {
     });
     d.assert(matches,"restored group remaps provider IDs and preserves original, crop and layout: "+label,{original,restored:group});groups.push(group);
   }
+  await d.exec("document.querySelector('[aria-label=往返检查]')?.scrollIntoView({block:'center'});");
   await d.screenshot(label+"-content-roundtrip.png");
   const result={...completed,libraries,groups};d.save(label+"-content-restore.json",result);return result;
 }
@@ -113,6 +114,8 @@ export async function combinedBackups(workflow) {
   const uniqueOriginals=new Set(Object.values(originals).flatMap(files=>Object.values(files))).size;
   d.assert(report.problems.length===0&&report.skipped.length===0&&report.copied===uniqueOriginals&&report.copied+report.reused===expectedCount,"content backup completes without skips and stores byte-identical originals once",{report,uniqueOriginals});
   const backup={directory,preview,report,originals,groups};d.save("content-backup-baseline.json",backup);
+  await until("rendered content backup success with scope and settings boundary",()=>d.exec("const s=document.querySelector('section[aria-label=资料库备份]');if(!s||!s.textContent.includes('上次备份：')||s.textContent.includes('正在备份'))return null;s.scrollIntoView({block:'start'});return true;"));
+  await d.screenshot("07c-content-backup-complete.png");
   await workflow.closeSettings();
   // Image curation after the backup must survive the later program-settings replacement.
   await d.invoke("workspace_edit_source",{target:workflow.targetB,safeMode:true,edits:[{kind:"setNote",text:"内容备份之后写入的乙来源备注"},{kind:"setRating",rating:"sensitive"}]});
@@ -136,6 +139,8 @@ export async function combinedBackups(workflow) {
   d.assert(await d.invoke("safe_mode")===true,"program replacement keeps the saved global safe mode");
   d.assert(JSON.stringify(await programChoices(workflow))===JSON.stringify(savedChoices),"default program replacement removes absent preferences, groups and rules instead of merging later choices");
   d.assert(JSON.stringify(await d.invoke("registered_libraries"))===JSON.stringify(beforeRegistration),"program replacement preserves this device's current original and restored provider registrations");
+  await d.exec("document.querySelector('fieldset[aria-label=程序设置备份]').scrollIntoView({block:'center'});");
+  await d.screenshot("09b-program-settings-restored-feedback.png");
   await workflow.closeSettings();
   const providerAfter=[await providerFacts(workflow,workflow.a,workflow.targetA),await providerFacts(workflow,workflow.b,workflow.targetB)];
   d.assert(imageFacts(providerBefore)===imageFacts(providerAfter),"program replacement preserves per-image notes, tags, ratings, folders and original bytes");

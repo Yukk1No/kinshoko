@@ -174,8 +174,11 @@ export class CombinationWorkflow {
     const d=this.d;
     await this.readyClick(`//*[@role='option' and @data-id=${literal(this.visibleCard.id)}]//button[contains(.,'份来源')]`);
     d.assert(await d.exec("return [...document.querySelectorAll('[data-source-library-id] .workspace-source-path')].every(node=>node.textContent.trim()) && new Set([...document.querySelectorAll('[data-source-library-id] .workspace-source-path')].map(node=>node.textContent)).size===2;"),"same-name providers visibly show distinct path suffixes");
+    await d.screenshot("02a-aggregated-card-sources.png");
     await this.readyClick(`//*[@data-source-library-id=${literal(this.b.id)}]//button[normalize-space()='整理此来源']`);
     await until("B inspection actually loaded",()=>d.exec("return document.querySelector('[aria-label=整理来源] textarea')?.value==='乙来源独立人工备注';"));
+    await this.sourceEditorLoaded("乙来源独立人工备注");
+    await d.screenshot("02b-source-editor-loaded.png");
     await d.type("//*[@aria-label='整理来源']//textarea","乙来源经界面修改的备注");
     await this.readyClick("//*[@aria-label='整理来源']//button[normalize-space()='保存备注']");
     await until("B note saved",async()=>(await this.inspect(this.targetB)).detail.note.manual==="乙来源经界面修改的备注");
@@ -199,6 +202,10 @@ export class CombinationWorkflow {
     await until("actual copy dialog closed",()=>d.exec("return !document.querySelector('[role=dialog][aria-label=复制此来源]');"));
     d.assert((await this.inspect(this.targetA)).detail.note.manual===beforeA.detail.note.manual,"copying B into existing A preserves A's manual note");
     d.assert(JSON.stringify((await this.inspect(this.targetA)).tags.image.tags)===JSON.stringify(beforeA.tags.image.tags),"copying B into existing A preserves A's manual tag decisions");
+    // The copy notifies a new revision; the editor revalidates. Wait for that real reload to finish.
+    const reloaded=await this.sourceEditorLoaded("乙来源经界面修改的备注");
+    d.assert(reloaded.note==="乙来源经界面修改的备注"&&reloaded.source.includes(this.b.id),"after copy the source editor finishes reloading and still shows explicit B with its saved note",reloaded);
+    await d.screenshot("02c-source-editor-after-copy-loaded.png");
     await this.readyClick("//button[normalize-space()='关闭来源']");
     await this.groupsPane();
     const packageDir=join(d.work,"参考组导出路径需要换行以保证侧栏仍能显示完整来源与操作");mkdirSync(packageDir,{recursive:true});
@@ -216,6 +223,10 @@ export class CombinationWorkflow {
     d.assert((await this.inspect(this.targetA)).detail.note.manual===beforeA.detail.note.manual,"package import also preserves the already curated A manual note");
     d.assert((await d.invoke("current_library")).id===this.a.id,"pin, group, cross-provider copy and package import keep current A");
     this.state.references={pinB:this.pinB,referenceB:this.referenceB,referenceA:this.referenceA,packagePath:this.packagePath};this.save();
+  }
+  // Source editor has finished its inspection: no loading status, note and actions rendered.
+  sourceEditorLoaded(note) {
+    return until("source editor finished loading",()=>this.d.exec("const editor=document.querySelector('[aria-label=整理来源]');if(!editor||editor.textContent.includes('正在读取该来源…'))return null;const area=editor.querySelector('textarea');if(area?.value!==arguments[0]||!editor.querySelector('button')||![...editor.querySelectorAll('button')].some(b=>b.textContent.trim()==='钉住此来源'))return null;return {note:area.value,source:editor.querySelector('select[aria-label=当前操作的来源记录]')?.value??'',text:editor.textContent.slice(0,400)};",[note]));
   }
   async groupsPane() {
     if (!await this.d.exec("return document.querySelector('button[aria-label=参考组]')?.getAttribute('aria-expanded')==='true';"))await this.readyClick("//button[@aria-label='参考组']");
