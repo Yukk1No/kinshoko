@@ -1,0 +1,13 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/search/SharedApprox.test.tsx src/SettingsPanel.test.tsx src/App.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+
+ Test Files  3 passed (3)
+      Tests  79 passed (79)
+   Start at  02:10:54
+   Duration  8.90s (tests 64%, environment 26%, import 5%, transform 4%)
+

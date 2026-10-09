@@ -1,0 +1,24 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 24.66s
+     Running tests\catalog_visibility.rs (target\debug\deps\catalog_visibility-e727c5712750dd72.exe)
+
+running 2 tests
+
+thread 'names_and_groups_share_online_and_known_offline_veto_without_losing_unused_definitions' (16452) panicked at crates\kinshoko-core\tests\catalog_visibility.rs:139:118:
+called `Result::unwrap()` on an `Err` value: UnknownTag
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'ordinary_name_settings_do_not_expose_tags_from_globally_vetoed_copies' (37008) panicked at crates\kinshoko-core\tests\catalog_visibility.rs:101:5:
+ordinary name settings exposed a tag of a globally vetoed image: ["sealed-copy-only-tag", "legitimate-public-tag"]
+test names_and_groups_share_online_and_known_offline_veto_without_losing_unused_definitions ... FAILED
+test ordinary_name_settings_do_not_expose_tags_from_globally_vetoed_copies ... FAILED
+
+failures:
+
+failures:
+    names_and_groups_share_online_and_known_offline_veto_without_losing_unused_definitions
+    ordinary_name_settings_do_not_expose_tags_from_globally_vetoed_copies
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+error: test failed, to rerun pass `-p kinshoko-core --test catalog_visibility`

@@ -1,0 +1,38 @@
+(node:41236) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS released v16 旧判断 A opens with stable identity
+PASS released v16 旧判断 B opens with stable identity
+[1009/022713.755:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS opposite old rules remain pending rather than becoming a saved NotSimilar
+PASS conflict retains both named provider origins
+PASS global rule settings hide a label vetoed by another byte-identical Adult source
+PASS formal settings distinguish pending conflict from saved rejection
+PASS conflict choice preserves global safe mode
+PASS formal search visibly expands the saved pair with source marks off by default
+PASS once changes the current lookup without removing the saved Similar rule
+PASS new lookup restores a once-dismissed expansion
+PASS forever records a global NotSimilar and defeats the built-in pair
+PASS plus saves a visible tag without external correspondence
+PASS 旧判断 A applies shared rules through its distinct local IDs
+PASS 旧判断 B applies shared rules through its distinct local IDs
+PASS switching the active library keeps the same application judgments
+PASS exact search suppresses the visible personal expansion
+PASS exclusion keeps the same expanded condition semantics
+[1009/022721.955:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS normal restart retains rejection and removed plus rule without reintroducing legacy conflict
+PASS safe projection did not delete the complete hidden personal definition
+PASS returning to safe mode revokes hidden rule labels in formal settings
+[1009/022725.711:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS application settings remain manageable without an active provider
+[1009/022727.753:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS deleting a migrated rule stays deleted across restart while the legacy provider still exists
+PASS deleting a personal rejection restores the built-in pair in the remaining provider
+[1009/022729.686:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS 旧判断 A original f182cc338e4c67cf6fd174378f0fc6cf unchanged
+PASS 旧判断 A original db481da6b683fb4227b53a40fdbc9eec unchanged
+PASS 旧判断 A original 7af8adb83059b7cf50cdafdb80bd867f unchanged
+PASS 旧判断 B original 1ff3cd111c6832ce2b9cad7ec6ff0a46 unchanged
+PASS 旧判断 B original 0f542a9fbd3c3eedf6864552f6d2a9b8 unchanged
+PASS 旧判断 B original bcb963504f3966f5a3de1e458639b183 unchanged
+PASS 旧判断 B original 16d540416e426363089b219d9f2ddd31 unchanged
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\shared-approx-1791484030845

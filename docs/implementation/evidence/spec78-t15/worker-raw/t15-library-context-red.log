@@ -1,0 +1,19 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.49s
+     Running tests\import_preview.rs (target\debug\deps\import_preview-8bc69e9aa5ded5ee.exe)
+
+running 1 test
+
+thread 'mode_transition_and_library_switch_revoke_a_completed_but_unreleased_read' (28288) panicked at crates\kinshoko-core\tests\import_preview.rs:98:5:
+switching library context must not release old decoded bytes
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test mode_transition_and_library_switch_revoke_a_completed_but_unreleased_read ... FAILED
+
+failures:
+
+failures:
+    mode_transition_and_library_switch_revoke_a_completed_but_unreleased_read
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.36s
+
+error: test failed, to rerun pass `-p kinshoko-core --test import_preview`

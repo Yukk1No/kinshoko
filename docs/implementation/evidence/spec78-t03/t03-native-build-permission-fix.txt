@@ -1,0 +1,2 @@
+   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 23.09s

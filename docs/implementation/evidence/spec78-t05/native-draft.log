@@ -1,0 +1,9 @@
+(node:37196) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS formal rename draft has focus and the typed text
+PASS native draft remains in an unchanged workspace across the 1.5 second monitor period
+PASS monitor period preserves rename text and keyboard focus
+PASS Enter saves the preserved native rename draft through public group IPC
+[1009/013450.453:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS draft supplement exits through the verified real tray Quit callback
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\group-draft-1791480885179

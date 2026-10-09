@@ -2495,6 +2495,7 @@ version = "0.1.0"
 dependencies = [
  "arboard",
  "chrono",
+ "clipboard-win",
  "image",
  "kinshoko-core",
  "kinshoko-tagger",

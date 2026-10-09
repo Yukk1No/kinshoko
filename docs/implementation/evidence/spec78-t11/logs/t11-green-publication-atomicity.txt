@@ -1,0 +1,16 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.37s
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 8 tests
+test publication_subprocess ... ignored, parent public-action fault test runs this in an isolated process
+test modern_package_with_a_missing_identity_is_rejected_before_any_content_is_imported ... ok
+test read_only_registration_and_failed_publication_leave_provider_bytes_and_safe_mode_unchanged ... ok
+test old_version_one_package_still_imports_through_the_legacy_compatibility_flow ... ok
+test first_tag_write_carries_identity_when_the_library_is_copied_to_a_fresh_application ... ok
+test published_split_identity_survives_copy_without_exporting_the_application_name_preference ... ok
+test package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names ... ok
+test definition_publication_failure_and_process_exit_preserve_the_whole_previous_library_batch ... ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.60s
+

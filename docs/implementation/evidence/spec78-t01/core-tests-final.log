@@ -1,0 +1,99 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 34.21s
+     Running tests\library.rs (target\debug\deps\library-d761bc35c306cd7c.exe)
+
+running 7 tests
+test a_new_library_keeps_its_identity_and_name_after_reopening ... ok
+test imported_files_keep_their_bytes_and_show_at_their_upright_size ... ok
+test a_folder_import_walks_subfolders_and_lists_each_file_that_did_not_come_in ... ok
+test after_closing_and_reopening_the_wall_shows_the_same_images_in_the_same_order ... ok
+test an_import_reports_progress_and_stops_when_cancelled_keeping_what_came_in ... ok
+test browsing_pages_through_every_image_once_with_a_keyset_cursor ... ok
+test thumbnails_are_a_rebuildable_cache_at_the_requested_width_tier ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.22s
+
+     Running tests\organize.rs (target\debug\deps\organize-2072d1e154dc531b.exe)
+
+running 10 tests
+test a_folder_cannot_be_moved_into_itself_or_its_subfolders ... ok
+test folder_tree_survives_reopening ... ok
+test folders_can_be_created_nested_renamed_and_moved ... ok
+test deleting_again_keeps_the_first_deletion_time ... ok
+test a_batch_edit_with_an_unknown_image_or_folder_changes_nothing ... ok
+test tag_counts_leave_out_images_in_the_trash_and_the_vocabulary_moves_on ... ok
+test a_note_is_kept_across_reopening_and_can_be_reverted_to_what_the_source_gave ... ok
+test an_image_can_sit_in_several_folders_and_each_folder_lists_it ... ok
+test deleted_images_leave_browsing_and_counts_and_come_back_from_the_trash ... ok
+test an_edit_tells_listeners_only_after_it_is_committed ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+
+     Running tests\pin_menu.rs (target\debug\deps\pin_menu-294c92c9fdfbd0d8.exe)
+
+running 5 tests
+test a_locked_pin_does_not_move_or_zoom ... ok
+test an_unlocked_pin_moves_and_zooms ... ok
+test opacity_stays_between_ten_percent_and_opaque ... ok
+test pins_saved_before_the_menu_existed_open_opaque_and_unlocked ... ok
+test opacity_and_lock_come_back_after_reopening ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\pin_restore.rs (target\debug\deps\pin_restore-b3732f1218bf0cbd.exe)
+
+running 7 tests
+test a_pin_whose_capture_is_gone_is_dropped ... ok
+test a_pin_left_on_a_monitor_that_is_gone_is_pulled_back_onto_the_screen ... ok
+test a_pin_partly_off_screen_but_still_reachable_stays_where_it_was ... ok
+test an_unreadable_pin_file_starts_empty ... ok
+test a_closed_pin_is_not_restored ... ok
+test pins_come_back_with_position_crop_flip_and_rotation_after_reopening ... ok
+test a_pinned_capture_beyond_the_history_limit_survives_a_restart ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests\reference_capture_actions.rs (target\debug\deps\reference_capture_actions-a3ee2ad6dad1477e.exe)
+
+running 9 tests
+test occluded_clipped_cross_boundary_and_external_selections_keep_the_screen_capture_path ... ok
+test missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels ... ok
+test a_reference_resealed_after_freezing_is_not_read_and_an_explicitly_revealed_pin_remains_usable ... ok
+test an_ambiguous_visible_source_is_a_screen_capture_instead_of_choosing_one_library ... ok
+test copying_respects_declared_color_and_the_sdr_animation_first_frame_route ... ok
+test copying_uses_the_explicit_inactive_library_even_when_another_library_is_current ... ok
+test copying_honors_all_original_exif_orientations_without_rewriting_originals ... ok
+test copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_source ... ok
+test selecting_a_transformed_prior_crop_copies_the_same_original_region_as_the_new_pin ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
+
+     Running tests\tag_catalog.rs (target\debug\deps\tag_catalog-7806d7ca2f95e347.exe)
+
+running 11 tests
+test inspecting_an_unsafe_snapshot_never_changes_the_active_library_safe_mode ... ok
+test attaching_legacy_tags_keeps_untranslated_display_until_name_provenance_is_migrated ... ok
+test different_library_local_ids_share_an_explicit_external_identity_after_reopen ... ok
+test ambiguous_aliases_stay_separate_until_correction_and_manual_decisions_stay_local ... ok
+test same_named_tags_without_external_correspondence_remain_independent_across_libraries ... ok
+test adding_an_external_correspondence_after_attachment_is_available_to_the_next_library ... ok
+test a_late_explicit_external_correspondence_uses_an_existing_identity_unless_user_corrected ... ok
+test namespaces_remain_distinct_and_an_explicit_split_survives_external_reattachment ... ok
+test catalog_can_inspect_registered_libraries_without_switching_or_changing_local_data ... ok
+test explicit_external_correspondences_extend_a_shared_identity_without_relying_on_names ... ok
+test conflicting_external_correspondences_are_inspectable_and_require_an_explicit_choice ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+     Running tests\viewer.rs (target\debug\deps\viewer-9644b8a60e054d5e.exe)
+
+running 6 tests
+test invalid_display_requests_have_a_domain_error ... ok
+test static_sdr_at_original_pixels_and_above_uses_the_unchanged_original ... ok
+test fitting_uses_an_exact_size_lossless_derivative_and_rebuilds_a_missing_cache ... ok
+test hdr_marked_originals_use_sdr_derivatives_even_at_original_pixels_and_above ... ok
+test animations_use_a_still_first_frame_at_every_zoom ... ok
+test all_eight_exif_orientations_keep_original_bytes_and_upright_derivatives ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+

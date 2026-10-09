@@ -1,0 +1,9 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+error[E0277]: the trait bound `BrowseQuery: std::default::Default` is not satisfied
+   --> crates\kinshoko-core\tests\catalog_approx.rs:212:31
+    |
+212 |     let adult_image=a.browse(&Default::default()).unwrap().cards[0].id.clone();a.set_safe_mode(false);a.edit(&[adult_image],&[Image...
+    |                               ^^^^^^^^^^^^^^^^^^ the trait `std::default::Default` is not implemented for `BrowseQuery`
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `kinshoko-core` (test "catalog_approx") due to 1 previous error

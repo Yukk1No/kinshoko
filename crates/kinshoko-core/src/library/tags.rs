@@ -40,7 +40,7 @@ pub enum TagNamespace {
 }
 
 impl TagNamespace {
-    fn as_str(self) -> &'static str {
+    pub(super) fn as_str(self) -> &'static str {
         match self {
             TagNamespace::General => "general",
             TagNamespace::Artist => "artist",
@@ -280,7 +280,7 @@ pub struct ImageTags {
 }
 
 /// 词表中的一个标签。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct VocabularyTag {
@@ -321,6 +321,18 @@ pub struct Vocabulary {
 pub struct TagCount {
     pub tag: TagLabel,
     pub count: u32,
+}
+
+/// Durable legacy configuration, without image labels or visible counts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct TagGroupDefinition {
+    pub id: String,
+    pub name: String,
+    pub namespace: Option<TagNamespace>,
+    /// Local identities, in the artist's chosen order. Namespace groups are dynamic.
+    pub members: Vec<String>,
 }
 
 /// 侧栏上的一个标签分组。
@@ -367,6 +379,7 @@ pub(super) fn write<T: Send + 'static>(
 
 /// 词表修订号加一，返回新值。词表内容或计数变化的写入事务里调用。
 pub(super) fn bump_revision(tx: &Transaction) -> Result<i64, Error> {
+    super::tag_definitions::seed(tx)?;
     Ok(tx.query_row(
         "UPDATE vocabulary_revision SET value = value + 1 RETURNING value",
         [],
@@ -739,6 +752,9 @@ fn resolve_snapshot_tag(
     translations: &TranslationIndex,
     tag: &super::package::SnapshotTag,
 ) -> Result<Option<String>, Error> {
+    if let Some(definition) = &tag.definition {
+        return super::tag_definitions::resolve_snapshot(tx, definition, tag.namespace).map(Some);
+    }
     let mut identity = None;
     for external in &tag.external {
         identity = resolve(
@@ -1274,6 +1290,41 @@ pub(super) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error> {
         tags: tags.into_values().collect(),
         personal_approx,
     })
+}
+
+pub(super) fn tag_group_definitions(inner: &Inner) -> Result<Vec<TagGroupDefinition>, Error> {
+    let mut conn = inner.readers.get();
+    let tx = conn.transaction()?;
+    let mut groups = tx
+        .prepare_cached("SELECT id, name, namespace FROM tag_group ORDER BY ord, created_at, id")?;
+    let mut members = tx.prepare_cached(
+        "SELECT tag_id FROM tag_group_member WHERE group_id=?1 ORDER BY ord, tag_id",
+    )?;
+    let mut out = Vec::new();
+    for row in groups.query_map([], |r| {
+        Ok((
+            r.get::<_, String>(0)?,
+            r.get::<_, String>(1)?,
+            r.get::<_, Option<String>>(2)?,
+        ))
+    })? {
+        let (id, name, namespace) = row?;
+        let namespace = namespace.as_deref().map(TagNamespace::parse).transpose()?;
+        let tag_ids = if namespace.is_none() {
+            members
+                .query_map([&id], |r| r.get(0))?
+                .collect::<Result<Vec<_>, _>>()?
+        } else {
+            Vec::new()
+        };
+        out.push(TagGroupDefinition {
+            id,
+            name,
+            namespace,
+            members: tag_ids,
+        });
+    }
+    Ok(out)
 }
 
 pub(super) fn tag_groups(inner: &Inner, lang: &str) -> Result<Vec<TagGroupView>, Error> {

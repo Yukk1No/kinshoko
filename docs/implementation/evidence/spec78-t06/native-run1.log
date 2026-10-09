@@ -1,0 +1,20 @@
+(node:4280) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS released v16 旧判断 A opens with stable identity
+PASS released v16 旧判断 B opens with stable identity
+PASS opposite old rules remain pending rather than becoming a saved NotSimilar
+PASS conflict retains both named provider origins
+PASS global rule settings hide a label vetoed by another byte-identical Adult source
+PASS formal settings distinguish pending conflict from saved rejection
+PASS conflict choice preserves global safe mode
+PASS formal search visibly expands the saved pair with source marks off by default
+PASS once changes the current lookup without removing the saved Similar rule
+PASS new lookup restores a once-dismissed expansion
+PASS forever records a global NotSimilar and defeats the built-in pair
+PASS plus saves a visible tag without external correspondence
+PASS 旧判断 A applies shared rules through its distinct local IDs
+PASS 旧判断 B applies shared rules through its distinct local IDs
+Error: Timed out: enabled select option
+    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-personal-approx.mjs:53:9)
+    at async Session.select (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-personal-approx.mjs:85:5)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-personal-approx.mjs:142:3

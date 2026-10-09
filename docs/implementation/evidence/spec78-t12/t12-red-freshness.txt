@@ -1,0 +1,21 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 26.77s
+     Running tests\backup_content_definitions.rs (target\debug\deps\backup_content_definitions-9aa9b0f8d0b1df11.exe)
+
+running 1 test
+
+thread 'content_backup_uses_current_pure_definitions_after_read_only_publication_failed' (36244) panicked at crates\kinshoko-core\tests\backup_content_definitions.rs:59:5:
+assertion `left == right` failed: content backup must carry app correction even when source publication failed
+  left: "01a11cc0d4ce707aa983a8d7e2dd0c60"
+ right: "01a11cc0d510776f8a5a6ad58f7316fe"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test content_backup_uses_current_pure_definitions_after_read_only_publication_failed ... FAILED
+
+failures:
+
+failures:
+    content_backup_uses_current_pure_definitions_after_read_only_publication_failed
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+
+error: test failed, to rerun pass `-p kinshoko-core --test backup_content_definitions`

@@ -1,0 +1,788 @@
+{
+  "source": "C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko",
+  "copiedAtUtc": "2026-10-08T17:39:41.3143663Z",
+  "sourceCommit": "f7ef52b12681ed679927f7fef034629b923ae8ec",
+  "binarySha256": "7dca4915d39d648f5b0e7b615671d316b3e63b187ee97a44d4cbb2f8ed3ff239",
+  "settingsSource": "C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t05test/settings.json",
+  "exclusions": [
+    "WebView and local/roaming caches",
+    "generic target/debug exe duplicate"
+  ],
+  "files": [
+    {
+      "path": "group-draft-1791480885179/draft-normal-quit.json",
+      "sha256": "49A2F655A0B0167CA240776F695A84BC553EAD0600C0A2F55520DFB235B2AC05",
+      "bytes": 1346
+    },
+    {
+      "path": "group-draft-1791480885179/rename-draft-after-monitor-period.png",
+      "sha256": "FCABD148F2D55341F2FF7F32789C6814694F9DD04035054F3371A34903A08008",
+      "bytes": 140379
+    },
+    {
+      "path": "group-draft-1791480885179/result.json",
+      "sha256": "C341E1C07798D520F4D7A1115E3A2077F119DBEB630540E380AA168F8C2E1E1D",
+      "bytes": 1247
+    },
+    {
+      "path": "group-draft-1791480885179/app-data/device.json",
+      "sha256": "1445FC1B4540650E6A90CCE4ADA0B045E99F716330E805C3D67FF7BD63A59054",
+      "bytes": 616
+    },
+    {
+      "path": "group-draft-1791480885179/app-data/pins.json",
+      "sha256": "BBC25D11AD961C561CF06E1636431BD3343EF1DE390BC9FBD50B0025E91F17B4",
+      "bytes": 38
+    },
+    {
+      "path": "group-draft-1791480885179/app-data/tag-catalog.sqlite",
+      "sha256": "6ADC111612F340C0AC7AA520745053A1BAD05A0C7F4C7361B0B75D52C2F9B1D9",
+      "bytes": 110592
+    },
+    {
+      "path": "group-draft-1791480885179/app-data/workspace.sqlite",
+      "sha256": "73A363CB65CDE1A5F6C6B747FCE4A91CE47609632F646E32A3AB11AAE14E221E",
+      "bytes": 12288
+    },
+    {
+      "path": "shared-groups-1791480512940/failure.html",
+      "sha256": "670D8C676CF97DF4F451CE6B012BE0074DEF6FE93BB9E7C69ECC40A3152EB357",
+      "bytes": 15957
+    },
+    {
+      "path": "shared-groups-1791480512940/failure.png",
+      "sha256": "5310973AB4FCDB090793870C2B2ED5E4AFB0AC0FC5D8939DF16E0B21A6FF60DF",
+      "bytes": 172996
+    },
+    {
+      "path": "shared-groups-1791480512940/formal-group-edit-sort.png",
+      "sha256": "0D9D34CE02A1C3A778407074B38032FEDD77A7E6F5AD781BA39D593D14C615D6",
+      "bytes": 124527
+    },
+    {
+      "path": "shared-groups-1791480512940/formal-visible-or-condition.png",
+      "sha256": "A3F71B6D97B04589C013D34AF3EDBED57A88EF096459AD2E7F213895B74D7094",
+      "bytes": 74424
+    },
+    {
+      "path": "shared-groups-1791480512940/image.png",
+      "sha256": "99E9DA67E5AA4EA0C4FD623F3210E213D9D6985A4F8198A875D36C4561F274E3",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480512940/initial-enrollment-normal-quit.json",
+      "sha256": "5421AE6574483698B38E1145E790799720F5C33A94088C44FBDE19ED31434FE5",
+      "bytes": 1343
+    },
+    {
+      "path": "shared-groups-1791480512940/legacy-shared-group-provenance.png",
+      "sha256": "38E47CB20514A3D4E5BAB314E4C25C211FF11F9408B29E72D272BD6D479A8C16",
+      "bytes": 124242
+    },
+    {
+      "path": "shared-groups-1791480512940/result.json",
+      "sha256": "B91C6295CD8127C5F1E66C5A60E751983AD6434F160E09F819274545DC554340",
+      "bytes": 2856
+    },
+    {
+      "path": "shared-groups-1791480512940/app-data/device.json",
+      "sha256": "E30737C6BDD12B9A90DA0F72CC2FF5248A3E02D2C61B15AE81E6BB2C671DB380",
+      "bytes": 616
+    },
+    {
+      "path": "shared-groups-1791480512940/app-data/pins.json",
+      "sha256": "BBC25D11AD961C561CF06E1636431BD3343EF1DE390BC9FBD50B0025E91F17B4",
+      "bytes": 38
+    },
+    {
+      "path": "shared-groups-1791480512940/app-data/tag-catalog.sqlite",
+      "sha256": "B8836AF4A8655BE1C940FD88FE7C4A4B6E05664527B0B25FE6DD247E3D6A1DC1",
+      "bytes": 110592
+    },
+    {
+      "path": "shared-groups-1791480512940/app-data/workspace.sqlite",
+      "sha256": "73A363CB65CDE1A5F6C6B747FCE4A91CE47609632F646E32A3AB11AAE14E221E",
+      "bytes": 12288
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/画法参考/library.sqlite",
+      "sha256": "40ECE188EEBDC5F47CABB00F248A7C1640471D87645B87DFF7B518AC4CD09165",
+      "bytes": 311296
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/画法参考/library.sqlite-shm",
+      "sha256": "FD4C9FDA9CD3F9AE7C962B0DDF37232294D55580E1AA165AA06129B8549389EB",
+      "bytes": 32768
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/画法参考/library.sqlite-wal",
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "bytes": 0
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/画法参考/cache/thumbs/v1/sdr/9e/9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09-512.webp",
+      "sha256": "9F524DED5FF8466245AFF6EB90E7AE7EC642931B9D716CC5E9C545516DC4ED74",
+      "bytes": 158
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/画法参考/cache/thumbs/v1/sdr/a5/a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6-512.webp",
+      "sha256": "9E37A48D0E0A13F843C6C3D0663E448FBBCFED4D058B89240A64FD32B271D1DF",
+      "bytes": 158
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/画法参考/originals/9e/9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09.png",
+      "sha256": "9E3444E1943A1FCF4AA07D5FFC8C76643983E5681A2B0F91C7183093444B8A09",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/画法参考/originals/9e/9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f.png",
+      "sha256": "9E4536B5F039C34F92D81A5A8AAC936BE060BB28FA32B81FFDEE56636B99D34F",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/画法参考/originals/a5/a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
+      "sha256": "A57425DBF4A8772BB657D204AF8255CC0ECDA325C3B8C3F4BE00934E399DF5E6",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/角色参考/library.sqlite",
+      "sha256": "6C912A4A42902ACCA969966367A05EF86110C80393813E1918DADC24A2E1A423",
+      "bytes": 311296
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/角色参考/library.sqlite-shm",
+      "sha256": "FD4C9FDA9CD3F9AE7C962B0DDF37232294D55580E1AA165AA06129B8549389EB",
+      "bytes": 32768
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/角色参考/library.sqlite-wal",
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "bytes": 0
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/角色参考/originals/9e/9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f.png",
+      "sha256": "9E4536B5F039C34F92D81A5A8AAC936BE060BB28FA32B81FFDEE56636B99D34F",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480512940/libraries/角色参考/originals/a5/a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
+      "sha256": "A57425DBF4A8772BB657D204AF8255CC0ECDA325C3B8C3F4BE00934E399DF5E6",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480582886/after-global-edits-normal-quit.json",
+      "sha256": "C0E308F22C1980EFEC85EDD9CC8BE29142EAC0B0910AC153B96A0152118DEEA6",
+      "bytes": 1347
+    },
+    {
+      "path": "shared-groups-1791480582886/before-offline-active-normal-quit.json",
+      "sha256": "F8FB1C39834AFD3FF7B42DC61479490CBB4520A408912B9CB60F33A9573C1882",
+      "bytes": 1346
+    },
+    {
+      "path": "shared-groups-1791480582886/formal-group-edit-sort.png",
+      "sha256": "0D9D34CE02A1C3A778407074B38032FEDD77A7E6F5AD781BA39D593D14C615D6",
+      "bytes": 124527
+    },
+    {
+      "path": "shared-groups-1791480582886/formal-visible-or-condition.png",
+      "sha256": "F79BAA0DD311CB73B4D4FB38FD913F9D4E883FDA9E186FE759BC6865DC1233FA",
+      "bytes": 73942
+    },
+    {
+      "path": "shared-groups-1791480582886/image.png",
+      "sha256": "99E9DA67E5AA4EA0C4FD623F3210E213D9D6985A4F8198A875D36C4561F274E3",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480582886/initial-enrollment-normal-quit.json",
+      "sha256": "B766E704DF6CA035E3C6659DE3E66691C72AF1026A6746F458333EF5CDA254CB",
+      "bytes": 1345
+    },
+    {
+      "path": "shared-groups-1791480582886/legacy-shared-group-provenance.png",
+      "sha256": "38E47CB20514A3D4E5BAB314E4C25C211FF11F9408B29E72D272BD6D479A8C16",
+      "bytes": 124242
+    },
+    {
+      "path": "shared-groups-1791480582886/restart-current-shared-names.png",
+      "sha256": "E158514FDC3D313E2BA8610015BDF4E635513BC40724E00CC930E8F4ACE9D5DC",
+      "bytes": 34606
+    },
+    {
+      "path": "shared-groups-1791480582886/result.json",
+      "sha256": "C2C6A6EC07DB306F2DAE6F39D7DFC61ECBAA099734F72B652AC425B5AE0EE937",
+      "bytes": 2076
+    },
+    {
+      "path": "shared-groups-1791480582886/app-data/device.json",
+      "sha256": "AFDBD1F85A2E499392534E376E72FB178382D18160619E02E01D920F4CEDA0A8",
+      "bytes": 616
+    },
+    {
+      "path": "shared-groups-1791480582886/app-data/pins.json",
+      "sha256": "BBC25D11AD961C561CF06E1636431BD3343EF1DE390BC9FBD50B0025E91F17B4",
+      "bytes": 38
+    },
+    {
+      "path": "shared-groups-1791480582886/app-data/tag-catalog.sqlite",
+      "sha256": "E1682A32AF54755FDF4926EEF31926949C599EC75C331D7632C93CB67ED0C9FE",
+      "bytes": 110592
+    },
+    {
+      "path": "shared-groups-1791480582886/app-data/workspace.sqlite",
+      "sha256": "73A363CB65CDE1A5F6C6B747FCE4A91CE47609632F646E32A3AB11AAE14E221E",
+      "bytes": 12288
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/画法参考/library.sqlite",
+      "sha256": "40ECE188EEBDC5F47CABB00F248A7C1640471D87645B87DFF7B518AC4CD09165",
+      "bytes": 311296
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/画法参考/library.sqlite-shm",
+      "sha256": "FD4C9FDA9CD3F9AE7C962B0DDF37232294D55580E1AA165AA06129B8549389EB",
+      "bytes": 32768
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/画法参考/library.sqlite-wal",
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "bytes": 0
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/画法参考/cache/thumbs/v1/sdr/9e/9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09-512.webp",
+      "sha256": "9F524DED5FF8466245AFF6EB90E7AE7EC642931B9D716CC5E9C545516DC4ED74",
+      "bytes": 158
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/画法参考/cache/thumbs/v1/sdr/a5/a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6-512.webp",
+      "sha256": "9E37A48D0E0A13F843C6C3D0663E448FBBCFED4D058B89240A64FD32B271D1DF",
+      "bytes": 158
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/画法参考/originals/9e/9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09.png",
+      "sha256": "9E3444E1943A1FCF4AA07D5FFC8C76643983E5681A2B0F91C7183093444B8A09",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/画法参考/originals/9e/9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f.png",
+      "sha256": "9E4536B5F039C34F92D81A5A8AAC936BE060BB28FA32B81FFDEE56636B99D34F",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/画法参考/originals/a5/a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
+      "sha256": "A57425DBF4A8772BB657D204AF8255CC0ECDA325C3B8C3F4BE00934E399DF5E6",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/角色参考/library.sqlite",
+      "sha256": "6C912A4A42902ACCA969966367A05EF86110C80393813E1918DADC24A2E1A423",
+      "bytes": 311296
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/角色参考/library.sqlite-shm",
+      "sha256": "FD4C9FDA9CD3F9AE7C962B0DDF37232294D55580E1AA165AA06129B8549389EB",
+      "bytes": 32768
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/角色参考/library.sqlite-wal",
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "bytes": 0
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/角色参考/originals/9e/9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f.png",
+      "sha256": "9E4536B5F039C34F92D81A5A8AAC936BE060BB28FA32B81FFDEE56636B99D34F",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480582886/libraries/角色参考/originals/a5/a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
+      "sha256": "A57425DBF4A8772BB657D204AF8255CC0ECDA325C3B8C3F4BE00934E399DF5E6",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480687835/image.png",
+      "sha256": "99E9DA67E5AA4EA0C4FD623F3210E213D9D6985A4F8198A875D36C4561F274E3",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480687835/initial-enrollment-normal-quit.json",
+      "sha256": "FB5CE5FE89D52A2EBCA91860824A688795A5E10CF8F6D960D6604D66CA48BEF8",
+      "bytes": 1346
+    },
+    {
+      "path": "shared-groups-1791480687835/result.json",
+      "sha256": "65DB2585133EC4A7888EB72FB598AD614582EDF8C11D65770FF3AB6945012F12",
+      "bytes": 1816
+    },
+    {
+      "path": "shared-groups-1791480687835/app-data/device.json",
+      "sha256": "9834C2BD0A4AE506FE09E6BF19A268DFBB4ECE5FF73F19C7134593B8A7880E81",
+      "bytes": 616
+    },
+    {
+      "path": "shared-groups-1791480687835/app-data/pins.json",
+      "sha256": "BBC25D11AD961C561CF06E1636431BD3343EF1DE390BC9FBD50B0025E91F17B4",
+      "bytes": 38
+    },
+    {
+      "path": "shared-groups-1791480687835/app-data/tag-catalog.sqlite",
+      "sha256": "7739594E24093A26FEE0DD4A2CEA4FDE1566F662953E9C6940C5DAB22A263204",
+      "bytes": 110592
+    },
+    {
+      "path": "shared-groups-1791480687835/app-data/workspace.sqlite",
+      "sha256": "73A363CB65CDE1A5F6C6B747FCE4A91CE47609632F646E32A3AB11AAE14E221E",
+      "bytes": 12288
+    },
+    {
+      "path": "shared-groups-1791480687835/libraries/画法参考/library.sqlite",
+      "sha256": "16DCB774EF767AB9B888281E0ACA86CE86A5F1886D43C2ED555B9686C3D3CD7E",
+      "bytes": 303104
+    },
+    {
+      "path": "shared-groups-1791480687835/libraries/画法参考/library.sqlite-shm",
+      "sha256": "49148AE5B9EA74E80E3A0AB55B2BCB218A40D1B6C5AEF5EEA08E5813E27E8056",
+      "bytes": 32768
+    },
+    {
+      "path": "shared-groups-1791480687835/libraries/画法参考/library.sqlite-wal",
+      "sha256": "59EABAAA5A752E71A019BF3A3E06E4EDB3FDF388351D872FBFA3D0355EFDDDE4",
+      "bytes": 24752
+    },
+    {
+      "path": "shared-groups-1791480687835/libraries/画法参考/originals/9e/9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09.png",
+      "sha256": "9E3444E1943A1FCF4AA07D5FFC8C76643983E5681A2B0F91C7183093444B8A09",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480687835/libraries/画法参考/originals/9e/9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f.png",
+      "sha256": "9E4536B5F039C34F92D81A5A8AAC936BE060BB28FA32B81FFDEE56636B99D34F",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480687835/libraries/画法参考/originals/a5/a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
+      "sha256": "A57425DBF4A8772BB657D204AF8255CC0ECDA325C3B8C3F4BE00934E399DF5E6",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480687835/libraries/角色参考/library.sqlite",
+      "sha256": "6C912A4A42902ACCA969966367A05EF86110C80393813E1918DADC24A2E1A423",
+      "bytes": 311296
+    },
+    {
+      "path": "shared-groups-1791480687835/libraries/角色参考/originals/9e/9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f.png",
+      "sha256": "9E4536B5F039C34F92D81A5A8AAC936BE060BB28FA32B81FFDEE56636B99D34F",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480687835/libraries/角色参考/originals/a5/a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
+      "sha256": "A57425DBF4A8772BB657D204AF8255CC0ECDA325C3B8C3F4BE00934E399DF5E6",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480727533/after-global-edits-normal-quit.json",
+      "sha256": "ACA4E110BA74A36EE903E1378C7CD8013D20296CB7779259ED392CE9F45C7FD8",
+      "bytes": 1345
+    },
+    {
+      "path": "shared-groups-1791480727533/before-offline-active-normal-quit.json",
+      "sha256": "C2480BE2B5F503266DE0A80680528BDF0E9C8E1BC45C4369916B98A8C1E5E6F4",
+      "bytes": 1347
+    },
+    {
+      "path": "shared-groups-1791480727533/finished-normal-quit.json",
+      "sha256": "42CEC015579B8D70714FF1C4C218EF53A234C765292FDA49CC1F8B7B5B549803",
+      "bytes": 1347
+    },
+    {
+      "path": "shared-groups-1791480727533/formal-group-edit-sort.png",
+      "sha256": "0D9D34CE02A1C3A778407074B38032FEDD77A7E6F5AD781BA39D593D14C615D6",
+      "bytes": 124527
+    },
+    {
+      "path": "shared-groups-1791480727533/formal-visible-or-condition.png",
+      "sha256": "F79BAA0DD311CB73B4D4FB38FD913F9D4E883FDA9E186FE759BC6865DC1233FA",
+      "bytes": 73942
+    },
+    {
+      "path": "shared-groups-1791480727533/image.png",
+      "sha256": "99E9DA67E5AA4EA0C4FD623F3210E213D9D6985A4F8198A875D36C4561F274E3",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480727533/initial-enrollment-normal-quit.json",
+      "sha256": "C9069BD7505B39953DADFCE17225132C29AB63B0CA1779255C23D32EFCB3C2DF",
+      "bytes": 1344
+    },
+    {
+      "path": "shared-groups-1791480727533/legacy-shared-group-provenance.png",
+      "sha256": "38E47CB20514A3D4E5BAB314E4C25C211FF11F9408B29E72D272BD6D479A8C16",
+      "bytes": 124242
+    },
+    {
+      "path": "shared-groups-1791480727533/no-active-group-edits-normal-quit.json",
+      "sha256": "E8657FF8E1124B02A552703AFB758EA4B7D1F5D1EED2CB4561EE4B8FBC1E6416",
+      "bytes": 1343
+    },
+    {
+      "path": "shared-groups-1791480727533/no-active-library-global-settings.png",
+      "sha256": "44CE031E78C2C548E437FF9B926F4C6E948C8E7995ECDB5C7ED1694A429352A9",
+      "bytes": 180797
+    },
+    {
+      "path": "shared-groups-1791480727533/restart-current-shared-names.png",
+      "sha256": "694E787BC6020DE919B7F349C4C38121A265CCA84D3D1069CB9A5504467900F1",
+      "bytes": 34628
+    },
+    {
+      "path": "shared-groups-1791480727533/result.json",
+      "sha256": "811214748F1A03E22F57C36BA1293BB83E3BFC608E4F034C9A876246DC2FCBAA",
+      "bytes": 6888
+    },
+    {
+      "path": "shared-groups-1791480727533/app-data/device.json",
+      "sha256": "1445FC1B4540650E6A90CCE4ADA0B045E99F716330E805C3D67FF7BD63A59054",
+      "bytes": 616
+    },
+    {
+      "path": "shared-groups-1791480727533/app-data/pins.json",
+      "sha256": "BBC25D11AD961C561CF06E1636431BD3343EF1DE390BC9FBD50B0025E91F17B4",
+      "bytes": 38
+    },
+    {
+      "path": "shared-groups-1791480727533/app-data/tag-catalog.sqlite",
+      "sha256": "A50120466429068905B55C397B3272AC2290FA6C66B7E0C367088AADD97DB527",
+      "bytes": 110592
+    },
+    {
+      "path": "shared-groups-1791480727533/app-data/workspace.sqlite",
+      "sha256": "73A363CB65CDE1A5F6C6B747FCE4A91CE47609632F646E32A3AB11AAE14E221E",
+      "bytes": 12288
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/画法参考/library.sqlite",
+      "sha256": "40ECE188EEBDC5F47CABB00F248A7C1640471D87645B87DFF7B518AC4CD09165",
+      "bytes": 311296
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/画法参考/library.sqlite-shm",
+      "sha256": "FD4C9FDA9CD3F9AE7C962B0DDF37232294D55580E1AA165AA06129B8549389EB",
+      "bytes": 32768
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/画法参考/library.sqlite-wal",
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "bytes": 0
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/画法参考/cache/thumbs/v1/sdr/9e/9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09-512.webp",
+      "sha256": "9F524DED5FF8466245AFF6EB90E7AE7EC642931B9D716CC5E9C545516DC4ED74",
+      "bytes": 158
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/画法参考/cache/thumbs/v1/sdr/a5/a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6-512.webp",
+      "sha256": "9E37A48D0E0A13F843C6C3D0663E448FBBCFED4D058B89240A64FD32B271D1DF",
+      "bytes": 158
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/画法参考/originals/9e/9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09.png",
+      "sha256": "9E3444E1943A1FCF4AA07D5FFC8C76643983E5681A2B0F91C7183093444B8A09",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/画法参考/originals/9e/9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f.png",
+      "sha256": "9E4536B5F039C34F92D81A5A8AAC936BE060BB28FA32B81FFDEE56636B99D34F",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/画法参考/originals/a5/a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
+      "sha256": "A57425DBF4A8772BB657D204AF8255CC0ECDA325C3B8C3F4BE00934E399DF5E6",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/角色参考/library.sqlite",
+      "sha256": "6C912A4A42902ACCA969966367A05EF86110C80393813E1918DADC24A2E1A423",
+      "bytes": 311296
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/角色参考/library.sqlite-shm",
+      "sha256": "FD4C9FDA9CD3F9AE7C962B0DDF37232294D55580E1AA165AA06129B8549389EB",
+      "bytes": 32768
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/角色参考/library.sqlite-wal",
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "bytes": 0
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/角色参考/cache/thumbs/v1/sdr/a5/a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6-512.webp",
+      "sha256": "9E37A48D0E0A13F843C6C3D0663E448FBBCFED4D058B89240A64FD32B271D1DF",
+      "bytes": 158
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/角色参考/originals/9e/9e4536b5f039c34f92d81a5a8aac936be060bb28fa32b81ffdee56636b99d34f.png",
+      "sha256": "9E4536B5F039C34F92D81A5A8AAC936BE060BB28FA32B81FFDEE56636B99D34F",
+      "bytes": 73
+    },
+    {
+      "path": "shared-groups-1791480727533/libraries/角色参考/originals/a5/a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
+      "sha256": "A57425DBF4A8772BB657D204AF8255CC0ECDA325C3B8C3F4BE00934E399DF5E6",
+      "bytes": 73
+    },
+    {
+      "path": "worker-t05/bindings.log",
+      "sha256": "3D8095C70AE176CE2C57FC08C6538C6B22DD121DB4780312AA79A7DE8AC72073",
+      "bytes": 10418
+    },
+    {
+      "path": "worker-t05/catalog-visibility-green.log",
+      "sha256": "3901A29DB06E4AF48ACCB49D93F9BF011CC22AA3F4101BC2D1E65A1854B4439D",
+      "bytes": 4797
+    },
+    {
+      "path": "worker-t05/catalog-visibility-red.log",
+      "sha256": "35E96BCE99F94E86A4AC093F13BBE328FE08DC4978D5F0E422475458EFC631CA",
+      "bytes": 1474
+    },
+    {
+      "path": "worker-t05/clippy-final.log",
+      "sha256": "F6FA5F08E9F20C84ECC146B059A7171CC3662E10D72DB4BEE2E313AC01FCAC1D",
+      "bytes": 434
+    },
+    {
+      "path": "worker-t05/clippy.log",
+      "sha256": "50C671A5074E43671A07121238AE2FBEA57C42D6C802631371B2AAECB505C6AE",
+      "bytes": 1548
+    },
+    {
+      "path": "worker-t05/core-green-01.log",
+      "sha256": "CF1B77C2F83A4CDACC4BBC467BCC444A1DDE43844321C5CC1F1283783376D842",
+      "bytes": 1648
+    },
+    {
+      "path": "worker-t05/core-green-02.log",
+      "sha256": "E9D406D40CFFDDE455A59B4C361D73680FE2EB4DA29363634BC9A35A53B3EBA5",
+      "bytes": 504
+    },
+    {
+      "path": "worker-t05/core-red.log",
+      "sha256": "DF285A950F187C9270E16F4AF6AFF05E4C39AC115B3C6E2484843546CDF32C5C",
+      "bytes": 1040
+    },
+    {
+      "path": "worker-t05/core-safe-edit-roundtrip.log",
+      "sha256": "ED5D77F01AAACBEBD15E3F9DB0551A06E225CF60CBE4B2E5B4C8A1FF001E3542",
+      "bytes": 1057
+    },
+    {
+      "path": "worker-t05/core-seven-green.log",
+      "sha256": "82A9D31AF6CDCB5745A40E5D2DD011B6B17FB865D07869D2F3163812C5E9E968",
+      "bytes": 1056
+    },
+    {
+      "path": "worker-t05/create-green.log",
+      "sha256": "68412180D6CBE5FCBC937EB26640B6FB81EF35EE2DDC2243D781CE3119B23CA7",
+      "bytes": 589
+    },
+    {
+      "path": "worker-t05/create-red.log",
+      "sha256": "5C8A788C5D7C17735B2F4773875F601F2638EA96131EFDDD4D4F94BF98E38DB4",
+      "bytes": 976
+    },
+    {
+      "path": "worker-t05/desktop-release.json",
+      "sha256": "B022182C3BFEB08D84DF67CB011C113F3BE605C9FF6C5440E261B3127565C6F3",
+      "bytes": 500
+    },
+    {
+      "path": "worker-t05/frontend-all-final.log",
+      "sha256": "AE77E04136C305100CC168F0E846ADBE7907E8D2CC6077B12177E743D59838F6",
+      "bytes": 604
+    },
+    {
+      "path": "worker-t05/frontend-all.log",
+      "sha256": "829D998C2E1D20095795FB77751CC956663E45113EBB44479B8A3379498B47C3",
+      "bytes": 5034
+    },
+    {
+      "path": "worker-t05/frontend-green.log",
+      "sha256": "3FFDD04FA5A785BA348152EF342543AAC296A3942401841C4A9B73F69FB877AA",
+      "bytes": 319
+    },
+    {
+      "path": "worker-t05/frontend-red.log",
+      "sha256": "800F67DFC5A0236A82E2EB51AE8509E9C8A6DA75D43F3025B9035744243D6565",
+      "bytes": 15684
+    },
+    {
+      "path": "worker-t05/frontend-regression-01.log",
+      "sha256": "1AD80981CADCE8FB568D5A196BBA527DB65905B8C86C6D5C4F03DFCF01110931",
+      "bytes": 11980
+    },
+    {
+      "path": "worker-t05/frontend-regression-03.log",
+      "sha256": "608139908AF2ABF85A53C98A958C95EE08DBCCE8C1442C20F0178FD1E7602308",
+      "bytes": 352
+    },
+    {
+      "path": "worker-t05/frontend-regression-green.log",
+      "sha256": "C04052ED96A0FA693E114AAEE3A14E28B0FCD57781F2BD7255E914D20CA74EDF",
+      "bytes": 10663
+    },
+    {
+      "path": "worker-t05/group-settings-revision-green.log",
+      "sha256": "93A5CA9F1E6589FE7697795AC04B15F4732FD0B2DB058DB9FEAB509C840B1BAF",
+      "bytes": 379
+    },
+    {
+      "path": "worker-t05/group-settings-revision-red.log",
+      "sha256": "3745DC8D6DA88E3237176C119B7061AE2F3ABC68549183E1EAF9E4C95E703C3B",
+      "bytes": 12803
+    },
+    {
+      "path": "worker-t05/merged-clippy.log",
+      "sha256": "707D9204F603BAC9030695626B6CF72B8D6B96B910F126829FE531B909D7D0FF",
+      "bytes": 434
+    },
+    {
+      "path": "worker-t05/merged-core.log",
+      "sha256": "BD6FC41A21208CCA124948E0DD1A5A2F764D1B4534DE6A66E1D07AB9D854BB15",
+      "bytes": 2948
+    },
+    {
+      "path": "worker-t05/merged-frontend.log",
+      "sha256": "98232C66CC1893471F25E6EEAB49A2956BB8F86C8A565D9EFB0B8BF518919569",
+      "bytes": 465
+    },
+    {
+      "path": "worker-t05/merged-typecheck.log",
+      "sha256": "B306B214DDC8B026C0E3F727C09F2434C3BE54D416CE4814DFC4CDB6DBB3015A",
+      "bytes": 48
+    },
+    {
+      "path": "worker-t05/merged-vite-build.log",
+      "sha256": "77075D71AD1D994BC5ED9AF5DD418EDB0E4B1D16FA3CFED634DBDEECC9953C59",
+      "bytes": 408
+    },
+    {
+      "path": "worker-t05/native-build.log",
+      "sha256": "C5388F1E23501F0C1BEC1EEA64F9E71009F73C6CA1F9561375184AF38FFF93F4",
+      "bytes": 434
+    },
+    {
+      "path": "worker-t05/native-draft.log",
+      "sha256": "70650572E255524A47104E4F6C2907A817D8F22265FE3692BAB2357FBC48915C",
+      "bytes": 756
+    },
+    {
+      "path": "worker-t05/native-first.log",
+      "sha256": "61252AF4CEF8DA4BEF85D92013396BCCD8142C5F0864D6896CC472839C1684F4",
+      "bytes": 3406
+    },
+    {
+      "path": "worker-t05/native-fourth.log",
+      "sha256": "18F6D76E209C8FF2F1914D3E58C4FD9EC0A217E681674A3D46070FEBF8E1B570",
+      "bytes": 2776
+    },
+    {
+      "path": "worker-t05/native-second.log",
+      "sha256": "2D7727419ECE036590B284D5ED61AB1F220251E94EE9F68EEE95DB771E9205E0",
+      "bytes": 2504
+    },
+    {
+      "path": "worker-t05/native-source.json",
+      "sha256": "E22F3B74F479EA23C86C75BB10277D4D5F2E7FEA858DA8143E3ABAEFCFFFD18D",
+      "bytes": 57719
+    },
+    {
+      "path": "worker-t05/native-third.log",
+      "sha256": "F4F4013C828D997688DE1FAE7A0A1DA0930B53C661D0C2AA87DC69F036295A11",
+      "bytes": 2247
+    },
+    {
+      "path": "worker-t05/organize-green.log",
+      "sha256": "172A260A638571C034678370AC75C089495C24BFDADBB7263017079C19618A8D",
+      "bytes": 681
+    },
+    {
+      "path": "worker-t05/organize-red.log",
+      "sha256": "BEE6A7EDDAD67567584CBCD76D081AC491EB7977AA6BEF600D2E6C92068E0DAA",
+      "bytes": 996
+    },
+    {
+      "path": "worker-t05/query-migration-safety.log",
+      "sha256": "C7DF9C15BE7B0DC317383B5F186CB165AEFD84481160F378AA79658375AA1502",
+      "bytes": 1083
+    },
+    {
+      "path": "worker-t05/typecheck-02.log",
+      "sha256": "EAD81E4DF8F895659F0C854F5C9A7C30525E0DA28462A7372F5197855CA302B3",
+      "bytes": 1337
+    },
+    {
+      "path": "worker-t05/typecheck-03.log",
+      "sha256": "B306B214DDC8B026C0E3F727C09F2434C3BE54D416CE4814DFC4CDB6DBB3015A",
+      "bytes": 48
+    },
+    {
+      "path": "worker-t05/typecheck-final.log",
+      "sha256": "B306B214DDC8B026C0E3F727C09F2434C3BE54D416CE4814DFC4CDB6DBB3015A",
+      "bytes": 48
+    },
+    {
+      "path": "worker-t05/typecheck-settings-final.log",
+      "sha256": "B306B214DDC8B026C0E3F727C09F2434C3BE54D416CE4814DFC4CDB6DBB3015A",
+      "bytes": 48
+    },
+    {
+      "path": "worker-t05/typecheck.log",
+      "sha256": "B306B214DDC8B026C0E3F727C09F2434C3BE54D416CE4814DFC4CDB6DBB3015A",
+      "bytes": 48
+    },
+    {
+      "path": "worker-t05/vite-build.log",
+      "sha256": "D3E3DCA8F6687C2507ECBB0FAFE4C79E79177442E1321331212B8F68B4DB0BB2",
+      "bytes": 408
+    },
+    {
+      "path": "worker-t05/workspace-tests-final.log",
+      "sha256": "E4C03DC1EDC0206D9F2C5C723B0D0B513B9B8987F0E9D839E05FD06D67B6084F",
+      "bytes": 61122
+    },
+    {
+      "path": "worker-t05/workspace-tests.log",
+      "sha256": "7812DA6D0551379CE1092673270D831C970CB2D4500B880CCD00AD278F63CD32",
+      "bytes": 60719
+    },
+    {
+      "path": "worker-t05/nativeproof/f7ef52b1/DirectML.dll",
+      "sha256": "9C9E6D822561C6C41B90E6994B3E8857CF1D66DBFB1E0C4C799C7C89B4E92DA1",
+      "bytes": 18527776
+    },
+    {
+      "path": "worker-t05/nativeproof/f7ef52b1/kinshoko.exe",
+      "sha256": "7DCA4915D39D648F5B0E7B615671D316B3E63B187EE97A44D4CBB2F8ED3FF239",
+      "bytes": 99092480
+    },
+    {
+      "path": "harness/shared-tag-groups.mjs",
+      "sha256": "B59B97EC097455C5B06346E3D2003EB14443A94BFA09B00718EE2E41647966E1",
+      "bytes": 26476
+    },
+    {
+      "path": "harness/shared-group-draft.mjs",
+      "sha256": "1C2865644046ACC58A6C959E911EC1ADA53DAF19C82560C13BC26B171910FAF4",
+      "bytes": 10560
+    },
+    {
+      "path": "harness/native-tray-exit-t05.py",
+      "sha256": "64832482CF2320E17856536049D1AC385CCAAFD7964ADDF82E838CB7141F26E7",
+      "bytes": 7124
+    },
+    {
+      "path": "known-folder-settings/settings.json",
+      "sha256": "9E66B93482D7FFE07660626A718AE010B1733B21AF132E1DBA8F6538BC46E6C9",
+      "bytes": 174
+    }
+  ]
+}

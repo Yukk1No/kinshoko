@@ -1,12 +1,12 @@
 //! 自动更新（#70）：Tauri updater 从 GitHub Releases 的 `latest.json` 检查新版本，下载安装包、
 //! 用 `tauri.conf.json` 里的公钥校验签名，再以 NSIS 被动模式安装并重启。
 //!
-//! 公钥为空的构建（开发构建、没有签名私钥时的发布构建）不检查更新，界面显示“此构建未启用自动更新”。
+//! 私有阶段只用安装包手动更新。公开阶段必须明确声明原仓库已公开，并有原仓库入口与更新公钥。
 //! 签名私钥只在 GitHub 仓库的 Actions secret 里，不进仓库（见 docs/validation/release-checklist.md）。
 
 use std::sync::Mutex;
 
-use kinshoko_core::{UpdateProgress, UpdateStatus};
+use kinshoko_core::{UpdatePolicy, UpdateProgress, UpdateStatus};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_updater::{Update, UpdaterExt as _};
 
@@ -19,11 +19,7 @@ pub struct UpdaterState {
 
 impl UpdaterState {
     pub fn new(app: &AppHandle) -> Self {
-        let status = if has_pubkey(app) {
-            UpdateStatus::Unchecked
-        } else {
-            UpdateStatus::Disabled
-        };
+        let status = update_policy(app).initial_status();
         UpdaterState {
             status: Mutex::new(status),
             pending: Mutex::new(None),
@@ -43,17 +39,26 @@ impl UpdaterState {
     }
 }
 
-/// `tauri.conf.json` 的 `plugins.updater.pubkey` 是否已由维护者填好。
-fn has_pubkey(app: &AppHandle) -> bool {
-    app.config()
-        .plugins
-        .0
-        .get("updater")
+/// 每个动作读取当前构建条件；阶段配置与插件的签名、下载配置共用一个入口。
+fn update_policy(app: &AppHandle) -> UpdatePolicy {
+    let updater = app.config().plugins.0.get("updater");
+    let stage = updater
+        .and_then(|u| u.get("releaseStage"))
+        .map(|s| s.as_str().unwrap_or_default());
+    let pubkey = updater
         .and_then(|u| u.get("pubkey"))
-        .and_then(|k| k.as_str())
-        .is_some_and(|k| !k.trim().is_empty())
+        .and_then(|k| k.as_str());
+    let endpoints = updater
+        .and_then(|u| u.get("endpoints"))
+        .and_then(|e| e.as_array())
+        .map(|e| {
+            e.iter()
+                .map(|url| url.as_str().unwrap_or_default().to_owned())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    UpdatePolicy::for_build(stage, pubkey, &endpoints)
 }
-
 /// 上次检查的结果；还没检查过时为 `unchecked`。
 #[tauri::command]
 pub async fn update_status(state: State<'_, UpdaterState>) -> Result<UpdateStatus, String> {
@@ -66,9 +71,13 @@ pub async fn check_update(
     app: AppHandle,
     state: State<'_, UpdaterState>,
 ) -> Result<UpdateStatus, String> {
-    if state.status() == UpdateStatus::Disabled {
-        return Ok(UpdateStatus::Disabled);
+    let policy = update_policy(&app);
+    if policy.require_automatic().is_err() {
+        *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        return Ok(state.set(policy.initial_status()));
     }
+    // 新检查不能留下上一次的可安装对象（例如本次已最新或检查失败）。
+    *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
     // 交给安装程序前收好钉图状态：安装程序会结束本进程与打标子进程。
     let exiting = app.clone();
     let checked = match app
@@ -102,6 +111,12 @@ pub async fn check_update(
 /// 下载并安装已检查到的新版本。成功时安装程序接管，本进程退出、装好后重新启动。
 #[tauri::command]
 pub async fn install_update(app: AppHandle, state: State<'_, UpdaterState>) -> Result<(), String> {
+    let policy = update_policy(&app);
+    if let Err(message) = policy.require_automatic() {
+        *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        state.set(policy.initial_status());
+        return Err(message);
+    }
     let Some(update) = state
         .pending
         .lock()

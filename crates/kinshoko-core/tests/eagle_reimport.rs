@@ -212,7 +212,12 @@ fn eagle_deletion_and_trash_never_reach_the_local_copy() {
             report
                 .items
                 .iter()
-                .all(|i| matches!(i.outcome, ImportOutcome::Refreshed { .. })),
+                .enumerate()
+                .all(|(index, i)| if index == 2 {
+                    matches!(i.outcome, ImportOutcome::TrashDuplicate { .. })
+                } else {
+                    matches!(i.outcome, ImportOutcome::Refreshed { .. })
+                }),
             "{report:?}"
         );
         assert_eq!(binding_state(&library, "ITEM000000000"), "present");
@@ -557,7 +562,7 @@ fn a_library_from_before_folder_decisions_upgrades_and_keeps_its_folders() {
             .position(|name| name.starts_with("0077_folder_decision.sql\""))
             .expect("folder_decision 迁移必须存在");
         let triggers: Vec<String> = conn
-            .prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'list_revision_%'")
+            .prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND (name LIKE 'list_revision_%' OR name LIKE 'portable_%')")
             .unwrap()
             .query_map([], |r| r.get(0))
             .unwrap()
@@ -568,7 +573,10 @@ fn a_library_from_before_folder_decisions_upgrades_and_keeps_its_folders() {
                 .unwrap();
         }
         conn.execute_batch(&format!(
-            "DROP TABLE package_import;
+            "DROP TABLE tag_definition_dependency;
+             DROP TABLE tag_definition_dirty;
+             DROP TABLE eagle_deleted_content;
+             DROP TABLE package_import;
              DROP TABLE restore_provenance;
              DROP TABLE original_removal;
              DROP TRIGGER trash_revision_insert;

@@ -1,0 +1,67 @@
+{
+  "observedAfterBuild": "2026-10-09T02:24:29.7678120+08:00",
+  "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
+  "buildType": "debug with tauri/custom-protocol",
+  "driverSha256": "0F4600639201CCD2E84C72C3977AC33C67E19152E197C89EB16A6591D1FBE9F7",
+  "cargoJobs": 2,
+  "tree": "3a4f48c94bfd682db8c7f2256268d954780c81af",
+  "identifier": "dev.kinshoko.spec78t10test",
+  "scriptSha256": "43867F703F0DAD99CD42901F90252DC7E2BD2BF7B039EC44BD53B615D109C6D4",
+  "dist": [
+    {
+      "size": 408,
+      "sha256": "77F89499C6347089984029908857169C103FAB150F2C88058DC80C1655CE2C8F",
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\index.html"
+    },
+    {
+      "size": 423012,
+      "sha256": "9448867EAAB2B2F583D2622DE888C2F5A0C215C6DCEFC26E3B0674799CCF7EE1",
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\assets\\index-CzN17Hcj.js"
+    },
+    {
+      "size": 35984,
+      "sha256": "10B0EC625DE807D56E8528C7FA1D0BD93D42B56E5CFEE13C1F16753A7585BD17",
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\assets\\index-T8rZJrtt.css"
+    },
+    {
+      "size": 4472,
+      "sha256": "B3195AF0FB14368D1B3B10FB9D3FE503B7163EA083859D2EE553BC74DA07C320",
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-LICENSE.txt"
+    },
+    {
+      "size": 143664,
+      "sha256": "7E80D9F65861EE6836A0081D4E75D88FB8789E5651D05EDBC49640442A9610EE",
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-Medium-hinted.woff2"
+    },
+    {
+      "size": 140944,
+      "sha256": "338239F6B590B8CED3BF857654D32DA3FD3663294CD3003651ED57AA3ABD7AA1",
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-Regular-hinted.woff2"
+    },
+    {
+      "size": 144628,
+      "sha256": "5013F48D77AB627B1DB7C2415914284EF09ABC3F60A8E0D0D8F3CD1BFEBEFB5E",
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-SemiBold-hinted.woff2"
+    },
+    {
+      "size": 1307,
+      "sha256": "4021EE08A54221DBFEA8C42E5A70F79B4D0030FE1DF1004F74794BC9828D9C11",
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\README.md"
+    },
+    {
+      "size": 4559,
+      "sha256": "1953855BF1927E7214385BBDD8ADB04CC5E8A0ECD0E6EAEDEB1BDC281B009481",
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\SourceHanSans-LICENSE.txt"
+    },
+    {
+      "size": 14129688,
+      "sha256": "CFEC773CDC2EA964DE8713471C6FD20774BC40617F5567F92EFEECCACA6604B0",
+      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\SourceHanSansSC-VF.ttf.woff2"
+    }
+  ],
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\binary-a2f2c3e\\kinshoko.exe",
+  "source": "a2f2c3ec72e761320182448b54dc360d2b90617f",
+  "configSha256": "4D5A6444207123DF105D8639E274663822A5E52F681A89CC11353E965D7B54E1",
+  "gitStatus": [],
+  "binarySha256": "C1D59E4D2207533AB42BCA666B2DCFE7F9C2E1B2B571200717C378A9EC1C83E9"
+}

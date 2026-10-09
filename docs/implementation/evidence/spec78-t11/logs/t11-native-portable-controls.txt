@@ -1,0 +1,27 @@
+PASS same display names initially retain distinct global identities
+PASS rendered correction explicitly joins two local IDs to one global identity
+PASS rendered split creates another stable identity despite the same display name
+PASS rendered save captures all three real reference pins
+PASS saved source group contains the specified original-pixel crop and requested native pin transforms
+PASS a real SQLITE_FULL publication error retains program name preferences
+PASS rendered retry succeeds after the one-shot real storage error
+PASS formal export contains version-two stable definitions and explicit local mappings
+PASS formal export carries latest real aliases and pure defaults, without source display preferences
+PASS package original bytes match every declared SHA-256
+PASS formal package preserves the real note, namespace and external vocabulary/value
+PASS fresh application has no access to the original library or original application directory
+PASS ordinary copied libraries restore the published correction/split identities in an empty application
+PASS ordinary copied library restores current defaults and aliases without program preferences
+PASS rendered package import creates a new group with all members remapped to the chosen library
+PASS native package roundtrip preserves every member crop, flip, rotation, scale and layout
+PASS native package import retains source group and package provenance
+PASS empty application imports both stable tag identities and no source preferences
+PASS fresh destination stores the exact original image bytes
+PASS rendered imported members are available and open as three real native reference pins
+PASS content import preserves the destination application's existing global group definition and order
+PASS same-named target tag remains independent and its existing preference survives import
+PASS reimport preserves the current application preference and does not resurrect a deleted alias
+PASS reimport reuses each declared stable identity without adding duplicate local tags
+PASS content reimport also keeps the current global group unchanged
+PASS a copied destination library carries its current pure definitions immediately after reimport, without any application preference
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\portable-tags-1791482476103

@@ -1,0 +1,38 @@
+{
+  "mainBinaryName": "kinshoko-t19-upgrade",
+  "targetDirectory": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
+  "identifier": "dev.kinshoko.spec78t19upgrade",
+  "buildProfile": "debug",
+  "old": {
+    "sourceTreeClean": true,
+    "exeSha256": "67caca7581021f68156a093adfa2f830d17038790f0389931758b45c4ffe0ccf",
+    "directmlSha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1",
+    "bundleVersion": "0.1.0",
+    "configSha256": "f02d0c07d052ddc0e47e84aa4d6f34435fb6bc65aba87543596004f22f470cc3",
+    "installerSha256": "b1ee1339bbc0e9e2981d50f6519409aab81b73f3574504a857a6fd0afb2a8e91",
+    "workspaceVersion": "0.1.0",
+    "sourceRevision": "536cc43c1933e44fc33836f8a439de8cdb0da018",
+    "packagedExeSha256": "8dfd1074c1fe51d9166316b0c0b68bcbe3cc9cae1b53da3cbff618bee85cca5f"
+  },
+  "debugHookSha256": "9475fbe0ba9df344b4ae5b37892861ca3212e0f313ee19e0a4b8cd6c11241621",
+  "productName": "Kinshoko T19 Upgrade Probe",
+  "new": {
+    "installerSha256": "f480139602bba172c657554ceff87028be6c64fc457af1d344a7ad6d36175dec",
+    "configSha256": "077000e9b1f2b4a1d1c6bdebec10a5a15eba45671ffe7e26f609648bccffaf7d",
+    "workspaceVersion": "0.1.0",
+    "bundleVersion": "0.1.1",
+    "sourceTreeClean": true,
+    "exeSha256": "62ea84a1e3379775a73eb61568e18f0e55a20a297fb3d8837daa164b81934f8b",
+    "sourceRevision": "5082f317b6a48c1ddf1dabeb1cbdc4e23fa11193",
+    "directmlSha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1",
+    "packagedExeSha256": "3186f8a91de22aff88927187003bfde3056fbb0a8ae31cb69793f55a44f535df"
+  },
+  "binaryPatching": {
+    "source": "https://github.com/tauri-apps/tauri/blob/tauri-cli-v2.12.1/crates/tauri-bundler/src/bundle.rs",
+    "oldReversePatchSha256": "67caca7581021f68156a093adfa2f830d17038790f0389931758b45c4ffe0ccf",
+    "operation": "first __TAURI_BUNDLE_TYPE_VAR_UNK replaced by __TAURI_BUNDLE_TYPE_VAR_NSS for NSIS; target exe restored after bundle",
+    "changedBytes": 3,
+    "newTokenOffset": 76014112,
+    "oldTokenOffset": 75418480
+  }
+}

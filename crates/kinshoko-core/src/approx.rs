@@ -2,7 +2,7 @@
 //!
 //! - 内置近似对应表（[`BuiltinApproxTable`]）随软件分发，按外部对应写成，格式见
 //!   `data/README.md`。相近关系无方向、不传递。
-//! - 个人近似对应表（[`PersonalApprox`]）随资料库保存，按标签身份记录“相近”或“不相近”，
+//! - 个人近似对应表（[`PersonalApprox`]）在应用中保存，按统一标签身份记录“相近”或“不相近”，
 //!   与内置近似对应表冲突时以它为准；内置表更新不改动它。
 //!
 //! 两份表都只是 Search 的输入，展开在 [`crate::search::Search::resolve`] 中完成。
@@ -132,7 +132,7 @@ pub enum ApproxRelation {
     NotSimilar,
 }
 
-/// 个人近似对应表中的一条：两个库内标签（`tag_id`，无方向）与画师的判断。
+/// 个人近似对应表中的一条：两个标签身份（无方向）与画师的判断。旧 Library 接口仍使用本地 ID；应用规则使用统一 ID。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]

@@ -1,6 +1,26 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SavedPin } from "../bindings/SavedPin";
-import { VEILED_SOURCE_PX, pinSourceRect, pinSourceSize } from "./renderer";
+import { VEILED_SOURCE_PX, createCanvas2dRenderer, pinSourceRect, pinSourceSize } from "./renderer";
+
+afterEach(() => vi.restoreAllMocks());
+
+it("keeps pins available through the 8-bit fallback when float16 context options throw", () => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(function (this: HTMLCanvasElement, _kind, options) {
+    if ((options as { colorType?: string } | undefined)?.colorType === "float16") {
+      throw new TypeError("The runtime rejects float16");
+    }
+    return { canvas: this } as CanvasRenderingContext2D;
+  });
+  expect(createCanvas2dRenderer()?.element).toBeInstanceOf(HTMLCanvasElement);
+});
+
+it("keeps the default 8-bit canvas usable when a runtime rejects newer context dictionaries", () => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(function (this: HTMLCanvasElement, _kind, options) {
+    if (options) throw new TypeError("Context options unavailable");
+    return { canvas: this } as CanvasRenderingContext2D;
+  });
+  expect(createCanvas2dRenderer()?.colorType).toBe("uint8");
+});
 
 // 钉图渲染器的源图选择（#65）：缩小时以 Rust 派生图为源，局部的边界始终是原图像素。
 

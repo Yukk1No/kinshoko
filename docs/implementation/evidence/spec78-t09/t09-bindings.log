@@ -1,0 +1,10 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.38s
+     Running unittests src\lib.rs (target\debug\deps\kinshoko_core-b3e8d5a0f9fee769.exe)
+
+running 2 tests
+test workspace::source::export_bindings_workspacesourcetarget ... ok
+test workspace::source::export_bindings_workspacesourceinspection ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 158 filtered out; finished in 0.08s
+

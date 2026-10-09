@@ -1,0 +1,15 @@
+PASS synthetic originals import through production task
+PASS actual foreground HWND belongs to the exact frozen application
+clipboard.prepare.begin at=1791502089975 size=8x8
+clipboard.prepare.end at=1791502089975 ms=0 size=8x8
+clipboard.commit.begin at=1791502089977
+clipboard.commit.end at=1791502090019 ms=42
+PASS actual foreground HWND belongs to the exact frozen application
+PASS frozen image paints at native physical dimensions with zero origin
+PASS slow decode is genuinely still running before mode revocation
+clipboard.prepare.begin at=1791502125414 size=1231x991
+clipboard.prepare.end at=1791502125538 ms=124 size=1231x991
+Error: Timed out slow original completion: POST /session/ddef462b4afcf75050ae4d57dfd85807/execute/sync: {"at":1791502125539,"error":"安全模式已变化，请重新框选"}
+    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:34:189)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:93:20
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\e2e\wall-capture-race-1791502082523

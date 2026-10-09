@@ -1,0 +1,33 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/library/WorkspacePane.test.tsx (1 test | 1 failed) 27ms
+   × 每库为独立根展示完整目录，选择目录默认包含子文件夹，明确切换直接层级 26ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/WorkspacePane.test.tsx > 每库为独立根展示完整目录，选择目录默认包含子文件夹，明确切换直接层级
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/library/WorkspacePane.test.tsx:24:19
+     22|   const view = render(<WorkspacePane {...props} />);
+     23|   await settle();
+     24|   expect(pending).toHaveLength(1);
+       |                   ^
+     25|   await act(async () => pending[0].resolve(forest()));
+     26|   const a = document.querySelector<HTMLElement>('[data-library-id="A"]…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  00:16:07
+   Duration  1.49s (environment 82%, import 13%, transform 3%, tests 2%)
+

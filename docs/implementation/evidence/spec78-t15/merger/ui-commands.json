@@ -1,0 +1,25 @@
+[
+  {
+    "name": "ui",
+    "command": [
+      "npx.cmd",
+      "vitest",
+      "run",
+      "src/library/ImportMenu.test.tsx",
+      "src/library/ImportBar.test.tsx",
+      "src/import-preview-ipc.test.ts",
+      "src/App.test.tsx",
+      "src/SettingsPanel.test.tsx"
+    ],
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-08T21:28:06.009702+00:00",
+    "finishedAtUtc": "2026-10-08T21:28:24.284480+00:00",
+    "durationSeconds": 18.118178000004264,
+    "source": "d93e7f803e160c73862a9692935471b072fc027a",
+    "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+    "log": "ui.txt",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "cargoBuildJobs": "2",
+    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+  }
+]

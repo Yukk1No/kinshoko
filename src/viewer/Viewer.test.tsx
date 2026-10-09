@@ -3,6 +3,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { Viewer } from "./Viewer";
 
+const events = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>());
+vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async (name, callback) => { events.set(name, callback); return () => events.delete(name); }) }));
+
 // JSDOM 不做布局；原生冒烟另用 getBoundingClientRect 检查最终设备像素位置。
 const translation = (image: HTMLElement) => image.style.transform.slice("translate(".length).split(",").map(parseFloat);
 
@@ -15,22 +18,24 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe("查看器设备像素", () => {
-  it("只向 F1 报告已经显示的原图范围，关闭查看器后清除来源", async () => {
-    const reports: unknown[] = [];
+  it("F1 reads only the currently loaded image through a fresh native request", async () => {
+    const reports: any[] = [];
     mockIPC((command, args) => {
-      if (command === "plugin:desktop|set_capture_reference" && args && "reference" in args) reports.push(args.reference);
-      return undefined;
+      if (command === "plugin:desktop|report_capture_references") reports.push(args);
     });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 800));
     const { unmount } = render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
-    expect(reports.at(-1)).toBeNull();
-    fireEvent.load(screen.getByAltText("正在查看的参考图"));
-    await waitFor(() => expect(reports.at(-1)).toEqual({
-      libraryId: "L1", imageId: "a",
-      shown: { x: 0, y: 100, width: 1500, height: 1000 },
-      visible: { x: 0, y: 100, width: 1500, height: 1000 },
-    }));
+    await waitFor(() => expect(events.has("capture-reference-request")).toBe(true));
+    await act(async () => events.get("capture-reference-request")!({ payload: { request: "unloaded" } }));
+    await waitFor(() => expect(reports).toHaveLength(1));
+    expect(reports[0].frame.references).toEqual([]);
+    const image = screen.getByAltText("正在查看的参考图");
+    Object.defineProperties(image, { complete: { configurable: true, value: true }, naturalWidth: { configurable: true, value: 1500 }, naturalHeight: { configurable: true, value: 1000 } });
+    fireEvent.load(image);
+    await act(async () => events.get("capture-reference-request")!({ payload: { request: "loaded" } }));
+    await waitFor(() => expect(reports).toHaveLength(2));
+    expect(reports[1]).toMatchObject({ request: "loaded", frame: { references: [{ libraryId: "L1", imageId: "a", shown: { x: 0, y: 100, width: 1500, height: 1000 }, visible: { x: 0, y: 100, width: 1500, height: 1000 } }] } });
     unmount();
-    await waitFor(() => expect(reports.at(-1)).toBeNull());
     clearMocks();
   });
 
@@ -192,5 +197,40 @@ describe("从查看器钉到桌面（#65）", () => {
     expect(close).not.toHaveBeenCalled();
     fireEvent.keyDown(stage, { key: "Escape" });
     expect(close).toHaveBeenCalledOnce();
+  });
+});
+
+
+describe("查看器程序配置", () => {
+  const card = { id: "background", width: 800, height: 600, thumbnail: "", adult: false };
+  afterEach(() => { clearMocks(); localStorage.clear(); });
+
+  it("已恢复的背景优先于本机旧缓存，并保存后续选择", async () => {
+    localStorage.setItem("kinshoko.viewer.background", "dark");
+    const writes: unknown[] = [];
+    mockIPC((command, args) => {
+      if (command === "shell_settings") return { viewerBackground: "light" };
+      if (command === "set_viewer_background") writes.push(args);
+      if (command === "migrate_viewer_background") throw new Error("must not migrate again");
+      return null;
+    });
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    await waitFor(() => expect((screen.getByRole("combobox", { name: "查看器背景" }) as HTMLSelectElement).value).toBe("light"));
+    expect(writes).toEqual([{ background: "light" }]);
+    fireEvent.change(screen.getByRole("combobox", { name: "查看器背景" }), { target: { value: "checker" } });
+    await waitFor(() => expect(writes.at(-1)).toEqual({ background: "checker" }));
+  });
+
+  it("首次读取程序配置失败时不把旧缓存写回", async () => {
+    localStorage.setItem("kinshoko.viewer.background", "dark");
+    const writes: unknown[] = [];
+    mockIPC((command, args) => {
+      if (command === "shell_settings") throw new Error("temporarily unavailable");
+      if (command === "set_viewer_background" || command === "migrate_viewer_background") writes.push(args);
+      return null;
+    });
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    await act(async () => {});
+    expect(writes).toEqual([]);
   });
 });

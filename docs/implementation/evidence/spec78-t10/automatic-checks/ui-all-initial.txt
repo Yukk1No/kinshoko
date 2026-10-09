@@ -1,0 +1,2541 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+stderr | src/App.workspace-bootstrap.test.tsx > 保存为关闭安全模式且活动库断连时，仍显示可用提供方的现有工作区
+An error occurred in the <ImportBar> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+
+ ❯ src/App.workspace-bootstrap.test.tsx (1 test | 1 failed) 1107ms
+   × 保存为关闭安全模式且活动库断连时，仍显示可用提供方的现有工作区 1105ms
+stderr | src/App.test.tsx > 导入任务的终态（#76） > 结束事件早于启动命令的响应时，迟到的响应和进度不会复活已结束的任务
+An error occurred in the <ImportBar> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+
+stderr | src/App.test.tsx > 导入任务的终态（#76） > 旧任务与别的资料库的迟到事件不会覆盖新任务
+An error occurred in the <ImportBar> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+
+stderr | src/App.test.tsx > Eagle 迁入完成后的标签外部对应（#77 UI-E） > 普通文件导入在两种顺序下都不打开这一步
+An error occurred in the <ImportBar> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+
+ ❯ src/App.test.tsx (60 tests | 18 failed) 25023ms
+   ❯ 主窗口 (25)
+     × 导入进行中时打开新建资料库页再返回，保留结果和重试入口 1222ms
+     × 导入已结束时打开新建资料库页再返回，保留结果和重试入口 1154ms
+     × Eagle 资料库疑似搬家时先问画师（是搬了家，按原来源重导），确认后再迁入 1125ms
+     × Eagle 资料库疑似搬家时先问画师（是另一个资料库，单独迁入），确认后再迁入 1080ms
+     × 新建资料库页不接受拖放导入，返回当前库后恢复拖放 38ms
+     × 导入文件夹时显示进度、可以取消，结束后逐项列出没有进来的文件 1094ms
+     × 把图片和文件夹拖进主窗口就开始导入 47ms
+     × 导入结束后可以只重试读取失败的项 1075ms
+     × 上次导入中断时提示撤回了哪些文件，并可以重新导入 1083ms
+   ❯ 导入任务的终态（#76） (3)
+     × 结束事件早于启动命令的响应时，迟到的响应和进度不会复活已结束的任务 1079ms
+     × 进度早于启动命令的响应时，响应到达后仍可取消 1086ms
+     × 旧任务与别的资料库的迟到事件不会覆盖新任务 1083ms
+   ❯ Eagle 迁入完成后的标签外部对应（#77 UI-E） (6)
+     × 从通用文件夹入口识别到 Eagle，结束事件先到也只打开一次标签步骤 1078ms
+     × 从通用拖放入口识别到 Eagle，结束事件先到也只打开一次标签步骤 1052ms
+     × 结束事件早于启动命令的响应时，仍保留报告并打开一次这一步 1214ms
+     × 对照：启动命令的响应先到时同样打开一次 1174ms
+     × 普通文件导入在两种顺序下都不打开这一步 1116ms
+     × Eagle 迁入与紧接着的普通导入不串结果；启动出错后可以重来 1178ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 19 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/App.test.tsx > 主窗口 > 导入进行中时打开新建资料库页再返回，保留结果和重试入口
+ FAIL  src/App.test.tsx > 主窗口 > 导入已结束时打开新建资料库页再返回，保留结果和重试入口
+AssertionError: expected [] to have a length of 1 but got +0
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="app app-shell"
+      >
+        <div
+          class="rail-slot"
+        >
+          <nav
+            aria-label="主导航"
+            class="rail"
+          >
+            <div
+              class="brand"
+              title="Kinshoko"
+            >
+              <svg
+                aria-hidden="true"
+                height="28"
+                viewBox="0 0 32 32"
+                width="28"
+              >
+                <path
+                  class="brand-mark"
+                  d="M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div
+              class="rail-items"
+            >
+              <span
+                aria-hidden="true"
+                class="rail-indicator"
+                style="transform: translateY(8px);"
+              />
+              <button
+                aria-current="page"
+                aria-expanded="true"
+                aria-label="图片与文件夹"
+                aria-pressed="true"
+                class="rail-btn is-active"
+                data-section="browse"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <rect
+                    height="16"
+                    rx="2"
+                    width="16"
+                    x="5"
+                    y="3"
+                  />
+                  <path
+                    d="m5 14 5-5 11 9M2 7v14h14"
+                  />
+                  <circle
+                    cx="16"
+                    cy="7"
+                    r="1"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  图片与文件夹
+                  <kbd>
+                    Ctrl+1
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="参考组"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="groups"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  参考组
+                  <kbd>
+                    Ctrl+2
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="截图历史"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="captures"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  截图历史
+                  <kbd>
+                    Ctrl+3
+                  </kbd>
+                </span>
+              </button>
+            </div>
+            <div
+              class="rail-foot"
+            >
+              <button
+                aria-label="安全模式：开启"
+                aria-pressed="true"
+                class="seal-book"
+                data-on="true"
+                title="安全模式已开启：含成人内容的参考图已封印（Ctrl+Shift+S）"
+                type...
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/App.test.tsx:458:69
+    456|     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
+    457|     fireEvent.click(importAction("导入文件夹…"));
+    458|     await waitFor(() => expect(sent("plugin:library|start_import")).to…
+       |                                                                     ^
+    459|     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", …
+    460|     const finish = () => push({
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/19]⎯
+
+ FAIL  src/App.test.tsx > 主窗口 > Eagle 资料库疑似搬家时先问画师（是搬了家，按原来源重导），确认后再迁入
+ FAIL  src/App.test.tsx > 主窗口 > Eagle 资料库疑似搬家时先问画师（是另一个资料库，单独迁入），确认后再迁入
+AssertionError: expected [] to have a length of 1 but got +0
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="app app-shell"
+      >
+        <div
+          class="rail-slot"
+        >
+          <nav
+            aria-label="主导航"
+            class="rail"
+          >
+            <div
+              class="brand"
+              title="Kinshoko"
+            >
+              <svg
+                aria-hidden="true"
+                height="28"
+                viewBox="0 0 32 32"
+                width="28"
+              >
+                <path
+                  class="brand-mark"
+                  d="M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div
+              class="rail-items"
+            >
+              <span
+                aria-hidden="true"
+                class="rail-indicator"
+                style="transform: translateY(8px);"
+              />
+              <button
+                aria-current="page"
+                aria-expanded="true"
+                aria-label="图片与文件夹"
+                aria-pressed="true"
+                class="rail-btn is-active"
+                data-section="browse"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <rect
+                    height="16"
+                    rx="2"
+                    width="16"
+                    x="5"
+                    y="3"
+                  />
+                  <path
+                    d="m5 14 5-5 11 9M2 7v14h14"
+                  />
+                  <circle
+                    cx="16"
+                    cy="7"
+                    r="1"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  图片与文件夹
+                  <kbd>
+                    Ctrl+1
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="参考组"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="groups"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  参考组
+                  <kbd>
+                    Ctrl+2
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="截图历史"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="captures"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  截图历史
+                  <kbd>
+                    Ctrl+3
+                  </kbd>
+                </span>
+              </button>
+            </div>
+            <div
+              class="rail-foot"
+            >
+              <button
+                aria-label="安全模式：开启"
+                aria-pressed="true"
+                class="seal-book"
+                data-on="true"
+                title="安全模式已开启：含成人内容的参考图已封印（Ctrl+Shift+S）"
+                type...
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/App.test.tsx:499:69
+    497|     window.__KINSHOKO_TEST_PICKS__ = ["E:\\新\\主库.library"];
+    498|     fireEvent.click(importAction("导入文件夹…"));
+    499|     await waitFor(() => expect(sent("plugin:library|start_import")).to…
+       |                                                                     ^
+    500|     await push({
+    501|       kind: "taskFinished",
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/19]⎯
+
+ FAIL  src/App.test.tsx > 主窗口 > 新建资料库页不接受拖放导入，返回当前库后恢复拖放
+TestingLibraryElementError: Unable to find an element with the text: 松开即可导入到 工作参考. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="app app-shell"
+    >
+      <div
+        class="rail-slot"
+      >
+        <nav
+          aria-label="主导航"
+          class="rail"
+        >
+          <div
+            class="brand"
+            title="Kinshoko"
+          >
+            <svg
+              aria-hidden="true"
+              height="28"
+              viewBox="0 0 32 32"
+              width="28"
+            >
+              <path
+                class="brand-mark"
+                d="M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z"
+                fill-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <div
+            class="rail-items"
+          >
+            <span
+              aria-hidden="true"
+              class="rail-indicator"
+              style="transform: translateY(8px);"
+            />
+            <button
+              aria-current="page"
+              aria-expanded="true"
+              aria-label="图片与文件夹"
+              aria-pressed="true"
+              class="rail-btn is-active"
+              data-section="browse"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height="20"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+                viewBox="0 0 24 24"
+                width="20"
+              >
+                <rect
+                  height="16"
+                  rx="2"
+                  width="16"
+                  x="5"
+                  y="3"
+                />
+                <path
+                  d="m5 14 5-5 11 9M2 7v14h14"
+                />
+                <circle
+                  cx="16"
+                  cy="7"
+                  r="1"
+                />
+              </svg>
+              <span
+                class="tip"
+                role="tooltip"
+              >
+                图片与文件夹
+                <kbd>
+                  Ctrl+1
+                </kbd>
+              </span>
+            </button>
+            <button
+              aria-label="参考组"
+              aria-pressed="false"
+              class="rail-btn"
+              data-section="groups"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height="20"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+                viewBox="0 0 24 24"
+                width="20"
+              >
+                <path
+                  d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"
+                />
+              </svg>
+              <span
+                class="tip"
+                role="tooltip"
+              >
+                参考组
+                <kbd>
+                  Ctrl+2
+                </kbd>
+              </span>
+            </button>
+            <button
+              aria-label="截图历史"
+              aria-pressed="false"
+              class="rail-btn"
+              data-section="captures"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height="20"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+                viewBox="0 0 24 24"
+                width="20"
+              >
+                <path
+                  d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"
+                />
+              </svg>
+              <span
+                class="tip"
+                role="tooltip"
+              >
+                截图历史
+                <kbd>
+                  Ctrl+3
+                </kbd>
+              </span>
+            </button>
+          </div>
+          <div
+            class="rail-foot"
+          >
+            <button
+              aria-label="安全模式：开启"
+              aria-pressed="true"
+              class="seal-book"
+              data-on="true"
+              title="安全模式已开启：含成人内容的参考图已封印（Ctrl+Shift+S）"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                height="20"
+                viewBox="0 0 24 24"
+                width="20"
+              >
+                <path
+            ...
+ ❯ Object.getElementError ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/App.test.tsx:536:19
+    534|     const paths = ["D:\\参考\\a.png"];
+    535|     await act(() => emit("tauri://drag-enter", { paths, position }));
+    536|     expect(screen.getByText("松开即可导入到 工作参考")).toBeTruthy();
+       |                   ^
+    537|     fireEvent.click(screen.getByRole("button", { name: "新建资料库…" }));
+    538|     await screen.findByLabelText("资料库名称");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/19]⎯
+
+ FAIL  src/App.test.tsx > 主窗口 > 导入文件夹时显示进度、可以取消，结束后逐项列出没有进来的文件
+AssertionError: expected [] to deeply equal [ { libraryId: 'L1', …(1) } ]
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="app app-shell"
+      >
+        <div
+          class="rail-slot"
+        >
+          <nav
+            aria-label="主导航"
+            class="rail"
+          >
+            <div
+              class="brand"
+              title="Kinshoko"
+            >
+              <svg
+                aria-hidden="true"
+                height="28"
+                viewBox="0 0 32 32"
+                width="28"
+              >
+                <path
+                  class="brand-mark"
+                  d="M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div
+              class="rail-items"
+            >
+              <span
+                aria-hidden="true"
+                class="rail-indicator"
+                style="transform: translateY(8px);"
+              />
+              <button
+                aria-current="page"
+                aria-expanded="true"
+                aria-label="图片与文件夹"
+                aria-pressed="true"
+                class="rail-btn is-active"
+                data-section="browse"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <rect
+                    height="16"
+                    rx="2"
+                    width="16"
+                    x="5"
+                    y="3"
+                  />
+                  <path
+                    d="m5 14 5-5 11 9M2 7v14h14"
+                  />
+                  <circle
+                    cx="16"
+                    cy="7"
+                    r="1"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  图片与文件夹
+                  <kbd>
+                    Ctrl+1
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="参考组"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="groups"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  参考组
+                  <kbd>
+                    Ctrl+2
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="截图历史"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="captures"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  截图历史
+                  <kbd>
+                    Ctrl+3
+                  </kbd>
+                </span>
+              </button>
+            </div>
+            <div
+              class="rail-foot"
+            >
+              <button
+                aria-label="安全模式：开启"
+                aria-pressed="true"
+                class="seal-book"
+                data-on="true"
+                title="安全模式已开启：含成人内容的参考图已封印（Ctrl+Shift+S）"
+                type...
+
+- Expected
++ Received
+
+- [
+-   {
+-     "libraryId": "L1",
+-     "source": {
+-       "paths": [
+-         "D:\\下载\\参考",
+-       ],
+-     },
+-   },
+- ]
++ []
+
+ ❯ src/App.test.tsx:636:51
+    634|     fireEvent.click(importAction("导入文件夹…"));
+    635|     await waitFor(() =>
+    636|       expect(sent("plugin:library|start_import")).toEqual([
+       |                                                   ^
+    637|       { libraryId: "L1", source: { paths: ["D:\\下载\\参考"] } },
+    638|       ]),
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/19]⎯
+
+ FAIL  src/App.test.tsx > 主窗口 > 把图片和文件夹拖进主窗口就开始导入
+TestingLibraryElementError: Unable to find an element with the text: 松开即可导入到 工作参考. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="app app-shell"
+    >
+      <div
+        class="rail-slot"
+      >
+        <nav
+          aria-label="主导航"
+          class="rail"
+        >
+          <div
+            class="brand"
+            title="Kinshoko"
+          >
+            <svg
+              aria-hidden="true"
+              height="28"
+              viewBox="0 0 32 32"
+              width="28"
+            >
+              <path
+                class="brand-mark"
+                d="M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z"
+                fill-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <div
+            class="rail-items"
+          >
+            <span
+              aria-hidden="true"
+              class="rail-indicator"
+              style="transform: translateY(8px);"
+            />
+            <button
+              aria-current="page"
+              aria-expanded="true"
+              aria-label="图片与文件夹"
+              aria-pressed="true"
+              class="rail-btn is-active"
+              data-section="browse"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height="20"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+                viewBox="0 0 24 24"
+                width="20"
+              >
+                <rect
+                  height="16"
+                  rx="2"
+                  width="16"
+                  x="5"
+                  y="3"
+                />
+                <path
+                  d="m5 14 5-5 11 9M2 7v14h14"
+                />
+                <circle
+                  cx="16"
+                  cy="7"
+                  r="1"
+                />
+              </svg>
+              <span
+                class="tip"
+                role="tooltip"
+              >
+                图片与文件夹
+                <kbd>
+                  Ctrl+1
+                </kbd>
+              </span>
+            </button>
+            <button
+              aria-label="参考组"
+              aria-pressed="false"
+              class="rail-btn"
+              data-section="groups"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height="20"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+                viewBox="0 0 24 24"
+                width="20"
+              >
+                <path
+                  d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"
+                />
+              </svg>
+              <span
+                class="tip"
+                role="tooltip"
+              >
+                参考组
+                <kbd>
+                  Ctrl+2
+                </kbd>
+              </span>
+            </button>
+            <button
+              aria-label="截图历史"
+              aria-pressed="false"
+              class="rail-btn"
+              data-section="captures"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height="20"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+                viewBox="0 0 24 24"
+                width="20"
+              >
+                <path
+                  d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"
+                />
+              </svg>
+              <span
+                class="tip"
+                role="tooltip"
+              >
+                截图历史
+                <kbd>
+                  Ctrl+3
+                </kbd>
+              </span>
+            </button>
+          </div>
+          <div
+            class="rail-foot"
+          >
+            <button
+              aria-label="安全模式：开启"
+              aria-pressed="true"
+              class="seal-book"
+              data-on="true"
+              title="安全模式已开启：含成人内容的参考图已封印（Ctrl+Shift+S）"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                height="20"
+                viewBox="0 0 24 24"
+                width="20"
+              >
+                <path
+            ...
+ ❯ Object.getElementError ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/App.test.tsx:682:19
+    680|       emit("tauri://drag-enter", { paths: ["D:\\图\\a.png", "D:\\一批参考"]…
+    681|     );
+    682|     expect(screen.getByText("松开即可导入到 工作参考")).toBeTruthy();
+       |                   ^
+    683|     await act(() => emit("tauri://drag-drop", { paths: ["D:\\图\\a.png"…
+    684|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/19]⎯
+
+ FAIL  src/App.test.tsx > 主窗口 > 导入结束后可以只重试读取失败的项
+AssertionError: expected [] to deeply equal [ { libraryId: 'L1', …(1) } ]
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="app app-shell"
+      >
+        <div
+          class="rail-slot"
+        >
+          <nav
+            aria-label="主导航"
+            class="rail"
+          >
+            <div
+              class="brand"
+              title="Kinshoko"
+            >
+              <svg
+                aria-hidden="true"
+                height="28"
+                viewBox="0 0 32 32"
+                width="28"
+              >
+                <path
+                  class="brand-mark"
+                  d="M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div
+              class="rail-items"
+            >
+              <span
+                aria-hidden="true"
+                class="rail-indicator"
+                style="transform: translateY(8px);"
+              />
+              <button
+                aria-current="page"
+                aria-expanded="true"
+                aria-label="图片与文件夹"
+                aria-pressed="true"
+                class="rail-btn is-active"
+                data-section="browse"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <rect
+                    height="16"
+                    rx="2"
+                    width="16"
+                    x="5"
+                    y="3"
+                  />
+                  <path
+                    d="m5 14 5-5 11 9M2 7v14h14"
+                  />
+                  <circle
+                    cx="16"
+                    cy="7"
+                    r="1"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  图片与文件夹
+                  <kbd>
+                    Ctrl+1
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="参考组"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="groups"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  参考组
+                  <kbd>
+                    Ctrl+2
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="截图历史"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="captures"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  截图历史
+                  <kbd>
+                    Ctrl+3
+                  </kbd>
+                </span>
+              </button>
+            </div>
+            <div
+              class="rail-foot"
+            >
+              <button
+                aria-label="安全模式：开启"
+                aria-pressed="true"
+                class="seal-book"
+                data-on="true"
+                title="安全模式已开启：含成人内容的参考图已封印（Ctrl+Shift+S）"
+                type...
+
+- Expected
++ Received
+
+- [
+-   {
+-     "libraryId": "L1",
+-     "source": {
+-       "paths": [
+-         "D:\\参考\\坏.png",
+-       ],
+-     },
+-   },
+- ]
++ []
+
+ ❯ src/App.test.tsx:716:51
+    714|
+    715|     await waitFor(() =>
+    716|       expect(sent("plugin:library|start_import")).toEqual([
+       |                                                   ^
+    717|         { libraryId: "L1", source: { paths: ["D:\\参考\\坏.png"] } },
+    718|       ]),
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/19]⎯
+
+ FAIL  src/App.test.tsx > 主窗口 > 上次导入中断时提示撤回了哪些文件，并可以重新导入
+AssertionError: expected [] to deeply equal [ { libraryId: 'L1', …(1) } ]
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="app app-shell"
+      >
+        <div
+          class="rail-slot"
+        >
+          <nav
+            aria-label="主导航"
+            class="rail"
+          >
+            <div
+              class="brand"
+              title="Kinshoko"
+            >
+              <svg
+                aria-hidden="true"
+                height="28"
+                viewBox="0 0 32 32"
+                width="28"
+              >
+                <path
+                  class="brand-mark"
+                  d="M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div
+              class="rail-items"
+            >
+              <span
+                aria-hidden="true"
+                class="rail-indicator"
+                style="transform: translateY(8px);"
+              />
+              <button
+                aria-current="page"
+                aria-expanded="true"
+                aria-label="图片与文件夹"
+                aria-pressed="true"
+                class="rail-btn is-active"
+                data-section="browse"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <rect
+                    height="16"
+                    rx="2"
+                    width="16"
+                    x="5"
+                    y="3"
+                  />
+                  <path
+                    d="m5 14 5-5 11 9M2 7v14h14"
+                  />
+                  <circle
+                    cx="16"
+                    cy="7"
+                    r="1"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  图片与文件夹
+                  <kbd>
+                    Ctrl+1
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="参考组"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="groups"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  参考组
+                  <kbd>
+                    Ctrl+2
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="截图历史"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="captures"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  截图历史
+                  <kbd>
+                    Ctrl+3
+                  </kbd>
+                </span>
+              </button>
+            </div>
+            <div
+              class="rail-foot"
+            >
+              <button
+                aria-label="安全模式：开启"
+                aria-pressed="true"
+                class="seal-book"
+                data-on="true"
+                title="安全模式已开启：含成人内容的参考图已封印（Ctrl+Shift+S）"
+                type...
+
+- Expected
++ Received
+
+- [
+-   {
+-     "libraryId": "L1",
+-     "source": {
+-       "paths": [
+-         "D:\\参考\\b.png",
+-       ],
+-     },
+-   },
+- ]
++ []
+
+ ❯ src/App.test.tsx:736:51
+    734|
+    735|     await waitFor(() =>
+    736|       expect(sent("plugin:library|start_import")).toEqual([
+       |                                                   ^
+    737|         { libraryId: "L1", source: { paths: ["D:\\参考\\b.png"] } },
+    738|       ]),
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/19]⎯
+
+ FAIL  src/App.test.tsx > 导入任务的终态（#76） > 结束事件早于启动命令的响应时，迟到的响应和进度不会复活已结束的任务
+AssertionError: expected [] to have a length of 1 but got +0
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div />
+  </body>
+</html>
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/App.test.tsx:778:69
+    776|     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考\\坏.png"];
+    777|     fireEvent.click(importButton());
+    778|     await waitFor(() => expect(sent("plugin:library|start_import")).to…
+       |                                                                     ^
+    779|     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", …
+    780|     await failed("T1");
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/19]⎯
+
+ FAIL  src/App.test.tsx > 导入任务的终态（#76） > 进度早于启动命令的响应时，响应到达后仍可取消
+AssertionError: expected [] to have a length of 1 but got +0
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="app app-shell"
+      >
+        <div
+          class="rail-slot"
+        >
+          <nav
+            aria-label="主导航"
+            class="rail"
+          >
+            <div
+              class="brand"
+              title="Kinshoko"
+            >
+              <svg
+                aria-hidden="true"
+                height="28"
+                viewBox="0 0 32 32"
+                width="28"
+              >
+                <path
+                  class="brand-mark"
+                  d="M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div
+              class="rail-items"
+            >
+              <span
+                aria-hidden="true"
+                class="rail-indicator"
+                style="transform: translateY(8px);"
+              />
+              <button
+                aria-current="page"
+                aria-expanded="true"
+                aria-label="图片与文件夹"
+                aria-pressed="true"
+                class="rail-btn is-active"
+                data-section="browse"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <rect
+                    height="16"
+                    rx="2"
+                    width="16"
+                    x="5"
+                    y="3"
+                  />
+                  <path
+                    d="m5 14 5-5 11 9M2 7v14h14"
+                  />
+                  <circle
+                    cx="16"
+                    cy="7"
+                    r="1"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  图片与文件夹
+                  <kbd>
+                    Ctrl+1
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="参考组"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="groups"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  参考组
+                  <kbd>
+                    Ctrl+2
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="截图历史"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="captures"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  截图历史
+                  <kbd>
+                    Ctrl+3
+                  </kbd>
+                </span>
+              </button>
+            </div>
+            <div
+              class="rail-foot"
+            >
+              <button
+                aria-label="安全模式：开启"
+                aria-pressed="true"
+                class="seal-book"
+                data-on="true"
+                title="安全模式已开启：含成人内容的参考图已封印（Ctrl+Shift+S）"
+                type...
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/App.test.tsx:803:69
+    801|     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
+    802|     fireEvent.click(importAction("导入文件夹…"));
+    803|     await waitFor(() => expect(sent("plugin:library|start_import")).to…
+       |                                                                     ^
+    804|     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", …
+    805|     await act(async () => {
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/19]⎯
+
+ FAIL  src/App.test.tsx > 导入任务的终态（#76） > 旧任务与别的资料库的迟到事件不会覆盖新任务
+AssertionError: expected [] to have a length of 1 but got +0
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div />
+  </body>
+</html>
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/App.test.tsx:822:69
+    820|     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考\\坏.png"];
+    821|     fireEvent.click(importButton());
+    822|     await waitFor(() => expect(sent("plugin:library|start_import")).to…
+       |                                                                     ^
+    823|     await failed("T1");
+    824|     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/19]⎯
+
+ FAIL  src/App.test.tsx > Eagle 迁入完成后的标签外部对应（#77 UI-E） > 从通用文件夹入口识别到 Eagle，结束事件先到也只打开一次标签步骤
+ FAIL  src/App.test.tsx > Eagle 迁入完成后的标签外部对应（#77 UI-E） > 从通用拖放入口识别到 Eagle，结束事件先到也只打开一次标签步骤
+AssertionError: expected [] to have a length of 1 but got +0
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="app app-shell"
+      >
+        <div
+          class="rail-slot"
+        >
+          <nav
+            aria-label="主导航"
+            class="rail"
+          >
+            <div
+              class="brand"
+              title="Kinshoko"
+            >
+              <svg
+                aria-hidden="true"
+                height="28"
+                viewBox="0 0 32 32"
+                width="28"
+              >
+                <path
+                  class="brand-mark"
+                  d="M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div
+              class="rail-items"
+            >
+              <span
+                aria-hidden="true"
+                class="rail-indicator"
+                style="transform: translateY(8px);"
+              />
+              <button
+                aria-current="page"
+                aria-expanded="true"
+                aria-label="图片与文件夹"
+                aria-pressed="true"
+                class="rail-btn is-active"
+                data-section="browse"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <rect
+                    height="16"
+                    rx="2"
+                    width="16"
+                    x="5"
+                    y="3"
+                  />
+                  <path
+                    d="m5 14 5-5 11 9M2 7v14h14"
+                  />
+                  <circle
+                    cx="16"
+                    cy="7"
+                    r="1"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  图片与文件夹
+                  <kbd>
+                    Ctrl+1
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="参考组"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="groups"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  参考组
+                  <kbd>
+                    Ctrl+2
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="截图历史"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="captures"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  截图历史
+                  <kbd>
+                    Ctrl+3
+                  </kbd>
+                </span>
+              </button>
+            </div>
+            <div
+              class="rail-foot"
+            >
+              <button
+                aria-label="安全模式：开启"
+                aria-pressed="true"
+                class="seal-book"
+                data-on="true"
+                title="安全模式已开启：含成人内容的参考图已封印（Ctrl+Shift+S）"
+                type...
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/App.test.tsx:895:69
+    893|       await act(() => emit("tauri://drag-drop", { paths, position: { x…
+    894|     }
+    895|     await waitFor(() => expect(sent("plugin:library|start_import")).to…
+       |                                                                     ^
+    896|     await finished("T1", true);
+    897|     await answer("T1");
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/19]⎯
+
+ FAIL  src/App.test.tsx > Eagle 迁入完成后的标签外部对应（#77 UI-E） > 结束事件早于启动命令的响应时，仍保留报告并打开一次这一步
+AssertionError: expected [] to have a length of 1 but got +0
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="app app-shell"
+      >
+        <div
+          class="rail-slot"
+        >
+          <nav
+            aria-label="主导航"
+            class="rail"
+          >
+            <div
+              class="brand"
+              title="Kinshoko"
+            >
+              <svg
+                aria-hidden="true"
+                height="28"
+                viewBox="0 0 32 32"
+                width="28"
+              >
+                <path
+                  class="brand-mark"
+                  d="M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div
+              class="rail-items"
+            >
+              <span
+                aria-hidden="true"
+                class="rail-indicator"
+                style="transform: translateY(8px);"
+              />
+              <button
+                aria-current="page"
+                aria-expanded="true"
+                aria-label="图片与文件夹"
+                aria-pressed="true"
+                class="rail-btn is-active"
+                data-section="browse"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <rect
+                    height="16"
+                    rx="2"
+                    width="16"
+                    x="5"
+                    y="3"
+                  />
+                  <path
+                    d="m5 14 5-5 11 9M2 7v14h14"
+                  />
+                  <circle
+                    cx="16"
+                    cy="7"
+                    r="1"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  图片与文件夹
+                  <kbd>
+                    Ctrl+1
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="参考组"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="groups"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  参考组
+                  <kbd>
+                    Ctrl+2
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="截图历史"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="captures"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  截图历史
+                  <kbd>
+                    Ctrl+3
+                  </kbd>
+                </span>
+              </button>
+            </div>
+            <div
+              class="rail-foot"
+            >
+              <button
+                aria-label="安全模式：开启"
+                aria-pressed="true"
+                class="seal-book"
+                data-on="true"
+                title="安全模式已开启：含成人内容的参考图已封印（Ctrl+Shift+S）"
+                type...
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/App.test.tsx:909:69
+    907|     await screen.findAllByRole("img");
+    908|     await startEagle();
+    909|     await waitFor(() => expect(sent("plugin:library|start_import")).to…
+       |                                                                     ^
+    910|     await finished("T1");
+    911|     await answer("T1");
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/19]⎯
+
+ FAIL  src/App.test.tsx > Eagle 迁入完成后的标签外部对应（#77 UI-E） > 对照：启动命令的响应先到时同样打开一次
+AssertionError: expected [] to have a length of 1 but got +0
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="app app-shell"
+      >
+        <div
+          class="rail-slot"
+        >
+          <nav
+            aria-label="主导航"
+            class="rail"
+          >
+            <div
+              class="brand"
+              title="Kinshoko"
+            >
+              <svg
+                aria-hidden="true"
+                height="28"
+                viewBox="0 0 32 32"
+                width="28"
+              >
+                <path
+                  class="brand-mark"
+                  d="M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div
+              class="rail-items"
+            >
+              <span
+                aria-hidden="true"
+                class="rail-indicator"
+                style="transform: translateY(8px);"
+              />
+              <button
+                aria-current="page"
+                aria-expanded="true"
+                aria-label="图片与文件夹"
+                aria-pressed="true"
+                class="rail-btn is-active"
+                data-section="browse"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <rect
+                    height="16"
+                    rx="2"
+                    width="16"
+                    x="5"
+                    y="3"
+                  />
+                  <path
+                    d="m5 14 5-5 11 9M2 7v14h14"
+                  />
+                  <circle
+                    cx="16"
+                    cy="7"
+                    r="1"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  图片与文件夹
+                  <kbd>
+                    Ctrl+1
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="参考组"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="groups"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  参考组
+                  <kbd>
+                    Ctrl+2
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="截图历史"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="captures"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  截图历史
+                  <kbd>
+                    Ctrl+3
+                  </kbd>
+                </span>
+              </button>
+            </div>
+            <div
+              class="rail-foot"
+            >
+              <button
+                aria-label="安全模式：开启"
+                aria-pressed="true"
+                class="seal-book"
+                data-on="true"
+                title="安全模式已开启：含成人内容的参考图已封印（Ctrl+Shift+S）"
+                type...
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/App.test.tsx:928:69
+    926|     await screen.findAllByRole("img");
+    927|     await startEagle();
+    928|     await waitFor(() => expect(sent("plugin:library|start_import")).to…
+       |                                                                     ^
+    929|     await answer("T1");
+    930|     expect(step()).toBeNull();
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/19]⎯
+
+ FAIL  src/App.test.tsx > Eagle 迁入完成后的标签外部对应（#77 UI-E） > 普通文件导入在两种顺序下都不打开这一步
+AssertionError: expected [] to have a length of 1 but got +0
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div />
+  </body>
+</html>
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/App.test.tsx:881:69
+    879|     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考\\a.png"];
+    880|     fireEvent.click(importAction("导入文件…"));
+    881|     await waitFor(() => expect(sent("plugin:library|start_import")).to…
+       |                                                                     ^
+    882|   }
+    883|
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/19]⎯
+
+ FAIL  src/App.test.tsx > Eagle 迁入完成后的标签外部对应（#77 UI-E） > Eagle 迁入与紧接着的普通导入不串结果；启动出错后可以重来
+AssertionError: expected [] to have a length of 1 but got +0
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="app app-shell"
+      >
+        <div
+          class="rail-slot"
+        >
+          <nav
+            aria-label="主导航"
+            class="rail"
+          >
+            <div
+              class="brand"
+              title="Kinshoko"
+            >
+              <svg
+                aria-hidden="true"
+                height="28"
+                viewBox="0 0 32 32"
+                width="28"
+              >
+                <path
+                  class="brand-mark"
+                  d="M12 6 H20 A2 2 0 0 1 22 8 V27 L16 22.5 L10 27 V8 A2 2 0 0 1 12 6 Z M14.8 15.75 A3 3 0 1 1 17.2 15.75 L18 19.5 H14 Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div
+              class="rail-items"
+            >
+              <span
+                aria-hidden="true"
+                class="rail-indicator"
+                style="transform: translateY(8px);"
+              />
+              <button
+                aria-current="page"
+                aria-expanded="true"
+                aria-label="图片与文件夹"
+                aria-pressed="true"
+                class="rail-btn is-active"
+                data-section="browse"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <rect
+                    height="16"
+                    rx="2"
+                    width="16"
+                    x="5"
+                    y="3"
+                  />
+                  <path
+                    d="m5 14 5-5 11 9M2 7v14h14"
+                  />
+                  <circle
+                    cx="16"
+                    cy="7"
+                    r="1"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  图片与文件夹
+                  <kbd>
+                    Ctrl+1
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="参考组"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="groups"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  参考组
+                  <kbd>
+                    Ctrl+2
+                  </kbd>
+                </span>
+              </button>
+              <button
+                aria-label="截图历史"
+                aria-pressed="false"
+                class="rail-btn"
+                data-section="captures"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="20"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.75"
+                  viewBox="0 0 24 24"
+                  width="20"
+                >
+                  <path
+                    d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"
+                  />
+                </svg>
+                <span
+                  class="tip"
+                  role="tooltip"
+                >
+                  截图历史
+                  <kbd>
+                    Ctrl+3
+                  </kbd>
+                </span>
+              </button>
+            </div>
+            <div
+              class="rail-foot"
+            >
+              <button
+                aria-label="安全模式：开启"
+                aria-pressed="true"
+                class="seal-book"
+                data-on="true"
+                title="安全模式已开启：含成人内容的参考图已封印（Ctrl+Shift+S）"
+                type...
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/App.test.tsx:957:69
+    955|     await screen.findAllByRole("img");
+    956|     await startEagle();
+    957|     await waitFor(() => expect(sent("plugin:library|start_import")).to…
+       |                                                                     ^
+    958|     await answer("T1");
+    959|     await finished("T1");
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/19]⎯
+
+ FAIL  src/App.workspace-bootstrap.test.tsx > 保存为关闭安全模式且活动库断连时，仍显示可用提供方的现有工作区
+TestingLibraryElementError: Unable to find role="img" and name "参考图"
+
+Ignored nodes: comments, script, style
+<body>
+  <div />
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div />
+</body>
+ ❯ waitForWrapper ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/App.workspace-bootstrap.test.tsx:36:23
+     34|   }, { shouldMockEvents: true });
+     35|   render(<App />);
+     36|   expect(await screen.findByRole("img", { name: "参考图" })).toBeTruthy();
+       |                       ^
+     37|   expect(screen.getByRole("button", { name: "全部资料库" })).toBeTruthy();
+     38|   expect(screen.getByText("移动盘未连接", { selector: ".provider-problem" })…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/19]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 5 unhandled errors during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of null (reading 'status')
+ ❯ src/library/SaveDestination.tsx:23:24
+     21|       void workspaceDirectories(safe).then(value=>{
+     22|         if(!alive||request!==sequence)return;
+     23|         revision=value.status.revision;setProviders(value.providers);s…
+       |                        ^
+     24|       },error=>{if(alive&&request===sequence){setProblem(String(error)…
+     25|     };
+ ❯ processTicksAndRejections node:internal/process/task_queues:105:5
+
+This error originated in "src/App.workspace-bootstrap.test.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The last test to run before this error was "保存为关闭安全模式且活动库断连时，仍显示可用提供方的现有工作区". This means either:
+- the error was thrown while Vitest was running this test, or
+- the error was thrown after the test completed, and this was the most recent test at that point.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of undefined (reading 'currentWindow')
+ ❯ getCurrentWindow ../../7dea/kinshoko/node_modules/@tauri-apps/api/window.js:110:59
+ ❯ getCurrentWebview ../../7dea/kinshoko/node_modules/@tauri-apps/api/webview.js:53:24
+ ❯ onFileDrop src/ipc.ts:225:10
+    223| /** 文件或文件夹拖进主窗口：进入、松开（带路径）、离开。 */
+    224| export function onFileDrop(handler: (drop: FileDrop) => void): Promise…
+    225|   return getCurrentWebview().onDragDropEvent(({ payload }) => {
+       |          ^
+    226|     switch (payload.type) {
+    227|       case "enter":
+ ❯ src/library/ImportBar.tsx:157:22
+ ❯ Object.react_stack_bottom_frame ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:28656:20
+ ❯ runWithFiberInDEV ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13
+ ❯ commitHookEffectListMount ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:13748:29
+ ❯ commitHookPassiveMountEffects ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:13835:11
+ ❯ commitPassiveMountOnFiber ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:16906:13
+ ❯ recursivelyTraversePassiveMountEffects ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:16851:13
+
+This error originated in "src/App.workspace-bootstrap.test.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The last test to run before this error was "保存为关闭安全模式且活动库断连时，仍显示可用提供方的现有工作区". This means either:
+- the error was thrown while Vitest was running this test, or
+- the error was thrown after the test completed, and this was the most recent test at that point.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: plan.paths.map is not a function
+ ❯ ImportBar src/library/ImportBar.tsx:250:27
+    248|           </fieldset>
+    249|           <p>选择只用于这次任务，之后仍默认记住删除决定。</p></>}
+    250|           <ul>{plan.paths.map((path) => <li key={path}><span className…
+       |                           ^
+    251|           <div className="import-actions">
+    252|             <button type="button" disabled={preparing || !!running || …
+ ❯ Object.react_stack_bottom_frame ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20
+ ❯ renderWithHooks ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22
+ ❯ updateFunctionComponent ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19
+ ❯ beginWork ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18
+ ❯ runWithFiberInDEV ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13
+ ❯ performUnitOfWork ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22
+ ❯ workLoopSync ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41
+ ❯ renderRootSync ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11
+ ❯ performWorkOnRoot ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:18094:35
+
+This error originated in "src/App.test.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The last test to run before this error was "结束事件早于启动命令的响应时，迟到的响应和进度不会复活已结束的任务". This means either:
+- the error was thrown while Vitest was running this test, or
+- the error was thrown after the test completed, and this was the most recent test at that point.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: plan.paths.map is not a function
+ ❯ ImportBar src/library/ImportBar.tsx:250:27
+    248|           </fieldset>
+    249|           <p>选择只用于这次任务，之后仍默认记住删除决定。</p></>}
+    250|           <ul>{plan.paths.map((path) => <li key={path}><span className…
+       |                           ^
+    251|           <div className="import-actions">
+    252|             <button type="button" disabled={preparing || !!running || …
+ ❯ Object.react_stack_bottom_frame ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20
+ ❯ renderWithHooks ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22
+ ❯ updateFunctionComponent ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19
+ ❯ beginWork ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18
+ ❯ runWithFiberInDEV ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13
+ ❯ performUnitOfWork ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22
+ ❯ workLoopSync ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41
+ ❯ renderRootSync ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11
+ ❯ performWorkOnRoot ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:18094:35
+
+This error originated in "src/App.test.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The last test to run before this error was "旧任务与别的资料库的迟到事件不会覆盖新任务". This means either:
+- the error was thrown while Vitest was running this test, or
+- the error was thrown after the test completed, and this was the most recent test at that point.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: plan.paths.map is not a function
+ ❯ ImportBar src/library/ImportBar.tsx:250:27
+    248|           </fieldset>
+    249|           <p>选择只用于这次任务，之后仍默认记住删除决定。</p></>}
+    250|           <ul>{plan.paths.map((path) => <li key={path}><span className…
+       |                           ^
+    251|           <div className="import-actions">
+    252|             <button type="button" disabled={preparing || !!running || …
+ ❯ Object.react_stack_bottom_frame ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20
+ ❯ renderWithHooks ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22
+ ❯ updateFunctionComponent ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19
+ ❯ beginWork ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18
+ ❯ runWithFiberInDEV ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13
+ ❯ performUnitOfWork ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22
+ ❯ workLoopSync ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41
+ ❯ renderRootSync ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11
+ ❯ performWorkOnRoot ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:18094:35
+
+This error originated in "src/App.test.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The last test to run before this error was "普通文件导入在两种顺序下都不打开这一步". This means either:
+- the error was thrown while Vitest was running this test, or
+- the error was thrown after the test completed, and this was the most recent test at that point.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  2 failed | 30 passed (32)
+      Tests  19 failed | 231 passed (250)
+     Errors  5 errors
+   Start at  01:56:07
+   Duration  30.23s (environment 61%, tests 28%, import 8%, transform 3%)
+
+Environment  jsdom was created 32 times · 102.40s total, 61% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

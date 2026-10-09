@@ -1,0 +1,39 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+error[E0599]: no method named `update_name_defaults` found for struct `TagCatalog` in the current scope
+  --> crates\kinshoko-core\tests\tag_names.rs:69:13
+   |
+69 |     catalog.update_name_defaults(&table("分缝发型")).unwrap();
+   |             ^^^^^^^^^^^^^^^^^^^^ method not found in `TagCatalog`
+
+error[E0599]: no method named `reset_name_preference` found for struct `TagCatalog` in the current scope
+  --> crates\kinshoko-core\tests\tag_names.rs:74:13
+   |
+74 |     catalog.reset_name_preference(&id, "zh-CN").unwrap();
+   |             ^^^^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `set_name_preference` with a similar name
+   |
+74 -     catalog.reset_name_preference(&id, "zh-CN").unwrap();
+74 +     catalog.set_name_preference(&id, "zh-CN").unwrap();
+   |
+
+error[E0599]: no method named `remove_alias` found for struct `TagCatalog` in the current scope
+  --> crates\kinshoko-core\tests\tag_names.rs:80:13
+   |
+80 |     catalog.remove_alias(&id, &kinshoko_core::library::TagAlias { name: "分发".into(), lang: Some("zh-CN".into()) }).unwrap();
+   |             ^^^^^^^^^^^^ method not found in `TagCatalog`
+
+error[E0599]: no method named `update_name_defaults` found for struct `TagCatalog` in the current scope
+  --> crates\kinshoko-core\tests\tag_names.rs:85:13
+   |
+85 |     catalog.update_name_defaults(&updated).unwrap();
+   |             ^^^^^^^^^^^^^^^^^^^^ method not found in `TagCatalog`
+
+error[E0599]: no method named `update_name_defaults` found for struct `TagCatalog` in the current scope
+  --> crates\kinshoko-core\tests\tag_names.rs:89:13
+   |
+89 |     catalog.update_name_defaults(&table("自然分缝")).unwrap();
+   |             ^^^^^^^^^^^^^^^^^^^^ method not found in `TagCatalog`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `kinshoko-core` (test "tag_names") due to 5 previous errors

@@ -1,0 +1,25 @@
+{
+  "adult": {
+    "id": "b027b6997734482487172a5abc775ed4",
+    "name": "T15 已知成人来源",
+    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\adult"
+  },
+  "adultImage": "01a11d46109f73e884911a51fb6f7e60",
+  "newPath": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\new-unknown.png",
+  "originals": {
+    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\adult\\originals/52/524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30.png": "524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30",
+    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\adult\\originals/cb/cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png": "cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac",
+    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\target\\originals/1b/1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139.png": "1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139",
+    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\target\\originals/cb/cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png": "cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac"
+  },
+  "sealedPath": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\sealed-duplicate.png",
+  "target": {
+    "id": "cf3930c56aae4809ab5183691bb85797",
+    "name": "T15 未分级目标",
+    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\target"
+  },
+  "targetImage": "01a11d461342722cb81320166cc37c26",
+  "unrelatedImage": "01a11d4611db7582acbb8d869254462d",
+  "visibleImage": "01a11d46147d72f289013aeb566c93ed",
+  "visiblePath": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3\\unknown-visible.png"
+}

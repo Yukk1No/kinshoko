@@ -1,0 +1,9 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+error[E0432]: unresolved import `kinshoko_core::workspace`
+ --> crates\kinshoko-core\tests\workspace.rs:4:20
+  |
+4 | use kinshoko_core::workspace::{Workspace, WorkspaceQuery, WorkspaceScope};
+  |                    ^^^^^^^^^ could not find `workspace` in `kinshoko_core`
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `kinshoko-core` (test "workspace") due to 1 previous error

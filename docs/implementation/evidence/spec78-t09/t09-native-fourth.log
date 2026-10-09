@@ -1,0 +1,26 @@
+PASS same bytes aggregate across two independently curated providers
+PASS same-name source choices visibly show distinct path suffixes
+PASS editing inactive B note leaves A note unchanged
+PASS source edits do not activate B or change current library
+PASS workspace notification does not interrupt the revalidated explicit source editor
+PASS B manual rating remains independent from A
+PASS removing B folder membership preserves A folder membership
+PASS new B manual tag never changes A tags
+PASS source picker uses B local tag identities through actual native ACL
+PASS direct pin saves the explicitly chosen inactive library/image identity
+PASS direct source group contains only B original reference
+PASS requery and default-scope changes do not relink saved B references to A
+PASS restart with disconnected B keeps B group member and reports unavailable instead of binding A
+PASS restart preserves the unavailable pin source identity
+PASS disconnected source inspection explicitly rejects B
+PASS disconnected B write never falls back to available A bytes
+PASS A curation remains unchanged after B edits and disconnected requests
+PASS source editing and restart preserve last-opened A
+PASS B independent curation persists across process restarts
+PASS deleting B leaves aggregate A card and A original live
+PASS inactive-source permanent-delete preview reports B reference-group impact
+PASS permanent B deletion preserves A duplicate and its curation
+PASS permanent deletion retains B member identity and reports image missing
+PASS changed byte identity is rejected instead of targeting a current aggregate card
+PASS stale safe-mode generation is rejected at the native write boundary
+Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\e2e\source-actions-1791479547691

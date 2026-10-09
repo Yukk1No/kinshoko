@@ -1,0 +1,227 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+ ❯ src/library/SaveDestination.test.tsx (3 tests | 1 failed | 2 skipped) 1265ms
+   × retry starts at its original target and an explicit new choice matches the final submitted target 1264ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/SaveDestination.test.tsx > retry starts at its original target and an explicit new choice matches the final submitted target
+AssertionError: expected { libraryId: 'B', …(3) } to match object { libraryId: 'A', …(1) }
+(4 matching properties omitted from actual)
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="import-menu"
+      >
+        <button
+          aria-expanded="true"
+          aria-label="导入参考图"
+          title="导入文件、文件夹或 Eagle 资料库"
+          type="button"
+        >
+          导入
+          …
+        </button>
+        <div
+          class="import-popup"
+        >
+          <header>
+            <strong>
+              导入参考图
+            </strong>
+            <button
+              aria-label="关闭导入操作"
+              type="button"
+            >
+              ×
+            </button>
+          </header>
+          <fieldset
+            class="save-destination"
+          >
+            <legend>
+              保存位置
+            </legend>
+            <label>
+              保存到
+              资料库
+              <select
+                aria-label="保存到资料库"
+              >
+                <option
+                  value=""
+                >
+                  请选择资料库…
+                </option>
+                <option
+                  value="A"
+                >
+                  浏览库
+                   · 
+                  C:/a
+                </option>
+                <option
+                  value="B"
+                >
+                  保存库
+                   · 
+                  D:/b
+                </option>
+              </select>
+            </label>
+            <label>
+              保存到
+              文件夹
+              <select
+                aria-label="保存到文件夹"
+              >
+                <option
+                  value=""
+                >
+                  未归类
+                </option>
+              </select>
+            </label>
+            <p
+              class="save-final-position"
+            >
+              最终位置：
+              浏览库 / 未归类
+            </p>
+            <p
+              class="save-library-path"
+              title="C:/a"
+            >
+              C:/a
+            </p>
+          </fieldset>
+          <label>
+            查看导入任务
+            <select
+              aria-label="查看导入任务"
+            >
+              <option
+                value="failed-B"
+              >
+                保存库
+                 / 
+                未归类
+                 · 
+                已结束
+              </option>
+              <option
+                value="retry-task"
+              >
+                保存库
+                 / 
+                未归类
+                 · 
+                进行中
+              </option>
+            </select>
+          </label>
+          <div
+            class="import-bar"
+          >
+            <div
+              class="import-actions"
+            >
+              <button
+                disabled=""
+                type="button"
+              >
+                导入文件…
+              </button>
+              <button
+                disabled=""
+                type="button"
+              >
+                导入文件夹…
+              </button>
+              <button
+                disabled=""
+                type="button"
+              >
+                从 Eagle 迁入…
+              </button>
+            </div>
+            <div
+              class="import-progress"
+            >
+              <progress
+                aria-valuemax="0"
+                aria-valuemin="0"
+                aria-valuenow="0"
+                max="1"
+                value="0"
+              />
+              <span>
+                正在导入 
+                0
+                 / 
+                0
+              </span>
+              <button
+                type="button"
+              >
+                取消导入
+              </button>
+            </div>
+          </div>
+          <p
+            class="import-owner"
+            role="status"
+          >
+            任务保存位置：
+            保存库
+             / 
+            未归类
+          </p>
+          <p
+            class="selection-hint"
+          >
+            单击查看 · Ctrl／Shift 多选 · 空格选择
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+- Expected
++ Received
+
+  {
+    "destination": {
+      "folderId": null,
+-     "libraryId": "A",
++     "libraryId": "B",
+    },
+-   "libraryId": "A",
++   "libraryId": "B",
+  }
+
+ ❯ src/library/SaveDestination.test.tsx:99:38
+     97|  expect(screen.getByText("最终位置：浏览库 / 未归类")).toBeTruthy();
+     98|  fireEvent.click(screen.getByRole("button",{name:"开始导入"}));
+     99|  await waitFor(()=>expect(submitted).toMatchObject({libraryId:"A",dest…
+       |                                      ^
+    100| });
+    101|
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 skipped (3)
+   Start at  02:14:05
+   Duration  3.28s (tests 40%, environment 38%, transform 12%, import 9%)
+

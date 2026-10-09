@@ -1,0 +1,13 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/search/SharedApprox.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  02:07:05
+   Duration  1.75s (environment 64%, tests 14%, import 12%, transform 10%)
+

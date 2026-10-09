@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "id": "655a172a0c14410a811c557725eacfa9",
+  "backupId": "20261009-031944-e1d95b",
+  "stage": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-group-restored\\.kinshoko-restore-655a172a0c14410a811c557725eacfa9.incomplete",
+  "libraries": [
+    {
+      "id": "7a2c30d6e5bc4055aa0586390ac70363",
+      "old_id": "e6e45a83160e41a0b812706c5f90e272",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-group-restored\\备份来源甲（恢复 2026-10-09）"
+    },
+    {
+      "id": "5fe084724e4d47de8d6da9d6eadf97a8",
+      "old_id": "f0e91a69459e4eb0b95d21846371e7c4",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fault-group-restored\\备份来源乙（恢复 2026-10-09）"
+    }
+  ],
+  "groups": [
+    {
+      "id": "3c12795882064f908194d801c32d92f8",
+      "old_id": "ec97619a46a9420d97c341f511abedb4"
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 33.69s
+     Running tests\catalog_approx.rs (target\debug\deps\catalog_approx-be62ca77aabd69de.exe)
+
+running 8 tests
+test deleting_a_migrated_rule_restores_builtin_without_reimporting_the_old_judgment ... ok
+test personal_rule_settings_share_all_source_adult_veto_and_keep_complete_backup_definitions ... ok
+test builtin_updates_and_search_operators_preserve_explicit_judgments_and_atomic_edits ... ok
+test an_explicit_global_judgment_survives_a_later_opposite_source_and_ignoring_it ... ok
+test legacy_conflict_has_named_sources_and_ignore_is_remembered_after_restart ... ok
+test legacy_not_similar_applies_to_every_library_and_survives_restart ... ok
+test plus_supports_no_external_mapping_and_once_does_not_change_the_saved_rule ... ok
+test opposite_legacy_rules_wait_for_a_choice_in_either_registration_order ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
+
+     Running tests\device_libraries.rs (target\debug\deps\device_libraries-2a4d20ba66dc302f.exe)
+
+running 7 tests
+test a_failed_registry_write_keeps_the_current_library_and_registration_unchanged ... ok
+test relocating_a_library_and_registering_it_again_preserves_identity_originals_and_curation ... ok
+test registered_libraries_can_be_switched_and_the_last_choice_survives_restart ... ok
+test unavailable_libraries_stay_registered_and_a_failed_switch_keeps_the_current_library ... ok
+test a_restored_library_is_registered_without_switching_to_it ... ok
+test switching_refuses_a_different_library_at_the_registered_location ... ok
+test switching_keeps_import_running_in_its_original_library ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.75s
+
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 13 tests
+test publication_subprocess ... ignored, parent public-action fault test runs this in an isolated process
+test modern_package_with_a_missing_identity_is_rejected_before_any_content_is_imported ... ok
+test modern_package_without_its_explicit_source_local_mapping_is_rejected_before_writing ... ok
+test read_only_registration_and_failed_publication_leave_provider_bytes_and_safe_mode_unchanged ... ok
+test old_version_one_package_still_imports_through_the_legacy_compatibility_flow ... ok
+test first_tag_write_carries_identity_when_the_library_is_copied_to_a_fresh_application ... ok
+test a_carried_seed_identity_can_attach_to_two_library_local_ids_in_one_application ... ok
+test an_existing_catalog_namespace_conflict_is_rejected_before_package_content_changes ... ok
+test published_split_identity_survives_copy_without_exporting_the_application_name_preference ... ok
+test publishing_a_new_external_tag_carries_the_same_identity_already_used_by_another_library ... ok
+test publishing_a_sealed_dependency_keeps_current_raw_definition_without_exposing_its_mapping ... ok
+test definition_publication_failure_and_process_exit_preserve_the_whole_previous_library_batch ... ok
+test package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.14s
+
+     Running tests\reference_group_package.rs (target\debug\deps\reference_group_package-72e162d74d9bb4c7.exe)
+
+running 7 tests
+test export_is_refused_when_a_member_original_is_unavailable ... ok
+test package_carries_only_used_originals_once_with_snapshots_of_their_organisation ... ok
+test damaged_package_is_refused_before_anything_is_written ... ok
+test importing_merges_into_an_existing_identical_original_without_touching_manual_organisation ... ok
+test package_import_uses_the_bound_destination_for_every_member_original ... ok
+test importing_writes_the_snapshot_as_a_package_source_layer_and_reimport_does_not_duplicate ... ok
+test imported_package_group_is_usable_elsewhere_with_identical_originals_and_layout ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+
+     Running tests\save_destination.rs (target\debug\deps\save_destination-83d37596c3e2fdd7.exe)
+
+running 9 tests
+test screenshot_collection_uses_the_explicit_destination_and_keeps_original_bytes ... ok
+test ordinary_import_commits_to_the_explicit_folder_without_changing_other_folders ... ok
+test publication_failure_stays_on_its_original_task_receipt_after_browsing_changes ... ok
+test a_synchronous_save_keeps_its_writer_and_unregister_revokes_its_bound_destination ... ok
+test eagle_import_preserves_its_source_folders_and_adds_the_explicit_destination ... ok
+test copying_keeps_source_provenance_and_the_existing_targets_manual_curation ... ok
+test deleting_the_destination_during_import_reports_remaining_failures_instead_of_falling_back ... ok
+test task_receipt_keeps_its_owner_after_current_library_changes ... ok
+test create_reopen_and_unregister_only_affect_their_actual_task_owner ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.23s
+
+     Running tests\workspace.rs (target\debug\deps\workspace-0ca34ce5cb6e9673.exe)
+
+running 7 tests
+test an_explicit_empty_any_group_never_becomes_an_unconditional_workspace_query ... ok
+test adult_in_nonmatching_out_of_scope_source_vetoes_cards_counts_and_candidates_without_changing_active_lens ... ok
+test each_source_must_match_all_conditions_before_identical_bytes_are_aggregated ... ok
+test unavailable_known_adult_source_keeps_veto_after_restart_until_refresh_or_explicit_unregister ... ok
+test mapped_local_synonyms_are_or_within_one_global_condition_and_and_between_conditions ... ok
+test paging_counts_stable_hash_ids_and_stale_provider_catalog_scope_and_safe_revisions_agree ... ok
+test real_multiple_directories_reuse_visible_safety_facts_and_report_action_timings ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.12s
+
+     Running tests\workspace_folders.rs (target\debug\deps\workspace_folders-74c205195e20e7ae.exe)
+
+running 7 tests
+test folder_structure_changes_invalidate_workspace_directory_and_pagination_revisions ... ok
+test moving_a_subtree_changes_descendant_results_and_rejects_old_cursors ... ok
+test a_directory_forest_keeps_same_named_libraries_and_folders_independent ... ok
+test invalid_or_unavailable_scopes_are_explicit_and_never_expand_to_another_provider ... ok
+test folder_and_unassigned_counts_keep_the_all_source_adult_veto ... ok
+test exact_and_descendant_scopes_preserve_each_source_folder_memberships_and_file_paths ... ok
+test directory_descendant_counts_deduplicate_memberships_and_apply_global_safety ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+

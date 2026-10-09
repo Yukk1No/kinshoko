@@ -1,0 +1,127 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/ImportBar.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/library/ImportBar.test.tsx (4 tests | 1 failed) 1270ms
+   ❯ 封印重复项回执 (1)
+     × 默认只提示存在封印重复项，不显示成功项数量或内容 1024ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/ImportBar.test.tsx > 封印重复项回执 > 默认只提示存在封印重复项，不显示成功项数量或内容
+TestingLibraryElementError: Unable to find an element with the text: 有封印项重复，是否展开看看. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="import-bar"
+    >
+      <div
+        class="import-actions"
+      >
+        <button
+          type="button"
+        >
+          导入文件…
+        </button>
+        <button
+          type="button"
+        >
+          导入文件夹…
+        </button>
+        <button
+          type="button"
+        >
+          从 Eagle 迁入…
+        </button>
+      </div>
+      <section
+        aria-label="导入结果"
+        class="import-report"
+      >
+        <header>
+          <span>
+            导入完成
+            ：新增 
+            0
+             张
+          </span>
+          <button
+            type="button"
+          >
+            关闭
+          </button>
+        </header>
+      </section>
+    </div>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="import-bar"
+    >
+      <div
+        class="import-actions"
+      >
+        <button
+          type="button"
+        >
+          导入文件…
+        </button>
+        <button
+          type="button"
+        >
+          导入文件夹…
+        </button>
+        <button
+          type="button"
+        >
+          从 Eagle 迁入…
+        </button>
+      </div>
+      <section
+        aria-label="导入结果"
+        class="import-report"
+      >
+        <header>
+          <span>
+            导入完成
+            ：新增 
+            0
+             张
+          </span>
+          <button
+            type="button"
+          >
+            关闭
+          </button>
+        </header>
+      </section>
+    </div>
+  </div>
+</body>
+ ❯ waitForWrapper ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/library/ImportBar.test.tsx:83:25
+     81|     backend();
+     82|     render(bar({ report: { ...report, sealedDuplicates: true, privateS…
+     83|     expect(await screen.findByText("有封印项重复，是否展开看看")).toBeTruthy();
+       |                         ^
+     84|     expect(screen.queryByText(/新增.*张/)).toBeNull();
+     85|     expect(screen.queryByRole("img")).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  03:55:46
+   Duration  2.85s (tests 47%, environment 43%, import 7%, transform 3%)
+

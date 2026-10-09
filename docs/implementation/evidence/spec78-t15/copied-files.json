@@ -1,0 +1,998 @@
+{
+  "observedAtUtc": "2026-10-08T21:38:59.569128+00:00",
+  "scope": "Byte-exact copies of original worker raw checks, three actual native runs and independent merger checks. Original passed36/failed23/finalpassed43 remain unchanged. v2 was never executed. Frozen EXEs and synthetic SQLite/original fixtures remain in root ignored archive; no binary or database is published here.",
+  "files": 165,
+  "bytes": 6817379,
+  "entries": [
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-adapter-check.log",
+      "file": "worker-raw/t15-adapter-check.log",
+      "bytes": 422,
+      "sha256": "7b1bca18073636c5efbbc923c662ddfec791ed06b6bd889d8bcae296f781fd8b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-approval-rejection.txt",
+      "file": "worker-raw/t15-approval-rejection.txt",
+      "bytes": 1101,
+      "sha256": "4687bf81cd330981779507edb920bf3603fc42ffa2d7d7d84b7aad5af32a9194"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-bindings.log",
+      "file": "worker-raw/t15-bindings.log",
+      "bytes": 11572,
+      "sha256": "e724e3154217654ba861e1d21bc2fe028f17e87e7f9827fcbef6d239032101f7"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-build-source-v1.json",
+      "file": "worker-raw/t15-build-source-v1.json",
+      "bytes": 135307,
+      "sha256": "3a5df024e787dfa5e82051be37aa1c46a8382ded505a6d24cb33b2659cbced0e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-build-source-v2.json",
+      "file": "worker-raw/t15-build-source-v2.json",
+      "bytes": 135775,
+      "sha256": "614430a3d2d208d649958a91da511bd8293d0077191d89635c1c7438ca699e9c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-build-source-v3-retry1.json",
+      "file": "worker-raw/t15-build-source-v3-retry1.json",
+      "bytes": 136349,
+      "sha256": "c2d504df48a32ede553730c9b03b3fee00698f3f5c38a36c877d51395d1eb359"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-build-source-v3.json",
+      "file": "worker-raw/t15-build-source-v3.json",
+      "bytes": 136039,
+      "sha256": "165565643c0e475ecafd148693a48c0de96eab89d16a4c24b021e2a8ac1a6443"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-build-source.json",
+      "file": "worker-raw/t15-build-source.json",
+      "bytes": 136349,
+      "sha256": "c2d504df48a32ede553730c9b03b3fee00698f3f5c38a36c877d51395d1eb359"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-channel-clippy-fixed.log",
+      "file": "worker-raw/t15-channel-clippy-fixed.log",
+      "bytes": 297,
+      "sha256": "cde374cc7025cea39350b6e7db6c4ad4cd4c9b2a7923453f97ac55ae5e6b6c59"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-channel-clippy.log",
+      "file": "worker-raw/t15-channel-clippy.log",
+      "bytes": 4012,
+      "sha256": "bacb2cd7f29a500aca1f02a2246674eef48f6a2724d83087fe731534f31060a8"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-channel-core.log",
+      "file": "worker-raw/t15-channel-core.log",
+      "bytes": 2736,
+      "sha256": "c53ec4970ea7c82fe7b638f1ec4d9046b4fde04cc8d9c50fbb424b855425426c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-channel-types.log",
+      "file": "worker-raw/t15-channel-types.log",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-channel-ui-rerun.log",
+      "file": "worker-raw/t15-channel-ui-rerun.log",
+      "bytes": 589,
+      "sha256": "e6f51dae9f7706c4add238014b9b4b388fe1b1305f3d075b44c0891eff711e2d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-channel-ui.log",
+      "file": "worker-raw/t15-channel-ui.log",
+      "bytes": 3166,
+      "sha256": "1e19c566d11f3dd63e31776e7e952e90f4e66b367ff2831dc39fc05a9c0dd91b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-completed-progress-green.log",
+      "file": "worker-raw/t15-completed-progress-green.log",
+      "bytes": 1386,
+      "sha256": "3f528e25a386297b0e9fc0249c71abaf71266398fd1867e1d6ef264a72e9e9e9"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-completed-progress-red.log",
+      "file": "worker-raw/t15-completed-progress-red.log",
+      "bytes": 1157,
+      "sha256": "53a7dcbfc23f976a3bddb54925dbae984d7eb866e55cbf3a8541a35b61771b28"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-consent-green.log",
+      "file": "worker-raw/t15-consent-green.log",
+      "bytes": 584,
+      "sha256": "53da5bc31a94bc5cabb93d3f676d7b1a39cfe3d1eae24dd2007803001eb1e0c4"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-consent-red.log",
+      "file": "worker-raw/t15-consent-red.log",
+      "bytes": 1006,
+      "sha256": "4814a1740e198dc3a0fd6f1e3e5eea80b930bd4eca2c168c2069d2afe3a10165"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-consent-transfer-ui-green.log",
+      "file": "worker-raw/t15-consent-transfer-ui-green.log",
+      "bytes": 308,
+      "sha256": "b5b1a10dc0155ec1a250724ab4455e9273a0dac9eb6e0e13cddc8ceed587c0f4"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-consent-transfer-ui-red.log",
+      "file": "worker-raw/t15-consent-transfer-ui-red.log",
+      "bytes": 1211,
+      "sha256": "fc1797349e01840b5219b24f3c34f2aa7147717278ba961588758ac7ca26c9b0"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-core-boundaries-green.log",
+      "file": "worker-raw/t15-core-boundaries-green.log",
+      "bytes": 1137,
+      "sha256": "c47f9d4d2fbef8691044d3bc55127068834892c4c63d98a5602843864a8ff92d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-core-boundaries.log",
+      "file": "worker-raw/t15-core-boundaries.log",
+      "bytes": 1641,
+      "sha256": "a72a56b6b34cbc3461e2585b8b1da92e5386d35dce6f23596c4934615f1d197e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-core-red.log",
+      "file": "worker-raw/t15-core-red.log",
+      "bytes": 1229,
+      "sha256": "bf3b05dac31cc45dab113668718f1c934fe56a7180c77b2ba9352b3da43c7c98"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-core-regression.log",
+      "file": "worker-raw/t15-core-regression.log",
+      "bytes": 6409,
+      "sha256": "2d545ea5f36176010591c183539bc87bb23e3a9814833a14091a9c28df1eec28"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-current-library-all-ui.log",
+      "file": "worker-raw/t15-current-library-all-ui.log",
+      "bytes": 588,
+      "sha256": "c71ff629c11f6835a414ab57bacdf83ae663d1418f28d1c21b2f62d3bda87018"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-current-library-types.log",
+      "file": "worker-raw/t15-current-library-types.log",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-current-library-ui-green-final.log",
+      "file": "worker-raw/t15-current-library-ui-green-final.log",
+      "bytes": 372,
+      "sha256": "7525cf579f164a40d241b5216720896dfe7121c6e7375a4569701487f2983bef"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-current-library-ui-green.log",
+      "file": "worker-raw/t15-current-library-ui-green.log",
+      "bytes": 372,
+      "sha256": "164916965f44f5bb812cc896ec978f8244e940f4aa4d54afe6bf22fa2ec8f978"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-current-library-ui-red.log",
+      "file": "worker-raw/t15-current-library-ui-red.log",
+      "bytes": 1867,
+      "sha256": "7ee1237593d8080c3aa7a68b01b81eb44535dd59c53f3a6bce74dcdf4ef70fda"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-evidence-index-before-v3-native.json",
+      "file": "worker-raw/t15-evidence-index-before-v3-native.json",
+      "bytes": 19269,
+      "sha256": "8926302eca4dbb3b822a06cb8c752587d1309f420ca877f9ad0881bb947a7053"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-final-clippy.log",
+      "file": "worker-raw/t15-final-clippy.log",
+      "bytes": 422,
+      "sha256": "932357f3d63610f3e2f3ba0c16fb485f7ec08d66576789be6fe12cf425aec1ae"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-final-core.log",
+      "file": "worker-raw/t15-final-core.log",
+      "bytes": 2942,
+      "sha256": "d5370de541db43b2a7264cc2ee0d9bef57c5bd19ba3ed0c20d26c1dde4a96f2f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-final-types.log",
+      "file": "worker-raw/t15-final-types.log",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-final-ui.log",
+      "file": "worker-raw/t15-final-ui.log",
+      "bytes": 589,
+      "sha256": "0058456511ee8a103a272b85a8e88724267c1fa14b5523d6a1df5d67b16420e8"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-fixture-v1.json",
+      "file": "worker-raw/t15-fixture-v1.json",
+      "bytes": 2204,
+      "sha256": "f7c1ad84746cb05c14861fc70e0f942f343d8261bbde4bca0304064afac6122e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-fixture-v2.json",
+      "file": "worker-raw/t15-fixture-v2.json",
+      "bytes": 2204,
+      "sha256": "a990f9ab44ac58bae33643095e15a78b97781d2b4982d8606c7e9bf220a4a499"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-fixture-v3.json",
+      "file": "worker-raw/t15-fixture-v3.json",
+      "bytes": 2204,
+      "sha256": "a990f9ab44ac58bae33643095e15a78b97781d2b4982d8606c7e9bf220a4a499"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-fixture-v4-build.log",
+      "file": "worker-raw/t15-fixture-v4-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-fixture-v4.json",
+      "file": "worker-raw/t15-fixture-v4.json",
+      "bytes": 2069,
+      "sha256": "41346728eba0309928677eddb2503ef52204e099fe7f679b70140d2abf0c8a56"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-fixture.json",
+      "file": "worker-raw/t15-fixture.json",
+      "bytes": 2069,
+      "sha256": "41346728eba0309928677eddb2503ef52204e099fe7f679b70140d2abf0c8a56"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-library-context-red.log",
+      "file": "worker-raw/t15-library-context-red.log",
+      "bytes": 979,
+      "sha256": "fcf7dca686e4b80c0888ebd4b00ab33b5c5d3d3f431b16db8fb76a9552991d1d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-menu-context-green.log",
+      "file": "worker-raw/t15-menu-context-green.log",
+      "bytes": 339,
+      "sha256": "561f017b6ec47b8811de72fcd6fa6b33121a34c2e56fc3f5acd7975c72f6b11e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-menu-context-red.log",
+      "file": "worker-raw/t15-menu-context-red.log",
+      "bytes": 1885,
+      "sha256": "a5c909642b55eac315d1ad95f1ab5f12bb9df3f9a685d7c9fe662917f6bd97f2"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-merged-clippy.log",
+      "file": "worker-raw/t15-merged-clippy.log",
+      "bytes": 422,
+      "sha256": "fe122dc103a8223a545ae5920b8e1784d890e37f7f85286527acb6f532f5a3c7"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-merged-types.log",
+      "file": "worker-raw/t15-merged-types.log",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-merged-ui.log",
+      "file": "worker-raw/t15-merged-ui.log",
+      "bytes": 588,
+      "sha256": "230308624d62db632f82e706542f593e3ab1fba828d37337593a92ca617eefd8"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-native-build-fixed.log",
+      "file": "worker-raw/t15-native-build-fixed.log",
+      "bytes": 1084,
+      "sha256": "f42179c1335c7c582d2d22ae1fa965647f09c7d7e43d78b36cac5994ae363d0c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-native-build-v2.log",
+      "file": "worker-raw/t15-native-build-v2.log",
+      "bytes": 1084,
+      "sha256": "ae34ced9ec82db812e2bb2c0a617f5b3ae593087bb47f5c653a40fd85d74c1a2"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-native-build-v3.log",
+      "file": "worker-raw/t15-native-build-v3.log",
+      "bytes": 840,
+      "sha256": "8808717b773e76573fe849554a4945239b39445268249f0b910816fc7ff5bea1"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-native-build.log",
+      "file": "worker-raw/t15-native-build.log",
+      "bytes": 1537,
+      "sha256": "eb565d4edcdb8051673e27ecfa79bb51e1486494ce3c69511d80412efef9e896"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-native-console-v3-retry1.log",
+      "file": "worker-raw/t15-native-console-v3-retry1.log",
+      "bytes": 3675,
+      "sha256": "a1acb284a6fc01a3fe2d40a9a5595b3ee3bd67709c56bb140c5758169fbc9110"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-native-console-v3.log",
+      "file": "worker-raw/t15-native-console-v3.log",
+      "bytes": 2103,
+      "sha256": "dd47f585634ce879a2c9387f53ca7f6a9a1ed5e1efbec4e0284c668dafdeaceb"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-native-preflight-v3-first-failed.txt",
+      "file": "worker-raw/t15-native-preflight-v3-first-failed.txt",
+      "bytes": 328,
+      "sha256": "c80f5913c7ad4701e69b348f9789a0e2ae50f7f9c74238ad3364db2165d4eeb7"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-native-preflight-v3-retry1.json",
+      "file": "worker-raw/t15-native-preflight-v3-retry1.json",
+      "bytes": 1508,
+      "sha256": "fb1713b2afb419ce6630a616efdd2fe600043068098a9191958255ac4e311396"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-native-preflight-v3.json",
+      "file": "worker-raw/t15-native-preflight-v3.json",
+      "bytes": 1354,
+      "sha256": "354d5c6eebe14a798e2733aa243c7f9cacda5d7675e5cc99792a0113013661b2"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-preview-channel-green.log",
+      "file": "worker-raw/t15-preview-channel-green.log",
+      "bytes": 372,
+      "sha256": "a80a86d6b3c0ace77a17dadc6c4d4efe74e3c1158e81f2f91b9655f69e8eda64"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-preview-channel-red.log",
+      "file": "worker-raw/t15-preview-channel-red.log",
+      "bytes": 1186,
+      "sha256": "7c8d4e14ae70b4758386cdf3219ab1c25123640fb4c846b282e8d69029176a1a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-projection-green-fixed.log",
+      "file": "worker-raw/t15-projection-green-fixed.log",
+      "bytes": 490,
+      "sha256": "502a5a1e17c0cccfada1b681538e96873181dcbd0cfb2ff0a9c1fbffd9175b4a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-projection-green.log",
+      "file": "worker-raw/t15-projection-green.log",
+      "bytes": 1300,
+      "sha256": "2809e8e5ca2ae938dbd0cb40e5f829f80db835fe9e27151416772e1820cf05bd"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-replaced-bytes-green.log",
+      "file": "worker-raw/t15-replaced-bytes-green.log",
+      "bytes": 1228,
+      "sha256": "08bb5825cd71f213b29b84a9310b05653bdfa4c55fb715fb3d58abd0ffcc8e74"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-replaced-bytes-red.log",
+      "file": "worker-raw/t15-replaced-bytes-red.log",
+      "bytes": 998,
+      "sha256": "81a9d350b698fab31be924b3d0d8266a1cc4348be4cdfe3291220a40b1722d73"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-settings-merged-core.log",
+      "file": "worker-raw/t15-settings-merged-core.log",
+      "bytes": 2857,
+      "sha256": "cf633ff600e8d83b7a58823623f8f69e06221216724611cb59b95554a484fc70"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-shared-approx-rerun.log",
+      "file": "worker-raw/t15-shared-approx-rerun.log",
+      "bytes": 311,
+      "sha256": "13ae3220bc48176110229afbfcae3c197cdf8be520361713f7cdb87fe1985f8a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-source-before-build-v1.json",
+      "file": "worker-raw/t15-source-before-build-v1.json",
+      "bytes": 134276,
+      "sha256": "bf1aac314f7bf3e5974d05027c39d42c5cfc243b0dac5b0c36e88cf9ade08d6f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-source-before-build-v2.json",
+      "file": "worker-raw/t15-source-before-build-v2.json",
+      "bytes": 134521,
+      "sha256": "73e3c321d18df987c7688ce8b2a6869d6c25f35981b74361a9af2cb75907fa89"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-source-before-build-v3.json",
+      "file": "worker-raw/t15-source-before-build-v3.json",
+      "bytes": 134521,
+      "sha256": "1e54152ac52975f5c5817de27f5c8fb7dc796781399582f5ad06d8a95afa620d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-source-before-build.json",
+      "file": "worker-raw/t15-source-before-build.json",
+      "bytes": 134276,
+      "sha256": "bf1aac314f7bf3e5974d05027c39d42c5cfc243b0dac5b0c36e88cf9ade08d6f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-stream-clippy.log",
+      "file": "worker-raw/t15-stream-clippy.log",
+      "bytes": 422,
+      "sha256": "133320bf449f6ec30aba626fb9c09c3a1081d05cc7966b460d3f3686a2f791b1"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-stream-final-clippy.log",
+      "file": "worker-raw/t15-stream-final-clippy.log",
+      "bytes": 422,
+      "sha256": "d13ed6b2c593bdc414ee2a54140cb5fffc54290394113d2355552d311c8c8bda"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-stream-final-core.log",
+      "file": "worker-raw/t15-stream-final-core.log",
+      "bytes": 1552,
+      "sha256": "b6ee543873dc9cca57c5060aeb0f930d79e5574e9a269263078982f53407869a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-stream-regression.log",
+      "file": "worker-raw/t15-stream-regression.log",
+      "bytes": 8097,
+      "sha256": "b3ee93df82628fbf0637c04a8681a60b7238aa366a98c60d73eb969158099640"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-stream-types.log",
+      "file": "worker-raw/t15-stream-types.log",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-stream-ui.log",
+      "file": "worker-raw/t15-stream-ui.log",
+      "bytes": 372,
+      "sha256": "e6387424fa7d766afeb3154cfe2d66aa69c3f459431fbd8642ee08466b32b3b2"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-tauri-config.json",
+      "file": "worker-raw/t15-tauri-config.json",
+      "bytes": 79,
+      "sha256": "e938f42825b18b4a07920cf8a57c98128365b6d1d242ccce8f13cebe25c2c62a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-transition-green.log",
+      "file": "worker-raw/t15-transition-green.log",
+      "bytes": 670,
+      "sha256": "f887b4179cbcb7d9bfd209572ca4ae7a41f97cff15c5a78361dd9c0cf3c78168"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-transition-red.log",
+      "file": "worker-raw/t15-transition-red.log",
+      "bytes": 980,
+      "sha256": "d4012c15e54aca58b2178dd0a63bb19266dca0a27d8878a7ed45b18b36acb771"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-transmission-boundaries-green.log",
+      "file": "worker-raw/t15-transmission-boundaries-green.log",
+      "bytes": 1551,
+      "sha256": "fecf7ade6bc461d160f7db7410359c8bc3e11bb1305a8b5628d17f2fd2775ed8"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-transmission-core-green.log",
+      "file": "worker-raw/t15-transmission-core-green.log",
+      "bytes": 1463,
+      "sha256": "d4a881abf1be1d9015208d3666d14cb4746f82f5950afd92f62ae0feaff90f05"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-transmission-core-red.log",
+      "file": "worker-raw/t15-transmission-core-red.log",
+      "bytes": 1055,
+      "sha256": "e892836cf1c211d9ded7fa53673c6bf50c3b3978b48e296156a2db1a49da7a6e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-transmission-native-trace-red.log",
+      "file": "worker-raw/t15-transmission-native-trace-red.log",
+      "bytes": 533,
+      "sha256": "1b047b4c2679bbb53deb2ce9dc85399b584117da36a5f2e12364a2e4ca62dc4b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-typecheck-green.log",
+      "file": "worker-raw/t15-typecheck-green.log",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-typecheck.log",
+      "file": "worker-raw/t15-typecheck.log",
+      "bytes": 2665,
+      "sha256": "0851ed000699fc5f128fe40a6e14fffa400e6c18594c337d4740a71a8285e031"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-ui-boundaries-green.log",
+      "file": "worker-raw/t15-ui-boundaries-green.log",
+      "bytes": 308,
+      "sha256": "89d6b376def39fd38df71b10e8d7bc5edad0f47294a78fbf2ec1fa616800e517"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-ui-green.log",
+      "file": "worker-raw/t15-ui-green.log",
+      "bytes": 308,
+      "sha256": "3242f9c5da8ca855ab0069dd069560b936c7b63561547d5ecddbdd8e6f04c69e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-ui-red.log",
+      "file": "worker-raw/t15-ui-red.log",
+      "bytes": 3416,
+      "sha256": "2e1ce4af8db03d44fe864f0ab30b1a8dcf6a481f1952fbf88c4bd9010dc9d7cf"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-v3-retry1-trace-check.log",
+      "file": "worker-raw/t15-v3-retry1-trace-check.log",
+      "bytes": 584,
+      "sha256": "1154d02004dd21722b148ff58a9205f67884c72137f3b5448593840861e05673"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-raw\\work\\e2e\\t15-v3-trace-recheck.log",
+      "file": "worker-raw/t15-v3-trace-recheck.log",
+      "bytes": 303,
+      "sha256": "c1740043c21850805a85397dd83c77a5f86c0ff5b120f7b1ecd941d4b6c806e7"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\worker-final-evidence-index.json",
+      "file": "worker-final-evidence-index.json",
+      "bytes": 55757,
+      "sha256": "56e830b8f380238246c23447b64af836105aff48758608e45b87c8c78806e54b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\root-preservation-final-raw.json",
+      "file": "root-preservation-final-raw.json",
+      "bytes": 28312,
+      "sha256": "d2aca625507ffcac2ec02215dc5e243aba94cc62433bf7fbb54275d25e64c0cc"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\root-preservation-v3-final.json",
+      "file": "root-preservation-v3-final.json",
+      "bytes": 19462,
+      "sha256": "940bcad73969df310647056882cc50e69ee1ea865c0794a7ae3693bc3d4b1f6c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\audit-postmerge.txt",
+      "file": "merger/audit-postmerge.txt",
+      "bytes": 4263,
+      "sha256": "6f7b7412679aa3d3038afa9b92b5ef3bdac74bffa945f59af1ce545fc841b5ea"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\audit-premerge.txt",
+      "file": "merger/audit-premerge.txt",
+      "bytes": 4262,
+      "sha256": "00625d29ddce141306babd2f362a25fdcab4db0bfdfc88dc113ff1b090aa8700"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\audit.py",
+      "file": "merger/audit.py",
+      "bytes": 10466,
+      "sha256": "6055fcac12d7efe4f960bb2c060704c4a30c731057cead95a66e129dac1598cc"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\binding-doc-commands.json",
+      "file": "merger/binding-doc-commands.json",
+      "bytes": 2980,
+      "sha256": "6ab4c7d4371fad534f585df611957829f5bb80a2297abce94597dc31bfb45b1f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\binding-doc-commit.txt",
+      "file": "merger/binding-doc-commit.txt",
+      "bytes": 161,
+      "sha256": "e5d4a621fec4407123909bcb87c3fd529d6643bf1d778ac46ae73f28bc848dde"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\binding-doc-complete-patch.txt",
+      "file": "merger/binding-doc-complete-patch.txt",
+      "bytes": 3882,
+      "sha256": "488715cd944fe5ee8d707d2fd0c967b1b702f9ee840573c95e5ccb8d7efdd205"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\binding-doc-content-audit.json",
+      "file": "merger/binding-doc-content-audit.json",
+      "bytes": 907,
+      "sha256": "c5ebf90c030829b5ce208fa3304584c70110130e2289206ebd406664cfacde1b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\binding-doc-regeneration-fixed.txt",
+      "file": "merger/binding-doc-regeneration-fixed.txt",
+      "bytes": 717,
+      "sha256": "d177edc1eb584728bb7eaa6a36dd7043fa8251b65d706d576439778bfa443b5f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\binding-doc-regeneration.txt",
+      "file": "merger/binding-doc-regeneration.txt",
+      "bytes": 834,
+      "sha256": "db4b61e0d77ed6436bddef02f46ed9e9873a806cdc69b231be22674020c0e711"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\binding-doc-source-patch.txt",
+      "file": "merger/binding-doc-source-patch.txt",
+      "bytes": 1975,
+      "sha256": "489c90abc3b754b79424b802c46ac174d21d8a89ae2a435b168d23e1c8fc0bef"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\clippy-after-binding-doc.txt",
+      "file": "merger/clippy-after-binding-doc.txt",
+      "bytes": 3038,
+      "sha256": "43086b40be0cb44b446ead357cf55aa027e8ff7c848a6e814c5c6ed2f04e0630"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\clippy-commands.json",
+      "file": "merger/clippy-commands.json",
+      "bytes": 767,
+      "sha256": "5f6da880db5767e4797e11095d6921ec7ce10d5fd2cf80edd1230eb7779e733a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\clippy-doc-commands.json",
+      "file": "merger/clippy-doc-commands.json",
+      "bytes": 803,
+      "sha256": "eec647e692ff3b02b88de247f2f54d0756f0509cb0cce426670ebaf745669172"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\clippy.txt",
+      "file": "merger/clippy.txt",
+      "bytes": 3039,
+      "sha256": "16f6a3b3805f5096aeb7701dba40c6fe418a8573c1ca041f9258151527f5cbe9"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\core-commands.json",
+      "file": "merger/core-commands.json",
+      "bytes": 962,
+      "sha256": "a6b1a35ff92e311d61864f16d1cbdb509f654a8c8f0010ec8fe99e6a148a9d0e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\diff-whitespace-fixed.txt",
+      "file": "merger/diff-whitespace-fixed.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\diff-whitespace.txt",
+      "file": "merger/diff-whitespace.txt",
+      "bytes": 320,
+      "sha256": "ec6e599e9a8ae1ce7124b3c067920868caef24df82815120e6e1acbafe9a377b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\evidence-audit-postmerge.json",
+      "file": "merger/evidence-audit-postmerge.json",
+      "bytes": 26218,
+      "sha256": "a79838d1d8ad27a5749643e0d19ea51a9f8c05bb049f29823e12ac8b472bcbb4"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\evidence-audit-premerge.json",
+      "file": "merger/evidence-audit-premerge.json",
+      "bytes": 24420,
+      "sha256": "fae9a36358ed1eb4cbb28bc0dfabf7a3d96ed17a20895ac0a9dc5caf3d07427f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\final-assembly.txt",
+      "file": "merger/final-assembly.txt",
+      "bytes": 316,
+      "sha256": "552b1a8223e6b79e2374a63c2d2c2e00f984701fc227b2b60223ffafe967ea1b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\finish.py",
+      "file": "merger/finish.py",
+      "bytes": 11113,
+      "sha256": "8efb7548d4d1eda4d08723acbb90b26825d59ce6523489070774a285a70e2baf"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\fmt-after-binding-doc.txt",
+      "file": "merger/fmt-after-binding-doc.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\fmt.txt",
+      "file": "merger/fmt.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\harness-syntax.txt",
+      "file": "merger/harness-syntax.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\helper-syntax.txt",
+      "file": "merger/helper-syntax.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\merge.txt",
+      "file": "merger/merge.txt",
+      "bytes": 2529,
+      "sha256": "ac4f578004e470ea08e62022570c822cf14c37ac4197a72e923bf56744c198d7"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\result.json",
+      "file": "merger/result.json",
+      "bytes": 24573,
+      "sha256": "29e3ab5744454d6da204a3b9edc068b2276dfe306fca8602e5c391f4940513e9"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\run-checks.py",
+      "file": "merger/run-checks.py",
+      "bytes": 3386,
+      "sha256": "7d8fa17ce537af880173d26f4ecbd54784aa2caa09203df5259625459afc3ee6"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\rust.txt",
+      "file": "merger/rust.txt",
+      "bytes": 8714,
+      "sha256": "7c714ef8d183761d166c6875b734bd6944fa9c10cf52d9253f59b742a95e180c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\static-commands.json",
+      "file": "merger/static-commands.json",
+      "bytes": 3509,
+      "sha256": "047796e8c7f93391b73cdc264cb3226f04ba6f9208478969a7e03d010bab5679"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\typescript-after-binding-doc.txt",
+      "file": "merger/typescript-after-binding-doc.txt",
+      "bytes": 44,
+      "sha256": "3f59e5ca7e1c49d7d241b9b82de706eba4446814a9f866307ef15ac132649939"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\typescript.txt",
+      "file": "merger/typescript.txt",
+      "bytes": 44,
+      "sha256": "3f59e5ca7e1c49d7d241b9b82de706eba4446814a9f866307ef15ac132649939"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\ui-commands.json",
+      "file": "merger/ui-commands.json",
+      "bytes": 844,
+      "sha256": "5475cd733b86978d876395250abf89a3e77b3631b3a01238e35cf28fae59e205"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\ui.txt",
+      "file": "merger/ui.txt",
+      "bytes": 214,
+      "sha256": "7b3f0ca6b02b958493406bb593d9fa0bec392086ea05c27e3d8005b52b36e672"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v1\\cleanup.json",
+      "file": "native-v1/cleanup.json",
+      "bytes": 794,
+      "sha256": "13b9b6c322200b14043eb598face472ef5d5432aebec4f3a0e0003ca60de5865"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v1\\closed-reveiled.png",
+      "file": "native-v1/closed-reveiled.png",
+      "bytes": 135859,
+      "sha256": "ab88b9f349365c7e8e1427592cf2aee436c6b9301facaeb5e1080de8378ee960"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v1\\default-sealed-prompt.png",
+      "file": "native-v1/default-sealed-prompt.png",
+      "bytes": 135858,
+      "sha256": "0a564ec3beec2487ab4483918d243dc77f606960639a90e13a48477030da2bed"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v1\\explicit-receipt-preview.png",
+      "file": "native-v1/explicit-receipt-preview.png",
+      "bytes": 876716,
+      "sha256": "08ea31a7acee83e84fa57ea0ca2f1e3da4b94ceca4fd95aac42963eed4d44437"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v1\\result.json",
+      "file": "native-v1/result.json",
+      "bytes": 156025,
+      "sha256": "693856d9e1d07a974af0c84e7c379e9377f75f41d01c92b311380405c27fb989"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v1\\same-settings.kinshoko-settings",
+      "file": "native-v1/same-settings.kinshoko-settings",
+      "bytes": 1786,
+      "sha256": "665ada3dbe51acfdf7dc8b69e966d84338f45f9634dc80e0842a3acba56c7ab2"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v1\\stdout.log",
+      "file": "native-v1/stdout.log",
+      "bytes": 3089,
+      "sha256": "856783f430699db87f1106f9650ed9bb7a75cfdf71ff230011ab04b26cc69705"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v1\\known-folder-after\\settings.json",
+      "file": "native-v1/known-folder-after/settings.json",
+      "bytes": 203,
+      "sha256": "7ab1eb0d453365c6f8c4b1de3a6c10bac9185790bf3b49e047f5e64b0391c2dd"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\build-source.json",
+      "file": "native-v3-first/build-source.json",
+      "bytes": 136039,
+      "sha256": "165565643c0e475ecafd148693a48c0de96eab89d16a4c24b021e2a8ac1a6443"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\check-sealed-preview-revocation.mjs",
+      "file": "native-v3-first/check-sealed-preview-revocation.mjs",
+      "bytes": 1203,
+      "sha256": "546de0d04c8667af024186e2027d7517ae7bfb0a0780e01fd30948e053d90496"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\cleanup.json",
+      "file": "native-v3-first/cleanup.json",
+      "bytes": 716,
+      "sha256": "0bd3f7518d80c6d2c98eaebf4db03c43285f4ae37f89a7c348936d62a4a828f8"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\closed-reveiled.png",
+      "file": "native-v3-first/closed-reveiled.png",
+      "bytes": 135889,
+      "sha256": "9800fdc9fd9b986622a2c75f413b1981fc5a4de950367ae5cdd2121800ce2e38"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\console.log",
+      "file": "native-v3-first/console.log",
+      "bytes": 2103,
+      "sha256": "dd47f585634ce879a2c9387f53ca7f6a9a1ed5e1efbec4e0284c668dafdeaceb"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\current-library-reveiled.png",
+      "file": "native-v3-first/current-library-reveiled.png",
+      "bytes": 137001,
+      "sha256": "d912d2323ac1a7dc3a312f04487a1fe2cde503c059ea61853b2ec31188c83e0e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\default-sealed-prompt.png",
+      "file": "native-v3-first/default-sealed-prompt.png",
+      "bytes": 135889,
+      "sha256": "d542344b5e23e03ea5a8a9ed46d3c7866dd60d184ce8b149fc0074078868c595"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\explicit-receipt-preview.png",
+      "file": "native-v3-first/explicit-receipt-preview.png",
+      "bytes": 876742,
+      "sha256": "ffbd7aeee3559e50d6a3357ff9b95272dc985567269487e7175060044a1d02ee"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\failed.png",
+      "file": "native-v3-first/failed.png",
+      "bytes": 135889,
+      "sha256": "d542344b5e23e03ea5a8a9ed46d3c7866dd60d184ce8b149fc0074078868c595"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\fixture.json",
+      "file": "native-v3-first/fixture.json",
+      "bytes": 2204,
+      "sha256": "a990f9ab44ac58bae33643095e15a78b97781d2b4982d8606c7e9bf220a4a499"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\native-config.json",
+      "file": "native-v3-first/native-config.json",
+      "bytes": 79,
+      "sha256": "e938f42825b18b4a07920cf8a57c98128365b6d1d242ccce8f13cebe25c2c62a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\pending-current-library-no-revival.png",
+      "file": "native-v3-first/pending-current-library-no-revival.png",
+      "bytes": 136175,
+      "sha256": "68ef389691f5e092cff81459ce33e22a5e43a21d3e725bf8c06b79e49d6d0fc3"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\pending-ui-close-no-revival.png",
+      "file": "native-v3-first/pending-ui-close-no-revival.png",
+      "bytes": 135889,
+      "sha256": "d542344b5e23e03ea5a8a9ed46d3c7866dd60d184ce8b149fc0074078868c595"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\preflight.json",
+      "file": "native-v3-first/preflight.json",
+      "bytes": 1354,
+      "sha256": "354d5c6eebe14a798e2733aa243c7f9cacda5d7675e5cc99792a0113013661b2"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\result.json",
+      "file": "native-v3-first/result.json",
+      "bytes": 150933,
+      "sha256": "cbb2a53f7cf30c1181fbd83ea7896ee6224faa25626375140a7298822a6a8ff4"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-first\\sealed-import-preview.mjs",
+      "file": "native-v3-first/sealed-import-preview.mjs",
+      "bytes": 26443,
+      "sha256": "b7954bbe2b296f3e3a805823e4821520f40bea927f860b20846616a53626bd4f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\build-source.json",
+      "file": "native-final/build-source.json",
+      "bytes": 136349,
+      "sha256": "c2d504df48a32ede553730c9b03b3fee00698f3f5c38a36c877d51395d1eb359"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\check-sealed-preview-revocation.mjs",
+      "file": "native-final/check-sealed-preview-revocation.mjs",
+      "bytes": 1203,
+      "sha256": "546de0d04c8667af024186e2027d7517ae7bfb0a0780e01fd30948e053d90496"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\cleanup.json",
+      "file": "native-final/cleanup.json",
+      "bytes": 1141,
+      "sha256": "3443a349411799413f25152eb84c1972871232abfe85bbf3bf848c5595eb1f58"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\closed-reveiled.png",
+      "file": "native-final/closed-reveiled.png",
+      "bytes": 136369,
+      "sha256": "b34fef70008e5da0b867e10c1e41ca12dbdb5047d44e6b292a5c074a4cf3ddbc"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\console.log",
+      "file": "native-final/console.log",
+      "bytes": 3675,
+      "sha256": "a1acb284a6fc01a3fe2d40a9a5595b3ee3bd67709c56bb140c5758169fbc9110"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\current-library-reveiled.png",
+      "file": "native-final/current-library-reveiled.png",
+      "bytes": 137490,
+      "sha256": "e4ea718f7b9a483805af4c1c41e3222affc7fb8122b3540be531c60aa101aa9b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\default-sealed-prompt.png",
+      "file": "native-final/default-sealed-prompt.png",
+      "bytes": 136368,
+      "sha256": "3e05e788c457a9c69a46b6c5cba75b0b33a7c07938ab791c548241bbaba60376"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\explicit-receipt-preview.png",
+      "file": "native-final/explicit-receipt-preview.png",
+      "bytes": 876658,
+      "sha256": "80bde288201d25d60837ac531e27f98447150a069db34148d2f44b8a463d126d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\fixture.json",
+      "file": "native-final/fixture.json",
+      "bytes": 2069,
+      "sha256": "41346728eba0309928677eddb2503ef52204e099fe7f679b70140d2abf0c8a56"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\native-config.json",
+      "file": "native-final/native-config.json",
+      "bytes": 79,
+      "sha256": "e938f42825b18b4a07920cf8a57c98128365b6d1d242ccce8f13cebe25c2c62a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\pending-current-library-no-revival.png",
+      "file": "native-final/pending-current-library-no-revival.png",
+      "bytes": 137490,
+      "sha256": "e4ea718f7b9a483805af4c1c41e3222affc7fb8122b3540be531c60aa101aa9b"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\pending-ui-close-no-revival.png",
+      "file": "native-final/pending-ui-close-no-revival.png",
+      "bytes": 136368,
+      "sha256": "3e05e788c457a9c69a46b6c5cba75b0b33a7c07938ab791c548241bbaba60376"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\preflight.json",
+      "file": "native-final/preflight.json",
+      "bytes": 1508,
+      "sha256": "fb1713b2afb419ce6630a616efdd2fe600043068098a9191958255ac4e311396"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\result.json",
+      "file": "native-final/result.json",
+      "bytes": 162365,
+      "sha256": "24edfa1e2f26f0c4cc749b7572fa2a59abf286211cb2fada07261324cc70f363"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\same-settings.kinshoko-settings",
+      "file": "native-final/same-settings.kinshoko-settings",
+      "bytes": 1786,
+      "sha256": "4e198ac9c268b66ef620752420325932f6122b129aa503cbc3e059929b35ec4a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\sealed-import-preview.mjs",
+      "file": "native-final/sealed-import-preview.mjs",
+      "bytes": 26466,
+      "sha256": "9656f6bf40d661ae8bdb725526b28042874d12ca807eaec2b7b116aeb5320003"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\sealed-preview-v3-final\\known-folder-after\\settings.json",
+      "file": "native-final/known-folder-after/settings.json",
+      "bytes": 203,
+      "sha256": "7ab1eb0d453365c6f8c4b1de3a6c10bac9185790bf3b49e047f5e64b0391c2dd"
+    }
+  ]
+}

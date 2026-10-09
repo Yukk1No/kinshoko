@@ -1,0 +1,623 @@
+{
+  "source": "cd927eeeb5420090511c67927157ffc833a84a3b",
+  "tree": "49b40868cdefa4dca7d51080488a880c6b8da240",
+  "raw": "work\\t17\\final-v4-workspace-tests.txt",
+  "rawSha256": "ecbc2f1d65326c7e5ae4838e38f970f864df5453b622301c5c708f8a17c38508",
+  "exit": 0,
+  "method": "Last result within each actual Cargo Running or Doc-tests target segment; nested child results excluded",
+  "parentTargets": 76,
+  "passed": 710,
+  "failed": 0,
+  "ignored": 12,
+  "nestedResultsExcluded": 7,
+  "targets": [
+    {
+      "target": "Running unittests src\\lib.rs (target\\debug\\deps\\kinshoko_app-bf5f873b640c6899.exe)",
+      "status": "ok",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running unittests src\\main.rs (target\\debug\\deps\\kinshoko-78216568b2c37b56.exe)",
+      "status": "ok",
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running unittests src\\lib.rs (target\\debug\\deps\\kinshoko_core-042f5a24e4a296e1.exe)",
+      "status": "ok",
+      "passed": 199,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\app_info.rs (target\\debug\\deps\\app_info-34bc6a660ecc22b5.exe)",
+      "status": "ok",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\app_settings.rs (target\\debug\\deps\\app_settings-49e58f6ef4e6fe62.exe)",
+      "status": "ok",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\application_settings_backup.rs (target\\debug\\deps\\application_settings_backup-65e3eb161868b74b.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 1,
+      "nestedResultsExcluded": 3
+    },
+    {
+      "target": "Running tests\\approx_library.rs (target\\debug\\deps\\approx_library-9a396c69bd1dabe0.exe)",
+      "status": "ok",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\approx_search.rs (target\\debug\\deps\\approx_search-a33cac3919a50ed0.exe)",
+      "status": "ok",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\backup_content_definitions.rs (target\\debug\\deps\\backup_content_definitions-aa41e8caea882e51.exe)",
+      "status": "ok",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 2,
+      "nestedResultsExcluded": 3
+    },
+    {
+      "target": "Running tests\\backup_crash.rs (target\\debug\\deps\\backup_crash-b16f65ee7dcd64e8.exe)",
+      "status": "ok",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 1,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\backup_eagle.rs (target\\debug\\deps\\backup_eagle-f70f09b351f16e8e.exe)",
+      "status": "ok",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\backup_plan.rs (target\\debug\\deps\\backup_plan-b48d3286c4a03616.exe)",
+      "status": "ok",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\backup_restore.rs (target\\debug\\deps\\backup_restore-6b8c3b9c0701628a.exe)",
+      "status": "ok",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\backup_scope.rs (target\\debug\\deps\\backup_scope-f8c7f68db4379eed.exe)",
+      "status": "ok",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\browse_cursor.rs (target\\debug\\deps\\browse_cursor-e6eee9798e486b0b.exe)",
+      "status": "ok",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\browse_search.rs (target\\debug\\deps\\browse_search-d0236c810c6f97c1.exe)",
+      "status": "ok",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 1,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\capture_history.rs (target\\debug\\deps\\capture_history-42f9ae66eceb379a.exe)",
+      "status": "ok",
+      "passed": 12,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\capture_region.rs (target\\debug\\deps\\capture_region-9846d9487523dbda.exe)",
+      "status": "ok",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\catalog_approx.rs (target\\debug\\deps\\catalog_approx-be29379386a6cd91.exe)",
+      "status": "ok",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\catalog_groups.rs (target\\debug\\deps\\catalog_groups-80f1431b62fdd948.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\catalog_visibility.rs (target\\debug\\deps\\catalog_visibility-22083af268bafbd2.exe)",
+      "status": "ok",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\device.rs (target\\debug\\deps\\device-4907231fd2cde860.exe)",
+      "status": "ok",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\device_libraries.rs (target\\debug\\deps\\device_libraries-eaa3aeb23c84b654.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\diagnostics.rs (target\\debug\\deps\\diagnostics-430bfab328e1c218.exe)",
+      "status": "ok",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\downscale.rs (target\\debug\\deps\\downscale-d120a0acd974d54f.exe)",
+      "status": "ok",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\eagle_crash.rs (target\\debug\\deps\\eagle_crash-3a2084c1b5065fb4.exe)",
+      "status": "ok",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 1,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\eagle_deleted_content.rs (target\\debug\\deps\\eagle_deleted_content-e82075f4e61f4a48.exe)",
+      "status": "ok",
+      "passed": 11,
+      "failed": 0,
+      "ignored": 2,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\eagle_import.rs (target\\debug\\deps\\eagle_import-181bd4d2f697dc23.exe)",
+      "status": "ok",
+      "passed": 12,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\eagle_reimport.rs (target\\debug\\deps\\eagle_reimport-87237d5cf11ea228.exe)",
+      "status": "ok",
+      "passed": 13,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\eagle_tag_mapping.rs (target\\debug\\deps\\eagle_tag_mapping-eaf4e0fc9ee232d0.exe)",
+      "status": "ok",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\edge_hide.rs (target\\debug\\deps\\edge_hide-ebcfd7a2849e8222.exe)",
+      "status": "ok",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\fidelity.rs (target\\debug\\deps\\fidelity-5f22b64cb135e2e6.exe)",
+      "status": "ok",
+      "passed": 12,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\global_shortcuts.rs (target\\debug\\deps\\global_shortcuts-5bd7b6f0d9de1557.exe)",
+      "status": "ok",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\import_crash.rs (target\\debug\\deps\\import_crash-cbee1cca794d5dc2.exe)",
+      "status": "ok",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 1,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\import_preview.rs (target\\debug\\deps\\import_preview-8c0c39a2a23f0306.exe)",
+      "status": "ok",
+      "passed": 13,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\import_recovery.rs (target\\debug\\deps\\import_recovery-3d58f915d1a7f833.exe)",
+      "status": "ok",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\legacy_name_migration.rs (target\\debug\\deps\\legacy_name_migration-f9f475204e8fa773.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 1,
+      "nestedResultsExcluded": 1
+    },
+    {
+      "target": "Running tests\\library.rs (target\\debug\\deps\\library-599eddfe87664784.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\model_package.rs (target\\debug\\deps\\model_package-a962b37a0d3f935a.exe)",
+      "status": "ok",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\organize.rs (target\\debug\\deps\\organize-b94921e76aa718e6.exe)",
+      "status": "ok",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\permanent_delete.rs (target\\debug\\deps\\permanent_delete-7d69d6a17aeb75a8.exe)",
+      "status": "ok",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 1,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\pin_geometry.rs (target\\debug\\deps\\pin_geometry-1b8a718fc9e72279.exe)",
+      "status": "ok",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\pin_menu.rs (target\\debug\\deps\\pin_menu-fd3133be515a6fa5.exe)",
+      "status": "ok",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\pin_motion.rs (target\\debug\\deps\\pin_motion-8adf3ba45593960c.exe)",
+      "status": "ok",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\pin_placement.rs (target\\debug\\deps\\pin_placement-d79589281c090d3e.exe)",
+      "status": "ok",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\pin_restore.rs (target\\debug\\deps\\pin_restore-857b9cc9dde8793f.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\pin_veil.rs (target\\debug\\deps\\pin_veil-6af7c12a49092ba9.exe)",
+      "status": "ok",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\portable_tags.rs (target\\debug\\deps\\portable_tags-e3f94dc76146789c.exe)",
+      "status": "ok",
+      "passed": 12,
+      "failed": 0,
+      "ignored": 1,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\rating.rs (target\\debug\\deps\\rating-5a38ecb370ce9cad.exe)",
+      "status": "ok",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\reference_capture.rs (target\\debug\\deps\\reference_capture-c305b06659f093cd.exe)",
+      "status": "ok",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\reference_capture_actions.rs (target\\debug\\deps\\reference_capture_actions-11aa0eaef5bfe4d7.exe)",
+      "status": "ok",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\reference_group_package.rs (target\\debug\\deps\\reference_group_package-671f4fad2a6f3ef1.exe)",
+      "status": "ok",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\reference_group_resolve.rs (target\\debug\\deps\\reference_group_resolve-42f0d802ace68f77.exe)",
+      "status": "ok",
+      "passed": 13,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\reference_group_snapshot.rs (target\\debug\\deps\\reference_group_snapshot-748205430ebbdde0.exe)",
+      "status": "ok",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\reference_groups.rs (target\\debug\\deps\\reference_groups-d08ad668acc5bdd0.exe)",
+      "status": "ok",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\reference_pin.rs (target\\debug\\deps\\reference_pin-58464a544c66d6c1.exe)",
+      "status": "ok",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\safe_mode.rs (target\\debug\\deps\\safe_mode-0dad99b4f2a45bf2.exe)",
+      "status": "ok",
+      "passed": 18,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\save_destination.rs (target\\debug\\deps\\save_destination-ee9b20c57a3b063f.exe)",
+      "status": "ok",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\search.rs (target\\debug\\deps\\search-039f7729e22ee4df.exe)",
+      "status": "ok",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\search_cache.rs (target\\debug\\deps\\search_cache-fb51fd790c54889e.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\source_actions.rs (target\\debug\\deps\\source_actions-3782b134f5178f3a.exe)",
+      "status": "ok",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\tag_catalog.rs (target\\debug\\deps\\tag_catalog-862408150661dbf9.exe)",
+      "status": "ok",
+      "passed": 11,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\tag_names.rs (target\\debug\\deps\\tag_names-ee0732fb06f5df02.exe)",
+      "status": "ok",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\tagger_process.rs (target\\debug\\deps\\tagger_process-6b331809bf3b2e78.exe)",
+      "status": "ok",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\tagging.rs (target\\debug\\deps\\tagging-30f5245aa0ea6127.exe)",
+      "status": "ok",
+      "passed": 19,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\tags.rs (target\\debug\\deps\\tags-282339d6494c49ec.exe)",
+      "status": "ok",
+      "passed": 14,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\translations.rs (target\\debug\\deps\\translations-566d3e7bca2c14c8.exe)",
+      "status": "ok",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\update_policy.rs (target\\debug\\deps\\update_policy-048df4531dc976d9.exe)",
+      "status": "ok",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\usage_log.rs (target\\debug\\deps\\usage_log-dd02247027d4ded9.exe)",
+      "status": "ok",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\viewer.rs (target\\debug\\deps\\viewer-cac7d91a9812fd57.exe)",
+      "status": "ok",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\workspace.rs (target\\debug\\deps\\workspace-c5fdab9b4fc5f3d1.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running tests\\workspace_folders.rs (target\\debug\\deps\\workspace_folders-60cff6d327ca575c.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Running unittests src\\lib.rs (target\\debug\\deps\\kinshoko_tagger-a1b60a36fdd4a065.exe)",
+      "status": "ok",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Doc-tests kinshoko_app",
+      "status": "ok",
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Doc-tests kinshoko_core",
+      "status": "ok",
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    },
+    {
+      "target": "Doc-tests kinshoko_tagger",
+      "status": "ok",
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "nestedResultsExcluded": 0
+    }
+  ]
+}

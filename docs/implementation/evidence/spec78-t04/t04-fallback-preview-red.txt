@@ -1,0 +1,18 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+error[E0599]: no method named `preview_name_migration` found for struct `TagCatalog` in the current scope
+   --> crates\kinshoko-core\tests\legacy_name_migration.rs:452:27
+    |
+452 |     let preview = catalog.preview_name_migration(&plan, &decisions).unwrap();
+    |                           ^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: there is a method `plan_name_migration` with a similar name, but with different arguments
+   --> crates\kinshoko-core\src\tag_catalog\migration.rs:83:5
+    |
+ 83 | /     pub fn plan_name_migration(
+ 84 | |         &self,
+ 85 | |         visible: &CatalogInspection,
+ 86 | |     ) -> Result<LegacyNameMigration, CatalogError> {
+    | |__________________________________________________^
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `kinshoko-core` (test "legacy_name_migration") due to 1 previous error

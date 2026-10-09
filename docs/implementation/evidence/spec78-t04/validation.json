@@ -1,0 +1,37 @@
+{
+  "status": "passed within stated scopes",
+  "checkedSource": "5d4d85ec59b2084a8db6fb67700c9454e597afef",
+  "integration": "921c712e5ac423ac32af5ef396243a63acfb21b3",
+  "t04Core": [
+    7,
+    11,
+    8
+  ],
+  "postT07Core": [
+    7,
+    8,
+    7
+  ],
+  "frontendBeforeT07": {
+    "files": 27,
+    "tests": 231
+  },
+  "postT07Frontend": {
+    "files": 4,
+    "tests": 69
+  },
+  "postT19Policy": 3,
+  "postT19Frontend": {
+    "files": 3,
+    "tests": 25
+  },
+  "postT19Typecheck": true,
+  "postT19Vite": true,
+  "postT19Clippy": true,
+  "postT19Format": true,
+  "nativeMigrationAssertions": 34,
+  "nativeStartupSupplementAssertions": 9,
+  "developerRealLibraryAcceptance": "unverified",
+  "fullWorkspaceFinalHead": "not rerun; development full command passed, later affected scopes checked",
+  "nativeLatestIntegratedUpdater": "not claimed; exact older product binary stated separately"
+}

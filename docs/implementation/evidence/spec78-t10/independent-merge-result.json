@@ -1,0 +1,183 @@
+{
+  "status": "merge completed; one generated binding whitespace finding retained for root follow-up",
+  "observedAtUtc": "2026-10-08T19:07:18.738239+00:00",
+  "integrationBranch": "codex/spec-78-integration",
+  "start": "b190770fc3d004c6f4fa101af1ff29cf8871b28f",
+  "workerTip": "6fc94751d982669dcec56fe186c8bf386ce0d5ea",
+  "workerTree": "93130b663aac7093a9554551fd5667ec93c77953",
+  "mergeTip": "b7ebe9a294ad4474db7f7344fa7f3a3f58553d24",
+  "mergeTree": "93130b663aac7093a9554551fd5667ec93c77953",
+  "mergeParents": [
+    "b190770fc3d004c6f4fa101af1ff29cf8871b28f",
+    "6fc94751d982669dcec56fe186c8bf386ce0d5ea"
+  ],
+  "mergeTreeEqualsWorkerTree": true,
+  "rootClean": true,
+  "rootTrackedEvidenceRawBytesEqualWorker": 100,
+  "audit": "audit.json",
+  "checks": [
+    {
+      "command": "cargo fmt --all -- --check",
+      "exitCode": 0,
+      "log": "fmt.txt"
+    },
+    {
+      "command": "npm.cmd run typecheck",
+      "exitCode": 0,
+      "log": "typecheck.txt"
+    },
+    {
+      "command": "npm.cmd test -- src/library/SaveDestination.test.tsx src/App.test.tsx src/App.workspace-bootstrap.test.tsx src/desktop/ReferenceGroupsPanel.test.tsx --maxWorkers=2",
+      "exitCode": 1,
+      "log": "public-ui.txt",
+      "result": "3 suites failed during import with ENOENT in sandbox temporary Vite files; 1 suite / 11 tests passed"
+    },
+    {
+      "command": "same affected UI check with TEMP and TMP inside root ignored merge14-checks/tmp",
+      "exitCode": 0,
+      "log": "public-ui-workspace-temp.txt",
+      "testFiles": 4,
+      "passed": 78,
+      "failed": 0
+    },
+    {
+      "command": "node --check e2e/save-destination.mjs; node --check e2e/save-destination-followup.mjs; node --check e2e/smoke.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check b190770fc3d004c6f4fa101af1ff29cf8871b28f..HEAD",
+      "exitCode": 2,
+      "log": "diffcheck-full.txt",
+      "finding": "src/bindings/SaveDestination.ts:3: one ts-rs generated trailing space; field documentation causes generated formatting; root will move documentation to Rust struct and regenerate with real ts-rs in a separate commit. Merger did not hand-edit generated file or add attribute exemptions."
+    },
+    {
+      "command": "git diff --check b190770fc3d004c6f4fa101af1ff29cf8871b28f..HEAD -- . ':!src/bindings/SaveDestination.ts'",
+      "exitCode": 0,
+      "log": "diffcheck-excluding-generator-whitespace.txt"
+    },
+    {
+      "command": "parse original Cargo top-level Running blocks using final result per block",
+      "exitCode": 0,
+      "earlierAfterT11BeforeT06": {
+        "suites": 70,
+        "passed": 645,
+        "failed": 0,
+        "ignored": 9
+      },
+      "finalAfterT06Targeted": {
+        "suites": 7,
+        "passed": 57,
+        "failed": 0,
+        "ignored": 1
+      },
+      "notRerunByMerger": true
+    }
+  ],
+  "evidenceScope": {
+    "originalOrReconstructedCopies": 91,
+    "rawOriginalCopies": 87,
+    "gitBlobToWindowsCrlfHarnesses": 4,
+    "trackedEvidenceWorkingIndexCommitRawEqual": 100,
+    "rootArchive": {
+      "files": 210,
+      "bytes": 312613246,
+      "allActualBytesVerified": true
+    },
+    "sourceFilesObservedAfterNative": 487,
+    "distFilesObservedAfterNative": 10,
+    "productGitDeltaFrom546": [],
+    "nativeRuns": [
+      {
+        "file": "native-first/result.json",
+        "source": "a2f2c3ec72e761320182448b54dc360d2b90617f",
+        "status": "passed",
+        "rawAssertions": 20,
+        "binarySha256": "c1d59e4d2207533ab42bca666b2dcfe7f9c2e1b2b571200717c378a9ec1c83e9",
+        "failure": null
+      },
+      {
+        "file": "native-followup-first-failed/result.json",
+        "source": "56bedde489d7fd45eb8658be90c3f03fb9f94769",
+        "status": "failed",
+        "rawAssertions": 9,
+        "binarySha256": "29bd759309e28499e60c334e065ef5807a452fe0e042eed6358233e7f65123f4",
+        "failure": "Error: POST /session/5861ccf09e2a3402abc25d73da7f28b0/element/f.0E14645F99DA5B75256360941344D0F0.d.57BE4D545CBAC81466D0BB1A23F7268A.e.72/click: {\"error\":\"element click intercepted\",\"message\":\"element click intercepted: Element <button type=\\\"button\\\" class=\\\"sidebar-item\\\" aria-current=\\\"page\\\">...</button> is not clickable at point (141, 111). Other element would receive the click: <img alt=\\\"参考图\\\" decoding=\\\"async\\\" draggable=\\\"false\\\" src=\\\"http://thumb.localhost/03de5f7c3fff4bd58352827c9f687a46/01a11ccef16176d08864c696c77d10d6/398\\\">\\n  (Session info: MicrosoftEdge=154.0.4258.62)\",\"stacktrace\":\"\\tmsedgedriver!GetHandleVerifier [0x7ff7304e2285+4c15]\\n\\tmsedgedriver!(No symbol) [0x7ff730433a74]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff730863bbf+38654f]\\n\\tmsedgedriver!(No symbol) [0x7ff730208137]\\n\\tmsedgedriver!(No symbol) [0x7ff730206862]\\n\\tmsedgedriver!(No symbol) [0x7ff730204945]\\n\\tmsedgedriver!(No symbol) [0x7ff730203f27]\\n\\tmsedgedriver!(No symbol) [0x7ff7301f8f4f]\\n\\tmsedgedriver!(No symbol) [0x7ff73022328a]\\n\\tmsedgedriver!(No symbol) [0x7ff7301f86cf]\\n\\tmsedgedriver!(No symbol) [0x7ff7301f85cd]\\n\\tmsedgedriver!(No symbol) [0x7ff7301f86cf]\\n\\tmsedgedriver!(No symbol) [0x7ff7302401f8]\\n\\tmsedgedriver!(No symbol) [0x7ff7301f7f0c]\\n\\tmsedgedriver!(No symbol) [0x7ff7301f718d]\\n\\tmsedgedriver!(No symbol) [0x7ff7301f7d33]\\n\\tmsedgedriver!(No symbol) [0x7ff730340c04]\\n\\tmsedgedriver!(No symbol) [0x7ff73034ddc8]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff730587a15+aa3a5]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff73058dd11+b06a1]\\n\\tmsedgedriver!(No symbol) [0x7ff73043f6ff]\\n\\tmsedgedriver!(No symbol) [0x7ff73043a184]\\n\\tmsedgedriver!(No symbol) [0x7ff73043a2aa]\\n\\tmsedgedriver!(No symbol) [0x7ff73042b7f8]\\n\\tKERNEL32!BaseThreadInitThunk [0x7ffdf8d6cdf7+17]\\n\\tntdll!RtlUserThreadStart [0x7ffdfad5ee4c+2c]\\n\"}"
+      },
+      {
+        "file": "native-followup-second-fixture-failed/result.json",
+        "source": "54694d417c1e88acaa3efe79a62840604d9590c3",
+        "status": "failed",
+        "rawAssertions": 10,
+        "binarySha256": "51804ea9c5f6cda4dcf7079affa44eeb31275e884f765fb18778dbcf3429ba0a",
+        "failure": "Error: Timed out: copy source facts saved"
+      },
+      {
+        "file": "native-copy-passed/result.json",
+        "source": "54694d417c1e88acaa3efe79a62840604d9590c3",
+        "status": "passed",
+        "rawAssertions": 8,
+        "binarySha256": "51804ea9c5f6cda4dcf7079affa44eeb31275e884f765fb18778dbcf3429ba0a",
+        "failure": null
+      },
+      {
+        "file": "smoke-first-result.json",
+        "source": "a2f2c3ec72e761320182448b54dc360d2b90617f",
+        "status": "passed",
+        "rawAssertions": 5,
+        "binarySha256": "c1d59e4d2207533ab42bca666b2dcfe7f9c2e1b2b571200717c378a9ec1c83e9",
+        "failure": null
+      },
+      {
+        "file": "smoke-final-result.json",
+        "source": "54694d417c1e88acaa3efe79a62840604d9590c3",
+        "status": "passed",
+        "rawAssertions": 5,
+        "binarySha256": "51804ea9c5f6cda4dcf7079affa44eeb31275e884f765fb18778dbcf3429ba0a",
+        "failure": null
+      }
+    ],
+    "nativeCountsMustNotBeSummed": true,
+    "initial20OneVisibilityAssertionReadsHiddenDom": true,
+    "final546FailedRunCompleted10ThenFixtureNoteWaitFailed": true,
+    "final546CopyOnly8Includes4RepeatedSetup": true,
+    "sameFinal546Smoke5": true,
+    "viewedScreenshots": [
+      "native-followup-second-fixture-failed/running-owner-after-current-and-target-change.png",
+      "native-copy-passed/copy-preserves-independent-curation.png"
+    ],
+    "visualConclusions": "Expanded final owner shows current C / next destination A / task B at 27 of 2000 without premature completion text. Copy confirmation is closed while source panel still loads. Note contents use actual public IPC assertions; settled source UI remains T20.",
+    "finalBinarySha256": "51804EA9C5F6CDA4DCF7079AFFA44EEB31275E884F765FB18778DBCF3429BA0A",
+    "driverSha256": "0F4600639201CCD2E84C72C3977AC33C67E19152E197C89EB16A6591D1FBE9F7",
+    "commandMatrix": [
+      {
+        "plugin": "library",
+        "command": "import_tasks",
+        "handlerBuildAclCapabilityIpc": true
+      },
+      {
+        "plugin": "library",
+        "command": "dismiss_import",
+        "handlerBuildAclCapabilityIpc": true
+      },
+      {
+        "plugin": "library",
+        "command": "workspace_copy_source",
+        "handlerBuildAclCapabilityIpc": true
+      },
+      {
+        "plugin": "desktop",
+        "command": "take_collection_request",
+        "handlerBuildAclCapabilityIpc": true
+      }
+    ],
+    "releaseRecordVerified": true
+  },
+  "protectedFiles": "No delta from start for accepted prototype, historical ADR-0003, or independent T11 implementation record.",
+  "nativeRepeatedByMerger": false,
+  "fullRustRepeatedByMerger": false,
+  "normalTrayQuit": "not claimed",
+  "windows10": "unverified",
+  "githubMutation": false,
+  "pushed": false,
+  "rootReleased": true
+}

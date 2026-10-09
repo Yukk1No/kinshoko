@@ -1,0 +1,319 @@
+{
+  "status": "merge completed; affected checks and independent evidence audit passed",
+  "observedAtUtc": "2026-10-08T19:43:59.622205+00:00",
+  "integrationBranch": "codex/spec-78-integration",
+  "start": "8fc3f522fb1243dd39e97b8927554efc17d10dab",
+  "workerTip": "ebacbd53cd8119fae9b81c12f4e0ba89dad5841f",
+  "workerTree": "ddd67c048215eff654652767cd17a896c3e93c3d",
+  "mergeTip": "2db1c68bacaa781186a20f9c1f0f29f483770bc7",
+  "mergeTree": "ddd67c048215eff654652767cd17a896c3e93c3d",
+  "mergeParents": [
+    "8fc3f522fb1243dd39e97b8927554efc17d10dab",
+    "ebacbd53cd8119fae9b81c12f4e0ba89dad5841f"
+  ],
+  "conflicts": [],
+  "mergeTreeEqualsWorkerTree": true,
+  "rootClean": true,
+  "checks": [
+    {
+      "command": "cargo fmt --all -- --check",
+      "exitCode": 0,
+      "log": "fmt.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "npm.cmd run typecheck",
+      "exitCode": 0,
+      "log": "typecheck.txt",
+      "bytes": 48,
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "command": "npm.cmd test -- src/Backup.test.tsx src/library/TagIdentityPanel.test.tsx src/App.test.tsx src/App.workspace-bootstrap.test.tsx --maxWorkers=2",
+      "environment": "TEMP/TMP set to this root ignored merge15-checks/tmp",
+      "exitCode": 0,
+      "testFiles": 4,
+      "passed": 73,
+      "failed": 0,
+      "log": "public-ui.txt",
+      "bytes": 694,
+      "sha256": "943164105cb0b0fafb310fad47b3c55641880511e725891028c2347d15fdd877"
+    },
+    {
+      "command": "node --check e2e/library-content-backup.mjs",
+      "exitCode": 0,
+      "log": "script-syntax.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "git diff --check 8fc3f522fb1243dd39e97b8927554efc17d10dab..HEAD",
+      "exitCode": 0,
+      "log": "diffcheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "python -X utf8 work/v1-handoff/follow-up-spec/merge15-checks/audit.py",
+      "exitCode": 0,
+      "result": "audit.json",
+      "log": "audit-output.txt",
+      "bytes": 1334,
+      "sha256": "5fb47964ae0ebcb66968ebcca2995da36c70194c00653f9998f7f3fc431a7a47"
+    }
+  ],
+  "audit": "audit.json",
+  "commandMatrix": "command-matrix.json",
+  "evidenceScope": {
+    "trackedEvidenceFilesRawEqualRootWorkerIndexCommit": 119,
+    "copyEntries": 111,
+    "rawOriginalCopies": 107,
+    "reconstructedHistoricalHarnesses": [
+      {
+        "file": "native/runs/content-backup-t12-3075331-first/harness.mjs",
+        "source": "3075331a5f5bcf780831cf5a92766f331f5f68b9:e2e/library-content-backup.mjs",
+        "kind": "Git LF blob",
+        "sha256": "eaaf396903187c8f3086c0f430d5184d827850c8d2186a5a7b7936990461bb07",
+        "byteOriginalClaim": false
+      },
+      {
+        "file": "native/runs/content-backup-t12-3075331-second/harness.mjs",
+        "source": "026897b686526135aa587787817b5395dc80af37:e2e/library-content-backup.mjs",
+        "kind": "Git LF blob",
+        "sha256": "1e3d2acbe53119e4f6d912aa89eba4f4a7bf60df5147c08a2d2d7f40f5bca6d7",
+        "byteOriginalClaim": false
+      },
+      {
+        "file": "native/runs/content-backup-t12-00dfc61-third/harness.mjs",
+        "source": "00dfc611577361a679221dc8f06f99fdcedd466f:e2e/library-content-backup.mjs",
+        "kind": "Git LF blob",
+        "sha256": "355ea149b2c171b3680b3c632d8a5fc7f33790c8e32200720cb9d3d97a777de0",
+        "byteOriginalClaim": false
+      },
+      {
+        "file": "native/runs/content-backup-t12-00dfc61-fourth/harness.mjs",
+        "source": "846edf227d5b2c43692289dea06a11a97d38a17f:e2e/library-content-backup.mjs",
+        "kind": "Git LF blob",
+        "sha256": "3d2422c8ece631968393fe00b47afedeceb4d77f4f6736f82a40a78b1cae868c",
+        "byteOriginalClaim": false
+      }
+    ],
+    "reconstructionScope": "Four historical harness copies are reconstructed from the stated Git LF blobs, not independently preserved original working files. Each matches its run-recorded SHA. The separate smoke script is an original physical CRLF copy, with Git LF equivalence verified.",
+    "rootArchive": {
+      "files": 251,
+      "bytes": 253143631,
+      "allActualBytesVerified": true,
+      "exactInventory": true
+    },
+    "nativeRawCopiesAlsoMatchedRootArchive": 66,
+    "copiesOutsideNativeOnlyArchiveMatchedWorkerOriginals": 41,
+    "sourceAndDist": {
+      "source": "00dfc611577361a679221dc8f06f99fdcedd466f",
+      "tree": "1ffabb0724b1f6e308968dfb55092ae7c88361e2",
+      "sourceFiles": 538,
+      "distFiles": 10,
+      "workerPhysicalBytesMatch": true,
+      "rootSourceNewlineOnlyDifferences": [
+        "crates/kinshoko-core/examples/spec78_workspace_fixture.rs",
+        "crates/kinshoko-core/src/backup/mod.rs",
+        "crates/kinshoko-core/src/backup/restore.rs",
+        "crates/kinshoko-core/src/backup/target.rs",
+        "crates/kinshoko-core/src/desktop/pin.rs",
+        "crates/kinshoko-core/src/library/backup.rs",
+        "crates/kinshoko-core/src/library/migrations/0087_folder_revision.sql",
+        "crates/kinshoko-core/src/library/tag_definitions.rs",
+        "crates/kinshoko-core/src/library/types.rs",
+        "crates/kinshoko-core/src/portable_tags.rs",
+        "crates/kinshoko-core/src/reference_groups/mod.rs",
+        "crates/kinshoko-core/src/tag_catalog/portable.rs",
+        "crates/kinshoko-core/tests/backup_content_definitions.rs",
+        "crates/kinshoko-core/tests/capture_history.rs",
+        "crates/kinshoko-core/tests/eagle_crash.rs",
+        "crates/kinshoko-core/tests/portable_tags.rs",
+        "crates/kinshoko-core/tests/reference_capture.rs",
+        "crates/kinshoko-core/tests/reference_group_snapshot.rs",
+        "crates/kinshoko-core/tests/search.rs",
+        "crates/kinshoko-core/tests/workspace_folders.rs",
+        "src-tauri/src/backup.rs",
+        "src-tauri/src/desktop/win32.rs",
+        "src/desktop/PinView.escape.test.tsx",
+        "src/desktop/PinView.tsx",
+        "src/library/TagIdentityPanel.test.tsx",
+        "src/library/TagIdentityPanel.tsx",
+        "src/shell/Rail.tsx",
+        "src/wall/DensitySlider.tsx",
+        "src/wall/Wall.test.tsx"
+      ],
+      "manifestTiming": [
+        {
+          "file": "native/t12-final-source-dist-before-build.json",
+          "stage": "before-final-native-build",
+          "at": "2026-10-08T19:12:58.762659+00:00",
+          "source": "00dfc611577361a679221dc8f06f99fdcedd466f"
+        },
+        {
+          "file": "native/t12-final-source-dist-after-build.json",
+          "stage": "after-final-native-build",
+          "at": "2026-10-08T19:14:03.898305+00:00",
+          "source": "00dfc611577361a679221dc8f06f99fdcedd466f"
+        },
+        {
+          "file": "native/t12-post-native-source-dist.json",
+          "stage": "post-native-clean-product",
+          "at": "2026-10-08T19:27:34.752482+00:00",
+          "source": "846edf227d5b2c43692289dea06a11a97d38a17f"
+        }
+      ],
+      "productDeltaToWorkerTip": [],
+      "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c"
+    },
+    "nativeRuns": [
+      {
+        "run": "content-backup-t12-3075331-first",
+        "status": "failed",
+        "assertions": 4,
+        "productSource": "3075331a5f5bcf780831cf5a92766f331f5f68b9",
+        "exeSha256": "c77471db1d84ff06336358182d082a6b5da3fe220aa573169cdc157577c62838",
+        "harnessSource": "3075331a5f5bcf780831cf5a92766f331f5f68b9",
+        "harnessSha256": "eaaf396903187c8f3086c0f430d5184d827850c8d2186a5a7b7936990461bb07",
+        "failure": "Error: provider publication failure is visible in the formal identity controls",
+        "perPhaseKnownFolderRecorded": false
+      },
+      {
+        "run": "content-backup-t12-3075331-second",
+        "status": "failed",
+        "assertions": 4,
+        "productSource": "3075331a5f5bcf780831cf5a92766f331f5f68b9",
+        "exeSha256": "c77471db1d84ff06336358182d082a6b5da3fe220aa573169cdc157577c62838",
+        "harnessSource": "026897b686526135aa587787817b5395dc80af37",
+        "harnessSha256": "1e3d2acbe53119e4f6d912aa89eba4f4a7bf60df5147c08a2d2d7f40f5bca6d7",
+        "failure": "Error: Timed out: formal provider publication failure",
+        "perPhaseKnownFolderRecorded": false
+      },
+      {
+        "run": "content-backup-t12-00dfc61-third",
+        "status": "failed",
+        "assertions": 9,
+        "productSource": "00dfc611577361a679221dc8f06f99fdcedd466f",
+        "exeSha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
+        "harnessSource": "00dfc611577361a679221dc8f06f99fdcedd466f",
+        "harnessSha256": "355ea149b2c171b3680b3c632d8a5fc7f33790c8e32200720cb9d3d97a777de0",
+        "failure": "Error: Timed out: actual restore response and rendered roundtrip result",
+        "perPhaseKnownFolderRecorded": false
+      },
+      {
+        "run": "content-backup-t12-00dfc61-fourth",
+        "status": "passed",
+        "assertions": 57,
+        "productSource": "00dfc611577361a679221dc8f06f99fdcedd466f",
+        "exeSha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
+        "harnessSource": "846edf227d5b2c43692289dea06a11a97d38a17f",
+        "harnessSha256": "3d2422c8ece631968393fe00b47afedeceb4d77f4f6736f82a40a78b1cae868c",
+        "failure": null,
+        "perPhaseKnownFolderRecorded": true
+      }
+    ],
+    "nativeCountsMustNotBeSummed": true,
+    "formalFinalNative": {
+      "passed": 57,
+      "source": "00dfc611577361a679221dc8f06f99fdcedd466f",
+      "exeSha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
+      "observer": "Actual rendered completion plus public registered_libraries/reference_groups and read-only provenance; fourth harness does not replace invoke or synthesize IPC returns."
+    },
+    "sameExeSmoke": {
+      "source": "00dfc611577361a679221dc8f06f99fdcedd466f",
+      "status": "passed",
+      "assertions": 5,
+      "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
+      "harnessSha256": "d9df46a1c82641e8677d9434dca9d631a43370a1037d6217b05e539141c7e01a"
+    },
+    "faultActualCounts": [
+      {
+        "point": "content_restore_library_published",
+        "pendingJournals": 1,
+        "publishedLibraries": 1,
+        "publishedGroups": 0,
+        "recordedLibraries": 2,
+        "recordedGroups": 1
+      },
+      {
+        "point": "content_restore_group_published",
+        "pendingJournals": 1,
+        "publishedLibraries": 2,
+        "publishedGroups": 1,
+        "recordedLibraries": 2,
+        "recordedGroups": 1
+      }
+    ],
+    "archivedIndependentLibraryAndGroupProvenanceVerified": {
+      "libraries": 4,
+      "groups": 2,
+      "originalByteHashesPerRestore": 3,
+      "sqliteMethod": "Byte-for-byte temporary DB/WAL/SHM copies; mode=ro/query_only=ON. Original evidence DB/WAL/SHM files were not opened by SQLite."
+    },
+    "rustHistorical": {
+      "source": "aa27349b9f6032f46b5d23c7c55534830551f055",
+      "suites": 74,
+      "passed": 669,
+      "failed": 0,
+      "ignored": 11,
+      "countMethod": "Last result in each top-level Running or Doc-tests segment; child process output is not double-counted.",
+      "rerunByMerger": false
+    },
+    "frontendHistorical": {
+      "source": "304935205d1c3d8cece23a77543526e0d153aebb",
+      "testFiles": 34,
+      "passed": 267,
+      "typecheck": "passed",
+      "vite": "passed",
+      "scope": "Actual feedback-fix source. Later 8fc integration moves SaveDestination documentation and regenerates that binding comment; no Rust runtime delta. Final product inputs match 00df through ebac."
+    },
+    "knownFolder": {
+      "path": "C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t12test/settings.json",
+      "finalSevenPhases": "exists:false/sha256:null with actual shellSettings captured",
+      "firstAndThirdPreflight": "actual recorded absence; earlier informal existed claim is superseded by raw metadata",
+      "smokePreflightAndRelease": "exists:false/sha256:null",
+      "historicalLimit": "First/second/third raw per-phase environments record shell settings without per-phase KnownFolder exists/hash. Separate actual metadata proves absence before first launch and before third; fourth records all seven phases, and smoke preflight/release record absence. No missing historical observation is inferred."
+    },
+    "releaseRecordVerified": true,
+    "releaseUtc": "2026-10-08T19:26:26.2943657Z",
+    "releaseScope": "Historical exact owned exe/driver/WebView filters and empty 4648/4649 connections. No new native launch or live desktop cleanup performed by merger.",
+    "viewedScreenshots": [
+      "01-source-group.png",
+      "02-backup-preview.png",
+      "03-fresh-restore-result.png",
+      "04-open-restored-group.png",
+      "05-existing-settings.png",
+      "06-recovered-library.png",
+      "06-recovered-group.png"
+    ],
+    "visualScope": "All seven raw fourth-run screenshots independently viewed. 02 shows only backup section top; 03 does not show the success text below the viewport. 05/06 do not alone prove settings preservation or rollback. DOM/public readbacks and raw assertion results support those claims; final complete visible screenshots remain T20."
+  },
+  "affectedBehaviorInspection": [
+    "Existing scope recomputation, plan, SQLite backup, originals leases and retention pipeline remain; catalog enrichment occurs only in private snapshot copies.",
+    "Complete catalog definitions preserve corrected/split stable identities, namespaces, aliases and external correspondence after failed explicit read-only provider publication; app preferences are not content defaults.",
+    "Fresh/legacy content restoration strips legacy groups/personal rules only in restored copies. Existing preferences, alias tombstones, shared groups, personal rules and migration memory remain application data.",
+    "Restore stages the full batch and journals newly allocated IDs/paths/provenance before publication. Rollback validates every owned path and identity before deletion; startup recovery runs before opening main window. Existing libraries/groups are not journal-owned.",
+    "Actual multi-library later-copy failure, SQLITE_FULL/exit 99 at definition staging and both publication points, restart rollback and complete retries are present in public core original evidence and final native evidence at their stated sources.",
+    "Automatic vocabulary refresh retains the explicit provider publication failure, including refresh failure, until explicit user action. Existing split/correction boundaries and safety/generation rejection remain."
+  ],
+  "nativeRegistrationInspection": {
+    "matrixAllTrue": true,
+    "generatedAclSource": "Read actual worker generated acl-manifests/capabilities from the frozen native build tree; root ignored generated artifacts were stale and were not used as proof.",
+    "backupCommands": "Existing application invoke_handler entries for backup_status/set_backup_target/set_backup_selection/backup_preview/start_backup/backup_snapshots/restore_backup; no new T12 IPC command.",
+    "generatedBindingShapesChanged": false,
+    "productionOnlyTestBypassAdded": false
+  },
+  "protectedFilesDelta": [],
+  "predecessorAndQualityState": "#42/#71 records, old color failures, signed-public-update conditions and all historical failed raw results remain unchanged.",
+  "nativeRepeatedByMerger": false,
+  "fullRustRepeatedByMerger": false,
+  "targetedCoreRerunReason": "No conflict or new runtime delta beyond independently inspected worker source; same tree and actual frozen-product input hashes. Existing public core checks retained at exact aa27349 source, not relabeled as final reruns.",
+  "normalTrayQuit": "unverified",
+  "windows10": "unverified",
+  "systemDpiAndHardware": "unverified; observed WebView DPR is not Windows system-DPI acceptance",
+  "githubMutation": false,
+  "pushed": false,
+  "rootReleased": true
+}

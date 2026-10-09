@@ -1,0 +1,18 @@
+{
+  "status": "failed",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "error": "Error: Timed out: saved explicit preference",
+  "assertions": [
+    "two real libraries use distinct local IDs for one shared identity",
+    "accepted long_hair_between_eyes default reaches formal app"
+  ],
+  "stories": [
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    27
+  ]
+}

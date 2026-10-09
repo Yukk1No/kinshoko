@@ -1,0 +1,19 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.05s
+     Running tests\import_preview.rs (target\debug\deps\import_preview-8bc69e9aa5ded5ee.exe)
+
+running 1 test
+
+thread 'replacing_original_bytes_cannot_reuse_an_old_receipt_as_a_display_capability' (31260) panicked at crates\kinshoko-core\tests\import_preview.rs:264:5:
+receipt SHA must match real original bytes, not only its stale record
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test replacing_original_bytes_cannot_reuse_an_old_receipt_as_a_display_capability ... FAILED
+
+failures:
+
+failures:
+    replacing_original_bytes_cannot_reuse_an_old_receipt_as_a_display_capability
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.32s
+
+error: test failed, to rerun pass `-p kinshoko-core --test import_preview`

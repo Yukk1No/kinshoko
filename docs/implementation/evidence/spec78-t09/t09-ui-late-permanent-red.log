@@ -1,0 +1,40 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/library/WorkspaceSources.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+ ❯ src/library/WorkspaceSources.test.tsx (3 tests | 1 failed) 402ms
+   × 换来源后，旧永久删除的迟到响应不能关闭新来源 82ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/WorkspaceSources.test.tsx > 换来源后，旧永久删除的迟到响应不能关闭新来源
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array []
+
+
+Number of calls: 1
+
+ ❯ src/library/WorkspaceSources.test.tsx:77:21
+     75|   await screen.findByRole("textbox", { name: "备注" });
+     76|   await import("@testing-library/react").then(({ act }) => act(async (…
+     77|   expect(close).not.toHaveBeenCalled();
+       |                     ^
+     78| });
+     79|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  00:52:00
+   Duration  1.98s (environment 61%, tests 22%, import 11%, transform 6%)
+

@@ -1,0 +1,58 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 35.43s
+     Running tests\eagle_deleted_content.rs (target\debug\deps\eagle_deleted_content-193df7a0aff921b5.exe)
+
+running 13 tests
+test child_allows_eagle_import_until_fault ... ignored, 只在故障注入子进程里运行
+test child_deletes_eagle_until_fault ... ignored, 只在故障注入子进程里运行
+test eagle_choice_preflight_recognizes_selected_parent_and_item_without_registering_a_source ... ok
+
+running 1 test
+test child_allows_eagle_import_until_fault ... 
+running 1 test
+test child_deletes_eagle_until_fault ... test a_failed_allowed_import_does_not_forget_the_deleted_version_and_can_be_retried ... ok
+
+running 1 test
+test child_allows_eagle_import_until_fault ... test deletion_memory_is_committed_before_file_cleanup_and_survives_interruption ... ok
+test interrupted_allowed_import_keeps_deleted_memory_and_source_binding_consistent_on_retry ... ok
+test a_live_duplicate_never_restores_initial_eagle_trash_created_in_a_previous_task ... ok
+test trash_duplicates_offer_the_existing_image_without_restoring_it ... ok
+test permanent_delete_respects_an_interrupted_allowed_imports_pending_original_then_recovers ... ok
+test the_same_eagle_item_can_import_new_bytes_while_the_deleted_version_remains_skipped ... ok
+test allowing_one_import_keeps_the_memory_but_allows_normal_refresh_until_deleted_again ... ok
+test permanently_deleted_eagle_content_stays_skipped_after_restart_in_this_library_only ... ok
+test cancelled_and_failed_retries_do_not_promote_an_already_created_initial_trash_item ... ok
+
+test result: ok. 11 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 1.37s
+
+     Running tests\tag_catalog.rs (target\debug\deps\tag_catalog-7806d7ca2f95e347.exe)
+
+running 11 tests
+test inspecting_an_unsafe_snapshot_never_changes_the_active_library_safe_mode ... ok
+test same_named_tags_without_external_correspondence_remain_independent_across_libraries ... ok
+test attaching_legacy_tags_keeps_untranslated_display_until_name_provenance_is_migrated ... ok
+test different_library_local_ids_share_an_explicit_external_identity_after_reopen ... ok
+test catalog_can_inspect_registered_libraries_without_switching_or_changing_local_data ... ok
+test a_late_explicit_external_correspondence_uses_an_existing_identity_unless_user_corrected ... ok
+test adding_an_external_correspondence_after_attachment_is_available_to_the_next_library ... ok
+test namespaces_remain_distinct_and_an_explicit_split_survives_external_reattachment ... ok
+test ambiguous_aliases_stay_separate_until_correction_and_manual_decisions_stay_local ... ok
+test explicit_external_correspondences_extend_a_shared_identity_without_relying_on_names ... ok
+test conflicting_external_correspondences_are_inspectable_and_require_an_explicit_choice ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+     Running tests\tag_names.rs (target\debug\deps\tag_names-8e9d62deaabcb8a5.exe)
+
+running 8 tests
+test bundled_defaults_use_the_accepted_names_and_keep_the_replaced_names_as_aliases ... ok
+test group_labels_refresh_from_shared_names_without_changing_local_membership_or_counts ... ok
+test installed_defaults_apply_to_later_tags_and_hidden_legacy_tags_keep_pending_provenance ... ok
+test a_corrected_legacy_mapping_adopts_the_existing_explicit_global_choice ... ok
+test aliases_are_global_search_words_without_becoming_display_preferences ... ok
+test preference_is_shared_by_identity_and_language_and_survives_reopen ... ok
+test default_updates_keep_equal_default_preferences_and_reset_deletes_the_override ... ok
+test legacy_names_remain_pending_until_an_explicit_global_preference_choice ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+

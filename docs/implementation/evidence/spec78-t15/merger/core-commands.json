@@ -1,0 +1,34 @@
+[
+  {
+    "name": "rust",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "kinshoko-core",
+      "--locked",
+      "--test",
+      "import_preview",
+      "--test",
+      "workspace",
+      "--test",
+      "save_destination",
+      "--test",
+      "safe_mode",
+      "--test",
+      "eagle_deleted_content",
+      "--test",
+      "application_settings_backup"
+    ],
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-08T21:28:05.993228+00:00",
+    "finishedAtUtc": "2026-10-08T21:29:08.768406+00:00",
+    "durationSeconds": 62.611417800006166,
+    "source": "d93e7f803e160c73862a9692935471b072fc027a",
+    "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+    "log": "rust.txt",
+    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "cargoBuildJobs": "2",
+    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+  }
+]

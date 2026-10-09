@@ -1,0 +1,19 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.68s
+     Running tests\workspace_folders.rs (target\debug\deps\workspace_folders-74c205195e20e7ae.exe)
+
+running 1 test
+
+thread 'exact_and_descendant_scopes_preserve_each_source_folder_memberships_and_file_paths' (41808) panicked at crates\kinshoko-core\tests\workspace_folders.rs:60:112:
+descendant scope must be available through the public query: Error("unknown variant `folderTree`, expected one of `all`, `folder`, `trash`", line: 0, column: 0)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test exact_and_descendant_scopes_preserve_each_source_folder_memberships_and_file_paths ... FAILED
+
+failures:
+
+failures:
+    exact_and_descendant_scopes_preserve_each_source_folder_memberships_and_file_paths
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.32s
+
+error: test failed, to rerun pass `-p kinshoko-core --test workspace_folders`

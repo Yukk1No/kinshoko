@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ContentRating } from "../bindings/ContentRating";
 import type { ImageRating } from "../bindings/ImageRating";
@@ -13,10 +13,17 @@ import {
   permanentDelete,
   previewPermanentDelete,
   sidebar,
+  workspaceSourceInspection,
+  workspaceEditSource,
+  workspaceSidebar,
+  workspacePreviewSourceDelete,
+  workspacePermanentSourceDelete,
 } from "../ipc";
 import { TagPanel } from "./TagPanel";
 
 type Props = {
+  sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
+  onSourceChanged?: () => void;
   libraryId: string;
   scope: BrowseScope;
   selected: ReadonlySet<string>;
@@ -84,9 +91,11 @@ function RatingPicker({
 function Detail({
   detail,
   edit,
+  sourceMode = false,
 }: {
   detail: ImageDetail;
   edit: (edits: ImageEdit[]) => void;
+  sourceMode?: boolean;
 }) {
   const { manual, sources } = detail.note;
   const sourceText = sources.map((s) => s.text).join("\n");
@@ -119,6 +128,9 @@ function Detail({
           ? `所在文件夹：${detail.folders.map((f) => f.name).join("、")}`
           : "不在任何文件夹里"}
       </p>
+      {sourceMode && detail.folders.length > 0 && <div className="selection-actions">{detail.folders.map((folder) =>
+        <button type="button" key={folder.id} onClick={() => edit([{ kind: "removeFromFolder", folderId: folder.id }])}>移出「{folder.name}」</button>,
+      )}</div>}
       <RatingPicker rating={detail.rating} edit={edit} />
       <label className="selection-note">
         <span>备注{manual === null && sources.length > 0 ? "（来自来源）" : ""}</span>
@@ -151,6 +163,8 @@ function Detail({
  */
 function PermanentDeleteConfirm({
   libraryId,
+  sourceTarget,
+  safeMode = false,
   ids,
   onDone,
   onCancel,
@@ -158,6 +172,8 @@ function PermanentDeleteConfirm({
 }: {
   libraryId: string;
   ids: string[];
+  sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
+  safeMode?: boolean;
   onDone: () => void;
   onCancel: () => void;
   onError: (message: string) => void;
@@ -165,10 +181,14 @@ function PermanentDeleteConfirm({
   const [preview, setPreview] = useState<PermanentDeletePreview | null>(null);
   const [changed, setChanged] = useState(false);
   const [busy, setBusy] = useState(false);
-  const key = ids.join("\n");
+  const key = JSON.stringify([libraryId, ids, sourceTarget, safeMode]);
+  const currentKey = useRef(key); currentKey.current = key;
+  useEffect(() => { currentKey.current = key; return () => { currentKey.current = ""; }; }, [key]);
 
   const load = () =>
-    previewPermanentDelete(libraryId, ids).then(setPreview, (e) => {
+    (sourceTarget ? workspacePreviewSourceDelete(sourceTarget, safeMode) : previewPermanentDelete(libraryId, ids)).then(
+      (value) => { if (currentKey.current === key) setPreview(value); }, (e) => {
+      if (currentKey.current !== key) return;
       onError(String(e));
       onCancel();
     });
@@ -182,12 +202,14 @@ function PermanentDeleteConfirm({
   const confirm = () => {
     if (!preview) return;
     setBusy(true);
-    permanentDelete(libraryId, preview.imageIds, preview.token).then(
+    (sourceTarget ? workspacePermanentSourceDelete(sourceTarget, safeMode, preview.token) : permanentDelete(libraryId, preview.imageIds, preview.token)).then(
       () => {
+        if (currentKey.current !== key) return;
         setBusy(false);
         onDone();
       },
       (e) => {
+        if (currentKey.current !== key) return;
         setBusy(false);
         if (isDeletePreviewStale(e)) {
           setChanged(true);
@@ -239,6 +261,8 @@ export function SelectionPanel({
   onError,
   safeMode = false,
   generation = 0,
+  sourceTarget,
+  onSourceChanged,
 }: Props) {
   const ids = [...selected];
   const single = ids.length === 1 ? ids[0] : null;
@@ -246,42 +270,59 @@ export function SelectionPanel({
   const [detail, setDetail] = useState<ImageDetail | null>(null);
   const [purging, setPurging] = useState(false);
   const selectionKey = ids.join("\n");
+  const [sourceRefresh, setSourceRefresh] = useState(0);
+  const requestKey = JSON.stringify([libraryId, selectionKey, safeMode, sourceTarget]);
+  const currentKey = useRef(requestKey);
+  currentKey.current = requestKey;
+  useEffect(() => { currentKey.current = requestKey; return () => { currentKey.current = ""; }; }, [requestKey]);
   // 选择变了就收起永久删除的确认。
   useEffect(() => setPurging(false), [selectionKey]);
 
   useEffect(() => {
     let alive = true;
-    sidebar(libraryId).then(
+    (sourceTarget ? workspaceSidebar(libraryId, safeMode) : sidebar(libraryId)).then(
       (s) => alive && setFolders(flatten(s.folders)),
       () => undefined,
     );
     return () => {
       alive = false;
     };
-  }, [reloadKey]);
+  }, [libraryId, reloadKey, safeMode, requestKey, sourceRefresh]);
 
   useEffect(() => {
     let alive = true;
     setDetail(null);
-    if (single)
-      imageDetail(libraryId, single).then(
+    // Delete confirmation owns the selection now; listStale must not start another detail read.
+    if (single && !purging)
+      (sourceTarget ? workspaceSourceInspection(sourceTarget, safeMode, "zh-CN").then((value) => value.detail) : imageDetail(libraryId, single)).then(
         (d) => alive && setDetail(d),
         (e) => alive && onError(String(e)),
       );
     return () => {
       alive = false;
     };
-  }, [single, reloadKey, onError]);
+  }, [libraryId, single, reloadKey, onError, purging, requestKey, sourceRefresh]);
 
-  const edit = (edits: ImageEdit[], clear = false) =>
-    editImages(libraryId, ids, edits).then(
+  const edit = (edits: ImageEdit[], clear = false) => {
+    if (sourceTarget) {
+      return workspaceEditSource(sourceTarget, safeMode, edits).then(() => {
+        if (currentKey.current !== requestKey) return;
+        const sealed = safeMode && edits.some((e) => (e.kind === "setRating" && isAdult(e.rating)) ||
+          (e.kind === "revertRating" && isAdult(detail?.rating.suggested ?? null)));
+        if (clear || sealed) onClear(); else setSourceRefresh((n) => n + 1);
+        onSourceChanged?.();
+      }, (e) => { if (currentKey.current === requestKey) onError(String(e)); });
+    }
+    return editImages(libraryId, ids, edits).then(
       (details) => {
+        if (currentKey.current !== requestKey) return;
         if (single && details[0]) setDetail(details[0]);
         const sealed = safeMode && details.some((d) => isAdult(d.rating.effective));
         if (clear || sealed) onClear();
       },
-      (e) => onError(String(e)),
+      (e) => { if (currentKey.current === requestKey) onError(String(e)); },
     );
+  };
 
   return (
     <aside className="selection" aria-label="已选参考图">
@@ -333,6 +374,8 @@ export function SelectionPanel({
         <PermanentDeleteConfirm
           libraryId={libraryId}
           ids={ids}
+          sourceTarget={sourceTarget}
+          safeMode={safeMode}
           onDone={() => {
             setPurging(false);
             onClear();
@@ -341,8 +384,8 @@ export function SelectionPanel({
           onError={onError}
         />
       )}
-      <TagPanel libraryId={libraryId} ids={ids} safe={safeMode} generation={generation} onError={onError} />
-      {detail && <Detail key={detail.id} detail={detail} edit={(e) => void edit(e)} />}
+      {!purging && <TagPanel sourceTarget={sourceTarget} libraryId={libraryId} ids={ids} safe={safeMode} generation={generation + sourceRefresh} onError={onError} />}
+      {!purging && detail && <Detail key={detail.id} sourceMode={!!sourceTarget} detail={detail} edit={(e) => void edit(e)} />}
     </aside>
   );
 }

@@ -1,0 +1,29 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+ ❯ src/library/LegacyNameMigrationPanel.test.tsx (2 tests | 1 failed) 286ms
+   × offers the migration wizard when opening an old library whose name has already adopted a global preference 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/LegacyNameMigrationPanel.test.tsx > offers the migration wizard when opening an old library whose name has already adopted a global preference
+Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+ ❯ createFiberFromTypeAndProps ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:5330:28
+ ❯ createFiberFromElement ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:5344:14
+ ❯ reconcileChildFibersImpl ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:7286:31
+ ❯ ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:7456:33
+ ❯ reconcileChildren ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:10097:13
+ ❯ beginWork ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:12326:15
+ ❯ runWithFiberInDEV ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13
+ ❯ performUnitOfWork ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22
+ ❯ workLoopSync ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41
+ ❯ renderRootSync ../../7dea/kinshoko/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  23:58:31
+   Duration  2.08s (environment 70%, tests 15%, import 11%, transform 4%)
+

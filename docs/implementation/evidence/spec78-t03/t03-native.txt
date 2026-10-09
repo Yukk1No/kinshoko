@@ -1,0 +1,6 @@
+PASS two real libraries use distinct local IDs for one shared identity
+PASS accepted long_hair_between_eyes default reaches formal app
+Error: Timed out: saved explicit preference
+    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/tag-names.mjs:46:9)
+    at async savePreference (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/tag-names.mjs:98:3)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/tag-names.mjs:151:3

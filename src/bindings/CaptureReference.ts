@@ -4,4 +4,4 @@ import type { ScreenRect } from "./ScreenRect";
 /**
  * 查看器当前显示的参考图与客户区内的物理像素范围。F1 用它恢复来源与原图裁切。
  */
-export type CaptureReference = { libraryId: string, imageId: string, shown: ScreenRect, visible: ScreenRect, };
+export type CaptureReference = { libraryId: string, imageId: string, shown: ScreenRect, visible: ScreenRect, covered: Array<ScreenRect>, };

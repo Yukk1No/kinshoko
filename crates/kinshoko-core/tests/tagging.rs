@@ -710,3 +710,86 @@ fn a_ready_that_arrives_after_pausing_does_not_restart_tagging() {
     idle(&tagging);
     assert_eq!(f.fake.tagged().len(), 1, "恢复后照常打标");
 }
+
+#[test]
+fn inference_runs_outside_the_publication_gate_and_rating_commits_after_release() {
+    let f = Fixture::new(1);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    f.fake.set_output(
+        &f.original(0),
+        vec![raw("blue_eyes", 0, 0.9), raw("explicit", 9, 0.9)],
+    );
+    let spec = f
+        .server
+        .publish("gpu", Device::DirectMl, b"publication gate model");
+    let gate = Arc::new(std::sync::Mutex::new(()));
+    let mut config = f.config(vec![spec]);
+    config.publication_gate = Some(gate.clone());
+    let tagging = f.start(config);
+    let held = gate.lock().unwrap();
+    tagging.download();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while f.fake.tagged().is_empty() && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let inference_completed = !f.fake.tagged().is_empty();
+    // A completed in-memory inference would publish immediately without the boundary.
+    std::thread::sleep(Duration::from_millis(60));
+    let rating_while_held = f.library.image_rating(&f.ids[0]).unwrap().suggested;
+    let tags_while_held = tags_of(&f.library, &f.ids[0]);
+    // Release before asserting or dropping Tagging: Drop joins the scheduler worker.
+    drop(held);
+    idle(&tagging);
+    assert!(
+        inference_completed,
+        "inference must run while the publication gate is held"
+    );
+    assert_eq!(
+        rating_while_held, None,
+        "automatic rating must not cross an active final commit"
+    );
+    assert!(
+        tags_while_held.is_empty(),
+        "one result's tags and rating share its publication boundary"
+    );
+    assert_eq!(
+        f.library.image_rating(&f.ids[0]).unwrap().suggested,
+        Some(ContentRating::Explicit)
+    );
+}
+
+#[test]
+fn pausing_discards_inference_waiting_for_publication_then_resume_can_retag() {
+    let f = Fixture::new(1);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    f.fake
+        .set_output(&f.original(0), vec![raw("explicit", 9, 0.9)]);
+    let spec = f
+        .server
+        .publish("gpu", Device::DirectMl, b"pause before publication model");
+    let gate = Arc::new(std::sync::Mutex::new(()));
+    let mut config = f.config(vec![spec]);
+    config.publication_gate = Some(gate.clone());
+    let tagging = f.start(config);
+    let held = gate.lock().unwrap();
+    tagging.download();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while f.fake.tagged().is_empty() && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let completed = !f.fake.tagged().is_empty();
+    tagging.pause(); // Does not wait for the gate or join its worker.
+    drop(held); // A detach/drop caller must also release the gate before joining.
+    wait_for(&tagging, "paused publication", |status| {
+        matches!(status, TaggingStatus::Paused)
+    });
+    assert!(completed, "inference completed before pause");
+    assert_eq!(f.library.image_rating(&f.ids[0]).unwrap().suggested, None);
+    assert!(tags_of(&f.library, &f.ids[0]).is_empty());
+    tagging.resume();
+    idle(&tagging);
+    assert_eq!(
+        f.library.image_rating(&f.ids[0]).unwrap().suggested,
+        Some(ContentRating::Explicit)
+    );
+}

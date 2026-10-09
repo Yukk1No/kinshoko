@@ -1,0 +1,26 @@
+(node:32964) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS released v16 角色参考 opens with stable identity
+PASS released v16 画法参考 opens with stable identity
+[1009/012946.166:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS same-name legacy groups do not overwrite one another
+PASS old group members and distinct provider provenance survive migration
+PASS global group read does not reveal all-source vetoed member names
+PASS ordinary name settings apply the same all-source Adult veto
+PASS legacy name wizard hides names from globally vetoed copies
+PASS formal editor uses unified member identities across libraries
+PASS group click expands visible members into one OR search condition
+PASS switching to 角色参考 preserves unified group membership and order
+PASS switching to 画法参考 preserves unified group membership and order
+PASS OR membership translates to different local IDs in an explicit provider
+PASS safe management view hides duplicate Adult member despite an Unknown copy
+PASS safe rename/add/remove/reorder retains hidden member on public unsafe readback
+PASS group management leaves source image identity and version links unchanged
+[1009/012959.108:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS global edits and deleted legacy migration memory survive a normal full restart
+PASS dynamic namespace group excludes same-name artist identities
+[1009/013000.783:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+Error: current_library: 资料库暂时不可用：C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\shared-groups-1791480582886\libraries\画法参考。请确认移动盘已连接；资料库搬家后请选择新位置重新登记。原因：这里没有 Kinshoko 资料库：C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\shared-groups-1791480582886\libraries\画法参考
+    at Session.invoke (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-tag-groups.mjs:68:31)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-tag-groups.mjs:281:12

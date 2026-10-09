@@ -1,0 +1,69 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.67s
+     Running tests\pin_veil.rs (target\debug\deps\pin_veil-5317d7bace13ed34.exe)
+
+running 3 tests
+test capture_pins_are_never_veiled ... ok
+test a_confirmed_pin_is_shown_until_safe_mode_is_turned_on_again ... ok
+test turning_safe_mode_on_with_no_library_open_veils_shown_library_pins ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\reference_capture_actions.rs (target\debug\deps\reference_capture_actions-a3ee2ad6dad1477e.exe)
+
+running 10 tests
+test ordinary_capture_preparation_can_be_discarded_without_writing_history ... ok
+test occluded_clipped_cross_boundary_and_external_selections_keep_the_screen_capture_path ... ok
+test missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels ... ok
+test a_reference_resealed_after_freezing_is_not_read_and_an_explicitly_revealed_pin_remains_usable ... ok
+test an_ambiguous_visible_source_is_a_screen_capture_instead_of_choosing_one_library ... ok
+test copying_respects_declared_color_and_the_sdr_animation_first_frame_route ... ok
+test copying_uses_the_explicit_inactive_library_even_when_another_library_is_current ... ok
+test copying_honors_all_original_exif_orientations_without_rewriting_originals ... ok
+test copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_source ... ok
+test selecting_a_transformed_prior_crop_copies_the_same_original_region_as_the_new_pin ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.86s
+
+     Running tests\reference_group_resolve.rs (target\debug\deps\reference_group_resolve-58f8e27a2d16f0dd.exe)
+
+running 12 tests
+test a_library_registered_at_a_place_now_holding_another_library_is_unavailable ... ok
+test a_group_resolves_members_from_the_active_and_an_inactive_library ... ok
+test sealed_members_in_an_inactive_library_follow_the_safe_mode_setting ... ok
+test members_in_the_trash_stay_usable ... ok
+test permanent_delete_refuses_when_a_group_file_cannot_be_checked ... ok
+test sealed_members_in_the_active_library_are_marked_through_its_reference_lens ... ok
+test permanently_deleted_members_stay_in_place_and_are_marked_missing ... ok
+test reference_authorization_uses_the_current_mode_instead_of_an_active_lens_cache ... ok
+test a_member_whose_image_is_gone_from_the_library_is_marked_missing ... ok
+test unavailable_members_keep_their_layout_and_say_why ... ok
+test permanent_delete_preview_finds_the_groups_using_the_images ... ok
+test an_inactive_library_can_still_be_opened_as_the_active_one ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+
+     Running tests\safe_mode.rs (target\debug\deps\safe_mode-4f7f007a236ebebf.exe)
+
+running 18 tests
+test a_new_library_starts_in_safe_mode ... ok
+test cards_say_which_images_safe_mode_would_seal ... ok
+test a_rating_that_seals_or_releases_an_image_advances_the_vocabulary_revision ... ok
+test the_effective_rating_decides_what_is_sealed ... ok
+test the_wall_and_its_total_leave_out_sealed_images_in_every_scope ... ok
+test desktop_pins_get_display_files_for_sealed_images_through_the_reference_lens ... ok
+test the_tagger_still_reaches_sealed_images ... ok
+test searching_never_finds_sealed_images ... ok
+test tag_counts_candidates_and_groups_do_not_reveal_sealed_images ... ok
+test sidebar_counts_do_not_reveal_sealed_images ... ok
+test an_image_rated_adult_while_safe_mode_is_on_disappears ... ok
+test tags_only_on_sealed_images_cannot_be_given_aliases_or_put_into_groups ... ok
+test the_reference_lens_is_handed_out_once_and_marks_sealed_images ... ok
+test editing_a_tag_group_in_safe_mode_keeps_its_members_only_on_sealed_images ... ok
+test the_personal_approx_table_does_not_name_tags_only_on_sealed_images ... ok
+test the_wall_is_told_to_refresh_only_when_a_rating_change_seals_or_releases_an_image ... ok
+test a_sealed_image_does_not_exist_when_looked_up_or_edited ... ok
+test turning_safe_mode_off_restores_everything ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.16s
+

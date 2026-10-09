@@ -1,0 +1,48 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.97s
+     Running tests\backup_content_definitions.rs (target\debug\deps\backup_content_definitions-9aa9b0f8d0b1df11.exe)
+
+running 10 tests
+test content_backup_fault_child ... ignored, parent executes the real backup storage fault child
+test content_restore_fault_child ... ignored, parent executes the fault child through public restore
+
+running 1 test
+test older_content_snapshot_cannot_replay_legacy_program_settings ... ok
+test content_backup_uses_current_pure_definitions_after_read_only_publication_failed ... ok
+test content_backup_does_not_reimport_legacy_application_groups_or_personal_rules ... ok
+test incompatible_stable_identity_is_refused_before_content_is_published ... ok
+
+running 1 test
+verified backup portable definition exit: no complete snapshot, source/settings retained, retry complete
+test a_later_library_restore_failure_does_not_leave_an_earlier_usable_copy ... ok
+
+running 1 test
+test content_backup_fault_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.08s
+
+verified content_restore_library_published/exit: recovery=1, existing library/group/preference retained, retry complete
+test independent_content_restore_keeps_existing_app_preferences_and_shared_groups ... ok
+verified backup portable definition error: no complete snapshot, source/settings retained, retry complete
+test backup_definition_storage_failure_or_exit_never_publishes_a_complete_snapshot ... ok
+
+running 1 test
+test content_restore_fault_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.11s
+
+verified content_restore_library_published/error: recovery=0, existing library/group/preference retained, retry complete
+
+running 1 test
+verified content_restore_group_published/exit: recovery=1, existing library/group/preference retained, retry complete
+
+running 1 test
+test content_restore_fault_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.16s
+
+verified content_restore_group_published/error: recovery=0, existing library/group/preference retained, retry complete
+test interrupted_and_failed_publication_rolls_back_only_its_batch_then_can_retry ... ok
+
+test result: ok. 8 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 4.03s
+

@@ -1,0 +1,43 @@
+{
+  "status": "failed",
+  "source": "7bcd704a3b85fdb37bb422a3fb03d19549e7eb6a",
+  "binarySha256": "60345209555790f8abc078cb99fe2795f11f4bc2c0610f81cd0fac0282622d94",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target\\debug\\kinshoko.exe",
+  "environment": {
+    "devicePixelRatio": 1.1041666269302368,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "viewport": {
+      "height": 801,
+      "width": 1281
+    }
+  },
+  "a": {
+    "id": "0a76692879c243fe843d2e24d8d6f648",
+    "name": "同名资料库",
+    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479366735\\libraries\\first\\同名资料库",
+    "imageId": "01a11c7dcae57516b8295743619a92ea",
+    "folderId": "01a11c7dcb8775c6b643a50a45a10598"
+  },
+  "b": {
+    "id": "2bc2869459724a0cb8ca3a4268f443cf",
+    "name": "同名资料库",
+    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479366735\\libraries\\second\\同名资料库",
+    "imageId": "01a11c7dcc3874089f9977950c1829bd",
+    "folderId": "01a11c7dccde70168643e627762a389d"
+  },
+  "target": {
+    "libraryId": "2bc2869459724a0cb8ca3a4268f443cf",
+    "imageId": "01a11c7dcc3874089f9977950c1829bd",
+    "contentId": "d6a3ae41b8bcf6872ded8f94c1ac971e6cdcaf813cce00092e0e9c32b9ed59f5"
+  },
+  "assertions": [
+    "same bytes aggregate across two independently curated providers",
+    "same-name source choices visibly show distinct path suffixes",
+    "editing inactive B note leaves A note unchanged",
+    "source edits do not activate B or change current library",
+    "workspace notification does not interrupt the revalidated explicit source editor",
+    "B manual rating remains independent from A",
+    "removing B folder membership preserves A folder membership"
+  ],
+  "error": "Error: Timed out: B folder restored"
+}

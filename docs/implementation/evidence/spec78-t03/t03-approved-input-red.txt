@@ -1,0 +1,24 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.74s
+     Running tests\tag_names.rs (target\debug\deps\tag_names-8e9d62deaabcb8a5.exe)
+
+running 1 test
+test bundled_defaults_use_the_accepted_names_and_keep_the_replaced_names_as_aliases ... FAILED
+
+failures:
+
+---- bundled_defaults_use_the_accepted_names_and_keep_the_replaced_names_as_aliases stdout ----
+
+thread 'bundled_defaults_use_the_accepted_names_and_keep_the_replaced_names_as_aliases' (45548) panicked at crates\kinshoko-core\tests\tag_names.rs:129:9:
+assertion `left == right` failed
+  left: "长眼间发"
+ right: "两眼间长发"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    bundled_defaults_use_the_accepted_names_and_keep_the_replaced_names_as_aliases
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p kinshoko-core --test tag_names`

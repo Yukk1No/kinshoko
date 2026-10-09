@@ -1,0 +1,5 @@
+PASS same display names initially retain distinct global identities
+PASS rendered correction explicitly joins two local IDs to one global identity
+Error: Timed out: saved correction
+    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/portable-tags.mjs:31:9)
+    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/portable-tags.mjs:171:19

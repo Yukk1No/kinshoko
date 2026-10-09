@@ -38,10 +38,13 @@ mod import;
 mod lens;
 mod package;
 mod permanent_delete;
+pub(crate) mod provider;
 mod rating;
 mod recovery;
+mod save;
 mod sidebar;
 mod store;
+pub(crate) mod tag_definitions;
 mod tags;
 mod thumbnail;
 mod types;
@@ -49,7 +52,7 @@ mod types;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 use rusqlite::{OptionalExtension, params};
 
@@ -78,16 +81,17 @@ pub use lens::{ReferenceImage, ReferenceLens};
 pub use package::{ImageSnapshot, PackageOrigin, SnapshotTag};
 pub use permanent_delete::PermanentDeletePreview;
 pub use rating::{ContentRating, ImageRating, RatingFact, TaggingOutcome};
+pub use save::SaveDestination;
 pub use sidebar::Sidebar;
 pub use tags::{
     FactSource, ImageTag, ImageTags, LocalizedName, PersonalApproxEntry, SourceTag, TagAlias,
-    TagCount, TagEdit, TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef, TagTranslation,
-    TagTranslations, Vocabulary, VocabularyTag,
+    TagCount, TagEdit, TagGroupDefinition, TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef,
+    TagTranslation, TagTranslations, Vocabulary, VocabularyTag,
 };
 pub use types::{
-    BrowsePage, BrowseQuery, BrowseScope, DisplayFile, DisplayRoute, EagleLocationChoice,
-    EagleRelocation, ImageCard, ImageSourceRecord, ImportItem, ImportOutcome, ImportProgress,
-    ImportReport, ImportSource, LibraryInfo, RecoveryReport,
+    BrowsePage, BrowseQuery, BrowseScope, DisplayFile, DisplayRoute, EagleDeletedContentChoice,
+    EagleLocationChoice, EagleRelocation, ImageCard, ImageSourceRecord, ImportItem, ImportOptions,
+    ImportOutcome, ImportProgress, ImportReport, ImportSource, LibraryInfo, RecoveryReport,
 };
 
 use crate::approx::ApproxRelation;
@@ -108,6 +112,7 @@ pub(crate) const LIVE: &str = "image.deleted_at IS NULL";
 
 /// 一个打开的资料库。可在线程间共享（`Arc<Library>`）。
 pub struct Library {
+    save_destination: Option<SaveDestination>,
     inner: Arc<Inner>,
 }
 
@@ -119,12 +124,14 @@ pub(crate) struct Inner {
     hub: Hub,
     recovery: RecoveryReport,
     translations: RwLock<Arc<tags::TranslationIndex>>,
+    package_publication_gate: RwLock<Option<Arc<Mutex<()>>>>,
     /// 安全模式是否开启；打开资料库时默认开启。
     safe_mode: AtomicBool,
     /// 参考视角的句柄是否已经交出。
     reference_taken: AtomicBool,
     /// 只读打开、不是活动资料库（参考组读取未激活的库，#66）：不写数据库。
     detached: bool,
+    write_revoked: Arc<AtomicBool>,
 }
 
 impl Inner {
@@ -151,6 +158,16 @@ impl Library {
             id,
             name,
             root: std::path::absolute(root)?,
+        })
+    }
+
+    /// Read an inactive provider without reconciliation, migrations, or content writes.
+    /// Existing local-ID read actions remain available; write actions return a read-only error.
+    pub fn open_read_only(root: &Path, expected_id: &str) -> Result<Library, Error> {
+        let lens = ReferenceLens::open_detached(root, expected_id)?;
+        Ok(Library {
+            inner: lens.inner,
+            save_destination: None,
         })
     }
 
@@ -226,6 +243,7 @@ impl Library {
         }
         let readers = Readers::open(&root.join(DB_FILE), READERS)?;
         Ok(Library {
+            save_destination: None,
             inner: Arc::new(Inner {
                 info: LibraryInfo {
                     root: root.clone(),
@@ -237,11 +255,26 @@ impl Library {
                 hub: Hub::default(),
                 recovery,
                 translations: RwLock::default(),
+                package_publication_gate: RwLock::default(),
                 safe_mode: AtomicBool::new(true),
                 reference_taken: AtomicBool::new(false),
                 detached: false,
+                write_revoked: Arc::new(AtomicBool::new(false)),
             }),
         })
+    }
+
+    /// Serialize package/copy metadata publication with the application's final visible commit.
+    /// Only the short import transaction takes this gate; reading, hashing and decoding do not.
+    /// Ordinary and Eagle imports cannot change an existing image's effective content rating.
+    /// Configure writable handles before exposing them to application actions. Do not hold this
+    /// gate while calling package import/copy; those actions acquire it at publication.
+    pub fn use_package_publication_gate(&self, gate: Arc<Mutex<()>>) {
+        *self
+            .inner
+            .package_publication_gate
+            .write()
+            .unwrap_or_else(|e| e.into_inner()) = Some(gate);
     }
 
     pub fn info(&self) -> &LibraryInfo {
@@ -270,7 +303,17 @@ impl Library {
 
     /// 开始导入，立即返回任务。文件 I/O 与哈希在任务自己的线程里做。
     pub fn import(&self, source: ImportSource) -> ImportTask {
-        import::start(self.inner.clone(), source)
+        self.import_with_options(source, ImportOptions::default())
+    }
+
+    /// 按本次选择导入；允许重导不清除内容版本的永久删除记忆。
+    pub fn import_with_options(&self, source: ImportSource, options: ImportOptions) -> ImportTask {
+        match &self.save_destination {
+            Some(destination) => {
+                import::start_to(self.inner.clone(), source, options, destination.clone())
+            }
+            None => import::start(self.inner.clone(), source, options),
+        }
     }
 
     /// 订阅变更事件。事件在事务提交后才推送。
@@ -304,6 +347,53 @@ impl Library {
         self.inner
             .require_visible(&self.inner.readers.get(), image_id)?;
         self.inner.display_scaled(image_id, target_px)
+    }
+
+    /// Receipt capability only: a detached provider and an exact live byte identity.
+    /// Render from one verified immutable byte buffer; no mode, metadata or cache is changed.
+    pub(crate) fn read_import_duplicate(
+        &self,
+        image_id: &str,
+        sha256: &str,
+        target_px: u32,
+    ) -> Result<(Vec<u8>, String), Error> {
+        use rusqlite::OptionalExtension;
+        use sha2::{Digest, Sha256};
+        if !self.inner.detached {
+            return Err(Error::UnknownImage);
+        }
+        let width: Option<u32> = self
+            .inner
+            .readers
+            .get()
+            .query_row(
+                "SELECT width FROM image WHERE id=?1 AND sha256=?2 AND deleted_at IS NULL",
+                [image_id, sha256],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let width = width.ok_or(Error::UnknownImage)?;
+        let (description, _, original) = colour::get(&self.inner, image_id)?;
+        let bytes = std::fs::read(original)?;
+        if format!("{:x}", Sha256::digest(&bytes)) != sha256 {
+            return Err(Error::SourceChanged);
+        }
+        if target_px < width || description.needs_sdr_derivative() {
+            let rendered = crate::fidelity::render::render_sdr(
+                &bytes,
+                target_px,
+                crate::fidelity::DEFAULT_DOWNSCALE,
+            )
+            .map_err(Error::Undecodable)?;
+            return Ok((rendered.bytes, rendered.mime.into()));
+        }
+        let mime = match description.format.as_str() {
+            "png" => "image/png",
+            "jpeg" | "jpg" => "image/jpeg",
+            "gif" => "image/gif",
+            _ => "image/webp",
+        };
+        Ok((bytes, mime.into()))
     }
 
     /// 参考图的色彩描述（导入时记录）。浏览视角：被封印的图当作不存在。
@@ -432,6 +522,16 @@ impl Library {
         tags::apply_translations(&self.inner)
     }
 
+    /// Install initial names for future tags without changing any existing label.
+    /// Application attachment uses this while legacy name provenance awaits migration.
+    pub fn use_translations_for_new_tags(&self, table: TagTranslations) {
+        *self
+            .inner
+            .translations
+            .write()
+            .unwrap_or_else(|e| e.into_inner()) = tags::index(table);
+    }
+
     /// 对若干参考图批量应用标签编辑（添加、否决、清除人工标签决定）。
     pub fn edit_tags(&self, image_ids: &[String], edits: &[TagEdit]) -> Result<(), Error> {
         tags::edit_tags(&self.inner, image_ids, edits)
@@ -481,6 +581,15 @@ impl Library {
         outcome: TaggingOutcome,
     ) -> Result<(), Error> {
         rating::finish_tagging(&self.inner, source, image_id, outcome)
+    }
+
+    // Only identities are recorded for name provenance. Hidden labels remain private to the library.
+    pub(crate) fn catalog_existing_tag_ids(&self) -> Result<Vec<String>, Error> {
+        let conn = self.inner.readers.get();
+        let mut statement = conn.prepare("SELECT id FROM tag")?;
+        Ok(statement
+            .query_map([], |row| row.get(0))?
+            .collect::<Result<_, _>>()?)
     }
 
     /// 标签词表快照：标签、各语言名称、别名、命名空间、外部对应与计数。
@@ -592,6 +701,12 @@ impl Library {
         tags::personal_approx(&self.inner, lang)
     }
 
+    /// Legacy group configuration for application migration. It carries only local member
+    /// identities, never hidden image names/counts, and never changes the Library's safe mode.
+    pub fn tag_group_definitions(&self) -> Result<Vec<TagGroupDefinition>, Error> {
+        tags::tag_group_definitions(&self.inner)
+    }
+
     /// 侧栏的标签分组及计数，名称按界面语言 `lang`。
     pub fn tag_groups(&self, lang: &str) -> Result<Vec<TagGroupView>, Error> {
         tags::tag_groups(&self.inner, lang)
@@ -613,8 +728,13 @@ impl Library {
         bytes: &[u8],
         snapshot: &ImageSnapshot,
     ) -> Result<String, Error> {
-        let (outcome, list_changed) =
-            import::import_package_original(&self.inner, origin.clone(), bytes, snapshot.clone());
+        let (outcome, list_changed) = import::import_package_original(
+            &self.inner,
+            origin.clone(),
+            bytes,
+            snapshot.clone(),
+            self.save_destination.clone(),
+        );
         if list_changed {
             self.inner.hub.publish(LibraryEvent::ListStale {
                 library_id: self.inner.info.id.clone(),

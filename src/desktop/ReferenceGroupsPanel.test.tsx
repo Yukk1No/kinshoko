@@ -32,6 +32,8 @@ vi.mock("../ipc", () => ({
   exportReferenceGroupPackage: ipc.exportPackage,
   importReferenceGroupPackage: ipc.importPackage,
   onReferenceGroupsChanged: () => Promise.resolve(() => {}),
+  onWorkspaceChanged: () => Promise.resolve(() => {}),
+  workspaceDirectories: () => Promise.resolve({ status:{revision:"test",libraries:[]}, providers:[{registration:{library:{id:"lib-a",name:"主库",root:"D:/a"},unavailable:null},sidebar:{all:0,trash:0,folders:[{id:"folder-a",name:"截图目录",children:[],count:0}]},unassigned:0,descendants:{}}] }),
   registeredLibraries: () =>
     Promise.resolve([
       { library: { id: "lib-a", name: "主库", root: "D:/a" }, unavailable: null },
@@ -40,6 +42,7 @@ vi.mock("../ipc", () => ({
 }));
 
 import { ReferenceGroupsPanel } from "./ReferenceGroupsPanel";
+import { SaveDestinationProvider } from "../library/SaveDestination";
 
 const summary: GroupSummary = {
   id: "g1",
@@ -90,7 +93,7 @@ async function show(libraryId: string | null = "lib-a") {
     { ...summary, id: "bad", name: "bad", memberCount: 0, libraryIds: [], problem: "参考组文件已损坏" },
   ]);
   ipc.group.mockResolvedValue(view);
-  render(<ReferenceGroupsPanel libraryId={libraryId} />);
+  render(<SaveDestinationProvider safe><ReferenceGroupsPanel libraryId={libraryId} /></SaveDestinationProvider>);
   await act(async () => {
     for (let i = 0; i < 5; i++) await Promise.resolve();
   });
@@ -127,7 +130,7 @@ describe("参考组面板", () => {
     expect(ipc.save).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText("截图 1 的资料库"), { target: { value: "lib-a" } });
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "确认并保存" })); });
-    expect(ipc.save).toHaveBeenCalledWith("截图参考", [{ captureId: "shot-1", libraryId: "lib-a" }]);
+    expect(ipc.save).toHaveBeenCalledWith("截图参考", [{ captureId: "shot-1", libraryId: "lib-a", folderId:null }]);
   });
 
   it("打开参考组把成员钉到桌面", async () => {
@@ -186,17 +189,21 @@ describe("参考组面板", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("把参考组包导入当前资料库", async () => {
+  it("把参考组包导入明确选择的资料库和目录", async () => {
     await show();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "导入参考组包" }));
     });
-    expect(ipc.importPackage).toHaveBeenCalledWith("lib-a");
+    expect(ipc.importPackage).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole("combobox",{name:"保存到资料库"}),{target:{value:"lib-a"}});
+    fireEvent.change(screen.getByRole("combobox",{name:"保存到文件夹"}),{target:{value:"folder-a"}});
+    await act(async()=>{fireEvent.click(screen.getByRole("button",{name:"选择参考组包并导入"}));});
+    expect(ipc.importPackage).toHaveBeenCalledWith("lib-a",{libraryId:"lib-a",folderId:"folder-a"});
     expect(screen.getByRole("status").textContent).toContain("别人的参考组");
   });
 
-  it("没有打开资料库时不能导入参考组包", async () => {
+  it("没有活动库时仍可从明确目标导入参考组包", async () => {
     await show(null);
-    expect((screen.getByRole("button", { name: "导入参考组包" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "导入参考组包" }) as HTMLButtonElement).disabled).toBe(false);
   });
 });

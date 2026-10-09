@@ -1,0 +1,24 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+stderr | src/App.test.tsx > 主窗口 > 切换时清空选择与导入状态，迟到的旧库浏览和进度不会覆盖新库
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | src/App.test.tsx > 主窗口 > 切换时清空选择与导入状态，迟到的旧库浏览和进度不会覆盖新库
+[TAURI] Couldn't find callback id 1037495847. This might happen when the app is reloaded while Rust is running an asynchronous operation.
+
+stderr | src/App.test.tsx > 主窗口 > 切换时清空选择与导入状态，迟到的旧库浏览和进度不会覆盖新库
+[TAURI] Couldn't find callback id 1037495847. This might happen when the app is reloaded while Rust is running an asynchronous operation.
+
+···························································································································································································································
+
+ Test Files  25 passed (25)
+      Tests  219 passed (219)
+   Start at  23:00:44
+   Duration  16.43s (environment 66%, tests 22%, import 8%, transform 4%)
+
+Environment  jsdom was created 25 times · 84.07s total, 66% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

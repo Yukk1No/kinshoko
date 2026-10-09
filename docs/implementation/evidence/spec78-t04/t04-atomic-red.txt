@@ -1,0 +1,30 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.93s
+     Running tests\legacy_name_migration.rs (target\debug\deps\legacy_name_migration-feb7b253794ed71a.exe)
+
+running 1 test
+
+running 1 test
+test child_confirms_until_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.02s
+
+test interruption_and_write_failure_leave_the_entire_batch_pending_then_retry_is_stable ... FAILED
+
+failures:
+
+---- interruption_and_write_failure_leave_the_entire_batch_pending_then_retry_is_stable stdout ----
+
+thread 'interruption_and_write_failure_leave_the_entire_batch_pending_then_retry_is_stable' (44144) panicked at crates\kinshoko-core\tests\legacy_name_migration.rs:109:9:
+assertion `left == right` failed
+  left: Some(0)
+ right: Some(99)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    interruption_and_write_failure_leave_the_entire_batch_pending_then_retry_is_stable
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.15s
+
+error: test failed, to rerun pass `-p kinshoko-core --test legacy_name_migration`

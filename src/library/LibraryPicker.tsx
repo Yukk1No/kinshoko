@@ -4,11 +4,12 @@ import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { pickFolder, registeredLibraries, registerLibrary, switchLibrary, unregisterLibrary } from "../ipc";
 
 /** 本设备的资料库登记、切换与取消登记。不可用的登记仍可重试或取消。 */
-export function LibraryPicker({ current, onChanged, onCreate, blocked = false }: {
+export function LibraryPicker({ current, onChanged, onCreate, blocked = false, compact = false }: {
   current: LibraryInfo | null | undefined;
   onChanged: (library: LibraryInfo | null) => void;
   onCreate: () => void;
   blocked?: boolean;
+  compact?: boolean;
 }) {
   const [entries, setEntries] = useState<LibraryRegistration[]>([]);
   const [busy, setBusy] = useState(false);
@@ -61,12 +62,16 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false }:
             ))}
           </select>
         </label>
+      </div>
+      <details className="library-tools" open={compact ? undefined : true}>
+        <summary>资料库操作</summary>
+        <div className="library-tools-actions">
         <button type="button" disabled={disabled} onClick={() => void register()}>登记已有资料库…</button>
         <button type="button" disabled={disabled} onClick={onCreate}>新建资料库…</button>
         <button type="button" disabled={disabled} onClick={() => setRevision((value) => value + 1)}>刷新登记</button>
-        {busy && <span role="status">正在处理资料库，等待旧库任务结束…</span>}
+        {busy && <span role="status">正在处理资料库…</span>}
       </div>
-      <p className="library-switch-notice">切换或取消当前登记时会取消未完成的导入，已成功的图片保留。</p>
+      <p className="library-switch-notice">切换资料库不改变导入目标。取消登记只取消该资料库的未完成导入，已完成项保留。</p>
       {error && <p role="alert">{error}</p>}
       {entries.length > 0 && (
         <details className="library-registrations" open>
@@ -84,6 +89,7 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false }:
           </ul>
         </details>
       )}
+      </details>
     </section>
   );
 }

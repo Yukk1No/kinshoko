@@ -1,0 +1,59 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/Update.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+ ❯ src/Update.test.tsx (5 tests | 1 failed) 1211ms
+   × 公开阶段未满足自动更新条件时显示原因且不提供操作 1005ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/Update.test.tsx > 公开阶段未满足自动更新条件时显示原因且不提供操作
+TestingLibraryElementError: Unable to find an element with the text: /未配置原仓库的公开更新入口/. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <h2>
+      更新
+    </h2>
+    <p
+      class="settings-hint"
+    >
+      此构建未启用自动更新。
+    </p>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <h2>
+      更新
+    </h2>
+    <p
+      class="settings-hint"
+    >
+      此构建未启用自动更新。
+    </p>
+  </div>
+</body>
+ ❯ waitForWrapper ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/Update.test.tsx:77:23
+     75|   } : null);
+     76|   render(<UpdateSection />);
+     77|   expect(await screen.findByText(/未配置原仓库的公开更新入口/)).toBeTruthy();
+       |                       ^
+     78|   expect(screen.queryByRole("button", { name: "检查更新" })).toBeNull();
+     79| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  23:34:53
+   Duration  2.99s (environment 46%, tests 43%, import 8%, transform 3%)

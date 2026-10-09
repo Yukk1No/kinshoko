@@ -1,0 +1,7 @@
+冒烟证据：C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t12-same-exe-smoke\kinshoko-smoke-VK50PY
+✓ 建立资料库并打开
+✓ 导入 3 张图，不支持的文件逐个列出
+✓ 瀑布流按原比例显示（0.50、1.00、2.00）
+✓ 重开后仍使用同一资料库身份
+✓ 重开后资料库与图片墙原样恢复
+冒烟测试通过

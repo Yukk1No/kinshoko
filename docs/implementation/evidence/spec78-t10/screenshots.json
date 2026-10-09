@@ -1,0 +1,101 @@
+{
+  "observedAfterInspection": "2026-10-08T18:55:12.899098+00:00",
+  "screenshots": [
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-1791484143122\\actual-partial-import-result.png",
+      "copy": "native-first\\actual-partial-import-result.png",
+      "sha256": "867d62ca0dd2e911a116db9456dafea7744df9d83dcef0f11ca9cbc2a6ef4445",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-1791484143122\\capture-explicit-destination.png",
+      "copy": "native-first\\capture-explicit-destination.png",
+      "sha256": "951d27642d8ae37a95907643afcdb76e1942c5b81e72e2fd666edc52b7bf5e88",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-1791484143122\\copy-preserves-independent-curation.png",
+      "copy": "native-first\\copy-preserves-independent-curation.png",
+      "sha256": "8b30f83a368e06760755a2a2172f88447471b8a6f4aed1f25fe17d4b26ed0c79",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-1791484143122\\explicit-import-destination.png",
+      "copy": "native-first\\explicit-import-destination.png",
+      "sha256": "85a0a1a51b3ed9446201d5e3427de5083ac9f616b5fdbca7289e96b407409ec7",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-1791484143122\\package-explicit-destination.png",
+      "copy": "native-first\\package-explicit-destination.png",
+      "sha256": "69d114a081128ae611b90636dbb52291c4600c6ccf2c34c2e9f62b66db2f8889",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-1791484143122\\running-owner-after-current-and-target-change.png",
+      "copy": "native-first\\running-owner-after-current-and-target-change.png",
+      "sha256": "fd6d028ba129b6239eb6f1522976fc6ee712f5e534926accbd4430971fb0dbec",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791484648915\\explicit-import-destination.png",
+      "copy": "native-followup-first-failed\\explicit-import-destination.png",
+      "sha256": "12e776dda1155a3944c14a3dedbd43a96416197162429897179bb1eb79bae9eb",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791484648915\\failure.png",
+      "copy": "native-followup-first-failed\\failure.png",
+      "sha256": "3d45060b5438b5f3dff6bc0eef808a4f2887bdcf4c3b4828535168101ddb9f07",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791484648915\\running-owner-after-current-and-target-change.png",
+      "copy": "native-followup-first-failed\\running-owner-after-current-and-target-change.png",
+      "sha256": "283c054a146f598a33a8bbb40e1ba5fbf1cfb0f548387fb059c45a88b0b023c2",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485183957\\copy-explicit-confirmation.png",
+      "copy": "native-followup-second-fixture-failed\\copy-explicit-confirmation.png",
+      "sha256": "85184c102aedccdf87f672a9962fe7d8c0457589591c74be30da4d46d837701a",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485183957\\explicit-import-destination.png",
+      "copy": "native-followup-second-fixture-failed\\explicit-import-destination.png",
+      "sha256": "330b28318341c4b5ab3ee4c363f82b847878faf45aee0b224786fab8f06291f4",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485183957\\failure.png",
+      "copy": "native-followup-second-fixture-failed\\failure.png",
+      "sha256": "ca1d54787726c739d7a4711bc45ab2992739b2344524697c651db31a804f031b",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485183957\\running-owner-after-current-and-target-change.png",
+      "copy": "native-followup-second-fixture-failed\\running-owner-after-current-and-target-change.png",
+      "sha256": "c11bd277da69fe6cc6ccc5b8bafcb5672c91636a5ceeb116756f2b5530c9068e",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\copy-explicit-confirmation.png",
+      "copy": "native-copy-passed\\copy-explicit-confirmation.png",
+      "sha256": "d12028b7df6a072aab273c9bb91c84498e92029f4d60f44dbc69b95d5c66daa7",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\copy-preserves-independent-curation.png",
+      "copy": "native-copy-passed\\copy-preserves-independent-curation.png",
+      "sha256": "499f719f1a7e5bf8fbb2191ee261d5129092a21d1ffa387becb001fce3420c35",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\explicit-import-destination.png",
+      "copy": "native-copy-passed\\explicit-import-destination.png",
+      "sha256": "71af10289deadb7c80f0b2f00001672a11160ed049ccb515b8e5edfea5bf4050",
+      "inspection": "Viewed locally; scope and known limitations explained in README and implementation note"
+    }
+  ]
+}

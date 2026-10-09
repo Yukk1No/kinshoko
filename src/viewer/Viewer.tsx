@@ -1,11 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ImageCard } from "../bindings/ImageCard";
 import type { Region } from "../bindings/Region";
-import { displayScaledUrl, displayUrl, imageDetail, isUnknownImage, pinReference, setCaptureReference } from "../ipc";
+import { displayScaledUrl, displayUrl, imageDetail, workspaceImage, isUnknownImage, pinReference, shellSettings, migrateViewerBackground, setViewerBackground } from "../ipc";
+import { legacyViewerBackground, rememberViewerBackground } from "./background";
 import type { KeyboardEvent } from "react";
+import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
 
 type Props = {
+  workspace?: boolean;
+  sourceName?: string;
   libraryId: string;
   card: ImageCard;
   onClose: () => void;
@@ -14,13 +18,6 @@ type Props = {
 };
 type Background = "dark" | "mid" | "light" | "checker";
 
-function savedBackground(): Background {
-  try {
-    const saved = localStorage.getItem("kinshoko.viewer.background");
-    if (saved === "dark" || saved === "mid" || saved === "light" || saved === "checker") return saved;
-  } catch { /* 本地存储不可用时用中灰。 */ }
-  return "mid";
-}
 
 /**
  * 查看器盖在图片墙上，原位置与已加载的卡片保留。
@@ -28,14 +25,15 @@ function savedBackground(): Background {
  * 钉到桌面（#65）：“钉住整图”，或 Shift+拖动（或先按“框选局部”）框出一块，按 Enter 或“钉住局部”。
  * 选区按原图像素记，标出“宽 × 高 px（原图像素）”，缩放平移时边界不变。
  */
-export function Viewer({ libraryId, card, onClose, reloadKey = 0 }: Props) {
+export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, sourceName }: Props) {
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0, dpr: window.devicePixelRatio || 1 });
   const [mode, setMode] = useState<"fit" | "pixels" | "zoom">("fit");
   const [zoomScale, setZoomScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [background, setBackground] = useState<Background>(savedBackground);
+  const [background, setBackground] = useState<Background>(legacyViewerBackground);
+  const [backgroundReady, setBackgroundReady] = useState(false);
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
@@ -51,8 +49,16 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0 }: Props) {
   closeRef.current = onClose;
   useLayoutEffect(() => root.current?.focus(), []);
   useEffect(() => {
-    try { localStorage.setItem("kinshoko.viewer.background", background); } catch { /* 仅不记住底色。 */ }
-  }, [background]);
+    let alive = true;
+    shellSettings().then(async (view) => view?.viewerBackground ?? (await migrateViewerBackground(legacyViewerBackground()))?.viewerBackground ?? "mid")
+      .then((value) => { if (alive) { setBackground(value); setBackgroundReady(true); } }, () => { /* A failed read must never write legacy cache over restored settings. */ });
+    return () => { alive = false; };
+  }, []);
+  useEffect(() => {
+    if (!backgroundReady) return;
+    rememberViewerBackground(background);
+    void setViewerBackground(background).catch(() => {});
+  }, [background, backgroundReady]);
   useLayoutEffect(() => {
     const el = stage.current!;
     const sync = () => setViewport((prev) => {
@@ -112,25 +118,18 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0 }: Props) {
   // 1:1 与放大走 Library::display（原图或原尺寸 sdr 派生图）；缩小走精确尺寸派生图。从不直接读原文件。
   const address = sourcePx >= card.width ? displayUrl(libraryId, card.id) : displayScaledUrl(libraryId, card.id, sourcePx);
   const src = address + (retry ? `?retry=${retry}` : "");
-  useEffect(() => {
-    const visibleLeft = Math.max(0, left);
-    const visibleTop = Math.max(0, top);
-    const visibleWidth = Math.min(viewport.width, left + width) - visibleLeft;
-    const visibleHeight = Math.min(viewport.height, top + height) - visibleTop;
-    const reference = exactSource && loadedSrc === src && failedSrc !== src && visibleWidth > 0 && visibleHeight > 0 ? {
-      libraryId, imageId: card.id,
-      shown: toScreenRect({ x: left, y: top, width, height }, viewport, dpr),
-      visible: toScreenRect({ x: visibleLeft, y: visibleTop, width: visibleWidth, height: visibleHeight }, viewport, dpr),
-    } : null;
-    void setCaptureReference(reference).catch(() => {});
-  }, [libraryId, card.id, left, top, width, height, viewport, dpr, exactSource, loadedSrc, failedSrc, src]);
-  useEffect(() => () => { void setCaptureReference(null).catch(() => {}); }, []);
+  useCaptureSources(() => {
+    const image = stage.current?.querySelector("img");
+    if (!image || !exactSource || loadedSrc !== src || failedSrc === src) return [];
+    const reference = captureImage(image, stage.current!, libraryId, card.id, card.width, card.height);
+    return reference ? [reference] : [];
+  }, 100);
   // 这张图已不在（被删除，或安全模式下被封印，查询返回 UnknownImage）时回到图片墙。
   useEffect(() => {
     let alive = true;
-    imageDetail(libraryId, card.id).catch((e) => { if (alive && isUnknownImage(e)) closeRef.current(); });
+    (workspace ? workspaceImage : imageDetail)(libraryId, card.id).catch((e) => { if (alive && isUnknownImage(e)) closeRef.current(); });
     return () => { alive = false; };
-  }, [libraryId, card.id, reloadKey, failedSrc]);
+  }, [libraryId, card.id, reloadKey, failedSrc, workspace]);
   const shown = { left, top, width, height };
   const natural = { width: card.width, height: card.height };
   const cropRect = crop && cropOnScreen(crop, shown, natural);
@@ -239,7 +238,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0 }: Props) {
         </div>}
         {pinStatus && <p className="viewer-pin-status" role="status">{pinStatus}</p>}
       </div>
-      <footer className="viewer-hint">滚轮缩放 · 拖动平移 · Shift+拖动框选局部，Enter 钉住 · Esc 返回图片墙</footer>
+      <footer className="viewer-hint">{sourceName && <span>来源：{sourceName} · </span>}滚轮缩放 · 拖动平移 · Shift+拖动框选局部，Enter 钉住 · Esc 返回图片墙</footer>
     </section>
   );
 }

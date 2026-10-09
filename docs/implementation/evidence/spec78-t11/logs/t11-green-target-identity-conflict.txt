@@ -1,0 +1,36 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.84s
+     Running tests\eagle_reimport.rs (target\debug\deps\eagle_reimport-4dfec2aebcd8b6f8.exe)
+
+running 13 tests
+test confirming_an_unknown_source_writes_nothing ... ok
+test eagle_trash_counts_only_on_first_import ... ok
+test a_library_from_before_folder_decisions_upgrades_and_keeps_its_folders ... ok
+test changed_content_keeps_both_versions_and_they_can_be_told_apart ... ok
+test eagle_relocation_updates_sources_for_the_spelling_it_was_imported_with ... ok
+test manual_folder_decision_stays_with_its_own_source ... ok
+test eagle_relocation_updates_sources_for_a_case_alias ... ok
+test reimport_refreshes_eagle_tags_and_notes_and_keeps_manual_curation ... ok
+test eagle_deletion_and_trash_never_reach_the_local_copy ... ok
+test reimport_applies_eagle_folder_changes_and_keeps_local_folder_adjustments ... ok
+test moved_eagle_library_is_only_proposed_until_the_artist_confirms_it ... ok
+test manual_folder_removal_survives_eagle_remove_then_add ... ok
+test manual_folder_addition_survives_eagle_add_then_remove ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
+
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 9 tests
+test publication_subprocess ... ignored, parent public-action fault test runs this in an isolated process
+test modern_package_with_a_missing_identity_is_rejected_before_any_content_is_imported ... ok
+test read_only_registration_and_failed_publication_leave_provider_bytes_and_safe_mode_unchanged ... ok
+test old_version_one_package_still_imports_through_the_legacy_compatibility_flow ... ok
+test first_tag_write_carries_identity_when_the_library_is_copied_to_a_fresh_application ... ok
+test an_existing_catalog_namespace_conflict_is_rejected_before_package_content_changes ... ok
+test published_split_identity_survives_copy_without_exporting_the_application_name_preference ... ok
+test package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names ... ok
+test definition_publication_failure_and_process_exit_preserve_the_whole_previous_library_batch ... ok
+
+test result: ok. 8 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.64s
+

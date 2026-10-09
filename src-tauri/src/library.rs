@@ -2,27 +2,47 @@
 //! `kinshoko_core::library`。前端以 `plugin:library|<命令>` 调用。
 //!
 //! - 命令都是 async，阻塞工作放进 `spawn_blocking`，不占用主线程；
-//! - 本设备可登记多个资料库，同一时间一个活动资料库（#49）。资料库命令都带界面正在操作的
+//! - 本设备可登记多个资料库，同一时间一个活动资料库（#49）。保存命令固定库和目录；来源整理命令带明确来源。浏览命令带界面正在操作的
 //!   资料库 id，切换后旧请求得到错误，不会落到新库上；
-//! - 资料库事件转发为窗口事件 `library-event`，只转发活动资料库的事件；
+//! - 资料库事件转发为窗口事件 `library-event`，按来源身份转发；导入回执独立保留任务所属库和目录；
 //! - 缩略图走自定义协议 `thumb`：`<资料库 id>/<参考图 id>/<像素档位>`，缓存缺失时现场生成；
 //! - 安全模式（#60）：开关保存在应用壳设置里，打开资料库与切换时设给当前资料库。这里的命令都是
 //!   浏览视角；参考视角的句柄在装配（打开资料库）时取走，只交给参考组与桌面钉图，不经命令给前端。
 
+mod approx;
+mod groups;
+mod import_preview;
+mod name_migration;
+mod names;
+mod portable;
+mod save_destination;
+mod settings_backup;
+pub use portable::{
+    content_definitions, export_package as export_reference_package,
+    import_package as import_reference_package, publish_definition_dependencies,
+};
+mod source_actions;
+pub use save_destination::{with_destination, with_destination_published};
+mod workspace;
+
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::library::{
     BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping,
-    ExternalVocabulary, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportSource, LibraryEvent,
-    LibraryInfo, MappedExternal, PermanentDeletePreview, PersonalApproxEntry, RecoveryReport,
-    ReferenceLens, Sidebar, TagAlias, TagEdit, TagGroupView, TagNamespace, TagTranslations,
-    Vocabulary, discover_eagle_libraries as discover_eagle,
+    ExternalVocabulary, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportOptions,
+    ImportSource, LibraryEvent, LibraryInfo, MappedExternal, PermanentDeletePreview,
+    PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar, TagAlias, TagEdit, TagGroupView,
+    TagNamespace, TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::reference_groups::{DetachedLenses, References};
-use kinshoko_core::search::{Candidate, ConditionTree, SearchCache, SearchInput};
+use kinshoko_core::search::{Candidate, ConditionTree, Search, SearchCache, SearchInput};
+use kinshoko_core::tag_catalog::{
+    CatalogCorrection, CatalogError, CatalogImageTags, TagCatalog, TagCatalogWorkspace,
+};
 use kinshoko_core::{
     DeviceLibraries, DeviceLibraryError, DeviceRegistry, Library, LibraryRegistration,
 };
@@ -46,11 +66,19 @@ struct LibraryState {
     libraries: Arc<Mutex<Option<DeviceLibraries>>>,
     /// 已在转发事件的活动资料库句柄；同一句柄只装配一次。
     forwarded: Mutex<Option<Weak<Library>>>,
+    forwarded_handles: Mutex<Vec<Weak<Library>>>,
     /// 切换、恢复和取消登记串行完成，包括旧库打标退出。
     transition: Mutex<()>,
     /// 活动资料库词表快照上的 Search，按（资料库，词表修订号，安全模式）校验；词表或图片
     /// 变化、安全模式切换、切换资料库时清掉，下次查找时重建（#76）。
     search: Arc<SearchCache>,
+    catalog: Arc<Mutex<Option<TagCatalog>>>,
+    search_catalog_revision: Arc<AtomicI64>,
+    safe_mode_generation: AtomicU64,
+    import_preview_generation: AtomicU64,
+    /// Serialize visibility revocation with the final externally visible side effect.
+    visibility_commit: Arc<Mutex<()>>,
+    workspace: Mutex<Option<kinshoko_core::workspace::Workspace>>,
     /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
     /// 与桌面钉图（#65），不经任何命令交给前端。
     reference: Mutex<Option<ReferenceLens>>,
@@ -71,8 +99,15 @@ impl LibraryState {
             device_dir,
             libraries: Arc::default(),
             forwarded: Mutex::new(None),
+            forwarded_handles: Mutex::new(Vec::new()),
             transition: Mutex::new(()),
             search: Arc::default(),
+            catalog: Arc::default(),
+            search_catalog_revision: Arc::new(AtomicI64::new(-1)),
+            safe_mode_generation: AtomicU64::new(0),
+            import_preview_generation: AtomicU64::new(0),
+            visibility_commit: Arc::new(Mutex::new(())),
+            workspace: Mutex::default(),
             reference: Mutex::new(None),
             detached: DetachedLenses::default(),
             builtin_approx: Arc::new(BuiltinApproxTable::bundled()),
@@ -81,13 +116,11 @@ impl LibraryState {
         }
     }
 
-    /// 给刚打开（新建、打开或切换到）的资料库装上随软件分发的翻译表：之后首次进库的模型标签
-    /// 取得初始名称与别名，库里仍尚未翻译的标签现在补上（ADR-0003）。在开始打标之前调用。
-    fn install_translations(&self, library: &Library) {
-        if let Err(e) = library.set_translations((*self.translations).clone()) {
-            // 翻译表已装上，只是补旧标签失败；之后进库的标签照常取得名称，下次打开再补。
-            eprintln!("给资料库尚未翻译的标签补上名称失败：{e}");
-        }
+    /// Configure shared writer policy before application actions: initial names and the
+    /// same final visibility gate used by package/copy rating publication.
+    fn configure_library(&self, library: &Library) {
+        library.use_translations_for_new_tags((*self.translations).clone());
+        library.use_package_publication_gate(self.visibility_commit.clone());
     }
 
     /// 界面正在操作的资料库；已切换或关闭时返回错误。
@@ -118,6 +151,49 @@ fn with_libraries<T>(
     action(state.as_mut().expect("登记表已打开")).map_err(|error| error.to_string())
 }
 
+fn with_catalog<T>(
+    device_dir: &Path,
+    state: &Mutex<Option<TagCatalog>>,
+    action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,
+) -> Result<T, String> {
+    let mut state = lock(state);
+    if state.is_none() {
+        let mut catalog = TagCatalog::open(device_dir).map_err(|e| e.to_string())?;
+        catalog
+            .install_name_defaults(bundled_translations())
+            .map_err(|e| e.to_string())?;
+        *state = Some(catalog);
+    }
+    action(state.as_mut().expect("统一目录已打开")).map_err(|e| e.to_string())
+}
+
+fn catalog_search(
+    device_dir: &Path,
+    catalog: &Mutex<Option<TagCatalog>>,
+    revision: &AtomicI64,
+    cache: &SearchCache,
+    library: &Arc<Library>,
+    builtin: &BuiltinApproxTable,
+    safe_mode: bool,
+) -> Result<Arc<Search>, String> {
+    // Hold catalog serialization until the cached projection has been built. A correction
+    // cannot race an older snapshot back into the cache after invalidation.
+    with_catalog(device_dir, catalog, |catalog| {
+        let snapshot = catalog.synchronize(library)?;
+        if revision.swap(snapshot.revision, Ordering::SeqCst) != snapshot.revision {
+            cache.invalidate();
+        }
+        cache
+            .search_with(library, safe_mode, |vocabulary| {
+                Search::new(
+                    &snapshot.search_vocabulary(&library.info().id, vocabulary),
+                    builtin,
+                )
+            })
+            .map_err(CatalogError::Library)
+    })
+}
+
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
@@ -125,6 +201,26 @@ fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("library")
         .invoke_handler(tauri::generate_handler![
+            settings_backup::pick_application_settings,
+            settings_backup::export_application_settings,
+            settings_backup::preview_application_settings,
+            settings_backup::restore_application_settings,
+            source_actions::workspace_preview_source_delete,
+            source_actions::workspace_permanent_source_delete,
+            source_actions::workspace_source_group,
+            source_actions::workspace_source_inspection,
+            source_actions::workspace_source_candidates,
+            source_actions::workspace_edit_source,
+            source_actions::workspace_edit_source_tags,
+            workspace::workspace_status,
+            workspace::workspace_browse,
+            workspace::workspace_resolve,
+            workspace::workspace_candidates,
+            workspace::workspace_image,
+            workspace::workspace_sidebar,
+            workspace::workspace_directories,
+            workspace::workspace_tag_groups,
+            workspace::workspace_local_tags,
             current_library,
             create_library,
             registered_libraries,
@@ -142,12 +238,32 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             move_folder,
             recovery,
             start_import,
+            save_destination::import_tasks,
+            import_preview::open_import_preview,
+            import_preview::read_import_preview,
+            import_preview::close_import_preview,
+            save_destination::dismiss_import,
+            save_destination::workspace_copy_source,
+            import_contains_eagle,
             cancel_import,
             pick_folder,
             pick_files,
             discover_eagle_libraries,
             confirm_eagle_location,
             image_tags,
+            catalog_image_tags,
+            inspect_tag_catalog,
+            correct_tag_mapping,
+            portable::publish_tag_definitions,
+            names::edit_tag_name,
+            groups::shared_tag_groups,
+            approx::shared_personal_approx,
+            approx::edit_shared_approx,
+            groups::create_shared_tag_group,
+            groups::edit_shared_tag_group,
+            name_migration::plan_legacy_names,
+            name_migration::preview_legacy_names,
+            name_migration::confirm_legacy_names,
             edit_tags,
             vocabulary,
             tag_groups,
@@ -175,6 +291,11 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 Some(dir) => PathBuf::from(dir),
                 None => app.path().app_data_dir()?,
             };
+            kinshoko_core::application_settings_backup::ApplicationSettingsBackup::recover(
+                &device_dir,
+                &app.path().app_config_dir()?,
+            )
+            .map_err(std::io::Error::other)?;
             // 打标模型约 1 GB（CPU 档 2 GB），放在本机数据目录，不随漫游配置同步。
             let models_dir = match std::env::var_os(DATA_DIR_ENV) {
                 Some(dir) => PathBuf::from(dir).join("models"),
@@ -186,6 +307,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 .and_then(|s| s.tagging_model().map(str::to_owned));
             crate::tagging::setup(app, models_dir, preferred);
             app.manage(LibraryState::new(device_dir));
+            workspace::monitor(app.clone());
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol("thumb", |ctx, request, responder| {
@@ -211,13 +333,13 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     else {
         return not_found();
     };
-    // 只回答活动资料库的图；切换后旧图片墙的迟到请求得到 404。
-    let Ok(library) = app.state::<LibraryState>().active() else {
+    // Registered detached provider. The workspace safety veto includes nonmatching/offline sources.
+    let state = app.state::<LibraryState>();
+    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let safe = saved_safe_mode(app);
+    let Ok(library) = workspace::read(app, library_id, image_id) else {
         return not_found();
     };
-    if library.info().id != library_id {
-        return not_found();
-    }
     // `full`：1:1 与放大时显示的文件（Library::display，ADR-0005）。看图界面只用这条路，
     // 不直接读原文件——动图、HDR、Chromium 不能精确表示的 ICC 与 CMYK 要换成 sdr 派生图。
     // `fit-<像素>`：查看器缩小显示（适应窗口等）的精确尺寸派生图（Library::display_scaled，#47）。
@@ -237,7 +359,17 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     let Ok(path) = found else {
         return not_found();
     };
-    match std::fs::read(&path) {
+    let bytes = match std::fs::read(&path) {
+        Ok(bytes) => bytes,
+        Err(_) => return not_found(),
+    };
+    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
+        || saved_safe_mode(app) != safe
+        || workspace::read(app, library_id, image_id).is_err()
+    {
+        return not_found();
+    }
+    match Ok::<_, std::io::Error>(bytes) {
         Ok(bytes) => Response::builder()
             .header(header::CONTENT_TYPE, image_content_type(&path))
             .body(bytes)
@@ -276,18 +408,30 @@ fn forward_events<R: Runtime>(
     }
     *forwarded = Some(weak.clone());
     library.set_safe_mode(saved_safe_mode(app));
-    state.install_translations(&library);
+    if let Err(error) = with_catalog(&state.device_dir, &state.catalog, |catalog| {
+        catalog.synchronize(&library)
+    }) {
+        eprintln!("接入统一标签目录失败：{error}");
+    }
+    state.configure_library(&library);
     let events = library.events();
     *lock(&state.reference) = library.take_reference_lens();
     // 刚成为活动库的库不再经只读视角读取；其他库按需重开。
     state.detached.clear();
     state.search.invalidate();
     crate::tagging::attach(app, library);
+    let mut handles = lock(&state.forwarded_handles);
+    handles.retain(|handle| handle.strong_count() > 0);
+    if handles.iter().any(|handle| Weak::ptr_eq(handle, &weak)) {
+        return info;
+    }
+    handles.push(weak.clone());
+    drop(handles);
     let (app, libraries, search) = (app.clone(), state.libraries.clone(), state.search.clone());
     std::thread::Builder::new()
         .name("kinshoko-library-events".into())
         .spawn(move || {
-            for event in events {
+            for mut event in events {
                 let active = lock(&libraries)
                     .as_ref()
                     .and_then(DeviceLibraries::current)
@@ -309,6 +453,11 @@ fn forward_events<R: Runtime>(
                         | LibraryEvent::SafeModeChanged { .. }
                 ) {
                     search.invalidate();
+                }
+                // Task-finished events may race the all-provider projection. Raw success details
+                // stay in the fixed task owner; polling returns the checked ordinary receipt.
+                if let LibraryEvent::TaskFinished { report, .. } = &mut event {
+                    *report = report.clone().without_content_details();
                 }
                 let _ = app.emit(EVENT, event);
             }
@@ -336,11 +485,13 @@ async fn blocking<T: Send + 'static>(
 fn restore<R: Runtime>(app: &AppHandle<R>) -> Result<Option<Arc<Library>>, String> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
-    let opened = with_libraries(
-        &state.device_dir,
-        &state.libraries,
-        DeviceLibraries::restore_last_opened,
-    )?;
+    let opened = with_visibility_commit(app, |_| {
+        with_libraries(
+            &state.device_dir,
+            &state.libraries,
+            DeviceLibraries::restore_last_opened,
+        )
+    })?;
     if let Some(library) = &opened {
         forward_events(app, &state, library.clone());
     }
@@ -358,26 +509,13 @@ pub fn current<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<Arc<L
     app.state::<LibraryState>().current(library_id)
 }
 
-/// 同步完成一次目标活动库的操作，期间不允许切换或重新打开资料库。
-/// 文件选择框等交互应在调用前完成，回调不交出未完成的导入任务。
-pub fn with_current<T>(
-    app: &AppHandle,
+/// Validate the exact visible workspace source before creating a desktop reference.
+pub fn visible_source<R: Runtime>(
+    app: &AppHandle<R>,
     library_id: &str,
-    action: impl FnOnce(&Library) -> Result<T, String>,
-) -> Result<T, String> {
-    let state = app.state::<LibraryState>();
-    let _transition = lock(&state.transition);
-    let library = state.current(library_id)?;
-    action(&library)
-}
-
-/// `library_id` 的参考视角句柄，只给桌面钉图（#65）与参考组（#66）。每次现取：切换资料库后
-/// 句柄换成新库的，不是这个库的就没有。不打开资料库。
-pub fn reference_lens<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Option<ReferenceLens> {
-    lock(&app.state::<LibraryState>().reference)
-        .as_ref()
-        .filter(|lens| lens.library_id() == library_id)
-        .cloned()
+    image_id: &str,
+) -> Result<Arc<Library>, String> {
+    workspace::read(app, library_id, image_id)
 }
 
 /// 本设备上按“资料库＋参考图”取图的地方（参考组与桌面钉图用，#66）：活动资料库经它的参考视角
@@ -421,64 +559,68 @@ pub fn registered<R: Runtime>(
     })
 }
 
-/// 收藏到画师明确选择的已登记资料库，不切换活动库。整个收藏与库切换串行，防止
-/// 切换时重新打开同一个库、把仍在进行的导入当作中断清理。临时句柄不离开这个作用域。
-pub fn with_collection<T>(
-    app: &AppHandle,
-    library_id: &str,
-    collect: impl FnOnce(&Library) -> Result<T, String>,
-) -> Result<T, String> {
-    let state = app.state::<LibraryState>();
-    let _transition = lock(&state.transition);
-    if let Ok(library) = state.current(library_id) {
-        return collect(&library);
-    }
-    let registrations = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-        Ok(libraries.libraries().to_vec())
-    })?;
-    let registration = registrations
-        .into_iter()
-        .find(|r| r.id == library_id)
-        .ok_or("本设备没有登记这个资料库")?;
-    let library = Library::open(&registration.root).map_err(|e| e.to_string())?;
-    if library.info().id != registration.id {
-        return Err("资料库位置已是另一个资料库，请重新登记".into());
-    }
-    state.install_translations(&library);
-    library.set_safe_mode(saved_safe_mode(app));
-    collect(&library)
-}
-
 /// 把恢复出的资料库登记到本设备，不切换过去（#69）。
 pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> Result<(), String> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
-    with_libraries(&state.device_dir, &state.libraries, |libraries| {
-        for root in roots {
-            libraries.add_registration(root)?;
-        }
-        Ok(())
+    with_visibility_commit(app, |_| {
+        with_libraries(&state.device_dir, &state.libraries, |libraries| {
+            for root in roots {
+                libraries.add_registration(root)?;
+            }
+            Ok(())
+        })
     })?;
     state.detached.clear();
     Ok(())
 }
 
+/// Current authority generation for native capture actions.
+pub fn capture_generation<R: Runtime>(app: &AppHandle<R>) -> u64 {
+    workspace::generation(app)
+}
+
+/// Revoke receipt consent when its main window is destroyed.
+pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
+    // Never wait for the visibility permit on the window thread. Fence pending sends
+    // immediately, then retire the session in the normal permit -> resources order.
+    app.state::<LibraryState>()
+        .import_preview_generation
+        .fetch_add(1, Ordering::SeqCst);
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        with_visibility_commit(&app, |_| import_preview::revoke(&app))
+    });
+}
+
+/// Commit a final visibility-authorized side effect atomically with mode/settings,
+/// provider/source edits and background rating publication.
+/// Decode first, outside this closure. Revalidate the caller's capability against the supplied
+/// generation, then perform the actual send/copy/pin before returning. This does not reject
+/// safe mode itself: an explicit, scoped preview capability can be valid while safe mode is on.
+///
+/// Worker threads only; never await, re-enter, or acquire this while holding resource locks.
+/// Lock order: transition (when needed), visibility_commit, then library/catalog/workspace/Shell
+/// and desktop resources. Main-thread callbacks must not wait for this permit or ShellState;
+/// registrations and native window creation may synchronously dispatch to that thread.
+pub(crate) fn with_visibility_commit<R: Runtime, T>(
+    app: &AppHandle<R>,
+    commit: impl FnOnce(u64) -> T,
+) -> T {
+    let state = app.state::<LibraryState>();
+    let _visibility = lock(&state.visibility_commit);
+    commit(state.safe_mode_generation.load(Ordering::SeqCst))
+}
+
+/// The same pure Rust gate is injected into background result publication.
+/// Lifecycle code must release it before stopping/joining a scheduler worker.
+pub(crate) fn visibility_publication_gate<R: Runtime>(app: &AppHandle<R>) -> Arc<Mutex<()>> {
+    app.state::<LibraryState>().visibility_commit.clone()
+}
+
 /// 安全模式是否开启（全局设置）；读不到设置时按开启处理。
 pub fn safe_mode_on<R: Runtime>(app: &AppHandle<R>) -> bool {
     saved_safe_mode(app)
-}
-
-/// [`current_or_last`] 会用到的资料库的 id 与名称，只读登记表、不打开资料库。
-pub fn current_name<R: Runtime>(app: &AppHandle<R>) -> Option<(String, String)> {
-    let state = app.state::<LibraryState>();
-    if let Ok(library) = state.active() {
-        let info = library.info();
-        return Some((info.id.clone(), info.name.clone()));
-    }
-    let device = DeviceRegistry::open(&state.device_dir).ok()?;
-    device
-        .last_opened()
-        .map(|entry| (entry.id.clone(), entry.name.clone()))
 }
 
 /// 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。
@@ -497,8 +639,10 @@ async fn create_library<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            libraries.create(&parent.join(name.trim()), &name)
+        let library = with_visibility_commit(&app, |_| {
+            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                libraries.create(&parent.join(name.trim()), &name)
+            })
         })?;
         Ok(forward_events(&app, &state, library))
     })
@@ -529,8 +673,10 @@ async fn register_library<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            libraries.register(&root)
+        let library = with_visibility_commit(&app, |_| {
+            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                libraries.register(&root)
+            })
         })?;
         Ok(forward_events(&app, &state, library))
     })
@@ -546,8 +692,10 @@ async fn switch_library<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            libraries.switch(&library_id)
+        let library = with_visibility_commit(&app, |_| {
+            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                libraries.switch(&library_id)
+            })
         })?;
         Ok(forward_events(&app, &state, library))
     })
@@ -563,17 +711,21 @@ async fn unregister_library<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        let closed = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            let closed = libraries
-                .current()
-                .is_some_and(|library| library.info().id == library_id);
-            libraries.unregister(&library_id)?;
-            Ok(closed)
+        let closed = with_visibility_commit(&app, |_| {
+            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                let closed = libraries
+                    .current()
+                    .is_some_and(|library| library.info().id == library_id);
+                libraries.unregister(&library_id)?;
+                Ok(closed)
+            })
         })?;
         if closed {
             *lock(&state.forwarded) = None;
             state.search.invalidate();
             *lock(&state.reference) = None;
+            // Tagging::drop joins a worker that may be waiting for visibility_commit.
+            // Registry revocation has committed and released that gate before this join.
             crate::tagging::detach(&app);
         }
         state.detached.clear();
@@ -604,14 +756,20 @@ async fn image(
 
 /// 一次批量整理若干张图，返回重新计算后的详情。
 #[tauri::command]
-async fn edit(
-    state: State<'_, LibraryState>,
+async fn edit<R: Runtime>(
+    app: AppHandle<R>,
     library_id: String,
     ids: Vec<String>,
     edits: Vec<ImageEdit>,
 ) -> Result<Vec<ImageDetail>, String> {
-    let library = state.current(&library_id)?;
-    blocking(move || library.edit(&ids, &edits).map_err(|e| e.to_string())).await
+    blocking(move || {
+        with_visibility_commit(&app, |_| {
+            current(&app, &library_id)?
+                .edit(&ids, &edits)
+                .map_err(|e| e.to_string())
+        })
+    })
+    .await
 }
 
 /// 永久删除的预览（#67）：回收站里这些图会影响哪些参考组，以及执行时要交回的令牌。
@@ -642,13 +800,15 @@ async fn permanent_delete<R: Runtime>(
     ids: Vec<String>,
     token: String,
 ) -> Result<(), String> {
-    let library = current(&app, &library_id)?;
     blocking(move || {
-        crate::desktop::with_groups(&app, |groups| {
-            library.permanent_delete(&ids, &token, groups)
-        })
-        .ok_or_else(|| "参考组还没有准备好".to_owned())?
-        .map_err(|e| e.to_string())?;
+        with_visibility_commit(&app, |_| {
+            let library = current(&app, &library_id)?;
+            crate::desktop::with_groups(&app, |groups| {
+                library.permanent_delete(&ids, &token, groups)
+            })
+            .ok_or_else(|| "参考组还没有准备好".to_owned())?
+            .map_err(|e| e.to_string())
+        })?;
         crate::desktop::reference_groups_changed(&app);
         Ok(())
     })
@@ -716,27 +876,41 @@ async fn recovery(
     state: State<'_, LibraryState>,
     library_id: String,
 ) -> Result<RecoveryReport, String> {
-    Ok(state.current(&library_id)?.recovery().clone())
+    with_libraries(&state.device_dir, &state.libraries, |device| {
+        Ok(device.write(&library_id)?.recovery().clone())
+    })
 }
 
 /// 开始导入，立即返回任务 id；进度与结果经 `library-event` 推送。
 #[tauri::command]
 async fn start_import<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
     source: ImportSource,
+    options: Option<ImportOptions>,
+    destination: Option<kinshoko_core::library::SaveDestination>,
 ) -> Result<String, String> {
     let paths = source.paths.len().min(u32::MAX as usize) as u32;
-    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
+    let destination = destination.unwrap_or(kinshoko_core::library::SaveDestination {
+        library_id: library_id.clone(),
+        folder_id: None,
+    });
+    if destination.library_id != library_id {
+        return Err("保存目标资料库与任务归属不一致".into());
+    }
+    let worker = app.clone();
     let id = blocking(move || {
-        with_libraries(&device_dir, &libraries, |libraries| {
-            libraries.start_import(&library_id, source)
-        })
+        save_destination::begin(&worker, destination, source, options.unwrap_or_default())
     })
     .await?;
     crate::diagnostics::record(&app, UsageEvent::ImportStarted { paths });
     Ok(id)
+}
+
+/// 来源预检只读取文件夹，所有入口在开始 Eagle 任务前使用同一个选择步骤。
+#[tauri::command]
+async fn import_contains_eagle(source: ImportSource) -> Result<bool, String> {
+    blocking(move || Ok(source.contains_eagle())).await
 }
 
 #[tauri::command]
@@ -790,13 +964,19 @@ async fn discover_eagle_libraries() -> Result<Vec<EagleLibraryCandidate>, String
 
 /// 画师确认导入报告里疑似搬家的 Eagle 位置；确认后前端再导入这个位置。
 #[tauri::command]
-async fn confirm_eagle_location(
-    state: State<'_, LibraryState>,
+async fn confirm_eagle_location<R: Runtime>(
+    app: AppHandle<R>,
     library_id: String,
     path: PathBuf,
     choice: kinshoko_core::library::EagleLocationChoice,
 ) -> Result<(), String> {
-    let library = state.current(&library_id)?;
+    let library = save_destination::fixed_library(
+        &app,
+        &kinshoko_core::library::SaveDestination {
+            library_id,
+            folder_id: None,
+        },
+    )?;
     blocking(move || {
         library
             .confirm_eagle_location(&path, choice)
@@ -814,17 +994,114 @@ async fn image_tags(
     lang: String,
 ) -> Result<ImageTags, String> {
     let library = state.current(&library_id)?;
+    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
     blocking(move || {
-        library
-            .image_tags(&image_id, &lang)
-            .map_err(|e| e.to_string())
+        with_catalog(&dir, &catalog, |catalog| {
+            Ok(catalog.image_tags(&library, &image_id, &lang)?.image)
+        })
     })
     .await
 }
 
+#[tauri::command]
+async fn catalog_image_tags(
+    state: State<'_, LibraryState>,
+    library_id: String,
+    image_id: String,
+    lang: String,
+) -> Result<CatalogImageTags, String> {
+    let library = state.current(&library_id)?;
+    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    blocking(move || {
+        with_catalog(&dir, &catalog, |catalog| {
+            catalog.image_tags(&library, &image_id, &lang)
+        })
+    })
+    .await
+}
+
+#[tauri::command]
+async fn inspect_tag_catalog<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+) -> Result<TagCatalogWorkspace, String> {
+    let (dir, libraries, catalog) = (
+        state.device_dir.clone(),
+        state.libraries.clone(),
+        state.catalog.clone(),
+    );
+    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let safe = saved_safe_mode(&app);
+    let result = blocking(move || {
+        with_libraries(&dir, &libraries, |libraries| {
+            Ok(with_catalog(&dir, &catalog, |catalog| {
+                catalog.inspect_libraries(libraries, safe)
+            }))
+        })?
+    })
+    .await?;
+    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
+        || saved_safe_mode(&app) != safe
+    {
+        return Err("安全模式已变化，请重新检查标签对应".into());
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+async fn correct_tag_mapping<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+    library_id: String,
+    local_tag_id: String,
+    correction: CatalogCorrection,
+) -> Result<TagCatalogWorkspace, String> {
+    let (dir, libraries, catalog) = (
+        state.device_dir.clone(),
+        state.libraries.clone(),
+        state.catalog.clone(),
+    );
+    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let safe = saved_safe_mode(&app);
+    let publish_library_id = library_id.clone();
+    let result = blocking(move || {
+        with_libraries(&dir, &libraries, |libraries| {
+            let library = libraries.read(&library_id)?;
+            library.set_safe_mode(safe);
+            Ok(with_catalog(&dir, &catalog, |catalog| {
+                catalog.correct(&library, &local_tag_id, correction)?;
+                catalog.inspect_libraries(libraries, safe)
+            }))
+        })?
+    })
+    .await?;
+    let publish_app = app.clone();
+    let publication =
+        blocking(move || publish_definition_dependencies(&publish_app, &publish_library_id)).await;
+    state.search.invalidate();
+    // Compatibility event refreshes current candidates, conditions and selected image labels.
+    if let Ok(active) = state.active() {
+        let _ = app.emit(
+            EVENT,
+            LibraryEvent::VocabularyChanged {
+                library_id: active.info().id.clone(),
+                revision: active.vocabulary_revision().map_err(|e| e.to_string())?,
+            },
+        );
+    }
+    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
+        || saved_safe_mode(&app) != safe
+    {
+        return Err("安全模式已变化，请重新检查标签对应".into());
+    }
+    publication.map_err(|error| format!("标签对应已保存在程序中，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))?;
+    Ok(result)
+}
+
 /// 对若干参考图批量添加、否决或清除标签决定。
 #[tauri::command]
-async fn edit_tags(
+async fn edit_tags<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, LibraryState>,
     library_id: String,
     image_ids: Vec<String>,
@@ -832,9 +1109,8 @@ async fn edit_tags(
 ) -> Result<(), String> {
     let library = state.current(&library_id)?;
     blocking(move || {
-        library
-            .edit_tags(&image_ids, &edits)
-            .map_err(|e| e.to_string())
+        library.edit_tags(&image_ids, &edits).map_err(|e| e.to_string())?;
+        publish_definition_dependencies(&app, &library_id).map_err(|error| format!("标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))
     })
     .await
 }
@@ -845,7 +1121,13 @@ async fn vocabulary(
     library_id: String,
 ) -> Result<Vocabulary, String> {
     let library = state.current(&library_id)?;
-    blocking(move || library.vocabulary().map_err(|e| e.to_string())).await
+    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    blocking(move || {
+        with_catalog(&dir, &catalog, |catalog| {
+            catalog.search_vocabulary(&library)
+        })
+    })
+    .await
 }
 
 /// 侧栏的标签分组及计数，名称按界面语言 `lang`。
@@ -856,39 +1138,49 @@ async fn tag_groups(
     lang: String,
 ) -> Result<Vec<TagGroupView>, String> {
     let library = state.current(&library_id)?;
-    blocking(move || library.tag_groups(&lang).map_err(|e| e.to_string())).await
+    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    blocking(move || {
+        with_catalog(&dir, &catalog, |catalog| {
+            catalog.tag_groups(&library, &lang)
+        })
+    })
+    .await
 }
 
 /// 给标签加一个别名；之后按这个叫法能查到、能添加这个标签。
 #[tauri::command]
-async fn add_tag_alias(
+async fn add_tag_alias<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, LibraryState>,
     library_id: String,
     tag_id: String,
     alias: TagAlias,
 ) -> Result<(), String> {
-    let library = state.current(&library_id)?;
-    blocking(move || {
-        library
-            .add_tag_alias(&tag_id, &alias)
-            .map_err(|e| e.to_string())
-    })
+    names::edit_local_alias(
+        app,
+        &state,
+        library_id,
+        tag_id,
+        names::LocalAliasEdit::Add(alias),
+    )
     .await
 }
 
 #[tauri::command]
-async fn remove_tag_alias(
+async fn remove_tag_alias<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, LibraryState>,
     library_id: String,
     tag_id: String,
     alias: String,
 ) -> Result<(), String> {
-    let library = state.current(&library_id)?;
-    blocking(move || {
-        library
-            .remove_tag_alias(&tag_id, &alias)
-            .map_err(|e| e.to_string())
-    })
+    names::edit_local_alias(
+        app,
+        &state,
+        library_id,
+        tag_id,
+        names::LocalAliasEdit::Remove(alias),
+    )
     .await
 }
 
@@ -985,10 +1277,15 @@ async fn search_candidates(
 ) -> Result<Vec<Candidate>, String> {
     let library = state.current(&library_id)?;
     let (cache, builtin) = (state.search.clone(), state.builtin_approx.clone());
+    let (dir, catalog, revision) = (
+        state.device_dir.clone(),
+        state.catalog.clone(),
+        state.search_catalog_revision.clone(),
+    );
     blocking(move || {
-        let search = cache
-            .search(&library, &builtin, safe_mode)
-            .map_err(|e| e.to_string())?;
+        let search = catalog_search(
+            &dir, &catalog, &revision, &cache, &library, &builtin, safe_mode,
+        )?;
         Ok(search.candidates(&text, &lang, limit as usize))
     })
     .await
@@ -1007,6 +1304,11 @@ async fn resolve_search<R: Runtime>(
 ) -> Result<ConditionTree, String> {
     let library = state.current(&library_id)?;
     let (cache, builtin) = (state.search.clone(), state.builtin_approx.clone());
+    let (dir, catalog, revision) = (
+        state.device_dir.clone(),
+        state.catalog.clone(),
+        state.search_catalog_revision.clone(),
+    );
     crate::diagnostics::record(
         &app,
         UsageEvent::SearchResolved {
@@ -1014,9 +1316,9 @@ async fn resolve_search<R: Runtime>(
         },
     );
     blocking(move || {
-        let search = cache
-            .search(&library, &builtin, safe_mode)
-            .map_err(|e| e.to_string())?;
+        let search = catalog_search(
+            &dir, &catalog, &revision, &cache, &library, &builtin, safe_mode,
+        )?;
         Ok(search.resolve(&input, &lang))
     })
     .await
@@ -1036,15 +1338,23 @@ async fn set_safe_mode<R: Runtime>(
     state: State<'_, LibraryState>,
     on: bool,
 ) -> Result<bool, String> {
-    if let Some(shell) = app.try_state::<ShellState>() {
-        let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
-        shell
-            .settings
-            .set_safe_mode(on)
-            .map_err(|e| e.to_string())?;
-    }
-    if let Ok(library) = state.active() {
-        library.set_safe_mode(on);
+    {
+        let _visibility = lock(&state.visibility_commit);
+        // Revoke even a repeated setting or failed save; pending work must revalidate.
+        state.safe_mode_generation.fetch_add(1, Ordering::SeqCst);
+        import_preview::revoke(&app);
+        if let Some(shell) = app.try_state::<ShellState>() {
+            let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
+            shell
+                .settings
+                .set_safe_mode(on)
+                .map_err(|e| e.to_string())?;
+        }
+        if let Ok(library) = state.active() {
+            library.set_safe_mode(on);
+        }
+        // Do not let delayed/reordered event workers preserve a reveal across off -> on.
+        crate::desktop::safe_mode_committed(&app, on);
     }
     let _ = app.emit(SAFE_MODE_EVENT, on);
     Ok(on)
@@ -1088,7 +1398,19 @@ async fn personal_approx(
     lang: String,
 ) -> Result<Vec<PersonalApproxEntry>, String> {
     let library = state.current(&library_id)?;
-    blocking(move || library.personal_approx(&lang).map_err(|e| e.to_string())).await
+    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    blocking(move || {
+        with_catalog(&dir, &catalog, |catalog| {
+            let snapshot = catalog.synchronize(&library)?;
+            let mut entries = library.personal_approx(&lang)?;
+            for entry in &mut entries {
+                entry.a = snapshot.display_label(&library.info().id, &entry.a, &lang);
+                entry.b = snapshot.display_label(&library.info().id, &entry.b, &lang);
+            }
+            Ok(entries)
+        })
+    })
+    .await
 }
 
 /// 随软件分发的翻译表（`data/builtin-translation-table.json`），启动时取一次。唯一的注入点：
@@ -1121,16 +1443,23 @@ fn external_vocabulary<R: Runtime>(app: &AppHandle<R>) -> Result<ExternalVocabul
 #[tauri::command]
 async fn eagle_tag_mapping<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
     lang: String,
 ) -> Result<EagleTagMapping, String> {
-    let library = state.current(&library_id)?;
+    let library = save_destination::fixed_library(
+        &app,
+        &kinshoko_core::library::SaveDestination {
+            library_id,
+            folder_id: None,
+        },
+    )?;
     blocking(move || {
         let vocabulary = external_vocabulary(&app)?;
-        library
+        let mapping = library
             .map_eagle_tags(&vocabulary, &lang)
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        save_destination::publish_saved(&app, &library)?;
+        Ok(mapping)
     })
     .await
 }
@@ -1139,17 +1468,24 @@ async fn eagle_tag_mapping<R: Runtime>(
 #[tauri::command]
 async fn map_tag_external<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
     tag_id: String,
     external: String,
 ) -> Result<MappedExternal, String> {
-    let library = state.current(&library_id)?;
+    let library = save_destination::fixed_library(
+        &app,
+        &kinshoko_core::library::SaveDestination {
+            library_id,
+            folder_id: None,
+        },
+    )?;
     blocking(move || {
         let vocabulary = external_vocabulary(&app)?;
-        library
+        let mapping = library
             .map_tag_external(&tag_id, &external, &vocabulary)
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        save_destination::publish_saved(&app, &library)?;
+        Ok(mapping)
     })
     .await
 }
@@ -1178,7 +1514,7 @@ async fn image_rating(
 #[cfg(test)]
 mod tests {
     //! 应用壳的翻译表装配（#76 Core3、#77 C1）：走生产代码同一条路径——[`LibraryState::new`]
-    //! 取 [`bundled_translations`]，[`forward_events`] 调 [`LibraryState::install_translations`]。
+    //! 取 [`bundled_translations`]，[`forward_events`] 调 [`LibraryState::configure_library`]。
     //! 不启动 Tauri；资料库是临时目录里的真库。
 
     use kinshoko_core::library::{FactSource, ImportOutcome, SourceTag, TagNamespace, TagRef};
@@ -1249,7 +1585,7 @@ mod tests {
     fn a_library_assembled_by_the_app_names_model_tags_and_finds_them_by_chinese_names() {
         let (dir, state) = state();
         let (library, image) = library_with_image(dir.path(), "new");
-        state.install_translations(&library);
+        state.configure_library(&library);
         tag_blue_eyes(&library, &image);
 
         assert_eq!(names(&library, &image), [("蓝瞳".to_owned(), false)]);
@@ -1262,14 +1598,14 @@ mod tests {
     }
 
     #[test]
-    fn opening_a_library_tagged_before_the_table_existed_names_its_untranslated_tags() {
+    fn opening_a_legacy_library_preserves_untranslated_display_until_explicit_migration() {
         let (dir, state) = state();
         let (library, image) = library_with_image(dir.path(), "old");
         tag_blue_eyes(&library, &image);
         assert_eq!(names(&library, &image), [("blue eyes".to_owned(), true)]);
 
-        state.install_translations(&library);
-        assert_eq!(names(&library, &image), [("蓝瞳".to_owned(), false)]);
+        state.configure_library(&library);
+        assert_eq!(names(&library, &image), [("blue eyes".to_owned(), true)]);
     }
 
     #[test]

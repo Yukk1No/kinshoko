@@ -1,0 +1,51 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.02s
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 13 tests
+test publication_subprocess ... ignored, parent public-action fault test runs this in an isolated process
+test modern_package_with_a_missing_identity_is_rejected_before_any_content_is_imported ... ok
+test modern_package_without_its_explicit_source_local_mapping_is_rejected_before_writing ... ok
+test old_version_one_package_still_imports_through_the_legacy_compatibility_flow ... ok
+test read_only_registration_and_failed_publication_leave_provider_bytes_and_safe_mode_unchanged ... ok
+test an_existing_catalog_namespace_conflict_is_rejected_before_package_content_changes ... ok
+test first_tag_write_carries_identity_when_the_library_is_copied_to_a_fresh_application ... ok
+test a_carried_seed_identity_can_attach_to_two_library_local_ids_in_one_application ... ok
+test published_split_identity_survives_copy_without_exporting_the_application_name_preference ... ok
+test publishing_a_new_external_tag_carries_the_same_identity_already_used_by_another_library ... ok
+test definition_publication_failure_and_process_exit_preserve_the_whole_previous_library_batch ... ok
+test publishing_a_sealed_dependency_keeps_current_raw_definition_without_exposing_its_mapping ... ok
+test package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.95s
+
+     Running tests\reference_group_package.rs (target\debug\deps\reference_group_package-72e162d74d9bb4c7.exe)
+
+running 9 tests
+test export_is_refused_when_a_member_original_is_unavailable ... ok
+test package_carries_only_used_originals_once_with_snapshots_of_their_organisation ... ok
+test damaged_package_is_refused_before_anything_is_written ... ok
+test imported_package_group_is_usable_elsewhere_with_identical_originals_and_layout ... ok
+test package_import_uses_the_bound_destination_for_every_member_original ... ok
+test importing_merges_into_an_existing_identical_original_without_touching_manual_organisation ... ok
+test importing_writes_the_snapshot_as_a_package_source_layer_and_reimport_does_not_duplicate ... ok
+test copied_rating_publication_waits_for_the_final_visibility_commit ... ok
+test package_rating_publication_waits_for_the_final_visibility_commit ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.10s
+
+     Running tests\save_destination.rs (target\debug\deps\save_destination-83d37596c3e2fdd7.exe)
+
+running 9 tests
+test screenshot_collection_uses_the_explicit_destination_and_keeps_original_bytes ... ok
+test publication_failure_stays_on_its_original_task_receipt_after_browsing_changes ... ok
+test a_synchronous_save_keeps_its_writer_and_unregister_revokes_its_bound_destination ... ok
+test ordinary_import_commits_to_the_explicit_folder_without_changing_other_folders ... ok
+test eagle_import_preserves_its_source_folders_and_adds_the_explicit_destination ... ok
+test copying_keeps_source_provenance_and_the_existing_targets_manual_curation ... ok
+test deleting_the_destination_during_import_reports_remaining_failures_instead_of_falling_back ... ok
+test task_receipt_keeps_its_owner_after_current_library_changes ... ok
+test create_reopen_and_unregister_only_affect_their_actual_task_owner ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.27s
+

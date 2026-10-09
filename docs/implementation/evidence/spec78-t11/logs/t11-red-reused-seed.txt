@@ -1,0 +1,22 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.85s
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 1 test
+test a_carried_seed_identity_can_attach_to_two_library_local_ids_in_one_application ... FAILED
+
+failures:
+
+---- a_carried_seed_identity_can_attach_to_two_library_local_ids_in_one_application stdout ----
+
+thread 'a_carried_seed_identity_can_attach_to_two_library_local_ids_in_one_application' (31224) panicked at crates\kinshoko-core\tests\portable_tags.rs:623:44:
+one carried stable identity may be used by different library-local tags: Storage(SqliteFailure(Error { code: ConstraintViolation, extended_code: 1555 }, Some("UNIQUE constraint failed: catalog_tag.id")))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    a_carried_seed_identity_can_attach_to_two_library_local_ids_in_one_application
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.24s
+
+error: test failed, to rerun pass `-p kinshoko-core --test portable_tags`

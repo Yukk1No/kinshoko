@@ -1,0 +1,120 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+ ❯ src/library/SaveDestination.test.tsx (1 test | 1 failed) 1233ms
+   × global import requires a visible save destination and does not change browse scope 1232ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/SaveDestination.test.tsx > global import requires a visible save destination and does not change browse scope
+TestingLibraryElementError: Unable to find role="combobox" and name "保存到资料库"
+
+Ignored nodes: comments, script, style
+<div
+  class="import-popup"
+>
+  <header>
+    <strong>
+      导入到 
+      浏览库
+    </strong>
+    <button
+      aria-label="关闭导入操作"
+      type="button"
+    >
+      ×
+    </button>
+  </header>
+  <div
+    class="import-bar"
+  >
+    <div
+      class="import-actions"
+    >
+      <button
+        type="button"
+      >
+        导入文件…
+      </button>
+      <button
+        type="button"
+      >
+        导入文件夹…
+      </button>
+      <button
+        type="button"
+      >
+        从 Eagle 迁入…
+      </button>
+    </div>
+  </div>
+  <p
+    class="selection-hint"
+  >
+    单击查看 · Ctrl／Shift 多选 · 空格选择
+  </p>
+</div>
+
+Ignored nodes: comments, script, style
+<div
+  class="import-popup"
+>
+  <header>
+    <strong>
+      导入到 
+      浏览库
+    </strong>
+    <button
+      aria-label="关闭导入操作"
+      type="button"
+    >
+      ×
+    </button>
+  </header>
+  <div
+    class="import-bar"
+  >
+    <div
+      class="import-actions"
+    >
+      <button
+        type="button"
+      >
+        导入文件…
+      </button>
+      <button
+        type="button"
+      >
+        导入文件夹…
+      </button>
+      <button
+        type="button"
+      >
+        从 Eagle 迁入…
+      </button>
+    </div>
+  </div>
+  <p
+    class="selection-hint"
+  >
+    单击查看 · Ctrl／Shift 多选 · 空格选择
+  </p>
+</div>
+ ❯ waitForWrapper ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/library/SaveDestination.test.tsx:35:38
+     33|  fireEvent.click(await screen.findByRole("button",{name:"导入参考图"}));
+     34|  const menu=screen.getByRole("button",{name:"关闭导入操作"}).closest(".impor…
+     35|  fireEvent.change(await within(menu).findByRole("combobox",{name:"保存到资…
+       |                                      ^
+     36|  fireEvent.change(within(menu).getByRole("combobox",{name:"保存到文件夹"}),{…
+     37|  expect(within(menu).getByText(/最终位置：保存库.*最终目录/)).toBeTruthy();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  01:39:42
+   Duration  3.01s (tests 43%, environment 36%, transform 13%, import 8%)
+

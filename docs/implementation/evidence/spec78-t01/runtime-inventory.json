@@ -1,0 +1,33 @@
+{
+  "observedAt": "2026-10-08T20:53:18.5144856+08:00",
+  "os": {
+    "Caption": "Microsoft Windows 11 专业版",
+    "Version": "10.0.26300",
+    "BuildNumber": "26300",
+    "OSArchitecture": "64 位"
+  },
+  "gpus": [
+    {
+      "Name": "Virtual Desktop Monitor",
+      "DriverVersion": "13.50.53.699",
+      "VideoModeDescription": null
+    },
+    {
+      "Name": "GameViewer Virtual Display Adapter",
+      "DriverVersion": "15.6.5.199",
+      "VideoModeDescription": null
+    },
+    {
+      "Name": "NVIDIA GeForce RTX 4070 SUPER",
+      "DriverVersion": "32.0.16.1714",
+      "VideoModeDescription": "2560 x 1440 x 4294967296 种颜色"
+    }
+  ],
+  "webviewDirectories": [
+    "154.0.4258.62"
+  ],
+  "tauriDriver": {
+    "FullName": "C:\\Users\\yuk1no\\.cargo\\bin\\tauri-driver.exe",
+    "LastWriteTime": "2026-10-07T13:54:55.8906569+08:00"
+  }
+}

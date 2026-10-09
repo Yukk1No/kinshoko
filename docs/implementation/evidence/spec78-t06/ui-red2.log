@@ -1,0 +1,176 @@
+
+> kinshoko@0.1.0 test
+> vitest run src/search/SharedApprox.test.tsx
+
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+
+ ❯ src/search/SharedApprox.test.tsx (2 tests | 1 failed) 1235ms
+   × workspace search saves forever using shared IDs and preserves once as current input 1056ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/search/SharedApprox.test.tsx > workspace search saves forever using shared IDs and preserves once as current input
+AssertionError: expected undefined to deeply equal { edit: { kind: 'set', …(1) }, …(1) }
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="search"
+      >
+        <ul
+          aria-label="查找条件"
+          class="search-chips"
+        >
+          <li
+            class="search-chip"
+          >
+            <span
+              class="search-term"
+            >
+              <span>
+                蓝瞳
+              </span>
+              <span
+                aria-label="没有外部对应，不参与内置近似对应表"
+                class="no-external"
+                role="img"
+                title="没有外部对应，不参与内置近似对应表"
+              />
+              <span
+                class="search-similar"
+              >
+                <span
+                  class="search-chip-or"
+                >
+                  或相近：
+                </span>
+                <span
+                  class="search-similar-tag"
+                >
+                  <span>
+                    水色瞳
+                  </span>
+                  <span
+                    aria-label="没有外部对应，不参与内置近似对应表"
+                    class="no-external"
+                    role="img"
+                    title="没有外部对应，不参与内置近似对应表"
+                  />
+                  <button
+                    aria-label="不展开“水色瞳”"
+                    type="button"
+                  >
+                    ×
+                  </button>
+                </span>
+              </span>
+            </span>
+            <button
+              aria-label="排除这个条件"
+              aria-pressed="false"
+              type="button"
+            >
+              ⊘
+            </button>
+            <button
+              aria-label="去掉这个条件"
+              type="button"
+            >
+              ×
+            </button>
+          </li>
+        </ul>
+        <div
+          class="search-field"
+        >
+          <input
+            aria-controls="search-candidates"
+            aria-expanded="false"
+            aria-label="查找参考图"
+            placeholder="查找标签或文字"
+            role="combobox"
+            value=""
+          />
+        </div>
+        <button
+          aria-pressed="false"
+          class="search-exact"
+          title="不展开相近标签，只查选中的标签"
+          type="button"
+        >
+          精确查找
+        </button>
+        <div
+          aria-label="不展开相近标签"
+          class="search-popover"
+          role="dialog"
+        >
+          <p>
+            不展开“
+            水色瞳
+            ”：
+          </p>
+          <button
+            type="button"
+          >
+            只这次
+          </button>
+          <button
+            disabled=""
+            title="跨库个人近似规则将在后续步骤接入"
+            type="button"
+          >
+            以后都不展开
+          </button>
+          <button
+            type="button"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+- Expected:
+{
+  "edit": {
+    "kind": "set",
+    "rules": [
+      {
+        "a": "shared-blue",
+        "b": "shared-aqua",
+        "relation": "notSimilar",
+      },
+    ],
+  },
+  "safeMode": true,
+}
+
++ Received:
+undefined
+
+ ❯ src/search/SharedApprox.test.tsx:40:87
+     38|   fireEvent.click(screen.getByRole("button",{name:"不展开“水色瞳”"}));
+     39|   fireEvent.click(screen.getByRole("button",{name:"以后都不展开"}));
+     40|   await waitFor(()=>expect(calls.find(c=>c.cmd.endsWith("edit_shared_a…
+       |                                                                                       ^
+     41| });
+     42|
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  02:06:27
+   Duration  2.76s (tests 47%, environment 40%, import 7%, transform 6%)
+

@@ -1,0 +1,206 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 26.76s
+     Running tests\app_settings.rs (target\debug\deps\app_settings-71b3f30826258002.exe)
+
+running 9 tests
+test a_fresh_install_starts_at_login_and_uses_snipaste_style_function_keys ... ok
+test the_usage_log_is_off_until_the_artist_turns_it_on_and_then_remembered ... ok
+test safe_mode_is_on_after_a_fresh_install_and_turning_it_off_is_remembered ... ok
+test showing_where_similar_tags_come_from_is_off_until_turned_on_and_then_remembered ... ok
+test turning_autostart_off_is_remembered_after_restart ... ok
+test an_unreadable_settings_file_falls_back_to_defaults_and_is_kept_aside ... ok
+test forcing_srgb_is_off_after_a_fresh_install_and_only_takes_effect_after_a_restart ... ok
+test settings_written_by_a_newer_version_survive_a_round_trip_through_this_one ... ok
+test the_tagging_model_choice_is_automatic_until_the_artist_picks_one ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests\application_settings_backup.rs (target\debug\deps\application_settings_backup-be81416567d29a46.exe)
+
+running 8 tests
+test child_restores_until_configuration_fault ... ignored, executed by the crash parent with a real persistent configuration
+
+running 1 test
+test a_settings_write_failure_keeps_the_old_complete_configuration ... ok
+test invalid_or_changed_packages_leave_existing_configuration_usable ... ok
+test restoring_settings_keeps_current_library_identity_corrections_and_every_image_fact ... ok
+test a_blank_application_restores_the_explicit_default_name_and_shell_preferences ... ok
+test replacement_keeps_deleted_aliases_and_migrated_rules_deleted_after_reconnect ... ok
+
+running 1 test
+test restored_external_ownership_does_not_change_when_two_portable_identities_share_a_word ... ok
+test child_restores_until_configuration_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.03s
+
+
+running 1 test
+
+running 1 test
+test child_restores_until_configuration_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.04s
+
+
+running 1 test
+
+running 1 test
+test child_restores_until_configuration_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.05s
+
+test restart_recovers_one_complete_configuration_after_catalog_publication_is_interrupted ... ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.74s
+
+     Running tests\backup_content_definitions.rs (target\debug\deps\backup_content_definitions-9aa9b0f8d0b1df11.exe)
+
+running 10 tests
+test content_backup_fault_child ... ignored, parent executes the real backup storage fault child
+test content_restore_fault_child ... ignored, parent executes the fault child through public restore
+
+running 1 test
+test older_content_snapshot_cannot_replay_legacy_program_settings ... ok
+test content_backup_does_not_reimport_legacy_application_groups_or_personal_rules ... ok
+test content_backup_uses_current_pure_definitions_after_read_only_publication_failed ... ok
+test incompatible_stable_identity_is_refused_before_content_is_published ... ok
+
+running 1 test
+test a_later_library_restore_failure_does_not_leave_an_earlier_usable_copy ... ok
+
+running 1 test
+test content_backup_fault_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.11s
+
+test independent_content_restore_keeps_existing_app_preferences_and_shared_groups ... ok
+test backup_definition_storage_failure_or_exit_never_publishes_a_complete_snapshot ... ok
+
+running 1 test
+test content_restore_fault_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.11s
+
+
+running 1 test
+
+running 1 test
+test content_restore_fault_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.12s
+
+test interrupted_and_failed_publication_rolls_back_only_its_batch_then_can_retry ... ok
+
+test result: ok. 8 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 3.82s
+
+     Running tests\backup_crash.rs (target\debug\deps\backup_crash-abc4e0f8d22b001d.exe)
+
+running 2 tests
+test child_backs_up_until_the_fault_point ... ignored, 只在故障注入子进程里运行
+
+running 1 test
+test a_backup_killed_mid_copy_is_never_taken_for_a_complete_one ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.41s
+
+     Running tests\backup_restore.rs (target\debug\deps\backup_restore-331e8d6916fdeacd.exe)
+
+running 10 tests
+test a_missing_target_is_reported_and_a_library_on_an_unplugged_drive_is_skipped ... ok
+test an_original_changed_outside_kinshoko_leaves_the_backup_incomplete_and_unrestorable ... ok
+test the_capacity_estimate_counts_only_what_the_target_does_not_have_yet ... ok
+test a_permanent_delete_during_a_backup_does_not_remove_the_original_until_the_backup_ends ... ok
+test a_damaged_backup_is_refused_without_leaving_half_a_library ... ok
+test a_later_backup_copies_only_the_new_originals_and_holds_the_originals_lease_while_copying ... ok
+test a_restored_backup_is_an_independent_copy_and_passes_the_round_trip_check ... ok
+test editing_a_group_while_copying_keeps_the_backup_references_consistent ... ok
+test a_group_that_outgrows_the_computed_scope_cannot_publish_a_complete_backup ... ok
+test snapshots_are_kept_seven_daily_and_four_weekly ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.65s
+
+     Running tests\catalog_approx.rs (target\debug\deps\catalog_approx-be62ca77aabd69de.exe)
+
+running 8 tests
+test deleting_a_migrated_rule_restores_builtin_without_reimporting_the_old_judgment ... ok
+test builtin_updates_and_search_operators_preserve_explicit_judgments_and_atomic_edits ... ok
+test personal_rule_settings_share_all_source_adult_veto_and_keep_complete_backup_definitions ... ok
+test an_explicit_global_judgment_survives_a_later_opposite_source_and_ignoring_it ... ok
+test legacy_conflict_has_named_sources_and_ignore_is_remembered_after_restart ... ok
+test plus_supports_no_external_mapping_and_once_does_not_change_the_saved_rule ... ok
+test legacy_not_similar_applies_to_every_library_and_survives_restart ... ok
+test opposite_legacy_rules_wait_for_a_choice_in_either_registration_order ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.19s
+
+     Running tests\catalog_groups.rs (target\debug\deps\catalog_groups-4b9a3a89dcaf56f7.exe)
+
+running 7 tests
+test new_group_can_be_created_without_an_active_library_and_survives_restart ... ok
+test same_named_legacy_groups_keep_distinct_members_and_sources_and_deleted_group_does_not_return ... ok
+test namespace_groups_follow_new_members_and_current_shared_name_preferences ... ok
+test legacy_group_is_shared_across_libraries_and_restart_without_rewriting_image_tags ... ok
+test shared_group_query_is_visible_or_for_each_source_and_missing_mapping_is_not_dropped ... ok
+test artist_can_rename_reorder_and_organize_shared_members_without_changing_images ... ok
+test cross_source_adult_veto_hides_group_members_and_atomic_edit_preserves_them ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
+
+     Running tests\catalog_visibility.rs (target\debug\deps\catalog_visibility-e727c5712750dd72.exe)
+
+running 2 tests
+test ordinary_name_settings_do_not_expose_tags_from_globally_vetoed_copies ... ok
+test names_and_groups_share_online_and_known_offline_veto_without_losing_unused_definitions ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
+
+running 13 tests
+test publication_subprocess ... ignored, parent public-action fault test runs this in an isolated process
+test modern_package_with_a_missing_identity_is_rejected_before_any_content_is_imported ... ok
+test modern_package_without_its_explicit_source_local_mapping_is_rejected_before_writing ... ok
+test read_only_registration_and_failed_publication_leave_provider_bytes_and_safe_mode_unchanged ... ok
+test old_version_one_package_still_imports_through_the_legacy_compatibility_flow ... ok
+test first_tag_write_carries_identity_when_the_library_is_copied_to_a_fresh_application ... ok
+test a_carried_seed_identity_can_attach_to_two_library_local_ids_in_one_application ... ok
+test an_existing_catalog_namespace_conflict_is_rejected_before_package_content_changes ... ok
+test published_split_identity_survives_copy_without_exporting_the_application_name_preference ... ok
+test publishing_a_new_external_tag_carries_the_same_identity_already_used_by_another_library ... ok
+test publishing_a_sealed_dependency_keeps_current_raw_definition_without_exposing_its_mapping ... ok
+test definition_publication_failure_and_process_exit_preserve_the_whole_previous_library_batch ... ok
+test package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.96s
+
+     Running tests\tag_catalog.rs (target\debug\deps\tag_catalog-7806d7ca2f95e347.exe)
+
+running 11 tests
+test attaching_legacy_tags_keeps_untranslated_display_until_name_provenance_is_migrated ... ok
+test inspecting_an_unsafe_snapshot_never_changes_the_active_library_safe_mode ... ok
+test a_late_explicit_external_correspondence_uses_an_existing_identity_unless_user_corrected ... ok
+test same_named_tags_without_external_correspondence_remain_independent_across_libraries ... ok
+test adding_an_external_correspondence_after_attachment_is_available_to_the_next_library ... ok
+test different_library_local_ids_share_an_explicit_external_identity_after_reopen ... ok
+test namespaces_remain_distinct_and_an_explicit_split_survives_external_reattachment ... ok
+test ambiguous_aliases_stay_separate_until_correction_and_manual_decisions_stay_local ... ok
+test conflicting_external_correspondences_are_inspectable_and_require_an_explicit_choice ... ok
+test explicit_external_correspondences_extend_a_shared_identity_without_relying_on_names ... ok
+test catalog_can_inspect_registered_libraries_without_switching_or_changing_local_data ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
+
+     Running tests\tag_names.rs (target\debug\deps\tag_names-8e9d62deaabcb8a5.exe)
+
+running 8 tests
+test bundled_defaults_use_the_accepted_names_and_keep_the_replaced_names_as_aliases ... ok
+test installed_defaults_apply_to_later_tags_and_hidden_legacy_tags_keep_pending_provenance ... ok
+test a_corrected_legacy_mapping_adopts_the_existing_explicit_global_choice ... ok
+test preference_is_shared_by_identity_and_language_and_survives_reopen ... ok
+test aliases_are_global_search_words_without_becoming_display_preferences ... ok
+test group_labels_refresh_from_shared_names_without_changing_local_membership_or_counts ... ok
+test default_updates_keep_equal_default_preferences_and_reset_deletes_the_override ... ok
+test legacy_names_remain_pending_until_an_explicit_global_preference_choice ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+

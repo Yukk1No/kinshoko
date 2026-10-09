@@ -1,0 +1,27 @@
+PASS actual global safe mode stays on: before import
+PASS unknown target copy of a known Adult stays hidden while the ordinary unknown image remains visible
+PASS real import retains the fixed target owner
+PASS mixed default receipt exposes only real failure details, without success category counts or sealed IDs
+PASS completed private progress cannot reveal sealed successes by subtracting failures
+PASS rendered default report contains no exact success counts or sealed filename
+PASS no preview content exists before explicit consent
+PASS rendered consent shows only this receipt's sealed duplicate
+PASS actual global safe mode stays on: UI expanded
+PASS actual global safe mode stays on: UI closed
+PASS current-library change retains the original T10 receipt owner
+PASS returning to the previous library does not revive decoded consent
+PASS real UI is still loading before current-library context changes
+PASS current-library change does not revive a late completed UI image
+PASS actual global safe mode stays on: UI current-library contexts revoked
+PASS real UI is still loading before close, separately from the backend transfer race
+PASS closed real UI does not revive a completed image after pending decode or Channel completion
+PASS public preview capability derives exactly one actual receipt duplicate
+PASS explicit receipt capability resolves real original content through the SDR path
+PASS an arbitrary real UI image ID is not a preview capability item
+PASS closed backend session cannot read content again
+PASS request begun before close cannot publish late image bytes
+PASS actual large original travels only in bounded direct receipt Channel chunks
+Error: first-chunk close interrupts remaining content and rejects incomplete image completion
+    at assert (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/sealed-import-preview.mjs:27:48)
+    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/sealed-import-preview.mjs:159:3
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

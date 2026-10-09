@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+
+ Test Files  2 passed (2)
+      Tests  9 passed (9)
+   Start at  02:21:48
+   Duration  2.55s (environment 51%, tests 28%, transform 11%, import 11%)
+

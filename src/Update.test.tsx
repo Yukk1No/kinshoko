@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { UpdateBanner } from "./Update";
+import { UpdateBanner, UpdateSection } from "./Update";
 
 afterEach(() => {
   cleanup();
@@ -43,7 +43,7 @@ describe("主窗口的更新提示", () => {
   });
 
   it("本次运行已经检查过或未启用更新时不再联网", async () => {
-    for (const state of ["upToDate", "disabled"]) {
+    for (const state of ["upToDate", "disabled", "manual"]) {
       const calls = backend((cmd) => (cmd === "update_status" ? { state } : null));
       render(<UpdateBanner />);
       await waitFor(() => expect(calls).toContain("update_status"));
@@ -52,4 +52,28 @@ describe("主窗口的更新提示", () => {
       cleanup();
     }
   });
+});
+
+describe("设置中的更新方式", () => {
+  it("私有阶段明确用安装包更新，并且没有自动检查和安装按钮", async () => {
+    const calls = backend((cmd) => cmd === "update_status" ? {
+      state: "manual", message: "当前为私有阶段，请使用新版安装包手动更新。",
+    } : null);
+    render(<UpdateSection />);
+
+    expect(await screen.findByText("当前为私有阶段，请使用新版安装包手动更新。")).toBeTruthy();
+    expect(screen.getByText(/从托盘退出 Kinshoko/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "检查更新" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "安装并重启" })).toBeNull();
+    expect(calls).not.toContain("check_update");
+  });
+});
+
+it("公开阶段未满足自动更新条件时显示原因且不提供操作", async () => {
+  backend((cmd) => cmd === "update_status" ? {
+    state: "disabled", message: "未配置原仓库的公开更新入口，自动更新未启用。请使用新版安装包手动更新。",
+  } : null);
+  render(<UpdateSection />);
+  expect(await screen.findByText(/未配置原仓库的公开更新入口/)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "检查更新" })).toBeNull();
 });

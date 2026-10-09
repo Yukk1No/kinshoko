@@ -1,0 +1,10 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.76s
+     Running tests\catalog_approx.rs (target\debug\deps\catalog_approx-be62ca77aabd69de.exe)
+
+running 2 tests
+test legacy_not_similar_applies_to_every_library_and_survives_restart ... ok
+test opposite_legacy_rules_wait_for_a_choice_in_either_registration_order ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+

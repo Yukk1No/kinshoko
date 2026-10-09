@@ -1,0 +1,902 @@
+{
+  "status": "failed",
+  "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
+  "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
+  "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "scriptSha256": "b8cedd0d5fe9c66ac5dd2ad72a20078613008007784f158e2bf7536162cdbf6e",
+  "scriptSource": "24a4fbcf3a849f7c9d359c9cfd50290833ebc91b",
+  "mode": "wall",
+  "assertions": [
+    "synthetic originals import through production task",
+    "synthetic originals import through production task",
+    "formal waterfall displays a reduced derivative of the high-resolution original",
+    "real identical originals aggregate with two independent registered sources",
+    "initial aggregate waterfall: original copy adds no screenshot history",
+    "initial aggregate waterfall: pin keeps exact library/image source",
+    "initial aggregate waterfall: pin preserves original pixel crop",
+    "initial aggregate waterfall: reference pin adds no screenshot history",
+    "initial aggregate waterfall: actual OS clipboard retains original crop dimensions",
+    "initial aggregate waterfall: actual OS clipboard retains original fine-detail corner bytes",
+    "late old cancel does not close the next native capture",
+    "late old finish cannot consume a new native capture",
+    "public production capture requests are observed without replacing immutable invoke",
+    "late prior source report: original copy adds no screenshot history",
+    "late prior source report: pin keeps exact library/image source",
+    "late prior source report: pin preserves original pixel crop",
+    "late prior source report: reference pin adds no screenshot history",
+    "late prior source report: actual OS clipboard retains original crop dimensions",
+    "late prior source report: actual OS clipboard retains original fine-detail corner bytes",
+    "synthetic originals import through production task",
+    "actual virtualized wall recycles visible card population",
+    "immediate virtual return: original copy adds no screenshot history",
+    "immediate virtual return: pin keeps exact library/image source",
+    "immediate virtual return: pin preserves original pixel crop",
+    "immediate virtual return: reference pin adds no screenshot history",
+    "immediate virtual return: actual OS clipboard retains original crop dimensions",
+    "immediate virtual return: actual OS clipboard retains original fine-detail corner bytes",
+    "UIAutomation changes the real native main client width"
+  ],
+  "samples": [
+    {
+      "label": "initial aggregate waterfall",
+      "shown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 665,
+        "y": 457
+      },
+      "copy": {
+        "region": {
+          "x": 728,
+          "y": 499,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 1200,
+          "y": 800,
+          "width": 591,
+          "height": 400
+        }
+      },
+      "pinned": {
+        "region": {
+          "x": 728,
+          "y": 499,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 1200,
+          "y": 800,
+          "width": 591,
+          "height": 400
+        },
+        "pin": {
+          "content": {
+            "height": 400,
+            "width": 591,
+            "x": 746,
+            "y": 517
+          },
+          "generation": 0,
+          "motion": "jump",
+          "pin": {
+            "content": {
+              "imageId": "01a11d12b341715e9bb9c687f863a2d2",
+              "kind": "reference",
+              "libraryId": "6fb8fe7c415e4ae2b9073cfe0b64425d",
+              "sourceHeight": 3200,
+              "sourceWidth": 4800
+            },
+            "crop": {
+              "height": 400,
+              "width": 591,
+              "x": 1200,
+              "y": 800
+            },
+            "height": 400,
+            "id": "4e2841f6b1624fa5afa79dcfbc5b928a",
+            "locked": false,
+            "opacity": 1,
+            "placement": {
+              "flipH": false,
+              "flipV": false,
+              "rotation": 0,
+              "scale": 1,
+              "x": 746,
+              "y": 517
+            },
+            "width": 591
+          },
+          "veiled": false,
+          "window": {
+            "height": 400,
+            "width": 591,
+            "x": 746,
+            "y": 517
+          }
+        }
+      },
+      "pin": {
+        "content": {
+          "imageId": "01a11d12b341715e9bb9c687f863a2d2",
+          "kind": "reference",
+          "libraryId": "6fb8fe7c415e4ae2b9073cfe0b64425d",
+          "sourceHeight": 3200,
+          "sourceWidth": 4800
+        },
+        "crop": {
+          "height": 400,
+          "width": 591,
+          "x": 1200,
+          "y": 800
+        },
+        "height": 400,
+        "id": "4e2841f6b1624fa5afa79dcfbc5b928a",
+        "locked": false,
+        "opacity": 1,
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 746,
+          "y": 517
+        },
+        "width": 591
+      },
+      "clipboard": {
+        "size": [
+          591,
+          400
+        ],
+        "corners": [
+          [
+            176,
+            32,
+            0,
+            255
+          ],
+          [
+            254,
+            32,
+            0,
+            255
+          ],
+          [
+            176,
+            175,
+            0,
+            255
+          ],
+          [
+            254,
+            175,
+            0,
+            255
+          ]
+        ]
+      }
+    },
+    {
+      "label": "late prior source report",
+      "shown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 665,
+        "y": 457
+      },
+      "copy": {
+        "region": {
+          "x": 728,
+          "y": 499,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 1200,
+          "y": 800,
+          "width": 591,
+          "height": 400
+        }
+      },
+      "pinned": {
+        "region": {
+          "x": 728,
+          "y": 499,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 1200,
+          "y": 800,
+          "width": 591,
+          "height": 400
+        },
+        "pin": {
+          "content": {
+            "height": 400,
+            "width": 591,
+            "x": 746,
+            "y": 517
+          },
+          "generation": 0,
+          "motion": "jump",
+          "pin": {
+            "content": {
+              "imageId": "01a11d12b341715e9bb9c687f863a2d2",
+              "kind": "reference",
+              "libraryId": "6fb8fe7c415e4ae2b9073cfe0b64425d",
+              "sourceHeight": 3200,
+              "sourceWidth": 4800
+            },
+            "crop": {
+              "height": 400,
+              "width": 591,
+              "x": 1200,
+              "y": 800
+            },
+            "height": 400,
+            "id": "0a0abb15be274d4994a5ae44434e8eb6",
+            "locked": false,
+            "opacity": 1,
+            "placement": {
+              "flipH": false,
+              "flipV": false,
+              "rotation": 0,
+              "scale": 1,
+              "x": 746,
+              "y": 517
+            },
+            "width": 591
+          },
+          "veiled": false,
+          "window": {
+            "height": 400,
+            "width": 591,
+            "x": 746,
+            "y": 517
+          }
+        }
+      },
+      "pin": {
+        "content": {
+          "imageId": "01a11d12b341715e9bb9c687f863a2d2",
+          "kind": "reference",
+          "libraryId": "6fb8fe7c415e4ae2b9073cfe0b64425d",
+          "sourceHeight": 3200,
+          "sourceWidth": 4800
+        },
+        "crop": {
+          "height": 400,
+          "width": 591,
+          "x": 1200,
+          "y": 800
+        },
+        "height": 400,
+        "id": "0a0abb15be274d4994a5ae44434e8eb6",
+        "locked": false,
+        "opacity": 1,
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 746,
+          "y": 517
+        },
+        "width": 591
+      },
+      "clipboard": {
+        "size": [
+          591,
+          400
+        ],
+        "corners": [
+          [
+            176,
+            32,
+            0,
+            255
+          ],
+          [
+            254,
+            32,
+            0,
+            255
+          ],
+          [
+            176,
+            175,
+            0,
+            255
+          ],
+          [
+            254,
+            175,
+            0,
+            255
+          ]
+        ]
+      }
+    },
+    {
+      "label": "immediate virtual return",
+      "shown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 788.4906005859375,
+        "thumbWidth": 512,
+        "top": 529.5990600585938,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 1187,
+        "y": 926
+      },
+      "copy": {
+        "region": {
+          "x": 1250,
+          "y": 968,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 1200,
+          "y": 800,
+          "width": 591,
+          "height": 400
+        }
+      },
+      "pinned": {
+        "region": {
+          "x": 1250,
+          "y": 968,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 1200,
+          "y": 800,
+          "width": 591,
+          "height": 400
+        },
+        "pin": {
+          "content": {
+            "height": 400,
+            "width": 591,
+            "x": 1268,
+            "y": 986
+          },
+          "generation": 0,
+          "motion": "jump",
+          "pin": {
+            "content": {
+              "imageId": "01a11d12b341715e9bb9c687f863a2d2",
+              "kind": "reference",
+              "libraryId": "6fb8fe7c415e4ae2b9073cfe0b64425d",
+              "sourceHeight": 3200,
+              "sourceWidth": 4800
+            },
+            "crop": {
+              "height": 400,
+              "width": 591,
+              "x": 1200,
+              "y": 800
+            },
+            "height": 400,
+            "id": "473f980a099e41f88a8bfee6840ff0cd",
+            "locked": false,
+            "opacity": 1,
+            "placement": {
+              "flipH": false,
+              "flipV": false,
+              "rotation": 0,
+              "scale": 1,
+              "x": 1268,
+              "y": 986
+            },
+            "width": 591
+          },
+          "veiled": false,
+          "window": {
+            "height": 400,
+            "width": 591,
+            "x": 1268,
+            "y": 986
+          }
+        }
+      },
+      "pin": {
+        "content": {
+          "imageId": "01a11d12b341715e9bb9c687f863a2d2",
+          "kind": "reference",
+          "libraryId": "6fb8fe7c415e4ae2b9073cfe0b64425d",
+          "sourceHeight": 3200,
+          "sourceWidth": 4800
+        },
+        "crop": {
+          "height": 400,
+          "width": 591,
+          "x": 1200,
+          "y": 800
+        },
+        "height": 400,
+        "id": "473f980a099e41f88a8bfee6840ff0cd",
+        "locked": false,
+        "opacity": 1,
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 1268,
+          "y": 986
+        },
+        "width": 591
+      },
+      "clipboard": {
+        "size": [
+          591,
+          400
+        ],
+        "corners": [
+          [
+            176,
+            32,
+            0,
+            255
+          ],
+          [
+            254,
+            32,
+            0,
+            255
+          ],
+          [
+            176,
+            175,
+            0,
+            255
+          ],
+          [
+            254,
+            175,
+            0,
+            255
+          ]
+        ]
+      }
+    }
+  ],
+  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489125093",
+  "startedAt": "2026-10-08T19:52:05.209Z",
+  "capabilities": {
+    "acceptInsecureCerts": false,
+    "browserName": "webview2",
+    "browserVersion": "154.0.4258.62",
+    "fedcm:accounts": true,
+    "goog:processID": 35824,
+    "ms:edgeOptions": {
+      "debuggerAddress": "localhost:65340"
+    },
+    "msedge": {
+      "msedgedriverVersion": "154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)",
+      "userDataDir": ""
+    },
+    "networkConnectionEnabled": false,
+    "pageLoadStrategy": "normal",
+    "platformName": "windows",
+    "proxy": {},
+    "setWindowRect": true,
+    "strictFileInteractability": false,
+    "timeouts": {
+      "implicit": 0,
+      "pageLoad": 300000,
+      "script": 30000
+    },
+    "unhandledPromptBehavior": "dismiss and notify",
+    "webauthn:extension:cmtgKey": true,
+    "webauthn:extension:credBlob": true,
+    "webauthn:extension:largeBlob": true,
+    "webauthn:extension:minPinLength": true,
+    "webauthn:extension:prf": true,
+    "webauthn:virtualAuthenticators": true
+  },
+  "environment": "Kinshoko 0.1.0 诊断信息\n生成时间：2026-10-08 19:52:06 UTC\n本报告不含文件名、路径与图片。\n\n[系统]\n系统：Windows 11 Professional 26H2（26300.9550）\n处理器：AMD Ryzen 7 5800X 8-Core Processor\n内存：31.9 GB\n显卡：NVIDIA GeForce RTX 4070 SUPER\n显卡：GameViewer Virtual Display Adapter\nWebView2：154.0.4258.62\n\n[显示器]\n1. VG27AQL1A（主显示器）：2560×1440，缩放 110%，SDR（自动色彩管理），每通道 8 位\n   配置文件：sRGB IEC61966-2.1，ICC 2.1，矩阵＋曲线，SHA-256 2b3aa1645779\n\n[Kinshoko 设置]\n强制 sRGB：关闭\n使用日志：关闭\n",
+  "first": {
+    "info": {
+      "id": "6fb8fe7c415e4ae2b9073cfe0b64425d",
+      "name": "原图来源 A",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489125093\\libraries\\原图来源 A"
+    },
+    "card": {
+      "adult": false,
+      "height": 3200,
+      "id": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+      "imageId": "01a11d12b341715e9bb9c687f863a2d2",
+      "libraryId": "6fb8fe7c415e4ae2b9073cfe0b64425d",
+      "sources": [
+        {
+          "deleted": false,
+          "imageId": "01a11d12b341715e9bb9c687f863a2d2",
+          "libraryId": "6fb8fe7c415e4ae2b9073cfe0b64425d",
+          "libraryName": "原图来源 A",
+          "matches": true,
+          "unavailable": null
+        }
+      ],
+      "thumbnail": "6fb8fe7c415e4ae2b9073cfe0b64425d/01a11d12b341715e9bb9c687f863a2d2/256",
+      "width": 4800
+    }
+  },
+  "invokeDescriptor": {
+    "configurable": false,
+    "hasSetter": false,
+    "writable": false
+  },
+  "dpr": 1.1041666269302368,
+  "actions": [
+    {
+      "action": "copy",
+      "measuredBefore": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 665,
+        "y": 457
+      },
+      "frozenShown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 665,
+        "y": 457
+      },
+      "token": "d2411fd8186741448edda3eb63a43bcb",
+      "region": {
+        "x": 728,
+        "y": 499,
+        "width": 31,
+        "height": 21
+      },
+      "crop": {
+        "x": 1200,
+        "y": 800,
+        "width": 591,
+        "height": 400
+      }
+    },
+    {
+      "action": "pin",
+      "measuredBefore": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 665,
+        "y": 457
+      },
+      "frozenShown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 665,
+        "y": 457
+      },
+      "token": "aa048c9348e241828aa0d4ac716ce7fb",
+      "region": {
+        "x": 728,
+        "y": 499,
+        "width": 31,
+        "height": 21
+      },
+      "crop": {
+        "x": 1200,
+        "y": 800,
+        "width": 591,
+        "height": 400
+      }
+    },
+    {
+      "action": "copy",
+      "measuredBefore": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 665,
+        "y": 457
+      },
+      "frozenShown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 665,
+        "y": 457
+      },
+      "token": "512669950b3f4b34b758c6e09d95e767",
+      "region": {
+        "x": 728,
+        "y": 499,
+        "width": 31,
+        "height": 21
+      },
+      "crop": {
+        "x": 1200,
+        "y": 800,
+        "width": 591,
+        "height": 400
+      }
+    },
+    {
+      "action": "pin",
+      "measuredBefore": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 665,
+        "y": 457
+      },
+      "frozenShown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 665,
+        "y": 457
+      },
+      "token": "0c3ed279136946bdb19a9427982a05de",
+      "region": {
+        "x": 728,
+        "y": 499,
+        "width": 31,
+        "height": 21
+      },
+      "crop": {
+        "x": 1200,
+        "y": 800,
+        "width": 591,
+        "height": 400
+      }
+    },
+    {
+      "action": "copy",
+      "measuredBefore": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 788.4906005859375,
+        "thumbWidth": 512,
+        "top": 529.5990600585938,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 1187,
+        "y": 926
+      },
+      "frozenShown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 788.4906005859375,
+        "thumbWidth": 512,
+        "top": 529.5990600585938,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 1187,
+        "y": 926
+      },
+      "token": "6ad9fab9a9bc4625b60b4509791bd8c1",
+      "region": {
+        "x": 1250,
+        "y": 968,
+        "width": 31,
+        "height": 21
+      },
+      "crop": {
+        "x": 1200,
+        "y": 800,
+        "width": 591,
+        "height": 400
+      }
+    },
+    {
+      "action": "pin",
+      "measuredBefore": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 788.4906005859375,
+        "thumbWidth": 512,
+        "top": 529.5990600585938,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 1187,
+        "y": 926
+      },
+      "frozenShown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 788.4906005859375,
+        "thumbWidth": 512,
+        "top": 529.5990600585938,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 1187,
+        "y": 926
+      },
+      "token": "a7da96e5ac924157bbffebbfb69d400d",
+      "region": {
+        "x": 1250,
+        "y": 968,
+        "width": 31,
+        "height": 21
+      },
+      "crop": {
+        "x": 1200,
+        "y": 800,
+        "width": 591,
+        "height": 400
+      }
+    },
+    {
+      "action": "copy",
+      "measuredBefore": {
+        "dpr": 1.1041666269302368,
+        "height": 176,
+        "left": 393.6580505371094,
+        "thumbWidth": 512,
+        "top": 426.5235900878906,
+        "width": 263,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 751,
+        "y": 812
+      },
+      "frozenShown": {
+        "dpr": 1.1041666269302368,
+        "height": 177,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 483.5660400390625,
+        "width": 266,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 665,
+        "y": 875
+      },
+      "token": "42a91ad8971642efb5fcab2f4ad27c3b",
+      "region": {
+        "x": 731,
+        "y": 919,
+        "width": 33,
+        "height": 22
+      },
+      "crop": {
+        "x": 1190,
+        "y": 795,
+        "width": 597,
+        "height": 399
+      }
+    }
+  ],
+  "staleInput": {
+    "request": "8da69cd2abf04162ac4fb9032dfc0b92",
+    "frame": {
+      "instance": "stale-harness-input",
+      "generation": 0,
+      "dpr": 1.1041666269302368,
+      "references": []
+    }
+  },
+  "virtualScroll": {
+    "initialIds": [
+      "b3e8e5e45a68cdac7cd09f8299487293556b1f5e19dedbf99789e57d5164a151",
+      "ba260e89064276e40ea1d9d470e4f98f93944675f6713618f36342fb677353cc",
+      "5817ee419f182f90f0498a6125783ee6142944c93f3129a2bf7fb5b49b3e4ced",
+      "5cf118989697f2fe9983a2fde1afbdfd96e43c8d385e536046cea5507863c666",
+      "649fc29d92baca7bb7fe23324daf413696afb4e12120fa97c71e2416348b19f0",
+      "70bf9a76cf27053fda15381f7dcb6233ae58cd79d8545000a6a516907daa081e",
+      "28a1e158394c78ae2f758426627f81de1fad09e4719033a5ce3b091624cbc924",
+      "188ebfb317d0e83a32bc4de781fcced592927cbfdc8fe75f1a49fc653a25b219",
+      "5f7439bf1aa4e3341ba6743410d9b9bf93266d902804921cc8638d0f52b1b1a2",
+      "270288bd408d61471c0fef78fb20fcd5fec7e15ece4367bf17f4cb8c117dac0a",
+      "21204f7e05e88c085286df5ffc7a91053eadc53feaa213e0bce8cfbd1ddaf65f",
+      "15dd12d5d1312ccacffcaca7562d55d9a4fc4dca342cc6204a07fb073bde7f1b",
+      "1c11378680d9803fb9cb084a4c3eb4c607d2ca598729237968f2404ba879ad32",
+      "7b346c54ccb9dea34c39d6cb687f837fc6bdf05d5d0465bf4a221126baa3976c",
+      "c5bd07fca532dfdc5bef84ccc8a2a9bcd316f802db7b3f3311ae734726685217",
+      "58f032cad116dd9f46e253adea8d664d6f618d49ce213cb816b0a104db52bb79",
+      "9f5e374dc9d967b9b3e6508b02cb77c69b0dbfa0376d9669a9e847b887d5219e",
+      "fcb5eae972a30af53354020c71a7e307704b0fa886ab297ae12887daef6d354b"
+    ],
+    "bottomIds": [
+      "493f01c3c2560b9467aef2a2f3325f7971f7cf6fc85d151f91244f43718f5469",
+      "5931c3c216d99b023d9a21bb79f1b441a24fb4fb43813720b6bce7e26c4a67f2",
+      "629749edad76d4d6733cb54f75bef47621b62b409fac7ee0b4c00c505b7b54b5",
+      "3bf536361d73ac2a25ebad84fa1f0ca8610920da6a976d43dcebeb59fddd9bf1",
+      "b0d1d1786fc19a0389c4c4056909848d0965e32e00088c8c794bde6867c7b099",
+      "82973d69b7d9801938da57dcb4ff62237573ffc2462a1c79cffd7c6e835a2903",
+      "91d8d3a5a3ee59998babbc1ecf671ddd2b3816e1428437fa849f29633053a0a9",
+      "3f6326efd7971e3b6a16f6d94d82b9b4d4216e109432d51f27221b0e6c2ee2e3",
+      "9f64e2f135584950f325fc7fb1fd347eefd6e36f2a6d086b111ab96c12a7c7ac",
+      "3e214e896fd492f73bc9d46ed2dac1b41aa0afea0767e28d1143650c83d3afa5",
+      "f6d384919f710bddbc34fc3183ac11ed7063b11c04a286d60652333fea78eee8",
+      "c58820fc6245401557250b1a8382e0d373086e35825f446f9e3c81b7fba6b5bc",
+      "e8dedea283760d1aa24a020550a00d4654ac202f1985a755a3e5c0ef57aa823b",
+      "dffc29c08362b311bc9aa024538bdc75648734e2cd387ffba12ed089b6692a2d",
+      "eab027d84fbfa030634b9ababc496d256e5fe8b54e8d20fabb0af34222c8fdcf",
+      "021daa114d15b1e5df32f9b218340a38c89c1f92759fb2c50943369e4971f85f",
+      "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a"
+    ]
+  },
+  "resize": {
+    "before": {
+      "y": 308,
+      "hwnd": 13631648,
+      "width": 1429,
+      "height": 924,
+      "x": 308
+    },
+    "beforeInner": {
+      "height": 883,
+      "width": 1413
+    },
+    "resized": {
+      "y": 308,
+      "hwnd": 13631648,
+      "width": 1209,
+      "height": 924,
+      "x": 308
+    },
+    "afterInner": {
+      "height": 883,
+      "width": 1193
+    }
+  },
+  "error": "Error: native width reflow: original copy adds no screenshot history\n    at check (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:30:45)\n    at verifyOriginal (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:57:163)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:111:3",
+  "requests": [
+    "9b7ef791b5174de9b92576db78ec0bc7",
+    "23aeaff1df0644b9bf00ec0a72548423",
+    "c13eac6eae8e472f82d7a5699514c1f1",
+    "9a6742445b8f4484bc5b566e4dba4f18"
+  ],
+  "lateSent": null,
+  "finishedAt": "2026-10-08T19:52:41.221Z"
+}

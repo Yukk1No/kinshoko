@@ -60,7 +60,11 @@ pub fn run() {
             commands::set_show_approx_source,
             commands::set_force_srgb,
             commands::set_usage_log,
+            commands::set_viewer_background,
+            commands::migrate_viewer_background,
             diagnostics::diagnostics_report,
+            diagnostics::runtime_status,
+            diagnostics::open_runtime_update,
             diagnostics::export_diagnostics,
             diagnostics::export_usage_log,
             diagnostics::clear_usage_log,
@@ -95,6 +99,14 @@ pub fn run() {
             code: None, api, ..
         } => api.prevent_exit(),
         RunEvent::Exit => desktop::on_exit(app),
+        RunEvent::WindowEvent {
+            label,
+            event:
+                tauri::WindowEvent::Moved(_)
+                | tauri::WindowEvent::Resized(_)
+                | tauri::WindowEvent::ScaleFactorChanged { .. },
+            ..
+        } => desktop::capture_geometry_changed(app, &label),
         // 关闭主窗口是画师眼里的“退出”：今天第一次时在后台自动备份（#69）。
         RunEvent::WindowEvent {
             label,
@@ -102,6 +114,7 @@ pub fn run() {
             ..
         } if label == shell::MAIN_WINDOW => {
             desktop::clear_viewer_reference(app);
+            library::revoke_import_preview_context(app);
             backup::on_main_window_closed(app);
         }
         _ => {}

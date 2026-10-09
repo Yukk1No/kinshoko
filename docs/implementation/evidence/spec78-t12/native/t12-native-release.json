@@ -1,0 +1,26 @@
+{
+  "collectedAt": "2026-10-08T19:26:26.2943657Z",
+  "source": "00dfc611577361a679221dc8f06f99fdcedd466f",
+  "harnessHead": "846edf227d5b2c43692289dea06a11a97d38a17f",
+  "applicationPaths": [
+    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-3075331\\kinshoko.exe"
+  ],
+  "smokeRoot": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-same-exe-smoke",
+  "processFilter": "exact archived executable paths; driver command line ports 4648/4649; WebView T12 run roots or unique identifier",
+  "ownedProcessesBeforeCleanup": [],
+  "ownedProcessIdsBeforeCleanup": [],
+  "ports": [
+    4648,
+    4649
+  ],
+  "portConnections": [],
+  "knownFolder": {
+    "file": "C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t12test/settings.json",
+    "exists": false,
+    "sha256": null
+  },
+  "shutdownContract": "Exact test application process termination plus WebDriver and own driver cleanup; process restart validation. Normal tray Quit was not tested.",
+  "smokeResult": "work/e2e/t12-same-exe-smoke/kinshoko-smoke-VK50PY/result.json",
+  "desktopReleased": true
+}

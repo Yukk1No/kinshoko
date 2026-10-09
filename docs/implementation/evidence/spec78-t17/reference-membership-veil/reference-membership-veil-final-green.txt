@@ -1,0 +1,46 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.40s
+     Running tests\pin_veil.rs (target\debug\deps\pin_veil-5317d7bace13ed34.exe)
+
+running 3 tests
+test a_confirmed_pin_is_shown_until_safe_mode_is_turned_on_again ... ok
+test capture_pins_are_never_veiled ... ok
+test turning_safe_mode_on_with_no_library_open_veils_shown_library_pins ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\reference_capture_actions.rs (target\debug\deps\reference_capture_actions-a3ee2ad6dad1477e.exe)
+
+running 10 tests
+test ordinary_capture_preparation_can_be_discarded_without_writing_history ... ok
+test occluded_clipped_cross_boundary_and_external_selections_keep_the_screen_capture_path ... ok
+test missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels ... ok
+test a_reference_resealed_after_freezing_is_not_read_and_an_explicitly_revealed_pin_remains_usable ... ok
+test an_ambiguous_visible_source_is_a_screen_capture_instead_of_choosing_one_library ... ok
+test copying_respects_declared_color_and_the_sdr_animation_first_frame_route ... ok
+test copying_uses_the_explicit_inactive_library_even_when_another_library_is_current ... ok
+test copying_honors_all_original_exif_orientations_without_rewriting_originals ... ok
+test selecting_a_transformed_prior_crop_copies_the_same_original_region_as_the_new_pin ... ok
+test copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_source ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
+
+     Running tests\reference_group_resolve.rs (target\debug\deps\reference_group_resolve-58f8e27a2d16f0dd.exe)
+
+running 13 tests
+test members_in_the_trash_stay_usable ... ok
+test a_member_whose_image_is_gone_from_the_library_is_marked_missing ... ok
+test a_library_registered_at_a_place_now_holding_another_library_is_unavailable ... ok
+test unavailable_members_keep_their_layout_and_say_why ... ok
+test withdrawing_registration_revokes_a_retained_active_reference_lens ... ok
+test reference_authorization_uses_the_current_mode_instead_of_an_active_lens_cache ... ok
+test sealed_members_in_an_inactive_library_follow_the_safe_mode_setting ... ok
+test sealed_members_in_the_active_library_are_marked_through_its_reference_lens ... ok
+test an_inactive_library_can_still_be_opened_as_the_active_one ... ok
+test a_group_resolves_members_from_the_active_and_an_inactive_library ... ok
+test permanent_delete_refuses_when_a_group_file_cannot_be_checked ... ok
+test permanent_delete_preview_finds_the_groups_using_the_images ... ok
+test permanently_deleted_members_stay_in_place_and_are_marked_missing ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
+

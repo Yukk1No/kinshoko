@@ -1,0 +1,599 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+
+ ❯ src/library/WorkspacePane.test.tsx (4 tests | 2 failed) 261ms
+   × 每库为独立根展示完整目录，选择目录默认包含子文件夹，明确切换直接层级 175ms
+   × 目录响应迟到时不替换新代次，当前范围保持明确身份 43ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/library/WorkspacePane.test.tsx > 每库为独立根展示完整目录，选择目录默认包含子文件夹，明确切换直接层级
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "人物（2 张）"
+
+Here are the accessible roles:
+
+  button:
+
+  Name "收起参考：D:\A\参考":
+  <button
+    aria-expanded="true"
+    aria-label="收起参考：D:\\A\\参考"
+    class="workspace-expand"
+    type="button"
+  />
+
+  Name "参考（3 张）":
+  <button
+    aria-label="参考（3 张）"
+    class="sidebar-item"
+    title="D:\\A\\参考"
+    type="button"
+  />
+
+  --------------------------------------------------navigation:
+
+  Name "参考 / D:\A\参考的目录":
+  <nav
+    aria-label="参考 / D:\\A\\参考的目录"
+    class="sidebar"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "未归类（1 张）":
+  <button
+    aria-label="未归类（1 张）"
+    class="sidebar-item"
+    type="button"
+  />
+
+  Name "新建文件夹":
+  <button
+    aria-label="新建文件夹"
+    class="sidebar-add"
+    disabled=""
+    title="这份资料库当前仅供浏览"
+    type="button"
+  />
+
+  Name "人物（1 张）":
+  <button
+    aria-label="人物（1 张）"
+    class="sidebar-item"
+    data-folder-id="A-root"
+    draggable="false"
+    title="这份资料库当前仅供浏览"
+    type="button"
+  />
+
+  Name "动作（1 张）":
+  <button
+    aria-label="动作（1 张）"
+    class="sidebar-item"
+    data-folder-id="A-child"
+    draggable="false"
+    title="这份资料库当前仅供浏览"
+    type="button"
+  />
+
+  Name "回收站（0 张）":
+  <button
+    aria-label="回收站（0 张）"
+    class="sidebar-item"
+    type="button"
+  />
+
+  --------------------------------------------------
+  tree:
+
+  Name "文件夹":
+  <div
+    aria-label="文件夹"
+    class="sidebar-folders"
+    role="tree"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "":
+  <ul
+    class="sidebar-tree"
+    role="group"
+  />
+
+  Name "":
+  <ul
+    class="sidebar-tree"
+    role="group"
+  />
+
+  --------------------------------------------------
+  treeitem:
+
+  Name "人物":
+  <li
+    aria-label="人物"
+    role="treeitem"
+  />
+
+  Name "动作":
+  <li
+    aria-label="动作"
+    role="treeitem"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  class="workspace-provider"
+  data-library-id="A"
+>
+  <div
+    class="workspace-provider-root"
+  >
+    <button
+      aria-expanded="true"
+      aria-label="收起参考：D:\\A\\参考"
+      class="workspace-expand"
+      type="button"
+    >
+      −
+    </button>
+    <button
+      aria-label="参考（3 张）"
+      class="sidebar-item"
+      title="D:\\A\\参考"
+      type="button"
+    >
+      <span
+        class="sidebar-label"
+      >
+        参考
+      </span>
+      <span
+        class="sidebar-count"
+      >
+        3
+      </span>
+    </button>
+  </div>
+  <div
+    class="provider-path"
+    title="D:\\A\\参考"
+  >
+    D:\A\参考
+  </div>
+  <nav
+    aria-label="参考 / D:\\A\\参考的目录"
+    class="sidebar"
+  >
+    <button
+      aria-label="未归类（1 张）"
+      class="sidebar-item"
+      type="button"
+    >
+      <span
+        class="sidebar-label"
+      >
+        未归类
+      </span>
+      <span
+        class="sidebar-count"
+      >
+        1
+      </span>
+    </button>
+    <div
+      class="sidebar-heading"
+    >
+      <span>
+        文件夹
+      </span>
+      <button
+        aria-label="新建文件夹"
+        class="sidebar-add"
+        disabled=""
+        title="这份资料库当前仅供浏览"
+        type="button"
+      >
+        ＋
+      </button>
+    </div>
+    <div
+      aria-label="文件夹"
+      class="sidebar-folders"
+      role="tree"
+    >
+      <ul
+        class="sidebar-tree"
+        role="group"
+      >
+        <li
+          aria-label="人物"
+          role="treeitem"
+        >
+          <button
+            aria-label="人物（1 张）"
+            class="sidebar-item"
+            data-folder-id="A-root"
+            draggable="false"
+            title="这份资料库当前仅供浏览"
+            type="button"
+          >
+            <span
+              class="sidebar-label"
+            >
+              人物
+            </span>
+            <span
+              class="sidebar-count"
+            >
+              1
+            </span>
+          </button>
+          <ul
+            class="sidebar-tree"
+            role="group"
+          >
+            <li
+              aria-label="动作"
+              role="treeitem"
+            >
+              <button
+                aria-label="动作（1 张）"
+                class="sidebar-item"
+                data-folder-id="A-child"
+                draggable="false"
+                title="这份资料库当前仅供浏览"
+                type="button"
+              >
+                <span
+                  class="sidebar-label"
+                >
+                  动作
+                </span>
+                <span
+                  class="sidebar-count"
+                >
+                  1
+                </span>
+              </button>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    <button
+      aria-label="回收站（0 张）"
+      class="sidebar-item"
+      type="button"
+    >
+      <span
+        class="sidebar-label"
+      >
+        回收站
+      </span>
+      <span
+        class="sidebar-count"
+      >
+        0
+      </span>
+    </button>
+  </nav>
+</section>
+ ❯ Object.getElementError ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/library/WorkspacePane.test.tsx:30:20
+     28|   expect(within(a).getByText("D:\\A\\参考")).toBeTruthy();
+     29|   expect(within(b).getByText("D:\\B\\参考")).toBeTruthy();
+     30|   expect(within(a).getByRole("button", { name: "人物（2 张）" })).toBeTruth…
+       |                    ^
+     31|   fireEvent.click(within(a).getByRole("button", { name: "动作（1 张）" }));
+     32|   expect(props.onScope).toHaveBeenLastCalledWith({ kind: "library", li…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/library/WorkspacePane.test.tsx > 目录响应迟到时不替换新代次，当前范围保持明确身份
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "新目录（2 张）"
+
+Here are the accessible roles:
+
+  button:
+
+  Name "收起参考：D:\A\参考":
+  <button
+    aria-expanded="true"
+    aria-label="收起参考：D:\\A\\参考"
+    class="workspace-expand"
+    type="button"
+  />
+
+  Name "参考（3 张）":
+  <button
+    aria-label="参考（3 张）"
+    class="sidebar-item"
+    title="D:\\A\\参考"
+    type="button"
+  />
+
+  --------------------------------------------------navigation:
+
+  Name "参考 / D:\A\参考的目录":
+  <nav
+    aria-label="参考 / D:\\A\\参考的目录"
+    class="sidebar"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "未归类（1 张）":
+  <button
+    aria-label="未归类（1 张）"
+    class="sidebar-item"
+    type="button"
+  />
+
+  Name "新建文件夹":
+  <button
+    aria-label="新建文件夹"
+    class="sidebar-add"
+    disabled=""
+    title="这份资料库当前仅供浏览"
+    type="button"
+  />
+
+  Name "新目录（1 张）":
+  <button
+    aria-current="page"
+    aria-label="新目录（1 张）"
+    class="sidebar-item"
+    data-folder-id="A-root"
+    draggable="false"
+    title="这份资料库当前仅供浏览"
+    type="button"
+  />
+
+  Name "动作（1 张）":
+  <button
+    aria-label="动作（1 张）"
+    class="sidebar-item"
+    data-folder-id="A-child"
+    draggable="false"
+    title="这份资料库当前仅供浏览"
+    type="button"
+  />
+
+  Name "回收站（0 张）":
+  <button
+    aria-label="回收站（0 张）"
+    class="sidebar-item"
+    type="button"
+  />
+
+  --------------------------------------------------
+  tree:
+
+  Name "文件夹":
+  <div
+    aria-label="文件夹"
+    class="sidebar-folders"
+    role="tree"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "":
+  <ul
+    class="sidebar-tree"
+    role="group"
+  />
+
+  Name "":
+  <ul
+    class="sidebar-tree"
+    role="group"
+  />
+
+  --------------------------------------------------
+  treeitem:
+
+  Name "新目录":
+  <li
+    aria-label="新目录"
+    role="treeitem"
+  />
+
+  Name "动作":
+  <li
+    aria-label="动作"
+    role="treeitem"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  class="workspace-provider"
+  data-library-id="A"
+>
+  <div
+    class="workspace-provider-root"
+  >
+    <button
+      aria-expanded="true"
+      aria-label="收起参考：D:\\A\\参考"
+      class="workspace-expand"
+      type="button"
+    >
+      −
+    </button>
+    <button
+      aria-label="参考（3 张）"
+      class="sidebar-item"
+      title="D:\\A\\参考"
+      type="button"
+    >
+      <span
+        class="sidebar-label"
+      >
+        参考
+      </span>
+      <span
+        class="sidebar-count"
+      >
+        3
+      </span>
+    </button>
+  </div>
+  <div
+    class="provider-path"
+    title="D:\\A\\参考"
+  >
+    D:\A\参考
+  </div>
+  <nav
+    aria-label="参考 / D:\\A\\参考的目录"
+    class="sidebar"
+  >
+    <button
+      aria-label="未归类（1 张）"
+      class="sidebar-item"
+      type="button"
+    >
+      <span
+        class="sidebar-label"
+      >
+        未归类
+      </span>
+      <span
+        class="sidebar-count"
+      >
+        1
+      </span>
+    </button>
+    <div
+      class="sidebar-heading"
+    >
+      <span>
+        文件夹
+      </span>
+      <button
+        aria-label="新建文件夹"
+        class="sidebar-add"
+        disabled=""
+        title="这份资料库当前仅供浏览"
+        type="button"
+      >
+        ＋
+      </button>
+    </div>
+    <div
+      aria-label="文件夹"
+      class="sidebar-folders"
+      role="tree"
+    >
+      <ul
+        class="sidebar-tree"
+        role="group"
+      >
+        <li
+          aria-label="新目录"
+          role="treeitem"
+        >
+          <button
+            aria-current="page"
+            aria-label="新目录（1 张）"
+            class="sidebar-item"
+            data-folder-id="A-root"
+            draggable="false"
+            title="这份资料库当前仅供浏览"
+            type="button"
+          >
+            <span
+              class="sidebar-label"
+            >
+              新目录
+            </span>
+            <span
+              class="sidebar-count"
+            >
+              1
+            </span>
+          </button>
+          <ul
+            class="sidebar-tree"
+            role="group"
+          >
+            <li
+              aria-label="动作"
+              role="treeitem"
+            >
+              <button
+                aria-label="动作（1 张）"
+                class="sidebar-item"
+                data-folder-id="A-child"
+                draggable="false"
+                title="这份资料库当前仅供浏览"
+                type="button"
+              >
+                <span
+                  class="sidebar-label"
+                >
+                  动作
+                </span>
+                <span
+                  class="sidebar-count"
+                >
+                  1
+                </span>
+              </button>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    <button
+      aria-label="回收站（0 张）"
+      class="sidebar-item"
+      type="button"
+    >
+      <span
+        class="sidebar-label"
+      >
+        回收站
+      </span>
+      <span
+        class="sidebar-count"
+      >
+        0
+      </span>
+    </button>
+  </nav>
+</section>
+ ❯ Object.getElementError ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../7dea/kinshoko/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/library/WorkspacePane.test.tsx:55:20
+     53|   const a = document.querySelector<HTMLElement>('[data-library-id="A"]…
+     54|   expect(within(a).queryByRole("button", { name: "人物（2 张）" })).toBeNul…
+     55|   expect(within(a).getByRole("button", { name: "新目录（2 张）" })).toBeTrut…
+       |                    ^
+     56|   expect(props.onScope).not.toHaveBeenCalled();
+     57|   expect(pending[1].safeMode).toBe(false);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  00:36:03
+   Duration  1.78s (environment 66%, tests 16%, import 12%, transform 6%)
+

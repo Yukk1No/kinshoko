@@ -1,0 +1,179 @@
+{
+  "observedAfterChecks": "2026-10-08T18:28:48.074616+00:00",
+  "files": [
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\after-root-ui.txt",
+      "copy": "automatic-checks\\after-root-ui.txt",
+      "bytes": 243,
+      "sha256": "b7f8cbb9c3e3ef2cbe9a0380f4541fe684682f4bb91905537dc2c3899a6f7fa9"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\after-t11-workspace-tests.txt",
+      "copy": "automatic-checks\\after-t11-workspace-tests.txt",
+      "bytes": 64491,
+      "sha256": "8b96520190305bcf55247383ac9de61f2062dfbeb2f670fcc82a6267c238e66a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\bindings.txt",
+      "copy": "automatic-checks\\bindings.txt",
+      "bytes": 10328,
+      "sha256": "56098fa9ecc04cd9195335c90dc6e5591e0d6b8dcb1fb0ae43461aaefb9e2ba4"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\clippy-before-merge.txt",
+      "copy": "automatic-checks\\clippy-before-merge.txt",
+      "bytes": 1024,
+      "sha256": "794db8d9a4ae31658814aa0b7dde0dbe23a94d28e5cbd2541ad48e6628a9e22d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\clippy-fixed.txt",
+      "copy": "automatic-checks\\clippy-fixed.txt",
+      "bytes": 437,
+      "sha256": "24317602462a3918773c9d93d595fec70f69ced22f47a508a5090e95bdb7df6f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\core-owner-green.txt",
+      "copy": "automatic-checks\\core-owner-green.txt",
+      "bytes": 1922,
+      "sha256": "f0e51a54e652e053d19275a8441f066bedaaa429f8036b28b927dafccffaee35"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\core-targets.txt",
+      "copy": "automatic-checks\\core-targets.txt",
+      "bytes": 2415,
+      "sha256": "9c564e6c1604f16107eb6bbf399d00282cfb5fd33a1ad4b6922f8b4508e4a125"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\dialog-ui.txt",
+      "copy": "automatic-checks\\dialog-ui.txt",
+      "bytes": 244,
+      "sha256": "dfb483d2225a7dcc6def33d30d893904810408c056e0b9a1890b27c9b87a6801"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\final-clippy.txt",
+      "copy": "automatic-checks\\final-clippy.txt",
+      "bytes": 492,
+      "sha256": "b548d16bf7034375f1d3a7c06ba0193a19bb5e8c9d1f30c793b80e952199c223"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\final-fmt.txt",
+      "copy": "automatic-checks\\final-fmt.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\final-typecheck.txt",
+      "copy": "automatic-checks\\final-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\final-ui.txt",
+      "copy": "automatic-checks\\final-ui.txt",
+      "bytes": 9511,
+      "sha256": "0f52c0cc3e5608415b8f7e2520e712d9ffc4d0b14cb998d9d76efa6bcddb203c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\native-build-direct.txt",
+      "copy": "automatic-checks\\native-build-direct.txt",
+      "bytes": 850,
+      "sha256": "5856c081d40b3e8a8c301250261041c06ae49e96fa144136fe42b8d794fb986d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\native-build.txt",
+      "copy": "automatic-checks\\native-build.txt",
+      "bytes": 1558,
+      "sha256": "276136316b823cda3a0eb2c23bea0a46b050b73154e200e3ad68c0bbf675b684"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\owners-all-green.txt",
+      "copy": "automatic-checks\\owners-all-green.txt",
+      "bytes": 2017,
+      "sha256": "1dd60ecd1d0854c0f653e919b001c39b44e8518abda0622b9f37daae67757f70"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\publication-red.txt",
+      "copy": "automatic-checks\\publication-red.txt",
+      "bytes": 1100,
+      "sha256": "e274d664ac1e451f5e4ed9db4580ab15dd594d51ced0506a7d371f6c52991382"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\retry-visible-target-green.txt",
+      "copy": "automatic-checks\\retry-visible-target-green.txt",
+      "bytes": 243,
+      "sha256": "8ec484cc5f03e0f1ec9cd6371ef988ba1b9b2e48c952d8e19e65a2874f9d54b8"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\retry-visible-target-red.txt",
+      "copy": "automatic-checks\\retry-visible-target-red.txt",
+      "bytes": 6224,
+      "sha256": "87403283d4f04b9b7391a411870dd91c4e24243da4321868b43032a089e9238a"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\synchronous-owner-red.txt",
+      "copy": "automatic-checks\\synchronous-owner-red.txt",
+      "bytes": 1119,
+      "sha256": "e741405c2e9fde21e12297432be909da4d956a8442b94f6ed7e92092e7559377"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\synchronous-revoke-red.txt",
+      "copy": "automatic-checks\\synchronous-revoke-red.txt",
+      "bytes": 1096,
+      "sha256": "1975c176a287a2d10ed7fc1057bbdf166b0aecb875aa047ddabb0ec83603818d"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\ui-all-final.txt",
+      "copy": "automatic-checks\\ui-all-final.txt",
+      "bytes": 551,
+      "sha256": "2e740fc0cc95ca8c5400c5cc75d5338dfddc6ef70b65a0d421e726c40e001304"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\ui-all-green.txt",
+      "copy": "automatic-checks\\ui-all-green.txt",
+      "bytes": 551,
+      "sha256": "288852ccf725becb85eee939553ad87af41ba675f703f5569822b8ce29e08b6f"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\ui-all-initial.txt",
+      "copy": "automatic-checks\\ui-all-initial.txt",
+      "bytes": 90279,
+      "sha256": "6ddcf2f4eb7cc7a4c8d7e0117c02243a6d0ed560aec1077cdc4d083c8de9222e"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\ui-app-migration.txt",
+      "copy": "automatic-checks\\ui-app-migration.txt",
+      "bytes": 243,
+      "sha256": "6d2b4542aef986b17a1f85071ebf43e7a5b1b8daacd0b32c002e8eb7c8b0f07c"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\ui-destination-red.txt",
+      "copy": "automatic-checks\\ui-destination-red.txt",
+      "bytes": 3055,
+      "sha256": "7991b679ea491cf3e2e8bf6ae639a8bcbb3dd5476d34affc09f9ab38d6431c88"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\ui-followup.txt",
+      "copy": "automatic-checks\\ui-followup.txt",
+      "bytes": 242,
+      "sha256": "541db4c03efb90f9901c996e3803270e7cc0c1e8c612a48340ec366e983cbdd7"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\ui-targets.txt",
+      "copy": "automatic-checks\\ui-targets.txt",
+      "bytes": 244,
+      "sha256": "bc4b0715501089f391c71cb3f3027535c9c577ec0341f028ca1993e964d4ffb2"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\build-source.json",
+      "copy": "build-source.json",
+      "bytes": 3396,
+      "sha256": "6b12a4bffe222580bed582b511fa0872f7bfbaa33e11c69d5b1c171649e81fde"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\tauri-config.json",
+      "copy": "tauri-config.json",
+      "bytes": 79,
+      "sha256": "4d5a6444207123df105d8639e274663822a5e52f681a89cc11353e965d7b54e1"
+    }
+  ]
+}
