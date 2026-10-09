@@ -45,7 +45,7 @@ export async function runCombined(planPath,desktopGrant) {
     report.status="verified-combined-native-flow";report.fullT20Acceptance=false;
   } catch(error) {
     report.status="failed";report.error=String(error);report.failedPhase=workflow.state.phase;process.exitCode=1;
-    if(d.session){await d.screenshot("failure.png").catch(()=>{});await d.exec("return document.documentElement.outerHTML;").then(html=>writeFileSync(join(work,"failure.html"),html)).catch(()=>{});}throw error;
+    if(d.session){await d.screenshot("failure.png").catch(()=>{});await d.main().then(()=>d.ipcLog()).then(value=>writeFileSync(join(work,"failure-ipc.json"),JSON.stringify(value,null,1))).catch(()=>{});await d.exec("return document.documentElement.outerHTML;").then(html=>writeFileSync(join(work,"failure.html"),html)).catch(()=>{});}throw error;
   } finally {
     report.cleanupErrors=[];
     try{await d.cleanup();}catch(error){report.cleanupErrors.push({step:"owned-process-cleanup",error:String(error)});}

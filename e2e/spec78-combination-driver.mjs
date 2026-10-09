@@ -52,6 +52,7 @@ export class CombinationDriver {
     this.session=`/session/${started.sessionId}`;
     await this.request("POST",this.session+"/timeouts",{script:180000,implicit:0,pageLoad:60000});
     await this.main();
+    await this.observeIpc();
     this.rememberOwned(this.observeOwned());
     this.record("session-start",{sessionId:started.sessionId,application:this.application,profile:this.profile,data:this.data,driverPid:this.process.pid});
   }
@@ -64,6 +65,14 @@ export class CombinationDriver {
       return false;
     });
   }
+  // Read-only diagnostic at the public IPC surface of the main WebView: records each app command's
+  // start/settle time and failure text (last 2000). It forwards every call unchanged.
+  observeIpc() {
+    return this.exec(`const ipc=window.__TAURI_INTERNALS__;if(ipc.__t20Observed)return true;const original=ipc.invoke.bind(ipc),log=window.__T20_IPC__=[];
+ipc.invoke=(cmd,args,options)=>{const entry={cmd,at:performance.now(),scope:args?.query?.scope??args?.scope??null,cursor:args?.query?.cursor??null,settled:null,ok:null,failure:null};if(!String(cmd).startsWith('plugin:event|')){log.push(entry);if(log.length>2000)log.shift();}
+const p=original(cmd,args,options);p.then(()=>{entry.settled=performance.now();entry.ok=true;},e=>{entry.settled=performance.now();entry.ok=false;entry.failure=String(e).slice(0,200);});return p;};ipc.__t20Observed=true;return true;`);
+  }
+  ipcLog() {return this.exec("return {now:performance.now(),log:window.__T20_IPC__??null};");}
   async window(label) {
     return until("actual WebDriver window "+label,async()=>{
       for(const handle of await this.request("GET",this.session+"/window/handles")) {
