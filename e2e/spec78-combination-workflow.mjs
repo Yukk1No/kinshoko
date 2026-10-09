@@ -201,7 +201,11 @@ export class CombinationWorkflow {
     await this.chooseDestination(this.a.id,this.folderA,dialog);await this.readyClick(`${dialog}//button[normalize-space()='确认复制']`);
     await until("actual copy dialog closed",()=>d.exec("return !document.querySelector('[role=dialog][aria-label=复制此来源]');"));
     d.assert((await this.inspect(this.targetA)).detail.note.manual===beforeA.detail.note.manual,"copying B into existing A preserves A's manual note");
-    d.assert(JSON.stringify((await this.inspect(this.targetA)).tags.image.tags)===JSON.stringify(beforeA.tags.image.tags),"copying B into existing A preserves A's manual tag decisions");
+    // The copy records B's tags as a non-manual source origin (T10: content snapshot and source record).
+    // A's manual decisions (manual origins and rejections) must stay exactly as they were.
+    const manualDecisions=image=>({manual:image.tags.filter(item=>item.origins.some(origin=>origin.kind==="manual")).map(item=>item.tag.id).sort(),rejected:JSON.stringify(image.rejected)});
+    const afterA=await this.inspect(this.targetA);
+    d.assert(JSON.stringify(manualDecisions(afterA.tags.image))===JSON.stringify(manualDecisions(beforeA.tags.image)),"copying B into existing A preserves A's manual tag decisions",{before:beforeA.tags.image,after:afterA.tags.image});
     // The copy notifies a new revision; the editor revalidates. Wait for that real reload to finish.
     const reloaded=await this.sourceEditorLoaded("乙来源经界面修改的备注");
     d.assert(reloaded.note==="乙来源经界面修改的备注"&&reloaded.source.includes(this.b.id),"after copy the source editor finishes reloading and still shows explicit B with its saved note",reloaded);
