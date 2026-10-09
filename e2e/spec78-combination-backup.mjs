@@ -129,7 +129,7 @@ export async function combinedBackups(workflow) {
   const restored=await restoreContent(workflow,backup,join(d.work,"existing-environment-restored"),"08-existing-settings");
   d.assert(JSON.stringify(await programChoices(workflow))===JSON.stringify(choicesBeforeContentRestore),"content restoration preserves current program preferences, alias deletion, global groups and personal rules");
   const restoredB=restored.libraries.find(entry=>entry.oldId===workflow.b.id).library;
-  d.assert((await d.invoke("image",{libraryId:restoredB.id,imageId:workflow.targetB.imageId})).note.manual==="乙来源经界面修改的备注","restored B curation comes from the content snapshot while live B retains its later note");
+  d.assert((await workflow.inspect({libraryId:restoredB.id,imageId:workflow.targetB.imageId,contentId:workflow.targetB.contentId})).detail.note.manual==="乙来源经界面修改的备注","restored B curation comes from the content snapshot while live B retains its later note");
   d.assert((await workflow.inspect(workflow.targetB)).detail.note.manual==="内容备份之后写入的乙来源备注","content restoration does not overwrite the live original provider");
   const beforeRegistration=await d.invoke("registered_libraries");
   const providerBefore=[await providerFacts(workflow,workflow.a,workflow.targetA),await providerFacts(workflow,workflow.b,workflow.targetB)];
