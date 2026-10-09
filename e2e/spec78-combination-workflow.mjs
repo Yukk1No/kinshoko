@@ -43,12 +43,29 @@ export class CombinationWorkflow {
     await this.readyClick(candidate);
   }
   async allPages(scope = allScope, conditions = blank, safeMode = true) {
-    let cursor = null; const cards = [], statuses = [];
-    do {
-      const page = await this.d.invoke("workspace_browse", { query: { scope, conditions, cursor, limit: 100, thumbnailPx: 128 }, safeMode });
-      cards.push(...page.cards); statuses.push({ revision: page.status.revision, total: page.total }); cursor = page.nextCursor;
-    } while (cursor !== null);
-    return { cards, total: statuses.at(-1).total, statuses };
+    // Like the product wall: a revision change during paging expires the snapshot; restart from page one.
+    for (let attempt = 0; ; attempt++) {
+      let cursor = null; const cards = [], statuses = [];
+      try {
+        do {
+          const page = await this.d.invoke("workspace_browse", { query: { scope, conditions, cursor, limit: 100, thumbnailPx: 128 }, safeMode });
+          cards.push(...page.cards); statuses.push({ revision: page.status.revision, total: page.total }); cursor = page.nextCursor;
+        } while (cursor !== null);
+        return { cards, total: statuses.at(-1).total, statuses, attempts: attempt + 1 };
+      } catch (error) {
+        if (attempt >= 5 || !String(error).includes("浏览结果已变化")) throw error;
+        await new Promise(done => setTimeout(done, 300));
+      }
+    }
+  }
+  // Wait until the public workspace revision has been unchanged for quietMs (a burst of import events has ended).
+  settled(quietMs = 1500) {
+    let last = null, since = Date.now();
+    return until("workspace revision settles", async () => {
+      const now = (await this.d.invoke("workspace_status", { safeMode: true })).revision;
+      if (now !== last) { last = now; since = Date.now(); return null; }
+      return Date.now() - since >= quietMs ? now : null;
+    });
   }
   local(libraryId, folderId = null, safeMode = true) {
     return this.allPages({ kind: "library", libraryId, scope: folderId === null ? { kind: "all" } : { kind: "folder", id: folderId } }, blank, safeMode);
