@@ -40,6 +40,33 @@
 
 最小派生记录：[combination-preparation.json](evidence/spec78-t20/combination-preparation.json)。旧输入和旧检查原件继续保留。最终阶段必须重新冻结 clean commit/tree；本阶段没有 native plan 或桌面授权。
 
+## 固定 ef77 审查后的脚本修正
+
+固定审查来源 `ef77b07e2dedf5c3f038324204776935148de48b` 和旧原件保留。新增修正由 [combination-corrections.json](evidence/spec78-t20/combination-corrections.json) 单独记录。
+
+- 钉图关闭进入实际 WebDriver pin handle，在该窗口按 Esc。确认该 handle 销毁后才返回主窗口。不放宽正式命令的当前窗口权限。
+- 驱动启动后立即记录初始 PID、EXE、创建时间和端口。正常退出与失败清理共用逐实例重新查询／终止逻辑。查询失败仍为失败，不使用未经复核的 taskkill 进程树。
+- 保留原有分块撤销谓词。另要求关闭、同值安全模式、程序设置替换和当前库切换成功返回后，内容 chunk 和字节均为0。实际 Channel 返回边界尚未执行。
+- 新夹具直接读取本构建的内置默认名称，将 B 的旧 `parted_hair` 名称设为“分缝发型”。正式迁移必须实际出现该相等来源，并保存明确偏好。没有可条件跳过的成功分支。之后更新默认表的保护仍由核心公开接口测试单独证明，不声称本轮 native 已更新默认表。
+- 源码清单加入 `data/` 和 `.cargo/`。两份内置 JSON 是真实 `include_str!` 编译输入。
+- v2 构建冻结和 native plan 必须带实际构建回执。旧的源码准备快照、路径和各自 hash 不能代替该回执。
+
+本次13项辅助检查通过。它们覆盖9模块语法／安全导入、本地模拟 WebDriver 的 pin handle／Esc／销毁流程、元数据 HTTP、三段 PowerShell AST，以及无有效构建回执时拒绝计划。没有执行 CIM 查询、进程终止、构建或正式程序。新输入的13项字节／解码／像素和只读 SQLite 检查通过。前两次只读检查因脚本写错 `tag_external` 字段而失败；原脚本、退出状态和日志均保留。第三次按已读取的真实 `name` 列修正。该失败不属于产品结果。
+
+## 尚未执行的构建与桌面门槛
+
+最终 T17 合入和原图阶段收口后，根代理先指定 clean commit/tree、profile 和独立配置，再执行本树的显式 `--build <build-input.json>`。输入只包含 `configPath`、新的 owned `work` 路径和明确的 `profile`（`debug` 或 `release`）。此动作依次实际运行本地 Vite CLI 和 Tauri `build --no-bundle --config <exact-config>`，记录命令、cwd、jobs=2／本树 target、退出状态和原始 stdout／stderr。构建动作不会由 import、freeze、plan 或 run 自动触发。
+
+回执必须记录前端构建前、前端构建后、native 构建前、native 构建后的实际源码文件；包含 data/.cargo。所有源码和隔离 config 必须一致。前端产出的 dist 必须与 native 构建前后相同。记录 T20 与已有 T19 的 requested／resolved KnownFolder 字节状态。失败回执保留，不能生成可运行计划。
+
+构建成功后把实际 `kinshoko.exe` 和邻接全部 DLL 复制到该新轮的 `frozen-runtime/`。DirectML.dll 必须存在。每份源文件和冻结文件记录实际字节及 SHA，采用不覆盖复制。独立冻结目录允许离开 target；它必须仍在本树 owned work/e2e 内。v2 freeze、plan 和 run 均重新验证这些冻结文件，拒绝缺失、变化或未登记的邻接文件。
+
+`--freeze <config> <new-freeze> <successful-build-receipt>` 才能生成构建冻结。`--plan` 只允许实际回执中的冻结 EXE。之后只改 harness 时必须明确记录允许的 commit 差异，产品文件、config、dist 和冻结 runtime 仍须一致。完整原图模块存在、未使用的新夹具、root 新的独占桌面 grant、KnownFolder 双路径及实际进程／端口前态都通过后，才允许 `--run`。
+
+原型对照仍须从本轮正式程序的实际 A 范围卡片／顺序和已核 SHA 的同样本生成输入，使用认可原型 `bd8aea44c4a311571ee3c07382cb7755f87f3153`、同 CSS viewport／DPR／字体，并另记聚合入口的有意差异。没有运行原型或读取屏幕。
+
+NSIS 仍须另做实际 release 构建、干净安装和旧→新升级。不能把 debug 包计为 release。可复用 T19 实际0.1.0旧包（SHA `b1ee1339bbc0e9e2981d50f6519409aab81b73f3574504a857a6fd0afb2a8e91`），但必须明确它原本是 debug baseline。新包保留该隔离产品身份，单独记录命令／退出、实际 release hook 和 runtime、bare EXE／NSIS packaged EXE／安装后 EXE 的区别、PE版本及两路径设置前后。已有 T19 设置和正式 HKCU Run 必须先由 root 核对并保全。这些安装步骤尚未执行。
+
 ## 最终验收仍在准备
 
 最终构建必须先合入 T17。主操作使用同一最终 EXE、同一会话和两份独立真实资料库，覆盖迁移、查找、来源整理、保存目标、框选、任务限定展开和两类恢复。重启、空白环境、干净安装和实际旧版升级分别记录生命周期，不累计旧脚本子项冒充组合结果。

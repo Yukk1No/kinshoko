@@ -17,7 +17,7 @@ export class CombinationDriver {
     if(!this.work.startsWith(resolve("work/e2e")+sep)||!this.work.includes("spec78-t20"))throw Error("Native run directory must be owned by T20");
     if(![this.data,this.profile].every(path=>path.startsWith(this.work+sep)))throw Error("Data/profile must remain inside the native run directory");
     if(port!==4630)throw Error("T20 combination reserves ports4630/4631 only");
-    this.url=`http://127.0.0.1:${port}`;this.process=null;this.session=null;this.trace=[];this.assertions=[];this.ownedProcesses=[];this.release=null;
+    this.url=`http://127.0.0.1:${port}`;this.process=null;this.session=null;this.trace=[];this.assertions=[];this.ownedProcesses=[];this.spawnedDriver=null;this.release=null;
   }
   async request(method,path,body) {
     const response=await fetch(this.url+path,{method,headers:{"content-type":"application/json"},body:body===undefined?undefined:JSON.stringify(body)});
@@ -34,6 +34,11 @@ export class CombinationDriver {
     this.process=spawn(this.tauriDriver,["--port",String(this.port),"--native-port",String(this.port+1),"--native-driver",this.edgeDriver],{
       windowsHide:true,stdio:["ignore","inherit","inherit"],env:{...process.env,APPDATA:join(this.work,"roaming"),LOCALAPPDATA:join(this.work,"local"),KINSHOKO_DATA_DIR:this.data,WEBVIEW2_USER_DATA_FOLDER:this.profile,KINSHOKO_SKIP_AUTOSTART:"1"},
     });
+    this.spawnedDriver=await until("initial exact spawned driver identity",()=>{
+      if(this.process.exitCode!==null)throw Error("The spawned driver exited before identity capture");
+      return this.captureSpawnedDriver();
+    });
+    this.rememberOwned({processes:[this.spawnedDriver]});this.record("initial-spawned-driver",this.spawnedDriver);
     await until("owned driver status",()=>fetch(this.url+"/status").then(r=>r.ok));
     const started=await this.request("POST","/session",{capabilities:{alwaysMatch:{"tauri:options":{application:this.application,webviewOptions:{userDataFolder:this.profile}}}}});
     this.session=`/session/${started.sessionId}`;
@@ -50,6 +55,24 @@ export class CombinationDriver {
       }
       return false;
     });
+  }
+  async window(label) {
+    return until("actual WebDriver window "+label,async()=>{
+      for(const handle of await this.request("GET",this.session+"/window/handles")) {
+        await this.request("POST",this.session+"/window",{handle});
+        if(await this.exec("return window.__TAURI_INTERNALS__?.metadata?.currentWindow?.label===arguments[0];",[label]))return handle;
+      }
+      return false;
+    });
+  }
+  async closePin(pin) {
+    const label="pin-"+pin,handle=await this.window(label);
+    await until("current real pin canvas ready for Escape",()=>this.exec("const canvas=document.querySelector('.pin-canvas');return !!canvas&&canvas.width>0&&canvas.height>0;"));
+    let keyError;
+    try{await this.key("\uE00C");}catch(error){keyError=String(error);}
+    await until("Escape destroys the exact pin handle",async()=>!(await this.request("GET",this.session+"/window/handles")).includes(handle));
+    const main=await this.main();this.record("actual-pin-Escape-close",{pin,label,handle,keyError,main});
+    return {pin,label,handle,main};
   }
   exec(script,args=[]) {return this.request("POST",this.session+"/execute/sync",{script,args});}
   async async(script,args=[]) {return this.request("POST",this.session+"/execute/async",{script,args});}
@@ -90,6 +113,18 @@ export class CombinationDriver {
   }
   async screenshot(name) {writeFileSync(join(this.work,name),Buffer.from(await this.request("GET",this.session+"/screenshot"),"base64"));}
   save(name,value) {writeFileSync(join(this.work,name),JSON.stringify(value,null,2));}
+  captureSpawnedDriver() {
+    const script=String.raw`
+$ErrorActionPreference='Stop'
+$item=Get-CimInstance Win32_Process -Filter ('ProcessId = '+[string][uint32]$env:KINSHOKO_T20_DRIVER_PID) -ErrorAction Stop | Select-Object -First 1
+if($null -eq $item){'null';exit 0}
+if($item.ExecutablePath -ne $env:KINSHOKO_T20_TAURI_DRIVER -or !$item.CommandLine.Contains('--port 4630') -or !$item.CommandLine.Contains('--native-port 4631')){throw 'Spawned PID does not match the exact driver executable and ports'}
+@{pid=$item.ProcessId;parentPid=$item.ParentProcessId;executable=$item.ExecutablePath;created=$item.CreationDate.ToUniversalTime().ToString('o');commandLine=$item.CommandLine;ownership='initial-spawned-driver'} | ConvertTo-Json -Compress
+`;
+    const result=spawnSync("powershell",["-NoProfile","-NonInteractive","-Command",script],{windowsHide:true,encoding:"utf8",env:{...process.env,KINSHOKO_T20_DRIVER_PID:String(this.process.pid),KINSHOKO_T20_TAURI_DRIVER:this.tauriDriver}});
+    if(result.status!==0)throw Error("Initial spawned driver identity query failed: "+result.stderr);
+    return JSON.parse(result.stdout.trim().replace(/^\uFEFF/,""));
+  }
   observeOwned() {
     const script=String.raw`
 $ErrorActionPreference='Stop'
@@ -99,13 +134,14 @@ $all=@(Get-CimInstance Win32_Process -ErrorAction Stop)
 $app=NormalPath $env:KINSHOKO_T20_EXECUTABLE
 $profile=NormalPath $env:KINSHOKO_T20_PROFILE
 $tauri=NormalPath $env:KINSHOKO_T20_TAURI_DRIVER
+$spawned=ConvertFrom-Json $env:KINSHOKO_T20_SPAWNED_DRIVER
 $known=@(ConvertFrom-Json $env:KINSHOKO_T20_OWNED_PROCESSES)
 $selected=@{}
 foreach($item in $all) {
  $path=NormalPath $item.ExecutablePath; $command=NormalPath $item.CommandLine; $reason=$null
  if($path -eq $app){$reason='exact-application'}
  elseif($command.Contains($profile)){$reason='exact-owned-profile'}
- elseif($item.ProcessId -eq [int]$env:KINSHOKO_T20_DRIVER_PID -and $path -eq $tauri -and $command.Contains('--port 4630') -and $command.Contains('--native-port 4631')){$reason='spawned-driver-path-pid-ports'}
+ elseif($null -ne $spawned -and $item.ProcessId -eq $spawned.pid -and (Stamp $item) -eq $spawned.created -and $path -eq $tauri -and $path -eq (NormalPath $spawned.executable) -and $command.Contains('--port 4630') -and $command.Contains('--native-port 4631')){$reason='spawned-driver-path-pid-creation-ports'}
  else {foreach($prior in $known){if($item.ProcessId -eq $prior.pid -and (Stamp $item) -eq $prior.created -and $path -eq (NormalPath $prior.executable)){$reason='previously-observed-owned-process';break}}}
  if($reason){$selected[[string]$item.ProcessId]=$reason}
 }
@@ -117,7 +153,7 @@ $processes=@($all | Where-Object {$selected.ContainsKey([string]$_.ProcessId)} |
 $ports=@([System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners() | Where-Object {$_.Port -in 4630,4631} | ForEach-Object {@{address=[string]$_.Address;port=$_.Port}})
 @{processes=$processes;ports=$ports;checkedAt=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Depth 6 -Compress
 `;
-    const result=spawnSync("powershell",["-NoProfile","-NonInteractive","-Command",script],{windowsHide:true,encoding:"utf8",env:{...process.env,KINSHOKO_T20_EXECUTABLE:this.application,KINSHOKO_T20_PROFILE:this.profile,KINSHOKO_T20_TAURI_DRIVER:this.tauriDriver,KINSHOKO_T20_DRIVER_PID:String(this.process?.pid??0),KINSHOKO_T20_OWNED_PROCESSES:JSON.stringify(this.ownedProcesses)}});
+    const result=spawnSync("powershell",["-NoProfile","-NonInteractive","-Command",script],{windowsHide:true,encoding:"utf8",env:{...process.env,KINSHOKO_T20_EXECUTABLE:this.application,KINSHOKO_T20_PROFILE:this.profile,KINSHOKO_T20_TAURI_DRIVER:this.tauriDriver,KINSHOKO_T20_SPAWNED_DRIVER:JSON.stringify(this.spawnedDriver),KINSHOKO_T20_OWNED_PROCESSES:JSON.stringify(this.ownedProcesses)}});
     if(result.status!==0)throw Error("Exact process/profile/port observation failed: "+result.stderr);
     return JSON.parse(result.stdout.trim().replace(/^\uFEFF/,""));
   }
@@ -141,22 +177,9 @@ $ports=@([System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperti
     await this.stopDriver();const released=await this.waitReleased("normal Quit releases exact app/profile/drivers/ports");
     this.record("normal-quit-release",{label,released});
   }
-  async stopDriver() {
-    const before=this.observeOwned();this.rememberOwned(before);
-    const owner=before.processes.find(process=>process.pid===this.process?.pid&&process.ownership==="spawned-driver-path-pid-ports");
-    if(owner) {
-      const result=spawnSync("taskkill",["/PID",String(owner.pid),"/T","/F"],{windowsHide:true,encoding:"utf8"});
-      this.record("owned-driver-stop",{owner,status:result.status,stdout:result.stdout,stderr:result.stderr});
-      if(result.status!==0)throw Error("Exact spawned driver termination failed: "+result.stderr);
-    }
-    this.process=null;
-  }
-  async cleanup() {
-    this.release=null;
-    try {
-      if(this.session)await this.request("DELETE",this.session).catch(error=>this.record("session-delete-failed",{error:String(error)}));this.session=null;
-      const before=this.observeOwned();this.rememberOwned(before);
-      const script=String.raw`
+  terminateOwned(expected,label) {
+    if(expected.some(item=>!Number.isInteger(item.pid)||item.pid<=0||!item.created||!item.executable))throw Error("An exact termination requires PID, creation time and executable for every instance");
+    const script=String.raw`
 $ErrorActionPreference='Stop'
 $expected=@(ConvertFrom-Json $env:KINSHOKO_T20_TERMINATE)
 function SameInstance($item,$prior) { return $null -ne $item -and $item.CreationDate.ToUniversalTime().ToString('o') -eq $prior.created -and $item.ExecutablePath -eq $prior.executable }
@@ -175,9 +198,24 @@ foreach($prior in $expected) {
 }
 @{terminated=$terminated;alreadyEnded=$alreadyEnded} | ConvertTo-Json -Depth 4 -Compress
 `;
-      const forced=spawnSync("powershell",["-NoProfile","-NonInteractive","-Command",script],{windowsHide:true,encoding:"utf8",env:{...process.env,KINSHOKO_T20_TERMINATE:JSON.stringify(before.processes)}});
-      const termination={status:forced.status,stdout:forced.stdout,stderr:forced.stderr};this.record("forced-owned-cleanup",termination);
-      if(forced.status!==0)throw Error("Exact owned process cleanup failed: "+forced.stderr);
+    const forced=spawnSync("powershell",["-NoProfile","-NonInteractive","-Command",script],{windowsHide:true,encoding:"utf8",env:{...process.env,KINSHOKO_T20_TERMINATE:JSON.stringify(expected)}});
+    const termination={status:forced.status,stdout:forced.stdout,stderr:forced.stderr};this.record(label,termination);
+    if(forced.status!==0)throw Error("Exact owned process termination failed: "+forced.stderr);
+    return termination;
+  }
+  async stopDriver() {
+    const before=this.observeOwned();this.rememberOwned(before);
+    if(before.processes.some(item=>resolve(item.executable).toLowerCase()===this.application.toLowerCase()))throw Error("Normal tray Quit left the exact application running; preserve the failed normal-exit observation");
+    // Each remaining driver/WebView instance is re-queried immediately before Stop-Process.
+    // Do not use taskkill /T, which could kill an unverified later descendant.
+    this.terminateOwned(before.processes,"normal-quit-owned-driver-stop");this.process=null;
+  }
+  async cleanup() {
+    this.release=null;
+    try {
+      if(this.session)await this.request("DELETE",this.session).catch(error=>this.record("session-delete-failed",{error:String(error)}));this.session=null;
+      const before=this.observeOwned();this.rememberOwned(before);
+      const termination=this.terminateOwned(before.processes,"forced-owned-cleanup");
       const after=await this.waitReleased("cleanup releases exact app/profile/drivers/ports");this.process=null;
       this.release={released:true,before,termination,after};this.save("release.json",this.release);return this.release;
     } catch(error) {

@@ -10,9 +10,9 @@ import { combinedBackups } from "./spec78-combination-backup.mjs";
 import { eagleReimportCombination } from "./spec78-combination-eagle.mjs";
 import { sealedTransferBoundaries } from "./spec78-combination-sealed.mjs";
 import { restartAndOffline, blankEnvironment } from "./spec78-combination-lifecycle.mjs";
-import { IDENTIFIER, readJson, ownedWork, fileRecord, freezeBuild, makeNativePlan, checkNativePlan, sourceRecord, knownFolderState, preserveKnownFolder, restoreKnownFolder } from "./spec78-combination-preflight.mjs";
+import { IDENTIFIER, readJson, ownedWork, fileRecord, recordAttributedBuild, freezeBuild, makeNativePlan, checkNativePlan, sourceRecord, knownFolderState, preserveKnownFolder, restoreKnownFolder } from "./spec78-combination-preflight.mjs";
 
-const usage="node e2e/spec78-combination.mjs --prepare <new owned directory> | --config <owned config path> | --freeze <config> <new freeze> | --plan <plan-input.json> | --known-folders <owned output.json> | --run <native-plan.json> <root-grant-id>";
+const usage="node e2e/spec78-combination.mjs --prepare <new owned directory> | --config <owned config path> | --build <build-input.json> | --freeze <config> <new freeze> <successful-build-receipt> | --plan <plan-input.json> | --known-folders <owned output.json> | --run <native-plan.json> <root-grant-id>";
 function saveNew(path,value) {ownedWork(dirname(resolve(path)));if(existsSync(path))throw Error("Preserve the existing output: "+path);mkdirSync(dirname(resolve(path)),{recursive:true});writeFileSync(path,JSON.stringify(value,null,2));}
 export async function runCombined(planPath,desktopGrant) {
   if(!desktopGrant?.trim())throw Error("Native execution requires root's new exclusive desktop grant for this exact plan");
@@ -27,7 +27,7 @@ export async function runCombined(planPath,desktopGrant) {
   if(existsSync(work))throw Error("Native round already exists; retain it and use a fresh fixture/plan");
   mkdirSync(work,{recursive:true});
   const before=preserveKnownFolder(work),d=new CombinationDriver({application:plan.application.path,edgeDriver:plan.edgeDriver.path,tauriDriver:plan.tauriDriver.path,port:plan.port,work,data:join(work,"app-data"),profile:join(work,"webview")});
-  const workflow=new CombinationWorkflow(d,fixture),report={kind:"spec78-t20-combined-run",status:"running",startedAt:new Date().toISOString(),plan:fileRecord(planPath),desktopGrant,buildSource:plan.build.source,buildTree:plan.build.tree,observationSource:sourceRecord(),application:plan.application,config:plan.build.config,fixture:fileRecord(plan.fixture.path),knownFolderBefore:before,mainSession:null,lifecycles:null,installer:"not-executed-by-this-harness",prototype:"not-executed-by-this-harness",windows10:"unverified-accepted-by-owner",fullT20Acceptance:false};
+  const workflow=new CombinationWorkflow(d,fixture),report={kind:"spec78-t20-combined-run",status:"running",startedAt:new Date().toISOString(),plan:fileRecord(planPath),desktopGrant,buildSource:plan.build.source,buildTree:plan.build.tree,observationSource:sourceRecord(),application:plan.application,runtime:plan.runtime,buildAttribution:plan.build.buildAttribution,config:plan.build.config,fixture:fileRecord(plan.fixture.path),knownFolderBefore:before,mainSession:null,lifecycles:null,installer:"not-executed-by-this-harness",prototype:"not-executed-by-this-harness",windows10:"unverified-accepted-by-owner",fullT20Acceptance:false};
   try {
     await d.boot();report.mainSession=d.session;
     report.environment=await d.exec("return {userAgent:navigator.userAgent,viewport:{width:innerWidth,height:innerHeight},outer:{width:outerWidth,height:outerHeight},dpr:devicePixelRatio,screen:{width:screen.width,height:screen.height,colorDepth:screen.colorDepth,pixelDepth:screen.pixelDepth},timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone};");
@@ -59,7 +59,8 @@ export async function main(args=process.argv.slice(2)) {
   const [action,...rest]=args;
   if(action==="--prepare"&&rest.length===1){const fixture=createCombinationFixture(rest[0]);return {status:"offline-fixture-prepared",path:join(fixture.root,"fixture.json"),sha256:sha256(readFileSync(join(fixture.root,"fixture.json"))),nativeExecuted:false};}
   if(action==="--config"&&rest.length===1){const base=readJson("src-tauri/tauri.conf.json");const config={...base,productName:"Kinshoko T20 Combination Probe",identifier:IDENTIFIER,build:{...base.build,devUrl:null,beforeBuildCommand:null,beforeDevCommand:null,frontendDist:resolve("dist")},bundle:{...base.bundle,active:false}};saveNew(rest[0],config);return {status:"isolated-native-config-prepared",file:fileRecord(rest[0]),nativeExecuted:false};}
-  if(action==="--freeze"&&rest.length===2)return freezeBuild(...rest);
+  if(action==="--build"&&rest.length===1)return recordAttributedBuild(readJson(rest[0]));
+  if(action==="--freeze"&&rest.length===3)return freezeBuild(...rest);
   if(action==="--plan"&&rest.length===1)return makeNativePlan(readJson(rest[0]));
   if(action==="--known-folders"&&rest.length===1){const result={at:new Date().toISOString(),t20:knownFolderState(),retainedT19:knownFolderState("dev.kinshoko.spec78t19upgrade"),nativeExecuted:false};saveNew(rest[0],result);return result;}
   if(action==="--run"&&rest.length===2)return runCombined(...rest);

@@ -96,6 +96,9 @@ export class CombinationWorkflow {
     this.d.assert(migration.plan.groups.length > 0, "released-v16 inputs expose real unresolved legacy names", migration);
     const catalogBefore = await this.catalog();
     this.parted = this.mapped(catalogBefore, this.a.id, this.fixture.a.tags.parted_hair);
+    const expected=this.fixture.migrationEqualDefault;
+    const required=migration.plan.groups.find(group=>group.catalogId===this.parted);
+    this.d.assert(expected&&required&&required.defaultName===expected.name&&required.sources.some(source=>source.legacyName===expected.name&&source.libraryId===this.b.id),"the real migration must contain B's old name equal to the installed bundled default",{expected,required});
     let equalDefaultChoice = null;
     for (let index = 0; index < migration.plan.groups.length; index++) {
       const group = migration.plan.groups[index];
@@ -118,7 +121,7 @@ export class CombinationWorkflow {
     const unrelatedA = this.mapped(catalog, this.a.id, this.fixture.a.tags.provider_a_meaning), unrelatedB = this.mapped(catalog, this.b.id, this.fixture.b.tags.provider_b_meaning);
     const character = this.mapped(catalog, this.a.id, this.fixture.a.tags.sample_character);
     this.d.assert(unrelatedA && unrelatedB && unrelatedA !== unrelatedB && character !== this.parted, "same words and different namespaces do not silently merge meanings", { unrelatedA, unrelatedB, character, parted: this.parted });
-    if (equalDefaultChoice) this.d.assert(catalog.tags.find(tag => tag.id === equalDefaultChoice.catalogId).namePreferences.some(name => name.name === equalDefaultChoice.value), "keeping a legacy name equal to its default records an explicit preference", equalDefaultChoice);
+    this.d.assert(equalDefaultChoice?.value===expected.name&&catalog.tags.find(tag => tag.id === equalDefaultChoice.catalogId).namePreferences.some(name => name.lang==="zh-CN"&&name.name === equalDefaultChoice.value), "keeping a legacy name equal to its default records an explicit preference", equalDefaultChoice);
     this.state.equalDefaultChoice = equalDefaultChoice;
     await this.d.screenshot("01-real-legacy-migration.png"); await this.closeSettings();
   }
@@ -182,7 +185,8 @@ export class CombinationWorkflow {
     this.pinB=await until("real B pin persisted",()=>{if(!existsSync(pinsFile))return null;return JSON.parse(readFileSync(pinsFile,"utf8")).pins.find(pin=>!before.includes(pin.id));});
     d.assert(this.pinB.content.kind==="reference"&&this.pinB.content.libraryId===this.b.id&&this.pinB.content.imageId===this.targetB.imageId,"native pin retains the explicitly selected B original",this.pinB);
     await until("actual source pin window",async()=>(await d.invoke("get_all_windows",{},"window")).includes("pin-"+this.pinB.id));
-    await d.invoke("close_pin",{pin:this.pinB.id},"desktop");
+    await d.closePin(this.pinB.id);
+    d.assert(!(await d.invoke("get_all_windows",{},"window")).includes("pin-"+this.pinB.id),"Escape from the real B pin destroys that window before returning to main");
     await d.type("//*[@aria-label='整理来源']//input[@aria-label='新参考组名称']","本轮乙来源参考组及需要自动换行的长名称");
     await this.readyClick("//*[@aria-label='整理来源']//button[normalize-space()='加入参考组']");
     const group=await until("actual B source group",async()=>(await d.invoke("reference_groups",{},"desktop")).find(group=>group.name==="本轮乙来源参考组及需要自动换行的长名称"));
