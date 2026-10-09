@@ -90,6 +90,14 @@ export function knownUnchanged(before, after) {
     if (before[key].path.toLowerCase() !== after[key].path.toLowerCase() || before[key].exists !== after[key].exists || before[key].sha256 !== after[key].sha256 || before[key].bytes !== after[key].bytes) throw Error(`KnownFolder ${key} changed after preflight`);
   }
 }
+// After a granted round creates and then removes the test settings, Windows package redirection can
+// keep resolving the same requested path into a package LocalCache alias. Accept only that case:
+// same requested path, every view absent before and now, and the new alias still names this identifier.
+export function knownUnchangedOrAbsentRedirect(before, after) {
+  const absent=state=>!state.requested.exists&&!state.resolved.exists;
+  if(before.requested.path.toLowerCase()===after.requested.path.toLowerCase()&&absent(before)&&absent(after)&&after.resolved.path.toLowerCase().endsWith((sep+before.identifier+sep+"settings.json").toLowerCase()))return {redirectedWhileAbsent:before.resolved.path.toLowerCase()!==after.resolved.path.toLowerCase()};
+  knownUnchanged(before, after);return {redirectedWhileAbsent:false};
+}
 export function verifyRecord(expected,label) {
   const actual=fileRecord(expected.path);
   if(actual.bytes!==expected.bytes||actual.sha256!==expected.sha256)throw Error(label+" changed: "+actual.path);
@@ -299,7 +307,7 @@ export function makeNativePlan({ freezePath, application, edgeDriver, tauriDrive
   const frozen=readJson(freezePath),observation=checkFreeze(frozen,allowHarnessRevision);
   const file=resolve(output);ownedWork(dirname(file));
   if(existsSync(file))throw Error("Native plan already exists; retain it and choose a new round");
-  knownUnchanged(frozen.knownFolder,knownFolderState());
+  knownUnchangedOrAbsentRedirect(frozen.knownFolder,knownFolderState());
   const fixtureFile=fileRecord(fixturePath);checkFixture(fixturePath);
   const exe=verifyRecord(frozen.application,"Attributed frozen executable");
   if(application&&resolve(application)!==exe.path)throw Error("The plan must run the exact frozen executable from the attributed build");
