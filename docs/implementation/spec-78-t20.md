@@ -104,3 +104,18 @@ Windows10没有可用设备或虚拟机。负责人明确接受其未验证状�
 模块另准备同卡片打开／适应／返回焦点、Enter/Escape、侧栏往返和窗口宽度往返的实际对照动作。实际 viewport 必须精确相等；每个字体 family/weight 都须成功加载。它只接收根代理另行授予且拥有的浏览器会话，不启动服务器或驱动。浏览器／服务器进程归属与释放 wrapper 尚待完成。原型的固定目录、空标签、Unknown 显示适配和页内钉图不能替代正式业务结论。
 
 本次纯包 RED 为6成功／2失败，分别缺少 A 显示来源和安全模式下 Adult 输入拒绝。收口后8项成功；单文件语法成功。原件分别保存在 `work/e2e/spec78-t20-prototype-preparation-1791511114275/`，未覆盖旧轮。它们只使用合成公开响应，不是正式程序或原型结果。最小派生记录为 [combination-prototype-preparation.json](evidence/spec78-t20/combination-prototype-preparation.json)。实际正式包、原型对照、安装和完整 T20 均未验证。
+
+
+## 浏览器与 release NSIS 的离线准备候选
+
+固定 `80d5764` 的独立只读审查只有一项 P2：`checker` 寻找认可原型中不存在的“背景：棋盘格”。本候选只把映射改成认可原型实际“棋盘”，四种背景都与实际 `GROUNDS` 对齐。认可原型代码未改。审查原件 SHA 为 `2f13b7faeebf377e1cd2053e5256ed7b97e29f3d83db54724007b3cd045d11e8`；80d 的检查与冻结原件保留。
+
+新增 `e2e/spec78-combination-prototype-browser.mjs`。未来明确执行 `--run` 前必须有根代理对精确计划的新独占 grant。它计划使用实际 Node/Vite CLI、完整认可镜像配置、新的独立 headless Edge profile 与驱动。同样本、完整 N、viewport/DPR/字体和正式检查点仍由已有原型模块验证。这个 wrapper 不复用用户 profile。它保留最初 spawn 的 PID/path/creation，核对监听端口所有者、参数唯一性、已知子进程路径和创建时间。身份或查询失败会保留未释放状态；只有应用会话、服务器、驱动、profile 进程和两个实际端口均为空才能记录释放。CIM 全结果只用于内存筛选；不把无关用户进程命令写入回执。
+
+新增 `e2e/spec78-combination-installer.mjs`。当前只准备同一 T19 隔离产品名／程序名／identifier 的 0.1.2 release 包。旧基线必须是实际 0.1.0 NSIS、原配置及原构建记录，明确保留其 debug 属性。本候选不会把旧 debug 验证变成 release 通过。未来单独允许构建后，先保存实际 Rust host/compiler/env，要求继承 `CARGO_BUILD_TARGET` 与 `TAURI_CONFIG` 都不存在；再记录 frontend、release native、NSIS bundle 三个命令、退出和原始日志。整个阶段核对真实 data/.cargo/source/dist/config，以及 native 前已存在的主 hook 和 bundle 前生成的实际 runtime include。
+
+NSIS 编译期 helper 计划直接观测已被实际 bundler 修改的 EXE，将它与此构建裸 EXE 的精确三字节 marker 操作比较，然后独立冻结实际包内 EXE、安装包和全部 runtime DLL。它不把推导出来的 marker 字节称为提取的安装产物。真实 NSIS 语法、构建、payload、安装及 DLL 装载尚未执行。
+
+本候选有界纯检查：browser 身份第一轮8成功／1失败，因已被独立识别的 child 创建时间没有与已识别 parent 比较；补相同身份层的时序门槛后9成功。原型 public packet 8成功，installer 准备9成功，helper 5成功。21段浏览器程序只做语法编译、0执行；两段 PowerShell 观察／终止程序只被解析为 AST、0执行。旧8／1失败原件、旧 installer 版本边界 RED 和80d旧轮均保留。合成 `.exe` 文件只是 marker 测试数据，没有被执行。
+
+原件在 `work/e2e/spec78-t20-offline-wrapper-preparation-v1/`，最小派生索引为 [combination-browser-installer-preparation.json](evidence/spec78-t20/combination-browser-installer-preparation.json)。本段为 additive T20 准备，不修改前置进度。真实 clean install 和 actual0.1.0 创建／保存→托盘正常退出→0.1.2 release `/UPDATE` 生命周期 runner 继续准备；两个 KnownFolder aliases 的既有 T19 字节、正式 Kinshoko Run 值和隔离安装归属必须重新核对并保全。浏览器、本机、安装、硬件和完整 T20 仍未验证。

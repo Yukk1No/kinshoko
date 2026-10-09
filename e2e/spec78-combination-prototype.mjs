@@ -310,7 +310,7 @@ export async function compareAcceptedPrototype(d,inputPath,rootGrant) {
     report.reading=await reveal(d,id);
     await d.enabled("//*[@role='listitem' and @data-id="+literal(id)+"]");await d.click("//*[@role='listitem' and @data-id="+literal(id)+"]");
     if(await d.exec("return document.querySelector('button[aria-label=信息]')?.getAttribute('aria-pressed')==='true';")){await d.enabled("//button[@aria-label='信息']");await d.click("//button[@aria-label='信息']");}
-    const formalGround=packet.baseline.tasks.viewer.observation.background,groundLabel={dark:"深灰",mid:"中灰",light:"浅灰",checker:"棋盘格"}[formalGround];
+    const formalGround=packet.baseline.tasks.viewer.observation.background,groundLabel={dark:"深灰",mid:"中灰",light:"浅灰",checker:"棋盘"}[formalGround];
     if(!groundLabel)fail("Preserve the actual formal viewer background");
     await d.enabled("//button[@title="+literal("背景："+groundLabel)+"]");await d.click("//button[@title="+literal("背景："+groundLabel)+"]");
     await d.enabled("//button[normalize-space()='适应']");await d.click("//button[normalize-space()='适应']");

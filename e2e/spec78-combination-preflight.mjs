@@ -52,7 +52,7 @@ export function directoryRecord(root) {
   if (!files["index.html"]) throw Error("A previously built embedded frontend is required before freezing");
   return { path: base, files };
 }
-function sameFiles(expected, actual, label) {
+export function sameFiles(expected, actual, label) {
   const keys = [...new Set([...Object.keys(expected), ...Object.keys(actual)])].sort();
   const changed = keys.filter(key => expected[key]?.sha256 !== actual[key]?.sha256 || expected[key]?.bytes !== actual[key]?.bytes);
   if (changed.length) throw Error(`${label} changed: ${changed.join(", ")}`);
@@ -83,17 +83,17 @@ export function knownFolderState(identifier = IDENTIFIER) {
   const requested = JSON.parse(result.stdout.trim().replace(/^\uFEFF/, ""));
   return python("import pathlib,hashlib,json,sys\np=pathlib.Path(sys.argv[1]); r=p.resolve()\ndef observe(path):\n exists=path.is_file(); data=path.read_bytes() if exists else None\n return {'path':str(path),'exists':exists,'bytes':len(data) if data is not None else None,'sha256':hashlib.sha256(data).hexdigest() if data is not None else None}\nprint(json.dumps({'identifier':sys.argv[2],'requested':observe(p),'resolved':observe(r),'requestedResolvesTo':str(r)}))", [requested, identifier]);
 }
-function knownUnchanged(before, after) {
+export function knownUnchanged(before, after) {
   for (const key of ["requested", "resolved"]) {
     if (before[key].path.toLowerCase() !== after[key].path.toLowerCase() || before[key].exists !== after[key].exists || before[key].sha256 !== after[key].sha256 || before[key].bytes !== after[key].bytes) throw Error(`KnownFolder ${key} changed after preflight`);
   }
 }
-function verifyRecord(expected,label) {
+export function verifyRecord(expected,label) {
   const actual=fileRecord(expected.path);
   if(actual.bytes!==expected.bytes||actual.sha256!==expected.sha256)throw Error(label+" changed: "+actual.path);
   return actual;
 }
-function sameSnapshot(before,after,label) {
+export function sameSnapshot(before,after,label) {
   if(before.source!==after.source||before.tree!==after.tree||before.branch!==after.branch)throw Error(label+" commit/tree changed");
   sameFiles(before.files,after.files,label+" files");
 }
@@ -121,7 +121,7 @@ function buildRecipe(configPath,profile,rust) {
     inheritedBuildEnvironment:Object.fromEntries(["PATH","RUSTUP_TOOLCHAIN","RUSTFLAGS","CARGO_ENCODED_RUSTFLAGS","RUSTC","CARGO_BUILD_RUSTC","RUSTC_WRAPPER","RUSTC_WORKSPACE_WRAPPER","CARGO_BUILD_RUSTC_WRAPPER","TS_RS_EXPORT_DIR"].filter(key=>process.env[key]!==undefined).map(key=>[key,process.env[key]])),
   };
 }
-function actualRustToolchain(work,recordProbe) {
+export function actualRustToolchain(work,recordProbe) {
   const probeRecipe={cwd:resolve("."),environment:{CARGO_BUILD_JOBS:"2",CARGO_TARGET_DIR:resolve("target"),KINSHOKO_SKIP_AUTOSTART:"1"}};
   const probes=[];
   for(const [label,executable,args] of [["rustc-version","rustc",["-vV"]],["cargo-version","cargo",["-vV"]],["rustc-sysroot","rustc",["--print","sysroot"]]]) {
@@ -135,7 +135,7 @@ function actualRustToolchain(work,recordProbe) {
   if(compilerProbe.exit!==0||compilerProbe.error||text(compilerProbe.stdout.path)!==text(probes[0].stdout.path))throw Error("The selected explicit compiler differs from the probed active toolchain");
   return {target,sysroot,compiler,probes};
 }
-function runBuildCommand(label,command,recipe,work) {
+export function runBuildCommand(label,command,recipe,work) {
   const stdoutPath=join(work,label+"-stdout.txt"),stderrPath=join(work,label+"-stderr.txt");
   const stdout=openSync(stdoutPath,"wx"),stderr=openSync(stderrPath,"wx"),startedAt=new Date().toISOString();
   let result;
