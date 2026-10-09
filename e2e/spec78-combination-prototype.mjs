@@ -176,14 +176,24 @@ async function reveal(d,id) {
 }
 async function shot(d,name) {await d.screenshot(name+".png");return fileRecord(join(d.work,name+".png"));}
 export async function setExactViewport(d,target) {
-  const observations=[];
-  for(let index=0;index<12;index++) {
+  const observations=[];let requested=null;
+  for(let index=0;index<20;index++) {
     const now=await d.exec("return {width:innerWidth,height:innerHeight,dpr:devicePixelRatio};");
     if(now.width===target.width&&now.height===target.height)return {viewport:{width:now.width,height:now.height},dpr:now.dpr,observations};
     let outer,desired;
     if(typeof d.nativeResize==="function"){outer=d.nativeResize({width:target.width-now.width,height:target.height-now.height},now.dpr);desired="owned-main-SetWindowPos";}
-    else{outer=await d.request("GET",d.session+"/window/rect");desired={width:outer.width+target.width-now.width,height:outer.height+target.height-now.height};await d.request("POST",d.session+"/window/rect",desired);}
-    const after=await until("real viewport responds to the actual rectangle request",()=>d.exec("return innerWidth!==arguments[0].width||innerHeight!==arguments[0].height?{width:innerWidth,height:innerHeight,dpr:devicePixelRatio}:null;",[now]));
+    else{
+      // r11 prototype: at DPR 1.25 adjusting both outer dimensions at once oscillated between
+      // 1282x800 and 1280x802. Fix one dimension at a time from the last request; near the
+      // target, move by one CSS pixel.
+      outer=await d.request("GET",d.session+"/window/rect");
+      requested??={width:outer.width,height:outer.height};
+      const step=(diff)=>Math.abs(diff)<=2?Math.sign(diff):diff;
+      if(now.width!==target.width)requested={...requested,width:requested.width+step(target.width-now.width)};
+      else requested={...requested,height:requested.height+step(target.height-now.height)};
+      desired={...requested};await d.request("POST",d.session+"/window/rect",desired);
+    }
+    const after=await until("real viewport responds to the actual rectangle request",()=>d.exec("return innerWidth!==arguments[0].width||innerHeight!==arguments[0].height?{width:innerWidth,height:innerHeight,dpr:devicePixelRatio}:null;",[now]),3000).catch(()=>({unchangedAfter3s:true}));
     observations.push({now,outer,desired,after});
   }
   fail("The exact requested CSS viewport could not be reached; preserve actual adjustment observations: "+JSON.stringify({target,observations}));
