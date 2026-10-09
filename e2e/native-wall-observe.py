@@ -1,4 +1,4 @@
-"""T17: observe/focus the manifest-bound app; explicitly place its owned test fixture once.
+"""T17: observe/focus the manifest-bound app and verify/close its exact owned raw fixture.
 Adapted from the independently archived T13 process/foreground observer.
 No keyboard or mouse input is sent. Other windows are only observed.
 """
@@ -16,12 +16,14 @@ application = Path(sys.argv[1]).resolve()
 manifest = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8-sig"))
 mode = sys.argv[3]
 extra_pid = int(sys.argv[sys.argv.index("--owned-occluder") + 1]) if "--owned-occluder" in sys.argv else None
-assert mode in ("focus", "observe", "close", "focus-fixture")
-fixture_placement = None
+assert mode in ("focus", "observe", "close", "focus-fixture", "close-fixture")
+fixture_identity = None
 fixture_hwnd = None
-if mode == "focus-fixture":
-    assert extra_pid is not None and all(flag in sys.argv for flag in ("--fixture-hwnd", "--fixture-script", "--fixture-spawn-after-ms", "--fixture-spawn-before-ms"))
+if mode in ("focus-fixture", "close-fixture"):
+    assert extra_pid is not None and all(flag in sys.argv for flag in ("--fixture-hwnd", "--fixture-class", "--fixture-script", "--fixture-spawn-after-ms", "--fixture-spawn-before-ms"))
     fixture_hwnd = int(sys.argv[sys.argv.index("--fixture-hwnd") + 1])
+    fixture_class = sys.argv[sys.argv.index("--fixture-class") + 1]
+    assert fixture_class.startswith("KinshokoT17Raw_" + str(extra_pid) + "_")
     fixture_script = Path(sys.argv[sys.argv.index("--fixture-script") + 1]).resolve()
     assert fixture_script.name == "occluder.ps1" and fixture_script.is_relative_to((Path.cwd() / "work/e2e").resolve())
     fixture_process = json.loads(subprocess.check_output([
@@ -29,14 +31,15 @@ if mode == "focus-fixture":
         "$ErrorActionPreference='Stop'; Get-CimInstance Win32_Process -Filter ('ProcessId=' + $env:KINSHOKO_T17_FIXTURE_PID) -ErrorAction Stop | ForEach-Object { @{ProcessId=$_.ProcessId;ExecutablePath=$_.ExecutablePath;CommandLine=$_.CommandLine;createdUnixMs=([DateTimeOffset]$_.CreationDate.ToUniversalTime()).ToUnixTimeMilliseconds()} } | ConvertTo-Json -Compress"
     ], env={**os.environ, "KINSHOKO_T17_FIXTURE_PID": str(extra_pid)}, creationflags=0x08000000))
     assert fixture_process["ProcessId"] == extra_pid
-    assert Path(fixture_process["ExecutablePath"]).name.lower() == "powershell.exe"
+    expected_host = Path(os.environ["WINDIR"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    assert os.path.normcase(str(Path(fixture_process["ExecutablePath"]).resolve())) == os.path.normcase(str(expected_host.resolve()))
     spawn_after = int(sys.argv[sys.argv.index("--fixture-spawn-after-ms") + 1])
     spawn_before = int(sys.argv[sys.argv.index("--fixture-spawn-before-ms") + 1])
     assert spawn_after <= fixture_process["createdUnixMs"] <= spawn_before
-    # Only the exact child launched with this run's generated -File can be repositioned.
+    # Only this run's exact child, creation interval, HWND and unique class can be verified/closed.
     command = fixture_process["CommandLine"].replace("/", chr(92)).lower().strip().rstrip(chr(34))
     assert "-file " in command and command.endswith(str(fixture_script).lower())
-    fixture_placement = {"pid": extra_pid, "hwnd": fixture_hwnd, "script": str(fixture_script),
+    fixture_identity = {"pid": extra_pid, "hwnd": fixture_hwnd, "className": fixture_class, "script": str(fixture_script),
                          "scriptSha256": hashlib.sha256(fixture_script.read_bytes()).hexdigest(),
                          "actualProcess": fixture_process, "spawnIntervalUnixMs": [spawn_after, spawn_before]}
 assert os.path.normcase(str(application)) == os.path.normcase(str(Path(manifest["application"]).resolve()))
@@ -66,6 +69,7 @@ try:
     u.EnumWindows.argtypes = [callback_type,w.LPARAM]
     u.GetWindowThreadProcessId.argtypes = [w.HWND,ctypes.POINTER(w.DWORD)]
     u.GetWindowTextW.argtypes = [w.HWND,w.LPWSTR,ctypes.c_int]
+    u.GetClassNameW.argtypes = [w.HWND,w.LPWSTR,ctypes.c_int]
     u.IsWindowVisible.argtypes = [w.HWND]
     u.IsIconic.argtypes = [w.HWND]
     u.GetWindowRect.argtypes = [w.HWND,ctypes.POINTER(w.RECT)]
@@ -106,7 +110,9 @@ try:
                 if u.IsWindowVisible(hwnd) and not u.IsIconic(hwnd):
                     found.append(item)
                 if owner.value == extra_pid:
-                    fixture.append({**item,"visible":bool(u.IsWindowVisible(hwnd)),"iconic":bool(u.IsIconic(hwnd))})
+                    class_name = ctypes.create_unicode_buffer(256)
+                    assert u.GetClassNameW(hwnd,class_name,len(class_name))
+                    fixture.append({**item,"className":class_name.value,"visible":bool(u.IsWindowVisible(hwnd)),"iconic":bool(u.IsIconic(hwnd))})
                 if owner.value == pid:
                     title=ctypes.create_unicode_buffer(1024)
                     u.GetWindowTextW(hwnd,title,len(title))
@@ -127,27 +133,35 @@ try:
         time.sleep(.15)
         found.clear(); owned.clear(); fixture.clear()
         assert u.EnumWindows(callback,0)
-    if fixture_placement is not None:
+    fixture_closed = None
+    if fixture_identity is not None:
         target = next(item for item in fixture if item["hwnd"] == fixture_hwnd)
-        assert target["visible"] and not target["iconic"]
+        assert target["visible"] and not target["iconic"] and target["className"] == fixture_class
         assert len(sys.argv) > 5 and not sys.argv[4].startswith("--")
         point_x, point_y = int(sys.argv[4]), int(sys.argv[5])
         rect = target["rect"]
         assert rect["x"] <= point_x < rect["x"] + rect["width"] and rect["y"] <= point_y < rect["y"] + rect["height"]
-        fixture_placement["beforeWindow"] = target
-        fixture_placement["beforeNative"] = native_order_at(point_x, point_y)
-        u.SetWindowPos.argtypes = [w.HWND, w.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, w.UINT]
-        u.SetWindowPos.restype = w.BOOL
-        ctypes.set_last_error(0)
-        placed = bool(u.SetWindowPos(fixture_hwnd, w.HWND(-1), rect["x"], rect["y"], rect["width"], rect["height"], 0x50))
-        fixture_placement["setWindowPos"] = {"returned": placed, "lastError": ctypes.get_last_error(), "flags": 0x50, "insertAfter": -1}
-        fixture_placement["immediateStyle"] = extended_style(fixture_hwnd)
-        found.clear(); owned.clear(); fixture.clear()
-        assert u.EnumWindows(callback,0)
-        fixture_placement["immediateNative"] = native_order_at(point_x, point_y)
-        time.sleep(.15)
-        found.clear(); owned.clear(); fixture.clear()
-        assert u.EnumWindows(callback,0)
+        fixture_identity["actualWindow"] = target
+        fixture_identity["nativeObserved"] = native_order_at(point_x, point_y)
+        if mode == "close-fixture":
+            u.PostMessageW.argtypes = [w.HWND,w.UINT,w.WPARAM,w.LPARAM]
+            u.PostMessageW.restype = w.BOOL
+            u.IsWindow.argtypes = [w.HWND]
+            ctypes.set_last_error(0)
+            posted = bool(u.PostMessageW(fixture_hwnd,0x0010,0,0))
+            post_error = ctypes.get_last_error()
+            assert posted, post_error
+            deadline = time.monotonic() + 5
+            while u.IsWindow(fixture_hwnd) and time.monotonic() < deadline:
+                owner = w.DWORD(); u.GetWindowThreadProcessId(fixture_hwnd,ctypes.byref(owner))
+                if owner.value != extra_pid: break
+                time.sleep(.05)
+            owner = w.DWORD()
+            if u.IsWindow(fixture_hwnd): u.GetWindowThreadProcessId(fixture_hwnd,ctypes.byref(owner))
+            fixture_closed = {"posted":posted,"lastError":post_error,"hwnd":fixture_hwnd,"stillSamePid":owner.value==extra_pid}
+            assert not fixture_closed["stillSamePid"], "Owned raw fixture HWND did not close"
+            found.clear(); owned.clear(); fixture.clear()
+            assert u.EnumWindows(callback,0)
     closed = None
     if mode == "close":
         # WM_CLOSE is the native title-bar close action, restricted to the checked owned main HWND.
@@ -173,6 +187,6 @@ try:
         r=main[0]["rect"]
         assert r["x"]<=point[0]<r["x"]+r["width"] and r["y"]<=point[1]<r["y"]+r["height"], "Only owned main bounds may be observed"
         above=[item for item in above if item["rect"]["x"]<=point[0]<item["rect"]["x"]+item["rect"]["width"] and item["rect"]["y"]<=point[1]<item["rect"]["y"]+item["rect"]["height"]]
-    print(json.dumps({"application":path.value,"pid":pid,"mainHwnd":main[0]["hwnd"],"foregroundHwnd":int(foreground or 0),"foregroundPid":foreground_pid.value,"activated":activated,"destroyed":closed,"beforeMain":before_main,"mainInVisibleZOrder":position is not None,"point":point,"pointWindow":point_window,"rawVisibleZOrder":raw_visible_z_order,"mainZIndex":position,"covering":above,"owned":owned,"testOccluderPid":extra_pid,"testOccluderWindows":fixture,"fixturePlacement":fixture_placement,"dpiCoordinates":"per-monitor-v2 physical"}))
+    print(json.dumps({"application":path.value,"pid":pid,"mainHwnd":main[0]["hwnd"],"foregroundHwnd":int(foreground or 0),"foregroundPid":foreground_pid.value,"activated":activated,"destroyed":closed,"beforeMain":before_main,"mainInVisibleZOrder":position is not None,"point":point,"pointWindow":point_window,"rawVisibleZOrder":raw_visible_z_order,"mainZIndex":position,"covering":above,"owned":owned,"testOccluderPid":extra_pid,"testOccluderWindows":fixture,"fixtureIdentity":fixture_identity,"fixtureClosed":fixture_closed,"dpiCoordinates":"per-monitor-v2 physical"}))
 finally:
     k.CloseHandle(handle)

@@ -30,7 +30,7 @@ elif mode == "clipboard":
     assert isinstance(image,Image.Image), "The synthetic owned clipboard must contain an image"
     image = image.convert("RGBA")
     image.save(output)
-    result={"size":image.size,"corners":[image.getpixel((0,0)),image.getpixel((image.width-1,0)),image.getpixel((0,image.height-1)),image.getpixel((image.width-1,image.height-1))],"artifact":str(output),"observedAtUnix":int(time.time()*1000)}
+    result={"size":image.size,"uniformBlueRGBA":all(pixel==(3,17,229,255) for pixel in image.getdata()),"corners":[image.getpixel((0,0)),image.getpixel((image.width-1,0)),image.getpixel((0,image.height-1)),image.getpixel((image.width-1,image.height-1))],"artifact":str(output),"observedAtUnix":int(time.time()*1000)}
 else:
     raise ValueError(mode)
 print(json.dumps(result))
