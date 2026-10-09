@@ -15,6 +15,8 @@ pub(super) fn action<R: Runtime, T>(
 ) -> Result<T, String> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
+    // Includes the production SourceEditor rating path and permanent source deletion.
+    let _visibility = lock(&state.visibility_commit);
     let expected = state.safe_mode_generation.load(Ordering::SeqCst);
     if saved_safe_mode(app) != safe {
         return Err(kinshoko_core::library::Error::LensChanged.to_string());

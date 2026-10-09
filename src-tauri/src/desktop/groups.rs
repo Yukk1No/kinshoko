@@ -87,8 +87,12 @@ fn prepare_pins(app: &AppHandle, choices: &[CaptureChoice]) -> Result<Vec<SavedP
             folder_id: choice.folder_id.clone(),
         };
         let reference = crate::library::with_destination_published(app, &destination, |library| {
+            let pending = lock(&state(app).history)
+                .prepare_collect(id)
+                .map_err(|e| e.to_string())?;
+            let collected = pending.import(library).map_err(|e| e.to_string())?;
             lock(&state(app).history)
-                .collect_pin(&pin, library)
+                .finish_collect_pin(&pin, collected)
                 .map_err(|e| e.to_string())
         }).map_err(|error| {
             super::history_changed(app);

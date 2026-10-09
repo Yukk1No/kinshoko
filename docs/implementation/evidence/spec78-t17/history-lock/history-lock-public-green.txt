@@ -1,0 +1,40 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.38s
+     Running tests\capture_history.rs (target\debug\deps\capture_history-d14846476d035e2e.exe)
+
+running 16 tests
+test deleting_an_unknown_capture_is_an_error ... ok
+test a_capture_is_kept_losslessly_with_the_display_profile_it_was_taken_under ... ok
+test deleting_a_pinned_capture_hides_it_but_the_pin_keeps_showing_it ... ok
+test an_unreadable_index_starts_an_empty_history_without_deleting_captures ... ok
+test history_survives_closing_and_reopening ... ok
+test deleting_a_capture_removes_it_and_its_file ... ok
+test opening_cleans_up_files_left_behind_by_an_interrupted_run ... ok
+test collection_retention_does_not_expand_the_visible_history_limit ... ok
+test old_captures_beyond_the_limit_are_discarded ... ok
+test a_pinned_capture_is_kept_until_its_pin_closes ... ok
+test collecting_a_deleted_pin_preserves_its_layout_after_the_original_pin_closes ... ok
+test collecting_reports_progress_to_the_library_like_any_import ... ok
+test concurrent_collections_retain_a_deleted_file_without_claiming_a_desktop_pin ... ok
+test abandoning_or_failing_a_collection_releases_the_deleted_file ... ok
+test collecting_a_capture_pin_makes_it_a_group_member_without_changing_its_crop_or_placement ... ok
+test collecting_a_capture_imports_it_as_a_reference_image ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+     Running tests\reference_capture_actions.rs (target\debug\deps\reference_capture_actions-a3ee2ad6dad1477e.exe)
+
+running 10 tests
+test ordinary_capture_preparation_can_be_discarded_without_writing_history ... ok
+test occluded_clipped_cross_boundary_and_external_selections_keep_the_screen_capture_path ... ok
+test missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels ... ok
+test a_reference_resealed_after_freezing_is_not_read_and_an_explicitly_revealed_pin_remains_usable ... ok
+test an_ambiguous_visible_source_is_a_screen_capture_instead_of_choosing_one_library ... ok
+test copying_respects_declared_color_and_the_sdr_animation_first_frame_route ... ok
+test copying_uses_the_explicit_inactive_library_even_when_another_library_is_current ... ok
+test copying_honors_all_original_exif_orientations_without_rewriting_originals ... ok
+test selecting_a_transformed_prior_crop_copies_the_same_original_region_as_the_new_pin ... ok
+test copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_source ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.90s
+

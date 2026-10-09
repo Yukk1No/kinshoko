@@ -1,0 +1,634 @@
+diff --git a/crates/kinshoko-core/src/desktop/capture.rs b/crates/kinshoko-core/src/desktop/capture.rs
+index 73a011b..9ff8e73 100644
+--- a/crates/kinshoko-core/src/desktop/capture.rs
++++ b/crates/kinshoko-core/src/desktop/capture.rs
+@@ -82,6 +82,15 @@ impl CaptureDraft {
+ 
+     /// Persist ordinary history only after the caller revalidates its authority.
+     pub fn commit(self, history: &mut CaptureHistory) -> Result<CaptureOutcome, CaptureError> {
++        self.commit_with_history(|prepared| history.add_prepared(prepared))
++    }
++
++    /// Acquire history only when ordinary screenshot data actually needs persistence.
++    /// Reference copy/pin never calls this closure and cannot wait on the history mutex.
++    pub fn commit_with_history(
++        self,
++        persist: impl FnOnce(PreparedCapture) -> Result<CaptureEntry, HistoryError>,
++    ) -> Result<CaptureOutcome, CaptureError> {
+         Ok(match self.0 {
+             PreparedOutcome::PinReference(pin) => CaptureOutcome::PinReference(pin),
+             PreparedOutcome::CopyReference(image) => CaptureOutcome::CopyReference(image),
+@@ -90,9 +99,7 @@ impl CaptureDraft {
+                 shot,
+                 history: prepared,
+             } => {
+-                let entry = history
+-                    .add_prepared(prepared)
+-                    .map_err(CaptureError::History)?;
++                let entry = persist(prepared).map_err(CaptureError::History)?;
+                 match action {
+                     CaptureAction::Pin => CaptureOutcome::PinCapture(entry),
+                     CaptureAction::Copy => CaptureOutcome::CopyCapture(shot.image),
+diff --git a/crates/kinshoko-core/src/desktop/history.rs b/crates/kinshoko-core/src/desktop/history.rs
+index c9b1ff4..5757d63 100644
+--- a/crates/kinshoko-core/src/desktop/history.rs
++++ b/crates/kinshoko-core/src/desktop/history.rs
+@@ -8,6 +8,8 @@ use std::fmt;
+ use std::fs;
+ use std::io;
+ use std::path::{Path, PathBuf};
++use std::sync::atomic::{AtomicBool, Ordering};
++use std::sync::{Arc, Weak};
+ 
+ use serde::{Deserialize, Serialize};
+ use ts_rs::TS;
+@@ -120,19 +122,82 @@ impl From<image::ImageError> for HistoryError {
+ 
+ /// Encoded screenshot data with no persistent side effects yet.
+ #[derive(Debug)]
+-pub(crate) struct PreparedCapture {
++pub struct PreparedCapture {
+     png: Vec<u8>,
+     width: u32,
+     height: u32,
+ }
+ 
++/// A screenshot retained for one collection, independently of visible desktop pins.
++/// Import may decode and copy the complete image; run it outside the history mutex.
++#[derive(Debug)]
++pub struct CaptureCollection {
++    capture_id: String,
++    width: u32,
++    height: u32,
++    file: Arc<CollectionFile>,
++}
++
++/// A completed import awaiting a short history update.
++#[derive(Debug)]
++pub struct CollectedCaptureDraft {
++    source: CaptureCollection,
++    collected: CollectedCapture,
++}
++
++#[derive(Debug)]
++struct CollectionFile {
++    path: PathBuf,
++    discarded: AtomicBool,
++}
++
++impl Drop for CollectionFile {
++    fn drop(&mut self) {
++        if self.discarded.load(Ordering::SeqCst) {
++            // A failed removal leaves a stray for the next startup, as with normal eviction.
++            let _ = fs::remove_file(&self.path);
++        }
++    }
++}
++
++impl CaptureCollection {
++    /// Import the retained PNG through the ordinary library entrance, with no history access.
++    /// Failure or abandonment releases this request's file retention automatically.
++    pub fn import(self, library: &Library) -> Result<CollectedCaptureDraft, HistoryError> {
++        let report = library
++            .import(ImportSource {
++                paths: vec![self.file.path.clone()],
++            })
++            .wait();
++        let image_id = match report.items.into_iter().next().map(|item| item.outcome) {
++            Some(ImportOutcome::ReadFailed { reason }) => {
++                return Err(HistoryError::Collect(reason));
++            }
++            Some(outcome) if outcome.image_id().is_some() => {
++                outcome.image_id().unwrap_or_default().to_owned()
++            }
++            _ => return Err(HistoryError::Collect("资料库没有收下这张截图".to_owned())),
++        };
++        Ok(CollectedCaptureDraft {
++            source: self,
++            collected: CollectedCapture {
++                library_id: library.info().id.clone(),
++                image_id,
++            },
++        })
++    }
++}
++
+ /// 截图历史。不是线程安全的；应用壳把它放在锁里。
++/// 同目录只有一个运行中的历史实例；重新打开目录前应结束该实例的收藏请求。
+ pub struct CaptureHistory {
+     dir: PathBuf,
+     /// 从新到旧。
+     entries: Vec<Stored>,
+     /// 每张截图正被几个钉图显示。只在本次运行中有效，不写入索引。
+     pins: HashMap<String, usize>,
++    /// Pending collections retain files, but never set CaptureEntry.pinned.
++    collections: HashMap<String, Weak<CollectionFile>>,
+ }
+ 
+ impl CaptureHistory {
+@@ -152,6 +217,7 @@ impl CaptureHistory {
+             dir: dir.to_path_buf(),
+             entries: index.entries,
+             pins: HashMap::new(),
++            collections: HashMap::new(),
+         };
+         if trusted {
+             history.remove_strays();
+@@ -179,11 +245,13 @@ impl CaptureHistory {
+     }
+ 
+     /// 存下一张新截图，放在历史最前面。
++    /// 持锁调用方应先在锁外 prepare，再在锁内 add_prepared，避免带锁编码。
+     pub fn add(&mut self, shot: &Screenshot) -> Result<CaptureEntry, HistoryError> {
+         self.add_prepared(Self::prepare(shot)?)
+     }
+ 
+-    pub(crate) fn prepare(shot: &Screenshot) -> Result<PreparedCapture, HistoryError> {
++    /// Encode without accessing history or writing files. Call before taking its mutex.
++    pub fn prepare(shot: &Screenshot) -> Result<PreparedCapture, HistoryError> {
+         let mut png = Vec::new();
+         shot.write_png(&mut png, false)?;
+         Ok(PreparedCapture {
+@@ -193,10 +261,8 @@ impl CaptureHistory {
+         })
+     }
+ 
+-    pub(crate) fn add_prepared(
+-        &mut self,
+-        shot: PreparedCapture,
+-    ) -> Result<CaptureEntry, HistoryError> {
++    /// Persist already encoded data in one history update.
++    pub fn add_prepared(&mut self, shot: PreparedCapture) -> Result<CaptureEntry, HistoryError> {
+         let stored = Stored {
+             id: uuid::Uuid::now_v7().simple().to_string(),
+             width: shot.width,
+@@ -251,55 +317,94 @@ impl CaptureHistory {
+     ///
+     /// 原文件按字节收进资料库、从不重编码，截取时的显示器配置文件随文件保留。
+     /// 同一截图再次收藏时，资料库按内容去重，得到同一张参考图。
++    /// 此便利方法会等待完整导入。持锁调用方应拆成 prepare_collect、锁外 import、finish_collect。
+     pub fn collect(
+         &mut self,
+         id: &str,
+         library: &Library,
+     ) -> Result<CollectedCapture, HistoryError> {
+-        let path = self.file(id).ok_or(HistoryError::Unknown)?;
+-        let report = library.import(ImportSource { paths: vec![path] }).wait();
+-        let image_id = match report.items.into_iter().next().map(|item| item.outcome) {
+-            Some(ImportOutcome::ReadFailed { reason }) => {
+-                return Err(HistoryError::Collect(reason));
+-            }
+-            Some(outcome) if outcome.image_id().is_some() => {
+-                outcome.image_id().unwrap_or_default().to_owned()
+-            }
+-            _ => {
+-                return Err(HistoryError::Collect("资料库没有收下这张截图".to_owned()));
++        let collected = self.prepare_collect(id)?.import(library)?;
++        self.finish_collect(collected)
++    }
++
++    /// Fix dimensions and retain the PNG in a short history update.
++    /// Deletion/eviction may hide the entry while this request is importing.
++    pub fn prepare_collect(&mut self, id: &str) -> Result<CaptureCollection, HistoryError> {
++        let entry = self.entry(id).ok_or(HistoryError::Unknown)?;
++        self.collections.retain(|_, file| file.strong_count() != 0);
++        let file = match self.collections.get(id).and_then(Weak::upgrade) {
++            Some(file) => file,
++            None => {
++                let file = Arc::new(CollectionFile {
++                    path: self.path_of(id),
++                    discarded: AtomicBool::new(false),
++                });
++                self.collections
++                    .insert(id.to_owned(), Arc::downgrade(&file));
++                file
+             }
+         };
+-        let collected = CollectedCapture {
+-            library_id: library.info().id.clone(),
+-            image_id,
+-        };
+-        if let Some(stored) = self.entries.iter_mut().find(|s| s.id == id)
+-            && !stored.collected.contains(&collected)
++        Ok(CaptureCollection {
++            capture_id: id.to_owned(),
++            width: entry.width,
++            height: entry.height,
++            file,
++        })
++    }
++
++    /// Remember a completed collection if its entry still exists; never resurrect an evicted entry.
++    /// Consuming the draft releases its file retention, including when saving the index fails.
++    pub fn finish_collect(
++        &mut self,
++        draft: CollectedCaptureDraft,
++    ) -> Result<CollectedCapture, HistoryError> {
++        if draft.source.file.path != self.path_of(&draft.source.capture_id) {
++            return Err(HistoryError::Unknown);
++        }
++        if let Some(stored) = self
++            .entries
++            .iter_mut()
++            .find(|s| s.id == draft.source.capture_id)
++            && !stored.collected.contains(&draft.collected)
+         {
+-            stored.collected.push(collected.clone());
++            stored.collected.push(draft.collected.clone());
+             self.save()?;
+         }
+-        Ok(collected)
++        Ok(draft.collected)
+     }
+ 
+     /// 收藏截图钉图并连接成为的参考图。裁切、摆放、透明度与锁定保持原样。
+     /// 返回值可直接交给 ReferenceGroups；普通参考图钉图原样返回。
++    /// 持锁调用方应拆成 prepare_collect、锁外 import、finish_collect_pin。
+     pub fn collect_pin(
+         &mut self,
+         pin: &SavedPin,
+         library: &Library,
+     ) -> Result<SavedPin, HistoryError> {
+-        let PinContent::Capture { capture_id } = &pin.content else {
++        let Some(id) = pin.capture_id() else {
+             return Ok(pin.clone());
+         };
+-        let entry = self.entry(capture_id).ok_or(HistoryError::Unknown)?;
+-        let collected = self.collect(capture_id, library)?;
++        let collected = self.prepare_collect(id)?.import(library)?;
++        self.finish_collect_pin(pin, collected)
++    }
++
++    /// Finish a capture pin's collection using its fixed source dimensions, preserving its layout.
++    pub fn finish_collect_pin(
++        &mut self,
++        pin: &SavedPin,
++        draft: CollectedCaptureDraft,
++    ) -> Result<SavedPin, HistoryError> {
++        if pin.capture_id() != Some(draft.source.capture_id.as_str()) {
++            return Err(HistoryError::Unknown);
++        }
++        let (source_width, source_height) = (draft.source.width, draft.source.height);
++        let collected = self.finish_collect(draft)?;
+         let mut reference = pin.clone();
+         reference.content = PinContent::Reference {
+             library_id: collected.library_id,
+             image_id: collected.image_id,
+-            source_width: entry.width,
+-            source_height: entry.height,
++            source_width,
++            source_height,
+         };
+         Ok(reference)
+     }
+@@ -346,8 +451,13 @@ impl CaptureHistory {
+             }
+         }
+         for id in &discarded {
+-            // 删不掉（例如被别的程序占用）只是留下一个孤立文件，下次打开时清理。
+-            let _ = fs::remove_file(self.path_of(id));
++            if let Some(file) = self.collections.remove(id).and_then(|file| file.upgrade()) {
++                // The last real collection request removes it after all imports stop using it.
++                file.discarded.store(true, Ordering::SeqCst);
++            } else {
++                // 删不掉（例如被别的程序占用）只是留下一个孤立文件，下次打开时清理。
++                let _ = fs::remove_file(self.path_of(id));
++            }
+         }
+         !discarded.is_empty()
+     }
+diff --git a/crates/kinshoko-core/src/desktop/mod.rs b/crates/kinshoko-core/src/desktop/mod.rs
+index f6cb209..3362a24 100644
+--- a/crates/kinshoko-core/src/desktop/mod.rs
++++ b/crates/kinshoko-core/src/desktop/mod.rs
+@@ -22,7 +22,8 @@ mod veil;
+ pub use capture::{CaptureDraft, CaptureError, CaptureOutcome, CaptureSelection, CaptureSurface};
+ pub use edge::{DeskPin, EdgeHide, PEEK_SLACK, PinMove, SLIVER, Toggle, Tuck};
+ pub use history::{
+-    CaptureChoice, CaptureEntry, CaptureHistory, CollectedCapture, HISTORY_LIMIT, HistoryError,
++    CaptureChoice, CaptureCollection, CaptureEntry, CaptureHistory, CollectedCapture,
++    CollectedCaptureDraft, HISTORY_LIMIT, HistoryError, PreparedCapture,
+ };
+ pub use motion::{Stage, stage};
+ pub use pin::{
+diff --git a/crates/kinshoko-core/tests/capture_history.rs b/crates/kinshoko-core/tests/capture_history.rs
+index 1cfaedd..9f2f247 100644
+--- a/crates/kinshoko-core/tests/capture_history.rs
++++ b/crates/kinshoko-core/tests/capture_history.rs
+@@ -90,7 +90,10 @@ fn a_capture_is_kept_losslessly_with_the_display_profile_it_was_taken_under() {
+     let mut history = CaptureHistory::open(dir.path()).unwrap();
+     let original = shot(37, 21, 7, Some(PROFILE));
+ 
+-    let entry = history.add(&original).unwrap();
++    let prepared = CaptureHistory::prepare(&original).unwrap();
++    assert!(history.entries().is_empty());
++    assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
++    let entry = history.add_prepared(prepared).unwrap();
+ 
+     assert_eq!((entry.width, entry.height), (37, 21));
+     assert_eq!(history.entries(), vec![entry.clone()]);
+@@ -289,7 +292,9 @@ fn history_survives_closing_and_reopening() {
+     let mut history = CaptureHistory::open(dir.path()).unwrap();
+     let first = history.add(&shot(5, 5, 1, None)).unwrap();
+     let second = history.add(&shot(6, 6, 2, Some(PROFILE))).unwrap();
++    let pending = history.prepare_collect(&first.id).unwrap();
+     drop(history);
++    drop(pending); // Exiting a valid history must not unlink persisted captures.
+ 
+     let history = CaptureHistory::open(dir.path()).unwrap();
+ 
+@@ -299,3 +304,175 @@ fn history_survives_closing_and_reopening() {
+         shot(5, 5, 1, None).image
+     );
+ }
++
++#[test]
++fn concurrent_collections_retain_a_deleted_file_without_claiming_a_desktop_pin() {
++    use std::sync::{Arc, Mutex, mpsc};
++    use std::time::Duration;
++    let dir = tempfile::tempdir().unwrap();
++    let library = Library::create(&dir.path().join("library"), "收藏").unwrap();
++    let history = Arc::new(Mutex::new(
++        CaptureHistory::open(&dir.path().join("captures")).unwrap(),
++    ));
++    let (entry, file, first, second) = {
++        let mut history = history.lock().unwrap();
++        let entry = history.add(&shot(37, 21, 7, Some(PROFILE))).unwrap();
++        let file = history.file(&entry.id).unwrap();
++        let first = history.prepare_collect(&entry.id).unwrap();
++        let second = history.prepare_collect(&entry.id).unwrap();
++        assert!(!history.entry(&entry.id).unwrap().pinned);
++        (entry, file, first, second)
++    };
++    let bytes = std::fs::read(&file).unwrap();
++    let mut guard = history.lock().unwrap();
++    guard.delete(&entry.id).unwrap();
++    assert!(guard.entries().is_empty());
++    assert!(guard.file(&entry.id).is_none());
++    assert!(file.exists());
++    drop(first);
++    assert!(file.exists(), "第二个收藏请求仍需要原文件");
++    let (send, receive) = mpsc::channel();
++    let worker = std::thread::spawn(move || {
++        send.send((second.import(&library), library)).unwrap();
++    });
++    // 完整的真实导入必须在历史锁仍由本线程持有时结束。
++    let (result, library) = receive.recv_timeout(Duration::from_secs(10)).unwrap();
++    worker.join().unwrap();
++    let collected = guard.finish_collect(result.unwrap()).unwrap();
++    assert!(
++        guard.entries().is_empty(),
++        "收藏完成不能恢复用户已删除的历史条目"
++    );
++    assert!(!file.exists(), "最后一个收藏请求结束后回收已删除的文件");
++    assert_eq!(
++        std::fs::read(library.original_path(&collected.image_id).unwrap()).unwrap(),
++        bytes
++    );
++}
++
++#[test]
++fn abandoning_or_failing_a_collection_releases_the_deleted_file() {
++    for fail_import in [false, true] {
++        let dir = tempfile::tempdir().unwrap();
++        let library = Library::create(&dir.path().join("library"), "收藏").unwrap();
++        let mut history = CaptureHistory::open(&dir.path().join("captures")).unwrap();
++        let entry = history.add(&shot(7, 5, 1, None)).unwrap();
++        let file = history.file(&entry.id).unwrap();
++        let pending = history.prepare_collect(&entry.id).unwrap();
++        history.delete(&entry.id).unwrap();
++        assert!(file.exists());
++        if fail_import {
++            std::fs::write(&file, b"unreadable image").unwrap();
++            assert!(pending.import(&library).is_err());
++        } else {
++            drop(pending);
++        }
++        assert!(!file.exists());
++        assert!(history.entries().is_empty());
++    }
++}
++
++#[test]
++fn collection_retention_does_not_expand_the_visible_history_limit() {
++    let dir = tempfile::tempdir().unwrap();
++    let mut history = CaptureHistory::open(dir.path()).unwrap();
++    let entry = history.add(&shot(7, 5, 99, None)).unwrap();
++    let file = history.file(&entry.id).unwrap();
++    let pending = history.prepare_collect(&entry.id).unwrap();
++    for i in 0..HISTORY_LIMIT as u8 {
++        history.add(&shot(4, 4, i, None)).unwrap();
++    }
++    let kept = history.entries();
++    assert_eq!(kept.len(), HISTORY_LIMIT);
++    assert!(kept.iter().all(|entry| !entry.pinned));
++    assert!(history.file(&entry.id).is_none());
++    assert!(file.exists());
++    drop(pending);
++    assert!(!file.exists());
++    drop(history);
++    let reopened = CaptureHistory::open(dir.path()).unwrap();
++    assert_eq!(reopened.entries(), kept);
++    assert!(
++        kept.iter()
++            .all(|entry| reopened.file(&entry.id).unwrap().exists())
++    );
++}
++
++#[test]
++fn collecting_a_deleted_pin_preserves_its_layout_after_the_original_pin_closes() {
++    use kinshoko_core::desktop::{GroupMemberRef, PinContent, Placement, Region, SavedPin};
++    let dir = tempfile::tempdir().unwrap();
++    let library = Library::create(&dir.path().join("library"), "收藏").unwrap();
++    let mut history = CaptureHistory::open(&dir.path().join("captures")).unwrap();
++    let entry = history.add(&shot(37, 21, 7, None)).unwrap();
++    let file = history.file(&entry.id).unwrap();
++    history.pin(&entry.id);
++    let pin = SavedPin {
++        id: "capture-pin".into(),
++        content: PinContent::Capture {
++            capture_id: entry.id.clone(),
++        },
++        crop: Some(Region {
++            x: 2,
++            y: 3,
++            width: 10,
++            height: 8,
++        }),
++        width: 10,
++        height: 8,
++        placement: Placement {
++            x: 100,
++            y: 50,
++            scale: 1.5,
++            flip_h: true,
++            rotation: 1,
++            ..Default::default()
++        },
++        opacity: 0.6,
++        locked: true,
++        member: Some(GroupMemberRef {
++            group_id: "group".into(),
++            member_id: "member".into(),
++        }),
++    };
++    let pending = history.prepare_collect(&entry.id).unwrap();
++    history.delete(&entry.id).unwrap();
++    assert!(history.entry(&entry.id).unwrap().pinned);
++    assert!(file.exists());
++    let completed_while_pinned = history
++        .prepare_collect(&entry.id)
++        .unwrap()
++        .import(&library)
++        .unwrap();
++    let reference_while_pinned = history
++        .finish_collect_pin(&pin, completed_while_pinned)
++        .unwrap();
++    assert!(history.entry(&entry.id).unwrap().pinned);
++    assert!(file.exists(), "收藏请求结束不能删除仍有真实钉图的文件");
++    history.unpin(&entry.id);
++    assert!(history.entry(&entry.id).is_none());
++    assert!(file.exists(), "收藏保护与真实钉图计数独立");
++    let collected = pending.import(&library).unwrap();
++    let reference: SavedPin = history.finish_collect_pin(&pin, collected).unwrap();
++    let PinContent::Reference {
++        ref library_id,
++        ref image_id,
++        source_width,
++        source_height,
++    } = reference.content
++    else {
++        panic!("收藏必须成为资料库参考图");
++    };
++    assert_eq!(library_id, &library.info().id);
++    assert_eq!((source_width, source_height), (37, 21));
++    assert_eq!(
++        read_back(&library.original_path(image_id).unwrap()).0,
++        shot(37, 21, 7, None).image
++    );
++    let mut expected = pin;
++    expected.content = reference.content.clone();
++    assert_eq!(reference, expected);
++    assert_eq!(reference, reference_while_pinned);
++    assert!(!file.exists());
++    assert!(history.entries().is_empty());
++}
+diff --git a/crates/kinshoko-core/tests/reference_capture_actions.rs b/crates/kinshoko-core/tests/reference_capture_actions.rs
+index c831b68..d26f7ee 100644
+--- a/crates/kinshoko-core/tests/reference_capture_actions.rs
++++ b/crates/kinshoko-core/tests/reference_capture_actions.rs
+@@ -87,15 +87,11 @@ fn copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_so
+         safe_mode: true,
+     };
+     let veils = PinVeils::new(true);
+-    let mut history = CaptureHistory::open(&dir.path().join("captures")).unwrap();
++    let history = CaptureHistory::open(&dir.path().join("captures")).unwrap();
+     let CaptureOutcome::CopyReference(copied) = selection
+-        .finish(
+-            CaptureAction::Copy,
+-            "copy",
+-            &references,
+-            &veils,
+-            &mut history,
+-        )
++        .prepare(CaptureAction::Copy, "copy", &references, &veils)
++        .unwrap()
++        .commit_with_history(|_| panic!("原图复制不应申请截图历史锁"))
+         .unwrap()
+     else {
+         panic!("应得到复制内容");
+@@ -109,13 +105,9 @@ fn copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_so
+     assert_eq!(copied.get_pixel(1, 1).0, [201, 101, 255, 170]);
+     assert_eq!(copied.get_pixel(119, 79).0, [63, 179, 255, 170]);
+     let CaptureOutcome::PinReference(pinned) = selection
+-        .finish(
+-            CaptureAction::Pin,
+-            "new-pin",
+-            &references,
+-            &veils,
+-            &mut history,
+-        )
++        .prepare(CaptureAction::Pin, "new-pin", &references, &veils)
++        .unwrap()
++        .commit_with_history(|_| panic!("原图钉住不应申请截图历史锁"))
+         .unwrap()
+     else {
+         panic!("应得到参考视图");
+@@ -1014,7 +1006,10 @@ fn ordinary_capture_preparation_can_be_discarded_without_writing_history() {
+     let prepared = selection
+         .prepare(CaptureAction::Copy, "commit", &references, &veils)
+         .unwrap();
+-    let CaptureOutcome::CopyCapture(copied) = prepared.commit(&mut history).unwrap() else {
++    let CaptureOutcome::CopyCapture(copied) = prepared
++        .commit_with_history(|prepared| history.add_prepared(prepared))
++        .unwrap()
++    else {
+         panic!("ordinary copy expected");
+     };
+     let entries = history.entries();
+diff --git a/src-tauri/src/desktop/capture.rs b/src-tauri/src/desktop/capture.rs
+index 74aebd3..1ea5c61 100644
+--- a/src-tauri/src/desktop/capture.rs
++++ b/src-tauri/src/desktop/capture.rs
+@@ -550,7 +550,7 @@ pub async fn finish_capture(
+             }
+             validate_source(&app, &pending, at)?;
+             let outcome = draft
+-                .commit(&mut lock(&state(&app).history))
++                .commit_with_history(|prepared| lock(&state(&app).history).add_prepared(prepared))
+                 .map_err(|error| error.to_string())?;
+             match outcome {
+                 CaptureOutcome::PinReference(pin) => pins::open_reference_selection(&app, pin, at),
+diff --git a/src-tauri/src/desktop/groups.rs b/src-tauri/src/desktop/groups.rs
+index c1b6449..f951fa5 100644
+--- a/src-tauri/src/desktop/groups.rs
++++ b/src-tauri/src/desktop/groups.rs
+@@ -87,8 +87,12 @@ fn prepare_pins(app: &AppHandle, choices: &[CaptureChoice]) -> Result<Vec<SavedP
+             folder_id: choice.folder_id.clone(),
+         };
+         let reference = crate::library::with_destination_published(app, &destination, |library| {
++            let pending = lock(&state(app).history)
++                .prepare_collect(id)
++                .map_err(|e| e.to_string())?;
++            let collected = pending.import(library).map_err(|e| e.to_string())?;
+             lock(&state(app).history)
+-                .collect_pin(&pin, library)
++                .finish_collect_pin(&pin, collected)
+                 .map_err(|e| e.to_string())
+         }).map_err(|error| {
+             super::history_changed(app);
+diff --git a/src-tauri/src/desktop/mod.rs b/src-tauri/src/desktop/mod.rs
+index 22c5cf5..62822f8 100644
+--- a/src-tauri/src/desktop/mod.rs
++++ b/src-tauri/src/desktop/mod.rs
+@@ -282,8 +282,12 @@ async fn collect_capture(
+ ) -> Result<CollectedCapture, String> {
+     tauri::async_runtime::spawn_blocking(move || {
+         let collected = library::with_destination_published(&app, &destination, |library| {
++            let pending = lock(&state(&app).history)
++                .prepare_collect(&id)
++                .map_err(|e| e.to_string())?;
++            let collected = pending.import(library).map_err(|e| e.to_string())?;
+             lock(&state(&app).history)
+-                .collect(&id, library)
++                .finish_collect(collected)
+                 .map_err(|e| e.to_string())
+         })?;
+         history_changed(&app);
+diff --git a/src-tauri/src/desktop/pins.rs b/src-tauri/src/desktop/pins.rs
+index 57b6a51..c45166c 100644
+--- a/src-tauri/src/desktop/pins.rs
++++ b/src-tauri/src/desktop/pins.rs
+@@ -637,8 +637,11 @@ fn pin_from_clipboard(app: &AppHandle) -> Result<(), String> {
+     )
+     .ok_or("剪贴板里的图片无法识别")?;
+     // 剪贴板图片不带显示器配置文件，按 sRGB 解释。
++    let prepared =
++        kinshoko_core::desktop::CaptureHistory::prepare(&Screenshot { image, icc: None })
++            .map_err(|e| e.to_string())?;
+     let entry = lock(&state(app).history)
+-        .add(&Screenshot { image, icc: None })
++        .add_prepared(prepared)
+         .map_err(|e| e.to_string())?;
+     history_changed(app);
+     open(app, &entry, at_cursor(app, entry.width, entry.height)?)

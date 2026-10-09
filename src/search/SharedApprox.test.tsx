@@ -54,10 +54,12 @@ it("shows legacy disagreement as pending and submits an explicit conflict choice
 });
 it("does not release a late unsafe rule list after safe mode changes",async()=>{
   let resolveOld:(value:unknown)=>void=()=>{};
+  let oldStarted=false;
   const old=new Promise(resolve=>{resolveOld=resolve;});
-  mockIPC((cmd,args)=>{if(cmd==="shell_settings")return defaults;if(cmd.endsWith("safe_mode"))return false;if(cmd.endsWith("workspace_status"))return {revision:"r1",libraries:[]};if(cmd.endsWith("shared_personal_approx"))return (args as {safeMode:boolean}).safeMode?{revision:2,entries:[],conflicts:[]}:old;return undefined;},{shouldMockEvents:true});
+  mockIPC((cmd,args)=>{if(cmd==="shell_settings")return defaults;if(cmd.endsWith("safe_mode"))return false;if(cmd.endsWith("workspace_status"))return {revision:"r1",libraries:[]};if(cmd.endsWith("shared_personal_approx")){if((args as {safeMode:boolean}).safeMode)return {revision:2,entries:[],conflicts:[]};oldStarted=true;return old;}return undefined;},{shouldMockEvents:true});
   render(<SettingsPanel/>);
   await screen.findByRole("checkbox",{name:"显示相近标签来源（内置／个人）"});
+  await waitFor(()=>expect(oldStarted).toBe(true));
   await act(async()=>{await emit("safe-mode-setting",true);});
   await act(async()=>{resolveOld({revision:1,entries:[{a:label("secret","封印旧标签"),b:label("other","另一标签"),relation:"similar",sources:[]}],conflicts:[]});await old;});
   expect(screen.queryByText(/封印旧标签/)).toBeNull();

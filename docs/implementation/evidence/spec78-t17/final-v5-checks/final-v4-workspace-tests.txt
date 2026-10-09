@@ -1,0 +1,1270 @@
+   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.44s
+     Running unittests src\lib.rs (target\debug\deps\kinshoko_app-bf5f873b640c6899.exe)
+
+running 6 tests
+test desktop::clipboard::tests::prepared_formats_keep_transparent_rgb_alpha_and_bottom_up_orientation ... ok
+test diagnostics::tests::the_report_of_this_machine_lists_its_displays_without_paths ... ok
+test library::tests::the_injection_point_hands_out_the_shipped_table ... ok
+test library::tests::the_eagle_wizard_matches_chinese_tag_names_with_the_same_table ... ok
+test library::tests::a_library_assembled_by_the_app_names_model_tags_and_finds_them_by_chinese_names ... ok
+test library::tests::opening_a_legacy_library_preserves_untranslated_display_until_explicit_migration ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running unittests src\main.rs (target\debug\deps\kinshoko-78216568b2c37b56.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\debug\deps\kinshoko_core-042f5a24e4a296e1.exe)
+
+running 199 tests
+test backup::scope::export_bindings_scopeitem ... ok
+test application_settings_backup::export_bindings_applicationsettingspreview ... ok
+test backup::scope::export_bindings_scopeselection ... ok
+test backup::scope::export_bindings_scopestep ... ok
+test approx::export_bindings_approxrelation ... ok
+test app_shell::export_bindings_appinfo ... ok
+test app_shell::export_bindings_updateprogress ... ok
+test app_shell::export_bindings_updatestatus ... ok
+test approx::export_bindings_approxsource ... ok
+test backup::stamp::export_bindings_stamp ... ok
+test backup::target::export_bindings_backupprogress ... ok
+test backup::plan::export_bindings_backupfailure ... ok
+test approx::export_bindings_personalapprox ... ok
+test backup::target::export_bindings_checkpart ... ok
+test backup::target::export_bindings_restoredgroup ... ok
+test backup::scope::export_bindings_uncovered ... ok
+test desktop::history::export_bindings_capturechoice ... ok
+test desktop::history::export_bindings_collectedcapture ... ok
+test backup::target::export_bindings_restoredlibrary ... ok
+test backup::plan::export_bindings_backupplanview ... ok
+test desktop::pin::export_bindings_groupmemberref ... ok
+test backup::target::export_bindings_roundtripcheck ... ok
+test backup::target::export_bindings_backupestimate ... ok
+test backup::scope::export_bindings_backupscope ... ok
+test backup::target::export_bindings_skippedlibrary ... ok
+test backup::target::export_bindings_backupreport ... ok
+test desktop::pin::export_bindings_pincontent ... ok
+test desktop::history::export_bindings_captureentry ... ok
+test desktop::pin::export_bindings_placement ... ok
+test desktop::placement::export_bindings_screenrect ... ok
+test desktop::screenshot::export_bindings_region ... ok
+test desktop::types::export_bindings_captureaction ... ok
+test desktop::types::export_bindings_frozenscreen ... ok
+test desktop::types::export_bindings_pinmotion ... ok
+test application_settings_backup::export_bindings_applicationsettingsrestored ... ok
+test desktop::types::export_bindings_turn ... ok
+test device::export_bindings_registeredlibrary ... ok
+test backup::target::export_bindings_snapshotsummary ... ok
+test diagnostics::runtime::export_bindings_canvasbuffer ... ok
+test desktop::types::export_bindings_capturereference ... ok
+test diagnostics::runtime::export_bindings_capabilitycheck ... ok
+test diagnostics::runtime::export_bindings_runtimeassessment ... ok
+test fidelity::description::export_bindings_cicp ... ok
+test fidelity::description::export_bindings_colourdeclaration ... ok
+test device_libraries::export_bindings_libraryregistration ... ok
+test desktop::types::export_bindings_capturereferenceframe ... ok
+test fidelity::description::export_bindings_colourmodel ... ok
+test fidelity::description::export_bindings_hdrkind ... ok
+test fidelity::inspect::tests::an_icc_is_matrix_only_when_chromium_can_represent_it_exactly ... ok
+test fidelity::description::export_bindings_icckind ... ok
+test backup::target::export_bindings_restorereport ... ok
+test backup::plan::export_bindings_backuppreview ... ok
+test diagnostics::runtime::export_bindings_runtimestatus ... ok
+test fidelity::gate::export_bindings_patch ... ok
+test diagnostics::runtime::export_bindings_runtimecapabilities ... ok
+test desktop::pin::export_bindings_savedpin ... ok
+test backup::plan::export_bindings_backupstatus ... ok
+test library::eagle_discovery::export_bindings_eaglediscoverymethod ... ok
+test library::backup::export_bindings_restoreprovenance ... ok
+test fidelity::description::export_bindings_iccsummary ... ok
+test fidelity::gate::export_bindings_gatesample ... ok
+test library::eagle_tags::export_bindings_mappedexternal ... ok
+test library::eagle_tags::export_bindings_matchbasis ... ok
+test library::edit::export_bindings_folderref ... ok
+test library::eagle_discovery::export_bindings_eaglelibrarycandidate ... ok
+test fidelity::profiles::tests::lab_pcs_lut_profiles_are_v2_lut16_and_decode_to_their_defining_colours ... ok
+test fidelity::gate::export_bindings_gateitem ... ok
+test library::edit::export_bindings_imageversions ... ok
+test library::edit::export_bindings_sourcenote ... ok
+test library::folders::export_bindings_foldernode ... ok
+test library::lens::export_bindings_referenceimage ... ok
+test library::edit::export_bindings_imageedit ... ok
+test fidelity::gate::export_bindings_gateplan ... ok
+test library::edit::export_bindings_imagenote ... ok
+test library::eagle_tags::export_bindings_unmatchedeagletag ... ok
+test library::rating::export_bindings_contentrating ... ok
+test desktop::types::export_bindings_pinframe ... ok
+test device_libraries::export_bindings_importtasksnapshot ... ok
+test library::eagle_tags::export_bindings_eagletagmatch ... ok
+test library::save::export_bindings_savedestination ... ok
+test library::permanent_delete::export_bindings_permanentdeletepreview ... ok
+test library::rating::export_bindings_imagerating ... ok
+test library::rating::export_bindings_ratingfact ... ok
+test library::tags::export_bindings_localizedname ... ok
+test fidelity::description::export_bindings_colourdescription ... ok
+test library::tags::export_bindings_tagalias ... ok
+test library::sidebar::export_bindings_sidebar ... ok
+test library::eagle_tags::export_bindings_eagletagmapping ... ok
+test library::tags::export_bindings_tagnamespace ... ok
+test library::tags::export_bindings_tagorigin ... ok
+test library::thumbnail::tests::changing_the_downscale_changes_the_pipeline_version ... ok
+test library::tags::export_bindings_taglabel ... ok
+test library::tags::export_bindings_taggroupdefinition ... ok
+test library::tags::export_bindings_tagref ... ok
+test library::tags::export_bindings_tagcount ... ok
+test library::edit::export_bindings_imagedetail ... ok
+test library::events::export_bindings_libraryevent ... ok
+test library::tags::export_bindings_imagetag ... ok
+test library::tags::export_bindings_tagedit ... ok
+test library::types::export_bindings_browsescope ... ok
+test library::tags::export_bindings_personalapproxentry ... ok
+test library::types::export_bindings_browsepage ... ok
+test library::package::export_bindings_snapshottag ... ok
+test library::tags::export_bindings_imagetags ... ok
+test library::tags::export_bindings_taggroupview ... ok
+test library::types::export_bindings_displayroute ... ok
+test library::types::export_bindings_eagledeletedcontentchoice ... ok
+test library::types::export_bindings_eaglelocationchoice ... ok
+test library::types::export_bindings_imagecard ... ok
+test library::types::export_bindings_eaglerelocation ... ok
+test library::types::export_bindings_importoutcome ... ok
+test library::types::export_bindings_importprogress ... ok
+test library::package::export_bindings_imagesnapshot ... ok
+test library::types::export_bindings_importsource ... ok
+test library::types::export_bindings_libraryinfo ... ok
+test library::types::export_bindings_recoveryreport ... ok
+test library::types::export_bindings_importitem ... ok
+test library::tags::export_bindings_vocabularytag ... ok
+test reference_groups::export_bindings_groupsummary ... ok
+test reference_groups::export_bindings_groupusage ... ok
+test library::types::export_bindings_importoptions ... ok
+test reference_groups::export_bindings_restoredfrom ... ok
+test reference_groups::package::export_bindings_packageprovenance ... ok
+test reference_groups::resolve::export_bindings_unavailablereason ... ok
+test reference_groups::resolve::export_bindings_memberstate ... ok
+test library::types::export_bindings_importreport ... ok
+test reference_groups::export_bindings_groupmember ... ok
+test library::tags::export_bindings_vocabulary ... ok
+test reference_groups::resolve::export_bindings_memberstatus ... ok
+test search::export_bindings_conditioninput ... ok
+test search::export_bindings_candidate ... ok
+test portable_tags::export_bindings_portabletagdefinition ... ok
+test search::export_bindings_terminput ... ok
+test settings::export_bindings_shortcutaction ... ok
+test settings::export_bindings_viewerbackground ... ok
+test portable_tags::export_bindings_portabletagbinding ... ok
+test search::export_bindings_searchinput ... ok
+test reference_groups::export_bindings_referencegroup ... ok
+test shortcuts::export_bindings_shortcutbinding ... ok
+test tag_catalog::approx::export_bindings_catalogapproxdecision ... ok
+test library::types::export_bindings_browsequery ... ok
+test search::export_bindings_similartag ... ok
+test search::export_bindings_condition ... ok
+test tag_catalog::approx::export_bindings_catalogapproxedit ... ok
+test search::export_bindings_term ... ok
+test shortcuts::export_bindings_shellsettingsview ... ok
+test tag_catalog::export_bindings_catalogcorrection ... ok
+test tag_catalog::approx::export_bindings_catalogapproxorigin ... ok
+test tag_catalog::export_bindings_catalogmatchbasis ... ok
+test tag_catalog::export_bindings_externaltagidentity ... ok
+test search::export_bindings_conditiontree ... ok
+test tag_catalog::approx::export_bindings_catalogapproxsource ... ok
+test tag_catalog::approx::export_bindings_catalogapproxmigration ... ok
+test tag_catalog::approx::export_bindings_catalogapproxconflict ... ok
+test reference_groups::package::export_bindings_packageimage ... ok
+test tag_catalog::export_bindings_tagnameprovenance ... ok
+test tag_catalog::approx::export_bindings_catalogapproxentry ... ok
+test reference_groups::resolve::export_bindings_referencegroupview ... ok
+test tag_catalog::groups::export_bindings_cataloggroupedit ... ok
+test tag_catalog::groups::export_bindings_cataloggrouporigin ... ok
+test tag_catalog::export_bindings_resolvedtagidentity ... ok
+test tag_catalog::migration::export_bindings_legacynamedecision ... ok
+test tag_catalog::migration::export_bindings_legacynamemigrationpreview ... ok
+test tag_catalog::groups::export_bindings_cataloggroupsource ... ok
+test tag_catalog::export_bindings_catalogtag ... ok
+test tag_catalog::migration::export_bindings_legacynamegroup ... ok
+test tag_catalog::groups::export_bindings_cataloggroupdefinition ... ok
+test tag_catalog::migration::export_bindings_legacynameoutcome ... ok
+test tag_catalog::groups::export_bindings_cataloggroupmigration ... ok
+test tag_catalog::export_bindings_catalogimagetags ... ok
+test tag_catalog::migration::export_bindings_legacynameresolution ... ok
+test tag_catalog::migration::export_bindings_legacynamemigration ... ok
+test tag_catalog::approx::export_bindings_catalogapproxview ... ok
+test tag_catalog::migration::export_bindings_legacynamesource ... ok
+test tag_catalog::export_bindings_librarytagmapping ... ok
+test tagging::patch::tests::a_graph_without_the_expected_block_is_refused ... ok
+test tag_catalog::groups::export_bindings_cataloggroupview ... ok
+test reference_groups::package::export_bindings_packagemanifest ... ok
+test tagging::port::export_bindings_device ... ok
+test tagging::patch::tests::global_attention_is_split_into_query_chunks ... ok
+test tagging::models::export_bindings_modeloption ... ok
+test workspace::export_bindings_workspacesource ... ok
+test tagging::models::export_bindings_modelchoice ... ok
+test tagging::scheduler::export_bindings_taggingstatus ... ok
+test workspace::export_bindings_workspacecard ... ok
+test tag_catalog::names::export_bindings_catalognameedit ... ok
+test tag_catalog::export_bindings_cataloginspection ... ok
+test workspace::import_preview::export_bindings_importpreviewsession ... ok
+test workspace::export_bindings_workspacescope ... ok
+test tagging::scheduler::export_bindings_librarytaggingstatus ... ok
+test workspace::source::export_bindings_workspacesourcetarget ... ok
+test tag_catalog::migration::export_bindings_legacynamemigrationworkspace ... ok
+test workspace::export_bindings_workspacestatus ... ok
+test workspace::export_bindings_workspacedirectory ... ok
+test workspace::export_bindings_workspacepage ... ok
+test workspace::export_bindings_workspacedirectories ... ok
+test tag_catalog::export_bindings_tagcatalogworkspace ... ok
+test workspace::export_bindings_workspacequery ... ok
+test workspace::source::export_bindings_workspacesourceinspection ... ok
+
+test result: ok. 199 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.83s
+
+     Running tests\app_info.rs (target\debug\deps\app_info-34bc6a660ecc22b5.exe)
+
+running 2 tests
+test app_info_names_the_product_and_reports_the_build_version ... ok
+test app_info_crosses_the_ipc_boundary_in_camel_case ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\app_settings.rs (target\debug\deps\app_settings-49e58f6ef4e6fe62.exe)
+
+running 9 tests
+test a_fresh_install_starts_at_login_and_uses_snipaste_style_function_keys ... ok
+test the_usage_log_is_off_until_the_artist_turns_it_on_and_then_remembered ... ok
+test turning_autostart_off_is_remembered_after_restart ... ok
+test safe_mode_is_on_after_a_fresh_install_and_turning_it_off_is_remembered ... ok
+test an_unreadable_settings_file_falls_back_to_defaults_and_is_kept_aside ... ok
+test forcing_srgb_is_off_after_a_fresh_install_and_only_takes_effect_after_a_restart ... ok
+test settings_written_by_a_newer_version_survive_a_round_trip_through_this_one ... ok
+test showing_where_similar_tags_come_from_is_off_until_turned_on_and_then_remembered ... ok
+test the_tagging_model_choice_is_automatic_until_the_artist_picks_one ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests\application_settings_backup.rs (target\debug\deps\application_settings_backup-65e3eb161868b74b.exe)
+
+running 8 tests
+test child_restores_until_configuration_fault ... ignored, executed by the crash parent with a real persistent configuration
+
+running 1 test
+test a_settings_write_failure_keeps_the_old_complete_configuration ... ok
+test invalid_or_changed_packages_leave_existing_configuration_usable ... ok
+test restoring_settings_keeps_current_library_identity_corrections_and_every_image_fact ... ok
+test a_blank_application_restores_the_explicit_default_name_and_shell_preferences ... ok
+test replacement_keeps_deleted_aliases_and_migrated_rules_deleted_after_reconnect ... ok
+test restored_external_ownership_does_not_change_when_two_portable_identities_share_a_word ... ok
+
+running 1 test
+test child_restores_until_configuration_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.03s
+
+
+running 1 test
+
+running 1 test
+test child_restores_until_configuration_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.03s
+
+
+running 1 test
+
+running 1 test
+test child_restores_until_configuration_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.04s
+
+test restart_recovers_one_complete_configuration_after_catalog_publication_is_interrupted ... ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.70s
+
+     Running tests\approx_library.rs (target\debug\deps\approx_library-9a396c69bd1dabe0.exe)
+
+running 4 tests
+test entries_need_two_different_existing_tags ... ok
+test plus_makes_any_library_tag_similar_and_deleting_the_entry_takes_it_back ... ok
+test never_expand_again_records_not_similar_which_beats_the_built_in_pair_and_survives_reopening ... ok
+test the_built_in_pair_expands_by_default_and_exact_matches_only_the_tag ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running tests\approx_search.rs (target\debug\deps\approx_search-a33cac3919a50ed0.exe)
+
+running 9 tests
+test just_this_once_leaves_a_neighbour_out_of_that_term_only ... ok
+test not_similar_in_the_personal_table_beats_the_same_built_in_pair_in_either_order ... ok
+test neighbours_without_any_visible_image_are_not_expanded ... ok
+test any_library_tag_can_be_made_similar_including_ones_without_an_external_mapping ... ok
+test a_picked_tag_expands_by_default_into_its_built_in_neighbours_without_chaining ... ok
+test switching_back_to_exact_expands_nothing ... ok
+test typed_words_expand_the_neighbours_of_the_tags_they_match ... ok
+test updating_the_built_in_table_leaves_personal_entries_in_force ... ok
+test the_bundled_table_loads_and_unknown_formats_are_refused ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\backup_content_definitions.rs (target\debug\deps\backup_content_definitions-aa41e8caea882e51.exe)
+
+running 10 tests
+test content_backup_fault_child ... ignored, parent executes the real backup storage fault child
+test content_restore_fault_child ... ignored, parent executes the fault child through public restore
+
+running 1 test
+test older_content_snapshot_cannot_replay_legacy_program_settings ... ok
+test content_backup_does_not_reimport_legacy_application_groups_or_personal_rules ... ok
+test content_backup_uses_current_pure_definitions_after_read_only_publication_failed ... ok
+test a_later_library_restore_failure_does_not_leave_an_earlier_usable_copy ... ok
+
+running 1 test
+test incompatible_stable_identity_is_refused_before_content_is_published ... ok
+
+running 1 test
+test content_backup_fault_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.11s
+
+test independent_content_restore_keeps_existing_app_preferences_and_shared_groups ... ok
+test backup_definition_storage_failure_or_exit_never_publishes_a_complete_snapshot ... ok
+
+running 1 test
+test content_restore_fault_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.10s
+
+
+running 1 test
+
+running 1 test
+test content_restore_fault_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.12s
+
+test interrupted_and_failed_publication_rolls_back_only_its_batch_then_can_retry ... ok
+
+test result: ok. 8 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 3.83s
+
+     Running tests\backup_crash.rs (target\debug\deps\backup_crash-b16f65ee7dcd64e8.exe)
+
+running 2 tests
+test child_backs_up_until_the_fault_point ... ignored, 只在故障注入子进程里运行
+
+running 1 test
+test a_backup_killed_mid_copy_is_never_taken_for_a_complete_one ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.40s
+
+     Running tests\backup_eagle.rs (target\debug\deps\backup_eagle-f70f09b351f16e8e.exe)
+
+running 1 test
+test an_eagle_migrated_library_round_trips_through_backup_and_restore ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
+
+     Running tests\backup_plan.rs (target\debug\deps\backup_plan-b48d3286c4a03616.exe)
+
+running 4 tests
+test nothing_is_due_until_a_target_is_chosen ... ok
+test a_missing_target_is_remembered_for_a_reminder_and_retried_next_time ... ok
+test a_successful_backup_is_not_repeated_on_the_same_local_day ... ok
+test choosing_another_target_makes_a_backup_due_again_today ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests\backup_restore.rs (target\debug\deps\backup_restore-6b8c3b9c0701628a.exe)
+
+running 10 tests
+test a_missing_target_is_reported_and_a_library_on_an_unplugged_drive_is_skipped ... ok
+test the_capacity_estimate_counts_only_what_the_target_does_not_have_yet ... ok
+test an_original_changed_outside_kinshoko_leaves_the_backup_incomplete_and_unrestorable ... ok
+test a_permanent_delete_during_a_backup_does_not_remove_the_original_until_the_backup_ends ... ok
+test a_damaged_backup_is_refused_without_leaving_half_a_library ... ok
+test a_later_backup_copies_only_the_new_originals_and_holds_the_originals_lease_while_copying ... ok
+test editing_a_group_while_copying_keeps_the_backup_references_consistent ... ok
+test a_group_that_outgrows_the_computed_scope_cannot_publish_a_complete_backup ... ok
+test a_restored_backup_is_an_independent_copy_and_passes_the_round_trip_check ... ok
+test snapshots_are_kept_seven_daily_and_four_weekly ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.51s
+
+     Running tests\backup_scope.rs (target\debug\deps\backup_scope-f8c7f68db4379eed.exe)
+
+running 5 tests
+test by_default_every_registered_library_and_group_is_backed_up_including_groups_without_a_library ... ok
+test libraries_not_registered_on_this_device_and_unreadable_groups_are_reported_as_uncovered ... ok
+test declining_the_linked_libraries_lists_what_is_left_uncovered ... ok
+test narrowing_to_one_library_follows_the_a_b_and_b_c_chains_and_the_c_a_loop_in_one_pass ... ok
+test starting_in_the_middle_of_the_chain_lists_both_sides_as_uncovered ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\browse_cursor.rs (target\debug\deps\browse_cursor-e6eee9798e486b0b.exe)
+
+running 6 tests
+test cursor_expires_when_an_image_joins_the_browsed_folder ... ok
+test browse_cursor_expires_when_visibility_revision_advances ... ok
+test cursor_expires_when_safe_mode_switches ... ok
+test cursor_expires_when_a_note_change_alters_the_search_result ... ok
+test stable_result_set_pages_through_completely_without_duplicates ... ok
+test cursor_only_continues_the_same_query_in_the_same_library ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+     Running tests\browse_search.rs (target\debug\deps\browse_search-d0236c810c6f97c1.exe)
+
+running 5 tests
+test the_first_page_of_a_search_arrives_within_100_ms_on_a_large_library ... ignored
+test a_condition_with_no_alternatives_matches_nothing_and_its_exclusion_everything ... ok
+test searching_finds_notes_stays_inside_the_scope_and_leaves_the_trash_out ... ok
+test conditions_all_hold_alternatives_widen_and_exclusions_remove_page_by_page ... ok
+test typed_words_find_every_namespace_alias_and_the_images_own_file_name ... ok
+
+test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests\capture_history.rs (target\debug\deps\capture_history-42f9ae66eceb379a.exe)
+
+running 12 tests
+test deleting_an_unknown_capture_is_an_error ... ok
+test a_capture_is_kept_losslessly_with_the_display_profile_it_was_taken_under ... ok
+test deleting_a_pinned_capture_hides_it_but_the_pin_keeps_showing_it ... ok
+test an_unreadable_index_starts_an_empty_history_without_deleting_captures ... ok
+test history_survives_closing_and_reopening ... ok
+test opening_cleans_up_files_left_behind_by_an_interrupted_run ... ok
+test deleting_a_capture_removes_it_and_its_file ... ok
+test old_captures_beyond_the_limit_are_discarded ... ok
+test a_pinned_capture_is_kept_until_its_pin_closes ... ok
+test collecting_reports_progress_to_the_library_like_any_import ... ok
+test collecting_a_capture_pin_makes_it_a_group_member_without_changing_its_crop_or_placement ... ok
+test collecting_a_capture_imports_it_as_a_reference_image ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests\capture_region.rs (target\debug\deps\capture_region-9846d9487523dbda.exe)
+
+running 3 tests
+test a_region_reaching_past_the_screen_edge_is_clamped ... ok
+test the_selected_region_keeps_the_exact_screen_pixels_and_profile ... ok
+test an_empty_region_or_one_outside_the_screen_gives_nothing ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\catalog_approx.rs (target\debug\deps\catalog_approx-be29379386a6cd91.exe)
+
+running 8 tests
+test deleting_a_migrated_rule_restores_builtin_without_reimporting_the_old_judgment ... ok
+test builtin_updates_and_search_operators_preserve_explicit_judgments_and_atomic_edits ... ok
+test personal_rule_settings_share_all_source_adult_veto_and_keep_complete_backup_definitions ... ok
+test legacy_conflict_has_named_sources_and_ignore_is_remembered_after_restart ... ok
+test an_explicit_global_judgment_survives_a_later_opposite_source_and_ignoring_it ... ok
+test legacy_not_similar_applies_to_every_library_and_survives_restart ... ok
+test plus_supports_no_external_mapping_and_once_does_not_change_the_saved_rule ... ok
+test opposite_legacy_rules_wait_for_a_choice_in_either_registration_order ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.16s
+
+     Running tests\catalog_groups.rs (target\debug\deps\catalog_groups-80f1431b62fdd948.exe)
+
+running 7 tests
+test new_group_can_be_created_without_an_active_library_and_survives_restart ... ok
+test namespace_groups_follow_new_members_and_current_shared_name_preferences ... ok
+test same_named_legacy_groups_keep_distinct_members_and_sources_and_deleted_group_does_not_return ... ok
+test legacy_group_is_shared_across_libraries_and_restart_without_rewriting_image_tags ... ok
+test shared_group_query_is_visible_or_for_each_source_and_missing_mapping_is_not_dropped ... ok
+test artist_can_rename_reorder_and_organize_shared_members_without_changing_images ... ok
+test cross_source_adult_veto_hides_group_members_and_atomic_edit_preserves_them ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
+
+     Running tests\catalog_visibility.rs (target\debug\deps\catalog_visibility-22083af268bafbd2.exe)
+
+running 2 tests
+test ordinary_name_settings_do_not_expose_tags_from_globally_vetoed_copies ... ok
+test names_and_groups_share_online_and_known_offline_veto_without_losing_unused_definitions ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+     Running tests\device.rs (target\debug\deps\device-4907231fd2cde860.exe)
+
+running 3 tests
+test a_library_cannot_be_created_in_a_folder_that_already_has_files ... ok
+test a_registered_library_is_remembered_as_the_last_opened_after_restart ... ok
+test unregistering_forgets_the_location_without_deleting_the_library ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests\device_libraries.rs (target\debug\deps\device_libraries-eaa3aeb23c84b654.exe)
+
+running 7 tests
+test a_failed_registry_write_keeps_the_current_library_and_registration_unchanged ... ok
+test relocating_a_library_and_registering_it_again_preserves_identity_originals_and_curation ... ok
+test registered_libraries_can_be_switched_and_the_last_choice_survives_restart ... ok
+test a_restored_library_is_registered_without_switching_to_it ... ok
+test switching_refuses_a_different_library_at_the_registered_location ... ok
+test unavailable_libraries_stay_registered_and_a_failed_switch_keeps_the_current_library ... ok
+test switching_keeps_import_running_in_its_original_library ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s
+
+     Running tests\diagnostics.rs (target\debug\deps\diagnostics-430bfab328e1c218.exe)
+
+running 8 tests
+test a_missing_pin_canvas_has_a_specific_reason_without_claiming_a_colour_result ... ok
+test a_system_report_does_not_infer_renderer_support_from_windows_or_webview_version ... ok
+test forcing_srgb_keeps_the_tauri_defaults_and_adds_the_chromium_colour_profile_switch ... ok
+test an_unreadable_display_profile_is_reported_as_such ... ok
+test the_report_lists_hardware_webview2_and_each_displays_colour_state ... ok
+test without_forcing_srgb_webview2_starts_with_the_tauri_defaults_only ... ok
+test paths_and_image_file_names_reported_by_the_system_never_reach_the_report ... ok
+test a_display_profile_is_described_by_its_name_version_and_kind_never_by_its_file ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\downscale.rs (target\debug\deps\downscale-d120a0acd974d54f.exe)
+
+running 3 tests
+test the_default_is_linear_light_until_the_artist_chooses ... ok
+test derivatives_say_what_they_are ... ok
+test half_black_lines_average_in_light_or_in_encoded_values ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests\eagle_crash.rs (target\debug\deps\eagle_crash-3a2084c1b5065fb4.exe)
+
+running 2 tests
+test child_imports_eagle_until_fault ... ignored, 只在故障注入子进程里运行
+
+running 1 test
+test child_imports_eagle_until_fault ... 
+running 1 test
+test child_imports_eagle_until_fault ... 
+running 1 test
+test child_imports_eagle_until_fault ... 
+running 1 test
+test child_imports_eagle_until_fault ... 
+running 1 test
+test child_imports_eagle_until_fault ... 
+running 1 test
+test child_imports_eagle_until_fault ... 
+running 1 test
+test child_imports_eagle_until_fault ... 
+running 1 test
+test child_imports_eagle_until_fault ... test interruption_never_publishes_partial_eagle_metadata_and_retry_is_idempotent ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 3.07s
+
+     Running tests\eagle_deleted_content.rs (target\debug\deps\eagle_deleted_content-e82075f4e61f4a48.exe)
+
+running 13 tests
+test child_allows_eagle_import_until_fault ... ignored, 只在故障注入子进程里运行
+test child_deletes_eagle_until_fault ... ignored, 只在故障注入子进程里运行
+test eagle_choice_preflight_recognizes_selected_parent_and_item_without_registering_a_source ... ok
+
+running 1 test
+test child_allows_eagle_import_until_fault ... 
+running 1 test
+test child_deletes_eagle_until_fault ... 
+running 1 test
+test child_allows_eagle_import_until_fault ... test a_failed_allowed_import_does_not_forget_the_deleted_version_and_can_be_retried ... ok
+test deletion_memory_is_committed_before_file_cleanup_and_survives_interruption ... ok
+test permanent_delete_respects_an_interrupted_allowed_imports_pending_original_then_recovers ... ok
+test interrupted_allowed_import_keeps_deleted_memory_and_source_binding_consistent_on_retry ... ok
+test a_live_duplicate_never_restores_initial_eagle_trash_created_in_a_previous_task ... ok
+test trash_duplicates_offer_the_existing_image_without_restoring_it ... ok
+test the_same_eagle_item_can_import_new_bytes_while_the_deleted_version_remains_skipped ... ok
+test allowing_one_import_keeps_the_memory_but_allows_normal_refresh_until_deleted_again ... ok
+test permanently_deleted_eagle_content_stays_skipped_after_restart_in_this_library_only ... ok
+test cancelled_and_failed_retries_do_not_promote_an_already_created_initial_trash_item ... ok
+
+test result: ok. 11 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 1.24s
+
+     Running tests\eagle_import.rs (target\debug\deps\eagle_import-181bd4d2f697dc23.exe)
+
+running 12 tests
+test imported_eagle_source_links_can_be_found_with_the_integrated_text_search ... ok
+test collection_time_falls_back_by_field_presence_and_unknown_versions_are_allowed ... ok
+test first_import_reads_items_not_thumbnails_or_mtime_and_preserves_original_bytes ... ok
+test eagle_import_uses_decoded_display_dimensions_and_keeps_metadata_verbatim ... ok
+test partial_failures_retry_as_eagle_items_and_keep_successes_and_manual_decisions ... ok
+test all_eagle_fields_folders_tags_notes_links_and_region_comments_survive_reopen ... ok
+test new_eagle_duplicates_preserve_manual_deletion_and_restore ... ok
+test discovery_finds_settings_history_and_counts_the_images_directory ... ok
+test same_task_live_eagle_duplicates_set_initial_state_but_retries_preserve_existing_trash ... ok
+test discovery_uses_local_api_first_and_falls_back_to_a_bounded_disk_scan ... ok
+test eagle_import_batches_list_refreshes_including_metadata_only_merges ... ok
+test same_library_duplicates_keep_each_source_and_two_libraries_keep_independent_records ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.91s
+
+     Running tests\eagle_reimport.rs (target\debug\deps\eagle_reimport-87237d5cf11ea228.exe)
+
+running 13 tests
+test confirming_an_unknown_source_writes_nothing ... ok
+test eagle_trash_counts_only_on_first_import ... ok
+test a_library_from_before_folder_decisions_upgrades_and_keeps_its_folders ... ok
+test manual_folder_decision_stays_with_its_own_source ... ok
+test changed_content_keeps_both_versions_and_they_can_be_told_apart ... ok
+test eagle_relocation_updates_sources_for_a_case_alias ... ok
+test eagle_relocation_updates_sources_for_the_spelling_it_was_imported_with ... ok
+test reimport_refreshes_eagle_tags_and_notes_and_keeps_manual_curation ... ok
+test eagle_deletion_and_trash_never_reach_the_local_copy ... ok
+test reimport_applies_eagle_folder_changes_and_keeps_local_folder_adjustments ... ok
+test moved_eagle_library_is_only_proposed_until_the_artist_confirms_it ... ok
+test manual_folder_addition_survives_eagle_add_then_remove ... ok
+test manual_folder_removal_survives_eagle_remove_then_add ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.57s
+
+     Running tests\eagle_tag_mapping.rs (target\debug\deps\eagle_tag_mapping-eaf4e0fc9ee232d0.exe)
+
+running 5 tests
+test the_tagger_vocabulary_is_read_from_the_name_column_of_selected_tags_csv ... ok
+test with_safe_mode_on_tags_only_on_sealed_images_are_not_listed ... ok
+test eagle_tags_match_external_names_exactly_after_folding_case_spaces_and_full_width ... ok
+test translation_names_match_and_ambiguous_or_taken_names_are_left_for_the_artist ... ok
+test tags_given_an_external_mapping_by_hand_join_the_built_in_expansion_and_skipped_ones_still_work ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+     Running tests\edge_hide.rs (target\debug\deps\edge_hide-ebcfd7a2849e8222.exe)
+
+running 8 tests
+test a_new_pin_while_others_are_hidden_makes_the_next_press_hide_it_too ... ok
+test a_pin_partly_off_screen_keeps_its_sliver_on_the_screen ... ok
+test a_pin_the_artist_drags_out_is_no_longer_hidden ... ok
+test hiding_tucks_each_pin_into_its_nearest_edge_leaving_a_sliver ... ok
+test pressing_again_brings_every_pin_back_to_where_it_was ... ok
+test the_pointer_away_from_the_slivers_moves_nothing ... ok
+test hover_does_nothing_while_pins_are_shown ... ok
+test touching_the_sliver_slides_that_pin_out_and_leaving_slides_it_back ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\fidelity.rs (target\debug\deps\fidelity-5f22b64cb135e2e6.exe)
+
+running 12 tests
+test delta_e2000_matches_the_published_test_data ... ok
+test an_untagged_png_is_recorded_as_plain_srgb_with_its_alpha ... ok
+test downscaling_averages_light_linearly_and_keeps_transparent_edges_clean ... ok
+test lut_and_cmyk_profile_samples_are_gated_on_what_the_app_shows ... ok
+test thumbnails_of_an_older_pipeline_version_are_removed_and_rebuilt ... ok
+test an_animated_original_shows_its_first_frame_as_a_still_thumbnail ... ok
+test hdr_originals_get_an_sdr_thumbnail_with_reference_white_near_sdr_white ... ok
+test import_records_how_each_gate_sample_declares_its_colour ... ok
+test lut_only_and_cmyk_originals_are_displayed_through_the_full_size_sdr_derivative ... ok
+test thumbnails_are_stored_losslessly_in_a_tier_chosen_by_the_source ... ok
+test the_gate_run_imports_every_sample_into_a_fresh_library_with_fixed_bytes ... ok
+test every_gated_sample_keeps_its_colour_in_the_thumbnail ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.05s
+
+     Running tests\global_shortcuts.rs (target\debug\deps\global_shortcuts-5bd7b6f0d9de1557.exe)
+
+running 9 tests
+test a_key_already_used_by_another_action_is_refused ... ok
+test on_start_every_bound_key_is_registered_and_a_key_held_elsewhere_is_reported ... ok
+test a_key_held_by_another_program_is_refused_and_the_old_key_keeps_working ... ok
+test keys_that_would_get_in_the_way_of_typing_or_have_no_main_key_are_refused ... ok
+test rebinding_to_the_key_already_in_use_changes_nothing ... ok
+test after_freeing_the_key_in_the_other_program_the_artist_can_retry_the_same_key ... ok
+test clearing_a_shortcut_frees_the_key_and_stays_cleared_after_restart ... ok
+test rebinding_takes_effect_immediately_and_is_remembered_after_restart ... ok
+test shortcuts_are_saved_in_one_spelling_whatever_the_settings_screen_sends ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests\import_crash.rs (target\debug\deps\import_crash-cbee1cca794d5dc2.exe)
+
+running 6 tests
+test child_imports_until_the_fault_point ... ignored, 只在故障注入子进程里运行
+
+running 1 test
+test child_imports_until_the_fault_point ... 
+running 1 test
+test child_imports_until_the_fault_point ... 
+running 1 test
+test child_imports_until_the_fault_point ... 
+running 1 test
+test child_imports_until_the_fault_point ... test unknown_files_among_the_originals_are_reported_but_kept ... ok
+test a_crash_after_the_pending_record_is_rolled_back_on_reopen ... ok
+test a_crash_after_staging_leaves_no_trace ... ok
+test a_crash_before_commit_leaves_no_record_and_no_original ... ok
+test a_crash_after_publishing_the_original_removes_it_on_reopen ... ok
+
+test result: ok. 5 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests\import_preview.rs (target\debug\deps\import_preview-8c0c39a2a23f0306.exe)
+
+running 13 tests
+test closing_after_the_first_published_chunk_stops_remaining_content ... ok
+test eagle_refreshed_successes_do_not_leak_a_sealed_only_total ... ok
+test explicit_consent_uses_only_the_actual_completed_cross_library_duplicate_receipt ... ok
+test completed_progress_minus_failures_cannot_reveal_the_sealed_success_count ... ok
+test default_receipt_does_not_expose_sealed_duplicate_ids_or_success_totals ... ok
+test replacing_original_bytes_cannot_reuse_an_old_receipt_as_a_display_capability ... ok
+test unavailable_known_adult_source_still_seals_receipts_and_removal_revokes_pending_content ... ok
+test mode_transition_and_library_switch_revoke_a_completed_but_unreleased_read ... ok
+test deleted_and_permanently_deleted_content_never_revives_through_an_old_receipt ... ok
+test report_dismissal_and_identity_replacement_reject_pending_content ... ok
+test close_and_next_receipt_generation_reject_late_bytes_foreign_ids_and_historical_tokens ... ok
+test mixed_receipt_coarsens_all_successes_keeps_real_failures_and_does_not_change_curation ... ok
+test streamed_content_is_revoked_by_new_consent_library_mode_and_source_changes ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.99s
+
+     Running tests\import_recovery.rs (target\debug\deps\import_recovery-3d58f915d1a7f833.exe)
+
+running 4 tests
+test importing_the_same_bytes_twice_keeps_one_image_with_both_sources ... ok
+test files_and_libraries_deeper_than_260_characters_import_and_reopen ... ok
+test damaged_compressed_pixels_are_a_read_failure ... ok
+test retrying_after_a_partial_failure_only_processes_the_failed_items_and_never_duplicates ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+     Running tests\legacy_name_migration.rs (target\debug\deps\legacy_name_migration-f9f475204e8fa773.exe)
+
+running 8 tests
+test child_confirms_until_fault ... ignored, subprocess entry for fault injection
+
+running 1 test
+test following_default_preserves_displaced_global_and_old_names_as_removable_aliases ... ok
+test cancelling_keeps_old_displays_and_confirmation_applies_one_shared_choice_atomically ... ok
+test follow_default_preview_uses_the_actual_other_language_fallback ... ok
+test equal_default_legacy_choice_remains_explicit_after_default_upgrade_and_keep_preference_acknowledges_only_new_sources ... ok
+
+running 1 test
+test child_confirms_until_fault ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.02s
+
+test interruption_and_write_failure_leave_the_entire_batch_pending_then_retry_is_stable ... ok
+test explicit_preferences_do_not_hide_unconfirmed_old_sources_and_follow_default_removes_only_that_language ... ok
+test a_large_legacy_batch_resolves_by_identity_and_keeps_existing_global_preference_explicit ... ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 4.92s
+
+     Running tests\library.rs (target\debug\deps\library-599eddfe87664784.exe)
+
+running 7 tests
+test a_new_library_keeps_its_identity_and_name_after_reopening ... ok
+test imported_files_keep_their_bytes_and_show_at_their_upright_size ... ok
+test a_folder_import_walks_subfolders_and_lists_each_file_that_did_not_come_in ... ok
+test after_closing_and_reopening_the_wall_shows_the_same_images_in_the_same_order ... ok
+test an_import_reports_progress_and_stops_when_cancelled_keeping_what_came_in ... ok
+test browsing_pages_through_every_image_once_with_a_keyset_cursor ... ok
+test thumbnails_are_a_rebuildable_cache_at_the_requested_width_tier ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
+
+     Running tests\model_package.rs (target\debug\deps\model_package-a962b37a0d3f935a.exe)
+
+running 6 tests
+test a_package_of_an_unknown_model_is_rejected ... ok
+test a_package_with_a_damaged_model_is_rejected_and_nothing_is_installed ... ok
+test a_package_whose_tag_list_does_not_match_the_model_is_rejected ... ok
+test a_package_without_a_tag_list_or_model_is_rejected ... ok
+test an_installed_model_with_a_mismatched_tag_list_is_not_ready_until_prepared_again ... ok
+test an_imported_package_is_recognised_verified_and_used_without_network ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests\organize.rs (target\debug\deps\organize-b94921e76aa718e6.exe)
+
+running 10 tests
+test a_folder_cannot_be_moved_into_itself_or_its_subfolders ... ok
+test folders_can_be_created_nested_renamed_and_moved ... ok
+test folder_tree_survives_reopening ... ok
+test deleting_again_keeps_the_first_deletion_time ... ok
+test a_batch_edit_with_an_unknown_image_or_folder_changes_nothing ... ok
+test a_note_is_kept_across_reopening_and_can_be_reverted_to_what_the_source_gave ... ok
+test tag_counts_leave_out_images_in_the_trash_and_the_vocabulary_moves_on ... ok
+test an_image_can_sit_in_several_folders_and_each_folder_lists_it ... ok
+test deleted_images_leave_browsing_and_counts_and_come_back_from_the_trash ... ok
+test an_edit_tells_listeners_only_after_it_is_committed ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+     Running tests\permanent_delete.rs (target\debug\deps\permanent_delete-7d69d6a17aeb75a8.exe)
+
+running 10 tests
+test child_deletes_the_trash_until_the_fault_point ... ignored, 只在故障注入子进程里运行
+test sealed_images_cannot_be_deleted_while_safe_mode_is_on ... ok
+test unreadable_reference_groups_block_preview_and_deletion ... ok
+test preview_without_affected_groups_is_empty ... ok
+test only_images_in_the_trash_can_be_permanently_deleted ... ok
+test preview_lists_the_reference_groups_using_the_images ... ok
+
+running 1 test
+test child_deletes_the_trash_until_the_fault_point ... test a_change_after_the_preview_rejects_the_deletion ... ok
+test confirming_the_preview_deletes_the_images_their_organisation_and_originals ... ok
+test a_crash_after_commit_finishes_removing_the_originals_on_reopen ... ok
+test eagle_images_and_superseded_versions_can_be_permanently_deleted ... ok
+
+test result: ok. 9 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.47s
+
+     Running tests\pin_geometry.rs (target\debug\deps\pin_geometry-1b8a718fc9e72279.exe)
+
+running 6 tests
+test a_pin_cannot_shrink_to_a_dot_or_grow_without_bound ... ok
+test an_unscaled_pin_is_exactly_the_size_of_its_image ... ok
+test flipping_mirrors_what_the_artist_sees_even_when_rotated ... ok
+test dragging_the_bottom_right_corner_keeps_the_top_left_corner_still ... ok
+test zooming_keeps_the_point_under_the_cursor_still ... ok
+test rotating_swaps_width_and_height_around_the_centre ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\pin_menu.rs (target\debug\deps\pin_menu-fd3133be515a6fa5.exe)
+
+running 5 tests
+test a_locked_pin_does_not_move_or_zoom ... ok
+test an_unlocked_pin_moves_and_zooms ... ok
+test opacity_stays_between_ten_percent_and_opaque ... ok
+test opacity_and_lock_come_back_after_reopening ... ok
+test pins_saved_before_the_menu_existed_open_opaque_and_unlocked ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\pin_motion.rs (target\debug\deps\pin_motion-8adf3ba45593960c.exe)
+
+running 8 tests
+test a_hidden_pin_on_the_right_edge_rests_past_the_right_of_the_screen ... ok
+test sliding_out_and_back_never_touches_the_native_window ... ok
+test the_window_never_grows_past_the_screen_during_an_animation ... ok
+test spanning_two_monitors_the_window_may_cover_both ... ok
+test a_hidden_pin_rests_in_a_window_whose_on_screen_part_is_where_it_slides_out ... ok
+test zooming_from_the_corner_only_grows_right_and_down ... ok
+test zooming_in_grows_the_window_once_to_hold_the_whole_animation ... ok
+test zooming_out_animates_inside_the_window_and_shrinks_it_once_at_the_end ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\pin_placement.rs (target\debug\deps\pin_placement-d79589281c090d3e.exe)
+
+running 5 tests
+test a_new_pin_appears_slightly_offset_from_where_it_was_captured ... ok
+test a_pin_larger_than_the_monitor_starts_at_its_top_left_corner ... ok
+test a_new_pin_stays_on_the_monitor ... ok
+test a_new_pin_does_not_land_exactly_on_an_existing_pin ... ok
+test when_the_corner_is_crowded_the_pin_steps_back_the_other_way ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\pin_restore.rs (target\debug\deps\pin_restore-857b9cc9dde8793f.exe)
+
+running 7 tests
+test a_pin_whose_capture_is_gone_is_dropped ... ok
+test a_pin_partly_off_screen_but_still_reachable_stays_where_it_was ... ok
+test a_pin_left_on_a_monitor_that_is_gone_is_pulled_back_onto_the_screen ... ok
+test an_unreadable_pin_file_starts_empty ... ok
+test pins_come_back_with_position_crop_flip_and_rotation_after_reopening ... ok
+test a_closed_pin_is_not_restored ... ok
+test a_pinned_capture_beyond_the_history_limit_survives_a_restart ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests\pin_veil.rs (target\debug\deps\pin_veil-6af7c12a49092ba9.exe)
+
+running 3 tests
+test a_confirmed_pin_is_shown_until_safe_mode_is_turned_on_again ... ok
+test capture_pins_are_never_veiled ... ok
+test turning_safe_mode_on_with_no_library_open_veils_shown_library_pins ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\portable_tags.rs (target\debug\deps\portable_tags-e3f94dc76146789c.exe)
+
+running 13 tests
+test publication_subprocess ... ignored, parent public-action fault test runs this in an isolated process
+test modern_package_without_its_explicit_source_local_mapping_is_rejected_before_writing ... ok
+test modern_package_with_a_missing_identity_is_rejected_before_any_content_is_imported ... ok
+test read_only_registration_and_failed_publication_leave_provider_bytes_and_safe_mode_unchanged ... ok
+test old_version_one_package_still_imports_through_the_legacy_compatibility_flow ... ok
+test first_tag_write_carries_identity_when_the_library_is_copied_to_a_fresh_application ... ok
+test an_existing_catalog_namespace_conflict_is_rejected_before_package_content_changes ... ok
+test a_carried_seed_identity_can_attach_to_two_library_local_ids_in_one_application ... ok
+test published_split_identity_survives_copy_without_exporting_the_application_name_preference ... ok
+test publishing_a_new_external_tag_carries_the_same_identity_already_used_by_another_library ... ok
+test publishing_a_sealed_dependency_keeps_current_raw_definition_without_exposing_its_mapping ... ok
+test definition_publication_failure_and_process_exit_preserve_the_whole_previous_library_batch ... ok
+test package_import_preserves_shared_identity_and_target_preferences_without_merging_same_names ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.96s
+
+     Running tests\rating.rs (target\debug\deps\rating-5a38ecb370ce9cad.exe)
+
+running 5 tests
+test the_manual_rating_is_kept_after_reopening ... ok
+test a_manual_rating_wins_over_the_model_and_survives_retagging ... ok
+test reverting_the_manual_rating_shows_the_model_rating_again ... ok
+test safe_mode_seals_and_releases_images_by_their_manual_rating ... ok
+test an_image_without_a_model_rating_can_be_rated_by_hand_in_bulk ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests\reference_capture.rs (target\debug\deps\reference_capture-c305b06659f093cd.exe)
+
+running 1 test
+test a_screen_selection_maps_back_to_the_original_reference_pixels ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\reference_capture_actions.rs (target\debug\deps\reference_capture_actions-11aa0eaef5bfe4d7.exe)
+
+running 10 tests
+test ordinary_capture_preparation_can_be_discarded_without_writing_history ... ok
+test occluded_clipped_cross_boundary_and_external_selections_keep_the_screen_capture_path ... ok
+test missing_or_changed_reference_sources_cannot_fall_back_to_old_pixels ... ok
+test a_reference_resealed_after_freezing_is_not_read_and_an_explicitly_revealed_pin_remains_usable ... ok
+test an_ambiguous_visible_source_is_a_screen_capture_instead_of_choosing_one_library ... ok
+test copying_respects_declared_color_and_the_sdr_animation_first_frame_route ... ok
+test copying_uses_the_explicit_inactive_library_even_when_another_library_is_current ... ok
+test copying_honors_all_original_exif_orientations_without_rewriting_originals ... ok
+test selecting_a_transformed_prior_crop_copies_the_same_original_region_as_the_new_pin ... ok
+test copying_a_downscaled_reference_keeps_original_pixels_and_pinning_keeps_its_source ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
+
+     Running tests\reference_group_package.rs (target\debug\deps\reference_group_package-671f4fad2a6f3ef1.exe)
+
+running 10 tests
+test export_is_refused_when_a_member_original_is_unavailable ... ok
+test package_carries_only_used_originals_once_with_snapshots_of_their_organisation ... ok
+test damaged_package_is_refused_before_anything_is_written ... ok
+test imported_package_group_is_usable_elsewhere_with_identical_originals_and_layout ... ok
+test importing_writes_the_snapshot_as_a_package_source_layer_and_reimport_does_not_duplicate ... ok
+test imported_content_waits_for_definition_publication_before_saving_a_new_group ... ok
+test package_import_uses_the_bound_destination_for_every_member_original ... ok
+test importing_merges_into_an_existing_identical_original_without_touching_manual_organisation ... ok
+test copied_rating_publication_waits_for_the_final_visibility_commit ... ok
+test package_rating_publication_waits_for_the_final_visibility_commit ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.15s
+
+     Running tests\reference_group_resolve.rs (target\debug\deps\reference_group_resolve-42f0d802ace68f77.exe)
+
+running 13 tests
+test a_member_whose_image_is_gone_from_the_library_is_marked_missing ... ok
+test permanent_delete_refuses_when_a_group_file_cannot_be_checked ... ok
+test members_in_the_trash_stay_usable ... ok
+test unavailable_members_keep_their_layout_and_say_why ... ok
+test withdrawing_registration_revokes_a_retained_active_reference_lens ... ok
+test a_library_registered_at_a_place_now_holding_another_library_is_unavailable ... ok
+test reference_authorization_uses_the_current_mode_instead_of_an_active_lens_cache ... ok
+test sealed_members_in_the_active_library_are_marked_through_its_reference_lens ... ok
+test a_group_resolves_members_from_the_active_and_an_inactive_library ... ok
+test sealed_members_in_an_inactive_library_follow_the_safe_mode_setting ... ok
+test permanent_delete_preview_finds_the_groups_using_the_images ... ok
+test permanently_deleted_members_stay_in_place_and_are_marked_missing ... ok
+test an_inactive_library_can_still_be_opened_as_the_active_one ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.00s
+
+     Running tests\reference_group_snapshot.rs (target\debug\deps\reference_group_snapshot-748205430ebbdde0.exe)
+
+running 2 tests
+test tests::package_retains_custom_localized_tag_names ... ok
+test tests::package_retains_each_library_snapshot_for_identical_bytes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running tests\reference_groups.rs (target\debug\deps\reference_groups-d08ad668acc5bdd0.exe)
+
+running 10 tests
+test opacity_and_lock_stay_on_the_desktop ... ok
+test the_group_file_is_versioned_json_independent_of_libraries ... ok
+test screen_captures_are_not_saved_into_a_group ... ok
+test a_saved_group_reopens_with_each_members_crop_and_layout ... ok
+test unreadable_or_newer_group_files_are_reported_not_silently_dropped ... ok
+test a_member_can_be_removed_from_a_group ... ok
+test saving_pins_into_a_group_adds_new_pins_and_keeps_members_not_on_the_desktop ... ok
+test groups_are_listed_renamed_and_deleted ... ok
+test the_same_image_in_two_groups_keeps_independent_member_state ... ok
+test pins_remember_the_member_they_were_saved_as ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests\reference_pin.rs (target\debug\deps\reference_pin-58464a544c66d6c1.exe)
+
+running 8 tests
+test a_crop_covering_the_whole_image_is_kept_as_a_crop ... ok
+test a_crop_must_be_non_empty_and_inside_the_image ... ok
+test a_partial_pin_is_sized_in_original_pixels ... ok
+test a_whole_image_pin_shows_the_whole_reference_image ... ok
+test a_large_image_starts_at_most_sixty_percent_of_the_monitor ... ok
+test the_crop_does_not_change_when_the_pin_moves_zooms_flips_or_rotates ... ok
+test a_reference_pin_off_every_monitor_is_pulled_back_on_restore ... ok
+test reference_pins_come_back_after_reopening_without_any_capture ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\safe_mode.rs (target\debug\deps\safe_mode-0dad99b4f2a45bf2.exe)
+
+running 18 tests
+test a_new_library_starts_in_safe_mode ... ok
+test cards_say_which_images_safe_mode_would_seal ... ok
+test desktop_pins_get_display_files_for_sealed_images_through_the_reference_lens ... ok
+test the_effective_rating_decides_what_is_sealed ... ok
+test the_wall_and_its_total_leave_out_sealed_images_in_every_scope ... ok
+test sidebar_counts_do_not_reveal_sealed_images ... ok
+test tag_counts_candidates_and_groups_do_not_reveal_sealed_images ... ok
+test tags_only_on_sealed_images_cannot_be_given_aliases_or_put_into_groups ... ok
+test an_image_rated_adult_while_safe_mode_is_on_disappears ... ok
+test the_personal_approx_table_does_not_name_tags_only_on_sealed_images ... ok
+test searching_never_finds_sealed_images ... ok
+test the_tagger_still_reaches_sealed_images ... ok
+test the_reference_lens_is_handed_out_once_and_marks_sealed_images ... ok
+test a_rating_that_seals_or_releases_an_image_advances_the_vocabulary_revision ... ok
+test the_wall_is_told_to_refresh_only_when_a_rating_change_seals_or_releases_an_image ... ok
+test editing_a_tag_group_in_safe_mode_keeps_its_members_only_on_sealed_images ... ok
+test a_sealed_image_does_not_exist_when_looked_up_or_edited ... ok
+test turning_safe_mode_off_restores_everything ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.24s
+
+     Running tests\save_destination.rs (target\debug\deps\save_destination-ee9b20c57a3b063f.exe)
+
+running 9 tests
+test screenshot_collection_uses_the_explicit_destination_and_keeps_original_bytes ... ok
+test ordinary_import_commits_to_the_explicit_folder_without_changing_other_folders ... ok
+test a_synchronous_save_keeps_its_writer_and_unregister_revokes_its_bound_destination ... ok
+test publication_failure_stays_on_its_original_task_receipt_after_browsing_changes ... ok
+test eagle_import_preserves_its_source_folders_and_adds_the_explicit_destination ... ok
+test copying_keeps_source_provenance_and_the_existing_targets_manual_curation ... ok
+test deleting_the_destination_during_import_reports_remaining_failures_instead_of_falling_back ... ok
+test task_receipt_keeps_its_owner_after_current_library_changes ... ok
+test create_reopen_and_unregister_only_affect_their_actual_task_owner ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.31s
+
+     Running tests\search.rs (target\debug\deps\search-039f7729e22ee4df.exe)
+
+running 9 tests
+test a_name_in_another_language_counts_as_a_way_to_reach_the_tag ... ok
+test conditions_stay_separate_alternatives_stay_inside_one_and_exclusion_is_kept ... ok
+test tag_names_in_the_tree_follow_the_interface_language ... ok
+test external_names_are_not_a_way_to_find_a_tag_unless_it_is_still_untranslated ... ok
+test candidates_rank_exact_then_prefix_then_contains_and_names_before_aliases ... ok
+test one_word_in_several_namespaces_lists_one_candidate_per_namespace ... ok
+test blank_words_are_ignored_but_explicit_empty_groups_and_deleted_tags_match_nothing ... ok
+test typed_words_match_every_tag_whose_name_or_alias_contains_them_in_any_namespace ... ok
+test width_and_case_do_not_matter_when_typing ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\search_cache.rs (target\debug\deps\search_cache-fb51fd790c54889e.exe)
+
+running 7 tests
+test a_lookup_for_another_lens_than_the_library_has_is_refused ... ok
+test a_safe_mode_change_without_an_invalidation_still_misses_the_cache ... ok
+test a_build_that_lost_a_race_with_an_invalidation_is_not_written_back ... ok
+test an_unchanged_library_reuses_one_search ... ok
+test a_build_that_saw_safe_mode_turn_on_is_neither_answered_nor_written_back ... ok
+test a_vocabulary_change_during_the_build_is_seen_by_the_next_lookup ... ok
+test a_stale_build_of_the_previous_library_is_not_used_for_the_next_one ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests\source_actions.rs (target\debug\deps\source_actions-3782b134f5178f3a.exe)
+
+running 4 tests
+test editing_an_inactive_registered_provider_keeps_the_current_and_last_opened_library ... ok
+test pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnection ... ok
+test unavailable_or_sealed_selected_sources_are_rejected_without_using_a_duplicate ... ok
+test an_explicit_aggregate_source_edits_only_its_curation_and_rejects_a_changed_byte_identity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+     Running tests\tag_catalog.rs (target\debug\deps\tag_catalog-862408150661dbf9.exe)
+
+running 11 tests
+test inspecting_an_unsafe_snapshot_never_changes_the_active_library_safe_mode ... ok
+test attaching_legacy_tags_keeps_untranslated_display_until_name_provenance_is_migrated ... ok
+test same_named_tags_without_external_correspondence_remain_independent_across_libraries ... ok
+test a_late_explicit_external_correspondence_uses_an_existing_identity_unless_user_corrected ... ok
+test adding_an_external_correspondence_after_attachment_is_available_to_the_next_library ... ok
+test namespaces_remain_distinct_and_an_explicit_split_survives_external_reattachment ... ok
+test different_library_local_ids_share_an_explicit_external_identity_after_reopen ... ok
+test explicit_external_correspondences_extend_a_shared_identity_without_relying_on_names ... ok
+test ambiguous_aliases_stay_separate_until_correction_and_manual_decisions_stay_local ... ok
+test catalog_can_inspect_registered_libraries_without_switching_or_changing_local_data ... ok
+test conflicting_external_correspondences_are_inspectable_and_require_an_explicit_choice ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
+
+     Running tests\tag_names.rs (target\debug\deps\tag_names-ee0732fb06f5df02.exe)
+
+running 8 tests
+test bundled_defaults_use_the_accepted_names_and_keep_the_replaced_names_as_aliases ... ok
+test a_corrected_legacy_mapping_adopts_the_existing_explicit_global_choice ... ok
+test aliases_are_global_search_words_without_becoming_display_preferences ... ok
+test group_labels_refresh_from_shared_names_without_changing_local_membership_or_counts ... ok
+test preference_is_shared_by_identity_and_language_and_survives_reopen ... ok
+test installed_defaults_apply_to_later_tags_and_hidden_legacy_tags_keep_pending_provenance ... ok
+test default_updates_keep_equal_default_preferences_and_reset_deletes_the_override ... ok
+test legacy_names_remain_pending_until_an_explicit_global_preference_choice ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+     Running tests\tagger_process.rs (target\debug\deps\tagger_process-6b331809bf3b2e78.exe)
+
+running 10 tests
+test child_tagger_worker ... ok
+test loading_a_missing_model_fails_without_hanging ... ok
+test the_subprocess_reports_the_device_and_tags_images ... ok
+test stopping_a_session_ends_the_subprocess_in_the_middle_of_an_image ... ok
+test the_stopper_ends_the_subprocess_while_it_loads_the_model ... ok
+test dropping_tagging_while_the_subprocess_loads_the_model_ends_it_at_once ... ok
+test pausing_while_the_subprocess_loads_the_model_ends_it_at_once ... ok
+test a_load_timeout_ends_and_reaps_the_subprocess ... ok
+test a_crash_or_hang_in_the_subprocess_ends_only_the_session ... ok
+test tagging_continues_after_the_subprocess_crashes ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.39s
+
+     Running tests\tagging.rs (target\debug\deps\tagging-30f5245aa0ea6127.exe)
+
+running 19 tests
+test a_model_with_the_wrong_hash_is_deleted_and_never_used ... ok
+test a_partial_download_is_shown_before_the_artist_confirms ... ok
+test a_chosen_gpu_model_falls_back_to_the_cpu_model_without_a_gpu ... ok
+test pausing_discards_inference_waiting_for_publication_then_resume_can_retag ... ok
+test model_suggestions_never_override_manual_tag_decisions ... ok
+test a_ready_that_arrives_after_pausing_does_not_restart_tagging ... ok
+test new_images_get_model_suggestions_and_rating_after_the_model_is_downloaded ... ok
+test images_imported_later_are_tagged_without_restarting ... ok
+test after_repeated_gpu_resets_tagging_falls_back_to_the_cpu_model ... ok
+test the_model_list_shows_each_models_needs_and_whether_it_is_installed ... ok
+test inference_runs_outside_the_publication_gate_and_rating_commits_after_release ... ok
+test pausing_ends_the_session_at_once_without_waiting_for_the_current_image ... ok
+test switching_the_model_asks_before_downloading_it_and_then_uses_it ... ok
+test an_interrupted_download_resumes_where_it_stopped ... ok
+test a_crashed_session_is_restarted_and_the_image_is_tagged ... ok
+test the_model_chosen_in_settings_is_used_even_with_a_gpu ... ok
+test without_a_discrete_gpu_the_cpu_model_is_used ... ok
+test an_image_that_keeps_crashing_the_session_is_skipped ... ok
+test pausing_ends_the_session_and_resuming_continues ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
+
+     Running tests\tags.rs (target\debug\deps\tags-282339d6494c49ec.exe)
+
+running 14 tests
+test tag_changes_are_announced_after_commit ... ok
+test a_name_shared_by_two_tags_of_one_namespace_must_be_picked_by_id ... ok
+test a_source_rewrite_replaces_only_its_own_layer_and_never_manual_decisions ... ok
+test editing_an_unknown_image_changes_nothing ... ok
+test the_same_name_in_two_namespaces_is_two_tags ... ok
+test an_added_tag_shows_as_a_manual_tag_of_that_image_only ... ok
+test clearing_a_manual_addition_leaves_the_source_fact_in_place ... ok
+test tags_decisions_and_groups_survive_reopening_the_library ... ok
+test external_names_take_their_first_names_from_the_translation_table_or_come_in_untranslated ... ok
+test a_tag_resolves_by_any_of_its_aliases ... ok
+test tags_join_and_leave_a_group_one_at_a_time_keeping_the_others_in_order ... ok
+test tag_groups_list_their_tags_with_counts_in_the_interface_language ... ok
+test a_batch_addition_tags_every_selected_image_with_one_shared_tag ... ok
+test vocabulary_is_a_snapshot_of_tags_names_aliases_namespaces_externals_and_counts ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+     Running tests\translations.rs (target\debug\deps\translations-566d3e7bca2c14c8.exe)
+
+running 4 tests
+test the_bundled_table_is_versioned_and_every_name_points_to_one_entry ... ok
+test without_a_translation_table_model_tags_stay_untranslated ... ok
+test the_bundled_table_gives_known_model_tags_chinese_names_and_aliases_to_find_them_by ... ok
+test a_table_update_initialises_untranslated_tags_and_keeps_what_the_artist_changed ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests\update_policy.rs (target\debug\deps\update_policy-048df4531dc976d9.exe)
+
+running 3 tests
+test absent_stage_defaults_to_private_and_unknown_stage_never_enables_actions ... ok
+test public_builds_need_the_original_public_endpoint_and_a_signing_key ... ok
+test private_builds_explain_manual_updates_even_when_signing_is_configured ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\usage_log.rs (target\debug\deps\usage_log-dd02247027d4ded9.exe)
+
+running 5 tests
+test a_disabled_usage_log_writes_nothing_to_disk ... ok
+test the_log_survives_a_restart_and_turning_it_off_stops_recording_but_keeps_what_was_written ... ok
+test clearing_the_log_removes_everything_recorded ... ok
+test an_enabled_usage_log_keeps_one_line_per_action_with_counts_only ... ok
+test a_long_running_log_stays_bounded_and_keeps_the_newest_actions ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests\viewer.rs (target\debug\deps\viewer-cac7d91a9812fd57.exe)
+
+running 6 tests
+test invalid_display_requests_have_a_domain_error ... ok
+test static_sdr_at_original_pixels_and_above_uses_the_unchanged_original ... ok
+test fitting_uses_an_exact_size_lossless_derivative_and_rebuilds_a_missing_cache ... ok
+test hdr_marked_originals_use_sdr_derivatives_even_at_original_pixels_and_above ... ok
+test animations_use_a_still_first_frame_at_every_zoom ... ok
+test all_eight_exif_orientations_keep_original_bytes_and_upright_derivatives ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running tests\workspace.rs (target\debug\deps\workspace-c5fdab9b4fc5f3d1.exe)
+
+running 7 tests
+test an_explicit_empty_any_group_never_becomes_an_unconditional_workspace_query ... ok
+test each_source_must_match_all_conditions_before_identical_bytes_are_aggregated ... ok
+test adult_in_nonmatching_out_of_scope_source_vetoes_cards_counts_and_candidates_without_changing_active_lens ... ok
+test mapped_local_synonyms_are_or_within_one_global_condition_and_and_between_conditions ... ok
+test unavailable_known_adult_source_keeps_veto_after_restart_until_refresh_or_explicit_unregister ... ok
+test paging_counts_stable_hash_ids_and_stale_provider_catalog_scope_and_safe_revisions_agree ... ok
+test real_multiple_directories_reuse_visible_safety_facts_and_report_action_timings ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.22s
+
+     Running tests\workspace_folders.rs (target\debug\deps\workspace_folders-60cff6d327ca575c.exe)
+
+running 7 tests
+test folder_structure_changes_invalidate_workspace_directory_and_pagination_revisions ... ok
+test moving_a_subtree_changes_descendant_results_and_rejects_old_cursors ... ok
+test a_directory_forest_keeps_same_named_libraries_and_folders_independent ... ok
+test invalid_or_unavailable_scopes_are_explicit_and_never_expand_to_another_provider ... ok
+test exact_and_descendant_scopes_preserve_each_source_folder_memberships_and_file_paths ... ok
+test folder_and_unassigned_counts_keep_the_all_source_adult_veto ... ok
+test directory_descendant_counts_deduplicate_memberships_and_apply_global_safety ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+
+     Running unittests src\lib.rs (target\debug\deps\kinshoko_tagger-a1b60a36fdd4a065.exe)
+
+running 4 tests
+test engine::tests::an_output_whose_length_differs_from_the_tag_list_is_an_error ... ok
+test engine::tests::scores_are_paired_with_the_tag_list_row_by_row ... ok
+test preprocess::tests::transparent_pixels_become_white ... ok
+test preprocess::tests::a_wide_image_is_scaled_to_1008_and_padded_black_above_and_below ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+
+   Doc-tests kinshoko_app
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kinshoko_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kinshoko_tagger
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,27 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.54s
+     Running tests\tagging.rs (target\debug\deps\tagging-a19896a977635e73.exe)
+
+running 19 tests
+test a_chosen_gpu_model_falls_back_to_the_cpu_model_without_a_gpu ... ok
+test a_model_with_the_wrong_hash_is_deleted_and_never_used ... ok
+test a_partial_download_is_shown_before_the_artist_confirms ... ok
+test pausing_discards_inference_waiting_for_publication_then_resume_can_retag ... ok
+test model_suggestions_never_override_manual_tag_decisions ... ok
+test an_interrupted_download_resumes_where_it_stopped ... ok
+test new_images_get_model_suggestions_and_rating_after_the_model_is_downloaded ... ok
+test a_crashed_session_is_restarted_and_the_image_is_tagged ... ok
+test pausing_ends_the_session_at_once_without_waiting_for_the_current_image ... ok
+test after_repeated_gpu_resets_tagging_falls_back_to_the_cpu_model ... ok
+test inference_runs_outside_the_publication_gate_and_rating_commits_after_release ... ok
+test images_imported_later_are_tagged_without_restarting ... ok
+test switching_the_model_asks_before_downloading_it_and_then_uses_it ... ok
+test the_model_list_shows_each_models_needs_and_whether_it_is_installed ... ok
+test a_ready_that_arrives_after_pausing_does_not_restart_tagging ... ok
+test the_model_chosen_in_settings_is_used_even_with_a_gpu ... ok
+test without_a_discrete_gpu_the_cpu_model_is_used ... ok
+test an_image_that_keeps_crashing_the_session_is_skipped ... ok
+test pausing_ends_the_session_and_resuming_continues ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.23s
+

@@ -374,7 +374,10 @@ pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
             if let Some(record) = lock(&state(app).pins).get_mut(&pin.id) {
                 record.closing = true;
             }
-            closed(app, &pin.id);
+            // A final capture commit may already hold the visibility gate. Cleanup must
+            // never re-enter it or block native window construction on the main thread.
+            let (app, pin) = (app.clone(), pin.id.clone());
+            std::thread::spawn(move || closed(&app, &pin));
             return Err(format!("无法打开钉图窗口：{e}"));
         }
     };
@@ -505,10 +508,14 @@ pub fn references_changed(app: &AppHandle) {
 
 /// 安全模式（应用设置）开关了：不论有没有打开资料库，资料库钉图都重新核对；
 /// 重新开启时之前确认显示的也重新遮蔽。在别的线程上调用。
-pub fn safe_mode_changed(app: &AppHandle, on: bool) {
-    if lock(&state(app).veils).set_safe_mode(on) {
-        references_changed(app);
-    }
+pub fn safe_mode_changed(app: &AppHandle, _on: bool) {
+    // Delivery can be delayed or reordered. The committed setting is the authority;
+    // the command has already revoked old reveals synchronously under this same gate.
+    crate::library::with_visibility_commit(app, |_| {
+        let safe = crate::library::safe_mode_on(app);
+        lock(&state(app).veils).set_safe_mode(safe);
+    });
+    references_changed(app);
 }
 
 /// 钉图内容此刻（或动画结束时）在屏幕上的位置。
@@ -541,29 +548,47 @@ fn keep_exact_size(app: &AppHandle, pin: &str, size: PhysicalSize<u32>) {
 /// 钉图窗口销毁了。画师关闭的：不再恢复，截图不再被它钉住，按截图历史的规则丢弃。
 /// 退出程序时销毁的：状态留着，下次启动恢复。
 fn closed(app: &AppHandle, pin: &str) {
-    let Some(record) = lock(&state(app).pins).remove(pin) else {
-        return;
-    };
-    lock(&state(app).veils).forget(pin);
-    lock(&state(app).edge).release(pin);
-    if !record.closing {
-        return;
-    }
-    {
-        let mut store = lock(&state(app).store);
-        store.remove(pin);
-        let _ = store.save();
-    }
-    if let Some(capture) = &record.capture_id {
-        lock(&state(app).history).unpin(capture);
+    let history_updated = crate::library::with_visibility_commit(app, |_| {
+        let Some(record) = lock(&state(app).pins).remove(pin) else {
+            return false;
+        };
+        lock(&state(app).veils).forget(pin);
+        lock(&state(app).edge).release(pin);
+        if !record.closing {
+            return false;
+        }
+        {
+            let mut store = lock(&state(app).store);
+            store.remove(pin);
+            let _ = store.save();
+        }
+        if let Some(capture) = &record.capture_id {
+            lock(&state(app).history).unpin(capture);
+            true
+        } else {
+            false
+        }
+    });
+    if history_updated {
         history_changed(app);
     }
+}
+
+/// Called at the final commit while holding visibility authority. Physical Destroyed
+/// notifications remain asynchronous; a closing or removed record cannot authorize a crop.
+pub(super) fn capture_source_open(app: &AppHandle, pin: &str) -> bool {
+    lock(&state(app).pins)
+        .get(pin)
+        .is_some_and(|record| !record.closing)
 }
 
 /// 启动时恢复上次的钉图（位置、裁切、缩放、翻转与旋转）。在别的线程上调用。
 pub fn restore(app: &AppHandle) {
     // 设置在桌面插件装配之后才可读：恢复前按保存的安全模式核对一次。
-    lock(&state(app).veils).set_safe_mode(crate::library::safe_mode_on(app));
+    crate::library::with_visibility_commit(app, |_| {
+        let safe = crate::library::safe_mode_on(app);
+        lock(&state(app).veils).set_safe_mode(safe);
+    });
     let monitors = monitors();
     let pins = {
         let mut history = lock(&state(app).history);
@@ -612,8 +637,11 @@ fn pin_from_clipboard(app: &AppHandle) -> Result<(), String> {
     )
     .ok_or("剪贴板里的图片无法识别")?;
     // 剪贴板图片不带显示器配置文件，按 sRGB 解释。
+    let prepared =
+        kinshoko_core::desktop::CaptureHistory::prepare(&Screenshot { image, icc: None })
+            .map_err(|e| e.to_string())?;
     let entry = lock(&state(app).history)
-        .add(&Screenshot { image, icc: None })
+        .add_prepared(prepared)
         .map_err(|e| e.to_string())?;
     history_changed(app);
     open(app, &entry, at_cursor(app, entry.width, entry.height)?)
@@ -629,16 +657,8 @@ pub fn pin_clipboard_in_background(app: &AppHandle) {
     });
 }
 
-pub fn copy_to_clipboard(image: &RgbaImage) -> Result<(), String> {
-    arboard::Clipboard::new()
-        .and_then(|mut c| {
-            c.set_image(arboard::ImageData {
-                width: image.width() as usize,
-                height: image.height() as usize,
-                bytes: image.as_raw().into(),
-            })
-        })
-        .map_err(|e| format!("无法写入剪贴板：{e}"))
+pub fn copy_to_clipboard(app: &AppHandle, image: &RgbaImage) -> Result<(), String> {
+    super::clipboard::PreparedImage::prepare(image)?.commit(app)
 }
 
 #[tauri::command]
@@ -680,11 +700,23 @@ pub async fn pin_reference(
 /// 画师确认显示这一张被遮蔽的参考图：遮蔽淡出，直到安全模式再次开启或钉图关闭。
 #[tauri::command]
 pub async fn reveal_pin(app: AppHandle, pin: String) -> Result<(), String> {
-    if !lock(&state(&app).pins).contains_key(&pin) {
-        return Err(CLOSED.to_owned());
-    }
-    lock(&state(&app).veils).reveal(&pin);
-    refresh(&app, &pin);
+    tauri::async_runtime::spawn_blocking(move || reveal_here(&app, &pin))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn reveal_here(app: &AppHandle, pin: &str) -> Result<(), String> {
+    crate::library::with_visibility_commit(app, |_| {
+        if !capture_source_open(app, pin) {
+            return Err(CLOSED.to_owned());
+        }
+        let safe = crate::library::safe_mode_on(app);
+        let mut veils = lock(&state(app).veils);
+        veils.set_safe_mode(safe);
+        veils.reveal(pin);
+        Ok(())
+    })?;
+    refresh(app, pin);
     Ok(())
 }
 
@@ -704,8 +736,14 @@ pub async fn close_pin(
     if window.label() != label(&pin) {
         return Err("只能关闭当前钉图".to_owned());
     }
-    mark_closing(&app, &pin);
-    window.destroy().map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::library::with_visibility_commit(&app, |_| {
+            mark_closing(&app, &pin);
+            window.destroy().map_err(|e| e.to_string())
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// 第一帧已画好：显示钉图。
@@ -970,7 +1008,7 @@ pub async fn pin_menu(app: AppHandle, pin: String) -> Result<(), String> {
     window.popup_menu(&menu).map_err(err)
 }
 
-/// 菜单事件在主线程上到达：关闭直接做，其余放到别的线程（改窗口、收藏、复制）。
+/// Menu callbacks never wait for visibility authority on the main thread, including close.
 pub fn on_menu_event(app: &AppHandle, event: MenuEvent) {
     let Some(rest) = event.id().as_ref().strip_prefix(MENU_PREFIX) else {
         return;
@@ -979,14 +1017,16 @@ pub fn on_menu_event(app: &AppHandle, event: MenuEvent) {
         return;
     };
     let (app, pin, action) = (app.clone(), pin.to_owned(), action.to_owned());
-    if action == ACTION_CLOSE {
-        mark_closing(&app, &pin);
-        if let Some(window) = app.get_webview_window(&label(&pin)) {
-            let _ = window.destroy();
-        }
-        return;
-    }
     std::thread::spawn(move || {
+        if action == ACTION_CLOSE {
+            crate::library::with_visibility_commit(&app, |_| {
+                mark_closing(&app, &pin);
+                if let Some(window) = app.get_webview_window(&label(&pin)) {
+                    let _ = window.destroy();
+                }
+            });
+            return;
+        }
         if let Some(notice) = menu_action(&app, &pin, &action) {
             let _ = app.emit_to(label(&pin), NOTICE_EVENT, notice);
         }
@@ -1021,12 +1061,7 @@ fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<String> {
             Some(if locked { "已锁定" } else { "已解锁" }.to_owned())
         }
         ACTION_ACTUAL_SIZE => zoom(app, pin, 1.0, None).err(),
-        ACTION_REVEAL => {
-            lock(&state(app).pins).get(pin)?;
-            lock(&state(app).veils).reveal(pin);
-            refresh(app, pin);
-            None
-        }
+        ACTION_REVEAL => reveal_here(app, pin).err(),
         ACTION_SAVE_GROUP => {
             let group_id = lock(&state(app).store).get(pin)?.member.clone()?.group_id;
             Some(match super::groups::save_back(app, &group_id) {
@@ -1059,5 +1094,5 @@ fn copy_capture(app: &AppHandle, capture_id: &str) -> Result<(), String> {
         .file(capture_id)
         .ok_or("截图已不在截图历史中")?;
     let image = image::open(file).map_err(|e| e.to_string())?.to_rgba8();
-    copy_to_clipboard(&image)
+    copy_to_clipboard(app, &image)
 }

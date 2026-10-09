@@ -605,10 +605,26 @@ fn commit_record(
     let authority = inner.write_revoked.clone();
     let candidate_id = record.id.clone();
     let task_created_images = record.task_created_images.clone();
-    let (outcome, revision) = inner.writer.run(move |conn| {
-        save::validate_authority(&authority)?;
-        commit(conn, record, pending.as_deref(), &translations)
-    })?;
+    // Package snapshots (including cross-library copy) can change an existing image's
+    // effective rating. Acquire before queuing the writer job: acquiring inside that job
+    // would invert the scheduler's gate -> writer order. Ordinary/Eagle tasks never write
+    // rating facts and must not wait on this gate while unregister settles their workers.
+    let gate = record.package.as_ref().and_then(|_| {
+        inner
+            .package_publication_gate
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    });
+    let (outcome, revision) = {
+        let _publication = gate
+            .as_ref()
+            .map(|gate| gate.lock().unwrap_or_else(|e| e.into_inner()));
+        inner.writer.run(move |conn| {
+            save::validate_authority(&authority)?;
+            commit(conn, record, pending.as_deref(), &translations)
+        })?
+    };
     if outcome.image_id() == Some(candidate_id.as_str()) {
         task_created_images
             .lock()

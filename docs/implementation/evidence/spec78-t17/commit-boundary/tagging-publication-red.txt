@@ -1,0 +1,21 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 26.48s
+     Running tests\tagging.rs (target\debug\deps\tagging-a19896a977635e73.exe)
+
+running 1 test
+
+thread 'inference_runs_outside_the_publication_gate_and_rating_commits_after_release' (33320) panicked at crates\kinshoko-core\tests\tagging.rs:739:5:
+assertion `left == right` failed: automatic rating must not cross an active final commit
+  left: Some(Explicit)
+ right: None
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test inference_runs_outside_the_publication_gate_and_rating_commits_after_release ... FAILED
+
+failures:
+
+failures:
+    inference_runs_outside_the_publication_gate_and_rating_commits_after_release
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.18s
+
+error: test failed, to rerun pass `-p kinshoko-core --test tagging`

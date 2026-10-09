@@ -1,0 +1,15 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+error[E0599]: no method named `prepare` found for struct `CaptureSelection<'a>` in the current scope
+   --> crates\kinshoko-core\tests\reference_capture_actions.rs:969:30
+    |
+969 |     let prepared = selection.prepare(CaptureAction::Copy, "discard", &references, &veils).unwrap();
+    |                              ^^^^^^^ method not found in `CaptureSelection<'_>`
+
+error[E0599]: no method named `prepare` found for struct `CaptureSelection<'a>` in the current scope
+   --> crates\kinshoko-core\tests\reference_capture_actions.rs:976:30
+    |
+976 |     let prepared = selection.prepare(CaptureAction::Copy, "commit", &references, &veils).unwrap();
+    |                              ^^^^^^^ method not found in `CaptureSelection<'_>`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `kinshoko-core` (test "reference_capture_actions") due to 2 previous errors

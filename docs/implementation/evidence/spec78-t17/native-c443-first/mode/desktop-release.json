@@ -1,0 +1,16 @@
+{
+  "observedAtUtc": "2026-10-08T23:31:29.0893205Z",
+  "run": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791502082523",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-v3-c443f77\\kinshoko.exe",
+  "apps": [],
+  "drivers": [],
+  "webviews": [],
+  "ports": [],
+  "settingsRequested": "C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t17test/settings.json",
+  "settingsRequestedExists": true,
+  "settingsRequestedSha256": "3D30DDFBCD3875E5E1734B7B70B8F227EC49635BB5D15B69CAC3E6DED207882B",
+  "settingsCanonical": "C:/Users/yuk1no/AppData/Local/Packages/OpenAI.Codex_2p2nqsd0c76g0/LocalCache/Roaming/dev.kinshoko.spec78t17test/settings.json",
+  "settingsCanonicalExists": true,
+  "settingsCanonicalSha256": "3D30DDFBCD3875E5E1734B7B70B8F227EC49635BB5D15B69CAC3E6DED207882B",
+  "note": "Single mode run raw failed retained. Exact cleanup is not tray Quit. Settings retained for further separately granted probes; initial absence restoration pending."
+}

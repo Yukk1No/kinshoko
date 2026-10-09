@@ -1,0 +1,407 @@
+{
+  "status": "failed",
+  "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
+  "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
+  "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "scriptSha256": "abd233884f3c074bb03388c286d217b79807ea69a86fa57968e7c14ccbdf0657",
+  "scriptSource": "18964f4468c9addc10938b13dca291cf14a94461",
+  "mode": "wall",
+  "assertions": [
+    "synthetic originals import through production task",
+    "synthetic originals import through production task",
+    "formal waterfall displays a reduced derivative of the high-resolution original",
+    "real identical originals aggregate with two independent registered sources",
+    "initial aggregate waterfall: original copy adds no screenshot history",
+    "initial aggregate waterfall: pin keeps exact library/image source",
+    "initial aggregate waterfall: pin preserves original pixel crop",
+    "initial aggregate waterfall: reference pin adds no screenshot history",
+    "initial aggregate waterfall: actual OS clipboard retains original crop dimensions",
+    "initial aggregate waterfall: actual OS clipboard retains original fine-detail corner bytes",
+    "late old cancel does not close the next native capture",
+    "late old finish cannot consume a new native capture",
+    "public production capture requests are observed without replacing immutable invoke",
+    "late prior source report: original copy adds no screenshot history",
+    "late prior source report: pin keeps exact library/image source",
+    "late prior source report: pin preserves original pixel crop",
+    "late prior source report: reference pin adds no screenshot history",
+    "late prior source report: actual OS clipboard retains original crop dimensions",
+    "late prior source report: actual OS clipboard retains original fine-detail corner bytes",
+    "synthetic originals import through production task"
+  ],
+  "samples": [
+    {
+      "label": "initial aggregate waterfall",
+      "shown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "x": 497,
+        "y": 289
+      },
+      "copy": {
+        "region": {
+          "x": 560,
+          "y": 331,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 1200,
+          "y": 800,
+          "width": 591,
+          "height": 400
+        }
+      },
+      "pinned": {
+        "region": {
+          "x": 560,
+          "y": 331,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 1200,
+          "y": 800,
+          "width": 591,
+          "height": 400
+        },
+        "pin": {
+          "content": {
+            "height": 400,
+            "width": 591,
+            "x": 578,
+            "y": 349
+          },
+          "generation": 0,
+          "motion": "jump",
+          "pin": {
+            "content": {
+              "imageId": "01a11d0c6a9b70918ee0779e378c5ecc",
+              "kind": "reference",
+              "libraryId": "739e50cc0d864d159ff423a3c0545777",
+              "sourceHeight": 3200,
+              "sourceWidth": 4800
+            },
+            "crop": {
+              "height": 400,
+              "width": 591,
+              "x": 1200,
+              "y": 800
+            },
+            "height": 400,
+            "id": "a177ce0fe8a74cb2a70b913a8287067b",
+            "locked": false,
+            "opacity": 1,
+            "placement": {
+              "flipH": false,
+              "flipV": false,
+              "rotation": 0,
+              "scale": 1,
+              "x": 578,
+              "y": 349
+            },
+            "width": 591
+          },
+          "veiled": false,
+          "window": {
+            "height": 400,
+            "width": 591,
+            "x": 578,
+            "y": 349
+          }
+        }
+      },
+      "pin": {
+        "content": {
+          "imageId": "01a11d0c6a9b70918ee0779e378c5ecc",
+          "kind": "reference",
+          "libraryId": "739e50cc0d864d159ff423a3c0545777",
+          "sourceHeight": 3200,
+          "sourceWidth": 4800
+        },
+        "crop": {
+          "height": 400,
+          "width": 591,
+          "x": 1200,
+          "y": 800
+        },
+        "height": 400,
+        "id": "a177ce0fe8a74cb2a70b913a8287067b",
+        "locked": false,
+        "opacity": 1,
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 578,
+          "y": 349
+        },
+        "width": 591
+      },
+      "clipboard": {
+        "size": [
+          591,
+          400
+        ],
+        "corners": [
+          [
+            176,
+            32,
+            0,
+            255
+          ],
+          [
+            254,
+            32,
+            0,
+            255
+          ],
+          [
+            176,
+            175,
+            0,
+            255
+          ],
+          [
+            254,
+            175,
+            0,
+            255
+          ]
+        ]
+      }
+    },
+    {
+      "label": "late prior source report",
+      "shown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "x": 497,
+        "y": 289
+      },
+      "copy": {
+        "region": {
+          "x": 560,
+          "y": 331,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 1200,
+          "y": 800,
+          "width": 591,
+          "height": 400
+        }
+      },
+      "pinned": {
+        "region": {
+          "x": 560,
+          "y": 331,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 1200,
+          "y": 800,
+          "width": 591,
+          "height": 400
+        },
+        "pin": {
+          "content": {
+            "height": 400,
+            "width": 591,
+            "x": 578,
+            "y": 349
+          },
+          "generation": 0,
+          "motion": "jump",
+          "pin": {
+            "content": {
+              "imageId": "01a11d0c6a9b70918ee0779e378c5ecc",
+              "kind": "reference",
+              "libraryId": "739e50cc0d864d159ff423a3c0545777",
+              "sourceHeight": 3200,
+              "sourceWidth": 4800
+            },
+            "crop": {
+              "height": 400,
+              "width": 591,
+              "x": 1200,
+              "y": 800
+            },
+            "height": 400,
+            "id": "af3ba510559544a2b3a41866873bb2f6",
+            "locked": false,
+            "opacity": 1,
+            "placement": {
+              "flipH": false,
+              "flipV": false,
+              "rotation": 0,
+              "scale": 1,
+              "x": 578,
+              "y": 349
+            },
+            "width": 591
+          },
+          "veiled": false,
+          "window": {
+            "height": 400,
+            "width": 591,
+            "x": 578,
+            "y": 349
+          }
+        }
+      },
+      "pin": {
+        "content": {
+          "imageId": "01a11d0c6a9b70918ee0779e378c5ecc",
+          "kind": "reference",
+          "libraryId": "739e50cc0d864d159ff423a3c0545777",
+          "sourceHeight": 3200,
+          "sourceWidth": 4800
+        },
+        "crop": {
+          "height": 400,
+          "width": 591,
+          "x": 1200,
+          "y": 800
+        },
+        "height": 400,
+        "id": "af3ba510559544a2b3a41866873bb2f6",
+        "locked": false,
+        "opacity": 1,
+        "placement": {
+          "flipH": false,
+          "flipV": false,
+          "rotation": 0,
+          "scale": 1,
+          "x": 578,
+          "y": 349
+        },
+        "width": 591
+      },
+      "clipboard": {
+        "size": [
+          591,
+          400
+        ],
+        "corners": [
+          [
+            176,
+            32,
+            0,
+            255
+          ],
+          [
+            254,
+            32,
+            0,
+            255
+          ],
+          [
+            176,
+            175,
+            0,
+            255
+          ],
+          [
+            254,
+            175,
+            0,
+            255
+          ]
+        ]
+      }
+    }
+  ],
+  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488713265",
+  "startedAt": "2026-10-08T19:45:13.383Z",
+  "capabilities": {
+    "acceptInsecureCerts": false,
+    "browserName": "webview2",
+    "browserVersion": "154.0.4258.62",
+    "fedcm:accounts": true,
+    "goog:processID": 6604,
+    "ms:edgeOptions": {
+      "debuggerAddress": "localhost:36686"
+    },
+    "msedge": {
+      "msedgedriverVersion": "154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)",
+      "userDataDir": ""
+    },
+    "networkConnectionEnabled": false,
+    "pageLoadStrategy": "normal",
+    "platformName": "windows",
+    "proxy": {},
+    "setWindowRect": true,
+    "strictFileInteractability": false,
+    "timeouts": {
+      "implicit": 0,
+      "pageLoad": 300000,
+      "script": 30000
+    },
+    "unhandledPromptBehavior": "dismiss and notify",
+    "webauthn:extension:cmtgKey": true,
+    "webauthn:extension:credBlob": true,
+    "webauthn:extension:largeBlob": true,
+    "webauthn:extension:minPinLength": true,
+    "webauthn:extension:prf": true,
+    "webauthn:virtualAuthenticators": true
+  },
+  "environment": "Kinshoko 0.1.0 诊断信息\n生成时间：2026-10-08 19:45:14 UTC\n本报告不含文件名、路径与图片。\n\n[系统]\n系统：Windows 11 Professional 26H2（26300.9550）\n处理器：AMD Ryzen 7 5800X 8-Core Processor\n内存：31.9 GB\n显卡：NVIDIA GeForce RTX 4070 SUPER\n显卡：GameViewer Virtual Display Adapter\nWebView2：154.0.4258.62\n\n[显示器]\n1. VG27AQL1A（主显示器）：2560×1440，缩放 110%，SDR（自动色彩管理），每通道 8 位\n   配置文件：sRGB IEC61966-2.1，ICC 2.1，矩阵＋曲线，SHA-256 2b3aa1645779\n\n[Kinshoko 设置]\n强制 sRGB：关闭\n使用日志：关闭\n",
+  "first": {
+    "info": {
+      "id": "739e50cc0d864d159ff423a3c0545777",
+      "name": "原图来源 A",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488713265\\libraries\\原图来源 A"
+    },
+    "card": {
+      "adult": false,
+      "height": 3200,
+      "id": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+      "imageId": "01a11d0c6a9b70918ee0779e378c5ecc",
+      "libraryId": "739e50cc0d864d159ff423a3c0545777",
+      "sources": [
+        {
+          "deleted": false,
+          "imageId": "01a11d0c6a9b70918ee0779e378c5ecc",
+          "libraryId": "739e50cc0d864d159ff423a3c0545777",
+          "libraryName": "原图来源 A",
+          "matches": true,
+          "unavailable": null
+        }
+      ],
+      "thumbnail": "739e50cc0d864d159ff423a3c0545777/01a11d0c6a9b70918ee0779e378c5ecc/256",
+      "width": 4800
+    }
+  },
+  "invokeDescriptor": {
+    "configurable": false,
+    "hasSetter": false,
+    "writable": false
+  },
+  "dpr": 1.1041666269302368,
+  "staleInput": {
+    "request": "4d4b9864bf994f0bba950675c593f6b8",
+    "frame": {
+      "instance": "stale-harness-input",
+      "generation": 0,
+      "dpr": 1.1041666269302368,
+      "references": []
+    }
+  },
+  "error": "Error: Timed out recycled bottom population\n    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:29:189)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:100:3",
+  "requests": [],
+  "lateSent": null,
+  "finishedAt": "2026-10-08T19:46:27.326Z"
+}

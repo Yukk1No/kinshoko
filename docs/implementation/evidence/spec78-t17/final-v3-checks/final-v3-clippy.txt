@@ -1,0 +1,2 @@
+    Checking kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 19.53s

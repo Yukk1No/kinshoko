@@ -90,7 +90,10 @@ fn a_capture_is_kept_losslessly_with_the_display_profile_it_was_taken_under() {
     let mut history = CaptureHistory::open(dir.path()).unwrap();
     let original = shot(37, 21, 7, Some(PROFILE));
 
-    let entry = history.add(&original).unwrap();
+    let prepared = CaptureHistory::prepare(&original).unwrap();
+    assert!(history.entries().is_empty());
+    assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
+    let entry = history.add_prepared(prepared).unwrap();
 
     assert_eq!((entry.width, entry.height), (37, 21));
     assert_eq!(history.entries(), vec![entry.clone()]);
@@ -289,7 +292,9 @@ fn history_survives_closing_and_reopening() {
     let mut history = CaptureHistory::open(dir.path()).unwrap();
     let first = history.add(&shot(5, 5, 1, None)).unwrap();
     let second = history.add(&shot(6, 6, 2, Some(PROFILE))).unwrap();
+    let pending = history.prepare_collect(&first.id).unwrap();
     drop(history);
+    drop(pending); // Exiting a valid history must not unlink persisted captures.
 
     let history = CaptureHistory::open(dir.path()).unwrap();
 
@@ -298,4 +303,176 @@ fn history_survives_closing_and_reopening() {
         read_back(&history.file(&first.id).unwrap()).0,
         shot(5, 5, 1, None).image
     );
+}
+
+#[test]
+fn concurrent_collections_retain_a_deleted_file_without_claiming_a_desktop_pin() {
+    use std::sync::{Arc, Mutex, mpsc};
+    use std::time::Duration;
+    let dir = tempfile::tempdir().unwrap();
+    let library = Library::create(&dir.path().join("library"), "收藏").unwrap();
+    let history = Arc::new(Mutex::new(
+        CaptureHistory::open(&dir.path().join("captures")).unwrap(),
+    ));
+    let (entry, file, first, second) = {
+        let mut history = history.lock().unwrap();
+        let entry = history.add(&shot(37, 21, 7, Some(PROFILE))).unwrap();
+        let file = history.file(&entry.id).unwrap();
+        let first = history.prepare_collect(&entry.id).unwrap();
+        let second = history.prepare_collect(&entry.id).unwrap();
+        assert!(!history.entry(&entry.id).unwrap().pinned);
+        (entry, file, first, second)
+    };
+    let bytes = std::fs::read(&file).unwrap();
+    let mut guard = history.lock().unwrap();
+    guard.delete(&entry.id).unwrap();
+    assert!(guard.entries().is_empty());
+    assert!(guard.file(&entry.id).is_none());
+    assert!(file.exists());
+    drop(first);
+    assert!(file.exists(), "第二个收藏请求仍需要原文件");
+    let (send, receive) = mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        send.send((second.import(&library), library)).unwrap();
+    });
+    // 完整的真实导入必须在历史锁仍由本线程持有时结束。
+    let (result, library) = receive.recv_timeout(Duration::from_secs(10)).unwrap();
+    worker.join().unwrap();
+    let collected = guard.finish_collect(result.unwrap()).unwrap();
+    assert!(
+        guard.entries().is_empty(),
+        "收藏完成不能恢复用户已删除的历史条目"
+    );
+    assert!(!file.exists(), "最后一个收藏请求结束后回收已删除的文件");
+    assert_eq!(
+        std::fs::read(library.original_path(&collected.image_id).unwrap()).unwrap(),
+        bytes
+    );
+}
+
+#[test]
+fn abandoning_or_failing_a_collection_releases_the_deleted_file() {
+    for fail_import in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let library = Library::create(&dir.path().join("library"), "收藏").unwrap();
+        let mut history = CaptureHistory::open(&dir.path().join("captures")).unwrap();
+        let entry = history.add(&shot(7, 5, 1, None)).unwrap();
+        let file = history.file(&entry.id).unwrap();
+        let pending = history.prepare_collect(&entry.id).unwrap();
+        history.delete(&entry.id).unwrap();
+        assert!(file.exists());
+        if fail_import {
+            std::fs::write(&file, b"unreadable image").unwrap();
+            assert!(pending.import(&library).is_err());
+        } else {
+            drop(pending);
+        }
+        assert!(!file.exists());
+        assert!(history.entries().is_empty());
+    }
+}
+
+#[test]
+fn collection_retention_does_not_expand_the_visible_history_limit() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut history = CaptureHistory::open(dir.path()).unwrap();
+    let entry = history.add(&shot(7, 5, 99, None)).unwrap();
+    let file = history.file(&entry.id).unwrap();
+    let pending = history.prepare_collect(&entry.id).unwrap();
+    for i in 0..HISTORY_LIMIT as u8 {
+        history.add(&shot(4, 4, i, None)).unwrap();
+    }
+    let kept = history.entries();
+    assert_eq!(kept.len(), HISTORY_LIMIT);
+    assert!(kept.iter().all(|entry| !entry.pinned));
+    assert!(history.file(&entry.id).is_none());
+    assert!(file.exists());
+    drop(pending);
+    assert!(!file.exists());
+    drop(history);
+    let reopened = CaptureHistory::open(dir.path()).unwrap();
+    assert_eq!(reopened.entries(), kept);
+    assert!(
+        kept.iter()
+            .all(|entry| reopened.file(&entry.id).unwrap().exists())
+    );
+}
+
+#[test]
+fn collecting_a_deleted_pin_preserves_its_layout_after_the_original_pin_closes() {
+    use kinshoko_core::desktop::{GroupMemberRef, PinContent, Placement, Region, SavedPin};
+    let dir = tempfile::tempdir().unwrap();
+    let library = Library::create(&dir.path().join("library"), "收藏").unwrap();
+    let mut history = CaptureHistory::open(&dir.path().join("captures")).unwrap();
+    let entry = history.add(&shot(37, 21, 7, None)).unwrap();
+    let file = history.file(&entry.id).unwrap();
+    history.pin(&entry.id);
+    let pin = SavedPin {
+        id: "capture-pin".into(),
+        content: PinContent::Capture {
+            capture_id: entry.id.clone(),
+        },
+        crop: Some(Region {
+            x: 2,
+            y: 3,
+            width: 10,
+            height: 8,
+        }),
+        width: 10,
+        height: 8,
+        placement: Placement {
+            x: 100,
+            y: 50,
+            scale: 1.5,
+            flip_h: true,
+            rotation: 1,
+            ..Default::default()
+        },
+        opacity: 0.6,
+        locked: true,
+        member: Some(GroupMemberRef {
+            group_id: "group".into(),
+            member_id: "member".into(),
+        }),
+    };
+    let pending = history.prepare_collect(&entry.id).unwrap();
+    history.delete(&entry.id).unwrap();
+    assert!(history.entry(&entry.id).unwrap().pinned);
+    assert!(file.exists());
+    let completed_while_pinned = history
+        .prepare_collect(&entry.id)
+        .unwrap()
+        .import(&library)
+        .unwrap();
+    let reference_while_pinned = history
+        .finish_collect_pin(&pin, completed_while_pinned)
+        .unwrap();
+    assert!(history.entry(&entry.id).unwrap().pinned);
+    assert!(file.exists(), "收藏请求结束不能删除仍有真实钉图的文件");
+    history.unpin(&entry.id);
+    assert!(history.entry(&entry.id).is_none());
+    assert!(file.exists(), "收藏保护与真实钉图计数独立");
+    let collected = pending.import(&library).unwrap();
+    let reference: SavedPin = history.finish_collect_pin(&pin, collected).unwrap();
+    let PinContent::Reference {
+        ref library_id,
+        ref image_id,
+        source_width,
+        source_height,
+    } = reference.content
+    else {
+        panic!("收藏必须成为资料库参考图");
+    };
+    assert_eq!(library_id, &library.info().id);
+    assert_eq!((source_width, source_height), (37, 21));
+    assert_eq!(
+        read_back(&library.original_path(image_id).unwrap()).0,
+        shot(37, 21, 7, None).image
+    );
+    let mut expected = pin;
+    expected.content = reference.content.clone();
+    assert_eq!(reference, expected);
+    assert_eq!(reference, reference_while_pinned);
+    assert!(!file.exists());
+    assert!(history.entries().is_empty());
 }

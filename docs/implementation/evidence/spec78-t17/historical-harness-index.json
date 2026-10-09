@@ -1,0 +1,529 @@
+{
+  "schemaVersion": 1,
+  "note": "Historical harness files below are reconstructed copies, not contemporaneously archived working files. Raw result bytes are unchanged. Exact recorded Git source/path and SHA-256 authorize each reconstruction.",
+  "runs": [
+    {
+      "run": "wall-capture-1791488191109",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488191109\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791488191109/result.json",
+      "resultSha256": "e4bfff06145f81c3434a89d7f28672888e74460fb80f7e40b23aa941240f3ce5",
+      "status": "failed",
+      "assertionsBeforeFailure": 6,
+      "classification": "partial harness run",
+      "failure": "Error: initial aggregate waterfall: pin preserves original pixel crop",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "842c194a98f2a01f8f120eedf58570fec97f9041",
+          "recordedSha256": "60a1b59674b4331b065bedbffa0d68bd510b34b2223969cab288ec00966ee1d8",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "694653f85a7f6ed404181bf7edb392482348c8ba",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/60a1b59674b4331b065bedbffa0d68bd510b34b2223969cab288ec00966ee1d8/wall-capture.mjs",
+          "copySha256": "60a1b59674b4331b065bedbffa0d68bd510b34b2223969cab288ec00966ee1d8"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-1791488458222",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488458222\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791488458222/result.json",
+      "resultSha256": "b25d00d0ab568af30e11359e2e3d5a7104030925d167b9997fd54ce59cd1592e",
+      "status": "failed",
+      "assertionsBeforeFailure": 6,
+      "classification": "partial harness run",
+      "failure": "Error: initial aggregate waterfall: pin preserves original pixel crop",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "d11ead2d2313e659e12f4dbf291f8341d053d84c",
+          "recordedSha256": "eb96f8e1983b915e8f459d31b4b997a2b56b3bfc8b24a8286a5fb78708f737a9",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "2dfac36c37dd96ed936be9a3e2083dd582547007",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/eb96f8e1983b915e8f459d31b4b997a2b56b3bfc8b24a8286a5fb78708f737a9/wall-capture.mjs",
+          "copySha256": "eb96f8e1983b915e8f459d31b4b997a2b56b3bfc8b24a8286a5fb78708f737a9"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-1791488505260",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488505260\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791488505260/result.json",
+      "resultSha256": "a3da733a763ef05b9016858f23eefc1609de5a4b07e3c5d3fb17c0d35e46c146",
+      "status": "failed",
+      "assertionsBeforeFailure": 10,
+      "classification": "partial harness run",
+      "failure": "Error: plugin:desktop|close_pin: 只能关闭当前钉图",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "4b5e1ac7f50fa117d7238768376b287a5237c87d",
+          "recordedSha256": "6c1944ee96060db3ecd913947ef76bcc5e3af7224bed4518763856a8bd3733cc",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "07c4e37580c1910c1099e1fb39e68d996b5f1438",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/6c1944ee96060db3ecd913947ef76bcc5e3af7224bed4518763856a8bd3733cc/wall-capture.mjs",
+          "copySha256": "6c1944ee96060db3ecd913947ef76bcc5e3af7224bed4518763856a8bd3733cc"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-1791488575033",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488575033\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791488575033/result.json",
+      "resultSha256": "60766cd20c2b98d4df86d1f7252206688c3c10fa3146197f4559152ef1179ccb",
+      "status": "failed",
+      "assertionsBeforeFailure": 21,
+      "classification": "partial harness run",
+      "failure": "Error: Timed out loaded visible waterfall image",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "bcafeb30661a8cd6931ae93d1e67293d0e91d245",
+          "recordedSha256": "9d17eaa13c335071c17ab9f2edd7d1e6d16894d48d66c750a65441a35aaeb4a3",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "500ad9486d5f5ec68b48a05051cd12da1f97864a",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/9d17eaa13c335071c17ab9f2edd7d1e6d16894d48d66c750a65441a35aaeb4a3/wall-capture.mjs",
+          "copySha256": "9d17eaa13c335071c17ab9f2edd7d1e6d16894d48d66c750a65441a35aaeb4a3"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-1791488713265",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488713265\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791488713265/result.json",
+      "resultSha256": "a8aec25e9fb1d4e0ad1fd25d9a75977ee4e6903fad82551372a042a1a01a65d1",
+      "status": "failed",
+      "assertionsBeforeFailure": 20,
+      "classification": "partial harness run",
+      "failure": "Error: Timed out recycled bottom population",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "18964f4468c9addc10938b13dca291cf14a94461",
+          "recordedSha256": "abd233884f3c074bb03388c286d217b79807ea69a86fa57968e7c14ccbdf0657",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "89560d2abb5e640d0c2ba6e24ee77fd06ec8588a",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/abd233884f3c074bb03388c286d217b79807ea69a86fa57968e7c14ccbdf0657/wall-capture.mjs",
+          "copySha256": "abd233884f3c074bb03388c286d217b79807ea69a86fa57968e7c14ccbdf0657"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-1791488834203",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488834203\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791488834203/result.json",
+      "resultSha256": "644687eddee2f508611c3676a37e434813a6a8ef7a1193f060f39033fd33cf13",
+      "status": "failed",
+      "assertionsBeforeFailure": 27,
+      "classification": "partial harness run",
+      "failure": "Error: plugin:window|set_size: window.set_size not allowed. Permissions associated with this command: core:window:allow-set-size",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "98708314f311d5919e7dadc9b3cb2b2899740485",
+          "recordedSha256": "02b757c64f57e80fe2d5c5ce1fe1b5a7d2101d571afafae3e3b3c2d21f0c4abb",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "56bb8f34857c5c366fc826c7966a3f7838651b3a",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/02b757c64f57e80fe2d5c5ce1fe1b5a7d2101d571afafae3e3b3c2d21f0c4abb/wall-capture.mjs",
+          "copySha256": "02b757c64f57e80fe2d5c5ce1fe1b5a7d2101d571afafae3e3b3c2d21f0c4abb"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-1791488917659",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488917659\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791488917659/result.json",
+      "resultSha256": "5d80728f52320769bb24a37f77f7f2f7a161561148ce97a8b2d4c15b2235c45d",
+      "status": "failed",
+      "assertionsBeforeFailure": 27,
+      "classification": "partial harness run",
+      "failure": "Error: WebDriver changes the real native main client width",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "2328aab9235be4bf9b82c32f881b8dd8d3f51713",
+          "recordedSha256": "34f4bb17f88b20ab16a4f9a7f35d9cb7608a8220b7982643c4d0d7d8d25e3f39",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "2076b98ca6a495ddbecbceaa2eb687965b3f501d",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/34f4bb17f88b20ab16a4f9a7f35d9cb7608a8220b7982643c4d0d7d8d25e3f39/wall-capture.mjs",
+          "copySha256": "34f4bb17f88b20ab16a4f9a7f35d9cb7608a8220b7982643c4d0d7d8d25e3f39"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-1791489019058",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489019058\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791489019058/result.json",
+      "resultSha256": "2d3431aff004bbc8a8f54ae37d24fe756729ec341be91a7a3e62dac83af4cfb6",
+      "status": "failed",
+      "assertionsBeforeFailure": 28,
+      "classification": "partial harness run",
+      "failure": "Error: native width reflow: original copy adds no screenshot history",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "5685f0ef21786ee8d421887e1a301e221519dba4",
+          "recordedSha256": "450ed7dd512bd3a1e38ef94eb9798b19a7f681a7e8c7c3560c770fa92769b607",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "631930df6b43c245b9857cf79aa58987a2ee0918",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/450ed7dd512bd3a1e38ef94eb9798b19a7f681a7e8c7c3560c770fa92769b607/wall-capture.mjs",
+          "copySha256": "450ed7dd512bd3a1e38ef94eb9798b19a7f681a7e8c7c3560c770fa92769b607"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-1791489125093",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489125093\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791489125093/result.json",
+      "resultSha256": "57e2ba0b7a001727a2100d1e5797e43d0bc2b06d2d55092dddc54928fb925602",
+      "status": "failed",
+      "assertionsBeforeFailure": 28,
+      "classification": "partial harness run",
+      "failure": "Error: native width reflow: original copy adds no screenshot history",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "24a4fbcf3a849f7c9d359c9cfd50290833ebc91b",
+          "recordedSha256": "b8cedd0d5fe9c66ac5dd2ad72a20078613008007784f158e2bf7536162cdbf6e",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "5c02782ff1faae95b28799e0274bb6df9f0945c8",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/b8cedd0d5fe9c66ac5dd2ad72a20078613008007784f158e2bf7536162cdbf6e/wall-capture.mjs",
+          "copySha256": "b8cedd0d5fe9c66ac5dd2ad72a20078613008007784f158e2bf7536162cdbf6e"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-1791489296085",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489296085\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791489296085/result.json",
+      "resultSha256": "6dca82d7ee2eebdf6ffd3760d70b65e28440b370443eeb6b4d069abc7a52d1a5",
+      "status": "failed",
+      "assertionsBeforeFailure": 4,
+      "classification": "partial harness run",
+      "failure": "Error: Timed out owned main focused before capture",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "b7730e4fc4166eb570d8403448e794f431265ea6",
+          "recordedSha256": "377da3ac4debfe6d33ff472d9547d6a3e4096574e548fe12cf0bc05cb85aa075",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "ddc837e39606e039c01503969fc3cb0131f634db",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/377da3ac4debfe6d33ff472d9547d6a3e4096574e548fe12cf0bc05cb85aa075/wall-capture.mjs",
+          "copySha256": "377da3ac4debfe6d33ff472d9547d6a3e4096574e548fe12cf0bc05cb85aa075"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "status": "not recorded in this result",
+          "reconstruction": null
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-1791489665739",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489665739\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791489665739/result.json",
+      "resultSha256": "702be0ad4fe517acce63970d30aa43cd0bab42603551873a6bcb2896d056759b",
+      "status": "failed",
+      "assertionsBeforeFailure": 5,
+      "classification": "partial harness run",
+      "failure": "Error: Traceback (most recent call last):",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "af0117f2f0565fc41bfbd34e09459bfc6b95b37e",
+          "recordedSha256": "a6c6c4d2af0e48ee2449167d227c4b4dfb42aa54d9d6e49edf0c5b80975769b4",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "5ed84667f991f8b0d566731b81e3ad972aefced3",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/a6c6c4d2af0e48ee2449167d227c4b4dfb42aa54d9d6e49edf0c5b80975769b4/wall-capture.mjs",
+          "copySha256": "a6c6c4d2af0e48ee2449167d227c4b4dfb42aa54d9d6e49edf0c5b80975769b4"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "gitSource": "af0117f2f0565fc41bfbd34e09459bfc6b95b37e",
+          "recordedSha256": "a4da32696d1b7a5f16cacffd318267a23bde714c0a059c0c1d2d1486e9876220",
+          "status": "unavailable",
+          "origin": "reconstructed copy",
+          "reason": "Neither exact blob nor documented LF-to-CRLF reconstruction matches the recorded hash."
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "gitSource": "af0117f2f0565fc41bfbd34e09459bfc6b95b37e",
+          "recordedSha256": "4cf03825a7a45f73211cb340799c24ad3b108f84339742eac02f06f7e5317d78",
+          "status": "unavailable",
+          "origin": "reconstructed copy",
+          "reason": "Neither exact blob nor documented LF-to-CRLF reconstruction matches the recorded hash."
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-1791489746034",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791489746034/result.json",
+      "resultSha256": "b7e3f6fd2ef2ec43642415a2536e3e73930070ab517a193732db08e2cabef6fe",
+      "status": "failed",
+      "assertionsBeforeFailure": 48,
+      "classification": "partial harness run",
+      "failure": "Error: Traceback (most recent call last):",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "cbfaf8d9d10d9004c2b99b72550c8f7dc3b7cc4d",
+          "recordedSha256": "49c07d1c29bfdc529a4e7ce3353e459300003d2157790a28ff2c8417f2d24ef6",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "d745275851bbe0f99d0ab643869b4312e4efc469",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/49c07d1c29bfdc529a4e7ce3353e459300003d2157790a28ff2c8417f2d24ef6/wall-capture.mjs",
+          "copySha256": "49c07d1c29bfdc529a4e7ce3353e459300003d2157790a28ff2c8417f2d24ef6"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "gitSource": "cbfaf8d9d10d9004c2b99b72550c8f7dc3b7cc4d",
+          "recordedSha256": "a4da32696d1b7a5f16cacffd318267a23bde714c0a059c0c1d2d1486e9876220",
+          "status": "unavailable",
+          "origin": "reconstructed copy",
+          "reason": "Neither exact blob nor documented LF-to-CRLF reconstruction matches the recorded hash."
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "gitSource": "cbfaf8d9d10d9004c2b99b72550c8f7dc3b7cc4d",
+          "recordedSha256": "301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "f9536755da4fd106aa2af1fb31201dc06e4cc893",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602/native-wall-pixels.py",
+          "copySha256": "301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602"
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-1791489892925",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489892925\\result.json",
+      "resultCopy": "old-runs/wall-capture-1791489892925/result.json",
+      "resultSha256": "e270501b3ac7c3917e4b3db3887612f659745559e1db634213af863c08a02dcb",
+      "status": "failed",
+      "assertionsBeforeFailure": 89,
+      "classification": "partial harness run",
+      "failure": "Error: Timed out re-created native main window",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "a745ce7088eaef3813f0dd0ae1037c71218f2e79",
+          "recordedSha256": "49c07d1c29bfdc529a4e7ce3353e459300003d2157790a28ff2c8417f2d24ef6",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "d745275851bbe0f99d0ab643869b4312e4efc469",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/49c07d1c29bfdc529a4e7ce3353e459300003d2157790a28ff2c8417f2d24ef6/wall-capture.mjs",
+          "copySha256": "49c07d1c29bfdc529a4e7ce3353e459300003d2157790a28ff2c8417f2d24ef6"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "gitSource": "a745ce7088eaef3813f0dd0ae1037c71218f2e79",
+          "recordedSha256": "20651bd341a3d06dfb8f921e1e1ce330d0d770c433d060da5c263659cb1ec668",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "85a389d4ed1b9380e44b3799c0f257d422406493",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/20651bd341a3d06dfb8f921e1e1ce330d0d770c433d060da5c263659cb1ec668/native-wall-observe.py",
+          "copySha256": "20651bd341a3d06dfb8f921e1e1ce330d0d770c433d060da5c263659cb1ec668"
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "gitSource": "a745ce7088eaef3813f0dd0ae1037c71218f2e79",
+          "recordedSha256": "301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "f9536755da4fd106aa2af1fb31201dc06e4cc893",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602/native-wall-pixels.py",
+          "copySha256": "301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602"
+        }
+      ]
+    },
+    {
+      "run": "wall-capture-race-1791490083077",
+      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077\\result.json",
+      "resultCopy": "old-runs/wall-capture-race-1791490083077/result.json",
+      "resultSha256": "2400e349bde4a0c1d596cbb6e74af3adc6e6ca754517073f5a951e50dd976c5e",
+      "status": "failed",
+      "assertionsBeforeFailure": 6,
+      "classification": "actual product RED",
+      "failure": "Error: safe-mode revocation during slow original decode cannot commit late original pixels to the real OS clipboard",
+      "configurationSnapshot": "not recorded per run; only the independent initial absence and later actual post-RED configuration are available",
+      "files": [
+        {
+          "gitPath": "e2e/wall-capture.mjs",
+          "gitSource": "a745ce7088eaef3813f0dd0ae1037c71218f2e79",
+          "recordedSha256": "49c07d1c29bfdc529a4e7ce3353e459300003d2157790a28ff2c8417f2d24ef6",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "d745275851bbe0f99d0ab643869b4312e4efc469",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/49c07d1c29bfdc529a4e7ce3353e459300003d2157790a28ff2c8417f2d24ef6/wall-capture.mjs",
+          "copySha256": "49c07d1c29bfdc529a4e7ce3353e459300003d2157790a28ff2c8417f2d24ef6"
+        },
+        {
+          "gitPath": "e2e/native-wall-observe.py",
+          "gitSource": "a745ce7088eaef3813f0dd0ae1037c71218f2e79",
+          "recordedSha256": "20651bd341a3d06dfb8f921e1e1ce330d0d770c433d060da5c263659cb1ec668",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "85a389d4ed1b9380e44b3799c0f257d422406493",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/20651bd341a3d06dfb8f921e1e1ce330d0d770c433d060da5c263659cb1ec668/native-wall-observe.py",
+          "copySha256": "20651bd341a3d06dfb8f921e1e1ce330d0d770c433d060da5c263659cb1ec668"
+        },
+        {
+          "gitPath": "e2e/native-wall-pixels.py",
+          "gitSource": "a745ce7088eaef3813f0dd0ae1037c71218f2e79",
+          "recordedSha256": "301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602",
+          "status": "hash-matched reconstructed copy",
+          "origin": "reconstructed copy",
+          "gitBlob": "f9536755da4fd106aa2af1fb31201dc06e4cc893",
+          "reconstruction": "normalize blob CRLF to LF, then replace every LF with CRLF",
+          "copy": "harness-versions/301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602/native-wall-pixels.py",
+          "copySha256": "301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602"
+        }
+      ]
+    }
+  ],
+  "earlierBuildSpecimen": {
+    "sha256": "e2c31eece3ff7dedf0f6d78f120e3d4c1c3db8f25b017c02014e6c489ae21bc1",
+    "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
+    "origin": "byte-exact copy of the parent archived build-time working file",
+    "original": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t17-native\\binaries\\cc896c5\\wall-capture.mjs",
+    "copy": "harness-versions/e2c31eece3ff7dedf0f6d78f120e3d4c1c3db8f25b017c02014e6c489ae21bc1/wall-capture.mjs",
+    "scope": "Earlier unrun build specimen. Not the first native run harness. Actual first run records 60a1b59674b4331b065bedbffa0d68bd510b34b2223969cab288ec00966ee1d8 at source842c194."
+  }
+}

@@ -314,11 +314,11 @@ fn read_original(
 pub(super) fn import(
     path: &Path,
     library: &Library,
-    catalog: Option<&mut crate::tag_catalog::TagCatalog>,
+    catalog: Option<&crate::tag_catalog::CatalogInspection>,
 ) -> Result<ReferenceGroup, GroupError> {
     let mut zip = open(path)?;
     let manifest = read_manifest(&mut zip)?;
-    if let Some(catalog) = catalog.as_deref() {
+    if let Some(catalog) = catalog {
         let definitions = manifest
             .images
             .iter()
@@ -371,13 +371,6 @@ pub(super) fn import(
         imported.insert((image.library_id.clone(), image.image_id.clone()), id);
     }
 
-    if let Some(catalog) = catalog {
-        catalog
-            .publish_library_definitions(library)
-            .map_err(|error| GroupError::Library(format!(
-                "内容已写入，但资料库标签定义尚未更新：{error}。请重试保存标签定义或重新导入参考组包。"
-            )))?;
-    }
     let library_id = library.info().id.clone();
     let now = crate::library::now_ms();
     let members = manifest

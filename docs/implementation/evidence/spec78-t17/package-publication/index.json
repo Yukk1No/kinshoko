@@ -1,0 +1,34 @@
+{
+  "baseCommit": "3bd4b3f29b3be603e2b9fa419ce929fc021d58a2",
+  "redState": "base plus uncommitted configuration API and public tests; package commit did not use the supplied gate",
+  "redObserved": "both real package import and real copy completed with effective Some(Explicit) while final commit held the gate",
+  "green": "reference_group_package 10; portable_tags 12 plus one child ignored; save_destination 9",
+  "nativeReproduction": "not performed for package/copy",
+  "files": [
+    {
+      "path": "package-publication-test-compilation-first.txt",
+      "sha256": "a228022fdbedc4658d6c28346ed9c9569d316da3fe84fdf7de29e0ebbb695bdf",
+      "bytes": 1620
+    },
+    {
+      "path": "package-publication-red.txt",
+      "sha256": "ccfa81db86a610e08e716b8f58710d9b615835e000f4f90785be91754516c396",
+      "bytes": 1366
+    },
+    {
+      "path": "package-publication-red-observed.txt",
+      "sha256": "83e30d367d5e6a1abba1c0d9a0deb5915b2b0df5cd3b34093d62d2b78b758168",
+      "bytes": 1442
+    },
+    {
+      "path": "package-publication-green.txt",
+      "sha256": "dc2ae7849cc6f3bc3dfda61b4b769386b75f690192d4713c9521bfac068451f9",
+      "bytes": 3698
+    },
+    {
+      "path": "package-publication-final-green.txt",
+      "sha256": "e754b1551bbdfd44f50f68f87cd9859c98397cee89c5298acc37c82b20870a03",
+      "bytes": 1279
+    }
+  ]
+}

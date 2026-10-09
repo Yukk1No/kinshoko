@@ -113,6 +113,7 @@ pub fn attach<R: Runtime>(app: &AppHandle<R>, library: Arc<Library>) {
     let tagger = ProcessTagger::new(exe, vec![kinshoko_tagger::SUBCOMMAND.into()]);
     let mut config = TaggingConfig::with_catalog(state.models_dir.clone());
     config.preferred = lock(&state.preferred).clone();
+    config.publication_gate = Some(crate::library::visibility_publication_gate(app));
     let library_id = library.info().id.clone();
     let tagging = Tagging::start(library, Arc::new(tagger), config);
     if state.paused.load(Ordering::SeqCst) {

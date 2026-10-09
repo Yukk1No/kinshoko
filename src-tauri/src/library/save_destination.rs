@@ -15,7 +15,7 @@ pub(super) fn fixed_library<R: Runtime>(
     library
         .validate_destination(destination)
         .map_err(|e| e.to_string())?;
-    state.install_translations(&library);
+    state.configure_library(&library);
     library.set_safe_mode(saved_safe_mode(app));
     Ok(library)
 }

@@ -1,0 +1,156 @@
+{
+  "status": "Both raw runs failed; do not combine their passed assertions into a complete pass. No product changes after actual c443 build.",
+  "binarySha256": "DD37D7FF6B7014A917CF73F04BAE400289A110C23E7077C3A2CE03FAE3024F81",
+  "fullwall": "118 assertions then external fixture coverage precondition failed; bounds/PID/HWND/visible succeeded, actual point hit/styles/Z indices unrecorded. Pin-close original baseline and removed-window/public-frame-None old-token rejection with same OS image passed.",
+  "mode": "5 assertions then until timed out: custom JS error object was rejected by wd(value.error) guard. Raw contains actual mode return and seed checkpoint plus returned at/error value; HTTP status and final clipboard were not recorded, so neither whole GREEN nor final seed preservation is asserted.",
+  "newHarness": "HTTP protocol failure checked from actual response status; payload error objects recorded with httpStatus/httpOk/value. BeginInvoke one placement candidate plus actual styles/raw Z/WFP->GA_ROOT after main focus and frozen ROI only blue verification. No native execution yet.",
+  "sources": [
+    "https://www.w3.org/TR/webdriver2/#errors",
+    "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-windowfrompoint",
+    "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getancestor"
+  ],
+  "records": [
+    {
+      "run": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791501732795",
+      "tag": "fullwall",
+      "rawStatus": "failed",
+      "assertions": 118,
+      "source": "c443f77f8a90b92489f6aa0e4fc29f4e1a16bc9f",
+      "actualBuildSource": "c443f77f8a90b92489f6aa0e4fc29f4e1a16bc9f",
+      "scriptSha256": "e79e959df9e02554c2b32f34aa55cab18097b3384dc286e23608248f55124281",
+      "nativeHelperSha256": "fc2285e3b1615dae5c63cc8d24b5f4ada7ca26c9a092f74befdffc0a8878471c",
+      "pixelHelperSha256": "301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602",
+      "rawResultSha256": "48c44655740e75bd7ccdca2d37b0cbb056c5f2f80251beec38cac865926a1632",
+      "archive": "fullwall/result.json.gz",
+      "archiveMethod": "gzip mtime=0; decompress to exact immutable raw bytes",
+      "fullPreservation": "Root preserves full original run and fixed inputs; this tracked folder contains selected review evidence only."
+    },
+    {
+      "run": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791502082523",
+      "tag": "mode",
+      "rawStatus": "failed",
+      "assertions": 5,
+      "source": "c443f77f8a90b92489f6aa0e4fc29f4e1a16bc9f",
+      "actualBuildSource": "c443f77f8a90b92489f6aa0e4fc29f4e1a16bc9f",
+      "scriptSha256": "e79e959df9e02554c2b32f34aa55cab18097b3384dc286e23608248f55124281",
+      "nativeHelperSha256": "fc2285e3b1615dae5c63cc8d24b5f4ada7ca26c9a092f74befdffc0a8878471c",
+      "pixelHelperSha256": "301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602",
+      "rawResultSha256": "49e2e46c39632fa9a8379d3c33239f77d7b33356770b182724eee0abca34f20d",
+      "archive": "mode/result.json.gz",
+      "archiveMethod": "gzip mtime=0; decompress to exact immutable raw bytes",
+      "fullPreservation": "Root preserves full original run and fixed inputs; this tracked folder contains selected review evidence only."
+    }
+  ],
+  "files": [
+    {
+      "path": "fullwall/closed-pin-after.png",
+      "bytes": 200,
+      "sha256": "83cff34374fbff0fc4237a74e0ffd7df46018f7d6c8bcc67dea0b8261b843189"
+    },
+    {
+      "path": "fullwall/closed-pin-baseline.png",
+      "bytes": 200,
+      "sha256": "83cff34374fbff0fc4237a74e0ffd7df46018f7d6c8bcc67dea0b8261b843189"
+    },
+    {
+      "path": "fullwall/closed-pin-before.png",
+      "bytes": 200,
+      "sha256": "83cff34374fbff0fc4237a74e0ffd7df46018f7d6c8bcc67dea0b8261b843189"
+    },
+    {
+      "path": "fullwall/desktop-release.json",
+      "bytes": 1194,
+      "sha256": "80490e16c97890a22dc7e0c7cc128720098bc0333fdfc2009353462fd30c7477"
+    },
+    {
+      "path": "fullwall/native-v3-fullwall-first.txt",
+      "bytes": 11430,
+      "sha256": "d73f16cb0fe44a71932976c8a1f61415230364319b10c2cabfc835a7e4f3868d"
+    },
+    {
+      "path": "fullwall/native-wall-observe.py",
+      "bytes": 6031,
+      "sha256": "fc2285e3b1615dae5c63cc8d24b5f4ada7ca26c9a092f74befdffc0a8878471c"
+    },
+    {
+      "path": "fullwall/native-wall-pixels.py",
+      "bytes": 1891,
+      "sha256": "301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602"
+    },
+    {
+      "path": "fullwall/occluder-ready.json",
+      "bytes": 75,
+      "sha256": "e5bf3464c7df831ea5c7acb64cb210d02086162c6b159b9bc24db4dbbb1b5f89"
+    },
+    {
+      "path": "fullwall/occluder.ps1",
+      "bytes": 1362,
+      "sha256": "086a17a50b09edc084f0a456225861c0612f53594f1b78702c93903ddb0589ba"
+    },
+    {
+      "path": "fullwall/result.json.gz",
+      "bytes": 37867,
+      "sha256": "639419d7b32f735d90a7ca53027b0a4eef58437e802e656de6dd85c14e3da3eb"
+    },
+    {
+      "path": "fullwall/settings-after.json",
+      "bytes": 202,
+      "sha256": "3d30ddfbcd3875e5e1734b7b70b8f227ec49635bb5d15b69cac3e6ded207882b"
+    },
+    {
+      "path": "fullwall/settings-before.json",
+      "bytes": 202,
+      "sha256": "3d30ddfbcd3875e5e1734b7b70b8f227ec49635bb5d15b69cac3e6ded207882b"
+    },
+    {
+      "path": "fullwall/wall-capture.mjs",
+      "bytes": 48712,
+      "sha256": "e79e959df9e02554c2b32f34aa55cab18097b3384dc286e23608248f55124281"
+    },
+    {
+      "path": "mode/clipboard-after-mode-return.png",
+      "bytes": 107,
+      "sha256": "8dda8e6cdd851a586d5ffb73512d1c29395f11d1c5c676175c0967facf6978b0"
+    },
+    {
+      "path": "mode/desktop-release.json",
+      "bytes": 1103,
+      "sha256": "ea235674c9d19855d30f29ad06bf8f35972372694c0bbe761832bbe29af19cfa"
+    },
+    {
+      "path": "mode/native-v3-mode-first.txt",
+      "bytes": 1174,
+      "sha256": "7ea28980bf19a0dc0dec517a748f3b2076bce3a9c8294dafe7ea3afff602148d"
+    },
+    {
+      "path": "mode/native-wall-observe.py",
+      "bytes": 6031,
+      "sha256": "fc2285e3b1615dae5c63cc8d24b5f4ada7ca26c9a092f74befdffc0a8878471c"
+    },
+    {
+      "path": "mode/native-wall-pixels.py",
+      "bytes": 1891,
+      "sha256": "301dc3c3731b4417936535809df387eb439fe6b1ea1505df7f50728d7ccd0602"
+    },
+    {
+      "path": "mode/result.json.gz",
+      "bytes": 7622,
+      "sha256": "92f39123f85316538ce94551999edafb2f1b9f834ed678babd0da6d2232f23b3"
+    },
+    {
+      "path": "mode/settings-after.json",
+      "bytes": 202,
+      "sha256": "3d30ddfbcd3875e5e1734b7b70b8f227ec49635bb5d15b69cac3e6ded207882b"
+    },
+    {
+      "path": "mode/settings-before.json",
+      "bytes": 202,
+      "sha256": "3d30ddfbcd3875e5e1734b7b70b8f227ec49635bb5d15b69cac3e6ded207882b"
+    },
+    {
+      "path": "mode/wall-capture.mjs",
+      "bytes": 48712,
+      "sha256": "e79e959df9e02554c2b32f34aa55cab18097b3384dc286e23608248f55124281"
+    }
+  ]
+}

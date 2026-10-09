@@ -1,0 +1,38 @@
+[
+  {
+    "path": "e2e/wall-capture.mjs",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "path": "work/t17/native-boundary-probe-original-v3.mjs",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "path": "e2e/native-wall-observe.py",
+    "syntax": "AST only; no native/API execution"
+  },
+  {
+    "path": "e2e/native-wall-pixels.py",
+    "syntax": "AST only; no native/API execution"
+  },
+  {
+    "path": "e2e/native-clipboard-observe.py",
+    "syntax": "AST only; no native/API execution"
+  },
+  {
+    "path": "work/t17/native-v3-inputs/clipboard-metadata-observe.py",
+    "syntax": "AST only; no native/API execution"
+  },
+  {
+    "path": "work/t17/native-v3-inputs/original-pixel-compare.py",
+    "syntax": "AST only; no native/API execution"
+  },
+  {
+    "path": "work/t17/native-v3-inputs/persisted-rating-observe.py",
+    "syntax": "AST only; no native/API execution"
+  }
+]

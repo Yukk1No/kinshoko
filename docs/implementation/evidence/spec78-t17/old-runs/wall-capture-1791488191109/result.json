@@ -1,0 +1,85 @@
+{
+  "status": "failed",
+  "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
+  "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
+  "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "scriptSha256": "60a1b59674b4331b065bedbffa0d68bd510b34b2223969cab288ec00966ee1d8",
+  "scriptSource": "842c194a98f2a01f8f120eedf58570fec97f9041",
+  "mode": "wall",
+  "assertions": [
+    "synthetic originals import through production task",
+    "synthetic originals import through production task",
+    "formal waterfall displays a reduced derivative of the high-resolution original",
+    "real identical originals aggregate with two independent registered sources",
+    "initial aggregate waterfall: original copy adds no screenshot history",
+    "initial aggregate waterfall: pin keeps exact library/image source"
+  ],
+  "samples": [],
+  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488191109",
+  "startedAt": "2026-10-08T19:36:31.229Z",
+  "capabilities": {
+    "acceptInsecureCerts": false,
+    "browserName": "webview2",
+    "browserVersion": "154.0.4258.62",
+    "fedcm:accounts": true,
+    "goog:processID": 48748,
+    "ms:edgeOptions": {
+      "debuggerAddress": "localhost:41786"
+    },
+    "msedge": {
+      "msedgedriverVersion": "154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)",
+      "userDataDir": ""
+    },
+    "networkConnectionEnabled": false,
+    "pageLoadStrategy": "normal",
+    "platformName": "windows",
+    "proxy": {},
+    "setWindowRect": true,
+    "strictFileInteractability": false,
+    "timeouts": {
+      "implicit": 0,
+      "pageLoad": 300000,
+      "script": 30000
+    },
+    "unhandledPromptBehavior": "dismiss and notify",
+    "webauthn:extension:cmtgKey": true,
+    "webauthn:extension:credBlob": true,
+    "webauthn:extension:largeBlob": true,
+    "webauthn:extension:minPinLength": true,
+    "webauthn:extension:prf": true,
+    "webauthn:virtualAuthenticators": true
+  },
+  "environment": "Kinshoko 0.1.0 诊断信息\n生成时间：2026-10-08 19:36:33 UTC\n本报告不含文件名、路径与图片。\n\n[系统]\n系统：Windows 11 Professional 26H2（26300.9550）\n处理器：AMD Ryzen 7 5800X 8-Core Processor\n内存：31.9 GB\n显卡：NVIDIA GeForce RTX 4070 SUPER\n显卡：GameViewer Virtual Display Adapter\nWebView2：154.0.4258.62\n\n[显示器]\n1. VG27AQL1A（主显示器）：2560×1440，缩放 110%，SDR（自动色彩管理），每通道 8 位\n   配置文件：sRGB IEC61966-2.1，ICC 2.1，矩阵＋曲线，SHA-256 2b3aa1645779\n\n[Kinshoko 设置]\n强制 sRGB：关闭\n使用日志：关闭\n",
+  "first": {
+    "info": {
+      "id": "5125b6a8ba5d4959b9f1021b8c9da6a7",
+      "name": "原图来源 A",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488191109\\libraries\\原图来源 A"
+    },
+    "card": {
+      "adult": false,
+      "height": 3200,
+      "id": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+      "imageId": "01a11d04756a73bdae0252ee4f360c2b",
+      "libraryId": "5125b6a8ba5d4959b9f1021b8c9da6a7",
+      "sources": [
+        {
+          "deleted": false,
+          "imageId": "01a11d04756a73bdae0252ee4f360c2b",
+          "libraryId": "5125b6a8ba5d4959b9f1021b8c9da6a7",
+          "libraryName": "原图来源 A",
+          "matches": true,
+          "unavailable": null
+        }
+      ],
+      "thumbnail": "5125b6a8ba5d4959b9f1021b8c9da6a7/01a11d04756a73bdae0252ee4f360c2b/256",
+      "width": 4800
+    }
+  },
+  "dpr": 1.1041666269302368,
+  "error": "Error: initial aggregate waterfall: pin preserves original pixel crop\n    at check (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:29:45)\n    at verifyOriginal (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:50:500)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:82:3",
+  "reports": [],
+  "finishedAt": "2026-10-08T19:36:44.571Z"
+}

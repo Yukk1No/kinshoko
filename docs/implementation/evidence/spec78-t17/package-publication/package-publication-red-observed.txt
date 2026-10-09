@@ -1,0 +1,24 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.11s
+     Running tests\reference_group_package.rs (target\debug\deps\reference_group_package-72e162d74d9bb4c7.exe)
+
+running 2 tests
+
+thread 'copied_rating_publication_waits_for_the_final_visibility_commit' (39356) panicked at crates\kinshoko-core\tests\reference_group_package.rs:680:5:
+rating publication completed while final commit held the gate; effective while held: Some(Explicit)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test copied_rating_publication_waits_for_the_final_visibility_commit ... FAILED
+
+thread 'package_rating_publication_waits_for_the_final_visibility_commit' (45344) panicked at crates\kinshoko-core\tests\reference_group_package.rs:680:5:
+rating publication completed while final commit held the gate; effective while held: Some(Explicit)
+test package_rating_publication_waits_for_the_final_visibility_commit ... FAILED
+
+failures:
+
+failures:
+    copied_rating_publication_waits_for_the_final_visibility_commit
+    package_rating_publication_waits_for_the_final_visibility_commit
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.50s
+
+error: test failed, to rerun pass `-p kinshoko-core --test reference_group_package`

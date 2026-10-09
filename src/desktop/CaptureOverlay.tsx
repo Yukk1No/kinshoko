@@ -22,15 +22,15 @@ export function CaptureOverlay() {
   const dpr = window.devicePixelRatio;
 
   useEffect(() => {
-    frozenScreen().then((s) => (s ? setScreen(s) : cancelCapture()));
+    frozenScreen().then(setScreen);
   }, []);
 
   const usable = rect !== null && rect.width >= MIN_SIZE && rect.height >= MIN_SIZE;
 
   const finish = (action: CaptureAction | "cancel") => {
-    if (action === "cancel") return void cancelCapture();
-    if (!rect || !usable) return;
-    void finishCapture(rect, action);
+    if (action === "cancel") return screen && void cancelCapture(screen.image.slice("screen/".length));
+    if (!screen || !rect || !usable) return;
+    void finishCapture(rect, action, screen.image.slice("screen/".length));
   };
 
   useEffect(() => {
@@ -88,8 +88,8 @@ export function CaptureOverlay() {
         draggable={false}
         src={captureUrl(screen.image)}
         style={{ width: css(screen.width), height: css(screen.height) }}
-        onLoad={() => void captureReady()}
-        onError={() => void cancelCapture()}
+        onLoad={() => void captureReady(screen.image.slice("screen/".length))}
+        onError={() => void cancelCapture(screen.image.slice("screen/".length))}
       />
       {!rect && <div className="capture-shade" />}
       {rect && (

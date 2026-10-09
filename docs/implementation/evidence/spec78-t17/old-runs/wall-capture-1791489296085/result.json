@@ -1,0 +1,89 @@
+{
+  "status": "failed",
+  "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
+  "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
+  "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "scriptSha256": "377da3ac4debfe6d33ff472d9547d6a3e4096574e548fe12cf0bc05cb85aa075",
+  "scriptSource": "b7730e4fc4166eb570d8403448e794f431265ea6",
+  "mode": "wall",
+  "assertions": [
+    "synthetic originals import through production task",
+    "synthetic originals import through production task",
+    "formal waterfall displays a reduced derivative of the high-resolution original",
+    "real identical originals aggregate with two independent registered sources"
+  ],
+  "samples": [],
+  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489296085",
+  "startedAt": "2026-10-08T19:54:56.208Z",
+  "capabilities": {
+    "acceptInsecureCerts": false,
+    "browserName": "webview2",
+    "browserVersion": "154.0.4258.62",
+    "fedcm:accounts": true,
+    "goog:processID": 48492,
+    "ms:edgeOptions": {
+      "debuggerAddress": "localhost:26747"
+    },
+    "msedge": {
+      "msedgedriverVersion": "154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)",
+      "userDataDir": ""
+    },
+    "networkConnectionEnabled": false,
+    "pageLoadStrategy": "normal",
+    "platformName": "windows",
+    "proxy": {},
+    "setWindowRect": true,
+    "strictFileInteractability": false,
+    "timeouts": {
+      "implicit": 0,
+      "pageLoad": 300000,
+      "script": 30000
+    },
+    "unhandledPromptBehavior": "dismiss and notify",
+    "webauthn:extension:cmtgKey": true,
+    "webauthn:extension:credBlob": true,
+    "webauthn:extension:largeBlob": true,
+    "webauthn:extension:minPinLength": true,
+    "webauthn:extension:prf": true,
+    "webauthn:virtualAuthenticators": true
+  },
+  "environment": "Kinshoko 0.1.0 诊断信息\n生成时间：2026-10-08 19:54:57 UTC\n本报告不含文件名、路径与图片。\n\n[系统]\n系统：Windows 11 Professional 26H2（26300.9550）\n处理器：AMD Ryzen 7 5800X 8-Core Processor\n内存：31.9 GB\n显卡：NVIDIA GeForce RTX 4070 SUPER\n显卡：GameViewer Virtual Display Adapter\nWebView2：154.0.4258.62\n\n[显示器]\n1. VG27AQL1A（主显示器）：2560×1440，缩放 110%，SDR（自动色彩管理），每通道 8 位\n   配置文件：sRGB IEC61966-2.1，ICC 2.1，矩阵＋曲线，SHA-256 2b3aa1645779\n\n[Kinshoko 设置]\n强制 sRGB：关闭\n使用日志：关闭\n",
+  "first": {
+    "info": {
+      "id": "b47da83fc3a24422a9cb5212b8643d1b",
+      "name": "原图来源 A",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489296085\\libraries\\原图来源 A"
+    },
+    "card": {
+      "adult": false,
+      "height": 3200,
+      "id": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+      "imageId": "01a11d154f7477d99fa93ed95dcdd7d8",
+      "libraryId": "b47da83fc3a24422a9cb5212b8643d1b",
+      "sources": [
+        {
+          "deleted": false,
+          "imageId": "01a11d154f7477d99fa93ed95dcdd7d8",
+          "libraryId": "b47da83fc3a24422a9cb5212b8643d1b",
+          "libraryName": "原图来源 A",
+          "matches": true,
+          "unavailable": null
+        }
+      ],
+      "thumbnail": "b47da83fc3a24422a9cb5212b8643d1b/01a11d154f7477d99fa93ed95dcdd7d8/256",
+      "width": 4800
+    }
+  },
+  "invokeDescriptor": {
+    "configurable": false,
+    "hasSetter": false,
+    "writable": false
+  },
+  "dpr": 1.1041666269302368,
+  "error": "Error: Timed out owned main focused before capture\n    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:29:189)\n    at async begin (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:51:53)\n    at async capture (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:53:74)\n    at async verifyOriginal (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:57:135)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:90:3",
+  "requests": [],
+  "lateSent": null,
+  "finishedAt": "2026-10-08T19:55:52.233Z"
+}

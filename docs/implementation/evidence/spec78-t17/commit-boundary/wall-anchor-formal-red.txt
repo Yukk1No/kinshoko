@@ -1,0 +1,33 @@
+
+ RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+
+ ❯ src/wall/Wall.workspace-anchor.test.tsx (1 test | 1 failed) 203ms
+   × provider refresh restores the viewed card after real empty-list scroll clamping 202ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/wall/Wall.workspace-anchor.test.tsx > provider refresh restores the viewed card after real empty-list scroll clamping
+AssertionError: expected +0 to be 2000 // Object.is equality
+
+- Expected
++ Received
+
+- 2000
++ 0
+
+ ❯ src/wall/Wall.workspace-anchor.test.tsx:50:26
+     48|   fireEvent.scroll(wall);
+     49|   await act(async () => replies.at(-1)!(page));
+     50|   expect(wall.scrollTop).toBe(2000);
+       |                          ^
+     51|   const restored = wall.querySelector<HTMLElement>('[data-id="' + orig…
+     52|   expect(parseFloat(restored.style.top) - wall.scrollTop).toBeCloseTo(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  06:12:12
+   Duration  1.64s (environment 69%, tests 13%, import 11%, transform 6%)
+

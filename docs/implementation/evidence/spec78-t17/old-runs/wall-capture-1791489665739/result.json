@@ -1,0 +1,326 @@
+{
+  "status": "failed",
+  "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
+  "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
+  "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
+  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "scriptSha256": "a6c6c4d2af0e48ee2449167d227c4b4dfb42aa54d9d6e49edf0c5b80975769b4",
+  "scriptSource": "af0117f2f0565fc41bfbd34e09459bfc6b95b37e",
+  "mode": "wall",
+  "nativeHelperSha256": "a4da32696d1b7a5f16cacffd318267a23bde714c0a059c0c1d2d1486e9876220",
+  "pixelHelperSha256": "4cf03825a7a45f73211cb340799c24ad3b108f84339742eac02f06f7e5317d78",
+  "assertions": [
+    "synthetic originals import through production task",
+    "synthetic originals import through production task",
+    "formal waterfall displays a reduced derivative of the high-resolution original",
+    "real identical originals aggregate with two independent registered sources",
+    "actual foreground HWND belongs to the exact frozen application"
+  ],
+  "samples": [],
+  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489665739",
+  "startedAt": "2026-10-08T20:01:05.857Z",
+  "capabilities": {
+    "acceptInsecureCerts": false,
+    "browserName": "webview2",
+    "browserVersion": "154.0.4258.62",
+    "fedcm:accounts": true,
+    "goog:processID": 27312,
+    "ms:edgeOptions": {
+      "debuggerAddress": "localhost:41508"
+    },
+    "msedge": {
+      "msedgedriverVersion": "154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)",
+      "userDataDir": ""
+    },
+    "networkConnectionEnabled": false,
+    "pageLoadStrategy": "normal",
+    "platformName": "windows",
+    "proxy": {},
+    "setWindowRect": true,
+    "strictFileInteractability": false,
+    "timeouts": {
+      "implicit": 0,
+      "pageLoad": 300000,
+      "script": 30000
+    },
+    "unhandledPromptBehavior": "dismiss and notify",
+    "webauthn:extension:cmtgKey": true,
+    "webauthn:extension:credBlob": true,
+    "webauthn:extension:largeBlob": true,
+    "webauthn:extension:minPinLength": true,
+    "webauthn:extension:prf": true,
+    "webauthn:virtualAuthenticators": true
+  },
+  "environment": "Kinshoko 0.1.0 诊断信息\n生成时间：2026-10-08 20:01:07 UTC\n本报告不含文件名、路径与图片。\n\n[系统]\n系统：Windows 11 Professional 26H2（26300.9550）\n处理器：AMD Ryzen 7 5800X 8-Core Processor\n内存：31.9 GB\n显卡：NVIDIA GeForce RTX 4070 SUPER\n显卡：GameViewer Virtual Display Adapter\nWebView2：154.0.4258.62\n\n[显示器]\n1. VG27AQL1A（主显示器）：2560×1440，缩放 110%，SDR（自动色彩管理），每通道 8 位\n   配置文件：sRGB IEC61966-2.1，ICC 2.1，矩阵＋曲线，SHA-256 2b3aa1645779\n\n[Kinshoko 设置]\n强制 sRGB：关闭\n使用日志：关闭\n",
+  "first": {
+    "info": {
+      "id": "906530a259d0423b9620f990475d80e7",
+      "name": "原图来源 A",
+      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489665739\\libraries\\原图来源 A"
+    },
+    "card": {
+      "adult": false,
+      "height": 3200,
+      "id": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+      "imageId": "01a11d1af35c718f8f056d71d781443d",
+      "libraryId": "906530a259d0423b9620f990475d80e7",
+      "sources": [
+        {
+          "deleted": false,
+          "imageId": "01a11d1af35c718f8f056d71d781443d",
+          "libraryId": "906530a259d0423b9620f990475d80e7",
+          "libraryName": "原图来源 A",
+          "matches": true,
+          "unavailable": null
+        }
+      ],
+      "thumbnail": "906530a259d0423b9620f990475d80e7/01a11d1af35c718f8f056d71d781443d/256",
+      "width": 4800
+    }
+  },
+  "invokeDescriptor": {
+    "configurable": false,
+    "hasSetter": false,
+    "writable": false
+  },
+  "dpr": 1.1041666269302368,
+  "foregrounds": [
+    {
+      "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "pid": 27312,
+      "mainHwnd": 11012150,
+      "foregroundHwnd": 11012150,
+      "foregroundPid": 27312,
+      "activated": true,
+      "point": null,
+      "covering": [
+        {
+          "pid": 12488,
+          "hwnd": 986706,
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        },
+        {
+          "pid": 12488,
+          "hwnd": 985320,
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        },
+        {
+          "pid": 12488,
+          "hwnd": 65966,
+          "rect": {
+            "x": 0,
+            "y": 1387,
+            "width": 2560,
+            "height": 53
+          }
+        },
+        {
+          "pid": 12488,
+          "hwnd": 594846,
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        }
+      ],
+      "owned": [
+        {
+          "pid": 27312,
+          "hwnd": 11012150,
+          "rect": {
+            "x": 28,
+            "y": 28,
+            "width": 1429,
+            "height": 924
+          },
+          "title": "Kinshoko"
+        },
+        {
+          "pid": 27312,
+          "hwnd": 15204512,
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 16,
+            "height": 16
+          },
+          "title": "dev.kinshoko.spec78t17test-siw"
+        },
+        {
+          "pid": 27312,
+          "hwnd": 49353236,
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 16,
+            "height": 16
+          },
+          "title": ""
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "action": "copy",
+      "measuredBefore": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 385,
+        "y": 177
+      },
+      "frozenShown": {
+        "dpr": 1.1041666269302368,
+        "height": 168,
+        "left": 315.9905700683594,
+        "thumbWidth": 512,
+        "top": 104.98584747314453,
+        "width": 252,
+        "contentId": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+        "x": 385,
+        "y": 177
+      },
+      "token": "541588b2619c4e8da7927a9bed7948a6",
+      "region": {
+        "x": 448,
+        "y": 219,
+        "width": 31,
+        "height": 21
+      },
+      "crop": {
+        "x": 1200,
+        "y": 800,
+        "width": 591,
+        "height": 400
+      },
+      "native": {
+        "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+        "pid": 27312,
+        "mainHwnd": 11012150,
+        "foregroundHwnd": 11143454,
+        "foregroundPid": 27312,
+        "activated": null,
+        "point": [
+          448,
+          219
+        ],
+        "covering": [
+          {
+            "pid": 27312,
+            "hwnd": 11143454,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 2560,
+              "height": 1440
+            }
+          }
+        ],
+        "owned": [
+          {
+            "pid": 27312,
+            "hwnd": 11143454,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 2560,
+              "height": 1440
+            },
+            "title": "Kinshoko 截图"
+          },
+          {
+            "pid": 27312,
+            "hwnd": 11012150,
+            "rect": {
+              "x": 28,
+              "y": 28,
+              "width": 1429,
+              "height": 924
+            },
+            "title": "Kinshoko"
+          },
+          {
+            "pid": 27312,
+            "hwnd": 15204512,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 16,
+              "height": 16
+            },
+            "title": "dev.kinshoko.spec78t17test-siw"
+          },
+          {
+            "pid": 27312,
+            "hwnd": 49353236,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 16,
+              "height": 16
+            },
+            "title": ""
+          }
+        ]
+      },
+      "mainFocused": false,
+      "domAtSelection": [
+        {
+          "cls": "",
+          "id": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+          "tag": "IMG"
+        },
+        {
+          "cls": "card",
+          "id": "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a",
+          "tag": "DIV"
+        },
+        {
+          "cls": "wall-canvas",
+          "id": null,
+          "tag": "DIV"
+        },
+        {
+          "cls": "wall",
+          "id": null,
+          "tag": "DIV"
+        },
+        {
+          "cls": "app-main main",
+          "id": null,
+          "tag": "MAIN"
+        },
+        {
+          "cls": "app-body",
+          "id": null,
+          "tag": "DIV"
+        }
+      ]
+    }
+  ],
+  "error": "Error: Traceback (most recent call last):\r\n  File \"C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-pixels.py\", line 14, in <module>\r\n    assert list(image.size) == expected, (image.size, expected)\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nAssertionError: ((2561, 1441), [2560, 1440])\r\n\n    at frozenPatch (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:54:1184)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async capture (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:55:872)\n    at async verifyOriginal (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:59:135)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:95:3",
+  "requests": [
+    "86909a0c38cb44ff9868ed431959569f",
+    "d3046f1f807b4d86bb4c3246220da91a"
+  ],
+  "lateSent": null,
+  "finishedAt": "2026-10-08T20:01:19.227Z"
+}

@@ -1,0 +1,30 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+warning: unused variable: `publication`
+   --> crates\kinshoko-core\src\tagging\scheduler.rs:531:21
+    |
+531 |                 let publication = gate.as_ref().map(|gate| {
+    |                     ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_publication`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `kinshoko-core` (lib) generated 1 warning (run `cargo fix --lib -p kinshoko-core` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.22s
+     Running tests\tagging.rs (target\debug\deps\tagging-a19896a977635e73.exe)
+
+running 1 test
+
+thread 'pausing_discards_inference_waiting_for_publication_then_resume_can_retag' (48688) panicked at crates\kinshoko-core\tests\tagging.rs:765:5:
+assertion `left == right` failed
+  left: Some(Explicit)
+ right: None
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test pausing_discards_inference_waiting_for_publication_then_resume_can_retag ... FAILED
+
+failures:
+
+failures:
+    pausing_discards_inference_waiting_for_publication_then_resume_can_retag
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.12s
+
+error: test failed, to rerun pass `-p kinshoko-core --test tagging`

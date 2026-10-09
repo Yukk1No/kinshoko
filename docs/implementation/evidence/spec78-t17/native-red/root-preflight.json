@@ -1,0 +1,42 @@
+{
+  "observedAtUtc": "2026-10-08T19:34:56.7362013Z",
+  "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
+  "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
+  "reportedBuildSource": "4e8eaefb69c5d8ae326ed457945d5315928c17f5",
+  "sourceCount": 487,
+  "distCount": 10,
+  "sourceDistRuntimeMismatches": 0,
+  "desktopState": "queued, not launched",
+  "files": [
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t17-native\\binaries\\cc896c5\\kinshoko.exe",
+      "bytes": 100511744,
+      "sha256": "787B9855C83467D4AD4EBCB887DC8C5E4319C1617DC0084FF1A2496E9F81CECC"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\DirectML.dll",
+      "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t17-native\\binaries\\cc896c5\\DirectML.dll",
+      "bytes": 18527776,
+      "sha256": "9C9E6D822561C6C41B90E6994B3E8857CF1D66DBFB1E0C4C799C7C89B4E92DA1"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+      "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t17-native\\binaries\\cc896c5\\build-source.json",
+      "bytes": 132541,
+      "sha256": "2DBE10D5B8DA656C862B426147F1285BFF4ABD6BB1527879B2E5F13BC11F9FA5"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\tauri-config.json",
+      "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t17-native\\binaries\\cc896c5\\tauri-config.json",
+      "bytes": 79,
+      "sha256": "6669C4A7B5B1F21EE2B8E93A7D84E9525C9B8CE0AECE811AED91A2A94B917FC5"
+    },
+    {
+      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\wall-capture.mjs",
+      "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t17-native\\binaries\\cc896c5\\wall-capture.mjs",
+      "bytes": 22353,
+      "sha256": "E2C31EECE3FF7DEDF0F6D78F120E3D4C1C3DB8F25B017C02014E6C489AE21BC1"
+    }
+  ]
+}

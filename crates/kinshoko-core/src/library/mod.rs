@@ -52,7 +52,7 @@ mod types;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 use rusqlite::{OptionalExtension, params};
 
@@ -124,6 +124,7 @@ pub(crate) struct Inner {
     hub: Hub,
     recovery: RecoveryReport,
     translations: RwLock<Arc<tags::TranslationIndex>>,
+    package_publication_gate: RwLock<Option<Arc<Mutex<()>>>>,
     /// 安全模式是否开启；打开资料库时默认开启。
     safe_mode: AtomicBool,
     /// 参考视角的句柄是否已经交出。
@@ -254,12 +255,26 @@ impl Library {
                 hub: Hub::default(),
                 recovery,
                 translations: RwLock::default(),
+                package_publication_gate: RwLock::default(),
                 safe_mode: AtomicBool::new(true),
                 reference_taken: AtomicBool::new(false),
                 detached: false,
                 write_revoked: Arc::new(AtomicBool::new(false)),
             }),
         })
+    }
+
+    /// Serialize package/copy metadata publication with the application's final visible commit.
+    /// Only the short import transaction takes this gate; reading, hashing and decoding do not.
+    /// Ordinary and Eagle imports cannot change an existing image's effective content rating.
+    /// Configure writable handles before exposing them to application actions. Do not hold this
+    /// gate while calling package import/copy; those actions acquire it at publication.
+    pub fn use_package_publication_gate(&self, gate: Arc<Mutex<()>>) {
+        *self
+            .inner
+            .package_publication_gate
+            .write()
+            .unwrap_or_else(|e| e.into_inner()) = Some(gate);
     }
 
     pub fn info(&self) -> &LibraryInfo {

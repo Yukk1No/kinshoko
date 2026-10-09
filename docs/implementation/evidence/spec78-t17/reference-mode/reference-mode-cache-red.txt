@@ -1,0 +1,19 @@
+   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.95s
+     Running tests\reference_group_resolve.rs (target\debug\deps\reference_group_resolve-58f8e27a2d16f0dd.exe)
+
+running 1 test
+
+thread 'reference_authorization_uses_the_current_mode_instead_of_an_active_lens_cache' (42424) panicked at crates\kinshoko-core\tests\reference_group_resolve.rs:443:5:
+assertion failed: safe_references.image(&f.a.info().id, &f.a_images[1]).unwrap().sealed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test reference_authorization_uses_the_current_mode_instead_of_an_active_lens_cache ... FAILED
+
+failures:
+
+failures:
+    reference_authorization_uses_the_current_mode_instead_of_an_active_lens_cache
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.26s
+
+error: test failed, to rerun pass `-p kinshoko-core --test reference_group_resolve`
