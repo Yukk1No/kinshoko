@@ -3,7 +3,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import type { Channel } from "@tauri-apps/api/core";
 import type { ImportReport } from "../bindings/ImportReport";
-import { ImportBar } from "./ImportBar";
+import { createRef } from "react";
+import { ImportBar, type ImportActions } from "./ImportBar";
 
 afterEach(async () => {
   cleanup();
@@ -26,11 +27,16 @@ function backend() {
   }, { shouldMockEvents: true });
 }
 
+/** 导入入口在顶栏的分体按钮里（#98），它经 `actionsRef` 调用导入栏；测试同样经它调用。 */
+const actions = createRef<ImportActions>() as { current: ImportActions | null };
+const fromEagle = () => act(() => { actions.current!.eagle(); });
+
 function bar(props: { report: ImportReport | null }) {
   // 测试里启动命令总是返回 task-1，结束的也是它。
   const finished = props.report && { taskId: "task-1", report: props.report };
   return (
     <ImportBar
+      actionsRef={actions}
       enabled
       libraryId="L1"
       libraryName="参考"
@@ -57,7 +63,7 @@ describe("导入栏：Eagle 迁入后的标签外部对应", () => {
   it("从 Eagle 迁入完成后进入“标签的外部对应”一步", async () => {
     backend();
     const { rerender } = render(bar({ report: null }));
-    fireEvent.click(screen.getByRole("button", { name: "从 Eagle 导入…" }));
+    await fromEagle();
     fireEvent.click(await screen.findByRole("button", { name: "导入 主库" }));
     const plan = await screen.findByRole("dialog", { name: "从 Eagle 导入" });
     expect((await screen.findByRole<HTMLInputElement>("radio", { name: /继续跳过/ })).checked).toBe(true);
@@ -72,7 +78,7 @@ describe("导入栏：Eagle 迁入后的标签外部对应", () => {
   it("开始导入后对话框连同遮罩一起关闭，窗口仍可点按（#98 本机 r12）", async () => {
     backend();
     render(bar({ report: null }));
-    fireEvent.click(screen.getByRole("button", { name: "从 Eagle 导入…" }));
+    await fromEagle();
     fireEvent.click(await screen.findByRole("button", { name: "导入 主库" }));
     const plan = await screen.findByRole("dialog", { name: "从 Eagle 导入" });
     fireEvent.click(within(plan).getByRole("button", { name: "开始导入" }));
@@ -165,7 +171,7 @@ describe("导入对话框与右下角卡片（#98）", () => {
       return undefined;
     }, { shouldMockEvents: true });
     render(bar({ report: null }));
-    fireEvent.click(screen.getByRole("button", { name: "从 Eagle 导入…" }));
+    await fromEagle();
     fireEvent.click(await screen.findByRole("button", { name: "导入 主库" }));
     const plan = await screen.findByRole("dialog", { name: "从 Eagle 导入" });
     expect(within(plan).getByText("原库不会改动。")).toBeTruthy();
@@ -184,7 +190,7 @@ describe("导入对话框与右下角卡片（#98）", () => {
     const actions = { current: null as null | { showTasks: () => void } };
     const view = () => <ImportBar enabled libraryId="L1" libraryName="参考" ownerLabel="参考 / 人物"
       running={{ taskId: "task-1", progress: { done: 12, total: 38 } }} finished={null} onStarted={() => {}} onDismissReport={() => {}}
-      actionsRef={actions as never} hideActions />;
+      actionsRef={actions as never} />;
     const { rerender } = render(view());
     const card = await screen.findByRole("region", { name: "导入进度" });
     expect(within(card).getByText("放到 参考 / 人物")).toBeTruthy();

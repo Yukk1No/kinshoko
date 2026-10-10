@@ -22,7 +22,6 @@ export type FinishedImport = { taskId: string; report: ImportReport; libraryId?:
 
 type Props = {
   enabled: boolean;
-  previewContextActive?: boolean;
   previewContextKey?: string;
   libraryId: string;
   libraryName: string;
@@ -35,10 +34,7 @@ type Props = {
   onDismissReport: () => void;
   /** 到现有、受安全模式筛选的回收站，由画师决定恢复。 */
   onOpenTrash?: (libraryId?:string) => void;
-  /** 紧凑导入菜单需要展示待确认选择或通知时展开。 */
-  onShowRequested?: () => void;
-  /** 顶栏的导入分体按钮代替这里的三个入口（#98）：入口按钮不再重复显示，由 `actionsRef` 调用。 */
-  hideActions?: boolean;
+  /** 导入入口是顶栏的分体按钮（#98），经 `actionsRef` 调用这里的流程。 */
   actionsRef?: Ref<ImportActions>;
   /** 能否开始新的导入（与入口按钮的可用状态一致），以及是否正在查找 Eagle 资料库。 */
   onBusyChange?: (busy: boolean, lookingForEagle: boolean) => void;
@@ -50,11 +46,9 @@ type Props = {
   cardNotes?: ReactNode;
   /** 卡片上的保存位置，例如“角色参考 / 人物 / 发型”。 */
   ownerLabel?: string | null;
-  /** 右下角卡片挂在哪里：默认 body；null 表示就地显示。 */
-  cardsHost?: HTMLElement | null;
 };
 
-/** 三个导入入口，与入口按钮走同一流程。 */
+/** 三个导入入口（图片文件、整个文件夹、Eagle）与找回任务卡片。 */
 export type ImportActions = { files: () => void; folder: () => void; eagle: () => void; showTasks: () => void };
 
 function reason(outcome: ImportOutcome): string | null {
@@ -73,13 +67,13 @@ function reason(outcome: ImportOutcome): string | null {
  * 进度与结果是右下角的卡片：进行中可取消或后台进行，结束后列出没有进来的文件并可只重试读取失败的项。
  * 打开图库时若上次导入中断，提示撤回了哪些文件。
  */
-export function ImportBar({ previewContextActive=true, previewContextKey, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, onShowRequested, hideActions=false, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, cardsHost }: Props) {
+export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel }: Props) {
   /** “后台进行”收起的进度卡（按任务 id）；新任务或从导入菜单“查看导入任务”时重新显示。 */
   const [background, setBackground] = useState<string | null>(null);
   const report = finished?.report ?? null;
   const contextKey = previewContextKey ?? libraryId;
   const [preview, setPreview] = useState<{ taskId: string; contextKey: string } | null>(null);
-  useEffect(() => { setPreview(null); }, [finished?.taskId, contextKey, previewContextActive, enabled]);
+  useEffect(() => { setPreview(null); }, [finished?.taskId, contextKey, enabled]);
   const [hovering, setHovering] = useState(false);
   const [recovery, setRecovery] = useState<RecoveryReport | null>(null);
   const [eagleLibraries, setEagleLibraries] = useState<EagleLibraryCandidate[] | null>(null);
@@ -224,10 +218,6 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
     };
   }, [libraryId]);
 
-  useEffect(() => {
-    if (hovering || plan || (recovery && (recovery.interrupted.length > 0 || recovery.orphans.length > 0))) onShowRequested?.();
-  }, [hovering, plan, recovery, onShowRequested]);
-
   const { done = 0, total = 0 } = running?.progress ?? {};
   const counts = report && {
     imported: report.items.filter((i) => i.outcome.kind === "imported").length,
@@ -351,18 +341,8 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
 
   return (
     <div className="import-bar">
-      {!hideActions && <div className="import-actions">
-        <button type="button" onClick={importFiles} disabled={busy}>
-          导入文件…
-        </button>
-        <button type="button" onClick={() => void importFolder()} disabled={busy}>
-          导入文件夹…
-        </button>
-        <button type="button" onClick={findEagle} disabled={busy || lookingForEagle}>
-          {lookingForEagle ? "正在查找 Eagle 图库…" : "从 Eagle 导入…"}
-        </button>
-      </div>}
-      {cardsHost === null ? <div className="k-task-cards">{cards}</div> : createPortal(<div className="k-task-cards">{cards}</div>, cardsHost ?? document.body)}
+      {/* 右下角的进度与结果卡片挂在 body 上。 */}
+      {createPortal(<div className="k-task-cards">{cards}</div>, document.body)}
       <Dialog.Root open={plan !== null} onOpenChange={(open) => { if (!open && !preparing) setPlan(null); }}>
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />
@@ -428,7 +408,7 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
           {destination === null ? "松开即可导入，再选放在哪里" : `松开即可导入到 ${libraryName}`}
         </div>
       )}
-      {finished && preview?.taskId === finished.taskId && preview.contextKey === contextKey && previewContextActive && enabled && <SealedImportPreview key={finished.taskId} libraryId={finished.libraryId ?? libraryId} taskId={finished.taskId} onClose={() => setPreview(null)} />}
+      {finished && preview?.taskId === finished.taskId && preview.contextKey === contextKey && enabled && <SealedImportPreview key={finished.taskId} libraryId={finished.libraryId ?? libraryId} taskId={finished.taskId} onClose={() => setPreview(null)} />}
       <Dialog.Root open={tagStep} onOpenChange={(open) => { if (!open) setTagStep(false); }}>
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />

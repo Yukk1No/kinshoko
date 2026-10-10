@@ -183,11 +183,6 @@ button.primary {
   min-width: 0;
 }
 
-.import-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
 /* 拖进主窗口时整窗提示，不拦截指针。 */
 .drop-hint {
