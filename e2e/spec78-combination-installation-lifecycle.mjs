@@ -40,7 +40,7 @@ export function selectSpawnLineage(snapshot,spawned,historical=[],allowed=null) 
   }
   for(let pass=0;pass<=current.length;pass++){
     let changed=false;
-    for(const item of current){if(selected.has(item.pid)||!selected.has(item.parentPid))continue;const parent=selected.get(item.parentPid);if(!exact(item)||Date.parse(item.created)<Date.parse(parent.created)||Date.parse(item.created)>checkedAt||allowed&&!allowed.has(norm(item.executable)))fail("Descendant path/PID/creation is unconfirmed; preserve release failure");selected.set(item.pid,{...item,rootPid:parent.rootPid,rootCreated:parent.rootCreated,rootExecutable:parent.rootExecutable,ownership:"verified-current-parent"});changed=true;}
+    for(const item of current){if(selected.has(item.pid)||!selected.has(item.parentPid))continue;const parent=selected.get(item.parentPid);if(!exact(item)||Date.parse(item.created)<Date.parse(parent.created)||Date.parse(item.created)>checkedAt||allowed&&!allowed.has(norm(item.executable)))fail("Descendant path/PID/creation is unconfirmed; preserve release failure: "+JSON.stringify({item:relevant(item),parent:relevant(parent)}));selected.set(item.pid,{...item,rootPid:parent.rootPid,rootCreated:parent.rootCreated,rootExecutable:parent.rootExecutable,ownership:"verified-current-parent"});changed=true;}
     if(!changed){for(const item of current){const parent=[...spawned,...historical].find(value=>value.pid===item.parentPid);if(!selected.has(item.pid)&&parent&&Date.parse(item.created)>=Date.parse(parent.created))fail("A previously unobserved orphan may belong to a ended spawn; release remains unconfirmed");}return [...selected.values()];}
   }
   fail("Unexpected cyclic process ancestry");
