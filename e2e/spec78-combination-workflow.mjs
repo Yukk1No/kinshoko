@@ -267,6 +267,8 @@ export class CombinationWorkflow {
   async sourceActions() {
     this.phase("inactive-source-pin-group-and-copy");
     const d=this.d;
+    // The fixed bottom-right result cards cover the inspector's lower action row (r13); close them as a user would.
+    await this.dismissImportResults();
     // Multi-source detail is now the 详情 inspector, opened from the card's “在 N 个图库” control.
     await this.readyClick(`//*[@role='option' and @data-id=${literal(this.visibleCard.id)}]//button[contains(@class,'card-sources') and starts-with(@aria-label,'在 ')]`);
     await this.d.enabled("//aside[@aria-label='详情']//section[@aria-label='图库来源']");
@@ -328,6 +330,15 @@ export class CombinationWorkflow {
   sourceEditorLoaded(note) {
     // The explicit source is the editor's own libraryId/imageId identity and the pressed source segment.
     return until("source editor finished loading",()=>this.d.exec("const editor=document.querySelector('[aria-label=整理来源]');if(!editor||editor.textContent.includes('正在读取该来源…'))return null;const area=editor.querySelector('textarea[aria-label=备注]');if(area?.value!==arguments[0]||![...editor.querySelectorAll('fieldset button')].some(b=>b.textContent.trim()==='钉住'))return null;const pressed=[...document.querySelectorAll('[aria-label=当前操作的来源记录] [aria-pressed=true]')];return pressed.length===1?{note:area.value,source:editor.getAttribute('title')??'',segment:pressed[0].textContent.trim(),text:editor.textContent.slice(0,400)}:null;",[note]));
+  }
+  // Close every finished import result card (after each close the next remaining receipt shows).
+  async dismissImportResults() {
+    for (let closed = 0; await this.d.exec("const c=document.querySelector('section[aria-label=导入结果]');return !!c&&c.getClientRects().length>0;"); closed++) {
+      if (closed >= 20) throw Error("Import result cards did not close");
+      const before = (await this.d.invoke("import_tasks")).length;
+      await this.readyClick("//section[@aria-label='导入结果']//button[@aria-label='关闭导入结果']");
+      await until("one actual import receipt dismissed", async () => (await this.d.invoke("import_tasks")).length < before);
+    }
   }
   async groupsPane() {
     if (!await this.d.exec("return document.querySelector('button[aria-label=参考组]')?.getAttribute('aria-expanded')==='true';"))await this.readyClick("//button[@aria-label='参考组']");
