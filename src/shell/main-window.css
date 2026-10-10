@@ -201,3 +201,13 @@
 
 @media (prefers-reduced-motion: reduce) { .sidebar-slot, .inspector { transition: none; } }
 :root[data-reduced-motion] .sidebar-slot, :root[data-reduced-motion] .inspector { transition: none; }
+
+/* 窄主区（例如打开详情面板）：查找框收窄而不换行——条件标签横向滚动，“精确查找”保持一行；
+   张数与图片大小在更窄时收起（#98）。 */
+.app-main { container: main / inline-size; }
+.topbar > .search .search-chips { display: flex; flex: 0 1 auto; min-width: 0; gap: 6px; margin: 0; padding: 0; overflow-x: auto; scrollbar-width: none; }
+.topbar > .search .search-chips::-webkit-scrollbar { display: none; }
+.topbar > .search .search-field { flex: 1 1 72px; min-width: 72px; }
+.topbar > .search .search-exact { flex: none; white-space: nowrap; }
+@container main (max-width: 760px) { .bar-meta .density { display: none; } }
+@container main (max-width: 600px) { .bar-meta { display: none; } }
