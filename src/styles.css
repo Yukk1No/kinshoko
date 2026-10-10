@@ -116,43 +116,6 @@ button.primary {
   display: none;
 }
 
-.library-manager {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--line);
-}
-
-.library-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.library-actions label { display: flex; align-items: center; gap: 8px; }
-.library-actions select { max-width: 280px; font: inherit; }
-.library-switch-notice { margin: 6px 0; font-size: 12px; opacity: 0.75; }
-.library-registrations summary { cursor: pointer; }
-.library-registrations ul { max-height: 120px; overflow: auto; margin: 6px 0 0; padding: 0; list-style: none; }
-.library-registrations li { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 3px 0; }
-.library-registrations li > span { overflow-wrap: anywhere; }
-.library-registrations li > p { width: 100%; margin: 0; color: var(--accent-strong); }
-
-.app-toolbar {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--line);
-}
-
-.app-library-name {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 28px;
-  white-space: nowrap;
-}
-
 .app-main {
   flex: 1;
   min-height: 0;
@@ -164,12 +127,6 @@ button.primary {
 .app-main-centered {
   align-items: center;
   justify-content: center;
-}
-
-.app-status {
-  padding: 4px 12px;
-  font-size: 12px;
-  opacity: 0.6;
 }
 
 /* 建库 */
@@ -226,16 +183,10 @@ button.primary {
   min-width: 0;
 }
 
-.import-actions,
-.import-progress {
+.import-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.import-progress progress {
-  width: 200px;
-  accent-color: var(--accent);
 }
 
 /* 拖进主窗口时整窗提示，不拦截指针。 */
@@ -389,15 +340,6 @@ button.primary {
 }
 
 /* 设置（#61） */
-.app-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.app-status button {
-  font: inherit;
-}
 
 /* 状态栏里的自动标签 */
 .tagging {
@@ -414,12 +356,6 @@ button.primary {
 .settings h2 {
   margin: 0 0 8px;
   font-size: 15px;
-}
-
-.settings-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
 }
 
 .settings-hint {
@@ -477,10 +413,6 @@ button.primary {
 .pin-runtime-problem { position: absolute; inset: 0; z-index: 20; max-height: none; background: var(--bg, #24252b); color: var(--text, #ededf2); }
 
 /* 本地备份与恢复（#69） */
-.backup-scope {
-  margin: 4px 0 8px;
-  border: 1px solid var(--line);
-}
 
 .backup-libraries {
   padding-left: 20px;
@@ -510,12 +442,6 @@ button.primary {
 
 .settings-shortcuts td {
   padding: 2px 8px 2px 0;
-}
-
-.settings-problem {
-  margin-left: 8px;
-  color: #c62828;
-  font-size: 12px;
 }
 
 /* 侧栏与整理（#50） */
@@ -1474,7 +1400,6 @@ button.primary {
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
 :root[data-reduced-motion] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
 
-
 :root { --font-ui: var(--font); --text: var(--ink); }
 .rail { width: 56px; flex: none; background: var(--rail); border-right: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; padding: 10px 0; z-index: 3; }
 .brand { height: 44px; display: grid; place-items: center; margin-bottom: 8px; }
@@ -1501,7 +1426,6 @@ button.primary {
 .tip kbd { background: transparent; color: inherit; border-color: color-mix(in srgb, var(--bg) 40%, transparent); opacity: 0.8; }
 .rail-btn:hover .tip, .rail-btn:focus-visible .tip { opacity: 1; transform: translate(0, -50%); }
 
-
 body { font-size: 13px; line-height: 20px; overflow: hidden; }
 * { box-sizing: border-box; }
 .app-shell { flex-direction: row; }
@@ -1517,19 +1441,11 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .pane-head h1 { overflow: hidden; text-overflow: ellipsis; }
 .pane-body { width: 247px; flex: 1; min-height: 0; overflow-y: auto; padding: 10px 8px 16px; }
 .pane-body[hidden] { display: none; }
-.icon-tool { width: 28px; height: 28px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 7px; font-size: 22px; color: var(--ink-2); }
-.icon-tool:hover { background: var(--hover); color: var(--ink); }
 .topbar { display: flex; align-items: center; min-height: 52px; flex: none; padding: 8px 12px; gap: 8px; background: var(--surface); border-bottom: 1px solid var(--line); z-index: 2; }
 .topbar > .search { flex: 1; min-width: 0; border: 0; padding: 0; }
 .collapsed-library { max-width: 240px; flex: none; }
-.collapsed-library .library-manager { padding: 0; border: 0; }
-.collapsed-library .library-switch-notice, .collapsed-library .library-registrations { display: none; }
-.app-toolbar { background: var(--surface); padding: 6px 12px; gap: 8px; align-items: center; flex: none; }
 .selection-hint { font-size: 12px; line-height: 18px; color: var(--ink-3); white-space: nowrap; }
-.app-status { min-height: 28px; padding: 4px 12px; background: var(--surface); border-top: 1px solid var(--line); flex: none; }
 .wall { scrollbar-gutter: stable; }
-.settings-overlay { position: absolute; inset: 24px; z-index: 12; overflow: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); padding: 12px; }
-.settings-overlay > header { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 12px; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Accepted tag-group popovers/chips, adapted from the fixed prototype styles. */
@@ -1556,27 +1472,14 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .chip.manual { border-color: color-mix(in srgb, var(--manual) 55%, transparent); background: var(--manual-soft); }
 .chip.auto { border-style: dashed; }
 .chip.is-rejected { color: var(--ink-3); text-decoration: line-through; border-style: dashed; height: 24px; font-size: 12px; }
-.chip-main { display: inline-flex; align-items: center; gap: 4px; height: 100%; }
-.chip-main svg { color: var(--manual); }
-.chip.auto .chip-main svg { color: var(--ink-3); }
 .chip-x { width: 16px; height: 16px; border-radius: 4px; display: grid; place-items: center; color: var(--ink-3); opacity: 0; margin-right: -4px; }
 .chip:hover .chip-x, .chip-x:focus-visible { opacity: 1; }
 .chip-x:hover { background: var(--hover); color: var(--ink); }
 
-
 .groupbar-empty { color: var(--ink-3); font-size: 12px; padding: 2px 0; }
-.tag-organize > summary { cursor: pointer; color: var(--ink-2); padding: 8px; }
 
-.library-manager { padding: 0 0 10px; border: 0; }
-.library-actions label { display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 100%; font-size: 12px; color: var(--ink-2); }
-.library-actions select { max-width: 100%; padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: var(--surface); }
-.library-tools { margin-top: 6px; position: relative; }
-.library-tools > summary { color: var(--ink-2); cursor: pointer; font-size: 12px; }
 .library-tools-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .library-tools-actions button { padding: 4px 8px; font-size: 12px; }
-.collapsed-library .library-actions label { flex-direction: row; align-items: center; width: auto; }
-.collapsed-library .library-tools { position: absolute; top: 42px; z-index: 8; }
-.collapsed-library .library-tools[open] { width: 248px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
 
 .app-empty-workspace { display: flex; flex: 1; min-height: 0; }
 .empty-context { width: 248px; flex: none; overflow: auto; background: var(--surface); }
@@ -1590,11 +1493,6 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .density input { width: 96px; accent-color: var(--accent); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .import-menu { position: relative; flex: none; }
-.import-popup { position: absolute; top: calc(100% + 8px); right: 0; width: min(560px, calc(100vw - 88px)); max-height: calc(100vh - 100px); overflow: auto; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
-.import-popup[hidden] { display: none; }
-.import-popup > header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.import-popup .import-actions { flex-wrap: wrap; }
-.import-popup .selection-hint { margin: 10px 0 0; }
 
 .groupbar { min-height: 41px; align-items: center; }
 
@@ -1605,12 +1503,10 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .legacy-name-migration .settings-shortcuts small { display: block; opacity: .6; font-size: 11px; }
 
 .legacy-name-migration { min-width: 0; }
-.legacy-name-migration .settings-row select { min-width: 0; max-width: 100%; }
 .workspace-scope { padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
 .workspace-provider { min-width: 0; }
 .provider-state { font-size: 11px; opacity: .7; }
 .provider-problem { font-size: 11px; padding: 0 8px 8px; overflow-wrap: anywhere; opacity: .7; }
-.workspace-sources-overlay { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: #0008; }
 .workspace-sources { width: min(540px, 90vw); max-height: 80vh; overflow: auto; background: var(--bg); color: var(--text); padding: 18px; border: 1px solid var(--line); border-radius: 8px; }
 .workspace-sources header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .workspace-sources h2 { font-size: 16px; margin: 0; }
@@ -1643,8 +1539,6 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .workspace-source-path { font-size: 12px; color: var(--ink-2); overflow-wrap: anywhere; width: 100%; }
 
 /* Accepted settings fieldset pattern; a portable backup path can be longer than the window. */
-.settings-backup-path { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.settings-backup-path input { box-sizing: border-box; width: 100%; min-width: 0; }
 /* T10: shared explicit save position, adapted from the accepted provider selectors. */
 .save-destination { display: grid; gap: 8px; margin: 8px 0 12px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
 .save-destination legend { padding: 0 5px; color: var(--muted); font-size: 12px; }
@@ -1652,9 +1546,6 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .save-destination select { width: 100%; min-width: 0; }
 .save-destination p { margin: 0; }
 .save-final-position { font-weight: 600; overflow-wrap: anywhere; }
-.save-library-path { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
-.import-owner { padding: 8px; margin: 10px 0 0; border-radius: 6px; background: var(--bg); overflow-wrap: anywhere; }
-.save-destination-overlay { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; background: #0008; padding: 24px; }
 .save-destination-dialog { width: min(500px, 100%); max-height: calc(100vh - 48px); overflow: auto; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
 .save-destination-dialog h3 { margin-top: 0; }
 .save-destination-dialog > button { margin: 8px 8px 0 0; }

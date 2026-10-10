@@ -74,8 +74,6 @@
 .sidebar-tree .sidebar-tree { padding-left: 0; }
 .sidebar-folders { flex: none; }
 .sub-toggle { display: flex; align-items: center; gap: 8px; height: 32px; margin-top: 8px; padding: 0 8px; color: var(--ink-3); font-size: 12px; }
-.tag-organize { margin-top: 8px; }
-.tag-organize > summary { padding: 6px 8px; font-size: 12px; color: var(--ink-3); }
 
 .tagging { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 8px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2);
   color: var(--ink-2); font-size: 12px; line-height: 18px; }
@@ -188,18 +186,12 @@
 
 /* ---- Import popup (task receipts) on the new tokens ---- */
 .import-menu { position: relative; flex: none; }
-.import-popup { top: calc(100% + 8px); border: 0; border-radius: var(--r-l); box-shadow: var(--shadow-pop); padding: 14px 16px; z-index: 30; }
-.import-popup > header { margin-bottom: 8px; }
-.import-popup > header strong { font-size: 15px; }
-.import-progress progress { accent-color: var(--accent); }
 
 /* ---- Empty workspace ---- */
 .app-empty-workspace { display: flex; flex: 1; min-height: 0; }
 .app-main-centered { align-items: stretch; }
 .app-empty-body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; }
 .library-onboarding { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.settings-overlay > header { gap: 12px; }
-.settings-version { margin-left: auto; color: var(--ink-3); font-size: 12px; }
 
 @media (prefers-reduced-motion: reduce) { .sidebar-slot, .inspector { transition: none; } }
 :root[data-reduced-motion] .sidebar-slot, :root[data-reduced-motion] .inspector { transition: none; }
