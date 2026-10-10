@@ -48,6 +48,19 @@ export function selectSpawnLineage(snapshot,spawned,historical=[],allowed=null) 
 // r3: WebView2 starts %SystemRoot%\System32\conhost.exe under its own process. It is accepted only by
 // exact system path, and only through the same verified parent/creation lineage as every descendant.
 export const consoleHost=()=>join(process.env.SystemRoot??fail("SystemRoot is unknown"),"System32","conhost.exe");
+// r4: the silent in-place uninstaller (_?=) can exit before the first process query sees it. Node's own
+// ChildProcess then holds the only identity and its real exit. Accept that only when the snapshot taken
+// after the exit holds no process that names this PID as parent and was created after the spawn began;
+// such a child could be an unobserved descendant, so it fails instead.
+export function exitedBeforeObservation(snapshot,spawned){
+  if(!Array.isArray(snapshot?.processes)||!Number.isFinite(Date.parse(snapshot.checkedAt)))fail("A complete successful process query is required");
+  if(!Number.isSafeInteger(spawned?.pid)||spawned.pid<=0||!Number.isSafeInteger(spawned.startedAt)||!Number.isSafeInteger(spawned.exitedAt)||spawned.exitedAt<spawned.startedAt||spawned.exit===null&&!spawned.signal)fail("Only an exited spawn with a recorded Node identity and exit qualifies");
+  if(Date.parse(snapshot.checkedAt)<spawned.exitedAt)fail("The process query must follow the observed exit");
+  if(snapshot.processes.some(item=>item.pid===spawned.pid))fail("The exited PID is present again; leave it untouched");
+  const orphans=snapshot.processes.filter(item=>item.parentPid===spawned.pid&&!(Date.parse(item.created)<spawned.startedAt));
+  if(orphans.length)fail("An exited-before-observation spawn has possible descendants: "+JSON.stringify(orphans.map(relevant)));
+  return {pid:spawned.pid,startedAt:spawned.startedAt,returnedAt:spawned.returnedAt,exitedAt:spawned.exitedAt,exit:spawned.exit,signal:spawned.signal??null,checkedAt:snapshot.checkedAt,exitedBeforeObservation:true,descendants:[]};
+}
 export function classifyInstallationProcesses(snapshot,binding,historical=[]) {
   const allowed=new Set([binding.application,binding.tauriDriver,binding.edgeDriver,binding.webviewBinary,consoleHost()].map(norm)),processes=selectSpawnLineage(snapshot,binding.spawned??[],historical,allowed),selected=new Set(processes.map(item=>item.pid)),collisions=[];
   for(const item of processes)if(norm(item.executable)===norm(binding.webviewBinary)&&!profileMatches(item,binding.profile))fail("A descended WebView has an unconfirmed profile; do not close it or restore settings");
@@ -111,7 +124,7 @@ try{$key=$cu.OpenSubKey($path,$false);if($null -eq $key){'{"removed":false,"abse
 `;
 export const localDataScript=String.raw`
 $ErrorActionPreference='Stop'
-Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)) $env:KINSHOKO_T20_IDENTIFIER | ConvertTo-Json -Compress
+@{local=(Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)) $env:KINSHOKO_T20_IDENTIFIER);roaming=(Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData)) $env:KINSHOKO_T20_IDENTIFIER)} | ConvertTo-Json -Compress
 `;
 export const installedVersionScript=String.raw`
 $ErrorActionPreference='Stop'
@@ -162,12 +175,15 @@ function restoreAliases(plan,initial,boundary) {
   else if(after.requested.exists||after.resolved.exists||norm(initial.state.requested.path)!==norm(after.requested.path))fail("Initially absent isolated settings were not restored to absence");
   return {initial:initial.state,current,after,canonicalMappingMayChangeWhileAbsent:!initial.state.requested.exists};
 }
-// The installed app creates %LOCALAPPDATA%\<identifier> through the KnownFolder API (env overrides do not
-// apply). Observe it; at the end remove it only if it was absent before and is still empty.
-function localDataState(plan){const path=powershell(plan,localDataScript,{KINSHOKO_T20_IDENTIFIER:identity});if(!isAbsolute(path)||basename(path)!==identity)fail("Unexpected isolated local data path");const exists=existsSync(path);return {path,exists,entries:exists?readdirSync(path):[]};}
-function restoreLocalData(plan,initial){const current=localDataState(plan);if(initial.exists){if(!current.exists)fail("Pre-existing isolated local data disappeared");return {initial,current,removed:false};}
-  if(current.exists){if(current.entries.length||!statSync(current.path).isDirectory())fail("Isolated local data created during the run is not empty; preserve it");rmdirSync(current.path);}
-  const after=localDataState(plan);if(after.exists)fail("Isolated local data directory remains");return {initial,current,after,removed:current.exists};}
+// The installed app creates %APPDATA%\<identifier> and %LOCALAPPDATA%\<identifier> through the KnownFolder
+// API (env overrides do not apply). Observe both; at the end remove each only if it was absent before and is empty.
+function localDataState(plan){const paths=powershell(plan,localDataScript,{KINSHOKO_T20_IDENTIFIER:identity});return Object.fromEntries(["local","roaming"].map(name=>{const path=paths[name];if(!isAbsolute(path??"")||basename(path)!==identity)fail("Unexpected isolated "+name+" data path");const exists=existsSync(path);return [name,{path,exists,entries:exists?readdirSync(path):[]}];}));}
+// Runs after the settings file itself is restored, so an initially absent Roaming directory is empty again.
+function restoreLocalData(plan,initial){const current=localDataState(plan),removed=[];
+  for(const name of ["local","roaming"]){const before=initial[name],now=current[name];if(norm(before.path)!==norm(now.path))fail("Isolated "+name+" data path changed");
+    if(before.exists){if(!now.exists)fail("Pre-existing isolated "+name+" data disappeared");continue;}
+    if(now.exists){if(now.entries.length||!statSync(now.path).isDirectory())fail("Isolated "+name+" data created during the run is not empty; preserve it");rmdirSync(now.path);removed.push(name);}}
+  const after=localDataState(plan);for(const name of ["local","roaming"])if(after[name].exists!==initial[name].exists)fail("Isolated "+name+" data directory was not restored");return {initial,current,after,removed};}
 export class InstalledLifecycleDriver extends CombinationDriver {
   constructor(plan,stage,phase){super({application:stage.application,edgeDriver:plan.runtime.edgeDriver.path,tauriDriver:plan.runtime.tauriDriver.path,work:stage.work,port:4630,data:stage.data,profile:stage.profile});this.plan=plan;this.phase=phase;this.binding={application:this.application,tauriDriver:this.tauriDriver,edgeDriver:this.edgeDriver,webviewBinary:plan.runtime.webviewBinary.path,profile:this.profile,spawned:[]};this.logs=[];}
   querySnapshot(){return powershell(this.plan,installationObservationScript);}
@@ -237,10 +253,10 @@ export class InstallationRound {
     const before=this.query();if(before.processes.some(item=>norm(item.executable)===norm(executable.path)))fail("A pre-existing exact NSIS executable is a collision, not this round's process");
     const locks=spawnSync(this.plan.runtime.python.path,[this.plan.helpers.locks.path,stage.application],{windowsHide:true,encoding:"utf8",timeout:10000});if(locks.status!==0||locks.error)fail("Actual RestartManager observation failed: "+locks.stderr);const users=JSON.parse(locks.stdout);if(!Array.isArray(users.users)||users.users.length)fail("Actual install target still has RestartManager users");
     const action={label,executable,args,cwd:repo,locks:users,startedAt:new Date().toISOString(),status:"starting",birth:null,observed:[],release:null,exit:null};this.report.actions.push(action);this.installerSettled=false;this.save();
-    const out=openSync(join(this.plan.work,label+"-stdout.txt"),"wx"),err=openSync(join(this.plan.work,label+"-stderr.txt"),"wx");let child,spawnError;
-    try{const startedAt=Date.now();child=this.launch(executable.path,args,{cwd:repo,windowsHide:true,stdio:["ignore",out,err]});const returnedAt=Date.now();child.on("error",error=>{spawnError=error;});action.spawnTiming={startedAt,returnedAt,childPid:child.pid};this.save();
-      action.birth=await untilStrict("actual NSIS ChildProcess birth "+label,()=>{if(spawnError)fail(String(spawnError));const snapshot=this.query(),observedAt=Date.now(),observed=snapshot.processes.find(value=>value.pid===child.pid);if(!observed)return null;const item={...observed,birth:{startedAt,returnedAt,observedAt,childPid:child.pid,creatorPid:process.pid,executable:executable.path}};if(!boundedBirth(item)||norm(item.executable)!==norm(executable.path)||child.exitCode!==null||child.signalCode!==null)fail("NSIS process birth is not this round's exact live spawn");return item;});this.report.installerExecuted=true;action.status="running";this.save();
-      const historical=[];action.release=await untilStrict("actual NSIS exit and verified descendant release "+label,()=>{if(spawnError)fail(String(spawnError));const snapshot=this.query(),current=selectSpawnLineage(snapshot,[action.birth],historical);for(const item of current)if(!historical.some(prior=>sameInstance(item,prior)))historical.push(item);action.observed=historical;action.exit=child.exitCode;action.signal=child.signalCode;this.save();return child.exitCode!==null&&!current.length?{checkedAt:snapshot.checkedAt,processes:current}:null;},120000);
+    const out=openSync(join(this.plan.work,label+"-stdout.txt"),"wx"),err=openSync(join(this.plan.work,label+"-stderr.txt"),"wx");let child,spawnError,exitedAt=null;
+    try{const startedAt=Date.now();child=this.launch(executable.path,args,{cwd:repo,windowsHide:true,stdio:["ignore",out,err]});const returnedAt=Date.now();child.on("error",error=>{spawnError=error;});child.on("exit",()=>{exitedAt??=Date.now();});action.spawnTiming={startedAt,returnedAt,childPid:child.pid};this.save();
+      action.birth=await untilStrict("actual NSIS ChildProcess birth "+label,()=>{if(spawnError)fail(String(spawnError));const snapshot=this.query(),observedAt=Date.now(),observed=snapshot.processes.find(value=>value.pid===child.pid);if(!observed){if(exitedAt===null)return null;action.exitedBeforeObservation=exitedBeforeObservation(snapshot,{pid:child.pid,startedAt,returnedAt,exitedAt,exit:child.exitCode,signal:child.signalCode});return action.exitedBeforeObservation;}const item={...observed,birth:{startedAt,returnedAt,observedAt,childPid:child.pid,creatorPid:process.pid,executable:executable.path}};if(!boundedBirth(item)||norm(item.executable)!==norm(executable.path)||child.exitCode!==null||child.signalCode!==null)fail("NSIS process birth is not this round's exact live spawn");return item;});this.report.installerExecuted=true;action.status="running";this.save();
+      const historical=[];if(action.exitedBeforeObservation){action.exit=child.exitCode;action.signal=child.signalCode;}action.release=action.exitedBeforeObservation?{checkedAt:action.exitedBeforeObservation.checkedAt,processes:[],exitedBeforeObservation:true}:await untilStrict("actual NSIS exit and verified descendant release "+label,()=>{if(spawnError)fail(String(spawnError));const snapshot=this.query(),current=selectSpawnLineage(snapshot,[action.birth],historical);for(const item of current)if(!historical.some(prior=>sameInstance(item,prior)))historical.push(item);action.observed=historical;action.exit=child.exitCode;action.signal=child.signalCode;this.save();return child.exitCode!==null&&!current.length?{checkedAt:snapshot.checkedAt,processes:current}:null;},120000);
       this.installerSettled=true;action.finishedAt=new Date().toISOString();action.status=action.exit===0&&!action.signal?"exited-and-released":"failed-exit-released";this.save();if(action.exit!==0||action.signal)fail("Actual NSIS command exited with failure; do not retry this sample");return action;
     }catch(error){action.error=String(error);if(!action.release){action.status="failed-unconfirmed";action.exit=child?.exitCode;action.signal=child?.signalCode;}this.save();throw error;}finally{closeSync(out);closeSync(err);}
   }
