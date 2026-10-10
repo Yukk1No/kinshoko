@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useMemo, useRef, type ReactNode } from "react";
 import { Toast } from "@base-ui/react/toast";
 import { CircleAlert, CircleCheck, Info, X } from "lucide-react";
 
@@ -21,18 +21,21 @@ export type ToastApi = {
 const Manager = createContext<ToastApi | null>(null);
 
 function Bridge({ children }: { children: ReactNode }) {
+  // The manager object changes identity between renders; keep the API stable so it can sit in effect deps.
   const manager = Toast.useToastManager();
+  const latest = useRef(manager);
+  latest.current = manager;
   const api = useMemo<ToastApi>(() => {
-    const show = ({ title, description, tone = "info", timeout, action }: ToastOptions): string => manager.add({
+    const show = ({ title, description, tone = "info", timeout, action }: ToastOptions): string => latest.current.add({
       title, description, type: tone, timeout: timeout ?? (tone === "error" ? 0 : 5000), priority: tone === "error" ? "high" : "low",
       actionProps: action ? { children: action.label, onClick: action.onClick } : undefined,
     });
     return {
       show,
       error: (message, options = {}) => show({ ...options, title: message, tone: "error" }),
-      close: (id) => manager.close(id),
+      close: (id) => latest.current.close(id),
     };
-  }, [manager]);
+  }, []);
   return <Manager.Provider value={api}>{children}</Manager.Provider>;
 }
 

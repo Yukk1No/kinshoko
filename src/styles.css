@@ -1540,6 +1540,7 @@ button.primary {
   --seal-acc: var(--seal);
   --muted: var(--ink-3);
   --win-close: #C94A4A; --on-win-close: #FFFDF8;
+  --warn: #A0700F; --warn-strong: #5E4510; --warn-soft: #FBF4E4; --ok: #3E7A4D; --ok-soft: #E3F1E6;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --t-fast: 120ms; --t: 200ms; --t-slow: 260ms;
   color-scheme: light;
@@ -1554,6 +1555,7 @@ button.primary {
     --wall: #161618; --card: #222224; --danger: #F08A8A;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.45);
     --sunken: #19172A; --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+    --warn: #E3B34F; --warn-strong: #F0CF86; --warn-soft: rgba(227, 179, 79, 0.12); --ok: #8FCB9C; --ok-soft: rgba(127, 179, 138, 0.16);
     color-scheme: dark;
   }
 }
@@ -1566,6 +1568,7 @@ button.primary {
   --wall: #161618; --card: #222224; --danger: #F08A8A;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.45);
   --sunken: #19172A; --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --warn: #E3B34F; --warn-strong: #F0CF86; --warn-soft: rgba(227, 179, 79, 0.12); --ok: #8FCB9C; --ok-soft: rgba(127, 179, 138, 0.16);
   color-scheme: dark;
 }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
