@@ -109,7 +109,29 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
           );
         })}
       </ul>
-      {collecting && <SaveDestinationDialog title="收藏截图" onClose={() => setCollecting(null)} onConfirm={(destination) => collectCapture(collecting, destination)} />}
+      {collecting && (
+        <SaveDestinationDialog
+          title="收藏截图"
+          description="选好图库和文件夹，截图会存进去。"
+          summary={<CaptureSummary entry={entries?.find((entry) => entry.id === collecting)} id={collecting} />}
+          confirmLabel="收藏"
+          onClose={() => setCollecting(null)}
+          onConfirm={(destination) => collectCapture(collecting, destination)}
+        />
+      )}
     </section>
+  );
+}
+
+/** 收藏对话框里要收藏的那张截图：缩略图、名称与尺寸。 */
+function CaptureSummary({ entry, id }: { entry: CaptureEntry | undefined; id: string }) {
+  return (
+    <>
+      <img className="capture-collect-thumb" src={captureUrl(id)} alt="" draggable={false} />
+      <span className="capture-history-text">
+        <span className="capture-history-name">{entry ? `截图 ${time(entry.createdAt)}` : "截图"}</span>
+        {entry && <span className="capture-history-meta">{entry.width} × {entry.height}</span>}
+      </span>
+    </>
   );
 }
