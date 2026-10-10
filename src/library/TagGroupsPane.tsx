@@ -134,7 +134,33 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
     setPicking((id) => id !== null && !groups.some((group) => group.id === id) ? null : id);
     setDeleting((id) => id !== null && !groups.some((group) => group.id === id) ? null : id);
   }, [fresh, groups]);
+  // 操作期间按钮被禁用、刷新时行会重建，焦点会丢到页面上。记下焦点所在操作（data-focus-key），
+  // 刷新完成后按同一键找回；该操作已不存在或不可用时，依次退到同成员或同分组的其他操作。
+  const section = useRef<HTMLElement>(null);
+  const restore = useRef<string | null>(null);
+  const remember = (fallback?: string) => {
+    const active = document.activeElement as HTMLElement | null;
+    const focused = active && section.current?.contains(active) ? active.dataset.focusKey : undefined;
+    restore.current = focused ?? fallback ?? restore.current;
+  };
+  useEffect(() => {
+    const wanted = restore.current;
+    if (!fresh || busy || wanted === null || !section.current) return;
+    restore.current = null;
+    const parts = wanted.split(":");
+    const group = parts[0];
+    const chain = [wanted];
+    if (parts.length === 3) chain.push(...["up", "down", "remove", "chip"].map((action) => `${group}:${parts[1]}:${action}`));
+    else chain.push(`${group}:up`, `${group}:down`);
+    chain.push(`${group}:name`, `${group}:rename`, "new");
+    const targets = [...section.current.querySelectorAll<HTMLButtonElement>("[data-focus-key]")];
+    for (const candidate of chain) {
+      const target = targets.find((element) => element.dataset.focusKey === candidate);
+      if (target && !target.disabled) { target.focus(); return; }
+    }
+  }, [fresh, busy, groups]);
   const run = async (action: Promise<unknown>) => {
+    remember();
     setPendingKey(key);
     try {
       await action;
@@ -152,14 +178,15 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
   const deletingGroup = groups.find((group) => group.id === deleting);
   // 每个分组一行：名称与成员数，悬停或聚焦时露出操作；成员是可排序的小标签。删除先确认（#98，design/ui-system/README.md）。
   return (
-    <section className="sidebar-tag-groups k-groups" aria-label={label} aria-busy={busy || !fresh}>
+    <section ref={section} className="sidebar-tag-groups k-groups" aria-label={label} aria-busy={busy || !fresh}>
       <div className="k-groups-head">
         <span className="k-groups-count">{fresh ? `${groups.length} 个分组` : "分组"}</span>
-        <button type="button" className="k-btn is-sm" aria-label="新建标签分组" title="新建分组" disabled={busy || !fresh} onClick={() => setCreating(true)}>
+        <button type="button" className="k-btn is-sm" aria-label="新建标签分组" title="新建分组" data-focus-key="new" disabled={busy || !fresh} onClick={() => setCreating(true)}>
           <Plus size={14} aria-hidden="true" />新建分组</button>
       </div>
       {creating && <NewGroup onDone={(group) => {
         setCreating(false);
+        remember("new");
         if (group) void run(createSharedTagGroup(group.name, group.namespace));
       }} />}
       {!fresh && <p className="k-set-note" role="status">正在更新标签分组…</p>}
@@ -170,10 +197,11 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
         return <div key={group.id} role="group" aria-label={fresh ? group.name : undefined} className="sidebar-tag-group k-group">
           {renaming === group.id ? <NameInput label="标签分组名称" initial={group.name} onDone={(name) => {
             setRenaming(null);
+            remember(`${group.id}:rename`);
             if (name && name !== group.name) void edit({ kind: "rename", groupId: group.id, name });
           }} /> : fresh && <FluidRow index={index}>
             <div className="sidebar-tag-group-head k-group-row">
-              <button type="button" className="sidebar-item k-group-name" aria-label={`${group.name}（${group.tags.length} 个标签）`}
+              <button type="button" className="sidebar-item k-group-name" data-focus-key={`${group.id}:name`} aria-label={`${group.name}（${group.tags.length} 个标签）`}
                 title="按分组中任一标签查找；双击改名" disabled={busy || !onBrowse || !group.tags.length}
                 onClick={() => onBrowse?.(group.tags.map((tag) => tag.tag.id))} onDoubleClick={() => setRenaming(group.id)}>
                 <Tags size={15} aria-hidden="true" className="k-group-icon" />
@@ -181,35 +209,35 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
                 <span className="k-group-meta">{group.namespace === null ? `${group.tags.length} 个标签` : kind}</span>
               </button>
               <span className="k-group-acts">
-                {group.namespace === null && <button type="button" className="k-icon-btn is-sm" aria-label={`给“${group.name}”加标签`} title="加标签" disabled={busy} onClick={() => setPicking(group.id)}><Plus size={15} aria-hidden="true" /></button>}
-                <button type="button" className="k-icon-btn is-sm" aria-label={`改名标签分组“${group.name}”`} title="改名" disabled={busy} onClick={() => setRenaming(group.id)}><PenLine size={14} aria-hidden="true" /></button>
-                <button type="button" className="k-icon-btn is-sm" aria-label={`上移标签分组“${group.name}”`} title="上移" disabled={busy || index === 0}
+                {group.namespace === null && <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:add`} aria-label={`给“${group.name}”加标签`} title="加标签" disabled={busy} onClick={() => setPicking(group.id)}><Plus size={15} aria-hidden="true" /></button>}
+                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:rename`} aria-label={`改名标签分组“${group.name}”`} title="改名" disabled={busy} onClick={() => setRenaming(group.id)}><PenLine size={14} aria-hidden="true" /></button>
+                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:up`} aria-label={`上移标签分组“${group.name}”`} title="上移" disabled={busy || index === 0}
                   onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, -1) })}><ArrowUp size={14} aria-hidden="true" /></button>
-                <button type="button" className="k-icon-btn is-sm" aria-label={`下移标签分组“${group.name}”`} title="下移" disabled={busy || index === groups.length - 1}
+                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:down`} aria-label={`下移标签分组“${group.name}”`} title="下移" disabled={busy || index === groups.length - 1}
                   onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, 1) })}><ArrowDown size={14} aria-hidden="true" /></button>
-                <button type="button" className="k-icon-btn is-sm is-danger" aria-label={`删除标签分组“${group.name}”`} disabled={busy}
+                <button type="button" className="k-icon-btn is-sm is-danger" data-focus-key={`${group.id}:delete`} aria-label={`删除标签分组“${group.name}”`} disabled={busy}
                   title="删除分组（图片标签不变）" onClick={() => setDeleting(group.id)}><Trash2 size={14} aria-hidden="true" /></button>
               </span>
             </div>
           </FluidRow>}
           {fresh && !!group.sources?.length && <p className="tag-group-origin">来自：{group.sources.map((source) => `${source.libraryName} / ${source.groupName}`).join("；")}</p>}
           {picking === group.id && <PickTag lens={lens} onCancel={() => setPicking(null)} onPick={(tag) => {
-            setPicking(null); void edit({ kind: "addMembers", groupId: group.id, tagIds: [tag.id] });
+            setPicking(null); remember(`${group.id}:add`); void edit({ kind: "addMembers", groupId: group.id, tagIds: [tag.id] });
           }} />}
           {fresh && group.tags.length > 0 && <ul className="sidebar-tree k-group-members">
             {group.tags.map(({ tag, count }, memberIndex) => {
               const name = tagName(tag);
               return <li key={tag.id} className="sidebar-tag k-group-member">
-                <button type="button" className="sidebar-item k-group-chip" aria-label={`${name}（${count} 张）`} disabled={!onBrowse}
+                <button type="button" className="sidebar-item k-group-chip" data-focus-key={`${group.id}:${tag.id}:chip`} aria-label={`${name}（${count} 张）`} disabled={!onBrowse}
                   onClick={() => onBrowse?.([tag.id])}>
                   <span className="sidebar-label">{name}<TagMarks tag={tag} /></span><span className="sidebar-count">{count}</span>
                 </button>
                 {group.namespace === null && <span className="k-group-member-acts">
-                  <button type="button" className="k-icon-btn is-xs" aria-label={`上移“${name}”在“${group.name}”中的顺序`} title="前移" disabled={busy || memberIndex === 0}
+                  <button type="button" className="k-icon-btn is-xs" data-focus-key={`${group.id}:${tag.id}:up`} aria-label={`上移“${name}”在“${group.name}”中的顺序`} title="前移" disabled={busy || memberIndex === 0}
                     onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(group.tags.map((t) => t.tag.id), memberIndex, -1) })}><ArrowUp size={12} aria-hidden="true" /></button>
-                  <button type="button" className="k-icon-btn is-xs" aria-label={`下移“${name}”在“${group.name}”中的顺序`} title="后移" disabled={busy || memberIndex === group.tags.length - 1}
+                  <button type="button" className="k-icon-btn is-xs" data-focus-key={`${group.id}:${tag.id}:down`} aria-label={`下移“${name}”在“${group.name}”中的顺序`} title="后移" disabled={busy || memberIndex === group.tags.length - 1}
                     onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(group.tags.map((t) => t.tag.id), memberIndex, 1) })}><ArrowDown size={12} aria-hidden="true" /></button>
-                  <button type="button" className="k-icon-btn is-xs" aria-label={`把“${name}”移出“${group.name}”`} title="移出分组" disabled={busy}
+                  <button type="button" className="k-icon-btn is-xs" data-focus-key={`${group.id}:${tag.id}:remove`} aria-label={`把“${name}”移出“${group.name}”`} title="移出分组" disabled={busy}
                     onClick={() => void edit({ kind: "removeMembers", groupId: group.id, tagIds: [tag.id] })}><X size={12} aria-hidden="true" /></button>
                 </span>}
               </li>;
@@ -228,7 +256,11 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
               <span className="k-grow" />
               <AlertDialog.Close className="k-btn">取消</AlertDialog.Close>
               <button type="button" className="k-btn is-danger" onClick={() => {
-                const id = deleting!; setDeleting(null); void edit({ kind: "delete", groupId: id });
+                const id = deleting!; setDeleting(null);
+                // 删掉的分组没有可回的位置：回到相邻分组，没有时回到“新建分组”。
+                const at = groups.findIndex((g) => g.id === id), next = groups[at + 1] ?? groups[at - 1];
+                restore.current = next ? `${next.id}:name` : "new";
+                void edit({ kind: "delete", groupId: id });
               }}>删除</button>
             </div>
           </AlertDialog.Popup>
