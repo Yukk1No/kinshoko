@@ -1531,7 +1531,6 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .settings-overlay { position: absolute; inset: 24px; z-index: 12; overflow: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); padding: 12px; }
 .settings-overlay > header { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 12px; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-@media (max-width: 1000px) { .selection-hint { display: none; } }
 
 /* Accepted tag-group popovers/chips, adapted from the fixed prototype styles. */
 .groupbar { flex: none; display: flex; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--bg); position: relative; z-index: 3; flex-wrap: wrap; }
