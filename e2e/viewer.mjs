@@ -90,11 +90,20 @@ try {
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [parent]);
   await click("选择存放位置…");
   await click("建立图库");
-  await until("打开资料库", () => find("//h1[normalize-space()='原图查看器验证']"));
+  // #98: the current library is the sidebar title menu, named “当前图库：<名称>”.
+  await until("打开图库", () => find("//button[@aria-label='当前图库：原图查看器验证']"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
-  await click("导入文件夹…");
-  await until("导入完成", () => find("//*[contains(normalize-space(), '导入完成：新增 41 张')]"));
+  // #98: 导入 is a split button; the folder entry is in its menu, then a dialog chooses the library.
+  await click("更多导入方式");
+  await wd("POST", `${base}/element/${await until("整个文件夹菜单项", () => find("//*[@role='menuitem' and normalize-space()='整个文件夹…']"))}/click`, {});
+  const librarySelect = "[...document.querySelectorAll('.k-import-dialog select')].find(s=>s.labels?.[0]?.querySelector('.k-field-label')?.textContent.trim()==='放到图库')";
+  await until("导入对话框", () => exec(`return !!${librarySelect}?.options[1]`));
+  await exec(`const s=${librarySelect};s.value=s.options[1].value;s.dispatchEvent(new Event('change',{bubbles:true}));`);
+  await until("开始导入可用", () => exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
+  await click("开始导入");
+  await until("导入完成", () => exec("const c=document.querySelector('section[aria-label=导入结果]');return c?.textContent.includes('导入完成')&&c.querySelector('.k-task-stats')?.textContent.includes('新增 41');"));
+  await click("关闭导入结果");
   check(true, "导入 41 张测试参考图，未下载打标模型");
   const card = await until("大图卡片", () => exec("return [...document.querySelectorAll('.card')].find(c => Math.abs(c.offsetHeight / c.offsetWidth - 2/3) < .02)"));
   await wd("POST", `${base}/actions`, { actions: [{ type: "pointer", id: "mouse", parameters: { pointerType: "mouse" }, actions: [

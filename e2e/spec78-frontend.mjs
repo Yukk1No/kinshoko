@@ -94,7 +94,8 @@ try {
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [parent]);
   await click("选择存放位置…");
   await click("建立图库");
-  await until("打开资料库", () => find("//h1[normalize-space()='增量 T01 对照']"));
+  // #98: the current library is the sidebar title menu, named “当前图库：<名称>”.
+  await until("打开图库", () => find("//button[@aria-label='当前图库：增量 T01 对照']"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
   // #98: 导入 is a split button; the folder entry is in its menu, then a dialog chooses the library.
@@ -150,7 +151,9 @@ try {
   for(const node of selected) await wd("POST",base+"/element/"+(node[ELEMENT]??node.ELEMENT)+"/click",{});
   await wd("POST",base+"/actions",{actions:[{type:"key",id:"keyboard",actions:[{type:"keyUp",value:"\uE009"}]}]});
   await until("多选整理",()=>find("//*[normalize-space()='已选 2 张']"));
-  await wd("POST",base+"/element/"+await find("//select[@aria-label='放入文件夹']/option[normalize-space()='对照选集']")+"/click",{});
+  // #98: 放入 is a menu on the floating selection bar.
+  await wd("POST",base+"/element/"+await find("//*[@role='toolbar' and @aria-label='已选参考图操作']//button[@aria-label='放入文件夹']")+"/click",{});
+  await wd("POST",base+"/element/"+await until("放入菜单项",()=>find("//*[@role='menu']//*[@role='menuitem' and normalize-space()='对照选集']"))+"/click",{});
   await until("文件夹归属已保存",()=>find("//button[@aria-label='对照选集（2 张）']"));
   await wd("POST",base+"/element/"+await find("//button[@aria-label='对照选集（2 张）']")+"/click",{});
   await until("文件夹范围",()=>exec("return document.querySelector('.wall').dataset.total==='2'"));
@@ -159,7 +162,8 @@ try {
   await until("真实查找结果",()=>exec("return document.querySelector('.wall').dataset.total==='0'"));
   await wd("POST",base+"/element/"+await find("//button[@aria-label='去掉这个条件']")+"/click",{});
   await until("清除查找仍在文件夹范围",()=>exec("return document.querySelector('.wall').dataset.total==='2'"));
-  await wd("POST",base+"/element/"+await find("//button[@aria-label='全部（43 张）']")+"/click",{});
+  // The library's own row in the 查找范围 nav returns to its whole scope.
+  await wd("POST",base+"/element/"+await find("//nav[@aria-label='查找范围']//button[@aria-label='增量 T01 对照（43 张）']")+"/click",{});
   await until("返回全部范围",()=>exec("return document.querySelector('.wall').dataset.total==='43'"));
   check(true,"Ctrl 多选、真实文件夹归属和查找清除后范围保持可用");
   const card = await until("大图卡片", () => exec("const found=[...document.querySelectorAll('.card')].find(c=>Math.abs(c.offsetHeight/c.offsetWidth-2/3)<.02); if(!found){const w=document.querySelector('.wall');w.scrollTop+=300;w.dispatchEvent(new Event('scroll'));} return found"));

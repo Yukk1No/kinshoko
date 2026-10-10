@@ -88,9 +88,6 @@ class Session {
   close() { return wd("DELETE", this.base); }
   async screenshot(name) { writeFileSync(join(work, name), Buffer.from(await wd("GET", `${this.base}/screenshot`), "base64")); }
 }
-function quitOwnApp() {
-  return spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, stdio: "ignore" });
-}
 
 const appData = join(work, "app-data");
 const scriptSource = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", windowsHide: true }).stdout.trim();
@@ -113,23 +110,64 @@ const query={scope:{kind:"all"},conditions:{conditions:[]},cursor:null,limit:100
 const local=(libraryId,folderId=null)=>session.invoke("workspace_browse",{query:{...query,scope:{kind:"library",libraryId,scope:folderId?{kind:"folder",id:folderId}:{kind:"all"}}},safeMode:true});
 const task=async id=>(await session.invoke("import_tasks")).find(t=>t.taskId===id);
 const finish=id=>until("real completed receipt "+id,async()=>{const t=await task(id);return t?.report&&!t.finishing?t:null;},90000);
-const setSelect=async(label,value)=>{
- await until("choice loaded "+label,()=>session.exec("return [...document.querySelectorAll('select')].some(s=>s.getAttribute('aria-label')===arguments[0]&&s.getClientRects().length>0&&[...s.options].some(o=>o.value===arguments[1]));",[label,value]));
- await session.exec("const s=[...document.querySelectorAll('select')].find(s=>s.getAttribute('aria-label')===arguments[0]&&s.getClientRects().length>0);s.value=arguments[1];s.dispatchEvent(new Event('change',{bubbles:true}));",[label,value]);
+// #98 redesign: the import split button picks first, then a dialog chooses 图库 and 文件夹 (named by their
+// visible labels); progress and results are bottom-right .k-task cards; the current library is the sidebar
+// title menu; the browse scope is the 查找范围 nav. Steps use roles and accessible names.
+const lit=value=>value.includes("'")?`concat('${value.split("'").join(`',"'",'`)}')`:`'${value}'`;
+const dialogX=name=>`//*[@role='dialog' and (@aria-label=${lit(name)} or @aria-labelledby=//*[normalize-space()=${lit(name)}]/@id)]`;
+const importDialog=dialogX("导入图片"),eagleDialog=dialogX("从 Eagle 导入");
+const libraryChoice=prefix=>`${prefix}//label[span[@class='k-field-label' and contains(normalize-space(),'图库')]]//select`;
+const folderChoice=prefix=>`${prefix}//label[span[@class='k-field-label' and normalize-space()='文件夹']]//select`;
+const shown=xpath=>session.exec("const n=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return !!n&&n.getClientRects().length>0&&!n.disabled;",[xpath]);
+const setSelect=async(xpath,value)=>{
+ await until("choice loaded "+xpath,()=>session.exec("const s=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return !!s&&s.getClientRects().length>0&&!s.disabled&&[...s.options].some(o=>o.value===arguments[1]&&!o.disabled);",[xpath,value]));
+ await session.exec("const s=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;s.value=arguments[1];s.dispatchEvent(new Event('change',{bubbles:true}));",[xpath,value]);
+ await until("choice applied "+xpath,()=>session.exec("const s=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return s?.value===arguments[1];",[xpath,value]));
 };
-const openMenu=async()=>{
- if(!await session.exec("return document.querySelector('[aria-label=\"导入参考图\"]')?.getAttribute('aria-expanded')==='true';"))await session.click("//button[@aria-label='导入参考图']");
-};
-const choose=async(libraryId,folderId=null)=>{await setSelect("保存到资料库",libraryId);await setSelect("保存到文件夹",folderId??"");};
-async function begin(paths,libraryId,folderId=null,eagle=false){
+const choose=async(libraryId,folderId=null,prefix=importDialog)=>{await setSelect(libraryChoice(prefix),libraryId);await setSelect(folderChoice(prefix),folderId??"");};
+const pick=value=>session.exec("window.__KINSHOKO_TEST_PICKS__=[arguments[0]];",[value]);
+const readyClick=async xpath=>{await until("enabled "+xpath,()=>shown(xpath));await session.click(xpath);};
+// Opening the import dialog by picking files first; the dialog then asks where to save.
+const openImport=async paths=>{await pick(paths);await readyClick("//button[@aria-label='导入图片文件']");await until("import dialog",()=>shown(libraryChoice(importDialog)));};
+async function startOpened(libraryId,folderId=null,prefix=importDialog){
  const previous=new Set((await session.invoke("import_tasks")).map(t=>t.taskId));
- await openMenu();await choose(libraryId,folderId);
- await session.exec("window.__KINSHOKO_TEST_PICKS__=[arguments[0]];",[paths]);
- await session.click("//button[normalize-space()='导入文件…']");
- await session.click(`//button[normalize-space()='${eagle?"开始 Eagle 导入":"开始导入"}']`);
+ await choose(libraryId,folderId,prefix);
+ await readyClick(`${prefix}//button[normalize-space()='开始导入']`);
  const receipt=await until("new owned import",async()=>(await session.invoke("import_tasks")).find(t=>!previous.has(t.taskId)));
  return receipt.taskId;
 }
+async function begin(paths,libraryId,folderId=null,eagle=false){
+ if(eagle){await pick(paths[0]);await readyClick("//button[@aria-label='更多导入方式']");await readyClick("//*[@role='menu']//*[@role='menuitem' and normalize-space()='整个文件夹…']");await until("Eagle import dialog",()=>shown(libraryChoice(eagleDialog)));return startOpened(libraryId,folderId,eagleDialog);}
+ await openImport(paths);return startOpened(libraryId,folderId);
+}
+const exists=xpath=>session.exec("return !!document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;",[xpath]);
+// While an import runs the import button is disabled by design; the next save target is chosen in another
+// save-destination dialog (导入参考组包), then that dialog is cancelled without saving anything.
+const chooseNextTarget=async(libraryId,folderId=null)=>{
+ await openPane("参考组");await readyClick("//button[normalize-space()='导入参考组包']");
+ const dialog=dialogX("导入参考组包");await choose(libraryId,folderId,dialog);
+ await readyClick(`${dialog}//button[normalize-space()='取消']`);await until("package dialog closed",async()=>!await shown(dialog));
+ await openPane("图片与文件夹");
+};
+const openPane=async name=>{if(await session.exec("return document.querySelector('nav[aria-label=主导航] button[aria-label=\"'+arguments[0]+'\"]')?.getAttribute('aria-expanded')!=='true';",[name]))await readyClick(`//nav[@aria-label='主导航']//button[@aria-label=${lit(name)}]`);await until("pane open "+name,()=>session.exec("return document.querySelector('nav[aria-label=主导航] button[aria-label=\"'+arguments[0]+'\"]')?.getAttribute('aria-expanded')==='true';",[name]));};
+const shownCurrentName=name=>session.exec("return document.querySelector('button[aria-label^=\"当前图库：\"]')?.getAttribute('aria-label')===arguments[0];",["当前图库："+name]);
+const browseAll=async()=>{await openPane("图片与文件夹");const xpath="//nav[@aria-label='查找范围']//button[normalize-space()='全部图片']";await readyClick(xpath);await until("all images scope",()=>session.exec("const n=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return n?.getAttribute('aria-current')==='page';",[xpath]));};
+const runningCard="//section[contains(@class,'k-task') and @aria-label='导入进度']";
+const createLibraryFromMenu=async(name,parent)=>{
+ await readyClick("//button[starts-with(@aria-label,'当前图库：')]");
+ await readyClick("//*[@role='menu' and @aria-label='图库']//*[@role='menuitem' and normalize-space()='新建图库…']");
+ await session.type("//label[contains(.,'图库名称')]/input",name);
+ await pick(parent);
+ await readyClick("//button[normalize-space()='选择存放位置…']");
+ await readyClick("//button[normalize-space()='建立图库']");
+};
+// End only this run's own application processes: descendants of this run's tauri-driver PID.
+function ownAppPids(){
+ const r=spawnSync("powershell",["-NoProfile","-NonInteractive","-Command","$all=Get-CimInstance Win32_Process;$set=@([int]$env:KINSHOKO_E2E_DRIVER);do{$n=$set.Count;$set=@($set+($all|Where-Object{$set -contains [int]$_.ParentProcessId}|ForEach-Object{[int]$_.ProcessId})|Select-Object -Unique)}while($set.Count -ne $n);$all|Where-Object{$set -contains [int]$_.ProcessId -and $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE}|ForEach-Object{$_.ProcessId}"],{env:{...process.env,KINSHOKO_E2E_DRIVER:String(driver.pid),KINSHOKO_E2E_EXECUTABLE:application},encoding:"utf8",windowsHide:true});
+ return r.stdout.split(/\s+/).filter(Boolean).map(Number);
+}
+function quitOwnApp(){for(const pid of ownAppPids())spawnSync("taskkill",["/PID",String(pid),"/F"],{stdio:"ignore",windowsHide:true});}
+
 const running=id=>until("import is still running",async()=>{const t=await task(id);if(t?.report)throw new Error("Fixture completed before running-state operation");return t?.progress.done>0&&t.progress.done<t.progress.total?t:null;});
 const stopApp=async()=>{if(session)await session.close().catch(()=>{});session=null;quitOwnApp();await delay(800);};
 try{
@@ -145,10 +183,10 @@ try{
  const bFolder=await session.invoke("create_folder",{libraryId:b.id,name:"B 最终目录",parent:null});
  await session.invoke("switch_library",{libraryId:a.id});
  await session.exec("location.reload();");
- await until("formal current A",()=>session.exec("return document.querySelector('[aria-label=\"当前资料库\"]')?.value===arguments[0];",[a.id]));
- await openMenu();
- assert(await session.exec("return document.querySelector('[aria-label=\"保存到资料库\"]').value==='';"),"global import begins with an explicit unchosen destination");
- const first=await begin([imagePath],b.id,bFolder);
+ await until("formal current A",()=>shownCurrentName("浏览库 A"));
+ await openImport([imagePath]);
+ assert(await session.exec("const s=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return !!s&&s.value==='';",[libraryChoice(importDialog)]),"global import begins with an explicit unchosen destination");
+ const first=await startOpened(b.id,bFolder);
  const firstReceipt=await finish(first);receipts.push(firstReceipt);
  assert(firstReceipt.destination.libraryId===b.id&&firstReceipt.destination.folderId===bFolder,"ordinary import receipt keeps the submitted library and folder");
  assert((await local(b.id,bFolder)).total===1&&(await local(a.id)).total===0,"ordinary file is committed into B folder while A remains empty");
@@ -157,25 +195,20 @@ try{
  if(process.argv.includes("--copy-only")){
    c=await session.invoke("create_library",{parent:libraries,name:"新浏览库 C"});
    await session.exec("location.reload();");
-   await until("formal current C",()=>session.exec("return document.querySelector('[aria-label=\"当前资料库\"]')?.value===arguments[0];",[c.id]));
+   await until("formal current C",()=>shownCurrentName("新浏览库 C"));
  }else{
  const long=await begin(Array(2000).fill(imagePath),b.id,bFolder);
  const before=await running(long);receipts.push({phase:"before-current-create-target-change",receipt:before});
  // The actual new-library page must preserve the running task while its current provider changes.
- if(!await session.exec("return document.querySelector('.library-tools')?.open;"))await session.click("//summary[normalize-space()='资料库操作']");
- await session.click("//button[normalize-space()='新建资料库…']");
- await session.type("//label[contains(.,'图库名称')]/input","新浏览库 C");
- await session.exec("window.__KINSHOKO_TEST_PICKS__=[arguments[0]];",[libraries]);
- await session.click("//button[normalize-space()='选择存放位置…']");
- await session.click("//button[normalize-space()='建立图库']");
+ await createLibraryFromMenu("新浏览库 C",libraries);
  c=await until("created current C",async()=>{const value=await session.invoke("current_library");return value?.name==="新浏览库 C"?value:null;});
- await openMenu();await choose(a.id,aFolder);
- await session.click("//button[normalize-space()='全部资料库']");
- await openMenu();
+ await until("formal current C",()=>shownCurrentName("新浏览库 C"));
+ await chooseNextTarget(a.id,aFolder);
+ await browseAll();
  const during=await task(long);receipts.push({phase:"after-current-create-target-change",receipt:during});
  assert(during.report===null&&during.destination.libraryId===b.id&&during.destination.folderId===bFolder,"changing current by creating C and selecting save A while running keeps B task ownership");
- assert(await session.exec("const owner=document.querySelector('.import-owner');return owner?.getClientRects().length>0&&owner.textContent.includes('保存库 B / B 最终目录');"),"formal progress visibly reports original B position after selecting A");
- assert(!await session.exec("return document.querySelector('.import-popup')?.textContent.includes('内容已处理，正在发布');"),"running task does not claim content completion before its actual report");
+ assert(await until("visible running card",()=>session.exec("const card=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return !!card&&card.getClientRects().length>0&&[...card.querySelectorAll('.k-task-sub')].some(n=>n.textContent.includes('放到 保存库 B / B 最终目录'));",[runningCard])),"formal progress visibly reports original B position after selecting A");
+ assert(!await session.exec("return [...document.querySelectorAll('.k-task')].some(card=>card.textContent.includes('已导入，正在把标签定义存进图库'));"),"running task does not claim content completion before its actual report");
  assert(await session.invoke("cancel_import",{libraryId:a.id,taskId:long}).then(()=>false,()=>true),"wrong-owner cancellation is rejected during the real task");
  await session.screenshot("running-owner-after-current-and-target-change.png");
  const completed=await finish(long);receipts.push(completed);
@@ -189,21 +222,23 @@ try{
  const cCard=(await local(c.id)).cards.find(card=>card.id===bCard.id);
  const cTarget={libraryId:c.id,imageId:cCard.imageId,contentId:cCard.id};
  await session.invoke("workspace_edit_source",{target:cTarget,safeMode:true,edits:[{kind:"setNote",text:"C 独立人工备注"}]});
- if(!await session.exec("return document.querySelector('[aria-label=\"图片与文件夹\"]')?.getAttribute('aria-pressed')==='true';"))await session.click("//button[@aria-label='图片与文件夹']");
- await session.click("//button[normalize-space()='全部资料库']");
- await until("aggregate source choices",()=>session.find(`//*[@data-id='${bCard.id}']//button[contains(.,'份来源')]`));
- await session.click(`//*[@data-id='${bCard.id}']//button[contains(.,'份来源')]`);
- await session.click(`//*[@data-source-library-id='${b.id}']//button[normalize-space()='整理此来源']`);
- await session.click("//button[normalize-space()='复制到资料库…']");
- await choose(c.id,null);await session.screenshot("copy-explicit-confirmation.png");await session.click("//*[@aria-label='复制此来源']//button[normalize-space()='确认复制']");
- await until("source copy finished",()=>session.exec("return !document.querySelector('[aria-label=\"复制此来源\"]');"));
+ await browseAll();
+ // The card's source button is a sibling of its option; with two sources it reads “在 2 个图库 · 查看详情”.
+ const sourcesButton=`//div[@role='listbox' and @aria-label='图片墙']//button[contains(@class,'card-sources') and @data-card='${bCard.id}' and starts-with(@aria-label,'在 2 个图库')]`;
+ await until("aggregate source choices",()=>shown(sourcesButton));
+ await readyClick(sourcesButton);
+ await readyClick(`//*[@data-source-library-id='${b.id}']//button[normalize-space()='整理此来源']`);
+ await readyClick("//button[normalize-space()='复制到…']");
+ const copyDialog=dialogX("复制此来源");
+ await choose(c.id,null,copyDialog);await session.screenshot("copy-explicit-confirmation.png");await readyClick(`${copyDialog}//button[normalize-space()='确认复制']`);
+ await until("source copy finished",async()=>!await exists(copyDialog));
  const cAfter=await until("copy source facts saved",async()=>{const value=await session.invoke("workspace_source_inspection",{target:cTarget,safeMode:true,lang:"zh-CN"});return value.detail.note.sources.some(s=>s.source.includes(b.id))?value:null;});
  assert(cAfter.detail.note.sources.some(s=>s.source.includes(b.id)),"cross-library copy retains the original B provenance");
  assert(cAfter.detail.note.manual==="C 独立人工备注","formal cross-library copy preserves the existing target manual note");
  assert((await local(c.id)).total===1,"copy merges identical bytes without creating a public pool or a duplicate target image");
- await until("copy confirmation stays closed after refresh",()=>session.exec("return !document.querySelector('[aria-label=\"复制此来源\"]');"));
+ await until("copy confirmation stays closed after refresh",async()=>!await exists(copyDialog));
  await delay(500);
- assert(await session.exec("return !document.querySelector('[aria-label=\"复制此来源\"]');"),"copy confirmation stays closed after the real source refresh");
+ assert(!await exists(copyDialog),"copy confirmation stays closed after the real source refresh");
  await session.screenshot("copy-preserves-independent-curation.png");
  writeFileSync(join(work,"result.json"),JSON.stringify({status:"passed",scope:process.argv.includes("--copy-only")?"copy-only":"visible-owner-and-copy",source,binarySha256,application,environment,provenance,a,b,c,receipts,assertions,finishedAt:new Date().toISOString()},null,2));
  console.log(`Evidence: ${work}`);
