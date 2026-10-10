@@ -37,7 +37,9 @@ export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceS
  const selected=tasks.find(t=>t.taskId===selectedTask)??tasks.find(t=>t.report===null)??tasks.at(-1);
  const task=selected?{...selected,report:selected.report??(p.finished?.taskId===selected.taskId?concealSuccesses(p.finished.report):null),
    progress:p.running?.taskId===selected.taskId?p.running.progress:selected.progress}:undefined;
- const running=task&&(task.report===null||task.finishing)?{taskId:task.taskId,progress:task.progress,libraryId:task.destination.libraryId,destination:task.destination,libraryName:task.libraryName,folderName:task.folderName}:task?null:p.running;
+ // 主窗口只收当前图库的导入事件：导入到别的图库时它记下的“进行中”不会结束。已关闭的回执不再借它复活（#98 本机 r14）。
+ const fallbackRunning=p.running&&!(p.running.taskId&&dismissed.current.has(p.running.taskId))?p.running:null;
+ const running=task&&(task.report===null||task.finishing)?{taskId:task.taskId,progress:task.progress,libraryId:task.destination.libraryId,destination:task.destination,libraryName:task.libraryName,folderName:task.folderName}:task?null:fallbackRunning;
  const finished=task?.report&&!task.finishing?{taskId:task.taskId,report:task.report,libraryId:task.destination.libraryId,destination:task.destination,libraryName:task.libraryName,folderName:task.folderName}:task?null:p.finished?{...p.finished,report:concealSuccesses(p.finished.report)}:null;
  const active=running!==null;
  const library=context.providers.find(provider=>provider.registration.library.id===context.destination?.libraryId)?.registration.library;

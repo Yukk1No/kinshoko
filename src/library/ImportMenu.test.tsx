@@ -92,3 +92,24 @@ for (const phase of ["已显示图片", "读取尚未完成"] as const) it(`当�
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.queryByRole("img")).toBeNull();
 });
+
+it("另一个图库的任务回执关闭后，不留下“正在导入”的空卡片，仍可开始导入（#98 本机 r14）", async () => {
+  mockWindows("main");
+  // 主窗口只按当前图库接收导入事件：导入到另一个图库时，它记下的“进行中”不会被结束事件清掉。
+  const other = { ...receipt, taskId: "other-library-task", destination: { libraryId: "L2", folderId: null }, libraryName: "另一个" };
+  let tasks: ImportTaskSnapshot[] = [other];
+  mockIPC(cmd => {
+    if (cmd === "plugin:library|import_tasks") return tasks;
+    if (cmd === "plugin:library|dismiss_import") { tasks = []; return null; }
+    if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
+    return undefined;
+  }, { shouldMockEvents: true });
+  render(<ImportMenu enabled libraryId="L1" libraryName="参考" running={{ taskId: "other-library-task", progress: { done: 0, total: 0 } }}
+    finished={null} onStarted={() => {}} onDismissReport={() => {}} />);
+  await screen.findByRole("region", { name: "导入结果" });
+  fireEvent.click(screen.getByRole("button", { name: "关闭导入结果" }));
+  await waitFor(() => expect(screen.queryByRole("region", { name: "导入结果" })).toBeNull());
+  await new Promise(resolve => setTimeout(resolve, 900));
+  expect(screen.queryByRole("region", { name: "导入进度" })).toBeNull();
+  expect((screen.getByRole("button", { name: "导入图片文件" }) as HTMLButtonElement).disabled).toBe(false);
+});
