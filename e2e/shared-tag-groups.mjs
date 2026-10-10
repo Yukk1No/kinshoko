@@ -262,6 +262,8 @@ try {
   assert(unsafe.tags.length === 3 && unsafe.tags.some((t) => t.tag.name === "封印专用词"), "safe rename/add/remove/reorder retains hidden member on public unsafe readback");
   await mode(true); await openSettings();
   await clickGroupControl("发色", "删除标签分组“发色”");
+  // #98: deleting a group asks first.
+  await session.click("//*[@role='alertdialog']//button[normalize-space()='删除']");
   await until("old second group deleted", async () => !(await readGroups()).some((g) => g.id === secondGroup.id));
   await closeSettings();
   const blueId = firstGroup.tags[0].tag.id;
