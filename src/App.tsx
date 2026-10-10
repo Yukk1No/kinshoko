@@ -109,6 +109,7 @@ function LibraryWorkspace({
   const scope: BrowseScope = workspaceScope.kind === "library" ? workspaceScope.scope : { kind: "all" };
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<BrowserCard | null>(null);
+  const [editingGroups, setEditingGroups] = useState(false);
   useEffect(()=>{if(captureRequest){setViewing(null);setSources(null);}},[captureRequest]);
   const [problem, setProblem] = useState<string | null>(null);
   const [search, setSearch] = useState<SearchInput>({ conditions: [], exact: false });
@@ -315,20 +316,6 @@ function LibraryWorkspace({
               setWorkspaceScope(next); setSelected(new Set()); setSources(null);
             }}
             foot={library && <TaggingIndicator key={`${library.id}/${library.root}`} libraryId={library.id} />}>
-          <details className="tag-organize"><summary>整理标签分组</summary>
-          <TagGroupsPane
-            safe={safe}
-            generation={vocabularyKey}
-            onBrowse={(globalIds) => {
-                setSearch((prev) => ({
-                  ...prev,
-                  conditions: [{ any: globalIds.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }],
-                }));
-                setSelected(new Set());
-            }}
-            onError={onError}
-          />
-          </details>
           </WorkspacePane>
           </div>
           {section === "groups" && <ReferenceGroupsPanel libraryId={libraryId || undefined} />}
@@ -371,8 +358,33 @@ function LibraryWorkspace({
           {notices}
           <div className="app-tagbar">
           <TagGroupBar workspace libraryId="workspace" safe={safe} generation={vocabularyKey} input={search}
-            onChange={(next) => { setSearch(next); setSelected(new Set()); }} onError={onError} />
+            onChange={(next) => { setSearch(next); setSelected(new Set()); }} onError={onError} onEdit={() => setEditingGroups(true)} />
           </div>
+          {/* 分组编辑器从侧栏移到标签栏的“编辑分组”（#98）。 */}
+          <Dialog.Root open={editingGroups} onOpenChange={setEditingGroups}>
+            <Dialog.Portal>
+              <Dialog.Backdrop className="k-backdrop" />
+              <Dialog.Popup className="k-dialog k-groups-dialog">
+                <Dialog.Close className="k-icon-btn k-dialog-x" aria-label="关闭"><X size={16} aria-hidden="true" /></Dialog.Close>
+                <Dialog.Title className="k-dialog-title">编辑分组</Dialog.Title>
+                <Dialog.Description className="k-dialog-desc">分组在各图库共用，按分组查找时满足任一成员即可。</Dialog.Description>
+                <TagGroupsPane
+                  safe={safe}
+                  generation={vocabularyKey}
+                  onBrowse={(globalIds) => {
+                    setSearch((prev) => ({
+                      ...prev,
+                      conditions: [{ any: globalIds.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }],
+                    }));
+                    setSelected(new Set());
+                    setEditingGroups(false);
+                  }}
+                  onError={onError}
+                />
+                <div className="k-dialog-foot"><span className="k-grow" /><Dialog.Close className="k-btn is-primary">完成</Dialog.Close></div>
+              </Dialog.Popup>
+            </Dialog.Portal>
+          </Dialog.Root>
           {problem && (
             <p className="app-problem" role="alert">
               {problem}

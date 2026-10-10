@@ -121,3 +121,10 @@
 @media (prefers-reduced-motion: reduce) {
   .k-set-tab, .k-radio-card { transition-duration: 0ms; }
 }
+
+/* ---- Tag bar: 编辑分组 opens the group editor ---- */
+.groupbar-edit { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 8px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--ink-3); font: inherit; font-size: 12px; }
+.groupbar-edit:hover { background: var(--hover); color: var(--ink); }
+.k-dialog.k-groups-dialog { width: min(640px, calc(100vw - 48px)); }
+.k-groups-dialog .sidebar-tag-groups { max-height: calc(100vh - 260px); overflow: auto; }

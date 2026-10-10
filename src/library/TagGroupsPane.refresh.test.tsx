@@ -62,7 +62,8 @@ afterEach(async () => { cleanup(); await act(async () => {}); clearMocks(); });
 
 async function openPicker(beforePicker?: () => Promise<void>) {
   render(<App />);
-  fireEvent.click(await screen.findByText("整理标签分组"));
+  fireEvent.click(await screen.findByRole("button", { name: "编辑分组" }));
+  expect(await screen.findByRole("dialog", { name: "编辑分组" })).toBeTruthy();
   const region = await screen.findByRole("region", { name: "标签分组" });
   // The create button stays disabled until the first group refresh settles.
   fireEvent.click(await waitFor(() => {
