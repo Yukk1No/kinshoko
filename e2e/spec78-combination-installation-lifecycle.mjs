@@ -88,13 +88,30 @@ foreach($view in $views){
   }finally{$base.Dispose()}
  }
 }
-@{run=$run;uninstall=$uninstall;checkedAt=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Depth 8 -Compress
+$cu=[Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser,[Microsoft.Win32.RegistryView]::Registry64)
+try{$key=$cu.OpenSubKey('Software\kinshoko\Kinshoko T19 Upgrade Probe',$false)
+ try{$product=@{exists=$null -ne $key;values=@();subkeys=@()};if($null -ne $key){$product.values=@($key.GetValueNames()|ForEach-Object{@{name=$_;kind=$key.GetValueKind($_).ToString();value=$key.GetValue($_,$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)}});$product.subkeys=@($key.GetSubKeyNames())}}finally{if($null -ne $key){$key.Dispose()}}
+}finally{$cu.Dispose()}
+@{run=$run;uninstall=$uninstall;product=$product;checkedAt=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Depth 8 -Compress
+`;
+// The NSIS uninstaller keeps HKCU\Software\<manufacturer>\<product> (install-dir default value) unless
+// the interactive "delete app data" box is ticked. Remove only that exact isolated key, and only when
+// it holds nothing but this stage's install directory.
+export const productKeyRemovalScript=String.raw`
+$ErrorActionPreference='Stop'
+$path='Software\kinshoko\Kinshoko T19 Upgrade Probe'
+$cu=[Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser,[Microsoft.Win32.RegistryView]::Registry64)
+try{$key=$cu.OpenSubKey($path,$false);if($null -eq $key){'{"removed":false,"absent":true}';exit 0}
+ try{$names=@($key.GetValueNames());$value=$key.GetValue('');if($names.Count -ne 1 -or $names[0] -ne '' -or $key.SubKeyCount -ne 0 -or $value -ne $env:KINSHOKO_T20_STAGE_INSTALL_DIR){throw 'Isolated product key is not exactly this stage install record; preserve it'}}finally{$key.Dispose()}
+ $cu.DeleteSubKey($path);@{removed=$true;absent=$true;value=$value} | ConvertTo-Json -Compress
+}finally{$cu.Dispose()}
 `;
 export const installedVersionScript=String.raw`
 $ErrorActionPreference='Stop'
 $item=Get-Item -LiteralPath $env:KINSHOKO_T20_INSTALLED_EXE -ErrorAction Stop
 $item.VersionInfo | Select-Object FileVersion,ProductVersion | ConvertTo-Json -Compress
 `;
+export function registryPathValue(value){const text=String(value??"");if(!text.includes('"'))return text;const match=/^"([^"]+)"$/.exec(text);if(!match)fail("Unexpected quoting in an actual registry path value");return match[1];}
 function powershell(plan,script,environment={}) {
   const result=spawnSync(plan.runtime.powershell.path,["-NoProfile","-NonInteractive","-Command",script],{windowsHide:true,encoding:"utf8",env:{...process.env,...environment}});
   if(result.status!==0||result.error)fail("Authoritative Windows query failed: "+result.stderr);
@@ -196,7 +213,7 @@ export class InstallationRound {
   registry(label){const state=powershell(this.plan,registryObservationScript);if(!Array.isArray(state.run)||state.run.length!==4||!Array.isArray(state.uninstall))fail("Registry observation is incomplete");writeNew(join(this.plan.work,label+"-registry.json"),state);if(this.report.initialRegistry&&!eq(this.report.initialRegistry.run,state.run))fail("Formal or isolated Run value/type changed; do not overwrite from a stale snapshot");return state;}
   scopes(){const snapshot=this.query();return ["clean","upgrade"].map(name=>{const stage=this.plan.stages[name],d=this.drivers.get(name),binding=d?.binding??{application:stage.application,tauriDriver:this.plan.runtime.tauriDriver.path,edgeDriver:this.plan.runtime.edgeDriver.path,webviewBinary:this.plan.runtime.webviewBinary.path,profile:stage.profile,spawned:[]};return classifyInstallationProcesses(snapshot,binding,d?.ownedProcesses??[]);});}
   released(){const value={installerSettled:this.installerSettled,scopes:this.scopes()};requireReleasedSettingsBoundary(value);return value;}
-  installedRegistry(state,stage,version){if(!state.uninstall.length)fail("The actual isolated install has no authoritative uninstall registration");for(const entry of state.uninstall){const uninstall=commandTokens(entry.UninstallString??"")[0];if(entry.DisplayName!==INSTALLER_IDENTITY.productName||entry.DisplayVersion!==version||norm(uninstall)!==norm(join(stage.installDir,"uninstall.exe"))||entry.InstallLocation&&norm(entry.InstallLocation)!==norm(stage.installDir))fail("An isolated uninstall entry does not belong to this exact installed target/version");}return state.uninstall;}
+  installedRegistry(state,stage,version){if(!state.uninstall.length)fail("The actual isolated install has no authoritative uninstall registration");for(const entry of state.uninstall){const uninstall=commandTokens(entry.UninstallString??"")[0];if(entry.DisplayName!==INSTALLER_IDENTITY.productName||entry.DisplayVersion!==version||norm(uninstall)!==norm(join(stage.installDir,"uninstall.exe"))||entry.InstallLocation&&norm(registryPathValue(entry.InstallLocation))!==norm(stage.installDir))fail("An isolated uninstall entry does not belong to this exact installed target/version");}if(!state.product?.exists||state.product.subkeys.length||!state.product.values.some(item=>item.name===""&&norm(item.value)===norm(stage.installDir)))fail("The isolated NSIS product key does not record this exact installed target");return state.uninstall;}
   payload(stage,kind){const actual=fileRecord(stage.application),version=powershell(this.plan,installedVersionScript,{KINSHOKO_T20_INSTALLED_EXE:stage.application}),expectedVersion=kind==="old"?"0.1.0":"0.1.2",expectedSha=kind==="old"?this.plan.old.packagedExeSha256:this.plan.new.actualPackaged.sha256;
     if(actual.sha256!==expectedSha||version.ProductVersion!==expectedVersion)fail("Actual installed EXE hash or PE version differs from its NSIS payload");
     const runtime={};if(kind==="old"){const dll=fileRecord(join(stage.installDir,"DirectML.dll"));if(dll.sha256!==this.plan.old.directmlSha256)fail("Installed actual old DirectML differs");runtime["DirectML.dll"]=dll;}else for(const [name,expected] of Object.entries(this.plan.new.runtime))runtime[name]=verifyRecord({...expected,path:join(stage.installDir,name)},"Actual installed release runtime "+name);
@@ -219,7 +236,9 @@ export class InstallationRound {
     const executable=kind==="old"?this.plan.old.installer:this.plan.new.installer,args=["/S",...(update?["/UPDATE"]:[]),"/D="+stage.installDir];await this.installer(label,executable,args,stage);
     const payload=this.payload(stage,kind),registry=this.registry(label+"-after");this.installedRegistry(registry,stage,kind==="old"?"0.1.0":"0.1.2");this.report.observations.push({label,payload,registry});this.save();return payload;
   }
-  async uninstall(label,stage,payload){const before=this.registry(label+"-before");this.installedRegistry(before,stage,payload.version.ProductVersion);verifyRecord(payload.uninstaller,"This target's actual uninstaller");await this.installer(label,payload.uninstaller,["/S","_?="+stage.installDir],stage);const after=this.registry(label+"-after");if(existsSync(stage.application)||after.uninstall.length)fail("Actual isolated target/uninstall registration remains after uninstall");this.released();this.report.observations.push({label,applicationAbsent:true,registry:after});this.save();}
+  async uninstall(label,stage,payload){const before=this.registry(label+"-before");this.installedRegistry(before,stage,payload.version.ProductVersion);verifyRecord(payload.uninstaller,"This target's actual uninstaller");await this.installer(label,payload.uninstaller,["/S","_?="+stage.installDir],stage);const after=this.registry(label+"-after");if(existsSync(stage.application)||after.uninstall.length)fail("Actual isolated target/uninstall registration remains after uninstall");this.released();
+    const productKeyRemoval=after.product?.exists?powershell(this.plan,productKeyRemovalScript,{KINSHOKO_T20_STAGE_INSTALL_DIR:stage.installDir}):{removed:false,absent:true};const cleaned=this.registry(label+"-product-key-removed");if(cleaned.product?.exists)fail("The isolated NSIS product key remains after removal");
+    this.report.observations.push({label,applicationAbsent:true,registry:after,productKeyResidue:after.product,productKeyRemoval,registryAfterRemoval:cleaned});this.save();}
   async native(name,phase,task){const d=new InstalledLifecycleDriver(this.plan,this.plan.stages[name],phase);this.drivers.set(name,d);this.report.nativeAttempted=true;this.save();let failure;
     try{await d.boot();this.report.nativeExecuted=true;this.registry(phase+"-started");const value=await task(d);const normalQuit=await d.normalQuit();this.registry(phase+"-normal-quit");this.report.observations.push({phase,normalQuit,value});this.save();return value;
     }catch(error){failure=error;if(d.session){await d.screenshot("failure.png").catch(value=>d.record("failure-screenshot-error",{error:String(value)}));}throw error;
@@ -254,7 +273,7 @@ export async function runInstallationLifecycle(planPath,rootGrant){
   const path=join(plan.work,"installation-lifecycle-result.json");if(existsSync(path))fail("Preserve the prior lifecycle result");mkdirSync(join(plan.work,"settings-preserved"));
   const report={kind:"spec78-t20-actual-installed-clean-and-upgrade",status:"running",startedAt:new Date().toISOString(),plan:fileRecord(planPath),rootGrant,source:plan.source,windows:windowsRelease(),old:plan.old,new:plan.new,actions:[],observations:[],cleanupFailures:[],initialRegistry:null,initialT19:null,initialT20:null,restoration:null,nativeAttempted:false,nativeExecuted:false,installerExecuted:false,windows10:"unverified-owner-accepted-no-device",developerAcceptance:"unverified",colorGate:"independent-existing-results-unchanged",fullT20Acceptance:false};const save=()=>writeFileSync(path,JSON.stringify(report,null,2));save();const round=new InstallationRound(plan,report,save);let failure;
   try{
-    report.initialRegistry=round.registry("initial");if(report.initialRegistry.uninstall.length||report.initialRegistry.run.some(value=>value.name===INSTALLER_IDENTITY.productName&&value.exists))fail("A pre-existing isolated installation/Run entry must be preserved; do not adopt it");report.initialT20=knownFolderState();report.initialT19=snapshotAliases(plan,"initial");round.released();report.blankBefore=clearAliases(plan,report.initialT19,round.released(),()=>{report.settingsTouched=true;save();});save();
+    report.initialRegistry=round.registry("initial");if(report.initialRegistry.uninstall.length||report.initialRegistry.product?.exists!==false||report.initialRegistry.run.some(value=>value.name===INSTALLER_IDENTITY.productName&&value.exists))fail("A pre-existing isolated installation/Run entry must be preserved; do not adopt it");report.initialT20=knownFolderState();report.initialT19=snapshotAliases(plan,"initial");round.released();report.blankBefore=clearAliases(plan,report.initialT19,round.released(),()=>{report.settingsTouched=true;save();});save();
     for(const stage of Object.values(plan.stages))mkdirSync(stage.work,{recursive:true});
     const cleanPayload=await round.install("clean-release-install","new",plan.stages.clean);let cleanBefore;
     cleanBefore=await round.native("clean","clean-create-save",async d=>{const saved=await createSavedState(d,plan.stages.clean,false);const runtimeAndUpdate=await currentRuntimeAndUpdate(d);return {...saved,runtimeAndUpdate};});
@@ -268,7 +287,7 @@ export async function runInstallationLifecycle(planPath,rootGrant){
     report.status="actual-clean-and-old-to-new-lifecycles-observed";save();
   }catch(error){failure=error;report.status="failed";report.error=String(error);process.exitCode=1;
   }finally{
-    try{const boundary=round.released();report.finalRelease=boundary;round.registry("final-before-settings-restore");if(report.initialT19&&report.settingsTouched)report.restoration=restoreAliases(plan,report.initialT19,boundary);else if(report.initialT19)knownUnchanged(report.initialT19.state,knownFolderState(identity));if(report.initialT20){report.finalT20=knownFolderState();knownUnchanged(report.initialT20,report.finalT20);}report.finalRegistry=round.registry("final-after-settings-restore");}catch(error){report.restorationError=String(error);report.status="failed-release-or-restoration";process.exitCode=1;if(!failure)failure=error;}
+    try{const boundary=round.released();report.finalRelease=boundary;round.registry("final-before-settings-restore");if(report.initialT19&&report.settingsTouched)report.restoration=restoreAliases(plan,report.initialT19,boundary);else if(report.initialT19)knownUnchanged(report.initialT19.state,knownFolderState(identity));if(report.initialT20){report.finalT20=knownFolderState();knownUnchanged(report.initialT20,report.finalT20);}report.finalRegistry=round.registry("final-after-settings-restore");if(report.finalRegistry.uninstall.length||report.finalRegistry.product?.exists)fail("An isolated installation record remains after the lifecycle");}catch(error){report.restorationError=String(error);report.status="failed-release-or-restoration";process.exitCode=1;if(!failure)failure=error;}
     try{report.sourceAfter=sourceRecord();sameSnapshot(plan.source,report.sourceAfter,"Source throughout actual installation lifecycle");}catch(error){report.sourceError=String(error);report.status="failed-source-attribution";process.exitCode=1;if(!failure)failure=error;}
     report.finishedAt=new Date().toISOString();save();
   }
