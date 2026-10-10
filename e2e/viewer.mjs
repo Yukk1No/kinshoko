@@ -73,7 +73,8 @@ const find = async (xpath) => {
   const element = await wd("POST", `${base}/element`, { using: "xpath", value: xpath });
   return element[ELEMENT] ?? element.ELEMENT;
 };
-const click = async (text) => wd("POST", `${base}/element/${await find(`//button[normalize-space()='${text}']`)}/click`, {});
+// #98: viewer dock buttons have no visible text; match the accessible name ("名称" or "名称，快捷键").
+const click = async (text) => wd("POST", `${base}/element/${await find(`//button[normalize-space()='${text}' or @aria-label='${text}' or starts-with(@aria-label,'${text}，')]`)}/click`, {});
 const image = () => exec(`const i = document.querySelector('.viewer-stage img'); if (!i || !i.complete || !i.naturalWidth || getComputedStyle(i).visibility !== 'visible') return null;
   const r = i.getBoundingClientRect(); return { src: i.src, w: i.naturalWidth, h: i.naturalHeight, physicalW: r.width * devicePixelRatio, physicalH: r.height * devicePixelRatio, physicalLeft: r.left * devicePixelRatio, physicalTop: r.top * devicePixelRatio, interpolation: getComputedStyle(i).imageRendering, dpr: devicePixelRatio };`);
 

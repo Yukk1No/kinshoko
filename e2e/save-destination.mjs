@@ -227,7 +227,7 @@ try{
  for(const label of nativeWindows)if(label.startsWith("pin-"))await session.desktop("move_pin",{pin:label.slice(4),x:1400,y:800});
  const capture=(await session.desktop("capture_history"))[0];
  await session.click("//button[@aria-label='截图历史']");
- await session.click("//*[contains(@class,'capture-history')]//button[normalize-space()='收藏…']");
+ await session.click("//*[contains(@class,'capture-history')]//button[normalize-space()='收藏' or normalize-space()='收藏…']");
  await choose(b.id,bFolder);await session.click("//*[@aria-label='收藏截图']//button[normalize-space()='确认保存']");
  const collected=await until("actual collected capture",async()=>{const entry=(await session.desktop("capture_history")).find(e=>e.id===capture.id);return entry?.collected.find(c=>c.libraryId===b.id);});
  const captureSha=createHash("sha256").update(readFileSync(join(appData,"captures",capture.id+".png"))).digest("hex");

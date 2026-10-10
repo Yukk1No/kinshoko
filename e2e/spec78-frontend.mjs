@@ -76,7 +76,8 @@ const find = async (xpath) => {
   const element = await wd("POST", `${base}/element`, { using: "xpath", value: xpath });
   return element[ELEMENT] ?? element.ELEMENT;
 };
-const click = async (text) => wd("POST", `${base}/element/${await find(`//button[normalize-space()='${text}']`)}/click`, {});
+// #98: viewer dock buttons have no visible text; match the accessible name ("名称" or "名称，快捷键").
+const click = async (text) => wd("POST", `${base}/element/${await find(`//button[normalize-space()='${text}' or @aria-label='${text}' or starts-with(@aria-label,'${text}，')]`)}/click`, {});
 const key = async (value) => wd("POST", base + "/actions", { actions: [{type:"key",id:"keyboard",actions:[{type:"keyDown",value},{type:"keyUp",value}]}] });
 const image = () => exec(`const i = document.querySelector('.viewer-stage img'); if (!i || !i.complete || !i.naturalWidth || getComputedStyle(i).visibility !== 'visible') return null;
   const r = i.getBoundingClientRect(); return { src: i.src, w: i.naturalWidth, h: i.naturalHeight, physicalW: r.width * devicePixelRatio, physicalH: r.height * devicePixelRatio, physicalLeft: r.left * devicePixelRatio, physicalTop: r.top * devicePixelRatio, interpolation: getComputedStyle(i).imageRendering, dpr: devicePixelRatio };`);
@@ -96,12 +97,17 @@ try {
   await until("打开资料库", () => find("//h1[normalize-space()='增量 T01 对照']"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
-  await wd("POST",base+"/element/"+await find("//button[@aria-label='导入参考图']")+"/click",{});
-  await click("导入文件夹…");
-  await until("导入完成", () => find("//*[contains(normalize-space(), '导入完成：新增 43 张')]"));
+  // #98: 导入 is a split button; the folder entry is in its menu, then a dialog chooses the library.
+  await click("更多导入方式");
+  await wd("POST",base+"/element/"+await until("整个文件夹菜单项",()=>find("//*[@role='menuitem' and normalize-space()='整个文件夹…']"))+"/click",{});
+  await until("导入对话框", () => exec("return !!document.querySelector('.k-import-dialog select[aria-label=保存到资料库]')?.options[1]"));
+  await exec("const s=document.querySelector('.k-import-dialog select[aria-label=保存到资料库]');s.value=s.options[1].value;s.dispatchEvent(new Event('change',{bubbles:true}));");
+  await until("开始导入可用", () => exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
+  await click("开始导入");
+  await until("导入完成", () => exec("const c=document.querySelector('section[aria-label=导入结果]');return c?.textContent.includes('导入完成')&&c.querySelector('.k-task-stats')?.textContent.includes('新增 43');"));
   check(true, "导入 43 张测试参考图，未下载打标模型");
-  await click("关闭");
-  await until("关闭导入报告，稳定浏览",()=>exec("return document.querySelector('.import-popup').hidden"));
+  await click("关闭导入结果");
+  await until("关闭导入报告，稳定浏览",()=>exec("return !document.querySelector('section[aria-label=导入结果]')"));
   const viewport = await exec("return {width:innerWidth,height:innerHeight,dpr:devicePixelRatio,userAgent:navigator.userAgent}");
   await until("缩略图解码", () => exec("return [...document.querySelectorAll('.card img')].every(i=>i.complete && i.naturalWidth>0)"));
   writeFileSync(join(output, "formal-wall.png"), Buffer.from(await wd("GET", base + "/screenshot"), "base64"));

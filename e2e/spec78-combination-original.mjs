@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { until } from "./spec78-combination-driver.mjs";
-import { literal } from "./spec78-combination-workflow.mjs";
+import { literal, named } from "./spec78-combination-workflow.mjs";
 import { fileRecord } from "./spec78-combination-preflight.mjs";
 
 export const ORIGINAL_CONTRACT_SOURCE="1d188e52a9639319dbaf90de9fe46a9a6fcea9b3";
@@ -85,9 +85,8 @@ export async function originalCombination(workflow,plan) {
     if(observed.exit!==0||observed.error)throw Error("Actual clipboard RGBA read failed: "+JSON.stringify(observed));
     return {...observed.value,file:fileRecord(path),pixels:purePixels({mode:"inspect",actual:path}).value};
   };
-  const closePopup=async()=>{
-    if(await d.exec("return document.querySelector('[aria-label=导入参考图]')?.getAttribute('aria-expanded')==='true';"))await workflow.readyClick("//button[@aria-label='导入参考图']");
-  };
+  // #98: no import popup remains; close any open menu so the measured wall is unobstructed.
+  const closePopup=()=>workflow.closeMenu();
   const paintedGeometry=async kind=>{
     const measured=await d.exec(`
 const kind=arguments[0],id=arguments[1],original=arguments[2];
@@ -157,12 +156,12 @@ try{const context=canvas.getContext('2d'),points=[[.3,.3],[.5,.5],[.7,.7]],pixel
     const css={x:Math.round(x/raster.dpr),y:Math.round(y/raster.dpr),right:Math.round((x+width)/raster.dpr),bottom:Math.round((y+height)/raster.dpr)};
     await pointer([{type:"pointerMove",duration:0,origin:"viewport",x:css.x,y:css.y},{type:"pointerDown",button:0},{type:"pointerMove",duration:80,origin:"viewport",x:css.right,y:css.bottom},{type:"pointerUp",button:0}]);
     const feedback=await until("actual complete selection and capture buttons",()=>d.exec(`
-const selection=document.querySelector('.capture-selection'),tools=document.querySelector('.capture-tools'),size=document.querySelector('.capture-size');if(!selection||!tools||!size)return null;
-const buttons=[...tools.querySelectorAll('button')].map(node=>{const b=node.getBoundingClientRect();return {text:node.textContent.trim(),disabled:node.disabled,visible:b.width>0&&b.height>0&&b.left>=0&&b.top>=0&&b.right<=innerWidth&&b.bottom<=innerHeight,box:{x:b.x,y:b.y,width:b.width,height:b.height}};});
+const selection=document.querySelector('.capture-selection'),tools=document.querySelector('.capture-tools [role=toolbar][aria-label=截图]'),size=tools?.querySelector('.k-dock-readout b');if(!selection||!tools||!size)return null;
+const buttons=[...tools.querySelectorAll('button')].map(node=>{const b=node.getBoundingClientRect();return {text:(node.getAttribute('aria-label')??node.textContent).split('，')[0].trim(),name:node.getAttribute('aria-label'),disabled:node.disabled,visible:b.width>0&&b.height>0&&b.left>=0&&b.top>=0&&b.right<=innerWidth&&b.bottom<=innerHeight,box:{x:b.x,y:b.y,width:b.width,height:b.height}};});
 const region=Object.fromEntries(['x','y','width','height'].map((key,i)=>[key,Math.round(parseFloat(selection.style[['left','top','width','height'][i]])*devicePixelRatio)]));
 const b=size.getBoundingClientRect();return {region,size:size.textContent.trim(),sizeFullyVisible:b.left>=0&&b.top>=0&&b.right<=innerWidth&&b.bottom<=innerHeight,buttons,dpr:devicePixelRatio};
 `));
-    d.assert(feedback.buttons.length===3&&feedback.buttons.every(button=>button.visible&&!button.disabled)&&JSON.stringify(feedback.buttons.map(button=>button.text))===JSON.stringify(["钉住","复制","取消"])&&feedback.sizeFullyVisible&&feedback.size===feedback.region.width+" × "+feedback.region.height,"actual capture size and all three action controls remain fully visible: "+label,feedback);
+    d.assert(feedback.buttons.length===3&&feedback.buttons.every(button=>button.visible&&!button.disabled)&&JSON.stringify(feedback.buttons.map(button=>button.text))===JSON.stringify(["复制","钉住","取消"])&&feedback.sizeFullyVisible&&feedback.size===feedback.region.width+" × "+feedback.region.height,"actual capture size and all three action controls remain fully visible: "+label,feedback);
     const selected={...feedback.region,x:feedback.region.x+captureOrigin.x,y:feedback.region.y+captureOrigin.y};
     d.assert(selected.x>=source.visible.x&&selected.y>=source.visible.y&&selected.x+selected.width<=source.visible.x+source.visible.width&&selected.y+selected.height<=source.visible.y+source.visible.height,"actual rounded overlay selection remains wholly inside the measured source: "+label,{selected,source});
     const expected=purePixels({mode:"describe",original:original.path,source,selected}).value;
@@ -178,7 +177,7 @@ const b=size.getBoundingClientRect();return {region,size:size.textContent.trim()
   };
   const capture=async(label,readSource,action)=>{
     const sample=await beginSelection(label,readSource);
-    await workflow.readyClick("//div[contains(@class,'capture-tools')]//button[normalize-space()='"+(action==="copy"?"复制":"钉住")+"']");
+    await workflow.readyClick("//div[contains(@class,'capture-tools')]//*[@role='toolbar' and @aria-label='截图']//button["+named(action==="copy"?"复制":"钉住")+"]");
     await waitCaptureGone(sample);
     if(action==="copy") {
       sample.afterClipboard=await until("original copy commits a new stable real clipboard image: "+label,()=>{const value=clipboardMetadata();return value.stableSequence&&value.sequence!==sample.beforeClipboard.sequence?value:null;});
@@ -248,12 +247,12 @@ const b=size.getBoundingClientRect();return {region,size:size.textContent.trim()
   const restored=await until("actual wall width restored",()=>d.exec("const width=document.querySelector('.wall').clientWidth;return width===arguments[0]?width:null;",[widthBefore]));
   state.reflow={widthBefore,collapsed,restored,source:reflow.source};save();
   await prepareWall();await workflow.readyClick("//*[@role='option' and @data-id="+literal(workflow.targetA.contentId)+"]");
-  await workflow.readyClick("//*[@aria-label='原图查看器']//button[normalize-space()='适应窗口']");
+  await workflow.readyClick("//*[@aria-label='原图查看器']//*[@role='toolbar' and @aria-label='查看工具']//button["+named("适应窗口")+"]");
   const viewerSource=async()=>{await d.main();return until("actual fitted A viewer original is decoded",()=>paintedGeometry("viewer"));};
   const viewer=await capture("viewer-copy",viewerSource,"copy");
   d.assert(viewer.source.thumbnail.width<original.width,"the real viewer uses its fitted derivative while copy reads original pixels",viewer.source.thumbnail);
   await capture("viewer-pin",viewerSource,"pin");
-  await workflow.readyClick("//*[@aria-label='原图查看器']//button[normalize-space()='返回图片墙']");
+  await workflow.readyClick("//*[@aria-label='原图查看器']//button[@aria-label='返回图片墙']");
   await until("viewer close returns focus to the same real original card",()=>d.exec("return !document.querySelector('[aria-label=原图查看器]')&&document.activeElement?.dataset.id===arguments[0];",[workflow.targetA.contentId]));
 
   // B remains a distinct source although its original content is identical to A.

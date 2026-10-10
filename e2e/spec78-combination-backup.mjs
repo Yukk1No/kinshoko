@@ -6,7 +6,8 @@ import { join, relative } from "node:path";
 import { sha256 } from "./spec78-combination-fixture.mjs";
 import { until } from "./spec78-combination-driver.mjs";
 
-const section="//section[@aria-label='资料库备份']";
+// #98: 设置 › 备份 has 图库 (content) and 偏好设置 (program settings) sections.
+const section="//section[@aria-label='图库备份']",preferences="//section[@aria-label='偏好设置备份']";
 export function originalHashes(root) {
   const files={};
   function walk(path) { for(const name of readdirSync(path).sort()) { const child=join(path,name);if(statSync(child).isDirectory())walk(child);else files[relative(root,child).replaceAll("\\","/")]=sha256(readFileSync(child)); } }
@@ -30,24 +31,25 @@ export async function providerFacts(workflow,library,target) {
   return {detail:inspection.detail,tags:inspection.tags,sidebar:await d.invoke("workspace_sidebar",{libraryId:library.id,safeMode:true}),originals:originalHashes(library.root)};
 }
 export async function exportSettings(workflow,path) {
-  const d=workflow.d;await workflow.settings();await d.set("//input[@aria-label='程序设置备份文件']",path);
-  await workflow.readyClick("//button[normalize-space()='备份当前程序设置']");
-  await until("actual program settings file saved",()=>d.exec("return document.querySelector('fieldset[aria-label=程序设置备份]')?.textContent.includes('程序设置备份完成。');"));
+  const d=workflow.d;await workflow.settings("备份");await d.set(`${preferences}//input[@aria-label='偏好设置备份文件']`,path);
+  await workflow.readyClick(`${preferences}//button[normalize-space()='导出']`);
+  await until("actual program settings file saved",()=>d.exec("return document.querySelector('section[aria-label=偏好设置备份]')?.textContent.includes('偏好设置已导出。');"));
   return JSON.parse(readFileSync(path,"utf8"));
 }
 export async function replaceSettings(workflow,path,label) {
-  const d=workflow.d;await workflow.settings();await d.set("//input[@aria-label='程序设置备份文件']",path);
-  d.assert(!await d.exec("return !!document.querySelector('[role=group][aria-label=确认替换程序设置]');"),"replacement first requires reading the selected package: "+label);
-  await workflow.readyClick("//button[normalize-space()='读取程序设置备份']");
-  await until("actual replacement scope shown",()=>d.exec("return document.querySelector('[role=group][aria-label=确认替换程序设置]')?.textContent.includes('缺席的名称偏好和个人规则会删除');"));
+  const d=workflow.d;await workflow.settings("备份");await d.set(`${preferences}//input[@aria-label='偏好设置备份文件']`,path);
+  d.assert(!await d.exec("return !!document.querySelector('[role=group][aria-label=确认替换偏好设置]');"),"replacement first requires reading the selected package: "+label);
+  await workflow.readyClick(`${preferences}//button[normalize-space()='读取']`);
+  await until("actual replacement scope shown",()=>d.exec("return document.querySelector('[role=group][aria-label=确认替换偏好设置]')?.textContent.includes('备份里没有的名称偏好和相近规则会删除');"));
   await d.screenshot(label+"-program-settings-scope.png");
-  await workflow.readyClick("//button[normalize-space()='替换程序设置']");
-  await until("program settings replacement really completes",()=>d.exec("return document.querySelector('fieldset[aria-label=程序设置备份]')?.textContent.includes('程序设置恢复完成。');"));
-  d.assert(!await d.exec("return !!document.querySelector('fieldset[aria-label=程序设置备份] [role=alert]');"),"replacement reports no runtime registration errors: "+label);
+  await workflow.readyClick(`${preferences}//button[normalize-space()='替换偏好设置']`);
+  await until("program settings replacement really completes",()=>d.exec("return document.querySelector('section[aria-label=偏好设置备份]')?.textContent.includes('偏好设置已恢复。');"));
+  d.assert(!await d.exec("return !!document.querySelector('section[aria-label=偏好设置备份] [role=alert]');"),"replacement reports no runtime registration errors: "+label);
 }
 export async function chooseBackup(workflow,path) {
-  const d=workflow.d;mkdirSync(path,{recursive:true});await workflow.settings();
-  await d.pick(path);await workflow.readyClick(`${section}//button[normalize-space()='选择备份目录…']`);
+  const d=workflow.d;mkdirSync(path,{recursive:true});await workflow.settings("备份");
+  // 备份位置: 选择… before a target exists, 更换 afterwards.
+  await d.pick(path);await workflow.readyClick(`${section}//li[@aria-label='备份位置']//button[normalize-space()='选择…' or normalize-space()='更换']`);
   await until("content backup destination is actually saved",async()=>(await d.invoke("backup_status",{},null)).plan.target===path);
 }
 function provenance(libraries) {
@@ -60,7 +62,8 @@ export async function restoreContent(workflow,backup,into,label) {
   const d=workflow.d;mkdirSync(into,{recursive:true});await chooseBackup(workflow,backup.directory);
   const beforeLibraries=new Set((await d.invoke("registered_libraries")).map(entry=>entry.library.id));
   const beforeGroups=new Set((await d.invoke("reference_groups",{},"desktop")).map(group=>group.id));
-  await workflow.readyClick(`${section}//button[normalize-space()='从备份恢复…']`);
+  // 恢复图库 › 选择备份… lists the snapshots; the chosen 恢复 … button then asks for the target folder.
+  await workflow.readyClick(`${section}//button[normalize-space()='选择备份…']`);
   await d.pick(into);
   // There is exactly one snapshot in this new target. The public status binds its ID.
   const snapshots=await d.invoke("backup_snapshots",{},null);
@@ -69,7 +72,7 @@ export async function restoreContent(workflow,backup,into,label) {
   const completed=await until("rendered roundtrip plus actual new providers and groups: "+label,async()=>{
     const libraries=(await d.invoke("registered_libraries")).filter(entry=>!beforeLibraries.has(entry.library.id)).map(entry=>entry.library);
     const groups=(await d.invoke("reference_groups",{},"desktop")).filter(group=>!beforeGroups.has(group.id));
-    const rendered=await d.exec("const result=document.querySelector('[aria-label=往返检查]');return result?.textContent.includes('往返检查通过')&&[...document.querySelectorAll('.backup-snapshots button')].every(button=>!button.matches(':disabled'))?result.textContent:null;");
+    const rendered=await d.exec("const result=document.querySelector('[aria-label=恢复结果]'),status=result?.querySelector('[role=status]');return status?.textContent.includes('完整')&&status.textContent.includes('一致。')&&!result.querySelector('[role=alert]')&&[...document.querySelectorAll('.backup-snapshots button')].every(button=>!button.matches(':disabled'))?result.textContent:null;");
     return libraries.length===backup.preview.scope.libraries.length&&groups.length===backup.preview.scope.groups.length&&rendered?{libraries,groups,rendered}:null;
   },90000);
   const libraries=provenance(completed.libraries).map(entry=>{
@@ -90,7 +93,7 @@ export async function restoreContent(workflow,backup,into,label) {
     });
     d.assert(matches,"restored group remaps provider IDs and preserves original, crop and layout: "+label,{original,restored:group});groups.push(group);
   }
-  await d.exec("document.querySelector('[aria-label=往返检查]')?.scrollIntoView({block:'center'});");
+  await d.exec("document.querySelector('[aria-label=恢复结果]')?.scrollIntoView({block:'center'});");
   await d.screenshot(label+"-content-roundtrip.png");
   const result={...completed,libraries,groups};d.save(label+"-content-restore.json",result);return result;
 }
@@ -108,13 +111,13 @@ export async function combinedBackups(workflow) {
   const groups=[];for(const summary of await d.invoke("reference_groups",{},"desktop"))groups.push((await d.invoke("reference_group",{groupId:summary.id},"desktop")).group);
   const expectedCount=Object.values(originals).reduce((count,files)=>count+Object.keys(files).length,0);
   d.assert(preview.scope.libraries.length===2&&preview.scope.libraries.every(item=>[workflow.a.id,workflow.b.id].includes(item.id))&&preview.scope.groups.length===groups.length&&preview.estimate.originals===expectedCount&&preview.scope.uncovered.length===0,"actual content preview covers both current providers, their groups and every original",{preview,expectedCount});
-  d.assert(await d.exec("return document.querySelector('[aria-label=资料库备份]')?.textContent.includes('恢复资料库保留当前程序设置');"),"formal content backup states its settings preservation boundary");
-  await workflow.readyClick(`${section}//button[normalize-space()='马上备份']`);
+  d.assert(await d.exec("return document.querySelector('section[aria-label=图库备份]')?.textContent.includes('恢复不改当前设置');"),"formal content backup states its settings preservation boundary");
+  await workflow.readyClick(`${section}//button[normalize-space()='立即备份']`);
   const report=await until("actual content backup completes",async()=>{const status=await d.invoke("backup_status",{},null);return !status.running&&status.lastReport?.complete?status.lastReport:null;},90000);
   const uniqueOriginals=new Set(Object.values(originals).flatMap(files=>Object.values(files))).size;
   d.assert(report.problems.length===0&&report.skipped.length===0&&report.copied===uniqueOriginals&&report.copied+report.reused===expectedCount,"content backup completes without skips and stores byte-identical originals once",{report,uniqueOriginals});
   const backup={directory,preview,report,originals,groups};d.save("content-backup-baseline.json",backup);
-  await until("rendered content backup success with scope and settings boundary",()=>d.exec("const s=document.querySelector('section[aria-label=资料库备份]');if(!s||!s.textContent.includes('上次备份：')||s.textContent.includes('正在备份'))return null;s.scrollIntoView({block:'start'});return true;"));
+  await until("rendered content backup success with scope and settings boundary",()=>d.exec("const s=document.querySelector('section[aria-label=图库备份]');if(!s||!s.textContent.includes('已备份')||s.textContent.includes('正在备份')||s.querySelector('[role=alert]'))return null;s.scrollIntoView({block:'start'});return true;"));
   await d.screenshot("07c-content-backup-complete.png");
   await workflow.closeSettings();
   // Image curation after the backup must survive the later program-settings replacement.
@@ -139,7 +142,7 @@ export async function combinedBackups(workflow) {
   d.assert(await d.invoke("safe_mode")===true,"program replacement keeps the saved global safe mode");
   d.assert(JSON.stringify(await programChoices(workflow))===JSON.stringify(savedChoices),"default program replacement removes absent preferences, groups and rules instead of merging later choices");
   d.assert(JSON.stringify(await d.invoke("registered_libraries"))===JSON.stringify(beforeRegistration),"program replacement preserves this device's current original and restored provider registrations");
-  await d.exec("document.querySelector('fieldset[aria-label=程序设置备份]').scrollIntoView({block:'center'});");
+  await d.exec("document.querySelector('section[aria-label=偏好设置备份]').scrollIntoView({block:'center'});");
   await d.screenshot("09b-program-settings-restored-feedback.png");
   await workflow.closeSettings();
   const providerAfter=[await providerFacts(workflow,workflow.a,workflow.targetA),await providerFacts(workflow,workflow.b,workflow.targetB)];

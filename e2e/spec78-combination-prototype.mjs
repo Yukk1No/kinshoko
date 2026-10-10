@@ -5,7 +5,7 @@ import { constants, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSy
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { until } from "./spec78-combination-driver.mjs";
-import { literal } from "./spec78-combination-workflow.mjs";
+import { literal, named } from "./spec78-combination-workflow.mjs";
 import { fileRecord, ownedWork, readJson, sourceRecord } from "./spec78-combination-preflight.mjs";
 
 export const ACCEPTED_PROTOTYPE="bd8aea44c4a311571ee3c07382cb7755f87f3153";
@@ -208,9 +208,9 @@ export async function freezeFormalPrototypePacket(workflow,plan) {
   const save=()=>writeFileSync(path,JSON.stringify(packet,null,2));save();
   workflow.state.prototypePacket={path,status:packet.status};workflow.save();
   await d.main();await workflow.current(libraryId);await workflow.scope(libraryId);await workflow.clearSearch();
-  if(await d.exec("return document.querySelector('[aria-label=导入参考图]')?.getAttribute('aria-expanded')==='true';"))await workflow.readyClick("//button[@aria-label='导入参考图']");
+  await workflow.closeMenu();
   d.assert(await d.invoke("safe_mode")===true&&d.session===session,"prototype input comes from the same A/B session with global safe mode on");
-  packet.selectedScope=await d.exec("const provider=[...document.querySelectorAll('[data-library-id]')].find(node=>node.dataset.libraryId===arguments[0]);return {rootCurrent:provider?.querySelector('.workspace-provider-root button.sidebar-item')?.getAttribute('aria-current'),conditionCount:document.querySelectorAll('[aria-label=查找条件] button[aria-label=去掉这个条件]').length,search:document.querySelector('input[aria-label=查找参考图]')?.value,current:document.querySelector('select[aria-label=当前资料库]')?.value};",[libraryId]);
+  packet.selectedScope=await d.exec("const provider=[...document.querySelectorAll('[data-library-id]')].find(node=>node.dataset.libraryId===arguments[0]);return {rootCurrent:provider?.querySelector('.workspace-provider-root button.sidebar-item')?.getAttribute('aria-current'),conditionCount:document.querySelectorAll('[aria-label=查找条件] button[aria-label=去掉这个条件]').length,search:document.querySelector('input[aria-label=查找参考图]')?.value,current:document.querySelector('button[aria-label^=\"当前图库：\"]')?.getAttribute('aria-label')};",[libraryId]);
   d.assert(packet.selectedScope.rootCurrent==="page"&&packet.selectedScope.conditionCount===0&&packet.selectedScope.search==="","actual controls select the complete A scope with no search conditions",packet.selectedScope);
   let cursor=null;
   do {
@@ -235,7 +235,7 @@ export async function freezeFormalPrototypePacket(workflow,plan) {
   baseline.tasks.initial={observation:baseline.initial,screenshot:await shot(d,"prototype-formal-wall")};
   baseline.reading=await reveal(d,id);
   await workflow.readyClick("//*[@role='option' and @data-id="+literal(id)+"]");
-  await workflow.readyClick("//*[@aria-label='原图查看器']//button[normalize-space()='适应窗口']");
+  await workflow.readyClick("//*[@aria-label='原图查看器']//*[@role='toolbar' and @aria-label='查看工具']//button["+named("适应窗口")+"]");
   baseline.tasks.viewer={observation:await until("formal fitted viewer painted",()=>d.exec(viewerObservationScript)),screenshot:await shot(d,"prototype-formal-viewer")};
   await d.key("\uE00C");
   await until("formal single click return focus",()=>d.exec("return !document.querySelector('.viewer')&&document.activeElement?.dataset.id===arguments[0];",[id]));
