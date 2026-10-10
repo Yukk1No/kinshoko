@@ -211,3 +211,36 @@
 .topbar > .search .search-exact { flex: none; white-space: nowrap; }
 @container main (max-width: 760px) { .bar-meta .density { display: none; } }
 @container main (max-width: 600px) { .bar-meta { display: none; } }
+
+/* 详情面板的标签与备注（#98）：现有标签是小标签，悬停或聚焦露出操作；一个加标签字段（类别 + 输入）。 */
+.k-tags { gap: 8px; font-size: 12px; }
+.k-tags .k-tag-chips { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+.k-tags .k-tag-chip { position: relative; display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 6px; min-height: 26px; padding: 0 9px; border-radius: 7px; background: var(--surface-2); color: var(--ink); }
+.k-tags .k-tag-chip.is-manual { background: var(--accent-soft); color: var(--accent-strong); }
+.k-tags .k-tag-chip .tag-name { font-weight: 500; white-space: nowrap; }
+.k-tags .k-tag-from { display: inline-flex; gap: 4px; color: var(--ink-3); font-size: 11px; opacity: 1; white-space: nowrap; }
+.k-tags .k-tag-chip.is-manual .k-tag-from { color: color-mix(in srgb, var(--accent-strong) 70%, transparent); }
+/* 收起时宽度为 0 但仍可用 Tab 聚焦；聚焦或悬停时展开。 */
+.k-tags .k-tag-acts { display: inline-flex; max-width: 0; overflow: hidden; opacity: 0; margin: 0 -5px 0 -6px; gap: 0; transition: max-width 140ms, opacity 140ms; }
+.k-tags .k-tag-chip:hover .k-tag-acts, .k-tags .k-tag-chip:focus-within .k-tag-acts { max-width: 72px; opacity: 1; margin-left: 0; }
+@media (hover: none) { .k-tags .k-tag-acts { max-width: 72px; opacity: 1; margin-left: 0; } }
+@media (prefers-reduced-motion: reduce) { .k-tags .k-tag-acts { transition: none; } }
+.k-tags .k-tag-acts .k-icon-btn { font-size: 12px; padding: 0; color: inherit; }
+.k-tags .k-tags-empty { color: var(--ink-3); background: none; padding: 0; }
+.k-tags .k-tags-sub { margin: 2px 0 -2px; color: var(--ink-3); font-size: 11px; }
+.k-tags .k-tag-chip.is-rejected { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-3); }
+.k-tags .k-tag-chip.is-rejected .tag-name { text-decoration: line-through; opacity: 1; font-weight: 400; }
+.k-tags .k-tag-restore { height: 20px; padding: 0 6px; border: 0; border-radius: 5px; background: none; color: var(--accent-strong); font: inherit; font-size: 11px; }
+.k-tags .k-tag-restore:hover { background: var(--accent-soft); }
+.k-tags .k-tag-add { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+.k-tag-field { display: flex; align-items: center; height: 34px; border-radius: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); }
+.k-tag-field:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px var(--accent-soft); }
+.k-tags .k-tag-field .k-tag-kind { flex: none; height: 26px; margin-left: 4px; padding: 0 22px 0 8px; border: 0; border-radius: 7px; background: var(--surface-2); color: var(--ink-2); font: inherit; font-size: 12px; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: right 10px top 12px, right 6px top 12px; background-size: 4px 4px; background-repeat: no-repeat; }
+.k-tags .k-tag-field input { flex: 1; min-width: 0; height: 32px; padding: 0 10px; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 12px; outline: 0; }
+.k-tags .k-tag-add-acts { display: flex; gap: 6px; margin: 0; }
+.k-tag-alias { gap: 8px; padding: 10px; border: 0; border-radius: 12px; background: var(--sunken); }
+.k-tag-alias .k-tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.k-tag-alias .k-tag-chips li { display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 3px 0 8px; border-radius: 6px; background: var(--surface); }
+.k-tag-alias-acts { display: flex; gap: 6px; justify-content: flex-end; }
+.k-note .k-note-acts { display: flex; gap: 4px; justify-content: flex-end; margin-top: 6px; }

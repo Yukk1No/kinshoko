@@ -123,30 +123,32 @@ function Detail({
               onClick={() => edit([{ kind: "removeFromFolder", folderId: folder.id }])}><X size={11} aria-hidden="true" /></button>}</li>)}</ul>
           : <p className="insp-hint">不在任何文件夹里</p>}
       </section>
-      <section className="insp-sec">
+      {/* 备注（#98）：字段用改版样式；有未保存的改动才出现“保存”，有自己写的备注才能“用来源的”。 */}
+      <section className="insp-sec k-note">
         <label className="selection-note">
           <span className="insp-h">备注{manual === null && sources.length > 0 ? "（来自来源）" : ""}</span>
-          <textarea aria-label="备注" value={draft} rows={3} onChange={(e) => setDraft(e.target.value)} />
+          <textarea className="k-textarea" aria-label="备注" placeholder="写点什么，例如看哪里" value={draft} rows={3} onChange={(e) => setDraft(e.target.value)} />
         </label>
-        <div className="selection-actions">
-          <button
+        {(draft !== saved || manual !== null) && <div className="selection-actions k-note-acts">
+          {draft !== saved && <button
             type="button"
-            className="k-btn is-sm"
-            disabled={draft === saved}
+            className="k-btn is-sm is-quiet"
+            aria-label="保存备注"
             onClick={() => edit([{ kind: "setNote", text: draft }])}
           >
-            保存备注
-          </button>
+            保存
+          </button>}
           <button
             type="button"
-            className="k-btn is-sm"
+            className="k-btn is-sm is-ghost"
+            aria-label="退回来源备注"
             disabled={manual === null}
             title={sources.length ? "改回来源提供的备注" : "来源没有提供备注，退回后备注为空"}
             onClick={() => edit([{ kind: "revertNote" }])}
           >
-            退回来源备注
+            用来源的
           </button>
-        </div>
+        </div>}
       </section>
       {detail.sourceLinks?.length > 0 && (
         <ul className="insp-links" aria-label="来源链接">
