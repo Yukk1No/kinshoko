@@ -2,7 +2,7 @@
 // Import-safe. Only --run with a new exact root grant can observe Windows or install.
 // Old top-level private-upgrade.mjs is a source reference, never an imported runner.
 import {spawn,spawnSync} from "node:child_process";
-import {closeSync,constants,copyFileSync,existsSync,mkdirSync,openSync,readFileSync,unlinkSync,writeFileSync} from "node:fs";
+import {closeSync,constants,copyFileSync,existsSync,mkdirSync,openSync,readFileSync,readdirSync,rmdirSync,statSync,unlinkSync,writeFileSync} from "node:fs";
 import {basename,dirname,isAbsolute,join,relative,resolve,sep} from "node:path";
 import {release as windowsRelease} from "node:os";
 import {deflateSync} from "node:zlib";
@@ -45,8 +45,11 @@ export function selectSpawnLineage(snapshot,spawned,historical=[],allowed=null) 
   }
   fail("Unexpected cyclic process ancestry");
 }
+// r3: WebView2 starts %SystemRoot%\System32\conhost.exe under its own process. It is accepted only by
+// exact system path, and only through the same verified parent/creation lineage as every descendant.
+export const consoleHost=()=>join(process.env.SystemRoot??fail("SystemRoot is unknown"),"System32","conhost.exe");
 export function classifyInstallationProcesses(snapshot,binding,historical=[]) {
-  const allowed=new Set([binding.application,binding.tauriDriver,binding.edgeDriver,binding.webviewBinary].map(norm)),processes=selectSpawnLineage(snapshot,binding.spawned??[],historical,allowed),selected=new Set(processes.map(item=>item.pid)),collisions=[];
+  const allowed=new Set([binding.application,binding.tauriDriver,binding.edgeDriver,binding.webviewBinary,consoleHost()].map(norm)),processes=selectSpawnLineage(snapshot,binding.spawned??[],historical,allowed),selected=new Set(processes.map(item=>item.pid)),collisions=[];
   for(const item of processes)if(norm(item.executable)===norm(binding.webviewBinary)&&!profileMatches(item,binding.profile))fail("A descended WebView has an unconfirmed profile; do not close it or restore settings");
   for(const item of snapshot.processes){if(selected.has(item.pid))continue;const tokens=commandTokens(item.commandLine),path=norm(item.executable);let reason;
     if(path===norm(binding.application))reason="foreign-exact-installed-app";
@@ -106,6 +109,10 @@ try{$key=$cu.OpenSubKey($path,$false);if($null -eq $key){'{"removed":false,"abse
  $cu.DeleteSubKey($path);@{removed=$true;absent=$true;value=$value} | ConvertTo-Json -Compress
 }finally{$cu.Dispose()}
 `;
+export const localDataScript=String.raw`
+$ErrorActionPreference='Stop'
+Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)) $env:KINSHOKO_T20_IDENTIFIER | ConvertTo-Json -Compress
+`;
 export const installedVersionScript=String.raw`
 $ErrorActionPreference='Stop'
 $item=Get-Item -LiteralPath $env:KINSHOKO_T20_INSTALLED_EXE -ErrorAction Stop
@@ -155,6 +162,12 @@ function restoreAliases(plan,initial,boundary) {
   else if(after.requested.exists||after.resolved.exists||norm(initial.state.requested.path)!==norm(after.requested.path))fail("Initially absent isolated settings were not restored to absence");
   return {initial:initial.state,current,after,canonicalMappingMayChangeWhileAbsent:!initial.state.requested.exists};
 }
+// The installed app creates %LOCALAPPDATA%\<identifier> through the KnownFolder API (env overrides do not
+// apply). Observe it; at the end remove it only if it was absent before and is still empty.
+function localDataState(plan){const path=powershell(plan,localDataScript,{KINSHOKO_T20_IDENTIFIER:identity});if(!isAbsolute(path)||basename(path)!==identity)fail("Unexpected isolated local data path");const exists=existsSync(path);return {path,exists,entries:exists?readdirSync(path):[]};}
+function restoreLocalData(plan,initial){const current=localDataState(plan);if(initial.exists){if(!current.exists)fail("Pre-existing isolated local data disappeared");return {initial,current,removed:false};}
+  if(current.exists){if(current.entries.length||!statSync(current.path).isDirectory())fail("Isolated local data created during the run is not empty; preserve it");rmdirSync(current.path);}
+  const after=localDataState(plan);if(after.exists)fail("Isolated local data directory remains");return {initial,current,after,removed:current.exists};}
 export class InstalledLifecycleDriver extends CombinationDriver {
   constructor(plan,stage,phase){super({application:stage.application,edgeDriver:plan.runtime.edgeDriver.path,tauriDriver:plan.runtime.tauriDriver.path,work:stage.work,port:4630,data:stage.data,profile:stage.profile});this.plan=plan;this.phase=phase;this.binding={application:this.application,tauriDriver:this.tauriDriver,edgeDriver:this.edgeDriver,webviewBinary:plan.runtime.webviewBinary.path,profile:this.profile,spawned:[]};this.logs=[];}
   querySnapshot(){return powershell(this.plan,installationObservationScript);}
@@ -273,7 +286,7 @@ export async function runInstallationLifecycle(planPath,rootGrant){
   const path=join(plan.work,"installation-lifecycle-result.json");if(existsSync(path))fail("Preserve the prior lifecycle result");mkdirSync(join(plan.work,"settings-preserved"));
   const report={kind:"spec78-t20-actual-installed-clean-and-upgrade",status:"running",startedAt:new Date().toISOString(),plan:fileRecord(planPath),rootGrant,source:plan.source,windows:windowsRelease(),old:plan.old,new:plan.new,actions:[],observations:[],cleanupFailures:[],initialRegistry:null,initialT19:null,initialT20:null,restoration:null,nativeAttempted:false,nativeExecuted:false,installerExecuted:false,windows10:"unverified-owner-accepted-no-device",developerAcceptance:"unverified",colorGate:"independent-existing-results-unchanged",fullT20Acceptance:false};const save=()=>writeFileSync(path,JSON.stringify(report,null,2));save();const round=new InstallationRound(plan,report,save);let failure;
   try{
-    report.initialRegistry=round.registry("initial");if(report.initialRegistry.uninstall.length||report.initialRegistry.product?.exists!==false||report.initialRegistry.run.some(value=>value.name===INSTALLER_IDENTITY.productName&&value.exists))fail("A pre-existing isolated installation/Run entry must be preserved; do not adopt it");report.initialT20=knownFolderState();report.initialT19=snapshotAliases(plan,"initial");round.released();report.blankBefore=clearAliases(plan,report.initialT19,round.released(),()=>{report.settingsTouched=true;save();});save();
+    report.initialRegistry=round.registry("initial");if(report.initialRegistry.uninstall.length||report.initialRegistry.product?.exists!==false||report.initialRegistry.run.some(value=>value.name===INSTALLER_IDENTITY.productName&&value.exists))fail("A pre-existing isolated installation/Run entry must be preserved; do not adopt it");report.initialT20=knownFolderState();report.initialLocalData=localDataState(plan);report.initialT19=snapshotAliases(plan,"initial");round.released();report.blankBefore=clearAliases(plan,report.initialT19,round.released(),()=>{report.settingsTouched=true;save();});save();
     for(const stage of Object.values(plan.stages))mkdirSync(stage.work,{recursive:true});
     const cleanPayload=await round.install("clean-release-install","new",plan.stages.clean);let cleanBefore;
     cleanBefore=await round.native("clean","clean-create-save",async d=>{const saved=await createSavedState(d,plan.stages.clean,false);const runtimeAndUpdate=await currentRuntimeAndUpdate(d);return {...saved,runtimeAndUpdate};});
@@ -287,7 +300,7 @@ export async function runInstallationLifecycle(planPath,rootGrant){
     report.status="actual-clean-and-old-to-new-lifecycles-observed";save();
   }catch(error){failure=error;report.status="failed";report.error=String(error);process.exitCode=1;
   }finally{
-    try{const boundary=round.released();report.finalRelease=boundary;round.registry("final-before-settings-restore");if(report.initialT19&&report.settingsTouched)report.restoration=restoreAliases(plan,report.initialT19,boundary);else if(report.initialT19)knownUnchanged(report.initialT19.state,knownFolderState(identity));if(report.initialT20){report.finalT20=knownFolderState();knownUnchanged(report.initialT20,report.finalT20);}report.finalRegistry=round.registry("final-after-settings-restore");if(report.finalRegistry.uninstall.length||report.finalRegistry.product?.exists)fail("An isolated installation record remains after the lifecycle");}catch(error){report.restorationError=String(error);report.status="failed-release-or-restoration";process.exitCode=1;if(!failure)failure=error;}
+    try{const boundary=round.released();report.finalRelease=boundary;round.registry("final-before-settings-restore");if(report.initialT19&&report.settingsTouched)report.restoration=restoreAliases(plan,report.initialT19,boundary);else if(report.initialT19)knownUnchanged(report.initialT19.state,knownFolderState(identity));if(report.initialLocalData)report.localDataRestoration=restoreLocalData(plan,report.initialLocalData);if(report.initialT20){report.finalT20=knownFolderState();knownUnchanged(report.initialT20,report.finalT20);}report.finalRegistry=round.registry("final-after-settings-restore");if(report.finalRegistry.uninstall.length||report.finalRegistry.product?.exists)fail("An isolated installation record remains after the lifecycle");}catch(error){report.restorationError=String(error);report.status="failed-release-or-restoration";process.exitCode=1;if(!failure)failure=error;}
     try{report.sourceAfter=sourceRecord();sameSnapshot(plan.source,report.sourceAfter,"Source throughout actual installation lifecycle");}catch(error){report.sourceError=String(error);report.status="failed-source-attribution";process.exitCode=1;if(!failure)failure=error;}
     report.finishedAt=new Date().toISOString();save();
   }
