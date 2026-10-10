@@ -1179,36 +1179,22 @@ button.primary {
   background: rgb(0 0 0 / 0.25);
 }
 
+/* 选区外沿用 35% 压暗；没有选区时上面的 25% 遮罩是 T17 冻结像素核对依据，不要改。 */
 .capture-selection {
   position: absolute;
   box-sizing: border-box;
-  outline: 1px solid #e0768f;
+  outline: 1.5px solid #fff;
   box-shadow: 0 0 0 100000px rgb(0 0 0 / 0.35);
 }
 
-.capture-size {
-  position: absolute;
-  left: 0;
-  top: -22px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: rgb(0 0 0 / 0.7);
-  color: #fff;
-  font-size: 12px;
-  white-space: nowrap;
-}
+/* 四角手柄只标出选区边界；改选区仍是重新拖动。 */
+.capture-handle { position: absolute; width: 8px; height: 8px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25); pointer-events: none; }
+.capture-handle.is-tl { left: -4px; top: -4px; }
+.capture-handle.is-tr { right: -4px; top: -4px; }
+.capture-handle.is-bl { left: -4px; bottom: -4px; }
+.capture-handle.is-br { right: -4px; bottom: -4px; }
 
-.capture-tools {
-  position: absolute;
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text);
-  cursor: default;
-  box-shadow: 0 2px 10px rgb(0 0 0 / 0.3);
-}
+.capture-tools { font-family: var(--font); color: var(--ink); }
 
 .capture-tip {
   position: absolute;
@@ -1216,9 +1202,13 @@ button.primary {
   top: 24px;
   transform: translateX(-50%);
   padding: 6px 12px;
-  border-radius: 6px;
-  background: rgb(0 0 0 / 0.7);
-  color: #fff;
+  border-radius: 999px;
+  background: rgb(30 28 44 / 0.72);
+  color: #f4ecdc;
+  font-family: var(--font);
+  font-size: 12px;
+  backdrop-filter: blur(12px);
+  pointer-events: none;
 }
 
 .pin {
