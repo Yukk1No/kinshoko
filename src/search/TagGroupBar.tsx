@@ -1,6 +1,7 @@
 // Adapted from bd8aea4:prototype/reference-browser/src/components/TagGroupBar.tsx.
 // Accepted popovers and condition gestures, backed by the formal library IPC and SearchInput.
 import { useEffect, useRef, useState } from "react";
+import { PenLine } from "lucide-react";
 import type { TagGroupView } from "../bindings/TagGroupView";
 import type { SearchInput } from "../bindings/SearchInput";
 import { tagGroups, workspaceTagGroups } from "../ipc";
@@ -14,6 +15,8 @@ type Props = {
   input: SearchInput;
   onChange: (input: SearchInput) => void;
   onError: (message: string) => void;
+  /** 标签栏右侧的“编辑分组”（#98）：打开分组编辑器。 */
+  onEdit?: () => void;
 };
 
 export function TagGroupBar(p: Props) {
@@ -82,6 +85,7 @@ export function TagGroupBar(p: Props) {
         </div>}
       </div>;
     })}
-    {!groups.length && <span className="groupbar-empty">在侧栏整理标签分组后，可在这里点选标签。</span>}
+    {!groups.length && <span className="groupbar-empty">建好分组后，可在这里点选标签。</span>}
+    {p.onEdit && <button type="button" className="groupbar-edit" onClick={p.onEdit}><PenLine size={13} aria-hidden="true" />编辑分组</button>}
   </div>;
 }

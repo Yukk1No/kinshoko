@@ -18,7 +18,7 @@ it("lists and deletes application rules without an active library",async()=>{
     if(cmd.endsWith("edit_shared_approx")){entries=[];return null;}
     return undefined;
   },{shouldMockEvents:true});
-  render(<SettingsPanel library={null}/>);
+  render(<SettingsPanel library={null} initialTab="tags"/>);fireEvent.click(await screen.findByRole("button",{name:"相近"}));
   const table=await screen.findByRole("table",{name:"个人近似对应表"});
   expect(within(table).getByText(/蓝瞳/)).toBeTruthy();
   fireEvent.click(within(table).getByRole("button",{name:"删除"}));
@@ -46,9 +46,9 @@ it("shows legacy disagreement as pending and submits an explicit conflict choice
   const calls:{cmd:string,args:unknown}[]=[];
   const conflict={a:label("blue","蓝瞳"),b:label("aqua","水色瞳"),current:null,sources:[{libraryId:"A",libraryName:"同名库",libraryRoot:"D:/A",relation:"similar"},{libraryId:"B",libraryName:"同名库",libraryRoot:"E:/B",relation:"notSimilar"}]};
   mockIPC((cmd,args)=>{calls.push({cmd,args});if(cmd==="shell_settings")return defaults;if(cmd.endsWith("safe_mode"))return true;if(cmd.endsWith("workspace_status"))return {revision:"r1",libraries:[]};if(cmd.endsWith("shared_personal_approx"))return {revision:7,entries:[],conflicts:[conflict]};return undefined;},{shouldMockEvents:true});
-  render(<SettingsPanel/>);
+  render(<SettingsPanel initialTab="tags"/>);fireEvent.click(await screen.findByRole("button",{name:"相近"}));
   const group=await screen.findByRole("group",{name:"个人近似规则冲突"});
-  expect(group.textContent).toContain("尚未保存为“不相近”");expect(group.textContent).toContain("D:/A");expect(group.textContent).toContain("E:/B");
+  expect(group.textContent).toContain("还没记成“不相近”");expect(group.textContent).toContain("D:/A");expect(group.textContent).toContain("E:/B");
   fireEvent.click(within(group).getByRole("button",{name:"不采用旧规则"}));
   await waitFor(()=>expect(calls.find(c=>c.cmd.endsWith("edit_shared_approx"))?.args).toEqual({edit:{kind:"resolveConflict",a:"blue",b:"aqua",revision:7,relation:null},safeMode:true}));
 });
@@ -57,8 +57,8 @@ it("does not release a late unsafe rule list after safe mode changes",async()=>{
   let oldStarted=false;
   const old=new Promise(resolve=>{resolveOld=resolve;});
   mockIPC((cmd,args)=>{if(cmd==="shell_settings")return defaults;if(cmd.endsWith("safe_mode"))return false;if(cmd.endsWith("workspace_status"))return {revision:"r1",libraries:[]};if(cmd.endsWith("shared_personal_approx")){if((args as {safeMode:boolean}).safeMode)return {revision:2,entries:[],conflicts:[]};oldStarted=true;return old;}return undefined;},{shouldMockEvents:true});
-  render(<SettingsPanel/>);
-  await screen.findByRole("checkbox",{name:"显示相近标签来源（内置／个人）"});
+  render(<SettingsPanel initialTab="tags"/>);fireEvent.click(await screen.findByRole("button",{name:"相近"}));
+  await screen.findByRole("switch",{name:"标出来源"});
   await waitFor(()=>expect(oldStarted).toBe(true));
   await act(async()=>{await emit("safe-mode-setting",true);});
   await act(async()=>{resolveOld({revision:1,entries:[{a:label("secret","封印旧标签"),b:label("other","另一标签"),relation:"similar",sources:[]}],conflicts:[]});await old;});

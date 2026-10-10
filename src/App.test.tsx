@@ -246,7 +246,7 @@ const push = (event: LibraryEvent) => act(() => emit("library-event", event));
  * 顶栏的导入分体按钮（#98）：“导入图片文件”是左半，文件夹与 Eagle 在“更多导入方式”菜单里。
  * 返回要点击的入口；菜单项需要先打开菜单。
  */
-const importAction = (name: "导入文件…" | "导入文件夹…" | "从 Eagle 迁入…") => {
+const importAction = (name: "导入文件…" | "导入文件夹…" | "从 Eagle 导入…") => {
   if (name === "导入文件…") return screen.getByRole("button", { name: "导入图片文件" });
   fireEvent.click(screen.getByRole("button", { name: "更多导入方式" }));
   return screen.getByRole("menuitem", { name: name === "导入文件夹…" ? /整个文件夹/ : /从 Eagle 导入|正在查找 Eagle/ });
@@ -519,8 +519,8 @@ describe("主窗口", () => {
   });
 
   it.each([
-    ["是搬了家，按原来源重导", { kind: "moved", sourceId: "S1" }],
-    ["是另一个资料库，单独迁入", { kind: "separate" }],
+    ["是同一个库", { kind: "moved", sourceId: "S1" }],
+    ["是另一个库", { kind: "separate" }],
   ])("Eagle 资料库疑似搬家时先问画师（%s），确认后再迁入", async (button, choice) => {
     backend(library);
     render(<App />);
@@ -542,10 +542,10 @@ describe("主窗口", () => {
       },
     });
 
-    const prompt = await screen.findByRole("alert", { name: "Eagle 资料库换了位置？" });
-    expect(within(prompt).getByText(/100% 的条目已经从另一个位置迁入过/)).toBeTruthy();
+    const prompt = await screen.findByRole("alert", { name: "Eagle 库换了位置？" });
+    expect(within(prompt).getByText(/100% 的图已经从另一个位置导入过/)).toBeTruthy();
     fireEvent.click(within(prompt).getByRole("button", { name: button }));
-    fireEvent.click(await screen.findByRole("button", { name: "开始 Eagle 导入" }));
+    fireEvent.click(await screen.findByRole("button", { name: "开始导入" }));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(2));
     expect(sent("plugin:library|confirm_eagle_location")).toEqual([
       { libraryId: "L1", path: "E:\\新\\主库.library", choice },
@@ -556,7 +556,7 @@ describe("主窗口", () => {
       options: { eagleDeletedContent: "skipDeleted" },
       destination:{libraryId:"L1",folderId:null},
     });
-    expect(screen.queryByRole("alert", { name: "Eagle 资料库换了位置？" })).toBeNull();
+    expect(screen.queryByRole("alert", { name: "Eagle 库换了位置？" })).toBeNull();
   });
 
   it("新建资料库页不接受拖放导入，返回当前库后恢复拖放", async () => {
@@ -570,14 +570,14 @@ describe("主窗口", () => {
     const position = { x: 10, y: 10 };
     const paths = ["D:\\参考\\a.png"];
     await act(() => emit("tauri://drag-enter", { paths, position }));
-    expect(screen.getByText("松开即可导入到 工作参考")).toBeTruthy();
+    expect(screen.getByText("松开即可导入，再选放在哪里")).toBeTruthy();
     await libraryAction(/新建图库/);
     await screen.findByLabelText("资料库名称");
     await act(() => emit("tauri://drag-drop", { paths, position }));
     expect(sent("plugin:library|start_import")).toEqual([]);
 
     fireEvent.click(screen.getByRole("button", { name: "返回图库" }));
-    expect(screen.queryByText("松开即可导入到 工作参考")).toBeNull();
+    expect(screen.queryByText("松开即可导入，再选放在哪里")).toBeNull();
     await act(() => emit("tauri://drag-drop", { paths, position }));
     await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toEqual([
@@ -686,8 +686,8 @@ describe("主窗口", () => {
     );
 
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 4 } });
-    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("1");
-    expect(screen.getByText("正在导入 1 / 4")).toBeTruthy();
+    expect(screen.getByRole("progressbar", { name: "导入进度" }).getAttribute("aria-valuenow")).toBe("1");
+    expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 4")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
     await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ libraryId: "L1", taskId: "T1" }]));
 
@@ -729,7 +729,7 @@ describe("主窗口", () => {
     await act(() =>
       emit("tauri://drag-enter", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }),
     );
-    expect(screen.getByText("松开即可导入到 工作参考")).toBeTruthy();
+    expect(screen.getByText("松开即可导入，再选放在哪里")).toBeTruthy();
     await act(() => emit("tauri://drag-drop", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }));
     await confirmImport();
 
@@ -738,7 +738,7 @@ describe("主窗口", () => {
         { libraryId: "L1", source: { paths: ["D:\\图\\a.png", "D:\\一批参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
       ]),
     );
-    expect(screen.queryByText("松开即可导入到 工作参考")).toBeNull();
+    expect(screen.queryByText("松开即可导入，再选放在哪里")).toBeNull();
   });
 
   it("导入结束后可以只重试读取失败的项", async () => {
@@ -863,7 +863,7 @@ describe("导入任务的终态（#76）", () => {
       await response;
     });
 
-    expect(screen.getByText("正在导入 1 / 3")).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 3")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
     await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ libraryId: "L1", taskId: "T1" }]));
   });
@@ -887,7 +887,7 @@ describe("导入任务的终态（#76）", () => {
     await failed("T1");
     await push({ kind: "taskFinished", libraryId: "L2", taskId: "T2", report: { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] } });
 
-    expect(screen.getByText("正在导入 1 / 5")).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 5")).toBeTruthy();
     expect(screen.queryByLabelText("导入结果")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
     await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ libraryId: "L1", taskId: "T2" }]));
@@ -929,8 +929,8 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     return { answer, fail: (reason: string) => failures.push(reason) };
   }
   async function startEagle() {
-    fireEvent.click(importAction("从 Eagle 迁入…"));
-    fireEvent.click(await screen.findByRole("button", { name: "迁入 主库" }));
+    fireEvent.click(importAction("从 Eagle 导入…"));
+    fireEvent.click(await screen.findByRole("button", { name: "导入 主库" }));
     await confirmImport();
   }
   async function startFiles(count: number) {
@@ -971,7 +971,8 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     await finished("T1");
     await answer("T1");
 
-    expect(screen.getByRole("region", { name: "导入结果" })).toBeTruthy();
+    // 标签对应是模态对话框：结果卡留在原处（对话框打开时不在读屏树里）。
+    expect(screen.getByRole("region", { name: "导入结果", hidden: true })).toBeTruthy();
     expect(await screen.findByRole("region", { name: "标签的外部对应" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "完成" }));
     expect(step()).toBeNull();
@@ -1032,7 +1033,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     await startEagle();
     expect(await screen.findByText("无法开始导入：资料库正忙")).toBeTruthy();
     expect(step()).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "开始 Eagle 导入" }));
+    fireEvent.click(screen.getByRole("button", { name: "开始导入" }));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(4));
     await finished("T3");
     await answer("T3");

@@ -19,6 +19,8 @@ import {
   setBackupTarget,
   startBackup,
 } from "./ipc";
+import { Archive, CircleCheck, HardDrive, Library, RotateCcw } from "lucide-react";
+import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 
 /** 本地日期时间，按记录时的时区偏移，例如“2026-10-05 08:00”。 */
 export function stampText(s: Stamp): string {
@@ -34,7 +36,7 @@ function mb(bytes: number): string {
 function uncoveredText(u: Uncovered): string {
   if (u.kind === "unreadableGroup") return `参考组「${u.group.name}」读不懂，无法备份：${u.problem}`;
   return u.libraryName === null
-    ? `参考组「${u.group.name}」引用的资料库没有登记在本设备上，不在这次备份里`
+    ? `参考组「${u.group.name}」引用的图库没在本机打开，不在这次备份里`
     : `参考组「${u.group.name}」引用的「${u.libraryName}」不在这次备份里`;
 }
 
@@ -59,7 +61,7 @@ function useBackupStatus(): [BackupStatus | null, (s: BackupStatus) => void] {
 }
 
 /**
- * 设置里的“资料库备份”一节：备份目录、范围（全部或按库缩小，执行前列出带上的参考组、没覆盖的内容与容量）、
+ * 设置 › 备份 › 图库（原“资料库备份”）：备份目录、范围（全部或按库缩小，执行前列出带上的参考组、没覆盖的内容与容量）、
  * 上次结果、马上备份，以及从快照恢复（恢复后显示往返检查结果）。
  */
 export function BackupSettings() {
@@ -121,84 +123,52 @@ export function BackupSettings() {
   };
 
   return (
-    <section className="settings backup-settings" aria-label="资料库备份">
-      <h2>资料库备份</h2>
-      <p className="settings-hint">备份原图、逐图整理、文件夹、关联参考组和标签定义。恢复资料库保留当前程序设置。名称偏好、标签分组和个人近似规则由程序设置备份保护。</p>
-      {plan.target === null ? (
-        <p className="settings-hint">还没有选择备份目录。选另一块硬盘或移动盘上的文件夹，每天第一次退出或空闲时自动备份一次。</p>
-      ) : (
-        <p className="settings-hint">
-          备份到 <code>{plan.target}</code>
-          {plan.lastSuccess !== null && <>；上次备份：{stampText(plan.lastSuccess)}</>}
-        </p>
-      )}
-      {plan.lastFailure !== null && (
-        <p className="settings-error" role="alert">
-          上次备份没有完成（{stampText(plan.lastFailure.at)}）：{plan.lastFailure.reason}
-        </p>
-      )}
-      {error !== null && (
-        <p className="settings-error" role="alert">
-          {error}
-        </p>
-      )}
-      <p className="settings-actions">
-        <button type="button" onClick={() => void choose().catch((e) => setError(String(e)))}>
-          选择备份目录…
-        </button>
-        <button
-          type="button"
-          disabled={plan.target === null || running !== null}
-          onClick={() => void startBackup().catch((e) => setError(String(e)))}
-        >
-          马上备份
-        </button>
-        {running !== null && (
-          <span role="status">
-            正在备份：原图 {running.done}／{running.total}
-          </span>
-        )}
-      </p>
-      <fieldset className="backup-scope">
-        <legend>范围</legend>
-        <label className="settings-row">
-          <input type="radio" name="backup-scope" checked={narrowed === null} onChange={() => select({ kind: "all" })} />
-          本设备的全部资料库与参考组
-        </label>
-        <label className="settings-row">
-          <input
-            type="radio"
-            name="backup-scope"
-            checked={narrowed !== null}
-            onChange={() => select({ kind: "libraries", ids: [], includeLinked: true })}
-          />
-          只备份所选资料库
-        </label>
-        {narrowed !== null && (
-          <div className="backup-libraries">
-            {libraries.map(({ library }) => (
-              <label key={library.id} className="settings-row">
-                <input
-                  type="checkbox"
-                  checked={narrowed.ids.includes(library.id)}
-                  onChange={(e) => toggleLibrary(library.id, e.currentTarget.checked)}
-                />
-                {library.name}
+    <section className="backup-settings" aria-label="图库备份">
+      <SettingsGroup title="图库">
+        <SettingsRow icon={<HardDrive size={16} />} title="备份位置"
+          desc={plan.target ?? "还没选，最好放在另一块硬盘"} label="备份位置">
+          <button type="button" className="k-btn is-sm" onClick={() => void choose().catch((e) => setError(String(e)))}>
+            {plan.target === null ? "选择…" : "更换"}
+          </button>
+        </SettingsRow>
+        <SettingsRow icon={<Archive size={16} />} title="上次备份"
+          desc={running !== null ? <span role="status">正在备份：原图 {running.done}／{running.total}</span>
+            : plan.lastSuccess !== null ? stampText(plan.lastSuccess) : "还没有备份"}
+          warn={plan.lastFailure !== null && <span role="alert">没有完成（{stampText(plan.lastFailure.at)}）：{plan.lastFailure.reason}</span>}
+          below={plan.target !== null && <p className="k-set-note">每天第一次退出或空闲时自动备份一次。</p>}>
+          {plan.lastFailure === null && plan.lastSuccess !== null && running === null && <StatusPill tone="ok"><CircleCheck size={12} aria-hidden="true" />已备份</StatusPill>}
+          <button type="button" className="k-btn is-sm is-primary" disabled={plan.target === null || running !== null}
+            onClick={() => void startBackup().catch((e) => setError(String(e)))}>立即备份</button>
+        </SettingsRow>
+        <SettingsRow icon={<Library size={16} />} title="备份范围"
+          desc={preview ? `约 ${mb(preview.estimate.totalBytes)}` : "正在估算…"}
+          below={<>
+            {narrowed !== null && <div className="backup-libraries" role="group" aria-label="要备份的图库">
+              {libraries.map(({ library }) => (
+                <label key={library.id} className="k-check">
+                  <input type="checkbox" checked={narrowed.ids.includes(library.id)}
+                    onChange={(e) => toggleLibrary(library.id, e.currentTarget.checked)} />
+                  {library.name}
+                </label>
+              ))}
+              <label className="k-check">
+                <input type="checkbox" checked={narrowed.includeLinked}
+                  onChange={(e) => select({ ...narrowed, includeLinked: e.currentTarget.checked })} />
+                带上参考组引用的图库
               </label>
-            ))}
-            <label className="settings-row">
-              <input
-                type="checkbox"
-                checked={narrowed.includeLinked}
-                onChange={(e) => select({ ...narrowed, includeLinked: e.currentTarget.checked })}
-              />
-              一起备份参考组还引用的资料库
-            </label>
-          </div>
-        )}
-      </fieldset>
-      {preview !== null && <PreviewView preview={preview} />}
-      <RestoreView onError={setError} />
+            </div>}
+            {preview !== null && <PreviewView preview={preview} />}
+          </>}>
+          <select className="k-select" aria-label="备份范围" value={narrowed === null ? "all" : "libraries"}
+            onChange={(e) => select(e.target.value === "all" ? { kind: "all" } : { kind: "libraries", ids: [], includeLinked: true })}>
+            <option value="all">全部图库</option>
+            <option value="libraries">所选图库</option>
+          </select>
+        </SettingsRow>
+        <RestoreView onError={setError} />
+      </SettingsGroup>
+      <p className="k-set-note">含原图、逐图整理、文件夹、参考组和标签定义；恢复不改当前设置。名称、分组和相近规则在下面的偏好设置里。</p>
+      {error !== null && <p className="k-set-error" role="alert">{error}</p>}
     </section>
   );
 }
@@ -206,14 +176,14 @@ export function BackupSettings() {
 function PreviewView({ preview }: { preview: BackupPreview }) {
   const { scope, estimate } = preview;
   return (
-    <div className="backup-preview" aria-label="备份范围">
+    <div className="backup-preview" aria-label="备份内容">
       <p>
-        资料库：{scope.libraries.map((l) => l.name).join("、") || "无"}；参考组：
+        图库：{scope.libraries.map((l) => l.name).join("、") || "无"}；参考组：
         {scope.groups.map((g) => g.name).join("、") || "无"}
       </p>
       <p>
-        约 {mb(estimate.totalBytes)}，这次新写入 {mb(estimate.newBytes)}（新原图 {estimate.newOriginals} 张）
-        {!preview.targetAvailable && "。备份目录现在不在，按全部需要复制估计"}
+        共约 {mb(estimate.totalBytes)}，这次新写入 {mb(estimate.newBytes)}（新原图 {estimate.newOriginals} 张）
+        {!preview.targetAvailable && "。备份位置现在不在，按全部需要复制估计"}
       </p>
       {(scope.uncovered.length > 0 || estimate.unavailable.length > 0) && (
         <ul className="backup-uncovered" aria-label="没覆盖的内容">
@@ -253,38 +223,26 @@ function RestoreView({ onError }: { onError: (message: string) => void }) {
   };
 
   return (
-    <div className="backup-restore">
-      <p className="settings-actions">
-        <button type="button" onClick={() => void list()}>
-          从备份恢复…
-        </button>
-      </p>
-      {snapshots !== null && snapshots.length === 0 && <p className="settings-hint">备份目录里还没有完整的快照。</p>}
-      {snapshots !== null && snapshots.length > 0 && (
-        <>
-          <p className="settings-hint">
-            恢复出的是独立的资料库与参考组副本，登记到本设备，不覆盖现在的资料库与参考组。选一个快照，再选放恢复出的资料库的文件夹。
-          </p>
+    <SettingsRow icon={<RotateCcw size={16} />} title="恢复图库" desc="恢复为新图库，不覆盖现有" className="backup-restore"
+      below={(snapshots !== null || busy || report !== null) && <>
+        {snapshots !== null && snapshots.length === 0 && <p className="k-set-note">备份位置里还没有完整的备份。</p>}
+        {snapshots !== null && snapshots.length > 0 && <>
+          <p className="k-set-note">选一份备份，再选放恢复出的图库的文件夹。恢复出的是独立副本，不覆盖现在的图库与参考组。</p>
           <ul className="backup-snapshots">
             {snapshots.map((s) => (
               <li key={s.id}>
-                <button
-                  type="button"
-                  disabled={busy}
-                  aria-label={`恢复 ${stampText(s.createdAt)} 的快照`}
-                  onClick={() => void restore(s)}
-                >
-                  {stampText(s.createdAt)}
-                </button>{" "}
-                资料库 {s.libraries.map((l) => l.name).join("、") || "无"}，参考组 {s.groups.length} 个
+                <button type="button" className="k-btn is-sm" disabled={busy} aria-label={`恢复 ${stampText(s.createdAt)} 的备份`}
+                  onClick={() => void restore(s)}>{stampText(s.createdAt)}</button>
+                <span>图库 {s.libraries.map((l) => l.name).join("、") || "无"}，参考组 {s.groups.length} 个</span>
               </li>
             ))}
           </ul>
-        </>
-      )}
-      {busy && <p role="status">正在恢复并运行往返检查…</p>}
-      {report !== null && <RestoreResult report={report} />}
-    </div>
+        </>}
+        {busy && <p role="status">正在恢复并核对…</p>}
+        {report !== null && <RestoreResult report={report} />}
+      </>}>
+      <button type="button" className="k-btn is-sm" onClick={() => void list()}>选择备份…</button>
+    </SettingsRow>
   );
 }
 
@@ -292,10 +250,10 @@ function RestoreResult({ report }: { report: RestoreReport }) {
   const { check } = report;
   const problems = [...check.originals.problems, ...check.curation.problems, ...check.groups.problems];
   return (
-    <div className="backup-result" aria-label="往返检查">
+    <div className="backup-result" aria-label="恢复结果">
       <p role={problems.length === 0 ? "status" : "alert"}>
-        {problems.length === 0 ? "往返检查通过" : "往返检查发现问题"}：原图 {check.originals.checked} 张哈希一致、整理信息{" "}
-        {check.curation.checked} 张表、参考组 {check.groups.checked} 个
+        <StatusPill tone={problems.length === 0 ? "ok" : "warn"}>{problems.length === 0 ? "完整" : "有问题"}</StatusPill>{" "}
+        原图 {check.originals.checked} 张哈希一致、整理信息 {check.curation.checked} 张表、参考组 {check.groups.checked} 个
         {problems.length === 0 ? "一致。" : "已核对。"}
       </p>
       {problems.length > 0 && (
@@ -306,7 +264,7 @@ function RestoreResult({ report }: { report: RestoreReport }) {
         </ul>
       )}
       <p>
-        恢复出的资料库：{report.libraries.map((l) => l.library.name).join("、") || "无"}（已登记，可从资料库列表打开）；参考组：
+        恢复出的图库：{report.libraries.map((l) => l.library.name).join("、") || "无"}（可从图库菜单打开）；参考组：
         {report.groups.map((g) => g.name).join("、") || "无"}
       </p>
     </div>

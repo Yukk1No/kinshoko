@@ -61,6 +61,7 @@ describe("设置中的更新方式", () => {
     } : null);
     render(<UpdateSection />);
 
+    fireEvent.click(await screen.findByRole("button", { name: "查看步骤" }));
     expect(await screen.findByText("当前使用安装包手动更新。")).toBeTruthy();
     expect(screen.getByText(/从托盘退出 Kinshoko/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "检查更新" })).toBeNull();

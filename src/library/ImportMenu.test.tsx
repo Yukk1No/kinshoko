@@ -30,13 +30,14 @@ describe("导入回执上下文撤销", () => {
       }, { shouldMockEvents: true });
       render(menu());
       const region = await screen.findByRole("region", { name: "导入结果" });
-      expect(region.textContent).toContain("合并 1");
+      expect(region.textContent).toContain("已存在 1");
+      expect(region.textContent).toContain("更新 1");
       await waitFor(() => expect(calls).toBe(2));
       await act(() => emit(event, payload));
-      expect(region.textContent).not.toMatch(/新增|合并|更新 Eagle/);
+      expect(region.textContent).not.toMatch(/新增|已存在|更新/);
       expect(region.textContent).toContain("missing.png");
       await act(async () => { release([receipt]); await pending; });
-      expect(region.textContent).not.toMatch(/新增|合并|更新 Eagle/);
+      expect(region.textContent).not.toMatch(/新增|已存在|更新/);
       expect(region.textContent).not.toContain("sealed-name");
       expect(region.textContent).toContain("missing.png");
     });
@@ -69,7 +70,8 @@ for (const phase of ["已显示图片", "读取尚未完成"] as const) it(`当�
   HTMLDialogElement.prototype.close = function() { this.removeAttribute("open"); };
   const current = (libraryId: string) => <ImportMenu enabled libraryId={libraryId} libraryName="当前资料库" running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} />;
   const { rerender } = render(current("L1"));
-  fireEvent.click(await screen.findByRole("button", { name: "展开本次重复项" }));
+  expect(await screen.findByText("有成人图与已有的重复")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "看看本次重复项" }));
   if (phase === "已显示图片") expect(await screen.findByRole("img", { name: "本次导入的重复项" })).toBeTruthy();
   else await waitFor(() => expect(channel).toBeDefined());
   rerender(current("L2"));
@@ -84,8 +86,8 @@ for (const phase of ["已显示图片", "读取尚未完成"] as const) it(`当�
     expect(create).not.toHaveBeenCalled();
     expect(screen.queryByRole("img")).toBeNull();
   }
-  expect(screen.getByText("任务保存位置：参考 / 未归类")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "展开本次重复项" })).toBeTruthy();
+  expect(screen.getByText("放到 参考 / 未归类")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "看看本次重复项" })).toBeTruthy();
   rerender(current("L1"));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.queryByRole("img")).toBeNull();

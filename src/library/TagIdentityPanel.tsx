@@ -55,26 +55,25 @@ export function TagIdentityPanel() {
     catch (reason) { if (request === generation.current) setError((previous) => automatic && previous !== null ? previous : String(reason)); }
     finally { if (request === generation.current) { setBusy(false); running.current = false; if (dirty.current) { dirty.current = false; void run(inspectTagCatalog, undefined, true); } } }
   };
-  return <fieldset aria-label="统一标签目录">
-    <legend>统一标签目录</legend>
-    <p className="settings-hint">检查不同资料库的标签对应。同名和别名重合的标签保持独立；纠正对应后，各库的人工添加和否决继续独立保存。</p>
-    <button type="button" disabled={busy} onClick={() => void run(inspectTagCatalog)}>检查标签对应</button>
+  return <section className="tag-identity" aria-label="图库间标签对应">
+    <p className="k-set-note">同名的标签各自独立。认错了可以在这里纠正，各图库里的人工添加和否决不受影响。</p>
+    <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void run(inspectTagCatalog)}>检查标签对应</button>
     {busy && <p role="status">正在读取标签对应…</p>}
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     {workspace && <>
-      <p className="settings-hint">带走资料库前，保存最新标签定义。默认名称、别名与标签对应随资料库携带；显示名称偏好留在程序设置中。只读或离线时可以保留程序中的选择，稍后重试保存。</p>
+      <p className="settings-hint">带走图库前，先把标签定义存进图库。默认名称、别名与对应随图库携带；我的叫法留在偏好设置里。只读或离线时可以保留程序中的选择，稍后重试保存。</p>
       {workspace.libraries.map(({library, unavailable}) => <div key={"definitions-" + library.id} className="settings-actions">
         <span title={library.root}>{library.name} · {libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span>
-        <button type="button" aria-label={"保存 " + library.name + " 的标签定义"} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), "标签定义已保存到资料库。")}>保存标签定义到资料库</button>
+        <button type="button" className="k-btn is-sm" aria-label={"保存 " + library.name + " 的标签定义"} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), "标签定义已保存到图库。")}>存进图库</button>
       </div>)}
       {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} role="status">{library.name}：{unavailable}</p>)}
-      {workspace.catalog.mappings.length === 0 ? <p>可用资料库中还没有标签。</p> : <table className="settings-shortcuts">
-        <thead><tr><th>资料库与原显示</th><th>统一标签身份</th><th>纠正对应</th></tr></thead>
+      {workspace.catalog.mappings.length === 0 ? <p className="k-set-note">图库里还没有标签。</p> : <table className="settings-shortcuts">
+        <thead><tr><th>图库与原显示</th><th>对应到</th><th>纠正</th></tr></thead>
         <tbody>{workspace.catalog.mappings.map((mapping) => <MappingRow key={`${mapping.libraryId}/${mapping.localTagId}`} mapping={mapping} workspace={workspace} busy={busy} onSave={(catalogId) => void run(() => correctTagMapping(mapping.libraryId, mapping.localTagId, catalogId === "separate" ? { kind: "separate" } : { kind: "use", catalogId }))} />)}</tbody>
       </table>}
     </>}
-  </fieldset>;
+  </section>;
 }
 
 function MappingRow({ mapping, workspace, busy, onSave }: { mapping: LibraryTagMapping; workspace: TagCatalogWorkspace; busy: boolean; onSave: (id: string) => void }) {
@@ -91,6 +90,6 @@ function MappingRow({ mapping, workspace, busy, onSave }: { mapping: LibraryTagM
     <td><select aria-label={`纠正 ${library?.name ?? mapping.libraryId} 的 ${localName(mapping)} 对应`} value={target} disabled={busy} onChange={(event) => setTarget(event.target.value)}>
       {candidates.map((tag) => <option key={tag.id} value={tag.id}>{nameOf(tag)} · {namespaces[tag.namespace]} · {tag.id.slice(-8)}</option>)}
       <option value="separate">拆成独立标签</option>
-    </select><button type="button" disabled={busy || target === mapping.catalogId} onClick={() => onSave(target)}>保存对应</button></td>
+    </select><button type="button" className="k-btn is-sm" disabled={busy || target === mapping.catalogId} onClick={() => onSave(target)}>保存对应</button></td>
   </tr>;
 }
