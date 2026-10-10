@@ -36,6 +36,7 @@ it("保存为关闭安全模式且活动库断连时，仍显示可用提供方�
   }, { shouldMockEvents: true });
   render(<App />);
   expect(await screen.findByRole("img", { name: "参考图" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "全部资料库" })).toBeTruthy();
-  expect(screen.getByText("移动盘未连接", { selector: ".provider-problem" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "全部图片" })).toBeTruthy();
+  expect(screen.getByText("移动盘未连接", { selector: ".provider-problem span" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "重新连接" })).toBeTruthy();
 });

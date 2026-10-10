@@ -39,10 +39,20 @@ it("工作区使用范围查询并将全部来源交给检查入口，活动写�
   await settle();
   expect(calls[0].query.scope).toEqual({ kind: "all" });
   await act(async () => calls[0].resolve(page([card])));
-  fireEvent.click(await screen.findByRole("button", { name: "查看 2 份资料库来源" }));
+  fireEvent.click(await screen.findByRole("button", { name: "在 2 个图库 · 查看详情" }));
   expect(inspect).toHaveBeenCalledWith(card);
   expect(open).not.toHaveBeenCalled();
   expect(document.querySelector(".card")?.getAttribute("data-id")).toBe("bytes");
+});
+
+it("只在一张图属于两个以上图库时显示“N 处”角标", async () => {
+  render(<Wall {...base} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
+  await settle();
+  await act(async () => calls[0].resolve(page([card, { ...card, id: "single", imageId: "s", sources: [card.sources[0]] }])));
+  const chips = await screen.findAllByRole("button", { name: /个图库 · 查看详情/ });
+  expect(chips).toHaveLength(1);
+  expect(chips[0].textContent).toBe("2 处");
+  expect(chips[0].closest(".card")?.getAttribute("data-id")).toBe("bytes");
 });
 
 it("目录或提供方修订刷新时清掉旧卡片，迟到的旧页不写回", async () => {

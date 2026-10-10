@@ -2,6 +2,9 @@ import { useCaptureSources } from "./desktop/captureSources";
 import { onCollectionRequest, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Images, PanelLeftClose, PanelLeftOpen, PanelRightClose } from "lucide-react";
+import { ToastProvider, useToast } from "./ui/Toast";
+import { WinCtrls } from "./ui/WinCtrls";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowseScope } from "./bindings/BrowseScope";
 import type { ConditionTree } from "./bindings/ConditionTree";
@@ -23,12 +26,14 @@ import {
   safeMode,
   setSafeMode,
   shellSettings,
+  thumbnailUrl,
 } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { type FinishedImport, type RunningImport } from "./library/ImportBar";
 import { ImportMenu } from "./library/ImportMenu";
 import { LegacyNameMigrationNotice } from "./library/LegacyNameMigrationPanel";
 import { WorkspacePane, WorkspaceSources } from "./library/WorkspacePane";
+import type { WorkspaceCard as SourcesCard } from "./bindings/WorkspaceCard";
 import { LibraryPicker } from "./library/LibraryPicker";
 import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
 import { ReferenceGroupsPanel } from "./desktop/ReferenceGroupsPanel";
@@ -64,6 +69,8 @@ type WorkspaceProps = {
   showApproxSource: boolean;
   /** 查看器打开／关闭：工作区外的界面（资料库选择、面板、状态栏）随之不可操作。 */
   onViewerChange: (open: boolean) => void;
+  /** 顶栏下方的提示（运行时、旧名称、更新、备份提醒）。 */
+  notices?: ReactNode;
 };
 
 /**
@@ -84,7 +91,9 @@ function LibraryWorkspace({
   onSafeChanged,
   showApproxSource,
   onViewerChange,
+  notices,
 }: WorkspaceProps) {
+  const toast = useToast();
   const libraryId = library?.id ?? "";
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
   const statusRevision = useRef<string | null>(null);
@@ -117,10 +126,11 @@ function LibraryWorkspace({
    * 同修订的变更通知会被略过，所以不能只等通知来补读。
    */
   const onError = useCallback((message: string) => {
-    if (!isCursorExpired(message)) { setProblem(message); return; }
+    // 真实错误进轻提示（#98），一直留到画师按“知道了”；没有提示容器时退回就地横幅。
+    if (!isCursorExpired(message)) { if (toast) toast.error(message); else setProblem(message); return; }
     setReloadKey((k) => k + 1);
     setVocabularyKey((k) => k + 1);
-  }, []);
+  }, [toast]);
   /**
    * 导入任务按 id 记下终态（#76）：结束事件、启动命令的响应与进度事件到达的顺序不定，
    * 已结束的任务不能被迟到的响应或进度复活，旧任务的事件也不能覆盖正在进行的新任务。
@@ -138,7 +148,8 @@ function LibraryWorkspace({
   const viewerChange = useRef(onViewerChange);
   viewerChange.current = onViewerChange;
   const viewerOpen = viewing !== null;
-  const modalOpen = viewerOpen || sources !== null;
+  // 来源整理从模态对话框改为详情面板（#98）：只有查看器是模态的。
+  const modalOpen = viewerOpen;
   useEffect(() => {
     viewerChange.current(modalOpen);
   }, [modalOpen]);
@@ -151,7 +162,7 @@ function LibraryWorkspace({
     // A response started before a notification cannot roll back the newer provider facts.
     void workspaceStatus(safe).then((next) => {
       if (alive && notifications === 0) { statusRevision.current = next.revision; setStatus(next); }
-    }, (e) => { if (alive && notifications === 0 && !isLensChanged(e)) setProblem(String(e)); });
+    }, (e) => { if (alive && notifications === 0 && !isLensChanged(e)) onError(String(e)); });
     const stop = onWorkspaceChanged((next) => {
       if (!alive) return;
       notifications += 1;
@@ -165,7 +176,7 @@ function LibraryWorkspace({
       setVocabularyKey((k) => k + 1);
     });
     return () => { alive = false; void stop.then((stop) => stop()); };
-  }, [safe]);
+  }, [safe, onError]);
   useEffect(() => {
     setSources(null);
     setSelected(new Set());
@@ -246,6 +257,30 @@ function LibraryWorkspace({
     };
   }, [libraryId, search, searching, vocabularyKey, safe, onError]);
 
+  /** “重新连接”：重新检查各图库是否可用（移动盘接回后），与原“刷新登记”相同的只读检查。 */
+  const recheck = useCallback(() => {
+    void workspaceStatus(safe).then((next) => {
+      if (statusRevision.current !== next.revision) { statusRevision.current = next.revision; setStatus(next); }
+      setReloadKey((k) => k + 1);
+    }, (e) => { if (!isLensChanged(e)) onError(String(e)); });
+  }, [safe, onError]);
+
+  // 详情面板（#98）：明确打开的多来源整理优先；否则显示当前选择的整理。
+  const [barHost, setBarHost] = useState<HTMLElement | null>(null);
+  const selectionKey = [...selected].sort().join("\n");
+  const [inspectorHidden, setInspectorHidden] = useState<string | null>(null);
+  const eligible = selected.size > 0 && ((workspaceScope.kind === "library" && workspaceScope.libraryId === libraryId) ||
+    loadedCards.filter((card) => selected.has(card.id)).every((card) => card.sources?.length === 1 && card.sources[0].libraryId === libraryId));
+  // 只有一份来源的图不再显示“N 处”角标：选中它（且不属于当前图库）时，详情面板显示它的来源整理。
+  const selectedSourceCard = !eligible && selected.size === 1
+    ? loadedCards.find((card) => selected.has(card.id) && card.sources?.length && card.libraryId && card.imageId) as SourcesCard | undefined
+    : undefined;
+  const inspected = sources ?? selectedSourceCard ?? null;
+  const inspectorContent = inspected !== null || eligible;
+  const inspectorOpen = inspectorContent && !hidden && (sources !== null || inspectorHidden !== selectionKey);
+  const previewCard = inspected ?? (eligible && selected.size === 1 ? loadedCards.find((card) => selected.has(card.id)) : undefined);
+  const closeInspector = () => { if (sources) setSources(null); else setInspectorHidden(selectionKey); };
+
   const started = (taskId: string) => {
     const task = imports.current;
     // 结束事件可能先于命令返回到达：任务已有终态，迟到的响应不再复活它（#76）。
@@ -257,6 +292,7 @@ function LibraryWorkspace({
   };
 
   const libInPane = paneOpen && section === "browse";
+  const sectionName = section === "groups" ? "参考组" : "截图";
   return (
     <>
     <div className="app-workspace workspace" hidden={hidden} inert={modalOpen}>
@@ -268,16 +304,17 @@ function LibraryWorkspace({
           aria-hidden={!paneOpen}
           inert={!paneOpen}
         >
-          <header className="pane-head">
-            <h1 className="app-library-name">{section === "browse" ? "资料库目录" : section === "groups" ? "参考组" : "截图历史"}</h1>
-            <button type="button" className="icon-tool" aria-label="收起侧栏" title="收起（Ctrl+B）" onClick={onPaneToggle}>‹</button>
+          <header className="pane-head" data-tauri-drag-region>
+            {section === "browse" ? <div className="pane-library">{libInPane && libraryControls}</div>
+              : <h1 className="pane-title">{sectionName}</h1>}
+            <button type="button" className="k-icon-btn" aria-label="收起侧栏" title="收起侧栏（Ctrl+B）" onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button>
           </header>
           <div className="pane-body" hidden={section !== "browse"}>
-            {libInPane && libraryControls}
           <WorkspacePane status={status} scope={workspaceScope} activeLibraryId={libraryId} safeMode={safe}
-            reloadKey={reloadKey} onError={onError} onScope={(next) => {
+            reloadKey={reloadKey} onError={onError} onRecheck={recheck} onScope={(next) => {
               setWorkspaceScope(next); setSelected(new Set()); setSources(null);
-            }} />
+            }}
+            foot={library && <TaggingIndicator key={`${library.id}/${library.root}`} libraryId={library.id} />}>
           <details className="tag-organize"><summary>整理标签分组</summary>
           <TagGroupsPane
             safe={safe}
@@ -292,28 +329,14 @@ function LibraryWorkspace({
             onError={onError}
           />
           </details>
-          {/* Ctrl／Shift／空格选择后的整理入口沿用正式 IPC。 */}
-          {selected.size > 0 && ((workspaceScope.kind === "library" && workspaceScope.libraryId === libraryId) ||
-            loadedCards.filter((card) => selected.has(card.id)).every((card) => card.sources?.length === 1 && card.sources[0].libraryId === libraryId)) && (
-            <SelectionPanel
-              libraryId={libraryId}
-              scope={scope}
-              selected={new Set(loadedCards.filter((card) => selected.has(card.id)).flatMap((card) =>
-                card.sources?.filter((source) => source.libraryId === libraryId && !source.unavailable).map((source) => source.imageId) ?? []))}
-              onClear={() => setSelected(new Set())}
-              reloadKey={reloadKey}
-              onError={onError}
-              safeMode={safe}
-              generation={vocabularyKey}
-            />
-          )}
+          </WorkspacePane>
           </div>
           {section === "groups" && <ReferenceGroupsPanel libraryId={libraryId || undefined} />}
           {section === "captures" && <CaptureHistoryPanel libraryId={libraryId || undefined} request={captureRequest} onRequestHandled={onCaptureRequestHandled} />}
         </aside>
         <main className="app-main main">
-          <header className="topbar">
-            {!paneOpen && <button type="button" className="icon-tool" onClick={onPaneToggle} aria-label="展开侧栏" title="展开（Ctrl+B）">›</button>}
+          <header className="topbar" data-tauri-drag-region>
+            {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label="展开侧栏" title="展开侧栏（Ctrl+B）"><PanelLeftOpen size={16} aria-hidden="true" /></button>}
             {!libInPane && <div className="collapsed-library">{libraryControls}</div>}
           <SearchBox
             workspace
@@ -329,10 +352,12 @@ function LibraryWorkspace({
               setSelected(new Set());
             }}
           />
-          <span className="result-count tabular" role="status" aria-label="查找结果">{resultCount === null ? "…" : resultCount + " 张"}</span>
-          <label className="density" title="图片大小"><span className="sr-only">图片大小</span>
-            <DensitySlider value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
-          </label>
+          <div className="bar-meta">
+            <span className="result-count tabular" role="status" aria-label="查找结果">{resultCount === null ? "…" : resultCount + " 张"}</span>
+            <label className="density" title="图片大小"><Images size={14} aria-hidden="true" /><span className="sr-only">图片大小</span>
+              <DensitySlider value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
+            </label>
+          </div>
           <ImportMenu scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
             running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
             onOpenTrash={(owner=libraryId) => {
@@ -341,7 +366,9 @@ function LibraryWorkspace({
               setWorkspaceScope({ kind: "library", libraryId:owner, scope: { kind: "trash" } });
               setSelected(new Set());
             }} />
+          {!inspectorOpen && <WinCtrls />}
           </header>
+          {notices}
           <div className="app-tagbar">
           <TagGroupBar workspace libraryId="workspace" safe={safe} generation={vocabularyKey} input={search}
             onChange={(next) => { setSearch(next); setSelected(new Set()); }} onError={onError} />
@@ -361,7 +388,7 @@ function LibraryWorkspace({
             key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
             libraryId={libraryId || "workspace"}
             workspaceScope={workspaceScope}
-            onInspectSources={setSources}
+            onInspectSources={(card) => { setSources(card); }}
             onCardsChange={setLoadedCards}
             scope={scope}
             conditions={tree}
@@ -372,11 +399,37 @@ function LibraryWorkspace({
             onOpenImage={setViewing}
             viewerOpen={modalOpen}
           />
+          {/* 多选的浮动操作条（#98）：选择面板把数量与批量操作放到这里。 */}
+          <div className="selbar-host" ref={setBarHost} />
         </main>
+        {inspectorContent && !hidden && (
+          <aside className="inspector" aria-label="详情" data-collapsed={!inspectorOpen} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>
+            <header className="insp-head" data-tauri-drag-region>
+              <button type="button" className="k-icon-btn" aria-label="收起详情" title="收起详情" onClick={closeInspector}><PanelRightClose size={16} aria-hidden="true" /></button>
+              <span className="insp-title">详情</span>
+              {inspectorOpen && <WinCtrls />}
+            </header>
+            <div className="insp-body">
+              {previewCard && !(safe && previewCard.adult) && <img className="insp-preview" src={thumbnailUrl(previewCard.thumbnail)} alt="所选参考图" draggable={false} />}
+              {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => { if (sources) setSources(null); else setSelected(new Set()); }} onView={setViewing}
+                onChanged={() => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); }} />
+              : <SelectionPanel
+                libraryId={libraryId}
+                scope={scope}
+                bar={barHost}
+                selected={new Set(loadedCards.filter((card) => selected.has(card.id)).flatMap((card) =>
+                  card.sources?.filter((source) => source.libraryId === libraryId && !source.unavailable).map((source) => source.imageId) ?? []))}
+                onClear={() => setSelected(new Set())}
+                reloadKey={reloadKey}
+                onError={onError}
+                safeMode={safe}
+                generation={vocabularyKey}
+              />}
+            </div>
+          </aside>
+        )}
       </div>
     </div>
-    {sources && !hidden && <WorkspaceSources card={sources} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => setSources(null)} onView={setViewing}
-      onChanged={() => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); }} />}
     {viewing && !hidden && (
       <Viewer
         workspace
@@ -398,7 +451,12 @@ function LibraryWorkspace({
  * 它们离开图片墙，计数与候选随之刷新。安全模式属于本设备，切换资料库后沿用。
  */
 export function App() {
+  return <ToastProvider><MainWindow /></ToastProvider>;
+}
+
+function MainWindow() {
   useCaptureSources(() => [], -100);
+  const toast = useToast();
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [settingsRevision,setSettingsRevision] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
@@ -415,7 +473,6 @@ export function App() {
   const [library, setLibrary] = useState<LibraryInfo | null | undefined>(undefined);
   const [hasProviders, setHasProviders] = useState(false);
   const [openError, setOpenError] = useState<string | null>(null);
-  const [problem, setProblem] = useState<string | null>(null);
   /** 设置“显示相近标签来源（内置／个人）”，默认不显示。 */
   const [showApproxSource, setShowApproxSource] = useState(false);
   /** 安全模式。读到设置之前按开启处理，不会先露出被封印的图。 */
@@ -428,13 +485,13 @@ export function App() {
     safeRef.current = next;
     setSafe(next);
     setSafeMode(next).catch((e) => {
-      setProblem(`无法切换安全模式：${String(e)}`);
+      toast?.error(`无法切换安全模式：${String(e)}`);
       safeMode().then(
         (on) => setSafe(on !== false),
         () => setSafe(true),
       );
     });
-  }, []);
+  }, [toast]);
 
   useEffect(()=>{
     let alive=true,stamp=0,sequence=0;
@@ -466,6 +523,13 @@ export function App() {
       alive = false;
     };
   }, []);
+
+  // 上次的图库打不开：报告一次，留到画师确认（原常驻横幅，#98）。
+  useEffect(() => {
+    if (!openError || !toast) return;
+    const id = toast.error(`上次的图库无法打开：${openError}`);
+    return () => toast.close(id);
+  }, [openError, toast]);
 
   useEffect(() => {
     let alive = true;
@@ -510,7 +574,14 @@ export function App() {
     setShowCreate(false);
   };
 
-  const libraryControls = <LibraryPicker current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} compact={!!library} />;
+  const libraryControls = <LibraryPicker current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />;
+  const empty = (!library && !hasProviders) || showCreate;
+  const notices = <>
+    <RuntimeNotice hidden={showSettings || viewerOpen} />
+    {library && <div inert={viewerOpen}><LegacyNameMigrationNotice libraryId={library.id} safe={safe} onOpen={() => { setNameMigrationRequest((request) => request + 1); setShowSettings(true); }} /></div>}
+    <UpdateBanner />
+    <BackupReminder />
+  </>;
   return (
     <SaveDestinationProvider safe={safe}><div className="app app-shell">
       <div className="rail-slot" inert={viewerOpen}>
@@ -519,22 +590,6 @@ export function App() {
           onSettings={() => { setNameMigrationRequest(0); setShowSettings((shown) => !shown); }} />
       </div>
       <div className="app-column">
-      <RuntimeNotice hidden={showSettings || viewerOpen} />
-      {!library && !hasProviders && <div inert={viewerOpen}>{libraryControls}</div>}
-      {openError && (
-        <p className="app-problem" role="alert">
-          上次的资料库无法打开：{openError}
-        </p>
-      )}
-      {problem && (
-        <p className="app-problem" role="alert">
-          {problem}
-          <button type="button" onClick={() => setProblem(null)}>
-            知道了
-          </button>
-        </p>
-      )}
-      {library && <div inert={viewerOpen}><LegacyNameMigrationNotice libraryId={library.id} safe={safe} onOpen={() => { setNameMigrationRequest((request) => request + 1); setShowSettings(true); }} /></div>}
       {library !== undefined && (
         <LibraryWorkspace
           key="workspace"
@@ -546,38 +601,45 @@ export function App() {
           onPaneToggle={() => setPaneOpen((open) => !open)}
           onOpenBrowse={() => { setSection("browse"); setPaneOpen(true); }}
           libraryControls={libraryControls}
-          hidden={showCreate || (!library && !hasProviders)}
+          hidden={empty}
           safe={safe}
           onSafeChanged={setSafe}
           showApproxSource={showApproxSource}
           onViewerChange={setViewerOpen}
+          notices={!empty && notices}
         />
       )}
-      {((!library && !hasProviders) || showCreate) && (
+      {empty && (
         <div className="app-empty-workspace">
           {!library && paneOpen && section !== "browse" && <aside className="pane empty-context" aria-label={section === "groups" ? "参考组" : "截图历史"}>
-            <header className="pane-head"><h2>{section === "groups" ? "参考组" : "截图历史"}</h2><button type="button" className="icon-tool" aria-label="收起侧栏" onClick={() => setPaneOpen(false)}>‹</button></header>
+            <header className="pane-head" data-tauri-drag-region><h2 className="pane-title">{section === "groups" ? "参考组" : "截图"}</h2>
+              <button type="button" className="k-icon-btn" aria-label="收起侧栏" title="收起侧栏" onClick={() => setPaneOpen(false)}><PanelLeftClose size={16} aria-hidden="true" /></button></header>
             {section === "groups" ? <ReferenceGroupsPanel libraryId={undefined} /> : <CaptureHistoryPanel libraryId={undefined} request={captureRequest} onRequestHandled={collectionHandled} />}
           </aside>}
         <main className="app-main app-main-centered">
+          <header className="topbar is-empty" data-tauri-drag-region><span className="k-grow" /><WinCtrls /></header>
+          {empty && notices}
+          <div className="app-empty-body">
           {library === undefined ? (
-            <p role="status">正在打开资料库…</p>
+            <p role="status">正在打开图库…</p>
           ) : (
             <>
               <CreateLibrary onCreated={changed} onBusyChange={setCreating} />
+              {!library && !hasProviders && <LibraryPicker layout="inline" current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />}
               {library && (
-                <button type="button" disabled={creating} onClick={() => setShowCreate(false)}>
-                  返回资料库
+                <button type="button" className="k-btn" disabled={creating} onClick={() => setShowCreate(false)}>
+                  返回图库
                 </button>
               )}
             </>
           )}
+          </div>
         </main>
         </div>
       )}
       {showSettings && (
         <div className="settings-overlay" role="dialog" aria-label="程序设置" inert={viewerOpen}>
-          <header><h2>程序设置</h2><button type="button" onClick={() => setShowSettings(false)}>关闭设置</button></header>
+          <header><h2>程序设置</h2><span className="settings-version">{info && `${info.productName} ${info.version}`}</span><button type="button" onClick={() => setShowSettings(false)}>关闭设置</button></header>
           <SettingsPanel
             onRestored={()=>setSettingsRevision((revision)=>revision+1)}
             nameMigrationRequest={nameMigrationRequest}
@@ -588,14 +650,6 @@ export function App() {
           <BackupSettings />
         </div>
       )}
-      <UpdateBanner />
-      <BackupReminder />
-      <footer className="app-status" inert={viewerOpen}>
-        <span>{info && `${info.productName} ${info.version}`}</span>
-        <span className="app-status-actions">
-          {library && <TaggingIndicator key={`${library.id}/${library.root}`} libraryId={library.id} />}
-        </span>
-      </footer>
       </div>
     </div></SaveDestinationProvider>
   );

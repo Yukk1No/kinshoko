@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, MouseEvent } from "react";
 import { flushSync } from "react-dom";
+import { Layers } from "lucide-react";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { ImageCard } from "../bindings/ImageCard";
@@ -63,10 +64,10 @@ const anchorKey = (libraryId: string, scope: BrowseScope) =>
     : `kinshoko.wall.anchor.${libraryId}.${scopeKey(scope)}`;
 
 const EMPTY: Record<BrowseScope["kind"], string> = {
-  all: "资料库里还没有参考图。从上方导入图片或文件夹。",
-  folder: "这个文件夹里还没有参考图。选中图片后用“放入文件夹”，或把图片拖到侧栏的文件夹上。",
+  all: "图库里还没有参考图。点右上角的“导入”，或直接拖进窗口。",
+  folder: "这个文件夹里还没有参考图。选中图片后点“放入”，或把图片拖到侧栏的文件夹上。",
   folderTree: "这个文件夹及其子文件夹还没有参考图。",
-  unassigned: "这份资料库没有未归类的参考图。",
+  unassigned: "这个图库没有未归类的参考图。",
   trash: "回收站是空的。",
 };
 
@@ -459,10 +460,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}
               >
                 <img src={thumbnailUrl(card.thumbnail)} alt="参考图" decoding="async" draggable={false} />
-                {card.sources && card.libraryId && card.imageId && <button type="button" className="card-sources"
-                  aria-label={`查看 ${card.sources.length} 份资料库来源`}
+                {card.sources && card.sources.length >= 2 && card.libraryId && card.imageId && <button type="button" className="card-sources"
+                  aria-label={`在 ${card.sources.length} 个图库 · 查看详情`} title={`在 ${card.sources.length} 个图库`}
                   onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; onInspectSources?.(card as WorkspaceCard); }}
-                  onKeyDown={(e) => e.stopPropagation()}>{card.sources.length} 份来源</button>}
+                  onKeyDown={(e) => e.stopPropagation()}><Layers size={11} aria-hidden="true" />{card.sources.length} 处</button>}
               </div>
             );
           })}

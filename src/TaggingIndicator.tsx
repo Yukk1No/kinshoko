@@ -1,12 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Sparkles } from "lucide-react";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { onTaggingStatus, taggingDownload, taggingPause, taggingResume, taggingStatus } from "./ipc";
 
 const mb = (bytes: number) => `${Math.round(bytes / 1_000_000)} MB`;
 const percent = (part: number, total: number) => (total > 0 ? Math.floor((part / total) * 100) : 0);
 
+/** 侧栏底部的自动打标卡片（#98）：图标 + 状态 + 操作；下载时显示进度条。 */
+function Card({ children, progress }: { children: ReactNode; progress?: number }) {
+  return <div className="tagging"><Sparkles size={14} aria-hidden="true" className="tagging-icon" /><span className="tagging-text">{children}</span>
+    {progress !== undefined && <span className="tagging-prog" aria-hidden="true"><i style={{ width: `${progress}%` }} /></span>}</div>;
+}
+
 /**
- * 状态栏里的自动标签：首次使用时显示模型大小、经画师确认后下载（可续传），
+ * 侧栏底部的自动标签：首次使用时显示模型大小、经画师确认后下载（可续传），
  * 显示下载与打标进度，可以暂停（结束打标子进程、归还显存）与继续。
  */
 export function TaggingIndicator({ libraryId }: { libraryId: string }) {
@@ -28,7 +35,7 @@ export function TaggingIndicator({ libraryId }: { libraryId: string }) {
   if (!status) return null;
   const act = (f: () => Promise<void>) => () => void f().catch(() => {});
   const pause = (
-    <button type="button" onClick={act(() => taggingPause(libraryId))}>
+    <button type="button" className="k-btn is-ghost is-sm" onClick={act(() => taggingPause(libraryId))}>
       暂停
     </button>
   );
@@ -36,46 +43,46 @@ export function TaggingIndicator({ libraryId }: { libraryId: string }) {
   switch (status.state) {
     // 加载模型可能要几分钟，子进程已在占用显存：开始与校验阶段同样可以暂停（#77 UI-C）。
     case "starting":
-      return <span className="tagging">自动标签：正在加载打标模型… {pause}</span>;
+      return <Card>自动标签：正在加载打标模型… {pause}</Card>;
     case "noDevice":
-      return <span className="tagging">自动标签不可用：{status.reason}</span>;
+      return <Card>自动标签不可用：{status.reason}</Card>;
     case "needsDownload":
       return (
-        <span className="tagging">
-          <button type="button" onClick={act(() => taggingDownload(libraryId))}>
+        <Card>
+          <button type="button" className="k-btn is-sm" onClick={act(() => taggingDownload(libraryId))}>
             {status.downloaded > 0
               ? `继续下载打标模型（已下载 ${percent(status.downloaded, status.size)}%）`
               : `下载打标模型（${mb(status.size)}）`}
           </button>
-        </span>
+        </Card>
       );
     case "downloading":
       return (
-        <span className="tagging">
+        <Card progress={percent(status.downloaded, status.total)}>
           下载打标模型 {percent(status.downloaded, status.total)}%（{mb(status.downloaded)} /{" "}
           {mb(status.total)}）
-        </span>
+        </Card>
       );
     case "preparing":
-      return <span className="tagging">正在校验打标模型… {pause}</span>;
+      return <Card>正在校验打标模型… {pause}</Card>;
     case "running":
       return (
-        <span className="tagging">
+        <Card>
           自动标签：{status.device === "directMl" ? "显卡" : "CPU"}，已打 {status.tagged} 张 {pause}
-        </span>
+        </Card>
       );
     case "idle":
-      return <span className="tagging">自动标签：已全部打完 {pause}</span>;
+      return <Card>自动标签：已全部打完 {pause}</Card>;
     case "paused":
       return (
-        <span className="tagging">
+        <Card>
           自动标签已暂停{" "}
-          <button type="button" onClick={act(() => taggingResume(libraryId))}>
+          <button type="button" className="k-btn is-ghost is-sm" onClick={act(() => taggingResume(libraryId))}>
             继续
           </button>
-        </span>
+        </Card>
       );
     case "failed":
-      return <span className="tagging">自动标签出错，稍后重试：{status.reason}</span>;
+      return <Card>自动标签出错，稍后重试：{status.reason}</Card>;
   }
 }

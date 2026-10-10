@@ -1,6 +1,6 @@
 import { SealedImportPreview } from "./SealedImportPreview";
 import type { SaveDestination } from "../bindings/SaveDestination";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import type { ImportOptions } from "../bindings/ImportOptions";
 import type { ImportOutcome } from "../bindings/ImportOutcome";
 import type { ImportProgress } from "../bindings/ImportProgress";
@@ -33,7 +33,15 @@ type Props = {
   onOpenTrash?: (libraryId?:string) => void;
   /** 紧凑导入菜单需要展示待确认选择或通知时展开。 */
   onShowRequested?: () => void;
+  /** 顶栏的导入分体按钮代替这里的三个入口（#98）：入口按钮不再重复显示，由 `actionsRef` 调用。 */
+  hideActions?: boolean;
+  actionsRef?: Ref<ImportActions>;
+  /** 能否开始新的导入（与入口按钮的可用状态一致），以及是否正在查找 Eagle 资料库。 */
+  onBusyChange?: (busy: boolean, lookingForEagle: boolean) => void;
 };
+
+/** 三个导入入口，与入口按钮走同一流程。 */
+export type ImportActions = { files: () => void; folder: () => void; eagle: () => void };
 
 function reason(outcome: ImportOutcome): string | null {
   switch (outcome.kind) {
@@ -50,7 +58,7 @@ function reason(outcome: ImportOutcome): string | null {
  * 导入：选择文件或文件夹，或把它们拖进主窗口；进行中显示进度与取消，结束后逐项列出
  * 没有进来的文件并可只重试读取失败的项。打开资料库时若上次导入中断，提示撤回了哪些文件。
  */
-export function ImportBar({ previewContextActive=true, previewContextKey, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, onShowRequested }: Props) {
+export function ImportBar({ previewContextActive=true, previewContextKey, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, onShowRequested, hideActions=false, actionsRef, onBusyChange }: Props) {
   const report = finished?.report ?? null;
   const contextKey = previewContextKey ?? libraryId;
   const [preview, setPreview] = useState<{ taskId: string; contextKey: string } | null>(null);
@@ -135,6 +143,13 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
     const folder = await pickFolder();
     await begin(folder ? [folder] : [], fromEagle);
   };
+
+  useImperativeHandle(actionsRef, () => ({
+    files: () => { if (!busy) void importFiles(); },
+    folder: () => { if (!busy) void importFolder(); },
+    eagle: () => { if (!busy && !lookingForEagle) void findEagle(); },
+  }));
+  useEffect(() => { onBusyChange?.(busy, lookingForEagle); }, [busy, lookingForEagle, onBusyChange]);
 
   const finishedTask = finished?.taskId ?? null;
   const detectedEagle = finished?.report.fromEagle ?? false;
@@ -223,7 +238,7 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
 
   return (
     <div className="import-bar">
-      <div className="import-actions">
+      {!hideActions && <div className="import-actions">
         <button type="button" onClick={importFiles} disabled={busy}>
           导入文件…
         </button>
@@ -233,7 +248,7 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
         <button type="button" onClick={findEagle} disabled={busy || lookingForEagle}>
           {lookingForEagle ? "正在查找 Eagle 资料库…" : "从 Eagle 迁入…"}
         </button>
-      </div>
+      </div>}
       {importError && <p role="alert">{importError}</p>}
       {plan && (
         <section className="import-report" aria-label={plan.eagle?"Eagle 重导选择":"导入确认"}>

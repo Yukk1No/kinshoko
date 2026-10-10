@@ -80,12 +80,13 @@ it("连续变更期间目录读取多次遇到修订变化：变更停下后显�
   expect(screen.queryByText("正在读取保存位置…")).toBeNull();
 });
 
-it("真正的读取失败仍显示横幅，直到用户确认", async () => {
+it("真正的读取失败仍以提示报告，一直留到用户确认", async () => {
   const state = workspace();
   await settled();
   await changed(state, "workspace_tag_groups", 1, "资料库文件无法读取");
   const banner = await screen.findByRole("alert");
   expect(banner.textContent).toContain("资料库文件无法读取");
-  await act(async () => screen.getByRole("button", { name: "知道了" }).click());
-  expect(screen.queryByText("资料库文件无法读取")).toBeNull();
+  // 错误提示急切播报（隐藏的 alert），可见的提示卡在获得焦点前不重复朗读，所以按钮查找要包括它。
+  await act(async () => screen.getByRole("button", { name: "知道了", hidden: true }).click());
+  await waitFor(() => expect(screen.queryByText("资料库文件无法读取")).toBeNull());
 });

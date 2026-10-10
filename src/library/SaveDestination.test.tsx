@@ -34,13 +34,17 @@ it("global import requires a visible save destination and does not change browse
   return null;
  },{shouldMockEvents:true});
  render(<App/>);
- fireEvent.click(await screen.findByRole("button",{name:"导入参考图"}));
- const menu=screen.getByRole("button",{name:"关闭导入操作"}).closest(".import-popup") as HTMLElement;
+ // #98: the split button picks files first; the panel then asks where to save before anything starts.
+ fireEvent.click(await screen.findByRole("button",{name:"导入图片文件"}));
+ const start=await screen.findByRole("button",{name:"开始导入"});
+ const menu=start.closest(".import-popup") as HTMLElement;
+ expect(start).toHaveProperty("disabled",true);
+ expect(submitted).toBeNull();
  fireEvent.change(await within(menu).findByRole("combobox",{name:"保存到资料库"}),{target:{value:"B"}});
  fireEvent.change(within(menu).getByRole("combobox",{name:"保存到文件夹"}),{target:{value:"folder-b"}});
  expect(within(menu).getByText(/最终位置：保存库.*最终目录/)).toBeTruthy();
- fireEvent.click(within(menu).getByRole("button",{name:"导入文件…"}));
- fireEvent.click(await within(menu).findByRole("button",{name:"开始导入"}));
+ await waitFor(()=>expect(start).toHaveProperty("disabled",false));
+ fireEvent.click(start);
  await waitFor(()=>expect(submitted).toMatchObject({libraryId:"B",destination:{libraryId:"B",folderId:"folder-b"},source:{paths:["C:/source.png"]}}));
  expect(scopes.every(scope=>JSON.stringify(scope)==='{"kind":"all"}')).toBe(true);
 });
@@ -68,10 +72,11 @@ it("a late start reply and cancel keep the submitted owner after selecting anoth
   return null;
  },{shouldMockEvents:true});
  render(<App/>);
- fireEvent.click(await screen.findByRole("button",{name:"导入参考图"}));
+ fireEvent.click(await screen.findByRole("button",{name:"导入图片文件"}));
+ const start=await screen.findByRole("button",{name:"开始导入"});
  fireEvent.change(await screen.findByRole("combobox",{name:"保存到资料库"}),{target:{value:"B"}});
- fireEvent.click(screen.getByRole("button",{name:"导入文件…"}));
- fireEvent.click(await screen.findByRole("button",{name:"开始导入"}));
+ await waitFor(()=>expect(start).toHaveProperty("disabled",false));
+ fireEvent.click(start);
  fireEvent.change(screen.getByRole("combobox",{name:"保存到资料库"}),{target:{value:"A"}});
  await act(async()=>{resolveStart("late-task");await pendingStart;});
  expect(await screen.findByText("任务保存位置：保存库 / 未归类")).toBeTruthy();
@@ -105,10 +110,13 @@ it("a concrete folder entry prefills its provider and folder without activating 
  mockIPC(cmd=>{
   if(cmd==="plugin:library|workspace_directories")return {status:{revision:"test",libraries},providers:libraries.map(registration=>({registration,sidebar:{all:0,trash:0,folders:[{id:"folder-b",name:"具体目录",children:[],count:0}]},unassigned:0,descendants:{}}))};
   if(cmd==="plugin:library|import_tasks")return [];
+  if(cmd==="plugin:library|pick_files")return ["C:/source.png"];
+  if(cmd==="plugin:library|import_contains_eagle")return false;
   return null;
  },{shouldMockEvents:true});
  render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" scope={{kind:"library",libraryId:"B",scope:{kind:"folder",id:"folder-b"}}} running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
- fireEvent.click(screen.getByRole("button",{name:"导入参考图"}));
+ fireEvent.click(screen.getByRole("button",{name:"导入图片文件"}));
+ await screen.findByRole("button",{name:"开始导入"});
  expect(await screen.findByText("最终位置：保存库 / 具体目录")).toBeTruthy();
  expect((screen.getByRole("combobox",{name:"保存到资料库"}) as HTMLSelectElement).value).toBe("B");
  expect((screen.getByRole("combobox",{name:"保存到文件夹"}) as HTMLSelectElement).value).toBe("folder-b");
@@ -136,7 +144,7 @@ it("copy keeps its confirmation during a source refresh and closes it after the 
   }, { shouldMockEvents: true });
   const view = (reloadKey: number) => <SaveDestinationProvider safe><WorkspaceSourceEditor card={card} source={card.sources[0]} safe reloadKey={reloadKey} onSource={() => {}} onClose={() => {}} /></SaveDestinationProvider>;
   const rendered = render(view(0));
-  fireEvent.click(await screen.findByRole("button", { name: "复制到资料库…" }));
+  fireEvent.click(await screen.findByRole("button", { name: "复制到…" }));
   const dialog = screen.getByRole("dialog", { name: "复制此来源" });
   fireEvent.change(await within(dialog).findByRole("combobox", { name: "保存到资料库" }), { target: { value: "B" } });
   fireEvent.click(within(dialog).getByRole("button", { name: "确认复制" }));

@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { WorkspaceSources } from "./WorkspacePane";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
@@ -47,7 +47,7 @@ it("换到 B 后，A 的迟到删除响应不能关闭 B 的整理面板", async
   fireEvent.click(screen.getAllByRole("button", { name: "整理此来源" })[0]);
   await screen.findByRole("textbox", { name: "备注" });
   fireEvent.click(screen.getByRole("button", { name: /^删除$/ }));
-  fireEvent.change(screen.getByRole("combobox", { name: "当前操作的来源记录" }), { target: { value: "B/b" } });
+  fireEvent.click(within(screen.getByRole("group", { name: "当前操作的来源记录" })).getByRole("button", { name: "移动盘参考" }));
   await waitFor(() => expect((screen.getByRole("textbox", { name: "备注" }) as HTMLTextAreaElement).value).toBe("b 的备注"));
   await import("@testing-library/react").then(({ act }) => act(async () => { finishDelete(); await deletion; }));
   expect(close).not.toHaveBeenCalled();
@@ -71,7 +71,7 @@ it("换来源后，旧永久删除的迟到响应不能关闭新来源", async (
   fireEvent.click(screen.getAllByRole("button", { name: "整理此来源" })[0]);
   fireEvent.click(await screen.findByRole("button", { name: "永久删除…" }));
   fireEvent.click(await screen.findByRole("button", { name: "确认永久删除" }));
-  fireEvent.change(screen.getByRole("combobox", { name: "当前操作的来源记录" }), { target: { value: "B/b" } });
+  fireEvent.click(within(screen.getByRole("group", { name: "当前操作的来源记录" })).getByRole("button", { name: "移动盘参考" }));
   await screen.findByRole("textbox", { name: "备注" });
   await import("@testing-library/react").then(({ act }) => act(async () => { finish(); await pending; }));
   expect(close).not.toHaveBeenCalled();

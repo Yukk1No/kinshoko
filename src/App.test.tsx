@@ -242,15 +242,35 @@ function LocalSearchFixture() {
 
 const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.args);
 const push = (event: LibraryEvent) => act(() => emit("library-event", event));
-const importAction = (name: string) => {
-  if (!screen.queryByRole("button", { name })) fireEvent.click(screen.getByRole("button", { name: "导入参考图" }));
-  const selector=screen.queryByRole("combobox",{name:"保存到资料库"}) as HTMLSelectElement|null;
-  if(selector&&!selector.value&&Array.from(selector.options).some(o=>o.value==="L1"))fireEvent.change(selector,{target:{value:"L1"}});
-  return screen.getByRole("button", { name });
+/**
+ * 顶栏的导入分体按钮（#98）：“导入图片文件”是左半，文件夹与 Eagle 在“更多导入方式”菜单里。
+ * 返回要点击的入口；菜单项需要先打开菜单。
+ */
+const importAction = (name: "导入文件…" | "导入文件夹…" | "从 Eagle 迁入…") => {
+  if (name === "导入文件…") return screen.getByRole("button", { name: "导入图片文件" });
+  fireEvent.click(screen.getByRole("button", { name: "更多导入方式" }));
+  return screen.getByRole("menuitem", { name: name === "导入文件夹…" ? /整个文件夹/ : /从 Eagle 导入|正在查找 Eagle/ });
 };
+/** 导入面板里的保存位置为空时选当前库（与原来先选位置再选文件的操作等价）。 */
+const chooseDestination = () => {
+  // 收起的导入面板也保留保存位置选择（hidden）；拖放提示显示的就是它。
+  const selector=screen.queryByRole("combobox",{name:"保存到资料库",hidden:true}) as HTMLSelectElement|null;
+  if(selector&&!selector.value&&Array.from(selector.options).some(o=>o.value==="L1"))fireEvent.change(selector,{target:{value:"L1"}});
+};
+/** 图库切换菜单（侧栏标题或收起侧栏后的顶栏）。 */
+const libraryMenu = () => screen.getByRole("button", { name: /^当前图库：/ });
+const currentLibrary = () => libraryMenu().getAttribute("aria-label")!.replace("当前图库：", "");
+async function libraryAction(name: RegExp) {
+  fireEvent.click(libraryMenu());
+  fireEvent.click(await screen.findByRole("menuitem", { name }));
+}
+async function switchLibraryTo(name: RegExp) {
+  fireEvent.click(libraryMenu());
+  fireEvent.click(await screen.findByRole("menuitemradio", { name }));
+}
 async function confirmImport() {
-  importAction("导入文件…");
   const button=await screen.findByRole("button",{name:/^开始(?: Eagle)? 导入$|^开始导入$/});
+  chooseDestination();
   await waitFor(()=>expect((button as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(button);
 }
@@ -287,9 +307,9 @@ describe("主窗口", () => {
     fireEvent.change(slider, { target: { value: "420" } });
     fireEvent.pointerUp(slider);
     await waitFor(() => expect(parseFloat(card.style.width)).toBeGreaterThan(before));
-    expect(screen.queryByRole("button", { name: "导入文件夹…" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "导入参考图" }));
+    expect(screen.queryByRole("menuitem", { name: /整个文件夹/ })).toBeNull();
     expect(importAction("导入文件夹…")).toBeTruthy();
+    fireEvent.keyDown(screen.getByRole("menuitem", { name: /整个文件夹/ }), { key: "Escape" });
     fireEvent.click(screen.getByRole("button", { name: "人物（1 张）" }));
     await waitFor(() => expect(result.textContent).toBe("1 张"));
   });
@@ -411,17 +431,18 @@ describe("主窗口", () => {
   it("登记已有资料库后打开它，取消登记后可以继续建库或重新登记", async () => {
     backend(library);
     render(<App />);
-    await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L1"));
+    await waitFor(() => expect(currentLibrary()).toBe("工作参考"));
     window.__KINSHOKO_TEST_PICKS__ = ["E:\\私人收藏"];
-    fireEvent.click(await screen.findByText("资料库操作"));
-    fireEvent.click(screen.getByRole("button", { name: "登记已有资料库…" }));
+    await libraryAction(/打开图库/);
 
-    await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L2"));
+    await waitFor(() => expect(currentLibrary()).toBe("私人收藏"));
     expect(sent("plugin:library|register_library")).toEqual([{ root: "E:\\私人收藏" }]);
-    fireEvent.click(await screen.findByRole("button", { name: "取消登记 私人收藏" }));
+    await libraryAction(/管理图库/);
+    fireEvent.click(await screen.findByRole("button", { name: "移除 私人收藏" }));
     await waitFor(() => expect(sent("plugin:library|unregister_library")).toEqual([{ libraryId: "L2" }]));
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
     expect(await screen.findByRole("button", { name: "建立资料库" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "登记已有资料库…" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "打开图库…" })).toBeTruthy();
   });
 
   it("切换时清空选择与导入状态，迟到的旧库浏览和进度不会覆盖新库", async () => {
@@ -444,13 +465,13 @@ describe("主窗口", () => {
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 4 } });
     delayed = true;
     await push({ kind: "listStale", libraryId: "L1" });
-    fireEvent.change(screen.getByLabelText("当前资料库"), { target: { value: "L2" } });
-    await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L2"));
+    await switchLibraryTo(/^私人收藏/);
+    await waitFor(() => expect(currentLibrary()).toBe("私人收藏"));
     await act(() => resolveOld(page));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 2, total: 4 } });
     await push({ kind: "taskFinished", libraryId: "L1", taskId: "T1", report: { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] } });
 
-    expect(await screen.findByText("资料库里还没有参考图。从上方导入图片或文件夹。")).toBeTruthy();
+    expect(await screen.findByText("图库里还没有参考图。点右上角的“导入”，或直接拖进窗口。")).toBeTruthy();
     expect(screen.queryByRole("img")).toBeNull();
     expect(screen.queryByText(/已选/)).toBeNull();
     expect(screen.queryByRole("progressbar")).toBeNull();
@@ -481,13 +502,12 @@ describe("主窗口", () => {
     });
     if (stage === "已结束") await finish();
 
-    fireEvent.click(screen.getByText("资料库操作"));
-    fireEvent.click(screen.getByRole("button", { name: "新建资料库…" }));
+    await libraryAction(/新建图库/);
     await screen.findByLabelText("资料库名称");
     // 等待页面切换的事件订阅清理，模拟导入在用户填写表单期间完成。
     await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
     if (stage === "进行中") await finish();
-    fireEvent.click(screen.getByRole("button", { name: "返回资料库" }));
+    fireEvent.click(screen.getByRole("button", { name: "返回图库" }));
 
     expect(await screen.findByText("D:\\参考\\坏.png")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
@@ -544,17 +564,19 @@ describe("主窗口", () => {
     render(<App />);
     await screen.findAllByRole("img");
 
-    importAction("导入文件…");
+    // 拖放监听异步注册：等它就绪；先选好保存位置（原先在点开的导入面板里选）。
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    chooseDestination();
     const position = { x: 10, y: 10 };
     const paths = ["D:\\参考\\a.png"];
     await act(() => emit("tauri://drag-enter", { paths, position }));
     expect(screen.getByText("松开即可导入到 工作参考")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "新建资料库…" }));
+    await libraryAction(/新建图库/);
     await screen.findByLabelText("资料库名称");
     await act(() => emit("tauri://drag-drop", { paths, position }));
     expect(sent("plugin:library|start_import")).toEqual([]);
 
-    fireEvent.click(screen.getByRole("button", { name: "返回资料库" }));
+    fireEvent.click(screen.getByRole("button", { name: "返回图库" }));
     expect(screen.queryByText("松开即可导入到 工作参考")).toBeNull();
     await act(() => emit("tauri://drag-drop", { paths, position }));
     await confirmImport();
@@ -577,8 +599,8 @@ describe("主窗口", () => {
     await screen.findAllByRole("img");
     fireEvent.click(importAction("导入文件…"));
     await waitFor(() => expect(sent("plugin:library|pick_files").length).toBe(1));
-    fireEvent.change(screen.getByLabelText("当前资料库"), { target: { value: "L2" } });
-    await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L2"));
+    await switchLibraryTo(/^私人收藏/);
+    await waitFor(() => expect(currentLibrary()).toBe("私人收藏"));
     await act(() => resolvePick(["D:\\参考.png"]));
     expect(sent("plugin:library|start_import")).toEqual([]);
   });
@@ -594,17 +616,25 @@ describe("主窗口", () => {
       return undefined;
     });
     render(<App />);
-    expect(await screen.findByRole("option", { name: "移动盘参考（暂时不可用）" })).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("当前资料库"), { target: { value: "L2" } });
+    await waitFor(() => expect(currentLibrary()).toBe("工作参考"));
+    fireEvent.click(libraryMenu());
+    const offline = await screen.findByRole("menuitemradio", { name: /^移动盘参考/ });
+    expect(offline.textContent).toContain("未连接");
+    fireEvent.click(offline);
     expect((await screen.findByRole("alert")).textContent).toContain("移动盘已连接");
-    expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L1");
-    expect(screen.getByRole("button", { name: "登记已有资料库…" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "取消登记 移动盘参考" })).toBeTruthy();
+    expect(currentLibrary()).toBe("工作参考");
+    await libraryAction(/管理图库/);
+    const manage = await screen.findByRole("dialog", { name: "管理图库" });
+    expect(within(manage).getByText(reason)).toBeTruthy();
+    expect(within(manage).getByRole("button", { name: "打开图库…" })).toBeTruthy();
+    expect(within(manage).getByRole("button", { name: "移除 移动盘参考" })).toBeTruthy();
   });
 
-  it("在状态栏显示核心报告的版本", async () => {
+  it("在程序设置里显示核心报告的版本", async () => {
     backend(library);
     render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(screen.getByRole("button", { name: "设置" }));
     expect(await screen.findByText("Kinshoko 9.9.9")).toBeTruthy();
   });
 
@@ -620,7 +650,7 @@ describe("主窗口", () => {
     expect(await screen.findByText("D:\\参考")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "建立资料库" }));
 
-    await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L1"));
+    await waitFor(() => expect(currentLibrary()).toBe("工作参考"));
     expect(sent("plugin:library|create_library")).toEqual([
       { parent: "D:\\参考", name: "工作参考" },
     ]);
@@ -692,7 +722,9 @@ describe("主窗口", () => {
     render(<App />);
     await screen.findAllByRole("img");
 
-    importAction("导入文件…");
+    // 拖放监听异步注册：等它就绪；先选好保存位置（原先在点开的导入面板里选）。
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    chooseDestination();
     const position = { x: 10, y: 10 };
     await act(() =>
       emit("tauri://drag-enter", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }),
@@ -899,7 +931,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
   async function startEagle() {
     fireEvent.click(importAction("从 Eagle 迁入…"));
     fireEvent.click(await screen.findByRole("button", { name: "迁入 主库" }));
-    fireEvent.click(await screen.findByRole("button", { name: "开始 Eagle 导入" }));
+    await confirmImport();
   }
   async function startFiles(count: number) {
     window.__KINSHOKO_TEST_PICKS__ = [["D:\\参考\\a.png"]];
@@ -918,7 +950,6 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
       fireEvent.click(importAction("导入文件夹…"));
     await confirmImport();
     } else {
-      importAction("导入文件…");
       await act(() => emit("tauri://drag-drop", { paths, position: { x: 10, y: 10 } }));
       await confirmImport();
     }
@@ -1064,8 +1095,10 @@ describe("整理", () => {
     fireEvent.click(card("b"), { ctrlKey: true });
     expect(screen.getByText("已选 2 张")).toBeTruthy();
 
-    await waitFor(() => expect(within(screen.getByLabelText("放入文件夹")).getAllByRole("option").length).toBeGreaterThan(1));
-    fireEvent.change(screen.getByLabelText("放入文件夹"), { target: { value: "F2" } });
+    const put = screen.getByRole("button", { name: "放入文件夹" });
+    await waitFor(() => expect(put).toHaveProperty("disabled", false));
+    fireEvent.click(put);
+    fireEvent.click(await screen.findByRole("menuitem", { name: /发型/ }));
     await waitFor(() =>
       expect(sent("plugin:library|edit")).toEqual([
         { libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "addToFolder", folderId: "F2" }] },
@@ -1113,7 +1146,9 @@ describe("整理", () => {
     await screen.findAllByRole("img");
     // 目录与图片独立载入，先确认该库的目标控件实际就绪。
     const directory = await screen.findByRole("navigation", { name: `${library.name} / ${library.root}的目录` });
-    const trash = within(directory).getByRole("button", { name: "回收站（1 张）" });
+    expect(directory).toBeTruthy();
+    // 当前图库的回收站固定在侧栏底部（#98）。
+    const trash = screen.getByRole("button", { name: "回收站（1 张）" });
     expect(trash).toHaveProperty("disabled", false);
     fireEvent.click(trash);
     await waitFor(() => expect(card("a")).toBeTruthy());
@@ -1144,7 +1179,7 @@ describe("整理", () => {
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.keyDown(card("a"), { key: " " });
-    expect(await screen.findByText("所在文件夹：人物")).toBeTruthy();
+    expect(within(await screen.findByRole("region", { name: "所在文件夹" })).getByText("人物")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("备注"), { target: { value: "看左手" } });
     fireEvent.click(screen.getByRole("button", { name: "保存备注" }));
@@ -1190,8 +1225,8 @@ describe("查找", () => {
     await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(1));
     fireEvent.keyDown(input, { key: "Enter" });
     await waitFor(() => expect(sent("plugin:library|resolve_search")).toHaveLength(1));
-    fireEvent.change(screen.getByLabelText("当前资料库"), { target: { value: "L2" } });
-    await waitFor(() => expect(screen.getByLabelText("当前资料库")).toHaveProperty("value", "L2"));
+    await switchLibraryTo(/^私人收藏/);
+    await waitFor(() => expect(currentLibrary()).toBe("私人收藏"));
     fireEvent.change(await box(), { target: { value: "某" } });
     await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(2));
     await act(() => {

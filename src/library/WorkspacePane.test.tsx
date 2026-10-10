@@ -31,8 +31,9 @@ it("每库为独立根展示完整目录，选择目录默认包含子文件夹�
   fireEvent.click(within(a).getByRole("button", { name: "动作（1 张）" }));
   expect(props.onScope).toHaveBeenLastCalledWith({ kind: "library", libraryId: "A", scope: { kind: "folderTree", id: "A-child" } });
   view.rerender(<WorkspacePane {...props} scope={{ kind: "library", libraryId: "A", scope: { kind: "folderTree", id: "A-root" } }} />);
-  expect(screen.getByLabelText("包含子文件夹")).toHaveProperty("checked", true);
-  fireEvent.click(screen.getByLabelText("包含子文件夹"));
+  const descendants = screen.getByRole("switch", { name: "含子文件夹" });
+  expect(descendants.getAttribute("aria-checked")).toBe("true");
+  fireEvent.click(descendants);
   expect(within(a).getByRole("button", { name: "人物（1 张）" })).toBeTruthy();
   expect(props.onScope).toHaveBeenLastCalledWith({ kind: "library", libraryId: "A", scope: { kind: "folder", id: "A-root" } });
   fireEvent.click(within(b).getByRole("button", { name: "动作（1 张）" }));
@@ -67,15 +68,15 @@ it("断连库与失效文件夹保持原范围并禁用旧目录控件", async (
   gone.providers[0].sidebar!.folders = [];
   await act(async () => pending[1].resolve(gone));
   expect(screen.getByText("范围：参考 / 文件夹已失效")).toBeTruthy();
-  expect(screen.getByLabelText("包含子文件夹")).toHaveProperty("disabled", true);
+  expect(screen.getByRole("switch", { name: "含子文件夹" }).hasAttribute("data-disabled")).toBe(true);
   view.rerender(<WorkspacePane {...props} scope={selected} reloadKey={2} />);
   const missing = forest("missing");
   missing.providers[0].registration.unavailable = "未连接";
   missing.providers[0].sidebar = null;
   await act(async () => pending[2].resolve(missing));
   const a = document.querySelector<HTMLElement>('[data-library-id="A"]')!;
-  expect(within(a).getByRole("button", { name: "参考（暂时不可用）" })).toHaveProperty("disabled", true);
-  expect(screen.getByText("范围：参考 / 暂时不可用")).toBeTruthy();
+  expect(within(a).getByRole("button", { name: "参考（未连接）" })).toHaveProperty("disabled", true);
+  expect(screen.getByText("范围：参考 / 未连接")).toBeTruthy();
   expect(props.onScope).not.toHaveBeenCalled();
 });
 
@@ -108,4 +109,21 @@ it("同名库的长路径优先显示区分位置，仅驱动器不同的路径�
   await act(async () => pending[1].resolve(drives));
   expect(within(a).getByText("C:/Users/Owner/Libraries/same/参考").title).toBe(drives.providers[0].registration.library.root);
   expect(within(b).getByText("D:/Users/Owner/Libraries/same/参考").title).toBe(drives.providers[1].registration.library.root);
+});
+
+it("未连接的图库就地说明原因，“重新连接”重新检查", async () => {
+  const recheck = vi.fn();
+  render(<WorkspacePane {...props} onRecheck={recheck} />);
+  await settle();
+  const missing = forest("offline");
+  missing.providers[0].registration.unavailable = "资料库暂时不可用：移动盘没插";
+  missing.providers[0].sidebar = null;
+  await act(async () => pending[0].resolve(missing));
+  const a = document.querySelector<HTMLElement>('[data-library-id="A"]')!;
+  const card = within(a).getByRole("status");
+  expect(card.textContent).toContain("找不到这个图库");
+  expect(card.textContent).toContain("移动盘没插");
+  fireEvent.click(within(card).getByRole("button", { name: "重新连接" }));
+  expect(recheck).toHaveBeenCalledTimes(1);
+  expect(within(document.querySelector<HTMLElement>('[data-library-id="B"]')!).queryByRole("button", { name: "重新连接" })).toBeNull();
 });

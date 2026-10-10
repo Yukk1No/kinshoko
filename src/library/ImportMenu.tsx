@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
-import { ImportBar } from "./ImportBar";
+import { ImportBar, type ImportActions } from "./ImportBar";
+import { ImportSplit } from "../ui/ImportSplit";
+import { X } from "lucide-react";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
@@ -14,10 +16,16 @@ function concealSuccesses(report: ImportReport): ImportReport {
   items:report.items.filter(item=>["readFailed","unsupported","skippedDeleted"].includes(item.outcome.kind))};
 }
 
-/** Compact accepted-prototype entry; task receipts stay mounted across browse/current changes. */
+/**
+ * 顶栏的导入分体按钮（#98）：左半直接选图片文件，箭头里选文件夹或 Eagle；选好后在弹出面板里确认保存位置，
+ * 进度与结果回执也在这里。任务回执跨浏览与当前图库的变化保留。
+ */
 export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceScope}) {
  const [open,setOpen]=useState(false),[tasks,setTasks]=useState<ImportTaskSnapshot[]>([]),[selectedTask,setSelectedTask]=useState<string|null>(null),[problem,setProblem]=useState<string|null>(null);
  const menu=useRef<HTMLDivElement>(null),context=useSaveDestination();
+ const actions=useRef<ImportActions>(null);
+ const [busy,setBusy]=useState({busy:false,eagle:false});
+ const onBusyChange=useCallback((busy:boolean,eagle:boolean)=>setBusy(previous=>previous.busy===busy&&previous.eagle===eagle?previous:{busy,eagle}),[]);
  const optimistic=useRef(new Map<string,ImportTaskSnapshot>());
  const dismissed=useRef(new Set<string>());
  const show=useCallback(()=>setOpen(true),[]);
@@ -37,23 +45,25 @@ export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceS
  useEffect(()=>{if(active||finished)show();},[active,finished?.taskId,show]);
  useEffect(()=>{
   if(!open)return;
-  const outside=(e:PointerEvent)=>{if(!menu.current?.contains(e.target as Node))setOpen(false);};
+  // Menus and dialogs opened from the panel live in portals; a press inside them is not "outside".
+  const outside=(e:PointerEvent)=>{const target=e.target as Element|null;if(!menu.current?.contains(target)&&!target?.closest?.("[data-base-ui-portal],.k-positioner,dialog"))setOpen(false);};
   const esc=(e:KeyboardEvent)=>{if(e.key==="Escape")setOpen(false);};
   window.addEventListener("pointerdown",outside);window.addEventListener("keydown",esc);
   return()=>{window.removeEventListener("pointerdown",outside);window.removeEventListener("keydown",esc);};
  },[open]);
  const library=context.providers.find(provider=>provider.registration.library.id===context.destination?.libraryId)?.registration.library;
+ // 在文件夹里浏览时，导入默认放进这个文件夹（与原来的导入按钮相同）。
+ const prefill=()=>{if(p.scope?.kind==="library"&&(p.scope.scope.kind==="folder"||p.scope.scope.kind==="folderTree"))context.setDestination({libraryId:p.scope.libraryId,folderId:p.scope.scope.id});};
+ const via=(action:keyof ImportActions)=>()=>{prefill();actions.current?.[action]();};
  return <div className="import-menu" ref={menu}>
-  <button type="button" aria-label="导入参考图" aria-expanded={open} title="导入文件、文件夹或 Eagle 资料库" onClick={()=>{
-    if(!open&&p.scope?.kind==="library"&&(p.scope.scope.kind==="folder"||p.scope.scope.kind==="folderTree"))context.setDestination({libraryId:p.scope.libraryId,folderId:p.scope.scope.id});
-    setOpen(!open);
-  }}>导入{active?"…":""}</button>
+  <ImportSplit busy={busy.busy||active} eagleBusy={busy.eagle} onFiles={via("files")} onFolder={via("folder")} onEagle={()=>{prefill();setOpen(true);actions.current?.eagle();}}
+   onShowTasks={tasks.length>0||active||finished?()=>setOpen(true):undefined}/>
   <div className="import-popup" hidden={!open}>
-   <header><strong>导入参考图</strong><button type="button" aria-label="关闭导入操作" onClick={()=>setOpen(false)}>×</button></header>
+   <header><strong>导入图片</strong><button type="button" className="k-icon-btn" aria-label="关闭导入操作" onClick={()=>setOpen(false)}><X size={15} aria-hidden="true"/></button></header>
    <SaveDestinationPicker value={context.destination} onChange={context.setDestination}/>
    {problem&&<p role="alert">{problem}</p>}
    {tasks.length>1&&<label>查看导入任务<select aria-label="查看导入任务" value={task?.taskId??""} onChange={e=>setSelectedTask(e.target.value)}>{tasks.map(t=><option key={t.taskId} value={t.taskId}>{t.libraryName} / {t.folderName} · {t.report?"已结束":"进行中"}</option>)}</select></label>}
-   <ImportBar {...p} previewContextActive={open} previewContextKey={p.libraryId} libraryId={context.destination?.libraryId??""} libraryName={library?.name??"尚未选择"}
+   <ImportBar {...p} hideActions actionsRef={actions} onBusyChange={onBusyChange} previewContextActive={open} previewContextKey={p.libraryId} libraryId={context.destination?.libraryId??""} libraryName={library?.name??"尚未选择"}
     destination={context.destination} destinationReady={context.ready&&destinationAvailable(context.destination,context.providers)} running={running} finished={finished}
     onStarted={(id,fixed)=>{
       if(fixed){
