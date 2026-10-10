@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -23,6 +23,7 @@ vi.mock("../ipc", () => ({
   referenceGroup: ipc.group,
   groupSaveCaptures: ipc.captures,
   captureUrl: (id: string) => `capture://${id}`,
+  thumbnailUrl: (address: string) => `thumb://${address}`,
   saveReferenceGroup: ipc.save,
   savePinsToGroup: ipc.saveInto,
   openReferenceGroup: ipc.open,
@@ -104,31 +105,50 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+/** The selected card's “更多” menu. */
+async function more(item: string) {
+  fireEvent.click(screen.getByRole("button", { name: "更多操作" }));
+  const entry = await screen.findByRole("menuitem", { name: item });
+  await act(async () => { fireEvent.click(entry); });
+}
+
 describe("参考组面板", () => {
   it("列出参考组与引用的资料库，读不懂的文件写出原因", async () => {
     await show();
     expect(screen.getByText("头发参考")).toBeTruthy();
-    expect(screen.getByText(/3 个成员/).textContent).toContain("主库、移动盘库");
+    expect(screen.getByText(/^3 张/).textContent).toMatch(/^3 张 · 主库、移动盘库 · \d{4} 年 \d+ 月 \d+ 日$/);
     expect(screen.getByText("参考组文件已损坏")).toBeTruthy();
   });
 
-  it("把桌面钉图存成新参考组", async () => {
+  it("卡片缩略图只显示可用成员；安全模式遮蔽和不可用的成员不加载图片", async () => {
     await show();
+    const card = screen.getByText("头发参考").closest("li")!;
+    const thumbs = card.querySelectorAll("img");
+    expect([...thumbs].map((img) => img.getAttribute("src"))).toEqual(["thumb://lib-a/img-m1/128"]);
+    expect(card.querySelectorAll(".group-thumb")).toHaveLength(3);
+  });
+
+  it("把桌面钉图存成新参考组：先起名，空名不能保存", async () => {
+    await show();
+    expect(screen.queryByLabelText("新参考组名称")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "存下桌面钉图" }));
+    const save = screen.getByRole("button", { name: "保存" }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
     fireEvent.change(screen.getByLabelText("新参考组名称"), { target: { value: "手部" } });
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "把桌面钉图存为参考组" }));
-    });
+    await act(async () => { fireEvent.click(save); });
     expect(ipc.save).toHaveBeenCalledWith("手部");
+    expect(screen.getByRole("status").textContent).toBe("已把桌面钉图存为参考组");
   });
 
   it("保存前逐张选择截图的收藏资料库，再把选择交给保存入口", async () => {
     ipc.captures.mockResolvedValueOnce([{ id: "shot-1", width: 100, height: 80, collected: [] }]);
     await show();
+    fireEvent.click(screen.getByRole("button", { name: "存下桌面钉图" }));
     fireEvent.change(screen.getByLabelText("新参考组名称"), { target: { value: "截图参考" } });
-    fireEvent.click(screen.getByRole("button", { name: "把桌面钉图存为参考组" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
     expect(await screen.findByRole("dialog", { name: "收藏截图并保存参考组" })).toBeTruthy();
     expect(ipc.save).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText("截图 1 的资料库"), { target: { value: "lib-a" } });
+    fireEvent.change(screen.getByLabelText("截图 1 的图库"), { target: { value: "lib-a" } });
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "确认并保存" })); });
     expect(ipc.save).toHaveBeenCalledWith("截图参考", [{ captureId: "shot-1", libraryId: "lib-a", folderId:null }]);
   });
@@ -136,16 +156,27 @@ describe("参考组面板", () => {
   it("打开参考组把成员钉到桌面", async () => {
     await show();
     await act(async () => {
-      fireEvent.click(screen.getAllByRole("button", { name: "钉到桌面" })[0]);
+      fireEvent.click(screen.getByRole("button", { name: "摆到桌面" }));
     });
     expect(ipc.open).toHaveBeenCalledWith("g1");
+    expect(screen.getByRole("status").textContent).toBe("已钉出 2 个成员");
+  });
+
+  it("操作只出现在选中的卡片上；点另一张卡片换过去", async () => {
+    ipc.groups.mockResolvedValue([summary, { ...summary, id: "g2", name: "手部" }]);
+    ipc.group.mockResolvedValue(view);
+    render(<SaveDestinationProvider safe><ReferenceGroupsPanel /></SaveDestinationProvider>);
+    await act(async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); });
+    expect(screen.getAllByRole("button", { name: "摆到桌面" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: /^手部/ }));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "摆到桌面" })); });
+    expect(ipc.open).toHaveBeenCalledWith("g2");
   });
 
   it("查看成员时标出不可用的原因与安全模式下的遮蔽", async () => {
     await show();
-    await act(async () => {
-      fireEvent.click(screen.getAllByRole("button", { name: "成员" })[0]);
-    });
+    expect(screen.queryByText("资料库暂时不可用：没插")).toBeNull();
+    await more("查看成员");
     expect(ipc.group).toHaveBeenCalledWith("g1");
     expect(screen.getByText("资料库暂时不可用：没插")).toBeTruthy();
     expect(screen.getByText("安全模式下原位遮蔽")).toBeTruthy();
@@ -153,17 +184,19 @@ describe("参考组面板", () => {
 
   it("删除要再确认一次", async () => {
     await show();
-    fireEvent.click(screen.getAllByRole("button", { name: "删除" })[0]);
+    await more("删除");
     expect(ipc.remove).not.toHaveBeenCalled();
+    const confirm = await screen.findByRole("alertdialog", { name: "删除参考组" });
+    expect(confirm.textContent).toContain("头发参考");
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "确认删除" }));
+      fireEvent.click(within(confirm).getByRole("button", { name: "删除" }));
     });
     expect(ipc.remove).toHaveBeenCalledWith("g1");
   });
 
   it("重命名", async () => {
     await show();
-    fireEvent.click(screen.getAllByRole("button", { name: "重命名" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "改名" }));
     fireEvent.change(screen.getByLabelText("参考组名称"), { target: { value: "发型" } });
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "保存名称" }));
@@ -173,9 +206,7 @@ describe("参考组面板", () => {
 
   it("导出参考组包，写出保存的位置", async () => {
     await show();
-    await act(async () => {
-      fireEvent.click(screen.getAllByRole("button", { name: "导出参考组包" })[0]);
-    });
+    await more("导出参考组包");
     expect(ipc.exportPackage).toHaveBeenCalledWith("g1");
     expect(screen.getByRole("status").textContent).toContain("D:/导出/头发参考.kinshoko-group");
   });
@@ -183,9 +214,7 @@ describe("参考组面板", () => {
   it("取消保存对话框时不提示", async () => {
     ipc.exportPackage.mockResolvedValueOnce(null);
     await show();
-    await act(async () => {
-      fireEvent.click(screen.getAllByRole("button", { name: "导出参考组包" })[0]);
-    });
+    await more("导出参考组包");
     expect(screen.queryByRole("status")).toBeNull();
   });
 
@@ -200,6 +229,23 @@ describe("参考组面板", () => {
     await act(async()=>{fireEvent.click(screen.getByRole("button",{name:"选择参考组包并导入"}));});
     expect(ipc.importPackage).toHaveBeenCalledWith("lib-a",{libraryId:"lib-a",folderId:"folder-a"});
     expect(screen.getByRole("status").textContent).toContain("别人的参考组");
+  });
+
+  it("存入桌面钉图到已有参考组", async () => {
+    await show();
+    await more("存入桌面钉图");
+    expect(ipc.saveInto).toHaveBeenCalledWith("g1");
+  });
+
+  it("读不懂的参考组只能删除", async () => {
+    await show();
+    const bad = screen.getByText("参考组文件已损坏").closest("li")!;
+    fireEvent.click(within(bad).getByRole("button", { name: /^bad/ }));
+    expect(within(bad).queryByRole("button", { name: "摆到桌面" })).toBeNull();
+    fireEvent.click(within(bad).getByRole("button", { name: "删除" }));
+    const confirm = await screen.findByRole("alertdialog", { name: "删除参考组" });
+    await act(async () => { fireEvent.click(within(confirm).getByRole("button", { name: "删除" })); });
+    expect(ipc.remove).toHaveBeenCalledWith("bad");
   });
 
   it("没有活动库时仍可从明确目标导入参考组包", async () => {

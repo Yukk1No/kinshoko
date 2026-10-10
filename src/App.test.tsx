@@ -320,7 +320,7 @@ describe("主窗口", () => {
     await screen.findByRole("button", { name: "建立资料库" });
     fireEvent.click(screen.getByRole("button", { name: "截图历史" }));
     expect(await screen.findByRole("region", { name: "截图历史" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "钉剪贴板" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^钉住剪贴板/ })).toBeTruthy();
   });
 
   it("查找区域的标签分组展开后可以添加、取消条件，并保留文件夹范围", async () => {
