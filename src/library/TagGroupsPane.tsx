@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { ArrowDown, ArrowUp, PenLine, Plus, Tags, Trash2, X } from "lucide-react";
 import { FluidList, FluidRow } from "../ui/FluidList";
@@ -143,7 +143,8 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "ца
     const focused = active && section.current?.contains(active) ? active.dataset.focusKey : undefined;
     restore.current = focused ?? fallback ?? restore.current;
   };
-  useEffect(() => {
+  // Layout effect: focus returns in the same commit that remounts the rows, before paint.
+  useLayoutEffect(() => {
     const wanted = restore.current;
     if (!fresh || busy || wanted === null || !section.current) return;
     restore.current = null;
