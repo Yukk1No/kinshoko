@@ -1532,6 +1532,14 @@ button.primary {
   --danger: #B23A3A;
   --shadow: 0 1px 2px rgba(43, 39, 71, 0.08), 0 8px 24px rgba(43, 39, 71, 0.12);
   --shadow-pin: 0 2px 6px rgba(0, 0, 0, 0.25), 0 12px 32px rgba(0, 0, 0, 0.22);
+  /* T20 redesign (design/ui-system/README.md): layers, popovers, radii and the spring curve. */
+  --sunken: #EDE7DA;
+  --shadow-pop: 0 0 0 1px rgba(43, 39, 71, 0.06), 0 2px 4px rgba(43, 39, 71, 0.06), 0 12px 32px rgba(43, 39, 71, 0.14);
+  --r-xs: 6px; --r-s: 8px; --r: 10px; --r-m: 12px; --r-l: 14px; --r-xl: 18px;
+  --spring: cubic-bezier(0.2, 0.9, 0.25, 1.05);
+  --seal-acc: var(--seal);
+  --muted: var(--ink-3);
+  --win-close: #C94A4A; --on-win-close: #FFFDF8;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --t-fast: 120ms; --t: 200ms; --t-slow: 260ms;
   color-scheme: light;
@@ -1545,6 +1553,7 @@ button.primary {
     --manual: #E3B34F; --manual-soft: rgba(227, 179, 79, 0.18);
     --wall: #161618; --card: #222224; --danger: #F08A8A;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.45);
+    --sunken: #19172A; --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
     color-scheme: dark;
   }
 }
@@ -1556,6 +1565,7 @@ button.primary {
   --manual: #E3B34F; --manual-soft: rgba(227, 179, 79, 0.18);
   --wall: #161618; --card: #222224; --danger: #F08A8A;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.45);
+  --sunken: #19172A; --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
   color-scheme: dark;
 }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
