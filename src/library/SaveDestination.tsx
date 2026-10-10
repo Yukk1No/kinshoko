@@ -68,7 +68,7 @@ export function destinationAvailable(value: SaveDestination | null, providers: W
 
 /**
  * 保存位置（#98）：并排两个选择——图库与文件夹；写入从不改变浏览范围。
- * 读屏名称保留“保存到资料库 / 保存到文件夹”，供本机验收脚本按名称找到它们。
+ * 两个选择的读屏名称就是可见标签（“放到图库”或“图库”，以及“文件夹”）。
  */
 export function SaveDestinationPicker({ value, onChange, disabled = false, labelPrefix = "" }: {
   value: SaveDestination | null; onChange: (value: SaveDestination | null) => void;
@@ -84,7 +84,7 @@ export function SaveDestinationPicker({ value, onChange, disabled = false, label
       <label className="k-field">
         <span className="k-field-label">{labelPrefix}图库</span>
         <span className="k-select-wrap"><Library size={15} aria-hidden="true" />
-        <select className="k-select is-lg" aria-label="保存到资料库" value={value?.libraryId ?? ""}
+        <select className="k-select is-lg" value={value?.libraryId ?? ""}
           onChange={e => onChange(e.target.value ? { libraryId: e.target.value, folderId: null } : null)}>
           <option value="">选择图库…</option>
           {value && !provider && <option value={value.libraryId} disabled>未打开的图库</option>}
@@ -98,7 +98,7 @@ export function SaveDestinationPicker({ value, onChange, disabled = false, label
       <label className="k-field">
         <span className="k-field-label">文件夹</span>
         <span className="k-select-wrap"><Folder size={15} aria-hidden="true" />
-        <select className="k-select is-lg" aria-label="保存到文件夹" value={value?.folderId ?? ""}
+        <select className="k-select is-lg" value={value?.folderId ?? ""}
           disabled={!provider || !!provider.registration.unavailable}
           onChange={e => value && onChange({ ...value, folderId: e.target.value || null })}>
           <option value="">未归类</option>

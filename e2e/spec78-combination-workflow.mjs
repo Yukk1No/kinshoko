@@ -13,6 +13,9 @@ export const named = value => `(@aria-label=${literal(value)} or starts-with(@ar
 // Base UI dialogs are named by their title (aria-labelledby); older dialogs by aria-label.
 export const dialog = name => `//*[@role='dialog' and (@aria-label=${literal(name)} or @aria-labelledby=//*[normalize-space()=${literal(name)}]/@id)]`;
 export const importDialog = dialog("导入图片"), eagleDialog = dialog("从 Eagle 导入");
+// The save-destination selects are named by their visible labels (“放到图库” or “图库”, and “文件夹”).
+export const libraryChoice = prefix => `${prefix}//label[span[@class='k-field-label' and contains(normalize-space(),'图库')]]//select`;
+export const folderChoice = prefix => `${prefix}//label[span[@class='k-field-label' and normalize-space()='文件夹']]//select`;
 const libraryTrigger = "//button[starts-with(@aria-label,'当前图库：')]";
 const libraryMenu = "//*[@role='menu' and @aria-label='图库']";
 export class CombinationWorkflow {
@@ -149,13 +152,13 @@ export class CombinationWorkflow {
   }
   // Import (#98): pick first, then a dialog chooses the library and folder; progress/result are bottom-right cards.
   async chooseDestination(libraryId, folderId = null, prefix = importDialog) {
-    await this.d.select(`${prefix}//select[@aria-label='保存到资料库']`, libraryId);
-    await this.d.select(`${prefix}//select[@aria-label='保存到文件夹']`, folderId ?? "");
+    await this.d.select(libraryChoice(prefix), libraryId);
+    await this.d.select(folderChoice(prefix), folderId ?? "");
   }
   async beginImport(paths, libraryId, folderId = null) {
     const before = new Set((await this.d.invoke("import_tasks")).map(task => task.taskId));
     await this.d.pick(paths); await this.readyClick("//button[@aria-label='导入图片文件']");
-    await this.d.enabled(`${importDialog}//select[@aria-label='保存到资料库']`);
+    await this.d.enabled(libraryChoice(importDialog));
     await this.chooseDestination(libraryId, folderId);
     await this.readyClick(`${importDialog}//button[normalize-space()='开始导入']`);
     const started = await until("new actual import task", async () => (await this.d.invoke("import_tasks")).find(task => !before.has(task.taskId)));

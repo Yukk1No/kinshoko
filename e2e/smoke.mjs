@@ -246,11 +246,11 @@ try {
   result.library = created;
   assert(true, "建立资料库并打开");
 
-  // 导入文件夹（含子文件夹）
+  // 导入文件夹（含子文件夹）。保存位置的两个选择按可见标签命名（图库、文件夹），这里按位置取。
   await session.click(await session.find("//button[@aria-label='导入参考图']"));
-  await until("保存目标资料库已加载", () => session.exec("return [...document.querySelector('select[aria-label=\"保存到资料库\"]').options].some(o=>o.value===arguments[0]);", [created.id]));
-  await session.exec("const s=document.querySelector('select[aria-label=\"保存到资料库\"]');s.value=arguments[0];s.dispatchEvent(new Event('change',{bubbles:true}));",[created.id]);
-  await session.exec("const s=document.querySelector('select[aria-label=\"保存到文件夹\"]');s.value='';s.dispatchEvent(new Event('change',{bubbles:true}));");
+  await until("保存目标资料库已加载", () => session.exec("return [...document.querySelector('.k-destination-grid > label:nth-of-type(1) select').options].some(o=>o.value===arguments[0]);", [created.id]));
+  await session.exec("const s=document.querySelector('.k-destination-grid > label:nth-of-type(1) select');s.value=arguments[0];s.dispatchEvent(new Event('change',{bubbles:true}));",[created.id]);
+  await session.exec("const s=document.querySelector('.k-destination-grid > label:nth-of-type(2) select');s.value='';s.dispatchEvent(new Event('change',{bubbles:true}));");
   await session.pick(source);
   await session.click(await session.find(button("导入文件夹…")));
   await session.waitFor("目标确认", button("开始导入"));

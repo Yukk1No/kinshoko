@@ -254,7 +254,7 @@ const importAction = (name: "导入文件…" | "导入文件夹…" | "从 Eagl
 /** 导入面板里的保存位置为空时选当前库（与原来先选位置再选文件的操作等价）。 */
 const chooseDestination = () => {
   // 收起的导入面板也保留保存位置选择（hidden）；拖放提示显示的就是它。
-  const selector=screen.queryByRole("combobox",{name:"保存到资料库",hidden:true}) as HTMLSelectElement|null;
+  const selector=screen.queryByRole("combobox",{name:"放到图库",hidden:true}) as HTMLSelectElement|null;
   if(selector&&!selector.value&&Array.from(selector.options).some(o=>o.value==="L1"))fireEvent.change(selector,{target:{value:"L1"}});
 };
 /** 图库切换菜单（侧栏标题或收起侧栏后的顶栏）。 */

@@ -100,8 +100,10 @@ try {
   // #98: 导入 is a split button; the folder entry is in its menu, then a dialog chooses the library.
   await click("更多导入方式");
   await wd("POST",base+"/element/"+await until("整个文件夹菜单项",()=>find("//*[@role='menuitem' and normalize-space()='整个文件夹…']"))+"/click",{});
-  await until("导入对话框", () => exec("return !!document.querySelector('.k-import-dialog select[aria-label=保存到资料库]')?.options[1]"));
-  await exec("const s=document.querySelector('.k-import-dialog select[aria-label=保存到资料库]');s.value=s.options[1].value;s.dispatchEvent(new Event('change',{bubbles:true}));");
+  // 保存位置的图库选择按可见标签“放到图库”命名。
+  const librarySelect = "[...document.querySelectorAll('.k-import-dialog select')].find(s=>s.labels?.[0]?.querySelector('.k-field-label')?.textContent.trim()==='放到图库')";
+  await until("导入对话框", () => exec(`return !!${librarySelect}?.options[1]`));
+  await exec(`const s=${librarySelect};s.value=s.options[1].value;s.dispatchEvent(new Event('change',{bubbles:true}));`);
   await until("开始导入可用", () => exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
   await click("开始导入");
   await until("导入完成", () => exec("const c=document.querySelector('section[aria-label=导入结果]');return c?.textContent.includes('导入完成')&&c.querySelector('.k-task-stats')?.textContent.includes('新增 43');"));
