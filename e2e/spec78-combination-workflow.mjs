@@ -461,6 +461,8 @@ return {message:message.textContent,steps:steps.textContent,visibility:{whole,cl
     await this.scope(this.a.id,this.folderA);const receipt=await this.import([this.fixture.inputs.sealed.path],this.a.id,this.folderA);
     d.assert(receipt.report.sealedDuplicates&&receipt.report.privateSummary&&receipt.report.items.length===0&&receipt.progress.done===0&&receipt.progress.total===0,"default real sealed receipt conceals successful item IDs and exact counts",receipt);
     // The sealed prompt is a bottom-right card: “有成人图与已有的重复” with 看看.
+    // The preview re-veils on any workspace change by design; let the import's change burst end first.
+    await this.settled();
     await until("actual sealed consent prompt",()=>d.exec("const card=document.querySelector('section[aria-label=成人图重复]');return !!card&&card.getClientRects().length>0&&card.textContent.includes('有成人图与已有的重复');"));
     d.assert(!await d.exec("return !!document.querySelector('dialog.sealed-import-preview');"),"no sealed preview exists before explicit consent");
     await d.screenshot("06-default-scoped-sealed-prompt.png");
