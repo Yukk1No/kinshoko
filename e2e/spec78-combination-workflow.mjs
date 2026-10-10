@@ -138,12 +138,11 @@ export class CombinationWorkflow {
   }
   async task(id) { return (await this.d.invoke("import_tasks")).find(task => task.taskId === id); }
   finish(id, timeout = 90000) { return until("real completed import receipt " + id, async () => { const task = await this.task(id); return task?.report && !task.finishing ? task : null; }, timeout); }
-  // The recycle bin of the active library is pinned to the sidebar foot; other libraries show their own.
+  // The recycle bin is a single entry in the sidebar foot (3-band layout); it opens the current library's bin.
   async trash(libraryId) {
     if (await this.d.exec("return document.querySelector('button[aria-label=图片与文件夹]')?.getAttribute('aria-expanded')!=='true';")) await this.readyClick("//button[@aria-label='图片与文件夹']");
-    const active = (await this.d.invoke("current_library"))?.id === libraryId;
-    const xpath = active ? "//nav[@aria-label='查找范围']//div[contains(@class,'side-foot')]//button[starts-with(@aria-label,'回收站（')]"
-      : `//nav[@aria-label='查找范围']//*[@data-library-id=${literal(libraryId)}]//button[starts-with(@aria-label,'回收站（')]`;
+    if ((await this.d.invoke("current_library"))?.id !== libraryId) throw Error("Open the recycle bin of the current library only: " + libraryId);
+    const xpath = "//nav[@aria-label='查找范围']//div[contains(@class,'side-foot')]//button[starts-with(@aria-label,'回收站（')]";
     await this.readyClick(xpath);
     await until("actual recycle-bin scope of " + libraryId, () => this.d.exec("const node=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return node?.getAttribute('aria-current')==='page';", [xpath]));
     return xpath;
@@ -277,8 +276,6 @@ export class CombinationWorkflow {
   async sourceActions() {
     this.phase("inactive-source-pin-group-and-copy");
     const d=this.d;
-    // The fixed bottom-right result cards cover the inspector's lower action row (r13); close them as a user would.
-    await this.dismissImportResults();
     // Multi-source detail is now the 详情 inspector, opened from the card's “在 N 个图库” control.
     await this.readyClick(`//*[@role='option' and @data-id=${literal(this.visibleCard.id)}]//button[contains(@class,'card-sources') and starts-with(@aria-label,'在 ')]`);
     await this.d.enabled("//aside[@aria-label='详情']//section[@aria-label='图库来源']");
