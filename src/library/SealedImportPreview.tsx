@@ -36,8 +36,9 @@ export function SealedImportPreview({ libraryId, taskId, onClose }: { libraryId:
       document.removeEventListener("visibilitychange", hidden);
     };
   }, [libraryId, taskId]);
-  // Esc、点遮罩与关闭按钮都经 onOpenChange 关闭；卸载时上面的清理结束预览会话并撤销图片。
-  return <Dialog.Root open onOpenChange={(open) => { if (!open) close.current(); }}>
+  // Esc 与关闭按钮经 onOpenChange 关闭；与原来的原生模态框一样，点遮罩不关闭（只在明确关闭或上下文变化时结束）。
+  // 卸载时上面的清理结束预览会话并撤销图片。
+  return <Dialog.Root open disablePointerDismissal onOpenChange={(open) => { if (!open) close.current(); }}>
     <Dialog.Portal>
       <Dialog.Backdrop className="k-backdrop" />
       <Dialog.Popup className="k-dialog sealed-import-preview">
