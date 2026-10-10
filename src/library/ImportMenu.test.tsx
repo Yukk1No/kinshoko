@@ -128,3 +128,30 @@ it("回执轮询碰上浏览结果变化时只重读，不在卡片上留下“�
   expect(region.textContent).not.toContain("浏览结果已变化");
   expect(screen.queryByRole("alert")).toBeNull();
 });
+
+describe("导入任务轮询", () => {
+  const poll = async (tasks: ImportTaskSnapshot[]) => {
+    vi.useFakeTimers();
+    try {
+      mockWindows("main");
+      let calls = 0;
+      mockIPC(cmd => {
+        if (cmd === "plugin:library|import_tasks") { calls++; return tasks; }
+        if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
+        return undefined;
+      }, { shouldMockEvents: true });
+      render(menu());
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+      return calls;
+    } finally { vi.useRealTimers(); }
+  };
+
+  it("有进行中的任务时每 400 ms 读一次进度", async () => {
+    const running = { ...receipt, report: null, progress: { done: 1, total: 3 } };
+    expect(await poll([running])).toBeGreaterThanOrEqual(20);
+  });
+
+  it.each([["没有任务", [] as ImportTaskSnapshot[]], ["只有已结束的回执", [receipt]]])("%s时逐渐放慢，不再每 400 ms 读一次", async (_, tasks) => {
+    expect(await poll(tasks)).toBeLessThanOrEqual(8);
+  });
+});

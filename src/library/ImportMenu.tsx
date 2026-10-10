@@ -7,6 +7,8 @@ import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { dismissImport, importTasks, isCursorExpired, onSafeModeSetting, onWorkspaceChanged } from "../ipc";
 import { destinationAvailable, folderChoices, SaveDestinationPicker, useSaveDestination } from "./SaveDestination";
 
+const POLL_MIN=400,POLL_MAX=3200;
+
 // A mode/workspace event can arrive before a fresh backend receipt. Keep retry failures,
 // but remove every successful category together until the new context is projected.
 function concealSuccesses(report: ImportReport): ImportReport {
@@ -27,13 +29,36 @@ export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceS
  const onBusyChange=useCallback((busy:boolean,eagle:boolean)=>setBusy(previous=>previous.busy===busy&&previous.eagle===eagle?previous:{busy,eagle}),[]);
  const optimistic=useRef(new Map<string,ImportTaskSnapshot>());
  const dismissed=useRef(new Set<string>());
+ // 任务回执的轮询：有进行中的任务时每 400 ms 读一次进度；空闲时每次加倍、最长 3.2 s。
+ // 安全模式或工作区变化后立即重读并回到 400 ms。内容没变时不更新状态，卡片不重新渲染。
+ const poke=useRef<()=>void>(()=>{});
  useEffect(()=>{
-  let alive=true,epoch=0,timer:ReturnType<typeof setTimeout>;
-  const invalidate=()=>{epoch++;setTasks(previous=>previous.map(task=>({...task,progress:task.report?{done:0,total:0}:task.progress,report:task.report?concealSuccesses(task.report):null})));};
+  let alive=true,epoch=0,timer:ReturnType<typeof setTimeout>|undefined,delay=POLL_MIN,last="";
+  const schedule=()=>{clearTimeout(timer);if(alive)timer=setTimeout(refresh,delay);};
+  const invalidate=()=>{
+   epoch++;last="";
+   setTasks(previous=>previous.map(task=>({...task,progress:task.report?{done:0,total:0}:task.progress,report:task.report?concealSuccesses(task.report):null})));
+   delay=POLL_MIN;schedule();
+  };
   const safe=onSafeModeSetting(invalidate),workspace=onWorkspaceChanged(invalidate);
-  // 读取期间修订变了只是过时，下一次轮询（400 ms）重读，不显示成问题（#98 本机 r16）。
- const refresh=()=>{const expected=epoch;void importTasks().then(value=>{if(alive&&expected===epoch&&Array.isArray(value)){for(const t of value)optimistic.current.delete(t.taskId);setTasks([...value,...optimistic.current.values()].filter(t=>!dismissed.current.has(t.taskId)));}},error=>{if(alive&&expected===epoch&&!isCursorExpired(error))setProblem(String(error));}).finally(()=>{if(alive)timer=setTimeout(refresh,400);});};
-  refresh();return()=>{alive=false;clearTimeout(timer);void safe.then(stop=>stop());void workspace.then(stop=>stop());};
+  function refresh(){
+   const expected=epoch;
+   void importTasks().then(value=>{
+    if(!alive||expected!==epoch||!Array.isArray(value))return;
+    for(const t of value)optimistic.current.delete(t.taskId);
+    const next=[...value,...optimistic.current.values()].filter(t=>!dismissed.current.has(t.taskId));
+    const busy=next.some(t=>t.report===null||t.finishing);
+    delay=busy?POLL_MIN:Math.min(delay*2,POLL_MAX);
+    const signature=JSON.stringify(next);
+    if(signature!==last){last=signature;setTasks(next);}
+   },error=>{
+    // 读取期间修订变了只是过时，下一次轮询重读，不显示成问题（#98 本机 r16）。
+    if(alive&&expected===epoch&&!isCursorExpired(error))setProblem(String(error));
+   }).finally(schedule);
+  }
+  poke.current=()=>{delay=POLL_MIN;schedule();};
+  refresh();
+  return()=>{alive=false;clearTimeout(timer);poke.current=()=>{};void safe.then(stop=>stop());void workspace.then(stop=>stop());};
  },[]);
  const selected=tasks.find(t=>t.taskId===selectedTask)??tasks.find(t=>t.report===null)??tasks.at(-1);
  const task=selected?{...selected,report:selected.report??(p.finished?.taskId===selected.taskId?concealSuccesses(p.finished.report):null),
@@ -68,7 +93,7 @@ export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceS
           folderName:fixed.folderId===null?"未归类":folderChoices(provider?.sidebar?.folders??[]).find(f=>f.id===fixed.folderId)?.path??"目标文件夹不可用",progress:{done:0,total:0},report:null,finishing:false,warnings:[]});
         setTasks(previous=>previous.some(t=>t.taskId===id)?previous:[...previous,optimistic.current.get(id)!]);
       }
-      setSelectedTask(id);p.onStarted(id,fixed);
+      setSelectedTask(id);p.onStarted(id,fixed);poke.current();
     }} onRetryDestination={context.setDestination} onDismissReport={()=>{
       if(task?.report){
         optimistic.current.delete(task.taskId);dismissed.current.add(task.taskId);
