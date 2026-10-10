@@ -4,7 +4,7 @@ import { ImportSplit } from "../ui/ImportSplit";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
-import { dismissImport, importTasks, onSafeModeSetting, onWorkspaceChanged } from "../ipc";
+import { dismissImport, importTasks, isCursorExpired, onSafeModeSetting, onWorkspaceChanged } from "../ipc";
 import { destinationAvailable, folderChoices, SaveDestinationPicker, useSaveDestination } from "./SaveDestination";
 
 // A mode/workspace event can arrive before a fresh backend receipt. Keep retry failures,
@@ -31,7 +31,8 @@ export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceS
   let alive=true,epoch=0,timer:ReturnType<typeof setTimeout>;
   const invalidate=()=>{epoch++;setTasks(previous=>previous.map(task=>({...task,progress:task.report?{done:0,total:0}:task.progress,report:task.report?concealSuccesses(task.report):null})));};
   const safe=onSafeModeSetting(invalidate),workspace=onWorkspaceChanged(invalidate);
-  const refresh=()=>{const expected=epoch;void importTasks().then(value=>{if(alive&&expected===epoch&&Array.isArray(value)){for(const t of value)optimistic.current.delete(t.taskId);setTasks([...value,...optimistic.current.values()].filter(t=>!dismissed.current.has(t.taskId)));}},error=>{if(alive&&expected===epoch)setProblem(String(error));}).finally(()=>{if(alive)timer=setTimeout(refresh,400);});};
+  // 读取期间修订变了只是过时，下一次轮询（400 ms）重读，不显示成问题（#98 本机 r16）。
+ const refresh=()=>{const expected=epoch;void importTasks().then(value=>{if(alive&&expected===epoch&&Array.isArray(value)){for(const t of value)optimistic.current.delete(t.taskId);setTasks([...value,...optimistic.current.values()].filter(t=>!dismissed.current.has(t.taskId)));}},error=>{if(alive&&expected===epoch&&!isCursorExpired(error))setProblem(String(error));}).finally(()=>{if(alive)timer=setTimeout(refresh,400);});};
   refresh();return()=>{alive=false;clearTimeout(timer);void safe.then(stop=>stop());void workspace.then(stop=>stop());};
  },[]);
  const selected=tasks.find(t=>t.taskId===selectedTask)??tasks.find(t=>t.report===null)??tasks.at(-1);

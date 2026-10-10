@@ -113,3 +113,18 @@ it("另一个图库的任务回执关闭后，不留下“正在导入”的空�
   expect(screen.queryByRole("region", { name: "导入进度" })).toBeNull();
   expect((screen.getByRole("button", { name: "导入图片文件" }) as HTMLButtonElement).disabled).toBe(false);
 });
+
+it("回执轮询碰上浏览结果变化时只重读，不在卡片上留下“浏览结果已变化”（#98 本机 r16）", async () => {
+  mockWindows("main");
+  let calls = 0;
+  mockIPC(cmd => {
+    if (cmd === "plugin:library|import_tasks") { calls++; if (calls === 1) throw "浏览结果已变化，请从头重新浏览"; return [receipt]; }
+    if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
+    return undefined;
+  }, { shouldMockEvents: true });
+  render(menu());
+  const region = await screen.findByRole("region", { name: "导入结果" });
+  await waitFor(() => expect(calls).toBeGreaterThan(2));
+  expect(region.textContent).not.toContain("浏览结果已变化");
+  expect(screen.queryByRole("alert")).toBeNull();
+});
