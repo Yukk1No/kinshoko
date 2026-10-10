@@ -77,7 +77,7 @@ it("连续变更期间目录读取多次遇到修订变化：变更停下后显�
   await waitFor(() => expect(state.calls).toBeGreaterThan(state.failures));
   expect(await screen.findByRole("button", { name: "甲库（1 张）" })).toBeTruthy();
   await waitFor(() => expect(screen.queryAllByText(EXPIRED)).toHaveLength(0));
-  expect(screen.queryByText("正在读取保存位置…")).toBeNull();
+  expect(screen.queryByText("正在读取图库…")).toBeNull();
 });
 
 it("真正的读取失败仍以提示报告，一直留到用户确认", async () => {

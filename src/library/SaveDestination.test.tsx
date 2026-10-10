@@ -37,12 +37,12 @@ it("global import requires a visible save destination and does not change browse
  // #98: the split button picks files first; the panel then asks where to save before anything starts.
  fireEvent.click(await screen.findByRole("button",{name:"导入图片文件"}));
  const start=await screen.findByRole("button",{name:"开始导入"});
- const menu=start.closest(".import-popup") as HTMLElement;
+ const menu=screen.getByRole("dialog",{name:"导入图片"});
  expect(start).toHaveProperty("disabled",true);
  expect(submitted).toBeNull();
  fireEvent.change(await within(menu).findByRole("combobox",{name:"保存到资料库"}),{target:{value:"B"}});
  fireEvent.change(within(menu).getByRole("combobox",{name:"保存到文件夹"}),{target:{value:"folder-b"}});
- expect(within(menu).getByText(/最终位置：保存库.*最终目录/)).toBeTruthy();
+ expect(within(menu).getByText(/放到：保存库.*最终目录/)).toBeTruthy();
  await waitFor(()=>expect(start).toHaveProperty("disabled",false));
  fireEvent.click(start);
  await waitFor(()=>expect(submitted).toMatchObject({libraryId:"B",destination:{libraryId:"B",folderId:"folder-b"},source:{paths:["C:/source.png"]}}));
@@ -79,10 +79,12 @@ it("a late start reply and cancel keep the submitted owner after selecting anoth
  fireEvent.click(start);
  fireEvent.change(screen.getByRole("combobox",{name:"保存到资料库"}),{target:{value:"A"}});
  await act(async()=>{resolveStart("late-task");await pendingStart;});
- expect(await screen.findByText("任务保存位置：保存库 / 未归类")).toBeTruthy();
+ expect(await screen.findByText("放到 保存库 / 未归类")).toBeTruthy();
  fireEvent.click(await screen.findByRole("button",{name:"取消导入"}));
  await waitFor(()=>expect(cancelled).toEqual({libraryId:"B",taskId:"late-task"}));
- expect(screen.getByText("最终位置：浏览库 / 未归类")).toBeTruthy();
+ // 卡片上的保存位置仍是提交时的保存库，不跟着之后的新选择变。
+ expect(screen.getByText("放到 保存库 / 未归类")).toBeTruthy();
+ expect(screen.queryByText("放到 浏览库 / 未归类")).toBeNull();
 });
 
 it("retry starts at its original target and an explicit new choice matches the final submitted target",async()=>{
@@ -101,7 +103,7 @@ it("retry starts at its original target and an explicit new choice matches the f
  await screen.findByRole("button",{name:"开始导入"});
  expect((screen.getByRole("combobox",{name:"保存到资料库"}) as HTMLSelectElement).value).toBe("B");
  fireEvent.change(screen.getByRole("combobox",{name:"保存到资料库"}),{target:{value:"A"}});
- expect(screen.getByText("最终位置：浏览库 / 未归类")).toBeTruthy();
+ expect(screen.getByText("放到：浏览库 / 未归类")).toBeTruthy();
  fireEvent.click(screen.getByRole("button",{name:"开始导入"}));
  await waitFor(()=>expect(submitted).toMatchObject({libraryId:"A",destination:{libraryId:"A",folderId:null}}));
 });
@@ -117,7 +119,7 @@ it("a concrete folder entry prefills its provider and folder without activating 
  render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" scope={{kind:"library",libraryId:"B",scope:{kind:"folder",id:"folder-b"}}} running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
  fireEvent.click(screen.getByRole("button",{name:"导入图片文件"}));
  await screen.findByRole("button",{name:"开始导入"});
- expect(await screen.findByText("最终位置：保存库 / 具体目录")).toBeTruthy();
+ expect(await screen.findByText("放到：保存库 / 具体目录")).toBeTruthy();
  expect((screen.getByRole("combobox",{name:"保存到资料库"}) as HTMLSelectElement).value).toBe("B");
  expect((screen.getByRole("combobox",{name:"保存到文件夹"}) as HTMLSelectElement).value).toBe("folder-b");
 });
@@ -167,9 +169,9 @@ it("running import does not claim that content is complete before the actual rep
     return null;
   }, { shouldMockEvents: true });
   render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider>);
-  await screen.findByText("任务保存位置：保存库 / 未归类");
-  expect(screen.queryByText("内容已处理，正在发布此资料库的标签定义…")).toBeNull();
+  await screen.findByText("放到 保存库 / 未归类");
+  expect(screen.queryByText("已导入，正在把标签定义存进图库…")).toBeNull();
   receipt.progress = { done: 2000, total: 2000 };
   receipt.report = { items: [], cancelled: false, fromEagle: false, eagleMissing: 0, eagleRelocations: [] };
-  expect(await screen.findByText("内容已处理，正在发布此资料库的标签定义…")).toBeTruthy();
+  expect(await screen.findByText("已导入，正在把标签定义存进图库…")).toBeTruthy();
 });

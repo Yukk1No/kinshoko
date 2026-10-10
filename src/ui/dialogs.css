@@ -128,3 +128,63 @@
 .groupbar-edit:hover { background: var(--hover); color: var(--ink); }
 .k-dialog.k-groups-dialog { width: min(640px, calc(100vw - 48px)); }
 .k-groups-dialog .sidebar-tag-groups { max-height: calc(100vh - 260px); overflow: auto; }
+
+/* ---- Save destination: 图库 + 文件夹 side by side ---- */
+.k-destination { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 6px; }
+.k-destination-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.k-field { display: grid; gap: 6px; min-width: 0; }
+.k-field-label { font-size: 12px; font-weight: 600; color: var(--ink-2); padding: 0; }
+.k-select-wrap { position: relative; display: block; min-width: 0; }
+.k-select-wrap > svg { position: absolute; left: 12px; top: 50%; translate: 0 -50%; color: var(--ink-3); pointer-events: none; }
+.k-select-wrap > .k-select.is-lg { padding-left: 34px; }
+.k-destination .save-final-position { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-fieldset { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 6px; }
+
+/* ---- Import / save dialogs ---- */
+.k-dialog.k-import-dialog, .k-dialog.k-save-dialog { width: min(480px, calc(100vw - 48px)); display: flex; flex-direction: column; gap: 14px; }
+.k-dialog.k-import-dialog.is-wide { width: min(640px, calc(100vw - 48px)); }
+.k-import-dialog .k-dialog-desc, .k-save-dialog .k-dialog-desc { margin: -10px 0 0; }
+.k-import-dialog .k-dialog-foot, .k-save-dialog .k-dialog-foot { margin-top: 2px; }
+.k-import-summary { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: var(--surface-2); min-width: 0; }
+.k-import-summary .k-big-tag-icon { width: 40px; height: 40px; }
+.k-import-dialog .k-list { max-height: 260px; overflow: auto; }
+
+/* ---- Import task cards, bottom right ---- */
+.k-task-cards { position: fixed; right: 18px; bottom: 18px; z-index: 50; width: 340px; max-width: calc(100vw - 36px); max-height: calc(100vh - 100px);
+  overflow: auto; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.k-task-cards:empty { display: none; }
+.k-task { pointer-events: auto; padding: 12px 14px; border-radius: 14px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow-pop); }
+.k-task.is-row { display: flex; align-items: center; gap: 10px; }
+.k-task-top { display: flex; align-items: center; gap: 8px; }
+.k-task-top b { flex: 1; font-weight: 600; }
+.k-task-icon { flex: none; color: var(--ink-2); }
+.k-task-icon.is-accent { color: var(--accent-strong); }
+.k-task-icon.is-ok { color: var(--ok); }
+.k-task-icon.is-error { color: var(--danger); }
+.k-task-count { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.k-task-sub { margin: 2px 0 0; color: var(--ink-3); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+.k-task-sub.is-warn { color: var(--warn); }
+.k-task-sub.is-danger, .k-task-stats .is-danger, .k-task-stats .is-danger b { color: var(--danger); }
+.k-task-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0; font-size: 12px; color: var(--ink-2); }
+.k-task-stats b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.k-task-acts { display: flex; gap: 8px; margin-top: 10px; }
+.k-task-more { margin-top: 6px; font-size: 12px; color: var(--ink-3); }
+.k-task-more summary { cursor: pointer; }
+.k-task-more ul { margin: 4px 0 0; padding-left: 16px; max-height: 120px; overflow: auto; }
+.k-task-more .import-report-reason { margin-left: 6px; color: var(--danger); }
+.k-task-switch { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-3); }
+.k-task-switch .k-select { flex: 1; min-width: 0; height: 28px; }
+.k-icon-btn.is-sm { width: 24px; height: 24px; border-radius: 6px; }
+.k-task-progress { appearance: none; display: block; width: 100%; height: 6px; margin-top: 10px; border: 0; border-radius: 3px; overflow: hidden; background: var(--sunken); }
+.k-task-progress::-webkit-progress-bar { background: var(--sunken); border-radius: 3px; }
+.k-task-progress::-webkit-progress-value { background: linear-gradient(90deg, var(--accent), #EFA1B3); border-radius: 3px; transition: width var(--t); }
+.k-task-progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent), #EFA1B3); border-radius: 3px; }
+.k-task .k-seal-lock { flex: none; margin: 0 2px; }
+
+/* Drop hint: the whole window is the drop target. */
+.k-drop-hint { position: fixed; inset: 12px; z-index: 80; display: grid; place-items: center; border-radius: 18px; pointer-events: none;
+  border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent-soft) 60%, transparent); color: var(--accent-strong); font-size: 15px; font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .k-task-progress::-webkit-progress-value { transition-duration: 0ms; }
+}
