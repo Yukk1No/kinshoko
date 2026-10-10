@@ -8,7 +8,7 @@ import { correctTagMapping, inspectTagCatalog, onLibraryEvent, onSafeModeSetting
 import { libraryPathHint } from "./library-path";
 
 const namespaces: Record<TagNamespace, string> = { general: "一般", artist: "作者", character: "角色", work: "作品" };
-const basis = { independent: "独立身份", external: "外部对应", conflictingExternal: "外部对应有歧义", corrected: "已纠正" };
+const basis = { independent: "独立", external: "按词表", conflictingExternal: "词表有歧义", corrected: "已纠正" };
 const nameOf = (tag: CatalogTag) => tag.names.find((n) => n.lang === "zh-CN")?.name ?? tag.names[0]?.name ?? tag.external[0]?.name.replaceAll("_", " ") ?? "未命名标签";
 const localName = (mapping: LibraryTagMapping) => mapping.legacy.names.find((n) => n.lang === "zh-CN")?.name ?? mapping.legacy.names[0]?.name ?? mapping.legacy.external[0]?.replaceAll("_", " ") ?? "未命名标签";
 
@@ -82,13 +82,21 @@ function MappingRow({ mapping, workspace, busy, onSave }: { mapping: LibraryTagM
   const library = workspace.libraries.find((entry) => entry.library.id === mapping.libraryId)?.library;
   const shared = workspace.catalog.tags.find((tag) => tag.id === mapping.catalogId);
   const candidates = workspace.catalog.tags.filter((tag) => tag.namespace === mapping.legacy.namespace);
+  // 同名候选按出现顺序编号区分，不显示内部编号。
+  const seen = new Map<string, number>();
+  const choices = candidates.map((tag) => {
+    const name = nameOf(tag), n = (seen.get(name) ?? 0) + 1;
+    seen.set(name, n);
+    return { tag, label: `${name} · ${namespaces[tag.namespace]}${candidates.filter((other) => nameOf(other) === name).length > 1 ? `（${n}）` : ""}` };
+  });
   return <tr data-library-id={mapping.libraryId} data-local-tag-id={mapping.localTagId}>
-    <th scope="row"><span>{library?.name ?? mapping.libraryId} · </span><span>{localName(mapping)}</span><small> · {namespaces[mapping.legacy.namespace]}</small>
-      <details><summary>本地定义</summary><p>库内 ID：{mapping.localTagId}</p><p>别名：{mapping.legacy.aliases.map((a) => a.name).join("、") || "无"}</p><p>外部对应：{mapping.legacy.external.map((name) => `danbooru:${name}`).join("、") || "无"}</p><p>{mapping.nameProvenance === "pending" ? "名称来源待处理：迁移选择前保留原显示。" : "名称规则：使用统一目录的默认与显式偏好。"}</p></details>
+    <th scope="row"><span>{library?.name ?? "未打开的图库"} · </span><span>{localName(mapping)}</span><small> · {namespaces[mapping.legacy.namespace]}</small>
+      <p className="k-set-note">{mapping.nameProvenance === "pending" ? "旧名称待确认，确认前照旧显示。" : `别名：${mapping.legacy.aliases.map((a) => a.name).join("、") || "无"}`}</p>
+      <details><summary>详情</summary><p>库内编号：{mapping.localTagId}</p><p>外部对应：{mapping.legacy.external.map((name) => `danbooru:${name}`).join("、") || "无"}</p></details>
     </th>
-    <td><span>{shared ? nameOf(shared) : mapping.catalogId}</span><small> · {basis[mapping.basis]}</small><details><summary>统一定义</summary><p>统一 ID：{mapping.catalogId}</p><p>外部对应：{shared?.external.map((e) => `${e.vocabulary}:${e.name}`).join("、") || "无"}</p></details></td>
-    <td><select aria-label={`纠正 ${library?.name ?? mapping.libraryId} 的 ${localName(mapping)} 对应`} value={target} disabled={busy} onChange={(event) => setTarget(event.target.value)}>
-      {candidates.map((tag) => <option key={tag.id} value={tag.id}>{nameOf(tag)} · {namespaces[tag.namespace]} · {tag.id.slice(-8)}</option>)}
+    <td><span>{shared ? nameOf(shared) : "未命名标签"}</span><small> · {basis[mapping.basis]}</small><details><summary>详情</summary><p>编号：{mapping.catalogId}</p><p>外部对应：{shared?.external.map((e) => `${e.vocabulary}:${e.name}`).join("、") || "无"}</p></details></td>
+    <td><select aria-label={`纠正 ${library?.name ?? "未打开的图库"} 的 ${localName(mapping)} 对应`} value={target} disabled={busy} onChange={(event) => setTarget(event.target.value)}>
+      {choices.map(({ tag, label }) => <option key={tag.id} value={tag.id}>{label}</option>)}
       <option value="separate">拆成独立标签</option>
     </select><button type="button" className="k-btn is-sm" disabled={busy || target === mapping.catalogId} onClick={() => onSave(target)}>保存对应</button></td>
   </tr>;

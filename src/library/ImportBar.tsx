@@ -183,7 +183,7 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
       const found = await discoverEagleLibraries();
       if (alive.current) setEagleLibraries(found);
     } catch (error) {
-      if (alive.current) setImportError(`无法查找 Eagle 资料库：${String(error)}`);
+      if (alive.current) setImportError(`无法查找 Eagle 库：${String(error)}`);
     } finally {
       if (alive.current) setLookingForEagle(false);
     }
@@ -248,7 +248,7 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
       setConfirmed((done) => [...done, relocation.to]);
       await begin([relocation.to], true, finished ? optionsByTask.current.get(finished.taskId) : undefined, finished?.destination);
     } catch (error) {
-      if (alive.current) setImportError(`无法确认 Eagle 资料库的位置：${String(error)}`);
+      if (alive.current) setImportError(`无法确认 Eagle 库的位置：${String(error)}`);
     }
   };
   const interrupted = recovery?.interrupted ?? [];
@@ -403,7 +403,7 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
           <Dialog.Backdrop className="k-backdrop" />
           <Dialog.Popup className="k-dialog k-import-dialog">{eagleLibraries && <>
             <Dialog.Title className="k-dialog-title">从 Eagle 导入</Dialog.Title>
-            <Dialog.Description className="k-dialog-desc">原库不会改动。原图、标签、文件夹、来源和备注都会带过来。</Dialog.Description>
+            <Dialog.Description className="k-dialog-desc">原库不变；标签、文件夹、备注都带来。</Dialog.Description>
             {eagleLibraries.length ? <ul className="k-list" aria-label="找到的 Eagle 库">
               {eagleLibraries.map((candidate) => <li key={candidate.path} className="k-list-row">
                 <span className="k-list-icon" aria-hidden="true"><Library size={16} /></span>

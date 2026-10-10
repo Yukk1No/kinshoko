@@ -7,6 +7,8 @@ import type { LegacyNameMigrationPreview } from "../bindings/LegacyNameMigration
 import type { LegacyNameResolution } from "../bindings/LegacyNameResolution";
 import { confirmLegacyNames, onLibraryEvent, onSafeModeSetting, planLegacyNames, previewLegacyNames } from "../ipc";
 
+
+const LANGUAGES: Record<string, string> = { "zh-CN": "简体中文", "zh-TW": "繁體中文", en: "English", ja: "日本語" };
 /** 向导确认后通知各处的“旧名称待确认”提示重新读取。 */
 const CHANGED = "kinshoko:legacy-names-changed";
 const PREVIEW_PAGE = 20;
@@ -107,6 +109,11 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
     ...(group.existingPreference !== null ? [{ value: "preference", title: `保留为全局偏好「${group.existingPreference}」`, desc: "继续用你之前定的叫法" }] : []),
   ] : [];
   const shown = group ? group.defaultName ?? group.sources[0]?.legacyName ?? group.catalogId : "";
+  // 预览表的标签列写标签名（默认名，没有时用旧名），不写内部编号。
+  const tagLabel = (catalogId: string) => {
+    const entry = groups.find((candidate) => candidate.catalogId === catalogId);
+    return entry?.defaultName ?? entry?.sources[0]?.legacyName ?? "未命名标签";
+  };
   const outcomes = validPreview ? preview!.outcomes : [];
 
   return <Dialog.Root open={open} onOpenChange={(next) => { if (!busy || next) onOpenChange(next); }}>
@@ -154,7 +161,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
             <table className="k-preview-table" aria-label="迁移后最终显示">
               <thead><tr><th>标签</th><th>最终显示</th><th>我的叫法</th></tr></thead>
               <tbody>{outcomes.slice(previewPage * PREVIEW_PAGE, (previewPage + 1) * PREVIEW_PAGE).map((outcome) => <tr key={`${outcome.catalogId}/${outcome.lang}`}>
-                <td>{outcome.catalogId.slice(-8)} · {outcome.lang}</td><td>{outcome.displayName}</td><td>{outcome.preferenceName ?? "无，跟随默认"}</td></tr>)}</tbody>
+                <td>{tagLabel(outcome.catalogId)} · {LANGUAGES[outcome.lang] ?? outcome.lang}</td><td>{outcome.displayName}</td><td>{outcome.preferenceName ?? "无，跟随默认"}</td></tr>)}</tbody>
             </table>
             {outcomes.length > PREVIEW_PAGE && <div className="k-dialog-foot is-tight">
               <span className="k-set-note">{previewPage * PREVIEW_PAGE + 1}–{Math.min((previewPage + 1) * PREVIEW_PAGE, outcomes.length)} / {outcomes.length}</span>

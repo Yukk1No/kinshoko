@@ -387,7 +387,7 @@ function LibraryWorkspace({
               <Dialog.Popup className="k-dialog k-groups-dialog">
                 <Dialog.Close className="k-icon-btn k-dialog-x" aria-label="关闭"><X size={16} aria-hidden="true" /></Dialog.Close>
                 <Dialog.Title className="k-dialog-title">编辑分组</Dialog.Title>
-                <Dialog.Description className="k-dialog-desc">分组在各图库共用，按分组查找时满足任一成员即可。</Dialog.Description>
+                <Dialog.Description className="k-dialog-desc">各图库共用，查找时满足任一标签即可。</Dialog.Description>
                 <TagGroupsPane
                   safe={safe}
                   generation={vocabularyKey}

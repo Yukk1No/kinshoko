@@ -113,7 +113,7 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog library-manage">
           <Dialog.Title className="k-dialog-title">管理图库</Dialog.Title>
-          <Dialog.Description className="k-dialog-desc">移除只是不再显示，文件不会删除。切换图库不改变导入目标；移除只取消它未完成的导入。</Dialog.Description>
+          <Dialog.Description className="k-dialog-desc">移除只是不再显示，文件不会删除。</Dialog.Description>
           {entries.length > 0 ? <ul className="k-list library-list" aria-label="本设备的图库">
             {entries.map(({ library, unavailable }) => <li key={library.id} className="k-list-row">
               <span className="k-list-icon" aria-hidden="true"><Library size={16} /></span>
@@ -126,7 +126,7 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
                 <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}>{unavailable ? "未连接" : "已连接"}</span>
                 {unavailable && <button type="button" className="k-btn is-sm" disabled={disabled} onClick={refresh}><RefreshCw size={13} aria-hidden="true" />重新连接</button>}
                 <button type="button" className="k-btn is-sm" disabled={disabled} aria-label={`移除 ${library.name}`}
-                  title="只是不再显示，原图和整理结果仍在原位置" onClick={() => void remove(library.id)}>移除</button>
+                  title="不再显示；文件不删，未完成的导入会取消" onClick={() => void remove(library.id)}>移除</button>
               </div>
             </li>)}
           </ul> : <p className="k-dialog-desc">还没有打开的图库。</p>}

@@ -399,7 +399,7 @@ export class CombinationWorkflow {
     await d.invoke("edit_shared_approx",{edit:{kind:"set",rules:[{a:this.blue,b:this.aqua,relation:"similar"}]},safeMode:true});
     // Personal rules live on the 相近 view of the same 标签 tab.
     await this.tagView("相近");
-    await until("actual personal rule table has completed loading",()=>d.exec("const table=document.querySelector('table[aria-label=个人近似对应表]');return table?.textContent.includes('最贴切的蓝瞳')&&table.textContent.includes('水色瞳')&&!document.querySelector('section[aria-label=全局个人近似规则]')?.textContent.includes('正在读取个人近似规则…');"));
+    await until("actual personal rule table has completed loading",()=>d.exec("const table=document.querySelector('table[aria-label=相近标签表]');return table?.textContent.includes('最贴切的蓝瞳')&&table.textContent.includes('水色瞳')&&!document.querySelector('section[aria-label=相近标签]')?.textContent.includes('正在读取相近标签…');"));
     await d.screenshot("04b-live-global-personal-rule.png");await this.closeSettings();
     this.state.shared={groupId:this.sharedGroup,blue:this.blue,aqua:this.aqua,parted:this.parted,typedAt,late,afterCreation,beforeMutation,afterMutation,monitorAlias};this.save();
   }

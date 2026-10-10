@@ -309,7 +309,7 @@ export function SharedTagGroupsSettings({ onError }: { onError: (message: string
     return () => { alive = false; for (const stop of [mode, workspace]) void stop.then((unlisten) => unlisten()).catch(() => {}); };
   }, [onError]);
   return <>
-    <p className="k-set-note">分组在各图库共用。按分组查找时满足任一成员即可，图片的标签不变。</p>
+    <p className="k-set-note">各图库共用；改分组不改图片标签。</p>
     {safe === null ? <p role="status">正在读取分组设置…</p> : <TagGroupsPane label="全局标签分组" safe={safe} generation={generation} onError={onError} />}
   </>;
 }

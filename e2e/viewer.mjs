@@ -84,12 +84,12 @@ try {
   const additionalBrowserArguments = forcedDpr ? [`force-device-scale-factor=${Number(forcedDpr)}`] : [];
   const session = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application, webviewOptions: { userDataFolder: join(work, "webview"), additionalBrowserArguments } } } } });
   base = `/session/${session.sessionId}`;
-  const name = await until("建库引导", () => find("//label[contains(., '资料库名称')]/input"));
+  const name = await until("建库引导", () => find("//label[contains(., '图库名称')]/input"));
   await wd("POST", `${base}/element/${name}/clear`, {});
   await wd("POST", `${base}/element/${name}/value`, { text: "原图查看器验证" });
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [parent]);
   await click("选择存放位置…");
-  await click("建立资料库");
+  await click("建立图库");
   await until("打开资料库", () => find("//h1[normalize-space()='原图查看器验证']"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);

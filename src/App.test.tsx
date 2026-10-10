@@ -317,7 +317,7 @@ describe("主窗口", () => {
   it("尚未打开资料库时仍能从图标轨打开截图历史与钉剪贴板入口", async () => {
     backend(null);
     render(<App />);
-    await screen.findByRole("button", { name: "建立资料库" });
+    await screen.findByRole("button", { name: "建立图库" });
     fireEvent.click(screen.getByRole("button", { name: "截图历史" }));
     expect(await screen.findByRole("region", { name: "截图历史" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^钉住剪贴板/ })).toBeTruthy();
@@ -486,7 +486,7 @@ describe("主窗口", () => {
     fireEvent.click(await screen.findByRole("button", { name: "移除 私人收藏" }));
     await waitFor(() => expect(sent("plugin:library|unregister_library")).toEqual([{ libraryId: "L2" }]));
     fireEvent.click(screen.getByRole("button", { name: "完成" }));
-    expect(await screen.findByRole("button", { name: "建立资料库" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "建立图库" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "打开图库…" })).toBeTruthy();
   });
 
@@ -548,7 +548,7 @@ describe("主窗口", () => {
     if (stage === "已结束") await finish();
 
     await libraryAction(/新建图库/);
-    await screen.findByLabelText("资料库名称");
+    await screen.findByLabelText("图库名称");
     // 等待页面切换的事件订阅清理，模拟导入在用户填写表单期间完成。
     await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
     if (stage === "进行中") await finish();
@@ -617,7 +617,7 @@ describe("主窗口", () => {
     await act(() => emit("tauri://drag-enter", { paths, position }));
     expect(screen.getByText("松开即可导入，再选放在哪里")).toBeTruthy();
     await libraryAction(/新建图库/);
-    await screen.findByLabelText("资料库名称");
+    await screen.findByLabelText("图库名称");
     await act(() => emit("tauri://drag-drop", { paths, position }));
     expect(sent("plugin:library|start_import")).toEqual([]);
 
@@ -699,13 +699,13 @@ describe("主窗口", () => {
     backend(null);
     render(<App />);
 
-    fireEvent.change(await screen.findByLabelText("资料库名称"), {
+    fireEvent.change(await screen.findByLabelText("图库名称"), {
       target: { value: "工作参考" },
     });
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
     fireEvent.click(screen.getByRole("button", { name: "选择存放位置…" }));
     expect(await screen.findByText("D:\\参考")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "建立资料库" }));
+    fireEvent.click(screen.getByRole("button", { name: "建立图库" }));
 
     await waitFor(() => expect(currentLibrary()).toBe("工作参考"));
     expect(sent("plugin:library|create_library")).toEqual([

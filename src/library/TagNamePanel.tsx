@@ -95,7 +95,7 @@ function NameRow({ tag, lang, busy, pending, open, onToggle, onEdit }: {
         <input className="k-input" aria-label={`“${name}”的新别名`} placeholder="新别名" value={alias} disabled={busy} onChange={(event) => setAlias(event.target.value)} />
         <button type="button" className="k-btn is-sm" disabled={busy || !lang || !alias.trim()} onClick={() => { onEdit({ kind: "addAlias", alias: { name: alias.trim(), lang } }); setAlias(""); }}>加别名</button>
       </div>
-      <details className="k-more"><summary>更多信息</summary><p>{tag.namespace} · {tag.id}</p><p>外部对应：{tag.external.map((entry) => `${entry.vocabulary}:${entry.name}`).join("、") || "无"}</p></details>
+      <details className="k-more"><summary>详情</summary><p>{NAMESPACES[tag.namespace] || "一般"} · 编号 {tag.id}</p><p>外部对应：{tag.external.map((entry) => `${entry.vocabulary}:${entry.name}`).join("、") || "无"}</p></details>
     </div>}>
     {pending ? <StatusPill tone="accent">待确认</StatusPill> : preference ? <StatusPill tone="mine">我的叫法</StatusPill> : <StatusPill>默认</StatusPill>}
     <button type="button" className="k-icon-btn" aria-expanded={open} aria-label={`改名“${name}”`} title="改名" onClick={onToggle}><PenLine size={14} aria-hidden="true" /></button>

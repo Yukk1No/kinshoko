@@ -234,7 +234,7 @@ describe("设置：近似查找", () => {
     render(<SettingsPanel library={library} initialTab="tags" />);
     fireEvent.click(await screen.findByRole("button", { name: "相近" }));
 
-    const table = await screen.findByRole("table", { name: "个人近似对应表" });
+    const table = await screen.findByRole("table", { name: "相近标签表" });
     const rows = await within(table).findAllByRole("row");
     expect(rows.map((r) => r.textContent)).toEqual([
       "蓝瞳～天空色相近删除",
@@ -244,7 +244,7 @@ describe("设置：近似查找", () => {
 
     fireEvent.click(within(rows[1]).getByRole("button", { name: "删除" }));
 
-    await waitFor(() => expect(within(screen.getByRole("table", { name: "个人近似对应表" })).getAllByRole("row")).toHaveLength(1));
+    await waitFor(() => expect(within(screen.getByRole("table", { name: "相近标签表" })).getAllByRole("row")).toHaveLength(1));
     expect(calls.find((c) => c.cmd === "plugin:library|edit_shared_approx")?.args).toEqual({ edit: { kind: "remove", a: "B", b: "Q" }, safeMode: true });
   });
 });

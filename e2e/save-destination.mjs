@@ -159,10 +159,10 @@ try{
  // The actual new-library page must preserve the running task while its current provider changes.
  if(!await session.exec("return document.querySelector('.library-tools')?.open;"))await session.click("//summary[normalize-space()='资料库操作']");
  await session.click("//button[normalize-space()='新建资料库…']");
- await session.type("//label[contains(.,'资料库名称')]/input","新浏览库 C");
+ await session.type("//label[contains(.,'图库名称')]/input","新浏览库 C");
  await session.exec("window.__KINSHOKO_TEST_PICKS__=[arguments[0]];",[libraries]);
  await session.click("//button[normalize-space()='选择存放位置…']");
- await session.click("//button[normalize-space()='建立资料库']");
+ await session.click("//button[normalize-space()='建立图库']");
  c=await until("created current C",async()=>{const value=await session.invoke("current_library");return value?.name==="新浏览库 C"?value:null;});
  await openMenu();await choose(a.id,aFolder);
  await session.click("//button[normalize-space()='全部资料库']");

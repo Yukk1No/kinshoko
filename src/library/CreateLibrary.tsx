@@ -34,10 +34,10 @@ export function CreateLibrary({ onCreated, onBusyChange }: {
 
   return (
     <section className="create-library" aria-labelledby="create-library-title">
-      <h1 id="create-library-title">建立资料库</h1>
-      <p>资料库会在所选位置新建一个同名文件夹，原图和整理结果都存放在里面。</p>
+      <h1 id="create-library-title">新建图库</h1>
+      <p>在所选位置新建同名文件夹存放图片。</p>
       <label>
-        资料库名称
+        图库名称
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </label>
       <div className="create-library-location">
@@ -53,7 +53,7 @@ export function CreateLibrary({ onCreated, onBusyChange }: {
         disabled={!parent || !name.trim() || busy}
         onClick={create}
       >
-        建立资料库
+        建立图库
       </button>
     </section>
   );

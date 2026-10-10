@@ -236,15 +236,15 @@ try {
 
   // 建库
   session = await Session.start();
-  await session.waitFor("建库引导", button("建立资料库"));
-  await session.type(await session.find("//label[contains(., '资料库名称')]/input"), "冒烟测试库");
+  await session.waitFor("建库引导", button("建立图库"));
+  await session.type(await session.find("//label[contains(., '图库名称')]/input"), "冒烟测试库");
   await session.pick(libraryParent);
   await session.click(await session.find(button("选择存放位置…")));
   await session.waitFor("显示所选位置", `//*[normalize-space()='${libraryParent}']`);
-  await session.click(await session.find(button("建立资料库")));
+  await session.click(await session.find(button("建立图库")));
   const created = await until("打开新资料库", () => session.currentLibrary("冒烟测试库"));
   result.library = created;
-  assert(true, "建立资料库并打开");
+  assert(true, "建立图库并打开");
 
   // 导入文件夹（含子文件夹）。保存位置的两个选择按可见标签命名（图库、文件夹），这里按位置取。
   await session.click(await session.find("//button[@aria-label='导入参考图']"));

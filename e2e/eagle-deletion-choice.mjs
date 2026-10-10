@@ -130,9 +130,9 @@ async function stopSession() {
 }
 try {
   await startSession();
-  const name = await until("create library", () => find("//label[contains(.,'资料库名称')]/input"));
+  const name = await until("create library", () => find("//label[contains(.,'图库名称')]/input"));
   await wd("POST", `${base}/element/${name}/clear`, {}); await wd("POST", `${base}/element/${name}/value`, { text: "Eagle 删除选择验证" });
-  await exec("window.__KINSHOKO_TEST_PICKS__=[arguments[0]]", [parent]); await click("选择存放位置…"); await click("建立资料库");
+  await exec("window.__KINSHOKO_TEST_PICKS__=[arguments[0]]", [parent]); await click("选择存放位置…"); await click("建立图库");
   const current = await until("target library open", () => invoke("plugin:library|current_library")); libraryId = current.id;
   check(true, "Created an isolated real target library through the production UI");
   report.dpr = await exec("return devicePixelRatio");

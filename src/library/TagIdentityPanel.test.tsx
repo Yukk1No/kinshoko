@@ -32,7 +32,10 @@ it("inspects ambiguous local tags and saves an explicit shared correspondence", 
   fireEvent.click(within(row).getByRole("button", { name: "保存对应" }));
   const corrected = await screen.findByRole("row", { name: /第二库.*青丝.*已纠正/ });
   expect(within(corrected).getByText("青丝")).toBeTruthy();
-  expect(within(corrected).getByText(/名称来源待处理/)).toBeTruthy();
+  expect(within(corrected).getByText(/旧名称待确认/)).toBeTruthy();
+  // 编号只在“详情”里，下拉选项也不带编号。
+  expect(corrected.querySelectorAll("details > summary")[0]?.textContent).toBe("详情");
+  for (const option of within(corrected).getAllByRole("option")) expect(option.textContent).not.toMatch(/blue|local/);
 });
 
 it.each(["inspect", "correct"])("clears inspected records and discards a late %s result when safe mode changes", async (action) => {
