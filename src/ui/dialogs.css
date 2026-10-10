@@ -48,6 +48,11 @@
 .k-set-list + .k-set-list, .k-set-list + section, section + section { margin-top: 12px; }
 .k-list-row.k-set-row { display: block; padding: 0; }
 .k-set-row-main { display: flex; align-items: center; gap: 12px; min-height: 54px; padding: 8px 14px; }
+/* 名称与描述不让给控件：名称不换行；宽控件（如列出模型的下拉）限宽，选项文字过长时省略。 */
+.k-set-row-main > .k-list-text { flex: 1 1 auto; min-width: 7em; }
+.k-set-row-main .k-list-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k-set-row-main > .k-list-end { min-width: 0; max-width: 55%; flex: 0 1 auto; }
+.k-set-row-main > .k-list-end > .k-select { width: 240px; max-width: 100%; min-width: 0; text-overflow: ellipsis; }
 .k-set-row-below { padding: 0 14px 12px 58px; color: var(--ink-2); font-size: 12px; }
 .k-set-row-below > p, .k-set-row-below > div > p { margin: 4px 0; }
 .k-set-row.is-recording { background: var(--accent-soft); }
