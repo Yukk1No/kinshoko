@@ -69,6 +69,18 @@ describe("导入栏：Eagle 迁入后的标签外部对应", () => {
     expect(await screen.findByRole("region", { name: "标签的外部对应" })).toBeTruthy();
   });
 
+  it("开始导入后对话框连同遮罩一起关闭，窗口仍可点按（#98 本机 r12）", async () => {
+    backend();
+    render(bar({ report: null }));
+    fireEvent.click(screen.getByRole("button", { name: "从 Eagle 导入…" }));
+    fireEvent.click(await screen.findByRole("button", { name: "导入 主库" }));
+    const plan = await screen.findByRole("dialog", { name: "从 Eagle 导入" });
+    fireEvent.click(within(plan).getByRole("button", { name: "开始导入" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "从 Eagle 导入" })).toBeNull());
+    // 留下的遮罩会盖住整个窗口、吃掉所有点按。
+    await waitFor(() => expect(document.querySelector(".k-backdrop")).toBeNull());
+  });
+
   it("普通导入完成后不显示这一步", async () => {
     backend();
     const { rerender } = render(bar({ report: null }));

@@ -365,7 +365,8 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
       <Dialog.Root open={plan !== null} onOpenChange={(open) => { if (!open && !preparing) setPlan(null); }}>
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />
-          {plan && <Dialog.Popup className="k-dialog k-import-dialog">
+          {/* Popup 留在 Root 下，只让内容随状态出现：卸下 Popup 会让关闭动画等不到结束，遮罩留下盖住窗口（#98 本机 r12）。 */}
+          <Dialog.Popup className="k-dialog k-import-dialog">{plan && <>
             <Dialog.Title className="k-dialog-title">{plan.eagle ? "从 Eagle 导入" : "导入图片"}</Dialog.Title>
             <Dialog.Description className="k-dialog-desc">{plan.eagle ? "原库不会改动。" : "选好放在哪里，就能开始。"}</Dialog.Description>
             <div className="k-import-summary">
@@ -393,13 +394,13 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
               <button type="button" className="k-btn" disabled={preparing} onClick={() => setPlan(null)}>取消</button>
               <button type="button" className="k-btn is-primary" disabled={preparing || !!running || !destinationReady} onClick={() => void startPlan()}>开始导入</button>
             </div>
-          </Dialog.Popup>}
+          </>}</Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
       <Dialog.Root open={eagleLibraries !== null} onOpenChange={(open) => { if (!open) setEagleLibraries(null); }}>
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />
-          {eagleLibraries && <Dialog.Popup className="k-dialog k-import-dialog">
+          <Dialog.Popup className="k-dialog k-import-dialog">{eagleLibraries && <>
             <Dialog.Title className="k-dialog-title">从 Eagle 导入</Dialog.Title>
             <Dialog.Description className="k-dialog-desc">原库不会改动。原图、标签、文件夹、来源和备注都会带过来。</Dialog.Description>
             {eagleLibraries.length ? <ul className="k-list" aria-label="找到的 Eagle 库">
@@ -418,7 +419,7 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
               <span className="k-grow" />
               <button type="button" className="k-btn" onClick={() => setEagleLibraries(null)}>取消</button>
             </div>
-          </Dialog.Popup>}
+          </>}</Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
       {hovering && (
@@ -430,9 +431,9 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
       <Dialog.Root open={tagStep} onOpenChange={(open) => { if (!open) setTagStep(false); }}>
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />
-          {tagStep && <Dialog.Popup className="k-dialog k-import-dialog is-wide" aria-label="补上标签对应">
-            <EagleTagStep libraryId={finished?.libraryId??libraryId} onClose={() => setTagStep(false)} />
-          </Dialog.Popup>}
+          <Dialog.Popup className="k-dialog k-import-dialog is-wide" aria-label="补上标签对应">
+            {tagStep && <EagleTagStep libraryId={finished?.libraryId??libraryId} onClose={() => setTagStep(false)} />}
+          </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
     </div>
