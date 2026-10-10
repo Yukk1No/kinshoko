@@ -658,6 +658,8 @@ function MainWindow() {
           <Dialog.Backdrop className="k-backdrop" />
           <Dialog.Popup className="k-dialog k-settings-dialog">
             <Dialog.Title className="sr-only">程序设置</Dialog.Title>
+            {/* 关闭按钮不归设置面板管：读取中或读取失败时也在。 */}
+            <Dialog.Close className="k-icon-btn k-dialog-x" aria-label="关闭设置"><X size={16} aria-hidden="true" /></Dialog.Close>
             <SettingsPanel
               version={info && `${info.productName} ${info.version}`}
               library={library ?? null}
@@ -665,7 +667,6 @@ function MainWindow() {
               onSafeMode={toggleSafe}
               onOpenNameWizard={() => setNameWizard(true)}
               onChange={(view) => setShowApproxSource(view.showApproxSource)}
-              closeButton={<Dialog.Close className="k-icon-btn k-dialog-x" aria-label="关闭设置"><X size={16} aria-hidden="true" /></Dialog.Close>}
             />
           </Dialog.Popup>
         </Dialog.Portal>

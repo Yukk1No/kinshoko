@@ -29,6 +29,8 @@
 /* ---- Settings dialog: vertical tabs + rows ---- */
 .k-dialog.k-settings-dialog { width: min(860px, calc(100vw - 48px)); height: min(620px, calc(100vh - 48px)); padding: 0; overflow: hidden; }
 .k-settings, .k-set-body { height: 100%; }
+.k-settings.is-loading { display: grid; place-items: center; padding: 48px; }
+.k-set-load-error { display: grid; justify-items: center; gap: 12px; }
 .k-set-body { display: grid; grid-template-columns: 200px minmax(0, 1fr); }
 .k-set-nav { display: flex; flex-direction: column; gap: 2px; padding: 20px 12px; background: var(--surface-2); }
 .k-set-heading { margin: 0 0 12px 10px; font-size: 16px; font-weight: 600; }

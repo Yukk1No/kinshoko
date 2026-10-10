@@ -46,6 +46,28 @@ function backend(handle: (cmd: string, args: Record<string, unknown>) => unknown
   return calls;
 }
 
+describe("设置：读取", () => {
+  it("读取中显示状态；读取失败显示原因与重试，重试成功后显示设置", async () => {
+    let attempts = 0;
+    let fail!: (reason: string) => void;
+    mockIPC((cmd) => {
+      if (cmd === "shell_settings") {
+        attempts += 1;
+        if (attempts === 1) return new Promise((_, reject) => { fail = reject; });
+        return defaults;
+      }
+      return undefined;
+    });
+    render(<SettingsPanel />);
+    expect(await screen.findByRole("status")).toHaveProperty("textContent", "正在读取设置…");
+    await act(async () => { fail("设置文件被占用"); });
+    expect((await screen.findByRole("alert")).textContent).toContain("设置文件被占用");
+    fireEvent.click(screen.getByRole("button", { name: "重试" }));
+    expect(await screen.findByRole("switch", { name: "开机启动" })).toBeTruthy();
+    expect(attempts).toBe(2);
+  });
+});
+
 describe("设置：常驻与快捷键", () => {
   it("显示开机自启和每个动作的快捷键，没生效的键标出未注册及原因", async () => {
     backend(() => undefined);

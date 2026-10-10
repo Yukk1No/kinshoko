@@ -87,17 +87,17 @@ type Props = {
   onSafeMode?: () => void;
   /** 打开“确认旧名称”向导（标签分页的提示条）。 */
   onOpenNameWizard?: () => void;
-  /** 右上角关闭按钮（放在对话框里时）。 */
-  closeButton?: ReactNode;
 };
 
 /**
  * 程序设置（#98）：竖排七个分页——通用、快捷键、标签、备份、安全、更新、诊断。
  * 每项一行：图标 · 名称 · 一句描述 · 右侧控件。行为与原来的各节相同，只是重新归位。
  */
-export function SettingsPanel({ onChange, onRestored, initialTab = "general", version, safe, onSafeMode, onOpenNameWizard, closeButton }: Props) {
+export function SettingsPanel({ onChange, onRestored, initialTab = "general", version, safe, onSafeMode, onOpenNameWizard }: Props) {
   const [settingsGeneration, setSettingsGeneration] = useState(0);
   const [view, setView] = useState<ShellSettingsView | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [recording, setRecording] = useState<ShortcutAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<SettingsTab>(initialTab);
@@ -106,13 +106,15 @@ export function SettingsPanel({ onChange, onRestored, initialTab = "general", ve
 
   useEffect(() => {
     let alive = true;
-    shellSettings().then((value) => {
-      if (alive) setView(value);
-    });
+    setLoadError(null);
+    shellSettings().then(
+      (value) => { if (alive) setView(value); },
+      (reason) => { if (alive) setLoadError(String(reason)); },
+    );
     return () => {
       alive = false;
     };
-  }, []);
+  }, [loadAttempt]);
 
   async function apply(change: Promise<ShellSettingsView>) {
     try {
@@ -139,7 +141,16 @@ export function SettingsPanel({ onChange, onRestored, initialTab = "general", ve
     void apply(rebindShortcut(action, accelerator));
   }
 
-  if (view === null) return null;
+  if (view === null) {
+    return <section className="k-settings is-loading" aria-label="设置">
+      {loadError === null
+        ? <p className="k-set-note" role="status">正在读取设置…</p>
+        : <div className="k-set-load-error">
+          <p className="k-set-error" role="alert">设置没读出来：{loadError}</p>
+          <button type="button" className="k-btn" onClick={() => setLoadAttempt((n) => n + 1)}>重试</button>
+        </div>}
+    </section>;
+  }
   const restored = (next: ShellSettingsView) => { setView(next); onChange?.(next); setSettingsGeneration((generation) => generation + 1); onRestored?.(); };
   const page = (value: SettingsTab, children: ReactNode) => {
     const meta = TABS.find((entry) => entry.value === value)!;
@@ -163,7 +174,6 @@ export function SettingsPanel({ onChange, onRestored, initialTab = "general", ve
           {version && <p className="k-set-version">{version}</p>}
         </nav>
         <div className="k-set-main">
-          {closeButton}
           {page("general", <>
             <SettingsGroup label="通用">
               <SettingsRow icon={<Power size={16} />} title="开机启动" desc="在托盘里待命">

@@ -653,6 +653,18 @@ describe("主窗口", () => {
     expect(await screen.findByText("Kinshoko 9.9.9")).toBeTruthy();
   });
 
+  it("设置读不出来时，设置对话框仍有关闭按钮，并显示原因与重试", async () => {
+    backend(library, clean, (cmd) => cmd === "shell_settings" ? Promise.reject("设置文件被占用") : undefined);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(screen.getByRole("button", { name: "设置" }));
+    const dialog = await screen.findByRole("dialog", { name: "程序设置" });
+    expect((await within(dialog).findByRole("alert")).textContent).toContain("设置文件被占用");
+    expect(within(dialog).getByRole("button", { name: "重试" })).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "关闭设置" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "程序设置" })).toBeNull());
+  });
+
   it("没有资料库时引导建库：选择存放位置后在那里新建并打开", async () => {
     backend(null);
     render(<App />);
