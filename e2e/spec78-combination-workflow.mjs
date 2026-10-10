@@ -276,8 +276,10 @@ export class CombinationWorkflow {
   async sourceActions() {
     this.phase("inactive-source-pin-group-and-copy");
     const d=this.d;
-    // Multi-source detail is now the 详情 inspector, opened from the card's “在 N 个图库” control.
-    await this.readyClick(`//*[@role='option' and @data-id=${literal(this.visibleCard.id)}]//button[contains(@class,'card-sources') and starts-with(@aria-label,'在 ')]`);
+    // Multi-source detail is now the 详情 inspector, opened from the card's “在 N 个图库” control,
+    // a sibling of the card option (no focusable children inside an option).
+    d.assert(await d.exec(`return !document.querySelector('[role=option] button, [role=option] [tabindex]');`),"card options have no focusable children");
+    await this.readyClick(`//div[@role='listbox' and @aria-label='图片墙']//button[contains(@class,'card-sources') and @data-card=${literal(this.visibleCard.id)} and starts-with(@aria-label,'在 ')]`);
     await this.d.enabled("//aside[@aria-label='详情']//section[@aria-label='图库来源']");
     d.assert(await d.exec("return [...document.querySelectorAll('[data-source-library-id] .workspace-source-path')].every(node=>node.textContent.trim()) && new Set([...document.querySelectorAll('[data-source-library-id] .workspace-source-path')].map(node=>node.textContent)).size===2;"),"same-name providers visibly show distinct path suffixes");
     await d.screenshot("02a-aggregated-card-sources.png");

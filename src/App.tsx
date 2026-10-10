@@ -274,7 +274,7 @@ function LibraryWorkspace({
   const [inspectorHidden, setInspectorHidden] = useState<string | null>(null);
   const eligible = selected.size > 0 && ((workspaceScope.kind === "library" && workspaceScope.libraryId === libraryId) ||
     loadedCards.filter((card) => selected.has(card.id)).every((card) => card.sources?.length === 1 && card.sources[0].libraryId === libraryId));
-  // 只有一份来源的图不再显示“N 处”角标：选中它（且不属于当前图库）时，详情面板显示它的来源整理。
+  // 选中一张只有一份来源、且不属于当前图库的图时，详情面板也显示它的来源整理（卡片上的来源按钮同样可打开）。
   const selectedSourceCard = !eligible && selected.size === 1
     ? loadedCards.find((card) => selected.has(card.id) && card.sources?.length && card.libraryId && card.imageId) as SourcesCard | undefined
     : undefined;

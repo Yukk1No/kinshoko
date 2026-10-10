@@ -1622,7 +1622,6 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .workspace-provider { min-width: 0; }
 .provider-state { font-size: 11px; opacity: .7; }
 .provider-problem { font-size: 11px; padding: 0 8px 8px; overflow-wrap: anywhere; opacity: .7; }
-.card-sources { position: absolute; right: 5px; bottom: 5px; border: 0; padding: 3px 6px; background: #17171ada; color: #fff; font-size: 11px; border-radius: 4px; cursor: pointer; }
 .workspace-sources-overlay { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: #0008; }
 .workspace-sources { width: min(540px, 90vw); max-height: 80vh; overflow: auto; background: var(--bg); color: var(--text); padding: 18px; border: 1px solid var(--line); border-radius: 8px; }
 .workspace-sources header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

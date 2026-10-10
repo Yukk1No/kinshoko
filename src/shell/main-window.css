@@ -107,10 +107,12 @@
 .app-main > .runtime-notice, .app-main > .update-banner, .app-main > div > .legacy-name-notice { flex: none; }
 .app-main > .update-banner { border-top: 0; border-bottom: 1px solid var(--line); background: var(--surface); }
 
-/* ---- Wall chip: only when an image lives in two or more libraries ---- */
-.card .card-sources { position: absolute; right: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; border: 0;
+/* ---- Wall source chip: every card with sources; "N 处" when an image lives in two or more libraries.
+   A sibling of the card option (no focusable children inside an option), pinned to the card's bottom-right. ---- */
+.wall-canvas > .card-sources { position: absolute; z-index: 1; transform: translate(-100%, -100%); display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; border: 0;
   border-radius: 999px; background: rgba(255, 253, 248, 0.92); color: #2B2747; font-size: 11px; font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
-.card .card-sources:hover { background: #FFFDF8; }
+.wall-canvas > .card-sources:hover { background: #FFFDF8; }
+.wall-canvas > .card-sources.is-single { width: 22px; padding: 0; justify-content: center; }
 .card[aria-selected="true"] { outline: 0; box-shadow: 0 0 0 2px var(--wall), 0 0 0 4px var(--accent); }
 
 /* ---- Floating multi-select bar ---- */

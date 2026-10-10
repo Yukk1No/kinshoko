@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, MouseEvent } from "react";
 import { flushSync } from "react-dom";
 import { Layers } from "lucide-react";
@@ -437,9 +437,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             const card = cards[i];
             const b = layout.boxes[i];
             const veiled = card.adult && (safeMode || !revealed.has(card.id));
+            const sources = card.libraryId && card.imageId ? card.sources ?? [] : [];
             return (
+              <Fragment key={card.id}>
               <div
-                key={card.id}
                 className="card"
                 data-id={card.id}
                 aria-selected={selected.has(card.id)}
@@ -460,11 +461,15 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}
               >
                 <img src={thumbnailUrl(card.thumbnail)} alt="参考图" decoding="async" draggable={false} />
-                {card.sources && card.sources.length >= 2 && card.libraryId && card.imageId && <button type="button" className="card-sources"
-                  aria-label={`在 ${card.sources.length} 个图库 · 查看详情`} title={`在 ${card.sources.length} 个图库`}
-                  onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; onInspectSources?.(card as WorkspaceCard); }}
-                  onKeyDown={(e) => e.stopPropagation()}><Layers size={11} aria-hidden="true" />{card.sources.length} 处</button>}
               </div>
+              {/* 来源按钮是卡片选项的兄弟，不在选项里：选项内不放可聚焦的子元素。 */}
+              {sources.length > 0 && <button type="button" className={`card-sources${sources.length === 1 ? " is-single" : ""}`} data-card={card.id}
+                aria-label={sources.length >= 2 ? `在 ${sources.length} 个图库 · 查看详情` : `来源：${sources[0].libraryName} · 查看详情`}
+                title={sources.length >= 2 ? `在 ${sources.length} 个图库` : `在「${sources[0].libraryName}」`}
+                style={{ left: `${b.x + b.w - 8}px`, top: `${b.y + b.h - 8}px` }}
+                onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; onInspectSources?.(card as WorkspaceCard); }}
+                onKeyDown={(e) => e.stopPropagation()}><Layers size={11} aria-hidden="true" />{sources.length >= 2 && `${sources.length} 处`}</button>}
+              </Fragment>
             );
           })}
         </div>
