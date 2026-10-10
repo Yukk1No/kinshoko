@@ -99,11 +99,12 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
   }, [view, selected]);
 
   const options = group ? [
-    { value: "default", title: group.defaultName ? `用「${group.defaultName}」` : "用默认名",
-      desc: group.existingPreference ? `默认名称；会撤回你的叫法「${group.existingPreference}」` : group.defaultName ? "默认名称，以后跟着更新" : "本语言还没有默认名，按其他语言显示" },
-    ...group.sources.map((source, index) => ({ value: `legacy:${index}`, title: `保留「${source.legacyName}」`,
+    // 选项名用 #78 规定的“跟随默认”与“保留为全局偏好”，具体名称紧跟其后。
+    { value: "default", title: group.defaultName ? `跟随默认「${group.defaultName}」` : "跟随默认",
+      desc: group.existingPreference ? `会撤回你的叫法「${group.existingPreference}」` : group.defaultName ? "以后跟着默认名更新" : "本语言还没有默认名，按其他语言显示" },
+    ...group.sources.map((source, index) => ({ value: `legacy:${index}`, title: `保留为全局偏好「${source.legacyName}」`,
       desc: `记为我的叫法 · 来自${libraryName(source.libraryId)}` })),
-    ...(group.existingPreference !== null ? [{ value: "preference", title: `保留「${group.existingPreference}」`, desc: "继续用你之前定的叫法" }] : []),
+    ...(group.existingPreference !== null ? [{ value: "preference", title: `保留为全局偏好「${group.existingPreference}」`, desc: "继续用你之前定的叫法" }] : []),
   ] : [];
   const shown = group ? group.defaultName ?? group.sources[0]?.legacyName ?? group.catalogId : "";
   const outcomes = validPreview ? preview!.outcomes : [];

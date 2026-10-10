@@ -95,10 +95,10 @@ describe("封印重复项回执", () => {
   it("默认只提示存在封印重复项，不显示成功项数量或内容", async () => {
     backend();
     render(bar({ report: { ...report, sealedDuplicates: true, privateSummary: true } }));
-    expect(await screen.findByText("有成人图与已有的重复")).toBeTruthy();
+    expect(await screen.findByText("有封印项重复，是否展开看看")).toBeTruthy();
     expect(screen.queryByText(/新增.*张/)).toBeNull();
     expect(screen.queryByRole("img")).toBeNull();
-    expect(screen.getByRole("button", { name: "看看本次重复项" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "展开本次重复项" })).toBeTruthy();
   });
 });
 
@@ -119,7 +119,7 @@ it("关闭期间迟到的预览字节不会创建图片，且回执仍需重新�
   HTMLDialogElement.prototype.showModal = function() { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function() { this.removeAttribute("open"); };
   const { rerender } = render(bar({ report: { ...report, sealedDuplicates: true, privateSummary: true } }));
-  fireEvent.click(screen.getByRole("button", { name: "看看本次重复项" }));
+  fireEvent.click(screen.getByRole("button", { name: "展开本次重复项" }));
   await waitFor(() => expect(calls).toContain("plugin:library|read_import_preview"));
   fireEvent.click(screen.getByRole("button", { name: "关闭重复项预览" }));
   await waitFor(() => expect(calls).toContain("plugin:library|close_import_preview"));
@@ -146,7 +146,7 @@ it("切换到另一张回执不会自动沿用前一张回执的明确同意", a
   HTMLDialogElement.prototype.close = function() { this.removeAttribute("open"); };
   const receiptBar = (taskId: string) => <ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={{ taskId, report: { ...report, sealedDuplicates: true, privateSummary: true } }} onStarted={() => {}} onDismissReport={() => {}} />;
   const { rerender } = render(receiptBar("task-first"));
-  fireEvent.click(screen.getByRole("button", { name: "看看本次重复项" }));
+  fireEvent.click(screen.getByRole("button", { name: "展开本次重复项" }));
   await waitFor(() => expect(opened).toEqual(["task-first"]));
   rerender(receiptBar("task-next"));
   await new Promise(resolve => setTimeout(resolve, 0));

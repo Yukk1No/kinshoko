@@ -342,9 +342,10 @@ export function ImportBar({ previewContextActive=true, previewContextKey, enable
         </div>}
       </section>
     )}
-    {sealed && <section className="k-task is-row sealed-import-prompt" aria-label="成人图重复">
-      <SealLock size={10} /><span className="k-grow">有成人图与已有的重复</span>
-      <button type="button" className="k-btn is-sm" aria-label="看看本次重复项" onClick={() => setPreview({ taskId: sealed.taskId, contextKey })}>看看</button>
+    {sealed && <section className="k-task is-row sealed-import-prompt" aria-label="封印项重复">
+      {/* #78 规定的原文：不点名内容类别，不给数量。 */}
+      <SealLock size={10} /><span className="k-grow">有封印项重复，是否展开看看</span>
+      <button type="button" className="k-btn is-sm" aria-label="展开本次重复项" onClick={() => setPreview({ taskId: sealed.taskId, contextKey })}>展开</button>
     </section>}
   </>;
 
