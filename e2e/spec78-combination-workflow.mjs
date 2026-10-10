@@ -289,6 +289,9 @@ export class CombinationWorkflow {
     await until("actual source pin window",async()=>(await d.invoke("get_all_windows",{},"window")).includes("pin-"+this.pinB.id));
     await d.closePin(this.pinB.id);
     d.assert(!(await d.invoke("get_all_windows",{},"window")).includes("pin-"+this.pinB.id),"Escape from the real B pin destroys that window before returning to main");
+    // The pin changes the workspace revision; the inspector revalidates the source (as after copy). Wait for that real reload.
+    await this.sourceEditorLoaded("乙来源经界面修改的备注");
+    await d.enabled("//*[@aria-label='整理来源']//input[@aria-label='新参考组名称']");
     await d.type("//*[@aria-label='整理来源']//input[@aria-label='新参考组名称']","本轮乙来源参考组及需要自动换行的长名称");
     await this.readyClick("//*[@aria-label='整理来源']//fieldset//button[normalize-space()='加入组']");
     const group=await until("actual B source group",async()=>(await d.invoke("reference_groups",{},"desktop")).find(group=>group.name==="本轮乙来源参考组及需要自动换行的长名称"));
