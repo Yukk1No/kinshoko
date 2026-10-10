@@ -27,7 +27,11 @@ const PAGE = 500;
 /** 图片墙上拖出参考图时放进 dataTransfer 的类型，值为 JSON 数组的参考图 id。 */
 export const DRAG_IMAGES = "application/x-kinshoko-images";
 
-export type WallHandle = { previewDensity: (value: number | null) => void };
+export type WallHandle = {
+  previewDensity: (value: number | null) => void;
+  /** 读下一页（查看器走过已读到的卡片时）；已在读或没有下一页时什么也不做。 */
+  loadMore: () => void;
+};
 
 export type BrowserCard = ImageCard & Partial<Pick<WorkspaceCard, "libraryId" | "imageId" | "sources">>;
 
@@ -174,7 +178,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   }, []);
 
   useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
-  useImperativeHandle(ref, () => ({ previewDensity(value) { measureBeforeReflow(); setPreviewDensity(value); } }), [measureBeforeReflow]);
+  const loadMoreRef = useRef<() => void>(() => {});
+  useImperativeHandle(ref, () => ({
+    previewDensity(value) { measureBeforeReflow(); setPreviewDensity(value); },
+    loadMore() { loadMoreRef.current(); },
+  }), [measureBeforeReflow]);
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 
   useLayoutEffect(() => {
@@ -293,6 +301,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     }
     if (expired) void reload(Math.max(loaded.current, PAGE));
   }, [cursor, thumbnailPx, measureBeforeReflow, reload]);
+  loadMoreRef.current = () => { void loadMore(); };
   useEffect(() => {
     void reload(Math.max(loaded.current, PAGE));
   }, [reload, reloadKey]);

@@ -422,6 +422,36 @@ describe("主窗口", () => {
     await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/L1/${ids[0]}/full`));
   });
 
+  it("查看器的下一张越过已读到的卡片时，先读下一页再换图", async () => {
+    let second!: (value: BrowsePage) => void;
+    const more = new Promise<BrowsePage>((resolve) => { second = resolve; });
+    const cards = Array.from({ length: 500 }, (_, i) => ({ id: `p${i}`, width: 100, height: 100, thumbnail: `L1/p${i}/256`, adult: false }));
+    const first: BrowsePage = { cards, nextCursor: "c2", total: 501 };
+    const rest: BrowsePage = { cards: [{ id: "last", width: 100, height: 100, thumbnail: "L1/last/256", adult: false }], nextCursor: null, total: 501 };
+    // 前面的用例保存过滚动锚点；从顶部开始，第一页就够。
+    localStorage.clear();
+    backend(library, clean, (cmd, args) => {
+      if (cmd !== "plugin:library|browse") return undefined;
+      return (args as { query: { cursor?: string | null } }).query.cursor ? more : first;
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    // 滚到底：最后一张已读到的卡片挂上，下一页还在路上。
+    const wall = screen.getByRole("listbox", { name: "图片墙" });
+    wall.scrollTop = parseFloat(wall.querySelector<HTMLElement>(".wall-canvas")!.style.height) - 800;
+    fireEvent.scroll(wall);
+    const lastLoaded = await waitFor(() => { const node = document.querySelector<HTMLElement>('[data-id="p499"]'); if (!node) throw new Error("not mounted"); return node; });
+    fireEvent.click(lastLoaded);
+    const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
+    expect(within(viewer).getByText("500 / 501")).toBeTruthy();
+    const next = within(viewer).getByRole("button", { name: "下一张" });
+    expect((next as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(next);
+    await act(async () => { second(rest); await more; });
+    await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/L1/last/full"));
+    expect(within(viewer).getByText("501 / 501")).toBeTruthy();
+  });
+
   it("开启安全模式时关闭查看器，回到图片墙", async () => {
     backend(library, clean, undefined, false);
     render(<App />);
