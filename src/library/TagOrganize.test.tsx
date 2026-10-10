@@ -552,7 +552,13 @@ describe("标签分组", () => {
     await within(general).findByRole("button", { name: "微笑（1 张）" });
     expect(within(general).queryByRole("button", { name: "给“一般”加标签" })).toBeNull();
 
+    const deletes = sent("plugin:library|edit_shared_tag_group").length;
     fireEvent.click(within(groups).getByRole("button", { name: "删除标签分组“头发颜色”" }));
+    // #98: deleting a group asks first; nothing is sent before the confirmation.
+    const confirm = await screen.findByRole("alertdialog", { name: "删除分组" });
+    expect(sent("plugin:library|edit_shared_tag_group").length).toBe(deletes);
+    expect(within(groups).getByRole("group", { name: "头发颜色", hidden: true })).toBeTruthy();
+    fireEvent.click(within(confirm).getByRole("button", { name: "删除" }));
     await waitFor(() => expect(within(groups).queryByRole("group", { name: "头发颜色" })).toBeNull());
     expect(sent("plugin:library|edit_shared_tag_group").at(-1)).toEqual({ edit: { kind: "delete", groupId: "G1" }, safeMode: true });
   });
