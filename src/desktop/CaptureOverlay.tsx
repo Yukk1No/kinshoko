@@ -3,13 +3,16 @@ import type { CaptureAction } from "../bindings/CaptureAction";
 import type { FrozenScreen } from "../bindings/FrozenScreen";
 import { cancelCapture, captureReady, captureUrl, finishCapture, frozenScreen } from "../ipc";
 import { dragSelection, toDevicePx, type Point, type Rect } from "./pixels";
+import { Copy, Pin, X } from "lucide-react";
+import { Dock } from "../ui/Dock";
+import { FollowDock } from "../ui/FollowDock";
 
 /** 太小的选区多半是误点，不截。 */
 const MIN_SIZE = 4;
 
 /**
  * 框选窗口（F1）：铺满一台显示器，显示冻结的屏幕。拖动框选，Enter／F3／双击钉住，
- * Ctrl+C 复制，Esc 或右键取消。
+ * Ctrl+C 复制，Esc 或右键取消。选区下方 14 px 跟着一个 dock：读数（屏幕像素）、复制、钉住、取消（#98）。
  *
  * 坐标一律用物理像素：冻结屏幕的 CSS 尺寸 = 物理像素 / dpr，正好原位；选区来自 pointer 事件的
  * 小数坐标乘 dpr（鼠标事件只有整 CSS 像素，110% 下会差 ±1 物理像素）。
@@ -35,6 +38,8 @@ export function CaptureOverlay() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // 聚焦在 dock 按钮上时，Enter／空格只执行那个按钮。
+      if ((e.key === "Enter" || e.key === " ") && (e.target as Element | null)?.closest?.(".capture-tools button")) return;
       if (e.key === "Escape") finish("cancel");
       else if (e.key === "Enter" || e.key === "F3") finish("pin");
       else if (e.ctrlKey && e.key.toLowerCase() === "c") finish("copy");
@@ -79,7 +84,7 @@ export function CaptureOverlay() {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onDoubleClick={() => finish("pin")}
+      onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest(".capture-tools")) finish("pin"); }}
       onContextMenu={(e) => e.preventDefault()}
     >
       <img
@@ -102,31 +107,22 @@ export function CaptureOverlay() {
             height: css(rect.height),
           }}
         >
-          <span className="capture-size">
-            {rect.width} × {rect.height}
-          </span>
+          {(["tl", "tr", "bl", "br"] as const).map((corner) => <span key={corner} className={`capture-handle is-${corner}`} aria-hidden="true" />)}
         </div>
       )}
       {usable && !dragging && (
-        <div
-          className="capture-tools"
-          style={{
-            left: `${Math.max(4, Math.min(innerWidth - 220, (rect.x + rect.width) / dpr - 210))}px`,
-            top: `${Math.min(innerHeight - 40, (rect.y + rect.height) / dpr + 8)}px`,
-          }}
-        >
-          <button type="button" className="primary" title="Enter／F3／双击" onClick={() => finish("pin")}>
-            钉住
-          </button>
-          <button type="button" title="Ctrl+C" onClick={() => finish("copy")}>
-            复制
-          </button>
-          <button type="button" title="Esc／右键" onClick={() => finish("cancel")}>
-            取消
-          </button>
-        </div>
+        <FollowDock className="capture-tools" bounds={{ width: innerWidth, height: innerHeight }}
+          anchor={{ x: rect.x / dpr, y: rect.y / dpr, width: rect.width / dpr, height: rect.height / dpr }}>
+          <Dock label="截图" onSelect={(id) => finish(id as CaptureAction | "cancel")}
+            readout={<><b>{rect.width} × {rect.height}</b>屏幕像素</>} items={[
+              { id: "copy", label: "复制", icon: <Copy size={18} strokeWidth={1.75} />, shortcut: "Ctrl C" },
+              { id: "pin", label: "钉住", icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary" },
+              "sep",
+              { id: "cancel", label: "取消", icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },
+            ]} />
+        </FollowDock>
       )}
-      {!rect && <div className="capture-tip">拖动框选区域 · Enter 钉住 · Ctrl+C 复制 · Esc 取消</div>}
+      {!rect && <div className="capture-tip">拖动框选 · 右键取消</div>}
     </div>
   );
 }

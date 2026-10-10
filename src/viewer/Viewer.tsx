@@ -6,6 +6,10 @@ import { legacyViewerBackground, rememberViewerBackground } from "./background";
 import type { KeyboardEvent } from "react";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
+import { ArrowLeft, ChevronLeft, ChevronRight, Crop as CropIcon, Info, Minus, Pin, Plus, RotateCcw, Scan, X } from "lucide-react";
+import { Dock, type DockItem } from "../ui/Dock";
+import { FollowDock } from "../ui/FollowDock";
+import { WinCtrls } from "../ui/WinCtrls";
 
 type Props = {
   workspace?: boolean;
@@ -15,8 +19,19 @@ type Props = {
   onClose: () => void;
   /** 资料库报告列表过期时递增：重新确认这张图还在（可能被删除或被安全模式封印）。 */
   reloadKey?: number;
+  /** 这张图在当前浏览结果里的位置（从 0 起）；给出时标题行显示序号与上一张 / 下一张。 */
+  position?: { index: number; total: number };
+  /** 换到上一张（-1）或下一张（1）。 */
+  onStep?: (delta: -1 | 1) => void;
 };
 type Background = "dark" | "mid" | "light" | "checker";
+const grounds: Background[] = ["dark", "mid", "light", "checker"];
+const groundNames: Record<Background, string> = { dark: "深灰", mid: "中灰", light: "浅灰", checker: "棋盘格" };
+/** 查看器 dock 底部留给自己的高度，框选 dock 不压在它上面。 */
+const DOCK_RESERVE = 76;
+const swatch = (ground: Background) => <span className="viewer-swatch" data-ground={ground} aria-hidden="true" />;
+const OneToOne = () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <rect x="3" y="5" width="18" height="14" rx="3" /><path d="M8.5 10v5M8 10.5l.5-.5M15.5 10v5M15 10.5l.5-.5" /><path d="M12 11.2v.1M12 14v.1" /></svg>;
 
 
 /**
@@ -25,7 +40,7 @@ type Background = "dark" | "mid" | "light" | "checker";
  * 钉到桌面（#65）：“钉住整图”，或 Shift+拖动（或先按“框选局部”）框出一块，按 Enter 或“钉住局部”。
  * 选区按原图像素记，标出“宽 × 高 px（原图像素）”，缩放平移时边界不变。
  */
-export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, sourceName }: Props) {
+export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, sourceName, position, onStep }: Props) {
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0, dpr: window.devicePixelRatio || 1 });
@@ -43,7 +58,10 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   const [crop, setCrop] = useState<Region | null>(null);
   const [selecting, setSelecting] = useState(false);
   const select = useRef<{ id: number; start: Point } | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [pinStatus, setPinStatus] = useState<string | null>(null);
+  const [info, setInfo] = useState(false);
+  const [name, setName] = useState<string | null>(null);
   const { dpr } = viewport;
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -127,7 +145,9 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   // 这张图已不在（被删除，或安全模式下被封印，查询返回 UnknownImage）时回到图片墙。
   useEffect(() => {
     let alive = true;
-    (workspace ? workspaceImage : imageDetail)(libraryId, card.id).catch((e) => { if (alive && isUnknownImage(e)) closeRef.current(); });
+    (workspace ? workspaceImage : imageDetail)(libraryId, card.id).then(
+      (detail) => { if (alive) setName(detail?.originalName ?? null); },
+      (e) => { if (alive && isUnknownImage(e)) closeRef.current(); });
     return () => { alive = false; };
   }, [libraryId, card.id, reloadKey, failedSrc, workspace]);
   const shown = { left, top, width, height };
@@ -152,12 +172,30 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     const timer = window.setTimeout(() => setPinStatus(null), 2000);
     return () => window.clearTimeout(timer);
   }, [pinStatus]);
+  const cancelCrop = () => { setCrop(null); setSelecting(false); setDragging(false); select.current = null; };
+  const toggleSelecting = () => setSelecting((on) => !on);
   const keyDown = (e: KeyboardEvent<HTMLElement>) => {
     if (e.key === "Escape") {
       e.preventDefault(); e.stopPropagation();
       // 先取消框选，再回到图片墙。
-      if (crop || selecting) { setCrop(null); setSelecting(false); select.current = null; } else onClose();
+      if (crop || selecting) cancelCrop(); else onClose();
       return;
+    }
+    // dock 的快捷键与点按 dock 走同一处理；方向键在 dock 内只移动焦点。
+    if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+      const inDock = !!(e.target as Element).closest?.(".k-dock");
+      const shortcut: Record<string, () => void> = {
+        "0": () => reset("fit"), "1": () => reset("pixels"), F1: toggleSelecting,
+        p: () => pin(null), P: () => pin(null), i: () => setInfo((on) => !on), I: () => setInfo((on) => !on),
+      };
+      if (shortcut[e.key]) { e.preventDefault(); shortcut[e.key](); return; }
+      if (!inDock && position && onStep && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        e.preventDefault();
+        const delta = e.key === "ArrowLeft" ? -1 : 1;
+        const next = position.index + delta;
+        if (next >= 0 && next < position.total) onStep(delta);
+        return;
+      }
     }
     if (e.key === "Enter" && crop && !(e.target as Element).closest?.("button, select")) {
       e.preventDefault(); pin(crop); return;
@@ -173,37 +211,58 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
       }
     }
   };
+  const shownCropRect = cropRect && crop && !dragging ? cropRect : null;
+  const viewerTools: DockItem[] = [
+    { id: "fit", label: "适应窗口", icon: <Scan size={19} strokeWidth={1.75} />, shortcut: "0" },
+    { id: "pixels", label: "原图像素", icon: <OneToOne />, shortcut: "1" },
+    "sep",
+    { id: "crop", label: "框选局部", icon: <CropIcon size={19} strokeWidth={1.75} />, shortcut: "F1" },
+    { id: "pin", label: "钉住整图", icon: <Pin size={19} strokeWidth={1.75} />, shortcut: "P" },
+    "sep",
+    { id: "ground", label: "背景", icon: swatch(background), trayValue: background,
+      tray: grounds.map((ground) => ({ id: ground, label: groundNames[ground], icon: swatch(ground) })) },
+    { id: "info", label: "信息", icon: <Info size={19} strokeWidth={1.75} />, shortcut: "I" },
+  ];
+  const tool = (id: string, member?: string) => {
+    if (id === "fit" || id === "pixels") reset(id);
+    else if (id === "crop") toggleSelecting();
+    else if (id === "pin") pin(null);
+    else if (id === "ground" && member) setBackground(member as Background);
+    else if (id === "info") setInfo((on) => !on);
+  };
+  const cropTool = (id: string) => {
+    if (id === "pin" && crop) pin(crop);
+    else if (id === "redo") { setCrop(null); setSelecting(true); }
+    else if (id === "cancel") cancelCrop();
+  };
+  const toolValue = selecting ? "crop" : mode === "zoom" ? null : mode;
   return (
     <section ref={root} className="viewer" role="dialog" aria-modal="true" aria-label="原图查看器"
       tabIndex={-1} onKeyDown={keyDown}>
-      <header className="viewer-toolbar">
-        <button type="button" onClick={onClose}>返回图片墙</button>
-        <button type="button" aria-pressed={mode === "fit"} onClick={() => reset("fit")}>适应窗口</button>
-        <button type="button" aria-pressed={mode === "pixels"} onClick={() => reset("pixels")}>原图像素</button>
-        <button type="button" aria-label="缩小" onClick={() => zoomAt(0.8)}>−</button>
-        <button type="button" aria-label="放大" onClick={() => zoomAt(1.25)}>＋</button>
-        <output aria-label="缩放比例">{Math.round(physicalWidth / card.width * 100)}%</output>
-        <span>{card.width} × {card.height} px</span>
-        <button type="button" onClick={() => pin(null)}>钉住整图</button>
-        <button type="button" aria-pressed={selecting} onClick={() => setSelecting((on) => !on)}>框选局部</button>
-        {crop && <>
-          <button type="button" onClick={() => pin(crop)}>钉住局部</button>
-          <button type="button" onClick={() => setCrop(null)}>清除选区</button>
+      <header className="viewer-bar" data-tauri-drag-region>
+        <button type="button" className="k-btn is-quiet viewer-back" aria-label="返回图片墙" onClick={onClose}><ArrowLeft size={16} />返回</button>
+        <span className="viewer-title" title={name ?? undefined} data-tauri-drag-region>{name}</span>
+        {position && <>
+          <span className="viewer-index" data-tauri-drag-region>{position.index + 1} / {position.total}</span>
+          <button type="button" className="k-icon-btn" aria-label="上一张" title="上一张 ←" disabled={position.index <= 0} onClick={() => onStep?.(-1)}><ChevronLeft size={16} /></button>
+          <button type="button" className="k-icon-btn" aria-label="下一张" title="下一张 →" disabled={position.index >= position.total - 1} onClick={() => onStep?.(1)}><ChevronRight size={16} /></button>
         </>}
-        <label className="viewer-background">背景
-          <select aria-label="查看器背景" value={background} onChange={(e) => setBackground(e.target.value as Background)}>
-            <option value="dark">深灰</option><option value="mid">中灰</option>
-            <option value="light">浅灰</option><option value="checker">棋盘格</option>
-          </select>
-        </label>
+        <span className="k-grow" data-tauri-drag-region />
+        <div className="viewer-zoom">
+          <button type="button" className="k-icon-btn" aria-label="缩小" title="缩小" onClick={() => zoomAt(0.8)}><Minus size={15} /></button>
+          <output aria-label="缩放比例">{Math.round(physicalWidth / card.width * 100)}%</output>
+          <button type="button" className="k-icon-btn" aria-label="放大" title="放大" onClick={() => zoomAt(1.25)}><Plus size={15} /></button>
+        </div>
+        <WinCtrls />
       </header>
       <div className="viewer-stage" ref={stage} data-background={background}
         onPointerDown={(e) => {
-          if (e.button !== 0 || drag.current || select.current || (e.target as Element).closest("button")) return;
+          if (e.button !== 0 || drag.current || select.current || (e.target as Element).closest("button, .k-dock, .viewer-info")) return;
           e.preventDefault();
           e.currentTarget.setPointerCapture?.(e.pointerId);
           if (e.shiftKey || selecting) {
             select.current = { id: e.pointerId, start: stagePoint(e) };
+            setDragging(true);
             return;
           }
           drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, offset };
@@ -221,24 +280,38 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
         }}
         onPointerUp={(e) => {
           if (drag.current?.id === e.pointerId) drag.current = null;
-          if (select.current?.id === e.pointerId) { select.current = null; setSelecting(false); }
+          if (select.current?.id === e.pointerId) { select.current = null; setSelecting(false); setDragging(false); }
         }}
-        onPointerCancel={() => { drag.current = null; select.current = null; }}
-        onLostPointerCapture={() => { drag.current = null; select.current = null; }}>
+        onPointerCancel={() => { drag.current = null; select.current = null; setDragging(false); }}
+        onLostPointerCapture={() => { drag.current = null; select.current = null; setDragging(false); }}>
         {viewport.width > 0 && <img key={src} src={src} alt="正在查看的参考图"
           draggable={false} onLoad={() => setLoadedSrc(src)} onError={() => setFailedSrc(src)}
           style={{ width, height, left: 0, top: 0, transform: `translate(${left}px, ${top}px)`, imageRendering: scale > 2 ? "pixelated" : "auto", visibility: exactSource && loadedSrc === src ? "visible" : "hidden" }} />}
         {exactSource && failedSrc === src ? <div className="viewer-message" role="alert">
-          <p>无法读取这张参考图。请检查资料库文件是否仍可访问。</p>
-          <button type="button" onClick={() => setRetry((r) => r + 1)}>重试读取</button>
+          <p>无法读取这张参考图。请检查图库文件是否仍可访问。</p>
+          <button type="button" className="k-btn is-sm" onClick={() => setRetry((r) => r + 1)}>重试读取</button>
         </div> : (!exactSource || loadedSrc !== src) && <p className="viewer-message" role="status">正在读取参考图…</p>}
         {cropRect && crop && <div className="viewer-crop" aria-label="选区"
-          style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }}>
-          <span className="viewer-crop-size">{crop.width} × {crop.height} px（原图像素）</span>
-        </div>}
+          style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }} />}
+        {shownCropRect && crop && <FollowDock anchor={shownCropRect} bounds={viewport} reserveBottom={DOCK_RESERVE}>
+          <Dock label="框选" onSelect={cropTool} readout={<><b>{crop.width} × {crop.height}</b>原图像素</>} items={[
+            { id: "pin", label: "钉住局部", icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary" },
+            { id: "redo", label: "重选", icon: <RotateCcw size={18} strokeWidth={1.75} /> },
+            { id: "cancel", label: "取消", icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },
+          ]} />
+        </FollowDock>}
+        {info && <section className="viewer-info" aria-label="图片信息">
+          <dl>
+            {name && <><dt>文件</dt><dd>{name}</dd></>}
+            <dt>尺寸</dt><dd>{card.width} × {card.height} 原图像素</dd>
+            <dt>缩放</dt><dd>{Math.round(physicalWidth / card.width * 100)}%</dd>
+            {sourceName && <><dt>图库</dt><dd>{sourceName}</dd></>}
+          </dl>
+          <p>滚轮缩放 · 拖动平移 · Shift+拖动框选局部 · Esc 返回</p>
+        </section>}
         {pinStatus && <p className="viewer-pin-status" role="status">{pinStatus}</p>}
+        <div className="viewer-dock"><Dock label="查看工具" items={viewerTools} value={toolValue} onSelect={tool} /></div>
       </div>
-      <footer className="viewer-hint">{sourceName && <span>来源：{sourceName} · </span>}滚轮缩放 · 拖动平移 · Shift+拖动框选局部，Enter 钉住 · Esc 返回图片墙</footer>
     </section>
   );
 }

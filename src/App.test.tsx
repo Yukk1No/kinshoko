@@ -320,7 +320,7 @@ describe("主窗口", () => {
     await screen.findByRole("button", { name: "建立资料库" });
     fireEvent.click(screen.getByRole("button", { name: "截图历史" }));
     expect(await screen.findByRole("region", { name: "截图历史" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "钉剪贴板" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^钉住剪贴板/ })).toBeTruthy();
   });
 
   it("查找区域的标签分组展开后可以添加、取消条件，并保留文件夹范围", async () => {
@@ -405,6 +405,21 @@ describe("主窗口", () => {
 
     fireEvent.keyDown(card, { key: "Enter" });
     expect(await screen.findByRole("dialog", { name: "原图查看器" })).toBeTruthy();
+  });
+
+  it("查看器的下一张 / 上一张按图片墙顺序换图", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const ids = [...document.querySelectorAll<HTMLElement>(".wall [data-id]")].map((card) => card.dataset.id!);
+    fireEvent.click(document.querySelector<HTMLElement>(`[data-id="${ids[0]}"]`)!);
+    const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
+    expect(within(viewer).getByText(`1 / ${ids.length}`)).toBeTruthy();
+    fireEvent.click(within(viewer).getByRole("button", { name: "下一张" }));
+    await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/L1/${ids[1]}/full`));
+    expect(within(viewer).getByText(`2 / ${ids.length}`)).toBeTruthy();
+    fireEvent.keyDown(viewer, { key: "ArrowLeft" });
+    await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/L1/${ids[0]}/full`));
   });
 
   it("开启安全模式时关闭查看器，回到图片墙", async () => {

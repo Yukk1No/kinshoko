@@ -480,7 +480,7 @@ export function PinView({ pin }: { pin: string }) {
           )}
         </div>
         {(unavailable || missing) && (
-          <div className="pin-missing">{unavailable ?? "参考图无法读取：资料库没有打开，或原图已缺失"}</div>
+          <div className="pin-missing">{unavailable ?? "参考图无法读取：图库没有打开，或原图已缺失"}</div>
         )}
         {notice && <div className="pin-notice">{notice}</div>}
       </div>
