@@ -455,10 +455,20 @@ describe("标签别名", () => {
   });
 });
 
+/** 标签栏的“编辑分组”打开分组编辑器（#98）。 */
+async function openGroups() {
+  fireEvent.click(await screen.findByRole("button", { name: "编辑分组" }));
+  return screen.findByRole("region", { name: "标签分组" });
+}
+async function closeGroups() {
+  fireEvent.click(within(screen.getByRole("dialog", { name: "编辑分组" })).getByRole("button", { name: "完成" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "编辑分组" })).toBeNull());
+}
+
 describe("标签分组", () => {
   it("建立全局分组、从统一标签挑成员，侧栏按分组列出计数；点标签按它浏览", async () => {
     render(<App />);
-    const groups = await screen.findByRole("region", { name: "标签分组" });
+    const groups = await openGroups();
     // The region appears before its first group refresh settles; the create button stays disabled until then.
     const create = await waitFor(() => {
       const button = within(groups).getByRole<HTMLButtonElement>("button", { name: "新建标签分组" });
@@ -498,21 +508,22 @@ describe("标签分组", () => {
   it("给图加上分组里的标签后，侧栏计数随词表刷新", async () => {
     fake.groups.push({ id: "G1", name: "发色", namespace: null, members: ["T-blue"] });
     render(<App />);
-    const groups = await screen.findByRole("region", { name: "标签分组" });
+    const groups = await openGroups();
     expect(await within(groups).findByRole("button", { name: "蓝发（1 张）" })).toBeTruthy();
+    await closeGroups();
 
     await screen.findAllByRole("img");
     fireEvent.keyDown(card("b"), { key: " " });
     await screen.findByRole("list", { name: "有效标签" });
     fireEvent.change(screen.getByRole("combobox", { name: "标签名" }), { target: { value: "蓝发" } });
     fireEvent.click(screen.getByRole("button", { name: "添加标签" }));
-    expect(await within(groups).findByRole("button", { name: "蓝发（2 张）" })).toBeTruthy();
+    expect(await within(await openGroups()).findByRole("button", { name: "蓝发（2 张）" })).toBeTruthy();
   });
 
   it("改名、移出成员与删除分组；命名空间分组列出该命名空间的全部标签", async () => {
     fake.groups.push({ id: "G1", name: "发色", namespace: null, members: ["T-blue", "T-smile"] });
     render(<App />);
-    const groups = await screen.findByRole("region", { name: "标签分组" });
+    const groups = await openGroups();
     const hair = await within(groups).findByRole("group", { name: "发色" });
     await within(hair).findByRole("button", { name: "微笑（1 张）" });
 
@@ -548,7 +559,7 @@ describe("标签分组", () => {
 
   it("安全模式切换后重新取得分组（被封印的图上的标签由资料库藏起）", async () => {
     render(<App />);
-    await screen.findByRole("region", { name: "标签分组" });
+    await openGroups();
     await waitFor(() => expect(sent("plugin:library|shared_tag_groups").length).toBeGreaterThan(0));
     const before = sent("plugin:library|shared_tag_groups").length;
     await act(() => emit("library-event", { kind: "safeModeChanged", libraryId: "L1", on: false }));
@@ -562,12 +573,13 @@ describe("重新打开资料库", () => {
     fake.tags.get("T-blue")!.aliases.push({ name: "蓝头发", lang: "zh-CN" });
     fake.groups.push({ id: "G1", name: "发色", namespace: null, members: ["T-blue"] });
     const first = render(<App />);
-    await screen.findByRole("region", { name: "标签分组" });
+    await openGroups();
     first.unmount();
 
     render(<App />);
-    const groups = await screen.findByRole("region", { name: "标签分组" });
+    const groups = await openGroups();
     expect(await within(groups).findByRole("button", { name: "蓝发（1 张）" })).toBeTruthy();
+    await closeGroups();
     await selectOnly("a");
     const rejected = await screen.findByRole("list", { name: "已否决" });
     expect(rejected.textContent).toContain("微笑");
