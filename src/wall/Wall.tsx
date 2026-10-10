@@ -11,6 +11,7 @@ import type { WorkspacePage } from "../bindings/WorkspacePage";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import { browse, workspaceBrowse, isCursorExpired, isLensChanged, thumbnailUrl } from "../ipc";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
+import { modalOpen } from "../ui/modal";
 import { captureAnchor, masonry, resolveAnchor, visible, type Anchor } from "./layout";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
@@ -211,7 +212,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     setCursor(null);
   }, [reloadKey, safeMode, workspaceKey]);
   useCaptureSources(() => {
-    if (viewerOpen || !scroller.current || document.querySelector('[role="dialog"]')) return null;
+    // 模态盖住图片墙时不登记来源；行内浮层（role="dialog" 的查找浮层等）不挡。
+    if (viewerOpen || !scroller.current || modalOpen()) return null;
     return [...scroller.current.querySelectorAll<HTMLImageElement>(".card img")].flatMap((image) => {
       const node = image.closest<HTMLElement>(".card")!;
       const card = cards.find((item) => item.id === node.dataset.id);
