@@ -1,36 +1,65 @@
+import { useEffect, useRef, useState } from "react";
+import { OPEN_MS, SEAL_MS, clamp, sealBookSVG } from "./shell/sealbook";
+
+// The drawing and the progress-driven seal / release motion are copied verbatim from the approved
+// prototype (bd8aea44:prototype/reference-browser/src/components/SealBook.tsx, round-5 A1 round lock).
+// Only the wiring is the app's: its accessible names, and reduced motion read the way the prototype
+// reads it (`settings.reducedMotion || systemReduced()`): `:root[data-reduced-motion]` or the system.
+
+const REDUCED_QUERY = "(prefers-reduced-motion: reduce)";
+const reducedNow = () =>
+  !!window.matchMedia?.(REDUCED_QUERY).matches || document.documentElement.hasAttribute("data-reduced-motion");
+
+/** 系统或程序要求减少动画时为真；随系统设置变化。 */
+function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(reducedNow);
+  useEffect(() => {
+    const query = window.matchMedia?.(REDUCED_QUERY);
+    if (!query?.addEventListener) return;
+    const update = () => setReduced(reducedNow());
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return reduced;
+}
+
 /**
- * 封印书：安全模式的开关（第五轮 A1 圆锁，#27）。合上的书带一把圆锁表示开启，
- * 翻开的书表示关闭。快捷键 Ctrl+Shift+S 由主窗口处理。
+ * 封印书：安全模式的开关（第五轮 A1 圆锁，#27）。合上的书带一把圆锁表示开启，翻开的书表示关闭。
+ * 图形按进度绘制，动画中途再点会从屏幕上的那一帧折回，不会跳。快捷键 Ctrl+Shift+S 由主窗口处理。
  */
-export function SealBook({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      className="seal-book"
-      aria-pressed={on}
-      aria-label={on ? "安全模式：开启" : "安全模式：关闭"}
-      title={`${on ? "安全模式已开启：含成人内容的参考图已封印" : "安全模式已关闭"}（Ctrl+Shift+S）`}
-      onClick={onToggle}
-      data-on={on}
-    >
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-        {on ? (
-          <>
-            {/* 合上的书 */}
-            <path d="M5 4.5h11a2 2 0 0 1 2 2v13H7a2 2 0 0 1-2-2z" className="seal-book-cover" />
-            <path d="M5 17.5a2 2 0 0 1 2-2h11" className="seal-book-edge" />
-            {/* 圆锁 */}
-            <circle cx="11.5" cy="10.5" r="3.6" className="seal-book-lock" />
-            <path d="M10.3 10.5h2.4M11.5 9.3v2.4" className="seal-book-key" />
-          </>
-        ) : (
-          <>
-            {/* 翻开的书 */}
-            <path d="M3 6.5c3-1.2 6-1.2 9 .8v12c-3-2-6-2-9-.8z" className="seal-book-cover" />
-            <path d="M21 6.5c-3-1.2-6-1.2-9 .8v12c3-2 6-2 9-.8z" className="seal-book-cover" />
-          </>
-        )}
-      </svg>
-    </button>
-  );
+export function SealBook({ on, onToggle, slow = 1 }: { on: boolean; onToggle: () => void; slow?: number }) {
+  const sealed = on;
+  const reducedMotion = useReducedMotion();
+  const svg = useRef<SVGSVGElement>(null);
+  const motion = useRef({ p: sealed ? 0 : 1, from: sealed ? 0 : 1, at: 0, raf: 0, drawn: -1 });
+
+  useEffect(() => {
+    const m = motion.current, target = sealed ? 0 : 1;
+    const draw = (p: number) => {
+      if (p === m.drawn || !svg.current) return;
+      svg.current.innerHTML = sealBookSVG(p);
+      m.drawn = p;
+    };
+    cancelAnimationFrame(m.raf);
+    if (reducedMotion) { m.p = target; draw(target); return; }
+    m.from = m.p;
+    m.at = performance.now();
+    // A reversal mid-way only travels back the distance it covered.
+    const ms = Math.max(1, (sealed ? SEAL_MS : OPEN_MS) * slow * Math.abs(target - m.from));
+    const tick = (now: number) => {
+      const t = clamp((now - m.at) / ms);
+      m.p = m.from + (target - m.from) * t;
+      draw(m.p);
+      if (t < 1) m.raf = requestAnimationFrame(tick);
+    };
+    m.raf = requestAnimationFrame(tick);
+    draw(m.p);
+    return () => cancelAnimationFrame(m.raf);
+  }, [sealed, reducedMotion, slow]);
+
+  return <button type="button" className={`rail-btn seal-book${sealed ? " is-sealed" : ""}`} aria-pressed={sealed}
+    aria-label={sealed ? "安全模式：开启" : "安全模式：关闭"} onClick={onToggle}>
+    <svg ref={svg} width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false" />
+    <span className="tip" role="tooltip">安全模式{sealed ? "：开，成人图已封印" : "：关"}<kbd>Ctrl+Shift+S</kbd></span>
+  </button>;
 }

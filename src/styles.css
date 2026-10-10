@@ -1448,6 +1448,7 @@ button.primary {
   --r-xs: 6px; --r-s: 8px; --r: 10px; --r-m: 12px; --r-l: 14px; --r-xl: 18px;
   --spring: cubic-bezier(0.2, 0.9, 0.25, 1.05);
   --seal-acc: var(--seal);
+  --seal-ink: var(--ink);
   --muted: var(--ink-3);
   --win-close: #C94A4A; --on-win-close: #FFFDF8;
   --warn: #A0700F; --warn-strong: #5E4510; --warn-soft: #FBF4E4; --ok: #3E7A4D; --ok-soft: #E3F1E6;
@@ -1519,7 +1520,6 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .rail-slot { display: flex; flex: none; z-index: 4; }
 .rail-btn { padding: 0; border: 0; }
 .rail .seal-book { width: 40px; height: 40px; display: grid; place-items: center; }
-.rail .seal-book[data-on="true"] { background: var(--accent-soft); border-radius: 10px; }
 .app-body { min-width: 0; }
 .sidebar-slot { width: 248px; background: var(--surface); transition: width var(--t-slow) var(--ease); }
 .sidebar-slot[data-collapsed="true"] { width: 0; border-right-width: 0; }
