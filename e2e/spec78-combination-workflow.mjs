@@ -476,19 +476,19 @@ return {message:message.textContent,steps:steps.textContent,visibility:{whole,cl
     // The preview re-veils on any workspace change by design; let the import's change burst end first.
     await this.settled();
     await until("actual sealed consent prompt",()=>d.exec("const card=document.querySelector('section[aria-label=封印项重复]');return !!card&&card.getClientRects().length>0&&card.textContent.includes('有封印项重复，是否展开看看')&&!/成人/.test(card.textContent);"));
-    d.assert(!await d.exec("return !!document.querySelector('dialog.sealed-import-preview');"),"no sealed preview exists before explicit consent");
+    d.assert(!await d.exec("return !!document.querySelector('[role=dialog].sealed-import-preview');"),"no sealed preview exists before explicit consent");
     await d.screenshot("06-default-scoped-sealed-prompt.png");
     await this.readyClick("//section[@aria-label='封印项重复']//button[@aria-label='展开本次重复项']");
-    await until("actual one receipt duplicate decoded",()=>d.exec("const images=[...document.querySelectorAll('dialog.sealed-import-preview img')];return images.length===1&&images[0].complete&&images[0].naturalWidth>0;"));
+    await until("actual one receipt duplicate decoded",()=>d.exec("const images=[...document.querySelectorAll('[role=dialog].sealed-import-preview img')];return images.length===1&&images[0].complete&&images[0].naturalWidth>0;"));
     d.assert(await d.invoke("safe_mode")===true,"receipt-scoped consent keeps global safe mode on");
     await d.screenshot("07-one-receipt-consent.png");
-    // The preview is a modal <dialog>: nothing behind it can be clicked. As the old harness did with a JS
+    // The preview is a modal Base UI dialog: nothing behind it can be clicked. As the old harness did with a JS
     // select change, change the current library with synthetic events on the library menu behind the modal.
     await this.currentBehindModal(this.b.id);
-    await until("current provider change re-veils decoded preview",()=>d.exec("return !document.querySelector('dialog.sealed-import-preview');"));
+    await until("current provider change re-veils decoded preview",()=>d.exec("return !document.querySelector('[role=dialog].sealed-import-preview');"));
     await this.shownCurrent(this.b.id);
     await this.current(this.a.id);
-    d.assert(!await d.exec("return !!document.querySelector('dialog.sealed-import-preview img');"),"returning to A requires fresh consent instead of reviving decoded content");
+    d.assert(!await d.exec("return !!document.querySelector('[role=dialog].sealed-import-preview img');"),"returning to A requires fresh consent instead of reviving decoded content");
     this.sealedReceipt=receipt;this.state.sealed={receipt};this.save();
   }
 }

@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -146,7 +146,10 @@ describe("参考组面板", () => {
     fireEvent.click(screen.getByRole("button", { name: "存下桌面钉图" }));
     fireEvent.change(screen.getByLabelText("新参考组名称"), { target: { value: "截图参考" } });
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
-    expect(await screen.findByRole("dialog", { name: "收藏截图并保存参考组" })).toBeTruthy();
+    const dialog = await screen.findByRole("dialog", { name: "收藏截图并保存参考组" });
+    // 界面系统的模态对话框：焦点进入对话框并留在里面。
+    expect(dialog.className).toContain("k-dialog");
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
     expect(ipc.save).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText("截图 1 的图库"), { target: { value: "lib-a" } });
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "确认并保存" })); });

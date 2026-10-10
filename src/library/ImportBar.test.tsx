@@ -141,6 +141,23 @@ it("关闭期间迟到的预览字节不会创建图片，且回执仍需重新�
 });
 
 
+it("展开后是界面系统的对话框：标题与说明用规格原话，关闭按钮可用", async () => {
+  mockWindows("main");
+  mockIPC((cmd) => {
+    if (cmd === "plugin:library|open_import_preview") return { id: "session", items: [] };
+    return undefined;
+  }, { shouldMockEvents: true });
+  render(bar({ report: { ...report, sealedDuplicates: true, privateSummary: true } }));
+  fireEvent.click(screen.getByRole("button", { name: "展开本次重复项" }));
+  const dialog = await screen.findByRole("dialog", { name: "本次封印重复项" });
+  expect(dialog.className).toContain("k-dialog");
+  expect(dialog.tagName).not.toBe("DIALOG");
+  expect(dialog.textContent).toContain("只展开本次重复项");
+  expect(dialog.textContent).toContain("关闭后重新遮蔽");
+  fireEvent.click(within(dialog).getByRole("button", { name: "关闭重复项预览" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "本次封印重复项" })).toBeNull());
+});
+
 it("切换到另一张回执不会自动沿用前一张回执的明确同意", async () => {
   mockWindows("main");
   const opened: string[] = [];

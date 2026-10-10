@@ -1,6 +1,7 @@
 import { SaveDestinationDialog, useSaveDestination, folderChoices, destinationAvailable, destinationLabel } from "../library/SaveDestination";
 import { useCallback, useEffect, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
+import { Dialog } from "@base-ui/react/dialog";
 import { BookmarkPlus, FolderInput, Layers, ListTree, MoreHorizontal, PackageOpen, Trash2 } from "lucide-react";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import { ago } from "./relativeTime";
@@ -189,9 +190,12 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
       }} />}
       {error && <p className="group-note is-error" role="alert">{error}</p>}
       {notice && <p className="group-note" role="status">{notice}</p>}
-      {captureSave && (
-        <section role="dialog" aria-modal="true" aria-label="收藏截图并保存参考组" className="capture-group-save">
-          <p>桌面上有截图。逐张选图库和文件夹收藏，再一起存进参考组；也可以不加入。</p>
+      {captureSave && <Dialog.Root open onOpenChange={(open) => { if (!open && !saving) setCaptureSave(null); }}>
+        <Dialog.Portal>
+        <Dialog.Backdrop className="k-backdrop" />
+        <Dialog.Popup className="k-dialog capture-group-save">
+          <Dialog.Title className="k-dialog-title">收藏截图并保存参考组</Dialog.Title>
+          <Dialog.Description className="k-dialog-desc">逐张选图库收藏，再一起存进参考组。</Dialog.Description>
           {captureSave.entries.map((entry, i) => (
             <label key={entry.id}>
               <img src={captureUrl(entry.id)} alt={`截图 ${i + 1}`} width={96} />
@@ -218,14 +222,16 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
               </>}
             </label>
           ))}
-          <div className="group-name-acts">
-            <button type="button" className="k-btn is-sm" disabled={saving} onClick={() => setCaptureSave(null)}>取消</button>
-            <button type="button" className="k-btn is-sm is-primary"
+          <div className="k-dialog-foot">
+            <span className="k-grow" />
+            <button type="button" className="k-btn" disabled={saving} onClick={() => setCaptureSave(null)}>取消</button>
+            <button type="button" className="k-btn is-primary"
               disabled={saving || !saveContext.ready || captureSave.entries.some((e) => captureSave.choices[e.id] !== "skip" && !destinationAvailable({ libraryId: captureSave.choices[e.id], folderId: captureSave.folders[e.id] ?? null }, saveContext.providers))}
               onClick={() => void confirmCaptures()}>{saving ? "正在收藏并保存…" : "确认并保存"}</button>
           </div>
-        </section>
-      )}
+        </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>}
       {groups && groups.length === 0 && (
         <p className="reference-groups-empty">还没有参考组。把整图或局部钉到桌面摆好，再在这里存下。</p>
       )}

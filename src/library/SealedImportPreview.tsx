@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { Dialog } from "@base-ui/react/dialog";
+import { X } from "lucide-react";
 import { closeImportPreview, onSafeModeSetting, onWorkspaceChanged, openImportPreview, readImportPreview } from "../ipc";
 
-/** Modal/focus lifecycle adapted from approved prototype/reference-browser/components/Overlays.tsx. */
+/**
+ * 本次封印重复项的预览（#78 故事 42、43）：只展开这一次导入的重复项，全局安全模式保持开启；
+ * 关闭、切换安全模式、工作区变化或窗口隐藏时立即结束并重新遮蔽。界面系统的模态对话框（Base UI）。
+ */
 export function SealedImportPreview({ libraryId, taskId, onClose }: { libraryId: string; taskId: string; onClose: () => void }) {
-  const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef(onClose); close.current = onClose;
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
@@ -11,11 +15,7 @@ export function SealedImportPreview({ libraryId, taskId, onClose }: { libraryId:
     let alive = true, sessionId: string | null = null;
     const urls = new Set<string>();
     const end = () => { alive = false; for (const url of urls) URL.revokeObjectURL(url); urls.clear(); void closeImportPreview(sessionId).catch(() => {}); close.current(); };
-    const modal = dialog.current!;
-    modal.showModal();
-    const cancel = (event: Event) => { event.preventDefault(); end(); };
     const hidden = () => { if (document.hidden) end(); };
-    modal.addEventListener("cancel", cancel);
     document.addEventListener("visibilitychange", hidden);
     const safe = onSafeModeSetting(end);
     const workspace = onWorkspaceChanged(end);
@@ -33,13 +33,20 @@ export function SealedImportPreview({ libraryId, taskId, onClose }: { libraryId:
       alive = false; for (const url of urls) URL.revokeObjectURL(url); urls.clear();
       void closeImportPreview(sessionId).catch(() => {});
       void safe.then(stop => stop()); void workspace.then(stop => stop());
-      modal.removeEventListener("cancel", cancel); document.removeEventListener("visibilitychange", hidden); modal.close();
+      document.removeEventListener("visibilitychange", hidden);
     };
   }, [libraryId, taskId]);
-  return <dialog ref={dialog} className="sealed-import-preview" aria-label="本次封印重复项预览">
-    <header><h2>本次封印重复项</h2><button type="button" aria-label="关闭重复项预览" onClick={onClose}>×</button></header>
-    <p>只读预览。安全模式保持开启，关闭后重新遮蔽。</p>
-    {problem ? <p role="alert">预览已停止：{problem}</p> : images.length === 0 && <p role="status">正在读取本次重复项…</p>}
-    <div className="sealed-import-preview-images">{images.map(image => <img key={image.id} src={image.url} alt="本次导入的重复项" />)}</div>
-  </dialog>;
+  // Esc、点遮罩与关闭按钮都经 onOpenChange 关闭；卸载时上面的清理结束预览会话并撤销图片。
+  return <Dialog.Root open onOpenChange={(open) => { if (!open) close.current(); }}>
+    <Dialog.Portal>
+      <Dialog.Backdrop className="k-backdrop" />
+      <Dialog.Popup className="k-dialog sealed-import-preview">
+        <Dialog.Close className="k-icon-btn k-dialog-x" aria-label="关闭重复项预览"><X size={16} aria-hidden="true" /></Dialog.Close>
+        <Dialog.Title className="k-dialog-title">本次封印重复项</Dialog.Title>
+        <Dialog.Description className="k-dialog-desc">只展开本次重复项。安全模式保持开启，关闭后重新遮蔽。</Dialog.Description>
+        {problem ? <p className="k-set-error" role="alert">预览已停止：{problem}</p> : images.length === 0 && <p className="k-set-note" role="status">正在读取本次重复项…</p>}
+        <div className="sealed-import-preview-images">{images.map(image => <img key={image.id} src={image.url} alt="本次导入的重复项" />)}</div>
+      </Dialog.Popup>
+    </Dialog.Portal>
+  </Dialog.Root>;
 }

@@ -65,7 +65,7 @@ export async function sealedTransferBoundaries(workflow) {
   assertReturnedRevocationBoundary(d,current,"Changing current provider");
   await workflow.current(workflow.b.id);await workflow.current(workflow.a.id);
   d.assert((await workflow.task(receipt.taskId)).destination.libraryId===workflow.a.id,"context changes keep the earlier receipt's submitted owner");
-  d.assert(!await d.exec("return !!document.querySelector('dialog.sealed-import-preview img');"),"revoked UI content stays veiled throughout subsequent real transfer completions");
+  d.assert(!await d.exec("return !!document.querySelector('[role=dialog].sealed-import-preview img');"),"revoked UI content stays veiled throughout subsequent real transfer completions");
   workflow.state.sealed.transfers={complete,races};workflow.save();
   await d.screenshot("08-sealed-stream-revoked.png");
 }
