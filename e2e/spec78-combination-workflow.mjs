@@ -73,6 +73,16 @@ export class CombinationWorkflow {
     await until("current provider actually switched", async () => (await this.d.invoke("current_library"))?.id === id);
     await this.closeMenu(); await this.shownCurrent(id);
   }
+  // Only for a state where a modal dialog makes the library menu unreachable (see strictAdultAndConsent).
+  async currentBehindModal(id) {
+    const root = await this.root(id);
+    const press = "const fire=(el)=>{for(const [type,C] of [['pointerdown',PointerEvent],['mousedown',MouseEvent],['pointerup',PointerEvent],['mouseup',MouseEvent],['click',MouseEvent]])el.dispatchEvent(new C(type,{bubbles:true,cancelable:true,composed:true,button:0,buttons:type.endsWith('down')?1:0,pointerType:'mouse',pointerId:1,isPrimary:true,view:window}));};";
+    await this.d.exec(press + "const t=document.querySelector('button[aria-label^=\"当前图库：\"]');if(!t)throw Error('library menu trigger missing');fire(t);return true;");
+    await until("library menu opened behind the modal", () => this.d.exec("return !!document.querySelector('[role=menu][aria-label=图库]');"));
+    await this.d.exec(press + "const item=[...document.querySelectorAll('[role=menu][aria-label=图库] [role=menuitemradio]')].find(n=>n.getAttribute('title')===arguments[0]);if(!item)throw Error('provider item missing');fire(item);return true;", [root]);
+    await until("current provider actually switched behind the modal", async () => (await this.d.invoke("current_library"))?.id === id);
+    this.d.record("current-behind-modal", { id, root, method: "synthetic pointer/mouse events on the library menu, as the old JS select change" });
+  }
   // Opening an existing library (old: 登记已有资料库…): the inline onboarding button, or 打开图库… in the library menu.
   async openLibrary(path) {
     await this.d.pick(path);
@@ -470,8 +480,11 @@ return {message:message.textContent,steps:steps.textContent,visibility:{whole,cl
     await until("actual one receipt duplicate decoded",()=>d.exec("const images=[...document.querySelectorAll('dialog.sealed-import-preview img')];return images.length===1&&images[0].complete&&images[0].naturalWidth>0;"));
     d.assert(await d.invoke("safe_mode")===true,"receipt-scoped consent keeps global safe mode on");
     await d.screenshot("07-one-receipt-consent.png");
-    await this.current(this.b.id);
+    // The preview is a modal <dialog>: nothing behind it can be clicked. As the old harness did with a JS
+    // select change, change the current library with synthetic events on the library menu behind the modal.
+    await this.currentBehindModal(this.b.id);
     await until("current provider change re-veils decoded preview",()=>d.exec("return !document.querySelector('dialog.sealed-import-preview');"));
+    await this.shownCurrent(this.b.id);
     await this.current(this.a.id);
     d.assert(!await d.exec("return !!document.querySelector('dialog.sealed-import-preview img');"),"returning to A requires fresh consent instead of reviving decoded content");
     this.sealedReceipt=receipt;this.state.sealed={receipt};this.save();
