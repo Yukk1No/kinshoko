@@ -148,6 +148,8 @@ function LibraryWorkspace({
   const viewerChange = useRef(onViewerChange);
   viewerChange.current = onViewerChange;
   const viewerOpen = viewing !== null;
+  /** 查看器里的上一张 / 下一张按图片墙已读到的顺序走。 */
+  const viewingIndex = viewing ? loadedCards.findIndex((card) => card.id === viewing.id) : -1;
   // 来源整理从模态对话框改为详情面板（#98）：只有查看器是模态的。
   const modalOpen = viewerOpen;
   useEffect(() => {
@@ -438,6 +440,8 @@ function LibraryWorkspace({
         sourceName={viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.libraryName}
         onClose={() => setViewing(null)}
         reloadKey={reloadKey}
+        position={viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) }}
+        onStep={(delta) => { const next = loadedCards[viewingIndex + delta]; if (next) setViewing(next); }}
       />
     )}
     </>

@@ -661,7 +661,7 @@ button.primary {
   resize: vertical;
 }
 
-/* 原图查看器：图片观察层保持中性底色。 */
+/* 原图查看器：图片观察层保持中性底色。标题行即窗口安全区，工具在底部居中的 dock（#98）。 */
 .viewer {
   position: fixed;
   inset: 0;
@@ -669,15 +669,18 @@ button.primary {
   display: flex;
   flex-direction: column;
   background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
 }
-.viewer-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--line);
-  flex-wrap: wrap;
-}
+.viewer-bar { height: 56px; min-height: 56px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 14px;
+  background: var(--bg); border-bottom: 1px solid var(--line); }
+.viewer-back { height: 30px; padding: 0 10px 0 8px; gap: 6px; background: transparent; box-shadow: none; color: var(--ink-2); }
+.viewer-back:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+.viewer-title { margin-left: 6px; min-width: 0; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 14px; }
+.viewer-index { margin: 0 4px 0 6px; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.viewer-bar .k-icon-btn:disabled { opacity: 0.4; }
+.viewer-zoom { display: flex; align-items: center; gap: 2px; color: var(--ink-2); }
+.viewer-zoom output { min-width: 5ch; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; }
 .viewer-stage {
   flex: 1;
   min-height: 0;
@@ -695,46 +698,51 @@ button.primary {
 .viewer-stage[data-background="checker"] {
   background: repeating-conic-gradient(#ddd 0% 25%, #999 0% 50%) 0 0 / 24px 24px;
 }
-.viewer-background { display: flex; gap: 8px; align-items: center; margin-left: auto; }
-.viewer-background select { font: inherit; background: var(--bg); color: var(--text); }
-.viewer-toolbar output { min-width: 4ch; font-variant-numeric: tabular-nums; }
+/* 背景色块：dock 与托盘里的图标，颜色与舞台底色一致。 */
+.viewer-swatch { display: block; width: 18px; height: 18px; border-radius: 5px; background: #808080; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12); }
+.viewer-swatch[data-ground="dark"] { background: #202020; }
+.viewer-swatch[data-ground="light"] { background: #d6d6d6; }
+.viewer-swatch[data-ground="checker"] { background: repeating-conic-gradient(#ddd 0% 25%, #999 0% 50%) 0 0 / 8px 8px; }
+.viewer-dock { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 4; cursor: default; }
 .viewer-message {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  margin: 0; padding: 12px 16px; border-radius: 8px; background: var(--bg); color: var(--text);
-  text-align: center; cursor: default;
+  margin: 0; padding: 12px 16px; border-radius: var(--r-m); background: var(--surface); color: var(--ink);
+  box-shadow: var(--shadow-pop); text-align: center; cursor: default;
 }
 .viewer-message p { margin: 0 0 8px; }
-.viewer-hint { padding: 4px 12px; font-size: 12px; text-align: center; }
-/* 框出的局部（#65）：按原图像素记，随缩放平移换算位置；外面压暗。 */
+.viewer-info { position: absolute; top: 14px; right: 14px; z-index: 4; width: 260px; padding: 12px 14px; border-radius: var(--r-m);
+  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(18px); color: var(--ink);
+  box-shadow: var(--shadow-pop); cursor: default; user-select: text; font-size: 12px; }
+.viewer-info dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; }
+.viewer-info dt { color: var(--ink-3); }
+.viewer-info dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.viewer-info p { margin: 10px 0 0; color: var(--ink-3); }
+/* 框出的局部（#65）：按原图像素记，随缩放平移换算位置；外面压暗，三分线辅助构图。 */
 .viewer-crop {
   position: absolute;
   box-sizing: border-box;
-  outline: 1px solid #e0768f;
-  box-shadow: 0 0 0 100000px rgb(0 0 0 / 0.35);
+  outline: 1.5px solid #fff;
+  box-shadow: 0 0 0 100000px rgb(20 18 30 / 0.45);
   pointer-events: none;
-}
-.viewer-crop-size {
-  position: absolute;
-  left: 0;
-  top: -22px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: rgb(0 0 0 / 0.7);
-  color: #fff;
-  font-size: 12px;
-  white-space: nowrap;
+  background:
+    linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0.35)) 33.33% 0 / 1px 100% no-repeat,
+    linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0.35)) 66.66% 0 / 1px 100% no-repeat,
+    linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0.35)) 0 33.33% / 100% 1px no-repeat,
+    linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0.35)) 0 66.66% / 100% 1px no-repeat;
 }
 .viewer-pin-status {
   position: absolute;
   left: 50%;
-  bottom: 12px;
+  bottom: 84px;
   transform: translateX(-50%);
+  z-index: 5;
   margin: 0;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background: rgb(0 0 0 / 0.7);
-  color: #fff;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--bg);
   font-size: 12px;
+  box-shadow: 0 6px 16px rgb(43 39 71 / 0.25);
 }
 /* 内容分级（#53）：人工分级优先于自动分级。 */
 .selection-rating {
