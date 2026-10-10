@@ -141,7 +141,7 @@ export function BackupSettings() {
             onClick={() => void startBackup().catch((e) => setError(String(e)))}>立即备份</button>
         </SettingsRow>
         <SettingsRow icon={<Library size={16} />} title="备份范围"
-          desc={preview ? `约 ${mb(preview.estimate.totalBytes)}，这次新写入 ${mb(preview.estimate.newBytes)}` : "正在估算…"}
+          desc={preview ? `约 ${mb(preview.estimate.totalBytes)}` : "正在估算…"}
           below={<>
             {narrowed !== null && <div className="backup-libraries" role="group" aria-label="要备份的图库">
               {libraries.map(({ library }) => (

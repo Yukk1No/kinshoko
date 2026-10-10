@@ -132,7 +132,7 @@
 /* ---- Save destination: 图库 + 文件夹 side by side ---- */
 .k-destination { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 6px; }
 .k-destination-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.k-field { display: grid; gap: 6px; min-width: 0; }
+.k-destination .k-field { display: grid; grid-template-columns: none; gap: 6px; min-width: 0; align-items: stretch; }
 .k-field-label { font-size: 12px; font-weight: 600; color: var(--ink-2); padding: 0; }
 .k-select-wrap { position: relative; display: block; min-width: 0; }
 .k-select-wrap > svg { position: absolute; left: 12px; top: 50%; translate: 0 -50%; color: var(--ink-3); pointer-events: none; }

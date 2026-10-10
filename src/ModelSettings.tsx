@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ModelChoice } from "./bindings/ModelChoice";
 import type { ModelOption } from "./bindings/ModelOption";
 import { PackageOpen, Sparkles } from "lucide-react";
-import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
+import { SettingsRow } from "./ui/SettingsList";
 import { importModelPackage, pickModelPackage, taggingModels, taggingSetModel } from "./ipc";
 
 const gb = (bytes: number) => `${(bytes / 1_000_000_000).toFixed(1)} GB`;
@@ -22,6 +22,7 @@ function needs(option: ModelOption): string {
 /**
  * 设置 › 通用 › 自动打标：按电脑选模型（注明各自的显存或内存需求），没有网络时从文件导入模型包
  * （zip，内含模型文件与 selected_tags.csv）。换模型后已经打过标的图不会重打。
+ * 只输出两行，由调用方放进设置的行列表。
  */
 export function ModelSettings() {
   const [choice, setChoice] = useState<ModelChoice | null>(null);
@@ -66,7 +67,7 @@ export function ModelSettings() {
 
   const current = choice.options.find((o) => o.key === choice.selected);
   return (
-    <SettingsGroup label="自动打标">
+    <>
       <SettingsRow icon={<Sparkles size={16} />} title="自动打标" desc={current ? needs(current) : "有独显时用显卡"}>
         <select className="k-select" aria-label="自动打标" value={choice.selected ?? ""}
           onChange={(e) => void run(() => taggingSetModel(e.target.value || null), null)}>
@@ -78,6 +79,6 @@ export function ModelSettings() {
         below={error !== null && <p className="k-set-error" role="alert">{error}</p>}>
         <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void importPackage()}>导入模型包…</button>
       </SettingsRow>
-    </SettingsGroup>
+    </>
   );
 }

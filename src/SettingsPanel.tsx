@@ -169,8 +169,8 @@ export function SettingsPanel({ onChange, onRestored, initialTab = "general", ve
               <SettingsRow icon={<Power size={16} />} title="开机启动" desc="在托盘里待命">
                 <Switch label="开机启动" checked={view.autostart} onCheckedChange={(on) => void apply(setAutostart(on))} />
               </SettingsRow>
+              <ModelSettings key={`model/${settingsGeneration}`} />
             </SettingsGroup>
-            <ModelSettings key={`model/${settingsGeneration}`} />
           </>)}
           {page("keys", <SettingsGroup label="快捷键">
             {view.shortcuts.map((binding: ShortcutBinding) => {
