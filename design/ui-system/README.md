@@ -11,14 +11,14 @@
 | 库 | 角色 | 依据 |
 | --- | --- | --- |
 | [Base UI](https://mui.com/base-ui/) `@base-ui/react` 1.6.0 · MIT | **采用：交互基础层** | 37 个无样式组件，来自 Radix / Floating UI / MUI 团队，覆盖菜单、右键菜单、下拉选择、可搜索选择、浮层、对话框、提醒对话框、标签页、开关、滑块、轻提示、提示、滚动区、分段切换。键盘与读屏行为由库负责；不要求 Tailwind，直接套用本项目的设计令牌。 |
-| [motion](https://motion.dev/) 14.1.0 · MIT | **采用：动效** | 弹簧与布局过渡（悬停高亮跟随、指示块滑动）。必须遵守“减少动画”。 |
+| [motion](https://motion.dev/) 14.1.0 · MIT | **采用：动效** | 驱动上面的弹簧档位与布局过渡（悬停高亮、指示块滑动）。必须遵守“减少动画”。 |
 | [lucide-react](https://lucide.dev/) 1.52.0 · ISC | **沿用** | 原型已用的通用图标；图标轨 20 px / 线宽 1.75，界面内 13–16 px。 |
-| [Fluid Functionalism](https://www.fluidfunctionalism.com/) | **只采用原则，不复制代码** | 采纳：动效只为传递信息；悬停高亮跟随离指针最近的项；中途反向时弹簧从当前位置折返。不复制代码：依赖 shadcn + Tailwind + framer-motion，许可证未声明。 |
+| [Fluid Functionalism](https://github.com/mickadesign/fluid-functionalism) · MIT | **采用：交互与动效规范** | 仓库为 MIT（Copyright (c) 2026 Micka Touillaud），底层同样支持 Base UI。移植其无依赖的 `use-fluid-hover`（高亮滑到离指针最近的行，空隙点击落到被高亮的行）与 `springs` 动效档位（fast 0.08 s / moderate 0.16 s / slow 0.24 s，退出用更快一档的补间）；保留原版权声明。组件样式写在 Tailwind 类名里，不直接搬组件，改用本项目令牌重写。原则同样采纳：动效只为传递信息；越大的东西动得越慢。 |
 | beUI | **只参考动效写法** | Motion + Tailwind 的复制式组件（弹簧、模糊交叉淡入、布局过渡）。官方仓库与许可证未能确认。 |
 | [RareUI](https://github.com/Codewithswappy/RareUI) · MIT | **主界面不用** | 液态、玻璃、3D、WebGL 背景等装饰性组件。与“图片底色保持中性、缩略图不加装饰”冲突：画师要靠眼睛判断参考图颜色。 |
 | [Shaders](https://shaders.com) | **主界面不用** | WebGPU 着色器特效。理由同上；画师作画时还会占用显卡。以后可评估只用于封印书演出或空状态，需单独决定。 |
 
-新增依赖只限 `@base-ui/react`、`motion`；`lucide-react` 已存在于原型。任何新库都要先在这里登记许可证与用途。
+新增依赖只限 `@base-ui/react`、`motion`；`lucide-react` 已存在于原型。移植的 Fluid Functionalism 源码放在独立的 vendor 目录，文件头保留出处与许可证。任何新库都要先在这里登记许可证与用途。
 
 ### 组件对照
 
@@ -46,14 +46,25 @@
 
 ## 窗口框架
 
-主窗口隐藏 Windows 原生标题栏，由应用绘制顶栏安全区。
+主窗口隐藏 Windows 原生标题栏。各列的标题行合成一条 56 px 的一体化顶栏，它就是窗口的安全区。
 
-- **安全区**：高 32 px，横跨侧栏与主区（图标轨除外），背景透明、与下方连续。空白处可拖动窗口，双击切换最大化。
-- **控件**：最小化、最大化 / 还原、关闭，右对齐，间距 2 px，距右缘 6 px。按钮 38 × 26 px、圆角 7 px；图形 10 px、线宽 1.2 px、像素对齐。
+- **一体化顶栏**：图标轨顶端是书签标；侧栏标题行放图库切换与收起侧栏；主区标题行放查找框、张数、图片大小、导入；最右一列的标题行末尾放窗口控件。各标题行的空白处都可拖动窗口，双击切换最大化。
+- **窗口控件位置**：控件永远在最右一列。打开详情面板时，它们移到详情面板标题行；此时详情面板的收起按钮用“收起面板”图标，不再用 ×，避免与关闭窗口混淆。查看器标题行同理。
+- **控件规格**：最小化、最大化 / 还原、关闭；前面一条 1 px 分隔线；按钮 38 × 26 px、圆角 7 px、垂直居中；图形 10 px、线宽 1.2 px、像素对齐。
 - **状态**：悬停 `--hover` 底、`--ink` 色；按下 `--press`；关闭悬停 `#C94A4A` 底、`#FFFDF8` 图形；键盘焦点 2 px `--accent` 描边。最大化后中间按钮换成还原图形。
 - **关闭语义不变**：关闭主窗口只关主窗口，Kinshoko 继续在托盘，截图、钉图与快捷键照常（见 ADR 0004）。
-- **实现要点（Tauri 2）**：主窗口 `decorations: false`、保留 `shadow` 与可调整大小；顶栏加 `data-tauri-drag-region`；按钮调用 `getCurrentWindow().minimize()` / `toggleMaximize()` / `close()`，能力文件需对应 `core:window:allow-minimize`、`allow-toggle-maximize`、`allow-close`、`allow-start-dragging`。钉图、框选等无边框窗口不受影响。
+- **实现要点（Tauri 2）**：主窗口 `decorations: false`、保留 `shadow` 与可调整大小；各标题行加 `data-tauri-drag-region`，其中的按钮与输入框不拖动；控件调用 `getCurrentWindow().minimize()` / `toggleMaximize()` / `close()`，能力文件需对应 `core:window:allow-minimize`、`allow-toggle-maximize`、`allow-close`、`allow-start-dragging`。钉图、框选等无边框窗口不受影响。
 - **已知取舍**：自绘按钮没有 Windows 11 悬停最大化按钮时弹出的贴靠布局；`Win + Z` 与拖到屏幕边缘贴靠仍可用。实施时在真机核对拖动、双击、调整大小、多显示器与 125%／150% 缩放。
+
+## 侧栏布局
+
+侧栏纵向分三段，长目录只在中间滚动：
+
+1. **顶部固定**：全部图片、未归类。
+2. **中间滚动**：每个图库一组（可折叠的组标题带状态点、张数、新建文件夹）；未连接的图库就地显示原因与“重新连接”；末尾是“含子文件夹”小开关（原型的位置）。
+3. **底部固定**：后台任务（自动打标进度）与回收站。
+
+行高 30 px，悬停高亮由 `use-fluid-hover` 驱动，在同一段内滑动；当前项用 `--accent-soft` 底与 `--accent-strong` 字。
 
 ## 视觉与动效
 
