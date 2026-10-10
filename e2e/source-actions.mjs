@@ -160,7 +160,7 @@ try {
   await until("B note", () => session.exec("return document.querySelector('[aria-label=\"整理来源\"] textarea')?.value === 'B 独立备注';"));
   await session.screenshot("explicit-inactive-source-before.png");
   await session.type("//*[@aria-label='整理来源']//textarea", "B 改后的独立备注");
-  await session.click("//button[text()='保存备注']");
+  await session.click("//button[@aria-label='保存备注']");
   await until("B note persisted", async () => (await inspect()).detail.note.manual === "B 改后的独立备注");
   assert((await inspect(aTarget)).detail.note.manual === "A 独立备注", "editing inactive B note leaves A note unchanged");
   assert((await session.invoke("current_library")).id === a.id, "source edits do not activate B or change current library");
@@ -179,7 +179,7 @@ try {
   await until("B folder restored", async () => (await inspect()).detail.folders.some(f => f.id === b.folderId));
   await until("B tag input ready", () => session.find("//*[@aria-label='标签名']"));
   await session.type("//*[@aria-label='标签名']", "B 新人工标签");
-  await session.click("//button[text()='添加标签']");
+  await session.click("//button[@aria-label='添加标签']");
   await until("B new tag", async () => (await inspect()).tags.image.tags.some(t => t.tag.name === "B 新人工标签"));
   assert(!(await inspect(aTarget)).tags.image.tags.some(t => t.tag.name === "B 新人工标签"), "new B manual tag never changes A tags");
   assert((await session.invoke("workspace_source_candidates", { target, safeMode: true, text: "B 新", lang: "zh-CN" }))[0]?.tag.name === "B 新人工标签", "source picker uses B local tag identities through actual native ACL");

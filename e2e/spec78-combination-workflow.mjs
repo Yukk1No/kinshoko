@@ -286,7 +286,7 @@ export class CombinationWorkflow {
     await this.sourceEditorLoaded("乙来源独立人工备注");
     await d.screenshot("02b-source-editor-loaded.png");
     await d.type("//*[@aria-label='整理来源']//textarea[@aria-label='备注']","乙来源经界面修改的备注");
-    await this.readyClick("//*[@aria-label='整理来源']//button[normalize-space()='保存备注']");
+    await this.readyClick("//*[@aria-label='整理来源']//button[@aria-label='保存备注']");
     await until("B note saved",async()=>(await this.inspect(this.targetB)).detail.note.manual==="乙来源经界面修改的备注");
     d.assert((await this.inspect(this.targetA)).detail.note.manual==="甲来源独立人工备注"&&(await d.invoke("current_library")).id===this.a.id,"editing explicit inactive B leaves A curation and current provider intact");
     const pinsFile=join(d.data,"pins.json"); const before=existsSync(pinsFile)?JSON.parse(readFileSync(pinsFile,"utf8")).pins.map(pin=>pin.id):[];
