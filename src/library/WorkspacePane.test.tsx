@@ -127,3 +127,21 @@ it("未连接的图库就地说明原因，“重新连接”重新检查", asyn
   expect(recheck).toHaveBeenCalledTimes(1);
   expect(within(document.querySelector<HTMLElement>('[data-library-id="B"]')!).queryByRole("button", { name: "重新连接" })).toBeNull();
 });
+it("回收站只在侧栏底部出现一次，跟随正在查看的那个图库的回收站（#98 侧栏三段）", async () => {
+  const view = render(<WorkspacePane {...props} />);
+  await settle();
+  const two = forest(); two.providers[0].sidebar!.trash = 4; two.providers[1].sidebar!.trash = 2;
+  await act(async () => pending[0].resolve(two));
+  const trash = screen.getAllByRole("button", { name: /^回收站（/ });
+  expect(trash).toHaveLength(1);
+  expect(trash[0].closest(".side-foot")).toBeTruthy();
+  expect(trash[0].getAttribute("aria-label")).toBe("回收站（2 张）");
+  fireEvent.click(trash[0]);
+  expect(props.onScope).toHaveBeenLastCalledWith({ kind: "library", libraryId: "B", scope: { kind: "trash" } });
+  // Opening another library's trash (e.g. 去回收站 on its import receipt) uses the same bottom entry.
+  view.rerender(<WorkspacePane {...props} scope={{ kind: "library", libraryId: "A", scope: { kind: "trash" } }} />);
+  const shown = screen.getAllByRole("button", { name: /^回收站（/ });
+  expect(shown).toHaveLength(1);
+  expect(shown[0].getAttribute("aria-label")).toBe("回收站（4 张）");
+  expect(shown[0].getAttribute("aria-current")).toBe("page");
+});

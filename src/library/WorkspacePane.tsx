@@ -70,9 +70,13 @@ export function WorkspacePane({ status, scope, onScope, activeLibraryId, safeMod
   const path = isFolder && selected?.sidebar ? folderPath(selected.sidebar.folders, local.id) : null;
   const range = scope.kind === "all" ? "全部图库" : selected ? selected.registration.library.name + " / " +
     (selected.registration.unavailable ? "未连接" : isFolder ? path?.join(" / ") ?? (forest ? "文件夹已失效" : "正在读取目录") : local?.kind === "trash" ? "回收站" : local?.kind === "unassigned" ? "未归类" : "全部图片") : forest ? "图库已失效" : "正在读取图库";
-  const active = providers.find((p) => p.registration.library.id === activeLibraryId);
-  const activeTrash: WorkspaceScope = { kind: "library", libraryId: activeLibraryId, scope: { kind: "trash" } };
-  const trashCurrent = scope.kind === "library" && scope.libraryId === activeLibraryId && scope.scope.kind === "trash";
+  // 侧栏三段（design/ui-system/README.md）：回收站只在底部出现一次。平时是当前图库的；
+  // 从某个图库的导入回执“去回收站”时，这一项跟随正在查看的那个图库。
+  const viewingTrash = scope.kind === "library" && scope.scope.kind === "trash";
+  const trashLibraryId = viewingTrash ? scope.libraryId : activeLibraryId;
+  const active = providers.find((p) => p.registration.library.id === trashLibraryId);
+  const activeTrash: WorkspaceScope = { kind: "library", libraryId: trashLibraryId, scope: { kind: "trash" } };
+  const trashCurrent = viewingTrash;
   return <nav className="workspace-scope side-bands" aria-label="查找范围">
     <div className="workspace-current-scope sr-only" role="status">范围：{range}</div>
     <div className="side-top">
@@ -107,7 +111,7 @@ export function WorkspacePane({ status, scope, onScope, activeLibraryId, safeMod
           {onRecheck && <button type="button" className="offline-retry" onClick={onRecheck}><RefreshCw size={11} aria-hidden="true" />重新连接</button>}
         </div>}
         {expanded && sidebar && <SidebarPane directory={sidebar} unassigned={unassigned} descendantCounts={counts} includeDescendants={descendants} embedded libraryName={library.name + " / " + library.root}
-          libraryId={library.id} workspace safeMode={safeMode} readOnly={library.id !== activeLibraryId} showTrash={library.id !== activeLibraryId}
+          libraryId={library.id} workspace safeMode={safeMode} readOnly={library.id !== activeLibraryId} showTrash={false}
           scopeSelected={selectedRoot} scope={selectedRoot ? scope.scope : { kind: "all" }}
           onScope={(next) => onScope({ kind: "library", libraryId: library.id, scope: next.kind === "folder" || next.kind === "folderTree" ? { kind: descendants ? "folderTree" : "folder", id: next.id } : next })}
           reloadKey={reloadKey} onError={onError} />}
@@ -126,7 +130,7 @@ export function WorkspacePane({ status, scope, onScope, activeLibraryId, safeMod
     </div>
     <div className="side-foot">
       {foot}
-      {activeLibraryId && <FluidList><FluidRow index={0}>
+      {trashLibraryId && <FluidList><FluidRow index={0}>
         <button type="button" className="sidebar-item k-row" aria-current={trashCurrent ? "page" : undefined}
           disabled={!active?.sidebar} aria-label={`回收站（${active?.sidebar?.trash ?? "…"} 张）`} onClick={() => onScope(activeTrash)}>
           <span className="k-row-icon" aria-hidden="true"><Trash2 size={15} /></span><span className="sidebar-label">回收站</span>
