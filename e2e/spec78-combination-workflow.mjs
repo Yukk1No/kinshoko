@@ -77,7 +77,8 @@ export class CombinationWorkflow {
   async openLibrary(path) {
     await this.d.pick(path);
     const inline = "//section[@aria-label='图库']//button[normalize-space()='打开图库…']";
-    if (await this.d.exec("return !!document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;", [inline])) await this.readyClick(inline);
+    const entry = await until("a visible open-library entry", () => this.d.exec("const shown=x=>{const n=document.evaluate(x,document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return !!n&&n.getClientRects().length>0;};return shown(arguments[0])?'inline':shown(arguments[1])?'menu':null;", [inline, libraryTrigger]));
+    if (entry === "inline") await this.readyClick(inline);
     else { await this.openLibraryMenu(); await this.readyClick(`${libraryMenu}//*[@role='menuitem' and normalize-space()='打开图库…']`); }
   }
   async scope(libraryId = null, folderId = null) {
