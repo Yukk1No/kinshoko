@@ -71,7 +71,8 @@ it("换来源后，旧永久删除的迟到响应不能关闭新来源", async (
   fireEvent.click(screen.getAllByRole("button", { name: "整理此来源" })[0]);
   fireEvent.click(await screen.findByRole("button", { name: "永久删除…" }));
   fireEvent.click(await screen.findByRole("button", { name: "确认永久删除" }));
-  fireEvent.click(within(screen.getByRole("group", { name: "当前操作的来源记录" })).getByRole("button", { name: "移动盘参考" }));
+  // 确认是模态提醒对话框，背后的来源切换对读屏隐藏；这里直接派发点击，模拟删除进行中来源被换掉的竞态。
+  fireEvent.click(within(screen.getByRole("group", { name: "当前操作的来源记录", hidden: true })).getByRole("button", { name: "移动盘参考", hidden: true }));
   await screen.findByRole("textbox", { name: "备注" });
   await import("@testing-library/react").then(({ act }) => act(async () => { finish(); await pending; }));
   expect(close).not.toHaveBeenCalled();

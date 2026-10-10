@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { FolderInput, FolderMinus, Link2, RotateCcw, ShieldCheck, Trash2, Undo2, X } from "lucide-react";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { Segmented } from "../ui/Segmented";
@@ -228,32 +229,39 @@ function PermanentDeleteConfirm({
     );
   };
 
-  if (!preview) return <p className="selection-hint">正在核对参考组…</p>;
+  // 提醒对话框挂在 body 上：详情面板收起（inert）时也能看到并操作（#98）。
   return (
-    <div className="permanent-delete" role="alertdialog" aria-label="永久删除">
-      {changed && <p className="selection-hint">回收站或参考组刚有变化，已按最新情况重新列出。</p>}
-      <p>永久删除这 {preview.imageIds.length} 张图？原图与整理结果都会删除，无法恢复。</p>
-      {preview.groups.length > 0 && (
-        <>
-          <p>以下参考组用到了这些图。删除后成员与布局保留，缺失的图会标出来：</p>
-          <ul aria-label="受影响的参考组">
-            {preview.groups.map((g) => (
-              <li key={g.groupId}>
-                {g.name}（{g.imageIds.length} 张）
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-      <div className="selection-actions">
-        <button type="button" disabled={busy} onClick={confirm}>
-          确认永久删除
-        </button>
-        <button type="button" disabled={busy} onClick={onCancel}>
-          取消
-        </button>
-      </div>
-    </div>
+    <AlertDialog.Root open onOpenChange={(open) => { if (!open && !busy) onCancel(); }}>
+      <AlertDialog.Portal>
+        <AlertDialog.Backdrop className="k-backdrop" />
+        <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label="永久删除">
+          <AlertDialog.Title className="k-dialog-title">永久删除</AlertDialog.Title>
+          {!preview ? <p className="k-dialog-desc" role="status">正在核对参考组…</p> : <>
+            {changed && <p className="k-set-note" role="status">回收站或参考组刚有变化，已按最新情况重新列出。</p>}
+            <AlertDialog.Description className="k-dialog-desc">永久删除这 {preview.imageIds.length} 张图？原图与整理结果都会删除，无法恢复。</AlertDialog.Description>
+            {preview.groups.length > 0 && (
+              <>
+                <p className="k-dialog-desc">这些参考组用到了它们，成员位置会保留并标为缺失：</p>
+                <ul className="permanent-delete-groups" aria-label="受影响的参考组">
+                  {preview.groups.map((g) => (
+                    <li key={g.groupId}>
+                      {g.name}（{g.imageIds.length} 张）
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </>}
+          <div className="k-dialog-foot">
+            <span className="k-grow" />
+            <AlertDialog.Close className="k-btn" disabled={busy}>取消</AlertDialog.Close>
+            <button type="button" className="k-btn is-danger" disabled={busy || !preview} onClick={confirm}>
+              确认永久删除
+            </button>
+          </div>
+        </AlertDialog.Popup>
+      </AlertDialog.Portal>
+    </AlertDialog.Root>
   );
 }
 

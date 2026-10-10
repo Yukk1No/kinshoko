@@ -1190,6 +1190,33 @@ describe("整理", () => {
     await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
   });
 
+  it("收起详情面板后，永久删除的确认仍是可见、可操作的提醒对话框", async () => {
+    backend(library, clean, (cmd, args) => {
+      if (cmd === "plugin:library|preview_permanent_delete") return { imageIds: (args as { ids: string[] }).ids, groups: [], token: "T1" };
+      if (cmd === "plugin:library|permanent_delete") return null;
+      return undefined;
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    await screen.findByRole("navigation", { name: `${library.name} / ${library.root}的目录` });
+    fireEvent.click(screen.getByRole("button", { name: "回收站（1 张）" }));
+    await waitFor(() => expect(card("a")).toBeTruthy());
+    fireEvent.keyDown(card("a"), { key: " " });
+    fireEvent.click(await screen.findByRole("button", { name: "收起详情" }));
+    await waitFor(() => expect(screen.getByLabelText("详情", { selector: "aside" }).getAttribute("data-collapsed")).toBe("true"));
+    fireEvent.click(await screen.findByRole("button", { name: "永久删除…" }));
+    const dialog = await screen.findByRole("alertdialog", { name: "永久删除" });
+    expect(dialog.closest("[inert], [aria-hidden='true']")).toBeNull();
+    expect(dialog.closest("aside")).toBeNull();
+    expect(within(dialog).getByText(/永久删除这 1 张图/)).toBeTruthy();
+    const confirm = within(dialog).getByRole("button", { name: "确认永久删除" });
+    expect(confirm.className).toContain("k-btn");
+    expect(confirm.className).toContain("is-danger");
+    fireEvent.click(confirm);
+    await waitFor(() => expect(sent("plugin:library|permanent_delete")).toEqual([{ libraryId: "L1", ids: ["a"], token: "T1" }]));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+  });
+
   it("只选一张时写备注，并能退回来源的备注", async () => {
     backend(library);
     render(<App />);
