@@ -225,9 +225,11 @@
 .k-groups .k-group-member > .k-group-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border: 0; border-radius: 13px; background: transparent; color: var(--ink-2); font: inherit; font-size: 12px; }
 .k-groups .k-group-member > .k-group-chip .sidebar-label { white-space: nowrap; }
 .k-groups .k-group-member > .k-group-chip .sidebar-count { color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.k-group-member-acts { display: none; gap: 0; }
-.k-group-member:hover .k-group-member-acts, .k-group-member:focus-within .k-group-member-acts { display: inline-flex; }
-@media (hover: none) { .k-group-member-acts { display: inline-flex; } }
+/* 收起时宽度为 0 但仍可用 Tab 聚焦；聚焦或悬停时展开。 */
+.k-group-member-acts { display: inline-flex; max-width: 0; overflow: hidden; opacity: 0; gap: 0; transition: max-width 140ms, opacity 140ms; }
+.k-group-member:hover .k-group-member-acts, .k-group-member:focus-within .k-group-member-acts { max-width: 64px; opacity: 1; }
+@media (hover: none) { .k-group-member-acts { max-width: 64px; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .k-group-member-acts { transition: none; } }
 .k-groups-dialog .k-groups { max-height: calc(100vh - 260px); overflow: auto; }
 /* 详情面板打开时，右下角卡片停在面板左侧，不盖住面板底部的按钮（#98）。 */
 .k-task-cards { transition: right 200ms cubic-bezier(.2,.9,.25,1.05); }
