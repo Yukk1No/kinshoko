@@ -2,7 +2,7 @@ import { useCaptureSources } from "./desktop/captureSources";
 import { onCollectionRequest, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { Images, PanelLeftClose, PanelLeftOpen, PanelRightClose } from "lucide-react";
+import { Images, PanelLeftClose, PanelLeftOpen, PanelRightClose, X } from "lucide-react";
 import { ToastProvider, useToast } from "./ui/Toast";
 import { WinCtrls } from "./ui/WinCtrls";
 import type { AppInfo } from "./bindings/AppInfo";
@@ -31,7 +31,7 @@ import {
 import { CreateLibrary } from "./library/CreateLibrary";
 import { type FinishedImport, type RunningImport } from "./library/ImportBar";
 import { ImportMenu } from "./library/ImportMenu";
-import { LegacyNameMigrationNotice } from "./library/LegacyNameMigrationPanel";
+import { LegacyNameMigrationNotice, LegacyNameWizard } from "./library/LegacyNameMigrationPanel";
 import { WorkspacePane, WorkspaceSources } from "./library/WorkspacePane";
 import type { WorkspaceCard as SourcesCard } from "./bindings/WorkspaceCard";
 import { LibraryPicker } from "./library/LibraryPicker";
@@ -41,10 +41,10 @@ import { SelectionPanel } from "./library/SelectionPanel";
 import { TagGroupsPane } from "./library/TagGroupsPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
 import { TagGroupBar } from "./search/TagGroupBar";
-import { ModelSettings } from "./ModelSettings";
 import { Rail, type Section } from "./shell/Rail";
 import { SettingsPanel } from "./SettingsPanel";
-import { BackupReminder, BackupSettings } from "./Backup";
+import { BackupReminder } from "./Backup";
+import { Dialog } from "@base-ui/react/dialog";
 import { TaggingIndicator } from "./TaggingIndicator";
 import { UpdateBanner } from "./Update";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "./wall/Wall";
@@ -458,9 +458,9 @@ function MainWindow() {
   useCaptureSources(() => [], -100);
   const toast = useToast();
   const [info, setInfo] = useState<AppInfo | null>(null);
-  const [settingsRevision,setSettingsRevision] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
-  const [nameMigrationRequest, setNameMigrationRequest] = useState(0);
+  /** 确认旧名称向导：横幅或设置 › 标签的提示条打开，叠在当前界面上。 */
+  const [nameWizard, setNameWizard] = useState(false);
   const [captureRequest,setCaptureRequest]=useState<{id:string;stamp:number}|null>(null);
   const collectionHandled=useCallback(()=>setCaptureRequest(null),[]);
   const [section, setSection] = useState<Section>("browse");
@@ -578,7 +578,7 @@ function MainWindow() {
   const empty = (!library && !hasProviders) || showCreate;
   const notices = <>
     <RuntimeNotice hidden={showSettings || viewerOpen} />
-    {library && <div inert={viewerOpen}><LegacyNameMigrationNotice libraryId={library.id} safe={safe} onOpen={() => { setNameMigrationRequest((request) => request + 1); setShowSettings(true); }} /></div>}
+    {library && <div inert={viewerOpen}><LegacyNameMigrationNotice libraryId={library.id} safe={safe} onOpen={() => setNameWizard(true)} /></div>}
     <UpdateBanner />
     <BackupReminder />
   </>;
@@ -587,7 +587,7 @@ function MainWindow() {
       <div className="rail-slot" inert={viewerOpen}>
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
           onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
-          onSettings={() => { setNameMigrationRequest(0); setShowSettings((shown) => !shown); }} />
+          onSettings={() => setShowSettings((shown) => !shown)} />
       </div>
       <div className="app-column">
       {library !== undefined && (
@@ -637,19 +637,24 @@ function MainWindow() {
         </main>
         </div>
       )}
-      {showSettings && (
-        <div className="settings-overlay" role="dialog" aria-label="程序设置" inert={viewerOpen}>
-          <header><h2>程序设置</h2><span className="settings-version">{info && `${info.productName} ${info.version}`}</span><button type="button" onClick={() => setShowSettings(false)}>关闭设置</button></header>
-          <SettingsPanel
-            onRestored={()=>setSettingsRevision((revision)=>revision+1)}
-            nameMigrationRequest={nameMigrationRequest}
-            library={library ?? null}
-            onChange={(view) => setShowApproxSource(view.showApproxSource)}
-          />
-          <ModelSettings key={settingsRevision} />
-          <BackupSettings />
-        </div>
-      )}
+      <Dialog.Root open={showSettings} onOpenChange={setShowSettings}>
+        <Dialog.Portal>
+          <Dialog.Backdrop className="k-backdrop" />
+          <Dialog.Popup className="k-dialog k-settings-dialog">
+            <Dialog.Title className="sr-only">程序设置</Dialog.Title>
+            <SettingsPanel
+              version={info && `${info.productName} ${info.version}`}
+              library={library ?? null}
+              safe={safe}
+              onSafeMode={toggleSafe}
+              onOpenNameWizard={() => setNameWizard(true)}
+              onChange={(view) => setShowApproxSource(view.showApproxSource)}
+              closeButton={<Dialog.Close className="k-icon-btn k-dialog-x" aria-label="关闭设置"><X size={16} aria-hidden="true" /></Dialog.Close>}
+            />
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+      <LegacyNameWizard open={nameWizard} onOpenChange={setNameWizard} />
       </div>
     </div></SaveDestinationProvider>
   );

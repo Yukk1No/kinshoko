@@ -1,31 +1,28 @@
 import { useEffect, useRef, useState } from "react";
+import { PenLine, Search, Tag, X } from "lucide-react";
 import type { CatalogNameEdit } from "../bindings/CatalogNameEdit";
 import type { CatalogTag } from "../bindings/CatalogTag";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
 import { editTagName, inspectTagCatalog, onSafeModeSetting } from "../ipc";
+import { SettingsRow, StatusPill } from "../ui/SettingsList";
 
+const LIMIT = 80;
+const NAMESPACES: Record<string, string> = { general: "", artist: "作者", character: "角色", work: "作品" };
 const currentName = (tag: CatalogTag, lang: string) => tag.names.find((name) => name.lang === lang)?.name ?? tag.names[0]?.name ?? tag.external[0]?.name.replaceAll("_", " ") ?? "未命名标签";
 
-/** Adapted from the approved name-model's separate display/default/preference/other-name rows
- * and the reference-browser SettingsDialog fieldset with explicit action buttons. */
+/**
+ * 设置 › 标签 › 显示名：显示名先用“我的叫法”（显式偏好），没有时用默认名；改一次在所有图库生效。
+ * 别名单独用于查找。每行只标出状态，点“改名”展开一个标签的编辑，一次只编辑一个。
+ */
 export function TagNamePanel() {
   const [workspace, setWorkspace] = useState<TagCatalogWorkspace | null>(null);
   const [lang, setLang] = useState("zh-CN");
   const [filter, setFilter] = useState("");
-  const [selected, setSelected] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
   const [preferencesOnly, setPreferencesOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const generation = useRef(0);
-  useEffect(() => {
-    let alive = true;
-    const unlisten = onSafeModeSetting(() => {
-      if (!alive) return;
-      generation.current++;
-      setWorkspace(null); setError(null); setBusy(false);
-    });
-    return () => { alive = false; generation.current++; void unlisten.then((stop) => stop()).catch(() => {}); };
-  }, []);
   const run = async (action: () => Promise<TagCatalogWorkspace>) => {
     const request = ++generation.current;
     setBusy(true); setError(null);
@@ -33,52 +30,74 @@ export function TagNamePanel() {
     catch (reason) { if (request === generation.current) setError(String(reason)); }
     finally { if (request === generation.current) setBusy(false); }
   };
-  const matches = workspace?.catalog.tags.filter((tag) => (!preferencesOnly || tag.namePreferences.some((entry) => entry.lang === lang.trim())) && [currentName(tag, lang.trim()), ...tag.names.map((entry) => entry.name), ...tag.aliases.map((entry) => entry.name), ...tag.external.map((entry) => entry.name)].some((name) => name.toLocaleLowerCase().includes(filter.trim().toLocaleLowerCase()))) ?? [];
-  const options = matches.slice(0, 80);
-  const selectedTag = options.find((tag) => tag.id === selected) ?? options[0];
-  return <fieldset aria-label="标签显示名称">
-    <legend>标签显示名称</legend>
-    <p className="settings-hint">显示名称先用显式偏好，没有偏好时跟随默认。保存偏好会在各资料库生效；恢复默认撤回该语言的偏好。其他叫法单独用于查找。</p>
-    <button type="button" disabled={busy} onClick={() => void run(inspectTagCatalog)}>管理显示名称</button>
-    <label className="settings-row">名称语言<input aria-label="名称语言" value={lang} onChange={(event) => setLang(event.target.value)} placeholder="zh-CN" /></label>
-    {busy && <p role="status">正在保存或读取名称…</p>}
-    {error && <p role="alert">{error}</p>}
+  useEffect(() => {
+    let alive = true;
+    void run(inspectTagCatalog);
+    const unlisten = onSafeModeSetting(() => {
+      if (!alive) return;
+      generation.current++;
+      setWorkspace(null); setError(null); setBusy(false); setEditing(null);
+    });
+    return () => { alive = false; generation.current++; void unlisten.then((stop) => stop()).catch(() => {}); };
+  }, []);
+  const language = lang.trim();
+  const needle = filter.trim().toLocaleLowerCase();
+  const pending = new Set(workspace?.catalog.mappings.filter((mapping) => mapping.nameProvenance === "pending").map((mapping) => mapping.catalogId));
+  const matches = workspace?.catalog.tags.filter((tag) => (!preferencesOnly || tag.namePreferences.some((entry) => entry.lang === language))
+    && [currentName(tag, language), ...tag.names.map((entry) => entry.name), ...tag.aliases.map((entry) => entry.name), ...tag.external.map((entry) => entry.name)]
+      .some((name) => name.toLocaleLowerCase().includes(needle))) ?? [];
+  const shown = matches.slice(0, LIMIT);
+  return <section className="tag-names" aria-label="标签显示名" aria-busy={busy}>
+    <div className="k-set-toolbar">
+      <label className="k-search"><Search size={14} aria-hidden="true" />
+        <input aria-label="查找要改名称的标签" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="搜标签名或别名" /></label>
+      <label className="k-check"><input type="checkbox" checked={preferencesOnly} onChange={(event) => setPreferencesOnly(event.target.checked)} />只看我的叫法</label>
+      <label className="k-lang" title="名称语言">语言<input aria-label="名称语言" value={lang} onChange={(event) => setLang(event.target.value)} placeholder="zh-CN" /></label>
+    </div>
+    {busy && !workspace && <p className="k-set-note" role="status">正在读取标签…</p>}
+    {error && <p className="k-set-error" role="alert">{error}</p>}
+    {!workspace && !busy && <button type="button" className="k-btn is-sm" onClick={() => void run(inspectTagCatalog)}>读取标签</button>}
     {workspace && <>
-      {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} role="status">{library.name}：{unavailable}</p>)}
-      {workspace.catalog.mappings.some((mapping) => mapping.nameProvenance === "pending") && <p className="settings-hint">旧资料库的名称来源待处理。尚未选择名称规则时保留原显示；在这里保存显式偏好，会为该统一标签选择共享名称规则。</p>}
-      <label className="settings-row">查找标签<input aria-label="查找要改名称的标签" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="名称或其他叫法" /></label>
-      <label className="settings-row"><input type="checkbox" checked={preferencesOnly} onChange={(event) => setPreferencesOnly(event.target.checked)} />只看本语言已保存的偏好</label>
-      <label className="settings-row">选择标签<select aria-label="选择标签" value={selectedTag?.id ?? ""} onChange={(event) => setSelected(event.target.value)}>
-        {options.map((tag) => <option key={tag.id} value={tag.id}>{currentName(tag, lang.trim())} · {tag.namespace} · {tag.id.slice(-8)}</option>)}
-      </select></label>
-      {matches.length > options.length && <p className="settings-hint">共有 {matches.length} 个匹配，先列出 {options.length} 个。继续输入可以缩小范围。</p>}
-      {!selectedTag ? <p>{workspace.catalog.tags.length === 0 ? "可用资料库中还没有标签。" : "没有匹配的标签。"}</p> : <table className="settings-shortcuts">
-        <thead><tr><th>标签与显示名称</th><th>名称偏好</th><th>其他叫法</th></tr></thead>
-        <tbody><NameRow key={`${selectedTag.id}/${lang}`} tag={selectedTag} lang={lang.trim()} busy={busy} onEdit={(edit) => void run(() => editTagName(selectedTag.id, edit))} /></tbody>
-      </table>}
+      {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} className="k-set-note" role="status">{library.name}：{unavailable}</p>)}
+      {shown.length === 0 ? <p className="k-set-note">{workspace.catalog.tags.length === 0 ? "图库里还没有标签。" : "没有匹配的标签。"}</p>
+        : <ul className="k-list k-set-list" aria-label="标签">
+          {shown.map((tag) => <NameRow key={`${tag.id}/${language}`} tag={tag} lang={language} busy={busy} pending={pending.has(tag.id)}
+            open={editing === tag.id} onToggle={() => setEditing(editing === tag.id ? null : tag.id)}
+            onEdit={(edit) => void run(() => editTagName(tag.id, edit))} />)}
+        </ul>}
+      {matches.length > shown.length && <p className="k-set-note">共 {matches.length} 个，先列出 {shown.length} 个。继续输入可以缩小范围。</p>}
     </>}
-  </fieldset>;
+  </section>;
 }
 
-function NameRow({ tag, lang, busy, onEdit }: { tag: CatalogTag; lang: string; busy: boolean; onEdit: (edit: CatalogNameEdit) => void }) {
+function NameRow({ tag, lang, busy, pending, open, onToggle, onEdit }: {
+  tag: CatalogTag; lang: string; busy: boolean; pending: boolean; open: boolean; onToggle: () => void; onEdit: (edit: CatalogNameEdit) => void;
+}) {
   const name = currentName(tag, lang);
   const preference = tag.namePreferences.find((entry) => entry.lang === lang);
   const defaultName = tag.defaultNames.find((entry) => entry.lang === lang)?.name;
+  const aliases = tag.aliases.filter((entry) => entry.lang === null || entry.lang === lang);
   const [draft, setDraft] = useState(name);
   const [alias, setAlias] = useState("");
   useEffect(() => setDraft(name), [name]);
-  return <tr data-catalog-name-id={tag.id}>
-    <th scope="row"><span>{name}</span><small> · {preference ? "显式偏好" : "默认名称"}</small>
-      <p className="settings-hint">本语言默认：{defaultName ?? "尚无译名"}</p>
-      <details><summary>标签身份</summary><p>{tag.namespace} · {tag.id}</p><p>外部对应：{tag.external.map((entry) => `${entry.vocabulary}:${entry.name}`).join("、") || "无"}</p></details>
-    </th>
-    <td><input aria-label={`“${name}”的偏好名称`} value={draft} disabled={busy} onChange={(event) => setDraft(event.target.value)} />
-      <button type="button" disabled={busy || !lang || !draft.trim()} onClick={() => onEdit({ kind: "prefer", name: { lang, name: draft.trim() } })}>保存偏好</button>
-      <button type="button" disabled={busy || !preference} onClick={() => onEdit({ kind: "reset", lang })}>恢复默认</button>
-    </td>
-    <td><ul>{tag.aliases.filter((entry) => entry.lang === null || entry.lang === lang).map((entry) => <li key={`${entry.lang}/${entry.name}`}><span>{entry.name}</span><button type="button" disabled={busy} aria-label={`去掉别名“${entry.name}”`} onClick={() => onEdit({ kind: "removeAlias", alias: entry })}>×</button></li>)}</ul>
-      <input aria-label={`“${name}”的新别名`} value={alias} disabled={busy} onChange={(event) => setAlias(event.target.value)} />
-      <button type="button" disabled={busy || !lang || !alias.trim()} onClick={() => { onEdit({ kind: "addAlias", alias: { name: alias.trim(), lang } }); setAlias(""); }}>加别名</button>
-    </td>
-  </tr>;
+  const desc = [NAMESPACES[tag.namespace], preference ? `默认名 ${defaultName ?? "暂无"}` : "默认名称", aliases.length ? `别名 ${aliases.map((entry) => entry.name).join("、")}` : ""].filter(Boolean).join(" · ");
+  return <SettingsRow icon={<Tag size={15} />} title={name} desc={desc} label={`${name} · ${pending ? "待确认" : preference ? "我的叫法" : "默认"}`}
+    below={open && <div className="k-name-editor" data-catalog-name-id={tag.id}>
+      <div className="k-set-inline">
+        <input className="k-input" aria-label={`“${name}”的我的叫法`} value={draft} disabled={busy} onChange={(event) => setDraft(event.target.value)} />
+        <button type="button" className="k-btn is-sm is-primary" disabled={busy || !lang || !draft.trim()} onClick={() => onEdit({ kind: "prefer", name: { lang, name: draft.trim() } })}>记为我的叫法</button>
+        <button type="button" className="k-btn is-sm" disabled={busy || !preference} onClick={() => onEdit({ kind: "reset", lang })}>恢复默认</button>
+      </div>
+      <p className="k-set-note">本语言默认：{defaultName ?? "暂无译名"}</p>
+      <div className="k-chips" role="list" aria-label="别名">{aliases.map((entry) => <span role="listitem" key={`${entry.lang}/${entry.name}`} className="k-chip">{entry.name}
+        <button type="button" className="k-chip-x" disabled={busy} aria-label={`去掉别名“${entry.name}”`} onClick={() => onEdit({ kind: "removeAlias", alias: entry })}><X size={11} aria-hidden="true" /></button></span>)}</div>
+      <div className="k-set-inline">
+        <input className="k-input" aria-label={`“${name}”的新别名`} placeholder="新别名" value={alias} disabled={busy} onChange={(event) => setAlias(event.target.value)} />
+        <button type="button" className="k-btn is-sm" disabled={busy || !lang || !alias.trim()} onClick={() => { onEdit({ kind: "addAlias", alias: { name: alias.trim(), lang } }); setAlias(""); }}>加别名</button>
+      </div>
+      <details className="k-more"><summary>更多信息</summary><p>{tag.namespace} · {tag.id}</p><p>外部对应：{tag.external.map((entry) => `${entry.vocabulary}:${entry.name}`).join("、") || "无"}</p></details>
+    </div>}>
+    {pending ? <StatusPill tone="accent">待确认</StatusPill> : preference ? <StatusPill tone="mine">我的叫法</StatusPill> : <StatusPill>默认</StatusPill>}
+    <button type="button" className="k-icon-btn" aria-expanded={open} aria-label={`改名“${name}”`} title="改名" onClick={onToggle}><PenLine size={14} aria-hidden="true" /></button>
+  </SettingsRow>;
 }

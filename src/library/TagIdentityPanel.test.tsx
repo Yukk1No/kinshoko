@@ -91,7 +91,7 @@ it("offers an explicit provider publication retry without discarding the saved a
   expect((await screen.findByRole("alert")).textContent).toContain("程序中的对应已保留");
   expect(screen.getByText(/已纠正/)).toBeTruthy();
   fireEvent.click(publish);
-  await screen.findByText("标签定义已保存到资料库。");
+  await screen.findByText("标签定义已保存到图库。");
   expect(screen.queryByRole("alert")).toBeNull();
 });
 
@@ -131,6 +131,6 @@ it("keeps a correction publication failure through queued and later vocabulary r
   await waitFor(() => expect(inspections).toBe(4));
   expect(screen.getByRole("alert").textContent).toContain(failure);
   fireEvent.click(screen.getByRole("button", { name: "保存 画稿库 的标签定义" }));
-  await screen.findByText("标签定义已保存到资料库。");
+  await screen.findByText("标签定义已保存到图库。");
   expect(screen.queryByRole("alert")).toBeNull();
 });

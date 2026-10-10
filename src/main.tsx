@@ -8,6 +8,7 @@ import { RuntimeProvider } from "./RuntimeSupport";
 import "./styles.css";
 import "./ui/ui.css";
 import "./shell/main-window.css";
+import "./ui/dialogs.css";
 
 // 同一个页面承载四种窗口：主窗口、截图框选窗口（?view=capture）、钉图窗口（?view=pin&pin=<id>）
 // 与还原度门槛实验窗口（?view=fidelity-gate）。

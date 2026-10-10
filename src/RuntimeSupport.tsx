@@ -3,6 +3,8 @@ import type { RuntimeCapabilities } from "./bindings/RuntimeCapabilities";
 import type { RuntimeStatus } from "./bindings/RuntimeStatus";
 import { diagnosticsReport, exportDiagnostics, openRuntimeUpdate, runtimeStatus } from "./ipc";
 import { probeRuntime } from "./runtime";
+import { CircleCheck, Info, Monitor, Pin, RefreshCw } from "lucide-react";
+import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 
 type RuntimeContextValue = {
   status: RuntimeStatus | null;
@@ -37,16 +39,25 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
 }
 
 /** 原有脱敏报告与保存对话框。每次由用户发起，测量本窗口，不保存能力日志、不上传。 */
-export function DiagnosticsReport({ onError }: { onError: (message: string) => void }) {
+export function useDiagnosticsReport(onError: (message: string) => void) {
   const runtime = useContext(RuntimeContext);
   const [text, setText] = useState<string | null>(null);
   const facts = () => runtime ? runtime.check() : Promise.resolve(undefined);
+  return {
+    text,
+    show: () => void facts().then(diagnosticsReport).then(setText).catch((e) => onError(String(e))),
+    save: () => void facts().then(exportDiagnostics).catch((e) => onError(String(e))),
+  };
+}
+
+export function DiagnosticsReport({ onError }: { onError: (message: string) => void }) {
+  const report = useDiagnosticsReport(onError);
   return <>
     <p className="settings-actions">
-      <button type="button" onClick={() => void facts().then(diagnosticsReport).then(setText).catch((e) => onError(String(e)))}>显示诊断信息</button>
-      <button type="button" onClick={() => void facts().then(exportDiagnostics).catch((e) => onError(String(e)))}>存成文件…</button>
+      <button type="button" className="k-btn is-sm" onClick={report.show}>显示诊断信息</button>
+      <button type="button" className="k-btn is-sm" onClick={report.save}>存成文件…</button>
     </p>
-    {text !== null && <pre className="settings-diagnostics" aria-label="诊断信息">{text}</pre>}
+    {report.text !== null && <pre className="settings-diagnostics" aria-label="诊断信息">{report.text}</pre>}
   </>;
 }
 
@@ -61,30 +72,40 @@ export function RuntimeNotice({ className = "", hidden = false }: { className?: 
 export function RuntimeFailure({ problems, className = "" }: { problems: string[]; className?: string }) {
   const runtime = useContext(RuntimeContext);
   const [error, setError] = useState<string | null>(null);
-  return <aside className={`runtime-notice ${className}`} aria-label="运行时能力提示">
-    <div role="alert"><strong>运行时能力检查未通过</strong><ul>{problems.map((problem) => <li key={problem}>{problem}</li>)}</ul></div>
+  return <aside className={`runtime-notice ${className}`} aria-label="运行环境提示">
+    <div role="alert"><strong>运行环境检查未通过</strong><ul>{problems.map((problem) => <li key={problem}>{problem}</li>)}</ul></div>
     <p>更新 WebView2 后，从托盘退出并重启 Kinshoko。若问题继续出现，请保存本机诊断信息。</p>
     <p className="settings-actions">
-      <button type="button" onClick={() => void openRuntimeUpdate().catch((e) => setError(String(e)))}>打开微软 WebView2 下载页</button>
-      {runtime && <button type="button" disabled={runtime.checking} onClick={() => void runtime.check().catch((e) => setError(String(e)))}>重新检查运行时</button>}
+      <button type="button" className="k-btn is-sm" onClick={() => void openRuntimeUpdate().catch((e) => setError(String(e)))}>打开微软 WebView2 下载页</button>
+      {runtime && <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch((e) => setError(String(e)))}>重新检查</button>}
     </p>
     <DiagnosticsReport onError={setError} />
     {error && <p role="alert">{error}</p>}
   </aside>;
 }
 
-/** 稳定的本机入口；成功只说明基础解码与绘制，色彩门槛保持独立。 */
+/** 稳定的本机入口（设置 › 诊断 › 运行环境）；成功只说明基础解码与绘制，色彩门槛保持独立。 */
 export function RuntimeDetails() {
   const runtime = useContext(RuntimeContext);
   if (!runtime) return null;
   const status = runtime.status;
-  return <section className="runtime-details" aria-label="本机运行时">
-    <h3>本机运行时</h3>
-    <p>WebView2：{status?.webview2 ?? "未查询到"}</p>
-    <p>{runtime.checking ? "正在检查基础图片解码与钉图绘制…" : !status ? "本窗口的能力检查未完成。" : status.assessment.problems.length ? "基础能力检查未通过。" : "基础图片解码与钉图绘制检查完成。"}</p>
-    {status?.assessment.uses8bitFallback && <p>钉图使用 8 位画布降级。普通浏览可以继续。</p>}
-    <p className="settings-hint">基础能力检查不代表色彩还原度通过。颜色异常时请保留诊断信息。</p>
-    {status?.assessment.problems.length ? <RuntimeNotice /> : <button type="button" disabled={runtime.checking} onClick={() => void runtime.check().catch(() => {})}>重新检查运行时</button>}
-    {runtime.error && <p role="alert">能力检查失败：{runtime.error}</p>}
+  const failed = !!status?.assessment.problems.length;
+  const state = runtime.checking ? <StatusPill>检查中</StatusPill>
+    : !status ? <StatusPill tone="warn">未完成</StatusPill>
+    : failed ? <StatusPill tone="warn">未通过</StatusPill>
+    : <StatusPill tone="ok"><CircleCheck size={12} aria-hidden="true" />正常</StatusPill>;
+  return <section className="runtime-details" aria-label="运行环境">
+    <SettingsGroup title="运行环境">
+      <SettingsRow icon={<Monitor size={16} />} title="图片显示" desc={`WebView2 ${status?.webview2 ?? "未查询到"}`}>{state}</SettingsRow>
+      <SettingsRow icon={<Pin size={16} />} title="钉图绘制"
+        desc={status?.assessment.uses8bitFallback ? "8 位画布，浏览不受影响" : "不代表颜色还原已通过"}>
+        {status?.assessment.uses8bitFallback ? <StatusPill tone="warn"><Info size={12} aria-hidden="true" />已降级</StatusPill> : state}
+      </SettingsRow>
+      <SettingsRow icon={<RefreshCw size={16} />} title="重新检查" desc="更新组件后点一下">
+        <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch(() => {})}>检查</button>
+      </SettingsRow>
+    </SettingsGroup>
+    {failed && <RuntimeNotice className="is-inline" />}
+    {runtime.error && <p className="k-set-error" role="alert">能力检查失败：{runtime.error}</p>}
   </section>;
 }

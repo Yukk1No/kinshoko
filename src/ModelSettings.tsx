@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { ModelChoice } from "./bindings/ModelChoice";
 import type { ModelOption } from "./bindings/ModelOption";
+import { PackageOpen, Sparkles } from "lucide-react";
+import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
 import { importModelPackage, pickModelPackage, taggingModels, taggingSetModel } from "./ipc";
 
 const gb = (bytes: number) => `${(bytes / 1_000_000_000).toFixed(1)} GB`;
@@ -18,8 +20,8 @@ function needs(option: ModelOption): string {
 }
 
 /**
- * 设置中“自动标签模型”一节：按电脑选模型（注明各自的显存或内存需求），
- * 没有网络时从文件导入模型包。
+ * 设置 › 通用 › 自动打标：按电脑选模型（注明各自的显存或内存需求），没有网络时从文件导入模型包
+ * （zip，内含模型文件与 selected_tags.csv）。换模型后已经打过标的图不会重打。
  */
 export function ModelSettings() {
   const [choice, setChoice] = useState<ModelChoice | null>(null);
@@ -62,42 +64,20 @@ export function ModelSettings() {
 
   if (!choice) return null;
 
-  const option = (key: string | null, title: string, detail: string | null) => (
-    <label className="settings-row" key={key ?? "auto"}>
-      <input
-        type="radio"
-        name="tagging-model"
-        checked={choice.selected === key}
-        onChange={() => void run(() => taggingSetModel(key), null)}
-      />
-      <span>
-        {title}
-        {detail && <span className="settings-hint"> {detail}</span>}
-      </span>
-    </label>
-  );
-
+  const current = choice.options.find((o) => o.key === choice.selected);
   return (
-    <section className="settings" aria-label="自动标签模型">
-      <h2>自动标签模型</h2>
-      {option(null, "自动", "有独显时用显卡模型，没有时用 CPU 模型")}
-      {choice.options.map((o) => option(o.key, o.label, needs(o)))}
-      <p className="settings-hint">
-        换模型后已经打过标的图不会重打。没有网络时，可以导入在别处下好的模型包（zip，内含模型文件与
-        selected_tags.csv）。
-      </p>
-      <div className="settings-row">
-        <button type="button" disabled={busy} onClick={() => void importPackage()}>
-          从文件导入模型包…
-        </button>
-        {busy && <span className="settings-hint">正在导入并校验…</span>}
-        {message && <span className="settings-hint">{message}</span>}
-      </div>
-      {error !== null && (
-        <p className="settings-error" role="alert">
-          {error}
-        </p>
-      )}
-    </section>
+    <SettingsGroup label="自动打标">
+      <SettingsRow icon={<Sparkles size={16} />} title="自动打标" desc={current ? needs(current) : "有独显时用显卡"}>
+        <select className="k-select" aria-label="自动打标" value={choice.selected ?? ""}
+          onChange={(e) => void run(() => taggingSetModel(e.target.value || null), null)}>
+          <option value="">自动</option>
+          {choice.options.map((o) => <option key={o.key} value={o.key}>{o.label} · {needs(o)}</option>)}
+        </select>
+      </SettingsRow>
+      <SettingsRow icon={<PackageOpen size={16} />} title="模型包" desc={busy ? "正在导入并校验…" : message ?? "没网时从文件导入"}
+        below={error !== null && <p className="k-set-error" role="alert">{error}</p>}>
+        <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void importPackage()}>导入模型包…</button>
+      </SettingsRow>
+    </SettingsGroup>
   );
 }

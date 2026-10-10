@@ -40,7 +40,7 @@ describe("T05 shared groups", () => {
     expect(calls.some((call) => call.cmd === "plugin:library|tag_groups")).toBe(false);
   });
   it("renders global groups in settings with no current library", async () => {
-    backend(); render(<SettingsPanel />);
+    backend(); render(<SettingsPanel initialTab="tags" />); fireEvent.click(await screen.findByRole("button", { name: "分组" }));
     const settingsGroups = await screen.findByRole("region", { name: "全局标签分组" });
     expect(await within(settingsGroups).findByRole("group", { name: "发色" })).toBeTruthy();
   });

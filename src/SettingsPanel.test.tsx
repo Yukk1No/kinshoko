@@ -10,7 +10,14 @@ import { SettingsPanel } from "./SettingsPanel";
 afterEach(() => {
   cleanup();
   clearMocks();
+  delete window.__KINSHOKO_TEST_PICKS__;
 });
+
+/** 切换到设置的某个分页。 */
+async function tab(name: string) {
+  fireEvent.click(await screen.findByRole("tab", { name }));
+  await screen.findByRole("heading", { name, level: 3 });
+}
 
 const defaults: ShellSettingsView = {
   autostart: true,
@@ -45,13 +52,16 @@ describe("设置：常驻与快捷键", () => {
 
     render(<SettingsPanel />);
 
-    const autostart = await screen.findByRole("checkbox", { name: "开机时启动 Kinshoko" });
-    expect((autostart as HTMLInputElement).checked).toBe(true);
-    const capture = screen.getByRole("row", { name: /截图/ });
+    const autostart = await screen.findByRole("switch", { name: "开机启动" });
+    expect(autostart.getAttribute("aria-checked")).toBe("true");
+    await tab("快捷键");
+    const capture = screen.getByRole("listitem", { name: "截图" });
     expect(within(capture).getByText("F1")).toBeTruthy();
     expect(within(capture).getByText("未注册：已被其他程序占用")).toBeTruthy();
-    expect(within(screen.getByRole("row", { name: /钉剪贴板/ })).getByText("F3")).toBeTruthy();
-    expect(within(screen.getByRole("row", { name: /收起全部钉图/ })).getByText("F4")).toBeTruthy();
+    expect(within(screen.getByRole("listitem", { name: "钉剪贴板" })).getByText("F3")).toBeTruthy();
+    expect(within(screen.getByRole("listitem", { name: "收起钉图" })).getByText("F4")).toBeTruthy();
+    // 安全模式的按键固定，只说明不提供更换。
+    expect(within(screen.getByRole("listitem", { name: "安全模式" })).queryByRole("button")).toBeNull();
   });
 
   it("关掉开机自启后显示核心保存的结果", async () => {
@@ -60,9 +70,9 @@ describe("设置：常驻与快捷键", () => {
     );
     render(<SettingsPanel />);
 
-    fireEvent.click(await screen.findByRole("checkbox", { name: "开机时启动 Kinshoko" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "开机启动" }));
 
-    await screen.findByRole("checkbox", { name: "开机时启动 Kinshoko", checked: false });
+    await screen.findByRole("switch", { name: "开机启动", checked: false });
     expect(calls.find((c) => c.cmd === "set_autostart")?.args).toEqual({ on: false });
   });
 
@@ -78,15 +88,17 @@ describe("设置：常驻与快捷键", () => {
           }
         : undefined,
     );
-    render(<SettingsPanel />);
-    const capture = await screen.findByRole("row", { name: /截图/ });
+    render(<SettingsPanel initialTab="keys" />);
+    const capture = await screen.findByRole("listitem", { name: "截图" });
 
     fireEvent.click(within(capture).getByRole("button", { name: "更换" }));
-    const recorder = within(capture).getByRole("textbox", { name: "按下新的快捷键" });
+    const recorder = within(capture).getByRole("textbox", { name: "按下新的组合键" });
+    expect(recorder.getAttribute("placeholder")).toBe("按下新的组合键…");
     fireEvent.keyDown(recorder, { key: "Control", code: "ControlLeft", ctrlKey: true });
     fireEvent.keyDown(recorder, { key: "a", code: "KeyA", ctrlKey: true, altKey: true });
 
-    expect(await within(capture).findByText("Ctrl+Alt+A")).toBeTruthy();
+    expect(await within(capture).findByLabelText("Ctrl+Alt+A")).toBeTruthy();
+    expect(within(capture).getByText("A")).toBeTruthy();
     expect(within(capture).queryByText(/未注册/)).toBeNull();
     expect(calls.find((c) => c.cmd === "rebind_shortcut")?.args).toEqual({
       action: "capture",
@@ -96,11 +108,14 @@ describe("设置：常驻与快捷键", () => {
 
   it("按 Esc 放弃更换，不发出命令", async () => {
     const calls = backend(() => undefined);
-    render(<SettingsPanel />);
-    const capture = await screen.findByRole("row", { name: /截图/ });
+    const outer: string[] = [];
+    render(<div onKeyDown={(e) => outer.push(e.key)}><SettingsPanel initialTab="keys" /></div>);
+    const capture = await screen.findByRole("listitem", { name: "截图" });
 
     fireEvent.click(within(capture).getByRole("button", { name: "更换" }));
     fireEvent.keyDown(within(capture).getByRole("textbox"), { key: "Escape", code: "Escape" });
+    // 录制中的 Esc 只取消录制，不会关掉外面的设置对话框。
+    expect(outer).toEqual([]);
 
     expect(within(capture).getByText("F1")).toBeTruthy();
     expect(calls.some((c) => c.cmd === "rebind_shortcut")).toBe(false);
@@ -111,8 +126,8 @@ describe("设置：常驻与快捷键", () => {
       if (cmd === "rebind_shortcut") throw "这个快捷键已用于“钉剪贴板”";
       return undefined;
     });
-    render(<SettingsPanel />);
-    const hide = await screen.findByRole("row", { name: /收起全部钉图/ });
+    render(<SettingsPanel initialTab="keys" />);
+    const hide = await screen.findByRole("listitem", { name: "收起钉图" });
 
     fireEvent.click(within(hide).getByRole("button", { name: "更换" }));
     fireEvent.keyDown(within(hide).getByRole("textbox"), { key: "F3", code: "F3" });
@@ -137,12 +152,14 @@ describe("设置：常驻与快捷键", () => {
           }
         : undefined,
     );
-    render(<SettingsPanel />);
-    const pin = await screen.findByRole("row", { name: /钉剪贴板/ });
+    render(<SettingsPanel initialTab="keys" />);
+    const pin = await screen.findByRole("listitem", { name: "钉剪贴板" });
 
     fireEvent.click(within(pin).getByRole("button", { name: "清除" }));
 
     expect(await within(pin).findByText("未设置")).toBeTruthy();
+    expect(within(pin).getByRole("button", { name: "设置" })).toBeTruthy();
+    expect(within(pin).queryByRole("button", { name: "清除" })).toBeNull();
     expect(calls.find((c) => c.cmd === "rebind_shortcut")?.args).toEqual({
       action: "pinClipboard",
       accelerator: null,
@@ -169,13 +186,14 @@ describe("设置：近似查找", () => {
       cmd === "set_show_approx_source" ? { ...defaults, showApproxSource: true } : undefined,
     );
     const seen: ShellSettingsView[] = [];
-    render(<SettingsPanel library={null} onChange={(v) => seen.push(v)} />);
+    render(<SettingsPanel library={null} onChange={(v) => seen.push(v)} initialTab="tags" />);
+    fireEvent.click(await screen.findByRole("button", { name: "相近" }));
 
-    const toggle = await screen.findByRole("checkbox", { name: "显示相近标签来源（内置／个人）" });
-    expect((toggle as HTMLInputElement).checked).toBe(false);
+    const toggle = await screen.findByRole("switch", { name: "标出来源" });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
     fireEvent.click(toggle);
 
-    await screen.findByRole("checkbox", { name: "显示相近标签来源（内置／个人）", checked: true });
+    await screen.findByRole("switch", { name: "标出来源", checked: true });
     expect(calls.find((c) => c.cmd === "set_show_approx_source")?.args).toEqual({ on: true });
     expect(seen.at(-1)?.showApproxSource).toBe(true);
   });
@@ -191,7 +209,8 @@ describe("设置：近似查找", () => {
       }
       return undefined;
     });
-    render(<SettingsPanel library={library} />);
+    render(<SettingsPanel library={library} initialTab="tags" />);
+    fireEvent.click(await screen.findByRole("button", { name: "相近" }));
 
     const table = await screen.findByRole("table", { name: "个人近似对应表" });
     const rows = await within(table).findAllByRole("row");
@@ -214,13 +233,14 @@ describe("设置：诊断", () => {
       cmd === "set_force_srgb" ? { ...defaults, forceSrgb: true } : undefined,
     );
     render(<SettingsPanel />);
+    await tab("诊断");
 
-    const toggle = await screen.findByRole("checkbox", { name: "强制 sRGB（诊断用）" });
-    expect((toggle as HTMLInputElement).checked).toBe(false);
+    const toggle = await screen.findByRole("switch", { name: "按 sRGB 显示" });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
     expect(screen.queryByText(/重启 Kinshoko 后生效/)).toBeNull();
     fireEvent.click(toggle);
 
-    await screen.findByRole("checkbox", { name: "强制 sRGB（诊断用）", checked: true });
+    await screen.findByRole("switch", { name: "按 sRGB 显示", checked: true });
     expect(calls.find((c) => c.cmd === "set_force_srgb")?.args).toEqual({ on: true });
     expect(screen.getByText(/重启 Kinshoko 后生效/)).toBeTruthy();
   });
@@ -232,17 +252,17 @@ describe("设置：诊断", () => {
       if (cmd === "clear_usage_log") return null;
       return undefined;
     });
-    render(<SettingsPanel />);
+    render(<SettingsPanel initialTab="diag" />);
 
-    const toggle = await screen.findByRole("checkbox", { name: "记录使用日志（只存在本机）" });
-    expect((toggle as HTMLInputElement).checked).toBe(false);
+    const toggle = await screen.findByRole("switch", { name: "使用记录" });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
     fireEvent.click(toggle);
-    await screen.findByRole("checkbox", { name: "记录使用日志（只存在本机）", checked: true });
+    await screen.findByRole("switch", { name: "使用记录", checked: true });
     expect(calls.find((c) => c.cmd === "set_usage_log")?.args).toEqual({ on: true });
 
-    fireEvent.click(screen.getByRole("button", { name: "导出使用日志…" }));
+    fireEvent.click(screen.getByRole("button", { name: "导出记录…" }));
     await waitFor(() => expect(calls.some((c) => c.cmd === "export_usage_log")).toBe(true));
-    fireEvent.click(screen.getByRole("button", { name: "清除使用日志" }));
+    fireEvent.click(screen.getByRole("button", { name: "清除记录" }));
     await waitFor(() => expect(calls.some((c) => c.cmd === "clear_usage_log")).toBe(true));
   });
 
@@ -252,12 +272,12 @@ describe("设置：诊断", () => {
       if (cmd === "export_diagnostics") return true;
       return undefined;
     });
-    render(<SettingsPanel />);
+    render(<SettingsPanel initialTab="diag" />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "显示诊断信息" }));
+    fireEvent.click(await screen.findByRole("button", { name: "查看" }));
 
     expect((await screen.findByLabelText("诊断信息")).textContent).toContain("WebView2：154.0");
-    fireEvent.click(screen.getByRole("button", { name: "存成文件…" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存…" }));
     await waitFor(() => expect(calls.some((c) => c.cmd === "export_diagnostics")).toBe(true));
   });
 });
@@ -265,7 +285,7 @@ describe("设置：诊断", () => {
 describe("设置：更新", () => {
   it("没有配置更新公钥的构建说明不检查更新", async () => {
     backend((cmd) => (cmd === "update_status" ? { state: "disabled", message: "未配置更新公钥，自动更新未启用。请使用新版安装包手动更新。" } : undefined));
-    render(<SettingsPanel />);
+    render(<SettingsPanel initialTab="update" />);
 
     expect(await screen.findByText(/未配置更新公钥/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "检查更新" })).toBeNull();
@@ -278,7 +298,8 @@ describe("设置：更新", () => {
       if (cmd === "install_update") return null;
       return undefined;
     });
-    render(<SettingsPanel />);
+    render(<SettingsPanel initialTab="update" version="Kinshoko 0.1.2" />);
+    expect(await screen.findByText("Kinshoko 0.1.2", { selector: ".k-list-desc" })).toBeTruthy();
 
     fireEvent.click(await screen.findByRole("button", { name: "检查更新" }));
 
@@ -291,7 +312,8 @@ describe("设置：更新", () => {
 it("refreshes personal approximate labels when shared display names change", async () => {
   let current = "旧显示名称";
   mockIPC((cmd) => cmd === "shell_settings" ? defaults : cmd.endsWith("safe_mode") ? true : cmd.endsWith("workspace_status") ? { revision: "r1", libraries: [] } : cmd.endsWith("shared_personal_approx") ? { revision: 1, conflicts: [], entries: [{ a: { id: "a", namespace: "general", name: current, untranslated: false, hasExternal: false }, b: { id: "b", namespace: "general", name: "另一个标签", untranslated: false, hasExternal: false }, relation: "similar", sources: [] }] } : undefined, { shouldMockEvents: true });
-  render(<SettingsPanel library={{ id: "library", name: "资料库", root: "library" }} />);
+  render(<SettingsPanel library={{ id: "library", name: "资料库", root: "library" }} initialTab="tags" />);
+  fireEvent.click(await screen.findByRole("button", { name: "相近" }));
   await screen.findByText(/旧显示名称/);
   current = "新的共享名称";
   await act(async () => { await emit("workspace-changed", { revision: "r2", libraries: [] }); });
@@ -306,16 +328,56 @@ describe("程序设置备份", () => {
       if (cmd === "plugin:library|restore_application_settings") return { settings: { ...defaults, forceSrgb: true, forceSrgbInEffect: false, showApproxSource: true }, safeMode: true, problems: [] };
       return undefined;
     });
-    render(<SettingsPanel />);
-    const file = await screen.findByRole("textbox", { name: "程序设置备份文件" });
+    render(<SettingsPanel initialTab="backup" />);
+    const file = await screen.findByRole("textbox", { name: "偏好设置备份文件" });
     fireEvent.change(file, { target: { value: "C:/backup/选择.kinshoko-settings" } });
-    expect(screen.queryByRole("button", { name: "替换程序设置" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "读取程序设置备份" }));
-    const restore = await screen.findByRole("button", { name: "替换程序设置" });
-    expect(screen.getByText(/缺席的名称偏好和个人规则会删除/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "替换偏好设置" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "读取" }));
+    const restore = await screen.findByRole("button", { name: "替换偏好设置" });
+    expect(screen.getByText(/备份里没有的名称偏好和相近规则会删除/)).toBeTruthy();
     expect(calls.some((c) => c.cmd === "plugin:library|restore_application_settings")).toBe(false);
     fireEvent.click(restore);
-    expect(await screen.findByText("程序设置恢复完成。强制 sRGB 从托盘退出并重启后生效。")).toBeTruthy();
+    expect(await screen.findByText("偏好设置已恢复。按 sRGB 显示从托盘退出并重启后生效。")).toBeTruthy();
     expect(calls.find((c) => c.cmd === "plugin:library|restore_application_settings")?.args).toEqual({ path: "C:/backup/选择.kinshoko-settings", fingerprint: "fixed-backup" });
+  });
+});
+
+describe("设置：分页", () => {
+  it("竖排七个分页，导航底部显示版本，切换后显示该页的说明", async () => {
+    backend(() => undefined);
+    render(<SettingsPanel version="Kinshoko 9.9.9" />);
+    const tabs = await screen.findByRole("tablist", { name: "设置分页" });
+    expect(within(tabs).getAllByRole("tab").map((t) => t.textContent)).toEqual(["通用", "快捷键", "标签", "备份", "安全", "更新", "诊断"]);
+    expect(tabs.getAttribute("aria-orientation")).toBe("vertical");
+    expect(screen.getByText("Kinshoko 9.9.9")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "通用", level: 3 })).toBeTruthy();
+    await tab("安全");
+    expect(screen.getByText("成人图收进封印书，需要时再打开。")).toBeTruthy();
+    expect(screen.queryByRole("switch", { name: "开机启动" })).toBeNull();
+  });
+
+  it("安全分页的开关跟随并切换主窗口的安全模式", async () => {
+    backend(() => undefined);
+    let toggled = 0;
+    const { rerender } = render(<SettingsPanel initialTab="safety" safe onSafeMode={() => { toggled++; }} />);
+    const toggle = await screen.findByRole("switch", { name: "安全模式" });
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByLabelText("Ctrl+Shift+S")).toBeTruthy();
+    fireEvent.click(toggle);
+    expect(toggled).toBe(1);
+    rerender(<SettingsPanel initialTab="safety" safe={false} onSafeMode={() => { toggled++; }} />);
+    expect(screen.getByRole("switch", { name: "安全模式" }).getAttribute("aria-checked")).toBe("false");
+    expect(screen.getByText("未开启")).toBeTruthy();
+  });
+
+  it("标签分页的旧名称提示打开确认向导", async () => {
+    let opened = 0;
+    backend((cmd) => cmd === "plugin:library|plan_legacy_names"
+      ? { libraries: [], plan: { revision: 1, groups: [{ catalogId: "c", namespace: "general", lang: "zh-CN", defaultName: "蓝瞳", existingPreference: null, affectedLibraries: [], sources: [] }] } }
+      : cmd === "plugin:library|inspect_tag_catalog" ? { libraries: [], catalog: { revision: 1, tags: [], mappings: [] } } : undefined);
+    render(<SettingsPanel initialTab="tags" onOpenNameWizard={() => { opened++; }} />);
+    expect(await screen.findByText("1 个旧名称待确认")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "逐个确认" }));
+    expect(opened).toBe(1);
   });
 });
