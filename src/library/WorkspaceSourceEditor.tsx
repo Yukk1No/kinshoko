@@ -48,7 +48,8 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
     setBusy(true); setProblem(null); setNotice(null);
     void action().then(() => { if (current.current === key) setNotice(message); },
       (error) => { if (current.current === key) setProblem(String(error)); })
-      .finally(() => { if (current.current === key) setBusy(false); });
+      // The action's own change often reloads the source before it replies; it still ends this action (#98 native r18).
+      .finally(() => setBusy(false));
   };
   return <div className="workspace-source-editor" aria-label="整理来源" title={source.libraryId + "/" + source.imageId}>
     <p className="insp-hint">只整理「{source.libraryName}」的这份来源，其他图库的整理保持独立。</p>
