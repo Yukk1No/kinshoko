@@ -19,30 +19,33 @@ const Context = createContext<SaveContext>({
 });
 export const useSaveDestination = () => useContext(Context);
 
+const RETRIES = 3, RETRY_MS = 150;
+
 export function SaveDestinationProvider({ safe, children }: { safe: boolean; children: ReactNode }) {
   const [destination, setDestination] = useState<SaveDestination | null>(null);
   const [providers, setProviders] = useState<WorkspaceDirectory[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    let alive = true, sequence = 0, revision = "";
+    let alive = true, sequence = 0, revision = "", retry: ReturnType<typeof setTimeout> | undefined;
     setReady(false);
-    const refresh = () => {
+    const refresh = (attempt = 0) => {
       const request = ++sequence;
+      clearTimeout(retry);
       void workspaceDirectories(safe).then(value => {
         if (!alive || request !== sequence) return;
         revision = value.status.revision;
         setProviders(value.providers); setProblem(null); setReady(true);
       }, error => {
         if (!alive || request !== sequence) return;
-        // 读取期间修订变了：结果已过时，按新修订重读，不把它当作问题显示（#98）。
-        if (isCursorExpired(error)) { refresh(); return; }
+        // 读取期间修订变了：结果已过时，稍后按新修订重读，不当作问题显示（#98）；连续 3 次仍在变才显示。
+        if (isCursorExpired(error) && attempt < RETRIES) { retry = setTimeout(() => refresh(attempt + 1), RETRY_MS); return; }
         setProblem(String(error)); setReady(false);
       });
     };
     refresh();
     const stop = onWorkspaceChanged(value => { if (value.revision !== revision) refresh(); });
-    return () => { alive = false; void stop.then(fn => fn()); };
+    return () => { alive = false; clearTimeout(retry); void stop.then(fn => fn()); };
   }, [safe]);
   return <Context.Provider value={{ destination, setDestination, providers, problem, ready }}>{children}</Context.Provider>;
 }

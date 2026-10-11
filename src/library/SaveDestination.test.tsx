@@ -201,3 +201,16 @@ it("pinning whose own change reloads the source leaves the source actions usable
   await waitFor(() => expect(screen.getByRole("group", { name: "使用此来源" })).toHaveProperty("disabled", false));
   expect(screen.getByRole("textbox", { name: "新参考组名称" })).toHaveProperty("disabled", false);
 });
+
+it("保存位置读取一直遇到“浏览结果已变化”时最多重试 3 次，然后显示问题", async () => {
+ let calls = 0;
+ mockIPC(cmd => {
+  if (cmd === "plugin:library|workspace_directories") { calls++; return Promise.reject("浏览结果已变化，请从头重新浏览"); }
+  return undefined;
+ }, { shouldMockEvents: true });
+ const { SaveDestinationPicker } = await import("./SaveDestination");
+ render(<SaveDestinationProvider safe><SaveDestinationPicker value={null} onChange={() => {}} /></SaveDestinationProvider>);
+ await waitFor(() => expect(screen.getByRole("status").textContent).toContain("浏览结果已变化"), { timeout: 3000 });
+ await new Promise(resolve => setTimeout(resolve, 600));
+ expect(calls).toBe(4);
+});
