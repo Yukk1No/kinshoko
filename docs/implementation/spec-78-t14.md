@@ -70,7 +70,7 @@ Windows 11 Professional 26H2，10.0.26300 / 26300.9550；Node 22.15.0、npm 11.1
 
 已实际走过：生产 UI 新建隔离资料库 → 含 Eagle 父文件夹预检及默认项 → 取消且目标不变 → 默认首次导入 → UI 软删和永久删除 → 默认同内容跳过 → 从回执重新选择本次允许 → 保留人工备注／文件夹的正常刷新 → 软删后重导保持回收站 → 通用回执进入回收站并由画师恢复 → 再次永久删除 → 真正结束并重启应用 → 记忆仍有效 → 相同 Eagle ID 的新字节可导 → 缺文件失败 → 修复文件、失败重试保持本次允许与来源 → 成功。
 
-最终 JSON：[spec-78-t14-native.json](spec-78-t14-native.json)。抽取截图已逐张查看：[默认选择](evidence/spec78-t14/default-choice.png)、[回收站重复回执](evidence/spec78-t14/trash-duplicate.png)、[失败重试保留选择](evidence/spec78-t14/retry-keeps-choice.png)。ACL 首轮失败 JSON：[spec-78-t14-native-acl-red.json](spec-78-t14-native-acl-red.json)。完整五张成功步骤截图、各次失败截图／HTML／报告与检查日志仍保留在本树忽略目录 `work/native/` 和 `work/t14-checks/`，没有覆盖旧 T16 记录。原生驱动与独立应用已退出，桌面预约已释放。
+最终 JSON：[spec-78-t14-native.json](spec-78-t14-native.json)。抽取截图已逐张查看：默认选择（截图已移出仓库，仅本地保留；原 SHA256 `7ecf0636ad9a90b20478f66542d7eee0e01f0c4d963bd7104931666e7c5423e4`，见 [REDACTION.md](evidence/REDACTION.md)）、[回收站重复回执](evidence/spec78-t14/trash-duplicate.png)、失败重试保留选择（截图已移出仓库，仅本地保留；原 SHA256 `e825b468e45aa2c921bae75e6acb1917502407b2a6219aef3fd656734c14a5e9`，见 [REDACTION.md](evidence/REDACTION.md)）。ACL 首轮失败 JSON：[spec-78-t14-native-acl-red.json](spec-78-t14-native-acl-red.json)。完整五张成功步骤截图、各次失败截图／HTML／报告与检查日志仍保留在本树忽略目录 `work/native/` 和 `work/t14-checks/`，没有覆盖旧 T16 记录。原生驱动与独立应用已退出，桌面预约已释放。
 
 ## 未验证与边界
 

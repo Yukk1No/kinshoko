@@ -63,7 +63,7 @@ RED 原始证据保存在 [evidence/spec78-t08](evidence/spec78-t08)：目录新
 
 完整业务步骤：通过正式 IPC 建立两个同名库、同名父子目录、多归属图片和同字节跨库图片；通过正式控件切换库范围、直接/含子目录范围与未归类范围；真实鼠标与键盘新建、双击改名；公开动作移动子树并拒绝旧游标；核对原图路径与哈希不变；将其他来源标为 Adult 后检查图片墙与计数；通过正式控件取消登记，再重启断连库，检查失效范围与禁用目录。
 
-首轮脚本在 WebDriver `clear` 触发失焦后找不到名称框。原始失败证据保留。改用真实指针双击与 Ctrl+A 覆盖后，完整业务通过。路径补验最初截图捕到启动刷新瞬间，随后等待森林状态稳定再取证；稳定截图已目视核对。[最终目录截图](evidence/spec78-t08/directory-forest-final.png)、[含后代范围](evidence/spec78-t08/descendant-scope.png)、[全来源安全否决](evidence/spec78-t08/folder-safety-veto.png)、[失效范围](evidence/spec78-t08/removed-scope.png)、[断连库](evidence/spec78-t08/disconnected-root.png) 分别保留对应来源的画面。
+首轮脚本在 WebDriver `clear` 触发失焦后找不到名称框。原始失败证据保留。改用真实指针双击与 Ctrl+A 覆盖后，完整业务通过。路径补验最初截图捕到启动刷新瞬间，随后等待森林状态稳定再取证；稳定截图已目视核对。[最终目录截图](evidence/spec78-t08/directory-forest-final.png)、含后代范围（截图已移出仓库，仅本地保留；原 SHA256 `864a2503c6c13b22fac69c1592355d3c55738bd4e7d5ce13f1453ae38dbb2273`，见 [REDACTION.md](evidence/REDACTION.md)）、全来源安全否决（截图已移出仓库，仅本地保留；原 SHA256 `8a04cec3e843e403959aa77c591e2e80d03fc3de174d5374fb8e731f50511f71`，见 [REDACTION.md](evidence/REDACTION.md)）、失效范围（截图已移出仓库，仅本地保留；原 SHA256 `44dbbb8a2498baa70bb373b78f898624702d5283e4e1a83ec6d932286a9505e6`，见 [REDACTION.md](evidence/REDACTION.md)）、断连库（截图已移出仓库，仅本地保留；原 SHA256 `275ace81f00bc75aba774b093c7c63027f6b9d47cc6e2c61f2ad4f29dfd3bd02`，见 [REDACTION.md](evidence/REDACTION.md)） 分别保留对应来源的画面。
 
 最后原生清理核对：本单 app、driver、WebView 无残留，4558/4559 无监听。实际清理方式及系统信息记录在 [清理清单](evidence/spec78-t08/native-cleanup.json)。桌面排期已明确交还。后续合入 T04 只执行上述定向自动检查，未将这两份原生证据改标为合并后源码。
 

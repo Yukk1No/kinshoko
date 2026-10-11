@@ -96,7 +96,7 @@ identifier 为 `dev.kinshoko.spec78t04test`，driver 4458／4459。资料库、�
 
 原始失败均保留：库选项未装载的脚本等待、标签检查期间选中被清空、WebDriver 控件 stale、误判托盘常驻及复用 safe=false 的脚本初始化。诊断 DOM 显示标签曾正确出现，随后选中被清空。该现象并不全是脚本：首次重复同一修订的 workspace 通知会造成真实交互中断，T09 已独立 RED 复现并承接同修订去重／迟到状态修复；真实修订变化后的撤销另有合法语义。此处保留自己的失败证据，不把之后 T09 修复算成本单已执行的原生验证。
 
-已逐张检查 [冲突与取消](evidence/spec78-t04/formal-legacy-conflict-cancel.png)、[保留旧名的选择](evidence/spec78-t04/formal-legacy-preference-preview.png)、[既有偏好冲突](evidence/spec78-t04/formal-existing-preference-conflict.png)、[确认保存](evidence/spec78-t04/formal-equal-default-explicit-choice.png)、[活动库断连后的正式工作区](evidence/spec78-t04/formal-disconnected-active-startup.png)。最终结果核对和确认按钮等待在脚本中执行，保留旧名的截图拍在预览请求尚未完成时，没有用这张截图代替最终结果断言。
+已逐张检查 [冲突与取消](evidence/spec78-t04/formal-legacy-conflict-cancel.png)、[保留旧名的选择](evidence/spec78-t04/formal-legacy-preference-preview.png)、[既有偏好冲突](evidence/spec78-t04/formal-existing-preference-conflict.png)、[确认保存](evidence/spec78-t04/formal-equal-default-explicit-choice.png)、活动库断连后的正式工作区（截图已移出仓库，仅本地保留；原 SHA256 `2db282c250e88be044751ac6bcf9861ae571c21f8c593604d654e36c6acb53f7`，见 [REDACTION.md](evidence/REDACTION.md)）。最终结果核对和确认按钮等待在脚本中执行，保留旧名的截图拍在预览请求尚未完成时，没有用这张截图代替最终结果断言。
 
 原生 binary 早于后续 T19 合入；T19 更新策略／设置变化只有上述新增专项、TypeScript、Vite 与 Clippy 补验，不冒充新集成 binary 的原生验证。最终 [`validation.json`](evidence/spec78-t04/validation.json) 和 [证据哈希](evidence/spec78-t04/evidence-hashes.json) 记录实际覆盖边界。
 
