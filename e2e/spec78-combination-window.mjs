@@ -59,14 +59,14 @@ export async function nativeWindowControls(workflow) {
   note("drag-back", { point: back, input: d.nativeWindow("drag", back.x, back.y, -dx, -dy) });
   note("dragged-back", await until("dragging back returns the window", () => { const s = state(); return same(s.rect, start.rect, 3) ? s : null; }));
 
+  await d.screenshot("12-window-controls-before-close.png");
   await press("关闭");
-  const closed = note("closed", await until("关闭 hides the main window", () => { const s = state(); return !s.visible ? s : null; }));
-  d.assert(closed.trayIcons === 1 && closed.pid === start.pid, "关闭 hides only the main window; the same process keeps running in the tray (ADR 0004)", closed);
-  note("tray-open", d.nativeWindow("tray-open"));
-  const reopened = note("reopened", await until("tray 打开 Kinshoko shows the main window again", () => { const s = state(); return s.visible && !s.iconic ? s : null; }));
-  d.assert(reopened.pid === start.pid && same(reopened.rect, start.rect, 3), "the tray reopens the same main window at its rect", reopened);
-  await d.main();
-  await d.screenshot("12-window-controls-reopened.png");
+  // Closing destroys the main window to free its WebView; the process keeps running in the tray (ADR 0004).
+  const closed = note("closed", await until("关闭 removes the main window", () => { const s = state(); return !s.visible ? s : null; }));
+  d.assert(closed.trayIcons === 1 && closed.pid === start.pid, "关闭 closes only the main window; the same process keeps running in the tray (ADR 0004)", closed);
+  const reopenedInput = note("tray-open", d.nativeWindow("tray-open"));
+  const reopened = note("reopened", await until("tray 打开 Kinshoko shows a main window again", () => { const s = state(); return s.visible && !s.iconic ? s : null; }));
+  d.assert(reopened.pid === start.pid && reopened.trayIcons === 1 && reopenedInput.items[0].text === "打开 Kinshoko", "the tray's 打开 Kinshoko shows the main window again in the same process", reopened);
   workflow.state.windowControls = result; workflow.save();
   return result;
 }

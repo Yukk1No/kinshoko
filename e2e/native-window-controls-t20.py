@@ -101,11 +101,15 @@ def windows(class_name=None, title=None):
 
 
 main = windows(title="Kinshoko")
-assert len(main) == 1, main
-hwnd = w.HWND(main[0]["hwnd"])
+assert len(main) <= 1, main
+hwnd = w.HWND(main[0]["hwnd"]) if main else None
 
 
 def state():
+    # Closing the main window destroys it (the app stays in the tray, ADR 0004); there is then no main HWND.
+    if hwnd is None:
+        return {"pid": pid, "hwnd": None, "mainWindow": False, "visible": False, "iconic": False, "zoomed": False,
+                "trayIcons": len(windows(class_name="tray_icon_app"))}
     r = w.RECT()
     assert u.GetWindowRect(hwnd, ctypes.byref(r))
     c = w.RECT()
@@ -113,7 +117,7 @@ def state():
     origin = w.POINT(0, 0)
     assert u.ClientToScreen(hwnd, ctypes.byref(origin))
     return {
-        "pid": pid, "hwnd": main[0]["hwnd"], "visible": bool(u.IsWindowVisible(hwnd)), "iconic": bool(u.IsIconic(hwnd)), "zoomed": bool(u.IsZoomed(hwnd)),
+        "pid": pid, "hwnd": main[0]["hwnd"], "mainWindow": True, "visible": bool(u.IsWindowVisible(hwnd)), "iconic": bool(u.IsIconic(hwnd)), "zoomed": bool(u.IsZoomed(hwnd)),
         "rect": {"x": r.left, "y": r.top, "width": r.right - r.left, "height": r.bottom - r.top},
         "client": {"x": origin.x, "y": origin.y, "width": c.right, "height": c.bottom},
         "foreground": int(u.GetForegroundWindow() or 0) == main[0]["hwnd"],
@@ -134,6 +138,7 @@ def cursor():
 
 
 result = {"command": command, "args": numbers, "before": state()}
+assert hwnd is not None or command in ("state", "tray-open"), "No main window for " + command
 if command == "state":
     pass
 elif command == "restore":
@@ -204,7 +209,15 @@ elif command == "tray-open":
     assert not windows(class_name="#32768"), "Observed native menu did not close"
     assert u.PostMessageW(tray["hwnd"], 0x111, open_item["id"], 0), "Cannot select actual native menu command"
     result["items"] = items
-    time.sleep(0.6)
+    end = time.monotonic() + 15
+    while time.monotonic() < end:
+        reopened = windows(title="Kinshoko")
+        if reopened and u.IsWindowVisible(w.HWND(reopened[0]["hwnd"])):
+            break
+        time.sleep(0.1)
+    main = windows(title="Kinshoko")
+    assert len(main) == 1, main
+    hwnd = w.HWND(main[0]["hwnd"])
 else:
     raise SystemExit("Unknown command: " + command)
 result["after"] = state()
