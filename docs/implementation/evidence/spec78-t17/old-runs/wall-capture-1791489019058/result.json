@@ -3,8 +3,8 @@
   "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
   "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
   "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
-  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
   "scriptSha256": "450ed7dd512bd3a1e38ef94eb9798b19a7f681a7e8c7c3560c770fa92769b607",
   "scriptSource": "5685f0ef21786ee8d421887e1a301e221519dba4",
   "mode": "wall",
@@ -478,7 +478,7 @@
       }
     }
   ],
-  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489019058",
+  "work": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489019058",
   "startedAt": "2026-10-08T19:50:19.183Z",
   "capabilities": {
     "acceptInsecureCerts": false,
@@ -517,7 +517,7 @@
     "info": {
       "id": "9562106cc5234f4a80d78b6dcb5f09ff",
       "name": "原图来源 A",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489019058\\libraries\\原图来源 A"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489019058\\libraries\\原图来源 A"
     },
     "card": {
       "adult": false,
@@ -619,7 +619,7 @@
       "width": 1193
     }
   },
-  "error": "Error: native width reflow: original copy adds no screenshot history\n    at check (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:30:45)\n    at verifyOriginal (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:57:163)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:111:3",
+  "error": "Error: native width reflow: original copy adds no screenshot history\n    at check (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:30:45)\n    at verifyOriginal (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:57:163)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:111:3",
   "requests": [
     "1d8ff191672f43a4b0eef1db98b260d4",
     "ed991ed95302418fa935c82f54d2a7a4",

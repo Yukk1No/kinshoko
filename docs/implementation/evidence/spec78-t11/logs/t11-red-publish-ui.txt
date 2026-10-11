@@ -3,7 +3,7 @@
 > vitest run src/library/TagIdentityPanel.test.tsx
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko
 
  ❯ src/library/TagIdentityPanel.test.tsx (5 tests | 1 failed) 1422ms
    × offers an explicit provider publication retry without discarding the saved application mapping 1023ms

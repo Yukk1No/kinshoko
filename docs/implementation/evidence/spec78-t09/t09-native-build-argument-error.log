@@ -1,4 +1,4 @@
-npm warn "C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/work/e2e/t09-config.json" is being parsed as a normal command line argument.
+npm warn "%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/work/e2e/t09-config.json" is being parsed as a normal command line argument.
 npm warn Unknown cli config "--debug". This will stop working in the next major version of npm.
 npm warn Unknown cli config "--bundle". This will stop working in the next major version of npm.
 npm warn Unknown cli config "--config". This will stop working in the next major version of npm.
@@ -20,7 +20,7 @@ dist/assets/index-CnYJKvxz.css   34.67 kB │ gzip:   7.48 kB
 dist/assets/index-nLhA3-YP.js   408.64 kB │ gzip: 123.71 kB
 
 ✓ built in 833ms
-error: unexpected argument 'C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/work/e2e/t09-config.json' found
+error: unexpected argument '%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/work/e2e/t09-config.json' found
 
 Usage: cargo.exe build [OPTIONS]
 

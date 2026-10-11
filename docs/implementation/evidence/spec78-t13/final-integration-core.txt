@@ -1,4 +1,4 @@
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 26.76s
      Running tests\app_settings.rs (target\debug\deps\app_settings-71b3f30826258002.exe)
 

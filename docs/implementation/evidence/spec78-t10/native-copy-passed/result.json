@@ -3,7 +3,7 @@
   "scope": "copy-only",
   "source": "54694d417c1e88acaa3efe79a62840604d9590c3",
   "binarySha256": "51804ea9c5f6cda4dcf7079affa44eeb31275e884f765fb18778dbcf3429ba0a",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\binary-54694d4\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\binary-54694d4\\kinshoko.exe",
   "environment": {
     "dpr": 1.1041666269302368,
     "height": 801,
@@ -14,23 +14,23 @@
     "scriptSource": "ac18510c829491457436ba3a6cf99ab179b9e0a9",
     "scriptSha256": "8cd2c32472cbbb4c10e0b133dfa813ebc150d9aecf0f86b0eaa52b407228722e",
     "sourceTree": "43c2a2c2d56c5ff30afe6dcf0877f8f3b430fef3",
-    "manifestPath": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\copy-followup-source.json",
+    "manifestPath": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\copy-followup-source.json",
     "driverSha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7"
   },
   "a": {
     "id": "f7f4bb86d96543f592bcab366e1c5f7e",
     "name": "浏览库 A",
-    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\libraries\\浏览库 A"
+    "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\libraries\\浏览库 A"
   },
   "b": {
     "id": "28637386d5de4e2a99716ec51d818a55",
     "name": "保存库 B",
-    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\libraries\\保存库 B"
+    "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\libraries\\保存库 B"
   },
   "c": {
     "id": "41b1110f640d473098ac1a6548d9a7f9",
     "name": "新浏览库 C",
-    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\libraries\\新浏览库 C"
+    "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\libraries\\新浏览库 C"
   },
   "receipts": [
     {
@@ -56,7 +56,7 @@
               "imageId": "01a11cda1e277334a0b7acfb01df5868",
               "kind": "imported"
             },
-            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\image.png"
+            "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\save-destination-followup-1791485416325\\image.png"
           }
         ]
       },

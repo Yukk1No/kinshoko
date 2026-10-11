@@ -6,7 +6,7 @@
 
 已实现明确来源的标签、备注、分级、文件夹归属、删除、钉图和参考组动作。已登记但未活动的资料库可以整理，不切换 current，也不改变 lastOpened。正式原生程序的 25 项检查通过。
 
-- 分支：`codex/spec-78-t09`；物理树：`C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko`。
+- 分支：`codex/spec-78-t09`；物理树：`%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko`。
 - 实现起点：`921c712e5ac423ac32af5ef396243a63acfb21b3`。旧 T19 分支的 `17c8af502da72c3f383d81b8343660e757e2b4ab` 保留。
 - 首次生产实现：`ce49ffd1da3218cc3dbc4c6b6f366726f3a34324`。
 - 合入目录森林及旧名向导：`a875b3a3a2621f84fc8940d5cb4b37caafb455c9`，包含集成 `e13ea2b93eb50776a092d1779e16cee5beff0c7c`。

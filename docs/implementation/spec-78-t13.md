@@ -53,7 +53,7 @@ EXE SHA-256：`2c9e5a69eee742519ba08ec194662614f2da5b29cb5b68cad12149b14b2102df`
 
 `work/t13/native-source.json` 保存 1034 个 source 文件、10 个 dist 文件、配置和两个 driver/runtime 的哈希。`work/t13/native-after.json` 比较前后清单：仅两份预报过的验收脚本变化，production source、嵌入前端和冻结 EXE 未变。三次重试均只修改 harness。
 
-隔离标识为 `dev.kinshoko.spec78t13test`。端口 4492/4493。资料库、应用数据和 WebView profile 在每次新建的 `work/e2e/application-settings-<timestamp>/`。KnownFolder 实际配置是 `C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t13test/settings.json`；不将 APPDATA 环境覆盖误认为实际配置重定向。结束后配置原件移入各 run；不覆盖使用者配置。
+隔离标识为 `dev.kinshoko.spec78t13test`。端口 4492/4493。资料库、应用数据和 WebView profile 在每次新建的 `work/e2e/application-settings-<timestamp>/`。KnownFolder 实际配置是 `%USERPROFILE%/AppData/Roaming/dev.kinshoko.spec78t13test/settings.json`；不将 APPDATA 环境覆盖误认为实际配置重定向。结束后配置原件移入各 run；不覆盖使用者配置。
 
 成功 run：`work/e2e/application-settings-1791488008375/`。`result.json` 为 passed，共 47 项断言。脚本使用正式备份/确认/替换控件，公开 IPC 准备与读回受控的真实旧库夹具。没有新增测试专用生产 IPC。
 

@@ -1,4 +1,4 @@
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 2.85s
      Running tests\portable_tags.rs (target\debug\deps\portable_tags-0861a7dd2877ec6f.exe)
 

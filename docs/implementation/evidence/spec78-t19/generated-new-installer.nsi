@@ -29,7 +29,7 @@ ManifestDPIAwareness PerMonitorV2
 ${StrCase}
 ${StrLoc}
 
-!include "C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\native\t19-upgrade\debug-installer-hooks.nsh"
+!include "%USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\native\t19-upgrade\debug-installer-hooks.nsh"
 
 !define WEBVIEW2APPGUID "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
 
@@ -46,12 +46,12 @@ ${StrLoc}
 !define UNINSTALLERICON ""
 !define UNINSTALLERHEADERIMAGE ""
 !define MAINBINARYNAME "kinshoko-t19-upgrade"
-!define MAINBINARYSRCPATH "C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\target\debug\kinshoko-t19-upgrade.exe"
+!define MAINBINARYSRCPATH "%USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\target\debug\kinshoko-t19-upgrade.exe"
 !define BUNDLEID "dev.kinshoko.spec78t19upgrade"
 !define COPYRIGHT ""
 !define OUTFILE "nsis-output.exe"
 !define ARCH "x64"
-!define ADDITIONALPLUGINSPATH "C:\Users\yuk1no\AppData\Local\tauri\NSIS\Plugins\x86-unicode\additional"
+!define ADDITIONALPLUGINSPATH "%USERPROFILE%\AppData\Local\tauri\NSIS\Plugins\x86-unicode\additional"
 !define ALLOWDOWNGRADES "true"
 !define DISPLAYLANGUAGESELECTOR "false"
 !define INSTALLWEBVIEW2MODE "downloadBootstrapper"
@@ -464,7 +464,7 @@ FunctionEnd
 ;Languages
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_RESERVEFILE_LANGDLL
-  !include "C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\target\debug\nsis\x64\English.nsh"
+  !include "%USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\target\debug\nsis\x64\English.nsh"
 
 Function .onInit
   ${GetOptions} $CMDLINE "/P" $PassiveMode

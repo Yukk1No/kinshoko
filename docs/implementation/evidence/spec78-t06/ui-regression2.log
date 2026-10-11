@@ -3,7 +3,7 @@
 > vitest run src/search/SharedApprox.test.tsx src/SettingsPanel.test.tsx
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko
 
  ❯ src/SettingsPanel.test.tsx (14 tests | 1 failed) 1690ms
    ❯ 设置：近似查找 (2)

@@ -6,5 +6,5 @@ PASS workspace notification does not interrupt the revalidated explicit source e
 PASS B manual rating remains independent from A
 PASS removing B folder membership preserves A folder membership
 Error: Timed out: B folder restored
-    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/source-actions.mjs:48:9)
-    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/source-actions.mjs:161:3
+    at until (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/source-actions.mjs:48:9)
+    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/source-actions.mjs:161:3

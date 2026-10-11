@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko
 
  ❯ src/wall/Wall.workspace-anchor.test.tsx (1 test | 1 failed) 203ms
    × provider refresh restores the viewed card after real empty-list scroll clamping 202ms

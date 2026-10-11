@@ -3,14 +3,14 @@
   "source": "5a48939e905652b9d15a4a5f47a0844012e7a8f7",
   "tree": "d8a88fa33bacd02512149e689e7defd1666a512a",
   "harnessSource": "99a7fd5735fd758d3cc78ed308e65f551094c76d",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t13\\nativeproof\\5a48939e9056\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t13\\nativeproof\\5a48939e9056\\kinshoko.exe",
   "binarySha256": "2c9e5a69eee742519ba08ec194662614f2da5b29cb5b68cad12149b14b2102df",
   "manifest": {
     "commit": "5a48939e905652b9d15a4a5f47a0844012e7a8f7",
     "tree": "d8a88fa33bacd02512149e689e7defd1666a512a",
     "status": "",
     "binarySha256": "2c9e5a69eee742519ba08ec194662614f2da5b29cb5b68cad12149b14b2102df",
-    "preservedBinary": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t13\\nativeproof\\5a48939e9056\\kinshoko.exe",
+    "preservedBinary": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t13\\nativeproof\\5a48939e9056\\kinshoko.exe",
     "identifier": "dev.kinshoko.spec78t13test",
     "productName": "Kinshoko T13 Verification",
     "builtAtUtc": "2026-10-08T19:23:37.462232+00:00",
@@ -22,11 +22,11 @@
     "runtime": {
       "DirectML.dll": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1",
       "tauriDriver": {
-        "path": "C:\\Users\\yuk1no\\.cargo\\bin\\tauri-driver.exe",
+        "path": "%USERPROFILE%\\.cargo\\bin\\tauri-driver.exe",
         "sha256": "14fcadb6adbb5c2956263ea6bbdcbe5f9c190d3b6a6c12bc5c47953cb6aa272d"
       },
       "edgeDriver": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\tools\\msedgedriver.exe",
+        "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\tools\\msedgedriver.exe",
         "sha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7"
       }
     },
@@ -34,7 +34,7 @@
       4492,
       4493
     ],
-    "knownFolderConfig": "C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t13test/settings.json",
+    "knownFolderConfig": "%USERPROFILE%/AppData/Roaming/dev.kinshoko.spec78t13test/settings.json",
     "proofRoot": "work/e2e/application-settings-<timestamp>",
     "environment": {
       "KINSHOKO_SKIP_AUTOSTART": "1",
@@ -1156,12 +1156,12 @@
     "设置备份 B original 46b8644e0749c560db5d224a138edaec remains byte-identical"
   ],
   "rejectedInflight": 48,
-  "backupFile": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\用户偏好.kinshoko-settings",
+  "backupFile": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\用户偏好.kinshoko-settings",
   "backupSha256": "14ad4c76ae9f89c78b780945da07a8b96364dc3aa202ff559a30e60c68701e75",
   "first": {
     "info": {
       "id": "befec9cd1692ec8596fd9b82f7c9ca18",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 A",
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 A",
       "name": "设置备份 A"
     },
     "tags": {
@@ -1172,17 +1172,17 @@
     "originals": [
       {
         "imageId": "f1dbcde6b43c9104f794d7310d43c725",
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 A\\originals\\a5\\a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
+        "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 A\\originals\\a5\\a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6.png",
         "sha": "a57425dbf4a8772bb657d204af8255cc0ecda325c3b8c3f4be00934e399df5e6"
       },
       {
         "imageId": "f753785d42d8a4a88a63f2302a881c52",
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 A\\originals\\9e\\9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09.png",
+        "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 A\\originals\\9e\\9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09.png",
         "sha": "9e3444e1943a1fcf4aa07d5ffc8c76643983e5681a2b0f91c7183093444b8a09"
       },
       {
         "imageId": "b156ae78af968d9bca98de7cb3ce0fd6",
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 A\\originals\\ab\\abccafb2ea4bdce24caca86f9290f5304ac06925d2da8778c90de15a459b912d.png",
+        "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 A\\originals\\ab\\abccafb2ea4bdce24caca86f9290f5304ac06925d2da8778c90de15a459b912d.png",
         "sha": "abccafb2ea4bdce24caca86f9290f5304ac06925d2da8778c90de15a459b912d"
       }
     ]
@@ -1190,7 +1190,7 @@
   "second": {
     "info": {
       "id": "7c82baa859e5d4423f85bfa542f629dc",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 B",
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 B",
       "name": "设置备份 B"
     },
     "tags": {
@@ -1201,17 +1201,17 @@
     "originals": [
       {
         "imageId": "4e9a014dbcef8c9ba33b82814a797e2a",
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 B\\originals\\8c\\8cd0bd59a1f3bfb503e882b3eedcef73be62f61efd32e2c491ffe01919ef344e.png",
+        "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 B\\originals\\8c\\8cd0bd59a1f3bfb503e882b3eedcef73be62f61efd32e2c491ffe01919ef344e.png",
         "sha": "8cd0bd59a1f3bfb503e882b3eedcef73be62f61efd32e2c491ffe01919ef344e"
       },
       {
         "imageId": "df0435f6f3a621e100eb6ec8b7f62c11",
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 B\\originals\\57\\5771f784691ada38f11ac16f773ef94ef015d9a1790b766b5dbfe1151b5b256b.png",
+        "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 B\\originals\\57\\5771f784691ada38f11ac16f773ef94ef015d9a1790b766b5dbfe1151b5b256b.png",
         "sha": "5771f784691ada38f11ac16f773ef94ef015d9a1790b766b5dbfe1151b5b256b"
       },
       {
         "imageId": "46b8644e0749c560db5d224a138edaec",
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 B\\originals\\73\\7300be83867ce17930f8ffae554456d8a2a017cbd089358ed772d7cccad06d18.png",
+        "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375\\libraries\\设置备份 B\\originals\\73\\7300be83867ce17930f8ffae554456d8a2a017cbd089358ed772d7cccad06d18.png",
         "sha": "7300be83867ce17930f8ffae554456d8a2a017cbd089358ed772d7cccad06d18"
       }
     ]

@@ -1,6 +1,6 @@
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
-   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
-   Compiling kinshoko-tagger v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-tagger)
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
+   Compiling kinshoko-tagger v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-tagger)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 54s
      Running unittests src\lib.rs (target\debug\deps\kinshoko_app-db23d374e5d9c3cc.exe)
 

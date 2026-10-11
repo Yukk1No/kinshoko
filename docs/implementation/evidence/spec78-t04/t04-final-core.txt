@@ -1,4 +1,4 @@
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 15.78s
      Running tests\legacy_name_migration.rs (target\debug\deps\legacy_name_migration-feb7b253794ed71a.exe)
 

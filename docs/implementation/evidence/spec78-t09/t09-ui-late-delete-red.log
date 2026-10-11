@@ -3,7 +3,7 @@
 > vitest run src/library/WorkspaceSources.test.tsx
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko
 
  ❯ src/library/WorkspaceSources.test.tsx (2 tests | 1 failed) 325ms
    × 换到 B 后，A 的迟到删除响应不能关闭 B 的整理面板 89ms

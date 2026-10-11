@@ -11,7 +11,7 @@
   ],
   "records": [
     {
-      "run": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791501732795",
+      "run": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791501732795",
       "tag": "fullwall",
       "rawStatus": "failed",
       "assertions": 118,
@@ -26,7 +26,7 @@
       "fullPreservation": "Root preserves full original run and fixed inputs; this tracked folder contains selected review evidence only."
     },
     {
-      "run": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791502082523",
+      "run": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791502082523",
       "tag": "mode",
       "rawStatus": "failed",
       "assertions": 5,

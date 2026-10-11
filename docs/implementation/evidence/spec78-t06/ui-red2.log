@@ -3,7 +3,7 @@
 > vitest run src/search/SharedApprox.test.tsx
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko
 
  ❯ src/search/SharedApprox.test.tsx (2 tests | 1 failed) 1235ms
    × workspace search saves forever using shared IDs and preserves once as current input 1056ms

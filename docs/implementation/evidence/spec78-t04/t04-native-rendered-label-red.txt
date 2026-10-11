@@ -5,6 +5,6 @@ PASS opens released v16 旧名称第二库 with stable library identity
 PASS one shared identity explicitly lists both old library names
 PASS 旧名称第一库 remains available as an explicit workspace source
 Error: Timed out: rendered image label
-    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:50:9)
-    at async displayed (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:157:3)
-    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:173:3
+    at until (file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:50:9)
+    at async displayed (file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:157:3)
+    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:173:3

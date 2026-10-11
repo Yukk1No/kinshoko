@@ -3,7 +3,7 @@
   "source": "f7ef52b12681ed679927f7fef034629b923ae8ec",
   "harnessSource": "2acd42963a04e9920dc1ece6b6fd69dbb1f194b4",
   "binarySha256": "7dca4915d39d648f5b0e7b615671d316b3e63b187ee97a44d4cbb2f8ed3ff239",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
   "assertions": [
     "released v16 角色参考 opens with stable identity",
     "released v16 画法参考 opens with stable identity",

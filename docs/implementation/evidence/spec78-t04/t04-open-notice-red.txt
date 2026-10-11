@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko
 
  ❯ src/library/LegacyNameMigrationPanel.test.tsx (2 tests | 1 failed) 286ms
    × offers the migration wizard when opening an old library whose name has already adopted a global preference 4ms

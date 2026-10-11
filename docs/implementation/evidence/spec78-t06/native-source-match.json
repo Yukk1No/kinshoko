@@ -28,8 +28,8 @@
     }
   ],
   "preservedFiles": {
-    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t06\\nativeproof\\49c39e0\\DirectML.dll": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1",
-    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t06\\nativeproof\\49c39e0\\kinshoko.exe": "aae236fd854c72221dfdd5b95b59e27d016c49314fb25621d542ecf10a47a3a7",
-    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t06\\nativeproof\\49c39e0\\tauri.test.json": "f90c835ca47d64de73e2e6839e6d45a7ae5ffffe270150a4de163f8e421ecc9b"
+    "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t06\\nativeproof\\49c39e0\\DirectML.dll": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1",
+    "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t06\\nativeproof\\49c39e0\\kinshoko.exe": "aae236fd854c72221dfdd5b95b59e27d016c49314fb25621d542ecf10a47a3a7",
+    "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t06\\nativeproof\\49c39e0\\tauri.test.json": "f90c835ca47d64de73e2e6839e6d45a7ae5ffffe270150a4de163f8e421ecc9b"
   }
 }

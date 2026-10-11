@@ -19,8 +19,8 @@
     "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
     "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
     "log": "clippy-after-binding-doc.txt",
-    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
     "cargoBuildJobs": "2",
-    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+    "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
   }
 ]

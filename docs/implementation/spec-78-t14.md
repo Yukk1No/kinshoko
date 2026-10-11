@@ -63,7 +63,7 @@ Windows 11 Professional 26H2，10.0.26300 / 26300.9550；Node 22.15.0、npm 11.1
 
 构建：先 `npm run vite:build`，再带 `TAURI_CONFIG={"identifier":"dev.kinshoko.spec78t14test","productName":"Kinshoko T14 Validation"}` 执行 `cargo build -p kinshoko --features tauri/custom-protocol --locked -j2`。
 
-执行：`node e2e/eagle-deletion-choice.mjs target/debug/kinshoko.exe C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/work/e2e/tools/msedgedriver.exe C:/Users/yuk1no/.cargo/bin/tauri-driver.exe`。EdgeDriver 实际采用相邻 T01 树中的匹配版本。脚本用真实 Eagle 文件、目标 SQLite 与原图，经生产向导、WebDriver 原生输入与公开 Library 命令验证；文件选择由已有测试队列替代系统对话框，未操作私人数据。
+执行：`node e2e/eagle-deletion-choice.mjs target/debug/kinshoko.exe %USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko/work/e2e/tools/msedgedriver.exe %USERPROFILE%/.cargo/bin/tauri-driver.exe`。EdgeDriver 实际采用相邻 T01 树中的匹配版本。脚本用真实 Eagle 文件、目标 SQLite 与原图，经生产向导、WebDriver 原生输入与公开 Library 命令验证；文件选择由已有测试队列替代系统对话框，未操作私人数据。
 
 首次原生 RED：代码 `8190801b87fa999039a016ce052333be6074297c` 可建立真实资料库，但选择含 Eagle 的父目录后实际提示 `library.import_contains_eagle not allowed. Command not found`，无法打开策略步骤。原因是新命令漏入 `src-tauri/build.rs` 内联插件 ACL 清单。提交 `e7f27c7` 补齐清单；失败 HTML、截图、JSON 保留在忽略目录 `work/native/eagle-deletion-choice-acl-red/`。此故障只在真实原生接线中暴露，前端 mock 与 Rust 核心绿灯没有被当作原生通过。
 原生最终 GREEN：应用代码 `e7f27c7`（本树独立构建），E2E 脚本 `e4966fafc20295045f05d6719ee45697dc029802`；2026-10-08 23:23 CST 完成，17 项通过、0 失败。脚本修订只把既有标签步骤的关闭动作兼容为“完成／全部跳过”，未改变应用逻辑，未为此重复构建相同应用。

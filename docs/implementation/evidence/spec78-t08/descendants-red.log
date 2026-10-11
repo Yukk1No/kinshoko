@@ -1,4 +1,4 @@
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 2.68s
      Running tests\workspace_folders.rs (target\debug\deps\workspace_folders-74c205195e20e7ae.exe)
 

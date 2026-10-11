@@ -1,8 +1,8 @@
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\crates\kinshoko-core)
-warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\target\debug\incremental\kinshoko_core-3plbdypps6wqh\s-hn15e1z383-041rmk9-working`
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\7dea\kinshoko\crates\kinshoko-core)
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\%USERPROFILE%\.codex\worktrees\7dea\kinshoko\target\debug\incremental\kinshoko_core-3plbdypps6wqh\s-hn15e1z383-041rmk9-working`
 
 warning: `kinshoko-core` (lib) generated 1 warning
-warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\target\debug\incremental\safe_mode-3hapqdntipvib\s-hn15eneb03-0oui1di-working`
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\%USERPROFILE%\.codex\worktrees\7dea\kinshoko\target\debug\incremental\safe_mode-3hapqdntipvib\s-hn15eneb03-0oui1di-working`
 
 warning: `kinshoko-core` (test "safe_mode") generated 1 warning
     Finished `test` profile [unoptimized + debuginfo] target(s) in 42.42s

@@ -2,7 +2,7 @@
   "observedAtUtc": "2026-10-08T19:36:09.2432262Z",
   "release": {
     "timestampUtc": "2026-10-08T19:34:53.4743047Z",
-    "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t13\\nativeproof\\5a48939e9056\\kinshoko.exe",
+    "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t13\\nativeproof\\5a48939e9056\\kinshoko.exe",
     "ownedExe": [],
     "ownedDrivers": [],
     "ownedWebviews": [],
@@ -16,8 +16,8 @@
     }
   },
   "exactOwnedExes": [
-    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t13\\nativeproof\\5a48939e9056\\kinshoko.exe",
-    "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe"
+    "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t13\\nativeproof\\5a48939e9056\\kinshoko.exe",
+    "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe"
   ],
   "ownedProcesses": [],
   "ports": [],

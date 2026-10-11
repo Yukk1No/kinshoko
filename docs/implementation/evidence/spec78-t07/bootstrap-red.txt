@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko
 
  ❯ src/App.workspace-bootstrap.test.tsx (1 test | 1 failed) 1088ms
    × 保存为关闭安全模式且活动库断连时，仍显示可用提供方的现有工作区 1086ms

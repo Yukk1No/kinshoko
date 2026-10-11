@@ -2,13 +2,13 @@
   "status": "passed",
   "source": "7e5cd98ab760181e610f1689dc211209162d3c78",
   "binarySha256": "9f5846e559b69160eb1725accd2f4792f59c406e4bda23a5e3fe65533df59bc3",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
   "legacySource": "22c60f248915329e4bf85dcfb38633210190f558",
   "first": {
     "info": {
       "id": "1834944303be4a9da1baea66d217d9fc",
       "name": "工作区甲库",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-1791474706835\\libraries\\工作区甲库"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-1791474706835\\libraries\\工作区甲库"
     },
     "page": {
       "cards": [
@@ -190,7 +190,7 @@
     "info": {
       "id": "42461a5addae4667b4f0b33b0550eacf",
       "name": "工作区乙库",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-1791474706835\\libraries\\工作区乙库"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-1791474706835\\libraries\\工作区乙库"
     },
     "page": {
       "cards": [

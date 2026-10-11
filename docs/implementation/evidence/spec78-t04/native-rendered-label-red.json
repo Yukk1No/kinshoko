@@ -2,7 +2,7 @@
   "status": "failed",
   "source": "52a35982243999dcf430659568423a562f7544d5",
   "binarySha256": "1ed64c1061f148b5a42fff93e565c63833f236dd743cb9b30519a8991bee327b",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
   "error": "Error: Timed out: rendered image label",
   "assertions": [
     "opens released v16 旧名称第一库 with stable library identity",

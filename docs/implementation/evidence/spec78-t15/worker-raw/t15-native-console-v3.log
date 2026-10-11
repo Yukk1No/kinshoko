@@ -22,6 +22,6 @@ PASS closed backend session cannot read content again
 PASS request begun before close cannot publish late image bytes
 PASS actual large original travels only in bounded direct receipt Channel chunks
 Error: first-chunk close interrupts remaining content and rejects incomplete image completion
-    at assert (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/sealed-import-preview.mjs:27:48)
-    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/sealed-import-preview.mjs:159:3
+    at assert (file:///%USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/sealed-import-preview.mjs:27:48)
+    at file:///%USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/sealed-import-preview.mjs:159:3
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

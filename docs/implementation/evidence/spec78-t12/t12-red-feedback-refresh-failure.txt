@@ -3,7 +3,7 @@
 > vitest run src/library/TagIdentityPanel.test.tsx
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko
 
  ❯ src/library/TagIdentityPanel.test.tsx (6 tests | 1 failed) 543ms
    × keeps a correction publication failure through queued and later vocabulary refreshes until an explicit retry 102ms

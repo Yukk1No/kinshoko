@@ -1,6 +1,6 @@
-    Checking kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
-   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\src-tauri)
-    Checking kinshoko-tagger v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-tagger)
+    Checking kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\src-tauri)
+    Checking kinshoko-tagger v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-tagger)
 error: this call to `clone` can be replaced with `std::slice::from_ref`
    --> crates\kinshoko-core\tests\catalog_approx.rs:224:9
     |

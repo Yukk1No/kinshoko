@@ -38,5 +38,5 @@ PASS last active library is the fourth upgraded old library
 PASS non-safe view is persisted before normal shutdown
 PASS normal main-window close is requested for the owned application
 Error: Timed out: owned application exits normally
-    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:50:9)
-    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:229:3
+    at until (file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:50:9)
+    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:229:3

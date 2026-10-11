@@ -1,4 +1,4 @@
-   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\src-tauri)
+   Compiling kinshoko v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\src-tauri)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 15.70s
      Running unittests src\lib.rs (target\debug\deps\kinshoko_app-bf5f873b640c6899.exe)
 

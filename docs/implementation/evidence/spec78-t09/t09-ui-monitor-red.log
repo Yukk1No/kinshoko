@@ -5,7 +5,7 @@ npm warn Unknown cli config "--t". This will stop working in the next major vers
 > vitest run src/App.test.tsx 同一修订通知
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko
 
  ❯ src/App.test.tsx (60 tests | 1 failed) 7307ms
    ❯ 聚合来源操作的工作区通知 (1)

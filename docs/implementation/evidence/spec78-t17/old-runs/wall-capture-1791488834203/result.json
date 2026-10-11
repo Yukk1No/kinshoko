@@ -3,8 +3,8 @@
   "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
   "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
   "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
-  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
   "scriptSha256": "02b757c64f57e80fe2d5c5ce1fe1b5a7d2101d571afafae3e3b3c2d21f0c4abb",
   "scriptSource": "98708314f311d5919e7dadc9b3cb2b2899740485",
   "mode": "wall",
@@ -477,7 +477,7 @@
       }
     }
   ],
-  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488834203",
+  "work": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488834203",
   "startedAt": "2026-10-08T19:47:14.319Z",
   "capabilities": {
     "acceptInsecureCerts": false,
@@ -516,7 +516,7 @@
     "info": {
       "id": "95aacee92b8c4ac18849490dbfcf7e10",
       "name": "原图来源 A",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488834203\\libraries\\原图来源 A"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488834203\\libraries\\原图来源 A"
     },
     "card": {
       "adult": false,
@@ -594,7 +594,7 @@
       "0453ad1122b659d55216d1fd620363c6b1d8e4a6743c37a429c5ab785458cb0a"
     ]
   },
-  "error": "Error: plugin:window|set_size: window.set_size not allowed. Permissions associated with this command: core:window:allow-set-size\n    at invoke (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:33:307)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:109:41",
+  "error": "Error: plugin:window|set_size: window.set_size not allowed. Permissions associated with this command: core:window:allow-set-size\n    at invoke (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:33:307)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:109:41",
   "requests": [
     "c9edd5a90d92432c967b19af6272e3e7",
     "8556aadfa6fa422694a61d05a9dd16b3",

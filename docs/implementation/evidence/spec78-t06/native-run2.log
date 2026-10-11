@@ -35,4 +35,4 @@ PASS 旧判断 B original 1ff3cd111c6832ce2b9cad7ec6ff0a46 unchanged
 PASS 旧判断 B original 0f542a9fbd3c3eedf6864552f6d2a9b8 unchanged
 PASS 旧判断 B original bcb963504f3966f5a3de1e458639b183 unchanged
 PASS 旧判断 B original 16d540416e426363089b219d9f2ddd31 unchanged
-Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\shared-approx-1791484030845
+Evidence: %USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\shared-approx-1791484030845

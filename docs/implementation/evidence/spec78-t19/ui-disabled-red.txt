@@ -3,7 +3,7 @@
 > vitest run src/Update.test.tsx
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko
 
  ❯ src/Update.test.tsx (5 tests | 1 failed) 1211ms
    × 公开阶段未满足自动更新条件时显示原因且不提供操作 1005ms

@@ -3,7 +3,7 @@
 > vitest run src/library/WorkspaceSources.test.tsx
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko
 
  ❯ src/library/WorkspaceSources.test.tsx (4 tests | 1 failed) 555ms
    × 同名来源显示最短独立路径，保留完整路径供核对 12ms

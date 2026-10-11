@@ -3,8 +3,8 @@
   "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
   "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
   "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
-  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
   "scriptSha256": "6c1944ee96060db3ecd913947ef76bcc5e3af7224bed4518763856a8bd3733cc",
   "scriptSource": "4b5e1ac7f50fa117d7238768376b287a5237c87d",
   "mode": "wall",
@@ -168,7 +168,7 @@
       }
     }
   ],
-  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488505260",
+  "work": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488505260",
   "startedAt": "2026-10-08T19:41:45.378Z",
   "capabilities": {
     "acceptInsecureCerts": false,
@@ -207,7 +207,7 @@
     "info": {
       "id": "6080abcb8d6a48429a6cd4c900d5271e",
       "name": "原图来源 A",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488505260\\libraries\\原图来源 A"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488505260\\libraries\\原图来源 A"
     },
     "card": {
       "adult": false,
@@ -235,7 +235,7 @@
     "writable": false
   },
   "dpr": 1.1041666269302368,
-  "error": "Error: plugin:desktop|close_pin: 只能关闭当前钉图\n    at invoke (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:33:307)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async clearPins (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:53:91)\n    at async verifyOriginal (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:56:1222)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:88:3",
+  "error": "Error: plugin:desktop|close_pin: 只能关闭当前钉图\n    at invoke (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:33:307)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async clearPins (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:53:91)\n    at async verifyOriginal (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:56:1222)\n    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:88:3",
   "requests": [
     "19302cbfeed04297af448de696bc2531",
     "346656bc531d488983fb91ee654ba700",

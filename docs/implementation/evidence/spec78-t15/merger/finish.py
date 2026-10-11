@@ -5,7 +5,7 @@ import re
 import subprocess
 from datetime import datetime, timezone
 
-ROOT = pathlib.Path('C:/Users/yuk1no/.codex/worktrees/7dea/kinshoko')
+ROOT = pathlib.Path('%USERPROFILE%/.codex/worktrees/7dea/kinshoko')
 OUT = ROOT / 'work/v1-handoff/follow-up-spec/merge17-checks'
 MERGE = 'd93e7f803e160c73862a9692935471b072fc027a'
 TIP = '2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9'

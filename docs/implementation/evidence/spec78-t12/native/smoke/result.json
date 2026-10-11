@@ -1,6 +1,6 @@
 {
   "source": "00dfc611577361a679221dc8f06f99fdcedd466f",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
   "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
   "harnessSha256": "d9df46a1c82641e8677d9434dca9d631a43370a1037d6217b05e539141c7e01a",
   "startedAt": "2026-10-08T19:25:57.350Z",

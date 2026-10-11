@@ -1,6 +1,6 @@
 {
   "source": "54694d417c1e88acaa3efe79a62840604d9590c3",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\binary-54694d4\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t10\\binary-54694d4\\kinshoko.exe",
   "binarySha256": "51804ea9c5f6cda4dcf7079affa44eeb31275e884f765fb18778dbcf3429ba0a",
   "harnessSha256": "d9df46a1c82641e8677d9434dca9d631a43370a1037d6217b05e539141c7e01a",
   "startedAt": "2026-10-08T18:50:37.015Z",

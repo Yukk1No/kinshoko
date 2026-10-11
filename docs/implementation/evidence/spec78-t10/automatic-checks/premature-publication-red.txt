@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko
 
  ❯ src/library/SaveDestination.test.tsx (6 tests | 1 failed) 704ms
    × running import does not claim that content is complete before the actual report 15ms

@@ -3,13 +3,13 @@
     "hwnd": 7801826,
     "pid": 13692,
     "class": "tray_icon_app",
-    "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed\\kinshoko-t19-upgrade.exe"
+    "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed\\kinshoko-t19-upgrade.exe"
   },
   "popup": {
     "hwnd": 526910,
     "pid": 13692,
     "class": "#32768",
-    "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed\\kinshoko-t19-upgrade.exe"
+    "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed\\kinshoko-t19-upgrade.exe"
   },
   "menu": 356324109,
   "items": [
