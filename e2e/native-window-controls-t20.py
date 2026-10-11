@@ -140,12 +140,12 @@ elif command == "restore":
     u.ShowWindow(hwnd, 9)
     time.sleep(0.3)
 elif command == "foreground":
-    # A foreground change is allowed after this process sends input; a no-op Alt tap is the usual way.
-    VK_MENU, KEYUP = 0x12, 0x2
-    u.keybd_event(VK_MENU, 0, 0, 0)
-    u.keybd_event(VK_MENU, 0, KEYUP, 0)
-    u.SetForegroundWindow(hwnd)
-    time.sleep(0.3)
+    # A foreground change is allowed after this process sends input. Use a zero mouse move, not an Alt
+    # tap: Alt on an already active frameless window enters its system-menu loop and stalls the WebView.
+    if not result["before"]["foreground"]:
+        mouse(0x1)
+        u.SetForegroundWindow(hwnd)
+        time.sleep(0.3)
 elif command == "dblclick":
     x, y = numbers
     assert u.SetCursorPos(x, y)
