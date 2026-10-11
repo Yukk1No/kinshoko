@@ -1736,4 +1736,34 @@ describe("聚合来源操作的工作区通知", () => {
     await act(() => emit("workspace-changed", { revision: "fixture", libraries: [{ library, unavailable: null }] }));
     expect(screen.getByText("已选 1 张")).toBeTruthy();
   });
+
+  it("新修订（例如在详情面板改了标签）保留仍然存在的选中图，详情面板保持打开", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
+    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    const browses = sent("plugin:library|browse").length;
+    await act(() => emit("workspace-changed", { revision: "after-tag-edit", libraries: [{ library, unavailable: null }] }));
+    // 图片墙按新修订重读之后，选择仍在，详情面板仍打开。
+    await waitFor(() => expect(sent("plugin:library|browse").length).toBeGreaterThan(browses));
+    await waitFor(() => expect(document.querySelector('[data-id="a"]')?.getAttribute("aria-selected")).toBe("true"));
+    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    expect(screen.getByLabelText("详情", { selector: "aside" }).getAttribute("data-collapsed")).toBe("false");
+  });
+
+  it("新修订里已不存在的选中图（删除或移出当前范围）从选择中去掉", async () => {
+    let gone = false;
+    backend(library, clean, (cmd) => cmd === "plugin:library|browse" && gone ? { ...page, cards: page.cards.filter((c) => c.id !== "a"), total: 1 } : undefined);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
+    fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="b"]')!, { key: " ", ctrlKey: true });
+    expect(screen.getByText("已选 2 张")).toBeTruthy();
+    gone = true;
+    await act(() => emit("workspace-changed", { revision: "after-delete", libraries: [{ library, unavailable: null }] }));
+    await waitFor(() => expect(document.querySelector('[data-id="a"]')).toBeNull());
+    await waitFor(() => expect(screen.getByText("已选 1 张")).toBeTruthy());
+    expect(document.querySelector('[data-id="b"]')?.getAttribute("aria-selected")).toBe("true");
+  });
 });

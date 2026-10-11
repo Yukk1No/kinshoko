@@ -45,7 +45,8 @@ export async function eagleReimportCombination(workflow) {
   };
   const cardFor=async imageId=>until("actual B card for Eagle source "+imageId,async()=>(await page()).cards.find(card=>card.sources.some(source=>source.libraryId===b.id&&source.imageId===imageId)));
   const select=async card=>{
-    // A new revision legitimately clears the selection; select only after the import's event burst ends.
+    // A new revision re-reads the wall (it keeps a selection that still exists); select only after the
+    // import's event burst ends so the click lands on the settled card.
     await closeImport();await workflow.settled();
     await d.controlClick(`//*[@role='option' and @data-id=${literal(card.id)}]`);
     await until("exactly one real Eagle card selected",()=>d.exec("return document.querySelector('.selbar-host [role=toolbar][aria-label=已选参考图操作] .selection-count')?.textContent==='已选 1 张';"));

@@ -103,6 +103,8 @@ function LibraryWorkspace({
   const [reloadKey, setReloadKey] = useState(0);
   const [density, setDensity] = useState(240);
   const [resultCount, setResultCount] = useState<number | null>(null);
+  /** 修订变化后的选择修剪：等图片墙清空（reset）再读完新的结果（loading），然后只保留仍在的图。 */
+  const prune = useRef<"idle" | "reset" | "loading">("idle");
   const wall = useRef<WallHandle>(null);
   const [running, setRunning] = useState<RunningImport | null>(null);
   const [report, setReport] = useState<FinishedImport | null>(null);
@@ -149,6 +151,16 @@ function LibraryWorkspace({
   const viewerChange = useRef(onViewerChange);
   viewerChange.current = onViewerChange;
   const viewerOpen = viewing !== null;
+  useEffect(() => {
+    if (prune.current === "reset") { if (resultCount === null) prune.current = "loading"; return; }
+    if (prune.current !== "loading" || resultCount === null) return;
+    prune.current = "idle";
+    const present = new Set(loadedCards.map((card) => card.id));
+    setSelected((previous) => {
+      const kept = [...previous].filter((id) => present.has(id));
+      return kept.length === previous.size ? previous : new Set(kept);
+    });
+  }, [loadedCards, resultCount]);
   /** 查看器里的上一张 / 下一张按图片墙的顺序走；走过已读到的卡片时先读下一页，读到后再换图。 */
   const viewingIndex = viewing ? loadedCards.findIndex((card) => card.id === viewing.id) : -1;
   const pendingStep = useRef<{ from: string; index: number } | null>(null);
@@ -191,8 +203,10 @@ function LibraryWorkspace({
       statusRevision.current = next.revision;
       setStatus(next);
       // Keep the explicit source dialog; it revokes stale content and revalidates on reloadKey.
+      // 负责人决定（2026-10-11）：修订变化不清空选择。图片墙按新修订重读完之后，
+      // 只去掉已不存在的选中图（删除、移出当前范围），详情面板随之保持打开。
       setViewing(null);
-      setSelected(new Set());
+      prune.current = "reset";
       setReloadKey((k) => k + 1);
       setVocabularyKey((k) => k + 1);
     });
