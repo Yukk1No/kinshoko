@@ -29,9 +29,10 @@
   "nativeRound": {
     "round": "r21", "build": "fed5ca4", "exit": 0, "status": "verified-combined-native-flow",
     "mainContinuousAssertions": 259, "mainDriverAssertions": 271, "blankEnvironmentAssertions": 20,
-    "cleanupErrors": 0, "releaseVerified": true, "knownFolderRestored": true,
+    "cleanupErrors": 0, "releaseVerified": true, "releaseVerifiedMeans": "the round's own app, driver and WebView processes and its ports were released afterwards; not a release build (this round is a debug build)", "knownFolderRestored": true,
     "prototypePacket": {"cards": 148, "exactPrototypeOrder": true},
-    "trashedSourceCapturePolicy": "copy-allowed-from-trashed-source-original (owner decision pending)",
+    "trashedSourceCapturePolicy": "copy-allowed-from-trashed-source-original",
+    "trashedSourceCaptureDecision": "decided by the owner 2026-10-11: moving the frozen image source (an image in library A, not a library) to the recycle bin does not invalidate the frozen selection; the copy must be allowed (no error, no crash). The harness asserts 'allowed' since the #98 review fix.",
     "resultSha256": "d80e0463e882e31af6b9fee7a5533c9f7fcc6edfeec616ac1f15ad8d56b1e29e"
   },
   "prototypeComparison": {

@@ -1,4 +1,5 @@
 {
+  "pathRedaction": "Absolute user paths were redacted for publication (2026-10-11, #98 review fix): <worktree> = the T20 Codex worktree checkout, %USERPROFILE% / %APPDATA% / %LOCALAPPDATA% = the developer profile. Recorded SHA256 values refer to the unredacted original files, which stay in the ignored work/ directory.",
   "kind": "spec78-t20-review-correction-preparation",
   "basedOnFixedReview": {
     "source": "ef77b07e2dedf5c3f038324204776935148de48b",
@@ -12,47 +13,47 @@
     "clean": false,
     "files": {
       "e2e\\spec78-combination-backup.mjs": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\spec78-combination-backup.mjs",
+        "path": "<worktree>\\e2e\\spec78-combination-backup.mjs",
         "bytes": 15827,
         "sha256": "a956ae0a66da81c372c5724157c055b41eea18ddc726d39cf5c382192146bf83"
       },
       "e2e\\spec78-combination-driver.mjs": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\spec78-combination-driver.mjs",
+        "path": "<worktree>\\e2e\\spec78-combination-driver.mjs",
         "bytes": 18768,
         "sha256": "7b992effcbce77a53aca56a9fd5252bf76e2673c4eb8718a2818f15ac6797226"
       },
       "e2e\\spec78-combination-eagle.mjs": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\spec78-combination-eagle.mjs",
+        "path": "<worktree>\\e2e\\spec78-combination-eagle.mjs",
         "bytes": 11149,
         "sha256": "99a436f16ffd3825037e4d801a4175d621accab32349feb6f4dd703ae1af7b18"
       },
       "e2e\\spec78-combination-fixture.mjs": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\spec78-combination-fixture.mjs",
+        "path": "<worktree>\\e2e\\spec78-combination-fixture.mjs",
         "bytes": 8186,
         "sha256": "13b4ea6044cb4d327b82197b6675c3af73b5ac7fca56cd920d44a2b22b69409f"
       },
       "e2e\\spec78-combination-lifecycle.mjs": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\spec78-combination-lifecycle.mjs",
+        "path": "<worktree>\\e2e\\spec78-combination-lifecycle.mjs",
         "bytes": 10717,
         "sha256": "c68c1087576d5211fe2cf9146b76a89f7deeeaccb0b27067a5235ead7241019f"
       },
       "e2e\\spec78-combination-preflight.mjs": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\spec78-combination-preflight.mjs",
+        "path": "<worktree>\\e2e\\spec78-combination-preflight.mjs",
         "bytes": 30127,
         "sha256": "e52939ebbb0d3dd573198b7be230856eaf11c1c932faaef32506a4a035bc7b76"
       },
       "e2e\\spec78-combination-sealed.mjs": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\spec78-combination-sealed.mjs",
+        "path": "<worktree>\\e2e\\spec78-combination-sealed.mjs",
         "bytes": 7686,
         "sha256": "e7dbb830d802c54d92e5f6b5e278c04e25a575d2d6c4a5fea647e5821becc6d3"
       },
       "e2e\\spec78-combination-workflow.mjs": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\spec78-combination-workflow.mjs",
+        "path": "<worktree>\\e2e\\spec78-combination-workflow.mjs",
         "bytes": 37126,
         "sha256": "8225759fbc7e06af7adfd6986582f4cb2528e851f7b9f2417f704822af0ea219"
       },
       "e2e\\spec78-combination.mjs": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\spec78-combination.mjs",
+        "path": "<worktree>\\e2e\\spec78-combination.mjs",
         "bytes": 8177,
         "sha256": "2ed556e00b9656d9ced0a9f9545974a83c15f881d15672e8ec0f5c6f1d5acf23"
       }
@@ -75,12 +76,12 @@
   "retainedFailedChecks": [
     {
       "exit": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-exit.json",
+        "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-exit.json",
         "bytes": 271,
         "sha256": "fadcee8b9e8b6e078fc92e4436990e561607ebedf269d7227a0b783395817a67"
       },
       "stderr": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-stderr.txt",
+        "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-stderr.txt",
         "bytes": 742,
         "sha256": "bc0bb44bcf9a2a48fc4ac8f0426e6ade2a3ec11f503f3c52b6c70071cb0d7aa1"
       },
@@ -88,12 +89,12 @@
     },
     {
       "exit": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v2-exit.json",
+        "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v2-exit.json",
         "bytes": 414,
         "sha256": "07d6618b7480b33d8e3f94ae4c4c5c90662c6ca1eca47a7e911726081a83158e"
       },
       "stderr": {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v2-stderr.txt",
+        "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v2-stderr.txt",
         "bytes": 754,
         "sha256": "79b7d6e16df1b95199755a4cad14d167d5e7e1474c189b4ac51bfae1e8e12d56"
       },
@@ -102,12 +103,12 @@
   ],
   "correctedInputCheck": {
     "exit": {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v3-exit.json",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v3-exit.json",
       "bytes": 485,
       "sha256": "f27f34aa7b9fdfb59fdb28b7566cc78eeea9ecae7acc82553296c0df12b834ec"
     },
     "result": {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-verification-v3.json",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-verification-v3.json",
       "bytes": 3970,
       "sha256": "1e551008e24e88e83dc0dcf46236a94a7d7b825420c4e4c7c9a9996b5e55add8"
     },
@@ -115,123 +116,123 @@
   },
   "rawFiles": [
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\adapter-protocol-trace.json",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\adapter-protocol-trace.json",
       "bytes": 3407,
       "sha256": "5c6ef1b3fa4f45baf32d7d784591975d72b547e0ef7b93af9d1cb562d4e6aa8b"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\checks.mjs",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\checks.mjs",
       "bytes": 7948,
       "sha256": "861a909dd689112518e5e89e3ec962cac93e9e00ad12d7ff82bab149ae347df4"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\exit.json",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\exit.json",
       "bytes": 254,
       "sha256": "1afe36285846697998470b62d540eec599443d11bf31d9c84717a6f11b94bae8"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\helper-checks.json",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\helper-checks.json",
       "bytes": 6783,
       "sha256": "c3f5b3737c390d5027141fc62229224b447b3308d69c3025df9bfa86da5e19fc"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-exit.json",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-exit.json",
       "bytes": 271,
       "sha256": "fadcee8b9e8b6e078fc92e4436990e561607ebedf269d7227a0b783395817a67"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-stderr.txt",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-stderr.txt",
       "bytes": 742,
       "sha256": "bc0bb44bcf9a2a48fc4ac8f0426e6ade2a3ec11f503f3c52b6c70071cb0d7aa1"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-stdout.txt",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-stdout.txt",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v2-exit.json",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v2-exit.json",
       "bytes": 414,
       "sha256": "07d6618b7480b33d8e3f94ae4c4c5c90662c6ca1eca47a7e911726081a83158e"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v2-stderr.txt",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v2-stderr.txt",
       "bytes": 754,
       "sha256": "79b7d6e16df1b95199755a4cad14d167d5e7e1474c189b4ac51bfae1e8e12d56"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v2-stdout.txt",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v2-stdout.txt",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v3-exit.json",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v3-exit.json",
       "bytes": 485,
       "sha256": "f27f34aa7b9fdfb59fdb28b7566cc78eeea9ecae7acc82553296c0df12b834ec"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v3-stderr.txt",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v3-stderr.txt",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v3-stdout.txt",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-v3-stdout.txt",
       "bytes": 99,
       "sha256": "147d1b8dc3de3fb5609a740031c9e18e7b04c81733086ce557157bbcfc2af5db"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-verification-v3.json",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\input-verification-v3.json",
       "bytes": 3970,
       "sha256": "1e551008e24e88e83dc0dcf46236a94a7d7b825420c4e4c7c9a9996b5e55add8"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\parsed-script-0.ps1",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\parsed-script-0.ps1",
       "bytes": 694,
       "sha256": "6cce9f48199b03a7ed3c193a4a53bcba40d7696dd275eb254dd0f1cafc269b1b"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\parsed-script-1.ps1",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\parsed-script-1.ps1",
       "bytes": 2249,
       "sha256": "7d4d751b681778ef980df76b75d192b578153b06d1414a17d0e5ddabada67463"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\parsed-script-2.ps1",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\parsed-script-2.ps1",
       "bytes": 1133,
       "sha256": "12261d526f9c693c2a540ef7a115d8d1a2b23d7f02ed14ccfb330f77cde9279e"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\rejected-build-receipt.json",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\rejected-build-receipt.json",
       "bytes": 56,
       "sha256": "6de0e401de24db89486faa6d863e63db552d82a7b6c513529cf793facdae53df"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\stderr.txt",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\stderr.txt",
       "bytes": 168,
       "sha256": "e28932ea4110d695901d20fe2a7e1ec36fba85827a072241eae2c2debe1fd595"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\stdout.txt",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\stdout.txt",
       "bytes": 1417,
       "sha256": "c76be0cb2afcaf3cd417c3e2efe5cb4d05a9f411d11f7e791f3afa6de76e6ebc"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\verify-fixture-v2.py",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\verify-fixture-v2.py",
       "bytes": 5656,
       "sha256": "1b29c2377ebe1aad984a7211aa10bc70cfa1fdd84cbd5ddf8289d11e65517d3a"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\verify-fixture-v3.py",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\verify-fixture-v3.py",
       "bytes": 5649,
       "sha256": "e45008345328cf9f905b1d590ca7cf2dd31ed843970b2ae33e55647bfc2ccd16"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\verify-fixture.py",
+      "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\verify-fixture.py",
       "bytes": 5647,
       "sha256": "d2569fa883c3645c35697774fb4d7a68a710f1523c8edfbd1c531b5c4e9421f1"
     }
   ],
   "fixture": {
-    "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\fixture\\fixture.json",
+    "path": "<worktree>\\work\\e2e\\spec78-t20-review-corrections-1791505722000\\fixture\\fixture.json",
     "bytes": 57688,
     "sha256": "da1ca81b3355b57bdd7be1ad151df97b9690b2ace9d33f71603493711781815b"
   },

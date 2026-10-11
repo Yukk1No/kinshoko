@@ -1,4 +1,5 @@
 {
+  "pathRedaction": "Absolute user paths were redacted for publication (2026-10-11, #98 review fix): <worktree> = the T20 Codex worktree checkout, %USERPROFILE% / %APPDATA% / %LOCALAPPDATA% = the developer profile. Recorded SHA256 values refer to the unredacted original files, which stay in the ignored work/ directory.",
   "kind": "T20-offline-combination-preparation-derived-summary",
   "recordedAt": "2026-10-09T00:02:25.589911+00:00",
   "sourceBeforeCommit": {
@@ -105,34 +106,34 @@
     "t20": {
       "identifier": "dev.kinshoko.spec78t20test",
       "requested": {
-        "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t20test\\settings.json",
+        "path": "%APPDATA%\\dev.kinshoko.spec78t20test\\settings.json",
         "exists": false,
         "bytes": null,
         "sha256": null
       },
       "resolved": {
-        "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t20test\\settings.json",
+        "path": "%APPDATA%\\dev.kinshoko.spec78t20test\\settings.json",
         "exists": false,
         "bytes": null,
         "sha256": null
       },
-      "requestedResolvesTo": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t20test\\settings.json"
+      "requestedResolvesTo": "%APPDATA%\\dev.kinshoko.spec78t20test\\settings.json"
     },
     "retainedT19": {
       "identifier": "dev.kinshoko.spec78t19upgrade",
       "requested": {
-        "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t19upgrade\\settings.json",
+        "path": "%APPDATA%\\dev.kinshoko.spec78t19upgrade\\settings.json",
         "exists": true,
         "bytes": 247,
         "sha256": "c570d9186a9ed586bf382e9996d9807178641dd9aff6494bbb059f42fb7d916c"
       },
       "resolved": {
-        "path": "C:\\Users\\yuk1no\\AppData\\Local\\Packages\\OpenAI.Codex_2p2nqsd0c76g0\\LocalCache\\Roaming\\dev.kinshoko.spec78t19upgrade\\settings.json",
+        "path": "%LOCALAPPDATA%\\Packages\\OpenAI.Codex_2p2nqsd0c76g0\\LocalCache\\Roaming\\dev.kinshoko.spec78t19upgrade\\settings.json",
         "exists": true,
         "bytes": 247,
         "sha256": "c570d9186a9ed586bf382e9996d9807178641dd9aff6494bbb059f42fb7d916c"
       },
-      "requestedResolvesTo": "C:\\Users\\yuk1no\\AppData\\Local\\Packages\\OpenAI.Codex_2p2nqsd0c76g0\\LocalCache\\Roaming\\dev.kinshoko.spec78t19upgrade\\settings.json"
+      "requestedResolvesTo": "%LOCALAPPDATA%\\Packages\\OpenAI.Codex_2p2nqsd0c76g0\\LocalCache\\Roaming\\dev.kinshoko.spec78t19upgrade\\settings.json"
     },
     "nativeExecuted": false
   },
