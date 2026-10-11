@@ -221,4 +221,4 @@ elif command == "tray-open":
 else:
     raise SystemExit("Unknown command: " + command)
 result["after"] = state()
-print(json.dumps(result, ensure_ascii=False))
+print(json.dumps(result))  # ASCII-escaped: the console code page is not UTF-8
