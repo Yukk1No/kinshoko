@@ -239,6 +239,9 @@ try{
  writeFileSync(join(eagleRoot,"metadata.json"),JSON.stringify({applicationVersion:"4.0.0",folders:[{id:"SOURCE",name:"Eagle 原目录",children:[]}]}));
  const eagleTask=await begin([eagleRoot],b.id,bFolder,true);const eagleReceipt=await finish(eagleTask);receipts.push(eagleReceipt);
  assert(eagleReceipt.report.fromEagle&&eagleReceipt.report.items[0].outcome.kind!=="readFailed"&&eagleReceipt.destination.folderId===bFolder,"real Eagle entry uses the chosen final folder");
+ // A finished Eagle import opens its 标签的外部对应 step over the window; close it as the combined Eagle stage does.
+ await until("Eagle tag step",()=>exists("//*[@aria-label='标签的外部对应']"));await readyClick("//*[@aria-label='标签的外部对应']/header/button");
+ await until("Eagle tag step closed",async()=>!await exists("//*[@aria-label='标签的外部对应']"));
  const bCard=(await local(b.id,bFolder)).cards[0];
  const target={libraryId:b.id,imageId:bCard.imageId,contentId:bCard.id};
  const sourceGroup=await session.invoke("workspace_source_group",{target,safeMode:true,name:"T10 原来源包",groupId:null});
