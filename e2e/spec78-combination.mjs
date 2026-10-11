@@ -11,6 +11,7 @@ import { eagleReimportCombination } from "./spec78-combination-eagle.mjs";
 import { freezeFormalPrototypePacket } from "./spec78-combination-prototype.mjs";
 import { sealedTransferBoundaries } from "./spec78-combination-sealed.mjs";
 import { restartAndOffline, blankEnvironment } from "./spec78-combination-lifecycle.mjs";
+import { nativeWindowControls } from "./spec78-combination-window.mjs";
 import { IDENTIFIER, readJson, ownedWork, fileRecord, recordAttributedBuild, freezeBuild, makeNativePlan, checkNativePlan, sourceRecord, knownFolderState, preserveKnownFolder, restoreKnownFolder } from "./spec78-combination-preflight.mjs";
 
 const usage="node e2e/spec78-combination.mjs --prepare <new owned directory> | --config <owned config path> | --build <build-input.json> | --freeze <config> <new freeze> <successful-build-receipt> | --plan <plan-input.json> | --known-folders <owned output.json> | --run <native-plan.json> <root-grant-id>";
@@ -39,6 +40,7 @@ export async function runCombined(planPath,desktopGrant) {
     await eagleReimportCombination(workflow);
     await originalCombination(workflow,plan);
     await workflow.strictAdultAndConsent();await sealedTransferBoundaries(workflow);await combinedBackups(workflow);await workflow.runtimeAndUpdateUI();
+    report.windowControls=await nativeWindowControls(workflow);
     report.mainSessionCompletedAt=new Date().toISOString();report.continuousMain={sessionId:report.mainSession,assertions:[...d.assertions],state:structuredClone(workflow.state)};
     await restartAndOffline(workflow);report.lifecycles={normalRestartAndOffline:structuredClone(workflow.state.lifecycle)};
     report.blank=await blankEnvironment(workflow,plan);report.lifecycles.blank=report.blank;

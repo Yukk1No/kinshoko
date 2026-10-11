@@ -203,6 +203,13 @@ $ports=@([System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperti
     if(result.status!==0)throw Error("Owned main window resize failed: "+result.stderr);
     const value=JSON.parse(result.stdout.trim());this.record("owned-main-native-resize",value);return value;
   }
+  // The frameless main window seen and driven through the OS (state, restore, foreground, real mouse, tray menu).
+  nativeWindow(command,...numbers) {
+    const applicationSha256=createHash("sha256").update(readFileSync(this.application)).digest("hex");
+    const result=spawnSync("python",["e2e/native-window-controls-t20.py",this.application,applicationSha256,command,...numbers.map(value=>String(Math.round(value)))],{windowsHide:true,encoding:"utf8",timeout:30000});
+    if(result.status!==0)throw Error(`Owned main window ${command} failed: ${result.stderr}`);
+    const value=JSON.parse(result.stdout.trim());this.record("owned-main-native-window",value);return value;
+  }
   terminateOwned(expected,label) {
     if(expected.some(item=>!Number.isInteger(item.pid)||item.pid<=0||!item.created||!item.executable))throw Error("An exact termination requires PID, creation time and executable for every instance");
     const script=String.raw`
