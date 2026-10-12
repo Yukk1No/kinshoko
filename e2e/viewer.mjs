@@ -6,12 +6,13 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
+import { copyStandaloneRuntime } from "./native-standalone-guard.mjs";
 
 const [, , appArg, edgeArg, driverArg = "tauri-driver"] = process.argv;
 if (!appArg || !edgeArg) throw new Error("用法：node e2e/viewer.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]");
-const work = mkdtempSync(join(tmpdir(), "kinshoko-viewer47-"));
-const application = join(work, "kinshoko-viewer47.exe");
-copyFileSync(resolve(appArg), application);
+const work = process.env.KINSHOKO_STANDALONE_WORK ? resolve(process.env.KINSHOKO_STANDALONE_WORK) : mkdtempSync(join(tmpdir(), "kinshoko-viewer47-"));
+mkdirSync(work, { recursive: true });
+const application = copyStandaloneRuntime(appArg, work, "kinshoko-viewer47.exe");
 const parent = join(work, "libraries");
 const source = join(work, "参考");
 const output = resolve(process.env.KINSHOKO_VIEWER_OUTPUT ?? "work/viewer47");
@@ -174,7 +175,9 @@ try {
   if (base) await wd("DELETE", base).catch(() => {});
   driver.kill(); // tauri-driver 的 Windows Job 只结束本次测试的子进程。
   await Promise.race([stopped, new Promise((r) => setTimeout(r, 5000))]);
-  const target = resolve(work);
-  if (dirname(target) !== resolve(tmpdir()) || !basename(target).startsWith("kinshoko-viewer47-")) throw new Error("拒绝清理非测试临时目录");
-  rmSync(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+  if (!process.env.KINSHOKO_STANDALONE_WORK) {
+    const target = resolve(work);
+    if (dirname(target) !== resolve(tmpdir()) || !basename(target).startsWith("kinshoko-viewer47-")) throw new Error("拒绝清理非测试临时目录");
+    rmSync(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+  }
 }
