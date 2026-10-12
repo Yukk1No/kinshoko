@@ -83,8 +83,8 @@ npm run typecheck
 npm run vite:build
 $env:TAURI_CONFIG = '{"identifier":"dev.kinshoko.spec78t05test"}'
 cargo build -p kinshoko --features tauri/custom-protocol --locked -j2
-node e2e/shared-tag-groups.mjs target/debug/kinshoko.exe <matching-msedgedriver> C:/Users/yuk1no/.cargo/bin/tauri-driver.exe
-node e2e/shared-group-draft.mjs target/debug/kinshoko.exe <matching-msedgedriver> work/e2e/shared-groups-1791480727533 C:/Users/yuk1no/.cargo/bin/tauri-driver.exe
+node e2e/shared-tag-groups.mjs target/debug/kinshoko.exe <matching-msedgedriver> %USERPROFILE%/.cargo/bin/tauri-driver.exe
+node e2e/shared-group-draft.mjs target/debug/kinshoko.exe <matching-msedgedriver> work/e2e/shared-groups-1791480727533 %USERPROFILE%/.cargo/bin/tauri-driver.exe
 ```
 
 ## 原生正式程序

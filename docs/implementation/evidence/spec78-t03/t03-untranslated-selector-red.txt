@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko
 
  ❯ src/library/TagNamePanel.test.tsx (4 tests | 1 failed) 1396ms
    × can select an untranslated tag and find it by its external name 1015ms

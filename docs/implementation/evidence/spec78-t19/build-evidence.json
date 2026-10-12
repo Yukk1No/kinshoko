@@ -1,6 +1,6 @@
 {
   "mainBinaryName": "kinshoko-t19-upgrade",
-  "targetDirectory": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
+  "targetDirectory": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
   "identifier": "dev.kinshoko.spec78t19upgrade",
   "buildProfile": "debug",
   "old": {

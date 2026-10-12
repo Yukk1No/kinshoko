@@ -7,7 +7,7 @@
     "OSArchitecture": "64 位"
   },
   "powershell": "7.6.6",
-  "settingsPath": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+  "settingsPath": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
   "settingsExistedBefore": false,
   "existingListeners": [],
   "edgeDriver": "0F4600639201CCD2E84C72C3977AC33C67E19152E197C89EB16A6591D1FBE9F7",

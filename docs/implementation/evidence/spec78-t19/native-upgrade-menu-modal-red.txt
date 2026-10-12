@@ -9,7 +9,7 @@ node:internal/modules/run_main:122
 
 Error: normal native tray selection failed: Traceback (most recent call last):
 
-  File "C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\e2e\native-tray-exit.py", line 103, in <module>
+  File "%USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\e2e\native-tray-exit.py", line 103, in <module>
 
     assert k.WaitForSingleObject(handle, 30000) == 0, "App did not exit normally within 30 seconds"
 
@@ -18,8 +18,8 @@ Error: normal native tray selection failed: Traceback (most recent call last):
 AssertionError: App did not exit normally within 30 seconds
 
 
-    at trayExit (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:75:32)
-    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:114:82
+    at trayExit (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:75:32)
+    at file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:114:82
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
 
 Node.js v22.15.0

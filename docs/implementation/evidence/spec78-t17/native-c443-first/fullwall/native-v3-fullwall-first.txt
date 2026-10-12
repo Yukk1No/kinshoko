@@ -157,6 +157,6 @@ clipboard.commit.end at=1791501839620 ms=34
 PASS cross-card selection uses native screen pixels and adds ordinary screenshot history
 PASS fixture HWND is tied to the exact spawned child PID
 Error: actual owned external HWND has the requested physical bounds and covers the selected point
-    at check (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:35:45)
-    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:202:3
-Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\e2e\wall-capture-1791501732795
+    at check (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:35:45)
+    at file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:202:3
+Evidence: %USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\e2e\wall-capture-1791501732795

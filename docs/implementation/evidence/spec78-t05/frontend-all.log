@@ -3,7 +3,7 @@
 > vitest run
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko
 
  ❯ src/library/TagIdentityPanel.test.tsx (4 tests | 1 failed) 2085ms
    × inspects ambiguous local tags and saves an explicit shared correspondence 1606ms

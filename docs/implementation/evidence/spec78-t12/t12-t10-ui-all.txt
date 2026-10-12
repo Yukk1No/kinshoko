@@ -3,7 +3,7 @@
 > vitest run
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko
 
 
  Test Files  34 passed (34)

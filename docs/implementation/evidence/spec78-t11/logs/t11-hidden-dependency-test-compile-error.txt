@@ -1,4 +1,4 @@
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
 error[E0599]: no variant or associated item named `Adult` found for enum `ContentRating` in the current scope
    --> crates\kinshoko-core\tests\portable_tags.rs:691:123
     |

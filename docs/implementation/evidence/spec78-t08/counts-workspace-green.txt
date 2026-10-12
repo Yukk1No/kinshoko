@@ -1,5 +1,5 @@
     Blocking waiting for file lock on artifact directory
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 12.69s
      Running tests\workspace.rs (target\debug\deps\workspace-0ca34ce5cb6e9673.exe)
 

@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
   "stories": [
     19,
     20,
@@ -31,7 +31,7 @@
     "info": {
       "id": "7f6cfe0abb5d45b983567af8deb7453c",
       "name": "名称第一库",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\tag-names-1791473617790\\libraries\\名称第一库"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\tag-names-1791473617790\\libraries\\名称第一库"
     },
     "imageId": "01a11c26160b72979db56e7dd6025e83",
     "localId": "01a11c2616c572fba4dc0330618c2910"
@@ -40,7 +40,7 @@
     "info": {
       "id": "665388c721d94677b0ed8a0a21d3bd3f",
       "name": "名称第二库",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\tag-names-1791473617790\\libraries\\名称第二库"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\tag-names-1791473617790\\libraries\\名称第二库"
     },
     "imageId": "01a11c26188b70d1842b601d2b865e1f",
     "localId": "01a11c2618c2744e88f8e22dee194ecb"

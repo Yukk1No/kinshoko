@@ -68,7 +68,7 @@ node node_modules/vitest/vitest.mjs run --config work/vitest.config.ts
 node node_modules/vite/bin/vite.js build --config work/vitest.config.ts
 $env:TAURI_CONFIG = '{"identifier":"dev.kinshoko.spec78t02test"}'
 cargo build -p kinshoko --features tauri/custom-protocol --locked -j2
-node e2e/tag-identity.mjs target/debug/kinshoko.exe C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/work/e2e/tools/msedgedriver.exe
+node e2e/tag-identity.mjs target/debug/kinshoko.exe %USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko/work/e2e/tools/msedgedriver.exe
 ```
 
 工作区保留的 5 项 ignored 为 4 个由父测试启动的故障注入子入口，以及大库性能测量；本单没有新增 ignored。
@@ -91,7 +91,7 @@ node e2e/tag-identity.mjs target/debug/kinshoko.exe C:/Users/yuk1no/.codex/workt
 
 ## 原生正式应用证据
 
-通过记录：`work/e2e/tag-identity-1791470925183/result.json`；日志为 `work/e2e/tag-identity-native.log`。完整绝对路径为 `C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/work/e2e/tag-identity-1791470925183/`，包含两份真实资料库、隔离应用目录、纠正／重开／安全模式截图。目录保留供复查。
+通过记录：`work/e2e/tag-identity-1791470925183/result.json`；日志为 `work/e2e/tag-identity-native.log`。完整绝对路径为 `%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/work/e2e/tag-identity-1791470925183/`，包含两份真实资料库、隔离应用目录、纠正／重开／安全模式截图。目录保留供复查。
 
 原生运行使用上述实现提交中的产品源码，二进制在提交前由相同工作树构建，之后产品源码未改动。不是对后来集成分支代码的原生验证。构建后的源码与提交逐项核对；清单为 `work/e2e/native-production-tree.txt`，391 个文件逐项匹配，清单 SHA256 为 `CCD8A204642FD0F75A3013ACF9817B980F6B05593BBA7EEEE457CCE67EE047B9`。运行二进制 `target/debug/kinshoko.exe` 的 SHA256 为 `67B5AB6FC4ED50289B46B4F13CE550B2D2EC0981227B6F486AEF64036065E7B0`。
 

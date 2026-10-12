@@ -120,9 +120,9 @@
         "source": "d93e7f803e160c73862a9692935471b072fc027a",
         "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
         "log": "rust.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       },
       {
         "name": "ui",
@@ -143,9 +143,9 @@
         "source": "d93e7f803e160c73862a9692935471b072fc027a",
         "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
         "log": "ui.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       },
       {
         "name": "fmt",
@@ -163,9 +163,9 @@
         "source": "d93e7f803e160c73862a9692935471b072fc027a",
         "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
         "log": "fmt.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       },
       {
         "name": "typescript",
@@ -181,9 +181,9 @@
         "source": "d93e7f803e160c73862a9692935471b072fc027a",
         "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
         "log": "typescript.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       },
       {
         "name": "harness-syntax",
@@ -199,9 +199,9 @@
         "source": "d93e7f803e160c73862a9692935471b072fc027a",
         "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
         "log": "harness-syntax.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       },
       {
         "name": "helper-syntax",
@@ -217,9 +217,9 @@
         "source": "d93e7f803e160c73862a9692935471b072fc027a",
         "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
         "log": "helper-syntax.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       },
       {
         "name": "diff-whitespace",
@@ -237,9 +237,9 @@
         "source": "d93e7f803e160c73862a9692935471b072fc027a",
         "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
         "log": "diff-whitespace.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       },
       {
         "name": "clippy",
@@ -261,9 +261,9 @@
         "source": "d93e7f803e160c73862a9692935471b072fc027a",
         "tree": "79bb1657860296aa0d4be07bd155b63de2334dce",
         "log": "clippy.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       },
       {
         "name": "binding-doc-regeneration-fixed",
@@ -283,9 +283,9 @@
         "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
         "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
         "log": "binding-doc-regeneration-fixed.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       },
       {
         "name": "fmt-after-binding-doc",
@@ -303,9 +303,9 @@
         "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
         "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
         "log": "fmt-after-binding-doc.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       },
       {
         "name": "typescript-after-binding-doc",
@@ -321,9 +321,9 @@
         "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
         "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
         "log": "typescript-after-binding-doc.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       },
       {
         "name": "diff-whitespace-fixed",
@@ -341,9 +341,9 @@
         "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
         "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
         "log": "diff-whitespace-fixed.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       },
       {
         "name": "clippy-after-binding-doc",
@@ -365,9 +365,9 @@
         "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
         "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
         "log": "clippy-after-binding-doc.txt",
-        "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+        "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
         "cargoBuildJobs": "2",
-        "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+        "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
       }
     ],
     "independentCore": {
@@ -440,9 +440,9 @@
       "sourceAttribution": "Log does not itself embed a full Git SHA; fixed product/worker input provenance is separately audited. Independent merger rerun covers the 87 affected public UI tests at the exact clean merge SHA."
     },
     "environment": {
-      "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+      "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
       "cargoBuildJobs": 2,
-      "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp",
+      "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp",
       "workerTargetReused": false,
       "note": "Workspace TEMP/TMP used from the first execution. Initial binding export emitted an incremental-cache hard-link warning and copied files instead; the export test succeeded. Raw warning preserved."
     }
@@ -457,7 +457,7 @@
     "sourceGitEolOnlyCount": 325,
     "rootVsWorkerEolOnlyCount": 36,
     "rootArchive": {
-      "index": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\root-preservation-v3-final.json",
+      "index": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\root-preservation-v3-final.json",
       "files": 51,
       "bytes": 81416509,
       "allSourceAndCopyHashesMatch": true
@@ -505,19 +505,19 @@
     },
     "historicalNativeRuns": [
       {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v1",
+        "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v1",
         "files": 12,
         "status": "passed",
         "assertions": 36
       },
       {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3",
+        "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3",
         "files": 20,
         "status": "failed",
         "assertions": 23
       },
       {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1",
+        "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1",
         "files": 21,
         "status": "passed",
         "assertions": 43

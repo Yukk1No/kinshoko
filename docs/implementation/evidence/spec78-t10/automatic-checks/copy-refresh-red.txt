@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko
 
  ❯ src/library/SaveDestination.test.tsx (5 tests | 1 failed) 709ms
    × copy keeps its confirmation during a source refresh and closes it after the real reply 92ms

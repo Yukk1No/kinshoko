@@ -7,8 +7,8 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
-ROOT = pathlib.Path('C:/Users/yuk1no/.codex/worktrees/7dea/kinshoko')
-WORKER = pathlib.Path('C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko')
+ROOT = pathlib.Path('%USERPROFILE%/.codex/worktrees/7dea/kinshoko')
+WORKER = pathlib.Path('%USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko')
 OUT = ROOT / 'work/v1-handoff/follow-up-spec/merge17-checks'
 BEFORE = '1e8eb709eb0906f62ced84c4ccf203e6f3121c94'
 FINAL = '2cdf025c4bed72e21178b64e22a501f562363f2c'

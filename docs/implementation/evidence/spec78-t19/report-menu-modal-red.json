@@ -10,7 +10,7 @@
   "windows": "10.0.26300",
   "provenance": {
     "mainBinaryName": "kinshoko-t19-upgrade",
-    "targetDirectory": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
+    "targetDirectory": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
     "identifier": "dev.kinshoko.spec78t19upgrade",
     "buildProfile": "debug",
     "old": {
@@ -46,8 +46,8 @@
       "oldTokenOffset": 75418480
     }
   },
-  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476141631",
-  "installDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed",
+  "work": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476141631",
+  "installDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed",
   "checks": [
     "old real NSIS installed exe, DirectML and uninstaller",
     "old installed executable matches the NSIS-patched source artifact",
@@ -94,7 +94,7 @@
     "library": {
       "id": "0f9055e1c278411ca413bc5cf3fa36a7",
       "name": "T19 升级资料库",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476141631\\libraries\\T19 升级资料库"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476141631\\libraries\\T19 升级资料库"
     },
     "imageId": "01a11c4ca71a77489b7b4844e8e53370",
     "registrations": [
@@ -102,7 +102,7 @@
         "library": {
           "id": "0f9055e1c278411ca413bc5cf3fa36a7",
           "name": "T19 升级资料库",
-          "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476141631\\libraries\\T19 升级资料库"
+          "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476141631\\libraries\\T19 升级资料库"
         },
         "unavailable": null
       }
@@ -191,6 +191,6 @@
     "safeMode": true
   },
   "phase": "old-ready-for-tray-exit",
-  "error": "Error: normal native tray selection failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-tray-exit.py\", line 103, in <module>\r\n    assert k.WaitForSingleObject(handle, 30000) == 0, \"App did not exit normally within 30 seconds\"\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nAssertionError: App did not exit normally within 30 seconds\r\n\n    at trayExit (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:75:32)\n    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:114:82\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+  "error": "Error: normal native tray selection failed: Traceback (most recent call last):\r\n  File \"%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-tray-exit.py\", line 103, in <module>\r\n    assert k.WaitForSingleObject(handle, 30000) == 0, \"App did not exit normally within 30 seconds\"\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nAssertionError: App did not exit normally within 30 seconds\r\n\n    at trayExit (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:75:32)\n    at file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:114:82\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
   "finishedAt": "2026-10-08T16:16:19.004Z"
 }

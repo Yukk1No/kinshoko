@@ -1,6 +1,6 @@
 {
   "method": "automated-native-menu-dispatch",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
   "pid": 6424,
   "tray": {
     "hwnd": 7410436,

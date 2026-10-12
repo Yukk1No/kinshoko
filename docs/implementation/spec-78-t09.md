@@ -6,7 +6,7 @@
 
 已实现明确来源的标签、备注、分级、文件夹归属、删除、钉图和参考组动作。已登记但未活动的资料库可以整理，不切换 current，也不改变 lastOpened。正式原生程序的 25 项检查通过。
 
-- 分支：`codex/spec-78-t09`；物理树：`C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko`。
+- 分支：`codex/spec-78-t09`；物理树：`%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko`。
 - 实现起点：`921c712e5ac423ac32af5ef396243a63acfb21b3`。旧 T19 分支的 `17c8af502da72c3f383d81b8343660e757e2b4ab` 保留。
 - 首次生产实现：`ce49ffd1da3218cc3dbc4c6b6f366726f3a34324`。
 - 合入目录森林及旧名向导：`a875b3a3a2621f84fc8940d5cb4b37caafb455c9`，包含集成 `e13ea2b93eb50776a092d1779e16cee5beff0c7c`。
@@ -81,7 +81,7 @@ T09 的可写入口处理同步动作。后台导入的目标句柄、任务归�
 3. 从 B 整理面板直接钉图并建立参考组。改变查询范围后核对引用仍为 B。关闭测试进程，将 B 根目录改名模拟断连，再启动正式程序，核对不可用状态、引用身份和拒绝的 B 读写；A 完整详情保持不变。
 4. 恢复 B 路径并重启，核对 lastOpened 仍为 A、B 整理持久保存。删除 B 至回收站，预览并确认永久删除，核对实际 B 参考组影响、保留的缺失成员和仍存活的 A。错误字节身份及过期安全模式写入均明确拒绝。
 
-已目视核对 [同名来源选择](evidence/spec78-t09/same-name-source-choices.png)、[B 独立整理](evidence/spec78-t09/explicit-inactive-source-after.png)、[来源使用控件](evidence/spec78-t09/source-pin-and-group.png)、[断连来源](evidence/spec78-t09/disconnected-source-keeps-reference.png) 和 [永久删除预览](evidence/spec78-t09/source-permanent-delete-preview.png)。这些原始截图属于 `36cab7e`，保留当时可见的内部 ID 行，不改图冒充最后界面。
+已目视核对 [同名来源选择](evidence/spec78-t09/same-name-source-choices.png)、[B 独立整理](evidence/spec78-t09/explicit-inactive-source-after.png)、[来源使用控件](evidence/spec78-t09/source-pin-and-group.png)、断连来源（截图已移出仓库，仅本地保留；原 SHA256 `8e6d2465dc44ff9972d86862ccf2fef93d3b77e4fca5a28be112ab9239393b34`，见 [REDACTION.md](evidence/REDACTION.md)） 和 [永久删除预览](evidence/spec78-t09/source-permanent-delete-preview.png)。这些原始截图属于 `36cab7e`，保留当时可见的内部 ID 行，不改图冒充最后界面。
 
 前三轮停止于脚本问题，保留各自日志、结果和原始截图：第一轮 XPath 对组合文字使用 text() 全等；第二轮在文件夹选项尚未加载时设置值；第三轮在实际 revision 刷新时点击旧 WebDriver 元素。修正脚本等待真实可操作控件，并只重试明确未执行点击的 stale/no-such-element 后，第四轮 25 项通过。没有修改产品来回避这些脚本失败。第二轮旧结果的 source 字段当时取了脚本 HEAD；其真实二进制仍为 `36cab7e`，来源补充明确记录，原件未改写。
 

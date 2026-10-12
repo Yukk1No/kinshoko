@@ -3,7 +3,7 @@
   "source": "c1ba9504c9f0481b792313d78fcd69bbe9288be7",
   "tree": "be6d6dc66a8dc9d5764a1598b47f74f797a5d95b",
   "binarySha256": "113b6f37b51faccb004e14eef369310e6136ba3d6ba7de1c7c3c6496a75e7b98",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t08-native.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t08-native.exe",
   "harnessSource": "41ff3b5bb4a6f8021333b85ab3c47a12a2e28124",
   "harnessSha256": "543dfb71ef695b3c69a481f986dedc5788ab16f00fe927ff46634bc38c874568",
   "environment": {
@@ -16,7 +16,7 @@
     "info": {
       "id": "dc022728eef04cd58f38e27a43e7a91f",
       "name": "目录参考",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-folders-1791477705967\\libraries\\a\\目录参考"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-folders-1791477705967\\libraries\\a\\目录参考"
     },
     "images": {
       "unassigned.png": "01a11c6472e4762fa724e0bb142623eb",
@@ -31,7 +31,7 @@
     "info": {
       "id": "fb88975c5ab345be97703e477858b6c6",
       "name": "目录参考",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-folders-1791477705967\\libraries\\b\\目录参考"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\workspace-folders-1791477705967\\libraries\\b\\目录参考"
     },
     "images": {
       "second.png": "01a11c6474ef7622bda7ec2f5ca15307",

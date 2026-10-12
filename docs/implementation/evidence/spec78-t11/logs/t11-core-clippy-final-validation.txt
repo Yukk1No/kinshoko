@@ -35,5 +35,5 @@
     Checking fast_image_resize v6.1.0
     Checking uuid v1.27.0
     Checking tempfile v3.27.0
-    Checking kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+    Checking kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 25.52s

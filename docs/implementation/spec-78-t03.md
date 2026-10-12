@@ -82,7 +82,7 @@ python -m unittest discover -s tools/translation-table
 python tools/translation-table/translation_table.py check --vocab <固定离线词表>
 $env:TAURI_CONFIG = '{"identifier":"dev.kinshoko.spec78t03test"}'
 cargo build -p kinshoko --features tauri/custom-protocol --locked -j2
-node e2e/tag-names.mjs target/debug/kinshoko.exe <匹配的msedgedriver.exe> C:/Users/yuk1no/.cargo/bin/tauri-driver.exe
+node e2e/tag-names.mjs target/debug/kinshoko.exe <匹配的msedgedriver.exe> %USERPROFILE%/.cargo/bin/tauri-driver.exe
 ```
 
 | 检查范围 | 结果与对应版本 |
@@ -98,7 +98,7 @@ node e2e/tag-names.mjs target/debug/kinshoko.exe <匹配的msedgedriver.exe> C:/
 
 ## 原生正式应用证据
 
-通过运行目录：`C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/work/e2e/tag-names-1791473617790/`，含两份真实资料库、隔离数据、截图和结果。固定结果为 [result.json](evidence/spec78-t03/result.json)，原始失败及截图另存为 [native-command-permission-red.json](evidence/spec78-t03/native-command-permission-red.json)／[失败界面](evidence/spec78-t03/native-command-permission-red.png)。真实失败没有计为通过；生产权限修复提交后重新构建并完整重跑。
+通过运行目录：`%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/work/e2e/tag-names-1791473617790/`，含两份真实资料库、隔离数据、截图和结果。固定结果为 [result.json](evidence/spec78-t03/result.json)，原始失败及截图另存为 [native-command-permission-red.json](evidence/spec78-t03/native-command-permission-red.json)／[失败界面](evidence/spec78-t03/native-command-permission-red.png)。真实失败没有计为通过；生产权限修复提交后重新构建并完整重跑。
 
 通过运行的产品与脚本源码均为 `7113d30c17a403caef612a5279f85ad710e0b1a0`，tree 为 `4b03344fd8a162278aa7f567a433a0960ad2a203`。[逐文件源码、嵌入 dist 与二进制清单](evidence/spec78-t03/native-source.json) 固定其来源。二进制 SHA256 为 `336B3731D435D0E696D5CB07A3E35DD2F1749B8A0B2F10AAA0DD67BAF5FC42EF`；原件另保存在本树 `work/e2e/nativeproof/t03-7113d30/kinshoko.exe`。匹配 driver 的 SHA256 为 `0F4600639201CCD2E84C72C3977AC33C67E19152E197C89EB16A6591D1FBE9F7`。
 

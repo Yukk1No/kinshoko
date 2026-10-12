@@ -270,7 +270,7 @@
       "scope": "Actual feedback-fix source. Later 8fc integration moves SaveDestination documentation and regenerates that binding comment; no Rust runtime delta. Final product inputs match 00df through ebac."
     },
     "knownFolder": {
-      "path": "C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t12test/settings.json",
+      "path": "%USERPROFILE%/AppData/Roaming/dev.kinshoko.spec78t12test/settings.json",
       "finalSevenPhases": "exists:false/sha256:null with actual shellSettings captured",
       "firstAndThirdPreflight": "actual recorded absence; earlier informal existed claim is superseded by raw metadata",
       "smokePreflightAndRelease": "exists:false/sha256:null",

@@ -1,5 +1,5 @@
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\crates\kinshoko-core)
-warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\yuk1no\.codex\worktrees\7dea\kinshoko\target\debug\incremental\kinshoko_core-0giok3l6pnk0e\s-hn11jb4kjl-0fbet57-working`
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\7dea\kinshoko\crates\kinshoko-core)
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\%USERPROFILE%\.codex\worktrees\7dea\kinshoko\target\debug\incremental\kinshoko_core-0giok3l6pnk0e\s-hn11jb4kjl-0fbet57-working`
 
 warning: `kinshoko-core` (lib test) generated 1 warning
     Finished `test` profile [unoptimized + debuginfo] target(s) in 20.70s

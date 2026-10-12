@@ -93,7 +93,7 @@ v3-retry1 于 2026-10-08 21:16:51.240–21:17:27.486 UTC 完整通过 43 项。�
 | 已显示图的正式当前资料库控件变化 | 192ms 内遮蔽；原任务固定 owner 保持；返回旧库不会复活同意 |
 | 待读取时正式当前资料库控件变化 / 关闭 | 分别 167 / 32ms 内遮蔽，后续观察没有完整图片复活 |
 
-正式库控件由 WebDriver 向现有 select 派发 change，走正常产品 handler 与命令。UI 遮蔽计时和后台实际传输撤销分别记录。七次实际全局 mode 查询均 true；同模式 T13 设置恢复撤销、下一回执与历史 item 隔离、任意真实 image ID 拒绝、普通 candidates/counts、目标未分级/备注/标签及初始四个库内原图 SHA 均通过。六张最终截图已逐张实际查看：`default-sealed-prompt.png`、`explicit-receipt-preview.png`、`closed-reveiled.png`、`current-library-reveiled.png`、`pending-current-library-no-revival.png`、`pending-ui-close-no-revival.png`。
+正式库控件由 WebDriver 向现有 select 派发 change，走正常产品 handler 与命令。UI 遮蔽计时和后台实际传输撤销分别记录。七次实际全局 mode 查询均 true；同模式 T13 设置恢复撤销、下一回执与历史 item 隔离、任意真实 image ID 拒绝、普通 candidates/counts、目标未分级/备注/标签及初始四个库内原图 SHA 均通过。六张最终截图已逐张实际查看：`default-sealed-prompt.png`、`explicit-receipt-preview.png`、`closed-reveiled.png`、`current-library-reveiled.png`、`pending-current-library-no-revival.png`、`pending-ui-close-no-revival.png`。其中除 `explicit-receipt-preview.png` 外的截图显示本机用户目录，已移出仓库，仅本地保留；原 SHA256 见 [REDACTION.md](evidence/REDACTION.md)。
 
 21:18:06 UTC 已 release。`cleanup.json` 记录 own EXE/profile WebView/drivers 和 4676/4677 均空；KnownFolder 原不存在→实际 safeMode=true / SHA256 `7ab1eb0d453365c6f8c4b1de3a6c10bac9185790bf3b49e047f5e64b0391c2dd`（已复制到 run `known-folder-after`）→仅恢复该独立目录为不存在。清理使用 WebDriver DELETE 和精确 EXE/driver 强制清理，没有称为正常 tray Quit。主脚本、helper、manifest/fixture 原字节、preflight、config、console、settings 和截图都在该 run 保留；全量 raw 索引为 `work/e2e/t15-evidence-index-final.json`。v1 passed36 原件及新增期望 RED、v2 未执行包、v3 failed23 原件分别保留，不与最终 passed43 合并。
 

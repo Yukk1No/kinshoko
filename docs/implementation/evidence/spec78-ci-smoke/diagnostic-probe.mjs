@@ -10,7 +10,7 @@ const work = resolve(`work/v1-handoff/follow-up-spec/ci-smoke-probe-${Date.now()
 const parent = join(work, 'libraries');
 mkdirSync(parent, { recursive: true });
 const port = 4478, url = `http://127.0.0.1:${port}`;
-const driver = spawn('C:/Users/yuk1no/.cargo/bin/tauri-driver.exe', ['--port', String(port), '--native-port', String(port+1), '--native-driver', 'C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/work/e2e/tools/msedgedriver.exe'], { env: { ...process.env, KINSHOKO_DATA_DIR: join(work, 'app-data'), KINSHOKO_SKIP_AUTOSTART: '1', WEBVIEW2_USER_DATA_FOLDER: join(work, 'webview') }, windowsHide:true, stdio:['ignore','inherit','inherit'] });
+const driver = spawn('%USERPROFILE%/.cargo/bin/tauri-driver.exe', ['--port', String(port), '--native-port', String(port+1), '--native-driver', '%USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko/work/e2e/tools/msedgedriver.exe'], { env: { ...process.env, KINSHOKO_DATA_DIR: join(work, 'app-data'), KINSHOKO_SKIP_AUTOSTART: '1', WEBVIEW2_USER_DATA_FOLDER: join(work, 'webview') }, windowsHide:true, stdio:['ignore','inherit','inherit'] });
 let base, result = { productSource:'f7ef52b12681ed679927f7fef034629b923ae8ec', binarySha256:expected, application, work, identifier:'dev.kinshoko.spec78t05test', ciSource:'fad93218cc56ee31b77460e1b4ef0b1d8127ab3b', ports:[port,port+1] };
 const pause = ms => new Promise(r => setTimeout(r,ms));
 async function wd(method,path,body) { const r=await fetch(url+path,{method,headers:{'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)}); const j=await r.json(); if(!r.ok) throw Error(`${method} ${path}: ${JSON.stringify(j)}`); return j.value; }

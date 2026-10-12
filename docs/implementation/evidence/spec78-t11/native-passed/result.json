@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
   "build": {
     "source": "a99fd7683e5c00b896c99aaa49129ebfe2eefdf5",
     "tree": "411ed9a68e23f968fe05b820579f8d1de743f5d3",
@@ -8,7 +8,7 @@
     "identifier": "dev.kinshoko.spec78t11test",
     "buildType": "debug with tauri/custom-protocol",
     "buildDate": "2026-10-09T01:55:56.4256835+08:00",
-    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target",
+    "target": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target",
     "driverSha256": "0F4600639201CCD2E84C72C3977AC33C67E19152E197C89EB16A6591D1FBE9F7",
     "configSha256": "6BC6FFD4CFD9F2DFA02B7BF8E1737212FD2867A3868AACA27FF2381D12DB0B7E",
     "includesT05": "77e7a9bfba8e9afe2ee82b241884a4680e31ec4e",
@@ -47,7 +47,7 @@
   "environments": [
     {
       "phase": "source",
-      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\source-app",
+      "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\source-app",
       "dpr": 1.1041666269302368,
       "height": 801,
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -55,7 +55,7 @@
     },
     {
       "phase": "publication-failure",
-      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\source-app",
+      "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\source-app",
       "dpr": 1.1041666269302368,
       "height": 801,
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -63,7 +63,7 @@
     },
     {
       "phase": "copied-libraries",
-      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\copied-app",
+      "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\copied-app",
       "dpr": 1.1041666269302368,
       "height": 801,
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -71,7 +71,7 @@
     },
     {
       "phase": "fresh-package",
-      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\fresh-app",
+      "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\fresh-app",
       "dpr": 1.1041666269302368,
       "height": 801,
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -79,7 +79,7 @@
     },
     {
       "phase": "existing-package",
-      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\existing-app",
+      "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\existing-app",
       "dpr": 1.1041666269302368,
       "height": 801,
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -87,7 +87,7 @@
     },
     {
       "phase": "reimported-copy",
-      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\reimported-copy-app",
+      "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\reimported-copy-app",
       "dpr": 1.1041666269302368,
       "height": 801,
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -98,7 +98,7 @@
     "info": {
       "id": "b0f0eaec414f4f01beac89b334087b1e",
       "name": "便携来源甲",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\libraries\\便携来源甲"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\libraries\\便携来源甲"
     },
     "images": [
       "01a11cad3fca76daaa8719b746029eeb",
@@ -110,7 +110,7 @@
     "info": {
       "id": "c3c60d3f6d9b40809bec2ace04ac4377",
       "name": "便携来源乙",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\libraries\\便携来源乙"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\libraries\\便携来源乙"
     },
     "images": [
       "01a11cad4382759ab2fefb92f5b9f4c7"
@@ -188,13 +188,13 @@
   "freshTarget": {
     "id": "77c9f993630d4037ad76aa319d60d995",
     "name": "空应用包目标",
-    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\targets\\空应用包目标"
+    "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\targets\\空应用包目标"
   },
   "existingTarget": {
     "info": {
       "id": "c133d843fe8a4dfcb87956c1f3b14b2a",
       "name": "已有偏好目标",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\libraries\\已有偏好目标"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\portable-tags-1791482476103\\libraries\\已有偏好目标"
     },
     "images": [
       "01a11cad8c5473678cc64c861c8c4876"

@@ -9,7 +9,7 @@
   "windows": "10.0.26300",
   "provenance": {
     "mainBinaryName": "kinshoko-t19-upgrade",
-    "targetDirectory": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
+    "targetDirectory": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
     "identifier": "dev.kinshoko.spec78t19upgrade",
     "buildProfile": "debug",
     "old": {
@@ -45,8 +45,8 @@
       "oldTokenOffset": 75418480
     }
   },
-  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791475094252",
-  "installDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed",
+  "work": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791475094252",
+  "installDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed",
   "checks": [
     "old real NSIS installed exe, DirectML and uninstaller",
     "old installed executable matches the NSIS-patched source artifact",
@@ -93,7 +93,7 @@
     "library": {
       "id": "49554d1289ad4479ad3f70b1fbce47cf",
       "name": "T19 升级资料库",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791475094252\\libraries\\T19 升级资料库"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791475094252\\libraries\\T19 升级资料库"
     },
     "imageId": "01a11c3cc09770c9b7f69f28f5f6a4f3",
     "registrations": [
@@ -101,7 +101,7 @@
         "library": {
           "id": "49554d1289ad4479ad3f70b1fbce47cf",
           "name": "T19 升级资料库",
-          "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791475094252\\libraries\\T19 升级资料库"
+          "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791475094252\\libraries\\T19 升级资料库"
         },
         "unavailable": null
       }
@@ -190,6 +190,6 @@
     "safeMode": true
   },
   "phase": "old-ready-for-tray-exit",
-  "error": "Error: normal tray exit: timeout\n    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:27:247)\n    at async trayExit (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:71:3)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:107:76",
+  "error": "Error: normal tray exit: timeout\n    at until (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:27:247)\n    at async trayExit (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:71:3)\n    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:107:76",
   "finishedAt": "2026-10-08T16:13:26.879Z"
 }

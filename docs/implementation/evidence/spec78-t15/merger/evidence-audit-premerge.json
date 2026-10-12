@@ -11,19 +11,19 @@
   "rawFilesChecked": 87,
   "nativeRuns": [
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v1",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v1",
       "files": 12,
       "status": "passed",
       "assertions": 36
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3",
       "files": 20,
       "status": "failed",
       "assertions": 23
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3-retry1",
       "files": 21,
       "status": "passed",
       "assertions": 43
@@ -31,15 +31,15 @@
   ],
   "fixtureFiles": [
     {
-      "directory": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v2",
+      "directory": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v2",
       "files": 15
     },
     {
-      "directory": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3",
+      "directory": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v3",
       "files": 15
     },
     {
-      "directory": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4",
+      "directory": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-fixture-v4",
       "files": 15
     }
   ],
@@ -421,7 +421,7 @@
     "e2e/sealed-import-preview.mjs"
   ],
   "rootArchive": {
-    "index": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\root-preservation-v3-final.json",
+    "index": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t15-native\\root-preservation-v3-final.json",
     "files": 51,
     "bytes": 81416509,
     "allSourceAndCopyHashesMatch": true
@@ -480,9 +480,9 @@
     "t15-stream-final-clippy.log": {
       "rustSummaries": [],
       "tail": [
-        "    Checking kinshoko-core v0.1.0 (C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\crates\\kinshoko-core)",
-        "    Checking kinshoko-tagger v0.1.0 (C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\crates\\kinshoko-tagger)",
-        "    Checking kinshoko v0.1.0 (C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\src-tauri)",
+        "    Checking kinshoko-core v0.1.0 (%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\crates\\kinshoko-core)",
+        "    Checking kinshoko-tagger v0.1.0 (%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\crates\\kinshoko-tagger)",
+        "    Checking kinshoko v0.1.0 (%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\src-tauri)",
         "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 19.49s"
       ]
     },
@@ -491,7 +491,7 @@
       "tail": [
         "",
         "",
-        " RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko",
+        " RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko",
         "",
         "",
         " Test Files  36 passed (36)",

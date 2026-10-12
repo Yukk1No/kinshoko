@@ -9,5 +9,5 @@ PASS wrong-owner cancellation is rejected during the real task
 PASS B task completes all 2000 entries after current/create/target changes
 PASS completed content stays in B rather than new current or newly selected A
 Error: Timed out: copy source facts saved
-    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/save-destination-followup.mjs:48:9)
-    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/save-destination-followup.mjs:193:15
+    at until (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/save-destination-followup.mjs:48:9)
+    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/save-destination-followup.mjs:193:15

@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko
 
  ❯ src/library/SelectionPanel.test.tsx (5 tests | 1 failed) 387ms
    × 永久删除确认使旧详情请求失效，删除后迟到的缺失错误不进入全局提示 55ms

@@ -1317,7 +1317,7 @@
       "environments": [
         {
           "phase": "source",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\source-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\source-app",
           "dpr": 1.1041666269302368,
           "height": 801,
           "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -1325,7 +1325,7 @@
         },
         {
           "phase": "source-publication-failed",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\source-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\source-app",
           "dpr": 1.1041666269302368,
           "height": 801,
           "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -1346,7 +1346,7 @@
       "environments": [
         {
           "phase": "source",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\source-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\source-app",
           "dpr": 1.1041666269302368,
           "height": 801,
           "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -1354,7 +1354,7 @@
         },
         {
           "phase": "source-publication-failed",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\source-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\source-app",
           "dpr": 1.1041666269302368,
           "height": 801,
           "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -1375,7 +1375,7 @@
       "environments": [
         {
           "phase": "source",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\source-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\source-app",
           "dpr": 1.1041666269302368,
           "height": 801,
           "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -1383,7 +1383,7 @@
         },
         {
           "phase": "source-publication-failed",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\source-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\source-app",
           "dpr": 1.1041666269302368,
           "height": 801,
           "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -1391,7 +1391,7 @@
         },
         {
           "phase": "fresh-restore",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\fresh-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\fresh-app",
           "dpr": 1.1041666269302368,
           "height": 801,
           "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -1412,9 +1412,9 @@
       "environments": [
         {
           "phase": "source",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\source-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\source-app",
           "knownFolder": {
-            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "path": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
             "exists": false,
             "sha256": null,
             "value": null
@@ -1454,9 +1454,9 @@
         },
         {
           "phase": "source-publication-failed",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\source-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\source-app",
           "knownFolder": {
-            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "path": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
             "exists": false,
             "sha256": null,
             "value": null
@@ -1496,9 +1496,9 @@
         },
         {
           "phase": "fresh-restore",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
           "knownFolder": {
-            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "path": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
             "exists": false,
             "sha256": null,
             "value": null
@@ -1538,9 +1538,9 @@
         },
         {
           "phase": "fault-library",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
           "knownFolder": {
-            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "path": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
             "exists": false,
             "sha256": null,
             "value": null
@@ -1580,9 +1580,9 @@
         },
         {
           "phase": "recover-library",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
           "knownFolder": {
-            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "path": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
             "exists": false,
             "sha256": null,
             "value": null
@@ -1622,9 +1622,9 @@
         },
         {
           "phase": "fault-group",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
           "knownFolder": {
-            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "path": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
             "exists": false,
             "sha256": null,
             "value": null
@@ -1664,9 +1664,9 @@
         },
         {
           "phase": "recover-group",
-          "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
+          "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\fresh-app",
           "knownFolder": {
-            "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
+            "path": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t12test\\settings.json",
             "exists": false,
             "sha256": null,
             "value": null

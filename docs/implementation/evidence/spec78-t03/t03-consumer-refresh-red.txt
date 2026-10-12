@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko
 
  ❯ src/library/TagIdentityPanel.test.tsx (4 tests | 1 failed) 1510ms
    × refreshes inspected shared labels after a global name vocabulary event 1039ms

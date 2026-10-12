@@ -6,7 +6,7 @@ import sys
 import time
 from datetime import datetime, timezone
 
-ROOT = pathlib.Path('C:/Users/yuk1no/.codex/worktrees/7dea/kinshoko')
+ROOT = pathlib.Path('%USERPROFILE%/.codex/worktrees/7dea/kinshoko')
 OUT = ROOT / 'work/v1-handoff/follow-up-spec/merge17-checks'
 environment = os.environ.copy()
 environment['CARGO_BUILD_JOBS'] = '2'

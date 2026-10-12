@@ -3,7 +3,7 @@
 > vitest run src/search/SharedApprox.test.tsx src/SettingsPanel.test.tsx src/App.test.tsx
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko
 
  ❯ src/App.test.tsx (60 tests | 1 failed) 7032ms
    ❯ 安全模式 (11)

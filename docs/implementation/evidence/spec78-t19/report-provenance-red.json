@@ -9,7 +9,7 @@
   "windows": "10.0.26300",
   "provenance": {
     "mainBinaryName": "kinshoko-t19-upgrade",
-    "targetDirectory": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
+    "targetDirectory": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
     "identifier": "dev.kinshoko.spec78t19upgrade",
     "buildProfile": "debug",
     "old": {
@@ -35,12 +35,12 @@
       "directmlSha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
     }
   },
-  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791474894605",
-  "installDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed",
+  "work": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791474894605",
+  "installDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed",
   "checks": [
     "old real NSIS installed exe, DirectML and uninstaller"
   ],
   "status": "failed",
-  "error": "Error: old installed executable matches built source artifact\n    at check (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:25:44)\n    at install (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:51:3)\n    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:87:3\n    at ModuleJob.run (node:internal/modules/esm/module_job:274:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)",
+  "error": "Error: old installed executable matches built source artifact\n    at check (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:25:44)\n    at install (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:51:3)\n    at file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:87:3\n    at ModuleJob.run (node:internal/modules/esm/module_job:274:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)",
   "finishedAt": "2026-10-08T15:54:58.908Z"
 }

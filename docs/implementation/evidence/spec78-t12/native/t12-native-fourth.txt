@@ -56,4 +56,4 @@ PASS actual restored library provenance names the selected content snapshot
 PASS actual restored reference-group provenance names the selected content snapshot
 PASS rendered content restore reports matching originals, curation and groups
 PASS rendered retry completes all libraries and groups after group interruption
-Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\content-backup-t12-00dfc61-fourth
+Evidence: %USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\content-backup-t12-00dfc61-fourth

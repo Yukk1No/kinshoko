@@ -19,4 +19,4 @@ PASS descendant counts retain all-source Adult veto outside the folder scope
 PASS removed selected provider does not silently replace range with all libraries
 PASS removed provider query returns an explicit failure
 PASS disconnected provider keeps an explicit disabled root and discards cached folder controls
-Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\workspace-folders-1791477705967
+Evidence: %USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\workspace-folders-1791477705967

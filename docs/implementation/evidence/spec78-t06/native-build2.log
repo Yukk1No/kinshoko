@@ -14,8 +14,8 @@ dist/assets/index-BX4yaQwo.css   34.94 kB │ gzip:   7.53 kB
 dist/assets/index-PzBdXisj.js   415.35 kB │ gzip: 125.55 kB
 
 ✓ built in 438ms
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
-   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\src-tauri)
-   Compiling kinshoko-tagger v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-tagger)
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\src-tauri)
+   Compiling kinshoko-tagger v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\crates\kinshoko-tagger)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 08s
-       Built application at: C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\target\debug\kinshoko.exe
+       Built application at: %USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\target\debug\kinshoko.exe

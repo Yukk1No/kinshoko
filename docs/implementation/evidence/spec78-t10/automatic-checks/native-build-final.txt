@@ -14,8 +14,8 @@ dist/assets/index-T8rZJrtt.css   35.98 kB │ gzip:   7.71 kB
 dist/assets/index-0xtCBA_U.js   425.56 kB │ gzip: 128.45 kB
 
 ✓ built in 225ms
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
-   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\src-tauri)
-   Compiling kinshoko-tagger v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-tagger)
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\src-tauri)
+   Compiling kinshoko-tagger v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-tagger)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 04s
-       Built application at: C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\target\debug\kinshoko.exe
+       Built application at: %USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\target\debug\kinshoko.exe

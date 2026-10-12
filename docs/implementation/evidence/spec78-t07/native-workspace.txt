@@ -23,4 +23,4 @@ PASS known offline Adult veto survives full application restart
 PASS known offline source remains inspectable on available bytes
 PASS unavailable provider cached definitions never enter candidates
 PASS explicit unregister removes conservative offline veto
-Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\workspace-1791474706835
+Evidence: %USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\workspace-1791474706835

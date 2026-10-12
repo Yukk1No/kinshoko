@@ -24,4 +24,4 @@ PASS reimport preserves the current application preference and does not resurrec
 PASS reimport reuses each declared stable identity without adding duplicate local tags
 PASS content reimport also keeps the current global group unchanged
 PASS a copied destination library carries its current pure definitions immediately after reimport, without any application preference
-Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\portable-tags-1791482476103
+Evidence: %USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\portable-tags-1791482476103

@@ -3,7 +3,7 @@
 > vitest run src/library/SharedTagGroups.test.tsx src/library/TagOrganize.test.tsx src/App.test.tsx src/SettingsPanel.test.tsx
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko
 
  ❯ src/library/TagOrganize.test.tsx (11 tests | 2 failed) 3978ms
    ❯ 标签分组 (4)

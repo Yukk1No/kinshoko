@@ -6,7 +6,7 @@
   "driversRemaining": [],
   "portsRemaining": [],
   "knownFolder": {
-    "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t15test",
+    "path": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t15test",
     "beforeExists": false,
     "afterRun": {
       "exists": true,

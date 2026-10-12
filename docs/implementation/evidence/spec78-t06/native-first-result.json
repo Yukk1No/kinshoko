@@ -3,7 +3,7 @@
   "source": "49c39e0c4a7df150183e48d27883e0c5fca82c9f",
   "harnessSource": "49c39e0c4a7df150183e48d27883e0c5fca82c9f",
   "binarySha256": "aae236fd854c72221dfdd5b95b59e27d016c49314fb25621d542ecf10a47a3a7",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
   "assertions": [
     "released v16 旧判断 A opens with stable identity",
     "released v16 旧判断 B opens with stable identity",

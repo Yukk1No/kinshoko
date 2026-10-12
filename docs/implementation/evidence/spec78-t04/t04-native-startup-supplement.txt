@@ -9,4 +9,4 @@ PASS three other upgraded libraries still aggregate with saved safe=false
 PASS formal workspace defaults to all registered providers without an active library
 [1009/003821.783:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
 PASS after-disconnect-tray-exit: actual native tray Quit callback exits normally with code 0
-Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\legacy-name-startup-1791477496325
+Evidence: %USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\legacy-name-startup-1791477496325

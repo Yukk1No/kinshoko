@@ -3,5 +3,5 @@ PASS fixture import has its explicit owner and completed definition publication:
 PASS three native reference views become one cross-library source group
 PASS app split is saved despite a real provider definition publication failure
 Error: Timed out: formal provider publication failure
-    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/library-content-backup.mjs:31:9)
-    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/library-content-backup.mjs:218:10
+    at until (file:///%USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/library-content-backup.mjs:31:9)
+    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/library-content-backup.mjs:218:10
