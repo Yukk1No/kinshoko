@@ -31,7 +31,7 @@ export function sourceRecord() {
   const source = git(["rev-parse", "HEAD"]), tree = git(["rev-parse", "HEAD^{tree}"]);
   const branch = git(["branch", "--show-current"]);
   // The T20 branch, or its review-fix branch that the merger folds back into it.
-  if (!["codex/spec-78-t20", "codex/spec-78-t20-review-fix"].includes(branch)) throw Error("Use the assigned T20 branch");
+  if (!["codex/spec-78-t20", "codex/spec-78-t20-review-fix", "codex/spec-78-finish-local"].includes(branch)) throw Error("Use the assigned T20 branch");
   const files = {};
   for (const path of git(["ls-files", "-z"]).split("\0").filter(Boolean)) {
     if (!/^(\.cargo\/|data\/|src\/|src-tauri\/|crates\/|scripts\/|e2e\/|public\/|Cargo\.|package|vite\.|tsconfig|index\.html)/.test(path)) continue;
