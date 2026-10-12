@@ -6,12 +6,13 @@ import { mkdirSync, writeFileSync, readFileSync, renameSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, join } from "node:path";
 import { deflateSync } from "node:zlib";
+import { copyStandaloneRuntime } from "./native-standalone-guard.mjs";
 
-const [, , appArg, edgeArg] = process.argv;
+const [, , appArg, edgeArg, manifestArg, driverArg = "tauri-driver"] = process.argv;
 if (!appArg || !edgeArg) throw new Error("Usage: node e2e/save-destination-followup.mjs <owned kinshoko.exe> <msedgedriver.exe>");
-const application = resolve(appArg);
-const work = resolve("work", "e2e", `save-destination-followup-${Date.now()}`);
+const work = process.env.KINSHOKO_STANDALONE_WORK ? resolve(process.env.KINSHOKO_STANDALONE_WORK) : resolve("work", "e2e", `save-destination-followup-${Date.now()}`);
 mkdirSync(work, { recursive: true });
+const application = copyStandaloneRuntime(appArg, work, "kinshoko-save-destination-followup.exe");
 const libraries = join(work, "libraries");
 mkdirSync(libraries);
 const imagePath = join(work, "image.png");
@@ -28,7 +29,7 @@ const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(width, 0); ihdr.writeUInt32BE(
 const pixels = Buffer.alloc(height * (1 + width * 3));
 for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) { const offset = y * (1 + width * 3) + 1 + x * 3; pixels[offset] = 70 + x; pixels[offset + 1] = 60 + y; pixels[offset + 2] = 140; }
 writeFileSync(imagePath, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(pixels)), chunk("IEND", Buffer.alloc(0))]));
-const port = 4586;
+const port = Number(process.env.KINSHOKO_WEBDRIVER_PORT ?? 4586);
 const driverUrl = `http://127.0.0.1:${port}`;
 const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
 async function wd(method, path, body) {
@@ -93,13 +94,13 @@ const appData = join(work, "app-data");
 const scriptSource = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", windowsHide: true }).stdout.trim();
 const scriptSha256 = createHash("sha256").update(readFileSync(new URL(import.meta.url))).digest("hex");
 const binarySha256 = createHash("sha256").update(readFileSync(application)).digest("hex");
-const manifestPath = resolve(process.argv[4] ?? "work/e2e/t10-build-manifest.json");
+const manifestPath = resolve(manifestArg ?? "work/e2e/t10-build-manifest.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8").replace(/^\uFEFF/, ""));
 if (manifest.binarySha256.toLowerCase() !== binarySha256) throw new Error("Binary does not match the build manifest");
 const source = manifest.source;
 const sourceTree = spawnSync("git", ["rev-parse", source + "^{tree}"], { encoding: "utf8", windowsHide: true }).stdout.trim();
 const provenance = { scriptSource, scriptSha256, sourceTree, manifestPath, driverSha256: createHash("sha256").update(readFileSync(resolve(edgeArg))).digest("hex") };
-const driver = spawn("tauri-driver", ["--port", String(port), "--native-port", "4587", "--native-driver", resolve(edgeArg)], {
+const driver = spawn(driverArg, ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], {
   env: { ...process.env, KINSHOKO_DATA_DIR: appData, KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") },
   stdio: ["ignore", "inherit", "inherit"], windowsHide: true,
 });
