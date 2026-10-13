@@ -7,15 +7,7 @@ fn action<R: Runtime, T>(
     f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
 ) -> Result<T, String> {
     let state = app.state::<LibraryState>();
-    with_libraries(&state.device_dir, &state.libraries, |device| {
-        Ok(with_catalog(&state.device_dir, &state.catalog, |catalog| {
-            let mut slot = lock(&state.workspace);
-            if slot.is_none() {
-                *slot = Some(Workspace::open(&state.device_dir)?);
-            }
-            f(slot.as_mut().expect("workspace opened"), device, catalog)
-        }))
-    })?
+    workspace::with_resources(&state, f)
 }
 // Caller holds the visibility permit, except for the window-destruction dispatch fence.
 pub(super) fn revoke<R: Runtime>(app: &AppHandle<R>) {

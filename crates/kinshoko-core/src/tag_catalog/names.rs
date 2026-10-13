@@ -55,17 +55,8 @@ impl TagCatalog {
         let tx = self
             .conn
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-        if tx
-            .query_row(
-                "SELECT 1 FROM catalog_tag WHERE id=?1",
-                [catalog_id],
-                |_| Ok(()),
-            )
-            .optional()?
-            .is_none()
-        {
-            return Err(CatalogError::UnknownTag);
-        }
+        let mut tag = raw_tag(&tx, catalog_id)?;
+        retain_replaced_name(&tx, &mut tag, name.lang.trim(), Some(name.name.trim()))?;
         tx.execute("INSERT INTO catalog_name_preference (catalog_id,lang,name) VALUES (?1,?2,?3) ON CONFLICT(catalog_id,lang) DO UPDATE SET name=excluded.name", params![catalog_id, name.lang.trim(), name.name.trim()])?;
         tx.execute(
             "INSERT OR IGNORE INTO catalog_name_adoption (catalog_id) VALUES (?1)",
@@ -110,6 +101,30 @@ pub(super) fn removed(conn: &Connection, id: &str, alias: &TagAlias) -> Result<b
         .is_some())
 }
 
+/// Keep the old visible name without copying resolved preferences into raw defaults.
+fn retain_replaced_name(
+    tx: &Transaction<'_>,
+    tag: &mut CatalogTag,
+    lang: &str,
+    replacement: Option<&str>,
+) -> Result<(), CatalogError> {
+    let mut visible = tag.clone();
+    resolve(tx, &mut visible)?;
+    if let Some(old) = visible.names.iter().find(|name| name.lang == lang)
+        && Some(old.name.as_str()) != replacement
+    {
+        let alias = TagAlias {
+            name: old.name.clone(),
+            lang: Some(lang.to_owned()),
+        };
+        if !tag.aliases.contains(&alias) && !removed(tx, &tag.id, &alias)? {
+            tag.aliases.push(alias);
+            save_tag(tx, tag)?;
+        }
+    }
+    Ok(())
+}
+
 impl TagCatalog {
     /// Remove only this language's explicit preference. The next default update can take effect.
     pub fn reset_name_preference(
@@ -120,7 +135,13 @@ impl TagCatalog {
         let tx = self
             .conn
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-        raw_tag(&tx, catalog_id)?;
+        let mut tag = raw_tag(&tx, catalog_id)?;
+        let default = tag
+            .names
+            .iter()
+            .find(|name| name.lang == lang)
+            .map(|name| name.name.clone());
+        retain_replaced_name(&tx, &mut tag, lang, default.as_deref())?;
         if tx.execute(
             "DELETE FROM catalog_name_preference WHERE catalog_id=?1 AND lang=?2",
             params![catalog_id, lang],

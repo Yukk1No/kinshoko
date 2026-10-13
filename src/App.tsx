@@ -101,6 +101,8 @@ function LibraryWorkspace({
   const statusObservations = useRef(0);
   const [sources, setSources] = useState<WorkspaceCard | null>(null);
   const [loadedCards, setLoadedCards] = useState<BrowserCard[]>([]);
+  /** 详情预览只使用当前视角中图片墙完整接受的快照；保留的来源身份不授予像素可见性。 */
+  const [previewSnapshot, setPreviewSnapshot] = useState<{ safe: boolean; cards: BrowserCard[] } | null>(null);
   const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
   const [reloadKey, setReloadKey] = useState(0);
   const [density, setDensity] = useState(240);
@@ -185,20 +187,26 @@ function LibraryWorkspace({
   }, [loadedCards, viewing]);
   // 来源整理从模态对话框改为详情面板（#98）：只有查看器是模态的。
   const modalOpen = viewerOpen;
-  const onWallStatus = useCallback((next: WorkspaceStatus) => {
+  const acceptStatus = useCallback((next: WorkspaceStatus, invalidateWall = false) => {
     statusObservations.current += 1;
     if (statusRevision.current === next.revision) return;
+    if (invalidateWall) wall.current?.invalidate();
     const changed = statusRevision.current !== null;
     statusRevision.current = next.revision;
     setStatus(next);
     // 新快照先于通知到达时，同样撤销旧内容并刷新依赖；之后的同修订通知只消重。
-    if (changed) {
+    if (changed || invalidateWall) {
+      setPreviewSnapshot(null);
       setViewing(null);
       prune.current = "reset";
       setReloadKey((k) => k + 1);
       setVocabularyKey((k) => k + 1);
     }
   }, []);
+  const onWallStatus = useCallback((next: WorkspaceStatus, cards: BrowserCard[]) => {
+    acceptStatus(next);
+    setPreviewSnapshot({ safe, cards });
+  }, [acceptStatus, safe]);
   useEffect(() => {
     viewerChange.current(modalOpen);
   }, [modalOpen]);
@@ -210,28 +218,21 @@ function LibraryWorkspace({
     statusRevision.current = null;
     // A response started before a notification cannot roll back the newer provider facts.
     void workspaceStatus(safe).then((next) => {
-      if (alive && statusObservations.current === startedAtObservation) { statusRevision.current = next.revision; setStatus(next); }
+      if (alive && statusObservations.current === startedAtObservation) acceptStatus(next);
     }, (e) => { if (alive && statusObservations.current === startedAtObservation && !isLensChanged(e)) onError(String(e)); });
     const stop = onWorkspaceChanged((next) => {
       if (!alive) return;
-      statusObservations.current += 1;
-      if (statusRevision.current === next.revision) return;
-      wall.current?.invalidate();
-      statusRevision.current = next.revision;
-      setStatus(next);
       // Keep the explicit source dialog; it revokes stale content and revalidates on reloadKey.
       // 负责人决定（2026-10-11）：修订变化不清空选择。图片墙按新修订重读完之后，
       // 只去掉已不存在的选中图（删除、移出当前范围），详情面板随之保持打开。
-      setViewing(null);
-      prune.current = "reset";
-      setReloadKey((k) => k + 1);
-      setVocabularyKey((k) => k + 1);
+      acceptStatus(next, true);
     });
     return () => { alive = false; void stop.then((stop) => stop()); };
-  }, [safe, onError]);
+  }, [safe, onError, acceptStatus]);
   useEffect(() => {
-    setSources(null);
-    setSelected(new Set());
+    wall.current?.invalidate();
+    setPreviewSnapshot(null);
+    prune.current = "reset";
     setViewing(null);
     setReloadKey((k) => k + 1);
     setVocabularyKey((k) => k + 1);
@@ -314,11 +315,11 @@ function LibraryWorkspace({
     const startedAtObservation = statusObservations.current;
     void workspaceStatus(safe).then((next) => {
       if (statusObservations.current !== startedAtObservation) return;
-      statusObservations.current += 1;
-      if (statusRevision.current !== next.revision) { statusRevision.current = next.revision; setStatus(next); }
-      setReloadKey((k) => k + 1);
+      const changed = statusRevision.current !== next.revision;
+      acceptStatus(next, true);
+      if (!changed) setReloadKey((k) => k + 1);
     }, (e) => { if (!isLensChanged(e)) onError(String(e)); });
-  }, [safe, onError]);
+  }, [safe, onError, acceptStatus]);
 
   // 详情面板（#98）：明确打开的多来源整理优先；否则显示当前选择的整理。
   const [barHost, setBarHost] = useState<HTMLElement | null>(null);
@@ -333,7 +334,8 @@ function LibraryWorkspace({
   const inspected = sources ?? selectedSourceCard ?? null;
   const inspectorContent = inspected !== null || eligible;
   const inspectorOpen = inspectorContent && !hidden && (sources !== null || inspectorHidden !== selectionKey);
-  const previewCard = inspected ?? (eligible && selected.size === 1 ? loadedCards.find((card) => selected.has(card.id)) : undefined);
+  const previewId = inspected?.id ?? (eligible && selected.size === 1 ? [...selected][0] : undefined);
+  const previewCard = previewSnapshot?.safe === safe ? previewSnapshot.cards.find((card) => card.id === previewId) : undefined;
   const closeInspector = () => { if (sources) setSources(null); else setInspectorHidden(selectionKey); };
 
   const started = (taskId: string) => {

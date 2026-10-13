@@ -5,15 +5,11 @@ use kinshoko_core::workspace::{
 };
 
 pub(super) const EVENT: &str = "workspace-changed";
-pub(super) fn action<R: Runtime, T>(
-    app: &AppHandle<R>,
-    safe: bool,
-    f: impl FnOnce(&mut Workspace, &DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
+/// Acquire device, catalog, then workspace. Callers retain their lens and visibility guards.
+pub(super) fn with_resources<T>(
+    state: &LibraryState,
+    f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
 ) -> Result<T, String> {
-    let state = app.state::<LibraryState>();
-    if saved_safe_mode(app) != safe {
-        return Err(kinshoko_core::library::Error::LensChanged.to_string());
-    }
     with_libraries(&state.device_dir, &state.libraries, |device| {
         Ok(with_catalog(&state.device_dir, &state.catalog, |catalog| {
             let mut slot = lock(&state.workspace);
@@ -23,6 +19,20 @@ pub(super) fn action<R: Runtime, T>(
             f(slot.as_mut().expect("workspace opened"), device, catalog)
         }))
     })?
+}
+
+pub(super) fn action<R: Runtime, T>(
+    app: &AppHandle<R>,
+    safe: bool,
+    f: impl FnOnce(&mut Workspace, &DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
+) -> Result<T, String> {
+    let state = app.state::<LibraryState>();
+    if saved_safe_mode(app) != safe {
+        return Err(kinshoko_core::library::Error::LensChanged.to_string());
+    }
+    with_resources(&state, |workspace, device, catalog| {
+        f(workspace, device, catalog)
+    })
 }
 pub(super) fn generation<R: Runtime>(app: &AppHandle<R>) -> u64 {
     app.state::<LibraryState>()

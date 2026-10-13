@@ -43,7 +43,7 @@ type Props = {
   onInspectSources?: (card: WorkspaceCard) => void;
   onCardsChange?: (cards: BrowserCard[]) => void;
   /** 只有当前请求已完整接受的工作区快照，才能成为父界面的已知状态。 */
-  onWorkspaceStatus?: (status: WorkspaceStatus) => void;
+  onWorkspaceStatus?: (status: WorkspaceStatus, cards: BrowserCard[]) => void;
   /** Artist-selected target card width; preview stays local until the slider commits. */
   density?: number;
   onTotalChange?: (count: number | null) => void;
@@ -274,7 +274,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             throw e;
           }
           measureBeforeReflow();
-          if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus);
+          if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus, next);
           setCards(next);
           setCursor(after);
           setTotal(count);
@@ -302,9 +302,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
         : { page: await browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx }), status: null };
       const page = result.page;
       if (gen !== generation.current) return;
-      if (result.status) onWorkspaceStatus?.(result.status);
+      const next = [...cards, ...page.cards];
+      if (result.status) onWorkspaceStatus?.(result.status, next);
       measureBeforeReflow();
-      setCards((prev) => [...prev, ...page.cards]);
+      setCards(next);
       setCursor(page.nextCursor);
       setTotal(page.total);
       setError(null);
@@ -317,7 +318,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       if (inflight.current === gen) inflight.current = null;
     }
     if (expired) void reload(Math.max(loaded.current, PAGE));
-  }, [cursor, thumbnailPx, measureBeforeReflow, reload, onWorkspaceStatus]);
+  }, [cards, cursor, thumbnailPx, measureBeforeReflow, reload, onWorkspaceStatus]);
   loadMoreRef.current = () => { void loadMore(); };
   useEffect(() => {
     void reload(Math.max(loaded.current, PAGE));

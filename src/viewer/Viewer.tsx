@@ -66,6 +66,15 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   useLayoutEffect(() => root.current?.focus(), []);
+  // A crop and an active gesture belong to one exact source, including same-sized images.
+  useLayoutEffect(() => {
+    setCrop(null);
+    setSelecting(false);
+    setDragging(false);
+    setPinStatus(null);
+    select.current = null;
+    drag.current = null;
+  }, [libraryId, card.id]);
   useEffect(() => {
     let alive = true;
     shellSettings().then(async (view) => view?.viewerBackground ?? (await migrateViewerBackground(legacyViewerBackground()))?.viewerBackground ?? "mid")

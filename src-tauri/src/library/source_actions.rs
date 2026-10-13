@@ -21,20 +21,9 @@ pub(super) fn action<R: Runtime, T>(
     if saved_safe_mode(app) != safe {
         return Err(kinshoko_core::library::Error::LensChanged.to_string());
     }
-    let value = with_libraries(&state.device_dir, &state.libraries, |device| {
-        Ok(with_catalog(&state.device_dir, &state.catalog, |catalog| {
-            let mut slot = lock(&state.workspace);
-            if slot.is_none() {
-                *slot = Some(Workspace::open(&state.device_dir)?);
-            }
-            f(
-                slot.as_mut().expect("workspace opened"),
-                device,
-                catalog,
-                target,
-            )
-        }))
-    })??;
+    let value = workspace::with_resources(&state, |workspace, device, catalog| {
+        f(workspace, device, catalog, target)
+    })?;
     if state.safe_mode_generation.load(Ordering::SeqCst) != expected || saved_safe_mode(app) != safe
     {
         return Err(kinshoko_core::library::Error::LensChanged.to_string());

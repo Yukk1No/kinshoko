@@ -20,7 +20,7 @@ afterEach(async () => { cleanup(); await new Promise(done => setTimeout(done, 0)
 
 function workspace(initialReply?: Promise<WorkspaceStatus>) {
   const state = { initialRevision: "r1", wallRevision: "r2", available: true, safe: false, imageId: "a", contentId: "bytes",
-    nextBrowse: null as (() => Promise<WorkspacePage>) | null };
+    nextBrowse: null as (() => Promise<WorkspacePage>) | null, browseReply: null as Promise<WorkspacePage> | null };
   mockIPC((command, args) => {
     if (command === "plugin:library|safe_mode") return state.safe;
     if (command === "plugin:library|current_library") return libraries[0].library;
@@ -31,6 +31,7 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
     if (command === "tagging_status") return { libraryId: "A", status: { state: "starting" } };
     if (command === "plugin:library|workspace_browse") {
       if (state.nextBrowse) { const next = state.nextBrowse; state.nextBrowse = null; return next(); }
+      if (state.browseReply) return state.browseReply;
       return {
         cards: state.available ? [{ id: state.contentId, libraryId: "A", imageId: state.imageId, width: 100, height: 100, thumbnail: `A/${state.imageId}/128`, adult: false,
           sources: [{ libraryId: "A", libraryName: "甲库", imageId: state.imageId, unavailable: null, matches: true, deleted: false }] }] : [],
@@ -43,6 +44,15 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
         folders: [], note: { manual: null, sources: [] }, deletedAt: null, versions: { previous: null, newer: [] },
         rating: { imageId: "a", suggested: null, manual: null, effective: null } };
     }
+    if (command === "plugin:library|workspace_source_inspection") {
+      if (!state.available) return Promise.reject("此来源已封印");
+      return { detail: { id: state.imageId, originalName: "参考图", width: 100, height: 100, collectedAt: 1000, sourceLinks: [],
+        folders: [], note: { manual: "来源备注", sources: [] }, deletedAt: null, versions: { previous: null, newer: [] },
+        rating: { imageId: state.imageId, suggested: null, manual: null, effective: null } },
+        tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 1, trash: 0, folders: [] } };
+    }
+    if (command === "plugin:desktop|reference_groups") return [];
+    if (command === "plugin:library|workspace_sidebar") return { all: state.available ? 1 : 0, trash: 0, folders: [] };
     if (command === "shell_settings") return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid" };
     if (command === "app_info") return { productName: "Kinshoko", version: "1" };
     return null;
@@ -110,4 +120,50 @@ it("旧浏览响应与较新通知同批到达，也不能放回旧图片或回�
   await waitFor(() => expect(currentViewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/A/new/full"));
   await act(() => emit("workspace-changed", status("r3")));
   expect(screen.getByRole("dialog", { name: "原图查看器" })).toBe(currentViewer);
+});
+
+it("后台已知副本分级使聚合图封印时，保留来源详情面板并撤销已解码预览", async () => {
+  const state = workspace();
+  state.safe = true;
+  render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: "来源：甲库 · 查看详情" }));
+  const inspector = screen.getByLabelText("详情", { selector: "aside" });
+  const preview = screen.getByRole("img", { name: "所选参考图" });
+  fireEvent.load(preview);
+  fireEvent.click(screen.getByRole("button", { name: "整理此来源" }));
+  await screen.findByRole("textbox", { name: "备注" });
+  // Background tagging revokes the aggregate through the public provider snapshot; no manual onClear action.
+  Object.assign(state, { initialRevision: "r3", wallRevision: "r3", available: false });
+  await act(() => emit("workspace-changed", status("r3")));
+  await waitFor(() => expect(screen.getByRole("listbox", { name: "图片墙" }).dataset.total).toBe("0"));
+  expect(screen.getByLabelText("详情", { selector: "aside" })).toBe(inspector);
+  expect(screen.queryByRole("img", { name: "所选参考图" })).toBeNull();
+  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "此来源已封印");
+});
+
+it("首个修订通知先于初始状态和浏览响应到达时，图片墙重读当前修订", async () => {
+  let resolveInitial!: (value: WorkspaceStatus) => void;
+  const initialReply = new Promise<WorkspaceStatus>(resolve => { resolveInitial = resolve; });
+  const state = workspace(initialReply);
+  let resolveOld!: (value: WorkspacePage) => void, started = false;
+  const oldPage = new Promise<WorkspacePage>(resolve => { resolveOld = resolve; });
+  // Hold every initial page, including an initial safety recheck, until the notification arrives.
+  state.nextBrowse = () => { started = true; state.browseReply = oldPage; return oldPage; };
+  render(<App />);
+  await waitFor(() => expect(started).toBe(true));
+  Object.assign(state, { initialRevision: "r3", wallRevision: "r3", contentId: "new-bytes", imageId: "new", browseReply: null });
+  await act(async () => {
+    await emit("workspace-changed", status("r3"));
+    resolveInitial(status("r1"));
+    resolveOld({ cards: [{ id: "old-bytes", libraryId: "A", imageId: "old", width: 100, height: 100,
+      thumbnail: "A/old/128", adult: false,
+      sources: [{ libraryId: "A", libraryName: "甲库", imageId: "old", unavailable: null, matches: true, deleted: false }] }],
+      total: 1, nextCursor: null, status: status("r1") });
+  });
+  const image = await screen.findByRole("img", { name: "参考图" });
+  expect(image.getAttribute("src")).toBe("http://thumb.localhost/A/new/128");
+  fireEvent.click(image.closest<HTMLElement>('[role="option"]')!);
+  const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
+  await act(() => emit("workspace-changed", status("r3")));
+  expect(screen.getByRole("dialog", { name: "原图查看器" })).toBe(viewer);
 });

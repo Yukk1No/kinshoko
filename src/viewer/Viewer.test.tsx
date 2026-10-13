@@ -205,6 +205,31 @@ describe("从查看器钉到桌面（#65）", () => {
     fireEvent.keyDown(stage, { key: "Escape" });
     expect(close).toHaveBeenCalledOnce();
   });
+
+  it.each([["L1", "b"], ["L2", "a"]])("换到同尺寸来源 %s/%s 后，旧选区不可钉住，新框选引用新来源", async (libraryId, imageId) => {
+    const { rerender } = render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    let image = screen.getByAltText("正在查看的参考图");
+    fireEvent.load(image);
+    const stage = image.parentElement!;
+    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 110, clientY: 110, button: 0, shiftKey: true });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 310, clientY: 210 });
+    fireEvent.pointerUp(stage, { pointerId: 1 });
+    cropReadout("200 × 100");
+
+    rerender(<Viewer libraryId={libraryId} card={{ ...card, id: imageId }} onClose={() => {}} />);
+    image = screen.getByAltText("正在查看的参考图");
+    fireEvent.load(image);
+    expect(screen.queryByLabelText("选区")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^钉住局部/ })).toBeNull();
+    fireEvent.keyDown(stage, { key: "Enter" });
+    expect(pins()).toEqual([]);
+
+    fireEvent.pointerDown(stage, { pointerId: 2, clientX: 100, clientY: 100, button: 0, shiftKey: true });
+    fireEvent.pointerMove(stage, { pointerId: 2, clientX: 150, clientY: 120 });
+    fireEvent.pointerUp(stage, { pointerId: 2 });
+    await act(async () => { fireEvent.keyDown(stage, { key: "Enter" }); });
+    expect(pins()).toEqual([{ libraryId, imageId, crop: { x: 0, y: 0, width: 50, height: 20 }, shown: { x: 100, y: 100, width: 50, height: 20 } }]);
+  });
 });
 
 
