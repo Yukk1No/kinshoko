@@ -102,7 +102,7 @@ function LibraryWorkspace({
   const [sources, setSources] = useState<WorkspaceCard | null>(null);
   const [loadedCards, setLoadedCards] = useState<BrowserCard[]>([]);
   /** 详情预览只使用当前视角中图片墙完整接受的快照；保留的来源身份不授予像素可见性。 */
-  const [previewSnapshot, setPreviewSnapshot] = useState<{ safe: boolean; cards: BrowserCard[] } | null>(null);
+  const [previewSnapshot, setPreviewSnapshot] = useState<{ safe: boolean; reloadKey: number; cards: BrowserCard[] } | null>(null);
   const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
   const [reloadKey, setReloadKey] = useState(0);
   const [density, setDensity] = useState(240);
@@ -205,8 +205,8 @@ function LibraryWorkspace({
   }, []);
   const onWallStatus = useCallback((next: WorkspaceStatus, cards: BrowserCard[]) => {
     acceptStatus(next);
-    setPreviewSnapshot({ safe, cards });
-  }, [acceptStatus, safe]);
+    setPreviewSnapshot({ safe, reloadKey, cards });
+  }, [acceptStatus, safe, reloadKey]);
   useEffect(() => {
     viewerChange.current(modalOpen);
   }, [modalOpen]);
@@ -339,7 +339,8 @@ function LibraryWorkspace({
   const inspectorContent = inspected !== null || eligible;
   const inspectorOpen = inspectorContent && !hidden && (sources !== null || inspectorHidden !== selectionKey);
   const previewId = inspected?.id ?? (eligible && selected.size === 1 ? [...selected][0] : undefined);
-  const previewCard = previewSnapshot?.safe === safe ? previewSnapshot.cards.find((card) => card.id === previewId) : undefined;
+  const previewCard = previewSnapshot?.safe === safe && previewSnapshot.reloadKey === reloadKey
+    ? previewSnapshot.cards.find((card) => card.id === previewId) : undefined;
   const closeInspector = () => { if (sources) setSources(null); else setInspectorHidden(selectionKey); };
 
   const started = (taskId: string) => {
