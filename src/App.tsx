@@ -249,6 +249,10 @@ function LibraryWorkspace({
       const task = imports.current;
       switch (event.kind) {
         case "listStale":
+          statusObservations.current += 1;
+          wall.current?.invalidate();
+          setPreviewSnapshot(null);
+          prune.current = "reset";
           setReloadKey((k) => k + 1);
           break;
         case "vocabularyChanged":

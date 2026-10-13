@@ -52,7 +52,7 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
         tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 1, trash: 0, folders: [] } };
     }
     if (command === "plugin:desktop|reference_groups") return [];
-    if (command === "plugin:library|workspace_sidebar") return { all: state.available ? 1 : 0, trash: 0, folders: [] };
+    if (command === "plugin:library|workspace_sidebar" || command === "plugin:library|sidebar") return { all: state.available ? 1 : 0, trash: 0, folders: [] };
     if (command === "shell_settings") return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid" };
     if (command === "app_info") return { productName: "Kinshoko", version: "1" };
     return null;
@@ -166,4 +166,33 @@ it("首个修订通知先于初始状态和浏览响应到达时，图片墙重�
   const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
   await act(() => emit("workspace-changed", status("r3")));
   expect(screen.getByRole("dialog", { name: "原图查看器" })).toBe(viewer);
+});
+
+it.each(["explicit", "selected"])("列表失效时立即撤销 %s 详情预览，重读等待或失败也不恢复旧像素", async (entry) => {
+  const state = workspace();
+  state.safe = true;
+  render(<App />);
+  if (entry === "explicit") {
+    fireEvent.click(await screen.findByRole("button", { name: "来源：甲库 · 查看详情" }));
+  } else {
+    fireEvent.click((await screen.findByRole("img", { name: "参考图" })).closest<HTMLElement>('[role="option"]')!, { ctrlKey: true });
+  }
+  const inspector = screen.getByLabelText("详情", { selector: "aside" });
+  fireEvent.load(screen.getByRole("img", { name: "所选参考图" }));
+  let rejectBrowse!: (reason: string) => void, started = false;
+  const pending = new Promise<WorkspacePage>((_, reject) => { rejectBrowse = reject; });
+  state.nextBrowse = () => { started = true; return pending; };
+  Object.assign(state, { initialRevision: "r3", wallRevision: "r3", available: false });
+  try {
+    await act(() => emit("library-event", { kind: "listStale", libraryId: "A" }));
+    await waitFor(() => expect(started).toBe(true));
+    expect(screen.getByLabelText("详情", { selector: "aside" })).toBe(inspector);
+    expect(screen.queryByRole("img", { name: "所选参考图" })).toBeNull();
+    await act(async () => { rejectBrowse("资料库暂不可读"); });
+    await screen.findByText("资料库暂不可读");
+    expect(screen.getByLabelText("详情", { selector: "aside" })).toBe(inspector);
+    expect(screen.queryByRole("img", { name: "所选参考图" })).toBeNull();
+  } finally {
+    await act(async () => { rejectBrowse("资料库暂不可读"); });
+  }
 });
