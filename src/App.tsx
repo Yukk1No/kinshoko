@@ -97,6 +97,8 @@ function LibraryWorkspace({
   const libraryId = library?.id ?? "";
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
   const statusRevision = useRef<string | null>(null);
+  /** 已接受的查询或通知都会前进；先发的状态读取不能覆盖后来的事实。 */
+  const statusObservations = useRef(0);
   const [sources, setSources] = useState<WorkspaceCard | null>(null);
   const [loadedCards, setLoadedCards] = useState<BrowserCard[]>([]);
   const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
@@ -183,6 +185,20 @@ function LibraryWorkspace({
   }, [loadedCards, viewing]);
   // 来源整理从模态对话框改为详情面板（#98）：只有查看器是模态的。
   const modalOpen = viewerOpen;
+  const onWallStatus = useCallback((next: WorkspaceStatus) => {
+    statusObservations.current += 1;
+    if (statusRevision.current === next.revision) return;
+    const changed = statusRevision.current !== null;
+    statusRevision.current = next.revision;
+    setStatus(next);
+    // 新快照先于通知到达时，同样撤销旧内容并刷新依赖；之后的同修订通知只消重。
+    if (changed) {
+      setViewing(null);
+      prune.current = "reset";
+      setReloadKey((k) => k + 1);
+      setVocabularyKey((k) => k + 1);
+    }
+  }, []);
   useEffect(() => {
     viewerChange.current(modalOpen);
   }, [modalOpen]);
@@ -190,16 +206,17 @@ function LibraryWorkspace({
 
   useEffect(() => {
     let alive = true;
-    let notifications = 0;
+    const startedAtObservation = ++statusObservations.current;
     statusRevision.current = null;
     // A response started before a notification cannot roll back the newer provider facts.
     void workspaceStatus(safe).then((next) => {
-      if (alive && notifications === 0) { statusRevision.current = next.revision; setStatus(next); }
-    }, (e) => { if (alive && notifications === 0 && !isLensChanged(e)) onError(String(e)); });
+      if (alive && statusObservations.current === startedAtObservation) { statusRevision.current = next.revision; setStatus(next); }
+    }, (e) => { if (alive && statusObservations.current === startedAtObservation && !isLensChanged(e)) onError(String(e)); });
     const stop = onWorkspaceChanged((next) => {
       if (!alive) return;
-      notifications += 1;
+      statusObservations.current += 1;
       if (statusRevision.current === next.revision) return;
+      wall.current?.invalidate();
       statusRevision.current = next.revision;
       setStatus(next);
       // Keep the explicit source dialog; it revokes stale content and revalidates on reloadKey.
@@ -294,7 +311,10 @@ function LibraryWorkspace({
 
   /** “重新连接”：重新检查各图库是否可用（移动盘接回后），与原“刷新登记”相同的只读检查。 */
   const recheck = useCallback(() => {
+    const startedAtObservation = statusObservations.current;
     void workspaceStatus(safe).then((next) => {
+      if (statusObservations.current !== startedAtObservation) return;
+      statusObservations.current += 1;
       if (statusRevision.current !== next.revision) { statusRevision.current = next.revision; setStatus(next); }
       setReloadKey((k) => k + 1);
     }, (e) => { if (!isLensChanged(e)) onError(String(e)); });
@@ -436,6 +456,7 @@ function LibraryWorkspace({
             workspaceScope={workspaceScope}
             onInspectSources={(card) => { setSources(card); }}
             onCardsChange={setLoadedCards}
+            onWorkspaceStatus={onWallStatus}
             scope={scope}
             conditions={tree}
             reloadKey={reloadKey}

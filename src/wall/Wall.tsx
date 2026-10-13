@@ -9,6 +9,7 @@ import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { BrowsePage } from "../bindings/BrowsePage";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
+import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { browse, workspaceBrowse, isCursorExpired, isLensChanged, thumbnailUrl } from "../ipc";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { modalOpen } from "../ui/modal";
@@ -29,6 +30,8 @@ export const DRAG_IMAGES = "application/x-kinshoko-images";
 
 export type WallHandle = {
   previewDensity: (value: number | null) => void;
+  /** 已知工作区变了：立刻作废在途响应，不等下一次 React 渲染。 */
+  invalidate: () => void;
   /** 读下一页（查看器走过已读到的卡片时）；已在读或没有下一页时什么也不做。 */
   loadMore: () => void;
 };
@@ -39,6 +42,8 @@ type Props = {
   workspaceScope?: WorkspaceScope;
   onInspectSources?: (card: WorkspaceCard) => void;
   onCardsChange?: (cards: BrowserCard[]) => void;
+  /** 只有当前请求已完整接受的工作区快照，才能成为父界面的已知状态。 */
+  onWorkspaceStatus?: (status: WorkspaceStatus) => void;
   /** Artist-selected target card width; preview stays local until the slider commits. */
   density?: number;
   onTotalChange?: (count: number | null) => void;
@@ -104,6 +109,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   workspaceScope,
   onInspectSources,
   onCardsChange,
+  onWorkspaceStatus,
   density = TARGET,
   onTotalChange,
   libraryId,
@@ -181,6 +187,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   const loadMoreRef = useRef<() => void>(() => {});
   useImperativeHandle(ref, () => ({
     previewDensity(value) { measureBeforeReflow(); setPreviewDensity(value); },
+    invalidate() { generation.current += 1; inflight.current = null; },
     loadMore() { loadMoreRef.current(); },
   }), [measureBeforeReflow]);
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
@@ -246,10 +253,15 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
           const next: BrowserCard[] = [];
           let after: string | null = null;
           let count = 0;
+          let acceptedStatus: WorkspaceStatus | null = null;
           try {
             do {
-              const page: BrowsePage | WorkspacePage = await (workspaceScope ? workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, thumbnailPx }, safeMode) : browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx }));
+              const result: { page: BrowsePage | WorkspacePage; status: WorkspaceStatus | null } = workspaceScope
+                ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, thumbnailPx }, safeMode).then(page => ({ page, status: page.status }))
+                : { page: await browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx }), status: null };
+              const page = result.page;
               if (!current()) return;
+              acceptedStatus = result.status;
               next.push(...page.cards);
               after = page.nextCursor;
               count = page.total;
@@ -262,6 +274,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             throw e;
           }
           measureBeforeReflow();
+          if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus);
           setCards(next);
           setCursor(after);
           setTotal(count);
@@ -274,7 +287,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
         if (inflight.current === gen) inflight.current = null;
       }
     },
-    [thumbnailPx, measureBeforeReflow],
+    [thumbnailPx, measureBeforeReflow, onWorkspaceStatus],
   );
 
   const loadMore = useCallback(async () => {
@@ -284,8 +297,12 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     const { libraryId, scope, conditions, workspaceScope, safeMode } = view.current;
     let expired = false;
     try {
-      const page: BrowsePage | WorkspacePage = await (workspaceScope ? workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, thumbnailPx }, safeMode) : browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx }));
+      const result: { page: BrowsePage | WorkspacePage; status: WorkspaceStatus | null } = workspaceScope
+        ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, thumbnailPx }, safeMode).then(page => ({ page, status: page.status }))
+        : { page: await browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx }), status: null };
+      const page = result.page;
       if (gen !== generation.current) return;
+      if (result.status) onWorkspaceStatus?.(result.status);
       measureBeforeReflow();
       setCards((prev) => [...prev, ...page.cards]);
       setCursor(page.nextCursor);
@@ -300,7 +317,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       if (inflight.current === gen) inflight.current = null;
     }
     if (expired) void reload(Math.max(loaded.current, PAGE));
-  }, [cursor, thumbnailPx, measureBeforeReflow, reload]);
+  }, [cursor, thumbnailPx, measureBeforeReflow, reload, onWorkspaceStatus]);
   loadMoreRef.current = () => { void loadMore(); };
   useEffect(() => {
     void reload(Math.max(loaded.current, PAGE));
