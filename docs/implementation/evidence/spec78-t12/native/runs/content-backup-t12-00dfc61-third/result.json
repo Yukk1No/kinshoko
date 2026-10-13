@@ -2,18 +2,18 @@
   "status": "failed",
   "phase": "fresh-restore",
   "error": "Error: Timed out: actual restore response and rendered roundtrip result",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
   "build": {
     "source": "00dfc611577361a679221dc8f06f99fdcedd466f",
     "tree": "1ffabb0724b1f6e308968dfb55092ae7c88361e2",
     "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
-    "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+    "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
     "identifier": "dev.kinshoko.spec78t12test",
     "productName": "Kinshoko T12 Test",
     "buildType": "Tauri CLI debug --no-bundle, tauri/custom-protocol",
     "buildCommand": "node node_modules/@tauri-apps/cli/tauri.js build --debug --no-bundle --config work/e2e/t12-tauri-config.json",
     "buildDate": "2026-10-08T19:14:05.014607+00:00",
-    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target",
+    "target": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target",
     "buildJobs": 2,
     "driverSha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7",
     "configSha256": "d3d0d3e2da8828fd1e9fa170978ab7ced39461965ddf446ec93b8a619df8e28a",
@@ -28,14 +28,14 @@
     "inputsAndDistUnchangedDuringBuild": true,
     "files": [
       {
-        "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
-        "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+        "source": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\kinshoko.exe",
+        "file": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
         "bytes": 100617216,
         "sha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c"
       },
       {
-        "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\DirectML.dll",
-        "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\DirectML.dll",
+        "source": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\target\\debug\\DirectML.dll",
+        "file": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\DirectML.dll",
         "bytes": 18527776,
         "sha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
       }
@@ -60,7 +60,7 @@
   "environments": [
     {
       "phase": "source",
-      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\source-app",
+      "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\source-app",
       "dpr": 1.1041666269302368,
       "height": 801,
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -68,7 +68,7 @@
     },
     {
       "phase": "source-publication-failed",
-      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\source-app",
+      "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\source-app",
       "dpr": 1.1041666269302368,
       "height": 801,
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -76,7 +76,7 @@
     },
     {
       "phase": "fresh-restore",
-      "dataDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\fresh-app",
+      "dataDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\fresh-app",
       "dpr": 1.1041666269302368,
       "height": 801,
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -87,7 +87,7 @@
     "info": {
       "id": "411c415704b345098c9a760a40324f73",
       "name": "备份来源甲",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\libraries\\备份来源甲"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\libraries\\备份来源甲"
     },
     "images": [
       "01a11cf0bbbd7482a604011e070f140b",
@@ -117,14 +117,14 @@
               "imageId": "01a11cf0bb877317bc221f36b7d40c78",
               "kind": "imported"
             },
-            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\a1.png"
+            "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\a1.png"
           },
           {
             "outcome": {
               "imageId": "01a11cf0bbbd7482a604011e070f140b",
               "kind": "imported"
             },
-            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\a2.png"
+            "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\a2.png"
           }
         ]
       },
@@ -136,7 +136,7 @@
     "info": {
       "id": "7ae836ef28794c8f945458068788ae78",
       "name": "备份来源乙",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\libraries\\备份来源乙"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\libraries\\备份来源乙"
     },
     "images": [
       "01a11cf0c13c735a83bf5f0b18c7fc4e"
@@ -165,7 +165,7 @@
               "imageId": "01a11cf0c13c735a83bf5f0b18c7fc4e",
               "kind": "imported"
             },
-            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\b.png"
+            "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\b.png"
           }
         ]
       },

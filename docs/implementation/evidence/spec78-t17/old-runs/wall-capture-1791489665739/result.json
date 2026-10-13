@@ -3,8 +3,8 @@
   "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
   "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
   "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
-  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
   "scriptSha256": "a6c6c4d2af0e48ee2449167d227c4b4dfb42aa54d9d6e49edf0c5b80975769b4",
   "scriptSource": "af0117f2f0565fc41bfbd34e09459bfc6b95b37e",
   "mode": "wall",
@@ -18,7 +18,7 @@
     "actual foreground HWND belongs to the exact frozen application"
   ],
   "samples": [],
-  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489665739",
+  "work": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489665739",
   "startedAt": "2026-10-08T20:01:05.857Z",
   "capabilities": {
     "acceptInsecureCerts": false,
@@ -57,7 +57,7 @@
     "info": {
       "id": "906530a259d0423b9620f990475d80e7",
       "name": "原图来源 A",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489665739\\libraries\\原图来源 A"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489665739\\libraries\\原图来源 A"
     },
     "card": {
       "adult": false,
@@ -87,7 +87,7 @@
   "dpr": 1.1041666269302368,
   "foregrounds": [
     {
-      "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
       "pid": 27312,
       "mainHwnd": 11012150,
       "foregroundHwnd": 11012150,
@@ -212,7 +212,7 @@
         "height": 400
       },
       "native": {
-        "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+        "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
         "pid": 27312,
         "mainHwnd": 11012150,
         "foregroundHwnd": 11143454,
@@ -316,7 +316,7 @@
       ]
     }
   ],
-  "error": "Error: Traceback (most recent call last):\r\n  File \"C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-pixels.py\", line 14, in <module>\r\n    assert list(image.size) == expected, (image.size, expected)\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nAssertionError: ((2561, 1441), [2560, 1440])\r\n\n    at frozenPatch (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:54:1184)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async capture (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:55:872)\n    at async verifyOriginal (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:59:135)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:95:3",
+  "error": "Error: Traceback (most recent call last):\r\n  File \"%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-pixels.py\", line 14, in <module>\r\n    assert list(image.size) == expected, (image.size, expected)\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nAssertionError: ((2561, 1441), [2560, 1440])\r\n\n    at frozenPatch (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:54:1184)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async capture (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:55:872)\n    at async verifyOriginal (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:59:135)\n    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:95:3",
   "requests": [
     "86909a0c38cb44ff9868ed431959569f",
     "d3046f1f807b4d86bb4c3246220da91a"

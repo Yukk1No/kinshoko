@@ -39,7 +39,7 @@
     "productSource": "5a48939e905652b9d15a4a5f47a0844012e7a8f7",
     "productTree": "d8a88fa33bacd02512149e689e7defd1666a512a",
     "harnessSource": "99a7fd5735fd758d3cc78ed308e65f551094c76d",
-    "run": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375",
+    "run": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\application-settings-1791488008375",
     "assertions": 47,
     "rejectedInflight": 48,
     "afterManifest": "work/t13/native-after.json",

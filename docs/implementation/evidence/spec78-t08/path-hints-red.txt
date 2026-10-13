@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko
 
  ❯ src/library/WorkspacePane.test.tsx (5 tests | 1 failed) 252ms
    × 同名库的长路径优先显示区分位置，仅驱动器不同的路径仍保留差异 12ms

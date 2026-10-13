@@ -93,7 +93,7 @@ npm run vite:build
 $env:KINSHOKO_SKIP_AUTOSTART = '1'
 node node_modules/@tauri-apps/cli/tauri.js build --debug --no-bundle --config work/t06/tauri.test.json
 $env:KINSHOKO_WEBDRIVER_PORT = '4474'
-node e2e/shared-personal-approx.mjs target/debug/kinshoko.exe <matching-msedgedriver> C:/Users/yuk1no/.cargo/bin/tauri-driver.exe
+node e2e/shared-personal-approx.mjs target/debug/kinshoko.exe <matching-msedgedriver> %USERPROFILE%/.cargo/bin/tauri-driver.exe
 ```
 
 原始日志、source 清单、环境、设置与截图保存在 [本单证据目录](evidence/spec78-t06/)。`.gitattributes` 保留原始字节和空白；产品与文档继续检查空白。各文件 SHA256 在 `evidence-hashes.json`。
@@ -110,9 +110,9 @@ node e2e/shared-personal-approx.mjs target/debug/kinshoko.exe <matching-msedgedr
 
 [第一轮失败](evidence/spec78-t06/native-first-result.json) 原始目录 `work/e2e/shared-approx-1791483912961/`，在 14 项通过后等待活动库 picker 超时。fixture 通过 IPC 登记，但脚本没有让 App 重新加载活动库 props，DOM 中登记列表仍空。脚本按既有 T05 方法在初次登记后正常退出／重启，不改产品或 binary；第二轮完整通过。第一轮 DOM、截图、结果与日志保留，失败清理不算正常退出。
 
-独立 identifier `dev.kinshoko.spec78t06test`，端口 4474／4475，`KINSHOKO_SKIP_AUTOSTART=1`。设备数据、资料库和 WebView profile 位于各次运行目录。Windows KnownFolder API 仍把壳设置放在 `C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t06test/settings.json`；本单单独保存两轮实际设置，没有声称 APPDATA 覆盖隔离了全部设置。生产 identifier 未使用。[桌面清点](evidence/spec78-t06/desktop-release.json) 确认本单 app、两种 driver、两轮 profile／identifier 的 WebView 和端口监听均为空，根代理已释放桌面。
+独立 identifier `dev.kinshoko.spec78t06test`，端口 4474／4475，`KINSHOKO_SKIP_AUTOSTART=1`。设备数据、资料库和 WebView profile 位于各次运行目录。Windows KnownFolder API 仍把壳设置放在 `%USERPROFILE%/AppData/Roaming/dev.kinshoko.spec78t06test/settings.json`；本单单独保存两轮实际设置，没有声称 APPDATA 覆盖隔离了全部设置。生产 identifier 未使用。[桌面清点](evidence/spec78-t06/desktop-release.json) 确认本单 app、两种 driver、两轮 profile／identifier 的 WebView 和端口监听均为空，根代理已释放桌面。
 
-已静态查看 [双方旧来源与明确选择](evidence/spec78-t06/pending-two-provider-conflict.png)、[正式可见展开](evidence/spec78-t06/shared-similar-visible-search.png)、[无外部对应相近标签](evidence/spec78-t06/plus-unmapped-shared-rule.png)、[无活动库的规则管理](evidence/spec78-t06/no-active-provider-rule-settings.png)。真实 WebView viewport 为 1281×801，`devicePixelRatio=1.1041666269302368`，详见成功结果；这只记录实际 WebView 值，不推断系统 DPI 或多屏行为。
+已静态查看 [双方旧来源与明确选择](evidence/spec78-t06/pending-two-provider-conflict.png)、[正式可见展开](evidence/spec78-t06/shared-similar-visible-search.png)、[无外部对应相近标签](evidence/spec78-t06/plus-unmapped-shared-rule.png)、无活动库的规则管理（截图已移出仓库，仅本地保留；原 SHA256 `add727cc81f14ba22e25cfaf50e22b6a76d28aaac05c2759f26265a75393a3eb`，见 [REDACTION.md](evidence/REDACTION.md)）。真实 WebView viewport 为 1281×801，`devicePixelRatio=1.1041666269302368`，详见成功结果；这只记录实际 WebView 值，不推断系统 DPI 或多屏行为。
 
 根独立合并为 `32ec0fc3ceef6c1ce310fd7abb3011d5444b6018`，tree 与最终 worker `0025f07d8593625ae117748d4efc117fd3388837` 相同。独立检查逐份核对 63 个证据的工作区／index／commit 字节和 SHA，473 文件清单、dist／运行时及实际 exe；fmt、TypeScript、脚本语法、增量空白与 IPC／ACL 检查均成功。根另逐文件归档两轮真实库、原图、设置、固定二进制、构建配置及完整日志，共 117 文件、121622521 字节。清单位于 ignored `work/v1-handoff/follow-up-spec/evidence/t06-native/root-preservation.json`。没有重复原生，也没有扩大较早完整 Rust 的覆盖范围。
 

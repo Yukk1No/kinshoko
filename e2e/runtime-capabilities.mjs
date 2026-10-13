@@ -5,12 +5,14 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFil
 import { basename, dirname, join, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { deflateSync } from "node:zlib";
+import { homedir, userInfo } from "node:os";
 import { initialHiddenPin, inspectNativePin } from "./native-initial-pin-t18.mjs";
 
-const [, , appArg, edgeArg, driverArg = "C:/Users/yuk1no/.cargo/bin/tauri-driver.exe", runArg, mode = "full"] = process.argv;
+const [, , appArg, edgeArg, requestedDriver, runArg, mode = "full"] = process.argv;
 if (!appArg || !edgeArg) throw Error("Frozen T18 executable and matching WebView2 driver required");
 if (!["full", "main", "pin-error"].includes(mode)) throw Error("T18 scope must be full, main, or pin-error");
 const manifest = JSON.parse(readFileSync("work/t18/native-source.json", "utf8"));
+const driverArg = requestedDriver ?? process.env.KINSHOKO_TAURI_DRIVER ?? manifest.drivers.tauri.path;
 const application = resolve(appArg), hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 if (application.toLowerCase() !== resolve(manifest.preservedBinary).toLowerCase() || hash(readFileSync(application)) !== manifest.binarySha256) throw Error("Wrong frozen product");
 for (const [name, path] of [["edge", edgeArg], ["tauri", driverArg]]) {
@@ -132,7 +134,8 @@ async function injectNextDocument(script) {
   return added.identifier;
 }
 function reportPrivacy(text) {
-  for (const secret of ["PRIVATE_REFERENCE_NAME", sampleFile, work, "\\Users\\", "/Users/", "yuk1no"]) check(!text.includes(secret), "diagnostic text excludes " + secret.replaceAll(work, "<owned evidence path>"));
+  for (const secret of ["PRIVATE_REFERENCE_NAME", sampleFile, work, "\\Users\\", "/Users/"]) check(!text.includes(secret), "diagnostic text excludes " + secret.replaceAll(work, "<owned evidence path>"));
+  for (const username of new Set([userInfo().username, basename(process.env.USERPROFILE ?? homedir())])) check(!text.toLowerCase().includes(username.toLowerCase()), "diagnostic text excludes current user name");
 }
 async function diagnosticFile(name, prefix = "") {
   const file = join(work, name);

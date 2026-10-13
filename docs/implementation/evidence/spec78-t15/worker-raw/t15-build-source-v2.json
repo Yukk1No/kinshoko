@@ -3413,7 +3413,7 @@
     }
   ],
   "config": {
-    "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-tauri-config.json",
+    "file": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-tauri-config.json",
     "sha256": "e938f42825b18b4a07920cf8a57c98128365b6d1d242ccce8f13cebe25c2c62a",
     "value": {
       "identifier": "dev.kinshoko.spec78t15test",
@@ -3423,31 +3423,31 @@
   "previewTransport": {
     "tauriVersion": "2.12.1",
     "registryChecksum": "ed99ee9694a2deb776d91cae48ac7411ddfc89ecae2f9b5041111d8c88f2ace9",
-    "implementation": "C:\\Users\\yuk1no\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\tauri-2.12.1\\src\\ipc\\channel.rs",
+    "implementation": "%USERPROFILE%\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\tauri-2.12.1\\src\\ipc\\channel.rs",
     "implementationSha256": "9d20fad897f8377484c7bd7f63b030653501a08b36f03def9cc5123c2a98623e",
     "rawDirectThresholdExclusive": 1024,
     "chunkMaximumBytes": 1023
   },
-  "binaryPath": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-frozen-v2\\kinshoko.exe",
+  "binaryPath": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-frozen-v2\\kinshoko.exe",
   "binarySha256": "6b92268684e19670cf37c162b8e172fc0bce83c150d938091da828faead157fe",
   "identifier": "dev.kinshoko.spec78t15test",
-  "runPath": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v2",
+  "runPath": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v2",
   "ports": [
     4676,
     4677
   ],
   "fixture": {
-    "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-fixture-v2.json",
+    "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-fixture-v2.json",
     "sha256": "a990f9ab44ac58bae33643095e15a78b97781d2b4982d8606c7e9bf220a4a499"
   },
   "harness": {
-    "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\sealed-import-preview.mjs",
+    "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\sealed-import-preview.mjs",
     "sha256": "95d76581600dfb4e89d717e81b61bcbbc430531f83da588a8f9e537262059a3c"
   },
-  "appData": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v2\\app-data",
-  "profile": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v2\\webview",
+  "appData": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v2\\app-data",
+  "profile": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v2\\webview",
   "knownFolderBefore": {
-    "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t15test\\settings.json",
+    "path": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t15test\\settings.json",
     "exists": false
   }
 }

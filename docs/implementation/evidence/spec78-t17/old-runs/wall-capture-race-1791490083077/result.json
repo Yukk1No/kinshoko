@@ -3,8 +3,8 @@
   "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
   "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
   "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
-  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
   "scriptSha256": "49c07d1c29bfdc529a4e7ce3353e459300003d2157790a28ff2c8417f2d24ef6",
   "scriptSource": "a745ce7088eaef3813f0dd0ae1037c71218f2e79",
   "mode": "clipboard-revocation",
@@ -19,7 +19,7 @@
     "actual OS clipboard after mode return still contains the owned seed before slow-copy completion"
   ],
   "samples": [],
-  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077",
+  "work": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077",
   "startedAt": "2026-10-08T20:08:03.201Z",
   "capabilities": {
     "acceptInsecureCerts": false,
@@ -58,7 +58,7 @@
     "info": {
       "id": "4d40d375a172420c8690bcbe62498bcf",
       "name": "原图来源 A",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077\\libraries\\原图来源 A"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077\\libraries\\原图来源 A"
     },
     "card": {
       "adult": false,
@@ -87,7 +87,7 @@
   },
   "foregrounds": [
     {
-      "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
       "pid": 41280,
       "mainHwnd": 18285008,
       "foregroundHwnd": 18285008,
@@ -245,7 +245,7 @@
       ]
     },
     {
-      "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
       "pid": 41280,
       "mainHwnd": 18285008,
       "foregroundHwnd": 18285008,
@@ -478,7 +478,7 @@
         "red": 4,
         "green": 3
       },
-      "artifact": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077\\frozen-e8344f123557462fa387b8d3eadf8d08-source.png"
+      "artifact": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077\\frozen-e8344f123557462fa387b8d3eadf8d08-source.png"
     },
     "startedAt": "2026-10-08T20:08:41.633Z",
     "beforeRevocation": {
@@ -521,7 +521,7 @@
           255
         ]
       ],
-      "artifact": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077\\clipboard-after-mode-return.png",
+      "artifact": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077\\clipboard-after-mode-return.png",
       "observedAtUnix": 1791490122263
     },
     "copy": {
@@ -560,7 +560,7 @@
           255
         ]
       ],
-      "artifact": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077\\clipboard-after-copy-complete.png",
+      "artifact": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077\\clipboard-after-copy-complete.png",
       "observedAtUnix": 1791490126359
     },
     "clipboard": {
@@ -598,7 +598,7 @@
     "containsOriginal": true,
     "provedLateWrite": true
   },
-  "error": "Error: safe-mode revocation during slow original decode cannot commit late original pixels to the real OS clipboard\n    at check (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:30:45)\n    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:88:3\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+  "error": "Error: safe-mode revocation during slow original decode cannot commit late original pixels to the real OS clipboard\n    at check (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:30:45)\n    at file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:88:3\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
   "requests": [
     "88c0756ca2394eb3b6cf2e35a9498560",
     "a34cc3c33ce84e13a8085fcb6ca0ec42",

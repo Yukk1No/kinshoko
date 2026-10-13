@@ -3305,7 +3305,7 @@
     }
   ],
   "config": {
-    "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-tauri-config.json",
+    "file": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-tauri-config.json",
     "sha256": "d3d0d3e2da8828fd1e9fa170978ab7ced39461965ddf446ec93b8a619df8e28a",
     "value": {
       "identifier": "dev.kinshoko.spec78t12test",

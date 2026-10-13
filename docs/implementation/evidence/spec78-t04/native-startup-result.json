@@ -2,8 +2,8 @@
   "status": "passed",
   "source": "5d4d85ec59b2084a8db6fb67700c9454e597afef",
   "binarySha256": "1ed64c1061f148b5a42fff93e565c63833f236dd743cb9b30519a8991bee327b",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
-  "priorMigrationRun": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\legacy-names-1791477190716",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "priorMigrationRun": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\legacy-names-1791477190716",
   "supplementaryIntegration": "T07 saved safe=false, normal real tray quit, disconnected last-active path",
   "assertions": [
     "only the exact prior T04 fourth-library path can be disconnected",
@@ -17,7 +17,7 @@
     "after-disconnect-tray-exit: actual native tray Quit callback exits normally with code 0"
   ],
   "environment": {
-    "configPath": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t04test\\settings.json",
-    "profile": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\legacy-name-startup-1791477496325\\webview"
+    "configPath": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t04test\\settings.json",
+    "profile": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\legacy-name-startup-1791477496325\\webview"
   }
 }

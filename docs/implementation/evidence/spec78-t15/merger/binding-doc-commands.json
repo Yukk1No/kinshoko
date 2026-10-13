@@ -17,9 +17,9 @@
     "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
     "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
     "log": "binding-doc-regeneration-fixed.txt",
-    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
     "cargoBuildJobs": "2",
-    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+    "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
   },
   {
     "name": "fmt-after-binding-doc",
@@ -37,9 +37,9 @@
     "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
     "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
     "log": "fmt-after-binding-doc.txt",
-    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
     "cargoBuildJobs": "2",
-    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+    "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
   },
   {
     "name": "typescript-after-binding-doc",
@@ -55,9 +55,9 @@
     "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
     "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
     "log": "typescript-after-binding-doc.txt",
-    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
     "cargoBuildJobs": "2",
-    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+    "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
   },
   {
     "name": "diff-whitespace-fixed",
@@ -75,8 +75,8 @@
     "source": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
     "tree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
     "log": "diff-whitespace-fixed.txt",
-    "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\target",
+    "target": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\target",
     "cargoBuildJobs": "2",
-    "temp": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
+    "temp": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\merge17-checks\\tmp"
   }
 ]

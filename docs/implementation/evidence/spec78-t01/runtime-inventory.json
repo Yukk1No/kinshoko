@@ -27,7 +27,7 @@
     "154.0.4258.62"
   ],
   "tauriDriver": {
-    "FullName": "C:\\Users\\yuk1no\\.cargo\\bin\\tauri-driver.exe",
+    "FullName": "%USERPROFILE%\\.cargo\\bin\\tauri-driver.exe",
     "LastWriteTime": "2026-10-07T13:54:55.8906569+08:00"
   }
 }

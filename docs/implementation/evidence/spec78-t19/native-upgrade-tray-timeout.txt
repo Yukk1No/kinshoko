@@ -8,8 +8,8 @@ node:internal/modules/run_main:122
     ^
 
 Error: normal tray exit: timeout
-    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:27:247)
-    at async trayExit (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:71:3)
-    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:107:76
+    at until (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:27:247)
+    at async trayExit (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:71:3)
+    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:107:76
 
 Node.js v22.15.0

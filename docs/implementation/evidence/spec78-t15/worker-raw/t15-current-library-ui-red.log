@@ -3,7 +3,7 @@
 > vitest run src/library/ImportMenu.test.tsx
 
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko
 
  ❯ src/library/ImportMenu.test.tsx (3 tests | 1 failed) 1093ms
    × 当前资料库改变立即遮蔽已解码预览，保留实际任务回执并要求再次同意 77ms

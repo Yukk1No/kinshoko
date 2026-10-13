@@ -1,9 +1,9 @@
 {
-  "source": "C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko",
+  "source": "%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko",
   "copiedAtUtc": "2026-10-08T17:39:41.3143663Z",
   "sourceCommit": "f7ef52b12681ed679927f7fef034629b923ae8ec",
   "binarySha256": "7dca4915d39d648f5b0e7b615671d316b3e63b187ee97a44d4cbb2f8ed3ff239",
-  "settingsSource": "C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t05test/settings.json",
+  "settingsSource": "%USERPROFILE%/AppData/Roaming/dev.kinshoko.spec78t05test/settings.json",
   "exclusions": [
     "WebView and local/roaming caches",
     "generic target/debug exe duplicate"

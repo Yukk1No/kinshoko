@@ -15,6 +15,6 @@ PASS plus saves a visible tag without external correspondence
 PASS 旧判断 A applies shared rules through its distinct local IDs
 PASS 旧判断 B applies shared rules through its distinct local IDs
 Error: Timed out: enabled select option
-    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-personal-approx.mjs:53:9)
-    at async Session.select (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-personal-approx.mjs:85:5)
-    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-personal-approx.mjs:142:3
+    at until (file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-personal-approx.mjs:53:9)
+    at async Session.select (file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-personal-approx.mjs:85:5)
+    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-personal-approx.mjs:142:3

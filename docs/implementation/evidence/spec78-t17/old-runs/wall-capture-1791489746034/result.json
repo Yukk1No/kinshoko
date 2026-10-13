@@ -3,8 +3,8 @@
   "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
   "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
   "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
-  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
   "scriptSha256": "49c07d1c29bfdc529a4e7ce3353e459300003d2157790a28ff2c8417f2d24ef6",
   "scriptSource": "cbfaf8d9d10d9004c2b99b72550c8f7dc3b7cc4d",
   "mode": "wall",
@@ -503,7 +503,7 @@
       }
     }
   ],
-  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034",
+  "work": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034",
   "startedAt": "2026-10-08T20:02:26.154Z",
   "capabilities": {
     "acceptInsecureCerts": false,
@@ -542,7 +542,7 @@
     "info": {
       "id": "537fdd0f4f684befb390f4d0536e716d",
       "name": "原图来源 A",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\libraries\\原图来源 A"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\libraries\\原图来源 A"
     },
     "card": {
       "adult": false,
@@ -572,7 +572,7 @@
   "dpr": 1.1041666269302368,
   "foregrounds": [
     {
-      "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
       "pid": 33160,
       "mainHwnd": 9505034,
       "foregroundHwnd": 9505034,
@@ -658,7 +658,7 @@
       ]
     },
     {
-      "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
       "pid": 33160,
       "mainHwnd": 9505034,
       "foregroundHwnd": 9505034,
@@ -744,7 +744,7 @@
       ]
     },
     {
-      "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
       "pid": 33160,
       "mainHwnd": 9505034,
       "foregroundHwnd": 9505034,
@@ -830,7 +830,7 @@
       ]
     },
     {
-      "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
       "pid": 33160,
       "mainHwnd": 9505034,
       "foregroundHwnd": 9505034,
@@ -916,7 +916,7 @@
       ]
     },
     {
-      "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
       "pid": 33160,
       "mainHwnd": 9505034,
       "foregroundHwnd": 9505034,
@@ -1002,7 +1002,7 @@
       ]
     },
     {
-      "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
       "pid": 33160,
       "mainHwnd": 9505034,
       "foregroundHwnd": 9505034,
@@ -1088,7 +1088,7 @@
       ]
     },
     {
-      "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
       "pid": 33160,
       "mainHwnd": 9505034,
       "foregroundHwnd": 9505034,
@@ -1174,7 +1174,7 @@
       ]
     },
     {
-      "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+      "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
       "pid": 33160,
       "mainHwnd": 9505034,
       "foregroundHwnd": 9505034,
@@ -1299,7 +1299,7 @@
         "height": 400
       },
       "nativeAfterOverlayShown": {
-        "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+        "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
         "pid": 33160,
         "mainHwnd": 9505034,
         "foregroundHwnd": 26611228,
@@ -1430,7 +1430,7 @@
           "red": 2,
           "green": 1
         },
-        "artifact": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\frozen-189a476907864a59b9cf18e4ca327189-source.png"
+        "artifact": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\frozen-189a476907864a59b9cf18e4ca327189-source.png"
       }
     },
     {
@@ -1471,7 +1471,7 @@
         "height": 400
       },
       "nativeAfterOverlayShown": {
-        "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+        "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
         "pid": 33160,
         "mainHwnd": 9505034,
         "foregroundHwnd": 11733278,
@@ -1602,7 +1602,7 @@
           "red": 2,
           "green": 1
         },
-        "artifact": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\frozen-d24dcdbcd1cf4fba9ac5dcd7d33263d1-source.png"
+        "artifact": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\frozen-d24dcdbcd1cf4fba9ac5dcd7d33263d1-source.png"
       }
     },
     {
@@ -1643,7 +1643,7 @@
         "height": 400
       },
       "nativeAfterOverlayShown": {
-        "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+        "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
         "pid": 33160,
         "mainHwnd": 9505034,
         "foregroundHwnd": 6097306,
@@ -1774,7 +1774,7 @@
           "red": 2,
           "green": 1
         },
-        "artifact": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\frozen-638fdbd6d9a9440da64789dd3e31306f-source.png"
+        "artifact": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\frozen-638fdbd6d9a9440da64789dd3e31306f-source.png"
       }
     },
     {
@@ -1815,7 +1815,7 @@
         "height": 400
       },
       "nativeAfterOverlayShown": {
-        "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+        "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
         "pid": 33160,
         "mainHwnd": 9505034,
         "foregroundHwnd": 6490474,
@@ -1946,7 +1946,7 @@
           "red": 2,
           "green": 1
         },
-        "artifact": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\frozen-c5ee1a07349c49f788bd00e4ac654585-source.png"
+        "artifact": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\frozen-c5ee1a07349c49f788bd00e4ac654585-source.png"
       }
     },
     {
@@ -1987,7 +1987,7 @@
         "height": 400
       },
       "nativeAfterOverlayShown": {
-        "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+        "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
         "pid": 33160,
         "mainHwnd": 9505034,
         "foregroundHwnd": 15995796,
@@ -2118,7 +2118,7 @@
           "red": 2,
           "green": 1
         },
-        "artifact": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\frozen-f251a1b669e940d784ebebea416c84a6-source.png"
+        "artifact": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\frozen-f251a1b669e940d784ebebea416c84a6-source.png"
       }
     },
     {
@@ -2159,7 +2159,7 @@
         "height": 400
       },
       "nativeAfterOverlayShown": {
-        "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+        "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
         "pid": 33160,
         "mainHwnd": 9505034,
         "foregroundHwnd": 16323476,
@@ -2290,7 +2290,7 @@
           "red": 2,
           "green": 1
         },
-        "artifact": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\frozen-6a211c4e3cef4f8d9856e844eeca041c-source.png"
+        "artifact": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\frozen-6a211c4e3cef4f8d9856e844eeca041c-source.png"
       }
     }
   ],
@@ -2494,7 +2494,7 @@
       "width": 1193
     }
   },
-  "error": "Error: Traceback (most recent call last):\r\n  File \"C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-observe.py\", line 63, in <module>\r\n    assert len(main)==1, owned\r\n           ^^^^^^^^^^^^\r\nAssertionError: [{'pid': 33160, 'hwnd': 17369460, 'rect': {'x': 0, 'y': 0, 'width': 16, 'height': 16}, 'title': 'dev.kinshoko.spec78t17test-siw'}, {'pid': 33160, 'hwnd': 15141566, 'rect': {'x': 0, 'y': 0, 'width': 16, 'height': 16}, 'title': ''}]\r\n\n    at observeNative (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:61:267)\n    at begin (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:51:36)\n    at capture (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:55:102)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async verifyOriginal (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:59:135)\n    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:116:3",
+  "error": "Error: Traceback (most recent call last):\r\n  File \"%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-observe.py\", line 63, in <module>\r\n    assert len(main)==1, owned\r\n           ^^^^^^^^^^^^\r\nAssertionError: [{'pid': 33160, 'hwnd': 17369460, 'rect': {'x': 0, 'y': 0, 'width': 16, 'height': 16}, 'title': 'dev.kinshoko.spec78t17test-siw'}, {'pid': 33160, 'hwnd': 15141566, 'rect': {'x': 0, 'y': 0, 'width': 16, 'height': 16}, 'title': ''}]\r\n\n    at observeNative (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:61:267)\n    at begin (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:51:36)\n    at capture (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:55:102)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async verifyOriginal (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:59:135)\n    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:116:3",
   "requests": [
     "0832d82026e649549162a79ee5273695",
     "dde0de763f974aa889fe61469eec60f2",

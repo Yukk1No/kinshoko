@@ -1,7 +1,7 @@
 {
   "source": "e350dfd1a884c27d37950ccfb9032d2c55c1174c",
   "binarySha256": "1ed64c1061f148b5a42fff93e565c63833f236dd743cb9b30519a8991bee327b",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
   "stories": [
     25,
     26
@@ -45,6 +45,6 @@
     "旧名称第三库 keeps original file bytes",
     "旧名称第四库 keeps original file bytes"
   ],
-  "rawMigrationRun": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\legacy-names-1791477190716",
+  "rawMigrationRun": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\e2e\\legacy-names-1791477190716",
   "supplementaryFailure": "Error: Timed out: owned application exits normally"
 }

@@ -30,7 +30,7 @@ PASS receipt dismissal revokes image access
 PASS ordinary candidates never reveal the hidden duplicate's tag
 PASS real preview leaves manual note, tags and unknown target classification unchanged
 PASS ordinary browse and counts remain safe after preview
-PASS original SHA unchanged: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t15-native-fixture-v2\adult\originals/52/524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30.png
-PASS original SHA unchanged: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t15-native-fixture-v2\adult\originals/cb/cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png
-PASS original SHA unchanged: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t15-native-fixture-v2\target\originals/1b/1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139.png
-PASS original SHA unchanged: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t15-native-fixture-v2\target\originals/cb/cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png
+PASS original SHA unchanged: %USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t15-native-fixture-v2\adult\originals/52/524f25f59ee5db461f93b215968c52742f1eda4e4b3d1cf4729ce3636494ba30.png
+PASS original SHA unchanged: %USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t15-native-fixture-v2\adult\originals/cb/cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png
+PASS original SHA unchanged: %USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t15-native-fixture-v2\target\originals/1b/1b6e8417adc67c9d1ceae4e5c14b03b330667174aced0c458ad2c33db1f8a139.png
+PASS original SHA unchanged: %USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\work\e2e\t15-native-fixture-v2\target\originals/cb/cba7a315b7d7e1eabc6ddac1a7d71585eac17065f278165e1cddc46af99fe4ac.png

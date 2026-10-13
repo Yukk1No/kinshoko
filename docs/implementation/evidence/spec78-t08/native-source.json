@@ -5,6 +5,6 @@
   "identifier": "dev.kinshoko.spec78t08test",
   "buildType": "debug with tauri/custom-protocol",
   "buildDate": "2026-10-09T00:45:08.9691546+08:00",
-  "target": "C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/target",
+  "target": "%USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko/target",
   "driverSha256": "0F4600639201CCD2E84C72C3977AC33C67E19152E197C89EB16A6591D1FBE9F7"
 }

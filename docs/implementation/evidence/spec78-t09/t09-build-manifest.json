@@ -6,8 +6,8 @@
     4571
   ],
   "source": "36cab7ebe379f4614de7768553492daab5f7ee5e",
-  "config": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\t09-config.json",
+  "config": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\t09-config.json",
   "builtAt": "2026-10-08T17:07:58.3405981Z",
   "cargoJobs": 2,
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target\\debug\\kinshoko.exe"
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target\\debug\\kinshoko.exe"
 }

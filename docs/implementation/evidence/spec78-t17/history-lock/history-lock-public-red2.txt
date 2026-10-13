@@ -1,4 +1,4 @@
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\crates\kinshoko-core)
 error[E0599]: no method named `commit_with_history` found for struct `CaptureDraft` in the current scope
   --> crates\kinshoko-core\tests\reference_capture_actions.rs:94:10
    |

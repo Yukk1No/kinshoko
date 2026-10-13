@@ -65,7 +65,7 @@ node node_modules/vitest/vitest.mjs run --config work/vitest.config.ts
 node node_modules/vite/bin/vite.js build --config work/vitest.config.ts
 $env:TAURI_CONFIG = '{"identifier":"dev.kinshoko.spec78t04test"}'
 cargo build -p kinshoko --features tauri/custom-protocol --locked -j2
-node e2e/legacy-tag-names.mjs target/debug/kinshoko.exe <matching-msedgedriver.exe> C:/Users/yuk1no/.cargo/bin/tauri-driver.exe
+node e2e/legacy-tag-names.mjs target/debug/kinshoko.exe <matching-msedgedriver.exe> %USERPROFILE%/.cargo/bin/tauri-driver.exe
 ```
 
 | 检查范围 | 状态与实际覆盖版本 |
@@ -92,11 +92,11 @@ node e2e/legacy-tag-names.mjs target/debug/kinshoko.exe <matching-msedgedriver.e
 
 [`native-tray-exit-t04.py`](../../e2e/native-tray-exit-t04.py) 从 T19 已验证 helper 适配，限制本树 `target/debug/kinshoko.exe` 的精确绝对路径及唯一 PID。每次重新打开实际托盘菜单，核对 fresh popup、owner、末项“退出”的文字、状态与 ID，先 WM_CANCELMODE 收起菜单再 WM_COMMAND 进入正常回调。[退出前 receipt](evidence/spec78-t04/before-disconnect-tray-exit.json) 与 [退出后 receipt](evidence/spec78-t04/after-disconnect-tray-exit.json) 均为退出码 0、processEnded=true；该通过路径没有全局按键、私有命令、WM_QUIT 或强杀应用。WebView 清理日志中的 class unregister 1412 没有改变已记录的正常进程退出结果。
 
-identifier 为 `dev.kinshoko.spec78t04test`，driver 4458／4459。资料库、设备目录与 WebView profile 在本次 `work/e2e` 目录。Windows 已知目录 API 实际把应用壳设置放在独立 identifier 的 `C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t04test/settings.json`，APPDATA 环境覆盖没有重定向该设置；因此不声称全部配置均在运行目录。后续完整脚本已显式初始化安全视角，避免复用测试 identifier 的 safe=false 影响下一轮。生产 identifier 的设置不在本单操作范围。[退出清点](evidence/spec78-t04/desktop-release.json) 确认应用、两种 driver、本测试 WebView 无残留，两端口无监听；桌面已释放。
+identifier 为 `dev.kinshoko.spec78t04test`，driver 4458／4459。资料库、设备目录与 WebView profile 在本次 `work/e2e` 目录。Windows 已知目录 API 实际把应用壳设置放在独立 identifier 的 `%USERPROFILE%/AppData/Roaming/dev.kinshoko.spec78t04test/settings.json`，APPDATA 环境覆盖没有重定向该设置；因此不声称全部配置均在运行目录。后续完整脚本已显式初始化安全视角，避免复用测试 identifier 的 safe=false 影响下一轮。生产 identifier 的设置不在本单操作范围。[退出清点](evidence/spec78-t04/desktop-release.json) 确认应用、两种 driver、本测试 WebView 无残留，两端口无监听；桌面已释放。
 
 原始失败均保留：库选项未装载的脚本等待、标签检查期间选中被清空、WebDriver 控件 stale、误判托盘常驻及复用 safe=false 的脚本初始化。诊断 DOM 显示标签曾正确出现，随后选中被清空。该现象并不全是脚本：首次重复同一修订的 workspace 通知会造成真实交互中断，T09 已独立 RED 复现并承接同修订去重／迟到状态修复；真实修订变化后的撤销另有合法语义。此处保留自己的失败证据，不把之后 T09 修复算成本单已执行的原生验证。
 
-已逐张检查 [冲突与取消](evidence/spec78-t04/formal-legacy-conflict-cancel.png)、[保留旧名的选择](evidence/spec78-t04/formal-legacy-preference-preview.png)、[既有偏好冲突](evidence/spec78-t04/formal-existing-preference-conflict.png)、[确认保存](evidence/spec78-t04/formal-equal-default-explicit-choice.png)、[活动库断连后的正式工作区](evidence/spec78-t04/formal-disconnected-active-startup.png)。最终结果核对和确认按钮等待在脚本中执行，保留旧名的截图拍在预览请求尚未完成时，没有用这张截图代替最终结果断言。
+已逐张检查 [冲突与取消](evidence/spec78-t04/formal-legacy-conflict-cancel.png)、[保留旧名的选择](evidence/spec78-t04/formal-legacy-preference-preview.png)、[既有偏好冲突](evidence/spec78-t04/formal-existing-preference-conflict.png)、[确认保存](evidence/spec78-t04/formal-equal-default-explicit-choice.png)、活动库断连后的正式工作区（截图已移出仓库，仅本地保留；原 SHA256 `2db282c250e88be044751ac6bcf9861ae571c21f8c593604d654e36c6acb53f7`，见 [REDACTION.md](evidence/REDACTION.md)）。最终结果核对和确认按钮等待在脚本中执行，保留旧名的截图拍在预览请求尚未完成时，没有用这张截图代替最终结果断言。
 
 原生 binary 早于后续 T19 合入；T19 更新策略／设置变化只有上述新增专项、TypeScript、Vite 与 Clippy 补验，不冒充新集成 binary 的原生验证。最终 [`validation.json`](evidence/spec78-t04/validation.json) 和 [证据哈希](evidence/spec78-t04/evidence-hashes.json) 记录实际覆盖边界。
 

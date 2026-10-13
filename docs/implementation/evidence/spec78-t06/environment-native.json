@@ -8,5 +8,5 @@
   "node": "v22.15.0",
   "edgeDriver": "Microsoft Edge WebDriver 154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)",
   "tauriDriver": "tauri-driver v2.1.0:",
-  "settingsPath": "C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t06test/settings.json"
+  "settingsPath": "%USERPROFILE%/AppData/Roaming/dev.kinshoko.spec78t06test/settings.json"
 }

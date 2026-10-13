@@ -12,7 +12,7 @@
     "native-trial-3-result.json": "source is actual native build source; scriptSource and script SHA are separate"
   },
   "preservedBinary": "work/e2e/t09-binary-36cab7e/kinshoko.exe",
-  "settingsPath": "C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t09test/settings.json",
-  "rootPreservation": "C:/Users/yuk1no/.codex/worktrees/7dea/kinshoko/work/v1-handoff/follow-up-spec/evidence/t09-native/root-preservation.json",
+  "settingsPath": "%USERPROFILE%/AppData/Roaming/dev.kinshoko.spec78t09test/settings.json",
+  "rootPreservation": "%USERPROFILE%/.codex/worktrees/7dea/kinshoko/work/v1-handoff/follow-up-spec/evidence/t09-native/root-preservation.json",
   "fullData": "work/e2e/source-actions-1791479547691"
 }

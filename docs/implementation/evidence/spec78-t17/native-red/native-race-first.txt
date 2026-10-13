@@ -5,7 +5,7 @@ PASS frozen image paints at native physical dimensions with zero origin
 PASS slow decode is genuinely still running before mode revocation
 PASS actual OS clipboard after mode return still contains the owned seed before slow-copy completion
 Error: safe-mode revocation during slow original decode cannot commit late original pixels to the real OS clipboard
-    at check (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:30:45)
-    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:88:3
+    at check (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:30:45)
+    at file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:88:3
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\e2e\wall-capture-race-1791490083077
+Evidence: %USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\e2e\wall-capture-race-1791490083077

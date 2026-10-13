@@ -4,7 +4,7 @@
   "runs": [
     {
       "run": "wall-capture-1791488191109",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488191109\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488191109\\result.json",
       "resultCopy": "old-runs/wall-capture-1791488191109/result.json",
       "resultSha256": "e4bfff06145f81c3434a89d7f28672888e74460fb80f7e40b23aa941240f3ce5",
       "status": "failed",
@@ -38,7 +38,7 @@
     },
     {
       "run": "wall-capture-1791488458222",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488458222\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488458222\\result.json",
       "resultCopy": "old-runs/wall-capture-1791488458222/result.json",
       "resultSha256": "b25d00d0ab568af30e11359e2e3d5a7104030925d167b9997fd54ce59cd1592e",
       "status": "failed",
@@ -72,7 +72,7 @@
     },
     {
       "run": "wall-capture-1791488505260",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488505260\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488505260\\result.json",
       "resultCopy": "old-runs/wall-capture-1791488505260/result.json",
       "resultSha256": "a3da733a763ef05b9016858f23eefc1609de5a4b07e3c5d3fb17c0d35e46c146",
       "status": "failed",
@@ -106,7 +106,7 @@
     },
     {
       "run": "wall-capture-1791488575033",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488575033\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488575033\\result.json",
       "resultCopy": "old-runs/wall-capture-1791488575033/result.json",
       "resultSha256": "60766cd20c2b98d4df86d1f7252206688c3c10fa3146197f4559152ef1179ccb",
       "status": "failed",
@@ -140,7 +140,7 @@
     },
     {
       "run": "wall-capture-1791488713265",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488713265\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488713265\\result.json",
       "resultCopy": "old-runs/wall-capture-1791488713265/result.json",
       "resultSha256": "a8aec25e9fb1d4e0ad1fd25d9a75977ee4e6903fad82551372a042a1a01a65d1",
       "status": "failed",
@@ -174,7 +174,7 @@
     },
     {
       "run": "wall-capture-1791488834203",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488834203\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488834203\\result.json",
       "resultCopy": "old-runs/wall-capture-1791488834203/result.json",
       "resultSha256": "644687eddee2f508611c3676a37e434813a6a8ef7a1193f060f39033fd33cf13",
       "status": "failed",
@@ -208,7 +208,7 @@
     },
     {
       "run": "wall-capture-1791488917659",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488917659\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488917659\\result.json",
       "resultCopy": "old-runs/wall-capture-1791488917659/result.json",
       "resultSha256": "5d80728f52320769bb24a37f77f7f2f7a161561148ce97a8b2d4c15b2235c45d",
       "status": "failed",
@@ -242,7 +242,7 @@
     },
     {
       "run": "wall-capture-1791489019058",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489019058\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489019058\\result.json",
       "resultCopy": "old-runs/wall-capture-1791489019058/result.json",
       "resultSha256": "2d3431aff004bbc8a8f54ae37d24fe756729ec341be91a7a3e62dac83af4cfb6",
       "status": "failed",
@@ -276,7 +276,7 @@
     },
     {
       "run": "wall-capture-1791489125093",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489125093\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489125093\\result.json",
       "resultCopy": "old-runs/wall-capture-1791489125093/result.json",
       "resultSha256": "57e2ba0b7a001727a2100d1e5797e43d0bc2b06d2d55092dddc54928fb925602",
       "status": "failed",
@@ -310,7 +310,7 @@
     },
     {
       "run": "wall-capture-1791489296085",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489296085\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489296085\\result.json",
       "resultCopy": "old-runs/wall-capture-1791489296085/result.json",
       "resultSha256": "6dca82d7ee2eebdf6ffd3760d70b65e28440b370443eeb6b4d069abc7a52d1a5",
       "status": "failed",
@@ -344,7 +344,7 @@
     },
     {
       "run": "wall-capture-1791489665739",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489665739\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489665739\\result.json",
       "resultCopy": "old-runs/wall-capture-1791489665739/result.json",
       "resultSha256": "702be0ad4fe517acce63970d30aa43cd0bab42603551873a6bcb2896d056759b",
       "status": "failed",
@@ -384,7 +384,7 @@
     },
     {
       "run": "wall-capture-1791489746034",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489746034\\result.json",
       "resultCopy": "old-runs/wall-capture-1791489746034/result.json",
       "resultSha256": "b7e3f6fd2ef2ec43642415a2536e3e73930070ab517a193732db08e2cabef6fe",
       "status": "failed",
@@ -427,7 +427,7 @@
     },
     {
       "run": "wall-capture-1791489892925",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489892925\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791489892925\\result.json",
       "resultCopy": "old-runs/wall-capture-1791489892925/result.json",
       "resultSha256": "e270501b3ac7c3917e4b3db3887612f659745559e1db634213af863c08a02dcb",
       "status": "failed",
@@ -473,7 +473,7 @@
     },
     {
       "run": "wall-capture-race-1791490083077",
-      "rawOriginal": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077\\result.json",
+      "rawOriginal": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-race-1791490083077\\result.json",
       "resultCopy": "old-runs/wall-capture-race-1791490083077/result.json",
       "resultSha256": "2400e349bde4a0c1d596cbb6e74af3adc6e6ca754517073f5a951e50dd976c5e",
       "status": "failed",
@@ -522,7 +522,7 @@
     "sha256": "e2c31eece3ff7dedf0f6d78f120e3d4c1c3db8f25b017c02014e6c489ae21bc1",
     "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
     "origin": "byte-exact copy of the parent archived build-time working file",
-    "original": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t17-native\\binaries\\cc896c5\\wall-capture.mjs",
+    "original": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t17-native\\binaries\\cc896c5\\wall-capture.mjs",
     "copy": "harness-versions/e2c31eece3ff7dedf0f6d78f120e3d4c1c3db8f25b017c02014e6c489ae21bc1/wall-capture.mjs",
     "scope": "Earlier unrun build specimen. Not the first native run harness. Actual first run records 60a1b59674b4331b065bedbffa0d68bd510b34b2223969cab288ec00966ee1d8 at source842c194."
   }

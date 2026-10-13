@@ -2,7 +2,7 @@
   "status": "failed",
   "source": "36cab7ebe379f4614de7768553492daab5f7ee5e",
   "binarySha256": "60345209555790f8abc078cb99fe2795f11f4bc2c0610f81cd0fac0282622d94",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target\\debug\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target\\debug\\kinshoko.exe",
   "environment": {
     "devicePixelRatio": 1.1041666269302368,
     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -15,20 +15,20 @@
     "scriptSource": "87b30b83fac91524f0314e3672d30d410852086e",
     "scriptSha256": "3a2387df9834f1b1d65df7b7a43248d8338d4fc5c43303a01dbc58ef2ef52c55",
     "sourceTree": "5253be6317a8f2bee7596e78bea21b3e24298cc3",
-    "manifestPath": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\t09-build-manifest.json",
+    "manifestPath": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\t09-build-manifest.json",
     "driverSha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7"
   },
   "a": {
     "id": "f276ed9e92a94e1e96ee6a720e8b898d",
     "name": "同名资料库",
-    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479460363\\libraries\\first\\同名资料库",
+    "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479460363\\libraries\\first\\同名资料库",
     "imageId": "01a11c7f39597212883c129fe63dec2c",
     "folderId": "01a11c7f39f474f59eb0d99119e05cb7"
   },
   "b": {
     "id": "d183dc395b864d8cad0211f58a2f2473",
     "name": "同名资料库",
-    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479460363\\libraries\\second\\同名资料库",
+    "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479460363\\libraries\\second\\同名资料库",
     "imageId": "01a11c7f3a82706cb74100e857bebc54",
     "folderId": "01a11c7f3b1b7027913234b428339dc9"
   },

@@ -20,7 +20,7 @@ PASS group management leaves source image identity and version links unchanged
 PASS global edits and deleted legacy migration memory survive a normal full restart
 PASS dynamic namespace group excludes same-name artist identities
 [1009/013000.783:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
-Error: current_library: 资料库暂时不可用：C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\shared-groups-1791480582886\libraries\画法参考。请确认移动盘已连接；资料库搬家后请选择新位置重新登记。原因：这里没有 Kinshoko 资料库：C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\shared-groups-1791480582886\libraries\画法参考
-    at Session.invoke (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-tag-groups.mjs:68:31)
+Error: current_library: 资料库暂时不可用：%USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\shared-groups-1791480582886\libraries\画法参考。请确认移动盘已连接；资料库搬家后请选择新位置重新登记。原因：这里没有 Kinshoko 资料库：%USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\shared-groups-1791480582886\libraries\画法参考
+    at Session.invoke (file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-tag-groups.mjs:68:31)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-tag-groups.mjs:281:12
+    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/shared-tag-groups.mjs:281:12

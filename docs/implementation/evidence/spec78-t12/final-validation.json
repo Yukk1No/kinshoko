@@ -4,7 +4,7 @@
     "source": "00dfc611577361a679221dc8f06f99fdcedd466f",
     "tree": "1ffabb0724b1f6e308968dfb55092ae7c88361e2",
     "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
-    "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+    "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
     "identifier": "dev.kinshoko.spec78t12test",
     "directMlSha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1",
     "configSha256": "d3d0d3e2da8828fd1e9fa170978ab7ced39461965ddf446ec93b8a619df8e28a"
@@ -23,7 +23,7 @@
       "binarySha256": "c77471db1d84ff06336358182d082a6b5da3fe220aa573169cdc157577c62838",
       "harnessSource": "3075331a5f5bcf780831cf5a92766f331f5f68b9",
       "harnessSha256": "eaaf396903187c8f3086c0f430d5184d827850c8d2186a5a7b7936990461bb07",
-      "result": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\result.json"
+      "result": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-first\\result.json"
     },
     {
       "run": "content-backup-t12-3075331-second",
@@ -33,7 +33,7 @@
       "binarySha256": "c77471db1d84ff06336358182d082a6b5da3fe220aa573169cdc157577c62838",
       "harnessSource": "026897b686526135aa587787817b5395dc80af37",
       "harnessSha256": "1e3d2acbe53119e4f6d912aa89eba4f4a7bf60df5147c08a2d2d7f40f5bca6d7",
-      "result": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\result.json"
+      "result": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-3075331-second\\result.json"
     },
     {
       "run": "content-backup-t12-00dfc61-third",
@@ -43,7 +43,7 @@
       "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
       "harnessSource": "00dfc611577361a679221dc8f06f99fdcedd466f",
       "harnessSha256": "355ea149b2c171b3680b3c632d8a5fc7f33790c8e32200720cb9d3d97a777de0",
-      "result": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\result.json"
+      "result": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-third\\result.json"
     },
     {
       "run": "content-backup-t12-00dfc61-fourth",
@@ -53,7 +53,7 @@
       "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
       "harnessSource": "846edf227d5b2c43692289dea06a11a97d38a17f",
       "harnessSha256": "3d2422c8ece631968393fe00b47afedeceb4d77f4f6736f82a40a78b1cae868c",
-      "result": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\result.json"
+      "result": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\content-backup-t12-00dfc61-fourth\\result.json"
     }
   ],
   "smoke": {
@@ -63,7 +63,7 @@
     "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
     "harnessSource": "846edf227d5b2c43692289dea06a11a97d38a17f",
     "harnessSha256": "d9df46a1c82641e8677d9434dca9d631a43370a1037d6217b05e539141c7e01a",
-    "result": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-same-exe-smoke\\kinshoko-smoke-VK50PY\\result.json"
+    "result": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-same-exe-smoke\\kinshoko-smoke-VK50PY\\result.json"
   },
   "checks": {
     "rust": {
@@ -93,10 +93,10 @@
     "source": "00dfc611577361a679221dc8f06f99fdcedd466f",
     "harnessHead": "846edf227d5b2c43692289dea06a11a97d38a17f",
     "applicationPaths": [
-      "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
-      "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-3075331\\kinshoko.exe"
+      "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-00dfc61\\kinshoko.exe",
+      "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-fixed-build-3075331\\kinshoko.exe"
     ],
-    "smokeRoot": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-same-exe-smoke",
+    "smokeRoot": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t12-same-exe-smoke",
     "processFilter": "exact archived executable paths; driver command line ports 4648/4649; WebView T12 run roots or unique identifier",
     "ownedProcessesBeforeCleanup": [],
     "ownedProcessIdsBeforeCleanup": [],
@@ -106,7 +106,7 @@
     ],
     "portConnections": [],
     "knownFolder": {
-      "file": "C:/Users/yuk1no/AppData/Roaming/dev.kinshoko.spec78t12test/settings.json",
+      "file": "%USERPROFILE%/AppData/Roaming/dev.kinshoko.spec78t12test/settings.json",
       "exists": false,
       "sha256": null
     },

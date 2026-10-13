@@ -26,7 +26,7 @@
     "realSQLiteAndFiles": true
   },
   "native": {
-    "command": "node e2e/spec78-frontend.mjs target/debug/kinshoko.exe work/e2e/tools/msedgedriver.exe C:/Users/yuk1no/.cargo/bin/tauri-driver.exe",
+    "command": "node e2e/spec78-frontend.mjs target/debug/kinshoko.exe work/e2e/tools/msedgedriver.exe %USERPROFILE%/.cargo/bin/tauri-driver.exe",
     "checks": 19,
     "status": "passed",
     "buildSourceCommit": "0069dc8d61762a3be94486671be86d92c0c6f1b5",

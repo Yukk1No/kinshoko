@@ -1,4 +1,4 @@
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
    Compiling tauri v2.12.1
    Compiling tauri-macros v2.7.1
    Compiling tauri-plugin-fs v2.6.0
@@ -6,8 +6,8 @@
    Compiling tauri-plugin-dialog v2.8.1
    Compiling tauri-plugin-updater v2.13.1
    Compiling tauri-plugin-global-shortcut v2.4.0
-   Compiling kinshoko-tagger v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-tagger)
-   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
+   Compiling kinshoko-tagger v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-tagger)
+   Compiling kinshoko v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
    Compiling tauri-plugin-single-instance v2.5.2
     Finished `test` profile [unoptimized + debuginfo] target(s) in 3m 28s
      Running unittests src\lib.rs (target\debug\deps\kinshoko_app-db23d374e5d9c3cc.exe)

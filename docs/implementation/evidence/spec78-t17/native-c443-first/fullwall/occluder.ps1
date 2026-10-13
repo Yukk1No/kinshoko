@@ -11,5 +11,5 @@ $f.Location=New-Object System.Drawing.Point(1130,848)
 $f.ClientSize=New-Object System.Drawing.Size(61,51)
 $f.TopMost=$true
 $f.BackColor=[System.Drawing.Color]::FromArgb(3,17,229)
-$f.Add_Shown({$placed=[T17FixtureNative]::SetWindowPos($f.Handle,[IntPtr]::new(-1),1130,848,61,51,0x50);if(!$placed){throw 'Owned fixture placement failed'};$ready=@{pid=$PID;hwnd=$f.Handle.ToInt64();placed=$placed;previousDpiContext=$dpiContext.ToInt64()};[IO.File]::WriteAllText('C:\Users\yuk1no\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\e2e\wall-capture-1791501732795\occluder-ready.json',($ready|ConvertTo-Json -Compress))})
+$f.Add_Shown({$placed=[T17FixtureNative]::SetWindowPos($f.Handle,[IntPtr]::new(-1),1130,848,61,51,0x50);if(!$placed){throw 'Owned fixture placement failed'};$ready=@{pid=$PID;hwnd=$f.Handle.ToInt64();placed=$placed;previousDpiContext=$dpiContext.ToInt64()};[IO.File]::WriteAllText('%USERPROFILE%\.codex\worktrees\spec78-t16-original-crop\kinshoko\work\e2e\wall-capture-1791501732795\occluder-ready.json',($ready|ConvertTo-Json -Compress))})
 [System.Windows.Forms.Application]::Run($f)

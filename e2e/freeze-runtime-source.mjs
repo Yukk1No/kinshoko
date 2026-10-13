@@ -3,6 +3,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFi
 import { resolve, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { homedir } from "node:os";
 
 const work = resolve("work/t18");
 mkdirSync(work, { recursive: true });
@@ -32,7 +33,10 @@ if (process.argv.includes("--before")) {
   if (existsSync(dll)) copyFileSync(dll, join(destination, "DirectML.dll"));
   const files = (root) => readdirSync(root, { withFileTypes: true }).flatMap((entry) => entry.isDirectory() ? files(join(root, entry.name)) : [join(root, entry.name)]);
   const identifier = "dev.kinshoko.spec78t18test";
-  const drivers = { tauri: "C:/Users/yuk1no/.cargo/bin/tauri-driver.exe", edge: "C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/work/e2e/tools/msedgedriver.exe" };
+  const drivers = {
+    tauri: resolve(process.env.KINSHOKO_TAURI_DRIVER ?? join(process.env.CARGO_HOME ?? join(homedir(), ".cargo"), "bin", "tauri-driver.exe")),
+    edge: resolve(process.env.KINSHOKO_EDGE_DRIVER ?? "work/e2e/tools/msedgedriver.exe"),
+  };
   const manifest = {
     ...input, branch: git("branch", "--show-current"), binarySha256: hash(binary), preservedBinary,
     identifier, productName: "Kinshoko T18 Verification", ports: [4618, 4619],

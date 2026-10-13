@@ -3,9 +3,9 @@
   "tree": "b6833db6e1297d0121245a86c46620d9f852a310",
   "clean": true,
   "branch": "codex/spec-78-t06",
-  "binaryPath": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "binaryPath": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
   "binarySha256": "aae236fd854c72221dfdd5b95b59e27d016c49314fb25621d542ecf10a47a3a7",
-  "preservedBinary": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t06\\nativeproof\\49c39e0\\kinshoko.exe",
+  "preservedBinary": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t06\\nativeproof\\49c39e0\\kinshoko.exe",
   "identifier": "dev.kinshoko.spec78t06test",
   "productName": "Kinshoko T06 Verification",
   "ports": [
@@ -507,11 +507,11 @@
   },
   "drivers": {
     "tauri": {
-      "path": "C:/Users/yuk1no/.cargo/bin/tauri-driver.exe",
+      "path": "%USERPROFILE%/.cargo/bin/tauri-driver.exe",
       "sha256": "14fcadb6adbb5c2956263ea6bbdcbe5f9c190d3b6a6c12bc5c47953cb6aa272d"
     },
     "edge": {
-      "path": "C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/work/e2e/tools/msedgedriver.exe",
+      "path": "%USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko/work/e2e/tools/msedgedriver.exe",
       "sha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7"
     }
   },

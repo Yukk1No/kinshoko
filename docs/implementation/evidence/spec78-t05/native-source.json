@@ -3,11 +3,11 @@
   "tree": "b116727f0776ccffa75d01cb15ed2aabb3c76489",
   "harnessCommit": "2acd42963a04e9920dc1ece6b6fd69dbb1f194b4",
   "identifier": "dev.kinshoko.spec78t05test",
-  "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target",
+  "target": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target",
   "jobs": 2,
   "uncommitted": "",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
-  "preservedApplication": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t05\\nativeproof\\f7ef52b1\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\kinshoko.exe",
+  "preservedApplication": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\work\\t05\\nativeproof\\f7ef52b1\\kinshoko.exe",
   "binarySha256": "7dca4915d39d648f5b0e7b615671d316b3e63b187ee97a44d4cbb2f8ed3ff239",
   "files": [
     {
@@ -1495,7 +1495,7 @@
   ],
   "sidecars": [
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\DirectML.dll",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t02-tag-identity\\kinshoko\\target\\debug\\DirectML.dll",
       "sha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
     }
   ],
@@ -1504,12 +1504,12 @@
     "node": "v22.15.0",
     "windows": "10.0.26300",
     "edgeDriver": {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\tools\\msedgedriver.exe",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\tools\\msedgedriver.exe",
       "sha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7",
       "version": "Microsoft Edge WebDriver 154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)"
     },
     "tauriDriver": {
-      "path": "C:\\Users\\yuk1no\\.cargo\\bin\\tauri-driver.exe",
+      "path": "%USERPROFILE%\\.cargo\\bin\\tauri-driver.exe",
       "sha256": "14fcadb6adbb5c2956263ea6bbdcbe5f9c190d3b6a6c12bc5c47953cb6aa272d",
       "version": "2.1.0",
       "versionSource": "cargo install --list; driver --version unsupported"

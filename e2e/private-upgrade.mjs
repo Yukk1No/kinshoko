@@ -5,7 +5,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { release } from "node:os";
+import { homedir, release } from "node:os";
 import { deflateSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 
@@ -64,7 +64,7 @@ function install(kind) {
   save();
 }
 async function start() {
-  driver = spawn(process.env.KINSHOKO_TAURI_DRIVER ?? "C:/Users/yuk1no/.cargo/bin/tauri-driver.exe", ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], {
+  driver = spawn(process.env.KINSHOKO_TAURI_DRIVER ?? join(process.env.CARGO_HOME ?? join(homedir(), ".cargo"), "bin", "tauri-driver.exe"), ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], {
     windowsHide: true, env: { ...process.env, APPDATA: join(work, "roaming"), LOCALAPPDATA: join(work, "local"), KINSHOKO_DATA_DIR: data, KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") }, stdio: ["ignore", "inherit", "inherit"] });
   await until("driver ready", () => fetch(`${endpoint}/status`).then(r => r.ok));
   const session = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application, webviewOptions: { userDataFolder: join(work, "webview") } } } } });

@@ -1,4 +1,4 @@
-    Checking kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
+    Checking kinshoko v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
 error[E0283]: type annotations needed
    --> src-tauri\src\library\import_preview.rs:130:25
     |

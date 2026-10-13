@@ -1,8 +1,8 @@
 {
   "productSource": "f7ef52b12681ed679927f7fef034629b923ae8ec",
   "binarySha256": "7dca4915d39d648f5b0e7b615671d316b3e63b187ee97a44d4cbb2f8ed3ff239",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t05-native\\worker-t05\\nativeproof\\f7ef52b1\\kinshoko.exe",
-  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\ci-smoke-probe-1791481657292",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\evidence\\t05-native\\worker-t05\\nativeproof\\f7ef52b1\\kinshoko.exe",
+  "work": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\ci-smoke-probe-1791481657292",
   "identifier": "dev.kinshoko.spec78t05test",
   "ciSource": "fad93218cc56ee31b77460e1b4ef0b1d8127ab3b",
   "ports": [
@@ -13,7 +13,7 @@
     "value": {
       "id": "0c1f6031b34047579411f7dd53d7c937",
       "name": "冒烟测试库",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\ci-smoke-probe-1791481657292\\libraries\\冒烟测试库"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\7dea\\kinshoko\\work\\v1-handoff\\follow-up-spec\\ci-smoke-probe-1791481657292\\libraries\\冒烟测试库"
     }
   },
   "dom": {

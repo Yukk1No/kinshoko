@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko
 
  ❯ src/library/TagNamePanel.test.tsx (3 tests | 1 failed) 1634ms
    × edits one selected tag at a time and finds it by a separate alias in a large catalog 1280ms

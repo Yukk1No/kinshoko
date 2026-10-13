@@ -13,4 +13,4 @@ PASS 名称第一库 displays 分缝发型 in the actual tag panel
 PASS formal search for 中间发缝 returns 1 image(s) with 分缝发型
 PASS deleted old alias stays deleted after bundled-table reinstallation on restart
 PASS formal search for 分发 returns 0 image(s) with no tag candidate
-Evidence: C:\Users\yuk1no\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\tag-names-1791473617790
+Evidence: %USERPROFILE%\.codex\worktrees\spec78-t02-tag-identity\kinshoko\work\e2e\tag-names-1791473617790

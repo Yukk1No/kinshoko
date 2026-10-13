@@ -14,8 +14,8 @@ dist/assets/index-Cho8IVmZ.css   36.85 kB │ gzip:   7.85 kB
 dist/assets/index-CedpoDVJ.js   433.85 kB │ gzip: 130.76 kB
 
 ✓ built in 192ms
-   Compiling kinshoko-core v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
-   Compiling kinshoko-tagger v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-tagger)
-   Compiling kinshoko v0.1.0 (C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
+   Compiling kinshoko-core v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-core)
+   Compiling kinshoko-tagger v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\crates\kinshoko-tagger)
+   Compiling kinshoko v0.1.0 (%USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\src-tauri)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 44.75s
-       Built application at: C:\Users\yuk1no\.codex\worktrees\spec78-t01-frontend\kinshoko\target\debug\kinshoko.exe
+       Built application at: %USERPROFILE%\.codex\worktrees\spec78-t01-frontend\kinshoko\target\debug\kinshoko.exe

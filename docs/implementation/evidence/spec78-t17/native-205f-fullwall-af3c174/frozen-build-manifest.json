@@ -3,13 +3,13 @@
   "tree": "8f2e2c7bd7a855c23bb5a21f1a6bd4c9fd434c70",
   "actualBuildSource": "205f95394a508b9362dc77e4fd0520c1970d2cef",
   "productionUnchangedSinceBuild": true,
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-v5-205f953\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-v5-205f953\\kinshoko.exe",
   "binarySha256": "FE83026AC5CC595F45726B1456C10FBA54624E973618063CADB4E90C60D9A909",
   "buildType": "debug tauri/custom-protocol",
   "identifier": "dev.kinshoko.spec78t17test",
   "configSha256": "6669C4A7B5B1F21EE2B8E93A7D84E9525C9B8CE0AECE811AED91A2A94B917FC5",
   "scriptSha256": "4AC980942758D7DCDF06E68366A9531856B8DD2A31D159E8B1A7E78D777556F7",
-  "target": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
+  "target": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
   "gitStatus": [],
   "observedAfterBuild": "2026-10-09T00:02:49.8124554Z",
   "sources": [
@@ -2606,266 +2606,266 @@
   ],
   "dist": [
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\index.html",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\index.html",
       "size": 408,
       "sha256": "BB52C2212E5F5C8FDD9077C98E6D240CE2814A37257C56CFDF021341AD6FA128"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\assets\\index-BIfAY9xe.css",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\assets\\index-BIfAY9xe.css",
       "size": 37206,
       "sha256": "441F46040610E039ECCEA6FDE28D5A2CE12F1199ECC0B03768161F1605671D4F"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\assets\\index-COoUhv4u.js",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\assets\\index-COoUhv4u.js",
       "size": 442016,
       "sha256": "292A2B5EF86A51E86253E12B79A198B38F20C1E4625C842C4219A5E0CF8F81B8"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-LICENSE.txt",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-LICENSE.txt",
       "size": 4472,
       "sha256": "B3195AF0FB14368D1B3B10FB9D3FE503B7163EA083859D2EE553BC74DA07C320"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-Medium-hinted.woff2",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-Medium-hinted.woff2",
       "size": 143664,
       "sha256": "7E80D9F65861EE6836A0081D4E75D88FB8789E5651D05EDBC49640442A9610EE"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-Regular-hinted.woff2",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-Regular-hinted.woff2",
       "size": 140944,
       "sha256": "338239F6B590B8CED3BF857654D32DA3FD3663294CD3003651ED57AA3ABD7AA1"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-SemiBold-hinted.woff2",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\Inter-SemiBold-hinted.woff2",
       "size": 144628,
       "sha256": "5013F48D77AB627B1DB7C2415914284EF09ABC3F60A8E0D0D8F3CD1BFEBEFB5E"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\README.md",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\README.md",
       "size": 1307,
       "sha256": "4021EE08A54221DBFEA8C42E5A70F79B4D0030FE1DF1004F74794BC9828D9C11"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\SourceHanSans-LICENSE.txt",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\SourceHanSans-LICENSE.txt",
       "size": 4559,
       "sha256": "1953855BF1927E7214385BBDD8ADB04CC5E8A0ECD0E6EAEDEB1BDC281B009481"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\SourceHanSansSC-VF.ttf.woff2",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\dist\\fonts\\SourceHanSansSC-VF.ttf.woff2",
       "size": 14129688,
       "sha256": "CFEC773CDC2EA964DE8713471C6FD20774BC40617F5567F92EFEECCACA6604B0"
     }
   ],
   "runtime": [
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-v5-205f953\\DirectML.dll",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-v5-205f953\\DirectML.dll",
       "size": 18527776,
       "sha256": "9C9E6D822561C6C41B90E6994B3E8857CF1D66DBFB1E0C4C799C7C89B4E92DA1"
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-v5-205f953\\kinshoko.exe",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-v5-205f953\\kinshoko.exe",
       "size": 102023168,
       "sha256": "FE83026AC5CC595F45726B1456C10FBA54624E973618063CADB4E90C60D9A909"
     }
   ],
   "harnessInputs": [
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\wall-capture.mjs",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\wall-capture.mjs",
       "sha256": "57afa2b35e9c96824e946a3be06602d4b1fa8a53ffdd7f821bc748d420a9dee3",
       "size": 59400
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-observe.py",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-observe.py",
       "sha256": "9ec9a518c503fc5b71a1aafdebeaf7a9ae1159337d151d66c9a974ccb3981121",
       "size": 12413
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-pixels.py",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-pixels.py",
       "sha256": "d44a2ac4b85d069ccde4ac5fced87a040db73b45f24c98d2743b0717208534b1",
       "size": 3316
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-clipboard-observe.py",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-clipboard-observe.py",
       "sha256": "40235528428fb846adf3eb5074dad18fa53288db9216bfad025f88af4a192ae2",
       "size": 3246
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\native-boundary-probe-original-v3.mjs",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\native-boundary-probe-original-v3.mjs",
       "sha256": "4a4cbf6870dc51278fd6e80e7420d1579f4475034884e98379b176ab2ec0b6e2",
       "size": 46136
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\native-v3-inputs\\clipboard-metadata-observe.py",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\native-v3-inputs\\clipboard-metadata-observe.py",
       "sha256": "40235528428fb846adf3eb5074dad18fa53288db9216bfad025f88af4a192ae2",
       "size": 3246
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\native-v3-inputs\\original-pixel-compare.py",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\native-v3-inputs\\original-pixel-compare.py",
       "sha256": "dda7748d4fddd1043df5f3b49510b33f49a1cd03186950fc981776959aa23ae5",
       "size": 768
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\native-v3-inputs\\persisted-rating-observe.py",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\native-v3-inputs\\persisted-rating-observe.py",
       "sha256": "49eb3a5ba7328a479d8376970a12d9ada6e0874fce167464a50c1d6889c7444f",
       "size": 494
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\tauri-config.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\tauri-config.json",
       "sha256": "6669c4a7b5b1f21ee2b8e93a7d84e9525c9b8ce0aece811aed91a2a94b917fc5",
       "size": 79
     },
     {
-      "path": "C:\\Users\\yuk1no\\.cargo\\bin\\tauri-driver.exe",
+      "path": "%USERPROFILE%\\.cargo\\bin\\tauri-driver.exe",
       "sha256": "14fcadb6adbb5c2956263ea6bbdcbe5f9c190d3b6a6c12bc5c47953cb6aa272d",
       "size": 1541120
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\tools\\msedgedriver.exe",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\tools\\msedgedriver.exe",
       "sha256": "0f4600639201ccd2e84c72c3977ac33c67e19152e197c89eb16a6591d1fbe9f7",
       "size": 23735168
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-occluder.cs",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-occluder.cs",
       "sha256": "d7da3ab2ded7d2f953909de4b42881f4f1615f28e51dccca274ed761f10bdca4",
       "size": 10736
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\build-wall-occluder.ps1",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\build-wall-occluder.ps1",
       "sha256": "289a2590fd2ab891b724d4d48af4d398b6dd4e498ef659e6922c0e564ce88c01",
       "size": 1228
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-create-v1\\native-wall-occluder.dll",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-create-v1\\native-wall-occluder.dll",
       "sha256": "e06a036f9f0788226a115e652e17d17ae5ac6145398ecbddf4d17b5d3dba85e1",
       "size": 14336
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-create-v1\\compile-metadata.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-create-v1\\compile-metadata.json",
       "sha256": "fbf23339707e727155150745f1f32bb0687356ac93c46b17fc152b7632bd9bad",
       "size": 3459
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-create-v1\\compile-invocation-before.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-create-v1\\compile-invocation-before.json",
       "sha256": "355bd95092f653b3873625d254018c66f9e91359315445b314cf2a68f8d440ce",
       "size": 1562
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-create-v1\\compile-stdout.txt",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-create-v1\\compile-stdout.txt",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "size": 0
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-create-v1\\compile-stderr.txt",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-create-v1\\compile-stderr.txt",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "size": 0
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-create-v1\\compile-exit.txt",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-create-v1\\compile-exit.txt",
       "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
       "size": 1
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\compile-raw-create-topmost-fullwall-v1.py",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\compile-raw-create-topmost-fullwall-v1.py",
       "sha256": "b5a12ce12d26c45d53d3fccccbf0d5552eaf3727eeed7f0e5afdbdb497cf6ad1",
       "size": 3904
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\integrate-raw-create-topmost-v1.py",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\integrate-raw-create-topmost-v1.py",
       "sha256": "1a067e9132ace5a794d7e6c9574bb515400be0d5cd57431cd7a52dd4185846ad",
       "size": 4416
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\render-raw-create-topmost-fullwall-v1-static.mjs",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\render-raw-create-topmost-fullwall-v1-static.mjs",
       "sha256": "b051541315dd35e01233f533a8ecc173a1566e2818356e80d58f8bb1f2fcc7d2",
       "size": 1716
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-static-template\\prepared-occluder.ps1",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-static-template\\prepared-occluder.ps1",
       "sha256": "afbf8255a9cf2eb636f189d8976ca0e42dc04cbfb87f4d6a4c83317f6553806b",
       "size": 1867
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-static-template\\ast-result.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-static-template\\ast-result.json",
       "sha256": "544b5ccfdf691800fc3a83e5650a1ce9df4565c33e4e2cd7dca002b3532e1cad",
       "size": 1482
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-static-template\\render-receipt.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-static-template\\render-receipt.json",
       "sha256": "6019738c5f7b49d7b088229fe2096356bb20eeb54aefc034f21bea858340814f",
       "size": 340
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\check-raw-create-topmost-fullwall-v1-ast.ps1",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\check-raw-create-topmost-fullwall-v1-ast.ps1",
       "sha256": "937398d86d20328a42af3dc369a1f048f59bf94076d87a737f90b50b75c47d04",
       "size": 1305
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-syntax.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-syntax.json",
       "sha256": "26f2adce7d838e70f94f6b2cf41852ea2e22f552ebfe801a57fa9f35453af445",
       "size": 1677
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-node-stdout.txt",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-node-stdout.txt",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "size": 0
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-node-stderr.txt",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-node-stderr.txt",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "size": 0
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\observe-release-v5.ps1",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\observe-release-v5.ps1",
       "sha256": "3e300aa39d42f9307086cbbe34e9966405cfd821f294dfaa6e0d9e613d834ad7",
       "size": 3278
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-integration-boundary-v2.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-fullwall-v1-integration-boundary-v2.json",
       "sha256": "01f531173056a4d69afeb3f242934f4d63aff45da505b3ef15eb2bf9b0689b26",
       "size": 4063
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-one-v1-plan.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-one-v1-plan.json",
       "sha256": "484f81a2ad1b85bb797fa912e351242747a6987d65049cc1b8c100b99d4d7c7c",
       "size": 24921
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-one-runs\\2026-10-09T103332354Z-3080-4af4fc46-1209-4c76-ab26-96585cac3607\\result.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-one-runs\\2026-10-09T103332354Z-3080-4af4fc46-1209-4c76-ab26-96585cac3607\\result.json",
       "sha256": "93c1e53092479a98768f00c80dee3ea42accc6118d0b000e7780420c87e7bd94",
       "size": 51185
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-one-runs\\2026-10-09T103332354Z-3080-4af4fc46-1209-4c76-ab26-96585cac3607\\desktop-release.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-one-runs\\2026-10-09T103332354Z-3080-4af4fc46-1209-4c76-ab26-96585cac3607\\desktop-release.json",
       "sha256": "ca0d0eb3539751cb62f7f8c4c6c4befd63d0df57c809e749cf7b08dc7af3452d",
       "size": 2579
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-v1.cs",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-v1.cs",
       "sha256": "d7da3ab2ded7d2f953909de4b42881f4f1615f28e51dccca274ed761f10bdca4",
       "size": 10736
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-hidden-one-v1-plan.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-hidden-one-v1-plan.json",
       "sha256": "c16a7eab4f21309cddba890730e10bf2f2fe67de29c59cd6773e82f230e2abcf",
       "size": 16600
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-hidden-one-runs\\2026-10-09T100421509Z-27904-b0e534d0-c0ec-4c72-a06a-7ce284c33082\\result.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-hidden-one-runs\\2026-10-09T100421509Z-27904-b0e534d0-c0ec-4c72-a06a-7ce284c33082\\result.json",
       "sha256": "162dcb967ffe86647de24075361527f37d8c92ed295767270dd43bee01775fdf",
       "size": 48093
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-v1\\native-wall-occluder.dll",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\raw-occluder-v1\\native-wall-occluder.dll",
       "sha256": "732f622a0d00785982d6115720640c1283cee5ec7e6a2eb9489cb8f40ad87619",
       "size": 13312
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-integrate-originals\\native-wall-occluder.cs",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\t17\\raw-create-topmost-integrate-originals\\native-wall-occluder.cs",
       "sha256": "366c5cf603dd36b7d353052442f807182e32a76d22f45e9fc8e943f2f3b7bc2a",
       "size": 10280
     },
     {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-pixels.test.py",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\e2e\\native-wall-pixels.test.py",
       "sha256": "50012348ecf4337de35f04fc05868ee6fd204a92a9020f5ba6dd0f30beb649f2",
       "size": 2562
     }
@@ -2873,7 +2873,7 @@
   "harnessSupplement": {
     "observedAtUtc": "2026-10-09T16:50:00.751213+00:00",
     "harnessSource": "af3c1747a53f96eac0781bfd0a13e81af155ce40",
-    "previousManifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source-v5-205f953-harness-6a84960-v3.json",
+    "previousManifest": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source-v5-205f953-harness-6a84960-v3.json",
     "previousManifestSha256": "b0b93d3d6e5a413924a128706f60bc371677e7468f9892519eafb6641194d5d9",
     "noNewProductCompilation": true,
     "harnessOnlyChangedFiles": [

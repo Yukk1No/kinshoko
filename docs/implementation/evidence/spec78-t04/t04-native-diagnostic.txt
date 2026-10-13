@@ -17,6 +17,6 @@ PASS 旧名称第一库 remains available as an explicit workspace source
 STATE {"alerts":[],"labels":[],"library":"ee54694460e5342687f5ff81cc8c8762","scopes":["旧名称第一库"],"selected":["99e9da67e5aa4ea0c4fd623f3210e213d9d6985a4f8198a875d36c4561f274e3"],"selection":"已选 1 张还没有文件夹删除取消选择一般作者角色作品添加标签否决标签清除标签决定"}
 TAGS {"imageId":"c54df845d36f42eb37589e84ca552808","rejected":[],"tags":[{"origins":[{"kind":"source","score":0.9,"source":"model:old"},{"kind":"manual"}],"tag":{"hasExternal":true,"id":"fb95d71fc15200ddf523bc6992c00a86","name":"分发","namespace":"general","untranslated":false}}]}
 Error: Timed out: rendered image label
-    at until (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:50:9)
-    at async displayed (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:159:3)
-    at async file:///C:/Users/yuk1no/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:183:3
+    at until (file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:50:9)
+    at async displayed (file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:159:3)
+    at async file:///%USERPROFILE%/.codex/worktrees/spec78-t02-tag-identity/kinshoko/e2e/legacy-tag-names.mjs:183:3

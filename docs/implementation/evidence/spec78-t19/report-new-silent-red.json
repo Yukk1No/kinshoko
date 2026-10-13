@@ -10,7 +10,7 @@
   "windows": "10.0.26300",
   "provenance": {
     "mainBinaryName": "kinshoko-t19-upgrade",
-    "targetDirectory": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
+    "targetDirectory": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target",
     "identifier": "dev.kinshoko.spec78t19upgrade",
     "buildProfile": "debug",
     "old": {
@@ -46,8 +46,8 @@
       "oldTokenOffset": 75418480
     }
   },
-  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476214063",
-  "installDir": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed",
+  "work": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476214063",
+  "installDir": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed",
   "checks": [
     "old real NSIS installed exe, DirectML and uninstaller",
     "old installed executable matches the NSIS-patched source artifact",
@@ -95,7 +95,7 @@
     "library": {
       "id": "102819aab6aa4dbf89ff81d85a563404",
       "name": "T19 升级资料库",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476214063\\libraries\\T19 升级资料库"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476214063\\libraries\\T19 升级资料库"
     },
     "imageId": "01a11c4dd2d677ceb218cc44960952b8",
     "registrations": [
@@ -103,7 +103,7 @@
         "library": {
           "id": "102819aab6aa4dbf89ff81d85a563404",
           "name": "T19 升级资料库",
-          "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476214063\\libraries\\T19 升级资料库"
+          "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\run-1791476214063\\libraries\\T19 升级资料库"
         },
         "unavailable": null
       }
@@ -194,7 +194,7 @@
   "phase": "old-ready-for-tray-exit",
   "oldTrayExit": {
     "method": "automated-native-menu-dispatch",
-    "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed\\kinshoko-t19-upgrade.exe",
+    "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\native\\t19-upgrade\\installed\\kinshoko-t19-upgrade.exe",
     "pid": 37268,
     "tray": {
       "hwnd": 4982410,
@@ -262,6 +262,6 @@
     "exitCode": 0,
     "processEnded": true
   },
-  "error": "Error: new installer failed: 2 \n    at install (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:51:34)\n    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:115:3",
+  "error": "Error: new installer failed: 2 \n    at install (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:51:34)\n    at file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/private-upgrade.mjs:115:3",
   "finishedAt": "2026-10-08T16:17:07.769Z"
 }

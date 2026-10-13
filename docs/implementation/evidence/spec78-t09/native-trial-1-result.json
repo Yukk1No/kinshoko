@@ -2,7 +2,7 @@
   "status": "failed",
   "source": "36cab7ebe379f4614de7768553492daab5f7ee5e",
   "binarySha256": "60345209555790f8abc078cb99fe2795f11f4bc2c0610f81cd0fac0282622d94",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target\\debug\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\target\\debug\\kinshoko.exe",
   "environment": {
     "devicePixelRatio": 1.1041666269302368,
     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
@@ -14,14 +14,14 @@
   "a": {
     "id": "1501ae7484cc41a69d1ecc6c9c6989c9",
     "name": "同名资料库",
-    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479308013\\libraries\\first\\同名资料库",
+    "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479308013\\libraries\\first\\同名资料库",
     "imageId": "01a11c7ce7f772db8f3fc79afd1adeb6",
     "folderId": "01a11c7ce8bb73928f879d25b02d5e66"
   },
   "b": {
     "id": "78a44aa752c64b2bb31980200f0b28ad",
     "name": "同名资料库",
-    "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479308013\\libraries\\second\\同名资料库",
+    "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\source-actions-1791479308013\\libraries\\second\\同名资料库",
     "imageId": "01a11c7ce94b750f9348d7e91a944432",
     "folderId": "01a11c7cea377150bc499aeca6528a2c"
   },

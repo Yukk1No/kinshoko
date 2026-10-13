@@ -3,8 +3,8 @@
   "source": "cc896c58b3e55535b73c6e1c3168d8c286fdae48",
   "tree": "7314ab4ba82f9cabbd5e6bd333ced07fe7aae8f7",
   "binarySha256": "787b9855c83467d4ad4ebcb887dc8c5e4319c1617dc0084ff1a2496e9f81cecc",
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
-  "manifest": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\binary-cc896c5\\kinshoko.exe",
+  "manifest": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\spec78-t17\\build-source.json",
   "scriptSha256": "34f4bb17f88b20ab16a4f9a7f35d9cb7608a8220b7982643c4d0d7d8d25e3f39",
   "scriptSource": "2328aab9235be4bf9b82c32f881b8dd8d3f51713",
   "mode": "wall",
@@ -477,7 +477,7 @@
       }
     }
   ],
-  "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488917659",
+  "work": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488917659",
   "startedAt": "2026-10-08T19:48:37.772Z",
   "capabilities": {
     "acceptInsecureCerts": false,
@@ -516,7 +516,7 @@
     "info": {
       "id": "7db3e159dad548be9f32987b723cd238",
       "name": "原图来源 A",
-      "root": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488917659\\libraries\\原图来源 A"
+      "root": "%USERPROFILE%\\.codex\\worktrees\\spec78-t16-original-crop\\kinshoko\\work\\e2e\\wall-capture-1791488917659\\libraries\\原图来源 A"
     },
     "card": {
       "adult": false,
@@ -610,7 +610,7 @@
       "width": 1413
     }
   },
-  "error": "Error: WebDriver changes the real native main client width\n    at check (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:30:45)\n    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:109:266\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+  "error": "Error: WebDriver changes the real native main client width\n    at check (file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:30:45)\n    at file:///%USERPROFILE%/.codex/worktrees/spec78-t16-original-crop/kinshoko/e2e/wall-capture.mjs:109:266\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
   "requests": [
     "ca9ebf08ad78484796e5cbb4b52da3f3",
     "3fb636154c90438dada9f1c056651023",

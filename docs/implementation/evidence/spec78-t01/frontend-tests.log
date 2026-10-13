@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko
+ RUN  v5.0.3 %USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko
 
 stderr | src/App.test.tsx > 主窗口 > 切换时清空选择与导入状态，迟到的旧库浏览和进度不会覆盖新库
 The current testing environment is not configured to support act(...)

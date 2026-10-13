@@ -1,14 +1,14 @@
 {
   "harnessSources": [
     {
-      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\sealed-import-preview.mjs",
-      "preserved": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\sealed-import-preview.mjs",
+      "source": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\sealed-import-preview.mjs",
+      "preserved": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\sealed-import-preview.mjs",
       "bytes": 26443,
       "sha256": "b7954bbe2b296f3e3a805823e4821520f40bea927f860b20846616a53626bd4f"
     },
     {
-      "source": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\scripts\\check-sealed-preview-revocation.mjs",
-      "preserved": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\check-sealed-preview-revocation.mjs",
+      "source": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\scripts\\check-sealed-preview-revocation.mjs",
+      "preserved": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\check-sealed-preview-revocation.mjs",
       "bytes": 1203,
       "sha256": "546de0d04c8667af024186e2027d7517ae7bfb0a0780e01fd30948e053d90496"
     }
@@ -3430,7 +3430,7 @@
       }
     ],
     "config": {
-      "file": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-tauri-config.json",
+      "file": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-tauri-config.json",
       "sha256": "e938f42825b18b4a07920cf8a57c98128365b6d1d242ccce8f13cebe25c2c62a",
       "value": {
         "identifier": "dev.kinshoko.spec78t15test",
@@ -3440,47 +3440,47 @@
     "previewTransport": {
       "tauriVersion": "2.12.1",
       "registryChecksum": "ed99ee9694a2deb776d91cae48ac7411ddfc89ecae2f9b5041111d8c88f2ace9",
-      "implementation": "C:\\Users\\yuk1no\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\tauri-2.12.1\\src\\ipc\\channel.rs",
+      "implementation": "%USERPROFILE%\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\tauri-2.12.1\\src\\ipc\\channel.rs",
       "implementationSha256": "9d20fad897f8377484c7bd7f63b030653501a08b36f03def9cc5123c2a98623e",
       "rawDirectThresholdExclusive": 1024,
       "chunkMaximumBytes": 1023
     },
-    "binaryPath": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-frozen-v3\\kinshoko.exe",
+    "binaryPath": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-frozen-v3\\kinshoko.exe",
     "binarySha256": "7e083e5c0c44375dae6d17691e495bffab5f4941e74792e5730c8d97dcd39e0e",
     "identifier": "dev.kinshoko.spec78t15test",
-    "runPath": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3",
+    "runPath": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3",
     "ports": [
       4676,
       4677
     ],
     "fixture": {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-fixture-v3.json",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-fixture-v3.json",
       "sha256": "a990f9ab44ac58bae33643095e15a78b97781d2b4982d8606c7e9bf220a4a499"
     },
     "harness": {
-      "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\sealed-import-preview.mjs",
+      "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\e2e\\sealed-import-preview.mjs",
       "sha256": "b7954bbe2b296f3e3a805823e4821520f40bea927f860b20846616a53626bd4f"
     },
     "harnessDependencies": [
       {
-        "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\scripts\\check-sealed-preview-revocation.mjs",
+        "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\scripts\\check-sealed-preview-revocation.mjs",
         "sha256": "546de0d04c8667af024186e2027d7517ae7bfb0a0780e01fd30948e053d90496"
       }
     ],
-    "appData": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\app-data",
-    "profile": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\webview",
+    "appData": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\app-data",
+    "profile": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\webview",
     "knownFolderBefore": {
-      "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t15test\\settings.json",
+      "path": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t15test\\settings.json",
       "exists": false
     }
   },
-  "application": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-frozen-v3\\kinshoko.exe",
+  "application": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-frozen-v3\\kinshoko.exe",
   "startedAt": "2026-10-08T21:11:20.318Z",
   "paths": {
-    "work": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3",
-    "appData": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\app-data",
-    "profile": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\webview",
-    "settingsPath": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t15test\\settings.json"
+    "work": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3",
+    "appData": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\app-data",
+    "profile": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\webview",
+    "settingsPath": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t15test\\settings.json"
   },
   "ports": {
     "port": 4676,
@@ -3488,7 +3488,7 @@
   },
   "harnessSha256": "b7954bbe2b296f3e3a805823e4821520f40bea927f860b20846616a53626bd4f",
   "knownFolderBefore": {
-    "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t15test\\settings.json",
+    "path": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t15test\\settings.json",
     "exists": false
   },
   "assertions": [
@@ -3540,7 +3540,7 @@
               "kind": "readFailed",
               "reason": "系统找不到指定的文件。 (os error 2)"
             },
-            "path": "C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\missing-file.png"
+            "path": "%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\missing-file.png"
           }
         ],
         "privateSummary": true,
@@ -3723,7 +3723,7 @@
     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
     "width": 1281
   },
-  "defaultText": "导入完成，内容处理结果已保留，1 个文件没有导入重试失败的 1 项关闭有封印项重复，是否展开看看展开本次重复项C:\\Users\\yuk1no\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\missing-file.png读取失败：系统找不到指定的文件。 (os error 2)",
+  "defaultText": "导入完成，内容处理结果已保留，1 个文件没有导入重试失败的 1 项关闭有封印项重复，是否展开看看展开本次重复项%USERPROFILE%\\.codex\\worktrees\\spec78-t01-frontend\\kinshoko\\work\\e2e\\t15-native-run-v3\\missing-file.png读取失败：系统找不到指定的文件。 (os error 2)",
   "uiCurrentContext": {
     "from": "cf3930c56aae4809ab5183691bb85797",
     "to": "b027b6997734482487172a5abc775ed4",
@@ -3750,10 +3750,10 @@
     "noRevivalObservedAt": "2026-10-08T21:11:40.986Z"
   },
   "status": "failed",
-  "error": "Error: first-chunk close interrupts remaining content and rejects incomplete image completion\n    at assert (file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/sealed-import-preview.mjs:27:48)\n    at file:///C:/Users/yuk1no/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/sealed-import-preview.mjs:159:3\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+  "error": "Error: first-chunk close interrupts remaining content and rejects incomplete image completion\n    at assert (file:///%USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/sealed-import-preview.mjs:27:48)\n    at file:///%USERPROFILE%/.codex/worktrees/spec78-t01-frontend/kinshoko/e2e/sealed-import-preview.mjs:159:3\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
   "finishedAt": "2026-10-08T21:11:48.891Z",
   "knownFolderFinal": {
-    "path": "C:\\Users\\yuk1no\\AppData\\Roaming\\dev.kinshoko.spec78t15test\\settings.json",
+    "path": "%USERPROFILE%\\AppData\\Roaming\\dev.kinshoko.spec78t15test\\settings.json",
     "exists": false
   }
 }
