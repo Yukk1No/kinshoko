@@ -14,7 +14,7 @@ $ErrorActionPreference='Stop'
 $all=@(Get-CimInstance Win32_Process -ErrorAction Stop)
 $native=@($all | Where-Object {
  $_.Name -match '^kinshoko.*\.exe$|^tauri-driver\.exe$|^msedgedriver\.exe$' -or
- ($_.Name -eq 'msedgewebview2.exe' -and ($_.CommandLine -match 'kinshoko|spec78' -or $_.CommandLine.Contains($env:KINSHOKO_STANDALONE_PROFILE))) -or
+ ($_.Name -eq 'msedgewebview2.exe' -and ([string]::IsNullOrEmpty($_.CommandLine) -or $_.CommandLine -match 'kinshoko|spec78' -or ([string]$_.CommandLine).Contains($env:KINSHOKO_STANDALONE_PROFILE))) -or
  ($_.Name -eq 'node.exe' -and $_.CommandLine -match 'vite' -and $_.CommandLine -match 'kinshoko|spec78')
 })
 $owned=@{}; $rootPid=[uint32]$env:KINSHOKO_STANDALONE_PID

@@ -149,7 +149,9 @@ try {
   await wd("POST",base+"/element/"+folderName+"/value",{text:"对照选集"});
   await key("\uE007");
   await until("文件夹已保存",()=>find("//button[@aria-label='对照选集（0 张）']"));
-  const selected=await exec("return [...document.querySelectorAll('.card')].slice(0,2)");
+  // Folder creation refreshes the wall independently of the sidebar receipt.
+  // Wait for the actual options instead of silently clicking an empty list.
+  const selected=await until("多选前两张卡片",()=>exec("const cards=[...document.querySelectorAll('.card')].slice(0,2);return cards.length===2?cards:null"));
   await wd("POST",base+"/actions",{actions:[{type:"key",id:"keyboard",actions:[{type:"keyDown",value:"\uE009"}]}]});
   for(const node of selected) await wd("POST",base+"/element/"+(node[ELEMENT]??node.ELEMENT)+"/click",{});
   await wd("POST",base+"/actions",{actions:[{type:"key",id:"keyboard",actions:[{type:"keyUp",value:"\uE009"}]}]});
