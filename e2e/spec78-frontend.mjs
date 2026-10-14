@@ -157,6 +157,7 @@ try {
   await wd("POST",base+"/actions",{actions:[{type:"key",id:"keyboard",actions:[{type:"keyUp",value:"\uE009"}]}]});
   await until("多选整理",()=>find("//*[normalize-space()='已选 2 张']"));
   // #98: 放入 is a menu on the floating selection bar.
+  await until("放入文件夹按钮可用",()=>exec("const button=document.querySelector('[role=toolbar][aria-label=已选参考图操作] button[aria-label=放入文件夹]');return !!button&&!button.disabled"));
   await wd("POST",base+"/element/"+await find("//*[@role='toolbar' and @aria-label='已选参考图操作']//button[@aria-label='放入文件夹']")+"/click",{});
   await wd("POST",base+"/element/"+await until("放入菜单项",()=>find("//*[@role='menu']//*[@role='menuitem' and normalize-space()='对照选集']"))+"/click",{});
   await until("文件夹归属已保存",()=>find("//button[@aria-label='对照选集（2 张）']"));
