@@ -21,7 +21,7 @@ import { captureAnchor, cardAt, masonry, resolveAnchor, visible, zoomScrollTop, 
 import { ZOOM_COMMIT_MS, createNotchCounter, zoomDensity } from "./zoom";
 import { createSmoothWheel } from "./smoothWheel";
 import { createPrefetcher, decodeThumbnail, mountWindow, prefetchOrder, type MountWindow } from "./prefetch";
-import { MAX_GHOSTS, SealFx, type FxArrival, type FxSource } from "../shell/sealfx";
+import { MAX_GHOSTS, SEAL, SealFx, type FxArrival, type FxSource } from "../shell/sealfx";
 import { reducedNow, useReducedMotion } from "../ui/reducedMotion";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
@@ -243,6 +243,13 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   const layoutWidth = useRef(0);
   const beforeReflow = useRef(new Map<string, DOMRect>());
   const motions = useRef(new Map<string, Animation>());
+  /**
+   * 安全模式切换那一刻量下的卡片位置。资料库按新视角送回卡片后，留下的卡片从这里滑到新位置，
+   * 节奏按原型的封印／释放重排（从点下去的时刻算起）。
+   */
+  const safeReflow = useRef<{ rects: Map<string, DOMRect>; at: number; delay: number; duration: number } | null>(null);
+  /** 这一次重排的节奏；null 时是平常的 200 ms。 */
+  const reflowMotion = useRef<{ at: number; delay: number; duration: number } | null>(null);
 
   const measureBeforeReflow = useCallback(() => {
     const el = scroller.current;
@@ -258,7 +265,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     });
     motions.current.forEach((motion) => motion.cancel());
     motions.current.clear();
-    beforeReflow.current = measured;
+    const held = safeReflow.current;
+    safeReflow.current = null;
+    reflowMotion.current = held && performance.now() - held.at < RELEASE_WAIT ? held : null;
+    beforeReflow.current = reflowMotion.current ? held!.rects : measured;
   }, []);
 
   useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
@@ -477,28 +487,39 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     if (!reduced) return;
     fx.current?.clear(); releaseDue.current = 0; setArriving(new Set());
   }, [reduced]);
-  /** 视口里看得见的成人卡片。 */
-  const onScreenAdult = useCallback(() => {
+  /** 视口里看得见的卡片。 */
+  const onScreen = () => {
     const el = scroller.current;
     if (!el) return [];
-    const view = el.getBoundingClientRect(), adult = new Set(cards.filter((c) => c.adult).map((c) => c.id));
+    const view = el.getBoundingClientRect();
     return [...el.querySelectorAll<HTMLElement>(".card")].flatMap((node) => {
-      const id = node.dataset.id!, rect = node.getBoundingClientRect(), img = node.querySelector("img");
+      const rect = node.getBoundingClientRect(), img = node.querySelector("img");
       const seen = rect.width > 0 && rect.height > 0 && rect.bottom >= view.top && rect.top <= view.bottom;
-      return seen && img && adult.has(id) ? [{ id, src: img.currentSrc || img.src, rect }] : [];
+      return seen && img ? [{ id: node.dataset.id!, src: img.currentSrc || img.src, rect }] : [];
     });
-  }, [cards]);
+  };
+  /** 视口里看得见的成人卡片。 */
+  const onScreenAdult = () => {
+    const adult = new Set(cards.filter((c) => c.adult).map((c) => c.id));
+    return onScreen().filter((c) => adult.has(c.id));
+  };
   const book = () => document.querySelector(".seal-book")?.getBoundingClientRect();
   useLayoutEffect(() => {
     if (lastSafe.current === safeMode) return;
     lastSafe.current = safeMode;
     releaseDue.current = 0;
+    safeReflow.current = null;
     const f = fx.current, b = book();
     if (!f || !b || viewerOpen || reducedNow()) {
       // 查看器盖着墙或减少动态效果：封印的图直接不见，放出的图直接在。
       f?.clear(); setArriving(new Set());
       return;
     }
+    // 原型：封印时留下的卡片等影子起飞后（flyAt + 20）用 620 ms 补位；释放时 40 ms 后用 680 ms 让位。
+    safeReflow.current = {
+      rects: new Map(onScreen().map((c) => [c.id, c.rect])), at: performance.now(),
+      delay: safeMode ? SEAL.flyAt + 20 : 40, duration: safeMode ? 620 : 680,
+    };
     if (safeMode) {
       // 还在往外飞的影子先掉头（原型 Q111），再让墙上的成人图飞进书里。
       f.seal(onScreenAdult() satisfies FxSource[], b);
@@ -540,9 +561,13 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     }
     // 锚定的图找到了，或已取完全部仍没有（图已不在），都结束恢复。
     if (top !== null || !anchor.current || !cursor) restoring.current = false;
-    const from = beforeReflow.current;
+    const from = beforeReflow.current, safe = reflowMotion.current;
     beforeReflow.current = new Map();
-    if (from.size && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    reflowMotion.current = null;
+    const timing: KeyframeAnimationOptions = safe
+      ? { duration: safe.duration, delay: Math.max(0, safe.at + safe.delay - performance.now()), easing: "cubic-bezier(0.65, 0, 0.35, 1)", fill: "backwards" }
+      : { duration: 200, easing: "cubic-bezier(0.2,0.8,0.2,1)" };
+    if (from.size && !reducedNow()) {
       const targets = [...el.querySelectorAll<HTMLElement>(".card")].flatMap((node) => {
         const old = from.get(node.dataset.id!);
         return old ? [{ node, old, next: node.getBoundingClientRect() }] : [];
@@ -554,7 +579,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
         const motion = node.animate([
           { transform: `translate(${old.left - next.left}px, ${old.top - next.top}px) scale(${old.width / next.width}, ${old.height / next.height})` },
           { transform: "none" },
-        ], { duration: 200, easing: "cubic-bezier(0.2,0.8,0.2,1)" });
+        ], timing);
         motions.current.set(node.dataset.id!, motion);
         motion.onfinish = () => motions.current.delete(node.dataset.id!);
       }

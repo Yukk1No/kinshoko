@@ -82,6 +82,25 @@ describe("封印", () => {
     expect(ghosts()).toBe(0);
   });
 
+  it("资料库送回卡片后，留下的卡片按原型的节奏补位：影子起飞后 280 ms 开始，620 ms", async () => {
+    const view = await wallWith(false);
+    const glides: { id: string; timing: KeyframeAnimationOptions }[] = [];
+    HTMLElement.prototype.animate = function (this: HTMLElement, _k: Keyframe[], timing: KeyframeAnimationOptions) {
+      glides.push({ id: this.dataset.id!, timing });
+      return { cancel() {}, finish() {}, onfinish: null } as unknown as Animation;
+    } as HTMLElement["animate"];
+    try {
+      view.rerender(<Wall {...base} reloadKey={0} safeMode />);
+      await frames(100); // 资料库 100 ms 后确认
+      view.rerender(<Wall {...base} reloadKey={1} safeMode />);
+      await answer();
+      const g = glides.find((x) => x.id === "g")!;
+      expect(g.timing).toMatchObject({ duration: 620, delay: SEAL.flyAt + 20 - 100, easing: "cubic-bezier(0.65, 0, 0.35, 1)", fill: "backwards" });
+    } finally {
+      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
+    }
+  });
+
   it("减少动态效果时没有影子，直接遮蔽", async () => {
     reduce = true;
     const view = await wallWith(false);
