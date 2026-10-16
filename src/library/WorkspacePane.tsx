@@ -3,14 +3,16 @@ import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { WorkspaceSourceEditor } from "./WorkspaceSourceEditor";
 import { Segmented } from "../ui/Segmented";
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, FolderPlus, Images, Layers, MoreHorizontal, RefreshCw, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderOpen, FolderPlus, Images, Layers, ListX, MoreHorizontal, RefreshCw, Trash2 } from "lucide-react";
+import { ContextMenu } from "@base-ui/react/context-menu";
 import { FluidList, FluidRow } from "../ui/FluidList";
-import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
+import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
+import { PermanentDeleteConfirm } from "./SelectionPanel";
 import { Switch } from "../ui/Switch";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import type { FolderNode } from "../bindings/FolderNode";
-import { isCursorExpired, isLensChanged, moveFolder, workspaceDirectories } from "../ipc";
+import { isCursorExpired, isLensChanged, moveFolder, revealLibrary, unregisterLibrary, workspaceDirectories } from "../ipc";
 import { acceptsDrag, DRAG_FOLDER, DRAG_FOLDER_LIBRARY, LAST, SidebarPane } from "./SidebarPane";
 import { libraryPathHint } from "./library-path";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
@@ -31,24 +33,38 @@ function folderPath(nodes: FolderNode[], id: string, parent: string[] = []): str
 }
 
 /**
- * 图库标题的操作（`⋯`）。#114 在这里补上在资源管理器中打开、重新连接与从列表移除，
- * 并让图库标题的右键菜单使用同一组菜单项。
+ * 图库标题的操作（#102 表“侧栏 · 图库标题”，#114）：`⋯` 与右键菜单是同一组菜单项。
+ * 新建文件夹 · 在资源管理器中打开 · 重新连接（未连接时） · ─ · 从列表移除。
  */
-function LibraryMenuItems({ provider, onNewFolder }: { provider: WorkspaceDirectory; onNewFolder: () => void }) {
-  return <MenuItem icon={<FolderPlus size={14} />} disabled={!provider.sidebar} onClick={onNewFolder}>新建文件夹</MenuItem>;
+function LibraryMenuItems({ provider, onNewFolder, onReveal, onRecheck, onRemove }: {
+  provider: WorkspaceDirectory; onNewFolder: () => void; onReveal: () => void; onRecheck?: () => void; onRemove: () => void;
+}) {
+  return <>
+    <MenuItem icon={<FolderPlus size={14} />} disabled={!provider.sidebar || Boolean(provider.registration.unavailable)} onClick={onNewFolder}>新建文件夹</MenuItem>
+    <MenuItem icon={<FolderOpen size={14} />} onClick={onReveal}>在资源管理器中打开</MenuItem>
+    {provider.registration.unavailable && onRecheck && <MenuItem icon={<RefreshCw size={14} />} onClick={onRecheck}>重新连接</MenuItem>}
+    <MenuSeparator />
+    <MenuItem icon={<ListX size={14} />} onClick={onRemove}>从列表移除</MenuItem>
+  </>;
 }
 
-/** 回收站行：选中某库时是该库的回收站，选“全部图片”时是各库合计（ADR-0008）。 */
-function TrashRow({ label, count, current, expanded, disabled, onClick }: {
-  label: string; count: number | undefined; current?: boolean; expanded?: boolean; disabled?: boolean; onClick: () => void;
+/**
+ * 回收站行：选中某库时是该库的回收站，选“全部图片”时是各库合计（ADR-0008）。
+ * 右键菜单（#102 表“侧栏 · 回收站”，#114）：清空回收站，危险项，先确认。
+ */
+function TrashRow({ label, count, current, expanded, disabled, onClick, menu }: {
+  label: string; count: number | undefined; current?: boolean; expanded?: boolean; disabled?: boolean; onClick: () => void; menu: ReactNode;
 }) {
   return <FluidList><FluidRow index={0}>
-    <button type="button" className="sidebar-item k-row" aria-current={current ? "page" : undefined} aria-expanded={expanded}
-      disabled={disabled} aria-label={`回收站 · ${label}（${count ?? "…"} 张）`} onClick={onClick}>
-      <span className="k-row-icon" aria-hidden="true"><Trash2 size={15} /></span>
-      <span className="sidebar-label">回收站<span className="lib-dim"> · {label}</span></span>
-      <span className="sidebar-count">{count ?? ""}</span>
-    </button>
+    <ContextMenu.Root>
+      <ContextMenu.Trigger render={<button type="button" className="sidebar-item k-row" aria-current={current ? "page" : undefined} aria-expanded={expanded}
+        disabled={disabled} aria-label={`回收站 · ${label}（${count ?? "…"} 张）`} onClick={onClick} />}>
+        <span className="k-row-icon" aria-hidden="true"><Trash2 size={15} /></span>
+        <span className="sidebar-label">回收站<span className="lib-dim"> · {label}</span></span>
+        <span className="sidebar-count">{count ?? ""}</span>
+      </ContextMenu.Trigger>
+      <MenuPopup label="回收站的操作" width={220}>{menu}</MenuPopup>
+    </ContextMenu.Root>
   </FluidRow></FluidList>;
 }
 
@@ -59,11 +75,13 @@ function TrashRow({ label, count, current, expanded, disabled, onClick }: {
  * 直接整理（ADR-0008）；未连接的图库只占一行并可就地重新连接。底部固定 `foot`（自动打标）与跟随所选
  * 图库的回收站。
  */
-export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onError, onRecheck, foot, children }: {
+export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onError, onRecheck, onRemoved, foot, children }: {
   status: WorkspaceStatus | null; scope: WorkspaceScope; onScope: (scope: WorkspaceScope) => void;
   safeMode: boolean; reloadKey: number; onError: (message: string) => void;
   /** 重新检查未连接的图库（移动盘接回后）。 */
   onRecheck?: () => void;
+  /** 图库标题菜单“从列表移除”完成后（取消登记，文件不删）。 */
+  onRemoved?: (libraryId: string) => void;
   foot?: ReactNode;
   children?: ReactNode;
 }) {
@@ -133,6 +151,12 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
   const [headDrop, setHeadDrop] = useState<string | null>(null);
   const [trashList, setTrashList] = useState(false);
+  /** 正在确认清空回收站的图库。 */
+  const [emptying, setEmptying] = useState<{ libraryId: string; name: string } | null>(null);
+  const reveal = (libraryId: string) => { revealLibrary(libraryId).catch((e) => onError(`无法在资源管理器中打开：${String(e)}`)); };
+  const remove = (libraryId: string) => { unregisterLibrary(libraryId).then(() => onRemoved?.(libraryId), (e) => onError(String(e))); };
+  const emptyItem = (p: WorkspaceDirectory, label: string) => <MenuItem key={p.registration.library.id} icon={<Trash2 size={14} />} danger
+    disabled={!p.sidebar || p.sidebar.trash === 0} onClick={() => setEmptying({ libraryId: p.registration.library.id, name: p.registration.library.name })}>{label}</MenuItem>;
 
   // A changed safety/provider revision hides old controls before a new request can complete.
   const forest = loaded?.key === key ? loaded.forest : null;
@@ -182,6 +206,8 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
       const expanded = available && (openIds.has(library.id) || sprung === library.id);
       const selectedRoot = scope.kind === "library" && scope.libraryId === library.id;
       const parentForNew = selectedRoot && (scope.scope.kind === "folder" || scope.scope.kind === "folderTree") ? scope.scope.id : null;
+      const libraryItems = <LibraryMenuItems provider={provider} onNewFolder={() => { toggle(library.id, true); setCreatingIn(library.id); }}
+        onReveal={() => reveal(library.id)} onRecheck={onRecheck} onRemove={() => remove(library.id)} />;
       const dropFolderHere = (e: DragEvent) => {
         const folder = e.dataTransfer.getData(DRAG_FOLDER);
         const from = e.dataTransfer.getData(DRAG_FOLDER_LIBRARY);
@@ -190,7 +216,9 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
       };
       return <section key={library.id} className="workspace-provider lib-group" data-library-id={library.id}
         data-offline={unavailable ? "true" : undefined} {...springHandlers(library.id, available && !expanded)}>
-        <div className="workspace-provider-root lib-head">
+        <ContextMenu.Root>
+        {/* 图库标题的右键菜单与 ⋯ 同一组菜单项；未连接时名称按钮禁用（不接收指针），右键落在这一行上。 */}
+        <ContextMenu.Trigger render={<div className="workspace-provider-root lib-head" title={unavailable ? `${library.root}\n${unavailable}` : undefined} />}>
           {available ? <button type="button" className="workspace-expand" aria-label={`${expanded ? "收起" : "展开"}${library.name}`}
             aria-expanded={expanded} onClick={() => {
               if (sprung === library.id) setSprung(null);
@@ -214,10 +242,12 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
               <MoreHorizontal size={14} aria-hidden="true" />
             </Menu.Trigger>
             <MenuPopup width={200} label={`${library.name} 的操作`}>
-              <LibraryMenuItems provider={provider} onNewFolder={() => { toggle(library.id, true); setCreatingIn(library.id); }} />
+              {libraryItems}
             </MenuPopup>
           </Menu.Root>
-        </div>
+        </ContextMenu.Trigger>
+        <MenuPopup width={200} label={`${library.name} 的操作`}>{libraryItems}</MenuPopup>
+        </ContextMenu.Root>
         {unavailable && <div className="lib-offline" role="status" title={unavailable}>
           未连接 · 移动盘接回后可用{onRecheck && <> · <button type="button" className="offline-retry" onClick={onRecheck}><RefreshCw size={11} aria-hidden="true" />重新连接</button></>}
         </div>}
@@ -243,10 +273,12 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
     <div className="side-foot">
       {foot}
       {scope.kind === "library" ? selected && <TrashRow label={selected.registration.library.name} count={selected.sidebar?.trash}
-        current={scope.scope.kind === "trash"} disabled={!selected.sidebar} onClick={() => onScope(trashOf(selected.registration.library.id))} />
+        current={scope.scope.kind === "trash"} disabled={!selected.sidebar} onClick={() => onScope(trashOf(selected.registration.library.id))}
+        menu={emptyItem(selected, "清空回收站…")} />
       : <>
         <TrashRow label="全部图库" count={trashTotal} disabled={connected.length === 0} expanded={connected.length > 1 ? trashList : undefined}
-          onClick={() => connected.length === 1 ? onScope(trashOf(connected[0].registration.library.id)) : setTrashList((open) => !open)} />
+          onClick={() => connected.length === 1 ? onScope(trashOf(connected[0].registration.library.id)) : setTrashList((open) => !open)}
+          menu={connected.map((p) => emptyItem(p, connected.length === 1 ? "清空回收站…" : `清空「${p.registration.library.name}」的回收站…`))} />
         {trashList && connected.length > 1 && <div role="group" aria-label="各图库的回收站" className="trash-groups">
           <FluidList>{connected.map((p, index) => <FluidRow key={p.registration.library.id} index={index}>
             <button type="button" className="sidebar-item k-row trash-group-row" aria-label={`${p.registration.library.name}（${p.sidebar?.trash ?? 0} 张）`}
@@ -258,6 +290,8 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
         </div>}
       </>}
     </div>
+    {emptying && <PermanentDeleteConfirm libraryId={emptying.libraryId} ids={[]} emptyTrash={{ libraryName: emptying.name }}
+      onDone={() => setEmptying(null)} onCancel={() => setEmptying(null)} onError={onError} />}
   </nav>;
 }
 

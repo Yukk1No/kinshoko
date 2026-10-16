@@ -246,11 +246,13 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             edit,
             preview_permanent_delete,
             permanent_delete,
+            preview_empty_trash,
             preview_permanent_delete_batch,
             permanent_delete_batch,
             sidebar,
             create_folder,
             rename_folder,
+            delete_folder,
             move_folder,
             recovery,
             start_import,
@@ -566,6 +568,16 @@ pub fn visible_source<R: Runtime>(
     workspace::read(app, library_id, image_id)
 }
 
+/// 图库在本设备上的位置（在资源管理器中打开，#114）：先取登记表的副本、放开锁，再检查那里
+/// 仍是这个图库（与 `registered_libraries` 相同，网络盘的 I/O 不阻塞库操作）。会读文件。
+pub fn library_folder<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<PathBuf, String> {
+    let state = app.state::<LibraryState>();
+    let registered = with_libraries(&state.device_dir, &state.libraries, |libraries| {
+        Ok(libraries.libraries().to_vec())
+    })?;
+    DeviceLibraries::library_folder(&registered, library_id).map_err(|e| e.to_string())
+}
+
 /// 本设备上按“资料库＋参考图”取图的地方（参考组与桌面钉图用，#66）：活动资料库经它的参考视角
 /// （现取），其他已登记的资料库只读打开，不切换活动库。会读文件，不要在主线程上调用。
 pub fn with_references<R: Runtime, T>(
@@ -838,6 +850,22 @@ async fn preview_permanent_delete<R: Runtime>(
     .await
 }
 
+/// 清空回收站的预览（#114）：这个图库回收站里看得见的全部图、受影响的参考组与令牌；
+/// 确认后走 `permanent_delete`。
+#[tauri::command]
+async fn preview_empty_trash<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+) -> Result<PermanentDeletePreview, String> {
+    blocking(move || {
+        let library = writable(&app, &library_id)?;
+        crate::desktop::with_groups(&app, |groups| library.preview_empty_trash(groups))
+            .ok_or_else(|| "参考组还没有准备好".to_owned())?
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
 /// 按预览的令牌永久删除回收站里的图。预览之后回收站、参考组或安全模式变了时被拒绝，
 /// 界面重新预览。整个执行在参考组的锁里，期间参考组不会被改。
 #[tauri::command]
@@ -962,6 +990,21 @@ async fn rename_folder<R: Runtime>(
     blocking(move || {
         writable(&app, &library_id)?
             .rename_folder(&folder_id, &name)
+            .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+/// 删除文件夹及其子文件夹（#114）：图片不删，没有其他文件夹的回到未归类。
+#[tauri::command]
+async fn delete_folder<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    folder_id: String,
+) -> Result<(), String> {
+    blocking(move || {
+        writable(&app, &library_id)?
+            .delete_folder(&folder_id)
             .map_err(|e| e.to_string())
     })
     .await

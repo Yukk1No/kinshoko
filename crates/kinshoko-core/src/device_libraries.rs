@@ -214,6 +214,20 @@ impl DeviceLibraries {
             .collect()
     }
 
+    /// 在资源管理器中打开图库（#114）：登记的位置，且那里仍是这个图库。移动盘拔出、搬家或
+    /// 换成了别的库时报原因（与登记检查相同的文案）。只读检查，调用方先放开登记表的锁。
+    pub fn library_folder(
+        libraries: &[RegisteredLibrary],
+        library_id: &str,
+    ) -> Result<PathBuf, DeviceLibraryError> {
+        let registration = libraries
+            .iter()
+            .find(|entry| entry.id == library_id)
+            .ok_or(DeviceLibraryError::UnknownLibrary)?;
+        Self::inspect(&registration.root, Some(library_id))?;
+        Ok(registration.root.clone())
+    }
+
     pub fn current(&self) -> Option<Arc<Library>> {
         self.current.clone()
     }

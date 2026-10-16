@@ -82,6 +82,8 @@ type WorkspaceProps = {
   onViewerChange: (open: boolean) => void;
   /** 顶栏下方的提示（运行时、旧名称、更新、备份提醒）。 */
   notices?: ReactNode;
+  /** 侧栏图库标题菜单“从列表移除”之后（#114）。 */
+  onLibraryRemoved?: (libraryId: string) => void;
 };
 
 /**
@@ -105,6 +107,7 @@ function LibraryWorkspace({
   keepSelectionOnSafe,
   onViewerChange,
   notices,
+  onLibraryRemoved,
 }: WorkspaceProps) {
   const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
   keepSelectionOnSafeRef.current = keepSelectionOnSafe;
@@ -450,7 +453,7 @@ function LibraryWorkspace({
           </header>
           <div className="pane-body" hidden={section !== "browse"}>
           <WorkspacePane status={status} scope={workspaceScope} safeMode={safe}
-            reloadKey={reloadKey} onError={onError} onRecheck={recheck} onScope={(next) => {
+            reloadKey={reloadKey} onError={onError} onRecheck={recheck} onRemoved={onLibraryRemoved} onScope={(next) => {
               setWorkspaceScope(next); setSelected(new Set()); setSources(null);
             }}
             foot={library && <TaggingIndicator key={`${library.id}/${library.root}`} libraryId={library.id} />}>
@@ -601,6 +604,7 @@ function LibraryWorkspace({
         position={viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) }}
         onStep={step}
         startCrop={viewCrop}
+        onTrash={scope.kind === "trash" ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
       />
     )}
     {wallDialogs}
@@ -797,6 +801,7 @@ function MainWindow() {
           keepSelectionOnSafe={keepSelectionOnSafe}
           onViewerChange={setViewerOpen}
           notices={!empty && notices}
+          onLibraryRemoved={(id) => { if (library?.id === id) changed(null); }}
         />
       )}
       {empty && (

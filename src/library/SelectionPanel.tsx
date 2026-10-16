@@ -16,6 +16,7 @@ import {
   imageDetail,
   isDeletePreviewStale,
   permanentDelete,
+  previewEmptyTrash,
   previewPermanentDelete,
   sidebar,
   workspaceSourceInspection,
@@ -169,18 +170,21 @@ function Detail({
 /**
  * 永久删除的确认（#67）：列出会受影响的参考组；没有时直接确认。执行时预览已过期（回收站、
  * 参考组或安全模式变了）就重新预览，让画师看过新的影响再确认。
+ * emptyTrash：清空这个图库的回收站（#114），预览回收站里的全部图，之后走同一永久删除。
  */
 export function PermanentDeleteConfirm({
   libraryId,
   sourceTarget,
   safeMode = false,
   ids,
+  emptyTrash,
   onDone,
   onCancel,
   onError,
 }: {
   libraryId: string;
   ids: string[];
+  emptyTrash?: { libraryName: string };
   sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
   safeMode?: boolean;
   onDone: () => void;
@@ -190,12 +194,12 @@ export function PermanentDeleteConfirm({
   const [preview, setPreview] = useState<PermanentDeletePreview | null>(null);
   const [changed, setChanged] = useState(false);
   const [busy, setBusy] = useState(false);
-  const key = JSON.stringify([libraryId, ids, sourceTarget, safeMode]);
+  const key = JSON.stringify([libraryId, ids, sourceTarget, safeMode, Boolean(emptyTrash)]);
   const currentKey = useRef(key); currentKey.current = key;
   useEffect(() => { currentKey.current = key; return () => { currentKey.current = ""; }; }, [key]);
 
   const load = () =>
-    (sourceTarget ? workspacePreviewSourceDelete(sourceTarget, safeMode) : previewPermanentDelete(libraryId, ids)).then(
+    (emptyTrash ? previewEmptyTrash(libraryId) : sourceTarget ? workspacePreviewSourceDelete(sourceTarget, safeMode) : previewPermanentDelete(libraryId, ids)).then(
       (value) => { if (currentKey.current === key) setPreview(value); }, (e) => {
       if (currentKey.current !== key) return;
       onError(String(e));
@@ -211,7 +215,7 @@ export function PermanentDeleteConfirm({
   const confirm = () => {
     if (!preview) return;
     setBusy(true);
-    (sourceTarget ? workspacePermanentSourceDelete(sourceTarget, safeMode, preview.token) : permanentDelete(libraryId, preview.imageIds, preview.token)).then(
+    (sourceTarget && !emptyTrash ? workspacePermanentSourceDelete(sourceTarget, safeMode, preview.token) : permanentDelete(libraryId, preview.imageIds, preview.token)).then(
       () => {
         if (currentKey.current !== key) return;
         setBusy(false);
@@ -231,16 +235,19 @@ export function PermanentDeleteConfirm({
     );
   };
 
+  const title = emptyTrash ? "清空回收站" : "永久删除";
   // 提醒对话框挂在 body 上：详情面板收起（inert）时也能看到并操作（#98）。
   return (
     <AlertDialog.Root open onOpenChange={(open) => { if (!open && !busy) onCancel(); }}>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="k-backdrop" />
-        <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label="永久删除">
-          <AlertDialog.Title className="k-dialog-title">永久删除</AlertDialog.Title>
+        <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label={title}>
+          <AlertDialog.Title className="k-dialog-title">{title}</AlertDialog.Title>
           {!preview ? <p className="k-dialog-desc" role="status">正在核对参考组…</p> : <>
             {changed && <p className="k-set-note" role="status">回收站或参考组刚有变化，已按最新情况重新列出。</p>}
-            <AlertDialog.Description className="k-dialog-desc">永久删除这 {preview.imageIds.length} 张图？原图与整理结果都会删除，无法恢复。</AlertDialog.Description>
+            <AlertDialog.Description className="k-dialog-desc">{emptyTrash
+              ? `永久删除「${emptyTrash.libraryName}」回收站里的 ${preview.imageIds.length} 张图？原图与整理结果都会删除，无法恢复。`
+              : `永久删除这 ${preview.imageIds.length} 张图？原图与整理结果都会删除，无法恢复。`}</AlertDialog.Description>
             {preview.groups.length > 0 && (
               <>
                 <p className="k-dialog-desc">这些参考组用到了它们，成员位置会保留并标为缺失：</p>
@@ -257,8 +264,8 @@ export function PermanentDeleteConfirm({
           <div className="k-dialog-foot">
             <span className="k-grow" />
             <AlertDialog.Close className="k-btn" disabled={busy}>取消</AlertDialog.Close>
-            <button type="button" className="k-btn is-danger" disabled={busy || !preview} onClick={confirm}>
-              确认永久删除
+            <button type="button" className="k-btn is-danger" disabled={busy || !preview || preview.imageIds.length === 0} onClick={confirm}>
+              {emptyTrash ? "清空回收站" : "确认永久删除"}
             </button>
           </div>
         </AlertDialog.Popup>

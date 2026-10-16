@@ -91,8 +91,8 @@ try {
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [parent]);
   await click("选择存放位置…");
   await click("建立图库");
-  // #98: the current library is the sidebar title menu, named “当前图库：<名称>”.
-  await until("打开图库", () => find("//button[@aria-label='当前图库：原图查看器验证']"));
+  // #113: no current library in the UI (ADR-0008); the new library shows up as a sidebar group head “名称（N 张）”.
+  await until("打开图库", () => find("//nav[@aria-label='查找范围']//*[@data-library-id]//button[contains(@class,'lib-head-name') and starts-with(@aria-label,'原图查看器验证（') and not(@disabled)]"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
   // #98: 导入 is a split button; the folder entry is in its menu, then a dialog chooses the library.

@@ -50,6 +50,34 @@ pub async fn reveal_reference_image(
     .map_err(|e| e.to_string())?
 }
 
+/// 在资源管理器中打开图库（#114）：打开图库在本设备上的文件夹。移动盘拔出、搬家等不在原处时报
+/// 原因（界面提示），不打开窗口。
+#[tauri::command]
+pub async fn reveal_library(app: AppHandle, library_id: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let folder = library::library_folder(&app, &library_id)?;
+        open_in_explorer(&folder)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[cfg(windows)]
+fn open_in_explorer(folder: &std::path::Path) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    // 与 `/select,` 相同：路径加引号原样交给 explorer，成功时也可能返回非零退出码，只看能否启动。
+    std::process::Command::new("explorer.exe")
+        .raw_arg(format!("\"{}\"", folder.display()))
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("无法打开资源管理器：{e}"))
+}
+
+#[cfg(not(windows))]
+fn open_in_explorer(folder: &std::path::Path) -> Result<(), String> {
+    Err(format!("请在文件管理器中打开：{}", folder.display()))
+}
+
 #[cfg(windows)]
 fn select_in_explorer(path: &std::path::Path) -> Result<(), String> {
     use std::os::windows::process::CommandExt;

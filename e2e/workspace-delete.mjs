@@ -90,8 +90,10 @@ try {
   const before = await session.invoke("workspace_browse", { query: { scope: { kind: "all" }, conditions: { conditions: [] }, cursor: null, limit: 100, thumbnailPx: 128 }, safeMode: true });
   const target = before.cards[0];
   await session.invoke("edit", { libraryId: prior.first.info.id, ids: [target.imageId], edits: [{ kind: "delete" }] });
-  await until("trash count", () => session.find("//button[@aria-label='回收站（1 张）']"));
-  await session.click("//button[@aria-label='回收站（1 张）']");
+  // #113: the foot row is “回收站 · 全部图库（N 张）” (or the selected library's name).
+  const trashRow = "//nav[@aria-label='查找范围']//button[starts-with(@aria-label,'回收站 · ') and contains(@aria-label,'（1 张）')]";
+  await until("trash count", () => session.find(trashRow));
+  await session.click(trashRow);
   await until("trash card", () => session.find(`//*[@data-id='${target.id}']`));
   await session.exec("document.querySelector('.card').dispatchEvent(new KeyboardEvent('keydown', {key:' ',bubbles:true}));");
   await until("selected deletion control", () => session.find("//button[text()='永久删除…']"));
