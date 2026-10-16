@@ -1,2 +1,4 @@
 * text=auto
 *.md text eol=lf
+# ts-rs 生成物按 LF 写出；固定换行，CI 的生成物差异检查才不受 autocrlf 影响。
+src/bindings/** text eol=lf

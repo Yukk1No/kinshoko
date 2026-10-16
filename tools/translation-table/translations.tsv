@@ -1,0 +1,3007 @@
+# 内置翻译表译名记录（#76 Core3）。译者与审核者：LLM agent（Claude Opus 5.5），2026-10-07。
+# 每行一个外部名称（PixAI v1.0 词表的一般标签，按频率取前 3000 个）。列：
+#   external：外部名称；name：简体中文显示名，用画师平常的说法；aliases：别名，以 | 分隔；
+#   review：审核结论。空表示审核通过、未改动；“改：原译 → 新译，理由”表示审核改过；
+#   “弃：理由”表示弃用（多义、拿不准或不适合作为参考图标签），名称与别名留空，标签进库后保持尚未翻译。
+# 一个文字只能是一个条目的名称或别名（build 会检查）。改完运行 python translation_table.py build。
+external	name	aliases	review
+1girl	1个女孩	单个女孩|一个女孩
+solo	单人	独自
+long_hair	长发	长头发
+breasts	胸部	胸
+looking_at_viewer	看向观众	看镜头|看着观众
+smile	微笑	笑
+blush	脸红	害羞脸红
+open_mouth	张嘴	张着嘴
+short_hair	短发	短头发
+shirt	衬衫
+simple_background	简单背景	纯色背景
+blue_eyes	蓝瞳	蓝眼睛|蓝色眼睛
+long_sleeves	长袖
+white_background	白色背景	白底
+large_breasts	巨乳	大胸
+black_hair	黑发	黑头发
+skirt	裙子	半身裙	改：裙子（短裙子） → 裙子（半身裙），别名“短裙子”把长裙排除在外
+holding	拿着	手持
+blonde_hair	金发	金色头发
+multiple_girls	多个女孩	多名女性
+brown_hair	棕发	棕色头发|茶发
+1boy	1个男孩	单个男性|一个男孩
+hair_ornament	发饰	头饰
+gloves	手套
+dress	连衣裙	裙装
+closed_mouth	闭嘴	闭着嘴
+red_eyes	红瞳	红眼睛|红色眼睛
+hair_between_eyes	眼间发	两眼之间的头发
+animal_ears	兽耳	动物耳朵
+bow	蝴蝶结
+hat	帽子
+jewelry	首饰	珠宝
+navel	肚脐	肚脐眼
+thighhighs	过膝袜	长筒袜
+jacket	夹克		改：夹克（外套夹克） → 夹克，别名“外套夹克”不通顺，且“外套”留给 coat
+ribbon	丝带	缎带
+2girls	2个女孩	两个女孩
+cleavage	乳沟
+very_long_hair	超长发	特别长的头发
+bare_shoulders	露肩	裸肩
+white_shirt	白衬衫
+sitting	坐着	坐姿
+standing	站着	站姿
+full_body	全身	全身像
+twintails	双马尾
+medium_breasts	中等胸部
+blue_hair	蓝发	蓝色头发
+upper_body	上半身	半身像
+green_eyes	绿瞳	绿眼睛|绿色眼睛
+purple_eyes	紫瞳	紫眼睛|紫色眼睛
+tail	尾巴
+multicolored_hair	多色发	多色头发|彩色头发
+male_focus	男性焦点	以男性为主
+brown_eyes	棕瞳	棕眼睛|棕色眼睛
+collarbone	锁骨
+nipples	乳头
+school_uniform	校服	学生制服
+closed_eyes	闭眼	闭着眼睛
+pink_hair	粉发	粉色头发
+white_hair	白发	白色头发
+underwear	内衣
+grey_hair	灰发	灰色头发
+yellow_eyes	黄瞳	黄眼睛|黄色眼睛
+ponytail	马尾	马尾辫
+ahoge	呆毛
+sidelocks	侧发	鬓发
+braid	辫子	编发|麻花辫
+purple_hair	紫发	紫色头发
+short_sleeves	短袖
+swimsuit	泳装	泳衣
+flower	花	花朵
+heart	爱心	心形
+earrings	耳环	耳饰
+shoes	鞋子	鞋
+monochrome	单色	黑白画
+cowboy_shot	七分身	牛仔镜头
+weapon	武器
+panties	内裤
+hair_ribbon	发带	头发丝带
+thighs	大腿
+outdoors	户外	室外
+:d	张嘴笑	:D
+ass	臀部	屁股
+teeth	牙齿
+open_clothes	敞开的衣服	衣服敞开
+frills	荷叶边	褶边
+hair_bow	头发蝴蝶结	蝴蝶结发饰	改：发饰蝴蝶结（头发蝴蝶结） → 头发蝴蝶结（蝴蝶结发饰），“发饰蝴蝶结”语序别扭
+sweat	汗	出汗
+collared_shirt	有领衬衫
+hetero	异性性爱	异性
+pantyhose	连裤袜	裤袜
+parted_lips	微张的嘴唇	嘴唇微张
+red_hair	红发	红色头发
+comic	漫画		改：漫画（条漫） → 漫画，“条漫”专指竖向网络漫画，不等同
+pleated_skirt	百褶裙
+boots	靴子
+pants	长裤	裤子
+multiple_boys	多个男孩	多名男性
+small_breasts	贫乳	小胸
+hairband	发箍	头箍
+greyscale	灰度	灰阶
+bikini	比基尼
+horns	角	头角|犄角
+black_gloves	黑手套	黑色手套
+necktie	领带
+nude	裸体	裸身	改：裸体（全裸体） → 裸体（裸身），别名“全裸体”与 completely_nude 混淆
+shorts	短裤
+alternate_costume	换装	其他服装
+virtual_youtuber	虚拟主播	VTuber
+sleeveless	无袖
+food	食物
+one_eye_closed	闭一只眼	单眼闭合
+sky	天空
+medium_hair	中发	中长发
+wings	翅膀	翼
+censored	有码	打码
+choker	颈带	颈环|choker	改：项圈颈链（颈带、颈环） → 颈带（颈环、choker），“项圈颈链”生硬；与各色 choker 的“X色颈带”一致
+lying	躺着	躺姿
+artist_name	画师名	作者名
+green_hair	绿发	绿色头发
+detached_sleeves	分离袖	独立袖子
+pointy_ears	尖耳	尖耳朵|精灵耳
+socks	袜子	短袜
+tongue	舌头
+hand_up	抬手	举起一只手
+penis	阴茎
+official_alternate_costume	官方换装	官方其他服装
+japanese_clothes	日式服装	和风服装	改：和服类服装（日式服装） → 日式服装（和风服装），“和服类服装”与 kimono 混淆
+indoors	室内
+puffy_sleeves	泡泡袖
+belt	腰带	皮带
+glasses	眼镜
+black_thighhighs	黑色过膝袜	黑丝过膝袜
+barefoot	赤脚	光脚
+speech_bubble	对话框	对话气泡
+solo_focus	单人焦点	以一人为主
+bowtie	领结
+pussy	阴部	女性外阴
+2boys	2个男孩	两个男孩
+hairclip	发夹	发卡
+day	白天
+halo	光环	头顶光环
+fang	虎牙	小尖牙
+black_skirt	黑裙	黑色裙子
+hood	兜帽
+signature	签名	署名
+white_dress	白色连衣裙	白色裙装	改：白色连衣裙（白裙） → 白色连衣裙（白色裙装），“白裙”与 white_skirt 冲突
+white_gloves	白手套	白色手套
+looking_at_another	看着他人	看向别人	改：看着他人（互相看） → 看着他人（看向别人），“互相看”是 eye_contact
+blunt_bangs	齐刘海	平刘海
+twitter_username	推特用户名	Twitter用户名
+pink_eyes	粉瞳	粉眼睛|粉色眼睛
+holding_weapon	持武器	拿着武器
+streaked_hair	挑染	挑染头发
+tongue_out	吐舌	吐舌头
+elbow_gloves	长手套	过肘手套
+sailor_collar	水手领
+midriff	露腰	露肚子
+cat_ears	猫耳
+serafuku	水手服
+dark_skin	深色皮肤	黑皮
+cloud	云	云朵
+english_text	英文	英文文字
+hair_flower	头发上的花	发花
+stomach	腹部	肚子
+two-tone_hair	双色发	双色头发
+mole	痣
+black_jacket	黑夹克	黑色夹克
+grey_background	灰色背景	灰底
+miniskirt	迷你裙	超短裙
+sword	剑
+coat	大衣	外套
+fingerless_gloves	露指手套	无指手套
+open_jacket	敞开的夹克	夹克敞开
+necklace	项链
+hair_bun	丸子头	发髻
+chibi	Q版	二头身
+looking_back	回头看	回眸
+black_dress	黑色连衣裙	黑色裙装	改：黑色连衣裙（黑裙子） → 黑色连衣裙（黑色裙装），“黑裙子”会与 black_skirt 混淆
+hair_over_one_eye	头发遮住一只眼	单眼遮发
+black_shirt	黑衬衫	黑色衬衫
+striped_clothes	条纹衣服	条纹服装
+wide_sleeves	宽袖	大袖
+star_(symbol)	星星符号	星形
+grin	咧嘴笑	露齿笑
+sex	性交	做爱
+orange_hair	橙发	橙色头发|橘发
+on_back	仰躺	仰卧
+kimono	和服
+black_eyes	黑瞳	黑眼睛|黑色眼睛
+off_shoulder	露肩装	落肩
+nail_polish	指甲油	美甲
+white_thighhighs	白色过膝袜	白丝过膝袜
+spread_legs	张开腿	大张双腿	改：张开腿（M字开腿） → 张开腿（大张双腿），“M字开腿”是 m_legs
+bag	包	包包
+animal_ear_fluff	兽耳绒毛	耳朵绒毛
+from_side	侧面视角	侧视
+cum	精液
+sweatdrop	汗滴	冷汗
+3girls	3个女孩	三个女孩
+armpits	腋下	腋窝
+from_behind	背面视角	从背后
+yuri	百合
+rabbit_ears	兔耳	兔耳朵
+vest	马甲	马甲背心	改：背心（马甲） → 马甲（马甲背心），中文“背心”通常指 tank_top，Danbooru 的 vest 是穿在外面的马甲
+red_bow	红色蝴蝶结	红蝴蝶结
+huge_breasts	爆乳	超大胸
+character_name	角色名
+blurry	模糊
+armor	盔甲	铠甲
+parted_bangs	中分刘海	分开的刘海
+leotard	紧身衣	体操服
+cape	斗篷	披风
+apron	围裙
+arm_up	举起一只手臂	抬起手臂
+sweater	毛衣
+tears	眼泪	流泪
+black_pantyhose	黑色连裤袜	黑丝
+scarf	围巾
+blue_sky	蓝天
+water	水
+high_heels	高跟鞋
+grey_eyes	灰瞳	灰眼睛|灰色眼睛
+crop_top	露脐上衣	短上衣
+clothes_lift	掀起衣服	撩起衣服
+looking_to_the_side	看向一侧	看旁边
+bra	胸罩	文胸
+hands_up	举起双手	双手举起
+dated	日期	标有日期
+collar	项圈
+mosaic_censoring	马赛克	马赛克打码
+bracelet	手镯	手链
+completely_nude	全裸	一丝不挂
+fingernails	指甲
+eyelashes	睫毛
+multiple_views	多视图	多角度
+feet	脚	足部
+red_ribbon	红丝带	红色丝带
+cup	杯子
+v-shaped_eyebrows	V字眉	倒八字眉
+black_shoes	黑鞋	黑色鞋子
+clothing_cutout	镂空	服装开口
+arms_up	双臂举起	举起双臂
+black_choker	黑色颈带	黑色颈环
+vaginal	阴道插入
+aqua_eyes	水色瞳	水色眼睛|青色眼睛
+blue_skirt	蓝裙	蓝色裙子
+puffy_short_sleeves	泡泡短袖
+neckerchief	领巾
+orange_eyes	橙瞳	橙眼睛|橙色眼睛
+:o	O型嘴	惊讶张嘴
+black_pants	黑裤子	黑色长裤
+upper_teeth_only	只露上牙	只露上排牙
+dark-skinned_female	深色皮肤女性	黑皮女孩
+border	边框
+twin_braids	双辫	两条辫子
+two_side_up	双侧扎发	两侧扎起
+symbol-shaped_pupils	符号形瞳孔	特殊形状瞳孔
+mole_under_eye	泪痣	眼下痣
+black_hat	黑帽子	黑色帽子
+white_panties	白色内裤	白内裤
+side_ponytail	侧马尾	单侧马尾
+watermark	水印
+fur_trim	毛边	毛皮镶边
+thigh_strap	大腿带	腿环
+sleeves_past_wrists	萌袖	袖子过腕
+strapless	无肩带
+tree	树	树木
+v	V手势	剪刀手|比耶
+sparkle	闪光	亮晶晶
+flat_chest	平胸
+feet_out_of_frame	脚在画外	脚出画
+pokemon_(creature)	宝可梦	精灵宝可梦
+sleeveless_dress	无袖连衣裙
+fake_animal_ears	假兽耳	装饰兽耳
+sleeveless_shirt	无袖衬衫
+hand_on_own_hip	单手叉腰	叉腰
+bar_censor	条形遮挡	黑条打码
+cat_tail	猫尾	猫尾巴
+horse_ears	马耳	马耳朵
+toes	脚趾
+gradient_hair	渐变发	渐变色头发
+black_bow	黑色蝴蝶结	黑蝴蝶结
+horse_girl	马娘	赛马娘
+see-through_clothes	透视装	透明衣服
+white_socks	白袜	白色袜子
+wrist_cuffs	腕饰	袖口饰
+buttons	纽扣	扣子
+fox_ears	狐耳	狐狸耳朵
+hair_intakes	进气口发型	进气口	改：进气口发型（呆毛翘发） → 进气口发型（进气口），别名“呆毛翘发”不对
+neck_ribbon	颈部丝带	领口丝带
+colored_skin	彩色皮肤	特殊肤色
+no_humans	无人物	没有人
+tattoo	纹身	刺青
+maid	女仆
+torn_clothes	破损衣服	撕破的衣服
+maid_headdress	女仆头饰
+covered_nipples	激凸	衣服下的乳头
+ascot	宽领巾	阿斯科特领巾|领巾式领带	改：领巾式领带（阿斯科特领巾） → 宽领巾（阿斯科特领巾、领巾式领带），与 neckerchief“领巾”区分，并让各色 ascot 统一为“X色宽领巾”
+sash	饰带	腰饰带
+muscular	肌肉	肌肉发达
+hoodie	连帽衫	卫衣
+sketch	草图	速写
+pillow	枕头
+mask	面具	假面	改：面具（口罩面罩） → 面具（假面），“口罩”是 mouth_mask
+gun	枪	枪械
+floating_hair	飘发	头发飘起
+plaid_clothes	格子衣服	格纹服装
+short_shorts	热裤	超短裤
+black_shorts	黑色短裤	黑短裤
+gradient_background	渐变背景
+book	书	书本
+wet	湿身	湿透
+covered_navel	衣服下的肚脐	肚脐轮廓
+black_ribbon	黑丝带	黑色丝带
+white_jacket	白夹克	白色夹克
+blue_background	蓝色背景	蓝底
+blood	血	血迹
+cosplay	角色扮演	COS
+bare_arms	裸臂	露手臂
+groin	腹股沟
+makeup	化妆	妆容
+loli	萝莉
+profile	侧脸	侧颜
+copyright_name	作品名	版权名
+legs	腿	双腿
+single_braid	单辫	一条辫子
+pubic_hair	阴毛
+detached_collar	分离式衣领	独立领子
+blurry_background	背景虚化	模糊背景
+expressionless	面无表情	无表情
+blue_dress	蓝色连衣裙	蓝色裙装	改：蓝色连衣裙（蓝裙子） → 蓝色连衣裙（蓝色裙装），“蓝裙子”会与 blue_skirt 混淆
+black_boots	黑靴子	黑色靴子
+bodysuit	连体紧身衣	紧身连体衣
+turtleneck	高领	高领衫
+one-piece_swimsuit	连体泳衣	一件式泳衣
+pov	第一人称视角	POV
+double_bun	双丸子头	双发髻
+black_panties	黑色内裤	黑内裤
+window	窗户	窗
+bare_legs	光腿	裸腿
+lips	嘴唇
+petals	花瓣
+head_tilt	歪头
+holding_sword	持剑	拿着剑
+uncensored	无码	无修正
+aqua_hair	水色发	水色头发|青色头发
+blue_bow	蓝色蝴蝶结	蓝蝴蝶结
+facial_hair	胡子	胡须
+hug	拥抱	抱抱
+:3	猫嘴	ω嘴
+capelet	小披肩	短披肩
+zettai_ryouiki	绝对领域
+scar	伤疤	疤痕
+piercing	穿孔	穿环
+heterochromia	异色瞳	虹膜异色
+night	夜晚	晚上
+kneehighs	及膝袜	中筒袜
+dress_shirt	正装衬衫
+white_hat	白帽子	白色帽子
+shadow	阴影	影子
+swept_bangs	斜刘海	侧分刘海
+chinese_clothes	中式服装	中国风服装
+on_bed	在床上	床上
+low_twintails	低双马尾
+bell	铃铛
+leaning_forward	前倾	身体前倾
+blue_shirt	蓝衬衫	蓝色衬衫
+highleg	高衩
+siblings	兄弟姐妹
+dutch_angle	倾斜构图	荷兰角
+red_skirt	红裙	红色裙子
+skindentation	勒肉	勒痕
+kneeling	跪姿	跪着
+^_^	眯眼笑	^_^
+fangs	獠牙	尖牙
+shiny_skin	油亮皮肤	光泽皮肤
+black_bikini	黑色比基尼	黑比基尼
+blush_stickers	腮红贴	腮红圈
+white_border	白边框	白色边框
+sideboob	侧乳
+blue_jacket	蓝夹克	蓝色夹克
+anus	肛门	屁眼
+frown	皱眉
+cat_girl	猫娘
+thick_thighs	丰满大腿	肉腿|粗大腿	改：粗大腿（肉腿） → 丰满大腿（肉腿、粗大腿），“粗大腿”作名称偏贬义，画师多说肉腿
+fruit	水果
+facial_mark	脸部印记	面纹
+open_shirt	敞开的衬衫	衬衫敞开
+holding_food	拿着食物	手持食物
+wavy_hair	波浪发	波浪卷	改：波浪发（卷发） → 波浪发（波浪卷），“卷发”留给 curly_hair
+rose	玫瑰
+bird	鸟	鸟类
+saliva	口水	唾液
+pink_background	粉色背景	粉底
+phone	电话	话机	改：电话（手机电话） → 电话（话机），别名“手机电话”不通顺，手机是 cellphone
+alternate_hairstyle	换发型	其他发型
+sandals	凉鞋
+black_socks	黑袜子	黑色袜子
+animal	动物
+one_side_up	单侧扎发	单边扎起
+beret	贝雷帽
+holding_hands	牵手	手牵手
+colored_inner_hair	内层挑染	内染
+white_bow	白色蝴蝶结	白蝴蝶结
+white_flower	白花	白色花朵
+4girls	4个女孩	四个女孩
+playboy_bunny	兔女郎
+pussy_juice	爱液
+hood_down	放下的兜帽	兜帽放下
+frilled_dress	荷叶边连衣裙	褶边连衣裙
+nose_blush	鼻子红	鼻尖泛红
+bright_pupils	亮色瞳孔	发光瞳孔
+chair	椅子
+leaf	叶子	树叶
+fox_tail	狐尾	狐狸尾巴
+thick_eyebrows	粗眉	粗眉毛
+chain	锁链	链条
+soles	脚底	脚掌
+halterneck	挂脖	挂脖式
+black_hairband	黑发箍	黑色发箍
+from_above	俯视	从上方
+muscular_male	肌肉男	健壮男性
+red_dress	红色连衣裙	红色裙装	改：红色连衣裙（红裙子） → 红色连衣裙（红色裙装），“红裙子”会与 red_skirt 混淆
+glowing	发光
+sunglasses	墨镜	太阳镜
+bob_cut	波波头	鲍伯头
+happy	开心	快乐
+half-closed_eyes	半睁眼	半闭眼
+ocean	海洋	大海
+embarrassed	害羞	难为情
+looking_down	向下看	低头看
+portrait	肖像	头像
+erection	勃起
+white_skirt	白裙	白色裙子
+furry	兽人	福瑞
+witch_hat	女巫帽	魔女帽
+headphones	耳机	头戴耳机
+headband	头带		改：头带（发带头带） → 头带，别名“发带头带”生硬，“发带”已是 hair_ribbon
+demon_horns	恶魔角
+abs	腹肌
+cum_in_pussy	内射
+transparent_background	透明背景
+bed	床
+cellphone	手机	移动电话
+pectorals	胸肌
+bandages	绷带
+plaid_skirt	格子裙	格纹裙
+black_background	黑色背景	黑底
+dark-skinned_male	深色皮肤男性	黑皮男性
+short_dress	短连衣裙	短裙装
+drill_hair	钻头卷	螺旋卷发
+ring	戒指
+white_bikini	白色比基尼	白比基尼
+underboob	下乳
+flying_sweatdrops	飞溅汗滴	慌张汗滴
+depth_of_field	景深
+testicles	睾丸	蛋蛋
+fox_girl	狐娘	狐狸娘
+floral_print	花卉图案	碎花
+groping	揉胸	摸胸
+horse_tail	马尾巴	马的尾巴
+demon_girl	恶魔娘	魔娘
+no_bra	没穿胸罩	真空
+beach	海滩	沙滩
+cardigan	开衫	针织开衫
+cameltoe	骆驼趾
+1other	1个性别不明角色	性别不明的一人	改：1个其他（性别不明的一人） → 1个性别不明角色（性别不明的一人），“1个其他”不知所云；1other 指性别不明或非二元的角色
+female_pubic_hair	女性阴毛
+standing_on_one_leg	单脚站立	金鸡独立
+cum_on_body	身上的精液	精液在身上	改：身上的精液（颜射全身） → 身上的精液（精液在身上），别名“颜射全身”不对，颜射是 facial
+sharp_teeth	锯齿牙	鲨鱼牙	改：尖牙利齿（锯齿牙） → 锯齿牙（鲨鱼牙），“尖牙利齿”是成语，不像标签
+antenna_hair	触角发	天线发
+squatting	蹲下	蹲姿
+high_ponytail	高马尾
+no_shoes	没穿鞋	脱鞋
+crossed_arms	抱臂	双臂交叉
+thigh_boots	过膝靴	长筒靴
+light_blush	淡淡脸红	微微脸红
+side-tie_bikini_bottom	系带比基尼下装	侧系带比基尼
+military_uniform	军装	军服
+cleavage_cutout	胸口开洞	乳沟镂空
+bed_sheet	床单
+on_side	侧躺	侧卧
+stuffed_toy	毛绒玩具	布偶
+tank_top	背心	无袖背心|吊带背心	改：背心上衣（吊带背心） → 背心（无袖背心、吊带背心），中文“背心”就是 tank top；“背心上衣”多余
+motion_lines	动态线	动作线	改：动态线（速度线） → 动态线（动作线），“速度线”留给 speed_lines
+arms_behind_back	双手背后	手背在身后
+4koma	四格漫画	四格
+back	背部	后背
+arm_support	手撑	手臂支撑
+umbrella	伞	雨伞
+bottomless	下身赤裸	下半身裸
+table	桌子
+heart-shaped_pupils	爱心瞳孔	心形瞳孔
+cat	猫	猫咪
+frilled_sleeves	荷叶边袖	褶边袖子
+black_nails	黑指甲	黑色指甲
+red_necktie	红领带	红色领带
+grass	草	草地
+eating	吃东西	进食
+pink_bow	粉色蝴蝶结	粉蝴蝶结
+smartphone	智能手机
+white_apron	白围裙	白色围裙
+white_pupils	白色瞳孔	白瞳孔
+from_below	仰视	从下方
+own_hands_together	双手合拢	双手合在一起
+ass_visible_through_thighs	从腿间可见臀部	腿缝见臀
+yaoi	耽美	BL
+military	军事	军队
+gem	宝石
+helmet	头盔
+wolf_ears	狼耳	狼耳朵
+no_panties	没穿内裤
+garter_straps	吊袜带
+crying	哭泣	哭
+red_flower	红花	红色花朵
+elf	精灵
+x_hair_ornament	X形发饰	叉形发饰
+frilled_skirt	荷叶边裙	褶边裙子
+oral	口部性行为	口活	改：口交 → 口部性行为（口活），“口交”在中文里通常指 fellatio，留给它
+leg_up	抬腿	抬起一条腿
+red_bowtie	红领结	红色领结
+light_smile	浅笑	淡淡微笑
+wariza	鸭子坐	女孩子坐
+obi	和服腰带
+spiked_hair	刺猬头	尖刺发型
+red_shirt	红衬衫	红色衬衫
+blue_ribbon	蓝丝带	蓝色丝带
+suit	西装	套装
+holding_cup	拿着杯子	手持杯子
+trembling	颤抖	发抖
+scar_on_face	脸上的伤疤	面部伤疤
+shirt_lift	掀起衬衫	撩起上衣
+magical_girl	魔法少女
+fire	火	火焰
+feathers	羽毛
+ear_piercing	耳洞	耳朵穿孔
+scrunchie	发圈	大肠发圈
+6+girls	6个以上女孩	六个及以上女孩
+crossed_legs	跷二郎腿	交叉腿
+bound	束缚	被捆住	改：束缚（捆绑） → 束缚（被捆住），别名“捆绑”与 bondage 冲突
+black_leotard	黑色紧身衣	黑色体操服
+moon	月亮
+denim	牛仔布	牛仔
+3boys	3个男孩	三个男孩
+grey_shirt	灰衬衫	灰色衬衫
+cloudy_sky	多云天空	阴天
+?	问号
+black_necktie	黑领带	黑色领带
+eyepatch	眼罩
+shoulder_armor	肩甲
+sunlight	阳光	日光
+cross	十字架	十字
+couple	情侣	一对
+wavy_mouth	波浪嘴
+clothes_pull	拉扯衣服	拉下衣服
+mob_cap	女仆软帽	褶边软帽
+hair_tubes	发管	头发套管
+eyes_visible_through_hair	透过头发可见眼睛	眼睛透过头发
+mouth_hold	叼着	嘴里叼着
+headgear	头部装备	头戴装置
+clenched_teeth	咬牙	咬紧牙关
+plant	植物
+holding_gun	持枪	拿着枪
+black_belt	黑腰带	黑色腰带
+crossed_bangs	交叉刘海
+looking_up	向上看	抬头看
+backpack	背包	双肩包
+feathered_wings	羽翼	羽毛翅膀
+juliet_sleeves	朱丽叶袖
+straight_hair	直发	直头发
+yellow_background	黄色背景	黄底
+sleeping	睡觉	睡着
+holding_phone	拿着手机	手持手机
+bottle	瓶子
+skin_fang	肉虎牙
+bug	虫子	昆虫
+t-shirt	T恤
+blazer	西装外套	制服外套
+tassel	流苏
+crown	王冠	皇冠
+suspenders	背带	吊带裤背带
+puffy_long_sleeves	泡泡长袖
+thigh_gap	腿缝	大腿间隙
+black_coat	黑大衣	黑色大衣
+facing_viewer	面向观众	正面
+animal_print	动物纹	动物花纹
+sneakers	运动鞋	球鞋
+strapless_leotard	无肩带紧身衣
+outside_border	超出边框	出框
+bara	肌肉男向	BARA
+stuffed_animal	毛绒动物	布偶动物
+;d	眨眼张嘴笑
+red_background	红色背景	红底
+bandaid	创可贴	邦迪
+pink_dress	粉色连衣裙	粉色裙装	改：粉色连衣裙（粉裙子） → 粉色连衣裙（粉色裙装），“粉裙子”会与 pink_skirt 混淆
+outstretched_arm	伸出手臂	伸手
+veil	面纱	头纱
+cover	封面
+pink_flower	粉花	粉色花朵
+single_hair_bun	单丸子头	单发髻
+pointing	指着	手指指着	改：指着（用手指） → 指着（手指指着），别名“用手指”与 fingering 冲突且含糊
+outstretched_arms	张开双臂	伸出双臂
+brooch	胸针
+parody	恶搞	戏仿
+sisters	姐妹
+skirt_lift	掀起裙子	撩裙
+kiss	接吻	亲吻
+slit_pupils	竖瞳	猫瞳
+red_jacket	红夹克	红色夹克
+eyewear_on_head	眼镜推到头上	头上的眼镜
+head_wings	头翼	头上的翅膀
+white_shoes	白鞋	白色鞋子
+dot_nose	点鼻	点状鼻子
+>_<	><表情	紧闭眼
+messy_hair	乱发	凌乱头发
+straddling	跨坐
+grabbing_another's_breast	抓他人胸部	揉他人胸
+robot	机器人
+curtains	窗帘
+fishnets	网袜	渔网袜
+blue_sailor_collar	蓝色水手领
+knife	刀	小刀
+on_stomach	趴着	俯卧
+fellatio	口交	含棒	改：口交（含）（舔棒） → 口交（含棒），原译带括号不像标签名；中文“口交”通常就指它
+brown_shoes	棕色鞋子	棕鞋
+sex_from_behind	后入
+aged_down	幼化	年龄下调
+extra_ears	额外的耳朵	多余耳朵
+topless_female	上身赤裸的女性	女性裸上身
+dog_ears	狗耳	狗耳朵
+hooded_jacket	连帽夹克	带帽外套
+white_pantyhose	白色连裤袜	白丝
+clenched_hand	握拳	攥拳
+hand_on_own_chest	手放胸前	手按胸口
+double-parted_bangs	双分刘海
+short_twintails	短双马尾
+outline	轮廓线	描边
+white_sailor_collar	白色水手领
+tiara	头冠	小皇冠
+goggles	护目镜	风镜
+wing_collar	翼领	燕尾领
+knee_boots	及膝靴
+red_hat	红帽子	红色帽子
+star_(sky)	天上的星星	星辰	改：星空的星星（天上的星星） → 天上的星星（星辰），“星空的星星”不通顺
+rabbit_tail	兔尾	兔尾巴
+white_ribbon	白丝带	白色丝带
+crossover	跨作品	联动
+lifting_own_clothes	掀起自己的衣服	自己撩起衣服	改：掀起自己的衣服（撩起衣服） → 掀起自己的衣服（自己撩起衣服），别名“撩起衣服”与 clothes_lift 冲突
+red_nails	红指甲	红色指甲
+green_skirt	绿裙	绿色裙子
+building	建筑	建筑物
+demon_tail	恶魔尾巴	恶魔尾
+katana	武士刀	日本刀
+black_bra	黑色胸罩	黑胸罩
+logo	标志	logo
+polka_dot	波点	圆点花纹
+bdsm	BDSM	SM
+hat_ribbon	帽子丝带	帽带
+side_braid	侧辫	侧边辫子
+official_alternate_hairstyle	官方换发型	官方其他发型
+formal_clothes	正装	礼服
+loafers	乐福鞋	便士鞋
+meme	梗图	表情包
+girl_on_top	女上位	女孩在上
+breasts_out	露出胸部	胸部露出
+staff	法杖	杖
+light_particles	光粒子	光点
+hat_bow	帽子蝴蝶结
+shaded_face	阴沉脸	脸上阴影
+bent_over	弯腰	俯身
+white_sleeves	白袖子	白色袖子
+low_ponytail	低马尾
+pantyshot	走光	内裤走光
+armband	臂章	袖章
+claws	爪子	利爪
+monster_girl	魔物娘	怪物娘
+single_thighhigh	单只过膝袜
+underwear_only	只穿内衣	仅内衣
+instrument	乐器
+knees_up	屈膝	双膝抬起
+anger_vein	青筋	生气符号
+child	儿童	小孩
+box	盒子	箱子
+grey_skirt	灰裙	灰色裙子
+alternate_breast_size_(larger)	胸部变大	胸围加大
+hood_up	戴上兜帽	兜帽戴着
+hair_over_shoulder	头发搭在肩上	头发垂在肩前	改：头发搭在肩上（披肩发） → 头发搭在肩上（头发垂在肩前），“披肩发”指发长，不是这个动作
+...	省略号
+open_coat	敞开的大衣	大衣敞开
+drooling	流口水
+blue_hat	蓝帽子	蓝色帽子
+cropped_jacket	短夹克	短款外套
+tan	晒黑	小麦色皮肤
+cloak	长斗篷	斗篷大衣	改：斗篷外衣（长斗篷） → 长斗篷（斗篷大衣），“斗篷外衣”生硬，“斗篷”已是 cape
+china_dress	旗袍
+trap	伪娘	女装男孩
+all_fours	四肢着地	趴跪
+no_pants	没穿裤子
+ribbon_trim	丝带镶边	缎带装饰边
+maid_apron	女仆围裙
+strapless_dress	抹胸连衣裙	无肩带连衣裙
+group_sex	群交	多人性爱
+butterfly	蝴蝶
+spoken_heart	对话框里的爱心	说出爱心
+school_swimsuit	学校泳衣	死库水
+purple_dress	紫色连衣裙	紫色裙装	改：紫色连衣裙（紫裙子） → 紫色连衣裙（紫色裙装），“紫裙子”会与 purple_skirt 混淆
+candy	糖果
+musical_note	音符
+polearm	长柄武器	长兵器
+highleg_leotard	高衩紧身衣	高衩体操服
+blue_necktie	蓝领带	蓝色领带
+brown_boots	棕色靴子	棕靴
+lipstick	口红	唇膏
+mole_under_mouth	嘴角痣	美人痣
+towel	毛巾	浴巾
+sleeves_past_fingers	袖子盖住手指	长袖盖手
+bat_wings	蝙蝠翅膀	蝠翼
+5girls	5个女孩	五个女孩
+scenery	风景	景色
+round_eyewear	圆眼镜	圆框眼镜
+red_neckerchief	红领巾	红色领巾
+colored_sclera	彩色眼白	异色巩膜
+cherry_blossoms	樱花
+pale_skin	苍白皮肤	白皙皮肤
+couch	沙发
+index_finger_raised	竖起食指	举起食指
+cropped_torso	躯干截图	半截躯干
+steam	蒸汽	热气
+eyeshadow	眼影
+crescent	新月	月牙
+striped_thighhighs	条纹过膝袜
+surprised	惊讶	吃惊
+curvy	曲线丰满	丰满身材
+pelvic_curtain	腰前垂布	腰帘
+areola_slip	乳晕外露
+buckle	扣环	皮带扣环
+hand_on_own_face	手放脸上	手扶脸
+blue_nails	蓝指甲	蓝色指甲
+microphone	麦克风	话筒
+o-ring	O形环
+black_vest	黑色马甲	黑马甲	改：黑背心（黑色马甲） → 黑色马甲（黑马甲），vest 统一译“马甲”，“背心”留给 tank_top
+dragon_horns	龙角
+bridal_gauntlets	新娘手袖	无指长手套
+holding_book	拿着书	手持书本
+toenails	脚指甲	趾甲
+baseball_cap	棒球帽	鸭舌帽
+pink_nails	粉指甲	粉色指甲
+wristband	护腕	腕带
+white_pants	白裤子	白色长裤
+pom_pom_(clothes)	毛球装饰	绒球
+cropped_legs	腿部截断	腿出画
+waist_apron	半身围裙	腰围裙
+bondage	捆绑	束缚play
+gold_trim	金边	金色镶边
+arms_behind_head	双手抱头	双手放脑后
+single_earring	单只耳环	单边耳环
+white_coat	白大衣	白色大衣
+twin_drills	双钻头卷	双螺旋卷
+revealing_clothes	暴露服装	清凉服装
+chibi_only	只有Q版	全Q版
+one_eye_covered	遮住一只眼	单眼被遮
+sheath	剑鞘	刀鞘
+letterboxed	上下黑边	遮幅
+yellow_bow	黄色蝴蝶结	黄蝴蝶结
+sex_toy	性玩具	情趣玩具
+lace_trim	蕾丝边	蕾丝镶边
+beard	络腮胡	大胡子
+pink_shirt	粉衬衫	粉色衬衫
+undressing	脱衣服	脱衣
+gauntlets	护手甲	臂铠
+hair_bobbles	发珠	头发圆珠
+^^^	惊吓符号	^^^
+rope	绳子	绳索
+wind	风	刮风
+hakama	袴
+eye_contact	对视	眼神交流
+foreshortening	透视缩短	近大远小
+tearing_up	泪汪汪	眼含泪水
+web_address	网址
+anal	肛交
+multiple_tails	多条尾巴	多尾
+lingerie	情趣内衣	性感内衣
+interlocked_fingers	十指相扣	手指交握
+adapted_costume	改编服装	服装改版
+faceless	无脸	没有脸
+nature	自然	大自然
+ejaculation	射精
+blue_flower	蓝花	蓝色花朵
+plate	盘子
+robe	长袍
+hair_rings	环形发髻	发环
+cover_page	扉页	封面页
+red_gloves	红手套	红色手套
+blue_shorts	蓝色短裤	蓝短裤
+green_background	绿色背景	绿底
+black_wings	黑色翅膀	黑翼
+brown_gloves	棕色手套	棕手套
+breast_press	胸部挤压	挤压胸部
+carrying	搬运	背着抱着
+short_hair_with_long_locks	短发配长鬓发	短发长鬓角
+male_pubic_hair	男性阴毛
+purple_background	紫色背景	紫底
+corset	束腰	紧身胸衣
+bike_shorts	自行车短裤	骑行短裤
+happy_birthday	生日快乐
+spikes	尖刺	铆钉
+casual	便服	休闲装
+furrowed_brow	皱眉头	眉头紧锁
+neck_bell	颈铃	脖子上的铃铛
+red_shoes	红鞋	红色鞋子
+two-tone_background	双色背景
+camisole	吊带衫	细吊带
+sweater_vest	毛衣背心	针织背心
+black_bowtie	黑领结	黑色领结
+pink_ribbon	粉丝带	粉色丝带
+vertical-striped_clothes	竖条纹衣服	竖纹服装
+frilled_apron	荷叶边围裙	褶边围裙
+semi-rimless_eyewear	半框眼镜
+between_breasts	夹在胸间	乳间
+breath	呼气	哈气
+string_bikini	绑带比基尼	细绳比基尼
+pink_skirt	粉裙	粉色裙子
+high_collar	高领子	立领
+furry_female	雌性兽人	女兽人
+demon_wings	恶魔翅膀	恶魔之翼
+grey_jacket	灰夹克	灰色夹克
+restrained	被束缚	被约束
+arm_at_side	手臂垂在身侧	手垂下
+multicolored_eyes	多色瞳	多色眼睛
+genderswap	性转	性别转换
+white_skin	白色皮肤	白皮肤
+purple_bow	紫色蝴蝶结	紫蝴蝶结
+green_bow	绿色蝴蝶结	绿蝴蝶结
+androgynous	中性	雌雄莫辨
+tsurime	吊眼	上挑眼
+armlet	臂环	臂饰
+green_jacket	绿夹克	绿色夹克
+furry_male	雄性兽人	男兽人
+glowing_eyes	发光的眼睛	眼睛发光
+skirt_set	裙装套装	套裙
+freckles	雀斑
+close-up	特写
+black_sailor_collar	黑色水手领
+forehead	额头	露额头
+yellow_shirt	黄衬衫	黄色衬衫
+white_boots	白靴子	白色靴子
+brown_jacket	棕夹克	棕色夹克
+spot_color	局部上色	点色
+white_wings	白色翅膀	白翼
+brown_background	棕色背景	棕底
+motor_vehicle	机动车	机动车辆	改：机动车（汽车摩托） → 机动车（机动车辆），别名“汽车摩托”不通顺
+peaked_cap	大檐帽	檐帽	改：大檐帽（军帽） → 大檐帽（檐帽），“军帽”留给 military_hat
+patreon_username	Patreon用户名
+dual_persona	双重形象	同一角色两人	改：双重人格（同一角色两人） → 双重形象（同一角色两人），Danbooru 指同一角色的两个版本同框，不是心理学上的双重人格
+wet_clothes	湿衣服	衣服湿透
+pink_panties	粉色内裤	粉内裤
+veins	血管	青筋暴起
+pocket	口袋
+clenched_hands	双手握拳	攥紧双拳
+winter_uniform	冬季制服	冬服
+hand_fan	扇子	手扇
+floating	漂浮	悬浮
+angry	生气	愤怒
+wolf_tail	狼尾	狼尾巴
+dragon_girl	龙娘
+science_fiction	科幻
+toned	紧实身材	精瘦
+breasts_apart	胸部分开	分开的胸
+blood_on_face	脸上的血	脸上有血
+christmas	圣诞节	圣诞
+large_pectorals	大胸肌	发达胸肌
+black_horns	黑角	黑色的角
+purple_shirt	紫衬衫	紫色衬衫
+facial	颜射
+black_sleeves	黑袖子	黑色袖子
+beads	珠子	串珠
+side_slit	侧开衩	侧边开叉
+smoke	烟	烟雾
+blue_pants	蓝裤子	蓝色长裤
+sleeves_rolled_up	卷起袖子	挽袖子
+topless_male	赤裸上身的男性	男性裸上身
+clothing_aside	衣物拨到一边	拨开衣物
+covering_privates	遮住私处	遮挡隐私部位
+panty_pull	脱内裤	拉下内裤
+clothes_writing	衣服上的文字	衣服印字
+low-tied_long_hair	低扎长发
+jingle_bell	小圆铃	圆铃铛	改：铃铛（小圆铃）（小圆铃） → 小圆铃（圆铃铛），名称里的括号不像标签名
+half_updo	半扎发	公主头
+brown_pantyhose	棕色连裤袜	肉色丝袜
+white_hairband	白发箍	白色发箍
+single_glove	单只手套
+blue_bikini	蓝色比基尼	蓝比基尼
+bow_panties	蝴蝶结内裤
+knee_up	抬起一膝	单膝抬起
+tareme	垂眼	下垂眼
+cake	蛋糕
+angel_wings	天使翅膀	天使之翼
+green_dress	绿色连衣裙	绿色裙装	改：绿色连衣裙（绿裙子） → 绿色连衣裙（绿色裙装），“绿裙子”会与 green_skirt 混淆
+tentacles	触手
+micro_bikini	迷你比基尼	极小比基尼
+licking	舔	舔舐
+turtleneck_sweater	高领毛衣
+crossdressing	异性装扮	变装	改：异性装扮（女装或男装） → 异性装扮（变装），别名“女装或男装”不像画师的说法
+high_heel_boots	高跟靴
+white_outline	白色描边	白描边
+doll	人偶	娃娃
+drinking_glass	玻璃杯
+zipper	拉链
+!	感叹号
+gift	礼物
+looking_ahead	看向前方	向前看
+hair_flaps	耳侧垂发	垂耳发
+full_moon	满月
+thought_bubble	思考气泡	想法气泡
+frilled_shirt_collar	荷叶边衬衫领	褶边衣领
+snow	雪
+mary_janes	玛丽珍鞋
+wide_hips	宽臀	丰臀
+green_shirt	绿衬衫	绿色衬衫
+wolf_girl	狼娘
+reflection	倒影	反射
+track_jacket	运动夹克	运动外套
+rifle	步枪
+black-framed_eyewear	黑框眼镜
+white_kimono	白色和服	白和服
+desk	书桌	办公桌
+rabbit_girl	兔娘
+wading	涉水	蹚水
+mecha	机甲	机器人机体
+shirt_tucked_in	衬衫塞进裤子	衬衫扎进去
+purple_skirt	紫裙	紫色裙子
+spoken_ellipsis	对话框里的省略号	无语省略号
+high-waist_skirt	高腰裙
+ball	球
+hair_scrunchie	头发上的发圈	扎头发的发圈
+colored_eyelashes	彩色睫毛
+pencil_skirt	铅笔裙	包臀裙
+:<	撇嘴	不满嘴
+handgun	手枪
+crying_with_eyes_open	睁眼哭泣	睁着眼哭
+starry_sky	星空	满天星斗
+paizuri	乳交
+arm_behind_back	单手背后	一只手背在身后
+kemonomimi_mode	兽耳化	兽耳模式
+@_@	晕眼	@_@
+:p	吐舌头脸	:P
+walking	走路	行走
+asymmetrical_legwear	不对称袜子	左右不同的袜子
+white_shorts	白色短裤	白短裤
+blouse	女式衬衫	罩衫
+mole_on_breast	胸部的痣	胸口痣
+pauldrons	大肩甲	护肩
+cowgirl_position	女上位骑乘	骑乘位
+yellow_flower	黄花	黄色花朵
+hand_in_pocket	手插口袋	单手插兜
+copyright_notice	版权声明
+front-tie_top	前系带上衣	胸前系结上衣
+star_hair_ornament	星星发饰	星形发饰
+straight-on	正对视角	正面平视
+belt_buckle	皮带扣
+cum_on_breasts	胸部上的精液
+skin_tight	紧身	贴身
+notice_lines	注意线	察觉线
+finger_to_mouth	手指放嘴边	嘘手势
+hand_on_another's_head	手放在他人头上	摸头
+black_bodysuit	黑色紧身连体衣
+clothed_female_nude_male	女着男裸	CFNM
+long_skirt	长裙
+striped_shirt	条纹衬衫
+blue_halo	蓝色光环
+anime_coloring	动画上色	赛璐璐上色
+purple_flower	紫花	紫色花朵
+strap_slip	肩带滑落	吊带滑落
+single_horn	独角	单角
+blue_bowtie	蓝领结	蓝色领结
+headset	耳麦	头戴式耳麦
+pouch	小包	腰包
+convenient_censoring	巧妙遮挡	恰好遮住
+tray	托盘
+frilled_bikini	荷叶边比基尼	褶边比基尼
+wide-eyed	瞪大眼睛	睁大眼
+between_legs	在两腿之间	两腿间
+fish	鱼
+fake_tail	假尾巴	装饰尾巴
+blunt_ends	齐发尾	平剪发尾
+lens_flare	镜头光晕	眩光
+hair_behind_ear	头发别在耳后	别头发
+holding_umbrella	撑伞	拿着伞
+arm_behind_head	单手放脑后	一只手抱头
+santa_hat	圣诞帽
+striped_panties	条纹内裤	条纹胖次	改：条纹内裤（蓝白条纹内裤） → 条纹内裤（条纹胖次），别名“蓝白条纹内裤”过窄
+seiza	正坐	跪坐
+brown_skirt	棕裙	棕色裙子
+sailor_dress	水手连衣裙	水手服连衣裙
+goggles_on_head	护目镜戴在头上	头上的护目镜
+after_sex	事后
+unworn_headwear	未戴的帽子	摘下的帽子
+long_dress	长连衣裙	长裙装
+lace	蕾丝
+cigarette	香烟	烟卷
+red_scarf	红围巾	红色围巾
+holding_staff	持法杖	拿着法杖
+forest	森林	树林
+long_fingernails	长指甲
+faceless_male	无脸男	没有脸的男性
+side-tie_panties	系带内裤	侧系带内裤
+missing_headwear	头饰缺失	没戴帽子
+braided_ponytail	麻花马尾	辫子马尾
+jitome	鄙视眼	半眼|死鱼眼|ジト目	改：半眼（鄙视眼、死鱼眼） → 鄙视眼（半眼、死鱼眼、ジト目），画师更常说鄙视眼
+short_ponytail	短马尾	小马尾
+chinese_text	中文	中文文字
+heavy_breathing	喘气	大口喘气
+empty_eyes	空洞的眼神	无神眼
+sports_bra	运动胸罩	运动内衣
+alcohol	酒	酒精饮料
+mature_female	成熟女性	熟女
+hakama_skirt	袴裙
+shoulder_bag	单肩包	挎包
+dog_tail	狗尾巴	犬尾
+collared_dress	有领连衣裙
+2koma	两格漫画	两格
+ribbed_sweater	罗纹毛衣	坑条毛衣
+genderswap_(mtf)	男性转女性	男转女
+emphasis_lines	强调线	集中线
+swim_ring	游泳圈
+reaching	伸手够	伸出手
+yellow_ribbon	黄丝带	黄色丝带
+handjob	手交	撸管
+oni	鬼	日式鬼
+fins	鳍
+sound_effects	拟声词	音效字
+curly_hair	卷发	卷曲发|小卷毛	改：卷曲发（小卷毛） → 卷发（卷曲发、小卷毛），“卷曲发”不自然；“卷发”从 wavy_hair 移来
+sideways_glance	斜眼看	侧目
+pink_halo	粉色光环
+age_difference	年龄差
+top_hat	礼帽	高顶礼帽
+futanari	扶她
+hand_in_own_hair	手插进头发	抓头发
+long_bangs	长刘海
+clothed_sex	穿衣性爱	穿着衣服做
+pendant	吊坠
+masturbation	自慰
+mature_male	成熟男性	大叔
+denim_shorts	牛仔短裤
+tokin_hat	兜巾	山伏头巾	改：头巾帽（山伏）（兜巾） → 兜巾（山伏头巾），名称里的括号不像标签名
+rain	雨	下雨
+ribbon-trimmed_sleeves	丝带边袖子
+bulge	鼓包	裆部鼓起
+one-hour_drawing_challenge	一小时绘画挑战	一小时绘
+striped_bow	条纹蝴蝶结
+animal_hands	兽爪手	动物手
+disembodied_linked_eye	连线的眼球	觉之瞳	改：漂浮的眼球（连线）（第三只眼） → 连线的眼球（觉之瞳），原译带括号；“第三只眼”留给 third_eye
+layered_sleeves	多层袖子	层叠袖	改：多层袖子（叠穿袖） → 多层袖子（层叠袖），别名“叠穿袖”与 short_over_long_sleeves 冲突
+santa_costume	圣诞服	圣诞老人服装
+dog_girl	犬娘	狗娘
+personification	拟人化	拟人
+halloween	万圣节
+height_difference	身高差
+pink_lips	粉唇	粉色嘴唇
+4boys	4个男孩	四个男孩
+brown_belt	棕腰带	棕色腰带
+dragon_tail	龙尾	龙尾巴
+hair_spread_out	头发散开	铺开的头发
+crossdressing_(mtf)	男扮女装	女装
+backlighting	逆光	背光
+bubble	泡泡	气泡
+raised_eyebrows	扬眉	挑眉
+bandaged_arm	手臂缠绷带	绷带手臂
+asymmetrical_bangs	不对称刘海
+partially_submerged	半身浸水	部分浸没
+red_rose	红玫瑰
+twins	双胞胎
+cleft_of_venus	阴唇缝
+legs_up	双腿抬起	抬起双腿
+head_rest	托腮	手托头
+red_bikini	红色比基尼	红比基尼
+puffy_nipples	乳头凸起
+jeans	牛仔裤
+ear_covers	耳套	耳朵套	改：耳罩（耳套） → 耳套（耳朵套），“耳罩”留给 earmuffs；ear_covers 多是马娘等的装饰耳套
+mouth_mask	口罩
+legs_apart	双腿分开	叉开腿
+condom	避孕套	安全套
+pink_jacket	粉夹克	粉色夹克
+epaulettes	肩章
+bikini_top_only	只穿比基尼上衣
+white_bra	白色胸罩	白胸罩
+paper	纸	纸张
+hat_ornament	帽饰	帽子装饰
+teacup	茶杯
+animal_focus	以动物为主	动物特写
+brown_hat	棕帽子	棕色帽子
+red-framed_eyewear	红框眼镜
+falling_petals	飘落的花瓣	落花
+stubble	胡茬
+hairpin	发针	小发夹	改：发簪（发针） → 发针（小发夹），Danbooru 的 hairpin 是细发针；“发簪”留给 hair_stick
+fingering	指交	手指插入	改：指交（用手指） → 指交（手指插入），别名“用手指”含糊
+bowl	碗
+eyeliner	眼线
+summer_uniform	夏季制服	夏服
+cuffs	束缚手环	铐子	改：手铐（铐子） → 束缚手环（铐子），“手铐”留给 handcuffs；cuffs 泛指手腕上的束缚环
+hoop_earrings	圈形耳环	大耳圈
+orange_background	橙色背景	橙底
+white_leotard	白色紧身衣	白色体操服
+flying	飞行	在飞
+red_cape	红斗篷	红色披风
+plump	丰腴	微胖
+out_of_frame	出画	画面外
+parent_and_child	亲子	父母与孩子
+hair_down	放下头发	散发
+rape			弃：不适合作为参考图的标签，不提供中文名
+hands_on_own_hips	双手叉腰
+hand_on_another's_shoulder	手搭他人肩膀	搭肩
+heart_hair_ornament	爱心发饰	心形发饰
+running	跑步	奔跑
+bags_under_eyes	黑眼圈	眼袋
+school_bag	书包	学生包
+curtained_hair	中分窗帘发	窗帘刘海
+pov_hands	第一人称手	POV手
+off-shoulder_dress	露肩连衣裙
+:q	舔嘴唇表情	:Q	改：舔嘴唇（:Q） → 舔嘴唇表情（:Q），“舔嘴唇”留给 licking_lips；这里是表情符号
+eyebrows	眉毛
+watch	手表
+dog	狗	小狗
+tinted_eyewear	有色眼镜	彩色镜片
+drinking_straw	吸管
+tentacle_hair	触手发
+stud_earrings	耳钉
+lapels	翻领
+black_collar	黑项圈	黑色项圈
+bouquet	花束
+blue_one-piece_swimsuit	蓝色连体泳衣
+torn_pantyhose	破洞连裤袜	破丝袜
+mini_person	小人	迷你人
+korean_text	韩文	韩文文字
+grey_pants	灰裤子	灰色长裤
+missionary	传教士体位	正常位
+looking_away	看向别处	移开视线
+dual_wielding	双持	双手持武器
+6+boys	6个以上男孩	六个及以上男孩
+shrug_(clothing)	短披肩外套	波蕾若
+blurry_foreground	前景虚化	模糊前景
+holding_flower	拿着花	手持花
+knees_together_feet_apart	内八字	膝盖并拢脚分开
+dress_lift	掀起连衣裙	撩起裙摆
+lolita_fashion	洛丽塔	lo裙
+breastplate	胸甲	护胸甲
+low_wings	低位翅膀	腰间小翅膀
+large_penis	大阴茎
+ass_focus	臀部特写	屁股焦点
+double_v	双手V字	双手比耶
+sun_hat	遮阳帽	草帽遮阳帽
+flipped_hair	外翘发	发尾外翻
+arm_tattoo	手臂纹身	臂纹身
+thong	丁字裤
+mustache	八字胡	小胡子
+gym_uniform	体育服	学校运动服	改：体操服（运动服）（体育服） → 体育服（学校运动服），“体操服”是 leotard 的别名，名称里的括号不像标签名
+broom	扫帚
+monster	怪物	魔物
+tracen_school_uniform	特雷森学园制服
+scar_across_eye	眼睛上的伤疤	贯穿眼睛的疤
+brother_and_sister	兄妹	姐弟
+cumdrip	精液滴落
+black_serafuku	黑色水手服
++_+	星星眼	闪亮眼
+cropped_shirt	短款衬衫	露脐衬衫
+partially_fingerless_gloves	半露指手套
+open_book	打开的书	摊开的书
+short_eyebrows	短眉	麻吕眉
+mug	马克杯
+facing_away	背对	背向观众
+threesome	3P	三人性爱
+back_bow	背后蝴蝶结	腰后蝴蝶结
+injury	受伤	伤口
+sideburns	鬓角
+circlet	额环	头环
+tanlines	晒痕	晒印
+blue_theme	蓝色调	蓝色主题
+lab_coat	白大褂	实验服
+serious	严肃	认真
+holding_knife	持刀	拿着刀
+green_hat	绿帽子	绿色帽子
+holding_unworn_clothes	拿着脱下的衣服	手持衣服
+purple_nails	紫指甲	紫色指甲
+lollipop	棒棒糖
+poke_ball	精灵球
+doujin_cover	同人志封面	本子封面
+upskirt	裙底视角	裙下
+innertube	橡皮圈	充气游泳圈	改：游泳圈（充气）（橡皮圈） → 橡皮圈（充气游泳圈），名称里的括号不像标签名
+waving	挥手	招手
+red_lips	红唇	红色嘴唇
+mirror	镜子
+steaming_body	身体冒热气	冒热气
+double-breasted	双排扣
+blue_gloves	蓝手套	蓝色手套
+foot_out_of_frame	一只脚出画
+weibo_watermark	微博水印
+pajamas	睡衣
+buruma	布鲁马	体操短裤	改：灯笼裤（布鲁马） → 布鲁马（体操短裤），“灯笼裤”是 bloomers，buruma 是日式体育短裤
+wooden_floor	木地板
+brown_dress	棕色连衣裙
+fur-trimmed_jacket	毛边夹克	带毛领夹克
+blue_skin	蓝色皮肤	蓝皮肤
+cum_in_mouth	口中精液	口内射
+bandaid_on_face	脸上贴创可贴
+sunset	日落	夕阳
+lantern	灯笼	提灯
+on_chair	坐在椅子上	椅子上
+drawstring	抽绳
+arrow_(symbol)	箭头	箭头符号
+red_hairband	红发箍	红色发箍
+blue_kimono	蓝色和服	蓝和服
+mini_hat	迷你帽	小帽子
+white_sweater	白毛衣	白色毛衣
+black_cape	黑斗篷	黑色披风
+hug_from_behind	从背后拥抱	背后抱
+under-rim_eyewear	下半框眼镜
+yellow_jacket	黄夹克	黄色夹克
+lace-up_boots	系带靴	绑带靴
+heart_hands	比心	手比爱心
+tachi-e	立绘
+rabbit	兔子
+fake_horns	假角	装饰角
+single_side_bun	单侧丸子头
+doggystyle	狗爬式	后入式
+shield	盾牌	盾
+spread_pussy	掰开阴部
+bishounen	美少年
+!?	!?符号	惊疑
+forehead_mark	额头印记	额纹
+fur_collar	毛领	皮草领
+arms_at_sides	双手垂在身侧	手臂下垂
+contrapposto	对立式平衡站姿	稍息站姿
+glint	闪光点	反光
+veiny_penis	青筋阴茎
+enmaided	女仆化	穿上女仆装
+snowing	下雪
+asymmetrical_hair	不对称发型
+fishnet_pantyhose	网格连裤袜	网眼丝袜
+large_areolae	大乳晕
+card_(medium)	卡牌插画	卡面
+can	罐子	易拉罐
+chromatic_aberration	色差	色散
+dragon	龙
+shawl	披肩
+card	卡片	卡牌
+on_floor	在地板上	地板上
+competition_swimsuit	竞技泳衣	比赛泳衣
+toenail_polish	脚指甲油	趾甲油
+smirk	坏笑	得意的笑
+ghost	幽灵	鬼魂
+muscular_female	肌肉女	健壮女性
+:t	鼓腮	嘟嘴鼓脸
+holding_bag	拿着包	提着包
+nontraditional_miko	改良巫女服	非传统巫女
+center_frills	胸前荷叶边	中央褶边
+rock	岩石	石头
+pokemon_focus	以宝可梦为主
+hand_between_own_legs	手放在两腿间
+legs_together	双腿并拢	并腿
+armpit_crease	腋下褶皱	腋纹
+hand_on_own_cheek	手扶脸颊	托脸
+brown_shirt	棕衬衫	棕色衬衫
+zoom_layer	放大插图	局部放大
+pout	噘嘴	嘟嘴
+unworn_hat	脱下的帽子
+teddy_bear	泰迪熊	玩具熊
+aged_up	长大化	年龄上调
+very_short_hair	超短发	寸头
+ringed_eyes	环纹眼	轮回眼
+cum_overflow	精液溢出
+leash	牵绳	狗绳
+character_doll	角色玩偶	角色娃娃
+impossible_clothes	超紧贴衣服	不可能的衣服	改：贴身得不可能的衣服（紧贴衣服） → 超紧贴衣服（不可能的衣服），原译“贴身得不可能的衣服”不通顺
+split_mouth	裂口嘴
+animal_ear_hairband	兽耳发箍	动物耳发箍
+crown_braid	皇冠辫	盘辫
+stairs	楼梯	台阶
+black_sclera	黑色眼白	黑巩膜
+paw_pose	猫爪手势	招财猫手
+yellow_ascot	黄色宽领巾		改：黄色领巾 → 黄色宽领巾，与 yellow_neckerchief“黄色领巾”冲突，ascot 统一为“宽领巾”
+frilled_shirt	荷叶边衬衫	褶边衬衫
+foot_focus	脚部特写	足部焦点
+sailor_shirt	水手衫
+sheathed	收刀入鞘	入鞘
+garter_belt	吊袜腰带
+reaching_towards_viewer	向观众伸手	伸手向镜头
+tiles	瓷砖
+strawberry	草莓
+artist_logo	画师标志	作者logo
+hat_flower	帽子上的花	帽花
+print_bikini	印花比基尼
+half_up_braid	半扎辫	半编发
+adjusting_clothes	整理衣服	调整衣服
+sign	招牌	标牌
+thighband_pantyhose	腿环连裤袜
+popsicle	冰棍	冰棒
+ice	冰
+blood_on_clothes	衣服上的血
+beanie	毛线帽	无檐便帽
+panties_under_pantyhose	连裤袜下的内裤
+naughty_face	淫荡表情	坏坏的表情
+purple_ribbon	紫丝带	紫色丝带
+spoon	勺子	汤匙
+fork	叉子
+rigging	舰装	舰装装备
+eyebrows_hidden_by_hair	眉毛被头发遮住	刘海遮眉
+on_ground	在地上	地面上
+skull	骷髅	头骨
+handbag	手提包
+shoulder_cutout	肩部开口	露肩镂空
+sharp_fingernails	尖指甲
+breasts_squeezed_together	挤胸	夹紧胸部
+backless_outfit	露背装	露背
+butterfly_hair_ornament	蝴蝶发饰
+body_fur	身上的兽毛	体表毛皮	改：体毛（身上的毛） → 身上的兽毛（体表毛皮），“体毛”是人的体毛，这里指兽类毛皮
+visor_cap	遮阳帽檐	空顶帽
+nipple_stimulation	乳头刺激	玩弄乳头
+object_insertion	异物插入
+off-shoulder_shirt	露肩衬衫
+hands_in_pockets	双手插兜	双手插口袋
+=_=	无语眼	=_=
+black_sweater	黑毛衣	黑色毛衣
+crystal	水晶	晶体
+upside-down	倒立	颠倒
+ice_cream	冰淇淋
+city	城市	都市
+drink	饮料	饮品
+chocolate	巧克力
+water_drop	水滴
+brown_pants	棕裤子	棕色长裤
+mouse_ears	鼠耳	老鼠耳朵
+smoking	吸烟	抽烟
+female_masturbation	女性自慰
+white_fur	白毛	白色毛皮
+striped_bikini	条纹比基尼
+other_focus	以其他为主	非人焦点
+pinafore_dress	背心裙	吊带裙
+chopsticks	筷子
+sarashi	裹胸布	晒布
+arm_warmers	袖套	臂套
+railing	栏杆	扶手
+alternate_color	换色	其他配色
+motion_blur	动态模糊
+sand	沙子
+fighting_stance	战斗姿态	架势
+yellow_halo	黄色光环
+borrowed_character	借用角色
+jacket_on_shoulders	披着夹克	外套披肩上
+spaghetti_strap	细肩带	吊带
+light_rays	光线	光束
+arm_under_breasts	手臂托胸	托胸
+bandana	头巾	方巾
+sitting_on_person	坐在人身上
+nurse_cap	护士帽
+green_ribbon	绿丝带	绿色丝带
+v_arms	V字手臂	双臂下垂成V
+red_halo	红色光环
+;)	眨眼微笑
+nun	修女
+minigirl	迷你女孩	小人女孩
+outstretched_hand	伸出的手	伸出手掌
+white_scarf	白围巾	白色围巾
+pasties	乳贴
+branch	树枝
+red_vest	红色马甲	红马甲	改：红背心（红色马甲） → 红色马甲（红马甲），vest 统一译“马甲”
+two-sided_fabric	双面布料
+single_bare_shoulder	单边露肩	露单肩
+smug	得意	得意脸
+blue_shoes	蓝鞋	蓝色鞋子
+holding_polearm	持长柄武器
+military_hat	军帽	军用帽	改：军帽（军用）（军用帽） → 军帽（军用帽），名称里的括号不像标签名；“军帽”从 peaked_cap 移来
+brown_thighhighs	棕色过膝袜
+animal_hood	动物兜帽	兽耳兜帽
+new_year	新年	元旦
+contemporary	现代服装	现代化
+two-tone_dress	双色连衣裙
+criss-cross_halter	交叉挂脖
+hugging_object	抱着东西	抱着物品
+sportswear	运动服
+straw_hat	草帽
+hair_tie	扎头发的绳	发绳
+covering_own_mouth	捂嘴	遮住嘴
+yukata	浴衣
+mountain	山	山脉
+tabard	罩袍	无袖外罩
+print_kimono	印花和服	花纹和服
+symbol_in_eye	眼中符号	瞳孔里的符号
+ofuda	符咒	护符
+on_couch	在沙发上	沙发上
+white_capelet	白色小披肩
+interracial	跨种族
+black_one-piece_swimsuit	黑色连体泳衣
+floral_background	花卉背景	花朵背景
+front-tie_bikini_top	前系带比基尼上衣
+shiny_clothes	光泽衣服	亮面服装
+pleated_dress	百褶连衣裙
+overalls	背带裤	工装背带裤
+sample_watermark	样品水印	SAMPLE水印
+huge_ass	巨臀	大屁股
+fence	栅栏	篱笆
+goatee	山羊胡
+creature	生物	小生物
+apple	苹果
+blue_panties	蓝色内裤	蓝内裤
+bow_(weapon)	弓	弓箭的弓
+realistic	写实
+star-shaped_pupils	星形瞳孔	星星瞳孔
+ear_ornament	耳朵装饰	耳部饰品	改：耳饰（装饰）（耳朵装饰） → 耳朵装饰（耳部饰品），名称里的括号不像标签名
+android	仿生人	人造人
+hime_cut	姬发式	公主切
+hand_on_another's_face	手放他人脸上	捧脸
+snake	蛇
+jumping	跳跃	跳起来
+camera	相机	照相机
+no_nose	无鼻	没画鼻子
+bespectacled	戴眼镜
+holding_bottle	拿着瓶子	手持瓶子
+hair_over_eyes	头发遮眼	刘海遮眼
+grey_dress	灰色连衣裙
+breast_pocket	胸袋	胸前口袋
+black_kimono	黑色和服	黑和服
+holding_microphone	拿着麦克风	手持话筒
+cross-laced_clothes	交叉系带衣服	绑带服装
+nose	鼻子
+antlers	鹿角
+purple_jacket	紫夹克	紫色夹克
+adjusting_eyewear	扶眼镜	推眼镜
+full-face_blush	满脸通红	整脸通红
+spear	长矛	矛
+animification	动画化	二次元化
+blue_leotard	蓝色紧身衣
+white_one-piece_swimsuit	白色连体泳衣
+palm_tree	棕榈树	椰子树
+chibi_inset	Q版插图	角落Q版
+confetti	彩纸屑	五彩纸屑
+spoken_question_mark	对话框里的问号
+selfie	自拍
+green_skin	绿色皮肤	绿皮肤
+tail_ornament	尾巴饰品	尾饰
+hair_bell	发铃	头发上的铃铛
+wedding_dress	婚纱
+gift_box	礼物盒	礼盒
+covered_mouth	被遮住的嘴	嘴被遮住
+absurdly_long_hair	极长发	超级长的头发
+midriff_peek	露出一点腰	小露腰
+mother_and_child	母亲与孩子	母子	改：母子（母女） → 母亲与孩子（母子），别名“母女”留给 mother_and_daughter
+potted_plant	盆栽
+size_difference	体型差
+holding_fan	拿着扇子	手持扇子
+panties_aside	内裤拨到一边
+food_in_mouth	叼着食物	嘴里有食物
+valentine	情人节
+door	门
+grabbing_from_behind	从背后抓	背后揉
+angel	天使
+licking_lips	舔嘴唇	舔唇	改：舔嘴唇（舌头）（舔唇） → 舔嘴唇（舔唇），名称里的括号不像标签名
+page_number	页码
+sunflower	向日葵
+underwater	水下	水中
+vibrator	振动棒	跳蛋
+split-color_hair	左右分色发	阴阳发
+blue_hairband	蓝发箍	蓝色发箍
+gag	口塞	堵嘴物
+anklet	脚链	脚环
+dildo	假阳具
+zipper_pull_tab	拉链头	拉链拉片
+holding_tray	端着托盘
+pen	笔	钢笔
+food-themed_hair_ornament	食物发饰
+sun	太阳
+holding_instrument	拿着乐器	持乐器
+gagged	被堵住嘴
+food_on_face	脸上沾着食物	脸上有饭粒
+horizon	地平线	海平线
+crotch_seam	裆缝	裆部接缝
+vision_(genshin_impact)	神之眼
+o_o	瞪眼	o_o
+guitar	吉他
+purple_thighhighs	紫色过膝袜
+yellow_neckerchief	黄领巾	黄色领巾
+hand_on_own_chin	手托下巴	摸下巴
+head_out_of_frame	头部出画	头在画外
+blindfold	蒙眼布	眼罩布
+grabbing_another's_ass	抓他人臀部	摸屁股
+black_hoodie	黑色连帽衫	黑卫衣
+butt_crack	股沟	屁股沟
+w	W手势	三指手势
+pink_bikini	粉色比基尼	粉比基尼
+wand	魔杖	魔法棒	改：魔杖（法杖棒） → 魔杖（魔法棒），别名“法杖棒”生硬
+dakimakura_(medium)	抱枕	抱枕插画
+car	汽车	小汽车
+kneepits	膝窝	腘窝
+suspender_skirt	背带裙
+wristwatch	腕表
+petite	娇小	小只
+abyssal_ship	深海舰	深海栖舰
+gakuran	立领学生服	学兰
+balloon	气球
+name_tag	名牌	胸牌
+bloomers	灯笼短裤	南瓜裤
++++	激动符号	+++
+orange_bow	橙色蝴蝶结	橙蝴蝶结
+joints	关节	球形关节
+cum_on_hair	头发上的精液
+covering_breasts	遮胸	手遮胸部
+clitoris	阴蒂
+multiple_others	多个性别不明角色	多名性别不明者	改：多个其他（多名性别不明者） → 多个性别不明角色（多名性别不明者），“多个其他”不知所云
+spread_arms	张开手臂	展开双臂
+newsboy_cap	报童帽
+duel_monster	决斗怪兽	游戏王怪兽
+checkered_clothes	棋盘格衣服	黑白格衣服	改：格纹衣服（棋盘格）（棋盘格服装） → 棋盘格衣服（黑白格衣服），名称里的括号不像标签名
+bound_wrists	双腕被绑	手腕被绑
+silent_comic	无字漫画	无对白漫画
+blue_cape	蓝斗篷	蓝色披风
+gyaru	辣妹	GAL
+cable	电线	线缆
+wrist_scrunchie	手腕发圈	腕上发圈
+uniform	制服
+red_thighhighs	红色过膝袜
+forehead_jewel	额头宝石	额饰宝石
+antennae	触角
+claw_pose	爪子姿势	猫爪姿势
+haori	羽织
+pink_hat	粉帽子	粉色帽子
+highleg_panties	高衩内裤
+blanket	毯子	被子
+frilled_bow	荷叶边蝴蝶结
+poke_ball_(basic)	普通精灵球
+half_gloves	半指手套	半截手套
+purple_gloves	紫手套	紫色手套
+bookshelf	书架	书柜
+open_cardigan	敞开的开衫
+mask_on_head	面具戴在头上	头上的面具
+mecha_pilot_suit	驾驶员服	机师服
+eighth_note	八分音符
+folding_fan	折扇
+adjusting_hair	整理头发	撩头发
+sleeve_cuffs	袖口
+print_shirt	印花衬衫	图案T恤
+oekaki	涂鸦绘	简笔涂鸦
+bandeau	抹胸	抹胸上衣
+white_ascot	白色宽领巾		改：白色领巾 → 白色宽领巾，与 white_neckerchief“白色领巾”冲突，ascot 统一为“宽领巾”
+tress_ribbon	发束丝带	束发带
+winter_clothes	冬装	冬季服装
+japanese_armor	日式盔甲	和风铠甲
+blue_gem	蓝宝石	蓝色宝石
+red_kimono	红色和服	红和服
+electricity	电	电流
+on_head	在头上	头顶上
+long_legs	长腿	大长腿
+clock	时钟	钟
+underbust	下胸束腰	托胸束腰	改：下胸（托胸束腰） → 下胸束腰（托胸束腰），“下胸”含糊，underbust 是托在胸下的束腰
+saliva_trail	口水丝	唾液丝
+bush	灌木	灌木丛
+white_choker	白色颈带
+candle	蜡烛
+microskirt	极短裙
+tube_top	筒形上衣	抹胸筒衣	改：抹胸（筒状）（筒形上衣） → 筒形上衣（抹胸筒衣），名称里的括号不像标签名；“抹胸”是 bandeau
+headpiece	头饰件	头部饰品
+ahegao	阿嘿颜
+bikini_under_clothes	衣服下的比基尼	内穿比基尼
+shota	正太
+top-down_bottom-up	趴着翘臀	头低臀高
+white_eyes	纯白眼睛	白色眼睛	改：白眼（纯白眼睛） → 纯白眼睛（白色眼睛），中文“白眼”是翻白眼、瞧不起
+white_cape	白斗篷	白色披风
+center_opening	胸前开口	中心开口
+company_name	公司名
+blue_vest	蓝色马甲	蓝马甲	改：蓝背心（蓝色马甲） → 蓝色马甲（蓝马甲），vest 统一译“马甲”
+folded_ponytail	折叠马尾	盘起的马尾
+|_|	竖线眼	|_|
+cow_print	奶牛纹	奶牛花纹
+toned_male	精壮男性	精瘦男性
+basket	篮子	筐
+3koma	三格漫画	三格
+feather_hair_ornament	羽毛发饰
+cow_ears	牛耳	奶牛耳朵
+lactation	泌乳	喷奶
+toeless_legwear	露趾袜
+blue_neckerchief	蓝领巾	蓝色领巾
+id_card	身份卡	工作证
+limited_palette	有限配色	少色
+fish_tail	鱼尾
+brown_coat	棕大衣	棕色大衣
+red_boots	红靴子	红色靴子
+pink_bra	粉色胸罩
+hanging_breasts	下垂的胸	垂乳
+partially_visible_vulva	部分可见的外阴
+covered_eyes	眼睛被遮住	遮眼
+arrow_(projectile)	箭	弓箭的箭
+undershirt	打底衫	内衬衫
+drinking	喝	喝饮料
+black_tank_top	黑色背心
+yokozuwari	侧坐	横坐
+leaning_back	后仰	向后靠
+film_grain	胶片颗粒	颗粒感
+multicolored_jacket	多色夹克
+holding_bouquet	拿着花束	手捧花束
+hair_stick	发簪	簪子	改：发簪（棒）（簪子） → 发簪（簪子），名称里的括号不像标签名；“发簪”从 hairpin 移来
+panties_around_one_leg	内裤挂在一条腿上
+clitoral_hood	阴蒂包皮
+bouncing_breasts	乳摇	胸部晃动
+white_belt	白腰带	白色腰带
+aircraft	飞行器	航空器	改：飞行器（飞机） → 飞行器（航空器），别名“飞机”留给 airplane
+hands_on_own_face	双手捂脸	双手放脸上
+hand_on_headwear	手扶帽子	按住帽子
+long_sidelocks	长鬓发	长侧发
+scales	鳞片
+halloween_costume	万圣节服装	万圣节装扮
+bodystocking	连身袜	连体丝袜
+curled_horns	卷角	羊角
+talking	说话	交谈
+pink_bowtie	粉领结	粉色领结
+colored_tips	发尾挑染	发梢染色
+highleg_one-piece_swimsuit	高衩连体泳衣
+glass	玻璃
+controller	手柄	游戏手柄
+ankle_boots	短靴	踝靴
+surrounded_by_penises	被阴茎包围
+mini_crown	迷你王冠	小王冠
+blue_thighhighs	蓝色过膝袜
+fairy_wings	妖精翅膀	仙女翅膀
+open_hand	张开手	摊开手掌
+yellow_dress	黄色连衣裙	黄色裙装	改：黄色连衣裙（黄裙子） → 黄色连衣裙（黄色裙装），“黄裙子”会与 yellow_skirt 混淆
+red_coat	红大衣	红色大衣
+holding_animal	抱着动物	抱动物
+tabi	分趾袜	足袋
+scar_on_cheek	脸颊伤疤
+disposable_cup	一次性杯子	纸杯
+black_border	黑边框	黑色边框
+white_tank_top	白色背心
+shoulder_tattoo	肩部纹身
+retro_artstyle	复古画风	怀旧画风
+armored_boots	铠甲靴	装甲靴
+blue_rose	蓝玫瑰
+classroom	教室
+hanfu	汉服
+red_horns	红角	红色的角
+pool	泳池	游泳池
+inkling	鱿鱼族	Inkling
+witch	女巫	魔女
+holding_poke_ball	拿着精灵球
+tight_clothes	紧身衣服	紧身服装
+red_choker	红色颈带
+white_hoodie	白色连帽衫	白卫衣
+petticoat	衬裙
+diamond_(shape)	菱形
+collared_jacket	有领夹克
+patreon_logo	Patreon标志
+invisible_chair	空气椅	隐形椅子
+fishnet_thighhighs	网格过膝袜
+harness	背带束具	挽具
+pov_crotch	第一人称裆部视角
+bun_cover	发髻套	包子头套
+fur-trimmed_coat	毛边大衣	毛领大衣
+onsen	温泉
+white_collar	白领子	白色衣领
+rabbit_ear_hairband	兔耳发箍
+multicolored_skin	多色皮肤
+arched_back	弓背	背部弯曲
+striped_necktie	条纹领带
+mechanical_arms	机械臂
+cow_horns	牛角
+after_vaginal	阴道性交后
+red_ascot	红色宽领巾		改：红色领巾 → 红色宽领巾，与 red_neckerchief“红色领巾”冲突，ascot 统一为“宽领巾”
+vambraces	护臂
+road	道路	马路
+heart_censor	爱心遮挡	爱心打码
+nervous_sweating	紧张流汗	冒冷汗
+animal_nose	动物鼻子	兽鼻
+looking_afar	眺望远方	望向远处
+holding_stuffed_toy	抱着毛绒玩具	拿着布偶
+tiger_ears	虎耳	老虎耳朵
+school_desk	课桌
+partially_unbuttoned	扣子半解	部分解开扣子
+torn_thighhighs	破损过膝袜	破过膝袜
+eyeball	眼球
+shared_bathing	共浴	一起洗澡
+purple_hat	紫帽子	紫色帽子
+cheerleader	啦啦队员	拉拉队
+white_wrist_cuffs	白色腕饰
+pom_pom_(cheerleading)	啦啦队彩球	花球
+hand_on_own_head	手放头上	手扶头
+polka_dot_background	波点背景	圆点背景
+squiggle	波浪线	曲线
+bikini_armor	比基尼铠甲
+light_frown	微皱眉	轻皱眉
+military_vehicle	军用车辆	军车
+emblem	徽章	纹章
+pink_shoes	粉鞋	粉色鞋子
+space	太空	宇宙
+headpat	摸头杀	拍头
+riding	骑乘	骑着
+orgasm	高潮
+leggings	打底裤	紧身裤
+reading	阅读	看书
+cityscape	城市风景	城市景观
+back-to-back	背靠背
+magic	魔法	法术
+wide_shot	远景	广角远景
+arm_strap	臂带	手臂绑带
+assault_rifle	突击步枪
+holding_plate	端着盘子
+facial_tattoo	面部纹身	脸上纹身
+geta	木屐
+tile_floor	瓷砖地面	地砖
+red_pants	红裤子	红色长裤
+grabbing_own_breast	抓自己的胸	揉自己胸部
+gangbang	轮交	多人围攻
+undercut	削边发型	两侧剃短
+short_over_long_sleeves	短袖套长袖	叠穿袖
+leg_warmers	袜套	暖腿套
+miko	巫女
+hair_slicked_back	背头	大背头
+jack-o'-lantern	南瓜灯	杰克灯
+green_necktie	绿领带	绿色领带
+gothic_lolita	哥特洛丽塔	哥特lo
+sleeveless_turtleneck	无袖高领
+sailor_hat	水手帽
+ship_turret	舰炮	炮塔
+happy_new_year	新年快乐
+layered_dress	多层连衣裙	层叠裙
+belly	肚腩	小肚子
+bald	光头	秃头
+asymmetrical_gloves	不对称手套
+flag	旗帜	旗子
+shade	阴凉处	树荫
+stretching	伸懒腰	伸展
+pink_kimono	粉色和服	粉和服
+grey_skin	灰色皮肤	灰皮肤
+headdress	华丽头饰	头冠饰	改：头饰（大型）（头冠饰） → 华丽头饰（头冠饰），名称里的括号不像标签名
+blue_boots	蓝靴子	蓝色靴子
+silhouette	剪影
+under_covers	盖着被子	被窝里
+evil_smile	邪笑	坏笑脸
+frog_hair_ornament	青蛙发饰
+bangle	手环	硬手镯
+lamp	灯	台灯
+nipple_tweak	捏乳头
+bird_wings	鸟翼	鸟翅膀
+blue_coat	蓝大衣	蓝色大衣
+bow_hairband	蝴蝶结发箍
+chinese_zodiac	生肖	十二生肖
+fairy	妖精	仙子
+slippers	拖鞋
+male_underwear	男士内裤	男性内衣
+bandaid_on_leg	腿上贴创可贴
+reference_sheet	设定图	角色设定
+star_print	星星图案	星星印花
+white_bowtie	白领结	白色领结
+yellow_necktie	黄领带	黄色领带
+nipple_piercing	乳环	乳头穿环
+purple_bikini	紫色比基尼
+hand_to_own_mouth	手放嘴边	手掩嘴
+red_eyeshadow	红眼影	红色眼影
+clothes_around_waist	衣服系在腰上	腰间系外套
+red_shorts	红色短裤	红短裤
+triangle_mouth	三角嘴
+blue_scarf	蓝围巾	蓝色围巾
+bare_back	裸背	光背
+precum	前列腺液
+futa_with_female	扶她与女性
+low_twin_braids	低双辫
+ninja	忍者
+no_pupils	无瞳孔	没有瞳孔
+highleg_bikini	高衩比基尼
+paw_gloves	猫爪手套	兽爪手套
+red_leotard	红色紧身衣
+nipple_slip	乳头走光
+huge_ahoge	超大呆毛	巨大呆毛
+black_capelet	黑色小披肩
+animal_costume	动物服装	动物装
+green_nails	绿指甲	绿色指甲
+pixel_art	像素画	像素风
+bridal_veil	新娘头纱
+pulling_own_clothes	拉自己的衣服
+laughing	大笑	哈哈笑
+nurse	护士
+shibari	绳缚	龟甲缚
+office_lady	OL	职场女性
+frilled_hairband	荷叶边发箍
+partially_colored	部分上色
+mittens	连指手套
+purple_kimono	紫色和服	紫和服
+disembodied_hand	悬空的手	无主之手
+mother_and_daughter	母女	妈妈和女儿	改：母女（母亲与女儿）（妈妈和女儿） → 母女（妈妈和女儿），名称里的括号不像标签名；“母女”从 mother_and_child 移来
+wine_glass	红酒杯	高脚杯
+stuffed_rabbit	兔子玩偶	毛绒兔子
+french_kiss	舌吻	法式接吻
+mechanical_halo	机械光环
+unbuttoned	解开扣子	没扣扣子
+architecture	建筑风格	建筑设计	改：建筑风格（建筑物（建筑学）） → 建筑风格（建筑设计），别名带括号且与 building 混淆
+bench	长椅	长凳
+layered_skirt	多层裙	层叠短裙
+sundress	太阳裙	夏日连衣裙
+grabbing_another's_arm	抓住他人手臂	拉胳膊
+brown_cardigan	棕色开衫
+thighlet	大腿环	腿饰环
+no_mouth	无嘴	没画嘴
+holster	枪套
+paw_print	爪印	猫爪印
+bandaged_leg	腿上缠绷带
+purple_bowtie	紫领结	紫色领结
+rabbit_hair_ornament	兔子发饰
+key	钥匙
+aqua_nails	水色指甲
+unworn_eyewear	摘下的眼镜
+holding_own_dress	提起裙摆	拎裙子
+own_hands_clasped	双手交握	双手紧握
+wedding_ring	婚戒	结婚戒指
+white_rose	白玫瑰
+field	原野	田野
+pocky	百奇	巧克力棒
+yellow_bikini	黄色比基尼
+aqua_necktie	水色领带
+indian_style	盘腿坐	盘腿
+scared	害怕	惊恐
+open_fly	拉链敞开	裤门开着
+inverted_nipples	乳头内陷	凹陷乳头
+5boys	5个男孩	五个男孩
+loose_socks	泡泡袜	堆堆袜
+dagger	匕首	短剑
+head_wreath	花环头饰	头上花环
+triangular_headpiece	三角头巾	天冠
+notched_lapels	缺角翻领	平驳领
+leather	皮革	皮质
+ear_bow	耳朵上的蝴蝶结
+taut_clothes	紧绷的衣服	衣服绷紧
+red_pupils	红色瞳孔
+interspecies	异种	跨物种
+striped_dress	条纹连衣裙
+axe	斧头	斧
+tatami	榻榻米
+cone_hair_bun	锥形发髻
+cross_necklace	十字架项链
+salute	敬礼
+gohei	御币
+bread	面包
+beachball	沙滩球
+wet_shirt	湿衬衫	衬衫湿透
+tied_shirt	打结衬衫	衬衫下摆打结
+animal_ear_piercing	兽耳穿环	兽耳耳环
+incest			弃：不适合作为参考图的标签，不提供中文名
+mouse_tail	鼠尾	老鼠尾巴
+frilled_thigh_strap	荷叶边腿环
+round_teeth	圆牙
+holding_fruit	拿着水果
+halftone	网点	网点纸
+mismatched_legwear	不成对袜子	左右异色袜子	改：左右不同的袜子（异色）（不成对袜子） → 不成对袜子（左右异色袜子），名称里的括号不像标签名，且与 asymmetrical_legwear 的别名重复
+scythe	镰刀	大镰刀
+anchor_symbol	锚形符号	锚标志
+facing_another	面向对方	朝向他人	改：面对面（朝向他人）（面向对方） → 面向对方（朝向他人），名称里的括号不像标签名；“面对面”是 face-to-face
+brown_sweater	棕色毛衣
+leg_lift	提腿	单腿上举	改：抬腿（单腿上举）（提腿） → 提腿（单腿上举），名称里的括号不像标签名；“抬腿”是 leg_up
+hand_on_own_arm	手扶手臂	抓着自己手臂
+hands_on_own_chest	双手放胸前
+grey_shorts	灰色短裤
+alternate_eye_color	换瞳色	其他瞳色
+spoken_exclamation_mark	对话框里的感叹号
+brown_shorts	棕色短裤
+fantasy	奇幻
+skin-covered_horns	肉角	皮肤覆盖的角
+battle	战斗	战斗场面
+femdom	女性支配	女S
+multiple_rings	多枚戒指
+bound_arms	双臂被绑
+face-to-face	面对面	脸对脸
+style_parody	画风模仿	画风戏仿
+suit_jacket	西装上衣
+black_cat	黑猫
+backless_dress	露背连衣裙
+bucket	水桶	桶
+headphones_around_neck	耳机挂在脖子上	挂脖耳机
+cannon	大炮	加农炮
+pectoral_cleavage	胸肌沟
+bow_bra	蝴蝶结胸罩
+horn_ornament	角饰	角上的装饰
+condom_wrapper	避孕套包装
+rolling_eyes	翻白眼
+orange_shirt	橙衬衫	橙色衬衫
+eye_mask	眼部面具	假面眼罩
+spreading_own_pussy	自己掰开阴部
+teapot	茶壶
+tilted_headwear	歪戴帽子	帽子歪着
+presenting_own_body	展示自己身体
+brothers	兄弟
+naked_shirt	裸衬衫	只穿衬衫
+navel_cutout	肚脐开口	露脐镂空
+anniversary	周年纪念	周年
+hitodama	鬼火	人魂
+autumn_leaves	红叶	秋叶
+star_earrings	星星耳环
+wet_hair	湿发	头发湿了
+bare_pectorals	裸露胸肌
+imminent_penetration	即将插入
+black_suit	黑西装	黑色西装
+vampire	吸血鬼
+playing_instrument	演奏乐器	弹奏
+whisker_markings	胡须纹	猫须纹
+grey_sweater	灰毛衣	灰色毛衣
+red_streaks	红色挑染
+hip_vent	胯部开口	腰侧开口
+happy_sex	开心的性爱
+pink_theme	粉色调	粉色主题
+hand_on_own_thigh	手放大腿上
+thumbs_up	竖大拇指	点赞
+drunk	醉酒	喝醉
+lowleg	低腰
+animal_hat	动物帽	动物造型帽
+standing_sex	站立性交	站着做
+hat_feather	帽子羽毛	帽羽
+raccoon_ears	狸耳	浣熊耳朵
+cum_in_ass	肛内射
+computer	电脑	计算机
+animalization	动物化	兽化
+air_bubble	水泡	水中气泡
+red_hakama	红袴
+bead_necklace	珠子项链	串珠项链
+pink_rose	粉玫瑰
+princess_carry	公主抱
+open_kimono	敞开的和服
+yellow_skirt	黄裙	黄色裙子
+leaf_hair_ornament	树叶发饰
+unzipped	拉链拉开	敞开拉链
+swimsuit_under_clothes	衣服下的泳装	内穿泳衣
+chest_tattoo	胸口纹身
+black_tail	黑尾巴	黑色尾巴
+red_eyeliner	红眼线
+bedroom	卧室
+puff_of_air	呼气团	一口气	改：一口气（呼气团） → 呼气团（一口气），“一口气”作名称含糊
+wind_lift	被风吹起	风吹裙摆
+holding_own_hair	抓着自己头发
+:>	得意嘴	:>
+shark_tail	鲨鱼尾巴	鲨鱼尾
+coat_on_shoulders	披着大衣	大衣披肩上
+white_streaks	白色挑染
+hugging_own_legs	抱膝	抱腿
+red_skin	红色皮肤	红皮肤
+idol	偶像
+sarong	纱笼	沙滩裙
+stitches	缝线	缝合痕
+annoyed	不耐烦	恼火
+see-through_sleeves	透视袖	透明袖子
+dark	昏暗	黑暗
+uneven_legwear	长短不一的袜子
+constricted_pupils	缩瞳	瞳孔收缩
+red_panties	红色内裤	红内裤
+shoulder_blades	肩胛骨
+chest_jewel	胸口宝石
+fur-trimmed_sleeves	毛边袖子
+frilled_hair_tubes	荷叶边发管
+used_condom	用过的避孕套
+ears_through_headwear	耳朵穿过帽子	帽子开耳洞
+three-quarter_sleeves	七分袖
+against_wall	靠墙	贴墙
+paintbrush	画笔	毛笔
+fox_mask	狐狸面具	狐面
+photo_(object)	照片
+bracer	护腕甲	臂甲
+face_piercing	脸部穿孔
+aura	气场	灵气
+charm_(object)	护身符	御守挂件
+bikini_skirt	比基尼裙
+green_bikini	绿色比基尼
+oil-paper_umbrella	油纸伞	纸伞
+tail_raised	翘尾巴	尾巴竖起
+unworn_shoes	脱下的鞋子
+string	细绳	线
+snowflakes	雪花
+on_one_knee	单膝跪地	单膝下跪
+cat_boy	猫耳男孩	猫男
+chestnut_mouth	栗子嘴
+pink_thighhighs	粉色过膝袜
+head_fins	头鳍
+superhero_costume	超级英雄服	英雄战衣
+fireworks	烟花	烟火
+ear_blush	耳朵红	耳根发红
+holding_gift	拿着礼物
+hooded_cloak	连帽斗篷
+old	老年	年老
+giant	巨人
+red_capelet	红色小披肩
+fat	胖	肥胖
+heart_of_string	爱心线	线绕成的爱心
+two-tone_skin	双色皮肤
+facepaint	脸部彩绘	油彩
+green_pants	绿裤子	绿色长裤
+holding_another's_wrist	抓住他人手腕	握住手腕
+anal_object_insertion	肛门异物插入
+two_tails	双尾	两条尾巴
+headscarf	包头巾	头巾帽	改：头巾（包头）（包头巾） → 包头巾（头巾帽），名称里的括号不像标签名；“头巾”是 bandana
+watercraft	船只	水上载具
+imminent_kiss	即将接吻	快要亲上
+heart_earrings	爱心耳环
+areolae	乳晕
+randoseru	双肩书包	日式小学生书包
+armored_dress	铠甲连衣裙	装甲裙
+knee_pads	护膝
+see-through_shirt	透视衬衫
+black_neckerchief	黑领巾	黑色领巾
+carrot	胡萝卜
+mouse_girl	鼠娘
+belt_pouch	皮带小包	腰带包	改：腰包（皮带）（皮带小包） → 皮带小包（腰带包），名称里的括号不像标签名；“腰包”是 pouch 的别名
+parallel_hairclips	平行发夹
+everyone	全员	所有人
+striped_background	条纹背景
+animal_on_head	头上的动物
+white_bodysuit	白色紧身连体衣
+lower_teeth_only	只露下牙	只露下排牙
+raised_inner_eyebrows	八字眉	眉头上扬
+one_breast_out	露出一边胸
+shoe_soles	鞋底
+spiked_collar	铆钉项圈	尖刺项圈
+scabbard	鞘	刀剑鞘	改：刀鞘（剑鞘）（鞘） → 鞘（刀剑鞘），名称里的括号不像标签名；“剑鞘”“刀鞘”是 sheath
+bad_anatomy	结构错误	人体结构错误
+two-tone_eyes	双色瞳	双色眼睛
+snake_hair_ornament	蛇形发饰
+blank_eyes	白板眼	空白眼
+averting_eyes	移开目光	避开视线
+bonnet	软帽	女帽
+picture_frame	相框	画框
+vines	藤蔓
+clothes_between_breasts	衣服夹在胸间
+winter	冬天	冬季
+game_controller	游戏控制器
+dancing	跳舞	舞蹈
+public_indecency	公共场合猥亵	露出
+blue_sweater	蓝毛衣	蓝色毛衣
+toned_female	精瘦女性	线条紧致女性
+short_kimono	短和服
+oversized_clothes	宽大衣服	大号衣服
+bathing	沐浴	洗澡
+tunic	束腰外衣
+holding_fork	拿着叉子
+sparkling_eyes	闪亮的眼睛	星星眼闪光
+blood_on_hands	手上的血
+cross_hair_ornament	十字发饰
+mandarin_collar	中式立领	旗袍领	改：中式立领（立领（中式）） → 中式立领（旗袍领），别名带括号
+chest_harness	胸部束带
+fang_out	露出虎牙
+bat_(animal)	蝙蝠
+black_scarf	黑围巾	黑色围巾
+afterimage	残影
+purple_panties	紫色内裤
+striped_bowtie	条纹领结
+2000s_(style)	2000年代画风	千禧风
+gym_shirt	体育服上衣	体育短袖	改：运动衫（体育）（体操服上衣） → 体育服上衣（体育短袖），名称里的括号不像标签名
+v-neck	V领
+airplane	飞机	客机	改：飞机（客机）（客机） → 飞机（客机），名称里的括号不像标签名
+crescent_hair_ornament	月牙发饰	新月发饰
+tiptoes	踮脚	踮起脚尖
+latex	乳胶	胶衣
+earmuffs	耳罩	保暖耳罩|护耳	改：耳罩（保暖）（护耳） → 耳罩（保暖耳罩、护耳），名称里的括号不像标签名；“耳罩”从 ear_covers 移来
+hand_on_own_knee	手放膝盖上
+sitting_on_lap	坐在腿上	坐大腿
+cross-shaped_pupils	十字瞳孔
+sack	麻袋	袋子
+naked_towel	只裹浴巾	裹浴巾
+aqua_background	水色背景
+navel_piercing	脐环	肚脐穿环
+alternate_hair_color	换发色	其他发色
+nosebleed	流鼻血	鼻血
+single_sidelock	单侧鬓发
+holding_cigarette	拿着香烟	夹烟
+gameplay_mechanics	游戏界面	游戏机制
+ice_wings	冰翼	冰之翼
+father_and_child	父亲与孩子	父子	改：父子（父亲与孩子） → 父亲与孩子（父子），与 mother_and_child 的译法一致
+belt_collar	皮带项圈
+side_braids	两侧辫子	双侧辫	改：两侧辫子（侧辫（双）） → 两侧辫子（双侧辫），别名带括号
+drink_can	饮料罐
+nervous	紧张
+one-eyed	独眼
+yellow_bowtie	黄领结	黄色领结
+purple_skin	紫色皮肤	紫皮肤
+pantyhose_under_shorts	短裤下穿连裤袜
+holding_chopsticks	拿着筷子
+green_shorts	绿色短裤
+wince	皱眉缩脸	吃痛表情
+pink_gloves	粉手套	粉色手套
+lolita_hairband	洛丽塔发带	lo娘头饰
+:/	不满撇嘴	:/	改：撇嘴（斜）（:/） → 不满撇嘴（:/），名称里的括号不像标签名；“斜嘴”是 sideways_mouth 的别名
+two-tone_shirt	双色衬衫
+yellow_sclera	黄色眼白
+micro_shorts	极短热裤
+waitress	女服务员	女招待
+holding_spoon	拿着勺子
+fur-trimmed_gloves	毛边手套
+blue_hoodie	蓝色连帽衫	蓝卫衣
+animal_collar	宠物项圈
+green_vest	绿色马甲	绿马甲	改：绿背心（绿色马甲） → 绿色马甲（绿马甲），vest 统一译“马甲”
+pubic_tattoo	淫纹	下腹纹身
+monitor	显示器	屏幕
+braided_bangs	编发刘海	辫子刘海
+red_gem	红宝石	红色宝石
+shimenawa	注连绳
+wagashi	和果子
+long_hair_between_eyes	长眼间发
+coin	硬币	金币
+blue_choker	蓝色颈带
+merfolk	人鱼族	鱼人
+digimon_(creature)	数码宝贝
+male_penetrated	男性被插入
+multiple_persona	同一角色多人	多重形象	改：多重人格（同角色多人）（同角色多形态） → 同一角色多人（多重形象），Danbooru 指同一角色的多个版本同框，不是多重人格
+pointless_censoring	无意义打码
+looking_at_object	看着物体	注视物品
+grey_gloves	灰手套	灰色手套
+east_asian_architecture	东亚建筑	中式日式建筑
+holding_candy	拿着糖果
+white_camisole	白色吊带衫
+pointing_at_viewer	指着观众	指向镜头
+handcuffs	手铐	铐住双手	改：手铐（金属）（铐住双手） → 手铐（铐住双手），名称里的括号不像标签名
+leg_ribbon	腿上丝带	腿部丝带
+3d	3D
+mmf_threesome	两男一女
+>:)	邪恶得意笑	>:)	改：坏笑（得意）（>:)） → 邪恶得意笑（>:)），名称里的括号不像标签名；“坏笑”是 smirk
+pinstripe_pattern	细条纹	细竖纹
+!!	双感叹号
+pink_sweater	粉毛衣	粉色毛衣
+over_shoulder	扛在肩上	搭在肩上
+sad	悲伤	难过
+cross-section	剖面图	断面图
+holding_can	拿着罐子	拿着易拉罐
+diagonal-striped_clothes	斜条纹衣服
+donut	甜甜圈
+pumpkin	南瓜
+fur-trimmed_cape	毛边斗篷
+text_focus	以文字为主	文字焦点
+torii	鸟居
+frog	青蛙
+holding_bow_(weapon)	持弓	拿着弓
+weapon_on_back	背着武器	背后武器
+blue_bra	蓝色胸罩
+police	警察
+black_sports_bra	黑色运动胸罩
+very_dark_skin	很深的肤色	黝黑皮肤
+cowbell	牛铃
+red_collar	红项圈	红色项圈
+neck_ring	项环	金属颈环	改：颈环（金属）（项环） → 项环（金属颈环），名称里的括号不像标签名；“颈环”是 choker 的别名
+ffm_threesome	两女一男
+in_container	在容器里	装在容器中
+crescent_moon	弯月
+gold	黄金	金色
+popped_collar	立起的领子	竖领
+bukkake	精液浴	多人颜射	改：颜射（多人）（精液浴） → 精液浴（多人颜射），名称里的括号不像标签名
+sanpaku	三白眼
+dark_background	深色背景	暗背景
+house	房子	住宅
+biceps	二头肌
+black_halo	黑色光环
+string_panties	绳带内裤	细绳内裤
+kitsune	狐妖	妖狐
+ribbon_choker	丝带颈带
+hair_up	盘发	头发扎起
+torn_shirt	破损衬衫	撕破的衬衫
+sexually_suggestive	性暗示
+tassel_earrings	流苏耳环
+grey_thighhighs	灰色过膝袜
+strap_gap	肩带缝隙
+hip_focus	臀胯特写	胯部焦点
+tea	茶
+aiming	瞄准
+breast_sucking	吸乳	吸吮乳头
+braided_bun	编发丸子	辫子盘发
+licking_penis	舔阴茎
+squeans	漫画汗符	squeans
+electric_guitar	电吉他
+nun_headdress	修女头巾
+jacket_partially_removed	夹克半脱
+lace-trimmed_thighhighs	蕾丝边过膝袜
+lace-trimmed_bra	蕾丝边胸罩
+christmas_tree	圣诞树
+aqua_bow	水色蝴蝶结
+drop_shadow	投影	落影
+strap	带子	绑带
+playing_card	扑克牌	纸牌
+stool	凳子	板凳
+covering_crotch	遮住裆部
+holding_wand	拿着魔杖
+bead_bracelet	珠串手链	手串
+flat_cap	平顶帽	平顶鸭舌帽	改：平顶帽（鸭舌帽（平顶）） → 平顶帽（平顶鸭舌帽），别名带括号
+shell	贝壳
+food_focus	以食物为主	食物特写
+red_sash	红饰带	红色腰饰带	改：红饰带（红色腰带） → 红饰带（红色腰饰带），别名“红色腰带”与 red_belt 冲突
+fur-trimmed_dress	毛边连衣裙
+pink_hairband	粉发箍	粉色发箍
+green_bowtie	绿领结	绿色领结
+biting	咬	啃咬
+birthday	生日
+badge	胸章	徽章胸针	改：徽章（胸章）（胸章） → 胸章（徽章胸针），名称里的括号不像标签名；“徽章”是 emblem
+dolphin_shorts	海豚短裤	运动短裤
+cum_on_clothes	衣服上的精液
+assertive_female	强势女性	主动的女性
+yellow_hairband	黄发箍	黄色发箍
+clothes_grab	抓着衣服	揪衣服
+side-by-side	并排	肩并肩
+alternate_hair_length	换发长	其他发长
+humanization	人化	人类化	改：拟人化（人类化）（人化） → 人化（人类化），名称里的括号不像标签名；“拟人化”是 personification
+hasu_no_sora_school_uniform	莲之空女学院制服	莲之空校服
+glowing_eye	单眼发光	一只眼发光
+sphere_hair_ornament	球形发饰
+o-ring_bikini	O环比基尼
+two-tone_jacket	双色夹克
+hibiscus	扶桑花	木槿花
+fur-trimmed_capelet	毛边小披肩
+brown_fur	棕毛	棕色毛皮
+blue_sleeves	蓝袖子	蓝色袖子
+folded	折叠姿势	身体对折
+long_braid	长辫	长辫子
+red_sweater	红毛衣	红色毛衣
+asymmetrical_clothes	不对称服装	左右不对称衣服
+brown_vest	棕色马甲	棕马甲	改：棕背心（棕色马甲） → 棕色马甲（棕马甲），vest 统一译“马甲”
+vehicle_focus	以载具为主	车辆特写
+spiked_bracelet	铆钉手环
+green_halo	绿色光环
+parasol	阳伞
+singing	唱歌
+bear_ears	熊耳	熊耳朵
+pearl_necklace	珍珠项链
+pencil	铅笔
+grey_hat	灰帽子	灰色帽子
+ribs	肋骨
+brick_wall	砖墙
+dark_persona	黑化	暗黑人格
+onee-shota	姐正	大姐姐与正太
+carrying_person	抱着人	背着人
+vaginal_object_insertion	阴道异物插入
+holding_another's_hair	抓着他人头发
+holding_paper	拿着纸
+m_legs	M字腿	M字开脚
+tiger_tail	虎尾	老虎尾巴
+narrow_waist	细腰	蜂腰
+mecha_musume	机娘	机械少女
+x-ray	X光透视	X光	改：透视（X光）（X光） → X光透视（X光），名称里的括号不像标签名
+anchor	锚
+frilled_choker	荷叶边颈带
+heads_together	头靠头	脑袋贴在一起
+mermaid	美人鱼
+topknot	顶髻	头顶发髻
+lineart	线稿
+light	光	光照
+hooded_coat	连帽大衣
+cookie	饼干	曲奇
+zzz	ZZZ	睡觉符号
+mushroom	蘑菇
+platform_sandals	厚底凉鞋
+body_markings	身体纹路	体纹
+mountainous_horizon	山峦地平线	远山
+foursome	4P	四人性爱
+casual_one-piece_swimsuit	休闲连体泳衣
+bathroom	浴室	卫生间
+extra_arms	多条手臂	额外的手臂
+huge_penis	巨根
+content_rating	内容分级标识	分级标识
+yellow_gloves	黄手套	黄色手套
+pants_pull	拉下裤子	脱裤子
+multiple_hair_bows	多个发饰蝴蝶结
+deep_skin	深肤色
+print_thighhighs	印花过膝袜
+heart_ahoge	爱心呆毛
+red_bodysuit	红色紧身连体衣
+holding_card	拿着卡片	持卡
+cunnilingus	舔阴
+ripples	涟漪	水波纹
+dappled_sunlight	斑驳阳光	树影光斑
+naval_uniform	海军制服
+burger	汉堡
+necktie_between_breasts	领带夹在胸间
+kicking	踢	踢腿
+gigantic_breasts	超巨乳
+bath	泡澡	浴缸泡澡	改：洗澡（浴缸）（泡澡） → 泡澡（浴缸泡澡），名称里的括号不像标签名
+cube_hair_ornament	方块发饰
+split	劈叉	一字马
+old_man	老爷爷	老年男性
+raglan_sleeves	插肩袖
+official_style	官方画风
+garrison_cap	船形帽
+blue_streaks	蓝色挑染
+falling	坠落	下落
+water_bottle	水瓶	水壶
+heart_cutout	爱心镂空	心形开口
+goat_horns	山羊角
+handheld_game_console	掌机	掌上游戏机
+body_writing	身体写字	身上写字
+grid_background	网格背景
+police_uniform	警服	警察制服
+hammer	锤子	锤
+tiger_print	虎纹
+leg_grab	抓腿
+white_veil	白色面纱	白头纱
+seductive_smile	诱惑的微笑	媚笑
+black_fur	黑毛	黑色毛皮
+jumpsuit	连体服	连身裤
+colored_extremities	四肢末端异色	手脚变色
+sliding_doors	推拉门	障子门
+shackles	镣铐
+hakama_short_skirt	袴短裙
+sleeveless_jacket	无袖夹克
+same-sex_bathing	同性共浴
+magatama	勾玉
+turning_head	转头	回头
+lion_ears	狮子耳朵	狮耳
+slingshot_swimsuit	弹弓泳衣	V字泳衣
+lace-trimmed_panties	蕾丝边内裤
+television	电视	电视机
+gold_earrings	金耳环
+ruins	废墟	遗迹
+leaning_to_the_side	侧倾	身体侧倾
+erection_under_clothes	衣服下勃起
+explosion	爆炸
+white_robe	白长袍
+raccoon_tail	狸尾	浣熊尾巴
+orange_flower	橙色花朵	橙花
+floating_clothes	衣服飘起	飘动衣物
+orange_skirt	橙裙	橙色裙子
+summer	夏天	夏季
+argyle_clothes	菱格纹衣服	阿盖尔格纹
+black_bag	黑包	黑色包
+purple_necktie	紫领带	紫色领带
+detached_wings	分离的翅膀	悬浮翅膀
+out-of-frame_censoring	出画遮挡
+earphones	入耳式耳机	耳塞
+green_kimono	绿色和服	绿和服
+shark_girl	鲨鱼娘
+camouflage	迷彩
+baby_animal	幼崽	动物幼崽	改：幼崽（小动物（幼）） → 幼崽（动物幼崽），别名带括号
+no_shirt	没穿上衣	光膀子
+multicolored_gloves	多色手套
+diamond-shaped_pupils	菱形瞳孔
+crop_top_overhang	短上衣下乳	上衣撑起
+horse	马
+multicolored_dress	多色连衣裙
+knees	膝盖
+cherry	樱桃
+yellow_nails	黄指甲	黄色指甲
+multicolored_background	多色背景
+transparent	透明
+insect_wings	昆虫翅膀	虫翼
+fake_screenshot	假截图	伪截图
+dirty	脏	弄脏
+arm_cannon	臂炮
+muneate	胸当	弓道护胸
+earclip	耳夹
+leg_tattoo	腿部纹身
+zouri	草履
+chest_hair	胸毛
+torn_pants	破裤子	破洞裤
+open_vest	敞开的马甲		改：敞开的背心 → 敞开的马甲，vest 统一译“马甲”
+o-ring_top	O环上衣
+pigeon-toed	内八	内八字脚
+showgirl_skirt	舞女裙	羽毛尾裙
+presenting_armpit	展示腋下	露腋
+traditional_bowtie	传统领结
+oversized_object	超大物品	巨大物品
+mini_top_hat	迷你礼帽
+dress_bow	连衣裙上的蝴蝶结
+print_dress	印花连衣裙
+maple_leaf	枫叶
+female_ejaculation	潮吹
+babydoll	娃娃装睡衣	babydoll
+animal_ear_headphones	兽耳耳机	兽耳造型耳机	改：兽耳耳机（猫耳耳机） → 兽耳耳机（兽耳造型耳机），别名“猫耳耳机”留给 cat_ear_headphones
+red_theme	红色调	红色主题
+plugsuit_(evangelion)	插入栓战斗服	EVA战斗服
+tate_eboshi	立乌帽子
+off-shoulder_sweater	露肩毛衣
+2others	2个性别不明角色	两名性别不明者	改：2个其他（两名性别不明者） → 2个性别不明角色（两名性别不明者），“2个其他”不知所云
+track_suit	运动套装	田径服
+green_gloves	绿手套	绿色手套
+cow_girl	牛娘	奶牛娘
+holding_pen	拿着笔
+bare_tree	枯树	光秃的树
+medium_dress	中长连衣裙
+grey_pantyhose	灰色连裤袜	灰丝
+peeing	小便	尿尿
+power_lines	输电线	高压线	改：电线杆电线（输电线） → 输电线（高压线），“电线杆电线”不通顺
+holding_camera	拿着相机
+halter_dress	挂脖连衣裙
+asymmetrical_wings	不对称翅膀
+faceless_female	无脸女	没有脸的女性
+arms_under_breasts	双臂托胸
+yellow_sweater	黄毛衣	黄色毛衣
+black_skin	黑色皮肤	黑皮肤
+voice_actor_connection	声优梗	同声优
+asymmetrical_docking	胸贴胸	胸部相贴
+cutoffs	毛边牛仔短裤	剪边短裤
+mitakihara_school_uniform	见泷原中学校服
+white_necktie	白领带	白色领带
+syringe	注射器	针筒
+floppy_ears	垂耳	耷拉耳朵
+lamppost	路灯
+speed_lines	速度线	速度线条	改：速度线（背景）（集中速度线） → 速度线（速度线条），名称里的括号不像标签名；“速度线”从 motion_lines 移来
+blue_socks	蓝袜子	蓝色袜子
+solid_oval_eyes	豆豆眼	椭圆点眼
+planet	行星	星球
+whiskers	动物胡须	猫胡须	改：胡须（动物）（猫胡须） → 动物胡须（猫胡须），名称里的括号不像标签名
+kita_high_school_uniform	北高校服	北高制服
+tailcoat	燕尾服
+hatching_(texture)	排线	阴影排线
+huge_weapon	巨大武器	超大武器
+checkered_floor	棋盘格地板	黑白格地板
+extra_eyes	多只眼睛	额外的眼睛
+lanyard	挂绳	证件挂绳
+shy	腼腆	怕生	改：害羞（腼腆）（腼腆） → 腼腆（怕生），名称里的括号不像标签名；“害羞”是 embarrassed
+crescent_hat_ornament	月牙帽饰
+stomach_bulge	腹部凸起
+stirrup_legwear	踩脚袜	踩脚裤袜
+pantyhose_pull	拉下连裤袜	脱丝袜
+black_mask	黑面具	黑色面具
+greaves	护胫	胫甲
+bandaid_on_nose	鼻子贴创可贴
+black_sandals	黑凉鞋	黑色凉鞋
+bamboo	竹子	竹
+implied_sex	暗示性行为
+pink_cardigan	粉色开衫
+scissors	剪刀
+:|	面无表情嘴	一字嘴
+yawning	打哈欠	哈欠
+tasuki	束袖带	襷
+open_collar	敞开领口	领口敞开
+short_necktie	短领带
+no_eyes	无眼	没画眼睛
+doll_joints	人偶关节	球关节
+shorts_under_skirt	裙下穿短裤	安全裤
+hands_on_own_cheeks	双手捧脸	双手托腮
+arm_guards	臂护	手臂护具	改：护臂（甲）（臂护） → 臂护（手臂护具），名称里的括号不像标签名；“护臂”是 vambraces
+checkered_background	棋盘格背景	格子背景
+polka_dot_bow	波点蝴蝶结
+number_tattoo	数字纹身
+big_hair	蓬松大发	爆炸头
+mouth_drool	嘴角流口水
+eyes_out_of_frame	眼睛出画	眼睛在画外
+name_connection	名字梗	同名梗
+monster_boy	魔物男	怪物男孩
+vertical-striped_shirt	竖条纹衬衫
+star_hat_ornament	星星帽饰
+heart_brooch	爱心胸针
+frilled_thighhighs	荷叶边过膝袜
+alternate_hair_length_(longer)	头发变长	换长发
+braided_hair_rings	编发环
+mobile_suit	机动战士	MS
+blue_bodysuit	蓝色紧身连体衣
+striped_pantyhose	条纹连裤袜
+white_neckerchief	白领巾	白色领巾
+symmetrical_docking	对称胸贴	胸部对贴	改：胸贴胸（对称）（对称胸贴） → 对称胸贴（胸部对贴），名称里的括号不像标签名
+pink_boots	粉靴子	粉色靴子
+holding_lollipop	拿着棒棒糖
+infection_monitor_(arknights)	源石监测器	感染监测器
+peach	桃子
+blue_butterfly	蓝蝴蝶	蓝色蝴蝶
+wing_hair_ornament	翅膀发饰	羽翼发饰
+sunbeam	光柱	阳光光束
+female_orgasm	女性高潮
+long_sideburns	长鬓角
+rainbow	彩虹
+fat_man	胖男人	胖子
+grey_coat	灰大衣	灰色大衣
+floating_earrings	悬浮耳环
+cake_slice	蛋糕切片	一块蛋糕
+heart_in_eye	眼中爱心
+saucer	茶碟	碟子
+pink_choker	粉色颈带
+baseball_bat	棒球棍	球棒
+smoking_pipe	烟斗
+pee	尿	尿液
+mind_control	精神控制	洗脑
+black_flower	黑花	黑色花朵
+robot_joints	机器人关节	机械关节
+monocle	单片眼镜
+third_eye	第三只眼	额头之眼	改：第三只眼（额头）（额头之眼） → 第三只眼（额头之眼），名称里的括号不像标签名
+;o	眨眼张嘴	;o
+photo_background	照片背景	实景背景
+purple_theme	紫色调	紫色主题
+cow_print_bikini	奶牛纹比基尼
+orange_jacket	橙夹克	橙色夹克
+submachine_gun	冲锋枪
+yellow_fur	黄毛	黄色毛皮
+bridge	桥	桥梁
+median_furrow	背沟	脊柱沟
+mismatched_pupils	左右瞳孔不同
+scar_on_arm	手臂伤疤
+chalkboard	黑板
+chest_sarashi	胸部晒布	胸前裹布	改：裹胸（晒布） → 胸部晒布（胸前裹布），名称里的括号不像标签名
+holding_ball	拿着球	抱着球
+black_cloak	黑色长斗篷	黑斗篷大衣	改：黑斗篷外衣（黑色长斗篷） → 黑色长斗篷（黑斗篷大衣），与 cloak 的译法一致
+flat_color	平涂
+dog_boy	犬男	狗耳男孩
+flower_field	花田	花海
+trait_connection	特征梗	属性梗
+1990s_(style)	90年代画风	九十年代风格
+scene_reference	场景致敬	名场面模仿
+coffee	咖啡
+multiple_expressions	多种表情	表情差分
+cross_earrings	十字耳环
+star_in_eye	眼中星星
+plaid_bow	格子蝴蝶结
+double_penetration	双重插入	双穴
+skeleton	骨架	骷髅骨架	改：骷髅（骨架）（骨架） → 骨架（骷髅骨架），名称里的括号不像标签名；“骷髅”是 skull
+tail_bow	尾巴蝴蝶结
+mecha_focus	以机甲为主
+two-tone_fur	双色毛
+grey_vest	灰色马甲	灰马甲	改：灰背心（灰色马甲） → 灰色马甲（灰马甲），vest 统一译“马甲”
+magic_circle	魔法阵	法阵
+shouting	大喊	喊叫
+leaf_on_head	头上顶着叶子
+floating_object	漂浮物体	悬浮物品
+millennium_science_school_logo	千年科学学园标志
+sheep_horns	绵羊角	羊角卷	改：羊角（绵羊）（绵羊角） → 绵羊角（羊角卷），名称里的括号不像标签名
+pink_skin	粉色皮肤	粉皮肤
+single_wing	单翼	单只翅膀
+tomboy	假小子	男孩子气
+tentacle_sex	触手性爱	触手play
+frilled_collar	荷叶边领子	褶边领
+male_swimwear	男士泳装	男泳裤
+bruise	淤青	瘀伤
+streaming_tears	泪流满面	流泪不止
+spoken_musical_note	对话框里的音符
+splashing	水花飞溅	溅水
+holding_unworn_hat	拿着脱下的帽子
+sleepy	困	犯困
+prosthesis	义肢	假肢
+shiny_pokemon	闪光宝可梦	异色宝可梦
+fur-trimmed_headwear	毛边帽子
+mismatched_gloves	左右不同的手套
+single_sock	单只袜子
+one-piece_tan	连体泳衣晒痕
+naked_apron	裸体围裙	裸围裙
+hand_on_another's_cheek	手放他人脸颊
+brown_bag	棕色包	棕包
+gold_bikini	金色比基尼
+idol_clothes	偶像服装	打歌服
+cowboy_hat	牛仔帽
+artist_self-insert	画师自画像	作者本人出镜
+reference_inset	参考小图	角落参考图
+watermelon	西瓜
+multicolored_nails	多色指甲	彩色美甲
+fringe_trim	流苏边	穗边
+see-through_cleavage	透视乳沟
+trigger_discipline	扣扳机纪律	手指离开扳机
+genderswap_(ftm)	女性转男性	女转男
+merry_christmas	圣诞快乐
+bathtub	浴缸
+bra_strap	胸罩肩带	内衣肩带
+motorcycle	摩托车	机车
+pregnant	怀孕	孕妇
+purple_shoes	紫鞋	紫色鞋子
+clipboard	写字板	文件夹板
+traditional_halo	传统光环	圣光环
+pillar	柱子
+turtleneck_shirt	高领衬衫	高领打底
+beard_stubble	络腮胡茬	胡渣	改：胡茬（络腮） → 络腮胡茬（胡渣），名称里的括号不像标签名
+foreskin	包皮
+greyscale_with_colored_background	灰度配彩色背景
+gradient_eyes	渐变瞳	渐变色眼睛
+tying_hair	扎头发
+military_jacket	军装夹克	军外套
+aerial_fireworks	空中烟花
+arm_ribbon	手臂丝带
+sweater_dress	毛衣裙	针织连衣裙
+cyborg	赛博格	改造人
+dripping	滴落	滴下
+sandwiched	被夹在中间	三明治夹击
+pose	摆姿势	姿势
+red_sleeves	红袖子	红色袖子
+heart_print	爱心图案	心形印花
+feeding	喂食	投喂
+rice	米饭	饭
+tail_wagging	摇尾巴
+book_stack	一摞书	书堆
+covered_collarbone	衣服下的锁骨
+alien	外星人
+blue_fire	蓝色火焰	蓝火
+ball_gag	口球
+shelf	架子	搁板
+bra_lift	掀起胸罩
+egg	蛋	鸡蛋
+fur-trimmed_boots	毛边靴子
+sheet_grab	抓床单	揪床单
+evening	傍晚	黄昏
+shoulder_pads	垫肩
+standing_split	站立劈叉	站立一字马
+hand_on_own_stomach	手放肚子上	捂肚子
+heart_pasties	爱心乳贴
+blood_from_mouth	口中流血	嘴角流血
+soaking_feet	泡脚	脚浸水
+scroll	卷轴
+linea_alba	腹白线
+bandaged_hand	手缠绷带
+falling_leaves	落叶
+dougi	道服	武道服
+convenient_hair	头发恰好遮住
+breast_rest	胸部搁在物体上
+multiple_moles	多颗痣
+long_eyelashes	长睫毛
+weapon_over_shoulder	武器扛在肩上	扛武器
+recording	录像中	录制
+torso_grab	抓住躯干	抱腰
+fundoshi	兜裆布
+blood_splatter	血溅	飞溅的血
+demon_boy	恶魔男孩	恶魔男
+striped_socks	条纹袜
+material_growth	材质增生	物质增生
+crack	裂缝	裂痕
+yellow_hat	黄帽子	黄色帽子
+whistle	哨子	口哨
+dragon_wings	龙翼	龙的翅膀
+unconventional_maid	改良女仆装	非传统女仆
+yin_yang	阴阳	太极图
+purple_pantyhose	紫色连裤袜
+single_leg_pantyhose	单腿连裤袜
+vertical-striped_thighhighs	竖条纹过膝袜
+black_ascot	黑色宽领巾		改：黑色领巾 → 黑色宽领巾，与 black_neckerchief“黑色领巾”冲突，ascot 统一为“宽领巾”
+grey_hoodie	灰色连帽衫	灰卫衣
+the_pose	经典姿势	the_pose梗
+pink_necktie	粉领带	粉色领带
+sidelighting	侧光	侧面光
+between_fingers	夹在指间	指间夹着
+glaring	怒视	瞪眼看
+scar_on_chest	胸口伤疤
+long_coat	长大衣	长外套
+alternate_universe	平行世界	AU
+kote	笼手	和式护手	改：笼手（护手（和式）） → 笼手（和式护手），别名带括号
+husband_and_wife	夫妻
+nightgown	睡裙	睡袍
+utility_pole	电线杆
+planted	插在地上	插地
+grey_halo	灰色光环
+partially_unzipped	半拉开拉链
+footwear_bow	鞋上的蝴蝶结
+print_gloves	印花手套
+sticker	贴纸
+purple_lips	紫唇	紫色嘴唇
+tile_wall	瓷砖墙
+beer	啤酒
+brown_bow	棕色蝴蝶结
+pink_pupils	粉色瞳孔
+tape	胶带
+skull_hair_ornament	骷髅发饰
+floral_print_kimono	碎花和服
+unworn_panties	脱下的内裤
+wine	葡萄酒	红酒
+adjusting_headwear	整理帽子	扶帽子
+mole_on_neck	脖子上的痣
+plaid_shirt	格子衬衫
+orange_dress	橙色连衣裙
+rimless_eyewear	无框眼镜
+flag_print	旗帜图案	国旗印花
+tacet_mark_(wuthering_waves)	声痕
+neck_tattoo	颈部纹身
+swivel_chair	转椅	办公椅
+giantess	女巨人
+multiple_belts	多条腰带
+draph	德拉夫
+lily_(flower)	百合花
+hair_pulled_back	头发向后梳	头发后拢
+poolside	泳池边
+black_corset	黑色束腰
+0_0	呆滞圆眼	0_0
+flower-shaped_pupils	花形瞳孔
+arm_belt	臂上皮带
+waist_cape	腰间披风	腰斗篷
+object_on_head	头上顶着东西
+cooking	做饭	烹饪
+white_vest	白色马甲	白马甲	改：白背心（白色马甲） → 白色马甲（白马甲），vest 统一译“马甲”
+slice_of_life	日常
+miqo'te	猫魅族	猫魅
+asymmetrical_sleeves	不对称袖子
+sniper_rifle	狙击枪	狙击步枪
+hand_on_another's_chin	抬他人下巴	勾下巴	改：抬他人下巴（托下巴（他人）） → 抬他人下巴（勾下巴），别名带括号
+obijime	带缔	和服腰绳
+bestiality			弃：不适合作为参考图的标签，不提供中文名
+broom_riding	骑扫帚
+small_sweatdrop	小汗滴
+torogao	融化脸	恍惚脸
+medium_skirt	中长裙	及膝裙
+cum_string	精液拉丝
+race_queen	赛车女郎
+cardboard_box	纸箱	纸板箱
+feet_up	双脚抬起	翘脚
+baggy_pants	宽松裤	阔腿裤
+dog_tags	狗牌	军牌
+fox_shadow_puppet	狐狸手势	手影狐狸
+tassel_hair_ornament	流苏发饰
+moaning	呻吟
+forehead_protector	护额
+jester_cap	小丑帽
+hair_over_breasts	头发遮胸
+bound_legs	双腿被绑
+suitcase	行李箱	手提箱
+elbow_rest	手肘撑着	撑肘
+waist_bow	腰间蝴蝶结
+deformed	变形	崩坏
+lap_pillow	膝枕
+green_gem	绿宝石	绿色宝石
+orb	宝珠	球体
+arthropod_girl	节肢动物娘	虫娘
+ear_ribbon	耳朵上的丝带
+black_robe	黑长袍
+holding_shield	持盾	拿着盾
+raised_eyebrow	挑起一边眉毛	单眉上挑
+paper_lantern	纸灯笼
+multiple_wings	多对翅膀	多翼
+white_bloomers	白色南瓜裤
+vase	花瓶
+red_wings	红色翅膀	红翼
+flower_knot	花结	中国结
+ice_cream_cone	甜筒	冰淇淋甜筒
+chain_necklace	链条项链
+beamed_eighth_notes	连音符	双八分音符
+futon	日式被褥	被褥
+holding_bowl	端着碗
+american_flag	美国国旗	星条旗
+kariginu	狩衣
+street	街道	街头
+solid_circle_eyes	实心圆眼
+cushion	坐垫	靠垫
+bikini_bottom_only	只穿比基尼下装
+nervous_smile	尴尬的笑	紧张地笑
+button_gap	纽扣缝隙	扣子撑开
+frilled_bra	荷叶边胸罩
+plaid_vest	格子马甲	格纹马甲	改：格子背心（格纹马甲） → 格子马甲（格纹马甲），vest 统一译“马甲”
+knight	骑士
+wardrobe_malfunction	服装意外	走光事故
+shushing	嘘	嘘声手势
+print_panties	印花内裤
+laptop	笔记本电脑
+bride	新娘
+father_and_daughter	父女
+open_hands	张开双手	摊开双手
+internal_cumshot	体内射精透视	内射透视
+gap_(touhou)	隙间
+pink_neckerchief	粉领巾	粉色领巾
+arms_around_neck	搂脖子	双臂环颈
+green_panties	绿色内裤
+single_mechanical_arm	单条机械臂	单侧机械臂
+bow-shaped_hair	蝴蝶结形头发
+animal_on_shoulder	肩上的动物
+two-tone_gloves	双色手套
+holding_removed_eyewear	拿着摘下的眼镜
+jaggy_lines	锯齿线	锯齿
+skirt_pull	拉下裙子	扯裙子
+taking_picture	拍照
+red_belt	红腰带	红色腰带
+wolf_boy	狼男孩	狼耳男孩
+red_headband	红头带	红色头带
+grabbing_another's_hair	抓他人头发	揪头发
+black_armor	黑色盔甲	黑铠甲
+holding_box	拿着盒子	抱着箱子
+aiguillette	饰绪	肩带饰绳
+sakuragaoka_high_school_uniform	樱丘高中校服
+grey_shoes	灰鞋	灰色鞋子
+bandaid_on_knee	膝盖贴创可贴
+multi-strapped_bikini_bottom	多带比基尼下装
+bobby_socks	翻口短袜
+very_sweaty	大汗淋漓	满身大汗
+beach_umbrella	沙滩伞	海滩遮阳伞	改：沙滩伞（遮阳伞（海滩）） → 沙滩伞（海滩遮阳伞），别名带括号
+blue_capelet	蓝色小披肩
+maebari	前贴	遮阴贴
+full_armor	全身铠甲	全副武装
+frilled_hat	荷叶边帽子
+skyscraper	摩天大楼	高楼
+pillow_hug	抱枕头
+heart-shaped_food	爱心形食物
+chain-link_fence	铁丝网	铁丝网围栏
+iron_cross	铁十字
+cane	手杖	拐杖
+remote_control_vibrator	遥控跳蛋
+xd	XD脸	XD
+holding_own_skirt	提着裙子
+sakazuki	酒盏	日式酒杯
+high_heel_sandals	高跟凉鞋
+tank	坦克
+striped_jacket	条纹夹克
+bra_visible_through_clothes	透出的胸罩	内衣透出
+d:	惊恐张嘴	D:
+ooarai_school_uniform	大洗女子学园制服
+green_theme	绿色调	绿色主题
+meat	肉
+cow_tail	牛尾	奶牛尾巴
+kogal	小辣妹	コギャル
+tiger_girl	虎娘
+holding_broom	拿着扫帚
+fox	狐狸
+single_shoe	单只鞋
+punching	出拳	挥拳
+frilled_panties	荷叶边内裤
+octoling	章鱼族	Octoling
+star_symbol_background	星星背景
+reclining	斜躺	半躺
+center-flap_bangs	中间垂发刘海
+midair	半空中	空中
+large_bow	大蝴蝶结
+red_armband	红袖章	红色臂章
+river	河	河流
+steepled_fingers	指尖相抵	塔尖手势
+unworn_jacket	脱下的夹克
+leaning_on_person	靠在人身上	依偎
+manly	阳刚	男子气概
+skinny	瘦	骨感
+spoken_blush	说出的脸红	对话框里的脸红
+radio_antenna	无线电天线	天线	改：天线（无线电）（无线电天线） → 无线电天线（天线），名称里的括号不像标签名
+diagonal-striped_necktie	斜纹领带
+playing_games	玩游戏	打游戏
+noodles	面条	面
+updo	盘起的头发	挽发
+striped_skirt	条纹裙
+cat_ear_headphones	猫耳耳机	猫耳头戴耳机	改：猫耳耳机（头戴）（猫耳头戴耳机） → 猫耳耳机（猫耳头戴耳机），名称里的括号不像标签名
+projectile_cum	精液喷射
+fashion	时尚	时装
+turn_pale	脸色发白	脸色苍白
+heart-shaped_box	爱心盒子	心形礼盒
+teamwork_(sexual)			弃：原译 协作（性）；含义不直观（多人配合的性行为），拿不准中文惯用说法
+parted_hair	分发	分开的头发
+red_bra	红色胸罩
+leather_jacket	皮夹克	皮衣
+reverse_cowgirl_position	反向骑乘位	背向女上位
+green_sweater	绿毛衣	绿色毛衣
+single_pauldron	单肩甲
+purple_halo	紫色光环
+gold_necklace	金项链
+amputee	截肢者	截肢
+blood_on_weapon	武器上的血
+half-closed_eye	半睁一只眼
+black_streaks	黑色挑染
+bandaid_on_cheek	脸颊贴创可贴
+netorare	NTR	寝取られ
+jiangshi	僵尸	中式僵尸|僵尸道服	改：僵尸（中式）（僵尸道服） → 僵尸（中式僵尸、僵尸道服），名称里的括号不像标签名
+explosive	炸药	爆炸物
+arm_garter	臂环吊带	袖箍
+coffee_mug	咖啡杯
+clothed_male_nude_female	男着女裸	CMNF
+oripathy_lesion_(arknights)	源石结晶	矿石病结晶
+ranguage	奇怪的外语	错误外语
+bokeh	散景	焦外光斑
+food_print	食物图案
+barbell_piercing	杠铃钉	杠铃穿孔
+single_elbow_glove	单只长手套
+lightning_bolt_symbol	闪电符号
+sailor_senshi_uniform	美少女战士制服	水手战士服
+school_chair	学生椅
+train_interior	车厢内	列车内部
+shopping_bag	购物袋
+company_connection	公司梗	同公司梗
+barcode	条形码
+multicolored_bodysuit	多色紧身连体衣
+single_off_shoulder	单肩落肩	单边露肩装
+blue_belt	蓝腰带	蓝色腰带
+waistcoat	西装马甲
+cowlick	翘发	一撮翘毛
+looking_at_penis	看着阴茎
+holding_axe	拿着斧头
+multiple_horns	多只角
+open_hoodie	敞开的连帽衫
+notebook	笔记本
+castle	城堡
+uterus	子宫
+plaid_scarf	格子围巾
+pom_pom_hair_ornament	毛球发饰	绒球发饰
+costume_switch	互换服装	换装互换
+purple_sleeves	紫袖子	紫色袖子
+grey_sailor_collar	灰色水手领
+blue_ascot	蓝色宽领巾		改：蓝色领巾 → 蓝色宽领巾，与 blue_neckerchief“蓝色领巾”冲突，ascot 统一为“宽领巾”
+nekomata	猫又
+dango	团子	三色团子
+thank_you	谢谢	感谢图
+footjob	足交
+unworn_skirt	脱下的裙子
+;p	眨眼吐舌
+hand_on_another's_back	手放他人背上
+single_hair_intake	单侧进气口发型
+covering_face	捂脸	遮住脸
+drink_carton	饮料盒	纸盒饮料
+low-braided_long_hair	低编长发
+grey_cardigan	灰色开衫
+sepia	棕褐色调	复古褐色
+o-ring_choker	O环颈带
+kissing_cheek	亲脸颊	吻脸
+faulds	腰甲
+navel_hair	肚脐毛
+vertical-striped_dress	竖条纹连衣裙
+teardrop	泪滴
+backboob	背后可见的胸
+panty_peek	内裤微露
+broken	破碎	损坏
+leotard_under_clothes	衣服下的紧身衣
+thigh_holster	大腿枪套	腿部枪套
+arm_around_shoulder	搂肩	手搭肩膀
+purple_hairband	紫发箍	紫色发箍
+cum_on_ass	臀部上的精液
+ankle_socks	船袜	及踝袜	改：短袜（及踝）（船袜） → 船袜（及踝袜），名称里的括号不像标签名；“短袜”是 socks 的别名
+copyright_logo	作品标志	版权logo
+grey_socks	灰袜子	灰色袜子
+uwabaki	室内鞋	上履
+multicolored_bikini	多色比基尼
+rectangular_eyewear	方框眼镜	矩形眼镜
+waves	海浪	波浪
+blue_overalls	蓝色背带裤
+fucked_silly	被干到失神
+erune	艾露恩族
+hachimaki	钵卷	缠头巾	改：头巾（缠头）（钵卷） → 钵卷（缠头巾），名称里的括号不像标签名；“头巾”是 bandana
+landscape	风景画	景观
+flower_wreath	花冠	花环
+sweater_lift	掀起毛衣
+print_skirt	印花裙
+white_headband	白头带	白色头带
+sideways_mouth	歪嘴	斜嘴
+single_ear_cover	单侧耳罩
+leopard_print	豹纹
+hand_on_own_ass	手放屁股上	手扶臀部
+pointing_at_self	指着自己
+mouse_(animal)	老鼠	鼠
+purple_leotard	紫色紧身衣
+gradient_sky	渐变天空
+wolf	狼
+gradient_clothes	渐变服装	渐变色衣服
+torpedo	鱼雷
+fedora	软呢帽	费多拉帽
+wall	墙	墙壁
+trading_card	集换式卡牌	卡牌游戏卡
+boy_on_top	男上位	男孩在上
+exhibitionism	暴露癖
+snout	口鼻部	兽吻
+multi-tied_hair	多段扎发
+brown_tail	棕尾巴	棕色尾巴
+whip	鞭子
+dragon_boy	龙男孩	龙男
+holding_controller	拿着手柄
+competition_school_swimsuit	竞技学校泳衣
+pink_shorts	粉色短裤
+green_cape	绿斗篷	绿色披风
+beer_mug	啤酒杯
+over-kneehighs	过膝长袜
+blue_wings	蓝色翅膀	蓝翼
+painterly	绘画感	厚涂感
+heart-shaped_eyewear	爱心眼镜	心形眼镜
+firing	开火	射击
+armpit_hair	腋毛
+dot_mouth	点嘴
+unworn_clothes	脱下的衣服
+holding_mask	拿着面具
+on_desk	在桌上	书桌上
+purple_bra	紫色胸罩
+uneven_eyes	大小眼
+twisted_torso	扭身	躯干扭转
+loincloth	腰布
+loose_hair_strand	散落的发丝	碎发
+downblouse	领口走光	俯视领口
+holding_scythe	持镰刀	拿着镰刀
+policewoman	女警
+bone	骨头
+hands_on_own_knees	双手扶膝
+orange_(fruit)	橙子	橘子
+poster_(object)	海报
+\m/	金属礼	摇滚手势
+yellow_shorts	黄色短裤
+track_pants	运动裤
+squatting_cowgirl_position	蹲姿骑乘位
+yellow_cardigan	黄色开衫
+green_sailor_collar	绿色水手领
+gold_bracelet	金手镯
+white_feathers	白羽毛	白色羽毛
+red_buruma	红色布鲁马		改：红色灯笼裤 → 红色布鲁马，与 buruma 改译一致
+fox_boy	狐狸男孩	狐耳男孩
+mixed-language_text	混合语言文字
+hot	炎热	很热
+demon	恶魔
+microphone_stand	麦克风架	话筒架
+yellow_shoes	黄鞋	黄色鞋子
+family	家人	家庭
+raccoon_girl	狸娘	浣熊娘
+red_sclera	红色眼白
+cum_on_tongue	舌头上的精液
+girl_sandwich	女孩夹心	被两个女孩夹着
+metal_collar	金属项圈
+frilled_gloves	荷叶边手套
+onigiri	饭团
+v-fin	V字天线
+perspective	透视
+heart_necklace	爱心项链
+viewfinder	取景框
+pinky_out	翘小拇指	兰花指
+v_over_eye	眼前比V	眼睛前剪刀手
+hand_on_another's_arm	手搭他人手臂
+sleeveless_kimono	无袖和服
+loose_necktie	松开的领带	松垮领带
+flip_phone	翻盖手机
+bikini_pull	拉下比基尼
+thigh_belt	大腿皮带
+pumps	浅口高跟鞋	船鞋
+white_horns	白角	白色的角
+heart_choker	爱心颈带
+pervert	变态
+single_detached_sleeve	单只分离袖
+blue_buruma	蓝色布鲁马		改：蓝色灯笼裤 → 蓝色布鲁马，与 buruma 改译一致
+machinery	机械	机器
+energy	能量
+holding_pom_poms	拿着彩球
+diagonal-striped_bow	斜纹蝴蝶结
+diagonal_bangs	斜切刘海	斜线刘海	改：斜刘海（直线）（斜切刘海） → 斜切刘海（斜线刘海），名称里的括号不像标签名；“斜刘海”是 swept_bangs
+water_gun	水枪
+chess_piece	棋子	国际象棋棋子

@@ -1,0 +1,45 @@
+[package]
+name = "kinshoko"
+description = "Kinshoko 的 Tauri 应用壳：命令层只做转发、类型转换和事件推送。"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+name = "kinshoko_app"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+kinshoko-core.workspace = true
+kinshoko-tagger.workspace = true
+tauri = { version = "2", features = ["tray-icon"] }
+serde.workspace = true
+serde_json.workspace = true
+tauri-plugin-dialog = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-single-instance = "2"
+image = { version = "0.25", default-features = false, features = ["png"] }
+uuid = { version = "1", features = ["v4"] }
+# 自动备份按画师的本地日期算“每天”（#69）：取本地时区偏移。
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+# 截图（#62）：抓取光标所在显示器、读写剪贴板图片、读显示器配置文件。
+xcap = "0.9.8"
+arboard = { version = "3.6", default-features = false, features = ["image-data"] }
+tauri-plugin-updater = "2"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Devices_Display", "Win32_Graphics_Gdi", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_UI_ColorSystem", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }
+
+# 与工作区相同，只是把 unsafe 从 forbid 放宽到 deny：读取显示器配置文件、前台窗口与光标位置
+# 没有安全的封装，
+# 只允许 `desktop/win32.rs` 一个模块局部放开（见该文件开头）。
+[lints.rust]
+unsafe_code = "deny"

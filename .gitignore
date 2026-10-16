@@ -7,3 +7,9 @@ work/
 
 # Validation sample images (not redistributable)
 /samples/
+
+# Build output
+/target/
+/node_modules/
+/dist/
+/src-tauri/gen/

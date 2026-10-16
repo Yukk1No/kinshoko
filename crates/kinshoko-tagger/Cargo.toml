@@ -1,0 +1,26 @@
+[package]
+name = "kinshoko-tagger"
+description = "Kinshoko 的打标子进程：ONNX Runtime + DirectML 推理，没有独显时走 CPU（ADR-0004）。"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+kinshoko-core.workspace = true
+# 与 tools/tagger-probe 相同的固定版本（rc 版本 API 常变，精确锁定）。copy-dylibs 把 onnxruntime 与
+# DirectML.dll 放到 exe 旁边，发布时要随 exe 一起分发。
+ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "directml", "download-binaries", "copy-dylibs", "tls-rustls"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+csv = "1"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Dxgi",
+    "Win32_System_SystemInformation",
+] }
+
+# 工作区禁止 unsafe；这里只有查询显存与内存的 Windows 调用（sysinfo 模块）需要它。
+[lints.rust]
+unsafe_code = "deny"
