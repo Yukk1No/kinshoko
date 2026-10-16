@@ -258,3 +258,21 @@ it("跨图库的整理与加入参考组：一个图库失败时其他图库照�
   expect(calls.filter((c) => c.cmd === "plugin:library|workspace_source_group").map((c) => (c.args.target as { libraryId: string }).libraryId)).toEqual(["L1", "L2", "L3"]);
   expect(onError).toHaveBeenCalledWith("有图库没有加入参考组。「私人收藏」：资料库暂时不可用");
 });
+
+it("跨图库逐张整理按图库分组：一个图库失败后跳过它剩下的图，不再一张张等超时，其他图库照常完成", async () => {
+  mockIPC((cmd, args) => {
+    calls.push({ cmd, args: args as Record<string, unknown> });
+    const target = (args as { target?: { libraryId: string } }).target;
+    if (target?.libraryId === "L2") return Promise.reject("等导入收尾超时");
+    return null;
+  });
+  const onError = vi.fn(), onChanged = vi.fn();
+  render(<Harness onError={onError} onChanged={onChanged} />);
+  const cards = [named("1", "L2", "私人收藏"), named("2", "L1", "工作参考"), named("3", "L2", "私人收藏"), named("4", "L3", "移动盘"), named("5", "L2", "私人收藏"), named("6", "L1", "工作参考")];
+  act(() => api.edit(cards, [{ kind: "delete" }], false));
+  await waitFor(() => expect(onChanged).toHaveBeenCalled());
+  const edits = calls.filter((c) => c.cmd === "plugin:library|workspace_edit_source").map((c) => c.args.target as { libraryId: string; imageId: string });
+  expect(edits.map((t) => [t.libraryId, t.imageId])).toEqual([["L2", "i1"], ["L1", "i2"], ["L1", "i6"], ["L3", "i4"]]);
+  expect(onError).toHaveBeenCalledTimes(1);
+  expect(onError).toHaveBeenCalledWith("有图库没有整理完。「私人收藏」：等导入收尾超时");
+});

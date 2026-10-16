@@ -80,15 +80,22 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
   const cardsNamed = useRef<BrowserCard[]>([]);
   /**
    * 跨图库逐张执行（ADR-0008）：后端按需把可写句柄切到每张图的图库；一个图库失败（断连等）时
-   * 其他图库照常完成，最后按图库报告没完成的原因。
+   * 其他图库照常完成，最后按图库报告没完成的原因。按图库分组依次做（按图库第一次出现的顺序）：
+   * 可写句柄每个图库只切一次；一个图库失败（例如导入一直没收尾、等到上限）后跳过它剩下的图，
+   * 不让每张图各等一次上限，其他图库也不必跟着等。
    */
   const eachCard = async (cards: BrowserCard[], what: string, run: (target: WorkspaceSourceTarget) => Promise<unknown>) => {
     cardsNamed.current = cards;
-    const failed: { libraryId: string; error: string }[] = [];
+    const byLibrary = new Map<string, WorkspaceSourceTarget[]>();
     for (const card of cards) {
       const target = targetOf(card, options.current.activeLibraryId);
-      try { await run(target); } catch (e) {
-        if (!failed.some((f) => f.libraryId === target.libraryId)) failed.push({ libraryId: target.libraryId, error: String(e) });
+      const group = byLibrary.get(target.libraryId);
+      if (group) group.push(target); else byLibrary.set(target.libraryId, [target]);
+    }
+    const failed: { libraryId: string; error: string }[] = [];
+    for (const [libraryId, targets] of byLibrary) {
+      for (const target of targets) {
+        try { await run(target); } catch (e) { failed.push({ libraryId, error: String(e) }); break; }
       }
     }
     if (failed.length) options.current.onError(`有图库没有${what}。${libraryFailures(failed, libraryName)}`);
