@@ -14,7 +14,8 @@
     "vite:build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "bindings": "node -e \"require('node:fs').rmSync('src/bindings',{recursive:true,force:true})\" && cargo test -p kinshoko-core"
+    "bindings": "node -e \"require('node:fs').rmSync('src/bindings',{recursive:true,force:true})\" && cargo test -p kinshoko-core",
+    "proto:78": "vite --config prototype/feedback-78/vite.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.6.0",

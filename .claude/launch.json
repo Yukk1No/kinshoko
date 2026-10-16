@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "proto-78",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "proto:78"],
+      "port": 1478
+    }
+  ]
+}

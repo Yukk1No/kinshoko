@@ -1,0 +1,180 @@
+/* PROTOTYPE：方案样式。现状 = data-bar="0" / data-side="0"，不加任何覆盖。 */
+.proto-switcher { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 99999;
+  display: flex; gap: 14px; padding: 8px 14px; border-radius: 999px; background: #111; color: #fff;
+  font: 12px/1.2 system-ui, sans-serif; box-shadow: 0 6px 24px rgba(0,0,0,.35); white-space: nowrap; }
+.proto-row { display: flex; align-items: center; gap: 6px; }
+.proto-k { opacity: .55; }
+.proto-switcher button { all: unset; cursor: pointer; padding: 2px 8px; border-radius: 6px; background: #333; }
+.proto-switcher b { min-width: 92px; text-align: center; }
+
+/* ================= 反馈 4：顶栏 ================= */
+
+/* ---- 共用：有物理感的滑条（A / B / C）。轨道下沉，把手是一颗带投影的纸白圆钮，按下会被“压”下去。 ---- */
+:root:not([data-bar="0"]) .bar-meta .density input {
+  -webkit-appearance: none; appearance: none; width: 104px; height: 22px; margin: 0; background: transparent; cursor: pointer; }
+:root:not([data-bar="0"]) .bar-meta .density input::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 999px;
+  background: linear-gradient(var(--ink-2), var(--ink-2)) 0 0 / var(--fill, 40%) 100% no-repeat, var(--line-2);
+  box-shadow: inset 0 1px 1px rgba(43,39,71,.18); }
+:root:not([data-bar="0"]) .bar-meta .density input::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #fff 0 40%, #f6f1e6 100%);
+  box-shadow: 0 0 0 .5px rgba(43,39,71,.28), 0 1px 1.5px rgba(43,39,71,.28), 0 4px 10px rgba(43,39,71,.16);
+  transition: transform 160ms var(--spring), box-shadow 160ms var(--ease); }
+:root:not([data-bar="0"]) .bar-meta .density input:hover::-webkit-slider-thumb { transform: scale(1.1); }
+:root:not([data-bar="0"]) .bar-meta .density input:active::-webkit-slider-thumb {
+  transform: scale(.94); box-shadow: 0 0 0 .5px rgba(43,39,71,.3), 0 0 1px rgba(43,39,71,.3), 0 1px 3px rgba(43,39,71,.18); }
+:root:not([data-bar="0"]) .bar-meta .density input:focus-visible { outline: 0; }
+:root:not([data-bar="0"]) .bar-meta .density input:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px var(--accent), 0 4px 10px rgba(43,39,71,.16); }
+/* 两端的小图 / 大图图标，告诉人“往右是大图” */
+:root:not([data-bar="0"]) .bar-meta .density > svg { width: 12px; height: 12px; }
+:root:not([data-bar="0"]) .bar-meta .density::after {
+  content: ""; width: 16px; height: 16px; flex: none; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='18' height='18' rx='2'/><circle cx='9' cy='9' r='2'/><path d='m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21'/></svg>") center / contain no-repeat; }
+
+/* ---- A 安静一体：查找框里的开关跟框同心；导入降成次要按钮 ---- */
+[data-bar="A"] .topbar > .search { border-radius: 12px; height: 40px; padding: 0 6px 0 12px; }
+[data-bar="A"] .topbar > .search .search-chip { border-radius: 7px; height: 28px; }
+[data-bar="A"] .topbar > .search .search-exact {
+  height: 28px; padding: 0 10px; border: 0; border-radius: 7px; font-size: 0; color: var(--ink-2); background: var(--surface-2);
+  display: inline-flex; align-items: center; gap: 6px; transition: background 160ms var(--ease), color 160ms var(--ease); }
+[data-bar="A"] .topbar > .search .search-exact::before { content: "≈ 含相近"; font-size: 12px; font-weight: 500; }
+[data-bar="A"] .topbar > .search .search-exact:hover { background: var(--hover); color: var(--ink); }
+[data-bar="A"] .topbar > .search .search-exact[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+[data-bar="A"] .topbar > .search .search-exact[aria-pressed="true"]::before { content: "= 仅精确"; }
+[data-bar="A"] .k-split { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); border-radius: 12px; height: 40px; }
+[data-bar="A"] .k-split > button { color: var(--ink); }
+[data-bar="A"] .k-split > button:hover:not(:disabled) { background: var(--hover); }
+[data-bar="A"] .k-split .k-split-main { border-radius: 12px 0 0 12px; }
+[data-bar="A"] .k-split .k-split-more { border-radius: 0 12px 12px 0; border-left-color: var(--line-2); }
+[data-bar="A"] .k-split.k-import .k-split-main svg { color: var(--accent-strong); }
+
+/* ---- B 轻量分组：查找框只管查找；张数 · 大小 · 导入合成一条工具胶囊；“精确”搬到标签行 ---- */
+[data-bar="B"] .topbar > .search .search-exact { display: none; }
+[data-bar="B"] .topbar { gap: 12px; }
+[data-bar="B"] .bar-meta { height: 40px; padding: 0 4px 0 14px; gap: 12px; border-radius: 12px 0 0 12px; background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-2); margin-right: -12px; }
+[data-bar="B"] .k-split { height: 40px; background: var(--surface); border-radius: 0 12px 12px 0; box-shadow: inset 0 0 0 1px var(--line-2), inset 1px 0 0 0 var(--line-2); }
+[data-bar="B"] .k-split > button { color: var(--ink); }
+[data-bar="B"] .k-split > button:hover:not(:disabled) { background: var(--hover); }
+[data-bar="B"] .k-split .k-split-main { border-radius: 0; padding: 0 10px 0 12px; }
+[data-bar="B"] .k-split .k-split-more { border-radius: 0 12px 12px 0; border-left-color: var(--line-2); }
+[data-bar="B"] .k-split.k-import .k-split-main svg { color: var(--accent-strong); }
+/* 刻度：密度是几档“感觉”，给轨道打上 6 个点 */
+[data-bar="B"] .bar-meta .density input::-webkit-slider-runnable-track {
+  background:
+    radial-gradient(circle, var(--ink-3) 0 1.2px, transparent 1.6px) 0 50% / calc((100% - 1px) / 5) 100% repeat-x,
+    linear-gradient(var(--ink-2), var(--ink-2)) 0 0 / var(--fill, 40%) 100% no-repeat, var(--line-2); }
+.proto-tagrow { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.proto-tagrow > :last-child { flex: 1; min-width: 0; }
+.proto-expand { display: inline-flex; align-items: center; gap: 6px; flex: none; font-size: 12px; color: var(--ink-2); padding-left: 4px; white-space: nowrap; }
+.proto-tagrow-sep { width: 1px; height: 16px; background: var(--line-2); flex: none; }
+
+/* ---- C 工具岛：查找框尾部一段两态分段；图片大小浮在图片墙右下角（以后接 Ctrl+滚轮）；导入只剩图标 ---- */
+[data-bar^="C"] .topbar > .search { border-radius: 12px; height: 40px; padding: 0 4px 0 12px; }
+[data-bar^="C"] .topbar > .search .search-chip { border-radius: 8px; }
+[data-bar^="C"] .topbar > .search .search-exact { display: none; }
+[data-bar^="C"] .bar-meta .density { position: fixed; right: 24px; bottom: 24px; z-index: 50; height: 40px; padding: 0 14px; gap: 10px;
+  border-radius: 999px; background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-pop); color: var(--ink-2); }
+[data-bar^="C"] .bar-meta .density input { width: 140px; }
+[data-bar^="C"] .k-split { background: transparent; box-shadow: none; height: 36px; }
+[data-bar^="C"] .k-split > button { color: var(--ink-2); }
+[data-bar^="C"] .k-split > button:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+[data-bar^="C"] .k-split .k-split-main { font-size: 0; gap: 0; width: 36px; justify-content: center; padding: 0; border-radius: 10px 0 0 10px; }
+[data-bar^="C"] .k-split .k-split-main svg { width: 18px; height: 18px; color: var(--ink-2) !important; }
+[data-bar^="C"] .k-split .k-split-more { width: 22px; border-left: 0; border-radius: 0 10px 10px 0; }
+
+/* ================= 反馈 9：侧栏 ================= */
+.proto-pane-title { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; padding-left: 4px; font-weight: 600; font-size: 13px; color: var(--ink-2); }
+.proto-pane-title > span { flex: 1; }
+.proto-dim { color: var(--ink-3); font-weight: 400; }
+.proto-row-item.is-muted { opacity: .55; }
+.proto-offline { display: flex; align-items: center; gap: 8px; margin: 2px 0 6px 22px; font-size: 11px; color: var(--warn); }
+.proto-offline button { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; color: var(--accent-strong); font-weight: 500; }
+.proto-offline button:hover { text-decoration: underline; }
+
+/* A：Finder 式分组 */
+.proto-side-a .proto-lib { margin-top: 12px; }
+.proto-lib-head { display: flex; align-items: center; height: 28px; gap: 0; }
+.proto-chev { all: unset; width: 20px; height: 24px; display: grid; place-items: center; color: var(--ink-3); cursor: pointer; border-radius: 6px; }
+.proto-chev:hover { background: var(--hover); }
+.proto-lib-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 8px 0 4px; border: 0; border-radius: 7px; background: transparent;
+  font: inherit; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; color: var(--ink-3); cursor: pointer; text-align: left; }
+.proto-lib-name:hover:not(:disabled) { color: var(--ink); background: var(--hover); }
+.proto-lib-name[aria-current="page"] { color: var(--accent-strong); background: var(--accent-soft); }
+.proto-lib-name:disabled { cursor: default; }
+.proto-lib-name .sidebar-count { margin-left: auto; font-weight: 400; letter-spacing: 0; font-size: 11px; }
+.proto-off-dot { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
+.proto-more { opacity: 0; width: 24px; height: 24px; transition: opacity 120ms; }
+.proto-lib-head:hover .proto-more, .proto-more:focus-visible { opacity: 1; }
+.proto-side-a .proto-offline { margin-left: 24px; }
+
+/* B：范围列表，选中的就地展开 */
+.proto-scope-list { display: flex; flex-direction: column; gap: 4px; padding-top: 6px; }
+.proto-scope { display: flex; align-items: center; gap: 10px; width: 100%; height: 44px; padding: 0 10px 0 6px; border: 0; border-radius: 10px; background: transparent;
+  font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+.proto-scope:hover:not(:disabled) { background: var(--hover); }
+.proto-scope[aria-current="page"] { background: var(--accent-soft); }
+.proto-scope[aria-current="page"] b { color: var(--accent-strong); }
+.proto-scope:disabled { cursor: default; opacity: .7; }
+.proto-scope-mark { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 8px; background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line); font-weight: 600; font-size: 13px; color: var(--ink-2); }
+.proto-scope-mark.is-all { background: var(--ink); color: var(--surface); box-shadow: none; }
+.proto-scope-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.proto-scope-text b { font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proto-scope-text small { font-size: 11px; color: var(--ink-3); }
+.proto-scope .sidebar-count { color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.proto-scope-group.is-open { background: color-mix(in srgb, var(--surface) 70%, transparent); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); padding-bottom: 6px; }
+.proto-scope-body { padding: 2px 4px 0 18px; border-left: 1px solid var(--line); margin-left: 21px; }
+
+/* C：切换条 + 单库目录 */
+.proto-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 8px 10px; border-bottom: 1px solid var(--line); }
+.proto-tabs button { all: unset; cursor: pointer; height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12px; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-2); }
+.proto-tabs button:hover { background: var(--hover); color: var(--ink); }
+.proto-tabs button[aria-selected="true"] { background: var(--ink); color: var(--surface); box-shadow: none; }
+.proto-tabs button.is-off { color: var(--warn); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 40%, transparent); }
+.proto-overview { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.proto-card { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--line); }
+.proto-card:hover { background: var(--hover); }
+.proto-card b { font-weight: 500; font-size: 13px; }
+.proto-card span { font-size: 11px; color: var(--ink-3); }
+.proto-overview-head { margin: 4px 4px 0; font-size: 12px; color: var(--ink-3); }
+
+/* ---- C 系列：查找框尾部，用项目组件 ---- */
+.proto-exact-host { display: flex; align-items: center; flex: none; margin-left: auto; }
+/* C：Segmented + motion 滑块。外框 12 / 内边 4 → 段 8，同心。 */
+.proto-exact-seg.k-seg { padding: 3px; border-radius: 9px; gap: 0; background: var(--sunken); }
+.proto-exact-seg .k-seg-item { position: relative; height: 26px; padding: 0 10px; border-radius: 6px; font-size: 12px; background: transparent !important; box-shadow: none !important; color: var(--ink-3); }
+.proto-exact-seg .k-seg-item[data-pressed] { color: var(--ink); }
+.proto-seg-thumb { position: absolute; inset: 0; border-radius: 6px; background: var(--surface); box-shadow: 0 0 0 .5px rgba(43,39,71,.12), 0 1px 2px rgba(43,39,71,.14), 0 2px 6px rgba(43,39,71,.06); }
+.proto-seg-label { position: relative; z-index: 1; }
+/* C2：Switch */
+.proto-exact-switch { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px 0 10px; border-radius: 8px; font-size: 12px; color: var(--ink-2); cursor: pointer; }
+.proto-exact-switch:hover { background: var(--hover); }
+.proto-exact-switch .k-switch.is-sm { width: 30px; height: 18px; }
+.proto-exact-switch .k-switch.is-sm .k-switch-thumb { width: 14px; height: 14px; }
+.proto-exact-switch .k-switch[data-checked] { background: var(--ink); }
+/* C3：图标 Toggle。周围（查找框、顶栏）都是平的，按钮不另起材质：
+   关 = 与查找框同平面，只有字形；悬停浮起一层很浅的底。
+   开 = 轻轻凹进查找框的一个浅槽（只用内阴影表示“按住了”），字形换色。
+   查找框 40 高、圆角 12，按钮 32 高、内缩 4 → 圆角 8（同心）。 */
+.proto-exact-icon { position: relative; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; cursor: pointer; display: grid; place-items: center;
+  color: var(--ink-3); background: transparent; box-shadow: none;
+  transition: box-shadow 180ms var(--ease), background-color 180ms var(--ease), color 180ms var(--ease), transform 140ms var(--spring); }
+.proto-exact-icon:hover { color: var(--ink); background-color: var(--hover); }
+.proto-exact-icon:active { transform: scale(.94); }
+.proto-exact-icon:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--accent); }
+.proto-exact-icon[data-pressed][data-tone="gold"] { color: #9A6A10; background-color: rgba(227,179,79,.16);
+  box-shadow: inset 0 1px 1.5px rgba(110,75,10,.16), inset 0 0 0 .5px rgba(160,112,15,.22); }
+.proto-exact-icon[data-pressed][data-tone="sakura"] { color: var(--accent-strong); background-color: var(--accent-soft);
+  box-shadow: inset 0 1px 1.5px rgba(120,30,55,.14), inset 0 0 0 .5px rgba(181,70,95,.2); }
+.proto-exact-icon[data-pressed][data-tone="ink"] { color: var(--ink); background-color: var(--sunken);
+  box-shadow: inset 0 1px 1.5px rgba(43,39,71,.16), inset 0 0 0 .5px rgba(43,39,71,.12); }
+.proto-glyph { grid-area: 1 / 1; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round;
+  transition: opacity 160ms var(--ease), transform 220ms var(--spring); }
+.proto-exact-icon .is-exact { opacity: 0; transform: scaleX(.6); }
+.proto-exact-icon[data-pressed] .is-near { opacity: 0; transform: scaleY(.4); }
+.proto-exact-icon[data-pressed] .is-exact { opacity: 1; transform: none; }
+.proto-tip { padding: 6px 9px; border-radius: 8px; background: var(--ink); color: var(--surface); font-size: 12px; box-shadow: var(--shadow-pop); display: flex; gap: 8px; align-items: center; }
+.proto-tip kbd { font: inherit; font-size: 11px; opacity: .6; }
