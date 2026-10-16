@@ -1,12 +1,50 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { glyphGrid, glyphPath, snapGlyph, type GlyphKind } from "./winGlyphs";
 
 /** The window this page runs in; null outside Tauri (tests without a mocked window, plain browser). */
 function currentWindow() {
   try { return getCurrentWindow(); } catch { return null; }
 }
 
-const glyph = { width: 10, height: 10, viewBox: "0 0 10 10", fill: "none", stroke: "currentColor", strokeWidth: 1.2, "aria-hidden": true } as const;
+function Glyph({ kind, dpr }: { kind: GlyphKind; dpr: number }) {
+  const grid = glyphGrid(dpr), css = grid.size / dpr;
+  return <svg width={css} height={css} viewBox={`0 0 ${grid.size} ${grid.size}`} fill="none" stroke="currentColor" strokeWidth={grid.stroke} aria-hidden="true"
+    style={{ left: `calc(50% - ${css / 2}px)`, top: `calc(50% - ${css / 2}px)` }}>
+    <path d={glyphPath(kind, grid)} />
+  </svg>;
+}
+
+/** Keeps each glyph in `group` on whole device pixels as the controls move (window resize, scale change, panel transitions). */
+function useSnappedGlyphs(group: RefObject<HTMLDivElement | null>, maximized: boolean) {
+  const [dpr, setDpr] = useState(() => window.devicePixelRatio || 1);
+  useLayoutEffect(() => {
+    const snap = () => {
+      const now = window.devicePixelRatio || 1;
+      if (now !== dpr) { setDpr(now); return; }
+      const size = glyphGrid(dpr).size;
+      for (const button of group.current?.querySelectorAll<HTMLElement>(".k-win-btn") ?? []) {
+        const svg = button.querySelector("svg");
+        if (!svg) continue;
+        const at = snapGlyph(button.getBoundingClientRect(), size, dpr);
+        svg.style.left = `${at.left}px`;
+        svg.style.top = `${at.top}px`;
+      }
+    };
+    snap();
+    // A scale change (another monitor, display settings) need not resize the viewport, so watch the resolution too.
+    const scale = window.matchMedia?.(`(resolution: ${dpr}dppx)`);
+    scale?.addEventListener("change", snap);
+    window.addEventListener("resize", snap);
+    document.addEventListener("transitionend", snap, true);
+    return () => {
+      scale?.removeEventListener("change", snap);
+      window.removeEventListener("resize", snap);
+      document.removeEventListener("transitionend", snap, true);
+    };
+  }, [group, dpr, maximized]);
+  return dpr;
+}
 
 /**
  * Window controls for the frameless main window (design/ui-system/README.md, 窗口框架).
@@ -16,6 +54,8 @@ const glyph = { width: 10, height: 10, viewBox: "0 0 10 10", fill: "none", strok
  */
 export function WinCtrls() {
   const [maximized, setMaximized] = useState(false);
+  const group = useRef<HTMLDivElement>(null);
+  const dpr = useSnappedGlyphs(group, maximized);
   useEffect(() => {
     let alive = true;
     const win = currentWindow();
@@ -29,19 +69,17 @@ export function WinCtrls() {
     const win = currentWindow();
     if (win) void action(win).catch(() => {});
   };
-  return <div className="k-win-ctrls" data-maximized={maximized || undefined}>
+  return <div ref={group} className="k-win-ctrls" data-maximized={maximized || undefined}>
     <span className="k-win-div" aria-hidden="true" />
     <button type="button" className="k-win-btn" aria-label="最小化" title="最小化" onClick={run((win) => win.minimize())}>
-      <svg {...glyph}><path d="M1 5.5h8" /></svg>
+      <Glyph kind="minimize" dpr={dpr} />
     </button>
     <button type="button" className="k-win-btn" aria-label={maximized ? "还原" : "最大化"} title={maximized ? "还原" : "最大化"}
       onClick={run((win) => win.toggleMaximize())}>
-      {maximized
-        ? <svg {...glyph}><rect x="1" y="3" width="6" height="6" rx="1.2" /><path d="M3 3V2.2C3 1.5 3.5 1 4.2 1h3.6C8.5 1 9 1.5 9 2.2v3.6C9 6.5 8.5 7 7.8 7H7" /></svg>
-        : <svg {...glyph}><rect x="1.1" y="1.1" width="7.8" height="7.8" rx="1.6" /></svg>}
+      <Glyph kind={maximized ? "restore" : "maximize"} dpr={dpr} />
     </button>
     <button type="button" className="k-win-btn is-close" aria-label="关闭" title="关闭" onClick={run((win) => win.close())}>
-      <svg {...glyph}><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" /></svg>
+      <Glyph kind="close" dpr={dpr} />
     </button>
   </div>;
 }

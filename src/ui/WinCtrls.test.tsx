@@ -41,6 +41,25 @@ it("最大化后中间按钮换成还原，窗口还原后换回来", async () =
   expect(await screen.findByRole("button", { name: "最大化" })).toBeTruthy();
 });
 
+it("图形按当前缩放画在设备像素网格上：150% 时 15 像素见方、线宽 2 像素", async () => {
+  backend();
+  const original = window.devicePixelRatio;
+  Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.5 });
+  try {
+    const { container } = render(<WinCtrls />);
+    await screen.findByRole("button", { name: "最大化" });
+    const glyphs = [...container.querySelectorAll(".k-win-btn svg")];
+    expect(glyphs).toHaveLength(3);
+    for (const svg of glyphs) {
+      expect(svg.getAttribute("viewBox")).toBe("0 0 15 15");
+      expect(svg.getAttribute("stroke-width")).toBe("2");
+      expect(Number(svg.getAttribute("width"))).toBeCloseTo(10);
+    }
+  } finally {
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: original });
+  }
+});
+
 it("最大化时控件组带上 data-maximized，让样式把它贴到屏幕右上角；还原后去掉", async () => {
   backend();
   const { container } = render(<WinCtrls />);
