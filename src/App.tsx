@@ -120,6 +120,8 @@ function LibraryWorkspace({
   const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
   const [reloadKey, setReloadKey] = useState(0);
   const [density, setDensity] = useState(240);
+  /** 图片墙上 Ctrl+滚轮缩放中的预览值（#111），滑条跟着走。 */
+  const [zoomPreview, setZoomPreview] = useState<number | null>(null);
   const [resultCount, setResultCount] = useState<number | null>(null);
   /** 修订变化后的选择修剪：等图片墙清空（reset）再读完新的结果（loading），然后只保留仍在的图。 */
   const prune = useRef<"idle" | "reset" | "loading">("idle");
@@ -397,6 +399,8 @@ function LibraryWorkspace({
     onChanged: () => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); },
     onClearSelection: () => setSelected(new Set()),
     importFrom: (source) => importControl.current?.[source](),
+    importClipboard: async () => { await importControl.current?.clipboard(); },
+    onNotice: (message) => { toast?.show({ title: message, tone: "success" }); },
     selectAll: () => wall.current?.selectAll(),
     setDensity,
   });
@@ -502,6 +506,8 @@ function LibraryWorkspace({
           <Wall
             ref={wall}
             density={density}
+            onDensityPreview={setZoomPreview}
+            onDensityCommit={(value) => { setZoomPreview(null); setDensity(value); }}
             onTotalChange={setResultCount}
             key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
             libraryId={libraryId || "workspace"}
@@ -521,11 +527,13 @@ function LibraryWorkspace({
             onCardCommand={(command, cards, point) => {
               if (command === "pin") wallActions.pin(cards, point);
               else if (command === "crop") wallActions.crop(cards[0]);
+              else if (command === "copy") { if (cards.length === 1) wallActions.copy(cards[0]); else if (toast) toast.show({ title: "一次只能复制一张" }); else onError("一次只能复制一张"); }
               else wallActions.edit(cards, [{ kind: "delete" }], true);
             }}
+            onPaste={wallActions.importClipboard}
           />
           {/* 图片大小浮岛（#102 方案 C3）：图片墙右下角，与 Ctrl+滚轮缩放成对。 */}
-          <DensityIsland value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
+          <DensityIsland value={density} preview={zoomPreview} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
           {/* 多选的浮动操作条（#98）：选择面板把数量与批量操作放到这里。 */}
           <div className="selbar-host" ref={setBarHost} />
         </main>

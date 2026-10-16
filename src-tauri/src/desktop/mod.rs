@@ -10,12 +10,14 @@
 //! - 资料库事件（安全模式开关、分级变化）到达时，资料库钉图重新核对要不要遮蔽；
 //! - 截图历史变化时向所有窗口推送 `capture-history`（截图列表，从新到旧）；
 //! - 参考组（#66）：桌面上的资料库钉图存成参考组、打开参考组把成员钉到桌面（[`groups`]）；
-//! - 钉图的右键菜单（#106）：与主窗口同样式，由独立的置顶无边框菜单窗口承载（[`menu`]）。
+//! - 钉图的右键菜单（#106）：与主窗口同样式，由独立的置顶无边框菜单窗口承载（[`menu`]）；
+//! - 复制图片、在资源管理器中显示、从剪贴板导入（#105，[`image_actions`]）。
 
 mod capture;
 mod clipboard;
 mod edge;
 mod groups;
+mod image_actions;
 mod menu;
 mod pins;
 #[cfg(windows)]
@@ -147,6 +149,10 @@ pub fn init() -> TauriPlugin<Wry> {
             pins::set_pin_locked,
             pins::pin_reference,
             pins::reveal_pin,
+            image_actions::copy_reference_image,
+            image_actions::reveal_reference_image,
+            image_actions::clipboard_has_image,
+            image_actions::stage_clipboard_import,
             groups::reference_groups,
             groups::reference_group,
             groups::group_save_captures,

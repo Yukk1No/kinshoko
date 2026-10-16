@@ -7,12 +7,14 @@ const MAX = 420;
 
 /** Accepted slider gestures and delayed keyboard commit; the formal Wall measures its current cards
  * before each preview, then updates the real layout without requesting thumbnails until commit. */
-export function DensitySlider(p: { value: number; onPreview: (v: number | null) => void; onCommit: (v: number) => void; showValue?: boolean; label?: string }) {
+export function DensitySlider(p: { value: number; preview?: number | null; onPreview: (v: number | null) => void; onCommit: (v: number) => void; showValue?: boolean; label?: string }) {
   const [v, setV] = useState(p.value);
   const timer = useRef(0);
   const dragging = useRef(false);
   const pending = useRef<number | null>(null);
   useEffect(() => setV(p.value), [p.value]);
+  // Ctrl+wheel zoom on the wall previews the same value (#111): the thumb follows it; the wall commits it itself.
+  useEffect(() => { setV(p.preview ?? p.value); }, [p.preview]);
   const commit = (x: number) => {
     clearTimeout(timer.current);
     dragging.current = false;

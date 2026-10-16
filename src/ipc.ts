@@ -664,6 +664,26 @@ export function pinReference(
   return invoke<void>(desk("pin_reference"), { libraryId, imageId, crop, shown });
 }
 
+/** 复制图片（#105）：把参考图的原图像素放进剪贴板；没有这张图、被封印或原文件不在时 reject 中文原因。 */
+export function copyReferenceImage(libraryId: string, imageId: string): Promise<void> {
+  return invoke<void>(desk("copy_reference_image"), { libraryId, imageId });
+}
+
+/** 在资源管理器中显示（#105）：打开原文件所在的文件夹并选中它；文件不在时 reject 中文原因。 */
+export function revealReferenceImage(libraryId: string, imageId: string): Promise<void> {
+  return invoke<void>(desk("reveal_reference_image"), { libraryId, imageId });
+}
+
+/** 剪贴板里有没有图片（只看格式，不读出）。 */
+export function clipboardHasImage(): Promise<boolean> {
+  return invoke<boolean>(desk("clipboard_has_image"));
+}
+
+/** 从剪贴板导入（#105）：把剪贴板图片暂存成 PNG，返回路径交给普通导入；没有图片时 reject 中文原因。 */
+export function stageClipboardImport(): Promise<string> {
+  return invoke<string>(desk("stage_clipboard_import"));
+}
+
 /** 画师确认显示这张被遮蔽的参考图（安全模式下，只这一张）。 */
 export function revealPin(pin: string): Promise<void> {
   return invoke<void>(desk("reveal_pin"), { pin });
