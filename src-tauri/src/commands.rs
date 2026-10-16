@@ -48,6 +48,20 @@ pub async fn set_show_approx_source(
     Ok(shell.view())
 }
 
+/// 开关“切换安全模式时保留选择”。
+#[tauri::command]
+pub async fn set_keep_selection_on_safe_mode(
+    state: State<'_, ShellState>,
+    on: bool,
+) -> Result<ShellSettingsView, String> {
+    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+    shell
+        .settings
+        .set_keep_selection_on_safe_mode(on)
+        .map_err(|e| e.to_string())?;
+    Ok(shell.view())
+}
+
 /// 开关诊断开关“强制 sRGB”。WebView2 环境在启动时建好，重启 Kinshoko 后生效。
 #[tauri::command]
 pub async fn set_force_srgb(

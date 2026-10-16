@@ -30,6 +30,7 @@ const defaults: ShellSettingsView = {
   forceSrgb: false,
   forceSrgbInEffect: false,
   usageLog: false,
+  keepSelectionOnSafeMode: false,
 };
 
 /** 记录前端发出的命令，按给定的处理函数回应。 */
@@ -218,6 +219,22 @@ describe("设置：近似查找", () => {
     await screen.findByRole("switch", { name: "标出来源", checked: true });
     expect(calls.find((c) => c.cmd === "set_show_approx_source")?.args).toEqual({ on: true });
     expect(seen.at(-1)?.showApproxSource).toBe(true);
+  });
+
+  it("切换安全模式时保留选择默认关闭，打开后告诉主窗口", async () => {
+    const calls = backend((cmd) =>
+      cmd === "set_keep_selection_on_safe_mode" ? { ...defaults, keepSelectionOnSafeMode: true } : undefined,
+    );
+    const seen: ShellSettingsView[] = [];
+    render(<SettingsPanel library={null} onChange={(v) => seen.push(v)} initialTab="safety" safe onSafeMode={() => {}} />);
+
+    const toggle = await screen.findByRole("switch", { name: "切换时保留选择" });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(toggle);
+
+    await screen.findByRole("switch", { name: "切换时保留选择", checked: true });
+    expect(calls.find((c) => c.cmd === "set_keep_selection_on_safe_mode")?.args).toEqual({ on: true });
+    expect(seen.at(-1)?.keepSelectionOnSafeMode).toBe(true);
   });
 
   it("程序设置中列出全局个人近似对应表，可以删除", async () => {

@@ -8,6 +8,7 @@ import { WinCtrls } from "./ui/WinCtrls";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowseScope } from "./bindings/BrowseScope";
 import type { ConditionTree } from "./bindings/ConditionTree";
+import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { SearchInput } from "./bindings/SearchInput";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { WorkspaceCard } from "./bindings/WorkspaceCard";
@@ -67,6 +68,8 @@ type WorkspaceProps = {
   /** 资料库确认安全模式已切换（`safeModeChanged`）。 */
   onSafeChanged: (on: boolean) => void;
   showApproxSource: boolean;
+  /** 设置“切换安全模式时保留选择”；关闭时切换即清空选择和来源面板。 */
+  keepSelectionOnSafe: boolean;
   /** 查看器打开／关闭：工作区外的界面（资料库选择、面板、状态栏）随之不可操作。 */
   onViewerChange: (open: boolean) => void;
   /** 顶栏下方的提示（运行时、旧名称、更新、备份提醒）。 */
@@ -90,9 +93,12 @@ function LibraryWorkspace({
   safe,
   onSafeChanged,
   showApproxSource,
+  keepSelectionOnSafe,
   onViewerChange,
   notices,
 }: WorkspaceProps) {
+  const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
+  keepSelectionOnSafeRef.current = keepSelectionOnSafe;
   const toast = useToast();
   const libraryId = library?.id ?? "";
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
@@ -230,6 +236,11 @@ function LibraryWorkspace({
     return () => { alive = false; void stop.then((stop) => stop()); };
   }, [safe, onError, acceptStatus]);
   useEffect(() => {
+    // 用户偏好：默认切换即清空；保留时由重读后的修剪去掉新视角里看不到的图。
+    if (!keepSelectionOnSafeRef.current) {
+      setSources(null);
+      setSelected(new Set());
+    }
     wall.current?.invalidate();
     setPreviewSnapshot(null);
     prune.current = "reset";
@@ -261,9 +272,10 @@ function LibraryWorkspace({
           break;
         case "safeModeChanged":
           safeChanged.current(event.on);
-          // 选中或正在查看的图可能已被封印：开启时清掉选择，关闭查看器回到图片墙。
+          // 选中或正在查看的图可能已被封印：开启时关闭查看器回到图片墙；
+          // 默认同时清掉选择，设为保留时由重读后的修剪只去掉被封印的图。
           if (event.on) {
-            setSelected(new Set());
+            if (!keepSelectionOnSafeRef.current) setSelected(new Set());
             setViewing(null);
           }
           setReloadKey((k) => k + 1);
@@ -551,6 +563,11 @@ function MainWindow() {
   const [openError, setOpenError] = useState<string | null>(null);
   /** 设置“显示相近标签来源（内置／个人）”，默认不显示。 */
   const [showApproxSource, setShowApproxSource] = useState(false);
+  const [keepSelectionOnSafe, setKeepSelectionOnSafe] = useState(false);
+  const acceptShellSettings = useCallback((view: ShellSettingsView) => {
+    setShowApproxSource(view.showApproxSource);
+    setKeepSelectionOnSafe(view.keepSelectionOnSafeMode ?? false);
+  }, []);
   /** 安全模式。读到设置之前按开启处理，不会先露出被封印的图。 */
   const [safe, setSafe] = useState(true);
   const safeRef = useRef(true);
@@ -584,7 +601,7 @@ function MainWindow() {
       () => {},
     );
     shellSettings().then(
-      (view) => alive && view && setShowApproxSource(view.showApproxSource),
+      (view) => alive && view && acceptShellSettings(view),
       () => undefined,
     );
     currentLibrary().then(
@@ -681,6 +698,7 @@ function MainWindow() {
           safe={safe}
           onSafeChanged={setSafe}
           showApproxSource={showApproxSource}
+          keepSelectionOnSafe={keepSelectionOnSafe}
           onViewerChange={setViewerOpen}
           notices={!empty && notices}
         />
@@ -726,7 +744,7 @@ function MainWindow() {
               safe={safe}
               onSafeMode={toggleSafe}
               onOpenNameWizard={() => setNameWizard(true)}
-              onChange={(view) => setShowApproxSource(view.showApproxSource)}
+              onChange={acceptShellSettings}
             />
           </Dialog.Popup>
         </Dialog.Portal>

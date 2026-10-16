@@ -21,4 +21,8 @@ forceSrgbInEffect: boolean,
 /**
  * 使用日志是否开启。
  */
-usageLog: boolean, viewerBackground?: ViewerBackground, };
+usageLog: boolean, 
+/**
+ * 切换安全模式时保留当前选择。
+ */
+keepSelectionOnSafeMode: boolean, viewerBackground?: ViewerBackground, };

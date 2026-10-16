@@ -477,6 +477,11 @@ export function rebindShortcut(
 }
 
 /** 诊断开关“强制 sRGB”：保存后重启 Kinshoko 生效。 */
+/** 切换安全模式时是否保留当前选择和详情面板。 */
+export function setKeepSelectionOnSafeMode(on: boolean): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_keep_selection_on_safe_mode", { on });
+}
+
 export function setForceSrgb(on: boolean): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("set_force_srgb", { on });
 }

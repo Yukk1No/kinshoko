@@ -125,6 +125,7 @@ function resolved(input: SearchInput): ConditionTree {
 type Call = { cmd: string; args: unknown };
 /** 设置中的“显示相近标签来源”。 */
 let showApproxSource = false;
+let keepSelectionOnSafeMode = false;
 let calls: Call[];
 /** 后端的安全模式开关。 */
 let safeOn = true;
@@ -195,7 +196,7 @@ function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
         case "tagging_status":
           return { libraryId: (args as { libraryId: string }).libraryId, status: { state: "starting" } };
         case "shell_settings":
-          return { autostart: true, shortcuts: [], showApproxSource };
+          return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode };
         default:
           return null;
       }
@@ -282,6 +283,7 @@ beforeEach(() => {
   mockConvertFileSrc("windows");
   window.__KINSHOKO_TEST_PICKS__ = [];
   showApproxSource = false;
+  keepSelectionOnSafeMode = false;
 });
 
 afterEach(async () => {
@@ -1557,6 +1559,57 @@ describe("安全模式", () => {
     await changed(true);
     await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
     await waitFor(() => expect(sent("plugin:library|sidebar").length).toBeGreaterThan(sidebars));
+  });
+
+  it("默认关闭安全模式时也清空选择", async () => {
+    backend(library);
+    render(<App />);
+    await waitFor(() => expect(cardOf("a")).toBeTruthy());
+    fireEvent.keyDown(cardOf("a")!, { key: " " });
+    expect(screen.getByText("已选 1 张")).toBeTruthy();
+
+    fireEvent.click(await book());
+    await changed(false);
+    await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
+    expect(cardOf("a")).toBeTruthy();
+  });
+
+  /** 等设置读到后再选择，避免按默认值清空。 */
+  const keepSelection = async () => {
+    await waitFor(() => expect(sent("shell_settings").length).toBeGreaterThan(0));
+    await act(async () => {});
+  };
+
+  it("设为切换时保留选择后，开启只去掉被封印的选中图", async () => {
+    keepSelectionOnSafeMode = true;
+    backend(library, clean, undefined, false);
+    render(<App />);
+    await waitFor(() => expect(cardOf("x")).toBeTruthy());
+    await keepSelection();
+    fireEvent.keyDown(cardOf("a")!, { key: " " });
+    fireEvent.click(cardOf("x")!, { ctrlKey: true });
+    expect(screen.getByText("已选 2 张")).toBeTruthy();
+
+    fireEvent.click(await book());
+    await changed(true);
+    await waitFor(() => expect(cardOf("x")).toBeNull());
+    await waitFor(() => expect(screen.getByText("已选 1 张")).toBeTruthy());
+    expect(cardOf("a")?.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("设为切换时保留选择后，关闭安全模式保持选择", async () => {
+    keepSelectionOnSafeMode = true;
+    backend(library);
+    render(<App />);
+    await waitFor(() => expect(cardOf("a")).toBeTruthy());
+    await keepSelection();
+    fireEvent.keyDown(cardOf("a")!, { key: " " });
+
+    fireEvent.click(await book());
+    await changed(false);
+    await waitFor(() => expect(cardOf("x")).toBeTruthy());
+    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    expect(cardOf("a")?.getAttribute("aria-selected")).toBe("true");
   });
   describe("候选随视角作废（#76）", () => {
     const adult: Candidate = { tag: label("ADULT", "general", "只在成人图出现的标签"), via: null, count: 1 };

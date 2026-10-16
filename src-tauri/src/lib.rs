@@ -58,6 +58,7 @@ pub fn run() {
             commands::set_autostart,
             commands::rebind_shortcut,
             commands::set_show_approx_source,
+            commands::set_keep_selection_on_safe_mode,
             commands::set_force_srgb,
             commands::set_usage_log,
             commands::set_viewer_background,

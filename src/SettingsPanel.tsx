@@ -1,6 +1,6 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
-import { Activity, Archive, FileText, Keyboard, Monitor, Power, RefreshCw, Settings2, ShieldCheck, Tags } from "lucide-react";
+import { Activity, Archive, FileText, Keyboard, Monitor, MousePointerClick, Power, RefreshCw, Settings2, ShieldCheck, Tags } from "lucide-react";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
@@ -12,6 +12,7 @@ import {
   setAutostart,
   setForceSrgb,
   setShowApproxSource,
+  setKeepSelectionOnSafeMode,
   setUsageLog,
   shellSettings,
 } from "./ipc";
@@ -229,6 +230,9 @@ export function SettingsPanel({ onChange, onRestored, initialTab = "general", ve
             <SettingsRow icon={<SealLock size={10} />} title="安全模式" desc="隐藏成人图，钉图里模糊">
               <Keys accelerator="Ctrl+Shift+S" />
               {safe !== undefined && onSafeMode && <Switch label="安全模式" checked={safe} onCheckedChange={(on) => { if (on !== safe) onSafeMode(); }} />}
+            </SettingsRow>
+            <SettingsRow icon={<MousePointerClick size={16} />} title="切换时保留选择" desc="选中的图和详情面板保持打开">
+              <Switch label="切换时保留选择" checked={view.keepSelectionOnSafeMode ?? false} onCheckedChange={(on) => void apply(setKeepSelectionOnSafeMode(on))} />
             </SettingsRow>
             <SettingsRow icon={<ShieldCheck size={16} />} title="参考组与钉图" desc="原位模糊，点一下单张解开">
               <StatusPill tone={safe === false ? "plain" : "ok"}>{safe === false ? "未开启" : "已开启"}</StatusPill>

@@ -83,6 +83,8 @@ pub struct SettingsSnapshot {
     /// WebView2 环境在进程启动时建好，所以重启后才生效。
     force_srgb: bool,
     viewer_background: Option<ViewerBackground>,
+    /// 切换安全模式时保留当前选择和详情面板；默认关闭，切换即清空选择。
+    keep_selection_on_safe_mode: bool,
     /// 使用日志（#70）：默认关闭；只写本机，由画师决定是否导出。
     usage_log: bool,
     /// 新版本写入、本版本不认识的字段。
@@ -101,6 +103,7 @@ impl Default for SettingsSnapshot {
             show_approx_source: false,
             force_srgb: false,
             viewer_background: None,
+            keep_selection_on_safe_mode: false,
             usage_log: false,
             unknown: serde_json::Map::new(),
         }
@@ -246,6 +249,15 @@ impl AppSettings {
 
     pub fn set_show_approx_source(&mut self, on: bool) -> Result<(), SettingsError> {
         self.update(|f| f.show_approx_source = on)
+    }
+
+    /// 切换安全模式时是否保留当前选择。
+    pub fn keep_selection_on_safe_mode(&self) -> bool {
+        self.file.keep_selection_on_safe_mode
+    }
+
+    pub fn set_keep_selection_on_safe_mode(&mut self, on: bool) -> Result<(), SettingsError> {
+        self.update(|f| f.keep_selection_on_safe_mode = on)
     }
 
     /// 设置里保存的“强制 sRGB”，下次启动时生效。
