@@ -90,11 +90,14 @@ pub(super) fn start_to(
     let id = uuid::Uuid::new_v4().simple().to_string();
     let cancel = Arc::new(AtomicBool::new(false));
     let progress = Arc::new(Mutex::new(ImportProgress::default()));
+    // 任务开始前登记保存文件夹，结束（含中途出错）时撤下：期间删除这个文件夹会被拒绝。
+    let receiving = ReceivingFolder::enter(&inner, destination.folder_id.clone());
     let thread = {
         let (id, cancel, progress) = (id.clone(), cancel.clone(), progress.clone());
         std::thread::Builder::new()
             .name("kinshoko-import".into())
             .spawn(move || {
+                let _receiving = receiving;
                 run(
                     &inner,
                     &id,
@@ -112,6 +115,35 @@ pub(super) fn start_to(
         cancel,
         progress,
         thread,
+    }
+}
+
+/// 一个导入任务对保存文件夹的登记；撤下时只去掉自己那一项（同一文件夹可能有几个任务）。
+struct ReceivingFolder {
+    inner: Arc<Inner>,
+    folder: Option<String>,
+}
+
+impl ReceivingFolder {
+    fn enter(inner: &Arc<Inner>, folder: Option<String>) -> Self {
+        if let Some(folder) = &folder {
+            inner.receiving_folders().push(folder.clone());
+        }
+        Self {
+            inner: inner.clone(),
+            folder,
+        }
+    }
+}
+
+impl Drop for ReceivingFolder {
+    fn drop(&mut self) {
+        if let Some(folder) = &self.folder {
+            let mut folders = self.inner.receiving_folders();
+            if let Some(at) = folders.iter().position(|f| f == folder) {
+                folders.swap_remove(at);
+            }
+        }
     }
 }
 

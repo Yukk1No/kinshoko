@@ -121,6 +121,7 @@ impl ReferenceLens {
                 reference_taken: AtomicBool::new(true),
                 detached: true,
                 write_revoked: Arc::new(AtomicBool::new(false)),
+                import_folders: Arc::default(),
             }),
         })
     }

@@ -506,3 +506,58 @@ fn deleting_an_unknown_folder_changes_nothing() {
     ));
     assert_eq!(tree(&library.sidebar().unwrap().folders), "甲(0)");
 }
+
+/// 正在接收导入的文件夹（或它的上级）不能删除：否则剩下的导入项落不进去。
+/// 导入结束后照常可以删除，导入的每一项都完整进库。
+#[test]
+fn a_folder_receiving_an_import_cannot_be_deleted_until_the_import_ends() {
+    use kinshoko_core::library::{ImportOptions, SaveDestination};
+    let dir = tempfile::tempdir().unwrap();
+    let library = Library::create(&dir.path().join("lib"), "库").unwrap();
+    let parent = library.create_folder("人物", None).unwrap();
+    let folder = library.create_folder("手部", Some(&parent)).unwrap();
+    let other = library.create_folder("风景", None).unwrap();
+    let files: Vec<PathBuf> = (0..60)
+        .map(|i| write_png(&dir.path().join(format!("in/{i:02}.png")), i))
+        .collect();
+    let task = library
+        .import_to(
+            ImportSource { paths: files },
+            ImportOptions::default(),
+            &SaveDestination {
+                library_id: library.info().id.clone(),
+                folder_id: Some(folder.clone()),
+            },
+        )
+        .unwrap();
+
+    for id in [&folder, &parent] {
+        let error = library.delete_folder(id).unwrap_err();
+        assert!(
+            matches!(error, Error::FolderReceivingImport),
+            "导入进行中不能删除：{error:?}"
+        );
+        assert!(error.to_string().contains("导入"), "{error}");
+    }
+    library
+        .delete_folder(&other)
+        .expect("不相干的文件夹照常删除");
+    let report = task.wait();
+    assert!(
+        report
+            .items
+            .iter()
+            .all(|item| matches!(item.outcome, ImportOutcome::Imported { .. })),
+        "每一项都进库：{:?}",
+        report
+            .items
+            .iter()
+            .find(|item| !matches!(item.outcome, ImportOutcome::Imported { .. }))
+    );
+    assert_eq!(
+        browse(&library, BrowseScope::Folder { id: folder.clone() }).len(),
+        60
+    );
+    library.delete_folder(&parent).unwrap();
+    assert!(library.sidebar().unwrap().folders.is_empty());
+}

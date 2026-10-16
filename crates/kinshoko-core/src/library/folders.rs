@@ -128,8 +128,12 @@ pub(super) fn move_to(
 /// 删除文件夹及其子文件夹。图片不删，只去掉这些文件夹的归属；没有其他文件夹的图因此回到
 /// 未归类。Eagle 文件夹的对应一并去掉：重导时 Eagle 还有、本库却没有对应的文件夹视为画师删掉的，
 /// 不再建回来（见 `eagle::sync_folders`）。
+///
+/// 这个文件夹或它的子文件夹是正在进行的导入的保存位置时拒绝（[`Error::FolderReceivingImport`]），
+/// 导入结束后再删；在写事务里核对，不会与刚开始的导入交错。
 pub(super) fn delete(inner: &Inner, id: &str) -> Result<(), Error> {
     let id = id.to_owned();
+    let receiving = inner.import_folders.clone();
     inner.write(move |tx| {
         let parent: Option<String> = tx
             .query_row("SELECT parent_id FROM folder WHERE id = ?1", [&id], |row| {
@@ -140,6 +144,18 @@ pub(super) fn delete(inner: &Inner, id: &str) -> Result<(), Error> {
         const SUBTREE: &str = "WITH RECURSIVE subtree(id) AS (
                 SELECT ?1 UNION ALL SELECT f.id FROM folder f JOIN subtree s ON f.parent_id = s.id
             )";
+        {
+            let receiving = receiving.lock().unwrap_or_else(|e| e.into_inner());
+            if !receiving.is_empty() {
+                let mut stmt = tx.prepare(&format!("{SUBTREE} SELECT id FROM subtree"))?;
+                let subtree = stmt
+                    .query_map([&id], |row| row.get::<_, String>(0))?
+                    .collect::<Result<Vec<_>, _>>()?;
+                if subtree.iter().any(|folder| receiving.contains(folder)) {
+                    return Err(Error::FolderReceivingImport);
+                }
+            }
+        }
         for table in ["folder_member", "folder_decision", "eagle_folder"] {
             tx.execute(
                 &format!(

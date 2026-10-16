@@ -27,7 +27,7 @@ pub use app_shell::{AppInfo, UpdatePolicy, UpdateProgress, UpdateStatus, app_inf
 pub use device::{DeviceRegistry, RegisteredLibrary};
 pub use device_libraries::{
     DeviceLibraries, DeviceLibraryError, ImportFinishWait, ImportTaskSnapshot, LibraryRegistration,
-    OrganizeWaiting, WriterAccess,
+    OrganizeWaiting, WriterAccess, WriterWaitError, wait_for_writer,
 };
 pub use library::Library;
 pub use settings::{

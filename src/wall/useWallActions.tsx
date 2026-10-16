@@ -2,7 +2,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import type { ScreenRect } from "../bindings/ScreenRect";
 import type { WorkspaceSourceTarget } from "../bindings/WorkspaceSourceTarget";
-import { clipboardHasImage, copyReferenceImage, pinReference, referenceGroups, revealReferenceImage, workspaceEditSource, workspaceSidebar, workspaceSourceGroup } from "../ipc";
+import { clipboardHasImage, copyReferenceImage, pinReference, referenceGroups, revealReferenceImage, workspaceEditSource, workspaceImage, workspaceSidebar, workspaceSourceGroup } from "../ipc";
 import { flattenFolders, PermanentDeleteConfirm } from "../library/SelectionPanel";
 import { libraryFailures, PermanentDeleteBatchConfirm } from "../library/PermanentDeleteBatch";
 import type { BrowserCard } from "./Wall";
@@ -139,6 +139,10 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       // 多张可以跨图库（ADR-0008）：后端按图库分组，逐组切换可写句柄删除。
       cardsNamed.current = cards;
       setPurging(cards);
+    },
+    inFolder: (card, folderId) => {
+      const target = targetOf(card, options.current.activeLibraryId);
+      return workspaceImage(target.libraryId, target.imageId).then((detail) => detail.folders.some((folder) => folder.id === folderId));
     },
     folders: (libraryId) => workspaceSidebar(libraryId, options.current.safe).then((sidebar) => flattenFolders(sidebar.folders)),
     groups: () => referenceGroups(),

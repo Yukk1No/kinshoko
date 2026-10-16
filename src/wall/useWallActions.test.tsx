@@ -197,6 +197,47 @@ it("某个图库断连时其他图库照常删除，并按图库报告没完成�
   expect(onChanged).toHaveBeenCalled();
 });
 
+it("是否直接在文件夹里按卡片显示的来源读详情的文件夹（不算子文件夹）", async () => {
+  mockIPC((cmd, args) => {
+    calls.push({ cmd, args: args as Record<string, unknown> });
+    if (cmd === "plugin:library|workspace_image") return { folders: [{ id: "f9", name: "手部" }] };
+    return null;
+  });
+  render(<Harness />);
+  await expect(api.inFolder(card("1", "L2"), "f9")).resolves.toBe(true);
+  await expect(api.inFolder(card("1", "L2"), "f1")).resolves.toBe(false);
+  expect(calls.find((c) => c.cmd === "plugin:library|workspace_image")!.args).toEqual({ libraryId: "L2", imageId: "i1" });
+});
+
+it("部分图库已删除、其他图库预览过期时取消重新列出：已删的图照样刷新并取消选择", async () => {
+  const stale = "回收站或参考组在确认前有变化，请重新查看将受影响的参考组";
+  let previews = 0;
+  mockIPC((cmd, args) => {
+    calls.push({ cmd, args: args as Record<string, unknown> });
+    if (cmd === "plugin:library|preview_permanent_delete_batch") {
+      previews += 1;
+      return previews === 1
+        ? [
+          { libraryId: "L1", preview: { imageIds: ["i1"], groups: [], token: "t1" }, error: null },
+          { libraryId: "L2", preview: { imageIds: ["i2"], groups: [], token: "t2" }, error: null },
+        ]
+        : [{ libraryId: "L2", preview: { imageIds: ["i2"], groups: [], token: "t2b" }, error: null }];
+    }
+    if (cmd === "plugin:library|permanent_delete_batch") return [{ libraryId: "L2", error: stale }];
+    return null;
+  });
+  const onClearSelection = vi.fn(), onChanged = vi.fn();
+  render(<Harness onClearSelection={onClearSelection} onChanged={onChanged} />);
+  act(() => api.purge([named("1", "L1", "工作参考"), named("2", "L2", "私人收藏")]));
+  fireEvent.click(await screen.findByRole("button", { name: "确认永久删除" }));
+  expect(await screen.findByText("回收站或参考组刚有变化，已按最新情况重新列出。")).toBeTruthy();
+  await screen.findByText("永久删除这 1 张图？原图与整理结果都会删除，无法恢复。");
+  fireEvent.click(screen.getByRole("button", { name: "取消" }));
+  await waitFor(() => expect(onChanged).toHaveBeenCalled());
+  expect(onClearSelection).toHaveBeenCalled();
+  expect(screen.queryByRole("alertdialog")).toBeNull();
+});
+
 it("跨图库的整理与加入参考组：一个图库失败时其他图库照常完成，按图库报告（#112）", async () => {
   mockIPC((cmd, args) => {
     calls.push({ cmd, args: args as Record<string, unknown> });

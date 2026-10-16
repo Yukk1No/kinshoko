@@ -1,21 +1,14 @@
 import { useEffect, useRef } from "react";
-import type { ImageDetail } from "../bindings/ImageDetail";
 import type { OpenInKinshoko } from "../bindings/OpenInKinshoko";
-import { onOpenRequest, takeOpenRequest } from "../ipc";
+import { onOpenRequest, takeOpenRequest, workspaceCard } from "../ipc";
 import type { BrowserCard } from "../wall/Wall";
 
-/** 查看器要的卡片：钉图菜单“在 Kinshoko 中打开”的参考图（参考视图），按资料库详情的尺寸与分级。 */
-export function referenceCard(libraryId: string, imageId: string, detail: ImageDetail): BrowserCard {
-  const rating = detail.rating.effective;
-  return {
-    id: imageId,
-    imageId,
-    libraryId,
-    width: detail.width,
-    height: detail.height,
-    thumbnail: `${libraryId}/${imageId}/256`,
-    adult: rating === "questionable" || rating === "explicit",
-  };
+/**
+ * 查看器要的卡片：钉图菜单“在 Kinshoko 中打开”的参考图（参考视图），由后端与图片墙同样构成
+ * （id 是字节身份、带全部来源），查看器里的整理（移到回收站等）按它核对来源。按当前安全模式读。
+ */
+export function referenceCard(libraryId: string, imageId: string, safe: boolean): Promise<BrowserCard> {
+  return workspaceCard(libraryId, imageId, 256, safe);
 }
 
 /**

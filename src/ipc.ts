@@ -8,6 +8,7 @@ import type { LegacyNameMigrationWorkspace } from "./bindings/LegacyNameMigratio
 import type { LegacyNameDecision } from "./bindings/LegacyNameDecision";
 import type { WorkspaceQuery } from "./bindings/WorkspaceQuery";
 import type { WorkspacePage } from "./bindings/WorkspacePage";
+import type { WorkspaceCard } from "./bindings/WorkspaceCard";
 import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
 import type { CatalogNameEdit } from "./bindings/CatalogNameEdit";
 import type { ImportOptions } from "./bindings/ImportOptions";
@@ -985,6 +986,10 @@ export function workspaceCandidates(text: string, lang: string, limit: number, s
 }
 export function workspaceImage(libraryId: string, imageId: string): Promise<ImageDetail> {
   return invoke<ImageDetail>(lib("workspace_image"), { libraryId, imageId });
+}
+/** 一张图的卡片，与图片墙同样构成（id 是字节身份、带全部来源）；不经图片墙打开的入口用。 */
+export function workspaceCard(libraryId: string, imageId: string, thumbnailPx: number, safeMode: boolean): Promise<WorkspaceCard> {
+  return invoke<WorkspaceCard>(lib("workspace_card"), { libraryId, imageId, thumbnailPx, safeMode });
 }
 export function workspaceSidebar(libraryId: string, safeMode: boolean): Promise<Sidebar> {
   return invoke<Sidebar>(lib("workspace_sidebar"), { libraryId, safeMode });
