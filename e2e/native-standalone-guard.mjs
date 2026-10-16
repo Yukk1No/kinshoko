@@ -3,11 +3,24 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, copyFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { ownedWork, preserveKnownFolder, restoreKnownFolder } from "./spec78-combination-preflight.mjs";
 
 const hash = file => createHash("sha256").update(readFileSync(file)).digest("hex");
 const save = (root, name, value) => writeFileSync(join(root, name), JSON.stringify(value, null, 2));
+export function retainStandaloneOwnership(current, previous) {
+  const samePath = (a, b) => a.replaceAll("\\", "/").toLowerCase() === b.replaceAll("\\", "/").toLowerCase();
+  return current.map(item => {
+    if (item.descendant) return item;
+    // A parent may disappear before its WebView children. Use only this round's
+    // already verified instance; a missing current path never authorizes a new PID.
+    const prior = previous.find(old => old.descendant && Number.isSafeInteger(old.pid) && old.pid > 0 &&
+      old.pid === item.pid && old.created === item.created && Number.isFinite(Date.parse(old.created)) &&
+      typeof old.executable === "string" && isAbsolute(old.executable) &&
+      (item.executable == null || samePath(item.executable, old.executable)));
+    return prior ? { ...item, descendant: true, previouslyVerified: { pid: prior.pid, created: prior.created, executable: prior.executable, observedAt: prior.observedAt ?? null } } : item;
+  });
+}
 export function observeNative(port, profile, rootPid = 0) {
   const script = String.raw`
 $ErrorActionPreference='Stop'
@@ -50,6 +63,8 @@ export async function runStandalone({work, script, args, port = 4640, environmen
   const observe = () => {
     try {
       const state = observeNative(port, scenario, child.pid);
+      const previous = report.observations.flatMap(observed => observed.processes.map(item => ({ ...item, observedAt: observed.at })));
+      state.processes = retainStandaloneOwnership(state.processes, previous);
       report.observations.push(state);
       if (state.processes.some(item => !item.descendant)) report.ownershipCollision = true;
       save(work, "wrapper.json", report);
