@@ -70,6 +70,10 @@ pub struct WorkspaceCard {
     pub width: u32,
     pub height: u32,
     pub thumbnail: String,
+    /// 占位图（#110）的 `data:` 地址，取自显示用的来源；还没生成时为空。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub placeholder: Option<String>,
     pub adult: bool,
     /// Explicit available matching source used for display; browsing never activates it.
     pub library_id: String,
@@ -427,12 +431,14 @@ impl Workspace {
                 .unwrap_or(0);
             rows.push((
                 newest,
+                &provider.registration.library.root,
                 WorkspaceCard {
                     id,
                     width: image.width,
                     height: image.height,
                     adult,
                     thumbnail: format!("{source_library}/{}/{}", image.id, query.thumbnail_px),
+                    placeholder: None,
                     library_id: source_library.clone(),
                     image_id: image.id.clone(),
                     sources: sources
@@ -449,7 +455,7 @@ impl Workspace {
                 },
             ));
         }
-        rows.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.id.cmp(&b.1.id)));
+        rows.sort_by(|a, b| b.0.cmp(&a.0).then(a.2.id.cmp(&b.2.id)));
         let total = rows.len() as u32;
         let limit = query.limit.clamp(1, 1000) as usize;
         let next = offset.saturating_add(limit);
@@ -463,7 +469,11 @@ impl Workspace {
                 .into_iter()
                 .skip(offset)
                 .take(limit)
-                .map(|(_, c)| c)
+                // 只为这一页读占位图文件；卡片 id 就是原图字节的 SHA-256。
+                .map(|(_, root, card)| WorkspaceCard {
+                    placeholder: crate::library::placeholder(root, &card.id),
+                    ..card
+                })
                 .collect(),
             total,
             next_cursor,

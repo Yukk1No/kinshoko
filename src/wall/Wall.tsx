@@ -87,6 +87,17 @@ type Props = {
   onCardCommand?: (command: CardCommand, cards: BrowserCard[], point: { x: number; y: number }) => void;
 };
 
+/**
+ * 缩略图到达的标记直接写在节点上，不经 React 渲染（滚动时不为每张图重渲染）。
+ * 重新挂载时已在浏览器缓存里的图直接显示，不再淡入；其余到达后淡入、盖住占位图。
+ */
+const markCachedThumbnail = (img: HTMLImageElement | null) => {
+  if (img && img.complete && img.naturalWidth > 0) img.dataset.loaded = "instant";
+};
+const markThumbnailLoaded = (e: { currentTarget: HTMLImageElement }) => {
+  if (!e.currentTarget.dataset.loaded) e.currentTarget.dataset.loaded = "fade";
+};
+
 /** 菜单键或 Shift+F10：用键盘打开右键菜单。 */
 const isMenuKey = (e: Pick<KeyboardEvent, "key" | "shiftKey">) => e.key === "ContextMenu" || (e.shiftKey && e.key === "F10");
 
@@ -725,7 +736,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 onDragStart={(e) => cardHandlers.current.dragStart(card.id, e)}
                 style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}
               >
-                <img src={thumbnailUrl(card.thumbnail)} alt="参考图" decoding="async" draggable={false} />
+                <img src={thumbnailUrl(card.thumbnail)} alt="参考图" decoding="async" draggable={false}
+                  ref={markCachedThumbnail} onLoad={markThumbnailLoaded} />
+                {/* 占位图（#110）：缩略图到达前放大模糊显示；遮蔽中的图不露出它的色彩。 */}
+                {card.placeholder && !veiled && <div className="card-placeholder" aria-hidden="true"
+                  style={{ backgroundImage: `url("${card.placeholder}")` }} />}
               </div>
               {/* 来源按钮是卡片选项的兄弟，不在选项里：选项内不放可聚焦的子元素。 */}
               {sources.length > 0 && <button type="button" className={`card-sources${sources.length === 1 ? " is-single" : ""}`} data-card={card.id}
