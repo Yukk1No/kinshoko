@@ -1,36 +1,36 @@
-import { useEffect, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useState, type DragEvent, type KeyboardEvent } from "react";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { FolderNode } from "../bindings/FolderNode";
 import type { Sidebar } from "../bindings/Sidebar";
-import { createFolder, editImages, moveFolder, renameFolder, sidebar, workspaceSidebar } from "../ipc";
+import { createFolder, editImages, moveFolder, renameFolder } from "../ipc";
 import { DRAG_IMAGE_SOURCES, DRAG_IMAGES } from "../wall/Wall";
-import { Folder, FolderOpen, Images, Inbox, Plus, Trash2 } from "lucide-react";
+import { Folder, FolderOpen, Inbox } from "lucide-react";
 import { FluidList, FluidRow } from "../ui/FluidList";
 
 /** 侧栏里拖动文件夹时放进 dataTransfer 的类型，值为文件夹 id。 */
-const DRAG_FOLDER = "application/x-kinshoko-folder";
+export const DRAG_FOLDER = "application/x-kinshoko-folder";
+/** 与 {@link DRAG_FOLDER} 同时放入：文件夹所属图库的 id。文件夹只能在本库内移动。 */
+export const DRAG_FOLDER_LIBRARY = "application/x-kinshoko-folder-library";
 /** 移动文件夹时放到新位置的最后。 */
-const LAST = 2 ** 31;
+export const LAST = 2 ** 31;
 
 type Props = {
-  directory?: Sidebar;
+  directory: Sidebar;
   unassigned?: number;
   descendantCounts?: { [id: string]: number | undefined };
   includeDescendants?: boolean;
-  libraryName?: string;
-  embedded?: boolean;
-  workspace?: boolean;
-  scopeSelected?: boolean;
-  safeMode?: boolean;
-  readOnly?: boolean;
+  /** 目录导航的无障碍名称里用的图库名。 */
+  libraryName: string;
   libraryId: string;
+  /** 这个图库里正在看的范围；scopeSelected 为假时（看的是别处）不标当前行。 */
   scope: BrowseScope;
+  scopeSelected: boolean;
   onScope: (scope: BrowseScope) => void;
-  /** 资料库报告列表过期时递增：重新取侧栏。 */
-  reloadKey: number;
   onError: (message: string) => void;
-  /** 回收站行显示在这里；主窗口把当前图库的回收站放在侧栏底部（#98）。 */
-  showTrash?: boolean;
+  /** 正在新建文件夹（由图库标题的 ⋯ 菜单发起）：新文件夹放在 parentForNew 下，null 为顶层。 */
+  creating: boolean;
+  parentForNew: string | null;
+  onCreatingDone: () => void;
 };
 
 const same = (a: BrowseScope, b: BrowseScope) =>
@@ -61,87 +61,56 @@ export function NameInput(props: {
   );
 }
 
-/**
- * 侧栏：全部、文件夹树与回收站，计数只算可见的图。
- * 双击文件夹改名；把文件夹拖到另一个文件夹上移进去，拖到“文件夹”标题上移到顶层；
- * 把图片墙上选中的图拖到文件夹上放进去。
- */
-export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, workspace = false, safeMode = true, readOnly = false, scopeSelected = true, directory, unassigned, descendantCounts, includeDescendants = false, libraryName, embedded = false, showTrash = true }: Props) {
-  const [loadedData, setData] = useState<Sidebar | null>(null);
-  const data = directory ?? loadedData;
-  const [renaming, setRenaming] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [dropTarget, setDropTarget] = useState<string | null>(null);
+/** 放进某个图库文件夹的图：图片墙按图库给出每张图的来源，只取它在这个库里的来源（#112）。 */
+export function droppedImages(e: DragEvent, libraryId: string): string[] {
+  const sources = e.dataTransfer.getData(DRAG_IMAGE_SOURCES);
+  return sources
+    ? (JSON.parse(sources) as Record<string, string[] | undefined>)[libraryId] ?? []
+    : JSON.parse(e.dataTransfer.getData(DRAG_IMAGES) || "[]") as string[];
+}
 
-  useEffect(() => {
-    if (directory) return;
-    let alive = true;
-    (workspace ? workspaceSidebar(libraryId, safeMode) : sidebar(libraryId)).then(
-      (value) => alive && setData(value),
-      (e) => alive && onError(String(e)),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [libraryId, reloadKey, onError, workspace, safeMode, directory]);
+export const acceptsDrag = (e: DragEvent) =>
+  e.dataTransfer.types.includes(DRAG_IMAGES) || e.dataTransfer.types.includes(DRAG_FOLDER);
+
+/**
+ * 一个图库在侧栏里展开后的内容（方案 D）：未归类与文件夹树，计数只算可见的图。
+ * 双击文件夹改名；把文件夹拖到同库的另一个文件夹上移进去；把图片墙上选中的图拖到文件夹上放进去。
+ */
+export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onScope, onError, directory, unassigned, descendantCounts, includeDescendants = false, creating, parentForNew, onCreatingDone }: Props) {
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   const run = (p: Promise<unknown>) => p.catch((e) => onError(String(e)));
 
-  // 新建的文件夹放在当前打开的文件夹里，否则放在顶层。
-  const parentForNew = (scope.kind === "folder" || scope.kind === "folderTree") ? scope.id : null;
   const created = (name: string | null) => {
-    setCreating(false);
+    onCreatingDone();
     if (name) void run(createFolder(libraryId, name, parentForNew));
   };
 
-  const accepts = (e: DragEvent) =>
-    e.dataTransfer.types.includes(DRAG_IMAGES) || e.dataTransfer.types.includes(DRAG_FOLDER);
-
   const over = (target: string) => (e: DragEvent) => {
-    if (readOnly || !accepts(e)) return;
+    if (!acceptsDrag(e)) return;
     e.preventDefault();
     setDropTarget(target);
   };
 
-  /** 放到文件夹 folderId 上；null 表示“文件夹”标题（顶层）。 */
-  const drop = (folderId: string | null) => (e: DragEvent) => {
+  const drop = (folderId: string) => (e: DragEvent) => {
     e.preventDefault();
-    if (readOnly) return;
     setDropTarget(null);
     const folder = e.dataTransfer.getData(DRAG_FOLDER);
     if (folder) {
-      if (folder !== folderId) void run(moveFolder(libraryId, folder, folderId, LAST));
+      const from = e.dataTransfer.getData(DRAG_FOLDER_LIBRARY);
+      if (folder !== folderId && (!from || from === libraryId)) void run(moveFolder(libraryId, folder, folderId, LAST));
       return;
     }
-    if (!folderId) return;
-    // 图片墙按图库给出每张图的来源：放进这个库时只取它在这个库里的来源（#112）。
-    const sources = e.dataTransfer.getData(DRAG_IMAGE_SOURCES);
-    const images = sources
-      ? (JSON.parse(sources) as Record<string, string[] | undefined>)[libraryId] ?? []
-      : JSON.parse(e.dataTransfer.getData(DRAG_IMAGES) || "[]") as string[];
+    const images = droppedImages(e, libraryId);
     if (images.length) void run(editImages(libraryId, images, [{ kind: "addToFolder", folderId }]));
   };
 
+  const count = (node: FolderNode) => includeDescendants ? descendantCounts?.[node.id] ?? node.count : node.count;
+  const current = (target: BrowseScope) => scopeSelected && same(scope, target) ? "page" as const : undefined;
+
   // Rows join one fluid-hover list in visible (pre-order) order.
   let row = 0;
-  const item = (target: BrowseScope, label: string, count: number | undefined, icon: ReactNode) => (
-    <FluidRow index={row++}>
-      <button
-        type="button"
-        className="sidebar-item k-row"
-        aria-current={scopeSelected && same(scope, target) ? "page" : undefined}
-        aria-label={count === undefined ? label : `${label}（${count} 张）`}
-        onClick={() => onScope(target)}
-      >
-        <span className="k-row-icon" aria-hidden="true">{icon}</span>
-        <span className="sidebar-label">{label}</span>
-        <span className="sidebar-count">{count ?? ""}</span>
-      </button>
-    </FluidRow>
-  );
-
-  const count = (node: FolderNode) => includeDescendants ? descendantCounts?.[node.id] ?? node.count : node.count;
-
   const tree = (nodes: FolderNode[], depth = 0) => (
     <ul role="group" className="sidebar-tree">
       {nodes.map((node) => (
@@ -163,19 +132,20 @@ export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, wor
               className="sidebar-item k-row"
               style={{ paddingLeft: 8 + depth * 16 }}
               data-drop={dropTarget === node.id || undefined}
-              aria-current={scopeSelected && same(scope, { kind: "folder", id: node.id }) ? "page" : undefined}
+              aria-current={current({ kind: "folder", id: node.id })}
               aria-label={`${node.name}（${count(node)} 张）`}
-              draggable={!readOnly}
+              draggable
               onClick={() => onScope({ kind: "folder", id: node.id })}
-              onDoubleClick={() => !readOnly && setRenaming(node.id)}
+              onDoubleClick={() => setRenaming(node.id)}
               onDragStart={(e) => {
                 e.dataTransfer.setData(DRAG_FOLDER, node.id);
+                e.dataTransfer.setData(DRAG_FOLDER_LIBRARY, libraryId);
                 e.dataTransfer.effectAllowed = "move";
               }}
               onDragOver={over(node.id)}
               onDragLeave={() => setDropTarget(null)}
               onDrop={drop(node.id)}
-              title={readOnly ? "这份图库当前仅供浏览" : "双击改名；拖到别的文件夹上移进去"}
+              title="双击改名；拖到别的文件夹上移进去"
             >
               <span className="k-row-icon" aria-hidden="true">{node.children.length > 0 ? <FolderOpen size={15} /> : <Folder size={15} />}</span>
               <span className="sidebar-label">{node.name}</span>
@@ -190,34 +160,20 @@ export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, wor
   );
 
   return (
-    <nav className="sidebar" aria-label={libraryName ? `${libraryName}的目录` : "侧栏"}>
+    <nav className="sidebar" aria-label={`${libraryName}的目录`}>
       <FluidList>
-      {!embedded && item({ kind: "all" }, "全部", data?.all, <Images size={15} />)}
-      {unassigned !== undefined && item({ kind: "unassigned" }, "未归类", unassigned, <Inbox size={15} />)}
-      <div
-        className="sidebar-heading"
-        data-drop={dropTarget === "" || undefined}
-        onDragOver={over("")}
-        onDragLeave={() => setDropTarget(null)}
-        onDrop={drop(null)}
-      >
-        <span>文件夹</span>
-        <button
-          type="button"
-          className="sidebar-add k-icon-btn"
-          aria-label="新建文件夹"
-          disabled={readOnly}
-          title={readOnly ? "这份图库当前仅供浏览" : parentForNew ? "在当前文件夹里新建" : "新建文件夹"}
-          onClick={() => setCreating(true)}
-        >
-          <Plus size={13} aria-hidden="true" />
+      {unassigned !== undefined && <FluidRow index={row++}>
+        <button type="button" className="sidebar-item k-row" aria-current={current({ kind: "unassigned" })}
+          aria-label={`未归类（${unassigned} 张）`} onClick={() => onScope({ kind: "unassigned" })}>
+          <span className="k-row-icon" aria-hidden="true"><Inbox size={15} /></span>
+          <span className="sidebar-label">未归类</span>
+          <span className="sidebar-count">{unassigned}</span>
         </button>
-      </div>
+      </FluidRow>}
       <div role="tree" aria-label="文件夹" className="sidebar-folders">
-        {data && tree(data.folders)}
+        {tree(directory.folders)}
         {creating && <NameInput label="新文件夹名称" initial="" onDone={created} />}
       </div>
-      {showTrash && item({ kind: "trash" }, "回收站", data?.trash, <Trash2 size={15} />)}
       </FluidList>
     </nav>
   );

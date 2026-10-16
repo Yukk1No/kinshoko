@@ -30,6 +30,8 @@ type Props = {
   sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
   onSourceChanged?: () => void;
   libraryId: string;
+  /** 主窗口：目录经工作区读取，任何一个已连接图库都可以，不要求它是后端此刻的可写库（ADR-0008）。 */
+  workspace?: boolean;
   scope: BrowseScope;
   selected: ReadonlySet<string>;
   onClear: () => void;
@@ -278,6 +280,7 @@ export function SelectionPanel({
   sourceTarget,
   onSourceChanged,
   bar,
+  workspace = false,
 }: Props) {
   const ids = [...selected];
   const single = ids.length === 1 ? ids[0] : null;
@@ -295,14 +298,14 @@ export function SelectionPanel({
 
   useEffect(() => {
     let alive = true;
-    (sourceTarget ? workspaceSidebar(libraryId, safeMode) : sidebar(libraryId)).then(
+    (sourceTarget || workspace ? workspaceSidebar(libraryId, safeMode) : sidebar(libraryId)).then(
       (s) => alive && setFolders(flattenFolders(s.folders)),
       () => undefined,
     );
     return () => {
       alive = false;
     };
-  }, [libraryId, reloadKey, safeMode, requestKey, sourceRefresh]);
+  }, [libraryId, reloadKey, safeMode, requestKey, sourceRefresh, workspace]);
 
   useEffect(() => {
     let alive = true;

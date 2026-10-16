@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { App } from "./App";
 
@@ -36,7 +36,9 @@ it("保存为关闭安全模式且活动库断连时，仍显示可用提供方�
   }, { shouldMockEvents: true });
   render(<App />);
   expect(await screen.findByRole("img", { name: "参考图" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "全部图片" })).toBeTruthy();
-  expect(screen.getByText("移动盘未连接", { selector: ".provider-problem span" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "重新连接" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /^全部图片/ })).toBeTruthy();
+  // 未连接的图库只占一行（方案 D，#113），原因在悬停提示里。
+  const line = await screen.findByText(/移动盘接回后可用/, { selector: ".lib-offline" });
+  expect(line.title).toBe("移动盘未连接");
+  expect(within(line).getByRole("button", { name: "重新连接" })).toBeTruthy();
 });
