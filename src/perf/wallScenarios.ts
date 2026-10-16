@@ -6,6 +6,7 @@
 
 import { BUDGET, estimateRefresh, summarizeFrames, type FrameReport } from "./frameStats";
 import { browserEnv, createFrameProbe, type ProbeEnv } from "./frameProbe";
+import { zoomDensity } from "../wall/zoom";
 
 export const PROBE_VERSION = 1;
 
@@ -53,8 +54,7 @@ export function zoomSteps(start: number, notches: number, direction: "in" | "out
   const out: number[] = [];
   let value = start;
   for (let i = 0; i < notches; i++) {
-    const next = direction === "in" ? value * 1.1 : value / 1.1;
-    value = Math.min(420, Math.max(140, Math.round(next / 10) * 10));
+    value = zoomDensity(value, direction === "in" ? 1 : -1);
     out.push(value);
   }
   return out;

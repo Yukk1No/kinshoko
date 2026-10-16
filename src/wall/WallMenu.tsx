@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckSquare, Copy, Crop, Download, FileImage, FolderInput, FolderMinus, FolderOpen, Images, Layers, Maximize2, Pin, RotateCcw, ShieldCheck, Trash2 } from "lucide-react";
+import { CheckSquare, ClipboardPaste, Copy, Crop, Download, FileImage, FolderInput, FolderMinus, FolderOpen, FolderSearch, Images, Layers, Maximize2, Pin, RotateCcw, ShieldCheck, Trash2 } from "lucide-react";
 import { Menu, MenuItem, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuTip } from "../ui/Menu";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ContentRating } from "../bindings/ContentRating";
@@ -27,6 +27,14 @@ export type WallMenuActions = {
   /** 彻底删除（先确认受影响的参考组）。 */
   purge: (cards: BrowserCard[]) => void;
   importFrom: (source: ImportSource) => void;
+  /** 复制图片：原图像素放进剪贴板（#105）。 */
+  copy: (card: BrowserCard) => void;
+  /** 在资源管理器中显示原文件（#105）。 */
+  reveal: (card: BrowserCard) => void;
+  /** 从剪贴板导入，走普通导入与保存位置选择（#105）。 */
+  importClipboard: () => void;
+  /** 剪贴板里有没有图片；菜单打开时读一次，没有时“从剪贴板导入”禁用。 */
+  clipboardHasImage: () => Promise<boolean>;
   selectAll: () => void;
   setDensity: (value: number) => void;
   folders: (libraryId: string) => Promise<{ id: string; label: string }[]>;
@@ -43,6 +51,18 @@ const RATINGS: { value: ContentRating; label: string }[] = [
 ];
 
 const icon = (Icon: typeof Pin) => <Icon size={14} />;
+
+/** 菜单打开时读一次剪贴板：读到之前与读不到时不禁用（真去导入时再报告原因）。 */
+function ClipboardImport({ actions }: { actions: WallMenuActions }) {
+  const [hasImage, setHasImage] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    actions.clipboardHasImage().then((value) => alive && setHasImage(value), () => {});
+    return () => { alive = false; };
+    // 每次打开菜单只读一次。
+  }, []);
+  return <MenuItem icon={icon(ClipboardPaste)} kbd="Ctrl V" disabled={hasImage === false} onClick={actions.importClipboard}>从剪贴板导入</MenuItem>;
+}
 
 /** 子菜单打开时才读的列表；读不到时显示原因。 */
 function useList<T>(load: () => Promise<T[]>) {
@@ -95,7 +115,7 @@ function Organize({ cards, actions, scope, single }: { cards: BrowserCard[]; act
 
 /**
  * 图片墙的右键菜单内容（#102 “右键菜单”表的瀑布流各行）：单张、多张、回收站范围与空白处。
- * 复制图片、在资源管理器中显示与从剪贴板导入是新能力，接入前不显示。
+ * 复制图片、在资源管理器中显示与从剪贴板导入是 #105 的新能力。
  */
 export function WallMenu({ target, scope, density, actions }: {
   target: WallMenuTarget; scope: BrowseScope; density: number; actions: WallMenuActions;
@@ -107,6 +127,7 @@ export function WallMenu({ target, scope, density, actions }: {
         <MenuItem icon={icon(FolderOpen)} onClick={() => actions.importFrom("folder")}>整个文件夹…</MenuItem>
         <MenuItem icon={icon(Images)} onClick={() => actions.importFrom("eagle")}>从 Eagle…</MenuItem>
       </MenuSubmenu>
+      <ClipboardImport actions={actions} />
       <MenuItem icon={icon(CheckSquare)} kbd="Ctrl A" onClick={actions.selectAll}>全选</MenuItem>
       <MenuSubmenu icon={icon(Maximize2)} label="图片大小" popupLabel="图片大小">
         <Menu.RadioGroup value={DENSITY_PRESETS.some((p) => p.value === density) ? density : null}
@@ -131,9 +152,12 @@ export function WallMenu({ target, scope, density, actions }: {
       <MenuItem icon={icon(Maximize2)} kbd="Enter" onClick={() => actions.open(card)}>打开</MenuItem>
       <MenuItem icon={icon(Pin)} kbd="P" onClick={() => actions.pin(cards, point)}>钉住整图</MenuItem>
       <MenuItem icon={icon(Crop)} kbd="F1" onClick={() => actions.crop(card)}>框选局部钉住</MenuItem>
+      <MenuItem icon={icon(Copy)} kbd="Ctrl C" onClick={() => actions.copy(card)}>复制图片</MenuItem>
       <MenuSeparator />
       <Organize cards={cards} actions={actions} scope={scope} single />
       {sources.length >= 2 && <MenuItem icon={icon(Layers)} onClick={() => actions.inspectSources(card)}>查看来源</MenuItem>}
+      <MenuSeparator />
+      <MenuItem icon={icon(FolderSearch)} onClick={() => actions.reveal(card)}>在资源管理器中显示</MenuItem>
       <MenuSeparator />
       <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>移到回收站</MenuItem>
     </>;

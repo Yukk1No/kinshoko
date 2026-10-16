@@ -316,6 +316,27 @@ describe("主窗口", () => {
     await waitFor(() => expect(result.textContent).toBe("1 张"));
   });
 
+  it("图片墙上 Ctrl+滚轮：滑条同步移动，停手后提交并按新尺寸取缩略图（#111）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const wall = screen.getByRole("listbox", { name: "图片墙" });
+    const slider = screen.getByRole("slider", { name: "图片大小" }) as HTMLInputElement;
+    const card = wall.querySelector<HTMLElement>(".card")!;
+    const before = parseFloat(card.style.width);
+    calls = [];
+    expect(fireEvent.wheel(wall, { deltaY: -100, ctrlKey: true, clientX: 50, clientY: 50 })).toBe(false);
+    fireEvent.wheel(wall, { deltaY: -100, ctrlKey: true, clientX: 50, clientY: 50 });
+    fireEvent.wheel(wall, { deltaY: -100, ctrlKey: true, clientX: 50, clientY: 50 });
+    expect(slider.value).toBe("320");
+    expect(parseFloat(wall.querySelector<HTMLElement>(".card")!.style.width)).toBeGreaterThan(before);
+    expect(calls.some((c) => c.cmd === "plugin:library|browse")).toBe(false);
+    await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:library|browse")).toBe(true));
+    const browsed = calls.filter((c) => c.cmd === "plugin:library|browse").at(-1)!.args as { query: { thumbnailPx: number } };
+    expect(browsed.query.thumbnailPx).toBe(Math.ceil(320 * 1.5 * (window.devicePixelRatio || 1)));
+    expect(slider.value).toBe("320");
+  });
+
   it("顶栏（方案 C3）：张数与精确查找开关在顶栏，图片大小浮在图片墙右下角", async () => {
     backend(library);
     render(<App />);

@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { MenuPopup } from "../ui/Menu";
 import { WallMenu, type WallMenuActions, type WallMenuTarget } from "./WallMenu";
@@ -17,6 +17,7 @@ function actions(): WallMenuActions {
   return {
     open: vi.fn(), pin: vi.fn(), crop: vi.fn(), edit: vi.fn(), addToGroup: vi.fn(), inspectSources: vi.fn(),
     purge: vi.fn(), importFrom: vi.fn(), selectAll: vi.fn(), setDensity: vi.fn(),
+    copy: vi.fn(), reveal: vi.fn(), importClipboard: vi.fn(), clipboardHasImage: vi.fn(async () => true),
     folders: vi.fn(async () => [{ id: "f1", label: "人物" }]),
     groups: vi.fn(async () => [{ id: "g1", name: "光影", memberCount: 1, libraryIds: ["L1"], updatedAt: 0, problem: null }]),
   };
@@ -30,13 +31,24 @@ function show(target: WallMenuTarget, scope: BrowseScope = { kind: "all" }, a = 
 }
 const point = { x: 50, y: 60 };
 
-it("单张：菜单项与 #102 表一致（新能力项除外），快捷键提示在右侧，危险项置底红字", () => {
+it("单张：菜单项与 #102 表一致，快捷键提示在右侧，危险项置底红字", () => {
   const { menu, rows } = show({ kind: "cards", cards: [card("1")], point });
-  expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "放入文件夹", "加入参考组", "内容分级", "移到回收站Del"]);
+  expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "复制图片Ctrl C", "放入文件夹", "加入参考组", "内容分级", "在资源管理器中显示", "移到回收站Del"]);
   const items = within(menu).getAllByRole("menuitem");
   expect(items.at(-1)!.className).toContain("is-danger");
   expect(items.filter((item) => item.className.includes("is-danger"))).toHaveLength(1);
-  expect(within(menu).getAllByRole("separator")).toHaveLength(2);
+  expect(within(menu).getAllByRole("separator")).toHaveLength(3);
+});
+
+it("单张：复制图片与在资源管理器中显示作用于这一张（#105）", () => {
+  const one = card("1");
+  const { a } = show({ kind: "cards", cards: [one], point });
+  fireEvent.click(screen.getByRole("menuitem", { name: /复制图片/ }));
+  expect(a.copy).toHaveBeenCalledWith(one);
+  cleanup();
+  const again = show({ kind: "cards", cards: [one], point });
+  fireEvent.click(screen.getByRole("menuitem", { name: "在资源管理器中显示" }));
+  expect(again.a.reveal).toHaveBeenCalledWith(one);
 });
 
 it("单张：在文件夹范围里多出“从此文件夹移出”，多来源时多出“查看来源”", () => {
@@ -45,7 +57,7 @@ it("单张：在文件夹范围里多出“从此文件夹移出”，多来源�
     { libraryId: "L2", libraryName: "库二", imageId: "j1", unavailable: null, matches: true, deleted: false },
   ] });
   const { rows, a } = show({ kind: "cards", cards: [twoSources], point }, { kind: "folder", id: "f9" });
-  expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "放入文件夹", "从此文件夹移出", "加入参考组", "内容分级", "查看来源", "移到回收站Del"]);
+  expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "复制图片Ctrl C", "放入文件夹", "从此文件夹移出", "加入参考组", "内容分级", "查看来源", "在资源管理器中显示", "移到回收站Del"]);
   fireEvent.click(screen.getByRole("menuitem", { name: "从此文件夹移出" }));
   expect(a.edit).toHaveBeenCalledWith([twoSources], [{ kind: "removeFromFolder", folderId: "f9" }], true);
 });
@@ -91,11 +103,31 @@ it("回收站范围：还原与彻底删除，彻底删除置底", () => {
   expect(again.a.purge).toHaveBeenCalledWith(cards);
 });
 
-it("空白处：导入、全选与图片大小", () => {
+it("空白处：导入、从剪贴板导入、全选与图片大小", async () => {
   const { rows, a } = show({ kind: "blank", point });
-  expect(rows()).toEqual(["导入", "全选Ctrl A", "图片大小"]);
+  expect(rows()).toEqual(["导入", "从剪贴板导入Ctrl V", "全选Ctrl A", "图片大小"]);
   fireEvent.click(screen.getByRole("menuitem", { name: /全选/ }));
   expect(a.selectAll).toHaveBeenCalled();
+  await waitFor(() => expect(a.clipboardHasImage).toHaveBeenCalled());
+});
+
+it("空白处：剪贴板有图片时可从剪贴板导入（#105）", async () => {
+  const { menu, a } = show({ kind: "blank", point });
+  const paste = within(menu).getByRole("menuitem", { name: /从剪贴板导入/ });
+  await waitFor(() => expect(paste.getAttribute("aria-disabled")).not.toBe("true"));
+  expect(a.clipboardHasImage).toHaveBeenCalled();
+  fireEvent.click(paste);
+  expect(a.importClipboard).toHaveBeenCalled();
+});
+
+it("空白处：剪贴板没有图片时从剪贴板导入禁用", async () => {
+  const a = actions();
+  a.clipboardHasImage = vi.fn(async () => false);
+  const { menu } = show({ kind: "blank", point }, { kind: "all" }, a);
+  const paste = within(menu).getByRole("menuitem", { name: /从剪贴板导入/ });
+  await waitFor(() => expect(paste.getAttribute("aria-disabled")).toBe("true"));
+  fireEvent.click(paste);
+  expect(a.importClipboard).not.toHaveBeenCalled();
 });
 
 it("子菜单：放入文件夹列出图库的文件夹，内容分级写入分级", async () => {
