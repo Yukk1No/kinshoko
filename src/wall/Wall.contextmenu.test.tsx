@@ -21,13 +21,14 @@ afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
 
 const describe = (target: WallMenuTarget) => target.kind === "cards" ? `卡片 ${target.cards.map((c) => c.id).join(",")}` : "空白处";
 
-function Harness({ initial = [], onCommand, onSelection, handle }: {
+function Harness({ initial = [], onCommand, onSelection, handle, onPaste, viewerOpen = false }: {
   initial?: string[]; onCommand?: (...args: unknown[]) => void; onSelection?: (ids: string[]) => void; handle?: React.Ref<WallHandle>;
+  onPaste?: () => void; viewerOpen?: boolean;
 }) {
   const [selected, setSelected] = useState(new Set(initial));
   return <Wall ref={handle} libraryId="L1" scope={{ kind: "all" }} reloadKey={0} selected={selected}
-    onSelectionChange={(next) => { onSelection?.([...next]); setSelected(next); }} onOpenImage={() => {}} viewerOpen={false}
-    menu={(target) => <MenuItem>{describe(target)}</MenuItem>} onCardCommand={onCommand} />;
+    onSelectionChange={(next) => { onSelection?.([...next]); setSelected(next); }} onOpenImage={() => {}} viewerOpen={viewerOpen}
+    menu={(target) => <MenuItem>{describe(target)}</MenuItem>} onCardCommand={onCommand} onPaste={onPaste} />;
 }
 const card = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`)!;
 
@@ -78,6 +79,40 @@ it("快捷键：P 钉住、F1 框选、Del 移到回收站，按右键的同一�
   expect(onCommand).toHaveBeenLastCalledWith("trash", [expect.objectContaining({ id: "4" })], expect.any(Object));
   fireEvent.keyDown(card("4"), { key: "F1" });
   expect(onCommand).toHaveBeenLastCalledWith("crop", [expect.objectContaining({ id: "4" })], expect.any(Object));
+});
+
+it("Ctrl+C 复制：选中单张时作用于它；聚焦未选中的卡片时选择改为这一张（#105）", async () => {
+  const onCommand = vi.fn();
+  render(<Harness initial={["2"]} onCommand={onCommand} />);
+  await screen.findAllByRole("img");
+  fireEvent.keyDown(card("2"), { key: "c", ctrlKey: true });
+  expect(onCommand).toHaveBeenLastCalledWith("copy", [expect.objectContaining({ id: "2" })], expect.any(Object));
+  fireEvent.keyDown(card("4"), { key: "c", ctrlKey: true });
+  expect(onCommand).toHaveBeenLastCalledWith("copy", [expect.objectContaining({ id: "4" })], expect.any(Object));
+  expect(card("4").getAttribute("aria-selected")).toBe("true");
+});
+
+it("Ctrl+C 在多选时交给调用方（由它提示一次只能复制一张）", async () => {
+  const onCommand = vi.fn();
+  render(<Harness initial={["1", "3"]} onCommand={onCommand} />);
+  await screen.findAllByRole("img");
+  fireEvent.keyDown(card("1"), { key: "C", ctrlKey: true });
+  expect(onCommand).toHaveBeenLastCalledWith("copy", [expect.objectContaining({ id: "1" }), expect.objectContaining({ id: "3" })], expect.any(Object));
+});
+
+it("Ctrl+V 从剪贴板导入：主窗口里不在输入框时都可用，查看器打开时不响应（#105）", async () => {
+  const onPaste = vi.fn();
+  const { rerender } = render(<><input aria-label="查找" /><Harness onPaste={onPaste} /></>);
+  await screen.findAllByRole("img");
+  fireEvent.keyDown(document.body, { key: "v", ctrlKey: true });
+  expect(onPaste).toHaveBeenCalledTimes(1);
+  fireEvent.keyDown(card("1"), { key: "v", ctrlKey: true });
+  expect(onPaste).toHaveBeenCalledTimes(2);
+  fireEvent.keyDown(screen.getByRole("textbox", { name: "查找" }), { key: "v", ctrlKey: true });
+  expect(onPaste).toHaveBeenCalledTimes(2);
+  rerender(<><input aria-label="查找" /><Harness onPaste={onPaste} viewerOpen /></>);
+  fireEvent.keyDown(document.body, { key: "v", ctrlKey: true });
+  expect(onPaste).toHaveBeenCalledTimes(2);
 });
 
 it("Ctrl+A 与 selectAll 选中已读到的全部图", async () => {

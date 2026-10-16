@@ -61,3 +61,17 @@ it("已走过的一段跟随当前值", () => {
   fireEvent.change(slider, { target: { value: "420" } });
   expect(slider.style.getPropertyValue("--fill")).toBe("100%");
 });
+
+it("Ctrl+滚轮缩放的预览让滑条跟着走，撤掉预览后回到已提交的值；不经滑条重复提交", () => {
+  const onPreview = vi.fn();
+  const onCommit = vi.fn();
+  const view = render(<DensityIsland value={240} preview={290} onPreview={onPreview} onCommit={onCommit} />);
+  const slider = screen.getByRole("slider", { name: "图片大小" }) as HTMLInputElement;
+  expect(slider.value).toBe("290");
+  view.rerender(<DensityIsland value={240} preview={null} onPreview={onPreview} onCommit={onCommit} />);
+  expect(slider.value).toBe("240");
+  view.rerender(<DensityIsland value={320} preview={null} onPreview={onPreview} onCommit={onCommit} />);
+  expect(slider.value).toBe("320");
+  expect(onPreview).not.toHaveBeenCalled();
+  expect(onCommit).not.toHaveBeenCalled();
+});
