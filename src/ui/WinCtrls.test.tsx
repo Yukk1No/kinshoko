@@ -40,3 +40,19 @@ it("最大化后中间按钮换成还原，窗口还原后换回来", async () =
   await act(async () => { await emit("tauri://resize", { width: 1, height: 1 }); });
   expect(await screen.findByRole("button", { name: "最大化" })).toBeTruthy();
 });
+
+it("最大化时控件组带上 data-maximized，让样式把它贴到屏幕右上角；还原后去掉", async () => {
+  backend();
+  const { container } = render(<WinCtrls />);
+  const group = () => container.querySelector(".k-win-ctrls")!;
+  expect(await screen.findByRole("button", { name: "最大化" })).toBeTruthy();
+  expect(group().hasAttribute("data-maximized")).toBe(false);
+  maximized = true;
+  await act(async () => { await emit("tauri://resize", { width: 1, height: 1 }); });
+  await screen.findByRole("button", { name: "还原" });
+  expect(group().hasAttribute("data-maximized")).toBe(true);
+  maximized = false;
+  await act(async () => { await emit("tauri://resize", { width: 1, height: 1 }); });
+  await screen.findByRole("button", { name: "最大化" });
+  expect(group().hasAttribute("data-maximized")).toBe(false);
+});

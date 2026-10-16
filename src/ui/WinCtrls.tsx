@@ -11,6 +11,7 @@ const glyph = { width: 10, height: 10, viewBox: "0 0 10 10", fill: "none", strok
 /**
  * Window controls for the frameless main window (design/ui-system/README.md, 窗口框架).
  * They sit at the end of whichever header row is right-most; that row is the window's safe area.
+ * Maximized, they drop the header's inset and hug the screen's top-right corner, so the close button reaches the corner (ui.css).
  * Closing keeps today's semantics: only this window closes, Kinshoko stays in the tray (ADR 0004).
  */
 export function WinCtrls() {
@@ -28,7 +29,7 @@ export function WinCtrls() {
     const win = currentWindow();
     if (win) void action(win).catch(() => {});
   };
-  return <div className="k-win-ctrls">
+  return <div className="k-win-ctrls" data-maximized={maximized || undefined}>
     <span className="k-win-div" aria-hidden="true" />
     <button type="button" className="k-win-btn" aria-label="最小化" title="最小化" onClick={run((win) => win.minimize())}>
       <svg {...glyph}><path d="M1 5.5h8" /></svg>
