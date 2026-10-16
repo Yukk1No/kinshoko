@@ -131,7 +131,9 @@ fn a_cross_library_permanent_delete_switches_per_library_and_continues_past_an_u
     assert_eq!(previews.len(), 3);
     assert!(previews.iter().all(|(_, preview)| preview.is_ok()));
 
-    // 确认前 B 的移动盘被拔掉。
+    // 确认前 B 的移动盘被拔掉。预览最后一组是 B，可写句柄还开着它的数据库，
+    // Windows 不允许改名有打开句柄的目录，测试里先把句柄切回 A 再模拟拔盘。
+    writer(&mut device, &a).unwrap();
     std::fs::rename(&b_root, dir.path().join("盘已拔出")).unwrap();
     let results = each_library(
         previews
