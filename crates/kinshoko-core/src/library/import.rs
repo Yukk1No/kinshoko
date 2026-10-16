@@ -19,7 +19,6 @@ use image::ImageFormat;
 use rusqlite::{OptionalExtension, params};
 use sha2::{Digest, Sha256};
 
-use super::colour;
 use super::events::LibraryEvent;
 use super::types::{
     EagleDeletedContentChoice, ImportItem, ImportOptions, ImportOutcome, ImportProgress,
@@ -29,6 +28,7 @@ use super::{
     Error, Inner, ORIGINALS_DIR, STAGING_DIR, SaveDestination, eagle, fault, now_ms, package, save,
     tags,
 };
+use super::{colour, thumbnail};
 use crate::fidelity::ColourDescription;
 use crate::fidelity::inspect::inspect;
 use crate::fidelity::render::verify_pixels;
@@ -343,8 +343,34 @@ struct ImportContext {
     task_created_images: Arc<Mutex<HashSet<String>>>,
 }
 
-/// 让一份原图字节走完写入顺序：完整解码 → 哈希 → 同库暂存校验 → pending → 发布 → 提交。
+/// 让一份原图字节走完写入顺序，进库后生成占位图（#110）。
+/// 占位图是可重建缓存：生成失败不影响导入结果，打开资料库时的后台补齐会再试。
 fn ingest(
+    inner: &Inner,
+    bytes: &[u8],
+    original_name: String,
+    location: String,
+    origin: Origin,
+    options: ImportOptions,
+    context: ImportContext,
+) -> (ImportOutcome, bool) {
+    let result = ingest_original(
+        inner,
+        bytes,
+        original_name,
+        location,
+        origin,
+        options,
+        context,
+    );
+    if let Some(image_id) = result.0.image_id() {
+        let _ = thumbnail::make_placeholder(inner, image_id);
+    }
+    result
+}
+
+/// 让一份原图字节走完写入顺序：完整解码 → 哈希 → 同库暂存校验 → pending → 发布 → 提交。
+fn ingest_original(
     inner: &Inner,
     bytes: &[u8],
     original_name: String,
