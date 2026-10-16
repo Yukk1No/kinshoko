@@ -1,6 +1,6 @@
 import { Fragment, forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, KeyboardEvent, MouseEvent, ReactNode } from "react";
-import { flushSync } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import { Layers } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { MenuPopup } from "../ui/Menu";
@@ -21,6 +21,8 @@ import { captureAnchor, cardAt, masonry, resolveAnchor, visible, zoomScrollTop, 
 import { ZOOM_COMMIT_MS, createNotchCounter, zoomDensity } from "./zoom";
 import { createSmoothWheel } from "./smoothWheel";
 import { createPrefetcher, decodeThumbnail, mountWindow, prefetchOrder, type MountWindow } from "./prefetch";
+import { MAX_GHOSTS, SealFx, type FxArrival, type FxSource } from "../shell/sealfx";
+import { reducedNow, useReducedMotion } from "../ui/reducedMotion";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
 const GAP = 8;
@@ -36,6 +38,11 @@ const PREFETCH_PX = 1600;
 const PREFETCH_MAX = 48;
 /** 滚动停手多久后把位置写进本地存储。 */
 const SAVE_ANCHOR_MS = 250;
+/**
+ * 关闭安全模式后等资料库送回成人图的最长时间（毫秒）。超过了就不再从封印书飞出，
+ * 回来的图照常淡出遮蔽：动画只跟着这一次切换，不挂在之后无关的重新浏览上。
+ */
+const RELEASE_WAIT = 1500;
 
 /** 图片墙上拖出参考图时放进 dataTransfer 的类型，值为 JSON 数组的参考图 id。 */
 export const DRAG_IMAGES = "application/x-kinshoko-images";
@@ -446,6 +453,61 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     return () => cancelAnimationFrame(frame);
   }, [cards, safeMode]);
 
+  // ------------------------------------------------------------ 封印与释放（#27，原型 sealfx）
+  // 开启：墙上看得见的成人图化成“影子”，原地模糊、缩小，再飞进封印书；关闭：书打开，资料库送回的
+  // 成人图从书里飞回各自的位置，落地前卡片本身先藏着。影子在切换的那次提交里（绘制之前）就生成，
+  // 卡片自身的遮蔽照旧在点下去的那一帧开始，动画不推迟、也不代替遮蔽。减少动态效果时没有影子。
+  const fxHost = useRef<HTMLDivElement>(null);
+  const fx = useRef<SealFx | null>(null);
+  const [arriving, setArriving] = useState<ReadonlySet<string>>(new Set());
+  const lastSafe = useRef(safeMode);
+  /** 等着回来的图飞出的截止时刻（performance.now）；0 表示没有。 */
+  const releaseDue = useRef(0);
+  const reduced = useReducedMotion();
+  const landed = useCallback((id: string) => setArriving((s) => {
+    if (!s.has(id)) return s;
+    const n = new Set(s); n.delete(id); return n;
+  }), []);
+  useLayoutEffect(() => {
+    const f = new SealFx(fxHost.current!);
+    fx.current = f;
+    return () => { fx.current = null; f.clear(); };
+  }, []);
+  useEffect(() => {
+    if (!reduced) return;
+    fx.current?.clear(); releaseDue.current = 0; setArriving(new Set());
+  }, [reduced]);
+  /** 视口里看得见的成人卡片。 */
+  const onScreenAdult = useCallback(() => {
+    const el = scroller.current;
+    if (!el) return [];
+    const view = el.getBoundingClientRect(), adult = new Set(cards.filter((c) => c.adult).map((c) => c.id));
+    return [...el.querySelectorAll<HTMLElement>(".card")].flatMap((node) => {
+      const id = node.dataset.id!, rect = node.getBoundingClientRect(), img = node.querySelector("img");
+      const seen = rect.width > 0 && rect.height > 0 && rect.bottom >= view.top && rect.top <= view.bottom;
+      return seen && img && adult.has(id) ? [{ id, src: img.currentSrc || img.src, rect }] : [];
+    });
+  }, [cards]);
+  const book = () => document.querySelector(".seal-book")?.getBoundingClientRect();
+  useLayoutEffect(() => {
+    if (lastSafe.current === safeMode) return;
+    lastSafe.current = safeMode;
+    releaseDue.current = 0;
+    const f = fx.current, b = book();
+    if (!f || !b || viewerOpen || reducedNow()) {
+      // 查看器盖着墙或减少动态效果：封印的图直接不见，放出的图直接在。
+      f?.clear(); setArriving(new Set());
+      return;
+    }
+    if (safeMode) {
+      // 还在往外飞的影子先掉头（原型 Q111），再让墙上的成人图飞进书里。
+      f.seal(onScreenAdult() satisfies FxSource[], b);
+      setArriving(new Set());
+    } else {
+      releaseDue.current = performance.now() + RELEASE_WAIT;
+    }
+  }, [safeMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const ids = useMemo(() => cards.map((c) => c.id), [cards]);
   const layout = useMemo(
     () =>
@@ -574,6 +636,24 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     return () => { window.removeEventListener("pagehide", flushSave); flushSave(); };
   }, [flushSave]);
 
+  // 关闭安全模式后，资料库送回的成人图排好了位置：它们就是从书里飞出的落点。
+  useLayoutEffect(() => {
+    const due = releaseDue.current, f = fx.current, b = book();
+    if (!due || safeMode || !cards.length || !width) return;
+    releaseDue.current = 0;
+    if (!f || !b || performance.now() > due || viewerOpen || reducedNow()) return;
+    const arrivals: FxArrival[] = onScreenAdult().slice(0, MAX_GHOSTS).map(({ id, src, rect }) => ({
+      id, src, w: rect.width, h: rect.height,
+      target: () => {
+        const r = scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.getBoundingClientRect();
+        return r && r.width > 0 ? r : null;
+      },
+    }));
+    if (!arrivals.length) return;
+    setArriving(new Set(arrivals.map((a) => a.id)));
+    f.release(arrivals, b, landed);
+  }, [cards, layout, width]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const onScroll = () => {
     const el = scroller.current!;
     syncMount(el);
@@ -609,7 +689,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   // 缩略图按滚动方向预取，离挂载范围近的先取；挂载范围变化时更新（#109）。
   const prefetcher = useRef<ReturnType<typeof createPrefetcher> | null>(null);
   /** 上次渲染的卡片元素，按 id；布局、选择、遮蔽都没变的卡片原样沿用。 */
-  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; node: ReactNode }>());
+  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; landing: boolean; node: ReactNode }>());
   useLayoutEffect(() => { renderedCards.current = nextRendered; });
   const cardHandlers = useRef<{
     select: (id: string, e: Pick<MouseEvent, "shiftKey" | "ctrlKey" | "metaKey">) => void;
@@ -752,9 +832,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             const b = layout.boxes[i];
             const veiled = card.adult && (safeMode || !revealed.has(card.id));
             const chosen = selected.has(card.id);
+            const landing = arriving.has(card.id);
             // 没变的卡片沿用上次的元素，React 跳过整张卡片的比对（#109）。
             const kept = renderedCards.current.get(card.id);
-            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled) {
+            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.landing === landing) {
               nextRendered.set(card.id, kept);
               return kept.node;
             }
@@ -762,7 +843,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             const node = (
               <Fragment key={card.id}>
               <div
-                className="card"
+                className={landing ? "card is-arriving" : "card"}
                 data-id={card.id}
                 aria-selected={selected.has(card.id)}
                 role="option"
@@ -793,11 +874,12 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 onKeyDown={(e) => e.stopPropagation()}><Layers size={11} aria-hidden="true" />{sources.length >= 2 && `${sources.length} 处`}</button>}
               </Fragment>
             );
-            nextRendered.set(card.id, { card, box: b, chosen, veiled, node });
+            nextRendered.set(card.id, { card, box: b, chosen, veiled, landing, node });
             return node;
           })}
         </div>
       )}
+      {createPortal(<div className="fx-layer" ref={fxHost} aria-hidden="true" />, document.body)}
     </ContextMenu.Trigger>
     {menu && menuTarget && <MenuPopup label={menuTarget.kind === "blank" ? "图片墙菜单" : menuTarget.cards.length > 1 ? `${menuTarget.cards.length} 张参考图的菜单` : "参考图菜单"} width={232}>
       {menu(menuTarget)}
