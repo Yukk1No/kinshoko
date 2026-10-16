@@ -135,9 +135,18 @@ pub(crate) struct Inner {
     /// 只读打开、不是活动资料库（参考组读取未激活的库，#66）：不写数据库。
     detached: bool,
     write_revoked: Arc<AtomicBool>,
+    /// 正在进行的导入的保存文件夹（每个任务一项，可重复）；删除文件夹时据此拒绝。
+    import_folders: Arc<Mutex<Vec<String>>>,
 }
 
 impl Inner {
+    /// 正在进行的导入的保存文件夹（见 [`Inner::import_folders`]）。
+    fn receiving_folders(&self) -> std::sync::MutexGuard<'_, Vec<String>> {
+        self.import_folders
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+    }
+
     fn translations(&self) -> Arc<tags::TranslationIndex> {
         self.translations
             .read()
@@ -269,6 +278,7 @@ impl Library {
                 reference_taken: AtomicBool::new(false),
                 detached: false,
                 write_revoked: Arc::new(AtomicBool::new(false)),
+                import_folders: Arc::default(),
             }),
         })
     }
