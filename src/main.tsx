@@ -17,6 +17,10 @@ const view = params.get("view");
 const pin = params.get("pin");
 document.documentElement.dataset.view = view ?? "main";
 
+// #102 T7：开发模式的帧时间探针，只挂在主窗口。启用条件是 Vite 开发服务器，或构建时显式设置
+// VITE_KINSHOKO_PERF=1（用生产构建量帧时间）。条件在构建时折叠为常量，发行构建不含 ./perf。
+if ((import.meta.env.DEV || import.meta.env.VITE_KINSHOKO_PERF === "1") && !view) void import("./perf/install").then((m) => m.installPerfProbe(window));
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     {view === "capture" ? (
