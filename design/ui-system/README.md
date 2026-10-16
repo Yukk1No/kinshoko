@@ -17,7 +17,7 @@
 | [Arc Library](https://github.com/kuratlielia/arc-library) · MIT | **采用：按钮与 dock 的参照** | 开源部分（MIT，样式用 CSS Modules，无需 Tailwind）提供 button、split-button、segmented-control 等的写法与动效令牌（snappy / smooth / morph 弹簧）。Arc Pro 的 dock 是付费组件、不在仓库里，本项目按其公开行为说明自行实现，不复制其代码。 |
 | beUI | **只参考动效写法** | Motion + Tailwind 的复制式组件（弹簧、模糊交叉淡入、布局过渡）。官方仓库与许可证未能确认。 |
 | [RareUI](https://github.com/Codewithswappy/RareUI) · MIT | **主界面不用** | 液态、玻璃、3D、WebGL 背景等装饰性组件。与“图片底色保持中性、缩略图不加装饰”冲突：画师要靠眼睛判断参考图颜色。 |
-| [Shaders](https://shaders.com) | **主界面不用** | WebGPU 着色器特效。理由同上；画师作画时还会占用显卡。以后可评估只用于封印书演出或空状态，需单独决定。 |
+| [Shaders](https://shaders.com) | **只用于“时刻”** | WebGPU 着色器特效。常驻界面（侧栏、顶栏、图片墙、查看器）与图片周围仍然不用：画师要靠眼睛判断参考图颜色，作画时也不能占显卡。2026-10-16（#78 人工验收反馈）放开到短暂的“时刻”：封印书的封印 / 释放演出、空状态、首次启动、导入完成。硬约束：演出结束或窗口隐藏即停止渲染；“减少动画”时给静态画面；没有 WebGPU 时退回 CSS 写法。用到哪一处需在对应工单里列明。 |
 
 新增依赖只限 `@base-ui/react`、`motion`；`lucide-react` 已存在于原型。移植的 Fluid Functionalism 源码放在独立的 vendor 目录，文件头保留出处与许可证。任何新库都要先在这里登记许可证与用途。
 
