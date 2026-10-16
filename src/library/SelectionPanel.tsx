@@ -48,10 +48,10 @@ const isAdult = (rating: ContentRating | null) =>
   rating === "questionable" || rating === "explicit";
 
 /** 文件夹树摊平成带缩进的选项。 */
-function flatten(nodes: FolderNode[], depth = 0): { id: string; label: string }[] {
+export function flattenFolders(nodes: FolderNode[], depth = 0): { id: string; label: string }[] {
   return nodes.flatMap((n) => [
     { id: n.id, label: `${"　".repeat(depth)}${n.name}` },
-    ...flatten(n.children, depth + 1),
+    ...flattenFolders(n.children, depth + 1),
   ]);
 }
 
@@ -168,7 +168,7 @@ function Detail({
  * 永久删除的确认（#67）：列出会受影响的参考组；没有时直接确认。执行时预览已过期（回收站、
  * 参考组或安全模式变了）就重新预览，让画师看过新的影响再确认。
  */
-function PermanentDeleteConfirm({
+export function PermanentDeleteConfirm({
   libraryId,
   sourceTarget,
   safeMode = false,
@@ -296,7 +296,7 @@ export function SelectionPanel({
   useEffect(() => {
     let alive = true;
     (sourceTarget ? workspaceSidebar(libraryId, safeMode) : sidebar(libraryId)).then(
-      (s) => alive && setFolders(flatten(s.folders)),
+      (s) => alive && setFolders(flattenFolders(s.folders)),
       () => undefined,
     );
     return () => {
