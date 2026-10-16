@@ -101,8 +101,9 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     purge(cards) {
       const { activeLibraryId, onError } = options.current;
       const libraries = new Set(cards.map((card) => targetOf(card, activeLibraryId).libraryId));
-      if (cards.length > 1 && (libraries.size > 1 || !libraries.has(activeLibraryId))) {
-        onError("一次彻底删除多张只能在当前图库的回收站里进行；可以逐张彻底删除。");
+      // 任一图库都可以整理（ADR-0008）：后端按需把可写句柄切到这些图所在的图库。
+      if (libraries.size > 1) {
+        onError("一次彻底删除多张只能在同一个图库的回收站里进行；可以逐张彻底删除。");
         return;
       }
       setPurging(cards);
@@ -132,7 +133,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       </AlertDialog.Portal>
     </AlertDialog.Root>}
     {purging && <PermanentDeleteConfirm
-      libraryId={purgeTarget?.libraryId ?? o.activeLibraryId}
+      libraryId={targetOf(purging[0], o.activeLibraryId).libraryId}
       ids={purging.map((card) => targetOf(card, o.activeLibraryId).imageId)}
       sourceTarget={purgeTarget}
       safeMode={o.safe}

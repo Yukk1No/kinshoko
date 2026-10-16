@@ -91,3 +91,21 @@ it("彻底删除先列出受影响的参考组再确认", async () => {
   expect(calls.find((c) => c.cmd === "plugin:library|permanent_delete")!.args).toMatchObject({ libraryId: "L1", ids: ["i1", "i2"], token: "t" });
   await waitFor(() => expect(onClearSelection).toHaveBeenCalled());
 });
+
+it("另一个图库回收站里的多张也能一次彻底删除，后端按需切换可写库（#112）", async () => {
+  mockIPC((cmd, args) => {
+    calls.push({ cmd, args: args as Record<string, unknown> });
+    if (cmd.endsWith("preview_permanent_delete")) return { imageIds: ["i1", "i2"], groups: [], token: "t" };
+    return null;
+  });
+  const onError = vi.fn();
+  render(<Harness onError={onError} />);
+  act(() => api.purge([card("1", "L2"), card("2", "L2")]));
+  fireEvent.click(await screen.findByRole("button", { name: "确认永久删除" }));
+  await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:library|permanent_delete")).toBe(true));
+  expect(calls.find((c) => c.cmd === "plugin:library|preview_permanent_delete")!.args).toMatchObject({ libraryId: "L2", ids: ["i1", "i2"] });
+  expect(calls.find((c) => c.cmd === "plugin:library|permanent_delete")!.args).toMatchObject({ libraryId: "L2", ids: ["i1", "i2"], token: "t" });
+  expect(onError).not.toHaveBeenCalled();
+  act(() => api.purge([card("1", "L1"), card("2", "L2")]));
+  expect(onError).toHaveBeenCalledWith("一次彻底删除多张只能在同一个图库的回收站里进行；可以逐张彻底删除。");
+});
