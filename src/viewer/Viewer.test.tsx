@@ -11,7 +11,7 @@ vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async (name, callback) =
 const cropReadout = (size: string) => {
   const bar = screen.getByRole("toolbar", { name: "框选" });
   expect(within(bar).getByText(size)).toBeTruthy();
-  expect(within(bar).getByText("原图像素")).toBeTruthy();
+  expect(within(bar).getByText("原始像素")).toBeTruthy();
   return bar;
 };
 const translation = (image: HTMLElement) => image.style.transform.slice("translate(".length).split(",").map(parseFloat);
@@ -50,7 +50,7 @@ describe("查看器设备像素", () => {
     const position = new DOMRect(0.25, 47.25, 1000, 800);
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(position);
     render(<Viewer libraryId="L1" card={{ id: "a", width: 101, height: 67, thumbnail: "", adult: false }} onClose={() => {}} />);
-    fireEvent.click(screen.getByRole("button", { name: /^原图像素/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^原始像素/ }));
     const image = screen.getByAltText("正在查看的参考图");
     const [left, top] = translation(image);
     const x = (position.left + left) * window.devicePixelRatio;
@@ -101,7 +101,7 @@ describe("查看器设备像素", () => {
   it.each([1, 1.25, 1.5, 2])("DPR %s 下原图像素与 110％ 缩放都对齐物理像素，超过 200％ 按像素放大", (dpr) => {
     Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: dpr });
     render(<Viewer libraryId="L1" card={{ id: "odd", width: 101, height: 67, thumbnail: "", adult: false }} onClose={() => {}} />);
-    fireEvent.click(screen.getByRole("button", { name: /^原图像素/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^原始像素/ }));
     const image = screen.getByAltText("正在查看的参考图");
     const physical = (property: "width" | "height" | "left" | "top") =>
       (property === "left" ? translation(image)[0] : property === "top" ? translation(image)[1] : parseFloat(image.style[property])) * dpr;
@@ -127,7 +127,7 @@ describe("查看器设备像素", () => {
     expect(image.style.width).toBe("1000px");
     expect(parseFloat(image.style.height)).toBeCloseTo(1000 / 1.5);
 
-    fireEvent.click(screen.getByRole("button", { name: /^原图像素/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^原始像素/ }));
     image = screen.getByAltText("正在查看的参考图");
     expect(image.getAttribute("src")).toBe("http://thumb.localhost/L1/a/full");
     expect(image.style.width).toBe("1600px");
@@ -146,7 +146,7 @@ describe("查看器设备像素", () => {
     fireEvent.load(image);
     expect(screen.queryByRole("alert")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /^原图像素/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^原始像素/ }));
     image = screen.getByAltText("正在查看的参考图");
     const before = translation(image)[0];
     const stage = image.parentElement!;
@@ -337,20 +337,20 @@ describe("查看器标题行与 dock（#98）", () => {
     const fit = screen.getByRole("button", { name: /^适应窗口/ });
     fireEvent.keyDown(fit, { key: "ArrowRight" });
     expect(step.mock.calls).toEqual([[1]]);
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: /^原图像素/ }));
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /^原始像素/ }));
   });
 
   it("dock 的名称带快捷键；0 / 1 / P / F1 与点按 dock 执行同一操作", async () => {
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
     const dock = screen.getByRole("toolbar", { name: "查看工具" });
     const names = within(dock).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
-    expect(names).toEqual(["适应窗口，0", "原图像素，1", "框选局部，F1", "钉住整图，P", "背景", "信息，I"]);
+    expect(names).toEqual(["适应窗口，0", "原始像素，1", "框选局部，F1", "钉住整图，P", "背景", "信息，I"]);
     const stage = screen.getByAltText("正在查看的参考图").parentElement!;
     const pressed = (name: RegExp) => screen.getByRole("button", { name }).getAttribute("aria-pressed");
     expect(pressed(/^适应窗口/)).toBe("true");
     fireEvent.keyDown(stage, { key: "1" });
     expect(screen.getByLabelText("缩放比例").textContent).toBe("100%");
-    expect(pressed(/^原图像素/)).toBe("true");
+    expect(pressed(/^原始像素/)).toBe("true");
     fireEvent.keyDown(stage, { key: "0" });
     expect(pressed(/^适应窗口/)).toBe("true");
     fireEvent.keyDown(stage, { key: "F1" });
@@ -368,7 +368,7 @@ describe("查看器标题行与 dock（#98）", () => {
     fireEvent.keyDown(screen.getByAltText("正在查看的参考图").parentElement!, { key: "i" });
     const info = screen.getByRole("region", { name: "图片信息" });
     expect(await within(info).findByText("晨光练习_04.png")).toBeTruthy();
-    expect(within(info).getByText("800 × 600 原图像素")).toBeTruthy();
+    expect(within(info).getByText("800 × 600 原始像素")).toBeTruthy();
     expect(within(info).getByText("角色参考")).toBeTruthy();
     expect(info.textContent).toContain("Shift+拖动框选局部");
     fireEvent.click(screen.getByRole("button", { name: /^信息/ }));

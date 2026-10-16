@@ -114,7 +114,7 @@ try {
   ] }] });
   const fitted = await until("真实双击打开查看器", image);
   check(fitted.w < 2400 && Math.abs(fitted.physicalW - fitted.w) < 0.01 && Math.abs(fitted.physicalH - fitted.h) < 0.01, "适应窗口按设备像素 1:1 显示派生图");
-  await click("原图像素");
+  await click("原始像素");
   const original = await until("原图解码", image);
   if (forcedDpr) check(Math.abs(original.dpr - Number(forcedDpr)) < 0.001, "WebView2 使用请求的测试 DPR");
   check(original.w === 2400 && original.h === 1600 && Math.abs(original.physicalW - 2400) < 0.01 && Math.abs(original.physicalH - 1600) < 0.01, "原图像素在真实 WebView2 中对齐（DPR " + original.dpr + "）");
