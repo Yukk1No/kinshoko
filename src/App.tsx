@@ -601,7 +601,7 @@ function LibraryWorkspace({
   );
 }
 
-/** 详情面板的预览图与图片墙同为参考图来源：截在上面时读原图像素，而不是缩略图的屏幕像素。 */
+/** 详情面板的预览图与图片墙同为参考图来源：截在上面时读原始像素，而不是缩略图的屏幕像素。 */
 function InspectorPreview({ card, libraryId }: { card: BrowserCard; libraryId: string }) {
   const image = useRef<HTMLImageElement>(null);
   useCaptureSources(() => {

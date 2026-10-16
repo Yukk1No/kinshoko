@@ -40,7 +40,7 @@ const OneToOne = () => <svg width="19" height="19" viewBox="0 0 24 24" fill="non
  * 查看器盖在图片墙上，原位置与已加载的卡片保留。
  *
  * 钉到桌面（#65）：“钉住整图”，或 Shift+拖动（或先按“框选局部”）框出一块，按 Enter 或“钉住局部”。
- * 选区按原图像素记，标出“宽 × 高 px（原图像素）”，缩放平移时边界不变。
+ * 选区按原图像素记，标出“宽 × 高 原始像素”，缩放平移时边界不变。
  */
 export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, sourceName, position, onStep, startCrop = false }: Props) {
   const root = useRef<HTMLElement>(null);
@@ -230,7 +230,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   const shownCropRect = cropRect && crop && !dragging ? cropRect : null;
   const viewerTools: DockItem[] = [
     { id: "fit", label: "适应窗口", icon: <Scan size={19} strokeWidth={1.75} />, shortcut: "0" },
-    { id: "pixels", label: "原图像素", icon: <OneToOne />, shortcut: "1" },
+    { id: "pixels", label: "原始像素", icon: <OneToOne />, shortcut: "1" },
     "sep",
     { id: "crop", label: "框选局部", icon: <CropIcon size={19} strokeWidth={1.75} />, shortcut: "F1" },
     { id: "pin", label: "钉住整图", icon: <Pin size={19} strokeWidth={1.75} />, shortcut: "P" },
@@ -310,7 +310,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
         {cropRect && crop && <div className="viewer-crop" aria-label="选区"
           style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }} />}
         {shownCropRect && crop && <FollowDock anchor={shownCropRect} bounds={viewport} reserveBottom={DOCK_RESERVE}>
-          <Dock label="框选" onSelect={cropTool} readout={<><b>{crop.width} × {crop.height}</b>原图像素</>} items={[
+          <Dock label="框选" onSelect={cropTool} readout={<><b>{crop.width} × {crop.height}</b>原始像素</>} items={[
             { id: "pin", label: "钉住局部", icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary" },
             { id: "redo", label: "重选", icon: <RotateCcw size={18} strokeWidth={1.75} /> },
             { id: "cancel", label: "取消", icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },
@@ -319,7 +319,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
         {info && <section className="viewer-info" aria-label="图片信息">
           <dl>
             {name && <><dt>文件</dt><dd>{name}</dd></>}
-            <dt>尺寸</dt><dd>{card.width} × {card.height} 原图像素</dd>
+            <dt>尺寸</dt><dd>{card.width} × {card.height} 原始像素</dd>
             <dt>缩放</dt><dd>{Math.round(physicalWidth / card.width * 100)}%</dd>
             {sourceName && <><dt>图库</dt><dd>{sourceName}</dd></>}
           </dl>
