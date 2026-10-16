@@ -32,7 +32,7 @@ import {
 } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { type FinishedImport, type RunningImport } from "./library/ImportBar";
-import { ImportMenu } from "./library/ImportMenu";
+import { ImportMenu, type ImportControl } from "./library/ImportMenu";
 import { LegacyNameMigrationNotice, LegacyNameWizard } from "./library/LegacyNameMigrationPanel";
 import { WorkspacePane, WorkspaceSources } from "./library/WorkspacePane";
 import type { WorkspaceCard as SourcesCard } from "./bindings/WorkspaceCard";
@@ -51,6 +51,8 @@ import { TaggingIndicator } from "./TaggingIndicator";
 import { UpdateBanner } from "./Update";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "./wall/Wall";
 import { DensitySlider } from "./wall/DensitySlider";
+import { WallMenu } from "./wall/WallMenu";
+import { useWallActions } from "./wall/useWallActions";
 import { Viewer } from "./viewer/Viewer";
 import { RuntimeNotice } from "./RuntimeSupport";
 
@@ -122,6 +124,10 @@ function LibraryWorkspace({
   const scope: BrowseScope = workspaceScope.kind === "library" ? workspaceScope.scope : { kind: "all" };
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<BrowserCard | null>(null);
+  /** 查看器打开时即进入框选（图片墙右键“框选局部钉住”或 F1）。 */
+  const [viewCrop, setViewCrop] = useState(false);
+  useEffect(() => { if (!viewing) setViewCrop(false); }, [viewing]);
+  const importControl = useRef<ImportControl>(null);
   const [editingGroups, setEditingGroups] = useState(false);
   useEffect(()=>{if(captureRequest){setViewing(null);setSources(null);}},[captureRequest]);
   const [problem, setProblem] = useState<string | null>(null);
@@ -366,6 +372,19 @@ function LibraryWorkspace({
     setRunning((r) => (r?.taskId === taskId ? r : { taskId, progress: { done: 0, total: 0 } }));
   };
 
+  // 图片墙的右键菜单与卡片快捷键（#102）。
+  const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
+    safe, activeLibraryId: libraryId, onError,
+    onOpen: (card) => { setViewCrop(false); setViewing(card); },
+    onCrop: (card) => { setViewCrop(true); setViewing(card); },
+    onInspect: (card) => setSources(card as WorkspaceCard),
+    onChanged: () => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); },
+    onClearSelection: () => setSelected(new Set()),
+    importFrom: (source) => importControl.current?.[source](),
+    selectAll: () => wall.current?.selectAll(),
+    setDensity,
+  });
+
   const libInPane = paneOpen && section === "browse";
   const sectionName = section === "groups" ? "参考组" : "截图";
   return (
@@ -419,7 +438,7 @@ function LibraryWorkspace({
               <DensitySlider value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
             </label>
           </div>
-          <ImportMenu scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
+          <ImportMenu control={importControl} scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
             running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
             onOpenTrash={(owner=libraryId) => {
               onOpenBrowse();
@@ -483,8 +502,14 @@ function LibraryWorkspace({
             safeMode={safe}
             selected={selected}
             onSelectionChange={setSelected}
-            onOpenImage={setViewing}
+            onOpenImage={(card) => { setViewCrop(false); setViewing(card); }}
             viewerOpen={modalOpen}
+            menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} />}
+            onCardCommand={(command, cards, point) => {
+              if (command === "pin") wallActions.pin(cards, point);
+              else if (command === "crop") wallActions.crop(cards[0]);
+              else wallActions.edit(cards, [{ kind: "delete" }], true);
+            }}
           />
           {/* 多选的浮动操作条（#98）：选择面板把数量与批量操作放到这里。 */}
           <div className="selbar-host" ref={setBarHost} />
@@ -527,8 +552,10 @@ function LibraryWorkspace({
         reloadKey={reloadKey}
         position={viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) }}
         onStep={step}
+        startCrop={viewCrop}
       />
     )}
+    {wallDialogs}
     </>
   );
 }

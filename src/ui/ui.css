@@ -58,6 +58,11 @@
 .k-item.is-tip { min-height: 30px; color: var(--ink-3); font-size: 12px; white-space: normal; }
 .k-item.is-tip:hover { background: none; }
 .k-sep { height: 1px; background: var(--line); margin: 4px 6px; }
+/* 子菜单行（“放入文件夹 ▸”）：右侧箭头，展开时保持高亮。 */
+.k-item-sub { flex: none; margin-left: 4px; color: var(--ink-3); }
+.k-item-meta + .k-item-sub { margin-left: 6px; }
+.k-item.is-sub[data-popup-open] { background: var(--hover); }
+.k-item.has-meta .k-item-label { display: flex; align-items: center; gap: 8px; }
 .k-menu-label { padding: 6px 10px 2px 32px; font-size: 11px; color: var(--ink-3); font-weight: 600; letter-spacing: 0.04em; }
 
 /* ---- Split button (after Arc split-button) ---- */
