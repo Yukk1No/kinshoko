@@ -14,6 +14,10 @@ import type { ImportOptions } from "./bindings/ImportOptions";
 import type { RuntimeCapabilities } from "./bindings/RuntimeCapabilities";
 import type { RuntimeStatus } from "./bindings/RuntimeStatus";
 import type { OrganizeWaiting } from "./bindings/OrganizeWaiting";
+import type { LibraryTarget } from "./bindings/LibraryTarget";
+import type { LibraryDeletePreview } from "./bindings/LibraryDeletePreview";
+import type { LibraryDeleteToken } from "./bindings/LibraryDeleteToken";
+import type { LibraryBatchFailure } from "./bindings/LibraryBatchFailure";
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
 import { Channel, convertFileSrc, invoke } from "@tauri-apps/api/core";
@@ -146,6 +150,18 @@ export function editImages(libraryId: string, ids: string[], edits: ImageEdit[])
  */
 export function previewPermanentDelete(libraryId: string, ids: string[]): Promise<PermanentDeletePreview> {
   return invoke<PermanentDeletePreview>(lib("preview_permanent_delete"), { libraryId, ids });
+}
+
+/**
+ * 跨图库的永久删除预览（#112）：后端按图库分组，逐组切换可写句柄预览；核对不了的图库只带原因。
+ */
+export function previewPermanentDeleteBatch(targets: LibraryTarget[]): Promise<LibraryDeletePreview[]> {
+  return invoke<LibraryDeletePreview[]>(lib("preview_permanent_delete_batch"), { targets });
+}
+
+/** 按各图库的预览令牌逐组永久删除；返回没删完的图库与原因，全部完成时为空。 */
+export function permanentDeleteBatch(groups: LibraryDeleteToken[]): Promise<LibraryBatchFailure[]> {
+  return invoke<LibraryBatchFailure[]>(lib("permanent_delete_batch"), { groups });
 }
 
 /** 按预览的令牌永久删除回收站里的图；预览之后有变化时被拒绝（{@link isDeletePreviewStale}）。 */

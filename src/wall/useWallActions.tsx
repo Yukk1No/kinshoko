@@ -4,6 +4,7 @@ import type { ScreenRect } from "../bindings/ScreenRect";
 import type { WorkspaceSourceTarget } from "../bindings/WorkspaceSourceTarget";
 import { pinReference, referenceGroups, workspaceEditSource, workspaceSidebar, workspaceSourceGroup } from "../ipc";
 import { flattenFolders, PermanentDeleteConfirm } from "../library/SelectionPanel";
+import { libraryFailures, PermanentDeleteBatchConfirm } from "../library/PermanentDeleteBatch";
 import type { BrowserCard } from "./Wall";
 import type { ImportSource, WallMenuActions } from "./WallMenu";
 
@@ -34,7 +35,7 @@ const targetOf = (card: BrowserCard, fallbackLibrary: string): WorkspaceSourceTa
 
 export type WallActionsOptions = {
   safe: boolean;
-  /** 后端当前的写入资料库：一次彻底删除多张图只在它上面进行。 */
+  /** 卡片没有标出图库时的后备图库。 */
   activeLibraryId: string;
   onOpen: (card: BrowserCard) => void;
   onCrop: (card: BrowserCard) => void;
@@ -68,6 +69,27 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     }
   };
 
+  /** 卡片来源里写着的图库名；没有时用 id。 */
+  const libraryName = (libraryId: string) =>
+    cardsNamed.current.flatMap((card) => card.sources ?? []).find((source) => source.libraryId === libraryId)?.libraryName ?? libraryId;
+  const cardsNamed = useRef<BrowserCard[]>([]);
+  /**
+   * 跨图库逐张执行（ADR-0008）：后端按需把可写句柄切到每张图的图库；一个图库失败（断连等）时
+   * 其他图库照常完成，最后按图库报告没完成的原因。
+   */
+  const eachCard = async (cards: BrowserCard[], what: string, run: (target: WorkspaceSourceTarget) => Promise<unknown>) => {
+    cardsNamed.current = cards;
+    const failed: { libraryId: string; error: string }[] = [];
+    for (const card of cards) {
+      const target = targetOf(card, options.current.activeLibraryId);
+      try { await run(target); } catch (e) {
+        if (!failed.some((f) => f.libraryId === target.libraryId)) failed.push({ libraryId: target.libraryId, error: String(e) });
+      }
+    }
+    if (failed.length) options.current.onError(`有图库没有${what}。${libraryFailures(failed, libraryName)}`);
+    return failed.length === 0;
+  };
+
   const actions: WallMenuActions = {
     open: (card) => options.current.onOpen(card),
     crop: (card) => options.current.onCrop(card),
@@ -80,32 +102,22 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       else void pinNow(cards, point);
     },
     edit(cards, edits, clear) {
-      const { safe, activeLibraryId, onChanged, onClearSelection, onError } = options.current;
+      const { safe, onChanged, onClearSelection } = options.current;
       void (async () => {
         try {
-          for (const card of cards) await workspaceEditSource(targetOf(card, activeLibraryId), safe, edits);
-          if (clear) onClearSelection();
-        } catch (e) {
-          onError(String(e));
+          if (await eachCard(cards, "整理完", (target) => workspaceEditSource(target, safe, edits)) && clear) onClearSelection();
         } finally {
           onChanged();
         }
       })();
     },
     addToGroup(cards, groupId) {
-      const { safe, activeLibraryId, onError } = options.current;
-      void (async () => {
-        try { for (const card of cards) await workspaceSourceGroup(targetOf(card, activeLibraryId), safe, { groupId }); } catch (e) { onError(String(e)); }
-      })();
+      const { safe } = options.current;
+      void eachCard(cards, "加入参考组", (target) => workspaceSourceGroup(target, safe, { groupId }));
     },
     purge(cards) {
-      const { activeLibraryId, onError } = options.current;
-      const libraries = new Set(cards.map((card) => targetOf(card, activeLibraryId).libraryId));
-      // 任一图库都可以整理（ADR-0008）：后端按需把可写句柄切到这些图所在的图库。
-      if (libraries.size > 1) {
-        onError("一次彻底删除多张只能在同一个图库的回收站里进行；可以逐张彻底删除。");
-        return;
-      }
+      // 多张可以跨图库（ADR-0008）：后端按图库分组，逐组切换可写句柄删除。
+      cardsNamed.current = cards;
       setPurging(cards);
     },
     folders: (libraryId) => workspaceSidebar(libraryId, options.current.safe).then((sidebar) => flattenFolders(sidebar.folders)),
@@ -113,6 +125,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
   };
 
   const purgeTarget = purging?.length === 1 ? targetOf(purging[0], o.activeLibraryId) : undefined;
+  const purged = () => { setPurging(null); options.current.onClearSelection(); options.current.onChanged(); };
   const dialogs = <>
     {pinMany && <AlertDialog.Root open onOpenChange={(open) => { if (!open) setPinMany(null); }}>
       <AlertDialog.Portal>
@@ -132,12 +145,22 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
         </AlertDialog.Popup>
       </AlertDialog.Portal>
     </AlertDialog.Root>}
-    {purging && <PermanentDeleteConfirm
-      libraryId={targetOf(purging[0], o.activeLibraryId).libraryId}
-      ids={purging.map((card) => targetOf(card, o.activeLibraryId).imageId)}
+    {purging && purgeTarget && <PermanentDeleteConfirm
+      libraryId={purgeTarget.libraryId}
+      ids={[purgeTarget.imageId]}
       sourceTarget={purgeTarget}
       safeMode={o.safe}
-      onDone={() => { setPurging(null); options.current.onClearSelection(); options.current.onChanged(); }}
+      onDone={purged}
+      onCancel={() => setPurging(null)}
+      onError={(message) => options.current.onError(message)}
+    />}
+    {purging && !purgeTarget && <PermanentDeleteBatchConfirm
+      targets={purging.map((card) => {
+        const { libraryId, imageId } = targetOf(card, o.activeLibraryId);
+        return { libraryId, imageId };
+      })}
+      libraryName={libraryName}
+      onDone={purged}
       onCancel={() => setPurging(null)}
       onError={(message) => options.current.onError(message)}
     />}
