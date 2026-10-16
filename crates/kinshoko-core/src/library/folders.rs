@@ -125,6 +125,38 @@ pub(super) fn move_to(
     })
 }
 
+/// 删除文件夹及其子文件夹。图片不删，只去掉这些文件夹的归属；没有其他文件夹的图因此回到
+/// 未归类。Eagle 文件夹的对应一并去掉：重导时 Eagle 还有、本库却没有对应的文件夹视为画师删掉的，
+/// 不再建回来（见 `eagle::sync_folders`）。
+pub(super) fn delete(inner: &Inner, id: &str) -> Result<(), Error> {
+    let id = id.to_owned();
+    inner.write(move |tx| {
+        let parent: Option<String> = tx
+            .query_row("SELECT parent_id FROM folder WHERE id = ?1", [&id], |row| {
+                row.get(0)
+            })
+            .optional()?
+            .ok_or(Error::UnknownFolder)?;
+        const SUBTREE: &str = "WITH RECURSIVE subtree(id) AS (
+                SELECT ?1 UNION ALL SELECT f.id FROM folder f JOIN subtree s ON f.parent_id = s.id
+            )";
+        for table in ["folder_member", "folder_decision", "eagle_folder"] {
+            tx.execute(
+                &format!(
+                    "{SUBTREE} DELETE FROM {table} WHERE folder_id IN (SELECT id FROM subtree)"
+                ),
+                [&id],
+            )?;
+        }
+        tx.execute(
+            &format!("{SUBTREE} DELETE FROM folder WHERE id IN (SELECT id FROM subtree)"),
+            [&id],
+        )?;
+        let rest = siblings(tx, parent.as_deref())?;
+        renumber(tx, parent.as_deref(), &rest)
+    })
+}
+
 /// 文件夹树，计数只算可见的图；`lens` 是浏览视角的过滤条件（安全模式）。
 pub(super) fn tree(conn: &Connection, lens: &str) -> Result<Vec<FolderNode>, Error> {
     let mut counts = std::collections::HashMap::<String, u32>::new();

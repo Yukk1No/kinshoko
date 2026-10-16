@@ -452,6 +452,16 @@ impl Library {
         permanent_delete::preview(&self.inner, ids, usage)
     }
 
+    /// 清空回收站的预览（#114）：回收站里浏览视角看得见的全部图（安全模式下被封印的不算），
+    /// 与 [`Self::preview_permanent_delete`] 相同的参考组核对与令牌；确认后交给
+    /// [`Self::permanent_delete`]，沿用同一删除流程与 Eagle 重导记忆。
+    pub fn preview_empty_trash(
+        &self,
+        usage: &dyn crate::reference_groups::ReferenceGroupUsage,
+    ) -> Result<PermanentDeletePreview, Error> {
+        permanent_delete::preview_trash(&self.inner, usage)
+    }
+
     /// 永久删除回收站里的 `ids`：令牌须来自对同一组图的预览，且之后回收站、受影响的参考组与
     /// 安全模式都没变，否则为 [`Error::DeletePreviewStale`]，要重新预览。删掉参考图的记录、
     /// 整理结果、原文件与缩略图；参考组文件不改，成员与布局保留，核对时标为已删除。
@@ -494,6 +504,12 @@ impl Library {
         position: u32,
     ) -> Result<(), Error> {
         folders::move_to(&self.inner, folder_id, parent, position)
+    }
+
+    /// 删除文件夹（#114），连同它的子文件夹。图片不删：只去掉这些文件夹的归属，没有其他文件夹的
+    /// 图回到未归类（回收站里的图留在回收站）。来自 Eagle 的文件夹删掉后，重导不再把它建回来。
+    pub fn delete_folder(&self, folder_id: &str) -> Result<(), Error> {
+        folders::delete(&self.inner, folder_id)
     }
 
     /// 参考图的全部来源，按记录先后。之后并入查看器详情 `image(id)`。

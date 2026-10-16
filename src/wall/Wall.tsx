@@ -16,6 +16,7 @@ import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { browse, workspaceBrowse, isCursorExpired, isLensChanged, thumbnailUrl } from "../ipc";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { modalOpen } from "../ui/modal";
+import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import { captureAnchor, cardAt, masonry, resolveAnchor, visible, type Anchor, type Box } from "./layout";
 import { ZOOM_COMMIT_MS, createNotchCounter, zoomDensity } from "./zoom";
 import { createSmoothWheel } from "./smoothWheel";
@@ -105,16 +106,6 @@ const markThumbnailLoaded = (e: { currentTarget: HTMLImageElement }) => {
   if (!e.currentTarget.dataset.loaded) e.currentTarget.dataset.loaded = "fade";
 };
 
-/** 菜单键或 Shift+F10：用键盘打开右键菜单。 */
-const isMenuKey = (e: Pick<KeyboardEvent, "key" | "shiftKey">) => e.key === "ContextMenu" || (e.shiftKey && e.key === "F10");
-
-/** 在元素中心派发一次 contextmenu，键盘打开的菜单与右键走同一路径。 */
-function openMenuAt(node: HTMLElement) {
-  const rect = node.getBoundingClientRect();
-  node.dispatchEvent(new window.MouseEvent("contextmenu", {
-    bubbles: true, cancelable: true, button: 2, clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2,
-  }));
-}
 
 /** 按键落在可输入的地方（输入框、文本框、可编辑区域）：Ctrl+V 是粘贴文字，不是导入。 */
 const editable = (target: EventTarget | null) =>

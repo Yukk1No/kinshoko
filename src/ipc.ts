@@ -193,6 +193,16 @@ export function renameFolder(libraryId: string, folderId: string, name: string):
   return invoke<void>(lib("rename_folder"), { libraryId, folderId, name });
 }
 
+/** 删除文件夹及其子文件夹（#114）：图片不删，没有其他文件夹的回到未归类。 */
+export function deleteFolder(libraryId: string, folderId: string): Promise<void> {
+  return invoke<void>(lib("delete_folder"), { libraryId, folderId });
+}
+
+/** 清空回收站的预览（#114）：这个图库回收站里看得见的全部图与受影响的参考组；确认后交给 {@link permanentDelete}。 */
+export function previewEmptyTrash(libraryId: string): Promise<PermanentDeletePreview> {
+  return invoke<PermanentDeletePreview>(lib("preview_empty_trash"), { libraryId });
+}
+
 /** 把文件夹移到 parent 下（null 为顶层）的第 position 位，超出时放在最后。 */
 export function moveFolder(libraryId: string, folderId: string, parent: string | null, position: number): Promise<void> {
   return invoke<void>(lib("move_folder"), { libraryId, folderId, parent, position });
@@ -708,6 +718,11 @@ export function copyReferenceImage(libraryId: string, imageId: string): Promise<
 /** 在资源管理器中显示（#105）：打开原文件所在的文件夹并选中它；文件不在时 reject 中文原因。 */
 export function revealReferenceImage(libraryId: string, imageId: string): Promise<void> {
   return invoke<void>(desk("reveal_reference_image"), { libraryId, imageId });
+}
+
+/** 在资源管理器中打开图库（#114）：打开图库在本设备上的文件夹；不在原处时 reject 中文原因。 */
+export function revealLibrary(libraryId: string): Promise<void> {
+  return invoke<void>(desk("reveal_library"), { libraryId });
 }
 
 /** 剪贴板里有没有图片（只看格式，不读出）。 */

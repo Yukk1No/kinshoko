@@ -2,10 +2,14 @@ import { useState, type DragEvent, type KeyboardEvent } from "react";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { FolderNode } from "../bindings/FolderNode";
 import type { Sidebar } from "../bindings/Sidebar";
-import { createFolder, editImages, moveFolder, renameFolder } from "../ipc";
+import { createFolder, deleteFolder, editImages, moveFolder, renameFolder } from "../ipc";
 import { DRAG_IMAGE_SOURCES, DRAG_IMAGES } from "../wall/Wall";
-import { Folder, FolderOpen, Inbox } from "lucide-react";
+import { Folder, FolderOpen, FolderPlus, FolderUp, FolderX, Inbox, Pencil } from "lucide-react";
+import { ContextMenu } from "@base-ui/react/context-menu";
+import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { FluidList, FluidRow } from "../ui/FluidList";
+import { MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
+import { isMenuKey, openMenuAt } from "../ui/menuKey";
 
 /** 侧栏里拖动文件夹时放进 dataTransfer 的类型，值为文件夹 id。 */
 export const DRAG_FOLDER = "application/x-kinshoko-folder";
@@ -36,6 +40,11 @@ type Props = {
 const same = (a: BrowseScope, b: BrowseScope) =>
   (a.kind === b.kind || ([a.kind, b.kind].every((kind) => kind === "folder" || kind === "folderTree"))) &&
   ((a.kind !== "folder" && a.kind !== "folderTree") || ((b.kind === "folder" || b.kind === "folderTree") && a.id === b.id));
+
+/** 文件夹及其全部子文件夹的 id。 */
+function subtree(node: FolderNode): string[] {
+  return [node.id, ...node.children.flatMap(subtree)];
+}
 
 /** 只在文本框里按 Enter 提交、Esc 放弃。 */
 export function NameInput(props: {
@@ -69,22 +78,49 @@ export function droppedImages(e: DragEvent, libraryId: string): string[] {
     : JSON.parse(e.dataTransfer.getData(DRAG_IMAGES) || "[]") as string[];
 }
 
+const inTree = (nodes: FolderNode[], id: string): boolean => nodes.some((node) => node.id === id || inTree(node.children, id));
+
 export const acceptsDrag = (e: DragEvent) =>
   e.dataTransfer.types.includes(DRAG_IMAGES) || e.dataTransfer.types.includes(DRAG_FOLDER);
 
 /**
  * 一个图库在侧栏里展开后的内容（方案 D）：未归类与文件夹树，计数只算可见的图。
- * 双击文件夹改名；把文件夹拖到同库的另一个文件夹上移进去；把图片墙上选中的图拖到文件夹上放进去。
+ * 双击或 F2 改名；把文件夹拖到同库的另一个文件夹上移进去；把图片墙上选中的图拖到文件夹上放进去。
+ * 文件夹的右键菜单（#102 表“侧栏 · 文件夹”，#114）：新建子文件夹 · 重命名 · ─ · 移到顶层 · ─ · 删除文件夹。
  */
 export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onScope, onError, directory, unassigned, descendantCounts, includeDescendants = false, creating, parentForNew, onCreatingDone }: Props) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  /** 右键“新建子文件夹”所在的文件夹。 */
+  const [creatingUnder, setCreatingUnder] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<FolderNode | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const run = (p: Promise<unknown>) => p.catch((e) => onError(String(e)));
 
+  /** 新文件夹放在哪里：右键的那个文件夹，或图库标题菜单给出的位置；undefined 为没有在新建。 */
+  const newParent = creatingUnder ?? (creating ? parentForNew : undefined);
   const created = (name: string | null) => {
+    const parent = newParent ?? null;
+    setCreatingUnder(null);
     onCreatingDone();
-    if (name) void run(createFolder(libraryId, name, parentForNew));
+    if (name) void run(createFolder(libraryId, name, parent));
+  };
+  const newInput = <NameInput label="新文件夹名称" initial="" onDone={created} />;
+
+  const confirmDelete = () => {
+    if (!deleting) return;
+    const removed = subtree(deleting);
+    setBusy(true);
+    deleteFolder(libraryId, deleting.id).then(() => {
+      setBusy(false);
+      setDeleting(null);
+      // 正在看的文件夹（或它的子文件夹）没了：回到这个图库的全部。
+      if (scopeSelected && (scope.kind === "folder" || scope.kind === "folderTree") && removed.includes(scope.id)) onScope({ kind: "all" });
+    }, (e) => {
+      setBusy(false);
+      onError(String(e));
+    });
   };
 
   const over = (target: string) => (e: DragEvent) => {
@@ -126,7 +162,8 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
             />
           ) : (
             <FluidRow index={row++}>
-            <button
+            <ContextMenu.Root>
+            <ContextMenu.Trigger render={<button
               type="button"
               data-folder-id={node.id}
               className="sidebar-item k-row"
@@ -145,15 +182,31 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
               onDragOver={over(node.id)}
               onDragLeave={() => setDropTarget(null)}
               onDrop={drop(node.id)}
-              title="双击改名；拖到别的文件夹上移进去"
-            >
+              onKeyDown={(e) => {
+                if (e.key === "F2") { e.preventDefault(); setRenaming(node.id); }
+                else if (isMenuKey(e)) { e.preventDefault(); openMenuAt(e.currentTarget); }
+              }}
+              title="双击或 F2 改名；拖到别的文件夹上移进去；右键查看更多操作"
+            />}>
               <span className="k-row-icon" aria-hidden="true">{node.children.length > 0 ? <FolderOpen size={15} /> : <Folder size={15} />}</span>
               <span className="sidebar-label">{node.name}</span>
               <span className="sidebar-count">{count(node)}</span>
-            </button>
+            </ContextMenu.Trigger>
+            <MenuPopup label={`${node.name} 的操作`} width={200}>
+              <MenuItem icon={<FolderPlus size={14} />} onClick={() => { onCreatingDone(); setCreatingUnder(node.id); }}>新建子文件夹</MenuItem>
+              <MenuItem icon={<Pencil size={14} />} kbd="F2" onClick={() => setRenaming(node.id)}>重命名</MenuItem>
+              <MenuSeparator />
+              <MenuItem icon={<FolderUp size={14} />} disabled={depth === 0} onClick={() => void run(moveFolder(libraryId, node.id, null, LAST))}>移到顶层</MenuItem>
+              <MenuSeparator />
+              <MenuItem icon={<FolderX size={14} />} danger onClick={() => setDeleting(node)}>删除文件夹…</MenuItem>
+            </MenuPopup>
+            </ContextMenu.Root>
             </FluidRow>
           )}
-          {node.children.length > 0 && tree(node.children, depth + 1)}
+          {(node.children.length > 0 || newParent === node.id) && <>
+            {node.children.length > 0 && tree(node.children, depth + 1)}
+            {newParent === node.id && newInput}
+          </>}
         </li>
       ))}
     </ul>
@@ -172,9 +225,27 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
       </FluidRow>}
       <div role="tree" aria-label="文件夹" className="sidebar-folders">
         {tree(directory.folders)}
-        {creating && <NameInput label="新文件夹名称" initial="" onDone={created} />}
+        {/* 放在顶层，或要放进的文件夹已不在树里时放在最后。 */}
+        {newParent !== undefined && (newParent === null || !inTree(directory.folders, newParent)) && newInput}
       </div>
       </FluidList>
+      {deleting && <AlertDialog.Root open onOpenChange={(open) => { if (!open && !busy) setDeleting(null); }}>
+        <AlertDialog.Portal>
+          <AlertDialog.Backdrop className="k-backdrop" />
+          <AlertDialog.Popup className="k-dialog is-alert" aria-label="删除文件夹">
+            <AlertDialog.Title className="k-dialog-title">删除文件夹</AlertDialog.Title>
+            <AlertDialog.Description className="k-dialog-desc">
+              删除文件夹「{deleting.name}」？文件夹里的图片不会删除；不在其他文件夹里的图片回到未归类。
+              {subtree(deleting).length > 1 && `其中的 ${subtree(deleting).length - 1} 个子文件夹也会一并删除，里面的图片同样保留。`}
+            </AlertDialog.Description>
+            <div className="k-dialog-foot">
+              <span className="k-grow" />
+              <AlertDialog.Close className="k-btn" disabled={busy}>取消</AlertDialog.Close>
+              <button type="button" className="k-btn is-danger" disabled={busy} onClick={confirmDelete}>删除文件夹</button>
+            </div>
+          </AlertDialog.Popup>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>}
     </nav>
   );
 }
