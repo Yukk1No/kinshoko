@@ -943,15 +943,23 @@ button.primary {
 .capture-group-save select { min-width: 0; width: 100%; }
 .k-dialog.is-alert { width: min(400px, calc(100vw - 48px)); }
 
-/* 截图框选窗口与钉图窗口：没有页面底色和边距，禁止系统手势（笔与触摸走 pointer 事件，#7）。 */
+/* 截图框选窗口、钉图窗口与钉图菜单窗口（#106）：没有页面底色和边距，禁止系统手势（笔与触摸走 pointer 事件，#7）。 */
 :root[data-view="capture"],
 :root[data-view="capture"] body,
 :root[data-view="pin"],
-:root[data-view="pin"] body {
+:root[data-view="pin"] body,
+:root[data-view="desktop-menu"],
+:root[data-view="desktop-menu"] body {
   background: transparent;
   overflow: hidden;
   touch-action: none;
   user-select: none;
+}
+
+/* 钉图菜单窗口铺满整台显示器：菜单外的透明处接住点击，用来关闭菜单。 */
+.desktop-menu-backdrop {
+  position: fixed;
+  inset: 0;
 }
 
 .capture {

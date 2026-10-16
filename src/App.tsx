@@ -29,7 +29,9 @@ import {
   setSafeMode,
   shellSettings,
   thumbnailUrl,
+  workspaceImage,
 } from "./ipc";
+import { referenceCard, useOpenInKinshoko } from "./desktop/openInKinshoko";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { type FinishedImport, type RunningImport } from "./library/ImportBar";
 import { ImportMenu, type ImportControl } from "./library/ImportMenu";
@@ -60,6 +62,8 @@ type WorkspaceProps = {
   library: LibraryInfo | null;
   captureRequest?:{id:string;stamp:number}|null;
   onCaptureRequestHandled?:()=>void;
+  /** 钉图菜单“在 Kinshoko 中打开”的参考图（#106）：在查看器里打开。 */
+  referenceRequest?: { libraryId: string; imageId: string; stamp: number } | null;
   section: Section;
   paneOpen: boolean;
   onPaneToggle: () => void;
@@ -87,6 +91,7 @@ function LibraryWorkspace({
   library,
   captureRequest,
   onCaptureRequestHandled,
+  referenceRequest,
   section,
   paneOpen,
   onPaneToggle,
@@ -130,6 +135,17 @@ function LibraryWorkspace({
   const importControl = useRef<ImportControl>(null);
   const [editingGroups, setEditingGroups] = useState(false);
   useEffect(()=>{if(captureRequest){setViewing(null);setSources(null);}},[captureRequest]);
+  // 钉图菜单“在 Kinshoko 中打开”（#106）：按当前安全模式读这张参考图，读到才打开查看器。
+  useEffect(() => {
+    if (!referenceRequest) return;
+    let alive = true;
+    const { libraryId: from, imageId } = referenceRequest;
+    workspaceImage(from, imageId).then(
+      (detail) => { if (!alive) return; setSources(null); setViewCrop(false); setViewing(referenceCard(from, imageId, detail)); },
+      (e) => { if (alive) toast?.error(`无法打开这张参考图：${String(e)}`); },
+    );
+    return () => { alive = false; };
+  }, [referenceRequest]);
   const [problem, setProblem] = useState<string | null>(null);
   const [search, setSearch] = useState<SearchInput>({ conditions: [], exact: false });
   const [tree, setTree] = useState<ConditionTree>({ conditions: [] });
@@ -591,6 +607,7 @@ function MainWindow() {
   const [nameWizard, setNameWizard] = useState(false);
   const [captureRequest,setCaptureRequest]=useState<{id:string;stamp:number}|null>(null);
   const collectionHandled=useCallback(()=>setCaptureRequest(null),[]);
+  const [referenceRequest, setReferenceRequest] = useState<{ libraryId: string; imageId: string; stamp: number } | null>(null);
   const [section, setSection] = useState<Section>("browse");
   const [paneOpen, setPaneOpen] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -625,6 +642,12 @@ function MainWindow() {
       );
     });
   }, [toast]);
+
+  // 钉图菜单“在 Kinshoko 中打开”（#106）：参考图在查看器里打开，截图打开截图历史。
+  useOpenInKinshoko((request) => {
+    if (request.kind === "capture") { setSection("captures"); setPaneOpen(true); return; }
+    setReferenceRequest((last) => ({ libraryId: request.libraryId, imageId: request.imageId, stamp: (last?.stamp ?? 0) + 1 }));
+  });
 
   useEffect(()=>{
     let alive=true,stamp=0,sequence=0;
@@ -729,6 +752,7 @@ function MainWindow() {
           library={library}
           captureRequest={captureRequest}
           onCaptureRequestHandled={collectionHandled}
+          referenceRequest={referenceRequest}
           section={section}
           paneOpen={paneOpen}
           onPaneToggle={() => setPaneOpen((open) => !open)}

@@ -34,6 +34,15 @@ export function MenuRadioItem({ children, meta, className = "", ...props }: Comp
   </Menu.RadioItem>;
 }
 
+/** A checkbox row (“锁定位置与大小”) with a check in the leading column. */
+export function MenuCheckboxItem({ children, kbd, className = "", ...props }: ComponentProps<typeof Menu.CheckboxItem> & { kbd?: string }) {
+  return <Menu.CheckboxItem closeOnClick {...props} className={`k-item ${className}`}>
+    <span className="k-item-ind" aria-hidden="true"><Menu.CheckboxItemIndicator><Check size={14} /></Menu.CheckboxItemIndicator></span>
+    <span className="k-item-label">{children}</span>
+    {kbd && <kbd className="k-kbd">{kbd}</kbd>}
+  </Menu.CheckboxItem>;
+}
+
 /**
  * A row that opens a nested menu (“放入文件夹 ▸”). The nested popup mounts only while open,
  * so lists it loads (folders, reference groups) are read when the artist reaches them.
