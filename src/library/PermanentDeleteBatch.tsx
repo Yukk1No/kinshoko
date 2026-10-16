@@ -27,6 +27,9 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
   const [busy, setBusy] = useState(false);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  /** 已有图库删完（例如其他图库预览过期、正在重新列出）：之后取消也要让界面刷新、取消选择。 */
+  const deletedSome = useRef(false);
+  const cancel = () => (deletedSome.current ? onDone() : onCancel());
 
   useEffect(() => {
     let current = true;
@@ -34,7 +37,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
     previewPermanentDeleteBatch(pending).then((value) => { if (current) setPreviews(value); }, (e) => {
       if (!current) return;
       onError(String(e));
-      onCancel();
+      cancel();
     });
     return () => { current = false; };
   }, [pending]);
@@ -58,6 +61,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
       (failed) => {
         if (!alive.current) return;
         setBusy(false);
+        if (ready.some((p) => !failed.some((f) => f.libraryId === p.libraryId))) deletedSome.current = true;
         const stale = new Set(failed.filter((f) => isDeletePreviewStale(f.error)).map((f) => f.libraryId));
         const reported = previews.flatMap((p) => {
           if (p.error !== null) return [{ libraryId: p.libraryId, error: p.error }];
@@ -81,7 +85,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
   };
 
   return (
-    <AlertDialog.Root open onOpenChange={(open) => { if (!open && !busy) onCancel(); }}>
+    <AlertDialog.Root open onOpenChange={(open) => { if (!open && !busy) cancel(); }}>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="k-backdrop" />
         <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label="永久删除">
