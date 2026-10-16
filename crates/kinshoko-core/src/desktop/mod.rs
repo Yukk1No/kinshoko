@@ -7,11 +7,13 @@
 //! - [`PinStore`]：钉图的位置、裁切、缩放、翻转与旋转，重新打开后恢复；
 //! - [`SavedPin::reference`]：资料库中参考图的整图与局部钉图（#65）；
 //! - [`EdgeHide`]：贴边隐藏收起的位置与碰细边滑出；
-//! - [`stage`]：缩放与贴边动画时窗口的矩形（#64）。
+//! - [`stage`]：缩放与贴边动画时窗口的矩形（#64）；
+//! - [`menu_surface`]、[`PinMenu`]：钉图菜单窗口的位置与菜单状态（#106）。
 
 mod capture;
 mod edge;
 mod history;
+mod menu;
 mod motion;
 mod pin;
 mod placement;
@@ -25,6 +27,7 @@ pub use history::{
     CaptureChoice, CaptureCollection, CaptureEntry, CaptureHistory, CollectedCapture,
     CollectedCaptureDraft, HISTORY_LIMIT, HistoryError, PreparedCapture,
 };
+pub use menu::{MenuSurface, OpenInKinshoko, PinMenu, PinMenuOpen, menu_surface};
 pub use motion::{Stage, stage};
 pub use pin::{
     GroupMemberRef, MAX_SCALE, MIN_OPACITY, MIN_SCALE, MIN_SIDE, PinContent, PinError, PinStore,

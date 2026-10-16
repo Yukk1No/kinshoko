@@ -53,6 +53,8 @@ import type { ReferenceGroup } from "./bindings/ReferenceGroup";
 import type { ReferenceGroupView } from "./bindings/ReferenceGroupView";
 import type { ImageTags } from "./bindings/ImageTags";
 import type { PinFrame } from "./bindings/PinFrame";
+import type { PinMenuOpen } from "./bindings/PinMenuOpen";
+import type { OpenInKinshoko } from "./bindings/OpenInKinshoko";
 import type { Region } from "./bindings/Region";
 import type { ScreenRect } from "./bindings/ScreenRect";
 import type { LibraryEvent } from "./bindings/LibraryEvent";
@@ -726,6 +728,55 @@ export function turnPin(pin: string, turn: PinTurn): Promise<void> {
 /** 贴边隐藏全部钉图，或让它们回到原位（与全局快捷键相同）。 */
 export function edgeHide(): Promise<void> {
   return invoke<void>(desk("edge_hide"));
+}
+
+// ---------- 钉图菜单窗口（#102 T5，#106） ----------
+
+/**
+ * 钉图菜单里的一项（与 Rust `desktop/pins.rs` 的 `ACTION_*` 对应）。`opacity:<百分比>`、`group:<参考组 id>`。
+ */
+export type PinMenuAction =
+  | "flipH" | "flipV" | "rotateCw" | "rotateCcw" | `opacity:${number}` | "lock" | "actualSize"
+  | "collect" | "copy" | "reveal" | "saveGroup" | "openInKinshoko" | `group:${string}` | "edgeHide" | "close";
+
+/** 菜单窗口此刻要显示的钉图菜单（窗口第一次建好时取；之后经 `desktop-menu` 事件到达）。 */
+export function desktopMenu(): Promise<PinMenuOpen | null> {
+  return invoke<PinMenuOpen | null>(desk("desktop_menu"));
+}
+
+/** 发给菜单窗口的新菜单：指针处又右键了一个钉图。 */
+export function onDesktopMenu(handler: (open: PinMenuOpen) => void): Promise<UnlistenFn> {
+  return getCurrentWebviewWindow().listen<PinMenuOpen>("desktop-menu", (e) => handler(e.payload));
+}
+
+/** 菜单已画好：显示菜单窗口并让它拿到键盘焦点（Esc、方向键）。 */
+export function desktopMenuShown(generation: number): Promise<void> {
+  return invoke<void>(desk("desktop_menu_shown"), { generation });
+}
+
+/** 菜单关掉了（Esc、点外部、窗口失去焦点）：隐藏菜单窗口。 */
+export function closeDesktopMenu(generation: number): Promise<void> {
+  return invoke<void>(desk("close_desktop_menu"), { generation });
+}
+
+/** 选了钉图菜单里的一项：先收起菜单窗口，再对钉图做这件事；提示显示在钉图上。 */
+export function pinMenuAction(pin: string, action: PinMenuAction, generation: number): Promise<void> {
+  return invoke<void>(desk("pin_menu_action"), { pin, action, generation });
+}
+
+/** 钉图菜单“在 Kinshoko 中打开”留给主窗口的请求；没有时为 null。取走后清空。 */
+export function takeOpenRequest(): Promise<OpenInKinshoko | null> {
+  return invoke<OpenInKinshoko | null>(desk("take_open_request"));
+}
+
+/** 钉图菜单请主窗口打开参考图或截图历史（随后用 takeOpenRequest 取）。 */
+export function onOpenRequest(handler: () => void): Promise<UnlistenFn> {
+  return listen("open-in-kinshoko", () => handler());
+}
+
+/** 把截图历史中的一张截图复制到剪贴板（截图历史条目菜单“复制”）。 */
+export function copyCapture(id: string): Promise<void> {
+  return invoke<void>(desk("copy_capture"), { id });
 }
 
 export function captureHistory(): Promise<CaptureEntry[]> {

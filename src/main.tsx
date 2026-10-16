@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { CaptureOverlay } from "./desktop/CaptureOverlay";
 import { PinView } from "./desktop/PinView";
+import { DesktopMenuView } from "./desktop/PinMenu";
 import { FidelityGate } from "./fidelity/FidelityGate";
 import { RuntimeProvider } from "./RuntimeSupport";
 import "./styles.css";
@@ -10,8 +11,8 @@ import "./ui/ui.css";
 import "./shell/main-window.css";
 import "./ui/dialogs.css";
 
-// 同一个页面承载四种窗口：主窗口、截图框选窗口（?view=capture）、钉图窗口（?view=pin&pin=<id>）
-// 与还原度门槛实验窗口（?view=fidelity-gate）。
+// 同一个页面承载五种窗口：主窗口、截图框选窗口（?view=capture）、钉图窗口（?view=pin&pin=<id>）、
+// 钉图的菜单窗口（?view=desktop-menu，#106）与还原度门槛实验窗口（?view=fidelity-gate）。
 const params = new URLSearchParams(location.search);
 const view = params.get("view");
 const pin = params.get("pin");
@@ -27,6 +28,8 @@ createRoot(document.getElementById("root")!).render(
       <CaptureOverlay />
     ) : view === "pin" && pin ? (
       <RuntimeProvider><PinView pin={pin} /></RuntimeProvider>
+    ) : view === "desktop-menu" ? (
+      <DesktopMenuView />
     ) : view === "fidelity-gate" ? (
       <FidelityGate />
     ) : (
