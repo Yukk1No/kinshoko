@@ -409,6 +409,26 @@ describe("主窗口", () => {
     expect(await screen.findByRole("dialog", { name: "原图查看器" })).toBeTruthy();
   });
 
+  it("F1 落在详情面板的预览图上时登记为参考图来源，读原图像素", async () => {
+    backend(library);
+    const rect = HTMLElement.prototype.getBoundingClientRect;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      if (this.matches(".insp-preview")) return new DOMRect(700, 70, 288, 220);
+      return this.matches(".inspector") ? new DOMRect(680, 0, 320, 800) : rect.call(this);
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
+    const preview = await screen.findByAltText("所选参考图");
+    Object.defineProperties(preview, { complete: { configurable: true, value: true }, naturalWidth: { configurable: true, value: 128 }, naturalHeight: { configurable: true, value: 256 } });
+    calls = [];
+    await act(async () => { await emit("capture-reference-request", { request: "inspector" }); });
+    await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:desktop|report_capture_references")).toBe(true));
+    const report = calls.find((c) => c.cmd === "plugin:desktop|report_capture_references")!.args as { request: string; frame: { references: unknown[] } };
+    // 卡片 a 是 100 × 200，contain 进 288 × 220 的预览框后居中显示为 110 × 220。
+    expect(report.frame.references).toContainEqual(expect.objectContaining({ libraryId: "L1", imageId: "a", shown: { x: 789, y: 70, width: 110, height: 220 } }));
+  });
+
   it("查看器的下一张 / 上一张按图片墙顺序换图", async () => {
     backend(library);
     render(<App />);

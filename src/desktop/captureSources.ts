@@ -43,6 +43,20 @@ export function captureImage(image: HTMLImageElement, clip: HTMLElement, library
   return { libraryId, imageId, shown: physical(shown), visible: clipped, covered };
 }
 
+/** The highest priority that answers wins; providers sharing that priority are side-by-side surfaces and merge. */
+function collect(all: Provider[]): CaptureReference[] {
+  let winner: number | null = null;
+  const references: CaptureReference[] = [];
+  for (const provider of all.sort((a, b) => b.priority - a.priority)) {
+    if (winner !== null && provider.priority < winner) break;
+    const read = provider.read();
+    if (read === null) continue;
+    winner = provider.priority;
+    references.push(...read);
+  }
+  return references;
+}
+
 /** The native action requests a fresh frame before and after capture. No persistent rectangle cache. */
 export function useCaptureSources(read: Provider["read"], priority: number) {
   const current = useRef(read);
@@ -72,7 +86,7 @@ function install() {
     await frame(); await frame();
     if (version !== installation || request !== requestGeneration || !providers.size) return;
     if (observer.takeRecords().length || document.getAnimations?.().some((a) => a.playState === "running" && a.effect instanceof KeyframeEffect && a.effect.target instanceof Element && a.effect.target.closest(".card,.viewer-stage"))) dirty();
-    const references = [...providers].sort((a, b) => b.priority - a.priority).map((p) => p.read()).find((r) => r !== null) ?? [];
+    const references = collect([...providers]);
     await reportCaptureReferences(payload.request, { instance, generation, dpr: window.devicePixelRatio || 1, references }).catch(() => {});
   }).then((off) => { if (version === installation) unlisten = off; else off(); }).catch(() => {});
   stop = () => {
