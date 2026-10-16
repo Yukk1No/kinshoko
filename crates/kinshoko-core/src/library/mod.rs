@@ -65,7 +65,7 @@ pub use backup::{
     RestoreProvenance, TableDigest,
 };
 pub(crate) use backup::{copy_hashed, hash_file};
-pub use clipboard::stage_clipboard_image;
+pub use clipboard::{forget_staged_clipboard_images, stage_clipboard_image};
 pub use eagle::{EagleBinding, EagleRegionNote, EagleSourceSnapshot};
 pub use eagle_discovery::{
     EagleDiscoveryMethod, EagleDiscoveryOptions, EagleLibraryCandidate, discover_eagle_libraries,

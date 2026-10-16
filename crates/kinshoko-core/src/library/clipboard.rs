@@ -60,7 +60,7 @@ pub fn stage_clipboard_image(dir: &Path, image: &RgbaImage) -> Result<PathBuf, E
         )
         .map_err(|e| Error::ClipboardImage(e.to_string()))?;
     std::fs::create_dir_all(dir)?;
-    forget_old(dir);
+    forget_staged_clipboard_images(dir);
     let stamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
@@ -91,8 +91,10 @@ pub fn stage_clipboard_image(dir: &Path, image: &RgbaImage) -> Result<PathBuf, E
     unreachable!("文件名尝试不会用完")
 }
 
-/// 清掉暂存目录里一天前的剪贴板图片；清不掉的留到下次。
-fn forget_old(dir: &Path) {
+/// 清掉暂存目录里一天前的剪贴板图片；清不掉的留到下次。每次暂存时顺手清一次，应用壳在启动时
+/// 也单独清一次：画师取消了保存位置、或之后再没粘贴过，暂存的图（可能是敏感内容）也不会一直留着。
+/// 暂存的文件不在导入用过后立即删掉：失败重试还会从同一路径再读。目录不存在时什么也不做。
+pub fn forget_staged_clipboard_images(dir: &Path) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };

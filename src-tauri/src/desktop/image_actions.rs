@@ -8,7 +8,7 @@ use tauri::AppHandle;
 use crate::library;
 
 /// 暂存剪贴板图片的目录（应用数据目录下）。导入从这里读，进库的是复制。
-const CLIPBOARD_IMPORT_DIR: &str = "clipboard-import";
+pub(super) const CLIPBOARD_IMPORT_DIR: &str = "clipboard-import";
 
 /// 复制图片：把参考图的原图像素放进剪贴板（PNG + DIBV5），可直接粘贴到绘画软件。
 /// 经浏览视角：没有这张图、被封印、原文件不在时报错，剪贴板保持原样。

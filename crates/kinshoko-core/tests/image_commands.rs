@@ -6,7 +6,8 @@ use std::path::Path;
 use image::{Rgba, RgbaImage};
 use kinshoko_core::Library;
 use kinshoko_core::library::{
-    ContentRating, Error, ImageEdit, ImportOutcome, ImportSource, stage_clipboard_image,
+    ContentRating, Error, ImageEdit, ImportOutcome, ImportSource, forget_staged_clipboard_images,
+    stage_clipboard_image,
 };
 
 fn import(library: &Library, path: &Path) -> String {
@@ -154,6 +155,29 @@ fn each_paste_gets_its_own_file() {
         image::open(&second).unwrap().to_rgba8().dimensions(),
         (5, 5)
     );
+}
+
+#[test]
+fn staged_clipboard_images_older_than_a_day_are_cleaned_without_another_paste() {
+    // 画师取消了保存位置、或之后再没粘贴过：启动时单独清理，一天前暂存的图不会一直留着。
+    let dir = tempfile::tempdir().unwrap();
+    let staging = dir.path().join("clipboard-import");
+    let old = stage_clipboard_image(&staging, &sample(4, 4)).unwrap();
+    let fresh = stage_clipboard_image(&staging, &sample(5, 5)).unwrap();
+    let two_days_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(48 * 60 * 60);
+    std::fs::File::options()
+        .write(true)
+        .open(&old)
+        .unwrap()
+        .set_modified(two_days_ago)
+        .unwrap();
+
+    forget_staged_clipboard_images(&staging);
+    assert!(!old.exists(), "一天前暂存的剪贴板图片被清掉");
+    assert!(fresh.exists(), "刚暂存的（可能还要重试导入）留着");
+
+    // 暂存目录还不存在（从没粘贴过）时什么也不做。
+    forget_staged_clipboard_images(&dir.path().join("不存在"));
 }
 
 #[test]

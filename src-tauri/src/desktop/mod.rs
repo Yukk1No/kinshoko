@@ -180,6 +180,11 @@ pub fn init() -> TauriPlugin<Wry> {
             let history = CaptureHistory::open(&dir.join(HISTORY_DIR))?;
             let store = PinStore::open(&dir)?;
             let groups = ReferenceGroups::open(&dir.join(GROUPS_DIR))?;
+            // 启动时清掉一天前暂存的剪贴板图片（取消了导入、之后没再粘贴的也不会一直留着）。
+            let staged = dir.join(image_actions::CLIPBOARD_IMPORT_DIR);
+            std::thread::spawn(move || {
+                kinshoko_core::library::forget_staged_clipboard_images(&staged)
+            });
             app.manage(DesktopState {
                 history: Mutex::new(history),
                 pending_collection: Mutex::new(None),
