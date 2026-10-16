@@ -270,7 +270,7 @@ export class CombinationWorkflow {
     await this.d.invoke("edit_tag_name",{catalogId:this.blue,edit:{kind:"addAlias",alias:this.removedAlias}});
     await this.d.invoke("edit_tag_name",{catalogId:this.blue,edit:{kind:"removeAlias",alias:this.removedAlias}});
     await this.current(this.a.id); await this.scope(); await this.clearSearch();
-    if (!await this.d.exec("return document.querySelector('button.search-exact')?.getAttribute('aria-pressed')==='true';")) await this.readyClick("//button[contains(@class,'search-exact')]");
+    if (!await this.d.exec("return document.querySelector('button.k-exact')?.getAttribute('aria-pressed')==='true';")) await this.readyClick("//button[@aria-label='精确查找']");
     await this.searchTag("最贴切的蓝瞳"); await this.searchTag("水色瞳");
     await until("real UI AND result",()=>this.d.exec("return document.querySelector('.wall')?.dataset.total==='1' && document.querySelectorAll('[aria-label=查找条件]>li').length===2;"));
     await this.d.screenshot("02-single-card-complete-source-match.png");

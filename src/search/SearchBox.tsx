@@ -8,6 +8,7 @@ import type { SimilarTag } from "../bindings/SimilarTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { Term } from "../bindings/Term";
 import type { TermInput } from "../bindings/TermInput";
+import { ExactToggle } from "./ExactToggle";
 import { searchCandidates, workspaceCandidates, workspaceSourceCandidates, setTagApprox, editSharedApprox } from "../ipc";
 
 /** 界面语言。多语言界面随后续切片加入。 */
@@ -309,15 +310,7 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
           </ul>
         )}
       </div>
-      <button
-        type="button"
-        className="search-exact"
-        aria-pressed={input.exact}
-        title={input.exact ? "现在只查选中的标签；再按一次展开相近标签" : "不展开相近标签，只查选中的标签"}
-        onClick={() => onChange({ ...input, exact: !input.exact })}
-      >
-        精确查找
-      </button>
+      <ExactToggle exact={input.exact} onChange={(exact) => onChange({ ...input, exact })} />
       {dismissingNow && (
         <div className="search-popover" role="dialog" aria-label="不展开相近标签">
           <p>不展开“{tagName(dismissingNow.similar.tag)}”：</p>
