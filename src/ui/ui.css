@@ -77,6 +77,17 @@
 .k-split .k-split-more svg { transition: transform 260ms var(--spring); }
 .k-split .k-split-more[data-popup-open] svg { transform: rotate(180deg); }
 .k-split.k-import .k-split-main svg { color: #F3A5B7; }
+/* quiet form (no label): icon and chevron only, no fill, --hover on hover (导入 in the top bar, #102 方案 C3) */
+.k-split.is-quiet { height: 36px; background: transparent; box-shadow: none; }
+.k-split.is-quiet > button { color: var(--ink-2); }
+.k-split.is-quiet > button:hover:not(:disabled), .k-split.is-quiet .k-split-more[data-popup-open] { background: var(--hover); color: var(--ink); }
+.k-split.is-quiet > button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.k-split.is-quiet .k-split-main { width: 36px; justify-content: center; padding: 0; border-radius: 10px 0 0 10px; }
+.k-split.is-quiet .k-split-more { width: 22px; border-left: 0; border-radius: 0 10px 10px 0; }
+.k-split.is-quiet.k-import .k-split-main svg { color: inherit; }
+.k-split.is-quiet .k-split-main[aria-busy="true"] svg { animation: k-busy 1.2s var(--ease) infinite; }
+@keyframes k-busy { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .k-split.is-quiet .k-split-main[aria-busy="true"] svg { animation: none; } }
 
 /* ---- Fluid hover list ---- */
 .k-fluid { position: relative; }
