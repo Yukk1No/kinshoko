@@ -197,6 +197,18 @@ it("某个图库断连时其他图库照常删除，并按图库报告没完成�
   expect(onChanged).toHaveBeenCalled();
 });
 
+it("是否直接在文件夹里按卡片显示的来源读详情的文件夹（不算子文件夹）", async () => {
+  mockIPC((cmd, args) => {
+    calls.push({ cmd, args: args as Record<string, unknown> });
+    if (cmd === "plugin:library|workspace_image") return { folders: [{ id: "f9", name: "手部" }] };
+    return null;
+  });
+  render(<Harness />);
+  await expect(api.inFolder(card("1", "L2"), "f9")).resolves.toBe(true);
+  await expect(api.inFolder(card("1", "L2"), "f1")).resolves.toBe(false);
+  expect(calls.find((c) => c.cmd === "plugin:library|workspace_image")!.args).toEqual({ libraryId: "L2", imageId: "i1" });
+});
+
 it("部分图库已删除、其他图库预览过期时取消重新列出：已删的图照样刷新并取消选择", async () => {
   const stale = "回收站或参考组在确认前有变化，请重新查看将受影响的参考组";
   let previews = 0;

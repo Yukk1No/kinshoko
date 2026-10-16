@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { MenuPopup } from "../ui/Menu";
 import { WallMenu, type WallMenuActions, type WallMenuTarget } from "./WallMenu";
@@ -19,6 +19,7 @@ function actions(): WallMenuActions {
     purge: vi.fn(), importFrom: vi.fn(), selectAll: vi.fn(), setDensity: vi.fn(),
     copy: vi.fn(), reveal: vi.fn(), importClipboard: vi.fn(), clipboardHasImage: vi.fn(async () => true),
     folders: vi.fn(async () => [{ id: "f1", label: "人物" }]),
+    inFolder: vi.fn(async () => false),
     groups: vi.fn(async () => [{ id: "g1", name: "光影", memberCount: 1, libraryIds: ["L1"], updatedAt: 0, problem: null }]),
   };
 }
@@ -60,6 +61,25 @@ it("单张：在文件夹范围里多出“从此文件夹移出”，多来源�
   expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "复制图片Ctrl C", "放入文件夹", "从此文件夹移出", "加入参考组", "内容分级", "查看来源", "在资源管理器中显示", "移到回收站Del"]);
   fireEvent.click(screen.getByRole("menuitem", { name: "从此文件夹移出" }));
   expect(a.edit).toHaveBeenCalledWith([twoSources], [{ kind: "removeFromFolder", folderId: "f9" }], true);
+});
+
+it("单张：含子文件夹的范围（默认）里，图直接在这个文件夹时也有“从此文件夹移出”，在子文件夹里的没有", async () => {
+  const direct = card("1");
+  const a = actions();
+  a.inFolder = vi.fn(async (c: BrowserCard) => c.id === "1");
+  show({ kind: "cards", cards: [direct], point }, { kind: "folderTree", id: "f9" }, a);
+  fireEvent.click(await screen.findByRole("menuitem", { name: "从此文件夹移出" }));
+  expect(a.inFolder).toHaveBeenCalledWith(direct, "f9");
+  expect(a.edit).toHaveBeenCalledWith([direct], [{ kind: "removeFromFolder", folderId: "f9" }], true);
+  cleanup();
+
+  const nested = card("2");
+  const b = actions();
+  b.inFolder = vi.fn(async () => false);
+  const { rows } = show({ kind: "cards", cards: [nested], point }, { kind: "folderTree", id: "f9" }, b);
+  await waitFor(() => expect(b.inFolder).toHaveBeenCalledWith(nested, "f9"));
+  await act(async () => {});
+  expect(rows()).not.toContain("从此文件夹移出");
 });
 
 it("单张：各项调用对应的动作", () => {

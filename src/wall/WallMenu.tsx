@@ -38,6 +38,8 @@ export type WallMenuActions = {
   selectAll: () => void;
   setDensity: (value: number) => void;
   folders: (libraryId: string) => Promise<{ id: string; label: string }[]>;
+  /** 这张图是否直接放在这个文件夹里（不算子文件夹）；“含子文件夹”的范围里据此决定能否“从此文件夹移出”。 */
+  inFolder: (card: BrowserCard, folderId: string) => Promise<boolean>;
   groups: () => Promise<GroupSummary[]>;
 };
 
@@ -93,6 +95,23 @@ function GroupList({ actions, cards }: { actions: WallMenuActions; cards: Browse
   return <>{usable.map((g) => <MenuItem key={g.id} onClick={() => actions.addToGroup(cards, g.id)}>{g.name}</MenuItem>)}</>;
 }
 
+/**
+ * “从此文件夹移出”：只看这个文件夹（scope folder）时范围里的图都直接在里面；含子文件夹（folderTree，
+ * 默认）时范围里也有子文件夹里的图，菜单打开时问一次这张图是否直接在这个文件夹里，是才显示。
+ */
+function RemoveFromFolder({ card, folderId, direct, actions }: { card: BrowserCard; folderId: string; direct: boolean; actions: WallMenuActions }) {
+  const [member, setMember] = useState(direct);
+  useEffect(() => {
+    if (direct) return;
+    let alive = true;
+    actions.inFolder(card, folderId).then((value) => alive && setMember(value), () => {});
+    return () => { alive = false; };
+    // 每次打开菜单只问一次。
+  }, []);
+  if (!member) return null;
+  return <MenuItem icon={icon(FolderMinus)} onClick={() => actions.edit([card], [{ kind: "removeFromFolder", folderId }], true)}>从此文件夹移出</MenuItem>;
+}
+
 function Organize({ cards, actions, scope, single }: { cards: BrowserCard[]; actions: WallMenuActions; scope: BrowseScope; single: boolean }) {
   const libraries = new Set(cards.map((c) => c.libraryId ?? ""));
   const libraryId = libraries.size === 1 ? [...libraries][0] : null;
@@ -101,7 +120,8 @@ function Organize({ cards, actions, scope, single }: { cards: BrowserCard[]; act
       meta={libraryId === null ? "来自多个图库" : undefined}>
       {libraryId !== null && <FolderList libraryId={libraryId} actions={actions} cards={cards} />}
     </MenuSubmenu>
-    {single && scope.kind === "folder" && <MenuItem icon={icon(FolderMinus)} onClick={() => actions.edit(cards, [{ kind: "removeFromFolder", folderId: scope.id }], true)}>从此文件夹移出</MenuItem>}
+    {single && (scope.kind === "folder" || scope.kind === "folderTree") &&
+      <RemoveFromFolder card={cards[0]} folderId={scope.id} direct={scope.kind === "folder"} actions={actions} />}
     <MenuSubmenu icon={icon(Layers)} label="加入参考组" popupLabel="加入参考组" width={220}>
       <GroupList actions={actions} cards={cards} />
     </MenuSubmenu>
