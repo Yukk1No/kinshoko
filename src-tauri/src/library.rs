@@ -227,6 +227,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             workspace::workspace_resolve,
             workspace::workspace_candidates,
             workspace::workspace_image,
+            workspace::workspace_card,
             workspace::workspace_sidebar,
             workspace::workspace_directories,
             workspace::workspace_tag_groups,

@@ -22,6 +22,7 @@ fn main() {
                         "workspace_resolve",
                         "workspace_candidates",
                         "workspace_image",
+                        "workspace_card",
                         "workspace_sidebar",
                         "workspace_directories",
                         "workspace_tag_groups",

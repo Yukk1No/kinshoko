@@ -371,3 +371,159 @@ fn pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnec
     assert_eq!(persisted.members, group.members);
     assert_eq!(device.current().unwrap().info().id, a.info().id);
 }
+
+/// 两个图库里有同一张图（字节相同），A 是可写库。
+fn same_image_in_two_libraries(
+    temp: &std::path::Path,
+) -> (
+    DeviceLibraries,
+    std::sync::Arc<Library>,
+    Library,
+    kinshoko_core::tag_catalog::TagCatalog,
+    kinshoko_core::workspace::Workspace,
+) {
+    let png = temp.join("same.png");
+    image::RgbImage::from_pixel(8, 12, image::Rgb([20, 40, 60]))
+        .save(&png)
+        .unwrap();
+    let mut device = DeviceLibraries::open(&temp.join("app")).unwrap();
+    let a = device.create(&temp.join("A"), "工作参考").unwrap();
+    a.import(ImportSource {
+        paths: vec![png.clone()],
+    })
+    .wait();
+    let b = Library::create(&temp.join("B"), "移动盘参考").unwrap();
+    b.import(ImportSource { paths: vec![png] }).wait();
+    device.add_registration(&b.info().root).unwrap();
+    let catalog = kinshoko_core::tag_catalog::TagCatalog::open(&temp.join("app")).unwrap();
+    let workspace = kinshoko_core::workspace::Workspace::open(&temp.join("app")).unwrap();
+    (device, a, b, catalog, workspace)
+}
+
+fn wall_card(
+    device: &DeviceLibraries,
+    catalog: &mut kinshoko_core::tag_catalog::TagCatalog,
+    workspace: &mut kinshoko_core::workspace::Workspace,
+) -> kinshoko_core::workspace::WorkspaceCard {
+    workspace
+        .browse(
+            device,
+            catalog,
+            &kinshoko_core::workspace::WorkspaceQuery {
+                scope: Default::default(),
+                conditions: Default::default(),
+                cursor: None,
+                limit: 10,
+                thumbnail_px: 256,
+            },
+            true,
+        )
+        .unwrap()
+        .cards[0]
+        .clone()
+}
+
+fn source_in(card: &kinshoko_core::workspace::WorkspaceCard, library: &Library) -> String {
+    card.sources
+        .iter()
+        .find(|s| s.library_id == library.info().id)
+        .unwrap()
+        .image_id
+        .clone()
+}
+
+/// 整理来源时用调用方按需取得的可写句柄（ADR-0008），不另开一个；句柄必须是所选来源的图库。
+#[test]
+fn a_source_edit_runs_on_the_given_writable_library_of_that_source() {
+    use kinshoko_core::workspace::WorkspaceSourceTarget;
+    let temp = tempfile::tempdir().unwrap();
+    let (mut device, a, b, mut catalog, mut workspace) = same_image_in_two_libraries(temp.path());
+    let card = wall_card(&device, &mut catalog, &mut workspace);
+    let target = WorkspaceSourceTarget {
+        library_id: b.info().id.clone(),
+        image_id: source_in(&card, &b),
+        content_id: card.id.clone(),
+    };
+    let error = workspace
+        .write_source_with(&device, &mut catalog, &target, true, &a, |library| {
+            library.edit(std::slice::from_ref(&target.image_id), &[ImageEdit::Delete])
+        })
+        .unwrap_err();
+    assert!(error.to_string().contains("来源"), "{error}");
+    assert_eq!(b.image(&target.image_id).unwrap().deleted_at, None);
+
+    let writer = match device.organize(&b.info().id).unwrap() {
+        kinshoko_core::WriterAccess::Ready { library, .. } => library,
+        kinshoko_core::WriterAccess::Waiting(_) => panic!("不应等待"),
+    };
+    workspace
+        .write_source_with(&device, &mut catalog, &target, true, &writer, |library| {
+            assert!(std::ptr::eq(library, &*writer), "就用给的那个句柄");
+            library.edit(std::slice::from_ref(&target.image_id), &[ImageEdit::Delete])
+        })
+        .unwrap();
+    assert!(b.image(&target.image_id).unwrap().deleted_at.is_some());
+    assert_eq!(a.image(&source_in(&card, &a)).unwrap().deleted_at, None);
+}
+
+/// 钉图“在 Kinshoko 中打开”要的卡片与图片墙同样构成：id 是字节身份，带全部来源，
+/// 显示的是所请求的那份来源。查看器里的整理据此核对来源。
+#[test]
+fn a_single_source_card_is_built_like_the_wall_card() {
+    use kinshoko_core::library::{ContentRating, FactSource};
+    use kinshoko_core::workspace::WorkspaceSourceTarget;
+    let temp = tempfile::tempdir().unwrap();
+    let (mut device, a, b, mut catalog, mut workspace) = same_image_in_two_libraries(temp.path());
+    let wall = wall_card(&device, &mut catalog, &mut workspace);
+    let bid = source_in(&wall, &b);
+
+    let card = workspace
+        .card(&device, &mut catalog, &b.info().id, &bid, true, 256)
+        .unwrap();
+    assert_eq!(card.id, wall.id, "卡片 id 是字节身份，不是图库里的图片 id");
+    assert_ne!(card.id, bid);
+    assert_eq!(card.library_id, b.info().id);
+    assert_eq!(card.image_id, bid);
+    assert_eq!(card.thumbnail, format!("{}/{bid}/256", b.info().id));
+    assert_eq!((card.width, card.height), (wall.width, wall.height));
+    assert_eq!(card.sources.len(), 2);
+    assert!(!card.adult);
+    // 查看器按这张卡整理：来源核对通过。
+    let target = WorkspaceSourceTarget {
+        library_id: card.library_id.clone(),
+        image_id: card.image_id.clone(),
+        content_id: card.id.clone(),
+    };
+    workspace
+        .write_source(&mut device, &mut catalog, &target, true, |library| {
+            library.edit(std::slice::from_ref(&target.image_id), &[ImageEdit::Delete])
+        })
+        .unwrap();
+
+    assert!(
+        workspace
+            .card(&device, &mut catalog, &b.info().id, "没有这张", true, 256)
+            .is_err()
+    );
+    a.replace_source_rating(
+        &FactSource::model("safety-fixture"),
+        &source_in(&wall, &a),
+        Some(kinshoko_core::library::RatingFact {
+            rating: ContentRating::Explicit,
+            score: None,
+        }),
+    )
+    .unwrap();
+    assert!(
+        workspace
+            .card(&device, &mut catalog, &b.info().id, &bid, true, 256)
+            .is_err(),
+        "安全模式下任何一份来源是成人内容就不给"
+    );
+    assert!(
+        workspace
+            .card(&device, &mut catalog, &b.info().id, &bid, false, 256)
+            .unwrap()
+            .adult
+    );
+}

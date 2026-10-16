@@ -30,7 +30,6 @@ import {
   setSafeMode,
   shellSettings,
   thumbnailUrl,
-  workspaceImage,
 } from "./ipc";
 import { referenceCard, useOpenInKinshoko } from "./desktop/openInKinshoko";
 import { CreateLibrary } from "./library/CreateLibrary";
@@ -146,8 +145,8 @@ function LibraryWorkspace({
     if (!referenceRequest) return;
     let alive = true;
     const { libraryId: from, imageId } = referenceRequest;
-    workspaceImage(from, imageId).then(
-      (detail) => { if (!alive) return; setSources(null); setViewCrop(false); setViewing(referenceCard(from, imageId, detail)); },
+    referenceCard(from, imageId, safe).then(
+      (card) => { if (!alive) return; setSources(null); setViewCrop(false); setViewing(card); },
       (e) => { if (alive) toast?.error(`无法打开这张参考图：${String(e)}`); },
     );
     return () => { alive = false; };

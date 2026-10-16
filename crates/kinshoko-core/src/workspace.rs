@@ -637,6 +637,60 @@ impl Workspace {
         };
         Ok(!safe || !snapshot.adult.contains(hash))
     }
+    /// 一张图的卡片，与图片墙（[`Self::browse`]）同样构成：id 是字节身份，带全部来源，显示所请求的
+    /// 那份来源。给不经图片墙打开的入口用（钉图“在 Kinshoko 中打开”），查看器里的整理据此核对来源。
+    /// 没有查找条件，“符合当前查找”只标所请求的来源。
+    pub fn card(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        library_id: &str,
+        image_id: &str,
+        safe: bool,
+        thumbnail_px: u32,
+    ) -> Result<WorkspaceCard, CatalogError> {
+        let snapshot = self.snapshot(device, catalog)?;
+        let hash = snapshot
+            .identities
+            .get(&(library_id.into(), image_id.into()))
+            .ok_or(Error::UnknownImage)?
+            .clone();
+        let adult = snapshot.adult.contains(&hash);
+        if safe && adult {
+            return Err(Error::UnknownImage.into());
+        }
+        let mut shown = None;
+        let mut sources = Vec::new();
+        for provider in &snapshot.providers {
+            for image in provider.images.iter().filter(|i| i.sha256 == hash) {
+                let requested =
+                    provider.registration.library.id == library_id && image.id == image_id;
+                if requested {
+                    shown = Some((provider, image));
+                }
+                sources.push(WorkspaceSource {
+                    library_id: provider.registration.library.id.clone(),
+                    library_name: provider.registration.library.name.clone(),
+                    image_id: image.id.clone(),
+                    deleted: image.deleted,
+                    unavailable: provider.registration.unavailable.clone(),
+                    matches: requested,
+                });
+            }
+        }
+        let (provider, image) = shown.ok_or(Error::UnknownImage)?;
+        Ok(WorkspaceCard {
+            width: image.width,
+            height: image.height,
+            thumbnail: format!("{library_id}/{image_id}/{thumbnail_px}"),
+            placeholder: crate::library::placeholder(&provider.registration.library.root, &hash),
+            adult,
+            library_id: library_id.into(),
+            image_id: image_id.into(),
+            sources,
+            id: hash,
+        })
+    }
 }
 fn directory_sidebar(
     snapshot: &Snapshot,
