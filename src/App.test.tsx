@@ -316,6 +316,19 @@ describe("主窗口", () => {
     await waitFor(() => expect(result.textContent).toBe("1 张"));
   });
 
+  it("顶栏（方案 C3）：张数与精确查找开关在顶栏，图片大小浮在图片墙右下角", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const topbar = screen.getByRole("combobox", { name: "查找参考图" }).closest("header")!;
+    expect(topbar.contains(screen.getByRole("status", { name: "查找结果" }))).toBe(true);
+    expect(topbar.contains(screen.getByRole("button", { name: "精确查找" }))).toBe(true);
+    expect(topbar.contains(screen.getByRole("button", { name: "导入图片文件" }))).toBe(true);
+    const island = screen.getByRole("group", { name: "图片大小" });
+    expect(topbar.contains(island)).toBe(false);
+    expect(island.closest("main")).toBe(screen.getByRole("listbox", { name: "图片墙" }).closest("main"));
+  });
+
   it("尚未打开资料库时仍能从图标轨打开截图历史与钉剪贴板入口", async () => {
     backend(null);
     render(<App />);

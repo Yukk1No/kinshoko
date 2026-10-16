@@ -406,3 +406,16 @@ describe("查看器标题行与 dock（#98）", () => {
     expect(close).not.toHaveBeenCalled();
   });
 });
+
+describe("从图片墙进入框选（#102 右键“框选局部钉住”）", () => {
+  it("startCrop 时打开即在框选模式，换到下一张后不再自动框选", () => {
+    mockIPC(() => null);
+    const card = (id: string) => ({ id, width: 400, height: 300, thumbnail: "", adult: false });
+    const { rerender } = render(<Viewer libraryId="L1" card={card("a")} startCrop onClose={() => {}} />);
+    const pressed = () => screen.getByRole("button", { name: /^框选局部/ }).getAttribute("aria-pressed");
+    expect(pressed()).toBe("true");
+    rerender(<Viewer libraryId="L1" card={card("b")} startCrop onClose={() => {}} />);
+    expect(pressed()).toBe("false");
+    clearMocks();
+  });
+});

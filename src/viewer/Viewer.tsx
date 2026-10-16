@@ -23,6 +23,8 @@ type Props = {
   position?: { index: number; total: number };
   /** 换到上一张（-1）或下一张（1）。 */
   onStep?: (delta: -1 | 1) => void;
+  /** 打开时即进入框选（图片墙右键“框选局部钉住”或 F1）；换到别的图后不再自动框选。 */
+  startCrop?: boolean;
 };
 type Background = "dark" | "mid" | "light" | "checker";
 const grounds: Background[] = ["dark", "mid", "light", "checker"];
@@ -40,7 +42,7 @@ const OneToOne = () => <svg width="19" height="19" viewBox="0 0 24 24" fill="non
  * 钉到桌面（#65）：“钉住整图”，或 Shift+拖动（或先按“框选局部”）框出一块，按 Enter 或“钉住局部”。
  * 选区按原图像素记，标出“宽 × 高 原始像素”，缩放平移时边界不变。
  */
-export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, sourceName, position, onStep }: Props) {
+export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, sourceName, position, onStep, startCrop = false }: Props) {
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0, dpr: window.devicePixelRatio || 1 });
@@ -75,6 +77,8 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     select.current = null;
     drag.current = null;
   }, [libraryId, card.id]);
+  // 在上面的重置之后执行，只在打开时一次。
+  useLayoutEffect(() => { if (startCrop) setSelecting(true); }, []);
   useEffect(() => {
     let alive = true;
     shellSettings().then(async (view) => view?.viewerBackground ?? (await migrateViewerBackground(legacyViewerBackground()))?.viewerBackground ?? "mid")
