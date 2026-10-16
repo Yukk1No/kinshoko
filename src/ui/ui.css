@@ -22,13 +22,20 @@
 /* ---- Window controls (frameless main window) ---- */
 .k-win-ctrls { display: flex; align-items: center; gap: 2px; flex: none; }
 .k-win-div { width: 1px; height: 22px; background: var(--line); margin: 0 4px 0 2px; }
-.k-win-btn { width: 38px; height: 26px; padding: 0; border: 0; border-radius: 7px; display: grid; place-items: center; background: transparent; color: var(--ink-2);
+.k-win-btn { position: relative; width: 38px; height: 26px; padding: 0; border: 0; border-radius: 7px; display: grid; place-items: center; background: transparent; color: var(--ink-2);
   transition: background var(--t-fast), color var(--t-fast); }
-.k-win-btn svg { shape-rendering: crispEdges; }
+/* Glyphs are drawn on the device-pixel grid and placed by WinCtrls (winGlyphs.ts); keep antialiasing for diagonals and corners. */
+.k-win-btn svg { position: absolute; display: block; }
 .k-win-btn:hover { background: var(--hover); color: var(--ink); }
 .k-win-btn:active { background: var(--press); }
 .k-win-btn.is-close:hover { background: var(--win-close); color: var(--on-win-close); }
 .k-win-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Maximized: tao already fits the client area to the monitor work area, so the corner of the viewport is the screen corner.
+   Drop the host row's right inset and flush the buttons to the top edge, so the close button reaches the corner (Fitts). */
+:has(> .k-win-ctrls[data-maximized]) { padding-right: 0; }
+.k-win-ctrls[data-maximized] { align-self: flex-start; gap: 0; }
+.k-win-ctrls[data-maximized] .k-win-btn { height: 32px; border-radius: 0; }
+.k-win-ctrls[data-maximized] .k-win-btn:focus-visible { outline-offset: -2px; }
 
 /* ---- Popups: menus and popovers (Base UI parts) ---- */
 .k-positioner { z-index: 60; outline: 0; }
