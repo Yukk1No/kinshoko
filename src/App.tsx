@@ -1,7 +1,8 @@
-import { useCaptureSources } from "./desktop/captureSources";
+import { captureImage, useCaptureSources } from "./desktop/captureSources";
 import { onCollectionRequest, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { modalOpen as anyModalOpen } from "./ui/modal";
 import { Images, PanelLeftClose, PanelLeftOpen, PanelRightClose, X } from "lucide-react";
 import { ToastProvider, useToast } from "./ui/Toast";
 import { WinCtrls } from "./ui/WinCtrls";
@@ -496,7 +497,7 @@ function LibraryWorkspace({
               {inspectorOpen && <WinCtrls />}
             </header>
             <div className="insp-body">
-              {previewCard && !(safe && previewCard.adult) && <img className="insp-preview" src={thumbnailUrl(previewCard.thumbnail)} alt="所选参考图" draggable={false} />}
+              {previewCard && !(safe && previewCard.adult) && <InspectorPreview card={previewCard} libraryId={libraryId || "workspace"} />}
               {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => { if (sources) setSources(null); else setSelected(new Set()); }} onView={setViewing}
                 onChanged={() => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); }} />
               : <SelectionPanel
@@ -530,6 +531,18 @@ function LibraryWorkspace({
     )}
     </>
   );
+}
+
+/** 详情面板的预览图与图片墙同为参考图来源：截在上面时读原图像素，而不是缩略图的屏幕像素。 */
+function InspectorPreview({ card, libraryId }: { card: BrowserCard; libraryId: string }) {
+  const image = useRef<HTMLImageElement>(null);
+  useCaptureSources(() => {
+    const clip = image.current?.closest<HTMLElement>(".inspector");
+    if (!image.current || !clip || anyModalOpen()) return null;
+    const reference = captureImage(image.current, clip, card.libraryId ?? libraryId, card.imageId ?? card.id, card.width, card.height);
+    return reference ? [reference] : [];
+  }, 10);
+  return <img ref={image} className="insp-preview" src={thumbnailUrl(card.thumbnail)} alt="所选参考图" draggable={false} />;
 }
 
 /**
