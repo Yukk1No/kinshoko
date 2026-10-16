@@ -3,8 +3,12 @@
 //! 缩略图是可重建缓存：`cache/thumbs/<管线版本>/<动态范围变体>/<sha 前两位>/<sha>-<像素|full>.<webp|png>`；
 //! `full` 是不直接显示的原图在 1:1 与放大时用的原尺寸派生图。
 //! 管线版本变化时旧目录整体作废：打开资料库时在后台删除，缩略图按需在新目录重建。
+//!
+//! 占位图（#110）是同一管线、同一目录下的另一份派生图：`<sha>-p32.<webp|png>`，长边约 32 px。
+//! 导入时生成，打开资料库时在后台为缺少的补齐；浏览只读已有的，缺少时界面退回中性底色。
 
 use std::path::{Path, PathBuf};
+use std::sync::Weak;
 
 use super::{CACHE_DIR, Error, Inner, colour};
 use crate::fidelity::{DEFAULT_DOWNSCALE, Downscale, render};
@@ -70,14 +74,154 @@ fn cached(inner: &Inner, image_id: &str, label: &str, max_width: u32) -> Result<
     let bytes = std::fs::read(original)?;
     let rendered =
         render::render_sdr(&bytes, max_width, DEFAULT_DOWNSCALE).map_err(Error::Undecodable)?;
+    write_atomic(&path, &rendered.bytes)?;
+    Ok(path)
+}
+
+/// 占位图长边（像素）。
+const PLACEHOLDER_PX: u32 = 32;
+const PLACEHOLDER: &str = "p32";
+
+/// 占位图的宽度上限：长边不超过 [`PLACEHOLDER_PX`]，按转正后的尺寸保持比例。
+fn placeholder_width(width: u32, height: u32) -> u32 {
+    if width >= height {
+        PLACEHOLDER_PX
+    } else {
+        ((u64::from(PLACEHOLDER_PX) * u64::from(width) + u64::from(height) / 2)
+            / u64::from(height).max(1))
+        .max(1) as u32
+    }
+}
+
+fn placeholder_dir(root: &Path, sha: &str) -> PathBuf {
+    root.join(CACHE_DIR)
+        .join(THUMBS_DIR)
+        .join(PIPELINE)
+        .join(SDR)
+        .join(&sha[..2])
+}
+
+/// 已生成的占位图文件；容器随来源分档（`webp` 或 `png`），两种都找。
+fn placeholder_file(root: &Path, sha: &str) -> Option<PathBuf> {
+    if sha.len() < 2 {
+        return None;
+    }
+    let dir = placeholder_dir(root, sha);
+    ["webp", "png"]
+        .into_iter()
+        .map(|ext| dir.join(format!("{sha}-{PLACEHOLDER}.{ext}")))
+        .find(|path| path.is_file())
+}
+
+/// 已生成的占位图，作为 `data:` 地址随浏览页返回；还没有时为 `None`。只读，不生成。
+pub(crate) fn placeholder(root: &Path, sha: &str) -> Option<String> {
+    use base64::Engine;
+    let path = placeholder_file(root, sha)?;
+    let bytes = std::fs::read(&path).ok()?;
+    let mime = match path.extension()?.to_str()? {
+        "png" => "image/png",
+        _ => "image/webp",
+    };
+    let payload = base64::engine::general_purpose::STANDARD.encode(bytes);
+    Some(format!("data:{mime};base64,{payload}"))
+}
+
+/// 生成占位图要知道的事实：原图位置与转正后的尺寸。只涉及文件，不占用资料库连接。
+struct PlaceholderSource {
+    sha: String,
+    rel_path: String,
+    width: u32,
+    height: u32,
+}
+
+/// 生成一张参考图的占位图（已有时什么也不做）。
+pub(super) fn make_placeholder(inner: &Inner, image_id: &str) -> Result<(), Error> {
+    use rusqlite::OptionalExtension;
+    let source = inner
+        .readers
+        .get()
+        .query_row(
+            "SELECT sha256, rel_path, width, height FROM image WHERE id = ?1",
+            [image_id],
+            |row| {
+                Ok(PlaceholderSource {
+                    sha: row.get(0)?,
+                    rel_path: row.get(1)?,
+                    width: row.get(2)?,
+                    height: row.get(3)?,
+                })
+            },
+        )
+        .optional()?
+        .ok_or(Error::UnknownImage)?;
+    render_placeholder(&inner.root, &source)
+}
+
+/// 与缩略图同一管线（ADR-0005）：同样的色彩声明规则、f32 预乘缩放与按来源分档的无损容器。
+fn render_placeholder(root: &Path, source: &PlaceholderSource) -> Result<(), Error> {
+    if placeholder_file(root, &source.sha).is_some() {
+        return Ok(());
+    }
+    let bytes = std::fs::read(root.join(&source.rel_path))?;
+    let max_width = placeholder_width(source.width, source.height);
+    let rendered =
+        render::render_sdr(&bytes, max_width, DEFAULT_DOWNSCALE).map_err(Error::Undecodable)?;
+    let ext = if rendered.mime == "image/png" {
+        "png"
+    } else {
+        "webp"
+    };
+    let path =
+        placeholder_dir(root, &source.sha).join(format!("{}-{PLACEHOLDER}.{ext}", source.sha));
+    write_atomic(&path, &rendered.bytes)
+}
+
+/// 为缺少占位图的参考图补生成，从新到旧（先补最可能在眼前的）。在后台线程里调用。
+/// 只持有弱引用：资料库关闭后在下一张之前停下，不让数据库连接活得比资料库久。
+/// 失败只是这张图继续退回中性底色，下次打开再试。
+pub(super) fn fill_placeholders(inner: Weak<Inner>) {
+    let (root, sources) = {
+        let Some(inner) = inner.upgrade() else {
+            return;
+        };
+        let conn = inner.readers.get();
+        let sources = conn
+            .prepare(
+                "SELECT sha256, rel_path, width, height FROM image
+                 GROUP BY sha256 ORDER BY MAX(seq) DESC",
+            )
+            .and_then(|mut stmt| {
+                stmt.query_map([], |row| {
+                    Ok(PlaceholderSource {
+                        sha: row.get(0)?,
+                        rel_path: row.get(1)?,
+                        width: row.get(2)?,
+                        height: row.get(3)?,
+                    })
+                })?
+                .collect::<Result<Vec<_>, _>>()
+            });
+        match sources {
+            Ok(sources) => (inner.root.clone(), sources),
+            Err(_) => return,
+        }
+    };
+    for source in sources {
+        if inner.strong_count() == 0 {
+            return;
+        }
+        let _ = render_placeholder(&root, &source);
+    }
+}
+
+fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), Error> {
     std::fs::create_dir_all(path.parent().expect("缓存路径有父目录"))?;
     let tmp = path.with_extension(format!("{}.tmp", uuid::Uuid::new_v4().simple()));
-    let written = std::fs::write(&tmp, &rendered.bytes).and_then(|()| std::fs::rename(&tmp, &path));
+    let written = std::fs::write(&tmp, bytes).and_then(|()| std::fs::rename(&tmp, path));
     if written.is_err() {
         let _ = std::fs::remove_file(&tmp);
     }
-    written?;
-    Ok(path)
+    Ok(written?)
 }
 
 /// 删除一个原文件（按 SHA-256）的全部缩略图与派生图（永久删除后）。失败只影响磁盘占用。
@@ -124,5 +268,12 @@ mod tests {
             pipeline(Downscale::LinearLight),
             pipeline(Downscale::EncodedValue)
         );
+    }
+
+    #[test]
+    fn placeholders_keep_the_long_side_near_32_pixels() {
+        assert_eq!(placeholder_width(4000, 3000), 32);
+        assert_eq!(placeholder_width(1000, 4000), 8);
+        assert_eq!(placeholder_width(1, 10_000), 1);
     }
 }
