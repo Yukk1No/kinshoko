@@ -9,6 +9,11 @@ export type ImageCard = { id: string, width: number, height: number,
  */
 thumbnail: string, 
 /**
+ * 占位图（#110）：约 32 px 的 `sdr` 派生图的 `data:` 地址，缩略图到达前放大模糊显示。
+ * 还没生成（旧资料库在后台补齐中）时为空，界面退回中性底色。
+ */
+placeholder?: string, 
+/**
  * 含成人内容（有效分级为 questionable 或 explicit）：打开安全模式时会被封印。
  * 安全模式开启时浏览结果里没有这样的图，界面据此在开启的一瞬间先把它们遮住。
  */

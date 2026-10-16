@@ -284,6 +284,7 @@ button.primary {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 2;
   background: var(--veil);
   opacity: 0;
   pointer-events: none;
@@ -300,8 +301,42 @@ button.primary {
   transition: opacity 200ms ease-out;
 }
 
+/* 占位图（#110）：缩略图到达前，极小派生图放大模糊铺满卡片；缩略图到达后淡入盖住它，
+   随后占位图隐去（透明缩略图不透出占位色）。没有占位图时只留卡片的中性底色。 */
+.card img {
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+}
+
+.card img[data-loaded] {
+  opacity: 1;
+  transition: filter 420ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 160ms ease-out;
+}
+
+.card img[data-loaded="instant"] {
+  transition: filter 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.card-placeholder {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  filter: blur(12px);
+  transform: scale(1.15);
+  pointer-events: none;
+}
+
+.card img[data-loaded] + .card-placeholder {
+  opacity: 0;
+  transition: opacity 0s linear 160ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card img,
+  .card img[data-loaded],
+  .card img[data-loaded] + .card-placeholder,
   .card::after {
     transition: none;
   }
@@ -790,22 +825,6 @@ button.primary {
   border-radius: 4px;
   background: var(--line);
   font-size: 11px;
-}
-
-.search-exact {
-  font: inherit;
-  font-size: 12px;
-  color: inherit;
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 4px 8px;
-  cursor: pointer;
-}
-
-.search-exact[aria-pressed="true"] {
-  border-color: var(--accent-strong);
-  color: var(--accent-strong);
 }
 
 .search-popover {
@@ -1327,6 +1346,13 @@ button.primary {
   --shadow-pin: 0 2px 6px rgba(0, 0, 0, 0.25), 0 12px 32px rgba(0, 0, 0, 0.22);
   /* T20 redesign (design/ui-system/README.md): layers, popovers, radii and the spring curve. */
   --sunken: #EDE7DA;
+  /* 精确查找开启时的金色浅槽、图片大小滑条的下沉轨道与纸白圆钮（#102 方案 C3） */
+  --exact-on-bg: rgba(227, 179, 79, 0.16); --exact-on-ink: #9A6A10;
+  --exact-on-inset: inset 0 1px 1.5px rgba(110, 75, 10, 0.16), inset 0 0 0 0.5px rgba(160, 112, 15, 0.22);
+  --range-track: var(--line-2); --range-fill: var(--ink-2); --range-inset: inset 0 1px 1px rgba(43, 39, 71, 0.18);
+  --knob: radial-gradient(circle at 50% 35%, #FFFFFF 0 40%, #F6F1E6 100%);
+  --knob-shadow: 0 0 0 0.5px rgba(43, 39, 71, 0.28), 0 1px 1.5px rgba(43, 39, 71, 0.28), 0 4px 10px rgba(43, 39, 71, 0.16);
+  --knob-shadow-pressed: 0 0 0 0.5px rgba(43, 39, 71, 0.3), 0 0 1px rgba(43, 39, 71, 0.3), 0 1px 3px rgba(43, 39, 71, 0.18);
   --shadow-pop: 0 0 0 1px rgba(43, 39, 71, 0.06), 0 2px 4px rgba(43, 39, 71, 0.06), 0 12px 32px rgba(43, 39, 71, 0.14);
   --r-xs: 6px; --r-s: 8px; --r: 10px; --r-m: 12px; --r-l: 14px; --r-xl: 18px;
   --spring: cubic-bezier(0.2, 0.9, 0.25, 1.05);
@@ -1348,6 +1374,12 @@ button.primary {
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.45);
     --sunken: #19172A; --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
     --warn: #E3B34F; --warn-strong: #F0CF86; --warn-soft: rgba(227, 179, 79, 0.12); --ok: #8FCB9C; --ok-soft: rgba(127, 179, 138, 0.16);
+    --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #E9C26E;
+    --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
+    --range-track: #12101E; --range-fill: var(--ink-2); --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
+    --knob: radial-gradient(circle at 50% 35%, #FBF6EC 0 40%, #E6DCCB 100%);
+    --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
+    --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 0 1px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
     color-scheme: dark;
   }
 }
@@ -1361,6 +1393,12 @@ button.primary {
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.45);
   --sunken: #19172A; --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
   --warn: #E3B34F; --warn-strong: #F0CF86; --warn-soft: rgba(227, 179, 79, 0.12); --ok: #8FCB9C; --ok-soft: rgba(127, 179, 138, 0.16);
+  --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #E9C26E;
+  --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
+  --range-track: #12101E; --range-fill: var(--ink-2); --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
+  --knob: radial-gradient(circle at 50% 35%, #FBF6EC 0 40%, #E6DCCB 100%);
+  --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
+  --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 0 1px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
 }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }

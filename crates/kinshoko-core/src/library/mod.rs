@@ -100,6 +100,7 @@ use crate::approx::ApproxRelation;
 use events::Hub;
 use store::{DB_FILE, Readers, Writer};
 pub(crate) use tags::display_label;
+pub(crate) use thumbnail::placeholder;
 
 /// 资料库格式版本，写在 `library.format_version`。
 const FORMAT_VERSION: i64 = 1;
@@ -212,7 +213,13 @@ impl Library {
         std::fs::create_dir_all(root.join(STAGING_DIR))?;
         // 先对账，再启动读写。
         let recovery = recovery::reconcile(&mut conn, root)?;
-        Self::start(root, conn, recovery)
+        let library = Self::start(root, conn, recovery)?;
+        // 早于 #110 导入、或缓存被清掉的图：在后台补生成占位图，补齐前界面退回中性底色。
+        let inner = Arc::downgrade(&library.inner);
+        let _ = std::thread::Builder::new()
+            .name("kinshoko-placeholders".into())
+            .spawn(move || thumbnail::fill_placeholders(inner));
+        Ok(library)
     }
 
     /// 本次打开时的对账结果：撤回了哪些中断的导入项、有哪些未知的孤立原文件。
