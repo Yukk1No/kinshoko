@@ -1,0 +1,36 @@
+{
+  "baseCommit": "8a06f20",
+  "redState": "base plus uncommitted public registration withdrawal regression",
+  "publicRed": "old active lens returned a real ReferenceImage although its provider was no longer registered",
+  "fixtureFailures": "six capture assertions initially failed because five live fixtures omitted registration and the deliberately missing-source fixture later restored only its lens; a failed edit attempt repeated these failures; originals retained",
+  "fixtureCorrection": "live fixtures carry real registered metadata; missing-source keeps registry empty with a retained lens, later restores registration for changed/missing original checks",
+  "green": "reference_group_resolve13, reference_capture_actions10, pin_veil3; strict Clippy workspace all targets success",
+  "veilNativeState": "not yet run; actual public close/removed check added to main wall native harness with original baseline and real OS clipboard preservation",
+  "files": [
+    {
+      "path": "reference-membership-red.txt",
+      "bytes": 1080,
+      "sha256": "440004d0973902aeeef0e860c2b90be7c1c21438ab4de3ffd34860efbc081c5e"
+    },
+    {
+      "path": "reference-membership-veil-green.txt",
+      "bytes": 4688,
+      "sha256": "7a58b3305df0d9717bef2ab07bacf8fe884c9335b58fbff47dccc239a62aec4e"
+    },
+    {
+      "path": "reference-membership-fixture-edit-first.txt",
+      "bytes": 4565,
+      "sha256": "12c45cb9d0be9ba644231e1ee5c72f46e9c02b1042615b91dd9de170bd95cf40"
+    },
+    {
+      "path": "reference-membership-veil-final-green.txt",
+      "bytes": 2965,
+      "sha256": "0eca07693258d796589a58ef0c363c8b23e38880a0cacaa420adcad00a62efbd"
+    },
+    {
+      "path": "final-v3-clippy-first.txt",
+      "bytes": 437,
+      "sha256": "df4f404a599dd818ecea59c733b146d394685d9d0a3d2547853c2f0e496afa56"
+    }
+  ]
+}

@@ -10,7 +10,9 @@
 //! 磁盘布局。
 
 mod plan;
+mod restore;
 mod retention;
+pub use restore::recover_restores;
 mod scope;
 mod stamp;
 mod target;

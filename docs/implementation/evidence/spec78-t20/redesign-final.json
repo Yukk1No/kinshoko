@@ -1,0 +1,45 @@
+{
+  "kind": "spec78-t20-redesign-final-derived",
+  "note": "Minimal derived record. Raw rounds, traces and screenshots stay in ignored work/ of the worker tree; referenced by SHA only. Follows redesign-combination.json.",
+  "fixes": [
+    {"commit": "0a2deb6", "area": "settings rows", "kind": "css", "check": "visual harness: name one line, description complete, select 233 px"},
+    {"commit": "6282acc", "area": "编辑分组 editor and delete confirmation", "kind": "ui+behaviour", "test": "src/library/TagOrganize.test.tsx"},
+    {"commit": "52f62b7", "area": "task cards vs details panel and selection bar", "kind": "css", "check": "visual harness: no overlap with panel or selection bar"},
+    {"commit": "34d5ab1", "area": "top bar 精确查找 wrapping", "kind": "css", "check": "visual harness: button 29.6 px high, one line, with panel open and two chips"},
+    {"commit": "c57d919", "area": "single bottom-band recycle bin", "kind": "behaviour", "test": "src/library/WorkspacePane.test.tsx"}
+  ],
+  "harnessCommits": ["5be4e61", "fed5ca4"],
+  "build": {
+    "source": "fed5ca4719efe87d927dafdd4c598e00d515d522",
+    "tree": "a36ebf0d273670a7ebbf1b4e059686b58913d3d6",
+    "profile": "debug, embedded frontend (custom-protocol), no bundle",
+    "isolatedIdentifier": "dev.kinshoko.spec78t20test",
+    "exeSha256": "5631e22f7b2b7c7692638cc95c49261ea443cb0f9c50d48256b4af32b1354a84",
+    "exeBytes": 102005760
+  },
+  "checks": {
+    "source": "fed5ca4",
+    "fmt": "pass", "clippyWorkspaceAllTargetsDenyWarnings": "pass", "bindingsRegenerationDiff": "empty",
+    "cargoTestWorkspace": {"passed": 721, "failed": 0, "ignored": 12},
+    "tsc": "pass", "vitest": {"files": 50, "tests": 355, "failed": 0},
+    "e2eNodeCheck": {"files": 43, "failed": 0},
+    "nativeWallPixelsTest": "4 offline cases pass"
+  },
+  "renameUnderWorkBeforeRound": "10/10 succeeded",
+  "nativeRound": {
+    "round": "r21", "build": "fed5ca4", "exit": 0, "status": "verified-combined-native-flow",
+    "mainContinuousAssertions": 259, "mainDriverAssertions": 271, "blankEnvironmentAssertions": 20,
+    "cleanupErrors": 0, "releaseVerified": true, "releaseVerifiedMeans": "the round's own app, driver and WebView processes and its ports were released afterwards; not a release build (this round is a debug build)", "knownFolderRestored": true,
+    "prototypePacket": {"cards": 148, "exactPrototypeOrder": true},
+    "trashedSourceCapturePolicy": "copy-allowed-from-trashed-source-original",
+    "trashedSourceCaptureDecision": "decided by the owner 2026-10-11: moving the frozen image source (an image in library A, not a library) to the recycle bin does not invalidate the frozen selection; the copy must be allowed (no error, no crash). The harness asserts 'allowed' since the #98 review fix.",
+    "resultSha256": "d80e0463e882e31af6b9fee7a5533c9f7fcc6edfeec616ac1f15ad8d56b1e29e"
+  },
+  "prototypeComparison": {
+    "packet": "r21", "status": "observed-same-input-baseline-tasks", "assertions": 8,
+    "viewport": "1280x800", "dpr": 1.25, "anchorOffsetPx": {"formal": 465.2, "prototype": 466.8},
+    "comparisonSha256": "f0163961ddcf8046d37136d93122a2b178dc96ffee77399820c97bfe8a85067f"
+  },
+  "guiReview": {"build": "fed5ca4", "screenshots": 20, "new": "05b-details-panel-with-card.png", "indexSha256": "cc77277d4c92e6039ba8c6a970cb3850f625652a7d06b93e350d3bb6b804fab7", "personalDataVisible": false, "previousSet": "redesign-55b37c5/"},
+  "notExecuted": ["release NSIS clean install / upgrade", "#99 signed automatic update", "Windows 10", "human visual acceptance", "physical DPI / pen input"]
+}

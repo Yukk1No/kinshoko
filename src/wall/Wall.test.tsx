@@ -43,18 +43,3 @@ it("1121 → 1369 → 1121 连续重排后同一张图保持偏移，多次自�
   act(() => resize());
   expect(offset()).toBeCloseTo(-54.25);
 });
-
-it("侧栏移动期间保留旧列宽，结束后只按最终宽度重排", async () => {
-  const props = { libraryId: "L1", scope: { kind: "all" as const }, reloadKey: 0, selected: new Set<string>(),
-    onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false };
-  const view = render(<Wall {...props} holdReflow={false} />);
-  await screen.findAllByRole("img");
-  const card = () => document.querySelector<HTMLElement>('[data-id="0"]')!;
-  expect(parseFloat(card().style.width)).toBe(268.25);
-  view.rerender(<Wall {...props} holdReflow />);
-  width = 1369;
-  act(() => resize());
-  expect(parseFloat(card().style.width)).toBe(268.25);
-  view.rerender(<Wall {...props} holdReflow={false} />);
-  expect(parseFloat(card().style.width)).toBe(262.6);
-});

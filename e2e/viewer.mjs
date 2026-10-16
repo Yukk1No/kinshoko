@@ -6,12 +6,13 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
+import { copyStandaloneRuntime } from "./native-standalone-guard.mjs";
 
 const [, , appArg, edgeArg, driverArg = "tauri-driver"] = process.argv;
 if (!appArg || !edgeArg) throw new Error("用法：node e2e/viewer.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]");
-const work = mkdtempSync(join(tmpdir(), "kinshoko-viewer47-"));
-const application = join(work, "kinshoko-viewer47.exe");
-copyFileSync(resolve(appArg), application);
+const work = process.env.KINSHOKO_STANDALONE_WORK ? resolve(process.env.KINSHOKO_STANDALONE_WORK) : mkdtempSync(join(tmpdir(), "kinshoko-viewer47-"));
+mkdirSync(work, { recursive: true });
+const application = copyStandaloneRuntime(appArg, work, "kinshoko-viewer47.exe");
 const parent = join(work, "libraries");
 const source = join(work, "参考");
 const output = resolve(process.env.KINSHOKO_VIEWER_OUTPUT ?? "work/viewer47");
@@ -73,7 +74,8 @@ const find = async (xpath) => {
   const element = await wd("POST", `${base}/element`, { using: "xpath", value: xpath });
   return element[ELEMENT] ?? element.ELEMENT;
 };
-const click = async (text) => wd("POST", `${base}/element/${await find(`//button[normalize-space()='${text}']`)}/click`, {});
+// #98: viewer dock buttons have no visible text; match the accessible name ("名称" or "名称，快捷键").
+const click = async (text) => wd("POST", `${base}/element/${await find(`//button[normalize-space()='${text}' or @aria-label='${text}' or starts-with(@aria-label,'${text}，')]`)}/click`, {});
 const image = () => exec(`const i = document.querySelector('.viewer-stage img'); if (!i || !i.complete || !i.naturalWidth || getComputedStyle(i).visibility !== 'visible') return null;
   const r = i.getBoundingClientRect(); return { src: i.src, w: i.naturalWidth, h: i.naturalHeight, physicalW: r.width * devicePixelRatio, physicalH: r.height * devicePixelRatio, physicalLeft: r.left * devicePixelRatio, physicalTop: r.top * devicePixelRatio, interpolation: getComputedStyle(i).imageRendering, dpr: devicePixelRatio };`);
 
@@ -83,17 +85,26 @@ try {
   const additionalBrowserArguments = forcedDpr ? [`force-device-scale-factor=${Number(forcedDpr)}`] : [];
   const session = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application, webviewOptions: { userDataFolder: join(work, "webview"), additionalBrowserArguments } } } } });
   base = `/session/${session.sessionId}`;
-  const name = await until("建库引导", () => find("//label[contains(., '资料库名称')]/input"));
+  const name = await until("建库引导", () => find("//label[contains(., '图库名称')]/input"));
   await wd("POST", `${base}/element/${name}/clear`, {});
   await wd("POST", `${base}/element/${name}/value`, { text: "原图查看器验证" });
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [parent]);
   await click("选择存放位置…");
-  await click("建立资料库");
-  await until("打开资料库", () => find("//h1[normalize-space()='原图查看器验证']"));
+  await click("建立图库");
+  // #98: the current library is the sidebar title menu, named “当前图库：<名称>”.
+  await until("打开图库", () => find("//button[@aria-label='当前图库：原图查看器验证']"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
-  await click("导入文件夹…");
-  await until("导入完成", () => find("//*[contains(normalize-space(), '导入完成：新增 41 张')]"));
+  // #98: 导入 is a split button; the folder entry is in its menu, then a dialog chooses the library.
+  await click("更多导入方式");
+  await wd("POST", `${base}/element/${await until("整个文件夹菜单项", () => find("//*[@role='menuitem' and normalize-space()='整个文件夹…']"))}/click`, {});
+  const librarySelect = "[...document.querySelectorAll('.k-import-dialog select')].find(s=>s.labels?.[0]?.querySelector('.k-field-label')?.textContent.trim()==='放到图库')";
+  await until("导入对话框", () => exec(`return !!${librarySelect}?.options[1]`));
+  await exec(`const s=${librarySelect};s.value=s.options[1].value;s.dispatchEvent(new Event('change',{bubbles:true}));`);
+  await until("开始导入可用", () => exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
+  await click("开始导入");
+  await until("导入完成", () => exec("const c=document.querySelector('section[aria-label=导入结果]');return c?.textContent.includes('导入完成')&&c.querySelector('.k-task-stats')?.textContent.includes('新增 41');"));
+  await click("关闭导入结果");
   check(true, "导入 41 张测试参考图，未下载打标模型");
   const card = await until("大图卡片", () => exec("return [...document.querySelectorAll('.card')].find(c => Math.abs(c.offsetHeight / c.offsetWidth - 2/3) < .02)"));
   await wd("POST", `${base}/actions`, { actions: [{ type: "pointer", id: "mouse", parameters: { pointerType: "mouse" }, actions: [
@@ -164,7 +175,9 @@ try {
   if (base) await wd("DELETE", base).catch(() => {});
   driver.kill(); // tauri-driver 的 Windows Job 只结束本次测试的子进程。
   await Promise.race([stopped, new Promise((r) => setTimeout(r, 5000))]);
-  const target = resolve(work);
-  if (dirname(target) !== resolve(tmpdir()) || !basename(target).startsWith("kinshoko-viewer47-")) throw new Error("拒绝清理非测试临时目录");
-  rmSync(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+  if (!process.env.KINSHOKO_STANDALONE_WORK) {
+    const target = resolve(work);
+    if (dirname(target) !== resolve(tmpdir()) || !basename(target).startsWith("kinshoko-viewer47-")) throw new Error("拒绝清理非测试临时目录");
+    rmSync(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+  }
 }

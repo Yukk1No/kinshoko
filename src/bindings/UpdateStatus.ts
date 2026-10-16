@@ -3,7 +3,7 @@
 /**
  * 检查更新的结果（#70）。更新来自 GitHub Releases，安装包的签名由 Tauri updater 校验。
  */
-export type UpdateStatus = { "state": "disabled" } | { "state": "unchecked" } | { "state": "upToDate" } | { "state": "available", version: string, 
+export type UpdateStatus = { "state": "disabled", message: string, } | { "state": "manual", message: string, } | { "state": "unchecked" } | { "state": "upToDate" } | { "state": "available", version: string, 
 /**
  * 发布说明。
  */

@@ -353,6 +353,30 @@ impl BackupTarget {
         at: Stamp,
         progress: &mut dyn FnMut(BackupProgress),
     ) -> Result<BackupReport, BackupError> {
+        self.run_content(scope, sources, None, at, progress)
+    }
+
+    /// Content backup with current application definitions, excluding display preferences.
+    /// The shared scope, snapshot, lease and retention pipeline is unchanged.
+    pub fn run_with_catalog(
+        &self,
+        scope: &BackupScope,
+        sources: &BackupSources,
+        catalog: &crate::tag_catalog::CatalogInspection,
+        at: Stamp,
+        progress: &mut dyn FnMut(BackupProgress),
+    ) -> Result<BackupReport, BackupError> {
+        self.run_content(scope, sources, Some(catalog), at, progress)
+    }
+
+    fn run_content(
+        &self,
+        scope: &BackupScope,
+        sources: &BackupSources,
+        catalog: Option<&crate::tag_catalog::CatalogInspection>,
+        at: Stamp,
+        progress: &mut dyn FnMut(BackupProgress),
+    ) -> Result<BackupReport, BackupError> {
         let root = self.root()?;
         let snapshots = root.join(SNAPSHOTS);
         fs::create_dir_all(&snapshots)?;
@@ -428,7 +452,18 @@ impl BackupTarget {
                     .map_err(|e| e.to_string())
             });
             match snap {
-                Ok(s) => snaps.push(s),
+                Ok(mut s) => {
+                    if let Some(catalog) = catalog {
+                        // Failure enriching a selected library is incomplete, not an unavailable skip.
+                        if let Err(e) = s.apply_content_definitions(catalog) {
+                            report
+                                .problems
+                                .push(format!("资料库“{}”的标签定义：{e}", item.name));
+                            continue;
+                        }
+                    }
+                    snaps.push(s);
+                }
                 Err(reason) => report.skipped.push(SkippedLibrary {
                     library: item.clone(),
                     reason,
@@ -528,6 +563,32 @@ impl BackupTarget {
         groups: &ReferenceGroups,
         at: Stamp,
     ) -> Result<RestoreReport, BackupError> {
+        self.restore_content(snapshot_id, into, groups, at, None)
+    }
+
+    /// Validate against the current complete application definitions before publishing content.
+    /// Existing preferences, aliases and personal settings are never replaced by this action.
+    pub fn restore_with_catalog(
+        &self,
+        snapshot_id: &str,
+        into: &Path,
+        groups: &ReferenceGroups,
+        at: Stamp,
+        catalog: &crate::tag_catalog::CatalogInspection,
+    ) -> Result<RestoreReport, BackupError> {
+        self.restore_content(snapshot_id, into, groups, at, Some(catalog))
+    }
+
+    fn restore_content(
+        &self,
+        snapshot_id: &str,
+        into: &Path,
+        groups: &ReferenceGroups,
+        at: Stamp,
+        catalog: Option<&crate::tag_catalog::CatalogInspection>,
+    ) -> Result<RestoreReport, BackupError> {
+        let _gate = super::restore::lock();
+        super::restore::recover(groups)?;
         let root = self.root()?;
         if snapshot_id.ends_with(INCOMPLETE) {
             return Err(BackupError::Incomplete("备份没有完成".into()));
@@ -558,6 +619,19 @@ impl BackupTarget {
                 )));
             }
         }
+        if let Some(catalog) = catalog {
+            let mut definitions = Vec::new();
+            for lib in &manifest.libraries {
+                definitions.extend(Library::snapshot_tag_definitions(
+                    &dir.join("libraries").join(&lib.id).join(&lib.database_key),
+                )?);
+            }
+            catalog
+                .validate_content_dependencies(&definitions)
+                .map_err(|error| {
+                    BackupError::Incomplete(format!("标签定义与当前程序冲突，未恢复内容：{error}"))
+                })?;
+        }
         let mut group_bytes = Vec::new();
         for g in &manifest.groups {
             let bytes = fs::read(dir.join("groups").join(format!("{}.json", g.id)))
@@ -578,43 +652,99 @@ impl BackupTarget {
             groups: Vec::new(),
             check: RoundTripCheck::default(),
         };
-        let mut mapping: HashMap<String, String> = HashMap::new();
-        for lib in &manifest.libraries {
-            let dest = unique_dir(into, &format!("{}（恢复 {}）", lib.name, at.local_date()));
-            let provenance = RestoreProvenance {
-                old_library_id: lib.id.clone(),
-                backup_id: manifest.id.clone(),
-                restored_at: at.unix_ms,
-            };
-            let info = Library::restore_at(
-                &dir.join("libraries").join(&lib.id).join(&lib.database_key),
-                &dest,
-                &format!("{}（恢复）", lib.name),
-                &provenance,
-                &mut |file, target| fs::copy(self.stored(&root, &file.sha256), target).map(|_| ()),
-            )?;
-            mapping.insert(lib.id.clone(), info.id.clone());
-            report.libraries.push(RestoredLibrary {
-                old_id: lib.id.clone(),
-                library: info,
-            });
-        }
-        for (g, bytes) in &group_bytes {
-            let restored = groups.restore(
-                bytes,
-                &mapping,
-                RestoredFrom {
-                    group_id: g.id.clone(),
+        let mut batch = super::restore::RestoreBatch::new(into, groups, &manifest.id)?;
+        let outcome = (|| -> Result<(), BackupError> {
+            let mut mapping: HashMap<String, String> = HashMap::new();
+            let mut staged_libraries = Vec::new();
+            let mut reserved = BTreeSet::new();
+            for lib in &manifest.libraries {
+                let mut dest =
+                    unique_dir(into, &format!("{}（恢复 {}）", lib.name, at.local_date()));
+                while !reserved.insert(dest.clone()) {
+                    dest = unique_dir(
+                        into,
+                        &format!(
+                            "{}（恢复 {}） {}",
+                            lib.name,
+                            at.local_date(),
+                            reserved.len()
+                        ),
+                    );
+                }
+                let stage = batch.stage().join(&lib.id);
+                let provenance = RestoreProvenance {
+                    old_library_id: lib.id.clone(),
                     backup_id: manifest.id.clone(),
-                },
-            )?;
-            report.groups.push(RestoredGroup {
-                old_id: g.id.clone(),
-                id: restored.id,
-                name: restored.name,
-            });
+                    restored_at: at.unix_ms,
+                };
+                let mut info = Library::restore_at(
+                    &dir.join("libraries").join(&lib.id).join(&lib.database_key),
+                    &stage,
+                    &format!("{}（恢复）", lib.name),
+                    &provenance,
+                    &mut |file, target| {
+                        fs::copy(self.stored(&root, &file.sha256), target).map(|_| ())
+                    },
+                )?;
+                mapping.insert(lib.id.clone(), info.id.clone());
+                info.root = std::path::absolute(&dest)?;
+                staged_libraries.push(stage);
+                report.libraries.push(RestoredLibrary {
+                    old_id: lib.id.clone(),
+                    library: info,
+                });
+            }
+            let staged_groups = ReferenceGroups::open(&batch.stage().join("groups"))?;
+            let mut ready_groups = Vec::new();
+            for (g, bytes) in &group_bytes {
+                let restored = staged_groups.restore(
+                    bytes,
+                    &mapping,
+                    RestoredFrom {
+                        group_id: g.id.clone(),
+                        backup_id: manifest.id.clone(),
+                    },
+                )?;
+                report.groups.push(RestoredGroup {
+                    old_id: g.id.clone(),
+                    id: restored.id.clone(),
+                    name: restored.name.clone(),
+                });
+                ready_groups.push(restored);
+            }
+            // Record every new identity before the first publication. Recovery can undo the
+            // exact whole batch even if the process dies between individual filesystem commits.
+            batch.prepare(&report.libraries, &ready_groups)?;
+            for (stage, restored) in staged_libraries.iter().zip(&report.libraries) {
+                if restored.library.root.exists() {
+                    return Err(library::Error::NotEmpty(restored.library.root.clone()).into());
+                }
+                fs::rename(stage, &restored.library.root)?;
+                library::fault::storage("content_restore_library_published")
+                    .map_err(library::Error::from)?;
+            }
+            for group in ready_groups {
+                groups.publish_restored(&group)?;
+                library::fault::storage("content_restore_group_published")
+                    .map_err(library::Error::from)?;
+            }
+            report.check = check(&manifest, &report, &group_bytes, groups);
+            if !report.check.passed() {
+                return Err(BackupError::Incomplete(
+                    "恢复后的往返检查不一致，本批次已撤回，可重试".into(),
+                ));
+            }
+            Ok(())
+        })();
+        if let Err(error) = outcome {
+            batch.rollback().map_err(|rollback| {
+                BackupError::Incomplete(format!(
+                    "{error}；本批次回退未完成：{rollback}。重启或重试恢复时会再次回退"
+                ))
+            })?;
+            return Err(error);
         }
-        report.check = check(&manifest, &report, &group_bytes, groups);
+        batch.finish()?;
         Ok(report)
     }
 
@@ -682,7 +812,7 @@ fn check(
                         .into_iter()
                         .map(|p| format!("{}：{p}", lib.name)),
                 );
-                out.curation.checked += lib.curation.len() as u32;
+                out.curation.checked += c.curation_checked;
                 out.curation.problems.extend(
                     c.curation_problems
                         .into_iter()
@@ -821,7 +951,7 @@ fn read_manifest(dir: &Path) -> Result<Manifest, String> {
     Ok(m)
 }
 
-fn write_synced(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+pub(super) fn write_synced(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     let mut f = fs::File::create(path)?;
     f.write_all(bytes)?;
     f.sync_all()

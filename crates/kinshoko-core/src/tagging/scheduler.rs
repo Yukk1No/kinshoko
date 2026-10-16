@@ -44,6 +44,9 @@ pub struct TaggingConfig {
     /// 画师在设置中选的模型（[`ModelSpec::key`]）：本机条件满足时优先用它，否则按 `models`
     /// 的顺序退让（例如选了显卡模型但没有独显）。`None` 表示自动选择。
     pub preferred: Option<String>,
+    /// Optional application publication boundary. Only result writes acquire it;
+    /// model loading and inference stay outside. Stop/join callers must release it first.
+    pub publication_gate: Option<Arc<Mutex<()>>>,
 }
 
 impl TaggingConfig {
@@ -57,6 +60,7 @@ impl TaggingConfig {
             max_crashes_per_image: 2,
             max_gpu_failures: 2,
             preferred: None,
+            publication_gate: None,
         }
     }
 
@@ -521,9 +525,20 @@ impl Worker {
         let result = session.tag(&path);
         let written = match result {
             Ok(raw) => {
+                let s = interpret(spec, &raw);
+                // Only publication joins the application's final side-effect boundary.
+                // Inference and model loading above must never hold it.
+                let gate = self.config.publication_gate.clone();
+                let publication = gate
+                    .as_ref()
+                    .map(|gate| gate.lock().unwrap_or_else(|error| error.into_inner()));
+                if self.shared.interrupted() {
+                    drop(publication);
+                    self.end_session();
+                    return false;
+                }
                 self.crashes.remove(id);
                 self.tagged += 1;
-                let s = interpret(spec, &raw);
                 self.library
                     .replace_source_tags(source, id, &s.tags)
                     .and_then(|()| self.library.replace_source_rating(source, id, s.rating))

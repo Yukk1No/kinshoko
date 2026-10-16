@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { ModelChoice } from "./bindings/ModelChoice";
 import { ModelSettings } from "./ModelSettings";
@@ -50,14 +50,15 @@ describe("设置：自动标签模型", () => {
     backend(() => undefined);
     render(<ModelSettings />);
 
-    const auto = await screen.findByRole("radio", { name: /自动/ });
-    expect((auto as HTMLInputElement).checked).toBe(true);
-    const gpu = screen.getByRole("radio", { name: /FP16（显卡）/ });
-    expect(gpu.closest("label")?.textContent).toMatch(/显存约 1.8 GB/);
-    expect(gpu.closest("label")?.textContent).toMatch(/已下载/);
-    const cpu = screen.getByRole("radio", { name: /FP32（CPU）/ });
-    expect(cpu.closest("label")?.textContent).toMatch(/内存约 5.0 GB/);
-    expect(cpu.closest("label")?.textContent).toMatch(/需下载 1984 MB/);
+    const select = await screen.findByRole<HTMLSelectElement>("combobox", { name: "自动打标" });
+    expect(select.value).toBe("");
+    expect(screen.getByRole<HTMLOptionElement>("option", { name: "自动" }).selected).toBe(true);
+    const gpu = screen.getByRole("option", { name: /FP16（显卡）/ });
+    expect(gpu.textContent).toMatch(/显存约 1.8 GB/);
+    expect(gpu.textContent).toMatch(/已下载/);
+    const cpu = screen.getByRole("option", { name: /FP32（CPU）/ });
+    expect(cpu.textContent).toMatch(/内存约 5.0 GB/);
+    expect(cpu.textContent).toMatch(/需下载 1984 MB/);
   });
 
   it("选一个模型即保存并显示核心返回的选择", async () => {
@@ -66,9 +67,10 @@ describe("设置：自动标签模型", () => {
     );
     render(<ModelSettings />);
 
-    fireEvent.click(await screen.findByRole("radio", { name: /FP32（CPU）/ }));
+    fireEvent.change(await screen.findByRole("combobox", { name: "自动打标" }), { target: { value: "pixai-v1.0-fp32-chunked" } });
 
-    await screen.findByRole("radio", { name: /FP32（CPU）/, checked: true });
+    await waitFor(() => expect(screen.getByRole<HTMLOptionElement>("option", { name: /FP32（CPU）/ }).selected).toBe(true));
+    expect(screen.getByText(/CPU，内存约 5.0 GB · 需下载 1984 MB/, { selector: ".k-list-desc" })).toBeTruthy();
     expect(calls.find((c) => c.cmd === "tagging_set_model")?.args).toEqual({
       key: "pixai-v1.0-fp32-chunked",
     });
@@ -86,11 +88,11 @@ describe("设置：自动标签模型", () => {
     );
     render(<ModelSettings />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "从文件导入模型包…" }));
+    fireEvent.click(await screen.findByRole("button", { name: "导入模型包…" }));
 
     expect(await screen.findByText("模型包已导入并通过校验")).toBeTruthy();
-    const cpu = screen.getByRole("radio", { name: /FP32（CPU）/ });
-    expect(cpu.closest("label")?.textContent).toMatch(/已下载/);
+    const cpu = screen.getByRole("option", { name: /FP32（CPU）/ });
+    expect(cpu.textContent).toMatch(/已下载/);
     expect(calls.find((c) => c.cmd === "tagging_import_package")?.args).toEqual({
       path: "D:\\离线\\pixai.zip",
     });
@@ -104,7 +106,7 @@ describe("设置：自动标签模型", () => {
     });
     render(<ModelSettings />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "从文件导入模型包…" }));
+    fireEvent.click(await screen.findByRole("button", { name: "导入模型包…" }));
 
     const alert = await screen.findByRole("alert");
     expect(within(alert).getByText("模型包校验失败：model.onnx 已损坏")).toBeTruthy();
@@ -115,7 +117,7 @@ describe("设置：自动标签模型", () => {
     const calls = backend(() => undefined);
     render(<ModelSettings />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "从文件导入模型包…" }));
+    fireEvent.click(await screen.findByRole("button", { name: "导入模型包…" }));
     await new Promise((r) => setTimeout(r, 0));
 
     expect(calls.some((c) => c.cmd === "tagging_import_package")).toBe(false);

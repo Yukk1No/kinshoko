@@ -277,7 +277,8 @@ impl Search {
 
     fn condition(&self, input: &ConditionInput, exact: bool, lang: &str) -> Option<Condition> {
         let mut any = Vec::new();
-        let mut expressed = false;
+        // An explicitly empty group is false, and its exclusion is true.
+        let mut expressed = input.any.is_empty();
         for term in &input.any {
             match term {
                 TermInput::Text { text, dismissed } => {

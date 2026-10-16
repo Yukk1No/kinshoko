@@ -1,0 +1,185 @@
+{
+  "kind": "spec78-t20-prototype-offline-preparation",
+  "at": "2026-10-09T02:05:18.465153+00:00",
+  "base": "ff82eb786c7c97c1de1d702fc1248cb6141a9e5f",
+  "status": "offline-public-packet-and-comparison-module-prepared",
+  "sourceFiles": [
+    {
+      "path": "e2e/spec78-combination-prototype.mjs",
+      "bytes": 35010,
+      "sha256": "5072877837f0ee71962935ee8a0427d37013c109c68e3e20c0d74792c9d2017b"
+    },
+    {
+      "path": "e2e/spec78-combination.mjs",
+      "bytes": 8514,
+      "sha256": "8712c24fb2faeca66077b725ca2e5fb6dfa7f185d42cc5b4a5191e0813db5882"
+    }
+  ],
+  "checks": {
+    "red": {
+      "passed": 6,
+      "failed": 2,
+      "reason": "missing actual A display source and safe-mode Adult rejection",
+      "files": [
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/packet-checks.mjs",
+          "bytes": 4450,
+          "sha256": "c835e626975240700d4ae8428301865bef4b3e419a6b6b38b8151b841ecb0a36"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/packet-red.json",
+          "bytes": 1237,
+          "sha256": "bfb756d2c73a194c35083923565829dfcb979ecc6925b212813c57b9945b7e59"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/packet-red-stdout.txt",
+          "bytes": 24,
+          "sha256": "5fe1705abe6c23ce35d5ade60fc3d6eef1dd3778c5fbaaafc00c88c29cd0e9fe"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/packet-red-stderr.txt",
+          "bytes": 169,
+          "sha256": "1bb9708f64f2d7dfd653f5adcdaf35ef8326a8ea04ab548961d6b74ed769f1ec"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/packet-red-exit.txt",
+          "bytes": 1,
+          "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+        }
+      ]
+    },
+    "green": {
+      "passed": 8,
+      "failed": 0,
+      "files": [
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/packet-green.json",
+          "bytes": 1077,
+          "sha256": "86704864b83d3a26ac08e434cde485b93ef6259e6b5ff46e954b9a5b4897f962"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/packet-green-stdout.txt",
+          "bytes": 24,
+          "sha256": "b2b88b1f286943deb300d50a06bbb3676431d8d27b3685203b9a0cc92979bcbf"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/packet-green-stderr.txt",
+          "bytes": 169,
+          "sha256": "aa179cea8c14a0da9d65d8e5f55949b4195d69905883da1ecf0151d6ab36f8df"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/packet-green-exit.txt",
+          "bytes": 1,
+          "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/packet-green-summary.json",
+          "bytes": 1552,
+          "sha256": "a2ff0d0e665ca48ff479b84fa34e93e7d8adb77b72fa20b439059a240b99d6bc"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/syntax-stdout.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/syntax-stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/syntax-exit.txt",
+          "bytes": 1,
+          "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+        }
+      ],
+      "boundary": "pure synthetic public responses; no formal program, browser, file-copy mirror or installation executed"
+    },
+    "final": {
+      "purePacketPassed": 8,
+      "helperPassed": 3,
+      "embeddedBrowserPrograms": 18,
+      "browserProgramsExecuted": 0,
+      "files": [
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/packet-checks.mjs",
+          "bytes": 4450,
+          "sha256": "c835e626975240700d4ae8428301865bef4b3e419a6b6b38b8151b841ecb0a36"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/final-helpers.mjs",
+          "bytes": 2557,
+          "sha256": "1a4538ddea1edf7aae38f20a9c72df86f9bc5a784e15f708315826e30bd584f2"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/final-v2/packet-final.json",
+          "bytes": 1077,
+          "sha256": "490f9252c82a06b7e2db09d537d4539d9e00cfc63e32c6a46d7dd42133cd1957"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/final-v2/packet-final-stdout.txt",
+          "bytes": 24,
+          "sha256": "b2b88b1f286943deb300d50a06bbb3676431d8d27b3685203b9a0cc92979bcbf"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/final-v2/packet-final-stderr.txt",
+          "bytes": 169,
+          "sha256": "ef0cf9107798fd32c46b813bec02a6bc5a216366a7959364b962f961f6fc9e10"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/final-v2/packet-final-exit.txt",
+          "bytes": 1,
+          "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/final-v2/final-helpers.json",
+          "bytes": 3225,
+          "sha256": "774856c5c8473a5c4a339804c1d31e91d31a1a5cbd2f6425a5da4fdebfda566d"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/final-v2/final-helpers-stdout.txt",
+          "bytes": 47,
+          "sha256": "7a52b2149e14a6ca04ddc763fb53a41b985742200e2599518e98ba080fef01f0"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/final-v2/final-helpers-stderr.txt",
+          "bytes": 169,
+          "sha256": "290a27da1c811decc9f8e3a5b24d5aecc2340a565e5a62e45d36dba97e979b97"
+        },
+        {
+          "path": "work/e2e/spec78-t20-prototype-preparation-1791511114275/final-v2/final-helpers-exit.txt",
+          "bytes": 1,
+          "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+        }
+      ]
+    }
+  },
+  "checkpoint": {
+    "position": "same final A/B session after fixedImportOwner, before Eagle reimport and lifecycle",
+    "scope": "complete actual A library, no conditions, global safe mode true",
+    "record": "raw pages with actual total/revision/cursor, every A inspection and real collectedAt, exact count/bytes/dimensions and public/date-sort orders",
+    "compatibility": "unverified until actual public packet; no fabricated dates/reordering/subsetting",
+    "reason": "fixed spec/ticket allow a baseline checkpoint within the continuous final session; normal imports use actual now, Eagle uses source time"
+  },
+  "mirror": {
+    "method": "fresh accepted-code mirror in owned work/e2e, exact PNG originals/four fonts, fresh browser profile",
+    "acceptedSource": "bd8aea44c4a311571ee3c07382cb7755f87f3153",
+    "oldLocal": "read-only full inventory before/after; no mutation",
+    "offlineDependencies": "explicit junction to existing prototype node_modules; actual preparation/resolution unexecuted"
+  },
+  "unverified": [
+    "final T17 integration and actual build attribution",
+    "same-session public packet and formal baseline actions",
+    "fresh mirror preparation/dependency resolution",
+    "separately owned browser/server/driver lifecycle wrapper",
+    "prototype browser comparison and visual acceptance",
+    "reference-sidebar comparison",
+    "release NSIS clean install and old-to-new",
+    "physical monitor/input/developer acceptance",
+    "Windows 10 (owner accepted unverified)"
+  ],
+  "nativeExecuted": false,
+  "prototypeExecuted": false,
+  "installerExecuted": false,
+  "fullT20Acceptance": false
+}

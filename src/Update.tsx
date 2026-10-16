@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { UpdateProgress } from "./bindings/UpdateProgress";
 import type { UpdateStatus } from "./bindings/UpdateStatus";
+import { CircleCheck, Download, Info, RefreshCw } from "lucide-react";
+import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { checkUpdate, installUpdate, onUpdateProgress, updateStatus } from "./ipc";
 
 /** 下载进度的文字，例如“正在下载 3.2／12.0 MB”。 */
@@ -38,12 +40,13 @@ function useInstall() {
 }
 
 /**
- * 设置里的“更新”一节：当前状态、检查更新、有新版本时安装。
- * 没有配置更新公钥的构建（开发构建）只说明不检查更新。
+ * 设置 › 更新：当前版本与状态、检查更新、有新版本时安装。
+ * 手动更新构建说明安装包步骤；自动更新构建缺少条件时说明原因。
  */
-export function UpdateSection() {
+export function UpdateSection({ version = null }: { version?: string | null }) {
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [checking, setChecking] = useState(false);
+  const [steps, setSteps] = useState(false);
   const { installing, progress, error, install } = useInstall();
 
   useEffect(() => {
@@ -72,43 +75,40 @@ export function UpdateSection() {
     }
   };
 
+  const pill = status.state === "upToDate" ? <StatusPill tone="ok"><CircleCheck size={12} aria-hidden="true" />已是最新</StatusPill>
+    : status.state === "available" ? <StatusPill tone="accent">有新版本</StatusPill>
+    : status.state === "failed" ? <StatusPill tone="warn">检查失败</StatusPill> : null;
   return (
-    <>
-      <h2>更新</h2>
-      {status.state === "disabled" ? (
-        <p className="settings-hint">此构建未启用自动更新。</p>
+    <SettingsGroup label="更新">
+      <SettingsRow icon={<Info size={16} />} title="当前版本" desc={version ?? "Kinshoko"}>{pill}</SettingsRow>
+      {status.state === "manual" ? (
+        <SettingsRow icon={<Download size={16} />} title="手动更新" desc="从托盘退出，再运行新安装包"
+          below={steps && <div className="k-set-note">
+            <p>{status.message}</p>
+            <p>从托盘退出 Kinshoko 后，运行开发者提供的新版安装包，安装到原位置。装好后重新打开，继续使用已有图库、设置、参考组和钉图。</p>
+          </div>}>
+          <button type="button" className="k-btn is-sm" aria-expanded={steps} onClick={() => setSteps(!steps)}>{steps ? "收起步骤" : "查看步骤"}</button>
+        </SettingsRow>
+      ) : status.state === "disabled" ? (
+        <SettingsRow icon={<Download size={16} />} title="自动更新" desc="这个版本未开启" below={<p className="k-set-note">{status.message}</p>} />
       ) : (
         <>
-          {status.state === "upToDate" && <p className="settings-hint">已是最新版本。</p>}
-          {status.state === "failed" && (
-            <p className="settings-error" role="alert">
-              {status.message}
-            </p>
-          )}
           {status.state === "available" && (
-            <>
-              <p>可以更新到 {status.version}</p>
-              {status.notes && <p className="settings-hint update-notes">{status.notes}</p>}
-              {installing ? (
-                <p className="settings-hint">{progressText(progress)}</p>
-              ) : (
-                <button type="button" onClick={() => void install()}>
-                  安装并重启
-                </button>
-              )}
-            </>
+            <SettingsRow icon={<Download size={16} />} title={`可以更新到 ${status.version}`} desc={installing ? progressText(progress) : "装好后自动重启"}
+              below={status.notes && <p className="k-set-note update-notes">{status.notes}</p>}>
+              {!installing && <button type="button" className="k-btn is-sm is-primary" onClick={() => void install()}>安装并重启</button>}
+            </SettingsRow>
           )}
-          {error !== null && (
-            <p className="settings-error" role="alert">
-              {error}
-            </p>
-          )}
-          <button type="button" disabled={checking || installing} onClick={() => void check()}>
-            检查更新
-          </button>
+          <SettingsRow icon={<RefreshCw size={16} />} title="检查更新" desc="从发布页查找新版本"
+            below={<>
+              {status.state === "failed" && <p className="k-set-error" role="alert">{status.message}</p>}
+              {error !== null && <p className="k-set-error" role="alert">{error}</p>}
+            </>}>
+            <button type="button" className="k-btn is-sm" disabled={checking || installing} onClick={() => void check()}>检查更新</button>
+          </SettingsRow>
         </>
       )}
-    </>
+    </SettingsGroup>
   );
 }
 

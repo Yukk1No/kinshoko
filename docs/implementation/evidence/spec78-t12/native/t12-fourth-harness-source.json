@@ -1,0 +1,8 @@
+{
+  "harnessSource": "846edf227d5b2c43692289dea06a11a97d38a17f",
+  "harnessSha256": "3d2422c8ece631968393fe00b47afedeceb4d77f4f6736f82a40a78b1cae868c",
+  "productDiff": "",
+  "buildManifest": "work/e2e/t12-00dfc61-build-source.json",
+  "binarySha256": "8de4d9202cae6919a53757aa31ee8e2e4bc48f0cc013669a2414ed9ec42ecb3c",
+  "run": "work/e2e/content-backup-t12-00dfc61-fourth"
+}

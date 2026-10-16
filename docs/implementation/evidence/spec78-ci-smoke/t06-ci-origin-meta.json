@@ -1,0 +1,21 @@
+{
+  "observedAtUtc": "2026-10-08T19:04:21.0301034Z",
+  "run": 37826656513,
+  "head": "b190770fc3d004c6f4fa101af1ff29cf8871b28f",
+  "checkout": "ba18417470a74fe34c121a1c286db9535e3099ee",
+  "checkoutTree": "19df69897f2b8642bd8825d4a46cdb13b27b8917",
+  "parents": [
+    "536cc43c1933e44fc33836f8a439de8cdb0da018",
+    "b190770fc3d004c6f4fa101af1ff29cf8871b28f"
+  ],
+  "conclusion": "success",
+  "smoke": 5,
+  "binarySha256": "877fcdc5a1aebfe1f0b08383691469ce88e1e4a3a1e3af0ea13bff2df76ede9d",
+  "fidelityPassed": false,
+  "gatedSamples": 34,
+  "failedGated": 11,
+  "downloadedArtifacts": [
+    "smoke-report-ba18417470a74fe34c121a1c286db9535e3099ee",
+    "fidelity-report-ba18417470a74fe34c121a1c286db9535e3099ee"
+  ]
+}

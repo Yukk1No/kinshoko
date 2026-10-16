@@ -246,7 +246,7 @@ fn count(library: &Library, scope: BrowseScope) -> u32 {
 }
 
 #[test]
-fn active_eagle_duplicates_stay_visible_regardless_of_order_or_retry() {
+fn same_task_live_eagle_duplicates_set_initial_state_but_retries_preserve_existing_trash() {
     for version in ["1.8.2", "4.0.0"] {
         for trash_first in [true, false] {
             for retry_after_reopen in [false, true] {
@@ -284,11 +284,20 @@ fn active_eagle_duplicates_stay_visible_regardless_of_order_or_retry() {
                         ImportOutcome::Imported { .. }
                             | ImportOutcome::Merged { .. }
                             | ImportOutcome::Refreshed { .. }
+                            | ImportOutcome::TrashDuplicate { .. }
                     )),
                     "{report:?}"
                 );
-                assert_eq!(count(&library, BrowseScope::All), 1);
-                assert_eq!(count(&library, BrowseScope::Trash), 0);
+                // #78 T14：同一任务中新建图的初始状态与顺序无关；前一次任务的回收站不可自动恢复。
+                let remains_in_trash = retry_after_reopen && trash_first;
+                assert_eq!(
+                    count(&library, BrowseScope::All),
+                    u32::from(!remains_in_trash)
+                );
+                assert_eq!(
+                    count(&library, BrowseScope::Trash),
+                    u32::from(remains_in_trash)
+                );
                 let sources = library.eagle_sources().unwrap();
                 let bindings = &sources[0].bindings;
                 assert_eq!(bindings.len(), 2);
@@ -305,8 +314,12 @@ fn active_eagle_duplicates_stay_visible_regardless_of_order_or_retry() {
                     }
                 );
                 assert_eq!(
-                    library.image(&bindings[0].image_id).unwrap().deleted_at,
-                    None
+                    library
+                        .image(&bindings[0].image_id)
+                        .unwrap()
+                        .deleted_at
+                        .is_some(),
+                    remains_in_trash
                 );
             }
         }
@@ -348,8 +361,14 @@ fn new_eagle_duplicates_preserve_manual_deletion_and_restore() {
                 .wait();
             assert_eq!(
                 second.items[0].outcome,
-                ImportOutcome::Merged {
-                    image_id: image_id.clone()
+                if deleted_at.is_some() {
+                    ImportOutcome::TrashDuplicate {
+                        image_id: image_id.clone(),
+                    }
+                } else {
+                    ImportOutcome::Merged {
+                        image_id: image_id.clone(),
+                    }
                 }
             );
             assert_eq!(library.image(image_id).unwrap().deleted_at, deleted_at);
@@ -644,7 +663,12 @@ fn partial_failures_retry_as_eagle_items_and_keep_successes_and_manual_decisions
         repeat
             .items
             .iter()
-            .all(|i| matches!(i.outcome, ImportOutcome::Refreshed { .. })),
+            .enumerate()
+            .all(|(index, i)| if index == 0 {
+                matches!(i.outcome, ImportOutcome::TrashDuplicate { .. })
+            } else {
+                matches!(i.outcome, ImportOutcome::Refreshed { .. })
+            }),
         "{repeat:?}"
     );
     assert_eq!(library.eagle_sources().unwrap(), before);

@@ -1,0 +1,27 @@
+{
+  "scriptCommit": "5d4d85ec59b2084a8db6fb67700c9454e597afef",
+  "scriptTree": "7ff05dd586a4c777d91a455e60170ebb0c105d57",
+  "binaryBuiltAtCommit": "b45941dfe605c1509f47871a87e33bc852641d9b",
+  "binarySha256": "1ed64c1061f148b5a42fff93e565c63833f236dd743cb9b30519a8991bee327b",
+  "productManifest": "native-migration-source.json",
+  "supplementOnly": true,
+  "productNotRebuiltAfterT19Merge": true,
+  "files": [
+    {
+      "path": "e2e/legacy-name-startup.mjs",
+      "sha256": "74ca99846bd1ed573464e6e4ae94c08f30114d7d257bc4663d220d85e3d6ec90"
+    },
+    {
+      "path": "e2e/native-tray-exit-t04.py",
+      "sha256": "970254766eab34e21426b8bd9ffc94afe11f2599241827eb7d76a9fed85f8eb0"
+    },
+    {
+      "path": "e2e/legacy-tag-names.mjs",
+      "sha256": "c7b969a7135a8284f82a0eedd0f50f987e4d8443146ab7f51d9406642e790c27"
+    },
+    {
+      "path": "crates/kinshoko-core/tests/fixtures/spec78-legacy-v16.sql",
+      "sha256": "b78cfdfd0c7cd40dc92330d63caa70c4d4e08a3d2e47b7bc884d8c4a8a311f89"
+    }
+  ]
+}

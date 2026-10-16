@@ -388,11 +388,9 @@ fn a_restored_backup_is_an_independent_copy_and_passes_the_round_trip_check() {
             .is_some(),
         "回收站里的图也在备份中"
     );
-    // 个人近似对应表一起往返。
-    assert_eq!(
-        copy.personal_approx(ZH).unwrap(),
-        device.main.personal_approx(ZH).unwrap()
-    );
+    // #78 T12: content restore does not replay legacy program settings under a new library ID.
+    assert!(copy.personal_approx(ZH).unwrap().is_empty());
+    assert!(!device.main.personal_approx(ZH).unwrap().is_empty());
 
     // 参考组是独立副本：新身份、记录恢复来源、成员改连恢复出的库，局部与摆放不变；现有参考组不动。
     let all = device.groups.list().unwrap();

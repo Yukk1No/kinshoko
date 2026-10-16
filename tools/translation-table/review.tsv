@@ -83,41 +83,41 @@ rank	external	name	aliases	review
 2014	spiked_collar	铆钉项圈	尖刺项圈	
 2041	fang_out	露出虎牙		
 2071	drink_can	饮料罐		
-2098	long_hair_between_eyes	长眼间发		
-2126	pumpkin	南瓜		
-2153	ribbon_choker	丝带颈带		
-2178	covering_crotch	遮住裆部		
-2207	blue_sleeves	蓝袖子	蓝色袖子	
-2233	mecha_musume	机娘	机械少女	
-2259	print_thighhighs	印花过膝袜		
-2285	grid_background	网格背景		
-2310	explosion	爆炸		
-2336	multicolored_background	多色背景		
-2363	plugsuit_(evangelion)	插入栓战斗服	EVA战斗服	
-2390	lamppost	路灯		
-2418	tasuki	束袖带	襷	
-2445	pink_boots	粉靴子	粉色靴子	
-2471	photo_background	照片背景	实景背景	
-2499	mecha_focus	以机甲为主		
-2526	naked_apron	裸体围裙	裸围裙	
-2552	greyscale_with_colored_background	灰度配彩色背景		
-2577	sheet_grab	抓床单	揪床单	
-2602	crack	裂缝	裂痕	
-2629	print_gloves	印花手套		
-2654	hair_pulled_back	头发向后梳	头发后拢	
-2682	tassel_hair_ornament	流苏发饰		
-2707	chain_necklace	链条项链		
-2733	green_panties	绿色内裤		
-2759	frilled_hat	荷叶边帽子		
-2784	punching	出拳	挥拳	
-2812	parted_hair	分发	分开的头发	
-2838	sailor_senshi_uniform	美少女战士制服	水手战士服	
-2864	thank_you	谢谢	感谢图	
-2890	copyright_logo	作品标志	版权logo	
-2916	fedora	软呢帽	费多拉帽	
-2941	purple_bra	紫色胸罩		
-2967	yellow_shoes	黄鞋	黄色鞋子	
-2992	single_detached_sleeve	单只分离袖		
+2099	coin	硬币	金币	
+2127	fur-trimmed_cape	毛边斗篷		
+2154	hair_up	盘发	头发扎起	
+2179	holding_wand	拿着魔杖		
+2208	folded	折叠姿势	身体对折	
+2235	anchor	锚		
+2260	heart_ahoge	爱心呆毛		
+2286	police_uniform	警服	警察制服	
+2311	white_robe	白长袍		
+2337	transparent	透明		
+2364	tate_eboshi	立乌帽子		
+2392	blue_socks	蓝袜子	蓝色袜子	
+2419	open_collar	敞开领口	领口敞开	
+2446	holding_lollipop	拿着棒棒糖		
+2472	purple_theme	紫色调	紫色主题	
+2500	two-tone_fur	双色毛		
+2527	hand_on_another's_cheek	手放他人脸颊		
+2553	gradient_eyes	渐变瞳	渐变色眼睛	
+2578	evening	傍晚	黄昏	
+2603	yellow_hat	黄帽子	黄色帽子	
+2630	sticker	贴纸		
+2655	poolside	泳池边		
+2683	moaning	呻吟		
+2708	beamed_eighth_notes	连音符	双八分音符	
+2734	single_mechanical_arm	单条机械臂	单侧机械臂	
+2760	skyscraper	摩天大楼	高楼	
+2785	frilled_panties	荷叶边内裤		
+2814	leather_jacket	皮夹克	皮衣	
+2840	train_interior	车厢内	列车内部	
+2866	unworn_skirt	脱下的裙子		
+2892	uwabaki	室内鞋	上履	
+2918	trading_card	集换式卡牌	卡牌游戏卡	
+2943	twisted_torso	扭身	躯干扭转	
+2969	raccoon_girl	狸娘	浣熊娘	
+2995	energy	能量		
 17	skirt	裙子	半身裙	改：裙子（短裙子） → 裙子（半身裙），别名“短裙子”把长裙排除在外
 35	jacket	夹克		改：夹克（外套夹克） → 夹克，别名“外套夹克”不通顺，且“外套”留给 coat
 87	hair_bow	头发蝴蝶结	蝴蝶结发饰	改：发饰蝴蝶结（头发蝴蝶结） → 头发蝴蝶结（蝴蝶结发饰），“发饰蝴蝶结”语序别扭
@@ -213,6 +213,7 @@ rank	external	name	aliases	review
 2070	side_braids	两侧辫子	双侧辫	改：两侧辫子（侧辫（双）） → 两侧辫子（双侧辫），别名带括号
 2082	:/	不满撇嘴	:/	改：撇嘴（斜）（:/） → 不满撇嘴（:/），名称里的括号不像标签名；“斜嘴”是 sideways_mouth 的别名
 2091	green_vest	绿色马甲	绿马甲	改：绿背心（绿色马甲） → 绿色马甲（绿马甲），vest 统一译“马甲”
+2098	long_hair_between_eyes	两眼间长发	长眼间发	改：长眼间发 → 两眼间长发，采用负责人认可的默认显示名称；原名称保留为可删除别名
 2104	multiple_persona	同一角色多人	多重形象	改：多重人格（同角色多人）（同角色多形态） → 同一角色多人（多重形象），Danbooru 指同一角色的多个版本同框，不是多重人格
 2112	handcuffs	手铐	铐住双手	改：手铐（金属）（铐住双手） → 手铐（铐住双手），名称里的括号不像标签名
 2116	>:)	邪恶得意笑	>:)	改：坏笑（得意）（>:)） → 邪恶得意笑（>:)），名称里的括号不像标签名；“坏笑”是 smirk
@@ -250,6 +251,7 @@ rank	external	name	aliases	review
 2755	beach_umbrella	沙滩伞	海滩遮阳伞	改：沙滩伞（遮阳伞（海滩）） → 沙滩伞（海滩遮阳伞），别名带括号
 2800	radio_antenna	无线电天线	天线	改：天线（无线电）（无线电天线） → 无线电天线（天线），名称里的括号不像标签名
 2806	cat_ear_headphones	猫耳耳机	猫耳头戴耳机	改：猫耳耳机（头戴）（猫耳头戴耳机） → 猫耳耳机（猫耳头戴耳机），名称里的括号不像标签名
+2812	parted_hair	分缝发型	分开的头发|分发	改：分发 → 分缝发型，采用负责人认可的默认显示名称；原名称与已有别名继续用于查找
 2826	jiangshi	僵尸	中式僵尸|僵尸道服	改：僵尸（中式）（僵尸道服） → 僵尸（中式僵尸、僵尸道服），名称里的括号不像标签名
 2861	blue_ascot	蓝色宽领巾		改：蓝色领巾 → 蓝色宽领巾，与 blue_neckerchief“蓝色领巾”冲突，ascot 统一为“宽领巾”
 2889	ankle_socks	船袜	及踝袜	改：短袜（及踝）（船袜） → 船袜（及踝袜），名称里的括号不像标签名；“短袜”是 socks 的别名

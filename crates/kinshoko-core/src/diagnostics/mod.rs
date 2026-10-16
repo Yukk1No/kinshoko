@@ -5,6 +5,7 @@
 //! [`scrub`]，像路径或带扩展名的文件名的部分换成 `<路径>`；显示器配置文件只写它自带的名称、
 //! 版本与类型，不写文件位置。
 
+mod runtime;
 mod usage;
 
 use std::fmt::Write as _;
@@ -14,6 +15,9 @@ use moxcms::{ColorProfile, ProfileText};
 use crate::fidelity::IccKind;
 use crate::fidelity::inspect::summarise;
 
+pub use runtime::{
+    CanvasBuffer, CapabilityCheck, RuntimeAssessment, RuntimeCapabilities, RuntimeStatus,
+};
 pub use usage::{UsageEvent, UsageLog};
 
 /// Tauri（wry）在没有指定启动参数时给 WebView2 的参数：关掉迷你菜单与 SmartScreen 检查。
@@ -98,6 +102,16 @@ impl DisplayColourMode {
 
 /// 生成诊断日志（纯文本，中文）。`generated_at` 为 Unix 秒。
 pub fn report(app: &AppFacts, system: &SystemFacts, generated_at: u64) -> String {
+    report_with_runtime(app, system, generated_at, None)
+}
+
+/// 含当前窗口能力检查的同一脱敏报告。没有测量时明确保留未执行状态。
+pub fn report_with_runtime(
+    app: &AppFacts,
+    system: &SystemFacts,
+    generated_at: u64,
+    runtime: Option<&RuntimeCapabilities>,
+) -> String {
     let mut out = String::new();
     let _ = writeln!(out, "Kinshoko {} 诊断信息", scrub(&app.version));
     let _ = writeln!(out, "生成时间：{}", utc(generated_at));
@@ -127,6 +141,17 @@ pub fn report(app: &AppFacts, system: &SystemFacts, generated_at: u64) -> String
             .map(scrub)
             .unwrap_or_else(|| "未查询到".to_owned())
     );
+    out.push('\n');
+
+    let _ = writeln!(out, "[运行时能力]");
+    if let Some(runtime) = runtime {
+        out.push_str(&runtime.describe());
+    } else {
+        let _ = writeln!(
+            out,
+            "本窗口未执行能力检查；系统与 WebView2 版本不代表显示能力通过。"
+        );
+    }
     out.push('\n');
 
     let _ = writeln!(out, "[显示器]");

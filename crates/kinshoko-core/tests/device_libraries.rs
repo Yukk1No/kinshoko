@@ -206,7 +206,7 @@ fn a_failed_registry_write_keeps_the_current_library_and_registration_unchanged(
 }
 
 #[test]
-fn switching_finishes_cancelled_imports_and_keeps_successful_images_in_the_old_library() {
+fn switching_keeps_import_running_in_its_original_library() {
     let dir = tempfile::tempdir().unwrap();
     let a = Library::create(&dir.path().join("工作参考"), "工作参考").unwrap();
     let b = Library::create(&dir.path().join("私人收藏"), "私人收藏").unwrap();
@@ -229,7 +229,7 @@ fn switching_finishes_cancelled_imports_and_keeps_successful_images_in_the_old_l
         .start_import(
             &a.id,
             ImportSource {
-                paths: vec![png; 2000],
+                paths: vec![png; 120],
             },
         )
         .unwrap();
@@ -237,7 +237,7 @@ fn switching_finishes_cancelled_imports_and_keeps_successful_images_in_the_old_l
     libraries.switch(&b.id).unwrap();
 
     let report = events
-        .try_iter()
+        .iter()
         .find_map(|event| match event {
             LibraryEvent::TaskFinished {
                 task_id: id,
@@ -246,9 +246,9 @@ fn switching_finishes_cancelled_imports_and_keeps_successful_images_in_the_old_l
             } if id == task_id => Some(report),
             _ => None,
         })
-        .expect("切换返回时旧库任务必须已结束");
-    assert!(report.cancelled);
-    assert!(report.items.len() < 2000);
+        .expect("原库任务继续运行并按原身份返回");
+    assert!(!report.cancelled, "浏览切库不得取消原库导入");
+    assert_eq!(report.items.len(), 120);
     assert_eq!(old.browse(&query()).unwrap().total, 1);
     assert_eq!(
         libraries.current().unwrap().browse(&query()).unwrap().total,

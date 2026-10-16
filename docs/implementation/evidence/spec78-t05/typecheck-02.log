@@ -1,0 +1,16 @@
+
+> kinshoko@0.1.0 typecheck
+> tsc --noEmit
+
+src/library/TagOrganize.test.tsx(270,24): error TS2339: Property 'kind' does not exist on type 'never'.
+src/library/TagOrganize.test.tsx(271,66): error TS2339: Property 'groupId' does not exist on type 'never'.
+src/library/TagOrganize.test.tsx(271,88): error TS2339: Property 'name' does not exist on type 'never'.
+src/library/TagOrganize.test.tsx(272,82): error TS2339: Property 'groupId' does not exist on type 'never'.
+src/library/TagOrganize.test.tsx(274,67): error TS2339: Property 'groupId' does not exist on type 'never'.
+src/library/TagOrganize.test.tsx(275,37): error TS2339: Property 'tagIds' does not exist on type 'never'.
+src/library/TagOrganize.test.tsx(279,67): error TS2339: Property 'groupId' does not exist on type 'never'.
+src/library/TagOrganize.test.tsx(280,66): error TS2339: Property 'tagIds' does not exist on type 'never'.
+src/library/TagOrganize.test.tsx(282,72): error TS2339: Property 'groupId' does not exist on type 'never'.
+src/library/TagOrganize.test.tsx(282,97): error TS2339: Property 'tagIds' does not exist on type 'never'.
+src/library/TagOrganize.test.tsx(283,65): error TS2339: Property 'groupIds' does not exist on type 'never'.
+src/library/TagOrganize.test.tsx(283,95): error TS2339: Property 'groupIds' does not exist on type 'never'.

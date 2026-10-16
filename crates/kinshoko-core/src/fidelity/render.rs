@@ -175,6 +175,25 @@ pub fn render_sdr(
     })
 }
 
+/// 原尺寸显示源 → 剪贴板用的无配置文件 sRGB RGBA8。共用来源声明、首帧、色调映射和方向解码。
+/// 不进行缩放；arboard 的图片接口不能携带 ICC，因此必须转换颜色，不能把 P3／ICC 数值当成 sRGB。
+pub(crate) fn clipboard_rgba(bytes: &[u8]) -> Result<image::RgbaImage, String> {
+    let inspection = inspect(bytes)?.ok_or("不支持的格式")?;
+    let srgb = ColorProfile::new_srgb();
+    let working = profiles::linear_of(&srgb);
+    let (w, h, linear) = decode_linear(bytes, &inspection, &working)?;
+    let encoded = to_output(linear, &working, &srgb)?;
+    let pixels = encoded
+        .into_iter()
+        .map(|v| (v.clamp(0.0, 1.0) * 255.0).round() as u8)
+        .collect();
+    let mut upright = DynamicImage::ImageRgba8(
+        image::RgbaImage::from_raw(w, h, pixels).ok_or("像素缓冲尺寸不符")?,
+    );
+    upright.apply_orientation(inspection.orientation);
+    Ok(upright.into_rgba8())
+}
+
 /// 派生图的存储色彩空间。
 fn output_profile(space: Space, inspection: &Inspection) -> Result<ColorProfile, String> {
     Ok(match space {

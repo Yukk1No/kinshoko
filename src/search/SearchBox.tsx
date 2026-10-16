@@ -8,7 +8,7 @@ import type { SimilarTag } from "../bindings/SimilarTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { Term } from "../bindings/Term";
 import type { TermInput } from "../bindings/TermInput";
-import { searchCandidates, setTagApprox } from "../ipc";
+import { searchCandidates, workspaceCandidates, workspaceSourceCandidates, setTagApprox, editSharedApprox } from "../ipc";
 
 /** 界面语言。多语言界面随后续切片加入。 */
 export const UI_LANG = "zh-CN";
@@ -19,9 +19,9 @@ const LIMIT = 8;
  * 当前相同时显示；切换安全模式、词表变化或换了资料库后，旧候选这一帧就不再显示，迟到的
  * 响应也写不回来。后端按同一视角核对（`LensChanged`）。
  */
-export type Lens = { libraryId: string; safe: boolean; generation: number };
+export type Lens = { libraryId: string; safe: boolean; generation: number; workspace?: boolean; sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget };
 type Found = { key: string; list: Candidate[] };
-const lensKey = (lens: Lens, text: string) => JSON.stringify([lens.libraryId, lens.safe, lens.generation, text]);
+const lensKey = (lens: Lens, text: string) => JSON.stringify([lens.libraryId, lens.safe, lens.generation, lens.workspace, lens.sourceTarget, text]);
 
 /** 按 `lens` 与 `text` 取得候选；身份变了的旧结果不返回。标签整理面板挑标签时也用它。 */
 export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true): Candidate[] {
@@ -33,7 +33,7 @@ export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => 
   useEffect(() => {
     let alive = true;
     if (!text.trim()) return;
-    searchCandidates(libraryId, text, UI_LANG, LIMIT, safe).then(
+    (lens.sourceTarget ? workspaceSourceCandidates(lens.sourceTarget, text, UI_LANG, safe) : lens.workspace ? workspaceCandidates(text, UI_LANG, LIMIT, safe) : searchCandidates(libraryId, text, UI_LANG, LIMIT, safe)).then(
       (list) => alive && setFound({ key, list: list.filter((c) => keepRef.current(c)) }),
       () => alive && setFound({ key, list: [] }),
     );
@@ -100,6 +100,7 @@ function soleTag(term: Term): TagLabel | null {
 type Place = { condition: number; term: number };
 
 type Props = {
+  workspace?: boolean;
   libraryId: string;
   /** 浏览视角：安全模式是否开启（界面当前的状态，切换的这一刻就变）。 */
   safe: boolean;
@@ -120,16 +121,20 @@ type Props = {
  * 上一个条件，作为“任一”。标签块上可以排除或去掉条件。
  *
  * 近似查找默认开启：标签块里列出展开的相近标签。关掉一个时选“只这次”或“以后都不展开”
- * （记进个人近似对应表）；“＋”从库内标签里挑一个加为相近；“精确查找”一键不展开。
+ * （记进个人近似对应表）；“＋”从可见标签里挑一个加为相近；“精确查找”一键不展开。
  */
-export function SearchBox({ libraryId, safe, generation, input, tree, showSource, onChange, onError }: Props) {
+export function SearchBox({ libraryId, safe, generation, input, tree, showSource, onChange, onError, workspace = false }: Props) {
   const [text, setText] = useState("");
   const [active, setActive] = useState(0);
   const [open, setOpen] = useState(false);
-  const [dismissing, setDismissing] = useState<(Place & { similar: SimilarTag }) | null>(null);
-  const [adding, setAdding] = useState<TagLabel | null>(null);
-  const lens: Lens = { libraryId, safe, generation };
+  const [dismissing, setDismissing] = useState<(Place & { similar: SimilarTag; lens: string }) | null>(null);
+  const [adding, setAdding] = useState<{ tag: TagLabel; lens: string } | null>(null);
+  const lens: Lens = { libraryId, safe, generation, workspace };
   const candidates = useCandidates(lens, text);
+  const context = lensKey(lens, "");
+  const dismissingNow = dismissing?.lens === context ? dismissing : null;
+  const addingNow = adding?.lens === context ? adding.tag : null;
+  useEffect(() => { setDismissing(null); setAdding(null); }, [context]);
 
   const rows: TermInput[] = text.trim()
     ? [
@@ -198,14 +203,14 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   /** “以后都不展开”：每一对都记为不相近；词表变化后条件会重新解析。 */
   const dismissForever = (similar: SimilarTag) => {
     setDismissing(null);
-    Promise.all(similar.of.map((id) => setTagApprox(libraryId, id, similar.tag.id, "notSimilar"))).catch((e) =>
+    (workspace ? editSharedApprox({ kind: "set", rules: similar.of.map((id) => ({ a: id, b: similar.tag.id, relation: "notSimilar" })) }, safe) : Promise.all(similar.of.map((id) => setTagApprox(libraryId, id, similar.tag.id, "notSimilar")))).catch((e) =>
       onError(String(e)),
     );
   };
 
   const addSimilar = (to: TagLabel, tag: TagLabel) => {
     setAdding(null);
-    setTagApprox(libraryId, to.id, tag.id, "similar").catch((e) => onError(String(e)));
+    (workspace ? editSharedApprox({ kind: "set", rules: [{ a: to.id, b: tag.id, relation: "similar" }] }, safe) : setTagApprox(libraryId, to.id, tag.id, "similar")).catch((e) => onError(String(e)));
   };
 
   const shown = open && rows.length > 0;
@@ -229,8 +234,8 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
                       <TermView
                         term={term}
                         showSource={showSource}
-                        onDismiss={(similar) => setDismissing({ condition: i, term: place, similar })}
-                        onAdd={(to) => setAdding(to)}
+                        onDismiss={(similar) => setDismissing({ condition: i, term: place, similar, lens: context })}
+                        onAdd={(to) => setAdding({ tag: to, lens: context })}
                       />
                     ) : (
                       <span>{inputLabel(t)}</span>
@@ -313,13 +318,13 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
       >
         精确查找
       </button>
-      {dismissing && (
+      {dismissingNow && (
         <div className="search-popover" role="dialog" aria-label="不展开相近标签">
-          <p>不展开“{tagName(dismissing.similar.tag)}”：</p>
-          <button type="button" onClick={() => dismissOnce(dismissing)}>
+          <p>不展开“{tagName(dismissingNow.similar.tag)}”：</p>
+          <button type="button" onClick={() => dismissOnce(dismissingNow)}>
             只这次
           </button>
-          <button type="button" onClick={() => dismissForever(dismissing.similar)}>
+          <button type="button" onClick={() => dismissForever(dismissingNow.similar)}>
             以后都不展开
           </button>
           <button type="button" onClick={() => setDismissing(null)}>
@@ -327,8 +332,8 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
           </button>
         </div>
       )}
-      {adding && (
-        <AddSimilar key={adding.id} lens={lens} to={adding} onPick={(tag) => addSimilar(adding, tag)} onCancel={() => setAdding(null)} />
+      {addingNow && (
+        <AddSimilar key={addingNow.id} lens={lens} to={addingNow} onPick={(tag) => addSimilar(addingNow, tag)} onCancel={() => setAdding(null)} />
       )}
     </div>
   );
@@ -338,11 +343,13 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
 function TermView({
   term,
   showSource,
+  personal = true,
   onDismiss,
   onAdd,
 }: {
   term: Term;
   showSource: boolean;
+  personal?: boolean;
   onDismiss: (similar: SimilarTag) => void;
   onAdd: (to: TagLabel) => void;
 }) {
@@ -375,7 +382,7 @@ function TermView({
           ))}
         </span>
       )}
-      {sole && (
+      {sole && personal && (
         <button type="button" aria-label={`给“${tagName(sole)}”加相近标签`} onClick={() => onAdd(sole)}>
           ＋
         </button>
@@ -384,7 +391,7 @@ function TermView({
   );
 }
 
-/** “＋”：按名称或别名从库内标签里挑一个，加为 `to` 的相近标签。 */
+/** “＋”：按名称或别名从可见标签里挑一个，加为 `to` 的相近标签。 */
 function AddSimilar({
   lens,
   to,
@@ -404,7 +411,7 @@ function AddSimilar({
       <p>查“{tagName(to)}”时也找：</p>
       <input
         role="combobox"
-        aria-label="挑一个库内标签"
+        aria-label={lens.workspace ? "挑一个统一标签" : "挑一个库内标签"}
         aria-expanded={found.length > 0}
         autoFocus
         value={text}

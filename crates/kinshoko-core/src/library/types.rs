@@ -31,6 +31,10 @@ pub enum BrowseScope {
     All,
     /// 直接放在某个文件夹里的可见图（不含子文件夹）。
     Folder { id: String },
+    /// 某个文件夹及其全部子文件夹中的图，每张图只计算一次。
+    FolderTree { id: String },
+    /// 没有任何文件夹归属的可见图。
+    Unassigned,
     /// 回收站：可恢复删除的图。
     Trash,
 }
@@ -90,6 +94,34 @@ pub struct ImportSource {
     pub paths: Vec<PathBuf>,
 }
 
+impl ImportSource {
+    /// 只读识别来源是否含 Eagle 库或条目，供导入开始前询问本次选择。
+    /// 包含选择的父文件夹；不注册来源、不解码图片，也不写入资料库。
+    pub fn contains_eagle(&self) -> bool {
+        super::import::contains_eagle(self)
+    }
+}
+
+/// Eagle 曾永久删除的同一内容在本次任务中的处理方式，不改写长期删除记忆。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum EagleDeletedContentChoice {
+    /// 默认记住删除决定，跳过没有本库副本的同一内容。
+    #[default]
+    SkipDeleted,
+    /// 画师明确允许这一次重新导入；下一次任务仍使用默认选择。
+    AllowThisImport,
+}
+
+/// 单次导入的选择；原有 [`super::Library::import`] 继续使用默认值。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(default, rename_all = "camelCase")]
+#[ts(export)]
+pub struct ImportOptions {
+    pub eagle_deleted_content: EagleDeletedContentChoice,
+}
+
 /// 导入进度：已处理几项、共几项。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -119,6 +151,11 @@ pub enum ImportOutcome {
         image_id: String,
         previous_image_id: String,
     },
+    /// 与本库回收站的原图字节相同，来源信息可刷新，删除状态保持，恢复由画师决定。
+    #[serde(rename_all = "camelCase")]
+    TrashDuplicate { image_id: String },
+    /// Eagle 同一字节内容曾在本资料库永久删除，本次按默认删除决定跳过。
+    SkippedDeleted,
     /// 不支持的格式。
     Unsupported,
     /// 读取失败，附原因。
@@ -135,18 +172,26 @@ pub struct ImportItem {
 }
 
 /// 导入任务的逐项结果。取消时只列出取消前处理过的项。
+///
+/// `sealed_duplicates` is a boolean prompt only; the ordinary receipt never exposes the
+/// sealed subset size. `private_summary` coarsens success details together so subtraction
+/// cannot reveal a subset.
+///
+/// `from_eagle` 表示导入器识别到了 Eagle 来源，与画师使用的入口无关。
+/// `eagle_missing` 是这次迁入的 Eagle 资料库里已经不存在、但本库保留了副本的条目数。
+/// `eagle_relocations` 表示疑似已登记 Eagle 来源搬了家的新位置；画师确认前不迁入这些位置。
+/// 确认见 [`super::Library::confirm_eagle_location`]。
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct ImportReport {
+    pub sealed_duplicates: bool,
+    pub private_summary: bool,
+    pub trash_duplicates: bool,
     pub items: Vec<ImportItem>,
     pub cancelled: bool,
-    /// 导入器识别到了 Eagle 来源，与画师使用的入口无关。
     pub from_eagle: bool,
-    /// 这次迁入的 Eagle 资料库里已经不存在、但本库保留了副本的条目数。
     pub eagle_missing: u32,
-    /// 像是已登记 Eagle 来源搬了家的新位置。画师确认前不迁入这些位置的任何条目，
-    /// 确认见 [`super::Library::confirm_eagle_location`]。
     pub eagle_relocations: Vec<EagleRelocation>,
 }
 
@@ -186,13 +231,33 @@ impl ImportOutcome {
             ImportOutcome::Imported { image_id }
             | ImportOutcome::Merged { image_id }
             | ImportOutcome::Refreshed { image_id }
-            | ImportOutcome::NewVersion { image_id, .. } => Some(image_id),
+            | ImportOutcome::NewVersion { image_id, .. }
+            | ImportOutcome::TrashDuplicate { image_id } => Some(image_id),
             _ => None,
         }
     }
 }
 
 impl ImportReport {
+    /// Safe transport fallback before all-provider receipt projection is available.
+    /// Failures keep their real retry paths; successful content identities/names/counts do not leave.
+    pub fn without_content_details(mut self) -> Self {
+        self.private_summary = true;
+        self.trash_duplicates |= self
+            .items
+            .iter()
+            .any(|item| matches!(item.outcome, ImportOutcome::TrashDuplicate { .. }));
+        self.items.retain(|item| {
+            matches!(
+                item.outcome,
+                ImportOutcome::ReadFailed { .. }
+                    | ImportOutcome::Unsupported
+                    | ImportOutcome::SkippedDeleted
+            )
+        });
+        self.eagle_missing = 0;
+        self
+    }
     /// 只含读取失败项的导入来源，供重试；没有失败项时为 `None`。
     /// 重试不会重复创建已成功的图：字节相同的原图总是合并为同一条记录。
     pub fn retry_source(&self) -> Option<ImportSource> {
@@ -309,22 +374,12 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
 
     // 范围条件在前，条件树在后；参数按出现顺序编号。浏览视角的过滤（安全模式）加在中间。
     let mut args: Vec<Value> = Vec::new();
-    let scope = match &query.scope {
-        BrowseScope::All => LIVE.to_owned(),
-        BrowseScope::Folder { id } => {
-            args.push(Value::Text(id.clone()));
-            format!(
-                "{LIVE} AND image.id IN (SELECT image_id FROM folder_member WHERE folder_id = ?1)"
-            )
-        }
-        BrowseScope::Trash => format!("NOT ({LIVE})"),
-    };
+    let mut conn = inner.readers.get();
+    // Scope validation, structure, revisions and rows share the same read transaction.
+    let tx = conn.transaction()?;
+    let scope = scope_sql(&tx, &query.scope, &mut args)?;
     let conditions = filter::sql(&query.conditions, &mut args);
     let filter = format!("{scope} AND {} AND {conditions}", lens::lens_filter(safe));
-
-    let mut conn = inner.readers.get();
-    // 修订号核对、计数与分页取自同一个读事务：游标与页面对应同一个快照。
-    let tx = conn.transaction()?;
     let list: i64 = tx.query_row("SELECT value FROM list_revision", [], |r| r.get(0))?;
     let vocabulary: i64 = if query.conditions.conditions.is_empty() {
         0
@@ -398,6 +453,36 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
         cards: rows.into_iter().map(|(_, card)| card).collect(),
         next_cursor,
         total,
+    })
+}
+
+/// Shared scope interpreter for local browsing and detached workspace providers.
+pub(super) fn scope_sql(
+    conn: &rusqlite::Connection,
+    scope: &BrowseScope,
+    args: &mut Vec<Value>,
+) -> Result<String, Error> {
+    Ok(match scope {
+        BrowseScope::All => LIVE.to_owned(),
+        BrowseScope::Trash => format!("NOT ({LIVE})"),
+        BrowseScope::Unassigned => {
+            format!("{LIVE} AND NOT EXISTS (SELECT 1 FROM folder_member WHERE image_id = image.id)")
+        }
+        BrowseScope::Folder { id } | BrowseScope::FolderTree { id } => {
+            super::folders::ensure_folder(conn, id)?;
+            args.push(Value::Text(id.clone()));
+            let parameter = args.len();
+            let folders = if matches!(scope, BrowseScope::FolderTree { .. }) {
+                format!(
+                    "IN (WITH RECURSIVE descendants(id) AS (SELECT id FROM folder WHERE id=?{parameter} UNION ALL SELECT folder.id FROM folder JOIN descendants ON folder.parent_id=descendants.id) SELECT id FROM descendants)"
+                )
+            } else {
+                format!("=?{parameter}")
+            };
+            format!(
+                "{LIVE} AND image.id IN (SELECT image_id FROM folder_member WHERE folder_id {folders})"
+            )
+        }
     })
 }
 

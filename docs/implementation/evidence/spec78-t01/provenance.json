@@ -1,0 +1,104 @@
+{
+  "recordedAt": "2026-10-08T15:02:23.096Z",
+  "implementationCommits": [
+    "8264655",
+    "77cc330"
+  ],
+  "formalSourceCommit": "c1eab3d7f1a17db33d5ed9425d296abaa85937d9",
+  "prototypeSourceCommit": "bd8aea44c4a311571ee3c07382cb7755f87f3153",
+  "prototypeHarnessCommit": "3ae3601d1f52e464d83594cf92bd01b5300680cb",
+  "postMergeSourceCommit": "b91cda81e3aa641bc511399e5ad1c1e873bbb3e8",
+  "application": {
+    "identifier": "dev.kinshoko.spec78.t01",
+    "binarySha256": "592d681697a0b08c2009814c192278fc8b25e831f59f883645e515aa9cb427c7",
+    "build": "tauri build --debug --no-bundle --config {\"identifier\":\"dev.kinshoko.spec78.t01\"}",
+    "cargoTarget": "owned worktree target; shared cache builds excluded",
+    "cargoBuildJobs": 2
+  },
+  "isolation": {
+    "uniqueTemporaryExecutable": true,
+    "temporaryAPPDATA": true,
+    "temporaryLOCALAPPDATA": true,
+    "temporaryDataDirectory": true,
+    "skipAutostart": true
+  },
+  "display": {
+    "formalDprOverride": null,
+    "observedFormalWebViewDpr": 1.1041666269302368,
+    "prototypeHeadlessDprOverride": 1.1041666269302368,
+    "initialCssViewport": {
+      "width": 1281,
+      "height": 801
+    },
+    "physicalWindowsDpiAcceptance": "unverified",
+    "resizeLimits": [
+      {
+        "step": "headless-window-resize",
+        "requested": {
+          "height": 801,
+          "width": 1051
+        },
+        "observed": {
+          "height": 802,
+          "width": 1052
+        },
+        "detail": "Windows/Edge headless WebDriver rectangle rounding at the matched fractional DPR; initial screenshot viewport is exact"
+      },
+      {
+        "step": "headless-window-resize",
+        "requested": {
+          "height": 801,
+          "width": 1281
+        },
+        "observed": {
+          "height": 802,
+          "width": 1283
+        },
+        "detail": "Windows/Edge headless WebDriver rectangle rounding at the matched fractional DPR; initial screenshot viewport is exact"
+      }
+    ]
+  },
+  "humanAcceptance": "unverified",
+  "artifacts": [
+    {
+      "name": "formal-wall.png",
+      "sha256": "7aa927b8b8195bcba57e5984321e3dc2d8373da5a63ee46cb57191aa40529cc0"
+    },
+    {
+      "name": "formal-viewer.png",
+      "sha256": "5277e20b278948597ab19992b3d27dbad47c7100a2a5ab3209e2acfccedf0ee0"
+    },
+    {
+      "name": "formal-collapsed.png",
+      "sha256": "5f3959de5a7f7a464e6e1837f517ade5ddfbd298f58d2dbd94a5c39153dd72c6"
+    },
+    {
+      "name": "prototype-wall.png",
+      "sha256": "e52cc360026b9b05a1ea29d8c5fb523a55634408a7f32cf7315bf3f62fbbb8e4"
+    },
+    {
+      "name": "prototype-viewer.png",
+      "sha256": "707fbaa3ec51c4b5939387351332a6b3f62b17ce42cac6737cb5343b08239b85"
+    },
+    {
+      "name": "prototype-collapsed.png",
+      "sha256": "89bf1fec4fd8bcb566f31bb5b122be54c0318ced92503e8e05f4ddb251950b1b"
+    },
+    {
+      "name": "sample-manifest.json",
+      "sha256": "3f8511060ed03a90ff0a3f9c8451a6c57ef80ca1ecbc47b82911e461366fa02a"
+    },
+    {
+      "name": "report.json",
+      "sha256": "8ed609d1db1a835990c9a2ec4eebde4166ef0679e2bfc28f60ed3f0bd6990540"
+    },
+    {
+      "name": "prototype-report.json",
+      "sha256": "bb55cbf964ebf86a3b6f0df03bf2546d887ad9bbd87d5d4138c11bbf175b2a8e"
+    }
+  ],
+  "formalBuildSourceCommit": "0069dc8d61762a3be94486671be86d92c0c6f1b5",
+  "formalRecordedHarnessHead": "c1eab3d7f1a17db33d5ed9425d296abaa85937d9",
+  "runtimeSourcesUnchangedBetweenBuildAndRecordedHead": true,
+  "nativeRunPredatesFinalT02Merge": true
+}

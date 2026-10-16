@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageRating } from "../bindings/ImageRating";
@@ -61,10 +61,11 @@ describe("选中一张图：内容分级", () => {
     );
     renderPanel();
 
-    const select = (await screen.findByRole("combobox", { name: "内容分级" })) as HTMLSelectElement;
-    expect(select.selectedOptions[0].textContent).toBe("自动（露骨）");
+    const rating = await screen.findByRole("group", { name: "内容分级" });
+    expect(screen.getByText("自动分级：成人")).toBeTruthy();
+    expect(within(rating).getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "false", "false", "false"]);
 
-    fireEvent.change(select, { target: { value: "general" } });
+    fireEvent.click(within(rating).getByRole("button", { name: "全年龄" }));
 
     expect(await screen.findByText("人工修正，重新打标不会覆盖")).toBeTruthy();
     expect(edits).toEqual([[{ kind: "setRating", rating: "general" }]]);
@@ -88,20 +89,52 @@ describe("选中一张图：内容分级", () => {
       />,
     );
 
-    const select = await screen.findByRole("combobox", { name: "内容分级" });
-    fireEvent.change(select, { target: { value: "explicit" } });
+    const rating = await screen.findByRole("group", { name: "内容分级" });
+    fireEvent.click(within(rating).getByRole("button", { name: "成人" }));
 
     await waitFor(() => expect(cleared).toBe(true));
   });
 
-  it("选回自动即退回自动分级", async () => {
+  it("改回自动即退回自动分级", async () => {
     const edits = backend(detail({ manual: "general", effective: "general" }), detail({}));
     renderPanel();
 
-    const select = await screen.findByRole("combobox", { name: "内容分级" });
-    fireEvent.change(select, { target: { value: "" } });
+    const rating = await screen.findByRole("group", { name: "内容分级" });
+    expect(within(rating).getByRole("button", { name: "全年龄" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: /改回自动/ }));
 
     await waitFor(() => expect(edits).toEqual([[{ kind: "revertRating" }]]));
     await waitFor(() => expect(screen.queryByText("人工修正，重新打标不会覆盖")).toBeNull());
   });
+});
+
+
+it("永久删除确认使旧详情请求失效，删除后迟到的缺失错误不进入全局提示", async () => {
+  let fail!: (error: string) => void;
+  const pending = new Promise<ImageDetail>((_, reject) => { fail = reject; });
+  const problems: string[] = [];
+  mockIPC((command) => {
+    if (command === "plugin:library|sidebar") return { all: 0, trash: 1, folders: [] };
+    if (command === "plugin:library|image") return pending;
+    if (command === "plugin:library|preview_permanent_delete") return { imageIds: ["img"], token: "t", groups: [] };
+    return undefined;
+  });
+  render(<SelectionPanel libraryId="L1" scope={{ kind: "trash" }} selected={new Set(["img"])}
+    reloadKey={0} onClear={() => {}} onError={(message) => problems.push(message)} />);
+  fireEvent.click(screen.getByRole("button", { name: "永久删除…" }));
+  await screen.findByRole("button", { name: "确认永久删除" });
+  await act(async () => { fail("资料库中没有这张参考图"); await pending.catch(() => {}); });
+  expect(problems).toEqual([]);
+});
+
+it("当前选择的有效详情请求失败仍交给错误提示", async () => {
+  const problems: string[] = [];
+  mockIPC((command) => {
+    if (command === "plugin:library|sidebar") return { all: 1, trash: 0, folders: [] };
+    if (command === "plugin:library|image") return Promise.reject("读取资料库失败");
+    return undefined;
+  });
+  render(<SelectionPanel libraryId="L1" scope={{ kind: "all" }} selected={new Set(["img"])}
+    reloadKey={0} onClear={() => {}} onError={(message) => problems.push(message)} />);
+  await waitFor(() => expect(problems).toEqual(["读取资料库失败"]));
 });

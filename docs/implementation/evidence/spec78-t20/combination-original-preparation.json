@@ -1,0 +1,460 @@
+{
+  "pathRedaction": "Absolute user paths were redacted for publication (2026-10-11, #98 review fix): <worktree> = the T20 Codex worktree checkout, %USERPROFILE% / %APPDATA% / %LOCALAPPDATA% = the developer profile. Recorded SHA256 values refer to the unredacted original files, which stay in the ignored work/ directory.",
+  "kind": "spec78-t20-original-offline-preparation",
+  "at": "2026-10-09T01:22:23.596797+00:00",
+  "issue": 98,
+  "spec": 78,
+  "base": "297efd43c7510c2cb0bc639487a2bee58531b852",
+  "status": "prepared-offline-awaiting-final-T17-integration",
+  "sourceFiles": {
+    "e2e/spec78-combination-fixture.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-fixture.mjs",
+      "bytes": 8186,
+      "sha256": "13b4ea6044cb4d327b82197b6675c3af73b5ac7fca56cd920d44a2b22b69409f"
+    },
+    "e2e/spec78-combination-preflight.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-preflight.mjs",
+      "bytes": 34235,
+      "sha256": "cd007ddd4c50050d03ef77262628eb5a46d5154db7a23c64714966d0c45d8178"
+    },
+    "e2e/spec78-combination-driver.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-driver.mjs",
+      "bytes": 18768,
+      "sha256": "7b992effcbce77a53aca56a9fd5252bf76e2673c4eb8718a2818f15ac6797226"
+    },
+    "e2e/spec78-combination-workflow.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-workflow.mjs",
+      "bytes": 38041,
+      "sha256": "24a13b57511061a09c77b1bcc1eaf7423cbc2edf3fd9e3d308416d55279b3d72"
+    },
+    "e2e/spec78-combination-eagle.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-eagle.mjs",
+      "bytes": 11149,
+      "sha256": "99a436f16ffd3825037e4d801a4175d621accab32349feb6f4dd703ae1af7b18"
+    },
+    "e2e/spec78-combination-sealed.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-sealed.mjs",
+      "bytes": 7686,
+      "sha256": "e7dbb830d802c54d92e5f6b5e278c04e25a575d2d6c4a5fea647e5821becc6d3"
+    },
+    "e2e/spec78-combination-backup.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-backup.mjs",
+      "bytes": 15827,
+      "sha256": "a956ae0a66da81c372c5724157c055b41eea18ddc726d39cf5c382192146bf83"
+    },
+    "e2e/spec78-combination-lifecycle.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-lifecycle.mjs",
+      "bytes": 10717,
+      "sha256": "c68c1087576d5211fe2cf9146b76a89f7deeeaccb0b27067a5235ead7241019f"
+    },
+    "e2e/spec78-combination-original.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-original.mjs",
+      "bytes": 31010,
+      "sha256": "e1a351e671217297c54e901548c172de351206be42fcbc9e3b7093ca58779613"
+    },
+    "e2e/spec78-combination.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination.mjs",
+      "bytes": 8353,
+      "sha256": "8316cd0f748d67ea9bea3138345e9607217c33cbf91df60853eb67b46357fb7d"
+    },
+    "e2e/spec78-combination-original-pixels.py": {
+      "path": "<worktree>\\e2e\\spec78-combination-original-pixels.py",
+      "bytes": 6833,
+      "sha256": "d7be232048a7e7f25d04c498fd9df461c61e4252b5f26ff037db74de2b33983d"
+    }
+  },
+  "finalHelpers": {
+    "checks": 8,
+    "record": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791509076541\\helper-checks-final.json",
+      "bytes": 6405,
+      "sha256": "e74e6df5ffb937212c7326ec416798c257981696093fa353f3e336835a6394cf"
+    },
+    "script": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791509076541\\checks.mjs",
+      "bytes": 6376,
+      "sha256": "8ddd0f66686da5ca31c6b6144f503bc24401b536c3d8b0ad0e850e39c36bf0a0"
+    },
+    "stdout": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791509076541\\helper-checks-stdout.txt",
+      "bytes": 283,
+      "sha256": "d3b8d49476c95ac503b8c72fdb5bf855dda69020e44d983702b9d6f9622ecc74"
+    },
+    "stderr": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791509076541\\helper-checks-stderr.txt",
+      "bytes": 171,
+      "sha256": "9aed4347fe8f9829cc27863e8eac67e2e157e94443a82134a4f69c810bd84b5f"
+    },
+    "exit": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791509076541\\helper-checks-exit.json",
+      "bytes": 122,
+      "sha256": "35c2f432346eacbd6b8635246bee12809fc0ee539d7db7e7a5a70992f675cb12"
+    },
+    "browserScripts": {
+      "files": [
+        {
+          "path": "e2e/spec78-combination-original.mjs",
+          "browserPrograms": 17,
+          "tokens": 5557,
+          "executed": 0
+        },
+        {
+          "path": "e2e/spec78-combination-workflow.mjs",
+          "browserPrograms": 28,
+          "tokens": 4424,
+          "executed": 0
+        }
+      ],
+      "parser": "actual TypeScript 7 JavaScript lexical scanner",
+      "bounded": true
+    },
+    "scope": "syntax/import-safe, strict env/host, read-only Git ancestor and explicit missing-helper guard, pure-owned-file oracle; not formal UI/native"
+  },
+  "pixels": {
+    "checks": 7,
+    "matrixCases": 16,
+    "record": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791509076541\\pixel-checks.json",
+      "bytes": 13208,
+      "sha256": "17cd15d106ce5c6053e145af140f92fea1e7911d63b341c67f977b98e661db1a"
+    },
+    "script": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791509076541\\pixel-checks.py",
+      "bytes": 6834,
+      "sha256": "fb79c956a59f9923b723340016cbc5cde1d9f60fe225625489988ff6c30ca2b0"
+    },
+    "stdout": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791509076541\\pixel-checks-stdout.txt",
+      "bytes": 282,
+      "sha256": "b619a108567eadf015e02fbe8a622ee20ca2d04abd8f7e9862a17720bb97e3eb"
+    },
+    "stderr": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791509076541\\pixel-checks-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "exit": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791509076541\\pixel-checks-exit.json",
+      "bytes": 32,
+      "sha256": "55e9cc51db2c81b78ca230b754a54124c7c5c567b5499a2d45ce41717bc24c99"
+    },
+    "scope": "synthetic owned PNG files only; every RGBA pixel compared against independent integer matrices, interior alpha/corners, wrong resolution, geometry, CLI and frozen file shape"
+  },
+  "retainedFailures": [
+    {
+      "round": 1,
+      "classification": "checker or unmet integration prerequisite, not product",
+      "reason": "Babel parser is not installed",
+      "exit": 1,
+      "files": [
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks.json",
+          "bytes": 3936,
+          "sha256": "1995054f0aba129e9af6b06c20edf270ca9fe1e9656ba34320ae88eb595249f7"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-stdout.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-stderr.txt",
+          "bytes": 1526,
+          "sha256": "810bc4792716b9ce4502b950994eaf252c8bfdf8efbafeb960ba2f39bf8c9767"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-exit.json",
+          "bytes": 17,
+          "sha256": "e0ac9d8c86524d96626ef1fb24e8774e0ef8b858e17e05d6c8630ebddf1a065b"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\checks.mjs",
+          "bytes": 6188,
+          "sha256": "28678424b79d3b0d12fc6753add8209e731e631dfaf63ae9d35e5f2cd528618a"
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "classification": "checker or unmet integration prerequisite, not product",
+      "reason": "TypeScript 7 has no old createSourceFile/ScriptTarget export",
+      "exit": 1,
+      "files": [
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v2.json",
+          "bytes": 3803,
+          "sha256": "c5a88123a8815f0bf6d57d543af670e6efa29ecb2f237ae82da04cd062e89e7e"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v2-stdout.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v2-stderr.txt",
+          "bytes": 1294,
+          "sha256": "7ca42f86d9824fe2edae7d61cc05f83ca7a6dde003c9776647a6f450c410ddf4"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v2-exit.json",
+          "bytes": 17,
+          "sha256": "e0ac9d8c86524d96626ef1fb24e8774e0ef8b858e17e05d6c8630ebddf1a065b"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\checks-v2.mjs",
+          "bytes": 6028,
+          "sha256": "7099f287d74d8f169e8cf9d13234c32cd7a79fb6aa0964f06948e4de625248ed"
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "classification": "checker or unmet integration prerequisite, not product",
+      "reason": "wrong EndOfFileToken name caused an unbounded scanner and Node heap OOM; exit134",
+      "exit": 134,
+      "files": [
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v3.json",
+          "bytes": 3720,
+          "sha256": "c7ac46f0414f9e5ba12220e477aaaeae0822d4421d82329332db748b30f8424b"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v3-stdout.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v3-stderr.txt",
+          "bytes": 1538,
+          "sha256": "d56fb84f5fb0908336043b62304ce617f13702f3a24d34c31aaa6cb34a680abe"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v3-exit.json",
+          "bytes": 19,
+          "sha256": "3a9c05b48a990ceb25e8103898d12a20a3efff910cc4938678c1bf8ae0e649aa"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\checks-v3.mjs",
+          "bytes": 6126,
+          "sha256": "b5ed319932104567e5a78eaaf0bd3c47c8b32c005e276e0427c4927a89dcbebd"
+        }
+      ]
+    },
+    {
+      "round": 4,
+      "classification": "checker or unmet integration prerequisite, not product",
+      "reason": "pre-merge tree has no native-wall-observe.py; dependency unmet",
+      "exit": 1,
+      "files": [
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v4.json",
+          "bytes": 5265,
+          "sha256": "2e85fe7049741bc3337f8b7f1735ebbf64ed1007112917c014687f180a826405"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v4-stdout.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v4-stderr.txt",
+          "bytes": 1357,
+          "sha256": "19485f7284e2ecbe9185f2b136a292d2ca1d1f99bbf283d59317567107c22996"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v4-exit.json",
+          "bytes": 122,
+          "sha256": "a0cc50694dff5adc9ea9d7bca28b52893b8a9474403088b9301bfcd093b5fc75"
+        },
+        {
+          "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\checks-v4.mjs",
+          "bytes": 6406,
+          "sha256": "61a03430ef9424f574798b1f95eca6dd248bf3d24f66ded000f0d92d5b93c062"
+        }
+      ]
+    }
+  ],
+  "earlierV5": {
+    "record": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\helper-checks-v5.json",
+      "bytes": 6404,
+      "sha256": "a3d6732e5a7fdc45d7714c09f140348fbfb4ab8d601ea7476f63cde665c47921"
+    },
+    "pixelRecord": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-preparation-1791508193093\\pixel-checks.json",
+      "bytes": 13208,
+      "sha256": "17cd15d106ce5c6053e145af140f92fea1e7911d63b341c67f977b98e661db1a"
+    },
+    "reason": "preserved earlier preparation before final status-record ordering correction"
+  },
+  "dependencies": {
+    "finalT17Integrated": false,
+    "requiredAncestor": "1d188e52a9639319dbaf90de9fe46a9a6fcea9b3",
+    "currentMissingObservers": [
+      "e2e/native-wall-observe.py",
+      "e2e/native-wall-pixels.py",
+      "e2e/native-clipboard-observe.py"
+    ],
+    "fullFinalCheck": "required after actual root T17 merge; guard success does not satisfy dependency"
+  },
+  "readOnlyReuse": {
+    "source": "1d188e52a9639319dbaf90de9fe46a9a6fcea9b3",
+    "files": {
+      "src-tauri/src/desktop/capture.rs": {
+        "bytes": 21026,
+        "sha256": "83ae92f90eacae5e6a523937f1265c2e9cafc333a6c61c922816667d10ed8335",
+        "readOnlyGitObject": true,
+        "runnerImported": false
+      },
+      "src-tauri/src/desktop/pins.rs": {
+        "bytes": 39876,
+        "sha256": "99a0525a9df3a0b289e48189d7eb534d491e4cd01727478ad057b3ecda490d3a",
+        "readOnlyGitObject": true,
+        "runnerImported": false
+      },
+      "crates/kinshoko-core/src/desktop/pin.rs": {
+        "bytes": 18265,
+        "sha256": "51b336ff87f09224f63d6f69500a13d211983d1b8f4dc94f010a767e3974dfce",
+        "readOnlyGitObject": true,
+        "runnerImported": false
+      },
+      "src/desktop/captureSources.ts": {
+        "bytes": 5855,
+        "sha256": "ea6807d08520f234e12490c563818a4bc56cb9b38614647121929259ed8592fd",
+        "readOnlyGitObject": true,
+        "runnerImported": false
+      },
+      "src/desktop/CaptureOverlay.tsx": {
+        "bytes": 4826,
+        "sha256": "192c04c6f01cb8d0f75ded9c3b58eeebd98f91bd579c433d882104344f421b90",
+        "readOnlyGitObject": true,
+        "runnerImported": false
+      },
+      "e2e/reference-capture.mjs": {
+        "bytes": 16698,
+        "sha256": "3a718ae37c392045a34073d035be2172b9a3ec3b46d51060b7b8deb9b0786677",
+        "readOnlyGitObject": true,
+        "runnerImported": false
+      },
+      "e2e/wall-capture.mjs": {
+        "bytes": 53766,
+        "sha256": "dc68c55289cbc7b0de4dabe2ea419dab89e8ca7334eca6a2e85904544572508b",
+        "readOnlyGitObject": true,
+        "runnerImported": false
+      },
+      "e2e/native-wall-observe.py": {
+        "bytes": 11177,
+        "sha256": "1d6ad01663e0d34128aeb8c691617f7e170232770d3d94818434e73c764001bd",
+        "readOnlyGitObject": true,
+        "runnerImported": false
+      },
+      "e2e/native-wall-pixels.py": {
+        "bytes": 2123,
+        "sha256": "f3155b37372cc2938dfd2d49e46d47e8dfb153f3fc71b332333df6975578875a",
+        "readOnlyGitObject": true,
+        "runnerImported": false
+      },
+      "e2e/native-clipboard-observe.py": {
+        "bytes": 3246,
+        "sha256": "40235528428fb846adf3eb5074dad18fa53288db9216bfad025f88af4a192ae2",
+        "readOnlyGitObject": true,
+        "runnerImported": false
+      }
+    }
+  },
+  "buildPreparation": {
+    "executed": false,
+    "requiredAbsence": [
+      "CARGO_BUILD_TARGET",
+      "TAURI_CONFIG"
+    ],
+    "emptyValuesReject": true,
+    "offlineCurrentEnvironment": {
+      "CARGO_BUILD_TARGET": {
+        "present": false,
+        "value": null
+      },
+      "TAURI_CONFIG": {
+        "present": false,
+        "value": null
+      }
+    },
+    "futureCommands": [
+      "rustc -vV",
+      "cargo -vV",
+      "rustc --print sysroot",
+      "<sysroot>/bin/rustc.exe -vV",
+      "node <vite-cli> build",
+      "node <tauri-cli> build [--debug] --no-bundle --target <actual-rust-host> --config <exact-isolated-config>"
+    ],
+    "artifactDirectory": "<own-target>/<actual-rust-host>/<explicit-profile>",
+    "nativePlanMustBind": "same attributed command/exit/source/data/.cargo/dist/config/EXE/all-adjacent-DLLs; DirectML required"
+  },
+  "combinationPlan": {
+    "session": "one actual A/B session before strict Adult/receipt/backups; exact A restored afterward",
+    "positive": [
+      "Wall original copy and pin",
+      "actual virtual-out/return copy",
+      "actual sidebar width reflow copy",
+      "fitted A Viewer original copy and pin",
+      "B partial Pin horizontal flip/CW quarter turn/zoom copy and derived pin"
+    ],
+    "negative": [
+      "close exact frozen B pin using public close_pin in its real own WebView, freeze remains active",
+      "delete exact frozen A source while byte-identical B remains registered and available, then restore A"
+    ],
+    "proofs": [
+      "actual UI pointer selection and complete visible size/three buttons",
+      "direct actual OS clipboard RGBA/alpha/full dimensions against original-file oracle",
+      "no ordinary capture history",
+      "exact provider/image/crop/affine identity",
+      "real native/DOM geometry and source stability",
+      "business-error data cannot be replaced with HTTP/WebDriver error",
+      "rejection preserves actual clipboard RGBA/dimensions",
+      "actual pin canvas BCR x DPR equals native content bounds; manual rAF motion cannot pass only getAnimations"
+    ],
+    "executed": false
+  },
+  "prototypePlan": {
+    "notes": {
+      "path": "%USERPROFILE%\\.codex\\visualizations\\2026\\10\\08\\01a11999-1f51-79a1-8137-005f450368e1\\spec78-t20-ui-exploration\\prototype-final-packet-notes.md",
+      "bytes": 25222,
+      "sha256": "450ce2c43ffa10b78edbbce25a9586ef21a633b364e573100830a0da409580e3"
+    },
+    "executed": false,
+    "useActualPublicAOrderAndCollectedAt": true,
+    "sortMustRemainSame": true,
+    "oldLocalEntireDirectoryPreserved": true,
+    "old43NotInputCount": true
+  },
+  "postCommitSourceSnapshot": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791509076541\\clean-source-freeze.json",
+  "nativeExecuted": false,
+  "clipboardObserved": false,
+  "browserExecuted": false,
+  "compilerExecuted": false,
+  "buildExecuted": false,
+  "installerExecuted": false,
+  "fullT20Acceptance": false,
+  "windows10": "unverified accepted by owner",
+  "externalPublication": false,
+  "supersededFinalChecks": {
+    "helpers": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791508849971\\helper-checks-final.json",
+      "bytes": 6405,
+      "sha256": "f41ff388afbcd5d862aa0e1b9d58be605bffd7963244916a56eed7e8ab4a7dc1"
+    },
+    "pixels": {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-original-final-checks-1791508849971\\pixel-checks.json",
+      "bytes": 13208,
+      "sha256": "17cd15d106ce5c6053e145af140f92fea1e7911d63b341c67f977b98e661db1a"
+    },
+    "reason": "before explicit actual canvas BCR/native frame convergence gate; preserved unchanged"
+  },
+  "coordination": {
+    "rootConfirmedOOMDidNotOverlapT17Fullwall": true,
+    "rootReportedFullwallReleasedAt": "2026-10-09T00:47:58Z",
+    "scanningPausedDuringExclusiveDiagnosis": true,
+    "resumedOnlyAfterRootRelease": "2026-10-09T01:16:57.5896818Z",
+    "currentNativeGrant": null
+  }
+}

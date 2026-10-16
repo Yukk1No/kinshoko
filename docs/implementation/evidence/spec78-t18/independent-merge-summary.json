@@ -1,0 +1,281 @@
+{
+  "kind": "Explicit derived summary; local raw output is not copied here",
+  "role": "fresh independent T18 merger; not final two-axis code-review",
+  "ticket": 96,
+  "story": 51,
+  "before": "897ebe13aae8ebff09d92f90f560d675543f4ac3",
+  "worker": {
+    "source": "96b54da1c5f441267efe748abe89a18a66cbb574",
+    "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+    "branch": "codex/spec-78-t18"
+  },
+  "merge": {
+    "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+    "parents": [
+      "897ebe13aae8ebff09d92f90f560d675543f4ac3",
+      "96b54da1c5f441267efe748abe89a18a66cbb574"
+    ],
+    "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+    "branch": "codex/spec-78-integration",
+    "clean": true,
+    "conflicts": []
+  },
+  "rawResultSha256": "0a5aa5dbeab96bed96981574c1b386ca98f095c7450658a792db7ddc4494fde0",
+  "rootRecomputedRawFiles": 40,
+  "checks": [
+    {
+      "name": "rust-diagnostics",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "kinshoko-core",
+        "--locked",
+        "--test",
+        "diagnostics"
+      ],
+      "exitCode": 0,
+      "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+      "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+      "startedAtUtc": "2026-10-08T22:32:35.723753+00:00",
+      "finishedAtUtc": "2026-10-08T22:33:04.485459+00:00",
+      "durationSeconds": 28.761708699996234
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "kinshoko-core",
+        "-p",
+        "kinshoko",
+        "--all-targets",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exitCode": 0,
+      "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+      "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+      "startedAtUtc": "2026-10-08T22:33:04.575512+00:00",
+      "finishedAtUtc": "2026-10-08T22:33:44.071025+00:00",
+      "durationSeconds": 39.49552019999828
+    },
+    {
+      "name": "ui",
+      "command": [
+        "npx.cmd",
+        "vitest",
+        "run",
+        "src/RuntimeSupport.test.tsx",
+        "src/desktop/PinView.runtime.test.tsx",
+        "src/desktop/renderer.test.ts",
+        "src/SettingsPanel.test.tsx",
+        "src/App.test.tsx",
+        "src/Update.test.tsx",
+        "src/library/TagOrganize.test.tsx",
+        "src/search/SharedApprox.test.tsx"
+      ],
+      "exitCode": 0,
+      "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+      "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+      "startedAtUtc": "2026-10-08T22:32:35.723538+00:00",
+      "finishedAtUtc": "2026-10-08T22:33:06.445669+00:00",
+      "durationSeconds": 30.72212639999634
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exitCode": 0,
+      "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+      "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+      "startedAtUtc": "2026-10-08T22:32:35.725423+00:00",
+      "finishedAtUtc": "2026-10-08T22:32:38.906586+00:00",
+      "durationSeconds": 3.1811670000024606
+    },
+    {
+      "name": "typescript",
+      "command": [
+        "npm.cmd",
+        "run",
+        "typecheck"
+      ],
+      "exitCode": 0,
+      "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+      "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+      "startedAtUtc": "2026-10-08T22:32:38.996828+00:00",
+      "finishedAtUtc": "2026-10-08T22:32:45.624817+00:00",
+      "durationSeconds": 6.627993100002641
+    },
+    {
+      "name": "diff-whitespace",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "897ebe13aae8ebff09d92f90f560d675543f4ac3",
+        "HEAD"
+      ],
+      "exitCode": 0,
+      "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+      "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+      "startedAtUtc": "2026-10-08T22:32:45.719179+00:00",
+      "finishedAtUtc": "2026-10-08T22:32:45.799082+00:00",
+      "durationSeconds": 0.0799051999929361
+    },
+    {
+      "name": "runtime-harness-syntax",
+      "command": [
+        "node",
+        "--check",
+        "e2e/runtime-capabilities.mjs"
+      ],
+      "exitCode": 0,
+      "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+      "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+      "startedAtUtc": "2026-10-08T22:32:45.892223+00:00",
+      "finishedAtUtc": "2026-10-08T22:32:45.949597+00:00",
+      "durationSeconds": 0.0573731000040425
+    },
+    {
+      "name": "freeze-harness-syntax",
+      "command": [
+        "node",
+        "--check",
+        "e2e/freeze-runtime-source.mjs"
+      ],
+      "exitCode": 0,
+      "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+      "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+      "startedAtUtc": "2026-10-08T22:32:46.039063+00:00",
+      "finishedAtUtc": "2026-10-08T22:32:46.094054+00:00",
+      "durationSeconds": 0.05499679999775253
+    },
+    {
+      "name": "initial-pin-harness-syntax",
+      "command": [
+        "node",
+        "--check",
+        "e2e/native-initial-pin-t18.mjs"
+      ],
+      "exitCode": 0,
+      "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+      "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+      "startedAtUtc": "2026-10-08T22:32:46.183735+00:00",
+      "finishedAtUtc": "2026-10-08T22:32:46.240616+00:00",
+      "durationSeconds": 0.056870700005674735
+    },
+    {
+      "name": "python-helper-syntax",
+      "command": [
+        "python",
+        "-c",
+        "import ast,pathlib; [ast.parse(pathlib.Path(p).read_text(encoding='utf-8-sig'),filename=p) for p in ['e2e/native-pin-hide-t18.py','e2e/native-pin-inspect-t18.py']]"
+      ],
+      "exitCode": 0,
+      "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+      "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+      "startedAtUtc": "2026-10-08T22:32:46.329660+00:00",
+      "finishedAtUtc": "2026-10-08T22:32:46.468063+00:00",
+      "durationSeconds": 0.13840409999829717
+    },
+    {
+      "name": "save-helper-syntax",
+      "command": [
+        "powershell",
+        "-NoProfile",
+        "-Command",
+        "$parseErrors=$null; $null=[System.Management.Automation.Language.Parser]::ParseFile((Join-Path (Get-Location) 'e2e/native-save-dialog-t18.ps1'),[ref]$null,[ref]$parseErrors); if($parseErrors.Count){$parseErrors | ForEach-Object {$_.Message}; exit 1}"
+      ],
+      "exitCode": 0,
+      "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+      "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+      "startedAtUtc": "2026-10-08T22:32:46.559682+00:00",
+      "finishedAtUtc": "2026-10-08T22:32:47.151145+00:00",
+      "durationSeconds": 0.5914705000031972
+    },
+    {
+      "name": "binding-regeneration",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "kinshoko-core",
+        "--locked",
+        "--lib",
+        "export_bindings"
+      ],
+      "exitCode": 0,
+      "source": "bc1a5aec0e2cf64bc09ef4e0b988572aa3cd097c",
+      "tree": "b33f5bca54cd0e88136e22163738888a094ac88d",
+      "startedAtUtc": "2026-10-08T22:35:07.736318+00:00",
+      "finishedAtUtc": "2026-10-08T22:35:25.995215+00:00",
+      "durationSeconds": 18.258899500011466
+    }
+  ],
+  "independentCounts": {
+    "coreDiagnostics": 8,
+    "ui": {
+      "passed": 110,
+      "total": 110,
+      "files": 8,
+      "notSameFileSetAsWorker105": true
+    },
+    "bindingExports": 193,
+    "premergeAudit": 252,
+    "postmergeAudit": 254
+  },
+  "nativeClaims": {
+    "main": {
+      "source": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "harnessSource": "503956e9f1df4adaf6917ec94c524dd00ee89333",
+      "run": "1791496183701",
+      "passed": 28,
+      "scope": "main only"
+    },
+    "pin": {
+      "source": "83da0065853e44a80bc899812289a80015d07a15",
+      "binarySha256": "ceb8324c24133a26b7d07ec9794195373d2fbda4538ef4e685f708edb3675fd6",
+      "run": "1791497038707",
+      "passed": 5,
+      "scope": "framework-hide then required-canvas failure/production-ready on same HWND"
+    },
+    "notCombinedIntoFull32": true,
+    "finalOnlyBuildInputDifferenceFromB": "src/App.test.tsx readiness precondition",
+    "firstHarnessSourceUnknownRetained": true,
+    "elevenEarlierNativeFailuresRetained": true
+  },
+  "audit": {
+    "postmergeChecks": 254,
+    "nativeRawFilesByteMatched": 109,
+    "nativeFilesInHistoricalRootArchive": 107,
+    "nativeFilesInNewIgnoredSupplement": 2,
+    "screenshotFilesActuallyViewed": 9,
+    "mixedNewlineInputs": "Two actual retained input byte sequences match frozen manifest SHA. LF-normalized content matches the corresponding Git blobs. Neither is claimed to be a reconstructed original.",
+    "originalFailedAudits": "Retained locally without changing historical preservation indexes",
+    "privateSaveControlsPublished": false
+  },
+  "unsafeAndAcl": "No new app unsafe, production ACL/config/dependency change or production test override.",
+  "nativeByMerger": false,
+  "githubByMerger": false,
+  "pushByMerger": false,
+  "writesReleasedAtUtc": "2026-10-08T22:37:44.928938+00:00",
+  "unverified": [
+    "Windows10 (owner accepted)",
+    "Genuine older or missing Runtime",
+    "First-script initial-hidden pin error path",
+    "External browser page display",
+    "Normal tray Quit in T18",
+    "Hardware colour/ICC/HDR/scaling gates",
+    "Final combined T20 workflow"
+  ],
+  "notFinalTwoAxisReview": true
+}

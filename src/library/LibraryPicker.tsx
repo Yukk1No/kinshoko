@@ -1,19 +1,30 @@
 import { useEffect, useState } from "react";
+import { Dialog } from "@base-ui/react/dialog";
+import { ChevronDown, FolderOpen, FolderPlus, Library, RefreshCw, Settings2 } from "lucide-react";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
-import { pickFolder, registeredLibraries, registerLibrary, switchLibrary, unregisterLibrary } from "../ipc";
+import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, switchLibrary, unregisterLibrary } from "../ipc";
+import { Menu, MenuItem, MenuLabel, MenuPopup, MenuRadioItem, MenuSeparator } from "../ui/Menu";
+import { useToast } from "../ui/Toast";
 
-/** 本设备的资料库登记、切换与取消登记。不可用的登记仍可重试或取消。 */
-export function LibraryPicker({ current, onChanged, onCreate, blocked = false }: {
+/**
+ * 本设备的资料库登记、切换与取消登记（界面称“图库”，design/ui-system/copy-map.md）。
+ * `menu`：侧栏标题的图库切换菜单（单选 + 打开 / 新建 / 管理）；`inline`：还没有图库时的引导按钮。
+ * 打开菜单或管理对话框时重新读取登记，不可用的登记仍可重新连接（重新检查）或移除。
+ */
+export function LibraryPicker({ current, onChanged, onCreate, blocked = false, layout = "menu" }: {
   current: LibraryInfo | null | undefined;
   onChanged: (library: LibraryInfo | null) => void;
   onCreate: () => void;
   blocked?: boolean;
+  layout?: "menu" | "inline";
 }) {
   const [entries, setEntries] = useState<LibraryRegistration[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
+  const [managing, setManaging] = useState(false);
+  const toast = useToast();
   const disabled = busy || blocked || current === undefined;
 
   useEffect(() => {
@@ -21,19 +32,36 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false }:
     let alive = true;
     registeredLibraries().then(
       (value) => alive && setEntries(value),
-      (e) => alive && setError(String(e)),
+      (e) => alive && fail(String(e)),
     );
     return () => { alive = false; };
   }, [current?.id, current?.root, current === undefined, revision]);
 
+  // Registrations can also change outside this picker (content restore, unregistration elsewhere).
+  // Re-read the list when the workspace's provider set changes.
+  useEffect(() => {
+    let ids: string | null = null;
+    const stop = onWorkspaceChanged((status) => {
+      const next = status.libraries.map((entry) => entry.library.id).sort().join("|");
+      if (ids !== null && next === ids) return;
+      ids = next;
+      setRevision((value) => value + 1);
+    });
+    return () => { void stop.then((unlisten) => unlisten()); };
+  }, []);
+
+  function fail(message: string) {
+    if (toast) toast.error(message); else setError(message);
+  }
+  const refresh = () => setRevision((value) => value + 1);
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
     setError(null);
     try { await action(); }
-    catch (e) { setError(String(e)); }
+    catch (e) { fail(String(e)); }
     finally {
       setBusy(false);
-      setRevision((value) => value + 1);
+      refresh();
     }
   };
 
@@ -46,44 +74,70 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false }:
     if (current?.id === id) onChanged(null);
   });
 
-  return (
-    <section className="library-manager" aria-label="资料库管理">
-      <div className="library-actions">
-        <label>
-          当前资料库
-          <select aria-label="当前资料库" value={current?.id ?? ""} disabled={disabled}
-            onChange={(e) => { const id = e.target.value; if (id) void run(async () => onChanged(await switchLibrary(id))); }}>
-            <option value="">{current === undefined ? "正在打开…" : "尚未打开"}</option>
-            {entries.map(({ library, unavailable }) => (
-              <option key={library.id} value={library.id}>
-                {library.name}{unavailable ? "（暂时不可用）" : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="button" disabled={disabled} onClick={() => void register()}>登记已有资料库…</button>
-        <button type="button" disabled={disabled} onClick={onCreate}>新建资料库…</button>
-        <button type="button" disabled={disabled} onClick={() => setRevision((value) => value + 1)}>刷新登记</button>
-        {busy && <span role="status">正在处理资料库，等待旧库任务结束…</span>}
-      </div>
-      <p className="library-switch-notice">切换或取消当前登记时会取消未完成的导入，已成功的图片保留。</p>
-      {error && <p role="alert">{error}</p>}
-      {entries.length > 0 && (
-        <details className="library-registrations" open>
-          <summary>本设备登记的资料库</summary>
-          <ul>
-            {entries.map(({ library, unavailable }) => (
-              <li key={library.id}>
-                <span>{library.name} · {library.root}</span>
-                <button type="button" disabled={disabled} aria-label={`取消登记 ${library.name}`}
-                  title="只取消本设备的登记，原图和整理结果仍保存在原位置"
-                  onClick={() => void remove(library.id)}>取消登记</button>
-                {unavailable && <p role="status">{unavailable}</p>}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-    </section>
-  );
+  const status = <>
+    {busy && <span className="sr-only" role="status">正在处理图库…</span>}
+    {error && <p className="library-error" role="alert">{error}</p>}
+  </>;
+
+  if (layout === "inline") return <section className="library-onboarding" aria-label="图库">
+    <button type="button" className="k-btn" disabled={disabled} onClick={() => void register()}><FolderOpen size={15} aria-hidden="true" />打开图库…</button>
+    {status}
+  </section>;
+
+  const name = current === undefined ? "正在打开…" : current?.name ?? "尚未打开图库";
+  return <>
+    <Menu.Root modal={false} onOpenChange={(open) => { if (open) refresh(); }}>
+      <Menu.Trigger className="k-lib-trigger" aria-label={`当前图库：${name}`} title="切换图库" disabled={current === undefined}>
+        <Library size={16} aria-hidden="true" /><span className="k-lib-name">{name}</span><ChevronDown size={14} aria-hidden="true" className="k-lib-chev" />
+      </Menu.Trigger>
+      <MenuPopup width={248} label="图库">
+        <MenuLabel>当前图库</MenuLabel>
+        <Menu.RadioGroup value={current?.id ?? ""} onValueChange={(id) => {
+          if (id && id !== current?.id) void run(async () => onChanged(await switchLibrary(String(id))));
+        }}>
+          {entries.map(({ library, unavailable }) => <MenuRadioItem key={library.id} value={library.id} disabled={disabled}
+            title={unavailable ?? library.root} meta={unavailable ? <span className="is-warn">未连接</span> : undefined}>
+            {library.name}
+          </MenuRadioItem>)}
+        </Menu.RadioGroup>
+        {entries.length === 0 && <div className="k-item is-tip"><span className="k-item-ind" /><span className="k-item-label">还没有打开的图库</span></div>}
+        <MenuSeparator />
+        <MenuItem icon={<FolderOpen size={14} />} disabled={disabled} onClick={() => void register()}>打开图库…</MenuItem>
+        <MenuItem icon={<FolderPlus size={14} />} disabled={disabled} onClick={onCreate}>新建图库…</MenuItem>
+        <MenuItem icon={<Settings2 size={14} />} onClick={() => { refresh(); setManaging(true); }}>管理图库</MenuItem>
+      </MenuPopup>
+    </Menu.Root>
+    {status}
+    <Dialog.Root open={managing} onOpenChange={setManaging}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="k-backdrop" />
+        <Dialog.Popup className="k-dialog library-manage">
+          <Dialog.Title className="k-dialog-title">管理图库</Dialog.Title>
+          <Dialog.Description className="k-dialog-desc">移除只是不再显示，文件不会删除。</Dialog.Description>
+          {entries.length > 0 ? <ul className="k-list library-list" aria-label="本设备的图库">
+            {entries.map(({ library, unavailable }) => <li key={library.id} className="k-list-row">
+              <span className="k-list-icon" aria-hidden="true"><Library size={16} /></span>
+              <div className="k-list-text">
+                <div className="k-list-title">{library.name}</div>
+                <div className="k-list-desc" title={library.root}>{library.root}</div>
+                {unavailable && <p className="k-list-desc is-warn" role="status">{unavailable}</p>}
+              </div>
+              <div className="k-list-end">
+                <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}>{unavailable ? "未连接" : "已连接"}</span>
+                {unavailable && <button type="button" className="k-btn is-sm" disabled={disabled} onClick={refresh}><RefreshCw size={13} aria-hidden="true" />重新连接</button>}
+                <button type="button" className="k-btn is-sm" disabled={disabled} aria-label={`移除 ${library.name}`}
+                  title="不再显示；文件不删，未完成的导入会取消" onClick={() => void remove(library.id)}>移除</button>
+              </div>
+            </li>)}
+          </ul> : <p className="k-dialog-desc">还没有打开的图库。</p>}
+          <div className="k-dialog-foot">
+            <button type="button" className="k-btn" disabled={disabled} onClick={() => void register()}><FolderOpen size={14} aria-hidden="true" />打开图库…</button>
+            <button type="button" className="k-btn" disabled={disabled} onClick={() => { setManaging(false); onCreate(); }}><FolderPlus size={14} aria-hidden="true" />新建图库…</button>
+            <span className="k-grow" />
+            <Dialog.Close className="k-btn is-primary">完成</Dialog.Close>
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  </>;
 }

@@ -1,0 +1,25 @@
+{
+  "before": "d93e7f803e160c73862a9692935471b072fc027a",
+  "changedFiles": [
+    "crates/kinshoko-core/src/library/types.rs",
+    "src/bindings/ImportReport.ts"
+  ],
+  "rustCodeWithoutDocCommentsIdentical": true,
+  "typescriptDeclarationsWithoutCommentsAndWhitespaceIdentical": true,
+  "patchSha256": "488715cd944fe5ee8d707d2fd0c967b1b702f9ee840573c95e5ccb8d7efdd205",
+  "files": [
+    {
+      "file": "crates/kinshoko-core/src/library/types.rs",
+      "sha256": "202237eb6a53b81adc8063cfbde813450b84b29b5e00dd9799ad534f2552b73a",
+      "bytes": 19264
+    },
+    {
+      "file": "src/bindings/ImportReport.ts",
+      "sha256": "54a36d3791478971ba9107e9e835caa3c573e6b71fe1a4b52762372524053b0f",
+      "bytes": 1141
+    }
+  ],
+  "after": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
+  "afterTree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
+  "cleanAfterActualRegeneration": true
+}

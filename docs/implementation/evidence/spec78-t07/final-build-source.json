@@ -1,0 +1,8 @@
+{
+  "status": "built; not launched after desktop slot release",
+  "source": "43a465a5eb8587884b84d184dc8e693c14728793",
+  "binarySha256": "057744877bab34be6f1ef8ac0d5c293def9c9800eef8d1917c4e898c3ce9816e",
+  "identifier": "dev.kinshoko.spec78t07test",
+  "remainingNativeCheck": "saved unsafe mode with disconnected active provider startup branch",
+  "passedNativeSource": "7e5cd98ab760181e610f1689dc211209162d3c78"
+}

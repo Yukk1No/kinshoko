@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ResolvedTagIdentity } from "../bindings/ResolvedTagIdentity";
 import type { ImageTags } from "../bindings/ImageTags";
 import type { TagEdit } from "../bindings/TagEdit";
 import type { TagLabel } from "../bindings/TagLabel";
@@ -6,10 +7,12 @@ import type { TagNamespace } from "../bindings/TagNamespace";
 import type { TagOrigin } from "../bindings/TagOrigin";
 import type { TagRef } from "../bindings/TagRef";
 import type { VocabularyTag } from "../bindings/VocabularyTag";
-import { addTagAlias, editTags, imageTags, removeTagAlias, vocabulary } from "../ipc";
+import { addTagAlias, catalogImageTags, editTags, imageTags, removeTagAlias, vocabulary, workspaceSourceInspection, workspaceEditSourceTags } from "../ipc";
 import { TagMarks, UI_LANG, tagName, useCandidates } from "../search/SearchBox";
+import { AtSign, Ban, Check, Tags, Undo2, X } from "lucide-react";
 
 type Props = {
+  sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
   libraryId: string;
   /** 选中的参考图；只有一张时列出它的标签。 */
   ids: string[];
@@ -46,21 +49,40 @@ const byId = (tag: TagLabel): TagRef => ({ kind: "id", id: tag.id });
  * 人工标签决定，给标签加别名；选几张都能按命名空间与名称（或别名）一次添加、否决或清除。
  * 人工标签决定优先于来源事实，重新打标或重新迁入不会覆盖。
  */
-export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
+export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarget }: Props) {
   const single = ids.length === 1 ? ids[0] : null;
+  const [identities, setIdentities] = useState<ResolvedTagIdentity[]>([]);
   const [tags, setTags] = useState<ImageTags | null>(null);
   const [aliasFor, setAliasFor] = useState<TagLabel | null>(null);
   const [namespace, setNamespace] = useState<TagNamespace>("general");
   const [text, setText] = useState("");
   const [refresh, setRefresh] = useState(0);
-  const candidates = useCandidates({ libraryId, safe, generation }, text);
+  const candidates = useCandidates({ libraryId, safe, generation, sourceTarget }, text);
+  const identityKey = JSON.stringify([libraryId, ids, safe, generation, sourceTarget]);
+  const currentKey = useRef(identityKey);
+  currentKey.current = identityKey;
+  useEffect(() => { currentKey.current = identityKey; return () => { currentKey.current = ""; }; }, [identityKey]);
 
   useEffect(() => {
     let alive = true;
     if (!single) {
       setTags(null);
+      setIdentities([]);
       return;
     }
+    setIdentities([]);
+    setTags(null);
+    if (sourceTarget) {
+      workspaceSourceInspection(sourceTarget, safe, UI_LANG).then(
+        (value) => { if (alive) { setTags(value.tags.image); setIdentities(value.tags.identities); } },
+        (error) => alive && onError(String(error)),
+      );
+      return () => { alive = false; };
+    }
+    catalogImageTags(libraryId, single, UI_LANG).then(
+      (value) => alive && setIdentities(value?.identities ?? []),
+      (error) => alive && onError(String(error)),
+    );
     imageTags(libraryId, single, UI_LANG).then(
       (value) => alive && setTags(value),
       (e) => alive && onError(String(e)),
@@ -68,15 +90,15 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
     return () => {
       alive = false;
     };
-  }, [libraryId, single, generation, refresh, onError]);
+  }, [libraryId, single, safe, generation, refresh, onError, identityKey]);
 
   // 换了选中的图，别名编辑跟着关掉。
   useEffect(() => setAliasFor(null), [single]);
 
   const edit = (edits: TagEdit[]) =>
-    editTags(libraryId, ids, edits).then(
-      () => setRefresh((n) => n + 1),
-      (e) => onError(String(e)),
+    (sourceTarget ? workspaceEditSourceTags(sourceTarget, safe, edits) : editTags(libraryId, ids, edits)).then(
+      () => { if (currentKey.current === identityKey) setRefresh((n) => n + 1); },
+      (e) => { if (currentKey.current === identityKey) onError(String(e)); },
     );
 
   const typed = (): TagRef | null => {
@@ -89,109 +111,90 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
     void edit([{ kind, tag }]);
   };
 
+  const hasText = !!text.trim();
+  // 详情面板的标签（#98，design/ui-system/README.md 与 copy-map.md）：现有标签是小标签，出处写在标签里，
+  // 悬停或聚焦露出“保留／改回自动／不要这个／别名”；输入框一个，打字后才出现“添加／排除／改回自动”。
   return (
-    <section className="tag-panel" aria-label="标签">
+    <section className="tag-panel insp-sec k-tags" aria-label="标签">
+      <h4><Tags size={13} aria-hidden="true" />标签</h4>
       {tags && (
         <>
-          <ul className="tag-list" aria-label="有效标签">
-            {tags.tags.length === 0 && <li className="tag-empty">还没有标签</li>}
+          <ul className="tag-list k-tag-chips" aria-label="有效标签">
+            {tags.tags.length === 0 && <li className="tag-empty k-tags-empty">还没有标签</li>}
             {tags.tags.map(({ tag, origins }) => {
               const manual = origins.some((o) => o.kind === "manual");
               const name = tagName(tag);
+              const unified = identities.filter((identity) => identity.localTagId === tag.id);
               return (
-                <li key={tag.id} className="tag-row">
+                <li key={tag.id} className={`tag-row k-tag-chip${manual ? " is-manual" : ""}`}
+                  title={unified.map((identity) => `统一为：${tagName(identity.tag)}`).join("\n") || undefined}>
                   <span className="tag-name">{name}</span>
                   <TagMarks tag={tag} />
-                  <span className="tag-origins">
+                  <span className="tag-origins k-tag-from">
                     {origins.map((o, i) => (
                       <span key={i} className="tag-origin">
                         {originText(o)}
                       </span>
                     ))}
                   </span>
-                  <span className="tag-row-actions">
+                  <span className="tag-row-actions k-tag-acts">
                     {manual ? (
-                      <button
-                        type="button"
-                        aria-label={`清除对“${name}”的人工决定`}
-                        title="回到来源（模型、导入）决定的状态"
-                        onClick={() => decide("clear", byId(tag))}
-                      >
-                        清除
-                      </button>
+                      <button type="button" className="k-icon-btn is-xs" aria-label={`清除对“${name}”的人工决定`} title="改回自动"
+                        onClick={() => decide("clear", byId(tag))}><Undo2 size={12} aria-hidden="true" /></button>
                     ) : (
-                      <button
-                        type="button"
-                        aria-label={`确认“${name}”`}
-                        title="记为人工添加：重新打标或重新迁入不会去掉"
-                        onClick={() => decide("add", byId(tag))}
-                      >
-                        ✓
-                      </button>
+                      <button type="button" className="k-icon-btn is-xs" aria-label={`确认“${name}”`} title="保留：重新打标也不去掉"
+                        onClick={() => decide("add", byId(tag))}><Check size={12} aria-hidden="true" /></button>
                     )}
-                    <button
-                      type="button"
-                      aria-label={`否决“${name}”`}
-                      title="这张图没有这个标签：来源再给出也不算"
-                      onClick={() => decide("reject", byId(tag))}
-                    >
-                      ⊘
-                    </button>
-                    <button type="button" aria-label={`“${name}”的别名`} onClick={() => setAliasFor(tag)}>
-                      别名
-                    </button>
+                    <button type="button" className="k-icon-btn is-xs is-danger" aria-label={`否决“${name}”`} title="不要这个：这张图不是它"
+                      onClick={() => decide("reject", byId(tag))}><Ban size={12} aria-hidden="true" /></button>
+                    {!sourceTarget && <button type="button" className="k-icon-btn is-xs" aria-label={`“${name}”的别名`} title="别名"
+                      onClick={() => setAliasFor(tag)}><AtSign size={12} aria-hidden="true" /></button>}
                   </span>
                 </li>
               );
             })}
           </ul>
-          {tags.rejected.length > 0 && (
-            <ul className="tag-list tag-list-rejected" aria-label="已否决">
+          {tags.rejected.length > 0 && (<>
+            <p className="k-tags-sub">已排除</p>
+            <ul className="tag-list tag-list-rejected k-tag-chips" aria-label="已否决">
               {tags.rejected.map((tag) => {
                 const name = tagName(tag);
                 return (
-                  <li key={tag.id} className="tag-row">
+                  <li key={tag.id} className="tag-row k-tag-chip is-rejected">
                     <span className="tag-name">{name}</span>
                     <TagMarks tag={tag} />
-                    <button
-                      type="button"
-                      aria-label={`撤销否决“${name}”`}
-                      title="回到来源（模型、导入）决定的状态"
-                      onClick={() => decide("clear", byId(tag))}
-                    >
-                      撤销否决
-                    </button>
+                    <button type="button" className="k-tag-restore" aria-label={`撤销否决“${name}”`} title="改回自动"
+                      onClick={() => decide("clear", byId(tag))}>恢复</button>
                   </li>
                 );
               })}
             </ul>
-          )}
+          </>)}
         </>
       )}
-      <div className="tag-add">
-        <select
-          aria-label="命名空间"
-          value={namespace}
-          onChange={(e) => setNamespace(e.target.value as TagNamespace)}
-        >
-          {NAMESPACES.map((n) => (
-            <option key={n.value} value={n.value}>
-              {n.label}
-            </option>
-          ))}
-        </select>
-        <input
-          role="combobox"
-          aria-label="标签名"
-          aria-expanded={candidates.length > 0}
-          placeholder="标签名或别名"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") decide("add");
-            if (e.key === "Escape") setText("");
-          }}
-        />
+      <div className="tag-add k-tag-add">
+        <div className="k-tag-field">
+          <select className="k-tag-kind" aria-label="命名空间" title="标签类别" value={namespace}
+            onChange={(e) => setNamespace(e.target.value as TagNamespace)}>
+            {NAMESPACES.map((n) => (
+              <option key={n.value} value={n.value}>
+                {n.label}
+              </option>
+            ))}
+          </select>
+          <input
+            role="combobox"
+            aria-label="标签名"
+            aria-expanded={candidates.length > 0}
+            placeholder="加标签…"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") decide("add");
+              if (e.key === "Escape") setText("");
+            }}
+          />
+        </div>
         {candidates.length > 0 && (
           <ul role="listbox" className="search-popover-list" aria-label="库内标签">
             {candidates.map((c) => (
@@ -203,18 +206,12 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
             ))}
           </ul>
         )}
-        {ids.length > 1 && <p className="selection-hint">对已选的 {ids.length} 张一起记下决定</p>}
-        <div className="selection-actions">
-          <button type="button" disabled={!text.trim()} onClick={() => decide("add")}>
-            添加标签
-          </button>
-          <button type="button" disabled={!text.trim()} onClick={() => decide("reject")}>
-            否决标签
-          </button>
-          <button type="button" disabled={!text.trim()} onClick={() => decide("clear")}>
-            清除标签决定
-          </button>
-        </div>
+        {ids.length > 1 && <p className="selection-hint insp-hint">对已选的 {ids.length} 张一起记下</p>}
+        {hasText && <div className="selection-actions k-tag-add-acts">
+          <button type="button" className="k-btn is-sm is-primary" aria-label="添加标签" onClick={() => decide("add")}>添加</button>
+          <button type="button" className="k-btn is-sm is-ghost" aria-label="否决标签" title="这张图不是这个标签" onClick={() => decide("reject")}>排除</button>
+          <button type="button" className="k-btn is-sm is-ghost" aria-label="清除标签决定" title="回到模型和导入给出的结果" onClick={() => decide("clear")}>改回自动</button>
+        </div>}
       </div>
       {aliasFor && (
         <AliasEditor
@@ -267,19 +264,21 @@ function AliasEditor({
   };
 
   return (
-    <div className="tag-alias-editor" role="dialog" aria-label={`“${name}”的别名`}>
-      <p>“{name}”的其他叫法，查找和添加标签时都认：</p>
+    <div className="tag-alias-editor k-tag-alias" role="dialog" aria-label={`“${name}”的别名`}>
+      <p className="insp-hint">“{name}”的别名，查找和加标签时都认</p>
       {entry && entry.aliases.length > 0 ? (
-        <ul className="tag-aliases">
+        <ul className="tag-aliases k-tag-chips">
           {entry.aliases.map((a) => (
             <li key={a.name}>
               <span>{a.name}</span>
               <button
                 type="button"
+                className="k-icon-btn is-xs"
                 aria-label={`去掉别名“${a.name}”`}
+                title="去掉"
                 onClick={() => removeTagAlias(libraryId, tag.id, a.name).catch((e) => onError(String(e)))}
               >
-                ×
+                <X size={12} aria-hidden="true" />
               </button>
             </li>
           ))}
@@ -288,6 +287,8 @@ function AliasEditor({
         <p className="selection-hint">还没有别名</p>
       )}
       <input
+        className="k-input"
+        placeholder="新的叫法"
         aria-label="新别名"
         autoFocus
         value={draft}
@@ -297,12 +298,14 @@ function AliasEditor({
           if (e.key === "Escape") onClose();
         }}
       />
-      <button type="button" disabled={!draft.trim()} onClick={add}>
-        加别名
-      </button>
-      <button type="button" onClick={onClose}>
-        完成
-      </button>
+      <span className="k-tag-alias-acts">
+        <button type="button" className="k-btn is-sm" onClick={onClose}>
+          完成
+        </button>
+        <button type="button" className="k-btn is-sm is-primary" disabled={!draft.trim()} onClick={add}>
+          加别名
+        </button>
+      </span>
     </div>
   );
 }

@@ -9,6 +9,7 @@
 //! - [`EdgeHide`]：贴边隐藏收起的位置与碰细边滑出；
 //! - [`stage`]：缩放与贴边动画时窗口的矩形（#64）。
 
+mod capture;
 mod edge;
 mod history;
 mod motion;
@@ -18,9 +19,11 @@ mod screenshot;
 mod types;
 mod veil;
 
+pub use capture::{CaptureDraft, CaptureError, CaptureOutcome, CaptureSelection, CaptureSurface};
 pub use edge::{DeskPin, EdgeHide, PEEK_SLACK, PinMove, SLIVER, Toggle, Tuck};
 pub use history::{
-    CaptureChoice, CaptureEntry, CaptureHistory, CollectedCapture, HISTORY_LIMIT, HistoryError,
+    CaptureChoice, CaptureCollection, CaptureEntry, CaptureHistory, CollectedCapture,
+    CollectedCaptureDraft, HISTORY_LIMIT, HistoryError, PreparedCapture,
 };
 pub use motion::{Stage, stage};
 pub use pin::{
@@ -29,5 +32,7 @@ pub use pin::{
 };
 pub use placement::{ScreenRect, place_new_pin};
 pub use screenshot::{Region, Screenshot};
-pub use types::{CaptureAction, CaptureReference, FrozenScreen, PinFrame, PinMotion, Turn};
+pub use types::{
+    CaptureAction, CaptureReference, CaptureReferenceFrame, FrozenScreen, PinFrame, PinMotion, Turn,
+};
 pub use veil::PinVeils;

@@ -17,7 +17,10 @@
     "bindings": "node -e \"require('node:fs').rmSync('src/bindings',{recursive:true,force:true})\" && cargo test -p kinshoko-core"
   },
   "dependencies": {
+    "@base-ui/react": "1.6.0",
     "@tauri-apps/api": "2.12.1",
+    "lucide-react": "1.52.0",
+    "motion": "14.1.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

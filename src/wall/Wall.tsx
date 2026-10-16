@@ -1,10 +1,18 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, MouseEvent } from "react";
 import { flushSync } from "react-dom";
+import { Layers } from "lucide-react";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { ImageCard } from "../bindings/ImageCard";
-import { browse, isCursorExpired, thumbnailUrl } from "../ipc";
+import type { WorkspaceScope } from "../bindings/WorkspaceScope";
+import type { BrowsePage } from "../bindings/BrowsePage";
+import type { WorkspacePage } from "../bindings/WorkspacePage";
+import type { WorkspaceCard } from "../bindings/WorkspaceCard";
+import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
+import { browse, workspaceBrowse, isCursorExpired, isLensChanged, thumbnailUrl } from "../ipc";
+import { captureImage, useCaptureSources } from "../desktop/captureSources";
+import { modalOpen } from "../ui/modal";
 import { captureAnchor, masonry, resolveAnchor, visible, type Anchor } from "./layout";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
@@ -20,7 +28,25 @@ const PAGE = 500;
 /** 图片墙上拖出参考图时放进 dataTransfer 的类型，值为 JSON 数组的参考图 id。 */
 export const DRAG_IMAGES = "application/x-kinshoko-images";
 
+export type WallHandle = {
+  previewDensity: (value: number | null) => void;
+  /** 已知工作区变了：立刻作废在途响应，不等下一次 React 渲染。 */
+  invalidate: () => void;
+  /** 读下一页（查看器走过已读到的卡片时）；已在读或没有下一页时什么也不做。 */
+  loadMore: () => void;
+};
+
+export type BrowserCard = ImageCard & Partial<Pick<WorkspaceCard, "libraryId" | "imageId" | "sources">>;
+
 type Props = {
+  workspaceScope?: WorkspaceScope;
+  onInspectSources?: (card: WorkspaceCard) => void;
+  onCardsChange?: (cards: BrowserCard[]) => void;
+  /** 只有当前请求已完整接受的工作区快照，才能成为父界面的已知状态。 */
+  onWorkspaceStatus?: (status: WorkspaceStatus, cards: BrowserCard[]) => void;
+  /** Artist-selected target card width; preview stays local until the slider commits. */
+  density?: number;
+  onTotalChange?: (count: number | null) => void;
   libraryId: string;
   scope: BrowseScope;
   /** Search 给出的条件树；没有条件时是范围内的全部。条件变化时由调用方换 key 重建，从顶部看起。 */
@@ -34,15 +60,13 @@ type Props = {
   safeMode?: boolean;
   selected: ReadonlySet<string>;
   onSelectionChange: (selected: Set<string>) => void;
-  onOpenImage: (card: ImageCard) => void;
+  onOpenImage: (card: BrowserCard) => void;
   viewerOpen: boolean;
-  /** 侧栏宽度动画期间保留布局；结束后按最终宽度重排一次。 */
-  holdReflow?: boolean;
 };
 
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
 export const scopeKey = (scope: BrowseScope) =>
-  scope.kind === "folder" ? `folder.${scope.id}` : scope.kind;
+  (scope.kind === "folder" || scope.kind === "folderTree") ? `${scope.kind}.${scope.id}` : scope.kind;
 
 const anchorKey = (libraryId: string, scope: BrowseScope) =>
   scope.kind === "all"
@@ -50,8 +74,10 @@ const anchorKey = (libraryId: string, scope: BrowseScope) =>
     : `kinshoko.wall.anchor.${libraryId}.${scopeKey(scope)}`;
 
 const EMPTY: Record<BrowseScope["kind"], string> = {
-  all: "资料库里还没有参考图。从上方导入图片或文件夹。",
-  folder: "这个文件夹里还没有参考图。选中图片后用“放入文件夹”，或把图片拖到侧栏的文件夹上。",
+  all: "图库里还没有参考图。点右上角的“导入”，或直接拖进窗口。",
+  folder: "这个文件夹里还没有参考图。选中图片后点“放入”，或把图片拖到侧栏的文件夹上。",
+  folderTree: "这个文件夹及其子文件夹还没有参考图。",
+  unassigned: "这个图库没有未归类的参考图。",
   trash: "回收站是空的。",
 };
 
@@ -76,10 +102,16 @@ function saveAnchor(key: string, anchor: Anchor | null) {
 
 /**
  * 图片墙：按资料库记录的尺寸用纯函数排出瀑布流，只挂载视口附近的卡片。
- * 单击选中一张，Ctrl 单击增减，Shift 单击选中一段；选中的图可以拖到侧栏的文件夹上。
+ * 单击打开（沿用认可原型），Ctrl 单击增减选择，Shift 单击选中一段；选中的图可以拖到文件夹上。
  * 换范围或条件时由调用方换 key 重建。查找结果不记住位置，新的查找从顶部看起。
  */
-export function Wall({
+export const Wall = forwardRef<WallHandle, Props>(function Wall({
+  workspaceScope,
+  onInspectSources,
+  onCardsChange,
+  onWorkspaceStatus,
+  density = TARGET,
+  onTotalChange,
   libraryId,
   scope,
   conditions = NO_CONDITIONS,
@@ -89,17 +121,18 @@ export function Wall({
   onSelectionChange,
   onOpenImage,
   viewerOpen,
-  holdReflow = false,
-}: Props) {
+}, ref) {
   const searching = conditions.conditions.length > 0;
-  const storeKey = searching ? null : anchorKey(libraryId, scope);
+  const storeKey = searching ? null : workspaceScope ? `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}` : anchorKey(libraryId, scope);
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
+  const [previewDensity, setPreviewDensity] = useState<number | null>(null);
   const [viewport, setViewport] = useState({ top: 0, height: 0 });
-  const [cards, setCards] = useState<ImageCard[]>([]);
+  const [cards, setCards] = useState<BrowserCard[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => { onTotalChange?.(total); }, [onTotalChange, total]);
   /**
    * 请求代次：重新浏览、视角（资料库、范围、条件、安全模式）变化与卸载时前进。
    * 响应回来时代次已经不同就整个丢掉，不改卡片、游标、数量、错误与加载状态（#77 UI-A）。
@@ -108,9 +141,9 @@ export function Wall({
   /** 正在进行的请求所属代次；没有时为 null。被作废的请求不会占着它。 */
   const inflight = useRef<number | null>(null);
   /** 当前视角。请求发出时按这里取，不用首次渲染时的值。 */
-  const view = useRef({ libraryId, scope, conditions });
-  view.current = { libraryId, scope, conditions };
-  const lens = `${libraryId}\n${JSON.stringify(scope)}\n${JSON.stringify(conditions)}\n${safeMode}`;
+  const view = useRef({ libraryId, scope, conditions, workspaceScope, safeMode });
+  view.current = { libraryId, scope, conditions, workspaceScope, safeMode };
+  const lens = `${libraryId}\n${JSON.stringify(scope)}\n${JSON.stringify(conditions)}\n${safeMode}\n${JSON.stringify(workspaceScope)}`;
   useLayoutEffect(() => {
     // 视角变了：还在路上的请求按旧视角作废，旧游标也不再接着翻；等调用方按新视角重新浏览。
     generation.current += 1;
@@ -151,6 +184,13 @@ export function Wall({
   }, []);
 
   useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
+  const loadMoreRef = useRef<() => void>(() => {});
+  useImperativeHandle(ref, () => ({
+    previewDensity(value) { measureBeforeReflow(); setPreviewDensity(value); },
+    invalidate() { generation.current += 1; inflight.current = null; },
+    loadMore() { loadMoreRef.current(); },
+  }), [measureBeforeReflow]);
+  useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 
   useLayoutEffect(() => {
     if (wasViewing.current && !viewerOpen && lastOpened.current) {
@@ -160,16 +200,43 @@ export function Wall({
     wasViewing.current = viewerOpen;
   }, [viewerOpen]);
 
-  const open = (card: ImageCard) => {
+  const open = (card: BrowserCard) => {
+    pivot.current = card.id;
     lastOpened.current = card.id;
     onOpenImage(card);
   };
 
   const thumbnailPx = useMemo(
-    () => Math.ceil(TARGET * 1.5 * (window.devicePixelRatio || 1)),
-    [],
+    () => Math.ceil(density * 1.5 * (window.devicePixelRatio || 1)),
+    [density],
   );
 
+  useEffect(() => { onCardsChange?.(cards); }, [cards, onCardsChange]);
+  // Keyed by value: re-selecting the same range creates a new but equal object. Clearing on that
+  // identity change emptied the wall without the reload below ever running again (T20 r5/r6).
+  const workspaceKey = workspaceScope ? JSON.stringify(workspaceScope) : null;
+  useLayoutEffect(() => {
+    if (!workspaceKey) return;
+    generation.current += 1;
+    inflight.current = null;
+    // Emptying the canvas clamps browser scrollTop. Preserve the user's anchor
+    // until the new authorized page restores it.
+    restoring.current = true;
+    setCards([]);
+    setTotal(null);
+    setCursor(null);
+  }, [reloadKey, safeMode, workspaceKey]);
+  useCaptureSources(() => {
+    // 模态盖住图片墙时不登记来源；行内浮层（role="dialog" 的查找浮层等）不挡。
+    if (viewerOpen || !scroller.current || modalOpen()) return null;
+    return [...scroller.current.querySelectorAll<HTMLImageElement>(".card img")].flatMap((image) => {
+      const node = image.closest<HTMLElement>(".card")!;
+      const card = cards.find((item) => item.id === node.dataset.id);
+      if (!card || node.dataset.veiled === "true") return [];
+      const reference = captureImage(image, scroller.current!, card.libraryId ?? libraryId, card.imageId ?? card.id, card.width, card.height);
+      return reference ? [reference] : [];
+    });
+  }, 10);
   const loaded = useRef(0);
   loaded.current = cards.length;
 
@@ -178,18 +245,23 @@ export function Wall({
     async (want: number) => {
       const gen = ++generation.current;
       inflight.current = gen;
-      const { libraryId, scope, conditions } = view.current;
+      const { libraryId, scope, conditions, workspaceScope, safeMode } = view.current;
       const current = () => gen === generation.current;
       try {
         // 取到一半结果集变了（游标过期）：从头再取，最多几次，仍不稳定才报错。
         for (let attempt = 0; ; attempt++) {
-          const next: ImageCard[] = [];
+          const next: BrowserCard[] = [];
           let after: string | null = null;
           let count = 0;
+          let acceptedStatus: WorkspaceStatus | null = null;
           try {
             do {
-              const page = await browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx });
+              const result: { page: BrowsePage | WorkspacePage; status: WorkspaceStatus | null } = workspaceScope
+                ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, thumbnailPx }, safeMode).then(page => ({ page, status: page.status }))
+                : { page: await browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx }), status: null };
+              const page = result.page;
               if (!current()) return;
+              acceptedStatus = result.status;
               next.push(...page.cards);
               after = page.nextCursor;
               count = page.total;
@@ -202,6 +274,7 @@ export function Wall({
             throw e;
           }
           measureBeforeReflow();
+          if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus, next);
           setCards(next);
           setCursor(after);
           setTotal(count);
@@ -214,20 +287,25 @@ export function Wall({
         if (inflight.current === gen) inflight.current = null;
       }
     },
-    [thumbnailPx, measureBeforeReflow],
+    [thumbnailPx, measureBeforeReflow, onWorkspaceStatus],
   );
 
   const loadMore = useCallback(async () => {
     if (inflight.current !== null || !cursor) return;
     const gen = generation.current;
     inflight.current = gen;
-    const { libraryId, scope, conditions } = view.current;
+    const { libraryId, scope, conditions, workspaceScope, safeMode } = view.current;
     let expired = false;
     try {
-      const page = await browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx });
+      const result: { page: BrowsePage | WorkspacePage; status: WorkspaceStatus | null } = workspaceScope
+        ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, thumbnailPx }, safeMode).then(page => ({ page, status: page.status }))
+        : { page: await browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx }), status: null };
+      const page = result.page;
       if (gen !== generation.current) return;
+      const next = [...cards, ...page.cards];
+      if (result.status) onWorkspaceStatus?.(result.status, next);
       measureBeforeReflow();
-      setCards((prev) => [...prev, ...page.cards]);
+      setCards(next);
       setCursor(page.nextCursor);
       setTotal(page.total);
       setError(null);
@@ -235,12 +313,13 @@ export function Wall({
       if (gen !== generation.current) return;
       // 结果集变了，接着翻会遗漏或重复：从第一页重读，保持正在看的位置。
       if (isCursorExpired(e)) expired = true;
-      else setError(String(e));
+      else if (!isLensChanged(e)) setError(String(e));
     } finally {
       if (inflight.current === gen) inflight.current = null;
     }
     if (expired) void reload(Math.max(loaded.current, PAGE));
-  }, [cursor, thumbnailPx, measureBeforeReflow, reload]);
+  }, [cards, cursor, thumbnailPx, measureBeforeReflow, reload, onWorkspaceStatus]);
+  loadMoreRef.current = () => { void loadMore(); };
   useEffect(() => {
     void reload(Math.max(loaded.current, PAGE));
   }, [reload, reloadKey]);
@@ -248,7 +327,7 @@ export function Wall({
   useLayoutEffect(() => {
     const el = scroller.current!;
     const sync = () => {
-      if (!holdReflow && el.clientWidth !== layoutWidth.current) {
+      if (el.clientWidth !== layoutWidth.current) {
         measureBeforeReflow();
         layoutWidth.current = el.clientWidth;
         setWidth(el.clientWidth);
@@ -260,7 +339,7 @@ export function Wall({
     const ro = new ResizeObserver(() => flushSync(sync));
     ro.observe(el);
     return () => ro.disconnect();
-  }, [holdReflow, measureBeforeReflow]);
+  }, [measureBeforeReflow]);
 
   /** 已经放出（不再遮蔽）的含成人内容的图。 */
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
@@ -281,9 +360,9 @@ export function Wall({
     () =>
       masonry(
         cards.map((c) => ({ w: c.width, h: c.height })),
-        { width, target: TARGET, gap: GAP, pad: PAD, capRatio: CAP_RATIO },
+        { width, target: previewDensity ?? density, gap: GAP, pad: PAD, capRatio: CAP_RATIO },
       ),
-    [cards, width],
+    [cards, width, density, previewDensity],
   );
 
   // 布局变化（宽度、新的一批卡片）后把锚定的图放回原来的位置。
@@ -368,7 +447,10 @@ export function Wall({
       pivot.current = id;
       onSelectionChange(new Set(dragged));
     }
-    e.dataTransfer.setData(DRAG_IMAGES, JSON.stringify(dragged));
+    const sourceIds = workspaceScope?.kind === "library"
+      ? dragged.flatMap((id) => cards.find((c) => c.id === id)?.sources?.filter((s) => s.libraryId === workspaceScope.libraryId && !s.unavailable).map((s) => s.imageId) ?? [])
+      : dragged;
+    e.dataTransfer.setData(DRAG_IMAGES, JSON.stringify(sourceIds));
     e.dataTransfer.effectAllowed = "copyMove";
   };
 
@@ -384,17 +466,21 @@ export function Wall({
             const card = cards[i];
             const b = layout.boxes[i];
             const veiled = card.adult && (safeMode || !revealed.has(card.id));
+            const sources = card.libraryId && card.imageId ? card.sources ?? [] : [];
             return (
+              <Fragment key={card.id}>
               <div
-                key={card.id}
                 className="card"
                 data-id={card.id}
                 aria-selected={selected.has(card.id)}
                 role="option"
                 tabIndex={0}
                 data-veiled={veiled}
-                draggable
-                onClick={(e) => select(card.id, e)}
+                draggable={!workspaceScope || workspaceScope.kind === "library"}
+                onClick={(e) => {
+                  if (e.ctrlKey || e.metaKey || e.shiftKey) select(card.id, e);
+                  else open(card);
+                }}
                 onDoubleClick={() => open(card)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") { e.preventDefault(); open(card); }
@@ -405,10 +491,18 @@ export function Wall({
               >
                 <img src={thumbnailUrl(card.thumbnail)} alt="参考图" decoding="async" draggable={false} />
               </div>
+              {/* 来源按钮是卡片选项的兄弟，不在选项里：选项内不放可聚焦的子元素。 */}
+              {sources.length > 0 && <button type="button" className={`card-sources${sources.length === 1 ? " is-single" : ""}`} data-card={card.id}
+                aria-label={sources.length >= 2 ? `在 ${sources.length} 个图库 · 查看详情` : `来源：${sources[0].libraryName} · 查看详情`}
+                title={sources.length >= 2 ? `在 ${sources.length} 个图库` : `在「${sources[0].libraryName}」`}
+                style={{ left: `${b.x + b.w - 8}px`, top: `${b.y + b.h - 8}px` }}
+                onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; onInspectSources?.(card as WorkspaceCard); }}
+                onKeyDown={(e) => e.stopPropagation()}><Layers size={11} aria-hidden="true" />{sources.length >= 2 && `${sources.length} 处`}</button>}
+              </Fragment>
             );
           })}
         </div>
       )}
     </div>
   );
-}
+});

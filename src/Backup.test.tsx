@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { BackupPreview } from "./bindings/BackupPreview";
 import type { BackupStatus } from "./bindings/BackupStatus";
@@ -65,11 +65,16 @@ describe("设置：备份", () => {
     window.__KINSHOKO_TEST_PICKS__ = ["E:\\备份"];
     render(<BackupSettings />);
 
-    expect(await screen.findByText(/还没有选择备份目录/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "选择备份目录…" }));
+    const where = await screen.findByRole("listitem", { name: "备份位置" });
+    expect(where.textContent).toMatch(/还没选/);
+    expect(screen.getByRole("list", { name: "图库" })).toBeTruthy();
+    expect(screen.getByText(/恢复不改当前设置/)).toBeTruthy();
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "立即备份" }).disabled).toBe(true);
+    fireEvent.click(within(where).getByRole("button", { name: "选择…" }));
     await screen.findByText("E:\\备份");
     expect(calls.find((c) => c.cmd === "set_backup_target")?.args).toEqual({ target: "E:\\备份" });
-    expect(screen.getByText(/上次备份：2026-10-05 08:00/)).toBeTruthy();
+    expect(screen.getByText("2026-10-05 08:00")).toBeTruthy();
+    expect(screen.getByText("已备份")).toBeTruthy();
   });
 
   it("按库缩小范围时列出带上的参考组、没覆盖的内容与容量", async () => {
@@ -81,11 +86,11 @@ describe("设置：备份", () => {
     });
     render(<BackupSettings />);
 
-    fireEvent.click(await screen.findByRole("radio", { name: "只备份所选资料库" }));
+    fireEvent.change(await screen.findByRole("combobox", { name: "备份范围" }), { target: { value: "libraries" } });
     const main = await screen.findByRole("checkbox", { name: "主库" });
     fireEvent.click(main);
     await waitFor(() => expect((main as HTMLInputElement).checked).toBe(true));
-    fireEvent.click(screen.getByRole("checkbox", { name: "一起备份参考组还引用的资料库" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "带上参考组引用的图库" }));
     await waitFor(() =>
       expect(calls.filter((c) => c.cmd === "set_backup_selection").at(-1)?.args).toEqual({
         selection: { kind: "libraries", ids: ["A"], includeLinked: false },
@@ -102,7 +107,7 @@ describe("设置：备份", () => {
       return undefined;
     });
     render(<BackupSettings />);
-    fireEvent.click(await screen.findByRole("button", { name: "马上备份" }));
+    fireEvent.click(await screen.findByRole("button", { name: "立即备份" }));
     await waitFor(() => expect(calls.some((c) => c.cmd === "start_backup")).toBe(true));
     cleanup();
 
@@ -113,7 +118,7 @@ describe("设置：备份", () => {
     });
     render(<BackupSettings />);
     expect(await screen.findByText("正在备份：原图 3／10")).toBeTruthy();
-    expect((screen.getByRole("button", { name: "马上备份" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "立即备份" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("从快照恢复后显示往返检查结果", async () => {
@@ -144,9 +149,9 @@ describe("设置：备份", () => {
     window.__KINSHOKO_TEST_PICKS__ = ["F:\\恢复"];
     render(<BackupSettings />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "从备份恢复…" }));
-    fireEvent.click(await screen.findByRole("button", { name: "恢复 2026-10-05 08:00 的快照" }));
-    expect(await screen.findByText(/往返检查通过/)).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "选择备份…" }));
+    fireEvent.click(await screen.findByRole("button", { name: "恢复 2026-10-05 08:00 的备份" }));
+    expect(await screen.findByText("完整")).toBeTruthy();
     expect(screen.getByText(/原图 12 张哈希一致/)).toBeTruthy();
     expect(screen.getByText(/主库（恢复）/)).toBeTruthy();
     expect(calls.find((c) => c.cmd === "restore_backup")?.args).toEqual({

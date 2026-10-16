@@ -17,7 +17,10 @@
         "width": 1280,
         "height": 800,
         "minWidth": 640,
-        "minHeight": 480
+        "minHeight": 480,
+        "decorations": false,
+        "shadow": true,
+        "resizable": true
       }
     ],
     "security": {
@@ -48,6 +51,7 @@
   },
   "plugins": {
     "updater": {
+      "releaseStage": "private",
       "pubkey": "",
       "endpoints": [
         "https://github.com/Yukk1No/kinshoko/releases/latest/download/latest.json"

@@ -12,6 +12,7 @@
 //! - 参考组（#66）：桌面上的资料库钉图存成参考组、打开参考组把成员钉到桌面（[`groups`]）。
 
 mod capture;
+mod clipboard;
 mod edge;
 mod groups;
 mod pins;
@@ -20,7 +21,7 @@ pub(crate) mod win32;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
 use kinshoko_core::ShortcutAction;
@@ -48,8 +49,10 @@ const LIBRARY_EVENT: &str = "library-event";
 
 pub struct DesktopState {
     history: Mutex<CaptureHistory>,
+    pending_collection: Mutex<Option<String>>,
     capture: Mutex<capture::Session>,
-    viewer_reference: Mutex<Option<capture::ViewerReport>>,
+    capture_frames: capture::FrameChannel,
+    capture_geometry_generation: AtomicU64,
     /// 本次运行中打开着的钉图窗口。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
     /// 钉图状态（`pins.json`），重新打开后恢复。
@@ -72,9 +75,23 @@ fn state(app: &AppHandle) -> &DesktopState {
 }
 
 /// 原生主窗口销毁或重建时也必须清除来源；WebView 销毁不运行 React 的 unmount。
-pub fn clear_viewer_reference(app: &AppHandle) {
+pub fn clear_viewer_reference<R: tauri::Runtime>(app: &AppHandle<R>) {
     if let Some(state) = app.try_state::<DesktopState>() {
-        *lock(&state.viewer_reference) = None;
+        state.capture_frames.invalidate();
+        state
+            .capture_geometry_generation
+            .fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+/// Native geometry changes are causal even when a window returns to exactly the same rectangle.
+pub fn capture_geometry_changed<R: tauri::Runtime>(app: &tauri::AppHandle<R>, label: &str) {
+    if (label == "main" || label.starts_with("pin-"))
+        && let Some(state) = app.try_state::<DesktopState>()
+    {
+        state
+            .capture_geometry_generation
+            .fetch_add(1, Ordering::SeqCst);
     }
 }
 
@@ -98,7 +115,7 @@ pub fn init() -> TauriPlugin<Wry> {
     Builder::new("desktop")
         .invoke_handler(tauri::generate_handler![
             capture::start_capture,
-            capture::set_capture_reference,
+            capture::report_capture_references,
             capture::frozen_screen,
             capture::capture_ready,
             capture::finish_capture,
@@ -108,6 +125,7 @@ pub fn init() -> TauriPlugin<Wry> {
             pins::pin_frame,
             pins::pin_ready,
             pins::pin_menu,
+            pins::close_pin,
             pins::move_pin,
             pins::zoom_pin,
             pins::turn_pin,
@@ -130,6 +148,7 @@ pub fn init() -> TauriPlugin<Wry> {
             edge_hide,
             capture_history,
             collect_capture,
+            take_collection_request,
             delete_capture,
         ])
         .setup(|app, _api| {
@@ -142,8 +161,10 @@ pub fn init() -> TauriPlugin<Wry> {
             let groups = ReferenceGroups::open(&dir.join(GROUPS_DIR))?;
             app.manage(DesktopState {
                 history: Mutex::new(history),
+                pending_collection: Mutex::new(None),
                 capture: Mutex::new(capture::Session::Idle),
-                viewer_reference: Mutex::default(),
+                capture_frames: capture::FrameChannel::default(),
+                capture_geometry_generation: AtomicU64::new(0),
                 pins: Mutex::default(),
                 store: Mutex::new(store),
                 dirty: AtomicBool::new(false),
@@ -164,6 +185,11 @@ pub fn init() -> TauriPlugin<Wry> {
                     let app = handle.clone();
                     std::thread::spawn(move || pins::safe_mode_changed(&app, on));
                 }
+            });
+            let settings_handle = app.clone();
+            app.listen_any("application-settings-restored", move |_| {
+                let app = settings_handle.clone();
+                std::thread::spawn(move || pins::references_changed(&app));
             });
             edge::start(app);
             // 恢复上次的钉图：建窗口要等事件循环跑起来，放到别的线程。
@@ -231,17 +257,16 @@ fn history_changed(app: &AppHandle) {
     let _ = app.emit(HISTORY_EVENT, entries);
 }
 
-/// 收藏：经资料库的普通导入入口，存进当前资料库。会等导入完成，不要在主线程上调用。
-fn collect(app: &AppHandle, capture_id: &str) -> Result<(CollectedCapture, String), String> {
-    let library_id = library::current_or_last(app)?.info().id.clone();
-    let collected = library::with_collection(app, &library_id, |library| {
-        let collected = lock(&state(app).history)
-            .collect(capture_id, library)
-            .map_err(|e| e.to_string())?;
-        Ok((collected, library.info().name.clone()))
-    })?;
-    history_changed(app);
-    Ok(collected)
+/// Native pin menus request a visible destination in the main window before saving.
+fn request_collection(app: &AppHandle, id: &str) {
+    *lock(&state(app).pending_collection) = Some(id.into());
+    shell::open_main_window(app);
+    let _ = app.emit("capture-collection-request", ());
+}
+
+#[tauri::command]
+async fn take_collection_request(app: AppHandle) -> Option<String> {
+    lock(&state(&app).pending_collection).take()
 }
 
 #[tauri::command]
@@ -250,10 +275,26 @@ async fn capture_history(app: AppHandle) -> Vec<CaptureEntry> {
 }
 
 #[tauri::command]
-async fn collect_capture(app: AppHandle, id: String) -> Result<CollectedCapture, String> {
-    tauri::async_runtime::spawn_blocking(move || collect(&app, &id).map(|(c, _)| c))
-        .await
-        .map_err(|e| e.to_string())?
+async fn collect_capture(
+    app: AppHandle,
+    id: String,
+    destination: kinshoko_core::library::SaveDestination,
+) -> Result<CollectedCapture, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let collected = library::with_destination_published(&app, &destination, |library| {
+            let pending = lock(&state(&app).history)
+                .prepare_collect(&id)
+                .map_err(|e| e.to_string())?;
+            let collected = pending.import(library).map_err(|e| e.to_string())?;
+            lock(&state(&app).history)
+                .finish_collect(collected)
+                .map_err(|e| e.to_string())
+        })?;
+        history_changed(&app);
+        Ok(collected)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// 贴边隐藏全部钉图，或让它们回到原位（与全局快捷键相同）。
@@ -347,4 +388,25 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     }
     tray.build(app)?;
     Ok(())
+}
+
+/// Update reveal authority during the actual mode commit, before emitting delayed events.
+/// Caller holds visibility_commit; this performs no window operations or dispatch.
+pub fn safe_mode_committed<R: tauri::Runtime>(app: &AppHandle<R>, safe: bool) {
+    if let Some(state) = app.try_state::<DesktopState>() {
+        lock(&state.veils).set_safe_mode(safe);
+    }
+}
+
+/// Revoke previous configuration views immediately, including same-mode explicit pin reveals.
+/// Caller holds visibility_commit. Native destruction callbacks only dispatch background cleanup.
+pub fn settings_restored<R: tauri::Runtime>(app: &AppHandle<R>, safe: bool) {
+    let state = app.state::<DesktopState>();
+    *lock(&state.veils) = PinVeils::new(safe);
+    clear_viewer_reference(app);
+    *lock(&state.capture) = capture::Session::Idle;
+    if let Some(window) = app.get_webview_window(capture::CAPTURE_WINDOW) {
+        let _ = window.destroy();
+    }
+    let _ = app.emit("application-settings-restored", ());
 }

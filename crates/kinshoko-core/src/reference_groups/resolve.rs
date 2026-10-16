@@ -76,17 +76,28 @@ pub trait ReferenceSource {
 
     /// 参考图及是否需要遮蔽；不能显示时给出原因。回收站里的图照常可用。
     fn image(&self, library_id: &str, image_id: &str) -> Result<ReferenceImage, UnavailableReason> {
-        let lens = self.lens(library_id)?;
-        let image = lens.image(image_id).map_err(|e| match e {
-            Error::UnknownImage => UnavailableReason::ImageMissing,
-            other => UnavailableReason::LibraryUnavailable {
-                detail: other.to_string(),
-            },
-        })?;
-        match lens.original_path(image_id) {
-            Ok(path) if path.is_file() => Ok(image),
-            _ => Err(UnavailableReason::OriginalMissing),
-        }
+        checked_image(&self.lens(library_id)?, image_id, None)
+    }
+}
+
+fn checked_image(
+    lens: &ReferenceLens,
+    image_id: &str,
+    safe_mode: Option<bool>,
+) -> Result<ReferenceImage, UnavailableReason> {
+    let image = match safe_mode {
+        Some(safe) => lens.image_with_mode(image_id, safe),
+        None => lens.image(image_id),
+    }
+    .map_err(|e| match e {
+        Error::UnknownImage => UnavailableReason::ImageMissing,
+        other => UnavailableReason::LibraryUnavailable {
+            detail: other.to_string(),
+        },
+    })?;
+    match lens.original_path(image_id) {
+        Ok(path) if path.is_file() => Ok(image),
+        _ => Err(UnavailableReason::OriginalMissing),
     }
 }
 
@@ -179,12 +190,23 @@ pub struct References<'a> {
     /// 本设备登记的资料库。
     pub registry: &'a [RegisteredLibrary],
     pub detached: &'a DetachedLenses,
-    /// 安全模式设置：只读打开的库跟随它标记需要遮蔽的图。
+    /// Current application mode for this operation, including active and detached references.
     pub safe_mode: bool,
 }
 
 impl ReferenceSource for References<'_> {
+    fn image(&self, library_id: &str, image_id: &str) -> Result<ReferenceImage, UnavailableReason> {
+        checked_image(&self.lens(library_id)?, image_id, Some(self.safe_mode))
+    }
+
     fn lens(&self, library_id: &str) -> Result<ReferenceLens, UnavailableReason> {
+        // A retained active Arc is not registration authority. Unregister commits the
+        // registry first; asynchronous reference cleanup may not have run yet.
+        let library = self
+            .registry
+            .iter()
+            .find(|l| l.id == library_id)
+            .ok_or(UnavailableReason::LibraryNotRegistered)?;
         if let Some(lens) = self
             .current
             .as_ref()
@@ -192,11 +214,6 @@ impl ReferenceSource for References<'_> {
         {
             return Ok(lens.clone());
         }
-        let library = self
-            .registry
-            .iter()
-            .find(|l| l.id == library_id)
-            .ok_or(UnavailableReason::LibraryNotRegistered)?;
         self.detached.get(library, self.safe_mode)
     }
 }

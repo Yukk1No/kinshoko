@@ -1,0 +1,6 @@
+{
+  "observedBeforeDocumentationCommit": "2026-10-08T18:57:25.607191+00:00",
+  "copiesChecked": 91,
+  "method": "Raw source/copy SHA manifest plus git cat-file --batch of each staged blob. Every staged copy equals its documented original SHA; reconstructed scripts separately match original execution SHA.",
+  "productGitDiffFrom546": []
+}

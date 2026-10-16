@@ -1,0 +1,53 @@
+{
+  "baseline": "cd927eeeb5420090511c67927157ffc833a84a3b",
+  "baselineTree": "49b40868cdefa4dca7d51080488a880c6b8da240",
+  "state": "baseline plus exact dirty patch; second public GREEN source",
+  "command": "cargo test -p kinshoko-core --test capture_history --test reference_capture_actions",
+  "files": [
+    {
+      "path": "crates/kinshoko-core/src/desktop/capture.rs",
+      "bytes": 10842,
+      "sha256": "b5bbce78dc72d394bbcaed3c873144dce9de899cabd9d09c2373731a4d58c873"
+    },
+    {
+      "path": "crates/kinshoko-core/src/desktop/history.rs",
+      "bytes": 17541,
+      "sha256": "575a0454d13e678479a91c707adc6946ae6dadb90e1d065a8d30ede1ad9614f8"
+    },
+    {
+      "path": "crates/kinshoko-core/src/desktop/mod.rs",
+      "bytes": 1826,
+      "sha256": "92276ae8d70b3440637360eb11751e9337e05e7fd11c76df3739c545f7aa0f26"
+    },
+    {
+      "path": "crates/kinshoko-core/tests/capture_history.rs",
+      "bytes": 18118,
+      "sha256": "738072f1793c37cc3c1fe362946a653ed3853d6cb687137022f6eae811510980"
+    },
+    {
+      "path": "crates/kinshoko-core/tests/reference_capture_actions.rs",
+      "bytes": 32620,
+      "sha256": "f00d505101ac31d263e9b70f99ac03da4988ac9228e4f9047750e6287c90764f"
+    },
+    {
+      "path": "src-tauri/src/desktop/capture.rs",
+      "bytes": 21026,
+      "sha256": "83ae92f90eacae5e6a523937f1265c2e9cafc333a6c61c922816667d10ed8335"
+    },
+    {
+      "path": "src-tauri/src/desktop/groups.rs",
+      "bytes": 13012,
+      "sha256": "f0ce97becf258d5351aebc5b6324402374cb393e373033fb1b17bd579f6dbc30"
+    },
+    {
+      "path": "src-tauri/src/desktop/mod.rs",
+      "bytes": 16855,
+      "sha256": "9b9aec90461024ba0498797bbdf3f3196fb1175829fbc2a3e8ec52f4f25e8eca"
+    },
+    {
+      "path": "src-tauri/src/desktop/pins.rs",
+      "bytes": 39876,
+      "sha256": "99a0525a9df3a0b289e48189d7eb534d491e4cd01727478ad057b3ecda490d3a"
+    }
+  ]
+}

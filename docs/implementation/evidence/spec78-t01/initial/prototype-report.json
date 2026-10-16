@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "sourceCommit": "bd8aea44c4a311571ee3c07382cb7755f87f3153",
+  "viewport": {
+    "dpr": 1.1041666269302368,
+    "height": 801,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "width": 1281
+  },
+  "fonts": true,
+  "samples": 43,
+  "singleClickReturnFocus": true,
+  "humanAcceptance": "unverified"
+}
