@@ -4,6 +4,9 @@
 //! - 命令都是 async，阻塞工作放进 `spawn_blocking`，不占用主线程；
 //! - 本设备可登记多个资料库，同一时间一个活动资料库（#49）。保存命令固定库和目录；来源整理命令带明确来源。浏览命令带界面正在操作的
 //!   资料库 id，切换后旧请求得到错误，不会落到新库上；
+//! - 界面上没有“当前资料库”（ADR-0008，#112）：整理命令（文件夹、放入、回收站、标签）带资料库身份，
+//!   由 [`writable`] 把唯一的可写句柄按需切过去；该库或当前持有者有导入在收尾时等它结束再执行，
+//!   并推送 `organize-waiting` 作为轻提示；
 //! - 资料库事件转发为窗口事件 `library-event`，按来源身份转发；导入回执独立保留任务所属库和目录；
 //! - 缩略图走自定义协议 `thumb`：`<资料库 id>/<参考图 id>/<像素档位>`，缓存缺失时现场生成；
 //! - 安全模式（#60）：开关保存在应用壳设置里，打开资料库与切换时设给当前资料库。这里的命令都是
@@ -38,13 +41,17 @@ use kinshoko_core::library::{
     PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar, TagAlias, TagEdit, TagGroupView,
     TagNamespace, TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
 };
+use kinshoko_core::library_batch::{
+    LibraryBatchFailure, LibraryDeletePreview, LibraryDeleteToken, LibraryTarget, each_library,
+    group_by_library,
+};
 use kinshoko_core::reference_groups::{DetachedLenses, References};
 use kinshoko_core::search::{Candidate, ConditionTree, Search, SearchCache, SearchInput};
 use kinshoko_core::tag_catalog::{
     CatalogCorrection, CatalogError, CatalogImageTags, TagCatalog, TagCatalogWorkspace,
 };
 use kinshoko_core::{
-    DeviceLibraries, DeviceLibraryError, DeviceRegistry, Library, LibraryRegistration,
+    DeviceLibraries, DeviceLibraryError, DeviceRegistry, Library, LibraryRegistration, WriterAccess,
 };
 use tauri::http::{Response, StatusCode, header};
 use tauri::plugin::{Builder, TauriPlugin};
@@ -59,6 +66,13 @@ const EVENT: &str = "library-event";
 /// 安全模式（应用设置）开关后推送，载荷为开关状态。不论有没有打开资料库都推送：
 /// 桌面钉图据此重新核对遮蔽（#65）。
 pub const SAFE_MODE_EVENT: &str = "safe-mode-setting";
+/// 整理在等某个库的导入收尾（#112），载荷为 `OrganizeWaiting`；界面据此给轻提示。
+const ORGANIZE_WAITING_EVENT: &str = "organize-waiting";
+/// 整理时后端把唯一的可写句柄切到了另一个库（#112），载荷为它的 `LibraryInfo`。只给跟着可写库走的
+/// 界面部分（自动标签）用；浏览范围与导入回执不随它变。
+const WRITABLE_LIBRARY_EVENT: &str = "writable-library";
+/// 等导入收尾时每次最多等这么久，然后重新检查（收尾结束会立即唤醒）。
+const ORGANIZE_RECHECK: std::time::Duration = std::time::Duration::from_millis(500);
 
 struct LibraryState {
     device_dir: PathBuf,
@@ -232,6 +246,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             edit,
             preview_permanent_delete,
             permanent_delete,
+            preview_permanent_delete_batch,
+            permanent_delete_batch,
             sidebar,
             create_folder,
             rename_folder,
@@ -504,9 +520,41 @@ pub fn current_or_last<R: Runtime>(app: &AppHandle<R>) -> Result<Arc<Library>, S
     restore(app)?.ok_or_else(|| "还没有资料库".to_owned())
 }
 
-/// 界面正在操作的资料库（浏览视角）；已切换或关闭时返回错误。
-pub fn current<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<Arc<Library>, String> {
-    app.state::<LibraryState>().current(library_id)
+/// 画师要整理的资料库（ADR-0008）：后端只为一个库持有可写句柄，整理哪个库就按需切过去并装配它
+/// （安全模式、打标、事件转发），不改“上次打开”。该库或当前持有者有导入在收尾时，推送一次
+/// `organize-waiting` 轻提示，等收尾结束后再取，请求不丢失、只执行一次。会阻塞，只在阻塞任务里调用。
+pub fn writable<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<Arc<Library>, String> {
+    let state = app.state::<LibraryState>();
+    let mut hinted = false;
+    loop {
+        let access = {
+            let _transition = lock(&state.transition);
+            let access = with_visibility_commit(app, |_| {
+                with_libraries(&state.device_dir, &state.libraries, |libraries| {
+                    libraries.organize(library_id)
+                })
+            })?;
+            if let WriterAccess::Ready {
+                library,
+                switched: true,
+            } = &access
+            {
+                let info = forward_events(app, &state, library.clone());
+                let _ = app.emit(WRITABLE_LIBRARY_EVENT, info);
+            }
+            access
+        };
+        match access {
+            WriterAccess::Ready { library, .. } => return Ok(library),
+            WriterAccess::Waiting(wait) => {
+                if !hinted {
+                    hinted = true;
+                    let _ = app.emit(ORGANIZE_WAITING_EVENT, &wait.notice);
+                }
+                wait.wait(ORGANIZE_RECHECK);
+            }
+        }
+    }
 }
 
 /// Validate the exact visible workspace source before creating a desktop reference.
@@ -763,10 +811,9 @@ async fn edit<R: Runtime>(
     edits: Vec<ImageEdit>,
 ) -> Result<Vec<ImageDetail>, String> {
     blocking(move || {
+        let library = writable(&app, &library_id)?;
         with_visibility_commit(&app, |_| {
-            current(&app, &library_id)?
-                .edit(&ids, &edits)
-                .map_err(|e| e.to_string())
+            library.edit(&ids, &edits).map_err(|e| e.to_string())
         })
     })
     .await
@@ -780,8 +827,8 @@ async fn preview_permanent_delete<R: Runtime>(
     library_id: String,
     ids: Vec<String>,
 ) -> Result<PermanentDeletePreview, String> {
-    let library = current(&app, &library_id)?;
     blocking(move || {
+        let library = writable(&app, &library_id)?;
         crate::desktop::with_groups(&app, |groups| {
             library.preview_permanent_delete(&ids, groups)
         })
@@ -801,8 +848,8 @@ async fn permanent_delete<R: Runtime>(
     token: String,
 ) -> Result<(), String> {
     blocking(move || {
+        let library = writable(&app, &library_id)?;
         with_visibility_commit(&app, |_| {
-            let library = current(&app, &library_id)?;
             crate::desktop::with_groups(&app, |groups| {
                 library.permanent_delete(&ids, &token, groups)
             })
@@ -815,6 +862,75 @@ async fn permanent_delete<R: Runtime>(
     .await
 }
 
+/// 跨图库的永久删除预览（#112）：按图库分组，逐组按需切换可写句柄再预览；某个图库核对不了
+/// （断连等）时只在它那一组带上原因，其他组照常返回。
+#[tauri::command]
+async fn preview_permanent_delete_batch<R: Runtime>(
+    app: AppHandle<R>,
+    targets: Vec<LibraryTarget>,
+) -> Result<Vec<LibraryDeletePreview>, String> {
+    blocking(move || {
+        let previews = each_library(group_by_library(&targets), |batch| {
+            let library = writable(&app, &batch.library_id)?;
+            crate::desktop::with_groups(&app, |groups| {
+                library.preview_permanent_delete(&batch.image_ids, groups)
+            })
+            .ok_or_else(|| "参考组还没有准备好".to_owned())?
+            .map_err(|e| e.to_string())
+        });
+        Ok(previews
+            .into_iter()
+            .map(|(batch, result)| match result {
+                Ok(preview) => LibraryDeletePreview {
+                    library_id: batch.library_id,
+                    preview: Some(preview),
+                    error: None,
+                },
+                Err(error) => LibraryDeletePreview {
+                    library_id: batch.library_id,
+                    preview: None,
+                    error: Some(error),
+                },
+            })
+            .collect())
+    })
+    .await
+}
+
+/// 按各图库的预览令牌逐组永久删除（#112）：每组按需切换可写句柄（等导入收尾），一组失败不影响
+/// 其他组；返回没有完成的图库与原因，全部完成时为空。
+#[tauri::command]
+async fn permanent_delete_batch<R: Runtime>(
+    app: AppHandle<R>,
+    groups: Vec<LibraryDeleteToken>,
+) -> Result<Vec<LibraryBatchFailure>, String> {
+    blocking(move || {
+        let results = each_library(groups, |group| {
+            let library = writable(&app, &group.library_id)?;
+            with_visibility_commit(&app, |_| {
+                crate::desktop::with_groups(&app, |usage| {
+                    library.permanent_delete(&group.image_ids, &group.token, usage)
+                })
+                .ok_or_else(|| "参考组还没有准备好".to_owned())?
+                .map_err(|e| e.to_string())
+            })
+        });
+        if results.iter().any(|(_, result)| result.is_ok()) {
+            crate::desktop::reference_groups_changed(&app);
+        }
+        Ok(results
+            .into_iter()
+            .filter_map(|(group, result)| {
+                result.err().map(|error| LibraryBatchFailure {
+                    library_id: group.library_id,
+                    error,
+                })
+            })
+            .collect())
+    })
+    .await
+}
+
 #[tauri::command]
 async fn sidebar(state: State<'_, LibraryState>, library_id: String) -> Result<Sidebar, String> {
     let library = state.current(&library_id)?;
@@ -822,15 +938,14 @@ async fn sidebar(state: State<'_, LibraryState>, library_id: String) -> Result<S
 }
 
 #[tauri::command]
-async fn create_folder(
-    state: State<'_, LibraryState>,
+async fn create_folder<R: Runtime>(
+    app: AppHandle<R>,
     library_id: String,
     name: String,
     parent: Option<String>,
 ) -> Result<String, String> {
-    let library = state.current(&library_id)?;
     blocking(move || {
-        library
+        writable(&app, &library_id)?
             .create_folder(&name, parent.as_deref())
             .map_err(|e| e.to_string())
     })
@@ -838,15 +953,14 @@ async fn create_folder(
 }
 
 #[tauri::command]
-async fn rename_folder(
-    state: State<'_, LibraryState>,
+async fn rename_folder<R: Runtime>(
+    app: AppHandle<R>,
     library_id: String,
     folder_id: String,
     name: String,
 ) -> Result<(), String> {
-    let library = state.current(&library_id)?;
     blocking(move || {
-        library
+        writable(&app, &library_id)?
             .rename_folder(&folder_id, &name)
             .map_err(|e| e.to_string())
     })
@@ -854,16 +968,15 @@ async fn rename_folder(
 }
 
 #[tauri::command]
-async fn move_folder(
-    state: State<'_, LibraryState>,
+async fn move_folder<R: Runtime>(
+    app: AppHandle<R>,
     library_id: String,
     folder_id: String,
     parent: Option<String>,
     position: u32,
 ) -> Result<(), String> {
-    let library = state.current(&library_id)?;
     blocking(move || {
-        library
+        writable(&app, &library_id)?
             .move_folder(&folder_id, parent.as_deref(), position)
             .map_err(|e| e.to_string())
     })
@@ -1102,13 +1215,12 @@ async fn correct_tag_mapping<R: Runtime>(
 #[tauri::command]
 async fn edit_tags<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
     image_ids: Vec<String>,
     edits: Vec<TagEdit>,
 ) -> Result<(), String> {
-    let library = state.current(&library_id)?;
     blocking(move || {
+        let library = writable(&app, &library_id)?;
         library.edit_tags(&image_ids, &edits).map_err(|e| e.to_string())?;
         publish_definition_dependencies(&app, &library_id).map_err(|error| format!("标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))
     })

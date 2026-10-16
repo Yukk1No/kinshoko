@@ -37,6 +37,8 @@ fn main() {
                         "edit",
                         "preview_permanent_delete",
                         "permanent_delete",
+                        "preview_permanent_delete_batch",
+                        "permanent_delete_batch",
                         "sidebar",
                         "create_folder",
                         "rename_folder",

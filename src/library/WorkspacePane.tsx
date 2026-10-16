@@ -111,7 +111,7 @@ export function WorkspacePane({ status, scope, onScope, activeLibraryId, safeMod
           {onRecheck && <button type="button" className="offline-retry" onClick={onRecheck}><RefreshCw size={11} aria-hidden="true" />重新连接</button>}
         </div>}
         {expanded && sidebar && <SidebarPane directory={sidebar} unassigned={unassigned} descendantCounts={counts} includeDescendants={descendants} embedded libraryName={library.name + " / " + library.root}
-          libraryId={library.id} workspace safeMode={safeMode} readOnly={library.id !== activeLibraryId} showTrash={false}
+          libraryId={library.id} workspace safeMode={safeMode} showTrash={false}
           scopeSelected={selectedRoot} scope={selectedRoot ? scope.scope : { kind: "all" }}
           onScope={(next) => onScope({ kind: "library", libraryId: library.id, scope: next.kind === "folder" || next.kind === "folderTree" ? { kind: descendants ? "folderTree" : "folder", id: next.id } : next })}
           reloadKey={reloadKey} onError={onError} />}

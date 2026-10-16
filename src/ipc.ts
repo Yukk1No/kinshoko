@@ -13,6 +13,11 @@ import type { CatalogNameEdit } from "./bindings/CatalogNameEdit";
 import type { ImportOptions } from "./bindings/ImportOptions";
 import type { RuntimeCapabilities } from "./bindings/RuntimeCapabilities";
 import type { RuntimeStatus } from "./bindings/RuntimeStatus";
+import type { OrganizeWaiting } from "./bindings/OrganizeWaiting";
+import type { LibraryTarget } from "./bindings/LibraryTarget";
+import type { LibraryDeletePreview } from "./bindings/LibraryDeletePreview";
+import type { LibraryDeleteToken } from "./bindings/LibraryDeleteToken";
+import type { LibraryBatchFailure } from "./bindings/LibraryBatchFailure";
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
 import { Channel, convertFileSrc, invoke } from "@tauri-apps/api/core";
@@ -147,6 +152,18 @@ export function editImages(libraryId: string, ids: string[], edits: ImageEdit[])
  */
 export function previewPermanentDelete(libraryId: string, ids: string[]): Promise<PermanentDeletePreview> {
   return invoke<PermanentDeletePreview>(lib("preview_permanent_delete"), { libraryId, ids });
+}
+
+/**
+ * 跨图库的永久删除预览（#112）：后端按图库分组，逐组切换可写句柄预览；核对不了的图库只带原因。
+ */
+export function previewPermanentDeleteBatch(targets: LibraryTarget[]): Promise<LibraryDeletePreview[]> {
+  return invoke<LibraryDeletePreview[]>(lib("preview_permanent_delete_batch"), { targets });
+}
+
+/** 按各图库的预览令牌逐组永久删除；返回没删完的图库与原因，全部完成时为空。 */
+export function permanentDeleteBatch(groups: LibraryDeleteToken[]): Promise<LibraryBatchFailure[]> {
+  return invoke<LibraryBatchFailure[]>(lib("permanent_delete_batch"), { groups });
 }
 
 /** 按预览的令牌永久删除回收站里的图；预览之后有变化时被拒绝（{@link isDeletePreviewStale}）。 */
@@ -354,6 +371,19 @@ export function onSafeModeSetting(handler: (on: boolean) => void): Promise<Unlis
 }
 export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<UnlistenFn> {
   return listen<LibraryEvent>("library-event", (e) => handler(e.payload));
+}
+
+/**
+ * 整理另一个图库时后端把唯一的可写句柄切了过去（ADR-0008，#112）。界面没有“当前图库”，
+ * 只有跟着可写库走的部分（自动标签）需要知道。
+ */
+export function onWritableLibrary(handler: (library: LibraryInfo) => void): Promise<UnlistenFn> {
+  return listen<LibraryInfo>("writable-library", (e) => handler(e.payload));
+}
+
+/** 整理在等某个图库的导入收尾（#112）：完成后自动执行，界面只给轻提示。 */
+export function onOrganizeWaiting(handler: (waiting: OrganizeWaiting) => void): Promise<UnlistenFn> {
+  return listen<OrganizeWaiting>("organize-waiting", (e) => handler(e.payload));
 }
 
 /** 卡片上的缩略图地址（自定义协议 thumb）转成 <img> 可用的 URL。 */

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { WorkspacePane } from "./WorkspacePane";
+import { DRAG_IMAGE_SOURCES, DRAG_IMAGES } from "../wall/Wall";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 const registrations = ["A", "B"].map((id) => ({ library: { id, name: "参考", root: `D:\\${id}\\参考` }, unavailable: null }));
@@ -38,8 +39,61 @@ it("每库为独立根展示完整目录，选择目录默认包含子文件夹�
   expect(props.onScope).toHaveBeenLastCalledWith({ kind: "library", libraryId: "A", scope: { kind: "folder", id: "A-root" } });
   fireEvent.click(within(b).getByRole("button", { name: "动作（1 张）" }));
   expect(props.onScope).toHaveBeenLastCalledWith({ kind: "library", libraryId: "B", scope: { kind: "folder", id: "B-child" } });
-  expect(within(a).getByRole("button", { name: "新建文件夹" })).toHaveProperty("disabled", true);
-  expect(within(b).getByRole("button", { name: "新建文件夹" })).toHaveProperty("disabled", false);
+});
+it("每个已连接图库的目录都可以直接整理，请求带上该图库的身份（ADR-0008，#112）", async () => {
+  const calls: { command: string; args: Record<string, unknown> }[] = [];
+  mockIPC((command, args) => {
+    if (command === "plugin:library|workspace_directories") return new Promise<WorkspaceDirectories>((resolve, reject) => pending.push({ safeMode: (args as { safeMode: boolean }).safeMode, resolve, reject }));
+    calls.push({ command, args: args as Record<string, unknown> });
+    if (command === "plugin:library|create_folder") return "new-folder";
+    return null;
+  });
+  render(<WorkspacePane {...props} activeLibraryId="B" />);
+  await settle();
+  await act(async () => pending[0].resolve(forest()));
+  const a = document.querySelector<HTMLElement>('[data-library-id="A"]')!;
+  const add = within(a).getByRole("button", { name: "新建文件夹" });
+  expect(add).toHaveProperty("disabled", false);
+  expect(within(a).getByRole("button", { name: "人物（2 张）" }).getAttribute("draggable")).toBe("true");
+  fireEvent.click(add);
+  const input = within(a).getByRole("textbox", { name: "新文件夹名称" });
+  fireEvent.change(input, { target: { value: "姿势" } });
+  fireEvent.keyDown(input, { key: "Enter" });
+  await settle();
+  fireEvent.doubleClick(within(a).getByRole("button", { name: "动作（1 张）" }));
+  const rename = within(a).getByRole("textbox", { name: "文件夹名称" });
+  fireEvent.change(rename, { target: { value: "跑跳" } });
+  fireEvent.keyDown(rename, { key: "Enter" });
+  await settle();
+  expect(calls).toEqual([
+    { command: "plugin:library|create_folder", args: { libraryId: "A", name: "姿势", parent: null } },
+    { command: "plugin:library|rename_folder", args: { libraryId: "A", folderId: "A-child", name: "跑跳" } },
+  ]);
+  expect(props.onError).not.toHaveBeenCalled();
+});
+it("把图拖进任一图库的文件夹，放入的是这张图在那个图库里的来源（#112）", async () => {
+  const calls: { command: string; args: Record<string, unknown> }[] = [];
+  mockIPC((command, args) => {
+    if (command === "plugin:library|workspace_directories") return new Promise<WorkspaceDirectories>((resolve, reject) => pending.push({ safeMode: (args as { safeMode: boolean }).safeMode, resolve, reject }));
+    calls.push({ command, args: args as Record<string, unknown> });
+    return [];
+  });
+  render(<WorkspacePane {...props} activeLibraryId="B" />);
+  await settle();
+  await act(async () => pending[0].resolve(forest()));
+  const a = document.querySelector<HTMLElement>('[data-library-id="A"]')!;
+  const data: Record<string, string> = {
+    [DRAG_IMAGES]: JSON.stringify(["card-1", "card-2"]),
+    [DRAG_IMAGE_SOURCES]: JSON.stringify({ A: ["a-1"], B: ["b-1", "b-2"] }),
+  };
+  const dataTransfer = { types: Object.keys(data), getData: (type: string) => data[type] ?? "" };
+  const folder = within(a).getByRole("button", { name: "动作（1 张）" });
+  fireEvent.dragOver(folder, { dataTransfer });
+  fireEvent.drop(folder, { dataTransfer });
+  await settle();
+  expect(calls).toEqual([
+    { command: "plugin:library|edit", args: { libraryId: "A", ids: ["a-1"], edits: [{ kind: "addToFolder", folderId: "A-child" }] } },
+  ]);
 });
 it("目录响应迟到时不替换新代次，当前范围保持明确身份", async () => {
   const selected: WorkspaceScope = { kind: "library", libraryId: "A", scope: { kind: "folderTree", id: "A-root" } };

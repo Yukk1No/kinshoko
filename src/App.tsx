@@ -21,6 +21,7 @@ import {
   isCursorExpired,
   isLensChanged,
   onLibraryEvent,
+  onOrganizeWaiting,
   workspaceResolve,
   workspaceStatus,
   onWorkspaceChanged,
@@ -278,10 +279,27 @@ function LibraryWorkspace({
     setRunning(null); setReport(null); setSelected(new Set()); setViewing(null); setSources(null);
     setReloadKey((k) => k + 1);
   }, [libraryId]);
+  // 整理另一个图库时它的导入正在收尾（ADR-0008，#112）：后端等收尾结束再执行，这里只给轻提示。
+  useEffect(() => {
+    let alive = true;
+    const unlisten = onOrganizeWaiting((waiting) => {
+      if (!alive) return;
+      const names = waiting.finishing.map((name) => `「${name}」`).join("、");
+      toast?.show({ title: "导入收尾后再整理", description: `${names}的导入完成后自动执行` });
+    });
+    return () => {
+      alive = false;
+      void unlisten.then((stop) => stop());
+    };
+  }, [toast]);
   useEffect(() => {
     let alive = true;
     const unlisten = onLibraryEvent((event) => {
-      if (!alive || event.libraryId !== libraryId) return;
+      if (!alive) return;
+      // 后端按需把可写句柄切到正在整理的图库（ADR-0008）：任何图库的列表或词表变化都只让界面重读；
+      // 安全模式与导入事件只认这个界面打开的图库，另一个库的不串台。
+      const invalidation = event.kind === "listStale" || event.kind === "vocabularyChanged" || event.kind === "imagesChanged";
+      if (event.libraryId !== libraryId && !invalidation) return;
       const task = imports.current;
       switch (event.kind) {
         case "listStale":
