@@ -91,6 +91,26 @@ it("图库标题：在资源管理器中打开、重新连接与从列表移除"
   expect(calls).toEqual([{ command: "plugin:library|unregister_library", args: { libraryId: "B" } }]);
 });
 
+it("移除当前范围所在的图库后回到“全部图片”；移除别的图库或移除失败时范围不变", async () => {
+  const onRemoved = vi.fn();
+  await show(inA({ kind: "folderTree", id: "A-root" }), forest(), { onRemoved });
+  const headB = within(section("B")).getByRole("button", { name: "风景参考（3 张）" });
+  fireEvent.click(within(await openOn(headB, "风景参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
+  await waitFor(() => expect(onRemoved).toHaveBeenCalledWith("B"));
+  expect(onScope).not.toHaveBeenCalled();
+
+  const headA = within(section("A")).getByRole("button", { name: "人物参考（3 张）" });
+  answers["plugin:library|unregister_library"] = new Error("还有导入在进行");
+  fireEvent.click(within(await openOn(headA, "人物参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
+  await waitFor(() => expect(onError).toHaveBeenCalledWith("还有导入在进行"));
+  expect(onScope).not.toHaveBeenCalled();
+
+  delete answers["plugin:library|unregister_library"];
+  fireEvent.click(within(await openOn(headA, "人物参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
+  await waitFor(() => expect(onRemoved).toHaveBeenCalledWith("A"));
+  expect(onScope).toHaveBeenCalledWith({ kind: "all" });
+});
+
 it("文件夹：菜单项与表一致，顶层文件夹不能“移到顶层”；菜单键打开同一菜单", async () => {
   await show(inA({ kind: "all" }));
   const top = within(section("A")).getByRole("button", { name: "人物（1 张）" });

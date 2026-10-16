@@ -154,7 +154,15 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
   /** 正在确认清空回收站的图库。 */
   const [emptying, setEmptying] = useState<{ libraryId: string; name: string } | null>(null);
   const reveal = (libraryId: string) => { revealLibrary(libraryId).catch((e) => onError(`无法在资源管理器中打开：${String(e)}`)); };
-  const remove = (libraryId: string) => { unregisterLibrary(libraryId).then(() => onRemoved?.(libraryId), (e) => onError(String(e))); };
+  // 移除完成时按那时的范围判断：正浏览这个图库（任一范围）就回到“全部图片”（同时清掉选择），
+  // 不再向已取消登记的图库请求浏览。
+  const latestScope = useRef(scope);
+  latestScope.current = scope;
+  const remove = (libraryId: string) => { unregisterLibrary(libraryId).then(() => {
+    const current = latestScope.current;
+    if (current.kind === "library" && current.libraryId === libraryId) onScope({ kind: "all" });
+    onRemoved?.(libraryId);
+  }, (e) => onError(String(e))); };
   const emptyItem = (p: WorkspaceDirectory, label: string) => <MenuItem key={p.registration.library.id} icon={<Trash2 size={14} />} danger
     disabled={!p.sidebar || p.sidebar.trash === 0} onClick={() => setEmptying({ libraryId: p.registration.library.id, name: p.registration.library.name })}>{label}</MenuItem>;
 
