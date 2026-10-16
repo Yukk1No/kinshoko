@@ -18,5 +18,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.mjs"],
+    // 让 `?raw` 读到真实样式表（封印书样式与原型的比对测试）；普通 CSS 导入仍为空。
+    css: { include: [/\.css\?raw$/] },
   },
 });
