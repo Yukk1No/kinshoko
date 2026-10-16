@@ -3,7 +3,7 @@ import { onCollectionRequest, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { modalOpen as anyModalOpen } from "./ui/modal";
-import { Images, PanelLeftClose, PanelLeftOpen, PanelRightClose, X } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, X } from "lucide-react";
 import { ToastProvider, useToast } from "./ui/Toast";
 import { WinCtrls } from "./ui/WinCtrls";
 import type { AppInfo } from "./bindings/AppInfo";
@@ -50,9 +50,9 @@ import { Dialog } from "@base-ui/react/dialog";
 import { TaggingIndicator } from "./TaggingIndicator";
 import { UpdateBanner } from "./Update";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "./wall/Wall";
-import { DensitySlider } from "./wall/DensitySlider";
 import { WallMenu } from "./wall/WallMenu";
 import { useWallActions } from "./wall/useWallActions";
+import { DensityIsland } from "./wall/DensityIsland";
 import { Viewer } from "./viewer/Viewer";
 import { RuntimeNotice } from "./RuntimeSupport";
 
@@ -434,9 +434,6 @@ function LibraryWorkspace({
           />
           <div className="bar-meta">
             <span className="result-count tabular" role="status" aria-label="查找结果">{resultCount === null ? "…" : resultCount + " 张"}</span>
-            <label className="density" title="图片大小"><Images size={14} aria-hidden="true" /><span className="sr-only">图片大小</span>
-              <DensitySlider value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
-            </label>
           </div>
           <ImportMenu control={importControl} scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
             running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
@@ -511,6 +508,8 @@ function LibraryWorkspace({
               else wallActions.edit(cards, [{ kind: "delete" }], true);
             }}
           />
+          {/* 图片大小浮岛（#102 方案 C3）：图片墙右下角，与 Ctrl+滚轮缩放成对。 */}
+          <DensityIsland value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
           {/* 多选的浮动操作条（#98）：选择面板把数量与批量操作放到这里。 */}
           <div className="selbar-host" ref={setBarHost} />
         </main>
