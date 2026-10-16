@@ -3,7 +3,8 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Condvar, Mutex};
+use std::time::Duration;
 
 use serde::Serialize;
 use ts_rs::TS;
@@ -77,6 +78,66 @@ pub struct ImportTaskSnapshot {
     pub warnings: Vec<String>,
 }
 
+/// 整理要等导入收尾时给画师的轻提示（#112）：要整理的库，以及正在收尾的库名。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct OrganizeWaiting {
+    pub library_id: String,
+    pub finishing: Vec<String>,
+}
+
+/// 按需取得可写句柄的结果（ADR-0008）。
+pub enum WriterAccess {
+    /// 可以整理了。`switched` 为真表示这次把唯一的可写句柄切到了这个库，调用方据此装配它。
+    Ready {
+        library: Arc<Library>,
+        switched: bool,
+    },
+    /// 目标库或当前持有者有导入在收尾：放开登记表的锁，[`ImportFinishWait::wait`] 后重新请求。
+    Waiting(ImportFinishWait),
+}
+
+/// 导入收尾结束的通知；每次收尾结束、回执关闭或取消登记都前进一代。
+#[derive(Default)]
+struct FinishSignal {
+    generation: Mutex<u64>,
+    changed: Condvar,
+}
+
+impl FinishSignal {
+    fn current(&self) -> u64 {
+        *self.generation.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    fn advance(&self) {
+        *self.generation.lock().unwrap_or_else(|e| e.into_inner()) += 1;
+        self.changed.notify_all();
+    }
+}
+
+/// 一次等待：持有它时不持有登记表的锁。
+pub struct ImportFinishWait {
+    pub notice: OrganizeWaiting,
+    signal: Arc<FinishSignal>,
+    seen: u64,
+}
+
+impl ImportFinishWait {
+    /// 等到有导入收尾结束，最多 `timeout`；返回后调用方重新请求，不假定已经可以整理。
+    pub fn wait(&self, timeout: Duration) {
+        let generation = self
+            .signal
+            .generation
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let _ = self
+            .signal
+            .changed
+            .wait_timeout_while(generation, timeout, |generation| *generation == self.seen);
+    }
+}
+
 struct OwnedImport {
     snapshot: ImportTaskSnapshot,
     task: Option<ImportTask>,
@@ -102,6 +163,10 @@ impl OwnedImport {
             task.cancel();
         }
     }
+    /// 内容已处理完、定义发布还没结束：导入在收尾。
+    fn is_finishing(&self) -> bool {
+        self.snapshot.finishing && self.task.as_ref().is_none_or(ImportTask::is_finished)
+    }
 }
 
 /// 当前进程的资料库与本设备登记。调用方将它放在互斥锁中，串行处理切换。
@@ -112,6 +177,7 @@ pub struct DeviceLibraries {
     tasks: HashMap<String, OwnedImport>,
     /// Writable providers are reused without changing current or last-opened state.
     writers: HashMap<String, Arc<Library>>,
+    finished: Arc<FinishSignal>,
 }
 
 impl DeviceLibraries {
@@ -123,6 +189,7 @@ impl DeviceLibraries {
             current: None,
             tasks: HashMap::new(),
             writers: HashMap::new(),
+            finished: Arc::default(),
         })
     }
 
@@ -220,6 +287,63 @@ impl DeviceLibraries {
         let library = Arc::new(library);
         self.writers.insert(library_id.into(), library.clone());
         Ok(library)
+    }
+
+    /// 画师整理这个库（ADR-0008）：后端只为一个库持有可写句柄，按需切过去。目标库或当前持有者
+    /// 有导入在收尾时不切换、不执行，返回等待；不改画师“上次打开”的库。
+    pub fn organize(&mut self, library_id: &str) -> Result<WriterAccess, DeviceLibraryError> {
+        let registration = self
+            .libraries()
+            .iter()
+            .find(|entry| entry.id == library_id)
+            .cloned()
+            .ok_or(DeviceLibraryError::UnknownLibrary)?;
+        let holder = self
+            .current
+            .as_ref()
+            .map(|library| library.info().id.clone());
+        let seen = self.finished.current();
+        for task in self.tasks.values_mut() {
+            task.settle(false);
+        }
+        let mut finishing: Vec<String> = Vec::new();
+        let mut ids = vec![library_id];
+        ids.extend(holder.as_deref().filter(|holder| *holder != library_id));
+        for id in ids {
+            if let Some(task) = self
+                .tasks
+                .values()
+                .find(|task| task.snapshot.destination.library_id == id && task.is_finishing())
+            {
+                finishing.push(task.snapshot.library_name.clone());
+            }
+        }
+        if !finishing.is_empty() {
+            return Ok(WriterAccess::Waiting(ImportFinishWait {
+                notice: OrganizeWaiting {
+                    library_id: library_id.into(),
+                    finishing,
+                },
+                signal: self.finished.clone(),
+                seen,
+            }));
+        }
+        if holder.as_deref() == Some(library_id) {
+            let library = self.current().expect("当前持有者");
+            Self::inspect(&registration.root, Some(library_id))?;
+            return Ok(WriterAccess::Ready {
+                library,
+                switched: false,
+            });
+        }
+        let library = self.write(library_id)?;
+        self.current = Some(library.clone());
+        self.writers
+            .retain(|_, library| Arc::strong_count(library) > 1);
+        Ok(WriterAccess::Ready {
+            library,
+            switched: true,
+        })
     }
 
     pub fn start_import(
@@ -367,6 +491,7 @@ impl DeviceLibraries {
             self.close_import_preview(None);
         }
         self.tasks.remove(task_id);
+        self.finished.advance();
         Ok(())
     }
 
@@ -397,6 +522,7 @@ impl DeviceLibraries {
         if let Some(warning) = warning {
             task.snapshot.warnings.push(warning);
         }
+        self.finished.advance();
         Ok(())
     }
 
@@ -532,6 +658,7 @@ impl DeviceLibraries {
         {
             self.current = None;
         }
+        self.finished.advance();
         Ok(())
     }
 

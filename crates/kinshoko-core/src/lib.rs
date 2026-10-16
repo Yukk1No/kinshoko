@@ -25,7 +25,8 @@ pub mod workspace;
 pub use app_shell::{AppInfo, UpdatePolicy, UpdateProgress, UpdateStatus, app_info};
 pub use device::{DeviceRegistry, RegisteredLibrary};
 pub use device_libraries::{
-    DeviceLibraries, DeviceLibraryError, ImportTaskSnapshot, LibraryRegistration,
+    DeviceLibraries, DeviceLibraryError, ImportFinishWait, ImportTaskSnapshot, LibraryRegistration,
+    OrganizeWaiting, WriterAccess,
 };
 pub use library::Library;
 pub use settings::{
