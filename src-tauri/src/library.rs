@@ -41,6 +41,10 @@ use kinshoko_core::library::{
     PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar, TagAlias, TagEdit, TagGroupView,
     TagNamespace, TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
 };
+use kinshoko_core::library_batch::{
+    LibraryBatchFailure, LibraryDeletePreview, LibraryDeleteToken, LibraryTarget, each_library,
+    group_by_library,
+};
 use kinshoko_core::reference_groups::{DetachedLenses, References};
 use kinshoko_core::search::{Candidate, ConditionTree, Search, SearchCache, SearchInput};
 use kinshoko_core::tag_catalog::{
@@ -242,6 +246,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             edit,
             preview_permanent_delete,
             permanent_delete,
+            preview_permanent_delete_batch,
+            permanent_delete_batch,
             sidebar,
             create_folder,
             rename_folder,
@@ -852,6 +858,75 @@ async fn permanent_delete<R: Runtime>(
         })?;
         crate::desktop::reference_groups_changed(&app);
         Ok(())
+    })
+    .await
+}
+
+/// 跨图库的永久删除预览（#112）：按图库分组，逐组按需切换可写句柄再预览；某个图库核对不了
+/// （断连等）时只在它那一组带上原因，其他组照常返回。
+#[tauri::command]
+async fn preview_permanent_delete_batch<R: Runtime>(
+    app: AppHandle<R>,
+    targets: Vec<LibraryTarget>,
+) -> Result<Vec<LibraryDeletePreview>, String> {
+    blocking(move || {
+        let previews = each_library(group_by_library(&targets), |batch| {
+            let library = writable(&app, &batch.library_id)?;
+            crate::desktop::with_groups(&app, |groups| {
+                library.preview_permanent_delete(&batch.image_ids, groups)
+            })
+            .ok_or_else(|| "参考组还没有准备好".to_owned())?
+            .map_err(|e| e.to_string())
+        });
+        Ok(previews
+            .into_iter()
+            .map(|(batch, result)| match result {
+                Ok(preview) => LibraryDeletePreview {
+                    library_id: batch.library_id,
+                    preview: Some(preview),
+                    error: None,
+                },
+                Err(error) => LibraryDeletePreview {
+                    library_id: batch.library_id,
+                    preview: None,
+                    error: Some(error),
+                },
+            })
+            .collect())
+    })
+    .await
+}
+
+/// 按各图库的预览令牌逐组永久删除（#112）：每组按需切换可写句柄（等导入收尾），一组失败不影响
+/// 其他组；返回没有完成的图库与原因，全部完成时为空。
+#[tauri::command]
+async fn permanent_delete_batch<R: Runtime>(
+    app: AppHandle<R>,
+    groups: Vec<LibraryDeleteToken>,
+) -> Result<Vec<LibraryBatchFailure>, String> {
+    blocking(move || {
+        let results = each_library(groups, |group| {
+            let library = writable(&app, &group.library_id)?;
+            with_visibility_commit(&app, |_| {
+                crate::desktop::with_groups(&app, |usage| {
+                    library.permanent_delete(&group.image_ids, &group.token, usage)
+                })
+                .ok_or_else(|| "参考组还没有准备好".to_owned())?
+                .map_err(|e| e.to_string())
+            })
+        });
+        if results.iter().any(|(_, result)| result.is_ok()) {
+            crate::desktop::reference_groups_changed(&app);
+        }
+        Ok(results
+            .into_iter()
+            .filter_map(|(group, result)| {
+                result.err().map(|error| LibraryBatchFailure {
+                    library_id: group.library_id,
+                    error,
+                })
+            })
+            .collect())
     })
     .await
 }
