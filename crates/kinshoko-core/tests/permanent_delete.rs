@@ -205,6 +205,22 @@ fn originals(library: &Library, ids: &[String]) -> Vec<PathBuf> {
         .collect()
 }
 
+/// 缓存里属于这些原文件（按 SHA-256 命名）的文件。
+fn cached_for(root: &Path, originals: &[PathBuf]) -> Vec<PathBuf> {
+    let shas: Vec<String> = originals
+        .iter()
+        .map(|p| p.file_stem().unwrap().to_string_lossy().into_owned())
+        .collect();
+    walk(&root.join("cache"))
+        .into_iter()
+        .filter(|p| p.is_file())
+        .filter(|p| {
+            let name = p.file_name().unwrap().to_string_lossy();
+            shas.iter().any(|sha| name.starts_with(sha.as_str()))
+        })
+        .collect()
+}
+
 #[test]
 fn confirming_the_preview_deletes_the_images_their_organisation_and_originals() {
     let dir = tempfile::tempdir().unwrap();
@@ -273,11 +289,8 @@ fn confirming_the_preview_deletes_the_images_their_organisation_and_originals() 
     assert_eq!((sidebar.all, sidebar.trash), (1, 0));
     assert!(!files[0].exists() && !files[1].exists());
     assert!(files[2].exists());
-    // 缩略图缓存里也不再有被删的图。
-    let thumbs: Vec<_> = walk(&library.info().root.join("cache"))
-        .into_iter()
-        .filter(|p| p.is_file())
-        .collect();
+    // 缩略图缓存（含占位图）里也不再有被删的图；留下的图的缓存不受影响。
+    let thumbs = cached_for(&library.info().root, &files[..2]);
     assert!(thumbs.is_empty(), "{thumbs:?}");
     // 同一张图还能重新导入。
     let again = import(&library, dir.path(), 0..1);
@@ -497,10 +510,7 @@ fn a_crash_after_commit_finishes_removing_the_originals_on_reopen() {
     assert!(!files[0].exists() && !files[1].exists());
     assert!(files[2].exists());
     assert!(library.recovery().orphans.is_empty());
-    let thumbs: Vec<_> = walk(&root.join("cache"))
-        .into_iter()
-        .filter(|p| p.is_file())
-        .collect();
+    let thumbs = cached_for(&root, &files[..2]);
     assert!(thumbs.is_empty(), "{thumbs:?}");
 }
 

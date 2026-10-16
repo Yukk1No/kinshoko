@@ -21,6 +21,8 @@ zune-core = "0.5"
 jpeg-encoder = "0.7"
 gif = "0.14"
 sha2 = "0.10"
+# 占位图（#110）随浏览页以 data URL 返回。
+base64 = "0.22"
 uuid = { version = "1", features = ["v4", "v7"] }
 unicode-normalization = "0.1"
 # 模型下载（阻塞式，断点续传），与 tools/tagger-probe 相同。
