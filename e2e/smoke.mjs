@@ -153,12 +153,17 @@ class Session {
   pick(value) {
     return this.exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]];", [value]);
   }
+  /**
+   * 侧栏里已连接的这个图库（方案 D，#113）：图库分组带 data-library-id，名称按钮的无障碍名称为
+   * “名称（N 张）”；未连接时为“名称（未连接）”，不算。界面上不再有“当前图库”（ADR-0008）。
+   */
   currentLibrary(name) {
     return this.exec(`
-      const select = document.querySelector('select[aria-label="当前资料库"]');
-      const option = select?.selectedOptions[0];
-      return select && !select.disabled && select.value && option?.textContent.trim() === arguments[0]
-        ? { id: select.value, name: option.textContent.trim() } : null;`, [name]);
+      const group = [...document.querySelectorAll('nav[aria-label="查找范围"] [data-library-id]')]
+        .find((node) => node.querySelector('.lib-head-name .sidebar-label')?.textContent.trim() === arguments[0]);
+      const head = group?.querySelector('.lib-head-name');
+      return group && head && !head.disabled && /（\\d+ 张）$/.test(head.getAttribute('aria-label') ?? '')
+        ? { id: group.dataset.libraryId, name: arguments[0] } : null;`, [name]);
   }
   /** 图片墙上已挂载的卡片 id，以及缩略图是否都已解码。 */
   wall() {
@@ -246,17 +251,18 @@ try {
   result.library = created;
   assert(true, "建立图库并打开");
 
-  // 导入文件夹（含子文件夹）。保存位置的两个选择按可见标签命名（图库、文件夹），这里按位置取。
-  await session.click(await session.find("//button[@aria-label='导入参考图']"));
-  await until("保存目标资料库已加载", () => session.exec("return [...document.querySelector('.k-destination-grid > label:nth-of-type(1) select').options].some(o=>o.value===arguments[0]);", [created.id]));
-  await session.exec("const s=document.querySelector('.k-destination-grid > label:nth-of-type(1) select');s.value=arguments[0];s.dispatchEvent(new Event('change',{bubbles:true}));",[created.id]);
-  await session.exec("const s=document.querySelector('.k-destination-grid > label:nth-of-type(2) select');s.value='';s.dispatchEvent(new Event('change',{bubbles:true}));");
+  // 导入文件夹（含子文件夹）。#98：导入是顶栏的分体按钮，文件夹在“更多导入方式”菜单里；选好文件夹后
+  // 在导入对话框里选保存位置。保存位置的两个选择按可见标签命名（放到图库、文件夹），这里按位置取。
   await session.pick(source);
-  await session.click(await session.find(button("导入文件夹…")));
-  await session.waitFor("目标确认", button("开始导入"));
+  await session.click(await session.find("//button[@aria-label='更多导入方式']"));
+  await session.click(await session.waitFor("整个文件夹菜单项", "//*[@role='menuitem' and normalize-space()='整个文件夹…']"));
+  await until("保存目标资料库已加载", () => session.exec("return [...(document.querySelector('.k-import-dialog .k-destination-grid > label:nth-of-type(1) select')?.options ?? [])].some(o=>o.value===arguments[0]);", [created.id]));
+  await session.exec("const s=document.querySelector('.k-import-dialog .k-destination-grid > label:nth-of-type(1) select');s.value=arguments[0];s.dispatchEvent(new Event('change',{bubbles:true}));",[created.id]);
+  await session.exec("const s=document.querySelector('.k-import-dialog .k-destination-grid > label:nth-of-type(2) select');s.value='';s.dispatchEvent(new Event('change',{bubbles:true}));");
+  await until("开始导入可用", () => session.exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
   await session.click(await session.find(button("开始导入")));
-  await session.waitFor("导入完成", "//*[contains(normalize-space(), '导入完成：新增 3 张')]", 60000);
-  await session.find(`//li[contains(., '说明.txt') and contains(., '不支持的格式')]`);
+  await until("导入完成", () => session.exec("const c=document.querySelector('section[aria-label=导入结果]');return c?.textContent.includes('导入完成')&&c.querySelector('.k-task-stats')?.textContent.includes('新增 3');"), 60000);
+  await session.find(`//section[@aria-label='导入结果']//li[contains(., '说明.txt') and contains(., '不支持的格式')]`);
   assert(true, "导入 3 张图，不支持的文件逐个列出");
 
   // 浏览

@@ -95,8 +95,8 @@ try {
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [parent]);
   await click("选择存放位置…");
   await click("建立图库");
-  // #98: the current library is the sidebar title menu, named “当前图库：<名称>”.
-  await until("打开图库", () => find("//button[@aria-label='当前图库：增量 T01 对照']"));
+  // #113: no current library in the UI (ADR-0008); the new library shows up as a sidebar group head “名称（N 张）”.
+  await until("打开图库", () => find("//nav[@aria-label='查找范围']//*[@data-library-id]//button[contains(@class,'lib-head-name') and starts-with(@aria-label,'增量 T01 对照（') and not(@disabled)]"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
   // #98: 导入 is a split button; the folder entry is in its menu, then a dialog chooses the library.
@@ -144,7 +144,9 @@ try {
   writeFileSync(join(output,"sample-manifest.json"),JSON.stringify(manifest.map(({id,sha256,title,w,h})=>({id,sha256,title,w,h})),null,2));
 
   // Real multi-selection and a persisted folder/search round trip through the formal UI.
-  await wd("POST", base + "/element/" + await find("//button[@aria-label='新建文件夹']") + "/click", {});
+  // #114: 新建文件夹 lives in the library's ⋯ menu (also its right-click menu).
+  await wd("POST", base + "/element/" + await find("//button[@aria-label='增量 T01 对照 的操作']") + "/click", {});
+  await wd("POST", base + "/element/" + await until("新建文件夹菜单项", () => find("//*[@role='menuitem' and normalize-space()='新建文件夹']")) + "/click", {});
   const folderName=await find("//input[@aria-label='新文件夹名称']");
   await wd("POST",base+"/element/"+folderName+"/value",{text:"对照选集"});
   await key("\uE007");
