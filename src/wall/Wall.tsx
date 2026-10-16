@@ -16,8 +16,10 @@ import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { browse, workspaceBrowse, isCursorExpired, isLensChanged, thumbnailUrl } from "../ipc";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { modalOpen } from "../ui/modal";
-import { captureAnchor, cardAt, masonry, resolveAnchor, visible, type Anchor } from "./layout";
+import { captureAnchor, cardAt, masonry, resolveAnchor, visible, type Anchor, type Box } from "./layout";
 import { ZOOM_COMMIT_MS, createNotchCounter, zoomDensity } from "./zoom";
+import { createSmoothWheel } from "./smoothWheel";
+import { createPrefetcher, decodeThumbnail, mountWindow, prefetchOrder, type MountWindow } from "./prefetch";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
 const GAP = 8;
@@ -28,6 +30,11 @@ const TARGET = 240;
 /** 特别长的图整体缩小到列宽的 2.6 倍高，不裁切。 */
 const CAP_RATIO = 2.6;
 const PAGE = 500;
+/** 滚动方向前方预取缩略图的距离（挂载范围之外，画布像素）与张数上限。 */
+const PREFETCH_PX = 1600;
+const PREFETCH_MAX = 48;
+/** 滚动停手多久后把位置写进本地存储。 */
+const SAVE_ANCHOR_MS = 250;
 
 /** 图片墙上拖出参考图时放进 dataTransfer 的类型，值为 JSON 数组的参考图 id。 */
 export const DRAG_IMAGES = "application/x-kinshoko-images";
@@ -158,7 +165,21 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [previewDensity, setPreviewDensity] = useState<number | null>(null);
-  const [viewport, setViewport] = useState({ top: 0, height: 0 });
+  /**
+   * 挂载范围（#109）：按块更新，滚动没有越出余量时不变，滚动事件因此不触发 React 渲染。
+   * 状态只在范围变化时设，同值的 setState 不进渲染。
+   */
+  const [mount, setMount] = useState<MountWindow>({ top: 0, bottom: 0 });
+  const mountRef = useRef<MountWindow | null>(null);
+  const syncMount = useCallback((el: HTMLElement) => {
+    const next = mountWindow(mountRef.current, el.scrollTop, el.clientHeight, OVERSCAN);
+    if (next === mountRef.current) return;
+    mountRef.current = next;
+    setMount(next);
+  }, []);
+  /** 最近的滚动方向（1 向下，−1 向上），决定往哪边预取。 */
+  const scrollDirection = useRef<1 | -1>(1);
+  const lastScrollTop = useRef(0);
   const [cards, setCards] = useState<BrowserCard[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
@@ -231,10 +252,13 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
    */
   const zoomPin = useRef<{ id: string; pointerY: number } | null>(null);
   const zoom = useRef({ value: null as number | null, timer: 0, count: createNotchCounter(), pin: null as { id: string; x: number; y: number } | null });
+  const smoothRef = useRef<ReturnType<typeof createSmoothWheel> | null>(null);
   /** 原生滚轮监听读最新的渲染结果。 */
   const live = useRef({ layout: null as ReturnType<typeof masonry> | null, ids: [] as string[], density, previewDensity, onDensityPreview, onDensityCommit });
 
   useLayoutEffect(() => {
+    // 打开查看器时停下滚轮惯性，返回时图片墙仍在打开时的位置。
+    if (viewerOpen) smoothRef.current?.stop();
     if (wasViewing.current && !viewerOpen && lastOpened.current) {
       const card = scroller.current?.querySelector<HTMLElement>(`[data-id="${lastOpened.current}"]`);
       card?.focus({ preventScroll: true });
@@ -346,7 +370,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       if (gen !== generation.current) return;
       const next = [...cards, ...page.cards];
       if (result.status) onWorkspaceStatus?.(result.status, next);
-      measureBeforeReflow();
+      // 瀑布流追加时已有卡片的位置不变，不必量旧位置、起重排动画（#109）。
       setCards(next);
       setCursor(page.nextCursor);
       setTotal(page.total);
@@ -360,7 +384,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       if (inflight.current === gen) inflight.current = null;
     }
     if (expired) void reload(Math.max(loaded.current, PAGE));
-  }, [cards, cursor, thumbnailPx, measureBeforeReflow, reload, onWorkspaceStatus]);
+  }, [cards, cursor, thumbnailPx, reload, onWorkspaceStatus]);
   loadMoreRef.current = () => { void loadMore(); };
   useEffect(() => {
     void reload(Math.max(loaded.current, PAGE));
@@ -374,14 +398,14 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
         layoutWidth.current = el.clientWidth;
         setWidth(el.clientWidth);
       }
-      setViewport({ top: el.scrollTop, height: el.clientHeight });
+      syncMount(el);
     };
     sync();
     if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(() => flushSync(sync));
     ro.observe(el);
     return () => ro.disconnect();
-  }, [measureBeforeReflow]);
+  }, [measureBeforeReflow, syncMount]);
 
   /** 已经放出（不再遮蔽）的含成人内容的图。 */
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
@@ -432,10 +456,15 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     if (top !== null || !anchor.current || !cursor) restoring.current = false;
     const from = beforeReflow.current;
     beforeReflow.current = new Map();
-    if (!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      const targets = [...el.querySelectorAll<HTMLElement>(".card")].map((node) => ({ node, old: from.get(node.dataset.id!), next: node.getBoundingClientRect() }));
+    if (from.size && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      const targets = [...el.querySelectorAll<HTMLElement>(".card")].flatMap((node) => {
+        const old = from.get(node.dataset.id!);
+        return old ? [{ node, old, next: node.getBoundingClientRect() }] : [];
+      });
       for (const { node, old, next } of targets) {
-        if (!old || !next.width || !next.height || typeof node.animate !== "function") continue;
+        if (!next.width || !next.height || typeof node.animate !== "function") continue;
+        // 没有移动、没有变大小的卡片不起动画（#109：读下一页时已有卡片的位置不变）。
+        if (Math.abs(old.left - next.left) < 0.5 && Math.abs(old.top - next.top) < 0.5 && Math.abs(old.width - next.width) < 0.5 && Math.abs(old.height - next.height) < 0.5) continue;
         const motion = node.animate([
           { transform: `translate(${old.left - next.left}px, ${old.top - next.top}px) scale(${old.width / next.width}, ${old.height / next.height})` },
           { transform: "none" },
@@ -444,8 +473,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
         motion.onfinish = () => motions.current.delete(node.dataset.id!);
       }
     }
-    setViewport({ top: el.scrollTop, height: el.clientHeight });
-  }, [layout, ids, width, cards.length, cursor]);
+    syncMount(el);
+  }, [layout, ids, width, cards.length, cursor, syncMount]);
 
   live.current = { layout, ids, density, previewDensity, onDensityPreview, onDensityCommit };
 
@@ -468,9 +497,13 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
         onDensityCommit?.(value);
       }
     };
+    // 鼠标滚轮插值与惯性（#109）；Ctrl 的滚轮留给下面的缩放。
+    const smooth = createSmoothWheel(el, { limit: () => Math.max(0, (live.current.layout?.height ?? 0) - el.clientHeight) });
+    smoothRef.current = smooth;
     const wheel = (e: WheelEvent) => {
       if (!e.ctrlKey) return;
       e.preventDefault();
+      smooth.stop();
       const notches = z.count(e);
       if (!notches) return;
       clearTimeout(z.timer);
@@ -496,38 +529,81 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     el.addEventListener("wheel", wheel, { passive: false });
     return () => {
       el.removeEventListener("wheel", wheel);
+      smooth.dispose();
+      smoothRef.current = null;
       // 缩放停手前离开（换范围重建图片墙）也落下画师选的大小。
       if (z.value !== null) commit();
     };
   }, [measureBeforeReflow]);
 
+  /** 停手后才写本地存储（#109：不在每个滚动事件里同步写）；卸载与页面隐藏时立即写。 */
+  const pendingSave = useRef<{ key: string; timer: number } | null>(null);
+  const flushSave = useCallback(() => {
+    const pending = pendingSave.current;
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    pendingSave.current = null;
+    saveAnchor(pending.key, anchor.current);
+  }, []);
+  useEffect(() => {
+    window.addEventListener("pagehide", flushSave);
+    return () => { window.removeEventListener("pagehide", flushSave); flushSave(); };
+  }, [flushSave]);
+
   const onScroll = () => {
     const el = scroller.current!;
-    setViewport({ top: el.scrollTop, height: el.clientHeight });
+    syncMount(el);
+    if (el.scrollTop !== lastScrollTop.current) scrollDirection.current = el.scrollTop > lastScrollTop.current ? 1 : -1;
+    lastScrollTop.current = el.scrollTop;
     // 自己为锚点做的滚动不重新取锚，否则每次重排都会漂到另一张图。
     const own = settledTop.current !== null && Math.abs(el.scrollTop - settledTop.current) < 1;
     if (own || restoring.current) return;
     settledTop.current = null;
     anchor.current = captureAnchor(layout, ids, el.scrollTop, el.clientHeight);
-    if (storeKey) saveAnchor(storeKey, anchor.current);
+    if (storeKey) {
+      if (pendingSave.current) clearTimeout(pendingSave.current.timer);
+      pendingSave.current = { key: storeKey, timer: window.setTimeout(flushSave, SAVE_ANCHOR_MS) };
+    }
   };
 
   // 接近底部时取下一页。
   useEffect(() => {
-    if (cursor && viewport.top + viewport.height + OVERSCAN * 2 >= layout.height) void loadMore();
-  }, [cursor, viewport, layout.height, loadMore]);
+    if (cursor && mount.bottom + OVERSCAN * 2 >= layout.height) void loadMore();
+  }, [cursor, mount, layout.height, loadMore]);
 
+  const position = useMemo(() => new Map(ids.map((id, i) => [id, i])), [ids]);
   const mounted = useMemo(() => {
-    const found = visible(layout, viewport.top - OVERSCAN, viewport.top + viewport.height + OVERSCAN);
+    const found = new Set(visible(layout, mount.top, mount.bottom));
     // 查看器里调整窗口宽度后，最后查看的卡片仍能接回焦点（最多多保留一张）。
-    const last = ids.indexOf(lastOpened.current ?? "");
-    if (last >= 0 && !found.includes(last)) found.push(last);
-    for (const id of [...beforeReflow.current.keys(), ...motions.current.keys()]) {
-      const i = ids.indexOf(id);
-      if (i >= 0 && !found.includes(i)) found.push(i);
+    for (const id of [lastOpened.current, ...beforeReflow.current.keys(), ...motions.current.keys()]) {
+      const i = id === null ? undefined : position.get(id);
+      if (i !== undefined) found.add(i);
     }
-    return found.sort((a, b) => a - b);
-  }, [layout, viewport, ids, viewerOpen]);
+    return [...found].sort((a, b) => a - b);
+  }, [layout, mount, position, viewerOpen]);
+
+  // 缩略图按滚动方向预取，离挂载范围近的先取；挂载范围变化时更新（#109）。
+  const prefetcher = useRef<ReturnType<typeof createPrefetcher> | null>(null);
+  /** 上次渲染的卡片元素，按 id；布局、选择、遮蔽都没变的卡片原样沿用。 */
+  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; node: ReactNode }>());
+  useLayoutEffect(() => { renderedCards.current = nextRendered; });
+  const cardHandlers = useRef<{
+    select: (id: string, e: Pick<MouseEvent, "shiftKey" | "ctrlKey" | "metaKey">) => void;
+    open: (card: BrowserCard) => void;
+    cardKey: (card: BrowserCard, e: KeyboardEvent<HTMLElement>) => void;
+    dragStart: (id: string, e: DragEvent) => void;
+    inspect?: (card: WorkspaceCard) => void;
+  }>(null!);
+  useEffect(() => {
+    const prefetch = createPrefetcher({ load: decodeThumbnail });
+    prefetcher.current = prefetch;
+    return () => { prefetch.dispose(); prefetcher.current = null; };
+  }, []);
+  useEffect(() => {
+    if (!cards.length || mount.bottom <= mount.top) return;
+    const order = prefetchOrder(layout, mount, scrollDirection.current, PREFETCH_PX).slice(0, PREFETCH_MAX);
+    prefetcher.current?.want(order.map((i) => thumbnailUrl(cards[i].thumbnail)));
+  }, [layout, mount, cards]);
 
   const select = (id: string, e: Pick<MouseEvent, "shiftKey" | "ctrlKey" | "metaKey">) => {
     if (e.shiftKey && pivot.current && ids.includes(pivot.current)) {
@@ -604,6 +680,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     e.dataTransfer.effectAllowed = "copyMove";
   };
 
+  // 卡片的事件处理读这里的最新版本，沿用的卡片元素因此不会拿着旧的选择与回调。
+  cardHandlers.current = { select, open, cardKey, dragStart, inspect: onInspectSources };
+  const nextRendered: typeof renderedCards.current = new Map();
+
   return (
     <ContextMenu.Root disabled={!menu} onOpenChange={(next) => { if (!next) setMenuTarget(null); }}>
     <ContextMenu.Trigger render={<div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
@@ -618,8 +698,15 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             const card = cards[i];
             const b = layout.boxes[i];
             const veiled = card.adult && (safeMode || !revealed.has(card.id));
+            const chosen = selected.has(card.id);
+            // 没变的卡片沿用上次的元素，React 跳过整张卡片的比对（#109）。
+            const kept = renderedCards.current.get(card.id);
+            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled) {
+              nextRendered.set(card.id, kept);
+              return kept.node;
+            }
             const sources = card.libraryId && card.imageId ? card.sources ?? [] : [];
-            return (
+            const node = (
               <Fragment key={card.id}>
               <div
                 className="card"
@@ -630,12 +717,12 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 data-veiled={veiled}
                 draggable={!workspaceScope || workspaceScope.kind === "library"}
                 onClick={(e) => {
-                  if (e.ctrlKey || e.metaKey || e.shiftKey) select(card.id, e);
-                  else open(card);
+                  if (e.ctrlKey || e.metaKey || e.shiftKey) cardHandlers.current.select(card.id, e);
+                  else cardHandlers.current.open(card);
                 }}
-                onDoubleClick={() => open(card)}
-                onKeyDown={(e) => cardKey(card, e)}
-                onDragStart={(e) => dragStart(card.id, e)}
+                onDoubleClick={() => cardHandlers.current.open(card)}
+                onKeyDown={(e) => cardHandlers.current.cardKey(card, e)}
+                onDragStart={(e) => cardHandlers.current.dragStart(card.id, e)}
                 style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}
               >
                 <img src={thumbnailUrl(card.thumbnail)} alt="参考图" decoding="async" draggable={false} />
@@ -645,10 +732,12 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 aria-label={sources.length >= 2 ? `在 ${sources.length} 个图库 · 查看详情` : `来源：${sources[0].libraryName} · 查看详情`}
                 title={sources.length >= 2 ? `在 ${sources.length} 个图库` : `在「${sources[0].libraryName}」`}
                 style={{ left: `${b.x + b.w - 8}px`, top: `${b.y + b.h - 8}px` }}
-                onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; onInspectSources?.(card as WorkspaceCard); }}
+                onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; cardHandlers.current.inspect?.(card as WorkspaceCard); }}
                 onKeyDown={(e) => e.stopPropagation()}><Layers size={11} aria-hidden="true" />{sources.length >= 2 && `${sources.length} 处`}</button>}
               </Fragment>
             );
+            nextRendered.set(card.id, { card, box: b, chosen, veiled, node });
+            return node;
           })}
         </div>
       )}
