@@ -52,6 +52,14 @@ pub struct FrozenScreen {
     pub image: String,
 }
 
+/// 框选读数（#103）：选区得到参考视图时，结果在原图中的尺寸（原始像素）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct OriginalPixels {
+    pub width: u32,
+    pub height: u32,
+}
+
 /// 钉图怎样到达新的位置（#64）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]

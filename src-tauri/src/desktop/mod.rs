@@ -117,6 +117,7 @@ pub fn init() -> TauriPlugin<Wry> {
             capture::start_capture,
             capture::report_capture_references,
             capture::frozen_screen,
+            capture::capture_readout,
             capture::capture_ready,
             capture::finish_capture,
             capture::cancel_capture,

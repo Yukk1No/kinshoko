@@ -101,6 +101,7 @@ fn main() {
                         "start_capture",
                         "report_capture_references",
                         "frozen_screen",
+                        "capture_readout",
                         "capture_ready",
                         "finish_capture",
                         "cancel_capture",
