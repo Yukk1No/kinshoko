@@ -495,6 +495,37 @@ describe("主窗口", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
+  it("整理在等某个图库的导入收尾时给轻提示，查看与选择照旧（#112）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await screen.findByRole("dialog", { name: "原图查看器" });
+
+    await act(() => emit("organize-waiting", { libraryId: "L2", finishing: ["工作参考"] }));
+
+    expect(await screen.findByText("导入收尾后再整理")).toBeTruthy();
+    expect(screen.getByText("「工作参考」的导入完成后自动执行")).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: "原图查看器" })).toBeTruthy();
+  });
+
+  it("后端按需切到的另一个图库：它的列表变化刷新图片墙，它的安全模式与导入事件不串台（#112）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await screen.findByRole("dialog", { name: "原图查看器" });
+
+    await push({ kind: "safeModeChanged", libraryId: "L2", on: true });
+    await push({ kind: "taskProgress", libraryId: "L2", taskId: "T9", progress: { done: 1, total: 9 } });
+    expect(screen.getByRole("dialog", { name: "原图查看器" })).toBeTruthy();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+
+    gone.add("a");
+    await push({ kind: "listStale", libraryId: "L2" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
   it("登记已有资料库后打开它，取消登记后可以继续建库或重新登记", async () => {
     backend(library);
     render(<App />);

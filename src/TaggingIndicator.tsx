@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Sparkles } from "lucide-react";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
-import { onTaggingStatus, taggingDownload, taggingPause, taggingResume, taggingStatus } from "./ipc";
+import { onTaggingStatus, onWritableLibrary, taggingDownload, taggingPause, taggingResume, taggingStatus } from "./ipc";
 
 const mb = (bytes: number) => `${Math.round(bytes / 1_000_000)} MB`;
 const percent = (part: number, total: number) => (total > 0 ? Math.floor((part / total) * 100) : 0);
@@ -16,8 +16,20 @@ function Card({ children, progress }: { children: ReactNode; progress?: number }
  * 侧栏底部的自动标签：首次使用时显示模型大小、经画师确认后下载（可续传），
  * 显示下载与打标进度，可以暂停（结束打标子进程、归还显存）与继续。
  */
-export function TaggingIndicator({ libraryId }: { libraryId: string }) {
+export function TaggingIndicator({ libraryId: opened }: { libraryId: string }) {
   const [status, setStatus] = useState<TaggingStatus | null>(null);
+  // 打标跟着后端唯一的可写库走（ADR-0008）：整理另一个图库时它切过去，这里随之换库并重读状态；
+  // 只接受这个库的状态，旧库的迟到状态不串台。
+  const [libraryId, setLibraryId] = useState(opened);
+  useEffect(() => setLibraryId(opened), [opened]);
+  useEffect(() => {
+    let alive = true;
+    const unlisten = onWritableLibrary((library) => alive && setLibraryId(library.id));
+    return () => {
+      alive = false;
+      void unlisten.then((stop) => stop());
+    };
+  }, []);
 
   useEffect(() => {
     let alive = true;

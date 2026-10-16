@@ -27,6 +27,11 @@ const PAGE = 500;
 
 /** 图片墙上拖出参考图时放进 dataTransfer 的类型，值为 JSON 数组的参考图 id。 */
 export const DRAG_IMAGES = "application/x-kinshoko-images";
+/**
+ * 同一次拖动里每张图按图库列出的来源：JSON 对象 `{ 图库 id: 参考图 id[] }`。任何一个图库的文件夹都能
+ * 接住拖来的图（ADR-0008），放进哪个库就取这张图在那个库里的来源。
+ */
+export const DRAG_IMAGE_SOURCES = "application/x-kinshoko-image-sources";
 
 export type WallHandle = {
   previewDensity: (value: number | null) => void;
@@ -451,6 +456,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       ? dragged.flatMap((id) => cards.find((c) => c.id === id)?.sources?.filter((s) => s.libraryId === workspaceScope.libraryId && !s.unavailable).map((s) => s.imageId) ?? [])
       : dragged;
     e.dataTransfer.setData(DRAG_IMAGES, JSON.stringify(sourceIds));
+    const bySource: Record<string, string[]> = {};
+    for (const source of dragged.flatMap((id) => cards.find((c) => c.id === id)?.sources ?? [])) {
+      if (!source.unavailable) (bySource[source.libraryId] ??= []).push(source.imageId);
+    }
+    e.dataTransfer.setData(DRAG_IMAGE_SOURCES, JSON.stringify(bySource));
     e.dataTransfer.effectAllowed = "copyMove";
   };
 

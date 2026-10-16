@@ -3,7 +3,7 @@ import type { BrowseScope } from "../bindings/BrowseScope";
 import type { FolderNode } from "../bindings/FolderNode";
 import type { Sidebar } from "../bindings/Sidebar";
 import { createFolder, editImages, moveFolder, renameFolder, sidebar, workspaceSidebar } from "../ipc";
-import { DRAG_IMAGES } from "../wall/Wall";
+import { DRAG_IMAGE_SOURCES, DRAG_IMAGES } from "../wall/Wall";
 import { Folder, FolderOpen, Images, Inbox, Plus, Trash2 } from "lucide-react";
 import { FluidList, FluidRow } from "../ui/FluidList";
 
@@ -113,10 +113,13 @@ export function SidebarPane({ libraryId, scope, onScope, reloadKey, onError, wor
       if (folder !== folderId) void run(moveFolder(libraryId, folder, folderId, LAST));
       return;
     }
-    const images = e.dataTransfer.getData(DRAG_IMAGES);
-    if (images && folderId) {
-      void run(editImages(libraryId, JSON.parse(images) as string[], [{ kind: "addToFolder", folderId }]));
-    }
+    if (!folderId) return;
+    // 图片墙按图库给出每张图的来源：放进这个库时只取它在这个库里的来源（#112）。
+    const sources = e.dataTransfer.getData(DRAG_IMAGE_SOURCES);
+    const images = sources
+      ? (JSON.parse(sources) as Record<string, string[] | undefined>)[libraryId] ?? []
+      : JSON.parse(e.dataTransfer.getData(DRAG_IMAGES) || "[]") as string[];
+    if (images.length) void run(editImages(libraryId, images, [{ kind: "addToFolder", folderId }]));
   };
 
   // Rows join one fluid-hover list in visible (pre-order) order.

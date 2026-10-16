@@ -13,6 +13,7 @@ import type { CatalogNameEdit } from "./bindings/CatalogNameEdit";
 import type { ImportOptions } from "./bindings/ImportOptions";
 import type { RuntimeCapabilities } from "./bindings/RuntimeCapabilities";
 import type { RuntimeStatus } from "./bindings/RuntimeStatus";
+import type { OrganizeWaiting } from "./bindings/OrganizeWaiting";
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
 import { Channel, convertFileSrc, invoke } from "@tauri-apps/api/core";
@@ -352,6 +353,19 @@ export function onSafeModeSetting(handler: (on: boolean) => void): Promise<Unlis
 }
 export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<UnlistenFn> {
   return listen<LibraryEvent>("library-event", (e) => handler(e.payload));
+}
+
+/**
+ * 整理另一个图库时后端把唯一的可写句柄切了过去（ADR-0008，#112）。界面没有“当前图库”，
+ * 只有跟着可写库走的部分（自动标签）需要知道。
+ */
+export function onWritableLibrary(handler: (library: LibraryInfo) => void): Promise<UnlistenFn> {
+  return listen<LibraryInfo>("writable-library", (e) => handler(e.payload));
+}
+
+/** 整理在等某个图库的导入收尾（#112）：完成后自动执行，界面只给轻提示。 */
+export function onOrganizeWaiting(handler: (waiting: OrganizeWaiting) => void): Promise<UnlistenFn> {
+  return listen<OrganizeWaiting>("organize-waiting", (e) => handler(e.payload));
 }
 
 /** 卡片上的缩略图地址（自定义协议 thumb）转成 <img> 可用的 URL。 */
