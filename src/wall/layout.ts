@@ -65,6 +65,20 @@ export function visible(layout: Layout, top: number, bottom: number): number[] {
   return out.sort((a, b) => a - b);
 }
 
+/** 画布坐标 (x, y) 下的图；落在缝隙或边距里时取离得最近的一张（只看附近一屏）。没有图时为 -1。 */
+export function cardAt(layout: Layout, x: number, y: number): number {
+  let best = -1;
+  let bestDistance = Infinity;
+  for (const i of visible(layout, y - 400, y + 400)) {
+    const b = layout.boxes[i];
+    const dx = Math.max(b.x - x, 0, x - (b.x + b.w));
+    const dy = Math.max(b.y - y, 0, y - (b.y + b.h));
+    const distance = dx * dx + dy * dy;
+    if (distance < bestDistance) { best = i; bestDistance = distance; }
+  }
+  return best;
+}
+
 /** 锚点把滚动位置绑在一张图上，而不是像素偏移。 */
 export type Anchor = { id: string; delta: number };
 

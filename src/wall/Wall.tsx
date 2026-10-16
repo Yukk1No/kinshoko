@@ -16,7 +16,8 @@ import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { browse, workspaceBrowse, isCursorExpired, isLensChanged, thumbnailUrl } from "../ipc";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { modalOpen } from "../ui/modal";
-import { captureAnchor, masonry, resolveAnchor, visible, type Anchor } from "./layout";
+import { captureAnchor, cardAt, masonry, resolveAnchor, visible, type Anchor } from "./layout";
+import { ZOOM_COMMIT_MS, createNotchCounter, zoomDensity } from "./zoom";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
 const GAP = 8;
@@ -54,6 +55,10 @@ type Props = {
   onWorkspaceStatus?: (status: WorkspaceStatus, cards: BrowserCard[]) => void;
   /** Artist-selected target card width; preview stays local until the slider commits. */
   density?: number;
+  /** Ctrl+滚轮缩放中的本地预览（#111），让图片大小滑条跟着走；null 为撤掉预览。 */
+  onDensityPreview?: (value: number | null) => void;
+  /** Ctrl+滚轮最后一格后 220 ms 提交的图片大小，与滑条提交同一个值。 */
+  onDensityCommit?: (value: number) => void;
   onTotalChange?: (count: number | null) => void;
   libraryId: string;
   scope: BrowseScope;
@@ -133,6 +138,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   onCardsChange,
   onWorkspaceStatus,
   density = TARGET,
+  onDensityPreview,
+  onDensityCommit,
   onTotalChange,
   libraryId,
   scope,
@@ -217,6 +224,15 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     selectAll() { selectAllRef.current(); },
   }), [measureBeforeReflow]);
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
+
+  /**
+   * Ctrl+滚轮缩放（#111）：光标下的那张图在预览后的布局里中心仍在光标下。只由下一次布局效果消费一次；
+   * 滑条与键盘改密度不设它，仍以视口顶部的图为锚。
+   */
+  const zoomPin = useRef<{ id: string; pointerY: number } | null>(null);
+  const zoom = useRef({ value: null as number | null, timer: 0, count: createNotchCounter(), pin: null as { id: string; x: number; y: number } | null });
+  /** 原生滚轮监听读最新的渲染结果。 */
+  const live = useRef({ layout: null as ReturnType<typeof masonry> | null, ids: [] as string[], density, previewDensity, onDensityPreview, onDensityCommit });
 
   useLayoutEffect(() => {
     if (wasViewing.current && !viewerOpen && lastOpened.current) {
@@ -395,7 +411,19 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el || !width || !cards.length) return;
-    const top = resolveAnchor(layout, ids, anchor.current);
+    const pin = zoomPin.current;
+    zoomPin.current = null;
+    const pinned = pin ? ids.indexOf(pin.id) : -1;
+    let top: number | null;
+    if (pinned >= 0) {
+      // 缩放：光标下那张图的中心放回光标下；随后以新布局里视口顶部的图为锚，提交时布局不变、位置不动。
+      const b = layout.boxes[pinned];
+      top = Math.max(0, Math.min(b.y + b.h / 2 - pin!.pointerY, layout.height - el.clientHeight));
+      anchor.current = captureAnchor(layout, ids, top, el.clientHeight);
+      if (storeKey) saveAnchor(storeKey, anchor.current);
+    } else {
+      top = resolveAnchor(layout, ids, anchor.current);
+    }
     if (top !== null && Math.abs(el.scrollTop - top) > 0.5) {
       el.scrollTop = top;
       settledTop.current = el.scrollTop;
@@ -418,6 +446,60 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     }
     setViewport({ top: el.scrollTop, height: el.clientHeight });
   }, [layout, ids, width, cards.length, cursor]);
+
+  live.current = { layout, ids, density, previewDensity, onDensityPreview, onDensityCommit };
+
+  // Ctrl+滚轮缩放（#111）。React 的 onWheel 是被动监听，不能阻止 WebView 的页面缩放，所以手动加。
+  useEffect(() => {
+    const el = scroller.current!;
+    const z = zoom.current;
+    const commit = () => {
+      const value = z.value;
+      clearTimeout(z.timer);
+      z.value = null;
+      z.pin = null;
+      z.count = createNotchCounter();
+      if (value === null) return;
+      const { density, onDensityPreview, onDensityCommit } = live.current;
+      if (value === density) {
+        setPreviewDensity(null);
+        onDensityPreview?.(null);
+      } else {
+        onDensityCommit?.(value);
+      }
+    };
+    const wheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const notches = z.count(e);
+      if (!notches) return;
+      clearTimeout(z.timer);
+      z.timer = window.setTimeout(commit, ZOOM_COMMIT_MS);
+      const { layout, ids, density, previewDensity, onDensityPreview } = live.current;
+      const from = z.value ?? previewDensity ?? density;
+      const next = zoomDensity(from, notches);
+      if (next === from || !layout) return;
+      z.value = next;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      // 同一次连续缩放里光标没动就一直锚同一张图，不因落到缝隙而换图。
+      if (!z.pin || Math.hypot(z.pin.x - x, z.pin.y - y) > 2) {
+        const i = cardAt(layout, x + el.scrollLeft, y + el.scrollTop);
+        z.pin = i >= 0 ? { id: ids[i], x, y } : null;
+      }
+      zoomPin.current = z.pin ? { id: z.pin.id, pointerY: y } : null;
+      measureBeforeReflow();
+      flushSync(() => setPreviewDensity(next));
+      onDensityPreview?.(next);
+    };
+    el.addEventListener("wheel", wheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", wheel);
+      // 缩放停手前离开（换范围重建图片墙）也落下画师选的大小。
+      if (z.value !== null) commit();
+    };
+  }, [measureBeforeReflow]);
 
   const onScroll = () => {
     const el = scroller.current!;

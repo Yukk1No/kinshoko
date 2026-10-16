@@ -115,6 +115,8 @@ function LibraryWorkspace({
   const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
   const [reloadKey, setReloadKey] = useState(0);
   const [density, setDensity] = useState(240);
+  /** 图片墙上 Ctrl+滚轮缩放中的预览值（#111），滑条跟着走。 */
+  const [zoomPreview, setZoomPreview] = useState<number | null>(null);
   const [resultCount, setResultCount] = useState<number | null>(null);
   /** 修订变化后的选择修剪：等图片墙清空（reset）再读完新的结果（loading），然后只保留仍在的图。 */
   const prune = useRef<"idle" | "reset" | "loading">("idle");
@@ -486,6 +488,8 @@ function LibraryWorkspace({
           <Wall
             ref={wall}
             density={density}
+            onDensityPreview={setZoomPreview}
+            onDensityCommit={(value) => { setZoomPreview(null); setDensity(value); }}
             onTotalChange={setResultCount}
             key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
             libraryId={libraryId || "workspace"}
@@ -509,7 +513,7 @@ function LibraryWorkspace({
             }}
           />
           {/* 图片大小浮岛（#102 方案 C3）：图片墙右下角，与 Ctrl+滚轮缩放成对。 */}
-          <DensityIsland value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
+          <DensityIsland value={density} preview={zoomPreview} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
           {/* 多选的浮动操作条（#98）：选择面板把数量与批量操作放到这里。 */}
           <div className="selbar-host" ref={setBarHost} />
         </main>
