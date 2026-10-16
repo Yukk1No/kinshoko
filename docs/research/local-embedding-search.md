@@ -15,7 +15,7 @@
 3. **EmbeddingGemma 2 的身份、许可证和规格可以从 Google 一手资料确认：** 2026-10-06 发布，Apache 2.0，740M 参数，文字／图片／音频／视频共用 768 维空间，可截短到 512／256／128 维，支持 100 多种语言。官方没有单独提到中文，也没有二次元插画方面的评测。官方 ONNX 不存在；社区有 `onnx-community` 转换，但模型卡明确说 float16 会产生 NaN 或悄悄变差的向量，与该转换给出的 fp16 一致性数字互相矛盾，必须实测。（第 2 节）
 4. **DigUp 的工程做法大多能直接对上 Kinshoko 已有的决定：** 模型跑在用完即退出的辅助子进程里（ADR-0004）；向量存在 SQLite，标明生成模型的版本，模型变了就重建（与数据模型中“可重建缓存”一致）；全量暴力打分；先用参考向量和 CPU 结果核对，GPU 结果一致才启用。不能照搬的是推理栈：DigUp 用 llama.cpp + Vulkan，而 Kinshoko 在 [Q67](../discovery/alignment.md) 定了只走 ONNX Runtime + DirectML／Windows ML。（第 1 节）
 5. **以图搜图有一条几乎零额外推理成本的路：** 打标模型在出分类结果之前，内部已经算出一个池化后的图像特征。DeepGHS 的 PixAI v0.9 ONNX 直接输出 1024 维 `embedding`；Kinshoko 实际采用的 Mexes PixAI v1.0 ONNX 只输出 `prediction`，这个特征在图里有，但没有作为输出暴露。它只能比较图与图，不能接收文字查询。（第 3 节）
-6. **要避免与 ADR-0003 冲突，界面上不能把向量结果说成近似查找。** 近似查找是可见、可改回精确的“任一”标签条件。向量相似结果应当显示为一个独立、可删除的“按描述／按样图排序”条件，带相近程度门槛，并且从不写入标签或人工标签决定。如果要把文字向量用来为近似查找提候选，就等于新增第三种展开来源，需要重新打开 ADR-0003。（第 6 节）
+6. **要避免与 ADR-0003 冲突，界面上不能把向量结果说成近似查找。** 近似查找是可见、可改回精确的“任一”标签条件。向量相似结果应当显示为一个独立、可删除的“按描述／按样图排序”条件，带只决定折叠、不移除结果的相近程度门槛，并且从不写入标签或人工标签决定。如果要把文字向量用来为近似查找提候选，就等于新增第三种展开来源，需要重新打开 ADR-0003。（第 6 节）
 
 ## 1. DigUp：可借鉴的设计与对应关系
 
@@ -54,6 +54,8 @@ DigUp README 称 EmbeddingGemma 2 采用 Apache 2.0。经 Google 一手资料核
 
 **矛盾需要实测：** 官方模型卡说 float16 会出 NaN 或悄悄变差，ONNX 转换方却报告 fp16 最差余弦 0.9998；DigUp 也因溢出问题不用 F16。两者可能在不同的图上保留了 fp32 计算，无法从文档判断。在 DirectML 上用 fp16，必须按 DigUp 的做法与 CPU fp32 的参考向量逐项比较。（适配推论）
 
+**查询前缀（来源陈述）。** 模型卡建议文字查询加前缀 `task: search result | query: `，文字文档加 `title: {title} | text: {content}`（无标题时 `title: none`）；图片、视频、音频不加前缀。省略前缀“仍可用，但会降低精度”。[模型卡](https://huggingface.co/google/embeddinggemma-2/blob/914f7f89142e33e77833254d9c9b90c3cef7303b/README.md)。直接调用 ONNX 图时没有任何库会代为加前缀，所以前缀必须由 Kinshoko 写入，并计入向量指纹（第 1 节“模型版本记录”）。
+
 Kinshoko 通过 ort 在 Rust 中运行时，还要自己实现 Gemma 分词（`tokenizer.json`）、Gemma 4 图像预处理（按软 token 预算缩放，每边取 48 px 的整数倍；DigUp 的 [ImageSizing.swift](https://github.com/ARahim3/DigUp/blob/ec28973268b81f836be72187ff23b3a16ef4fd97/Sources/LlamaRuntime/ImageSizing.swift) 移植了这一算法），以及把视觉编码器的输出接入文字图的方式。最后一项的张量契约**未核实**。（适配推论）
 
 ## 3. 二次元领域的替代：打标模型自带的图像特征
@@ -87,7 +89,7 @@ Kinshoko 通过 ort 在 Rust 中运行时，还要自己实现 Gemma 分词（`t
 
 **一手来源中的组合方式：**
 
-- **先过滤后排序（预过滤）。** `sqlite-vec` 承诺，带元数据约束的 KNN 最多返回 k 行，而且全部满足约束（[vec0](https://alexgarcia.xyz/sqlite-vec/features/vec0.html)）。DigUp 先对全部向量打分，再只保留允许的文件类型，效果相同（[Searcher.swift](https://github.com/ARahim3/DigUp/blob/ec28973268b81f836be72187ff23b3a16ef4fd97/Sources/DigUpKit/Searcher.swift#L115-L130)）。
+- **先过滤后排序（预过滤）。** `sqlite-vec` 承诺，带元数据约束的 KNN 最多返回 k 行，而且全部满足约束（[vec0](https://alexgarcia.xyz/sqlite-vec/features/vec0.html)）。DigUp **不是**预过滤：它先对全部向量打分，并在全部向量上算出 z 分所用的均值与标准差，之后才用 `allowed` 只保留允许的文件类型（[Searcher.swift](https://github.com/ARahim3/DigUp/blob/ec28973268b81f836be72187ff23b3a16ef4fd97/Sources/DigUpKit/Searcher.swift#L115-L130)）。余弦本身逐张计算，不受其他图影响，但被排除的图会改变每个可见结果的 z 分以及它能否过 `zGate`。Kinshoko 不能照搬这个顺序：要先把打分范围限定在可见 id 集合，再在这个集合内做归一化和全部统计（见下表“安全模式”）。
 - **先取前 K 再过滤（后过滤）。** Project Curator 先取有限数量的向量候选，再做标签过滤，条件严格时会漏掉候选范围以外的符合图（[anime-library-research](anime-library-research.md)）。Qdrant 用索引估计过滤条件的基数：满足条件的点少于阈值时改走全量扫描，否则走带过滤边的 HNSW。它的文档也承认，多个严格条件同时生效时，图仍可能断开。[Qdrant Indexing](https://qdrant.tech/documentation/manage-data/indexing/)
 - **混合打分。** DigUp 把语义 z 分与关键词覆盖率相加（第 1 节）。
 - **倒数排名融合（RRF）。** 对每个文档计算 Σ 1/(k + r(d))，原文 k = 60，是在预实验中定下的，不针对数据调参；论文称在 TREC 数据上胜过各单一系统和 Condorcet。[Cormack, Clarke, Büttcher, SIGIR 2009](http://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf)。DigUp 作者在自己的评测上发现 RRF 不如 z 分加分（作者自报）。
@@ -100,7 +102,7 @@ Kinshoko 通过 ort 在 Rust 中运行时，还要自己实现 Gemma 分词（`t
 | 内容分级 | 分级仍来自打标模型的 `rating` 输出和人工修正。向量模型不承担分级：模型卡说明它没有安全调优，训练数据也做过过滤（第 2 节），对成人插画的表示质量未知。 |
 | 排除条件 | 标签排除是确定的集合减法，先于排序执行。向量不能表达“不要多人”这类否定：把否定词写进描述，只会改变向量的方向，不会真正排除。这一点没有找到 EmbeddingGemma 2 的专门说明，是推论，需要实测。界面上应引导用户用标签来排除。 |
 | 近似查找 | 近似查找只展开标签条件，是可见、可改回精确的“任一”条件（[ADR-0003](../adr/0003-tag-identity-and-approximate-search.md)）。向量排序作用在展开后的集合上，两者互不改写。 |
-| 多条件默认同时满足 | 带描述的查询等于“标签条件集合 ∩ 相近程度超过门槛的图”，再按相近程度排序。门槛决定结果是否完整，需要按第 8 节实验来定。 |
+| 多条件默认同时满足 | 带描述的查询**不改变结果集合**：结果仍是标签条件筛出的全部可见图，按相近程度排序。门槛只决定哪些图折叠为“较弱匹配”，折叠后可展开，计数与分页按完整集合计算（2026-10-16 讨论确定，见 [Roadmap](../discovery/roadmap.md)）。门槛取值按第 8 节实验来定。 |
 
 ## 6. 分工表
 
@@ -115,7 +117,7 @@ Kinshoko 通过 ort 在 Rust 中运行时，还要自己实现 Gemma 分词（`t
 
 **重叠与冲突：**
 
-- **与 ADR-0003 的冲突点。** 近似查找的定义是“把相近的**标签**作为任一条件”，是可见、可编辑的布尔展开。向量相似结果不是标签条件：它无法逐项展示、无法改回精确，也不对应任何标签。因此 **(a)** 不要把向量结果命名为近似查找或混进近似展开的显示；**(b)** 在条件栏里把它显示为独立、可删除的排序条件，例如“按描述：‘逆光下的侧脸’”或“像这张图”，并给出相近程度门槛；**(c)** 永远不把向量结果写成标签、自动标签建议或人工标签决定。如果用标签名的文字向量去生成近似候选（作用与 JEV 相同），那就是第三种展开来源。ADR-0003 现在规定“两种来源二选一”，这样做需要重新打开它。（适配推论）
+- **与 ADR-0003 的冲突点。** 近似查找的定义是“把相近的**标签**作为任一条件”，是可见、可编辑的布尔展开。向量相似结果不是标签条件：它无法逐项展示、无法改回精确，也不对应任何标签。因此 **(a)** 不要把向量结果命名为近似查找或混进近似展开的显示；**(b)** 在条件栏里把它显示为独立、可删除的排序条件，例如“按描述：‘逆光下的侧脸’”或“像这张图”，并给出只决定折叠的相近程度门槛；**(c)** 永远不把向量结果写成标签、自动标签建议或人工标签决定。如果用标签名的文字向量去生成近似候选（作用与 JEV 相同），那就是第三种展开来源。ADR-0003 现在规定“两种来源二选一”，这样做需要重新打开它。（适配推论）
 - **与 JEV 的重叠。** 两者都能从查找词出发去找相近的标签名。JEV 在远端，要用户自填 key，并且有公开的校准说明；文字向量在本地、免费，但没有判断语义。在同一项任务上比较，属于 PR #75 已经提出的“按用途比较后端”。
 - **与 Decisions 的分工。** 向量负责整库召回，Decisions 负责对前 N 张做看图的小判断。只有在用户主动开启、并清楚哪些图会被上传时，两者才组合；安全模式开启时，成人图不应进入上传候选。这条约束沿用 ADR-0003 对 JEV 的处理，图片上传的具体规格还没有定（[Decisions 核查](https://github.com/Yukk1No/kinshoko/blob/2b6a77dc16ac57008f863a8e7f0f8ac67759cafd/docs/research/multimodal-decisions-evaluation.md)）。
 - **与自动标签的重叠。** EmbeddingGemma 2 原则上可以拿标签名做零样本分类，从而补出“自动标签建议”。但这样会与已定的 PixAI 词表和阈值规则形成两套来源，本文不建议这样用。
@@ -137,11 +139,11 @@ Kinshoko 通过 ort 在 Rust 中运行时，还要自己实现 Gemma 分词（`t
 
 样本使用现有清单：[`sample-manifest.pixiv.json`](../validation/sample-manifest.pixiv.json) 共 238 张（evaluation 185 张，calibration 53 张），覆盖维度包括 `hair:*`、`style:twintails／ponytail`、`bangs:blunt／hime／middle-part`、`length:*`、`lineart`、`grayscale`、`thick-paint`、`backlight`、`multi-person`、`full-body`、`very-tall` 等；[`sample-manifest.pixiv-r18.json`](../validation/sample-manifest.pixiv-r18.json) 共 14 张。覆盖维度和作者标签都只是弱真值（[验收约定](../validation/acceptance.md)）。
 
-1. **文字找图。** 从覆盖维度生成查询，每个维度分别写中文、日文和英文版本，例如“双马尾”“ツインテール”“twintails”“逆光”“黑白线稿”；所有带该维度的 evaluation 样本都视为期望结果。仿照 DigUp `evals` 的格式记为 `{q, expect, tag}`。比较四种做法：(a) PixAI 标签＋翻译表的精确条件；(b) 只用 EmbeddingGemma 2 的文字查询；(c) 先按标签筛选再用向量排序；(d) 用 RRF 或 z 分加分做融合。记录 R@10、MRR，并按语言分别统计。
-2. **以图搜图。** 用 calibration 样本作查询图，与它共享覆盖维度的 evaluation 样本作期望结果。比较 EmbeddingGemma 2 的图像向量、PixAI 池化特征（需要额外暴露输出），以及 Monbooru 式标签集合 Dice 系数基线（[anime-library-research](anime-library-research.md)）。
-3. **维数。** 在实验 1 和 2 上比较 768／512／256 维。
+1. **文字找图。** 从覆盖维度生成查询，每个维度分别写中文、日文和英文版本，例如“双马尾”“ツインテール”“twintails”“逆光”“黑白线稿”；所有带该维度的 evaluation 样本都视为期望结果。仿照 DigUp `evals` 的格式记为 `{q, expect, tag}`。文字查询一律加模型卡建议的查询前缀，另做一组不加前缀的对照，单独报告差异。**这一组只衡量“像标签的概念”能否跨语言找到，不能代表语义搜索。** 另需一组由画师写的复合描述，例如“逆光下的侧脸”“低头整理头发的背影”“冷色调的雨夜氛围”，每条对候选图逐张做独立的分级相关性判断（相关、部分相关、不相关）；是否保留模型以这一组为准。比较四种做法：(a) PixAI 标签＋翻译表的精确条件；(b) 只用 EmbeddingGemma 2 的文字查询；(c) 先按标签筛选再用向量排序；(d) 用 RRF 或 z 分加分做融合。记录 R@10、MRR，并按语言分别统计。
+2. **以图搜图。** 用 calibration 样本作查询图。“与它共享任一覆盖维度的 evaluation 样本”只作辅助指标：这本质上是标签重叠测试，天然偏向 PixAI 池化特征和 Dice 基线，例如两张只因同为 `hair:black` 就被记为相关的图。选定以图搜图的表示，要以独立的分级相关性判断为准，按构图、姿势、画风、氛围分别标注查询图与候选图的相关程度。比较 EmbeddingGemma 2 的图像向量、PixAI 池化特征（需要额外暴露输出），以及 Monbooru 式标签集合 Dice 系数基线（[anime-library-research](anime-library-research.md)）。
+3. **维数。** 只对 EmbeddingGemma 2 比较 768／512／256 维：它按 Matryoshka 训练，截短后重新归一化即可。PixAI 的 1024 维池化特征没有这种训练，直接截取前几维会改变相似度的含义，因此保持全维；如果确实需要降维，另行拟合降维方法（例如在库内样本上做 PCA）并单独评估。
 4. **安全模式泄漏。** 把 r18 清单与 `sensitive` 样本一起放进库，开启安全模式后跑完实验 1 和 2 的全部查询。断言结果、计数与“较弱匹配”中都没有被封印的图；断言门槛与 z 分只按可见集合计算；断言设定返回 k 张时，确实拿到 k 张可见图（不因过滤而缩水）。
-5. **运行与数值。** 在验收机器（RX 6500 XT 4 GB）和一台无独显机器上，对 fp32、fp16、q8 各做一遍：按 DigUp 的门槛，与 CPU fp32 参考向量比较，最低余弦须 ≥ 0.999；检查 NaN；确认没有算子回落 CPU；记录每张图 p50／p95、峰值显存与内存、与 PixAI 同时加载还是先后加载、查询时文字编码的延迟。
+5. **运行与数值。** 在验收机器（RX 6500 XT 4 GB）和一台无独显机器上，对 fp32、fp16、q8 各做一遍：按 DigUp 的门槛，与 CPU fp32 参考向量比较，最低余弦须 ≥ 0.999；检查 NaN；用 ORT 的 profiling 确认计算密集算子没有回落 CPU（形状计算等轻量节点按图分区规则留在 CPU 是正常的，与[验收约定](../validation/acceptance.md)中 PixAI 的判定一致），只有回落导致主要计算移到 CPU 或超出响应预算时才判为不通过；记录每张图 p50／p95、峰值显存与内存、与 PixAI 同时加载还是先后加载、查询时文字编码的延迟。
 
 **记录与判定：** 按[验收约定](../validation/acceptance.md)的方式保存首版与修正版两份数字。是否保留某个方案，看“这一屏值得刷吗”的画师反馈和召回指标，而不是看模型榜单。
 
