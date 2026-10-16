@@ -450,7 +450,7 @@ describe("主窗口", () => {
     expect(await screen.findByRole("dialog", { name: "原图查看器" })).toBeTruthy();
   });
 
-  it("F1 落在详情面板的预览图上时登记为参考图来源，读原图像素", async () => {
+  it("F1 落在详情面板的预览图上时登记为参考图来源，读原始像素", async () => {
     backend(library);
     const rect = HTMLElement.prototype.getBoundingClientRect;
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {

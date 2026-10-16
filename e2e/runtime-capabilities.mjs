@@ -179,7 +179,7 @@ try {
   await click("//*[contains(@class,'card') and @data-id][1]");
   await until("representative original visible", () => exec("return document.querySelector('.viewer-stage img')?.complete && document.querySelector('.viewer-stage img')?.naturalWidth > 0"));
   if (mode !== "pin-error") {
-  await click(button("原图像素"));
+  await click(button("原始像素"));
   report.originalDisplay = await until("original-sized reference", () => exec("const image=document.querySelector('.viewer-stage img');return image?.complete&&image.naturalWidth===400?{src:image.currentSrc,naturalWidth:image.naturalWidth,naturalHeight:image.naturalHeight}:null"));
   await screenshot("representative-original.png"); check(true, "representative original is visible at original size in current Runtime");
   }

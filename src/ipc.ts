@@ -48,6 +48,7 @@ import type { CaptureAction } from "./bindings/CaptureAction";
 import type { CaptureEntry } from "./bindings/CaptureEntry";
 import type { CollectedCapture } from "./bindings/CollectedCapture";
 import type { FrozenScreen } from "./bindings/FrozenScreen";
+import type { OriginalPixels } from "./bindings/OriginalPixels";
 import type { ImageDetail } from "./bindings/ImageDetail";
 import type { ImageEdit } from "./bindings/ImageEdit";
 import type { PermanentDeletePreview } from "./bindings/PermanentDeletePreview";
@@ -625,6 +626,11 @@ export function startCapture(): Promise<void> {
 /** 框选窗口：要显示的冻结屏幕；没有进行中的截图时为 null。 */
 export function frozenScreen(): Promise<FrozenScreen | null> {
   return invoke<FrozenScreen | null>(desk("frozen_screen"));
+}
+
+/** 框选读数（#103）：选区（相对显示器的物理像素）得到参考视图时为结果的原始像素尺寸，普通截图为 null。 */
+export function captureReadout(region: Region, token: string): Promise<OriginalPixels | null> {
+  return invoke<OriginalPixels | null>(desk("capture_readout"), { region, token });
 }
 
 /** 框选窗口：冻结屏幕已画好，可以显示窗口了。 */
