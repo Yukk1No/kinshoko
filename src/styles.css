@@ -307,33 +307,6 @@ button.primary {
   }
 }
 
-.seal-book {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 6px;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.seal-book svg {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linejoin: round;
-}
-
-.seal-book .seal-book-lock {
-  fill: var(--seal);
-  stroke: var(--seal);
-}
-
-.seal-book .seal-book-key {
-  stroke: var(--bg);
-  stroke-linecap: round;
-}
-
 /* 设置（#61） */
 
 /* 状态栏里的自动标签 */
@@ -1357,8 +1330,6 @@ button.primary {
   --shadow-pop: 0 0 0 1px rgba(43, 39, 71, 0.06), 0 2px 4px rgba(43, 39, 71, 0.06), 0 12px 32px rgba(43, 39, 71, 0.14);
   --r-xs: 6px; --r-s: 8px; --r: 10px; --r-m: 12px; --r-l: 14px; --r-xl: 18px;
   --spring: cubic-bezier(0.2, 0.9, 0.25, 1.05);
-  --seal-acc: var(--seal);
-  --seal-ink: var(--ink);
   --muted: var(--ink-3);
   --win-close: #C94A4A; --on-win-close: #FFFDF8;
   --warn: #A0700F; --warn-strong: #5E4510; --warn-soft: #FBF4E4; --ok: #3E7A4D; --ok-soft: #E3F1E6;
@@ -1415,6 +1386,10 @@ button.primary {
 .seal-book.is-sealed:active { --bb: color-mix(in srgb, var(--ink) 12%, var(--rail)); }
 .seal-book:hover svg { transform: none; }
 .seal-book:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* seal colours, verbatim from the prototype (bd8aea44 styles.css, "seal and release"): day sakura, night gold, per theme */
+:root { --seal-acc: #C85672; --seal-ink: var(--ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seal-acc: #E3B34F; } }
+:root[data-theme="dark"] { --seal-acc: #E3B34F; }
 .rail-badge { position: absolute; top: 3px; right: 2px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 11px; line-height: 15px; }
 .rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
 .tip { position: absolute; left: calc(100% + 10px); top: 50%; transform: translate(-4px, -50%); white-space: nowrap; background: var(--ink); color: var(--bg); padding: 5px 9px; border-radius: 7px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity var(--t-fast), transform var(--t-fast) var(--ease); z-index: 20; }
@@ -1427,7 +1402,6 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .app-column { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative; }
 .rail-slot { display: flex; flex: none; z-index: 4; }
 .rail-btn { padding: 0; border: 0; }
-.rail .seal-book { width: 40px; height: 40px; display: grid; place-items: center; }
 .app-body { min-width: 0; }
 .sidebar-slot { width: 248px; background: var(--surface); transition: width var(--t-slow) var(--ease); }
 .sidebar-slot[data-collapsed="true"] { width: 0; border-right-width: 0; }
