@@ -384,8 +384,15 @@ function LibraryWorkspace({
   const [barHost, setBarHost] = useState<HTMLElement | null>(null);
   const selectionKey = [...selected].sort().join("\n");
   const [inspectorHidden, setInspectorHidden] = useState<string | null>(null);
-  const eligible = selected.size > 0 && ((workspaceScope.kind === "library" && workspaceScope.libraryId === libraryId) ||
-    loadedCards.filter((card) => selected.has(card.id)).every((card) => card.sources?.length === 1 && card.sources[0].libraryId === libraryId));
+  // 详情面板整理哪个图库（ADR-0008，#113）：范围是某个图库时就是它；“全部图片”下选中的图都只有同一个图库的
+  // 来源时是那个库。多选可以整理任何一个图库；只选一张且不在窗口打开的图库时，走下面的来源整理。
+  const selectedCards = loadedCards.filter((card) => selected.has(card.id));
+  const soleLibrary = selectedCards[0]?.sources?.length === 1 ? selectedCards[0].sources[0].libraryId : null;
+  // 列表重读期间选中的图暂时不在已读卡片里：沿用窗口打开的图库，等修剪选择后再定（与原规则相同）。
+  const selectionLibrary = workspaceScope.kind === "library" ? workspaceScope.libraryId
+    : selectedCards.length === 0 ? libraryId || null
+    : soleLibrary && selectedCards.every((card) => card.sources?.length === 1 && card.sources[0].libraryId === soleLibrary) ? soleLibrary : null;
+  const eligible = selected.size > 0 && selectionLibrary !== null && (selected.size > 1 || selectionLibrary === libraryId);
   // 选中一张只有一份来源、且不属于当前图库的图时，详情面板也显示它的来源整理（卡片上的来源按钮同样可打开）。
   const selectedSourceCard = !eligible && selected.size === 1
     ? loadedCards.find((card) => selected.has(card.id) && card.sources?.length && card.libraryId && card.imageId) as SourcesCard | undefined
@@ -442,7 +449,7 @@ function LibraryWorkspace({
             <button type="button" className="k-icon-btn" aria-label="收起侧栏" title="收起侧栏（Ctrl+B）" onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button>
           </header>
           <div className="pane-body" hidden={section !== "browse"}>
-          <WorkspacePane status={status} scope={workspaceScope} activeLibraryId={libraryId} safeMode={safe}
+          <WorkspacePane status={status} scope={workspaceScope} safeMode={safe}
             reloadKey={reloadKey} onError={onError} onRecheck={recheck} onScope={(next) => {
               setWorkspaceScope(next); setSelected(new Set()); setSources(null);
             }}
@@ -455,7 +462,6 @@ function LibraryWorkspace({
         <main className="app-main main">
           <header className="topbar" data-tauri-drag-region>
             {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label="展开侧栏" title="展开侧栏（Ctrl+B）"><PanelLeftOpen size={16} aria-hidden="true" /></button>}
-            {!libInPane && <div className="collapsed-library">{libraryControls}</div>}
           <SearchBox
             workspace
             libraryId="workspace"
@@ -567,11 +573,12 @@ function LibraryWorkspace({
               {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => { if (sources) setSources(null); else setSelected(new Set()); }} onView={setViewing}
                 onChanged={() => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); }} />
               : <SelectionPanel
-                libraryId={libraryId}
+                workspace
+                libraryId={selectionLibrary ?? libraryId}
                 scope={scope}
                 bar={barHost}
-                selected={new Set(loadedCards.filter((card) => selected.has(card.id)).flatMap((card) =>
-                  card.sources?.filter((source) => source.libraryId === libraryId && !source.unavailable).map((source) => source.imageId) ?? []))}
+                selected={new Set(selectedCards.flatMap((card) =>
+                  card.sources?.filter((source) => source.libraryId === selectionLibrary && !source.unavailable).map((source) => source.imageId) ?? []))}
                 onClear={() => setSelected(new Set())}
                 reloadKey={reloadKey}
                 onError={onError}
