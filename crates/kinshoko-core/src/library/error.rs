@@ -54,6 +54,10 @@ pub enum Error {
     Image(image::ImageError),
     /// 原图无法解码或不再是支持的格式。
     Undecodable(String),
+    /// 资料库记着这张图，但原文件已不在（被移走或删除，#105）。
+    OriginalMissing(PathBuf),
+    /// 剪贴板里的图片无法交给导入（#105）。
+    ClipboardImage(String),
 }
 
 impl fmt::Display for Error {
@@ -98,6 +102,10 @@ impl fmt::Display for Error {
             Error::Migration(e) => write!(f, "资料库格式无法升级：{e}"),
             Error::Image(e) => write!(f, "图片解码失败：{e}"),
             Error::Undecodable(e) => write!(f, "原图无法解码：{e}"),
+            Error::OriginalMissing(p) => {
+                write!(f, "原文件不在了，可能被移走或删除：{}", p.display())
+            }
+            Error::ClipboardImage(why) => write!(f, "剪贴板里的图片无法导入：{why}"),
         }
     }
 }

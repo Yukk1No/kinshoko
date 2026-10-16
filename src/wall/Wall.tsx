@@ -49,8 +49,8 @@ export type WallHandle = {
   selectAll: () => void;
 };
 
-/** 卡片上的快捷键（与右键菜单同一选择规则）：P 钉住、F1 进入查看器框选、Del 移到回收站。 */
-export type CardCommand = "pin" | "crop" | "trash";
+/** 卡片上的快捷键（与右键菜单同一选择规则）：P 钉住、F1 进入查看器框选、Del 移到回收站、Ctrl+C 复制图片。 */
+export type CardCommand = "pin" | "crop" | "trash" | "copy";
 
 export type BrowserCard = ImageCard & Partial<Pick<WorkspaceCard, "libraryId" | "imageId" | "sources">>;
 
@@ -85,6 +85,8 @@ type Props = {
   /** 右键菜单的内容（#102）；不给出时图片墙没有右键菜单。 */
   menu?: (target: WallMenuTarget) => ReactNode;
   onCardCommand?: (command: CardCommand, cards: BrowserCard[], point: { x: number; y: number }) => void;
+  /** Ctrl+V：从剪贴板导入（#105）。主窗口里焦点不在输入框、没有模态与查看器时都响应。 */
+  onPaste?: () => void;
 };
 
 /**
@@ -108,6 +110,10 @@ function openMenuAt(node: HTMLElement) {
     bubbles: true, cancelable: true, button: 2, clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2,
   }));
 }
+
+/** 按键落在可输入的地方（输入框、文本框、可编辑区域）：Ctrl+V 是粘贴文字，不是导入。 */
+const editable = (target: EventTarget | null) =>
+  target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select, [contenteditable='true']") !== null);
 
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
 export const scopeKey = (scope: BrowseScope) =>
@@ -170,6 +176,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   viewerOpen,
   menu,
   onCardCommand,
+  onPaste,
 }, ref) {
   const searching = conditions.conditions.length > 0;
   const storeKey = searching ? null : workspaceScope ? `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}` : anchorKey(libraryId, scope);
@@ -667,14 +674,38 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     onCardCommand(command, command === "crop" ? acted.filter((c) => c.id === card.id) : acted, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
   };
   const wallKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "a") {
+    const chord = (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey;
+    if (chord && e.key.toLowerCase() === "a") {
       e.preventDefault();
       selectAllRef.current();
+    } else if (chord && e.key.toLowerCase() === "c" && onCardCommand) {
+      // 复制：焦点在卡片上时按右键的同一选择规则；否则是当前选择。多张由调用方提示一次只能复制一张。
+      const node = (e.target as Element).closest?.<HTMLElement>(".card");
+      const acted = node?.dataset.id ? actOn(node.dataset.id) : cards.filter((c) => selected.has(c.id));
+      if (!acted.length) return;
+      e.preventDefault();
+      const rect = (node ?? e.currentTarget).getBoundingClientRect();
+      onCardCommand("copy", acted, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
     } else if (isMenuKey(e) && e.target === e.currentTarget && menu) {
       e.preventDefault();
       openMenuAt(e.currentTarget);
     }
   };
+
+  const paste = useRef({ onPaste, viewerOpen });
+  paste.current = { onPaste, viewerOpen };
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== "v" || e.defaultPrevented) return;
+      const { onPaste, viewerOpen } = paste.current;
+      const el = scroller.current;
+      if (!onPaste || !el || viewerOpen || modalOpen() || el.closest("[hidden], [inert]") || editable(e.target)) return;
+      e.preventDefault();
+      onPaste();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   const dragStart = (id: string, e: DragEvent) => {
     // 拖未选中的图时只拖这一张，并改为选中它。

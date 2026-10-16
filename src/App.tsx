@@ -383,6 +383,8 @@ function LibraryWorkspace({
     onChanged: () => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); },
     onClearSelection: () => setSelected(new Set()),
     importFrom: (source) => importControl.current?.[source](),
+    importClipboard: async () => { await importControl.current?.clipboard(); },
+    onNotice: (message) => { toast?.show({ title: message, tone: "success" }); },
     selectAll: () => wall.current?.selectAll(),
     setDensity,
   });
@@ -509,8 +511,10 @@ function LibraryWorkspace({
             onCardCommand={(command, cards, point) => {
               if (command === "pin") wallActions.pin(cards, point);
               else if (command === "crop") wallActions.crop(cards[0]);
+              else if (command === "copy") { if (cards.length === 1) wallActions.copy(cards[0]); else if (toast) toast.show({ title: "一次只能复制一张" }); else onError("一次只能复制一张"); }
               else wallActions.edit(cards, [{ kind: "delete" }], true);
             }}
+            onPaste={wallActions.importClipboard}
           />
           {/* 图片大小浮岛（#102 方案 C3）：图片墙右下角，与 Ctrl+滚轮缩放成对。 */}
           <DensityIsland value={density} preview={zoomPreview} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />

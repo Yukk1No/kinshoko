@@ -2,7 +2,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import type { ScreenRect } from "../bindings/ScreenRect";
 import type { WorkspaceSourceTarget } from "../bindings/WorkspaceSourceTarget";
-import { pinReference, referenceGroups, workspaceEditSource, workspaceSidebar, workspaceSourceGroup } from "../ipc";
+import { clipboardHasImage, copyReferenceImage, pinReference, referenceGroups, revealReferenceImage, workspaceEditSource, workspaceSidebar, workspaceSourceGroup } from "../ipc";
 import { flattenFolders, PermanentDeleteConfirm } from "../library/SelectionPanel";
 import type { BrowserCard } from "./Wall";
 import type { ImportSource, WallMenuActions } from "./WallMenu";
@@ -43,14 +43,19 @@ export type WallActionsOptions = {
   onChanged: () => void;
   onClearSelection: () => void;
   onError: (message: string) => void;
+  /** 成功的轻提示（例如“已复制图片”）。 */
+  onNotice: (message: string) => void;
   importFrom: (source: ImportSource) => void;
+  /** 从剪贴板导入的入口（导入菜单）；剪贴板没有图片等原因以 reject 给出。 */
+  importClipboard: () => Promise<void>;
   selectAll: () => void;
   setDensity: (value: number) => void;
 };
 
 /**
  * 图片墙右键菜单与快捷键背后的动作：钉住（最多 20 张，超过先确认）、按来源整理、加入参考组、
- * 彻底删除（先确认受影响的参考组）。dialogs 由调用方放进界面。
+ * 彻底删除（先确认受影响的参考组）、复制图片、在资源管理器中显示与从剪贴板导入（#105）。
+ * dialogs 由调用方放进界面。
  */
 export function useWallActions(o: WallActionsOptions): { actions: WallMenuActions; dialogs: ReactNode } {
   const options = useRef(o);
@@ -75,6 +80,21 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     importFrom: (source) => options.current.importFrom(source),
     selectAll: () => options.current.selectAll(),
     setDensity: (value) => options.current.setDensity(value),
+    copy(card) {
+      const { activeLibraryId, onNotice, onError } = options.current;
+      const target = targetOf(card, activeLibraryId);
+      copyReferenceImage(target.libraryId, target.imageId).then(() => onNotice("已复制图片"), (e) => onError(`无法复制图片：${String(e)}`));
+    },
+    reveal(card) {
+      const { activeLibraryId, onError } = options.current;
+      const target = targetOf(card, activeLibraryId);
+      revealReferenceImage(target.libraryId, target.imageId).catch((e) => onError(`无法在资源管理器中显示：${String(e)}`));
+    },
+    importClipboard() {
+      const { importClipboard, onError } = options.current;
+      importClipboard().catch((e) => onError(String(e)));
+    },
+    clipboardHasImage: () => clipboardHasImage(),
     pin(cards, point) {
       if (cards.length > PIN_LIMIT) setPinMany({ cards, point });
       else void pinNow(cards, point);
