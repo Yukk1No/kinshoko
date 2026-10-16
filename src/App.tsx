@@ -3,7 +3,7 @@ import { onCollectionRequest, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { modalOpen as anyModalOpen } from "./ui/modal";
-import { Images, PanelLeftClose, PanelLeftOpen, PanelRightClose, X } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, X } from "lucide-react";
 import { ToastProvider, useToast } from "./ui/Toast";
 import { WinCtrls } from "./ui/WinCtrls";
 import type { AppInfo } from "./bindings/AppInfo";
@@ -33,7 +33,7 @@ import {
 } from "./ipc";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { type FinishedImport, type RunningImport } from "./library/ImportBar";
-import { ImportMenu } from "./library/ImportMenu";
+import { ImportMenu, type ImportControl } from "./library/ImportMenu";
 import { LegacyNameMigrationNotice, LegacyNameWizard } from "./library/LegacyNameMigrationPanel";
 import { WorkspacePane, WorkspaceSources } from "./library/WorkspacePane";
 import type { WorkspaceCard as SourcesCard } from "./bindings/WorkspaceCard";
@@ -51,7 +51,9 @@ import { Dialog } from "@base-ui/react/dialog";
 import { TaggingIndicator } from "./TaggingIndicator";
 import { UpdateBanner } from "./Update";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "./wall/Wall";
-import { DensitySlider } from "./wall/DensitySlider";
+import { WallMenu } from "./wall/WallMenu";
+import { useWallActions } from "./wall/useWallActions";
+import { DensityIsland } from "./wall/DensityIsland";
 import { Viewer } from "./viewer/Viewer";
 import { RuntimeNotice } from "./RuntimeSupport";
 
@@ -123,6 +125,10 @@ function LibraryWorkspace({
   const scope: BrowseScope = workspaceScope.kind === "library" ? workspaceScope.scope : { kind: "all" };
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<BrowserCard | null>(null);
+  /** 查看器打开时即进入框选（图片墙右键“框选局部钉住”或 F1）。 */
+  const [viewCrop, setViewCrop] = useState(false);
+  useEffect(() => { if (!viewing) setViewCrop(false); }, [viewing]);
+  const importControl = useRef<ImportControl>(null);
   const [editingGroups, setEditingGroups] = useState(false);
   useEffect(()=>{if(captureRequest){setViewing(null);setSources(null);}},[captureRequest]);
   const [problem, setProblem] = useState<string | null>(null);
@@ -384,6 +390,19 @@ function LibraryWorkspace({
     setRunning((r) => (r?.taskId === taskId ? r : { taskId, progress: { done: 0, total: 0 } }));
   };
 
+  // 图片墙的右键菜单与卡片快捷键（#102）。
+  const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
+    safe, activeLibraryId: libraryId, onError,
+    onOpen: (card) => { setViewCrop(false); setViewing(card); },
+    onCrop: (card) => { setViewCrop(true); setViewing(card); },
+    onInspect: (card) => setSources(card as WorkspaceCard),
+    onChanged: () => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); },
+    onClearSelection: () => setSelected(new Set()),
+    importFrom: (source) => importControl.current?.[source](),
+    selectAll: () => wall.current?.selectAll(),
+    setDensity,
+  });
+
   const libInPane = paneOpen && section === "browse";
   const sectionName = section === "groups" ? "参考组" : "截图";
   return (
@@ -433,11 +452,8 @@ function LibraryWorkspace({
           />
           <div className="bar-meta">
             <span className="result-count tabular" role="status" aria-label="查找结果">{resultCount === null ? "…" : resultCount + " 张"}</span>
-            <label className="density" title="图片大小"><Images size={14} aria-hidden="true" /><span className="sr-only">图片大小</span>
-              <DensitySlider value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
-            </label>
           </div>
-          <ImportMenu scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
+          <ImportMenu control={importControl} scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
             running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
             onOpenTrash={(owner=libraryId) => {
               onOpenBrowse();
@@ -501,9 +517,17 @@ function LibraryWorkspace({
             safeMode={safe}
             selected={selected}
             onSelectionChange={setSelected}
-            onOpenImage={setViewing}
+            onOpenImage={(card) => { setViewCrop(false); setViewing(card); }}
             viewerOpen={modalOpen}
+            menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} />}
+            onCardCommand={(command, cards, point) => {
+              if (command === "pin") wallActions.pin(cards, point);
+              else if (command === "crop") wallActions.crop(cards[0]);
+              else wallActions.edit(cards, [{ kind: "delete" }], true);
+            }}
           />
+          {/* 图片大小浮岛（#102 方案 C3）：图片墙右下角，与 Ctrl+滚轮缩放成对。 */}
+          <DensityIsland value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
           {/* 多选的浮动操作条（#98）：选择面板把数量与批量操作放到这里。 */}
           <div className="selbar-host" ref={setBarHost} />
         </main>
@@ -545,8 +569,10 @@ function LibraryWorkspace({
         reloadKey={reloadKey}
         position={viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) }}
         onStep={step}
+        startCrop={viewCrop}
       />
     )}
+    {wallDialogs}
     </>
   );
 }

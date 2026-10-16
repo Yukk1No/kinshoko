@@ -1,7 +1,10 @@
 import { Fragment, forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { DragEvent, MouseEvent } from "react";
+import type { DragEvent, KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { Layers } from "lucide-react";
+import { ContextMenu } from "@base-ui/react/context-menu";
+import { MenuPopup } from "../ui/Menu";
+import type { WallMenuTarget } from "./WallMenu";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { ImageCard } from "../bindings/ImageCard";
@@ -39,7 +42,12 @@ export type WallHandle = {
   invalidate: () => void;
   /** 读下一页（查看器走过已读到的卡片时）；已在读或没有下一页时什么也不做。 */
   loadMore: () => void;
+  /** 选中已读到的全部图（Ctrl+A，空白处菜单的“全选”）。 */
+  selectAll: () => void;
 };
+
+/** 卡片上的快捷键（与右键菜单同一选择规则）：P 钉住、F1 进入查看器框选、Del 移到回收站。 */
+export type CardCommand = "pin" | "crop" | "trash";
 
 export type BrowserCard = ImageCard & Partial<Pick<WorkspaceCard, "libraryId" | "imageId" | "sources">>;
 
@@ -67,7 +75,21 @@ type Props = {
   onSelectionChange: (selected: Set<string>) => void;
   onOpenImage: (card: BrowserCard) => void;
   viewerOpen: boolean;
+  /** 右键菜单的内容（#102）；不给出时图片墙没有右键菜单。 */
+  menu?: (target: WallMenuTarget) => ReactNode;
+  onCardCommand?: (command: CardCommand, cards: BrowserCard[], point: { x: number; y: number }) => void;
 };
+
+/** 菜单键或 Shift+F10：用键盘打开右键菜单。 */
+const isMenuKey = (e: Pick<KeyboardEvent, "key" | "shiftKey">) => e.key === "ContextMenu" || (e.shiftKey && e.key === "F10");
+
+/** 在元素中心派发一次 contextmenu，键盘打开的菜单与右键走同一路径。 */
+function openMenuAt(node: HTMLElement) {
+  const rect = node.getBoundingClientRect();
+  node.dispatchEvent(new window.MouseEvent("contextmenu", {
+    bubbles: true, cancelable: true, button: 2, clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2,
+  }));
+}
 
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
 export const scopeKey = (scope: BrowseScope) =>
@@ -126,6 +148,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   onSelectionChange,
   onOpenImage,
   viewerOpen,
+  menu,
+  onCardCommand,
 }, ref) {
   const searching = conditions.conditions.length > 0;
   const storeKey = searching ? null : workspaceScope ? `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}` : anchorKey(libraryId, scope);
@@ -190,10 +214,12 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
 
   useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
   const loadMoreRef = useRef<() => void>(() => {});
+  const selectAllRef = useRef<() => void>(() => {});
   useImperativeHandle(ref, () => ({
     previewDensity(value) { measureBeforeReflow(); setPreviewDensity(value); },
     invalidate() { generation.current += 1; inflight.current = null; },
     loadMore() { loadMoreRef.current(); },
+    selectAll() { selectAllRef.current(); },
   }), [measureBeforeReflow]);
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 
@@ -444,6 +470,48 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     }
   };
 
+  selectAllRef.current = () => onSelectionChange(new Set(ids));
+
+  /**
+   * 右键（或快捷键）作用的卡片：右键已选中的卡片时是整组选择（按图片墙顺序）；
+   * 右键未选中的卡片时选择改为只有这一张。
+   */
+  const actOn = (id: string): BrowserCard[] => {
+    if (selected.has(id)) return cards.filter((c) => selected.has(c.id));
+    pivot.current = id;
+    onSelectionChange(new Set([id]));
+    return cards.filter((c) => c.id === id);
+  };
+  const [menuTarget, setMenuTarget] = useState<WallMenuTarget | null>(null);
+  const targetMenu = (e: MouseEvent) => {
+    const point = { x: e.clientX, y: e.clientY };
+    const node = (e.target as Element).closest?.<HTMLElement>(".card, .card-sources");
+    const id = node?.dataset.id ?? node?.dataset.card;
+    const acted = id ? actOn(id) : [];
+    setMenuTarget(acted.length ? { kind: "cards", cards: acted, point } : { kind: "blank", point });
+  };
+  const cardKey = (card: BrowserCard, e: KeyboardEvent<HTMLElement>) => {
+    if (e.key === "Enter") { e.preventDefault(); open(card); return; }
+    if (e.key === " ") { e.preventDefault(); select(card.id, e); return; }
+    if (isMenuKey(e)) { e.preventDefault(); e.stopPropagation(); if (menu) openMenuAt(e.currentTarget); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const command: CardCommand | null = e.key === "p" || e.key === "P" ? "pin" : e.key === "F1" ? "crop" : e.key === "Delete" && scope.kind !== "trash" ? "trash" : null;
+    if (!command || !onCardCommand) return;
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const acted = actOn(card.id);
+    onCardCommand(command, command === "crop" ? acted.filter((c) => c.id === card.id) : acted, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+  };
+  const wallKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      selectAllRef.current();
+    } else if (isMenuKey(e) && e.target === e.currentTarget && menu) {
+      e.preventDefault();
+      openMenuAt(e.currentTarget);
+    }
+  };
+
   const dragStart = (id: string, e: DragEvent) => {
     // 拖未选中的图时只拖这一张，并改为选中它。
     let dragged = [...selected];
@@ -465,8 +533,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   };
 
   return (
-    <div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
-      role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1}>
+    <ContextMenu.Root disabled={!menu} onOpenChange={(next) => { if (!next) setMenuTarget(null); }}>
+    <ContextMenu.Trigger render={<div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
+      role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1} onKeyDown={wallKey}
+      onContextMenuCapture={(e) => { if (menu) targetMenu(e); }} />}>
       {error && <p role="alert">{error}</p>}
       {total === 0 ? (
         <p className="wall-empty">{searching ? "没有符合条件的参考图。" : EMPTY[scope.kind]}</p>
@@ -492,10 +562,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                   else open(card);
                 }}
                 onDoubleClick={() => open(card)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.preventDefault(); open(card); }
-                  if (e.key === " ") { e.preventDefault(); select(card.id, e); }
-                }}
+                onKeyDown={(e) => cardKey(card, e)}
                 onDragStart={(e) => dragStart(card.id, e)}
                 style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}
               >
@@ -513,6 +580,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
           })}
         </div>
       )}
-    </div>
+    </ContextMenu.Trigger>
+    {menu && menuTarget && <MenuPopup label={menuTarget.kind === "blank" ? "图片墙菜单" : menuTarget.cards.length > 1 ? `${menuTarget.cards.length} 张参考图的菜单` : "参考图菜单"} width={232}>
+      {menu(menuTarget)}
+    </MenuPopup>}
+    </ContextMenu.Root>
   );
 });
