@@ -381,6 +381,8 @@ function LibraryWorkspace({
     onChanged: () => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); },
     onClearSelection: () => setSelected(new Set()),
     importFrom: (source) => importControl.current?.[source](),
+    importClipboard: async () => { await importControl.current?.clipboard(); },
+    onNotice: (message) => { toast?.show({ title: message, tone: "success" }); },
     selectAll: () => wall.current?.selectAll(),
     setDensity,
   });
@@ -508,8 +510,10 @@ function LibraryWorkspace({
             onCardCommand={(command, cards, point) => {
               if (command === "pin") wallActions.pin(cards, point);
               else if (command === "crop") wallActions.crop(cards[0]);
+              else if (command === "copy") { if (cards.length === 1) wallActions.copy(cards[0]); else if (toast) toast.show({ title: "一次只能复制一张" }); else onError("一次只能复制一张"); }
               else wallActions.edit(cards, [{ kind: "delete" }], true);
             }}
+            onPaste={wallActions.importClipboard}
           />
           {/* 多选的浮动操作条（#98）：选择面板把数量与批量操作放到这里。 */}
           <div className="selbar-host" ref={setBarHost} />

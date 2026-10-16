@@ -4,7 +4,7 @@ import { ImportSplit } from "../ui/ImportSplit";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
-import { dismissImport, importTasks, isCursorExpired, onSafeModeSetting, onWorkspaceChanged } from "../ipc";
+import { dismissImport, importTasks, isCursorExpired, onSafeModeSetting, onWorkspaceChanged, stageClipboardImport } from "../ipc";
 import { destinationAvailable, folderChoices, SaveDestinationPicker, useSaveDestination } from "./SaveDestination";
 
 const POLL_MIN=400,POLL_MAX=3200;
@@ -21,8 +21,11 @@ function concealSuccesses(report: ImportReport): ImportReport {
  * 顶栏的导入分体按钮（#98）：左半直接选图片文件，箭头里选文件夹或 Eagle；选好后在对话框里确认图库和文件夹，
  * 进度与结果回执是右下角的卡片。任务回执跨浏览与当前图库的变化保留。
  */
-/** 从别处（图片墙右键菜单）开始导入的入口。 */
-export type ImportControl = { files: () => void; folder: () => void; eagle: () => void };
+/**
+ * 从别处（图片墙右键菜单）开始导入的入口。clipboard：把剪贴板里的图片暂存成文件，再走同一导入流程
+ * （保存位置照常选择）；剪贴板没有图片或正在导入时 reject 中文原因（#105）。
+ */
+export type ImportControl = { files: () => void; folder: () => void; eagle: () => void; clipboard: () => Promise<void> };
 
 export function ImportMenu({control,...p}:ComponentProps<typeof ImportBar>&{scope?:WorkspaceScope;control?:Ref<ImportControl>}) {
  const [tasks,setTasks]=useState<ImportTaskSnapshot[]>([]),[selectedTask,setSelectedTask]=useState<string|null>(null),[problem,setProblem]=useState<string|null>(null);
@@ -78,7 +81,12 @@ export function ImportMenu({control,...p}:ComponentProps<typeof ImportBar>&{scop
  const eagle=()=>{prefill();actions.current?.eagle();};
  // 图片墙空白处右键的“导入 ▸”与这里的分体按钮走同一入口；按钮不可用（导入进行中）时也不开始。
  const blocked=busy.busy||active;
- useImperativeHandle(control,()=>({files:()=>{if(!blocked)via("files")();},folder:()=>{if(!blocked)via("folder")();},eagle:()=>{if(!blocked)eagle();}}));
+ const clipboard=async()=>{
+  if(blocked)throw "正在导入，结束后再从剪贴板导入";
+  const path=await stageClipboardImport();
+  prefill();actions.current?.paths([path]);
+ };
+ useImperativeHandle(control,()=>({files:()=>{if(!blocked)via("files")();},folder:()=>{if(!blocked)via("folder")();},eagle:()=>{if(!blocked)eagle();},clipboard}));
  const notes=<>
   {problem&&<p className="k-task-sub is-danger" role="alert">{problem}</p>}
   {task?.report&&task.finishing&&<p className="k-task-sub" role="status">已导入，正在把标签定义存进图库…</p>}

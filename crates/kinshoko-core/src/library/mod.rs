@@ -23,6 +23,7 @@
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
 
 mod backup;
+mod clipboard;
 mod colour;
 mod display;
 mod eagle;
@@ -64,6 +65,7 @@ pub use backup::{
     RestoreProvenance, TableDigest,
 };
 pub(crate) use backup::{copy_hashed, hash_file};
+pub use clipboard::stage_clipboard_image;
 pub use eagle::{EagleBinding, EagleRegionNote, EagleSourceSnapshot};
 pub use eagle_discovery::{
     EagleDiscoveryMethod, EagleDiscoveryOptions, EagleLibraryCandidate, discover_eagle_libraries,

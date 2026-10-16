@@ -25,7 +25,8 @@ let api: WallMenuActions;
 function Harness(options: Partial<WallActionsOptions>) {
   const { actions, dialogs } = useWallActions({
     safe: false, activeLibraryId: "L1", onOpen: () => {}, onCrop: () => {}, onInspect: () => {}, onChanged: () => {},
-    onClearSelection: () => {}, onError: () => {}, importFrom: () => {}, selectAll: () => {}, setDensity: () => {}, ...options,
+    onClearSelection: () => {}, onError: () => {}, importFrom: () => {}, selectAll: () => {}, setDensity: () => {},
+    onNotice: () => {}, importClipboard: async () => {}, ...options,
   });
   api = actions;
   return <>{dialogs}</>;
@@ -67,6 +68,54 @@ it("整理按每张图的来源写入，结束后刷新；clear 时取消选择"
   ]);
   expect(edits[0].args.edits).toEqual([{ kind: "delete" }]);
   expect(onClearSelection).toHaveBeenCalled();
+});
+
+it("复制图片按卡片显示的来源复制原图，成功后轻提示（#105）", async () => {
+  const onNotice = vi.fn(), onError = vi.fn();
+  render(<Harness onNotice={onNotice} onError={onError} />);
+  act(() => api.copy(card("2", "L2")));
+  await waitFor(() => expect(onNotice).toHaveBeenCalledWith("已复制图片"));
+  expect(calls.filter((c) => c.cmd === "plugin:desktop|copy_reference_image").map((c) => c.args)).toEqual([{ libraryId: "L2", imageId: "i2" }]);
+  expect(onError).not.toHaveBeenCalled();
+});
+
+it("复制失败或原文件不在时给出原因，不静默失败", async () => {
+  mockIPC((cmd) => {
+    if (cmd === "plugin:desktop|copy_reference_image" || cmd === "plugin:desktop|reveal_reference_image") throw "原文件不在了，可能被移走或删除：C:/lib/originals/a.png";
+    return null;
+  });
+  const onNotice = vi.fn(), onError = vi.fn();
+  render(<Harness onNotice={onNotice} onError={onError} />);
+  act(() => api.copy(card("1")));
+  await waitFor(() => expect(onError).toHaveBeenCalledWith("无法复制图片：原文件不在了，可能被移走或删除：C:/lib/originals/a.png"));
+  act(() => api.reveal(card("1")));
+  await waitFor(() => expect(onError).toHaveBeenLastCalledWith("无法在资源管理器中显示：原文件不在了，可能被移走或删除：C:/lib/originals/a.png"));
+  expect(onNotice).not.toHaveBeenCalled();
+});
+
+it("在资源管理器中显示按卡片显示的来源定位原文件", async () => {
+  const onError = vi.fn();
+  render(<Harness onError={onError} />);
+  act(() => api.reveal(card("1")));
+  await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:desktop|reveal_reference_image")).toBe(true));
+  expect(calls.find((c) => c.cmd === "plugin:desktop|reveal_reference_image")!.args).toEqual({ libraryId: "L1", imageId: "i1" });
+  expect(onError).not.toHaveBeenCalled();
+});
+
+it("从剪贴板导入交给导入入口，剪贴板是否有图片读后端", async () => {
+  mockIPC((cmd) => cmd === "plugin:desktop|clipboard_has_image" ? false : null);
+  const importClipboard = vi.fn(async () => {});
+  render(<Harness importClipboard={importClipboard} />);
+  await expect(api.clipboardHasImage()).resolves.toBe(false);
+  act(() => api.importClipboard());
+  expect(importClipboard).toHaveBeenCalled();
+});
+
+it("从剪贴板导入失败（剪贴板没有图片）时给出原因", async () => {
+  const onError = vi.fn();
+  render(<Harness onError={onError} importClipboard={() => Promise.reject("剪贴板里没有图片")} />);
+  act(() => api.importClipboard());
+  await waitFor(() => expect(onError).toHaveBeenCalledWith("剪贴板里没有图片"));
 });
 
 it("加入参考组按每张图的来源加入", async () => {
