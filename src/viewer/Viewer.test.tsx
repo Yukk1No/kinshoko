@@ -73,6 +73,31 @@ describe("查看器设备像素", () => {
     const settled = screen.getByAltText("正在查看的参考图");
     expect(settled.getAttribute("src")).toBe(`http://thumb.localhost/L1/a/fit-${Math.round(parseFloat(settled.style.width) * 1.5)}`);
   });
+  it("快速反复缩放时同一时刻只等一张派生图，读完再请求最新尺寸", () => {
+    // WebView2 不取消被换掉的请求；每次停顿都发新派生图会让 Rust 端积压整图解码，查看器长时间停在“正在读取”。
+    vi.useFakeTimers();
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 6000, height: 4000, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    const src = () => screen.getByAltText("正在查看的参考图").getAttribute("src");
+    fireEvent.wheel(stage, { deltaY: 100, clientX: 500, clientY: 400 });
+    act(() => vi.advanceTimersByTime(200));
+    const first = src();
+    expect(first).toMatch(/fit-\d+$/);
+    for (const deltaY of [-150, 120, -90, 200]) {
+      fireEvent.wheel(stage, { deltaY, clientX: 500, clientY: 400 });
+      act(() => vi.advanceTimersByTime(200));
+      expect(src()).toBe(first);
+    }
+    expect(screen.getByText("正在读取参考图…")).toBeTruthy();
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    act(() => vi.advanceTimersByTime(200));
+    const latest = screen.getByAltText("正在查看的参考图");
+    expect(latest.getAttribute("src")).toBe(`http://thumb.localhost/L1/a/fit-${Math.round(parseFloat(latest.style.width) * 1.5)}`);
+    fireEvent.load(latest);
+    expect(screen.queryByText("正在读取参考图…")).toBeNull();
+    expect(latest.style.visibility).toBe("visible");
+  });
   it.each([1, 1.25, 1.5, 2])("DPR %s 下原图像素与 110％ 缩放都对齐物理像素，超过 200％ 按像素放大", (dpr) => {
     Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: dpr });
     render(<Viewer libraryId="L1" card={{ id: "odd", width: 101, height: 67, thumbnail: "", adult: false }} onClose={() => {}} />);

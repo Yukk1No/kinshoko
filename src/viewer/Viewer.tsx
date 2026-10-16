@@ -134,17 +134,20 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     return () => el.removeEventListener("wheel", wheel);
   });
   const desiredPx = Math.min(physicalWidth, card.width);
-  // 连续缩小时只在短暂静止后生成派生图；中间不让 Chromium 缩小旧位图。
-  useEffect(() => {
-    if (mode !== "zoom" || desiredPx === card.width) { setRequestedPx(desiredPx); return; }
-    const timer = window.setTimeout(() => setRequestedPx(desiredPx), 120);
-    return () => window.clearTimeout(timer);
-  }, [desiredPx, mode, card.width]);
   const sourcePx = mode === "zoom" && desiredPx < card.width ? requestedPx : desiredPx;
   const exactSource = sourcePx === desiredPx;
   // 1:1 与放大走 Library::display（原图或原尺寸 sdr 派生图）；缩小走精确尺寸派生图。从不直接读原文件。
   const address = sourcePx >= card.width ? displayUrl(libraryId, card.id) : displayScaledUrl(libraryId, card.id, sourcePx);
   const src = address + (retry ? `?retry=${retry}` : "");
+  // WebView2 不取消被换掉的请求，每张派生图都要整图解码；同一时刻只等一张，否则快速缩放时积压，迟迟出不了图。
+  const derivativePending = sourcePx < card.width && loadedSrc !== src && failedSrc !== src;
+  // 连续缩小时只在短暂静止后生成派生图；中间不让 Chromium 缩小旧位图。
+  useEffect(() => {
+    if (mode !== "zoom" || desiredPx === card.width) { setRequestedPx(desiredPx); return; }
+    if (derivativePending) return;
+    const timer = window.setTimeout(() => setRequestedPx(desiredPx), 120);
+    return () => window.clearTimeout(timer);
+  }, [desiredPx, mode, card.width, derivativePending]);
   useCaptureSources(() => {
     const image = stage.current?.querySelector("img");
     if (!image || !exactSource || loadedSrc !== src || failedSrc === src) return [];
