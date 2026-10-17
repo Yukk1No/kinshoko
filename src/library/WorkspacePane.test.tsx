@@ -241,7 +241,6 @@ it("断连库与失效文件夹保持原范围并禁用旧目录控件", async (
   const selected = inA({ kind: "folderTree", id: "A-root" });
   const view = await loaded(render(<WorkspacePane {...props} scope={selected} />));
   view.rerender(<WorkspacePane {...props} scope={selected} reloadKey={1} />);
-  expect(screen.queryByRole("button", { name: "动作（1 张）" })).toBeNull();
   const gone = forest("gone");
   gone.providers[0].sidebar!.folders = [];
   await act(async () => pending[1].resolve(gone));
@@ -321,4 +320,26 @@ it("只有一个已连接图库时，“全部图片”下的回收站直接打�
   await loaded(undefined, one);
   fireEvent.click(screen.getByRole("button", { name: "回收站 · 全部图库（1 张）" }));
   expect(props.onScope).toHaveBeenLastCalledWith({ kind: "library", libraryId: "A", scope: { kind: "trash" } });
+});
+
+it("导入期间列表过期只重读目录：资料库行与展开的文件夹沿用同一批 DOM 节点，只更新张数（#121）", async () => {
+  const selected = inA({ kind: "folderTree", id: "A-root" });
+  const view = await loaded(render(<WorkspacePane {...props} scope={selected} />));
+  const head = within(section("A")).getByRole("button", { name: "人物参考（3 张）" });
+  const chevron = arrow("A");
+  const folder = within(section("A")).getByRole("button", { name: "人物（2 张）" });
+  // 导入进度推进时，每次列表过期 App 都给 reloadKey 加一；目录响应到达前与到达后都不换节点。
+  for (let reload = 1; reload <= 3; reload++) {
+    view.rerender(<WorkspacePane {...props} scope={selected} reloadKey={reload} />);
+    await settle();
+    expect(section("A").contains(head)).toBe(true);
+    expect(head).toHaveProperty("disabled", false);
+    expect(section("A").contains(chevron) && section("A").contains(folder)).toBe(true);
+    const next = forest();
+    next.providers[0].sidebar!.all = 3 + reload;
+    await act(async () => pending.at(-1)!.resolve(next));
+    expect(head.getAttribute("aria-label")).toBe(`人物参考（${3 + reload} 张）`);
+    expect(section("A").contains(chevron) && section("A").contains(folder)).toBe(true);
+  }
+  expect(props.onError).not.toHaveBeenCalled();
 });
