@@ -81,6 +81,12 @@
 /* ---- Main header ---- */
 .topbar { height: 56px; min-height: 56px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px; background: var(--bg); border-bottom: 0; z-index: 5; }
 .topbar.is-empty { justify-content: flex-end; }
+/* 三栏：前导（展开侧栏）· 查找框 · 尾部（张数、导入、窗口控件）。查找框最宽 720 px，先占满再把余下的宽度平分给两侧，
+   所以宽屏时查找框居中于图片墙上方、张数与导入靠右与窗口控件成组；变窄时两侧只保留自身内容宽度，查找框先收窄。 */
+.topbar:not(.is-empty) { display: grid; grid-template-columns: minmax(min-content, 1fr) minmax(0, 720px) minmax(min-content, 1fr); }
+.topbar-lead, .topbar-trail { display: flex; align-items: center; gap: 10px; min-width: 0; align-self: stretch; }
+.topbar-trail { justify-content: flex-end; }
+.topbar-trail > .k-win-ctrls { margin-left: 0; }
 .topbar > .search { flex: 1; min-width: 0; max-width: 720px; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; height: 40px; padding: 0 4px 0 12px;
   border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); border: 0; overflow: visible; }
 .topbar > .search:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
