@@ -205,6 +205,22 @@ fn originals(library: &Library, ids: &[String]) -> Vec<PathBuf> {
         .collect()
 }
 
+/// 缓存里属于这些原文件（按 SHA-256 命名）的文件。
+fn cached_for(root: &Path, originals: &[PathBuf]) -> Vec<PathBuf> {
+    let shas: Vec<String> = originals
+        .iter()
+        .map(|p| p.file_stem().unwrap().to_string_lossy().into_owned())
+        .collect();
+    walk(&root.join("cache"))
+        .into_iter()
+        .filter(|p| p.is_file())
+        .filter(|p| {
+            let name = p.file_name().unwrap().to_string_lossy();
+            shas.iter().any(|sha| name.starts_with(sha.as_str()))
+        })
+        .collect()
+}
+
 #[test]
 fn confirming_the_preview_deletes_the_images_their_organisation_and_originals() {
     let dir = tempfile::tempdir().unwrap();
@@ -273,11 +289,8 @@ fn confirming_the_preview_deletes_the_images_their_organisation_and_originals() 
     assert_eq!((sidebar.all, sidebar.trash), (1, 0));
     assert!(!files[0].exists() && !files[1].exists());
     assert!(files[2].exists());
-    // 缩略图缓存里也不再有被删的图。
-    let thumbs: Vec<_> = walk(&library.info().root.join("cache"))
-        .into_iter()
-        .filter(|p| p.is_file())
-        .collect();
+    // 缩略图缓存（含占位图）里也不再有被删的图；留下的图的缓存不受影响。
+    let thumbs = cached_for(&library.info().root, &files[..2]);
     assert!(thumbs.is_empty(), "{thumbs:?}");
     // 同一张图还能重新导入。
     let again = import(&library, dir.path(), 0..1);
@@ -456,6 +469,106 @@ fn eagle_images_and_superseded_versions_can_be_permanently_deleted() {
     assert_eq!(binding("ITEM000000000"), Some(new));
 }
 
+/// 清空回收站（#114）：预览列出回收站里全部可见的图与受影响的参考组，按令牌走同一永久删除。
+#[test]
+fn emptying_the_trash_previews_every_image_in_it_and_deletes_them_with_the_same_token() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = library_with(dir.path(), 4, 3);
+    let lib = library.info().id.clone();
+    let groups = FakeGroups::default();
+    groups.add("g1", "脸", &lib, &[&ids[1], &ids[3]]);
+
+    let preview = library.preview_empty_trash(&groups).unwrap();
+    let mut listed = preview.image_ids.clone();
+    listed.sort();
+    let mut trashed = ids[..3].to_vec();
+    trashed.sort();
+    assert_eq!(listed, trashed);
+    assert_eq!(
+        preview.groups,
+        vec![GroupUsage {
+            group_id: "g1".into(),
+            name: "脸".into(),
+            image_ids: vec![ids[1].clone()],
+        }]
+    );
+
+    // 预览之后回收站变了：令牌失效，要重新预览。
+    library.edit(&ids[3..4], &[ImageEdit::Delete]).unwrap();
+    assert!(stale(&library, &groups, &preview.image_ids, &preview.token));
+    let preview = library.preview_empty_trash(&groups).unwrap();
+    assert_eq!(preview.image_ids.len(), 4);
+    library
+        .permanent_delete(&preview.image_ids, &preview.token, &groups)
+        .unwrap();
+    assert!(browse(&library, BrowseScope::Trash).is_empty());
+    let sidebar = library.sidebar().unwrap();
+    assert_eq!((sidebar.all, sidebar.trash), (0, 0));
+    // 空回收站的预览为空。
+    assert!(
+        library
+            .preview_empty_trash(&groups)
+            .unwrap()
+            .image_ids
+            .is_empty()
+    );
+}
+
+/// 安全模式开启时清空的只是看得见的：被封印的图留在回收站。
+#[test]
+fn emptying_the_trash_in_safe_mode_leaves_sealed_images() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = library_with(dir.path(), 2, 2);
+    library.set_safe_mode(false);
+    library
+        .edit(
+            &ids[..1],
+            &[ImageEdit::SetRating {
+                rating: ContentRating::Explicit,
+            }],
+        )
+        .unwrap();
+    library.set_safe_mode(true);
+    let groups = FakeGroups::default();
+    let preview = library.preview_empty_trash(&groups).unwrap();
+    assert_eq!(preview.image_ids, [ids[1].clone()]);
+    library
+        .permanent_delete(&preview.image_ids, &preview.token, &groups)
+        .unwrap();
+    library.set_safe_mode(false);
+    assert_eq!(browse(&library, BrowseScope::Trash), [ids[0].clone()]);
+}
+
+/// 清空回收站沿用永久删除的记忆：删掉的 Eagle 图重导时不再回来。
+#[test]
+fn emptying_the_trash_remembers_eagle_images_so_reimport_does_not_bring_them_back() {
+    let dir = tempfile::tempdir().unwrap();
+    let fixture = eagle::build(&dir.path().join("主库.library"), "4.0.0", 3);
+    let library = Library::create(&dir.path().join("kinshoko"), "参考").unwrap();
+    let all = |library: &Library| browse(library, BrowseScope::All);
+    library
+        .import(ImportSource {
+            paths: vec![fixture.root.clone()],
+        })
+        .wait();
+    let before = all(&library);
+    library.edit(&before[..1], &[ImageEdit::Delete]).unwrap();
+    let groups = FakeGroups::default();
+    let preview = library.preview_empty_trash(&groups).unwrap();
+    library
+        .permanent_delete(&preview.image_ids, &preview.token, &groups)
+        .unwrap();
+
+    library
+        .import(ImportSource {
+            paths: vec![fixture.root.clone()],
+        })
+        .wait();
+    assert_eq!(all(&library).len(), before.len() - 1);
+    assert!(!all(&library).contains(&before[0]));
+    assert!(browse(&library, BrowseScope::Trash).is_empty());
+}
+
 const CHILD: &str = "child_deletes_the_trash_until_the_fault_point";
 const ROOT_ENV: &str = "KINSHOKO_TEST_LIBRARY";
 
@@ -497,10 +610,7 @@ fn a_crash_after_commit_finishes_removing_the_originals_on_reopen() {
     assert!(!files[0].exists() && !files[1].exists());
     assert!(files[2].exists());
     assert!(library.recovery().orphans.is_empty());
-    let thumbs: Vec<_> = walk(&root.join("cache"))
-        .into_iter()
-        .filter(|p| p.is_file())
-        .collect();
+    let thumbs = cached_for(&root, &files[..2]);
     assert!(thumbs.is_empty(), "{thumbs:?}");
 }
 

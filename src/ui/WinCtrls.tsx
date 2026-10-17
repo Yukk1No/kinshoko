@@ -49,7 +49,7 @@ function useSnappedGlyphs(group: RefObject<HTMLDivElement | null>, maximized: bo
 /**
  * Window controls for the frameless main window (design/ui-system/README.md, 窗口框架).
  * They sit at the end of whichever header row is right-most; that row is the window's safe area.
- * Maximized, they drop the header's inset and hug the screen's top-right corner, so the close button reaches the corner (ui.css).
+ * Maximized or not, they keep the same size, inset and corners; only the middle glyph changes to restore.
  * Closing keeps today's semantics: only this window closes, Kinshoko stays in the tray (ADR 0004).
  */
 export function WinCtrls() {
@@ -69,7 +69,7 @@ export function WinCtrls() {
     const win = currentWindow();
     if (win) void action(win).catch(() => {});
   };
-  return <div ref={group} className="k-win-ctrls" data-maximized={maximized || undefined}>
+  return <div ref={group} className="k-win-ctrls">
     <span className="k-win-div" aria-hidden="true" />
     <button type="button" className="k-win-btn" aria-label="最小化" title="最小化" onClick={run((win) => win.minimize())}>
       <Glyph kind="minimize" dpr={dpr} />

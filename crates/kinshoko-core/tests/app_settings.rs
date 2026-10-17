@@ -104,12 +104,19 @@ fn showing_where_similar_tags_come_from_is_off_until_turned_on_and_then_remember
 fn toggling_safe_mode_clears_the_selection_until_the_artist_asks_to_keep_it() {
     let dir = tempfile::tempdir().unwrap();
     let mut settings = AppSettings::open(dir.path()).unwrap();
-    assert!(!settings.keep_selection_on_safe_mode(), "默认切换即清空选择");
+    assert!(
+        !settings.keep_selection_on_safe_mode(),
+        "默认切换即清空选择"
+    );
 
     settings.set_keep_selection_on_safe_mode(true).unwrap();
     drop(settings);
 
-    assert!(AppSettings::open(dir.path()).unwrap().keep_selection_on_safe_mode());
+    assert!(
+        AppSettings::open(dir.path())
+            .unwrap()
+            .keep_selection_on_safe_mode()
+    );
 }
 
 #[test]

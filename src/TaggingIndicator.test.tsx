@@ -106,4 +106,49 @@ describe("自动标签状态", () => {
     expect(screen.queryByText(/旧库打标失败/)).toBeNull();
     expect(screen.getByText(/自动标签已暂停/)).toBeTruthy();
   });
+
+  it("整理另一个图库时后端把可写句柄与打标切过去，状态跟着它走，旧库的迟到状态不串台（#112）", async () => {
+    const statuses: Record<string, TaggingStatus> = { L1: { state: "paused" }, L2: { state: "running", model: "PixAI", device: "cpu", tagged: 7 } };
+    actions = [];
+    mockWindows("main");
+    mockIPC((cmd, args) => {
+      const libraryId = (args as { libraryId?: string } | undefined)?.libraryId;
+      actions.push({ command: cmd, libraryId });
+      if (cmd === "tagging_status") return { libraryId, status: statuses[libraryId!] };
+      return null;
+    }, { shouldMockEvents: true });
+    render(<TaggingIndicator libraryId="L1" />);
+    await screen.findByText(/自动标签已暂停/);
+
+    await act(() => emit("writable-library", { id: "L2", name: "私人收藏", root: "D:\\私人收藏" }));
+
+    expect(await screen.findByText(/已打 7 张/)).toBeTruthy();
+    await act(() => emit("tagging-status", { libraryId: "L1", status: { state: "failed", reason: "旧库打标失败" } }));
+    expect(screen.queryByText(/旧库打标失败/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "暂停" }));
+    await waitFor(() => expect(actions).toContainEqual({ command: "tagging_pause", libraryId: "L2" }));
+  });
+
+  it("跟过去的图库从列表移除后回到打开的图库，不再显示或操作已移除的库", async () => {
+    const statuses: Record<string, TaggingStatus> = { L1: { state: "paused" }, L2: { state: "running", model: "PixAI", device: "cpu", tagged: 7 } };
+    actions = [];
+    mockWindows("main");
+    mockIPC((cmd, args) => {
+      const libraryId = (args as { libraryId?: string } | undefined)?.libraryId;
+      actions.push({ command: cmd, libraryId });
+      if (cmd === "tagging_status") return { libraryId, status: statuses[libraryId!] };
+      return null;
+    }, { shouldMockEvents: true });
+    const view = render(<TaggingIndicator libraryId="L1" registered={["L1", "L2"]} />);
+    await screen.findByText(/自动标签已暂停/);
+    await act(() => emit("writable-library", { id: "L2", name: "私人收藏", root: "D:\\私人收藏" }));
+    expect(await screen.findByText(/已打 7 张/)).toBeTruthy();
+
+    view.rerender(<TaggingIndicator libraryId="L1" registered={["L1"]} />);
+
+    expect(await screen.findByText(/自动标签已暂停/)).toBeTruthy();
+    expect(screen.queryByText(/已打 7 张/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "继续" }));
+    await waitFor(() => expect(actions).toContainEqual({ command: "tagging_resume", libraryId: "L1" }));
+  });
 });

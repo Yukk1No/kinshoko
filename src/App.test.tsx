@@ -258,16 +258,21 @@ const chooseDestination = () => {
   const selector=screen.queryByRole("combobox",{name:"放到图库",hidden:true}) as HTMLSelectElement|null;
   if(selector&&!selector.value&&Array.from(selector.options).some(o=>o.value==="L1"))fireEvent.change(selector,{target:{value:"L1"}});
 };
-/** 图库切换菜单（侧栏标题或收起侧栏后的顶栏）。 */
-const libraryMenu = () => screen.getByRole("button", { name: /^当前图库：/ });
-const currentLibrary = () => libraryMenu().getAttribute("aria-label")!.replace("当前图库：", "");
+/** 侧栏标题行“图库 ＋”的菜单（方案 D，#113）：打开 / 新建 / 管理，没有图库切换。 */
+const libraryMenu = () => screen.findByRole("button", { name: "打开、新建或管理图库" });
 async function libraryAction(name: RegExp) {
-  fireEvent.click(libraryMenu());
+  fireEvent.click(await libraryMenu());
   fireEvent.click(await screen.findByRole("menuitem", { name }));
 }
-async function switchLibraryTo(name: RegExp) {
-  fireEvent.click(libraryMenu());
-  fireEvent.click(await screen.findByRole("menuitemradio", { name }));
+/** 从“图库 ＋”打开另一个图库（模拟后端登记为 L2 私人收藏），等图片墙改看它。 */
+async function openLibrary(root = "E:\\私人收藏") {
+  window.__KINSHOKO_TEST_PICKS__ = [root];
+  await libraryAction(/打开图库/);
+  await waitFor(() => expect(sent("plugin:library|browse").at(-1)).toMatchObject({ libraryId: "L2" }));
+}
+/** 方案 D：选“全部图片”时图库都折起，先点箭头展开。 */
+async function expandLibrary(name = "工作参考") {
+  fireEvent.click(await screen.findByRole("button", { name: `展开${name}` }));
 }
 async function confirmImport() {
   const button=await screen.findByRole("button",{name:/^开始(?: Eagle)? 导入$|^开始导入$/});
@@ -312,8 +317,43 @@ describe("主窗口", () => {
     expect(screen.queryByRole("menuitem", { name: /整个文件夹/ })).toBeNull();
     expect(importAction("导入文件夹…")).toBeTruthy();
     fireEvent.keyDown(screen.getByRole("menuitem", { name: /整个文件夹/ }), { key: "Escape" });
+    await expandLibrary();
     fireEvent.click(screen.getByRole("button", { name: "人物（1 张）" }));
     await waitFor(() => expect(result.textContent).toBe("1 张"));
+  });
+
+  it("图片墙上 Ctrl+滚轮：滑条同步移动，停手后提交并按新尺寸取缩略图（#111）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const wall = screen.getByRole("listbox", { name: "图片墙" });
+    const slider = screen.getByRole("slider", { name: "图片大小" }) as HTMLInputElement;
+    const card = wall.querySelector<HTMLElement>(".card")!;
+    const before = parseFloat(card.style.width);
+    calls = [];
+    expect(fireEvent.wheel(wall, { deltaY: -100, ctrlKey: true, clientX: 50, clientY: 50 })).toBe(false);
+    fireEvent.wheel(wall, { deltaY: -100, ctrlKey: true, clientX: 50, clientY: 50 });
+    fireEvent.wheel(wall, { deltaY: -100, ctrlKey: true, clientX: 50, clientY: 50 });
+    expect(slider.value).toBe("320");
+    expect(parseFloat(wall.querySelector<HTMLElement>(".card")!.style.width)).toBeGreaterThan(before);
+    expect(calls.some((c) => c.cmd === "plugin:library|browse")).toBe(false);
+    await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:library|browse")).toBe(true));
+    const browsed = calls.filter((c) => c.cmd === "plugin:library|browse").at(-1)!.args as { query: { thumbnailPx: number } };
+    expect(browsed.query.thumbnailPx).toBe(Math.ceil(320 * 1.5 * (window.devicePixelRatio || 1)));
+    expect(slider.value).toBe("320");
+  });
+
+  it("顶栏（方案 C3）：张数与精确查找开关在顶栏，图片大小浮在图片墙右下角", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const topbar = screen.getByRole("combobox", { name: "查找参考图" }).closest("header")!;
+    expect(topbar.contains(screen.getByRole("status", { name: "查找结果" }))).toBe(true);
+    expect(topbar.contains(screen.getByRole("button", { name: "精确查找" }))).toBe(true);
+    expect(topbar.contains(screen.getByRole("button", { name: "导入图片文件" }))).toBe(true);
+    const island = screen.getByRole("group", { name: "图片大小" });
+    expect(topbar.contains(island)).toBe(false);
+    expect(island.closest("main")).toBe(screen.getByRole("listbox", { name: "图片墙" }).closest("main"));
   });
 
   it("尚未打开资料库时仍能从图标轨打开截图历史与钉剪贴板入口", async () => {
@@ -330,6 +370,7 @@ describe("主窗口", () => {
       id: "G1", name: "发色", namespace: null, tags: [{ tag: tags.B, count: 1 }],
     }] : undefined);
     render(<App />);
+    await expandLibrary();
     fireEvent.click(await screen.findByRole("button", { name: "人物（1 张）" }));
     const bar = await screen.findByRole("toolbar", { name: "标签分组" });
     fireEvent.click(within(bar).getByRole("button", { name: "发色" }));
@@ -386,7 +427,7 @@ describe("主窗口", () => {
     expect(groups.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(within(nav).getByRole("button", { name: "图片与文件夹" }));
     expect(screen.getByRole("complementary", { name: "文件夹" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "新建文件夹" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "工作参考 的操作" })).toBeTruthy();
   });
 
   it("单击打开原图；Esc 返回原位置并把焦点交还参考图", async () => {
@@ -409,7 +450,7 @@ describe("主窗口", () => {
     expect(await screen.findByRole("dialog", { name: "原图查看器" })).toBeTruthy();
   });
 
-  it("F1 落在详情面板的预览图上时登记为参考图来源，读原图像素", async () => {
+  it("F1 落在详情面板的预览图上时登记为参考图来源，读原始像素", async () => {
     backend(library);
     const rect = HTMLElement.prototype.getBoundingClientRect;
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
@@ -495,14 +536,42 @@ describe("主窗口", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
+  it("整理在等某个图库的导入收尾时给轻提示，查看与选择照旧（#112）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await screen.findByRole("dialog", { name: "原图查看器" });
+
+    await act(() => emit("organize-waiting", { libraryId: "L2", finishing: ["工作参考"] }));
+
+    expect(await screen.findByText("导入收尾后再整理")).toBeTruthy();
+    expect(screen.getByText("「工作参考」的导入完成后自动执行")).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: "原图查看器" })).toBeTruthy();
+  });
+
+  it("后端按需切到的另一个图库：它的列表变化刷新图片墙，它的安全模式与导入事件不串台（#112）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await screen.findByRole("dialog", { name: "原图查看器" });
+
+    await push({ kind: "safeModeChanged", libraryId: "L2", on: true });
+    await push({ kind: "taskProgress", libraryId: "L2", taskId: "T9", progress: { done: 1, total: 9 } });
+    expect(screen.getByRole("dialog", { name: "原图查看器" })).toBeTruthy();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+
+    gone.add("a");
+    await push({ kind: "listStale", libraryId: "L2" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
   it("登记已有资料库后打开它，取消登记后可以继续建库或重新登记", async () => {
     backend(library);
     render(<App />);
-    await waitFor(() => expect(currentLibrary()).toBe("工作参考"));
-    window.__KINSHOKO_TEST_PICKS__ = ["E:\\私人收藏"];
-    await libraryAction(/打开图库/);
-
-    await waitFor(() => expect(currentLibrary()).toBe("私人收藏"));
+    await screen.findAllByRole("img");
+    await openLibrary();
     expect(sent("plugin:library|register_library")).toEqual([{ root: "E:\\私人收藏" }]);
     await libraryAction(/管理图库/);
     fireEvent.click(await screen.findByRole("button", { name: "移除 私人收藏" }));
@@ -512,7 +581,7 @@ describe("主窗口", () => {
     expect(screen.getByRole("button", { name: "打开图库…" })).toBeTruthy();
   });
 
-  it("切换时清空选择与导入状态，迟到的旧库浏览和进度不会覆盖新库", async () => {
+  it("打开另一个图库时清空选择与导入状态，迟到的旧库浏览和进度不会覆盖新库", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
     let resolveOld!: (page: BrowsePage) => void;
     const oldPage = new Promise<BrowsePage>((resolve) => { resolveOld = resolve; });
@@ -532,8 +601,7 @@ describe("主窗口", () => {
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 4 } });
     delayed = true;
     await push({ kind: "listStale", libraryId: "L1" });
-    await switchLibraryTo(/^私人收藏/);
-    await waitFor(() => expect(currentLibrary()).toBe("私人收藏"));
+    await openLibrary();
     await act(() => resolveOld(page));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 2, total: 4 } });
     await push({ kind: "taskFinished", libraryId: "L1", taskId: "T1", report: { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] } });
@@ -652,7 +720,7 @@ describe("主窗口", () => {
     ]));
   });
 
-  it("选择导入文件的对话框等待期间切换库，迟到的选择不会导入新库", async () => {
+  it("选择导入文件的对话框等待期间打开另一个图库，迟到的选择不会导入新库", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
     let resolvePick!: (paths: string[]) => void;
     const picked = new Promise<string[]>((resolve) => { resolvePick = resolve; });
@@ -666,30 +734,30 @@ describe("主窗口", () => {
     await screen.findAllByRole("img");
     fireEvent.click(importAction("导入文件…"));
     await waitFor(() => expect(sent("plugin:library|pick_files").length).toBe(1));
-    await switchLibraryTo(/^私人收藏/);
-    await waitFor(() => expect(currentLibrary()).toBe("私人收藏"));
+    await openLibrary();
     await act(() => resolvePick(["D:\\参考.png"]));
     expect(sent("plugin:library|start_import")).toEqual([]);
   });
 
-  it("不可用的资料库显示原因，切换失败时仍能浏览当前库", async () => {
+  it("未连接的图库在侧栏只占一行并可就地重新连接，管理图库里显示原因（#113）", async () => {
     const other = { id: "L2", name: "移动盘参考", root: "E:\\移动盘参考" };
     const reason = "资料库暂时不可用：E:\\移动盘参考。请确认移动盘已连接，搬家后重新登记。";
     backend(library, clean, (cmd) => {
       if (cmd === "plugin:library|registered_libraries") return [
         { library, unavailable: null }, { library: other, unavailable: reason },
       ];
-      if (cmd === "plugin:library|switch_library") return Promise.reject(reason);
       return undefined;
     });
     render(<App />);
-    await waitFor(() => expect(currentLibrary()).toBe("工作参考"));
-    fireEvent.click(libraryMenu());
-    const offline = await screen.findByRole("menuitemradio", { name: /^移动盘参考/ });
-    expect(offline.textContent).toContain("未连接");
-    fireEvent.click(offline);
-    expect((await screen.findByRole("alert")).textContent).toContain("移动盘已连接");
-    expect(currentLibrary()).toBe("工作参考");
+    await screen.findAllByRole("img");
+    const offline = await screen.findByRole("button", { name: "移动盘参考（未连接）" });
+    expect(offline).toHaveProperty("disabled", true);
+    const group = offline.closest("section")!;
+    const line = within(group).getByRole("status");
+    expect(line.textContent).toContain("移动盘接回后可用");
+    const reads = sent("plugin:library|registered_libraries").length;
+    fireEvent.click(within(line).getByRole("button", { name: "重新连接" }));
+    await waitFor(() => expect(sent("plugin:library|registered_libraries").length).toBeGreaterThan(reads));
     await libraryAction(/管理图库/);
     const manage = await screen.findByRole("dialog", { name: "管理图库" });
     expect(within(manage).getByText(reason)).toBeTruthy();
@@ -729,7 +797,7 @@ describe("主窗口", () => {
     expect(await screen.findByText("D:\\参考")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "建立图库" }));
 
-    await waitFor(() => expect(currentLibrary()).toBe("工作参考"));
+    expect(await screen.findByRole("button", { name: "工作参考（2 张）" })).toBeTruthy();
     expect(sent("plugin:library|create_library")).toEqual([
       { parent: "D:\\参考", name: "工作参考" },
     ]);
@@ -1126,11 +1194,13 @@ describe("整理", () => {
   it("侧栏列出全部、文件夹树与回收站及其计数，点文件夹按文件夹浏览", async () => {
     backend(library);
     render(<App />);
-    const nav = await screen.findByRole("navigation", { name: /工作参考.*的目录/ });
+    expect(await screen.findByRole("button", { name: "工作参考（2 张）" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "全部图片（2 张）" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "回收站 · 全部图库（1 张）" })).toBeTruthy();
+    await expandLibrary();
+    const nav = await screen.findByRole("navigation", { name: "工作参考的目录" });
     await waitFor(() => expect(nav.textContent).toContain("发型"));
-    expect(screen.getByRole("button", { name: "工作参考（2 张）" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "人物（1 张）" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "回收站（1 张）" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "发型（0 张）" }));
     await waitFor(() =>
@@ -1138,7 +1208,8 @@ describe("整理", () => {
         query: { scope: { kind: "folderTree", id: "F2" } },
       }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "回收站（1 张）" }));
+    // 选中了这个图库的文件夹：回收站是它的。
+    fireEvent.click(screen.getByRole("button", { name: "回收站 · 工作参考（1 张）" }));
     await waitFor(() =>
       expect(sent("plugin:library|browse").at(-1)).toMatchObject({
         query: { scope: { kind: "trash" } },
@@ -1149,8 +1220,10 @@ describe("整理", () => {
   it("新建文件夹放在当前打开的文件夹里，双击改名", async () => {
     backend(library);
     render(<App />);
+    await expandLibrary();
     fireEvent.click(await screen.findByRole("button", { name: "人物（1 张）" }));
-    fireEvent.click(screen.getByRole("button", { name: "新建文件夹" }));
+    fireEvent.click(screen.getByRole("button", { name: "工作参考 的操作" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "新建文件夹" }));
     const input = screen.getByLabelText("新文件夹名称");
     fireEvent.change(input, { target: { value: "姿势" } });
     fireEvent.keyDown(input, { key: "Enter" });
@@ -1191,12 +1264,39 @@ describe("整理", () => {
     );
     await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
 
-    fireEvent.click(screen.getByRole("button", { name: "回收站（1 张）" }));
+    // 只有一个图库：“全部图片”下的回收站直接打开它。
+    fireEvent.click(screen.getByRole("button", { name: "回收站 · 全部图库（1 张）" }));
     await waitFor(() => expect(card("a")).toBeTruthy());
     fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(await screen.findByRole("button", { name: "恢复" }));
     await waitFor(() =>
       expect(sent("plugin:library|edit").at(-1)).toEqual({ libraryId: "L1", ids: ["a"], edits: [{ kind: "restore" }] }),
+    );
+  });
+
+  it("在窗口打开时以外的图库里多选，详情面板照样批量整理，请求带上那个图库（ADR-0008，#113）", async () => {
+    const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
+    backend(library, clean, (cmd) => {
+      if (cmd === "plugin:library|registered_libraries") return [library, other].map((library) => ({ library, unavailable: null }));
+      return undefined;
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(await screen.findByRole("button", { name: "私人收藏（2 张）" }));
+    await waitFor(() => expect(sent("plugin:library|browse").at(-1)).toMatchObject({ libraryId: "L2" }));
+    await waitFor(() => expect(card("a")).toBeTruthy());
+    fireEvent.keyDown(card("a"), { key: " " });
+    fireEvent.click(card("b"), { ctrlKey: true });
+    expect(await screen.findByText("已选 2 张")).toBeTruthy();
+
+    const put = screen.getByRole("button", { name: "放入文件夹" });
+    await waitFor(() => expect(put).toHaveProperty("disabled", false));
+    fireEvent.click(put);
+    fireEvent.click(await screen.findByRole("menuitem", { name: /发型/ }));
+    await waitFor(() =>
+      expect(sent("plugin:library|edit")).toEqual([
+        { libraryId: "L2", ids: ["a", "b"], edits: [{ kind: "addToFolder", folderId: "F2" }] },
+      ]),
     );
   });
 
@@ -1225,10 +1325,8 @@ describe("整理", () => {
     render(<App />);
     await screen.findAllByRole("img");
     // 目录与图片独立载入，先确认该库的目标控件实际就绪。
-    const directory = await screen.findByRole("navigation", { name: `${library.name} / ${library.root}的目录` });
-    expect(directory).toBeTruthy();
-    // 当前图库的回收站固定在侧栏底部（#98）。
-    const trash = screen.getByRole("button", { name: "回收站（1 张）" });
+    // 回收站固定在侧栏底部（#98），跟随所选图库（#113）。
+    const trash = await screen.findByRole("button", { name: "回收站 · 全部图库（1 张）" });
     expect(trash).toHaveProperty("disabled", false);
     fireEvent.click(trash);
     await waitFor(() => expect(card("a")).toBeTruthy());
@@ -1262,8 +1360,7 @@ describe("整理", () => {
     });
     render(<App />);
     await screen.findAllByRole("img");
-    await screen.findByRole("navigation", { name: `${library.name} / ${library.root}的目录` });
-    fireEvent.click(screen.getByRole("button", { name: "回收站（1 张）" }));
+    fireEvent.click(await screen.findByRole("button", { name: "回收站 · 全部图库（1 张）" }));
     await waitFor(() => expect(card("a")).toBeTruthy());
     fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(await screen.findByRole("button", { name: "收起详情" }));
@@ -1332,8 +1429,7 @@ describe("查找", () => {
     await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(1));
     fireEvent.keyDown(input, { key: "Enter" });
     await waitFor(() => expect(sent("plugin:library|resolve_search")).toHaveLength(1));
-    await switchLibraryTo(/^私人收藏/);
-    await waitFor(() => expect(currentLibrary()).toBe("私人收藏"));
+    await openLibrary();
     fireEvent.change(await box(), { target: { value: "某" } });
     await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(2));
     await act(() => {

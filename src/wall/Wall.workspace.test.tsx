@@ -4,7 +4,7 @@ import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
 import type { WorkspaceQuery } from "../bindings/WorkspaceQuery";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
-import { Wall } from "./Wall";
+import { DRAG_IMAGE_SOURCES, Wall } from "./Wall";
 
 type Call = { query: WorkspaceQuery; safeMode: boolean; resolve: (page: WorkspacePage) => void };
 let calls: Call[];
@@ -101,4 +101,18 @@ it("再次选中同一范围（值相同的新范围对象）时，图片墙不�
   await settle();
   expect(document.querySelector(".card")?.getAttribute("data-id")).toBe("bytes");
   expect(document.querySelector<HTMLElement>(".wall")?.dataset.total).toBe("1");
+});
+
+it("在“全部图片”里也能拖出卡片：带上每张图在各已连接图库里的 id，放进哪个库就用哪个库的 id", async () => {
+  render(<Wall {...base} reloadKey={0} workspaceScope={{ kind: "all" }} />);
+  await settle();
+  const offline = { ...card, id: "offline", imageId: "o", sources: [card.sources[1]] };
+  await act(async () => calls[0].resolve(page([card, offline])));
+  await screen.findAllByRole("option");
+  const node = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
+  expect(node("bytes").getAttribute("draggable")).toBe("true");
+  expect(node("offline").getAttribute("draggable")).toBe("false");
+  const data = new Map<string, string>();
+  fireEvent.dragStart(node("bytes"), { dataTransfer: { setData: (type: string, value: string) => data.set(type, value), effectAllowed: "" } });
+  expect(JSON.parse(data.get(DRAG_IMAGE_SOURCES)!)).toEqual({ A: ["a"] });
 });

@@ -48,8 +48,8 @@ type Props = {
   ownerLabel?: string | null;
 };
 
-/** 三个导入入口（图片文件、整个文件夹、Eagle）与找回任务卡片。 */
-export type ImportActions = { files: () => void; folder: () => void; eagle: () => void; showTasks: () => void };
+/** 导入入口（图片文件、整个文件夹、Eagle，以及已准备好的文件，如暂存的剪贴板图片）与找回任务卡片。 */
+export type ImportActions = { files: () => void; folder: () => void; eagle: () => void; paths: (paths: string[]) => void; showTasks: () => void };
 
 function reason(outcome: ImportOutcome): string | null {
   switch (outcome.kind) {
@@ -159,6 +159,7 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
     files: () => { if (!busy) void importFiles(); },
     folder: () => { if (!busy) void importFolder(); },
     eagle: () => { if (!busy && !lookingForEagle) void findEagle(); },
+    paths: (paths) => { if (!busy) void begin(paths); },
     showTasks: () => setBackground(null),
   }));
   useEffect(() => { onBusyChange?.(busy, lookingForEagle); }, [busy, lookingForEagle, onBusyChange]);

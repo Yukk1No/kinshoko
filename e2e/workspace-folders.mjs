@@ -102,7 +102,17 @@ const scoped = (libraryId, scope) => ({ kind: "library", libraryId, scope });
 const browse = (scope = scopeAll, safeMode = true, cursor = null, limit = 100) => session.invoke("workspace_browse", { query: { scope, conditions: blank, cursor, limit, thumbnailPx: 128 }, safeMode });
 const uiTotal = (number) => until(`wall total ${number}`, () => session.exec("return document.querySelector('.wall')?.dataset.total === arguments[0];", [String(number)]));
 const folderButton = (library, folder) => `//*[@data-library-id='${library}']//button[@data-folder-id='${folder}']`;
-const libraryButton = (library) => `//*[@data-library-id='${library}']/*[@class='workspace-provider-root']/button[@class='sidebar-item']`;
+// #113 sidebar scheme D: the group head is `.workspace-provider-root.lib-head` holding the expand arrow, the
+// name button “名称（N 张）” (its title is the root path) and the ⋯ menu “名称 的操作”.
+const libraryButton = (library) => `//*[@data-library-id='${library}']/*[contains(@class,'workspace-provider-root')]/button[contains(@class,'lib-head-name')]`;
+const expandButton = (library) => `//*[@data-library-id='${library}']/*[contains(@class,'workspace-provider-root')]/button[contains(@class,'workspace-expand') and @aria-expanded='false']`;
+const descendantsSwitch = "//*[contains(@class,'workspace-descendants')]//*[@role='switch' and @aria-label='含子文件夹']";
+// The library's ⋯ menu (same items as its right-click menu, #114).
+const libraryAction = async (library, item) => {
+  await session.click(`//*[@data-library-id='${library}']//button[contains(@class,'lib-more')]`);
+  await until("library menu " + item, () => session.find(`//*[@role='menu']//*[@role='menuitem' and normalize-space()='${item}']`));
+  await session.click(`//*[@role='menu']//*[@role='menuitem' and normalize-space()='${item}']`);
+};
 const rootElement = (library) => `document.querySelector('[data-library-id="${library}"]')`;
 function originalFiles(root) {
   const result = {};
@@ -151,10 +161,12 @@ try {
   originalBefore = { a: originalFiles(first.info.root), b: originalFiles(second.info.root) };
   await restart();
   await uiTotal(4);
+  // Under 全部图片 every library is collapsed (#113); the arrows expand them temporarily.
+  for (const library of [first.info.id, second.info.id]) if (await session.exec("return !!document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;", [expandButton(library)])) await session.click(expandButton(library));
   await until("both complete directory roots", () => session.exec("return [...document.querySelectorAll('.workspace-provider')].filter(el => el.querySelectorAll('[data-folder-id]').length === 3).length === 2;"));
   let forest = await session.invoke("workspace_directories", { safeMode: true });
   assert(forest.providers.length === 2 && forest.providers.every(p => p.sidebar.folders.some(f => f.name === "人物" && f.children[0]?.name === "动作")), "same-named libraries retain independent complete directory trees");
-  assert(await session.exec(`const a = ${rootElement(first.info.id)}.querySelector('.provider-path'); const b = ${rootElement(second.info.id)}.querySelector('.provider-path'); return a.title === arguments[0] && b.title === arguments[1] && a.textContent !== b.textContent && a.textContent.includes('a\\\\目录参考') && b.textContent.includes('b\\\\目录参考') && a.scrollWidth <= a.clientWidth && b.scrollWidth <= b.clientWidth;`, [first.info.root, second.info.root]), "same-named roots show distinct readable suffixes and retain complete paths");
+  assert(await session.exec(`const a = ${rootElement(first.info.id)}.querySelector('.lib-head-name'); const b = ${rootElement(second.info.id)}.querySelector('.lib-head-name'); return a.title === arguments[0] && b.title === arguments[1] && a.title !== b.title;`, [first.info.root, second.info.root]), "same-named roots show distinct readable suffixes and retain complete paths");
   const forestReady = () => session.exec("return document.querySelector('.wall')?.dataset.total === '4' && [...document.querySelectorAll('.workspace-provider')].filter(el => el.querySelectorAll('[data-folder-id]').length === 3).length === 2;");
   await until("settled directory forest screenshot", async () => { if (!await forestReady()) return false; await delay(250); return forestReady(); });
   await session.screenshot("directory-forest.png");
@@ -164,15 +176,15 @@ try {
   } else {
   await session.click(folderButton(first.info.id, first.root));
   await uiTotal(2);
-  assert(await session.exec("return document.querySelector('.workspace-descendants input')?.checked === true;"), "folder selection defaults to including descendants");
+  assert(await session.exec("return document.querySelector('.workspace-descendants [role=switch]')?.getAttribute('aria-checked') === 'true';"), "folder selection defaults to including descendants");
   assert(await session.exec("return document.querySelector('[data-folder-id=\"' + arguments[0] + '\"]')?.getAttribute('aria-label') === '人物（2 张）';", [first.root]), "default directory badge counts visible descendant images");
   assert((await session.invoke("current_library")).id === second.info.id, "directory browsing does not activate another library or change write target");
-  await session.click("//label[contains(.,'包含子文件夹')]/input");
+  await session.click(descendantsSwitch);
   await uiTotal(1);
   const direct = await browse(scoped(first.info.id, { kind: "folder", id: first.root }));
   assert(direct.total === 1 && direct.cards[0].imageId === first.images["direct.png"], "unchecked descendants queries only direct membership");
   assert(await session.exec("return document.querySelector('[data-folder-id=\"' + arguments[0] + '\"]')?.getAttribute('aria-label') === '人物（1 张）';", [first.root]), "unchecked directory badge counts direct membership only");
-  await session.click("//label[contains(.,'包含子文件夹')]/input");
+  await session.click(descendantsSwitch);
   await uiTotal(2);
   const nested = (await browse(scoped(first.info.id, { kind: "folderTree", id: first.root }))).cards.find(c => c.imageId === first.images["nested.png"]);
   assert(nested.sources.length === 2 && nested.sources.filter(s => s.matches).length === 1, "folder matching is complete per source before byte deduplication");
@@ -182,7 +194,7 @@ try {
   await uiTotal(1);
   assert((await browse(scoped(first.info.id, { kind: "unassigned" }))).cards[0].imageId === first.images["unassigned.png"], "unassigned range belongs only to the chosen provider");
   await session.click(libraryButton(second.info.id)); await uiTotal(2);
-  await session.click(`//*[@data-library-id='${second.info.id}']//button[@aria-label='新建文件夹']`);
+  await libraryAction(second.info.id, "新建文件夹");
   await session.type("//input[@aria-label='新文件夹名称']", "原生新建");
   await until("created folder rendered", () => session.exec(`return ${rootElement(second.info.id)}.textContent.includes('原生新建');`));
   assert((await session.invoke("workspace_directories", { safeMode: true })).providers.find(p => p.registration.library.id === second.info.id).sidebar.folders.some(f => f.name === "原生新建"), "existing create-folder action updates its explicit provider root");
@@ -207,6 +219,8 @@ try {
   originalAfter = { a: originalFiles(first.info.root), b: originalFiles(second.info.root) };
   assert(JSON.stringify(originalAfter) === JSON.stringify(originalBefore), "folder organizing leaves original image file paths and bytes unchanged");
   await session.invoke("edit", { libraryId: second.info.id, ids: [second.images["nested.png"]], edits: [{ kind: "setRating", rating: "explicit" }] });
+  // Only the selected library stays expanded (#113); open A's arrow to reach its folder.
+  if (await session.exec("return !!document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;", [expandButton(first.info.id)])) await session.click(expandButton(first.info.id));
   await session.click(folderButton(first.info.id, first.root)); await uiTotal(1);
   assert((await browse(scoped(first.info.id, { kind: "folderTree", id: first.root }))).total === 1, "out-of-scope Adult source still vetoes the shared card in a descendant scope");
   forest = await session.invoke("workspace_directories", { safeMode: true });
@@ -214,18 +228,17 @@ try {
   assert(forest.providers.find(p => p.registration.library.id === first.info.id).descendants[first.root] === 1, "descendant counts retain all-source Adult veto outside the folder scope");
   await session.screenshot("folder-safety-veto.png");
   await session.click(folderButton(second.info.id, second.other)); await uiTotal(0);
-  await session.click("//summary[text()='资料库操作']");
-  await session.click(`//li[span[contains(.,'${second.info.root}')]]/button[contains(@aria-label,'取消登记')]`);
-  await until("removed selected provider remains invalid scope", () => session.exec("return document.querySelector('.workspace-current-scope')?.textContent.includes('资料库已失效');"));
-  assert(await session.exec("return document.querySelector('[aria-label=\"查找范围\"] > button')?.getAttribute('aria-current') !== 'page';"), "removed selected provider does not silently replace range with all libraries");
+  await libraryAction(second.info.id, "从列表移除");
+  await until("removed selected provider remains invalid scope", () => session.exec("return document.querySelector('.workspace-current-scope')?.textContent.includes('图库已失效');"));
+  assert(await session.exec("return document.querySelector('[aria-label=\"查找范围\"] .side-top button')?.getAttribute('aria-current') !== 'page';"), "removed selected provider does not silently replace range with all libraries");
   assert(await browse(request).then(() => false, () => true), "removed provider query returns an explicit failure");
   await session.screenshot("removed-scope.png");
-  await session.click("//nav[@aria-label='查找范围']/button[text()='全部资料库']"); await uiTotal(3);
+  await session.click("//nav[@aria-label='查找范围']//button[starts-with(@aria-label,'全部图片')]"); await uiTotal(3);
   await session.close(); session = null; quitOwnApp(); await delay(600);
   renameSync(first.info.root, first.info.root + ".offline");
   session = await Session.start();
-  await until("disconnected root visible", () => session.exec("return document.querySelector('.workspace-provider')?.textContent.includes('暂时不可用');"));
-  assert(await session.exec("return document.querySelector('.workspace-provider-root .sidebar-item')?.disabled && !document.querySelector('[data-folder-id]');"), "disconnected provider keeps an explicit disabled root and discards cached folder controls");
+  await until("disconnected root visible", () => session.exec("return document.querySelector('.workspace-provider[data-offline=true] .lib-offline')?.textContent.includes('未连接');"));
+  assert(await session.exec("return document.querySelector('.workspace-provider-root .lib-head-name')?.disabled && !document.querySelector('[data-folder-id]');"), "disconnected provider keeps an explicit disabled root and discards cached folder controls");
   await session.screenshot("disconnected-root.png");
   writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, tree, binarySha256, application, harnessSource, harnessSha256, environment, first, second, originalBefore, originalAfter, assertions, stories: [6, 7, 8] }, null, 2));
   console.log(`Evidence: ${work}`);

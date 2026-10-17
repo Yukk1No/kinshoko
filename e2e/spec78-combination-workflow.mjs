@@ -16,7 +16,8 @@ export const importDialog = dialog("导入图片"), eagleDialog = dialog("从 Ea
 // The save-destination selects are named by their visible labels (“放到图库” or “图库”, and “文件夹”).
 export const libraryChoice = prefix => `${prefix}//label[span[@class='k-field-label' and contains(normalize-space(),'图库')]]//select`;
 export const folderChoice = prefix => `${prefix}//label[span[@class='k-field-label' and normalize-space()='文件夹']]//select`;
-const libraryTrigger = "//button[starts-with(@aria-label,'当前图库：')]";
+// #113 (ADR-0008): no “current library” menu any more; the 图库 ＋ menu opens/creates/manages libraries.
+const libraryTrigger = "//button[@aria-label='打开、新建或管理图库']";
 const libraryMenu = "//*[@role='menu' and @aria-label='图库']";
 export class CombinationWorkflow {
   constructor(driver, fixture) {
@@ -46,7 +47,7 @@ export class CombinationWorkflow {
     if (await this.d.exec("return !!document.querySelector('section[aria-label=设置]');")) await this.readyClick("//button[@aria-label='关闭设置']");
     await until("settings dialog actually closed", () => this.d.exec("return !document.querySelector('section[aria-label=设置]');"));
   }
-  // The current library is a sidebar title menu (single choice). Same-name providers are told apart by their root (title).
+  // The 图库 ＋ menu (打开图库… · 新建图库… · 管理图库).
   async openLibraryMenu() {
     if (await this.d.exec("const node=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return node?.getAttribute('aria-expanded')!=='true';", [libraryTrigger])) await this.readyClick(libraryTrigger);
     await this.d.enabled(libraryMenu);
@@ -61,30 +62,27 @@ export class CombinationWorkflow {
     if (!root) throw Error("No registered provider " + id);
     return root;
   }
-  // Visible check: the library menu's checked radio is exactly this provider's root.
+  // Visible check: the provider is an enabled group head in the sidebar (“名称（N 张）”), its root as the
+  // section's provider. The UI has no current library (ADR-0008); the backend's writable handle is checked separately.
   async shownCurrent(id) {
     const root = await this.root(id);
-    await this.openLibraryMenu();
-    const shown = await until("library menu marks the actual current provider", () => this.d.exec("const items=[...document.querySelectorAll('[role=menu][aria-label=图库] [role=menuitemradio]')];const on=items.filter(item=>item.getAttribute('aria-checked')==='true');return on.length===1&&on[0].getAttribute('title')===arguments[0]?{root:arguments[0],items:items.length}:null;", [root]));
-    await this.closeMenu();
-    return shown;
+    const head = `//nav[@aria-label='查找范围']//*[@data-library-id=${literal(id)}]//button[contains(@class,'lib-head-name') and not(@disabled)]`;
+    await until("sidebar shows the connected provider " + id, () => this.d.find(head));
+    return { root, head };
   }
+  // The writable library is switched on demand by the backend (ADR-0008). Tests that need a particular one
+  // switch it through the command; the sidebar must still list it as connected.
   async current(id) {
-    const root = await this.root(id);
-    await this.openLibraryMenu();
-    await this.readyClick(`${libraryMenu}//*[@role='menuitemradio' and @title=${literal(root)}]`);
+    await this.d.invoke("switch_library", { libraryId: id });
     await until("current provider actually switched", async () => (await this.d.invoke("current_library"))?.id === id);
     await this.closeMenu(); await this.shownCurrent(id);
   }
-  // Only for a state where a modal dialog makes the library menu unreachable (see strictAdultAndConsent).
+  // A modal dialog makes the sidebar unreachable (see strictAdultAndConsent); the command switch does not need it.
   async currentBehindModal(id) {
     const root = await this.root(id);
-    const press = "const fire=(el)=>{for(const [type,C] of [['pointerdown',PointerEvent],['mousedown',MouseEvent],['pointerup',PointerEvent],['mouseup',MouseEvent],['click',MouseEvent]])el.dispatchEvent(new C(type,{bubbles:true,cancelable:true,composed:true,button:0,buttons:type.endsWith('down')?1:0,pointerType:'mouse',pointerId:1,isPrimary:true,view:window}));};";
-    await this.d.exec(press + "const t=document.querySelector('button[aria-label^=\"当前图库：\"]');if(!t)throw Error('library menu trigger missing');fire(t);return true;");
-    await until("library menu opened behind the modal", () => this.d.exec("return !!document.querySelector('[role=menu][aria-label=图库]');"));
-    await this.d.exec(press + "const item=[...document.querySelectorAll('[role=menu][aria-label=图库] [role=menuitemradio]')].find(n=>n.getAttribute('title')===arguments[0]);if(!item)throw Error('provider item missing');fire(item);return true;", [root]);
+    await this.d.invoke("switch_library", { libraryId: id });
     await until("current provider actually switched behind the modal", async () => (await this.d.invoke("current_library"))?.id === id);
-    this.d.record("current-behind-modal", { id, root, method: "synthetic pointer/mouse events on the library menu, as the old JS select change" });
+    this.d.record("current-behind-modal", { id, root, method: "switch_library command; the UI no longer has a current-library control (ADR-0008)" });
   }
   // Opening an existing library (old: 登记已有资料库…): the inline onboarding button, or 打开图库… in the library menu.
   async openLibrary(path) {
@@ -141,11 +139,12 @@ export class CombinationWorkflow {
   }
   async task(id) { return (await this.d.invoke("import_tasks")).find(task => task.taskId === id); }
   finish(id, timeout = 90000) { return until("real completed import receipt " + id, async () => { const task = await this.task(id); return task?.report && !task.finishing ? task : null; }, timeout); }
-  // The recycle bin is a single entry in the sidebar foot (3-band layout); it opens the current library's bin.
+  // The recycle bin row in the sidebar foot follows the selected library (“回收站 · 名称（N 张）”, #113): select the
+  // library first, then its row opens that library's bin.
   async trash(libraryId) {
-    if (await this.d.exec("return document.querySelector('button[aria-label=图片与文件夹]')?.getAttribute('aria-expanded')!=='true';")) await this.readyClick("//button[@aria-label='图片与文件夹']");
-    if ((await this.d.invoke("current_library"))?.id !== libraryId) throw Error("Open the recycle bin of the current library only: " + libraryId);
-    const xpath = "//nav[@aria-label='查找范围']//div[contains(@class,'side-foot')]//button[starts-with(@aria-label,'回收站（')]";
+    await this.scope(libraryId);
+    const name = (await this.d.invoke("registered_libraries")).find(entry => entry.library.id === libraryId)?.library.name;
+    const xpath = `//nav[@aria-label='查找范围']//div[contains(@class,'side-foot')]//button[starts-with(@aria-label,${literal("回收站 · " + name + "（")})]`;
     await this.readyClick(xpath);
     await until("actual recycle-bin scope of " + libraryId, () => this.d.exec("const node=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return node?.getAttribute('aria-current')==='page';", [xpath]));
     return xpath;
@@ -270,7 +269,7 @@ export class CombinationWorkflow {
     await this.d.invoke("edit_tag_name",{catalogId:this.blue,edit:{kind:"addAlias",alias:this.removedAlias}});
     await this.d.invoke("edit_tag_name",{catalogId:this.blue,edit:{kind:"removeAlias",alias:this.removedAlias}});
     await this.current(this.a.id); await this.scope(); await this.clearSearch();
-    if (!await this.d.exec("return document.querySelector('button.search-exact')?.getAttribute('aria-pressed')==='true';")) await this.readyClick("//button[contains(@class,'search-exact')]");
+    if (!await this.d.exec("return document.querySelector('button.k-exact')?.getAttribute('aria-pressed')==='true';")) await this.readyClick("//button[@aria-label='精确查找']");
     await this.searchTag("最贴切的蓝瞳"); await this.searchTag("水色瞳");
     await until("real UI AND result",()=>this.d.exec("return document.querySelector('.wall')?.dataset.total==='1' && document.querySelectorAll('[aria-label=查找条件]>li').length===2;"));
     await this.d.screenshot("02-single-card-complete-source-match.png");

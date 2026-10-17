@@ -1,7 +1,10 @@
 import { Fragment, forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { DragEvent, MouseEvent } from "react";
+import type { DragEvent, KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { Layers } from "lucide-react";
+import { ContextMenu } from "@base-ui/react/context-menu";
+import { MenuPopup } from "../ui/Menu";
+import type { WallMenuTarget } from "./WallMenu";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { ImageCard } from "../bindings/ImageCard";
@@ -13,7 +16,11 @@ import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { browse, workspaceBrowse, isCursorExpired, isLensChanged, thumbnailUrl } from "../ipc";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { modalOpen } from "../ui/modal";
-import { captureAnchor, masonry, resolveAnchor, visible, type Anchor } from "./layout";
+import { isMenuKey, openMenuAt } from "../ui/menuKey";
+import { captureAnchor, cardAt, masonry, resolveAnchor, visible, type Anchor, type Box } from "./layout";
+import { ZOOM_COMMIT_MS, createNotchCounter, zoomDensity } from "./zoom";
+import { createSmoothWheel } from "./smoothWheel";
+import { createPrefetcher, decodeThumbnail, mountWindow, prefetchOrder, type MountWindow } from "./prefetch";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
 const GAP = 8;
@@ -24,9 +31,19 @@ const TARGET = 240;
 /** 特别长的图整体缩小到列宽的 2.6 倍高，不裁切。 */
 const CAP_RATIO = 2.6;
 const PAGE = 500;
+/** 滚动方向前方预取缩略图的距离（挂载范围之外，画布像素）与张数上限。 */
+const PREFETCH_PX = 1600;
+const PREFETCH_MAX = 48;
+/** 滚动停手多久后把位置写进本地存储。 */
+const SAVE_ANCHOR_MS = 250;
 
 /** 图片墙上拖出参考图时放进 dataTransfer 的类型，值为 JSON 数组的参考图 id。 */
 export const DRAG_IMAGES = "application/x-kinshoko-images";
+/**
+ * 同一次拖动里每张图按图库列出的来源：JSON 对象 `{ 图库 id: 参考图 id[] }`。任何一个图库的文件夹都能
+ * 接住拖来的图（ADR-0008），放进哪个库就取这张图在那个库里的来源。
+ */
+export const DRAG_IMAGE_SOURCES = "application/x-kinshoko-image-sources";
 
 export type WallHandle = {
   previewDensity: (value: number | null) => void;
@@ -34,7 +51,12 @@ export type WallHandle = {
   invalidate: () => void;
   /** 读下一页（查看器走过已读到的卡片时）；已在读或没有下一页时什么也不做。 */
   loadMore: () => void;
+  /** 选中已读到的全部图（Ctrl+A，空白处菜单的“全选”）。 */
+  selectAll: () => void;
 };
+
+/** 卡片上的快捷键（与右键菜单同一选择规则）：P 钉住、F1 进入查看器框选、Del 移到回收站、Ctrl+C 复制图片。 */
+export type CardCommand = "pin" | "crop" | "trash" | "copy";
 
 export type BrowserCard = ImageCard & Partial<Pick<WorkspaceCard, "libraryId" | "imageId" | "sources">>;
 
@@ -46,6 +68,10 @@ type Props = {
   onWorkspaceStatus?: (status: WorkspaceStatus, cards: BrowserCard[]) => void;
   /** Artist-selected target card width; preview stays local until the slider commits. */
   density?: number;
+  /** Ctrl+滚轮缩放中的本地预览（#111），让图片大小滑条跟着走；null 为撤掉预览。 */
+  onDensityPreview?: (value: number | null) => void;
+  /** Ctrl+滚轮最后一格后 220 ms 提交的图片大小，与滑条提交同一个值。 */
+  onDensityCommit?: (value: number) => void;
   onTotalChange?: (count: number | null) => void;
   libraryId: string;
   scope: BrowseScope;
@@ -62,7 +88,28 @@ type Props = {
   onSelectionChange: (selected: Set<string>) => void;
   onOpenImage: (card: BrowserCard) => void;
   viewerOpen: boolean;
+  /** 右键菜单的内容（#102）；不给出时图片墙没有右键菜单。 */
+  menu?: (target: WallMenuTarget) => ReactNode;
+  onCardCommand?: (command: CardCommand, cards: BrowserCard[], point: { x: number; y: number }) => void;
+  /** Ctrl+V：从剪贴板导入（#105）。主窗口里焦点不在输入框、没有模态与查看器时都响应。 */
+  onPaste?: () => void;
 };
+
+/**
+ * 缩略图到达的标记直接写在节点上，不经 React 渲染（滚动时不为每张图重渲染）。
+ * 重新挂载时已在浏览器缓存里的图直接显示，不再淡入；其余到达后淡入、盖住占位图。
+ */
+const markCachedThumbnail = (img: HTMLImageElement | null) => {
+  if (img && img.complete && img.naturalWidth > 0) img.dataset.loaded = "instant";
+};
+const markThumbnailLoaded = (e: { currentTarget: HTMLImageElement }) => {
+  if (!e.currentTarget.dataset.loaded) e.currentTarget.dataset.loaded = "fade";
+};
+
+
+/** 按键落在可输入的地方（输入框、文本框、可编辑区域）：Ctrl+V 是粘贴文字，不是导入。 */
+const editable = (target: EventTarget | null) =>
+  target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select, [contenteditable='true']") !== null);
 
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
 export const scopeKey = (scope: BrowseScope) =>
@@ -111,6 +158,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   onCardsChange,
   onWorkspaceStatus,
   density = TARGET,
+  onDensityPreview,
+  onDensityCommit,
   onTotalChange,
   libraryId,
   scope,
@@ -121,13 +170,30 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   onSelectionChange,
   onOpenImage,
   viewerOpen,
+  menu,
+  onCardCommand,
+  onPaste,
 }, ref) {
   const searching = conditions.conditions.length > 0;
   const storeKey = searching ? null : workspaceScope ? `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}` : anchorKey(libraryId, scope);
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [previewDensity, setPreviewDensity] = useState<number | null>(null);
-  const [viewport, setViewport] = useState({ top: 0, height: 0 });
+  /**
+   * 挂载范围（#109）：按块更新，滚动没有越出余量时不变，滚动事件因此不触发 React 渲染。
+   * 状态只在范围变化时设，同值的 setState 不进渲染。
+   */
+  const [mount, setMount] = useState<MountWindow>({ top: 0, bottom: 0 });
+  const mountRef = useRef<MountWindow | null>(null);
+  const syncMount = useCallback((el: HTMLElement) => {
+    const next = mountWindow(mountRef.current, el.scrollTop, el.clientHeight, OVERSCAN);
+    if (next === mountRef.current) return;
+    mountRef.current = next;
+    setMount(next);
+  }, []);
+  /** 最近的滚动方向（1 向下，−1 向上），决定往哪边预取。 */
+  const scrollDirection = useRef<1 | -1>(1);
+  const lastScrollTop = useRef(0);
   const [cards, setCards] = useState<BrowserCard[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
@@ -185,14 +251,28 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
 
   useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
   const loadMoreRef = useRef<() => void>(() => {});
+  const selectAllRef = useRef<() => void>(() => {});
   useImperativeHandle(ref, () => ({
     previewDensity(value) { measureBeforeReflow(); setPreviewDensity(value); },
     invalidate() { generation.current += 1; inflight.current = null; },
     loadMore() { loadMoreRef.current(); },
+    selectAll() { selectAllRef.current(); },
   }), [measureBeforeReflow]);
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 
+  /**
+   * Ctrl+滚轮缩放（#111）：光标下的那张图在预览后的布局里中心仍在光标下。只由下一次布局效果消费一次；
+   * 滑条与键盘改密度不设它，仍以视口顶部的图为锚。
+   */
+  const zoomPin = useRef<{ id: string; pointerY: number } | null>(null);
+  const zoom = useRef({ value: null as number | null, timer: 0, count: createNotchCounter(), pin: null as { id: string; x: number; y: number } | null });
+  const smoothRef = useRef<ReturnType<typeof createSmoothWheel> | null>(null);
+  /** 原生滚轮监听读最新的渲染结果。 */
+  const live = useRef({ layout: null as ReturnType<typeof masonry> | null, ids: [] as string[], density, previewDensity, onDensityPreview, onDensityCommit });
+
   useLayoutEffect(() => {
+    // 打开查看器时停下滚轮惯性，返回时图片墙仍在打开时的位置。
+    if (viewerOpen) smoothRef.current?.stop();
     if (wasViewing.current && !viewerOpen && lastOpened.current) {
       const card = scroller.current?.querySelector<HTMLElement>(`[data-id="${lastOpened.current}"]`);
       card?.focus({ preventScroll: true });
@@ -304,7 +384,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       if (gen !== generation.current) return;
       const next = [...cards, ...page.cards];
       if (result.status) onWorkspaceStatus?.(result.status, next);
-      measureBeforeReflow();
+      // 瀑布流追加时已有卡片的位置不变，不必量旧位置、起重排动画（#109）。
       setCards(next);
       setCursor(page.nextCursor);
       setTotal(page.total);
@@ -318,7 +398,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       if (inflight.current === gen) inflight.current = null;
     }
     if (expired) void reload(Math.max(loaded.current, PAGE));
-  }, [cards, cursor, thumbnailPx, measureBeforeReflow, reload, onWorkspaceStatus]);
+  }, [cards, cursor, thumbnailPx, reload, onWorkspaceStatus]);
   loadMoreRef.current = () => { void loadMore(); };
   useEffect(() => {
     void reload(Math.max(loaded.current, PAGE));
@@ -332,14 +412,14 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
         layoutWidth.current = el.clientWidth;
         setWidth(el.clientWidth);
       }
-      setViewport({ top: el.scrollTop, height: el.clientHeight });
+      syncMount(el);
     };
     sync();
     if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(() => flushSync(sync));
     ro.observe(el);
     return () => ro.disconnect();
-  }, [measureBeforeReflow]);
+  }, [measureBeforeReflow, syncMount]);
 
   /** 已经放出（不再遮蔽）的含成人内容的图。 */
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
@@ -369,7 +449,19 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el || !width || !cards.length) return;
-    const top = resolveAnchor(layout, ids, anchor.current);
+    const pin = zoomPin.current;
+    zoomPin.current = null;
+    const pinned = pin ? ids.indexOf(pin.id) : -1;
+    let top: number | null;
+    if (pinned >= 0) {
+      // 缩放：光标下那张图的中心放回光标下；随后以新布局里视口顶部的图为锚，提交时布局不变、位置不动。
+      const b = layout.boxes[pinned];
+      top = Math.max(0, Math.min(b.y + b.h / 2 - pin!.pointerY, layout.height - el.clientHeight));
+      anchor.current = captureAnchor(layout, ids, top, el.clientHeight);
+      if (storeKey) saveAnchor(storeKey, anchor.current);
+    } else {
+      top = resolveAnchor(layout, ids, anchor.current);
+    }
     if (top !== null && Math.abs(el.scrollTop - top) > 0.5) {
       el.scrollTop = top;
       settledTop.current = el.scrollTop;
@@ -378,10 +470,15 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     if (top !== null || !anchor.current || !cursor) restoring.current = false;
     const from = beforeReflow.current;
     beforeReflow.current = new Map();
-    if (!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      const targets = [...el.querySelectorAll<HTMLElement>(".card")].map((node) => ({ node, old: from.get(node.dataset.id!), next: node.getBoundingClientRect() }));
+    if (from.size && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      const targets = [...el.querySelectorAll<HTMLElement>(".card")].flatMap((node) => {
+        const old = from.get(node.dataset.id!);
+        return old ? [{ node, old, next: node.getBoundingClientRect() }] : [];
+      });
       for (const { node, old, next } of targets) {
-        if (!old || !next.width || !next.height || typeof node.animate !== "function") continue;
+        if (!next.width || !next.height || typeof node.animate !== "function") continue;
+        // 没有移动、没有变大小的卡片不起动画（#109：读下一页时已有卡片的位置不变）。
+        if (Math.abs(old.left - next.left) < 0.5 && Math.abs(old.top - next.top) < 0.5 && Math.abs(old.width - next.width) < 0.5 && Math.abs(old.height - next.height) < 0.5) continue;
         const motion = node.animate([
           { transform: `translate(${old.left - next.left}px, ${old.top - next.top}px) scale(${old.width / next.width}, ${old.height / next.height})` },
           { transform: "none" },
@@ -390,36 +487,137 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
         motion.onfinish = () => motions.current.delete(node.dataset.id!);
       }
     }
-    setViewport({ top: el.scrollTop, height: el.clientHeight });
-  }, [layout, ids, width, cards.length, cursor]);
+    syncMount(el);
+  }, [layout, ids, width, cards.length, cursor, syncMount]);
+
+  live.current = { layout, ids, density, previewDensity, onDensityPreview, onDensityCommit };
+
+  // Ctrl+滚轮缩放（#111）。React 的 onWheel 是被动监听，不能阻止 WebView 的页面缩放，所以手动加。
+  useEffect(() => {
+    const el = scroller.current!;
+    const z = zoom.current;
+    const commit = () => {
+      const value = z.value;
+      clearTimeout(z.timer);
+      z.value = null;
+      z.pin = null;
+      z.count = createNotchCounter();
+      if (value === null) return;
+      const { density, onDensityPreview, onDensityCommit } = live.current;
+      if (value === density) {
+        setPreviewDensity(null);
+        onDensityPreview?.(null);
+      } else {
+        onDensityCommit?.(value);
+      }
+    };
+    // 鼠标滚轮插值与惯性（#109）；Ctrl 的滚轮留给下面的缩放。
+    const smooth = createSmoothWheel(el, { limit: () => Math.max(0, (live.current.layout?.height ?? 0) - el.clientHeight) });
+    smoothRef.current = smooth;
+    const wheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      smooth.stop();
+      const notches = z.count(e);
+      if (!notches) return;
+      clearTimeout(z.timer);
+      z.timer = window.setTimeout(commit, ZOOM_COMMIT_MS);
+      const { layout, ids, density, previewDensity, onDensityPreview } = live.current;
+      const from = z.value ?? previewDensity ?? density;
+      const next = zoomDensity(from, notches);
+      if (next === from || !layout) return;
+      z.value = next;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      // 同一次连续缩放里光标没动就一直锚同一张图，不因落到缝隙而换图。
+      if (!z.pin || Math.hypot(z.pin.x - x, z.pin.y - y) > 2) {
+        const i = cardAt(layout, x + el.scrollLeft, y + el.scrollTop);
+        z.pin = i >= 0 ? { id: ids[i], x, y } : null;
+      }
+      zoomPin.current = z.pin ? { id: z.pin.id, pointerY: y } : null;
+      measureBeforeReflow();
+      flushSync(() => setPreviewDensity(next));
+      onDensityPreview?.(next);
+    };
+    el.addEventListener("wheel", wheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", wheel);
+      smooth.dispose();
+      smoothRef.current = null;
+      // 缩放停手前离开（换范围重建图片墙）也落下画师选的大小。
+      if (z.value !== null) commit();
+    };
+  }, [measureBeforeReflow]);
+
+  /** 停手后才写本地存储（#109：不在每个滚动事件里同步写）；卸载与页面隐藏时立即写。 */
+  const pendingSave = useRef<{ key: string; timer: number } | null>(null);
+  const flushSave = useCallback(() => {
+    const pending = pendingSave.current;
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    pendingSave.current = null;
+    saveAnchor(pending.key, anchor.current);
+  }, []);
+  useEffect(() => {
+    window.addEventListener("pagehide", flushSave);
+    return () => { window.removeEventListener("pagehide", flushSave); flushSave(); };
+  }, [flushSave]);
 
   const onScroll = () => {
     const el = scroller.current!;
-    setViewport({ top: el.scrollTop, height: el.clientHeight });
+    syncMount(el);
+    if (el.scrollTop !== lastScrollTop.current) scrollDirection.current = el.scrollTop > lastScrollTop.current ? 1 : -1;
+    lastScrollTop.current = el.scrollTop;
     // 自己为锚点做的滚动不重新取锚，否则每次重排都会漂到另一张图。
     const own = settledTop.current !== null && Math.abs(el.scrollTop - settledTop.current) < 1;
     if (own || restoring.current) return;
     settledTop.current = null;
     anchor.current = captureAnchor(layout, ids, el.scrollTop, el.clientHeight);
-    if (storeKey) saveAnchor(storeKey, anchor.current);
+    if (storeKey) {
+      if (pendingSave.current) clearTimeout(pendingSave.current.timer);
+      pendingSave.current = { key: storeKey, timer: window.setTimeout(flushSave, SAVE_ANCHOR_MS) };
+    }
   };
 
   // 接近底部时取下一页。
   useEffect(() => {
-    if (cursor && viewport.top + viewport.height + OVERSCAN * 2 >= layout.height) void loadMore();
-  }, [cursor, viewport, layout.height, loadMore]);
+    if (cursor && mount.bottom + OVERSCAN * 2 >= layout.height) void loadMore();
+  }, [cursor, mount, layout.height, loadMore]);
 
+  const position = useMemo(() => new Map(ids.map((id, i) => [id, i])), [ids]);
   const mounted = useMemo(() => {
-    const found = visible(layout, viewport.top - OVERSCAN, viewport.top + viewport.height + OVERSCAN);
+    const found = new Set(visible(layout, mount.top, mount.bottom));
     // 查看器里调整窗口宽度后，最后查看的卡片仍能接回焦点（最多多保留一张）。
-    const last = ids.indexOf(lastOpened.current ?? "");
-    if (last >= 0 && !found.includes(last)) found.push(last);
-    for (const id of [...beforeReflow.current.keys(), ...motions.current.keys()]) {
-      const i = ids.indexOf(id);
-      if (i >= 0 && !found.includes(i)) found.push(i);
+    for (const id of [lastOpened.current, ...beforeReflow.current.keys(), ...motions.current.keys()]) {
+      const i = id === null ? undefined : position.get(id);
+      if (i !== undefined) found.add(i);
     }
-    return found.sort((a, b) => a - b);
-  }, [layout, viewport, ids, viewerOpen]);
+    return [...found].sort((a, b) => a - b);
+  }, [layout, mount, position, viewerOpen]);
+
+  // 缩略图按滚动方向预取，离挂载范围近的先取；挂载范围变化时更新（#109）。
+  const prefetcher = useRef<ReturnType<typeof createPrefetcher> | null>(null);
+  /** 上次渲染的卡片元素，按 id；布局、选择、遮蔽都没变的卡片原样沿用。 */
+  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; node: ReactNode }>());
+  useLayoutEffect(() => { renderedCards.current = nextRendered; });
+  const cardHandlers = useRef<{
+    select: (id: string, e: Pick<MouseEvent, "shiftKey" | "ctrlKey" | "metaKey">) => void;
+    open: (card: BrowserCard) => void;
+    cardKey: (card: BrowserCard, e: KeyboardEvent<HTMLElement>) => void;
+    dragStart: (id: string, e: DragEvent) => void;
+    inspect?: (card: WorkspaceCard) => void;
+  }>(null!);
+  useEffect(() => {
+    const prefetch = createPrefetcher({ load: decodeThumbnail });
+    prefetcher.current = prefetch;
+    return () => { prefetch.dispose(); prefetcher.current = null; };
+  }, []);
+  useEffect(() => {
+    if (!cards.length || mount.bottom <= mount.top) return;
+    const order = prefetchOrder(layout, mount, scrollDirection.current, PREFETCH_PX).slice(0, PREFETCH_MAX);
+    prefetcher.current?.want(order.map((i) => thumbnailUrl(cards[i].thumbnail)));
+  }, [layout, mount, cards]);
 
   const select = (id: string, e: Pick<MouseEvent, "shiftKey" | "ctrlKey" | "metaKey">) => {
     if (e.shiftKey && pivot.current && ids.includes(pivot.current)) {
@@ -439,6 +637,72 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     }
   };
 
+  selectAllRef.current = () => onSelectionChange(new Set(ids));
+
+  /**
+   * 右键（或快捷键）作用的卡片：右键已选中的卡片时是整组选择（按图片墙顺序）；
+   * 右键未选中的卡片时选择改为只有这一张。
+   */
+  const actOn = (id: string): BrowserCard[] => {
+    if (selected.has(id)) return cards.filter((c) => selected.has(c.id));
+    pivot.current = id;
+    onSelectionChange(new Set([id]));
+    return cards.filter((c) => c.id === id);
+  };
+  const [menuTarget, setMenuTarget] = useState<WallMenuTarget | null>(null);
+  const targetMenu = (e: MouseEvent) => {
+    const point = { x: e.clientX, y: e.clientY };
+    const node = (e.target as Element).closest?.<HTMLElement>(".card, .card-sources");
+    const id = node?.dataset.id ?? node?.dataset.card;
+    const acted = id ? actOn(id) : [];
+    setMenuTarget(acted.length ? { kind: "cards", cards: acted, point } : { kind: "blank", point });
+  };
+  const cardKey = (card: BrowserCard, e: KeyboardEvent<HTMLElement>) => {
+    if (e.key === "Enter") { e.preventDefault(); open(card); return; }
+    if (e.key === " ") { e.preventDefault(); select(card.id, e); return; }
+    if (isMenuKey(e)) { e.preventDefault(); e.stopPropagation(); if (menu) openMenuAt(e.currentTarget); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const command: CardCommand | null = e.key === "p" || e.key === "P" ? "pin" : e.key === "F1" ? "crop" : e.key === "Delete" && scope.kind !== "trash" ? "trash" : null;
+    if (!command || !onCardCommand) return;
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const acted = actOn(card.id);
+    onCardCommand(command, command === "crop" ? acted.filter((c) => c.id === card.id) : acted, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+  };
+  const wallKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const chord = (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey;
+    if (chord && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      selectAllRef.current();
+    } else if (chord && e.key.toLowerCase() === "c" && onCardCommand) {
+      // 复制：焦点在卡片上时按右键的同一选择规则；否则是当前选择。多张由调用方提示一次只能复制一张。
+      const node = (e.target as Element).closest?.<HTMLElement>(".card");
+      const acted = node?.dataset.id ? actOn(node.dataset.id) : cards.filter((c) => selected.has(c.id));
+      if (!acted.length) return;
+      e.preventDefault();
+      const rect = (node ?? e.currentTarget).getBoundingClientRect();
+      onCardCommand("copy", acted, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+    } else if (isMenuKey(e) && e.target === e.currentTarget && menu) {
+      e.preventDefault();
+      openMenuAt(e.currentTarget);
+    }
+  };
+
+  const paste = useRef({ onPaste, viewerOpen });
+  paste.current = { onPaste, viewerOpen };
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== "v" || e.defaultPrevented) return;
+      const { onPaste, viewerOpen } = paste.current;
+      const el = scroller.current;
+      if (!onPaste || !el || viewerOpen || modalOpen() || el.closest("[hidden], [inert]") || editable(e.target)) return;
+      e.preventDefault();
+      onPaste();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   const dragStart = (id: string, e: DragEvent) => {
     // 拖未选中的图时只拖这一张，并改为选中它。
     let dragged = [...selected];
@@ -451,12 +715,23 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       ? dragged.flatMap((id) => cards.find((c) => c.id === id)?.sources?.filter((s) => s.libraryId === workspaceScope.libraryId && !s.unavailable).map((s) => s.imageId) ?? [])
       : dragged;
     e.dataTransfer.setData(DRAG_IMAGES, JSON.stringify(sourceIds));
+    const bySource: Record<string, string[]> = {};
+    for (const source of dragged.flatMap((id) => cards.find((c) => c.id === id)?.sources ?? [])) {
+      if (!source.unavailable) (bySource[source.libraryId] ??= []).push(source.imageId);
+    }
+    e.dataTransfer.setData(DRAG_IMAGE_SOURCES, JSON.stringify(bySource));
     e.dataTransfer.effectAllowed = "copyMove";
   };
 
+  // 卡片的事件处理读这里的最新版本，沿用的卡片元素因此不会拿着旧的选择与回调。
+  cardHandlers.current = { select, open, cardKey, dragStart, inspect: onInspectSources };
+  const nextRendered: typeof renderedCards.current = new Map();
+
   return (
-    <div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
-      role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1}>
+    <ContextMenu.Root disabled={!menu} onOpenChange={(next) => { if (!next) setMenuTarget(null); }}>
+    <ContextMenu.Trigger render={<div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
+      role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1} onKeyDown={wallKey}
+      onContextMenuCapture={(e) => { if (menu) targetMenu(e); }} />}>
       {error && <p role="alert">{error}</p>}
       {total === 0 ? (
         <p className="wall-empty">{searching ? "没有符合条件的参考图。" : EMPTY[scope.kind]}</p>
@@ -466,8 +741,15 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             const card = cards[i];
             const b = layout.boxes[i];
             const veiled = card.adult && (safeMode || !revealed.has(card.id));
+            const chosen = selected.has(card.id);
+            // 没变的卡片沿用上次的元素，React 跳过整张卡片的比对（#109）。
+            const kept = renderedCards.current.get(card.id);
+            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled) {
+              nextRendered.set(card.id, kept);
+              return kept.node;
+            }
             const sources = card.libraryId && card.imageId ? card.sources ?? [] : [];
-            return (
+            const node = (
               <Fragment key={card.id}>
               <div
                 className="card"
@@ -476,33 +758,40 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 role="option"
                 tabIndex={0}
                 data-veiled={veiled}
-                draggable={!workspaceScope || workspaceScope.kind === "library"}
+                draggable={!workspaceScope || workspaceScope.kind === "library" || (card.sources?.some((source) => !source.unavailable) ?? false)}
                 onClick={(e) => {
-                  if (e.ctrlKey || e.metaKey || e.shiftKey) select(card.id, e);
-                  else open(card);
+                  if (e.ctrlKey || e.metaKey || e.shiftKey) cardHandlers.current.select(card.id, e);
+                  else cardHandlers.current.open(card);
                 }}
-                onDoubleClick={() => open(card)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.preventDefault(); open(card); }
-                  if (e.key === " ") { e.preventDefault(); select(card.id, e); }
-                }}
-                onDragStart={(e) => dragStart(card.id, e)}
+                onDoubleClick={() => cardHandlers.current.open(card)}
+                onKeyDown={(e) => cardHandlers.current.cardKey(card, e)}
+                onDragStart={(e) => cardHandlers.current.dragStart(card.id, e)}
                 style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}
               >
-                <img src={thumbnailUrl(card.thumbnail)} alt="参考图" decoding="async" draggable={false} />
+                <img src={thumbnailUrl(card.thumbnail)} alt="参考图" decoding="async" draggable={false}
+                  ref={markCachedThumbnail} onLoad={markThumbnailLoaded} />
+                {/* 占位图（#110）：缩略图到达前放大模糊显示；遮蔽中的图不露出它的色彩。 */}
+                {card.placeholder && !veiled && <div className="card-placeholder" aria-hidden="true"
+                  style={{ backgroundImage: `url("${card.placeholder}")` }} />}
               </div>
               {/* 来源按钮是卡片选项的兄弟，不在选项里：选项内不放可聚焦的子元素。 */}
               {sources.length > 0 && <button type="button" className={`card-sources${sources.length === 1 ? " is-single" : ""}`} data-card={card.id}
                 aria-label={sources.length >= 2 ? `在 ${sources.length} 个图库 · 查看详情` : `来源：${sources[0].libraryName} · 查看详情`}
                 title={sources.length >= 2 ? `在 ${sources.length} 个图库` : `在「${sources[0].libraryName}」`}
                 style={{ left: `${b.x + b.w - 8}px`, top: `${b.y + b.h - 8}px` }}
-                onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; onInspectSources?.(card as WorkspaceCard); }}
+                onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; cardHandlers.current.inspect?.(card as WorkspaceCard); }}
                 onKeyDown={(e) => e.stopPropagation()}><Layers size={11} aria-hidden="true" />{sources.length >= 2 && `${sources.length} 处`}</button>}
               </Fragment>
             );
+            nextRendered.set(card.id, { card, box: b, chosen, veiled, node });
+            return node;
           })}
         </div>
       )}
-    </div>
+    </ContextMenu.Trigger>
+    {menu && menuTarget && <MenuPopup label={menuTarget.kind === "blank" ? "图片墙菜单" : menuTarget.cards.length > 1 ? `${menuTarget.cards.length} 张参考图的菜单` : "参考图菜单"} width={232}>
+      {menu(menuTarget)}
+    </MenuPopup>}
+    </ContextMenu.Root>
   );
 });

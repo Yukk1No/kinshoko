@@ -65,13 +65,7 @@ impl Library {
         options: ImportOptions,
         destination: &SaveDestination,
     ) -> Result<ImportTask, Error> {
-        self.validate_destination(destination)?;
-        Ok(super::import::start_to(
-            self.inner.clone(),
-            source,
-            options,
-            destination.clone(),
-        ))
+        super::import::start_validated(self.inner.clone(), source, options, destination.clone())
     }
 
     pub fn validate_destination(&self, destination: &SaveDestination) -> Result<(), Error> {

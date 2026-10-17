@@ -82,9 +82,11 @@ pub(super) async fn edit_local_alias<R: Runtime>(
     local_id: String,
     edit: LocalAliasEdit,
 ) -> Result<(), String> {
-    let library = state.current(&library_id)?;
     let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    let reader = app.clone();
     blocking(move || {
+        // 别名记在本设备的统一目录里，资料库只读核对：不必是可写库（ADR-0008）。
+        let library = readable(&reader, &library_id)?;
         with_catalog(&dir, &catalog, |catalog| {
             let snapshot = catalog.synchronize(&library)?;
             let mapping = snapshot

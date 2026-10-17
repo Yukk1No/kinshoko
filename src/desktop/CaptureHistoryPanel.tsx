@@ -1,13 +1,16 @@
 import { SaveDestinationDialog } from "../library/SaveDestination";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
-import { BookmarkPlus, Check, Clipboard, Pin, Scissors, X } from "lucide-react";
+import { ContextMenu } from "@base-ui/react/context-menu";
+import { BookmarkPlus, Check, Clipboard, Copy, Pin, Scissors, Trash2, X } from "lucide-react";
+import { MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { ShortcutAction } from "../bindings/ShortcutAction";
 import {
   captureHistory,
   captureUrl,
   collectCapture,
+  copyCapture,
   deleteCapture,
   onCaptureHistory,
   pinCapture,
@@ -35,7 +38,8 @@ function useShortcutKeys() {
 }
 
 /**
- * 截图：最近的截图，从新到旧。可以再钉住、选择图库和文件夹收藏、删除。
+ * 截图：最近的截图，从新到旧。可以再钉住、复制、选择图库和文件夹收藏、删除。
+ * 每一条也有与主窗口同样式的右键菜单（#106）：钉住 · 复制 · 收藏到… · ─ · 删除，与条目上的按钮相同。
  * 没收藏也没钉住的旧截图会被自动丢弃；`libraryId` 是当前资料库，用来显示“已收藏”。
  */
 export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { libraryId: string | undefined; request?: { id: string; stamp: number } | null; onRequestHandled?: () => void }) {
@@ -87,25 +91,35 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
         {entries?.map((entry) => {
           const collected = entry.collected.some((c) => c.libraryId === libraryId);
           return (
-            <li key={entry.id} className="capture-history-item" data-id={entry.id}>
-              <img src={captureUrl(entry.id)} alt="" loading="lazy" draggable={false} />
-              <div className="capture-history-text">
-                <span className="capture-history-name">截图 {time(entry.createdAt)}</span>
-                <span className="capture-history-meta">
-                  {entry.width} × {entry.height} · {ago(entry.createdAt)}{entry.pinned && " · 已钉住"}
-                </span>
-                <span className="capture-history-actions">
-                  {collected
-                    ? <button type="button" className="side-chip is-done" aria-label="已收藏，再收藏到别处" title="再收藏到别的图库或文件夹" onClick={() => setCollecting(entry.id)}>
-                      <Check size={12} aria-hidden="true" />已收藏</button>
-                    : <button type="button" className="side-chip" onClick={() => setCollecting(entry.id)}><BookmarkPlus size={12} aria-hidden="true" />收藏</button>}
-                  <button type="button" className="side-chip" onClick={() => run(pinCapture(entry.id))}><Pin size={12} aria-hidden="true" />钉住</button>
-                </span>
-              </div>
-              <button type="button" className="k-icon-btn capture-history-delete" aria-label="删除这张截图" title="删除" onClick={() => run(deleteCapture(entry.id))}>
-                <X size={14} aria-hidden="true" />
-              </button>
-            </li>
+            <ContextMenu.Root key={entry.id}>
+              <ContextMenu.Trigger render={<li className="capture-history-item" data-id={entry.id} />}>
+                <img src={captureUrl(entry.id)} alt="" loading="lazy" draggable={false} />
+                <div className="capture-history-text">
+                  <span className="capture-history-name">截图 {time(entry.createdAt)}</span>
+                  <span className="capture-history-meta">
+                    {entry.width} × {entry.height} · {ago(entry.createdAt)}{entry.pinned && " · 已钉住"}
+                  </span>
+                  <span className="capture-history-actions">
+                    {collected
+                      ? <button type="button" className="side-chip is-done" aria-label="已收藏，再收藏到别处" title="再收藏到别的图库或文件夹" onClick={() => setCollecting(entry.id)}>
+                        <Check size={12} aria-hidden="true" />已收藏</button>
+                      : <button type="button" className="side-chip" onClick={() => setCollecting(entry.id)}><BookmarkPlus size={12} aria-hidden="true" />收藏</button>}
+                    <button type="button" className="side-chip" onClick={() => run(pinCapture(entry.id))}><Pin size={12} aria-hidden="true" />钉住</button>
+                    <button type="button" className="side-chip" onClick={() => run(copyCapture(entry.id))}><Copy size={12} aria-hidden="true" />复制</button>
+                  </span>
+                </div>
+                <button type="button" className="k-icon-btn capture-history-delete" aria-label="删除这张截图" title="删除" onClick={() => run(deleteCapture(entry.id))}>
+                  <X size={14} aria-hidden="true" />
+                </button>
+              </ContextMenu.Trigger>
+              <MenuPopup label="截图菜单">
+                <MenuItem icon={<Pin size={14} />} onClick={() => run(pinCapture(entry.id))}>钉住</MenuItem>
+                <MenuItem icon={<Copy size={14} />} onClick={() => run(copyCapture(entry.id))}>复制</MenuItem>
+                <MenuItem icon={<BookmarkPlus size={14} />} onClick={() => setCollecting(entry.id)}>收藏到…</MenuItem>
+                <MenuSeparator />
+                <MenuItem icon={<Trash2 size={14} />} danger onClick={() => run(deleteCapture(entry.id))}>删除</MenuItem>
+              </MenuPopup>
+            </ContextMenu.Root>
           );
         })}
       </ul>

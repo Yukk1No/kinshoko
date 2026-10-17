@@ -138,3 +138,19 @@ it("当前选择的有效详情请求失败仍交给错误提示", async () => {
     reloadKey={0} onClear={() => {}} onError={(message) => problems.push(message)} />);
   await waitFor(() => expect(problems).toEqual(["读取资料库失败"]));
 });
+
+it("主窗口的多选经工作区读取所选图库的目录，不要求它是后端此刻的可写库（ADR-0008，#113）", async () => {
+  const commands: { cmd: string; args: unknown }[] = [];
+  mockIPC((cmd, args) => {
+    commands.push({ cmd, args });
+    if (cmd === "plugin:library|workspace_sidebar") return { all: 2, trash: 0, folders: [{ id: "F", name: "人物", count: 0, children: [] }] };
+    if (cmd === "plugin:library|sidebar") return Promise.reject("这个界面打开的资料库已切换");
+    return undefined;
+  });
+  render(<SelectionPanel workspace libraryId="L2" scope={{ kind: "all" }} selected={new Set(["a", "b"])}
+    onClear={() => {}} reloadKey={0} onError={() => {}} safeMode />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "放入文件夹" })).toHaveProperty("disabled", false));
+  expect(commands.filter((c) => c.cmd.endsWith("sidebar"))).toEqual([
+    { cmd: "plugin:library|workspace_sidebar", args: { libraryId: "L2", safeMode: true } },
+  ]);
+});

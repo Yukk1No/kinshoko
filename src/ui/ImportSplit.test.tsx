@@ -33,6 +33,19 @@ it("箭头打开其他来源：图片文件、整个文件夹、从 Eagle 导入
   expect(h.onFiles).toHaveBeenCalledTimes(1);
 });
 
+it("顶栏里只留图标与箭头，没有文字", () => {
+  render(<ImportSplit {...handlers()} />);
+  const main = screen.getByRole("button", { name: "导入图片文件" });
+  expect(main.textContent).toBe("");
+  expect(main.querySelector("svg")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "更多导入方式" }).textContent).toBe("");
+});
+
+it("导入进行中，图标按钮标明忙碌", () => {
+  render(<ImportSplit {...handlers()} busy />);
+  expect(screen.getByRole("button", { name: "导入图片文件" }).getAttribute("aria-busy")).toBe("true");
+});
+
 it("导入进行中不能再开始导入，但仍能打开导入任务", async () => {
   const h = { ...handlers(), onShowTasks: vi.fn() };
   render(<ImportSplit {...h} busy />);

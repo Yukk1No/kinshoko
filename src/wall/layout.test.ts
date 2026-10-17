@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { captureAnchor, masonry, resolveAnchor, visible } from "./layout";
+import { captureAnchor, cardAt, masonry, resolveAnchor, visible } from "./layout";
 
 // 瀑布流布局沿用 #13 样稿的纯函数（#9 Q27）：尺寸取自资料库记录，不从 DOM 测量。
 describe("瀑布流布局", () => {
@@ -58,5 +58,24 @@ describe("瀑布流布局", () => {
     const top = resolveAnchor(narrow, ids, anchor)!;
     const i = ids.indexOf(anchor.id);
     expect(top - narrow.boxes[i].y).toBeCloseTo(3000 - wide.boxes[i].y, 6);
+  });
+});
+
+describe("光标下的图", () => {
+  const items = [{ w: 100, h: 100 }, { w: 100, h: 200 }, { w: 100, h: 100 }, { w: 100, h: 100 }];
+  const opts = { width: 424, target: 200, gap: 8, pad: 12, capRatio: null };
+  // 两列，列宽 196：0 在左列顶（y 12–208），1 在右列顶（y 12–404），2 在左列第二（y 216–412）。
+  const l = masonry(items, opts);
+
+  it("落在卡片上时取那一张", () => {
+    expect(cardAt(l, 50, 50)).toBe(0);
+    expect(cardAt(l, 300, 300)).toBe(1);
+    expect(cardAt(l, 50, 250)).toBe(2);
+  });
+
+  it("落在缝隙或边距里时取离得最近的一张；墙是空的时为 -1", () => {
+    expect(cardAt(l, 5, 214)).toBe(2);
+    expect(cardAt(l, 5, 210)).toBe(0);
+    expect(cardAt(masonry([], opts), 10, 10)).toBe(-1);
   });
 });

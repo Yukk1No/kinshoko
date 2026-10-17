@@ -14,6 +14,8 @@ pub enum Error {
     UnknownFolder,
     /// 文件夹不能移进它自己或它的子文件夹。
     FolderCycle,
+    /// 文件夹（或它的子文件夹）是正在进行的导入的保存位置，导入结束前不能删除。
+    FolderReceivingImport,
     InvalidCursor,
     /// 分页游标所依据的结果集已经变了（换了资料库、查询或浏览视角，或可见集合的修订号前进）：
     /// 接着翻会遗漏或重复，调用方应从第一页重新浏览（#77 S4）。
@@ -54,6 +56,10 @@ pub enum Error {
     Image(image::ImageError),
     /// 原图无法解码或不再是支持的格式。
     Undecodable(String),
+    /// 资料库记着这张图，但原文件已不在（被移走或删除，#105）。
+    OriginalMissing(PathBuf),
+    /// 剪贴板里的图片无法交给导入（#105）。
+    ClipboardImage(String),
 }
 
 impl fmt::Display for Error {
@@ -67,6 +73,10 @@ impl fmt::Display for Error {
             Error::SourceChanged => write!(f, "来源记录已变化，请重新选择资料库来源"),
             Error::UnknownFolder => write!(f, "资料库中没有这个文件夹"),
             Error::FolderCycle => write!(f, "文件夹不能移进它自己或它的子文件夹"),
+            Error::FolderReceivingImport => write!(
+                f,
+                "这个文件夹（或它的子文件夹）正在接收导入，导入结束后再删除"
+            ),
             Error::InvalidCursor => write!(f, "浏览位置无效"),
             Error::CursorExpired => write!(f, "浏览结果已变化，请从头重新浏览"),
             Error::InvalidDisplaySize => write!(f, "显示尺寸必须大于零"),
@@ -98,6 +108,10 @@ impl fmt::Display for Error {
             Error::Migration(e) => write!(f, "资料库格式无法升级：{e}"),
             Error::Image(e) => write!(f, "图片解码失败：{e}"),
             Error::Undecodable(e) => write!(f, "原图无法解码：{e}"),
+            Error::OriginalMissing(p) => {
+                write!(f, "原文件不在了，可能被移走或删除：{}", p.display())
+            }
+            Error::ClipboardImage(why) => write!(f, "剪贴板里的图片无法导入：{why}"),
         }
     }
 }

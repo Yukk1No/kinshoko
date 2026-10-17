@@ -363,6 +363,29 @@ fn local_folder(
         .optional()?)
 }
 
+/// 这个来源上次迁入时 Eagle 资料库里的全部文件夹 id（含子文件夹）。
+fn source_folder_ids(
+    conn: &rusqlite::Connection,
+    source_id: &str,
+) -> Result<HashSet<String>, String> {
+    fn collect(folders: &[Folder], out: &mut HashSet<String>) {
+        for folder in folders {
+            out.insert(folder.id.clone());
+            collect(&folder.children, out);
+        }
+    }
+    let raw: String = conn
+        .query_row(
+            "SELECT raw_library_json FROM import_source WHERE id = ?1",
+            [source_id],
+            |r| r.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    let mut ids = HashSet::new();
+    collect(&parse::<LibraryMetadata>(&raw)?.folders, &mut ids);
+    Ok(ids)
+}
+
 /// Eagle 文件夹层级进本库。`old` 是上次迁入时的层级：只跟随 Eagle 自那以后的改动
 /// （新建、改名、移动），画师在本库改过名或挪过的文件夹不动；Eagle 删掉的文件夹本库保留。
 fn sync_folders(
@@ -426,6 +449,19 @@ fn sync_folders(
                 )
                 .optional()?;
             let id = match local {
+                // 上次迁入时就有、本库却没有对应：画师在本库删掉了它（#114），不建回来；
+                // 它下面 Eagle 新建的文件夹放到它原来的位置。
+                None if before.contains_key(&folder.id) => {
+                    walk(
+                        tx,
+                        source_id,
+                        before,
+                        &folder.children,
+                        Some(&folder.id),
+                        local_parent,
+                    )?;
+                    continue;
+                }
                 None => {
                     let id = uuid::Uuid::now_v7().simple().to_string();
                     tx.execute(
@@ -625,16 +661,23 @@ pub(super) fn load(inner: &Inner, path: &Path) -> Result<Item, String> {
         .map_err(|e| e.to_string())?
         .collect::<Result<_, _>>()
         .map_err(|e| e.to_string())?;
-    let folders = metadata
-        .folders
-        .iter()
-        .map(|id| {
-            folders
-                .get(id)
-                .cloned()
-                .ok_or_else(|| format!("Eagle 条目引用了不存在的文件夹：{id}"))
-        })
-        .collect::<Result<_, _>>()?;
+    // Eagle 资料库里有、本库却没有对应的文件夹是画师在本库删掉的（#114）：归属略过，不算错。
+    // 只在遇到没有对应的文件夹时才读这个来源的文件夹层级。
+    let mut known: Option<HashSet<String>> = None;
+    let mut mapped = Vec::with_capacity(metadata.folders.len());
+    for id in &metadata.folders {
+        if let Some(folder) = folders.get(id) {
+            mapped.push(folder.clone());
+            continue;
+        }
+        if known.is_none() {
+            known = Some(source_folder_ids(&conn, &source_id)?);
+        }
+        if !known.as_ref().is_some_and(|known| known.contains(id)) {
+            return Err(format!("Eagle 条目引用了不存在的文件夹：{id}"));
+        }
+    }
+    let folders = mapped;
     Ok(Item {
         source_id,
         original: path.join(format!("{}.{}", metadata.name, metadata.ext)),

@@ -1,5 +1,6 @@
 //! 桌面钉图窗口：截图钉图、钉剪贴板（F3）、拖动与缩放、翻转旋转、右键菜单（翻转、旋转、透明度、
-//! 锁定、收藏、复制、关闭，#64），以及重新打开后的恢复（#63）。
+//! 锁定、收藏、复制、关闭，#64；#106 起改由与主窗口同样式的菜单窗口承载，见 [`super::menu`]），
+//! 以及重新打开后的恢复（#63）。
 //!
 //! 每个钉图一个无边框、置顶、不进任务栏的窗口。静止时窗口等于钉图本身（[`SavedPin::rect`]，物理像素）；
 //! 收起时是 `Tuck::stage`。缩放与贴边动画只在页面里变换内容，原生窗口一次动画最多改两次
@@ -20,23 +21,21 @@ use std::sync::atomic::Ordering;
 
 use image::RgbaImage;
 use kinshoko_core::desktop::{
-    CaptureEntry, CaptureSurface, PinContent, PinFrame, PinMotion, Placement, Region, SavedPin,
-    ScreenRect, Screenshot, Turn, initial_scale, place_new_pin, stage,
+    CaptureEntry, CaptureSurface, OpenInKinshoko, PinContent, PinFrame, PinMenu, PinMotion,
+    Placement, Region, SavedPin, ScreenRect, Screenshot, Turn, initial_scale, place_new_pin, stage,
 };
 use kinshoko_core::reference_groups::ReferenceSource;
-use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
     WindowEvent,
 };
 
-use super::{history_changed, lock, request_collection, state};
+use super::{history_changed, lock, request_collection, request_open, state};
 
 /// 新钉图相对原位置错开的距离，逻辑像素（按显示器缩放换算成物理像素）。
 const OFFSET: f64 = 16.0;
 const LABEL_PREFIX: &str = "pin-";
 const NOTICE_EVENT: &str = "pin-notice";
-const MENU_PREFIX: &str = "pin|";
 const FRAME_EVENT: &str = "pin-frame";
 const CLOSED: &str = "钉图已关闭";
 const LOCKED: &str = "钉图已锁定";
@@ -397,7 +396,8 @@ pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
 }
 
 /// 一次调用同时改窗口的位置与尺寸（Windows 上），免得合成出只改了一半的一帧。
-fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(), String> {
+/// 菜单窗口（[`super::menu`]）也用它铺到指针所在的显示器上。
+pub(super) fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(), String> {
     #[cfg(windows)]
     if let Ok(hwnd) = window.hwnd()
         && super::win32::set_window_rect(hwnd.0 as isize, rect.x, rect.y, rect.width, rect.height)
@@ -893,130 +893,46 @@ const ACTION_COPY: &str = "copy";
 const ACTION_CLOSE: &str = "close";
 const ACTION_REVEAL: &str = "reveal";
 const ACTION_SAVE_GROUP: &str = "saveGroup";
+/// #106 新增：在 Kinshoko 中打开、加入参考组（`group:<参考组 id>`）、贴边隐藏。
+const ACTION_OPEN: &str = "openInKinshoko";
+const ACTION_GROUP: &str = "group:";
+const ACTION_EDGE_HIDE: &str = "edgeHide";
 
-/// 右键菜单里可选的透明度（百分比）。
-const OPACITY_STEPS: [u32; 10] = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
-
-/// 钉图的右键菜单：翻转、旋转、透明度、锁定、原始大小、收藏、复制、关闭（#64）。
-/// 资料库钉图（#65）已在库里，没有收藏与复制；被遮蔽时多一项“显示这张图”。
-/// 页面在鼠标右键、笔的侧键或笔按住不动时调用；菜单弹在光标（笔尖）处。
+/// 钉图的右键菜单（#64；#106 起与主窗口同样式）：翻转、旋转、原始大小、透明度、锁定，截图钉图的
+/// 收藏与复制，资料库钉图（#65）被遮蔽时的“显示这张图”与来自参考组时的“存回参考组”，再加上
+/// 在 Kinshoko 中打开、加入参考组、贴边隐藏与关闭钉图。菜单项在页面里（`src/desktop/PinMenu.tsx`）。
+/// 页面在鼠标右键、笔的侧键或笔与触摸按住不动时调用；菜单弹在光标（笔尖）处。
 #[tauri::command]
 pub async fn pin_menu(app: AppHandle, pin: String) -> Result<(), String> {
-    let window = app.get_webview_window(&label(&pin)).ok_or(CLOSED)?;
-    let capture_id = lock(&state(&app).pins)
-        .get(&pin)
-        .map(|r| r.capture_id.clone())
-        .ok_or(CLOSED)?;
-    let frame = current_frame(&app, &pin).ok_or(CLOSED)?;
-    let saved = frame.pin;
-    let collect_enabled = !crate::library::registered(&app)?.is_empty();
-    let collect_text = if collect_enabled {
-        "收藏到…"
-    } else {
-        "收藏（还没有资料库）"
-    };
-    let id = |action: &str| format!("{MENU_PREFIX}{pin}|{action}");
-    let err = |e: tauri::Error| e.to_string();
-    let item = |action: &str, text: &str, enabled: bool| {
-        MenuItem::with_id(&app, id(action), text, enabled, None::<&str>).map_err(err)
-    };
-    let percent = (saved.opacity * 100.0).round() as u32;
-    let opacity_items = OPACITY_STEPS
-        .iter()
-        .map(|&p| {
-            CheckMenuItem::with_id(
-                &app,
-                id(&format!("{ACTION_OPACITY}{p}")),
-                format!("{p}%"),
-                true,
-                p == percent,
-                None::<&str>,
-            )
-            .map_err(err)
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    let opacity_refs: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> = opacity_items
-        .iter()
-        .map(|i| i as &dyn tauri::menu::IsMenuItem<tauri::Wry>)
-        .collect();
-    let opacity = Submenu::with_items(&app, format!("透明度（{percent}%）"), true, &opacity_refs)
-        .map_err(err)?;
-    let locked = CheckMenuItem::with_id(
-        &app,
-        id(ACTION_LOCK),
-        "锁定位置与大小",
-        true,
-        saved.locked,
-        None::<&str>,
-    )
-    .map_err(err)?;
-    let unscaled = (saved.placement.scale - 1.0).abs() < 1e-9;
-    let separator = || PredefinedMenuItem::separator(&app).map_err(err);
-    let menu = Menu::with_items(
-        &app,
-        &[
-            &item(ACTION_FLIP_H, "水平翻转", true)?,
-            &item(ACTION_FLIP_V, "垂直翻转", true)?,
-            &item(ACTION_ROTATE_CW, "顺时针旋转 90°", true)?,
-            &item(ACTION_ROTATE_CCW, "逆时针旋转 90°", true)?,
-            &separator()?,
-            &opacity,
-            &locked,
-            &item(
-                ACTION_ACTUAL_SIZE,
-                "原始大小（100%）",
-                !saved.locked && !unscaled,
-            )?,
-            &separator()?,
-        ],
-    )
-    .map_err(err)?;
-    if capture_id.is_some() {
-        menu.append(&item(ACTION_COLLECT, collect_text, collect_enabled)?)
-            .map_err(err)?;
-        menu.append(&item(ACTION_COPY, "复制", true)?)
-            .map_err(err)?;
-        menu.append(&separator()?).map_err(err)?;
-    } else {
-        if frame.veiled {
-            menu.append(&item(
-                ACTION_REVEAL,
-                "显示这张图（安全模式下已遮蔽）",
-                true,
-            )?)
-            .map_err(err)?;
-        }
-        // 来自参考组的钉图：把桌面上这个参考组的钉图一起存回（#66）。
-        if let Some(name) = saved
+    tauri::async_runtime::spawn_blocking(move || {
+        let frame = current_frame(&app, &pin).ok_or(CLOSED)?;
+        let has_library = !crate::library::registered(&app)?.is_empty();
+        let group = frame
+            .pin
             .member
             .as_ref()
-            .and_then(|m| super::groups::group_name(&app, &m.group_id))
-        {
-            menu.append(&item(
-                ACTION_SAVE_GROUP,
-                &format!("存回参考组「{name}」"),
-                true,
-            )?)
-            .map_err(err)?;
-        }
-        if frame.veiled || saved.member.is_some() {
-            menu.append(&separator()?).map_err(err)?;
-        }
-    }
-    menu.append(&item(ACTION_CLOSE, "关闭钉图", true)?)
-        .map_err(err)?;
-    window.popup_menu(&menu).map_err(err)
+            .and_then(|m| super::groups::group_name(&app, &m.group_id));
+        super::menu::popup(
+            &app,
+            PinMenu::new(&frame.pin, frame.veiled, has_library, group),
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
-/// Menu callbacks never wait for visibility authority on the main thread, including close.
-pub fn on_menu_event(app: &AppHandle, event: MenuEvent) {
-    let Some(rest) = event.id().as_ref().strip_prefix(MENU_PREFIX) else {
-        return;
-    };
-    let Some((pin, action)) = rest.split_once('|') else {
-        return;
-    };
-    let (app, pin, action) = (app.clone(), pin.to_owned(), action.to_owned());
+/// 选了钉图菜单里的一项：先收起菜单窗口（焦点交回钉图），再在别的线程上做这件事。
+/// 不是此刻打开着的那一次菜单（已经关掉、又开了新的）时不做。
+#[tauri::command]
+pub async fn pin_menu_action(
+    app: AppHandle,
+    pin: String,
+    action: String,
+    generation: u32,
+) -> Result<(), String> {
+    if super::menu::close(&app, generation).as_deref() != Some(pin.as_str()) {
+        return Ok(());
+    }
     std::thread::spawn(move || {
         if action == ACTION_CLOSE {
             crate::library::with_visibility_commit(&app, |_| {
@@ -1031,6 +947,7 @@ pub fn on_menu_event(app: &AppHandle, event: MenuEvent) {
             let _ = app.emit_to(label(&pin), NOTICE_EVENT, notice);
         }
     });
+    Ok(())
 }
 
 /// 做菜单里的一项；返回要在钉图上提示的话。
@@ -1044,6 +961,9 @@ fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<String> {
     };
     if let Some(turn) = turn {
         return turn_here(app, pin, turn).err();
+    }
+    if let Some(group_id) = action.strip_prefix(ACTION_GROUP) {
+        return Some(add_to_group(app, pin, group_id));
     }
     if let Some(percent) = action.strip_prefix(ACTION_OPACITY) {
         let percent: f64 = percent.parse().ok()?;
@@ -1062,6 +982,15 @@ fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<String> {
         }
         ACTION_ACTUAL_SIZE => zoom(app, pin, 1.0, None).err(),
         ACTION_REVEAL => reveal_here(app, pin).err(),
+        ACTION_OPEN => {
+            let saved = lock(&state(app).store).get(pin).cloned()?;
+            request_open(app, OpenInKinshoko::of(&saved));
+            None
+        }
+        ACTION_EDGE_HIDE => {
+            super::edge::toggle_in_background(app);
+            None
+        }
         ACTION_SAVE_GROUP => {
             let group_id = lock(&state(app).store).get(pin)?.member.clone()?.group_id;
             Some(match super::groups::save_back(app, &group_id) {
@@ -1079,7 +1008,7 @@ fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<String> {
                     "请在主窗口选择保存位置".into()
                 }
             } else {
-                match copy_capture(app, &capture_id) {
+                match copy_capture_image(app, &capture_id) {
                     Ok(()) => "已复制".to_owned(),
                     Err(e) => e,
                 }
@@ -1089,10 +1018,32 @@ fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<String> {
     }
 }
 
-fn copy_capture(app: &AppHandle, capture_id: &str) -> Result<(), String> {
+/// 把截图历史中的一张截图复制到剪贴板（钉图菜单与截图历史条目菜单的“复制”）。会读文件。
+pub(super) fn copy_capture_image(app: &AppHandle, capture_id: &str) -> Result<(), String> {
     let file = lock(&state(app).history)
         .file(capture_id)
         .ok_or("截图已不在截图历史中")?;
     let image = image::open(file).map_err(|e| e.to_string())?.to_rgba8();
     copy_to_clipboard(app, &image)
+}
+
+/// 把这一个资料库钉图加进参考组 `group_id`（钉图菜单“加入参考组 ▸”）：保留它此刻的局部与摆放，
+/// 参考组的其他成员不变。截图钉图要先收藏进图库。返回要在钉图上提示的话。
+fn add_to_group(app: &AppHandle, pin: &str, group_id: &str) -> String {
+    let Some(saved) = lock(&state(app).store).get(pin).cloned() else {
+        return CLOSED.to_owned();
+    };
+    if saved.capture_id().is_some() {
+        return "截图要先收藏进图库，才能加入参考组".to_owned();
+    }
+    let mut one = [saved];
+    let result = lock(&state(app).groups).save_pins(group_id, &mut one);
+    match result {
+        Ok(group) => {
+            remember_group_members(app, &one);
+            super::reference_groups_changed(app);
+            format!("已加入参考组「{}」", group.name)
+        }
+        Err(e) => e.to_string(),
+    }
 }

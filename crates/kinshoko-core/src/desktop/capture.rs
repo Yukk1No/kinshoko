@@ -4,8 +4,8 @@ use image::RgbaImage;
 use super::history::PreparedCapture;
 
 use super::{
-    CaptureAction, CaptureEntry, CaptureHistory, HistoryError, PinContent, PinVeils, Region,
-    SavedPin, ScreenRect, Screenshot,
+    CaptureAction, CaptureEntry, CaptureHistory, HistoryError, OriginalPixels, PinContent,
+    PinVeils, Region, SavedPin, ScreenRect, Screenshot,
 };
 use crate::reference_groups::{ReferenceSource, UnavailableReason};
 
@@ -135,6 +135,32 @@ impl std::fmt::Display for CaptureError {
 impl std::error::Error for CaptureError {}
 
 impl CaptureSelection<'_> {
+    /// 选区得到参考视图时的唯一来源与原图中的选区。
+    /// 不能由来源登记顺序决定读取哪张原图；只有唯一未遮挡来源才走参考视图。
+    fn reference(&self, selected: ScreenRect) -> Option<(&CaptureSurface, Region)> {
+        let mut candidates = self.references.iter().filter_map(|surface| {
+            surface
+                .reference_region(selected)
+                .map(|crop| (surface, crop))
+        });
+        match (candidates.next(), candidates.next()) {
+            (Some(reference), None) => Some(reference),
+            _ => None,
+        }
+    }
+
+    /// 框选读数（#103）：得到参考视图时为结果的原始像素尺寸（钉图转过奇数个四分之一圈时宽高互换，
+    /// 与钉住或复制的结果一致）；普通截图为 `None`，读数按屏幕像素。
+    pub fn original_pixels(&self) -> Option<OriginalPixels> {
+        let (surface, crop) = self.reference(self.screen_rect().ok()?)?;
+        let (width, height) = if surface.pin.placement.rotation % 2 == 1 {
+            (crop.height, crop.width)
+        } else {
+            (crop.width, crop.height)
+        };
+        Some(OriginalPixels { width, height })
+    }
+
     /// 屏幕上的物理选区，支持位于显示器左侧／上侧的负坐标。
     pub fn screen_rect(&self) -> Result<ScreenRect, CaptureError> {
         Ok(ScreenRect {
@@ -172,17 +198,7 @@ impl CaptureSelection<'_> {
         veils: &PinVeils,
     ) -> Result<CaptureDraft, CaptureError> {
         let selected = self.screen_rect()?;
-        let mut candidates = self.references.iter().filter_map(|surface| {
-            surface
-                .reference_region(selected)
-                .map(|crop| (surface, crop))
-        });
-        // 不能由来源登记顺序决定读取哪张原图；只有唯一未遮挡来源才走参考视图。
-        let reference = match (candidates.next(), candidates.next()) {
-            (Some(reference), None) => Some(reference),
-            _ => None,
-        };
-        if let Some((surface, crop)) = reference {
+        if let Some((surface, crop)) = self.reference(selected) {
             let PinContent::Reference {
                 library_id,
                 image_id,

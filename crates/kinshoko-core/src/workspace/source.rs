@@ -167,7 +167,26 @@ impl Workspace {
         let library = device
             .write(&target.library_id)
             .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
-        library.set_safe_mode(safe);
-        Ok(action(&library)?)
+        self.write_source_with(device, catalog, target, safe, &library, action)
+    }
+
+    /// 同 [`Self::write_source`]，但用调用方已按需取得的可写句柄（ADR-0008：应用壳经
+    /// [`DeviceLibraries::organize`] 切换唯一的可写句柄、等导入收尾），不另开一个。
+    /// 句柄必须属于所选来源的图库；来源在这里重新核对。
+    pub fn write_source_with<T>(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        target: &WorkspaceSourceTarget,
+        safe: bool,
+        writer: &Library,
+        action: impl FnOnce(&Library) -> Result<T, Error>,
+    ) -> Result<T, CatalogError> {
+        if writer.info().id != target.library_id {
+            return Err(Error::SourceChanged.into());
+        }
+        self.require_source(device, catalog, target, safe)?;
+        writer.set_safe_mode(safe);
+        Ok(action(writer)?)
     }
 }

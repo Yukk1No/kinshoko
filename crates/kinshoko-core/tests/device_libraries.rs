@@ -95,6 +95,38 @@ fn unavailable_libraries_stay_registered_and_a_failed_switch_keeps_the_current_l
     );
 }
 
+/// 在资源管理器中打开图库（#114）：给出登记的位置；位置上不再是这个图库时报原因，不给路径。
+#[test]
+fn the_folder_to_open_is_the_registered_location_while_the_library_is_there() {
+    let dir = tempfile::tempdir().unwrap();
+    let a = create(&dir.path().join("工作参考"), "工作参考");
+    let b = create(&dir.path().join("移动盘参考"), "移动盘参考");
+    let c = create(&dir.path().join("私人收藏"), "私人收藏");
+    let mut libraries = DeviceLibraries::open(&dir.path().join("app")).unwrap();
+    libraries.register(&b.root).unwrap();
+    libraries.register(&c.root).unwrap();
+    libraries.register(&a.root).unwrap();
+    // b、c 已不是活动图库，句柄已关，可以移走（Windows 上开着句柄的目录不能改名）。
+    std::fs::rename(&b.root, dir.path().join("盘已拔出")).unwrap();
+    std::fs::rename(&c.root, dir.path().join("已搬家")).unwrap();
+    create(&c.root, "另一个库");
+    let registered = libraries.libraries().to_vec();
+
+    assert_eq!(
+        DeviceLibraries::library_folder(&registered, &a.id).unwrap(),
+        a.root
+    );
+    let missing = DeviceLibraries::library_folder(&registered, &b.id)
+        .unwrap_err()
+        .to_string();
+    assert!(missing.contains("暂时不可用"), "{missing}");
+    let replaced = DeviceLibraries::library_folder(&registered, &c.id)
+        .unwrap_err()
+        .to_string();
+    assert!(replaced.contains("另一个资料库"), "{replaced}");
+    assert!(DeviceLibraries::library_folder(&registered, "没有这个").is_err());
+}
+
 #[test]
 fn switching_refuses_a_different_library_at_the_registered_location() {
     let dir = tempfile::tempdir().unwrap();

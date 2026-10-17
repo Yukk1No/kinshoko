@@ -100,8 +100,8 @@ pub(super) async fn restore_application_settings<R: Runtime>(
         *lock(&state.workspace) = None;
         *lock(&state.external_vocabulary) = None;
         state.detached.clear();
-        if let Ok(library) = state.active() {
-            library.set_safe_mode(safe);
+        if let Some(libraries) = lock(&state.libraries).as_ref() {
+            libraries.set_safe_mode(safe);
         }
         app.state::<crate::diagnostics::UsageState>()
             .0

@@ -417,3 +417,147 @@ fn tag_counts_leave_out_images_in_the_trash_and_the_vocabulary_moves_on() {
     assert_eq!(n, 2);
     assert!(restored > deleted);
 }
+
+fn sorted(mut ids: Vec<String>) -> Vec<String> {
+    ids.sort();
+    ids
+}
+
+/// 删除文件夹（#114）：连同子文件夹一起删；图片不删，没有其他文件夹的回到未归类。
+#[test]
+fn deleting_a_folder_keeps_its_images_and_sends_those_in_no_other_folder_back_to_unassigned() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = library_with(dir.path(), 5);
+    let people = library.create_folder("人物", None).unwrap();
+    let hair = library.create_folder("发型", Some(&people)).unwrap();
+    let scenes = library.create_folder("场景", None).unwrap();
+    let put = |id: &String, folder: &String| {
+        library
+            .edit(
+                std::slice::from_ref(id),
+                &[ImageEdit::AddToFolder {
+                    folder_id: folder.clone(),
+                }],
+            )
+            .unwrap();
+    };
+    put(&ids[0], &people); // 只在“人物”
+    put(&ids[1], &people); // 也在“场景”
+    put(&ids[1], &scenes);
+    put(&ids[2], &hair); // 只在子文件夹“发型”
+    put(&ids[4], &people); // 之后移进回收站
+    library.edit(&ids[4..5], &[ImageEdit::Delete]).unwrap();
+    // ids[3] 本来就没有文件夹。
+
+    library.delete_folder(&people).unwrap();
+
+    assert_eq!(tree(&library.sidebar().unwrap().folders), "场景(1)");
+    assert_eq!(
+        sorted(browse(&library, BrowseScope::All)),
+        sorted(ids[..4].to_vec()),
+        "图片一张不少"
+    );
+    assert_eq!(
+        sorted(browse(&library, BrowseScope::Unassigned)),
+        sorted(vec![ids[0].clone(), ids[2].clone(), ids[3].clone()])
+    );
+    assert_eq!(
+        browse(&library, BrowseScope::Folder { id: scenes.clone() }),
+        [ids[1].clone()]
+    );
+    // 回收站里的图留在回收站；还原后也回到未归类。
+    assert_eq!(browse(&library, BrowseScope::Trash), [ids[4].clone()]);
+    library.edit(&ids[4..5], &[ImageEdit::Restore]).unwrap();
+    assert!(browse(&library, BrowseScope::Unassigned).contains(&ids[4]));
+    assert!(library.image(&ids[4]).unwrap().folders.is_empty());
+}
+
+#[test]
+fn deleting_a_folder_closes_the_gap_among_its_siblings_and_survives_reopening() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, _) = library_with(dir.path(), 0);
+    library.create_folder("甲", None).unwrap();
+    let b = library.create_folder("乙", None).unwrap();
+    library.create_folder("丙", None).unwrap();
+    library.delete_folder(&b).unwrap();
+    let d = library.create_folder("丁", None).unwrap();
+    // 移到第 1 位时按删除后的顺序计。
+    library.move_folder(&d, None, 1).unwrap();
+    assert_eq!(
+        tree(&library.sidebar().unwrap().folders),
+        "甲(0) 丁(0) 丙(0)"
+    );
+    drop(library);
+    let reopened = Library::open(&dir.path().join("lib")).unwrap();
+    assert_eq!(
+        tree(&reopened.sidebar().unwrap().folders),
+        "甲(0) 丁(0) 丙(0)"
+    );
+}
+
+#[test]
+fn deleting_an_unknown_folder_changes_nothing() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, _) = library_with(dir.path(), 0);
+    library.create_folder("甲", None).unwrap();
+    assert!(matches!(
+        library.delete_folder("没有这个"),
+        Err(Error::UnknownFolder)
+    ));
+    assert_eq!(tree(&library.sidebar().unwrap().folders), "甲(0)");
+}
+
+/// 正在接收导入的文件夹（或它的上级）不能删除：否则剩下的导入项落不进去。
+/// 导入结束后照常可以删除，导入的每一项都完整进库。
+#[test]
+fn a_folder_receiving_an_import_cannot_be_deleted_until_the_import_ends() {
+    use kinshoko_core::library::{ImportOptions, SaveDestination};
+    let dir = tempfile::tempdir().unwrap();
+    let library = Library::create(&dir.path().join("lib"), "库").unwrap();
+    let parent = library.create_folder("人物", None).unwrap();
+    let folder = library.create_folder("手部", Some(&parent)).unwrap();
+    let other = library.create_folder("风景", None).unwrap();
+    let files: Vec<PathBuf> = (0..60)
+        .map(|i| write_png(&dir.path().join(format!("in/{i:02}.png")), i))
+        .collect();
+    let task = library
+        .import_to(
+            ImportSource { paths: files },
+            ImportOptions::default(),
+            &SaveDestination {
+                library_id: library.info().id.clone(),
+                folder_id: Some(folder.clone()),
+            },
+        )
+        .unwrap();
+
+    for id in [&folder, &parent] {
+        let error = library.delete_folder(id).unwrap_err();
+        assert!(
+            matches!(error, Error::FolderReceivingImport),
+            "导入进行中不能删除：{error:?}"
+        );
+        assert!(error.to_string().contains("导入"), "{error}");
+    }
+    library
+        .delete_folder(&other)
+        .expect("不相干的文件夹照常删除");
+    let report = task.wait();
+    assert!(
+        report
+            .items
+            .iter()
+            .all(|item| matches!(item.outcome, ImportOutcome::Imported { .. })),
+        "每一项都进库：{:?}",
+        report
+            .items
+            .iter()
+            .find(|item| !matches!(item.outcome, ImportOutcome::Imported { .. }))
+    );
+    assert_eq!(
+        browse(&library, BrowseScope::Folder { id: folder.clone() }).len(),
+        60
+    );
+    library.delete_folder(&parent).unwrap();
+    assert!(library.sidebar().unwrap().folders.is_empty());
+}

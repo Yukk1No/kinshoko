@@ -70,8 +70,10 @@ pub(super) async fn workspace_edit_source<R: Runtime>(
     edits: Vec<ImageEdit>,
 ) -> Result<(), String> {
     blocking(move || {
+        // 与其他整理命令同一条路（ADR-0008）：按需切换唯一的可写句柄、等导入收尾。
+        let writer = writable(&app, &target.library_id)?;
         action(&app, &target, safe_mode, |w, d, c, t| {
-            w.write_source(d, c, t, safe_mode, |library| {
+            w.write_source_with(d, c, t, safe_mode, &writer, |library| {
                 library
                     .edit(std::slice::from_ref(&t.image_id), &edits)
                     .map(|_| ())
@@ -91,8 +93,9 @@ pub(super) async fn workspace_edit_source_tags<R: Runtime>(
     edits: Vec<TagEdit>,
 ) -> Result<(), String> {
     blocking(move || {
+        let writer = writable(&app, &target.library_id)?;
         action(&app, &target, safe_mode, |w, d, c, t| {
-            w.write_source(d, c, t, safe_mode, |library| {
+            w.write_source_with(d, c, t, safe_mode, &writer, |library| {
                 library.use_translations_for_new_tags(bundled_translations());
                 library.edit_tags(std::slice::from_ref(&t.image_id), &edits)
             })
@@ -156,8 +159,9 @@ pub(super) async fn workspace_permanent_source_delete<R: Runtime>(
     token: String,
 ) -> Result<(), String> {
     blocking(move || {
+        let writer = writable(&app, &target.library_id)?;
         action(&app, &target, safe_mode, |w, d, c, t| {
-            w.write_source(d, c, t, safe_mode, |library| {
+            w.write_source_with(d, c, t, safe_mode, &writer, |library| {
                 crate::desktop::with_groups(&app, |groups| {
                     library.permanent_delete(std::slice::from_ref(&t.image_id), &token, groups)
                 })
