@@ -758,7 +758,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 role="option"
                 tabIndex={0}
                 data-veiled={veiled}
-                draggable={!workspaceScope || workspaceScope.kind === "library"}
+                draggable={!workspaceScope || workspaceScope.kind === "library" || (card.sources?.some((source) => !source.unavailable) ?? false)}
                 onClick={(e) => {
                   if (e.ctrlKey || e.metaKey || e.shiftKey) cardHandlers.current.select(card.id, e);
                   else cardHandlers.current.open(card);

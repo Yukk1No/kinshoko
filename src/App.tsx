@@ -455,7 +455,7 @@ function LibraryWorkspace({
             reloadKey={reloadKey} onError={onError} onRecheck={recheck} onRemoved={onLibraryRemoved} onScope={(next) => {
               setWorkspaceScope(next); setSelected(new Set()); setSources(null);
             }}
-            foot={library && <TaggingIndicator key={`${library.id}/${library.root}`} libraryId={library.id} />}>
+            foot={library && <TaggingIndicator key={`${library.id}/${library.root}`} libraryId={library.id} registered={status?.libraries.map((entry) => entry.library.id)} />}>
           </WorkspacePane>
           </div>
           {section === "groups" && <ReferenceGroupsPanel libraryId={libraryId || undefined} />}
@@ -607,7 +607,7 @@ function LibraryWorkspace({
         position={viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) }}
         onStep={step}
         startCrop={viewCrop}
-        onTrash={scope.kind === "trash" ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
+        onTrash={(viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.deleted ?? scope.kind === "trash") ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
       />
     )}
     {wallDialogs}

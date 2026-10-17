@@ -128,4 +128,27 @@ describe("自动标签状态", () => {
     fireEvent.click(screen.getByRole("button", { name: "暂停" }));
     await waitFor(() => expect(actions).toContainEqual({ command: "tagging_pause", libraryId: "L2" }));
   });
+
+  it("跟过去的图库从列表移除后回到打开的图库，不再显示或操作已移除的库", async () => {
+    const statuses: Record<string, TaggingStatus> = { L1: { state: "paused" }, L2: { state: "running", model: "PixAI", device: "cpu", tagged: 7 } };
+    actions = [];
+    mockWindows("main");
+    mockIPC((cmd, args) => {
+      const libraryId = (args as { libraryId?: string } | undefined)?.libraryId;
+      actions.push({ command: cmd, libraryId });
+      if (cmd === "tagging_status") return { libraryId, status: statuses[libraryId!] };
+      return null;
+    }, { shouldMockEvents: true });
+    const view = render(<TaggingIndicator libraryId="L1" registered={["L1", "L2"]} />);
+    await screen.findByText(/自动标签已暂停/);
+    await act(() => emit("writable-library", { id: "L2", name: "私人收藏", root: "D:\\私人收藏" }));
+    expect(await screen.findByText(/已打 7 张/)).toBeTruthy();
+
+    view.rerender(<TaggingIndicator libraryId="L1" registered={["L1"]} />);
+
+    expect(await screen.findByText(/自动标签已暂停/)).toBeTruthy();
+    expect(screen.queryByText(/已打 7 张/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "继续" }));
+    await waitFor(() => expect(actions).toContainEqual({ command: "tagging_resume", libraryId: "L1" }));
+  });
 });

@@ -58,3 +58,15 @@ it("参考图的查看器卡片与图片墙同样构成：id 是字节身份，�
   expect(opened).toEqual(card);
   expect(opened.id).not.toBe(opened.imageId);
 });
+
+it("连着收到两次事件时，先取的那次拿到的最新请求不会被当作过时丢掉", async () => {
+  const onOpen = vi.fn();
+  render(<Probe onOpen={onOpen} />);
+  await settle();
+  ipc.pending = [{ kind: "capture", captureId: "C2" }];
+  ipc.event!();
+  ipc.event!();
+  await settle();
+  expect(onOpen).toHaveBeenCalledTimes(1);
+  expect(onOpen).toHaveBeenCalledWith({ kind: "capture", captureId: "C2" });
+});
