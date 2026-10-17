@@ -4,13 +4,15 @@
 //! 每项的写入顺序：读取并识别格式 → 完整解码像素 → 哈希 → 同库暂存并完整校验 → 最小 pending 记录 →
 //! 发布原文件（按 SHA-256 命名、拒绝覆盖）→ 写线程上一个短事务提交参考图与来源，并在
 //! 同一事务里结束 pending。同库已有字节相同的原图时跳过暂存与发布，只合并来源。
-//! 文件 I/O 与哈希都在任务线程里，事务里只有 SQL。任何一步中断，重开时由
-//! [`super::recovery`] 按 pending 撤回，不留下半张图或幽灵记录。
+//! 文件 I/O、解码与哈希在任务的准备线程里并行做（完整解码顺带生成占位图，#120）；pending、发布与
+//! 提交由任务线程按文件顺序逐项进行，事务里只有 SQL。任何一步中断，重开时由
+//! [`super::recovery`] 按 pending 撤回、清掉暂存，不留下半张图或幽灵记录。
 
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
@@ -31,19 +33,70 @@ use super::{
 use super::{colour, thumbnail};
 use crate::fidelity::ColourDescription;
 use crate::fidelity::inspect::inspect;
-use crate::fidelity::render::verify_pixels;
+use crate::fidelity::render::render_sdr_widths;
+use crate::fidelity::{DEFAULT_DOWNSCALE, SdrDerivative};
 
 /// 来源标记：普通文件导入。
 const SOURCE_FILE: &str = "file";
 const PROGRESS_EVERY: Duration = Duration::from_millis(100);
 const STALE_EVERY: Duration = Duration::from_millis(500);
 
+/// 一次导入任务各阶段在任务线程上累计的耗时（#120）。供性能检查（`examples/import_stages.rs`）
+/// 读取，不进回执、不推送给界面。
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ImportStages {
+    /// 展开文件夹、列出待导入文件。
+    pub scan: Duration,
+    /// 读取来源文件字节。
+    pub read: Duration,
+    /// 识别格式、色彩描述与发布前的完整解码校验。
+    pub decode: Duration,
+    /// 来源字节的 SHA-256。
+    pub hash: Duration,
+    /// 同库暂存：写入、落盘、读回校验。
+    pub stage: Duration,
+    /// pending 记录、发布原文件与提交参考图的事务。
+    pub commit: Duration,
+    /// 进库后生成占位图。
+    pub placeholder: Duration,
+    /// 处理完全部文件后的最后一次进度、列表过期与结束事件。
+    pub finish: Duration,
+    /// 整个任务线程的墙钟时间。
+    pub total: Duration,
+}
+
+impl ImportStages {
+    fn add(&mut self, other: &ImportStages) {
+        self.scan += other.scan;
+        self.read += other.read;
+        self.decode += other.decode;
+        self.hash += other.hash;
+        self.stage += other.stage;
+        self.commit += other.commit;
+        self.placeholder += other.placeholder;
+        self.finish += other.finish;
+    }
+}
+
+thread_local! {
+    static STAGES: RefCell<ImportStages> = RefCell::new(ImportStages::default());
+}
+
+/// 计时一段工作并累计到当前线程的阶段表。
+fn timed<T>(stage: fn(&mut ImportStages) -> &mut Duration, work: impl FnOnce() -> T) -> T {
+    let start = Instant::now();
+    let value = work();
+    let elapsed = start.elapsed();
+    STAGES.with(|stages| *stage(&mut stages.borrow_mut()) += elapsed);
+    value
+}
+
 /// 进行中的导入任务。进度与结束也通过 [`super::Library::events`] 推送。
 pub struct ImportTask {
     id: String,
     cancel: Arc<AtomicBool>,
     progress: Arc<Mutex<ImportProgress>>,
-    thread: JoinHandle<ImportReport>,
+    thread: JoinHandle<(ImportReport, ImportStages)>,
 }
 
 impl ImportTask {
@@ -66,9 +119,17 @@ impl ImportTask {
 
     /// 等待任务结束，取得逐项结果。
     pub fn wait(self) -> ImportReport {
-        self.thread.join().unwrap_or_else(|_| ImportReport {
-            cancelled: true,
-            ..Default::default()
+        self.wait_with_stages().0
+    }
+
+    /// 等待任务结束，同时取得各阶段耗时（#120 的分阶段测量）。
+    pub fn wait_with_stages(self) -> (ImportReport, ImportStages) {
+        self.thread.join().unwrap_or_else(|_| {
+            let report = ImportReport {
+                cancelled: true,
+                ..Default::default()
+            };
+            (report, ImportStages::default())
         })
     }
 }
@@ -120,7 +181,9 @@ fn spawn(
             .name("kinshoko-import".into())
             .spawn(move || {
                 let _receiving = receiving;
-                run(
+                let start = Instant::now();
+                STAGES.with(|stages| *stages.borrow_mut() = ImportStages::default());
+                let report = run(
                     &inner,
                     &id,
                     &source,
@@ -128,7 +191,10 @@ fn spawn(
                     &destination,
                     &cancel,
                     &progress,
-                )
+                );
+                let mut stages = STAGES.with(|stages| *stages.borrow());
+                stages.total = start.elapsed();
+                (report, stages)
             })
             .expect("无法启动导入线程")
     };
@@ -195,18 +261,23 @@ fn run(
     let library_id = inner.info.id.clone();
     let mut report = ImportReport::default();
     let mut files = Vec::new();
-    for path in &source.paths {
-        if let Err(error) = save::validate(inner, destination) {
-            report.items.push(ImportItem {
-                path: path.clone(),
-                outcome: ImportOutcome::ReadFailed {
-                    reason: format!("保存目标不可用：{error}"),
-                },
-            });
-        } else {
-            collect(inner, path, &mut files, &mut report);
-        }
-    }
+    timed(
+        |s| &mut s.scan,
+        || {
+            for path in &source.paths {
+                if let Err(error) = save::validate(inner, destination) {
+                    report.items.push(ImportItem {
+                        path: path.clone(),
+                        outcome: ImportOutcome::ReadFailed {
+                            reason: format!("保存目标不可用：{error}"),
+                        },
+                    });
+                } else {
+                    collect(inner, path, &mut files, &mut report);
+                }
+            }
+        },
+    );
 
     let mut progress = ImportProgress {
         done: report.items.len() as u32,
@@ -224,42 +295,100 @@ fn run(
 
     let (mut last_progress, mut last_stale) = (Instant::now(), Instant::now());
     let mut stale = false;
-    let task_created_images = Arc::new(Mutex::new(HashSet::new()));
-    for path in files {
-        if cancel.load(Ordering::SeqCst) {
+    let context = ImportContext {
+        destination: destination.clone(),
+        task_created_images: Arc::new(Mutex::new(HashSet::new())),
+    };
+    // 读取、解码校验、哈希、暂存与生成占位图互不依赖，由几个工作线程并行做（#120）；
+    // pending、发布与提交仍在本线程按文件顺序逐项进行，浏览顺序与逐项结果和串行时相同。
+    let mut worker_stages = ImportStages::default();
+    let next = AtomicUsize::new(0);
+    std::thread::scope(|scope| {
+        let workers = prepare_workers(files.len());
+        // 已准备好、还没轮到提交的项有上限（每个线程 IN_FLIGHT_PER_WORKER 项），内存不随张数增长。
+        let (sender, results) = std::sync::mpsc::sync_channel(workers * IN_FLIGHT_PER_WORKER);
+        let (files, next, context) = (&files, &next, &context);
+        let handles: Vec<_> = (0..workers)
+            .map(|_| {
+                let sender = sender.clone();
+                scope.spawn(move || {
+                    while !cancel.load(Ordering::SeqCst) {
+                        let index = next.fetch_add(1, Ordering::SeqCst);
+                        let Some(path) = files.get(index) else {
+                            break;
+                        };
+                        let prepared = prepare_file(inner, path, options, context);
+                        if sender.send((index, prepared)).is_err() {
+                            break;
+                        }
+                    }
+                    STAGES.with(|stages| *stages.borrow())
+                })
+            })
+            .collect();
+        drop(sender);
+
+        let mut waiting = std::collections::BTreeMap::new();
+        let mut committed = 0;
+        'items: for (index, prepared) in results.iter() {
+            waiting.insert(index, prepared);
+            while let Some(prepared) = waiting.remove(&committed) {
+                if cancel.load(Ordering::SeqCst) {
+                    waiting.insert(committed, prepared);
+                    break 'items;
+                }
+                let (outcome, list_changed) = complete(inner, prepared);
+                stale |= list_changed;
+                report.items.push(ImportItem {
+                    path: files[committed].clone(),
+                    outcome,
+                });
+                committed += 1;
+                progress.done += 1;
+
+                if last_progress.elapsed() >= PROGRESS_EVERY {
+                    publish_progress(progress);
+                    last_progress = Instant::now();
+                }
+                if stale && last_stale.elapsed() >= STALE_EVERY {
+                    inner.hub.publish(LibraryEvent::ListStale {
+                        library_id: library_id.clone(),
+                    });
+                    stale = false;
+                    last_stale = Instant::now();
+                }
+            }
+        }
+        // 取消：工作线程做完手上那一项就停；没轮到提交的项撤回暂存，不进库。
+        if committed < files.len() {
             report.cancelled = true;
-            break;
         }
-        let (outcome, list_changed) =
-            import_one(inner, &path, options, destination, &task_created_images);
-        stale |= list_changed;
-        report.items.push(ImportItem { path, outcome });
-        progress.done += 1;
-
-        if last_progress.elapsed() >= PROGRESS_EVERY {
-            publish_progress(progress);
-            last_progress = Instant::now();
+        for (_, prepared) in waiting.into_iter().chain(results.iter()) {
+            prepared.discard(inner);
         }
-        if stale && last_stale.elapsed() >= STALE_EVERY {
-            inner.hub.publish(LibraryEvent::ListStale {
-                library_id: library_id.clone(),
-            });
-            stale = false;
-            last_stale = Instant::now();
+        for handle in handles {
+            worker_stages.add(&handle.join().unwrap_or_default());
         }
-    }
-
-    publish_progress(progress);
-    if stale {
-        inner.hub.publish(LibraryEvent::ListStale {
-            library_id: library_id.clone(),
-        });
-    }
-    inner.hub.publish(LibraryEvent::TaskFinished {
-        library_id,
-        task_id: task_id.to_owned(),
-        report: report.clone(),
     });
+    // 准备阶段各项是工作线程耗时之和（并行时可以超过墙钟时间）。
+    STAGES.with(|stages| stages.borrow_mut().add(&worker_stages));
+
+    timed(
+        |s| &mut s.finish,
+        || {
+            publish_progress(progress);
+            if stale {
+                inner.hub.publish(LibraryEvent::ListStale {
+                    library_id: library_id.clone(),
+                });
+            }
+            inner.hub.publish(LibraryEvent::TaskFinished {
+                library_id: library_id.clone(),
+                task_id: task_id.to_owned(),
+                report: report.clone(),
+            });
+        },
+    );
     report
 }
 
@@ -338,15 +467,16 @@ pub(super) fn sha256_hex(bytes: &[u8]) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-fn import_one(
+/// 准备一个文件：读取、识别并完整解码、哈希、同库暂存，并用同一次解码生成占位图。只做文件 I/O 与计算，
+/// 不写资料库，可以在工作线程上并行；提交由 [`complete`] 按顺序完成。
+fn prepare_file(
     inner: &Inner,
     path: &Path,
     options: ImportOptions,
-    destination: &SaveDestination,
-    task_created_images: &Arc<Mutex<HashSet<String>>>,
-) -> (ImportOutcome, bool) {
-    let failed = |reason: String| (ImportOutcome::ReadFailed { reason }, false);
-    if let Err(error) = save::validate(inner, destination) {
+    context: &ImportContext,
+) -> Prepared {
+    let failed = |reason: String| Prepared::Done(ImportOutcome::ReadFailed { reason }, false);
+    if let Err(error) = save::validate(inner, &context.destination) {
         return failed(format!("保存目标不可用：{error}"));
     }
     let eagle = if eagle::is_item(path) {
@@ -358,7 +488,7 @@ fn import_one(
         None
     };
     let original = eagle.as_ref().map_or(path, |item| item.original.as_path());
-    let bytes = match std::fs::read(original) {
+    let bytes = match timed(|s| &mut s.read, || std::fs::read(original)) {
         Ok(b) => b,
         Err(e) => return failed(e.to_string()),
     };
@@ -382,7 +512,7 @@ fn import_one(
             .to_string_lossy()
             .into_owned(),
     };
-    ingest(
+    prepare(
         inner,
         &bytes,
         original_name,
@@ -392,10 +522,7 @@ fn import_one(
             package: None,
         },
         options,
-        ImportContext {
-            destination: destination.clone(),
-            task_created_images: task_created_images.clone(),
-        },
+        context,
     )
 }
 
@@ -411,7 +538,42 @@ struct ImportContext {
     task_created_images: Arc<Mutex<HashSet<String>>>,
 }
 
-/// 让一份原图字节走完写入顺序，进库后生成占位图（#110）。
+/// 准备好、等待按顺序提交的一项。
+enum Prepared {
+    /// 不用写资料库就有结果：读取失败、不支持的格式、跳过已删除的内容。
+    Done(ImportOutcome, bool),
+    /// 同库已有字节相同的原图：不暂存，提交时只合并来源。
+    Merge {
+        record: Record,
+        placeholder: Option<SdrDerivative>,
+    },
+    /// 已暂存：提交时写 pending、发布原文件并提交。
+    Staged {
+        record: Record,
+        pending: Pending,
+        placeholder: Option<SdrDerivative>,
+    },
+}
+
+impl Prepared {
+    /// 不再提交（任务取消）：撤回暂存文件。还没有 pending 记录，不需要别的善后。
+    fn discard(self, inner: &Inner) {
+        if let Prepared::Staged { pending, .. } = self {
+            let _ = std::fs::remove_file(inner.root.join(&pending.staging_path));
+        }
+    }
+}
+
+/// 同时准备的线程数：留一个核给提交与界面，最多 8 个；文件很少时不多开。
+fn prepare_workers(files: usize) -> usize {
+    let cores = std::thread::available_parallelism().map_or(2, |n| n.get());
+    cores.saturating_sub(1).clamp(1, 8).min(files.max(1))
+}
+
+/// 每个准备线程最多领先提交几项。
+const IN_FLIGHT_PER_WORKER: usize = 4;
+
+/// 让一份原图字节走完写入顺序（参考组包导入用），进库后保存占位图（#110）。
 /// 占位图是可重建缓存：生成失败不影响导入结果，打开资料库时的后台补齐会再试。
 fn ingest(
     inner: &Inner,
@@ -422,49 +584,53 @@ fn ingest(
     options: ImportOptions,
     context: ImportContext,
 ) -> (ImportOutcome, bool) {
-    let result = ingest_original(
+    if let Err(error) = save::validate(inner, &context.destination) {
+        return (
+            ImportOutcome::ReadFailed {
+                reason: format!("保存目标不可用：{error}"),
+            },
+            false,
+        );
+    }
+    let prepared = prepare(
         inner,
         bytes,
         original_name,
         location,
         origin,
         options,
-        context,
+        &context,
     );
-    if let Some(image_id) = result.0.image_id() {
-        let _ = thumbnail::make_placeholder(inner, image_id);
-    }
-    result
+    complete(inner, prepared)
 }
 
-/// 让一份原图字节走完写入顺序：完整解码 → 哈希 → 同库暂存校验 → pending → 发布 → 提交。
-fn ingest_original(
+/// 完整解码（同时生成占位图）→ 哈希 → 同库暂存校验。pending、发布与提交留给 [`complete`]。
+fn prepare(
     inner: &Inner,
     bytes: &[u8],
     original_name: String,
     location: String,
     origin: Origin,
     options: ImportOptions,
-    context: ImportContext,
-) -> (ImportOutcome, bool) {
-    let ImportContext {
-        destination,
-        task_created_images,
-    } = context;
-    let failed = |reason: String| (ImportOutcome::ReadFailed { reason }, false);
-    if let Err(error) = save::validate(inner, &destination) {
-        return failed(format!("保存目标不可用：{error}"));
-    }
-    let probed = match inspect(bytes) {
+    context: &ImportContext,
+) -> Prepared {
+    let failed = |reason: String| Prepared::Done(ImportOutcome::ReadFailed { reason }, false);
+    let probed = match timed(|s| &mut s.decode, || inspect(bytes)) {
         Ok(Some(p)) => p,
-        Ok(None) => return (ImportOutcome::Unsupported, false),
+        Ok(None) => return Prepared::Done(ImportOutcome::Unsupported, false),
         Err(reason) => return failed(format!("无法解码：{reason}")),
     };
     // 文件头有效不代表像素可读：发布前完整解码一遍，坏的作为可重试的读取失败。
-    if let Err(reason) = verify_pixels(bytes, &probed) {
-        return failed(format!("无法解码：{reason}"));
-    }
-    let sha = sha256_hex(bytes);
+    // 同一次解码顺带生成占位图（#120），提交后不再重读原文件解码第二遍。
+    let placeholder_width = thumbnail::placeholder_width(probed.width, probed.height);
+    let placeholder = match timed(
+        |s| &mut s.decode,
+        || render_sdr_widths(bytes, &probed, &[placeholder_width], DEFAULT_DOWNSCALE),
+    ) {
+        Ok(mut rendered) => rendered.pop().and_then(Result::ok),
+        Err(reason) => return failed(format!("无法解码：{reason}")),
+    };
+    let sha = timed(|s| &mut s.hash, || sha256_hex(bytes));
     if let Some(facts) = &origin.package
         && facts.snapshot.sha256 != sha
     {
@@ -486,8 +652,8 @@ fn ingest_original(
         eagle: origin.eagle,
         package: origin.package,
         options,
-        destination,
-        task_created_images,
+        destination: context.destination.clone(),
+        task_created_images: context.task_created_images.clone(),
     };
 
     // 在暂存前快速跳过；事务提交时再次核对，覆盖导入与永久删除并发的情况。
@@ -495,7 +661,7 @@ fn ingest_original(
         && record.options.eagle_deleted_content == EagleDeletedContentChoice::SkipDeleted
     {
         match skip_deleted(&inner.readers.get(), &record.sha) {
-            Ok(true) => return (ImportOutcome::SkippedDeleted, false),
+            Ok(true) => return Prepared::Done(ImportOutcome::SkippedDeleted, false),
             Ok(false) => {}
             Err(e) => return failed(format!("读取删除记忆失败：{e}")),
         }
@@ -506,18 +672,71 @@ fn ingest_original(
         && !(record.eagle.is_some()
             && record.options.eagle_deleted_content == EagleDeletedContentChoice::AllowThisImport)
     {
-        return match commit_record(inner, record, None) {
-            Ok(outcome) => outcome,
-            Err(e) => failed(format!("写入资料库失败：{e}")),
+        return Prepared::Merge {
+            record,
+            placeholder,
         };
     }
 
-    let pending = match stage(inner, bytes, &record) {
-        Ok(p) => p,
-        Err(reason) => return failed(reason),
-    };
-    fault::hit(fault::IMPORT_AFTER_STAGING);
+    match timed(|s| &mut s.stage, || stage(inner, bytes, &record)) {
+        Ok(pending) => Prepared::Staged {
+            record,
+            pending,
+            placeholder,
+        },
+        Err(reason) => failed(reason),
+    }
+}
 
+/// 按顺序提交准备好的一项，进库后保存占位图。提交前由 [`commit_record`] 再核对一次保存目标。
+fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, bool) {
+    let (result, placeholder, sha) = match prepared {
+        Prepared::Done(outcome, list_changed) => return (outcome, list_changed),
+        Prepared::Merge {
+            record,
+            placeholder,
+        } => {
+            let sha = record.sha.clone();
+            let result = match timed(|s| &mut s.commit, || commit_record(inner, record, None)) {
+                Ok(outcome) => outcome,
+                Err(e) => (
+                    ImportOutcome::ReadFailed {
+                        reason: format!("写入资料库失败：{e}"),
+                    },
+                    false,
+                ),
+            };
+            (result, placeholder, sha)
+        }
+        Prepared::Staged {
+            record,
+            pending,
+            placeholder,
+        } => {
+            let sha = record.sha.clone();
+            // 按提交顺序命中：这一项已暂存、还没有 pending 记录（后面的项可能也已暂存）。
+            fault::hit(fault::IMPORT_AFTER_STAGING);
+            let result = timed(
+                |s| &mut s.commit,
+                || publish_and_commit(inner, record, pending),
+            );
+            (result, placeholder, sha)
+        }
+    };
+    if result.0.image_id().is_some()
+        && let Some(placeholder) = &placeholder
+    {
+        let _ = timed(
+            |s| &mut s.placeholder,
+            || thumbnail::store_placeholder(&inner.root, &sha, placeholder),
+        );
+    }
+    result
+}
+
+/// pending 记录 → 发布原文件 → 提交参考图；任一步失败都撤回这一项。
+fn publish_and_commit(inner: &Inner, record: Record, pending: Pending) -> (ImportOutcome, bool) {
+    let failed = |reason: String| (ImportOutcome::ReadFailed { reason }, false);
     let row = pending.clone();
     if let Err(e) = inner.writer.run(move |conn| row.insert(conn)) {
         let _ = std::fs::remove_file(inner.root.join(&pending.staging_path));
