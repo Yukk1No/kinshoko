@@ -83,7 +83,7 @@ const PLACEHOLDER_PX: u32 = 32;
 const PLACEHOLDER: &str = "p32";
 
 /// 占位图的宽度上限：长边不超过 [`PLACEHOLDER_PX`]，按转正后的尺寸保持比例。
-fn placeholder_width(width: u32, height: u32) -> u32 {
+pub(super) fn placeholder_width(width: u32, height: u32) -> u32 {
     if width >= height {
         PLACEHOLDER_PX
     } else {
@@ -134,29 +134,6 @@ struct PlaceholderSource {
     height: u32,
 }
 
-/// 生成一张参考图的占位图（已有时什么也不做）。
-pub(super) fn make_placeholder(inner: &Inner, image_id: &str) -> Result<(), Error> {
-    use rusqlite::OptionalExtension;
-    let source = inner
-        .readers
-        .get()
-        .query_row(
-            "SELECT sha256, rel_path, width, height FROM image WHERE id = ?1",
-            [image_id],
-            |row| {
-                Ok(PlaceholderSource {
-                    sha: row.get(0)?,
-                    rel_path: row.get(1)?,
-                    width: row.get(2)?,
-                    height: row.get(3)?,
-                })
-            },
-        )
-        .optional()?
-        .ok_or(Error::UnknownImage)?;
-    render_placeholder(&inner.root, &source)
-}
-
 /// 与缩略图同一管线（ADR-0005）：同样的色彩声明规则、f32 预乘缩放与按来源分档的无损容器。
 fn render_placeholder(root: &Path, source: &PlaceholderSource) -> Result<(), Error> {
     if placeholder_file(root, &source.sha).is_some() {
@@ -166,13 +143,24 @@ fn render_placeholder(root: &Path, source: &PlaceholderSource) -> Result<(), Err
     let max_width = placeholder_width(source.width, source.height);
     let rendered =
         render::render_sdr(&bytes, max_width, DEFAULT_DOWNSCALE).map_err(Error::Undecodable)?;
+    store_placeholder(root, &source.sha, &rendered)
+}
+
+/// 保存导入时已经生成好的占位图（与校验像素共用一次解码，#120）。已有时什么也不做。
+pub(super) fn store_placeholder(
+    root: &Path,
+    sha: &str,
+    rendered: &render::SdrDerivative,
+) -> Result<(), Error> {
+    if placeholder_file(root, sha).is_some() {
+        return Ok(());
+    }
     let ext = if rendered.mime == "image/png" {
         "png"
     } else {
         "webp"
     };
-    let path =
-        placeholder_dir(root, &source.sha).join(format!("{}-{PLACEHOLDER}.{ext}", source.sha));
+    let path = placeholder_dir(root, sha).join(format!("{sha}-{PLACEHOLDER}.{ext}"));
     write_atomic(&path, &rendered.bytes)
 }
 

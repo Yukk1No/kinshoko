@@ -128,51 +128,77 @@ pub fn render_sdr(
     downscale: Downscale,
 ) -> Result<SdrDerivative, String> {
     let inspection = inspect(bytes)?.ok_or("不支持的格式")?;
+    render_sdr_widths(bytes, &inspection, &[max_width], downscale)?
+        .pop()
+        .expect("一个宽度一份结果")
+}
+
+/// 解码一次，按每个宽度各生成一份 `sdr` 派生图（导入时校验像素与生成占位图共用一次解码，#120）。
+/// 外层错误是解码失败：文件头有效、压缩像素却损坏的原图在这里失败，导入在暂存与发布之前据此拒绝；
+/// 内层是某一份缩放或编码失败。
+/// 每一份与单独调用 [`render_sdr`] 的结果逐字节相同。
+pub(crate) fn render_sdr_widths(
+    bytes: &[u8],
+    inspection: &Inspection,
+    max_widths: &[u32],
+    downscale: Downscale,
+) -> Result<Vec<Result<SdrDerivative, String>>, String> {
     let d = &inspection.description;
     let space = space(d);
     let container = container(d);
 
-    let output = output_profile(space, &inspection)?;
+    let output = output_profile(space, inspection)?;
     let working = profiles::linear_of(&output);
 
-    let (w, h, mut linear) = decode_linear(bytes, &inspection, &working)?;
+    let (w, h, mut linear) = decode_linear(bytes, inspection, &working)?;
     // 转正方向。
     let mut upright = DynamicImage::ImageRgba32F(
         Rgba32FImage::from_raw(w, h, std::mem::take(&mut linear)).ok_or("像素缓冲尺寸不符")?,
     );
     upright.apply_orientation(inspection.orientation);
     let upright = upright.into_rgba32f();
-
-    let encoded = match downscale {
-        Downscale::LinearLight => {
-            let resized = resize(upright, max_width)?;
-            let (w, h) = resized.dimensions();
-            (w, h, to_output(resized.into_raw(), &working, &output)?)
-        }
-        Downscale::EncodedValue => {
-            let (w, h) = upright.dimensions();
-            let values = to_output(upright.into_raw(), &working, &output)?;
-            let values = Rgba32FImage::from_raw(w, h, values).ok_or("像素缓冲尺寸不符")?;
-            let resized = resize(values, max_width)?;
-            let (w, h) = resized.dimensions();
-            (w, h, resized.into_raw())
-        }
-    };
-    let (w, h, encoded) = encoded;
-
     let icc = match space {
         Space::Srgb => None,
         Space::SourceIcc => inspection.icc.clone(),
         Space::DisplayP3 => Some(profiles::display_p3_icc()),
     };
-    let alpha = d.alpha;
-    let bytes = encode(&encoded, w, h, alpha, container, icc)?;
-    Ok(SdrDerivative {
-        bytes,
-        mime: container.mime(),
-        width: w,
-        height: h,
-    })
+
+    let mut upright = Some(upright);
+    let last = max_widths.len().saturating_sub(1);
+    Ok(max_widths
+        .iter()
+        .enumerate()
+        .map(|(i, &max_width)| {
+            // 最后一份直接用掉解码结果，前面的各缩放一份副本。
+            let source = if i == last {
+                upright.take().expect("解码结果只取走一次")
+            } else {
+                upright.clone().expect("解码结果还在")
+            };
+            let (w, h, encoded) = match downscale {
+                Downscale::LinearLight => {
+                    let resized = resize(source, max_width)?;
+                    let (w, h) = resized.dimensions();
+                    (w, h, to_output(resized.into_raw(), &working, &output)?)
+                }
+                Downscale::EncodedValue => {
+                    let (w, h) = source.dimensions();
+                    let values = to_output(source.into_raw(), &working, &output)?;
+                    let values = Rgba32FImage::from_raw(w, h, values).ok_or("像素缓冲尺寸不符")?;
+                    let resized = resize(values, max_width)?;
+                    let (w, h) = resized.dimensions();
+                    (w, h, resized.into_raw())
+                }
+            };
+            let bytes = encode(&encoded, w, h, d.alpha, container, icc.clone())?;
+            Ok(SdrDerivative {
+                bytes,
+                mime: container.mime(),
+                width: w,
+                height: h,
+            })
+        })
+        .collect())
 }
 
 /// 原尺寸显示源 → 剪贴板用的无配置文件 sRGB RGBA8。共用来源声明、首帧、色调映射和方向解码。
@@ -201,13 +227,6 @@ fn output_profile(space: Space, inspection: &Inspection) -> Result<ColorProfile,
         Space::SourceIcc => inspection.profile.clone().ok_or("缺少来源 ICC")?,
         Space::DisplayP3 => profiles::display_p3(),
     })
-}
-
-/// 按派生图管线完整解码一遍像素（同样的解码与色彩转换），确认原图真能显示。
-/// 文件头有效、压缩像素却损坏的原图在这里失败；导入在暂存与发布之前调用。
-pub(crate) fn verify_pixels(bytes: &[u8], inspection: &Inspection) -> Result<(), String> {
-    let output = output_profile(space(&inspection.description), inspection)?;
-    decode_linear(bytes, inspection, &profiles::linear_of(&output)).map(|_| ())
 }
 
 fn options() -> TransformOptions {
