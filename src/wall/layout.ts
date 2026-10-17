@@ -110,3 +110,12 @@ export function resolveAnchor(
   if (i < 0) return null;
   return Math.max(0, layout.boxes[i].y + anchor.delta);
 }
+
+/**
+ * 缩放后的滚动位置：第 index 张图的中心回到光标的高度 pointerY（视口坐标），不越出画布（#122）。
+ * 只锚纵向：列数随密度变化，图片墙又只纵向滚动，图所在的列由布局决定。
+ */
+export function zoomScrollTop(layout: Layout, index: number, pointerY: number, viewport: number): number {
+  const b = layout.boxes[index];
+  return Math.max(0, Math.min(b.y + b.h / 2 - pointerY, layout.height - viewport));
+}

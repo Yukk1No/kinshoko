@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { captureAnchor, cardAt, masonry, resolveAnchor, visible } from "./layout";
+import { captureAnchor, cardAt, masonry, resolveAnchor, visible, zoomScrollTop } from "./layout";
 
 // 瀑布流布局沿用 #13 样稿的纯函数（#9 Q27）：尺寸取自资料库记录，不从 DOM 测量。
 describe("瀑布流布局", () => {
@@ -77,5 +77,65 @@ describe("光标下的图", () => {
     expect(cardAt(l, 5, 214)).toBe(2);
     expect(cardAt(l, 5, 210)).toBe(0);
     expect(cardAt(masonry([], opts), 10, 10)).toBe(-1);
+  });
+});
+
+// #122：Ctrl+滚轮缩放后列数会变，图片墙只能纵向滚动，所以只锚纵向：光标下那张图仍在视口里，中心仍在光标的高度。
+describe("缩放后的滚动位置", () => {
+  const items = Array.from({ length: 2000 }, (_, i) => ({ w: 100, h: 100 + (i % 7) * 30 }));
+  const opts = { width: 2000, target: 240, gap: 8, pad: 12, capRatio: null };
+  const viewport = 1000;
+  const centerOnScreen = (l: ReturnType<typeof masonry>, i: number, top: number) => l.boxes[i].y + l.boxes[i].h / 2 - top;
+
+  it.each([
+    ["放大", 240, 260],
+    ["缩小", 260, 240],
+    ["放大三格", 240, 320],
+    ["缩小三格", 320, 260],
+  ])("%s（列数变化）后，那张图的中心仍在光标的高度", (_, from, to) => {
+    const before = masonry(items, { ...opts, target: from });
+    const after = masonry(items, { ...opts, target: to });
+    expect(after.columns).not.toBe(before.columns);
+    const scrollTop = 1700;
+    const pointerY = 600;
+    const i = cardAt(before, 443, scrollTop + pointerY);
+    const top = zoomScrollTop(after, i, pointerY, viewport);
+    expect(centerOnScreen(after, i, top)).toBeCloseTo(pointerY, 6);
+  });
+
+  it("靠近顶部时不滚到负数，那张图仍完整留在视口里", () => {
+    const before = masonry(items, opts);
+    const after = masonry(items, { ...opts, target: 420 });
+    // 未滚动时光标在第一张图的下半部；放大后它的中心仍高于光标，只能停在顶部。
+    const i = cardAt(before, 40, 240);
+    expect(i).toBe(0);
+    const top = zoomScrollTop(after, i, 240, viewport);
+    expect(top).toBe(0);
+    expect(after.boxes[i].y - top).toBeGreaterThanOrEqual(0);
+    expect(after.boxes[i].y + after.boxes[i].h - top).toBeLessThanOrEqual(viewport);
+  });
+
+  it("靠近底部时不越过画布底，那张图仍完整留在视口里", () => {
+    const before = masonry(items, opts);
+    const after = masonry(items, { ...opts, target: 140 });
+    const i = items.length - 1;
+    const top = zoomScrollTop(after, i, 50, viewport);
+    expect(top).toBe(after.height - viewport);
+    expect(after.boxes[i].y - top).toBeGreaterThanOrEqual(0);
+    expect(after.boxes[i].y + after.boxes[i].h - top).toBeLessThanOrEqual(viewport);
+    expect(before.columns).not.toBe(after.columns);
+  });
+
+  it("画布比视口矮时停在顶部", () => {
+    const short = masonry(items.slice(0, 3), opts);
+    expect(zoomScrollTop(short, 2, 700, viewport)).toBe(0);
+  });
+
+  it("列数不变时那张图的横向位置也不变", () => {
+    const before = masonry(items, { ...opts, target: 240 });
+    const after = masonry(items, { ...opts, target: 250 });
+    expect(after.columns).toBe(before.columns);
+    const i = cardAt(before, 443, 2300);
+    expect(after.boxes[i].x).toBe(before.boxes[i].x);
   });
 });
