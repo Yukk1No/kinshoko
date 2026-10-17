@@ -150,11 +150,12 @@ const chooseNextTarget=async(libraryId,folderId=null)=>{
  await openPane("图片与文件夹");
 };
 const openPane=async name=>{if(await session.exec("return document.querySelector('nav[aria-label=主导航] button[aria-label=\"'+arguments[0]+'\"]')?.getAttribute('aria-expanded')!=='true';",[name]))await readyClick(`//nav[@aria-label='主导航']//button[@aria-label=${lit(name)}]`);await until("pane open "+name,()=>session.exec("return document.querySelector('nav[aria-label=主导航] button[aria-label=\"'+arguments[0]+'\"]')?.getAttribute('aria-expanded')==='true';",[name]));};
-const shownCurrentName=name=>session.exec("return document.querySelector('button[aria-label^=\"当前图库：\"]')?.getAttribute('aria-label')===arguments[0];",["当前图库："+name]);
+// #113 (ADR-0008): no current-library control; the library shows as a connected sidebar group head “名称（N 张）”.
+const shownCurrentName=name=>session.exec("return [...document.querySelectorAll('nav[aria-label=查找范围] [data-library-id] .lib-head-name')].some(b=>!b.disabled&&b.getAttribute('aria-label')?.startsWith(arguments[0]+'（')&&/（\\d+ 张）$/.test(b.getAttribute('aria-label')));",[name]);
 const browseAll=async()=>{await openPane("图片与文件夹");const xpath="//nav[@aria-label='查找范围']//button[normalize-space()='全部图片']";await readyClick(xpath);await until("all images scope",()=>session.exec("const n=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return n?.getAttribute('aria-current')==='page';",[xpath]));};
 const runningCard="//section[contains(@class,'k-task') and @aria-label='导入进度']";
 const createLibraryFromMenu=async(name,parent)=>{
- await readyClick("//button[starts-with(@aria-label,'当前图库：')]");
+ await readyClick("//button[@aria-label='打开、新建或管理图库']");
  await readyClick("//*[@role='menu' and @aria-label='图库']//*[@role='menuitem' and normalize-space()='新建图库…']");
  await session.type("//label[contains(.,'图库名称')]/input",name);
  await pick(parent);

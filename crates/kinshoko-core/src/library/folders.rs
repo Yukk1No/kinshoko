@@ -125,6 +125,53 @@ pub(super) fn move_to(
     })
 }
 
+/// 删除文件夹及其子文件夹。图片不删，只去掉这些文件夹的归属；没有其他文件夹的图因此回到
+/// 未归类。Eagle 文件夹的对应一并去掉：重导时 Eagle 还有、本库却没有对应的文件夹视为画师删掉的，
+/// 不再建回来（见 `eagle::sync_folders`）。
+///
+/// 这个文件夹或它的子文件夹是正在进行的导入的保存位置时拒绝（[`Error::FolderReceivingImport`]），
+/// 导入结束后再删。从核对到提交一直持有导入登记表的锁；导入在同一把锁里核对保存位置并登记
+/// （[`super::Library::import_to`]），所以导入要么先登记（这里拒绝），要么等提交后看到文件夹已不在。
+pub(super) fn delete(inner: &Inner, id: &str) -> Result<(), Error> {
+    let id = id.to_owned();
+    inner.write_holding(inner.import_folders.clone(), move |tx, receiving| {
+        let parent: Option<String> = tx
+            .query_row("SELECT parent_id FROM folder WHERE id = ?1", [&id], |row| {
+                row.get(0)
+            })
+            .optional()?
+            .ok_or(Error::UnknownFolder)?;
+        const SUBTREE: &str = "WITH RECURSIVE subtree(id) AS (
+                SELECT ?1 UNION ALL SELECT f.id FROM folder f JOIN subtree s ON f.parent_id = s.id
+            )";
+        if !receiving.is_empty() {
+            let mut stmt = tx.prepare(&format!("{SUBTREE} SELECT id FROM subtree"))?;
+            let subtree = stmt
+                .query_map([&id], |row| row.get::<_, String>(0))?
+                .collect::<Result<Vec<_>, _>>()?;
+            if subtree.iter().any(|folder| receiving.contains(folder)) {
+                return Err(Error::FolderReceivingImport);
+            }
+        }
+        #[cfg(test)]
+        tests::after_receiving_check(&id);
+        for table in ["folder_member", "folder_decision", "eagle_folder"] {
+            tx.execute(
+                &format!(
+                    "{SUBTREE} DELETE FROM {table} WHERE folder_id IN (SELECT id FROM subtree)"
+                ),
+                [&id],
+            )?;
+        }
+        tx.execute(
+            &format!("{SUBTREE} DELETE FROM folder WHERE id IN (SELECT id FROM subtree)"),
+            [&id],
+        )?;
+        let rest = siblings(tx, parent.as_deref())?;
+        renumber(tx, parent.as_deref(), &rest)
+    })
+}
+
 /// 文件夹树，计数只算可见的图；`lens` 是浏览视角的过滤条件（安全模式）。
 pub(super) fn tree(conn: &Connection, lens: &str) -> Result<Vec<FolderNode>, Error> {
     let mut counts = std::collections::HashMap::<String, u32>::new();
@@ -160,4 +207,73 @@ pub(super) fn tree(conn: &Connection, lens: &str) -> Result<Vec<FolderNode>, Err
             .collect()
     }
     Ok(build(None, &rows, &counts))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Mutex;
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    use super::super::{ImportOptions, ImportSource, Library, SaveDestination};
+    use super::Error;
+
+    type Hook = Box<dyn FnOnce() + Send>;
+    /// 删除某个文件夹、核对完“是否正在接收导入”之后要做的事（按文件夹 id，测试并行时互不影响）。
+    static AFTER_CHECK: Mutex<Vec<(String, Hook)>> = Mutex::new(Vec::new());
+
+    pub(super) fn after_receiving_check(folder: &str) {
+        let hook = {
+            let mut hooks = AFTER_CHECK.lock().unwrap_or_else(|e| e.into_inner());
+            hooks
+                .iter()
+                .position(|(id, _)| id == folder)
+                .map(|at| hooks.swap_remove(at).1)
+        };
+        if let Some(hook) = hook {
+            hook();
+        }
+    }
+
+    /// 删除核对完、还没提交时开始一次导入到这个文件夹：两者不能都成功。导入要么先登记（删除被拒），
+    /// 要么等删除提交后再核对保存位置（导入不开始），不会出现删除成功、导入的每一项都落不进去。
+    #[test]
+    fn an_import_started_while_its_folder_is_being_deleted_does_not_start() {
+        let dir = tempfile::tempdir().unwrap();
+        let library = std::sync::Arc::new(Library::create(&dir.path().join("lib"), "库").unwrap());
+        let folder = library.create_folder("手部", None).unwrap();
+        let destination = SaveDestination {
+            library_id: library.info().id.clone(),
+            folder_id: Some(folder.clone()),
+        };
+        let (started_tx, started) = mpsc::channel();
+        let (import_tx, import) = mpsc::channel();
+        {
+            let (library, destination) = (library.clone(), destination.clone());
+            AFTER_CHECK.lock().unwrap().push((
+                folder.clone(),
+                Box::new(move || {
+                    std::thread::spawn(move || {
+                        let task = library.import_to(
+                            ImportSource {
+                                paths: vec!["不存在.png".into()],
+                            },
+                            ImportOptions::default(),
+                            &destination,
+                        );
+                        let _ = started_tx.send(());
+                        let _ = import_tx.send(task.map(|task| task.wait()));
+                    });
+                    // 导入能在删除提交前开始就让它开始；被挡住时等一会儿再提交。
+                    let _ = started.recv_timeout(Duration::from_millis(500));
+                }),
+            ));
+        }
+        let deleted = library.delete_folder(&folder);
+        let imported = import.recv().unwrap();
+        match (&deleted, &imported) {
+            (Ok(()), Err(Error::UnknownFolder)) | (Err(Error::FolderReceivingImport), Ok(_)) => {}
+            other => panic!("删除与导入交错：{other:?}"),
+        }
+    }
 }

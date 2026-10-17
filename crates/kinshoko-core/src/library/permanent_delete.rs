@@ -133,6 +133,24 @@ pub(super) fn preview(
     })
 }
 
+/// 清空回收站的预览：回收站里浏览视角看得见的全部图，按删除先后。
+pub(super) fn preview_trash(
+    inner: &Inner,
+    usage: &dyn ReferenceGroupUsage,
+) -> Result<PermanentDeletePreview, Error> {
+    let lens = inner.lens_filter();
+    let ids: Vec<String> = {
+        let conn = inner.readers.get();
+        let mut stmt = conn.prepare(&format!(
+            "SELECT image.id FROM image WHERE image.deleted_at IS NOT NULL AND {lens}
+             ORDER BY image.deleted_at, image.id"
+        ))?;
+        stmt.query_map([], |r| r.get(0))?
+            .collect::<Result<_, _>>()?
+    };
+    preview(inner, &ids, usage)
+}
+
 pub(super) fn execute(
     inner: &Inner,
     ids: &[String],

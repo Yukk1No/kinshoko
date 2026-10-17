@@ -1,7 +1,7 @@
 //! Workspace adapter: detached provider reads, revisions and global safe-mode boundaries.
 use super::*;
 use kinshoko_core::workspace::{
-    Workspace, WorkspaceDirectories, WorkspacePage, WorkspaceQuery, WorkspaceStatus,
+    Workspace, WorkspaceCard, WorkspaceDirectories, WorkspacePage, WorkspaceQuery, WorkspaceStatus,
 };
 
 pub(super) const EVENT: &str = "workspace-changed";
@@ -165,6 +165,23 @@ pub(super) async fn workspace_image<R: Runtime>(
         // A rating/provider change during the detail read cannot release a stale image.
         read(&app, &library_id, &image_id)?;
         Ok(image)
+    })
+    .await
+}
+
+/// 一张图的卡片，与图片墙同样构成（钉图“在 Kinshoko 中打开”用）：查看器里的整理按它核对来源。
+#[tauri::command]
+pub(super) async fn workspace_card<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    image_id: String,
+    thumbnail_px: u32,
+    safe_mode: bool,
+) -> Result<WorkspaceCard, String> {
+    blocking(move || {
+        stable(&app, safe_mode, |w, d, c| {
+            w.card(d, c, &library_id, &image_id, safe_mode, thumbnail_px)
+        })
     })
     .await
 }

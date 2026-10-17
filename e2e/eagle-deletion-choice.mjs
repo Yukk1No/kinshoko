@@ -102,11 +102,12 @@ async function selectCard(id) {
   try { await wd("POST", `${base}/element/${card}/click`, {}); } finally { await wd("DELETE", `${base}/actions`); }
   await until("reference selected", () => find("//aside[@aria-label='已选参考图']"));
 }
-async function showAll() { await importMenu(false); await clickXPath("//button[starts-with(@aria-label,'全部（')]"); }
+async function showAll() { await importMenu(false); await clickXPath("//nav[@aria-label='查找范围']//button[starts-with(@aria-label,'全部图片')]"); }
 async function deleteViaUi(id) {
   await showAll(); await selectCard(id); await click("删除");
   await until("soft delete", async () => (await detail(id)).deletedAt !== null);
-  await clickXPath("//button[starts-with(@aria-label,'回收站（')]");
+  // #113: the foot row is “回收站 · 全部图库（N 张）”; with one library it opens that library's bin.
+  await clickXPath("//nav[@aria-label='查找范围']//button[starts-with(@aria-label,'回收站 · ')]");
   await selectCard(id); await click("永久删除…");
   await until("delete preview", () => find("//*[@role='alertdialog' and @aria-label='永久删除']"));
   await click("确认永久删除");

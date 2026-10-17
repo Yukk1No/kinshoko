@@ -95,7 +95,7 @@ export async function eagleReimportCombination(workflow) {
   await d.screenshot("05c-eagle-trash-not-auto-restored.png");
   // 前往回收站恢复 is now 去回收站; B is current, so its recycle bin is the sidebar foot entry.
   await workflow.readyClick("//section[@aria-label='导入结果']//button[normalize-space()='去回收站']");
-  await until("restore entry selected B's actual recycle bin",async()=>(await d.invoke("current_library"))?.id===b.id&&d.exec("return !!document.querySelector('nav[aria-label=查找范围] .side-foot button[aria-current=page]')?.getAttribute('aria-label')?.startsWith('回收站（');"));
+  await until("restore entry selected B's actual recycle bin",async()=>(await d.invoke("current_library"))?.id===b.id&&d.exec("return !!document.querySelector('nav[aria-label=查找范围] .side-foot button[aria-current=page]')?.getAttribute('aria-label')?.startsWith('回收站 · ');"));
   const trashCard=await until("actual deleted source before explicit restore",async()=>(await trashPage()).cards.find(card=>card.sources.some(source=>source.imageId===allowedId&&source.libraryId===b.id)));
   await select(trashCard);await workflow.readyClick(`${selbar}//button[normalize-space()='恢复']`);
   await until("only an explicit Restore action restores the Eagle source",async()=>(await detail(allowedId)).deletedAt===null);

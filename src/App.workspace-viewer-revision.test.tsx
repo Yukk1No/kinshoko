@@ -1,6 +1,6 @@
 // #98: the real App and Wall must agree which public workspace snapshot authorized a card.
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
@@ -20,8 +20,10 @@ afterEach(async () => { cleanup(); await new Promise(done => setTimeout(done, 0)
 
 function workspace(initialReply?: Promise<WorkspaceStatus>) {
   const state = { initialRevision: "r1", wallRevision: "r2", available: true, safe: false, imageId: "a", contentId: "bytes",
-    nextBrowse: null as (() => Promise<WorkspacePage>) | null, browseReply: null as Promise<WorkspacePage> | null };
+    nextBrowse: null as (() => Promise<WorkspacePage>) | null, browseReply: null as Promise<WorkspacePage> | null,
+    calls: [] as { command: string; args: unknown }[] };
   mockIPC((command, args) => {
+    state.calls.push({ command, args });
     if (command === "plugin:library|safe_mode") return state.safe;
     if (command === "plugin:library|current_library") return libraries[0].library;
     if (command === "plugin:library|registered_libraries") return libraries;
@@ -195,4 +197,16 @@ it.each(["explicit", "selected"])("列表失效时立即撤销 %s 详情预览�
   } finally {
     await act(async () => { rejectBrowse("资料库暂不可读"); });
   }
+});
+
+it("查看器右键“移到回收站”把正在看的这份来源移进回收站并回到图片墙（#114）", async () => {
+  const state = workspace();
+  const viewer = await open();
+  fireEvent.contextMenu(viewer.querySelector<HTMLElement>(".viewer-stage")!, { clientX: 50, clientY: 50 });
+  const menu = await screen.findByRole("menu", { name: "查看器菜单" });
+  fireEvent.click(within(menu).getByRole("menuitem", { name: "移到回收站" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "原图查看器" })).toBeNull());
+  await waitFor(() => expect(state.calls.filter((c) => c.command === "plugin:library|workspace_edit_source").map((c) => c.args)).toEqual([
+    { target: { libraryId: "A", imageId: "a", contentId: "bytes" }, safeMode: false, edits: [{ kind: "delete" }] },
+  ]));
 });

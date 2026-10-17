@@ -1,18 +1,20 @@
 // T20 r10: after a content restore registered new providers in a blank environment, the workspace
 // sidebar listed them but "当前资料库" still offered only "尚未打开" until 刷新登记 was clicked.
-// #98: the switch is now the sidebar title menu; 刷新登记 is gone and opening the menu re-reads.
-import { afterEach, beforeEach, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+// #98: the switch moved to the sidebar title menu. #113 (ADR-0008): there is no current library to
+// switch any more; the title is “图库” with a ＋ menu, and 管理图库 re-reads the registrations.
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { LibraryPicker } from "./LibraryPicker";
 
+const opened = { id: "L1", name: "工作参考", root: "D:\\参考" };
 const restored = { id: "R1", name: "同名资料库（恢复）", root: "D:\\synthetic-t20\\恢复\\A" };
 let registered: { library: typeof restored; unavailable: string | null }[];
 let reads: number;
 
 beforeEach(() => {
-  registered = [];
+  registered = [{ library: opened, unavailable: null }];
   reads = 0;
   mockIPC((cmd) => {
     if (cmd === "plugin:library|registered_libraries") { reads += 1; return structuredClone(registered); }
@@ -21,33 +23,34 @@ beforeEach(() => {
 });
 afterEach(async () => { cleanup(); await act(async () => {}); clearMocks(); });
 
-const options = () => screen.queryAllByRole("menuitemradio").map((o) => o.textContent);
-const openMenu = async () => {
-  fireEvent.click(screen.getByRole("button", { name: /^当前图库：/ }));
-  await screen.findByRole("menu");
+it("侧栏标题是“图库”与一个 ＋ 菜单（打开 / 新建 / 管理），没有图库切换", async () => {
+  const create = vi.fn();
+  render(<LibraryPicker current={opened} onChanged={() => {}} onCreate={create} />);
   await act(async () => {});
-};
-
-it("其他入口登记的新资料库随工作区变化出现在图库切换菜单中", async () => {
-  render(<LibraryPicker current={null} onChanged={() => {}} onCreate={() => {}} />);
-  await act(async () => {});
-  expect(screen.getByRole("button", { name: /^当前图库：/ }).getAttribute("aria-label")).toBe("当前图库：尚未打开图库");
-  await openMenu();
-  expect(options()).toEqual([]);
-  expect(screen.getByText("还没有打开的图库")).toBeTruthy();
-
-  registered = [{ library: restored, unavailable: null }];
-  await act(async () => { await emit("workspace-changed", { revision: "r2", libraries: structuredClone(registered) }); });
-  await act(async () => {});
-  expect(options()).toEqual(["同名资料库（恢复）"]);
+  expect(screen.getByRole("heading", { name: "图库" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /^当前图库/ })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "打开、新建或管理图库" }));
+  const menu = await screen.findByRole("menu");
+  expect(within(menu).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["打开图库…", "新建图库…", "管理图库"]);
+  expect(within(menu).queryAllByRole("menuitemradio")).toEqual([]);
+  fireEvent.click(within(menu).getByRole("menuitem", { name: "新建图库…" }));
+  expect(create).toHaveBeenCalledTimes(1);
 });
 
-it("打开菜单时重新读取登记（代替原“刷新登记”按钮）", async () => {
-  render(<LibraryPicker current={null} onChanged={() => {}} onCreate={() => {}} />);
+it("其他入口登记的新资料库随工作区变化出现在“管理图库”里", async () => {
+  render(<LibraryPicker current={opened} onChanged={() => {}} onCreate={() => {}} />);
   await act(async () => {});
+  fireEvent.click(screen.getByRole("button", { name: "打开、新建或管理图库" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "管理图库" }));
+  const dialog = await screen.findByRole("dialog", { name: "管理图库" });
+  await act(async () => {});
+  expect(within(dialog).queryByText("同名资料库（恢复）")).toBeNull();
+
+  registered = [...registered, { library: restored, unavailable: "移动盘没插" }];
   const before = reads;
-  registered = [{ library: restored, unavailable: "移动盘没插" }];
-  await openMenu();
+  await act(async () => { await emit("workspace-changed", { revision: "r2", libraries: structuredClone(registered) }); });
+  await act(async () => {});
   expect(reads).toBeGreaterThan(before);
-  expect(screen.getByRole("menuitemradio", { name: /^同名资料库（恢复）/ }).textContent).toContain("未连接");
+  expect(within(dialog).getByText("同名资料库（恢复）")).toBeTruthy();
+  expect(within(dialog).getByText("移动盘没插")).toBeTruthy();
 });

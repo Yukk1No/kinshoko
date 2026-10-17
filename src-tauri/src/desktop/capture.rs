@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 
 use kinshoko_core::desktop::{
     CaptureAction, CaptureOutcome, CaptureReferenceFrame, CaptureSelection, CaptureSurface,
-    FrozenScreen, Placement, Region, SavedPin, ScreenRect, Screenshot,
+    FrozenScreen, OriginalPixels, Placement, Region, SavedPin, ScreenRect, Screenshot,
 };
 use kinshoko_core::reference_groups::ReferenceSource;
 use tauri::{
@@ -415,6 +415,35 @@ pub async fn frozen_screen(app: AppHandle) -> Option<FrozenScreen> {
         }),
         _ => None,
     }
+}
+
+/// 框选读数（#103）：选区（相对显示器的物理像素）得到参考视图时为结果的原始像素尺寸，
+/// 普通截图为 `None`。只读冻结时的来源，与完成时的判断相同。
+#[tauri::command]
+pub async fn capture_readout(
+    app: AppHandle,
+    region: Region,
+    token: String,
+) -> Option<OriginalPixels> {
+    let session = lock(&state(&app).capture);
+    let Session::Ready(pending) = &*session else {
+        return None;
+    };
+    if pending.token != token {
+        return None;
+    }
+    let references: Vec<_> = pending
+        .references
+        .iter()
+        .map(|s| s.selection.clone())
+        .collect();
+    CaptureSelection {
+        screen: &pending.screen,
+        origin: pending.origin,
+        region,
+        references: &references,
+    }
+    .original_pixels()
 }
 
 /// 冻结屏幕已经画好：显示框选窗口。

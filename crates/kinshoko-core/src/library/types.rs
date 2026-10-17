@@ -68,6 +68,11 @@ pub struct ImageCard {
     pub height: u32,
     /// 缩略图地址：`<资料库 id>/<参考图 id>/<像素档位>`，由应用壳映射到自定义协议。
     pub thumbnail: String,
+    /// 占位图（#110）：约 32 px 的 `sdr` 派生图的 `data:` 地址，缩略图到达前放大模糊显示。
+    /// 还没生成（旧资料库在后台补齐中）时为空，界面退回中性底色。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub placeholder: Option<String>,
     /// 含成人内容（有效分级为 questionable 或 explicit）：打开安全模式时会被封印。
     /// 安全模式开启时浏览结果里没有这样的图，界面据此在开启的一瞬间先把它们遮住。
     pub adult: bool,
@@ -411,7 +416,7 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
     args.push(Value::Integer(i64::from(limit) + 1));
     let mut rows = {
         let mut stmt = tx.prepare_cached(&format!(
-            "SELECT seq, id, width, height, {} FROM image WHERE {filter} AND seq < ?{}
+            "SELECT seq, id, width, height, {}, sha256 FROM image WHERE {filter} AND seq < ?{}
              ORDER BY seq DESC LIMIT ?{}",
             rating::adult_sql("image.id"),
             n + 1,
@@ -421,12 +426,14 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
             let id: String = row.get(1)?;
             Ok((
                 row.get::<_, i64>(0)?,
+                row.get::<_, String>(5)?,
                 ImageCard {
                     thumbnail: format!("{library_id}/{id}/{tier}"),
                     id,
                     width: row.get(2)?,
                     height: row.get(3)?,
                     adult: row.get(4)?,
+                    placeholder: None,
                 },
             ))
         })?
@@ -435,7 +442,7 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
     tx.finish()?;
     let next_cursor = if rows.len() > limit as usize {
         rows.truncate(limit as usize);
-        rows.last().map(|(seq, _)| {
+        rows.last().map(|(seq, ..)| {
             Cursor {
                 library: library_id.clone(),
                 safe,
@@ -450,7 +457,14 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
         None
     };
     Ok(BrowsePage {
-        cards: rows.into_iter().map(|(_, card)| card).collect(),
+        cards: rows
+            .into_iter()
+            // 占位图在事务外读文件。
+            .map(|(_, sha, card)| ImageCard {
+                placeholder: thumbnail::placeholder(&inner.root, &sha),
+                ..card
+            })
+            .collect(),
         next_cursor,
         total,
     })

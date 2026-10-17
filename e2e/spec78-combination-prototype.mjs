@@ -210,7 +210,7 @@ export async function freezeFormalPrototypePacket(workflow,plan) {
   await d.main();await workflow.current(libraryId);await workflow.scope(libraryId);await workflow.clearSearch();
   await workflow.closeMenu();
   d.assert(await d.invoke("safe_mode")===true&&d.session===session,"prototype input comes from the same A/B session with global safe mode on");
-  packet.selectedScope=await d.exec("const provider=[...document.querySelectorAll('[data-library-id]')].find(node=>node.dataset.libraryId===arguments[0]);return {rootCurrent:provider?.querySelector('.workspace-provider-root button.sidebar-item')?.getAttribute('aria-current'),conditionCount:document.querySelectorAll('[aria-label=查找条件] button[aria-label=去掉这个条件]').length,search:document.querySelector('input[aria-label=查找参考图]')?.value,current:document.querySelector('button[aria-label^=\"当前图库：\"]')?.getAttribute('aria-label')};",[libraryId]);
+  packet.selectedScope=await d.exec("const provider=[...document.querySelectorAll('[data-library-id]')].find(node=>node.dataset.libraryId===arguments[0]);return {rootCurrent:provider?.querySelector('.workspace-provider-root button.sidebar-item')?.getAttribute('aria-current'),conditionCount:document.querySelectorAll('[aria-label=查找条件] button[aria-label=去掉这个条件]').length,search:document.querySelector('input[aria-label=查找参考图]')?.value,head:provider?.querySelector('.lib-head-name')?.getAttribute('aria-label')};",[libraryId]);
   d.assert(packet.selectedScope.rootCurrent==="page"&&packet.selectedScope.conditionCount===0&&packet.selectedScope.search==="","actual controls select the complete A scope with no search conditions",packet.selectedScope);
   let cursor=null;
   do {

@@ -5,7 +5,11 @@ export type WorkspaceCard = {
 /**
  * Stable byte identity, also used for scroll anchors.
  */
-id: string, width: number, height: number, thumbnail: string, adult: boolean, 
+id: string, width: number, height: number, thumbnail: string, 
+/**
+ * 占位图（#110）的 `data:` 地址，取自显示用的来源；还没生成时为空。
+ */
+placeholder?: string, adult: boolean, 
 /**
  * Explicit available matching source used for display; browsing never activates it.
  */

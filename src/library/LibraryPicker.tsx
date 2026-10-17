@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { ChevronDown, FolderOpen, FolderPlus, Library, RefreshCw, Settings2 } from "lucide-react";
+import { FolderOpen, FolderPlus, Library, Plus, RefreshCw, Settings2 } from "lucide-react";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
-import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, switchLibrary, unregisterLibrary } from "../ipc";
-import { Menu, MenuItem, MenuLabel, MenuPopup, MenuRadioItem, MenuSeparator } from "../ui/Menu";
+import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, unregisterLibrary } from "../ipc";
+import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
 
 /**
- * 本设备的资料库登记、切换与取消登记（界面称“图库”，design/ui-system/copy-map.md）。
- * `menu`：侧栏标题的图库切换菜单（单选 + 打开 / 新建 / 管理）；`inline`：还没有图库时的引导按钮。
+ * 本设备的资料库登记与取消登记（界面称“图库”，design/ui-system/copy-map.md）。
+ * `menu`：侧栏标题行“图库 ＋”（方案 D，#113）：＋ 菜单为打开 / 新建 / 管理。画师不选“当前图库”
+ * （ADR-0008），这里没有切换；`inline`：还没有图库时的引导按钮。
  * 打开菜单或管理对话框时重新读取登记，不可用的登记仍可重新连接（重新检查）或移除。
  */
 export function LibraryPicker({ current, onChanged, onCreate, blocked = false, layout = "menu" }: {
@@ -84,29 +85,20 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
     {status}
   </section>;
 
-  const name = current === undefined ? "正在打开…" : current?.name ?? "尚未打开图库";
   return <>
-    <Menu.Root modal={false} onOpenChange={(open) => { if (open) refresh(); }}>
-      <Menu.Trigger className="k-lib-trigger" aria-label={`当前图库：${name}`} title="切换图库" disabled={current === undefined}>
-        <Library size={16} aria-hidden="true" /><span className="k-lib-name">{name}</span><ChevronDown size={14} aria-hidden="true" className="k-lib-chev" />
-      </Menu.Trigger>
-      <MenuPopup width={248} label="图库">
-        <MenuLabel>当前图库</MenuLabel>
-        <Menu.RadioGroup value={current?.id ?? ""} onValueChange={(id) => {
-          if (id && id !== current?.id) void run(async () => onChanged(await switchLibrary(String(id))));
-        }}>
-          {entries.map(({ library, unavailable }) => <MenuRadioItem key={library.id} value={library.id} disabled={disabled}
-            title={unavailable ?? library.root} meta={unavailable ? <span className="is-warn">未连接</span> : undefined}>
-            {library.name}
-          </MenuRadioItem>)}
-        </Menu.RadioGroup>
-        {entries.length === 0 && <div className="k-item is-tip"><span className="k-item-ind" /><span className="k-item-label">还没有打开的图库</span></div>}
-        <MenuSeparator />
-        <MenuItem icon={<FolderOpen size={14} />} disabled={disabled} onClick={() => void register()}>打开图库…</MenuItem>
-        <MenuItem icon={<FolderPlus size={14} />} disabled={disabled} onClick={onCreate}>新建图库…</MenuItem>
-        <MenuItem icon={<Settings2 size={14} />} onClick={() => { refresh(); setManaging(true); }}>管理图库</MenuItem>
-      </MenuPopup>
-    </Menu.Root>
+    <div className="pane-library-title">
+      <h2 className="pane-title">图库</h2>
+      <Menu.Root modal={false} onOpenChange={(open) => { if (open) refresh(); }}>
+        <Menu.Trigger className="k-icon-btn lib-add" aria-label="打开、新建或管理图库" title="打开、新建或管理图库" disabled={current === undefined}>
+          <Plus size={15} aria-hidden="true" />
+        </Menu.Trigger>
+        <MenuPopup width={200} label="图库">
+          <MenuItem icon={<FolderOpen size={14} />} disabled={disabled} onClick={() => void register()}>打开图库…</MenuItem>
+          <MenuItem icon={<FolderPlus size={14} />} disabled={disabled} onClick={onCreate}>新建图库…</MenuItem>
+          <MenuItem icon={<Settings2 size={14} />} onClick={() => { refresh(); setManaging(true); }}>管理图库</MenuItem>
+        </MenuPopup>
+      </Menu.Root>
+    </div>
     {status}
     <Dialog.Root open={managing} onOpenChange={setManaging}>
       <Dialog.Portal>

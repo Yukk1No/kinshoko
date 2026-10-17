@@ -2518,6 +2518,7 @@ dependencies = [
 name = "kinshoko-core"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "csv",
  "fast_image_resize",
  "gif",

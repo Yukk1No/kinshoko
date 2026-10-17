@@ -23,6 +23,7 @@
 //! （按 SHA-256 命名、写入一次、从不重编码）＋ `.staging/`（同库暂存）＋ `cache/`（可重建）。
 
 mod backup;
+mod clipboard;
 mod colour;
 mod display;
 mod eagle;
@@ -64,6 +65,7 @@ pub use backup::{
     RestoreProvenance, TableDigest,
 };
 pub(crate) use backup::{copy_hashed, hash_file};
+pub use clipboard::{forget_staged_clipboard_images, stage_clipboard_image};
 pub use eagle::{EagleBinding, EagleRegionNote, EagleSourceSnapshot};
 pub use eagle_discovery::{
     EagleDiscoveryMethod, EagleDiscoveryOptions, EagleLibraryCandidate, discover_eagle_libraries,
@@ -98,6 +100,7 @@ use crate::approx::ApproxRelation;
 use events::Hub;
 use store::{DB_FILE, Readers, Writer};
 pub(crate) use tags::display_label;
+pub(crate) use thumbnail::placeholder;
 
 /// 资料库格式版本，写在 `library.format_version`。
 const FORMAT_VERSION: i64 = 1;
@@ -132,9 +135,18 @@ pub(crate) struct Inner {
     /// 只读打开、不是活动资料库（参考组读取未激活的库，#66）：不写数据库。
     detached: bool,
     write_revoked: Arc<AtomicBool>,
+    /// 正在进行的导入的保存文件夹（每个任务一项，可重复）；删除文件夹时据此拒绝。
+    import_folders: Arc<Mutex<Vec<String>>>,
 }
 
 impl Inner {
+    /// 正在进行的导入的保存文件夹（见 [`Inner::import_folders`]）。
+    fn receiving_folders(&self) -> std::sync::MutexGuard<'_, Vec<String>> {
+        self.import_folders
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+    }
+
     fn translations(&self) -> Arc<tags::TranslationIndex> {
         self.translations
             .read()
@@ -210,7 +222,13 @@ impl Library {
         std::fs::create_dir_all(root.join(STAGING_DIR))?;
         // 先对账，再启动读写。
         let recovery = recovery::reconcile(&mut conn, root)?;
-        Self::start(root, conn, recovery)
+        let library = Self::start(root, conn, recovery)?;
+        // 早于 #110 导入、或缓存被清掉的图：在后台补生成占位图，补齐前界面退回中性底色。
+        let inner = Arc::downgrade(&library.inner);
+        let _ = std::thread::Builder::new()
+            .name("kinshoko-placeholders".into())
+            .spawn(move || thumbnail::fill_placeholders(inner));
+        Ok(library)
     }
 
     /// 本次打开时的对账结果：撤回了哪些中断的导入项、有哪些未知的孤立原文件。
@@ -260,6 +278,7 @@ impl Library {
                 reference_taken: AtomicBool::new(false),
                 detached: false,
                 write_revoked: Arc::new(AtomicBool::new(false)),
+                import_folders: Arc::default(),
             }),
         })
     }
@@ -443,6 +462,16 @@ impl Library {
         permanent_delete::preview(&self.inner, ids, usage)
     }
 
+    /// 清空回收站的预览（#114）：回收站里浏览视角看得见的全部图（安全模式下被封印的不算），
+    /// 与 [`Self::preview_permanent_delete`] 相同的参考组核对与令牌；确认后交给
+    /// [`Self::permanent_delete`]，沿用同一删除流程与 Eagle 重导记忆。
+    pub fn preview_empty_trash(
+        &self,
+        usage: &dyn crate::reference_groups::ReferenceGroupUsage,
+    ) -> Result<PermanentDeletePreview, Error> {
+        permanent_delete::preview_trash(&self.inner, usage)
+    }
+
     /// 永久删除回收站里的 `ids`：令牌须来自对同一组图的预览，且之后回收站、受影响的参考组与
     /// 安全模式都没变，否则为 [`Error::DeletePreviewStale`]，要重新预览。删掉参考图的记录、
     /// 整理结果、原文件与缩略图；参考组文件不改，成员与布局保留，核对时标为已删除。
@@ -485,6 +514,12 @@ impl Library {
         position: u32,
     ) -> Result<(), Error> {
         folders::move_to(&self.inner, folder_id, parent, position)
+    }
+
+    /// 删除文件夹（#114），连同它的子文件夹。图片不删：只去掉这些文件夹的归属，没有其他文件夹的
+    /// 图回到未归类（回收站里的图留在回收站）。来自 Eagle 的文件夹删掉后，重导不再把它建回来。
+    pub fn delete_folder(&self, folder_id: &str) -> Result<(), Error> {
+        folders::delete(&self.inner, folder_id)
     }
 
     /// 参考图的全部来源，按记录先后。之后并入查看器详情 `image(id)`。
@@ -802,10 +837,22 @@ impl Inner {
         &self,
         f: impl FnOnce(&rusqlite::Transaction) -> Result<T, Error> + Send + 'static,
     ) -> Result<T, Error> {
+        self.write_holding(Arc::new(Mutex::new(())), move |tx, _| f(tx))
+    }
+
+    /// 与 [`Inner::write`] 相同，但从核对到提交一直持有 `lock`：拿这把锁核对后再登记的一方
+    /// （例如导入登记保存文件夹）要么在这次写入之前，要么只看得到已提交的结果，不会夹在中间。
+    pub(crate) fn write_holding<T: Send + 'static, G: Send + 'static>(
+        &self,
+        lock: Arc<Mutex<G>>,
+        f: impl FnOnce(&rusqlite::Transaction, &mut G) -> Result<T, Error> + Send + 'static,
+    ) -> Result<T, Error> {
         let result = self.writer.run(move |conn| {
             let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-            let value = f(&tx)?;
+            let mut held = lock.lock().unwrap_or_else(|e| e.into_inner());
+            let value = f(&tx, &mut held)?;
             tx.commit()?;
+            drop(held);
             Ok(value)
         });
         if result.is_ok() {

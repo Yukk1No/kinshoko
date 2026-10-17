@@ -91,8 +91,8 @@ try {
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [parent]);
   await click("选择存放位置…");
   await click("建立图库");
-  // #98: the current library is the sidebar title menu, named “当前图库：<名称>”.
-  await until("打开图库", () => find("//button[@aria-label='当前图库：原图查看器验证']"));
+  // #113: no current library in the UI (ADR-0008); the new library shows up as a sidebar group head “名称（N 张）”.
+  await until("打开图库", () => find("//nav[@aria-label='查找范围']//*[@data-library-id]//button[contains(@class,'lib-head-name') and starts-with(@aria-label,'原图查看器验证（') and not(@disabled)]"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
   // #98: 导入 is a split button; the folder entry is in its menu, then a dialog chooses the library.
@@ -114,7 +114,7 @@ try {
   ] }] });
   const fitted = await until("真实双击打开查看器", image);
   check(fitted.w < 2400 && Math.abs(fitted.physicalW - fitted.w) < 0.01 && Math.abs(fitted.physicalH - fitted.h) < 0.01, "适应窗口按设备像素 1:1 显示派生图");
-  await click("原图像素");
+  await click("原始像素");
   const original = await until("原图解码", image);
   if (forcedDpr) check(Math.abs(original.dpr - Number(forcedDpr)) < 0.001, "WebView2 使用请求的测试 DPR");
   check(original.w === 2400 && original.h === 1600 && Math.abs(original.physicalW - 2400) < 0.01 && Math.abs(original.physicalH - 1600) < 0.01, "原图像素在真实 WebView2 中对齐（DPR " + original.dpr + "）");

@@ -3,7 +3,7 @@ import { onCollectionRequest, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { modalOpen as anyModalOpen } from "./ui/modal";
-import { Images, PanelLeftClose, PanelLeftOpen, PanelRightClose, X } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, X } from "lucide-react";
 import { ToastProvider, useToast } from "./ui/Toast";
 import { WinCtrls } from "./ui/WinCtrls";
 import type { AppInfo } from "./bindings/AppInfo";
@@ -21,6 +21,7 @@ import {
   isCursorExpired,
   isLensChanged,
   onLibraryEvent,
+  onOrganizeWaiting,
   workspaceResolve,
   workspaceStatus,
   onWorkspaceChanged,
@@ -30,9 +31,10 @@ import {
   shellSettings,
   thumbnailUrl,
 } from "./ipc";
+import { referenceCard, useOpenInKinshoko } from "./desktop/openInKinshoko";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { type FinishedImport, type RunningImport } from "./library/ImportBar";
-import { ImportMenu } from "./library/ImportMenu";
+import { ImportMenu, type ImportControl } from "./library/ImportMenu";
 import { LegacyNameMigrationNotice, LegacyNameWizard } from "./library/LegacyNameMigrationPanel";
 import { WorkspacePane, WorkspaceSources } from "./library/WorkspacePane";
 import type { WorkspaceCard as SourcesCard } from "./bindings/WorkspaceCard";
@@ -50,7 +52,9 @@ import { Dialog } from "@base-ui/react/dialog";
 import { TaggingIndicator } from "./TaggingIndicator";
 import { UpdateBanner } from "./Update";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "./wall/Wall";
-import { DensitySlider } from "./wall/DensitySlider";
+import { WallMenu } from "./wall/WallMenu";
+import { useWallActions } from "./wall/useWallActions";
+import { DensityIsland } from "./wall/DensityIsland";
 import { Viewer } from "./viewer/Viewer";
 import { RuntimeNotice } from "./RuntimeSupport";
 
@@ -58,6 +62,8 @@ type WorkspaceProps = {
   library: LibraryInfo | null;
   captureRequest?:{id:string;stamp:number}|null;
   onCaptureRequestHandled?:()=>void;
+  /** 钉图菜单“在 Kinshoko 中打开”的参考图（#106）：在查看器里打开。 */
+  referenceRequest?: { libraryId: string; imageId: string; stamp: number } | null;
   section: Section;
   paneOpen: boolean;
   onPaneToggle: () => void;
@@ -75,6 +81,8 @@ type WorkspaceProps = {
   onViewerChange: (open: boolean) => void;
   /** 顶栏下方的提示（运行时、旧名称、更新、备份提醒）。 */
   notices?: ReactNode;
+  /** 侧栏图库标题菜单“从列表移除”之后（#114）。 */
+  onLibraryRemoved?: (libraryId: string) => void;
 };
 
 /**
@@ -85,6 +93,7 @@ function LibraryWorkspace({
   library,
   captureRequest,
   onCaptureRequestHandled,
+  referenceRequest,
   section,
   paneOpen,
   onPaneToggle,
@@ -97,6 +106,7 @@ function LibraryWorkspace({
   keepSelectionOnSafe,
   onViewerChange,
   notices,
+  onLibraryRemoved,
 }: WorkspaceProps) {
   const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
   keepSelectionOnSafeRef.current = keepSelectionOnSafe;
@@ -113,6 +123,8 @@ function LibraryWorkspace({
   const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
   const [reloadKey, setReloadKey] = useState(0);
   const [density, setDensity] = useState(240);
+  /** 图片墙上 Ctrl+滚轮缩放中的预览值（#111），滑条跟着走。 */
+  const [zoomPreview, setZoomPreview] = useState<number | null>(null);
   const [resultCount, setResultCount] = useState<number | null>(null);
   /** 修订变化后的选择修剪：等图片墙清空（reset）再读完新的结果（loading），然后只保留仍在的图。 */
   const prune = useRef<"idle" | "reset" | "loading">("idle");
@@ -122,8 +134,23 @@ function LibraryWorkspace({
   const scope: BrowseScope = workspaceScope.kind === "library" ? workspaceScope.scope : { kind: "all" };
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<BrowserCard | null>(null);
+  /** 查看器打开时即进入框选（图片墙右键“框选局部钉住”或 F1）。 */
+  const [viewCrop, setViewCrop] = useState(false);
+  useEffect(() => { if (!viewing) setViewCrop(false); }, [viewing]);
+  const importControl = useRef<ImportControl>(null);
   const [editingGroups, setEditingGroups] = useState(false);
   useEffect(()=>{if(captureRequest){setViewing(null);setSources(null);}},[captureRequest]);
+  // 钉图菜单“在 Kinshoko 中打开”（#106）：按当前安全模式读这张参考图，读到才打开查看器。
+  useEffect(() => {
+    if (!referenceRequest) return;
+    let alive = true;
+    const { libraryId: from, imageId } = referenceRequest;
+    referenceCard(from, imageId, safe).then(
+      (card) => { if (!alive) return; setSources(null); setViewCrop(false); setViewing(card); },
+      (e) => { if (alive) toast?.error(`无法打开这张参考图：${String(e)}`); },
+    );
+    return () => { alive = false; };
+  }, [referenceRequest]);
   const [problem, setProblem] = useState<string | null>(null);
   const [search, setSearch] = useState<SearchInput>({ conditions: [], exact: false });
   const [tree, setTree] = useState<ConditionTree>({ conditions: [] });
@@ -254,10 +281,27 @@ function LibraryWorkspace({
     setRunning(null); setReport(null); setSelected(new Set()); setViewing(null); setSources(null);
     setReloadKey((k) => k + 1);
   }, [libraryId]);
+  // 整理另一个图库时它的导入正在收尾（ADR-0008，#112）：后端等收尾结束再执行，这里只给轻提示。
+  useEffect(() => {
+    let alive = true;
+    const unlisten = onOrganizeWaiting((waiting) => {
+      if (!alive) return;
+      const names = waiting.finishing.map((name) => `「${name}」`).join("、");
+      toast?.show({ title: "导入收尾后再整理", description: `${names}的导入完成后自动执行` });
+    });
+    return () => {
+      alive = false;
+      void unlisten.then((stop) => stop());
+    };
+  }, [toast]);
   useEffect(() => {
     let alive = true;
     const unlisten = onLibraryEvent((event) => {
-      if (!alive || event.libraryId !== libraryId) return;
+      if (!alive) return;
+      // 后端按需把可写句柄切到正在整理的图库（ADR-0008）：任何图库的列表或词表变化都只让界面重读；
+      // 安全模式与导入事件只认这个界面打开的图库，另一个库的不串台。
+      const invalidation = event.kind === "listStale" || event.kind === "vocabularyChanged" || event.kind === "imagesChanged";
+      if (event.libraryId !== libraryId && !invalidation) return;
       const task = imports.current;
       switch (event.kind) {
         case "listStale":
@@ -342,8 +386,15 @@ function LibraryWorkspace({
   const [barHost, setBarHost] = useState<HTMLElement | null>(null);
   const selectionKey = [...selected].sort().join("\n");
   const [inspectorHidden, setInspectorHidden] = useState<string | null>(null);
-  const eligible = selected.size > 0 && ((workspaceScope.kind === "library" && workspaceScope.libraryId === libraryId) ||
-    loadedCards.filter((card) => selected.has(card.id)).every((card) => card.sources?.length === 1 && card.sources[0].libraryId === libraryId));
+  // 详情面板整理哪个图库（ADR-0008，#113）：范围是某个图库时就是它；“全部图片”下选中的图都只有同一个图库的
+  // 来源时是那个库。多选可以整理任何一个图库；只选一张且不在窗口打开的图库时，走下面的来源整理。
+  const selectedCards = loadedCards.filter((card) => selected.has(card.id));
+  const soleLibrary = selectedCards[0]?.sources?.length === 1 ? selectedCards[0].sources[0].libraryId : null;
+  // 列表重读期间选中的图暂时不在已读卡片里：沿用窗口打开的图库，等修剪选择后再定（与原规则相同）。
+  const selectionLibrary = workspaceScope.kind === "library" ? workspaceScope.libraryId
+    : selectedCards.length === 0 ? libraryId || null
+    : soleLibrary && selectedCards.every((card) => card.sources?.length === 1 && card.sources[0].libraryId === soleLibrary) ? soleLibrary : null;
+  const eligible = selected.size > 0 && selectionLibrary !== null && (selected.size > 1 || selectionLibrary === libraryId);
   // 选中一张只有一份来源、且不属于当前图库的图时，详情面板也显示它的来源整理（卡片上的来源按钮同样可打开）。
   const selectedSourceCard = !eligible && selected.size === 1
     ? loadedCards.find((card) => selected.has(card.id) && card.sources?.length && card.libraryId && card.imageId) as SourcesCard | undefined
@@ -366,6 +417,21 @@ function LibraryWorkspace({
     setRunning((r) => (r?.taskId === taskId ? r : { taskId, progress: { done: 0, total: 0 } }));
   };
 
+  // 图片墙的右键菜单与卡片快捷键（#102）。
+  const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
+    safe, activeLibraryId: libraryId, onError,
+    onOpen: (card) => { setViewCrop(false); setViewing(card); },
+    onCrop: (card) => { setViewCrop(true); setViewing(card); },
+    onInspect: (card) => setSources(card as WorkspaceCard),
+    onChanged: () => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); },
+    onClearSelection: () => setSelected(new Set()),
+    importFrom: (source) => importControl.current?.[source](),
+    importClipboard: async () => { await importControl.current?.clipboard(); },
+    onNotice: (message) => { toast?.show({ title: message, tone: "success" }); },
+    selectAll: () => wall.current?.selectAll(),
+    setDensity,
+  });
+
   const libInPane = paneOpen && section === "browse";
   const sectionName = section === "groups" ? "参考组" : "截图";
   return (
@@ -385,8 +451,8 @@ function LibraryWorkspace({
             <button type="button" className="k-icon-btn" aria-label="收起侧栏" title="收起侧栏（Ctrl+B）" onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button>
           </header>
           <div className="pane-body" hidden={section !== "browse"}>
-          <WorkspacePane status={status} scope={workspaceScope} activeLibraryId={libraryId} safeMode={safe}
-            reloadKey={reloadKey} onError={onError} onRecheck={recheck} onScope={(next) => {
+          <WorkspacePane status={status} scope={workspaceScope} safeMode={safe}
+            reloadKey={reloadKey} onError={onError} onRecheck={recheck} onRemoved={onLibraryRemoved} onScope={(next) => {
               setWorkspaceScope(next); setSelected(new Set()); setSources(null);
             }}
             foot={library && <TaggingIndicator key={`${library.id}/${library.root}`} libraryId={library.id} />}>
@@ -398,7 +464,6 @@ function LibraryWorkspace({
         <main className="app-main main">
           <header className="topbar" data-tauri-drag-region>
             {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label="展开侧栏" title="展开侧栏（Ctrl+B）"><PanelLeftOpen size={16} aria-hidden="true" /></button>}
-            {!libInPane && <div className="collapsed-library">{libraryControls}</div>}
           <SearchBox
             workspace
             libraryId="workspace"
@@ -415,11 +480,8 @@ function LibraryWorkspace({
           />
           <div className="bar-meta">
             <span className="result-count tabular" role="status" aria-label="查找结果">{resultCount === null ? "…" : resultCount + " 张"}</span>
-            <label className="density" title="图片大小"><Images size={14} aria-hidden="true" /><span className="sr-only">图片大小</span>
-              <DensitySlider value={density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
-            </label>
           </div>
-          <ImportMenu scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
+          <ImportMenu control={importControl} scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
             running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
             onOpenTrash={(owner=libraryId) => {
               onOpenBrowse();
@@ -470,6 +532,8 @@ function LibraryWorkspace({
           <Wall
             ref={wall}
             density={density}
+            onDensityPreview={setZoomPreview}
+            onDensityCommit={(value) => { setZoomPreview(null); setDensity(value); }}
             onTotalChange={setResultCount}
             key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
             libraryId={libraryId || "workspace"}
@@ -483,9 +547,19 @@ function LibraryWorkspace({
             safeMode={safe}
             selected={selected}
             onSelectionChange={setSelected}
-            onOpenImage={setViewing}
+            onOpenImage={(card) => { setViewCrop(false); setViewing(card); }}
             viewerOpen={modalOpen}
+            menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} />}
+            onCardCommand={(command, cards, point) => {
+              if (command === "pin") wallActions.pin(cards, point);
+              else if (command === "crop") wallActions.crop(cards[0]);
+              else if (command === "copy") { if (cards.length === 1) wallActions.copy(cards[0]); else if (toast) toast.show({ title: "一次只能复制一张" }); else onError("一次只能复制一张"); }
+              else wallActions.edit(cards, [{ kind: "delete" }], true);
+            }}
+            onPaste={wallActions.importClipboard}
           />
+          {/* 图片大小浮岛（#102 方案 C3）：图片墙右下角，与 Ctrl+滚轮缩放成对。 */}
+          <DensityIsland value={density} preview={zoomPreview} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
           {/* 多选的浮动操作条（#98）：选择面板把数量与批量操作放到这里。 */}
           <div className="selbar-host" ref={setBarHost} />
         </main>
@@ -501,11 +575,12 @@ function LibraryWorkspace({
               {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => { if (sources) setSources(null); else setSelected(new Set()); }} onView={setViewing}
                 onChanged={() => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); }} />
               : <SelectionPanel
-                libraryId={libraryId}
+                workspace
+                libraryId={selectionLibrary ?? libraryId}
                 scope={scope}
                 bar={barHost}
-                selected={new Set(loadedCards.filter((card) => selected.has(card.id)).flatMap((card) =>
-                  card.sources?.filter((source) => source.libraryId === libraryId && !source.unavailable).map((source) => source.imageId) ?? []))}
+                selected={new Set(selectedCards.flatMap((card) =>
+                  card.sources?.filter((source) => source.libraryId === selectionLibrary && !source.unavailable).map((source) => source.imageId) ?? []))}
                 onClear={() => setSelected(new Set())}
                 reloadKey={reloadKey}
                 onError={onError}
@@ -527,13 +602,16 @@ function LibraryWorkspace({
         reloadKey={reloadKey}
         position={viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) }}
         onStep={step}
+        startCrop={viewCrop}
+        onTrash={scope.kind === "trash" ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
       />
     )}
+    {wallDialogs}
     </>
   );
 }
 
-/** 详情面板的预览图与图片墙同为参考图来源：截在上面时读原图像素，而不是缩略图的屏幕像素。 */
+/** 详情面板的预览图与图片墙同为参考图来源：截在上面时读原始像素，而不是缩略图的屏幕像素。 */
 function InspectorPreview({ card, libraryId }: { card: BrowserCard; libraryId: string }) {
   const image = useRef<HTMLImageElement>(null);
   useCaptureSources(() => {
@@ -564,6 +642,7 @@ function MainWindow() {
   const [nameWizard, setNameWizard] = useState(false);
   const [captureRequest,setCaptureRequest]=useState<{id:string;stamp:number}|null>(null);
   const collectionHandled=useCallback(()=>setCaptureRequest(null),[]);
+  const [referenceRequest, setReferenceRequest] = useState<{ libraryId: string; imageId: string; stamp: number } | null>(null);
   const [section, setSection] = useState<Section>("browse");
   const [paneOpen, setPaneOpen] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -598,6 +677,12 @@ function MainWindow() {
       );
     });
   }, [toast]);
+
+  // 钉图菜单“在 Kinshoko 中打开”（#106）：参考图在查看器里打开，截图打开截图历史。
+  useOpenInKinshoko((request) => {
+    if (request.kind === "capture") { setSection("captures"); setPaneOpen(true); return; }
+    setReferenceRequest((last) => ({ libraryId: request.libraryId, imageId: request.imageId, stamp: (last?.stamp ?? 0) + 1 }));
+  });
 
   useEffect(()=>{
     let alive=true,stamp=0,sequence=0;
@@ -702,6 +787,7 @@ function MainWindow() {
           library={library}
           captureRequest={captureRequest}
           onCaptureRequestHandled={collectionHandled}
+          referenceRequest={referenceRequest}
           section={section}
           paneOpen={paneOpen}
           onPaneToggle={() => setPaneOpen((open) => !open)}
@@ -714,6 +800,7 @@ function MainWindow() {
           keepSelectionOnSafe={keepSelectionOnSafe}
           onViewerChange={setViewerOpen}
           notices={!empty && notices}
+          onLibraryRemoved={(id) => { if (library?.id === id) changed(null); }}
         />
       )}
       {empty && (

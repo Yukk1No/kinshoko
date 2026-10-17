@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type ComponentProps, type Ref } from "react";
 import { ImportBar, type ImportActions } from "./ImportBar";
 import { ImportSplit } from "../ui/ImportSplit";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
-import { dismissImport, importTasks, isCursorExpired, onSafeModeSetting, onWorkspaceChanged } from "../ipc";
+import { dismissImport, importTasks, isCursorExpired, onSafeModeSetting, onWorkspaceChanged, stageClipboardImport } from "../ipc";
 import { destinationAvailable, folderChoices, SaveDestinationPicker, useSaveDestination } from "./SaveDestination";
 
 const POLL_MIN=400,POLL_MAX=3200;
@@ -21,7 +21,13 @@ function concealSuccesses(report: ImportReport): ImportReport {
  * 顶栏的导入分体按钮（#98）：左半直接选图片文件，箭头里选文件夹或 Eagle；选好后在对话框里确认图库和文件夹，
  * 进度与结果回执是右下角的卡片。任务回执跨浏览与当前图库的变化保留。
  */
-export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceScope}) {
+/**
+ * 从别处（图片墙右键菜单）开始导入的入口。clipboard：把剪贴板里的图片暂存成文件，再走同一导入流程
+ * （保存位置照常选择）；剪贴板没有图片或正在导入时 reject 中文原因（#105）。
+ */
+export type ImportControl = { files: () => void; folder: () => void; eagle: () => void; clipboard: () => Promise<void> };
+
+export function ImportMenu({control,...p}:ComponentProps<typeof ImportBar>&{scope?:WorkspaceScope;control?:Ref<ImportControl>}) {
  const [tasks,setTasks]=useState<ImportTaskSnapshot[]>([]),[selectedTask,setSelectedTask]=useState<string|null>(null),[problem,setProblem]=useState<string|null>(null);
  const context=useSaveDestination();
  const actions=useRef<ImportActions>(null);
@@ -72,6 +78,15 @@ export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceS
  // 在文件夹里浏览时，导入默认放进这个文件夹（与原来的导入按钮相同）。
  const prefill=()=>{if(p.scope?.kind==="library"&&(p.scope.scope.kind==="folder"||p.scope.scope.kind==="folderTree"))context.setDestination({libraryId:p.scope.libraryId,folderId:p.scope.scope.id});};
  const via=(action:"files"|"folder")=>()=>{prefill();actions.current?.[action]();};
+ const eagle=()=>{prefill();actions.current?.eagle();};
+ // 图片墙空白处右键的“导入 ▸”与这里的分体按钮走同一入口；按钮不可用（导入进行中）时也不开始。
+ const blocked=busy.busy||active;
+ const clipboard=async()=>{
+  if(blocked)throw "正在导入，结束后再从剪贴板导入";
+  const path=await stageClipboardImport();
+  prefill();actions.current?.paths([path]);
+ };
+ useImperativeHandle(control,()=>({files:()=>{if(!blocked)via("files")();},folder:()=>{if(!blocked)via("folder")();},eagle:()=>{if(!blocked)eagle();},clipboard}));
  const notes=<>
   {problem&&<p className="k-task-sub is-danger" role="alert">{problem}</p>}
   {task?.report&&task.finishing&&<p className="k-task-sub" role="status">已导入，正在把标签定义存进图库…</p>}
@@ -80,7 +95,7 @@ export function ImportMenu(p:ComponentProps<typeof ImportBar>&{scope?:WorkspaceS
  const switcher=tasks.length>1?<label className="k-task-switch">查看导入任务<select className="k-select" aria-label="查看导入任务" value={task?.taskId??""} onChange={e=>setSelectedTask(e.target.value)}>
   {tasks.map(t=><option key={t.taskId} value={t.taskId}>{t.libraryName} / {t.folderName} · {t.report?"已结束":"进行中"}</option>)}</select></label>:null;
  return <div className="import-menu">
-  <ImportSplit busy={busy.busy||active} eagleBusy={busy.eagle} onFiles={via("files")} onFolder={via("folder")} onEagle={()=>{prefill();actions.current?.eagle();}}
+  <ImportSplit busy={busy.busy||active} eagleBusy={busy.eagle} onFiles={via("files")} onFolder={via("folder")} onEagle={eagle}
    onShowTasks={tasks.length>0||active||finished?()=>actions.current?.showTasks():undefined}/>
   <ImportBar {...p} actionsRef={actions} onBusyChange={onBusyChange} previewContextKey={p.libraryId} libraryId={context.destination?.libraryId??""} libraryName={library?.name??"尚未选择的图库"}
     destination={context.destination} destinationReady={context.ready&&destinationAvailable(context.destination,context.providers)} running={running} finished={finished}

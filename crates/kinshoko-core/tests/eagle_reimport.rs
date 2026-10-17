@@ -447,6 +447,59 @@ fn reimport_applies_eagle_folder_changes_and_keeps_local_folder_adjustments() {
     }
 }
 
+/// 画师在本库删掉的 Eagle 文件夹（#114）：重导时条目仍引用它也照常刷新，文件夹不被建回来；
+/// Eagle 之后在它下面新建的文件夹放到它原来的位置。
+#[test]
+fn a_folder_deleted_here_stays_deleted_when_eagle_is_imported_again() {
+    for version in VERSIONS {
+        let dir = tempfile::tempdir().unwrap();
+        let mut fixture = eagle::build(&dir.path().join("主库.library"), version, 3);
+        let library = Library::create(&dir.path().join("kinshoko"), "参考").unwrap();
+        let ids = first_import(&library, &fixture);
+        library.delete_folder(&folder_id(&library, "角色")).unwrap();
+        assert_eq!(folder_names(&library, &ids[0]), ["发型参考"]);
+
+        // Eagle 的文件夹层级没变，条目仍在 GIRL 里，只改了备注。
+        for i in 0..3 {
+            fixture.items[i]["annotation"] = json!(format!("新备注{i}"));
+            fixture.save_item(i);
+        }
+        let report = import(&library, &fixture.root);
+        assert!(
+            report
+                .items
+                .iter()
+                .all(|i| matches!(i.outcome, ImportOutcome::Refreshed { .. })),
+            "{report:?}"
+        );
+        assert_eq!(folder_paths(&library), ["发型参考", "空文件夹"]);
+        assert_eq!(folder_names(&library, &ids[0]), ["发型参考"]);
+
+        // Eagle 改了层级：被删的“角色”改名、在被删的“女”下新建文件夹并放进一张图。
+        let mut meta: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(fixture.root.join("metadata.json")).unwrap(),
+        )
+        .unwrap();
+        meta["folders"][0]["name"] = json!("人物");
+        meta["folders"][0]["children"][0]["children"] =
+            json!([{"id": "NEW", "name": "新文件夹", "children": []}]);
+        eagle::write_json(&fixture.root.join("metadata.json"), &meta);
+        fixture.items[2]["folders"] = json!(["NEW"]);
+        fixture.save_item(2);
+        let report = import(&library, &fixture.root);
+        assert!(
+            report
+                .items
+                .iter()
+                .all(|i| matches!(i.outcome, ImportOutcome::Refreshed { .. })),
+            "{report:?}"
+        );
+        assert_eq!(folder_paths(&library), ["发型参考", "新文件夹", "空文件夹"]);
+        assert_eq!(folder_names(&library, &ids[2]), ["新文件夹"]);
+        assert_eq!(folder_names(&library, &ids[0]), ["发型参考"]);
+    }
+}
+
 /// Eagle 里把条目 `index` 放进或移出 HAIR，然后重导。
 fn eagle_sets_hair(library: &Library, fixture: &mut eagle::EagleFixture, index: usize, on: bool) {
     fixture.items[index]["folders"] = if on {

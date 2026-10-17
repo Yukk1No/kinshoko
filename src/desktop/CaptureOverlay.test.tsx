@@ -1,16 +1,28 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { CaptureOverlay } from "./CaptureOverlay";
 
+let reduced = false;
+vi.mock("motion/react", async (actual) => ({ ...(await actual<typeof import("motion/react")>()), useReducedMotion: () => reduced }));
+
 let calls: { cmd: string; args: any }[];
+/** 冻结时登记的参考图在框选窗口里的范围（物理像素）与原图倍率：选区完全落在里面时读原始像素。 */
+let reference: { x: number; y: number; width: number; height: number; scale: number } | null;
 beforeEach(() => {
+  reduced = false;
+  reference = null;
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.25 });
   mockConvertFileSrc("windows");
   calls = [];
   mockIPC((cmd, args) => {
     calls.push({ cmd, args });
     if (cmd === "plugin:desktop|frozen_screen") return { image: "screen/tok", width: 2400, height: 1500 };
+    if (cmd === "plugin:desktop|capture_readout") {
+      const { region: r } = args as { region: { x: number; y: number; width: number; height: number } };
+      const inside = reference && r.x >= reference.x && r.y >= reference.y && r.x + r.width <= reference.x + reference.width && r.y + r.height <= reference.y + reference.height;
+      return inside ? { width: r.width * reference!.scale, height: r.height * reference!.scale } : null;
+    }
     return null;
   });
 });
@@ -88,5 +100,67 @@ describe("截图框选（#98 dock）", () => {
     copy.focus();
     fireEvent.keyDown(copy, { key: "Enter" });
     expect(sent("finish_capture")).toEqual([]);
+  });
+});
+
+describe("截图读数区分原始像素（#103）", () => {
+  const readout = () => within(screen.getByRole("toolbar", { name: "截图" })).getByText(/像素$/).closest(".k-dock-readout") as HTMLElement;
+  const star = () => readout().querySelector<SVGSVGElement>("svg.k-original-star");
+
+  it("选区完全落在参考图上时读原图对应区域的原始像素，并带上 logo 的星", async () => {
+    // 一张 4 倍缩小显示的参考图，冻结屏幕 (100, 50) 起 600×400（物理像素）。
+    reference = { x: 100, y: 50, width: 600, height: 400, scale: 4 };
+    const { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    expect(sent("capture_readout")).toContainEqual({ region: { x: 125, y: 100, width: 125, height: 100 }, token: "tok" });
+    expect(await within(readout()).findByText("原始像素")).toBeTruthy();
+    expect(within(readout()).getByText("500 × 400")).toBeTruthy();
+    expect(within(readout()).queryByText("屏幕像素")).toBeNull();
+    const mark = star()!;
+    expect(mark.getAttribute("aria-hidden")).toBe("true");
+    expect(mark.querySelector("path")!.getAttribute("d")).toBe("M132 32 C136.16 53.84 136.16 53.84 158 58 C136.16 62.16 136.16 62.16 132 84 C127.84 62.16 127.84 62.16 106 58 C127.84 53.84 127.84 53.84 132 32 Z");
+    expect(mark.querySelector("path")!.getAttribute("fill")).toBe("#E3B34F");
+    // 星紧跟“原始像素”最后一个字，挂在它的右上角。
+    expect(mark.parentElement!.textContent).toBe("原始像素");
+    expect(mark.parentElement!.lastChild).toBe(mark);
+  });
+
+  it("跨出图片、盖住多张图或落在遮蔽图上（未登记为来源）时读屏幕像素，无星", async () => {
+    reference = { x: 100, y: 50, width: 600, height: 400, scale: 4 };
+    const { root } = await open();
+    select(root, [500, 300], [700, 400]);
+    await act(async () => {});
+    expect(within(readout()).getByText("250 × 125")).toBeTruthy();
+    expect(within(readout()).getByText("屏幕像素")).toBeTruthy();
+    expect(star()).toBeNull();
+  });
+
+  it("选区重新框到图内或图外时读数当场切换，旧的回复不会盖住新选区", async () => {
+    reference = { x: 100, y: 50, width: 600, height: 400, scale: 4 };
+    const { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    expect(await within(readout()).findByText("原始像素")).toBeTruthy();
+    select(root, [500, 300], [700, 400]);
+    expect(await within(readout()).findByText("屏幕像素")).toBeTruthy();
+    expect(within(readout()).getByText("250 × 125")).toBeTruthy();
+    expect(star()).toBeNull();
+    select(root, [100, 80], [200, 160]);
+    expect(await within(readout()).findByText("原始像素")).toBeTruthy();
+    expect(star()).not.toBeNull();
+  });
+
+  it("切到原始像素时星从 0 以弹簧放大并轻转落定；减少动画时直接出现", async () => {
+    reference = { x: 100, y: 50, width: 600, height: 400, scale: 4 };
+    let { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    await within(readout()).findByText("原始像素");
+    expect(star()!.style.transform).toMatch(/scale\(0\)/);
+    expect(star()!.style.transform).toMatch(/rotate\(-15deg\)/);
+    cleanup();
+    reduced = true;
+    ({ root } = await open());
+    select(root, [100, 80], [200, 160]);
+    await within(readout()).findByText("原始像素");
+    expect(star()!.style.transform).not.toMatch(/scale\(0\)|rotate/);
   });
 });

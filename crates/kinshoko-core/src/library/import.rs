@@ -19,7 +19,6 @@ use image::ImageFormat;
 use rusqlite::{OptionalExtension, params};
 use sha2::{Digest, Sha256};
 
-use super::colour;
 use super::events::LibraryEvent;
 use super::types::{
     EagleDeletedContentChoice, ImportItem, ImportOptions, ImportOutcome, ImportProgress,
@@ -29,6 +28,7 @@ use super::{
     Error, Inner, ORIGINALS_DIR, STAGING_DIR, SaveDestination, eagle, fault, now_ms, package, save,
     tags,
 };
+use super::{colour, thumbnail};
 use crate::fidelity::ColourDescription;
 use crate::fidelity::inspect::inspect;
 use crate::fidelity::render::verify_pixels;
@@ -87,6 +87,30 @@ pub(super) fn start_to(
     options: ImportOptions,
     destination: SaveDestination,
 ) -> ImportTask {
+    // 任务开始前登记保存文件夹，结束（含中途出错）时撤下：期间删除这个文件夹会被拒绝。
+    let receiving = ReceivingFolder::enter(&inner, destination.folder_id.clone());
+    spawn(inner, source, options, destination, receiving)
+}
+
+/// 先核对保存位置再开始：核对与登记在删除文件夹用的同一把锁里一起做（见 `folders::delete`），
+/// 核对通过的文件夹在导入结束前不会被删掉；文件夹已被删掉时不开始任务，直接报错。
+pub(super) fn start_validated(
+    inner: Arc<Inner>,
+    source: ImportSource,
+    options: ImportOptions,
+    destination: SaveDestination,
+) -> Result<ImportTask, Error> {
+    let receiving = ReceivingFolder::enter_validated(&inner, &destination)?;
+    Ok(spawn(inner, source, options, destination, receiving))
+}
+
+fn spawn(
+    inner: Arc<Inner>,
+    source: ImportSource,
+    options: ImportOptions,
+    destination: SaveDestination,
+    receiving: ReceivingFolder,
+) -> ImportTask {
     let id = uuid::Uuid::new_v4().simple().to_string();
     let cancel = Arc::new(AtomicBool::new(false));
     let progress = Arc::new(Mutex::new(ImportProgress::default()));
@@ -95,6 +119,7 @@ pub(super) fn start_to(
         std::thread::Builder::new()
             .name("kinshoko-import".into())
             .spawn(move || {
+                let _receiving = receiving;
                 run(
                     &inner,
                     &id,
@@ -112,6 +137,49 @@ pub(super) fn start_to(
         cancel,
         progress,
         thread,
+    }
+}
+
+/// 一个导入任务对保存文件夹的登记；撤下时只去掉自己那一项（同一文件夹可能有几个任务）。
+struct ReceivingFolder {
+    inner: Arc<Inner>,
+    folder: Option<String>,
+}
+
+impl ReceivingFolder {
+    fn enter(inner: &Arc<Inner>, folder: Option<String>) -> Self {
+        if let Some(folder) = &folder {
+            inner.receiving_folders().push(folder.clone());
+        }
+        Self {
+            inner: inner.clone(),
+            folder,
+        }
+    }
+
+    /// 在登记表的锁里核对保存位置并登记：与删除文件夹（核对到提交都持有这把锁）不会交错。
+    fn enter_validated(inner: &Arc<Inner>, destination: &SaveDestination) -> Result<Self, Error> {
+        let mut folders = inner.receiving_folders();
+        save::validate(inner, destination)?;
+        if let Some(folder) = &destination.folder_id {
+            folders.push(folder.clone());
+        }
+        drop(folders);
+        Ok(Self {
+            inner: inner.clone(),
+            folder: destination.folder_id.clone(),
+        })
+    }
+}
+
+impl Drop for ReceivingFolder {
+    fn drop(&mut self) {
+        if let Some(folder) = &self.folder {
+            let mut folders = self.inner.receiving_folders();
+            if let Some(at) = folders.iter().position(|f| f == folder) {
+                folders.swap_remove(at);
+            }
+        }
     }
 }
 
@@ -343,8 +411,34 @@ struct ImportContext {
     task_created_images: Arc<Mutex<HashSet<String>>>,
 }
 
-/// 让一份原图字节走完写入顺序：完整解码 → 哈希 → 同库暂存校验 → pending → 发布 → 提交。
+/// 让一份原图字节走完写入顺序，进库后生成占位图（#110）。
+/// 占位图是可重建缓存：生成失败不影响导入结果，打开资料库时的后台补齐会再试。
 fn ingest(
+    inner: &Inner,
+    bytes: &[u8],
+    original_name: String,
+    location: String,
+    origin: Origin,
+    options: ImportOptions,
+    context: ImportContext,
+) -> (ImportOutcome, bool) {
+    let result = ingest_original(
+        inner,
+        bytes,
+        original_name,
+        location,
+        origin,
+        options,
+        context,
+    );
+    if let Some(image_id) = result.0.image_id() {
+        let _ = thumbnail::make_placeholder(inner, image_id);
+    }
+    result
+}
+
+/// 让一份原图字节走完写入顺序：完整解码 → 哈希 → 同库暂存校验 → pending → 发布 → 提交。
+fn ingest_original(
     inner: &Inner,
     bytes: &[u8],
     original_name: String,
