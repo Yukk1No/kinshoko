@@ -137,3 +137,27 @@ it("keeps a correction publication failure through queued and later vocabulary r
   await screen.findByText("标签定义已保存到图库。");
   expect(screen.queryByRole("alert")).toBeNull();
 });
+
+it("keeps a correction chosen right after the rows appear, before their mount effects run", async () => {
+  const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "白" }], aliases: [], external: [], count: 1 };
+  const workspace: TagCatalogWorkspace = { libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }], catalog: { revision: 2, tags: [{ ...local, id: "old", defaultNames: local.names, namePreferences: [] }, { ...local, id: "split", names: [{ lang: "zh-CN", name: "独立的白" }], defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "b", localTagId: "local", catalogId: "old", legacy: local, basis: "independent", nameProvenance: "catalog" }] } };
+  mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? workspace : undefined);
+  render(<TagIdentityPanel />);
+  // MutationObserver 回调是微任务：在 React 提交之后、被动 effect 之前选择，等同于手比挂载 effect 快。
+  const chosen = new Promise<void>((done) => {
+    const observer = new MutationObserver(() => {
+      const select = document.querySelector("select");
+      if (!select) return;
+      observer.disconnect();
+      fireEvent.change(select, { target: { value: "split" } });
+      done();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+  fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
+  await chosen;
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+  const row = screen.getByRole("row", { name: /画稿库.*白/ });
+  expect(within(row).getByRole<HTMLSelectElement>("combobox").value).toBe("split");
+  expect(within(row).getByRole<HTMLButtonElement>("button", { name: "保存对应" }).disabled).toBe(false);
+});
