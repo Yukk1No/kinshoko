@@ -101,6 +101,8 @@ describe("缩放后的滚动位置", () => {
     const i = cardAt(before, 443, scrollTop + pointerY);
     const top = zoomScrollTop(after, i, pointerY, viewport);
     expect(centerOnScreen(after, i, top)).toBeCloseTo(pointerY, 6);
+    expect(after.boxes[i].y - top).toBeGreaterThanOrEqual(0);
+    expect(after.boxes[i].y + after.boxes[i].h - top).toBeLessThanOrEqual(viewport);
   });
 
   it("靠近顶部时不滚到负数，那张图仍完整留在视口里", () => {

@@ -261,7 +261,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 
   /**
-   * Ctrl+滚轮缩放（#111）：光标下的那张图在预览后的布局里中心仍在光标下。只由下一次布局效果消费一次；
+   * Ctrl+滚轮缩放（#111）：光标下的那张图在预览后的布局里中心仍在光标的高度（列数会变，只锚纵向，#122）。只由下一次布局效果消费一次；
    * 滑条与键盘改密度不设它，仍以视口顶部的图为锚。
    */
   const zoomPin = useRef<{ id: string; pointerY: number } | null>(null);
