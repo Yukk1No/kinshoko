@@ -18,7 +18,8 @@ describe("图片墙来源标记", () => {
     expect(declares(".wall-canvas > .card-sources", "width", "max-content")).toBe(true);
   });
 
-  it("图标不被压缩", () => {
+  it("图标不被压缩；只有一份来源时仍是 22px 圆形", () => {
     expect(declares(".wall-canvas > .card-sources > svg", "flex", "none")).toBe(true);
+    expect(declares(".wall-canvas > .card-sources.is-single", "width", "22px")).toBe(true);
   });
 });
