@@ -463,9 +463,7 @@ function LibraryWorkspace({
         </aside>
         <main className="app-main main">
           <header className="topbar" data-tauri-drag-region>
-            <div className="topbar-lead" data-tauri-drag-region>
-              {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label="展开侧栏" title="展开侧栏（Ctrl+B）"><PanelLeftOpen size={16} aria-hidden="true" /></button>}
-            </div>
+            {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label="展开侧栏" title="展开侧栏（Ctrl+B）"><PanelLeftOpen size={16} aria-hidden="true" /></button>}
           <SearchBox
             workspace
             libraryId="workspace"
@@ -480,8 +478,7 @@ function LibraryWorkspace({
               setSelected(new Set());
             }}
           />
-          <div className="topbar-trail" data-tauri-drag-region>
-          <div className="bar-meta" data-tauri-drag-region>
+          <div className="bar-meta">
             <span className="result-count tabular" role="status" aria-label="查找结果">{resultCount === null ? "…" : resultCount + " 张"}</span>
           </div>
           <ImportMenu control={importControl} scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
@@ -493,7 +490,6 @@ function LibraryWorkspace({
               setSelected(new Set());
             }} />
           {!inspectorOpen && <WinCtrls />}
-          </div>
           </header>
           {notices}
           <div className="app-tagbar">
