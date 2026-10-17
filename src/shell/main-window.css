@@ -81,7 +81,7 @@
 /* ---- Main header ---- */
 .topbar { height: 56px; min-height: 56px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px; background: var(--bg); border-bottom: 0; z-index: 5; }
 .topbar.is-empty { justify-content: flex-end; }
-.topbar > .search { flex: 1; min-width: 0; max-width: 720px; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; height: 40px; padding: 0 4px 0 12px;
+.topbar > .search { flex: 1; min-width: 0; max-width: 960px; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; height: 40px; padding: 0 4px 0 12px;
   border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); border: 0; overflow: visible; }
 .topbar > .search:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
 .topbar > .search .search-chip { height: 26px; padding: 0 4px 0 9px; border: 0; border-radius: 8px; background: var(--surface-2); font-weight: 500; }
@@ -89,6 +89,9 @@
 .topbar > .search .search-field { min-width: 120px; }
 .topbar > .search .search-field input { border: 0; padding: 4px 2px; outline: 0; }
 .topbar > .search .search-field input:focus-visible { outline: 0; }
+/* 查找框与张数一组靠左，导入与窗口控件一组靠右：导入吃掉余下的宽度，宽屏时两组分开、紧凑时自然相邻。 */
+.topbar > .import-menu { margin-left: auto; }
+.topbar > .k-win-ctrls { margin-left: 0; }
 .bar-meta { display: inline-flex; flex: none; align-items: center; gap: 10px; height: 36px; padding: 0 6px 0 4px; color: var(--ink-3); }
 .bar-meta .result-count { color: var(--ink-2); font-variant-numeric: tabular-nums; }
 
