@@ -1,24 +1,29 @@
 //! 直接调用的 Windows 接口：显示器当前使用的颜色配置文件（ICC，#62）；前台窗口、交还焦点与
 //! 光标位置（贴边隐藏，#63）；一次调用同时改钉图窗口的位置与尺寸（#64）；诊断日志用的系统版本、
-//! 处理器、内存、显卡与显示器色彩模式（#70）。
+//! 处理器、内存、显卡与显示器色彩模式（#70）；冻结截图时盖在参考图上的窗口（含 DWM 云化与
+//! 分层透明度，#125）。
 //!
 //! 这些信息只有 Win32 函数提供，没有安全的 Rust 封装，所以本模块是应用壳里唯一允许
-//! `unsafe` 的地方。每处调用都只传本函数自己持有的缓冲区，句柄在同一函数内创建并释放。
+//! `unsafe` 的地方。每处调用都只传本函数自己持有的缓冲区，句柄在同一函数内创建并释放
+//! （测试窗口由守卫在离开作用域时释放）。
 #![allow(unsafe_code)]
 
 use std::path::PathBuf;
 use std::ptr;
 
 use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
+use windows_sys::Win32::Graphics::Dwm::{DWMWA_CLOAKED, DwmGetWindowAttribute};
 use windows_sys::Win32::Graphics::Gdi::{CreateDCW, DeleteDC};
 use windows_sys::Win32::UI::ColorSystem::GetICMProfileW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GW_HWNDNEXT, GetCursorPos, GetForegroundWindow, GetTopWindow, GetWindow, GetWindowRect,
-    GetWindowThreadProcessId, IsIconic, IsWindow, IsWindowVisible, SWP_NOACTIVATE,
-    SWP_NOOWNERZORDER, SWP_NOZORDER, SetForegroundWindow, SetWindowPos,
+    GW_HWNDNEXT, GWL_EXSTYLE, GetCursorPos, GetForegroundWindow, GetLayeredWindowAttributes,
+    GetTopWindow, GetWindow, GetWindowLongW, GetWindowRect, GetWindowThreadProcessId, IsIconic,
+    IsWindow, IsWindowVisible, LWA_ALPHA, SWP_NOACTIVATE, SWP_NOOWNERZORDER, SWP_NOZORDER,
+    SetForegroundWindow, SetWindowPos, WS_EX_LAYERED,
 };
 
-/// 冻结截图时位于目标上方的窗口矩形。透明或异形窗口也保守地算遮挡，避免误连来源。
+/// 冻结截图时位于目标上方的窗口矩形。半透明或异形窗口也保守地算遮挡，避免误连来源；
+/// 只有确定不画任何东西的窗口不算（#125，见 [`draws_nothing`]）。
 /// 目标消失或 Z 序遍历不稳定时返回 None，调用方按普通截图处理。
 pub fn covering_windows(target: isize) -> Option<Vec<kinshoko_core::desktop::ScreenRect>> {
     let mut covered = Vec::new();
@@ -30,7 +35,9 @@ pub fn covering_windows(target: isize) -> Option<Vec<kinshoko_core::desktop::Scr
             return Some(covered);
         }
         // SAFETY：系统返回的借用句柄；窗口销毁时这些查询返回失败。
-        if unsafe { IsWindowVisible(window) != 0 && IsIconic(window) == 0 } {
+        if unsafe { IsWindowVisible(window) != 0 && IsIconic(window) == 0 }
+            && !draws_nothing(window)
+        {
             let mut rect: RECT = RECT {
                 left: 0,
                 top: 0,
@@ -54,6 +61,32 @@ pub fn covering_windows(target: isize) -> Option<Vec<kinshoko_core::desktop::Scr
         window = unsafe { GetWindow(window, GW_HWNDNEXT) };
     }
     None
+}
+
+/// “可见”却不画任何东西的窗口：被 DWM 云化，或整窗透明度为 0 的分层窗口。
+/// Raycast 等启动器常驻这样一个置顶、鼠标穿透的窗口；鼠标穿透本身不算（穿透的钉图仍然画着）。
+fn draws_nothing(window: HWND) -> bool {
+    let mut cloaked: u32 = 0;
+    // SAFETY：系统返回的借用句柄；输出缓冲区是本函数持有的 u32。
+    let hr = unsafe {
+        DwmGetWindowAttribute(
+            window,
+            DWMWA_CLOAKED as u32,
+            (&mut cloaked as *mut u32).cast(),
+            size_of::<u32>() as u32,
+        )
+    };
+    if hr == 0 && cloaked != 0 {
+        return true;
+    }
+    // SAFETY：同上，只读取窗口样式。
+    if unsafe { GetWindowLongW(window, GWL_EXSTYLE) } as u32 & WS_EX_LAYERED == 0 {
+        return false;
+    }
+    let (mut key, mut alpha, mut flags) = (0, 0, 0);
+    // SAFETY：同上；三个输出都是本函数持有的变量。逐像素透明的分层窗口在这里返回失败，保守算遮挡。
+    let ok = unsafe { GetLayeredWindowAttributes(window, &mut key, &mut alpha, &mut flags) };
+    ok != 0 && flags & LWA_ALPHA != 0 && alpha == 0
 }
 
 /// 距离画师最后一次键盘、鼠标或笔输入过了多少毫秒（自动备份的“空闲”，#69）。读不到时为 `None`。
@@ -414,5 +447,159 @@ fn display_colour(path: &DISPLAYCONFIG_PATH_INFO) -> DisplayColour {
         friendly_name,
         mode,
         bits_per_channel: bits,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use kinshoko_core::desktop::{
+        CaptureSelection, CaptureSurface, OriginalPixels, Placement, Region, SavedPin, ScreenRect,
+        Screenshot,
+    };
+    use kinshoko_core::library::ReferenceImage;
+    use windows_sys::Win32::Graphics::Dwm::{DWMWA_CLOAK, DwmSetWindowAttribute};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        CreateWindowExW, DestroyWindow, SW_SHOWNOACTIVATE, SetLayeredWindowAttributes, ShowWindow,
+        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT, WS_POPUP,
+    };
+
+    /// 测试用的顶层窗口，离开作用域时销毁。
+    struct Window(HWND);
+    impl Window {
+        fn new(rect: ScreenRect, ex_style: u32) -> Self {
+            let class: Vec<u16> = "STATIC\0".encode_utf16().collect();
+            // SAFETY：系统内置的 STATIC 窗口类；参数都是本函数持有的值。
+            let hwnd = unsafe {
+                CreateWindowExW(
+                    ex_style | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
+                    class.as_ptr(),
+                    ptr::null(),
+                    WS_POPUP,
+                    rect.x,
+                    rect.y,
+                    rect.width as i32,
+                    rect.height as i32,
+                    ptr::null_mut(),
+                    ptr::null_mut(),
+                    ptr::null_mut(),
+                    ptr::null(),
+                )
+            };
+            assert!(!hwnd.is_null(), "创建测试窗口失败");
+            Self(hwnd)
+        }
+        fn show(self) -> Self {
+            // SAFETY：句柄由本测试创建，尚未销毁。
+            unsafe { ShowWindow(self.0, SW_SHOWNOACTIVATE) };
+            self
+        }
+    }
+    impl Drop for Window {
+        fn drop(&mut self) {
+            // SAFETY：句柄由本测试创建，只销毁一次。
+            unsafe { DestroyWindow(self.0) };
+        }
+    }
+
+    fn rect(x: i32, y: i32, width: u32, height: u32) -> ScreenRect {
+        ScreenRect {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+
+    /// #125：Raycast 之类的启动器常驻一个“可见”、置顶、鼠标穿透、整窗透明度为 0 的窗口，
+    /// 云化（cloaked）的窗口同样不画任何东西。它们不能把下面的参考图算成被遮住，
+    /// 否则选区完全落在图内也只读屏幕像素。真正画在上面的窗口仍算遮挡。
+    #[test]
+    fn windows_that_draw_nothing_do_not_cover_the_reference() {
+        // 本机验收的几何：110% 缩放、窗口最大化，1117×701 的图按原始像素显示在 (722, 374)。
+        let shown = rect(722, 374, 1117, 701);
+        let main = Window::new(shown, 0).show();
+        // 桌面上别的窗口（通知、其他程序）随时可能出现在上面；只比较本测试自己加上去的窗口。
+        let before = covering_windows(main.0 as isize).expect("Z 序可遍历");
+        let invisible = Window::new(shown, WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TRANSPARENT);
+        // SAFETY：句柄由本测试创建。
+        assert_ne!(
+            unsafe { SetLayeredWindowAttributes(invisible.0, 0, 0, LWA_ALPHA) },
+            0
+        );
+        let invisible = invisible.show();
+        let cloaked = Window::new(shown, WS_EX_TOPMOST);
+        let cloak: i32 = 1;
+        // SAFETY：句柄由本测试创建；值是本函数持有的 BOOL。
+        let hr = unsafe {
+            DwmSetWindowAttribute(
+                cloaked.0,
+                DWMWA_CLOAK as u32,
+                (&cloak as *const i32).cast(),
+                size_of::<i32>() as u32,
+            )
+        };
+        assert_eq!(hr, 0, "云化测试窗口失败");
+        let cloaked = cloaked.show();
+        let corner = rect(722, 374, 40, 30);
+        let opaque = Window::new(corner, WS_EX_TOPMOST).show();
+
+        let mut covered = covering_windows(main.0 as isize).expect("Z 序可遍历");
+        for r in &before {
+            if let Some(i) = covered.iter().position(|c| c == r) {
+                covered.remove(i);
+            }
+        }
+        // 不画任何东西的两个窗口不算遮挡，真正画在上面的窗口仍算。
+        assert_eq!(covered, vec![corner]);
+
+        let image = ReferenceImage {
+            id: "a".into(),
+            width: 1117,
+            height: 701,
+            sealed: false,
+        };
+        let surfaces = [CaptureSurface {
+            pin: SavedPin::reference("a", "library", &image, None, Placement::default()).unwrap(),
+            shown,
+            visible: shown,
+            covered,
+        }];
+        let screen = Screenshot {
+            image: image::RgbaImage::new(1, 1),
+            icc: None,
+        };
+        let readout = |region: Region| {
+            CaptureSelection {
+                screen: &screen,
+                origin: (0, 0),
+                region,
+                references: &surfaces,
+            }
+            .original_pixels()
+        };
+        // 图中央约 100×80 CSS px 的选区（111×89 物理像素）：原始像素。
+        let inside = Region {
+            x: 1225,
+            y: 680,
+            width: 111,
+            height: 89,
+        };
+        assert_eq!(
+            readout(inside),
+            Some(OriginalPixels {
+                width: 111,
+                height: 89
+            })
+        );
+        // 跨出图片左缘：屏幕像素。
+        let crossing = Region {
+            x: 672,
+            y: 680,
+            width: 111,
+            height: 89,
+        };
+        assert_eq!(readout(crossing), None);
+        drop((opaque, cloaked, invisible));
     }
 }
