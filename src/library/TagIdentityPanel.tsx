@@ -78,7 +78,9 @@ export function TagIdentityPanel() {
 
 function MappingRow({ mapping, workspace, busy, onSave }: { mapping: LibraryTagMapping; workspace: TagCatalogWorkspace; busy: boolean; onSave: (id: string) => void }) {
   const [target, setTarget] = useState(mapping.catalogId);
-  useEffect(() => setTarget(mapping.catalogId), [mapping.catalogId]);
+  // 对应变了才跟着重置选择。不用 effect：挂载时的 effect 晚于首次渲染执行，会盖掉在那之前做的选择。
+  const [shown, setShown] = useState(mapping.catalogId);
+  if (shown !== mapping.catalogId) { setShown(mapping.catalogId); setTarget(mapping.catalogId); }
   const library = workspace.libraries.find((entry) => entry.library.id === mapping.libraryId)?.library;
   const shared = workspace.catalog.tags.find((tag) => tag.id === mapping.catalogId);
   const candidates = workspace.catalog.tags.filter((tag) => tag.namespace === mapping.legacy.namespace);
