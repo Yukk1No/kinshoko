@@ -73,7 +73,7 @@ it("缩放停在 140–420", async () => {
   expect(onDensityPreview).toHaveBeenLastCalledWith(140);
 });
 
-it("缩放后光标下的那张图中心仍在光标下", async () => {
+it("缩放后光标下的那张图仍在视口里，中心仍在光标的高度", async () => {
   const { wall } = await setup();
   for (const [x, y] of [[600, 400], [150, 120]] as const) {
     const target = cardUnder(wall, x, y).dataset.id!;
