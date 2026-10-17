@@ -55,7 +55,7 @@ const base = {
   onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false,
 };
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
-const answer = async () => { await settle(); await act(async () => resolvers[resolvers.length - 1](PAGE)); await settle(); };
+const answer = async (page = PAGE) => { await settle(); await act(async () => resolvers[resolvers.length - 1](page)); await settle(); };
 const node = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`)!;
 const ghosts = () => document.querySelectorAll(".fx-ghost").length;
 const frames = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
@@ -93,7 +93,8 @@ describe("封印", () => {
       view.rerender(<Wall {...base} reloadKey={0} safeMode />);
       await frames(100); // 资料库 100 ms 后确认
       view.rerender(<Wall {...base} reloadKey={1} safeMode />);
-      await answer();
+      // 资料库按安全模式送回：成人图不在了，留下的 g 补到它的位置。
+      await answer({ cards: [card("g")], total: 1, nextCursor: null });
       const g = glides.find((x) => x.id === "g")!;
       expect(g.timing).toMatchObject({ duration: 620, delay: SEAL.flyAt + 20 - 100, easing: "cubic-bezier(0.65, 0, 0.35, 1)", fill: "backwards" });
     } finally {
