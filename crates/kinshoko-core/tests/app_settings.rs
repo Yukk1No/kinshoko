@@ -84,14 +84,23 @@ fn the_tagging_hardware_is_automatic_until_the_artist_picks_one() {
     assert_eq!(settings.tagging_device(), Some(Device::Cpu));
 
     settings.set_tagging_device(None).unwrap();
-    assert_eq!(AppSettings::open(dir.path()).unwrap().tagging_device(), None);
+    assert_eq!(
+        AppSettings::open(dir.path()).unwrap().tagging_device(),
+        None
+    );
 }
 
 #[test]
 fn a_tagging_model_saved_by_an_older_version_becomes_its_hardware() {
     for (saved, device) in [
-        (serde_json::json!("pixai-v1.0-fp16-chunked"), Some(Device::DirectMl)),
-        (serde_json::json!("pixai-v1.0-fp32-chunked"), Some(Device::Cpu)),
+        (
+            serde_json::json!("pixai-v1.0-fp16-chunked"),
+            Some(Device::DirectMl),
+        ),
+        (
+            serde_json::json!("pixai-v1.0-fp32-chunked"),
+            Some(Device::Cpu),
+        ),
         (serde_json::Value::Null, None),
         (serde_json::json!("不存在的模型"), None),
     ] {
@@ -121,7 +130,10 @@ fn choosing_automatic_replaces_a_tagging_model_saved_by_an_older_version() {
         .unwrap()
         .set_tagging_device(None)
         .unwrap();
-    assert_eq!(AppSettings::open(dir.path()).unwrap().tagging_device(), None);
+    assert_eq!(
+        AppSettings::open(dir.path()).unwrap().tagging_device(),
+        None
+    );
 }
 
 #[test]

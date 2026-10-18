@@ -13,7 +13,8 @@ use kinshoko_core::library::{
     ContentRating, ImageTags, ImportOutcome, ImportSource, TagEdit, TagNamespace, TagOrigin, TagRef,
 };
 use kinshoko_core::tagging::{
-    Device, HardwareOption, InMemoryTagger, ModelChoice, ModelStore, RawTag, Tagging, TaggingConfig, TaggingStatus,
+    Device, HardwareOption, InMemoryTagger, ModelChoice, ModelStore, RawTag, Tagging,
+    TaggingConfig, TaggingStatus,
 };
 use std::sync::atomic::AtomicBool;
 use support::ModelServer;
@@ -376,7 +377,13 @@ fn after_repeated_gpu_resets_tagging_falls_back_to_the_cpu_model() {
     let tagging = f.start(f.config(vec![gpu, cpu]));
     tagging.download();
     wait_for(&tagging, "退回 CPU 时询问下载", |s| {
-        matches!(s, TaggingStatus::NeedsDownload { fallback: Some(_), .. })
+        matches!(
+            s,
+            TaggingStatus::NeedsDownload {
+                fallback: Some(_),
+                ..
+            }
+        )
     });
     tagging.download();
     let status = idle(&tagging);
@@ -540,7 +547,10 @@ fn choosing_the_gpu_with_too_little_video_memory_says_so() {
         unreachable!()
     };
     assert!(reason.contains("显存额度不够"), "{reason}");
-    assert!(!reason.contains("测试模型"), "原因里不出现模型条目名：{reason}");
+    assert!(
+        !reason.contains("测试模型"),
+        "原因里不出现模型条目名：{reason}"
+    );
 }
 
 #[test]
@@ -905,7 +915,13 @@ fn the_status_names_the_gpu_in_use_and_none_on_the_cpu() {
     });
     tagging.download();
     let status = wait_for(&tagging, "换用 CPU 档", |s| {
-        matches!(s, TaggingStatus::Idle { device: Device::Cpu, .. })
+        matches!(
+            s,
+            TaggingStatus::Idle {
+                device: Device::Cpu,
+                ..
+            }
+        )
     });
     assert!(
         matches!(status, TaggingStatus::Idle { gpu: None, .. }),
