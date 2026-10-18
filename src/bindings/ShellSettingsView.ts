@@ -25,4 +25,8 @@ usageLog: boolean,
 /**
  * 切换安全模式时保留当前选择。
  */
-keepSelectionOnSafeMode: boolean, viewerBackground?: ViewerBackground, };
+keepSelectionOnSafeMode: boolean, viewerBackground?: ViewerBackground, 
+/**
+ * 主窗口详情面板的宽度；没有时用 320。
+ */
+inspectorWidth?: number, };

@@ -1,12 +1,13 @@
 import { captureImage, useCaptureSources } from "./desktop/captureSources";
 import { onCollectionRequest, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { modalOpen as anyModalOpen } from "./ui/modal";
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, X } from "lucide-react";
 import { ToastProvider, useToast } from "./ui/Toast";
 import { WinCtrls } from "./ui/WinCtrls";
 import { useWidthTransition } from "./shell/useWidthTransition";
+import { InspectorResizer, useInspectorWidth } from "./shell/InspectorResizer";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowseScope } from "./bindings/BrowseScope";
 import type { ConditionTree } from "./bindings/ConditionTree";
@@ -30,6 +31,7 @@ import {
   safeMode,
   setSafeMode,
   shellSettings,
+  setInspectorWidth,
   thumbnailUrl,
 } from "./ipc";
 import { referenceCard, useOpenInKinshoko } from "./desktop/openInKinshoko";
@@ -78,6 +80,10 @@ type WorkspaceProps = {
   showApproxSource: boolean;
   /** 设置“切换安全模式时保留选择”；关闭时切换即清空选择和来源面板。 */
   keepSelectionOnSafe: boolean;
+  /** 本设备保存的详情面板宽度（#157）；没拖过时为 undefined。 */
+  inspectorWidth?: number;
+  /** 拖动松手、双击或方向键定下的详情面板宽度。 */
+  onInspectorWidth: (width: number) => void;
   /** 查看器打开／关闭：工作区外的界面（资料库选择、面板、状态栏）随之不可操作。 */
   onViewerChange: (open: boolean) => void;
   /** 顶栏下方的提示（运行时、旧名称、更新、备份提醒）。 */
@@ -107,6 +113,8 @@ function LibraryWorkspace({
   onSafeChanged,
   showApproxSource,
   keepSelectionOnSafe,
+  inspectorWidth,
+  onInspectorWidth,
   onViewerChange,
   notices,
   onLibraryRemoved,
@@ -409,9 +417,16 @@ function LibraryWorkspace({
   const previewId = inspected?.id ?? (eligible && selected.size === 1 ? [...selected][0] : undefined);
   const previewCard = previewSnapshot?.safe === safe && previewSnapshot.reloadKey === reloadKey
     ? previewSnapshot.cards.find((card) => card.id === previewId) : undefined;
-  // 详情面板开合的宽度过渡中图片墙不逐帧重排，过渡结束后重排一次（#162）。
+  // 详情面板开合的宽度过渡中图片墙不逐帧重排，过渡结束后重排一次（#162）；拖动边缘时同样，松手后重排（#157）。
   const [inspectorElement, setInspectorElement] = useState<HTMLElement | null>(null);
   const inspectorMoving = useWidthTransition(inspectorElement);
+  const [draggedWidth, setDraggedWidth] = useState<number | null>(null);
+  const panelWidth = useInspectorWidth(draggedWidth ?? inspectorWidth);
+  // 面板与右下角的任务卡片（挂在 body 上）共用这个宽度。
+  useLayoutEffect(() => {
+    document.documentElement.style.setProperty("--inspector-width", `${panelWidth}px`);
+  }, [panelWidth]);
+  useEffect(() => () => { document.documentElement.style.removeProperty("--inspector-width"); }, []);
   const closeInspector = () => { if (sources) setSources(null); else setInspectorHidden(selectionKey); };
 
   const started = (taskId: string) => {
@@ -551,7 +566,7 @@ function LibraryWorkspace({
             conditions={tree}
             reloadKey={reloadKey}
             safeMode={safe}
-            holdReflow={inspectorMoving}
+            holdReflow={inspectorMoving || draggedWidth !== null}
             selected={selected}
             onSelectionChange={setSelected}
             onOpenImage={(card) => { setViewCrop(false); setViewing(card); }}
@@ -574,7 +589,12 @@ function LibraryWorkspace({
           <div className="selbar-host" ref={setBarHost} />
         </main>
         {inspectorContent && !hidden && (
-          <aside ref={setInspectorElement} className="inspector" aria-label="详情" data-collapsed={!inspectorOpen} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>
+          <aside ref={setInspectorElement} className="inspector" aria-label="详情" data-collapsed={!inspectorOpen} data-resizing={draggedWidth !== null} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>
+            <InspectorResizer width={panelWidth} onResize={(width, done) => {
+              if (!done) { setDraggedWidth(width); return; }
+              setDraggedWidth(null);
+              onInspectorWidth(width);
+            }} />
             <header className="insp-head" data-tauri-drag-region>
               <button type="button" className="k-icon-btn" aria-label="收起详情" title="收起详情" onClick={closeInspector}><PanelRightClose size={16} aria-hidden="true" /></button>
               <span className="insp-title">详情</span>
@@ -670,9 +690,16 @@ function MainWindow() {
   /** 设置“显示相近标签来源（内置／个人）”，默认不显示。 */
   const [showApproxSource, setShowApproxSource] = useState(false);
   const [keepSelectionOnSafe, setKeepSelectionOnSafe] = useState(false);
+  const [inspectorWidth, setInspectorWidthState] = useState<number | undefined>(undefined);
   const acceptShellSettings = useCallback((view: ShellSettingsView) => {
     setShowApproxSource(view.showApproxSource);
     setKeepSelectionOnSafe(view.keepSelectionOnSafeMode ?? false);
+    setInspectorWidthState(view.inspectorWidth);
+  }, []);
+  /** 详情面板宽度先在界面上生效，再写进本设备设置；写不进时只是下次不记得。 */
+  const changeInspectorWidth = useCallback((width: number) => {
+    setInspectorWidthState(width);
+    void setInspectorWidth(width).catch(() => {});
   }, []);
   /** 安全模式。读到设置之前按开启处理，不会先露出被封印的图。 */
   const [safe, setSafe] = useState(true);
@@ -812,6 +839,8 @@ function MainWindow() {
           onSafeChanged={setSafe}
           showApproxSource={showApproxSource}
           keepSelectionOnSafe={keepSelectionOnSafe}
+          inspectorWidth={inspectorWidth}
+          onInspectorWidth={changeInspectorWidth}
           onViewerChange={setViewerOpen}
           notices={!empty && notices}
           onLibraryRemoved={(id) => { if (library?.id === id) changed(null); }}

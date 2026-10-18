@@ -19,6 +19,8 @@ use crate::tagging::{Device, catalog};
 const FILE_NAME: &str = "settings.json";
 const BROKEN_FILE_NAME: &str = "settings.broken.json";
 const FORMAT_VERSION: u32 = 1;
+/// 详情面板可拖到的宽度范围（#157），单位 CSS 像素。没保存过时界面用 320。
+const INSPECTOR_WIDTH: std::ops::RangeInclusive<u32> = 280..=560;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -91,6 +93,8 @@ pub struct SettingsSnapshot {
     keep_selection_on_safe_mode: bool,
     /// 使用日志（#70）：默认关闭；只写本机，由画师决定是否导出。
     usage_log: bool,
+    /// 主窗口详情面板的宽度（#157）；没拖过时为空。
+    inspector_width: Option<u32>,
     /// 新版本写入、本版本不认识的字段。
     #[serde(flatten)]
     unknown: serde_json::Map<String, serde_json::Value>,
@@ -110,6 +114,7 @@ impl Default for SettingsSnapshot {
             viewer_background: None,
             keep_selection_on_safe_mode: false,
             usage_log: false,
+            inspector_width: None,
             unknown: serde_json::Map::new(),
         }
     }
@@ -296,6 +301,17 @@ impl AppSettings {
 
     pub fn set_usage_log(&mut self, on: bool) -> Result<(), SettingsError> {
         self.update(|f| f.usage_log = on)
+    }
+
+    /// 主窗口详情面板的宽度；`None` 表示没拖过。
+    pub fn inspector_width(&self) -> Option<u32> {
+        self.file.inspector_width
+    }
+
+    /// 保存详情面板的宽度，超出 280–560 时停在边界上。
+    pub fn set_inspector_width(&mut self, width: u32) -> Result<(), SettingsError> {
+        let width = width.clamp(*INSPECTOR_WIDTH.start(), *INSPECTOR_WIDTH.end());
+        self.update(|f| f.inspector_width = Some(width))
     }
 
     /// 动作当前绑定的快捷键；`None` 表示未绑定。

@@ -75,6 +75,7 @@ pub fn run() {
             commands::set_usage_log,
             commands::set_viewer_background,
             commands::migrate_viewer_background,
+            commands::set_inspector_width,
             diagnostics::diagnostics_report,
             diagnostics::runtime_status,
             diagnostics::open_runtime_update,

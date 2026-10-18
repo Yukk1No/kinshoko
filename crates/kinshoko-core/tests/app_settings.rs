@@ -199,3 +199,26 @@ fn the_usage_log_is_off_until_the_artist_turns_it_on_and_then_remembered() {
 
     assert!(AppSettings::open(dir.path()).unwrap().usage_log());
 }
+
+#[test]
+fn the_details_panel_width_is_unset_until_the_artist_drags_it_and_then_remembered() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert_eq!(settings.inspector_width(), None);
+
+    settings.set_inspector_width(412).unwrap();
+    drop(settings);
+
+    assert_eq!(AppSettings::open(dir.path()).unwrap().inspector_width(), Some(412));
+}
+
+#[test]
+fn the_details_panel_width_is_kept_between_280_and_560() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+
+    settings.set_inspector_width(100).unwrap();
+    assert_eq!(settings.inspector_width(), Some(280));
+    settings.set_inspector_width(2000).unwrap();
+    assert_eq!(settings.inspector_width(), Some(560));
+}

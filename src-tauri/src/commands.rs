@@ -120,6 +120,19 @@ pub async fn set_viewer_background(
         .map_err(|e| e.to_string())?;
     Ok(shell.view())
 }
+/// 保存主窗口详情面板的宽度（#157），超出 280–560 时停在边界上。
+#[tauri::command]
+pub async fn set_inspector_width(
+    state: State<'_, ShellState>,
+    width: u32,
+) -> Result<ShellSettingsView, String> {
+    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+    shell
+        .settings
+        .set_inspector_width(width)
+        .map_err(|e| e.to_string())?;
+    Ok(shell.view())
+}
 #[tauri::command]
 pub async fn migrate_viewer_background(
     state: State<'_, ShellState>,

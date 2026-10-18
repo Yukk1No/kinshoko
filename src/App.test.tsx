@@ -412,6 +412,63 @@ describe("主窗口", () => {
     expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
   });
 
+  it("拖动详情面板边缘时图片墙不逐帧重排，松手后重排一次（#157）", async () => {
+    let available = 1000;
+    const observers = new Set<() => void>();
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => available });
+    vi.stubGlobal("ResizeObserver", class {
+      callback: () => void;
+      constructor(callback: () => void) { this.callback = callback; observers.add(callback); }
+      observe() {}
+      disconnect() { observers.delete(this.callback); }
+    });
+    vi.stubGlobal("innerWidth", 1600);
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    const card = document.querySelector<HTMLElement>('[data-id="a"]')!;
+    const handle = screen.getByRole("separator", { name: "调整详情宽度" });
+    const initial = card.style.width;
+    fireEvent.pointerDown(handle, { clientX: 1000, button: 0, pointerId: 1 });
+    for (const x of [980, 940, 900]) {
+      fireEvent.pointerMove(handle, { clientX: x, pointerId: 1 });
+      available = 1000 - (1000 - x);
+      act(() => observers.forEach((resize) => resize()));
+      expect(card.style.width).toBe(initial);
+    }
+    fireEvent.pointerUp(handle, { clientX: 900, pointerId: 1 });
+    expect(card.style.width).not.toBe(initial);
+    expect(handle.getAttribute("aria-valuenow")).toBe("420");
+    await waitFor(() => expect(sent("set_inspector_width")).toEqual([{ width: 420 }]));
+  });
+
+  it("详情面板的宽度是本设备设置：重新打开主窗口后沿用上次的宽度（#157）", async () => {
+    vi.stubGlobal("innerWidth", 1600);
+    let saved: number | undefined;
+    backend(library, clean, (cmd, args) => {
+      if (cmd === "set_inspector_width") { saved = (args as { width: number }).width; return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved }; }
+      if (cmd === "shell_settings") return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved };
+      return undefined;
+    });
+    const first = render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    const handle = screen.getByRole("separator", { name: "调整详情宽度" });
+    expect(handle.getAttribute("aria-valuenow")).toBe("320");
+    fireEvent.pointerDown(handle, { clientX: 1000, button: 0, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientX: 870, pointerId: 1 });
+    fireEvent.pointerUp(handle, { clientX: 870, pointerId: 1 });
+    await waitFor(() => expect(saved).toBe(450));
+    first.unmount();
+
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await waitFor(() => expect(screen.getByRole("separator", { name: "调整详情宽度" }).getAttribute("aria-valuenow")).toBe("450"));
+    expect(document.documentElement.style.getPropertyValue("--inspector-width")).toBe("450px");
+  });
+
   it("图标轨切换上下文侧栏时保留查找和图片墙，重复点按收起侧栏", async () => {
     backend(library);
     render(<App />);

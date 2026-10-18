@@ -52,6 +52,9 @@ pub struct ShellSettingsView {
     pub keep_selection_on_safe_mode: bool,
     #[ts(optional)]
     pub viewer_background: Option<crate::ViewerBackground>,
+    /// 主窗口详情面板的宽度；没有时用 320。
+    #[ts(optional)]
+    pub inspector_width: Option<u32>,
 }
 
 impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
@@ -65,6 +68,7 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
             usage_log: settings.usage_log(),
             keep_selection_on_safe_mode: settings.keep_selection_on_safe_mode(),
             viewer_background: settings.viewer_background(),
+            inspector_width: settings.inspector_width(),
         }
     }
 }
