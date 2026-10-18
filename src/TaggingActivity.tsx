@@ -10,8 +10,8 @@ const DEVICE_NAME: Record<Device, string> = { directMl: "显卡", cpu: "CPU" };
 const mb = (bytes: number) => `${Math.round(bytes / 1_000_000)} MB`;
 const percent = (part: number, total: number) => (total > 0 ? Math.floor((part / total) * 100) : 0);
 
-/** 图标上的进度文字；不显示图标的状态为 null。 */
-function progress(status: TaggingStatus): string | null {
+/** 图标上的状态文字；不显示图标的状态为 null。 */
+function activityLabel(status: TaggingStatus): string | null {
   switch (status.state) {
     case "downloading":
       return `下载打标模型 ${percent(status.downloaded, status.total)}%`;
@@ -37,6 +37,8 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
   const declined = useRef(new Set<string>());
   /** 本次启动内报过的“不可用”原因。 */
   const unavailable = useRef(new Set<string>());
+  /** 最近报过的出错原因；重试会经过加载、打标或下载再失败，到打完或暂停才算过去。 */
+  const failure = useRef<string | null>(null);
   /** 这一轮开始时本次运行已打的张数（这一轮第一条 Running 的 `tagged`）。 */
   const roundStart = useRef<number | null>(null);
   /** 上一次看到的状态与它所属的资料库：换库后不拿旧库的状态比较。 */
@@ -45,21 +47,26 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
   useEffect(() => {
     if (!toast || libraryId === null || !status) return;
     const before = previous.current?.libraryId === libraryId ? previous.current.status : null;
-    if (before === null) roundStart.current = null;
+    if (before === null) {
+      roundStart.current = null;
+      failure.current = null;
+    }
     previous.current = { libraryId, status };
     if (before?.state === "downloading" && !["downloading", "failed", "needsDownload"].includes(status.state)) {
       toast.show({ title: "打标模型已下载", tone: "success" });
     }
     // 后端出错后定时重试并反复广播：一直是同一个原因时只报一次。
-    if (status.state === "failed" && !(before?.state === "failed" && before.reason === status.reason)) {
+    if (status.state === "failed" && failure.current !== status.reason) {
+      failure.current = status.reason;
       toast.error(`自动标签出错：${status.reason}`, { description: "稍后会自动重试" });
     }
+    if (status.state === "idle" || status.state === "paused") failure.current = null;
     if (status.state === "running") roundStart.current ??= status.tagged;
     if (status.state === "idle") {
       // Running 在打每张之前推送，最后一张只在 Idle 的累计张数里。
-      const tagged = before?.state === "running" && roundStart.current !== null ? status.tagged - roundStart.current : 0;
+      const taggedThisRound = before?.state === "running" && roundStart.current !== null ? status.tagged - roundStart.current : 0;
       roundStart.current = null;
-      if (tagged > 0) toast.show({ title: `自动标签：新打了 ${tagged} 张`, tone: "success" });
+      if (taggedThisRound > 0) toast.show({ title: `自动标签：新打了 ${taggedThisRound} 张`, tone: "success" });
     }
     if (status.state === "noDevice" && !unavailable.current.has(status.reason)) {
       unavailable.current.add(status.reason);
@@ -105,7 +112,7 @@ export function TaggingActivity({ libraryId: opened, registered, onOpenSettings 
 }) {
   const { libraryId, status } = useTaggingStatus(opened, registered);
   useTaggingNotices(libraryId, status);
-  const text = status && progress(status);
+  const text = status && activityLabel(status);
   if (!status || !text) return null;
   return (
     <button type="button" className="k-tagging-activity" data-activity={status.state === "paused" ? "paused" : "busy"}

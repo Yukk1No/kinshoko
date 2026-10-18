@@ -645,6 +645,7 @@ function MainWindow() {
   const [showSettings, setShowSettings] = useState(false);
   /** 设置打开时先显示的分页：状态栏打开通用，打标图标打开自动标签（#144）。 */
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
+  const openSettings = (tab: SettingsTab) => { setSettingsTab(tab); setShowSettings(true); };
   /** 确认旧名称向导：横幅或设置 › 标签的提示条打开，叠在当前界面上。 */
   const [nameWizard, setNameWizard] = useState(false);
   const [captureRequest,setCaptureRequest]=useState<{id:string;stamp:number}|null>(null);
@@ -785,7 +786,7 @@ function MainWindow() {
       <div className="rail-slot" inert={viewerOpen}>
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
           onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
-          onSettings={() => { setSettingsTab("general"); setShowSettings((shown) => !shown); }} />
+          onSettings={() => { if (showSettings) setShowSettings(false); else openSettings("general"); }} />
       </div>
       <div className="app-column">
       {library !== undefined && (
@@ -808,7 +809,7 @@ function MainWindow() {
           onViewerChange={setViewerOpen}
           notices={!empty && notices}
           onLibraryRemoved={(id) => { if (library?.id === id) changed(null); }}
-          onOpenTaggingSettings={() => { setSettingsTab("tagging"); setShowSettings(true); }}
+          onOpenTaggingSettings={() => openSettings("tagging")}
         />
       )}
       {empty && (

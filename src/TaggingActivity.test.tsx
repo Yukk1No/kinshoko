@@ -183,9 +183,22 @@ describe("出错与不可用的通知去重", () => {
 
     await push({ state: "failed", reason: "磁盘已满" });
     await waitFor(() => expect(shown(/磁盘已满/)).toBe(1));
+  });
+
+  it("重试经过加载、打标或下载再失败时，同一个原因也只弹一次；打完一轮后再出错重新报", async () => {
+    backend({ L1: { state: "failed", reason: "打标子进程崩溃" } });
+    mount();
+    await waitFor(() => expect(shown(/打标子进程崩溃/)).toBe(1));
     await push({ state: "starting" });
-    await push({ state: "failed", reason: "磁盘已满" });
-    await waitFor(() => expect(shown(/磁盘已满/)).toBe(2));
+    await push(running(0));
+    await push({ state: "failed", reason: "打标子进程崩溃" });
+    await push(downloading(10));
+    await push({ state: "failed", reason: "打标子进程崩溃" });
+    expect(shown(/打标子进程崩溃/)).toBe(1);
+
+    await push(idle(0));
+    await push({ state: "failed", reason: "打标子进程崩溃" });
+    await waitFor(() => expect(shown(/打标子进程崩溃/)).toBe(2));
   });
 
   it("不可用时写出原因、不自动消失；本次启动内同一个原因只弹一次", async () => {
