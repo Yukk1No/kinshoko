@@ -4,6 +4,8 @@ on:
   push:
     # 长期集成分支也要 push 触发：PR 只能读到自己 base 分支（和默认分支）的缓存，
     # base 分支上从不跑 push 时，以它为 base 的 PR 每次都是冷编译。
+    # 这些分支作为 PR 头分支时，push 与 PR 各跑一次：PR 那次检查的是与 base 的合并结果，
+    # 不能用 if 跳过（跳过的 job 会算作通过）。
     branches: [main, "integration/**", "codex/spec-78-integration", "claude/project-thread-wr3c28"]
     paths-ignore:
       - "docs/**"
@@ -33,11 +35,6 @@ env:
 jobs:
   rust:
     name: Rust 检查与测试
-    # 头分支已有 push 触发时，同一提交不再按 PR 事件重跑一遍（push 那次的检查照样显示在 PR 上）。
-    if: >-
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name != github.repository ||
-      !(github.head_ref == 'main' || startsWith(github.head_ref, 'integration/') || github.head_ref == 'codex/spec-78-integration' || github.head_ref == 'claude/project-thread-wr3c28')
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -89,11 +86,6 @@ jobs:
 
   frontend:
     name: 前端检查与测试
-    # 头分支已有 push 触发时，同一提交不再按 PR 事件重跑一遍（push 那次的检查照样显示在 PR 上）。
-    if: >-
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name != github.repository ||
-      !(github.head_ref == 'main' || startsWith(github.head_ref, 'integration/') || github.head_ref == 'codex/spec-78-integration' || github.head_ref == 'claude/project-thread-wr3c28')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -118,11 +110,6 @@ jobs:
     # 对比实验：https://github.com/Yukk1No/kinshoko/actions/runs/37614514097
     # 等上游修好后再改回 windows-latest，冒烟测试保持阻断。
     runs-on: windows-2022
-    # 头分支已有 push 触发时，同一提交不再按 PR 事件重跑一遍（push 那次的检查照样显示在 PR 上）。
-    if: >-
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name != github.repository ||
-      !(github.head_ref == 'main' || startsWith(github.head_ref, 'integration/') || github.head_ref == 'codex/spec-78-integration' || github.head_ref == 'claude/project-thread-wr3c28')
     steps:
       - uses: actions/checkout@v4
 
