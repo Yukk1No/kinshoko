@@ -46,6 +46,8 @@ pub struct AppFacts {
     /// 本次运行实际采用的“强制 sRGB”。
     pub force_srgb_in_effect: bool,
     pub usage_log: bool,
+    /// 首次启动把旧数据搬进数据根目录失败的原因（#145）；本次运行仍用旧位置。
+    pub data_migration_problem: Option<String>,
 }
 
 /// 本机的系统、硬件与 WebView2。由应用壳向 Windows 查询后填写。
@@ -190,6 +192,18 @@ pub fn report_with_runtime(
         "使用日志：{}",
         if app.usage_log { "开启" } else { "关闭" }
     );
+    match &app.data_migration_problem {
+        None => {
+            let _ = writeln!(out, "数据位置：数据根目录");
+        }
+        Some(problem) => {
+            let _ = writeln!(
+                out,
+                "数据位置：旧位置（迁移到数据根目录失败：{}；数据未改动，下次启动重试）",
+                scrub(problem)
+            );
+        }
+    }
     out
 }
 

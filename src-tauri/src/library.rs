@@ -61,8 +61,6 @@ use tauri_plugin_dialog::DialogExt;
 
 use crate::shell::ShellState;
 
-/// 指定本设备登记表所在目录；不设时用应用数据目录。WebDriver 冒烟测试用它隔离数据。
-const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
 const EVENT: &str = "library-event";
 /// 连续的列表、图片与词表变化合并推送的窗口（#142）。
 const EVENT_COALESCE: std::time::Duration = std::time::Duration::from_millis(500);
@@ -304,25 +302,18 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             set_safe_mode
         ])
         .setup(|app, _api| {
-            let device_dir = match std::env::var_os(DATA_DIR_ENV) {
-                Some(dir) => PathBuf::from(dir),
-                None => app.path().app_data_dir()?,
-            };
+            let dirs = crate::data_dirs::app_data(app);
+            let device_dir = dirs.device().to_path_buf();
             kinshoko_core::application_settings_backup::ApplicationSettingsBackup::recover(
                 &device_dir,
-                &app.path().app_config_dir()?,
+                dirs.settings(),
             )
             .map_err(std::io::Error::other)?;
-            // 打标模型约 1 GB（CPU 档 2 GB），放在本机数据目录，不随漫游配置同步。
-            let models_dir = match std::env::var_os(DATA_DIR_ENV) {
-                Some(dir) => PathBuf::from(dir).join("models"),
-                None => app.path().app_local_data_dir()?.join("models"),
-            };
             // 硬件档保存在应用壳设置里；这里只读一次，之后由设置命令同步。
-            let preferred = kinshoko_core::AppSettings::open(&app.path().app_config_dir()?)
+            let preferred = kinshoko_core::AppSettings::open(dirs.settings())
                 .ok()
                 .and_then(|s| s.tagging_device());
-            crate::tagging::setup(app, models_dir, preferred);
+            crate::tagging::setup(app, dirs.models().to_path_buf(), preferred);
             app.manage(LibraryState::new(device_dir));
             workspace::monitor(app.clone());
             Ok(())
@@ -610,7 +601,7 @@ pub fn with_references<R: Runtime, T>(
     })
 }
 
-/// 本设备的数据目录：资料库登记表、参考组与备份计划都在这里（`KINSHOKO_DATA_DIR` 覆盖）。
+/// 本设备的数据目录：资料库登记表、参考组与备份计划都在这里（见 `crate::data_dirs`）。
 pub fn data_dir<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
     app.state::<LibraryState>().device_dir.clone()
 }

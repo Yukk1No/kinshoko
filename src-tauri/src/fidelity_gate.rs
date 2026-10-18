@@ -13,6 +13,8 @@ use kinshoko_core::fidelity::gate::{self, GatePlan};
 use tauri::ipc::Response;
 use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
 
+use crate::data_dirs::SharedWebview as _;
+
 pub const ARG: &str = "--fidelity-gate";
 const EXIT_ARG: &str = "--exit";
 const WINDOW: &str = "fidelity-gate";
@@ -92,7 +94,7 @@ pub fn start(app: &AppHandle, options: Options) {
     )
     .title("Kinshoko 还原度门槛实验")
     .inner_size(1100.0, 800.0)
-    .additional_browser_args(crate::diagnostics::browser_args())
+    .shared_webview(app)
     .build()
     {
         eprintln!("打开门槛实验窗口失败：{e}");

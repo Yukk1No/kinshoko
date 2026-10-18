@@ -66,8 +66,6 @@ pub(crate) fn timing(stage: &str) {
 }
 const TIMING_ENV: &str = "KINSHOKO_CAPTURE_TIMING_LOG";
 
-/// 与资料库插件相同：设置时截图历史也放进这个目录，WebDriver 测试用它隔离数据。
-const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
 const HISTORY_DIR: &str = "captures";
 /// 参考组独立于资料库，放在应用数据目录（ADR-0002）。
 const GROUPS_DIR: &str = "reference-groups";
@@ -198,10 +196,7 @@ pub fn init() -> TauriPlugin<Wry> {
             delete_capture,
         ])
         .setup(|app, _api| {
-            let dir = match std::env::var_os(DATA_DIR_ENV) {
-                Some(dir) => PathBuf::from(dir),
-                None => app.path().app_data_dir()?,
-            };
+            let dir = crate::data_dirs::app_data(app).device().to_path_buf();
             let history = CaptureHistory::open(&dir.join(HISTORY_DIR))?;
             let store = PinStore::open(&dir)?;
             let groups = ReferenceGroups::open(&dir.join(GROUPS_DIR))?;

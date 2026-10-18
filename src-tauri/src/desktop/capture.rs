@@ -20,6 +20,7 @@ use tauri::{
 };
 
 use super::{clipboard::PreparedImage, history_changed, lock, pins, state};
+use crate::data_dirs::SharedWebview as _;
 
 pub const CAPTURE_WINDOW: &str = "capture";
 
@@ -323,7 +324,7 @@ fn capture_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     .skip_taskbar(true)
     .always_on_top(true)
     .visible(false)
-    .additional_browser_args(crate::diagnostics::browser_args())
+    .shared_webview(app)
     .build()
     .map_err(|e| e.to_string())
 }

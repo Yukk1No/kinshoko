@@ -33,6 +33,7 @@ use tauri::{
 };
 
 use super::{history_changed, lock, request_collection, request_open, state};
+use crate::data_dirs::SharedWebview as _;
 
 /// 新钉图相对原位置错开的距离，逻辑像素（按显示器缩放换算成物理像素）。
 const OFFSET: f64 = 16.0;
@@ -395,7 +396,7 @@ pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
     .skip_taskbar(true)
     .always_on_top(true)
     .visible(false)
-    .additional_browser_args(crate::diagnostics::browser_args())
+    .shared_webview(app)
     .build();
     let window = match built {
         Ok(w) => w,
