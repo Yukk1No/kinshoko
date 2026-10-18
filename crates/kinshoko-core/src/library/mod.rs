@@ -76,7 +76,7 @@ pub use eagle_tags::{
 };
 pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, ImageVersions, SourceNote};
 pub use error::Error;
-pub use events::LibraryEvent;
+pub use events::{LibraryEvent, forward_coalesced};
 pub use folders::FolderNode;
 pub use import::{ImportStages, ImportTask};
 pub use lens::{ReferenceImage, ReferenceLens};
