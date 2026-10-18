@@ -430,7 +430,7 @@ describe("主窗口", () => {
     expect(screen.getByRole("button", { name: "工作参考 的操作" })).toBeTruthy();
   });
 
-  it("单击打开原图；Esc 返回原位置并把焦点交还参考图", async () => {
+  it("双击打开原图；Esc 返回原位置并把焦点交还参考图", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
@@ -438,7 +438,7 @@ describe("主窗口", () => {
     const card = document.querySelector<HTMLElement>('[data-id="a"]')!;
     wall.scrollTop = 120;
     fireEvent.scroll(wall);
-    fireEvent.click(card);
+    fireEvent.doubleClick(card);
     const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
     expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/L1/a/full");
     fireEvent.keyDown(viewer, { key: "Escape" });
@@ -448,6 +448,21 @@ describe("主窗口", () => {
 
     fireEvent.keyDown(card, { key: "Enter" });
     expect(await screen.findByRole("dialog", { name: "原图查看器" })).toBeTruthy();
+  });
+
+  it("单击参考图：选中它并展开详情面板，不打开查看器；单击空白处收起（#146）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const inspector = () => document.querySelector<HTMLElement>("aside.inspector");
+    expect(inspector()).toBeNull();
+    fireEvent.click(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    expect(inspector()!.getAttribute("data-collapsed")).toBe("false");
+    const preview = await within(inspector()!).findByAltText("所选参考图");
+    expect(preview.getAttribute("src")).toBe("http://thumb.localhost/L1/a/256");
+    expect(screen.queryByRole("dialog", { name: "原图查看器" })).toBeNull();
+    fireEvent.click(document.querySelector<HTMLElement>(".wall-canvas")!);
+    expect(inspector()).toBeNull();
   });
 
   it("F1 落在详情面板的预览图上时登记为参考图来源，读原始像素", async () => {
@@ -475,7 +490,7 @@ describe("主窗口", () => {
     render(<App />);
     await screen.findAllByRole("img");
     const ids = [...document.querySelectorAll<HTMLElement>(".wall [data-id]")].map((card) => card.dataset.id!);
-    fireEvent.click(document.querySelector<HTMLElement>(`[data-id="${ids[0]}"]`)!);
+    fireEvent.doubleClick(document.querySelector<HTMLElement>(`[data-id="${ids[0]}"]`)!);
     const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
     expect(within(viewer).getByText(`1 / ${ids.length}`)).toBeTruthy();
     fireEvent.click(within(viewer).getByRole("button", { name: "下一张" }));
@@ -504,7 +519,7 @@ describe("主窗口", () => {
     wall.scrollTop = parseFloat(wall.querySelector<HTMLElement>(".wall-canvas")!.style.height) - 800;
     fireEvent.scroll(wall);
     const lastLoaded = await waitFor(() => { const node = document.querySelector<HTMLElement>('[data-id="p499"]'); if (!node) throw new Error("not mounted"); return node; });
-    fireEvent.click(lastLoaded);
+    fireEvent.doubleClick(lastLoaded);
     const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
     expect(within(viewer).getByText("500 / 501")).toBeTruthy();
     const next = within(viewer).getByRole("button", { name: "下一张" });

@@ -293,7 +293,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
           tabIndex={image.id === tabIndexId ? 0 : -1}
           aria-label={`${hidden ? '安全模式已遮挡 · ' : ''}${image.title}，${image.w}×${image.h}`}
           onFocus={() => setFocusId(image.id)}
-          onClick={() => { setFocusId(image.id); p.onOpen(image); }}
+          onClick={() => setFocusId(image.id)}
+          onDoubleClick={() => p.onOpen(image)}
           onContextMenu={(e) => { e.preventDefault(); setFocusId(image.id); p.onMenu(image, e.clientX, e.clientY); }}
           onKeyDown={(e) => onKeyDown(e, index)}>
           <span className={`card-image${image.format === 'PNG' && image.id.startsWith('fixture-alpha') ? ' checker' : ''}`} style={{ height: b.h - titleH }}>

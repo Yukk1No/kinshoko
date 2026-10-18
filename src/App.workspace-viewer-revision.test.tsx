@@ -65,13 +65,13 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
 async function open() {
   render(<App />);
   const image = await screen.findByRole("img", { name: "参考图" });
-  fireEvent.click(image.closest<HTMLElement>('[role="option"]')!);
+  fireEvent.doubleClick(image.closest<HTMLElement>('[role="option"]')!);
   const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
   await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/A/a/full"));
   return viewer;
 }
 
-it("新工作区快照上的图片已单击打开，迟到的同一修订通知不能关闭查看器", async () => {
+it("新工作区快照上的图片已双击打开，迟到的同一修订通知不能关闭查看器", async () => {
   workspace();
   const viewer = await open();
   await act(() => emit("workspace-changed", status("r2")));
@@ -117,7 +117,7 @@ it("旧浏览响应与较新通知同批到达，也不能放回旧图片或回�
       total: 1, nextCursor: null, status: status("r2") });
   });
   await waitFor(() => expect(screen.getByRole("img", { name: "参考图" }).getAttribute("src")).toBe("http://thumb.localhost/A/new/128"));
-  fireEvent.click(screen.getByRole("img", { name: "参考图" }).closest<HTMLElement>('[role="option"]')!);
+  fireEvent.doubleClick(screen.getByRole("img", { name: "参考图" }).closest<HTMLElement>('[role="option"]')!);
   const currentViewer = await screen.findByRole("dialog", { name: "原图查看器" });
   await waitFor(() => expect(currentViewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/A/new/full"));
   await act(() => emit("workspace-changed", status("r3")));
@@ -164,7 +164,7 @@ it("首个修订通知先于初始状态和浏览响应到达时，图片墙重�
   });
   const image = await screen.findByRole("img", { name: "参考图" });
   expect(image.getAttribute("src")).toBe("http://thumb.localhost/A/new/128");
-  fireEvent.click(image.closest<HTMLElement>('[role="option"]')!);
+  fireEvent.doubleClick(image.closest<HTMLElement>('[role="option"]')!);
   const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
   await act(() => emit("workspace-changed", status("r3")));
   expect(screen.getByRole("dialog", { name: "原图查看器" })).toBe(viewer);

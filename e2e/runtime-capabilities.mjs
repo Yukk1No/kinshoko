@@ -176,7 +176,9 @@ try {
   const task = await invoke("plugin:library|start_import", { libraryId: library.id, source: { paths: [sampleFile] }, destination: { libraryId: library.id, folderId: null } });
   await until("real import complete", async () => (await invoke("plugin:library|import_tasks")).find((entry) => entry.taskId === task && entry.report && !entry.finishing));
   await exec("location.reload()"); await until("formal imported card", () => exec("return document.querySelector('.card img')?.complete && document.querySelector('.card img')?.naturalWidth > 0"));
+  // 单击只选中并聚焦卡片，Enter 打开查看器（#146）。
   await click("//*[contains(@class,'card') and @data-id][1]");
+  await wd("POST", base + "/actions", { actions: [{ type: "key", id: "keyboard", actions: [{ type: "keyDown", value: "\uE007" }, { type: "keyUp", value: "\uE007" }] }] });
   await until("representative original visible", () => exec("return document.querySelector('.viewer-stage img')?.complete && document.querySelector('.viewer-stage img')?.naturalWidth > 0"));
   if (mode !== "pin-error") {
   await click(button("原始像素"));
