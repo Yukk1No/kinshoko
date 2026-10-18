@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import type { Candidate } from "../bindings/Candidate";
 import type { Condition } from "../bindings/Condition";
+import type { ContentRating } from "../bindings/ContentRating";
+import type { RatingCandidate } from "../bindings/RatingCandidate";
+import type { RatingLabel } from "../bindings/RatingLabel";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { SearchInput } from "../bindings/SearchInput";
 import type { SimilarTag } from "../bindings/SimilarTag";
@@ -9,7 +12,7 @@ import type { TagLabel } from "../bindings/TagLabel";
 import type { Term } from "../bindings/Term";
 import type { TermInput } from "../bindings/TermInput";
 import { ExactToggle } from "./ExactToggle";
-import { searchCandidates, workspaceCandidates, workspaceSourceCandidates, setTagApprox, editSharedApprox } from "../ipc";
+import { ratingCandidates, searchCandidates, workspaceCandidates, workspaceSourceCandidates, setTagApprox, editSharedApprox } from "../ipc";
 
 /** 界面语言。多语言界面随后续切片加入。 */
 export const UI_LANG = "zh-CN";
@@ -45,6 +48,39 @@ export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => 
   return found.key === key && text.trim() ? found.list : [];
 }
 
+type FoundRatings = { key: string; list: RatingCandidate[] };
+
+/** 按 `lens` 与 `text` 取得分级候选（#161）；身份变了的旧结果不返回，安全模式切换的这一刻同样作废。 */
+function useRatingCandidates(lens: Lens, text: string): RatingCandidate[] {
+  const [found, setFound] = useState<FoundRatings>({ key: "", list: [] });
+  const key = lensKey(lens, text);
+  const { safe } = lens;
+  useEffect(() => {
+    let alive = true;
+    if (!text.trim()) return;
+    ratingCandidates(text, safe).then(
+      (list) => alive && setFound({ key, list }),
+      () => alive && setFound({ key, list: [] }),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [key, safe, text]);
+  return found.key === key && text.trim() ? found.list : [];
+}
+
+/** 分级不是标签：条件与候选里都带“分级”字样，和标签区分开。 */
+function RatingName({ rating }: { rating: RatingLabel }) {
+  return (
+    <>
+      <span className="search-rating-mark">分级</span>
+      <span>{rating.name}</span>
+    </>
+  );
+}
+
+const sameRatings = (a: ContentRating[], b: ContentRating[]) => a.length === b.length && a.every((r, i) => r === b[i]);
+
 const NAMESPACE: Record<TagLabel["namespace"], string> = {
   general: "",
   artist: "作者：",
@@ -79,22 +115,37 @@ function inputLabel(term: TermInput) {
   return term.kind === "text" ? `“${term.text}”` : "…";
 }
 
-/** 文字项也匹配的标签，鼠标悬停时显示，画师能看见文字查到了什么。 */
+/** 文字项也匹配的标签与分级，鼠标悬停时显示，画师能看见文字查到了什么。 */
 function termTitle(term: Term) {
-  if (term.kind !== "text" || term.tags.length === 0) return undefined;
-  return `也匹配标签：${term.tags.map(tagName).join("、")}`;
+  if (term.kind !== "text") return undefined;
+  const lines = [
+    term.tags.length > 0 && `也匹配标签：${term.tags.map(tagName).join("、")}`,
+    term.ratings.length > 0 && `也匹配分级：${term.ratings.map((r) => r.name).join("、")}`,
+  ].filter(Boolean);
+  return lines.length ? lines.join("\n") : undefined;
 }
 
 /** 条件树里与搜索框中这一项对应的项；点选的标签已被删除时没有。 */
 function resolvedTerm(condition: Condition, term: TermInput): Term | undefined {
-  return condition.any.find((t) =>
-    term.kind === "tag" ? t.kind === "tag" && t.tag.id === term.id : t.kind === "text" && t.text === term.text,
-  );
+  return condition.any.find((t) => {
+    switch (term.kind) {
+      case "tag":
+        return t.kind === "tag" && t.tag.id === term.id;
+      case "text":
+        return t.kind === "text" && t.text === term.text;
+      case "rating":
+        return t.kind === "rating" && sameRatings(t.rating.ratings, [...term.ratings].sort(byRank));
+    }
+  });
 }
 
-/** 这一项只有一个标签时是它：“＋”加的相近标签以它为另一端。 */
+const RANK: ContentRating[] = ["general", "sensitive", "questionable", "explicit"];
+const byRank = (a: ContentRating, b: ContentRating) => RANK.indexOf(a) - RANK.indexOf(b);
+
+/** 这一项只有一个标签时是它：“＋”加的相近标签以它为另一端。分级项没有。 */
 function soleTag(term: Term): TagLabel | null {
   if (term.kind === "tag") return term.tag;
+  if (term.kind === "rating") return null;
   return term.tags.length === 1 ? term.tags[0] : null;
 }
 
@@ -118,8 +169,8 @@ type Props = {
 
 /**
  * 搜索框：条件以标签块显示，各条件同时满足。打字时下拉第一行是“查找‘X’”（按文字匹配），
- * 下面按命名空间与别名列出候选标签。回车或单击加一个新条件；Alt+回车或 Ctrl 单击把它加进
- * 上一个条件，作为“任一”。标签块上可以排除或去掉条件。
+ * 下面是匹配的内容分级（标明“分级”，#161），再按命名空间与别名列出候选标签。回车或单击加
+ * 一个新条件；Alt+回车或 Ctrl 单击把它加进上一个条件，作为“任一”。标签块上可以排除或去掉条件。
  *
  * 近似查找默认开启：标签块里列出展开的相近标签。关掉一个时选“只这次”或“以后都不展开”
  * （记进个人近似对应表）；“＋”从可见标签里挑一个加为相近；“精确查找”一键不展开。
@@ -132,6 +183,7 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   const [adding, setAdding] = useState<{ tag: TagLabel; lens: string } | null>(null);
   const lens: Lens = { libraryId, safe, generation, workspace };
   const candidates = useCandidates(lens, text);
+  const ratings = useRatingCandidates(lens, text);
   const context = lensKey(lens, "");
   const dismissingNow = dismissing?.lens === context ? dismissing : null;
   const addingNow = adding?.lens === context ? adding.tag : null;
@@ -140,6 +192,7 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   const rows: TermInput[] = text.trim()
     ? [
         { kind: "text", text: text.trim(), dismissed: [] },
+        ...ratings.map((r) => ({ kind: "rating" as const, ratings: r.rating.ratings })),
         ...candidates.map((c) => ({ kind: "tag" as const, id: c.tag.id, dismissed: [] })),
       ]
     : [];
@@ -193,7 +246,7 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
           : {
               ...c,
               any: c.any.map((t, j) =>
-                j === term ? { ...t, dismissed: [...t.dismissed, similar.tag.id] } : t,
+                j === term && t.kind !== "rating" ? { ...t, dismissed: [...t.dismissed, similar.tag.id] } : t,
               ),
             },
       ),
@@ -293,13 +346,25 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
             >
               查找“{text.trim()}”
             </li>
-            {candidates.map((c, k) => (
+            {ratings.map((r, k) => (
               <li
-                key={c.tag.id}
+                key={`rating-${r.rating.ratings.join("-")}`}
                 id={`search-row-${k + 1}`}
                 role="option"
                 aria-selected={active === k + 1}
                 onClick={(e) => pick(k + 1, e)}
+              >
+                <RatingName rating={r.rating} />
+                {r.via && <span className="search-candidate-via">又名：{r.via}</span>}
+              </li>
+            ))}
+            {candidates.map((c, k) => (
+              <li
+                key={c.tag.id}
+                id={`search-row-${k + 1 + ratings.length}`}
+                role="option"
+                aria-selected={active === k + 1 + ratings.length}
+                onClick={(e) => pick(k + 1 + ratings.length, e)}
               >
                 <span className="search-candidate-name">{tagName(c.tag)}</span>
                 <TagMarks tag={c.tag} />
@@ -347,6 +412,7 @@ function TermView({
   onAdd: (to: TagLabel) => void;
 }) {
   const sole = soleTag(term);
+  if (term.kind === "rating") return <RatingName rating={term.rating} />;
   return (
     <>
       {term.kind === "tag" ? (

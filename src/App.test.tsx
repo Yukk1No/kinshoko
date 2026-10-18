@@ -107,6 +107,7 @@ function resolved(input: SearchInput): ConditionTree {
         if (t.kind === "tag") {
           return { kind: "tag" as const, tag: tags[t.id], similar: similar([t.id], t.dismissed) };
         }
+        if (t.kind === "rating") return { kind: "rating" as const, rating: { ratings: t.ratings, name: t.ratings.join("、") } };
         const matched = Object.values(tags).filter((l) => l.name.includes(t.text));
         return {
           kind: "text" as const,
@@ -116,6 +117,7 @@ function resolved(input: SearchInput): ConditionTree {
             matched.map((l) => l.id),
             t.dismissed,
           ),
+          ratings: [],
         };
       }),
     })),

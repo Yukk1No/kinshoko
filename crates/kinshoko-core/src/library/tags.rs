@@ -313,6 +313,8 @@ pub struct Vocabulary {
     pub tags: Vec<VocabularyTag>,
     /// 个人近似对应表的全部条目。
     pub personal_approx: Vec<crate::approx::PersonalApprox>,
+    /// 快照所用的浏览视角是否开着安全模式：开着时含成人内容的分级也查不到（#161）。
+    pub safe_mode: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -1289,6 +1291,7 @@ pub(super) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error> {
         revision,
         tags: tags.into_values().collect(),
         personal_approx,
+        safe_mode: inner.safe_mode(),
     })
 }
 

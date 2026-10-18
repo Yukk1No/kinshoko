@@ -1,14 +1,18 @@
 //! 执行 Search 给出的条件树（#54）：把条件树写成对 `image` 表的 SQL 筛选。
 //!
 //! - 标签项：有这个有效标签或任一相近标签（`effective_tag`，人工标签决定已算进去）；
-//! - 文字项：有名称或别名含这段文字的任一标签，或参考图自身的文字含它。参考图自身的文字
+//! - 文字项：有名称或别名含这段文字的任一标签、有效分级是名称含它的分级，或参考图自身的文字含它。参考图自身的文字
 //!   是原文件名、本库备注、来源备注与非本地文件来源的位置（如网址）；
+//! - 分级项：有效分级（[`rating::effective_rank_sql`]，人工分级优先）是其中任一档；还没有分级的图
+//!   不满足，排除时留下；
 //! - 安全模式（#60）等浏览视角的过滤在调用方另加条件，与条件树无关。
 
 use rusqlite::Connection;
 use rusqlite::functions::FunctionFlags;
 use rusqlite::types::Value;
 
+use super::rating;
+use crate::library::ContentRating;
 use crate::search::{Condition, ConditionTree, Term, fold};
 
 /// 在读连接上注册的比较函数名，与 [`fold`] 相同。
@@ -66,8 +70,23 @@ fn has_any_tag<'a>(ids: impl Iterator<Item = &'a str>, args: &mut Vec<Value>) ->
     })
 }
 
+/// 有效分级是其中任一档。没有分级的图记作 -1，排除时也留下。
+fn has_any_rating(ratings: &[ContentRating]) -> Option<String> {
+    let ranks: Vec<String> = ratings.iter().map(|r| r.rank().to_string()).collect();
+    (!ranks.is_empty()).then(|| {
+        format!(
+            "coalesce({}, -1) IN ({})",
+            rating::effective_rank_sql("image.id"),
+            ranks.join(", ")
+        )
+    })
+}
+
 fn term(term: &Term, args: &mut Vec<Value>) -> String {
     match term {
+        Term::Rating { rating } => {
+            has_any_rating(&rating.ratings).unwrap_or_else(|| "0".to_owned())
+        }
         Term::Tag { tag, similar } => has_any_tag(
             std::iter::once(tag.id.as_str()).chain(similar.iter().map(|s| s.tag.id.as_str())),
             args,
@@ -77,6 +96,7 @@ fn term(term: &Term, args: &mut Vec<Value>) -> String {
             text,
             tags,
             similar,
+            ratings,
         } => {
             let needle = param(args, Value::Text(fold(text)));
             let mut any = vec![
@@ -95,6 +115,11 @@ fn term(term: &Term, args: &mut Vec<Value>) -> String {
                     .chain(similar.iter().map(|s| s.tag.id.as_str())),
                 args,
             ));
+            let ratings: Vec<ContentRating> = ratings
+                .iter()
+                .flat_map(|r| r.ratings.iter().copied())
+                .collect();
+            any.extend(has_any_rating(&ratings));
             format!("({})", any.join(" OR "))
         }
     }
