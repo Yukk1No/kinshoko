@@ -154,9 +154,9 @@
 .k-dock-readout { min-width: 96px; height: 40px; display: grid; place-items: center; margin-right: 6px; padding-right: 6px; border-right: 1px solid var(--line-2);
   font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-2); line-height: 1.25; text-align: center; }
 .k-dock-readout b { display: block; color: var(--ink); font-weight: 600; font-size: 13px; }
-/* 原始像素读数（#103）：logo 的星挂在最后一个字的右上角，约为字号一半，不占排版宽度。 */
+/* 原始像素读数（#103，#130 放大）：logo 的星挂在最后一个字的右上角，约为字号的 0.8，不占排版宽度。 */
 .k-original { position: relative; }
-.k-original-star { position: absolute; left: calc(100% + 0.04em); top: -0.22em; width: 0.5em; height: 0.5em; overflow: visible; }
+.k-original-star { position: absolute; left: calc(100% + 0.06em); top: -0.38em; width: 0.8em; height: 0.8em; overflow: visible; }
 .k-dock.is-dark { background: color-mix(in srgb, #1E1C2C 78%, transparent); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.35); }
 .k-dock.is-dark .k-dock-item { color: rgba(244, 236, 220, 0.78); }
 .k-dock.is-dark .k-dock-item:hover:not(:disabled) { color: #F4ECDC; background: rgba(244, 236, 220, 0.08); }
