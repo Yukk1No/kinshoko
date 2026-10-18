@@ -65,7 +65,7 @@ const TABS: { value: SettingsTab; name: string; icon: ReactNode; lead: string }[
   { value: "general", name: "通用", icon: <Settings2 size={15} aria-hidden="true" />, lead: "关掉窗口后，截图和钉图照常可用。" },
   { value: "keys", name: "快捷键", icon: <Keyboard size={15} aria-hidden="true" />, lead: "在任何软件里都能用。" },
   { value: "tags", name: "标签", icon: <Tags size={15} aria-hidden="true" />, lead: "改一次名字，所有图库都生效。" },
-  { value: "tagging", name: "自动标签", icon: <Sparkles size={15} aria-hidden="true" />, lead: "导入的图在本机自动加上标签建议，不改动你定下的标签。" },
+  { value: "tagging", name: "自动标签", icon: <Sparkles size={15} aria-hidden="true" />, lead: "在本机给新图加标签建议。" },
   { value: "backup", name: "备份", icon: <Archive size={15} aria-hidden="true" />, lead: "图片和设置分开存，恢复时互不影响。" },
   { value: "safety", name: "安全", icon: <ShieldCheck size={15} aria-hidden="true" />, lead: "成人图收进封印书，需要时再打开。" },
   { value: "update", name: "更新", icon: <RefreshCw size={15} aria-hidden="true" />, lead: "新版装在原位置，图库和设置都会保留。" },

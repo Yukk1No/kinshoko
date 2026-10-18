@@ -928,3 +928,23 @@ fn the_status_names_the_gpu_in_use_and_none_on_the_cpu() {
         "{status:?}"
     );
 }
+
+#[test]
+fn a_failed_download_says_why_without_the_download_address() {
+    let f = Fixture::new(1);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    // 没有发布到测试服务的模型：服务返回 404。
+    let missing = support::test_spec("missing-fp16", Device::DirectMl, b"never published");
+    let tagging = f.start(f.config(vec![missing]));
+    tagging.download();
+    let TaggingStatus::Failed { reason } = wait_for(&tagging, "下载失败", |s| {
+        matches!(s, TaggingStatus::Failed { .. })
+    }) else {
+        unreachable!()
+    };
+    assert!(reason.contains("404"), "{reason}");
+    assert!(
+        !reason.contains("missing-fp16") && !reason.contains("http"),
+        "原因里不出现下载地址（含精度字样的仓库与文件名）：{reason}"
+    );
+}

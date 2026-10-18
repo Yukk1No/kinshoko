@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { TaggingStatus } from "./bindings/TaggingStatus";
+import type { LibraryTaggingStatus } from "./bindings/LibraryTaggingStatus";
 import { onTaggingStatus, onWritableLibrary, taggingStatus } from "./ipc";
 
 /**
@@ -9,7 +9,8 @@ import { onTaggingStatus, onWritableLibrary, taggingStatus } from "./ipc";
  * `opened` 为空（还没有图库）时没有状态。
  */
 export function useTaggingStatus(opened: string | null, registered?: readonly string[]) {
-  const [status, setStatus] = useState<TaggingStatus | null>(null);
+  // 状态连同它所属的库一起记：换库后、新库的状态到达之前，不显示旧库的状态。
+  const [current, setCurrent] = useState<LibraryTaggingStatus | null>(null);
   const [libraryId, setLibraryId] = useState(opened);
   useEffect(() => setLibraryId(opened), [opened]);
   useEffect(() => {
@@ -23,7 +24,6 @@ export function useTaggingStatus(opened: string | null, registered?: readonly st
   const gone = libraryId !== null && registered !== undefined && libraryId !== opened && !registered.includes(libraryId);
   useEffect(() => {
     if (!gone) return;
-    setStatus(null);
     setLibraryId(opened);
   }, [gone, opened]);
 
@@ -31,15 +31,15 @@ export function useTaggingStatus(opened: string | null, registered?: readonly st
     if (libraryId === null) return;
     let alive = true;
     taggingStatus(libraryId).then(
-      (s) => alive && s.libraryId === libraryId && setStatus(s.status),
+      (s) => alive && s.libraryId === libraryId && setCurrent(s),
       () => {},
     );
-    const unlisten = onTaggingStatus((s) => alive && s.libraryId === libraryId && setStatus(s.status));
+    const unlisten = onTaggingStatus((s) => alive && s.libraryId === libraryId && setCurrent(s));
     return () => {
       alive = false;
       void unlisten.then((stop) => stop());
     };
   }, [libraryId]);
 
-  return { libraryId, status: libraryId === null ? null : status };
+  return { libraryId, status: current !== null && current.libraryId === libraryId ? current.status : null };
 }

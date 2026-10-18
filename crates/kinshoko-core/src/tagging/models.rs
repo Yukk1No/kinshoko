@@ -526,6 +526,17 @@ fn copy_hashing(from: &mut dyn Read, to: &mut dyn Write) -> std::io::Result<Stri
     Ok(format!("{:x}", h.finalize()))
 }
 
+/// 下载失败的原因。不写下载地址：仓库名与文件名带精度字样，画师用不上（#143）。
+fn download_error(error: ureq::Error) -> String {
+    match error {
+        ureq::Error::Status(code, _) => format!("下载失败：服务器返回 {code}"),
+        ureq::Error::Transport(transport) => match transport.message() {
+            Some(message) => format!("下载失败：{}（{message}）", transport.kind()),
+            None => format!("下载失败：{}", transport.kind()),
+        },
+    }
+}
+
 /// 把 `url` 下载到 `dest`：先写 `.part`，有旧的 `.part` 时用 `Range` 续传，完整后改名。
 fn download(
     url: &str,
@@ -550,7 +561,7 @@ fn download(
     if have > 0 {
         req = req.set("Range", &format!("bytes={have}-"));
     }
-    let resp = req.call().map_err(|e| format!("下载失败：{e}"))?;
+    let resp = req.call().map_err(download_error)?;
     let resumed = resp.status() == 206;
     let total = expected_size.or_else(|| {
         resp.header("Content-Length")

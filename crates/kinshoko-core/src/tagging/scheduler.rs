@@ -393,10 +393,10 @@ impl Worker {
                 Device::DirectMl => match &info.gpu {
                     None => Some("没有独立显卡".to_owned()),
                     Some(_) if !self.gpu_usable() => Some("显卡多次出错，本次不再使用".to_owned()),
-                    Some(gpu) if gpu.vram_budget < spec.vram_need / 4 * 5 => Some(format!(
+                    Some(gpu) if gpu.vram_budget < vram_wanted(spec) => Some(format!(
                         "{} 的显存额度不够（需要约 {}）",
                         gpu.name,
-                        gigabytes(spec.vram_need / 4 * 5)
+                        gigabytes(vram_wanted(spec))
                     )),
                     Some(_) => None,
                 },
@@ -632,6 +632,11 @@ impl Worker {
             }
         }
     }
+}
+
+/// 显卡档要求的显存额度：比峰值估计多 25%。
+fn vram_wanted(spec: &ModelSpec) -> u64 {
+    spec.vram_need / 4 * 5
 }
 
 /// 给画师看的大小，例如 `2.3 GB`。

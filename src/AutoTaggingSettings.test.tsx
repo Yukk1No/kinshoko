@@ -113,6 +113,17 @@ describe("设置 › 自动标签 › 自动打标", () => {
     expect(screen.queryByText(/旧库打标失败/)).toBeNull();
   });
 
+  it("打标切到另一个资料库后，不再显示旧库的状态", async () => {
+    backend({ handle: (cmd, args) => (cmd === "tagging_status" && args.libraryId === "L2" ? new Promise(() => {}) : undefined) });
+    render(<AutoTaggingSettings libraryId="L1" />);
+    await waitFor(() => expect(within(statusRow()).getByText("已暂停")).toBeTruthy());
+
+    await act(() => emit("writable-library", { id: "L2", name: "私人收藏", root: "D:\\私人收藏" }));
+
+    await waitFor(() => expect(within(statusRow()).getByText("正在读取…")).toBeTruthy());
+    expect(within(statusRow()).queryByRole("button")).toBeNull();
+  });
+
   it("还没有资料库时说明打开图库后才开始", async () => {
     backend();
     render(<AutoTaggingSettings libraryId={null} />);
