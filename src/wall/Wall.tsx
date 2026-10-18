@@ -17,7 +17,7 @@ import { browse, workspaceBrowse, isCursorExpired, isLensChanged, thumbnailUrl }
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { modalOpen } from "../ui/modal";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
-import { captureAnchor, cardAt, masonry, resolveAnchor, visible, type Anchor, type Box } from "./layout";
+import { captureAnchor, cardAt, masonry, resolveAnchor, visible, zoomScrollTop, type Anchor, type Box } from "./layout";
 import { ZOOM_COMMIT_MS, createNotchCounter, zoomDensity } from "./zoom";
 import { createSmoothWheel } from "./smoothWheel";
 import { createPrefetcher, decodeThumbnail, mountWindow, prefetchOrder, type MountWindow } from "./prefetch";
@@ -266,7 +266,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 
   /**
-   * Ctrl+滚轮缩放（#111）：光标下的那张图在预览后的布局里中心仍在光标下。只由下一次布局效果消费一次；
+   * Ctrl+滚轮缩放（#111）：光标下的那张图在预览后的布局里中心仍在光标的高度（列数会变，只锚纵向，#122）。只由下一次布局效果消费一次；
    * 滑条与键盘改密度不设它，仍以视口顶部的图为锚。
    */
   const zoomPin = useRef<{ id: string; pointerY: number } | null>(null);
@@ -459,9 +459,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     const pinned = pin ? ids.indexOf(pin.id) : -1;
     let top: number | null;
     if (pinned >= 0) {
-      // 缩放：光标下那张图的中心放回光标下；随后以新布局里视口顶部的图为锚，提交时布局不变、位置不动。
-      const b = layout.boxes[pinned];
-      top = Math.max(0, Math.min(b.y + b.h / 2 - pin!.pointerY, layout.height - el.clientHeight));
+      // 缩放：光标下那张图的中心放回光标的高度（列数会变，只锚纵向，#122）；随后以新布局里视口顶部的图为锚，提交时布局不变、位置不动。
+      top = zoomScrollTop(layout, pinned, pin!.pointerY, el.clientHeight);
       anchor.current = captureAnchor(layout, ids, top, el.clientHeight);
       if (storeKey) saveAnchor(storeKey, anchor.current);
     } else {
