@@ -199,7 +199,7 @@ pub struct ShownWaiters {
     changed: Condvar,
 }
 
-/// 等新钉图的第一帧画好、窗口显示出来（[`pin_ready`]），最多 `timeout`。窗口已关或建失败时立即返回。
+/// 等新钉图的第一帧画好、窗口显示出来（[`pin_ready`]），最多 `timeout`。窗口已关、建失败或等待中被销毁时立即返回。
 /// 只在后台线程调用；不轮询窗口状态，免得和建窗口抢主线程。
 pub(super) fn wait_shown(app: &AppHandle, pin: &str, timeout: std::time::Duration) {
     let waiters = &state(app).pin_shown;
@@ -416,6 +416,8 @@ pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
         WindowEvent::CloseRequested { .. } => mark_closing(&app_for_events, &pin_id),
         WindowEvent::Resized(size) => keep_exact_size(&app_for_events, &pin_id, *size),
         WindowEvent::Destroyed => {
+            // 没画出第一帧就没了：别让框选一直等到超时。
+            stop_waiting(&app_for_events, &pin_id);
             // 主线程上：截图历史的清理放到别的线程。
             let (app, pin) = (app_for_events.clone(), pin_id.clone());
             std::thread::spawn(move || closed(&app, &pin));
@@ -783,8 +785,13 @@ pub async fn pin_ready(app: AppHandle, pin: String) {
     if let Some(window) = app.get_webview_window(&label(&pin)) {
         let _ = window.show();
     }
-    let waiters = &state(&app).pin_shown;
-    if let Some(shown) = lock(&waiters.pins).get_mut(&pin) {
+    stop_waiting(&app, &pin);
+}
+
+/// 唤醒 [`wait_shown`]：钉图已显示，或窗口已不在。
+fn stop_waiting(app: &AppHandle, pin: &str) {
+    let waiters = &state(app).pin_shown;
+    if let Some(shown) = lock(&waiters.pins).get_mut(pin) {
         *shown = true;
         waiters.changed.notify_all();
     }

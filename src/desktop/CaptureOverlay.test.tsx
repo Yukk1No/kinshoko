@@ -195,6 +195,20 @@ describe("框选窗口用完只隐藏，下一次复用（#129）", () => {
     fireEvent.load(image);
     expect(sent("capture_ready")).toEqual([{ token: "tok2" }]);
   });
+
+  it("上一次会话的原始像素读数不带到下一次的同一选区上", async () => {
+    reference = { x: 100, y: 50, width: 600, height: 400, scale: 4 };
+    let { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    await within(screen.getByRole("toolbar", { name: "截图" })).findByText("原始像素");
+    reference = null;
+    frozen = { image: "screen/tok2", width: 2400, height: 1500 };
+    await act(async () => { await emit("capture-session"); });
+    await screen.findByAltText("");
+    root = document.querySelector<HTMLElement>(".capture")!;
+    select(root, [100, 80], [200, 160]);
+    expect(within(screen.getByRole("toolbar", { name: "截图" })).queryByText("原始像素")).toBeNull();
+  });
 });
 
 describe("确认后立刻显示进度，结果可用才关（#127）", () => {

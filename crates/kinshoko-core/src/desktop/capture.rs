@@ -253,8 +253,9 @@ impl CaptureSelection<'_> {
                         return Err(CaptureError::SourceChanged);
                     }
                     // 只转换选区的颜色（#127）：整张大图的线性光往返要数秒。
-                    let (full, mut copied) = crate::fidelity::render::clipboard_rgba_crop(
+                    let mut copied = crate::fidelity::render::clipboard_rgba_crop(
                         &bytes,
+                        (image.width, image.height),
                         crate::fidelity::render::UprightCrop {
                             x: crop.x,
                             y: crop.y,
@@ -262,10 +263,8 @@ impl CaptureSelection<'_> {
                             height: crop.height,
                         },
                     )
-                    .map_err(CaptureError::Pixels)?;
-                    if full != (image.width, image.height) {
-                        return Err(CaptureError::SourceChanged);
-                    }
+                    .map_err(CaptureError::Pixels)?
+                    .ok_or(CaptureError::SourceChanged)?;
                     let placement = surface.pin.placement;
                     // 与参考钉图一致：先翻转，后顺时针旋转；仅方向改变，绝不按屏幕缩放。
                     if placement.flip_h {

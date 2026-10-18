@@ -34,6 +34,8 @@ export function CaptureOverlay() {
   const [dragging, setDragging] = useState(false);
   /** 已确认、正在等结果的动作。 */
   const [busy, setBusy] = useState<CaptureAction | null>(null);
+  /** 当前选区的读数（见下）；会话变了就丢掉。 */
+  const [readout, setReadout] = useState<{ rect: Rect; original: OriginalPixels | null } | null>(null);
   const start = useRef<Point | null>(null);
   const dpr = window.devicePixelRatio;
 
@@ -43,7 +45,7 @@ export function CaptureOverlay() {
     // 只认最后一次请求的回复：会话结束与下一次开始可能紧挨着到达。
     const refresh = () => {
       const request = ++sequence;
-      setRect(null); setDragging(false); setBusy(null); start.current = null;
+      setRect(null); setDragging(false); setBusy(null); setReadout(null); start.current = null;
       void frozenScreen().then((next) => { if (alive && request === sequence) setScreen(next); });
     };
     refresh();
@@ -54,7 +56,6 @@ export function CaptureOverlay() {
   const usable = rect !== null && rect.width >= MIN_SIZE && rect.height >= MIN_SIZE;
 
   // 选区每次变化都问一次读数（拖动中也问，松手时答案已到）；只认与当前选区相同的回复。
-  const [readout, setReadout] = useState<{ rect: Rect; original: OriginalPixels | null } | null>(null);
   useEffect(() => {
     if (!screen || !rect || !usable) return;
     let alive = true;

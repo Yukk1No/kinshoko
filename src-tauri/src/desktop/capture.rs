@@ -295,6 +295,15 @@ fn close_owned(app: &AppHandle, token: &str) {
     }
 }
 
+/// 离开作用域时 [`close_owned`]。
+struct CloseOnDrop<'a>(&'a AppHandle, &'a str);
+
+impl Drop for CloseOnDrop<'_> {
+    fn drop(&mut self) {
+        close_owned(self.0, self.1);
+    }
+}
+
 /// 告诉框选页面：会话变了（有了新的冻结屏幕，或已结束），重新取 `frozen_screen`。
 const SESSION_EVENT: &str = "capture-session";
 
@@ -563,11 +572,12 @@ pub async fn finish_capture(
     // 框选窗口留到结果可用（剪贴板写好／钉图已显示）才隐藏，期间页面显示进度（#127）：
     // 读大原图可能要一秒左右，先关掉窗口会让人以为按键没生效。
     tauri::async_runtime::spawn_blocking(move || {
+        // 出错甚至 panic 也要结束会话、隐藏窗口，否则之后的 F1 都被当成还在截。
+        let _close = CloseOnDrop(&app, &token);
         let result = finish_blocking(&app, pending, region, action);
         if let Ok(Some(pin)) = &result {
             pins::wait_shown(&app, pin, Duration::from_secs(5));
         }
-        close_owned(&app, &token);
         result.map(|_| ())
     })
     .await
