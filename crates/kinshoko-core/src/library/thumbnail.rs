@@ -8,7 +8,7 @@
 //! 导入时生成，打开资料库时在后台为缺少的补齐；浏览只读已有的，缺少时界面退回中性底色。
 
 use std::path::{Path, PathBuf};
-use std::sync::Weak;
+use std::sync::{Arc, Condvar, Mutex, Weak};
 
 use super::{CACHE_DIR, Error, Inner, colour};
 use crate::fidelity::{DEFAULT_DOWNSCALE, Downscale, render};
@@ -106,15 +106,73 @@ fn cached(inner: &Inner, image_id: &str, label: &str, max_width: u32) -> Result<
         .join(SDR)
         .join(&sha[..2])
         .join(format!("{sha}-{label}.{}", container.extension()));
-    if path.is_file() {
+    loop {
+        if path.is_file() {
+            return Ok(path);
+        }
+        // 同一张图、同一档位同时只渲染一次（#165）：后来的等第一次写完缓存再读同一个文件；
+        // 第一次失败时，后来的重新试一次。
+        let Some(_rendering) = Flight::lead(&path) else {
+            continue;
+        };
+        if path.is_file() {
+            return Ok(path);
+        }
+        let bytes = std::fs::read(&original)?;
+        let rendered =
+            render::render_sdr(&bytes, max_width, DEFAULT_DOWNSCALE).map_err(Error::Undecodable)?;
+        write_atomic(&path, &rendered.bytes)?;
         return Ok(path);
     }
+}
 
-    let bytes = std::fs::read(original)?;
-    let rendered =
-        render::render_sdr(&bytes, max_width, DEFAULT_DOWNSCALE).map_err(Error::Undecodable)?;
-    write_atomic(&path, &rendered.bytes)?;
-    Ok(path)
+/// 正在渲染的缓存文件（全进程）。
+static IN_FLIGHT: Mutex<Vec<Arc<Flight>>> = Mutex::new(Vec::new());
+
+/// 一次正在进行的渲染：持有它的线程负责生成 `path`，放开时唤醒等着同一文件的请求。
+struct Flight {
+    path: PathBuf,
+    done: Mutex<bool>,
+    finished: Condvar,
+}
+
+/// 由这个线程渲染；放开时（包括失败与 panic）登记撤下并唤醒等待者。
+struct Leading(Arc<Flight>);
+
+impl Flight {
+    /// 没有人在渲染 `path` 时登记由自己渲染；已经有人在渲染时等它结束，返回 `None`。
+    fn lead(path: &Path) -> Option<Leading> {
+        let mut flights = IN_FLIGHT.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(flight) = flights.iter().find(|f| f.path == path).cloned() {
+            drop(flights);
+            let mut done = flight.done.lock().unwrap_or_else(|e| e.into_inner());
+            while !*done {
+                done = flight
+                    .finished
+                    .wait(done)
+                    .unwrap_or_else(|e| e.into_inner());
+            }
+            return None;
+        }
+        let flight = Arc::new(Flight {
+            path: path.to_path_buf(),
+            done: Mutex::new(false),
+            finished: Condvar::new(),
+        });
+        flights.push(flight.clone());
+        Some(Leading(flight))
+    }
+}
+
+impl Drop for Leading {
+    fn drop(&mut self) {
+        IN_FLIGHT
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .retain(|f| !Arc::ptr_eq(f, &self.0));
+        *self.0.done.lock().unwrap_or_else(|e| e.into_inner()) = true;
+        self.0.finished.notify_all();
+    }
 }
 
 /// 占位图长边（像素）。

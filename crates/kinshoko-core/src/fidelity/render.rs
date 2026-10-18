@@ -27,6 +27,7 @@ use moxcms::{
     curve_from_gamma,
 };
 
+use super::budget;
 use super::description::{Cicp, ColourDeclaration, ColourDescription, ColourModel, IccKind};
 use super::inspect::{Inspection, inspect};
 use super::profiles;
@@ -122,27 +123,32 @@ pub struct SdrDerivative {
 }
 
 /// 生成 `sdr` 派生图：宽度不超过 `max_width`，不放大；`downscale` 决定在哪个空间缩小。
+/// 先等整图解码预算（[`budget`]），超过上限时排队。
 pub fn render_sdr(
     bytes: &[u8],
     max_width: u32,
     downscale: Downscale,
 ) -> Result<SdrDerivative, String> {
     let inspection = inspect(bytes)?.ok_or("不支持的格式")?;
-    render_sdr_widths(bytes, &inspection, &[max_width], downscale)?
+    let permit = budget::decode(&inspection, None).expect("不可取消的等待总会占到");
+    render_sdr_widths(&permit, bytes, &inspection, &[max_width], downscale)?
         .pop()
         .expect("一个宽度一份结果")
 }
 
 /// 解码一次，按每个宽度各出一份 `sdr` 派生图：导入时校验像素、生成占位图与网格缩略图共用这一次解码
 /// （#120、#123）。每一份与单独调用 [`render_sdr`] 的结果逐字节相同。
+/// 调用方先为这张图占好整图解码预算（`_permit`）。
 /// 外层错误是解码失败，文件头有效、压缩像素却损坏的原图在这里失败，导入在暂存与发布之前据此拒绝；
 /// 内层是解码之后某一份的缩放或编码失败，导入照常进行，只是这张图暂时缺这一份派生图。
 pub(crate) fn render_sdr_widths(
+    _permit: &budget::DecodePermit,
     bytes: &[u8],
     inspection: &Inspection,
     max_widths: &[u32],
     downscale: Downscale,
 ) -> Result<Vec<Result<SdrDerivative, String>>, String> {
+    let _rendering = budget::rendering(budget::estimate(inspection));
     let d = &inspection.description;
     let space = space(d);
     let container = container(d);
@@ -150,11 +156,11 @@ pub(crate) fn render_sdr_widths(
     let output = output_profile(space, inspection)?;
     let working = profiles::linear_of(&output);
 
-    let (w, h, mut linear) = decode_linear(bytes, inspection, &working)?;
-    // 转正方向。
+    let (w, h, linear) = decode_linear(bytes, inspection, &working)?;
+    // 转正方向。各个宽度都从这一份借用，不再各复制一份整图。
     let upright = (|| {
         let mut upright = DynamicImage::ImageRgba32F(
-            Rgba32FImage::from_raw(w, h, std::mem::take(&mut linear)).ok_or("像素缓冲尺寸不符")?,
+            Rgba32FImage::from_raw(w, h, linear).ok_or("像素缓冲尺寸不符")?,
         );
         upright.apply_orientation(inspection.orientation);
         Ok::<_, String>(upright.into_rgba32f())
@@ -164,20 +170,29 @@ pub(crate) fn render_sdr_widths(
         Space::SourceIcc => inspection.icc.clone(),
         Space::DisplayP3 => Some(profiles::display_p3_icc()),
     };
-    let render = |upright: Rgba32FImage, max_width: u32| -> Result<SdrDerivative, String> {
+    let render = |upright: &Rgba32FImage, max_width: u32| -> Result<SdrDerivative, String> {
         let (w, h, encoded) = match downscale {
-            Downscale::LinearLight => {
-                let resized = resize(upright, max_width)?;
-                let (w, h) = resized.dimensions();
-                (w, h, to_output(resized.into_raw(), &working, &output)?)
-            }
+            Downscale::LinearLight => match resize(upright, max_width)? {
+                Some(resized) => {
+                    let (w, h) = resized.dimensions();
+                    (w, h, to_output(&resized, &working, &output)?)
+                }
+                None => {
+                    let (w, h) = upright.dimensions();
+                    (w, h, to_output(upright, &working, &output)?)
+                }
+            },
             Downscale::EncodedValue => {
                 let (w, h) = upright.dimensions();
-                let values = to_output(upright.into_raw(), &working, &output)?;
+                let values = to_output(upright, &working, &output)?;
                 let values = Rgba32FImage::from_raw(w, h, values).ok_or("像素缓冲尺寸不符")?;
-                let resized = resize(values, max_width)?;
-                let (w, h) = resized.dimensions();
-                (w, h, resized.into_raw())
+                match resize(&values, max_width)? {
+                    Some(resized) => {
+                        let (w, h) = resized.dimensions();
+                        (w, h, resized.into_raw())
+                    }
+                    None => (w, h, values.into_raw()),
+                }
             }
         };
         let bytes = encode(&encoded, w, h, d.alpha, container, icc.clone())?;
@@ -188,20 +203,10 @@ pub(crate) fn render_sdr_widths(
             height: h,
         })
     };
-    let mut upright = Some(upright);
-    let last = max_widths.len().saturating_sub(1);
+    let upright = upright?;
     Ok(max_widths
         .iter()
-        .enumerate()
-        .map(|(i, &max_width)| {
-            // 最后一份直接用掉解码结果，前面的各用一份副本。
-            let source = if i == last {
-                upright.take().expect("解码结果只取走一次")
-            } else {
-                upright.clone().expect("解码结果还在")
-            };
-            render(source?, max_width)
-        })
+        .map(|&max_width| render(&upright, max_width))
         .collect())
 }
 
@@ -244,7 +249,8 @@ fn clipboard_pixels(
     let srgb = ColorProfile::new_srgb();
     let working = profiles::linear_of(&srgb);
     let (w, h, linear) = decode_linear_crop(bytes, inspection, &working, crop)?;
-    let encoded = to_output(linear, &working, &srgb)?;
+    let encoded = to_output(&linear, &working, &srgb)?;
+    drop(linear);
     let pixels = encoded
         .into_iter()
         .map(|v| (v.clamp(0.0, 1.0) * 255.0).round() as u8)
@@ -372,27 +378,44 @@ fn decode_linear_crop(
     }
     let (w, h) = (image.width(), image.height());
     let source = source_profile(inspection)?;
-    if source.color_space == DataColorSpace::Gray {
-        // 灰度配置文件：灰度＋alpha 进，RGBA 出。
-        let gray = image.to_luma_alpha32f().into_raw();
-        let transform = source
-            .create_transform_f32(Layout::GrayAlpha, working, Layout::Rgba, options())
-            .map_err(|e| format!("无法建立色彩转换：{e:?}"))?;
-        let mut out = vec![0f32; (w * h * 4) as usize];
-        transform
-            .transform(&gray, &mut out)
-            .map_err(|e| format!("色彩转换失败：{e:?}"))?;
-        return Ok((w, h, out));
-    }
-    let rgba = image.to_rgba32f().into_raw();
-    let mut out = vec![0f32; rgba.len()];
+    let gray = source.color_space == DataColorSpace::Gray;
+    // 灰度配置文件：灰度＋alpha 进，RGBA 出。
+    let layout = if gray {
+        Layout::GrayAlpha
+    } else {
+        Layout::Rgba
+    };
     let transform = source
-        .create_transform_f32(Layout::Rgba, working, Layout::Rgba, options())
+        .create_transform_f32(layout, working, Layout::Rgba, options())
         .map_err(|e| format!("无法建立色彩转换：{e:?}"))?;
-    transform
-        .transform(&rgba, &mut out)
-        .map_err(|e| format!("色彩转换失败：{e:?}"))?;
+    let mut out = vec![0f32; w as usize * h as usize * 4];
+    // 按行分段转成 f32 再做色彩转换（逐像素，结果与整图一次转换相同）：
+    // 不同时存在一份整图大小的 f32 源副本（#165）。
+    let rows = band_rows(w);
+    for (band, dst) in out
+        .chunks_mut((rows as usize * w as usize * 4).max(1))
+        .enumerate()
+    {
+        let y = band as u32 * rows;
+        let band_h = rows.min(h - y);
+        let part = image.crop_imm(0, y, w, band_h);
+        let src = if gray {
+            part.to_luma_alpha32f().into_raw()
+        } else {
+            part.to_rgba32f().into_raw()
+        };
+        transform
+            .transform(&src, dst)
+            .map_err(|e| format!("色彩转换失败：{e:?}"))?;
+    }
     Ok((w, h, out))
+}
+
+/// 分段色彩转换每段的行数：64 行的整数倍（每段像素数是 64 的倍数，与整图一次转换的分组对齐），
+/// 每段约一百万像素。
+fn band_rows(width: u32) -> u32 {
+    const BAND_PIXELS: u32 = 1 << 20;
+    (BAND_PIXELS / width.max(1)).max(1).div_ceil(64) * 64
 }
 
 /// 动图首帧（APNG 的默认图不在动画里时取第一个动画帧），其余为普通解码。
@@ -632,20 +655,22 @@ fn tone_map(rgb: [f32; 3], peak: f32) -> [f32; 3] {
     rgb.map(|v| v * scale)
 }
 
-/// 预乘 alpha 的 Lanczos3 缩放（在传入像素所在的空间里）；不放大。
-fn resize(image: Rgba32FImage, max_width: u32) -> Result<Rgba32FImage, String> {
+/// 预乘 alpha 的 Lanczos3 缩放（在传入像素所在的空间里）；不放大，原图不比 `max_width` 宽时为 `None`。
+/// 直接借用传入的缓冲，不另存一份整图大小的像素副本。
+fn resize(image: &Rgba32FImage, max_width: u32) -> Result<Option<Rgba32FImage>, String> {
     let (w, h) = image.dimensions();
     if w <= max_width {
-        return Ok(image);
+        return Ok(None);
     }
     let tw = max_width;
     let th = ((h as f64) * (tw as f64) / (w as f64)).round().max(1.0) as u32;
-    let pixels: Vec<fr::pixels::F32x4> = image
-        .into_raw()
-        .chunks_exact(4)
-        .map(|p| fr::pixels::F32x4::new([p[0], p[1], p[2], p[3]]))
-        .collect();
-    let src = fr::images::ImageRef::from_pixels(w, h, &pixels).map_err(|e| e.to_string())?;
+    let src = fr::images::ImageRef::new(
+        w,
+        h,
+        bytemuck::cast_slice(image.as_raw()),
+        fr::PixelType::F32x4,
+    )
+    .map_err(|e| e.to_string())?;
     let mut dst = fr::images::Image::new(tw, th, fr::PixelType::F32x4);
     Resizer::new()
         .resize(
@@ -658,12 +683,14 @@ fn resize(image: Rgba32FImage, max_width: u32) -> Result<Rgba32FImage, String> {
         .typed_image::<fr::pixels::F32x4>()
         .ok_or("缩放结果类型不符")?;
     let raw: Vec<f32> = typed.pixels().iter().flat_map(|p| p.0).collect();
-    Rgba32FImage::from_raw(tw, th, raw).ok_or_else(|| "缩放结果尺寸不符".into())
+    Rgba32FImage::from_raw(tw, th, raw)
+        .map(Some)
+        .ok_or_else(|| "缩放结果尺寸不符".into())
 }
 
 /// 线性光工作空间 → 存储空间（编码值，0～1）。
 fn to_output(
-    linear: Vec<f32>,
+    linear: &[f32],
     working: &ColorProfile,
     output: &ColorProfile,
 ) -> Result<Vec<f32>, String> {
@@ -671,7 +698,7 @@ fn to_output(
     working
         .create_transform_f32(Layout::Rgba, output, Layout::Rgba, options())
         .map_err(|e| format!("无法建立色彩转换：{e:?}"))?
-        .transform(&linear, &mut out)
+        .transform(linear, &mut out)
         .map_err(|e| format!("色彩转换失败：{e:?}"))?;
     Ok(out)
 }
