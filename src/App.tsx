@@ -608,6 +608,7 @@ function LibraryWorkspace({
         position={viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) }}
         onStep={step}
         startCrop={viewCrop}
+        safe={safe}
         onTrash={(viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.deleted ?? scope.kind === "trash") ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
       />
     )}

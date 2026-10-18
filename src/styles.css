@@ -624,6 +624,18 @@ button.primary {
 .viewer-info dt { color: var(--ink-3); }
 .viewer-info dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .viewer-info p { margin: 10px 0 0; color: var(--ink-3); }
+/* 信息面板的标签（#147）：只读、比详情面板紧凑；面板底边停在 dock 上方（DOCK_RESERVE 76px 再留 8px），标签多时只滚标签区。 */
+.viewer-info { display: flex; flex-direction: column; max-height: calc(100% - 14px - 84px); box-sizing: border-box; }
+.viewer-info > dl, .viewer-info > p { flex: none; }
+.viewer-tags { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-2); }
+.viewer-tags h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.viewer-tag-group + .viewer-tag-group { margin-top: 6px; }
+.viewer-tag-group h5 { margin: 0 0 3px; font-size: 11px; font-weight: 500; color: var(--ink-3); }
+.viewer-tag-group ul { display: flex; flex-wrap: wrap; gap: 3px 4px; margin: 0; padding: 0; list-style: none; }
+.viewer-tag-group li { display: inline-flex; align-items: baseline; gap: 4px; max-width: 100%; padding: 1px 6px; border-radius: 6px; background: var(--surface-2); }
+.viewer-tag-name { overflow-wrap: anywhere; }
+.viewer-tag-from { color: var(--ink-3); font-size: 10px; opacity: 0.8; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.viewer-tags .viewer-tags-empty { margin: 0; color: var(--ink-3); }
 /* 框出的局部（#65）：按原图像素记，随缩放平移换算位置；外面压暗，三分线辅助构图。 */
 .viewer-crop {
   position: absolute;
