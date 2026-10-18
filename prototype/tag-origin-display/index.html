@@ -1,0 +1,393 @@
+<!doctype html>
+<!--
+  PROTOTYPE — 丢弃式原型，不是产品代码（#160）。
+  问题：详情面板的标签上，出处、可信度和“尚未翻译”该怎么表达？
+  四个变体在同一组标签上切换：?variant=0|A|B|C，底部浮条或键盘 ← → 切换；?theme=dark 看深色。
+  样式取自 origin/claude/project-thread-wr3c28 的 src/styles.css 与 src/shell/main-window.css（.k-tags、.k-tip）。
+  所有变体的悬停操作都放进浮层，不改变标签尺寸（#159）；右侧状态栏实时显示悬停前后的标签尺寸。
+  直接双击打开即可，不需要构建。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>标签出处原型</title>
+<style>
+:root {
+  --font: "Kinshoko Inter", "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+  --bg: #F7F3EA; --rail: #EFE8DA; --surface: #FFFDF8; --surface-2: #F1EBDF;
+  --hover: rgba(43, 39, 71, 0.07); --ink: #2B2747; --ink-2: #5B5773; --ink-3: #8C88A0;
+  --line: #E3DACA; --line-2: #D4C9B5; --accent: #E0768F; --accent-strong: #B5465F;
+  --accent-soft: rgba(224, 118, 143, 0.14); --manual: #B07D16; --manual-soft: rgba(227, 179, 79, 0.2);
+  --wall: #EAE9E6; --danger: #B23A3A; --sunken: #EDE7DA; --ok: #3E7A4D;
+  --shadow-pop: 0 0 0 1px rgba(43, 39, 71, 0.06), 0 2px 4px rgba(43, 39, 71, 0.06), 0 12px 32px rgba(43, 39, 71, 0.14);
+  --spring: cubic-bezier(0.2, 0.9, 0.25, 1.05);
+  /* 原型新增：可信度三档的底色（B）与刻度条（C） */
+  --conf-hi: #E6DDCB; --conf-mid: #F1EBDF; --conf-lo: transparent; --meter: #8C88A0;
+}
+:root[data-theme="dark"] {
+  --bg: #1E1C2C; --rail: #17151F; --surface: #252336; --surface-2: #2C2940;
+  --hover: rgba(244, 236, 220, 0.07); --ink: #F4ECDC; --ink-2: #C8C0B2; --ink-3: #8F889E;
+  --line: #353249; --line-2: #45415C; --accent: #E3B34F; --accent-strong: #E9C26E;
+  --accent-soft: rgba(227, 179, 79, 0.16); --manual: #E3B34F; --manual-soft: rgba(227, 179, 79, 0.18);
+  --wall: #161618; --danger: #F08A8A; --sunken: #19172A; --ok: #8FCB9C;
+  --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --conf-hi: #3A3652; --conf-mid: #2C2940; --meter: #8F889E;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 13px; }
+.stage { display: flex; justify-content: center; gap: 24px; padding: 24px 16px 96px; flex-wrap: wrap; }
+
+/* ---- 详情面板外壳（.inspector） ---- */
+.inspector { width: 320px; flex: none; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.insp-head { height: 56px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid var(--line); color: var(--ink-2); font-weight: 500; }
+.insp-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 16px; }
+.insp-preview { height: 150px; border-radius: 10px; background: linear-gradient(135deg, #d9c9b4, #a99bb8 60%, #6f6890); }
+.insp-file-name { font-weight: 600; font-size: 14px; }
+.insp-file-meta { color: var(--ink-3); font-size: 12px; }
+.insp-h { margin: 0 0 8px; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-3); letter-spacing: 0.04em; }
+.insp-h-hint { margin-left: auto; font-weight: 400; letter-spacing: 0; }
+
+/* ---- 标签（.k-tags） ---- */
+.k-tags { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+.k-tag-chips { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.k-tag-chip { position: relative; display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 6px; min-height: 26px; padding: 0 9px; border-radius: 7px; background: var(--surface-2); color: var(--ink); cursor: default; }
+.k-tag-chip.is-manual { background: var(--accent-soft); color: var(--accent-strong); }
+.k-tag-chip .tag-name { font-weight: 500; white-space: nowrap; }
+.k-tag-from { display: inline-flex; gap: 4px; color: var(--ink-3); font-size: 11px; white-space: nowrap; }
+.k-tag-chip.is-manual .k-tag-from { color: color-mix(in srgb, var(--accent-strong) 70%, transparent); }
+.k-tags-sub { margin: 2px 0 -2px; color: var(--ink-3); font-size: 11px; }
+.k-tag-chip.is-rejected { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-3); }
+.k-tag-chip.is-rejected .tag-name { text-decoration: line-through; font-weight: 400; }
+.k-tag-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 现状：操作按钮悬停时撑开（#159 的抽搐来源之一，这里保留以作对照） */
+.v0 .k-tag-acts { display: inline-flex; max-width: 0; overflow: hidden; opacity: 0; margin: 0 -5px 0 -6px; transition: max-width 140ms, opacity 140ms; }
+.v0 .k-tag-chip:hover .k-tag-acts { max-width: 72px; opacity: 1; margin-left: 0; }
+.k-tag-acts button { width: 20px; height: 20px; padding: 0; border: 0; background: none; color: inherit; border-radius: 4px; display: grid; place-items: center; }
+
+/* B：模型标签按可信度三档 */
+.vB .k-tag-chip.conf-hi { background: var(--conf-hi); }
+.vB .k-tag-chip.conf-mid { background: var(--conf-mid); }
+.vB .k-tag-chip.conf-lo { background: var(--conf-lo); outline: 1px dashed var(--line-2); outline-offset: -1px; color: var(--ink-2); }
+.vB .k-tag-chip.conf-lo .tag-name { font-weight: 400; }
+
+/* C：按出处分组；模型标签底部一条可信度刻度；原名用斜体 */
+.vC .group-h { margin: 4px 0 -2px; color: var(--ink-3); font-size: 11px; display: flex; gap: 6px; }
+.vC .group-h:first-child { margin-top: 0; }
+.vC .k-tag-chip.is-model { overflow: hidden; }
+.vC .k-tag-chip .meter { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--meter); opacity: 0.9; border-radius: 0 2px 0 0; pointer-events: none; }
+.vC .tag-name.is-raw, .vC .cand .is-raw { font-style: italic; font-weight: 400; }
+
+/* ---- 悬停浮层（.k-tip，加上操作按钮；固定定位，不占标签的位置） ---- */
+.k-tip { position: fixed; z-index: 20; max-width: 260px; padding: 7px 9px; border-radius: 8px; background: var(--ink); color: var(--surface); font-size: 12px; line-height: 17px; box-shadow: var(--shadow-pop);
+  opacity: 0; transform: scale(0.96); transform-origin: top left; transition: transform 160ms var(--spring), opacity 120ms; pointer-events: none; }
+.k-tip.is-open { opacity: 1; transform: none; pointer-events: auto; }
+.k-tip .tip-line { display: block; }
+.k-tip .tip-dim { opacity: 0.7; }
+.k-tip .tip-acts { display: flex; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, var(--surface) 20%, transparent); }
+.k-tip .tip-acts button { height: 22px; padding: 0 7px; border: 0; border-radius: 5px; background: color-mix(in srgb, var(--surface) 12%, transparent); color: inherit; font: inherit; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; }
+.k-tip .tip-acts button:hover { background: color-mix(in srgb, var(--surface) 22%, transparent); }
+
+/* ---- 搜索框候选（SearchBox 的 TagMarks） ---- */
+.search { width: 320px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.search-field { height: 34px; border-radius: 10px; box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px var(--accent-soft); display: flex; align-items: center; padding: 0 10px; color: var(--ink); }
+.cands { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.cand { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px; border-radius: 7px; }
+.cand:first-child { background: var(--hover); }
+.cand .ns { color: var(--ink-3); font-size: 11px; margin-left: auto; }
+.cand .mark { color: var(--ink-3); font-size: 11px; }
+
+/* ---- 原型说明与状态 ---- */
+.side { width: 300px; display: flex; flex-direction: column; gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 12px; line-height: 18px; color: var(--ink-2); }
+.card h3 { margin: 0 0 6px; font-size: 12px; color: var(--ink); }
+.card ul { margin: 0; padding-left: 18px; }
+.card pre { margin: 0; white-space: pre-wrap; font: 11px/16px ui-monospace, Consolas, monospace; color: var(--ink); }
+.ok { color: var(--ok); } .bad { color: var(--danger); font-weight: 600; }
+
+/* ---- 原型切换条（不属于被评估的设计） ---- */
+.proto-bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: #111; color: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.35); font: 12px system-ui, sans-serif; }
+.proto-bar button { height: 30px; min-width: 30px; padding: 0 10px; border: 0; border-radius: 999px; background: none; color: inherit; font: inherit; cursor: pointer; }
+.proto-bar button:hover { background: rgba(255,255,255,.12); }
+.proto-bar .label { padding: 0 10px; min-width: 210px; text-align: center; }
+.proto-bar .sep { width: 1px; height: 18px; background: rgba(255,255,255,.25); margin: 0 4px; }
+@media (max-width: 720px) { .proto-bar .label { min-width: 0; } }
+@media (prefers-reduced-motion: reduce) { .k-tip, .v0 .k-tag-acts { transition: none; } }
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="inspector">
+    <div class="insp-head">详情</div>
+    <div class="insp-body">
+      <div class="insp-preview" aria-hidden="true"></div>
+      <div><div class="insp-file-name">夕阳窗边_练习02.png</div><div class="insp-file-meta">2400 × 3200 · 4.1 MB</div></div>
+      <section>
+        <h4 class="insp-h">标签<span class="insp-h-hint" id="tag-count"></span></h4>
+        <div class="k-tags" id="tags"></div>
+      </section>
+    </div>
+  </aside>
+  <div class="side">
+    <div class="search" aria-label="搜索框候选">
+      <div class="search-field">a</div>
+      <ul class="cands" id="cands"></ul>
+    </div>
+    <div class="card" id="about"></div>
+    <div class="card"><h3>状态（悬停任一标签）</h3><pre id="state">—</pre></div>
+  </div>
+</div>
+<div class="k-tip" id="tip" role="tooltip"></div>
+<nav class="proto-bar" aria-label="原型切换">
+  <button id="prev" aria-label="上一个变体">←</button>
+  <span class="label" id="label"></span>
+  <button id="next" aria-label="下一个变体">→</button>
+  <span class="sep"></span>
+  <button id="theme">深色</button>
+</nav>
+
+<script>
+// ---- 数据：一张图的有效标签与被否决标签（接近 ImageTags 的形状） ----
+// origin: {kind:'manual'} | {kind:'source', source:'model:wd-v3'|'eagle:…'|'package:…', score:number|null}
+// name: 中文名；raw: 外部原名；untranslated=true 表示没有任何语言的名称，显示 raw
+const M = (score) => ({ kind: "source", source: "model:wd-eva02-v3", score });
+const TAGS = [
+  { name: "构图练习", ns: "general", origins: [{ kind: "manual" }] },
+  { name: "长发", raw: "long_hair", ns: "general", origins: [{ kind: "manual" }, M(0.99)] },
+  { name: "单人", raw: "solo", ns: "general", origins: [M(0.97)] },
+  { name: "微笑", raw: "smile", ns: "general", origins: [M(0.87)] },
+  { name: "水手服", raw: "serafuku", ns: "general", origins: [M(0.72)] },
+  { raw: "ahoge", untranslated: true, ns: "general", origins: [M(0.64)] },
+  { name: "室内", raw: "indoors", ns: "general", origins: [M(0.55)] },
+  { name: "夕阳", raw: "sunset", ns: "general", origins: [M(0.41)] },
+  { raw: "zettai_ryouiki", untranslated: true, ns: "general", origins: [M(0.38)] },
+  { name: "窗户", raw: "window", ns: "general", origins: [M(0.31)] },
+  { name: "姿势参考", ns: "general", origins: [{ kind: "source", source: "eagle:lib1", score: null }] },
+  { raw: "lighting ref", untranslated: true, ns: "general", origins: [{ kind: "source", source: "eagle:lib1", score: null }] },
+  { name: "千早", ns: "character", origins: [{ kind: "source", source: "package:oc-pack", score: null }] },
+];
+const REJECTED = [
+  { name: "眼镜", raw: "glasses", origins: [M(0.33)] },
+  { name: "猫耳", raw: "cat_ears", origins: [M(0.47)] },
+];
+
+// ---- 共用的文案 ----
+const label = (t) => t.untranslated ? t.raw : t.name;
+const isManual = (t) => t.origins.some((o) => o.kind === "manual");
+const model = (t) => t.origins.find((o) => o.kind === "source" && o.source.startsWith("model:"));
+const pct = (s) => Math.round(s * 100) + "%";
+const tier = (s) => s >= 0.8 ? "hi" : s >= 0.5 ? "mid" : "lo";
+const TIER_WORD = { hi: "高", mid: "中", lo: "低" };
+const sourceWord = (o) => {
+  if (o.kind === "manual") return "你添加的";
+  if (o.source.startsWith("model:")) return "打标模型";
+  if (o.source.startsWith("eagle:")) return "从 Eagle 导入";
+  if (o.source.startsWith("package:")) return "参考组包";
+  return "导入";
+};
+// 现状（TagPanel.originText）
+const originText = (o) => {
+  if (o.kind === "manual") return "人工添加";
+  if (o.source.startsWith("model:")) return o.score === null ? "模型" : `模型 ${o.score.toFixed(2)}`;
+  if (o.source.startsWith("eagle:")) return "Eagle";
+  if (o.source.startsWith("package:")) return "参考组包";
+  return "导入";
+};
+// 新方案的悬停提示：每个出处一行，可信度写成百分比；未翻译单独一行
+function tipLines(t, { rejected = false } = {}) {
+  const lines = [];
+  if (rejected) lines.push(["你已排除这个标签，重新打标也不会加回来"]);
+  for (const o of t.origins) {
+    if (o.kind === "manual") lines.push(["来源：你添加的"]);
+    else if (o.score !== null) lines.push([`来源：${sourceWord(o)} · 可信度 ${pct(o.score)}`, `（${TIER_WORD[tier(o.score)]}）`]);
+    else lines.push([`来源：${sourceWord(o)}`]);
+  }
+  if (t.untranslated) lines.push(["尚无中文名，显示的是原名"]);
+  else if (t.raw) lines.push([`原名：${t.raw}`, "", true]);
+  return lines;
+}
+
+// ---- 变体 ----
+const VARIANTS = {
+  "0": {
+    name: "现状（对照）",
+    about: `<h3>现状（对照）</h3><ul><li>常驻灰字“人工添加”“模型 0.87”“Eagle”。</li><li>未翻译的标签后跟“文A”。</li><li>悬停时操作按钮在标签里撑开：标签变宽，后面的标签会被挤动（#159）。看右下状态的尺寸。</li></ul>`,
+    tip: false,
+    chip(t, li, { rejected }) {
+      li.innerHTML = `<span class="tag-name">${label(t)}</span>` +
+        `<span class="k-tag-from">${t.origins.map((o) => `<span>${originText(o)}</span>`).join("")}${t.untranslated ? "<span>文A</span>" : ""}</span>` +
+        `<span class="k-tag-acts">${rejected ? "<button title='恢复'>↺</button>" : "<button title='保留'>✓</button><button title='不要'>⦸</button><button title='别名'>@</button>"}</span>`;
+    },
+    cand: (t) => `<span>${label(t)}</span>${t.untranslated ? "<span class='mark'>文A</span>" : ""}`,
+  },
+  A: {
+    name: "A 只显示名称 + 悬停提示",
+    about: `<h3>A 只显示名称 + 悬停提示</h3><ul><li>标签上只有名称。</li><li>你添加的标签保留强调底色，其余一律同色。</li><li>出处、可信度、“尚无中文名”都在悬停（或键盘聚焦）的浮层里，操作按钮也移进浮层。</li><li>代价：不悬停就分不出模型有多确定、哪些没翻译。</li></ul>`,
+    tip: true,
+    chip(t, li) { li.innerHTML = `<span class="tag-name">${label(t)}</span>`; },
+    cand: (t) => `<span>${label(t)}</span>`,
+  },
+  B: {
+    name: "B 可信度三档底色",
+    about: `<h3>B 可信度三档底色</h3><ul><li>你添加的：强调底色（不变）。</li><li>模型标签：可信度 ≥80% 深底，50–80% 常规底，&lt;50% 只有虚线框、字变浅。</li><li>导入（Eagle、参考组包）用常规底。</li><li>精确数值、来源、“尚无中文名”在悬停浮层里。</li><li>代价：“低”的虚线框和“已排除”的实线框仍然相近，要靠删除线和分区区分；深/常规两档差别不大。</li></ul>`,
+    tip: true,
+    chip(t, li, { rejected }) {
+      li.innerHTML = `<span class="tag-name">${label(t)}</span>`;
+      const m = model(t);
+      if (!rejected && !isManual(t) && m) li.classList.add("conf-" + tier(m.score));
+    },
+    cand: (t) => `<span>${label(t)}</span>`,
+  },
+  C: {
+    name: "C 按出处分组 + 可信度刻度",
+    about: `<h3>C 按出处分组 + 可信度刻度</h3><ul><li>标签按“你添加的 / 打标模型 / 导入”分组，出处写在组标题上一次，不再每个标签重复。</li><li>模型组按可信度从高到低排；每个标签底边有一条细刻度，长度＝可信度。</li><li>没有中文名的标签用斜体显示原名（搜索候选同样）。</li><li>悬停浮层给精确数值与操作。</li><li>代价：标签顺序随分组变化；斜体对中文用户的含义要靠悬停学一次。</li></ul>`,
+    tip: true,
+    grouped: true,
+    chip(t, li, { rejected }) {
+      li.innerHTML = `<span class="tag-name${t.untranslated ? " is-raw" : ""}">${label(t)}</span>`;
+      const m = model(t);
+      if (!rejected && !isManual(t) && m) {
+        li.classList.add("is-model");
+        li.insertAdjacentHTML("beforeend", `<span class="meter" style="width:${pct(m.score)}"></span>`);
+      }
+    },
+    cand: (t) => `<span class="${t.untranslated ? "is-raw" : ""}">${label(t)}</span>`,
+  },
+};
+const KEYS = Object.keys(VARIANTS);
+
+// ---- 渲染 ----
+const params = new URLSearchParams(location.search);
+let key = KEYS.includes(params.get("variant")) ? params.get("variant") : "A";
+let theme = params.get("theme") === "dark" ? "dark" : "light";
+const $ = (id) => document.getElementById(id);
+
+function chipEl(t, opts) {
+  const v = VARIANTS[key];
+  const li = document.createElement("li");
+  li.className = "k-tag-chip" + (opts.rejected ? " is-rejected" : isManual(t) ? " is-manual" : "");
+  li.tabIndex = 0;
+  v.chip(t, li, opts);
+  li._tag = t; li._rejected = !!opts.rejected;
+  return li;
+}
+function list(items, opts = {}) {
+  const ul = document.createElement("ul");
+  ul.className = "k-tag-chips";
+  items.forEach((t) => ul.append(chipEl(t, opts)));
+  return ul;
+}
+function render() {
+  const v = VARIANTS[key];
+  document.documentElement.dataset.theme = theme;
+  document.body.className = "v" + key;
+  $("label").textContent = v.name;
+  $("theme").textContent = theme === "dark" ? "浅色" : "深色";
+  $("about").innerHTML = v.about;
+  $("tag-count").textContent = TAGS.length + " 个";
+  const box = $("tags");
+  box.innerHTML = "";
+  if (v.grouped) {
+    const groups = [
+      ["你添加的", TAGS.filter(isManual)],
+      ["打标模型 · 按可信度", TAGS.filter((t) => !isManual(t) && model(t)).sort((a, b) => model(b).score - model(a).score)],
+      ["导入", TAGS.filter((t) => !isManual(t) && !model(t))],
+    ];
+    for (const [h, items] of groups) {
+      if (!items.length) continue;
+      box.insertAdjacentHTML("beforeend", `<p class="group-h">${h}</p>`);
+      box.append(list(items));
+    }
+  } else {
+    box.append(list(TAGS));
+  }
+  box.insertAdjacentHTML("beforeend", `<p class="k-tags-sub">已排除</p>`);
+  box.append(list(REJECTED, { rejected: true }));
+  // 搜索候选：输入“a”
+  const cands = [TAGS[5], TAGS[8], TAGS[2], TAGS[11]];
+  $("cands").innerHTML = cands.map((t) => `<li class="cand" title="${VARIANTS[key].tip && t.untranslated ? "尚无中文名，显示的是原名" : ""}">${v.cand(t)}<span class="ns">一般</span></li>`).join("");
+  hideTip(true);
+  $("state").textContent = "—";
+  document.querySelectorAll(".k-tag-chip").forEach((li) => { li._rest = li.getBoundingClientRect(); });
+}
+
+// ---- 悬停浮层：固定定位，移入浮层也保持打开 ----
+const tip = $("tip");
+let hideTimer = 0, current = null;
+function showTip(li) {
+  clearTimeout(hideTimer);
+  current = li;
+  const t = li._tag;
+  const lines = tipLines(t, { rejected: li._rejected });
+  tip.innerHTML = lines.map(([a, b = "", dim]) => `<span class="tip-line${dim ? " tip-dim" : ""}">${a}<span class="tip-dim">${b}</span></span>`).join("") +
+    `<div class="tip-acts">${li._rejected ? "<button>↺ 恢复</button>" : (isManual(t) ? "<button>↺ 改回自动</button>" : "<button>✓ 保留</button>") + "<button>⦸ 不要</button><button>@ 别名</button>"}</div>`;
+  const r = li.getBoundingClientRect();
+  tip.style.left = Math.min(r.left, innerWidth - 270) + "px";
+  tip.style.top = r.bottom + 6 + "px";
+  tip.classList.add("is-open");
+}
+function hideTip(now) {
+  clearTimeout(hideTimer);
+  const go = () => { tip.classList.remove("is-open"); current = null; };
+  now === true ? go() : (hideTimer = setTimeout(go, 160));
+}
+tip.addEventListener("mouseenter", () => clearTimeout(hideTimer));
+tip.addEventListener("mouseleave", hideTip);
+
+// 状态：悬停前后测量标签尺寸，检验不抽搐（#159）
+function inspect(li) {
+  const before = li._rest; // 渲染后、未悬停时量的尺寸
+  const t = li._tag;
+  const m = model(t);
+  setTimeout(() => {
+    const after = li.getBoundingClientRect();
+    const same = Math.abs(before.width - after.width) < 0.5 && Math.abs(before.height - after.height) < 0.5;
+    $("state").innerHTML = JSON.stringify({
+      显示: label(t), 原名: t.raw ?? null, 未翻译: !!t.untranslated,
+      出处: t.origins.map((o) => o.kind === "manual" ? "manual" : o.source + (o.score !== null ? " " + o.score : "")),
+      档位: m && !isManual(t) ? TIER_WORD[tier(m.score)] : null, 已否决: li._rejected,
+    }, null, 1) + `\n悬停前 ${before.width.toFixed(1)}×${before.height.toFixed(1)} → 悬停后 ${after.width.toFixed(1)}×${after.height.toFixed(1)} ` +
+      (same ? `<span class="ok">尺寸不变</span>` : `<span class="bad">尺寸变了</span>`);
+  }, 220);
+}
+const tagsBox = $("tags");
+tagsBox.addEventListener("mousemove", (e) => {
+  const li = e.target.closest(".k-tag-chip");
+  if (!li || li === current) return;
+  inspect(li);
+  if (VARIANTS[key].tip) showTip(li); else current = li;
+});
+tagsBox.addEventListener("mouseout", (e) => {
+  const li = e.target.closest(".k-tag-chip");
+  if (li && !li.contains(e.relatedTarget)) { if (VARIANTS[key].tip) hideTip(); else current = null; }
+});
+tagsBox.addEventListener("focusin", (e) => { const li = e.target.closest(".k-tag-chip"); if (li && VARIANTS[key].tip) showTip(li); });
+tagsBox.addEventListener("focusout", () => VARIANTS[key].tip && hideTip());
+
+// ---- 切换条 ----
+function go(d) {
+  key = KEYS[(KEYS.indexOf(key) + d + KEYS.length) % KEYS.length];
+  sync();
+}
+function sync() {
+  const p = new URLSearchParams(location.search);
+  p.set("variant", key);
+  theme === "dark" ? p.set("theme", "dark") : p.delete("theme");
+  history.replaceState(null, "", "?" + p);
+  render();
+}
+$("prev").onclick = () => go(-1);
+$("next").onclick = () => go(1);
+$("theme").onclick = () => { theme = theme === "dark" ? "light" : "dark"; sync(); };
+addEventListener("keydown", (e) => {
+  if (e.target.closest("input, textarea, [contenteditable]")) return;
+  if (e.key === "ArrowLeft") go(-1);
+  if (e.key === "ArrowRight") go(1);
+  if (e.key === "Escape") hideTip(true);
+});
+render();
+</script>
+</body>
+</html>
