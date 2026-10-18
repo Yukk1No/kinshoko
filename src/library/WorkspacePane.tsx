@@ -85,10 +85,11 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
   foot?: ReactNode;
   children?: ReactNode;
 }) {
-  // 代次（登记修订与安全模式）变了，旧目录在新结果到达前就不再显示；只是重读（reloadKey，导入期间
-  // 每次列表过期都会加一）时沿用上一份目录直到新结果到达，资料库行不因计数刷新整行卸载重绘（#121）。
-  const generation = JSON.stringify([status?.revision, safeMode]);
-  const key = JSON.stringify([generation, reloadKey]);
+  // 代次（登记了哪些图库、各自是否可用、安全模式）变了，旧目录在新结果到达前就不再显示。内容变化
+  // （status.revision 随每次进库前进，导入期间约每 1.5 秒一次）与单纯重读（reloadKey，每次列表过期加一）
+  // 只重读：沿用上一份目录直到新结果到达，资料库行不因计数刷新整行变成不可用（#121）。
+  const generation = JSON.stringify([status?.libraries, safeMode]);
+  const key = JSON.stringify([generation, status?.revision, reloadKey]);
   const [loaded, setLoaded] = useState<{ generation: string; forest: WorkspaceDirectories } | null>(null);
   const [descendants, setDescendants] = useState(!(scope.kind === "library" && scope.scope.kind === "folder"));
   useEffect(() => {
