@@ -84,7 +84,7 @@ pub fn run() {
             tagging::tagging_pause,
             tagging::tagging_resume,
             tagging::tagging_models,
-            tagging::tagging_set_model,
+            tagging::tagging_set_device,
             tagging::tagging_pick_package,
             tagging::tagging_import_package,
             fidelity_gate::gate_plan,

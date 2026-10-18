@@ -41,9 +41,9 @@ pub struct TaggingConfig {
     pub max_crashes_per_image: u32,
     /// 显卡被重置或会话在显卡上启动失败这么多次后，本次运行不再用显卡，退到 CPU 档。
     pub max_gpu_failures: u32,
-    /// 画师在设置中选的模型（[`ModelSpec::key`]）：本机条件满足时优先用它，否则按 `models`
-    /// 的顺序退让（例如选了显卡模型但没有独显）。`None` 表示自动选择。
-    pub preferred: Option<String>,
+    /// 画师在设置中选的硬件档：只用这一档的模型，本机条件不满足时不退到别的档。
+    /// `None` 表示自动：按 `models` 的顺序取第一个本机条件满足的（显卡不可用时退到 CPU 档）。
+    pub preferred: Option<Device>,
     /// Optional application publication boundary. Only result writes acquire it;
     /// model loading and inference stay outside. Stop/join callers must release it first.
     pub publication_gate: Option<Arc<Mutex<()>>>,
@@ -91,6 +91,7 @@ pub enum TaggingStatus {
         reason: String,
     },
     /// 首次使用：模型还没下载，等画师确认（显示大小；`downloaded` 是上次中断时已下的部分）。
+    /// `fallback` 是自动档退到这个模型的原因（例如没有独立显卡）；没有退让时为空。
     #[serde(rename_all = "camelCase")]
     NeedsDownload {
         model: String,
@@ -98,6 +99,7 @@ pub enum TaggingStatus {
         size: u64,
         #[ts(type = "number")]
         downloaded: u64,
+        fallback: Option<String>,
     },
     #[serde(rename_all = "camelCase")]
     Downloading {
@@ -112,11 +114,12 @@ pub enum TaggingStatus {
     Preparing {
         model: String,
     },
-    /// 正在打标；`tagged` 是本次运行打过的张数。
+    /// 正在打标；`tagged` 是本次运行打过的张数，`gpu` 是在用的显卡（CPU 档为空）。
     #[serde(rename_all = "camelCase")]
     Running {
         model: String,
         device: Device,
+        gpu: Option<String>,
         tagged: u32,
     },
     /// 没有待打标的图；会话已结束，不占显存。
@@ -124,6 +127,7 @@ pub enum TaggingStatus {
     Idle {
         model: String,
         device: Device,
+        gpu: Option<String>,
     },
     /// 画师暂停了打标；会话已结束，显存已归还。
     Paused,
@@ -138,10 +142,10 @@ pub enum TaggingStatus {
 struct Control {
     paused: bool,
     stop: bool,
-    /// 画师确认了下载（对当前选的模型；换模型后要重新确认）。
+    /// 画师确认了下载（对当前选的模型；换硬件档或自动档退到另一个模型后要重新确认）。
     download: bool,
     /// 见 [`TaggingConfig::preferred`]。
-    preferred: Option<String>,
+    preferred: Option<Device>,
 }
 
 struct Shared {
@@ -217,7 +221,7 @@ impl Tagging {
     pub fn start(library: Arc<Library>, tagger: Arc<dyn Tagger>, config: TaggingConfig) -> Tagging {
         let shared = Arc::new(Shared {
             control: Mutex::new(Control {
-                preferred: config.preferred.clone(),
+                preferred: config.preferred,
                 ..Control::default()
             }),
             wake: Condvar::new(),
@@ -236,6 +240,7 @@ impl Tagging {
             crashes: HashMap::new(),
             session: None,
             tagged: 0,
+            chosen: None,
         };
         let thread = std::thread::Builder::new()
             .name("kinshoko-tagging".into())
@@ -268,12 +273,12 @@ impl Tagging {
         self.shared.wake.notify_all();
     }
 
-    /// 换用画师在设置中选的模型（`None` 为自动）。新模型还没下载时先显示大小，等画师确认；
-    /// 已经打过的图不重打（同一模型的不同精度共用一个来源）。
-    pub fn set_model(&self, key: Option<String>) {
+    /// 换用画师在设置中选的硬件档（`None` 为自动）。这一档的模型还没下载时先显示大小，等画师确认；
+    /// 已经打过的图不重打（同一模型的不同硬件档共用一个来源）。
+    pub fn set_device(&self, device: Option<Device>) {
         let mut control = self.shared.control();
-        if control.preferred != key {
-            control.preferred = key;
+        if control.preferred != device {
+            control.preferred = device;
             control.download = false;
         }
         drop(control);
@@ -315,6 +320,14 @@ struct Worker {
     crashes: HashMap<String, u32>,
     session: Option<(String, Box<dyn TaggerSession>)>,
     tagged: u32,
+    /// 上一次选中的模型 key；自动档换到另一个模型时，之前的下载确认不再算数。
+    chosen: Option<String>,
+}
+
+/// 选中的模型；`fallback` 是自动档跳过前面模型的原因。
+struct Choice {
+    spec: ModelSpec,
+    fallback: Option<String>,
 }
 
 impl Worker {
@@ -347,37 +360,62 @@ impl Worker {
         self.session = None;
     }
 
+    /// 显卡档在用的显卡名称；CPU 档为空。
+    fn gpu_name(&self, device: Device) -> Option<String> {
+        if device != Device::DirectMl {
+            return None;
+        }
+        self.device_info
+            .as_ref()
+            .and_then(|info| info.gpu.as_ref())
+            .map(|gpu| gpu.name.clone())
+    }
+
     fn gpu_usable(&self) -> bool {
         self.gpu_failures < self.config.max_gpu_failures
     }
 
-    /// 本机条件满足的第一个模型；画师选的模型排在最前。
-    fn choose(&mut self) -> Result<ModelSpec, String> {
+    /// 画师选了硬件档时只看这一档的模型；自动时按顺序取本机条件满足的第一个。
+    fn choose(&mut self) -> Result<Choice, String> {
         let info = self
             .device_info
             .get_or_insert_with(|| self.tagger.probe())
             .clone();
-        let preferred = self.shared.control().preferred.clone();
-        let mut order: Vec<&ModelSpec> = self.config.models.iter().collect();
-        order.sort_by_key(|spec| Some(&spec.key) != preferred.as_ref());
+        let preferred = self.shared.control().preferred;
         let mut reasons = Vec::new();
-        for spec in order {
-            match spec.device {
+        let candidates = self
+            .config
+            .models
+            .iter()
+            .filter(|spec| preferred.is_none_or(|device| spec.device == device));
+        for spec in candidates {
+            let unusable = match spec.device {
                 Device::DirectMl => match &info.gpu {
-                    None => reasons.push("没有独立显卡".to_owned()),
-                    Some(_) if !self.gpu_usable() => {
-                        reasons.push("显卡多次出错，本次不再使用".to_owned())
-                    }
-                    Some(gpu) if gpu.vram_budget < spec.vram_need / 4 * 5 => {
-                        reasons.push(format!("{} 的显存额度不够 {}", gpu.name, spec.label))
-                    }
-                    Some(_) => return Ok(spec.clone()),
+                    None => Some("没有独立显卡".to_owned()),
+                    Some(_) if !self.gpu_usable() => Some("显卡多次出错，本次不再使用".to_owned()),
+                    Some(gpu) if gpu.vram_budget < vram_wanted(spec) => Some(format!(
+                        "{} 的显存额度不够（需要约 {}）",
+                        gpu.name,
+                        gigabytes(vram_wanted(spec))
+                    )),
+                    Some(_) => None,
                 },
-                Device::Cpu => {
-                    if spec.ram_need == 0 || info.available_ram >= spec.ram_need + RAM_MARGIN {
-                        return Ok(spec.clone());
-                    }
-                    reasons.push(format!("可用内存不够 {}", spec.label));
+                Device::Cpu => (spec.ram_need != 0
+                    && info.available_ram < spec.ram_need + RAM_MARGIN)
+                    .then(|| {
+                        format!(
+                            "可用内存不够（需要约 {}）",
+                            gigabytes(spec.ram_need + RAM_MARGIN)
+                        )
+                    }),
+            };
+            match unusable {
+                Some(reason) => reasons.push(reason),
+                None => {
+                    return Ok(Choice {
+                        spec: spec.clone(),
+                        fallback: (!reasons.is_empty()).then(|| reasons.join("；")),
+                    });
                 }
             }
         }
@@ -389,8 +427,8 @@ impl Worker {
     }
 
     fn step(&mut self) {
-        let spec = match self.choose() {
-            Ok(spec) => spec,
+        let Choice { spec, fallback } = match self.choose() {
+            Ok(choice) => choice,
             Err(reason) => {
                 self.end_session();
                 self.shared.set(TaggingStatus::NoDevice { reason });
@@ -400,7 +438,12 @@ impl Worker {
                 return;
             }
         };
-        let Some(model) = self.model(&spec) else {
+        if self.chosen.as_ref().is_some_and(|key| *key != spec.key) {
+            // 自动档换到了另一个模型（例如显卡不可用退到 CPU）：它的下载要画师重新确认。
+            self.shared.control().download = false;
+        }
+        self.chosen = Some(spec.key.clone());
+        let Some(model) = self.model(&spec, fallback) else {
             return;
         };
         let source = FactSource::model(&spec.source);
@@ -413,6 +456,7 @@ impl Worker {
             self.shared.set(TaggingStatus::Idle {
                 model: spec.label.clone(),
                 device: spec.device,
+                gpu: self.gpu_name(spec.device),
             });
             self.shared.sleep(self.config.poll_interval);
             return;
@@ -428,7 +472,7 @@ impl Worker {
     }
 
     /// 模型就绪时返回；否则显示需要下载或下载进度，返回 `None`。
-    fn model(&mut self, spec: &ModelSpec) -> Option<PreparedModel> {
+    fn model(&mut self, spec: &ModelSpec, fallback: Option<String>) -> Option<PreparedModel> {
         if let Some(model) = self.store.ready(spec) {
             return Some(model);
         }
@@ -438,6 +482,7 @@ impl Worker {
                 model: spec.label.clone(),
                 size: spec.download_size(),
                 downloaded: self.store.downloaded(spec),
+                fallback,
             });
             self.shared.sleep(self.config.poll_interval);
             return None;
@@ -519,6 +564,7 @@ impl Worker {
         self.shared.set(TaggingStatus::Running {
             model: spec.label.clone(),
             device: spec.device,
+            gpu: self.gpu_name(spec.device),
             tagged: self.tagged,
         });
         let (_, session) = self.session.as_mut().expect("会话已开始");
@@ -586,4 +632,14 @@ impl Worker {
             }
         }
     }
+}
+
+/// 显卡档要求的显存额度：比峰值估计多 25%。
+fn vram_wanted(spec: &ModelSpec) -> u64 {
+    spec.vram_need / 4 * 5
+}
+
+/// 给画师看的大小，例如 `2.3 GB`。
+fn gigabytes(bytes: u64) -> String {
+    format!("{:.1} GB", bytes as f64 / 1e9)
 }

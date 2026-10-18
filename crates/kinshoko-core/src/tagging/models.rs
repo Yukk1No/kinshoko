@@ -31,7 +31,9 @@ pub struct Chunking {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModelSpec {
     pub key: String,
-    /// 设置界面显示的名称。
+    /// 打标模型的名称（设置里“Tagger 模型”一行），同一模型的各硬件档相同。
+    pub name: String,
+    /// 这个条目（打标模型 × 硬件档）的名称，用在状态与出错原因里；不写精度。
     pub label: String,
     /// 写入资料库时的模型来源名（`FactSource::model`）。同一模型的不同精度共用一个来源，
     /// 换设备档位不会重复打标。
@@ -94,6 +96,7 @@ const V1_THRESHOLDS: [(u8, f32); 6] = [
 pub fn catalog() -> Vec<ModelSpec> {
     let v1 = |key: &str, label: &str, file: &str, size: u64, sha: &str, chunked: &str| ModelSpec {
         key: key.into(),
+        name: "PixAI Tagger v1.0".into(),
         label: label.into(),
         source: "pixai-tagger-v1.0".into(),
         repo: V1_REPO.into(),
@@ -120,7 +123,7 @@ pub fn catalog() -> Vec<ModelSpec> {
             vram_need: 1_800_000_000,
             ..v1(
                 "pixai-v1.0-fp16-chunked",
-                "PixAI Tagger v1.0 FP16（显卡）",
+                "PixAI Tagger v1.0（显卡）",
                 "model_fp16.onnx",
                 992_916_002,
                 "cd668e6760bb58ec400ce1b0286e5c9133f83b543caac6a378406b7d56f8c303",
@@ -133,7 +136,7 @@ pub fn catalog() -> Vec<ModelSpec> {
             ram_need: 5_000_000_000,
             ..v1(
                 "pixai-v1.0-fp32-chunked",
-                "PixAI Tagger v1.0 FP32（CPU）",
+                "PixAI Tagger v1.0（CPU）",
                 "model.onnx",
                 1_984_062_544,
                 "1cae6083f07be1e1757125802566c767005ae883e4504c00db4ee1ef93486dad",
@@ -143,13 +146,11 @@ pub fn catalog() -> Vec<ModelSpec> {
     ]
 }
 
-/// 设置界面里的一个可选模型：名称、设备档位、显存或内存需求、大小、本机是否已装好。
+/// 设置里“硬件加速”的一个选项：这一档模型文件的显存或内存需求、下载大小、本机是否已下载。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
-pub struct ModelOption {
-    pub key: String,
-    pub label: String,
+pub struct HardwareOption {
     pub device: Device,
     /// DirectML 下的显存峰值估计。
     #[ts(type = "number")]
@@ -161,17 +162,19 @@ pub struct ModelOption {
     #[ts(type = "number")]
     pub size: u64,
     /// 已下载、校验（并改写）好，不必再下载。
-    pub installed: bool,
+    pub downloaded: bool,
 }
 
-/// 设置中“自动标签模型”一节：画师选的模型与可选的模型。
+/// 设置中“自动标签 › 模型”一节：打标模型的名称、画师选的硬件档与各档的选项。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct ModelChoice {
-    /// 画师选的模型 key；`None` 表示按本机条件自动选择。
-    pub selected: Option<String>,
-    pub options: Vec<ModelOption>,
+    pub model: String,
+    /// 画师选的硬件档；`None` 表示按本机条件自动选择。
+    pub selected: Option<Device>,
+    /// 每个硬件档一项，按 `models` 中第一次出现的顺序。
+    pub options: Vec<HardwareOption>,
 }
 
 /// 默认的下载地址前缀。
@@ -253,20 +256,26 @@ impl ModelStore {
         })
     }
 
-    /// 设置界面的模型列表，按 `models` 的顺序。
-    pub fn options(&self, models: &[ModelSpec]) -> Vec<ModelOption> {
-        models
-            .iter()
-            .map(|spec| ModelOption {
-                key: spec.key.clone(),
-                label: spec.label.clone(),
+    /// 设置里的模型一节：每个硬件档取 `models` 中这一档的第一个条目（调度器选的也是它）。
+    pub fn choice(&self, models: &[ModelSpec], selected: Option<Device>) -> ModelChoice {
+        let mut options: Vec<HardwareOption> = Vec::new();
+        for spec in models {
+            if options.iter().any(|o| o.device == spec.device) {
+                continue;
+            }
+            options.push(HardwareOption {
                 device: spec.device,
                 vram_need: spec.vram_need,
                 ram_need: spec.ram_need,
                 size: spec.download_size(),
-                installed: self.ready(spec).is_some(),
-            })
-            .collect()
+                downloaded: self.ready(spec).is_some(),
+            });
+        }
+        ModelChoice {
+            model: models.first().map(|m| m.name.clone()).unwrap_or_default(),
+            selected,
+            options,
+        }
     }
 
     /// 已经下载了多少字节（含上次中断留下的部分）。
@@ -517,6 +526,17 @@ fn copy_hashing(from: &mut dyn Read, to: &mut dyn Write) -> std::io::Result<Stri
     Ok(format!("{:x}", h.finalize()))
 }
 
+/// 下载失败的原因。不写下载地址：仓库名与文件名带精度字样，画师用不上（#143）。
+fn download_error(error: ureq::Error) -> String {
+    match error {
+        ureq::Error::Status(code, _) => format!("下载失败：服务器返回 {code}"),
+        ureq::Error::Transport(transport) => match transport.message() {
+            Some(message) => format!("下载失败：{}（{message}）", transport.kind()),
+            None => format!("下载失败：{}", transport.kind()),
+        },
+    }
+}
+
 /// 把 `url` 下载到 `dest`：先写 `.part`，有旧的 `.part` 时用 `Range` 续传，完整后改名。
 fn download(
     url: &str,
@@ -541,7 +561,7 @@ fn download(
     if have > 0 {
         req = req.set("Range", &format!("bytes={have}-"));
     }
-    let resp = req.call().map_err(|e| format!("下载失败：{e}"))?;
+    let resp = req.call().map_err(download_error)?;
     let resumed = resp.status() == 206;
     let total = expected_size.or_else(|| {
         resp.header("Content-Length")
