@@ -17,6 +17,14 @@ it("完成延迟与离开视口时仍未完成的区间分开统计，缓存命�
   });
 });
 
+it("任何一个已完成区间超过门槛都不通过，即使 p95 在门槛内", () => {
+  const intervals = [...Array.from({ length: 99 }, () => ({ latency: 10 })), { latency: 1000 }];
+  const report = summarizeReplacement(intervals);
+  expect(report.p95).toBe(10);
+  expect(report.overBudget).toBe(1);
+  expect(report.pass).toBe(false);
+});
+
 it("全部在门槛内完成、离开前未超时才通过", () => {
   const report = summarizeReplacement([{ latency: 0, instant: true }, { latency: 80 }, { abandonedAfter: 30 }]);
   expect(report.pass).toBe(true);

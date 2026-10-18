@@ -1,7 +1,8 @@
 // #123：视口内卡片从“连续可见区间开始”到“正式缩略图加载并解码完成”的时间（#102 故事 19：≤100 ms）。
 //
-// 每张卡片每进入一次视口就开一个区间：进入时 img 已解码（浏览器缓存命中）记为 0；之后 load 并
-// decode() 完成的记完成延迟；完成前离开视口或被卸载的区间单独计数，不混入完成延迟的分位数。
+// 每张卡片每进入一次视口就开一个区间：进入时 img 已加载（浏览器缓存命中）的，等 decode() 完成再记
+// （通常接近 0，计为缓存命中）；其余 load 并 decode() 完成后记完成延迟；完成前离开视口或被卸载的区间
+// 单独计数，不混入完成延迟的分位数。
 // 观察会给每张卡片挂 IntersectionObserver 并在 load 后调用 decode()，与帧时间测量分开跑。
 
 export const REPLACEMENT_BUDGET_MS = 100;
@@ -24,7 +25,7 @@ export type ReplacementReport = {
   pendingAtEnd: number;
   pendingAtEndOverBudget: number;
   budgetMs: number;
-  /** 完成延迟分位数与“离开时仍未完成且已超门槛”两项都满足才通过。 */
+  /** 每个已完成区间都在门槛内，且没有离开时或结束时仍未完成、已超门槛的区间，才通过。 */
   pass: boolean;
 };
 
@@ -56,13 +57,13 @@ export function summarizeReplacement(
     pendingAtEnd: pending.length,
     pendingAtEndOverBudget,
     budgetMs,
-    pass: (p95 === null || p95 <= budgetMs) && abandonedOverBudget === 0 && pendingAtEndOverBudget === 0,
+    pass: overBudget === 0 && abandonedOverBudget === 0 && pendingAtEndOverBudget === 0,
   };
 }
 
 type Interval = { card: Element; start: number; latency?: number; abandonedAfter?: number; pendingFor?: number; instant?: boolean; closed: boolean };
 
-const decoded = (img: HTMLImageElement | null) => Boolean(img && img.complete && img.naturalWidth > 0);
+const loaded = (img: HTMLImageElement) => img.complete && img.naturalWidth > 0;
 
 /** 观察 wall 内的 `.card`：start() 开始，stop() 结束并给出报告。 */
 export function createReplacementProbe(wall: HTMLElement, now: () => number = () => performance.now()) {
@@ -71,6 +72,8 @@ export function createReplacementProbe(wall: HTMLElement, now: () => number = ()
   let intersection: IntersectionObserver | null = null;
   let mutation: MutationObserver | null = null;
   const watched = new WeakSet<HTMLImageElement>();
+  // stop() 时一并撤下挂在图片上的 load 监听，停下后的帧时间测量不再被它们影响。
+  const listeners = new AbortController();
 
   const finish = (interval: Interval, at: number) => {
     if (interval.closed) return;
@@ -86,17 +89,18 @@ export function createReplacementProbe(wall: HTMLElement, now: () => number = ()
     open.delete(card);
   };
   // load 之后再 decode()：与 issue 里的定义一致，量到“可以画出来”为止。
+  const settleAfterDecode = (img: HTMLImageElement) => {
+    const settle = () => {
+      const card = img.closest(".card");
+      const interval = card && open.get(card);
+      if (interval) finish(interval, now());
+    };
+    void (typeof img.decode === "function" ? img.decode().then(settle, settle) : settle());
+  };
   const watchImage = (img: HTMLImageElement) => {
     if (watched.has(img)) return;
     watched.add(img);
-    img.addEventListener("load", () => {
-      const settle = () => {
-        const card = img.closest(".card");
-        const interval = card && open.get(card);
-        if (interval) finish(interval, now());
-      };
-      void (typeof img.decode === "function" ? img.decode().then(settle, settle) : settle());
-    });
+    img.addEventListener("load", () => settleAfterDecode(img), { signal: listeners.signal });
   };
   const track = (card: Element) => {
     intersection?.observe(card);
@@ -114,11 +118,12 @@ export function createReplacementProbe(wall: HTMLElement, now: () => number = ()
             if (open.has(entry.target)) continue;
             const interval: Interval = { card: entry.target, start: at, closed: false };
             intervals.push(interval);
-            if (decoded(entry.target.querySelector("img"))) {
+            open.set(entry.target, interval);
+            // 已加载不等于已解码（decoding="async"）：同样等 decode() 完成再记。
+            const img = entry.target.querySelector("img");
+            if (img && loaded(img)) {
               interval.instant = true;
-              finish(interval, at);
-            } else {
-              open.set(entry.target, interval);
+              settleAfterDecode(img);
             }
           } else {
             abandon(entry.target, at);
@@ -147,6 +152,7 @@ export function createReplacementProbe(wall: HTMLElement, now: () => number = ()
       const at = now();
       intersection?.disconnect();
       mutation?.disconnect();
+      listeners.abort();
       for (const interval of open.values()) {
         interval.closed = true;
         interval.pendingFor = at - interval.start;

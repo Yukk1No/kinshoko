@@ -27,8 +27,11 @@ it("inspects ambiguous local tags and saves an explicit shared correspondence", 
   render(<TagIdentityPanel />);
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
   const row = await screen.findByRole("row", { name: /第二库.*青丝/ });
-  fireEvent.change(within(row).getByRole("combobox"), { target: { value: "blue" } });
-  await waitFor(() => expect(within(row).getByRole<HTMLButtonElement>("button", { name: "保存对应" }).disabled).toBe(false));
+  // 行刚挂载时它的 effect 会把选择重置为当前对应；慢的 CI 上这一步可能晚于下面的 change，所以改到生效为止。
+  await waitFor(() => {
+    fireEvent.change(within(row).getByRole("combobox"), { target: { value: "blue" } });
+    expect(within(row).getByRole<HTMLButtonElement>("button", { name: "保存对应" }).disabled).toBe(false);
+  });
   fireEvent.click(within(row).getByRole("button", { name: "保存对应" }));
   const corrected = await screen.findByRole("row", { name: /第二库.*青丝.*已纠正/ });
   expect(within(corrected).getByText("青丝")).toBeTruthy();

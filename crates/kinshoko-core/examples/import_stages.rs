@@ -76,17 +76,22 @@ fn main() {
         "imported": imported,
         "importMs": {
             "total": ms(stages.total),
-            "scan": ms(stages.scan),
-            "read": ms(stages.read),
-            "decode": ms(stages.decode),
-            "hash": ms(stages.hash),
-            "stage": ms(stages.stage),
-            "commit": ms(stages.commit),
-            "placeholder": ms(stages.placeholder),
-            "finish": ms(stages.finish),
-            "other": ms(stages.total.saturating_sub(
-                stages.scan + stages.read + stages.decode + stages.hash + stages.stage
-                    + stages.commit + stages.placeholder + stages.finish)),
+            // 任务线程按顺序做的部分（墙钟时间）；waitingForPrepared 是它等准备线程交出下一项的时间。
+            "taskThread": {
+                "scan": ms(stages.scan),
+                "commit": ms(stages.commit),
+                "placeholder": ms(stages.placeholder),
+                "finish": ms(stages.finish),
+                "waitingForPrepared": ms(stages.total.saturating_sub(
+                    stages.scan + stages.commit + stages.placeholder + stages.finish)),
+            },
+            // 准备线程上并行做的部分：各线程耗时之和，可以超过 total。
+            "prepareWorkersSum": {
+                "read": ms(stages.read),
+                "decode": ms(stages.decode),
+                "hash": ms(stages.hash),
+                "stage": ms(stages.stage),
+            },
         },
         "importImagesPerSec": (imported as f64 / import_secs * 10.0).round() / 10.0,
         "thumbnails": {

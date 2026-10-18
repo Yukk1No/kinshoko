@@ -41,8 +41,9 @@ const SOURCE_FILE: &str = "file";
 const PROGRESS_EVERY: Duration = Duration::from_millis(100);
 const STALE_EVERY: Duration = Duration::from_millis(500);
 
-/// 一次导入任务各阶段在任务线程上累计的耗时（#120）。供性能检查（`examples/import_stages.rs`）
-/// 读取，不进回执、不推送给界面。
+/// 一次导入任务各阶段累计的耗时（#120）。供性能检查（`examples/import_stages.rs`）读取，
+/// 不进回执、不推送给界面。`scan`、`commit`、`placeholder`、`finish` 是任务线程的墙钟时间；
+/// `read`、`decode`、`hash`、`stage` 在准备线程上并行，是各线程耗时之和，可以超过 `total`。
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ImportStages {
     /// 展开文件夹、列出待导入文件。
@@ -57,7 +58,7 @@ pub struct ImportStages {
     pub stage: Duration,
     /// pending 记录、发布原文件与提交参考图的事务。
     pub commit: Duration,
-    /// 进库后生成占位图。
+    /// 进库后保存占位图（占位图本身在准备阶段与解码一起生成，计入 `decode`）。
     pub placeholder: Duration,
     /// 处理完全部文件后的最后一次进度、列表过期与结束事件。
     pub finish: Duration,
@@ -303,11 +304,14 @@ fn run(
     // pending、发布与提交仍在本线程按文件顺序逐项进行，浏览顺序与逐项结果和串行时相同。
     let mut worker_stages = ImportStages::default();
     let next = AtomicUsize::new(0);
+    let progress_gate = CommitGate::default();
     std::thread::scope(|scope| {
         let workers = prepare_workers(files.len());
-        // 已准备好、还没轮到提交的项有上限（每个线程 IN_FLIGHT_PER_WORKER 项），内存不随张数增长。
-        let (sender, results) = std::sync::mpsc::sync_channel(workers * IN_FLIGHT_PER_WORKER);
-        let (files, next, context) = (&files, &next, &context);
+        // 已准备好、还没轮到提交的项有上限：序号超过“已提交 + 窗口”的项先等提交跟上再准备。
+        // 前面某一项特别慢时，后面的项也不会全部提前暂存（内存与取消时要撤回的暂存都有上限）。
+        let window = workers * IN_FLIGHT_PER_WORKER;
+        let (sender, results) = std::sync::mpsc::sync_channel(window);
+        let (files, next, context, progress_gate) = (&files, &next, &context, &progress_gate);
         let handles: Vec<_> = (0..workers)
             .map(|_| {
                 let sender = sender.clone();
@@ -317,6 +321,9 @@ fn run(
                         let Some(path) = files.get(index) else {
                             break;
                         };
+                        if !progress_gate.wait_for(index, window, cancel) {
+                            break;
+                        }
                         let prepared = prepare_file(inner, path, options, context);
                         if sender.send((index, prepared)).is_err() {
                             break;
@@ -344,6 +351,7 @@ fn run(
                     outcome,
                 });
                 committed += 1;
+                progress_gate.advance(committed);
                 progress.done += 1;
 
                 if last_progress.elapsed() >= PROGRESS_EVERY {
@@ -561,6 +569,37 @@ impl Prepared {
         if let Prepared::Staged { pending, .. } = self {
             let _ = std::fs::remove_file(inner.root.join(&pending.staging_path));
         }
+    }
+}
+
+/// 已按顺序提交了几项；准备线程据此不跑到提交前面太远。
+#[derive(Default)]
+struct CommitGate {
+    committed: Mutex<usize>,
+    advanced: std::sync::Condvar,
+}
+
+impl CommitGate {
+    fn advance(&self, committed: usize) {
+        *self.committed.lock().unwrap_or_else(|e| e.into_inner()) = committed;
+        self.advanced.notify_all();
+    }
+
+    /// 等到第 `index` 项落在提交窗口内；任务取消时返回 `false`。
+    fn wait_for(&self, index: usize, window: usize, cancel: &AtomicBool) -> bool {
+        let mut committed = self.committed.lock().unwrap_or_else(|e| e.into_inner());
+        while index >= *committed + window {
+            if cancel.load(Ordering::SeqCst) {
+                return false;
+            }
+            // 取消不经过这把锁，定时醒来看一眼。
+            committed = self
+                .advanced
+                .wait_timeout(committed, Duration::from_millis(50))
+                .unwrap_or_else(|e| e.into_inner())
+                .0;
+        }
+        true
     }
 }
 

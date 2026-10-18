@@ -6,12 +6,13 @@
 //
 // 步骤：建库 A（导入目标）与库 B（4 张图）→ 计时导入样本到 A，期间观察侧栏资料库行的 DOM 节点是否被替换、
 // 是否短暂变成不可用（#121），并在导入中切换浏览范围、在 B 新建文件夹 → 窗口最大化、浏览 A 的全部图片 →
-// 每轮先跑一次帧时间（不挂观察器），再跑一次缩略图替换时间（#123）。
+// 每轮先跑一次缩略图替换时间（#123），再跑一次帧时间（不挂观察器）。替换时间放在前面：同一轮里后跑的
+// 那一项滚过的是前一项刚取过的缩略图，替换时间不能借这份预热；帧时间与缩略图是否已缓存关系不大。
 // 数据目录与 WebView2 配置都在 work/e2e/ 下的新目录里，不碰本设备的正式资料库。
 // 结果写到该目录的 result.json；截图只截应用窗口（WebDriver 截的是 WebView 内容）。
 
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync, readdirSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
 
@@ -23,7 +24,9 @@ if (!appArg || !edgeArg || !samplesArg) {
 const application = resolve(appArg);
 const samples = resolve(samplesArg);
 const rounds = Number(roundsArg ?? 3);
-const expected = readdirSync(samples).filter((name) => name.endsWith(".png")).length;
+// 样本里可能有字节相同的图（同库只进一张）：按生成器写下的 SHA-256 数出应当进库的张数，导入后逐张核对。
+const fixture = JSON.parse(readFileSync(join(samples, "fixture.json"), "utf8"));
+const expected = new Set(fixture.images.map((image) => image.sha256)).size;
 const work = resolve("work", "e2e", `import-wall-perf-${Date.now()}`);
 mkdirSync(work, { recursive: true });
 const libraries = join(work, "libraries");
@@ -127,6 +130,7 @@ try {
 
   const importStart = Date.now();
   await session.invoke("start_import", { libraryId: a.id, source: { paths: [samples] } });
+  await until("导入开始", () => session.exec("return Boolean(document.querySelector('[aria-label=\"导入进度\"]'));"));
   // 导入中：切换浏览范围（全部图片 ↔ A），在另一库新建文件夹；各截一张应用窗口图。
   await delay(3000);
   await session.screenshot(join(work, "importing-1.png"));
@@ -137,15 +141,17 @@ try {
   await session.invoke("create_folder", { libraryId: b.id, name: "导入中新建", parent: null });
   await delay(1500);
   await session.screenshot(join(work, "importing-2.png"));
-  const imported = await until("导入完成", async () => (await session.invoke("sidebar", { libraryId: a.id })).all >= expected - 20
-    && await session.exec("return !document.querySelector('[aria-label=\"导入进度\"], .k-import-bar[data-running]');"), 3_600_000, 500);
-  result.import = { ms: Date.now() - importStart, all: (await session.invoke("sidebar", { libraryId: a.id })).all, imported };
+  await until("导入完成", () => session.exec("return !document.querySelector('[aria-label=\"导入进度\"]');"), 3_600_000, 500);
+  const imported = (await session.invoke("sidebar", { libraryId: a.id })).all;
+  // 读取或解码失败的项也会让进度条消失：张数必须与样本里不同内容的张数完全一致，否则不算这次测量。
+  if (imported !== expected) throw new Error(`导入结果不完整：进库 ${imported} 张，样本里有 ${expected} 张不同内容的图`);
+  result.import = { ms: Date.now() - importStart, all: imported, expected };
   result.import.imagesPerSec = Math.round((result.import.all / (result.import.ms / 1000)) * 10) / 10;
   result.sidebar = await session.exec("window.__rowWatch.stop = true; const { stop, ...rows } = window.__rowWatch; return rows;");
   console.log("导入", JSON.stringify(result.import), "侧栏", JSON.stringify(result.sidebar));
   save();
 
-  // #123：浏览 A 的全部图片；每轮先量帧时间（不挂观察器），再量缩略图替换时间。
+  // #123：浏览 A 的全部图片；每轮先量缩略图替换时间，再量帧时间（顺序的理由见文件开头）。
   await session.exec("document.querySelector(`[data-library-id=\"${arguments[0]}\"] .lib-head-name`).click();", [a.id]);
   await until("图片墙满 5000", () => session.exec("return Number(document.querySelector('.wall')?.dataset.total) >= arguments[0];", [result.import.all]), 60000);
   await until("探针", () => session.exec("return Boolean(window.__kinshokoPerf);"));
