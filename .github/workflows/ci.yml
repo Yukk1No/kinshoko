@@ -4,7 +4,7 @@ on:
   push:
     # 长期集成分支也要 push 触发：PR 只能读到自己 base 分支（和默认分支）的缓存，
     # base 分支上从不跑 push 时，以它为 base 的 PR 每次都是冷编译。
-    branches: [main, "integration/**", "codex/spec-78-integration"]
+    branches: [main, "integration/**", "codex/spec-78-integration", "claude/project-thread-wr3c28"]
     paths-ignore:
       - "docs/**"
       - "design/**"
@@ -37,7 +37,7 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name != github.repository ||
-      !(github.head_ref == 'main' || startsWith(github.head_ref, 'integration/') || github.head_ref == 'codex/spec-78-integration')
+      !(github.head_ref == 'main' || startsWith(github.head_ref, 'integration/') || github.head_ref == 'codex/spec-78-integration' || github.head_ref == 'claude/project-thread-wr3c28')
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -93,7 +93,7 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name != github.repository ||
-      !(github.head_ref == 'main' || startsWith(github.head_ref, 'integration/') || github.head_ref == 'codex/spec-78-integration')
+      !(github.head_ref == 'main' || startsWith(github.head_ref, 'integration/') || github.head_ref == 'codex/spec-78-integration' || github.head_ref == 'claude/project-thread-wr3c28')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -122,7 +122,7 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name != github.repository ||
-      !(github.head_ref == 'main' || startsWith(github.head_ref, 'integration/') || github.head_ref == 'codex/spec-78-integration')
+      !(github.head_ref == 'main' || startsWith(github.head_ref, 'integration/') || github.head_ref == 'codex/spec-78-integration' || github.head_ref == 'claude/project-thread-wr3c28')
     steps:
       - uses: actions/checkout@v4
 
