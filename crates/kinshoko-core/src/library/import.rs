@@ -256,7 +256,7 @@ fn run(
     source: &ImportSource,
     options: ImportOptions,
     destination: &SaveDestination,
-    cancel: &AtomicBool,
+    cancel: &Arc<AtomicBool>,
     shared: &Mutex<ImportProgress>,
 ) -> ImportReport {
     let library_id = inner.info.id.clone();
@@ -299,6 +299,7 @@ fn run(
     let context = ImportContext {
         destination: destination.clone(),
         task_created_images: Arc::new(Mutex::new(HashSet::new())),
+        cancel: Some(cancel.clone()),
     };
     // 读取、解码校验、哈希、暂存与生成占位图互不依赖，由几个工作线程并行做（#120）；
     // pending、发布与提交仍在本线程按文件顺序逐项进行，浏览顺序与逐项结果和串行时相同。
@@ -509,6 +510,7 @@ fn prepare_file(
         None
     };
     let original = eagle.as_ref().map_or(path, |item| item.original.as_path());
+    let source = MergeSource::File(original.to_path_buf());
     let bytes = match timed(|s| &mut s.read, || std::fs::read(original)) {
         Ok(b) => b,
         Err(e) => return failed(e.to_string()),
@@ -541,6 +543,7 @@ fn prepare_file(
         Origin {
             eagle,
             package: None,
+            source,
         },
         options,
         context,
@@ -551,23 +554,48 @@ fn prepare_file(
 struct Origin {
     eagle: Option<eagle::Item>,
     package: Option<package::PackageFacts>,
+    /// 合并项若要重新暂存，从哪里再取这份字节。
+    source: MergeSource,
 }
 
 /// Fixed destination and task-local journal are carried together through ingestion.
 struct ImportContext {
     destination: SaveDestination,
     task_created_images: Arc<Mutex<HashSet<String>>>,
+    /// 任务的取消标记；等解码预算时据此放弃（参考组包导入逐张同步进行，没有）。
+    cancel: Option<Arc<AtomicBool>>,
+}
+
+/// 合并项提交时若要重新暂存，从哪里取字节。普通文件与 Eagle 条目重读原文件，不在等待提交时占着内存；
+/// 参考组包的原图在包里，逐张同步导入，直接保留这一份。
+enum MergeSource {
+    File(PathBuf),
+    Bytes(Vec<u8>),
+}
+
+impl MergeSource {
+    /// 重新取字节，并核对仍是准备时那份内容。
+    fn bytes(self, sha: &str) -> Result<Vec<u8>, String> {
+        let bytes = match self {
+            MergeSource::Bytes(bytes) => bytes,
+            MergeSource::File(path) => std::fs::read(path).map_err(|e| e.to_string())?,
+        };
+        if sha256_hex(&bytes) != sha {
+            return Err("原文件在导入过程中变了".into());
+        }
+        Ok(bytes)
+    }
 }
 
 /// 准备好、等待按顺序提交的一项。
 enum Prepared {
     /// 不用写资料库就有结果：读取失败、不支持的格式、跳过已删除的内容。
     Done(ImportOutcome, bool),
-    /// 同库已有字节相同的原图：不暂存，提交时只合并来源。保留字节：轮到提交前那份原图若被永久删除，
-    /// 提交时用它重新暂存。
+    /// 同库已有字节相同的原图：不暂存，提交时只合并来源。轮到提交前那份原图若被永久删除，
+    /// 提交时从 `source` 重新取字节暂存。
     Merge {
         record: Record,
-        bytes: Vec<u8>,
+        source: MergeSource,
         placeholder: Option<SdrDerivative>,
     },
     /// 已暂存：提交时写 pending、发布原文件并提交。
@@ -635,20 +663,26 @@ struct DecodeBudget {
 
 impl DecodeBudget {
     /// 等到预算够用再占用；单张超过上限时，等其他解码都结束后独占。
-    fn acquire(&'static self, pixels: u64) -> DecodePermit {
+    /// 任务在等待中被取消时返回 `None`，这一项不再解码。
+    fn acquire(&'static self, pixels: u64, cancel: Option<&AtomicBool>) -> Option<DecodePermit> {
         let pixels = pixels.min(DECODE_BUDGET_PIXELS);
         let mut in_use = self.in_use.lock().unwrap_or_else(|e| e.into_inner());
         while *in_use + pixels > DECODE_BUDGET_PIXELS {
+            if cancel.is_some_and(|cancel| cancel.load(Ordering::SeqCst)) {
+                return None;
+            }
+            // 取消不经过这把锁，定时醒来看一眼。
             in_use = self
                 .released
-                .wait(in_use)
-                .unwrap_or_else(|e| e.into_inner());
+                .wait_timeout(in_use, Duration::from_millis(50))
+                .unwrap_or_else(|e| e.into_inner())
+                .0;
         }
         *in_use += pixels;
-        DecodePermit {
+        Some(DecodePermit {
             budget: self,
             pixels,
-        }
+        })
     }
 }
 
@@ -723,12 +757,16 @@ fn prepare(
     // 文件头有效不代表像素可读：发布前完整解码一遍，坏的作为可重试的读取失败。
     // 同一次解码顺带生成占位图（#120），提交后不再重读原文件解码第二遍。
     let placeholder_width = thumbnail::placeholder_width(probed.width, probed.height);
+    let Some(_pixels) = DECODE_BUDGET.acquire(
+        u64::from(probed.width) * u64::from(probed.height),
+        context.cancel.as_deref(),
+    ) else {
+        // 任务已取消：这一项不会提交，不再解码。
+        return failed("导入已取消".into());
+    };
     let placeholder = match timed(
         |s| &mut s.decode,
-        || {
-            let _pixels = DECODE_BUDGET.acquire(u64::from(probed.width) * u64::from(probed.height));
-            render_sdr_verified(bytes, &probed, placeholder_width, DEFAULT_DOWNSCALE)
-        },
+        || render_sdr_verified(bytes, &probed, placeholder_width, DEFAULT_DOWNSCALE),
     ) {
         Ok(rendered) => rendered.ok(),
         Err(reason) => return failed(format!("无法解码：{reason}")),
@@ -777,7 +815,7 @@ fn prepare(
     {
         return Prepared::Merge {
             record,
-            bytes: bytes.to_vec(),
+            source: origin.source,
             placeholder,
         };
     }
@@ -798,7 +836,7 @@ fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, bool) {
         Prepared::Done(outcome, list_changed) => return (outcome, list_changed),
         Prepared::Merge {
             record,
-            bytes,
+            source,
             placeholder,
         } => {
             let sha = record.sha.clone();
@@ -809,7 +847,10 @@ fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, bool) {
             let result = match committed {
                 Ok(outcome) => outcome,
                 // 准备之后、提交之前同内容的原图被永久删除：按新图重新暂存并发布。
-                Err(Error::MergeTargetGone) => match stage(inner, &bytes, &record) {
+                Err(Error::MergeTargetGone) => match source
+                    .bytes(&record.sha)
+                    .and_then(|bytes| stage(inner, &bytes, &record))
+                {
                     Ok(pending) => timed(
                         |s| &mut s.commit,
                         || publish_and_commit(inner, record, pending),
@@ -1304,6 +1345,7 @@ pub(super) fn import_package_original(
         Origin {
             eagle: None,
             package: Some(package::PackageFacts { origin, snapshot }),
+            source: MergeSource::Bytes(bytes.to_vec()),
         },
         ImportOptions::default(),
         ImportContext {
@@ -1312,6 +1354,7 @@ pub(super) fn import_package_original(
                 folder_id: None,
             }),
             task_created_images: Arc::new(Mutex::new(HashSet::new())),
+            cancel: None,
         },
     )
 }
@@ -1358,6 +1401,7 @@ mod tests {
                 folder_id: None,
             },
             task_created_images: Arc::default(),
+            cancel: None,
         };
         // 准备时同库已有这份内容：判定为合并，不暂存。
         let prepared = prepare_file(inner, &png, ImportOptions::default(), &context);
@@ -1392,11 +1436,11 @@ mod tests {
     #[test]
     fn decodes_over_the_pixel_budget_wait_until_earlier_ones_finish() {
         let budget = budget();
-        let first = budget.acquire(DECODE_BUDGET_PIXELS / 2);
-        let second = budget.acquire(DECODE_BUDGET_PIXELS / 2);
+        let first = budget.acquire(DECODE_BUDGET_PIXELS / 2, None).unwrap();
+        let second = budget.acquire(DECODE_BUDGET_PIXELS / 2, None).unwrap();
         let (sender, entered) = std::sync::mpsc::channel();
         let third = std::thread::spawn(move || {
-            let _permit = budget.acquire(1);
+            let _permit = budget.acquire(1, None).unwrap();
             sender.send(()).unwrap();
         });
         assert!(entered.recv_timeout(Duration::from_millis(100)).is_err());
@@ -1407,9 +1451,17 @@ mod tests {
     }
 
     #[test]
+    fn a_cancelled_task_stops_waiting_for_the_decode_budget() {
+        let budget = budget();
+        let _held = budget.acquire(DECODE_BUDGET_PIXELS, None).unwrap();
+        let cancel = AtomicBool::new(true);
+        assert!(budget.acquire(1, Some(&cancel)).is_none());
+    }
+
+    #[test]
     fn an_image_larger_than_the_budget_still_decodes_alone() {
         let budget = budget();
-        drop(budget.acquire(DECODE_BUDGET_PIXELS * 4));
+        drop(budget.acquire(DECODE_BUDGET_PIXELS * 4, None).unwrap());
         assert_eq!(*budget.in_use.lock().unwrap(), 0);
     }
 }
