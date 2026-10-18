@@ -259,6 +259,16 @@ pub struct TagCatalog {
     dir: std::path::PathBuf,
     conn: Connection,
     name_defaults: Option<crate::library::TagTranslations>,
+    /// 每个资料库上次同步时的词表与目录修订号（#158）：都没变时读一张图的标签不必重新同步整份词表。
+    synchronized: std::collections::HashMap<String, Synchronized>,
+}
+
+#[derive(PartialEq)]
+struct Synchronized {
+    root: std::path::PathBuf,
+    safe_mode: bool,
+    vocabulary: i64,
+    catalog: i64,
 }
 
 impl TagCatalog {
@@ -294,13 +304,16 @@ impl TagCatalog {
             dir: dir.to_owned(),
             conn,
             name_defaults: None,
+            synchronized: Default::default(),
         })
     }
 
     /// Attach visible local definitions. Repeated attachment retains explicit corrections and
     /// the original names awaiting migration. A matching name or alias is never evidence of identity.
     pub fn synchronize(&mut self, library: &Library) -> Result<CatalogInspection, CatalogError> {
+        let safe_mode = library.safe_mode();
         let vocabulary = library.vocabulary()?;
+        let vocabulary_revision = vocabulary.revision;
         let dependencies = library.tag_definition_dependencies()?;
         let dependency_bindings = dependencies
             .iter()
@@ -426,10 +439,36 @@ impl TagCatalog {
             tx.execute("UPDATE catalog_revision SET value=value+1", [])?;
         }
         tx.commit()?;
-        if changed && let Some(table) = self.name_defaults.clone() {
-            return self.update_name_defaults(&table);
-        }
-        self.inspect()
+        let inspection = if changed && let Some(table) = self.name_defaults.clone() {
+            self.update_name_defaults(&table)?
+        } else {
+            self.inspect()?
+        };
+        // 修订号取自同步开始时的词表快照：同步期间词表又变了，下次读仍会重新同步。
+        self.synchronized.insert(
+            library.info().id.clone(),
+            Synchronized {
+                root: library.info().root.clone(),
+                safe_mode,
+                vocabulary: vocabulary_revision,
+                catalog: inspection.revision,
+            },
+        );
+        Ok(inspection)
+    }
+
+    /// 自上次同步这个资料库以来，它的词表、安全模式与统一标签目录都没有变化。
+    fn is_synchronized(&self, library: &Library) -> Result<bool, CatalogError> {
+        let Some(last) = self.synchronized.get(&library.info().id) else {
+            return Ok(false);
+        };
+        Ok(*last
+            == Synchronized {
+                root: library.info().root.clone(),
+                safe_mode: library.safe_mode(),
+                vocabulary: library.vocabulary_revision()?,
+                catalog: self.revision()?,
+            })
     }
 
     /// Inspect available registered providers without activating them. Unavailable libraries
@@ -507,8 +546,18 @@ impl TagCatalog {
         image_id: &str,
         lang: &str,
     ) -> Result<CatalogImageTags, CatalogError> {
+        // 选中一张图就读一次（#158）：词表与目录都没变时只查这张图自己的标签对应。
+        if !self.is_synchronized(library)? {
+            self.synchronize(library)?;
+        }
         let mut image = library.image_tags(image_id, lang)?;
-        let snapshot = self.synchronize(library)?;
+        let library_id = &library.info().id;
+        let mut mapping = self.conn.prepare_cached(
+            "SELECT catalog_id,name_provenance FROM library_tag_mapping WHERE library_id=?1 AND local_tag_id=?2",
+        )?;
+        let mut definition = self
+            .conn
+            .prepare_cached("SELECT definition FROM catalog_tag WHERE id=?1")?;
         let mut identities = Vec::new();
         for label in image
             .tags
@@ -516,26 +565,28 @@ impl TagCatalog {
             .map(|t| &mut t.tag)
             .chain(image.rejected.iter_mut())
         {
-            let Some(mapping) = snapshot
-                .mappings
-                .iter()
-                .find(|m| m.library_id == library.info().id && m.local_tag_id == label.id)
+            let Some((catalog_id, provenance)) = mapping
+                .query_row(params![library_id, label.id], |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                })
+                .optional()?
             else {
                 continue;
             };
-            let Some(shared) = snapshot
-                .tags
-                .iter()
-                .find(|tag| tag.id == mapping.catalog_id)
+            let Some(text) = definition
+                .query_row([&catalog_id], |row| row.get::<_, String>(0))
+                .optional()?
             else {
                 continue;
             };
+            let mut shared: CatalogTag = serde_json::from_str(&text)?;
+            names::resolve(&self.conn, &mut shared)?;
             let external = shared
                 .external
                 .iter()
                 .map(|e| e.name.clone())
                 .collect::<Vec<_>>();
-            if mapping.name_provenance == TagNameProvenance::Catalog {
+            if provenance == "catalog" {
                 *label = crate::library::display_label(
                     &label.id,
                     shared.namespace,
