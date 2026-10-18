@@ -44,6 +44,8 @@ pub enum Error {
     OutdatedLibrary,
     /// 参考组包里的原图没能进库（读不出、解码失败或与包内记录不符，#68）。
     PackageImage(String),
+    /// 导入时按“同库已有相同内容”只合并来源，提交前那份原图却已被永久删除：要重新暂存这份字节（#120）。
+    MergeTargetGone,
     /// 永久删除只删回收站里的图。
     NotInTrash,
     /// 永久删除预览之后回收站、受影响的参考组或安全模式变了，要重新预览（#67）。
@@ -94,6 +96,7 @@ impl fmt::Display for Error {
                 write!(f, "资料库需要先在 Kinshoko 中打开一次以完成升级")
             }
             Error::PackageImage(why) => write!(f, "参考组包里的原图没能导入：{why}"),
+            Error::MergeTargetGone => write!(f, "同一内容的参考图已被永久删除"),
             Error::NamespaceGroup => write!(f, "这个分组按命名空间列出标签，不能手动调整成员"),
             Error::NotInTrash => write!(f, "只能永久删除回收站里的图"),
             Error::DeletePreviewStale => {

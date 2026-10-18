@@ -85,8 +85,12 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
   foot?: ReactNode;
   children?: ReactNode;
 }) {
-  const key = JSON.stringify([status?.revision, safeMode, reloadKey]);
-  const [loaded, setLoaded] = useState<{ key: string; forest: WorkspaceDirectories } | null>(null);
+  // 代次（登记了哪些图库、各自是否可用、安全模式）变了，旧目录在新结果到达前就不再显示。内容变化
+  // （status.revision 随每次进库前进，导入期间约每 1.5 秒一次）与单纯重读（reloadKey，每次列表过期加一）
+  // 只重读：沿用上一份目录直到新结果到达，资料库行不因计数刷新整行变成不可用（#121）。
+  const generation = JSON.stringify([status?.libraries, safeMode]);
+  const key = JSON.stringify([generation, status?.revision, reloadKey]);
+  const [loaded, setLoaded] = useState<{ generation: string; forest: WorkspaceDirectories } | null>(null);
   const [descendants, setDescendants] = useState(!(scope.kind === "library" && scope.scope.kind === "folder"));
   useEffect(() => {
     let alive = true;
@@ -94,7 +98,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
       for (let attempt = 0; alive; attempt++) {
         try {
           const forest = await workspaceDirectories(safeMode);
-          if (alive) setLoaded({ key, forest });
+          if (alive) setLoaded({ generation, forest });
           return;
         } catch (error) {
           if (!alive || isLensChanged(error)) return;
@@ -167,7 +171,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
     disabled={!p.sidebar || p.sidebar.trash === 0} onClick={() => setEmptying({ libraryId: p.registration.library.id, name: p.registration.library.name })}>{label}</MenuItem>;
 
   // A changed safety/provider revision hides old controls before a new request can complete.
-  const forest = loaded?.key === key ? loaded.forest : null;
+  const forest = loaded?.generation === generation ? loaded.forest : null;
   const providers = forest?.providers ?? status?.libraries.map((registration) => ({ registration, sidebar: null, unassigned: 0, descendants: {} })) ?? [];
   const connected = providers.filter((p) => !p.registration.unavailable && p.sidebar);
   const selected = scope.kind === "library" ? providers.find((p) => p.registration.library.id === scope.libraryId) : undefined;

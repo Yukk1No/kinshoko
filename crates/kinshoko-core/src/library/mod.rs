@@ -78,7 +78,7 @@ pub use edit::{FolderRef, ImageDetail, ImageEdit, ImageNote, ImageVersions, Sour
 pub use error::Error;
 pub use events::LibraryEvent;
 pub use folders::FolderNode;
-pub use import::ImportTask;
+pub use import::{ImportStages, ImportTask};
 pub use lens::{ReferenceImage, ReferenceLens};
 pub use package::{ImageSnapshot, PackageOrigin, SnapshotTag};
 pub use permanent_delete::PermanentDeletePreview;
