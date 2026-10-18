@@ -43,6 +43,28 @@ use tauri::{AppHandle, Emitter, Listener, Manager, Wry};
 
 use crate::{library, shell};
 
+// [DEBUG-cap7] temporary timing marks for #127/#129
+pub(crate) fn dbg_mark(label: &str) {
+    let at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_micros() as f64
+        / 1000.0;
+    let line = format!("[DEBUG-cap7] {label} at={at:.1}\n");
+    if let Some(path) = std::env::var_os("KINSHOKO_DEBUG_CAP7_LOG") {
+        use std::io::Write as _;
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+        {
+            let _ = f.write_all(line.as_bytes());
+        }
+    } else {
+        eprint!("{line}");
+    }
+}
+
 /// 与资料库插件相同：设置时截图历史也放进这个目录，WebDriver 测试用它隔离数据。
 const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
 const HISTORY_DIR: &str = "captures";
@@ -256,9 +278,18 @@ fn on_library_event(app: &AppHandle, payload: &str) {
 fn capture_response(app: &AppHandle, path: &str) -> Response<Vec<u8>> {
     let mut content_type = "image/png";
     let body = if let Some(token) = path.strip_prefix("screen/") {
-        capture::frozen_png(app, token)
+        dbg_mark("png.begin"); // [DEBUG-cap7]
+        let png = capture::frozen_png(app, token);
+        dbg_mark(&format!(
+            "png.end bytes={}",
+            png.as_ref().map_or(0, Vec::len)
+        )); // [DEBUG-cap7]
+        png
     } else if let Some((pin, size)) = path.strip_prefix("pin/").and_then(|p| p.split_once('/')) {
-        pins::reference_file(app, pin, size).and_then(|f| {
+        dbg_mark(&format!("pinfile.begin size={size}")); // [DEBUG-cap7]
+        let r = pins::reference_file(app, pin, size);
+        dbg_mark("pinfile.end"); // [DEBUG-cap7]
+        r.and_then(|f| {
             content_type = library::image_content_type(&f);
             std::fs::read(f).ok()
         })

@@ -337,6 +337,7 @@ pub fn reference_file(app: &AppHandle, pin: &str, size: &str) -> Option<std::pat
 
 /// 为一个钉图建窗口（新钉的，或启动时恢复的）。截图历史此前已经记下它被钉住。
 pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
+    super::dbg_mark("pin.window.begin"); // [DEBUG-cap7]
     let rect = pin.rect();
     lock(&state(app).pins).insert(
         pin.id.clone(),
@@ -749,6 +750,7 @@ pub async fn close_pin(
 /// 第一帧已画好：显示钉图。
 #[tauri::command]
 pub async fn pin_ready(app: AppHandle, pin: String) {
+    super::dbg_mark("pin.ready"); // [DEBUG-cap7]
     if let Some(window) = app.get_webview_window(&label(&pin)) {
         let _ = window.show();
     }

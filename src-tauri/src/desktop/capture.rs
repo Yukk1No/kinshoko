@@ -242,6 +242,7 @@ fn freeze_visibility(app: &AppHandle, surface: &mut ReferenceSurface) -> bool {
 
 /// 开始截图：已经在框选时把框选窗口叫到前面，否则在别的线程上抓屏。
 pub fn start(app: &AppHandle) {
+    super::dbg_mark("start"); // [DEBUG-cap7]
     if let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
         let _ = window.set_focus();
         return;
@@ -288,9 +289,11 @@ fn close_owned(app: &AppHandle, token: &str) {
 }
 
 fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
+    super::dbg_mark("grab.begin"); // [DEBUG-cap7]
     let cursor = app.cursor_position().map_err(|e| e.to_string())?;
     let monitor = xcap::Monitor::from_point(cursor.x.floor() as i32, cursor.y.floor() as i32)
         .map_err(|e| e.to_string())?;
+    super::dbg_mark("monitor"); // [DEBUG-cap7]
     let safe_generation = crate::library::capture_generation(app);
     let mut frozen = None;
     for _ in 0..5 {
@@ -302,11 +305,14 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
             .as_ref()
             .map(|m| request_main_frame(app, m))
             .transpose()?;
+        super::dbg_mark("frame1"); // [DEBUG-cap7]
         if main_metrics(app)? != metrics {
             continue;
         }
         let before_surfaces = references(app, metrics.as_ref().zip(before.as_ref()))?;
+        super::dbg_mark("refs1"); // [DEBUG-cap7]
         let image = monitor.capture_image().map_err(|e| e.to_string())?;
+        super::dbg_mark("grabbed"); // [DEBUG-cap7]
         let after = metrics
             .as_ref()
             .map(|m| request_main_frame(app, m))
@@ -314,7 +320,9 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
         if main_metrics(app)? != metrics || before != after {
             continue;
         }
+        super::dbg_mark("frame2"); // [DEBUG-cap7]
         let confirmed = references(app, metrics.as_ref().zip(after.as_ref()))?;
+        super::dbg_mark("refs2"); // [DEBUG-cap7]
         if state(app)
             .capture_geometry_generation
             .load(Ordering::SeqCst)
@@ -335,6 +343,14 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
         monitor.y().map_err(|e| e.to_string())?,
     );
     let icc = monitor.name().ok().and_then(|name| display_profile(&name));
+    super::dbg_mark(&format!(
+        "icc refs={} covered={}",
+        references.len(),
+        references
+            .iter()
+            .map(|r| r.selection.covered.len())
+            .sum::<usize>()
+    )); // [DEBUG-cap7]
     let (width, height) = image.dimensions();
     {
         let mut session = lock(&state(app).capture);
@@ -367,6 +383,7 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
     .additional_browser_args(crate::diagnostics::browser_args())
     .build()
     .map_err(|e| e.to_string())?;
+    super::dbg_mark("window.built"); // [DEBUG-cap7]
     // 先移到目标显示器再定尺寸：跨越缩放比例不同的显示器时，移动会先按新比例改一次尺寸。
     window
         .set_position(PhysicalPosition::new(origin.0, origin.1))
@@ -374,6 +391,7 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
     window
         .set_size(PhysicalSize::new(width, height))
         .map_err(|e| e.to_string())?;
+    super::dbg_mark("window.placed"); // [DEBUG-cap7]
     Ok(())
 }
 
@@ -407,6 +425,7 @@ pub async fn start_capture(app: AppHandle) {
 /// 框选窗口要显示的冻结屏幕；没有进行中的截图时为 `None`。
 #[tauri::command]
 pub async fn frozen_screen(app: AppHandle) -> Option<FrozenScreen> {
+    super::dbg_mark("frozen_screen"); // [DEBUG-cap7]
     match &*lock(&state(&app).capture) {
         Session::Ready(p) => Some(FrozenScreen {
             width: p.screen.image.width(),
@@ -449,12 +468,14 @@ pub async fn capture_readout(
 /// 冻结屏幕已经画好：显示框选窗口。
 #[tauri::command]
 pub async fn capture_ready(app: AppHandle, token: String) {
+    super::dbg_mark("ready"); // [DEBUG-cap7]
     if !matches!(&*lock(&state(&app).capture), Session::Ready(p) if p.token == token) {
         return;
     }
     if let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
         let _ = window.show();
         let _ = window.set_focus();
+        super::dbg_mark("shown"); // [DEBUG-cap7]
     }
 }
 
@@ -515,6 +536,7 @@ pub async fn finish_capture(
     action: CaptureAction,
     token: String,
 ) -> Result<(), String> {
+    super::dbg_mark("finish.begin"); // [DEBUG-cap7]
     let pending = {
         let mut session = lock(&state(&app).capture);
         match std::mem::replace(&mut *session, Session::Grabbing(token.clone())) {
@@ -543,6 +565,7 @@ pub async fn finish_capture(
             return Err("安全模式已变化，请重新框选".into());
         }
         validate_source(&app, &pending, at)?;
+        super::dbg_mark("finish.validated"); // [DEBUG-cap7]
         // Only the final validation grants authority. Do not keep the veil mutex through
         // original decoding: a mode commit must be able to revoke while this work runs.
         let veils = lock(&state(&app).veils).clone();
@@ -571,9 +594,10 @@ pub async fn finish_capture(
             .clipboard_image()
             .map(PreparedImage::prepare)
             .transpose()?;
+        super::dbg_mark("finish.clipboard_prepared"); // [DEBUG-cap7]
         // Mode/settings, source edits, providers and automatic ratings share this commit gate.
         // Only history persistence and the actual OS/pin side effect occur within it.
-        crate::library::with_visibility_commit(&app, |generation| {
+        let committed = crate::library::with_visibility_commit(&app, |generation| {
             if generation != pending.safe_generation {
                 return Err("安全模式已变化，请重新框选".into());
             }
@@ -605,7 +629,9 @@ pub async fn finish_capture(
                         .commit(&app)
                 }
             }
-        })
+        });
+        super::dbg_mark(&format!("finish.end ok={}", committed.is_ok())); // [DEBUG-cap7]
+        committed
     })
     .await
     .map_err(|e| e.to_string())?
