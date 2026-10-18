@@ -1364,8 +1364,12 @@ mod tests {
         assert!(matches!(prepared, Prepared::Merge { .. }));
 
         // 轮到提交之前，那份原图被移进回收站并永久删除。
-        library.edit(&[first.clone()], &[ImageEdit::Delete]).unwrap();
-        let preview = library.preview_permanent_delete(&[first.clone()], &NoGroups).unwrap();
+        library
+            .edit(std::slice::from_ref(&first), &[ImageEdit::Delete])
+            .unwrap();
+        let preview = library
+            .preview_permanent_delete(std::slice::from_ref(&first), &NoGroups)
+            .unwrap();
         library
             .permanent_delete(&[first], &preview.token, &NoGroups)
             .unwrap();
