@@ -4,6 +4,10 @@
 // （通常接近 0，计为缓存命中）；其余 load 并 decode() 完成后记完成延迟；完成前离开视口或被卸载的区间
 // 单独计数，不混入完成延迟的分位数。
 // 观察会给每张卡片挂 IntersectionObserver 并在 load 后调用 decode()，与帧时间测量分开跑。
+//
+// 终点按 #123 分诊时定下的口径取“加载并解码完成”：这一刻缩略图开始以 160 ms 淡入盖住占位图，占位图
+// 在淡入结束时撤下（src/styles.css 的 `.card img[data-loaded]`）。所以统计里不含这 160 ms 的淡入；
+// 若要按“占位图完全消失”判定，在完成延迟上加 160 ms（instant 的缓存命中不淡入，不用加）。
 
 export const REPLACEMENT_BUDGET_MS = 100;
 

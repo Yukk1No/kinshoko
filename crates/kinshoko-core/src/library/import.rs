@@ -616,6 +616,52 @@ impl CommitGate {
     }
 }
 
+/// 同时在解码的原图像素上限（全进程）。管线按 RGBA f32 解码、转正与缩放，峰值约每像素 48 字节，
+/// 32 MP 约 1.5 GB：常见参考图仍能几张并行；超过上限的一张单独解码（与串行时相同的峰值）。
+const DECODE_BUDGET_PIXELS: u64 = 32_000_000;
+
+static DECODE_BUDGET: DecodeBudget = DecodeBudget {
+    in_use: Mutex::new(0),
+    released: std::sync::Condvar::new(),
+};
+
+/// 并行准备时的解码内存预算：按原图像素数计，不按线程数。
+struct DecodeBudget {
+    in_use: Mutex<u64>,
+    released: std::sync::Condvar,
+}
+
+impl DecodeBudget {
+    /// 等到预算够用再占用；单张超过上限时，等其他解码都结束后独占。
+    fn acquire(&'static self, pixels: u64) -> DecodePermit {
+        let pixels = pixels.min(DECODE_BUDGET_PIXELS);
+        let mut in_use = self.in_use.lock().unwrap_or_else(|e| e.into_inner());
+        while *in_use + pixels > DECODE_BUDGET_PIXELS {
+            in_use = self
+                .released
+                .wait(in_use)
+                .unwrap_or_else(|e| e.into_inner());
+        }
+        *in_use += pixels;
+        DecodePermit {
+            budget: self,
+            pixels,
+        }
+    }
+}
+
+struct DecodePermit {
+    budget: &'static DecodeBudget,
+    pixels: u64,
+}
+
+impl Drop for DecodePermit {
+    fn drop(&mut self) {
+        *self.budget.in_use.lock().unwrap_or_else(|e| e.into_inner()) -= self.pixels;
+        self.budget.released.notify_all();
+    }
+}
+
 /// 同时准备的线程数：留一个核给提交与界面，最多 8 个；文件很少时不多开。
 fn prepare_workers(files: usize) -> usize {
     let cores = std::thread::available_parallelism().map_or(2, |n| n.get());
@@ -677,7 +723,10 @@ fn prepare(
     let placeholder_width = thumbnail::placeholder_width(probed.width, probed.height);
     let placeholder = match timed(
         |s| &mut s.decode,
-        || render_sdr_verified(bytes, &probed, placeholder_width, DEFAULT_DOWNSCALE),
+        || {
+            let _pixels = DECODE_BUDGET.acquire(u64::from(probed.width) * u64::from(probed.height));
+            render_sdr_verified(bytes, &probed, placeholder_width, DEFAULT_DOWNSCALE)
+        },
     ) {
         Ok(rendered) => rendered.ok(),
         Err(reason) => return failed(format!("无法解码：{reason}")),
@@ -1225,4 +1274,40 @@ pub(super) fn import_package_original(
             task_created_images: Arc::new(Mutex::new(HashSet::new())),
         },
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn budget() -> &'static DecodeBudget {
+        Box::leak(Box::new(DecodeBudget {
+            in_use: Mutex::new(0),
+            released: std::sync::Condvar::new(),
+        }))
+    }
+
+    #[test]
+    fn decodes_over_the_pixel_budget_wait_until_earlier_ones_finish() {
+        let budget = budget();
+        let first = budget.acquire(DECODE_BUDGET_PIXELS / 2);
+        let second = budget.acquire(DECODE_BUDGET_PIXELS / 2);
+        let (sender, entered) = std::sync::mpsc::channel();
+        let third = std::thread::spawn(move || {
+            let _permit = budget.acquire(1);
+            sender.send(()).unwrap();
+        });
+        assert!(entered.recv_timeout(Duration::from_millis(100)).is_err());
+        drop(first);
+        entered.recv_timeout(Duration::from_secs(5)).unwrap();
+        third.join().unwrap();
+        drop(second);
+    }
+
+    #[test]
+    fn an_image_larger_than_the_budget_still_decodes_alone() {
+        let budget = budget();
+        drop(budget.acquire(DECODE_BUDGET_PIXELS * 4));
+        assert_eq!(*budget.in_use.lock().unwrap(), 0);
+    }
 }
