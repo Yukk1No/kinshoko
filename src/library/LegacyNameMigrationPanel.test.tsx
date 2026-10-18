@@ -213,9 +213,10 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
   render(<LegacyNameMigrationNotice libraryId="a" safe={true} onOpen={() => {}} />);
   expect(await screen.findByText(/这个图库里有 1 个较早的叫法/)).toBeTruthy();
   calls = 0;
-  for (let index = 0; index < 50; index++) {
+  const bursts = 50;
+  for (let index = 0; index < bursts; index++) {
     // 最后一次写入后多出一个待确认的旧名称：最终显示要反映它。
-    if (index === 49) state = { ...state, plan: { ...state.plan, groups: [...state.plan.groups, { ...state.plan.groups[0], catalogId: "later" }] } };
+    if (index === bursts - 1) state = { ...state, plan: { ...state.plan, groups: [...state.plan.groups, { ...state.plan.groups[0], catalogId: "later" }] } };
     await act(async () => {
       await emit("library-event", { kind: "vocabularyChanged", libraryId: "a" });
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -224,6 +225,7 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
   expect(await screen.findByText(/这个图库里有 2 个较早的叫法/, {}, { timeout: 2000 })).toBeTruthy();
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 100)); });
   expect(peak).toBe(1);
-  expect(calls).toBeLessThan(25);
+  // 后端 25 ms 作答、补读间隔 200 ms：约 3–4 次；留余量给慢机器。
+  expect(calls).toBeLessThanOrEqual(10);
   expect(inFlight).toBe(0);
 });

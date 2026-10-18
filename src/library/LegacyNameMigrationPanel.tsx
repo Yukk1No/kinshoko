@@ -224,7 +224,6 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
     const schedule = () => { if (!running && timer === undefined) timer = setTimeout(start, REREAD_DELAY_MS); };
     const read = () => { stale = true; schedule(); };
     start();
-    read();
     const unlisten = onLibraryEvent((event) => { if (event.kind === "vocabularyChanged" || event.kind === "taskFinished") read(); });
     const safeStop = onSafeModeSetting(() => { generation++; setCount(0); });
     window.addEventListener(CHANGED, read);
