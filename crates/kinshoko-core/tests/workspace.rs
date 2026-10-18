@@ -190,6 +190,45 @@ fn adult_in_nonmatching_out_of_scope_source_vetoes_cards_counts_and_candidates_w
             .contains(&device, &mut catalog, &a.info().id, &ids[0], true)
             .unwrap()
     );
+    // 缩略图请求的核对（#123）与 contains 同一道否决；同一请求内复用的提供方句柄不掩盖之后的变化。
+    let mut opened = kinshoko_core::workspace::ProviderReaders::default();
+    opened.open_all(device.libraries());
+    assert!(
+        workspace
+            .image_reader(
+                &device,
+                &mut catalog,
+                &mut opened,
+                &a.info().id,
+                &ids[0],
+                true
+            )
+            .is_err()
+    );
+    assert!(
+        workspace
+            .image_reader(
+                &device,
+                &mut catalog,
+                &mut opened,
+                &a.info().id,
+                &ids[0],
+                false
+            )
+            .is_ok()
+    );
+    assert!(
+        workspace
+            .image_reader(
+                &device,
+                &mut catalog,
+                &mut opened,
+                &a.info().id,
+                &unknown,
+                true
+            )
+            .is_ok()
+    );
     b.set_safe_mode(false);
     b.edit(
         &[ids[1].clone()],
@@ -204,6 +243,19 @@ fn adult_in_nonmatching_out_of_scope_source_vetoes_cards_counts_and_candidates_w
             .unwrap()
             .total,
         2
+    );
+    assert!(
+        workspace
+            .image_reader(
+                &device,
+                &mut catalog,
+                &mut opened,
+                &a.info().id,
+                &ids[0],
+                true
+            )
+            .is_ok(),
+        "the same request's reused readers still see the rating change"
     );
     assert_eq!(
         workspace

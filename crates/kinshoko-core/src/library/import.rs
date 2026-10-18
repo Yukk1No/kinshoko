@@ -33,7 +33,7 @@ use super::{
 use super::{colour, thumbnail};
 use crate::fidelity::ColourDescription;
 use crate::fidelity::inspect::inspect;
-use crate::fidelity::render::render_sdr_verified;
+use crate::fidelity::render::render_sdr_widths;
 use crate::fidelity::{DEFAULT_DOWNSCALE, SdrDerivative};
 
 /// 来源标记：普通文件导入。
@@ -58,7 +58,7 @@ pub struct ImportStages {
     pub stage: Duration,
     /// pending 记录、发布原文件与提交参考图的事务。
     pub commit: Duration,
-    /// 进库后保存占位图（占位图本身在准备阶段与解码一起生成，计入 `decode`）。
+    /// 进库后保存占位图与网格缩略图（它们在准备阶段与解码一起生成，计入 `decode`）。
     pub placeholder: Duration,
     /// 处理完全部文件后的最后一次进度、列表过期与结束事件。
     pub finish: Duration,
@@ -609,14 +609,33 @@ enum Prepared {
     Merge {
         record: Record,
         source: MergeSource,
-        placeholder: Option<SdrDerivative>,
+        derivatives: Derivatives,
     },
     /// 已暂存：提交时写 pending、发布原文件并提交。
     Staged {
         record: Record,
         pending: Pending,
-        placeholder: Option<SdrDerivative>,
+        derivatives: Derivatives,
     },
+}
+
+/// 导入时与校验像素同一次解码生成的派生图，进库后再保存进缓存。生成失败的那一份为空，
+/// 浏览时按需重建（占位图由打开资料库时的后台补齐，网格缩略图由 `thumb` 协议现场生成）。
+struct Derivatives {
+    placeholder: Option<SdrDerivative>,
+    /// 网格缩略图与它的档位（#123）。
+    grid: Option<(u32, SdrDerivative)>,
+}
+
+impl Derivatives {
+    fn store(&self, root: &Path, sha: &str) {
+        if let Some(placeholder) = &self.placeholder {
+            let _ = thumbnail::store_placeholder(root, sha, placeholder);
+        }
+        if let Some((px, grid)) = &self.grid {
+            let _ = thumbnail::store_grid(root, sha, *px, grid);
+        }
+    }
 }
 
 impl Prepared {
@@ -780,8 +799,10 @@ fn prepare(
         Err(reason) => return failed(format!("无法解码：{reason}")),
     };
     // 文件头有效不代表像素可读：发布前完整解码一遍，坏的作为可重试的读取失败。
-    // 同一次解码顺带生成占位图（#120），提交后不再重读原文件解码第二遍。
+    // 同一次解码顺带生成占位图（#120）与图片墙要用的网格缩略图（#123）：提交后不再重读原文件解码，
+    // 浏览时也不必在滚动中现场生成。
     let placeholder_width = thumbnail::placeholder_width(probed.width, probed.height);
+    let grid_px = thumbnail::grid_tier();
     let Some(_pixels) = DECODE_BUDGET.acquire(
         u64::from(probed.width) * u64::from(probed.height),
         context.cancel.as_deref(),
@@ -789,11 +810,23 @@ fn prepare(
         // 任务已取消：这一项不会提交，不再解码。
         return failed("导入已取消".into());
     };
-    let placeholder = match timed(
+    let derivatives = match timed(
         |s| &mut s.decode,
-        || render_sdr_verified(bytes, &probed, placeholder_width, DEFAULT_DOWNSCALE),
+        || {
+            render_sdr_widths(
+                bytes,
+                &probed,
+                &[placeholder_width, grid_px],
+                DEFAULT_DOWNSCALE,
+            )
+        },
     ) {
-        Ok(rendered) => rendered.ok(),
+        Ok(rendered) => {
+            let mut rendered = rendered.into_iter().map(Result::ok);
+            let placeholder = rendered.next().flatten();
+            let grid = rendered.next().flatten().map(|grid| (grid_px, grid));
+            Derivatives { placeholder, grid }
+        }
         Err(reason) => return failed(format!("无法解码：{reason}")),
     };
     let sha = timed(|s| &mut s.hash, || sha256_hex(bytes));
@@ -841,7 +874,7 @@ fn prepare(
         return Prepared::Merge {
             record,
             source: origin.source,
-            placeholder,
+            derivatives,
         };
     }
 
@@ -849,20 +882,20 @@ fn prepare(
         Ok(pending) => Prepared::Staged {
             record,
             pending,
-            placeholder,
+            derivatives,
         },
         Err(reason) => failed(reason),
     }
 }
 
-/// 按顺序提交准备好的一项，进库后保存占位图。提交前由 [`commit_record`] 再核对一次保存目标。
+/// 按顺序提交准备好的一项，进库后保存占位图与网格缩略图。提交前由 [`commit_record`] 再核对一次保存目标。
 fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, bool) {
-    let (result, placeholder, sha) = match prepared {
+    let (result, derivatives, sha) = match prepared {
         Prepared::Done(outcome, list_changed) => return (outcome, list_changed),
         Prepared::Merge {
             record,
             source,
-            placeholder,
+            derivatives,
         } => {
             let sha = record.sha.clone();
             let (committed, record) = timed(
@@ -889,12 +922,12 @@ fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, bool) {
                     false,
                 ),
             };
-            (result, placeholder, sha)
+            (result, derivatives, sha)
         }
         Prepared::Staged {
             record,
             pending,
-            placeholder,
+            derivatives,
         } => {
             let sha = record.sha.clone();
             // 按提交顺序命中：这一项已暂存、还没有 pending 记录（后面的项可能也已暂存）。
@@ -903,15 +936,13 @@ fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, bool) {
                 |s| &mut s.commit,
                 || publish_and_commit(inner, record, pending),
             );
-            (result, placeholder, sha)
+            (result, derivatives, sha)
         }
     };
-    if result.0.image_id().is_some()
-        && let Some(placeholder) = &placeholder
-    {
-        let _ = timed(
+    if result.0.image_id().is_some() {
+        timed(
             |s| &mut s.placeholder,
-            || thumbnail::store_placeholder(&inner.root, &sha, placeholder),
+            || derivatives.store(&inner.root, &sha),
         );
     }
     result

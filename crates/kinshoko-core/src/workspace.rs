@@ -143,6 +143,53 @@ impl Snapshot {
         }
     }
 }
+/// Detached provider readers opened during one request (#123). Scope it to a single request:
+/// each registered provider is opened (identity-checked) at most once while it lives. Entries are
+/// keyed by registration (id and root), so a provider re-registered elsewhere mid-request is reopened.
+#[derive(Default)]
+pub struct ProviderReaders(
+    BTreeMap<
+        String,
+        (
+            std::path::PathBuf,
+            Result<std::sync::Arc<crate::library::Library>, String>,
+        ),
+    >,
+);
+impl ProviderReaders {
+    /// Open these registrations now, typically before taking the registry/catalog/workspace locks,
+    /// so the locked section only reads revisions. Every check still runs under the locks.
+    pub fn open_all(&mut self, registrations: &[crate::RegisteredLibrary]) {
+        for registration in registrations {
+            // 打不开的提供方照常记下原因，锁里的核对按原因报告。
+            let _ = self.opened(registration);
+        }
+    }
+    fn opened(
+        &mut self,
+        registration: &crate::RegisteredLibrary,
+    ) -> Result<std::sync::Arc<crate::library::Library>, String> {
+        let entry = self.0.get(&registration.id);
+        if entry.is_none_or(|(root, _)| *root != registration.root) {
+            let library = DeviceLibraries::read_registered(registration).map_err(|e| e.to_string());
+            self.0.insert(
+                registration.id.clone(),
+                (registration.root.clone(), library),
+            );
+        }
+        self.0[&registration.id].1.clone()
+    }
+    fn read(
+        &mut self,
+        device: &DeviceLibraries,
+        library_id: &str,
+    ) -> Result<std::sync::Arc<crate::library::Library>, String> {
+        match device.libraries().iter().find(|r| r.id == library_id) {
+            Some(registration) => self.opened(&registration.clone()),
+            None => device.read(library_id).map_err(|e| e.to_string()),
+        }
+    }
+}
 /// Durable known-source facts retain an Adult veto across a disconnected provider.
 /// Refreshing that provider replaces its facts; explicitly removing its registration forgets them.
 /// Cached unavailable tag definitions are never used for browsing or search.
@@ -165,16 +212,23 @@ impl Workspace {
         device: &DeviceLibraries,
         catalog: &mut TagCatalog,
     ) -> Result<std::sync::Arc<Snapshot>, CatalogError> {
+        self.snapshot_reusing(device, catalog, &mut ProviderReaders::default())
+    }
+    /// Same as [`Self::snapshot`], opening each registered provider at most once per `opened`.
+    /// Revisions are still read on every call, so a reused reader never hides a change.
+    fn snapshot_reusing(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        opened: &mut ProviderReaders,
+    ) -> Result<std::sync::Arc<Snapshot>, CatalogError> {
         let mut readers = BTreeMap::new();
         let mut observed = Vec::new();
         for registration in device.libraries() {
-            let result = device
-                .read(&registration.id)
-                .map_err(|e| e.to_string())
-                .and_then(|library| {
-                    let revisions = library.provider_revision().map_err(|e| e.to_string())?;
-                    Ok((library, revisions))
-                });
+            let result = opened.read(device, &registration.id).and_then(|library| {
+                let revisions = library.provider_revision().map_err(|e| e.to_string())?;
+                Ok((library, revisions))
+            });
             match result {
                 Ok((library, (list, revision))) => {
                     readers.insert(registration.id.clone(), library);
@@ -618,6 +672,41 @@ impl Workspace {
             .find(|p| p.registration.library.id == library_id)
             .ok_or(CatalogError::UnknownMapping)?;
         Ok(directory_sidebar(&snapshot, provider, &library, safe)?.0)
+    }
+    /// Authorize one image read for a thumbnail or display request (#123) and return its provider
+    /// reader. Same checks as `contains` bracketed by an unchanged revision, but the snapshot is built
+    /// once and each provider is opened at most once per `opened`; call again with the same `opened`
+    /// after reading the file to re-check without reopening anything.
+    pub fn image_reader(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        opened: &mut ProviderReaders,
+        library_id: &str,
+        image_id: &str,
+        safe: bool,
+    ) -> Result<std::sync::Arc<crate::library::Library>, CatalogError> {
+        let snapshot = self.snapshot_reusing(device, catalog, opened)?;
+        let allowed = snapshot
+            .identities
+            .get(&(library_id.into(), image_id.into()))
+            .is_some_and(|hash| !safe || !snapshot.adult.contains(hash));
+        if !allowed {
+            return Err(Error::UnknownImage.into());
+        }
+        let library = opened
+            .read(device, library_id)
+            .map_err(|e| CatalogError::Io(std::io::Error::other(e)))?;
+        if self
+            .snapshot_reusing(device, catalog, opened)?
+            .status
+            .revision
+            != snapshot.status.revision
+        {
+            return Err(Error::CursorExpired.into());
+        }
+        library.set_safe_mode(safe);
+        Ok(library)
     }
     /// O(log n) authorization after bounded provider/catalog revision checks, including trash views.
     pub fn contains(

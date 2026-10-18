@@ -156,3 +156,63 @@ fn cancelling_discards_prepared_items_without_leaving_staging_files() {
             .count()
     );
 }
+
+/// 缓存目录里以 `-<后缀>.` 结尾命名的派生图（相对路径排序）。
+fn derivatives(root: &Path, suffix: &str) -> Vec<PathBuf> {
+    fn walk(dir: &Path, suffix: &str, out: &mut Vec<PathBuf>) {
+        for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                walk(&path, suffix, out);
+            } else if path
+                .file_name()
+                .is_some_and(|n| n.to_string_lossy().contains(&format!("-{suffix}.")))
+            {
+                out.push(path);
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(&root.join("cache"), suffix, &mut out);
+    out.sort();
+    out
+}
+
+#[test]
+fn import_pre_renders_grid_thumbnails_identical_to_on_demand_ones() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("lib");
+    let library = Library::create(&root, "库").unwrap();
+    for (i, (w, h)) in [(900, 600), (300, 1200), (200, 200)]
+        .into_iter()
+        .enumerate()
+    {
+        write_png(&dir.path().join(format!("in/{i}.png")), w, h, 70 * i as u8);
+    }
+    library
+        .import(ImportSource {
+            paths: vec![dir.path().join("in")],
+        })
+        .wait();
+    // 还没浏览过：按默认图片大小的档位（384）预先生成，三张都有。
+    let at_import = derivatives(&root, "384");
+    assert_eq!(at_import.len(), 3);
+    let bytes: Vec<Vec<u8>> = at_import
+        .iter()
+        .map(|p| std::fs::read(p).unwrap())
+        .collect();
+
+    // 删掉后由浏览时的现场生成重建：逐字节相同，路径也相同（浏览时直接命中导入时生成的那份）。
+    for path in &at_import {
+        std::fs::remove_file(path).unwrap();
+    }
+    for card in browse(&library) {
+        library.thumbnail(&card.id, 360).unwrap();
+    }
+    assert_eq!(derivatives(&root, "384"), at_import);
+    let rebuilt: Vec<Vec<u8>> = at_import
+        .iter()
+        .map(|p| std::fs::read(p).unwrap())
+        .collect();
+    assert_eq!(bytes, rebuilt);
+}

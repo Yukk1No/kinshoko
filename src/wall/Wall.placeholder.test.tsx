@@ -54,3 +54,18 @@ it("遮蔽中的成人内容卡片不显示占位色彩", async () => {
   expect(placeholderOf("a")).toBeNull();
   expect(placeholderOf("b")).not.toBeNull();
 });
+
+it("卡片卸载时缩略图还没到就撤掉地址，浏览器放弃这次请求；已到的不动（#123）", async () => {
+  cards = [
+    { id: "a", width: 100, height: 50, thumbnail: "L1/a/256", adult: false },
+    { id: "b", width: 100, height: 50, thumbnail: "L1/b/256", adult: false },
+  ];
+  const view = wall();
+  const [pending, arrived] = await screen.findAllByRole("img") as HTMLImageElement[];
+  Object.defineProperty(pending, "complete", { configurable: true, value: false });
+  Object.defineProperty(arrived, "complete", { configurable: true, value: true });
+  expect(pending.getAttribute("src")).toContain("L1/a/256");
+  view.unmount();
+  expect(pending.hasAttribute("src")).toBe(false);
+  expect(arrived.getAttribute("src")).toContain("L1/b/256");
+});
