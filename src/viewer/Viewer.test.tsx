@@ -58,7 +58,7 @@ describe("查看器设备像素", () => {
     expect(x).toBeCloseTo(Math.round(x));
     expect(y).toBeCloseTo(Math.round(y));
   });
-  it("连续缩小时等滚轮停下再请求精确派生图，不缩小旧位图", () => {
+  it("连续缩小时等滚轮停下再请求精确派生图，期间已读完的位图按新尺寸临时顶上（#128）", () => {
     vi.useFakeTimers();
     render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
     const image = screen.getByAltText("正在查看的参考图");
@@ -66,12 +66,87 @@ describe("查看器设备像素", () => {
     fireEvent.load(image);
     fireEvent.wheel(stage, { deltaY: 100, clientX: 500, clientY: 400 });
     fireEvent.wheel(stage, { deltaY: 100, clientX: 500, clientY: 400 });
+    // 滚轮当帧就有可见响应：旧位图跟着缩放，不等 Rust 生成派生图。
     const pending = screen.getByAltText("正在查看的参考图");
     expect(pending.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
-    expect(pending.style.visibility).toBe("hidden");
+    expect(pending.style.visibility).toBe("visible");
+    expect(parseFloat(pending.style.width)).toBeLessThan(1000);
+    expect(screen.queryByText("正在读取参考图…")).toBeNull();
     act(() => vi.advanceTimersByTime(1000));
     const settled = screen.getByAltText("正在查看的参考图");
     expect(settled.getAttribute("src")).toBe(`http://thumb.localhost/L1/a/fit-${Math.round(parseFloat(settled.style.width) * 1.5)}`);
+    expect(settled.style.visibility).toBe("hidden");
+    // 精确图读完前，旧位图摆在同一位置、同一尺寸；读完后换下。
+    const stand = stage.querySelector<HTMLImageElement>("img.viewer-stand-in")!;
+    expect(stand.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+    expect(stand.style.width).toBe(settled.style.width);
+    expect(stand.style.transform).toBe(settled.style.transform);
+    fireEvent.load(settled);
+    expect(settled.style.visibility).toBe("visible");
+    expect(stage.querySelector("img.viewer-stand-in")).toBeNull();
+  });
+  it("从原始像素缩小时用已读完的缩小派生图顶上，不让 Chromium 每帧重采样整张原图（#128）", () => {
+    vi.useFakeTimers();
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    fireEvent.click(screen.getByRole("button", { name: /^原始像素/ }));
+    const original = screen.getByAltText("正在查看的参考图");
+    expect(original.getAttribute("src")).toBe("http://thumb.localhost/L1/a/full");
+    fireEvent.load(original);
+    fireEvent.wheel(stage, { deltaY: 100, clientX: 500, clientY: 400 });
+    const stand = stage.querySelector<HTMLImageElement>("img.viewer-stand-in")!;
+    expect(stand.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+    expect(stand.style.width).toBe(original.style.width);
+    // 派生图画得出来之前，原图留着，不空白一帧。
+    expect(original.style.visibility).toBe("visible");
+    fireEvent.load(stand);
+    expect(original.style.visibility).toBe("hidden");
+  });
+  it("连续放大跨过 100% 时等停手再请求原图，大图不在手势中间上屏（#128）", () => {
+    vi.useFakeTimers();
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    fireEvent.wheel(stage, { deltaY: -600, clientX: 500, clientY: 400 });
+    const shown = screen.getByAltText("正在查看的参考图");
+    expect(parseFloat(shown.style.width) * 1.5).toBeGreaterThan(2400);
+    expect(shown.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+    expect(shown.style.visibility).toBe("visible");
+    // 100% 以上 desiredPx 不再变化，但还在缩放：每一格都重新计时。
+    for (let i = 0; i < 3; i++) {
+      fireEvent.wheel(stage, { deltaY: -50, clientX: 500, clientY: 400 });
+      act(() => vi.advanceTimersByTime(100));
+      expect(screen.getByAltText("正在查看的参考图").getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+    }
+    act(() => vi.advanceTimersByTime(200));
+    const original = screen.getByAltText("正在查看的参考图");
+    expect(original.getAttribute("src")).toBe("http://thumb.localhost/L1/a/full");
+    expect(stage.querySelector("img.viewer-stand-in")?.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+  });
+  it("缩放中换到另一张图，按这张图的尺寸请求，不沿用上一张的宽度", () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<Viewer libraryId="L1" card={{ id: "a", width: 6000, height: 4000, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    fireEvent.wheel(stage, { deltaY: 100, clientX: 500, clientY: 400 });
+    act(() => vi.advanceTimersByTime(200));
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    rerender(<Viewer libraryId="L1" card={{ id: "b", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const next = screen.getByAltText("正在查看的参考图");
+    expect(next.getAttribute("src")).toBe(`http://thumb.localhost/L1/b/fit-${Math.round(parseFloat(next.style.width) * 1.5)}`);
+    expect(stage.querySelector("img.viewer-stand-in")).toBeNull();
+  });
+  it("精确来源读取失败时只显示错误，不留替身", () => {
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    fireEvent.click(screen.getByRole("button", { name: /^原始像素/ }));
+    expect(stage.querySelector("img.viewer-stand-in")?.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+    fireEvent.error(screen.getByAltText("正在查看的参考图"));
+    expect(screen.getByRole("alert").textContent).toContain("无法读取这张参考图");
+    // 派生图替身的元素常驻但隐藏；不能有画得出来的替身。
+    expect([...stage.querySelectorAll<HTMLImageElement>("img.viewer-stand-in")].filter((i) => i.style.visibility !== "hidden")).toEqual([]);
   });
   it("快速反复缩放时同一时刻只等一张派生图，读完再请求最新尺寸", () => {
     // WebView2 不取消被换掉的请求；每次停顿都发新派生图会让 Rust 端积压整图解码，查看器长时间停在“正在读取”。
@@ -89,13 +164,13 @@ describe("查看器设备像素", () => {
       act(() => vi.advanceTimersByTime(200));
       expect(src()).toBe(first);
     }
-    expect(screen.getByText("正在读取参考图…")).toBeTruthy();
+    expect(screen.queryByText("正在读取参考图…")).toBeNull();
+    expect(stage.querySelector("img.viewer-stand-in")?.getAttribute("src")).not.toBe(first);
     fireEvent.load(screen.getByAltText("正在查看的参考图"));
     act(() => vi.advanceTimersByTime(200));
     const latest = screen.getByAltText("正在查看的参考图");
     expect(latest.getAttribute("src")).toBe(`http://thumb.localhost/L1/a/fit-${Math.round(parseFloat(latest.style.width) * 1.5)}`);
     fireEvent.load(latest);
-    expect(screen.queryByText("正在读取参考图…")).toBeNull();
     expect(latest.style.visibility).toBe("visible");
   });
   it.each([1, 1.25, 1.5, 2])("DPR %s 下原图像素与 110％ 缩放都对齐物理像素，超过 200％ 按像素放大", (dpr) => {
