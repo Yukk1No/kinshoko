@@ -144,21 +144,50 @@ impl Snapshot {
     }
 }
 /// Detached provider readers opened during one request (#123). Scope it to a single request:
-/// each registered provider is opened (identity-checked) at most once while it lives.
+/// each registered provider is opened (identity-checked) at most once while it lives. Entries are
+/// keyed by registration (id and root), so a provider re-registered elsewhere mid-request is reopened.
 #[derive(Default)]
 pub struct ProviderReaders(
-    BTreeMap<String, Result<std::sync::Arc<crate::library::Library>, String>>,
+    BTreeMap<
+        String,
+        (
+            std::path::PathBuf,
+            Result<std::sync::Arc<crate::library::Library>, String>,
+        ),
+    >,
 );
 impl ProviderReaders {
+    /// Open these registrations now, typically before taking the registry/catalog/workspace locks,
+    /// so the locked section only reads revisions. Every check still runs under the locks.
+    pub fn open_all(&mut self, registrations: &[crate::RegisteredLibrary]) {
+        for registration in registrations {
+            // 打不开的提供方照常记下原因，锁里的核对按原因报告。
+            let _ = self.opened(registration);
+        }
+    }
+    fn opened(
+        &mut self,
+        registration: &crate::RegisteredLibrary,
+    ) -> Result<std::sync::Arc<crate::library::Library>, String> {
+        let entry = self.0.get(&registration.id);
+        if entry.is_none_or(|(root, _)| *root != registration.root) {
+            let library = DeviceLibraries::read_registered(registration).map_err(|e| e.to_string());
+            self.0.insert(
+                registration.id.clone(),
+                (registration.root.clone(), library),
+            );
+        }
+        self.0[&registration.id].1.clone()
+    }
     fn read(
         &mut self,
         device: &DeviceLibraries,
         library_id: &str,
     ) -> Result<std::sync::Arc<crate::library::Library>, String> {
-        self.0
-            .entry(library_id.to_owned())
-            .or_insert_with(|| device.read(library_id).map_err(|e| e.to_string()))
-            .clone()
+        match device.libraries().iter().find(|r| r.id == library_id) {
+            Some(registration) => self.opened(&registration.clone()),
+            None => device.read(library_id).map_err(|e| e.to_string()),
+        }
     }
 }
 /// Durable known-source facts retain an Adult veto across a disconnected provider.

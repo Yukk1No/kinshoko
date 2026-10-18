@@ -344,7 +344,15 @@ impl DeviceLibraries {
             .iter()
             .find(|entry| entry.id == library_id)
             .ok_or(DeviceLibraryError::UnknownLibrary)?;
+        Self::read_registered(registration)
+    }
 
+    /// 按一条登记只读打开资料库：与 [`Self::read`] 相同的身份核对，但不需要登记表本身，
+    /// 调用方可以在登记表的锁外先打开（#123 的缩略图请求）。
+    pub fn read_registered(
+        registration: &RegisteredLibrary,
+    ) -> Result<Arc<Library>, DeviceLibraryError> {
+        let library_id = registration.id.as_str();
         Self::inspect(&registration.root, Some(library_id))?;
         Library::open_read_only(&registration.root, library_id)
             .map(Arc::new)

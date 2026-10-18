@@ -162,6 +162,12 @@ pub(super) fn read_image<R: Runtime>(
 ) -> Result<Arc<Library>, String> {
     let safe = saved_safe_mode(app);
     let expected = generation(app);
+    // 先在锁外打开这次请求要核对的提供方（只短暂持有登记表的锁取登记），锁里只读修订与核对。
+    let state = app.state::<LibraryState>();
+    let registrations = with_libraries(&state.device_dir, &state.libraries, |device| {
+        Ok(device.libraries().to_vec())
+    })?;
+    opened.open_all(&registrations);
     let library = action(app, safe, |workspace, device, catalog| {
         workspace.image_reader(device, catalog, opened, library_id, image_id, safe)
     })?;
