@@ -161,7 +161,8 @@ function saveAnchor(key: string, anchor: Anchor | null) {
 
 /**
  * 图片墙：按资料库记录的尺寸用纯函数排出瀑布流，只挂载视口附近的卡片。
- * 单击打开（沿用认可原型），Ctrl 单击增减选择，Shift 单击选中一段；选中的图可以拖到文件夹上。
+ * 单击只选中这一张（详情面板跟着选择），双击或 Enter 打开查看器（#146，Eagle 与资源管理器的习惯）；
+ * Ctrl 单击增减选择，Shift 单击选中一段，单击空白处清空选择；选中的图可以拖到文件夹上。
  * 换范围或条件时由调用方换 key 重建。查找结果不记住位置，新的查找从顶部看起。
  */
 export const Wall = forwardRef<WallHandle, Props>(function Wall({
@@ -764,6 +765,14 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     onSelectionChange(new Set([id]));
     return cards.filter((c) => c.id === id);
   };
+  /** 单击空白处清空选择（资源管理器的习惯）；按着修饰键时不动，落在滚动条上的不算。 */
+  const clearOnBlankClick = (e: MouseEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey || !selected.size) return;
+    if ((e.target as Element).closest?.(".card, .card-sources")) return;
+    const el = e.currentTarget;
+    if (e.clientX - el.getBoundingClientRect().left >= el.clientWidth) return;
+    onSelectionChange(new Set());
+  };
   const [menuTarget, setMenuTarget] = useState<WallMenuTarget | null>(null);
   const targetMenu = (e: MouseEvent) => {
     const point = { x: e.clientX, y: e.clientY };
@@ -845,7 +854,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   return (
     <ContextMenu.Root disabled={!menu} onOpenChange={(next) => { if (!next) setMenuTarget(null); }}>
     <ContextMenu.Trigger render={<div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
-      role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1} onKeyDown={wallKey}
+      role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1} onKeyDown={wallKey} onClick={clearOnBlankClick}
       onContextMenuCapture={(e) => { if (menu) targetMenu(e); }} />}>
       {error && <p role="alert">{error}</p>}
       {total === 0 ? (
@@ -875,10 +884,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 tabIndex={0}
                 data-veiled={veiled}
                 draggable={!workspaceScope || workspaceScope.kind === "library" || (card.sources?.some((source) => !source.unavailable) ?? false)}
-                onClick={(e) => {
-                  if (e.ctrlKey || e.metaKey || e.shiftKey) cardHandlers.current.select(card.id, e);
-                  else cardHandlers.current.open(card);
-                }}
+                onClick={(e) => cardHandlers.current.select(card.id, e)}
                 onDoubleClick={() => cardHandlers.current.open(card)}
                 onKeyDown={(e) => cardHandlers.current.cardKey(card, e)}
                 onDragStart={(e) => cardHandlers.current.dragStart(card.id, e)}

@@ -241,7 +241,8 @@ const b=size.getBoundingClientRect();return {region,size:size.textContent.trim()
   await workflow.readyClick("//button[@aria-label='展开侧栏']");
   const restored=await until("actual wall width restored",()=>d.exec("const width=document.querySelector('.wall').clientWidth;return width===arguments[0]?width:null;",[widthBefore]));
   state.reflow={widthBefore,collapsed,restored,source:reflow.source};save();
-  await prepareWall();await workflow.readyClick("//*[@role='option' and @data-id="+literal(workflow.targetA.contentId)+"]");
+  // 单击只选中并聚焦卡片，Enter 打开查看器（#146）。
+  await prepareWall();await workflow.readyClick("//*[@role='option' and @data-id="+literal(workflow.targetA.contentId)+"]");await d.key("\uE007");
   await workflow.readyClick("//*[@aria-label='原图查看器']//*[@role='toolbar' and @aria-label='查看工具']//button["+named("适应窗口")+"]");
   const viewerSource=async()=>{await d.main();return until("actual fitted A viewer original is decoded",()=>paintedGeometry("viewer"));};
   const viewer=await capture("viewer-copy",viewerSource,"copy");
