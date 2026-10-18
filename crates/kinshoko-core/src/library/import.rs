@@ -511,6 +511,14 @@ fn prepare_file(
     };
     let original = eagle.as_ref().map_or(path, |item| item.original.as_path());
     let source = MergeSource::File(original.to_path_buf());
+    // 读进来的字节一直留到这一项准备完，先按文件大小占用读取预算。
+    let size = match std::fs::metadata(original) {
+        Ok(meta) => meta.len(),
+        Err(e) => return failed(e.to_string()),
+    };
+    let Some(_read) = READ_BUDGET.acquire(size, context.cancel.as_deref()) else {
+        return failed("导入已取消".into());
+    };
     let bytes = match timed(|s| &mut s.read, || std::fs::read(original)) {
         Ok(b) => b,
         Err(e) => return failed(e.to_string()),
@@ -650,24 +658,36 @@ impl CommitGate {
 /// 32 MP 约 1.5 GB：常见参考图仍能几张并行；超过上限的一张单独解码（与串行时相同的峰值）。
 const DECODE_BUDGET_PIXELS: u64 = 32_000_000;
 
-static DECODE_BUDGET: DecodeBudget = DecodeBudget {
-    in_use: Mutex::new(0),
-    released: std::sync::Condvar::new(),
-};
+static DECODE_BUDGET: MemoryBudget = MemoryBudget::new(DECODE_BUDGET_PIXELS);
 
-/// 并行准备时的解码内存预算：按原图像素数计，不按线程数。
-struct DecodeBudget {
+/// 同时读进内存、还在准备中的原文件字节上限（全进程）。读文件前先占用，准备完这一项才放开：
+/// 几个准备线程不会同时攥着多份很大的原文件；超过上限的一份单独读（与串行时相同）。
+const READ_BUDGET_BYTES: u64 = 512 * 1024 * 1024;
+
+static READ_BUDGET: MemoryBudget = MemoryBudget::new(READ_BUDGET_BYTES);
+
+/// 并行准备时的内存预算：按像素数或字节数计，不按线程数。
+struct MemoryBudget {
+    limit: u64,
     in_use: Mutex<u64>,
     released: std::sync::Condvar,
 }
 
-impl DecodeBudget {
-    /// 等到预算够用再占用；单张超过上限时，等其他解码都结束后独占。
-    /// 任务在等待中被取消时返回 `None`，这一项不再解码。
-    fn acquire(&'static self, pixels: u64, cancel: Option<&AtomicBool>) -> Option<DecodePermit> {
-        let pixels = pixels.min(DECODE_BUDGET_PIXELS);
+impl MemoryBudget {
+    const fn new(limit: u64) -> Self {
+        Self {
+            limit,
+            in_use: Mutex::new(0),
+            released: std::sync::Condvar::new(),
+        }
+    }
+
+    /// 等到预算够用再占用；单项超过上限时，等其他占用都放开后独占。
+    /// 任务在等待中被取消时返回 `None`，这一项不再继续。
+    fn acquire(&'static self, amount: u64, cancel: Option<&AtomicBool>) -> Option<BudgetPermit> {
+        let amount = amount.min(self.limit);
         let mut in_use = self.in_use.lock().unwrap_or_else(|e| e.into_inner());
-        while *in_use + pixels > DECODE_BUDGET_PIXELS {
+        while *in_use + amount > self.limit {
             if cancel.is_some_and(|cancel| cancel.load(Ordering::SeqCst)) {
                 return None;
             }
@@ -678,22 +698,22 @@ impl DecodeBudget {
                 .unwrap_or_else(|e| e.into_inner())
                 .0;
         }
-        *in_use += pixels;
-        Some(DecodePermit {
+        *in_use += amount;
+        Some(BudgetPermit {
             budget: self,
-            pixels,
+            amount,
         })
     }
 }
 
-struct DecodePermit {
-    budget: &'static DecodeBudget,
-    pixels: u64,
+struct BudgetPermit {
+    budget: &'static MemoryBudget,
+    amount: u64,
 }
 
-impl Drop for DecodePermit {
+impl Drop for BudgetPermit {
     fn drop(&mut self) {
-        *self.budget.in_use.lock().unwrap_or_else(|e| e.into_inner()) -= self.pixels;
+        *self.budget.in_use.lock().unwrap_or_else(|e| e.into_inner()) -= self.amount;
         self.budget.released.notify_all();
     }
 }
@@ -1426,11 +1446,8 @@ mod tests {
         assert!(library.original_path(&image_id).unwrap().is_file());
     }
 
-    fn budget() -> &'static DecodeBudget {
-        Box::leak(Box::new(DecodeBudget {
-            in_use: Mutex::new(0),
-            released: std::sync::Condvar::new(),
-        }))
+    fn budget() -> &'static MemoryBudget {
+        Box::leak(Box::new(MemoryBudget::new(DECODE_BUDGET_PIXELS)))
     }
 
     #[test]
