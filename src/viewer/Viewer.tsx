@@ -57,9 +57,16 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   const [background, setBackground] = useState<Background>(legacyViewerBackground);
   const [backgroundReady, setBackgroundReady] = useState(false);
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  /**
+   * 最近读完的一张缩小派生图（fit-N）：缩到 100% 以下时临时顶上的首选，比原图便宜得多。
+   * `loaded`：常驻的那个元素已读完；读完前它画不出来，不能指望它顶上。
+   */
+  const [derived, setDerived] = useState<{ src: string; loaded: boolean } | null>(null);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
-  const [requestedPx, setRequestedPx] = useState(card.width);
+  /** 缩放中最近一次请求的来源宽度；记着是哪张图的，换图后不拿上一张的宽度去请求。 */
+  const cardKey = `${libraryId}/${card.id}`;
+  const [requested, setRequested] = useState({ key: cardKey, px: card.width });
   const drag = useRef<{ id: number; x: number; y: number; offset: typeof offset } | null>(null);
   /** 框选局部：选区（原图像素）、是否在框选模式、拖动中的起点（舞台上的 CSS 像素）。 */
   const [crop, setCrop] = useState<Region | null>(null);
@@ -79,6 +86,8 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     setSelecting(false);
     setDragging(false);
     setPinStatus(null);
+    setLoadedSrc(null);
+    setDerived(null);
     select.current = null;
     drag.current = null;
   }, [libraryId, card.id]);
@@ -143,22 +152,28 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     return () => el.removeEventListener("wheel", wheel);
   });
   const desiredPx = Math.min(physicalWidth, card.width);
-  const sourcePx = mode === "zoom" && desiredPx < card.width ? requestedPx : desiredPx;
+  const requestedPx = requested.key === cardKey ? requested.px : desiredPx;
+  const setRequestedPx = (px: number) => setRequested({ key: cardKey, px });
+  const sourcePx = mode === "zoom" ? requestedPx : desiredPx;
   const exactSource = sourcePx === desiredPx;
   // 1:1 与放大走 Library::display（原图或原尺寸 sdr 派生图）；缩小走精确尺寸派生图。从不直接读原文件。
-  const address = sourcePx >= card.width ? displayUrl(libraryId, card.id) : displayScaledUrl(libraryId, card.id, sourcePx);
+  const originalUrl = displayUrl(libraryId, card.id);
+  const isOriginal = (address: string) => address.startsWith(originalUrl);
+  const address = sourcePx >= card.width ? originalUrl : displayScaledUrl(libraryId, card.id, sourcePx);
   const src = address + (retry ? `?retry=${retry}` : "");
   // WebView2 不取消被换掉的请求，每张派生图都要整图解码；同一时刻只等一张，否则快速缩放时积压，迟迟出不了图。
-  const derivativePending = sourcePx < card.width && loadedSrc !== src && failedSrc !== src;
-  // 连续缩小时只在短暂静止后生成派生图；中间不让 Chromium 缩小旧位图。
+  const sourcePending = loadedSrc !== src && failedSrc !== src;
+  // 连续缩放时只在停手 120 ms 后换来源（#128），原图也一样：大图第一次上屏要整张解码上传，放在手势中间会卡一帧。
+  // 每一格缩放都重新计时（100% 以上 desiredPx 不变，要看 physicalWidth）。期间已读完的位图按当前尺寸临时缩放显示，
+  // 画面跟手；精确来源读完才换上，静止时看到的仍只来自 ADR-0005 的两条路。
   useEffect(() => {
-    if (mode !== "zoom" || desiredPx === card.width) { setRequestedPx(desiredPx); return; }
-    if (derivativePending) return;
+    if (mode !== "zoom") { setRequestedPx(desiredPx); return; }
+    if (requestedPx === desiredPx || sourcePending) return;
     const timer = window.setTimeout(() => setRequestedPx(desiredPx), 120);
     return () => window.clearTimeout(timer);
-  }, [desiredPx, mode, card.width, derivativePending]);
+  }, [desiredPx, physicalWidth, mode, requestedPx, sourcePending, cardKey]);
   useCaptureSources(() => {
-    const image = stage.current?.querySelector("img");
+    const image = stage.current?.querySelector<HTMLImageElement>("img.viewer-image");
     if (!image || !exactSource || loadedSrc !== src || failedSrc === src) return [];
     const reference = captureImage(image, stage.current!, libraryId, card.id, card.width, card.height);
     return reference ? [reference] : [];
@@ -172,6 +187,27 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     return () => { alive = false; };
   }, [libraryId, card.id, reloadKey, failedSrc, workspace]);
   const shown = { left, top, width, height };
+  const placed = { width, height, left: 0, top: 0, transform: `translate(${left}px, ${top}px)` };
+  const ready = loadedSrc === src;
+  const failed = exactSource && failedSrc === src;
+  /**
+   * 替身（#128）：精确来源还没就绪时临时顶上的位图，按当前位置与尺寸显示。缩到 100% 以下优先用最近的缩小派生图——
+   * 让 Chromium 每帧把整张大原图重采样到新尺寸，一帧要 50～140 ms（8000 px 实测）。派生图替身的元素一直挂着（隐藏），
+   * 要用时已经读完；读完之前由最近读完的位图当替身。精确来源读取失败时不留替身，只显示错误。
+   */
+  const derivedMounted = derived !== null && derived.src !== src;
+  const derivedStandIn = derivedMounted && derived.loaded && !failed && !(ready && exactSource)
+    && (desiredPx < card.width || (!ready && loadedSrc === derived.src));
+  const lastStandIn = !ready && !derivedStandIn && !failed ? loadedSrc : null;
+  /** 解码完再换上，换图那一帧不空白；换走或换了图的元素不再回写。 */
+  const swapIn = (image: HTMLImageElement, loaded: string) => {
+    const done = () => {
+      if (!image.isConnected) return;
+      setLoadedSrc(loaded);
+      if (!isOriginal(loaded)) setDerived({ src: loaded, loaded: false });
+    };
+    if (typeof image.decode === "function") image.decode().then(done, done); else done();
+  };
   const natural = { width: card.width, height: card.height };
   const cropRect = crop && cropOnScreen(crop, shown, natural);
   /** 舞台上的点（CSS 像素）。 */
@@ -325,13 +361,18 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
         }}
         onPointerCancel={() => { drag.current = null; select.current = null; setDragging(false); }}
         onLostPointerCapture={() => { drag.current = null; select.current = null; setDragging(false); }} />}>
-        {viewport.width > 0 && <img key={src} src={src} alt="正在查看的参考图"
-          draggable={false} onLoad={() => setLoadedSrc(src)} onError={() => setFailedSrc(src)}
-          style={{ width, height, left: 0, top: 0, transform: `translate(${left}px, ${top}px)`, imageRendering: scale > 2 ? "pixelated" : "auto", visibility: exactSource && loadedSrc === src ? "visible" : "hidden" }} />}
-        {exactSource && failedSrc === src ? <div className="viewer-message" role="alert">
+        {viewport.width > 0 && <img key={src} className="viewer-image" src={src} alt="正在查看的参考图"
+          draggable={false} onLoad={(e) => swapIn(e.currentTarget, src)} onError={() => setFailedSrc(src)}
+          style={{ ...placed, imageRendering: scale > 2 ? "pixelated" : "auto", visibility: ready && !derivedStandIn ? "visible" : "hidden" }} />}
+        {viewport.width > 0 && derivedMounted && <img key={`derived:${derived.src}`} className="viewer-stand-in is-derived" src={derived.src} alt="" aria-hidden="true"
+          draggable={false} onLoad={() => setDerived((d) => d?.src === derived.src ? { ...d, loaded: true } : d)}
+          style={{ ...placed, visibility: derivedStandIn ? "visible" : "hidden" }} />}
+        {viewport.width > 0 && lastStandIn && <img key={`last:${lastStandIn}`} className="viewer-stand-in" src={lastStandIn} alt="" aria-hidden="true"
+          draggable={false} style={{ ...placed, imageRendering: scale > 2 && isOriginal(lastStandIn) ? "pixelated" : "auto" }} />}
+        {failed ? <div className="viewer-message" role="alert">
           <p>无法读取这张参考图。请检查图库文件是否仍可访问。</p>
           <button type="button" className="k-btn is-sm" onClick={() => setRetry((r) => r + 1)}>重试读取</button>
-        </div> : (!exactSource || loadedSrc !== src) && <p className="viewer-message" role="status">正在读取参考图…</p>}
+        </div> : !ready && !derivedStandIn && !lastStandIn && <p className="viewer-message" role="status">正在读取参考图…</p>}
         {cropRect && crop && <div className="viewer-crop" aria-label="选区"
           style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }} />}
         {shownCropRect && crop && <FollowDock anchor={shownCropRect} bounds={viewport} reserveBottom={DOCK_RESERVE}>
