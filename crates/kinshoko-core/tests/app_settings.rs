@@ -209,7 +209,10 @@ fn the_details_panel_width_is_unset_until_the_artist_drags_it_and_then_remembere
     settings.set_inspector_width(412).unwrap();
     drop(settings);
 
-    assert_eq!(AppSettings::open(dir.path()).unwrap().inspector_width(), Some(412));
+    assert_eq!(
+        AppSettings::open(dir.path()).unwrap().inspector_width(),
+        Some(412)
+    );
 }
 
 #[test]
