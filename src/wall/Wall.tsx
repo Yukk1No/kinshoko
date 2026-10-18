@@ -100,7 +100,12 @@ type Props = {
  * 重新挂载时已在浏览器缓存里的图直接显示，不再淡入；其余到达后淡入、盖住占位图。
  */
 const markCachedThumbnail = (img: HTMLImageElement | null) => {
-  if (img && img.complete && img.naturalWidth > 0) img.dataset.loaded = "instant";
+  if (!img) return;
+  if (img.complete && img.naturalWidth > 0) img.dataset.loaded = "instant";
+  // 卡片离开挂载范围时缩略图还没到：撤掉地址，浏览器放弃这次请求，不再替已经看不见的卡片取图（#123）。
+  return () => {
+    if (!img.complete) img.removeAttribute("src");
+  };
 };
 const markThumbnailLoaded = (e: { currentTarget: HTMLImageElement }) => {
   if (!e.currentTarget.dataset.loaded) e.currentTarget.dataset.loaded = "fade";
