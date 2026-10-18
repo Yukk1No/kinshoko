@@ -94,6 +94,7 @@ async function invoke(command, args = {}) {
 }
 async function find(xpath) { return (await wd("POST", base + "/element", { using: "xpath", value: xpath }))[elementKey]; }
 async function click(xpath) { return wd("POST", base + "/element/" + await find(xpath) + "/click", {}); }
+const key = (value) => wd("POST", base + "/actions", { actions: [{ type: "key", id: "keyboard", actions: [{ type: "keyDown", value }, { type: "keyUp", value }] }] });
 const button = (name) => `//button[normalize-space()='${name}']`;
 async function closeCurrentPin() {
   const label = await exec("return window.__TAURI_INTERNALS__.metadata.currentWindow.label");
@@ -178,7 +179,7 @@ try {
   await exec("location.reload()"); await until("formal imported card", () => exec("return document.querySelector('.card img')?.complete && document.querySelector('.card img')?.naturalWidth > 0"));
   // 单击只选中并聚焦卡片，Enter 打开查看器（#146）。
   await click("//*[contains(@class,'card') and @data-id][1]");
-  await wd("POST", base + "/actions", { actions: [{ type: "key", id: "keyboard", actions: [{ type: "keyDown", value: "\uE007" }, { type: "keyUp", value: "\uE007" }] }] });
+  await key("\uE007");
   await until("representative original visible", () => exec("return document.querySelector('.viewer-stage img')?.complete && document.querySelector('.viewer-stage img')?.naturalWidth > 0"));
   if (mode !== "pin-error") {
   await click(button("原始像素"));

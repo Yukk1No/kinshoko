@@ -661,7 +661,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     return cards.filter((c) => c.id === id);
   };
   /** 单击空白处清空选择（资源管理器的习惯）；按着修饰键时不动，落在滚动条上的不算。 */
-  const blankClick = (e: MouseEvent<HTMLDivElement>) => {
+  const clearOnBlankClick = (e: MouseEvent<HTMLDivElement>) => {
     if (e.ctrlKey || e.metaKey || e.shiftKey || !selected.size) return;
     if ((e.target as Element).closest?.(".card, .card-sources")) return;
     const el = e.currentTarget;
@@ -749,7 +749,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   return (
     <ContextMenu.Root disabled={!menu} onOpenChange={(next) => { if (!next) setMenuTarget(null); }}>
     <ContextMenu.Trigger render={<div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
-      role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1} onKeyDown={wallKey} onClick={blankClick}
+      role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1} onKeyDown={wallKey} onClick={clearOnBlankClick}
       onContextMenuCapture={(e) => { if (menu) targetMenu(e); }} />}>
       {error && <p role="alert">{error}</p>}
       {total === 0 ? (
