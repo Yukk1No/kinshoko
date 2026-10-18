@@ -563,9 +563,11 @@ struct ImportContext {
 enum Prepared {
     /// 不用写资料库就有结果：读取失败、不支持的格式、跳过已删除的内容。
     Done(ImportOutcome, bool),
-    /// 同库已有字节相同的原图：不暂存，提交时只合并来源。
+    /// 同库已有字节相同的原图：不暂存，提交时只合并来源。保留字节：轮到提交前那份原图若被永久删除，
+    /// 提交时用它重新暂存。
     Merge {
         record: Record,
+        bytes: Vec<u8>,
         derivatives: Derivatives,
     },
     /// 已暂存：提交时写 pending、发布原文件并提交。
@@ -806,6 +808,7 @@ fn prepare(
     {
         return Prepared::Merge {
             record,
+            bytes: bytes.to_vec(),
             derivatives,
         };
     }
@@ -826,11 +829,24 @@ fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, bool) {
         Prepared::Done(outcome, list_changed) => return (outcome, list_changed),
         Prepared::Merge {
             record,
+            bytes,
             derivatives,
         } => {
             let sha = record.sha.clone();
-            let result = match timed(|s| &mut s.commit, || commit_record(inner, record, None)) {
+            let (committed, record) = timed(
+                |s| &mut s.commit,
+                || commit_record_returning(inner, record, None),
+            );
+            let result = match committed {
                 Ok(outcome) => outcome,
+                // 准备之后、提交之前同内容的原图被永久删除：按新图重新暂存并发布。
+                Err(Error::MergeTargetGone) => match stage(inner, &bytes, &record) {
+                    Ok(pending) => timed(
+                        |s| &mut s.commit,
+                        || publish_and_commit(inner, record, pending),
+                    ),
+                    Err(reason) => (ImportOutcome::ReadFailed { reason }, false),
+                },
                 Err(e) => (
                     ImportOutcome::ReadFailed {
                         reason: format!("写入资料库失败：{e}"),
@@ -1043,7 +1059,19 @@ fn commit_record(
     record: Record,
     pending: Option<String>,
 ) -> Result<(ImportOutcome, bool), Error> {
-    save::validate(inner, &record.destination)?;
+    commit_record_returning(inner, record, pending).0
+}
+
+/// 与 [`commit_record`] 相同，并把记录交回：合并时发现原图已被删除（[`Error::MergeTargetGone`]），
+/// 调用方要用它重新暂存。
+fn commit_record_returning(
+    inner: &Inner,
+    record: Record,
+    pending: Option<String>,
+) -> (Result<(ImportOutcome, bool), Error>, Record) {
+    if let Err(error) = save::validate(inner, &record.destination) {
+        return (Err(error), record);
+    }
     let translations = inner.translations();
     let authority = inner.write_revoked.clone();
     let candidate_id = record.id.clone();
@@ -1059,14 +1087,19 @@ fn commit_record(
             .unwrap_or_else(|e| e.into_inner())
             .clone()
     });
-    let (outcome, revision) = {
+    let (committed, record) = {
         let _publication = gate
             .as_ref()
             .map(|gate| gate.lock().unwrap_or_else(|e| e.into_inner()));
         inner.writer.run(move |conn| {
-            save::validate_authority(&authority)?;
-            commit(conn, record, pending.as_deref(), &translations)
-        })?
+            let committed = save::validate_authority(&authority)
+                .and_then(|()| commit(conn, &record, pending.as_deref(), &translations));
+            (committed, record)
+        })
+    };
+    let (outcome, revision) = match committed {
+        Ok(committed) => committed,
+        Err(error) => return (Err(error), record),
     };
     if outcome.image_id() == Some(candidate_id.as_str()) {
         task_created_images
@@ -1093,13 +1126,13 @@ fn commit_record(
             revision,
         });
     }
-    Ok((outcome, list_changed))
+    (Ok((outcome, list_changed)), record)
 }
 
 /// 一个短事务：同库字节相同的原图合并为一条记录，来源各自保留；同时结束 pending。
 fn commit(
     conn: &mut rusqlite::Connection,
-    r: Record,
+    r: &Record,
     pending: Option<&str>,
     translations: &tags::TranslationIndex,
 ) -> Result<(ImportOutcome, Option<i64>), Error> {
@@ -1172,6 +1205,11 @@ fn commit(
             row.get(0)
         })
         .optional()?;
+    // 准备时判定为合并（没有暂存这份字节），到提交时那份原图却已被永久删除：不能插一条指向已删文件的
+    // 记录，交回调用方用保留的字节重新暂存（#120）。
+    if pending.is_none() && existing.is_none() {
+        return Err(Error::MergeTargetGone);
+    }
     let was_duplicate = existing.is_some();
     let outcome = match existing {
         Some(image_id) => match previous {
@@ -1195,15 +1233,15 @@ fn commit(
                                     eagle_initial_trash, previous_image_id)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
                 params![
-                    r.id,
-                    r.sha,
+                    &r.id,
+                    &r.sha,
                     r.size,
                     r.format,
-                    r.rel_path,
+                    &r.rel_path,
                     r.width,
                     r.height,
                     r.orientation,
-                    r.original_name,
+                    &r.original_name,
                     now,
                     match (&r.eagle, &r.package) {
                         (Some(item), _) => item.collected_at(now),
@@ -1218,10 +1256,12 @@ fn commit(
             colour::record(&tx, &r.id, &r.colour)?;
             match previous {
                 Some(previous_image_id) => ImportOutcome::NewVersion {
-                    image_id: r.id,
+                    image_id: r.id.clone(),
                     previous_image_id,
                 },
-                None => ImportOutcome::Imported { image_id: r.id },
+                None => ImportOutcome::Imported {
+                    image_id: r.id.clone(),
+                },
             }
         }
     };
@@ -1308,6 +1348,68 @@ pub(super) fn import_package_original(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct NoGroups;
+    impl crate::reference_groups::ReferenceGroupUsage for NoGroups {
+        fn groups_using(
+            &self,
+            _: &str,
+            _: &[String],
+        ) -> Result<Vec<crate::reference_groups::GroupUsage>, crate::reference_groups::GroupError>
+        {
+            Ok(Vec::new())
+        }
+    }
+
+    #[test]
+    fn a_merge_whose_original_is_deleted_before_its_turn_is_staged_again() {
+        use super::super::{ImageEdit, Library};
+        let dir = tempfile::tempdir().unwrap();
+        let png = dir.path().join("a.png");
+        image::RgbaImage::from_fn(16, 12, |x, y| image::Rgba([x as u8, y as u8, 90, 255]))
+            .save(&png)
+            .unwrap();
+        let library = Library::create(&dir.path().join("lib"), "库").unwrap();
+        let first = library
+            .import(ImportSource {
+                paths: vec![png.clone()],
+            })
+            .wait()
+            .items[0]
+            .outcome
+            .image_id()
+            .unwrap()
+            .to_owned();
+        let inner = &library.inner;
+        let context = ImportContext {
+            destination: SaveDestination {
+                library_id: inner.info.id.clone(),
+                folder_id: None,
+            },
+            task_created_images: Arc::default(),
+        };
+        // 准备时同库已有这份内容：判定为合并，不暂存。
+        let prepared = prepare_file(inner, &png, ImportOptions::default(), &context);
+        assert!(matches!(prepared, Prepared::Merge { .. }));
+
+        // 轮到提交之前，那份原图被移进回收站并永久删除。
+        library
+            .edit(std::slice::from_ref(&first), &[ImageEdit::Delete])
+            .unwrap();
+        let preview = library
+            .preview_permanent_delete(std::slice::from_ref(&first), &NoGroups)
+            .unwrap();
+        library
+            .permanent_delete(&[first], &preview.token, &NoGroups)
+            .unwrap();
+
+        // 提交时重新暂存并发布：作为新图进库，记录指向的原文件确实存在。
+        let (outcome, _) = complete(inner, prepared);
+        let ImportOutcome::Imported { image_id } = outcome else {
+            panic!("应作为新图重新进库：{outcome:?}");
+        };
+        assert!(library.original_path(&image_id).unwrap().is_file());
+    }
 
     fn budget() -> &'static DecodeBudget {
         Box::leak(Box::new(DecodeBudget {
