@@ -258,15 +258,17 @@
 /* 详情面板的标签与备注（#98）：现有标签是小标签，悬停或聚焦露出操作；一个加标签字段（类别 + 输入）。 */
 .k-tags { gap: 8px; font-size: 12px; }
 .k-tags .k-tag-chips { flex-direction: row; flex-wrap: wrap; gap: 6px; }
-.k-tags .k-tag-chip { position: relative; display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 6px; min-height: 26px; padding: 0 9px; border-radius: 7px; background: var(--surface-2); color: var(--ink); }
-.k-tags .k-tag-chip.is-manual { background: var(--accent-soft); color: var(--accent-strong); }
+.k-tags .k-tag-chip { --k-chip-fill: var(--surface-2); position: relative; display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 6px; min-height: 26px; padding: 0 9px; border-radius: 7px; background: var(--surface-2); color: var(--ink); }
+.k-tags .k-tag-chip.is-manual { --k-chip-fill: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--surface); background: var(--accent-soft); color: var(--accent-strong); }
 .k-tags .k-tag-chip .tag-name { font-weight: 500; white-space: nowrap; }
 .k-tags .k-tag-from { display: inline-flex; gap: 4px; color: var(--ink-3); font-size: 11px; opacity: 1; white-space: nowrap; }
 .k-tags .k-tag-chip.is-manual .k-tag-from { color: color-mix(in srgb, var(--accent-strong) 70%, transparent); }
-/* 收起时宽度为 0 但仍可用 Tab 聚焦；聚焦或悬停时展开。 */
-.k-tags .k-tag-acts { display: inline-flex; max-width: 0; overflow: hidden; opacity: 0; margin: 0 -5px 0 -6px; gap: 0; transition: max-width 140ms, opacity 140ms; }
-.k-tags .k-tag-chip:hover .k-tag-acts, .k-tags .k-tag-chip:focus-within .k-tag-acts { max-width: 72px; opacity: 1; margin-left: 0; }
-@media (hover: none) { .k-tags .k-tag-acts { max-width: 72px; opacity: 1; margin-left: 0; } }
+/* 操作叠在标签右端，不占排版宽度（#159）：展开会撑宽标签，行尾的标签被挤到下一行、离开鼠标又缩回，悬停来回抽搐。
+   底色不透明（手动标签的半透明底叠在面板底色上），盖住下面的出处文字；透明度为 0 时仍可用 Tab 聚焦，聚焦或悬停时显示。 */
+.k-tags .k-tag-acts { position: absolute; top: 50%; right: 3px; z-index: 1; display: inline-flex; gap: 0; padding-left: 4px; border-radius: 5px; background: var(--k-chip-fill); transform: translateY(-50%); opacity: 0; pointer-events: none; transition: opacity 140ms; }
+.k-tags .k-tag-chip:hover .k-tag-acts, .k-tags .k-tag-chip:focus-within .k-tag-acts { opacity: 1; pointer-events: auto; }
+/* 触屏没有悬停：按钮常显并留在排版里，不盖住出处；常显所以宽度也不变。 */
+@media (hover: none) { .k-tags .k-tag-acts { position: static; margin-right: -5px; padding-left: 0; background: none; transform: none; opacity: 1; pointer-events: auto; } }
 @media (prefers-reduced-motion: reduce) { .k-tags .k-tag-acts { transition: none; } }
 .k-tags .k-tag-acts .k-icon-btn { font-size: 12px; padding: 0; color: inherit; }
 .k-tags .k-tags-empty { color: var(--ink-3); background: none; padding: 0; }
@@ -287,6 +289,6 @@
 .k-tag-alias .k-tag-chips li { display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 3px 0 8px; border-radius: 6px; background: var(--surface); }
 .k-tag-alias-acts { display: flex; gap: 6px; justify-content: flex-end; }
 .k-note .k-note-acts { display: flex; gap: 4px; justify-content: flex-end; margin-top: 6px; }
-/* 收起容器会裁掉焦点环：焦点环画在按钮内侧；不可用的“用来源的”明显变淡。 */
+/* 焦点环画在按钮内侧，不越出叠加层；不可用的“用来源的”明显变淡。 */
 .k-tags .k-tag-acts .k-icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .k-note .k-note-acts .k-btn:disabled { opacity: 0.45; cursor: default; }
