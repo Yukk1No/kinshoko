@@ -68,6 +68,7 @@ import type { LibraryEvent } from "./bindings/LibraryEvent";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { LibraryRegistration } from "./bindings/LibraryRegistration";
 import type { ModelChoice } from "./bindings/ModelChoice";
+import type { Device } from "./bindings/Device";
 import type { RecoveryReport } from "./bindings/RecoveryReport";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { Sidebar } from "./bindings/Sidebar";
@@ -472,14 +473,14 @@ export function taggingResume(libraryId: string): Promise<void> {
   return invoke<void>("tagging_resume", { libraryId });
 }
 
-/** 设置中的打标模型列表与画师选的模型。 */
+/** 设置中的打标模型名称、各硬件档的需求与是否已下载，以及画师选的硬件档。 */
 export function taggingModels(): Promise<ModelChoice> {
   return invoke<ModelChoice>("tagging_models");
 }
 
-/** 换用打标模型（`null` 为自动），保存在本设备。 */
-export function taggingSetModel(key: string | null): Promise<ModelChoice> {
-  return invoke<ModelChoice>("tagging_set_model", { key });
+/** 换用硬件档（`null` 为自动），保存在本设备。 */
+export function taggingSetDevice(device: Device | null): Promise<ModelChoice> {
+  return invoke<ModelChoice>("tagging_set_device", { device });
 }
 
 /** 选择要导入的模型包（zip）；取消时为 null。 */

@@ -19,7 +19,7 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
 
-it("provider refresh restores the viewed card after real empty-list scroll clamping", async () => {
+it("provider refresh keeps the viewed card in place while the new page loads and after it replaces the old one", async () => {
   const cards = Array.from({ length: 121 }, (_, index) => ({
     id: String(index), width: 100, height: 100, adult: false, thumbnail: "A/" + index + "/256",
     libraryId: "A", imageId: String(index), sources: [],
@@ -41,13 +41,13 @@ it("provider refresh restores the viewed card after real empty-list scroll clamp
   const originalOffset = parseFloat(visibleBefore.style.top) - wall.scrollTop;
 
   view.rerender(<Wall {...props} reloadKey={1} />);
-  expect(wall.querySelector(".card")).toBeNull();
-  // Native run1791494531975 observes this browser event when the canvas collapses.
-  // jsdom has no layout/scroll clamping, so deliver the actual observed DOM scroll explicitly.
-  wall.scrollTop = 0;
-  fireEvent.scroll(wall);
-  await act(async () => replies.at(-1)!(page));
+  // 修订号前进不清空图片墙（#142）：卡片留着，画布不塌，滚动位置不被夹回顶部。
+  expect(wall.querySelector('[data-id="' + originalId + '"]')).not.toBeNull();
   expect(wall.scrollTop).toBe(2000);
+  // 新的一页在最前面多了一张图；正在看的那张仍在原来的视口位置。
+  const inserted = { ...cards[0], id: "new", imageId: "new", thumbnail: "A/new/256" };
+  await act(async () => replies.at(-1)!({ ...page, cards: [inserted, ...cards], total: cards.length + 1 }));
+  expect(wall.dataset.total).toBe("122");
   const restored = wall.querySelector<HTMLElement>('[data-id="' + originalId + '"]')!;
   expect(parseFloat(restored.style.top) - wall.scrollTop).toBeCloseTo(originalOffset);
 });

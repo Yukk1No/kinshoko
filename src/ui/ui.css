@@ -20,7 +20,7 @@
 .k-kbd { margin-left: auto; font: 11px var(--font); color: var(--ink-3); padding: 0 5px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--line-2); background: none; border: 0; }
 
 /* ---- Window controls (frameless main window) ---- */
-/* margin-left: auto keeps the controls at the end of the row even when the row's other items stop growing (the top bar's search caps at 720 px). */
+/* margin-left: auto keeps the controls at the end of the row even when the row's other items stop growing (the top bar's search has a maximum width). */
 .k-win-ctrls { display: flex; align-items: center; gap: 2px; flex: none; margin-left: auto; }
 .k-win-div { width: 1px; height: 22px; background: var(--line); margin: 0 4px 0 2px; }
 .k-win-btn { position: relative; width: 38px; height: 26px; padding: 0; border: 0; border-radius: 7px; display: grid; place-items: center; background: transparent; color: var(--ink-2);
@@ -31,12 +31,6 @@
 .k-win-btn:active { background: var(--press); }
 .k-win-btn.is-close:hover { background: var(--win-close); color: var(--on-win-close); }
 .k-win-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-/* Maximized: tao already fits the client area to the monitor work area, so the corner of the viewport is the screen corner.
-   Drop the host row's right inset and flush the buttons to the top edge, so the close button reaches the corner (Fitts). */
-:has(> .k-win-ctrls[data-maximized]) { padding-right: 0; }
-.k-win-ctrls[data-maximized] { align-self: flex-start; gap: 0; }
-.k-win-ctrls[data-maximized] .k-win-btn { height: 32px; border-radius: 0; }
-.k-win-ctrls[data-maximized] .k-win-btn:focus-visible { outline-offset: -2px; }
 
 /* ---- Popups: menus and popovers (Base UI parts) ---- */
 .k-positioner { z-index: 60; outline: 0; }
@@ -160,9 +154,9 @@
 .k-dock-readout { min-width: 96px; height: 40px; display: grid; place-items: center; margin-right: 6px; padding-right: 6px; border-right: 1px solid var(--line-2);
   font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-2); line-height: 1.25; text-align: center; }
 .k-dock-readout b { display: block; color: var(--ink); font-weight: 600; font-size: 13px; }
-/* 原始像素读数（#103）：logo 的星挂在最后一个字的右上角，约为字号一半，不占排版宽度。 */
+/* 原始像素读数（#103，#130 放大）：logo 的星挂在最后一个字的右上角，约为字号的 0.8，不占排版宽度。 */
 .k-original { position: relative; }
-.k-original-star { position: absolute; left: calc(100% + 0.04em); top: -0.22em; width: 0.5em; height: 0.5em; overflow: visible; }
+.k-original-star { position: absolute; left: calc(100% + 0.06em); top: -0.38em; width: 0.8em; height: 0.8em; overflow: visible; }
 .k-dock.is-dark { background: color-mix(in srgb, #1E1C2C 78%, transparent); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.35); }
 .k-dock.is-dark .k-dock-item { color: rgba(244, 236, 220, 0.78); }
 .k-dock.is-dark .k-dock-item:hover:not(:disabled) { color: #F4ECDC; background: rgba(244, 236, 220, 0.08); }

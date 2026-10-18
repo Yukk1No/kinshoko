@@ -13,18 +13,18 @@ export function referenceCard(libraryId: string, imageId: string, safe: boolean)
 
 /**
  * 主窗口接住钉图菜单“在 Kinshoko 中打开”（#106）：应用壳先把请求留着再打开主窗口，主窗口
- * 刚建好时（错过了事件）与已经开着时（收到事件）都去取一次；只认最后一次取到的。
+ * 刚建好时（错过了事件）与已经开着时（收到事件）都去取一次。取走是破坏性的、后端只留最新一条，
+ * 所以逐次排队去取：取到的总是当时最新的请求，后一次只会更新，不会有过时的读取吞掉最新请求。
  */
 export function useOpenInKinshoko(handle: (request: OpenInKinshoko) => void) {
   const latest = useRef(handle);
   latest.current = handle;
   useEffect(() => {
     let alive = true;
-    let sequence = 0;
+    let queue = Promise.resolve();
     const accept = () => {
-      const request = ++sequence;
-      void takeOpenRequest().then((value) => {
-        if (alive && request === sequence && value) latest.current(value);
+      queue = queue.then(() => takeOpenRequest()).then((value) => {
+        if (alive && value) latest.current(value);
       }, () => {});
     };
     const stop = onOpenRequest(accept).then((fn) => { if (alive) accept(); return fn; });

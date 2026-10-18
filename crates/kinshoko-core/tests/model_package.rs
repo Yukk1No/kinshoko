@@ -217,7 +217,7 @@ fn an_installed_model_with_a_mismatched_tag_list_is_not_ready_until_prepared_aga
         std::fs::write(&installed.tags_csv, &tags).unwrap();
         assert!(store.ready(&gpu).is_none(), "{case}");
         assert!(
-            !store.options(std::slice::from_ref(&gpu))[0].installed,
+            !store.choice(std::slice::from_ref(&gpu), None).options[0].downloaded,
             "{case}"
         );
         let again = store.prepare(&gpu, &mut |_| {}, &never).unwrap();

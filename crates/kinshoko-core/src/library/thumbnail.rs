@@ -43,7 +43,46 @@ pub(super) fn tier(px: u32) -> u32 {
 
 pub(super) fn get(inner: &Inner, image_id: &str, target_px: u32) -> Result<PathBuf, Error> {
     let px = tier(target_px);
+    GRID_TIER.store(px, std::sync::atomic::Ordering::Relaxed);
     cached(inner, image_id, &px.to_string(), px)
+}
+
+/// 图片墙最近一次请求的网格缩略图档位（全进程）。导入时按它预先生成网格缩略图（#123），
+/// 浏览时不必在滚动中现场生成。档位取决于图片大小与显示缩放，只有界面请求过才知道。
+static GRID_TIER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+/// 还没浏览过时按默认图片大小（240）与 100% 缩放的档位预先生成，与 `src/wall/Wall.tsx` 的
+/// `thumbnailPx = density × 1.5 × devicePixelRatio` 一致。
+const DEFAULT_GRID_PX: u32 = 360;
+
+/// 导入时预先生成的网格缩略图档位。
+pub(super) fn grid_tier() -> u32 {
+    match GRID_TIER.load(std::sync::atomic::Ordering::Relaxed) {
+        0 => tier(DEFAULT_GRID_PX),
+        px => px,
+    }
+}
+
+/// 保存导入时已经生成好的网格缩略图（与校验像素共用一次解码，#123）。已有时什么也不做。
+pub(super) fn store_grid(
+    root: &Path,
+    sha: &str,
+    px: u32,
+    rendered: &render::SdrDerivative,
+) -> Result<(), Error> {
+    if sha.len() < 2 {
+        return Ok(());
+    }
+    let ext = if rendered.mime == "image/png" {
+        "png"
+    } else {
+        "webp"
+    };
+    let path = placeholder_dir(root, sha).join(format!("{sha}-{px}.{ext}"));
+    if path.is_file() {
+        return Ok(());
+    }
+    write_atomic(&path, &rendered.bytes)
 }
 
 /// 精确宽度（设备像素，不取档位）的 `sdr` 派生图，供查看器缩小显示（#47）。
@@ -83,7 +122,7 @@ const PLACEHOLDER_PX: u32 = 32;
 const PLACEHOLDER: &str = "p32";
 
 /// 占位图的宽度上限：长边不超过 [`PLACEHOLDER_PX`]，按转正后的尺寸保持比例。
-fn placeholder_width(width: u32, height: u32) -> u32 {
+pub(super) fn placeholder_width(width: u32, height: u32) -> u32 {
     if width >= height {
         PLACEHOLDER_PX
     } else {
@@ -134,29 +173,6 @@ struct PlaceholderSource {
     height: u32,
 }
 
-/// 生成一张参考图的占位图（已有时什么也不做）。
-pub(super) fn make_placeholder(inner: &Inner, image_id: &str) -> Result<(), Error> {
-    use rusqlite::OptionalExtension;
-    let source = inner
-        .readers
-        .get()
-        .query_row(
-            "SELECT sha256, rel_path, width, height FROM image WHERE id = ?1",
-            [image_id],
-            |row| {
-                Ok(PlaceholderSource {
-                    sha: row.get(0)?,
-                    rel_path: row.get(1)?,
-                    width: row.get(2)?,
-                    height: row.get(3)?,
-                })
-            },
-        )
-        .optional()?
-        .ok_or(Error::UnknownImage)?;
-    render_placeholder(&inner.root, &source)
-}
-
 /// 与缩略图同一管线（ADR-0005）：同样的色彩声明规则、f32 预乘缩放与按来源分档的无损容器。
 fn render_placeholder(root: &Path, source: &PlaceholderSource) -> Result<(), Error> {
     if placeholder_file(root, &source.sha).is_some() {
@@ -166,13 +182,24 @@ fn render_placeholder(root: &Path, source: &PlaceholderSource) -> Result<(), Err
     let max_width = placeholder_width(source.width, source.height);
     let rendered =
         render::render_sdr(&bytes, max_width, DEFAULT_DOWNSCALE).map_err(Error::Undecodable)?;
+    store_placeholder(root, &source.sha, &rendered)
+}
+
+/// 保存导入时已经生成好的占位图（与校验像素共用一次解码，#120）。已有时什么也不做。
+pub(super) fn store_placeholder(
+    root: &Path,
+    sha: &str,
+    rendered: &render::SdrDerivative,
+) -> Result<(), Error> {
+    if placeholder_file(root, sha).is_some() {
+        return Ok(());
+    }
     let ext = if rendered.mime == "image/png" {
         "png"
     } else {
         "webp"
     };
-    let path =
-        placeholder_dir(root, &source.sha).join(format!("{}-{PLACEHOLDER}.{ext}", source.sha));
+    let path = placeholder_dir(root, sha).join(format!("{sha}-{PLACEHOLDER}.{ext}"));
     write_atomic(&path, &rendered.bytes)
 }
 

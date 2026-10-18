@@ -150,6 +150,30 @@ pub(super) fn read<R: Runtime>(
         Ok(library)
     })
 }
+/// One authorized image read for the `thumb` protocol (#123). Same safety boundary as [`read`]
+/// (registration, identity, global safe-mode veto, unchanged revision and safe-mode generation), but
+/// the providers opened for the check live in `opened` and are reused when the caller re-checks after
+/// reading the file. Scope `opened` to one request; nothing is cached across requests.
+pub(super) fn read_image<R: Runtime>(
+    app: &AppHandle<R>,
+    opened: &mut kinshoko_core::workspace::ProviderReaders,
+    library_id: &str,
+    image_id: &str,
+) -> Result<Arc<Library>, String> {
+    let safe = saved_safe_mode(app);
+    let expected = generation(app);
+    // 先在锁外打开这次请求要核对的提供方（只短暂持有登记表的锁取登记），锁里只读修订与核对。
+    let state = app.state::<LibraryState>();
+    let registrations = with_libraries(&state.device_dir, &state.libraries, |device| {
+        Ok(device.libraries().to_vec())
+    })?;
+    opened.open_all(&registrations);
+    let library = action(app, safe, |workspace, device, catalog| {
+        workspace.image_reader(device, catalog, opened, library_id, image_id, safe)
+    })?;
+    current(app, safe, expected)?;
+    Ok(library)
+}
 #[tauri::command]
 pub(super) async fn workspace_image<R: Runtime>(
     app: AppHandle<R>,

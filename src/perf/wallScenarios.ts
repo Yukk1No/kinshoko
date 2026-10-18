@@ -7,6 +7,7 @@
 import { BUDGET, estimateRefresh, summarizeFrames, type FrameReport } from "./frameStats";
 import { browserEnv, createFrameProbe, type ProbeEnv } from "./frameProbe";
 import { zoomDensity } from "../wall/zoom";
+import { createReplacementProbe, type ReplacementReport } from "./replacement";
 
 export const PROBE_VERSION = 1;
 
@@ -85,6 +86,8 @@ export type ScenarioResult = {
   frames: FrameReport;
   /** 每 250 ms 采样一次视口内缺缩略图的比例。 */
   thumbnails: { samples: number; meanPendingRatio: number | null; worstPendingRatio: number | null } | null;
+  /** 观察缩略图替换占位的时间（#123）；只在 observeReplacement 时有。 */
+  replacement?: ReplacementReport;
 };
 
 export type WallPerfReport = {
@@ -114,6 +117,8 @@ export type RunOptions = {
   calibrateMs?: number;
   /** 采样缩略图缺口（会读布局，追求最干净的 trace 时可关）。 */
   sampleThumbnails?: boolean;
+  /** 滚动场景同时观察每个可见区间的缩略图替换时间（#123）。会给卡片挂观察器，帧时间另跑一轮不开它的。 */
+  observeReplacement?: boolean;
 };
 
 const nextFrame = (env: ProbeEnv) => new Promise<number>((resolve) => env.raf(resolve));
@@ -161,6 +166,8 @@ async function runScroll(name: "wheel-steady" | "wheel-burst", wall: HTMLElement
   const duration = durationOverride ?? SCENARIOS[name].durationMs;
   const probe = createFrameProbe(env);
   const gaps: { visible: number; pending: number }[] = [];
+  const replacement = o.observeReplacement ? createReplacementProbe(wall, env.now) : null;
+  replacement?.start();
   probe.start();
   const start = env.now();
   let lastSample = -Infinity;
@@ -175,6 +182,7 @@ async function runScroll(name: "wheel-steady" | "wheel-burst", wall: HTMLElement
     if (elapsed >= duration) break;
   }
   const capture = probe.stop();
+  const replaced = replacement?.stop();
   return {
     name,
     description: SCENARIOS[name].description,
@@ -183,6 +191,7 @@ async function runScroll(name: "wheel-steady" | "wheel-burst", wall: HTMLElement
     scrolledPx: wall.scrollTop,
     frames: summarizeFrames(capture.stamps, { refreshMs, longTasks: capture.longTasks }),
     thumbnails: o.sampleThumbnails ? summarizeGaps(gaps) : null,
+    ...(replaced ? { replacement: replaced } : {}),
   };
 }
 
@@ -229,6 +238,7 @@ export async function runWallScenarios(options: RunOptions = {}): Promise<WallPe
     settleMs: options.settleMs ?? 1000,
     calibrateMs: options.calibrateMs ?? 1000,
     sampleThumbnails: options.sampleThumbnails ?? true,
+    observeReplacement: options.observeReplacement ?? false,
   };
   const wall = findWall();
   const warnings: string[] = [];

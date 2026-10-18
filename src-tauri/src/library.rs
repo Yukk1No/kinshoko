@@ -64,6 +64,8 @@ use crate::shell::ShellState;
 /// 指定本设备登记表所在目录；不设时用应用数据目录。WebDriver 冒烟测试用它隔离数据。
 const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
 const EVENT: &str = "library-event";
+/// 连续的列表、图片与词表变化合并推送的窗口（#142）。
+const EVENT_COALESCE: std::time::Duration = std::time::Duration::from_millis(500);
 /// 安全模式（应用设置）开关后推送，载荷为开关状态。不论有没有打开资料库都推送：
 /// 桌面钉图据此重新核对遮蔽（#65）。
 pub const SAFE_MODE_EVENT: &str = "safe-mode-setting";
@@ -316,10 +318,10 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 Some(dir) => PathBuf::from(dir).join("models"),
                 None => app.path().app_local_data_dir()?.join("models"),
             };
-            // 模型选择保存在应用壳设置里；这里只读一次，之后由设置命令同步。
+            // 硬件档保存在应用壳设置里；这里只读一次，之后由设置命令同步。
             let preferred = kinshoko_core::AppSettings::open(&app.path().app_config_dir()?)
                 .ok()
-                .and_then(|s| s.tagging_model().map(str::to_owned));
+                .and_then(|s| s.tagging_device());
             crate::tagging::setup(app, models_dir, preferred);
             app.manage(LibraryState::new(device_dir));
             workspace::monitor(app.clone());
@@ -352,7 +354,10 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     let state = app.state::<LibraryState>();
     let generation = state.safe_mode_generation.load(Ordering::SeqCst);
     let safe = saved_safe_mode(app);
-    let Ok(library) = workspace::read(app, library_id, image_id) else {
+    // 核对与读文件前后各一次，共用这次请求里打开的提供方（#123）：不在同一请求里反复重开资料库，
+    // 渲染与读文件不占用全局锁。
+    let mut opened = kinshoko_core::workspace::ProviderReaders::default();
+    let Ok(library) = workspace::read_image(app, &mut opened, library_id, image_id) else {
         return not_found();
     };
     // `full`：1:1 与放大时显示的文件（Library::display，ADR-0005）。看图界面只用这条路，
@@ -380,7 +385,7 @@ fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Ve
     };
     if state.safe_mode_generation.load(Ordering::SeqCst) != generation
         || saved_safe_mode(app) != safe
-        || workspace::read(app, library_id, image_id).is_err()
+        || workspace::read_image(app, &mut opened, library_id, image_id).is_err()
     {
         return not_found();
     }
@@ -450,7 +455,9 @@ fn forward_events<R: Runtime>(
     std::thread::Builder::new()
         .name("kinshoko-library-events".into())
         .spawn(move || {
-            for mut event in events {
+            // 自动打标每写一张图都有图片与词表变化：合并后再送到界面，免得每张图都让界面重读一遍、
+            // 在后端阻塞线程池里排起长队（#142）。
+            kinshoko_core::library::forward_coalesced(events, EVENT_COALESCE, |mut event| {
                 // 有新图进库：自动标签立即检查，不等下一次轮询。
                 if matches!(event, LibraryEvent::ListStale { .. }) {
                     crate::tagging::wake(&app);
@@ -472,7 +479,7 @@ fn forward_events<R: Runtime>(
                     *report = report.clone().without_content_details();
                 }
                 let _ = app.emit(EVENT, event);
-            }
+            });
         })
         .expect("无法启动事件转发线程");
     info

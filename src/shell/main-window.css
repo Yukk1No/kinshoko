@@ -70,18 +70,10 @@
 .sidebar-folders { flex: none; }
 .sub-toggle { display: flex; align-items: center; gap: 8px; height: 32px; margin-top: 8px; padding: 0 8px; color: var(--ink-3); font-size: 12px; }
 
-.tagging { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 8px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2);
-  color: var(--ink-2); font-size: 12px; line-height: 18px; }
-.tagging-icon { color: var(--accent-strong); }
-.tagging-text { min-width: 0; overflow-wrap: anywhere; }
-.tagging-text .k-btn { margin-left: 4px; }
-.tagging-prog { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--sunken); overflow: hidden; }
-.tagging-prog i { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent), #EFA1B3); }
-
 /* ---- Main header ---- */
 .topbar { height: 56px; min-height: 56px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px; background: var(--bg); border-bottom: 0; z-index: 5; }
 .topbar.is-empty { justify-content: flex-end; }
-.topbar > .search { flex: 1; min-width: 0; max-width: 720px; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; height: 40px; padding: 0 4px 0 12px;
+.topbar > .search { flex: 1; min-width: 0; max-width: 960px; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; height: 40px; padding: 0 4px 0 12px;
   border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); border: 0; overflow: visible; }
 .topbar > .search:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
 .topbar > .search .search-chip { height: 26px; padding: 0 4px 0 9px; border: 0; border-radius: 8px; background: var(--surface-2); font-weight: 500; }
@@ -89,6 +81,9 @@
 .topbar > .search .search-field { min-width: 120px; }
 .topbar > .search .search-field input { border: 0; padding: 4px 2px; outline: 0; }
 .topbar > .search .search-field input:focus-visible { outline: 0; }
+/* 查找框与张数一组靠左，导入与窗口控件一组靠右：导入吃掉余下的宽度，宽屏时两组分开、紧凑时自然相邻。 */
+.topbar > .import-menu { margin-left: auto; }
+.topbar > .k-win-ctrls { margin-left: 0; }
 .bar-meta { display: inline-flex; flex: none; align-items: center; gap: 10px; height: 36px; padding: 0 6px 0 4px; color: var(--ink-3); }
 .bar-meta .result-count { color: var(--ink-2); font-variant-numeric: tabular-nums; }
 
@@ -111,12 +106,30 @@
   transform-origin: var(--transform-origin); transition: transform 160ms var(--spring), opacity 120ms; }
 .k-tip[data-starting-style], .k-tip[data-ending-style] { opacity: 0; transform: scale(0.96); }
 
-/* 图片大小浮岛（#102 方案 C3）：图片墙右下角，半透明 --surface、背景模糊、全圆角；两端小图 / 大图。 */
-.k-density-island { position: absolute; right: 24px; bottom: 20px; z-index: 6; display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px;
+/* 图片墙右下角：打标图标（#144）在图片大小浮岛左边，两者一起浮在图片墙上。 */
+.k-wall-corner { position: absolute; right: 24px; bottom: 20px; z-index: 6; display: flex; align-items: center; gap: 8px; }
+/* 图片大小浮岛（#102 方案 C3）：半透明 --surface、背景模糊、全圆角；两端小图 / 大图。 */
+.k-density-island { display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px;
   border-radius: 999px; background: color-mix(in srgb, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   box-shadow: var(--shadow-pop); color: var(--ink-2); }
 .k-density-island > svg { flex: none; }
 .k-density-island .k-range { width: 140px; }
+/* 打标图标（#144）：与浮岛同材质的小圆钮；下载、加载、打标时转动，暂停时静止半透明。
+   减少动态效果时不转，改用强调色底表示“进行中”。 */
+.k-tagging-activity { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-pop); color: var(--accent-strong); }
+.k-tagging-activity:hover { color: var(--ink); }
+.k-tagging-activity:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.k-tagging-activity[data-activity="busy"] svg { animation: k-tagging-spin 2.4s linear infinite; }
+.k-tagging-activity[data-activity="paused"] { opacity: 0.5; color: var(--ink-2); }
+@keyframes k-tagging-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .k-tagging-activity[data-activity="busy"] svg { animation: none; }
+  .k-tagging-activity[data-activity="busy"] { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
+}
+:root[data-reduced-motion] .k-tagging-activity[data-activity="busy"] svg { animation: none; }
+:root[data-reduced-motion] .k-tagging-activity[data-activity="busy"] { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
 
 /* 滑条：4 px 下沉轨道、已走过的一段 --range-fill；18 px 纸白圆钮带细描边与两层投影，悬停放大、按下压下。
    WebView2 是 Chromium，只需 -webkit- 伪元素。 */
@@ -140,9 +153,12 @@
 .app-main > .update-banner { border-top: 0; border-bottom: 1px solid var(--line); background: var(--surface); }
 
 /* ---- Wall source chip: every card with sources; "N 处" when an image lives in two or more libraries.
-   A sibling of the card option (no focusable children inside an option), pinned to the card's bottom-right. ---- */
+   A sibling of the card option (no focusable children inside an option), pinned to the card's bottom-right.
+   Its left edge sits at the card's right edge, so shrink-to-fit would only get the gap to the canvas edge (#124):
+   size it to its content and keep icon, count and "处" on one line. ---- */
 .wall-canvas > .card-sources { position: absolute; z-index: 1; transform: translate(-100%, -100%); display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; border: 0;
-  border-radius: 999px; background: rgba(255, 253, 248, 0.92); color: #2B2747; font-size: 11px; font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+  box-sizing: border-box; width: max-content; white-space: nowrap; line-height: 1; border-radius: 999px; background: rgba(255, 253, 248, 0.92); color: #2B2747; font-size: 11px; font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+.wall-canvas > .card-sources > svg { flex: none; }
 .wall-canvas > .card-sources:hover { background: #FFFDF8; }
 .wall-canvas > .card-sources.is-single { width: 22px; padding: 0; justify-content: center; }
 .card[aria-selected="true"] { outline: 0; box-shadow: 0 0 0 2px var(--wall), 0 0 0 4px var(--accent); }
@@ -236,7 +252,7 @@
 .topbar > .search .search-chips { display: flex; flex: 0 1 auto; min-width: 0; gap: 6px; margin: 0; padding: 0; overflow-x: auto; scrollbar-width: none; }
 .topbar > .search .search-chips::-webkit-scrollbar { display: none; }
 .topbar > .search .search-field { flex: 1 1 72px; min-width: 72px; }
-@container main (max-width: 600px) { .k-density-island { right: 16px; bottom: 16px; gap: 8px; padding: 0 12px; } .k-density-island .k-range { width: 96px; } }
+@container main (max-width: 600px) { .k-wall-corner { right: 16px; bottom: 16px; } .k-density-island { gap: 8px; padding: 0 12px; } .k-density-island .k-range { width: 96px; } }
 @container main (max-width: 600px) { .bar-meta { display: none; } }
 
 /* 详情面板的标签与备注（#98）：现有标签是小标签，悬停或聚焦露出操作；一个加标签字段（类别 + 输入）。 */

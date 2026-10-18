@@ -19,7 +19,7 @@ use image::codecs::png::PngEncoder;
 use image::codecs::webp::WebPEncoder;
 use image::{
     AnimationDecoder, DynamicImage, ExtendedColorType, ImageEncoder, ImageFormat, ImageReader,
-    Rgba32FImage,
+    Rgba32FImage, metadata::Orientation,
 };
 use moxcms::{
     CicpColorPrimaries, CicpProfile, ColorPrimaries, ColorProfile, DataColorSpace, Layout,
@@ -128,60 +128,122 @@ pub fn render_sdr(
     downscale: Downscale,
 ) -> Result<SdrDerivative, String> {
     let inspection = inspect(bytes)?.ok_or("不支持的格式")?;
+    render_sdr_widths(bytes, &inspection, &[max_width], downscale)?
+        .pop()
+        .expect("一个宽度一份结果")
+}
+
+/// 解码一次，按每个宽度各出一份 `sdr` 派生图：导入时校验像素、生成占位图与网格缩略图共用这一次解码
+/// （#120、#123）。每一份与单独调用 [`render_sdr`] 的结果逐字节相同。
+/// 外层错误是解码失败，文件头有效、压缩像素却损坏的原图在这里失败，导入在暂存与发布之前据此拒绝；
+/// 内层是解码之后某一份的缩放或编码失败，导入照常进行，只是这张图暂时缺这一份派生图。
+pub(crate) fn render_sdr_widths(
+    bytes: &[u8],
+    inspection: &Inspection,
+    max_widths: &[u32],
+    downscale: Downscale,
+) -> Result<Vec<Result<SdrDerivative, String>>, String> {
     let d = &inspection.description;
     let space = space(d);
     let container = container(d);
 
-    let output = output_profile(space, &inspection)?;
+    let output = output_profile(space, inspection)?;
     let working = profiles::linear_of(&output);
 
-    let (w, h, mut linear) = decode_linear(bytes, &inspection, &working)?;
+    let (w, h, mut linear) = decode_linear(bytes, inspection, &working)?;
     // 转正方向。
-    let mut upright = DynamicImage::ImageRgba32F(
-        Rgba32FImage::from_raw(w, h, std::mem::take(&mut linear)).ok_or("像素缓冲尺寸不符")?,
-    );
-    upright.apply_orientation(inspection.orientation);
-    let upright = upright.into_rgba32f();
-
-    let encoded = match downscale {
-        Downscale::LinearLight => {
-            let resized = resize(upright, max_width)?;
-            let (w, h) = resized.dimensions();
-            (w, h, to_output(resized.into_raw(), &working, &output)?)
-        }
-        Downscale::EncodedValue => {
-            let (w, h) = upright.dimensions();
-            let values = to_output(upright.into_raw(), &working, &output)?;
-            let values = Rgba32FImage::from_raw(w, h, values).ok_or("像素缓冲尺寸不符")?;
-            let resized = resize(values, max_width)?;
-            let (w, h) = resized.dimensions();
-            (w, h, resized.into_raw())
-        }
-    };
-    let (w, h, encoded) = encoded;
-
+    let upright = (|| {
+        let mut upright = DynamicImage::ImageRgba32F(
+            Rgba32FImage::from_raw(w, h, std::mem::take(&mut linear)).ok_or("像素缓冲尺寸不符")?,
+        );
+        upright.apply_orientation(inspection.orientation);
+        Ok::<_, String>(upright.into_rgba32f())
+    })();
     let icc = match space {
         Space::Srgb => None,
         Space::SourceIcc => inspection.icc.clone(),
         Space::DisplayP3 => Some(profiles::display_p3_icc()),
     };
-    let alpha = d.alpha;
-    let bytes = encode(&encoded, w, h, alpha, container, icc)?;
-    Ok(SdrDerivative {
-        bytes,
-        mime: container.mime(),
-        width: w,
-        height: h,
-    })
+    let render = |upright: Rgba32FImage, max_width: u32| -> Result<SdrDerivative, String> {
+        let (w, h, encoded) = match downscale {
+            Downscale::LinearLight => {
+                let resized = resize(upright, max_width)?;
+                let (w, h) = resized.dimensions();
+                (w, h, to_output(resized.into_raw(), &working, &output)?)
+            }
+            Downscale::EncodedValue => {
+                let (w, h) = upright.dimensions();
+                let values = to_output(upright.into_raw(), &working, &output)?;
+                let values = Rgba32FImage::from_raw(w, h, values).ok_or("像素缓冲尺寸不符")?;
+                let resized = resize(values, max_width)?;
+                let (w, h) = resized.dimensions();
+                (w, h, resized.into_raw())
+            }
+        };
+        let bytes = encode(&encoded, w, h, d.alpha, container, icc.clone())?;
+        Ok(SdrDerivative {
+            bytes,
+            mime: container.mime(),
+            width: w,
+            height: h,
+        })
+    };
+    let mut upright = Some(upright);
+    let last = max_widths.len().saturating_sub(1);
+    Ok(max_widths
+        .iter()
+        .enumerate()
+        .map(|(i, &max_width)| {
+            // 最后一份直接用掉解码结果，前面的各用一份副本。
+            let source = if i == last {
+                upright.take().expect("解码结果只取走一次")
+            } else {
+                upright.clone().expect("解码结果还在")
+            };
+            render(source?, max_width)
+        })
+        .collect())
 }
 
 /// 原尺寸显示源 → 剪贴板用的无配置文件 sRGB RGBA8。共用来源声明、首帧、色调映射和方向解码。
 /// 不进行缩放；arboard 的图片接口不能携带 ICC，因此必须转换颜色，不能把 P3／ICC 数值当成 sRGB。
 pub(crate) fn clipboard_rgba(bytes: &[u8]) -> Result<image::RgbaImage, String> {
     let inspection = inspect(bytes)?.ok_or("不支持的格式")?;
+    clipboard_pixels(bytes, &inspection, None)
+}
+
+/// 原图中的一块（转正后的像素坐标）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct UprightCrop {
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// 与 [`clipboard_rgba`] 后再裁下 `crop` 逐像素相同，但色彩转换只做选区（#127）：
+/// 整张大图的 f32 线性光往返要数秒，而框选复制只要其中一小块。
+/// 原图转正后的尺寸不是 `size` 时（来源已变）返回 `None`，只读文件头，不解码。
+pub(crate) fn clipboard_rgba_crop(
+    bytes: &[u8],
+    size: (u32, u32),
+    crop: UprightCrop,
+) -> Result<Option<image::RgbaImage>, String> {
+    let inspection = inspect(bytes)?.ok_or("不支持的格式")?;
+    if (inspection.width, inspection.height) != size {
+        return Ok(None);
+    }
+    clipboard_pixels(bytes, &inspection, Some(crop)).map(Some)
+}
+
+fn clipboard_pixels(
+    bytes: &[u8],
+    inspection: &Inspection,
+    crop: Option<UprightCrop>,
+) -> Result<image::RgbaImage, String> {
     let srgb = ColorProfile::new_srgb();
     let working = profiles::linear_of(&srgb);
-    let (w, h, linear) = decode_linear(bytes, &inspection, &working)?;
+    let (w, h, linear) = decode_linear_crop(bytes, inspection, &working, crop)?;
     let encoded = to_output(linear, &working, &srgb)?;
     let pixels = encoded
         .into_iter()
@@ -194,6 +256,60 @@ pub(crate) fn clipboard_rgba(bytes: &[u8]) -> Result<image::RgbaImage, String> {
     Ok(upright.into_rgba8())
 }
 
+/// 转正后的选区 → 存储方向下的同一块像素（与 `apply_orientation` 互逆），`(x, y, 宽, 高)`。
+fn stored_rect(
+    orientation: Orientation,
+    (w, h): (u32, u32),
+    crop: UprightCrop,
+) -> Result<(u32, u32, u32, u32), String> {
+    let swaps = matches!(
+        orientation,
+        Orientation::Rotate90
+            | Orientation::Rotate270
+            | Orientation::Rotate90FlipH
+            | Orientation::Rotate270FlipH
+    );
+    let (uw, uh) = if swaps { (h, w) } else { (w, h) };
+    if crop.width == 0
+        || crop.height == 0
+        || crop.x.checked_add(crop.width).is_none_or(|r| r > uw)
+        || crop.y.checked_add(crop.height).is_none_or(|b| b > uh)
+    {
+        return Err("选区超出原图".into());
+    }
+    // 转正后的 (u, v) 对应存储方向下的 (x, y)。
+    let stored = |u: u32, v: u32| match orientation {
+        Orientation::NoTransforms => (u, v),
+        Orientation::Rotate90 => (v, h - 1 - u),
+        Orientation::Rotate180 => (w - 1 - u, h - 1 - v),
+        Orientation::Rotate270 => (w - 1 - v, u),
+        Orientation::FlipHorizontal => (w - 1 - u, v),
+        Orientation::FlipVertical => (u, h - 1 - v),
+        Orientation::Rotate90FlipH => (v, u),
+        Orientation::Rotate270FlipH => (w - 1 - v, h - 1 - u),
+    };
+    let a = stored(crop.x, crop.y);
+    let b = stored(crop.x + crop.width - 1, crop.y + crop.height - 1);
+    let (x0, x1) = (a.0.min(b.0), a.0.max(b.0));
+    let (y0, y1) = (a.1.min(b.1), a.1.max(b.1));
+    Ok((x0, y0, x1 - x0 + 1, y1 - y0 + 1))
+}
+
+/// 已转到线性光的整图缓冲（RGBA f32）裁下一块。
+fn crop_linear(
+    (x, y, cw, ch): (u32, u32, u32, u32),
+    (w, _h, linear): (u32, u32, Vec<f32>),
+) -> (u32, u32, Vec<f32>) {
+    // usize：超大 CMYK／HDR 原图的偏移会超出 u32。
+    let (w, x, width) = (w as usize, x as usize, cw as usize);
+    let mut out = Vec::with_capacity(width * ch as usize * 4);
+    for row in y as usize..(y + ch) as usize {
+        let start = (row * w + x) * 4;
+        out.extend_from_slice(&linear[start..start + width * 4]);
+    }
+    (cw, ch, out)
+}
+
 /// 派生图的存储色彩空间。
 fn output_profile(space: Space, inspection: &Inspection) -> Result<ColorProfile, String> {
     Ok(match space {
@@ -201,13 +317,6 @@ fn output_profile(space: Space, inspection: &Inspection) -> Result<ColorProfile,
         Space::SourceIcc => inspection.profile.clone().ok_or("缺少来源 ICC")?,
         Space::DisplayP3 => profiles::display_p3(),
     })
-}
-
-/// 按派生图管线完整解码一遍像素（同样的解码与色彩转换），确认原图真能显示。
-/// 文件头有效、压缩像素却损坏的原图在这里失败；导入在暂存与发布之前调用。
-pub(crate) fn verify_pixels(bytes: &[u8], inspection: &Inspection) -> Result<(), String> {
-    let output = output_profile(space(&inspection.description), inspection)?;
-    decode_linear(bytes, inspection, &profiles::linear_of(&output)).map(|_| ())
 }
 
 fn options() -> TransformOptions {
@@ -223,18 +332,44 @@ fn decode_linear(
     inspection: &Inspection,
     working: &ColorProfile,
 ) -> Result<(u32, u32, Vec<f32>), String> {
+    decode_linear_crop(bytes, inspection, working, None)
+}
+
+/// [`decode_linear`]；给了 `crop` 时只返回那一块（存储方向）。
+/// 普通 RGB／灰度在色彩转换之前就裁下（转换逐像素，结果相同）；CMYK 与 HDR 色调映射转换整图后再裁。
+fn decode_linear_crop(
+    bytes: &[u8],
+    inspection: &Inspection,
+    working: &ColorProfile,
+    crop: Option<UprightCrop>,
+) -> Result<(u32, u32, Vec<f32>), String> {
     let d = &inspection.description;
-    if d.colour_model == ColourModel::Cmyk {
-        return cmyk_linear(bytes, inspection, working);
-    }
-    if let Some(cicp) = d
+    let special = if d.colour_model == ColourModel::Cmyk {
+        Some(cmyk_linear(bytes, inspection, working)?)
+    } else if let Some(cicp) = d
         .cicp
         .filter(|c| d.declaration == ColourDeclaration::Cicp && matches!(c.transfer, 16 | 18))
     {
-        return hdr_linear(bytes, inspection, cicp, working);
+        Some(hdr_linear(bytes, inspection, cicp, working)?)
+    } else {
+        None
+    };
+    if let Some(decoded) = special {
+        return match crop {
+            Some(c) => Ok(crop_linear(
+                stored_rect(inspection.orientation, (decoded.0, decoded.1), c)?,
+                decoded,
+            )),
+            None => Ok(decoded),
+        };
     }
 
-    let image = decode_first_frame(bytes, inspection)?;
+    let mut image = decode_first_frame(bytes, inspection)?;
+    if let Some(c) = crop {
+        let (x, y, cw, ch) =
+            stored_rect(inspection.orientation, (image.width(), image.height()), c)?;
+        image = image.crop_imm(x, y, cw, ch);
+    }
     let (w, h) = (image.width(), image.height());
     let source = source_profile(inspection)?;
     if source.color_space == DataColorSpace::Gray {

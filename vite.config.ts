@@ -18,6 +18,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.mjs"],
+    setupFiles: ["src/test/setup.ts"],
+    // 单个用例常连等几处 findBy；每处最多等 5 秒（src/test/setup.ts），整条用例的上限随之放宽。
+    testTimeout: 20000,
     // 让 `?raw` 读到真实样式表（封印书样式与原型的比对测试）；普通 CSS 导入仍为空。
     css: { include: [/\.css\?raw$/] },
   },

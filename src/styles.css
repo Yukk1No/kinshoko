@@ -344,13 +344,6 @@ button.primary {
 
 /* 设置（#61） */
 
-/* 状态栏里的自动标签 */
-.tagging {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .settings {
   padding: 12px 16px;
   border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
@@ -971,6 +964,9 @@ button.primary {
   inset: 0;
   cursor: crosshair;
 }
+
+/* 已确认、等结果可用（#127）。 */
+.capture.is-busy { cursor: progress; }
 
 .capture-screen {
   position: absolute;

@@ -1,7 +1,7 @@
 //! 自动标签的命令层：为当前资料库运行 `kinshoko_core::tagging::Tagging`，打标子进程是本 exe 的
 //! `tagger` 子命令（ADR-0004）。状态变化推送为窗口事件 `tagging-status`。
 //!
-//! 模型选择与模型目录属于本设备，不随资料库变：换资料库时沿用画师选的模型与暂停状态。
+//! 硬件档与模型目录属于本设备，不随资料库变：换资料库时沿用画师选的硬件档与暂停状态。
 //! 状态与命令都带资料库身份（#49），切换后旧库的迟到状态与旧请求不会落到新库上。
 
 use std::path::PathBuf;
@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use kinshoko_core::Library;
 use kinshoko_core::tagging::{
-    HUGGING_FACE, LibraryTaggingStatus, ModelChoice, ModelStore, ProcessTagger, Tagging,
+    Device, HUGGING_FACE, LibraryTaggingStatus, ModelChoice, ModelStore, ProcessTagger, Tagging,
     TaggingConfig, catalog,
 };
 use tauri::{AppHandle, Emitter, Manager, Runtime, State};
@@ -24,18 +24,16 @@ const EVENT: &str = "tagging-status";
 pub struct TaggingState {
     models_dir: PathBuf,
     current: Arc<Mutex<Option<ActiveTagging>>>,
-    /// 画师在设置中选的模型；`None` 为自动。
-    preferred: Mutex<Option<String>>,
+    /// 画师在设置中选的硬件档；`None` 为自动。
+    preferred: Mutex<Option<Device>>,
     /// 画师暂停了打标；换资料库后仍暂停。
     paused: AtomicBool,
 }
 
 impl TaggingState {
     fn choice(&self) -> ModelChoice {
-        ModelChoice {
-            selected: lock(&self.preferred).clone(),
-            options: ModelStore::new(self.models_dir.clone(), HUGGING_FACE).options(&catalog()),
-        }
+        ModelStore::new(self.models_dir.clone(), HUGGING_FACE)
+            .choice(&catalog(), *lock(&self.preferred))
     }
 }
 
@@ -54,16 +52,16 @@ impl ActiveTagging {
     }
 }
 
-/// 本机已就绪模型的词表 `selected_tags.csv`：优先画师选的模型，没有就绪时取任一已就绪的。
+/// 本机已就绪模型的词表 `selected_tags.csv`：优先画师选的硬件档，没有就绪时取任一已就绪的。
 /// 迁入向导（#59）用它作外部词表；没有模型时返回 `None`。会读文件，不要在主线程上调用。
 pub fn vocabulary_csv<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
     let state = app.state::<TaggingState>();
     let store = ModelStore::new(state.models_dir.clone(), HUGGING_FACE);
-    let preferred = lock(&state.preferred).clone();
+    let preferred = *lock(&state.preferred);
     let models = catalog();
     models
         .iter()
-        .filter(|m| preferred.as_deref() == Some(m.key.as_str()))
+        .filter(|m| preferred == Some(m.device))
         .chain(models.iter())
         .find_map(|m| store.ready(m))
         .map(|m| m.tags_csv)
@@ -73,8 +71,8 @@ fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
-/// 应用启动时登记状态，并开始推送状态变化。`preferred` 是设置里保存的模型选择。
-pub fn setup<R: Runtime>(app: &AppHandle<R>, models_dir: PathBuf, preferred: Option<String>) {
+/// 应用启动时登记状态，并开始推送状态变化。`preferred` 是设置里保存的硬件档。
+pub fn setup<R: Runtime>(app: &AppHandle<R>, models_dir: PathBuf, preferred: Option<Device>) {
     let current: Arc<Mutex<Option<ActiveTagging>>> = Arc::default();
     app.manage(TaggingState {
         models_dir,
@@ -102,7 +100,7 @@ pub fn setup<R: Runtime>(app: &AppHandle<R>, models_dir: PathBuf, preferred: Opt
 }
 
 /// 在资料库切换的阻塞任务里调用：先结束旧库打标（立即结束子进程）并释放它持有的资料库，
-/// 再为新库开始自动标签。画师的暂停与模型选择沿用到新库。
+/// 再为新库开始自动标签。画师的暂停与硬件档沿用到新库。
 pub fn attach<R: Runtime>(app: &AppHandle<R>, library: Arc<Library>) {
     detach(app);
     let state = app.state::<TaggingState>();
@@ -112,7 +110,7 @@ pub fn attach<R: Runtime>(app: &AppHandle<R>, library: Arc<Library>) {
     };
     let tagger = ProcessTagger::new(exe, vec![kinshoko_tagger::SUBCOMMAND.into()]);
     let mut config = TaggingConfig::with_catalog(state.models_dir.clone());
-    config.preferred = lock(&state.preferred).clone();
+    config.preferred = *lock(&state.preferred);
     config.publication_gate = Some(crate::library::visibility_publication_gate(app));
     let library_id = library.info().id.clone();
     let tagging = Tagging::start(library, Arc::new(tagger), config);
@@ -195,32 +193,27 @@ pub async fn tagging_resume(
     Ok(())
 }
 
-/// 设置中的模型列表：每个模型的显存或内存需求、大小、是否已装好，以及画师选的模型。
+/// 设置中的模型一节：打标模型名称、各硬件档的显存或内存需求、大小、是否已下载，以及画师选的档。
 #[tauri::command]
 pub async fn tagging_models(state: State<'_, TaggingState>) -> Result<ModelChoice, String> {
     Ok(state.choice())
 }
 
-/// 换用画师选的模型（`null` 为自动）：先保存到设置，再交给正在运行的打标。
+/// 换用画师选的硬件档（`null` 为自动）：先保存到设置，再交给正在运行的打标。
 #[tauri::command]
-pub async fn tagging_set_model(
+pub async fn tagging_set_device(
     state: State<'_, TaggingState>,
     shell: State<'_, ShellState>,
-    key: Option<String>,
+    device: Option<Device>,
 ) -> Result<ModelChoice, String> {
-    if let Some(key) = &key
-        && !catalog().iter().any(|m| &m.key == key)
-    {
-        return Err("没有这个模型".into());
-    }
     shell
         .0
         .lock()
         .map_err(|e| e.to_string())?
         .settings
-        .set_tagging_model(key.as_deref())
+        .set_tagging_device(device)
         .map_err(|e| e.to_string())?;
-    apply_model(&state, key);
+    apply_device(&state, device);
     Ok(state.choice())
 }
 
@@ -254,12 +247,12 @@ pub async fn tagging_import_package(app: AppHandle, path: PathBuf) -> Result<Mod
     Ok(state.choice())
 }
 
-fn apply_model(state: &TaggingState, key: Option<String>) {
-    *lock(&state.preferred) = key.clone();
+fn apply_device(state: &TaggingState, device: Option<Device>) {
+    *lock(&state.preferred) = device;
     if let Some(t) = lock(&state.current).as_ref() {
-        t.tagging.set_model(key);
+        t.tagging.set_device(device);
     }
 }
-pub fn apply_model_setting<R: Runtime>(app: &AppHandle<R>, key: Option<String>) {
-    apply_model(&app.state::<TaggingState>(), key);
+pub fn apply_device_setting<R: Runtime>(app: &AppHandle<R>, device: Option<Device>) {
+    apply_device(&app.state::<TaggingState>(), device);
 }

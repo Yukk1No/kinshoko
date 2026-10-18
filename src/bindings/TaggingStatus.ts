@@ -4,4 +4,4 @@ import type { Device } from "./Device";
 /**
  * 自动标签的当前状态，供界面显示。
  */
-export type TaggingStatus = { "state": "starting" } | { "state": "noDevice", reason: string, } | { "state": "needsDownload", model: string, size: number, downloaded: number, } | { "state": "downloading", model: string, downloaded: number, total: number, } | { "state": "preparing", model: string, } | { "state": "running", model: string, device: Device, tagged: number, } | { "state": "idle", model: string, device: Device, } | { "state": "paused" } | { "state": "failed", reason: string, };
+export type TaggingStatus = { "state": "starting" } | { "state": "noDevice", reason: string, } | { "state": "needsDownload", model: string, size: number, downloaded: number, fallback: string | null, } | { "state": "downloading", model: string, downloaded: number, total: number, } | { "state": "preparing", model: string, } | { "state": "running", model: string, device: Device, gpu: string | null, tagged: number, } | { "state": "idle", model: string, device: Device, gpu: string | null, tagged: number, } | { "state": "paused" } | { "state": "failed", reason: string, };

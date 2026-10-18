@@ -194,3 +194,38 @@ it("requires the preview for the current choices and ignores an earlier preview 
   await within(wizard).findByText("旧名称已确认。");
   expect(writes).toEqual([{ revision: 7, decisions: [{ catalogId: "shared", lang: "zh-CN", resolution: { kind: "keepLegacy", libraryId: "b", localTagId: "local-b" } }] }]);
 });
+
+it("coalesces a burst of vocabulary changes during automatic tagging into one plan in flight at a time and still shows the final state (#142)", async () => {
+  // 自动打标每写一张图都发 vocabularyChanged；旧名称检查很重，不能一事件一请求地堆进后端阻塞线程池。
+  let state = view();
+  let inFlight = 0;
+  let peak = 0;
+  let calls = 0;
+  mockIPC((cmd) => {
+    if (!cmd.endsWith("plan_legacy_names")) return undefined;
+    calls++;
+    inFlight++;
+    peak = Math.max(peak, inFlight);
+    // 后端按收到请求时的词表作答，慢于事件间隔。
+    const answer = structuredClone(state);
+    return new Promise((resolve) => setTimeout(() => { inFlight--; resolve(answer); }, 25));
+  }, { shouldMockEvents: true });
+  render(<LegacyNameMigrationNotice libraryId="a" safe={true} onOpen={() => {}} />);
+  expect(await screen.findByText(/这个图库里有 1 个较早的叫法/)).toBeTruthy();
+  calls = 0;
+  const bursts = 50;
+  for (let index = 0; index < bursts; index++) {
+    // 最后一次写入后多出一个待确认的旧名称：最终显示要反映它。
+    if (index === bursts - 1) state = { ...state, plan: { ...state.plan, groups: [...state.plan.groups, { ...state.plan.groups[0], catalogId: "later" }] } };
+    await act(async () => {
+      await emit("library-event", { kind: "vocabularyChanged", libraryId: "a" });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+  }
+  expect(await screen.findByText(/这个图库里有 2 个较早的叫法/, {}, { timeout: 2000 })).toBeTruthy();
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 100)); });
+  expect(peak).toBe(1);
+  // 后端 25 ms 作答、补读间隔 200 ms：约 3–4 次；留余量给慢机器。
+  expect(calls).toBeLessThanOrEqual(10);
+  expect(inFlight).toBe(0);
+});

@@ -17,7 +17,7 @@ import { browse, workspaceBrowse, isCursorExpired, isLensChanged, thumbnailUrl }
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { modalOpen } from "../ui/modal";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
-import { captureAnchor, cardAt, masonry, resolveAnchor, visible, type Anchor, type Box } from "./layout";
+import { captureAnchor, cardAt, masonry, resolveAnchor, visible, zoomScrollTop, type Anchor, type Box } from "./layout";
 import { ZOOM_COMMIT_MS, createNotchCounter, zoomDensity } from "./zoom";
 import { createSmoothWheel } from "./smoothWheel";
 import { createPrefetcher, decodeThumbnail, mountWindow, prefetchOrder, type MountWindow } from "./prefetch";
@@ -100,7 +100,12 @@ type Props = {
  * 重新挂载时已在浏览器缓存里的图直接显示，不再淡入；其余到达后淡入、盖住占位图。
  */
 const markCachedThumbnail = (img: HTMLImageElement | null) => {
-  if (img && img.complete && img.naturalWidth > 0) img.dataset.loaded = "instant";
+  if (!img) return;
+  if (img.complete && img.naturalWidth > 0) img.dataset.loaded = "instant";
+  // 卡片离开挂载范围时缩略图还没到：撤掉地址，浏览器放弃这次请求，不再替已经看不见的卡片取图（#123）。
+  return () => {
+    if (!img.complete) img.removeAttribute("src");
+  };
 };
 const markThumbnailLoaded = (e: { currentTarget: HTMLImageElement }) => {
   if (!e.currentTarget.dataset.loaded) e.currentTarget.dataset.loaded = "fade";
@@ -261,7 +266,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 
   /**
-   * Ctrl+滚轮缩放（#111）：光标下的那张图在预览后的布局里中心仍在光标下。只由下一次布局效果消费一次；
+   * Ctrl+滚轮缩放（#111）：光标下的那张图在预览后的布局里中心仍在光标的高度（列数会变，只锚纵向，#122）。只由下一次布局效果消费一次；
    * 滑条与键盘改密度不设它，仍以视口顶部的图为锚。
    */
   const zoomPin = useRef<{ id: string; pointerY: number } | null>(null);
@@ -295,10 +300,16 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   // Keyed by value: re-selecting the same range creates a new but equal object. Clearing on that
   // identity change emptied the wall without the reload below ever running again (T20 r5/r6).
   const workspaceKey = workspaceScope ? JSON.stringify(workspaceScope) : null;
+  const clearedFor = useRef<string | null>(null);
   useLayoutEffect(() => {
-    if (!workspaceKey) return;
+    if (!workspaceKey) { clearedFor.current = null; return; }
     generation.current += 1;
     inflight.current = null;
+    // 只是修订号前进（自动打标每写一张图一次，#142）：保留旧卡片，等新的一页回来原地替换。
+    // 浏览范围或安全模式变了才清空，不露出旧视角的内容。
+    const scopeAndSafe = `${workspaceKey}\n${safeMode}`;
+    if (clearedFor.current === scopeAndSafe) return;
+    clearedFor.current = scopeAndSafe;
     // Emptying the canvas clamps browser scrollTop. Preserve the user's anchor
     // until the new authorized page restores it.
     restoring.current = true;
@@ -454,9 +465,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     const pinned = pin ? ids.indexOf(pin.id) : -1;
     let top: number | null;
     if (pinned >= 0) {
-      // 缩放：光标下那张图的中心放回光标下；随后以新布局里视口顶部的图为锚，提交时布局不变、位置不动。
-      const b = layout.boxes[pinned];
-      top = Math.max(0, Math.min(b.y + b.h / 2 - pin!.pointerY, layout.height - el.clientHeight));
+      // 缩放：光标下那张图的中心放回光标的高度（列数会变，只锚纵向，#122）；随后以新布局里视口顶部的图为锚，提交时布局不变、位置不动。
+      top = zoomScrollTop(layout, pinned, pin!.pointerY, el.clientHeight);
       anchor.current = captureAnchor(layout, ids, top, el.clientHeight);
       if (storeKey) saveAnchor(storeKey, anchor.current);
     } else {
@@ -758,7 +768,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 role="option"
                 tabIndex={0}
                 data-veiled={veiled}
-                draggable={!workspaceScope || workspaceScope.kind === "library"}
+                draggable={!workspaceScope || workspaceScope.kind === "library" || (card.sources?.some((source) => !source.unavailable) ?? false)}
                 onClick={(e) => {
                   if (e.ctrlKey || e.metaKey || e.shiftKey) cardHandlers.current.select(card.id, e);
                   else cardHandlers.current.open(card);
