@@ -302,7 +302,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             set_safe_mode
         ])
         .setup(|app, _api| {
-            let dirs = crate::data_dirs::app_data(app).clone();
+            let dirs = crate::data_dirs::app_data(app);
             let device_dir = dirs.device().to_path_buf();
             kinshoko_core::application_settings_backup::ApplicationSettingsBackup::recover(
                 &device_dir,

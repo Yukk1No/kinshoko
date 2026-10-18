@@ -99,10 +99,7 @@ fn system_facts() -> SystemFacts {
 }
 
 fn app_facts(app: &AppHandle, state: &State<'_, ShellState>) -> Result<AppFacts, String> {
-    let migration_problem = app
-        .state::<crate::data_dirs::AppData>()
-        .migration_problem
-        .clone();
+    let migration_problem = crate::data_dirs::migration_problem(app);
     let shell = state.0.lock().map_err(|e| e.to_string())?;
     Ok(AppFacts {
         data_migration_problem: migration_problem,

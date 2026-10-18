@@ -198,10 +198,7 @@ fn a_failed_data_migration_is_reported_without_paths() {
 }
 
 #[test]
-fn normally_the_report_says_data_lives_next_to_the_program() {
+fn normally_the_report_says_data_lives_in_the_data_root() {
     let text = report(&app(), &system(Vec::new()), GENERATED_AT);
-    assert!(
-        text.contains("数据位置：程序目录下的 data 文件夹"),
-        "{text}"
-    );
+    assert!(text.contains("数据位置：数据根目录"), "{text}");
 }

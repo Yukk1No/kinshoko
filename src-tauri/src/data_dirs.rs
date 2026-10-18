@@ -20,6 +20,8 @@ const LEGACY_DIR_NAME: &str = "dev.kinshoko";
 pub struct AppData {
     pub dirs: DataDirs,
     pub migration_problem: Option<String>,
+    /// 进程在世期间一直持有：第二次启动（随后交给单实例插件退出）不会同时迁移。
+    _instance: Option<std::fs::File>,
 }
 
 /// 解析数据根目录、确认可写，需要时把旧数据迁过来。数据根目录不可写时返回给画师看的说明，
@@ -29,35 +31,64 @@ pub fn prepare() -> Result<AppData, String> {
         std::env::current_exe().map_err(|e| format!("找不到 Kinshoko 程序所在的位置：{e}"))?;
     let exe_dir = exe.parent().unwrap_or(Path::new("."));
     let override_dir = std::env::var_os(DATA_DIR_ENV).map(PathBuf::from);
-    let migrate = override_dir.is_none();
+    // 开发构建（target\debug）不迁移：免得把本机正式安装的数据搬进开发目录。
+    let migrate = override_dir.is_none() && !cfg!(debug_assertions);
     let dirs = DataDirs::resolve(exe_dir, override_dir);
     std::fs::create_dir_all(dirs.root())
         .and_then(|()| probe_writable(dirs.root()))
         .map_err(|e| unwritable(dirs.root(), &e))?;
-    if migrate && let Some(legacy) = legacy_dirs() {
-        match migrate_legacy(dirs.root(), &legacy) {
-            Ok(Migration::Migrated | Migration::NotNeeded) => {}
-            Err(e) => {
-                eprintln!(
-                    "把旧数据迁到 {} 失败，本次继续用旧位置：{e}",
-                    dirs.root().display()
-                );
-                return Ok(AppData {
-                    dirs: DataDirs::legacy(&legacy),
-                    migration_problem: Some(e.to_string()),
-                });
-            }
-        }
-    }
-    Ok(AppData {
+    // 数据根目录旁边的锁文件：已有实例在跑时它可能正用着旧位置，这次启动不迁移。
+    let instance = std::fs::File::create(lock_path(dirs.root()))
+        .ok()
+        .filter(|lock| lock.try_lock().is_ok());
+    let mut data = AppData {
         dirs,
         migration_problem: None,
-    })
+        _instance: None,
+    };
+    if !migrate || instance.is_none() {
+        return Ok(data);
+    }
+    data._instance = instance;
+    let Some(legacy) = legacy_dirs() else {
+        return Ok(data);
+    };
+    match migrate_legacy(data.dirs.root(), &legacy) {
+        Ok(Migration::Migrated | Migration::NotNeeded) => {}
+        Err(e) if e.legacy_intact => {
+            eprintln!(
+                "把旧数据迁到 {} 失败，本次继续用旧位置：{e}",
+                data.dirs.root().display()
+            );
+            data.dirs = DataDirs::legacy(&legacy);
+            data.migration_problem = Some(e.to_string());
+        }
+        // 旧位置缺了东西：回到旧位置运行会在那里新建空的设置与登记表，停下来说明。
+        Err(e) => {
+            return Err(format!(
+                "Kinshoko 迁移数据时出错，没能完成：\n{e}\n\n请重新启动 Kinshoko 再试。"
+            ));
+        }
+    }
+    Ok(data)
 }
 
 /// 本进程的数据目录。
 pub fn app_data<R: Runtime>(app: &AppHandle<R>) -> &DataDirs {
     &app.state::<AppData>().inner().dirs
+}
+
+/// 首次启动迁移失败的原因（诊断信息用）。
+pub fn migration_problem<R: Runtime>(app: &AppHandle<R>) -> Option<String> {
+    app.state::<AppData>().migration_problem.clone()
+}
+
+/// 实例锁：`data` 旁边的 `data.lock`（不放进 `data` 里，空的数据根目录才会迁移）。
+/// 卸载钩子会删掉它。
+fn lock_path(root: &Path) -> PathBuf {
+    let mut name = root.file_name().unwrap_or_default().to_owned();
+    name.push(".lock");
+    root.with_file_name(name)
 }
 
 /// 本进程每个窗口都要套上：同一个 WebView2 环境要求用户数据目录与启动参数一致，

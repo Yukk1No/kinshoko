@@ -194,12 +194,12 @@ pub fn report_with_runtime(
     );
     match &app.data_migration_problem {
         None => {
-            let _ = writeln!(out, "数据位置：程序目录下的 data 文件夹");
+            let _ = writeln!(out, "数据位置：数据根目录");
         }
         Some(problem) => {
             let _ = writeln!(
                 out,
-                "数据位置：旧位置（迁移到程序目录下的 data 文件夹失败：{}；数据未改动，下次启动重试）",
+                "数据位置：旧位置（迁移到数据根目录失败：{}；数据未改动，下次启动重试）",
                 scrub(problem)
             );
         }

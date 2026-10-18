@@ -140,6 +140,23 @@ mod migration {
     }
 
     #[test]
+    fn entries_that_cannot_move_stay_put_and_the_note_names_them() {
+        let layout = old_layout();
+        // Local 里有一个与 Roaming 同名的条目：不能两份都放进 data，也不能丢。
+        write(&layout.legacy.local, &[("device.json", "Local 里的另一份")]);
+
+        migrate_legacy(&layout.target, &layout.legacy).unwrap();
+
+        assert_files(&layout.target, &ROAMING_FILES);
+        assert_files(&layout.legacy.local, &[("device.json", "Local 里的另一份")]);
+        let note = fs::read_to_string(layout.legacy.local.join("MOVED.txt")).unwrap();
+        assert!(note.contains("device.json"), "{note}");
+        assert!(!note.contains("可以删除"), "{note}");
+        let note = fs::read_to_string(layout.legacy.roaming.join("MOVED.txt")).unwrap();
+        assert!(note.contains("可以删除"), "{note}");
+    }
+
+    #[test]
     fn later_starts_do_not_migrate_again_or_overwrite_new_data() {
         let layout = old_layout();
         migrate_legacy(&layout.target, &layout.legacy).unwrap();
@@ -209,7 +226,8 @@ mod migration {
             fs::rename(from, to)
         };
 
-        assert!(migrate_legacy_with(&layout.target, &layout.legacy, failing).is_err());
+        let error = migrate_legacy_with(&layout.target, &layout.legacy, failing).unwrap_err();
+        assert!(error.legacy_intact);
         assert_old_layout_intact(&layout);
         assert!(!layout.target.exists() || fs::read_dir(&layout.target).unwrap().next().is_none());
 
@@ -272,6 +290,33 @@ mod migration {
             |_: &Path, _: &Path| Err(std::io::Error::from(std::io::ErrorKind::PermissionDenied));
         assert!(migrate_legacy_with(&layout.target, &layout.legacy, refusing).is_err());
         assert_old_layout_intact(&layout);
+    }
+
+    #[test]
+    fn when_putting_things_back_also_fails_the_error_says_the_old_layout_is_incomplete() {
+        let layout = old_layout();
+        let mut calls = 0;
+        // 搬了两项之后磁盘出了问题：之后的改名全都失败，连放回原处也不行。
+        let broken = |from: &Path, to: &Path| {
+            calls += 1;
+            if calls >= 3 {
+                return Err(std::io::Error::from(std::io::ErrorKind::PermissionDenied));
+            }
+            fs::rename(from, to)
+        };
+
+        let error = migrate_legacy_with(&layout.target, &layout.legacy, broken).unwrap_err();
+
+        // 旧位置缺了东西：这次不能回到旧位置运行，否则会在那里新建空的设置与登记表。
+        assert!(!error.legacy_intact);
+        assert!(error.to_string().contains("data.migrating"), "{error}");
+        // 下次启动磁盘恢复后，按日志放回再迁移，什么也不丢。
+        assert_eq!(
+            migrate_legacy(&layout.target, &layout.legacy).unwrap(),
+            Migration::Migrated
+        );
+        assert_files(&layout.target, &ROAMING_FILES);
+        assert_files(&layout.target, &LOCAL_FILES);
     }
 
     #[test]

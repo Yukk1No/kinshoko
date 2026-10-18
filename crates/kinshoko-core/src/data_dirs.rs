@@ -101,6 +101,38 @@ pub enum Migration {
     Migrated,
 }
 
+/// 迁移失败。
+#[derive(Debug)]
+pub struct MigrationError {
+    pub source: io::Error,
+    /// 旧位置是否原样：是的话本次运行可以继续用旧位置；否则有条目还留在暂存目录，
+    /// 回到旧位置运行会在那里新建空的设置与登记表，应当停下来告诉画师。
+    pub legacy_intact: bool,
+    /// 暂存目录，也就是没放回去的条目所在的地方。
+    pub staging: PathBuf,
+}
+
+impl std::fmt::Display for MigrationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.legacy_intact {
+            write!(f, "{}", self.source)
+        } else {
+            write!(
+                f,
+                "{}；有些数据还在 {}，下次启动时会放回原处再迁移",
+                self.source,
+                self.staging.display()
+            )
+        }
+    }
+}
+
+impl std::error::Error for MigrationError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.source)
+    }
+}
+
 /// 旧目录里留下的说明。
 const NOTE: &str = "MOVED.txt";
 /// 迁移日志：暂存目录里每搬一项记一行“来源\t名字”。
@@ -115,7 +147,7 @@ const EBWEBVIEW: &str = "EBWebView";
 /// 同一个卷上逐项改名，模型再大也不复制；旧数据在另一个卷上时才复制，全部到齐后再删旧的。
 /// 中途失败时已经搬过的条目改名回原处，旧位置保持原样，
 /// 下次启动重试；数据根目录要么没有数据、要么是完整的一份。
-pub fn migrate_legacy(target: &Path, legacy: &LegacyDirs) -> io::Result<Migration> {
+pub fn migrate_legacy(target: &Path, legacy: &LegacyDirs) -> Result<Migration, MigrationError> {
     migrate_legacy_with(target, legacy, |from, to| fs::rename(from, to))
 }
 
@@ -125,22 +157,31 @@ pub fn migrate_legacy_with(
     target: &Path,
     legacy: &LegacyDirs,
     mut rename: impl FnMut(&Path, &Path) -> io::Result<()>,
-) -> io::Result<Migration> {
-    if has_entries(target)? {
+) -> Result<Migration, MigrationError> {
+    let staging = staging_dir(target);
+    let intact = |source| MigrationError {
+        source,
+        legacy_intact: true,
+        staging: staging.clone(),
+    };
+    if has_entries(target).map_err(intact)? {
         // 上次在改名为数据根目录之后、删日志之前结束：数据已完整，日志没用了。
         let _ = fs::remove_file(target.join(JOURNAL));
         return Ok(Migration::NotNeeded);
     }
-    let staging = staging_dir(target);
     // 上次迁移到一半进程就结束了：先把暂存的条目放回旧位置，再从头来过。
     if staging.exists() {
-        restore(&staging, legacy)?;
+        restore(&staging, legacy).map_err(|source| MigrationError {
+            source,
+            legacy_intact: false,
+            staging: staging.clone(),
+        })?;
     }
-    let entries = plan(legacy)?;
+    let (entries, left_behind) = plan(legacy).map_err(intact)?;
     if entries.is_empty() {
         return Ok(Migration::NotNeeded);
     }
-    fs::create_dir_all(&staging)?;
+    fs::create_dir_all(&staging).map_err(intact)?;
     let mut moved: Vec<Staged> = Vec::new();
     let staged = (|| {
         let mut journal = fs::File::create(staging.join(JOURNAL))?;
@@ -170,29 +211,47 @@ pub fn migrate_legacy_with(
         }
         rename(&staging, target)
     })();
-    if let Err(e) = staged {
-        roll_back(&moved, &staging);
-        return Err(e);
+    if let Err(source) = staged {
+        let legacy_intact = roll_back(&moved, &staging, &mut rename);
+        return Err(MigrationError {
+            source,
+            legacy_intact,
+            staging,
+        });
     }
     let _ = fs::remove_file(target.join(JOURNAL));
-    for entry in &moved {
-        if let Staged::Copied { source, .. } = entry {
-            // 新位置已完整；旧副本删不掉只是多占空间。
-            let _ = remove_tree(source);
-        }
-    }
     // WebView2 数据只是本地存储与缓存：能顺手改名就带上，不行也不影响迁移。
     let webview = target.join(WEBVIEW);
     if fs::create_dir_all(&webview).is_ok() {
         let _ = rename(&legacy.local.join(EBWEBVIEW), &webview.join(EBWEBVIEW));
     }
-    let note = format!(
-        "Kinshoko 的设置、打标模型等数据已移到：\r\n{}\r\n这个文件夹可以删除。\r\n",
-        target.display()
-    );
-    for old in [&legacy.roaming, &legacy.local] {
+    for origin in [Origin::Roaming, Origin::Local] {
+        let mut note = format!(
+            "Kinshoko 的设置、打标模型等数据已移到：\r\n{}\r\n",
+            target.display()
+        );
+        let left: Vec<&str> = left_behind
+            .iter()
+            .filter(|(o, _)| *o == origin)
+            .map(|(_, name)| name.as_str())
+            .collect();
+        if left.is_empty() {
+            note.push_str("这个文件夹可以删除。\r\n");
+        } else {
+            note.push_str("下面这些没有迁移（与别处同名或名字无法记录），请先确认再删除：\r\n");
+            for name in left {
+                note.push_str(&format!("  {name}\r\n"));
+            }
+        }
         // 说明写不进去不影响数据：新位置已经完整。
-        let _ = fs::write(old.join(NOTE), &note);
+        let _ = fs::write(origin.dir(legacy).join(NOTE), note);
+    }
+    // 先写说明再删旧副本：删到一半进程结束，旧目录里至少有说明指向新位置。
+    for entry in &moved {
+        if let Staged::Copied { source, .. } = entry {
+            // 新位置已完整；旧副本删不掉只是多占空间。
+            let _ = remove_tree(source);
+        }
     }
     Ok(Migration::Migrated)
 }
@@ -204,20 +263,25 @@ enum Staged {
 }
 
 /// 把这次已经搬进暂存目录的条目放回原处（复制来的直接删掉），再删掉暂存目录。
-/// 放不回去的留在暂存目录，日志也留着，下次启动由 [`restore`] 再试。
-fn roll_back(moved: &[Staged], staging: &Path) {
+/// 放不回去的留在暂存目录，日志也留着，下次启动由 [`restore`] 再试。返回旧位置是否已复原。
+fn roll_back(
+    moved: &[Staged],
+    staging: &Path,
+    rename: &mut impl FnMut(&Path, &Path) -> io::Result<()>,
+) -> bool {
     for entry in moved.iter().rev() {
         let result = match entry {
-            Staged::Moved { source, staged } => fs::rename(staged, source),
+            Staged::Moved { source, staged } => rename(staged, source),
             Staged::Copied { staged, .. } => remove_tree(staged),
         };
         if let Err(e) = result {
             eprintln!("迁移回滚失败：{}：{e}", staging.display());
-            return;
+            return false;
         }
     }
     let _ = fs::remove_file(staging.join(JOURNAL));
     let _ = fs::remove_dir(staging);
+    true
 }
 
 /// 按日志把上次中断时暂存的条目放回旧位置，删掉暂存目录。
@@ -298,7 +362,7 @@ fn staging_dir(target: &Path) -> PathBuf {
 }
 
 /// 旧条目来自哪个旧目录；日志里记它的标签，不记完整路径。
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Origin {
     Roaming,
     Local,
@@ -326,10 +390,13 @@ impl Origin {
     }
 }
 
-/// 要搬的旧条目。Roaming 在前；Local 里与之重名的条目留在原处。
+/// 旧条目：要搬的，与留在原处的。Roaming 在前；Local 里与之重名的条目留在原处。
 /// 名字不是 UTF-8 或含制表符、换行的条目记不进日志，也留在原处。
-fn plan(legacy: &LegacyDirs) -> io::Result<Vec<(Origin, String)>> {
+type Plan = (Vec<(Origin, String)>, Vec<(Origin, String)>);
+
+fn plan(legacy: &LegacyDirs) -> io::Result<Plan> {
     let mut entries: Vec<(Origin, String)> = Vec::new();
+    let mut left_behind: Vec<(Origin, String)> = Vec::new();
     for origin in [Origin::Roaming, Origin::Local] {
         let listing = match fs::read_dir(origin.dir(legacy)) {
             Ok(listing) => listing,
@@ -337,18 +404,22 @@ fn plan(legacy: &LegacyDirs) -> io::Result<Vec<(Origin, String)>> {
             Err(e) => return Err(e),
         };
         for entry in listing {
-            let Ok(name) = entry?.file_name().into_string() else {
-                continue;
-            };
-            if name == NOTE
-                || name == EBWEBVIEW
-                || name.contains(['\t', '\n', '\r'])
-                || entries.iter().any(|(_, n)| *n == name)
-            {
+            let name = entry?.file_name();
+            if name == NOTE || name == EBWEBVIEW {
                 continue;
             }
-            entries.push((origin, name));
+            let name = match name.into_string() {
+                Ok(name) if !name.contains(['\t', '\n', '\r']) => name,
+                Ok(name) => name.replace(['\t', '\n', '\r'], " "),
+                Err(name) => name.to_string_lossy().into_owned(),
+            };
+            let unrecordable = !origin.dir(legacy).join(&name).exists();
+            if unrecordable || entries.iter().any(|(_, n)| *n == name) {
+                left_behind.push((origin, name));
+            } else {
+                entries.push((origin, name));
+            }
         }
     }
-    Ok(entries)
+    Ok((entries, left_behind))
 }

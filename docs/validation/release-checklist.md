@@ -67,10 +67,11 @@
 
 ### 数据文件夹（#145，ADR-0009）
 
-- [ ] 从旧版本（数据在 `%APPDATA%\dev.kinshoko` 与 `%LOCALAPPDATA%\dev.kinshoko`）升级后第一次启动：设置、资料库、钉图、截图历史、参考组和已下载的模型都在；安装目录下出现 `data\`（含 `settings.json`、`device.json`、`tag-catalog.sqlite`、`models\`、`logs\`、`webview\`）；两个旧目录里各有一份 `MOVED.txt`，其余只剩 `EBWebView`（如果有）。再启动一次不会重复迁移
+- [ ] 从旧版本（数据在 `%APPDATA%\dev.kinshoko` 与 `%LOCALAPPDATA%\dev.kinshoko`）升级后第一次启动：设置、资料库、钉图、截图历史、参考组和已下载的模型都在；安装目录下出现 `data\`（含 `settings.json`、`device.json`、`tag-catalog.sqlite`、`models\`、`logs\`、`webview\`）；两个旧目录里各有一份 `MOVED.txt`，写明新位置；看图背景与墙的滚动位置也还在（WebView2 数据随之改名到 `data\webview`）。再启动一次不会重复迁移
 - [ ] 覆盖安装同一版本或新版本、自动更新后：`data\` 原样保留
-- [ ] 交互式卸载、确认页不勾“删除应用数据”：弹出“同时删除设置与打标模型？（资料库不受影响）”，默认“否”；选“否”后 `data\` 保留，选“是”后 `data\` 与安装目录都被删除；资料库文件夹都不受影响
+- [ ] 交互式卸载：弹出“同时删除设置与打标模型？（资料库不受影响）”，默认“否”；选“否”后 `data\` 保留，选“是”后 `data\` 与安装目录都被删除；资料库文件夹都不受影响
 - [ ] 静默卸载 `uninstall.exe /S`：`data\` 保留
+- [ ] 手动运行新版安装包、在“已安装”页选“先卸载再安装”：旧版卸载程序会问同一句，选默认的“否”后 `data\` 保留
 
 ### 诊断（#70）
 
