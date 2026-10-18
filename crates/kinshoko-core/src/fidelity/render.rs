@@ -128,21 +128,18 @@ pub fn render_sdr(
     downscale: Downscale,
 ) -> Result<SdrDerivative, String> {
     let inspection = inspect(bytes)?.ok_or("不支持的格式")?;
-    render_sdr_widths(bytes, &inspection, &[max_width], downscale)?
-        .pop()
-        .expect("一个宽度一份结果")
+    render_sdr_verified(bytes, &inspection, max_width, downscale)?
 }
 
-/// 解码一次，按每个宽度各生成一份 `sdr` 派生图（导入时校验像素与生成占位图共用一次解码，#120）。
-/// 外层错误是解码失败：文件头有效、压缩像素却损坏的原图在这里失败，导入在暂存与发布之前据此拒绝；
-/// 内层是某一份缩放或编码失败。
-/// 每一份与单独调用 [`render_sdr`] 的结果逐字节相同。
-pub(crate) fn render_sdr_widths(
+/// 与 [`render_sdr`] 相同，但把两类失败分开（导入时校验像素与生成占位图共用一次解码，#120）：
+/// 外层错误是解码失败，文件头有效、压缩像素却损坏的原图在这里失败，导入在暂存与发布之前据此拒绝；
+/// 内层是解码之后的缩放或编码失败，导入照常进行，只是这张图暂时没有占位图。
+pub(crate) fn render_sdr_verified(
     bytes: &[u8],
     inspection: &Inspection,
-    max_widths: &[u32],
+    max_width: u32,
     downscale: Downscale,
-) -> Result<Vec<Result<SdrDerivative, String>>, String> {
+) -> Result<Result<SdrDerivative, String>, String> {
     let d = &inspection.description;
     let space = space(d);
     let container = container(d);
@@ -151,54 +148,43 @@ pub(crate) fn render_sdr_widths(
     let working = profiles::linear_of(&output);
 
     let (w, h, mut linear) = decode_linear(bytes, inspection, &working)?;
-    // 转正方向。
-    let mut upright = DynamicImage::ImageRgba32F(
-        Rgba32FImage::from_raw(w, h, std::mem::take(&mut linear)).ok_or("像素缓冲尺寸不符")?,
-    );
-    upright.apply_orientation(inspection.orientation);
-    let upright = upright.into_rgba32f();
-    let icc = match space {
-        Space::Srgb => None,
-        Space::SourceIcc => inspection.icc.clone(),
-        Space::DisplayP3 => Some(profiles::display_p3_icc()),
-    };
+    Ok((|| {
+        // 转正方向。
+        let mut upright = DynamicImage::ImageRgba32F(
+            Rgba32FImage::from_raw(w, h, std::mem::take(&mut linear)).ok_or("像素缓冲尺寸不符")?,
+        );
+        upright.apply_orientation(inspection.orientation);
+        let upright = upright.into_rgba32f();
 
-    let mut upright = Some(upright);
-    let last = max_widths.len().saturating_sub(1);
-    Ok(max_widths
-        .iter()
-        .enumerate()
-        .map(|(i, &max_width)| {
-            // 最后一份直接用掉解码结果，前面的各缩放一份副本。
-            let source = if i == last {
-                upright.take().expect("解码结果只取走一次")
-            } else {
-                upright.clone().expect("解码结果还在")
-            };
-            let (w, h, encoded) = match downscale {
-                Downscale::LinearLight => {
-                    let resized = resize(source, max_width)?;
-                    let (w, h) = resized.dimensions();
-                    (w, h, to_output(resized.into_raw(), &working, &output)?)
-                }
-                Downscale::EncodedValue => {
-                    let (w, h) = source.dimensions();
-                    let values = to_output(source.into_raw(), &working, &output)?;
-                    let values = Rgba32FImage::from_raw(w, h, values).ok_or("像素缓冲尺寸不符")?;
-                    let resized = resize(values, max_width)?;
-                    let (w, h) = resized.dimensions();
-                    (w, h, resized.into_raw())
-                }
-            };
-            let bytes = encode(&encoded, w, h, d.alpha, container, icc.clone())?;
-            Ok(SdrDerivative {
-                bytes,
-                mime: container.mime(),
-                width: w,
-                height: h,
-            })
+        let (w, h, encoded) = match downscale {
+            Downscale::LinearLight => {
+                let resized = resize(upright, max_width)?;
+                let (w, h) = resized.dimensions();
+                (w, h, to_output(resized.into_raw(), &working, &output)?)
+            }
+            Downscale::EncodedValue => {
+                let (w, h) = upright.dimensions();
+                let values = to_output(upright.into_raw(), &working, &output)?;
+                let values = Rgba32FImage::from_raw(w, h, values).ok_or("像素缓冲尺寸不符")?;
+                let resized = resize(values, max_width)?;
+                let (w, h) = resized.dimensions();
+                (w, h, resized.into_raw())
+            }
+        };
+
+        let icc = match space {
+            Space::Srgb => None,
+            Space::SourceIcc => inspection.icc.clone(),
+            Space::DisplayP3 => Some(profiles::display_p3_icc()),
+        };
+        let bytes = encode(&encoded, w, h, d.alpha, container, icc)?;
+        Ok(SdrDerivative {
+            bytes,
+            mime: container.mime(),
+            width: w,
+            height: h,
         })
-        .collect())
+    })())
 }
 
 /// 原尺寸显示源 → 剪贴板用的无配置文件 sRGB RGBA8。共用来源声明、首帧、色调映射和方向解码。

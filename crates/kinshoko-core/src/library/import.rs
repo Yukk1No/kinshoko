@@ -33,7 +33,7 @@ use super::{
 use super::{colour, thumbnail};
 use crate::fidelity::ColourDescription;
 use crate::fidelity::inspect::inspect;
-use crate::fidelity::render::render_sdr_widths;
+use crate::fidelity::render::render_sdr_verified;
 use crate::fidelity::{DEFAULT_DOWNSCALE, SdrDerivative};
 
 /// 来源标记：普通文件导入。
@@ -324,7 +324,20 @@ fn run(
                         if !progress_gate.wait_for(index, window, cancel) {
                             break;
                         }
-                        let prepared = prepare_file(inner, path, options, context);
+                        // 某一项让解码器之类的代码 panic 时只算这一项读取失败：否则这一项永远交不出来，
+                        // 提交停在它前面，其他准备线程等在提交窗口外，整个任务卡住。
+                        let prepared =
+                            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                prepare_file(inner, path, options, context)
+                            }))
+                            .unwrap_or_else(|_| {
+                                Prepared::Done(
+                                    ImportOutcome::ReadFailed {
+                                        reason: "处理这一项时出错".into(),
+                                    },
+                                    false,
+                                )
+                            });
                         if sender.send((index, prepared)).is_err() {
                             break;
                         }
@@ -664,9 +677,9 @@ fn prepare(
     let placeholder_width = thumbnail::placeholder_width(probed.width, probed.height);
     let placeholder = match timed(
         |s| &mut s.decode,
-        || render_sdr_widths(bytes, &probed, &[placeholder_width], DEFAULT_DOWNSCALE),
+        || render_sdr_verified(bytes, &probed, placeholder_width, DEFAULT_DOWNSCALE),
     ) {
-        Ok(mut rendered) => rendered.pop().and_then(Result::ok),
+        Ok(rendered) => rendered.ok(),
         Err(reason) => return failed(format!("无法解码：{reason}")),
     };
     let sha = timed(|s| &mut s.hash, || sha256_hex(bytes));
