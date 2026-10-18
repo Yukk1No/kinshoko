@@ -241,13 +241,10 @@ impl CaptureSelection<'_> {
                         .map_err(|e| CaptureError::Pixels(e.to_string()))?;
                     let bytes = std::fs::read(display.path)
                         .map_err(|e| CaptureError::Pixels(e.to_string()))?;
-                    let pixels = crate::fidelity::render::clipboard_rgba(&bytes)
-                        .map_err(CaptureError::Pixels)?;
-                    if pixels.dimensions() != (image.width, image.height)
-                        || crop
-                            .x
-                            .checked_add(crop.width)
-                            .is_none_or(|x| x > image.width)
+                    if crop
+                        .x
+                        .checked_add(crop.width)
+                        .is_none_or(|x| x > image.width)
                         || crop
                             .y
                             .checked_add(crop.height)
@@ -255,9 +252,19 @@ impl CaptureSelection<'_> {
                     {
                         return Err(CaptureError::SourceChanged);
                     }
-                    let mut copied =
-                        image::imageops::crop_imm(&pixels, crop.x, crop.y, crop.width, crop.height)
-                            .to_image();
+                    // 只转换选区的颜色（#127）：整张大图的线性光往返要数秒。
+                    let mut copied = crate::fidelity::render::clipboard_rgba_crop(
+                        &bytes,
+                        (image.width, image.height),
+                        crate::fidelity::render::UprightCrop {
+                            x: crop.x,
+                            y: crop.y,
+                            width: crop.width,
+                            height: crop.height,
+                        },
+                    )
+                    .map_err(CaptureError::Pixels)?
+                    .ok_or(CaptureError::SourceChanged)?;
                     let placement = surface.pin.placement;
                     // 与参考钉图一致：先翻转，后顺时针旋转；仅方向改变，绝不按屏幕缩放。
                     if placement.flip_h {
