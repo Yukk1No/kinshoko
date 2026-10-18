@@ -11,6 +11,7 @@ import type { FolderNode } from "../bindings/FolderNode";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageEdit } from "../bindings/ImageEdit";
 import type { PermanentDeletePreview } from "../bindings/PermanentDeletePreview";
+import type { WorkspaceSourceInspection } from "../bindings/WorkspaceSourceInspection";
 import {
   editImages,
   imageDetail,
@@ -19,7 +20,6 @@ import {
   previewEmptyTrash,
   previewPermanentDelete,
   sidebar,
-  workspaceSourceInspection,
   workspaceEditSource,
   workspaceSidebar,
   workspacePreviewSourceDelete,
@@ -27,8 +27,12 @@ import {
 } from "../ipc";
 import { TagPanel } from "./TagPanel";
 
+/** 来源整理时上层读到的来源检查：详情、标签与文件夹树出自同一次请求（#158）。stale：正在重读。 */
+export type SourceInspection = { value: WorkspaceSourceInspection; stale: boolean; reload: () => void };
+
 type Props = {
   sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
+  inspection?: SourceInspection;
   onSourceChanged?: () => void;
   libraryId: string;
   /** 主窗口：目录经工作区读取，任何一个已连接图库都可以，不要求它是后端此刻的可写库（ADR-0008）。 */
@@ -93,10 +97,13 @@ function Detail({
   detail,
   edit,
   sourceMode = false,
+  stale = false,
 }: {
   detail: ImageDetail;
   edit: (edits: ImageEdit[]) => void;
   sourceMode?: boolean;
+  /** 已选中别的图、它的详情还没到：先留着这张的，但不能操作。 */
+  stale?: boolean;
 }) {
   const { manual, sources } = detail.note;
   const sourceText = sources.map((s) => s.text).join("\n");
@@ -111,7 +118,7 @@ function Detail({
   }
 
   return (
-    <div className="selection-detail">
+    <div className="selection-detail" aria-busy={stale} inert={stale}>
       <div className="insp-file">
         <div className="insp-file-name" title={detail.originalName}>{detail.originalName}</div>
         <div className="insp-file-meta">{detail.width} × {detail.height} · 收集于 {new Date(detail.collectedAt).toLocaleString("zh-CN")}</div>
@@ -285,14 +292,16 @@ export function SelectionPanel({
   safeMode = false,
   generation = 0,
   sourceTarget,
+  inspection,
   onSourceChanged,
   bar,
   workspace = false,
 }: Props) {
   const ids = [...selected];
   const single = ids.length === 1 ? ids[0] : null;
-  const [folders, setFolders] = useState<{ id: string; label: string }[]>([]);
-  const [detail, setDetail] = useState<ImageDetail | null>(null);
+  const [libraryFolders, setFolders] = useState<{ id: string; label: string }[]>([]);
+  // 读到的详情记着它属于哪一次读取：切换选中图时先留着上一张的（不可操作），新的到了再换（#158）。
+  const [loaded, setLoaded] = useState<{ key: string; detail: ImageDetail } | null>(null);
   const [purging, setPurging] = useState(false);
   const selectionKey = ids.join("\n");
   const [sourceRefresh, setSourceRefresh] = useState(0);
@@ -303,30 +312,40 @@ export function SelectionPanel({
   // 选择变了就收起永久删除的确认。
   useEffect(() => setPurging(false), [selectionKey]);
 
+  // 文件夹树和选了哪张图无关（#158）：只在资料库、安全模式或数据代次变化时重读。
+  // 来源整理的文件夹树在来源检查里。
+  const sourceMode = sourceTarget !== undefined;
   useEffect(() => {
+    if (sourceMode) return;
     let alive = true;
-    (sourceTarget || workspace ? workspaceSidebar(libraryId, safeMode) : sidebar(libraryId)).then(
+    (workspace ? workspaceSidebar(libraryId, safeMode) : sidebar(libraryId)).then(
       (s) => alive && setFolders(flattenFolders(s.folders)),
       () => undefined,
     );
     return () => {
       alive = false;
     };
-  }, [libraryId, reloadKey, safeMode, requestKey, sourceRefresh, workspace]);
+  }, [libraryId, reloadKey, safeMode, workspace, sourceMode]);
+  const folders = inspection ? flattenFolders(inspection.value.sidebar.folders) : libraryFolders;
 
+  const detailKey = JSON.stringify([requestKey, reloadKey, sourceRefresh]);
   useEffect(() => {
     let alive = true;
-    setDetail(null);
     // Delete confirmation owns the selection now; listStale must not start another detail read.
-    if (single && !purging)
-      (sourceTarget ? workspaceSourceInspection(sourceTarget, safeMode, "zh-CN").then((value) => value.detail) : imageDetail(libraryId, single)).then(
-        (d) => alive && setDetail(d),
-        (e) => alive && onError(String(e)),
-      );
+    if (!single || purging || sourceMode) {
+      setLoaded(null);
+      return;
+    }
+    imageDetail(libraryId, single).then(
+      (d) => alive && setLoaded({ key: detailKey, detail: d }),
+      (e) => alive && onError(String(e)),
+    );
     return () => {
       alive = false;
     };
-  }, [libraryId, single, reloadKey, onError, purging, requestKey, sourceRefresh]);
+  }, [libraryId, single, reloadKey, onError, purging, detailKey, sourceMode]);
+  const detail = sourceMode ? inspection?.value.detail ?? null : loaded?.detail ?? null;
+  const stale = sourceMode ? !!inspection?.stale : loaded?.key !== detailKey;
 
   const edit = (edits: ImageEdit[], clear = false) => {
     if (sourceTarget) {
@@ -334,14 +353,14 @@ export function SelectionPanel({
         if (currentKey.current !== requestKey) return;
         const sealed = safeMode && edits.some((e) => (e.kind === "setRating" && isAdult(e.rating)) ||
           (e.kind === "revertRating" && isAdult(detail?.rating.suggested ?? null)));
-        if (clear || sealed) onClear(); else setSourceRefresh((n) => n + 1);
+        if (clear || sealed) onClear(); else { setSourceRefresh((n) => n + 1); inspection?.reload(); }
         onSourceChanged?.();
       }, (e) => { if (currentKey.current === requestKey) onError(String(e)); });
     }
     return editImages(libraryId, ids, edits).then(
       (details) => {
         if (currentKey.current !== requestKey) return;
-        if (single && details[0]) setDetail(details[0]);
+        if (single && details[0]) setLoaded({ key: detailKey, detail: details[0] });
         const sealed = safeMode && details.some((d) => isAdult(d.rating.effective));
         if (clear || sealed) onClear();
       },
@@ -408,8 +427,8 @@ export function SelectionPanel({
         />
       )}
       {/* 标签面板保持在原位置（编辑中的输入不因详情重读而重置）；详情面板用 CSS order 把文件名排在它前面。 */}
-      {!purging && <TagPanel sourceTarget={sourceTarget} libraryId={libraryId} ids={ids} safe={safeMode} generation={generation + sourceRefresh} onError={onError} />}
-      {!purging && detail && <Detail key={detail.id} sourceMode={!!sourceTarget} detail={detail} edit={(e) => void edit(e)} />}
+      {!purging && <TagPanel sourceTarget={sourceTarget} inspection={inspection && { tags: inspection.value.tags, stale: inspection.stale, reload: inspection.reload }} libraryId={libraryId} ids={ids} safe={safeMode} generation={generation + sourceRefresh} onError={onError} />}
+      {!purging && detail && <Detail key={detail.id} sourceMode={!!sourceTarget} detail={detail} stale={stale} edit={(e) => void edit(e)} />}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ResolvedTagIdentity } from "../bindings/ResolvedTagIdentity";
+import type { CatalogImageTags } from "../bindings/CatalogImageTags";
 import type { ImageTags } from "../bindings/ImageTags";
 import type { TagEdit } from "../bindings/TagEdit";
 import type { TagLabel } from "../bindings/TagLabel";
@@ -7,12 +8,14 @@ import type { TagNamespace } from "../bindings/TagNamespace";
 import type { TagOrigin } from "../bindings/TagOrigin";
 import type { TagRef } from "../bindings/TagRef";
 import type { VocabularyTag } from "../bindings/VocabularyTag";
-import { addTagAlias, catalogImageTags, editTags, imageTags, removeTagAlias, vocabulary, workspaceSourceInspection, workspaceEditSourceTags } from "../ipc";
+import { addTagAlias, catalogImageTags, editTags, removeTagAlias, vocabulary, workspaceEditSourceTags } from "../ipc";
 import { TagMarks, UI_LANG, tagName, useCandidates } from "../search/SearchBox";
 import { AtSign, Ban, Check, Tags, Undo2, X } from "lucide-react";
 
 type Props = {
   sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
+  /** 来源整理：标签出自上层的来源检查（#158），改了标签请上层重读。 */
+  inspection?: { tags: CatalogImageTags; stale: boolean; reload: () => void };
   libraryId: string;
   /** 选中的参考图；只有一张时列出它的标签。 */
   ids: string[];
@@ -49,10 +52,10 @@ const byId = (tag: TagLabel): TagRef => ({ kind: "id", id: tag.id });
  * 人工标签决定，给标签加别名；选几张都能按命名空间与名称（或别名）一次添加、否决或清除。
  * 人工标签决定优先于来源事实，重新打标或重新迁入不会覆盖。
  */
-export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarget }: Props) {
+export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarget, inspection }: Props) {
   const single = ids.length === 1 ? ids[0] : null;
-  const [identities, setIdentities] = useState<ResolvedTagIdentity[]>([]);
-  const [tags, setTags] = useState<ImageTags | null>(null);
+  // 读到的标签记着它属于哪一次读取：切换选中图时先留着上一张的（不可操作），新的到了再换（#158）。
+  const [loaded, setLoaded] = useState<{ key: string; tags: ImageTags; identities: ResolvedTagIdentity[] } | null>(null);
   const [aliasFor, setAliasFor] = useState<TagLabel | null>(null);
   const [namespace, setNamespace] = useState<TagNamespace>("general");
   const [text, setText] = useState("");
@@ -62,42 +65,35 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   const currentKey = useRef(identityKey);
   currentKey.current = identityKey;
   useEffect(() => { currentKey.current = identityKey; return () => { currentKey.current = ""; }; }, [identityKey]);
+  const loadKey = JSON.stringify([identityKey, refresh]);
 
+  const sourceMode = sourceTarget !== undefined;
   useEffect(() => {
     let alive = true;
-    if (!single) {
-      setTags(null);
-      setIdentities([]);
+    if (!single || sourceMode) {
+      setLoaded(null);
       return;
     }
-    setIdentities([]);
-    setTags(null);
-    if (sourceTarget) {
-      workspaceSourceInspection(sourceTarget, safe, UI_LANG).then(
-        (value) => { if (alive) { setTags(value.tags.image); setIdentities(value.tags.identities); } },
-        (error) => alive && onError(String(error)),
-      );
-      return () => { alive = false; };
-    }
+    // 统一标签身份与有效标签出自同一次查询（#158）。
     catalogImageTags(libraryId, single, UI_LANG).then(
-      (value) => alive && setIdentities(value?.identities ?? []),
+      (value) => alive && setLoaded({ key: loadKey, tags: value.image, identities: value.identities }),
       (error) => alive && onError(String(error)),
-    );
-    imageTags(libraryId, single, UI_LANG).then(
-      (value) => alive && setTags(value),
-      (e) => alive && onError(String(e)),
     );
     return () => {
       alive = false;
     };
-  }, [libraryId, single, safe, generation, refresh, onError, identityKey]);
+  }, [libraryId, single, safe, generation, refresh, onError, loadKey, sourceMode]);
+  const shown = sourceMode ? (single && inspection ? { tags: inspection.tags.image, identities: inspection.tags.identities } : null) : loaded;
+  const tags = shown?.tags ?? null;
+  const identities = shown?.identities ?? [];
+  const stale = sourceMode ? !!inspection?.stale : loaded !== null && loaded.key !== loadKey;
 
   // 换了选中的图，别名编辑跟着关掉。
   useEffect(() => setAliasFor(null), [single]);
 
   const edit = (edits: TagEdit[]) =>
     (sourceTarget ? workspaceEditSourceTags(sourceTarget, safe, edits) : editTags(libraryId, ids, edits)).then(
-      () => { if (currentKey.current === identityKey) setRefresh((n) => n + 1); },
+      () => { if (currentKey.current !== identityKey) return; if (inspection) inspection.reload(); else setRefresh((n) => n + 1); },
       (e) => { if (currentKey.current === identityKey) onError(String(e)); },
     );
 
@@ -119,7 +115,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
       <h4><Tags size={13} aria-hidden="true" />标签</h4>
       {tags && (
         <>
-          <ul className="tag-list k-tag-chips" aria-label="有效标签">
+          <ul className="tag-list k-tag-chips" aria-label="有效标签" aria-busy={stale} inert={stale}>
             {tags.tags.length === 0 && <li className="tag-empty k-tags-empty">还没有标签</li>}
             {tags.tags.map(({ tag, origins }) => {
               const manual = origins.some((o) => o.kind === "manual");
@@ -156,7 +152,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
           </ul>
           {tags.rejected.length > 0 && (<>
             <p className="k-tags-sub">已排除</p>
-            <ul className="tag-list tag-list-rejected k-tag-chips" aria-label="已否决">
+            <ul className="tag-list tag-list-rejected k-tag-chips" aria-label="已否决" aria-busy={stale} inert={stale}>
               {tags.rejected.map((tag) => {
                 const name = tagName(tag);
                 return (

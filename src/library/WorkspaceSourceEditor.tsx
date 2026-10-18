@@ -5,6 +5,7 @@ import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceSource } from "../bindings/WorkspaceSource";
 import type { WorkspaceSourceTarget } from "../bindings/WorkspaceSourceTarget";
 import type { GroupSummary } from "../bindings/GroupSummary";
+import type { WorkspaceSourceInspection } from "../bindings/WorkspaceSourceInspection";
 import { pinReference, referenceGroups, workspaceSourceGroup, workspaceSourceInspection } from "../ipc";
 import { libraryPathHint } from "./library-path";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
@@ -19,9 +20,11 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
   const path = (id: string) => registrations.find((r) => r.library.id === id)?.library.root;
   const hint = (id: string) => path(id) ? libraryPathHint(path(id)!, registrations.map((r) => r.library.root)) : id;
   const target: WorkspaceSourceTarget = { libraryId: source.libraryId, imageId: source.imageId, contentId: card.id };
-  const key = JSON.stringify([target, safe, reloadKey]);
+  // 整理改了这份来源后重读（#158：详情、标签与文件夹树都出自这一次来源检查）。
+  const [refresh, setRefresh] = useState(0);
+  const key = JSON.stringify([target, safe, reloadKey, refresh]);
   const current = useRef(key); current.current = key;
-  const [ready, setReady] = useState<{ key: string; deleted: boolean } | null>(null);
+  const [ready, setReady] = useState<{ key: string; value: WorkspaceSourceInspection } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupSummary[]>([]);
@@ -33,8 +36,8 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
     let alive = true;
     setProblem(null); setNotice(null);
     workspaceSourceInspection(target, safe, "zh-CN").then(
-      (value) => alive && setReady({ key, deleted: value.detail.deletedAt !== null }),
-      (error) => alive && setProblem(String(error)),
+      (value) => alive && setReady({ key, value }),
+      (error) => { if (alive) { setReady(null); setProblem(String(error)); } },
     );
     return () => { alive = false; };
   }, [key]);
@@ -43,7 +46,8 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
     referenceGroups().then((value) => alive && setGroups(value), () => {});
     return () => { alive = false; };
   }, []);
-  const available = ready?.key === key;
+  // 重读期间留着上一次的内容（不可操作），不让面板闪成“正在读取”。
+  const available = ready !== null;
   const run = (action: () => Promise<unknown>, message: string) => {
     setBusy(true); setProblem(null); setNotice(null);
     void action().then(() => { if (current.current === key) setNotice(message); },
@@ -59,7 +63,8 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
     {!available && !problem && <p className="insp-hint" role="status">正在读取该来源…</p>}
     {available && <>
       <SelectionPanel key={JSON.stringify(target)} sourceTarget={target} libraryId={source.libraryId}
-        selected={new Set([source.imageId])} scope={{ kind: ready.deleted ? "trash" : "all" }}
+        inspection={{ value: ready.value, stale: ready.key !== key, reload: () => setRefresh((n) => n + 1) }}
+        selected={new Set([source.imageId])} scope={{ kind: ready.value.detail.deletedAt !== null ? "trash" : "all" }}
         safeMode={safe} reloadKey={reloadKey} generation={reloadKey} onError={setProblem}
         onClear={onClose} onSourceChanged={onChanged} />
       <fieldset className="insp-use" disabled={busy}><legend>使用此来源</legend>
