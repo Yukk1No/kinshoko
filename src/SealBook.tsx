@@ -1,27 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { OPEN_MS, SEAL_MS, clamp, sealBookSVG } from "./shell/sealbook";
+import { useReducedMotion } from "./ui/reducedMotion";
 
 // The drawing and the progress-driven seal / release motion are copied verbatim from the approved
 // prototype (bd8aea44:prototype/reference-browser/src/components/SealBook.tsx, round-5 A1 round lock).
-// Only the wiring is the app's: its accessible names, and reduced motion read the way the prototype
-// reads it (`settings.reducedMotion || systemReduced()`): `:root[data-reduced-motion]` or the system.
-
-const REDUCED_QUERY = "(prefers-reduced-motion: reduce)";
-const reducedNow = () =>
-  !!window.matchMedia?.(REDUCED_QUERY).matches || document.documentElement.hasAttribute("data-reduced-motion");
-
-/** 系统或程序要求减少动画时为真；随系统设置变化。 */
-function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(reducedNow);
-  useEffect(() => {
-    const query = window.matchMedia?.(REDUCED_QUERY);
-    if (!query?.addEventListener) return;
-    const update = () => setReduced(reducedNow());
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-  return reduced;
-}
+// Only the wiring is the app's: its accessible names, and reduced motion (src/ui/reducedMotion.ts).
 
 /**
  * 封印书：安全模式的开关（第五轮 A1 圆锁，#27）。合上的书带一把圆锁表示开启，翻开的书表示关闭。
