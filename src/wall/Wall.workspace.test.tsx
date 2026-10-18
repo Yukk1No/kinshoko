@@ -76,6 +76,42 @@ it("目录或提供方修订刷新时清掉旧卡片，迟到的旧页不写回"
   expect(document.querySelector<HTMLElement>(".wall")?.dataset.total).toBe("0");
 });
 
+it("自动打标期间修订号前进时，新一页迟迟不到也一直显示已有卡片，到了再原地替换 (#142)", async () => {
+  const view = render(<Wall {...base} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
+  await settle();
+  await act(async () => calls[0].resolve(page([card])));
+  expect(document.querySelectorAll(".card")).toHaveLength(1);
+  // 每写入一张图修订号前进一次；后端排队，新一页的响应很晚才到。
+  for (const key of [1, 2, 3]) {
+    view.rerender(<Wall {...base} reloadKey={key} workspaceScope={{ kind: "all" }} safeMode />);
+    await settle();
+    expect(document.querySelectorAll(".card")).toHaveLength(1);
+  }
+  const tagged = { ...card, id: "tagged", imageId: "t" };
+  // 先到的旧请求作废，不写回。
+  await act(async () => calls[1].resolve(page([{ ...card, id: "stale" }])));
+  expect(document.querySelector('[data-id="stale"]')).toBeNull();
+  await act(async () => calls.at(-1)!.resolve(page([card, tagged])));
+  expect([...document.querySelectorAll<HTMLElement>(".card")].map((node) => node.dataset.id)).toEqual(["bytes", "tagged"]);
+  expect(document.querySelector<HTMLElement>(".wall")?.dataset.total).toBe("2");
+});
+
+it("工作区范围或安全模式切换时，旧视角的卡片不再显示 (#142)", async () => {
+  const view = render(<Wall {...base} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode={false} />);
+  await settle();
+  await act(async () => calls[0].resolve(page([{ ...card, adult: true }])));
+  expect(document.querySelectorAll(".card")).toHaveLength(1);
+  // App 切换安全模式或范围时同时让 reloadKey 前进。
+  view.rerender(<Wall {...base} reloadKey={1} workspaceScope={{ kind: "all" }} safeMode />);
+  await settle();
+  expect(document.querySelector(".card")).toBeNull();
+  await act(async () => calls.at(-1)!.resolve(page([card])));
+  expect(document.querySelectorAll(".card")).toHaveLength(1);
+  view.rerender(<Wall {...base} reloadKey={2} workspaceScope={{ kind: "library", libraryId: "B", scope: { kind: "all" } }} safeMode />);
+  await settle();
+  expect(document.querySelector(".card")).toBeNull();
+});
+
 it("安全模式和资料库范围改变时，旧候选页立即作废", async () => {
   const view = render(<Wall {...base} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode={false} />);
   await settle();

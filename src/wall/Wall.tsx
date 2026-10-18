@@ -300,10 +300,16 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   // Keyed by value: re-selecting the same range creates a new but equal object. Clearing on that
   // identity change emptied the wall without the reload below ever running again (T20 r5/r6).
   const workspaceKey = workspaceScope ? JSON.stringify(workspaceScope) : null;
+  const shownLens = useRef<string | null>(null);
   useLayoutEffect(() => {
-    if (!workspaceKey) return;
+    if (!workspaceKey) { shownLens.current = null; return; }
     generation.current += 1;
     inflight.current = null;
+    // 只是修订号前进（自动打标每写一张图一次，#142）：保留旧卡片，等新的一页回来原地替换。
+    // 范围或安全模式变了才清空，不露出旧视角的内容。
+    const lensKey = `${workspaceKey}\n${safeMode}`;
+    if (shownLens.current === lensKey) return;
+    shownLens.current = lensKey;
     // Emptying the canvas clamps browser scrollTop. Preserve the user's anchor
     // until the new authorized page restores it.
     restoring.current = true;

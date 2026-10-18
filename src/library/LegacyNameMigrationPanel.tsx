@@ -189,7 +189,14 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
   </Dialog.Root>;
 }
 
-/** 读取待确认的旧名称；词表变化、导入结束或向导确认后重读，安全模式切换时先清空。 */
+/** 词表连续变化时，两次旧名称检查之间至少隔开这么久（#142）。 */
+const REREAD_DELAY_MS = 200;
+
+/**
+ * 读取待确认的旧名称；词表变化、导入结束或向导确认后重读，安全模式切换时先清空。
+ * 自动打标每写一张图都会发 vocabularyChanged，而 plan_legacy_names 很重（#142）：同一时刻最多一次在途，
+ * 在途或等待期间来的变化只记下，返回后最多补读一次。
+ */
 function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps: unknown[]) {
   const [count, setCount] = useState(0);
   const matcher = useRef(match);
@@ -197,19 +204,33 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
   useEffect(() => {
     let alive = true;
     let generation = 0;
+    let running = false;
+    let stale = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     setCount(0);
-    const read = () => {
+    const start = () => {
+      timer = undefined;
+      if (!alive) return;
+      stale = false;
+      running = true;
       const request = ++generation;
       void planLegacyNames().then((view) => {
         if (alive && request === generation) setCount(view?.plan.groups.filter((group) => matcher.current(group)).length ?? 0);
-      }).catch(() => {});
+      }).catch(() => {}).finally(() => {
+        running = false;
+        if (alive && stale) schedule();
+      });
     };
+    const schedule = () => { if (!running && timer === undefined) timer = setTimeout(start, REREAD_DELAY_MS); };
+    const read = () => { stale = true; schedule(); };
+    start();
     read();
     const unlisten = onLibraryEvent((event) => { if (event.kind === "vocabularyChanged" || event.kind === "taskFinished") read(); });
     const safeStop = onSafeModeSetting(() => { generation++; setCount(0); });
     window.addEventListener(CHANGED, read);
     return () => {
       alive = false; generation++;
+      clearTimeout(timer);
       window.removeEventListener(CHANGED, read);
       void unlisten.then((stop) => stop()).catch(() => {}); void safeStop.then((stop) => stop()).catch(() => {});
     };
