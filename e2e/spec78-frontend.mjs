@@ -175,8 +175,10 @@ try {
   await until("返回全部范围",()=>exec("return document.querySelector('.wall').dataset.total==='43'"));
   check(true,"Ctrl 多选、真实文件夹归属和查找清除后范围保持可用");
   const card = await until("大图卡片", () => exec("const found=[...document.querySelectorAll('.card')].find(c=>Math.abs(c.offsetHeight/c.offsetWidth-2/3)<.02); if(!found){const w=document.querySelector('.wall');w.scrollTop+=300;w.dispatchEvent(new Event('scroll'));} return found"));
+  // 单击只选中并聚焦卡片，Enter 打开查看器（#146）。
   await wd("POST",base+"/element/"+(card[ELEMENT]??card.ELEMENT)+"/click",{});
-  const fitted = await until("真实单击打开查看器", image);
+  await key("\uE007");
+  const fitted = await until("真实单击选中后 Enter 打开查看器", image);
   check(fitted.w < 2400 && Math.abs(fitted.physicalW - fitted.w) < 0.01 && Math.abs(fitted.physicalH - fitted.h) < 0.01, "适应窗口按设备像素 1:1 显示派生图");
   await click("原始像素");
   const original = await until("原图解码", image);

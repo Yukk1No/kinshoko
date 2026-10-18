@@ -234,7 +234,8 @@ export async function freezeFormalPrototypePacket(workflow,plan) {
   d.assert(baseline.initial.resultCount===snapshot.total+" 张","formal result count equals this round's full public packet",baseline.initial);
   baseline.tasks.initial={observation:baseline.initial,screenshot:await shot(d,"prototype-formal-wall")};
   baseline.reading=await reveal(d,id);
-  await workflow.readyClick("//*[@role='option' and @data-id="+literal(id)+"]");
+  // 正式程序单击只选中并聚焦卡片，Enter 打开查看器（#146）。
+  await workflow.readyClick("//*[@role='option' and @data-id="+literal(id)+"]");await d.key("\uE007");
   await workflow.readyClick("//*[@aria-label='原图查看器']//*[@role='toolbar' and @aria-label='查看工具']//button["+named("适应窗口")+"]");
   baseline.tasks.viewer={observation:await until("formal fitted viewer painted",()=>d.exec(viewerObservationScript)),screenshot:await shot(d,"prototype-formal-viewer")};
   await d.key("\uE00C");
