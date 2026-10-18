@@ -746,7 +746,7 @@ fn prepare(
     // 浏览时也不必在滚动中现场生成。
     let placeholder_width = thumbnail::placeholder_width(probed.width, probed.height);
     let grid_px = thumbnail::grid_tier();
-    let Some(decode) = budget::decode(&probed, context.cancel.as_deref()) else {
+    let Some(decode) = budget::reserve_decode(&probed, context.cancel.as_deref()) else {
         // 任务已取消：这一项不会提交，不再解码。
         return failed("导入已取消".into());
     };

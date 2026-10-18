@@ -3,7 +3,7 @@
 //! 派生图要先把原图整张解码成 RGBA f32 线性光；几十张缺缓存的大图同时渲染会耗尽内存，
 //! 分配失败时进程直接 abort。同时在进行的整图解码按估算内存（像素数 × 每像素字节数）
 //! 合计不超过一个全进程上限，不按请求数或线程数计：浏览时现场生成缩略图、补缺失档位、
-//! 补占位图与导入时的校验解码都经过同一个 [`DECODE`]。超过上限的请求排队，按到达顺序放行。
+//! 补占位图、导入时的校验解码与复制图片都经过同一个 [`DECODE`]。超过上限的请求排队，按到达顺序放行。
 
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -42,7 +42,10 @@ pub(crate) struct DecodePermit {
 }
 
 /// 等到预算够用，为这张图占用整图解码预算。`cancel` 置位时放弃等待，返回 `None`。
-pub(crate) fn decode(inspection: &Inspection, cancel: Option<&AtomicBool>) -> Option<DecodePermit> {
+pub(crate) fn reserve_decode(
+    inspection: &Inspection,
+    cancel: Option<&AtomicBool>,
+) -> Option<DecodePermit> {
     DECODE
         .acquire(estimate(inspection), cancel)
         .map(|held| DecodePermit { _held: held })
@@ -159,6 +162,7 @@ pub mod probe {
     }
 
     /// 自上次 [`reset`] 以来，同时在进行的整图渲染估算内存的最大值（字节）。
+    /// 记的是未截断的估算：单张超过预算的图独占时，峰值就是它自己的估算。
     pub fn peak() -> u64 {
         PEAK.load(Ordering::SeqCst)
     }
@@ -168,6 +172,7 @@ pub mod probe {
         RENDERS.load(Ordering::SeqCst)
     }
 
+    /// 从现在起重新记录峰值。
     pub fn reset() {
         PEAK.store(IN_FLIGHT.load(Ordering::SeqCst), Ordering::SeqCst);
     }

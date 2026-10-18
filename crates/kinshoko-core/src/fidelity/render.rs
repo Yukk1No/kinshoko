@@ -130,7 +130,7 @@ pub fn render_sdr(
     downscale: Downscale,
 ) -> Result<SdrDerivative, String> {
     let inspection = inspect(bytes)?.ok_or("不支持的格式")?;
-    let permit = budget::decode(&inspection, None).expect("不可取消的等待总会占到");
+    let permit = budget::reserve_decode(&inspection, None).expect("不可取消的等待总会占到");
     render_sdr_widths(&permit, bytes, &inspection, &[max_width], downscale)?
         .pop()
         .expect("一个宽度一份结果")
@@ -246,6 +246,8 @@ fn clipboard_pixels(
     inspection: &Inspection,
     crop: Option<UprightCrop>,
 ) -> Result<image::RgbaImage, String> {
+    // 选区之外也要整张解码（CMYK 与 HDR 还要整图转换），与派生图共用整图解码预算。
+    let _permit = budget::reserve_decode(inspection, None).expect("不可取消的等待总会占到");
     let srgb = ColorProfile::new_srgb();
     let working = profiles::linear_of(&srgb);
     let (w, h, linear) = decode_linear_crop(bytes, inspection, &working, crop)?;
