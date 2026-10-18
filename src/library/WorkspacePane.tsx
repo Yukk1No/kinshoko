@@ -72,17 +72,15 @@ function TrashRow({ label, count, current, expanded, disabled, onClick, menu }: 
  * 侧栏（方案 D，#113；design/ui-system/README.md 侧栏布局）：顶部固定“全部图片”与跨库合计；中间是
  * Finder 式的图库分组，选中哪个图库内的范围就只展开哪个，选“全部图片”时全部折起，箭头可临时多展开；
  * 拖动图片或文件夹悬停在折起的图库上约 0.6 秒自动展开，放下或离开后恢复。每个已连接图库的目录都能
- * 直接整理（ADR-0008）；未连接的图库只占一行并可就地重新连接。底部固定 `foot`（自动打标）与跟随所选
- * 图库的回收站。
+ * 直接整理（ADR-0008）；未连接的图库只占一行并可就地重新连接。底部固定跟随所选图库的回收站。
  */
-export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onError, onRecheck, onRemoved, foot, children }: {
+export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onError, onRecheck, onRemoved, children }: {
   status: WorkspaceStatus | null; scope: WorkspaceScope; onScope: (scope: WorkspaceScope) => void;
   safeMode: boolean; reloadKey: number; onError: (message: string) => void;
   /** 重新检查未连接的图库（移动盘接回后）。 */
   onRecheck?: () => void;
   /** 图库标题菜单“从列表移除”完成后（取消登记，文件不删）。 */
   onRemoved?: (libraryId: string) => void;
-  foot?: ReactNode;
   children?: ReactNode;
 }) {
   // 代次（登记了哪些图库、各自是否可用、安全模式）变了，旧目录在新结果到达前就不再显示。内容变化
@@ -283,7 +281,6 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
     {children}
     </div>
     <div className="side-foot">
-      {foot}
       {scope.kind === "library" ? selected && <TrashRow label={selected.registration.library.name} count={selected.sidebar?.trash}
         current={scope.scope.kind === "trash"} disabled={!selected.sidebar} onClick={() => onScope(trashOf(selected.registration.library.id))}
         menu={emptyItem(selected, "清空回收站…")} />

@@ -46,10 +46,10 @@ import { TagGroupsPane } from "./library/TagGroupsPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
 import { TagGroupBar } from "./search/TagGroupBar";
 import { Rail, type Section } from "./shell/Rail";
-import { SettingsPanel } from "./SettingsPanel";
+import { SettingsPanel, type SettingsTab } from "./SettingsPanel";
 import { BackupReminder } from "./Backup";
 import { Dialog } from "@base-ui/react/dialog";
-import { TaggingIndicator } from "./TaggingIndicator";
+import { TaggingActivity } from "./TaggingActivity";
 import { UpdateBanner } from "./Update";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "./wall/Wall";
 import { WallMenu } from "./wall/WallMenu";
@@ -83,6 +83,8 @@ type WorkspaceProps = {
   notices?: ReactNode;
   /** 侧栏图库标题菜单“从列表移除”之后（#114）。 */
   onLibraryRemoved?: (libraryId: string) => void;
+  /** 点打标图标：打开设置 › 自动标签（#144）。 */
+  onOpenTaggingSettings: () => void;
 };
 
 /**
@@ -107,6 +109,7 @@ function LibraryWorkspace({
   onViewerChange,
   notices,
   onLibraryRemoved,
+  onOpenTaggingSettings,
 }: WorkspaceProps) {
   const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
   keepSelectionOnSafeRef.current = keepSelectionOnSafe;
@@ -454,8 +457,7 @@ function LibraryWorkspace({
           <WorkspacePane status={status} scope={workspaceScope} safeMode={safe}
             reloadKey={reloadKey} onError={onError} onRecheck={recheck} onRemoved={onLibraryRemoved} onScope={(next) => {
               setWorkspaceScope(next); setSelected(new Set()); setSources(null);
-            }}
-            foot={library && <TaggingIndicator key={`${library.id}/${library.root}`} libraryId={library.id} registered={status?.libraries.map((entry) => entry.library.id)} />}>
+            }}>
           </WorkspacePane>
           </div>
           {section === "groups" && <ReferenceGroupsPanel libraryId={libraryId || undefined} />}
@@ -558,8 +560,11 @@ function LibraryWorkspace({
             }}
             onPaste={wallActions.importClipboard}
           />
-          {/* 图片大小浮岛（#102 方案 C3）：图片墙右下角，与 Ctrl+滚轮缩放成对。 */}
-          <DensityIsland value={density} preview={zoomPreview} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
+          {/* 图片墙右下角：打标图标（#144）在图片大小浮岛（#102 方案 C3，与 Ctrl+滚轮缩放成对）的左边。 */}
+          <div className="k-wall-corner">
+            {library && <TaggingActivity libraryId={library.id} registered={status?.libraries.map((entry) => entry.library.id)} onOpenSettings={onOpenTaggingSettings} />}
+            <DensityIsland value={density} preview={zoomPreview} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
+          </div>
           {/* 多选的浮动操作条（#98）：选择面板把数量与批量操作放到这里。 */}
           <div className="selbar-host" ref={setBarHost} />
         </main>
@@ -638,6 +643,8 @@ function MainWindow() {
   const toast = useToast();
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  /** 设置打开时先显示的分页：状态栏打开通用，打标图标打开自动标签（#144）。 */
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   /** 确认旧名称向导：横幅或设置 › 标签的提示条打开，叠在当前界面上。 */
   const [nameWizard, setNameWizard] = useState(false);
   const [captureRequest,setCaptureRequest]=useState<{id:string;stamp:number}|null>(null);
@@ -778,7 +785,7 @@ function MainWindow() {
       <div className="rail-slot" inert={viewerOpen}>
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
           onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
-          onSettings={() => setShowSettings((shown) => !shown)} />
+          onSettings={() => { setSettingsTab("general"); setShowSettings((shown) => !shown); }} />
       </div>
       <div className="app-column">
       {library !== undefined && (
@@ -801,6 +808,7 @@ function MainWindow() {
           onViewerChange={setViewerOpen}
           notices={!empty && notices}
           onLibraryRemoved={(id) => { if (library?.id === id) changed(null); }}
+          onOpenTaggingSettings={() => { setSettingsTab("tagging"); setShowSettings(true); }}
         />
       )}
       {empty && (
@@ -841,6 +849,7 @@ function MainWindow() {
             <SettingsPanel
               version={info && `${info.productName} ${info.version}`}
               library={library ?? null}
+              initialTab={settingsTab}
               safe={safe}
               onSafeMode={toggleSafe}
               onOpenNameWizard={() => setNameWizard(true)}

@@ -10,6 +10,8 @@ export type ToastOptions = {
   /** ms; 0 keeps it until dismissed. Errors default to 0 so a real failure is never lost. */
   timeout?: number;
   action?: { label: string; onClick: () => void };
+  /** Called once the toast closes, whether dismissed by the artist or closed by code. */
+  onClose?: () => void;
 };
 export type ToastApi = {
   show: (options: ToastOptions) => string;
@@ -26,8 +28,8 @@ function Bridge({ children }: { children: ReactNode }) {
   const latest = useRef(manager);
   latest.current = manager;
   const api = useMemo<ToastApi>(() => {
-    const show = ({ title, description, tone = "info", timeout, action }: ToastOptions): string => latest.current.add({
-      title, description, type: tone, timeout: timeout ?? (tone === "error" ? 0 : 5000), priority: tone === "error" ? "high" : "low",
+    const show = ({ title, description, tone = "info", timeout, action, onClose }: ToastOptions): string => latest.current.add({
+      title, description, type: tone, onClose, timeout: timeout ?? (tone === "error" ? 0 : 5000), priority: tone === "error" ? "high" : "low",
       actionProps: action ? { children: action.label, onClick: action.onClick } : undefined,
     });
     return {
