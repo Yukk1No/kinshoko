@@ -67,6 +67,11 @@ node e2e/viewer.mjs target/debug/kinshoko.exe <msedgedriver.exe> <tauri-driver.e
 
 4000 px：首次响应 147–564 ms → ≤6 ms，空白帧 31–100% → 0，冷缓存停手 0.14–0.32 s → 0.43–0.58 s；1000 px 缩小首次响应约 0.5–0.6 s → ≤6 ms。修复后所有场景帧间隔 p95 ≤ 6 ms，p99 ≤ 6.3 ms；单帧最长 23.7 ms（4000 px 冷放大）与 100 ms（4000 px 冷扫动，各一次，未见复现）。另有一轮在其他会话并行编译 16 个 rustc 时测得 8000 px 热扫动 p99 29.6 ms，安静时复测三轮均为 6 ms，不计入。
 
+8000 px 从原始像素连续缩小约 250 ms 时的窗口（`KINSHOKO_ZOOM_PERF_SNAPSHOT=out`），修复前与修复后：
+
+![修复前：手势中只有“正在读取参考图…”](viewer-zoom-128-before.png)
+![修复后：画面跟着滚轮缩小](viewer-zoom-128-after.png)
+
 修复前帧间隔看似合格，是因为手势中图片被藏起来，没有东西可画。修复后：
 
 - 停手到精确图仍受 Rust 整图解码约束（8000 px 冷缓存 1.2–1.6 s），但等待期间画面已在当前尺寸上；
