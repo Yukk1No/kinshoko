@@ -130,7 +130,7 @@ it("后台已知副本分级使聚合图封印时，保留来源详情面板并�
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: "来源：甲库 · 查看详情" }));
   const inspector = screen.getByLabelText("详情", { selector: "aside" });
-  const preview = screen.getByRole("img", { name: "所选参考图" });
+  const preview = await screen.findByRole("img", { name: "所选参考图" });
   fireEvent.load(preview);
   fireEvent.click(screen.getByRole("button", { name: "整理此来源" }));
   await screen.findByRole("textbox", { name: "备注" });
@@ -180,7 +180,8 @@ it.each(["explicit", "selected"])("列表失效时立即撤销 %s 详情预览�
     fireEvent.click((await screen.findByRole("img", { name: "参考图" })).closest<HTMLElement>('[role="option"]')!, { ctrlKey: true });
   }
   const inspector = screen.getByLabelText("详情", { selector: "aside" });
-  fireEvent.load(screen.getByRole("img", { name: "所选参考图" }));
+  // 预览图在选择之后异步出现，等它挂上再派发 load，否则在较慢的机器上偶发找不到（#153 的 Windows CI）。
+  fireEvent.load(await screen.findByRole("img", { name: "所选参考图" }));
   let rejectBrowse!: (reason: string) => void, started = false;
   const pending = new Promise<WorkspacePage>((_, reject) => { rejectBrowse = reject; });
   state.nextBrowse = () => { started = true; return pending; };
