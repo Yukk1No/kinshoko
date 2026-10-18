@@ -1,7 +1,7 @@
 //! 诊断（#70）：“强制 sRGB”的 WebView2 启动参数、诊断日志与使用日志。
 //!
 //! 规则与脱敏在 `kinshoko_core::diagnostics`；这里只向 Windows 查询系统信息、接保存对话框。
-//! 使用日志放在本机数据目录的 `logs/`，不上传。
+//! 使用日志放在数据根目录的 `logs/`，不上传。
 
 use std::path::PathBuf;
 use std::sync::OnceLock;
@@ -17,10 +17,6 @@ use tauri_plugin_dialog::DialogExt as _;
 
 use crate::shell::ShellState;
 
-/// 与资料库插件相同：设置时日志也放进这个目录。
-const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
-const LOG_DIR: &str = "logs";
-
 static BROWSER_ARGS: OnceLock<String> = OnceLock::new();
 
 pub struct UsageState(pub UsageLog);
@@ -28,11 +24,7 @@ pub struct UsageState(pub UsageLog);
 /// 按启动时的设置定下 WebView2 启动参数、打开使用日志。在建任何窗口之前调用一次。
 pub fn start(app: &AppHandle, settings: &AppSettings) -> tauri::Result<()> {
     let _ = BROWSER_ARGS.set(webview_browser_args(settings.force_srgb_in_effect()));
-    let dir = match std::env::var_os(DATA_DIR_ENV) {
-        Some(dir) => PathBuf::from(dir),
-        None => app.path().app_local_data_dir()?,
-    };
-    let log = UsageLog::open(&dir.join(LOG_DIR), settings.usage_log());
+    let log = UsageLog::open(crate::data_dirs::app_data(app).logs(), settings.usage_log());
     log.record(UsageEvent::AppStarted);
     app.manage(UsageState(log));
     Ok(())
@@ -106,9 +98,14 @@ fn system_facts() -> SystemFacts {
     }
 }
 
-fn app_facts(state: &State<'_, ShellState>) -> Result<AppFacts, String> {
+fn app_facts(app: &AppHandle, state: &State<'_, ShellState>) -> Result<AppFacts, String> {
+    let migration_problem = app
+        .state::<crate::data_dirs::AppData>()
+        .migration_problem
+        .clone();
     let shell = state.0.lock().map_err(|e| e.to_string())?;
     Ok(AppFacts {
+        data_migration_problem: migration_problem,
         version: env!("CARGO_PKG_VERSION").to_owned(),
         force_srgb: shell.settings.force_srgb(),
         force_srgb_in_effect: shell.settings.force_srgb_in_effect(),
@@ -119,10 +116,11 @@ fn app_facts(state: &State<'_, ShellState>) -> Result<AppFacts, String> {
 /// 诊断日志全文（纯文本），设置界面显示并可复制。
 #[tauri::command]
 pub async fn diagnostics_report(
+    app: AppHandle,
     state: State<'_, ShellState>,
     runtime: Option<RuntimeCapabilities>,
 ) -> Result<String, String> {
-    let app = app_facts(&state)?;
+    let app = app_facts(&app, &state)?;
     tauri::async_runtime::spawn_blocking(move || {
         report_with_runtime(&app, &system_facts(), now(), runtime.as_ref())
     })
@@ -137,7 +135,7 @@ pub async fn export_diagnostics(
     state: State<'_, ShellState>,
     runtime: Option<RuntimeCapabilities>,
 ) -> Result<bool, String> {
-    let facts = app_facts(&state)?;
+    let facts = app_facts(&app, &state)?;
     tauri::async_runtime::spawn_blocking(move || {
         let text = report_with_runtime(&facts, &system_facts(), now(), runtime.as_ref());
         let Some(path) = save_dialog(&app, "kinshoko-诊断信息.txt", "文本", "txt") else {
@@ -223,6 +221,7 @@ mod tests {
             force_srgb: false,
             force_srgb_in_effect: false,
             usage_log: false,
+            data_migration_problem: None,
         };
         let facts = system_facts();
         let text = report_with_runtime(&app, &facts, now(), None);

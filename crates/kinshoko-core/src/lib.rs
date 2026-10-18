@@ -7,6 +7,7 @@ mod app_shell;
 pub mod application_settings_backup;
 pub mod approx;
 pub mod backup;
+pub mod data_dirs;
 pub mod desktop;
 mod device;
 mod device_libraries;

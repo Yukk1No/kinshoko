@@ -14,6 +14,7 @@ use tauri::{AppHandle, Manager, WebviewWindowBuilder};
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt as _, Shortcut, ShortcutState};
 
+use crate::data_dirs::SharedWebview as _;
 use crate::desktop;
 
 /// 主窗口的标签，与 `tauri.conf.json` 一致。
@@ -37,8 +38,7 @@ impl Shell {
 
 /// 打开设置、注册快捷键、按设置同步开机自启。在 `setup` 里调用一次。
 pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let dir = app.path().app_config_dir()?;
-    let settings = AppSettings::open(&dir)?;
+    let settings = AppSettings::open(crate::data_dirs::app_data(app).settings())?;
     // 先定下 WebView2 启动参数（强制 sRGB），之后才建窗口。
     crate::diagnostics::start(app, &settings)?;
     let shortcuts = GlobalShortcuts::start(TauriHotkeys { app: app.clone() }, &settings);
@@ -89,10 +89,8 @@ pub fn open_main_window(app: &AppHandle) {
     };
     crate::desktop::clear_viewer_reference(app);
     crate::diagnostics::record(app, UsageEvent::MainWindowOpened);
-    match WebviewWindowBuilder::from_config(app, config).and_then(|b| {
-        b.additional_browser_args(crate::diagnostics::browser_args())
-            .build()
-    }) {
+    match WebviewWindowBuilder::from_config(app, config).and_then(|b| b.shared_webview(app).build())
+    {
         Ok(window) => {
             let _ = window.set_focus();
         }

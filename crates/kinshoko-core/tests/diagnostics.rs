@@ -28,6 +28,7 @@ fn app() -> AppFacts {
         force_srgb: true,
         force_srgb_in_effect: false,
         usage_log: false,
+        data_migration_problem: None,
     }
 }
 
@@ -180,4 +181,27 @@ fn paths_and_image_file_names_reported_by_the_system_never_reach_the_report() {
     }
     assert!(text.contains("<路径>"), "{text}");
     assert!(text.contains("自动色彩管理"), "{text}");
+}
+
+#[test]
+fn a_failed_data_migration_is_reported_without_paths() {
+    let mut facts = app();
+    facts.data_migration_problem =
+        Some(r"拒绝访问。 (os error 5)：C:\Users\画师\AppData\Roaming\dev.kinshoko".into());
+
+    let text = report(&facts, &system(Vec::new()), GENERATED_AT);
+
+    assert!(text.contains("数据位置：旧位置"), "{text}");
+    assert!(text.contains("拒绝访问"), "{text}");
+    assert!(text.contains("下次启动重试"), "{text}");
+    assert!(!text.contains("画师"), "{text}");
+}
+
+#[test]
+fn normally_the_report_says_data_lives_next_to_the_program() {
+    let text = report(&app(), &system(Vec::new()), GENERATED_AT);
+    assert!(
+        text.contains("数据位置：程序目录下的 data 文件夹"),
+        "{text}"
+    );
 }

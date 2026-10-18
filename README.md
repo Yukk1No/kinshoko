@@ -49,6 +49,6 @@ cargo clippy --workspace --all-targets -- -D warnings   # 需先 npm run vite:bu
 node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # 需 tauri-driver 与匹配 WebView2 版本的 msedgedriver
 ```
 
-应用常驻托盘：关闭主窗口只销毁 WebView，从托盘菜单“退出”才结束进程。本设备的设置（开机自启、全局快捷键）保存在 `%APPDATA%\dev.kinshoko\settings.json`。调试构建不写系统的开机自启登记；手动测试 release 构建时可设置环境变量 `KINSHOKO_SKIP_AUTOSTART=1` 达到同样效果。常驻内存实测见 [resident-memory.md](docs/validation/resident-memory.md)。
+应用常驻托盘：关闭主窗口只销毁 WebView，从托盘菜单“退出”才结束进程。设置、打标模型等程序自己的数据都在程序所在目录下的 `data\` 文件夹（开发时是 `target\debug\data\`，见 [ADR-0009](docs/adr/0009-portable-data-root.md)）；测试时用环境变量 `KINSHOKO_DATA_DIR` 换到别的目录。调试构建不写系统的开机自启登记；手动测试 release 构建时可设置环境变量 `KINSHOKO_SKIP_AUTOSTART=1` 达到同样效果。常驻内存实测见 [resident-memory.md](docs/validation/resident-memory.md)。
 
 改了跨前后端的 Rust 类型（带 `#[ts(export)]`）后运行 `npm run bindings` 并提交生成物；CI 会重新生成并检查与提交内容一致。CI 在 `windows-latest` 上依次运行格式检查、Clippy、核心 crate 测试、生成物检查、TS 类型检查、前端测试与 Tauri 原生构建，见 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)。

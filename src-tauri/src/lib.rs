@@ -5,6 +5,7 @@
 
 mod backup;
 mod commands;
+mod data_dirs;
 mod desktop;
 mod diagnostics;
 mod fidelity_gate;
@@ -16,6 +17,16 @@ mod updater;
 use tauri::RunEvent;
 
 pub fn run() {
+    // 数据根目录在建应用之前定下来：各插件的 setup 与第一个窗口都要用（#145）。
+    let data = match data_dirs::prepare() {
+        Ok(data) => data,
+        Err(message) => {
+            eprintln!("{message}");
+            #[cfg(windows)]
+            desktop::win32::show_error("Kinshoko 无法启动", &message);
+            std::process::exit(1);
+        }
+    };
     let app = tauri::Builder::default()
         // 第二次启动（例如开机自启后又双击图标）只把已有进程的主窗口叫出来。
         // 带 `--fidelity-gate` 时改为开始还原度门槛实验。
@@ -25,6 +36,7 @@ pub fn run() {
                 None => shell::open_main_window(app),
             },
         ))
+        .manage(data)
         .manage(fidelity_gate::GateState::default())
         // 对话框插件要注册在这里：插件的 setup 运行时 Tauri 持有插件表的锁，
         // 在 setup 里再调用 `app.plugin` 会死锁，应用卡在启动阶段。

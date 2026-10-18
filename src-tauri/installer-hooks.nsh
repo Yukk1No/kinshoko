@@ -16,3 +16,20 @@
 !macro NSIS_HOOK_PREUNINSTALL
   Delete "$INSTDIR\DirectML.dll"
 !macroend
+
+; 数据根目录（#145，ADR-0009）：设置、打标模型等程序数据在 $INSTDIR\data。
+; Tauri 的卸载模板只逐个删除自己装的文件，最后 RMDir "$INSTDIR" 不带 /r，不会连带删掉 data。
+; 自动更新（/UPDATE）、静默（/S）与被动（/P）卸载一律保留；覆盖安装不运行卸载程序。
+; 交互式卸载：在确认页勾了“删除应用数据”就一起删；没勾时再问一次，默认“否”。
+!macro NSIS_HOOK_POSTUNINSTALL
+  ${If} $UpdateMode <> 1
+  ${AndIf} $PassiveMode <> 1
+  ${AndIfNot} ${Silent}
+  ${AndIf} ${FileExists} "$INSTDIR\data\*.*"
+    ${If} $DeleteAppDataCheckboxState = 1
+    ${OrIf} ${Cmd} `MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "同时删除设置与打标模型？（资料库不受影响）$\r$\n$\r$\n$INSTDIR\data" /SD IDNO IDYES`
+      RMDir /r "$INSTDIR\data"
+      RMDir "$INSTDIR"
+    ${EndIf}
+  ${EndIf}
+!macroend

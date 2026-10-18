@@ -17,6 +17,7 @@ use tauri::{
 };
 
 use super::{lock, pins, state};
+use crate::data_dirs::SharedWebview as _;
 
 pub const MENU_WINDOW: &str = "desktop-menu";
 const OPEN_EVENT: &str = "desktop-menu";
@@ -72,7 +73,7 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     .skip_taskbar(true)
     .always_on_top(true)
     .visible(false)
-    .additional_browser_args(crate::diagnostics::browser_args())
+    .shared_webview(app)
     .build()
     .map_err(|e| e.to_string())?;
     let handle = app.clone();
