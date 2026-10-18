@@ -1,7 +1,9 @@
 //! 框选截图（F1）：冻结光标所在的显示器，在上面框选区域，钉住或复制。
 //!
-//! 流程（#7 原型）：抓取整台显示器 → 记下截取时的显示器配置文件 → 在显示器的物理矩形上
-//! 建一个隐藏的框选窗口 → 页面载入冻结屏幕后调用 `capture_ready` 才显示，免得先闪一下空窗口。
+//! 流程（#7 原型）：抓取整台显示器 → 记下截取时的显示器配置文件 → 把隐藏的框选窗口移到显示器的
+//! 物理矩形上 → 页面载入冻结屏幕后调用 `capture_ready` 才显示，免得先闪一下空窗口。
+//! 框选窗口第一次用时建好、结束时只隐藏，下次复用（#129，与钉图菜单窗口相同）：每次 F1 新建 WebView
+//! 要 0.2～2 秒，主窗口关着时更要冷启动 WebView2，是按键后迟迟没有反应的主因。
 //! 选区以相对显示器的物理像素传回；落在未遮挡参考图内时保留来源，否则裁下后存入截图历史。
 
 use std::sync::atomic::Ordering;
@@ -242,15 +244,19 @@ fn freeze_visibility(app: &AppHandle, surface: &mut ReferenceSurface) -> bool {
 
 /// 开始截图：已经在框选时把框选窗口叫到前面，否则在别的线程上抓屏。
 pub fn start(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
-        let _ = window.set_focus();
-        return;
-    }
+    super::timing("start");
     let token = uuid::Uuid::new_v4().simple().to_string();
     {
         let mut session = lock(&state(app).capture);
-        if !matches!(*session, Session::Idle) {
-            return;
+        match *session {
+            Session::Idle => {}
+            Session::Ready(_) => {
+                if let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
+                    let _ = window.set_focus();
+                }
+                return;
+            }
+            Session::Grabbing(_) => return,
         }
         *session = Session::Grabbing(token.clone());
     }
@@ -283,8 +289,43 @@ fn close_owned(app: &AppHandle, token: &str) {
         owns
     };
     if owns && let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
-        let _ = window.destroy();
+        // 留着给下一次（#129）：先隐藏，再让页面丢掉这次的冻结屏幕与选区。
+        let _ = window.hide();
+        let _ = window.emit_to(CAPTURE_WINDOW, SESSION_EVENT, ());
     }
+}
+
+/// 离开作用域时 [`close_owned`]。
+struct CloseOnDrop<'a>(&'a AppHandle, &'a str);
+
+impl Drop for CloseOnDrop<'_> {
+    fn drop(&mut self) {
+        close_owned(self.0, self.1);
+    }
+}
+
+/// 告诉框选页面：会话变了（有了新的冻结屏幕，或已结束），重新取 `frozen_screen`。
+const SESSION_EVENT: &str = "capture-session";
+
+fn capture_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
+    if let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
+        return Ok(window);
+    }
+    WebviewWindowBuilder::new(
+        app,
+        CAPTURE_WINDOW,
+        WebviewUrl::App("index.html?view=capture".into()),
+    )
+    .title("Kinshoko 截图")
+    .decorations(false)
+    .resizable(false)
+    .shadow(false)
+    .skip_taskbar(true)
+    .always_on_top(true)
+    .visible(false)
+    .additional_browser_args(crate::diagnostics::browser_args())
+    .build()
+    .map_err(|e| e.to_string())
 }
 
 fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
@@ -307,6 +348,7 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
         }
         let before_surfaces = references(app, metrics.as_ref().zip(before.as_ref()))?;
         let image = monitor.capture_image().map_err(|e| e.to_string())?;
+        super::timing("grabbed");
         let after = metrics
             .as_ref()
             .map(|m| request_main_frame(app, m))
@@ -335,6 +377,14 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
         monitor.y().map_err(|e| e.to_string())?,
     );
     let icc = monitor.name().ok().and_then(|name| display_profile(&name));
+    super::timing(&format!(
+        "frozen references={} covered={}",
+        references.len(),
+        references
+            .iter()
+            .map(|r| r.selection.covered.len())
+            .sum::<usize>()
+    ));
     let (width, height) = image.dimensions();
     {
         let mut session = lock(&state(app).capture);
@@ -352,27 +402,18 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
         });
     }
 
-    let window = WebviewWindowBuilder::new(
-        app,
-        CAPTURE_WINDOW,
-        WebviewUrl::App("index.html?view=capture".into()),
-    )
-    .title("Kinshoko 截图")
-    .decorations(false)
-    .resizable(false)
-    .shadow(false)
-    .skip_taskbar(true)
-    .always_on_top(true)
-    .visible(false)
-    .additional_browser_args(crate::diagnostics::browser_args())
-    .build()
-    .map_err(|e| e.to_string())?;
+    let window = capture_window(app)?;
+    super::timing("window.built");
     // 先移到目标显示器再定尺寸：跨越缩放比例不同的显示器时，移动会先按新比例改一次尺寸。
     window
         .set_position(PhysicalPosition::new(origin.0, origin.1))
         .map_err(|e| e.to_string())?;
     window
         .set_size(PhysicalSize::new(width, height))
+        .map_err(|e| e.to_string())?;
+    // 复用的页面早已载入：通知它取这次的冻结屏幕。新建的页面载入时自己会取。
+    window
+        .emit_to(CAPTURE_WINDOW, SESSION_EVENT, ())
         .map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -407,6 +448,7 @@ pub async fn start_capture(app: AppHandle) {
 /// 框选窗口要显示的冻结屏幕；没有进行中的截图时为 `None`。
 #[tauri::command]
 pub async fn frozen_screen(app: AppHandle) -> Option<FrozenScreen> {
+    super::timing("frozen_screen");
     match &*lock(&state(&app).capture) {
         Session::Ready(p) => Some(FrozenScreen {
             width: p.screen.image.width(),
@@ -455,6 +497,7 @@ pub async fn capture_ready(app: AppHandle, token: String) {
     if let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
         let _ = window.show();
         let _ = window.set_focus();
+        super::timing("shown");
     }
 }
 
@@ -515,6 +558,7 @@ pub async fn finish_capture(
     action: CaptureAction,
     token: String,
 ) -> Result<(), String> {
+    super::timing("finish.begin");
     let pending = {
         let mut session = lock(&state(&app).capture);
         match std::mem::replace(&mut *session, Session::Grabbing(token.clone())) {
@@ -525,90 +569,115 @@ pub async fn finish_capture(
             }
         }
     };
-    close_owned(&app, &token);
+    // 框选窗口留到结果可用（剪贴板写好／钉图已显示）才隐藏，期间页面显示进度（#127）：
+    // 读大原图可能要一秒左右，先关掉窗口会让人以为按键没生效。
     tauri::async_runtime::spawn_blocking(move || {
-        let references: Vec<_> = pending
-            .references
-            .iter()
-            .map(|s| s.selection.clone())
-            .collect();
-        let selection = CaptureSelection {
-            screen: &pending.screen,
-            origin: pending.origin,
-            region,
-            references: &references,
-        };
-        let at = selection.screen_rect().map_err(|e| e.to_string())?;
-        if crate::library::capture_generation(&app) != pending.safe_generation {
-            return Err("安全模式已变化，请重新框选".into());
+        // 出错甚至 panic 也要结束会话、隐藏窗口，否则之后的 F1 都被当成还在截。
+        let _close = CloseOnDrop(&app, &token);
+        let result = finish_blocking(&app, pending, region, action);
+        if let Ok(Some(pin)) = &result {
+            pins::wait_shown(&app, pin, Duration::from_secs(5));
         }
-        validate_source(&app, &pending, at)?;
-        // Only the final validation grants authority. Do not keep the veil mutex through
-        // original decoding: a mode commit must be able to revoke while this work runs.
-        let veils = lock(&state(&app).veils).clone();
-        #[cfg(debug_assertions)]
-        let prepare_started = Instant::now();
-        #[cfg(debug_assertions)]
-        eprintln!("capture.source.prepare.begin at={}", now_ms());
-        let draft = crate::library::with_references(&app, |sources| {
-            selection.prepare(
-                action,
-                &uuid::Uuid::new_v4().simple().to_string(),
-                sources,
-                &veils,
-            )
-        })
-        .map_err(|e| e.to_string())?;
-        #[cfg(debug_assertions)]
-        eprintln!(
-            "capture.source.prepare.end at={} ms={}",
-            now_ms(),
-            prepare_started.elapsed().as_millis()
-        );
-        // PNG compression and DIBV5 conversion finish before taking visibility authority.
-        // Revocation can return while these expensive, discardable preparations are running.
-        let clipboard = draft
-            .clipboard_image()
-            .map(PreparedImage::prepare)
-            .transpose()?;
-        // Mode/settings, source edits, providers and automatic ratings share this commit gate.
-        // Only history persistence and the actual OS/pin side effect occur within it.
-        crate::library::with_visibility_commit(&app, |generation| {
-            if generation != pending.safe_generation {
-                return Err("安全模式已变化，请重新框选".into());
-            }
-            validate_source(&app, &pending, at)?;
-            let outcome = draft
-                .commit_with_history(|prepared| lock(&state(&app).history).add_prepared(prepared))
-                .map_err(|error| error.to_string())?;
-            match outcome {
-                CaptureOutcome::PinReference(pin) => pins::open_reference_selection(&app, pin, at),
-                CaptureOutcome::CopyReference(_) => clipboard
-                    .expect("copy draft prepared clipboard formats")
-                    .commit(&app),
-                CaptureOutcome::PinCapture(entry) => {
-                    history_changed(&app);
-                    pins::open(
-                        &app,
-                        &entry,
-                        ScreenRect {
-                            width: entry.width,
-                            height: entry.height,
-                            ..at
-                        },
-                    )
-                }
-                CaptureOutcome::CopyCapture(_) => {
-                    history_changed(&app);
-                    clipboard
-                        .expect("copy draft prepared clipboard formats")
-                        .commit(&app)
-                }
-            }
-        })
+        result.map(|_| ())
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// 完成一次框选：解码、提交并产生结果。钉住时返回新钉图的 id。
+fn finish_blocking(
+    app: &AppHandle,
+    pending: Pending,
+    region: Region,
+    action: CaptureAction,
+) -> Result<Option<String>, String> {
+    let references: Vec<_> = pending
+        .references
+        .iter()
+        .map(|s| s.selection.clone())
+        .collect();
+    let selection = CaptureSelection {
+        screen: &pending.screen,
+        origin: pending.origin,
+        region,
+        references: &references,
+    };
+    let at = selection.screen_rect().map_err(|e| e.to_string())?;
+    if crate::library::capture_generation(app) != pending.safe_generation {
+        return Err("安全模式已变化，请重新框选".into());
+    }
+    validate_source(app, &pending, at)?;
+    // Only the final validation grants authority. Do not keep the veil mutex through
+    // original decoding: a mode commit must be able to revoke while this work runs.
+    let veils = lock(&state(app).veils).clone();
+    #[cfg(debug_assertions)]
+    let prepare_started = Instant::now();
+    #[cfg(debug_assertions)]
+    eprintln!("capture.source.prepare.begin at={}", now_ms());
+    let draft = crate::library::with_references(app, |sources| {
+        selection.prepare(
+            action,
+            &uuid::Uuid::new_v4().simple().to_string(),
+            sources,
+            &veils,
+        )
+    })
+    .map_err(|e| e.to_string())?;
+    #[cfg(debug_assertions)]
+    eprintln!(
+        "capture.source.prepare.end at={} ms={}",
+        now_ms(),
+        prepare_started.elapsed().as_millis()
+    );
+    // PNG compression and DIBV5 conversion finish before taking visibility authority.
+    // Revocation can return while these expensive, discardable preparations are running.
+    let clipboard = draft
+        .clipboard_image()
+        .map(PreparedImage::prepare)
+        .transpose()?;
+    super::timing("finish.prepared");
+    // Mode/settings, source edits, providers and automatic ratings share this commit gate.
+    // Only history persistence and the actual OS/pin side effect occur within it.
+    let committed = crate::library::with_visibility_commit(app, |generation| {
+        if generation != pending.safe_generation {
+            return Err("安全模式已变化，请重新框选".into());
+        }
+        validate_source(app, &pending, at)?;
+        let outcome = draft
+            .commit_with_history(|prepared| lock(&state(app).history).add_prepared(prepared))
+            .map_err(|error| error.to_string())?;
+        match outcome {
+            CaptureOutcome::PinReference(pin) => {
+                pins::open_reference_selection(app, pin, at).map(Some)
+            }
+            CaptureOutcome::CopyReference(_) => clipboard
+                .expect("copy draft prepared clipboard formats")
+                .commit(app)
+                .map(|()| None),
+            CaptureOutcome::PinCapture(entry) => {
+                history_changed(app);
+                pins::open(
+                    app,
+                    &entry,
+                    ScreenRect {
+                        width: entry.width,
+                        height: entry.height,
+                        ..at
+                    },
+                )
+                .map(Some)
+            }
+            CaptureOutcome::CopyCapture(_) => {
+                history_changed(app);
+                clipboard
+                    .expect("copy draft prepared clipboard formats")
+                    .commit(app)
+                    .map(|()| None)
+            }
+        }
+    });
+    super::timing(&format!("finish.end ok={}", committed.is_ok()));
+    committed
 }
 
 #[cfg(debug_assertions)]
