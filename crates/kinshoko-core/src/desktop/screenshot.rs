@@ -39,10 +39,11 @@ impl Screenshot {
         })
     }
 
-    /// 编码为 PNG（无损、内嵌配置文件）。`fast` 用于需要马上显示的冻结屏幕。
+    /// 编码为 PNG（无损、内嵌配置文件）。`fast` 用于需要马上显示的冻结屏幕：不压缩（#129），
+    /// 它只在进程内交给 WebView 一次，2560×1440 的快速压缩也要两三百毫秒。
     pub fn write_png(&self, out: impl Write, fast: bool) -> image::ImageResult<()> {
         let (compression, filter) = if fast {
-            (CompressionType::Fast, FilterType::Sub)
+            (CompressionType::Uncompressed, FilterType::NoFilter)
         } else {
             (CompressionType::Default, FilterType::Adaptive)
         };

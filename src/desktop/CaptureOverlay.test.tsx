@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { emit } from "@tauri-apps/api/event";
 import { CaptureOverlay } from "./CaptureOverlay";
 
 let reduced = false;
@@ -9,24 +10,32 @@ vi.mock("motion/react", async (actual) => ({ ...(await actual<typeof import("mot
 let calls: { cmd: string; args: any }[];
 /** 冻结时登记的参考图在框选窗口里的范围（物理像素）与原图倍率：选区完全落在里面时读原始像素。 */
 let reference: { x: number; y: number; width: number; height: number; scale: number } | null;
+/** 原生端此刻的冻结屏幕；会话结束时为 null。 */
+let frozen: { image: string; width: number; height: number } | null;
 beforeEach(() => {
   reduced = false;
   reference = null;
+  frozen = { image: "screen/tok", width: 2400, height: 1500 };
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.25 });
   mockConvertFileSrc("windows");
   calls = [];
   mockIPC((cmd, args) => {
     calls.push({ cmd, args });
-    if (cmd === "plugin:desktop|frozen_screen") return { image: "screen/tok", width: 2400, height: 1500 };
+    if (cmd === "plugin:desktop|frozen_screen") return frozen;
     if (cmd === "plugin:desktop|capture_readout") {
       const { region: r } = args as { region: { x: number; y: number; width: number; height: number } };
       const inside = reference && r.x >= reference.x && r.y >= reference.y && r.x + r.width <= reference.x + reference.width && r.y + r.height <= reference.y + reference.height;
       return inside ? { width: r.width * reference!.scale, height: r.height * reference!.scale } : null;
     }
     return null;
-  });
+  }, { shouldMockEvents: true });
 });
-afterEach(() => { cleanup(); clearMocks(); });
+afterEach(async () => {
+  cleanup();
+  // 卸载时异步取消事件订阅，等它完成再撤掉模拟。
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  clearMocks();
+});
 const sent = (name: string) => calls.filter((c) => c.cmd === `plugin:desktop|${name}`).map((c) => c.args);
 
 async function open() {
@@ -70,10 +79,13 @@ describe("截图框选（#98 dock）", () => {
   it.each([
     ["复制", "copy"], ["钉住", "pin"],
   ] as const)("点 dock 的%s与快捷键发出同一个结束请求", async (label, action) => {
-    const { root } = await open();
+    let { root } = await open();
     select(root, [100, 80], [200, 160]);
     const region = { x: 125, y: 100, width: 125, height: 100 };
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${label}`) })); });
+    cleanup();
+    ({ root } = await open());
+    select(root, [100, 80], [200, 160]);
     if (action === "copy") fireEvent.keyDown(window, { key: "c", ctrlKey: true });
     else fireEvent.keyDown(window, { key: "Enter" });
     expect(sent("finish_capture")).toEqual([{ region, action, token: "tok" }, { region, action, token: "tok" }]);
@@ -162,5 +174,57 @@ describe("截图读数区分原始像素（#103）", () => {
     select(root, [100, 80], [200, 160]);
     await within(readout()).findByText("原始像素");
     expect(star()!.style.transform).not.toMatch(/scale\(0\)|rotate/);
+  });
+});
+
+describe("框选窗口用完只隐藏，下一次复用（#129）", () => {
+  it("会话结束时丢掉冻结屏幕与选区；下一次会话载入新的冻结屏幕，报告新的就绪", async () => {
+    const { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    expect(screen.getByRole("toolbar", { name: "截图" })).toBeTruthy();
+    frozen = null;
+    await act(async () => { await emit("capture-session"); });
+    expect(screen.queryByAltText("")).toBeNull();
+    expect(screen.queryByRole("toolbar")).toBeNull();
+    frozen = { image: "screen/tok2", width: 2400, height: 1500 };
+    await act(async () => { await emit("capture-session"); });
+    const image = await screen.findByAltText("");
+    expect(image.getAttribute("src")).toContain("tok2");
+    expect(screen.queryByRole("toolbar")).toBeNull();
+    expect(screen.getByText("拖动框选 · 右键取消")).toBeTruthy();
+    fireEvent.load(image);
+    expect(sent("capture_ready")).toEqual([{ token: "tok2" }]);
+  });
+});
+
+describe("确认后立刻显示进度，结果可用才关（#127）", () => {
+  it("复制原图时 dock 换成“正在复制原图…”，按钮停用，不再接受第二次确认、取消或新选区", async () => {
+    reference = { x: 100, y: 50, width: 600, height: 400, scale: 4 };
+    const { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    await within(screen.getByRole("toolbar", { name: "截图" })).findByText("原始像素");
+    await act(async () => { fireEvent.keyDown(window, { key: "c", ctrlKey: true }); });
+    const dock = screen.getByRole("toolbar", { name: "截图" });
+    expect(within(dock).getByRole("status").textContent).toBe("正在复制原图…");
+    expect(within(dock).getAllByRole("button").every((b) => (b as HTMLButtonElement).disabled || b.getAttribute("aria-disabled") === "true")).toBe(true);
+    expect(root.className).toContain("is-busy");
+    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.pointerDown(root, { pointerId: 4, button: 2, clientX: 10, clientY: 10 });
+    select(root, [300, 300], [400, 400]);
+    expect(sent("finish_capture")).toHaveLength(1);
+    expect(sent("cancel_capture")).toEqual([]);
+    expect(within(screen.getByRole("toolbar", { name: "截图" })).getByRole("status")).toBeTruthy();
+  });
+
+  it("屏幕截图钉住时显示“正在钉住…”；原生端结束会话后进度消失", async () => {
+    const { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    await act(async () => { fireEvent.keyDown(window, { key: "Enter" }); });
+    expect(within(screen.getByRole("toolbar", { name: "截图" })).getByRole("status").textContent).toBe("正在钉住…");
+    frozen = null;
+    await act(async () => { await emit("capture-session"); });
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(root.isConnected).toBe(false);
   });
 });

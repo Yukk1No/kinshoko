@@ -1029,3 +1029,114 @@ fn ordinary_capture_preparation_can_be_discarded_without_writing_history() {
     assert_eq!(saved.get_pixel(3, 2).0, [6, 4, 99, 120]);
     assert_eq!(CaptureHistory::open(dir.path()).unwrap().entries(), entries);
 }
+
+/// 框选复制只裁下选区（#127）：方向转正后的选区与整图转正后再裁逐像素相同，八种 EXIF 方向都对。
+#[test]
+fn copying_a_part_of_an_oriented_original_gives_exactly_that_upright_region() {
+    use image::ImageEncoder;
+    use kinshoko_core::reference_groups::ReferenceSource;
+    let dir = tempfile::tempdir().unwrap();
+    let library = Library::create(&dir.path().join("library"), "方向局部").unwrap();
+    let lens = library.take_reference_lens().unwrap();
+    let detached = DetachedLenses::default();
+    let registry = registered(&library);
+    let references = References {
+        current: Some(lens),
+        registry: &registry,
+        detached: &detached,
+        safe_mode: true,
+    };
+    let mut history = CaptureHistory::open(&dir.path().join("captures")).unwrap();
+    // 每个像素都不同，裁错一格就能看出来。
+    let source = RgbaImage::from_fn(40, 24, |x, y| {
+        Rgba([(x * 6) as u8, (y * 10) as u8, ((x + y) * 3) as u8, 255])
+    });
+    let orientations = [
+        image::metadata::Orientation::NoTransforms,
+        image::metadata::Orientation::FlipHorizontal,
+        image::metadata::Orientation::Rotate180,
+        image::metadata::Orientation::FlipVertical,
+        image::metadata::Orientation::Rotate90FlipH,
+        image::metadata::Orientation::Rotate90,
+        image::metadata::Orientation::Rotate270FlipH,
+        image::metadata::Orientation::Rotate270,
+    ];
+    for (index, orientation) in orientations.into_iter().enumerate() {
+        let exif_value = index as u16 + 1;
+        assert_eq!(orientation.to_exif(), exif_value as u8);
+        let mut exif = b"II*\0".to_vec();
+        exif.extend(8u32.to_le_bytes());
+        exif.extend(1u16.to_le_bytes());
+        exif.extend(0x0112u16.to_le_bytes());
+        exif.extend(3u16.to_le_bytes());
+        exif.extend(1u32.to_le_bytes());
+        exif.extend(exif_value.to_le_bytes());
+        exif.extend([0, 0]);
+        exif.extend(0u32.to_le_bytes());
+        let mut bytes = Vec::new();
+        let mut encoder = image::codecs::png::PngEncoder::new(&mut bytes);
+        encoder.set_exif_metadata(exif).unwrap();
+        encoder
+            .write_image(source.as_raw(), 40, 24, image::ExtendedColorType::Rgba8)
+            .unwrap();
+        let input = dir.path().join(format!("part-{exif_value}.png"));
+        std::fs::write(&input, &bytes).unwrap();
+        let id = import_image(&library, input);
+        let image = references.image(&library.info().id, &id).unwrap();
+        // 1:1 显示，屏幕选区就是原图选区。
+        let shown = ScreenRect {
+            x: 0,
+            y: 0,
+            width: image.width,
+            height: image.height,
+        };
+        let surfaces = [CaptureSurface {
+            pin: SavedPin::reference(
+                "viewer",
+                &library.info().id,
+                &image,
+                None,
+                Placement::default(),
+            )
+            .unwrap(),
+            shown,
+            visible: shown,
+            covered: vec![],
+        }];
+        let screen = Screenshot {
+            image: RgbaImage::from_pixel(shown.width, shown.height, Rgba([255, 0, 255, 255])),
+            icc: None,
+        };
+        let region = Region {
+            x: 5,
+            y: 3,
+            width: 9,
+            height: 13,
+        };
+        let selection = CaptureSelection {
+            screen: &screen,
+            origin: (0, 0),
+            region,
+            references: &surfaces,
+        };
+        let CaptureOutcome::CopyReference(copied) = selection
+            .finish(
+                CaptureAction::Copy,
+                "copy",
+                &references,
+                &PinVeils::new(true),
+                &mut history,
+            )
+            .unwrap()
+        else {
+            panic!("应复制原图选区");
+        };
+        let mut upright = image::DynamicImage::ImageRgba8(source.clone());
+        upright.apply_orientation(orientation);
+        let expected = upright
+            .crop_imm(region.x, region.y, region.width, region.height)
+            .into_rgba8();
+        assert_eq!(copied, expected, "EXIF {exif_value}");
+    }
+    assert!(history.entries().is_empty());
+}

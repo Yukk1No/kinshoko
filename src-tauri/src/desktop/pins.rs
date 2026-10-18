@@ -17,7 +17,9 @@
 //! 拖动和缩放都由页面的 pointer 事件驱动、由程序移动窗口（笔与鼠标同一套处理；Windows Ink 下
 //! 没有系统拖动需要的鼠标事件，#7）。
 
+use std::collections::HashMap;
 use std::sync::atomic::Ordering;
+use std::sync::{Condvar, Mutex};
 
 use image::RgbaImage;
 use kinshoko_core::desktop::{
@@ -168,7 +170,7 @@ pub(super) fn open_reference_selection(
     app: &AppHandle,
     mut pin: SavedPin,
     at: ScreenRect,
-) -> Result<(), String> {
+) -> Result<String, String> {
     let (monitor, dpi) = monitor_at(at.x, at.y).unwrap_or((at, 1.0));
     pin.placement.scale = initial_scale(pin.width, pin.height, monitor);
     let (width, height) = pin.window_size();
@@ -187,7 +189,34 @@ pub(super) fn open_reference_selection(
         store.put(pin.clone());
         let _ = store.save();
     }
-    open_window(app, &pin)
+    open_window(app, &pin).map(|()| pin.id)
+}
+
+/// 正在等第一帧的新钉图（id → 已显示）。只登记有人等的钉图，[`pin_ready`] 唤醒。
+#[derive(Default)]
+pub struct ShownWaiters {
+    pins: Mutex<HashMap<String, bool>>,
+    changed: Condvar,
+}
+
+/// 等新钉图的第一帧画好、窗口显示出来（[`pin_ready`]），最多 `timeout`。窗口已关或建失败时立即返回。
+/// 只在后台线程调用；不轮询窗口状态，免得和建窗口抢主线程。
+pub(super) fn wait_shown(app: &AppHandle, pin: &str, timeout: std::time::Duration) {
+    let waiters = &state(app).pin_shown;
+    lock(&waiters.pins).insert(pin.to_owned(), false);
+    // 登记之前就已显示（或窗口已不在）时不必等。
+    let pending = app
+        .get_webview_window(&label(pin))
+        .is_some_and(|window| !window.is_visible().unwrap_or(false));
+    let mut pins = lock(&waiters.pins);
+    if pending {
+        pins = waiters
+            .changed
+            .wait_timeout_while(pins, timeout, |pins| pins.get(pin) == Some(&false))
+            .unwrap_or_else(|e| e.into_inner())
+            .0;
+    }
+    pins.remove(pin);
 }
 
 /// 改一个钉图的状态并安排保存。钉图不在时为 `None`。
@@ -199,9 +228,9 @@ fn edit<T>(app: &AppHandle, pin: &str, f: impl FnOnce(&mut SavedPin) -> T) -> Op
     out
 }
 
-/// 把截图历史中的一张截图钉到桌面。`at` 是图片原本在屏幕上的位置（物理像素）；
+/// 把截图历史中的一张截图钉到桌面，返回新钉图的 id。`at` 是图片原本在屏幕上的位置（物理像素）；
 /// 新钉图略微偏离它，并避开已有钉图（[`place_new_pin`]）。
-pub fn open(app: &AppHandle, capture: &CaptureEntry, at: ScreenRect) -> Result<(), String> {
+pub fn open(app: &AppHandle, capture: &CaptureEntry, at: ScreenRect) -> Result<String, String> {
     let center = (at.x + (at.width / 2) as i32, at.y + (at.height / 2) as i32);
     let (monitor, scale) = monitor_at(center.0, center.1)
         .or_else(|| monitor_at(at.x, at.y))
@@ -234,7 +263,7 @@ pub fn open(app: &AppHandle, capture: &CaptureEntry, at: ScreenRect) -> Result<(
         let _ = store.save();
     }
     history_changed(app);
-    open_window(app, &pin)
+    open_window(app, &pin).map(|()| pin.id)
 }
 
 /// 从查看器把资料库中的一张参考图钉到桌面：整图（`crop` 为 `None`）或局部（原图像素）。
@@ -337,6 +366,7 @@ pub fn reference_file(app: &AppHandle, pin: &str, size: &str) -> Option<std::pat
 
 /// 为一个钉图建窗口（新钉的，或启动时恢复的）。截图历史此前已经记下它被钉住。
 pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
+    super::timing("pin.window.begin");
     let rect = pin.rect();
     lock(&state(app).pins).insert(
         pin.id.clone(),
@@ -644,7 +674,7 @@ fn pin_from_clipboard(app: &AppHandle) -> Result<(), String> {
         .add_prepared(prepared)
         .map_err(|e| e.to_string())?;
     history_changed(app);
-    open(app, &entry, at_cursor(app, entry.width, entry.height)?)
+    open(app, &entry, at_cursor(app, entry.width, entry.height)?).map(|_| ())
 }
 
 /// F3：在别的线程上读剪贴板并钉住。
@@ -677,7 +707,7 @@ pub async fn pin_capture(app: AppHandle, id: String) -> Result<(), String> {
         .find(|e| e.id == id)
         .ok_or("截图已不在截图历史中")?;
     let at = at_cursor(&app, entry.width, entry.height)?;
-    open(&app, &entry, at)
+    open(&app, &entry, at).map(|_| ())
 }
 
 /// 从查看器钉整图或局部（见 [`pin_reference_here`]）。
@@ -749,8 +779,14 @@ pub async fn close_pin(
 /// 第一帧已画好：显示钉图。
 #[tauri::command]
 pub async fn pin_ready(app: AppHandle, pin: String) {
+    super::timing("pin.ready");
     if let Some(window) = app.get_webview_window(&label(&pin)) {
         let _ = window.show();
+    }
+    let waiters = &state(&app).pin_shown;
+    if let Some(shown) = lock(&waiters.pins).get_mut(&pin) {
+        *shown = true;
+        waiters.changed.notify_all();
     }
 }
 
