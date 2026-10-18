@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Sparkles } from "lucide-react";
-import type { TaggingStatus } from "./bindings/TaggingStatus";
-import { onTaggingStatus, onWritableLibrary, taggingDownload, taggingPause, taggingResume, taggingStatus } from "./ipc";
+import { taggingDownload, taggingPause, taggingResume } from "./ipc";
+import { useTaggingStatus } from "./useTaggingStatus";
 
 const mb = (bytes: number) => `${Math.round(bytes / 1_000_000)} MB`;
 const percent = (part: number, total: number) => (total > 0 ? Math.floor((part / total) * 100) : 0);
@@ -17,41 +17,8 @@ function Card({ children, progress }: { children: ReactNode; progress?: number }
  * 显示下载与打标进度，可以暂停（结束打标子进程、归还显存）与继续。
  */
 export function TaggingIndicator({ libraryId: opened, registered }: { libraryId: string; registered?: readonly string[] }) {
-  const [status, setStatus] = useState<TaggingStatus | null>(null);
-  // 打标跟着后端唯一的可写库走（ADR-0008）：整理另一个图库时它切过去，这里随之换库并重读状态；
-  // 只接受这个库的状态，旧库的迟到状态不串台。
-  const [libraryId, setLibraryId] = useState(opened);
-  useEffect(() => setLibraryId(opened), [opened]);
-  useEffect(() => {
-    let alive = true;
-    const unlisten = onWritableLibrary((library) => alive && setLibraryId(library.id));
-    return () => {
-      alive = false;
-      void unlisten.then((stop) => stop());
-    };
-  }, []);
-  // 跟过去的图库从列表移除时，后端卸下它的打标而不另发事件：回到打开的图库，不再显示、操作已移除的库。
-  const gone = registered !== undefined && libraryId !== opened && !registered.includes(libraryId);
-  useEffect(() => {
-    if (!gone) return;
-    setStatus(null);
-    setLibraryId(opened);
-  }, [gone, opened]);
-
-  useEffect(() => {
-    let alive = true;
-    taggingStatus(libraryId).then(
-      (s) => alive && s.libraryId === libraryId && setStatus(s.status),
-      () => {},
-    );
-    const unlisten = onTaggingStatus((s) => alive && s.libraryId === libraryId && setStatus(s.status));
-    return () => {
-      alive = false;
-      void unlisten.then((stop) => stop());
-    };
-  }, [libraryId]);
-
-  if (!status) return null;
+  const { libraryId, status } = useTaggingStatus(opened, registered);
+  if (!status || libraryId === null) return null;
   const act = (f: () => Promise<void>) => () => void f().catch(() => {});
   const pause = (
     <button type="button" className="k-btn is-ghost is-sm" onClick={act(() => taggingPause(libraryId))}>

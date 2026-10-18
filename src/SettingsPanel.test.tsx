@@ -7,8 +7,10 @@ import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { TagLabel } from "./bindings/TagLabel";
 import { SettingsPanel } from "./SettingsPanel";
 
-afterEach(() => {
+afterEach(async () => {
   cleanup();
+  // 卸载时异步取消事件订阅，等它完成再撤掉模拟。
+  await new Promise((resolve) => setTimeout(resolve, 0));
   clearMocks();
   delete window.__KINSHOKO_TEST_PICKS__;
 });
@@ -43,7 +45,7 @@ function backend(handle: (cmd: string, args: Record<string, unknown>) => unknown
     if (cmd === "plugin:library|safe_mode") return true;
     if (cmd === "plugin:library|workspace_status") return { revision: "r1", libraries: [] };
     return handle(cmd, a);
-  });
+  }, { shouldMockEvents: true });
   return calls;
 }
 
@@ -382,17 +384,40 @@ describe("程序设置备份", () => {
 });
 
 describe("设置：分页", () => {
-  it("竖排七个分页，导航底部显示版本，切换后显示该页的说明", async () => {
+  it("竖排八个分页，导航底部显示版本，切换后显示该页的说明", async () => {
     backend(() => undefined);
     render(<SettingsPanel version="Kinshoko 9.9.9" />);
     const tabs = await screen.findByRole("tablist", { name: "设置分页" });
-    expect(within(tabs).getAllByRole("tab").map((t) => t.textContent)).toEqual(["通用", "快捷键", "标签", "备份", "安全", "更新", "诊断"]);
+    expect(within(tabs).getAllByRole("tab").map((t) => t.textContent)).toEqual(["通用", "快捷键", "标签", "自动标签", "备份", "安全", "更新", "诊断"]);
     expect(tabs.getAttribute("aria-orientation")).toBe("vertical");
     expect(screen.getByText("Kinshoko 9.9.9")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "通用", level: 3 })).toBeTruthy();
     await tab("安全");
     expect(screen.getByText("成人图收进封印书，需要时再打开。")).toBeTruthy();
     expect(screen.queryByRole("switch", { name: "开机启动" })).toBeNull();
+  });
+
+  it("自动打标与模型包移到自动标签分页，通用分页不再有", async () => {
+    backend((cmd, args) => {
+      if (cmd === "tagging_models") return { model: "PixAI Tagger v1.0", selected: null, options: [] };
+      if (cmd === "tagging_status") return { libraryId: args.libraryId, status: { state: "paused" } };
+      return undefined;
+    });
+    render(<SettingsPanel library={{ id: "L1", name: "资料库", root: "D:\\资料库" }} />);
+    await screen.findByRole("switch", { name: "开机启动" });
+    expect(screen.queryByText(/自动打标|模型包|硬件加速/)).toBeNull();
+
+    await tab("自动标签");
+    expect(await screen.findByRole("combobox", { name: "硬件加速" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "导入模型包…" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "继续" })).toBeTruthy();
+  });
+
+  it("可以直接打开自动标签分页", async () => {
+    backend((cmd) => (cmd === "tagging_models" ? { model: "PixAI Tagger v1.0", selected: null, options: [] } : undefined));
+    render(<SettingsPanel initialTab="tagging" />);
+    expect(await screen.findByRole("heading", { name: "自动标签", level: 3 })).toBeTruthy();
+    expect(await screen.findByText("添加图库后开始自动打标")).toBeTruthy();
   });
 
   it("安全分页的开关跟随并切换主窗口的安全模式", async () => {

@@ -36,7 +36,7 @@ afterEach(async () => {
 
 describe("自动标签状态", () => {
   it("首次使用时显示模型大小，确认后才下载", async () => {
-    backend({ state: "needsDownload", model: "PixAI", size: 992_916_002, downloaded: 0 });
+    backend({ state: "needsDownload", model: "PixAI", size: 992_916_002, downloaded: 0, fallback: null });
     render(<TaggingIndicator libraryId="L1" />);
     const button = await screen.findByRole("button", { name: /下载打标模型（993 MB）/ });
     expect(commands).not.toContain("tagging_download");
@@ -46,7 +46,7 @@ describe("自动标签状态", () => {
   });
 
   it("上次下载中断时显示已下载的部分", async () => {
-    backend({ state: "needsDownload", model: "PixAI", size: 1_000_000_000, downloaded: 250_000_000 });
+    backend({ state: "needsDownload", model: "PixAI", size: 1_000_000_000, downloaded: 250_000_000, fallback: null });
     render(<TaggingIndicator libraryId="L1" />);
     expect(await screen.findByRole("button", { name: /继续下载打标模型（已下载 25%）/ })).toBeTruthy();
   });
@@ -62,7 +62,7 @@ describe("自动标签状态", () => {
   });
 
   it("打标时可以暂停，暂停后可以继续", async () => {
-    backend({ state: "running", model: "PixAI", device: "directMl", tagged: 3 });
+    backend({ state: "running", model: "PixAI", device: "directMl", gpu: "测试显卡", tagged: 3 });
     render(<TaggingIndicator libraryId="L1" />);
     expect(await screen.findByText(/自动标签：显卡，已打 3 张/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "暂停" }));
@@ -108,7 +108,7 @@ describe("自动标签状态", () => {
   });
 
   it("整理另一个图库时后端把可写句柄与打标切过去，状态跟着它走，旧库的迟到状态不串台（#112）", async () => {
-    const statuses: Record<string, TaggingStatus> = { L1: { state: "paused" }, L2: { state: "running", model: "PixAI", device: "cpu", tagged: 7 } };
+    const statuses: Record<string, TaggingStatus> = { L1: { state: "paused" }, L2: { state: "running", model: "PixAI", device: "cpu", gpu: null, tagged: 7 } };
     actions = [];
     mockWindows("main");
     mockIPC((cmd, args) => {
@@ -130,7 +130,7 @@ describe("自动标签状态", () => {
   });
 
   it("跟过去的图库从列表移除后回到打开的图库，不再显示或操作已移除的库", async () => {
-    const statuses: Record<string, TaggingStatus> = { L1: { state: "paused" }, L2: { state: "running", model: "PixAI", device: "cpu", tagged: 7 } };
+    const statuses: Record<string, TaggingStatus> = { L1: { state: "paused" }, L2: { state: "running", model: "PixAI", device: "cpu", gpu: null, tagged: 7 } };
     actions = [];
     mockWindows("main");
     mockIPC((cmd, args) => {

@@ -64,7 +64,7 @@ pub(super) async fn restore_application_settings<R: Runtime>(
         // through the replacement and desktop reset, even when the mode stays the same.
         state.safe_mode_generation.fetch_add(1, Ordering::SeqCst);
         import_preview::revoke(&app);
-        let (view, safe, model, mut problems) =
+        let (view, safe, device, mut problems) =
             with_catalog(&state.device_dir, &state.catalog, |catalog| {
                 let shell_state = app.state::<ShellState>();
                 let mut shell = lock(&shell_state.0);
@@ -91,7 +91,7 @@ pub(super) async fn restore_application_settings<R: Runtime>(
                 Ok(Ok((
                     shortcuts.settings_view(settings),
                     settings.safe_mode(),
-                    settings.tagging_model().map(str::to_owned),
+                    settings.tagging_device(),
                     problems,
                 )))
             })??;
@@ -106,7 +106,7 @@ pub(super) async fn restore_application_settings<R: Runtime>(
         app.state::<crate::diagnostics::UsageState>()
             .0
             .set_enabled(view.usage_log);
-        crate::tagging::apply_model_setting(&app, model);
+        crate::tagging::apply_device_setting(&app, device);
         crate::desktop::settings_restored(&app, safe);
         if let Err(error) = names::refresh_labels(&app, &state) {
             problems.push(format!("资料库名称未刷新：{error}"));

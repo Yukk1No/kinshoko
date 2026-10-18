@@ -1,6 +1,6 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
-import { Activity, Archive, FileText, Keyboard, Monitor, MousePointerClick, Power, RefreshCw, Settings2, ShieldCheck, Tags } from "lucide-react";
+import { Activity, Archive, FileText, Keyboard, Monitor, MousePointerClick, Power, RefreshCw, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
@@ -23,7 +23,7 @@ import { TagNamePanel } from "./library/TagNamePanel";
 import { TagIdentityPanel } from "./library/TagIdentityPanel";
 import { ApplicationSettingsBackup } from "./ApplicationSettingsBackup";
 import { BackupSettings } from "./Backup";
-import { ModelSettings } from "./ModelSettings";
+import { AutoTaggingSettings } from "./AutoTaggingSettings";
 import { UpdateSection } from "./Update";
 import { RuntimeDetails, useDiagnosticsReport } from "./RuntimeSupport";
 import { Segmented } from "./ui/Segmented";
@@ -60,11 +60,12 @@ export function Keys({ accelerator }: { accelerator: string }) {
     <kbd key={index} className="k-key" aria-hidden="true">{key.replace(/^Key(?=[A-Z]$)/, "").replace(/^Digit(?=\d$)/, "")}</kbd>)}</span>;
 }
 
-export type SettingsTab = "general" | "keys" | "tags" | "backup" | "safety" | "update" | "diag";
+export type SettingsTab = "general" | "keys" | "tags" | "tagging" | "backup" | "safety" | "update" | "diag";
 const TABS: { value: SettingsTab; name: string; icon: ReactNode; lead: string }[] = [
   { value: "general", name: "通用", icon: <Settings2 size={15} aria-hidden="true" />, lead: "关掉窗口后，截图和钉图照常可用。" },
   { value: "keys", name: "快捷键", icon: <Keyboard size={15} aria-hidden="true" />, lead: "在任何软件里都能用。" },
   { value: "tags", name: "标签", icon: <Tags size={15} aria-hidden="true" />, lead: "改一次名字，所有图库都生效。" },
+  { value: "tagging", name: "自动标签", icon: <Sparkles size={15} aria-hidden="true" />, lead: "导入的图在本机自动加上标签建议，不改动你定下的标签。" },
   { value: "backup", name: "备份", icon: <Archive size={15} aria-hidden="true" />, lead: "图片和设置分开存，恢复时互不影响。" },
   { value: "safety", name: "安全", icon: <ShieldCheck size={15} aria-hidden="true" />, lead: "成人图收进封印书，需要时再打开。" },
   { value: "update", name: "更新", icon: <RefreshCw size={15} aria-hidden="true" />, lead: "新版装在原位置，图库和设置都会保留。" },
@@ -75,7 +76,7 @@ type TagView = "names" | "groups" | "approx" | "mapping";
 
 type Props = {
   onRestored?: () => void;
-  /** 兼容现有调用；个人规则不依赖当前资料库。 */
+  /** 打开的资料库；自动标签分页从它开始跟随后端的可写资料库。个人规则不依赖它。 */
   library?: LibraryInfo | null;
   /** 应用壳设置保存后的结果，主窗口据此更新（例如相近标签来源标记）。 */
   onChange?: (view: ShellSettingsView) => void;
@@ -91,10 +92,10 @@ type Props = {
 };
 
 /**
- * 程序设置（#98）：竖排七个分页——通用、快捷键、标签、备份、安全、更新、诊断。
+ * 程序设置（#98）：竖排八个分页——通用、快捷键、标签、自动标签（#143）、备份、安全、更新、诊断。
  * 每项一行：图标 · 名称 · 一句描述 · 右侧控件。行为与原来的各节相同，只是重新归位。
  */
-export function SettingsPanel({ onChange, onRestored, initialTab = "general", version, safe, onSafeMode, onOpenNameWizard }: Props) {
+export function SettingsPanel({ onChange, onRestored, library, initialTab = "general", version, safe, onSafeMode, onOpenNameWizard }: Props) {
   const [settingsGeneration, setSettingsGeneration] = useState(0);
   const [view, setView] = useState<ShellSettingsView | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -180,7 +181,6 @@ export function SettingsPanel({ onChange, onRestored, initialTab = "general", ve
               <SettingsRow icon={<Power size={16} />} title="开机启动" desc="在托盘里待命">
                 <Switch label="开机启动" checked={view.autostart} onCheckedChange={(on) => void apply(setAutostart(on))} />
               </SettingsRow>
-              <ModelSettings key={`model/${settingsGeneration}`} />
             </SettingsGroup>
           </>)}
           {page("keys", <SettingsGroup label="快捷键">
@@ -222,6 +222,7 @@ export function SettingsPanel({ onChange, onRestored, initialTab = "general", ve
             </>}
             {tagView === "mapping" && <TagIdentityPanel key={`identity/${settingsGeneration}`} />}
           </>)}
+          {page("tagging", <AutoTaggingSettings key={`tagging/${settingsGeneration}`} libraryId={library?.id ?? null} />)}
           {page("backup", <>
             <BackupSettings />
             <ApplicationSettingsBackup onRestored={restored} />
