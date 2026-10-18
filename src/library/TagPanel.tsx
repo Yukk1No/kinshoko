@@ -4,11 +4,14 @@ import type { ImageTags } from "../bindings/ImageTags";
 import type { TagEdit } from "../bindings/TagEdit";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagNamespace } from "../bindings/TagNamespace";
-import type { TagOrigin } from "../bindings/TagOrigin";
+import type { ImageTag } from "../bindings/ImageTag";
 import type { TagRef } from "../bindings/TagRef";
 import type { VocabularyTag } from "../bindings/VocabularyTag";
 import { addTagAlias, catalogImageTags, editTags, imageTags, removeTagAlias, vocabulary, workspaceSourceInspection, workspaceEditSourceTags } from "../ipc";
 import { TagMarks, UI_LANG, tagName, useCandidates } from "../search/SearchBox";
+import { TagChip } from "../tags/TagChip";
+import { tagStanding } from "../tags/tagConfidence";
+import { useTagDisplay } from "../tags/TagDisplayContext";
 import { AtSign, Ban, Check, Tags, Undo2, X } from "lucide-react";
 
 type Props = {
@@ -30,16 +33,23 @@ const NAMESPACES: { value: TagNamespace; label: string }[] = [
   { value: "work", label: "作品" },
 ];
 
-/** 出处的简短说明：模型带分数、导入来源、人工添加或决定冲突。 */
-export function originText(origin: TagOrigin): string {
-  if (origin.kind === "manual") return "人工添加";
-  if (origin.kind === "conflict") return "决定冲突";
-  const { source, score } = origin;
-  if (source.startsWith("model:")) return score === null ? "模型" : `模型 ${score.toFixed(2)}`;
-  if (source.startsWith("eagle:")) return "Eagle";
-  if (source.startsWith("package:")) return "参考组包";
-  if (source === "restore") return "备份";
-  return "导入";
+type Group = { label: string; title: string; tags: ImageTag[] };
+
+/** C 风格的分组：你添加的 / 打标模型（按可信度从高到低，没有分数的在后）/ 导入；空组不列。 */
+function groupByStanding(tags: ImageTag[]): Group[] {
+  const groups: Group[] = [
+    { label: "你添加的", title: "你添加的", tags: [] },
+    { label: "打标模型", title: "打标模型 · 按可信度", tags: [] },
+    { label: "导入", title: "导入", tags: [] },
+  ];
+  const scoreOf = new Map<ImageTag, number>();
+  for (const entry of tags) {
+    const standing = tagStanding(entry.origins);
+    if (standing.kind === "model") scoreOf.set(entry, standing.score ?? -1);
+    groups[standing.kind === "manual" ? 0 : standing.kind === "model" ? 1 : 2].tags.push(entry);
+  }
+  groups[1].tags.sort((a, b) => scoreOf.get(b)! - scoreOf.get(a)!);
+  return groups.filter((group) => group.tags.length > 0);
 }
 
 const byId = (tag: TagLabel): TagRef => ({ kind: "id", id: tag.id });
@@ -57,6 +67,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   const [namespace, setNamespace] = useState<TagNamespace>("general");
   const [text, setText] = useState("");
   const [refresh, setRefresh] = useState(0);
+  const display = useTagDisplay();
   const candidates = useCandidates({ libraryId, safe, generation, sourceTarget }, text);
   const identityKey = JSON.stringify([libraryId, ids, safe, generation, sourceTarget]);
   const currentKey = useRef(identityKey);
@@ -112,48 +123,50 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   };
 
   const hasText = !!text.trim();
-  // 详情面板的标签（#98，design/ui-system/README.md 与 copy-map.md）：现有标签是小标签，出处写在标签里，
-  // 悬停或聚焦露出“保留／改回自动／不要这个／别名”；输入框一个，打字后才出现“添加／排除／改回自动”。
+  const lowOutline = display.lowOutline ? "" : undefined;
+  const chip = ({ tag, origins }: ImageTag, meter: boolean) => {
+    const manual = origins.some((o) => o.kind === "manual");
+    const name = tagName(tag);
+    const unified = identities.filter((identity) => identity.localTagId === tag.id);
+    return (
+      <TagChip key={tag.id} tag={tag} origins={origins} meter={meter}
+        notes={unified.map((identity) => `统一为：${tagName(identity.tag)}`)}
+        actions={<>
+          {manual ? (
+            <button type="button" className="k-tag-tip-btn" aria-label={`清除对“${name}”的人工决定`}
+              onClick={() => decide("clear", byId(tag))}><Undo2 size={12} aria-hidden="true" />改回自动</button>
+          ) : (
+            <button type="button" className="k-tag-tip-btn" aria-label={`确认“${name}”`} title="重新打标也不去掉"
+              onClick={() => decide("add", byId(tag))}><Check size={12} aria-hidden="true" />保留</button>
+          )}
+          <button type="button" className="k-tag-tip-btn" aria-label={`否决“${name}”`} title="这张图不是它"
+            onClick={() => decide("reject", byId(tag))}><Ban size={12} aria-hidden="true" />不要</button>
+          {!sourceTarget && <button type="button" className="k-tag-tip-btn" aria-label={`“${name}”的别名`}
+            onClick={() => setAliasFor(tag)}><AtSign size={12} aria-hidden="true" />别名</button>}
+        </>} />
+    );
+  };
+  // 详情面板的标签（#98，design/ui-system/README.md 与 copy-map.md；#160）：现有标签是小标签，只写名称；
+  // 出处、可信度和“保留／改回自动／不要／别名”在悬停或聚焦时的浮层里。外观按设置：B 按可信度分档底色，
+  // C 按出处分组加刻度。输入框一个，打字后才出现“添加／排除／改回自动”。
   return (
     <section className="tag-panel insp-sec k-tags" aria-label="标签">
       <h4><Tags size={13} aria-hidden="true" />标签</h4>
       {tags && (
         <>
-          <ul className="tag-list k-tag-chips" aria-label="有效标签">
-            {tags.tags.length === 0 && <li className="tag-empty k-tags-empty">还没有标签</li>}
-            {tags.tags.map(({ tag, origins }) => {
-              const manual = origins.some((o) => o.kind === "manual");
-              const name = tagName(tag);
-              const unified = identities.filter((identity) => identity.localTagId === tag.id);
-              return (
-                <li key={tag.id} className={`tag-row k-tag-chip${manual ? " is-manual" : ""}`}
-                  title={unified.map((identity) => `统一为：${tagName(identity.tag)}`).join("\n") || undefined}>
-                  <span className="tag-name">{name}</span>
-                  <TagMarks tag={tag} />
-                  <span className="tag-origins k-tag-from">
-                    {origins.map((o, i) => (
-                      <span key={i} className="tag-origin">
-                        {originText(o)}
-                      </span>
-                    ))}
-                  </span>
-                  <span className="tag-row-actions k-tag-acts">
-                    {manual ? (
-                      <button type="button" className="k-icon-btn is-xs" aria-label={`清除对“${name}”的人工决定`} title="改回自动"
-                        onClick={() => decide("clear", byId(tag))}><Undo2 size={12} aria-hidden="true" /></button>
-                    ) : (
-                      <button type="button" className="k-icon-btn is-xs" aria-label={`确认“${name}”`} title="保留：重新打标也不去掉"
-                        onClick={() => decide("add", byId(tag))}><Check size={12} aria-hidden="true" /></button>
-                    )}
-                    <button type="button" className="k-icon-btn is-xs is-danger" aria-label={`否决“${name}”`} title="不要这个：这张图不是它"
-                      onClick={() => decide("reject", byId(tag))}><Ban size={12} aria-hidden="true" /></button>
-                    {!sourceTarget && <button type="button" className="k-icon-btn is-xs" aria-label={`“${name}”的别名`} title="别名"
-                      onClick={() => setAliasFor(tag)}><AtSign size={12} aria-hidden="true" /></button>}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+          {display.style === "grouped" && tags.tags.length > 0
+            ? groupByStanding(tags.tags).map((group) => (
+              <div key={group.label} className="k-tag-group">
+                <p className="k-tags-sub">{group.title}</p>
+                <ul className="tag-list k-tag-chips" aria-label={group.label} data-low-outline={lowOutline}>
+                  {group.tags.map((entry) => chip(entry, group.label === "打标模型"))}
+                </ul>
+              </div>
+            ))
+            : <ul className="tag-list k-tag-chips" aria-label="有效标签" data-low-outline={lowOutline}>
+              {tags.tags.length === 0 && <li className="tag-empty k-tags-empty">还没有标签</li>}
+              {tags.tags.map((entry) => chip(entry, false))}
+            </ul>}
           {tags.rejected.length > 0 && (<>
             <p className="k-tags-sub">已排除</p>
             <ul className="tag-list tag-list-rejected k-tag-chips" aria-label="已否决">

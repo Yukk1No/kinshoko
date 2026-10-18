@@ -33,6 +33,7 @@ const defaults: ShellSettingsView = {
   forceSrgbInEffect: false,
   usageLog: false,
   keepSelectionOnSafeMode: false,
+  tagDisplay: { style: "bands", high: 0.8, low: 0.4, lowOutline: false },
 };
 
 /** 记录前端发出的命令，按给定的处理函数回应。 */

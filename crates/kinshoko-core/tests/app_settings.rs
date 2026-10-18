@@ -1,7 +1,7 @@
 //! 应用壳设置：本设备的开机自启与全局快捷键，保存在应用配置目录里的一个文件中。
 
 use kinshoko_core::tagging::Device;
-use kinshoko_core::{AppSettings, ShortcutAction};
+use kinshoko_core::{AppSettings, ShortcutAction, TagDisplay, TagStyle};
 
 #[test]
 fn a_fresh_install_starts_at_login_and_uses_snipaste_style_function_keys() {
@@ -198,4 +198,91 @@ fn the_usage_log_is_off_until_the_artist_turns_it_on_and_then_remembered() {
     drop(settings);
 
     assert!(AppSettings::open(dir.path()).unwrap().usage_log());
+}
+
+#[test]
+fn tag_display_defaults_to_confidence_bands_at_080_and_040_without_low_outline() {
+    let dir = tempfile::tempdir().unwrap();
+    let settings = AppSettings::open(dir.path()).unwrap();
+    assert_eq!(
+        settings.tag_display(),
+        TagDisplay {
+            style: TagStyle::Bands,
+            high: 0.8,
+            low: 0.4,
+            low_outline: false,
+        }
+    );
+}
+
+#[test]
+fn tag_display_changes_are_remembered() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    let changed = TagDisplay {
+        style: TagStyle::Grouped,
+        high: 0.75,
+        low: 0.5,
+        low_outline: true,
+    };
+    settings.set_tag_display(changed).unwrap();
+    drop(settings);
+
+    assert_eq!(
+        AppSettings::open(dir.path()).unwrap().tag_display(),
+        changed
+    );
+}
+
+#[test]
+fn tag_display_rejects_a_low_ceiling_at_or_above_the_high_floor() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    for (high, low) in [(0.6, 0.6), (0.5, 0.7), (1.05, 0.4), (0.8, -0.05)] {
+        let wrong = TagDisplay {
+            high,
+            low,
+            ..settings.tag_display()
+        };
+        assert!(
+            settings.set_tag_display(wrong).is_err(),
+            "高档下限 {high}、低档上限 {low} 不应保存"
+        );
+    }
+    drop(settings);
+    assert_eq!(
+        AppSettings::open(dir.path()).unwrap().tag_display(),
+        TagDisplay::default()
+    );
+}
+
+#[test]
+fn tag_display_fills_missing_fields_and_ignores_crossed_thresholds_in_the_file() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("settings.json"),
+        r#"{"version":1,"tagDisplay":{"style":"grouped"}}"#,
+    )
+    .unwrap();
+    assert_eq!(
+        AppSettings::open(dir.path()).unwrap().tag_display(),
+        TagDisplay {
+            style: TagStyle::Grouped,
+            ..TagDisplay::default()
+        }
+    );
+
+    std::fs::write(
+        dir.path().join("settings.json"),
+        r#"{"version":1,"tagDisplay":{"style":"grouped","high":0.3,"low":0.6,"lowOutline":true}}"#,
+    )
+    .unwrap();
+    let read = AppSettings::open(dir.path()).unwrap().tag_display();
+    assert_eq!(
+        (read.high, read.low),
+        (0.8, 0.4),
+        "读到交叉的阈值时用默认阈值"
+    );
+    assert_eq!(read.style, TagStyle::Grouped);
+    assert!(read.low_outline);
 }

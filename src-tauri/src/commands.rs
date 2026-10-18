@@ -48,6 +48,20 @@ pub async fn set_show_approx_source(
     Ok(shell.view())
 }
 
+/// 保存标签外观与可信度分档（#160）；阈值交叉时拒绝，原来的设置不变。
+#[tauri::command]
+pub async fn set_tag_display(
+    state: State<'_, ShellState>,
+    display: kinshoko_core::TagDisplay,
+) -> Result<ShellSettingsView, String> {
+    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+    shell
+        .settings
+        .set_tag_display(display)
+        .map_err(|e| e.to_string())?;
+    Ok(shell.view())
+}
+
 /// 开关“切换安全模式时保留选择”。
 #[tauri::command]
 pub async fn set_keep_selection_on_safe_mode(

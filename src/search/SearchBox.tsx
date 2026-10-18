@@ -8,6 +8,7 @@ import type { SimilarTag } from "../bindings/SimilarTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { Term } from "../bindings/Term";
 import type { TermInput } from "../bindings/TermInput";
+import { Languages } from "lucide-react";
 import { ExactToggle } from "./ExactToggle";
 import { searchCandidates, workspaceCandidates, workspaceSourceCandidates, setTagApprox, editSharedApprox } from "../ipc";
 
@@ -54,13 +55,16 @@ const NAMESPACE: Record<TagLabel["namespace"], string> = {
 
 export const tagName = (tag: TagLabel) => `${NAMESPACE[tag.namespace]}${tag.name}`;
 
-/** 标签名后的提示：尚未翻译（“文A”），或没有外部对应、不参与内置近似对应表。 */
+/** 未翻译标记的说明（#160）：图标的可访问名称与悬停提示。 */
+export const UNTRANSLATED_HINT = "尚无中文名，显示的是原名";
+
+/** 标签名后的提示：尚未翻译（翻译图标，#160），或没有外部对应、不参与内置近似对应表。 */
 export function TagMarks({ tag }: { tag: TagLabel }) {
   return (
     <>
       {tag.untranslated && (
-        <span className="untranslated" title="尚未翻译 · 模型原名">
-          文A
+        <span className="untranslated" role="img" aria-label={UNTRANSLATED_HINT} title={UNTRANSLATED_HINT}>
+          <Languages size={12} aria-hidden="true" />
         </span>
       )}
       {!tag.hasExternal && (
