@@ -939,6 +939,20 @@ describe("主窗口", () => {
     );
   });
 
+  it("打标卡片不再占侧栏；缩放滑块左边的打标图标打开设置 › 自动标签（#144）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const icon = await screen.findByRole("button", { name: /自动标签：正在加载打标模型/ });
+    expect(document.querySelector(".side-foot .tagging")).toBeNull();
+    expect(screen.queryByText(/自动标签：正在加载打标模型…/)).toBeNull();
+    expect(icon.nextElementSibling?.getAttribute("aria-label")).toBe("图片大小");
+
+    fireEvent.click(icon);
+    const dialog = await screen.findByRole("dialog", { name: "程序设置" });
+    expect(await within(dialog).findByRole("heading", { name: "自动标签", level: 3 })).toBeTruthy();
+  });
+
   it("从状态栏打开设置", async () => {
     mockIPC(workspaceFixture((cmd) => {
       if (cmd === "app_info") return { productName: "Kinshoko", version: "9.9.9" };

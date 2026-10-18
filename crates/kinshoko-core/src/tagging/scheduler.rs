@@ -122,12 +122,13 @@ pub enum TaggingStatus {
         gpu: Option<String>,
         tagged: u32,
     },
-    /// 没有待打标的图；会话已结束，不占显存。
+    /// 没有待打标的图；会话已结束，不占显存。`tagged` 同 `Running`，含刚打完的最后一张。
     #[serde(rename_all = "camelCase")]
     Idle {
         model: String,
         device: Device,
         gpu: Option<String>,
+        tagged: u32,
     },
     /// 画师暂停了打标；会话已结束，显存已归还。
     Paused,
@@ -457,6 +458,7 @@ impl Worker {
                 model: spec.label.clone(),
                 device: spec.device,
                 gpu: self.gpu_name(spec.device),
+                tagged: self.tagged,
             });
             self.shared.sleep(self.config.poll_interval);
             return;
