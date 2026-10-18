@@ -13,7 +13,7 @@ use kinshoko_core::library::{
     ContentRating, ImageTags, ImportOutcome, ImportSource, TagEdit, TagNamespace, TagOrigin, TagRef,
 };
 use kinshoko_core::tagging::{
-    Device, InMemoryTagger, ModelOption, ModelStore, RawTag, Tagging, TaggingConfig, TaggingStatus,
+    Device, HardwareOption, InMemoryTagger, ModelChoice, ModelStore, RawTag, Tagging, TaggingConfig, TaggingStatus,
 };
 use std::sync::atomic::AtomicBool;
 use support::ModelServer;
@@ -594,7 +594,7 @@ fn a_confirmed_gpu_download_does_not_download_the_cpu_model_after_falling_back()
 }
 
 #[test]
-fn the_model_list_shows_each_models_needs_and_whether_it_is_installed() {
+fn the_hardware_list_shows_each_tiers_needs_and_whether_it_is_downloaded() {
     let f = Fixture::new(0);
     let gpu = f.server.publish("gpu", Device::DirectMl, b"gpu model");
     let mut cpu = f.server.publish("cpu", Device::Cpu, b"cpu model");
@@ -604,29 +604,29 @@ fn the_model_list_shows_each_models_needs_and_whether_it_is_installed() {
         .prepare(&gpu, &mut |_| {}, &AtomicBool::new(false))
         .unwrap();
 
-    let options = store.options(&[gpu.clone(), cpu.clone()]);
+    let choice = store.choice(&[gpu.clone(), cpu.clone()], Some(Device::Cpu));
     assert_eq!(
-        options,
-        vec![
-            ModelOption {
-                key: gpu.key.clone(),
-                label: gpu.label.clone(),
-                device: Device::DirectMl,
-                vram_need: 1_800_000_000,
-                ram_need: 0,
-                size: 9,
-                installed: true,
-            },
-            ModelOption {
-                key: cpu.key.clone(),
-                label: cpu.label.clone(),
-                device: Device::Cpu,
-                vram_need: 1_800_000_000,
-                ram_need: 5_000_000_000,
-                size: 9,
-                installed: false,
-            },
-        ]
+        choice,
+        ModelChoice {
+            model: "测试模型".into(),
+            selected: Some(Device::Cpu),
+            options: vec![
+                HardwareOption {
+                    device: Device::DirectMl,
+                    vram_need: 1_800_000_000,
+                    ram_need: 0,
+                    size: 9,
+                    downloaded: true,
+                },
+                HardwareOption {
+                    device: Device::Cpu,
+                    vram_need: 1_800_000_000,
+                    ram_need: 5_000_000_000,
+                    size: 9,
+                    downloaded: false,
+                },
+            ],
+        }
     );
 }
 

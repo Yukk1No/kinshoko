@@ -2,9 +2,9 @@
 import type { Device } from "./Device";
 
 /**
- * 设置界面里的一个可选模型：名称、设备档位、显存或内存需求、大小、本机是否已装好。
+ * 设置里“硬件加速”的一个选项：这一档模型文件的显存或内存需求、下载大小、本机是否已下载。
  */
-export type ModelOption = { key: string, label: string, device: Device, 
+export type HardwareOption = { device: Device, 
 /**
  * DirectML 下的显存峰值估计。
  */
@@ -20,4 +20,4 @@ size: number,
 /**
  * 已下载、校验（并改写）好，不必再下载。
  */
-installed: boolean, };
+downloaded: boolean, };

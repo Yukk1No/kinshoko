@@ -1,5 +1,6 @@
 //! 应用壳设置：本设备的开机自启与全局快捷键，保存在应用配置目录里的一个文件中。
 
+use kinshoko_core::tagging::Device;
 use kinshoko_core::{AppSettings, ShortcutAction};
 
 #[test]
@@ -72,20 +73,55 @@ fn settings_written_by_a_newer_version_survive_a_round_trip_through_this_one() {
 }
 
 #[test]
-fn the_tagging_model_choice_is_automatic_until_the_artist_picks_one() {
+fn the_tagging_hardware_is_automatic_until_the_artist_picks_one() {
     let dir = tempfile::tempdir().unwrap();
     let mut settings = AppSettings::open(dir.path()).unwrap();
-    assert_eq!(settings.tagging_model(), None);
+    assert_eq!(settings.tagging_device(), None);
 
-    settings
-        .set_tagging_model(Some("pixai-v1.0-fp32-chunked"))
-        .unwrap();
+    settings.set_tagging_device(Some(Device::Cpu)).unwrap();
     drop(settings);
     let mut settings = AppSettings::open(dir.path()).unwrap();
-    assert_eq!(settings.tagging_model(), Some("pixai-v1.0-fp32-chunked"));
+    assert_eq!(settings.tagging_device(), Some(Device::Cpu));
 
-    settings.set_tagging_model(None).unwrap();
-    assert_eq!(AppSettings::open(dir.path()).unwrap().tagging_model(), None);
+    settings.set_tagging_device(None).unwrap();
+    assert_eq!(AppSettings::open(dir.path()).unwrap().tagging_device(), None);
+}
+
+#[test]
+fn a_tagging_model_saved_by_an_older_version_becomes_its_hardware() {
+    for (saved, device) in [
+        (serde_json::json!("pixai-v1.0-fp16-chunked"), Some(Device::DirectMl)),
+        (serde_json::json!("pixai-v1.0-fp32-chunked"), Some(Device::Cpu)),
+        (serde_json::Value::Null, None),
+        (serde_json::json!("不存在的模型"), None),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("settings.json"),
+            serde_json::json!({ "version": 1, "taggingModel": saved }).to_string(),
+        )
+        .unwrap();
+        assert_eq!(
+            AppSettings::open(dir.path()).unwrap().tagging_device(),
+            device,
+            "旧设置 {saved}"
+        );
+    }
+}
+
+#[test]
+fn choosing_automatic_replaces_a_tagging_model_saved_by_an_older_version() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("settings.json"),
+        r#"{"version":1,"taggingModel":"pixai-v1.0-fp32-chunked"}"#,
+    )
+    .unwrap();
+    AppSettings::open(dir.path())
+        .unwrap()
+        .set_tagging_device(None)
+        .unwrap();
+    assert_eq!(AppSettings::open(dir.path()).unwrap().tagging_device(), None);
 }
 
 #[test]

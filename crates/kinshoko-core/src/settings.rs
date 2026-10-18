@@ -14,6 +14,8 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use crate::tagging::{Device, catalog};
+
 const FILE_NAME: &str = "settings.json";
 const BROKEN_FILE_NAME: &str = "settings.broken.json";
 const FORMAT_VERSION: u32 = 1;
@@ -73,8 +75,10 @@ pub struct SettingsSnapshot {
     autostart: bool,
     /// 每个动作的快捷键；`None` 表示画师清除了绑定。没写到的动作用默认键。
     shortcuts: BTreeMap<ShortcutAction, Option<String>>,
-    /// 画师选的打标模型（模型 key）；`None` 为按本机条件自动选择。
+    /// 旧版本保存的打标模型（模型 key）。读取时换算成硬件档；画师再选硬件档时清掉。
     tagging_model: Option<String>,
+    /// 画师选的打标硬件档；`None` 为按本机条件自动选择（旧版本的 `tagging_model` 见上）。
+    tagging_device: Option<Device>,
     /// 安全模式（#60）：新安装默认开启。
     safe_mode: bool,
     /// 在查找条件里标出相近标签来自内置还是个人近似对应表（#56），默认不显示。
@@ -99,6 +103,7 @@ impl Default for SettingsSnapshot {
             autostart: true,
             shortcuts: BTreeMap::new(),
             tagging_model: None,
+            tagging_device: None,
             safe_mode: true,
             show_approx_source: false,
             force_srgb: false,
@@ -224,13 +229,23 @@ impl AppSettings {
         self.update(|f| f.autostart = on)
     }
 
-    /// 画师选的打标模型；`None` 表示自动选择。
-    pub fn tagging_model(&self) -> Option<&str> {
-        self.file.tagging_model.as_deref()
+    /// 画师选的打标硬件档；`None` 表示自动选择。旧版本保存的模型 key 按它所在的硬件档换算
+    /// （FP16 条目是显卡，FP32 条目是 CPU），不认识的 key 当作自动。
+    pub fn tagging_device(&self) -> Option<Device> {
+        self.file.tagging_device.or_else(|| {
+            let key = self.file.tagging_model.as_deref()?;
+            catalog()
+                .into_iter()
+                .find(|spec| spec.key == key)
+                .map(|spec| spec.device)
+        })
     }
 
-    pub fn set_tagging_model(&mut self, key: Option<&str>) -> Result<(), SettingsError> {
-        self.update(|f| f.tagging_model = key.map(str::to_owned))
+    pub fn set_tagging_device(&mut self, device: Option<Device>) -> Result<(), SettingsError> {
+        self.update(|f| {
+            f.tagging_device = device;
+            f.tagging_model = None;
+        })
     }
 
     /// 安全模式是否开启。

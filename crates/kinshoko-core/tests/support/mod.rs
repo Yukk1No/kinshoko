@@ -88,6 +88,7 @@ pub fn model_path(spec: &ModelSpec, file: &str) -> String {
 pub fn test_spec(key: &str, device: Device, model: &[u8]) -> ModelSpec {
     ModelSpec {
         key: key.into(),
+        name: "测试模型".into(),
         label: format!("测试模型 {key}"),
         source: "test-tagger".into(),
         repo: format!("test/{key}"),
