@@ -99,7 +99,8 @@ export function createReplacementProbe(wall: HTMLElement, now: () => number = ()
       const interval = card && open.get(card);
       if (interval) finish(interval, now());
     };
-    void (typeof img.decode === "function" ? img.decode().then(settle, settle) : settle());
+    // decode() 失败（地址被换掉、资源不可用）不算替换完成：区间保持未完成，之后按离开或结束时仍未完成计。
+    void (typeof img.decode === "function" ? img.decode().then(settle, () => {}) : settle());
   };
   const watchImage = (img: HTMLImageElement) => {
     if (watched.has(img)) return;
