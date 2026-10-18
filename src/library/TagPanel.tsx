@@ -31,7 +31,7 @@ const NAMESPACES: { value: TagNamespace; label: string }[] = [
 ];
 
 /** 出处的简短说明：模型带分数、导入来源、人工添加或决定冲突。 */
-function originText(origin: TagOrigin): string {
+export function originText(origin: TagOrigin): string {
   if (origin.kind === "manual") return "人工添加";
   if (origin.kind === "conflict") return "决定冲突";
   const { source, score } = origin;

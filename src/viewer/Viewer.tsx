@@ -13,6 +13,7 @@ import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import { Dock, type DockItem } from "../ui/Dock";
 import { FollowDock } from "../ui/FollowDock";
 import { WinCtrls } from "../ui/WinCtrls";
+import { ViewerTags } from "./ViewerTags";
 
 type Props = {
   workspace?: boolean;
@@ -30,6 +31,8 @@ type Props = {
   startCrop?: boolean;
   /** 右键菜单“移到回收站”（#114）；不给出时（例如正在看回收站里的图）菜单里没有这一项。 */
   onTrash?: () => void;
+  /** 安全模式开启：含成人内容的图被遮蔽时，信息面板不显示它的标签（#147）。 */
+  safe?: boolean;
 };
 type Background = "dark" | "mid" | "light" | "checker";
 const grounds: Background[] = ["dark", "mid", "light", "checker"];
@@ -47,7 +50,7 @@ const OneToOne = ({ size = 19 }: { size?: number }) => <svg width={size} height=
  * 钉到桌面（#65）：“钉住整图”，或 Shift+拖动（或先按“框选局部”）框出一块，按 Enter 或“钉住局部”。
  * 选区按原图像素记，标出“宽 × 高 原始像素”，缩放平移时边界不变。
  */
-export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, sourceName, position, onStep, startCrop = false, onTrash }: Props) {
+export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, sourceName, position, onStep, startCrop = false, onTrash, safe = false }: Props) {
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0, dpr: window.devicePixelRatio || 1 });
@@ -143,6 +146,8 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   useEffect(() => {
     const el = stage.current!;
     const wheel = (event: WheelEvent) => {
+      // 信息面板里的滚轮滚动标签列表（#147），不缩放图片。
+      if ((event.target as Element).closest?.(".viewer-info")) return;
       event.preventDefault();
       const rect = el.getBoundingClientRect();
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.height : 1;
@@ -390,6 +395,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
             {sourceName && <><dt>图库</dt><dd>{sourceName}</dd></>}
           </dl>
           <p>滚轮缩放 · 拖动平移 · Shift+拖动框选局部 · Esc 返回</p>
+          {!(safe && card.adult) && <ViewerTags libraryId={libraryId} imageId={card.id} reloadKey={reloadKey} />}
         </section>}
         {pinStatus && <p className="viewer-pin-status" role="status">{pinStatus}</p>}
         <div className="viewer-dock"><Dock label="查看工具" items={viewerTools} value={toolValue} onSelect={tool} /></div>
