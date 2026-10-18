@@ -43,27 +43,28 @@ use tauri::{AppHandle, Emitter, Listener, Manager, Wry};
 
 use crate::{library, shell};
 
-// [DEBUG-cap7] temporary timing marks for #127/#129
-pub(crate) fn dbg_mark(label: &str) {
+/// 框选计时（#127、#129）：设置了 [`TIMING_ENV`] 时，把 `capture.timing <阶段> at=<epoch 毫秒>` 追加到那个文件，
+/// 供 `scripts/perf/capture-timing.mjs` 算出按键到框选可用、确认到结果可用的各段耗时；未设置时什么也不做。
+pub(crate) fn timing(stage: &str) {
+    static LOG: std::sync::OnceLock<Option<PathBuf>> = std::sync::OnceLock::new();
+    let Some(path) = LOG.get_or_init(|| std::env::var_os(TIMING_ENV).map(PathBuf::from)) else {
+        return;
+    };
     let at = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_micros() as f64
         / 1000.0;
-    let line = format!("[DEBUG-cap7] {label} at={at:.1}\n");
-    if let Some(path) = std::env::var_os("KINSHOKO_DEBUG_CAP7_LOG") {
-        use std::io::Write as _;
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(path)
-        {
-            let _ = f.write_all(line.as_bytes());
-        }
-    } else {
-        eprint!("{line}");
+    use std::io::Write as _;
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+    {
+        let _ = writeln!(file, "capture.timing {stage} at={at:.1}");
     }
 }
+const TIMING_ENV: &str = "KINSHOKO_CAPTURE_TIMING_LOG";
 
 /// 与资料库插件相同：设置时截图历史也放进这个目录，WebDriver 测试用它隔离数据。
 const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
@@ -83,6 +84,8 @@ pub struct DesktopState {
     menu: Mutex<menu::MenuState>,
     capture: Mutex<capture::Session>,
     capture_frames: capture::FrameChannel,
+    /// 框选结束前等新钉图显示（#127）。
+    pin_shown: pins::ShownWaiters,
     capture_geometry_generation: AtomicU64,
     /// 本次运行中打开着的钉图窗口。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
@@ -214,6 +217,7 @@ pub fn init() -> TauriPlugin<Wry> {
                 menu: Mutex::default(),
                 capture: Mutex::new(capture::Session::Idle),
                 capture_frames: capture::FrameChannel::default(),
+                pin_shown: pins::ShownWaiters::default(),
                 capture_geometry_generation: AtomicU64::new(0),
                 pins: Mutex::default(),
                 store: Mutex::new(store),
@@ -278,18 +282,15 @@ fn on_library_event(app: &AppHandle, payload: &str) {
 fn capture_response(app: &AppHandle, path: &str) -> Response<Vec<u8>> {
     let mut content_type = "image/png";
     let body = if let Some(token) = path.strip_prefix("screen/") {
-        dbg_mark("png.begin"); // [DEBUG-cap7]
+        timing("png.begin");
         let png = capture::frozen_png(app, token);
-        dbg_mark(&format!(
+        timing(&format!(
             "png.end bytes={}",
             png.as_ref().map_or(0, Vec::len)
-        )); // [DEBUG-cap7]
+        ));
         png
     } else if let Some((pin, size)) = path.strip_prefix("pin/").and_then(|p| p.split_once('/')) {
-        dbg_mark(&format!("pinfile.begin size={size}")); // [DEBUG-cap7]
-        let r = pins::reference_file(app, pin, size);
-        dbg_mark("pinfile.end"); // [DEBUG-cap7]
-        r.and_then(|f| {
+        pins::reference_file(app, pin, size).and_then(|f| {
             content_type = library::image_content_type(&f);
             std::fs::read(f).ok()
         })

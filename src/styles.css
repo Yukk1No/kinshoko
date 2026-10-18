@@ -972,6 +972,9 @@ button.primary {
   cursor: crosshair;
 }
 
+/* 已确认、等结果可用（#127）。 */
+.capture.is-busy { cursor: progress; }
+
 .capture-screen {
   position: absolute;
   left: 0;
