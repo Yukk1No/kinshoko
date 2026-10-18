@@ -50,7 +50,8 @@ export function summarizeReplacement(
   const p95 = quantile(done, 0.95);
   return {
     completed: done.length,
-    instant: intervals.filter((i) => i.instant).length,
+    // 进入时已加载、但 decode() 失败或解码前离开的区间没到终点，不算缓存命中。
+    instant: intervals.filter((i) => i.instant && i.latency !== undefined).length,
     overBudget,
     p50: quantile(done, 0.5),
     p95,

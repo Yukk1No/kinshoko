@@ -582,16 +582,21 @@ enum MergeSource {
 }
 
 impl MergeSource {
-    /// 重新取字节，并核对仍是准备时那份内容。
-    fn bytes(self, sha: &str) -> Result<Vec<u8>, String> {
-        let bytes = match self {
-            MergeSource::Bytes(bytes) => bytes,
-            MergeSource::File(path) => std::fs::read(path).map_err(|e| e.to_string())?,
+    /// 重新取字节，并核对仍是准备时那份内容。重读原文件时与准备线程一样先占用读取预算，
+    /// 调用方持有返回的占用直到暂存完。
+    fn bytes(self, sha: &str) -> Result<(Vec<u8>, Option<BudgetPermit>), String> {
+        let (bytes, permit) = match self {
+            MergeSource::Bytes(bytes) => (bytes, None),
+            MergeSource::File(path) => {
+                let size = std::fs::metadata(&path).map_err(|e| e.to_string())?.len();
+                let permit = READ_BUDGET.acquire(size, None);
+                (std::fs::read(path).map_err(|e| e.to_string())?, permit)
+            }
         };
         if sha256_hex(&bytes) != sha {
             return Err("原文件在导入过程中变了".into());
         }
-        Ok(bytes)
+        Ok((bytes, permit))
     }
 }
 
@@ -869,7 +874,7 @@ fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, bool) {
                 // 准备之后、提交之前同内容的原图被永久删除：按新图重新暂存并发布。
                 Err(Error::MergeTargetGone) => match source
                     .bytes(&record.sha)
-                    .and_then(|bytes| stage(inner, &bytes, &record))
+                    .and_then(|(bytes, _read)| stage(inner, &bytes, &record))
                 {
                     Ok(pending) => timed(
                         |s| &mut s.commit,

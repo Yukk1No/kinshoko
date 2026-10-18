@@ -185,7 +185,14 @@ try {
   result.completedAt = new Date().toISOString();
   save();
   if (session) await wd("DELETE", session.base).catch(() => {});
-  spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_PERF_EXE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], { env: { ...process.env, KINSHOKO_PERF_EXE: application }, windowsHide: true });
+  // 只结束本次 tauri-driver 进程树里的应用实例，不碰本机另开的同一构建。
+  const cleanup = [
+    "$all = @(Get-CimInstance Win32_Process); $tree = @{}",
+    "$queue = [System.Collections.Generic.Queue[int]]::new(); $queue.Enqueue([int]$env:KINSHOKO_PERF_DRIVER_PID)",
+    "while ($queue.Count) { $id = $queue.Dequeue(); if ($tree.ContainsKey($id)) { continue }; $tree[$id] = $true; foreach ($p in $all) { if ($p.ParentProcessId -eq $id) { $queue.Enqueue([int]$p.ProcessId) } } }",
+    "$all | Where-Object { $tree.ContainsKey([int]$_.ProcessId) -and $_.ExecutablePath -eq $env:KINSHOKO_PERF_EXE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
+  ].join("; ");
+  if (driver.pid) spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", cleanup], { env: { ...process.env, KINSHOKO_PERF_EXE: application, KINSHOKO_PERF_DRIVER_PID: String(driver.pid) }, windowsHide: true });
   driver.kill();
   console.log(`结果：${join(work, "result.json")}`);
 }
