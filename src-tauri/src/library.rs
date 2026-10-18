@@ -64,6 +64,8 @@ use crate::shell::ShellState;
 /// 指定本设备登记表所在目录；不设时用应用数据目录。WebDriver 冒烟测试用它隔离数据。
 const DATA_DIR_ENV: &str = "KINSHOKO_DATA_DIR";
 const EVENT: &str = "library-event";
+/// 连续的列表、图片与词表变化合并推送的窗口（#142）。
+const EVENT_COALESCE: std::time::Duration = std::time::Duration::from_millis(500);
 /// 安全模式（应用设置）开关后推送，载荷为开关状态。不论有没有打开资料库都推送：
 /// 桌面钉图据此重新核对遮蔽（#65）。
 pub const SAFE_MODE_EVENT: &str = "safe-mode-setting";
@@ -453,7 +455,9 @@ fn forward_events<R: Runtime>(
     std::thread::Builder::new()
         .name("kinshoko-library-events".into())
         .spawn(move || {
-            for mut event in events {
+            // 自动打标每写一张图都有图片与词表变化：合并后再送到界面，免得每张图都让界面重读一遍、
+            // 在后端阻塞线程池里排起长队（#142）。
+            kinshoko_core::library::forward_coalesced(events, EVENT_COALESCE, |mut event| {
                 // 有新图进库：自动标签立即检查，不等下一次轮询。
                 if matches!(event, LibraryEvent::ListStale { .. }) {
                     crate::tagging::wake(&app);
@@ -475,7 +479,7 @@ fn forward_events<R: Runtime>(
                     *report = report.clone().without_content_details();
                 }
                 let _ = app.emit(EVENT, event);
-            }
+            });
         })
         .expect("无法启动事件转发线程");
     info
