@@ -948,3 +948,27 @@ fn a_failed_download_says_why_without_the_download_address() {
         "原因里不出现下载地址（含精度字样的仓库与文件名）：{reason}"
     );
 }
+
+/// 界面在一轮打完时提示“新打了 N 张”（#144）：Running 在打每张之前推送，
+/// 最后一张只能由随后的 Idle 带出；Idle 带本次运行打过的累计张数，界面按差值算这一轮。
+#[test]
+fn idle_reports_how_many_images_this_run_has_tagged() {
+    let f = Fixture::new(2);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    let spec = f.server.publish("gpu", Device::DirectMl, b"gpu model");
+    let mut config = f.config(vec![spec]);
+    config.poll_interval = Duration::from_millis(20);
+    let tagging = f.start(config);
+    tagging.download();
+
+    assert!(
+        matches!(idle(&tagging), TaggingStatus::Idle { tagged: 2, .. }),
+        "两张都打完"
+    );
+
+    f.import(10..11);
+    tagging.wake();
+    wait_for(&tagging, "新图打完后累计三张", |s| {
+        matches!(s, TaggingStatus::Idle { tagged: 3, .. })
+    });
+}
