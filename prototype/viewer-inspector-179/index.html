@@ -76,6 +76,27 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .batch { display: flex; flex-direction: column; gap: 6px; }
 .batch button, .btn { height: 32px; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 0 12px; }
 
+/* E：左栏下半部是详情，文件夹区压缩成可滚动的一段 */
+.side { min-height: 0; }
+.folders { flex: none; max-height: 40%; overflow-y: auto; }
+.left-detail { flex: 1; min-height: 0; overflow-y: auto; border-top: 1px solid var(--line); padding-top: 12px; }
+.left-detail .insp-section { padding: 0 14px 12px; }
+.left-detail dl { margin: 0; display: grid; grid-template-columns: 44px 1fr; gap: 4px 8px; font-size: 13px; }
+.left-detail dt { color: var(--ink-3); } .left-detail dd { margin: 0; overflow-wrap: anywhere; }
+.left-detail h4, .shelf h4 { margin: 0 0 6px; font-size: 12px; color: var(--ink-3); font-weight: 500; }
+.left-detail .head { padding: 0 14px 8px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+/* F：底部详情架，高度过渡；图片墙只是变矮，列宽不变 */
+.shelf { flex: none; height: 0; overflow: hidden; background: var(--surface); border-top: 0 solid var(--line); transition: height var(--t-slow) var(--ease); }
+.shelf[data-open="true"] { height: 148px; border-top-width: 1px; }
+.shelf-inner { height: 148px; display: flex; gap: 20px; padding: 14px 18px; align-items: stretch; }
+.shelf-col { min-width: 0; display: flex; flex-direction: column; }
+.shelf-col.title { width: 220px; flex: none; }
+.shelf-col.title b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shelf-col.title span { color: var(--ink-3); font-size: 13px; margin-top: 4px; }
+.shelf-col.tags { flex: 1; } .shelf-col.tags .chips { max-height: 84px; overflow: hidden; }
+.shelf-col.note { width: 240px; flex: none; } .shelf-col.note .note { flex: 1; min-height: 0; resize: none; }
+.shelf-col.acts { flex: none; display: grid; grid-template-columns: auto auto; gap: 6px; align-content: start; }
+.shelf .btn { height: 30px; }
 /* 查看器 */
 .viewer { display: flex; flex-direction: column; background: var(--bg); }
 .viewer.full { position: fixed; inset: 0; z-index: 20; }
@@ -117,6 +138,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   <aside class="side">
     <div class="brand"><i></i>Kinshoko</div>
     <nav class="folders" id="folders"></nav>
+    <section class="left-detail" id="leftDetail" hidden></section>
   </aside>
   <div class="main">
     <header class="top"><div class="search">查找参考图、标签……</div><span class="count" id="count"></span></header>
@@ -127,6 +149,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
       </div>
       <aside class="insp" id="insp" data-collapsed="true"><div class="insp-inner" id="inspInner"></div></aside>
     </div>
+    <section class="shelf" id="shelf" data-open="false"><div class="shelf-inner" id="shelfInner"></div></section>
   </div>
 </div>
 <div class="proto" id="proto"></div>
@@ -134,12 +157,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 <script>
 "use strict";
 const DBL = 500; // Windows 默认双击间隔
+// C（侧栏即查看器）、D（胶片带）第一轮试过后不再列出，代码留着，?variant=C / D 仍可打开。
 const VARIANTS = {
   A: "A 现状：全窗口查看器（对照）",
-  B: "B 容器内查看：查看器占图片墙，详情并排",
-  C: "C 侧栏即查看器：详情栏放大成查看区",
-  D: "D 容器内查看 + 胶片带 + 详情",
+  B: "B 保底：容器内查看，详情侧栏并排",
+  E: "E 详情住在左栏：右边永远没有侧栏",
+  F: "F 底部详情架：只占高度，不动列宽",
+  G: "G 详情由你开关：单击只选中，I 开关侧栏",
 };
+const EXTRA = { C: "C 侧栏即查看器（第一轮）", D: "D 胶片带（第一轮）" };
 const $ = (id) => document.getElementById(id);
 const h = (tag, attrs = {}, ...kids) => {
   const el = document.createElement(tag);
@@ -165,10 +191,11 @@ const pic = (item, cls) => item.thumb ? h("img", { src: item.thumb, alt: "", loa
 // ---------------------------------------------------------------- 状态
 const params = new URLSearchParams(location.search);
 const S = {
-  variant: VARIANTS[params.get("variant")] ? params.get("variant") : "A",
-  clickOpens: params.get("clickOpens") === "1",
-  dblById: params.get("dblById") === "1",
-  policy: ["frame", "end", "dbl"].includes(params.get("policy")) ? params.get("policy") : "end",
+  variant: VARIANTS[params.get("variant")] || EXTRA[params.get("variant")] ? params.get("variant") : "E",
+  clickOpens: params.get("clickOpens") !== "0",
+  dblById: params.get("dblById") !== "0",
+  policy: ["frame", "end", "dbl"].includes(params.get("policy")) ? params.get("policy") : "dbl",
+  gOpen: false, // G：侧栏是否开着，只由 I 键或按钮决定
   selected: new Set(), pivot: null,
   viewing: null, // 正在查看的图；C 里表示详情栏放大
   inspHidden: false, infoOpen: false, size: 220,
@@ -254,6 +281,8 @@ function cardClick(id, e) {
     const target = lastClick.id; lastClick = null; open(target); return;
   }
   if (S.policy === "dbl") holdUntil = now + DBL;
+  // F：点在详情架将要升起的区域里时，等双击窗口过去再升起，第二下不会点到架子上
+  if (S.variant === "F" && $("shelf").dataset.open !== "true" && e.clientY > $("stage").getBoundingClientRect().bottom - 148) shelfDelayUntil = now + DBL;
   lastClick = { id, t: now };
   if (e.ctrlKey || e.metaKey) {
     const next = new Set(S.selected); next.has(id) ? next.delete(id) : next.add(id);
@@ -329,7 +358,10 @@ let viewerEl = null, viewerKey = "";
 function render() {
   const v = S.variant;
   const sel = [...S.selected];
-  const wantOpen = (sel.length > 0 || !!S.viewing) && !(S.inspHidden && !(v === "C" && S.viewing));
+  const inset = !!S.viewing && v !== "A" && v !== "C";
+  const wantOpen = v === "E" || v === "F" ? false
+    : v === "G" ? S.gOpen
+    : (sel.length > 0 || !!S.viewing) && !(S.inspHidden && !(v === "C" && S.viewing));
   const wide = v === "C" && !!S.viewing;
   const wasOpen = insp.dataset.collapsed === "false", wasWide = insp.dataset.wide === "true";
   if (wantOpen !== wasOpen || wide !== wasWide) {
@@ -337,9 +369,11 @@ function render() {
     insp.dataset.collapsed = String(!wantOpen); insp.dataset.wide = String(wide);
   }
   renderInspector();
+  renderLeftDetail();
+  renderShelf();
   renderViewer();
-  $("island").style.visibility = S.viewing && (v === "B" || v === "D") ? "hidden" : "";
-  scroll.style.visibility = S.viewing && (v === "B" || v === "D") ? "hidden" : "";
+  $("island").style.visibility = inset ? "hidden" : "";
+  scroll.style.visibility = inset ? "hidden" : "";
   $("count").textContent = `${IMAGES.length} 张` + (sel.length ? ` · 已选 ${sel.length}` : "");
   renderProto();
 }
@@ -353,11 +387,15 @@ function renderInspector() {
   if (key === inspKey) return;
   inspKey = key;
   inner.replaceChildren();
-  if (!focusId && !sel.length) return;
+  if (!focusId && !sel.length) {
+    if (v === "G") inner.append(h("div", { class: "insp-head" }, "详情", h("button", { class: "icon", title: "关闭（I）", onclick: () => { S.gOpen = false; render(); } }, "✕")),
+      h("p", { class: "insp-section", style: "color:var(--ink-3)" }, "选中一张图，这里显示它的详情。侧栏开着就一直开着，按 I 关掉。"));
+    return;
+  }
   const head = h("div", { class: "insp-head" }, focusId ? "详情" : `已选 ${sel.length} 张`,
     v === "C" && S.viewing
       ? h("button", { class: "icon", title: "收回（Esc）", onclick: closeViewer }, "⇥")
-      : h("button", { class: "icon", title: "收起详情栏", onclick: () => { S.inspHidden = true; render(); } }, "✕"));
+      : h("button", { class: "icon", title: "收起详情栏", onclick: () => { if (v === "G") S.gOpen = false; else S.inspHidden = true; render(); } }, "✕"));
   inner.append(head);
   if (!focusId) {
     inner.append(h("div", { class: "insp-section batch" }, ["添加标签", "移到文件夹", "钉到桌面", "存为参考组", "移到回收站"].map((t) => h("button", {}, t))));
@@ -386,6 +424,54 @@ function renderInspector() {
   );
 }
 
+const detailSections = (item) => [
+  h("div", { class: "insp-section" }, h("h4", {}, "文件"), h("dl", {},
+    h("dt", {}, "名称"), h("dd", {}, item.title),
+    h("dt", {}, "尺寸"), h("dd", {}, `${item.w} × ${item.h}`),
+    h("dt", {}, "格式"), h("dd", {}, item.format || "—"),
+    h("dt", {}, "图库"), h("dd", {}, "样本库"))),
+  h("div", { class: "insp-section" }, h("h4", {}, "标签"), h("div", { class: "chips" }, item.tags.map((t) => h("span", { class: "chip" }, t)))),
+  h("div", { class: "insp-section" }, h("h4", {}, "备注"), h("textarea", { class: "note", placeholder: "写点什么……" })),
+  h("div", { class: "insp-section batch" }, h("button", {}, "钉到桌面"), h("button", {}, "框选局部"), h("button", {}, "移到回收站")),
+];
+const BATCH = ["添加标签", "移到文件夹", "钉到桌面", "存为参考组", "移到回收站"];
+let leftKey = "";
+function renderLeftDetail() {
+  const el = $("leftDetail"), sel = [...S.selected];
+  const focusId = S.viewing ?? (sel.length === 1 ? sel[0] : null);
+  const show = S.variant === "E" && sel.length > 0;
+  el.hidden = !show;
+  const key = show ? `${focusId}|${sel.length}` : "";
+  if (key === leftKey) return;
+  leftKey = key; el.replaceChildren();
+  if (!show) return;
+  if (!focusId) { el.append(h("div", { class: "head" }, `已选 ${sel.length} 张`), h("div", { class: "insp-section batch" }, BATCH.map((t) => h("button", {}, t)))); return; }
+  el.append(h("div", { class: "head" }, "详情"), ...detailSections(byId.get(focusId)));
+}
+let shelfKey = "", shelfDelayUntil = 0;
+function renderShelf() {
+  const el = $("shelf"), inner = $("shelfInner"), sel = [...S.selected];
+  const focusId = S.viewing ?? (sel.length === 1 ? sel[0] : null);
+  const wait = shelfDelayUntil - performance.now();
+  const open = S.variant === "F" && sel.length > 0 && !S.inspHidden;
+  if (open && wait > 0 && el.dataset.open !== "true") { setTimeout(render, wait + 10); return; }
+  el.dataset.open = String(open);
+  const key = open ? `${focusId}|${sel.length}` : shelfKey;
+  if (key === shelfKey) return;
+  shelfKey = key; inner.replaceChildren();
+  if (!focusId) {
+    inner.append(h("div", { class: "shelf-col title" }, h("b", {}, `已选 ${sel.length} 张`), h("span", {}, "批量操作")),
+      h("div", { class: "shelf-col acts", style: "grid-template-columns: repeat(5, auto)" }, BATCH.map((t) => h("button", { class: "btn" }, t))));
+    return;
+  }
+  const item = byId.get(focusId);
+  inner.append(
+    h("div", { class: "shelf-col title" }, h("b", { title: item.title }, item.title), h("span", {}, `${item.w} × ${item.h} · ${item.format || "—"} · 样本库`)),
+    h("div", { class: "shelf-col tags" }, h("h4", {}, "标签"), h("div", { class: "chips" }, item.tags.map((t) => h("span", { class: "chip" }, t)))),
+    h("div", { class: "shelf-col note" }, h("h4", {}, "备注"), h("textarea", { class: "note", placeholder: "写点什么……" })),
+    h("div", { class: "shelf-col acts" }, ["钉到桌面", "框选局部", "查看 Enter", "移到回收站"].map((t) => h("button", { class: "btn", onclick: t.startsWith("查看") ? () => open(focusId) : null }, t))));
+}
+
 function renderViewer() {
   const v = S.variant;
   const show = S.viewing && v !== "C";
@@ -406,7 +492,8 @@ function renderViewer() {
   const stage = h("div", { class: "v-stage" });
   const toggleBtn = full
     ? h("button", { "data-k": "info", onclick: () => { S.infoOpen = !S.infoOpen; syncViewerChrome(); } }, "信息", h("kbd", {}, "I"))
-    : h("button", { "data-k": "insp", onclick: () => { S.inspHidden = !S.inspHidden; render(); } }, "详情栏", h("kbd", {}, "I"));
+    : v === "E" ? null
+    : h("button", { "data-k": "insp", onclick: toggleDetail }, v === "F" ? "详情架" : "详情栏", h("kbd", {}, "I"));
   stage.append(h("div", { class: "dock" },
     h("button", { onclick: () => step(-1) }, "‹"), h("button", { onclick: () => step(1) }, "›"),
     toggleBtn, h("button", {}, "钉住", h("kbd", {}, "P")), h("button", {}, "框选", h("kbd", {}, "F1")), h("button", {}, "删除")));
@@ -428,12 +515,16 @@ function renderViewer() {
   zoomable(stage, item, (s) => { zoomText.textContent = "缩放 " + pct(s); });
   syncViewerChrome();
 }
+function toggleDetail() {
+  if (S.variant === "G") S.gOpen = !S.gOpen; else S.inspHidden = !S.inspHidden;
+  render(); syncViewerChrome();
+}
 function syncViewerChrome() {
   if (!viewerEl) return;
   const info = viewerEl.querySelector(".v-info");
   if (info) info.hidden = !S.infoOpen;
   viewerEl.querySelector('[data-k="info"]')?.setAttribute("aria-pressed", String(S.infoOpen));
-  viewerEl.querySelector('[data-k="insp"]')?.setAttribute("aria-pressed", String(!S.inspHidden));
+  viewerEl.querySelector('[data-k="insp"]')?.setAttribute("aria-pressed", String(S.variant === "G" ? S.gOpen : !S.inspHidden));
 }
 
 // ---------------------------------------------------------------- 左栏
@@ -459,16 +550,16 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { if (S.viewing) closeViewer(); else if (S.selected.size) setSelection(new Set()); return; }
   if (e.key === "Enter" && !S.viewing && S.selected.size === 1) { open([...S.selected][0]); note("Enter → 查看"); return; }
   if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); step(e.key === "ArrowRight" ? 1 : -1); return; }
-  if ((e.key === "i" || e.key === "I") && S.viewing) {
-    if (S.variant === "A") { S.infoOpen = !S.infoOpen; syncViewerChrome(); }
-    else if (S.variant !== "C") { S.inspHidden = !S.inspHidden; render(); }
+  if (e.key === "i" || e.key === "I") {
+    if (S.variant === "A") { if (S.viewing) { S.infoOpen = !S.infoOpen; syncViewerChrome(); } }
+    else if (S.variant === "G" || S.variant === "F" || (S.viewing && S.variant !== "C" && S.variant !== "E")) toggleDetail();
   }
 });
 
 // ---------------------------------------------------------------- 原型切换条
 function switchVariant(k) {
   if (S.viewing) { S.viewing = null; S.infoOpen = false; }
-  S.variant = k; S.inspHidden = false; inspKey = ""; saveParams(); render(); note(`切到 ${k}`);
+  S.variant = k; S.inspHidden = false; S.gOpen = false; inspKey = ""; saveParams(); render(); note(`切到 ${k}`);
 }
 let protoMin = false;
 function renderProto() {
@@ -477,7 +568,7 @@ function renderProto() {
   const idx = keys.indexOf(S.variant);
   const row1 = h("div", { class: "row" },
     h("button", { title: "上一个（[）", onclick: () => switchVariant(keys[(idx + keys.length - 1) % keys.length]) }, "‹"),
-    h("span", { class: "label" }, VARIANTS[S.variant]),
+    h("span", { class: "label" }, VARIANTS[S.variant] || EXTRA[S.variant]),
     h("button", { title: "下一个（]）", onclick: () => switchVariant(keys[(idx + 1) % keys.length]) }, "›"),
     h("button", { onclick: () => { protoMin = !protoMin; renderProto(); } }, protoMin ? "展开" : "收起"));
   const opt = (k, text) => { const c = h("input", { type: "checkbox" }); c.checked = S[k]; c.addEventListener("change", () => { S[k] = c.checked; saveParams(); renderProto(); }); return h("label", {}, c, text); };
