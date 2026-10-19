@@ -1682,6 +1682,35 @@ describe("界面缩放", () => {
     await waitFor(() => expect(sent("set_ui_scale").at(-1)).toEqual({ percent: 100 }));
   });
 
+  it("连按时写入一次只发一个，上一个完成后再写最后按到的那一档，不会被旧的覆盖", async () => {
+    const pending: (() => void)[] = [];
+    let current = 100;
+    backend(library, clean, (cmd, args) => {
+      if (cmd === "ui_scale") return current;
+      if (cmd === "set_ui_scale") {
+        const { percent } = args as { percent: number };
+        return new Promise((resolve) => pending.push(() => resolve((current = percent))));
+      }
+      return undefined;
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    await waitFor(() => expect(sent("ui_scale")).toHaveLength(1));
+    await act(async () => {});
+
+    key("=");
+    key("=");
+    key("=");
+    await waitFor(() => expect(sent("set_ui_scale")).toEqual([{ percent: 110 }]));
+    await act(async () => { pending.shift()!(); });
+
+    await waitFor(() => expect(sent("set_ui_scale")).toEqual([{ percent: 110 }, { percent: 150 }]));
+    await act(async () => { pending.shift()!(); });
+    await act(async () => {});
+    expect(sent("set_ui_scale")).toHaveLength(2);
+    expect(current).toBe(150);
+  });
+
   it("到最高、最低档后再按不动作", async () => {
     scaleBackend(200);
     render(<App />);

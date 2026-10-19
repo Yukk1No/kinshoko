@@ -676,20 +676,37 @@ function MainWindow() {
   /**
    * 界面缩放档位（#173）。WebView 由核心缩放，这里只记下档位给图片墙和设置用：
    * 显示的档位在核心保存并缩放之后才换；连按时从最后按下的那一档往下数。
+   * 写入一次只发一个：上一个完成后若又按了别的档，再写最后按到的那一档，旧的写入不会盖过新的。
    */
   const [uiScalePercent, setUiScalePercent] = useState(initialUiScale);
   const uiScaleTarget = useRef(uiScalePercent);
-  const acceptUiScale = useCallback((saved: number) => { uiScaleTarget.current = saved; setUiScalePercent(saved); }, []);
-  const chooseUiScale = useCallback((percent: number) => {
+  const uiScaleSaved = useRef(uiScalePercent);
+  const uiScaleWriting = useRef(false);
+  const acceptUiScale = useCallback((saved: number) => {
+    uiScaleSaved.current = saved;
+    uiScaleTarget.current = saved;
+    setUiScalePercent(saved);
+  }, []);
+  const chooseUiScale = useCallback(async (percent: number) => {
     if (percent === uiScaleTarget.current) return;
     uiScaleTarget.current = percent;
-    setUiScale(percent).then(
-      (saved) => { if (uiScaleTarget.current === percent) acceptUiScale(saved); },
-      (e) => {
-        toast?.error(`无法更改界面缩放：${String(e)}`);
-        uiScale().then(acceptUiScale, () => {});
-      },
-    );
+    if (uiScaleWriting.current) return;
+    uiScaleWriting.current = true;
+    try {
+      while (uiScaleTarget.current !== uiScaleSaved.current) {
+        const wanted = uiScaleTarget.current;
+        try {
+          const saved = await setUiScale(wanted);
+          uiScaleSaved.current = saved;
+          if (uiScaleTarget.current === wanted) acceptUiScale(saved);
+        } catch (e) {
+          toast?.error(`无法更改界面缩放：${String(e)}`);
+          acceptUiScale(await uiScale().catch(() => uiScaleSaved.current));
+        }
+      }
+    } finally {
+      uiScaleWriting.current = false;
+    }
   }, [toast, acceptUiScale]);
   /** 安全模式。读到设置之前按开启处理，不会先露出被封印的图。 */
   const [safe, setSafe] = useState(true);
@@ -734,7 +751,7 @@ function MainWindow() {
       () => undefined,
     );
     uiScale().then(
-      (saved) => { if (alive && typeof saved === "number") acceptUiScale(saved); },
+      (saved) => { if (alive && typeof saved === "number" && !uiScaleWriting.current) acceptUiScale(saved); },
       () => undefined,
     );
     currentLibrary().then(
@@ -787,7 +804,7 @@ function MainWindow() {
       const step = uiScaleStepForKey(e);
       if (!step) return;
       e.preventDefault();
-      chooseUiScale(stepUiScale(uiScaleTarget.current, step));
+      void chooseUiScale(stepUiScale(uiScaleTarget.current, step));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -890,7 +907,7 @@ function MainWindow() {
               onOpenNameWizard={() => setNameWizard(true)}
               onChange={acceptShellSettings}
               uiScale={uiScalePercent}
-              onUiScale={chooseUiScale}
+              onUiScale={(percent) => void chooseUiScale(percent)}
             />
           </Dialog.Popup>
         </Dialog.Portal>
