@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { PenLine } from "lucide-react";
 import type { TagGroupView } from "../bindings/TagGroupView";
 import type { SearchInput } from "../bindings/SearchInput";
-import { tagGroups, workspaceTagGroups } from "../ipc";
+import { isLensChanged, tagGroups, workspaceTagGroups } from "../ipc";
 import { TagMarks, UI_LANG, tagName } from "./SearchBox";
 
 type Props = {
@@ -30,7 +30,7 @@ export function TagGroupBar(p: Props) {
     let alive = true;
     (p.workspace ? workspaceTagGroups(p.libraryId, UI_LANG, p.safe) : tagGroups(p.libraryId, UI_LANG)).then(
       (next) => { if (alive && current.current === key) setFound({ key, groups: next ?? [] }); },
-      (error) => { if (alive && current.current === key) p.onError(String(error)); },
+      (error) => { if (alive && current.current === key && !isLensChanged(error)) p.onError(String(error)); },
     );
     return () => { alive = false; };
   }, [key, p.libraryId, p.safe, p.onError, p.workspace]);

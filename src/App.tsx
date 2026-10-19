@@ -29,8 +29,10 @@ import {
   onSafeModeSetting,
   safeMode,
   setSafeMode,
+  setUiScale,
   shellSettings,
   thumbnailUrl,
+  uiScale,
 } from "./ipc";
 import { referenceCard, useOpenInKinshoko } from "./desktop/openInKinshoko";
 import { CreateLibrary } from "./library/CreateLibrary";
@@ -47,6 +49,7 @@ import { TagGroupsPane } from "./library/TagGroupsPane";
 import { SearchBox, UI_LANG } from "./search/SearchBox";
 import { TagGroupBar } from "./search/TagGroupBar";
 import { Rail, type Section } from "./shell/Rail";
+import { initialUiScale, stepUiScale, UiScaleContext, uiScaleStepForKey } from "./shell/uiScale";
 import { SettingsPanel, type SettingsTab } from "./SettingsPanel";
 import { BackupReminder } from "./Backup";
 import { Dialog } from "@base-ui/react/dialog";
@@ -642,6 +645,7 @@ function InspectorPreview({ card, libraryId }: { card: BrowserCard; libraryId: s
  * 重新登记或新建。状态栏可打开截图历史与设置。
  * 封印书或 Ctrl+Shift+S 切换安全模式（#60）：开启的那一刻先遮住将被封印的图，资料库确认后
  * 它们离开图片墙，计数与候选随之刷新。安全模式属于本设备，切换资料库后沿用。
+ * Ctrl+= / Ctrl+- / Ctrl+0 按档位放大、缩小、复位界面缩放（#173）。
  */
 export function App() {
   return <ToastProvider><MainWindow /></ToastProvider>;
@@ -680,6 +684,41 @@ function MainWindow() {
     setTagDisplay(view.tagDisplay ?? DEFAULT_TAG_DISPLAY);
     setKeepSelectionOnSafe(view.keepSelectionOnSafeMode ?? false);
   }, []);
+  /**
+   * 界面缩放档位（#173）。WebView 由核心缩放，这里只记下档位给图片墙和设置用：
+   * 显示的档位在核心保存并缩放之后才换；连按时从最后按下的那一档往下数。
+   * 写入一次只发一个：上一个完成后若又按了别的档，再写最后按到的那一档，旧的写入不会盖过新的。
+   */
+  const [uiScalePercent, setUiScalePercent] = useState(initialUiScale);
+  const uiScaleTarget = useRef(uiScalePercent);
+  const uiScaleSaved = useRef(uiScalePercent);
+  const uiScaleWriting = useRef(false);
+  const acceptUiScale = useCallback((saved: number) => {
+    uiScaleSaved.current = saved;
+    uiScaleTarget.current = saved;
+    setUiScalePercent(saved);
+  }, []);
+  const chooseUiScale = useCallback(async (percent: number) => {
+    if (percent === uiScaleTarget.current) return;
+    uiScaleTarget.current = percent;
+    if (uiScaleWriting.current) return;
+    uiScaleWriting.current = true;
+    try {
+      while (uiScaleTarget.current !== uiScaleSaved.current) {
+        const wanted = uiScaleTarget.current;
+        try {
+          const saved = await setUiScale(wanted);
+          uiScaleSaved.current = saved;
+          if (uiScaleTarget.current === wanted) acceptUiScale(saved);
+        } catch (e) {
+          toast?.error(`无法更改界面缩放：${String(e)}`);
+          acceptUiScale(await uiScale().catch(() => uiScaleSaved.current));
+        }
+      }
+    } finally {
+      uiScaleWriting.current = false;
+    }
+  }, [toast, acceptUiScale]);
   /** 安全模式。读到设置之前按开启处理，不会先露出被封印的图。 */
   const [safe, setSafe] = useState(true);
   const safeRef = useRef(true);
@@ -720,6 +759,10 @@ function MainWindow() {
     );
     shellSettings().then(
       (view) => alive && view && acceptShellSettings(view),
+      () => undefined,
+    );
+    uiScale().then(
+      (saved) => { if (alive && typeof saved === "number" && !uiScaleWriting.current) acceptUiScale(saved); },
       () => undefined,
     );
     currentLibrary().then(
@@ -766,6 +809,18 @@ function MainWindow() {
     return () => window.removeEventListener("keydown", onKey);
   }, [toggleSafe]);
 
+  // 界面缩放的固定按键；Ctrl+滚轮不在这里，它归图片墙的图片大小（#111）。
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const step = uiScaleStepForKey(e);
+      if (!step) return;
+      e.preventDefault();
+      void chooseUiScale(stepUiScale(uiScaleTarget.current, step));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [chooseUiScale]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (viewerOpen || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
@@ -794,6 +849,7 @@ function MainWindow() {
     <BackupReminder />
   </>;
   return (
+    <UiScaleContext.Provider value={uiScalePercent / 100}>
     <TagDisplayContext.Provider value={tagDisplay}><SaveDestinationProvider safe={safe}><div className="app app-shell">
       <div className="rail-slot" inert={viewerOpen}>
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
@@ -861,6 +917,8 @@ function MainWindow() {
               onSafeMode={toggleSafe}
               onOpenNameWizard={() => setNameWizard(true)}
               onChange={acceptShellSettings}
+              uiScale={uiScalePercent}
+              onUiScale={(percent) => void chooseUiScale(percent)}
             />
           </Dialog.Popup>
         </Dialog.Portal>
@@ -868,5 +926,6 @@ function MainWindow() {
       <LegacyNameWizard open={nameWizard} onOpenChange={setNameWizard} />
       </div>
     </div></SaveDestinationProvider></TagDisplayContext.Provider>
+    </UiScaleContext.Provider>
   );
 }

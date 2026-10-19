@@ -8,7 +8,7 @@ use std::sync::Mutex;
 
 use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::{
-    AppSettings, GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutAction,
+    AppSettings, GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutAction, UiScale,
 };
 use tauri::{AppHandle, Manager, WebviewWindowBuilder};
 use tauri_plugin_autostart::ManagerExt as _;
@@ -30,6 +30,10 @@ pub struct Shell {
 
 pub struct ShellState(pub Mutex<Shell>);
 
+/// 主窗口的界面缩放（#173）。与 [`ShellState`] 分开一把锁：打开主窗口（托盘、第二次启动的
+/// 回调，在主线程上）要读它；改档位的命令不在持锁时调用 WebView。
+pub struct UiScaleState(pub Mutex<UiScale>);
+
 impl Shell {
     pub fn view(&self) -> ShellSettingsView {
         self.shortcuts.settings_view(&self.settings)
@@ -41,6 +45,8 @@ pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let settings = AppSettings::open(crate::data_dirs::app_data(app).settings())?;
     // 先定下 WebView2 启动参数（强制 sRGB），之后才建窗口。
     crate::diagnostics::start(app, &settings)?;
+    let ui_scale = UiScale::open(crate::data_dirs::app_data(app).settings())?;
+    app.manage(UiScaleState(Mutex::new(ui_scale)));
     let shortcuts = GlobalShortcuts::start(TauriHotkeys { app: app.clone() }, &settings);
     if let Err(e) = apply_autostart(app, settings.autostart()) {
         eprintln!("同步开机自启失败：{e}");
@@ -70,7 +76,18 @@ pub fn apply_autostart<R: tauri::Runtime>(app: &AppHandle<R>, on: bool) -> Resul
     .map_err(|e| e.to_string())
 }
 
+/// 按本机的界面缩放档位缩放主窗口的 WebView。截图遮罩、钉图等其他窗口不缩放。
+pub fn apply_ui_scale(app: &AppHandle, factor: f64) {
+    if let Some(window) = app.get_webview_window(MAIN_WINDOW)
+        && let Err(e) = window.set_zoom(factor)
+    {
+        eprintln!("应用界面缩放失败：{e}");
+    }
+}
+
 /// 打开主窗口；关闭后 WebView 已销毁，这里按配置重新建一个。
+///
+/// 新建的窗口先不显示，套上界面缩放再显示，首帧就是保存的档位。
 pub fn open_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW) {
         let _ = window.unminimize();
@@ -89,9 +106,24 @@ pub fn open_main_window(app: &AppHandle) {
     };
     crate::desktop::clear_viewer_reference(app);
     crate::diagnostics::record(app, UsageEvent::MainWindowOpened);
-    match WebviewWindowBuilder::from_config(app, config).and_then(|b| b.shared_webview(app).build())
-    {
+    let scale = app
+        .try_state::<UiScaleState>()
+        .and_then(|state| state.0.lock().ok().map(|scale| scale.clone()));
+    let factor = scale.as_ref().map_or(1.0, UiScale::factor);
+    // 档位也预先写给页面：图片墙首帧就按它排，不等 `ui_scale` 命令。
+    let seed = format!(
+        "window.__KINSHOKO_UI_SCALE__ = {};",
+        scale.as_ref().map_or(100, UiScale::percent)
+    );
+    match WebviewWindowBuilder::from_config(app, config).and_then(|b| {
+        b.visible(false)
+            .initialization_script(seed)
+            .shared_webview(app)
+            .build()
+    }) {
         Ok(window) => {
+            apply_ui_scale(app, factor);
+            let _ = window.show();
             let _ = window.set_focus();
         }
         Err(e) => eprintln!("打开主窗口失败：{e}"),

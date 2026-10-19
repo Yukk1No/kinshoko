@@ -123,7 +123,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "ца
     let alive = true;
     sharedTagGroups(UI_LANG, safe).then(
       (value) => { if (alive && current.current === key) setFound({ key, safe, groups: value ?? [] }); },
-      (error) => { if (alive && current.current === key) onError(String(error)); },
+      (error) => { if (alive && current.current === key && !isLensChanged(error)) onError(String(error)); },
     );
     return () => { alive = false; };
   }, [key, safe, onError]);

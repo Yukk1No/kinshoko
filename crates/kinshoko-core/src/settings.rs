@@ -4,6 +4,8 @@
 //! 保存在数据根目录（`data_dirs`）的 `settings.json`。后续的设置（钉图、模型选择、诊断开关等）
 //! 在 [`SettingsSnapshot`] 上加带默认值的字段即可；不认识的字段原样保留，旧版本打开新版本
 //! 写的文件不会丢掉它们。
+//!
+//! 例外：界面缩放（`ui_scale`）只属于这台电脑的屏幕，单独存放，不进这里，也就不进程序设置备份。
 
 use std::collections::BTreeMap;
 use std::fmt;

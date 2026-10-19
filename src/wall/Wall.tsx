@@ -22,6 +22,8 @@ import { ZOOM_COMMIT_MS, createNotchCounter, zoomDensity } from "./zoom";
 import { createSmoothWheel } from "./smoothWheel";
 import { createPrefetcher, decodeThumbnail, mountWindow, prefetchOrder, type MountWindow } from "./prefetch";
 import { MAX_GHOSTS, SEAL, SealFx, type FxArrival, type FxSource } from "../shell/sealfx";
+import { useUiScale } from "../shell/uiScale";
+import { useDevicePixelRatio } from "../ui/devicePixelRatio";
 import { reducedNow, useReducedMotion } from "../ui/reducedMotion";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
@@ -43,6 +45,8 @@ const SAVE_ANCHOR_MS = 250;
  * 回来的图照常淡出遮蔽：动画只跟着这一次切换，不挂在之后无关的重新浏览上。
  */
 const RELEASE_WAIT = 1500;
+/** 某一刻的布局：每张卡片在画布里的位置，和当时的滚动位置。 */
+type LayoutSnapshot = { boxes: Map<string, Box>; scrollTop: number };
 
 /** 图片墙上拖出参考图时放进 dataTransfer 的类型，值为 JSON 数组的参考图 id。 */
 export const DRAG_IMAGES = "application/x-kinshoko-images";
@@ -123,6 +127,9 @@ const markThumbnailLoaded = (e: { currentTarget: HTMLImageElement }) => {
   if (!e.currentTarget.dataset.loaded) e.currentTarget.dataset.loaded = "fade";
 };
 
+
+/** 来源按钮的图标：同一个元素，卡片重排重新渲染时 React 直接跳过它。 */
+const SOURCES_ICON = <Layers size={11} aria-hidden="true" />;
 
 /** 按键落在可输入的地方（输入框、文本框、可编辑区域）：Ctrl+V 是粘贴文字，不是导入。 */
 const editable = (target: EventTarget | null) =>
@@ -214,6 +221,9 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   const scrollDirection = useRef<1 | -1>(1);
   const lastScrollTop = useRef(0);
   const [cards, setCards] = useState<BrowserCard[]>([]);
+  /** 墙上现在的卡片，给异步回来的页面和动画计时比较用。 */
+  const shownCards = useRef(cards);
+  shownCards.current = cards;
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -254,7 +264,9 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
    * 安全模式切换那一刻量下的卡片位置。资料库按新视角送回卡片后，留下的卡片从这里滑到新位置，
    * 节奏按原型的封印／释放重排（从点下去的时刻算起）。
    */
-  const safeReflow = useRef<{ rects: Map<string, DOMRect>; at: number; delay: number; duration: number } | null>(null);
+  const safeReflow = useRef<{ rects: Map<string, DOMRect>; boxes: LayoutSnapshot; at: number; delay: number; duration: number } | null>(null);
+  /** 封印／释放重排前的布局：点下去时不在视口里的卡片，从这里算出起点（#154）。 */
+  const beforeBoxes = useRef<LayoutSnapshot | null>(null);
   /** 这一次重排的节奏；null 时是平常的 200 ms。 */
   const reflowMotion = useRef<{ at: number; delay: number; duration: number } | null>(null);
 
@@ -276,9 +288,13 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     safeReflow.current = null;
     reflowMotion.current = held && performance.now() - held.at < RELEASE_WAIT ? held : null;
     beforeReflow.current = reflowMotion.current ? held!.rects : measured;
+    beforeBoxes.current = reflowMotion.current ? held!.boxes : null;
   }, []);
 
   useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
+  /** 封印后按原型节奏移走飞走的图的那一帧（requestAnimationFrame id）；0 表示没有。 */
+  const sealDrop = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(sealDrop.current), []);
   const loadMoreRef = useRef<() => void>(() => {});
   const selectAllRef = useRef<() => void>(() => {});
   useImperativeHandle(ref, () => ({
@@ -315,9 +331,13 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     onOpenImage(card);
   };
 
+  // 界面缩放（#173）：图片大小是界面缩放 100% 时的 CSS 宽度，卡片按界面缩放缩小 CSS 宽度，
+  // 屏幕上的宽度与每行张数不变。缩略图按卡片的 CSS 宽度乘实际的设备像素比请求。
+  const uiScale = useUiScale();
+  const dpr = useDevicePixelRatio();
   const thumbnailPx = useMemo(
-    () => Math.ceil(density * 1.5 * (window.devicePixelRatio || 1)),
-    [density],
+    () => Math.ceil((density / uiScale) * 1.5 * dpr),
+    [density, uiScale, dpr],
   );
 
   useEffect(() => { onCardsChange?.(cards); }, [cards, onCardsChange]);
@@ -329,11 +349,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     if (!workspaceKey) { clearedFor.current = null; return; }
     generation.current += 1;
     inflight.current = null;
-    // 只是修订号前进（自动打标每写一张图一次，#142）：保留旧卡片，等新的一页回来原地替换。
-    // 浏览范围或安全模式变了才清空，不露出旧视角的内容。
-    const scopeAndSafe = `${workspaceKey}\n${safeMode}`;
-    if (clearedFor.current === scopeAndSafe) return;
-    clearedFor.current = scopeAndSafe;
+    // 只是修订号前进（自动打标每写一张图一次，#142）或安全模式切换：保留旧卡片，等新的一页回来原地替换。
+    // 安全模式开启的那一刻成人卡片已原地遮蔽，封印动画从它们飞出（#154），资料库确认后它们才离开。
+    // 浏览范围变了才清空，不露出旧范围的内容。
+    if (clearedFor.current === workspaceKey) return;
+    clearedFor.current = workspaceKey;
     // Emptying the canvas clamps browser scrollTop. Preserve the user's anchor
     // until the new authorized page restores it.
     restoring.current = true;
@@ -388,7 +408,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             if (current() && isCursorExpired(e) && attempt < 3) continue;
             throw e;
           }
-          measureBeforeReflow();
+          // 送回的还是墙上这些卡片（封印后按节奏先移走了飞走的图）：不量也不重排，正在补位的动画不被打断。
+          const prev = shownCards.current;
+          const unchanged = prev.length === next.length
+            && prev.every((c, i) => c.id === next[i].id && c.width === next[i].width && c.height === next[i].height);
+          if (!unchanged) measureBeforeReflow();
           if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus, next);
           setCards(next);
           setCursor(after);
@@ -397,7 +421,9 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
           return;
         }
       } catch (e) {
-        if (current()) setError(String(e));
+        // 安全模式刚切换、资料库还没跟上（快速开了又关时，第一次确认触发的重新浏览）：不是错误，
+        // 卡片原样留着，等资料库确认后的那次重新浏览（与 loadMore 相同）。
+        if (current() && !isLensChanged(e)) setError(String(e));
       } finally {
         if (inflight.current === gen) inflight.current = null;
       }
@@ -488,10 +514,15 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   /** 等着回来的图飞出的截止时刻（performance.now）；0 表示没有。 */
   const releaseDue = useRef(0);
   const reduced = useReducedMotion();
-  const landed = useCallback((id: string) => setArriving((s) => {
-    if (!s.has(id)) return s;
-    const n = new Set(s); n.delete(id); return n;
-  }), []);
+  const landed = useCallback((id: string) => {
+    // 影子在这一帧移走：卡片同一帧就得显示，不能等 React 下一次提交，否则中间空出一帧，落地时闪一下。
+    // React 随后按 arriving 把类名设成同样的值。
+    scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.classList.remove("is-arriving");
+    setArriving((s) => {
+      if (!s.has(id)) return s;
+      const n = new Set(s); n.delete(id); return n;
+    });
+  }, []);
   useLayoutEffect(() => {
     const f = new SealFx(fxHost.current!);
     fx.current = f;
@@ -502,6 +533,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     fx.current?.clear(); releaseDue.current = 0; setArriving(new Set());
   }, [reduced]);
   /** 视口里看得见的卡片。 */
+  /** 现在的布局快照（还没按新的卡片重排）。 */
+  const snapshotLayout = (): LayoutSnapshot => {
+    const { layout: now, ids: shown } = live.current;
+    return { boxes: new Map(now ? shown.map((id, i) => [id, now.boxes[i]]) : []), scrollTop: scroller.current?.scrollTop ?? 0 };
+  };
   const onScreen = () => {
     const el = scroller.current;
     if (!el) return [];
@@ -518,26 +554,59 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     return onScreen().filter((c) => adult.has(c.id));
   };
   const book = () => document.querySelector(".seal-book")?.getBoundingClientRect();
+  /** 视口里的成人卡片从书里飞回自己的位置（还在往书里飞的影子就地掉头），落地前卡片先藏着。 */
+  const releaseOnScreen = (f: SealFx, b: DOMRect) => {
+    const arrivals: FxArrival[] = onScreenAdult().slice(0, MAX_GHOSTS).map(({ id, src, rect }) => ({
+      id, src, w: rect.width, h: rect.height,
+      target: () => {
+        const r = scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.getBoundingClientRect();
+        return r && r.width > 0 ? r : null;
+      },
+    }));
+    if (!arrivals.length) return;
+    setArriving(new Set(arrivals.map((a) => a.id)));
+    f.release(arrivals, b, landed);
+  };
   useLayoutEffect(() => {
     if (lastSafe.current === safeMode) return;
     lastSafe.current = safeMode;
     releaseDue.current = 0;
+    const sealing = sealDrop.current !== 0;
+    cancelAnimationFrame(sealDrop.current);
+    sealDrop.current = 0;
     safeReflow.current = null;
     const f = fx.current, b = book();
     if (!f || !b || viewerOpen || reducedNow()) {
       // 查看器盖着墙或减少动态效果：封印的图直接不见，放出的图直接在。
       f?.clear(); setArriving(new Set());
+      if (safeMode && shownCards.current.some((c) => c.adult)) setCards((current) => current.filter((c) => !c.adult));
+      return;
+    }
+    if (!safeMode && sealing) {
+      // 影子还没起飞让位就关闭：成人图仍在原位，影子立刻掉头飞回，不等资料库；墙上没有卡片要挪。
+      releaseOnScreen(f, b);
       return;
     }
     // 原型：封印时留下的卡片等影子起飞后（flyAt + 20）用 620 ms 补位；释放时 40 ms 后用 680 ms 让位。
     safeReflow.current = {
-      rects: new Map(onScreen().map((c) => [c.id, c.rect])), at: performance.now(),
+      rects: new Map(onScreen().map((c) => [c.id, c.rect])), boxes: snapshotLayout(), at: performance.now(),
       delay: safeMode ? SEAL.flyAt + 20 : 40, duration: safeMode ? 620 : 680,
     };
     if (safeMode) {
       // 还在往外飞的影子先掉头（原型 Q111），再让墙上的成人图飞进书里。
       f.seal(onScreenAdult() satisfies FxSource[], b);
       setArriving(new Set());
+      // 影子起飞后（flyAt + 20）就让出位置，不等资料库确认：资料库慢时补位不会停顿，回来的同一批卡片也不再重排。
+      const dropAt = performance.now() + SEAL.flyAt + 20;
+      const drop = () => {
+        if (performance.now() < dropAt) { sealDrop.current = requestAnimationFrame(drop); return; }
+        sealDrop.current = 0;
+        // 没有图要让位：撤掉切换时量下的位置，免得之后无关的重排沿用它和封印的节奏。
+        if (!shownCards.current.some((c) => c.adult)) { safeReflow.current = null; return; }
+        measureBeforeReflow();
+        setCards((current) => current.filter((c) => !c.adult));
+      };
+      sealDrop.current = requestAnimationFrame(drop);
     } else {
       releaseDue.current = performance.now() + RELEASE_WAIT;
     }
@@ -548,9 +617,9 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     () =>
       masonry(
         cards.map((c) => ({ w: c.width, h: c.height })),
-        { width, target: previewDensity ?? density, gap: GAP, pad: PAD, capRatio: CAP_RATIO },
+        { width, target: (previewDensity ?? density) / uiScale, gap: GAP / uiScale, pad: PAD / uiScale, capRatio: CAP_RATIO },
       ),
-    [cards, width, density, previewDensity],
+    [cards, width, density, previewDensity, uiScale],
   );
 
   // 布局变化（宽度、新的一批卡片）后把锚定的图放回原来的位置。
@@ -575,16 +644,28 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     }
     // 锚定的图找到了，或已取完全部仍没有（图已不在），都结束恢复。
     if (top !== null || !anchor.current || !cursor) restoring.current = false;
-    const from = beforeReflow.current, safe = reflowMotion.current;
+    const from = beforeReflow.current, safe = reflowMotion.current, fromBoxes = beforeBoxes.current;
     beforeReflow.current = new Map();
     reflowMotion.current = null;
+    beforeBoxes.current = null;
+    /** 点下去时不在视口里、没有量到矩形的卡片：按前后两次布局的位置差（含滚动差）推出它当时在哪。 */
+    const index = fromBoxes ? new Map(ids.map((id, i) => [id, i])) : null;
+    const derive = (id: string, next: DOMRect) => {
+      const prev = fromBoxes?.boxes.get(id), i = index?.get(id), cur = i === undefined ? undefined : layout.boxes[i];
+      if (!prev || !cur || !cur.w || !cur.h) return undefined;
+      return new DOMRect(next.left + prev.x - cur.x, next.top + (prev.y - fromBoxes!.scrollTop) - (cur.y - el.scrollTop),
+        next.width * prev.w / cur.w, next.height * prev.h / cur.h);
+    };
+    // 先读（挂载范围、各卡片矩形），再起滑动动画：起动画之后再读布局会再强制排一次版（#176）。
+    syncMount(el);
     const timing: KeyframeAnimationOptions = safe
       ? { duration: safe.duration, delay: Math.max(0, safe.at + safe.delay - performance.now()), easing: "cubic-bezier(0.65, 0, 0.35, 1)", fill: "backwards" }
       : { duration: 200, easing: "cubic-bezier(0.2,0.8,0.2,1)" };
-    if (from.size && !reducedNow()) {
+    if ((from.size || fromBoxes) && !reducedNow()) {
       const targets = [...el.querySelectorAll<HTMLElement>(".card")].flatMap((node) => {
-        const old = from.get(node.dataset.id!);
-        return old ? [{ node, old, next: node.getBoundingClientRect() }] : [];
+        const next = node.getBoundingClientRect();
+        const old = from.get(node.dataset.id!) ?? derive(node.dataset.id!, next);
+        return old ? [{ node, old, next }] : [];
       });
       for (const { node, old, next } of targets) {
         if (!next.width || !next.height || typeof node.animate !== "function") continue;
@@ -596,9 +677,20 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
         ], timing);
         motions.current.set(node.dataset.id!, motion);
         motion.onfinish = () => motions.current.delete(node.dataset.id!);
+        // 图库标记是卡片的兄弟、按新位置摆着：跟卡片右下角一起从旧位置滑过来，保留它自身的 translate(-100%, -100%)。
+        const badge = node.nextElementSibling;
+        if (badge instanceof HTMLElement && badge.classList.contains("card-sources")) {
+          const badgeMotion = badge.animate([
+            { transform: `translate(${old.right - next.right}px, ${old.bottom - next.bottom}px) translate(-100%, -100%)` },
+            { transform: "translate(-100%, -100%)" },
+          ], timing);
+          const key = `${node.dataset.id!}
+sources`;
+          motions.current.set(key, badgeMotion);
+          badgeMotion.onfinish = () => motions.current.delete(key);
+        }
       }
     }
-    syncMount(el);
   }, [layout, ids, width, cards.length, cursor, syncMount]);
 
   live.current = { layout, ids, density, previewDensity, onDensityPreview, onDensityCommit };
@@ -677,20 +769,13 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
 
   // 关闭安全模式后，资料库送回的成人图排好了位置：它们就是从书里飞出的落点。
   useLayoutEffect(() => {
-    const due = releaseDue.current, f = fx.current, b = book();
+    const due = releaseDue.current;
     if (!due || safeMode || !cards.length || !width) return;
     releaseDue.current = 0;
+    // 只在真有图要飞回时才量封印书：这个效果每次墙上的卡片变化都会跑，量它会多强制排一次版（#176）。
+    const f = fx.current, b = book();
     if (!f || !b || performance.now() > due || viewerOpen || reducedNow()) return;
-    const arrivals: FxArrival[] = onScreenAdult().slice(0, MAX_GHOSTS).map(({ id, src, rect }) => ({
-      id, src, w: rect.width, h: rect.height,
-      target: () => {
-        const r = scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.getBoundingClientRect();
-        return r && r.width > 0 ? r : null;
-      },
-    }));
-    if (!arrivals.length) return;
-    setArriving(new Set(arrivals.map((a) => a.id)));
-    f.release(arrivals, b, landed);
+    releaseOnScreen(f, b);
   }, [cards, layout, width]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onScroll = () => {
@@ -728,7 +813,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   // 缩略图按滚动方向预取，离挂载范围近的先取；挂载范围变化时更新（#109）。
   const prefetcher = useRef<ReturnType<typeof createPrefetcher> | null>(null);
   /** 上次渲染的卡片元素，按 id；布局、选择、遮蔽都没变的卡片原样沿用。 */
-  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; landing: boolean; node: ReactNode }>());
+  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; leaving: boolean; landing: boolean; node: ReactNode }>());
   useLayoutEffect(() => { renderedCards.current = nextRendered; });
   const cardHandlers = useRef<{
     select: (id: string, e: Pick<MouseEvent, "shiftKey" | "ctrlKey" | "metaKey">) => void;
@@ -878,11 +963,14 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             const card = cards[i];
             const b = layout.boxes[i];
             const veiled = card.adult && (safeMode || !revealed.has(card.id));
+            // 安全模式下墙上的成人卡片只会是刚开启、等资料库确认的那些：影子已替它飞向封印书，
+            // 原地不再留着遮蔽的图，只先占着位置，确认后其余卡片再补位（#154）。
+            const leaving = card.adult && safeMode;
             const chosen = selected.has(card.id);
             const landing = arriving.has(card.id);
             // 没变的卡片沿用上次的元素，React 跳过整张卡片的比对（#109）。
             const kept = renderedCards.current.get(card.id);
-            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.landing === landing) {
+            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.leaving === leaving && kept.landing === landing) {
               nextRendered.set(card.id, kept);
               return kept.node;
             }
@@ -896,6 +984,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 role="option"
                 tabIndex={0}
                 data-veiled={veiled}
+                data-leaving={leaving}
                 draggable={!workspaceScope || workspaceScope.kind === "library" || (card.sources?.some((source) => !source.unavailable) ?? false)}
                 onClick={(e) => cardHandlers.current.select(card.id, e)}
                 onDoubleClick={() => cardHandlers.current.open(card)}
@@ -915,10 +1004,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 title={sources.length >= 2 ? `在 ${sources.length} 个图库` : `在「${sources[0].libraryName}」`}
                 style={{ left: `${b.x + b.w - 8}px`, top: `${b.y + b.h - 8}px` }}
                 onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; cardHandlers.current.inspect?.(card as WorkspaceCard); }}
-                onKeyDown={(e) => e.stopPropagation()}><Layers size={11} aria-hidden="true" />{sources.length >= 2 && `${sources.length} 处`}</button>}
+                onKeyDown={(e) => e.stopPropagation()}>{SOURCES_ICON}{sources.length >= 2 && `${sources.length} 处`}</button>}
               </Fragment>
             );
-            nextRendered.set(card.id, { card, box: b, chosen, veiled, landing, node });
+            nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, node });
             return node;
           })}
         </div>

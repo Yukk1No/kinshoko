@@ -158,3 +158,18 @@ it("翻页游标过期时从第一页重读，不显示错误", async () => {
   expect(shown()).toEqual(["g3", "g2", "g1"]);
   expect(wall().dataset.total).toBe("3");
 });
+
+it("重新浏览撞上安全模式刚切换（LensChanged）：不报错，卡片原样留着，等资料库确认后的重新浏览（#176）", async () => {
+  const view = render(<Wall {...base} reloadKey={0} safeMode={false} />);
+  await settle();
+  await act(async () => calls[0].resolve(page([card("g")], 1)));
+  await settle();
+  // 快速开了又关：资料库确认“开”时界面已经是“关”，这次重新浏览带的视角与资料库的不同。
+  view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
+  await settle();
+  await act(async () => calls[1].reject("安全模式刚切换过，请重新查找"));
+  await settle();
+
+  expect(document.querySelector('[role="alert"]')).toBeNull();
+  expect(shown()).toEqual(["g"]);
+});

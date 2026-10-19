@@ -1,6 +1,6 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
-import { Activity, Archive, FileText, Keyboard, Monitor, MousePointerClick, Power, RefreshCw, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
+import { Activity, Archive, FileText, Keyboard, Monitor, MousePointerClick, Power, RefreshCw, Scaling, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
@@ -33,6 +33,7 @@ import { Segmented } from "./ui/Segmented";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { Switch } from "./ui/Switch";
 import { SealLock } from "./ui/SealLock";
+import { UI_SCALE_LEVELS } from "./shell/uiScale";
 
 const ACTION_LABELS: Record<ShortcutAction, string> = {
   capture: "截图",
@@ -92,13 +93,16 @@ type Props = {
   onSafeMode?: () => void;
   /** 打开“确认旧名称”向导（标签分页的提示条）。 */
   onOpenNameWizard?: () => void;
+  /** 界面缩放档位（主窗口持有，#173）；没有时通用分页不显示这一项。 */
+  uiScale?: number;
+  onUiScale?: (percent: number) => void;
 };
 
 /**
  * 程序设置（#98）：竖排八个分页——通用、快捷键、标签、自动标签（#143）、备份、安全、更新、诊断。
  * 每项一行：图标 · 名称 · 一句描述 · 右侧控件。行为与原来的各节相同，只是重新归位。
  */
-export function SettingsPanel({ onChange, onRestored, library, initialTab = "general", version, safe, onSafeMode, onOpenNameWizard }: Props) {
+export function SettingsPanel({ onChange, onRestored, library, initialTab = "general", version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale }: Props) {
   const [settingsGeneration, setSettingsGeneration] = useState(0);
   const [view, setView] = useState<ShellSettingsView | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -184,6 +188,11 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
               <SettingsRow icon={<Power size={16} />} title="开机启动" desc="在托盘里待命">
                 <Switch label="开机启动" checked={view.autostart} onCheckedChange={(on) => void apply(setAutostart(on))} />
               </SettingsRow>
+              {uiScale !== undefined && onUiScale && <SettingsRow icon={<Scaling size={16} />} title="界面缩放" desc="只放大主窗口，钉图和截图不变">
+                <select className="k-select" aria-label="界面缩放" value={uiScale} onChange={(e) => onUiScale(Number(e.target.value))}>
+                  {UI_SCALE_LEVELS.map((percent) => <option key={percent} value={percent}>{percent}%</option>)}
+                </select>
+              </SettingsRow>}
             </SettingsGroup>
           </>)}
           {page("keys", <SettingsGroup label="快捷键">
@@ -205,6 +214,9 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
               </SettingsRow>;
             })}
             <SettingsRow label="安全模式" title="安全模式" desc="固定按键，在主窗口里用"><Keys accelerator="Ctrl+Shift+S" /></SettingsRow>
+            <SettingsRow label="放大界面" title="放大界面" desc="固定按键，在主窗口里用"><Keys accelerator="Ctrl+=" /></SettingsRow>
+            <SettingsRow label="缩小界面" title="缩小界面" desc="固定按键，在主窗口里用"><Keys accelerator="Ctrl+-" /></SettingsRow>
+            <SettingsRow label="界面复位到 100%" title="界面复位到 100%" desc="固定按键，在主窗口里用"><Keys accelerator="Ctrl+0" /></SettingsRow>
           </SettingsGroup>)}
           {page("tags", <>
             <Segmented<TagView> className="k-set-seg" label="标签设置" value={tagView} onChange={setTagView} options={[

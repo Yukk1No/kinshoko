@@ -70,4 +70,20 @@ describe("封印影子", () => {
     expect(ghosts()).toHaveLength(0);
     expect(landed).toEqual(["a"]);
   });
+
+  it("每一帧先读完所有影子的落点，再统一写样式：不在影子之间来回强制重算样式", () => {
+    const fx = new SealFx(host);
+    let before: string[] | null = null;
+    const writtenBeforeRead: boolean[] = [];
+    const at = (id: string, x: number) => ({ id, src: `${id}.png`, w: 100, h: 100, target: () => {
+      if (before) writtenBeforeRead.push(ghosts().some((g, i) => g.style.transform !== before![i]));
+      return rect(x, 100, 100, 100);
+    } });
+    fx.release([at("a", 300), at("b", 500), at("c", 700)], BOOK, () => {});
+    vi.advanceTimersByTime(RELEASE.flyAt + 2 * RELEASE.stagger + 50);
+    before = ghosts().map((g) => g.style.transform);
+    vi.advanceTimersByTime(16);
+    expect(writtenBeforeRead).toEqual([false, false, false]);
+    expect(ghosts().map((g) => g.style.transform)).not.toEqual(before);
+  });
 });

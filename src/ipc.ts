@@ -550,6 +550,16 @@ export function setUsageLog(on: boolean): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("set_usage_log", { on });
 }
 
+/** 本机的界面缩放档位（百分比，#173）。只存本机，不进程序设置备份。 */
+export function uiScale(): Promise<number> {
+  return invoke<number>("ui_scale");
+}
+
+/** 换一档界面缩放，主窗口立即缩放；返回保存后的档位。 */
+export function setUiScale(percent: number): Promise<number> {
+  return invoke<number>("set_ui_scale", { percent });
+}
+
 // ---------- 诊断与更新（#70） ----------
 
 /** 诊断日志全文：硬件、系统、WebView2 与显示器色彩状态，不含文件名、路径与图片。 */
