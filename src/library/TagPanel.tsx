@@ -274,7 +274,7 @@ function AliasEditor({
 
   return (
     <div className="tag-alias-editor k-tag-alias" role="dialog" aria-label={`“${name}”的别名`}>
-      <p className="insp-hint">“{name}”的别名，查找和加标签时都认</p>
+      <p className="insp-hint">查找或加标签时，输入别名也能找到“{name}”。</p>
       {entry && entry.aliases.length > 0 ? (
         <ul className="tag-aliases k-tag-chips">
           {entry.aliases.map((a) => (
@@ -297,7 +297,7 @@ function AliasEditor({
       )}
       <input
         className="k-input"
-        placeholder="新的叫法"
+        placeholder="新别名"
         aria-label="新别名"
         autoFocus
         value={draft}
