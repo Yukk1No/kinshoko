@@ -6,7 +6,7 @@ use kinshoko_core::{AppInfo, ShellSettingsView, ShortcutAction};
 use tauri::{AppHandle, State};
 
 use crate::diagnostics::UsageState;
-use crate::shell::{self, ShellState};
+use crate::shell::{self, ShellState, UiScaleState};
 
 #[tauri::command]
 pub fn app_info() -> AppInfo {
@@ -131,4 +131,26 @@ pub async fn migrate_viewer_background(
         .migrate_viewer_background(background)
         .map_err(|e| e.to_string())?;
     Ok(shell.view())
+}
+
+/// 本机的界面缩放档位（百分比）。
+#[tauri::command]
+pub async fn ui_scale(state: State<'_, UiScaleState>) -> Result<u16, String> {
+    Ok(state.0.lock().map_err(|e| e.to_string())?.percent())
+}
+
+/// 换一档界面缩放：保存后立即缩放主窗口，不需要重启。
+#[tauri::command]
+pub async fn set_ui_scale(
+    app: AppHandle,
+    state: State<'_, UiScaleState>,
+    percent: u16,
+) -> Result<u16, String> {
+    let factor = {
+        let mut scale = state.0.lock().map_err(|e| e.to_string())?;
+        scale.set(percent).map_err(|e| e.to_string())?;
+        scale.factor()
+    };
+    shell::apply_ui_scale(&app, factor);
+    Ok(percent)
 }

@@ -22,6 +22,7 @@ mod settings;
 mod shortcuts;
 pub mod tag_catalog;
 pub mod tagging;
+mod ui_scale;
 pub mod workspace;
 
 pub use app_shell::{AppInfo, UpdatePolicy, UpdateProgress, UpdateStatus, app_info};
@@ -37,3 +38,4 @@ pub use settings::{
 pub use shortcuts::{
     GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutBinding, ShortcutError,
 };
+pub use ui_scale::{UI_SCALE_LEVELS, UiScale, UiScaleError};

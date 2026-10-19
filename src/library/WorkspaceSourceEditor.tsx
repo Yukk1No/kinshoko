@@ -11,6 +11,7 @@ import { libraryPathHint } from "./library-path";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { SelectionPanel } from "./SelectionPanel";
 import { Copy, Layers, Pin } from "lucide-react";
+import { useUiScale } from "../shell/uiScale";
 
 /** Adapted from library-workspace.html's explicit source selector, note editor and source actions. */
 export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, onChanged, registrations = [] }: {
@@ -28,6 +29,7 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
   const [problem, setProblem] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupSummary[]>([]);
+  const uiScale = useUiScale();
   const [groupId, setGroupId] = useState("");
   const [name, setName] = useState("");
   const [copying,setCopying]=useState(false);
@@ -78,9 +80,11 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
           <button type="button" className="k-btn" onClick={(event) => {
             const rect = event.currentTarget.getBoundingClientRect();
             const dpr = window.devicePixelRatio || 1;
+            // 钉图不随界面缩放（#173）：宽 200 个系统缩放下的像素。
+            const pinDpr = dpr / uiScale;
             run(() => pinReference(source.libraryId, source.imageId, null, {
               x: Math.round(rect.left * dpr), y: Math.round(rect.top * dpr),
-              width: Math.round(200 * dpr), height: Math.round(200 * card.height / card.width * dpr),
+              width: Math.round(200 * pinDpr), height: Math.round(200 * card.height / card.width * pinDpr),
             }), `已钉住「${source.libraryName}」的原图`);
           }}><Pin size={14} aria-hidden="true" />钉住</button>
           <button type="button" className="k-btn" disabled={!groupId && !name.trim()} onClick={() => run(
