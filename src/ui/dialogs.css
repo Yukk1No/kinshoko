@@ -243,3 +243,9 @@ body:has(.inspector[data-collapsed="false"]) .k-task-cards { right: calc(321px +
 .k-groups .k-group-member > .k-group-chip { width: auto; justify-content: flex-start; }
 /* 有浮动的多选操作条时，卡片抬到操作条上方，同样不遮住它。 */
 body:has(.selbar-host > .selbar) .k-task-cards { bottom: calc(18px + 66px); }
+/* 标签外观的分档阈值（#160）：短标签 + 窄数字框，一行放下两个阈值和“恢复默认”。 */
+.k-set-number { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+.k-set-number .k-input { flex: none; width: 64px; font-variant-numeric: tabular-nums; }
+/* 窄时两个阈值和“恢复默认”折行，靠右对齐，不溢出设置窗口。 */
+.k-set-row.is-thresholds .k-set-row-main > .k-list-end { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px 12px; }
+.k-set-row.is-thresholds .k-list-end > .k-btn { white-space: nowrap; }

@@ -3,6 +3,8 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import type { ImageTags } from "../bindings/ImageTags";
 import type { TagLabel } from "../bindings/TagLabel";
+import { DEFAULT_TAG_DISPLAY } from "../tags/tagConfidence";
+import { TagDisplayContext } from "../tags/TagDisplayContext";
 import { Viewer } from "./Viewer";
 
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
@@ -25,7 +27,7 @@ const openInfo = () => {
 };
 
 describe("查看器信息面板的标签（#147）", () => {
-  it("按作者、角色、作品、一般分组只读列出有效标签；被否决的不显示，人工添加的不标“模型”", async () => {
+  it("按作者、角色、作品、一般分组只读列出有效标签；被否决的不显示，标签上只有名称（#160）", async () => {
     const tags: ImageTags = {
       imageId: "a",
       tags: [
@@ -48,10 +50,57 @@ describe("查看器信息面板的标签（#147）", () => {
     expect(groups).toEqual(["作者", "作品", "一般"]);
     const general = within(section).getByRole("list", { name: "一般" });
     const rows = within(general).getAllByRole("listitem");
-    expect(rows.map((row) => row.textContent)).toEqual(["短发模型 0.91", "齐刘海"]);
-    expect(within(section).getByRole("list", { name: "作者" }).textContent).toBe("某画师模型 0.62");
+    expect(rows.map((row) => row.textContent)).toEqual(["短发", "齐刘海"]);
+    expect(within(section).getByRole("list", { name: "作者" }).textContent).toBe("某画师");
     expect(within(section).getByRole("list", { name: "作品" }).textContent).toBe("某作品");
     expect(section.textContent).not.toContain("长发");
+  });
+
+  it("B：模型标签按可信度分档，悬停提示写出处和百分比；未翻译的有翻译图标（#160）", async () => {
+    mockIPC((cmd) => {
+      if (cmd === "plugin:library|image") return {};
+      if (cmd === "plugin:library|image_tags") return { imageId: "a", tags: [
+        { tag: label("t1", "general", "短发"), origins: [model(0.91)] },
+        { tag: label("t2", "general", "室内"), origins: [model(0.55)] },
+        { tag: { ...label("t3", "general", "ahoge"), untranslated: true }, origins: [model(0.2)] },
+        { tag: label("t4", "general", "齐刘海"), origins: [{ kind: "manual" }] },
+      ], rejected: [] };
+      return null;
+    });
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    const info = openInfo();
+    const row = (name: string) => within(info).getByText(name).closest("li")!;
+    await within(info).findByText("短发");
+    expect(row("短发").dataset.band).toBe("high");
+    expect(row("室内").dataset.band).toBe("mid");
+    expect(row("ahoge").dataset.band).toBe("low");
+    expect(row("齐刘海").dataset.band).toBeUndefined();
+    expect(row("短发").title).toBe("来源：打标模型 · 可信度 91%（高）");
+    expect(within(row("ahoge")).getByRole("img", { name: "尚无中文名，显示的是原名" })).toBeTruthy();
+    expect(info.textContent).not.toContain("文A");
+    expect(info.querySelectorAll('[role="meter"]')).toHaveLength(0);
+  });
+
+  it("C：仍按命名空间分组，模型标签带刻度条，不按出处分组（#160）", async () => {
+    mockIPC((cmd) => {
+      if (cmd === "plugin:library|image") return {};
+      if (cmd === "plugin:library|image_tags") return { imageId: "a", tags: [
+        { tag: label("t1", "general", "短发"), origins: [model(0.91)] },
+        { tag: label("t2", "general", "齐刘海"), origins: [{ kind: "manual" }] },
+        { tag: label("t3", "artist", "某画师"), origins: [model(0.62)] },
+      ], rejected: [] };
+      return null;
+    });
+    render(<TagDisplayContext.Provider value={{ ...DEFAULT_TAG_DISPLAY, style: "grouped" }}>
+      <Viewer libraryId="L1" card={card} onClose={() => {}} />
+    </TagDisplayContext.Provider>);
+    const info = openInfo();
+    const section = await within(info).findByRole("region", { name: "标签" });
+    await within(section).findByText("短发");
+    expect(within(section).getAllByRole("list").map((list) => list.getAttribute("aria-label"))).toEqual(["作者", "一般"]);
+    const general = within(section).getByRole("list", { name: "一般" });
+    expect(within(general).getAllByRole("meter").map((m) => m.getAttribute("aria-valuenow"))).toEqual(["91"]);
+    expect(within(section).getByText("短发").closest("li")!.dataset.band).toBeUndefined();
   });
 
   it("换到下一张时标签跟着换；上一张迟到的结果不写到新图上", async () => {

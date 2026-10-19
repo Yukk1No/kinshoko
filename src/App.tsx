@@ -61,6 +61,9 @@ import { useWallActions } from "./wall/useWallActions";
 import { DensityIsland } from "./wall/DensityIsland";
 import { Viewer } from "./viewer/Viewer";
 import { RuntimeNotice } from "./RuntimeSupport";
+import type { TagDisplay } from "./bindings/TagDisplay";
+import { DEFAULT_TAG_DISPLAY } from "./tags/tagConfidence";
+import { TagDisplayContext } from "./tags/TagDisplayContext";
 
 type WorkspaceProps = {
   library: LibraryInfo | null;
@@ -674,8 +677,11 @@ function MainWindow() {
   /** 设置“显示相近标签来源（内置／个人）”，默认不显示。 */
   const [showApproxSource, setShowApproxSource] = useState(false);
   const [keepSelectionOnSafe, setKeepSelectionOnSafe] = useState(false);
+  /** 标签外观（#160）：详情面板与查看器从上下文读取，设置一改立即生效。 */
+  const [tagDisplay, setTagDisplay] = useState<TagDisplay>(DEFAULT_TAG_DISPLAY);
   const acceptShellSettings = useCallback((view: ShellSettingsView) => {
     setShowApproxSource(view.showApproxSource);
+    setTagDisplay(view.tagDisplay ?? DEFAULT_TAG_DISPLAY);
     setKeepSelectionOnSafe(view.keepSelectionOnSafeMode ?? false);
   }, []);
   /**
@@ -844,7 +850,7 @@ function MainWindow() {
   </>;
   return (
     <UiScaleContext.Provider value={uiScalePercent / 100}>
-    <SaveDestinationProvider safe={safe}><div className="app app-shell">
+    <TagDisplayContext.Provider value={tagDisplay}><SaveDestinationProvider safe={safe}><div className="app app-shell">
       <div className="rail-slot" inert={viewerOpen}>
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
           onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
@@ -919,7 +925,7 @@ function MainWindow() {
       </Dialog.Root>
       <LegacyNameWizard open={nameWizard} onOpenChange={setNameWizard} />
       </div>
-    </div></SaveDestinationProvider>
+    </div></SaveDestinationProvider></TagDisplayContext.Provider>
     </UiScaleContext.Provider>
   );
 }

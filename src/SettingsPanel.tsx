@@ -12,6 +12,7 @@ import {
   setAutostart,
   setForceSrgb,
   setShowApproxSource,
+  setTagDisplay,
   setKeepSelectionOnSafeMode,
   setUsageLog,
   shellSettings,
@@ -22,6 +23,8 @@ import { SharedTagGroupsSettings } from "./library/TagGroupsPane";
 import { TagNamePanel } from "./library/TagNamePanel";
 import { TagIdentityPanel } from "./library/TagIdentityPanel";
 import { ApplicationSettingsBackup } from "./ApplicationSettingsBackup";
+import { TagDisplaySettings } from "./TagDisplaySettings";
+import { DEFAULT_TAG_DISPLAY } from "./tags/tagConfidence";
 import { BackupSettings } from "./Backup";
 import { AutoTaggingSettings } from "./AutoTaggingSettings";
 import { UpdateSection } from "./Update";
@@ -73,7 +76,7 @@ const TABS: { value: SettingsTab; name: string; icon: ReactNode; lead: string }[
   { value: "diag", name: "诊断", icon: <Activity size={15} aria-hidden="true" />, lead: "出问题时，把这里的信息发给开发者。" },
 ];
 
-type TagView = "names" | "groups" | "approx" | "mapping";
+type TagView = "names" | "groups" | "approx" | "mapping" | "appearance";
 
 type Props = {
   onRestored?: () => void;
@@ -218,7 +221,9 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
           {page("tags", <>
             <Segmented<TagView> className="k-set-seg" label="标签设置" value={tagView} onChange={setTagView} options={[
               { value: "names", label: "显示名" }, { value: "groups", label: "分组" }, { value: "approx", label: "相近" }, { value: "mapping", label: "对应" },
+              { value: "appearance", label: "外观" },
             ]} />
+            {tagView === "appearance" && <TagDisplaySettings display={view.tagDisplay ?? DEFAULT_TAG_DISPLAY} onSave={(next) => apply(setTagDisplay(next))} />}
             {tagView === "names" && <>
               <TagNamePanel key={`names/${settingsGeneration}`} />
               <LegacyNameBanner onOpen={onOpenNameWizard} />

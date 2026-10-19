@@ -242,7 +242,7 @@ pub struct TagLabel {
     pub namespace: TagNamespace,
     /// 界面语言的名称；没有时用其他语言的名称；都没有时是外部名称（下划线换成空格）。
     pub name: String,
-    /// 只有外部名称、还没有任何语言的名称（界面显示“文A”）。
+    /// 只有外部名称、还没有任何语言的名称（界面在名称后显示翻译图标，#160）。
     pub untranslated: bool,
     /// 有外部对应，参与内置近似对应表。
     pub has_external: bool,

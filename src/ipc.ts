@@ -522,6 +522,11 @@ export function setShowApproxSource(on: boolean): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("set_show_approx_source", { on });
 }
 
+/** 保存标签外观与可信度分档（#160）；阈值交叉时 reject 中文原因，原来的设置不变。 */
+export function setTagDisplay(display: import("./bindings/TagDisplay").TagDisplay): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_tag_display", { display });
+}
+
 /** 更换全局快捷键，立即生效；`null` 表示清除。失败时 reject 中文原因，原来的键不变。 */
 export function rebindShortcut(
   action: ShortcutAction,

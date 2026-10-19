@@ -34,7 +34,7 @@ pub struct ShortcutBinding {
 }
 
 /// 设置界面里应用壳一节的内容。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct ShellSettingsView {
@@ -52,6 +52,8 @@ pub struct ShellSettingsView {
     pub keep_selection_on_safe_mode: bool,
     #[ts(optional)]
     pub viewer_background: Option<crate::ViewerBackground>,
+    /// 标签外观与可信度分档（#160）。
+    pub tag_display: crate::TagDisplay,
 }
 
 impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
@@ -65,6 +67,7 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
             usage_log: settings.usage_log(),
             keep_selection_on_safe_mode: settings.keep_selection_on_safe_mode(),
             viewer_background: settings.viewer_background(),
+            tag_display: settings.tag_display(),
         }
     }
 }

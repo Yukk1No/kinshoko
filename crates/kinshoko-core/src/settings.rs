@@ -31,6 +31,50 @@ pub enum ViewerBackground {
     Checker,
 }
 
+/// 详情面板与查看器里标签的外观（#160）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum TagStyle {
+    /// 模型标签按可信度分三档底色（默认）。
+    #[default]
+    Bands,
+    /// 详情面板按出处分组，模型标签底边一条可信度刻度。
+    Grouped,
+}
+
+/// 标签外观与可信度分档（#160）。阈值按两位小数保存，必须满足 `0 ≤ low < high ≤ 1`。
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase", default)]
+#[ts(export)]
+pub struct TagDisplay {
+    pub style: TagStyle,
+    /// 高档下限：可信度不低于它的模型标签归高档。
+    pub high: f32,
+    /// 低档上限：可信度低于它的模型标签归低档。
+    pub low: f32,
+    /// 低档标签加虚线外框；默认开（维护者验收决定），关掉后只把字变浅。
+    pub low_outline: bool,
+}
+
+impl Default for TagDisplay {
+    /// 默认阈值来自维护者测试库的 13,837 个模型标签：0.80 / 0.40 让高、中、低三档大约各占三分之一。
+    fn default() -> Self {
+        TagDisplay {
+            style: TagStyle::Bands,
+            high: 0.8,
+            low: 0.4,
+            low_outline: true,
+        }
+    }
+}
+
+impl TagDisplay {
+    fn thresholds_valid(&self) -> bool {
+        (0.0..=1.0).contains(&self.low) && (0.0..=1.0).contains(&self.high) && self.low < self.high
+    }
+}
+
 /// 可以绑定全局快捷键的动作。默认键沿用 Snipaste 的习惯。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -93,6 +137,8 @@ pub struct SettingsSnapshot {
     keep_selection_on_safe_mode: bool,
     /// 使用日志（#70）：默认关闭；只写本机，由画师决定是否导出。
     usage_log: bool,
+    /// 标签外观与可信度分档（#160）。
+    tag_display: TagDisplay,
     /// 新版本写入、本版本不认识的字段。
     #[serde(flatten)]
     unknown: serde_json::Map<String, serde_json::Value>,
@@ -112,6 +158,7 @@ impl Default for SettingsSnapshot {
             viewer_background: None,
             keep_selection_on_safe_mode: false,
             usage_log: false,
+            tag_display: TagDisplay::default(),
             unknown: serde_json::Map::new(),
         }
     }
@@ -129,12 +176,15 @@ pub struct AppSettings {
 #[derive(Debug)]
 pub enum SettingsError {
     Io(io::Error),
+    /// 值不合要求，没有保存；内容是给画师看的原因。
+    Invalid(&'static str),
 }
 
 impl fmt::Display for SettingsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SettingsError::Io(e) => write!(f, "读写设置文件失败：{e}"),
+            SettingsError::Invalid(why) => f.write_str(why),
         }
     }
 }
@@ -298,6 +348,30 @@ impl AppSettings {
 
     pub fn set_usage_log(&mut self, on: bool) -> Result<(), SettingsError> {
         self.update(|f| f.usage_log = on)
+    }
+
+    /// 标签外观与可信度分档。文件里的阈值交叉或越界时（例如手改过）按默认阈值，其余照读。
+    pub fn tag_display(&self) -> TagDisplay {
+        let saved = self.file.tag_display;
+        if saved.thresholds_valid() {
+            return saved;
+        }
+        let defaults = TagDisplay::default();
+        TagDisplay {
+            high: defaults.high,
+            low: defaults.low,
+            ..saved
+        }
+    }
+
+    /// 保存标签外观；低档上限不小于高档下限、或阈值不在 0–1 之间时拒绝，原来的设置不变。
+    pub fn set_tag_display(&mut self, display: TagDisplay) -> Result<(), SettingsError> {
+        if !display.thresholds_valid() {
+            return Err(SettingsError::Invalid(
+                "低档上限要小于高档下限，且都在 0 到 1 之间",
+            ));
+        }
+        self.update(|f| f.tag_display = display)
     }
 
     /// 动作当前绑定的快捷键；`None` 表示未绑定。

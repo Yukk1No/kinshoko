@@ -301,6 +301,12 @@ function backend() {
 
 const card = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
 const tagList = () => screen.getByRole("list", { name: "有效标签" });
+/** 聚焦标签打开它的浮层（#160）：出处、可信度和操作按钮都在里面。 */
+async function openChip(name: string) {
+  const chip = await waitFor(() => within(tagList()).getByText(name).closest("li")!);
+  fireEvent.focus(chip);
+  return screen.findByRole("dialog", { name: `“${name}”的出处` });
+}
 
 beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
@@ -328,9 +334,11 @@ describe("单张图的标签与人工标签决定", () => {
     await selectOnly("a");
     const list = await screen.findByRole("list", { name: "有效标签" });
     await waitFor(() => expect(list.textContent).toContain("微笑"));
-    expect(within(list).getByText("模型 0.92")).toBeTruthy();
+    expect(list.textContent).not.toContain("模型");
+    const tip = await openChip("微笑");
+    expect(tip.textContent).toContain("来源：打标模型 · 可信度 92%（高）");
 
-    fireEvent.click(screen.getByRole("button", { name: "否决“微笑”" }));
+    fireEvent.click(within(tip).getByRole("button", { name: "否决“微笑”" }));
     await waitFor(() =>
       expect(sent("plugin:library|edit_tags")).toEqual([
         { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "reject", tag: { kind: "id", id: "T-smile" } }] },
@@ -368,9 +376,10 @@ describe("单张图的标签与人工标签决定", () => {
       { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "add", tag: { kind: "named", namespace: "artist", name: "某某", lang: "zh-CN" } }] },
       { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: "某某", lang: "zh-CN" } }] },
     ]);
-    expect(within(tagList()).getAllByText("人工添加")).toHaveLength(2);
+    expect(tagList().querySelectorAll(".k-tag-chip.is-manual")).toHaveLength(2);
+    expect((await openChip("某某")).textContent).toContain("来源：你添加的");
 
-    fireEvent.click(screen.getByRole("button", { name: "清除对“作者：某某”的人工决定" }));
+    fireEvent.click(within(await openChip("作者：某某")).getByRole("button", { name: "清除对“作者：某某”的人工决定" }));
     await waitFor(() => expect(tagList().textContent).not.toContain("作者：某某"));
   });
 
@@ -378,9 +387,9 @@ describe("单张图的标签与人工标签决定", () => {
     render(<App />);
     await selectOnly("a");
     await screen.findByRole("list", { name: "有效标签" });
-    fireEvent.click(await screen.findByRole("button", { name: "确认“蓝发”" }));
+    fireEvent.click(within(await openChip("蓝发")).getByRole("button", { name: "确认“蓝发”" }));
     await waitFor(() =>
-      expect(within(tagList()).getByText("蓝发").closest("li")!.textContent).toContain("人工添加"),
+      expect(within(tagList()).getByText("蓝发").closest("li")!.className).toContain("is-manual"),
     );
     expect(sent("plugin:library|edit_tags")).toEqual([
       { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "add", tag: { kind: "id", id: "T-blue" } }] },
@@ -423,7 +432,7 @@ describe("标签别名", () => {
     render(<App />);
     await selectOnly("a");
     await screen.findByRole("list", { name: "有效标签" });
-    fireEvent.click(await screen.findByRole("button", { name: "“蓝发”的别名" }));
+    fireEvent.click(within(await openChip("蓝发")).getByRole("button", { name: "“蓝发”的别名" }));
     const dialog = await screen.findByRole("dialog", { name: "“蓝发”的别名" });
     fireEvent.change(within(dialog).getByRole("textbox", { name: "新别名" }), { target: { value: "蓝头发" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "加别名" }));

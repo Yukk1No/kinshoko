@@ -10,7 +10,7 @@ export type TagLabel = { id: string, namespace: TagNamespace,
  */
 name: string, 
 /**
- * 只有外部名称、还没有任何语言的名称（界面显示“文A”）。
+ * 只有外部名称、还没有任何语言的名称（界面在名称后显示翻译图标，#160）。
  */
 untranslated: boolean, 
 /**
