@@ -106,6 +106,32 @@ describe("设置：标签外观", () => {
     expect(screen.getByRole("button", { name: "按出处分组" }).getAttribute("aria-pressed")).toBe("true");
   });
 
+  it("保存失败时控件回到已保存的设置，之后的改动不夹带失败的那项", async () => {
+    let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
+    const view = (): ShellSettingsView => ({
+      autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
+      usageLog: false, keepSelectionOnSafeMode: false, tagDisplay: saved,
+    });
+    let failNext = true;
+    mockIPC((cmd, args) => {
+      if (cmd === "shell_settings") return view();
+      if (cmd === "set_tag_display") {
+        if (failNext) { failNext = false; throw "无法写入设置文件"; }
+        saved = (args as { display: TagDisplay }).display;
+        return view();
+      }
+      if (cmd === "plugin:library|safe_mode") return true;
+      return undefined;
+    }, { shouldMockEvents: true });
+    const { outline } = await openAppearance();
+    fireEvent.click(outline);
+    await waitFor(() => expect(screen.getByText(/无法写入设置文件/)).toBeTruthy());
+    await waitFor(() => expect(outline.getAttribute("aria-checked")).toBe("true"));
+    fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
+    await waitFor(() => expect(saved.style).toBe("grouped"));
+    expect(saved).toEqual({ style: "grouped", high: 0.8, low: 0.4, lowOutline: true });
+  });
+
   it("拒绝低档上限 ≥ 高档下限：说明原因，不保存", async () => {
     const store = backend();
     const { low, high } = await openAppearance();

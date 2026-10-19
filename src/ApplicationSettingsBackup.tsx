@@ -54,7 +54,7 @@ export function ApplicationSettingsBackup({ onRestored }: { onRestored: (setting
           </div>
           {busy && <p role="status">正在读取或保存偏好设置…</p>}
           {preview && <div className="k-confirm" role="group" aria-label="确认替换偏好设置">
-            <p>会替换：名称偏好、应用级词表、标签分组、相近规则、快捷键、安全模式、模型选择、诊断与查看器背景。</p>
+            <p>会替换：名称偏好、应用级词表、标签分组、相近规则、快捷键、安全模式、模型选择、标签外观、诊断与查看器背景。</p>
             <p>备份里没有的名称偏好和相近规则会删除。图库里的原图、备注、标签、分级与目录不变。</p>
             <p>恢复后的安全模式：<strong>{preview.safeMode ? "开启" : "关闭（成人参考图可以显示）"}</strong>。按 sRGB 显示：{preview.forceSrgb ? "开启" : "关闭"}，重启后生效。</p>
             <div className="k-confirm-actions">

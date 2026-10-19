@@ -16,13 +16,16 @@ const parse = (text: string) => (text.trim() === "" ? Number.NaN : Math.round(Nu
  * 设置 › 标签 › 外观（#160）：标签风格（B 按可信度分档，默认；C 按出处分组加刻度）、可信度分档阈值、
  * 低档虚线框。本设备设置，改了立即保存并生效，不需要重新打标。低档上限必须小于高档下限，不满足时不保存。
  */
-export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; onSave: (next: TagDisplay) => Promise<unknown> }) {
+export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; onSave: (next: TagDisplay) => Promise<boolean> }) {
   const [high, setHigh] = useState(shown(display.high));
   const [low, setLow] = useState(shown(display.low));
   const [problem, setProblem] = useState<string | null>(null);
   // 连着改几项时，后一项要在前一项之上改。保存一次只发一个，等它回来再发最新的那份；
   // 还有没保存完的改动时不拿回来的 display 覆盖，否则先回来的旧结果会把后改的盖回去。
+  // 保存失败时回到已保存的 display，排着的改动也作废（它们是在失败那项之上改的）。
   const latest = useRef(display);
+  const saved = useRef(display);
+  useEffect(() => { saved.current = display; }, [display]);
   const [shownDisplay, setShownDisplay] = useState(display);
   const saving = useRef(false);
   const queued = useRef(false);
@@ -46,7 +49,13 @@ export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; o
     void (async () => {
       while (queued.current) {
         queued.current = false;
-        await onSave(latest.current);
+        if (!await onSave(latest.current)) {
+          queued.current = false;
+          latest.current = saved.current;
+          setShownDisplay(saved.current);
+          setHigh(shown(saved.current.high));
+          setLow(shown(saved.current.low));
+        }
       }
       saving.current = false;
     })();

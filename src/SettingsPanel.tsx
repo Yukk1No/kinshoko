@@ -125,14 +125,17 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
     };
   }, [loadAttempt]);
 
-  async function apply(change: Promise<ShellSettingsView>) {
+  /** 保存一项设置；返回是否成功，失败时说明原因，界面留在原来的设置上。 */
+  async function apply(change: Promise<ShellSettingsView>): Promise<boolean> {
     try {
       const next = await change;
       setView(next);
       onChange?.(next);
       setError(null);
+      return true;
     } catch (reason) {
       setError(String(reason));
+      return false;
     }
   }
 
