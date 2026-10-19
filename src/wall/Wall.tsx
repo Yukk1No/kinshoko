@@ -91,6 +91,11 @@ type Props = {
    * 等重新浏览后离开；关闭后回来的图先遮着，下一帧淡出遮蔽。
    */
   safeMode?: boolean;
+  /**
+   * 容器宽度还没稳定（详情面板开合的过渡中、拖动面板边缘时，#162/#157）：保持现在的布局，
+   * 多出的部分被裁掉；变回 false 时按稳定后的宽度只重排一次。
+   */
+  holdReflow?: boolean;
   selected: ReadonlySet<string>;
   onSelectionChange: (selected: Set<string>) => void;
   onOpenImage: (card: BrowserCard) => void;
@@ -179,6 +184,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   conditions = NO_CONDITIONS,
   reloadKey,
   safeMode = true,
+  holdReflow = false,
   selected,
   onSelectionChange,
   onOpenImage,
@@ -433,22 +439,29 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     void reload(Math.max(loaded.current, PAGE));
   }, [reload, reloadKey]);
 
+  const holding = useRef(holdReflow);
+  holding.current = holdReflow;
+  const syncWidth = useRef<() => void>(() => {});
   useLayoutEffect(() => {
     const el = scroller.current!;
     const sync = () => {
-      if (el.clientWidth !== layoutWidth.current) {
+      // 还没排过（在过渡中途重建）时照常先排一次。
+      if ((!holding.current || !layoutWidth.current) && el.clientWidth !== layoutWidth.current) {
         measureBeforeReflow();
         layoutWidth.current = el.clientWidth;
         setWidth(el.clientWidth);
       }
       syncMount(el);
     };
+    syncWidth.current = sync;
     sync();
     if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(() => flushSync(sync));
     ro.observe(el);
     return () => ro.disconnect();
   }, [measureBeforeReflow, syncMount]);
+  // 宽度稳定了：按最终宽度重排一次。
+  useLayoutEffect(() => { if (!holdReflow) syncWidth.current(); }, [holdReflow]);
 
   /** 已经放出（不再遮蔽）的含成人内容的图。 */
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
