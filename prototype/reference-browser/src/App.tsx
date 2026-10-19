@@ -537,7 +537,7 @@ export default function App() {
       onSettings={() => setDialog({ kind: 'settings' })} />
 
     <div className={`workspace${paneMotion ? ` is-pane-moving is-pane-${paneMotion}` : ''}`}>
-      {(paneOpen || paneMotion === 'closing') && <aside className="pane" style={paneMotion ? { width: paneStart } : undefined} inert={!!viewed || blockInput || !paneOpen || undefined} aria-label={section === 'browse' ? '文件夹' : section === 'groups' ? '参考组' : '截图历史'}>
+      {(paneOpen || paneMotion === 'closing') && <aside className="pane" style={paneMotion ? { width: paneStart } : undefined} inert={blockInput || !paneOpen || undefined} aria-label={section === 'browse' ? '文件夹' : section === 'groups' ? '参考组' : '截图历史'}>
         <header className="pane-head">{section === 'browse' ? (libInPane ? libSwitch : <span />) : <h2>{section === 'groups' ? '参考组' : '截图历史'}</h2>}
           <button className="icon-tool" onClick={() => setPane(false)} aria-label="收起侧栏" title="收起（Ctrl+B）"><PanelLeftClose size={16} /></button></header>
         {section === 'browse' && <FolderPane folders={library.folders} counts={folderCounts} total={liveIndex.length} trashCount={trashCount}
@@ -557,7 +557,7 @@ export default function App() {
           onShow={(c) => { if (!c.collectedAs) return; const img = allImage(c.collectedAs.libraryId, c.collectedAs.imageId); if (img) { setLibraryId(img.libraryId); openImage(img); } }} />}
       </aside>}
 
-      <main className="main" inert={!!viewed || blockInput || undefined} onPointerDownCapture={interruptRelease} onWheelCapture={interruptRelease} onKeyDownCapture={interruptRelease}>
+      <main className="main" inert={blockInput || undefined} onPointerDownCapture={interruptRelease} onWheelCapture={interruptRelease} onKeyDownCapture={interruptRelease}>
         <header className="topbar">
           {!paneOpen && <button className="icon-tool" onClick={() => setPane(true)} aria-label="展开侧栏" title="展开（Ctrl+B）"><PanelLeft size={16} /></button>}
           {!libInPane && libSwitch}
@@ -567,15 +567,16 @@ export default function App() {
             onRemove={(id, term) => setConditions((l) => l.flatMap((c) => c.id !== id ? [c] : term === undefined ? [] : [{ ...c, any: c.any.filter((_, i) => i !== term) }]))}
             onClear={() => setConditions([])} />
           <span className="result-count tabular" aria-live="polite">{scopeLabel && <span className="muted">{scopeLabel} · </span>}{results.length} 张</span>
-          <label className="density" title="图片大小">
+          {/* #179：查看时图片大小调整条藏起来。 */}
+          {!viewed && <label className="density" title="图片大小">
             <span className="sr-only">图片大小</span>
             <DensitySlider value={settings.density} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={(v) => setSettings((s) => ({ ...s, density: v }))} />
-          </label>
+          </label>}
         </header>
         <TagGroupBar groups={groupsForBar} counts={resultCounts} conditions={conditions} onAdd={(t, mode, negate) => { setViewing(null); addTerm(t, mode, negate); }}
           onRemove={(key) => { setViewing(null); removeTag(key); }} />
         <div className="content">
-          <Wall ref={wall} images={results} resultKey={resultKey} density={settings.density} capTall={settings.capTall} showTitles={settings.showTitles} square={settings.square}
+          <Wall ref={wall} inert={!!viewed} images={results} resultKey={resultKey} density={settings.density} capTall={settings.capTall} showTitles={settings.showTitles} square={settings.square}
             isHidden={isHidden} onOpen={openImage} onMenu={cardMenu} empty={empty} onStats={settings.stats ? setStats : undefined} arriving={arriving}
             onKey={(image, e) => {
               if (e.key === 'p' || e.key === 'P') { pinView(image, null); return true; }
@@ -584,9 +585,8 @@ export default function App() {
             }} />
           {stats && settings.stats && <div className="stats tabular">{stats.total} 张 · {stats.columns} 列 · 挂载 {stats.mounted} 张卡片
             {fxReport && <><br />{fxReport.kind === 'seal' ? '封印' : '释放'} {fxReport.ms} ms · {fxReport.ghosts} 张飞行 · {Math.round(fxReport.frames / (fxReport.ms / 1000))} fps · 最长一帧 {fxReport.worstFrame} ms</>}</div>}
-        </div>
-      </main>
-      {viewed && <Viewer image={viewed} position={viewerPosition} hidden={isHidden(viewed)} infoOpen={infoOpen}
+          {/* #179：查看器只盖住图片墙所在的区域，左栏与顶栏照常可用；详情在查看器右侧并排，I 显示或隐藏。 */}
+          {viewed && <Viewer image={viewed} position={viewerPosition} hidden={isHidden(viewed)} infoOpen={infoOpen}
         onReveal={() => setRevealed((s) => new Set(s).add(imageKey(viewed)))}
         onToggleInfo={() => setInfoOpen((v) => !v)} onClose={() => setViewing(null)} onStep={step}
         onPin={(crop, at, scale) => pinView(viewed, crop, at, scale)}
@@ -600,6 +600,8 @@ export default function App() {
           onRating={(r) => setRating(viewed, r)} onFolder={(f, d) => decide('folders', viewed, f, d)}
           onNote={(note) => setCuration((c) => ({ ...c, notes: { ...c.notes, [imageKey(viewed)]: note } }))}
           onFind={findTag} />} />}
+        </div>
+      </main>
     </div>
 
     {canvasMode && <DrawingCanvas onExit={() => setCanvasMode(false)} />}

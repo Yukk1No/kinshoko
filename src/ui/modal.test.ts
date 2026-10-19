@@ -9,7 +9,7 @@ it("行内浮层（role=dialog 但不模态）不算打开了模态", () => {
 });
 
 it.each([
-  ['<section role="dialog" aria-modal="true" aria-label="原图查看器"></section>'],
+  ['<section role="dialog" aria-modal="true" aria-label="确认"></section>'],
   ['<div role="alertdialog" aria-label="永久删除"></div>'],
   ['<div class="k-dialog" role="dialog" data-open=""></div>'],
 ])("真正的模态算打开：%s", (markup) => {

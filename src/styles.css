@@ -187,6 +187,15 @@ button.primary {
   color: var(--accent-strong);
 }
 
+/* 图片墙所在的区域：图片墙、右下角浮岛、多选操作条与查看器（#179）都摆在这里。 */
+.wall-host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
 /* 图片墙：中性底色，卡片无装饰；占位色先于缩略图出现，滚动时不露白。 */
 .wall {
   flex: 1;
@@ -526,18 +535,21 @@ button.primary {
   resize: vertical;
 }
 
-/* 原图查看器：图片观察层保持中性底色。标题行即窗口安全区，工具在底部居中的 dock（#98）。 */
+/* 原图查看器：图片观察层保持中性底色，工具在底部居中的 dock（#98）。只盖住图片墙所在的区域（#179），
+   左栏、顶栏与旁边的详情侧栏照常可用；盖住图片墙右下角的打标图标、图片大小与多选操作条。 */
 .viewer {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 20;
+  z-index: 8;
   display: flex;
   flex-direction: column;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font);
 }
-.viewer-bar { height: 56px; min-height: 56px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 14px;
+/* 查看器本身只是接住按键的焦点落点（打开时获得焦点），不画焦点框；其中的按钮照常画。 */
+.viewer:focus-visible { outline: none; }
+.viewer-bar { height: 44px; min-height: 44px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 14px;
   background: var(--bg); border-bottom: 1px solid var(--line); }
 .viewer-bar .viewer-back { height: 30px; padding: 0 10px 0 8px; gap: 6px; background: transparent; box-shadow: none; color: var(--ink-2); }
 .viewer-bar .viewer-back:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
@@ -575,32 +587,6 @@ button.primary {
   box-shadow: var(--shadow-pop); text-align: center; cursor: default;
 }
 .viewer-message p { margin: 0 0 8px; }
-.viewer-info { position: absolute; top: 14px; right: 14px; z-index: 4; width: 260px; padding: 12px 14px; border-radius: var(--r-m);
-  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(18px); color: var(--ink);
-  box-shadow: var(--shadow-pop); cursor: default; user-select: text; font-size: 12px; }
-.viewer-info dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; }
-.viewer-info dt { color: var(--ink-3); }
-.viewer-info dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-.viewer-info p { margin: 10px 0 0; color: var(--ink-3); }
-/* 信息面板的标签（#147）：只读、比详情面板紧凑；面板底边停在 dock 上方（DOCK_RESERVE 76px 再留 8px），标签多时只滚标签区。 */
-.viewer-info { display: flex; flex-direction: column; max-height: calc(100% - 14px - 84px); box-sizing: border-box; }
-.viewer-info > dl, .viewer-info > p { flex: none; }
-.viewer-tags { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-2); }
-.viewer-tags h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--ink-3); }
-.viewer-tag-group + .viewer-tag-group { margin-top: 6px; }
-.viewer-tag-group h5 { margin: 0 0 3px; font-size: 11px; font-weight: 500; color: var(--ink-3); }
-.viewer-tag-group ul { display: flex; flex-wrap: wrap; gap: 3px 4px; margin: 0; padding: 0; list-style: none; }
-.viewer-tag-group li { display: inline-flex; align-items: baseline; gap: 4px; max-width: 100%; padding: 1px 6px; border-radius: 6px; background: var(--surface-2); }
-.viewer-tag-name { overflow-wrap: anywhere; }
-/* 查看器里的标签跟着当前标签外观（#160）：B 按可信度分档底色，C 底边一条可信度刻度。 */
-.viewer-tag-group li { position: relative; overflow: hidden; }
-.viewer-tag-group li.is-manual { background: var(--accent-soft); color: var(--accent-strong); }
-.viewer-tag-group li[data-band="high"] { background: var(--tag-conf-high); }
-.viewer-tag-group li[data-band="low"] { background: transparent; color: var(--ink-2); }
-.viewer-tags[data-low-outline] li[data-band="low"] { outline: 1px dashed var(--line-2); outline-offset: -1px; }
-.viewer-tag-group li .untranslated { align-self: center; }
-.viewer-tag-group .k-tag-meter { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--ink-3); border-radius: 0 2px 0 0; pointer-events: none; }
-.viewer-tags .viewer-tags-empty { margin: 0; color: var(--ink-3); }
 /* 框出的局部（#65）：按原图像素记，随缩放平移换算位置；外面压暗，三分线辅助构图。 */
 .viewer-crop {
   position: absolute;

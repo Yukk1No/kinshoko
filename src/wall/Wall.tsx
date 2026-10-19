@@ -25,6 +25,7 @@ import { MAX_GHOSTS, SEAL, SealFx, type FxArrival, type FxSource } from "../shel
 import { useUiScale } from "../shell/uiScale";
 import { useDevicePixelRatio } from "../ui/devicePixelRatio";
 import { reducedNow, useReducedMotion } from "../ui/reducedMotion";
+import { doubleClickSettings, isSecondPress, loadDoubleClickSettings, type Press } from "./doubleClick";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
 const GAP = 8;
@@ -97,12 +98,14 @@ type Props = {
   safeMode?: boolean;
   /**
    * 容器宽度还没稳定（详情面板开合的过渡中、拖动面板边缘时，#162/#157）：保持现在的布局，
-   * 多出的部分被裁掉；变回 false 时按稳定后的宽度只重排一次。
+   * 多出的部分被裁掉；变回 false 时按稳定后的宽度只重排一次。单击卡片后的双击间隔里同样不重排（#179），
+   * 两者都结束时才重排。
    */
   holdReflow?: boolean;
   selected: ReadonlySet<string>;
   onSelectionChange: (selected: Set<string>) => void;
   onOpenImage: (card: BrowserCard) => void;
+  /** 查看器盖在图片墙上（#179）；关闭时选中的那张（最后查看的图）滚入可见并获得焦点。 */
   viewerOpen: boolean;
   /** 右键菜单的内容（#102）；不给出时图片墙没有右键菜单。 */
   menu?: (target: WallMenuTarget) => ReactNode;
@@ -173,7 +176,8 @@ function saveAnchor(key: string, anchor: Anchor | null) {
 
 /**
  * 图片墙：按资料库记录的尺寸用纯函数排出瀑布流，只挂载视口附近的卡片。
- * 单击只选中这一张（详情面板跟着选择），双击或 Enter 打开查看器（#146，Eagle 与资源管理器的习惯）；
+ * 单击只选中这一张（详情面板跟着选择），再单击当前唯一选中的那张、双击或 Enter 打开查看器（#146、#179）；
+ * 双击按第一下的图判定：第二下落在哪里都打开第一下的那张。
  * Ctrl 单击增减选择，Shift 单击选中一段，单击空白处清空选择；选中的图可以拖到文件夹上。
  * 换范围或条件时由调用方换 key 重建。查找结果不记住位置，新的查找从顶部看起。
  */
@@ -315,13 +319,14 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   /** 原生滚轮监听读最新的渲染结果。 */
   const live = useRef({ layout: null as ReturnType<typeof masonry> | null, ids: [] as string[], density, previewDensity, onDensityPreview, onDensityCommit });
 
+  // 查看中换图时选择跟着走（#179）：最后查看的就是选中的那张，它一直挂载着，返回时接回焦点。
+  if (viewerOpen && selected.size === 1) lastOpened.current = selected.values().next().value!;
+  /** 离开查看器后要滚入可见、接回焦点的卡片。 */
+  const returnTo = useRef<string | null>(null);
   useLayoutEffect(() => {
     // 打开查看器时停下滚轮惯性，返回时图片墙仍在打开时的位置。
     if (viewerOpen) smoothRef.current?.stop();
-    if (wasViewing.current && !viewerOpen && lastOpened.current) {
-      const card = scroller.current?.querySelector<HTMLElement>(`[data-id="${lastOpened.current}"]`);
-      card?.focus({ preventScroll: true });
-    }
+    if (wasViewing.current && !viewerOpen && lastOpened.current) returnTo.current = lastOpened.current;
     wasViewing.current = viewerOpen;
   }, [viewerOpen]);
 
@@ -330,6 +335,54 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     lastOpened.current = card.id;
     onOpenImage(card);
   };
+
+  /**
+   * 双击按第一下的图判定（#179）：单击卡片后记下这一下；系统双击间隔内、判定矩形内的下一次按下，
+   * 无论落在另一张卡片、空白处还是正在展开的详情侧栏上，都在整个窗口的捕获阶段拦下，打开第一下的那张，
+   * 不改选择，落点元素也收不到这次按下与单击。
+   */
+  const pendingClick = useRef<(Press & { id: string; opened: boolean }) | null>(null);
+  /** 最近一次按下（窗口捕获阶段记下），单击卡片时作为第一下的时刻与位置。 */
+  const lastPress = useRef<Press | null>(null);
+  const openById = useRef<(id: string) => void>(() => {});
+  openById.current = (id) => { const card = cards.find((c) => c.id === id); if (card) open(card); };
+  useEffect(() => {
+    void loadDoubleClickSettings();
+    let swallowing = false;
+    let release = 0;
+    const down = (e: PointerEvent) => {
+      const press = { at: performance.now(), x: e.clientX, y: e.clientY };
+      const first = pendingClick.current;
+      pendingClick.current = null;
+      swallowing = false;
+      lastPress.current = press;
+      if (!first || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      if (!isSecondPress(first, press, doubleClickSettings(), window.devicePixelRatio || 1)) return;
+      lastPress.current = null;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      // 同一次按下随后的鼠标事件、单击与浏览器自己的双击都不交给落点。
+      swallowing = true;
+      clearTimeout(release);
+      release = window.setTimeout(() => { swallowing = false; }, doubleClickSettings().intervalMs);
+      if (!first.opened) openById.current(first.id);
+    };
+    const swallow = (e: Event) => {
+      if (!swallowing) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      // 浏览器的 dblclick 紧跟着 click 在同一个任务里派发；之后的事件（例如键盘触发的单击）照常。
+      if (e.type === "click") { clearTimeout(release); release = window.setTimeout(() => { swallowing = false; }, 0); }
+    };
+    const types = ["mousedown", "pointerup", "mouseup", "click", "dblclick"] as const;
+    window.addEventListener("pointerdown", down, true);
+    for (const type of types) window.addEventListener(type, swallow, true);
+    return () => {
+      clearTimeout(release);
+      window.removeEventListener("pointerdown", down, true);
+      for (const type of types) window.removeEventListener(type, swallow, true);
+    };
+  }, []);
 
   // 界面缩放（#173）：图片大小是界面缩放 100% 时的 CSS 宽度，卡片按界面缩放缩小 CSS 宽度，
   // 屏幕上的宽度与每行张数不变。缩略图按卡片的 CSS 宽度乘实际的设备像素比请求。
@@ -467,12 +520,17 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
 
   const holding = useRef(holdReflow);
   holding.current = holdReflow;
+  /** 单击卡片后到双击间隔结束的时刻（performance.now）：之前不重排（#179）。 */
+  const clickHoldUntil = useRef(0);
+  const clickHoldTimer = useRef(0);
+  useEffect(() => () => clearTimeout(clickHoldTimer.current), []);
   const syncWidth = useRef<() => void>(() => {});
   useLayoutEffect(() => {
     const el = scroller.current!;
     const sync = () => {
+      const held = holding.current || performance.now() < clickHoldUntil.current;
       // 还没排过（在过渡中途重建）时照常先排一次。
-      if ((!holding.current || !layoutWidth.current) && el.clientWidth !== layoutWidth.current) {
+      if ((!held || !layoutWidth.current) && el.clientWidth !== layoutWidth.current) {
         measureBeforeReflow();
         layoutWidth.current = el.clientWidth;
         setWidth(el.clientWidth);
@@ -486,8 +544,18 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     ro.observe(el);
     return () => ro.disconnect();
   }, [measureBeforeReflow, syncMount]);
-  // 宽度稳定了：按最终宽度重排一次。
+  // 宽度稳定了：按最终宽度重排一次（双击间隔还没过时，由下面的计时到点后再排）。
   useLayoutEffect(() => { if (!holdReflow) syncWidth.current(); }, [holdReflow]);
+  /** 单击卡片：双击间隔结束前不重排，结束时若宽度也稳定了就重排一次。 */
+  const holdForDoubleClick = () => {
+    const wait = doubleClickSettings().intervalMs;
+    clickHoldUntil.current = performance.now() + wait;
+    clearTimeout(clickHoldTimer.current);
+    clickHoldTimer.current = window.setTimeout(() => {
+      clickHoldUntil.current = 0;
+      if (!holding.current) syncWidth.current();
+    }, wait);
+  };
 
   /** 已经放出（不再遮蔽）的含成人内容的图。 */
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
@@ -808,7 +876,22 @@ sources`;
       if (i !== undefined) found.add(i);
     }
     return [...found].sort((a, b) => a - b);
-  }, [layout, mount, position, viewerOpen]);
+  }, [layout, mount, position, viewerOpen, selected]);
+
+  // 离开查看器（#179）：最后查看的那张完全不在视口里（查看时换过图）就滚到视口中间，再接回焦点；
+  // 还看得见时图片墙留在打开查看器时的位置。
+  useLayoutEffect(() => {
+    const id = returnTo.current, el = scroller.current;
+    if (!id || !el) return;
+    returnTo.current = null;
+    const i = position.get(id);
+    const box = i === undefined ? undefined : layout.boxes[i];
+    if (box && el.clientHeight > 0 && (box.y + box.h <= el.scrollTop || box.y >= el.scrollTop + el.clientHeight)) {
+      el.scrollTop = Math.max(0, box.y - Math.max(0, (el.clientHeight - box.h) / 2));
+      syncMount(el);
+    }
+    el.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.focus({ preventScroll: true });
+  });
 
   // 缩略图按滚动方向预取，离挂载范围近的先取；挂载范围变化时更新（#109）。
   const prefetcher = useRef<ReturnType<typeof createPrefetcher> | null>(null);
@@ -816,7 +899,7 @@ sources`;
   const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; leaving: boolean; landing: boolean; node: ReactNode }>());
   useLayoutEffect(() => { renderedCards.current = nextRendered; });
   const cardHandlers = useRef<{
-    select: (id: string, e: Pick<MouseEvent, "shiftKey" | "ctrlKey" | "metaKey">) => void;
+    click: (card: BrowserCard, e: MouseEvent) => void;
     open: (card: BrowserCard) => void;
     cardKey: (card: BrowserCard, e: KeyboardEvent<HTMLElement>) => void;
     dragStart: (id: string, e: DragEvent) => void;
@@ -852,6 +935,19 @@ sources`;
   };
 
   selectAllRef.current = () => onSelectionChange(new Set(ids));
+
+  /**
+   * 单击卡片（#179）：未选中的只选中它；当前唯一选中的那张打开查看器；多选中不按修饰键单击其中一张，
+   * 选择收缩为这一张（资源管理器的习惯）。这一下记作双击的第一下。
+   */
+  const click = (card: BrowserCard, e: MouseEvent) => {
+    const opens = !(e.ctrlKey || e.metaKey || e.shiftKey) && selected.size === 1 && selected.has(card.id);
+    const at = lastPress.current ?? { at: performance.now(), x: e.clientX, y: e.clientY };
+    lastPress.current = null;
+    pendingClick.current = { ...at, id: card.id, opened: opens };
+    holdForDoubleClick();
+    if (opens) open(card); else select(card.id, e);
+  };
 
   /**
    * 右键（或快捷键）作用的卡片：右键已选中的卡片时是整组选择（按图片墙顺序）；
@@ -946,13 +1042,14 @@ sources`;
   };
 
   // 卡片的事件处理读这里的最新版本，沿用的卡片元素因此不会拿着旧的选择与回调。
-  cardHandlers.current = { select, open, cardKey, dragStart, inspect: onInspectSources };
+  cardHandlers.current = { click, open, cardKey, dragStart, inspect: onInspectSources };
   const nextRendered: typeof renderedCards.current = new Map();
 
   return (
     <ContextMenu.Root disabled={!menu} onOpenChange={(next) => { if (!next) setMenuTarget(null); }}>
     <ContextMenu.Trigger render={<div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
       role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1} onKeyDown={wallKey} onClick={clearOnBlankClick}
+      inert={viewerOpen}
       onContextMenuCapture={(e) => { if (menu) targetMenu(e); }} />}>
       {error && <p role="alert">{error}</p>}
       {total === 0 ? (
@@ -986,8 +1083,7 @@ sources`;
                 data-veiled={veiled}
                 data-leaving={leaving}
                 draggable={!workspaceScope || workspaceScope.kind === "library" || (card.sources?.some((source) => !source.unavailable) ?? false)}
-                onClick={(e) => cardHandlers.current.select(card.id, e)}
-                onDoubleClick={() => cardHandlers.current.open(card)}
+                onClick={(e) => cardHandlers.current.click(card, e)}
                 onKeyDown={(e) => cardHandlers.current.cardKey(card, e)}
                 onDragStart={(e) => cardHandlers.current.dragStart(card.id, e)}
                 style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}

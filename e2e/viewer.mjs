@@ -1,4 +1,5 @@
 // #47 原生 WebView2 冒烟：真实双击、两条显示路径、DPI、字体、重排、返回焦点。
+// #179：查看器只盖住图片墙，详情侧栏在旁边并排；双击按第一下的图判定，单击已选中的那张即查看。
 // 用法：node e2e/viewer.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]
 // 本地并行测试宜以独立 identifier 构建；默认使用 4447 / 4448，不占用 #44 的端口。
 import { spawn } from "node:child_process";
@@ -114,6 +115,17 @@ try {
     { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 },
   ] }] });
   const fitted = await until("真实双击打开查看器", image);
+  // #179：查看器挂在图片墙所在的区域；左栏、顶栏、详情侧栏可用，侧栏显示正在看的这张。
+  const layout = await until("详情侧栏展开", () => exec(`const v = document.querySelector('.viewer'), pane = document.querySelector('.sidebar-slot'), insp = document.querySelector('aside.inspector');
+    if (!insp || insp.dataset.collapsed !== 'false' || insp.getAnimations().some(a => a.playState === 'running')) return null;
+    const r = v.getBoundingClientRect(), p = pane.getBoundingClientRect(), i = insp.getBoundingClientRect(), top = document.querySelector('.topbar').getBoundingClientRect();
+    return { inHost: !!v.closest('.wall-host'), inert: !!document.querySelector('.rail-slot[inert], .sidebar-slot[inert], .topbar [inert], aside.inspector[inert]'),
+      left: r.left, paneRight: p.right, right: r.right, inspectorLeft: i.left, top: r.top, topbarBottom: top.bottom, selection: insp.dataset.selection, density: !!document.querySelector('[aria-label=图片大小]'),
+      info: !!document.querySelector('[aria-label=图片信息]') };`));
+  const cardId = await exec("return arguments[0].dataset.id", [card]);
+  check(layout.inHost && !layout.inert && layout.left >= layout.paneRight - 0.5 && layout.right <= layout.inspectorLeft + 0.5 && layout.top >= layout.topbarBottom - 0.5,
+    "查看器只占图片墙所在的区域，左栏、顶栏与详情侧栏可用");
+  check(layout.selection === cardId && !layout.density && !layout.info, "详情侧栏显示正在看的图；查看时没有图片大小条和信息浮层");
   check(fitted.w < 2400 && Math.abs(fitted.physicalW - fitted.w) < 0.01 && Math.abs(fitted.physicalH - fitted.h) < 0.01, "适应窗口按设备像素 1:1 显示派生图");
   await click("原始像素");
   const original = await until("原图解码", image);
@@ -131,8 +143,40 @@ try {
   check(Math.abs(fitAfterFonts.physicalLeft - Math.round(fitAfterFonts.physicalLeft)) < 0.01 && Math.abs(fitAfterFonts.physicalTop - Math.round(fitAfterFonts.physicalTop)) < 0.01, "字体加载后的派生图起点对齐设备像素");
   const screenshot = await wd("GET", `${base}/screenshot`);
   writeFileSync(join(output, "viewer.png"), Buffer.from(screenshot, "base64"));
+  const viewerKey = async (value) => wd("POST", `${base}/actions`, { actions: [{type:"key",id:"keyboard",actions:[{type:"keyDown",value},{type:"keyUp",value}]}] });
+  await viewerKey("i");
+  await until("I 隐藏详情侧栏", () => exec("return document.querySelector('aside.inspector')?.dataset.collapsed === 'true'"));
+  await viewerKey("i");
+  await until("I 显示详情侧栏", () => exec("return document.querySelector('aside.inspector')?.dataset.collapsed === 'false'"));
+  check(true, "查看器里 I 键显示或隐藏详情侧栏");
   await click("返回图片墙");
-  check(await exec("return document.activeElement?.dataset.id === arguments[0].dataset.id", [card]), "返回后焦点交还刚才查看的卡片");
+  check(await exec("return document.activeElement?.dataset.id === arguments[0].dataset.id && arguments[0].getAttribute('aria-selected') === 'true'", [card]), "返回后选择仍是刚才查看的卡片，焦点交还给它");
+  // 单击已选中的唯一那张：打开查看器（#179）。
+  await wd("POST", `${base}/actions`, { actions: [{ type: "pointer", id: "mouse", parameters: { pointerType: "mouse" }, actions: [
+    { type: "pause", duration: 700 }, { type: "pointerMove", duration: 0, origin: card, x: 0, y: 0 }, { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 },
+  ] }] });
+  await until("单击已选中的图打开查看器", image);
+  await viewerKey("\uE00C");
+  await until("Esc 返回", () => exec("return !document.querySelector('.viewer')"));
+  // 双击最右一列的卡片：第一下展开侧栏（这里先清空选择、收起侧栏），第二下落点被侧栏占住也打开这一张（#179）。
+  await exec("const wall = document.querySelector('.wall'); wall.scrollTop = 0; wall.dispatchEvent(new Event('scroll'));");
+  await new Promise((r) => setTimeout(r, 700));
+  await exec("document.querySelector('.wall-canvas').click();");
+  await until("侧栏收起", () => exec("return !document.querySelector('aside.inspector')"));
+  const rightmost = await exec(`const wall = document.querySelector('.wall'), w = wall.getBoundingClientRect();
+    const seen = [...wall.querySelectorAll('.card')].filter(c => { const r = c.getBoundingClientRect(); return r.top >= w.top && r.bottom <= w.bottom; });
+    return seen.sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right || a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];`);
+  const rightmostId = await exec("return arguments[0].dataset.id", [rightmost]);
+  await wd("POST", `${base}/actions`, { actions: [{ type: "pointer", id: "mouse", parameters: { pointerType: "mouse" }, actions: [
+    { type: "pointerMove", duration: 0, origin: rightmost, x: 0, y: 0 },
+    { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 }, { type: "pause", duration: 250 },
+    { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 },
+  ] }] });
+  await until("双击最右一列打开查看器", image);
+  check(await exec("return document.querySelector('aside.inspector')?.dataset.selection === arguments[0] && document.querySelectorAll('.card[aria-selected=true]').length === 1", [rightmostId]),
+    "双击最右一列的卡片：侧栏展开期间第二下照样打开这一张");
+  await viewerKey("\uE00C");
+  await until("Esc 返回", () => exec("return !document.querySelector('.viewer')"));
 
   const anchor = await exec(`const wall = document.querySelector('.wall'); wall.scrollTop = 720; wall.dispatchEvent(new Event('scroll'));
     const top = wall.getBoundingClientRect().top; const cards = [...wall.querySelectorAll('.card')].map(c => ({ id: c.dataset.id, r: c.getBoundingClientRect() })).filter(c => c.r.bottom > top + 8 && c.r.top < top + wall.clientHeight).sort((a,b) => a.r.top - b.r.top || a.r.left - b.r.left);
@@ -145,7 +189,9 @@ try {
   await until("键盘打开查看器", image);
   await key("\uE00C"); // Escape
   await until("键盘返回图片墙", () => exec("return !document.querySelector('.viewer')"));
-  check(await exec("return document.activeElement?.dataset.id === arguments[0].id && Math.abs(document.querySelector('.wall').scrollTop - arguments[0].top) < .1", [reading]), "滚动后用回车查看，Esc 返回同一位置和焦点");
+  // 查看时选择跟着这张图，详情侧栏展开、图片墙按锚点重排（#179）：返回后这张图仍在视口里并获得焦点。
+  check(await exec(`const c = document.activeElement, wall = document.querySelector('.wall'), w = wall.getBoundingClientRect(), r = c?.getBoundingClientRect();
+    return c?.dataset.id === arguments[0].id && c.getAttribute('aria-selected') === 'true' && r.bottom > w.top && r.top < w.bottom;`, [reading]), "滚动后用回车查看，Esc 返回后那张图在视口里、仍选中并获得焦点");
   const anchorOffset = () => exec(`const c = document.querySelector('[data-id="' + arguments[0] + '"]'); const wall = document.querySelector('.wall'); if (!c || c.getAnimations().some(a => a.playState === 'running')) return null; return c.getBoundingClientRect().top - wall.getBoundingClientRect().top;`, [anchor.id]);
   const anchorStable = async () => {
     const moving = await exec("return document.querySelector('.sidebar-slot').getAnimations().some(a => a.playState === 'running')");

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Crop as CropIcon, EyeOff, Info, Pin, Square } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Crop as CropIcon, EyeOff, PanelRight, Pin, Square } from 'lucide-react';
 import { isTyping, type Crop, type ReferenceImage } from '../model';
 
 type Props = {
@@ -145,7 +145,7 @@ export function Viewer(p: Props) {
       <div className="ground-pick" role="radiogroup" aria-label="背景">
         {GROUNDS.map((g) => <button key={g.id} role="radio" aria-checked={ground === g.id} className={`swatch swatch-${g.id}`} title={`背景：${g.label}`} onClick={() => setGround(g.id)}><Square size={12} /></button>)}
       </div>
-      <button className={`icon-tool${p.infoOpen ? ' is-on' : ''}`} onClick={p.onToggleInfo} title="信息（I）" aria-label="信息" aria-pressed={p.infoOpen}><Info size={17} /></button>
+      <button className={`icon-tool${p.infoOpen ? ' is-on' : ''}`} onClick={p.onToggleInfo} title="详情（I）" aria-label="详情" aria-pressed={p.infoOpen}><PanelRight size={17} /></button>
     </header>
     <div className="viewer-body">
       <div ref={stage} className={`stage ground-${ground}${selecting ? ' is-selecting' : ''}`}

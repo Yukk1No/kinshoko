@@ -62,6 +62,47 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ top: 0, height: 800 });
   const [focusId, setFocusId] = useState<string | null>(null);
+  /**
+   * #179：单击当前那张即查看；双击按第一下的图判定。第一下落在卡片上之后，500 ms 内、离第一下不超过 2 px
+   * 的下一次按下（Windows 默认的双击间隔与判定范围）无论落在哪里，都在窗口的捕获阶段拦下并打开第一下的那张。
+   */
+  const downOnCurrent = useRef(false);
+  const firstPress = useRef<{ id: string; at: number; x: number; y: number; opened: boolean } | null>(null);
+  const lastDown = useRef<{ at: number; x: number; y: number } | null>(null);
+  const openRef = useRef(p.onOpen);
+  openRef.current = p.onOpen;
+  const imagesRef = useRef(p.images);
+  imagesRef.current = p.images;
+  useEffect(() => {
+    let swallowing = false;
+    const down = (e: PointerEvent) => {
+      const press = { at: performance.now(), x: e.clientX, y: e.clientY };
+      const first = firstPress.current;
+      firstPress.current = null;
+      swallowing = false;
+      lastDown.current = press;
+      if (!first || e.button !== 0 || e.ctrlKey || e.shiftKey || e.metaKey || e.altKey) return;
+      if (press.at - first.at > 500 || Math.abs(press.x - first.x) * devicePixelRatio > 2 || Math.abs(press.y - first.y) * devicePixelRatio > 2) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      swallowing = true;
+      const image = imagesRef.current.find((i) => i.id === first.id);
+      if (image && !first.opened) openRef.current(image);
+    };
+    const swallow = (e: Event) => {
+      if (!swallowing) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (e.type === 'click') setTimeout(() => { swallowing = false; }, 0);
+    };
+    const types = ['mousedown', 'pointerup', 'mouseup', 'click', 'dblclick'];
+    window.addEventListener('pointerdown', down, true);
+    for (const type of types) window.addEventListener(type, swallow, true);
+    return () => {
+      window.removeEventListener('pointerdown', down, true);
+      for (const type of types) window.removeEventListener(type, swallow, true);
+    };
+  }, []);
   const anchor = useRef<Anchor | null>(null);
   const reflow = useRef<Reflow | null>(null);
   const settledTop = useRef<number | null>(null);
@@ -293,8 +334,17 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall(p, ref) {
           tabIndex={image.id === tabIndexId ? 0 : -1}
           aria-label={`${hidden ? '安全模式已遮挡 · ' : ''}${image.title}，${image.w}×${image.h}`}
           onFocus={() => setFocusId(image.id)}
-          onClick={() => setFocusId(image.id)}
-          onDoubleClick={() => p.onOpen(image)}
+          onPointerDown={() => { downOnCurrent.current = focusId === image.id; }}
+          onClick={(e) => {
+            // 单击未选中的只选中它；再单击当前那张（不论隔多久）就查看（#179）。
+            const opens = downOnCurrent.current;
+            downOnCurrent.current = false;
+            const at = lastDown.current ?? { at: performance.now(), x: e.clientX, y: e.clientY };
+            lastDown.current = null;
+            firstPress.current = { ...at, id: image.id, opened: opens };
+            setFocusId(image.id);
+            if (opens) p.onOpen(image);
+          }}
           onContextMenu={(e) => { e.preventDefault(); setFocusId(image.id); p.onMenu(image, e.clientX, e.clientY); }}
           onKeyDown={(e) => onKeyDown(e, index)}>
           <span className={`card-image${image.format === 'PNG' && image.id.startsWith('fixture-alpha') ? ' checker' : ''}`} style={{ height: b.h - titleH }}>

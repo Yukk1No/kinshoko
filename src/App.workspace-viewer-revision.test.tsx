@@ -7,6 +7,15 @@ import { App } from "./App";
 import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
 import type { WorkspacePage } from "./bindings/WorkspacePage";
 
+/** 浏览器里的双击：两次按下与单击，再一次 dblclick。双击按第一下的图判定（#179）。 */
+function doubleClick(target: Element) {
+  for (const detail of [1, 2]) {
+    fireEvent.pointerDown(target, { button: 0 });
+    fireEvent.click(target, { detail });
+  }
+  fireEvent.doubleClick(target, { detail: 2 });
+}
+
 const libraries = [{ library: { id: "A", name: "甲库", root: "A" }, unavailable: null }];
 const status = (revision: string) => ({ revision, libraries });
 beforeEach(() => {
@@ -66,8 +75,8 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
 async function open() {
   render(<App />);
   const image = await screen.findByRole("img", { name: "参考图" });
-  fireEvent.doubleClick(image.closest<HTMLElement>('[role="option"]')!);
-  const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
+  doubleClick(image.closest<HTMLElement>('[role="option"]')!);
+  const viewer = await screen.findByRole("region", { name: "原图查看器" });
   await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/A/a/full"));
   return viewer;
 }
@@ -76,7 +85,7 @@ it("新工作区快照上的图片已双击打开，迟到的同一修订通知�
   workspace();
   const viewer = await open();
   await act(() => emit("workspace-changed", status("r2")));
-  expect(screen.getByRole("dialog", { name: "原图查看器" })).toBe(viewer);
+  expect(screen.getByRole("region", { name: "原图查看器" })).toBe(viewer);
   expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/A/a/full");
 });
 
@@ -85,7 +94,7 @@ it("真正的新修订撤销正在查看的旧图片，重读后不再显示已�
   await open();
   Object.assign(state, { initialRevision: "r3", wallRevision: "r3", available: false });
   await act(() => emit("workspace-changed", status("r3")));
-  expect(screen.queryByRole("dialog", { name: "原图查看器" })).toBeNull();
+  expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull();
   await waitFor(() => expect(screen.getByRole("listbox", { name: "图片墙" }).dataset.total).toBe("0"));
   expect(screen.queryByRole("img", { name: "参考图" })).toBeNull();
 });
@@ -97,7 +106,7 @@ it("先发的旧状态读取迟到，不能回滚图片墙已接受的新快照�
   const viewer = await open();
   await act(async () => { resolveInitial(status("r1")); });
   await act(() => emit("workspace-changed", status("r2")));
-  expect(screen.getByRole("dialog", { name: "原图查看器" })).toBe(viewer);
+  expect(screen.getByRole("region", { name: "原图查看器" })).toBe(viewer);
 });
 
 it("旧浏览响应与较新通知同批到达，也不能放回旧图片或回滚查看器的授权修订", async () => {
@@ -118,21 +127,21 @@ it("旧浏览响应与较新通知同批到达，也不能放回旧图片或回�
       total: 1, nextCursor: null, status: status("r2") });
   });
   await waitFor(() => expect(screen.getByRole("img", { name: "参考图" }).getAttribute("src")).toBe("http://thumb.localhost/A/new/128"));
-  fireEvent.doubleClick(screen.getByRole("img", { name: "参考图" }).closest<HTMLElement>('[role="option"]')!);
-  const currentViewer = await screen.findByRole("dialog", { name: "原图查看器" });
+  doubleClick(screen.getByRole("img", { name: "参考图" }).closest<HTMLElement>('[role="option"]')!);
+  const currentViewer = await screen.findByRole("region", { name: "原图查看器" });
   await waitFor(() => expect(currentViewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/A/new/full"));
   await act(() => emit("workspace-changed", status("r3")));
-  expect(screen.getByRole("dialog", { name: "原图查看器" })).toBe(currentViewer);
+  expect(screen.getByRole("region", { name: "原图查看器" })).toBe(currentViewer);
 });
 
-it("后台已知副本分级使聚合图封印时，保留来源详情面板并撤销已解码预览", async () => {
+it("后台已知副本分级使聚合图封印时，保留来源详情面板，面板里不出现图片像素", async () => {
   const state = workspace();
   state.safe = true;
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: "来源：甲库 · 查看详情" }));
   const inspector = screen.getByLabelText("详情", { selector: "aside" });
-  const preview = await screen.findByRole("img", { name: "所选参考图" });
-  fireEvent.load(preview);
+  // 详情面板没有缩略图（#179）。
+  expect(within(inspector).queryByRole("img")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "整理此来源" }));
   await screen.findByRole("textbox", { name: "备注" });
   // Background tagging revokes the aggregate through the public provider snapshot; no manual onClear action.
@@ -140,7 +149,7 @@ it("后台已知副本分级使聚合图封印时，保留来源详情面板并�
   await act(() => emit("workspace-changed", status("r3")));
   await waitFor(() => expect(screen.getByRole("listbox", { name: "图片墙" }).dataset.total).toBe("0"));
   expect(screen.getByLabelText("详情", { selector: "aside" })).toBe(inspector);
-  expect(screen.queryByRole("img", { name: "所选参考图" })).toBeNull();
+  expect(within(inspector).queryByRole("img")).toBeNull();
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", "此来源已封印");
 });
 
@@ -165,13 +174,13 @@ it("首个修订通知先于初始状态和浏览响应到达时，图片墙重�
   });
   const image = await screen.findByRole("img", { name: "参考图" });
   expect(image.getAttribute("src")).toBe("http://thumb.localhost/A/new/128");
-  fireEvent.doubleClick(image.closest<HTMLElement>('[role="option"]')!);
-  const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
+  doubleClick(image.closest<HTMLElement>('[role="option"]')!);
+  const viewer = await screen.findByRole("region", { name: "原图查看器" });
   await act(() => emit("workspace-changed", status("r3")));
-  expect(screen.getByRole("dialog", { name: "原图查看器" })).toBe(viewer);
+  expect(screen.getByRole("region", { name: "原图查看器" })).toBe(viewer);
 });
 
-it.each(["explicit", "selected"])("列表失效时立即撤销 %s 详情预览，重读等待或失败也不恢复旧像素", async (entry) => {
+it.each(["explicit", "selected"])("列表失效时 %s 详情面板保留，重读等待或失败时面板里也没有图片像素", async (entry) => {
   const state = workspace();
   state.safe = true;
   render(<App />);
@@ -181,8 +190,6 @@ it.each(["explicit", "selected"])("列表失效时立即撤销 %s 详情预览�
     fireEvent.click((await screen.findByRole("img", { name: "参考图" })).closest<HTMLElement>('[role="option"]')!, { ctrlKey: true });
   }
   const inspector = screen.getByLabelText("详情", { selector: "aside" });
-  // 预览图在选择之后异步出现，等它挂上再派发 load，否则在较慢的机器上偶发找不到（#153 的 Windows CI）。
-  fireEvent.load(await screen.findByRole("img", { name: "所选参考图" }));
   let rejectBrowse!: (reason: string) => void, started = false;
   const pending = new Promise<WorkspacePage>((_, reject) => { rejectBrowse = reject; });
   state.nextBrowse = () => { started = true; return pending; };
@@ -191,11 +198,11 @@ it.each(["explicit", "selected"])("列表失效时立即撤销 %s 详情预览�
     await act(() => emit("library-event", { kind: "listStale", libraryId: "A" }));
     await waitFor(() => expect(started).toBe(true));
     expect(screen.getByLabelText("详情", { selector: "aside" })).toBe(inspector);
-    expect(screen.queryByRole("img", { name: "所选参考图" })).toBeNull();
+    expect(within(inspector).queryByRole("img")).toBeNull();
     await act(async () => { rejectBrowse("资料库暂不可读"); });
     await screen.findByText("资料库暂不可读");
     expect(screen.getByLabelText("详情", { selector: "aside" })).toBe(inspector);
-    expect(screen.queryByRole("img", { name: "所选参考图" })).toBeNull();
+    expect(within(inspector).queryByRole("img")).toBeNull();
   } finally {
     await act(async () => { rejectBrowse("资料库暂不可读"); });
   }
@@ -207,7 +214,7 @@ it("查看器右键“移到回收站”把正在看的这份来源移进回收�
   fireEvent.contextMenu(viewer.querySelector<HTMLElement>(".viewer-stage")!, { clientX: 50, clientY: 50 });
   const menu = await screen.findByRole("menu", { name: "查看器菜单" });
   fireEvent.click(within(menu).getByRole("menuitem", { name: "移到回收站" }));
-  await waitFor(() => expect(screen.queryByRole("dialog", { name: "原图查看器" })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull());
   await waitFor(() => expect(state.calls.filter((c) => c.command === "plugin:library|workspace_edit_source").map((c) => c.args)).toEqual([
     { target: { libraryId: "A", imageId: "a", contentId: "bytes" }, safeMode: false, edits: [{ kind: "delete" }] },
   ]));

@@ -64,6 +64,12 @@ export function Keys({ accelerator }: { accelerator: string }) {
     <kbd key={index} className="k-key" aria-hidden="true">{key.replace(/^Key(?=[A-Z]$)/, "").replace(/^Digit(?=\d$)/, "")}</kbd>)}</span>;
 }
 
+/** 查看器里的固定操作（#179）：缩放、平移、框选、换图、详情侧栏与返回。 */
+const VIEWER_KEYS: [string, string][] = [
+  ["缩放", "滚轮"], ["平移", "拖动"], ["框选局部", "Shift+拖动"], ["进入框选", "F1"], ["上一张", "←"], ["下一张", "→"],
+  ["适应窗口", "0"], ["原始像素", "1"], ["钉住整图", "P"], ["显示或隐藏详情", "I"], ["返回图片墙", "Esc"],
+];
+
 export type SettingsTab = "general" | "keys" | "tags" | "tagging" | "backup" | "safety" | "update" | "diag";
 const TABS: { value: SettingsTab; name: string; icon: ReactNode; lead: string }[] = [
   { value: "general", name: "通用", icon: <Settings2 size={15} aria-hidden="true" />, lead: "关掉窗口后，截图和钉图照常可用。" },
@@ -198,7 +204,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
               </SettingsRow>}
             </SettingsGroup>
           </>)}
-          {page("keys", <SettingsGroup label="快捷键">
+          {page("keys", <><SettingsGroup label="快捷键">
             {view.shortcuts.map((binding: ShortcutBinding) => {
               const label = ACTION_LABELS[binding.action];
               const isRecording = recording === binding.action;
@@ -220,7 +226,11 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
             <SettingsRow label="放大界面" title="放大界面" desc="固定按键，在主窗口里用"><Keys accelerator="Ctrl+=" /></SettingsRow>
             <SettingsRow label="缩小界面" title="缩小界面" desc="固定按键，在主窗口里用"><Keys accelerator="Ctrl+-" /></SettingsRow>
             <SettingsRow label="界面复位到 100%" title="界面复位到 100%" desc="固定按键，在主窗口里用"><Keys accelerator="Ctrl+0" /></SettingsRow>
-          </SettingsGroup>)}
+          </SettingsGroup>
+          {/* 查看器的操作提示（#179，原在查看器的信息浮层里）。 */}
+          <SettingsGroup label="查看器">
+            {VIEWER_KEYS.map(([title, keys]) => <SettingsRow key={title} label={title} title={title}><Keys accelerator={keys} /></SettingsRow>)}
+          </SettingsGroup></>)}
           {page("tags", <>
             <Segmented<TagView> className="k-set-seg" label="标签设置" value={tagView} onChange={setTagView} options={[
               { value: "names", label: "显示名" }, { value: "groups", label: "分组" }, { value: "approx", label: "相近" }, { value: "mapping", label: "对应" },

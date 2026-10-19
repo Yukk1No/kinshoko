@@ -121,6 +121,23 @@ pub fn idle_ms() -> Option<u32> {
     Some(now.wrapping_sub(info.dwTime))
 }
 
+/// 系统的双击间隔（毫秒）与双击判定矩形的宽、高（物理像素，以第一下为中心，#179）。读不到时为 `None`。
+pub fn double_click() -> Option<(u32, i32, i32)> {
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::GetDoubleClickTime;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        GetSystemMetrics, SM_CXDOUBLECLK, SM_CYDOUBLECLK,
+    };
+    // SAFETY：三个调用都无指针参数，只读取系统设置。
+    let (interval, width, height) = unsafe {
+        (
+            GetDoubleClickTime(),
+            GetSystemMetrics(SM_CXDOUBLECLK),
+            GetSystemMetrics(SM_CYDOUBLECLK),
+        )
+    };
+    (interval > 0 && width > 0 && height > 0).then_some((interval, width, height))
+}
+
 /// 前台窗口（句柄按整数传，便于跨线程保存）与它所属的进程 id。没有前台窗口时为 `None`。
 pub fn foreground_window() -> Option<(isize, u32)> {
     // SAFETY：无参数，只读取系统状态。
