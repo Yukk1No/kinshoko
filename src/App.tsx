@@ -679,17 +679,18 @@ function MainWindow() {
    */
   const [uiScalePercent, setUiScalePercent] = useState(initialUiScale);
   const uiScaleTarget = useRef(uiScalePercent);
+  const acceptUiScale = useCallback((saved: number) => { uiScaleTarget.current = saved; setUiScalePercent(saved); }, []);
   const chooseUiScale = useCallback((percent: number) => {
     if (percent === uiScaleTarget.current) return;
     uiScaleTarget.current = percent;
     setUiScale(percent).then(
-      (saved) => { if (uiScaleTarget.current === percent) { uiScaleTarget.current = saved; setUiScalePercent(saved); } },
+      (saved) => { if (uiScaleTarget.current === percent) acceptUiScale(saved); },
       (e) => {
         toast?.error(`无法更改界面缩放：${String(e)}`);
-        uiScale().then((saved) => { uiScaleTarget.current = saved; setUiScalePercent(saved); }, () => {});
+        uiScale().then(acceptUiScale, () => {});
       },
     );
-  }, [toast]);
+  }, [toast, acceptUiScale]);
   /** 安全模式。读到设置之前按开启处理，不会先露出被封印的图。 */
   const [safe, setSafe] = useState(true);
   const safeRef = useRef(true);
@@ -733,7 +734,7 @@ function MainWindow() {
       () => undefined,
     );
     uiScale().then(
-      (saved) => { if (alive && typeof saved === "number") { uiScaleTarget.current = saved; setUiScalePercent(saved); } },
+      (saved) => { if (alive && typeof saved === "number") acceptUiScale(saved); },
       () => undefined,
     );
     currentLibrary().then(

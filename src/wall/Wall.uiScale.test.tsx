@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { UiScaleContext } from "../shell/uiScale";
 import { Wall } from "./Wall";
@@ -51,4 +51,20 @@ it("界面缩放 150% 时缩略图按卡片的实际设备像素计算，与 100
   await wallAt(1.5);
   // 240 的图片大小在屏幕上是 240 个系统像素宽；devicePixelRatio 1.5 下卡片 160 CSS 像素 = 240 设备像素，再取 1.5 倍余量。
   expect(browsed.at(-1)).toBe(360);
+});
+
+it("WebView 的设备像素比晚于界面缩放档位到达时，缩略图在它到达后按新值重新请求", async () => {
+  cssWidth = SCREEN_WIDTH / 1.5;
+  Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
+  render(<UiScaleContext.Provider value={1.5}>
+    <Wall libraryId="L1" scope={{ kind: "all" }} reloadKey={0} selected={new Set()} onSelectionChange={() => {}}
+      onOpenImage={() => {}} viewerOpen={false} density={240} />
+  </UiScaleContext.Provider>);
+  await screen.findAllByRole("img");
+  expect(browsed.at(-1)).toBe(240);
+
+  Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.5 });
+  await act(async () => { window.dispatchEvent(new Event("resize")); });
+
+  await waitFor(() => expect(browsed.at(-1)).toBe(360));
 });

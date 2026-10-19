@@ -23,6 +23,7 @@ import { createSmoothWheel } from "./smoothWheel";
 import { createPrefetcher, decodeThumbnail, mountWindow, prefetchOrder, type MountWindow } from "./prefetch";
 import { MAX_GHOSTS, SEAL, SealFx, type FxArrival, type FxSource } from "../shell/sealfx";
 import { useUiScale } from "../shell/uiScale";
+import { useDevicePixelRatio } from "../ui/devicePixelRatio";
 import { reducedNow, useReducedMotion } from "../ui/reducedMotion";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
@@ -313,9 +314,10 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   // 界面缩放（#173）：图片大小是界面缩放 100% 时的 CSS 宽度，卡片按界面缩放缩小 CSS 宽度，
   // 屏幕上的宽度与每行张数不变。缩略图按卡片的 CSS 宽度乘实际的设备像素比请求。
   const uiScale = useUiScale();
+  const dpr = useDevicePixelRatio();
   const thumbnailPx = useMemo(
-    () => Math.ceil((density / uiScale) * 1.5 * (window.devicePixelRatio || 1)),
-    [density, uiScale],
+    () => Math.ceil((density / uiScale) * 1.5 * dpr),
+    [density, uiScale, dpr],
   );
 
   useEffect(() => { onCardsChange?.(cards); }, [cards, onCardsChange]);

@@ -122,9 +122,7 @@ pub fn open_main_window(app: &AppHandle) {
             .build()
     }) {
         Ok(window) => {
-            if let Err(e) = window.set_zoom(factor) {
-                eprintln!("应用界面缩放失败：{e}");
-            }
+            apply_ui_scale(app, factor);
             let _ = window.show();
             let _ = window.set_focus();
         }
