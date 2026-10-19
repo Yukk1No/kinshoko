@@ -211,7 +211,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
               { value: "names", label: "显示名" }, { value: "groups", label: "分组" }, { value: "approx", label: "相近" }, { value: "mapping", label: "对应" },
               { value: "appearance", label: "外观" },
             ]} />
-            {tagView === "appearance" && <TagDisplaySettings display={view.tagDisplay ?? DEFAULT_TAG_DISPLAY} onSave={(next) => void apply(setTagDisplay(next))} />}
+            {tagView === "appearance" && <TagDisplaySettings display={view.tagDisplay ?? DEFAULT_TAG_DISPLAY} onSave={(next) => apply(setTagDisplay(next))} />}
             {tagView === "names" && <>
               <TagNamePanel key={`names/${settingsGeneration}`} />
               <LegacyNameBanner onOpen={onOpenNameWizard} />

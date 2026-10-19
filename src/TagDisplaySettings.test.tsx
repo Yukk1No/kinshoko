@@ -70,6 +70,42 @@ describe("设置：标签外观", () => {
     expect(store.saved()).toEqual({ style: "grouped", high: 0.75, low: 0.4, lowOutline: false });
   });
 
+  it("前一次保存还没回来时连着改几项，后改的不被先回来的结果盖掉", async () => {
+    let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
+    const waiting: (() => void)[] = [];
+    const view = (tagDisplay: TagDisplay): ShellSettingsView => ({
+      autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
+      usageLog: false, keepSelectionOnSafeMode: false, tagDisplay,
+    });
+    mockIPC((cmd, args) => {
+      if (cmd === "shell_settings") return view(saved);
+      if (cmd === "set_tag_display") {
+        // 按收到的顺序写入，回复要等测试放行。
+        saved = (args as { display: TagDisplay }).display;
+        const reply = view(saved);
+        return new Promise<ShellSettingsView>((resolve) => waiting.push(() => resolve(reply)));
+      }
+      if (cmd === "plugin:library|safe_mode") return true;
+      return undefined;
+    }, { shouldMockEvents: true });
+    const release = async () => {
+      await waitFor(() => expect(waiting.length).toBeGreaterThan(0));
+      waiting.shift()!();
+      // 让回复走完 invoke 和 React 的重新渲染。
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    };
+    const { high, outline } = await openAppearance();
+    fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
+    fireEvent.click(outline);
+    await release();
+    fireEvent.change(high, { target: { value: "0.75" } });
+    // 修好后保存一次只发一个，后面的排队，所以要一个个放行到没有为止。
+    while (waiting.length > 0) await release();
+    expect(saved).toEqual({ style: "grouped", high: 0.75, low: 0.4, lowOutline: false });
+    expect(screen.getByRole("switch", { name: "低档虚线框" }).getAttribute("aria-checked")).toBe("false");
+    expect(screen.getByRole("button", { name: "按出处分组" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("拒绝低档上限 ≥ 高档下限：说明原因，不保存", async () => {
     const store = backend();
     const { low, high } = await openAppearance();

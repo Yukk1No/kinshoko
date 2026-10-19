@@ -636,6 +636,7 @@ button.primary {
 .viewer-tag-name { overflow-wrap: anywhere; }
 /* 查看器里的标签跟着当前标签外观（#160）：B 按可信度分档底色，C 底边一条可信度刻度。 */
 .viewer-tag-group li { position: relative; overflow: hidden; }
+.viewer-tag-group li.is-manual { background: var(--accent-soft); color: var(--accent-strong); }
 .viewer-tag-group li[data-band="high"] { background: var(--tag-conf-high); }
 .viewer-tag-group li[data-band="low"] { background: transparent; color: var(--ink-2); }
 .viewer-tags[data-low-outline] li[data-band="low"] { outline: 1px dashed var(--line-2); outline-offset: -1px; }

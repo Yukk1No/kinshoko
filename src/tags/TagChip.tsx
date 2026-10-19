@@ -3,7 +3,7 @@ import { Popover } from "@base-ui/react/popover";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagOrigin } from "../bindings/TagOrigin";
 import { TagMarks, UNTRANSLATED_HINT, tagName } from "../search/SearchBox";
-import { confidenceBand, originLine, tagStanding, type ConfidenceThresholds } from "./tagConfidence";
+import { confidenceBand, confidencePercent, originLine, tagStanding, type ConfidenceThresholds } from "./tagConfidence";
 import { useTagDisplay } from "./TagDisplayContext";
 
 /** 模型标签的档位（`data-band`）；人工添加的、导入的、没有分数的不分档。 */
@@ -14,7 +14,7 @@ export function chipBand(origins: TagOrigin[], thresholds: ConfidenceThresholds)
 
 /** 可信度刻度条（C）：底边一条细线，长度等于可信度。 */
 export function ConfidenceMeter({ score }: { score: number }) {
-  const percent = Math.round(score * 100);
+  const percent = confidencePercent(score);
   return <span className="k-tag-meter" role="meter" aria-label="可信度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}
     style={{ width: `${percent}%` }} />;
 }
@@ -39,8 +39,8 @@ export function TagChip({ tag, origins, notes = [], actions, meter = false }: Pr
   const display = useTagDisplay();
   const [open, setOpen] = useState(false);
   const name = tagName(tag);
-  const manual = origins.some((o) => o.kind === "manual");
   const standing = tagStanding(origins);
+  const manual = standing.kind === "manual";
   const lines = [...new Set(origins.map((o) => originLine(o, display)))];
   if (tag.untranslated) lines.push(UNTRANSLATED_HINT);
   return (

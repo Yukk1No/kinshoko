@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_TAG_DISPLAY, confidenceBand, originLine, tagStanding, thresholdProblem } from "./tagConfidence";
+import { DEFAULT_TAG_DISPLAY, confidenceBand, confidencePercent, originLine, tagStanding, thresholdProblem } from "./tagConfidence";
 
 const defaults = { high: 0.8, low: 0.4 };
 
@@ -22,6 +22,11 @@ describe("标签的出处归类", () => {
 
   it("人工确认或添加的标签不参与分档，即使模型也给了分", () => {
     expect(tagStanding([{ kind: "manual" }, model(0.99)])).toEqual({ kind: "manual" });
+  });
+
+  it("合并资料库留下的决定冲突按添加处理，和人工添加归在一起", () => {
+    expect(tagStanding([{ kind: "conflict" }])).toEqual({ kind: "manual" });
+    expect(tagStanding([{ kind: "conflict" }, model(0.3)])).toEqual({ kind: "manual" });
   });
 
   it("多个模型来源时取最高分", () => {
@@ -48,6 +53,19 @@ describe("悬停浮层里的出处说明", () => {
     expect(originLine({ kind: "source", source: "restore", score: null }, defaults)).toBe("来源：备份");
     expect(originLine({ kind: "manual" }, defaults)).toBe("来源：你添加的");
     expect(originLine({ kind: "conflict" }, defaults)).toBe("来源：合并时的决定冲突，暂按添加处理");
+  });
+});
+
+describe("显示的百分比与档位一致", () => {
+  it("贴近阈值的分数不进位到下一档的数字", () => {
+    expect(originLine({ kind: "source", source: "model:pixai", score: 0.799 }, defaults)).toBe("来源：打标模型 · 可信度 79%（中）");
+    expect(originLine({ kind: "source", source: "model:pixai", score: 0.399 }, defaults)).toBe("来源：打标模型 · 可信度 39%（低）");
+  });
+
+  it("浮点误差内落在阈值上的分数显示阈值本身", () => {
+    expect(confidencePercent(0.29)).toBe(29);
+    expect(confidencePercent(0.8 - 1e-9)).toBe(80);
+    expect(confidencePercent(0.87)).toBe(87);
   });
 });
 

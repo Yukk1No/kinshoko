@@ -31,14 +31,22 @@ export function confidenceBand(score: number, { high, low }: ConfidenceThreshold
   return "mid";
 }
 
-/** 有效标签按出处归类：人工确认或添加的不分档；模型给的取各模型来源的最高分；其余是导入等来源。 */
+/**
+ * 显示用的整数百分比，向下取整：0.799 显示 79% 而不是 80%，和它所在的中档一致。
+ * 阈值是两位小数，所以向下取整的百分比和 `confidenceBand` 在任何阈值下都落在同一边；浮点误差按同样的 EPSILON 放过。
+ */
+export function confidencePercent(score: number): number {
+  return Math.floor(score * 100 + EPSILON * 100);
+}
+
+/** 有效标签按出处归类：人工确认或添加的（以及合并资料库时留下、暂按添加处理的决定冲突）不分档；模型给的取各模型来源的最高分；其余是导入等来源。 */
 export type TagStanding = { kind: "manual" } | { kind: "model"; score: number | null } | { kind: "imported" };
 
 const isModel = (origin: TagOrigin): origin is Extract<TagOrigin, { kind: "source" }> =>
   origin.kind === "source" && origin.source.startsWith("model:");
 
 export function tagStanding(origins: TagOrigin[]): TagStanding {
-  if (origins.some((o) => o.kind === "manual")) return { kind: "manual" };
+  if (origins.some((o) => o.kind === "manual" || o.kind === "conflict")) return { kind: "manual" };
   const models = origins.filter(isModel);
   if (models.length === 0) return { kind: "imported" };
   const scores = models.flatMap((o) => (o.score === null ? [] : [o.score]));
@@ -55,7 +63,7 @@ export function originLine(origin: TagOrigin, thresholds: ConfidenceThresholds):
   if (isModel(origin)) {
     return score === null
       ? "来源：打标模型"
-      : `来源：打标模型 · 可信度 ${Math.round(score * 100)}%（${BAND_WORD[confidenceBand(score, thresholds)]}）`;
+      : `来源：打标模型 · 可信度 ${confidencePercent(score)}%（${BAND_WORD[confidenceBand(score, thresholds)]}）`;
   }
   if (source.startsWith("eagle:")) return "来源：从 Eagle 导入";
   if (source.startsWith("package:")) return "来源：参考组包";

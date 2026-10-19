@@ -16,17 +16,40 @@ const parse = (text: string) => (text.trim() === "" ? Number.NaN : Math.round(Nu
  * 设置 › 标签 › 外观（#160）：标签风格（B 按可信度分档，默认；C 按出处分组加刻度）、可信度分档阈值、
  * 低档虚线框。本设备设置，改了立即保存并生效，不需要重新打标。低档上限必须小于高档下限，不满足时不保存。
  */
-export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; onSave: (next: TagDisplay) => void }) {
+export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; onSave: (next: TagDisplay) => Promise<unknown> }) {
   const [high, setHigh] = useState(shown(display.high));
   const [low, setLow] = useState(shown(display.low));
   const [problem, setProblem] = useState<string | null>(null);
-  useEffect(() => { setHigh(shown(display.high)); setLow(shown(display.low)); setProblem(null); }, [display.high, display.low]);
-  // 连着改几项时，后一项要在前一项之上改，不能等保存回来的 display，否则会把前一项盖回去。
+  // 连着改几项时，后一项要在前一项之上改。保存一次只发一个，等它回来再发最新的那份；
+  // 还有没保存完的改动时不拿回来的 display 覆盖，否则先回来的旧结果会把后改的盖回去。
   const latest = useRef(display);
-  useEffect(() => { latest.current = display; }, [display]);
+  const [shownDisplay, setShownDisplay] = useState(display);
+  const saving = useRef(false);
+  const queued = useRef(false);
+  useEffect(() => {
+    if (saving.current) return;
+    latest.current = display;
+    setShownDisplay(display);
+  }, [display]);
+  useEffect(() => {
+    if (saving.current) return;
+    setHigh(shown(display.high));
+    setLow(shown(display.low));
+    setProblem(null);
+  }, [display.high, display.low]);
   const save = (change: Partial<TagDisplay>) => {
     latest.current = { ...latest.current, ...change };
-    onSave(latest.current);
+    setShownDisplay(latest.current);
+    queued.current = true;
+    if (saving.current) return;
+    saving.current = true;
+    void (async () => {
+      while (queued.current) {
+        queued.current = false;
+        await onSave(latest.current);
+      }
+      saving.current = false;
+    })();
   };
 
   const changeThresholds = (nextHigh: string, nextLow: string) => {
@@ -40,7 +63,7 @@ export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; o
 
   return <SettingsGroup label="标签外观">
     <SettingsRow icon={<Palette size={16} />} title="标签外观" desc="详情面板和查看器里的标签">
-      <Segmented<TagStyle> label="标签外观" value={display.style} onChange={(style) => save({ style })} options={[
+      <Segmented<TagStyle> label="标签外观" value={shownDisplay.style} onChange={(style) => save({ style })} options={[
         { value: "bands", label: "按可信度分档" }, { value: "grouped", label: "按出处分组" },
       ]} />
     </SettingsRow>
@@ -56,11 +79,13 @@ export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; o
       </label>
       <button type="button" className="k-btn is-sm is-quiet" onClick={() => {
         setProblem(null);
+        setHigh(shown(DEFAULT_TAG_DISPLAY.high));
+        setLow(shown(DEFAULT_TAG_DISPLAY.low));
         save({ high: DEFAULT_TAG_DISPLAY.high, low: DEFAULT_TAG_DISPLAY.low });
       }}><RotateCcw size={12} aria-hidden="true" />恢复默认</button>
     </SettingsRow>
     <SettingsRow icon={<SquareDashed size={16} />} title="低档虚线框" desc="低档标签加虚线外框；关掉后只把字变浅">
-      <Switch label="低档虚线框" checked={display.lowOutline} onCheckedChange={(on) => save({ lowOutline: on })} />
+      <Switch label="低档虚线框" checked={shownDisplay.lowOutline} onCheckedChange={(on) => save({ lowOutline: on })} />
     </SettingsRow>
   </SettingsGroup>;
 }
