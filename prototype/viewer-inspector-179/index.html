@@ -1,0 +1,495 @@
+<!doctype html>
+<!--
+  PROTOTYPE（#179），一次性代码，不进 main。
+  问题：查看器和详情侧栏怎么编排，单击／双击怎样才不被侧栏引起的重排打乱。
+  四种编排，用 ?variant=A|B|C|D 或底部切换条（或 [ ] 键）切换；点击语义与重排时机用切换条上的开关调。
+  图片：python make_data.py <参考浏览样稿的 .local 目录> 生成 .local/images.js；没有时用色块代替。
+-->
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>查看器与详情编排样稿</title>
+<style>
+:root {
+  --bg: #f7f3ea; --surface: #fbf8f1; --text: #2b2747; --ink-3: rgb(43 39 71 / .55);
+  --accent: #e0768f; --accent-strong: #b5465f; --accent-soft: rgb(224 118 143 / .14);
+  --line: rgb(43 39 71 / .14); --wall: #eae9e6; --card: #dcdbd7; --hover: rgb(43 39 71 / .06);
+  --ease: cubic-bezier(.2, .8, .2, 1); --t-slow: 260ms;
+  font-family: "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif; font-size: 14px; color: var(--text);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.shell { display: flex; height: 100vh; }
+.side { width: 232px; flex: none; background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+.brand { height: 56px; display: flex; align-items: center; gap: 8px; padding: 0 16px; font-weight: 600; font-size: 15px; }
+.brand i { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); display: inline-block; }
+.folders { padding: 4px 8px; display: flex; flex-direction: column; gap: 2px; }
+.folders button { height: 30px; border: 0; border-radius: 8px; background: transparent; text-align: left; padding: 0 10px; display: flex; justify-content: space-between; }
+.folders button:hover { background: var(--hover); }
+.folders button[aria-current] { background: var(--accent-soft); color: var(--accent-strong); font-weight: 500; }
+.folders small { color: var(--ink-3); }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.top { height: 56px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.search { flex: 1; max-width: 520px; height: 34px; border: 1px solid var(--line); border-radius: 10px; background: #fff; display: flex; align-items: center; padding: 0 12px; color: var(--ink-3); }
+.count { color: var(--ink-3); font-size: 13px; }
+.body { flex: 1; min-height: 0; display: flex; }
+.stage { flex: 1; min-width: 0; position: relative; background: var(--wall); }
+.wall-scroll { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; }
+.wall { position: relative; }
+.card { position: absolute; left: 0; top: 0; border-radius: 6px; overflow: hidden; background: var(--card); cursor: default; }
+.card.anim { transition: transform var(--t-slow) var(--ease), width var(--t-slow) var(--ease), height var(--t-slow) var(--ease); }
+.card img, .card .ph { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.card[aria-selected="true"] { outline: 3px solid var(--accent); outline-offset: -3px; }
+.card[aria-selected="true"]::after { content: ""; position: absolute; inset: 0; background: var(--accent-soft); }
+.card.flash { outline: 3px solid #4a7bd0; outline-offset: -3px; }
+.size-island { position: absolute; right: 16px; bottom: 16px; z-index: 3; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 6px 12px; display: flex; gap: 8px; align-items: center; font-size: 12px; box-shadow: 0 4px 16px rgb(0 0 0 / .08); }
+
+/* 详情侧栏：宽度过渡与正式程序一致（320 ↔ 0，--t-slow） */
+.insp { width: 320px; flex: none; overflow: hidden; background: var(--surface); border-left: 1px solid var(--line); transition: width var(--t-slow) var(--ease); position: relative; }
+.insp[data-collapsed="true"] { width: 0; border-left-width: 0; }
+.insp[data-wide="true"] { width: 66%; }
+.insp-inner { width: 320px; height: 100%; display: flex; flex-direction: column; overflow-y: auto; }
+.insp[data-wide="true"] .insp-inner { width: 100%; }
+.insp-head { height: 56px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 12px 0 16px; font-weight: 600; }
+.icon { border: 0; background: transparent; width: 30px; height: 30px; border-radius: 8px; }
+.icon:hover { background: var(--hover); }
+.insp-thumb { margin: 0 16px 12px; border-radius: 8px; overflow: hidden; background: var(--card); max-height: 260px; display: flex; justify-content: center; }
+.insp-thumb img, .insp-thumb .ph { max-width: 100%; max-height: 260px; object-fit: contain; }
+.insp-preview { position: relative; flex: none; height: 300px; margin: 0 12px 12px; border-radius: 8px; overflow: hidden; background: #24222f; }
+.insp-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.insp-details { flex: none; }
+.insp[data-wide="true"] .insp-body { flex-direction: row; }
+.insp[data-wide="true"] .insp-preview { flex: 1; height: auto; margin-bottom: 16px; }
+.insp[data-wide="true"] .insp-details { width: 300px; overflow-y: auto; }
+.insp-preview .hint { position: absolute; left: 8px; bottom: 8px; z-index: 2; font-size: 11px; color: #fff; background: rgb(0 0 0 / .45); padding: 2px 8px; border-radius: 6px; pointer-events: none; }
+.insp-wide-body { display: contents; }
+.insp-section { padding: 0 16px 14px; }
+.insp-section h4 { margin: 0 0 6px; font-size: 12px; color: var(--ink-3); font-weight: 500; }
+.insp dl { margin: 0; display: grid; grid-template-columns: 56px 1fr; gap: 4px 8px; font-size: 13px; }
+.insp dt { color: var(--ink-3); }
+.insp dd { margin: 0; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--hover); }
+.note { width: 100%; min-height: 60px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: inherit; background: #fff; resize: vertical; }
+.batch { display: flex; flex-direction: column; gap: 6px; }
+.batch button, .btn { height: 32px; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 0 12px; }
+
+/* 查看器 */
+.viewer { display: flex; flex-direction: column; background: var(--bg); }
+.viewer.full { position: fixed; inset: 0; z-index: 20; }
+.viewer.inset { position: absolute; inset: 0; z-index: 5; }
+.v-bar { height: 48px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid var(--line); }
+.viewer.full .v-bar { height: 56px; }
+.v-title { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v-meta { color: var(--ink-3); font-size: 13px; font-variant-numeric: tabular-nums; }
+.v-stage { flex: 1; min-height: 0; position: relative; overflow: hidden; background: #ece9e2; cursor: grab; }
+.zoom-img { position: absolute; left: 0; top: 0; transform-origin: 0 0; user-select: none; -webkit-user-drag: none; }
+.dock { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 4; display: flex; gap: 4px; padding: 6px; border-radius: 14px; background: rgb(251 248 241 / .92); border: 1px solid var(--line); box-shadow: 0 6px 24px rgb(0 0 0 / .12); }
+.dock button { border: 0; background: transparent; border-radius: 9px; padding: 6px 10px; font-size: 13px; }
+.dock button:hover { background: var(--hover); }
+.dock button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-strong); }
+.dock kbd { font: 11px/1 inherit; color: var(--ink-3); margin-left: 4px; }
+.v-info { position: absolute; top: 14px; right: 14px; z-index: 4; width: 260px; padding: 12px 14px; border-radius: 12px; background: rgb(251 248 241 / .95); border: 1px solid var(--line); box-shadow: 0 6px 24px rgb(0 0 0 / .12); font-size: 13px; }
+.v-info dl { margin: 0 0 8px; display: grid; grid-template-columns: 44px 1fr; gap: 4px 8px; }
+.v-info dt { color: var(--ink-3); }
+.v-info dd { margin: 0; overflow-wrap: anywhere; }
+.film { height: 96px; flex: none; display: flex; gap: 6px; padding: 8px 12px; overflow-x: auto; overflow-y: hidden; border-top: 1px solid var(--line); background: var(--surface); }
+.film .f { flex: none; height: 78px; border-radius: 6px; overflow: hidden; background: var(--card); opacity: .72; }
+.film .f img, .film .f .ph { height: 100%; width: auto; display: block; }
+.film .f[aria-current] { opacity: 1; outline: 3px solid var(--accent); outline-offset: -3px; }
+
+/* 原型切换条：故意做得和界面不一样 */
+.proto { position: fixed; left: 12px; bottom: 12px; z-index: 100; max-width: min(560px, 96vw); background: #16151d; color: #f1eee8; border-radius: 14px; padding: 8px 12px; font-size: 12px; box-shadow: 0 8px 30px rgb(0 0 0 / .35); display: flex; flex-direction: column; gap: 6px; }
+.proto.min .row2, .proto.min .log { display: none; }
+.proto .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.proto button { background: #2c2a37; border: 0; color: inherit; border-radius: 8px; padding: 4px 10px; }
+.proto .label { font-weight: 600; min-width: 260px; text-align: center; }
+.proto label { display: inline-flex; gap: 4px; align-items: center; }
+.proto select { background: #2c2a37; color: inherit; border: 0; border-radius: 6px; padding: 2px 4px; }
+.proto .log { color: #b9b4c8; font-family: Consolas, monospace; font-size: 11px; white-space: pre; max-height: 70px; overflow: hidden; }
+.proto .state { color: #f0c86a; font-family: Consolas, monospace; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="shell" id="shell">
+  <aside class="side">
+    <div class="brand"><i></i>Kinshoko</div>
+    <nav class="folders" id="folders"></nav>
+  </aside>
+  <div class="main">
+    <header class="top"><div class="search">查找参考图、标签……</div><span class="count" id="count"></span></header>
+    <div class="body" id="body">
+      <div class="stage" id="stage">
+        <div class="wall-scroll" id="scroll"><div class="wall" id="wall" role="listbox" aria-multiselectable="true"></div></div>
+        <div class="size-island" id="island">图片大小 <input type="range" min="140" max="380" value="220" id="size"></div>
+      </div>
+      <aside class="insp" id="insp" data-collapsed="true"><div class="insp-inner" id="inspInner"></div></aside>
+    </div>
+  </div>
+</div>
+<div class="proto" id="proto"></div>
+<script src=".local/images.js"></script>
+<script>
+"use strict";
+const DBL = 500; // Windows 默认双击间隔
+const VARIANTS = {
+  A: "A 现状：全窗口查看器（对照）",
+  B: "B 容器内查看：查看器占图片墙，详情并排",
+  C: "C 侧栏即查看器：详情栏放大成查看区",
+  D: "D 容器内查看 + 胶片带 + 详情",
+};
+const $ = (id) => document.getElementById(id);
+const h = (tag, attrs = {}, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "class") el.className = v;
+    else if (v !== false && v != null) el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid);
+  return el;
+};
+
+// ---------------------------------------------------------------- 数据
+const IMAGES = (window.PROTO_IMAGES || Array.from({ length: 160 }, (_, i) => {
+  const ratios = [[3, 4], [2, 3], [1, 1], [4, 3], [16, 9], [9, 16], [3, 5]];
+  const [a, b] = ratios[(i * 7) % ratios.length];
+  return { id: "ph-" + i, title: "色块 " + (i + 1), w: a * 300, h: b * 300, format: "PNG", color: `hsl(${(i * 37) % 360} 45% 72%)`, tags: ["色块", "示例"] };
+}));
+const byId = new Map(IMAGES.map((x) => [x.id, x]));
+const indexOf = (id) => IMAGES.findIndex((x) => x.id === id);
+const pic = (item, cls) => item.thumb ? h("img", { src: item.thumb, alt: "", loading: "lazy", draggable: "false", class: cls }) : h("div", { class: "ph " + (cls || ""), style: `background:${item.color};aspect-ratio:${item.w}/${item.h}` });
+
+// ---------------------------------------------------------------- 状态
+const params = new URLSearchParams(location.search);
+const S = {
+  variant: VARIANTS[params.get("variant")] ? params.get("variant") : "A",
+  clickOpens: params.get("clickOpens") === "1",
+  dblById: params.get("dblById") === "1",
+  policy: ["frame", "end", "dbl"].includes(params.get("policy")) ? params.get("policy") : "end",
+  selected: new Set(), pivot: null,
+  viewing: null, // 正在查看的图；C 里表示详情栏放大
+  inspHidden: false, infoOpen: false, size: 220,
+};
+const log = [];
+function note(text) { log.unshift(`${(performance.now() / 1000).toFixed(2)}s ${text}`); log.length = Math.min(log.length, 5); renderProto(); }
+function saveParams() {
+  const p = new URLSearchParams({ variant: S.variant, clickOpens: S.clickOpens ? "1" : "0", dblById: S.dblById ? "1" : "0", policy: S.policy });
+  try { history.replaceState(null, "", "?" + p); } catch {}
+}
+
+// ---------------------------------------------------------------- 图片墙与重排
+const wall = $("wall"), scroll = $("scroll"), insp = $("insp");
+const cardEls = new Map();
+for (const item of IMAGES) {
+  const el = h("div", { class: "card", role: "option", "data-id": item.id, title: item.title }, pic(item));
+  el.addEventListener("click", (e) => cardClick(item.id, e));
+  el.addEventListener("dblclick", () => cardDbl(item.id));
+  cardEls.set(item.id, el);
+  wall.append(el);
+}
+let layoutWidth = 0, cols = 0, pos = new Map();
+function relayout(width, animate, why) {
+  const pad = 12, gap = 10;
+  // 锚点：重排前视口顶部的那张图，重排后仍在原高度
+  let anchor = null;
+  for (const [id, p] of pos) if (p.y + p.h > scroll.scrollTop && (!anchor || p.y < anchor.p.y)) anchor = { id, p };
+  const offset = anchor ? anchor.p.y - scroll.scrollTop : 0;
+  const n = Math.max(1, Math.floor((width - pad * 2 + gap) / (S.size + gap)));
+  const colW = (width - pad * 2 - gap * (n - 1)) / n;
+  const heights = Array(n).fill(pad);
+  const next = new Map();
+  for (const item of IMAGES) {
+    const c = heights.indexOf(Math.min(...heights));
+    const ch = colW * item.h / item.w;
+    next.set(item.id, { x: pad + c * (colW + gap), y: heights[c], w: colW, h: ch });
+    heights[c] += ch + gap;
+  }
+  const changed = n !== cols || Math.abs(width - layoutWidth) > 0.5;
+  for (const [id, p] of next) {
+    const el = cardEls.get(id);
+    el.classList.toggle("anim", !!animate);
+    el.style.transform = `translate(${p.x}px, ${p.y}px)`;
+    el.style.width = p.w + "px"; el.style.height = p.h + "px";
+  }
+  wall.style.height = Math.max(...heights) + "px";
+  wall.style.width = width + "px";
+  if (n !== cols && cols) note(`重排 ${cols}→${n} 列（${why}）`);
+  layoutWidth = width; cols = n; pos = next;
+  if (anchor && changed) scroll.scrollTop = next.get(anchor.id).y - offset;
+  renderProto();
+}
+// 侧栏宽度过渡：用自己的标记，赶在 ResizeObserver 之前
+let inspMoving = false, inspMoveTimer = 0, holdUntil = 0, releaseTimer = 0;
+function startInspMove() { inspMoving = true; clearTimeout(inspMoveTimer); inspMoveTimer = setTimeout(endInspMove, 600); }
+let inspEndedAt = 0;
+function endInspMove() { if (!inspMoving) return; inspMoving = false; inspEndedAt = performance.now(); clearTimeout(inspMoveTimer); scheduleRelease(); }
+insp.addEventListener("transitionend", (e) => { if (e.target === insp && e.propertyName === "width") endInspMove(); });
+insp.addEventListener("transitioncancel", (e) => { if (e.target === insp && e.propertyName === "width") endInspMove(); });
+function scheduleRelease() {
+  clearTimeout(releaseTimer);
+  if (inspMoving) return;
+  const wait = S.policy === "dbl" ? Math.max(0, holdUntil - performance.now()) : 0;
+  releaseTimer = setTimeout(() => { if (Math.abs(scroll.clientWidth - layoutWidth) > 0.5) relayout(scroll.clientWidth, true, S.policy === "dbl" ? "双击窗口过后" : "过渡结束后"); }, wait);
+}
+new ResizeObserver(() => {
+  const w = scroll.clientWidth;
+  if (!w) return;
+  if (!layoutWidth) return relayout(w, false, "初次");
+  if (S.policy === "frame") return relayout(w, true, "逐帧");
+  if (inspMoving || performance.now() < holdUntil) return scheduleRelease();
+  relayout(w, true, performance.now() - inspEndedAt < 150 ? "过渡结束后" : "窗口尺寸");
+}).observe(scroll);
+$("size").addEventListener("input", (e) => { S.size = +e.target.value; relayout(scroll.clientWidth, false, "图片大小"); });
+
+// ---------------------------------------------------------------- 点击语义
+let lastClick = null; // { id, t }：按图片判定双击用
+function cardClick(id, e) {
+  const now = performance.now();
+  const second = lastClick && now - lastClick.t < DBL;
+  if (S.dblById && second && !e.ctrlKey && !e.shiftKey) {
+    note(`双击（按图判定）→ 打开第一下那张 #${indexOf(lastClick.id) + 1}` + (lastClick.id !== id ? `，第二下其实落在 #${indexOf(id) + 1}` : ""));
+    const target = lastClick.id; lastClick = null; open(target); return;
+  }
+  if (S.policy === "dbl") holdUntil = now + DBL;
+  lastClick = { id, t: now };
+  if (e.ctrlKey || e.metaKey) {
+    const next = new Set(S.selected); next.has(id) ? next.delete(id) : next.add(id);
+    S.pivot = id; setSelection(next); note(`Ctrl 单击 #${indexOf(id) + 1}`); return;
+  }
+  if (e.shiftKey && S.pivot) {
+    const [a, b] = [indexOf(S.pivot), indexOf(id)].sort((x, y) => x - y);
+    setSelection(new Set(IMAGES.slice(a, b + 1).map((x) => x.id))); note(`Shift 单击到 #${indexOf(id) + 1}`); return;
+  }
+  if (S.clickOpens && S.selected.size === 1 && S.selected.has(id) && !second) { note(`单击已选中的 #${indexOf(id) + 1} → 查看`); open(id); return; }
+  S.pivot = id;
+  if (!(S.selected.size === 1 && S.selected.has(id))) { setSelection(new Set([id])); note(`单击 → 选中 #${indexOf(id) + 1}`); }
+}
+function cardDbl(id) {
+  if (S.dblById) return;
+  note(`系统双击事件落在 #${indexOf(id) + 1} → 打开它`);
+  open(id);
+}
+wall.addEventListener("click", (e) => { if (e.target === wall && S.selected.size && !e.ctrlKey && !e.shiftKey) { setSelection(new Set()); note("单击空白 → 清空选择"); } });
+
+function setSelection(next, keepHidden) {
+  const key = [...S.selected].sort().join();
+  S.selected = next;
+  if (!keepHidden && [...next].sort().join() !== key) S.inspHidden = false;
+  for (const [id, el] of cardEls) el.setAttribute("aria-selected", next.has(id) ? "true" : "false");
+  render();
+}
+function open(id, keepHidden) {
+  if (S.viewing === id) return;
+  if (!(S.selected.size === 1 && S.selected.has(id))) setSelection(new Set([id]), keepHidden);
+  S.viewing = id; S.pivot = id;
+  render();
+}
+function closeViewer() {
+  const id = S.viewing; S.viewing = null; S.infoOpen = false; render();
+  const p = pos.get(id);
+  if (p && (p.y < scroll.scrollTop || p.y + p.h > scroll.scrollTop + scroll.clientHeight)) scroll.scrollTop = p.y - 40;
+  const el = cardEls.get(id); el?.classList.add("flash"); setTimeout(() => el?.classList.remove("flash"), 600);
+}
+function step(d) {
+  const cur = S.viewing ?? [...S.selected][0];
+  if (!cur) return;
+  const i = Math.min(IMAGES.length - 1, Math.max(0, indexOf(cur) + d));
+  const id = IMAGES[i].id;
+  if (S.viewing) { S.viewing = null; open(id, true); } else { S.pivot = id; setSelection(new Set([id])); }
+}
+
+// ---------------------------------------------------------------- 可缩放的图
+function zoomable(host, item, onScale) {
+  const img = item.view ? h("img", { class: "zoom-img", src: item.view, alt: "", draggable: "false" }) : h("div", { class: "zoom-img", style: `background:${item.color}` });
+  img.style.width = item.w + "px"; img.style.height = item.h + "px";
+  host.append(img);
+  let s = 1, tx = 0, ty = 0, fitted = true, drag = null;
+  const apply = () => { img.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`; onScale?.(s); };
+  const fit = () => { const W = host.clientWidth, H = host.clientHeight; if (!W || !H) return; s = Math.min(W / item.w, H / item.h, 1) * 0.96; tx = (W - item.w * s) / 2; ty = (H - item.h * s) / 2; apply(); };
+  host.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const r = host.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+    const ns = Math.min(8, Math.max(0.03, s * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
+    tx = px - (px - tx) * ns / s; ty = py - (py - ty) * ns / s; s = ns; fitted = false; apply();
+  }, { passive: false });
+  host.addEventListener("pointerdown", (e) => { if (e.button || e.target.closest("button, .dock, .v-info")) return; drag = { x: e.clientX, y: e.clientY }; host.setPointerCapture(e.pointerId); });
+  host.addEventListener("pointermove", (e) => { if (!drag) return; tx += e.clientX - drag.x; ty += e.clientY - drag.y; drag = { x: e.clientX, y: e.clientY }; fitted = false; apply(); });
+  host.addEventListener("pointerup", () => { drag = null; });
+  const ro = new ResizeObserver(() => { if (fitted) fit(); });
+  ro.observe(host);
+  return { fit: () => { fitted = true; fit(); } };
+}
+
+// ---------------------------------------------------------------- 渲染
+const pct = (s) => Math.round(s * 100) + "%";
+let viewerEl = null, viewerKey = "";
+function render() {
+  const v = S.variant;
+  const sel = [...S.selected];
+  const wantOpen = (sel.length > 0 || !!S.viewing) && !(S.inspHidden && !(v === "C" && S.viewing));
+  const wide = v === "C" && !!S.viewing;
+  const wasOpen = insp.dataset.collapsed === "false", wasWide = insp.dataset.wide === "true";
+  if (wantOpen !== wasOpen || wide !== wasWide) {
+    if (S.policy !== "frame") startInspMove();
+    insp.dataset.collapsed = String(!wantOpen); insp.dataset.wide = String(wide);
+  }
+  renderInspector();
+  renderViewer();
+  $("island").style.visibility = S.viewing && (v === "B" || v === "D") ? "hidden" : "";
+  scroll.style.visibility = S.viewing && (v === "B" || v === "D") ? "hidden" : "";
+  $("count").textContent = `${IMAGES.length} 张` + (sel.length ? ` · 已选 ${sel.length}` : "");
+  renderProto();
+}
+
+let inspKey = "";
+function renderInspector() {
+  const v = S.variant, inner = $("inspInner");
+  const sel = [...S.selected];
+  const focusId = S.viewing ?? (sel.length === 1 ? sel[0] : null);
+  const key = `${v}|${focusId}|${sel.length}|${S.viewing ? 1 : 0}`;
+  if (key === inspKey) return;
+  inspKey = key;
+  inner.replaceChildren();
+  if (!focusId && !sel.length) return;
+  const head = h("div", { class: "insp-head" }, focusId ? "详情" : `已选 ${sel.length} 张`,
+    v === "C" && S.viewing
+      ? h("button", { class: "icon", title: "收回（Esc）", onclick: closeViewer }, "⇥")
+      : h("button", { class: "icon", title: "收起详情栏", onclick: () => { S.inspHidden = true; render(); } }, "✕"));
+  inner.append(head);
+  if (!focusId) {
+    inner.append(h("div", { class: "insp-section batch" }, ["添加标签", "移到文件夹", "钉到桌面", "存为参考组", "移到回收站"].map((t) => h("button", {}, t))));
+    return;
+  }
+  const item = byId.get(focusId);
+  const body = h("div", { class: "insp-body" }), details = h("div", { class: "insp-details" });
+  inner.append(body);
+  if (v === "A") details.append(h("div", { class: "insp-thumb" }, pic(item)));
+  if (v === "C") {
+    const box = h("div", { class: "insp-preview" }, h("span", { class: "hint" }, S.viewing ? "滚轮缩放 · 拖动平移 · Esc 收回" : "滚轮缩放 · 双击或 Enter 放大"));
+    box.addEventListener("dblclick", () => { if (!S.viewing) open(focusId); });
+    body.append(box);
+    requestAnimationFrame(() => zoomable(box, item));
+  }
+  body.append(details);
+  details.append(
+    h("div", { class: "insp-section" }, h("h4", {}, "文件"), h("dl", {},
+      h("dt", {}, "名称"), h("dd", {}, item.title),
+      h("dt", {}, "尺寸"), h("dd", {}, `${item.w} × ${item.h} 原始像素`),
+      h("dt", {}, "格式"), h("dd", {}, item.format || "—"),
+      h("dt", {}, "图库"), h("dd", {}, "样本库"))),
+    h("div", { class: "insp-section" }, h("h4", {}, "标签"), h("div", { class: "chips" }, item.tags.map((t) => h("span", { class: "chip" }, t)))),
+    h("div", { class: "insp-section" }, h("h4", {}, "备注"), h("textarea", { class: "note", placeholder: "写点什么……" })),
+    h("div", { class: "insp-section batch" }, h("button", {}, "钉到桌面"), h("button", {}, "框选局部"), h("button", {}, "移到回收站")),
+  );
+}
+
+function renderViewer() {
+  const v = S.variant;
+  const show = S.viewing && v !== "C";
+  const key = show ? `${v}|${S.viewing}` : "";
+  if (key === viewerKey) { if (viewerEl) syncViewerChrome(); return; }
+  viewerKey = key;
+  viewerEl?.remove(); viewerEl = null;
+  if (!show) return;
+  const item = byId.get(S.viewing);
+  const full = v === "A";
+  const zoomText = h("span", { class: "v-meta" });
+  const bar = h("div", { class: "v-bar" },
+    h("button", { class: "icon", title: "返回（Esc）", onclick: closeViewer }, "←"),
+    h("span", { class: "v-title" }, item.title),
+    h("span", { class: "v-meta" }, `${indexOf(item.id) + 1} / ${IMAGES.length}`),
+    zoomText,
+    full ? h("button", { class: "icon", title: "关闭", onclick: closeViewer }, "✕") : null);
+  const stage = h("div", { class: "v-stage" });
+  const toggleBtn = full
+    ? h("button", { "data-k": "info", onclick: () => { S.infoOpen = !S.infoOpen; syncViewerChrome(); } }, "信息", h("kbd", {}, "I"))
+    : h("button", { "data-k": "insp", onclick: () => { S.inspHidden = !S.inspHidden; render(); } }, "详情栏", h("kbd", {}, "I"));
+  stage.append(h("div", { class: "dock" },
+    h("button", { onclick: () => step(-1) }, "‹"), h("button", { onclick: () => step(1) }, "›"),
+    toggleBtn, h("button", {}, "钉住", h("kbd", {}, "P")), h("button", {}, "框选", h("kbd", {}, "F1")), h("button", {}, "删除")));
+  if (full) stage.append(h("section", { class: "v-info", hidden: true },
+    h("dl", {}, h("dt", {}, "文件"), h("dd", {}, item.title), h("dt", {}, "尺寸"), h("dd", {}, `${item.w} × ${item.h}`), h("dt", {}, "图库"), h("dd", {}, "样本库")),
+    h("div", { class: "chips" }, item.tags.map((t) => h("span", { class: "chip" }, t)))));
+  viewerEl = h("section", { class: "viewer " + (full ? "full" : "inset") }, bar, stage);
+  if (v === "D") {
+    const film = h("div", { class: "film" });
+    for (const it of IMAGES) {
+      const f = h("div", { class: "f", "aria-current": it.id === item.id ? "true" : false, onclick: () => { S.viewing = null; open(it.id, true); } }, pic(it));
+      film.append(f);
+    }
+    film.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { film.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+    viewerEl.append(film);
+    requestAnimationFrame(() => film.querySelector("[aria-current]")?.scrollIntoView({ inline: "center", block: "nearest" }));
+  }
+  (full ? document.body : $("stage")).append(viewerEl);
+  zoomable(stage, item, (s) => { zoomText.textContent = "缩放 " + pct(s); });
+  syncViewerChrome();
+}
+function syncViewerChrome() {
+  if (!viewerEl) return;
+  const info = viewerEl.querySelector(".v-info");
+  if (info) info.hidden = !S.infoOpen;
+  viewerEl.querySelector('[data-k="info"]')?.setAttribute("aria-pressed", String(S.infoOpen));
+  viewerEl.querySelector('[data-k="insp"]')?.setAttribute("aria-pressed", String(!S.inspHidden));
+}
+
+// ---------------------------------------------------------------- 左栏
+const folderNames = [["全部参考图", IMAGES.length], ["未整理", 42], ["角色", 88], ["场景", 31], ["手部", 17], ["光影", 26]];
+let currentFolder = 0;
+$("folders").append(...folderNames.map(([name, n], i) => {
+  const b = h("button", { "aria-current": i === 0 ? "page" : false }, name, h("small", {}, n));
+  b.addEventListener("click", () => {
+    currentFolder = i;
+    for (const [j, el] of [...$("folders").children].entries()) j === i ? el.setAttribute("aria-current", "page") : el.removeAttribute("aria-current");
+    if (S.viewing && S.variant !== "A") { note(`查看中点了左栏「${name}」→ 离开查看器`); closeViewer(); } else note(`切换到「${name}」（样稿不换图）`);
+  });
+  return b;
+}));
+
+// ---------------------------------------------------------------- 键盘
+document.addEventListener("keydown", (e) => {
+  if (e.target.closest?.("textarea, input, select")) return;
+  if (e.key === "[" || e.key === "]") {
+    const keys = Object.keys(VARIANTS);
+    switchVariant(keys[(keys.indexOf(S.variant) + (e.key === "]" ? 1 : keys.length - 1)) % keys.length]); return;
+  }
+  if (e.key === "Escape") { if (S.viewing) closeViewer(); else if (S.selected.size) setSelection(new Set()); return; }
+  if (e.key === "Enter" && !S.viewing && S.selected.size === 1) { open([...S.selected][0]); note("Enter → 查看"); return; }
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); step(e.key === "ArrowRight" ? 1 : -1); return; }
+  if ((e.key === "i" || e.key === "I") && S.viewing) {
+    if (S.variant === "A") { S.infoOpen = !S.infoOpen; syncViewerChrome(); }
+    else if (S.variant !== "C") { S.inspHidden = !S.inspHidden; render(); }
+  }
+});
+
+// ---------------------------------------------------------------- 原型切换条
+function switchVariant(k) {
+  if (S.viewing) { S.viewing = null; S.infoOpen = false; }
+  S.variant = k; S.inspHidden = false; inspKey = ""; saveParams(); render(); note(`切到 ${k}`);
+}
+let protoMin = false;
+function renderProto() {
+  const p = $("proto");
+  const keys = Object.keys(VARIANTS);
+  const idx = keys.indexOf(S.variant);
+  const row1 = h("div", { class: "row" },
+    h("button", { title: "上一个（[）", onclick: () => switchVariant(keys[(idx + keys.length - 1) % keys.length]) }, "‹"),
+    h("span", { class: "label" }, VARIANTS[S.variant]),
+    h("button", { title: "下一个（]）", onclick: () => switchVariant(keys[(idx + 1) % keys.length]) }, "›"),
+    h("button", { onclick: () => { protoMin = !protoMin; renderProto(); } }, protoMin ? "展开" : "收起"));
+  const opt = (k, text) => { const c = h("input", { type: "checkbox" }); c.checked = S[k]; c.addEventListener("change", () => { S[k] = c.checked; saveParams(); renderProto(); }); return h("label", {}, c, text); };
+  const sel = h("select", {}, h("option", { value: "frame" }, "逐帧（475e801）"), h("option", { value: "end" }, "过渡结束后一次（#164）"), h("option", { value: "dbl" }, "等过渡和双击窗口都过去"));
+  sel.value = S.policy; sel.addEventListener("change", () => { S.policy = sel.value; saveParams(); renderProto(); });
+  const row2 = h("div", { class: "row row2" }, opt("clickOpens", "单击已选中的图 = 查看"), opt("dblById", "双击按第一下的图判定"), h("label", {}, "墙的重排：", sel));
+  const st = h("div", { class: "row row2 state" }, `选中 ${S.selected.size ? [...S.selected].map((id) => "#" + (indexOf(id) + 1)).join(" ") : "—"} · 查看 ${S.viewing ? "#" + (indexOf(S.viewing) + 1) : "—"} · 详情栏 ${insp.dataset.collapsed === "false" ? (insp.dataset.wide === "true" ? "放大" : "展开") : "收起"} · ${cols} 列`);
+  p.replaceChildren(row1, row2, st, h("div", { class: "log" }, log.join("\n") || "（操作记录）"));
+  p.classList.toggle("min", protoMin);
+}
+
+requestAnimationFrame(() => { relayout(scroll.clientWidth, false, "初次"); render(); });
+</script>
+</body>
+</html>
