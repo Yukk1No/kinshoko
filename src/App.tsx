@@ -63,7 +63,7 @@ import { useWallActions } from "./wall/useWallActions";
 import { DensityIsland } from "./wall/DensityIsland";
 import { Viewer } from "./viewer/Viewer";
 import { RuntimeNotice } from "./RuntimeSupport";
-import { INITIAL_SAFE_LENS, safeLens, type SafeLensAction } from "./shell/safeLens";
+import { INITIAL_SAFE_LENS, needsRecheck, reduceSafeLens, type SafeLensAction } from "./shell/safeLens";
 import { safeTiming } from "./shell/safeTiming";
 import type { TagDisplay } from "./bindings/TagDisplay";
 import { DEFAULT_TAG_DISPLAY } from "./tags/tagConfidence";
@@ -260,11 +260,11 @@ function LibraryWorkspace({
   }, []);
   // 图片墙按回调身份决定是否重新浏览：这里读最新的视角与重读序号，回调保持不变，
   // 安全模式切换或重读时不会因为回调换了身份再多浏览一次（#183）。
-  const wallLens = useRef({ safe, reloadKey });
-  wallLens.current = { safe, reloadKey };
+  const wallView = useRef({ safe, reloadKey });
+  wallView.current = { safe, reloadKey };
   const onWallStatus = useCallback((next: WorkspaceStatus, cards: BrowserCard[]) => {
     acceptStatus(next);
-    setPreviewSnapshot({ ...wallLens.current, cards });
+    setPreviewSnapshot({ ...wallView.current, cards });
   }, [acceptStatus]);
   useEffect(() => {
     viewerChange.current(modalOpen);
@@ -764,28 +764,37 @@ function MainWindow() {
   const [safeState, setSafeState] = useState(INITIAL_SAFE_LENS);
   const safeStateRef = useRef(safeState);
   const applySafe = useCallback((action: SafeLensAction) => {
-    safeStateRef.current = safeLens(safeStateRef.current, action);
+    safeStateRef.current = reduceSafeLens(safeStateRef.current, action);
     setSafeState(safeStateRef.current);
   }, []);
   const { shown: safe, lens: lensSafe } = safeState;
   const acceptSafe = useCallback((on: boolean) => applySafe({ kind: "external", on }), [applySafe]);
+  /** 以后端保存的设置为准；读不到时按开启处理。 */
+  const recheckSafe = useCallback(() => {
+    safeMode().then(
+      (on) => acceptSafe(on !== false),
+      () => acceptSafe(true),
+    );
+  }, [acceptSafe]);
   const toggleSafe = useCallback(() => {
     // 不等后端：这一帧就开始遮蔽（或打开封印书）。
     applySafe({ kind: "toggle" });
     const next = safeStateRef.current.shown;
     safeTiming.toggled(next);
     setSafeMode(next).then(
-      (on) => { safeTiming.mark("后端确认"); applySafe({ kind: "settled", on }); },
+      (on) => {
+        safeTiming.mark("后端确认");
+        applySafe({ kind: "settled", on });
+        // 快速连点时返回可能乱序：与最后一次点击不一致就读一次设置校准。
+        if (needsRecheck(safeStateRef.current, on)) recheckSafe();
+      },
       (e) => {
         applySafe({ kind: "failed" });
         toast?.error(`无法切换安全模式：${String(e)}`);
-        safeMode().then(
-          (on) => acceptSafe(on !== false),
-          () => acceptSafe(true),
-        );
+        recheckSafe();
       },
     );
-  }, [toast, applySafe, acceptSafe]);
+  }, [toast, applySafe, recheckSafe]);
 
   // 钉图菜单“在 Kinshoko 中打开”（#106）：参考图在查看器里打开，截图打开截图历史。
   useOpenInKinshoko((request) => {

@@ -1851,10 +1851,9 @@ describe("安全模式", () => {
 
   it("关闭：开关当即显示为关，后端确认后只整批浏览一次，资料库事件不再重读（#183）", async () => {
     let commit: (on: boolean) => void = () => {};
-    backend(library, clean, (cmd, args) => {
+    backend(library, clean, (cmd) => {
       if (cmd !== "plugin:library|set_safe_mode") return undefined;
-      const on = (args as { on: boolean }).on;
-      return new Promise<boolean>((resolve) => { commit = (value) => { safeOn = value; resolve(value); }; void on; });
+      return new Promise<boolean>((resolve) => { commit = (value) => { safeOn = value; resolve(value); }; });
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -1877,6 +1876,33 @@ describe("安全模式", () => {
     await waitFor(() => expect(cardOf("x")).toBeTruthy());
     await act(async () => {});
     expect(sent("plugin:library|browse").length).toBe(before + 1);
+  });
+
+  it("快速关了又开、返回乱序：最后停在开启，旧的关闭不放开视角（#183）", async () => {
+    const replies: ((on: boolean) => void)[] = [];
+    backend(library, clean, (cmd, args) => {
+      if (cmd !== "plugin:library|set_safe_mode") return undefined;
+      // 后端按点击顺序提交；返回由测试控制。
+      safeOn = (args as { on: boolean }).on;
+      return new Promise<boolean>((resolve) => replies.push(resolve));
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    const button = await book();
+    const before = sent("plugin:library|browse").length;
+
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    await waitFor(() => expect(replies.length).toBe(2));
+    // 后点的开启先返回，先点的关闭后返回。
+    await act(async () => { replies[1](true); });
+    await act(async () => { replies[0](false); });
+    await waitFor(() => expect(sent("plugin:library|safe_mode").length).toBeGreaterThan(1));
+    await act(async () => {});
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(cardOf("x")).toBeNull();
+    expect(sent("plugin:library|browse").length).toBe(before);
   });
 
   it("关闭失败：保持开启，不露出被封印的图", async () => {
