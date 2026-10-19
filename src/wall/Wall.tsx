@@ -271,7 +271,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   /** 这一次重排的节奏；null 时是平常的 200 ms。 */
   const reflowMotion = useRef<{ at: number; delay: number; duration: number } | null>(null);
 
-  const measureBeforeReflow = useCallback(() => {
+  /**
+   * 重排前量下卡片位置。`keepSafe`：这次重排与安全模式切换无关（墙的宽度变了，例如详情面板随选择清空而收起），
+   * 按平常的节奏滑，切换时存下的节奏留给资料库送回卡片或封印让位那一次，起点换成现在的位置。
+   */
+  const measureBeforeReflow = useCallback((keepSafe = false) => {
     const el = scroller.current;
     if (!el) return;
     const viewport = el.getBoundingClientRect();
@@ -286,6 +290,17 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     motions.current.forEach((motion) => motion.cancel());
     motions.current.clear();
     const held = safeReflow.current;
+    if (keepSafe) {
+      if (held) {
+        const { layout: now, ids: shown } = live.current;
+        held.rects = measured;
+        held.boxes = { boxes: new Map(now ? shown.map((id, i) => [id, now.boxes[i]]) : []), scrollTop: el.scrollTop };
+      }
+      reflowMotion.current = null;
+      beforeReflow.current = measured;
+      beforeBoxes.current = null;
+      return;
+    }
     safeReflow.current = null;
     reflowMotion.current = held && performance.now() - held.at < RELEASE_WAIT ? held : null;
     beforeReflow.current = reflowMotion.current ? held!.rects : measured;
@@ -476,7 +491,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     const sync = () => {
       // 还没排过（在过渡中途重建）时照常先排一次。
       if ((!holding.current || !layoutWidth.current) && el.clientWidth !== layoutWidth.current) {
-        measureBeforeReflow();
+        measureBeforeReflow(true);
         layoutWidth.current = el.clientWidth;
         setWidth(el.clientWidth);
       }
@@ -775,6 +790,8 @@ sources`;
   useLayoutEffect(() => {
     const due = releaseDue.current;
     if (!due || safeMode || !cards.length || !width) return;
+    // 墙上还是安全视角的卡片（资料库还没送回，例如详情面板收起只改了宽度）：接着等，不作废这次释放。
+    if (performance.now() <= due && !cards.some((c) => c.adult)) return;
     releaseDue.current = 0;
     // 只在真有图要飞回时才量封印书：这个效果每次墙上的卡片变化都会跑，量它会多强制排一次版（#176）。
     const f = fx.current, b = book();
