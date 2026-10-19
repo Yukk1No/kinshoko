@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { FolderOpen, FolderPlus, Library, Plus, RefreshCw, Settings2 } from "lucide-react";
+import { ChevronRight, FolderOpen, FolderPlus, Library, Lightbulb, Pin, Plus, RefreshCw, Settings2 } from "lucide-react";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, unregisterLibrary } from "../ipc";
+import { BrandMark } from "../ui/BrandMark";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
 
 /**
  * 本设备的资料库登记与取消登记（界面称“图库”，design/ui-system/copy-map.md）。
  * `menu`：侧栏标题行“图库 ＋”（方案 D，#113）：＋ 菜单为打开 / 新建 / 管理。画师不选“当前图库”
- * （ADR-0008），这里没有切换；`inline`：还没有图库时的引导按钮。
+ * （ADR-0008），这里没有切换；`inline`：还没有图库时的欢迎页（#172 原型 A：先选新建或打开，新建再填表）。
  * 打开菜单或管理对话框时重新读取登记，不可用的登记仍可重新连接（重新检查）或移除。
  */
 export function LibraryPicker({ current, onChanged, onCreate, blocked = false, layout = "menu" }: {
@@ -80,10 +81,32 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
     {error && <p className="library-error" role="alert">{error}</p>}
   </>;
 
-  if (layout === "inline") return <section className="library-onboarding" aria-label="图库">
-    <button type="button" className="k-btn" disabled={disabled} onClick={() => void register()}><FolderOpen size={15} aria-hidden="true" />打开图库…</button>
-    {status}
-  </section>;
+  if (layout === "inline") return <div className="welcome">
+    <section className="welcome-card" aria-labelledby="welcome-title">
+      <div className="welcome-head">
+        <BrandMark size={48} />
+        <h1 id="welcome-title">欢迎使用 Kinshoko</h1>
+        <p>先准备一个图库，用来存放参考图。</p>
+      </div>
+      <div className="welcome-choices">
+        <button type="button" className="welcome-choice is-main" disabled={disabled} aria-labelledby="welcome-create" aria-describedby="welcome-create-desc" onClick={onCreate}>
+          <span className="welcome-choice-tile" aria-hidden="true"><FolderPlus size={20} /></span>
+          <span className="welcome-choice-text"><b id="welcome-create">新建图库</b><span id="welcome-create-desc">在你选的位置新建文件夹</span></span>
+          <ChevronRight size={16} aria-hidden="true" className="welcome-choice-chev" />
+        </button>
+        <button type="button" className="welcome-choice" disabled={disabled} aria-labelledby="welcome-open" aria-describedby="welcome-open-desc" onClick={() => void register()}>
+          <span className="welcome-choice-tile" aria-hidden="true"><FolderOpen size={20} /></span>
+          <span className="welcome-choice-text"><b id="welcome-open">打开图库</b><span id="welcome-open-desc">选择已有图库所在的文件夹</span></span>
+          <ChevronRight size={16} aria-hidden="true" className="welcome-choice-chev" />
+        </button>
+      </div>
+      {status}
+    </section>
+    <div className="welcome-tips">
+      <p className="welcome-tip"><Lightbulb size={14} aria-hidden="true" />用过 Eagle？建好图库后从“导入”迁入</p>
+      <p className="welcome-tip"><Pin size={14} aria-hidden="true" />截图和钉图不需要图库，随时可用</p>
+    </div>
+  </div>;
 
   return <>
     <div className="pane-library-title">

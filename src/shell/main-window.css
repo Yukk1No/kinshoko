@@ -241,7 +241,45 @@
 .app-empty-workspace { display: flex; flex: 1; min-height: 0; }
 .app-main-centered { align-items: stretch; }
 .app-empty-body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; }
-.library-onboarding { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+/* 没有图库时的居中引导（#172 原型 A）：欢迎页先选新建或打开，新建再填表；两屏同宽、同一位置。 */
+.welcome { width: min(460px, 100%); display: flex; flex-direction: column; gap: 22px; padding-bottom: 56px; animation: welcome-in var(--t) var(--spring); }
+@keyframes welcome-in { from { opacity: 0; transform: translateY(4px) scale(0.99); } }
+.welcome-head { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 28px; text-align: center; }
+.welcome-head h1 { margin: 0; font-size: 22px; line-height: 30px; }
+.welcome-head p { margin: 0; color: var(--ink-2); }
+.welcome-choices { display: flex; flex-direction: column; gap: 10px; }
+.welcome-choice { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; border: 0; border-radius: var(--r-l); background: var(--surface); color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line); text-align: left; transition: box-shadow var(--t-fast), transform var(--t-fast) var(--spring); }
+.welcome-choice:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--line-2), var(--shadow); }
+.welcome-choice:active:not(:disabled) { transform: scale(0.99); }
+.welcome-choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.welcome-choice:disabled { opacity: 0.55; cursor: default; }
+.welcome-choice-tile { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 11px; background: var(--surface-2); color: var(--ink-2); }
+.welcome-choice.is-main .welcome-choice-tile { background: var(--ink); color: var(--bg); }
+.welcome-choice-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.welcome-choice-text b { font-weight: 600; }
+.welcome-choice-text span { color: var(--ink-3); font-size: 12px; }
+.welcome-choice-chev { flex: none; color: var(--ink-3); }
+.welcome-tips { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.welcome-tip { margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ink-3); font-size: 12px; }
+.welcome-tip svg { flex: none; }
+.welcome-back { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; height: 28px; margin: -6px 0 2px -8px; padding: 0 8px; border: 0; border-radius: 8px;
+  background: none; color: var(--ink-2); font-size: 12px; }
+.welcome-back:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+.create-library { display: flex; flex-direction: column; gap: 16px; padding: 20px; border-radius: var(--r-xl); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.create-library h1 { margin: 0; font-size: 18px; line-height: 26px; }
+.create-library-desc { margin: 2px 0 0; color: var(--ink-3); font-size: 12px; }
+/* .k-input 与 .k-field-label 来自 ui/dialogs.css；这里是竖排的字段，输入框不随 flex 伸缩。 */
+.create-library .k-field { display: flex; flex-direction: column; gap: 6px; }
+.create-library .k-input { flex: none; height: 36px; padding: 0 12px; border-radius: var(--r); }
+.create-library-path { display: flex; align-items: center; gap: 8px; min-width: 0; height: 36px; padding: 0 4px 0 12px; border-radius: var(--r); background: var(--sunken); color: var(--ink-3); }
+.create-library-path.is-set { color: var(--ink); }
+.create-library-path-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.create-library-error { margin: 0; color: var(--danger); font-size: 12px; overflow-wrap: anywhere; }
+.create-library-foot { display: flex; justify-content: flex-end; margin-top: 4px; }
+.k-btn.is-lg { height: 40px; padding: 0 18px; border-radius: 11px; }
+@media (prefers-reduced-motion: reduce) { .welcome { animation: none; } }
+:root[data-reduced-motion] .welcome { animation: none; }
 
 @media (prefers-reduced-motion: reduce) { .sidebar-slot, .inspector { transition: none; } }
 :root[data-reduced-motion] .sidebar-slot, :root[data-reduced-motion] .inspector { transition: none; }
