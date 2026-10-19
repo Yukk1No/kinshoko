@@ -341,6 +341,7 @@
 .k-tag-alias { gap: 8px; padding: 10px; border: 0; border-radius: 12px; background: var(--sunken); }
 .k-tag-alias .k-tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .k-tag-alias .k-tag-chips li { display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 3px 0 8px; border-radius: 6px; background: var(--surface); }
+.k-tag-alias .k-input { flex: none; }
 .k-tag-alias-acts { display: flex; gap: 6px; justify-content: flex-end; }
 .k-note .k-note-acts { display: flex; gap: 4px; justify-content: flex-end; margin-top: 6px; }
 /* 不可用的“用来源的”明显变淡。 */
