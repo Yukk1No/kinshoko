@@ -6,6 +6,7 @@ import { modalOpen as anyModalOpen } from "./ui/modal";
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, X } from "lucide-react";
 import { ToastProvider, useToast } from "./ui/Toast";
 import { WinCtrls } from "./ui/WinCtrls";
+import { useWidthTransition } from "./shell/useWidthTransition";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowseScope } from "./bindings/BrowseScope";
 import type { ConditionTree } from "./bindings/ConditionTree";
@@ -411,6 +412,9 @@ function LibraryWorkspace({
   const previewId = inspected?.id ?? (eligible && selected.size === 1 ? [...selected][0] : undefined);
   const previewCard = previewSnapshot?.safe === safe && previewSnapshot.reloadKey === reloadKey
     ? previewSnapshot.cards.find((card) => card.id === previewId) : undefined;
+  // 详情面板开合的宽度过渡中图片墙不逐帧重排，过渡结束后重排一次（#162）。
+  const [inspectorElement, setInspectorElement] = useState<HTMLElement | null>(null);
+  const inspectorMoving = useWidthTransition(inspectorElement);
   const closeInspector = () => { if (sources) setSources(null); else setInspectorHidden(selectionKey); };
 
   const started = (taskId: string) => {
@@ -550,6 +554,7 @@ function LibraryWorkspace({
             conditions={tree}
             reloadKey={reloadKey}
             safeMode={safe}
+            holdReflow={inspectorMoving}
             selected={selected}
             onSelectionChange={setSelected}
             onOpenImage={(card) => { setViewCrop(false); setViewing(card); }}
@@ -572,7 +577,7 @@ function LibraryWorkspace({
           <div className="selbar-host" ref={setBarHost} />
         </main>
         {inspectorContent && !hidden && (
-          <aside className="inspector" aria-label="详情" data-collapsed={!inspectorOpen} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>
+          <aside ref={setInspectorElement} className="inspector" aria-label="详情" data-collapsed={!inspectorOpen} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>
             <header className="insp-head" data-tauri-drag-region>
               <button type="button" className="k-icon-btn" aria-label="收起详情" title="收起详情" onClick={closeInspector}><PanelRightClose size={16} aria-hidden="true" /></button>
               <span className="insp-title">详情</span>
@@ -832,16 +837,10 @@ function MainWindow() {
           <div className="app-empty-body">
           {library === undefined ? (
             <p role="status">正在打开图库…</p>
+          ) : showCreate ? (
+            <CreateLibrary onCreated={changed} onBusyChange={setCreating} onBack={() => setShowCreate(false)} backLabel={library ? "返回图库" : "返回"} />
           ) : (
-            <>
-              <CreateLibrary onCreated={changed} onBusyChange={setCreating} />
-              {!library && !hasProviders && <LibraryPicker layout="inline" current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />}
-              {library && (
-                <button type="button" className="k-btn" disabled={creating} onClick={() => setShowCreate(false)}>
-                  返回图库
-                </button>
-              )}
-            </>
+            <LibraryPicker layout="inline" current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />
           )}
           </div>
         </main>

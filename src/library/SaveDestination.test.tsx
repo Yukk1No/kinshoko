@@ -153,7 +153,8 @@ it("copy keeps its confirmation during a source refresh and closes it after the 
   await screen.findByRole("button", { name: "正在保存…" });
   refreshed = true;
   rendered.rerender(view(1));
-  await screen.findByText("正在读取该来源…");
+  // 重读期间留着上一次的内容，只是不能操作（#158）。
+  await waitFor(() => expect(screen.getByRole("textbox", { name: "备注", hidden: true }).closest("[aria-busy='true']")).toBeTruthy());
   expect(screen.getByRole("dialog", { name: "复制此来源" })).toBeTruthy();
   await act(async () => { finishCopy(); await pendingCopy; });
   await act(async () => { finishInspection(inspection); await pendingInspection; });

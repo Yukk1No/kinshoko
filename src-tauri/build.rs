@@ -85,6 +85,7 @@ fn main() {
                         "add_to_tag_group",
                         "remove_from_tag_group",
                         "search_candidates",
+                        "rating_candidates",
                         "resolve_search",
                         "set_tag_approx",
                         "remove_tag_approx",

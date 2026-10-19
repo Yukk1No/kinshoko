@@ -37,6 +37,7 @@ describe("installPerfProbe", () => {
     expect(window.__kinshokoPerf?.version).toBe(1);
     expect(Object.keys(window.__kinshokoPerf!.scenarios)).toEqual(["wheel-steady", "wheel-burst", "ctrl-wheel-zoom"]);
     expect(typeof window.__kinshokoPerf!.run).toBe("function");
+    expect(typeof window.__kinshokoPerf!.inspector).toBe("function");
   });
 
   it("record 在给定时长内只记录（手动或真实滚轮操作时用），导出 p50／p95／p99、掉帧率与长任务", async () => {

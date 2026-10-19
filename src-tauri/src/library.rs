@@ -46,7 +46,9 @@ use kinshoko_core::library_batch::{
     group_by_library,
 };
 use kinshoko_core::reference_groups::{DetachedLenses, References};
-use kinshoko_core::search::{Candidate, ConditionTree, Search, SearchCache, SearchInput};
+use kinshoko_core::search::{
+    Candidate, ConditionTree, RatingCandidate, Search, SearchCache, SearchInput,
+};
 use kinshoko_core::tag_catalog::{
     CatalogCorrection, CatalogError, CatalogImageTags, TagCatalog, TagCatalogWorkspace,
 };
@@ -290,6 +292,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             add_to_tag_group,
             remove_from_tag_group,
             search_candidates,
+            rating_candidates,
             resolve_search,
             set_tag_approx,
             remove_tag_approx,
@@ -1431,6 +1434,17 @@ async fn remove_from_tag_group<R: Runtime>(
             .map_err(|e| e.to_string())
     })
     .await
+}
+
+/// 搜索框打字时的分级候选（#161），与资料库无关。`safe_mode` 是界面当前的视角；应用的安全
+/// 模式设置开着时也按开着处理，切换的这一刻不会露出成人分级候选。
+#[tauri::command]
+fn rating_candidates<R: Runtime>(
+    app: AppHandle<R>,
+    text: String,
+    safe_mode: bool,
+) -> Vec<RatingCandidate> {
+    kinshoko_core::search::rating_candidates(&text, safe_mode || saved_safe_mode(&app))
 }
 
 /// 搜索框打字时的候选：按命名空间与别名列出，名称按界面语言 `lang`。`safe_mode` 是界面

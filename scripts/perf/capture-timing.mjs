@@ -240,9 +240,10 @@ try {
   // KINSHOKO_CAPTURE_TRAY_ONLY=1：不建库、不截主窗口，启动后直接关主窗口，只测托盘下的按键与常驻内存。
   const trayOnly = process.env.KINSHOKO_CAPTURE_TRAY_ONLY === "1";
   if (trayOnly) {
-    await until("建库引导", () => find("//label[contains(., '图库名称')]/input"));
+    await until("欢迎页", () => find("//button[@aria-labelledby='welcome-create']"));
     await invoke("rebind_shortcut", { action: "capture", accelerator: HOTKEY });
   } else {
+    await wd("POST", `${base}/element/${await until("欢迎页", () => find("//button[@aria-labelledby='welcome-create']"))}/click`, {}); // #172：欢迎页先选“新建图库”
     const name = await until("建库引导", () => find("//label[contains(., '图库名称')]/input"));
     await wd("POST", `${base}/element/${name}/clear`, {});
     await wd("POST", `${base}/element/${name}/value`, { text: "框选计时" });

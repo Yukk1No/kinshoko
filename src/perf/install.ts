@@ -4,6 +4,7 @@
 import { estimateRefresh, summarizeFrames, type FrameReport } from "./frameStats";
 import { browserEnv, createFrameProbe, type ProbeEnv } from "./frameProbe";
 import { PROBE_VERSION, SCENARIOS, runWallScenarios, type RunOptions, type WallPerfReport } from "./wallScenarios";
+import { measureSelections, type InspectorReport, type SelectionOptions } from "./inspector";
 
 export type RecordReport = { durationMs: number; observed: string[]; frames: FrameReport };
 
@@ -14,6 +15,8 @@ export type KinshokoPerf = {
   run: (options?: Omit<RunOptions, "env">) => Promise<WallPerfReport>;
   /** 只记录 ms 毫秒，不驱动：配合真实滚轮或 WebView2 trace 手动操作时用。 */
   record: (ms: number, options?: { refreshMs?: number }) => Promise<RecordReport>;
+  /** #158：逐张点选图片墙里的卡片，量点选到详情面板显示完预览、详情与标签的时间。 */
+  inspector: (options?: Pick<SelectionOptions, "count" | "timeoutMs" | "settleFrames">) => Promise<InspectorReport>;
 };
 
 export function installPerfProbe(target: Window & { __kinshokoPerf?: KinshokoPerf }, env: ProbeEnv = browserEnv()) {
@@ -21,6 +24,11 @@ export function installPerfProbe(target: Window & { __kinshokoPerf?: KinshokoPer
     version: PROBE_VERSION,
     scenarios: SCENARIOS,
     run: (options) => runWallScenarios({ ...options, env }),
+    inspector(options) {
+      const wall = document.querySelector<HTMLElement>(".wall");
+      if (!wall) return Promise.reject(new Error("找不到图片墙（.wall）。先在主窗口打开一个有图的范围。"));
+      return measureSelections({ ...options, wall, inspector: () => document.querySelector(".inspector"), env });
+    },
     async record(ms, options) {
       const probe = createFrameProbe(env);
       probe.start();

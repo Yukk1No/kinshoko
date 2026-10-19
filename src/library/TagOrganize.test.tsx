@@ -166,6 +166,7 @@ class FakeTags {
         count: this.count(id),
       })),
       personalApprox: [],
+      safeMode: false,
     };
   }
 
@@ -188,7 +189,9 @@ class FakeTags {
         any: c.any.map((t) =>
           t.kind === "tag"
             ? { kind: "tag" as const, tag: this.label(t.id), similar: [] }
-            : { kind: "text" as const, text: t.text, tags: [], similar: [] },
+            : t.kind === "text"
+              ? { kind: "text" as const, text: t.text, tags: [], similar: [], ratings: [] }
+              : { kind: "rating" as const, rating: { ratings: t.ratings, name: t.ratings.join("、") } },
         ),
       })),
     };

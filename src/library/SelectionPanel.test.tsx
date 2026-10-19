@@ -5,6 +5,8 @@ import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageRating } from "../bindings/ImageRating";
 import { SelectionPanel } from "./SelectionPanel";
 
+const NO_TAGS = { image: { imageId: "img", tags: [], rejected: [] }, identities: [] };
+
 afterEach(() => {
   cleanup();
   clearMocks();
@@ -29,6 +31,7 @@ function detail(rating: Partial<ImageRating>): ImageDetail {
 function backend(initial: ImageDetail, afterEdit: ImageDetail) {
   const edits: unknown[] = [];
   mockIPC((cmd, args) => {
+    if (cmd === "plugin:library|catalog_image_tags") return NO_TAGS;
     if (cmd === "plugin:library|sidebar") return { all: 1, trash: 0, folders: [] };
     if (cmd === "plugin:library|image") return initial;
     if (cmd === "plugin:library|edit") {
@@ -114,6 +117,7 @@ it("永久删除确认使旧详情请求失效，删除后迟到的缺失错误�
   const pending = new Promise<ImageDetail>((_, reject) => { fail = reject; });
   const problems: string[] = [];
   mockIPC((command) => {
+    if (command === "plugin:library|catalog_image_tags") return NO_TAGS;
     if (command === "plugin:library|sidebar") return { all: 0, trash: 1, folders: [] };
     if (command === "plugin:library|image") return pending;
     if (command === "plugin:library|preview_permanent_delete") return { imageIds: ["img"], token: "t", groups: [] };
@@ -130,6 +134,7 @@ it("永久删除确认使旧详情请求失效，删除后迟到的缺失错误�
 it("当前选择的有效详情请求失败仍交给错误提示", async () => {
   const problems: string[] = [];
   mockIPC((command) => {
+    if (command === "plugin:library|catalog_image_tags") return NO_TAGS;
     if (command === "plugin:library|sidebar") return { all: 1, trash: 0, folders: [] };
     if (command === "plugin:library|image") return Promise.reject("读取资料库失败");
     return undefined;
@@ -142,6 +147,7 @@ it("当前选择的有效详情请求失败仍交给错误提示", async () => {
 it("主窗口的多选经工作区读取所选图库的目录，不要求它是后端此刻的可写库（ADR-0008，#113）", async () => {
   const commands: { cmd: string; args: unknown }[] = [];
   mockIPC((cmd, args) => {
+    if (cmd === "plugin:library|catalog_image_tags") return NO_TAGS;
     commands.push({ cmd, args });
     if (cmd === "plugin:library|workspace_sidebar") return { all: 2, trash: 0, folders: [{ id: "F", name: "人物", count: 0, children: [] }] };
     if (cmd === "plugin:library|sidebar") return Promise.reject("这个界面打开的资料库已切换");

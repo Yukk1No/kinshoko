@@ -31,6 +31,8 @@ export function workspaceFixture(handler: Handler): Handler {
       });
     }
     if (command === "plugin:library|workspace_local_tags") return args.ids;
+    // Rating candidates (#161) need no library; fixtures that do not answer offer none.
+    if (command === "plugin:library|rating_candidates") return Promise.resolve(handler(command, arguments_)).then((list) => list ?? []);
     if (command === "plugin:library|workspace_browse") {
       const query = args.query as { scope: { kind: string; libraryId?: string; scope?: unknown } };
       const library = current();
@@ -52,6 +54,11 @@ export function workspaceFixture(handler: Handler): Handler {
     };
     const name = command.replace("plugin:library|", "");
     if (remap[name]) return handler("plugin:library|" + remap[name], { libraryId: current()?.id ?? "L1", ...args });
+    // 详情面板的标签只发 catalog_image_tags（#158）：只答 image_tags 的夹具由它投影，都没答时这张图没有标签。
+    if (name === "catalog_image_tags") {
+      return Promise.resolve(handler(command, arguments_)).then((value) => value ?? Promise.resolve(handler("plugin:library|image_tags", arguments_))
+        .then((image) => ({ image: image ?? { imageId: args.imageId, tags: [], rejected: [] }, identities: [] })));
+    }
     return handler(command, arguments_);
   };
 }

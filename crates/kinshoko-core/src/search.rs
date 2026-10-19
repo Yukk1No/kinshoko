@@ -9,6 +9,9 @@
 //! - 直接输入的文字匹配名称或别名含这段文字的全部标签（不分命名空间），以及参考图自身的
 //!   文字（原文件名等，由 Library 决定匹配哪些字段）。候选下拉按命名空间与别名列出候选，
 //!   不选就都匹配。
+//! - 内容分级（#161）不是标签，但在搜索框里用起来像标签：点选的分级项按有效分级匹配，直接
+//!   输入的文字也匹配名称或其他叫法含它的分级（[`rating_candidates`]）。安全模式开启时，含成人
+//!   内容的分级不出现在候选中，文字也不匹配它们。
 //! - 外部对应不是叫法，不参与匹配（ADR-0003）；尚未翻译的标签按显示出来的外部名称匹配。
 //! - 比较前统一做 NFKC 与小写（[`fold`]），全角半角、大小写不影响查找。
 //!
@@ -33,9 +36,9 @@ use ts_rs::TS;
 use unicode_normalization::UnicodeNormalization;
 
 use crate::approx::{ApproxRelation, ApproxSource, BuiltinApproxTable, ordered};
-use crate::library::{TagLabel, Vocabulary, display_label};
+use crate::library::{ContentRating, TagLabel, Vocabulary, display_label};
 
-/// 搜索框里的一项：点选的标签，或直接输入的文字。
+/// 搜索框里的一项：点选的标签、点选的内容分级，或直接输入的文字。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 #[ts(export)]
@@ -54,6 +57,9 @@ pub enum TermInput {
         #[serde(default)]
         dismissed: Vec<String>,
     },
+    /// 从候选中点选的内容分级（#161）：有效分级是其中任一档。内容分级不是标签，只是在搜索框里
+    /// 用起来像标签。
+    Rating { ratings: Vec<ContentRating> },
 }
 
 /// 搜索框里的一个条件：各项任一满足；`negate` 时排除满足的图。
@@ -89,7 +95,8 @@ pub enum Term {
         #[serde(default)]
         similar: Vec<SimilarTag>,
     },
-    /// 直接输入的文字：有名称或别名含这段文字的任一标签、任一相近标签，或参考图自身的文字含它。
+    /// 直接输入的文字：有名称或别名含这段文字的任一标签、任一相近标签、有效分级是名称含这段
+    /// 文字的分级，或参考图自身的文字含它。
     Text {
         text: String,
         /// 名称或别名含这段文字的标签，按命名空间与名称排序。
@@ -97,7 +104,116 @@ pub enum Term {
         /// 近似查找展开的这些标签的相近标签（不含 `tags` 中已有的）；精确查找时为空。
         #[serde(default)]
         similar: Vec<SimilarTag>,
+        /// 名称或其他叫法含这段文字的内容分级（#161）；安全模式开启时不含成人内容的分级。
+        #[serde(default)]
+        ratings: Vec<RatingLabel>,
     },
+    /// 有效分级是其中任一档；还没有分级的图不满足。
+    Rating { rating: RatingLabel },
+}
+
+/// 条件或候选中的内容分级，带显示用的名称。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct RatingLabel {
+    /// 代表的分级，从宽到严。
+    pub ratings: Vec<ContentRating>,
+    pub name: String,
+}
+
+/// 搜索框下拉中的一个分级候选。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct RatingCandidate {
+    pub rating: RatingLabel,
+    /// 经由其他叫法（英文名、R-18 等）命中时，是那个叫法；按显示名命中时为空。
+    pub via: Option<String>,
+}
+
+/// 可以查找的内容分级：四档各一个，另有代表含成人内容两档的“R18”。中文名与人工分级界面相同。
+const RATINGS: [(&[ContentRating], &str, &[&str]); 5] = [
+    (&[ContentRating::General], "全年龄", &["general"]),
+    (&[ContentRating::Sensitive], "轻度", &["sensitive"]),
+    (&[ContentRating::Questionable], "敏感", &["questionable"]),
+    (&[ContentRating::Explicit], "成人", &["explicit"]),
+    (
+        &[ContentRating::Questionable, ContentRating::Explicit],
+        "R18",
+        &["R-18", "成人"],
+    ),
+];
+
+/// 名称或其他叫法含 `needle`（已 [`fold`]）的分级，带排序用的名次与经由的叫法，规则同标签候选。
+/// 安全模式开启时不含成人内容的分级不在其中。
+fn matching_ratings(needle: &str, safe_mode: bool) -> Vec<(u8, RatingCandidate)> {
+    RATINGS
+        .iter()
+        .filter(|(ratings, _, _)| !(safe_mode && ratings.iter().any(|r| r.is_adult())))
+        .filter_map(|&(ratings, name, others)| {
+            let (rank, via) = std::iter::once(name)
+                .chain(others.iter().copied())
+                .filter_map(|word| {
+                    let folded = fold(word);
+                    let place = if folded == needle {
+                        0
+                    } else if folded.starts_with(needle) {
+                        1
+                    } else if folded.contains(needle) {
+                        2
+                    } else {
+                        return None;
+                    };
+                    let via = (word != name).then(|| word.to_owned());
+                    Some((place * 2 + u8::from(via.is_some()), via))
+                })
+                .min_by_key(|(rank, _)| *rank)?;
+            Some((
+                rank,
+                RatingCandidate {
+                    rating: RatingLabel {
+                        ratings: ratings.to_vec(),
+                        name: name.to_owned(),
+                    },
+                    via,
+                },
+            ))
+        })
+        .collect()
+}
+
+/// 打字时的分级候选：名称或其他叫法含 `text` 的分级，排序同标签候选。安全模式开启时不列出
+/// 含成人内容的分级（安全模式优先）。
+pub fn rating_candidates(text: &str, safe_mode: bool) -> Vec<RatingCandidate> {
+    let needle = fold(text.trim());
+    if needle.is_empty() {
+        return Vec::new();
+    }
+    let mut found = matching_ratings(&needle, safe_mode);
+    found.sort_by_key(|(rank, _)| *rank);
+    found.into_iter().map(|(_, c)| c).collect()
+}
+
+/// 一组分级的显示名称：是可以查找的分级之一时用它的名称，否则依次列出各档的名称。
+fn rating_label(ratings: &[ContentRating]) -> RatingLabel {
+    let mut ratings = ratings.to_vec();
+    ratings.sort();
+    ratings.dedup();
+    let name_of = |set: &[ContentRating]| {
+        RATINGS
+            .iter()
+            .find(|(r, _, _)| *r == set)
+            .map(|(_, name, _)| *name)
+    };
+    let name = name_of(&ratings).map(str::to_owned).unwrap_or_else(|| {
+        ratings
+            .iter()
+            .filter_map(|r| name_of(std::slice::from_ref(r)))
+            .collect::<Vec<_>>()
+            .join("、")
+    });
+    RatingLabel { ratings, name }
 }
 
 /// 近似查找展开出的一个相近标签。
@@ -172,6 +288,8 @@ impl Entry {
 /// 基于一份词表快照的查找。词表修订号不变时可以一直复用。
 pub struct Search {
     revision: i64,
+    /// 安全模式开启：含成人内容的分级查不到。
+    safe_mode: bool,
     entries: Vec<Entry>,
     /// 每个标签的相近标签（`entries` 下标）及来源，已按个人近似对应表优先合并。
     neighbours: HashMap<String, Vec<(usize, ApproxSource)>>,
@@ -204,6 +322,7 @@ impl Search {
         let neighbours = neighbours(&entries, vocabulary, builtin);
         Search {
             revision: vocabulary.revision,
+            safe_mode: vocabulary.safe_mode,
             entries,
             neighbours,
         }
@@ -300,6 +419,16 @@ impl Search {
                         text: text.to_owned(),
                         tags,
                         similar: self.similar(&matched, dismissed, exact, lang),
+                        ratings: matching_ratings(&needle, self.safe_mode)
+                            .into_iter()
+                            .map(|(_, c)| c.rating)
+                            .collect(),
+                    });
+                }
+                TermInput::Rating { ratings } => {
+                    expressed = true;
+                    any.push(Term::Rating {
+                        rating: rating_label(ratings),
                     });
                 }
                 TermInput::Tag { id, dismissed } => {

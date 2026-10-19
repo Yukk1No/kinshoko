@@ -9,4 +9,8 @@ export type Vocabulary = { revision: number, tags: Array<VocabularyTag>,
 /**
  * 个人近似对应表的全部条目。
  */
-personalApprox: Array<PersonalApprox>, };
+personalApprox: Array<PersonalApprox>, 
+/**
+ * 快照所用的浏览视角是否开着安全模式：开着时含成人内容的分级也查不到（#161）。
+ */
+safeMode: boolean, };

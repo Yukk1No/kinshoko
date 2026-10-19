@@ -107,6 +107,7 @@ function resolved(input: SearchInput): ConditionTree {
         if (t.kind === "tag") {
           return { kind: "tag" as const, tag: tags[t.id], similar: similar([t.id], t.dismissed) };
         }
+        if (t.kind === "rating") return { kind: "rating" as const, rating: { ratings: t.ratings, name: t.ratings.join("、") } };
         const matched = Object.values(tags).filter((l) => l.name.includes(t.text));
         return {
           kind: "text" as const,
@@ -116,6 +117,7 @@ function resolved(input: SearchInput): ConditionTree {
             matched.map((l) => l.id),
             t.dismissed,
           ),
+          ratings: [],
         };
       }),
     })),
@@ -359,7 +361,7 @@ describe("主窗口", () => {
   it("尚未打开资料库时仍能从图标轨打开截图历史与钉剪贴板入口", async () => {
     backend(null);
     render(<App />);
-    await screen.findByRole("button", { name: "建立图库" });
+    await screen.findByRole("button", { name: "新建图库" });
     fireEvent.click(screen.getByRole("button", { name: "截图历史" }));
     expect(await screen.findByRole("region", { name: "截图历史" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^钉住剪贴板/ })).toBeTruthy();
@@ -592,8 +594,8 @@ describe("主窗口", () => {
     fireEvent.click(await screen.findByRole("button", { name: "移除 私人收藏" }));
     await waitFor(() => expect(sent("plugin:library|unregister_library")).toEqual([{ libraryId: "L2" }]));
     fireEvent.click(screen.getByRole("button", { name: "完成" }));
-    expect(await screen.findByRole("button", { name: "建立图库" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "打开图库…" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "新建图库" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "打开图库" })).toBeTruthy();
   });
 
   it("打开另一个图库时清空选择与导入状态，迟到的旧库浏览和进度不会覆盖新库", async () => {
@@ -800,22 +802,38 @@ describe("主窗口", () => {
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "程序设置" })).toBeNull());
   });
 
-  it("没有资料库时引导建库：选择存放位置后在那里新建并打开", async () => {
+  it("没有资料库时引导建库：选新建，选择存放位置后在那里新建并打开", async () => {
     backend(null);
     render(<App />);
 
+    expect(await screen.findByRole("heading", { name: "欢迎使用 Kinshoko" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "新建图库" }));
     fireEvent.change(await screen.findByLabelText("图库名称"), {
       target: { value: "工作参考" },
     });
+    expect((screen.getByRole("button", { name: "建立图库" }) as HTMLButtonElement).disabled).toBe(true);
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
-    fireEvent.click(screen.getByRole("button", { name: "选择存放位置…" }));
-    expect(await screen.findByText("D:\\参考")).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("group", { name: "存放位置" })).getByRole("button", { name: "选择存放位置…" }));
+    expect(await screen.findByText("D:\\参考\\工作参考")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "建立图库" }));
 
     expect(await screen.findByRole("button", { name: "工作参考（2 张）" })).toBeTruthy();
     expect(sent("plugin:library|create_library")).toEqual([
       { parent: "D:\\参考", name: "工作参考" },
     ]);
+  });
+
+  it("没有资料库时新建表单的“返回”回到欢迎页；打开图库登记所选文件夹", async () => {
+    backend(null);
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "新建图库" }));
+    await screen.findByLabelText("图库名称");
+    expect(screen.queryByRole("button", { name: "返回图库" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    window.__KINSHOKO_TEST_PICKS__ = ["E:\\私人收藏"];
+    fireEvent.click(await screen.findByRole("button", { name: "打开图库" }));
+    await waitFor(() => expect(sent("plugin:library|register_library")).toEqual([{ root: "E:\\私人收藏" }]));
   });
 
   it("打开的资料库在图片墙上按资料库记录的比例显示缩略图", async () => {

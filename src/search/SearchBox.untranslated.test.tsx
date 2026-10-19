@@ -12,6 +12,7 @@ it("未翻译的候选标签名后面是翻译图标，没有“文A”", async 
       { tag: { id: "t1", namespace: "general", name: "ahoge", untranslated: true, hasExternal: true }, count: 3, via: null },
       { tag: { id: "t2", namespace: "general", name: "阿呆毛", untranslated: false, hasExternal: true }, count: 1, via: null },
     ];
+    if (cmd === "plugin:library|rating_candidates") return [];
     return null;
   });
   render(<SearchBox libraryId="L1" safe={false} generation={0} input={{ conditions: [], exact: false }} tree={null} showSource={false}

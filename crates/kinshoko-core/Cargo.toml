@@ -15,6 +15,8 @@ rusqlite_migration = "2.6"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
 moxcms = "0.9.1"
 fast_image_resize = "6.1"
+# 缩放直接借用 f32 像素缓冲（#165）。
+bytemuck = "1"
 png = "0.18"
 zune-jpeg = "0.5"
 zune-core = "0.5"

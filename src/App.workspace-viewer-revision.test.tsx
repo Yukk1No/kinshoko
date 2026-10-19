@@ -54,6 +54,7 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
         tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 1, trash: 0, folders: [] } };
     }
     if (command === "plugin:desktop|reference_groups") return [];
+    if (command === "plugin:library|catalog_image_tags") return { image: { imageId: state.imageId, tags: [], rejected: [] }, identities: [] };
     if (command === "plugin:library|workspace_sidebar" || command === "plugin:library|sidebar") return { all: state.available ? 1 : 0, trash: 0, folders: [] };
     if (command === "shell_settings") return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid" };
     if (command === "app_info") return { productName: "Kinshoko", version: "1" };

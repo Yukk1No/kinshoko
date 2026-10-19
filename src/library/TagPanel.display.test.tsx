@@ -33,8 +33,7 @@ const tags: ImageTags = {
 
 function renderPanel(display: TagDisplay = DEFAULT_TAG_DISPLAY) {
   mockIPC((cmd) => {
-    if (cmd === "plugin:library|image_tags") return tags;
-    if (cmd === "plugin:library|catalog_image_tags") return { identities: [] };
+    if (cmd === "plugin:library|catalog_image_tags") return { image: tags, identities: [] };
     return null;
   });
   return render(

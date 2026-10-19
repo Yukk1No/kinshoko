@@ -528,3 +528,116 @@ fn inspecting_an_unsafe_snapshot_never_changes_the_active_library_safe_mode() {
             .is_err()
     );
 }
+
+// #158：选中一张图时读它的统一标签身份。词表与统一标签目录都没变时，不重新同步整份词表。
+fn tagged_library(dir: &Path, images: usize, per_image: usize) -> (Library, Vec<String>) {
+    let library = Library::create(&dir.join("large"), "large").unwrap();
+    let paths = (0..images)
+        .map(|i| {
+            let path = dir.join(format!("large-{i}.png"));
+            RgbaImage::from_pixel(2, 2, Rgba([i as u8, (i / 256) as u8, 7, 255]))
+                .save(&path)
+                .unwrap();
+            path
+        })
+        .collect();
+    let ids: Vec<String> = library
+        .import(ImportSource { paths })
+        .wait()
+        .items
+        .into_iter()
+        .map(|item| item.outcome.image_id().unwrap().to_owned())
+        .collect();
+    for (i, id) in ids.iter().enumerate() {
+        let tags = (0..per_image)
+            .map(|k| SourceTag {
+                tag: TagRef::External {
+                    namespace: TagNamespace::General,
+                    name: format!("tag_{}", i * per_image + k),
+                },
+                score: Some(0.5),
+            })
+            .collect::<Vec<_>>();
+        library
+            .replace_source_tags(&FactSource::model("test"), id, &tags)
+            .unwrap();
+    }
+    (library, ids)
+}
+
+#[test]
+fn reading_one_images_identities_does_not_rescan_an_unchanged_vocabulary() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, ids) = tagged_library(dir.path(), 80, 25);
+    assert_eq!(library.vocabulary().unwrap().tags.len(), 2000);
+    let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
+    let first = catalog.image_tags(&library, &ids[0], "zh-CN").unwrap();
+    assert_eq!(first.identities.len(), 25);
+
+    let started = std::time::Instant::now();
+    for id in &ids[1..11] {
+        let tags = catalog.image_tags(&library, id, "zh-CN").unwrap();
+        assert_eq!(tags.identities.len(), 25);
+    }
+    let mean = started.elapsed() / 10;
+    // 同步整份 2000 个标签的词表在调试构建里要几百毫秒；只读这张图自己的对应应在几毫秒内。
+    assert!(mean < std::time::Duration::from_millis(30), "mean {mean:?}");
+}
+
+#[test]
+fn identities_follow_a_tag_added_after_the_last_read() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, image) = library(dir.path(), "lib");
+    external(&library, &image, TagNamespace::General, "blue_eyes");
+    let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
+    assert_eq!(
+        catalog
+            .image_tags(&library, &image, "zh-CN")
+            .unwrap()
+            .identities
+            .len(),
+        1
+    );
+
+    library
+        .replace_source_tags(
+            &FactSource::model("test"),
+            &image,
+            &["blue_eyes", "short_hair"].map(|name| SourceTag {
+                tag: TagRef::External {
+                    namespace: TagNamespace::General,
+                    name: name.into(),
+                },
+                score: Some(0.9),
+            }),
+        )
+        .unwrap();
+
+    let after = catalog.image_tags(&library, &image, "zh-CN").unwrap();
+    assert_eq!(after.image.tags.len(), 2);
+    assert_eq!(after.identities.len(), 2);
+}
+
+#[test]
+fn identities_follow_a_catalog_name_chosen_after_the_last_read() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, image) = library(dir.path(), "lib");
+    external(&library, &image, TagNamespace::General, "blue_eyes");
+    let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
+    let before = catalog.image_tags(&library, &image, "zh-CN").unwrap();
+    let shared = before.identities[0].catalog_id.clone();
+
+    catalog
+        .set_name_preference(
+            &shared,
+            &kinshoko_core::library::LocalizedName {
+                lang: "zh-CN".into(),
+                name: "蓝瞳".into(),
+            },
+        )
+        .unwrap();
+
+    let after = catalog.image_tags(&library, &image, "zh-CN").unwrap();
+    assert_eq!(after.image.tags[0].tag.name, "蓝瞳");
+    assert_eq!(after.identities[0].tag.name, "蓝瞳");
+}

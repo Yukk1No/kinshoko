@@ -40,6 +40,11 @@ impl ContentRating {
         }
     }
 
+    /// 档位：`general` 0 … `explicit` 3，与 [`effective_rank_sql`] 相同。
+    pub(super) fn rank(self) -> i64 {
+        self as i64
+    }
+
     fn from_rank(rank: i64) -> Option<ContentRating> {
         Some(match rank {
             0 => ContentRating::General,

@@ -123,6 +123,7 @@ try {
   base = `/session/${session.sessionId}`;
   report.capabilities = session.capabilities;
   await wd("POST", `${base}/timeouts`, { script: 60000 });
+  await wd("POST", `${base}/element/${await until("欢迎页", () => find("//button[@aria-labelledby='welcome-create']"))}/click`, {}); // #172：欢迎页先选“新建图库”
   const name = await until("建库引导", () => find("//label[contains(., '图库名称')]/input"));
   await wd("POST", `${base}/element/${name}/clear`, {});
   await wd("POST", `${base}/element/${name}/value`, { text: "T16 原图框选" });
