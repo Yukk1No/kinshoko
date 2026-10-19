@@ -106,7 +106,10 @@ it("安全模式切换时卡片留在原位：成人卡片立即遮蔽，新的�
   view.rerender(<Wall {...base} reloadKey={1} workspaceScope={{ kind: "all" }} safeMode />);
   await settle();
   expect([...document.querySelectorAll<HTMLElement>(".card")].map((node) => node.dataset.id)).toEqual(["bytes", "adult"]);
+  // 成人卡片交给飞向封印书的影子：原地不再留着遮蔽的图，但先占着位置，资料库确认后其余卡片才补位。
   expect(document.querySelector<HTMLElement>('.card[data-id="adult"]')?.dataset.veiled).toBe("true");
+  expect(document.querySelector<HTMLElement>('.card[data-id="adult"]')?.dataset.leaving).toBe("true");
+  expect(document.querySelector<HTMLElement>('.card[data-id="bytes"]')?.dataset.leaving).toBe("false");
   await act(async () => calls.at(-1)!.resolve(page([card])));
   expect([...document.querySelectorAll<HTMLElement>(".card")].map((node) => node.dataset.id)).toEqual(["bytes"]);
   // 关掉安全模式同样不清空，成人卡片随新的一页回来。

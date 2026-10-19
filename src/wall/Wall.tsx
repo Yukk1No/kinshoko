@@ -715,7 +715,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   // 缩略图按滚动方向预取，离挂载范围近的先取；挂载范围变化时更新（#109）。
   const prefetcher = useRef<ReturnType<typeof createPrefetcher> | null>(null);
   /** 上次渲染的卡片元素，按 id；布局、选择、遮蔽都没变的卡片原样沿用。 */
-  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; landing: boolean; node: ReactNode }>());
+  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; leaving: boolean; landing: boolean; node: ReactNode }>());
   useLayoutEffect(() => { renderedCards.current = nextRendered; });
   const cardHandlers = useRef<{
     select: (id: string, e: Pick<MouseEvent, "shiftKey" | "ctrlKey" | "metaKey">) => void;
@@ -865,11 +865,14 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             const card = cards[i];
             const b = layout.boxes[i];
             const veiled = card.adult && (safeMode || !revealed.has(card.id));
+            // 安全模式下墙上的成人卡片只会是刚开启、等资料库确认的那些：影子已替它飞向封印书，
+            // 原地不再留着遮蔽的图，只先占着位置，确认后其余卡片再补位（#154）。
+            const leaving = card.adult && safeMode;
             const chosen = selected.has(card.id);
             const landing = arriving.has(card.id);
             // 没变的卡片沿用上次的元素，React 跳过整张卡片的比对（#109）。
             const kept = renderedCards.current.get(card.id);
-            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.landing === landing) {
+            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.leaving === leaving && kept.landing === landing) {
               nextRendered.set(card.id, kept);
               return kept.node;
             }
@@ -883,6 +886,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 role="option"
                 tabIndex={0}
                 data-veiled={veiled}
+                data-leaving={leaving}
                 draggable={!workspaceScope || workspaceScope.kind === "library" || (card.sources?.some((source) => !source.unavailable) ?? false)}
                 onClick={(e) => cardHandlers.current.select(card.id, e)}
                 onDoubleClick={() => cardHandlers.current.open(card)}
@@ -905,7 +909,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
                 onKeyDown={(e) => e.stopPropagation()}><Layers size={11} aria-hidden="true" />{sources.length >= 2 && `${sources.length} 处`}</button>}
               </Fragment>
             );
-            nextRendered.set(card.id, { card, box: b, chosen, veiled, landing, node });
+            nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, node });
             return node;
           })}
         </div>
