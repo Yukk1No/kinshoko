@@ -192,6 +192,35 @@ describe("设置：常驻与快捷键", () => {
   });
 });
 
+describe("设置：界面缩放", () => {
+  it("通用分页的下拉框列出八个档位，跟随主窗口的档位，选中即交给主窗口", async () => {
+    backend(() => undefined);
+    const chosen: number[] = [];
+    const { rerender } = render(<SettingsPanel uiScale={100} onUiScale={(percent) => chosen.push(percent)} />);
+
+    const select = await screen.findByRole("combobox", { name: "界面缩放" }) as HTMLSelectElement;
+    expect([...select.options].map((option) => option.textContent)).toEqual(["80%", "90%", "100%", "110%", "125%", "150%", "175%", "200%"]);
+    expect(select.value).toBe("100");
+    fireEvent.change(select, { target: { value: "150" } });
+    expect(chosen).toEqual([150]);
+
+    rerender(<SettingsPanel uiScale={150} onUiScale={(percent) => chosen.push(percent)} />);
+    expect((screen.getByRole("combobox", { name: "界面缩放" }) as HTMLSelectElement).value).toBe("150");
+  });
+
+  it("快捷键分页列出放大、缩小、复位三个固定按键，不能更换", async () => {
+    backend(() => undefined);
+    render(<SettingsPanel uiScale={100} onUiScale={() => {}} />);
+    await tab("快捷键");
+
+    for (const [name, keys] of [["放大界面", "Ctrl+="], ["缩小界面", "Ctrl+-"], ["界面复位到 100%", "Ctrl+0"]]) {
+      const row = screen.getByRole("listitem", { name });
+      expect(within(row).getByLabelText(keys)).toBeTruthy();
+      expect(within(row).queryByRole("button")).toBeNull();
+    }
+  });
+});
+
 describe("设置：近似查找", () => {
   const library = { id: "L1", name: "工作参考", root: "D:\\参考" };
   const label = (id: string, name: string, hasExternal: boolean): TagLabel => ({

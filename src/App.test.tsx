@@ -1655,6 +1655,59 @@ describe("近似查找", () => {
   });
 });
 
+describe("界面缩放", () => {
+  const scaleBackend = (saved: number) => {
+    let current = saved;
+    backend(library, clean, (cmd, args) => {
+      if (cmd === "ui_scale") return current;
+      if (cmd === "set_ui_scale") return (current = (args as { percent: number }).percent);
+      return undefined;
+    });
+  };
+  const key = (key: string) => fireEvent.keyDown(window, { key, ctrlKey: true });
+
+  it("Ctrl+= 放大一档、Ctrl+- 缩小一档、Ctrl+0 复位到 100%，从保存的档位开始", async () => {
+    scaleBackend(125);
+    render(<App />);
+    await screen.findAllByRole("img");
+    await waitFor(() => expect(sent("ui_scale")).toHaveLength(1));
+    await act(async () => {});
+
+    key("=");
+    await waitFor(() => expect(sent("set_ui_scale")).toEqual([{ percent: 150 }]));
+    key("-");
+    key("-");
+    await waitFor(() => expect(sent("set_ui_scale")).toEqual([{ percent: 150 }, { percent: 125 }, { percent: 110 }]));
+    key("0");
+    await waitFor(() => expect(sent("set_ui_scale").at(-1)).toEqual({ percent: 100 }));
+  });
+
+  it("到最高、最低档后再按不动作", async () => {
+    scaleBackend(200);
+    render(<App />);
+    await screen.findAllByRole("img");
+    await waitFor(() => expect(sent("ui_scale")).toHaveLength(1));
+    await act(async () => {});
+
+    key("=");
+    await act(async () => {});
+    expect(sent("set_ui_scale")).toEqual([]);
+  });
+
+  it("设置 › 通用的下拉框显示当前档位，选中即生效", async () => {
+    scaleBackend(90);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(await screen.findByRole("button", { name: "设置" }));
+    const select = await screen.findByRole("combobox", { name: "界面缩放" }) as HTMLSelectElement;
+    await waitFor(() => expect(select.value).toBe("90"));
+
+    fireEvent.change(select, { target: { value: "175" } });
+    await waitFor(() => expect(sent("set_ui_scale")).toEqual([{ percent: 175 }]));
+    await waitFor(() => expect(select.value).toBe("175"));
+  });
+});
+
 describe("安全模式", () => {
   const book = () => screen.findByRole("button", { name: /安全模式/ });
   const cardOf = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`);

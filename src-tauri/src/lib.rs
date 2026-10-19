@@ -75,6 +75,8 @@ pub fn run() {
             commands::set_usage_log,
             commands::set_viewer_background,
             commands::migrate_viewer_background,
+            commands::ui_scale,
+            commands::set_ui_scale,
             diagnostics::diagnostics_report,
             diagnostics::runtime_status,
             diagnostics::open_runtime_update,
