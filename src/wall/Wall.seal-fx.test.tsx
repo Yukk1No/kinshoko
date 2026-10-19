@@ -102,6 +102,32 @@ describe("封印", () => {
     }
   });
 
+  it("资料库确认得晚也按原型的节奏补位：影子起飞后 280 ms 就开始，资料库回来不打断", async () => {
+    const view = await wallWith(false);
+    const glides: { id: string; timing: KeyframeAnimationOptions; cancelled: boolean }[] = [];
+    HTMLElement.prototype.animate = function (this: HTMLElement, _k: Keyframe[], timing: KeyframeAnimationOptions) {
+      const glide = { id: this.dataset.id!, timing, cancelled: false };
+      glides.push(glide);
+      return { cancel() { glide.cancelled = true; }, finish() {}, onfinish: null } as unknown as Animation;
+    } as HTMLElement["animate"];
+    try {
+      view.rerender(<Wall {...base} reloadKey={1} safeMode />);
+      await frames(SEAL.flyAt + 20 + 16);
+      // 资料库还没回来：飞走的图不再占位，g 补到它的位置。
+      expect(node("a")).toBeNull();
+      const g = glides.filter((x) => x.id === "g");
+      expect(g).toHaveLength(1);
+      expect(g[0].timing).toMatchObject({ duration: 620, easing: "cubic-bezier(0.65, 0, 0.35, 1)" });
+      expect(Number(g[0].timing.delay)).toBeLessThanOrEqual(16);
+      // 补位途中资料库送回同样的卡片：不取消、不重来。
+      await answer({ cards: [card("g")], total: 1, nextCursor: null });
+      expect(glides.filter((x) => x.id === "g")).toHaveLength(1);
+      expect(g[0].cancelled).toBe(false);
+    } finally {
+      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
+    }
+  });
+
   it("减少动态效果时没有影子，直接遮蔽", async () => {
     reduce = true;
     const view = await wallWith(false);

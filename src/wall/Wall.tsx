@@ -208,6 +208,9 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   const scrollDirection = useRef<1 | -1>(1);
   const lastScrollTop = useRef(0);
   const [cards, setCards] = useState<BrowserCard[]>([]);
+  /** 墙上现在的卡片，给异步回来的页面和动画计时比较用。 */
+  const shownCards = useRef(cards);
+  shownCards.current = cards;
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -273,6 +276,9 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   }, []);
 
   useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
+  /** 封印后按原型节奏移走飞走的图的那一帧（requestAnimationFrame id）；0 表示没有。 */
+  const sealDrop = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(sealDrop.current), []);
   const loadMoreRef = useRef<() => void>(() => {});
   const selectAllRef = useRef<() => void>(() => {});
   useImperativeHandle(ref, () => ({
@@ -382,7 +388,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             if (current() && isCursorExpired(e) && attempt < 3) continue;
             throw e;
           }
-          measureBeforeReflow();
+          // 送回的还是墙上这些卡片（封印后按节奏先移走了飞走的图）：不量也不重排，正在补位的动画不被打断。
+          const prev = shownCards.current;
+          const unchanged = prev.length === next.length
+            && prev.every((c, i) => c.id === next[i].id && c.width === next[i].width && c.height === next[i].height);
+          if (!unchanged) measureBeforeReflow();
           if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus, next);
           setCards(next);
           setCursor(after);
@@ -509,6 +519,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     if (lastSafe.current === safeMode) return;
     lastSafe.current = safeMode;
     releaseDue.current = 0;
+    cancelAnimationFrame(sealDrop.current);
+    sealDrop.current = 0;
     safeReflow.current = null;
     const f = fx.current, b = book();
     if (!f || !b || viewerOpen || reducedNow()) {
@@ -525,6 +537,16 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       // 还在往外飞的影子先掉头（原型 Q111），再让墙上的成人图飞进书里。
       f.seal(onScreenAdult() satisfies FxSource[], b);
       setArriving(new Set());
+      // 影子起飞后（flyAt + 20）就让出位置，不等资料库确认：资料库慢时补位不会停顿，回来的同一批卡片也不再重排。
+      const dropAt = performance.now() + SEAL.flyAt + 20;
+      const drop = () => {
+        if (performance.now() < dropAt) { sealDrop.current = requestAnimationFrame(drop); return; }
+        sealDrop.current = 0;
+        if (!shownCards.current.some((c) => c.adult)) return;
+        measureBeforeReflow();
+        setCards((current) => current.filter((c) => !c.adult));
+      };
+      sealDrop.current = requestAnimationFrame(drop);
     } else {
       releaseDue.current = performance.now() + RELEASE_WAIT;
     }
