@@ -32,6 +32,7 @@ use super::{
 };
 use super::{colour, thumbnail};
 use crate::fidelity::ColourDescription;
+use crate::fidelity::budget::{self, BudgetPermit, MemoryBudget};
 use crate::fidelity::inspect::inspect;
 use crate::fidelity::render::render_sdr_widths;
 use crate::fidelity::{DEFAULT_DOWNSCALE, SdrDerivative};
@@ -678,69 +679,11 @@ impl CommitGate {
     }
 }
 
-/// 同时在解码的原图像素上限（全进程）。管线按 RGBA f32 解码、转正与缩放，峰值约每像素 48 字节，
-/// 32 MP 约 1.5 GB：常见参考图仍能几张并行；超过上限的一张单独解码（与串行时相同的峰值）。
-const DECODE_BUDGET_PIXELS: u64 = 32_000_000;
-
-static DECODE_BUDGET: MemoryBudget = MemoryBudget::new(DECODE_BUDGET_PIXELS);
-
 /// 同时读进内存、还在准备中的原文件字节上限（全进程）。读文件前先占用，准备完这一项才放开：
 /// 几个准备线程不会同时攥着多份很大的原文件；超过上限的一份单独读（与串行时相同）。
 const READ_BUDGET_BYTES: u64 = 512 * 1024 * 1024;
 
 static READ_BUDGET: MemoryBudget = MemoryBudget::new(READ_BUDGET_BYTES);
-
-/// 并行准备时的内存预算：按像素数或字节数计，不按线程数。
-struct MemoryBudget {
-    limit: u64,
-    in_use: Mutex<u64>,
-    released: std::sync::Condvar,
-}
-
-impl MemoryBudget {
-    const fn new(limit: u64) -> Self {
-        Self {
-            limit,
-            in_use: Mutex::new(0),
-            released: std::sync::Condvar::new(),
-        }
-    }
-
-    /// 等到预算够用再占用；单项超过上限时，等其他占用都放开后独占。
-    /// 任务在等待中被取消时返回 `None`，这一项不再继续。
-    fn acquire(&'static self, amount: u64, cancel: Option<&AtomicBool>) -> Option<BudgetPermit> {
-        let amount = amount.min(self.limit);
-        let mut in_use = self.in_use.lock().unwrap_or_else(|e| e.into_inner());
-        while *in_use + amount > self.limit {
-            if cancel.is_some_and(|cancel| cancel.load(Ordering::SeqCst)) {
-                return None;
-            }
-            // 取消不经过这把锁，定时醒来看一眼。
-            in_use = self
-                .released
-                .wait_timeout(in_use, Duration::from_millis(50))
-                .unwrap_or_else(|e| e.into_inner())
-                .0;
-        }
-        *in_use += amount;
-        Some(BudgetPermit {
-            budget: self,
-            amount,
-        })
-    }
-}
-
-struct BudgetPermit {
-    budget: &'static MemoryBudget,
-    amount: u64,
-}
-
-impl Drop for BudgetPermit {
-    fn drop(&mut self) {
-        *self.budget.in_use.lock().unwrap_or_else(|e| e.into_inner()) -= self.amount;
-        self.budget.released.notify_all();
-    }
-}
 
 /// 同时准备的线程数：留一个核给提交与界面，最多 8 个；文件很少时不多开。
 fn prepare_workers(files: usize) -> usize {
@@ -803,10 +746,7 @@ fn prepare(
     // 浏览时也不必在滚动中现场生成。
     let placeholder_width = thumbnail::placeholder_width(probed.width, probed.height);
     let grid_px = thumbnail::grid_tier();
-    let Some(_pixels) = DECODE_BUDGET.acquire(
-        u64::from(probed.width) * u64::from(probed.height),
-        context.cancel.as_deref(),
-    ) else {
+    let Some(decode) = budget::reserve_decode(&probed, context.cancel.as_deref()) else {
         // 任务已取消：这一项不会提交，不再解码。
         return failed("导入已取消".into());
     };
@@ -814,6 +754,7 @@ fn prepare(
         |s| &mut s.decode,
         || {
             render_sdr_widths(
+                &decode,
                 bytes,
                 &probed,
                 &[placeholder_width, grid_px],
@@ -829,6 +770,7 @@ fn prepare(
         }
         Err(reason) => return failed(format!("无法解码：{reason}")),
     };
+    drop(decode);
     let sha = timed(|s| &mut s.hash, || sha256_hex(bytes));
     if let Some(facts) = &origin.package
         && facts.snapshot.sha256 != sha
@@ -1480,41 +1422,5 @@ mod tests {
             panic!("应作为新图重新进库：{outcome:?}");
         };
         assert!(library.original_path(&image_id).unwrap().is_file());
-    }
-
-    fn budget() -> &'static MemoryBudget {
-        Box::leak(Box::new(MemoryBudget::new(DECODE_BUDGET_PIXELS)))
-    }
-
-    #[test]
-    fn decodes_over_the_pixel_budget_wait_until_earlier_ones_finish() {
-        let budget = budget();
-        let first = budget.acquire(DECODE_BUDGET_PIXELS / 2, None).unwrap();
-        let second = budget.acquire(DECODE_BUDGET_PIXELS / 2, None).unwrap();
-        let (sender, entered) = std::sync::mpsc::channel();
-        let third = std::thread::spawn(move || {
-            let _permit = budget.acquire(1, None).unwrap();
-            sender.send(()).unwrap();
-        });
-        assert!(entered.recv_timeout(Duration::from_millis(100)).is_err());
-        drop(first);
-        entered.recv_timeout(Duration::from_secs(5)).unwrap();
-        third.join().unwrap();
-        drop(second);
-    }
-
-    #[test]
-    fn a_cancelled_task_stops_waiting_for_the_decode_budget() {
-        let budget = budget();
-        let _held = budget.acquire(DECODE_BUDGET_PIXELS, None).unwrap();
-        let cancel = AtomicBool::new(true);
-        assert!(budget.acquire(1, Some(&cancel)).is_none());
-    }
-
-    #[test]
-    fn an_image_larger_than_the_budget_still_decodes_alone() {
-        let budget = budget();
-        drop(budget.acquire(DECODE_BUDGET_PIXELS * 4, None).unwrap());
-        assert_eq!(*budget.in_use.lock().unwrap(), 0);
     }
 }

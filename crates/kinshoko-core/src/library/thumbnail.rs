@@ -8,7 +8,7 @@
 //! 导入时生成，打开资料库时在后台为缺少的补齐；浏览只读已有的，缺少时界面退回中性底色。
 
 use std::path::{Path, PathBuf};
-use std::sync::Weak;
+use std::sync::{Arc, Condvar, Mutex, Weak};
 
 use super::{CACHE_DIR, Error, Inner, colour};
 use crate::fidelity::{DEFAULT_DOWNSCALE, Downscale, render};
@@ -106,15 +106,108 @@ fn cached(inner: &Inner, image_id: &str, label: &str, max_width: u32) -> Result<
         .join(SDR)
         .join(&sha[..2])
         .join(format!("{sha}-{label}.{}", container.extension()));
-    if path.is_file() {
+    loop {
+        if path.is_file() {
+            return Ok(path);
+        }
+        // 同一张图、同一档位同时只渲染一次（#165）：后来的等第一次写完缓存再读同一个文件；
+        // 第一次解码失败时，后来的拿到同一个错误，不再各自重新解码。
+        let leading = match Flight::lead(&path) {
+            Lead::Leading(leading) => leading,
+            Lead::Finished(Some(reason)) => return Err(Error::Undecodable(reason)),
+            Lead::Finished(None) => continue,
+        };
+        if path.is_file() {
+            return Ok(path);
+        }
+        let bytes = std::fs::read(&original)?;
+        let rendered = match render::render_sdr(&bytes, max_width, DEFAULT_DOWNSCALE) {
+            Ok(rendered) => rendered,
+            Err(reason) => {
+                leading.undecodable(reason.clone());
+                return Err(Error::Undecodable(reason));
+            }
+        };
+        write_atomic(&path, &rendered.bytes)?;
         return Ok(path);
     }
+}
 
-    let bytes = std::fs::read(original)?;
-    let rendered =
-        render::render_sdr(&bytes, max_width, DEFAULT_DOWNSCALE).map_err(Error::Undecodable)?;
-    write_atomic(&path, &rendered.bytes)?;
-    Ok(path)
+/// 正在渲染的缓存文件（全进程）。
+static RENDERING_FILES: Mutex<Vec<Arc<Flight>>> = Mutex::new(Vec::new());
+
+/// 一次正在进行的渲染：持有它的线程负责生成 `path`，放开时唤醒等着同一文件的请求。
+struct Flight {
+    path: PathBuf,
+    outcome: Mutex<Outcome>,
+    finished: Condvar,
+}
+
+#[derive(Default)]
+struct Outcome {
+    done: bool,
+    /// 原图解码失败的原因；其余失败（读写文件）让后来的重新试。
+    undecodable: Option<String>,
+}
+
+enum Lead {
+    /// 由这个线程渲染。
+    Leading(Leading),
+    /// 别人刚渲染完：缓存已写好，或给出解码失败的原因。
+    Finished(Option<String>),
+}
+
+/// 由这个线程渲染；放开时（包括失败与 panic）登记撤下并唤醒等待者。
+struct Leading(Arc<Flight>);
+
+impl Leading {
+    fn undecodable(&self, reason: String) {
+        self.0
+            .outcome
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .undecodable = Some(reason);
+    }
+}
+
+impl Flight {
+    /// 没有人在渲染 `path` 时登记由自己渲染；已经有人在渲染时等它结束。
+    fn lead(path: &Path) -> Lead {
+        let mut flights = RENDERING_FILES.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(flight) = flights.iter().find(|f| f.path == path).cloned() {
+            drop(flights);
+            let mut outcome = flight.outcome.lock().unwrap_or_else(|e| e.into_inner());
+            while !outcome.done {
+                outcome = flight
+                    .finished
+                    .wait(outcome)
+                    .unwrap_or_else(|e| e.into_inner());
+            }
+            return Lead::Finished(outcome.undecodable.clone());
+        }
+        let flight = Arc::new(Flight {
+            path: path.to_path_buf(),
+            outcome: Mutex::default(),
+            finished: Condvar::new(),
+        });
+        flights.push(flight.clone());
+        Lead::Leading(Leading(flight))
+    }
+}
+
+impl Drop for Leading {
+    fn drop(&mut self) {
+        RENDERING_FILES
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .retain(|f| !Arc::ptr_eq(f, &self.0));
+        self.0
+            .outcome
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .done = true;
+        self.0.finished.notify_all();
+    }
 }
 
 /// 占位图长边（像素）。

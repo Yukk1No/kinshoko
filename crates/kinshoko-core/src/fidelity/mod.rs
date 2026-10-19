@@ -5,6 +5,7 @@
 //! （`fast_image_resize`，Lanczos3），按来源分档无损保存。`image` 只负责解码与 EXIF 方向。
 //! 缩小所在的空间（线性光／编码值）是管线参数，见 [`Downscale`]。
 
+pub mod budget;
 mod description;
 pub mod gate;
 pub(crate) mod inspect;
