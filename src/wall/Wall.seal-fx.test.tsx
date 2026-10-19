@@ -241,4 +241,35 @@ describe("释放", () => {
     expect(ghosts()).toBe(0);
     expect(node("a").classList.contains("is-arriving")).toBe(false);
   });
+
+  it("让位的卡片右下角的图库标记跟着卡片一起滑，不先跳到新位置（#176）", async () => {
+    const sourced = (id: string, adult = false) => ({ ...card(id, adult), libraryId: "L1", imageId: id,
+      sources: [{ libraryId: "L1", libraryName: "角色参考", imageId: id, unavailable: false }] });
+    const both: BrowsePage = { cards: [sourced("a", true), sourced("g")], total: 2, nextCursor: null };
+    const view = await wallWith(true, { cards: [sourced("g")], total: 1, nextCursor: null });
+    const glides: { el: HTMLElement; keyframes: Keyframe[]; timing: KeyframeAnimationOptions }[] = [];
+    HTMLElement.prototype.animate = function (this: HTMLElement, keyframes: Keyframe[], timing: KeyframeAnimationOptions) {
+      glides.push({ el: this, keyframes, timing });
+      return { cancel() {}, finish() {}, onfinish: null } as unknown as Animation;
+    } as HTMLElement["animate"];
+    HTMLElement.prototype.getAnimations = () => []; // 书的光晕（sealfx.burst）先取消旧动画
+    try {
+      view.rerender(<Wall {...base} reloadKey={0} safeMode={false} />);
+      view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
+      await answer(both);
+      const glide = glides.find((x) => x.el === node("g"))!;
+      const badge = glides.find((x) => x.el.matches('.card-sources[data-card="g"]'));
+      expect(badge).toBeDefined();
+      expect(badge!.timing).toEqual(glide.timing);
+      // 卡片同大小只平移：标记从卡片旧位置的右下角滑回，保留自身的 translate(-100%, -100%)。
+      const [, dx, dy] = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(String(glide.keyframes[0].transform))!;
+      expect(badge!.keyframes).toEqual([
+        { transform: `translate(${dx}px, ${dy}px) translate(-100%, -100%)` },
+        { transform: "translate(-100%, -100%)" },
+      ]);
+    } finally {
+      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
+      delete (HTMLElement.prototype as Partial<HTMLElement>).getAnimations;
+    }
+  });
 });

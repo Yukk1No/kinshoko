@@ -406,7 +406,9 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
           return;
         }
       } catch (e) {
-        if (current()) setError(String(e));
+        // 安全模式刚切换、资料库还没跟上（快速开了又关时，第一次确认触发的重新浏览）：不是错误，
+        // 卡片原样留着，等资料库确认后的那次重新浏览（与 loadMore 相同）。
+        if (current() && !isLensChanged(e)) setError(String(e));
       } finally {
         if (inflight.current === gen) inflight.current = null;
       }
@@ -646,6 +648,18 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
         ], timing);
         motions.current.set(node.dataset.id!, motion);
         motion.onfinish = () => motions.current.delete(node.dataset.id!);
+        // 图库标记是卡片的兄弟、按新位置摆着：跟卡片右下角一起从旧位置滑过来，保留它自身的 translate(-100%, -100%)。
+        const badge = node.nextElementSibling;
+        if (badge instanceof HTMLElement && badge.classList.contains("card-sources")) {
+          const badgeMotion = badge.animate([
+            { transform: `translate(${old.right - next.right}px, ${old.bottom - next.bottom}px) translate(-100%, -100%)` },
+            { transform: "translate(-100%, -100%)" },
+          ], timing);
+          const key = `${node.dataset.id!}
+sources`;
+          motions.current.set(key, badgeMotion);
+          badgeMotion.onfinish = () => motions.current.delete(key);
+        }
       }
     }
     syncMount(el);
