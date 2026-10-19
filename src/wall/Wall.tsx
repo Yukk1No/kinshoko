@@ -495,10 +495,15 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   /** 等着回来的图飞出的截止时刻（performance.now）；0 表示没有。 */
   const releaseDue = useRef(0);
   const reduced = useReducedMotion();
-  const landed = useCallback((id: string) => setArriving((s) => {
-    if (!s.has(id)) return s;
-    const n = new Set(s); n.delete(id); return n;
-  }), []);
+  const landed = useCallback((id: string) => {
+    // 影子在这一帧移走：卡片同一帧就得显示，不能等 React 下一次提交，否则中间空出一帧，落地时闪一下。
+    // React 随后按 arriving 把类名设成同样的值。
+    scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.classList.remove("is-arriving");
+    setArriving((s) => {
+      if (!s.has(id)) return s;
+      const n = new Set(s); n.delete(id); return n;
+    });
+  }, []);
   useLayoutEffect(() => {
     const f = new SealFx(fxHost.current!);
     fx.current = f;

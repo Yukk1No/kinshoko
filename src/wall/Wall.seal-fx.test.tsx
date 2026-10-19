@@ -254,6 +254,29 @@ describe("释放", () => {
     expect(ghosts()).toBe(0);
   });
 
+  it("影子落地的那一帧卡片就显示：不留影子已去、卡片还藏着的一帧（不闪）", async () => {
+    const view = await wallWith(true);
+    view.rerender(<Wall {...base} reloadKey={0} safeMode={false} />);
+    view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
+    await answer();
+    await frames(RELEASE.flyAt + RELEASE.fly - 100);
+    expect(ghosts()).toBe(1);
+    // 逐帧推进，不经 act：React 的普通更新不会在这里提交，看到的就是这一帧画出来的样子。
+    const env = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+    const was = env.IS_REACT_ACT_ENVIRONMENT;
+    env.IS_REACT_ACT_ENVIRONMENT = false;
+    try {
+      for (let i = 0; i < 20 && ghosts() > 0; i++) {
+        vi.advanceTimersByTime(16);
+        if (ghosts() === 0) expect(node("a").classList.contains("is-arriving")).toBe(false);
+      }
+      expect(ghosts()).toBe(0);
+    } finally {
+      env.IS_REACT_ACT_ENVIRONMENT = was;
+    }
+    await settle();
+  });
+
   it("减少动态效果时回来的图直接显示，没有影子", async () => {
     reduce = true;
     const view = await wallWith(true);
