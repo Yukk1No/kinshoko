@@ -31,6 +31,7 @@ import type { TagCatalogWorkspace } from "./bindings/TagCatalogWorkspace";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { ApproxRelation } from "./bindings/ApproxRelation";
 import type { PersonalApproxEntry } from "./bindings/PersonalApproxEntry";
+import type { RatingCandidate } from "./bindings/RatingCandidate";
 import type { Candidate } from "./bindings/Candidate";
 import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
@@ -332,6 +333,14 @@ const LENS_CHANGED = "安全模式刚切换过，请重新查找";
 /** 查找命令失败是不是因为安全模式刚切换过：不是错误，切换确认后会按新视角重新查找。 */
 export function isLensChanged(error: unknown): boolean {
   return String(error) === LENS_CHANGED;
+}
+
+/**
+ * 搜索框打字时的分级候选（#161），与资料库无关。安全模式开着时（`safeMode` 或应用设置）
+ * 不含成人内容的分级。
+ */
+export function ratingCandidates(text: string, safeMode: boolean): Promise<RatingCandidate[]> {
+  return invoke<RatingCandidate[]>(lib("rating_candidates"), { text, safeMode });
 }
 
 /**

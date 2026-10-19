@@ -45,6 +45,7 @@ fn vocabulary(tags: Vec<VocabularyTag>) -> Vocabulary {
         revision: 7,
         tags,
         personal_approx: Vec::new(),
+        safe_mode: false,
     }
 }
 
@@ -89,6 +90,7 @@ fn shape(tree: &ConditionTree) -> Vec<(bool, Vec<String>)> {
                         let ids: Vec<&str> = tags.iter().map(|t| t.id.as_str()).collect();
                         format!("text:{text}[{}]", ids.join(","))
                     }
+                    Term::Rating { rating } => format!("rating:{}", rating.name),
                 })
                 .collect();
             (*negate, terms)

@@ -743,6 +743,16 @@ button.primary {
   opacity: 0.7;
 }
 
+/* 分级不是标签（#161）：带一个“分级”小牌，和标签区分开。 */
+.search-rating-mark {
+  margin-right: 4px;
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
 .search-candidate-count {
   margin-left: auto;
   font-size: 12px;

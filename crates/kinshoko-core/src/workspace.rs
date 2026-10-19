@@ -849,6 +849,7 @@ fn local_tree(tree: &ConditionTree, catalog: &CatalogInspection, library: &str) 
                     .any
                     .iter()
                     .flat_map(|term| match term {
+                        Term::Rating { .. } => vec![term.clone()],
                         Term::Tag { tag, similar } => std::iter::once(tag)
                             .chain(similar.iter().map(|s| &s.tag))
                             .flat_map(|label| local_labels(label, catalog, library))
@@ -861,7 +862,9 @@ fn local_tree(tree: &ConditionTree, catalog: &CatalogInspection, library: &str) 
                             text,
                             tags,
                             similar,
+                            ratings,
                         } => vec![Term::Text {
+                            ratings: ratings.clone(),
                             text: text.clone(),
                             tags: tags
                                 .iter()
@@ -1040,6 +1043,7 @@ fn build_vocabulary(snapshot: &Snapshot, safe: bool) -> Vocabulary {
         revision: snapshot.catalog.revision,
         tags: tags.into_values().collect(),
         personal_approx: snapshot.personal_approx.clone(),
+        safe_mode: safe,
     }
 }
 
