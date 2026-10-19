@@ -63,6 +63,8 @@ import { useWallActions } from "./wall/useWallActions";
 import { DensityIsland } from "./wall/DensityIsland";
 import { Viewer } from "./viewer/Viewer";
 import { RuntimeNotice } from "./RuntimeSupport";
+import { INITIAL_SAFE_LENS, safeLens, type SafeLensAction } from "./shell/safeLens";
+import { safeTiming } from "./shell/safeTiming";
 import type { TagDisplay } from "./bindings/TagDisplay";
 import { DEFAULT_TAG_DISPLAY } from "./tags/tagConfidence";
 import { TagDisplayContext } from "./tags/TagDisplayContext";
@@ -80,6 +82,7 @@ type WorkspaceProps = {
   libraryControls: ReactNode;
   /** 新建资料库表单打开时只隐藏工作区，继续接收当前库的导入事件。 */
   hidden: boolean;
+  /** 查询资料库用的安全模式视角：开启当即生效，关闭等后端确认（#183）。 */
   safe: boolean;
   /** 资料库确认安全模式已切换（`safeModeChanged`）。 */
   onSafeChanged: (on: boolean) => void;
@@ -255,10 +258,14 @@ function LibraryWorkspace({
       setVocabularyKey((k) => k + 1);
     }
   }, []);
+  // 图片墙按回调身份决定是否重新浏览：这里读最新的视角与重读序号，回调保持不变，
+  // 安全模式切换或重读时不会因为回调换了身份再多浏览一次（#183）。
+  const wallLens = useRef({ safe, reloadKey });
+  wallLens.current = { safe, reloadKey };
   const onWallStatus = useCallback((next: WorkspaceStatus, cards: BrowserCard[]) => {
     acceptStatus(next);
-    setPreviewSnapshot({ safe, reloadKey, cards });
-  }, [acceptStatus, safe, reloadKey]);
+    setPreviewSnapshot({ ...wallLens.current, cards });
+  }, [acceptStatus]);
   useEffect(() => {
     viewerChange.current(modalOpen);
   }, [modalOpen]);
@@ -340,9 +347,13 @@ function LibraryWorkspace({
           if (event.on) {
             if (!keepSelectionOnSafeRef.current) setSelected(new Set());
             setViewing(null);
+            setReloadKey((k) => k + 1);
+            setVocabularyKey((k) => k + 1);
+          } else {
+            // 关闭：查询视角在后端确认时才放开，放开那一刻（下面按 safe 的效果）整批重读一次。
+            // 这里再重读，会作废那次刚发出的浏览、再排一遍队，释放动画跟着推迟（#183）。
+            safeTiming.mark("资料库事件");
           }
-          setReloadKey((k) => k + 1);
-          setVocabularyKey((k) => k + 1);
           break;
         case "taskProgress":
           // 已结束的任务不再复活；另一个任务正在进行时，旧任务的进度不覆盖它。
@@ -746,23 +757,35 @@ function MainWindow() {
       uiScaleWriting.current = false;
     }
   }, [toast, acceptUiScale]);
-  /** 安全模式。读到设置之前按开启处理，不会先露出被封印的图。 */
-  const [safe, setSafe] = useState(true);
-  const safeRef = useRef(true);
-  safeRef.current = safe;
+  /**
+   * 安全模式。读到设置之前按开启处理，不会先露出被封印的图。`safe` 是开关上显示的状态；
+   * 查询资料库用 `lensSafe`：关闭时等后端确认才放开（#183，见 safeLens）。
+   */
+  const [safeState, setSafeState] = useState(INITIAL_SAFE_LENS);
+  const safeStateRef = useRef(safeState);
+  const applySafe = useCallback((action: SafeLensAction) => {
+    safeStateRef.current = safeLens(safeStateRef.current, action);
+    setSafeState(safeStateRef.current);
+  }, []);
+  const { shown: safe, lens: lensSafe } = safeState;
+  const acceptSafe = useCallback((on: boolean) => applySafe({ kind: "external", on }), [applySafe]);
   const toggleSafe = useCallback(() => {
-    const next = !safeRef.current;
-    // 不等后端：这一帧就开始遮蔽（或准备释放）。
-    safeRef.current = next;
-    setSafe(next);
-    setSafeMode(next).catch((e) => {
-      toast?.error(`无法切换安全模式：${String(e)}`);
-      safeMode().then(
-        (on) => setSafe(on !== false),
-        () => setSafe(true),
-      );
-    });
-  }, [toast]);
+    // 不等后端：这一帧就开始遮蔽（或打开封印书）。
+    applySafe({ kind: "toggle" });
+    const next = safeStateRef.current.shown;
+    safeTiming.toggled(next);
+    setSafeMode(next).then(
+      (on) => { safeTiming.mark("后端确认"); applySafe({ kind: "settled", on }); },
+      (e) => {
+        applySafe({ kind: "failed" });
+        toast?.error(`无法切换安全模式：${String(e)}`);
+        safeMode().then(
+          (on) => acceptSafe(on !== false),
+          () => acceptSafe(true),
+        );
+      },
+    );
+  }, [toast, applySafe, acceptSafe]);
 
   // 钉图菜单“在 Kinshoko 中打开”（#106）：参考图在查看器里打开，截图打开截图历史。
   useOpenInKinshoko((request) => {
@@ -781,7 +804,7 @@ function MainWindow() {
     let alive = true;
     appInfo().then((value) => alive && setInfo(value));
     safeMode().then(
-      (on) => alive && setSafe(on !== false),
+      (on) => alive && acceptSafe(on !== false),
       () => {},
     );
     shellSettings().then(
@@ -815,15 +838,15 @@ function MainWindow() {
   useEffect(() => {
     let alive = true;
     const accept = (status: WorkspaceStatus) => { if (alive) setHasProviders(status.libraries.length > 0); };
-    workspaceStatus(safe).then(accept, () => {});
+    workspaceStatus(lensSafe).then(accept, () => {});
     const stop = onWorkspaceChanged(accept);
     return () => { alive = false; void stop.then((stop) => stop()); };
-  }, [safe]);
+  }, [lensSafe]);
 
   useEffect(() => {
-    const stop = onSafeModeSetting((on) => { safeRef.current = on; setSafe(on); });
+    const stop = onSafeModeSetting(acceptSafe);
     return () => { void stop.then((stop) => stop()); };
-  }, []);
+  }, [acceptSafe]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -862,7 +885,7 @@ function MainWindow() {
 
   const changed = (value: LibraryInfo | null) => {
     setLibrary(value);
-    workspaceStatus(safe).then((status) => setHasProviders(status.libraries.length > 0), () => {});
+    workspaceStatus(lensSafe).then((status) => setHasProviders(status.libraries.length > 0), () => {});
     setOpenError(null);
     setShowCreate(false);
   };
@@ -871,13 +894,13 @@ function MainWindow() {
   const empty = (!library && !hasProviders) || showCreate;
   const notices = <>
     <RuntimeNotice hidden={showSettings || viewerOpen} />
-    {library && <div inert={viewerOpen}><LegacyNameMigrationNotice libraryId={library.id} safe={safe} onOpen={() => setNameWizard(true)} /></div>}
+    {library && <div inert={viewerOpen}><LegacyNameMigrationNotice libraryId={library.id} safe={lensSafe} onOpen={() => setNameWizard(true)} /></div>}
     <UpdateBanner />
     <BackupReminder />
   </>;
   return (
     <UiScaleContext.Provider value={uiScalePercent / 100}>
-    <TagDisplayContext.Provider value={tagDisplay}><SaveDestinationProvider safe={safe}><div className="app app-shell">
+    <TagDisplayContext.Provider value={tagDisplay}><SaveDestinationProvider safe={lensSafe}><div className="app app-shell">
       <div className="rail-slot" inert={viewerOpen}>
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
           onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
@@ -897,8 +920,8 @@ function MainWindow() {
           onOpenBrowse={() => { setSection("browse"); setPaneOpen(true); }}
           libraryControls={libraryControls}
           hidden={empty}
-          safe={safe}
-          onSafeChanged={setSafe}
+          safe={lensSafe}
+          onSafeChanged={acceptSafe}
           showApproxSource={showApproxSource}
           keepSelectionOnSafe={keepSelectionOnSafe}
           inspectorWidth={inspectorWidth}

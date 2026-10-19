@@ -99,7 +99,21 @@ pub(super) async fn workspace_browse<R: Runtime>(
     query: WorkspaceQuery,
     safe_mode: bool,
 ) -> Result<WorkspacePage, String> {
-    blocking(move || stable(&app, safe_mode, |w, d, c| w.browse(d, c, &query, safe_mode))).await
+    blocking(move || {
+        // 浏览耗时（#183）：开发构建在控制台输出，含等资源锁的时间。
+        #[cfg(debug_assertions)]
+        let started = std::time::Instant::now();
+        let page = stable(&app, safe_mode, |w, d, c| w.browse(d, c, &query, safe_mode));
+        #[cfg(debug_assertions)]
+        eprintln!(
+            "workspace.browse safe={safe_mode} ok={} cards={} ms={:.1}",
+            page.is_ok(),
+            page.as_ref().map_or(0, |p| p.cards.len()),
+            started.elapsed().as_secs_f64() * 1e3
+        );
+        page
+    })
+    .await
 }
 #[tauri::command]
 pub(super) async fn workspace_resolve<R: Runtime>(

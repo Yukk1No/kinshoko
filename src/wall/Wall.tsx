@@ -23,6 +23,7 @@ import { createSmoothWheel } from "./smoothWheel";
 import { createPrefetcher, decodeThumbnail, mountWindow, prefetchOrder, type MountWindow } from "./prefetch";
 import { MAX_GHOSTS, SEAL, SealFx, type FxArrival, type FxSource } from "../shell/sealfx";
 import { useUiScale } from "../shell/uiScale";
+import { safeTiming } from "../shell/safeTiming";
 import { useDevicePixelRatio } from "../ui/devicePixelRatio";
 import { reducedNow, useReducedMotion } from "../ui/reducedMotion";
 
@@ -382,6 +383,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       inflight.current = gen;
       const { libraryId, scope, conditions, workspaceScope, safeMode } = view.current;
       const current = () => gen === generation.current;
+      if (!safeMode) safeTiming.mark("开始重新浏览");
       try {
         // 取到一半结果集变了（游标过期）：从头再取，最多几次，仍不稳定才报错。
         for (let attempt = 0; ; attempt++) {
@@ -414,6 +416,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             && prev.every((c, i) => c.id === next[i].id && c.width === next[i].width && c.height === next[i].height);
           if (!unchanged) measureBeforeReflow();
           if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus, next);
+          if (!safeMode) safeTiming.mark("卡片送回");
           setCards(next);
           setCursor(after);
           setTotal(count);
@@ -564,6 +567,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       },
     }));
     if (!arrivals.length) return;
+    safeTiming.mark("释放动画开始");
     setArriving(new Set(arrivals.map((a) => a.id)));
     f.release(arrivals, b, landed);
   };
