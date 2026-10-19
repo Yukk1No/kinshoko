@@ -96,18 +96,31 @@ it("自动打标期间修订号前进时，新一页迟迟不到也一直显示�
   expect(document.querySelector<HTMLElement>(".wall")?.dataset.total).toBe("2");
 });
 
-it("工作区范围或安全模式切换时，旧视角的卡片不再显示 (#142)", async () => {
+it("安全模式切换时卡片留在原位：成人卡片立即遮蔽，新的一页回来后才离开 (#142, #154)", async () => {
+  const adult = { ...card, id: "adult", adult: true };
   const view = render(<Wall {...base} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode={false} />);
   await settle();
-  await act(async () => calls[0].resolve(page([{ ...card, adult: true }])));
-  expect(document.querySelectorAll(".card")).toHaveLength(1);
-  // App 切换安全模式或范围时同时让 reloadKey 前进。
+  await act(async () => calls[0].resolve(page([card, adult])));
+  expect(document.querySelectorAll(".card")).toHaveLength(2);
+  // App 切换安全模式时同时让 reloadKey 前进。封印动画要从这些卡片飞出，墙不能先空一下。
   view.rerender(<Wall {...base} reloadKey={1} workspaceScope={{ kind: "all" }} safeMode />);
   await settle();
-  expect(document.querySelector(".card")).toBeNull();
+  expect([...document.querySelectorAll<HTMLElement>(".card")].map((node) => node.dataset.id)).toEqual(["bytes", "adult"]);
+  expect(document.querySelector<HTMLElement>('.card[data-id="adult"]')?.dataset.veiled).toBe("true");
   await act(async () => calls.at(-1)!.resolve(page([card])));
+  expect([...document.querySelectorAll<HTMLElement>(".card")].map((node) => node.dataset.id)).toEqual(["bytes"]);
+  // 关掉安全模式同样不清空，成人卡片随新的一页回来。
+  view.rerender(<Wall {...base} reloadKey={2} workspaceScope={{ kind: "all" }} safeMode={false} />);
+  await settle();
+  expect([...document.querySelectorAll<HTMLElement>(".card")].map((node) => node.dataset.id)).toEqual(["bytes"]);
+});
+
+it("工作区范围切换时，旧范围的卡片不再显示 (#142)", async () => {
+  const view = render(<Wall {...base} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
+  await settle();
+  await act(async () => calls[0].resolve(page([card])));
   expect(document.querySelectorAll(".card")).toHaveLength(1);
-  view.rerender(<Wall {...base} reloadKey={2} workspaceScope={{ kind: "library", libraryId: "B", scope: { kind: "all" } }} safeMode />);
+  view.rerender(<Wall {...base} reloadKey={1} workspaceScope={{ kind: "library", libraryId: "B", scope: { kind: "all" } }} safeMode />);
   await settle();
   expect(document.querySelector(".card")).toBeNull();
 });

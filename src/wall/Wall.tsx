@@ -323,11 +323,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     if (!workspaceKey) { clearedFor.current = null; return; }
     generation.current += 1;
     inflight.current = null;
-    // 只是修订号前进（自动打标每写一张图一次，#142）：保留旧卡片，等新的一页回来原地替换。
-    // 浏览范围或安全模式变了才清空，不露出旧视角的内容。
-    const scopeAndSafe = `${workspaceKey}\n${safeMode}`;
-    if (clearedFor.current === scopeAndSafe) return;
-    clearedFor.current = scopeAndSafe;
+    // 只是修订号前进（自动打标每写一张图一次，#142）或安全模式切换：保留旧卡片，等新的一页回来原地替换。
+    // 安全模式开启的那一刻成人卡片已原地遮蔽，封印动画从它们飞出（#154），资料库确认后它们才离开。
+    // 浏览范围变了才清空，不露出旧范围的内容。
+    if (clearedFor.current === workspaceKey) return;
+    clearedFor.current = workspaceKey;
     // Emptying the canvas clamps browser scrollTop. Preserve the user's anchor
     // until the new authorized page restores it.
     restoring.current = true;
