@@ -1140,4 +1140,6 @@ export function exportApplicationSettings(path: string): Promise<void> { return 
 export function previewApplicationSettings(path: string): Promise<import("./bindings/ApplicationSettingsPreview").ApplicationSettingsPreview> { return invoke(lib("preview_application_settings"), { path }); }
 export function restoreApplicationSettings(path: string, fingerprint: string): Promise<import("./bindings/ApplicationSettingsRestored").ApplicationSettingsRestored> { return invoke(lib("restore_application_settings"), { path, fingerprint }); }
 export function setViewerBackground(background: import("./bindings/ViewerBackground").ViewerBackground): Promise<ShellSettingsView> { return invoke("set_viewer_background", { background }); }
+/** 保存主窗口详情面板的宽度（#157）；后端把它收进 280–560。 */
+export function setInspectorWidth(width: number): Promise<ShellSettingsView> { return invoke("set_inspector_width", { width }); }
 export function migrateViewerBackground(background: import("./bindings/ViewerBackground").ViewerBackground): Promise<ShellSettingsView> { return invoke("migrate_viewer_background", { background }); }

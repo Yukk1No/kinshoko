@@ -54,6 +54,9 @@ pub struct ShellSettingsView {
     pub viewer_background: Option<crate::ViewerBackground>,
     /// 标签外观与可信度分档（#160）。
     pub tag_display: crate::TagDisplay,
+    /// 主窗口详情面板的宽度；没有时用 320。
+    #[ts(optional)]
+    pub inspector_width: Option<u32>,
 }
 
 impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
@@ -68,6 +71,7 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
             keep_selection_on_safe_mode: settings.keep_selection_on_safe_mode(),
             viewer_background: settings.viewer_background(),
             tag_display: settings.tag_display(),
+            inspector_width: settings.inspector_width(),
         }
     }
 }

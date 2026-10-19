@@ -235,7 +235,7 @@
 .k-groups-dialog .k-groups { max-height: calc(100vh - 260px); overflow: auto; }
 /* 详情面板打开时，右下角卡片停在面板左侧，不盖住面板底部的按钮（#98）。 */
 .k-task-cards { transition: right 200ms cubic-bezier(.2,.9,.25,1.05); }
-body:has(.inspector[data-collapsed="false"]) .k-task-cards { right: calc(321px + 18px); max-width: calc(100vw - 321px - 36px); }
+body:has(.inspector[data-collapsed="false"]) .k-task-cards { right: calc(var(--inspector-width, 320px) + 1px + 18px); max-width: calc(100vw - var(--inspector-width, 320px) - 1px - 36px); }
 @media (prefers-reduced-motion: reduce) { .k-task-cards { transition: none; } }
 .k-groups .k-group-name > .k-group-label { flex: 0 1 auto; text-align: left; }
 .k-groups .k-group-name > .k-group-meta { margin-right: auto; }
