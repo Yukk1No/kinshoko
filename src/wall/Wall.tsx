@@ -121,6 +121,9 @@ const markThumbnailLoaded = (e: { currentTarget: HTMLImageElement }) => {
 };
 
 
+/** 来源按钮的图标：同一个元素，卡片重排重新渲染时 React 直接跳过它。 */
+const SOURCES_ICON = <Layers size={11} aria-hidden="true" />;
+
 /** 按键落在可输入的地方（输入框、文本框、可编辑区域）：Ctrl+V 是粘贴文字，不是导入。 */
 const editable = (target: EventTarget | null) =>
   target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select, [contenteditable='true']") !== null);
@@ -629,6 +632,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       return new DOMRect(next.left + prev.x - cur.x, next.top + (prev.y - fromBoxes!.scrollTop) - (cur.y - el.scrollTop),
         next.width * prev.w / cur.w, next.height * prev.h / cur.h);
     };
+    // 先读（挂载范围、各卡片矩形），再起滑动动画：起动画之后再读布局会再强制排一次版（#176）。
+    syncMount(el);
     const timing: KeyframeAnimationOptions = safe
       ? { duration: safe.duration, delay: Math.max(0, safe.at + safe.delay - performance.now()), easing: "cubic-bezier(0.65, 0, 0.35, 1)", fill: "backwards" }
       : { duration: 200, easing: "cubic-bezier(0.2,0.8,0.2,1)" };
@@ -662,7 +667,6 @@ sources`;
         }
       }
     }
-    syncMount(el);
   }, [layout, ids, width, cards.length, cursor, syncMount]);
 
   live.current = { layout, ids, density, previewDensity, onDensityPreview, onDensityCommit };
@@ -741,9 +745,11 @@ sources`;
 
   // 关闭安全模式后，资料库送回的成人图排好了位置：它们就是从书里飞出的落点。
   useLayoutEffect(() => {
-    const due = releaseDue.current, f = fx.current, b = book();
+    const due = releaseDue.current;
     if (!due || safeMode || !cards.length || !width) return;
     releaseDue.current = 0;
+    // 只在真有图要飞回时才量封印书：这个效果每次墙上的卡片变化都会跑，量它会多强制排一次版（#176）。
+    const f = fx.current, b = book();
     if (!f || !b || performance.now() > due || viewerOpen || reducedNow()) return;
     releaseOnScreen(f, b);
   }, [cards, layout, width]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -974,7 +980,7 @@ sources`;
                 title={sources.length >= 2 ? `在 ${sources.length} 个图库` : `在「${sources[0].libraryName}」`}
                 style={{ left: `${b.x + b.w - 8}px`, top: `${b.y + b.h - 8}px` }}
                 onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; cardHandlers.current.inspect?.(card as WorkspaceCard); }}
-                onKeyDown={(e) => e.stopPropagation()}><Layers size={11} aria-hidden="true" />{sources.length >= 2 && `${sources.length} 处`}</button>}
+                onKeyDown={(e) => e.stopPropagation()}>{SOURCES_ICON}{sources.length >= 2 && `${sources.length} 处`}</button>}
               </Fragment>
             );
             nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, node });

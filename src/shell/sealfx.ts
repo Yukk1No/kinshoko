@@ -1,5 +1,6 @@
 // Copied verbatim from bd8aea44:prototype/reference-browser/src/sealfx.ts (#27). The only changes are
-// the two guards on the Web Animations calls (finish, burst), which jsdom does not implement.
+// the two guards on the Web Animations calls (finish, burst), which jsdom does not implement, and the
+// frame loop reading every ghost's target before writing any style (#176: no forced style recalc per ghost).
 // Seal and release effects for the image wall (#27, Q97, Q104, Q105, Q109, Q111).
 // Cards that leave or enter the wall are drawn as "ghosts" in a fixed layer above everything and
 // fly between their place on the wall and the seal book. Every ghost keeps its current values,
@@ -184,14 +185,19 @@ export class SealFx {
         if (this.run.frames > 0) this.run.worst = Math.max(this.run.worst, dt);
         this.run.frames++; this.run.last = now;
       }
-      for (const g of [...this.ghosts.values()]) this.step(g, now);
+      // Read every target first, then write: a target is a card's live rect, and reading it after
+      // another ghost's styles changed would force a style recalc per ghost every frame.
+      const live = [...this.ghosts.values()];
+      for (const g of live) this.fly(g, now);
+      for (const g of live) this.step(g, now);
       if (this.ghosts.size) this.raf = requestAnimationFrame(tick);
       else this.report();
     };
     this.raf = requestAnimationFrame(tick);
   }
 
-  private step(g: Ghost, now: number) {
+  /** Reads only: moves the ghost along its flight (asks the flight's target where it is now). */
+  private fly(g: Ghost, now: number) {
     while (g.queue.length && now >= g.queue[0].t0) {
       const next = g.queue.shift()!;
       next.from = { ...g.pose };
@@ -210,6 +216,10 @@ export class SealFx {
         g.pose = { x: f.from.x + (to.x - f.from.x) * a, y: f.from.y + (to.y - f.from.y) * a, s: f.from.s + (to.s - f.from.s) * b, rot: f.from.rot + (to.rot - f.from.rot) * a };
       }
     }
+  }
+
+  /** Writes only: applies the ghost's tweens and pose to its element, and ends it when it is done. */
+  private step(g: Ghost, now: number) {
     for (const prop of ['blur', 'wash', 'op'] as const) {
       const tw = g.tweens[prop];
       if (!tw) continue;

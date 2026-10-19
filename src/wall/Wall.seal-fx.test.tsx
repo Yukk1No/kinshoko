@@ -8,12 +8,14 @@ import { RELEASE, SEAL } from "../shell/sealfx";
 import { Wall } from "./Wall";
 
 let resolvers: ((page: BrowsePage) => void)[];
+let bookReads: number;
 let book: HTMLButtonElement;
 let reduce: boolean;
 let mediaListeners: (() => void)[];
 
 beforeEach(() => {
   resolvers = [];
+  bookReads = 0;
   reduce = false;
   mediaListeners = [];
   localStorage.clear();
@@ -25,7 +27,7 @@ beforeEach(() => {
       const s = this.style;
       return new DOMRect(parseFloat(s.left), parseFloat(s.top), parseFloat(s.width), parseFloat(s.height));
     }
-    if (this.classList.contains("seal-book")) return new DOMRect(8, 700, 40, 40);
+    if (this.classList.contains("seal-book")) { bookReads++; return new DOMRect(8, 700, 40, 40); }
     return new DOMRect(0, 0, 1000, 800);
   });
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
@@ -186,6 +188,38 @@ describe("封印", () => {
       expect(g.timing).toMatchObject({ duration: 200 });
     } finally {
       delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
+    }
+  });
+});
+
+describe("每次提交只排一次版（#176 性能）", () => {
+  it("没有在等飞回的图时，墙上的卡片变了也不去量封印书", async () => {
+    const view = await wallWith(false);
+    bookReads = 0;
+    view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
+    await answer({ cards: [card("n"), ...PAGE.cards], total: 3, nextCursor: null });
+    expect(node("n")).not.toBeNull();
+    expect(bookReads).toBe(0);
+  });
+
+  it("重排时先读完滚动位置与卡片矩形，再起滑动动画：起动画之后不再读滚动位置", async () => {
+    const view = await wallWith(false);
+    const order: string[] = [];
+    const scroller = document.querySelector<HTMLElement>(".wall")!;
+    const top = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    Object.defineProperty(scroller, "scrollTop", { configurable: true, get() { order.push("read"); return top.get!.call(this); }, set(v) { top.set!.call(this, v); } });
+    HTMLElement.prototype.animate = function () {
+      order.push("animate");
+      return { cancel() {}, finish() {}, onfinish: null } as unknown as Animation;
+    } as HTMLElement["animate"];
+    try {
+      view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
+      await answer({ cards: [card("n"), ...PAGE.cards], total: 3, nextCursor: null });
+      expect(order).toContain("animate");
+      expect(order.slice(order.indexOf("animate"))).not.toContain("read");
+    } finally {
+      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
+      delete (scroller as Partial<HTMLElement>).scrollTop;
     }
   });
 });
