@@ -84,10 +84,10 @@ export class CombinationWorkflow {
     await until("current provider actually switched behind the modal", async () => (await this.d.invoke("current_library"))?.id === id);
     this.d.record("current-behind-modal", { id, root, method: "switch_library command; the UI no longer has a current-library control (ADR-0008)" });
   }
-  // Opening an existing library (old: 登记已有资料库…): the inline onboarding button, or 打开图库… in the library menu.
+  // Opening an existing library (old: 登记已有资料库…): the welcome page's 打开图库 card, or 打开图库… in the library menu.
   async openLibrary(path) {
     await this.d.pick(path);
-    const inline = "//section[@aria-label='图库']//button[normalize-space()='打开图库…']";
+    const inline = "//button[@aria-labelledby='welcome-open']"; // #172 欢迎页的“打开图库”
     const entry = await until("a visible open-library entry", () => this.d.exec("const shown=x=>{const n=document.evaluate(x,document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return !!n&&n.getClientRects().length>0;};return shown(arguments[0])?'inline':shown(arguments[1])?'menu':null;", [inline, libraryTrigger]));
     if (entry === "inline") await this.readyClick(inline);
     else { await this.openLibraryMenu(); await this.readyClick(`${libraryMenu}//*[@role='menuitem' and normalize-space()='打开图库…']`); }

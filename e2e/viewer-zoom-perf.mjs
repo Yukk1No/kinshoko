@@ -204,6 +204,7 @@ try {
   const session = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application, webviewOptions: { userDataFolder: join(work, "webview") } } } } });
   base = `/session/${session.sessionId}`;
   await wd("POST", `${base}/window/rect`, { x: 40, y: 40, width: 1600, height: 1000 });
+  await wd("POST", `${base}/element/${await until("欢迎页", () => find("//button[@aria-labelledby='welcome-create']"))}/click`, {}); // #172：欢迎页先选“新建图库”
   const name = await until("建库引导", () => find("//label[contains(., '图库名称')]/input"));
   await wd("POST", `${base}/element/${name}/clear`, {});
   await wd("POST", `${base}/element/${name}/value`, { text: "缩放测量" });

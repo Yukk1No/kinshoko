@@ -826,16 +826,10 @@ function MainWindow() {
           <div className="app-empty-body">
           {library === undefined ? (
             <p role="status">正在打开图库…</p>
+          ) : showCreate ? (
+            <CreateLibrary onCreated={changed} onBusyChange={setCreating} onBack={() => setShowCreate(false)} backLabel={library ? "返回图库" : "返回"} />
           ) : (
-            <>
-              <CreateLibrary onCreated={changed} onBusyChange={setCreating} />
-              {!library && !hasProviders && <LibraryPicker layout="inline" current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />}
-              {library && (
-                <button type="button" className="k-btn" disabled={creating} onClick={() => setShowCreate(false)}>
-                  返回图库
-                </button>
-              )}
-            </>
+            <LibraryPicker layout="inline" current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />
           )}
           </div>
         </main>

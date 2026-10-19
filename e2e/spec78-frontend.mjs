@@ -89,6 +89,7 @@ try {
   const additionalBrowserArguments = forcedDpr ? [`force-device-scale-factor=${Number(forcedDpr)}`] : [];
   const session = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application, webviewOptions: { userDataFolder: join(work, "webview"), additionalBrowserArguments } } } } });
   base = `/session/${session.sessionId}`;
+  await wd("POST", `${base}/element/${await until("欢迎页", () => find("//button[@aria-labelledby='welcome-create']"))}/click`, {}); // #172：欢迎页先选“新建图库”
   const name = await until("建库引导", () => find("//label[contains(., '图库名称')]/input"));
   await wd("POST", `${base}/element/${name}/clear`, {});
   await wd("POST", `${base}/element/${name}/value`, { text: "增量 T01 对照" });
