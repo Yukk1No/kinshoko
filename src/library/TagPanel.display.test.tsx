@@ -97,14 +97,14 @@ describe("B：可信度三档底色（默认）", () => {
     expect(within(tip).getByRole("button", { name: "清除对“长发”的人工决定" })).toBeTruthy();
   });
 
-  it("低档虚线框默认关，打开后低档标签带虚线框", async () => {
+  it("低档虚线框默认开，关掉后低档标签不带虚线框", async () => {
     renderPanel();
     await screen.findByText("窗户");
-    expect(screen.getByRole("list", { name: "有效标签" }).dataset.lowOutline).toBeUndefined();
-    cleanup();
-    renderPanel({ ...DEFAULT_TAG_DISPLAY, lowOutline: true });
-    await screen.findByText("窗户");
     expect(screen.getByRole("list", { name: "有效标签" }).dataset.lowOutline).toBe("");
+    cleanup();
+    renderPanel({ ...DEFAULT_TAG_DISPLAY, lowOutline: false });
+    await screen.findByText("窗户");
+    expect(screen.getByRole("list", { name: "有效标签" }).dataset.lowOutline).toBeUndefined();
   });
 });
 

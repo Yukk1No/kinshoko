@@ -51,7 +51,7 @@ pub struct TagDisplay {
     pub high: f32,
     /// 低档上限：可信度低于它的模型标签归低档。
     pub low: f32,
-    /// 低档标签加虚线外框；默认关，虚线框和“已否决”的实线框太像。
+    /// 低档标签加虚线外框；默认开（维护者验收决定），关掉后只把字变浅。
     pub low_outline: bool,
 }
 
@@ -62,7 +62,7 @@ impl Default for TagDisplay {
             style: TagStyle::Bands,
             high: 0.8,
             low: 0.4,
-            low_outline: false,
+            low_outline: true,
         }
     }
 }

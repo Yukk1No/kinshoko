@@ -44,7 +44,7 @@ export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; o
         { value: "bands", label: "按可信度分档" }, { value: "grouped", label: "按出处分组" },
       ]} />
     </SettingsRow>
-    <SettingsRow icon={<Gauge size={16} />} title="可信度分档" desc="模型给的标签分高、中、低三档"
+    <SettingsRow className="is-thresholds" icon={<Gauge size={16} />} title="可信度分档" desc="模型给的标签分高、中、低三档"
       below={problem !== null && <p className="k-set-error" role="alert">{problem}</p>}>
       <label className="k-set-number">高档不低于
         <input className="k-input" type="number" aria-label="高档下限" min={STEP} max={1} step={STEP} value={high}
@@ -59,7 +59,7 @@ export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; o
         save({ high: DEFAULT_TAG_DISPLAY.high, low: DEFAULT_TAG_DISPLAY.low });
       }}><RotateCcw size={12} aria-hidden="true" />恢复默认</button>
     </SettingsRow>
-    <SettingsRow icon={<SquareDashed size={16} />} title="低档虚线框" desc="低档标签加虚线外框；关着时只把字变浅">
+    <SettingsRow icon={<SquareDashed size={16} />} title="低档虚线框" desc="低档标签加虚线外框；关掉后只把字变浅">
       <Switch label="低档虚线框" checked={display.lowOutline} onCheckedChange={(on) => save({ lowOutline: on })} />
     </SettingsRow>
   </SettingsGroup>;

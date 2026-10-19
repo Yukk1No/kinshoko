@@ -201,7 +201,7 @@ fn the_usage_log_is_off_until_the_artist_turns_it_on_and_then_remembered() {
 }
 
 #[test]
-fn tag_display_defaults_to_confidence_bands_at_080_and_040_without_low_outline() {
+fn tag_display_defaults_to_confidence_bands_at_080_and_040_with_low_outline() {
     let dir = tempfile::tempdir().unwrap();
     let settings = AppSettings::open(dir.path()).unwrap();
     assert_eq!(
@@ -210,7 +210,7 @@ fn tag_display_defaults_to_confidence_bands_at_080_and_040_without_low_outline()
             style: TagStyle::Bands,
             high: 0.8,
             low: 0.4,
-            low_outline: false,
+            low_outline: true,
         }
     );
 }

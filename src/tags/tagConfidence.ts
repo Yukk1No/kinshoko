@@ -11,10 +11,10 @@ export type ConfidenceThresholds = { high: number; low: number };
 const EPSILON = 1e-6;
 
 /**
- * 标签外观的默认值，与核心的 `TagDisplay::default` 相同：底色分档，0.80 / 0.40，低档不加虚线框。
+ * 标签外观的默认值，与核心的 `TagDisplay::default` 相同：底色分档，0.80 / 0.40，低档加虚线框。
  * 阈值来自维护者测试库的 13,837 个模型标签，这样分高、中、低三档大约各占三分之一。
  */
-export const DEFAULT_TAG_DISPLAY: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: false };
+export const DEFAULT_TAG_DISPLAY: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
 
 /** 阈值哪里不合要求；没问题时返回 null。核心按同样的规则拒绝保存。 */
 export function thresholdProblem({ high, low }: ConfidenceThresholds): string | null {

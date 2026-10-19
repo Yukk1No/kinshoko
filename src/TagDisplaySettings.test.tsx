@@ -14,7 +14,7 @@ afterEach(async () => {
 
 /** 像核心一样保存标签外观：阈值交叉时拒绝，原来的设置不变。 */
 function backend() {
-  let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: false };
+  let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
   const sent: TagDisplay[] = [];
   const view = (): ShellSettingsView => ({
     autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
@@ -46,7 +46,7 @@ async function openAppearance(onChange?: (view: ShellSettingsView) => void) {
 }
 
 describe("设置：标签外观", () => {
-  it("默认：按可信度分档，高档下限 0.80、低档上限 0.40，步长 0.05，低档虚线框关", async () => {
+  it("默认：按可信度分档，高档下限 0.80、低档上限 0.40，步长 0.05，低档虚线框开", async () => {
     backend();
     const { high, low, outline } = await openAppearance();
     expect(screen.getByRole("button", { name: "按可信度分档" }).getAttribute("aria-pressed")).toBe("true");
@@ -54,10 +54,10 @@ describe("设置：标签外观", () => {
     expect(low.value).toBe("0.40");
     expect(high.step).toBe("0.05");
     expect(low.step).toBe("0.05");
-    expect(outline.getAttribute("aria-checked")).toBe("false");
+    expect(outline.getAttribute("aria-checked")).toBe("true");
   });
 
-  it("切到按出处分组、改阈值、开虚线框，都立即保存并告诉主窗口", async () => {
+  it("切到按出处分组、改阈值、关虚线框，都立即保存并告诉主窗口", async () => {
     const store = backend();
     const seen: ShellSettingsView[] = [];
     const { high, outline } = await openAppearance((view) => seen.push(view));
@@ -66,8 +66,8 @@ describe("设置：标签外观", () => {
     fireEvent.change(high, { target: { value: "0.75" } });
     await waitFor(() => expect(seen.at(-1)?.tagDisplay.high).toBe(0.75));
     fireEvent.click(outline);
-    await waitFor(() => expect(seen.at(-1)?.tagDisplay.lowOutline).toBe(true));
-    expect(store.saved()).toEqual({ style: "grouped", high: 0.75, low: 0.4, lowOutline: true });
+    await waitFor(() => expect(seen.at(-1)?.tagDisplay.lowOutline).toBe(false));
+    expect(store.saved()).toEqual({ style: "grouped", high: 0.75, low: 0.4, lowOutline: false });
   });
 
   it("拒绝低档上限 ≥ 高档下限：说明原因，不保存", async () => {
@@ -78,7 +78,7 @@ describe("设置：标签外观", () => {
     fireEvent.change(high, { target: { value: "0.35" } });
     expect(screen.getByRole("alert").textContent).toContain("低档上限要小于高档下限");
     expect(store.sent).toEqual([]);
-    expect(store.saved()).toEqual({ style: "bands", high: 0.8, low: 0.4, lowOutline: false });
+    expect(store.saved()).toEqual({ style: "bands", high: 0.8, low: 0.4, lowOutline: true });
   });
 
   it("“恢复默认”回到 0.80 / 0.40", async () => {
@@ -88,7 +88,7 @@ describe("设置：标签外观", () => {
     fireEvent.change(low, { target: { value: "0.5" } });
     await waitFor(() => expect(store.saved()).toMatchObject({ high: 0.9, low: 0.5 }));
     fireEvent.click(screen.getByRole("button", { name: "恢复默认" }));
-    await waitFor(() => expect(store.saved()).toEqual({ style: "bands", high: 0.8, low: 0.4, lowOutline: false }));
+    await waitFor(() => expect(store.saved()).toEqual({ style: "bands", high: 0.8, low: 0.4, lowOutline: true }));
     expect(high.value).toBe("0.80");
     expect(low.value).toBe("0.40");
   });
