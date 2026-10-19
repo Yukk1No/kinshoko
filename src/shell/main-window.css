@@ -182,12 +182,18 @@
 .selbar.is-inline .selbar-div { background: var(--line-2); }
 
 /* ---- Inspector ---- */
-.inspector { width: 320px; flex: none; display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-left: 1px solid var(--line);
+/* 宽度由主窗口写在 :root 的 --inspector-width 上（#157，280–560，默认 320）；头部与内容区按它定宽，开合过渡中不跟着挤。 */
+.inspector { position: relative; width: var(--inspector-width, 320px); flex: none; display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-left: 1px solid var(--line);
   transition: width var(--t-slow) var(--ease); overflow: hidden; }
 .inspector[data-collapsed="true"] { width: 0; border-left-width: 0; }
-.insp-head { width: 319px; height: 56px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-bottom: 1px solid var(--line); }
+/* 拖动中宽度直接跟手，不做过渡。 */
+.inspector[data-resizing="true"] { transition: none; }
+.insp-resizer { position: absolute; z-index: 2; top: 0; bottom: 0; left: 0; width: 6px; cursor: ew-resize; touch-action: none; }
+.insp-resizer:hover, .insp-resizer:active { background: linear-gradient(to right, var(--line-2) 0 2px, transparent 2px); }
+.insp-resizer:focus-visible { outline: 0; background: linear-gradient(to right, var(--accent) 0 2px, transparent 2px); }
+.insp-head { width: calc(var(--inspector-width, 320px) - 1px); height: 56px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-bottom: 1px solid var(--line); }
 .insp-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-weight: 500; }
-.insp-body { width: 319px; flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 16px; }
+.insp-body { width: calc(var(--inspector-width, 320px) - 1px); flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 16px; }
 .insp-preview { display: block; width: 100%; max-height: 220px; object-fit: contain; border-radius: 10px; background: var(--wall); }
 .insp-file-name { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
 .insp-file-meta { color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }

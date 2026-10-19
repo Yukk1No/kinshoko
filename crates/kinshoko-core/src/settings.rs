@@ -21,6 +21,8 @@ use crate::tagging::{Device, catalog};
 const FILE_NAME: &str = "settings.json";
 const BROKEN_FILE_NAME: &str = "settings.broken.json";
 const FORMAT_VERSION: u32 = 1;
+/// 详情面板可拖到的宽度范围（#157），单位 CSS 像素。没保存过时界面用 320。
+const INSPECTOR_WIDTH: std::ops::RangeInclusive<u32> = 280..=560;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -139,6 +141,8 @@ pub struct SettingsSnapshot {
     usage_log: bool,
     /// 标签外观与可信度分档（#160）。
     tag_display: TagDisplay,
+    /// 主窗口详情面板的宽度（#157）；没拖过时为空。
+    inspector_width: Option<u32>,
     /// 新版本写入、本版本不认识的字段。
     #[serde(flatten)]
     unknown: serde_json::Map<String, serde_json::Value>,
@@ -159,6 +163,7 @@ impl Default for SettingsSnapshot {
             keep_selection_on_safe_mode: false,
             usage_log: false,
             tag_display: TagDisplay::default(),
+            inspector_width: None,
             unknown: serde_json::Map::new(),
         }
     }
@@ -372,6 +377,17 @@ impl AppSettings {
             ));
         }
         self.update(|f| f.tag_display = display)
+    }
+
+    /// 主窗口详情面板的宽度；`None` 表示没拖过。
+    pub fn inspector_width(&self) -> Option<u32> {
+        self.file.inspector_width
+    }
+
+    /// 保存详情面板的宽度，超出 280–560 时停在边界上。
+    pub fn set_inspector_width(&mut self, width: u32) -> Result<(), SettingsError> {
+        let width = width.clamp(*INSPECTOR_WIDTH.start(), *INSPECTOR_WIDTH.end());
+        self.update(|f| f.inspector_width = Some(width))
     }
 
     /// 动作当前绑定的快捷键；`None` 表示未绑定。

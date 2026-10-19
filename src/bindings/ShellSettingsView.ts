@@ -30,4 +30,8 @@ keepSelectionOnSafeMode: boolean, viewerBackground?: ViewerBackground,
 /**
  * 标签外观与可信度分档（#160）。
  */
-tagDisplay: TagDisplay, };
+tagDisplay: TagDisplay, 
+/**
+ * 主窗口详情面板的宽度；没有时用 320。
+ */
+inspectorWidth?: number, };
