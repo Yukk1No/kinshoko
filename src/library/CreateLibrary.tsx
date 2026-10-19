@@ -60,7 +60,7 @@ export function CreateLibrary({ onCreated, onBusyChange, onBack, backLabel }: {
         <div className={`create-library-path${parent ? " is-set" : ""}`}>
           <FolderOpen size={16} aria-hidden="true" />
           <span className="create-library-path-text" title={parent ?? undefined}>{parent ? preview(parent, name.trim() || "…") : "尚未选择"}</span>
-          <button type="button" className="k-btn is-sm" disabled={busy} onClick={choose}>选择…</button>
+          <button type="button" className="k-btn is-sm" disabled={busy} onClick={choose}>选择存放位置…</button>
         </div>
       </div>
       {error && <p className="create-library-error" role="alert">{error}</p>}

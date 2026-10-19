@@ -811,7 +811,7 @@ describe("主窗口", () => {
     });
     expect((screen.getByRole("button", { name: "建立图库" }) as HTMLButtonElement).disabled).toBe(true);
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
-    fireEvent.click(within(screen.getByRole("group", { name: "存放位置" })).getByRole("button", { name: "选择…" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "存放位置" })).getByRole("button", { name: "选择存放位置…" }));
     expect(await screen.findByText("D:\\参考\\工作参考")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "建立图库" }));
 
