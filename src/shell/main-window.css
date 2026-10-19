@@ -240,7 +240,8 @@
 /* ---- Empty workspace ---- */
 .app-empty-workspace { display: flex; flex: 1; min-height: 0; }
 .app-main-centered { align-items: stretch; }
-.app-empty-body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; }
+/* safe center：窗口矮到放不下时改为顶端对齐，内容只向下溢出，上面的“返回”和标题始终能滚到（最小高度 480 px）。 */
+.app-empty-body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 12px; padding: 24px; }
 /* 没有图库时的居中引导（#172 原型 A）：欢迎页先选新建或打开，新建再填表；两屏同宽、同一位置。 */
 .welcome { width: min(460px, 100%); display: flex; flex-direction: column; gap: 22px; padding-bottom: 56px; animation: welcome-in var(--t) var(--spring); }
 @keyframes welcome-in { from { opacity: 0; transform: translateY(4px) scale(0.99); } }
