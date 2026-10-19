@@ -43,6 +43,8 @@ const SAVE_ANCHOR_MS = 250;
  * 回来的图照常淡出遮蔽：动画只跟着这一次切换，不挂在之后无关的重新浏览上。
  */
 const RELEASE_WAIT = 1500;
+/** 某一刻的布局：每张卡片在画布里的位置，和当时的滚动位置。 */
+type LayoutSnapshot = { boxes: Map<string, Box>; scrollTop: number };
 
 /** 图片墙上拖出参考图时放进 dataTransfer 的类型，值为 JSON 数组的参考图 id。 */
 export const DRAG_IMAGES = "application/x-kinshoko-images";
@@ -251,7 +253,9 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
    * 安全模式切换那一刻量下的卡片位置。资料库按新视角送回卡片后，留下的卡片从这里滑到新位置，
    * 节奏按原型的封印／释放重排（从点下去的时刻算起）。
    */
-  const safeReflow = useRef<{ rects: Map<string, DOMRect>; at: number; delay: number; duration: number } | null>(null);
+  const safeReflow = useRef<{ rects: Map<string, DOMRect>; boxes: LayoutSnapshot; at: number; delay: number; duration: number } | null>(null);
+  /** 封印／释放重排前的布局：点下去时不在视口里的卡片，从这里算出起点（#154）。 */
+  const beforeBoxes = useRef<LayoutSnapshot | null>(null);
   /** 这一次重排的节奏；null 时是平常的 200 ms。 */
   const reflowMotion = useRef<{ at: number; delay: number; duration: number } | null>(null);
 
@@ -273,6 +277,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     safeReflow.current = null;
     reflowMotion.current = held && performance.now() - held.at < RELEASE_WAIT ? held : null;
     beforeReflow.current = reflowMotion.current ? held!.rects : measured;
+    beforeBoxes.current = reflowMotion.current ? held!.boxes : null;
   }, []);
 
   useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
@@ -499,6 +504,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     fx.current?.clear(); releaseDue.current = 0; setArriving(new Set());
   }, [reduced]);
   /** 视口里看得见的卡片。 */
+  /** 现在的布局快照（还没按新的卡片重排）。 */
+  const snapshotLayout = (): LayoutSnapshot => {
+    const { layout: now, ids: shown } = live.current;
+    return { boxes: new Map(now ? shown.map((id, i) => [id, now.boxes[i]]) : []), scrollTop: scroller.current?.scrollTop ?? 0 };
+  };
   const onScreen = () => {
     const el = scroller.current;
     if (!el) return [];
@@ -530,7 +540,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     }
     // 原型：封印时留下的卡片等影子起飞后（flyAt + 20）用 620 ms 补位；释放时 40 ms 后用 680 ms 让位。
     safeReflow.current = {
-      rects: new Map(onScreen().map((c) => [c.id, c.rect])), at: performance.now(),
+      rects: new Map(onScreen().map((c) => [c.id, c.rect])), boxes: snapshotLayout(), at: performance.now(),
       delay: safeMode ? SEAL.flyAt + 20 : 40, duration: safeMode ? 620 : 680,
     };
     if (safeMode) {
@@ -584,16 +594,26 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     }
     // 锚定的图找到了，或已取完全部仍没有（图已不在），都结束恢复。
     if (top !== null || !anchor.current || !cursor) restoring.current = false;
-    const from = beforeReflow.current, safe = reflowMotion.current;
+    const from = beforeReflow.current, safe = reflowMotion.current, fromBoxes = beforeBoxes.current;
     beforeReflow.current = new Map();
     reflowMotion.current = null;
+    beforeBoxes.current = null;
+    /** 点下去时不在视口里、没有量到矩形的卡片：按前后两次布局的位置差（含滚动差）推出它当时在哪。 */
+    const index = fromBoxes ? new Map(ids.map((id, i) => [id, i])) : null;
+    const derive = (id: string, next: DOMRect) => {
+      const prev = fromBoxes?.boxes.get(id), i = index?.get(id), cur = i === undefined ? undefined : layout.boxes[i];
+      if (!prev || !cur || !cur.w || !cur.h) return undefined;
+      return new DOMRect(next.left + prev.x - cur.x, next.top + (prev.y - fromBoxes!.scrollTop) - (cur.y - el.scrollTop),
+        next.width * prev.w / cur.w, next.height * prev.h / cur.h);
+    };
     const timing: KeyframeAnimationOptions = safe
       ? { duration: safe.duration, delay: Math.max(0, safe.at + safe.delay - performance.now()), easing: "cubic-bezier(0.65, 0, 0.35, 1)", fill: "backwards" }
       : { duration: 200, easing: "cubic-bezier(0.2,0.8,0.2,1)" };
-    if (from.size && !reducedNow()) {
+    if ((from.size || fromBoxes) && !reducedNow()) {
       const targets = [...el.querySelectorAll<HTMLElement>(".card")].flatMap((node) => {
-        const old = from.get(node.dataset.id!);
-        return old ? [{ node, old, next: node.getBoundingClientRect() }] : [];
+        const next = node.getBoundingClientRect();
+        const old = from.get(node.dataset.id!) ?? derive(node.dataset.id!, next);
+        return old ? [{ node, old, next }] : [];
       });
       for (const { node, old, next } of targets) {
         if (!next.width || !next.height || typeof node.animate !== "function") continue;

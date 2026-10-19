@@ -1393,7 +1393,7 @@ button.primary {
 .fx-ghost img { width: 100%; height: 100%; display: block; object-fit: contain; }
 .fx-wash { position: absolute; inset: 0; background: #2B2747; opacity: 0; }
 .fx-burst { position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--seal-acc); box-shadow: 0 0 24px var(--seal-acc); opacity: 0; }
-.card.is-arriving { visibility: hidden; }
+.card.is-arriving, .card.is-arriving + .card-sources { visibility: hidden; }
 .rail-badge { position: absolute; top: 3px; right: 2px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 11px; line-height: 15px; }
 .rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
 .tip { position: absolute; left: calc(100% + 10px); top: 50%; transform: translate(-4px, -50%); white-space: nowrap; background: var(--ink); color: var(--bg); padding: 5px 9px; border-radius: 7px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity var(--t-fast), transform var(--t-fast) var(--ease); z-index: 20; }

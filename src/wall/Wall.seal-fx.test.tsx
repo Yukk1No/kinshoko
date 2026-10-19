@@ -128,6 +128,35 @@ describe("封印", () => {
     }
   });
 
+  it("补位时挪动的卡片都滑过去，包括点下去时还在视口下方、补位后才进视口的", async () => {
+    const many: BrowsePage = { cards: [card("a", true), ...Array.from({ length: 60 }, (_, i) => card(`g${i}`))], total: 61, nextCursor: null };
+    const view = render(<Wall {...base} reloadKey={0} safeMode={false} />);
+    await answer(many);
+    await act(() => new Promise<void>((r) => requestAnimationFrame(() => r())));
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance"] });
+    const place = () => new Map([...document.querySelectorAll<HTMLElement>(".card")].map((n) => [n.dataset.id!, { left: parseFloat(n.style.left), top: parseFloat(n.style.top) }]));
+    const before = place();
+    const glided = new Set<string>();
+    HTMLElement.prototype.animate = function (this: HTMLElement) {
+      glided.add(this.dataset.id!);
+      return { cancel() {}, finish() {}, onfinish: null } as unknown as Animation;
+    } as HTMLElement["animate"];
+    try {
+      view.rerender(<Wall {...base} reloadKey={1} safeMode />);
+      await frames(SEAL.flyAt + 20 + 16);
+      const after = place();
+      const moved = [...after].filter(([id, p]) => {
+        const old = before.get(id);
+        return old && (old.left !== p.left || old.top !== p.top);
+      }).map(([id]) => id);
+      // 有在视口（800）以下起步的卡片也挪了，确认这条测试覆盖到了它们。
+      expect(moved.some((id) => before.get(id)!.top > 800)).toBe(true);
+      expect(moved.filter((id) => !glided.has(id))).toEqual([]);
+    } finally {
+      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
+    }
+  });
+
   it("减少动态效果时没有影子，直接遮蔽", async () => {
     reduce = true;
     const view = await wallWith(false);
