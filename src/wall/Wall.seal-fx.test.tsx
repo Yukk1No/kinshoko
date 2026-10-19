@@ -60,9 +60,9 @@ const node = (id: string) => document.querySelector<HTMLElement>(`.card[data-id=
 const ghosts = () => document.querySelectorAll(".fx-ghost").length;
 const frames = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
 
-async function wallWith(safeMode: boolean) {
+async function wallWith(safeMode: boolean, page = PAGE) {
   const view = render(<Wall {...base} reloadKey={0} safeMode={safeMode} />);
-  await answer();
+  await answer(page);
   // 关着安全模式时成人图下一帧才放出：等这一帧过去再接管时间。
   await act(() => new Promise<void>((r) => requestAnimationFrame(() => r())));
   vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance"] });
@@ -157,16 +157,54 @@ describe("封印", () => {
     }
   });
 
-  it("减少动态效果时没有影子，直接遮蔽", async () => {
+  it("减少动态效果时没有影子，封印的图直接离开，不等资料库确认", async () => {
     reduce = true;
     const view = await wallWith(false);
     view.rerender(<Wall {...base} reloadKey={0} safeMode />);
-    expect(node("a").dataset.veiled).toBe("true");
+    expect(node("a")).toBeNull();
+    expect(node("g")).not.toBeNull();
     expect(ghosts()).toBe(0);
+  });
+
+  it("墙上没有成人图时开启：之后无关的重新浏览按平常的 200 ms 重排，不沿用切换时的位置与节奏", async () => {
+    const plain: BrowsePage = { cards: [card("g"), card("h")], total: 2, nextCursor: null };
+    const view = await wallWith(false, plain);
+    const glides: { id: string; timing: KeyframeAnimationOptions }[] = [];
+    HTMLElement.prototype.animate = function (this: HTMLElement, _k: Keyframe[], timing: KeyframeAnimationOptions) {
+      glides.push({ id: this.dataset.id!, timing });
+      return { cancel() {}, finish() {}, onfinish: null } as unknown as Animation;
+    } as HTMLElement["animate"];
+    try {
+      view.rerender(<Wall {...base} reloadKey={1} safeMode />);
+      await frames(SEAL.flyAt + 20 + 16);
+      await answer(plain); // 资料库送回同样的卡片
+      await frames(100);
+      // 之后一次无关的重新浏览在最前面多了一张图，g 与 h 让位。
+      view.rerender(<Wall {...base} reloadKey={2} safeMode />);
+      await answer({ cards: [card("n"), ...plain.cards], total: 3, nextCursor: null });
+      const g = glides.find((x) => x.id === "g")!;
+      expect(g.timing).toMatchObject({ duration: 200 });
+    } finally {
+      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
+    }
   });
 });
 
 describe("释放", () => {
+  it("封印的图还没让出位置就关闭：影子立刻掉头飞回原位，不等资料库", async () => {
+    const view = await wallWith(false);
+    view.rerender(<Wall {...base} reloadKey={0} safeMode />);
+    await frames(100); // 还没到影子起飞后让位的那一刻
+    view.rerender(<Wall {...base} reloadKey={0} safeMode={false} />);
+    // 卡片还在原位，先藏着等影子落地；影子只有这一个，掉头飞回。
+    expect(node("a").classList.contains("is-arriving")).toBe(true);
+    expect(ghosts()).toBe(1);
+
+    await frames(RELEASE.fly + 20);
+    expect(node("a").classList.contains("is-arriving")).toBe(false);
+    expect(ghosts()).toBe(0);
+  });
+
   it("关闭后送回的成人图先藏着，影子从书里飞到位置、落地后才显示", async () => {
     const view = await wallWith(true);
     view.rerender(<Wall {...base} reloadKey={0} safeMode={false} />);

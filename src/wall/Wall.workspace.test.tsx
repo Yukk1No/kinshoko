@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, onTestFinished, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
@@ -98,6 +98,9 @@ it("自动打标期间修订号前进时，新一页迟迟不到也一直显示�
 
 it("安全模式切换时卡片留在原位：成人卡片立即遮蔽，新的一页回来后才离开 (#142, #154)", async () => {
   const adult = { ...card, id: "adult", adult: true };
+  // 有封印书才有封印动画；没有时（或减少动态效果）封印的图直接离开。
+  const book = document.body.appendChild(Object.assign(document.createElement("button"), { className: "seal-book" }));
+  onTestFinished(() => book.remove());
   const view = render(<Wall {...base} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode={false} />);
   await settle();
   await act(async () => calls[0].resolve(page([card, adult])));

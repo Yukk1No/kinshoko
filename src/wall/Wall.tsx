@@ -525,10 +525,24 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     return onScreen().filter((c) => adult.has(c.id));
   };
   const book = () => document.querySelector(".seal-book")?.getBoundingClientRect();
+  /** 视口里的成人卡片从书里飞回自己的位置（还在往书里飞的影子就地掉头），落地前卡片先藏着。 */
+  const releaseOnScreen = (f: SealFx, b: DOMRect) => {
+    const arrivals: FxArrival[] = onScreenAdult().slice(0, MAX_GHOSTS).map(({ id, src, rect }) => ({
+      id, src, w: rect.width, h: rect.height,
+      target: () => {
+        const r = scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.getBoundingClientRect();
+        return r && r.width > 0 ? r : null;
+      },
+    }));
+    if (!arrivals.length) return;
+    setArriving(new Set(arrivals.map((a) => a.id)));
+    f.release(arrivals, b, landed);
+  };
   useLayoutEffect(() => {
     if (lastSafe.current === safeMode) return;
     lastSafe.current = safeMode;
     releaseDue.current = 0;
+    const sealing = sealDrop.current !== 0;
     cancelAnimationFrame(sealDrop.current);
     sealDrop.current = 0;
     safeReflow.current = null;
@@ -536,6 +550,12 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     if (!f || !b || viewerOpen || reducedNow()) {
       // 查看器盖着墙或减少动态效果：封印的图直接不见，放出的图直接在。
       f?.clear(); setArriving(new Set());
+      if (safeMode && shownCards.current.some((c) => c.adult)) setCards((current) => current.filter((c) => !c.adult));
+      return;
+    }
+    if (!safeMode && sealing) {
+      // 影子还没起飞让位就关闭：成人图仍在原位，影子立刻掉头飞回，不等资料库；墙上没有卡片要挪。
+      releaseOnScreen(f, b);
       return;
     }
     // 原型：封印时留下的卡片等影子起飞后（flyAt + 20）用 620 ms 补位；释放时 40 ms 后用 680 ms 让位。
@@ -552,7 +572,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       const drop = () => {
         if (performance.now() < dropAt) { sealDrop.current = requestAnimationFrame(drop); return; }
         sealDrop.current = 0;
-        if (!shownCards.current.some((c) => c.adult)) return;
+        // 没有图要让位：撤掉切换时量下的位置，免得之后无关的重排沿用它和封印的节奏。
+        if (!shownCards.current.some((c) => c.adult)) { safeReflow.current = null; return; }
         measureBeforeReflow();
         setCards((current) => current.filter((c) => !c.adult));
       };
@@ -710,16 +731,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     if (!due || safeMode || !cards.length || !width) return;
     releaseDue.current = 0;
     if (!f || !b || performance.now() > due || viewerOpen || reducedNow()) return;
-    const arrivals: FxArrival[] = onScreenAdult().slice(0, MAX_GHOSTS).map(({ id, src, rect }) => ({
-      id, src, w: rect.width, h: rect.height,
-      target: () => {
-        const r = scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.getBoundingClientRect();
-        return r && r.width > 0 ? r : null;
-      },
-    }));
-    if (!arrivals.length) return;
-    setArriving(new Set(arrivals.map((a) => a.id)));
-    f.release(arrivals, b, landed);
+    releaseOnScreen(f, b);
   }, [cards, layout, width]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onScroll = () => {
