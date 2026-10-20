@@ -2529,6 +2529,7 @@ dependencies = [
  "png 0.18.1",
  "rusqlite",
  "rusqlite_migration",
+ "semver",
  "serde",
  "serde_json",
  "sha2",

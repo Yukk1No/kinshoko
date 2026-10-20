@@ -1,13 +1,16 @@
 //! 自动更新（#70）：Tauri updater 从 GitHub Releases 的 `latest.json` 检查新版本，下载安装包、
 //! 用 `tauri.conf.json` 里的公钥校验签名，再以 NSIS 被动模式安装并重启。
+//! 入口按画师的更新通道选（#204）：正式版通道读 GitHub latest，测试版通道读 `channel-beta` Release。
 //!
 //! 私有阶段只用安装包手动更新。公开阶段必须明确声明原仓库已公开，并有原仓库入口与更新公钥。
 //! 签名私钥只在 GitHub 仓库的 Actions secret 里，不进仓库（见 docs/validation/release-checklist.md）。
 
 use std::sync::Mutex;
 
-use kinshoko_core::{UpdatePolicy, UpdateProgress, UpdateStatus};
-use tauri::{AppHandle, Emitter, Manager, State};
+use kinshoko_core::{
+    ShellSettingsView, UpdateChannel, UpdatePolicy, UpdateProgress, UpdateStatus, offers_update,
+};
+use tauri::{AppHandle, Emitter, Manager, State, Url};
 use tauri_plugin_updater::{Update, UpdaterExt as _};
 
 const PROGRESS_EVENT: &str = "update-progress";
@@ -78,15 +81,22 @@ pub async fn check_update(
     }
     // 新检查不能留下上一次的可安装对象（例如本次已最新或检查失败）。
     *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    let channel = update_channel(&app)?;
     // 交给安装程序前收好钉图状态：安装程序会结束本进程与打标子进程。
     let exiting = app.clone();
     let checked = match app
         .updater_builder()
-        .on_before_exit(move || crate::desktop::on_exit(&exiting))
-        .build()
-    {
-        Ok(updater) => updater.check().await,
-        Err(e) => Err(e),
+        .endpoints(vec![
+            Url::parse(channel.endpoint()).expect("通道入口是固定的合法地址"),
+        ])
+        .map(|builder| {
+            builder
+                .version_comparator(|current, release| offers_update(&current, &release.version))
+                .on_before_exit(move || crate::desktop::on_exit(&exiting))
+                .build()
+        }) {
+        Ok(Ok(updater)) => updater.check().await,
+        Ok(Err(e)) | Err(e) => Err(e),
     };
     let status = match checked {
         Ok(Some(update)) => {
@@ -106,6 +116,34 @@ pub async fn check_update(
         }
     };
     Ok(state.set(status))
+}
+
+fn update_channel(app: &AppHandle) -> Result<UpdateChannel, String> {
+    let shell = app.state::<crate::shell::ShellState>();
+    let shell = shell.0.lock().map_err(|e| e.to_string())?;
+    Ok(shell.settings.update_channel())
+}
+
+/// 换更新通道（#204）。上一次检查的结果属于原来的通道，作废；界面随后按新通道重新检查。
+/// 切回正式版通道不降级：只有比已装版本新的版本才算更新（见 [`offers_update`]）。
+#[tauri::command]
+pub async fn set_update_channel(
+    app: AppHandle,
+    shell: State<'_, crate::shell::ShellState>,
+    state: State<'_, UpdaterState>,
+    channel: UpdateChannel,
+) -> Result<ShellSettingsView, String> {
+    let view = {
+        let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
+        shell
+            .settings
+            .set_update_channel(channel)
+            .map_err(|e| e.to_string())?;
+        shell.view()
+    };
+    *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    state.set(update_policy(&app).initial_status());
+    Ok(view)
 }
 
 /// 下载并安装已检查到的新版本。成功时安装程序接管，本进程退出、装好后重新启动。

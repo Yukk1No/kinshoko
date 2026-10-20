@@ -33,6 +33,8 @@ ureq = "2"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 # 校验模型包里的词表，与打标子进程读词表用同一个解析器。
 csv = "1"
+# 比较更新版本号（与 Tauri updater 同一个 SemVer 实现）。
+semver = "1"
 
 [dev-dependencies]
 tempfile = "3.27.0"

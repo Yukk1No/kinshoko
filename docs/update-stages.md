@@ -7,8 +7,22 @@
 公开阶段同时要求：
 
 - `plugins.updater.pubkey` 非空。下载后仍由现有 Tauri updater 校验 Minisign 签名，错误签名拒绝安装。
-- `plugins.updater.endpoints` 只有原仓库入口 `https://github.com/Yukk1No/kinshoko/releases/latest/download/latest.json`。不接受另一个发布仓库或其他后备入口。
+- `plugins.updater.endpoints` 非空，且只含原仓库的两个通道入口（见下文“更新通道”）。不接受另一个发布仓库或其他后备入口。
 - 阶段值恰为 `public`。未知阶段拒绝自动检查和安装，并显示原因。
+
+## 更新通道（#204）
+
+GitHub 的 latest 不含预发布，所以测试版、候选版另走一个通道。画师在“设置 → 更新 → 更新通道”里选，选择存进 `settings.json` 的 `updateChannel`：
+
+| 通道 | 收到的版本 | 入口 |
+|---|---|---|
+| 正式版 | 只有正式版 | `https://github.com/Yukk1No/kinshoko/releases/latest/download/latest.json` |
+| 测试版 | 测试版、候选版与正式版中最新的 | `https://github.com/Yukk1No/kinshoko/releases/download/channel-beta/latest.json` |
+
+- 画师没选过时按当前构建：版本号带 `-`（如 `1.0.0-beta.1`、`1.0.0-rc.1`）默认测试版通道，否则正式版通道。选过以后按画师的选择；测试版通道装上正式版后仍留在测试版通道。
+- 每次检查用画师当前通道的入口，覆盖配置里的 `endpoints`；配置里的入口只用于上面的阶段条件。签名校验不变。
+- 只提示比已装版本新的版本（SemVer，预发布低于同号正式版）。从测试版通道切回正式版通道时，比已装版本旧的正式版不算更新，不会降级。
+- `channel-beta` 是原仓库里一个标为预发布的固定 Release，只放一份 `latest.json`，其中的安装包地址指向对应版本的 Release。`.github/workflows/beta-channel.yml` 在维护者发布 Release 后把那个版本的 `latest.json` 复制过去（测试版、候选版、正式版都复制；比通道里旧的版本不复制），不存在时先建这个 Release。草稿不触发。
 
 每次检查与安装都重新应用相同核心策略；不能靠先前可用的更新对象绕过阶段条件。主窗口只在状态为 `unchecked` 时自动检查。缺公钥或入口时设置页说明原因；手动安装包更新仍可用。
 

@@ -81,6 +81,7 @@ import type { TagGroupView } from "./bindings/TagGroupView";
 import type { LibraryTaggingStatus } from "./bindings/LibraryTaggingStatus";
 import type { Turn } from "./bindings/Turn";
 import type { UpdateProgress } from "./bindings/UpdateProgress";
+import type { UpdateChannel } from "./bindings/UpdateChannel";
 import type { UpdateStatus } from "./bindings/UpdateStatus";
 import type { Vocabulary } from "./bindings/Vocabulary";
 
@@ -647,6 +648,11 @@ export function onBackupStatus(handler: (status: BackupStatus) => void): Promise
 /** 向 GitHub Releases 检查新版本。 */
 export function checkUpdate(): Promise<UpdateStatus> {
   return invoke<UpdateStatus>("check_update");
+}
+
+/** 换更新通道（#204）：保存选择，作废上一次检查的结果；随后按新通道重新检查。 */
+export function setUpdateChannel(channel: UpdateChannel): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_update_channel", { channel });
 }
 
 /** 下载并安装新版本；成功时 Kinshoko 退出、装好后重新启动。 */

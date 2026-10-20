@@ -1,0 +1,92 @@
+name: beta-channel
+
+# 测试版更新通道（#204）：维护者在 GitHub 上发布 Release（草稿变为已发布）后，把这个版本的 latest.json
+# 复制到固定的预发布 Release `channel-beta`。测试版通道的 Kinshoko 读
+# https://github.com/<repo>/releases/download/channel-beta/latest.json，所以收得到测试版、候选版与正式版中最新的；
+# 正式版通道读 GitHub 的 latest（不含预发布），不经过这里。
+#
+# 草稿阶段不动通道。发布的版本比通道里的旧时（例如测试新版期间补发旧系列的修复版）也不动，
+# 规则与测试在 scripts/release/beta-channel.mjs。只用 GITHUB_TOKEN。
+# `channel-beta` 不存在时建一个标为预发布、不是 latest 的 Release，标签指向这次发布的提交。
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "要写入测试版通道的已发布版本标签，例如 v1.0.0-beta.1（补跑用）"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beta-channel
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: 更新测试版通道
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.release.tag_name != 'channel-beta'
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      CHANNEL: channel-beta
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 取发布的 latest.json
+        run: |
+          set -euo pipefail
+          draft=$(gh release view "$TAG" --json isDraft --jq .isDraft) || {
+            echo "::error::读不到 Release $TAG。"; exit 1; }
+          if [ "$draft" = "true" ]; then
+            echo "::error::$TAG 还是草稿：发布后才写入测试版通道。"; exit 1
+          fi
+          mkdir -p published current
+          if ! gh release download "$TAG" --pattern latest.json --dir published; then
+            echo "::error::$TAG 没有 latest.json：构建时没有更新签名私钥（见 docs/validation/release-checklist.md 的“发布与自动更新”），这个版本不能经自动更新分发，测试版通道不变。"
+            exit 1
+          fi
+
+      - name: 取测试版通道现有的 latest.json
+        run: |
+          set -euo pipefail
+          if gh release view "$CHANNEL" >/dev/null 2>&1; then
+            gh release download "$CHANNEL" --pattern latest.json --dir current \
+              || echo "::notice::$CHANNEL 还没有 latest.json。"
+          else
+            sha=$(gh api "repos/$GH_REPO/commits/$TAG" --jq .sha)
+            gh release create "$CHANNEL" --prerelease --latest=false --target "$sha" \
+              --title "测试版通道" \
+              --notes "Kinshoko 测试版通道的更新入口，由 beta-channel 工作流维护，请不要手动修改或删除。安装包请到对应版本的 Release 下载。" \
+              || { echo "::error::建立 $CHANNEL Release 失败。"; exit 1; }
+            echo "::notice::已建立预发布 Release $CHANNEL。"
+          fi
+
+      - name: 判断是否写入
+        id: plan
+        run: |
+          set -euo pipefail
+          node scripts/release/beta-channel.mjs "$TAG" "$GH_REPO" published/latest.json current/latest.json >> "$GITHUB_OUTPUT" \
+            || { echo "::error::$TAG 的 latest.json 没通过检查（原因见上一行），测试版通道不变。"; exit 1; }
+
+      - name: 写入测试版通道
+        if: steps.plan.outputs.update == 'true'
+        run: |
+          set -euo pipefail
+          gh release upload "$CHANNEL" published/latest.json --clobber \
+            || { echo "::error::上传 latest.json 到 $CHANNEL 失败。"; exit 1; }
+          # 确认通道仍是预发布，不会成为 GitHub 的 latest（正式版通道的入口）。
+          gh release edit "$CHANNEL" --prerelease --latest=false
+          echo "测试版通道已指向 $TAG。" >> "$GITHUB_STEP_SUMMARY"

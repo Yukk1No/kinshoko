@@ -34,6 +34,7 @@ const defaults: ShellSettingsView = {
   usageLog: false,
   keepSelectionOnSafeMode: false,
   tagDisplay: { style: "bands", high: 0.8, low: 0.4, lowOutline: true },
+  updateChannel: "stable",
 };
 
 /** 记录前端发出的命令，按给定的处理函数回应。 */
@@ -386,6 +387,51 @@ describe("设置：更新", () => {
     expect(await screen.findByText("可以更新到 0.2.0")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "安装并重启" }));
     await waitFor(() => expect(calls.some((c) => c.cmd === "install_update")).toBe(true));
+  });
+
+  it("换到测试版通道后保存选择并按新通道重新检查", async () => {
+    const calls = backend((cmd) => {
+      if (cmd === "update_status") return { state: "upToDate" };
+      if (cmd === "set_update_channel") return { ...defaults, updateChannel: "beta" };
+      if (cmd === "check_update") return { state: "available", version: "1.0.0-beta.2", notes: null };
+      return undefined;
+    });
+    render(<SettingsPanel initialTab="update" />);
+
+    const stable = await screen.findByRole("button", { name: "正式版" });
+    expect(stable.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "测试版" }));
+
+    expect(await screen.findByText("可以更新到 1.0.0-beta.2")).toBeTruthy();
+    expect(calls.find((c) => c.cmd === "set_update_channel")?.args).toEqual({ channel: "beta" });
+    const order = calls.map((c) => c.cmd);
+    expect(order.lastIndexOf("check_update")).toBeGreaterThan(order.indexOf("set_update_channel"));
+    expect(screen.getByRole("button", { name: "测试版" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("保存通道失败时留在原来的通道，不重新检查", async () => {
+    const calls = backend((cmd) => {
+      if (cmd === "update_status") return { state: "upToDate" };
+      if (cmd === "set_update_channel") throw "读写设置文件失败：磁盘已满";
+      return undefined;
+    });
+    render(<SettingsPanel initialTab="update" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "测试版" }));
+
+    expect(await screen.findByText(/磁盘已满/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "正式版" }).getAttribute("aria-pressed")).toBe("true");
+    expect(calls.map((c) => c.cmd)).not.toContain("check_update");
+  });
+
+  it("手动更新与未启用自动更新的构建不显示更新通道", async () => {
+    for (const status of [{ state: "manual", message: "当前使用安装包手动更新。" }, { state: "disabled", message: "未配置更新公钥，自动更新未启用。" }]) {
+      backend((cmd) => (cmd === "update_status" ? status : undefined));
+      render(<SettingsPanel initialTab="update" />);
+      expect(await screen.findByText(status.state === "manual" ? "手动更新" : "自动更新")).toBeTruthy();
+      expect(screen.queryByRole("group", { name: "更新通道" })).toBeNull();
+      cleanup();
+    }
   });
 });
 

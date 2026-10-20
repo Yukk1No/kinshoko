@@ -89,6 +89,7 @@ pub fn run() {
             updater::update_status,
             updater::check_update,
             updater::install_update,
+            updater::set_update_channel,
             backup::backup_status,
             backup::set_backup_target,
             backup::set_backup_selection,
