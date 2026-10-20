@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { selectionBarPlacement } from "./selectionBarPlacement";
+import { selectionBarCompact, selectionBarPlacement } from "./selectionBarPlacement";
 
 // 折叠后的圆形按钮 40 px，离右边 24 px：它的左边在 wallWidth - 64。
 const corner = (wallWidth: number) => wallWidth - 24 - 40;
@@ -21,5 +21,16 @@ describe("多选悬浮栏的位置（#180）", () => {
 
   it("比悬浮栏还窄时贴左边，不留负的位置", () => {
     expect(selectionBarPlacement({ wallWidth: 300, barWidth: 340, cornerLeft: corner(300) })).toEqual({ left: 0, hideCorner: true });
+  });
+});
+
+describe("窄到放不下完整的悬浮栏时改用紧凑的（#180）", () => {
+  it("两边各留 16 px 还放得下就用完整的，放不下才紧凑", () => {
+    expect(selectionBarCompact(400, 253)).toBe(false);
+    expect(selectionBarCompact(285, 253)).toBe(false);
+    expect(selectionBarCompact(284, 253)).toBe(true);
+  });
+  it("还没量到完整宽度时按完整的算", () => {
+    expect(selectionBarCompact(100, 0)).toBe(false);
   });
 });

@@ -15,7 +15,7 @@ import { flattenFolders, PermanentDeleteConfirm } from "./SelectionPanel";
  * 只在选了两张及以上时出现（单张的这些操作在右键菜单里）。left 是 selectionBarPlacement 算出的水平位置；
  * onWidth 报告自己的宽度。升起、离开与左右挪动都用 Dock 的形变弹簧，减少动画时直接到位。
  */
-export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onError, safeMode = false, left, onWidth }: {
+export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onError, safeMode = false, left, onWidth, compact = false }: {
   libraryId: string;
   scope: BrowseScope;
   ids: string[];
@@ -24,7 +24,10 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
   onError: (message: string) => void;
   safeMode?: boolean;
   left: number;
-  onWidth: (width: number) => void;
+  /** 量到的宽度，以及量的是不是紧凑的悬浮栏。 */
+  onWidth: (width: number, compact: boolean) => void;
+  /** 图片墙很窄时（selectionBarCompact）：读数只写“N 张”。 */
+  compact?: boolean;
 }) {
   const reduced = useReducedMotion();
   const [folders, setFolders] = useState<{ id: string; label: string }[] | null>(null);
@@ -41,12 +44,16 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
     return () => { alive = false; };
   }, [libraryId, reloadKey, safeMode]);
 
+  // 观察者只接一次，回调读最新的 onWidth 与 compact。
+  const report = useRef({ onWidth, compact });
+  report.current = { onWidth, compact };
   useLayoutEffect(() => {
     const el = root.current;
     if (!el) return;
-    onWidth(el.offsetWidth);
+    const measure = () => report.current.onWidth(el.offsetWidth, report.current.compact);
+    measure();
     if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => onWidth(el.offsetWidth));
+    const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
     // 只在挂上时接上观察；宽度变化由观察者报告。
@@ -86,7 +93,8 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
   return <motion.div ref={root} className="selbar-float"
     initial={{ opacity: 0, y: reduced ? 0 : 24, x: left }} animate={{ opacity: 1, y: 0, x: left }} exit={{ opacity: 0, y: reduced ? 0 : 24 }}
     transition={reduced ? instant : arcSpring.morph}>
-    <Dock label="已选参考图操作" items={items} onSelect={run} readout={<b>已选 {ids.length} 张</b>} />
+    <Dock label="已选参考图操作" items={items} onSelect={run} className={compact ? "is-compact" : ""}
+      readout={compact ? <b aria-label={`已选 ${ids.length} 张`}>{ids.length} 张</b> : <b>已选 {ids.length} 张</b>} />
     {purging && scope.kind === "trash" && <PermanentDeleteConfirm libraryId={libraryId} ids={ids} safeMode={safeMode}
       onDone={() => { setPurging(false); onClear(); }} onCancel={() => setPurging(false)} onError={onError} />}
   </motion.div>;

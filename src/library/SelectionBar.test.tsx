@@ -77,3 +77,15 @@ describe("多选悬浮栏（#180）", () => {
     expect(await screen.findByRole("alertdialog", { name: "永久删除" })).toBeTruthy();
   });
 });
+
+describe("很窄的图片墙（#180）", () => {
+  it("紧凑时读数只写“N 张”，读屏仍是“已选 N 张”；报告宽度时标明是紧凑的", () => {
+    backend();
+    const onWidth = vi.fn();
+    render(<SelectionBar compact libraryId="L1" scope={{ kind: "all" }} ids={["a", "b"]} onClear={() => {}} reloadKey={0} onError={() => {}} left={0} onWidth={onWidth} />);
+    const bar = screen.getByRole("toolbar", { name: "已选参考图操作" });
+    expect(bar.classList.contains("is-compact")).toBe(true);
+    expect(within(bar).getByLabelText("已选 2 张").textContent).toBe("2 张");
+    expect(onWidth).toHaveBeenCalledWith(expect.any(Number), true);
+  });
+});

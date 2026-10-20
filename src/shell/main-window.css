@@ -186,6 +186,8 @@
 /* ---- Floating multi-select bar ---- */
 /* 多选悬浮栏（#180）：查看器同款 Dock，水平位置由 selectionBarPlacement 算出（transform）。 */
 .selbar-float { position: absolute; left: 0; bottom: 20px; z-index: 6; }
+/* 图片墙很窄时（selectionBarCompact）：读数只写“N 张”，让出宽度。 */
+.selbar-float .k-dock.is-compact .k-dock-readout { min-width: 0; padding: 0 8px 0 4px; margin-right: 4px; }
 .selbar { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 14px; background: var(--ink); color: var(--bg);
   box-shadow: 0 12px 32px rgba(43, 39, 71, 0.3); white-space: nowrap; }
 .selbar .selection-count { padding: 0 10px 0 8px; font-weight: 600; }

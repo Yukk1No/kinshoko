@@ -12,3 +12,11 @@ export function selectionBarPlacement({ wallWidth, barWidth, cornerLeft, gap = 8
   if (limit >= margin) return { left: limit, hideCorner: false };
   return { left: Math.max(0, centred), hideCorner: true };
 }
+
+/**
+ * 图片墙窄得连完整的悬浮栏（fullWidth，含“已选 N 张”读数）加两边 margin 都放不下时，改用紧凑的悬浮栏
+ * （读数只写“N 张”），不出现水平溢出。fullWidth 还没量到（0）时按完整的算。
+ */
+export function selectionBarCompact(wallWidth: number, fullWidth: number, margin = 16) {
+  return fullWidth > 0 && wallWidth - 2 * margin < fullWidth;
+}

@@ -4,7 +4,7 @@ import { SelectionBar } from "../library/SelectionBar";
 import { arcSpring } from "../ui/Dock";
 import { useReducedMotion } from "../ui/reducedMotion";
 import { DensityIsland } from "./DensityIsland";
-import { selectionBarPlacement } from "./selectionBarPlacement";
+import { selectionBarCompact, selectionBarPlacement } from "./selectionBarPlacement";
 
 /** 折叠后的圆形按钮宽度。 */
 const KNOB = 40;
@@ -27,7 +27,8 @@ export function WallFloats({ bar, tagging, density }: {
   const corner = useRef<HTMLDivElement>(null);
   const [wallWidth, setWallWidth] = useState(0);
   const [cornerRight, setCornerRight] = useState(24);
-  const [barWidth, setBarWidth] = useState(0);
+  // 完整与紧凑两种悬浮栏各自量到的宽度。
+  const [widths, setWidths] = useState({ full: 0, compact: 0 });
   useLayoutEffect(() => {
     const host = corner.current?.parentElement;
     if (!host) return;
@@ -44,6 +45,9 @@ export function WallFloats({ bar, tagging, density }: {
   }, []);
 
   const collapsed = bar !== null;
+  const compact = selectionBarCompact(wallWidth, widths.full);
+  const barWidth = compact ? widths.compact : widths.full;
+  const onWidth = (width: number, compactBar: boolean) => setWidths((w) => compactBar ? { ...w, compact: width } : { ...w, full: width });
   const place = selectionBarPlacement({ wallWidth, barWidth, cornerLeft: wallWidth - cornerRight - KNOB });
   const hideCorner = collapsed && wallWidth > 0 && barWidth > 0 && place.hideCorner;
   const morph = reduced ? { duration: 0 } : arcSpring.morph;
@@ -54,7 +58,7 @@ export function WallFloats({ bar, tagging, density }: {
       {density && <DensityIsland {...density} collapsed={collapsed} />}
     </motion.div>
     <AnimatePresence>
-      {bar && <SelectionBar key="selbar" {...bar} left={place.left} onWidth={setBarWidth} />}
+      {bar && <SelectionBar key="selbar" {...bar} left={place.left} compact={compact} onWidth={onWidth} />}
     </AnimatePresence>
   </>;
 }
