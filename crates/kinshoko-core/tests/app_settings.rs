@@ -1,7 +1,7 @@
 //! 应用壳设置：本设备的开机自启与全局快捷键，保存在应用配置目录里的一个文件中。
 
 use kinshoko_core::tagging::Device;
-use kinshoko_core::{AppSettings, ShortcutAction, TagDisplay, TagStyle};
+use kinshoko_core::{AppSettings, ShortcutAction, TagDisplay, TagStyle, UpdateChannel};
 
 #[test]
 fn a_fresh_install_starts_at_login_and_uses_snipaste_style_function_keys() {
@@ -311,4 +311,75 @@ fn the_details_panel_width_is_kept_between_280_and_560() {
     assert_eq!(settings.inspector_width(), Some(280));
     settings.set_inspector_width(2000).unwrap();
     assert_eq!(settings.inspector_width(), Some(560));
+}
+
+#[test]
+fn the_update_channel_follows_the_build_until_the_artist_picks_one() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    let running = kinshoko_core::app_info().version;
+    assert_eq!(
+        settings.update_channel(),
+        UpdateChannel::default_for_version(&running)
+    );
+
+    for picked in [UpdateChannel::Beta, UpdateChannel::Stable] {
+        settings.set_update_channel(picked).unwrap();
+        assert_eq!(
+            AppSettings::open(dir.path()).unwrap().update_channel(),
+            picked
+        );
+    }
+}
+
+#[test]
+fn an_explicit_update_channel_wins_over_the_build_default() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("settings.json"),
+        r#"{"version":1,"updateChannel":"beta"}"#,
+    )
+    .unwrap();
+    assert_eq!(
+        AppSettings::open(dir.path()).unwrap().update_channel(),
+        UpdateChannel::Beta
+    );
+    std::fs::write(
+        dir.path().join("settings.json"),
+        r#"{"version":1,"updateChannel":"stable"}"#,
+    )
+    .unwrap();
+    assert_eq!(
+        AppSettings::open(dir.path()).unwrap().update_channel(),
+        UpdateChannel::Stable
+    );
+}
+
+#[test]
+fn the_build_default_channel_is_written_down_so_beta_users_stay_on_beta() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("settings.json"),
+        r#"{"version":1,"updateChannel":"beta"}"#,
+    )
+    .unwrap();
+    let mut picked = AppSettings::open(dir.path()).unwrap();
+    picked.remember_update_channel().unwrap();
+    assert_eq!(
+        picked.update_channel(),
+        UpdateChannel::Beta,
+        "画师选过的不改"
+    );
+
+    let fresh = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(fresh.path()).unwrap();
+    let default = settings.update_channel();
+    settings.remember_update_channel().unwrap();
+    let written = std::fs::read_to_string(fresh.path().join("settings.json")).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&written).unwrap();
+    assert_eq!(
+        json["updateChannel"],
+        serde_json::to_value(default).unwrap(),
+        "启动时按当前构建记下通道，装上新版本后仍按这个记录"
+    );
 }

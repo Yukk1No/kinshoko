@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { UpdateBanner, UpdateSection } from "./Update";
 
@@ -13,7 +14,7 @@ function backend(handle: (cmd: string) => unknown) {
   mockIPC((cmd) => {
     calls.push(cmd);
     return handle(cmd);
-  });
+  }, { shouldMockEvents: true });
   return calls;
 }
 
@@ -29,6 +30,18 @@ describe("主窗口的更新提示", () => {
     expect(await screen.findByText("Kinshoko 0.2.0 可以更新。")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "安装并重启" }));
     await waitFor(() => expect(calls).toContain("install_update"));
+  });
+
+  it("换了更新通道后收起提示：旧通道查到的更新已经作废", async () => {
+    backend((cmd) =>
+      cmd === "update_status" ? { state: "available", version: "1.0.0-beta.2", notes: null } : null,
+    );
+    render(<UpdateBanner />);
+    expect(await screen.findByText("Kinshoko 1.0.0-beta.2 可以更新。")).toBeTruthy();
+
+    await act(async () => { await emit("update-channel-changed"); });
+
+    await waitFor(() => expect(screen.queryByText(/可以更新/)).toBeNull());
   });
 
   it("以后再说就收起提示", async () => {

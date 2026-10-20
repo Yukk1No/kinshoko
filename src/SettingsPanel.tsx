@@ -14,6 +14,7 @@ import {
   setShowApproxSource,
   setTagDisplay,
   setKeepSelectionOnSafeMode,
+  setUpdateChannel,
   setUsageLog,
   shellSettings,
 } from "./ipc";
@@ -271,7 +272,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
               <StatusPill tone={safe === false ? "plain" : "ok"}>{safe === false ? "未开启" : "已开启"}</StatusPill>
             </SettingsRow>
           </SettingsGroup>)}
-          {page("update", <UpdateSection version={version ?? null} />)}
+          {page("update", <UpdateSection version={version ?? null} channel={view.updateChannel} onChannel={(next) => apply(setUpdateChannel(next))} />)}
           {page("diag", <>
             <RuntimeDetails />
             <SettingsGroup title="信息">

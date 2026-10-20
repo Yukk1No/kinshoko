@@ -42,7 +42,11 @@ impl Shell {
 
 /// 打开设置、注册快捷键、按设置同步开机自启。在 `setup` 里调用一次。
 pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let settings = AppSettings::open(crate::data_dirs::app_data(app).settings())?;
+    let mut settings = AppSettings::open(crate::data_dirs::app_data(app).settings())?;
+    // 在装上新版本之前记下按本构建推定的更新通道（#204）。
+    if let Err(e) = settings.remember_update_channel() {
+        eprintln!("记下更新通道失败：{e}");
+    }
     // 先定下 WebView2 启动参数（强制 sRGB），之后才建窗口。
     crate::diagnostics::start(app, &settings)?;
     let ui_scale = UiScale::open(crate::data_dirs::app_data(app).settings())?;

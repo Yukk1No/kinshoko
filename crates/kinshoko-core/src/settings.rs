@@ -1,5 +1,5 @@
 //! 应用壳设置：本设备上与具体资料库无关的偏好（开机自启、全局快捷键、安全模式、相近标签来源标记、
-//! 诊断开关与使用日志）。
+//! 诊断开关、使用日志与更新通道）。
 //!
 //! 保存在数据根目录（`data_dirs`）的 `settings.json`。后续的设置（钉图、模型选择、诊断开关等）
 //! 在 [`SettingsSnapshot`] 上加带默认值的字段即可；不认识的字段原样保留，旧版本打开新版本
@@ -16,6 +16,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use crate::app_shell::{UpdateChannel, app_info};
 use crate::tagging::{Device, catalog};
 
 const FILE_NAME: &str = "settings.json";
@@ -143,6 +144,8 @@ pub struct SettingsSnapshot {
     tag_display: TagDisplay,
     /// 主窗口详情面板的宽度（#157）；没拖过时为空。
     inspector_width: Option<u32>,
+    /// 更新通道（#204）；没选过时为空，按当前构建的版本号决定。
+    update_channel: Option<UpdateChannel>,
     /// 新版本写入、本版本不认识的字段。
     #[serde(flatten)]
     unknown: serde_json::Map<String, serde_json::Value>,
@@ -164,6 +167,7 @@ impl Default for SettingsSnapshot {
             usage_log: false,
             tag_display: TagDisplay::default(),
             inspector_width: None,
+            update_channel: None,
             unknown: serde_json::Map::new(),
         }
     }
@@ -388,6 +392,28 @@ impl AppSettings {
     pub fn set_inspector_width(&mut self, width: u32) -> Result<(), SettingsError> {
         let width = width.clamp(*INSPECTOR_WIDTH.start(), *INSPECTOR_WIDTH.end());
         self.update(|f| f.inspector_width = Some(width))
+    }
+
+    /// 检查更新用的通道。画师选过就按画师的；没选过时测试版、候选版构建用测试版通道，
+    /// 正式版构建用正式版通道。测试版通道装上正式版后仍留在测试版通道（选择不随版本变）。
+    pub fn update_channel(&self) -> UpdateChannel {
+        self.file
+            .update_channel
+            .unwrap_or_else(|| UpdateChannel::default_for_version(&app_info().version))
+    }
+
+    pub fn set_update_channel(&mut self, channel: UpdateChannel) -> Result<(), SettingsError> {
+        self.update(|f| f.update_channel = Some(channel))
+    }
+
+    /// 启动时调用：没选过通道时按当前构建记下默认通道。测试版、候选版构建因此记下测试版通道，
+    /// 从测试版通道装上正式版后，新版本读到的仍是测试版通道，不会按正式版的版本号改回正式版通道。
+    pub fn remember_update_channel(&mut self) -> Result<(), SettingsError> {
+        if self.file.update_channel.is_some() {
+            return Ok(());
+        }
+        let channel = self.update_channel();
+        self.set_update_channel(channel)
     }
 
     /// 动作当前绑定的快捷键；`None` 表示未绑定。

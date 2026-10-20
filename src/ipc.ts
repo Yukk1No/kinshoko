@@ -81,6 +81,7 @@ import type { TagGroupView } from "./bindings/TagGroupView";
 import type { LibraryTaggingStatus } from "./bindings/LibraryTaggingStatus";
 import type { Turn } from "./bindings/Turn";
 import type { UpdateProgress } from "./bindings/UpdateProgress";
+import type { UpdateChannel } from "./bindings/UpdateChannel";
 import type { UpdateStatus } from "./bindings/UpdateStatus";
 import type { Vocabulary } from "./bindings/Vocabulary";
 
@@ -649,6 +650,11 @@ export function checkUpdate(): Promise<UpdateStatus> {
   return invoke<UpdateStatus>("check_update");
 }
 
+/** 换更新通道（#204）：保存选择，作废上一次检查的结果；随后按新通道重新检查。 */
+export function setUpdateChannel(channel: UpdateChannel): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_update_channel", { channel });
+}
+
 /** 下载并安装新版本；成功时 Kinshoko 退出、装好后重新启动。 */
 export function installUpdate(): Promise<void> {
   return invoke<void>("install_update");
@@ -656,6 +662,11 @@ export function installUpdate(): Promise<void> {
 
 export function onUpdateProgress(handler: (progress: UpdateProgress) => void): Promise<UnlistenFn> {
   return listen<UpdateProgress>("update-progress", (e) => handler(e.payload));
+}
+
+/** 更新通道换了（#204）：之前查到的更新已作废。 */
+export function onUpdateChannelChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen("update-channel-changed", () => handler());
 }
 
 // ---------- 截图与钉图（#62） ----------
