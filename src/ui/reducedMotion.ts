@@ -8,15 +8,17 @@ const REDUCED_QUERY = "(prefers-reduced-motion: reduce)";
 export const reducedNow = () =>
   !!window.matchMedia?.(REDUCED_QUERY).matches || document.documentElement.hasAttribute("data-reduced-motion");
 
-/** 系统或程序要求减少动画时为真；随系统设置变化。 */
+/** 系统或程序要求减少动画时为真；随系统设置与根元素上的 data-reduced-motion 变化。 */
 export function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(reducedNow);
   useEffect(() => {
-    const query = window.matchMedia?.(REDUCED_QUERY);
-    if (!query?.addEventListener) return;
     const update = () => setReduced(reducedNow());
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
+    const query = window.matchMedia?.(REDUCED_QUERY);
+    query?.addEventListener?.("change", update);
+    // 程序的减少动画开关写在根元素上，切换后立即生效。
+    const observer = typeof MutationObserver === "undefined" ? null : new MutationObserver(update);
+    observer?.observe(document.documentElement, { attributes: true, attributeFilter: ["data-reduced-motion"] });
+    return () => { query?.removeEventListener?.("change", update); observer?.disconnect(); };
   }, []);
   return reduced;
 }
