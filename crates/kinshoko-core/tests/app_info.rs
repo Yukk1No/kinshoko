@@ -7,7 +7,8 @@ fn app_info_names_the_product_and_reports_the_build_version() {
     let info = app_info();
 
     assert_eq!(info.product_name, "Kinshoko");
-    assert_eq!(info.version, "0.1.0");
+    // 跟着工作区版本走：发版时 prepare-release 改了 Cargo.toml，这里不用跟着改。
+    assert_eq!(info.version, env!("CARGO_PKG_VERSION"));
 }
 
 #[test]
@@ -16,6 +17,6 @@ fn app_info_crosses_the_ipc_boundary_in_camel_case() {
 
     assert_eq!(
         json,
-        serde_json::json!({ "productName": "Kinshoko", "version": "0.1.0" })
+        serde_json::json!({ "productName": "Kinshoko", "version": env!("CARGO_PKG_VERSION") })
     );
 }

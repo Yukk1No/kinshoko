@@ -7,7 +7,7 @@
 //! - [`PinStore`]：钉图的位置、裁切、缩放、翻转与旋转，重新打开后恢复；
 //! - [`SavedPin::reference`]：资料库中参考图的整图与局部钉图（#65）；
 //! - [`EdgeHide`]：贴边隐藏收起的位置与碰细边滑出；
-//! - [`stage`]：缩放与贴边动画时窗口的矩形（#64）；
+//! - [`layers_for`]、[`layer_window`]、[`widen`]、[`layer_region`]：钉图层与窗口区域的矩形（#64、#193）；
 //! - [`menu_surface`]、[`PinMenu`]：钉图菜单窗口的位置与菜单状态（#106）。
 
 mod capture;
@@ -22,13 +22,13 @@ mod types;
 mod veil;
 
 pub use capture::{CaptureDraft, CaptureError, CaptureOutcome, CaptureSelection, CaptureSurface};
-pub use edge::{DeskPin, EdgeHide, PEEK_SLACK, PinMove, SLIVER, Toggle, Tuck};
+pub use edge::{DeskPin, EdgeHide, PEEK_SLACK, PinMove, SLIVER, Toggle};
 pub use history::{
     CaptureChoice, CaptureCollection, CaptureEntry, CaptureHistory, CollectedCapture,
     CollectedCaptureDraft, HISTORY_LIMIT, HistoryError, PreparedCapture,
 };
 pub use menu::{MenuSurface, OpenInKinshoko, PinMenu, PinMenuOpen, menu_surface};
-pub use motion::{Stage, stage};
+pub use motion::{layer_region, layer_window, layers_for, widen};
 pub use pin::{
     GroupMemberRef, MAX_SCALE, MIN_OPACITY, MIN_SCALE, MIN_SIDE, PinContent, PinError, PinStore,
     Placement, RESTORE_KEEP, SavedPin, initial_scale, pull_onto_screen,
@@ -36,7 +36,7 @@ pub use pin::{
 pub use placement::{ScreenRect, place_new_pin};
 pub use screenshot::{Region, Screenshot};
 pub use types::{
-    CaptureAction, CaptureReference, CaptureReferenceFrame, FrozenScreen, OriginalPixels, PinFrame,
-    PinMotion, Turn,
+    CaptureAction, CaptureReference, CaptureReferenceFrame, FrozenScreen, MotionBegan,
+    OriginalPixels, PinFrame, PinMotion, Turn,
 };
 pub use veil::PinVeils;
