@@ -10,6 +10,7 @@ Issues and specs live in GitHub Issues for `Yukk1No/kinshoko`. Use the `gh` CLI 
 - Append comments with `gh issue comment <number>`; use `--body-file` for multiline text.
 - Apply or remove labels with `gh issue edit <number> --add-label <label>` or `--remove-label <label>`.
 - Close issues with `gh issue close <number>` after recording the outcome.
+- GitHub auto-closes issues only when a PR merges into `main`, but PRs merge into `integration/v1`. After merging a PR into `integration/v1`, close each issue it resolves with `gh issue close <number> --reason completed --comment "Fixed by #<pr> on integration/v1"`.
 - A skill's instruction to publish to the tracker means creating a GitHub issue.
 - A skill's instruction to fetch a ticket means reading its issue and comments.
 
