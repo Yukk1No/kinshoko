@@ -9,4 +9,4 @@
 
 CI 的 `工作流检查` 用 actionlint（含 shellcheck）检查语法、表达式和 `run:` 里的 bash 脚本。`shell: pwsh` 的步骤它不检查：PowerShell 会把 `if` 表达式返回的单元素数组解包成字符串，`@变量` 展开字符串时逐字符传参（v1.0.0-beta.1 因此建不出 Release，#210），给原生命令拼参数时先建数组再展开，并在本地用一个打印参数的脚本试一遍。触发条件和跨工作流的衔接它也查不出，只能在第一次真实运行时验证，所以按上面几条设计，并在 PR 里写明哪些要等真实运行。
 
-现有的发布流程（`prepare-release` → `tag-release` → `release`，发布后 `beta-channel`）就是按这些限制设计的，步骤见 [发布清单](../validation/release-checklist.md) 的“每次发布”。
+现有的发布流程（`prepare-release` → `tag-release` → `release`，发布后 `beta-channel`）就是按这些限制设计的，步骤见 [发布清单](../validation/release-checklist/release-and-updates.md) 的“每次发布”。

@@ -9,7 +9,7 @@ name: release
 #
 # 签名私钥只放在仓库的 Actions secret（TAURI_SIGNING_PRIVATE_KEY、TAURI_SIGNING_PRIVATE_KEY_PASSWORD），
 # 不进仓库；公钥写在 src-tauri/tauri.conf.json 的 plugins.updater.pubkey。步骤见
-# docs/validation/release-checklist.md 的“发布与自动更新”。
+# docs/validation/release-checklist/release-and-updates.md。
 
 on:
   push:
