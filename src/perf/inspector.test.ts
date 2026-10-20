@@ -4,32 +4,29 @@ import type { ProbeEnv } from "./frameProbe";
 
 afterEach(() => { document.body.innerHTML = ""; });
 
-/** 详情面板的样子：预览图（已加载与否）、详情、有效标签；busy 表示还留着上一张的。 */
-function inspector({ src = "a.png", loaded = true, busy = false, detail = true, tags = true } = {}) {
+/** 详情面板的样子：标明的选择、详情、有效标签；busy 表示还留着上一张的。 */
+function inspector({ id = "a", busy = false, detail = true, tags = true } = {}) {
   const root = document.createElement("aside");
-  const img = document.createElement("img");
-  img.className = "insp-preview";
-  img.setAttribute("src", src);
-  Object.defineProperty(img, "complete", { value: loaded });
-  Object.defineProperty(img, "naturalWidth", { value: loaded ? 100 : 0 });
-  root.append(img);
+  root.dataset.selection = id;
   if (detail) root.insertAdjacentHTML("beforeend", `<div class="selection-detail" aria-busy="${busy}"></div>`);
   if (tags) root.insertAdjacentHTML("beforeend", `<section class="tag-panel"><ul aria-label="有效标签" aria-busy="${busy}"></ul></section>`);
   return root;
 }
 
-describe("inspectorShows：预览、详情、标签都是这张图的才算显示完", () => {
+describe("inspectorShows：面板标明的选择、详情、标签都是这张图的才算显示完", () => {
   it("三样都到了", () => {
-    expect(inspectorShows(inspector(), "a.png")).toBe(true);
+    expect(inspectorShows(inspector(), "a")).toBe(true);
+    const panel = document.createElement("div");
+    panel.append(inspector());
+    expect(inspectorShows(panel, "a")).toBe(true);
   });
-  it("预览还是上一张、还没加载完，都不算", () => {
-    expect(inspectorShows(inspector({ src: "old.png" }), "a.png")).toBe(false);
-    expect(inspectorShows(inspector({ loaded: false }), "a.png")).toBe(false);
+  it("面板标明的还是上一张，不算", () => {
+    expect(inspectorShows(inspector({ id: "old" }), "a")).toBe(false);
   });
   it("详情或标签还留着上一张的、或还没有，不算", () => {
-    expect(inspectorShows(inspector({ busy: true }), "a.png")).toBe(false);
-    expect(inspectorShows(inspector({ detail: false }), "a.png")).toBe(false);
-    expect(inspectorShows(inspector({ tags: false }), "a.png")).toBe(false);
+    expect(inspectorShows(inspector({ busy: true }), "a")).toBe(false);
+    expect(inspectorShows(inspector({ detail: false }), "a")).toBe(false);
+    expect(inspectorShows(inspector({ tags: false }), "a")).toBe(false);
   });
 });
 
@@ -59,9 +56,9 @@ it("measureSelections：逐张点选，记下点到详情面板显示完的时�
   for (const id of ["a", "b"]) {
     wall.insertAdjacentHTML("beforeend", `<div class="card" data-id="${id}"><img src="${id}.png"></div>`);
     wall.lastElementChild!.addEventListener("click", () => {
-      panel.replaceChildren(inspector({ src: "old.png", busy: true }));
+      panel.replaceChildren(inspector({ id: "old", busy: true }));
       shownAfter = delays[id];
-      next = inspector({ src: `${id}.png` });
+      next = inspector({ id });
     });
   }
   const run = measureSelections({ wall, inspector: () => panel, env, settleFrames: 0 });

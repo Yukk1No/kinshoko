@@ -160,6 +160,34 @@ pub async fn migrate_viewer_background(
     Ok(shell.view())
 }
 
+/// 系统的双击设置（#179）：图片墙按“第一下的图”判定双击时用。
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DoubleClick {
+    /// 双击间隔（毫秒）。
+    interval_ms: u32,
+    /// 以第一下为中心的判定矩形（物理像素）。
+    width: i32,
+    height: i32,
+}
+
+/// 读不到系统设置（或不是 Windows）时为 `None`，前端用 500 ms / 4 px。
+#[tauri::command]
+pub async fn double_click() -> Option<DoubleClick> {
+    #[cfg(windows)]
+    {
+        crate::desktop::win32::double_click().map(|(interval_ms, width, height)| DoubleClick {
+            interval_ms,
+            width,
+            height,
+        })
+    }
+    #[cfg(not(windows))]
+    {
+        None
+    }
+}
+
 /// 本机的界面缩放档位（百分比）。
 #[tauri::command]
 pub async fn ui_scale(state: State<'_, UiScaleState>) -> Result<u16, String> {

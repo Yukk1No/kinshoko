@@ -560,6 +560,14 @@ export function setUiScale(percent: number): Promise<number> {
   return invoke<number>("set_ui_scale", { percent });
 }
 
+/** 系统的双击间隔（毫秒）与以第一下为中心的判定矩形（物理像素，#179）。 */
+export type DoubleClickSettings = { intervalMs: number; width: number; height: number };
+
+/** 读系统的双击设置；读不到（或不是 Windows）时为 null。 */
+export function doubleClick(): Promise<DoubleClickSettings | null> {
+  return invoke<DoubleClickSettings | null>("double_click");
+}
+
 // ---------- 诊断与更新（#70） ----------
 
 /** 诊断日志全文：硬件、系统、WebView2 与显示器色彩状态，不含文件名、路径与图片。 */

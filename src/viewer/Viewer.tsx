@@ -6,18 +6,15 @@ import { legacyViewerBackground, rememberViewerBackground } from "./background";
 import type { KeyboardEvent } from "react";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
-import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Crop as CropIcon, FolderSearch, Info, Minus, Palette, Pin, Plus, RotateCcw, Scan, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Crop as CropIcon, FolderSearch, Minus, PanelRight, Palette, Pin, Plus, RotateCcw, Scan, Trash2, X } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Menu, MenuCheckboxItem, MenuItem, MenuPopup, MenuRadioItem, MenuSeparator, MenuSubmenu } from "../ui/Menu";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import { Dock, type DockItem } from "../ui/Dock";
 import { FollowDock } from "../ui/FollowDock";
-import { WinCtrls } from "../ui/WinCtrls";
-import { ViewerTags } from "./ViewerTags";
 
 type Props = {
   workspace?: boolean;
-  sourceName?: string;
   libraryId: string;
   card: ImageCard;
   onClose: () => void;
@@ -31,8 +28,9 @@ type Props = {
   startCrop?: boolean;
   /** 右键菜单“移到回收站”（#114）；不给出时（例如正在看回收站里的图）菜单里没有这一项。 */
   onTrash?: () => void;
-  /** 安全模式开启：含成人内容的图被遮蔽时，信息面板不显示它的标签（#147）。 */
-  safe?: boolean;
+  /** 旁边的详情侧栏是否显示着（#179）：I 键、dock 的“详情”与右键菜单的“详情”切换它。 */
+  inspectorOpen?: boolean;
+  onToggleInspector?: () => void;
 };
 type Background = "dark" | "mid" | "light" | "checker";
 const grounds: Background[] = ["dark", "mid", "light", "checker"];
@@ -45,12 +43,13 @@ const OneToOne = ({ size = 19 }: { size?: number }) => <svg width={size} height=
 
 
 /**
- * 查看器盖在图片墙上，原位置与已加载的卡片保留。
+ * 查看器盖在图片墙所在的区域（#179），原位置与已加载的卡片保留；左侧栏、顶栏与旁边的详情侧栏照常可用。
+ * 图片的信息与标签都在详情侧栏里，查看器不另放信息浮层；缩放比例在工具栏上。
  *
  * 钉到桌面（#65）：“钉住整图”，或 Shift+拖动（或先按“框选局部”）框出一块，按 Enter 或“钉住局部”。
  * 选区按原图像素记，标出“宽 × 高 原始像素”，缩放平移时边界不变。
  */
-export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, sourceName, position, onStep, startCrop = false, onTrash, safe = false }: Props) {
+export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, position, onStep, startCrop = false, onTrash, inspectorOpen = false, onToggleInspector }: Props) {
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0, dpr: window.devicePixelRatio || 1 });
@@ -77,7 +76,6 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   const select = useRef<{ id: number; start: Point } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [pinStatus, setPinStatus] = useState<string | null>(null);
-  const [info, setInfo] = useState(false);
   const [name, setName] = useState<string | null>(null);
   const { dpr } = viewport;
   const closeRef = useRef(onClose);
@@ -146,8 +144,6 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   useEffect(() => {
     const el = stage.current!;
     const wheel = (event: WheelEvent) => {
-      // 信息面板里的滚轮滚动标签列表（#147），不缩放图片。
-      if ((event.target as Element).closest?.(".viewer-info")) return;
       event.preventDefault();
       const rect = el.getBoundingClientRect();
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.height : 1;
@@ -267,7 +263,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
       const inDock = !!(e.target as Element).closest?.(".k-dock");
       const shortcut: Record<string, () => void> = {
         "0": () => reset("fit"), "1": () => reset("pixels"), F1: toggleSelecting,
-        p: () => pin(null), P: () => pin(null), i: () => setInfo((on) => !on), I: () => setInfo((on) => !on),
+        p: () => pin(null), P: () => pin(null), i: () => onToggleInspector?.(), I: () => onToggleInspector?.(),
       };
       if (shortcut[e.key]) { e.preventDefault(); shortcut[e.key](); return; }
       if (!inDock && position && onStep && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
@@ -281,16 +277,6 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     if (e.key === "Enter" && crop && !(e.target as Element).closest?.("button, select")) {
       e.preventDefault(); pin(crop); return;
     }
-    if (e.key === "Tab") {
-      const controls = [...root.current!.querySelectorAll<HTMLElement>("button:not(:disabled), select")];
-      const first = controls[0];
-      const last = controls.at(-1)!;
-      if (e.shiftKey && (document.activeElement === first || document.activeElement === root.current)) {
-        e.preventDefault(); last.focus();
-      } else if (!e.shiftKey && (document.activeElement === last || document.activeElement === root.current)) {
-        e.preventDefault(); first.focus();
-      }
-    }
   };
   const shownCropRect = cropRect && crop && !dragging ? cropRect : null;
   const viewerTools: DockItem[] = [
@@ -302,14 +288,14 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     "sep",
     { id: "ground", label: "背景", icon: swatch(background), trayValue: background,
       tray: grounds.map((ground) => ({ id: ground, label: groundNames[ground], icon: swatch(ground) })) },
-    { id: "info", label: "信息", icon: <Info size={19} strokeWidth={1.75} />, shortcut: "I" },
+    { id: "inspector", label: inspectorOpen ? "隐藏详情" : "显示详情", icon: <PanelRight size={19} strokeWidth={1.75} />, shortcut: "I" },
   ];
   const tool = (id: string, member?: string) => {
     if (id === "fit" || id === "pixels") reset(id);
     else if (id === "crop") toggleSelecting();
     else if (id === "pin") pin(null);
     else if (id === "ground" && member) setBackground(member as Background);
-    else if (id === "info") setInfo((on) => !on);
+    else if (id === "inspector") onToggleInspector?.();
   };
   const cropTool = (id: string) => {
     if (id === "pin" && crop) pin(crop);
@@ -318,28 +304,27 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   };
   const toolValue = selecting ? "crop" : mode === "zoom" ? null : mode;
   return (
-    <section ref={root} className="viewer" role="dialog" aria-modal="true" aria-label="原图查看器"
+    <section ref={root} className="viewer" role="region" aria-label="原图查看器"
       tabIndex={-1} onKeyDown={keyDown}>
-      <header className="viewer-bar" data-tauri-drag-region>
+      <header className="viewer-bar">
         <button type="button" className="k-btn is-quiet viewer-back" aria-label="返回图片墙" onClick={onClose}><ArrowLeft size={16} />返回</button>
-        <span className="viewer-title" title={name ?? undefined} data-tauri-drag-region>{name}</span>
+        <span className="viewer-title" title={name ?? undefined}>{name}</span>
         {position && <>
-          <span className="viewer-index" data-tauri-drag-region>{position.index + 1} / {position.total}</span>
+          <span className="viewer-index">{position.index + 1} / {position.total}</span>
           <button type="button" className="k-icon-btn" aria-label="上一张" title="上一张 ←" disabled={position.index <= 0} onClick={() => onStep?.(-1)}><ChevronLeft size={16} /></button>
           <button type="button" className="k-icon-btn" aria-label="下一张" title="下一张 →" disabled={position.index >= position.total - 1} onClick={() => onStep?.(1)}><ChevronRight size={16} /></button>
         </>}
-        <span className="k-grow" data-tauri-drag-region />
+        <span className="k-grow" />
         <div className="viewer-zoom">
           <button type="button" className="k-icon-btn" aria-label="缩小" title="缩小" onClick={() => zoomAt(0.8)}><Minus size={15} /></button>
           <output aria-label="缩放比例">{Math.round(physicalWidth / card.width * 100)}%</output>
           <button type="button" className="k-icon-btn" aria-label="放大" title="放大" onClick={() => zoomAt(1.25)}><Plus size={15} /></button>
         </div>
-        <WinCtrls />
       </header>
       <ContextMenu.Root>
       <ContextMenu.Trigger render={<div className="viewer-stage" ref={stage} data-background={background}
         onPointerDown={(e) => {
-          if (e.button !== 0 || drag.current || select.current || (e.target as Element).closest("button, .k-dock, .viewer-info")) return;
+          if (e.button !== 0 || drag.current || select.current || (e.target as Element).closest("button, .k-dock")) return;
           e.preventDefault();
           e.currentTarget.setPointerCapture?.(e.pointerId);
           if (e.shiftKey || selecting) {
@@ -387,16 +372,6 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
             { id: "cancel", label: "取消", icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },
           ]} />
         </FollowDock>}
-        {info && <section className="viewer-info" aria-label="图片信息">
-          <dl>
-            {name && <><dt>文件</dt><dd>{name}</dd></>}
-            <dt>尺寸</dt><dd>{card.width} × {card.height} 原始像素</dd>
-            <dt>缩放</dt><dd>{Math.round(physicalWidth / card.width * 100)}%</dd>
-            {sourceName && <><dt>图库</dt><dd>{sourceName}</dd></>}
-          </dl>
-          <p>滚轮缩放 · 拖动平移 · Shift+拖动框选局部 · Esc 返回</p>
-          {!(safe && card.adult) && <ViewerTags libraryId={libraryId} imageId={card.id} reloadKey={reloadKey} />}
-        </section>}
         {pinStatus && <p className="viewer-pin-status" role="status">{pinStatus}</p>}
         <div className="viewer-dock"><Dock label="查看工具" items={viewerTools} value={toolValue} onSelect={tool} /></div>
       </ContextMenu.Trigger>
@@ -413,7 +388,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
             {grounds.map((ground) => <MenuRadioItem key={ground} value={ground}>{groundNames[ground]}</MenuRadioItem>)}
           </Menu.RadioGroup>
         </MenuSubmenu>
-        <MenuCheckboxItem checked={info} onCheckedChange={setInfo} kbd="I">信息</MenuCheckboxItem>
+        <MenuCheckboxItem checked={inspectorOpen} onCheckedChange={() => onToggleInspector?.()} kbd="I">详情</MenuCheckboxItem>
         <MenuSeparator />
         <MenuItem icon={<FolderSearch size={14} />} onClick={reveal}>在资源管理器中显示</MenuItem>
         {onTrash && <>

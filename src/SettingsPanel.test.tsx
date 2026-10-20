@@ -102,6 +102,15 @@ describe("设置：常驻与快捷键", () => {
     expect(calls.find((c) => c.cmd === "set_autostart")?.args).toEqual({ on: false });
   });
 
+  it("快捷键页列出查看器的操作提示（#179，原在查看器的信息浮层里）", async () => {
+    backend(() => undefined);
+    render(<SettingsPanel initialTab="keys" />);
+    const group = await screen.findByRole("list", { name: "查看器" });
+    expect(within(within(group).getByRole("listitem", { name: "框选局部" })).getByText("拖动")).toBeTruthy();
+    expect(within(group).getByRole("listitem", { name: "返回图片墙" }).textContent).toContain("Esc");
+    expect(within(group).getByRole("listitem", { name: "显示或隐藏详情" }).textContent).toContain("I");
+  });
+
   it("按下新的组合键即更换快捷键", async () => {
     const calls = backend((cmd) =>
       cmd === "rebind_shortcut"

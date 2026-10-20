@@ -19,6 +19,15 @@ import type { SearchInput } from "./bindings/SearchInput";
 import type { TagLabel } from "./bindings/TagLabel";
 import { App } from "./App";
 
+/** 浏览器里的双击：两次按下与单击，再一次 dblclick。双击按第一下的图判定（#179）。 */
+function doubleClick(target: Element) {
+  for (const detail of [1, 2]) {
+    fireEvent.pointerDown(target, { button: 0 });
+    fireEvent.click(target, { detail });
+  }
+  fireEvent.doubleClick(target, { detail: 2 });
+}
+
 const info: AppInfo = { productName: "Kinshoko", version: "9.9.9" };
 const library: LibraryInfo = { id: "L1", name: "工作参考", root: "D:\\参考\\工作参考" };
 const page: BrowsePage = {
@@ -428,8 +437,9 @@ describe("主窗口", () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.click(document.querySelector<HTMLElement>('[data-id="a"]')!);
     const card = document.querySelector<HTMLElement>('[data-id="a"]')!;
+    // 用空格选中：单击后的双击间隔里图片墙本就不重排（#179），这里只看拖动。
+    fireEvent.keyDown(card, { key: " " });
     const handle = screen.getByRole("separator", { name: "调整详情宽度" });
     const initial = card.style.width;
     fireEvent.pointerDown(handle, { clientX: 1000, button: 0, pointerId: 1 });
@@ -497,8 +507,8 @@ describe("主窗口", () => {
     const card = document.querySelector<HTMLElement>('[data-id="a"]')!;
     wall.scrollTop = 120;
     fireEvent.scroll(wall);
-    fireEvent.doubleClick(card);
-    const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
+    doubleClick(card);
+    const viewer = await screen.findByRole("region", { name: "原图查看器" });
     expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/L1/a/full");
     fireEvent.keyDown(viewer, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -506,7 +516,7 @@ describe("主窗口", () => {
     expect(document.activeElement).toBe(card);
 
     fireEvent.keyDown(card, { key: "Enter" });
-    expect(await screen.findByRole("dialog", { name: "原图查看器" })).toBeTruthy();
+    expect(await screen.findByRole("region", { name: "原图查看器" })).toBeTruthy();
   });
 
   it("单击参考图：选中它并展开详情面板，不打开查看器；单击空白处收起（#146）", async () => {
@@ -517,31 +527,12 @@ describe("主窗口", () => {
     expect(inspector()).toBeNull();
     fireEvent.click(document.querySelector<HTMLElement>('[data-id="a"]')!);
     expect(inspector()!.getAttribute("data-collapsed")).toBe("false");
-    const preview = await within(inspector()!).findByAltText("所选参考图");
-    expect(preview.getAttribute("src")).toBe("http://thumb.localhost/L1/a/256");
-    expect(screen.queryByRole("dialog", { name: "原图查看器" })).toBeNull();
+    expect(inspector()!.dataset.selection).toBe("a");
+    // 详情面板里没有缩略图（#179）。
+    expect(within(inspector()!).queryByRole("img")).toBeNull();
+    expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull();
     fireEvent.click(document.querySelector<HTMLElement>(".wall-canvas")!);
     expect(inspector()).toBeNull();
-  });
-
-  it("F1 落在详情面板的预览图上时登记为参考图来源，读原始像素", async () => {
-    backend(library);
-    const rect = HTMLElement.prototype.getBoundingClientRect;
-    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
-      if (this.matches(".insp-preview")) return new DOMRect(700, 70, 288, 220);
-      return this.matches(".inspector") ? new DOMRect(680, 0, 320, 800) : rect.call(this);
-    });
-    render(<App />);
-    await screen.findAllByRole("img");
-    fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
-    const preview = await screen.findByAltText("所选参考图");
-    Object.defineProperties(preview, { complete: { configurable: true, value: true }, naturalWidth: { configurable: true, value: 128 }, naturalHeight: { configurable: true, value: 256 } });
-    calls = [];
-    await act(async () => { await emit("capture-reference-request", { request: "inspector" }); });
-    await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:desktop|report_capture_references")).toBe(true));
-    const report = calls.find((c) => c.cmd === "plugin:desktop|report_capture_references")!.args as { request: string; frame: { references: unknown[] } };
-    // 卡片 a 是 100 × 200，contain 进 288 × 220 的预览框后居中显示为 110 × 220。
-    expect(report.frame.references).toContainEqual(expect.objectContaining({ libraryId: "L1", imageId: "a", shown: { x: 789, y: 70, width: 110, height: 220 } }));
   });
 
   it("查看器的下一张 / 上一张按图片墙顺序换图", async () => {
@@ -549,14 +540,80 @@ describe("主窗口", () => {
     render(<App />);
     await screen.findAllByRole("img");
     const ids = [...document.querySelectorAll<HTMLElement>(".wall [data-id]")].map((card) => card.dataset.id!);
-    fireEvent.doubleClick(document.querySelector<HTMLElement>(`[data-id="${ids[0]}"]`)!);
-    const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
+    doubleClick(document.querySelector<HTMLElement>(`[data-id="${ids[0]}"]`)!);
+    const viewer = await screen.findByRole("region", { name: "原图查看器" });
     expect(within(viewer).getByText(`1 / ${ids.length}`)).toBeTruthy();
     fireEvent.click(within(viewer).getByRole("button", { name: "下一张" }));
     await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/L1/${ids[1]}/full`));
     expect(within(viewer).getByText(`2 / ${ids.length}`)).toBeTruthy();
     fireEvent.keyDown(viewer, { key: "ArrowLeft" });
     await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/L1/${ids[0]}/full`));
+  });
+
+  it("查看器只盖住图片墙（#179）：左栏、顶栏可用，详情侧栏在旁边跟着 ←/→ 换图，I 键显示或隐藏它", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const ids = [...document.querySelectorAll<HTMLElement>(".wall [data-id]")].map((card) => card.dataset.id!);
+    const inspector = () => document.querySelector<HTMLElement>("aside.inspector");
+    doubleClick(document.querySelector<HTMLElement>(`[data-id="${ids[0]}"]`)!);
+    const viewer = await screen.findByRole("region", { name: "原图查看器" });
+    // 查看器在图片墙所在的区域里，图片大小调整条藏起来；左栏、顶栏与详情侧栏都不是 inert。
+    expect(viewer.closest(".wall-host")).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "图片大小" })).toBeNull();
+    expect(screen.getByRole("listbox", { name: "图片墙" }).hasAttribute("inert")).toBe(true);
+    for (const area of [document.querySelector(".rail-slot")!, screen.getByRole("complementary", { name: "文件夹" }), document.querySelector(".topbar")!, inspector()!]) {
+      expect(area.closest("[inert]")).toBeNull();
+    }
+    expect(inspector()!.dataset.selection).toBe(ids[0]);
+    expect(inspector()!.dataset.collapsed).toBe("false");
+    fireEvent.keyDown(viewer, { key: "ArrowRight" });
+    await waitFor(() => expect(inspector()!.dataset.selection).toBe(ids[1]));
+    // I 隐藏详情侧栏；换图时保持隐藏。
+    fireEvent.keyDown(viewer, { key: "i" });
+    expect(inspector()!.dataset.collapsed).toBe("true");
+    fireEvent.keyDown(viewer, { key: "ArrowLeft" });
+    await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/L1/${ids[0]}/full`));
+    expect(inspector()!.dataset.collapsed).toBe("true");
+    fireEvent.click(within(viewer).getByRole("button", { name: /^显示详情/ }));
+    expect(inspector()!.dataset.collapsed).toBe("false");
+    fireEvent.keyDown(viewer, { key: "ArrowRight" });
+    await waitFor(() => expect(inspector()!.dataset.selection).toBe(ids[1]));
+    // Esc：选择是最后看的那张，侧栏开合不变，那张卡片获得焦点。
+    fireEvent.keyDown(viewer, { key: "Escape" });
+    expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull();
+    const last = document.querySelector<HTMLElement>(`[data-id="${ids[1]}"]`)!;
+    expect(last.getAttribute("aria-selected")).toBe("true");
+    expect(document.querySelectorAll('.wall [aria-selected="true"]')).toHaveLength(1);
+    expect(inspector()!.dataset.collapsed).toBe("false");
+    expect(document.activeElement).toBe(last);
+    expect(screen.getByRole("group", { name: "图片大小" })).toBeTruthy();
+  });
+
+  it("查看中在左栏切换浏览范围：离开查看器，进入新的范围（#179）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await screen.findByRole("region", { name: "原图查看器" });
+    await expandLibrary();
+    fireEvent.click(await screen.findByRole("button", { name: "人物（1 张）" }));
+    expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull();
+    expect(screen.getByRole("button", { name: "人物（1 张）" }).getAttribute("aria-current")).toBe("page");
+  });
+
+  it("单击已选中的唯一那张打开查看器；多选时单击其中一张只收缩选择（#179）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const card = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
+    fireEvent.click(card("a"));
+    fireEvent.click(card("b"), { ctrlKey: true });
+    fireEvent.click(card("a"));
+    expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull();
+    expect(document.querySelectorAll('.wall [aria-selected="true"]')).toHaveLength(1);
+    fireEvent.click(card("a"));
+    expect(await screen.findByRole("region", { name: "原图查看器" })).toBeTruthy();
   });
 
   it("查看器的下一张越过已读到的卡片时，先读下一页再换图", async () => {
@@ -578,8 +635,8 @@ describe("主窗口", () => {
     wall.scrollTop = parseFloat(wall.querySelector<HTMLElement>(".wall-canvas")!.style.height) - 800;
     fireEvent.scroll(wall);
     const lastLoaded = await waitFor(() => { const node = document.querySelector<HTMLElement>('[data-id="p499"]'); if (!node) throw new Error("not mounted"); return node; });
-    fireEvent.doubleClick(lastLoaded);
-    const viewer = await screen.findByRole("dialog", { name: "原图查看器" });
+    doubleClick(lastLoaded);
+    const viewer = await screen.findByRole("region", { name: "原图查看器" });
     expect(within(viewer).getByText("500 / 501")).toBeTruthy();
     const next = within(viewer).getByRole("button", { name: "下一张" });
     expect((next as HTMLButtonElement).disabled).toBe(false);
@@ -593,8 +650,8 @@ describe("主窗口", () => {
     backend(library, clean, undefined, false);
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
-    await screen.findByRole("dialog", { name: "原图查看器" });
+    doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await screen.findByRole("region", { name: "原图查看器" });
     await push({ kind: "safeModeChanged", libraryId: "L1", on: true });
     expect(screen.queryByRole("dialog")).toBeNull();
   });
@@ -603,8 +660,8 @@ describe("主窗口", () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
-    await screen.findByRole("dialog", { name: "原图查看器" });
+    doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await screen.findByRole("region", { name: "原图查看器" });
     gone.add("a");
     await push({ kind: "listStale", libraryId: "L1" });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -614,26 +671,26 @@ describe("主窗口", () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
-    await screen.findByRole("dialog", { name: "原图查看器" });
+    doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await screen.findByRole("region", { name: "原图查看器" });
 
     await act(() => emit("organize-waiting", { libraryId: "L2", finishing: ["工作参考"] }));
 
     expect(await screen.findByText("导入收尾后再整理")).toBeTruthy();
     expect(screen.getByText("「工作参考」的导入完成后自动执行")).toBeTruthy();
-    expect(screen.getByRole("dialog", { name: "原图查看器" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "原图查看器" })).toBeTruthy();
   });
 
   it("后端按需切到的另一个图库：它的列表变化刷新图片墙，它的安全模式与导入事件不串台（#112）", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
-    fireEvent.doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
-    await screen.findByRole("dialog", { name: "原图查看器" });
+    doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await screen.findByRole("region", { name: "原图查看器" });
 
     await push({ kind: "safeModeChanged", libraryId: "L2", on: true });
     await push({ kind: "taskProgress", libraryId: "L2", taskId: "T9", progress: { done: 1, total: 9 } });
-    expect(screen.getByRole("dialog", { name: "原图查看器" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "原图查看器" })).toBeTruthy();
     expect(screen.queryByRole("progressbar")).toBeNull();
 
     gone.add("a");

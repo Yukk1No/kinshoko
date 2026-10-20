@@ -136,3 +136,53 @@ it("在面板过渡中途重建的图片墙仍按当前宽度先排出来", asyn
   await screen.findAllByRole("img");
   expect(placement()).toEqual(expected);
 });
+
+// #179：单击卡片会展开详情侧栏。重排落在双击间隔内时第二下会点偏，所以过渡结束后还要等双击间隔过去才重排。
+it("单击卡片后在双击间隔内不重排；间隔过后、过渡也结束时只重排一次", async () => {
+  const { hold } = await setup();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+  try {
+    const before = placement();
+    const first = document.querySelector<HTMLElement>(".wall .card")!;
+    fireEvent.pointerDown(first, { button: 0, clientX: 40, clientY: 40 });
+    fireEvent.click(first, { clientX: 40, clientY: 40 });
+    hold(true);
+    for (const next of [940, 790, 680]) resize(next);
+    act(() => { vi.advanceTimersByTime(200); });
+    // 过渡先结束：仍在双击间隔里，不重排。
+    hold(false);
+    expect(placement()).toEqual(before);
+    act(() => { vi.advanceTimersByTime(250); });
+    expect(placement()).toEqual(before);
+    motions = [];
+    act(() => { vi.advanceTimersByTime(60); });
+    const after = placement();
+    expect(after).not.toEqual(before);
+    const ids = motions.map((motion) => motion.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    act(() => { vi.advanceTimersByTime(1000); });
+    resize(680);
+    expect(placement()).toEqual(after);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("双击间隔先过去、过渡后结束：过渡结束时重排一次", async () => {
+  const { hold } = await setup();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+  try {
+    const before = placement();
+    const first = document.querySelector<HTMLElement>(".wall .card")!;
+    fireEvent.pointerDown(first, { button: 0, clientX: 40, clientY: 40 });
+    fireEvent.click(first, { clientX: 40, clientY: 40 });
+    hold(true);
+    resize(800);
+    act(() => { vi.advanceTimersByTime(600); });
+    expect(placement()).toEqual(before);
+    hold(false);
+    expect(placement()).not.toEqual(before);
+  } finally {
+    vi.useRealTimers();
+  }
+});

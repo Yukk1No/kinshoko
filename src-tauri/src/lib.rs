@@ -78,6 +78,7 @@ pub fn run() {
             commands::migrate_viewer_background,
             commands::ui_scale,
             commands::set_ui_scale,
+            commands::double_click,
             commands::set_inspector_width,
             diagnostics::diagnostics_report,
             diagnostics::runtime_status,
