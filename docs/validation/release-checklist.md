@@ -59,7 +59,7 @@
 ### 每次发布
 
 - [ ] 在 GitHub 的分支菜单里从 `integration/v1` 新建分支 `release/v<版本号>`（例如 `release/v1.0.0-beta.1`；正式版也从 `integration/v1` 建）。`prepare-release` 会在这个分支上改好 `Cargo.toml`、`Cargo.lock`、`package.json`、`package-lock.json` 的版本号，运行摘要里给出开 PR 的链接。（不用 Actions 页面的“Run workflow”：它要求工作流文件在默认分支 `main` 上。）
-- [ ] 打开这个 PR、等 CI 通过后合并。测试版、候选版合并后 `tag-release` 就打标签 `v1.0.0-beta.1` 并调用 `release`；正式版要再随 PR #71 合进 `main`，`tag-release` 才在 `main` 上打标签。带 `-` 的版本建成预发布；预发布不算 `releases/latest`，自动更新不会推送给已安装的用户。
+- [ ] 打开这个 PR、等 CI 通过后合并。测试版、候选版合并后 `tag-release` 就打标签 `v1.0.0-beta.1` 并调用 `release`；正式版要再随 PR #71 合进 `main`，`tag-release` 才在 `main` 上打标签。带 `-` 的版本建成预发布；预发布不算 `releases/latest`，正式版通道收不到，测试版通道经 `channel-beta` 收到（见下面 `beta-channel` 一条）。
 - [ ] `release` 工作流检查标签与版本一致，构建、静默安装检查（`kinshoko.exe` 与 `DirectML.dll` 都在安装目录），建一个**草稿** Release，附件为安装包、`.sig` 与 `latest.json`，说明文字是 [安装说明](../install.md) 加自动生成的变更列表。
 - [ ] 下载草稿里的安装包，在**没有开发环境的 Windows**（例如新建的 Windows 沙盒或干净的虚拟机）上以普通用户安装：不出现管理员确认；SmartScreen 提示按 [安装说明](../install.md) 点“仍要运行”后能装上；启动后能建库、导入、看图；打标能用（DirectML 或 CPU）。
 - [ ] 在 GitHub 上发布这个草稿 Release（发布前 updater 看不到它）。
