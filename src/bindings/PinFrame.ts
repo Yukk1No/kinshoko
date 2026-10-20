@@ -4,10 +4,10 @@ import type { SavedPin } from "./SavedPin";
 import type { ScreenRect } from "./ScreenRect";
 
 /**
- * 应用壳发给钉图窗口的一帧：画什么、原生窗口此刻在哪、内容要到哪（#64）。
+ * 应用壳发给钉图层的一帧：画哪个钉图、画什么、层的原生窗口在哪、内容要到哪（#64）。
  *
- * 内容在窗口里变换，不逐帧改原生窗口。窗口静止时就是显示器那么大，窗口区域把显示和点击限定在
- * 内容上（#193）；页面总把内容画在 `content` 相对 `window` 的位置。
+ * 钉图都画在所在显示器的钉图层里，层的窗口铺满显示器、从不移动，窗口区域把显示和点击限定在
+ * 钉图上（#193）；页面把内容画在 `content` 相对 `window` 的位置。
  */
 export type PinFrame = { pin: SavedPin, window: ScreenRect, content: ScreenRect, motion: PinMotion, 
 /**
@@ -25,7 +25,11 @@ unavailable?: string,
  */
 generation: number, 
 /**
- * 窗口区域还盖着内容以外的地方（动画、拖动或翻转刚开始）：页面画完、手势结束后调用
+ * 钉图的区域还盖着内容以外的地方（动画、拖动或翻转刚开始）：页面画完、手势结束后调用
  * `settle_pin`，把区域缩回内容（#193）。
  */
-settle: boolean, };
+settle: boolean, 
+/**
+ * 钉图之间的上下次序：大的在上。按下、新钉的钉图到最上面（#193）。
+ */
+z: number, };

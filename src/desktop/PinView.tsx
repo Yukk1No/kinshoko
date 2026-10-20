@@ -12,6 +12,7 @@ import {
   pinFrame,
   pinMenu,
   pinReady,
+  raisePin,
   revealPin,
   setPinOpacity,
   settlePin,
@@ -30,6 +31,7 @@ import {
   pressOpensMenu,
   wheelOpacity,
 } from "./motion";
+import { PinKeys } from "./pinKeys";
 import { createCanvas2dRenderer, pinSourceSize, type PinRenderer, type PinSource } from "./renderer";
 import {
   cornerZoomScale,
@@ -112,11 +114,12 @@ const SETTLE_IDLE_MS = 120;
 const MENU_DEDUPE_MS = 800;
 
 /**
- * 钉图窗口：按 DPI 像素规则把截图画在物理像素尺寸的 canvas 上（未缩放时与截图逐像素一致）。
+ * 钉图层里的一个钉图：按 DPI 像素规则把截图画在物理像素尺寸的 canvas 上（未缩放时与截图逐像素一致）。
  *
- * 几何由应用壳以帧（`pin-frame`）推来：原生窗口在哪、内容要到哪。窗口静止时就是显示器那么大，
- * 窗口区域把显示和点击限定在内容上（#193）；缩放、贴边滑动与拖动只在窗口里变换内容，不改原生窗口
- * （#7、#64）。画完以后（帧带 `settle` 时）请应用壳把窗口区域缩回内容。
+ * 几何由应用壳以帧（`pin-frame`）推来：层的窗口在哪、内容要到哪。层铺满显示器、从不移动，窗口区域
+ * 把显示和点击限定在钉图上（#193）；缩放、贴边滑动与拖动只在层里变换内容（#7、#64）。画完以后
+ * （帧带 `settle` 时）请应用壳把区域缩回内容。钉图之间的上下次序按帧里的 `z`，按下的到最上面。
+ * 快捷键由层分给光标下（或最近按过）的钉图（[`PinKeys`]）。
  *
  * 笔、鼠标与触摸走同一套 pointer 处理（#7：Windows Ink 下笔拖动没有系统拖动需要的鼠标事件）：
  * 按住拖动移动，按住右下角拖动缩放，锁定时都不响应。滚轮以光标为中心缩放，Ctrl+滚轮调透明度；
@@ -125,7 +128,7 @@ const MENU_DEDUPE_MS = 800;
  * 画面由可替换的钉图渲染器（[`PinRenderer`]，目前只有 canvas 2D）画。资料库钉图（#65）缩小时以
  * Rust 派生图为源；安全模式下被封印的图原位模糊并显示小圆锁，确认后只显示这一张。
  */
-export function PinView({ pin }: { pin: string }) {
+export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
   const host = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture | null>(null);
@@ -250,6 +253,7 @@ export function PinView({ pin }: { pin: string }) {
       redraw(false);
       if (renderer) pickSource(false);
       if (body.current) body.current.style.opacity = String(f.pin.opacity);
+      if (host.current) host.current.style.zIndex = String(f.z);
       setLocked(f.pin.locked);
       setUnavailable(f.unavailable ?? null);
       clearTimeout(settle);
@@ -261,7 +265,7 @@ export function PinView({ pin }: { pin: string }) {
       tick();
     };
 
-    const frames = onPinFrame((f) => {
+    const frames = onPinFrame(pin, (f) => {
       if (alive) apply.current(f);
     });
     (async () => {
@@ -286,7 +290,7 @@ export function PinView({ pin }: { pin: string }) {
       window.addEventListener("resize", onResize);
       await pinReady(pin);
     })();
-    const unlisten = onPinNotice((text) => setNotice(text));
+    const unlisten = onPinNotice(pin, (text) => setNotice(text));
     return () => {
       alive = false;
       cancelAnimationFrame(raf);
@@ -335,13 +339,9 @@ export function PinView({ pin }: { pin: string }) {
     return () => el.removeEventListener("wheel", onWheel);
   }, [pin]);
 
+  // H/V 翻转，R/Shift+R 旋转，Esc 关闭：层把按键交给光标下（或最近按过）的钉图。
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // 不让 WebView 自己缩放页面。
-      if (e.ctrlKey && ["+", "-", "=", "0"].includes(e.key)) {
-        e.preventDefault();
-        return;
-      }
+    return keys.register(pin, (e) => {
       if (e.ctrlKey || e.altKey || e.metaKey) return;
       if (e.key === "Escape") {
         e.preventDefault();
@@ -353,10 +353,8 @@ export function PinView({ pin }: { pin: string }) {
       if (!turn) return;
       e.preventDefault();
       void turnPin(pin, turn);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [pin]);
+    });
+  }, [pin, keys]);
 
   /**
    * 指针在内容上（CSS 像素，相对窗口）。窗口区域在动画、拖动刚结束的一小会儿里还盖着内容以外的
@@ -387,11 +385,14 @@ export function PinView({ pin }: { pin: string }) {
       openMenu();
       return;
     }
+    keys.press(pin);
+    void raisePin(pin);
     if (e.button !== 0) return;
     const f = frame.current;
     if (!f) return;
     e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
+    // 捕获在内容上：外层只是铺满层的定位框，不接指针（#193）。
+    body.current?.setPointerCapture(e.pointerId);
     const at = { x: e.screenX, y: e.screenY };
     const base = {
       pointerId: e.pointerId,
@@ -468,7 +469,12 @@ export function PinView({ pin }: { pin: string }) {
           ? <RuntimeFailure className="pin-runtime-problem" problems={["当前 WebView2 无法建立二维画布，钉图无法显示。"]} />
           : <RuntimeNotice className="pin-runtime-problem" />}
       </div>
-      <div ref={body} className="pin-content">
+      <div
+        ref={body}
+        className="pin-content"
+        onPointerEnter={() => keys.enter(pin)}
+        onPointerLeave={() => keys.leave(pin)}
+      >
         <div className="pin-appear" aria-hidden />
         <div className="pin-veil" aria-hidden={!veiled}>
           {veiled && !confirming && (

@@ -1,6 +1,7 @@
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PinFrame } from "../bindings/PinFrame";
+import { PinKeys } from "./pinKeys";
 import type { PinSource } from "./renderer";
 
 // 资料库钉图的遮蔽与源图（#65、#77 UI-D）。IPC、解码与渲染器用受控替身；原生画面见发布检查清单。
@@ -12,7 +13,7 @@ const ipc = vi.hoisted(() => ({
 vi.mock("../ipc", () => ({
   captureUrl: (address: string) => `capture://${address}`,
   movePin: () => Promise.resolve(),
-  onPinFrame: (handler: (frame: PinFrame) => void) => {
+  onPinFrame: (_pin: string, handler: (frame: PinFrame) => void) => {
     ipc.frame = handler;
     return Promise.resolve(() => {});
   },
@@ -22,6 +23,7 @@ vi.mock("../ipc", () => ({
   pinMenu: () => Promise.resolve(),
   revealPin: () => Promise.resolve(),
   pinReady: () => Promise.resolve(),
+  raisePin: () => Promise.resolve(),
   setPinOpacity: () => Promise.resolve(),
   settlePin: () => Promise.resolve(),
   turnPin: () => Promise.resolve(),
@@ -62,6 +64,7 @@ function frame(side: number, scale: number, veiled: boolean): PinFrame {
     veiled,
     generation: 0,
     settle: false,
+    z: 1,
   };
 }
 
@@ -81,7 +84,7 @@ async function decode(address: string) {
 /** 打开一张遮蔽中的钉图，并让第一张源图解码完成。 */
 async function showVeiled(first: PinFrame, address: string): Promise<HTMLDivElement> {
   ipc.first = first;
-  const { container } = render(<PinView pin="P1" />);
+  const { container } = render(<PinView pin="P1" keys={keys} />);
   await flush();
   await decode(address);
   const host = container.querySelector<HTMLDivElement>(".pin")!;
@@ -90,6 +93,8 @@ async function showVeiled(first: PinFrame, address: string): Promise<HTMLDivElem
 }
 
 const veiled = (host: HTMLElement) => host.classList.contains("pin-veiled");
+
+const keys = new PinKeys();
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });

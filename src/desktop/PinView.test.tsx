@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PinFrame } from "../bindings/PinFrame";
+import { PinKeys } from "./pinKeys";
 
 // 钉图窗口的指针手势（#63、#64、#76 UI2）。IPC 用替身；原生 Windows Ink/WinTab 验收见发布检查清单。
 const ipc = vi.hoisted(() => ({
@@ -16,7 +17,7 @@ const ipc = vi.hoisted(() => ({
 vi.mock("../ipc", () => ({
   captureUrl: () => "unused",
   movePin: ipc.move,
-  onPinFrame: (handler: (frame: PinFrame) => void) => {
+  onPinFrame: (_pin: string, handler: (frame: PinFrame) => void) => {
     ipc.frame = handler;
     return Promise.resolve(() => {});
   },
@@ -26,6 +27,7 @@ vi.mock("../ipc", () => ({
   pinMenu: ipc.menu,
   revealPin: ipc.reveal,
   pinReady: () => Promise.resolve(),
+  raisePin: () => Promise.resolve(),
   setPinOpacity: () => Promise.resolve(),
   settlePin: ipc.settle,
   turnPin: ipc.turn,
@@ -66,11 +68,12 @@ function frame(locked = false, veiled = false): PinFrame {
     veiled,
     generation: 0,
     settle: false,
+    z: 1,
   };
 }
 
 async function showPin(locked = false, veiled = false): Promise<HTMLDivElement> {
-  const { container } = render(<PinView pin="P1" />);
+  const { container } = render(<PinView pin="P1" keys={keys} />);
   await act(async () => {
     await Promise.resolve();
   });
@@ -84,11 +87,19 @@ async function showPin(locked = false, veiled = false): Promise<HTMLDivElement> 
 
 const hold = (ms: number) => act(() => vi.advanceTimersByTime(ms));
 
+let keys = new PinKeys();
+let detach = () => {};
+
 beforeEach(() => {
+  keys = new PinKeys();
+  detach = keys.attach(window);
+  // jsdom 没有指针捕获；按下时捕获在内容元素上。
+  Element.prototype.setPointerCapture = () => {};
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
 });
 afterEach(() => {
+  detach();
   cleanup();
   vi.useRealTimers();
   vi.clearAllMocks();

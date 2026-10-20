@@ -1,5 +1,5 @@
 //! 直接调用的 Windows 接口：显示器当前使用的颜色配置文件（ICC，#62）；前台窗口、交还焦点与
-//! 光标位置（贴边隐藏，#63）；一次调用同时改钉图窗口的位置与尺寸（#64）与钉图的窗口区域（#193）；诊断日志用的系统版本、
+//! 光标位置（贴边隐藏，#63）；一次调用同时改窗口的位置与尺寸（#64）与钉图层的窗口区域（#193）；诊断日志用的系统版本、
 //! 处理器、内存、显卡与显示器色彩模式（#70）；冻结截图时盖在参考图上的窗口（含 DWM 云化与
 //! 分层透明度，#125）；还没有窗口时的启动错误提示（#145）。
 //!
@@ -14,8 +14,8 @@ use std::ptr;
 use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
 use windows_sys::Win32::Graphics::Dwm::{DWMWA_CLOAKED, DwmGetWindowAttribute};
 use windows_sys::Win32::Graphics::Gdi::{
-    CreateDCW, CreateRectRgn, DeleteDC, DeleteObject, GetWindowRgnBox, NULLREGION, RGN_ERROR,
-    SetWindowRgn,
+    CombineRgn, CreateDCW, CreateRectRgn, DeleteDC, DeleteObject, GetWindowRgnBox, NULLREGION,
+    RGN_ERROR, RGN_OR, SetWindowRgn,
 };
 use windows_sys::Win32::UI::ColorSystem::GetICMProfileW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -203,19 +203,28 @@ pub fn set_window_rect(hwnd: isize, x: i32, y: i32, width: u32, height: u32) -> 
     unsafe { SetWindowPos(hwnd, ptr::null_mut(), x, y, w, h, flags) != 0 }
 }
 
-/// 窗口区域（相对窗口左上角的左、上、右、下，物理像素）：只在区域里显示、接点击（#193）。
-/// `None` 时什么都不显示、不接点击。窗口已经不在时返回 false。
-pub fn set_window_region(hwnd: isize, rect: Option<(i32, i32, i32, i32)>) -> bool {
+/// 窗口区域：这些矩形的并集（相对窗口左上角的左、上、右、下，物理像素），只在区域里显示、接点击
+/// （钉图层，#193）。没有矩形时什么都不显示、不接点击。窗口已经不在时返回 false。
+pub fn set_window_region(hwnd: isize, rects: &[(i32, i32, i32, i32)]) -> bool {
     let hwnd = hwnd as HWND;
     // SAFETY：IsWindow 接受任意值；已销毁的句柄只会让它返回 0。
     if unsafe { IsWindow(hwnd) } == 0 {
         return false;
     }
-    let (l, t, r, b) = rect.unwrap_or((0, 0, 0, 0));
     // SAFETY：只传值；失败时返回空句柄。
-    let region = unsafe { CreateRectRgn(l, t, r, b) };
+    let region = unsafe { CreateRectRgn(0, 0, 0, 0) };
     if region.is_null() {
         return false;
+    }
+    for &(l, t, r, b) in rects {
+        // SAFETY：只传值；`part` 合并后在这里释放，`region` 由本函数持有。
+        unsafe {
+            let part = CreateRectRgn(l, t, r, b);
+            if !part.is_null() {
+                CombineRgn(region, region, part, RGN_OR);
+                DeleteObject(part);
+            }
+        }
     }
     // SAFETY：`hwnd` 刚确认有效；成功后区域归系统所有，失败时由这里释放。
     let ok = unsafe { SetWindowRgn(hwnd, region, 1) } != 0;
@@ -224,6 +233,20 @@ pub fn set_window_region(hwnd: isize, rect: Option<(i32, i32, i32, i32)>) -> boo
         unsafe { DeleteObject(region) };
     }
     ok
+}
+
+/// 把置顶窗口提到置顶窗口的最上面，不激活、不改位置和尺寸。新钉图进了一个已有的钉图层时用：
+/// 别的程序启动时可能盖到了这个层上面（#193）。窗口已经不在时返回 false。
+pub fn raise_topmost(hwnd: isize) -> bool {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE};
+    let hwnd = hwnd as HWND;
+    // SAFETY：IsWindow 接受任意值；已销毁的句柄只会让它返回 0。
+    if unsafe { IsWindow(hwnd) } == 0 {
+        return false;
+    }
+    let flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER;
+    // SAFETY：`hwnd` 刚确认是有效窗口；其余参数都是值。
+    unsafe { SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, flags) != 0 }
 }
 
 /// 光标位置，物理像素（进程是每显示器 DPI 感知）。
@@ -621,17 +644,17 @@ mod tests {
         let cloaked = cloaked.show();
         let corner = rect(722, 374, 40, 30);
         let opaque = Window::new(corner, WS_EX_TOPMOST).show();
-        // #193：钉图窗口铺满显示器，窗口区域只盖住钉图本身。按区域算遮挡，不按外框；
+        // #193：钉图层铺满显示器，窗口区域只盖住钉图本身。按区域算遮挡，不按外框；
         // 区域为空（什么都不显示）的不算。
         let pinned = rect(1800, 1000, 30, 20);
         let big = Window::new(rect(0, 0, 2560, 1440), WS_EX_TOPMOST);
         assert!(set_window_region(
             big.0 as isize,
-            Some((1800, 1000, 1830, 1020))
+            &[(1800, 1000, 1830, 1020)]
         ));
         let big = big.show();
         let empty = Window::new(rect(0, 0, 2560, 1440), WS_EX_TOPMOST);
-        assert!(set_window_region(empty.0 as isize, None));
+        assert!(set_window_region(empty.0 as isize, &[]));
         let empty = empty.show();
 
         let mut covered = covering_windows(main.0 as isize).expect("Z 序可遍历");
