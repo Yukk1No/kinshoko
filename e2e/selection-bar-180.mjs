@@ -120,13 +120,15 @@ try {
   await session.rect({ width: 1440, height: 900 });
   await settle();
   const ids = await session.exec("return [...document.querySelectorAll('.wall [data-id]')].map(el => el.dataset.id);");
+  // The tagging model is not downloaded in this fixture: close the bottom-right notice so it does not cover the corner.
+  await until("notices closed", async () => { await session.exec("document.querySelectorAll('.k-toast-close').forEach(b => b.click()); return true;"); await delay(400); return session.exec("return !document.querySelector('.k-toast-close');"); });
 
   // 1. Wide window, one selected: no bar, corner as before. Then collapse the detail panel and multi-select.
   await pick(ids[0], false); await settle();
   await session.shot("1-single-wide.png");
   results.single = await layout();
-  await session.click("//button[@aria-label='收起详情']"); await settle();
   await pick(ids[1], true); await pick(ids[2], true); await settle();
+  await session.click("//button[@aria-label='收起详情']"); await settle();
   await session.shot("2-multi-wide.png");
   results.wide = await layout();
   // Folder menu opens upward from the dock.
@@ -139,10 +141,9 @@ try {
   await session.shot("4-multi-size-popover.png");
   await session.exec("document.activeElement?.blur(); document.querySelector('.k-density-island')?.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); return true;");
 
-  // 2. Detail panel open (wall narrower).
-  await session.exec("document.querySelector('button[aria-label=显示详情], button[aria-label=展开详情]')?.click(); return true;");
+  // 2. Detail panel open (wall narrower): a new selection opens the panel again.
   await clearSelection(); await settle();
-  await pick(ids[0], false); await pick(ids[1], true); await pick(ids[2], true); await settle();
+  await pick(ids[3], false); await pick(ids[4], true); await pick(ids[5], true); await settle();
   await session.shot("5-multi-inspector.png");
   results.inspector = await layout();
 
@@ -156,14 +157,14 @@ try {
 
   // 4. Motion: frames while the bar rises and while it leaves (wide window, detail panel open).
   await session.rect({ width: 1440, height: 900 }); await clearSelection(); await settle();
-  await pick(ids[0], false); await settle();
+  await pick(ids[6], false); await settle();
   const frames = async (prefix, act) => {
     await act();
     const start = Date.now(); let n = 0;
     while (Date.now() - start < 1100) { await session.shot(join("frames", `${prefix}-${String(n++).padStart(2, "0")}.png`)); }
     return n;
   };
-  results.framesIn = await frames("in", () => pick(ids[1], true));
+  results.framesIn = await frames("in", () => pick(ids[7], true));
   await settle();
   results.framesOut = await frames("out", () => clearSelection());
 
