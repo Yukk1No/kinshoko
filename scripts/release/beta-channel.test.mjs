@@ -20,37 +20,44 @@ describe("SemVer 比较", () => {
 
 describe("测试版通道的 latest.json", () => {
   it("通道还没有清单时，发布的测试版成为通道版本", () => {
-    expect(planBetaChannel({ tag: "v1.0.0-beta.1", published: manifest("1.0.0-beta.1"), current: null, repo }))
+    expect(planBetaChannel({ tag: "v1.0.0-beta.1", published: manifest("1.0.0-beta.1"), prerelease: true, current: null, repo }))
       .toEqual({ update: true, version: "1.0.0-beta.1", reason: "测试版通道还没有 latest.json，写入 1.0.0-beta.1。" });
   });
 
   it("测试版、候选版、正式版比通道里的新时都更新通道", () => {
     for (const [from, to] of [["1.0.0-beta.1", "1.0.0-beta.2"], ["1.0.0-beta.2", "1.0.0-rc.1"], ["1.0.0-rc.1", "1.0.0"], ["1.0.0", "1.0.1"]]) {
-      expect(planBetaChannel({ tag: `v${to}`, published: manifest(to), current: manifest(from), repo }).update).toBe(true);
+      expect(planBetaChannel({ tag: `v${to}`, published: manifest(to), prerelease: to.includes("-"), current: manifest(from), repo }).update).toBe(true);
     }
   });
 
   it("重新运行同一版本时照样覆盖", () => {
-    expect(planBetaChannel({ tag: "v1.0.0", published: manifest("1.0.0"), current: manifest("1.0.0"), repo }).update).toBe(true);
+    expect(planBetaChannel({ tag: "v1.0.0", published: manifest("1.0.0"), prerelease: false, current: manifest("1.0.0"), repo }).update).toBe(true);
   });
 
   it("发布的版本比通道里的旧时不动通道（例如测试 1.1.0-beta.1 期间补发 1.0.1）", () => {
-    const plan = planBetaChannel({ tag: "v1.0.1", published: manifest("1.0.1"), current: manifest("1.1.0-beta.1"), repo });
+    const plan = planBetaChannel({ tag: "v1.0.1", published: manifest("1.0.1"), prerelease: false, current: manifest("1.1.0-beta.1"), repo });
     expect(plan.update).toBe(false);
     expect(plan.reason).toContain("1.1.0-beta.1");
   });
 
   it("清单的版本与标签不一致、或安装包不在原仓库这个版本的 Release 里时报错", () => {
-    expect(() => planBetaChannel({ tag: "v1.0.0-beta.2", published: manifest("1.0.0-beta.1"), current: null, repo }))
+    expect(() => planBetaChannel({ tag: "v1.0.0-beta.2", published: manifest("1.0.0-beta.1"), prerelease: true, current: null, repo }))
       .toThrow("标签 v1.0.0-beta.2");
     const foreign = manifest("1.0.0-beta.1");
     foreign.platforms["windows-x86_64"] = { signature: "sig", url: "https://example.com/Kinshoko.exe" };
-    expect(() => planBetaChannel({ tag: "v1.0.0-beta.1", published: foreign, current: null, repo }))
+    expect(() => planBetaChannel({ tag: "v1.0.0-beta.1", published: foreign, prerelease: true, current: null, repo }))
       .toThrow("windows-x86_64");
     const unsigned = manifest("1.0.0-beta.1");
     unsigned.platforms["windows-x86_64-nsis"].signature = "";
-    expect(() => planBetaChannel({ tag: "v1.0.0-beta.1", published: unsigned, current: null, repo }))
+    expect(() => planBetaChannel({ tag: "v1.0.0-beta.1", published: unsigned, prerelease: true, current: null, repo }))
       .toThrow("签名");
+  });
+
+  it("测试版、候选版没有标为预发布，或正式版标成了预发布时报错：它会进错正式版通道", () => {
+    expect(() => planBetaChannel({ tag: "v1.1.0-beta.1", published: manifest("1.1.0-beta.1"), prerelease: false, current: null, repo }))
+      .toThrow("预发布");
+    expect(() => planBetaChannel({ tag: "v1.0.0", published: manifest("1.0.0"), prerelease: true, current: null, repo }))
+      .toThrow("预发布");
   });
 
   it("通道 Release 自己的发布事件不处理", () => {

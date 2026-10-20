@@ -354,3 +354,32 @@ fn an_explicit_update_channel_wins_over_the_build_default() {
         UpdateChannel::Stable
     );
 }
+
+#[test]
+fn the_build_default_channel_is_written_down_so_beta_users_stay_on_beta() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("settings.json"),
+        r#"{"version":1,"updateChannel":"beta"}"#,
+    )
+    .unwrap();
+    let mut picked = AppSettings::open(dir.path()).unwrap();
+    picked.remember_update_channel().unwrap();
+    assert_eq!(
+        picked.update_channel(),
+        UpdateChannel::Beta,
+        "画师选过的不改"
+    );
+
+    let fresh = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(fresh.path()).unwrap();
+    let default = settings.update_channel();
+    settings.remember_update_channel().unwrap();
+    let written = std::fs::read_to_string(fresh.path().join("settings.json")).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&written).unwrap();
+    assert_eq!(
+        json["updateChannel"],
+        serde_json::to_value(default).unwrap(),
+        "启动时按当前构建记下通道，装上新版本后仍按这个记录"
+    );
+}

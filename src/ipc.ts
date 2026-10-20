@@ -664,6 +664,11 @@ export function onUpdateProgress(handler: (progress: UpdateProgress) => void): P
   return listen<UpdateProgress>("update-progress", (e) => handler(e.payload));
 }
 
+/** 更新通道换了（#204）：之前查到的更新已作废。 */
+export function onUpdateChannelChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen("update-channel-changed", () => handler());
+}
+
 // ---------- 截图与钉图（#62） ----------
 
 const desk = (command: string) => `plugin:desktop|${command}`;

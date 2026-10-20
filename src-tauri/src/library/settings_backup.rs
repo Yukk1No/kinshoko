@@ -108,6 +108,8 @@ pub(super) async fn restore_application_settings<R: Runtime>(
             .set_enabled(view.usage_log);
         crate::tagging::apply_device_setting(&app, device);
         crate::desktop::settings_restored(&app, safe);
+        // 恢复的设置可能带来另一个更新通道（#204）。
+        crate::updater::channel_changed(&app);
         if let Err(error) = names::refresh_labels(&app, &state) {
             problems.push(format!("资料库名称未刷新：{error}"));
         }

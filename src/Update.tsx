@@ -5,7 +5,7 @@ import type { UpdateStatus } from "./bindings/UpdateStatus";
 import { CircleCheck, Download, FlaskConical, Info, RefreshCw } from "lucide-react";
 import { Segmented } from "./ui/Segmented";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
-import { checkUpdate, installUpdate, onUpdateProgress, updateStatus } from "./ipc";
+import { checkUpdate, installUpdate, onUpdateChannelChanged, onUpdateProgress, updateStatus } from "./ipc";
 
 /** 下载进度的文字，例如“正在下载 3.2／12.0 MB”。 */
 function progressText(p: UpdateProgress | null): string {
@@ -133,7 +133,7 @@ export function UpdateSection({ version = null, channel, onChannel }: {
 
 /**
  * 主窗口顶部的更新提示。每次运行第一次显示主窗口时检查一次；有新版本时提示，
- * 画师可以安装或先不管（主窗口关掉前不再提示）。
+ * 画师可以安装或先不管（主窗口关掉前不再提示）。换了更新通道后收起。
  */
 export function UpdateBanner() {
   const [available, setAvailable] = useState<{ version: string } | null>(null);
@@ -147,8 +147,14 @@ export function UpdateBanner() {
       if (status?.state === "unchecked") status = await checkUpdate();
       if (alive && status?.state === "available") setAvailable({ version: status.version });
     })().catch(() => {});
+    // 换了更新通道：旧通道查到的版本已作废（安装会失败），收起提示。
+    const unlisten = onUpdateChannelChanged(() => {
+      alive = false;
+      setAvailable(null);
+    });
     return () => {
       alive = false;
+      void unlisten.then((f) => f()).catch(() => {});
     };
   }, []);
 

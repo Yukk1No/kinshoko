@@ -5,7 +5,7 @@ name: beta-channel
 # https://github.com/<repo>/releases/download/channel-beta/latest.json，所以收得到测试版、候选版与正式版中最新的；
 # 正式版通道读 GitHub 的 latest（不含预发布），不经过这里。
 #
-# 草稿阶段不动通道。发布的版本比通道里的旧时（例如测试新版期间补发旧系列的修复版）也不动，
+# 草稿阶段不动通道。测试版、候选版没有标为预发布（或正式版标成了预发布）时报错：它会进错正式版通道。发布的版本比通道里的旧时（例如测试新版期间补发旧系列的修复版）也不动，
 # 规则与测试在 scripts/release/beta-channel.mjs。只用 GITHUB_TOKEN。
 # `channel-beta` 不存在时建一个标为预发布、不是 latest 的 Release，标签指向这次发布的提交。
 
@@ -36,6 +36,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: ${{ github.event.release.tag_name }}
+      PRERELEASE: ${{ github.event.release.prerelease }}
       CHANNEL: channel-beta
     steps:
       - uses: actions/checkout@v4
@@ -61,23 +62,32 @@ jobs:
       - name: 取测试版通道现有的 latest.json
         run: |
           set -euo pipefail
-          if gh release view "$CHANNEL" >/dev/null 2>&1; then
-            gh release download "$CHANNEL" --pattern latest.json --dir current \
-              || echo "::notice::$CHANNEL 还没有 latest.json。"
-          else
+          # 只有确实没有这个 Release 或这个文件时才当作空通道；其他失败（网络、权限）停下，
+          # 否则较旧的版本会覆盖通道里较新的清单。
+          if assets=$(gh release view "$CHANNEL" --json assets --jq '.assets[].name' 2>err.txt); then
+            if printf '%s\n' "$assets" | grep -qx latest.json; then
+              gh release download "$CHANNEL" --pattern latest.json --dir current \
+                || { echo "::error::下载 $CHANNEL 现有的 latest.json 失败，测试版通道不变。"; exit 1; }
+            else
+              echo "::notice::$CHANNEL 还没有 latest.json。"
+            fi
+          elif grep -qi "release not found" err.txt; then
             sha=$(gh api "repos/$GH_REPO/commits/$TAG" --jq .sha)
             gh release create "$CHANNEL" --prerelease --latest=false --target "$sha" \
               --title "测试版通道" \
               --notes "Kinshoko 测试版通道的更新入口，由 beta-channel 工作流维护，请不要手动修改或删除。安装包请到对应版本的 Release 下载。" \
               || { echo "::error::建立 $CHANNEL Release 失败。"; exit 1; }
             echo "::notice::已建立预发布 Release $CHANNEL。"
+          else
+            cat err.txt
+            echo "::error::读取 $CHANNEL Release 失败，测试版通道不变。"; exit 1
           fi
 
       - name: 判断是否写入
         id: plan
         run: |
           set -euo pipefail
-          node scripts/release/beta-channel.mjs "$TAG" "$GH_REPO" published/latest.json current/latest.json >> "$GITHUB_OUTPUT" \
+          node scripts/release/beta-channel.mjs "$TAG" "$GH_REPO" "$PRERELEASE" published/latest.json current/latest.json >> "$GITHUB_OUTPUT" \
             || { echo "::error::$TAG 的 latest.json 没通过检查（原因见上一行），测试版通道不变。"; exit 1; }
 
       - name: 写入测试版通道

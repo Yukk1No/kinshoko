@@ -406,6 +406,16 @@ impl AppSettings {
         self.update(|f| f.update_channel = Some(channel))
     }
 
+    /// 启动时调用：没选过通道时按当前构建记下默认通道。测试版、候选版构建因此记下测试版通道，
+    /// 从测试版通道装上正式版后，新版本读到的仍是测试版通道，不会按正式版的版本号改回正式版通道。
+    pub fn remember_update_channel(&mut self) -> Result<(), SettingsError> {
+        if self.file.update_channel.is_some() {
+            return Ok(());
+        }
+        let channel = self.update_channel();
+        self.set_update_channel(channel)
+    }
+
     /// 动作当前绑定的快捷键；`None` 表示未绑定。
     pub fn shortcut(&self, action: ShortcutAction) -> Option<&str> {
         match self.file.shortcuts.get(&action) {

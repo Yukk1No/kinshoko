@@ -6,18 +6,24 @@
 //! 签名私钥只在 GitHub 仓库的 Actions secret 里，不进仓库（见 docs/validation/release-checklist.md）。
 
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use kinshoko_core::{
     ShellSettingsView, UpdateChannel, UpdatePolicy, UpdateProgress, UpdateStatus, offers_update,
 };
-use tauri::{AppHandle, Emitter, Manager, State, Url};
+use tauri::{AppHandle, Emitter, Manager, Runtime, State, Url};
 use tauri_plugin_updater::{Update, UpdaterExt as _};
 
 const PROGRESS_EVENT: &str = "update-progress";
+/// 更新通道换了（设置页切换或恢复程序设置）：之前查到的更新作废，主窗口的更新提示收起。
+const CHANNEL_EVENT: &str = "update-channel-changed";
 
 pub struct UpdaterState {
     status: Mutex<UpdateStatus>,
     pending: Mutex<Option<Update>>,
+    /// 换通道时加一。检查开始时记下它，结束时不一致就丢掉结果：旧通道的检查不能留下可安装的更新。
+    /// 与 `pending` 在同一把锁下比较和改动。
+    generation: AtomicU64,
 }
 
 impl UpdaterState {
@@ -26,6 +32,7 @@ impl UpdaterState {
         UpdaterState {
             status: Mutex::new(status),
             pending: Mutex::new(None),
+            generation: AtomicU64::new(0),
         }
     }
 
@@ -43,7 +50,7 @@ impl UpdaterState {
 }
 
 /// 每个动作读取当前构建条件；阶段配置与插件的签名、下载配置共用一个入口。
-fn update_policy(app: &AppHandle) -> UpdatePolicy {
+fn update_policy<R: Runtime>(app: &AppHandle<R>) -> UpdatePolicy {
     let updater = app.config().plugins.0.get("updater");
     let stage = updater
         .and_then(|u| u.get("releaseStage"))
@@ -81,6 +88,8 @@ pub async fn check_update(
     }
     // 新检查不能留下上一次的可安装对象（例如本次已最新或检查失败）。
     *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    // 先记代次再读通道：读完之后换了通道，代次一定变了。
+    let generation = state.generation.load(Ordering::SeqCst);
     let channel = update_channel(&app)?;
     // 交给安装程序前收好钉图状态：安装程序会结束本进程与打标子进程。
     let exiting = app.clone();
@@ -98,13 +107,18 @@ pub async fn check_update(
         Ok(Ok(updater)) => updater.check().await,
         Ok(Err(e)) | Err(e) => Err(e),
     };
+    let mut pending = state.pending.lock().unwrap_or_else(|e| e.into_inner());
+    if state.generation.load(Ordering::SeqCst) != generation {
+        // 检查期间换了通道：这是旧通道的结果，不保存。
+        return Ok(state.status());
+    }
     let status = match checked {
         Ok(Some(update)) => {
             let status = UpdateStatus::Available {
                 version: update.version.clone(),
                 notes: update.body.clone().filter(|b| !b.trim().is_empty()),
             };
-            *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = Some(update);
+            *pending = Some(update);
             status
         }
         Ok(None) => UpdateStatus::UpToDate,
@@ -130,7 +144,6 @@ fn update_channel(app: &AppHandle) -> Result<UpdateChannel, String> {
 pub async fn set_update_channel(
     app: AppHandle,
     shell: State<'_, crate::shell::ShellState>,
-    state: State<'_, UpdaterState>,
     channel: UpdateChannel,
 ) -> Result<ShellSettingsView, String> {
     let view = {
@@ -141,9 +154,20 @@ pub async fn set_update_channel(
             .map_err(|e| e.to_string())?;
         shell.view()
     };
-    *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
-    state.set(update_policy(&app).initial_status());
+    channel_changed(&app);
     Ok(view)
+}
+
+/// 通道可能变了（设置页切换、恢复程序设置）：作废进行中的检查和已查到的更新，状态回到未检查，
+/// 并通知主窗口收起更新提示。
+pub fn channel_changed<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(state) = app.try_state::<UpdaterState>() {
+        let mut pending = state.pending.lock().unwrap_or_else(|e| e.into_inner());
+        state.generation.fetch_add(1, Ordering::SeqCst);
+        *pending = None;
+        state.set(update_policy(app).initial_status());
+    }
+    let _ = app.emit(CHANNEL_EVENT, ());
 }
 
 /// 下载并安装已检查到的新版本。成功时安装程序接管，本进程退出、装好后重新启动。
