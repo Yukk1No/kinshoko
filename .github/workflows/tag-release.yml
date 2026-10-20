@@ -1,0 +1,92 @@
+name: tag-release
+
+# 发布第二步：prepare-release 准备好的版本号 PR 合并后，打 v<版本号> 标签，再以可复用工作流调用 release
+# （构建、安装检查、草稿 Release）。直接调用而不靠推标签触发或 workflow_dispatch：Actions 令牌推送的标签不会触发 push，
+# workflow_dispatch 又要求工作流文件在默认分支（main）上，而 main 在 v1 发布前不接收这些改动。
+#
+# 只在这次推送改了 [workspace.package] version、新版本比原来大、版本号与分支符合
+# scripts/release/release-version.mjs 的规则时才发布：测试版、候选版在 integration/v1 上，正式版随 PR #71 合进 main 后。
+# 其余情况（例如正式版刚合进 integration/v1、测试版版本号随 #71 进 main）只记一条说明。
+# 重跑时：标签已经指向这个提交、Release 还没发布（没建或还是草稿，可能上次上传失败）就重新构建并补传；指向别的提交则不发布。
+
+on:
+  push:
+    branches: [main, "integration/**"]
+    paths: ["Cargo.toml"]
+
+permissions:
+  contents: read
+
+# 按提交分组：同一组只保留一个排队的运行，按分支分组会丢掉夹在中间的改版本号的推送。
+concurrency:
+  group: tag-release-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: 打标签
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release: ${{ steps.check.outputs.release }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 判断是否要发布
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          read_version() { sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p'; }
+          version=$(read_version < Cargo.toml)
+          before=$(git show HEAD^:Cargo.toml 2>/dev/null | read_version || true)
+          skip() { echo "::notice::$1"; echo "release=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          [ "$version" != "$before" ] || skip "版本号没有变（$version），不发布。"
+          if ! problem=$(node scripts/release/release-version.mjs tag "$version" "$GITHUB_REF_NAME" "$before" 2>&1); then
+            skip "$problem 不发布。"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # 附注标签要取它指向的提交（^{}）。
+          tagged=$(git ls-remote origin "refs/tags/v$version^{}" | cut -f1)
+          if [ -z "$tagged" ]; then
+            echo "tag=true" >> "$GITHUB_OUTPUT"
+          elif [ "$tagged" != "$(git rev-parse HEAD)" ]; then
+            skip "标签 v$version 已经指向别的提交（$tagged），不发布。"
+          elif [ "$(gh release view "v$version" --json isDraft --jq .isDraft 2>/dev/null || echo none)" = "false" ]; then
+            skip "标签 v$version 的 Release 已经发布，不再重复。"
+          else
+            # 没有 Release，或还是草稿（可能附件没传完）：接着构建，release 会把附件补传、覆盖到那个草稿上。
+            echo "::notice::标签 v$version 已在这个提交上，但 Release 还没发布：重新构建并补传附件。"
+            echo "tag=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "release=true" >> "$GITHUB_OUTPUT"
+
+      - name: 打标签
+        if: steps.check.outputs.release == 'true' && steps.check.outputs.tag == 'true'
+        env:
+          VERSION: ${{ steps.check.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Kinshoko $VERSION"
+          git push origin "v$VERSION"
+
+  release:
+    name: 构建并建草稿 Release
+    needs: tag
+    if: needs.tag.outputs.release == 'true'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: v${{ needs.tag.outputs.version }}
+    secrets: inherit
