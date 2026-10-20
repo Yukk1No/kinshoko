@@ -4,8 +4,8 @@ name: prepare-release
 # package.json、package-lock.json 的版本号，再在运行摘要里给出开 PR 的链接。
 # PR 合并后，tag-release 工作流打 v<版本号> 标签并启动 release。
 #
-# 版本号与分支的规则在 scripts/release/release-version.mjs：测试版 1.0.0-beta.1、候选版 1.0.0-rc.1
-# 选 integration/v1，正式版 1.0.0 选 main。
+# 版本号规则在 scripts/release/release-version.mjs。所有版本都在 integration/v1 上准备：测试版 1.0.0-beta.1、
+# 候选版 1.0.0-rc.1 合并后就打标签；正式版 1.0.0 随 PR #71 合进 main 后才打标签。
 #
 # 仓库设置不允许 Actions 开 PR，所以只推分支，PR 由维护者点链接打开。
 
@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "版本号，例如 1.0.0-beta.1（不带 v）。测试版、候选版选 integration/v1，正式版选 main"
+        description: "版本号，例如 1.0.0-beta.1（不带 v）。分支选 integration/v1"
         required: true
         type: string
 
@@ -46,7 +46,7 @@ jobs:
             echo "::error::请在分支上运行，不要选标签。"; exit 1
           fi
           current=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
-          if ! problem=$(node scripts/release/release-version.mjs "$VERSION" "$GITHUB_REF_NAME" "$current" 2>&1); then
+          if ! problem=$(node scripts/release/release-version.mjs prepare "$VERSION" "$GITHUB_REF_NAME" "$current" 2>&1); then
             echo "::error::$problem"; exit 1
           fi
           for ref in "refs/tags/v$VERSION" "refs/heads/release/v$VERSION"; do
@@ -84,5 +84,9 @@ jobs:
             echo
             echo "[把 release/v$VERSION 合并到 $GITHUB_REF_NAME]($url)"
             echo
-            echo "合并后 tag-release 会打 v$VERSION 标签并启动 release。"
+            if [[ "$VERSION" == *-* ]]; then
+              echo "合并后 tag-release 会打 v$VERSION 标签并启动 release。"
+            else
+              echo "这是正式版：合并后再经 PR #71 合进 main，tag-release 才会打 v$VERSION 标签并启动 release。"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

@@ -3,9 +3,11 @@ name: tag-release
 # 发布第二步：prepare-release 开出的版本号 PR 合并到 integration/v1 或 main 后，
 # 打 v<版本号> 标签并在标签上启动 release（构建、安装检查、草稿 Release）。
 #
-# 只在这次推送改了 [workspace.package] version、版本号与分支符合 scripts/release/release-version.mjs 的规则、
-# 标签还不存在时才打标签；其余情况（例如 integration/v1 合进 main 时带来测试版版本号）只记一条说明。
+# 只在这次推送改了 [workspace.package] version、新版本比原来大、版本号与分支符合
+# scripts/release/release-version.mjs 的规则时才发布：测试版、候选版在 integration/v1 上，正式版随 PR #71 合进 main 后。
+# 其余情况（例如正式版刚合进 integration/v1、测试版版本号随 #71 进 main）只记一条说明。
 # Actions 令牌推送的标签不会触发 push 事件，所以这里直接启动 release。
+# 重跑时：标签已经指向这个提交、release 还没跑过（上次启动失败）就接着启动；指向别的提交则不发布。
 
 on:
   push:
@@ -37,6 +39,8 @@ jobs:
 
       - name: 判断是否要发布
         id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           read_version() { sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p'; }
@@ -44,17 +48,26 @@ jobs:
           before=$(git show HEAD^:Cargo.toml 2>/dev/null | read_version || true)
           skip() { echo "::notice::$1"; echo "release=false" >> "$GITHUB_OUTPUT"; exit 0; }
           [ "$version" != "$before" ] || skip "版本号没有变（$version），不发布。"
-          if ! problem=$(node scripts/release/release-version.mjs "$version" "$GITHUB_REF_NAME" 2>&1); then
+          if ! problem=$(node scripts/release/release-version.mjs tag "$version" "$GITHUB_REF_NAME" "$before" 2>&1); then
             skip "$problem 不发布。"
           fi
-          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
-            skip "标签 v$version 已经存在，不发布。"
-          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          # 附注标签要取它指向的提交（^{}）。
+          tagged=$(git ls-remote origin "refs/tags/v$version^{}" | cut -f1)
+          if [ -z "$tagged" ]; then
+            echo "tag=true" >> "$GITHUB_OUTPUT"
+          elif [ "$tagged" != "$(git rev-parse HEAD)" ]; then
+            skip "标签 v$version 已经指向别的提交（$tagged），不发布。"
+          elif [ "$(gh run list --workflow release.yml --branch "v$version" --json databaseId --jq length)" != "0" ]; then
+            skip "标签 v$version 已在这个提交上，release 也已启动过，不再重复。"
+          else
+            echo "::notice::标签 v$version 已在这个提交上，但 release 没有启动过：接着启动。"
+            echo "tag=false" >> "$GITHUB_OUTPUT"
+          fi
           echo "release=true" >> "$GITHUB_OUTPUT"
 
       - name: 打标签
-        if: steps.check.outputs.release == 'true'
+        if: steps.check.outputs.release == 'true' && steps.check.outputs.tag == 'true'
         env:
           VERSION: ${{ steps.check.outputs.version }}
         run: |
