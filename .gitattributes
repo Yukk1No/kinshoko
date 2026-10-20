@@ -3,3 +3,9 @@
 *.sh text eol=lf
 # ts-rs 生成物按 LF 写出；固定换行，CI 的生成物差异检查才不受 autocrlf 影响。
 src/bindings/** text eol=lf
+# Hooks run under sh; CRLF breaks them.
+.githooks/* text eol=lf
+# 机器生成或采集的输出，不是 agent 手写的；pre-commit 的 token 上限不检查。
+docs/implementation/evidence/** linguist-generated
+src/bindings/** linguist-generated
+data/builtin-translation-table.json linguist-generated
