@@ -138,6 +138,7 @@ jobs:
           retention-days: 30
 
       # 草稿 Release：维护者在 GitHub 上检查后点“发布”。发布前 updater 看不到它。
+      # 上次建了草稿但上传附件失败时（建草稿与上传是两次 API 调用），重跑把附件补传、覆盖到那个草稿上。
       - name: 建立草稿 Release
         if: env.TAG != ''
         shell: pwsh
@@ -145,6 +146,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          $pre = if ($env:VERSION.Contains('-')) { @('--prerelease') } else { @() }
-          gh release create $env:TAG (Get-ChildItem dist-release).FullName `
-            --draft @pre --title "Kinshoko $env:VERSION" --notes-file docs/install.md --generate-notes
+          $files = (Get-ChildItem dist-release).FullName
+          $draft = gh release view $env:TAG --json isDraft --jq .isDraft 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if ($draft -ne 'true') { throw "Release $env:TAG 已经发布，不覆盖它的附件。" }
+            gh release upload $env:TAG $files --clobber
+          } else {
+            $pre = if ($env:VERSION.Contains('-')) { @('--prerelease') } else { @() }
+            gh release create $env:TAG $files `
+              --draft @pre --title "Kinshoko $env:VERSION" --notes-file docs/install.md --generate-notes
+          }
+          if ($LASTEXITCODE -ne 0) { throw "建立或补传 Release $env:TAG 失败" }
