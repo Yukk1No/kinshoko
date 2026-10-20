@@ -13,6 +13,15 @@ Issues and specs live in GitHub Issues for `Yukk1No/kinshoko`. Use the `gh` CLI 
 - A skill's instruction to publish to the tracker means creating a GitHub issue.
 - A skill's instruction to fetch a ticket means reading its issue and comments.
 
+## Milestones and versions
+
+Versions follow SemVer: `x.y.Z` for bug-fix releases, `x.Y.0` for features and quality-of-life improvements, `X.0.0` for changes that break existing data or habits. A milestone is a scheduled release, named after its version (`v1.0` ships as `1.0.0` through PR #71).
+
+- Create a milestone only once the maintainer schedules work into it; patch milestones such as `v1.0.1` appear only for a fix that cannot wait for the next feature release.
+- An open issue without a milestone is backlog: new ideas and QOL requests land there as `needs-triage` and wait until the maintainer schedules them. Leave the milestone empty unless the maintainer names one.
+- Milestones are orthogonal to the triage labels: the label says how ready the issue is, the milestone says which release it belongs to.
+- Capability directions that are not yet issues live in [`docs/discovery/roadmap.md`](../discovery/roadmap.md).
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.**
