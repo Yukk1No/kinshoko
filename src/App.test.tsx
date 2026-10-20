@@ -2121,4 +2121,18 @@ describe("聚合来源操作的工作区通知", () => {
     await waitFor(() => expect(screen.getByText("已选 1 张")).toBeTruthy());
     expect(document.querySelector('[data-id="b"]')?.getAttribute("aria-selected")).toBe("true");
   });
+
+  it("唯一的选中图在新修订里不存在时清空选择，不留下“已选 0 张”的浮动操作条", async () => {
+    let gone = false;
+    backend(library, clean, (cmd) => cmd === "plugin:library|browse" && gone ? { ...page, cards: page.cards.filter((c) => c.id !== "a"), total: 1 } : undefined);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
+    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    gone = true;
+    await act(() => emit("workspace-changed", { revision: "after-delete", libraries: [{ library, unavailable: null }] }));
+    await waitFor(() => expect(document.querySelector('[data-id="a"]')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("toolbar", { name: "已选参考图操作" })).toBeNull());
+    expect(screen.queryByText("已选 0 张")).toBeNull();
+  });
 });
