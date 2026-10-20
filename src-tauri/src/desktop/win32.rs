@@ -1,7 +1,7 @@
 //! 直接调用的 Windows 接口：显示器当前使用的颜色配置文件（ICC，#62）；前台窗口、交还焦点与
 //! 光标位置（贴边隐藏，#63）；一次调用同时改窗口的位置与尺寸（#64）与钉图层的窗口区域（#193）；诊断日志用的系统版本、
 //! 处理器、内存、显卡与显示器色彩模式（#70）；冻结截图时盖在参考图上的窗口（含 DWM 云化与
-//! 分层透明度，#125）；还没有窗口时的启动错误提示（#145）。
+//! 分层透明度，#125）；还没有窗口时的启动错误提示（#145）；关掉钉图菜单窗口的系统显示、隐藏过渡（#194）。
 //!
 //! 这些信息只有 Win32 函数提供，没有安全的 Rust 封装，所以本模块是应用壳里唯一允许
 //! `unsafe` 的地方。每处调用都只传本函数自己持有的缓冲区，句柄在同一函数内创建并释放
@@ -12,7 +12,9 @@ use std::path::PathBuf;
 use std::ptr;
 
 use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
-use windows_sys::Win32::Graphics::Dwm::{DWMWA_CLOAKED, DwmGetWindowAttribute};
+use windows_sys::Win32::Graphics::Dwm::{
+    DWMWA_CLOAKED, DWMWA_TRANSITIONS_FORCEDISABLED, DwmGetWindowAttribute, DwmSetWindowAttribute,
+};
 use windows_sys::Win32::Graphics::Gdi::{
     CombineRgn, CreateDCW, CreateRectRgn, DeleteDC, DeleteObject, GetWindowRgnBox, NULLREGION,
     RGN_ERROR, RGN_OR, SetWindowRgn,
@@ -201,6 +203,27 @@ pub fn set_window_rect(hwnd: isize, x: i32, y: i32, width: u32, height: u32) -> 
     );
     // SAFETY：`hwnd` 刚确认是有效窗口；其余参数都是值。
     unsafe { SetWindowPos(hwnd, ptr::null_mut(), x, y, w, h, flags) != 0 }
+}
+
+/// 关掉 DWM 给窗口显示与隐藏加的系统过渡（#194）。无边框窗口仍带标题栏样式，系统会在显示时从中间
+/// 放大、隐藏时边缩小边淡出；铺满显示器的菜单窗口隐藏时，菜单因此看上去向左滑走。
+pub fn disable_transitions(hwnd: isize) -> bool {
+    let hwnd = hwnd as HWND;
+    // SAFETY：IsWindow 接受任意值；已销毁的句柄只会让它返回 0。
+    if unsafe { IsWindow(hwnd) } == 0 {
+        return false;
+    }
+    let disabled: i32 = 1;
+    // SAFETY：`hwnd` 刚确认是有效窗口；值是本函数持有的 BOOL。
+    let hr = unsafe {
+        DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_TRANSITIONS_FORCEDISABLED as u32,
+            (&disabled as *const i32).cast(),
+            size_of::<i32>() as u32,
+        )
+    };
+    hr == 0
 }
 
 /// 窗口区域：这些矩形的并集（相对窗口左上角的左、上、右、下，物理像素），只在区域里显示、接点击
@@ -559,7 +582,7 @@ mod tests {
         Screenshot,
     };
     use kinshoko_core::library::ReferenceImage;
-    use windows_sys::Win32::Graphics::Dwm::{DWMWA_CLOAK, DwmSetWindowAttribute};
+    use windows_sys::Win32::Graphics::Dwm::DWMWA_CLOAK;
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         CreateWindowExW, DestroyWindow, SW_SHOWNOACTIVATE, SetLayeredWindowAttributes, ShowWindow,
         WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT, WS_POPUP,
@@ -714,5 +737,15 @@ mod tests {
         };
         assert_eq!(readout(crossing), None);
         drop((empty, big, opaque, cloaked, invisible));
+    }
+
+    /// #194：钉图菜单窗口关掉系统的显示、隐藏过渡。窗口已销毁时如实报告失败。
+    #[test]
+    fn transitions_can_be_turned_off_for_a_live_window_only() {
+        let window = Window::new(rect(0, 0, 200, 100), WS_EX_TOPMOST);
+        let hwnd = window.0 as isize;
+        assert!(disable_transitions(hwnd));
+        drop(window);
+        assert!(!disable_transitions(hwnd));
     }
 }
