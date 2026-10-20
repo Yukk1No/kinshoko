@@ -1,5 +1,9 @@
 # Kinshoko
 
+## Branches
+
+Development trunk is `integration/v1`: branch from it and open every PR against it, docs and triage included. `main` only receives v1 when it ships, through PR #71.
+
 ## Agent skills
 
 ### Issue tracker
