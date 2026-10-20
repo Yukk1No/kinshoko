@@ -15,14 +15,41 @@
 
 use super::ScreenRect;
 
-/// 钉图窗口静止时的矩形：内容碰到的显示器的外接矩形。内容不在任何显示器上时就是内容本身。
+/// 钉图窗口静止时的矩形：内容碰到的显示器的外接矩形，但不整个盖住任何一台显示器
+/// （[`short_of_full_screen`]）。内容不在任何显示器上时就是内容本身。
 pub fn pin_surface(content: ScreenRect, monitors: &[ScreenRect]) -> ScreenRect {
     monitors
         .iter()
         .filter(|m| m.intersect(&content).is_some())
         .copied()
         .reduce(|a, b| a.union(&b))
-        .unwrap_or(content)
+        .map_or(content, |w| short_of_full_screen(w, monitors))
+}
+
+/// 置顶窗口整个盖住一台显示器时，Windows 就当作有全屏程序在跑（`SHQueryUserNotificationState`
+/// 报 `QUNS_BUSY`，通知被压下），窗口区域再小也一样；少盖一个像素就不算。先让出最下面一行
+/// （通常在任务栏下面），多台显示器拼成的窗口还盖住某一台时再让出最上面一行，然后是左右两列。
+fn short_of_full_screen(mut window: ScreenRect, monitors: &[ScreenRect]) -> ScreenRect {
+    let covers = |w: &ScreenRect| monitors.iter().any(|m| w.contains(m));
+    let trims: [fn(&mut ScreenRect); 4] = [
+        |w| w.height = w.height.saturating_sub(1),
+        |w| {
+            w.y += 1;
+            w.height = w.height.saturating_sub(1);
+        },
+        |w| w.width = w.width.saturating_sub(1),
+        |w| {
+            w.x += 1;
+            w.width = w.width.saturating_sub(1);
+        },
+    ];
+    for trim in trims {
+        if !covers(&window) {
+            break;
+        }
+        trim(&mut window);
+    }
+    window
 }
 
 /// 钉图内容怎样到新位置。
