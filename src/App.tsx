@@ -405,11 +405,18 @@ function LibraryWorkspace({
    * 走来源整理。
    */
   const lastSelectionKey = useRef(selectionKey);
+  /** 来源整理是查看器为墙外那张图打开的（不是画师点来源按钮打开的）。 */
+  const viewedSources = useRef(false);
   lastSelectionKey.current = selectionKey;
   useEffect(() => {
-    if (!viewing) return;
+    if (!viewing) {
+      // 离开查看器：为墙外那张图打开的来源整理随之收起。
+      if (viewedSources.current) { viewedSources.current = false; setSources(null); }
+      return;
+    }
+    viewedSources.current = false;
     if (!loadedCards.some((card) => card.id === viewing.id)) {
-      if (viewing.libraryId && viewing.imageId && viewing.sources?.length) setSources(viewing as WorkspaceCard);
+      if (viewing.libraryId && viewing.imageId && viewing.sources?.length) { viewedSources.current = true; setSources(viewing as WorkspaceCard); }
       return;
     }
     setSources(null);

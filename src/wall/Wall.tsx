@@ -361,10 +361,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       lastPress.current = null;
       e.preventDefault();
       e.stopImmediatePropagation();
-      // 同一次按下随后的鼠标事件、单击与浏览器自己的双击都不交给落点。
+      // 同一次按下随后的鼠标事件、单击与浏览器自己的双击都不交给落点；按住不放也一样，直到松开后的单击。
+      // 万一单击始终没来（按下后指针被别处捕获），几秒后不再拦。
       swallowing = true;
       clearTimeout(release);
-      release = window.setTimeout(() => { swallowing = false; }, doubleClickSettings().intervalMs);
+      release = window.setTimeout(() => { swallowing = false; }, 5000);
       if (!first.opened) openById.current(first.id);
     };
     const swallow = (e: Event) => {

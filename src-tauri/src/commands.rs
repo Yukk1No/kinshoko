@@ -173,7 +173,7 @@ pub struct DoubleClick {
 
 /// 读不到系统设置（或不是 Windows）时为 `None`，前端用 500 ms / 4 px。
 #[tauri::command]
-pub fn double_click() -> Option<DoubleClick> {
+pub async fn double_click() -> Option<DoubleClick> {
     #[cfg(windows)]
     {
         crate::desktop::win32::double_click().map(|(interval_ms, width, height)| DoubleClick {
