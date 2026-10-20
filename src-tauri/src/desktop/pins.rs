@@ -2,9 +2,11 @@
 //! 锁定、收藏、复制、关闭，#64；#106 起改由与主窗口同样式的菜单窗口承载，见 [`super::menu`]），
 //! 以及重新打开后的恢复（#63）。
 //!
-//! 每个钉图一个无边框、置顶、不进任务栏的窗口。静止时窗口等于钉图本身（[`SavedPin::rect`]，物理像素）；
-//! 收起时是 `Tuck::stage`。缩放与贴边动画只在页面里变换内容，原生窗口一次动画最多改两次
-//! （[`stage`]，#64）：几何的每次变化都经 [`show`] 发一帧（[`PinFrame`]）给页面。
+//! 每个钉图一个无边框、置顶、不进任务栏的窗口。窗口静止时就是钉图所在显示器那么大
+//! （[`pin_surface`](kinshoko_core::desktop::pin_surface)，物理像素），用窗口区域把显示和点击限定在
+//! 钉图本身（[`SavedPin::rect`]）；缩放、贴边滑动、拖动与翻转只在页面里移动内容并改窗口区域，
+//! 原生窗口不动（#193：窗口原点一动，WebView2 就要晚 1～2 帧才跟上，
+//! 画面先抽搐再被裁掉）。几何的每次变化都经 [`show`] 发一帧（[`PinFrame`]）给页面。
 //! 窗口先隐藏建好、定好位置，页面画完第一帧后调用 `pin_ready` 才显示。
 //! 钉图状态在 [`PinStore`]（`pins.json`）里：画师关闭的钉图从中删除；退出程序时窗口也会销毁，
 //! 但这时不删，下次启动照原样恢复。
@@ -23,8 +25,9 @@ use std::sync::{Condvar, Mutex};
 
 use image::RgbaImage;
 use kinshoko_core::desktop::{
-    CaptureEntry, CaptureSurface, OpenInKinshoko, PinContent, PinFrame, PinMenu, PinMotion,
-    Placement, Region, SavedPin, ScreenRect, Screenshot, Turn, initial_scale, place_new_pin, stage,
+    CaptureEntry, CaptureSurface, Change, OpenInKinshoko, PinContent, PinFrame, PinMenu, PinMotion,
+    Placement, Region, SavedPin, ScreenRect, Screenshot, Turn, initial_scale, place_new_pin,
+    settle, stage,
 };
 use kinshoko_core::reference_groups::ReferenceSource;
 use tauri::{
@@ -49,12 +52,14 @@ pub struct PinRecord {
     capture_id: Option<String>,
     /// 画师正在关闭它（菜单或 Alt+F4）。窗口销毁时据此区分“关闭钉图”和“退出程序”。
     closing: bool,
-    /// 原生窗口此刻的矩形。
+    /// 原生窗口此刻的矩形：静止时是显示器（[`pin_surface`](kinshoko_core::desktop::pin_surface)）。
     window: ScreenRect,
     /// 钉图内容要到（或已在）的位置。收起、滑出时不同于原位。
     content: ScreenRect,
-    /// 动画结束后窗口的矩形。
-    rest: ScreenRect,
+    /// 窗口区域（屏幕坐标）。`None` 时什么都不显示、不接点击。
+    region: Option<ScreenRect>,
+    /// 页面已画好、区域已缩回内容：不在动画或拖动中。
+    settled: bool,
     /// 最新一帧的编号。
     generation: u32,
     /// 窗口让点击穿过（收起且没滑出时）。
@@ -150,7 +155,7 @@ pub(super) fn capture_surfaces(app: &AppHandle) -> Vec<super::capture::Reference
             }
             let record = lock(&state(app).pins);
             let r = record.get(&pin.id)?;
-            if r.click_through || r.window != r.rest {
+            if r.click_through || !r.settled {
                 return None;
             }
             Some(super::capture::ReferenceSurface {
@@ -369,14 +374,16 @@ pub fn reference_file(app: &AppHandle, pin: &str, size: &str) -> Option<std::pat
 pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
     super::timing("pin.window.begin");
     let rect = pin.rect();
+    let (window_rect, region) = settle(rect, rect, &surface_monitors());
     lock(&state(app).pins).insert(
         pin.id.clone(),
         PinRecord {
             capture_id: pin.capture_id().map(str::to_owned),
             closing: false,
-            window: rect,
+            window: window_rect,
             content: rect,
-            rest: rect,
+            region,
+            settled: true,
             generation: 0,
             click_through: false,
         },
@@ -415,7 +422,7 @@ pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
     let pin_id = pin.id.clone();
     window.on_window_event(move |event| match event {
         WindowEvent::CloseRequested { .. } => mark_closing(&app_for_events, &pin_id),
-        WindowEvent::Resized(size) => keep_exact_size(&app_for_events, &pin_id, *size),
+        WindowEvent::Resized(_) | WindowEvent::Moved(_) => keep_window(&app_for_events, &pin_id),
         WindowEvent::Destroyed => {
             // 没画出第一帧就没了：别让框选一直等到超时。
             stop_waiting(&app_for_events, &pin_id);
@@ -425,7 +432,32 @@ pub fn open_window(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
         }
         _ => {}
     });
-    place(&window, rect)
+    place(&window, window_rect)?;
+    set_region(&window, window_rect, region);
+    Ok(())
+}
+
+/// 钉图窗口铺得到的显示器（[`pin_surface`](kinshoko_core::desktop::pin_surface)）。只有 Windows
+/// 能用窗口区域把点击限定在钉图上；别的平台不给显示器，窗口就是钉图本身。
+fn surface_monitors() -> Vec<ScreenRect> {
+    if cfg!(windows) {
+        monitors()
+    } else {
+        Vec::new()
+    }
+}
+
+/// 设窗口区域（屏幕坐标，`at` 是窗口此刻的矩形；`None` 时什么都不显示、不接点击，#193）。
+fn set_region(window: &tauri::WebviewWindow, at: ScreenRect, region: Option<ScreenRect>) {
+    #[cfg(windows)]
+    if let Ok(hwnd) = window.hwnd() {
+        super::win32::set_window_region(
+            hwnd.0 as isize,
+            region.map(|r| kinshoko_core::desktop::region_in_window(at, r)),
+        );
+    }
+    #[cfg(not(windows))]
+    let _ = (window, at, region);
 }
 
 /// 一次调用同时改窗口的位置与尺寸（Windows 上），免得合成出只改了一半的一帧。
@@ -444,15 +476,15 @@ pub(super) fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(
         .map_err(|e| e.to_string())
 }
 
-/// 钉图内容到 `content`，静止时窗口为 `rest`，收起且没滑出时 `click_through`。
+/// 钉图内容到 `content`，收起且没滑出时 `click_through`。
 ///
-/// 动画（`motion` 不是 `Jump`）时窗口现在改成装得下整个过渡的矩形（已经装得下就不改），
-/// 页面动画结束后调用 `settle_pin` 再改成 `rest`。不逐帧改原生窗口（#7、#64）。
+/// 原生窗口只在内容碰到新的显示器时才改（拖动时当场改，其余时候只扩不缩，[`stage`]）。窗口区域
+/// 现在扩到盖住旧区域与新内容，页面画完（动画结束、手势结束）后调用 `settle_pin` 再缩回内容，
+/// 所以页面晚画的一两帧不会被裁掉（#7、#64、#193）。
 pub fn show(
     app: &AppHandle,
     pin: &str,
     content: ScreenRect,
-    rest: ScreenRect,
     motion: PinMotion,
     click_through: bool,
 ) {
@@ -460,44 +492,48 @@ pub fn show(
         return;
     };
     let (veiled, unavailable) = appearance(app, &saved);
-    let monitors = match motion {
-        PinMotion::Jump => Vec::new(),
-        _ => monitors(),
+    let monitors = surface_monitors();
+    let change = match motion {
+        PinMotion::Drag => Change::Drag,
+        _ => Change::Stay,
     };
-    let (frame, moved, through_changed) = {
+    let (frame, moved, region_changed, region, through_changed) = {
         let mut pins = lock(&state(app).pins);
         let Some(r) = pins.get_mut(pin) else {
             return;
         };
-        let during = match motion {
-            PinMotion::Jump => rest,
-            _ => stage(r.window, content, rest, &monitors).during,
-        };
-        let moved = r.window != during;
+        let to = stage(r.window, r.region, content, change, &monitors);
+        let moved = r.window != to.window;
+        let region_changed = r.region != to.during;
         let through_changed = r.click_through != click_through;
         r.generation = r.generation.wrapping_add(1);
-        r.window = during;
+        r.window = to.window;
         r.content = content;
-        r.rest = rest;
+        r.region = to.during;
+        r.settled = motion == PinMotion::Jump && to.during == content.intersect(&to.window);
         r.click_through = click_through;
         let frame = PinFrame {
             pin: saved,
-            window: during,
+            window: to.window,
             content,
             motion,
             veiled,
             unavailable,
             generation: r.generation,
+            settle: !r.settled,
         };
-        (frame, moved, through_changed)
+        (frame, moved, region_changed, to.during, through_changed)
     };
     let Some(window) = app.get_webview_window(&label(pin)) else {
         return;
     };
-    // 先发帧再改窗口：两者尽量落在同一次合成里。
+    // 先发帧再改窗口：两者尽量落在同一次合成里。区域只会扩大，页面晚画也不会被裁掉。
     let _ = app.emit_to(label(pin), FRAME_EVENT, &frame);
     if moved {
         let _ = place(&window, frame.window);
+    }
+    if moved || region_changed {
+        set_region(&window, frame.window, region);
     }
     if through_changed {
         let _ = window.set_ignore_cursor_events(click_through);
@@ -518,6 +554,7 @@ fn current_frame(app: &AppHandle, pin: &str) -> Option<PinFrame> {
         veiled,
         unavailable,
         generation: r.generation,
+        settle: !r.settled,
     })
 }
 
@@ -562,19 +599,20 @@ fn mark_closing(app: &AppHandle, pin: &str) {
     }
 }
 
-/// 拖到缩放比例不同的显示器上时系统会按新比例改窗口尺寸：改回钉图的物理像素尺寸，
-/// 免得 canvas 被重新采样。
-fn keep_exact_size(app: &AppHandle, pin: &str, size: PhysicalSize<u32>) {
-    let Some((w, h)) = lock(&state(app).pins)
-        .get(pin)
-        .map(|r| (r.window.width, r.window.height))
-    else {
+/// 拖到缩放比例不同的显示器上时系统会按新比例改窗口的位置和尺寸：改回记下的物理像素矩形，
+/// 免得 canvas 被重新采样、窗口区域对不上内容。
+fn keep_window(app: &AppHandle, pin: &str) {
+    let Some(want) = lock(&state(app).pins).get(pin).map(|r| r.window) else {
         return;
     };
-    if (size.width, size.height) != (w, h)
-        && let Some(window) = app.get_webview_window(&label(pin))
-    {
-        let _ = window.set_size(PhysicalSize::new(w, h));
+    let Some(window) = app.get_webview_window(&label(pin)) else {
+        return;
+    };
+    let (Ok(at), Ok(size)) = (window.outer_position(), window.outer_size()) else {
+        return;
+    };
+    if (at.x, at.y, size.width, size.height) != (want.x, want.y, want.width, want.height) {
+        let _ = place(&window, want);
     }
 }
 
@@ -798,35 +836,50 @@ fn stop_waiting(app: &AppHandle, pin: &str) {
     }
 }
 
-/// 动画结束：`generation` 仍是最新一帧时，把窗口改成静止时的矩形。
+/// 动画或手势结束、页面已画好：`generation` 仍是最新一帧时，窗口区域缩回内容；窗口能缩回所在
+/// 显示器且原点不动时也缩回（[`settle`]）。
 #[tauri::command]
 pub async fn settle_pin(app: AppHandle, pin: String, generation: u32) {
     let Some(saved) = lock(&state(&app).store).get(&pin).cloned() else {
         return;
     };
     let (veiled, unavailable) = appearance(&app, &saved);
-    let frame = {
+    let monitors = surface_monitors();
+    let (frame, moved, region) = {
         let mut pins = lock(&state(&app).pins);
         let Some(r) = pins.get_mut(&pin) else {
             return;
         };
-        if r.generation != generation || r.window == r.rest {
+        if r.generation != generation || r.settled {
             return;
         }
-        r.window = r.rest;
-        PinFrame {
+        let (window, region) = settle(r.window, r.content, &monitors);
+        let moved = window != r.window;
+        let unchanged = !moved && region == r.region;
+        r.window = window;
+        r.region = region;
+        r.settled = true;
+        if unchanged {
+            return;
+        }
+        let frame = PinFrame {
             pin: saved,
-            window: r.rest,
+            window,
             content: r.content,
             motion: PinMotion::Jump,
             veiled,
             unavailable,
             generation,
-        }
+            settle: false,
+        };
+        (frame, moved, region)
     };
     if let Some(window) = app.get_webview_window(&label(&pin)) {
-        let _ = app.emit_to(label(&pin), FRAME_EVENT, &frame);
-        let _ = place(&window, frame.window);
+        if moved {
+            let _ = app.emit_to(label(&pin), FRAME_EVENT, &frame);
+            let _ = place(&window, frame.window);
+        }
+        set_region(&window, frame.window, region);
     }
 }
 
@@ -838,7 +891,7 @@ pub async fn move_pin(app: AppHandle, pin: String, x: i32, y: i32) -> Result<(),
         .ok_or(CLOSED)?
         .ok_or(LOCKED)?;
     lock(&state(&app).edge).release(&pin);
-    show(&app, &pin, rect, rect, PinMotion::Jump, false);
+    show(&app, &pin, rect, PinMotion::Drag, false);
     Ok(())
 }
 
@@ -890,7 +943,7 @@ fn zoom(app: &AppHandle, pin: &str, scale: f64, anchor: Option<(f64, f64)>) -> R
         );
         p.zoom(scale, anchor.unwrap_or(centre))
     })?;
-    show(app, pin, rect, rect, PinMotion::Zoom, false);
+    show(app, pin, rect, PinMotion::Zoom, false);
     Ok(())
 }
 
@@ -905,7 +958,7 @@ fn turn_here(app: &AppHandle, pin: &str, turn: Turn) -> Result<(), String> {
         p.turn(turn);
         true
     })?;
-    show(app, pin, rect, rect, PinMotion::Jump, false);
+    show(app, pin, rect, PinMotion::Jump, false);
     Ok(())
 }
 

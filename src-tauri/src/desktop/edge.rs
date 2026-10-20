@@ -86,9 +86,8 @@ fn desk_pin(pin: &SavedPin) -> DeskPin {
     }
 }
 
-/// 让钉图滑到新位置（#64）：内容在窗口里动画，原生窗口一次滑动最多改两次。
-/// 收起的钉图静止在 [`Tuck::stage`](kinshoko_core::desktop::Tuck) 里：滑出与收回不动原生窗口，
-/// 没滑出时让点击穿过，只露细边。
+/// 让钉图滑到新位置（#64）：内容在窗口里动画，原生窗口不动（窗口就是显示器，#193）。
+/// 收起的钉图只有细边在窗口区域里；没滑出时让点击穿过。
 fn apply(app: &AppHandle, moves: &[PinMove]) {
     for m in moves {
         let Some((width, height)) = lock(&state(app).store)
@@ -103,12 +102,8 @@ fn apply(app: &AppHandle, moves: &[PinMove]) {
             width,
             height,
         };
-        let tuck = lock(&state(app).edge).tuck(&m.pin);
-        let (rest, click_through) = match tuck {
-            Some(t) => (t.stage, !t.peeking),
-            None => (content, false),
-        };
-        show(app, &m.pin, content, rest, PinMotion::Slide, click_through);
+        let click_through = lock(&state(app).edge).peeking(&m.pin) == Some(false);
+        show(app, &m.pin, content, PinMotion::Slide, click_through);
     }
 }
 

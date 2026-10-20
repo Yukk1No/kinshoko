@@ -106,7 +106,7 @@ const TURN_KEYS: Record<string, PinTurn> = {
   R: "rotateCounterClockwise",
 };
 
-/** 动画结束后等这么久没有新的缩放再改原生窗口：滚轮连续几格时窗口不来回变。 */
+/** 动画结束后等这么久没有新的缩放再把窗口区域缩回内容：滚轮连续几格时区域不来回变。 */
 const SETTLE_IDLE_MS = 120;
 /** 同一次按下引出的 pointerdown 与 contextmenu 只开一次菜单。 */
 const MENU_DEDUPE_MS = 800;
@@ -114,8 +114,9 @@ const MENU_DEDUPE_MS = 800;
 /**
  * 钉图窗口：按 DPI 像素规则把截图画在物理像素尺寸的 canvas 上（未缩放时与截图逐像素一致）。
  *
- * 几何由应用壳以帧（`pin-frame`）推来：原生窗口在哪、内容要到哪。缩放与贴边滑动只在窗口里变换
- * 内容，不逐帧改原生窗口（#7、#64）；动画结束后请应用壳把窗口改成静止时的矩形。
+ * 几何由应用壳以帧（`pin-frame`）推来：原生窗口在哪、内容要到哪。窗口静止时就是显示器那么大，
+ * 窗口区域把显示和点击限定在内容上（#193）；缩放、贴边滑动与拖动只在窗口里变换内容，不改原生窗口
+ * （#7、#64）。画完以后（帧带 `settle` 时）请应用壳把窗口区域缩回内容。
  *
  * 笔、鼠标与触摸走同一套 pointer 处理（#7：Windows Ink 下笔拖动没有系统拖动需要的鼠标事件）：
  * 按住拖动移动，按住右下角拖动缩放，锁定时都不响应。滚轮以光标为中心缩放，Ctrl+滚轮调透明度；
@@ -217,7 +218,7 @@ export function PinView({ pin }: { pin: string }) {
       }, SETTLE_IDLE_MS);
     };
     settleSoon.current = () => {
-      if (motion?.done(performance.now())) scheduleSettle();
+      if (motion?.done(performance.now()) && frame.current?.settle) scheduleSettle();
     };
     const tick = () => {
       raf = 0;
@@ -227,7 +228,7 @@ export function PinView({ pin }: { pin: string }) {
       const now = performance.now();
       el.style.transform = contentTransform(motion.at(now), f.content, f.window, window.devicePixelRatio);
       if (!motion.done(now)) raf = requestAnimationFrame(tick);
-      else if (f.motion !== "jump") scheduleSettle();
+      else if (f.settle) scheduleSettle();
     };
     const redraw = (force: boolean) => {
       const f = frame.current;
@@ -357,6 +358,19 @@ export function PinView({ pin }: { pin: string }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [pin]);
 
+  /**
+   * 指针在内容上（CSS 像素，相对窗口）。窗口区域在动画、拖动刚结束的一小会儿里还盖着内容以外的
+   * 透明处，那里的按下不当作拖动或菜单（#193）。
+   */
+  const inContent = (x: number, y: number) => {
+    const f = frame.current;
+    if (!f) return false;
+    const dpr = window.devicePixelRatio;
+    const left = (f.content.x - f.window.x) / dpr;
+    const top = (f.content.y - f.window.y) / dpr;
+    return x >= left && y >= top && x < left + f.content.width / dpr && y < top + f.content.height / dpr;
+  };
+
   /** 指针在内容的右下角缩放区里（CSS 像素，相对窗口）。 */
   const atCorner = (x: number, y: number) => {
     const f = frame.current;
@@ -367,6 +381,7 @@ export function PinView({ pin }: { pin: string }) {
   };
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (!inContent(e.clientX, e.clientY)) return;
     if (pressOpensMenu(e.pointerType, e.button)) {
       e.preventDefault();
       openMenu();
@@ -445,7 +460,7 @@ export function PinView({ pin }: { pin: string }) {
       onPointerCancel={endGesture}
       onContextMenu={(e) => {
         e.preventDefault();
-        openMenu();
+        if (inContent(e.clientX, e.clientY)) openMenu();
       }}
     >
       <div onPointerDown={(e) => e.stopPropagation()} onContextMenu={(e) => e.stopPropagation()}>

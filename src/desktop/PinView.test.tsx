@@ -10,6 +10,7 @@ const ipc = vi.hoisted(() => ({
   turn: vi.fn(() => Promise.resolve()),
   menu: vi.fn(() => Promise.resolve()),
   reveal: vi.fn(() => Promise.resolve()),
+  settle: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("../ipc", () => ({
@@ -26,7 +27,7 @@ vi.mock("../ipc", () => ({
   revealPin: ipc.reveal,
   pinReady: () => Promise.resolve(),
   setPinOpacity: () => Promise.resolve(),
-  settlePin: () => Promise.resolve(),
+  settlePin: ipc.settle,
   turnPin: ipc.turn,
   zoomPin: ipc.zoom,
 }));
@@ -64,6 +65,7 @@ function frame(locked = false, veiled = false): PinFrame {
     motion: "jump",
     veiled,
     generation: 0,
+    settle: false,
   };
 }
 
@@ -227,5 +229,48 @@ describe("参考组成员暂时不可用（#66）", () => {
     expect(host.querySelector(".pin-missing")?.textContent).toBe("资料库暂时不可用：移动盘没插");
     act(() => ipc.frame!(frame()));
     expect(host.querySelector(".pin-missing")).toBeNull();
+  });
+});
+
+describe("窗口铺满显示器、窗口区域限定在内容上（#193）", () => {
+  /** 窗口是整台显示器，内容在 (80, 80)；刚拖动过，区域还没缩回。 */
+  const wide = (): PinFrame => ({
+    ...frame(),
+    window: { x: 0, y: 0, width: 2560, height: 1440 },
+    motion: "drag",
+    generation: 3,
+    settle: true,
+  });
+
+  it("按在内容上拖动，坐标按内容相对窗口的位置算", async () => {
+    const host = await showPin();
+    act(() => ipc.frame!(wide()));
+    fireEvent(host, pointer("pointerdown", { screen: [100, 100], client: [100, 100] }));
+    fireEvent(host, pointer("pointermove", { screen: [110, 100], client: [110, 100] }));
+    expect(ipc.move).toHaveBeenLastCalledWith("P1", 90, 80);
+  });
+
+  it("区域还盖着的透明处按下不拖动、不开菜单", async () => {
+    const host = await showPin();
+    act(() => ipc.frame!(wide()));
+    fireEvent(host, pointer("pointerdown", { screen: [500, 500], client: [500, 500] }));
+    fireEvent(host, pointer("pointermove", { screen: [540, 500], client: [540, 500] }));
+    hold(600);
+    fireEvent.contextMenu(host, { clientX: 500, clientY: 500 });
+    expect(ipc.move).not.toHaveBeenCalled();
+    expect(ipc.menu).not.toHaveBeenCalled();
+  });
+
+  it("拖动结束后请应用壳把区域缩回内容；不用缩时不请", async () => {
+    const host = await showPin();
+    hold(1000);
+    expect(ipc.settle).not.toHaveBeenCalled();
+    act(() => ipc.frame!(wide()));
+    fireEvent(host, pointer("pointerdown", { screen: [100, 100], client: [100, 100] }, "mouse"));
+    hold(1000);
+    expect(ipc.settle).not.toHaveBeenCalled();
+    fireEvent(host, pointer("pointerup", { screen: [100, 100], client: [100, 100] }, "mouse"));
+    hold(200);
+    expect(ipc.settle).toHaveBeenCalledWith("P1", 3);
   });
 });

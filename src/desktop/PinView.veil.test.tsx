@@ -61,6 +61,7 @@ function frame(side: number, scale: number, veiled: boolean): PinFrame {
     motion: "jump",
     veiled,
     generation: 0,
+    settle: false,
   };
 }
 

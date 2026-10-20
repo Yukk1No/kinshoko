@@ -37,16 +37,6 @@ pub struct Toggle {
     pub moves: Vec<PinMove>,
 }
 
-/// 收起的钉图静止时的窗口（#64）。
-///
-/// 窗口盖住收起与滑出两个位置，屏幕上的部分正好是滑出时钉图所在的地方。滑出与收回只在窗口里
-/// 移动内容，不动原生窗口。没滑出时应用壳让这个窗口的点击穿过，只有细边看得见。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Tuck {
-    pub stage: ScreenRect,
-    pub peeking: bool,
-}
-
 #[derive(Debug, Clone)]
 struct Tucked {
     /// 收起时的位置与滑出时的位置。
@@ -137,12 +127,9 @@ impl EdgeHide {
         self.tucked.contains_key(id)
     }
 
-    /// 收起的钉图静止时的窗口；没有收起时为 `None`。
-    pub fn tuck(&self, id: &str) -> Option<Tuck> {
-        self.tucked.get(id).map(|t| Tuck {
-            stage: rect_at(t.hidden, t.size).union(&rect_at(t.peek, t.size)),
-            peeking: t.peeking,
-        })
+    /// 收起的钉图是否正滑出；没有收起时为 `None`。没滑出时应用壳让它的窗口点击穿过，只露细边（#64）。
+    pub fn peeking(&self, id: &str) -> Option<bool> {
+        self.tucked.get(id).map(|t| t.peeking)
     }
 
     /// 有收起的钉图：应用壳据此决定是否需要轮询光标。

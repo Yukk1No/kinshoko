@@ -65,8 +65,10 @@ pub struct OriginalPixels {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub enum PinMotion {
-    /// 直接到（拖动、翻转、旋转、恢复、动画结束后改窗口）。
+    /// 直接到（翻转、旋转、恢复、动画结束后改窗口）。
     Jump,
+    /// 拖动：直接到；拖到另一台显示器时当场换窗口（#193）。
+    Drag,
     /// 缩放动画。
     Zoom,
     /// 贴边收起、滑出与回到原位的动画。
@@ -86,8 +88,8 @@ pub enum Turn {
 
 /// 应用壳发给钉图窗口的一帧：画什么、原生窗口此刻在哪、内容要到哪（#64）。
 ///
-/// 内容在窗口里变换，不逐帧改原生窗口；`window` 与 `content` 不同时（动画中、收起时），
-/// 页面把内容画在 `content` 相对 `window` 的位置。
+/// 内容在窗口里变换，不逐帧改原生窗口。窗口静止时就是显示器那么大，窗口区域把显示和点击限定在
+/// 内容上（#193）；页面总把内容画在 `content` 相对 `window` 的位置。
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -106,4 +108,7 @@ pub struct PinFrame {
     pub unavailable: Option<String>,
     /// 动画结束后页面带着它调用 `settle_pin`；不是最新一帧的就不再改窗口。
     pub generation: u32,
+    /// 窗口区域还盖着内容以外的地方（动画、拖动或翻转刚开始）：页面画完、手势结束后调用
+    /// `settle_pin`，把区域缩回内容（#193）。
+    pub settle: bool,
 }

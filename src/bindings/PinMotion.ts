@@ -3,4 +3,4 @@
 /**
  * 钉图怎样到达新的位置（#64）。
  */
-export type PinMotion = "jump" | "zoom" | "slide";
+export type PinMotion = "jump" | "drag" | "zoom" | "slide";

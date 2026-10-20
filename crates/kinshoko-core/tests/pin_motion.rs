@@ -1,9 +1,15 @@
-//! 钉图的缩放与贴边动画（#64）：动画在窗口里变换内容，不逐帧调整原生窗口（#7 的结论）。
-//! 一次动画里窗口最多改两次：开始时放大到装得下整个过渡（需要时），结束时改成静止时的矩形。
+//! 钉图窗口与窗口区域（#64、#193）：窗口静止时就是显示器那么大，内容只在窗口里动，
+//! 显示与点击由窗口区域限定在钉图本身。窗口原点在内容静止时不动，WebView2 晚画的一两帧就不会让
+//! 画面抽搐或被裁掉。
 
-use kinshoko_core::desktop::{DeskPin, EdgeHide, ScreenRect, Stage, stage};
+use kinshoko_core::desktop::{
+    Change, DeskPin, EdgeHide, ScreenRect, Stage, pin_surface, region_in_window, settle, stage,
+};
 
 const MONITOR: ScreenRect = rect(0, 0, 1920, 1080);
+const RIGHT: ScreenRect = rect(1920, 0, 1920, 1080);
+/// 左边一台，原点在负坐标。
+const LEFT: ScreenRect = rect(-1920, 0, 1920, 1080);
 
 const fn rect(x: i32, y: i32, width: u32, height: u32) -> ScreenRect {
     ScreenRect {
@@ -15,63 +21,151 @@ const fn rect(x: i32, y: i32, width: u32, height: u32) -> ScreenRect {
 }
 
 #[test]
-fn zooming_out_animates_inside_the_window_and_shrinks_it_once_at_the_end() {
-    let window = rect(100, 100, 400, 200);
-    let to = rect(200, 150, 200, 100);
+fn a_pin_window_is_the_monitor_its_content_is_on() {
     assert_eq!(
-        stage(window, to, to, &[MONITOR]),
-        Stage {
-            during: window,
-            after: to,
-        }
+        pin_surface(rect(100, 100, 400, 300), &[MONITOR, RIGHT]),
+        MONITOR
     );
 }
 
 #[test]
-fn zooming_in_grows_the_window_once_to_hold_the_whole_animation() {
-    let window = rect(200, 150, 200, 100);
+fn a_pin_across_two_monitors_gets_a_window_over_both() {
+    assert_eq!(
+        pin_surface(rect(1800, 100, 400, 300), &[MONITOR, RIGHT]),
+        rect(0, 0, 3840, 1080)
+    );
+}
+
+#[test]
+fn a_pin_off_every_monitor_keeps_a_window_of_its_own_size() {
+    let lost = rect(5000, 5000, 400, 300);
+    assert_eq!(pin_surface(lost, &[MONITOR]), lost);
+}
+
+#[test]
+fn zooming_in_only_widens_the_region_and_never_moves_the_window() {
+    // #193：放大时窗口原点往左上移，原生窗口立刻到位而页面晚 1～2 帧，画面先抽搐再被裁掉。
+    let from = rect(200, 150, 200, 100);
     let to = rect(100, 100, 400, 200);
     assert_eq!(
-        stage(window, to, to, &[MONITOR]),
+        stage(MONITOR, Some(from), to, Change::Stay, &[MONITOR]),
         Stage {
-            during: rect(100, 100, 400, 200),
-            after: to,
+            window: MONITOR,
+            during: Some(rect(100, 100, 400, 200)),
         }
     );
 }
 
 #[test]
-fn zooming_from_the_corner_only_grows_right_and_down() {
-    // 拖右下角缩放时左上角不动，窗口原点也不动：内容不会因为窗口移动跳一下。
-    let window = rect(200, 150, 200, 100);
-    let to = rect(200, 150, 260, 130);
-    let s = stage(window, to, to, &[MONITOR]);
-    assert_eq!((s.during.x, s.during.y), (200, 150));
-    assert_eq!(s.during, to);
+fn zooming_out_keeps_the_old_region_until_the_page_has_drawn() {
+    let from = rect(100, 100, 400, 200);
+    let to = rect(200, 150, 200, 100);
+    let s = stage(MONITOR, Some(from), to, Change::Stay, &[MONITOR]);
+    assert_eq!(s.during, Some(from), "先不缩：页面还没画到新位置");
+    assert_eq!(settle(s.window, to, &[MONITOR]), (MONITOR, Some(to)));
 }
 
 #[test]
-fn the_window_never_grows_past_the_screen_during_an_animation() {
-    // 收到左边：屏幕外的部分本来就看不见，过渡时窗口只铺到屏幕边。
+fn wheel_steps_keep_widening_the_region_until_it_settles() {
+    // 滚轮连续几格：页面可能还停在前一格，区域要盖住此前所有位置。
+    let a = rect(200, 150, 200, 100);
+    let b = rect(150, 120, 300, 150);
+    let c = rect(400, 300, 100, 50);
+    let first = stage(MONITOR, Some(a), b, Change::Stay, &[MONITOR]).during;
+    let second = stage(MONITOR, first, c, Change::Stay, &[MONITOR]).during;
+    assert_eq!(second, Some(rect(150, 120, 350, 230)));
+}
+
+#[test]
+fn the_region_never_reaches_past_the_window() {
+    // 收到左边：屏幕外的部分本来就看不见。
     let home = rect(100, 400, 200, 100);
     let hidden = rect(-194, 400, 200, 100);
-    let tucked = rect(-194, 400, 394, 100);
+    let s = stage(MONITOR, Some(home), hidden, Change::Stay, &[MONITOR]);
+    assert_eq!(s.window, MONITOR);
+    assert_eq!(s.during, Some(rect(0, 400, 300, 100)));
     assert_eq!(
-        stage(home, hidden, tucked, &[MONITOR]),
-        Stage {
-            during: rect(0, 400, 300, 100),
-            after: tucked,
-        }
+        settle(MONITOR, hidden, &[MONITOR]).1,
+        Some(rect(0, 400, 6, 100))
     );
 }
 
 #[test]
-fn spanning_two_monitors_the_window_may_cover_both() {
-    let right = rect(1920, 0, 1920, 1080);
-    let window = rect(1800, 100, 100, 100);
-    let to = rect(1850, 100, 200, 100);
-    let s = stage(window, to, to, &[MONITOR, right]);
-    assert_eq!(s.during, rect(1800, 100, 250, 100));
+fn dragging_within_a_monitor_never_touches_the_window() {
+    let from = rect(100, 100, 200, 100);
+    let to = rect(160, 130, 200, 100);
+    let s = stage(MONITOR, Some(from), to, Change::Drag, &[MONITOR, RIGHT]);
+    assert_eq!(s.window, MONITOR);
+    assert_eq!(s.during, Some(rect(100, 100, 260, 130)));
+}
+
+#[test]
+fn dragging_onto_another_monitor_switches_the_window_while_dragging() {
+    let monitors = [MONITOR, RIGHT];
+    let crossing = stage(
+        MONITOR,
+        Some(rect(1600, 100, 200, 100)),
+        rect(1800, 100, 200, 100),
+        Change::Drag,
+        &monitors,
+    );
+    assert_eq!(crossing.window, rect(0, 0, 3840, 1080));
+    let over = stage(
+        crossing.window,
+        crossing.during,
+        rect(2000, 100, 200, 100),
+        Change::Drag,
+        &monitors,
+    );
+    assert_eq!(
+        over.window, RIGHT,
+        "离开左边那台时就在拖动中缩回，不留到静止时"
+    );
+    assert_eq!(over.during, Some(rect(1920, 100, 280, 100)));
+}
+
+#[test]
+fn zooming_across_a_monitor_edge_widens_the_window_once() {
+    let monitors = [MONITOR, RIGHT];
+    let s = stage(
+        MONITOR,
+        Some(rect(1700, 100, 200, 100)),
+        rect(1600, 50, 400, 200),
+        Change::Stay,
+        &monitors,
+    );
+    assert_eq!(s.window, rect(0, 0, 3840, 1080));
+    assert_eq!(s.during, Some(rect(1600, 50, 400, 200)));
+}
+
+#[test]
+fn settling_shrinks_the_window_only_when_its_origin_stays() {
+    let both = rect(0, 0, 3840, 1080);
+    // 缩回左边那台：原点不动，画面不跳。
+    assert_eq!(
+        settle(both, rect(100, 100, 200, 100), &[MONITOR, RIGHT]),
+        (MONITOR, Some(rect(100, 100, 200, 100)))
+    );
+    // 缩回右边那台要挪原点：留着大窗口，等下次拖动再换。
+    assert_eq!(
+        settle(both, rect(2000, 100, 200, 100), &[MONITOR, RIGHT]),
+        (both, Some(rect(2000, 100, 200, 100)))
+    );
+    // 左边那台在负坐标上：缩回主显示器要挪原点，同样不缩。
+    let wide = rect(-1920, 0, 3840, 1080);
+    assert_eq!(
+        settle(wide, rect(100, 100, 200, 100), &[LEFT, MONITOR]).0,
+        wide
+    );
+}
+
+#[test]
+fn the_region_is_set_relative_to_the_window() {
+    let window = rect(-1920, 0, 3840, 1080);
+    assert_eq!(
+        region_in_window(window, rect(-100, 50, 300, 200)),
+        (1820, 50, 2120, 250)
+    );
 }
 
 fn tucked_left() -> EdgeHide {
@@ -85,40 +179,37 @@ fn tucked_left() -> EdgeHide {
 }
 
 #[test]
-fn a_hidden_pin_rests_in_a_window_whose_on_screen_part_is_where_it_slides_out() {
-    let edge = tucked_left();
-    let tuck = edge.tuck("a").unwrap();
-    assert_eq!(tuck.stage, rect(-194, 400, 394, 100));
-    assert!(!tuck.peeking, "收起时窗口让点击穿过，只有细边露在屏幕上");
-    assert_eq!(edge.tuck("b"), None);
+fn a_hidden_pin_lets_clicks_through_until_it_slides_out() {
+    let mut edge = tucked_left();
+    assert_eq!(
+        edge.peeking("a"),
+        Some(false),
+        "收起时窗口让点击穿过，只有细边露在屏幕上"
+    );
+    assert_eq!(edge.peeking("b"), None);
+    edge.hover((3, 450));
+    assert_eq!(edge.peeking("a"), Some(true));
 }
 
 #[test]
 fn sliding_out_and_back_never_touches_the_native_window() {
     let mut edge = tucked_left();
-    let tucked = edge.tuck("a").unwrap().stage;
+    let hidden = rect(-194, 400, 200, 100);
     let out = edge.hover((3, 450));
     let peek = rect(out[0].x, out[0].y, 200, 100);
-    assert_eq!(stage(tucked, peek, tucked, &[MONITOR]).during, tucked);
-    assert!(edge.tuck("a").unwrap().peeking);
-    let back = edge.hover((900, 450));
-    let hidden = rect(back[0].x, back[0].y, 200, 100);
-    assert_eq!(
-        stage(tucked, hidden, tucked, &[MONITOR]),
-        Stage {
-            during: tucked,
-            after: tucked,
-        }
+    let s = stage(
+        MONITOR,
+        Some(rect(0, 400, 6, 100)),
+        peek,
+        Change::Stay,
+        &[MONITOR],
     );
-}
-
-#[test]
-fn a_hidden_pin_on_the_right_edge_rests_past_the_right_of_the_screen() {
-    let mut edge = EdgeHide::default();
-    edge.toggle(&[DeskPin {
-        id: "r".into(),
-        home: rect(1700, 500, 200, 100),
-        monitor: MONITOR,
-    }]);
-    assert_eq!(edge.tuck("r").unwrap().stage, rect(1720, 500, 394, 100));
+    assert_eq!(s.window, MONITOR);
+    let back = edge.hover((900, 450));
+    let again = rect(back[0].x, back[0].y, 200, 100);
+    assert_eq!(again, hidden);
+    assert_eq!(
+        stage(MONITOR, s.during, again, Change::Stay, &[MONITOR]).window,
+        MONITOR
+    );
 }

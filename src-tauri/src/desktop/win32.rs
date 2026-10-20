@@ -1,5 +1,5 @@
 //! 直接调用的 Windows 接口：显示器当前使用的颜色配置文件（ICC，#62）；前台窗口、交还焦点与
-//! 光标位置（贴边隐藏，#63）；一次调用同时改钉图窗口的位置与尺寸（#64）；诊断日志用的系统版本、
+//! 光标位置（贴边隐藏，#63）；一次调用同时改钉图窗口的位置与尺寸（#64）与钉图的窗口区域（#193）；诊断日志用的系统版本、
 //! 处理器、内存、显卡与显示器色彩模式（#70）；冻结截图时盖在参考图上的窗口（含 DWM 云化与
 //! 分层透明度，#125）；还没有窗口时的启动错误提示（#145）。
 //!
@@ -13,7 +13,10 @@ use std::ptr;
 
 use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
 use windows_sys::Win32::Graphics::Dwm::{DWMWA_CLOAKED, DwmGetWindowAttribute};
-use windows_sys::Win32::Graphics::Gdi::{CreateDCW, DeleteDC};
+use windows_sys::Win32::Graphics::Gdi::{
+    CreateDCW, CreateRectRgn, DeleteDC, DeleteObject, GetWindowRgnBox, NULLREGION, RGN_ERROR,
+    SetWindowRgn,
+};
 use windows_sys::Win32::UI::ColorSystem::GetICMProfileW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     GW_HWNDNEXT, GWL_EXSTYLE, GetCursorPos, GetForegroundWindow, GetLayeredWindowAttributes,
@@ -38,7 +41,8 @@ pub fn show_error(title: &str, text: &str) {
 }
 
 /// 冻结截图时位于目标上方的窗口矩形。半透明或异形窗口也保守地算遮挡，避免误连来源；
-/// 只有确定不画任何东西的窗口不算（#125，见 [`draws_nothing`]）。
+/// 只有确定不画任何东西的窗口不算（#125，见 [`draws_nothing`]）。设了窗口区域的窗口（钉图铺满
+/// 显示器、区域只盖住钉图本身，#193）按区域的外接矩形算，区域为空的不算。
 /// 目标消失或 Z 序遍历不稳定时返回 None，调用方按普通截图处理。
 pub fn covering_windows(target: isize) -> Option<Vec<kinshoko_core::desktop::ScreenRect>> {
     let mut covered = Vec::new();
@@ -62,6 +66,25 @@ pub fn covering_windows(target: isize) -> Option<Vec<kinshoko_core::desktop::Scr
             // SAFETY：rect 是本函数持有的有效输出缓冲区。
             if unsafe { GetWindowRect(window, &mut rect) } == 0 {
                 return None;
+            }
+            let mut region: RECT = RECT {
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+            };
+            // SAFETY：同上；没有窗口区域时返回 ERROR，rect 不变。
+            match unsafe { GetWindowRgnBox(window, &mut region) } {
+                RGN_ERROR => {}
+                NULLREGION => rect = region,
+                _ => {
+                    rect = RECT {
+                        left: rect.left + region.left,
+                        top: rect.top + region.top,
+                        right: rect.left + region.right,
+                        bottom: rect.top + region.bottom,
+                    }
+                }
             }
             if rect.right > rect.left && rect.bottom > rect.top {
                 covered.push(kinshoko_core::desktop::ScreenRect {
@@ -178,6 +201,29 @@ pub fn set_window_rect(hwnd: isize, x: i32, y: i32, width: u32, height: u32) -> 
     );
     // SAFETY：`hwnd` 刚确认是有效窗口；其余参数都是值。
     unsafe { SetWindowPos(hwnd, ptr::null_mut(), x, y, w, h, flags) != 0 }
+}
+
+/// 窗口区域（相对窗口左上角的左、上、右、下，物理像素）：只在区域里显示、接点击（#193）。
+/// `None` 时什么都不显示、不接点击。窗口已经不在时返回 false。
+pub fn set_window_region(hwnd: isize, rect: Option<(i32, i32, i32, i32)>) -> bool {
+    let hwnd = hwnd as HWND;
+    // SAFETY：IsWindow 接受任意值；已销毁的句柄只会让它返回 0。
+    if unsafe { IsWindow(hwnd) } == 0 {
+        return false;
+    }
+    let (l, t, r, b) = rect.unwrap_or((0, 0, 0, 0));
+    // SAFETY：只传值；失败时返回空句柄。
+    let region = unsafe { CreateRectRgn(l, t, r, b) };
+    if region.is_null() {
+        return false;
+    }
+    // SAFETY：`hwnd` 刚确认有效；成功后区域归系统所有，失败时由这里释放。
+    let ok = unsafe { SetWindowRgn(hwnd, region, 1) } != 0;
+    if !ok {
+        // SAFETY：上面创建、没有交给系统的区域，只释放一次。
+        unsafe { DeleteObject(region) };
+    }
+    ok
 }
 
 /// 光标位置，物理像素（进程是每显示器 DPI 感知）。
@@ -575,6 +621,18 @@ mod tests {
         let cloaked = cloaked.show();
         let corner = rect(722, 374, 40, 30);
         let opaque = Window::new(corner, WS_EX_TOPMOST).show();
+        // #193：钉图窗口铺满显示器，窗口区域只盖住钉图本身。按区域算遮挡，不按外框；
+        // 区域为空（什么都不显示）的不算。
+        let pinned = rect(1800, 1000, 30, 20);
+        let big = Window::new(rect(0, 0, 2560, 1440), WS_EX_TOPMOST);
+        assert!(set_window_region(
+            big.0 as isize,
+            Some((1800, 1000, 1830, 1020))
+        ));
+        let big = big.show();
+        let empty = Window::new(rect(0, 0, 2560, 1440), WS_EX_TOPMOST);
+        assert!(set_window_region(empty.0 as isize, None));
+        let empty = empty.show();
 
         let mut covered = covering_windows(main.0 as isize).expect("Z 序可遍历");
         for r in &before {
@@ -582,8 +640,8 @@ mod tests {
                 covered.remove(i);
             }
         }
-        // 不画任何东西的两个窗口不算遮挡，真正画在上面的窗口仍算。
-        assert_eq!(covered, vec![corner]);
+        // 不画任何东西的窗口不算遮挡，真正画在上面的窗口仍算；有窗口区域的按区域算。
+        assert_eq!(covered, vec![pinned, corner]);
 
         let image = ReferenceImage {
             id: "a".into(),
@@ -632,6 +690,6 @@ mod tests {
             height: 89,
         };
         assert_eq!(readout(crossing), None);
-        drop((opaque, cloaked, invisible));
+        drop((empty, big, opaque, cloaked, invisible));
     }
 }
