@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { KeyboardEvent, MouseEvent } from "react";
+import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import type { Candidate } from "../bindings/Candidate";
 import type { Condition } from "../bindings/Condition";
 import type { ContentRating } from "../bindings/ContentRating";
@@ -94,11 +94,14 @@ export const tagName = (tag: TagLabel) => `${NAMESPACE[tag.namespace]}${tag.name
 /** 未翻译标记的说明（#160）：图标的可访问名称与悬停提示。 */
 export const UNTRANSLATED_HINT = "尚无中文名，显示的是原名";
 
-/** 标签名后的提示：尚未翻译（翻译图标，#160），或没有外部对应、不参与内置近似对应表。 */
-export function TagMarks({ tag }: { tag: TagLabel }) {
+/**
+ * 标签名后的提示：尚未翻译（翻译图标，#160），或没有外部对应、不参与内置近似对应表。
+ * `untranslated`：换掉尚未翻译的标记，例如详情面板里可以点的改名按钮（#182）。
+ */
+export function TagMarks({ tag, untranslated }: { tag: TagLabel; untranslated?: ReactNode }) {
   return (
     <>
-      {tag.untranslated && (
+      {tag.untranslated && (untranslated ??
         <span className="untranslated" role="img" aria-label={UNTRANSLATED_HINT} title={UNTRANSLATED_HINT}>
           <Languages size={12} aria-hidden="true" />
         </span>

@@ -553,3 +553,41 @@ fn a_corrected_legacy_mapping_adopts_the_existing_explicit_global_choice() {
         "自然分缝"
     );
 }
+
+#[test]
+fn naming_an_untranslated_tag_is_a_preference_that_a_later_table_does_not_replace() {
+    let dir = tempfile::tempdir().unwrap();
+    let (lib, image) = library(dir.path(), "a");
+    let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
+    catalog.synchronize(&lib).unwrap();
+    lib.replace_source_tags(
+        &FactSource::model("test"),
+        &image,
+        &[SourceTag {
+            tag: TagRef::External {
+                namespace: TagNamespace::General,
+                name: "parted_hair".into(),
+            },
+            score: Some(0.9),
+        }],
+    )
+    .unwrap();
+    let before = catalog.image_tags(&lib, &image, "zh-CN").unwrap();
+    assert!(before.image.tags[0].tag.untranslated);
+    let id = before.identities[0].catalog_id.clone();
+
+    catalog
+        .set_name_preference(
+            &id,
+            &LocalizedName {
+                lang: "zh-CN".into(),
+                name: "中分".into(),
+            },
+        )
+        .unwrap();
+    catalog.update_name_defaults(&table("分缝发型")).unwrap();
+
+    let after = catalog.image_tags(&lib, &image, "zh-CN").unwrap();
+    assert_eq!(after.image.tags[0].tag.name, "中分");
+    assert!(!after.image.tags[0].tag.untranslated);
+}

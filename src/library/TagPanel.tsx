@@ -11,6 +11,7 @@ import type { VocabularyTag } from "../bindings/VocabularyTag";
 import { addTagAlias, catalogImageTags, editTags, removeTagAlias, vocabulary, workspaceEditSourceTags } from "../ipc";
 import { TagMarks, UI_LANG, tagName, useCandidates } from "../search/SearchBox";
 import { TagChip } from "../tags/TagChip";
+import { UntranslatedRename } from "../tags/UntranslatedRename";
 import { tagStanding } from "../tags/tagConfidence";
 import { useTagDisplay } from "../tags/TagDisplayContext";
 import { AtSign, Ban, Check, Tags, Undo2, X } from "lucide-react";
@@ -118,6 +119,13 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
     void edit([{ kind, tag }]);
   };
 
+  // 名称偏好保存后重读标签（词表变化事件也会让代次递增）。
+  const renamed = () => { if (currentKey.current !== identityKey) return; if (inspection) inspection.reload(); else setRefresh((n) => n + 1); };
+  const renameFor = (tag: TagLabel) => {
+    const identity = identities.find((entry) => entry.localTagId === tag.id);
+    return identity && { catalogId: identity.catalogId, onSaved: renamed };
+  };
+
   const hasText = !!text.trim();
   const lowOutline = display.lowOutline ? "" : undefined;
   const chip = ({ tag, origins }: ImageTag, meter: boolean) => {
@@ -125,7 +133,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
     const name = tagName(tag);
     const unified = identities.filter((identity) => identity.localTagId === tag.id);
     return (
-      <TagChip key={tag.id} tag={tag} origins={origins} meter={meter}
+      <TagChip key={tag.id} tag={tag} origins={origins} meter={meter} rename={renameFor(tag)}
         notes={unified.map((identity) => `统一为：${tagName(identity.tag)}`)}
         actions={<>
           {manual ? (
@@ -168,10 +176,11 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
             <ul className="tag-list tag-list-rejected k-tag-chips" aria-label="已否决" aria-busy={stale} inert={stale}>
               {tags.rejected.map((tag) => {
                 const name = tagName(tag);
+                const rename = renameFor(tag);
                 return (
                   <li key={tag.id} className="tag-row k-tag-chip is-rejected">
                     <span className="tag-name">{name}</span>
-                    <TagMarks tag={tag} />
+                    <TagMarks tag={tag} untranslated={rename && <UntranslatedRename tag={tag} catalogId={rename.catalogId} onSaved={rename.onSaved} />} />
                     <button type="button" className="k-tag-restore" aria-label={`撤销否决“${name}”`} title="改回自动"
                       onClick={() => decide("clear", byId(tag))}>恢复</button>
                   </li>
