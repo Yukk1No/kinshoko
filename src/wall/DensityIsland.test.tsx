@@ -1,5 +1,5 @@
-import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { DensityIsland } from "./DensityIsland";
 
 afterEach(() => { cleanup(); vi.useRealTimers(); });
@@ -74,4 +74,32 @@ it("Ctrl+滚轮缩放的预览让滑条跟着走，撤掉预览后回到已提�
   expect(slider.value).toBe("320");
   expect(onPreview).not.toHaveBeenCalled();
   expect(onCommit).not.toHaveBeenCalled();
+});
+
+describe("多选时收成圆形按钮（#180）", () => {
+  it("只剩图片大小按钮；悬停或点按时滑条从上方弹出，移开后收回", async () => {
+    const onCommit = vi.fn();
+    render(<DensityIsland collapsed value={240} onPreview={() => {}} onCommit={onCommit} />);
+    const island = screen.getByRole("group", { name: "图片大小" });
+    expect(screen.queryByRole("slider")).toBeNull();
+    const button = within(island).getByRole("button", { name: "图片大小" });
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.mouseEnter(island);
+    const slider = screen.getByRole("slider", { name: "图片大小" }) as HTMLInputElement;
+    expect(island.contains(slider)).toBe(true);
+    fireEvent.pointerDown(slider);
+    fireEvent.change(slider, { target: { value: "320" } });
+    fireEvent.pointerUp(slider);
+    expect(onCommit).toHaveBeenCalledWith(320);
+    fireEvent.mouseLeave(island);
+    await waitFor(() => expect(screen.queryByRole("slider")).toBeNull());
+
+    fireEvent.click(button);
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("slider", { name: "图片大小" })).toBeTruthy();
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "Escape" });
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    await waitFor(() => expect(screen.queryByRole("slider")).toBeNull());
+  });
 });

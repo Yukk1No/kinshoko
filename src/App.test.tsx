@@ -253,6 +253,10 @@ function LocalSearchFixture() {
 }
 
 const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.args);
+/** 详情面板里整理选中图的那一块；没有选择时不在。 */
+const selectionPanel = () => screen.queryByLabelText("已选参考图");
+/** 多选悬浮栏（#180）：只在选了两张及以上时出现。 */
+const selectionBar = () => screen.queryByRole("toolbar", { name: "已选参考图操作" });
 const push = (event: LibraryEvent) => act(() => emit("library-event", event));
 /**
  * 顶栏的导入分体按钮（#98）：“导入图片文件”是左半，文件夹与 Eagle 在“更多导入方式”菜单里。
@@ -739,7 +743,7 @@ describe("主窗口", () => {
 
     expect(await screen.findByText("图库里还没有参考图。点右上角的“导入”，或直接拖进窗口。")).toBeTruthy();
     expect(screen.queryByRole("img")).toBeNull();
-    expect(screen.queryByText(/已选/)).toBeNull();
+    expect(selectionPanel()).toBeNull();
     expect(screen.queryByRole("progressbar")).toBeNull();
     expect(screen.queryByLabelText("导入结果")).toBeNull();
     expect(sent("plugin:library|browse").at(-1)).toMatchObject({ libraryId: "L2" });
@@ -1401,13 +1405,14 @@ describe("整理", () => {
     );
   });
 
-  it("选中多张图后批量放入文件夹、删除；回收站里恢复", async () => {
+  it("选中多张图后批量放入文件夹、删除；回收站里只选一张时走右键菜单还原（#180）", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.keyDown(card("a"), { key: " " });
+    expect(selectionBar()).toBeNull();
     fireEvent.click(card("b"), { ctrlKey: true });
-    expect(screen.getByText("已选 2 张")).toBeTruthy();
+    expect(within(selectionBar()!).getByText("已选 2 张")).toBeTruthy();
 
     const put = screen.getByRole("button", { name: "放入文件夹" });
     await waitFor(() => expect(put).toHaveProperty("disabled", false));
@@ -1419,20 +1424,53 @@ describe("整理", () => {
       ]),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "删除" }));
+    fireEvent.click(screen.getByRole("button", { name: "删除，Del" }));
     await waitFor(() =>
       expect(sent("plugin:library|edit").at(-1)).toEqual({ libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "delete" }] }),
     );
-    await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
+    await waitFor(() => expect(selectionPanel()).toBeNull());
+    await waitFor(() => expect(selectionBar()).toBeNull());
 
     // 只有一个图库：“全部图片”下的回收站直接打开它。
     fireEvent.click(screen.getByRole("button", { name: "回收站 · 全部图库（1 张）" }));
     await waitFor(() => expect(card("a")).toBeTruthy());
     fireEvent.keyDown(card("a"), { key: " " });
-    fireEvent.click(await screen.findByRole("button", { name: "恢复" }));
+    expect(selectionBar()).toBeNull();
+    fireEvent.contextMenu(card("a"));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "还原" }));
     await waitFor(() =>
-      expect(sent("plugin:library|edit").at(-1)).toEqual({ libraryId: "L1", ids: ["a"], edits: [{ kind: "restore" }] }),
+      expect(sent("plugin:library|workspace_edit_source").at(-1)).toMatchObject({ target: { imageId: "a" }, edits: [{ kind: "restore" }] }),
     );
+  });
+
+  it("多选时右下角那一组收成圆形按钮让位，取消多选后恢复（#180）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const island = () => screen.getByRole("group", { name: "图片大小" });
+    fireEvent.keyDown(card("a"), { key: " " });
+    expect(island().classList.contains("is-collapsed")).toBe(false);
+    fireEvent.click(card("b"), { ctrlKey: true });
+    expect(island().classList.contains("is-collapsed")).toBe(true);
+    expect(screen.queryByRole("slider", { name: "图片大小" })).toBeNull();
+    expect(within(island()).getByRole("button", { name: "图片大小" })).toBeTruthy();
+
+    fireEvent.click(within(selectionBar()!).getByRole("button", { name: "取消选择" }));
+    await waitFor(() => expect(selectionBar()).toBeNull());
+    expect(island().classList.contains("is-collapsed")).toBe(false);
+    expect(screen.getByRole("slider", { name: "图片大小" })).toBeTruthy();
+  });
+
+  it("多选时打开查看器，悬浮栏隐藏（#180）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.keyDown(card("a"), { key: " " });
+    fireEvent.click(card("b"), { ctrlKey: true });
+    expect(selectionBar()).toBeTruthy();
+    fireEvent.keyDown(card("b"), { key: "Enter" });
+    await screen.findByRole("region", { name: "原图查看器" });
+    await waitFor(() => expect(selectionBar()).toBeNull());
   });
 
   it("在窗口打开时以外的图库里多选，详情面板照样批量整理，请求带上那个图库（ADR-0008，#113）", async () => {
@@ -1448,7 +1486,7 @@ describe("整理", () => {
     await waitFor(() => expect(card("a")).toBeTruthy());
     fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(card("b"), { ctrlKey: true });
-    expect(await screen.findByText("已选 2 张")).toBeTruthy();
+    expect(within(await waitFor(() => selectionBar()!)).getByText("已选 2 张")).toBeTruthy();
 
     const put = screen.getByRole("button", { name: "放入文件夹" });
     await waitFor(() => expect(put).toHaveProperty("disabled", false));
@@ -1465,16 +1503,16 @@ describe("整理", () => {
     let previews = 0;
     let stale = true;
     backend(library, clean, (cmd, args) => {
-      if (cmd === "plugin:library|preview_permanent_delete") {
+      if (cmd === "plugin:library|workspace_preview_source_delete") {
         previews += 1;
-        const { ids } = args as { ids: string[] };
+        const ids = [(args as { target: { imageId: string } }).target.imageId];
         return {
           imageIds: ids,
           groups: previews === 1 ? [] : [{ groupId: "G1", name: "手的参考", imageIds: ids }],
           token: `T${previews}`,
         };
       }
-      if (cmd === "plugin:library|permanent_delete") {
+      if (cmd === "plugin:library|workspace_permanent_source_delete") {
         if (stale) {
           stale = false;
           return Promise.reject("回收站或参考组在确认前有变化，请重新查看将受影响的参考组");
@@ -1491,8 +1529,10 @@ describe("整理", () => {
     expect(trash).toHaveProperty("disabled", false);
     fireEvent.click(trash);
     await waitFor(() => expect(card("a")).toBeTruthy());
+    // 只选一张时没有悬浮栏（#180）：从右键菜单彻底删除。
     fireEvent.keyDown(card("a"), { key: " " });
-    fireEvent.click(await screen.findByRole("button", { name: "永久删除…" }));
+    fireEvent.contextMenu(card("a"));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "彻底删除…" }));
 
     // 没有受影响的参考组：直接确认。
     expect(await screen.findByText(/永久删除这 1 张图/)).toBeTruthy();
@@ -1505,18 +1545,18 @@ describe("整理", () => {
     expect(screen.getByText(/刚有变化/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
     await waitFor(() =>
-      expect(sent("plugin:library|permanent_delete")).toEqual([
-        { libraryId: "L1", ids: ["a"], token: "T1" },
-        { libraryId: "L1", ids: ["a"], token: "T2" },
+      expect(sent("plugin:library|workspace_permanent_source_delete")).toMatchObject([
+        { target: { libraryId: "L1", imageId: "a" }, token: "T1" },
+        { target: { libraryId: "L1", imageId: "a" }, token: "T2" },
       ]),
     );
-    await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
+    await waitFor(() => expect(selectionPanel()).toBeNull());
   });
 
   it("收起详情面板后，永久删除的确认仍是可见、可操作的提醒对话框", async () => {
     backend(library, clean, (cmd, args) => {
-      if (cmd === "plugin:library|preview_permanent_delete") return { imageIds: (args as { ids: string[] }).ids, groups: [], token: "T1" };
-      if (cmd === "plugin:library|permanent_delete") return null;
+      if (cmd === "plugin:library|workspace_preview_source_delete") return { imageIds: [(args as { target: { imageId: string } }).target.imageId], groups: [], token: "T1" };
+      if (cmd === "plugin:library|workspace_permanent_source_delete") return null;
       return undefined;
     });
     render(<App />);
@@ -1526,7 +1566,8 @@ describe("整理", () => {
     fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(await screen.findByRole("button", { name: "收起详情" }));
     await waitFor(() => expect(screen.getByLabelText("详情", { selector: "aside" }).getAttribute("data-collapsed")).toBe("true"));
-    fireEvent.click(await screen.findByRole("button", { name: "永久删除…" }));
+    fireEvent.contextMenu(card("a"));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "彻底删除…" }));
     const dialog = await screen.findByRole("alertdialog", { name: "永久删除" });
     expect(dialog.closest("[inert], [aria-hidden='true']")).toBeNull();
     expect(dialog.closest("aside")).toBeNull();
@@ -1535,7 +1576,7 @@ describe("整理", () => {
     expect(confirm.className).toContain("k-btn");
     expect(confirm.className).toContain("is-danger");
     fireEvent.click(confirm);
-    await waitFor(() => expect(sent("plugin:library|permanent_delete")).toEqual([{ libraryId: "L1", ids: ["a"], token: "T1" }]));
+    await waitFor(() => expect(sent("plugin:library|workspace_permanent_source_delete")).toMatchObject([{ target: { libraryId: "L1", imageId: "a" }, token: "T1" }]));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
   });
 
@@ -1986,12 +2027,12 @@ describe("安全模式", () => {
     render(<App />);
     await waitFor(() => expect(cardOf("x")).toBeTruthy());
     fireEvent.keyDown(cardOf("x")!, { key: " " });
-    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
     const sidebars = sent("plugin:library|sidebar").length;
 
     fireEvent.click(await book());
     await changed(true);
-    await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
+    await waitFor(() => expect(selectionPanel()).toBeNull());
     await waitFor(() => expect(sent("plugin:library|sidebar").length).toBeGreaterThan(sidebars));
   });
 
@@ -2000,11 +2041,11 @@ describe("安全模式", () => {
     render(<App />);
     await waitFor(() => expect(cardOf("a")).toBeTruthy());
     fireEvent.keyDown(cardOf("a")!, { key: " " });
-    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
 
     fireEvent.click(await book());
     await changed(false);
-    await waitFor(() => expect(screen.queryByText(/已选/)).toBeNull());
+    await waitFor(() => expect(selectionPanel()).toBeNull());
     expect(cardOf("a")).toBeTruthy();
   });
 
@@ -2027,7 +2068,7 @@ describe("安全模式", () => {
     fireEvent.click(await book());
     await changed(true);
     await waitFor(() => expect(cardOf("x")).toBeNull());
-    await waitFor(() => expect(screen.getByText("已选 1 张")).toBeTruthy());
+    await waitFor(() => expect(selectionBar()).toBeNull()); expect(selectionPanel()).toBeTruthy();
     expect(cardOf("a")?.getAttribute("aria-selected")).toBe("true");
   });
 
@@ -2042,7 +2083,7 @@ describe("安全模式", () => {
     fireEvent.click(await book());
     await changed(false);
     await waitFor(() => expect(cardOf("x")).toBeTruthy());
-    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
     expect(cardOf("a")?.getAttribute("aria-selected")).toBe("true");
   });
   describe("候选随视角作废（#76）", () => {
@@ -2219,9 +2260,9 @@ describe("聚合来源操作的工作区通知", () => {
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
-    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
     await act(() => emit("workspace-changed", { revision: "fixture", libraries: [{ library, unavailable: null }] }));
-    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
   });
 
   it("新修订（例如在详情面板改了标签）保留仍然存在的选中图，详情面板保持打开", async () => {
@@ -2229,13 +2270,13 @@ describe("聚合来源操作的工作区通知", () => {
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
-    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
     const browses = sent("plugin:library|browse").length;
     await act(() => emit("workspace-changed", { revision: "after-tag-edit", libraries: [{ library, unavailable: null }] }));
     // 图片墙按新修订重读之后，选择仍在，详情面板仍打开。
     await waitFor(() => expect(sent("plugin:library|browse").length).toBeGreaterThan(browses));
     await waitFor(() => expect(document.querySelector('[data-id="a"]')?.getAttribute("aria-selected")).toBe("true"));
-    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
     expect(screen.getByLabelText("详情", { selector: "aside" }).getAttribute("data-collapsed")).toBe("false");
   });
 
@@ -2250,21 +2291,21 @@ describe("聚合来源操作的工作区通知", () => {
     gone = true;
     await act(() => emit("workspace-changed", { revision: "after-delete", libraries: [{ library, unavailable: null }] }));
     await waitFor(() => expect(document.querySelector('[data-id="a"]')).toBeNull());
-    await waitFor(() => expect(screen.getByText("已选 1 张")).toBeTruthy());
+    await waitFor(() => expect(selectionBar()).toBeNull()); expect(selectionPanel()).toBeTruthy();
     expect(document.querySelector('[data-id="b"]')?.getAttribute("aria-selected")).toBe("true");
   });
 
-  it("唯一的选中图在新修订里不存在时清空选择，不留下“已选 0 张”的浮动操作条", async () => {
+  it("唯一的选中图在新修订里不存在时清空选择，详情面板随之收起", async () => {
     let gone = false;
     backend(library, clean, (cmd) => cmd === "plugin:library|browse" && gone ? { ...page, cards: page.cards.filter((c) => c.id !== "a"), total: 1 } : undefined);
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
-    expect(screen.getByText("已选 1 张")).toBeTruthy();
+    expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
     gone = true;
     await act(() => emit("workspace-changed", { revision: "after-delete", libraries: [{ library, unavailable: null }] }));
     await waitFor(() => expect(document.querySelector('[data-id="a"]')).toBeNull());
-    await waitFor(() => expect(screen.queryByRole("toolbar", { name: "已选参考图操作" })).toBeNull());
-    expect(screen.queryByText("已选 0 张")).toBeNull();
+    await waitFor(() => expect(selectionPanel()).toBeNull());
+    expect(selectionBar()).toBeNull();
   });
 });

@@ -58,7 +58,7 @@ import { UpdateBanner } from "./Update";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "./wall/Wall";
 import { WallMenu } from "./wall/WallMenu";
 import { useWallActions } from "./wall/useWallActions";
-import { DensityIsland } from "./wall/DensityIsland";
+import { WallFloats } from "./wall/WallFloats";
 import { Viewer } from "./viewer/Viewer";
 import { RuntimeNotice } from "./RuntimeSupport";
 import { INITIAL_SAFE_LENS, needsRecheck, reduceSafeLens, type SafeLensAction } from "./shell/safeLens";
@@ -396,7 +396,6 @@ function LibraryWorkspace({
   }, [safe, onError, acceptStatus]);
 
   // 详情面板（#98）：明确打开的多来源整理优先；否则显示当前选择的整理。
-  const [barHost, setBarHost] = useState<HTMLElement | null>(null);
   const selectionKey = [...selected].sort().join("\n");
   const [inspectorHidden, setInspectorHidden] = useState<string | null>(null);
   // 详情面板整理哪个图库（ADR-0008，#113）：范围是某个图库时就是它；“全部图片”下选中的图都只有同一个图库的
@@ -414,6 +413,9 @@ function LibraryWorkspace({
     : undefined;
   const inspected = sources ?? selectedSourceCard ?? null;
   const inspectorContent = inspected !== null || eligible;
+  // 详情面板整理的那个图库里的选中图。
+  const panelIds = selectedCards.flatMap((card) =>
+    card.sources?.filter((source) => source.libraryId === selectionLibrary && !source.unavailable).map((source) => source.imageId) ?? []);
   const inspectorOpen = inspectorContent && !hidden && (sources !== null || inspectorHidden !== selectionKey);
   /**
    * 查看器里的详情侧栏跟着正在看的图（#179）：打开或换图时选择改为这一张。画师在查看器里隐藏了侧栏，
@@ -612,13 +614,15 @@ function LibraryWorkspace({
             }}
             onPaste={wallActions.importClipboard}
           />
-          {/* 图片墙右下角：打标图标（#144）在图片大小浮岛（#102 方案 C3，与 Ctrl+滚轮缩放成对）的左边。 */}
-          <div className="k-wall-corner">
-            {library && <TaggingActivity libraryId={library.id} registered={status?.libraries.map((entry) => entry.library.id)} onOpenSettings={onOpenTaggingSettings} />}
-            {!viewerOpen && <DensityIsland value={density} preview={zoomPreview} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />}
-          </div>
-          {/* 多选的浮动操作条（#98）：选择面板把数量与批量操作放到这里。 */}
-          <div className="selbar-host" ref={setBarHost} />
+          {/* 图片墙右下角：打标图标（#144）在图片大小浮岛（#102 方案 C3，与 Ctrl+滚轮缩放成对）的左边。
+              选了两张及以上时底部升起多选悬浮栏（#98，#180），右下角收成圆形按钮让位；查看器打开时悬浮栏隐藏。 */}
+          <WallFloats
+            tagging={(collapsed) => library && <TaggingActivity collapsed={collapsed} libraryId={library.id} registered={status?.libraries.map((entry) => entry.library.id)} onOpenSettings={onOpenTaggingSettings} />}
+            density={viewerOpen ? null : { value: density, preview: zoomPreview, onPreview: (v) => wall.current?.previewDensity(v), onCommit: setDensity }}
+            bar={inspected === null && eligible && !hidden && !viewerOpen && panelIds.length > 1 && selectionLibrary !== null ? {
+              libraryId: selectionLibrary, scope, ids: panelIds, onClear: () => setSelected(new Set()), reloadKey, onError, safeMode: safe,
+            } : null}
+          />
           {viewing && (
             <Viewer
               workspace
@@ -655,9 +659,8 @@ function LibraryWorkspace({
                 workspace
                 libraryId={selectionLibrary ?? libraryId}
                 scope={scope}
-                bar={barHost}
-                selected={new Set(selectedCards.flatMap((card) =>
-                  card.sources?.filter((source) => source.libraryId === selectionLibrary && !source.unavailable).map((source) => source.imageId) ?? []))}
+                inlineActions={false}
+                selected={new Set(panelIds)}
                 onClear={() => setSelected(new Set())}
                 reloadKey={reloadKey}
                 onError={onError}

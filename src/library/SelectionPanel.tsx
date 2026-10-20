@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { FolderInput, FolderMinus, Link2, RotateCcw, ShieldCheck, Trash2, Undo2, X } from "lucide-react";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
@@ -47,8 +46,8 @@ type Props = {
   safeMode?: boolean;
   /** 词表代次（词表、图片或安全模式变化时递增）：标签面板随之刷新。 */
   generation?: number;
-  /** 主窗口的浮动操作条位置（#98）：给出时，数量与批量操作浮在图片墙下方，其余留在详情面板。 */
-  bar?: HTMLElement | null;
+  /** 数量与批量操作排在面板里（来源整理）。主窗口为 false：多选时它们在图片墙的悬浮栏里（SelectionBar，#180）。 */
+  inlineActions?: boolean;
 };
 
 const isAdult = (rating: ContentRating | null) =>
@@ -294,7 +293,7 @@ export function SelectionPanel({
   sourceTarget,
   inspection,
   onSourceChanged,
-  bar,
+  inlineActions = true,
   workspace = false,
 }: Props) {
   const ids = [...selected];
@@ -316,7 +315,7 @@ export function SelectionPanel({
   // 来源整理的文件夹树在来源检查里。
   const sourceMode = sourceTarget !== undefined;
   useEffect(() => {
-    if (sourceMode) return;
+    if (sourceMode || !inlineActions) return;
     let alive = true;
     (workspace ? workspaceSidebar(libraryId, safeMode) : sidebar(libraryId)).then(
       (s) => alive && setFolders(flattenFolders(s.folders)),
@@ -325,7 +324,7 @@ export function SelectionPanel({
     return () => {
       alive = false;
     };
-  }, [libraryId, reloadKey, safeMode, workspace, sourceMode]);
+  }, [libraryId, reloadKey, safeMode, workspace, sourceMode, inlineActions]);
   const folders = inspection ? flattenFolders(inspection.value.sidebar.folders) : libraryFolders;
 
   const detailKey = JSON.stringify([requestKey, reloadKey, sourceRefresh]);
@@ -368,9 +367,8 @@ export function SelectionPanel({
     );
   };
 
-  const floating = bar !== undefined;
-  const actionsBody = (
-    <>
+  const actions = inlineActions && (
+    <div className="selection-actions selbar is-inline" role="toolbar" aria-label="已选参考图操作">
       <span className="selection-count">已选 {ids.length} 张</span>
       <Menu.Root modal={false}>
         <Menu.Trigger className="selbar-btn" aria-label="放入文件夹" disabled={!folders.length} title={folders.length ? "放入文件夹" : "还没有文件夹"}>
@@ -403,11 +401,8 @@ export function SelectionPanel({
       <button type="button" className="selbar-btn is-icon" aria-label="取消选择" title="取消选择" onClick={onClear}>
         <X size={15} aria-hidden="true" />
       </button>
-    </>
+    </div>
   );
-  const actions = floating
-    ? bar ? createPortal(<div className="selbar" role="toolbar" aria-label="已选参考图操作">{actionsBody}</div>, bar) : null
-    : <div className="selection-actions selbar is-inline" role="toolbar" aria-label="已选参考图操作">{actionsBody}</div>;
 
   return (
     <div className="selection" aria-label="已选参考图">

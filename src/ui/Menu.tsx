@@ -6,10 +6,10 @@ import { Check, ChevronRight } from "lucide-react";
  * Shared Base UI menu parts with the project styling (design/ui-system/README.md, 组件对照).
  * Popups render in a portal; `side`/`align` follow Base UI's positioner.
  */
-export function MenuPopup({ children, width, align = "start", sideOffset = 6, className = "", label }: {
-  children: ReactNode; width?: number; align?: "start" | "center" | "end"; sideOffset?: number; className?: string; label?: string;
+export function MenuPopup({ children, width, side, align = "start", sideOffset = 6, className = "", label }: {
+  children: ReactNode; width?: number; side?: "top" | "bottom"; align?: "start" | "center" | "end"; sideOffset?: number; className?: string; label?: string;
 }) {
-  return <Menu.Portal><Menu.Positioner className="k-positioner" sideOffset={sideOffset} align={align}>
+  return <Menu.Portal><Menu.Positioner className="k-positioner" side={side} sideOffset={sideOffset} align={align}>
     <Menu.Popup className={`k-popup ${className}`} style={width ? { width } : undefined} aria-label={label}>{children}</Menu.Popup>
   </Menu.Positioner></Menu.Portal>;
 }
