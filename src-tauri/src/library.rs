@@ -1522,8 +1522,15 @@ async fn set_safe_mode<R: Runtime>(
     state: State<'_, LibraryState>,
     on: bool,
 ) -> Result<bool, String> {
+    // 分段耗时（#183）：开发构建在控制台输出等锁、写设置、切换资料库各用了多久。
+    #[cfg(debug_assertions)]
+    let started = std::time::Instant::now();
+    #[cfg(debug_assertions)]
+    let saved_at;
     {
         let _visibility = lock(&state.visibility_commit);
+        #[cfg(debug_assertions)]
+        let locked_at = started.elapsed();
         // Revoke even a repeated setting or failed save; pending work must revalidate.
         state.safe_mode_generation.fetch_add(1, Ordering::SeqCst);
         import_preview::revoke(&app);
@@ -1534,6 +1541,15 @@ async fn set_safe_mode<R: Runtime>(
                 .set_safe_mode(on)
                 .map_err(|e| e.to_string())?;
         }
+        #[cfg(debug_assertions)]
+        {
+            saved_at = started.elapsed();
+            eprintln!(
+                "safe_mode.set on={on} lock_ms={:.1} save_ms={:.1}",
+                locked_at.as_secs_f64() * 1e3,
+                (saved_at - locked_at).as_secs_f64() * 1e3
+            );
+        }
         // 可写库与导入仍持有的库都跟着设置（ADR-0008：可写句柄会按需切换）。
         if let Some(libraries) = lock(&state.libraries).as_ref() {
             libraries.set_safe_mode(on);
@@ -1542,6 +1558,12 @@ async fn set_safe_mode<R: Runtime>(
         crate::desktop::safe_mode_committed(&app, on);
     }
     let _ = app.emit(SAFE_MODE_EVENT, on);
+    #[cfg(debug_assertions)]
+    eprintln!(
+        "safe_mode.set on={on} switch_ms={:.1} total_ms={:.1}",
+        (started.elapsed() - saved_at).as_secs_f64() * 1e3,
+        started.elapsed().as_secs_f64() * 1e3
+    );
     Ok(on)
 }
 

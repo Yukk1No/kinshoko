@@ -1906,6 +1906,81 @@ describe("安全模式", () => {
     expect(cardOf("x") === null || cardOf("x")?.dataset.veiled === "true").toBe(true);
   });
 
+  it("关闭：开关当即显示为关，后端确认后只整批浏览一次，资料库事件不再重读（#183）", async () => {
+    let commit: (on: boolean) => void = () => {};
+    backend(library, clean, (cmd) => {
+      if (cmd !== "plugin:library|set_safe_mode") return undefined;
+      return new Promise<boolean>((resolve) => { commit = (value) => { safeOn = value; resolve(value); }; });
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    const button = await book();
+    const before = sent("plugin:library|browse").length;
+
+    fireEvent.click(button);
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+    await waitFor(() => expect(sent("plugin:library|set_safe_mode")).toEqual([{ on: false }]));
+    // 后端还没提交：不按关闭发出注定被拒绝或作废的浏览。
+    await act(async () => {});
+    expect(sent("plugin:library|browse").length).toBe(before);
+
+    // 资料库事件先于命令返回到达，也不提前放开、不重读。
+    await changed(false);
+    expect(sent("plugin:library|browse").length).toBe(before);
+    expect(cardOf("x")).toBeNull();
+
+    const committedAt = calls.length;
+    await act(async () => { commit(false); });
+    await waitFor(() => expect(cardOf("x")).toBeTruthy());
+    await act(async () => {});
+    expect(sent("plugin:library|browse").length).toBe(before + 1);
+    // 后端按到达顺序在同一把锁上排队：图片墙的浏览先发出，状态、侧栏等刷新排在它后面。
+    const after = calls.slice(committedAt).map((c) => c.cmd)
+      .filter((cmd) => cmd === "plugin:library|browse" || cmd === "plugin:library|registered_libraries");
+    expect(after[0]).toBe("plugin:library|browse");
+  });
+
+  it("快速关了又开、返回乱序：最后停在开启，旧的关闭不放开视角（#183）", async () => {
+    const replies: ((on: boolean) => void)[] = [];
+    backend(library, clean, (cmd, args) => {
+      if (cmd !== "plugin:library|set_safe_mode") return undefined;
+      // 后端按点击顺序提交；返回由测试控制。
+      safeOn = (args as { on: boolean }).on;
+      return new Promise<boolean>((resolve) => replies.push(resolve));
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    const button = await book();
+    const before = sent("plugin:library|browse").length;
+
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    await waitFor(() => expect(replies.length).toBe(2));
+    // 后点的开启先返回，先点的关闭后返回。
+    await act(async () => { replies[1](true); });
+    await act(async () => { replies[0](false); });
+    await waitFor(() => expect(sent("plugin:library|safe_mode").length).toBeGreaterThan(1));
+    await act(async () => {});
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(cardOf("x")).toBeNull();
+    expect(sent("plugin:library|browse").length).toBe(before);
+  });
+
+  it("关闭失败：保持开启，不露出被封印的图", async () => {
+    backend(library, clean, (cmd) => cmd === "plugin:library|set_safe_mode" ? Promise.reject("写不进设置") : undefined);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const button = await book();
+    const before = sent("plugin:library|browse").length;
+
+    fireEvent.click(button);
+    await waitFor(() => expect(button.getAttribute("aria-pressed")).toBe("true"));
+    await act(async () => {});
+    expect(sent("plugin:library|browse").length).toBe(before);
+    expect(cardOf("x")).toBeNull();
+  });
+
   it("开启后清掉选中的图，侧栏计数随之刷新", async () => {
     backend(library, clean, undefined, false);
     render(<App />);
