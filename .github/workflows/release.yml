@@ -152,8 +152,11 @@ jobs:
             if ($draft -ne 'true') { throw "Release $env:TAG 已经发布，不覆盖它的附件。" }
             gh release upload $env:TAG $files --clobber
           } else {
-            $pre = if ($env:VERSION.Contains('-')) { @('--prerelease') } else { @() }
-            gh release create $env:TAG $files `
-              --draft @pre --title "Kinshoko $env:VERSION" --notes-file docs/install.md --generate-notes
+            # 参数先放进数组再展开：`if` 表达式返回的单元素数组会被解包成字符串，
+            # 展开字符串会把 --prerelease 拆成一个个字符（v1.0.0-beta.1 第一次发布就因此失败）。
+            $ghArgs = @('release', 'create', $env:TAG) + $files + @('--draft')
+            if ($env:VERSION.Contains('-')) { $ghArgs += '--prerelease' }
+            $ghArgs += @('--title', "Kinshoko $env:VERSION", '--notes-file', 'docs/install.md', '--generate-notes')
+            gh @ghArgs
           }
           if ($LASTEXITCODE -ne 0) { throw "建立或补传 Release $env:TAG 失败" }
