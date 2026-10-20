@@ -105,17 +105,21 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
  * 暂停时静止半透明，其他状态不显示；悬停看进度，点击打开设置 › 自动标签。
  * 跟随后端唯一的可写资料库（ADR-0008）。
  */
-export function TaggingActivity({ libraryId: opened, registered, onOpenSettings }: {
+export function TaggingActivity({ libraryId: opened, registered, onOpenSettings, collapsed = false }: {
   libraryId: string;
   registered?: readonly string[];
   onOpenSettings: () => void;
+  /** 多选悬浮栏出现、右下角收成一个圆形按钮时（#180）：图标换成按钮右上角的小圆点，状态仍看得到。 */
+  collapsed?: boolean;
 }) {
   const { libraryId, status } = useTaggingStatus(opened, registered);
   useTaggingNotices(libraryId, status);
   const text = status && activityLabel(status);
   if (!status || !text) return null;
+  const activity = status.state === "paused" ? "paused" : "busy";
+  if (collapsed) return <span className="k-tagging-dot" data-activity={activity} role="img" title={text} aria-label={`自动标签：${text}`} />;
   return (
-    <button type="button" className="k-tagging-activity" data-activity={status.state === "paused" ? "paused" : "busy"}
+    <button type="button" className="k-tagging-activity" data-activity={activity}
       title={text} aria-label={`自动标签：${text}，打开自动标签设置`} onClick={onOpenSettings}>
       <Sparkles size={16} strokeWidth={1.75} aria-hidden="true" />
     </button>

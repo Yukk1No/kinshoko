@@ -57,6 +57,15 @@ describe("缩放滑块左边的打标图标", () => {
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
+  it("右下角收起时（#180）换成小圆点，状态仍可读", async () => {
+    backend({ L1: running(128) });
+    render(<ToastProvider><TaggingActivity collapsed libraryId="L1" onOpenSettings={() => {}} /></ToastProvider>);
+    const dot = await screen.findByRole("img", { name: "自动标签：正在打标 · 显卡 · 已打 128 张" });
+    expect(dot.classList.contains("k-tagging-dot")).toBe(true);
+    expect(dot.dataset.activity).toBe("busy");
+    expect(icon()).toBeNull();
+  });
+
   it.each<[string, TaggingStatus, string]>([
     ["下载", downloading(450_000_000), "下载打标模型 45%"],
     ["加载模型", { state: "starting" }, "正在加载打标模型"],

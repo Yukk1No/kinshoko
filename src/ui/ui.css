@@ -146,6 +146,7 @@
 .k-dock-badge { position: absolute; top: 4px; right: 4px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--accent); color: var(--on-accent); font-size: 10px; line-height: 14px; font-weight: 600; }
 .k-dock-tip { position: absolute; bottom: calc(100% + 10px); display: flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 8px; background: var(--ink); color: var(--bg);
   font-size: 12px; white-space: nowrap; pointer-events: none; box-shadow: 0 6px 16px rgba(43, 39, 71, 0.25); }
+.k-dock-tip-note { opacity: 0.7; }
 .k-dock-tip kbd { font: 500 11px var(--font); padding: 0 5px; border-radius: 4px; border: 0; background: rgba(255, 255, 255, 0.14); color: inherit; }
 .k-dock-tray { position: absolute; bottom: calc(100% + 10px); left: 50%; translate: -50% 0; display: flex; gap: 2px; padding: 6px; border-radius: 16px;
   background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(18px);
