@@ -9,15 +9,14 @@ name: beta-channel
 # 规则与测试在 scripts/release/beta-channel.mjs。只用 GITHUB_TOKEN。
 # `channel-beta` 不存在时建一个标为预发布、不是 latest 的 Release，标签指向这次发布的提交。
 
+#
+# 触发方式：`release` 事件用标签所在提交里的工作流文件（GITHUB_SHA 是标签的提交），不要求文件在默认分支上；
+# main 在 v1 发布前没有这个文件也能用，只要打标签的提交里有它。`published` 对从草稿发布的预发布也触发
+# （`prereleased` 不会）。不用 workflow_dispatch：它只认默认分支上的工作流文件。
+# 补写：把这个 Release 转回草稿再发布（维护者自己操作；GITHUB_TOKEN 做的发布不触发工作流）。
 on:
   release:
     types: [published]
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "要写入测试版通道的已发布版本标签，例如 v1.0.0-beta.1（补跑用）"
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -30,13 +29,13 @@ jobs:
   publish:
     name: 更新测试版通道
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.release.tag_name != 'channel-beta'
+    if: github.event.release.tag_name != 'channel-beta'
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      TAG: ${{ github.event.release.tag_name }}
       CHANNEL: channel-beta
     steps:
       - uses: actions/checkout@v4
