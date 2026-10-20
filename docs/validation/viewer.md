@@ -38,6 +38,13 @@
 
 ![适应窗口的原生查看器](viewer-fit.png)
 
+#179 方案 B 的正式程序截图（WebDriver 只截应用窗口，临时图库里是合成图）：选中态；查看态，详情侧栏开；查看态，详情侧栏关；多选态。
+
+![选中态](viewer-179/1-selected.png)
+![查看态，详情侧栏开](viewer-179/2-viewing-inspector-open.png)
+![查看态，详情侧栏关](viewer-179/3-viewing-inspector-closed.png)
+![多选态](viewer-179/4-multi-select.png)
+
 运行方式（PowerShell，独立 identifier 避免与其他实例共用单实例锁）：
 
 ```powershell
