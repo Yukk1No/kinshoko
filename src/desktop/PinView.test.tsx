@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PinFrame } from "../bindings/PinFrame";
+import { PinKeys } from "./pinKeys";
 
 // 钉图窗口的指针手势（#63、#64、#76 UI2）。IPC 用替身；原生 Windows Ink/WinTab 验收见发布检查清单。
 const ipc = vi.hoisted(() => ({
@@ -10,12 +11,13 @@ const ipc = vi.hoisted(() => ({
   turn: vi.fn(() => Promise.resolve()),
   menu: vi.fn(() => Promise.resolve()),
   reveal: vi.fn(() => Promise.resolve()),
+  settle: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("../ipc", () => ({
   captureUrl: () => "unused",
   movePin: ipc.move,
-  onPinFrame: (handler: (frame: PinFrame) => void) => {
+  onPinFrame: (_pin: string, handler: (frame: PinFrame) => void) => {
     ipc.frame = handler;
     return Promise.resolve(() => {});
   },
@@ -25,8 +27,9 @@ vi.mock("../ipc", () => ({
   pinMenu: ipc.menu,
   revealPin: ipc.reveal,
   pinReady: () => Promise.resolve(),
+  raisePin: () => Promise.resolve(),
   setPinOpacity: () => Promise.resolve(),
-  settlePin: () => Promise.resolve(),
+  settlePin: ipc.settle,
   turnPin: ipc.turn,
   zoomPin: ipc.zoom,
 }));
@@ -64,11 +67,13 @@ function frame(locked = false, veiled = false): PinFrame {
     motion: "jump",
     veiled,
     generation: 0,
+    settle: false,
+    z: 1,
   };
 }
 
 async function showPin(locked = false, veiled = false): Promise<HTMLDivElement> {
-  const { container } = render(<PinView pin="P1" />);
+  const { container } = render(<PinView pin="P1" keys={keys} />);
   await act(async () => {
     await Promise.resolve();
   });
@@ -82,11 +87,19 @@ async function showPin(locked = false, veiled = false): Promise<HTMLDivElement> 
 
 const hold = (ms: number) => act(() => vi.advanceTimersByTime(ms));
 
+let keys = new PinKeys();
+let detach = () => {};
+
 beforeEach(() => {
+  keys = new PinKeys();
+  detach = keys.attach(window);
+  // jsdom 没有指针捕获；按下时捕获在内容元素上。
+  Element.prototype.setPointerCapture = () => {};
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
 });
 afterEach(() => {
+  detach();
   cleanup();
   vi.useRealTimers();
   vi.clearAllMocks();
@@ -227,5 +240,72 @@ describe("参考组成员暂时不可用（#66）", () => {
     expect(host.querySelector(".pin-missing")?.textContent).toBe("资料库暂时不可用：移动盘没插");
     act(() => ipc.frame!(frame()));
     expect(host.querySelector(".pin-missing")).toBeNull();
+  });
+});
+
+describe("窗口铺满显示器、窗口区域限定在内容上（#193）", () => {
+  /** 窗口是整台显示器，内容在 (80, 80)；刚拖动过，区域还没缩回。 */
+  const wide = (): PinFrame => ({
+    ...frame(),
+    window: { x: 0, y: 0, width: 2560, height: 1440 },
+    motion: "drag",
+    generation: 3,
+    settle: true,
+  });
+
+  it("按在内容上拖动，坐标按内容相对窗口的位置算", async () => {
+    const host = await showPin();
+    act(() => ipc.frame!(wide()));
+    fireEvent(host, pointer("pointerdown", { screen: [100, 100], client: [100, 100] }));
+    fireEvent(host, pointer("pointermove", { screen: [110, 100], client: [110, 100] }));
+    expect(ipc.move).toHaveBeenLastCalledWith("P1", 90, 80);
+  });
+
+  it("区域还盖着的透明处按下不拖动、不开菜单", async () => {
+    const host = await showPin();
+    act(() => ipc.frame!(wide()));
+    fireEvent(host, pointer("pointerdown", { screen: [500, 500], client: [500, 500] }));
+    fireEvent(host, pointer("pointermove", { screen: [540, 500], client: [540, 500] }));
+    hold(600);
+    fireEvent.contextMenu(host, { clientX: 500, clientY: 500 });
+    expect(ipc.move).not.toHaveBeenCalled();
+    expect(ipc.menu).not.toHaveBeenCalled();
+  });
+
+  it("拖动是在别的层里开始的（跨屏）：这个层不请应用壳收回区域", async () => {
+    await showPin();
+    act(() => ipc.frame!(wide()));
+    hold(1000);
+    expect(ipc.settle).not.toHaveBeenCalled();
+  });
+
+  it("中途接手的层接着画同一段滑动，不从头开始，也不直接跳到终点", async () => {
+    const { container } = render(<PinView pin="P1" keys={keys} />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() =>
+      ipc.frame!({
+        ...wide(),
+        content: { x: 200, y: 80, width: 300, height: 200 },
+        motion: "slide",
+        began: { from: { x: 0, y: 80, width: 300, height: 200 }, elapsedMs: 100 },
+      }),
+    );
+    // 200 ms 的滑动过了一半：easeOutCubic(0.5) = 0.875。
+    expect(container.querySelector<HTMLDivElement>(".pin-content")!.style.transform).toBe("translate(175px, 80px)");
+  });
+
+  it("拖动结束后请应用壳把区域缩回内容；不用缩时不请", async () => {
+    const host = await showPin();
+    hold(1000);
+    expect(ipc.settle).not.toHaveBeenCalled();
+    act(() => ipc.frame!(wide()));
+    fireEvent(host, pointer("pointerdown", { screen: [100, 100], client: [100, 100] }, "mouse"));
+    hold(1000);
+    expect(ipc.settle).not.toHaveBeenCalled();
+    fireEvent(host, pointer("pointerup", { screen: [100, 100], client: [100, 100] }, "mouse"));
+    hold(200);
+    expect(ipc.settle).toHaveBeenCalledWith("P1", 3);
   });
 });

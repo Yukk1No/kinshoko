@@ -85,8 +85,10 @@ pub struct DesktopState {
     /// 框选结束前等新钉图显示（#127）。
     pin_shown: pins::ShownWaiters,
     capture_geometry_generation: AtomicU64,
-    /// 本次运行中打开着的钉图窗口。
+    /// 本次运行中打开着的钉图。锁的顺序：先 `pins` 后 `layers`。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
+    /// 钉图层（#193）：每台有钉图的显示器一个铺满屏幕的窗口。
+    layers: Mutex<pins::Layers>,
     /// 钉图状态（`pins.json`），重新打开后恢复。
     store: Mutex<PinStore>,
     /// 钉图状态改了还没写回文件。
@@ -156,6 +158,8 @@ pub fn init() -> TauriPlugin<Wry> {
             pins::pin_clipboard,
             pins::pin_capture,
             pins::pin_frame,
+            pins::pin_layer_pins,
+            pins::raise_pin,
             pins::pin_ready,
             pins::pin_menu,
             pins::pin_menu_action,
@@ -215,6 +219,7 @@ pub fn init() -> TauriPlugin<Wry> {
                 pin_shown: pins::ShownWaiters::default(),
                 capture_geometry_generation: AtomicU64::new(0),
                 pins: Mutex::default(),
+                layers: Mutex::default(),
                 store: Mutex::new(store),
                 dirty: AtomicBool::new(false),
                 edge: Mutex::default(),

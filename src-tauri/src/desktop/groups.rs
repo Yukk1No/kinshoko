@@ -220,7 +220,7 @@ pub async fn open_reference_group(app: AppHandle, group_id: String) -> Result<us
         }
         let mut errors = Vec::new();
         for pin in &fresh {
-            if let Err(e) = pins::open_window(&app, pin) {
+            if let Err(e) = pins::open_pin(&app, pin) {
                 errors.push(e);
             }
         }

@@ -701,14 +701,36 @@ export function pinCapture(id: string): Promise<void> {
   return invoke<void>(desk("pin_capture"), { id });
 }
 
-/** 钉图窗口当前的一帧：要画的钉图、原生窗口与内容的位置；钉图已关闭时为 null。 */
+/** 本钉图层里这个钉图当前的一帧：要画什么、层窗口与内容的位置；钉图已关闭或不在本层时为 null。 */
 export function pinFrame(pin: string): Promise<PinFrame | null> {
   return invoke<PinFrame | null>(desk("pin_frame"), { pin });
 }
 
-/** 发给本钉图窗口的帧（缩放、贴边滑动、翻转旋转、透明度、锁定都经这里，#64）。 */
-export function onPinFrame(handler: (frame: PinFrame) => void): Promise<UnlistenFn> {
+/** 发给本钉图层、关于这个钉图的帧（缩放、贴边滑动、翻转旋转、透明度、锁定、上下次序，#64、#193）。 */
+export function onPinFrame(pin: string, handler: (frame: PinFrame) => void): Promise<UnlistenFn> {
+  return onLayerFrame((frame) => {
+    if (frame.pin.id === pin) handler(frame);
+  });
+}
+
+/** 发给本钉图层的全部帧：层据此知道有钉图进来了（#193）。 */
+export function onLayerFrame(handler: (frame: PinFrame) => void): Promise<UnlistenFn> {
   return getCurrentWebviewWindow().listen<PinFrame>("pin-frame", (e) => handler(e.payload));
+}
+
+/** 钉图离开了本层（关闭、拖到别的显示器、交给另一个层，#193）。 */
+export function onPinGone(handler: (pin: string) => void): Promise<UnlistenFn> {
+  return getCurrentWebviewWindow().listen<string>("pin-gone", (e) => handler(e.payload));
+}
+
+/** 本钉图层此刻画着的钉图（#193）。 */
+export function layerPins(): Promise<string[]> {
+  return invoke<string[]>(desk("pin_layer_pins"));
+}
+
+/** 按下了这个钉图：它到最上面（#193）。 */
+export function raisePin(pin: string): Promise<void> {
+  return invoke<void>(desk("raise_pin"), { pin });
 }
 
 /** 动画结束：让应用壳把原生窗口改成静止时的矩形（只认最新一帧的 generation）。 */
@@ -726,7 +748,7 @@ export function setPinLocked(pin: string, locked: boolean): Promise<void> {
   return invoke<void>(desk("set_pin_locked"), { pin, locked });
 }
 
-/** 钉图窗口：第一帧已画好，可以显示了。 */
+/** 本钉图层画好了这个钉图的第一帧：层可以显示了，交接中的旧层可以放手了（#193）。 */
 export function pinReady(pin: string): Promise<void> {
   return invoke<void>(desk("pin_ready"), { pin });
 }
@@ -952,8 +974,10 @@ export function onReferenceGroupsChanged(handler: () => void): Promise<UnlistenF
 }
 
 /** 发给本钉图窗口的提示（例如“已收藏到…”）。只收发给这个窗口的，不收别的钉图的。 */
-export function onPinNotice(handler: (text: string) => void): Promise<UnlistenFn> {
-  return getCurrentWebviewWindow().listen<string>("pin-notice", (e) => handler(e.payload));
+export function onPinNotice(pin: string, handler: (text: string) => void): Promise<UnlistenFn> {
+  return getCurrentWebviewWindow().listen<{ pin: string; text: string }>("pin-notice", (e) => {
+    if (e.payload.pin === pin) handler(e.payload.text);
+  });
 }
 
 /** 截图历史中的截图或冻结屏幕（自定义协议 capture）转成 <img> 可用的 URL。 */

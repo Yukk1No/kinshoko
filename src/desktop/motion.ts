@@ -1,7 +1,7 @@
 // 钉图的缩放与贴边动画、右键菜单的打开方式（#64）。纯函数与小状态，便于回归测试。
 //
 // 动画只在窗口里变换内容（CSS transform，跟着显示器刷新），不逐帧改原生窗口（#7 的结论）。
-// 应用壳在动画开始时（需要的话）把窗口放大到装得下整个过渡，结束后再改成静止时的矩形。
+// 窗口静止时就是显示器那么大，应用壳用窗口区域把显示和点击限定在内容上（#193）。
 // 所有矩形都是屏幕物理像素。
 
 import type { Point, Rect } from "./pixels";
@@ -62,7 +62,7 @@ export class ContentMotion {
 
 /**
  * 内容元素的 CSS 变换。元素按终点尺寸画（canvas 后备尺寸 = `target` 的物理像素），左上角对齐窗口；
- * 此刻看到的位置是 `visual`。静止且与窗口重合时为 `none`，保证逐像素显示（DPI 像素规则）。
+ * 此刻看到的位置是 `visual`。静止时只平移整数个物理像素，仍逐像素显示（DPI 像素规则）。
  */
 export function contentTransform(visual: Rect, target: Rect, window: Rect, dpr: number): string {
   const dx = (visual.x - window.x) / dpr;
