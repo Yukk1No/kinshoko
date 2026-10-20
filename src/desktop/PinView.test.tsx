@@ -272,6 +272,13 @@ describe("窗口铺满显示器、窗口区域限定在内容上（#193）", () 
     expect(ipc.menu).not.toHaveBeenCalled();
   });
 
+  it("拖动是在别的层里开始的（跨屏）：这个层不请应用壳收回区域", async () => {
+    await showPin();
+    act(() => ipc.frame!(wide()));
+    hold(1000);
+    expect(ipc.settle).not.toHaveBeenCalled();
+  });
+
   it("中途接手的层接着画同一段滑动，不从头开始，也不直接跳到终点", async () => {
     const { container } = render(<PinView pin="P1" keys={keys} />);
     await act(async () => {

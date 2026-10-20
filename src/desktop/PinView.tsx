@@ -132,6 +132,11 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
   const host = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture | null>(null);
+  /**
+   * 拖动是从这个层开始的。跨屏的钉图两个层都画着它，拖动的帧只由按下它的层请求收回区域：
+   * 另一个层不知道手势还没结束，提前收回会把按下它的层（握着指针捕获）拿掉。
+   */
+  const dragging = useRef(false);
   const frame = useRef<PinFrame | null>(null);
   const apply = useRef<(f: PinFrame) => void>(() => {});
   const settleSoon = useRef<() => void>(() => {});
@@ -217,6 +222,10 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
       settle = window.setTimeout(() => {
         const f = frame.current;
         if (!f || gesture.current) return;
+        if (f.motion === "drag") {
+          if (!dragging.current) return;
+          dragging.current = false;
+        }
         void settlePin(pin, f.generation);
       }, SETTLE_IDLE_MS);
     };
@@ -417,6 +426,7 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
       gesture.current = { ...base, kind: "zoom", origin, start: { scale: f.pin.placement.scale, ...size } };
     } else {
       gesture.current = { ...base, kind: "move", origin };
+      dragging.current = true;
     }
     if (e.pointerType !== "mouse") {
       const g = gesture.current;

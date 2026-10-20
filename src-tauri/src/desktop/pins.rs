@@ -206,51 +206,50 @@ pub fn remember_group_members(app: &AppHandle, saved: &[SavedPin]) {
 
 /// F1 冻结前记录可见的资料库钉图。遮蔽、不可用、收起和动画中的内容不作原图裁切。
 /// 同一个层里压在它上面的钉图按区域算遮挡；别的窗口由 [`super::capture`] 按 Z 序另算。
-/// 跨两台显示器的钉图只算内容中心所在的那一半。
+/// 跨两台显示器的钉图每个层各算一份，只含这个层画着的那一半（选区要整个落在其中一半里）。
 pub(super) fn capture_surfaces(app: &AppHandle) -> Vec<super::capture::ReferenceSurface> {
-    open_pins(app)
-        .into_iter()
-        .filter_map(|pin| {
-            if !matches!(pin.content, PinContent::Reference { .. }) {
-                return None;
-            }
-            let (veiled, unavailable) = appearance(app, &pin);
-            if veiled || unavailable.is_some() {
-                return None;
-            }
-            let pins = lock(&state(app).pins);
-            let layers = lock(&state(app).layers);
-            let r = pins.get(&pin.id)?;
-            if r.click_through || !r.settled {
-                return None;
-            }
-            let centre = ScreenRect {
-                x: r.content.x + (r.content.width / 2) as i32,
-                y: r.content.y + (r.content.height / 2) as i32,
-                width: 1,
-                height: 1,
+    let mut surfaces = Vec::new();
+    for pin in open_pins(app) {
+        if !matches!(pin.content, PinContent::Reference { .. }) {
+            continue;
+        }
+        let (veiled, unavailable) = appearance(app, &pin);
+        if veiled || unavailable.is_some() {
+            continue;
+        }
+        let pins = lock(&state(app).pins);
+        let layers = lock(&state(app).layers);
+        let Some(r) = pins.get(&pin.id) else {
+            continue;
+        };
+        if r.click_through || !r.settled {
+            continue;
+        }
+        for (label, layer) in r
+            .layers
+            .iter()
+            .filter_map(|l| Some((l, layers.by_label.get(l)?)))
+        {
+            let Some(visible) = r.content.intersect(&layer.window) else {
+                continue;
             };
-            let (label, layer) = r
-                .layers
-                .iter()
-                .filter_map(|l| Some((l, layers.by_label.get(l)?)))
-                .find(|(_, l)| l.window.contains(&centre))?;
             let covered = pins
                 .iter()
                 .filter(|(id, o)| *id != &pin.id && o.z > r.z && o.layers.contains(label))
                 .filter_map(|(_, o)| o.region.intersect(&layer.window))
                 .collect();
-            Some(super::capture::ReferenceSurface {
+            surfaces.push(super::capture::ReferenceSurface {
                 window: label.clone(),
                 selection: CaptureSurface {
-                    pin,
+                    pin: pin.clone(),
                     shown: r.content,
-                    visible: r.content.intersect(&layer.window)?,
+                    visible,
                     covered,
                 },
-            })
-        })
-        .collect()
+            });
+        }
+    }
+    surfaces
 }
 
 /// 从 F1 的参考视图裁切建立新钉图，仍连接原库与原图，不进入截图历史。
