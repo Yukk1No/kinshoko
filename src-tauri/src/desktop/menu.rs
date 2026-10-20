@@ -4,7 +4,7 @@
 //! 透明、不进任务栏的菜单窗口（[`MENU_WINDOW`]，页面 `?view=desktop-menu`）铺满指针所在的显示器
 //! （[`menu_surface`]），把这次菜单（[`PinMenuOpen`]）发给它；页面画好菜单后调用
 //! `desktop_menu_shown` 才显示窗口并给它焦点。菜单关掉（Esc、点外部、窗口失去焦点）或选中一项后
-//! 窗口只隐藏，下次复用。
+//! 窗口只隐藏，下次复用。显示、隐藏都是即时的，不带系统过渡（#194）。
 //!
 //! 焦点：菜单窗口拿着焦点关掉时（Esc、选中一项、点在菜单外的空白处），焦点交回打开它的钉图，
 //! 与原生菜单一样；因为点了别的程序而失去焦点时不抢回来。
@@ -76,6 +76,12 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     .shared_webview(app)
     .build()
     .map_err(|e| e.to_string())?;
+    // 显示、隐藏都要即时：系统过渡会让铺满显示器的窗口从中间放大、隐藏时边缩小边淡出，
+    // 菜单就像向左滑走（#194）。三种关法最后都只是隐藏这个窗口，在这里关掉一次即可。
+    #[cfg(windows)]
+    if let Ok(hwnd) = window.hwnd() {
+        super::win32::disable_transitions(hwnd.0 as isize);
+    }
     let handle = app.clone();
     window.on_window_event(move |event| {
         if let WindowEvent::Resized(size) = event {
