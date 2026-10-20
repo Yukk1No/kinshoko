@@ -36,7 +36,7 @@ pub use pin::{
 pub use placement::{ScreenRect, place_new_pin};
 pub use screenshot::{Region, Screenshot};
 pub use types::{
-    CaptureAction, CaptureReference, CaptureReferenceFrame, FrozenScreen, MotionBegan, OriginalPixels,
-    PinFrame, PinMotion, Turn,
+    CaptureAction, CaptureReference, CaptureReferenceFrame, FrozenScreen, MotionBegan,
+    OriginalPixels, PinFrame, PinMotion, Turn,
 };
 pub use veil::PinVeils;

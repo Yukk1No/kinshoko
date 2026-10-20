@@ -30,8 +30,8 @@ use std::time::Instant;
 use image::RgbaImage;
 use kinshoko_core::desktop::{
     CaptureEntry, CaptureSurface, MotionBegan, OpenInKinshoko, PinContent, PinFrame, PinMenu,
-    PinMotion, Placement, Region, SavedPin, ScreenRect, Screenshot, Turn, initial_scale, layer_region,
-    layer_window, layers_for, place_new_pin, widen,
+    PinMotion, Placement, Region, SavedPin, ScreenRect, Screenshot, Turn, initial_scale,
+    layer_region, layer_window, layers_for, place_new_pin, widen,
 };
 use kinshoko_core::reference_groups::ReferenceSource;
 use tauri::{
