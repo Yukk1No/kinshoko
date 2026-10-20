@@ -265,7 +265,11 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
    * 安全模式切换那一刻量下的卡片位置。资料库按新视角送回卡片后，留下的卡片从这里滑到新位置，
    * 节奏按原型的封印／释放重排（从点下去的时刻算起）。
    */
-  const safeReflow = useRef<{ rects: Map<string, DOMRect>; boxes: LayoutSnapshot; at: number; delay: number; duration: number } | null>(null);
+  const safeReflow = useRef<{
+    rects: Map<string, DOMRect>; boxes: LayoutSnapshot; at: number; delay: number; duration: number;
+    /** 存下之后卡片又被别的重排挪过（例如墙变宽）：起点按用时量到的位置，不用存下的。 */
+    moved?: boolean;
+  } | null>(null);
   /** 封印／释放重排前的布局：点下去时不在视口里的卡片，从这里算出起点（#154）。 */
   const beforeBoxes = useRef<LayoutSnapshot | null>(null);
   /** 这一次重排的节奏；null 时是平常的 200 ms。 */
@@ -287,15 +291,13 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
         measured.set(node.dataset.id!, rect);
       }
     });
+    // 还在滑的卡片（例如墙变宽的那段）量到的是动画中途的位置：这时存下的位置已经过时。
+    const moving = motions.current.size > 0;
     motions.current.forEach((motion) => motion.cancel());
     motions.current.clear();
     const held = safeReflow.current;
     if (keepSafe) {
-      if (held) {
-        const { layout: now, ids: shown } = live.current;
-        held.rects = measured;
-        held.boxes = { boxes: new Map(now ? shown.map((id, i) => [id, now.boxes[i]]) : []), scrollTop: el.scrollTop };
-      }
+      if (held) held.moved = true;
       reflowMotion.current = null;
       beforeReflow.current = measured;
       beforeBoxes.current = null;
@@ -303,6 +305,12 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     }
     safeReflow.current = null;
     reflowMotion.current = held && performance.now() - held.at < RELEASE_WAIT ? held : null;
+    if (reflowMotion.current && (held!.moved || moving)) {
+      const { layout: now, ids: shown } = live.current;
+      beforeReflow.current = measured;
+      beforeBoxes.current = { boxes: new Map(now ? shown.map((id, i) => [id, now.boxes[i]]) : []), scrollTop: el.scrollTop };
+      return;
+    }
     beforeReflow.current = reflowMotion.current ? held!.rects : measured;
     beforeBoxes.current = reflowMotion.current ? held!.boxes : null;
   }, []);
@@ -431,7 +439,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
             && prev.every((c, i) => c.id === next[i].id && c.width === next[i].width && c.height === next[i].height);
           if (!unchanged) measureBeforeReflow();
           if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus, next);
-          if (!safeMode) safeTiming.mark("卡片送回");
+          if (!safeMode) { safeTiming.mark("卡片送回"); releasePage.current = true; }
           setCards(next);
           setCursor(after);
           setTotal(count);
@@ -532,6 +540,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
   const lastSafe = useRef(safeMode);
   /** 等着回来的图飞出的截止时刻（performance.now）；0 表示没有。 */
   const releaseDue = useRef(0);
+  /** 关闭后资料库按新视角送回的那一页已经到了：之后再来的成人图不算这次释放。 */
+  const releasePage = useRef(false);
   const reduced = useReducedMotion();
   const landed = useCallback((id: string) => {
     // 影子在这一帧移走：卡片同一帧就得显示，不能等 React 下一次提交，否则中间空出一帧，落地时闪一下。
@@ -629,6 +639,7 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
       sealDrop.current = requestAnimationFrame(drop);
     } else {
       releaseDue.current = performance.now() + RELEASE_WAIT;
+      releasePage.current = false;
     }
   }, [safeMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -791,9 +802,11 @@ sources`;
   useLayoutEffect(() => {
     const due = releaseDue.current;
     if (!due || safeMode || !cards.length || !width) return;
-    // 墙上还是安全视角的卡片（资料库还没送回，例如详情面板收起只改了宽度）：接着等，不作废这次释放。
-    if (performance.now() <= due && !cards.some((c) => c.adult)) return;
+    // 资料库还没按新视角送回（例如详情面板收起只改了宽度）：接着等，不作废这次释放。
+    // 送回的那一页没有成人图时这次释放就此结束，之后别的浏览带来的成人图不从书里飞出。
+    if (performance.now() <= due && !releasePage.current) return;
     releaseDue.current = 0;
+    if (!cards.some((c) => c.adult)) return;
     // 只在真有图要飞回时才量封印书：这个效果每次墙上的卡片变化都会跑，量它会多强制排一次版（#176）。
     const f = fx.current, b = book();
     if (!f || !b || performance.now() > due || viewerOpen || reducedNow()) return;
