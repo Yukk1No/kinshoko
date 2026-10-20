@@ -1,13 +1,13 @@
 name: tag-release
 
-# 发布第二步：prepare-release 开出的版本号 PR 合并到 integration/v1 或 main 后，
-# 打 v<版本号> 标签并在标签上启动 release（构建、安装检查、草稿 Release）。
+# 发布第二步：prepare-release 准备好的版本号 PR 合并后，打 v<版本号> 标签，再以可复用工作流调用 release
+# （构建、安装检查、草稿 Release）。直接调用而不靠推标签触发或 workflow_dispatch：Actions 令牌推送的标签不会触发 push，
+# workflow_dispatch 又要求工作流文件在默认分支（main）上，而 main 在 v1 发布前不接收这些改动。
 #
 # 只在这次推送改了 [workspace.package] version、新版本比原来大、版本号与分支符合
 # scripts/release/release-version.mjs 的规则时才发布：测试版、候选版在 integration/v1 上，正式版随 PR #71 合进 main 后。
 # 其余情况（例如正式版刚合进 integration/v1、测试版版本号随 #71 进 main）只记一条说明。
-# Actions 令牌推送的标签不会触发 push 事件，所以这里直接启动 release。
-# 重跑时：标签已经指向这个提交、release 还没跑过（上次启动失败）就接着启动；指向别的提交则不发布。
+# 重跑时：标签已经指向这个提交、还没有对应的 Release（上次构建失败）就接着构建；指向别的提交则不发布。
 
 on:
   push:
@@ -17,17 +17,20 @@ on:
 permissions:
   contents: read
 
+# 按提交分组：同一组只保留一个排队的运行，按分支分组会丢掉夹在中间的改版本号的推送。
 concurrency:
-  group: tag-release
+  group: tag-release-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
   tag:
-    name: 打标签并启动发布
+    name: 打标签
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      actions: write
+    outputs:
+      release: ${{ steps.check.outputs.release }}
+      version: ${{ steps.check.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,10 +61,10 @@ jobs:
             echo "tag=true" >> "$GITHUB_OUTPUT"
           elif [ "$tagged" != "$(git rev-parse HEAD)" ]; then
             skip "标签 v$version 已经指向别的提交（$tagged），不发布。"
-          elif [ "$(gh run list --workflow release.yml --branch "v$version" --json databaseId --jq length)" != "0" ]; then
-            skip "标签 v$version 已在这个提交上，release 也已启动过，不再重复。"
+          elif gh release view "v$version" >/dev/null 2>&1; then
+            skip "标签 v$version 与它的 Release 都已存在，不再重复。"
           else
-            echo "::notice::标签 v$version 已在这个提交上，但 release 没有启动过：接着启动。"
+            echo "::notice::标签 v$version 已在这个提交上，但还没有 Release：接着构建。"
             echo "tag=false" >> "$GITHUB_OUTPUT"
           fi
           echo "release=true" >> "$GITHUB_OUTPUT"
@@ -76,11 +79,13 @@ jobs:
           git tag -a "v$VERSION" -m "Kinshoko $VERSION"
           git push origin "v$VERSION"
 
-      - name: 启动 release
-        if: steps.check.outputs.release == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.check.outputs.version }}
-        run: |
-          gh workflow run release.yml --ref "v$VERSION"
-          echo "已在 v$VERSION 上启动 release，完成后到 Releases 页面检查草稿再发布。" >> "$GITHUB_STEP_SUMMARY"
+  release:
+    name: 构建并建草稿 Release
+    needs: tag
+    if: needs.tag.outputs.release == 'true'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: v${{ needs.tag.outputs.version }}
+    secrets: inherit

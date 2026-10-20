@@ -1,66 +1,73 @@
 name: prepare-release
 
-# 发布第一步：在 Actions 页面选分支、填版本号，在新分支 release/v<版本号> 上改好 Cargo.toml、Cargo.lock、
-# package.json、package-lock.json 的版本号，再在运行摘要里给出开 PR 的链接。
-# PR 合并后，tag-release 工作流打 v<版本号> 标签并启动 release。
+# 发布第一步：维护者从 integration/v1 新建分支 release/v<版本号>（例如在 GitHub 的分支菜单里输入
+# release/v1.0.0-beta.1，选“从 integration/v1 创建”）。这个工作流在该分支上改好 Cargo.toml、Cargo.lock、
+# package.json、package-lock.json 的版本号并提交，运行摘要给出开 PR 的链接。PR 合并后由 tag-release 接手。
 #
-# 版本号规则在 scripts/release/release-version.mjs。所有版本都在 integration/v1 上准备：测试版 1.0.0-beta.1、
-# 候选版 1.0.0-rc.1 合并后就打标签；正式版 1.0.0 随 PR #71 合进 main 后才打标签。
+# 用新建分支触发而不用 workflow_dispatch：workflow_dispatch 要求工作流文件在默认分支（main）上，
+# 而 main 在 v1 发布前不接收这些改动。仓库设置不允许 Actions 开 PR，所以 PR 由维护者点链接打开。
 #
-# 仓库设置不允许 Actions 开 PR，所以只推分支，PR 由维护者点链接打开。
+# 版本号规则在 scripts/release/release-version.mjs：所有版本都从 integration/v1 准备；测试版、候选版合并后
+# 就打标签，正式版随 PR #71 合进 main 后才打标签。
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "版本号，例如 1.0.0-beta.1（不带 v）。分支选 integration/v1"
-        required: true
-        type: string
+  push:
+    branches: ["release/v*"]
 
 permissions:
   contents: read
 
 concurrency:
-  group: prepare-release
+  group: prepare-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   bump:
-    name: 在新分支上改版本号
+    name: 在 release 分支上改版本号
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    env:
-      VERSION: ${{ inputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: 检查版本号与分支
+        id: check
         run: |
           set -euo pipefail
-          if [ "$GITHUB_REF_TYPE" != "branch" ]; then
-            echo "::error::请在分支上运行，不要选标签。"; exit 1
-          fi
+          version="${GITHUB_REF_NAME#release/v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           current=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
-          if ! problem=$(node scripts/release/release-version.mjs prepare "$VERSION" "$GITHUB_REF_NAME" "$current" 2>&1); then
-            echo "::error::$problem"; exit 1
+          # 已经改好（例如之后又往这个分支推了提交）时不再改。
+          if [ "$current" = "$version" ]; then
+            echo "::notice::版本号已经是 $version。"; echo "bump=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          for ref in "refs/tags/v$VERSION" "refs/heads/release/v$VERSION"; do
-            if git ls-remote --exit-code origin "$ref" >/dev/null; then
-              echo "::error::$ref 已经存在。"; exit 1
-            fi
-          done
-          echo "从 $current 改到 $VERSION，目标分支 $GITHUB_REF_NAME"
+          if ! git merge-base --is-ancestor HEAD origin/integration/v1; then
+            echo "::error::$GITHUB_REF_NAME 要从 integration/v1 新建，不带别的提交。"; exit 1
+          fi
+          if ! problem=$(node scripts/release/release-version.mjs prepare "$version" integration/v1 "$current" 2>&1); then
+            echo "::error::$problem 分支名应为 release/v<版本号>，例如 release/v1.0.0-beta.1。"; exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "::error::标签 v$version 已经存在。"; exit 1
+          fi
+          echo "从 $current 改到 $version"
+          echo "bump=true" >> "$GITHUB_OUTPUT"
 
       - uses: dtolnay/rust-toolchain@master
+        if: steps.check.outputs.bump == 'true'
         with:
           toolchain: "1.95"
 
-      - name: 改版本号
+      - name: 改版本号并提交
+        if: steps.check.outputs.bump == 'true'
+        env:
+          VERSION: ${{ steps.check.outputs.version }}
         run: |
           set -euo pipefail
           sed -i '/^\[workspace.package\]/,/^\[/s/^version = ".*"/version = "'"$VERSION"'"/' Cargo.toml
@@ -68,25 +75,19 @@ jobs:
           cargo update --workspace
           npm version "$VERSION" --no-git-tag-version
           test "$(cargo pkgid -p kinshoko | sed 's/.*@//')" = "$VERSION"
-          git diff --stat
-
-      - name: 推送 release 分支
-        run: |
-          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -c "release/v$VERSION"
           git commit -am "chore(release): v$VERSION"
-          git push origin "release/v$VERSION"
-          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/$GITHUB_REF_NAME...release/v$VERSION?expand=1"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/integration/v1...$GITHUB_REF_NAME?expand=1"
           {
             echo "### 下一步：开 PR 并合并"
             echo
-            echo "[把 release/v$VERSION 合并到 $GITHUB_REF_NAME]($url)"
+            echo "[把 $GITHUB_REF_NAME 合并到 integration/v1]($url)"
             echo
             if [[ "$VERSION" == *-* ]]; then
-              echo "合并后 tag-release 会打 v$VERSION 标签并启动 release。"
+              echo "合并后 tag-release 会打 v$VERSION 标签并构建草稿 Release。"
             else
-              echo "这是正式版：合并后再经 PR #71 合进 main，tag-release 才会打 v$VERSION 标签并启动 release。"
+              echo "这是正式版：合并后再经 PR #71 合进 main，tag-release 才会打 v$VERSION 标签并构建草稿 Release。"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
