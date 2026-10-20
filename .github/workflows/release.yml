@@ -4,8 +4,7 @@ name: release
 # 建一个草稿 Release 上传它们；维护者检查后手动发布，发布后 updater 才能看到新版本。
 # 手动运行（workflow_dispatch）在分支上只构建并上传为 Actions 产物，不建 Release；在标签上运行与推送标签相同。
 # 版本号 PR 合并后，tag-release 工作流打标签并在标签上手动运行它（Actions 令牌推送的标签不会触发 push）。
-# 测试版（如 1.0.0-beta.1）也建成普通 Release，不标预发布：updater 读的是 releases/latest，
-# GitHub 的 latest 不含预发布，标了的话装着测试版的画师收不到下一个测试版。
+# 版本号带 “-”（如 1.0.0-beta.1）时建成预发布。
 #
 # 签名私钥只放在仓库的 Actions secret（TAURI_SIGNING_PRIVATE_KEY、TAURI_SIGNING_PRIVATE_KEY_PASSWORD），
 # 不进仓库；公钥写在 src-tauri/tauri.conf.json 的 plugins.updater.pubkey。步骤见
@@ -135,5 +134,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
+          $pre = if ($env:VERSION.Contains('-')) { @('--prerelease') } else { @() }
           gh release create $env:GITHUB_REF_NAME (Get-ChildItem dist-release).FullName `
-            --draft --title "Kinshoko $env:VERSION" --notes-file docs/install.md --generate-notes
+            --draft @pre --title "Kinshoko $env:VERSION" --notes-file docs/install.md --generate-notes
