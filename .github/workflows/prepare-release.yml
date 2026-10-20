@@ -1,20 +1,19 @@
 name: prepare-release
 
-# 准备发布：在 Actions 页面选分支（测试版用 integration/v1，正式版用 main）、填版本号，
-# 改好 Cargo.toml、Cargo.lock、package.json、package-lock.json 的版本号，在该分支上提交并打 v<版本号> 标签，
-# 再在这个标签上启动 release 工作流（构建、安装检查、草稿 Release）。
+# 发布第一步：在 Actions 页面选分支、填版本号，在新分支 release/v<版本号> 上改好 Cargo.toml、Cargo.lock、
+# package.json、package-lock.json 的版本号，再在运行摘要里给出开 PR 的链接。
+# PR 合并后，tag-release 工作流打 v<版本号> 标签并启动 release。
 #
-# 版本号按 SemVer（docs/agents/issue-tracker.md 的 Milestones and versions）：
-# 测试版 1.0.0-beta.1、候选版 1.0.0-rc.1、正式版 1.0.0。带 “-” 的版本建成预发布。
+# 版本号与分支的规则在 scripts/release/release-version.mjs：测试版 1.0.0-beta.1、候选版 1.0.0-rc.1
+# 选 integration/v1，正式版 1.0.0 选 main。
 #
-# 用 Actions 自带的令牌推送的标签不会触发别的工作流（GitHub 的规则），所以这里直接启动 release。
-# 仓库设置不允许 Actions 开 PR，所以版本号的改动直接提交在所选分支上。
+# 仓库设置不允许 Actions 开 PR，所以只推分支，PR 由维护者点链接打开。
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "版本号，例如 1.0.0-beta.1（不带 v）"
+        description: "版本号，例如 1.0.0-beta.1（不带 v）。测试版、候选版选 integration/v1，正式版选 main"
         required: true
         type: string
 
@@ -27,83 +26,63 @@ concurrency:
 
 jobs:
   bump:
-    name: 改版本号、打标签并启动发布
+    name: 在新分支上改版本号
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      actions: write
+    env:
+      VERSION: ${{ inputs.version }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: 检查版本号
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          if [ "$GITHUB_REF_TYPE" != "branch" ]; then
-            echo "::error::请在分支上运行（测试版选 integration/v1，正式版选 main），不要选标签。"; exit 1
-          fi
-          if ! [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)\.[1-9][0-9]*)?$ ]]; then
-            echo "::error::版本号“$VERSION”不合规：应为 1.0.0、1.0.0-beta.1、1.0.0-rc.1 这样的格式，不带 v。"; exit 1
-          fi
-          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null; then
-            echo "::error::标签 v$VERSION 已经存在。"; exit 1
-          fi
-          current=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
-          if [ -z "$current" ]; then echo "::error::读不出 Cargo.toml 的 [workspace.package] version。"; exit 1; fi
-          # SemVer 比较：去掉预发布后缀比主体，主体相同时有后缀的更小，后缀按 alpha < beta < rc 再按序号。
-          newer=$(node -e '
-            const parse = (v) => {
-              const [core, pre] = v.split("-");
-              const [a, b, c] = core.split(".").map(Number);
-              if (!pre) return [a, b, c, 3, 0];
-              const [tag, n] = pre.split(".");
-              return [a, b, c, ["alpha", "beta", "rc"].indexOf(tag), Number(n)];
-            };
-            const [x, y] = [parse(process.argv[1]), parse(process.argv[2])];
-            const i = x.findIndex((d, k) => d !== y[k]);
-            console.log(i >= 0 && x[i] > y[i] ? "yes" : "no");
-          ' "$VERSION" "$current")
-          if [ "$newer" != "yes" ]; then
-            echo "::error::新版本号 $VERSION 不大于当前的 $current。"; exit 1
-          fi
-          echo "从 $current 改到 $VERSION，分支 $GITHUB_REF_NAME"
-
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: "1.95"
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      - name: 检查版本号与分支
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" != "branch" ]; then
+            echo "::error::请在分支上运行，不要选标签。"; exit 1
+          fi
+          current=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
+          if ! problem=$(node scripts/release/release-version.mjs "$VERSION" "$GITHUB_REF_NAME" "$current" 2>&1); then
+            echo "::error::$problem"; exit 1
+          fi
+          for ref in "refs/tags/v$VERSION" "refs/heads/release/v$VERSION"; do
+            if git ls-remote --exit-code origin "$ref" >/dev/null; then
+              echo "::error::$ref 已经存在。"; exit 1
+            fi
+          done
+          echo "从 $current 改到 $VERSION，目标分支 $GITHUB_REF_NAME"
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.95"
+
       - name: 改版本号
-        env:
-          VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
           sed -i '/^\[workspace.package\]/,/^\[/s/^version = ".*"/version = "'"$VERSION"'"/' Cargo.toml
           # 只更新工作区成员在 Cargo.lock 里的版本，不动依赖。
           cargo update --workspace
-          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          npm version "$VERSION" --no-git-tag-version
           test "$(cargo pkgid -p kinshoko | sed 's/.*@//')" = "$VERSION"
           git diff --stat
 
-      - name: 提交并打标签
-        env:
-          VERSION: ${{ inputs.version }}
+      - name: 推送 release 分支
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "release/v$VERSION"
           git commit -am "chore(release): v$VERSION"
-          git tag -a "v$VERSION" -m "Kinshoko $VERSION"
-          git push origin "HEAD:$GITHUB_REF_NAME" "v$VERSION"
-
-      - name: 启动 release 工作流
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version }}
-        run: |
-          gh workflow run release.yml --ref "v$VERSION"
-          echo "已在 v$VERSION 上启动 release，完成后到 Releases 页面检查草稿再发布。" >> "$GITHUB_STEP_SUMMARY"
+          git push origin "release/v$VERSION"
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/$GITHUB_REF_NAME...release/v$VERSION?expand=1"
+          {
+            echo "### 下一步：开 PR 并合并"
+            echo
+            echo "[把 release/v$VERSION 合并到 $GITHUB_REF_NAME]($url)"
+            echo
+            echo "合并后 tag-release 会打 v$VERSION 标签并启动 release。"
+          } >> "$GITHUB_STEP_SUMMARY"
