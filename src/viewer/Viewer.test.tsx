@@ -210,7 +210,7 @@ describe("查看器设备像素", () => {
     expect(screen.getByLabelText("缩放比例").textContent).toBe("100%");
   });
 
-  it("读取失败有重试入口，拖动可以观察原图边缘，Tab 留在查看器中", () => {
+  it("读取失败有重试入口，拖动可以观察原图边缘；不是模态，没有关闭窗口的按钮", () => {
     const close = vi.fn();
     render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={close} />);
     let image = screen.getByAltText("正在查看的参考图");
@@ -230,12 +230,12 @@ describe("查看器设备像素", () => {
     fireEvent.pointerUp(stage, { pointerId: 1 });
     expect(translation(image)[0] - before).toBeCloseTo(150);
 
+    // 只盖住图片墙所在的区域（#179）：不是模态对话框，窗口按钮仍在顶栏或详情侧栏上。
+    const viewer = screen.getByRole("region", { name: "原图查看器" });
+    expect(viewer.getAttribute("aria-modal")).toBeNull();
+    expect(screen.queryByRole("button", { name: "关闭" })).toBeNull();
     const first = screen.getByRole("button", { name: "返回图片墙" });
     first.focus();
-    fireEvent.keyDown(first, { key: "Tab", shiftKey: true });
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: /^信息/ }));
-    fireEvent.keyDown(document.activeElement!, { key: "Tab" });
-    expect(document.activeElement).toBe(first);
     fireEvent.keyDown(first, { key: "Escape" });
     expect(close).toHaveBeenCalledOnce();
   });
@@ -386,14 +386,14 @@ describe("查看器标题行与 dock（#98）", () => {
   afterEach(() => clearMocks());
   const pins = () => calls.filter((c) => c.cmd === "plugin:desktop|pin_reference").map((c) => c.args);
 
-  it("标题行有返回、文件名、序号、上一张 / 下一张和窗口控件", async () => {
+  it("标题行有返回、文件名、序号、上一张 / 下一张；窗口控件留在顶栏或详情侧栏（#179）", async () => {
     const step = vi.fn();
     const close = vi.fn();
     render(<Viewer libraryId="L1" card={card} onClose={close} position={{ index: 11, total: 86 }} onStep={step} />);
     const header = screen.getByRole("banner");
     expect(await within(header).findByText("晨光练习_04.png")).toBeTruthy();
     expect(within(header).getByText("12 / 86")).toBeTruthy();
-    for (const name of ["最小化", "最大化", "关闭"]) expect(within(header).getByRole("button", { name })).toBeTruthy();
+    for (const name of ["最小化", "最大化", "关闭"]) expect(within(header).queryByRole("button", { name })).toBeNull();
     fireEvent.click(within(header).getByRole("button", { name: "上一张" }));
     fireEvent.click(within(header).getByRole("button", { name: "下一张" }));
     expect(step.mock.calls).toEqual([[-1], [1]]);
@@ -419,7 +419,7 @@ describe("查看器标题行与 dock（#98）", () => {
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
     const dock = screen.getByRole("toolbar", { name: "查看工具" });
     const names = within(dock).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
-    expect(names).toEqual(["适应窗口，0", "原始像素，1", "框选局部，F1", "钉住整图，P", "背景", "信息，I"]);
+    expect(names).toEqual(["适应窗口，0", "原始像素，1", "框选局部，F1", "钉住整图，P", "背景", "显示详情，I"]);
     const stage = screen.getByAltText("正在查看的参考图").parentElement!;
     const pressed = (name: RegExp) => screen.getByRole("button", { name }).getAttribute("aria-pressed");
     expect(pressed(/^适应窗口/)).toBe("true");
@@ -437,17 +437,20 @@ describe("查看器标题行与 dock（#98）", () => {
     expect(await screen.findByText("已钉住整图")).toBeTruthy();
   });
 
-  it("信息（I）显示文件名、原图尺寸、缩放与操作提示", async () => {
-    render(<Viewer libraryId="L1" card={card} onClose={() => {}} sourceName="角色参考" />);
-    expect(screen.queryByRole("region", { name: "图片信息" })).toBeNull();
+  it("I 键与 dock 的“详情”显示或隐藏旁边的详情侧栏（#179）；查看器自己没有信息浮层", async () => {
+    const toggle = vi.fn();
+    const view = render(<Viewer libraryId="L1" card={card} onClose={() => {}} inspectorOpen={false} onToggleInspector={toggle} />);
     fireEvent.keyDown(screen.getByAltText("正在查看的参考图").parentElement!, { key: "i" });
-    const info = screen.getByRole("region", { name: "图片信息" });
-    expect(await within(info).findByText("晨光练习_04.png")).toBeTruthy();
-    expect(within(info).getByText("800 × 600 原始像素")).toBeTruthy();
-    expect(within(info).getByText("角色参考")).toBeTruthy();
-    expect(info.textContent).toContain("Shift+拖动框选局部");
-    fireEvent.click(screen.getByRole("button", { name: /^信息/ }));
+    expect(toggle).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("region", { name: "图片信息" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^显示详情/ }));
+    expect(toggle).toHaveBeenCalledTimes(2);
+    view.rerender(<Viewer libraryId="L1" card={card} onClose={() => {}} inspectorOpen onToggleInspector={toggle} />);
+    fireEvent.click(screen.getByRole("button", { name: /^隐藏详情/ }));
+    expect(toggle).toHaveBeenCalledTimes(3);
+    // 文件名在标题行，缩放比例在工具栏。
+    expect(await screen.findByText("晨光练习_04.png")).toBeTruthy();
+    expect(screen.getByLabelText("缩放比例").textContent).toMatch(/%$/);
   });
 
   it("框选 dock：钉住局部是主操作，重选清掉选区并重新框选，取消只清选区", async () => {
@@ -522,7 +525,7 @@ describe("查看器右键菜单（#114）", () => {
   it("菜单项与 #102 表一致：危险项置底红字，三条分隔线", async () => {
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} onTrash={() => {}} />);
     const menu = await openMenu();
-    expect(rows(menu)).toEqual(["钉住整图P", "钉住局部F1", "复制图片", "适应窗口0", "原始像素1", "背景", "信息I", "在资源管理器中显示", "移到回收站"]);
+    expect(rows(menu)).toEqual(["钉住整图P", "钉住局部F1", "复制图片", "适应窗口0", "原始像素1", "背景", "详情I", "在资源管理器中显示", "移到回收站"]);
     expect(within(menu).getAllByRole("separator")).toHaveLength(3);
     const danger = within(menu).getAllByRole("menuitem").filter((item) => item.className.includes("is-danger"));
     expect(danger.map((item) => item.textContent)).toEqual(["移到回收站"]);
@@ -547,15 +550,18 @@ describe("查看器右键菜单（#114）", () => {
     expect(await screen.findByText("无法在资源管理器中显示：原文件不在了")).toBeTruthy();
   });
 
-  it("缩放、信息与钉住走与 dock 相同的处理", async () => {
-    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+  it("缩放、详情与钉住走与 dock 相同的处理", async () => {
+    const toggle = vi.fn();
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} inspectorOpen onToggleInspector={toggle} />);
     fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^原始像素/ }));
     expect(screen.getByLabelText("缩放比例").textContent).toBe("100%");
     fireEvent.click(screen.getByRole("button", { name: "放大" }));
     fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^适应窗口/ }));
     expect(screen.getByLabelText("缩放比例").textContent).toBe("100%");
-    fireEvent.click(within(await openMenu()).getByRole("menuitemcheckbox", { name: /^信息/ }));
-    expect(screen.getByRole("region", { name: "图片信息" })).toBeTruthy();
+    const detail = within(await openMenu()).getByRole("menuitemcheckbox", { name: /^详情/ });
+    expect(detail.getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(detail);
+    expect(toggle).toHaveBeenCalledTimes(1);
     fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^钉住局部/ }));
     expect(screen.getByRole("button", { name: /^框选局部/ }).getAttribute("aria-pressed")).toBe("true");
     await act(async () => { fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^钉住整图/ })); });
@@ -577,7 +583,7 @@ describe("查看器右键菜单（#114）", () => {
     fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: "移到回收站" }));
     expect(onTrash).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
-    fireEvent.keyDown(screen.getByRole("dialog", { name: "原图查看器" }), { key: "F10", shiftKey: true });
+    fireEvent.keyDown(screen.getByRole("region", { name: "原图查看器" }), { key: "F10", shiftKey: true });
     expect(await screen.findByRole("menu", { name: "查看器菜单" })).toBeTruthy();
   });
 });

@@ -18,15 +18,33 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
 
-function Harness({ initial = [], onSelection, onOpen }: {
-  initial?: string[]; onSelection?: (ids: string[]) => void; onOpen?: (id: string) => void;
+function Harness({ initial = [], onSelection, onOpen, onAside }: {
+  initial?: string[]; onSelection?: (ids: string[]) => void; onOpen?: (id: string) => void; onAside?: () => void;
 }) {
   const [selected, setSelected] = useState(new Set(initial));
-  return <Wall libraryId="L1" scope={{ kind: "all" }} reloadKey={0} selected={selected}
-    onSelectionChange={(next) => { onSelection?.([...next]); setSelected(next); }}
-    onOpenImage={(card) => onOpen?.(card.id)} viewerOpen={false} />;
+  return <>
+    <Wall libraryId="L1" scope={{ kind: "all" }} reloadKey={0} selected={selected}
+      onSelectionChange={(next) => { onSelection?.([...next]); setSelected(next); }}
+      onOpenImage={(card) => onOpen?.(card.id)} viewerOpen={false} />
+    {/* 正在展开的详情侧栏：第二下可能落在这里。 */}
+    <aside className="inspector"><button type="button" onClick={onAside}>收起详情</button></aside>
+  </>;
 }
 const card = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`)!;
+/** 时钟：performance.now 读这里。 */
+let clock = 0;
+beforeEach(() => { clock = 10_000; vi.spyOn(performance, "now").mockImplementation(() => clock); });
+afterEach(() => { vi.restoreAllMocks(); });
+/** 一次完整的鼠标按下与松开，按浏览器的顺序派发；detail 是浏览器自己数的连击次数。 */
+function press(target: Element, { x = 50, y = 50, detail = 1, ...keys }: { x?: number; y?: number; detail?: number; ctrlKey?: boolean; shiftKey?: boolean } = {}) {
+  const at = { clientX: x, clientY: y, button: 0, ...keys };
+  fireEvent.pointerDown(target, at);
+  fireEvent.mouseDown(target, { ...at, detail });
+  fireEvent.pointerUp(target, at);
+  fireEvent.mouseUp(target, { ...at, detail });
+  fireEvent.click(target, { ...at, detail });
+  if (detail === 2) fireEvent.doubleClick(target, { ...at, detail });
+}
 
 it("单击卡片：选择替换为只有这一张，不打开查看器", async () => {
   const onSelection = vi.fn();
@@ -44,12 +62,94 @@ it("双击卡片：打开查看器一次，打开的是这张", async () => {
   const onOpen = vi.fn();
   render(<Harness onOpen={onOpen} />);
   await screen.findAllByRole("img");
-  // 浏览器里双击先后派发两次 click 和一次 dblclick。
-  fireEvent.click(card("3"), { detail: 1 });
-  fireEvent.click(card("3"), { detail: 2 });
-  fireEvent.doubleClick(card("3"), { detail: 2 });
+  press(card("3"));
+  clock += 200;
+  press(card("3"), { detail: 2 });
   expect(onOpen).toHaveBeenCalledTimes(1);
   expect(onOpen).toHaveBeenCalledWith("3");
+});
+
+it("单击未选中的图只选中它；再单击它（不论隔多久）就打开查看器", async () => {
+  const onSelection = vi.fn();
+  const onOpen = vi.fn();
+  render(<Harness onSelection={onSelection} onOpen={onOpen} />);
+  await screen.findAllByRole("img");
+  press(card("2"));
+  expect(onSelection).toHaveBeenLastCalledWith(["2"]);
+  expect(onOpen).not.toHaveBeenCalled();
+  clock += 60_000;
+  press(card("2"));
+  expect(onOpen).toHaveBeenCalledTimes(1);
+  expect(onOpen).toHaveBeenCalledWith("2");
+  expect(onSelection).toHaveBeenCalledTimes(1);
+});
+
+it("多选后不按修饰键单击其中一张：选择收缩为这一张，不打开查看器", async () => {
+  const onSelection = vi.fn();
+  const onOpen = vi.fn();
+  render(<Harness initial={["1", "2", "3"]} onSelection={onSelection} onOpen={onOpen} />);
+  await screen.findAllByRole("img");
+  press(card("2"));
+  expect(onSelection).toHaveBeenLastCalledWith(["2"]);
+  expect(onOpen).not.toHaveBeenCalled();
+});
+
+it("双击的第二下落在别的卡片上（重排挪走了第一张）：打开第一下的图，不改选择", async () => {
+  const onSelection = vi.fn();
+  const onOpen = vi.fn();
+  render(<Harness onSelection={onSelection} onOpen={onOpen} />);
+  await screen.findAllByRole("img");
+  press(card("5"), { x: 300, y: 40 });
+  expect(onSelection).toHaveBeenLastCalledWith(["5"]);
+  clock += 300;
+  press(card("2"), { x: 301, y: 41, detail: 2 });
+  expect(onOpen).toHaveBeenCalledTimes(1);
+  expect(onOpen).toHaveBeenCalledWith("5");
+  expect(onSelection).toHaveBeenCalledTimes(1);
+  expect(card("2").getAttribute("aria-selected")).toBe("false");
+});
+
+it("双击的第二下落在正在展开的详情侧栏上：打开第一下的图，侧栏上的按钮不响应", async () => {
+  const onOpen = vi.fn();
+  const onAside = vi.fn();
+  render(<Harness onOpen={onOpen} onAside={onAside} />);
+  await screen.findAllByRole("img");
+  press(card("5"), { x: 900, y: 40 });
+  clock += 450;
+  press(screen.getByRole("button", { name: "收起详情" }), { x: 900, y: 40, detail: 2 });
+  expect(onOpen).toHaveBeenCalledWith("5");
+  expect(onAside).not.toHaveBeenCalled();
+  // 第二下之后的按下照常。
+  clock += 2000;
+  press(screen.getByRole("button", { name: "收起详情" }), { x: 900, y: 40 });
+  expect(onAside).toHaveBeenCalledTimes(1);
+});
+
+it("超过双击间隔或离开判定范围的第二下是普通单击", async () => {
+  const onSelection = vi.fn();
+  const onOpen = vi.fn();
+  render(<Harness onSelection={onSelection} onOpen={onOpen} />);
+  await screen.findAllByRole("img");
+  press(card("5"), { x: 300, y: 40 });
+  clock += 501;
+  press(card("2"), { x: 300, y: 40 });
+  expect(onSelection).toHaveBeenLastCalledWith(["2"]);
+  clock += 100;
+  press(card("4"), { x: 303, y: 40 });
+  expect(onSelection).toHaveBeenLastCalledWith(["4"]);
+  expect(onOpen).not.toHaveBeenCalled();
+});
+
+it("按着 Ctrl 的第二下不算双击，照常增减选择", async () => {
+  const onSelection = vi.fn();
+  const onOpen = vi.fn();
+  render(<Harness onSelection={onSelection} onOpen={onOpen} />);
+  await screen.findAllByRole("img");
+  press(card("1"));
+  clock += 100;
+  press(card("3"), { ctrlKey: true });
+  expect(onSelection).toHaveBeenLastCalledWith(["1", "3"]);
+  expect(onOpen).not.toHaveBeenCalled();
 });
 
 it("Enter 打开查看器，空格切换选中", async () => {

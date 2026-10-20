@@ -1,8 +1,8 @@
-// #158：从点选一张参考图到详情面板把预览、详情与标签都显示出来的时间（合格线 100 ms，沿用验收约定里
-// “约 100 ms 内出现操作反馈”）。
+// #158：从点选一张参考图到详情面板把详情与标签都显示出来的时间（合格线 100 ms，沿用验收约定里
+// “约 100 ms 内出现操作反馈”）。详情面板里的预览图已删除（#179）。
 //
-// 驱动方式：逐张点击图片墙里的卡片（与画师单击选中同一条路），每帧检查详情面板，直到预览图换成这张
-// 并加载、解码完，详情与标签也都不再留着上一张的（aria-busy）。时间从点击到满足条件的那一帧为止，
+// 驱动方式：逐张点击图片墙里的卡片（与画师单击选中同一条路），每帧检查详情面板，直到它标明整理的是这张
+// （data-selection），详情与标签也都不再留着上一张的（aria-busy）。时间从点击到满足条件的那一帧为止，
 // 精度是一帧。只量主窗口的“选中一张”：多来源整理（.workspace-sources）要再点一次“整理此来源”，跳过。
 
 import { browserEnv, type ProbeEnv } from "./frameProbe";
@@ -47,10 +47,10 @@ export function summarizeSelections(samples: number[], { timedOut, skipped }: { 
 
 const busy = (el: Element | null) => !el || el.getAttribute("aria-busy") === "true";
 
-/** 详情面板正在显示 previewSrc 这张图：预览已加载，详情与有效标签都已是新读到的。 */
-export function inspectorShows(inspector: ParentNode, previewSrc: string): boolean {
-  const preview = inspector.querySelector<HTMLImageElement>("img.insp-preview");
-  if (!preview || preview.getAttribute("src") !== previewSrc || !preview.complete || preview.naturalWidth === 0) return false;
+/** 详情面板正在显示 id 这张图：面板标明的选择就是它，详情与有效标签都已是新读到的。 */
+export function inspectorShows(inspector: ParentNode, id: string): boolean {
+  const marker = inspector instanceof Element && inspector.hasAttribute("data-selection") ? inspector : inspector.querySelector("[data-selection]");
+  if (marker?.getAttribute("data-selection") !== id) return false;
   return !busy(inspector.querySelector(".selection-detail")) && !busy(inspector.querySelector('.tag-panel [aria-label="有效标签"]'));
 }
 
@@ -72,18 +72,15 @@ export async function measureSelections({ wall, inspector, count = 20, timeoutMs
   let timedOut = 0;
   let skipped = 0;
   for (const card of [...wall.querySelectorAll<HTMLElement>(".card")].slice(0, count)) {
-    const src = card.querySelector("img")?.getAttribute("src");
-    if (!src) { skipped++; continue; }
+    const id = card.dataset.id;
+    if (!id) { skipped++; continue; }
     const start = env.now();
     card.click();
     for (;;) {
       await nextFrame(env);
       const box = inspector();
       if (box?.querySelector(".workspace-sources")) { skipped++; break; }
-      if (box && inspectorShows(box, src)) {
-        // 已加载不等于已解码（decoding="async"）：等 decode() 完成才算画得出来。
-        const preview = box.querySelector<HTMLImageElement>("img.insp-preview");
-        if (typeof preview?.decode === "function") await preview.decode().catch(() => {});
+      if (box && inspectorShows(box, id)) {
         samples.push(env.now() - start);
         break;
       }

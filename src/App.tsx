@@ -1,8 +1,7 @@
-import { captureImage, useCaptureSources } from "./desktop/captureSources";
+import { useCaptureSources } from "./desktop/captureSources";
 import { onCollectionRequest, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { modalOpen as anyModalOpen } from "./ui/modal";
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, X } from "lucide-react";
 import { ToastProvider, useToast } from "./ui/Toast";
 import { WinCtrls } from "./ui/WinCtrls";
@@ -33,7 +32,6 @@ import {
   setUiScale,
   shellSettings,
   setInspectorWidth,
-  thumbnailUrl,
   uiScale,
 } from "./ipc";
 import { referenceCard, useOpenInKinshoko } from "./desktop/openInKinshoko";
@@ -93,8 +91,6 @@ type WorkspaceProps = {
   inspectorWidth?: number;
   /** 拖动松手、双击或方向键定下的详情面板宽度。 */
   onInspectorWidth: (width: number) => void;
-  /** 查看器打开／关闭：工作区外的界面（资料库选择、面板、状态栏）随之不可操作。 */
-  onViewerChange: (open: boolean) => void;
   /** 顶栏下方的提示（运行时、旧名称、更新、备份提醒）。 */
   notices?: ReactNode;
   /** 侧栏图库标题菜单“从列表移除”之后（#114）。 */
@@ -124,7 +120,6 @@ function LibraryWorkspace({
   keepSelectionOnSafe,
   inspectorWidth,
   onInspectorWidth,
-  onViewerChange,
   notices,
   onLibraryRemoved,
   onOpenTaggingSettings,
@@ -139,15 +134,16 @@ function LibraryWorkspace({
   const statusObservations = useRef(0);
   const [sources, setSources] = useState<WorkspaceCard | null>(null);
   const [loadedCards, setLoadedCards] = useState<BrowserCard[]>([]);
-  /** 详情预览只使用当前视角中图片墙完整接受的快照；保留的来源身份不授予像素可见性。 */
-  const [previewSnapshot, setPreviewSnapshot] = useState<{ safe: boolean; reloadKey: number; cards: BrowserCard[] } | null>(null);
   const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
   const [reloadKey, setReloadKey] = useState(0);
   const [density, setDensity] = useState(240);
   /** 图片墙上 Ctrl+滚轮缩放中的预览值（#111），滑条跟着走。 */
   const [zoomPreview, setZoomPreview] = useState<number | null>(null);
   const [resultCount, setResultCount] = useState<number | null>(null);
-  /** 修订变化后的选择修剪：等图片墙清空（reset）再读完新的结果（loading），然后只保留仍在的图。 */
+  /**
+   * 修订变化后的选择修剪：等图片墙读完新的结果，然后只保留仍在的图。范围或安全模式变了时图片墙先清空（loading
+   * 等它读完）；只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
+   */
   const prune = useRef<"idle" | "reset" | "loading">("idle");
   const wall = useRef<WallHandle>(null);
   const [running, setRunning] = useState<RunningImport | null>(null);
@@ -207,12 +203,10 @@ function LibraryWorkspace({
   });
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
-  const viewerChange = useRef(onViewerChange);
-  viewerChange.current = onViewerChange;
   const viewerOpen = viewing !== null;
   useEffect(() => {
-    if (prune.current === "reset") { if (resultCount === null) prune.current = "loading"; return; }
-    if (prune.current !== "loading" || resultCount === null) return;
+    if (prune.current === "reset" && resultCount === null) { prune.current = "loading"; return; }
+    if (prune.current === "idle" || resultCount === null) return;
     prune.current = "idle";
     const present = new Set(loadedCards.map((card) => card.id));
     setSelected((previous) => {
@@ -240,8 +234,6 @@ function LibraryWorkspace({
     const next = loadedCards[pending.index];
     if (next) { pendingStep.current = null; setViewing(next); }
   }, [loadedCards, viewing]);
-  // 来源整理从模态对话框改为详情面板（#98）：只有查看器是模态的。
-  const modalOpen = viewerOpen;
   const acceptStatus = useCallback((next: WorkspaceStatus, invalidateWall = false) => {
     statusObservations.current += 1;
     if (statusRevision.current === next.revision) return;
@@ -251,25 +243,13 @@ function LibraryWorkspace({
     setStatus(next);
     // 新快照先于通知到达时，同样撤销旧内容并刷新依赖；之后的同修订通知只消重。
     if (changed || invalidateWall) {
-      setPreviewSnapshot(null);
       setViewing(null);
       prune.current = "reset";
       setReloadKey((k) => k + 1);
       setVocabularyKey((k) => k + 1);
     }
   }, []);
-  // 图片墙按回调身份决定是否重新浏览：这里读最新的视角与重读序号，回调保持不变，
-  // 安全模式切换或重读时不会因为回调换了身份再多浏览一次（#183）。
-  const wallView = useRef({ safe, reloadKey });
-  wallView.current = { safe, reloadKey };
-  const onWallStatus = useCallback((next: WorkspaceStatus, cards: BrowserCard[]) => {
-    acceptStatus(next);
-    setPreviewSnapshot({ ...wallView.current, cards });
-  }, [acceptStatus]);
-  useEffect(() => {
-    viewerChange.current(modalOpen);
-  }, [modalOpen]);
-  useEffect(() => () => viewerChange.current(false), []);
+  const onWallStatus = useCallback((next: WorkspaceStatus) => { acceptStatus(next); }, [acceptStatus]);
 
   useEffect(() => {
     let alive = true;
@@ -302,7 +282,6 @@ function LibraryWorkspace({
       setSources(null);
       setSelected(new Set());
     }
-    setPreviewSnapshot(null);
     prune.current = "reset";
     setViewing(null);
     setVocabularyKey((k) => k + 1);
@@ -338,7 +317,6 @@ function LibraryWorkspace({
         case "listStale":
           statusObservations.current += 1;
           wall.current?.invalidate();
-          setPreviewSnapshot(null);
           prune.current = "reset";
           setReloadKey((k) => k + 1);
           break;
@@ -437,9 +415,30 @@ function LibraryWorkspace({
   const inspected = sources ?? selectedSourceCard ?? null;
   const inspectorContent = inspected !== null || eligible;
   const inspectorOpen = inspectorContent && !hidden && (sources !== null || inspectorHidden !== selectionKey);
-  const previewId = inspected?.id ?? (eligible && selected.size === 1 ? [...selected][0] : undefined);
-  const previewCard = previewSnapshot?.safe === safe && previewSnapshot.reloadKey === reloadKey
-    ? previewSnapshot.cards.find((card) => card.id === previewId) : undefined;
+  /**
+   * 查看器里的详情侧栏跟着正在看的图（#179）：打开或换图时选择改为这一张。画师在查看器里隐藏了侧栏，
+   * 换图时保持隐藏（隐藏的标记跟着换到新的选择）。不在图片墙上的图（钉图菜单“在 Kinshoko 中打开”）
+   * 走来源整理。
+   */
+  const lastSelectionKey = useRef(selectionKey);
+  /** 来源整理是查看器为墙外那张图打开的（不是画师点来源按钮打开的）。 */
+  const viewedSources = useRef(false);
+  lastSelectionKey.current = selectionKey;
+  useEffect(() => {
+    if (!viewing) {
+      // 离开查看器：为墙外那张图打开的来源整理随之收起。
+      if (viewedSources.current) { viewedSources.current = false; setSources(null); }
+      return;
+    }
+    viewedSources.current = false;
+    if (!loadedCards.some((card) => card.id === viewing.id)) {
+      if (viewing.libraryId && viewing.imageId && viewing.sources?.length) { viewedSources.current = true; setSources(viewing as WorkspaceCard); }
+      return;
+    }
+    setSources(null);
+    setInspectorHidden((key) => key !== null && key === lastSelectionKey.current ? viewing.id : key);
+    setSelected((previous) => previous.size === 1 && previous.has(viewing.id) ? previous : new Set([viewing.id]));
+  }, [viewing]); // eslint-disable-line react-hooks/exhaustive-deps
   // 详情面板开合的宽度过渡中图片墙不逐帧重排，过渡结束后重排一次（#162）；拖动边缘时同样，松手后重排（#157）。
   const [inspectorElement, setInspectorElement] = useState<HTMLElement | null>(null);
   const inspectorMoving = useWidthTransition(inspectorElement);
@@ -451,6 +450,10 @@ function LibraryWorkspace({
   }, [panelWidth]);
   useEffect(() => () => { document.documentElement.style.removeProperty("--inspector-width"); }, []);
   const closeInspector = () => { if (sources) setSources(null); else setInspectorHidden(selectionKey); };
+  /** 查看器的 I 键、dock 与右键菜单（#179）：显示或隐藏详情侧栏。 */
+  const toggleInspector = () => {
+    if (inspectorOpen) { setSources(null); setInspectorHidden(selectionKey); } else setInspectorHidden(null);
+  };
 
   const started = (taskId: string) => {
     const task = imports.current;
@@ -481,7 +484,7 @@ function LibraryWorkspace({
   const sectionName = section === "groups" ? "参考组" : "截图";
   return (
     <>
-    <div className="app-workspace workspace" hidden={hidden} inert={modalOpen}>
+    <div className="app-workspace workspace" hidden={hidden}>
       <div className="app-body">
         <aside
           className="sidebar-slot pane"
@@ -498,7 +501,8 @@ function LibraryWorkspace({
           <div className="pane-body" hidden={section !== "browse"}>
           <WorkspacePane status={status} scope={workspaceScope} safeMode={safe}
             reloadKey={reloadKey} onError={onError} onRecheck={recheck} onRemoved={onLibraryRemoved} onScope={(next) => {
-              setWorkspaceScope(next); setSelected(new Set()); setSources(null);
+              // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
+              setWorkspaceScope(next); setSelected(new Set()); setSources(null); setViewing(null);
             }}>
           </WorkspacePane>
           </div>
@@ -520,6 +524,7 @@ function LibraryWorkspace({
             onChange={(next) => {
               setSearch(next);
               setSelected(new Set());
+              setViewing(null);
             }}
           />
           <div className="bar-meta">
@@ -532,13 +537,14 @@ function LibraryWorkspace({
               setSearch({ conditions: [], exact: false });
               setWorkspaceScope({ kind: "library", libraryId:owner, scope: { kind: "trash" } });
               setSelected(new Set());
+              setViewing(null);
             }} />
           {!inspectorOpen && <WinCtrls />}
           </header>
           {notices}
           <div className="app-tagbar">
           <TagGroupBar workspace libraryId="workspace" safe={safe} generation={vocabularyKey} input={search}
-            onChange={(next) => { setSearch(next); setSelected(new Set()); }} onError={onError} onEdit={() => setEditingGroups(true)} />
+            onChange={(next) => { setSearch(next); setSelected(new Set()); setViewing(null); }} onError={onError} onEdit={() => setEditingGroups(true)} />
           </div>
           {/* 分组编辑器从侧栏移到标签栏的“编辑分组”（#98）。 */}
           <Dialog.Root open={editingGroups} onOpenChange={setEditingGroups}>
@@ -557,6 +563,7 @@ function LibraryWorkspace({
                       conditions: [{ any: globalIds.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }],
                     }));
                     setSelected(new Set());
+                    setViewing(null);
                     setEditingGroups(false);
                   }}
                   onError={onError}
@@ -573,6 +580,8 @@ function LibraryWorkspace({
               </button>
             </p>
           )}
+          {/* 图片墙所在的区域：查看器盖在这里（#179），左栏、顶栏与详情侧栏照常可用。 */}
+          <div className="wall-host">
           <Wall
             ref={wall}
             density={density}
@@ -593,7 +602,7 @@ function LibraryWorkspace({
             selected={selected}
             onSelectionChange={setSelected}
             onOpenImage={(card) => { setViewCrop(false); setViewing(card); }}
-            viewerOpen={modalOpen}
+            viewerOpen={viewerOpen}
             menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} />}
             onCardCommand={(command, cards, point) => {
               if (command === "pin") wallActions.pin(cards, point);
@@ -606,13 +615,29 @@ function LibraryWorkspace({
           {/* 图片墙右下角：打标图标（#144）在图片大小浮岛（#102 方案 C3，与 Ctrl+滚轮缩放成对）的左边。 */}
           <div className="k-wall-corner">
             {library && <TaggingActivity libraryId={library.id} registered={status?.libraries.map((entry) => entry.library.id)} onOpenSettings={onOpenTaggingSettings} />}
-            <DensityIsland value={density} preview={zoomPreview} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />
+            {!viewerOpen && <DensityIsland value={density} preview={zoomPreview} onPreview={(v) => wall.current?.previewDensity(v)} onCommit={setDensity} />}
           </div>
           {/* 多选的浮动操作条（#98）：选择面板把数量与批量操作放到这里。 */}
           <div className="selbar-host" ref={setBarHost} />
+          {viewing && (
+            <Viewer
+              workspace
+              libraryId={viewing.libraryId ?? libraryId}
+              card={{ ...viewing, id: viewing.imageId ?? viewing.id }}
+              onClose={() => setViewing(null)}
+              reloadKey={reloadKey}
+              position={viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) }}
+              onStep={step}
+              startCrop={viewCrop}
+              inspectorOpen={inspectorOpen}
+              onToggleInspector={toggleInspector}
+              onTrash={(viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.deleted ?? scope.kind === "trash") ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
+            />
+          )}
+          </div>
         </main>
         {inspectorContent && !hidden && (
-          <aside ref={setInspectorElement} className="inspector" aria-label="详情" data-collapsed={!inspectorOpen} data-resizing={draggedWidth !== null} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>
+          <aside ref={setInspectorElement} className="inspector" aria-label="详情" data-selection={inspected?.id ?? selectionKey} data-collapsed={!inspectorOpen} data-resizing={draggedWidth !== null} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>
             <InspectorResizer width={panelWidth} onResize={(width, done) => {
               if (!done) { setDraggedWidth(width); return; }
               setDraggedWidth(null);
@@ -624,7 +649,6 @@ function LibraryWorkspace({
               {inspectorOpen && <WinCtrls />}
             </header>
             <div className="insp-body">
-              {previewCard && !(safe && previewCard.adult) && <InspectorPreview card={previewCard} libraryId={libraryId || "workspace"} />}
               {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => { if (sources) setSources(null); else setSelected(new Set()); }} onView={setViewing}
                 onChanged={() => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); }} />
               : <SelectionPanel
@@ -645,36 +669,9 @@ function LibraryWorkspace({
         )}
       </div>
     </div>
-    {viewing && !hidden && (
-      <Viewer
-        workspace
-        libraryId={viewing.libraryId ?? libraryId}
-        card={{ ...viewing, id: viewing.imageId ?? viewing.id }}
-        sourceName={viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.libraryName}
-        onClose={() => setViewing(null)}
-        reloadKey={reloadKey}
-        position={viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) }}
-        onStep={step}
-        startCrop={viewCrop}
-        safe={safe}
-        onTrash={(viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.deleted ?? scope.kind === "trash") ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
-      />
-    )}
     {wallDialogs}
     </>
   );
-}
-
-/** 详情面板的预览图与图片墙同为参考图来源：截在上面时读原始像素，而不是缩略图的屏幕像素。 */
-function InspectorPreview({ card, libraryId }: { card: BrowserCard; libraryId: string }) {
-  const image = useRef<HTMLImageElement>(null);
-  useCaptureSources(() => {
-    const clip = image.current?.closest<HTMLElement>(".inspector");
-    if (!image.current || !clip || anyModalOpen()) return null;
-    const reference = captureImage(image.current, clip, card.libraryId ?? libraryId, card.imageId ?? card.id, card.width, card.height);
-    return reference ? [reference] : [];
-  }, 10);
-  return <img ref={image} className="insp-preview" src={thumbnailUrl(card.thumbnail)} alt="所选参考图" draggable={false} />;
 }
 
 /**
@@ -704,8 +701,6 @@ function MainWindow() {
   const [section, setSection] = useState<Section>("browse");
   const [paneOpen, setPaneOpen] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  /** 查看器打开时，工作区以外的界面不可操作（查看器是模态的）。 */
-  const [viewerOpen, setViewerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   // undefined：还在打开；null：没有活动资料库。
   const [library, setLibrary] = useState<LibraryInfo | null | undefined>(undefined);
@@ -888,7 +883,7 @@ function MainWindow() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (viewerOpen || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
       if (e.key.toLowerCase() === "b") { e.preventDefault(); setPaneOpen((open) => !open); }
       if (["1", "2", "3"].includes(e.key)) {
         e.preventDefault(); setSection((["browse", "groups", "captures"] as Section[])[Number(e.key) - 1]); setPaneOpen(true);
@@ -896,7 +891,7 @@ function MainWindow() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [viewerOpen]);
+  }, []);
 
   const changed = (value: LibraryInfo | null) => {
     setLibrary(value);
@@ -908,15 +903,15 @@ function MainWindow() {
   const libraryControls = <LibraryPicker current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />;
   const empty = (!library && !hasProviders) || showCreate;
   const notices = <>
-    <RuntimeNotice hidden={showSettings || viewerOpen} />
-    {library && <div inert={viewerOpen}><LegacyNameMigrationNotice libraryId={library.id} safe={lensSafe} onOpen={() => setNameWizard(true)} /></div>}
+    <RuntimeNotice hidden={showSettings} />
+    {library && <div><LegacyNameMigrationNotice libraryId={library.id} safe={lensSafe} onOpen={() => setNameWizard(true)} /></div>}
     <UpdateBanner />
     <BackupReminder />
   </>;
   return (
     <UiScaleContext.Provider value={uiScalePercent / 100}>
     <TagDisplayContext.Provider value={tagDisplay}><SaveDestinationProvider safe={lensSafe}><div className="app app-shell">
-      <div className="rail-slot" inert={viewerOpen}>
+      <div className="rail-slot">
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
           onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
           onSettings={() => { if (showSettings) setShowSettings(false); else openSettings("general"); }} />
@@ -941,7 +936,6 @@ function MainWindow() {
           keepSelectionOnSafe={keepSelectionOnSafe}
           inspectorWidth={inspectorWidth}
           onInspectorWidth={changeInspectorWidth}
-          onViewerChange={setViewerOpen}
           notices={!empty && notices}
           onLibraryRemoved={(id) => { if (library?.id === id) changed(null); }}
           onOpenTaggingSettings={() => openSettings("tagging")}

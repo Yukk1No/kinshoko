@@ -131,3 +131,26 @@ it("沿用的卡片元素仍按最新的选择处理拖动与 Ctrl 单击", asyn
   fireEvent.click(card("3"), { ctrlKey: true });
   expect([...onSelectionChange.mock.lastCall![0]].sort()).toEqual(["1", "2", "3"]);
 });
+
+it("离开查看器（#179）：最后查看的那张（选择跟着换图）滚入可见并获得焦点", async () => {
+  const view = render(<Wall {...props} selected={new Set(["0"])} viewerOpen />);
+  await screen.findAllByRole("img");
+  const wall = document.querySelector<HTMLElement>(".wall")!;
+  // 查看器里按 → 走到很靠后的一张，选择跟着换。
+  view.rerender(<Wall {...props} selected={new Set(["300"])} viewerOpen />);
+  view.rerender(<Wall {...props} selected={new Set(["300"])} viewerOpen={false} />);
+  const node = document.querySelector<HTMLElement>('.card[data-id="300"]')!;
+  expect(document.activeElement).toBe(node);
+  const top = parseFloat(node.style.top);
+  expect(top).toBeGreaterThanOrEqual(wall.scrollTop);
+  expect(top + parseFloat(node.style.height)).toBeLessThanOrEqual(wall.scrollTop + 800);
+});
+
+it("离开查看器时那张已在视口里：不滚动，只接回焦点", async () => {
+  const view = render(<Wall {...props} selected={new Set(["1"])} viewerOpen />);
+  await screen.findAllByRole("img");
+  const wall = document.querySelector<HTMLElement>(".wall")!;
+  view.rerender(<Wall {...props} selected={new Set(["1"])} viewerOpen={false} />);
+  expect(wall.scrollTop).toBe(0);
+  expect(document.activeElement).toBe(document.querySelector('.card[data-id="1"]'));
+});
