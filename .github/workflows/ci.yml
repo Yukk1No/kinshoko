@@ -84,6 +84,18 @@ jobs:
             exit 1
           }
 
+  # 工作流本身没有别的测试：发布流程要到真实发版才会运行（docs/agents/github-actions.md）。
+  # actionlint 检查语法、表达式与 run: 里的脚本（调用 runner 自带的 shellcheck）。
+  workflows:
+    name: 工作流检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
+          ./actionlint -color
+
   frontend:
     name: 前端检查与测试
     runs-on: ubuntu-latest
