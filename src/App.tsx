@@ -137,7 +137,10 @@ function LibraryWorkspace({
   /** 图片墙上 Ctrl+滚轮缩放中的预览值（#111），滑条跟着走。 */
   const [zoomPreview, setZoomPreview] = useState<number | null>(null);
   const [resultCount, setResultCount] = useState<number | null>(null);
-  /** 修订变化后的选择修剪：等图片墙清空（reset）再读完新的结果（loading），然后只保留仍在的图。 */
+  /**
+   * 修订变化后的选择修剪：等图片墙读完新的结果，然后只保留仍在的图。范围或安全模式变了时图片墙先清空（loading
+   * 等它读完）；只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
+   */
   const prune = useRef<"idle" | "reset" | "loading">("idle");
   const wall = useRef<WallHandle>(null);
   const [running, setRunning] = useState<RunningImport | null>(null);
@@ -199,8 +202,8 @@ function LibraryWorkspace({
   safeChanged.current = onSafeChanged;
   const viewerOpen = viewing !== null;
   useEffect(() => {
-    if (prune.current === "reset") { if (resultCount === null) prune.current = "loading"; return; }
-    if (prune.current !== "loading" || resultCount === null) return;
+    if (prune.current === "reset" && resultCount === null) { prune.current = "loading"; return; }
+    if (prune.current === "idle" || resultCount === null) return;
     prune.current = "idle";
     const present = new Set(loadedCards.map((card) => card.id));
     setSelected((previous) => {
