@@ -4,6 +4,8 @@
 
 Development trunk is `integration/v1`: branch from it and open every PR against it, docs and triage included. `main` only receives v1 when it ships, through PR #71.
 
+Before changing `.github/workflows/`, read `docs/agents/github-actions.md`: the default branch `main` lacks these workflows, which rules out several triggers.
+
 ## Agent skills
 
 ### Issue tracker
