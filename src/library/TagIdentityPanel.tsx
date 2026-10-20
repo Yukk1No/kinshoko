@@ -62,7 +62,7 @@ export function TagIdentityPanel() {
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     {workspace && <>
-      <p className="settings-hint">带走图库前，先把标签定义存进图库。默认名称、别名与对应随图库携带；我的叫法留在偏好设置里。只读或离线时可以保留程序中的选择，稍后重试保存。</p>
+      <p className="settings-hint">带走图库前，先把标签定义存进图库。默认名称、别名与对应随图库携带；改过的显示名留在偏好设置里。只读或离线时可以保留程序中的选择，稍后重试保存。</p>
       {workspace.libraries.map(({library, unavailable}) => <div key={"definitions-" + library.id} className="settings-actions">
         <span title={library.root}>{library.name} · {libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span>
         <button type="button" className="k-btn is-sm" aria-label={"保存 " + library.name + " 的标签定义"} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), "标签定义已保存到图库。")}>存进图库</button>

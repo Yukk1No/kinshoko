@@ -6,9 +6,9 @@ import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrati
 import type { LegacyNameMigrationPreview } from "../bindings/LegacyNameMigrationPreview";
 import type { LegacyNameResolution } from "../bindings/LegacyNameResolution";
 import { confirmLegacyNames, onLibraryEvent, onSafeModeSetting, planLegacyNames, previewLegacyNames } from "../ipc";
+import { languageName } from "../tags/languages";
 
 
-const LANGUAGES: Record<string, string> = { "zh-CN": "简体中文", "zh-TW": "繁體中文", en: "English", ja: "日本語" };
 /** 向导确认后通知各处的“旧名称待确认”提示重新读取。 */
 const CHANGED = "kinshoko:legacy-names-changed";
 const PREVIEW_PAGE = 20;
@@ -105,7 +105,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
     { value: "default", title: group.defaultName ? `跟随默认「${group.defaultName}」` : "跟随默认",
       desc: group.existingPreference ? `会撤回你的叫法「${group.existingPreference}」` : group.defaultName ? "以后跟着默认名更新" : "本语言还没有默认名，按其他语言显示" },
     ...group.sources.map((source, index) => ({ value: `legacy:${index}`, title: `保留为全局偏好「${source.legacyName}」`,
-      desc: `记为我的叫法 · 来自${libraryName(source.libraryId)}` })),
+      desc: `保存为显示名 · 来自${libraryName(source.libraryId)}` })),
     ...(group.existingPreference !== null ? [{ value: "preference", title: `保留为全局偏好「${group.existingPreference}」`, desc: "继续用你之前定的叫法" }] : []),
   ] : [];
   const shown = group ? group.defaultName ?? group.sources[0]?.legacyName ?? group.catalogId : "";
@@ -159,9 +159,9 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
           {previewBusy && <p role="status">正在核对最终显示…</p>}
           {validPreview && <>
             <table className="k-preview-table" aria-label="迁移后最终显示">
-              <thead><tr><th>标签</th><th>最终显示</th><th>我的叫法</th></tr></thead>
+              <thead><tr><th>标签</th><th>最终显示</th><th>改过的显示名</th></tr></thead>
               <tbody>{outcomes.slice(previewPage * PREVIEW_PAGE, (previewPage + 1) * PREVIEW_PAGE).map((outcome) => <tr key={`${outcome.catalogId}/${outcome.lang}`}>
-                <td>{tagLabel(outcome.catalogId)} · {LANGUAGES[outcome.lang] ?? outcome.lang}</td><td>{outcome.displayName}</td><td>{outcome.preferenceName ?? "无，跟随默认"}</td></tr>)}</tbody>
+                <td>{tagLabel(outcome.catalogId)} · {languageName(outcome.lang)}</td><td>{outcome.displayName}</td><td>{outcome.preferenceName ?? "无，跟随默认"}</td></tr>)}</tbody>
             </table>
             {outcomes.length > PREVIEW_PAGE && <div className="k-dialog-foot is-tight">
               <span className="k-set-note">{previewPage * PREVIEW_PAGE + 1}–{Math.min((previewPage + 1) * PREVIEW_PAGE, outcomes.length)} / {outcomes.length}</span>

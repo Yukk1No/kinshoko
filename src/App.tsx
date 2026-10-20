@@ -66,6 +66,7 @@ import { safeTiming } from "./shell/safeTiming";
 import type { TagDisplay } from "./bindings/TagDisplay";
 import { DEFAULT_TAG_DISPLAY } from "./tags/tagConfidence";
 import { TagDisplayContext } from "./tags/TagDisplayContext";
+import { OpenTagNameSettings } from "./tags/TagNameSettings";
 
 type WorkspaceProps = {
   library: LibraryInfo | null;
@@ -692,7 +693,9 @@ function MainWindow() {
   const [showSettings, setShowSettings] = useState(false);
   /** 设置打开时先显示的分页：状态栏打开通用，打标图标打开自动标签（#144）。 */
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
-  const openSettings = (tab: SettingsTab) => { setSettingsTab(tab); setShowSettings(true); };
+  const [settingsTagFocus, setSettingsTagFocus] = useState<string | undefined>(undefined);
+  const openSettings = (tab: SettingsTab, tagFocus?: string) => { setSettingsTab(tab); setSettingsTagFocus(tagFocus); setShowSettings(true); };
+  const openTagNameSettings = useCallback((catalogId: string) => { setSettingsTab("tags"); setSettingsTagFocus(catalogId); setShowSettings(true); }, []);
   /** 确认旧名称向导：横幅或设置 › 标签的提示条打开，叠在当前界面上。 */
   const [nameWizard, setNameWizard] = useState(false);
   const [captureRequest,setCaptureRequest]=useState<{id:string;stamp:number}|null>(null);
@@ -910,7 +913,7 @@ function MainWindow() {
   </>;
   return (
     <UiScaleContext.Provider value={uiScalePercent / 100}>
-    <TagDisplayContext.Provider value={tagDisplay}><SaveDestinationProvider safe={lensSafe}><div className="app app-shell">
+    <TagDisplayContext.Provider value={tagDisplay}><OpenTagNameSettings.Provider value={openTagNameSettings}><SaveDestinationProvider safe={lensSafe}><div className="app app-shell">
       <div className="rail-slot">
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
           onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
@@ -974,6 +977,7 @@ function MainWindow() {
               version={info && `${info.productName} ${info.version}`}
               library={library ?? null}
               initialTab={settingsTab}
+              initialTagFocus={settingsTagFocus}
               safe={safe}
               onSafeMode={toggleSafe}
               onOpenNameWizard={() => setNameWizard(true)}
@@ -986,7 +990,7 @@ function MainWindow() {
       </Dialog.Root>
       <LegacyNameWizard open={nameWizard} onOpenChange={setNameWizard} />
       </div>
-    </div></SaveDestinationProvider></TagDisplayContext.Provider>
+    </div></SaveDestinationProvider></OpenTagNameSettings.Provider></TagDisplayContext.Provider>
     </UiScaleContext.Provider>
   );
 }

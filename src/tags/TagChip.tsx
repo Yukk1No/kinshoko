@@ -5,6 +5,7 @@ import type { TagOrigin } from "../bindings/TagOrigin";
 import { TagMarks, UNTRANSLATED_HINT, tagName } from "../search/SearchBox";
 import { confidenceBand, confidencePercent, originLine, tagStanding, type ConfidenceThresholds } from "./tagConfidence";
 import { useTagDisplay } from "./TagDisplayContext";
+import { UntranslatedRename } from "./UntranslatedRename";
 
 /** 模型标签的档位（`data-band`）；人工添加的、导入的、没有分数的不分档。 */
 export function chipBand(origins: TagOrigin[], thresholds: ConfidenceThresholds) {
@@ -28,6 +29,8 @@ type Props = {
   actions: ReactNode;
   /** 底边画可信度刻度（C）。 */
   meter?: boolean;
+  /** 有统一标签身份时，尚未翻译的“文/A”是改名按钮（#182）。 */
+  rename?: { catalogId: string; onSaved: () => void };
 };
 
 /**
@@ -35,21 +38,23 @@ type Props = {
  * 悬停或聚焦时出浮层，写出处、精确可信度和操作按钮。浮层在 portal 里，不占标签的位置，
  * 悬停前后标签尺寸不变（#159）。
  */
-export function TagChip({ tag, origins, notes = [], actions, meter = false }: Props) {
+export function TagChip({ tag, origins, notes = [], actions, meter = false, rename }: Props) {
   const display = useTagDisplay();
   const [open, setOpen] = useState(false);
+  // 改名框开着时不出出处浮层，两个浮层不叠在一起。
+  const [renaming, setRenaming] = useState(false);
   const name = tagName(tag);
   const standing = tagStanding(origins);
   const manual = standing.kind === "manual";
   const lines = [...new Set(origins.map((o) => originLine(o, display)))];
   if (tag.untranslated) lines.push(UNTRANSLATED_HINT);
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={open && !renaming} onOpenChange={setOpen}>
       <Popover.Trigger openOnHover delay={250} closeDelay={160} nativeButton={false}
         render={<li role="listitem" tabIndex={0} className={`tag-row k-tag-chip${manual ? " is-manual" : ""}`}
           data-band={display.style === "bands" ? chipBand(origins, display) : undefined} onFocus={() => setOpen(true)} />}>
         <span className="tag-name">{name}</span>
-        <TagMarks tag={tag} />
+        <TagMarks tag={tag} untranslated={rename && <UntranslatedRename tag={tag} catalogId={rename.catalogId} onSaved={rename.onSaved} onOpenChange={setRenaming} />} />
         {meter && standing.kind === "model" && standing.score !== null && <ConfidenceMeter score={standing.score} />}
       </Popover.Trigger>
       <Popover.Portal>

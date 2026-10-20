@@ -92,6 +92,8 @@ type Props = {
   onChange?: (view: ShellSettingsView) => void;
   /** 打开时所在的分页。 */
   initialTab?: SettingsTab;
+  /** 打开时在 标签 › 显示名 里定位并展开的统一标签（#182）。 */
+  initialTagFocus?: string;
   /** 导航底部的版本，例如“Kinshoko 0.1.2”。 */
   version?: string | null;
   /** 安全模式（主窗口持有）；没有时安全分页只说明行为。 */
@@ -108,7 +110,7 @@ type Props = {
  * 程序设置（#98）：竖排八个分页——通用、快捷键、标签、自动标签（#143）、备份、安全、更新、诊断。
  * 每项一行：图标 · 名称 · 一句描述 · 右侧控件。行为与原来的各节相同，只是重新归位。
  */
-export function SettingsPanel({ onChange, onRestored, library, initialTab = "general", version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale }: Props) {
+export function SettingsPanel({ onChange, onRestored, library, initialTab = "general", initialTagFocus, version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale }: Props) {
   const [settingsGeneration, setSettingsGeneration] = useState(0);
   const [view, setView] = useState<ShellSettingsView | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -238,7 +240,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
             ]} />
             {tagView === "appearance" && <TagDisplaySettings display={view.tagDisplay ?? DEFAULT_TAG_DISPLAY} onSave={(next) => apply(setTagDisplay(next))} />}
             {tagView === "names" && <>
-              <TagNamePanel key={`names/${settingsGeneration}`} />
+              <TagNamePanel key={`names/${settingsGeneration}`} focus={initialTagFocus} />
               <LegacyNameBanner onOpen={onOpenNameWizard} />
             </>}
             {tagView === "groups" && <SharedTagGroupsSettings key={`groups/${settingsGeneration}`} onError={setError} />}
