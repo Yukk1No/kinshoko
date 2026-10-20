@@ -19,17 +19,24 @@ export function PinLayer() {
   useEffect(() => {
     let alive = true;
     const add = (pin: string) => setPins((list) => (list.includes(pin) ? list : [...list, pin]));
+    /** 取快照期间离开了的钉图：快照可能是它离开之前取的，不能再加回来。 */
+    let departed: Set<string> | null = new Set();
     const frames = onLayerFrame((f) => {
-      if (alive) add(f.pin.id);
+      if (!alive) return;
+      departed?.delete(f.pin.id);
+      add(f.pin.id);
     });
     const gone = onPinGone((pin) => {
-      if (alive) setPins((list) => list.filter((p) => p !== pin));
+      if (!alive) return;
+      departed?.add(pin);
+      setPins((list) => list.filter((p) => p !== pin));
     });
     // 先挂监听再取一次，加载期间进来的钉图也不漏。
     void Promise.all([frames, gone])
       .then(() => layerPins())
       .then((list) => {
-        if (alive) list.forEach(add);
+        if (alive) list.filter((pin) => !departed?.has(pin)).forEach(add);
+        departed = null;
       });
     return () => {
       alive = false;

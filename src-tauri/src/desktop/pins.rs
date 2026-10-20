@@ -25,11 +25,12 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Condvar, LazyLock, Mutex};
+use std::time::Instant;
 
 use image::RgbaImage;
 use kinshoko_core::desktop::{
-    CaptureEntry, CaptureSurface, OpenInKinshoko, PinContent, PinFrame, PinMenu, PinMotion,
-    Placement, Region, SavedPin, ScreenRect, Screenshot, Turn, initial_scale, layer_region,
+    CaptureEntry, CaptureSurface, MotionBegan, OpenInKinshoko, PinContent, PinFrame, PinMenu,
+    PinMotion, Placement, Region, SavedPin, ScreenRect, Screenshot, Turn, initial_scale, layer_region,
     layer_window, layers_for, place_new_pin, widen,
 };
 use kinshoko_core::reference_groups::ReferenceSource;
@@ -67,13 +68,18 @@ pub struct PinRecord {
     settled: bool,
     /// 最新一帧的编号。
     generation: u32,
+    /// 最新一帧怎样到达，以及这段动画的起点与开始时刻：中途接手的层接着画同一段动画。
+    motion: PinMotion,
+    began: (ScreenRect, Instant),
     /// 让点击穿过（收起且没滑出时），画在让点击穿过的层里。
     click_through: bool,
     /// 钉图之间的上下次序：大的在上。
     z: u32,
     /// 画着它的钉图层（窗口 label）。
     layers: Vec<String>,
-    /// 交接中：新层画好它以后要放手的旧层。
+    /// 交接中：还没画好它的新层。
+    entering: Vec<String>,
+    /// 交接中：新层都画好它以后要放手的旧层。
     leaving: Vec<String>,
     /// 至少一个层已经画好它（[`wait_shown`]）。
     shown: bool,
@@ -106,14 +112,23 @@ fn next_z() -> u32 {
     NEXT_Z.fetch_add(1, Ordering::Relaxed)
 }
 
-/// 钉图 → 画着它的第一个层。[`label`] 只拿得到钉图 id（菜单窗口用它把焦点交回钉图），所以另记一份。
-static PIN_LAYER: LazyLock<Mutex<HashMap<String, String>>> = LazyLock::new(Mutex::default);
+/// 钉图 → 画着它的层。[`label`] 只拿得到钉图 id（菜单窗口用它把焦点交回钉图），所以另记一份。
+static PIN_LAYER: LazyLock<Mutex<HashMap<String, Vec<String>>>> = LazyLock::new(Mutex::default);
 
-/// 画着钉图的（第一个）钉图层的窗口 label；不在任何层里时是一个不存在的 label。
+/// 最近打开右键菜单的钉图与打开它的层：跨屏的钉图有两个层，焦点要交回画师点的那个
+/// （那个层的 `PinKeys` 记着光标下和最近按过的钉图）。
+static MENU_LAYER: Mutex<Option<(String, String)>> = Mutex::new(None);
+
+/// 打开钉图菜单的层；钉图已不在那个层里时是画着它的第一个层；不在任何层里时是一个不存在的 label。
 /// 菜单窗口（[`super::menu`]）关掉时按它把焦点交回钉图。
 pub fn label(pin: &str) -> String {
-    lock(&PIN_LAYER)
-        .get(pin)
+    let layers = lock(&PIN_LAYER);
+    let layers = layers.get(pin).map(Vec::as_slice).unwrap_or_default();
+    let menu = lock(&MENU_LAYER);
+    menu.as_ref()
+        .filter(|(p, l)| p == pin && layers.contains(l))
+        .map(|(_, l)| l)
+        .or(layers.first())
         .cloned()
         .unwrap_or_else(|| format!("{LAYER_PREFIX}none"))
 }
@@ -449,9 +464,12 @@ pub fn open_pin(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
             region: rect,
             settled: true,
             generation: 0,
+            motion: PinMotion::Jump,
+            began: (rect, Instant::now()),
             click_through: false,
             z: next_z(),
             layers: Vec::new(),
+            entering: Vec::new(),
             leaving: Vec::new(),
             shown: false,
         },
@@ -490,26 +508,14 @@ struct Touched {
 }
 
 /// 按钉图此刻的区域与是否让点击穿过，决定哪些层画它：区域碰到的每台显示器上那一种层，没有就建。
-/// 新进的层画好它之前，离开的层先留着（交接，[`pin_ready`]）；没有新进的层时立即放手。
+/// 收起、滑出一开始就换层，点击马上照新状态穿过或不穿过；新层接着画同一段动画（[`MotionBegan`]）。
+/// 新进的层都画好它之前，离开的层先留着（交接，[`pin_ready`]）；没有等着的新层时立即放手。
 fn arrange(app: &AppHandle, pin: &str) -> Result<Touched, String> {
     let monitors = monitors();
-    let Some((region, through)) = ({
-        let pins = lock(&state(app).pins);
-        let layers = lock(&state(app).layers);
-        pins.get(pin).map(|r| {
-            // 动画中留在原来那种层里：收起和滑出的动画在一个层里画完，静止后再交接。
-            let current = r
-                .layers
-                .first()
-                .and_then(|l| layers.by_label.get(l))
-                .map(|l| l.through);
-            let through = match current {
-                Some(through) if !r.settled => through,
-                _ => r.click_through,
-            };
-            (r.region, through)
-        })
-    }) else {
+    let Some((region, through)) = lock(&state(app).pins)
+        .get(pin)
+        .map(|r| (r.region, r.click_through))
+    else {
         return Ok(Touched::default());
     };
     let mut wanted = Vec::new();
@@ -532,12 +538,14 @@ fn arrange(app: &AppHandle, pin: &str) -> Result<Touched, String> {
         .cloned()
         .collect();
     r.leaving.retain(|l| !wanted.contains(l));
-    r.layers.extend(entering.iter().cloned());
+    r.entering.retain(|l| wanted.contains(l));
+    r.entering.extend(entering.iter().cloned());
+    r.layers.extend(entering);
     let mut touched = Touched {
         layers: r.layers.clone(),
         gone: Vec::new(),
     };
-    if entering.is_empty() {
+    if r.entering.is_empty() {
         r.layers.retain(|l| !dropped.contains(l));
         r.leaving.clear();
         touched.gone = dropped.into_iter().map(|l| (l, pin.to_owned())).collect();
@@ -548,19 +556,16 @@ fn arrange(app: &AppHandle, pin: &str) -> Result<Touched, String> {
             }
         }
     }
-    remember_layer(pin, r.layers.first());
+    remember_layers(pin, &r.layers);
     Ok(touched)
 }
 
-fn remember_layer(pin: &str, layer: Option<&String>) {
+fn remember_layers(pin: &str, layers: &[String]) {
     let mut map = lock(&PIN_LAYER);
-    match layer {
-        Some(l) => {
-            map.insert(pin.to_owned(), l.clone());
-        }
-        None => {
-            map.remove(pin);
-        }
+    if layers.is_empty() {
+        map.remove(pin);
+    } else {
+        map.insert(pin.to_owned(), layers.to_vec());
     }
 }
 
@@ -697,8 +702,9 @@ fn forget_layer(app: &AppHandle, layer: &str) {
     for (id, r) in pins.iter_mut() {
         if r.layers.iter().any(|l| l == layer) {
             r.layers.retain(|l| l != layer);
+            r.entering.retain(|l| l != layer);
             r.leaving.retain(|l| l != layer);
-            remember_layer(id, r.layers.first());
+            remember_layers(id, &r.layers);
         }
     }
 }
@@ -768,45 +774,91 @@ pub(super) fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(
 /// 层的窗口不动。钉图的区域现在扩到盖住旧区域与新内容，页面画完（动画结束、手势结束）后调用
 /// `settle_pin` 再缩回内容，所以页面晚画的一两帧不会被裁掉（#7、#64、#193）。内容碰到别的显示器、
 /// 或改为让点击穿过时换层（[`arrange`]）。
+///
+/// 要用的层建不起来时钉图留在原处（这里什么都不改），返回错误。钉图已关闭时什么都不做。
 pub fn show(
     app: &AppHandle,
     pin: &str,
     content: ScreenRect,
     motion: PinMotion,
     click_through: bool,
-) {
-    {
+) -> Result<(), String> {
+    let _arranging = lock(&ARRANGING);
+    let before = {
         let mut pins = lock(&state(app).pins);
         let Some(r) = pins.get_mut(pin) else {
-            return;
+            return Ok(());
         };
+        let before = Motion::of(r);
         r.generation = r.generation.wrapping_add(1);
+        r.began = (r.content, Instant::now());
         r.content = content;
         r.region = widen(r.region, content);
         r.settled = motion == PinMotion::Jump && r.region == content;
+        r.motion = motion;
         r.click_through = click_through;
-    }
-    let _arranging = lock(&ARRANGING);
+        before
+    };
     let touched = match arrange(app, pin) {
         Ok(touched) => touched,
         Err(e) => {
-            eprintln!("钉图层建不起来：{e}");
-            return;
+            // arrange 只会在改钉图的层之前出错。
+            if let Some(r) = lock(&state(app).pins).get_mut(pin) {
+                before.restore(r);
+            }
+            return Err(format!("钉图层建不起来：{e}"));
         }
     };
     // 先发帧再改区域：区域只会扩大，页面晚画也不会被裁掉。
     emit_frames(app, pin, motion);
     finish(app, &touched);
+    Ok(())
+}
+
+/// [`show`] 改之前的几何，层建不起来时改回去。
+struct Motion {
+    generation: u32,
+    content: ScreenRect,
+    region: ScreenRect,
+    settled: bool,
+    motion: PinMotion,
+    began: (ScreenRect, Instant),
+    click_through: bool,
+}
+
+impl Motion {
+    fn of(r: &PinRecord) -> Self {
+        Self {
+            generation: r.generation,
+            content: r.content,
+            region: r.region,
+            settled: r.settled,
+            motion: r.motion,
+            began: r.began,
+            click_through: r.click_through,
+        }
+    }
+
+    fn restore(self, r: &mut PinRecord) {
+        r.generation = self.generation;
+        r.content = self.content;
+        r.region = self.region;
+        r.settled = self.settled;
+        r.motion = self.motion;
+        r.began = self.began;
+        r.click_through = self.click_through;
+    }
 }
 
 /// 给画着钉图的每个层发一帧（各层的 `window` 不同）。会查资料库，不要持有锁调用。
 fn emit_frames(app: &AppHandle, pin: &str, motion: PinMotion) {
-    for (layer, frame) in frames(app, pin, motion) {
+    for (layer, frame) in frames(app, pin, Some(motion)) {
         let _ = app.emit_to(layer.as_str(), FRAME_EVENT, &frame);
     }
 }
 
-fn frames(app: &AppHandle, pin: &str, motion: PinMotion) -> Vec<(String, PinFrame)> {
+/// `motion` 为 `None`（层的页面中途来取）时：动画中按最新一帧的到达方式，静止时 `Jump`。
+fn frames(app: &AppHandle, pin: &str, motion: Option<PinMotion>) -> Vec<(String, PinFrame)> {
     let Some(saved) = lock(&state(app).store).get(pin).cloned() else {
         return Vec::new();
     };
@@ -816,6 +868,11 @@ fn frames(app: &AppHandle, pin: &str, motion: PinMotion) -> Vec<(String, PinFram
     let Some(r) = pins.get(pin) else {
         return Vec::new();
     };
+    let motion = motion.unwrap_or(if r.settled { PinMotion::Jump } else { r.motion });
+    let began = (!r.settled).then(|| MotionBegan {
+        from: r.began.0,
+        elapsed_ms: u32::try_from(r.began.1.elapsed().as_millis()).unwrap_or(u32::MAX),
+    });
     r.layers
         .iter()
         .filter_map(|label| {
@@ -832,6 +889,7 @@ fn frames(app: &AppHandle, pin: &str, motion: PinMotion) -> Vec<(String, PinFram
                     generation: r.generation,
                     settle: !r.settled,
                     z: r.z,
+                    began,
                 },
             ))
         })
@@ -855,7 +913,7 @@ fn notify(app: &AppHandle, pin: &str, text: &str) {
 
 /// 当前这一帧（不改窗口），以钉图的第一个层为准；钉图不在任何层里时为 `None`。
 fn current_frame(app: &AppHandle, pin: &str) -> Option<PinFrame> {
-    frames(app, pin, PinMotion::Jump)
+    frames(app, pin, Some(PinMotion::Jump))
         .into_iter()
         .next()
         .map(|(_, f)| f)
@@ -908,11 +966,12 @@ fn close(app: &AppHandle, pin: &str) {
     let layers = lock(&state(app).pins)
         .get_mut(pin)
         .map(|r| {
+            r.entering.clear();
             r.leaving.clear();
             std::mem::take(&mut r.layers)
         })
         .unwrap_or_default();
-    remember_layer(pin, None);
+    remember_layers(pin, &[]);
     finish(
         app,
         &Touched {
@@ -1107,7 +1166,7 @@ pub async fn pin_frame(
     window: tauri::WebviewWindow,
     pin: String,
 ) -> Option<PinFrame> {
-    frames(&app, &pin, PinMotion::Jump)
+    frames(&app, &pin, None)
         .into_iter()
         .find(|(layer, _)| layer == window.label())
         .map(|(_, f)| f)
@@ -1160,7 +1219,8 @@ pub async fn close_pin(
         .map_err(|e| e.to_string())
 }
 
-/// 钉图层（调用的窗口）画好了这个钉图的第一帧：层还隐藏着时显示它；交接中的钉图由旧层放手。
+/// 钉图层（调用的窗口）画好了这个钉图的第一帧：层还隐藏着时显示它；交接中的钉图等新层都画好了，
+/// 旧层才放手。
 #[tauri::command]
 pub async fn pin_ready(app: AppHandle, window: tauri::WebviewWindow, pin: String) {
     super::timing("pin.ready");
@@ -1178,11 +1238,11 @@ pub async fn pin_ready(app: AppHandle, window: tauri::WebviewWindow, pin: String
         match pins.get_mut(&pin) {
             Some(r) => {
                 r.shown = true;
-                if !r.leaving.is_empty() && r.layers.contains(&layer) && !r.leaving.contains(&layer)
-                {
+                r.entering.retain(|l| *l != layer);
+                if r.entering.is_empty() && !r.leaving.is_empty() {
                     let leaving = std::mem::take(&mut r.leaving);
                     r.layers.retain(|l| !leaving.contains(l));
-                    remember_layer(&pin, r.layers.first());
+                    remember_layers(&pin, &r.layers);
                     leaving
                 } else {
                     Vec::new()
@@ -1242,8 +1302,7 @@ pub async fn move_pin(app: AppHandle, pin: String, x: i32, y: i32) -> Result<(),
         .ok_or(CLOSED)?
         .ok_or(LOCKED)?;
     lock(&state(&app).edge).release(&pin);
-    show(&app, &pin, rect, PinMotion::Drag, false);
-    Ok(())
+    show(&app, &pin, rect, PinMotion::Drag, false)
 }
 
 /// 从钉图此刻的位置出发改它：滑出中的钉图改完就留在这里，不再算收起。
@@ -1294,8 +1353,7 @@ fn zoom(app: &AppHandle, pin: &str, scale: f64, anchor: Option<(f64, f64)>) -> R
         );
         p.zoom(scale, anchor.unwrap_or(centre))
     })?;
-    show(app, pin, rect, PinMotion::Zoom, false);
-    Ok(())
+    show(app, pin, rect, PinMotion::Zoom, false)
 }
 
 /// 翻转或旋转钉图（中心不动）。快捷键与右键菜单共用。
@@ -1309,8 +1367,7 @@ fn turn_here(app: &AppHandle, pin: &str, turn: Turn) -> Result<(), String> {
         p.turn(turn);
         true
     })?;
-    show(app, pin, rect, PinMotion::Jump, false);
-    Ok(())
+    show(app, pin, rect, PinMotion::Jump, false)
 }
 
 /// 透明度（10%～100%）。Ctrl+滚轮与右键菜单共用。
@@ -1351,7 +1408,12 @@ const ACTION_EDGE_HIDE: &str = "edgeHide";
 /// 在 Kinshoko 中打开、加入参考组、贴边隐藏与关闭钉图。菜单项在页面里（`src/desktop/PinMenu.tsx`）。
 /// 页面在鼠标右键、笔的侧键或笔与触摸按住不动时调用；菜单弹在光标（笔尖）处。
 #[tauri::command]
-pub async fn pin_menu(app: AppHandle, pin: String) -> Result<(), String> {
+pub async fn pin_menu(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    pin: String,
+) -> Result<(), String> {
+    *lock(&MENU_LAYER) = Some((pin.clone(), window.label().to_owned()));
     tauri::async_runtime::spawn_blocking(move || {
         let frame = current_frame(&app, &pin).ok_or(CLOSED)?;
         let has_library = !crate::library::registered(&app)?.is_empty();

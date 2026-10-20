@@ -246,9 +246,16 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
       const now = performance.now();
       const first = frame.current === null;
       frame.current = f;
-      motion ??= new ContentMotion(f.content, now);
-      const duration = first ? 0 : f.motion === "zoom" ? ZOOM_MS : f.motion === "slide" ? SLIDE_MS : 0;
-      motion.retarget(f.content, now, duration);
+      const duration = f.motion === "zoom" ? ZOOM_MS : f.motion === "slide" ? SLIDE_MS : 0;
+      if (first && f.began) {
+        // 中途接手（收起时换层、跨屏）：接着画交出它的层正在画的那一段动画。
+        const start = now - f.began.elapsedMs;
+        motion = new ContentMotion(f.began.from, start);
+        motion.retarget(f.content, start, duration);
+      } else {
+        motion ??= new ContentMotion(f.content, now);
+        motion.retarget(f.content, now, first ? 0 : duration);
+      }
       applyVeil();
       redraw(false);
       if (renderer) pickSource(false);
@@ -464,11 +471,6 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
         if (inContent(e.clientX, e.clientY)) openMenu();
       }}
     >
-      <div onPointerDown={(e) => e.stopPropagation()} onContextMenu={(e) => e.stopPropagation()}>
-        {rendererMissing
-          ? <RuntimeFailure className="pin-runtime-problem" problems={["当前 WebView2 无法建立二维画布，钉图无法显示。"]} />
-          : <RuntimeNotice className="pin-runtime-problem" />}
-      </div>
       <div
         ref={body}
         className="pin-content"
@@ -504,6 +506,12 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
           <div className="pin-missing">{unavailable ?? "参考图无法读取：图库没有打开，或原图已缺失"}</div>
         )}
         {notice && <div className="pin-notice">{notice}</div>}
+        {/* 在钉图内容里：层铺满显示器，放在外面会盖住层里所有钉图，而且层的空白处不接点击。 */}
+        <div onPointerDown={(e) => e.stopPropagation()} onContextMenu={(e) => e.stopPropagation()}>
+          {rendererMissing
+            ? <RuntimeFailure className="pin-runtime-problem" problems={["当前 WebView2 无法建立二维画布，钉图无法显示。"]} />
+            : <RuntimeNotice className="pin-runtime-problem" />}
+        </div>
       </div>
     </div>
   );

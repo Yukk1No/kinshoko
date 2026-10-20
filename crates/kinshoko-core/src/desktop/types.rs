@@ -113,4 +113,18 @@ pub struct PinFrame {
     pub settle: bool,
     /// 钉图之间的上下次序：大的在上。按下、新钉的钉图到最上面（#193）。
     pub z: u32,
+    /// 动画中才有：这一段动画从哪里、多久以前开始。中途接手钉图的层（收起时换到让点击穿过的层、
+    /// 跨屏）据此接着画同一段动画，与交出它的层对得上（#193）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub began: Option<MotionBegan>,
+}
+
+/// 一段动画的起点：从 `from` 出发，`elapsed_ms` 毫秒以前开始。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct MotionBegan {
+    pub from: ScreenRect,
+    pub elapsed_ms: u32,
 }

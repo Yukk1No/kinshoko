@@ -8,6 +8,8 @@ const ipc = vi.hoisted(() => ({
   pinFrames: new Map<string, (frame: PinFrame) => void>(),
   gone: null as ((pin: string) => void) | null,
   initial: [] as string[],
+  /** 有值时 `layerPins` 返回它（测快照晚到）。 */
+  snapshot: null as Promise<string[]> | null,
   turn: vi.fn(() => Promise.resolve()),
   raise: vi.fn(() => Promise.resolve()),
 }));
@@ -15,7 +17,7 @@ const ipc = vi.hoisted(() => ({
 vi.mock("../ipc", () => ({
   captureUrl: () => "unused",
   closePin: () => Promise.resolve(),
-  layerPins: () => Promise.resolve(ipc.initial),
+  layerPins: () => ipc.snapshot ?? Promise.resolve(ipc.initial),
   movePin: () => Promise.resolve(),
   onLayerFrame: (handler: (frame: PinFrame) => void) => {
     ipc.layerFrame = handler;
@@ -83,6 +85,7 @@ function send(f: PinFrame) {
 
 beforeEach(() => {
   ipc.initial = [];
+  ipc.snapshot = null;
   ipc.pinFrames.clear();
   Element.prototype.setPointerCapture = () => {};
 });
@@ -101,6 +104,17 @@ describe("钉图层", () => {
     await flush();
     expect(hosts(container)).toHaveLength(2);
     act(() => ipc.gone!("A"));
+    expect(hosts(container)).toHaveLength(1);
+  });
+
+  it("取快照期间离开的钉图不会被旧快照加回来", async () => {
+    let answer!: (list: string[]) => void;
+    ipc.snapshot = new Promise((resolve) => (answer = resolve));
+    const { container } = render(<PinLayer />);
+    await flush();
+    act(() => ipc.gone!("A"));
+    answer(["A", "B"]);
+    await flush();
     expect(hosts(container)).toHaveLength(1);
   });
 

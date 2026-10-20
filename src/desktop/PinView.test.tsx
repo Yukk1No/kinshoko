@@ -272,6 +272,23 @@ describe("窗口铺满显示器、窗口区域限定在内容上（#193）", () 
     expect(ipc.menu).not.toHaveBeenCalled();
   });
 
+  it("中途接手的层接着画同一段滑动，不从头开始，也不直接跳到终点", async () => {
+    const { container } = render(<PinView pin="P1" keys={keys} />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() =>
+      ipc.frame!({
+        ...wide(),
+        content: { x: 200, y: 80, width: 300, height: 200 },
+        motion: "slide",
+        began: { from: { x: 0, y: 80, width: 300, height: 200 }, elapsedMs: 100 },
+      }),
+    );
+    // 200 ms 的滑动过了一半：easeOutCubic(0.5) = 0.875。
+    expect(container.querySelector<HTMLDivElement>(".pin-content")!.style.transform).toBe("translate(175px, 80px)");
+  });
+
   it("拖动结束后请应用壳把区域缩回内容；不用缩时不请", async () => {
     const host = await showPin();
     hold(1000);

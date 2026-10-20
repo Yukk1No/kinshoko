@@ -103,7 +103,9 @@ fn apply(app: &AppHandle, moves: &[PinMove]) {
             height,
         };
         let click_through = lock(&state(app).edge).peeking(&m.pin) == Some(false);
-        show(app, &m.pin, content, PinMotion::Slide, click_through);
+        if let Err(e) = show(app, &m.pin, content, PinMotion::Slide, click_through) {
+            eprintln!("{e}");
+        }
     }
 }
 
