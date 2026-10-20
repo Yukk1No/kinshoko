@@ -58,8 +58,8 @@
 
 ### 每次发布
 
-- [ ] 改 `Cargo.toml` 的 `[workspace.package] version`（例如 `0.2.0`），合并到 main。
-- [ ] 打标签 `v0.2.0` 并推送；`release` 工作流检查标签与版本一致，构建、静默安装检查（`kinshoko.exe` 与 `DirectML.dll` 都在安装目录），建一个**草稿** Release，附件为安装包、`.sig` 与 `latest.json`，说明文字是 [安装说明](../install.md) 加自动生成的变更列表。
+- [ ] 在 Actions 页面运行 `prepare-release`：分支选 `integration/v1`（测试版、候选版）或 `main`（正式版），填版本号（例如 `1.0.0-beta.1`）。它改好 `Cargo.toml`、`Cargo.lock`、`package.json`、`package-lock.json` 的版本号，提交到该分支，打标签 `v1.0.0-beta.1`，再在标签上启动 `release`。带 `-` 的版本建成预发布；预发布不算 `releases/latest`，自动更新不会推送给已安装的用户。
+- [ ] `release` 工作流检查标签与版本一致，构建、静默安装检查（`kinshoko.exe` 与 `DirectML.dll` 都在安装目录），建一个**草稿** Release，附件为安装包、`.sig` 与 `latest.json`，说明文字是 [安装说明](../install.md) 加自动生成的变更列表。
 - [ ] 下载草稿里的安装包，在**没有开发环境的 Windows**（例如新建的 Windows 沙盒或干净的虚拟机）上以普通用户安装：不出现管理员确认；SmartScreen 提示按 [安装说明](../install.md) 点“仍要运行”后能装上；启动后能建库、导入、看图；打标能用（DirectML 或 CPU）。
 - [ ] 在 GitHub 上发布这个草稿 Release（发布前 updater 看不到它）。
 - [ ] 装着上一版的电脑上打开 Kinshoko：主窗口底部提示新版本；“安装并重启”后自动退出、静默安装、重新打开，主窗口底部状态栏的版本号是新版本；钉图位置保留。
