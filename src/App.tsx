@@ -288,17 +288,23 @@ function LibraryWorkspace({
     });
     return () => { alive = false; void stop.then((stop) => stop()); };
   }, [safe, onError, acceptStatus]);
+  // 视角一变就在这次渲染里推进重读序号（#183）：图片墙的重新浏览与视角变化在同一次提交里、
+  // 先于这里的状态与侧栏刷新发出。后端让这些查询排队用同一组资源，浏览排在后面要多等上百毫秒。
+  // 旧视角还在路上的浏览由图片墙按视角作废。
+  const [reloadedFor, setReloadedFor] = useState(safe);
+  if (reloadedFor !== safe) {
+    setReloadedFor(safe);
+    setReloadKey((k) => k + 1);
+  }
   useEffect(() => {
     // 用户偏好：默认切换即清空；保留时由重读后的修剪去掉新视角里看不到的图。
     if (!keepSelectionOnSafeRef.current) {
       setSources(null);
       setSelected(new Set());
     }
-    wall.current?.invalidate();
     setPreviewSnapshot(null);
     prune.current = "reset";
     setViewing(null);
-    setReloadKey((k) => k + 1);
     setVocabularyKey((k) => k + 1);
   }, [safe]);
   useEffect(() => {

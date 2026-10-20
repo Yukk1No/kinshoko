@@ -479,7 +479,8 @@ export const Wall = forwardRef<WallHandle, Props>(function Wall({
     if (expired) void reload(Math.max(loaded.current, PAGE));
   }, [cards, cursor, thumbnailPx, reload, onWorkspaceStatus]);
   loadMoreRef.current = () => { void loadMore(); };
-  useEffect(() => {
+  // 布局效果：同一次提交里先于其他组件的刷新（被动效果）发出浏览，后端按到达顺序排队（#183）。
+  useLayoutEffect(() => {
     void reload(Math.max(loaded.current, PAGE));
   }, [reload, reloadKey]);
 

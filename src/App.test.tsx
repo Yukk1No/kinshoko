@@ -1872,10 +1872,15 @@ describe("安全模式", () => {
     expect(sent("plugin:library|browse").length).toBe(before);
     expect(cardOf("x")).toBeNull();
 
+    const committedAt = calls.length;
     await act(async () => { commit(false); });
     await waitFor(() => expect(cardOf("x")).toBeTruthy());
     await act(async () => {});
     expect(sent("plugin:library|browse").length).toBe(before + 1);
+    // 后端按到达顺序在同一把锁上排队：图片墙的浏览先发出，状态、侧栏等刷新排在它后面。
+    const after = calls.slice(committedAt).map((c) => c.cmd)
+      .filter((cmd) => cmd === "plugin:library|browse" || cmd === "plugin:library|registered_libraries");
+    expect(after[0]).toBe("plugin:library|browse");
   });
 
   it("快速关了又开、返回乱序：最后停在开启，旧的关闭不放开视角（#183）", async () => {
