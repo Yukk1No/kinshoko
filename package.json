@@ -1,6 +1,7 @@
 {
   "name": "kinshoko",
   "private": true,
+  "license": "GPL-3.0-or-later",
   "version": "1.0.0-beta.1",
   "type": "module",
   "engines": {
