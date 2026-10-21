@@ -5,7 +5,7 @@
 //! ```text
 //! cargo run -p kinshoko-tagger --release --example load_probe -- \
 //!     --models-dir %LOCALAPPDATA%\Kinshoko\data\models --images <图片目录> \
-//!     --device directml|cpu [--count 20] [--fg-threads 8]
+//!     --device directml|cpu [--count 20] [--fg-threads 8] [--gap 0]
 //! ```
 //!
 //! 显卡档要先把 `target/release/DirectML.dll` 复制到 `target/release/examples/`。
@@ -16,6 +16,8 @@
 //! 前台探针是 `--fg-threads` 个普通优先级线程，反复做一块固定的计算（空闲时约 2 ms）。
 //! `fg_rate` 是每秒做完的块数，`fg_p99_ms` 是单块耗时的 p99：前者掉得越多、后者涨得越多，
 //! 画师同时开着的绘画软件就越卡；`fg_slowdown` 是两段 `fg_rate` 之比。`per_image_s` 是打一张图的平均耗时。
+//! `--gap r`：每张打完后停 r 倍于这张耗时的时间，看限制打标占用比例的效果（应用里没有这个停顿）。
+//! 显卡档对前台渲染的影响用 `scripts/perf/gpu-frame-probe.html` 量帧时间。
 //! 模拟核数较少的机器：启动后把本进程的处理器亲和性限制到几个核（子进程继承），例如 PowerShell 里
 //! `$p = Start-Process … -PassThru; $p.ProcessorAffinity = 0xFFF`（6 核 12 线程）。
 //!
@@ -46,6 +48,7 @@ fn main() {
         _ => Device::DirectMl,
     };
     let count: usize = opt("--count").map_or(20, |v| v.parse().expect("--count"));
+    let gap: f64 = opt("--gap").map_or(0.0, |v| v.parse().expect("--gap"));
     let logical = std::thread::available_parallelism().map_or(4, |n| n.get());
     let fg_threads: usize =
         opt("--fg-threads").map_or(logical / 2, |v| v.parse().expect("--fg-threads"));
@@ -87,9 +90,11 @@ fn main() {
     let busy = foreground(fg_threads, unit, || {
         let start = Instant::now();
         for image in &images {
+            let t = Instant::now();
             session
                 .tag(image)
                 .unwrap_or_else(|e| panic!("打标失败：{e}"));
+            std::thread::sleep(t.elapsed().mul_f64(gap));
         }
         per_image = start.elapsed() / images.len() as u32;
     });
