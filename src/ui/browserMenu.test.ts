@@ -37,6 +37,7 @@ it.each([
 it.each([
   ['<input disabled />', "input"],
   ["<textarea disabled></textarea>", "textarea"],
+  ["<fieldset disabled><input /></fieldset>", "input"],
 ])("被禁用的输入框不放行：%s", (markup, selector) => {
   document.body.innerHTML = markup;
   expect(rightClick(document.querySelector(selector)!)).toBe(true);
