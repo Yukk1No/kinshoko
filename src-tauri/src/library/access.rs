@@ -2,6 +2,19 @@
 
 use super::*;
 
+/// 运行日志里的资料库编号（#219）：它在本设备登记表里的位置。登记表还没加载、或正被别处
+/// 持有（例如切换资料库的途中）时为空：只为记日志，不等锁。
+pub fn library_no<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Option<LibraryNo> {
+    let state = app.try_state::<LibraryState>()?;
+    let libraries = state.libraries.try_lock().ok()?;
+    libraries
+        .as_ref()?
+        .libraries()
+        .iter()
+        .position(|library| library.id == library_id)
+        .map(LibraryNo::from_index)
+}
+
 /// 活动资料库；还没有时打开本设备上次打开的资料库并装配。会读文件，不要在主线程上调用。
 pub(super) fn restore<R: Runtime>(app: &AppHandle<R>) -> Result<Option<Arc<Library>>, String> {
     let state = app.state::<LibraryState>();

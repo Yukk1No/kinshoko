@@ -123,7 +123,7 @@ pub async fn check_update(
         }
         Ok(None) => UpdateStatus::UpToDate,
         Err(e) => {
-            eprintln!("检查更新失败：{e}");
+            crate::run_log::warn("检查更新失败", &e);
             UpdateStatus::Failed {
                 message: "检查更新失败，请检查网络后重试。".to_owned(),
             }
@@ -202,7 +202,7 @@ pub async fn install_update(app: AppHandle, state: State<'_, UpdaterState>) -> R
     match result {
         Ok(()) => Ok(()),
         Err(e) => {
-            eprintln!("安装更新失败：{e}");
+            crate::run_log::error("安装更新失败", &e);
             let message = match e {
                 tauri_plugin_updater::Error::Minisign(_)
                 | tauri_plugin_updater::Error::SignatureUtf8(_) => {

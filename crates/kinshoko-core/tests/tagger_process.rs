@@ -73,6 +73,9 @@ impl Engine for FakeEngine {
         if name.contains("hang") {
             std::thread::sleep(Duration::from_secs(3600));
         }
+        if name.contains("noisy") {
+            eprintln!(r"ORT 警告：C:\Users\画师\models\model.onnx 的节点回退到 CPU");
+        }
         if name.contains("bad") {
             return Err(EngineError::BadImage("无法解码".into()));
         }
@@ -139,6 +142,58 @@ fn the_subprocess_reports_the_device_and_tags_images() {
     );
     // 坏图之后会话照常可用。
     assert!(session.tag(&dir.path().join("smile.png")).is_ok());
+}
+
+struct WallClock;
+
+impl kinshoko_core::diagnostics::Clock for WallClock {
+    fn now(&self) -> kinshoko_core::diagnostics::Moment {
+        kinshoko_core::diagnostics::Moment {
+            unix_ms: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as i64,
+            utc_offset_secs: 0,
+        }
+    }
+}
+
+fn run_log_text(dir: &Path) -> String {
+    std::fs::read_dir(dir)
+        .map(|entries| {
+            entries
+                .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+#[test]
+fn the_subprocess_vram_budget_and_its_stderr_reach_the_run_log_without_paths() {
+    let dir = tempfile::tempdir().unwrap();
+    let logs = tempfile::tempdir().unwrap();
+    let log = kinshoko_core::diagnostics::RunLog::open(logs.path(), true, Arc::new(WallClock));
+    let tagger = tagger().log_to(log);
+
+    tagger.probe();
+    let mut session = tagger
+        .start(&model(dir.path()), Device::DirectMl, &|_| {})
+        .unwrap();
+    session.tag(&dir.path().join("noisy.png")).unwrap();
+
+    within(Duration::from_secs(10), "标准错误进了日志", || {
+        run_log_text(logs.path()).contains("taggerOutput")
+    });
+    let text = run_log_text(logs.path());
+    assert!(
+        text.contains(r#""event":"vramBudget","gpu":"子进程里的显卡","budgetMb":3814"#),
+        "{text}"
+    );
+    assert!(text.contains(r#""detail":"ORT <路径>""#), "{text}");
+    assert!(
+        !text.contains("画师") && !text.contains("model.onnx"),
+        "{text}"
+    );
 }
 
 #[test]

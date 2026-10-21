@@ -189,15 +189,52 @@ fn forcing_srgb_is_off_after_a_fresh_install_and_only_takes_effect_after_a_resta
 }
 
 #[test]
-fn the_usage_log_is_off_until_the_artist_turns_it_on_and_then_remembered() {
+fn the_run_log_is_on_by_default_only_in_test_builds() {
+    use kinshoko_core::diagnostics::run_log_default_for_version;
+    assert!(run_log_default_for_version("1.0.0-beta.2"));
+    assert!(run_log_default_for_version("1.0.0-rc.1"));
+    assert!(!run_log_default_for_version("1.0.0"));
+
+    let dir = tempfile::tempdir().unwrap();
+    let running = kinshoko_core::app_info().version;
+    assert_eq!(
+        AppSettings::open(dir.path()).unwrap().run_log(),
+        run_log_default_for_version(&running)
+    );
+}
+
+#[test]
+fn turning_the_run_log_off_is_remembered() {
     let dir = tempfile::tempdir().unwrap();
     let mut settings = AppSettings::open(dir.path()).unwrap();
-    assert!(!settings.usage_log(), "使用日志默认关闭");
 
-    settings.set_usage_log(true).unwrap();
+    settings.set_run_log(false).unwrap();
     drop(settings);
+    assert!(!AppSettings::open(dir.path()).unwrap().run_log());
 
-    assert!(AppSettings::open(dir.path()).unwrap().usage_log());
+    AppSettings::open(dir.path())
+        .unwrap()
+        .set_run_log(true)
+        .unwrap();
+    assert!(AppSettings::open(dir.path()).unwrap().run_log());
+}
+
+#[test]
+fn an_artist_who_turned_on_the_old_usage_log_keeps_logging_and_the_old_setting_goes_away() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("settings.json"),
+        r#"{"version":1,"usageLog":true}"#,
+    )
+    .unwrap();
+
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(settings.run_log(), "开过使用日志的，运行日志也开着");
+
+    settings.set_run_log(false).unwrap();
+    let saved = std::fs::read_to_string(dir.path().join("settings.json")).unwrap();
+    assert!(!saved.contains("usageLog"), "{saved}");
+    assert!(!AppSettings::open(dir.path()).unwrap().run_log());
 }
 
 #[test]

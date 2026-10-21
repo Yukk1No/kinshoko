@@ -76,7 +76,7 @@ fn complete<R: Runtime>(app: &AppHandle<R>, owner: &str, id: &str, warning: Opti
     if let Err(error) = with_libraries(&state.device_dir, &state.libraries, |device| {
         device.complete_import_publication(owner, id, warning)
     }) {
-        eprintln!("无法记录原导入任务的收尾结果：{error}");
+        crate::run_log::error("无法记录原导入任务的收尾结果", error);
     }
 }
 pub(super) fn begin<R: Runtime>(

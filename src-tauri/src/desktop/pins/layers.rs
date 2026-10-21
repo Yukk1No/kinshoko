@@ -100,6 +100,7 @@ pub(super) fn layer_on(
         );
         (label, window)
     };
+    let started = Instant::now();
     let built = WebviewWindowBuilder::new(
         app,
         &label,
@@ -118,7 +119,10 @@ pub(super) fn layer_on(
     .shared_webview(app)
     .build();
     let window = match built {
-        Ok(w) => w,
+        Ok(w) => {
+            crate::run_log::window_created(WindowKind::PinLayer, started);
+            w
+        }
         Err(e) => {
             lock(&state(app).layers).by_label.remove(&label);
             return Err(e.to_string());
@@ -203,6 +207,9 @@ pub(super) fn finish(app: &AppHandle, touched: &Touched) {
 
 /// 层窗口没了（销毁、退出程序）：钉图不再算画在它里面。
 pub(super) fn forget_layer(app: &AppHandle, layer: &str) {
+    crate::run_log::record(LogEvent::WindowClosed {
+        window: WindowKind::PinLayer,
+    });
     lock(&state(app).layers).by_label.remove(layer);
     let mut pins = lock(&state(app).pins);
     for (id, r) in pins.iter_mut() {

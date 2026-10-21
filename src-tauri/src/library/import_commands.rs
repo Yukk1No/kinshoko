@@ -35,7 +35,10 @@ pub(super) async fn start_import<R: Runtime>(
         save_destination::begin(&worker, destination, source, options.unwrap_or_default())
     })
     .await?;
-    crate::diagnostics::record(&app, UsageEvent::ImportStarted { paths });
+    crate::run_log::record(LogEvent::ImportStarted {
+        library: library_no(&app, &library_id),
+        paths,
+    });
     Ok(id)
 }
 

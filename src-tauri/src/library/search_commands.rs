@@ -58,12 +58,9 @@ pub(super) async fn resolve_search<R: Runtime>(
         state.catalog.clone(),
         state.search_catalog_revision.clone(),
     );
-    crate::diagnostics::record(
-        &app,
-        UsageEvent::SearchResolved {
-            terms: input.conditions.len().min(u32::MAX as usize) as u32,
-        },
-    );
+    crate::run_log::record(LogEvent::SearchResolved {
+        terms: input.conditions.len().min(u32::MAX as usize) as u32,
+    });
     blocking(move || {
         let library = readable(&app, &library_id)?;
         let search = catalog_search(

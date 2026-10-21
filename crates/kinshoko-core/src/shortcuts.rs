@@ -46,8 +46,8 @@ pub struct ShellSettingsView {
     pub force_srgb: bool,
     /// 本次运行实际采用的“强制 sRGB”；与保存值不同时界面提示重启。
     pub force_srgb_in_effect: bool,
-    /// 使用日志是否开启。
-    pub usage_log: bool,
+    /// 运行日志是否开启。
+    pub run_log: bool,
     /// 切换安全模式时保留当前选择。
     pub keep_selection_on_safe_mode: bool,
     #[ts(optional)]
@@ -69,7 +69,7 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
             show_approx_source: settings.show_approx_source(),
             force_srgb: settings.force_srgb(),
             force_srgb_in_effect: settings.force_srgb_in_effect(),
-            usage_log: settings.usage_log(),
+            run_log: settings.run_log(),
             keep_selection_on_safe_mode: settings.keep_selection_on_safe_mode(),
             viewer_background: settings.viewer_background(),
             tag_display: settings.tag_display(),

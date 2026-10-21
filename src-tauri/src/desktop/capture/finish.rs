@@ -5,6 +5,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use kinshoko_core::desktop::{CaptureAction, CaptureOutcome, CaptureSelection, Region, ScreenRect};
+use kinshoko_core::diagnostics::LogEvent;
 use kinshoko_core::reference_groups::ReferenceSource;
 use tauri::{AppHandle, Manager};
 
@@ -79,9 +80,16 @@ pub async fn finish_capture(
     tauri::async_runtime::spawn_blocking(move || {
         // 出错甚至 panic 也要结束会话、隐藏窗口，否则之后的 F1 都被当成还在截。
         let _close = CloseOnDrop(&app, &token);
+        let started = std::time::Instant::now();
         let result = finish_blocking(&app, pending, region, action);
         if let Ok(Some(pin)) = &result {
             pins::wait_shown(&app, pin, Duration::from_secs(5));
+        }
+        match &result {
+            Ok(_) => crate::run_log::record(LogEvent::CaptureFinished {
+                ms: crate::run_log::ms_since(started),
+            }),
+            Err(e) => crate::run_log::warn("截图收尾失败", e),
         }
         result.map(|_| ())
     })

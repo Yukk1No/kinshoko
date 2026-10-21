@@ -41,6 +41,7 @@ use tauri::{
 
 use super::{history_changed, lock, request_collection, request_open, state};
 use crate::data_dirs::SharedWebview as _;
+use kinshoko_core::diagnostics::{LogEvent, PinSource, WindowKind};
 
 mod commands;
 pub use commands::*;
@@ -392,11 +393,11 @@ pub fn restore(app: &AppHandle) {
     if pins.iter().any(|p| p.capture_id().is_none())
         && let Err(e) = crate::library::current_or_last(app)
     {
-        eprintln!("恢复资料库钉图时无法打开资料库：{e}");
+        crate::run_log::error("恢复资料库钉图时无法打开资料库", e);
     }
     for pin in &pins {
         if let Err(e) = open_pin(app, pin) {
-            eprintln!("恢复钉图失败：{e}");
+            crate::run_log::error("恢复钉图失败", e);
         }
     }
 }

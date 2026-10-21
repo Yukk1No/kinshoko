@@ -97,7 +97,7 @@ pub fn start(app: &AppHandle, options: Options) {
     .shared_webview(app)
     .build()
     {
-        eprintln!("打开门槛实验窗口失败：{e}");
+        crate::run_log::error("打开门槛实验窗口失败", e);
     }
 }
 

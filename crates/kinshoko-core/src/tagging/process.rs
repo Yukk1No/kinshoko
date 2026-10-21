@@ -4,6 +4,8 @@
 //! 第一行是请求（探测本机条件，或加载模型），之后每行一张图。子进程崩溃、显存溢出或卡住
 //! 只影响子进程：主进程按超时结束它，报告 [`TagFailure`]，由调度决定重启。
 //! 标准输出里不是协议的行（例如运行库的日志）一律忽略。
+//! 接了运行日志时（[`ProcessTagger::log_to`]），子进程探测到的显存额度与它写到标准错误的行
+//! （运行库的警告、崩溃信息）经脱敏记进主进程的运行日志（#219）。
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -13,6 +15,8 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
+
+use crate::diagnostics::{Detail, LogEvent, RunLog};
 
 use super::port::{
     Device, DeviceInfo, PreparedModel, RawTag, SessionStopper, TagFailure, Tagger, TaggerSession,
@@ -168,7 +172,11 @@ pub struct ProcessTagger {
     pub load_timeout: Duration,
     /// 单张图的上限；超过时结束子进程（显存超额时 Windows 换页，一张要一分钟）。
     pub image_timeout: Duration,
+    log: Option<RunLog>,
 }
+
+/// 每个子进程最多记这么多行标准错误，运行库刷屏时不挤掉别的日志。
+const STDERR_LINES: usize = 200;
 
 impl ProcessTagger {
     /// `exe args…` 启动子进程，例如当前 exe 加子命令 `tagger`。
@@ -179,7 +187,14 @@ impl ProcessTagger {
             envs: Vec::new(),
             load_timeout: Duration::from_secs(300),
             image_timeout: Duration::from_secs(90),
+            log: None,
         }
+    }
+
+    /// 把显存额度与子进程的标准错误记进运行日志。
+    pub fn log_to(mut self, log: RunLog) -> ProcessTagger {
+        self.log = Some(log);
+        self
     }
 
     pub fn env(mut self, key: &str, value: &str) -> ProcessTagger {
@@ -193,7 +208,11 @@ impl ProcessTagger {
             .envs(self.envs.iter().map(|(k, v)| (k, v)))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null());
+            .stderr(if self.log.is_some() {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            });
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
@@ -207,6 +226,20 @@ impl ProcessTagger {
             .map_err(|e| format!("无法启动打标子进程：{e}"))?;
         let stdout = child.stdout.take().expect("已设为管道");
         let stdin = child.stdin.take().expect("已设为管道");
+        if let (Some(stderr), Some(log)) = (child.stderr.take(), self.log.clone()) {
+            std::thread::Builder::new()
+                .name("kinshoko-tagger-stderr".into())
+                .spawn(move || {
+                    // 记满以后继续读完，免得子进程写满管道卡住。
+                    let lines = BufReader::new(stderr).lines().map_while(Result::ok);
+                    for line in lines.filter(|l| !l.trim().is_empty()).take(STDERR_LINES) {
+                        log.record(LogEvent::TaggerOutput {
+                            detail: Detail::new(line),
+                        });
+                    }
+                })
+                .map_err(|e| e.to_string())?;
+        }
         let (tx, rx) = channel();
         std::thread::Builder::new()
             .name("kinshoko-tagger-reader".into())
@@ -302,6 +335,12 @@ impl Tagger for ProcessTagger {
                 _ => None,
             }
         });
+        if let (Some(log), Some(gpu)) = (&self.log, info.as_ref().and_then(|i| i.gpu.as_ref())) {
+            log.record(LogEvent::VramBudget {
+                gpu: Detail::new(&gpu.name),
+                budget_mb: gpu.vram_budget / (1024 * 1024),
+            });
+        }
         // 探测失败时不知道有没有独显：按没有独显、内存不限处理，至少能走 CPU 档。
         info.unwrap_or(DeviceInfo {
             gpu: None,

@@ -47,7 +47,7 @@ use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
-use kinshoko_core::diagnostics::UsageEvent;
+use kinshoko_core::diagnostics::{LibraryNo, LogEvent};
 use kinshoko_core::library::{
     BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping,
     ExternalVocabulary, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportOptions,
@@ -369,7 +369,7 @@ fn forward_events<R: Runtime>(
     if let Err(error) = with_catalog(&state.device_dir, &state.catalog, |catalog| {
         catalog.synchronize(&library)
     }) {
-        eprintln!("接入统一标签目录失败：{error}");
+        crate::run_log::error("接入统一标签目录失败", error);
     }
     state.configure_library(&library);
     let events = library.events();

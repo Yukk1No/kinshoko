@@ -35,7 +35,6 @@ use kinshoko_core::desktop::{
     CaptureEntry, CaptureHistory, CollectedCapture, EdgeHide, OpenInKinshoko, PinMenuOpen,
     PinStore, PinVeils,
 };
-use kinshoko_core::diagnostics::UsageEvent;
 use kinshoko_core::reference_groups::ReferenceGroups;
 use tauri::http::{Response, StatusCode, header};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -420,14 +419,6 @@ async fn delete_capture(app: AppHandle, id: String) -> Result<(), String> {
 /// 全局快捷键按下时在主线程上调用。不能阻塞，也不能加 [`shell::ShellState`] 的锁；
 /// 耗时的工作（截图、读剪贴板）放到别的线程。
 pub fn on_shortcut(app: &AppHandle, action: ShortcutAction) {
-    crate::diagnostics::record(
-        app,
-        match action {
-            ShortcutAction::Capture => UsageEvent::CaptureStarted,
-            ShortcutAction::PinClipboard => UsageEvent::PinnedClipboard,
-            ShortcutAction::HideAllPins => UsageEvent::PinsHidden,
-        },
-    );
     match action {
         ShortcutAction::Capture => capture::start(app),
         ShortcutAction::PinClipboard => pins::pin_clipboard_in_background(app),

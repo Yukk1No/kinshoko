@@ -39,8 +39,8 @@ pub(super) fn pin_from_clipboard(app: &AppHandle) -> Result<(), String> {
 pub fn pin_clipboard_in_background(app: &AppHandle) {
     let app = app.clone();
     std::thread::spawn(move || {
-        if let Err(e) = pin_from_clipboard(&app) {
-            eprintln!("钉剪贴板失败：{e}");
+        if let Err(e) = logged(PinSource::Clipboard, || pin_from_clipboard(&app)) {
+            crate::run_log::warn("钉剪贴板失败", e);
         }
     });
 }
@@ -51,21 +51,38 @@ pub fn copy_to_clipboard(app: &AppHandle, image: &RgbaImage) -> Result<(), Strin
 
 #[tauri::command]
 pub async fn pin_clipboard(app: AppHandle) -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(move || pin_from_clipboard(&app))
-        .await
-        .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || {
+        logged(PinSource::Clipboard, || pin_from_clipboard(&app))
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// 从截图历史钉住一张截图，放在光标旁。
 #[tauri::command]
 pub async fn pin_capture(app: AppHandle, id: String) -> Result<(), String> {
-    let entry = lock(&state(&app).history)
-        .entries()
-        .into_iter()
-        .find(|e| e.id == id)
-        .ok_or("截图已不在截图历史中")?;
-    let at = at_cursor(&app, entry.width, entry.height)?;
-    open(&app, &entry, at).map(|_| ())
+    logged(PinSource::Capture, || {
+        let entry = lock(&state(&app).history)
+            .entries()
+            .into_iter()
+            .find(|e| e.id == id)
+            .ok_or("截图已不在截图历史中")?;
+        let at = at_cursor(&app, entry.width, entry.height)?;
+        open(&app, &entry, at).map(|_| ())
+    })
+}
+
+/// 钉住一张图；成功时在运行日志里记下用了多久（#219）。
+fn logged(from: PinSource, pin: impl FnOnce() -> Result<(), String>) -> Result<(), String> {
+    let started = Instant::now();
+    let result = pin();
+    if result.is_ok() {
+        crate::run_log::record(LogEvent::Pinned {
+            from,
+            ms: crate::run_log::ms_since(started),
+        });
+    }
+    result
 }
 
 /// 从查看器钉整图或局部（见 [`pin_reference_here`]）。
@@ -79,7 +96,9 @@ pub async fn pin_reference(
     shown: ScreenRect,
 ) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
-        pin_reference_here(&app, &window, &library_id, &image_id, crop, shown)
+        logged(PinSource::Reference, || {
+            pin_reference_here(&app, &window, &library_id, &image_id, crop, shown)
+        })
     })
     .await
     .map_err(|e| e.to_string())?
@@ -239,7 +258,7 @@ pub async fn settle_pin(app: AppHandle, pin: String, generation: u32) {
     let _arranging = lock(&ARRANGING);
     match arrange(&app, &pin) {
         Ok(touched) => finish(&app, &touched),
-        Err(e) => eprintln!("钉图层建不起来：{e}"),
+        Err(e) => crate::run_log::error("钉图层建不起来", e),
     }
 }
 

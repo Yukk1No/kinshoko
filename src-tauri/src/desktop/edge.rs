@@ -50,7 +50,7 @@ pub fn flush(app: &AppHandle) {
     if desktop.dirty.swap(false, Ordering::Relaxed)
         && let Err(e) = lock(&desktop.store).save()
     {
-        eprintln!("保存钉图状态失败：{e}");
+        crate::run_log::error("保存钉图状态失败", e);
         desktop.dirty.store(true, Ordering::Relaxed);
     }
 }
@@ -62,6 +62,7 @@ pub fn toggle_in_background(app: &AppHandle) {
 }
 
 fn toggle(app: &AppHandle) {
+    crate::run_log::record(kinshoko_core::diagnostics::LogEvent::PinsHidden);
     let pins: Vec<DeskPin> = open_pins(app).iter().map(desk_pin).collect();
     let toggle = lock(&state(app).edge).toggle(&pins);
     apply(app, &toggle.moves);
@@ -104,7 +105,7 @@ fn apply(app: &AppHandle, moves: &[PinMove]) {
         };
         let click_through = lock(&state(app).edge).peeking(&m.pin) == Some(false);
         if let Err(e) = show(app, &m.pin, content, PinMotion::Slide, click_through) {
-            eprintln!("{e}");
+            crate::run_log::warn("移动收起的钉图失败", e);
         }
     }
 }

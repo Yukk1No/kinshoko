@@ -10,6 +10,7 @@
 //! - [`ModelStore`]：本设备的模型仓库；[`catalog`]：内置的固定版本模型。
 
 mod interpret;
+mod log;
 mod memory;
 mod models;
 mod patch;
@@ -17,6 +18,7 @@ mod port;
 mod process;
 mod scheduler;
 
+pub use log::TaggingLog;
 pub use memory::InMemoryTagger;
 pub use models::{
     Chunking, HUGGING_FACE, HardwareOption, ModelChoice, ModelSpec, ModelStore, PrepareStage,

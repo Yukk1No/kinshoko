@@ -3,16 +3,18 @@
 //!
 //! 硬件档与模型目录属于本设备，不随资料库变：换资料库时沿用画师选的硬件档与暂停状态。
 //! 状态与命令都带资料库身份（#49），切换后旧库的迟到状态与旧请求不会落到新库上。
+//! 开始、结束、暂停、出错与子进程的显存额度、标准错误记进运行日志（#219）。
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use kinshoko_core::Library;
+use kinshoko_core::diagnostics::{LogEvent, PauseReason};
 use kinshoko_core::tagging::{
     Device, HUGGING_FACE, LibraryTaggingStatus, ModelChoice, ModelStore, ProcessTagger, Tagging,
-    TaggingConfig, catalog,
+    TaggingConfig, TaggingLog, catalog,
 };
 use tauri::{AppHandle, Emitter, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt as _;
@@ -41,6 +43,7 @@ impl TaggingState {
 struct ActiveTagging {
     library_id: String,
     tagging: Tagging,
+    log: TaggingLog,
 }
 
 impl ActiveTagging {
@@ -86,7 +89,13 @@ pub fn setup<R: Runtime>(app: &AppHandle<R>, models_dir: PathBuf, preferred: Opt
         .spawn(move || {
             let mut last = None;
             loop {
-                let status = lock(&current).as_ref().map(ActiveTagging::status);
+                let status = lock(&current).as_mut().map(|active| {
+                    let status = active.status();
+                    if let Some(event) = active.log.observe(&status.status, Instant::now()) {
+                        crate::run_log::record(event);
+                    }
+                    status
+                });
                 if status != last {
                     if let Some(status) = &status {
                         let _ = app.emit(EVENT, status);
@@ -108,11 +117,15 @@ pub fn attach<R: Runtime>(app: &AppHandle<R>, library: Arc<Library>) {
         Ok(exe) => exe,
         Err(_) => return,
     };
-    let tagger = ProcessTagger::new(exe, vec![kinshoko_tagger::SUBCOMMAND.into()]);
+    let mut tagger = ProcessTagger::new(exe, vec![kinshoko_tagger::SUBCOMMAND.into()]);
+    if let Some(log) = crate::run_log::log() {
+        tagger = tagger.log_to(log.clone());
+    }
     let mut config = TaggingConfig::with_catalog(state.models_dir.clone());
     config.preferred = *lock(&state.preferred);
     config.publication_gate = Some(crate::library::visibility_publication_gate(app));
     let library_id = library.info().id.clone();
+    let log = TaggingLog::new(crate::library::library_no(app, &library_id));
     let tagging = Tagging::start(library, Arc::new(tagger), config);
     if state.paused.load(Ordering::SeqCst) {
         tagging.pause();
@@ -120,6 +133,7 @@ pub fn attach<R: Runtime>(app: &AppHandle<R>, library: Arc<Library>) {
     *lock(&state.current) = Some(ActiveTagging {
         library_id,
         tagging,
+        log,
     });
 }
 
@@ -180,6 +194,9 @@ pub async fn tagging_pause(
 ) -> Result<(), String> {
     with(&state, library_id, |active| active.tagging.pause()).await?;
     state.paused.store(true, Ordering::SeqCst);
+    crate::run_log::record(LogEvent::TaggingPaused {
+        reason: PauseReason::Artist,
+    });
     Ok(())
 }
 
@@ -190,6 +207,7 @@ pub async fn tagging_resume(
 ) -> Result<(), String> {
     with(&state, library_id, |active| active.tagging.resume()).await?;
     state.paused.store(false, Ordering::SeqCst);
+    crate::run_log::record(LogEvent::TaggingResumed);
     Ok(())
 }
 
