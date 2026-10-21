@@ -114,6 +114,8 @@ fn main() {
                         "pin_clipboard",
                         "pin_capture",
                         "pin_frame",
+                        "pin_layer_pins",
+                        "raise_pin",
                         "pin_ready",
                         "pin_menu",
                         "pin_menu_action",

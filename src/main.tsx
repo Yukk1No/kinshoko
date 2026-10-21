@@ -6,6 +6,7 @@ import { PinLayer } from "./desktop/PinLayer";
 import { DesktopMenuView } from "./desktop/PinMenu";
 import { FidelityGate } from "./fidelity/FidelityGate";
 import { RuntimeProvider } from "./RuntimeSupport";
+import { blockBrowserMenu } from "./ui/browserMenu";
 import "./styles.css";
 import "./ui/ui.css";
 import "./shell/main-window.css";
@@ -16,6 +17,8 @@ import "./ui/dialogs.css";
 const params = new URLSearchParams(location.search);
 const view = params.get("view");
 document.documentElement.dataset.view = view ?? "main";
+// 每种窗口都不弹 WebView 自带的浏览器菜单（#229）。
+blockBrowserMenu(window);
 
 // #102 T7：开发模式的帧时间探针，只挂在主窗口。启用条件是 Vite 开发服务器，或构建时显式设置
 // VITE_KINSHOKO_PERF=1（用生产构建量帧时间）。条件在构建时折叠为常量，发行构建不含 ./perf。
