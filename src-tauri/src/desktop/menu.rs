@@ -91,7 +91,7 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     Ok(window)
 }
 
-/// 移到缩放比例不同的显示器上时系统会按新比例改窗口尺寸：改回整台显示器。
+/// 移到缩放比例不同的显示器上时系统会按新比例改窗口尺寸：改回菜单窗口的矩形。
 fn keep_on_monitor(app: &AppHandle, size: PhysicalSize<u32>) {
     let Some(rect) = lock(&state(app).menu)
         .open

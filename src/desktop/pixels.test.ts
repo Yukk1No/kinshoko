@@ -5,6 +5,7 @@ import {
   inZoomCorner,
   pinCanvasSize,
   pinDrawing,
+  reachEdges,
   selectionRect,
   toDevicePx,
   wheelZoomScale,
@@ -82,6 +83,33 @@ describe("dragSelection", () => {
   it("按下没有移动（例如双击钉住）时保留原来的选区", () => {
     expect(dragSelection(previous, { x: 30, y: 20 }, { x: 30, y: 20 })).toBe(previous);
     expect(dragSelection(null, { x: 30, y: 20 }, { x: 30, y: 20 })).toBeNull();
+  });
+});
+
+// 框选窗口让出显示器最下面一行（#230，ADR 0011），指针按不到那一行；拖到边上时选区补到显示器边缘。
+describe("reachEdges", () => {
+  const screen = { width: 1920, height: 1080 };
+
+  it("拖到最下面（指针最多到最后一行，或窗口的最后一行）时补上最后一行", () => {
+    expect(reachEdges({ x: 100, y: 500, width: 200, height: 579 }, screen)).toEqual({ x: 100, y: 500, width: 200, height: 580 });
+    expect(reachEdges({ x: 100, y: 500, width: 200, height: 578 }, screen)).toEqual({ x: 100, y: 500, width: 200, height: 580 });
+  });
+
+  it("拖到最右边时补上最后一列（指针最多到 width - 1）", () => {
+    expect(reachEdges({ x: 1000, y: 10, width: 919, height: 50 }, screen)).toEqual({ x: 1000, y: 10, width: 920, height: 50 });
+  });
+
+  it("拖到下面或右边别的显示器上时夹在这台显示器里", () => {
+    expect(reachEdges({ x: 1800, y: 1000, width: 400, height: 300 }, screen)).toEqual({ x: 1800, y: 1000, width: 120, height: 80 });
+  });
+
+  it("拖到左边或上面别的显示器上时也夹在这台显示器里", () => {
+    expect(reachEdges({ x: -50, y: -20, width: 150, height: 120 }, screen)).toEqual({ x: 0, y: 0, width: 100, height: 100 });
+  });
+
+  it("离边缘还远时不变", () => {
+    const rect = { x: 100, y: 100, width: 300, height: 200 };
+    expect(reachEdges(rect, screen)).toEqual(rect);
   });
 });
 

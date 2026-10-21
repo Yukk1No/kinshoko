@@ -67,6 +67,24 @@ export function dragSelection(previous: Rect | null, start: Point, current: Poin
   return selectionRect(start, current);
 }
 
+/** 选区的右、下边离显示器边缘这么近（物理像素）时补到边缘。 */
+const EDGE_REACH = 2;
+
+/**
+ * 选区夹在显示器（冻结屏幕 `screen`）里，右、下边拖到边上时补到边缘。指针最多到最后一个像素，
+ * 而选区不含指针所在的那一列／行，所以最后一列、一行原本选不到；框选窗口又让出了最下面一行
+ * （#230，ADR 0011），从下往上拖时起点最低只到倒数第二行。
+ */
+export function reachEdges(rect: Rect, screen: { width: number; height: number }): Rect {
+  const x = Math.max(0, rect.x);
+  const y = Math.max(0, rect.y);
+  let right = Math.min(screen.width, rect.x + rect.width);
+  let bottom = Math.min(screen.height, rect.y + rect.height);
+  if (right >= screen.width - EDGE_REACH) right = screen.width;
+  if (bottom >= screen.height - EDGE_REACH) bottom = screen.height;
+  return { x, y, width: Math.max(0, right - x), height: Math.max(0, bottom - y) };
+}
+
 /** 画钉图的变换：以画布中心为原点，先镜像（flipX/flipY 为 ±1）再顺时针转 angle，按 width×height 画。 */
 export interface PinDrawing {
   angle: number;

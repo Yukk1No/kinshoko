@@ -1,7 +1,7 @@
 //! 钉图的统一样式菜单（#102 T5，#106）。
 //!
 //! 钉图窗口小且透明，菜单画不下，也不能在里面渲染：菜单由一个独立的置顶无边框菜单窗口承载。
-//! 菜单窗口盖住指针所在的整台显示器（[`menu_surface`]），菜单从指针处（[`MenuSurface::x`]、`y`）
+//! 菜单窗口盖住指针所在的显示器（让出最下面一行，[`menu_surface`]），菜单从指针处（[`MenuSurface::x`]、`y`）
 //! 弹出；页面里的菜单按 Base UI 的碰撞规则翻转、平移，保持在窗口——也就是这台显示器——之内，
 //! 子菜单同样如此。窗口按物理像素放，页面按自己的 devicePixelRatio 换算，125%／150% 缩放下也对。
 //! 菜单要显示的状态（[`PinMenu`]）由应用壳按钉图此刻的状态算出。
@@ -15,7 +15,7 @@ use super::{PinContent, SavedPin, ScreenRect};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[ts(export)]
 pub struct MenuSurface {
-    /// 菜单窗口：指针所在的整台显示器，物理像素。
+    /// 菜单窗口：指针所在的显示器让出最下面一行（[`super::overlay_window`]），物理像素。
     pub window: ScreenRect,
     /// 指针相对窗口左上角的位置，物理像素，总在窗口内。
     pub x: i32,
@@ -41,12 +41,15 @@ pub fn menu_surface(cursor: (i32, i32), monitors: &[ScreenRect]) -> Option<MenuS
         .iter()
         .filter(|m| m.width > 0 && m.height > 0)
         .min_by_key(distance)?;
-    let inside =
-        |c: i64, start: i32, size: u32| (c - i64::from(start)).clamp(0, i64::from(size) - 1) as i32;
+    // 菜单窗口让出最下面一行，免得被当成全屏程序（#230，ADR 0011）；锚点夹在窗口里。
+    let window = super::overlay_window(*monitor);
+    let inside = |c: i64, start: i32, size: u32| {
+        (c - i64::from(start)).clamp(0, i64::from(size.max(1)) - 1) as i32
+    };
     Some(MenuSurface {
-        window: *monitor,
-        x: inside(cx, monitor.x, monitor.width),
-        y: inside(cy, monitor.y, monitor.height),
+        window,
+        x: inside(cx, window.x, window.width),
+        y: inside(cy, window.y, window.height),
     })
 }
 

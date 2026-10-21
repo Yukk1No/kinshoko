@@ -6,7 +6,7 @@ import type { ScreenRect } from "./ScreenRect";
  */
 export type MenuSurface = { 
 /**
- * 菜单窗口：指针所在的整台显示器，物理像素。
+ * 菜单窗口：指针所在的显示器让出最下面一行（[`super::overlay_window`]），物理像素。
  */
 window: ScreenRect, 
 /**
