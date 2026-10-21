@@ -10,6 +10,8 @@ mod desktop;
 mod diagnostics;
 mod fidelity_gate;
 mod library;
+#[cfg(test)]
+mod plugin_acl_tests;
 mod shell;
 mod tagging;
 mod updater;
