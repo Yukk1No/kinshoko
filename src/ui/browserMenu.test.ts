@@ -18,6 +18,12 @@ it("侧栏、导航栏这类没有自己菜单的地方右键，不弹浏览器�
   expect(rightClick(document.body)).toBe(true);
 });
 
+it("子元素拦住冒泡也不弹（钉图里的运行环境提示 stopPropagation）", () => {
+  document.body.innerHTML = '<div class="pin-runtime-problem"><p>提示</p></div>';
+  document.querySelector("div")!.addEventListener("contextmenu", (e) => e.stopPropagation());
+  expect(rightClick(document.querySelector("p")!)).toBe(true);
+});
+
 it.each([
   ['<input type="search" />', "input"],
   ['<input />', "input"],
