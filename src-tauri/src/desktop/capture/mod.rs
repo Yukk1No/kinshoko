@@ -1,7 +1,7 @@
 //! 框选截图（F1）：冻结光标所在的显示器，在上面框选区域，钉住或复制。
 //!
 //! 流程（#7 原型）：抓取整台显示器 → 记下截取时的显示器配置文件 → 把隐藏的框选窗口移到显示器的
-//! 物理矩形上 → 页面载入冻结屏幕后调用 `capture_ready` 才显示，免得先闪一下空窗口。
+//! 物理矩形上（让出最下面一行，ADR 0011）→ 页面载入冻结屏幕后调用 `capture_ready` 才显示，免得先闪一下空窗口。
 //! 框选窗口第一次用时建好、结束时只隐藏，下次复用（#129，与钉图菜单窗口相同）：每次 F1 新建 WebView
 //! 要 0.2～2 秒，主窗口关着时更要冷启动 WebView2，是按键后迟迟没有反应的主因。
 //! 选区以相对显示器的物理像素传回；落在未遮挡参考图内时保留来源、按原始像素裁下，否则裁下屏幕像素。
@@ -14,7 +14,8 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 use kinshoko_core::desktop::{
-    CaptureSelection, CaptureSurface, FrozenScreen, OriginalPixels, Region, Screenshot,
+    CaptureSelection, CaptureSurface, FrozenScreen, OriginalPixels, Region, ScreenRect, Screenshot,
+    overlay_window,
 };
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
@@ -215,12 +216,20 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {
 
     let window = capture_window(app)?;
     super::timing("window.built");
+    // 窗口让出显示器最下面一行，免得被当成全屏程序（#230，ADR 0011）；冻结屏幕仍是整台显示器，
+    // 拖到最下面时选区补上这一行（页面的 `reachEdges`）。
+    let rect = overlay_window(ScreenRect {
+        x: origin.0,
+        y: origin.1,
+        width,
+        height,
+    });
     // 先移到目标显示器再定尺寸：跨越缩放比例不同的显示器时，移动会先按新比例改一次尺寸。
     window
-        .set_position(PhysicalPosition::new(origin.0, origin.1))
+        .set_position(PhysicalPosition::new(rect.x, rect.y))
         .map_err(|e| e.to_string())?;
     window
-        .set_size(PhysicalSize::new(width, height))
+        .set_size(PhysicalSize::new(rect.width, rect.height))
         .map_err(|e| e.to_string())?;
     // 复用的页面早已载入：通知它取这次的冻结屏幕。新建的页面载入时自己会取。
     window

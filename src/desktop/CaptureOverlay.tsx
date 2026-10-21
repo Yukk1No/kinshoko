@@ -4,7 +4,7 @@ import type { CaptureAction } from "../bindings/CaptureAction";
 import type { FrozenScreen } from "../bindings/FrozenScreen";
 import type { OriginalPixels } from "../bindings/OriginalPixels";
 import { cancelCapture, captureReadout, captureReady, captureUrl, finishCapture, frozenScreen } from "../ipc";
-import { dragSelection, toDevicePx, type Point, type Rect } from "./pixels";
+import { dragSelection, reachEdges, toDevicePx, type Point, type Rect } from "./pixels";
 import { Copy, Pin, X } from "lucide-react";
 import { Dock } from "../ui/Dock";
 import { FollowDock } from "../ui/FollowDock";
@@ -14,7 +14,7 @@ import { OriginalStar } from "../ui/OriginalStar";
 const MIN_SIZE = 4;
 
 /**
- * 框选窗口（F1）：铺满一台显示器，显示冻结的屏幕。拖动框选，Enter／F3／双击钉住，
+ * 框选窗口（F1）：盖住一台显示器（让出最下面一行，不被当成全屏程序，#230），显示冻结的屏幕。拖动框选，Enter／F3／双击钉住，
  * Ctrl+C 复制，Esc 或右键取消。选区下方 14 px 跟着一个 dock：读数、复制、钉住、取消（#98）。
  * 读数（#103）：选区完全落在一张登记为来源的参考图上（结果是参考视图）时为原图对应区域的原始像素，
  * 带上 logo 的星；其余情况为屏幕像素。来源在冻结时已定，遮蔽中的图不登记，按截图处理。
@@ -94,6 +94,12 @@ export function CaptureOverlay() {
     y: toDevicePx(e.clientY, dpr),
   });
 
+  /** 拖动中的选区，拖到显示器边上时补到边缘（框选窗口让出了最下面一行，#230）。 */
+  const drag = (previous: Rect | null, from: Point, to: Point) => {
+    const next = dragSelection(previous, from, to);
+    return next && next !== previous && screen ? reachEdges(next, screen) : next;
+  };
+
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (busy || (e.target as HTMLElement).closest(".capture-tools")) return;
     if (e.button === 2) return finish("cancel");
@@ -104,12 +110,12 @@ export function CaptureOverlay() {
   };
   const onPointerMove = (e: PointerEvent) => {
     const from = start.current;
-    if (from) setRect((previous) => dragSelection(previous, from, at(e)));
+    if (from) setRect((previous) => drag(previous, from, at(e)));
   };
   const onPointerUp = (e: PointerEvent) => {
     const from = start.current;
     if (!from) return;
-    setRect((previous) => dragSelection(previous, from, at(e)));
+    setRect((previous) => drag(previous, from, at(e)));
     start.current = null;
     setDragging(false);
   };

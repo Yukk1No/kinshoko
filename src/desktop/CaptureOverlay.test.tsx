@@ -76,6 +76,14 @@ describe("截图框选（#98 dock）", () => {
     expect(root.querySelectorAll(".capture-handle")).toHaveLength(4);
   });
 
+  it("拖到显示器右下角时选区补到边缘：框选窗口让出了最下面一行，那一行照样能截到（#230）", async () => {
+    const { root } = await open();
+    // 冻结屏幕 2400×1500 物理像素，1.25 倍：指针最多到 (2399, 1499)，即 CSS (1919.2, 1199.2)。
+    select(root, [100, 80], [1919.2, 1199.2]);
+    fireEvent.keyDown(window, { key: "Enter" });
+    expect(sent("finish_capture")).toEqual([{ region: { x: 125, y: 100, width: 2275, height: 1400 }, action: "pin", token: "tok" }]);
+  });
+
   it.each([
     ["复制", "copy"], ["钉住", "pin"],
   ] as const)("点 dock 的%s与快捷键发出同一个结束请求", async (label, action) => {
