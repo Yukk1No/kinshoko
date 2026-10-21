@@ -223,3 +223,39 @@ fn placeholders_of_an_older_pipeline_version_are_not_shown() {
     let library = Library::open_read_only(&root, &library_id).unwrap();
     assert!(cards(&library)[0].placeholder.is_none());
 }
+
+/// 读过的占位图记在内存里，之后的浏览不再打开文件（#212、#200）：图片墙每次重新浏览都要带回全部
+/// 已加载卡片的占位图，逐个读文件是重新浏览的主要开销。只删掉这一个文件看不出来，照样带回；
+/// 整个缓存目录被删掉或换掉时不再带回（见上面两条）。
+#[test]
+fn a_placeholder_once_read_is_browsed_again_without_reading_its_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("lib");
+    let library = Library::create(&root, "库").unwrap();
+    import(&library, &write_png(&dir.path().join("a.png"), 64, 48, 3));
+    let first = cards(&library)[0].placeholder.clone().expect("有占位图");
+
+    let file = walk(&root.join("cache"))
+        .into_iter()
+        .find(|p| p.to_string_lossy().contains("-p32."))
+        .expect("占位图文件");
+    std::fs::remove_file(file).unwrap();
+
+    assert_eq!(
+        cards(&library)[0].placeholder.as_deref(),
+        Some(first.as_str())
+    );
+}
+
+fn walk(dir: &Path) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            out.extend(walk(&path));
+        } else {
+            out.push(path);
+        }
+    }
+    out
+}
