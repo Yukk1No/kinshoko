@@ -17,7 +17,8 @@ use kinshoko_core::Library;
 use kinshoko_core::library::{ImportOutcome, ImportSource};
 use kinshoko_core::tagging::{
     Backend, Device, DeviceInfo, Engine, EngineError, GpuInfo, PreparedModel, ProcessTagger,
-    RawTag, SessionStopper, TagFailure, Tagger, Tagging, TaggingConfig, TaggingStatus, serve,
+    RawTag, SessionStopper, TagFailure, Tagger, Tagging, TaggingConfig, TaggingStatus,
+    abort_device_lost, serve,
 };
 
 const CHILD: &str = "child_tagger_worker";
@@ -71,6 +72,11 @@ impl Engine for FakeEngine {
             std::process::abort();
         }
         if name.contains("hang") {
+            std::thread::sleep(Duration::from_secs(3600));
+        }
+        if name.contains("vram") {
+            // 推理进行中显存超额：别的线程报告后立即结束子进程，不等这张图。
+            std::thread::spawn(|| abort_device_lost("显存占用超过系统额度"));
             std::thread::sleep(Duration::from_secs(3600));
         }
         if name.contains("bad") {
@@ -139,6 +145,21 @@ fn the_subprocess_reports_the_device_and_tags_images() {
     );
     // 坏图之后会话照常可用。
     assert!(session.tag(&dir.path().join("smile.png")).is_ok());
+}
+
+/// 推理进行中显存超额（#212）：子进程立即结束、归还显存，报告为显卡问题而不是这张图的问题。
+#[test]
+fn running_out_of_video_memory_mid_inference_ends_the_session_as_a_device_problem() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut session = tagger()
+        .start(&model(dir.path()), Device::DirectMl, &|_| {})
+        .unwrap();
+    let t = Instant::now();
+    assert!(matches!(
+        session.tag(&dir.path().join("vram.png")),
+        Err(TagFailure::DeviceLost(_))
+    ));
+    assert!(t.elapsed() < Duration::from_secs(2), "{:?}", t.elapsed());
 }
 
 #[test]

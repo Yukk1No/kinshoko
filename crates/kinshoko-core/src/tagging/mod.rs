@@ -28,5 +28,5 @@ pub use port::{
     Device, DeviceInfo, GpuInfo, PreparedModel, RawTag, SessionStopper, TagFailure, Tagger,
     TaggerSession,
 };
-pub use process::{Backend, Engine, EngineError, ProcessTagger, serve};
+pub use process::{Backend, Engine, EngineError, ProcessTagger, abort_device_lost, serve};
 pub use scheduler::{LibraryTaggingStatus, Tagging, TaggingConfig, TaggingStatus};
