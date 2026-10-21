@@ -176,6 +176,25 @@ describe("设置 › 自动标签 › 模型", () => {
     await waitFor(() => expect(calls.filter((c) => c.cmd === "tagging_set_device").at(-1)?.args).toEqual({ device: null }));
   });
 
+  it("换档之前开始的重新读取晚到时，不把刚选的档盖回去", async () => {
+    let release = () => {};
+    let reads = 0;
+    backend({
+      handle: (cmd, args) => {
+        if (cmd === "tagging_set_device") return { ...choice, selected: args.device };
+        // 第一次读取立即返回；之后（状态到达触发的重新读取）等换档完成后才送回换档前的结果。
+        if (cmd === "tagging_models" && reads++ > 0) return new Promise((done) => { release = () => done(choice); });
+        return undefined;
+      },
+    });
+    render(<AutoTaggingSettings libraryId="L1" />);
+    await waitFor(() => expect(reads).toBe(2));
+    fireEvent.change(await hardware(), { target: { value: "cpu" } });
+    await waitFor(async () => expect((await hardware()).value).toBe("cpu"));
+    await act(async () => { release(); });
+    expect((await hardware()).value).toBe("cpu");
+  });
+
   it("下载完成后重新读取各档是否已下载", async () => {
     let downloaded = false;
     backend({

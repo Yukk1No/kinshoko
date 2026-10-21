@@ -198,7 +198,9 @@ impl ProcessTagger {
         {
             use std::os::windows::process::CommandExt;
             // CREATE_NO_WINDOW：发布版是窗口程序，子进程不要弹出控制台。
-            cmd.creation_flags(0x0800_0000);
+            // BELOW_NORMAL_PRIORITY_CLASS：CPU 档推理占满所有核，画师同时用的绘画软件要先拿到 CPU（#212）；
+            // 显卡档的子进程本来就几乎不占 CPU，同样处理。
+            cmd.creation_flags(0x0800_0000 | 0x0000_4000);
         }
         let mut child = cmd
             .spawn()
