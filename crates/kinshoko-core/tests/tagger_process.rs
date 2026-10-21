@@ -396,3 +396,35 @@ fn the_stopper_ends_the_subprocess_while_it_loads_the_model() {
     assert!(t.elapsed() < Duration::from_secs(5), "{:?}", t.elapsed());
     assert!(!alive(pid), "子进程已被回收");
 }
+
+/// 打标子进程以低于普通的优先级运行（#212）：CPU 档推理会占满所有核，画师同时开着的绘画软件
+/// 要能先拿到 CPU。用加载卡住的子进程查它的优先级类，查完结束它。
+#[cfg(windows)]
+#[test]
+fn the_subprocess_runs_below_normal_priority() {
+    let dir = tempfile::tempdir().unwrap();
+    let marker = dir.path().join("loading.pid");
+    let tagger = tagger().env(SLOW_LOAD_ENV, marker.to_str().unwrap());
+    let model = model(dir.path());
+    let slot: Arc<Mutex<Option<SessionStopper>>> = Arc::default();
+    let registered = slot.clone();
+    let loading = std::thread::spawn(move || {
+        tagger
+            .start(&model, Device::Cpu, &|stop| {
+                *registered.lock().unwrap() = Some(stop)
+            })
+            .map(|_| ())
+    });
+    let pid = loading_child(&marker, || "加载中".into());
+    let out = std::process::Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-Command",
+            &format!("(Get-Process -Id {pid}).PriorityClass"),
+        ])
+        .output()
+        .unwrap();
+    slot.lock().unwrap().take().expect("加载期间已有结束开关")();
+    let _ = loading.join();
+    assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "BelowNormal");
+}
