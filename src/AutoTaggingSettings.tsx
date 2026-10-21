@@ -123,6 +123,9 @@ function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; sta
       return row(`正在打标 · ${DEVICE_NAME[status.device]} · 已打 ${status.tagged} 张`, pause);
     case "paused":
       return row("已暂停", button("继续", taggingResume));
+    // 有全屏程序（游戏、演示）或“请勿打扰”时自动让出显卡（#212），不是卡住或出错。
+    case "yieldedToFullScreen":
+      return row("因全屏程序或“请勿打扰”暂停，回到桌面后自动继续", pause);
     case "idle":
       return row("已全部打完");
     case "needsDownload": {

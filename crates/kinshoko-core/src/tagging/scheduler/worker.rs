@@ -20,9 +20,20 @@ impl Worker {
                 }
                 continue;
             }
+            if self.yields() {
+                self.end_session();
+                self.shared.set(TaggingStatus::YieldedToFullScreen);
+                self.shared.sleep(self.config.poll_interval);
+                continue;
+            }
             self.step();
         }
         self.end_session();
+    }
+
+    /// 有全屏程序或“请勿打扰”，要让出（#212）。
+    fn yields(&self) -> bool {
+        self.config.foreground.as_ref().is_some_and(|f| f.yields())
     }
 
     /// 结束会话（打标子进程），归还显存。
@@ -134,7 +145,7 @@ impl Worker {
             return;
         }
         for id in ids {
-            if self.shared.interrupted() {
+            if self.shared.interrupted() || self.yields() {
                 return;
             }
             if !self.tag_one(&model, &source, &id) {
