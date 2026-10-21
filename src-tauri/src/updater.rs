@@ -3,7 +3,7 @@
 //! 入口按画师的更新通道选（#204）：正式版通道读 GitHub latest，测试版通道读 `channel-beta` Release。
 //!
 //! 私有阶段只用安装包手动更新。公开阶段必须明确声明原仓库已公开，并有原仓库入口与更新公钥。
-//! 签名私钥只在 GitHub 仓库的 Actions secret 里，不进仓库（见 docs/validation/release-checklist/release-and-updates.md）。
+//! 签名私钥只在 GitHub 仓库的 Actions secret 里，不进仓库（见 docs/validation/release-checklist.md）。
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -123,7 +123,7 @@ pub async fn check_update(
         }
         Ok(None) => UpdateStatus::UpToDate,
         Err(e) => {
-            eprintln!("检查更新失败：{e}");
+            crate::run_log::warn("检查更新失败", &e);
             UpdateStatus::Failed {
                 message: "检查更新失败，请检查网络后重试。".to_owned(),
             }
@@ -202,7 +202,7 @@ pub async fn install_update(app: AppHandle, state: State<'_, UpdaterState>) -> R
     match result {
         Ok(()) => Ok(()),
         Err(e) => {
-            eprintln!("安装更新失败：{e}");
+            crate::run_log::error("安装更新失败", &e);
             let message = match e {
                 tauri_plugin_updater::Error::Minisign(_)
                 | tauri_plugin_updater::Error::SignatureUtf8(_) => {

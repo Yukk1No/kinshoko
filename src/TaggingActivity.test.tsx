@@ -84,6 +84,13 @@ describe("缩放滑块左边的打标图标", () => {
     expect(button.dataset.activity).toBe("paused");
   });
 
+  it("全屏程序在前台时静止，并说明是自动暂停（#212）", async () => {
+    backend({ L1: { state: "yieldedToFullScreen" } });
+    mount();
+    const button = await screen.findByRole("button", { name: /自动标签：因全屏程序暂停/ });
+    expect(button.dataset.activity).toBe("paused");
+  });
+
   it.each<[string, TaggingStatus]>([
     ["打完", idle(3)],
     ["需要下载", needsDownload()],

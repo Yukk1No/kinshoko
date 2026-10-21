@@ -57,8 +57,12 @@ pub struct CaptureDraft(PreparedOutcome);
 
 #[derive(Debug)]
 enum PreparedOutcome {
-    PinReference(SavedPin),
-    CopyReference(RgbaImage),
+    /// 参考视图：钉住或复制，同时把这块原始像素存进截图历史（#227）。
+    Reference {
+        pin: Option<SavedPin>,
+        image: RgbaImage,
+        history: PreparedCapture,
+    },
     Screenshot {
         action: CaptureAction,
         shot: Screenshot,
@@ -70,7 +74,9 @@ impl CaptureDraft {
     /// Pixels to prepare for the OS clipboard, outside the final authority boundary.
     pub fn clipboard_image(&self) -> Option<&RgbaImage> {
         match &self.0 {
-            PreparedOutcome::CopyReference(image) => Some(image),
+            PreparedOutcome::Reference {
+                pin: None, image, ..
+            } => Some(image),
             PreparedOutcome::Screenshot {
                 action: CaptureAction::Copy,
                 shot,
@@ -85,15 +91,23 @@ impl CaptureDraft {
         self.commit_with_history(|prepared| history.add_prepared(prepared))
     }
 
-    /// Acquire history only when ordinary screenshot data actually needs persistence.
-    /// Reference copy/pin never calls this closure and cannot wait on the history mutex.
+    /// Persist the prepared history entry, then hand back the action's result.
     pub fn commit_with_history(
         self,
         persist: impl FnOnce(PreparedCapture) -> Result<CaptureEntry, HistoryError>,
     ) -> Result<CaptureOutcome, CaptureError> {
         Ok(match self.0 {
-            PreparedOutcome::PinReference(pin) => CaptureOutcome::PinReference(pin),
-            PreparedOutcome::CopyReference(image) => CaptureOutcome::CopyReference(image),
+            PreparedOutcome::Reference {
+                pin,
+                image,
+                history,
+            } => {
+                persist(history).map_err(CaptureError::History)?;
+                match pin {
+                    Some(pin) => CaptureOutcome::PinReference(pin),
+                    None => CaptureOutcome::CopyReference(image),
+                }
+            }
             PreparedOutcome::Screenshot {
                 action,
                 shot,
@@ -174,8 +188,8 @@ impl CaptureSelection<'_> {
     }
 
     /// 完成钉住或复制：两者共用来源与原图选区语义。
-    /// 有效库内选区不会写入截图历史；来源失效或重新遮蔽时返回错误，不能降级复用旧屏幕内容。
-    /// 普通截图在两个动作中都保存截图历史，与既有 F1 行为一致。
+    /// 两个动作都保存截图历史：库内选区存按原始像素裁下的那块（#227），普通截图存屏幕像素。
+    /// 来源失效或重新遮蔽时返回错误，不能降级复用旧屏幕内容。
     pub fn finish(
         &self,
         action: CaptureAction,
@@ -188,7 +202,7 @@ impl CaptureSelection<'_> {
             .commit(history)
     }
 
-    /// Resolve the original crop or prepare an ordinary screenshot entirely in memory.
+    /// Resolve and decode the original crop, or prepare an ordinary screenshot, entirely in memory.
     /// No history entry/file or external side effect is created until CaptureDraft::commit.
     pub fn prepare(
         &self,
@@ -217,71 +231,80 @@ impl CaptureSelection<'_> {
             if veils.veiled(&surface.pin, Some(image.sealed)) {
                 return Err(CaptureError::Sealed);
             }
-            return match action {
-                CaptureAction::Pin => SavedPin::reference(
-                    pin_id,
-                    library_id,
-                    &image,
-                    Some(crop),
-                    surface.pin.placement,
-                )
-                .map(PreparedOutcome::PinReference)
-                .map(CaptureDraft)
-                .map_err(|_| CaptureError::SourceChanged),
-                CaptureAction::Copy => {
-                    let lens = references
-                        .lens(library_id)
-                        .map_err(CaptureError::SourceUnavailable)?;
-                    if lens.library_id() != library_id {
-                        return Err(CaptureError::SourceChanged);
-                    }
-                    // full 与显示管线一致：静态 SDR 原图，特殊声明／动图／HDR 使用原尺寸 SDR 派生图。
-                    let display = lens
-                        .display(image_id)
-                        .map_err(|e| CaptureError::Pixels(e.to_string()))?;
-                    let bytes = std::fs::read(display.path)
-                        .map_err(|e| CaptureError::Pixels(e.to_string()))?;
-                    if crop
-                        .x
-                        .checked_add(crop.width)
-                        .is_none_or(|x| x > image.width)
-                        || crop
-                            .y
-                            .checked_add(crop.height)
-                            .is_none_or(|y| y > image.height)
-                    {
-                        return Err(CaptureError::SourceChanged);
-                    }
-                    // 只转换选区的颜色（#127）：整张大图的线性光往返要数秒。
-                    let mut copied = crate::fidelity::render::clipboard_rgba_crop(
-                        &bytes,
-                        (image.width, image.height),
-                        crate::fidelity::render::UprightCrop {
-                            x: crop.x,
-                            y: crop.y,
-                            width: crop.width,
-                            height: crop.height,
-                        },
+            let pin = match action {
+                CaptureAction::Pin => Some(
+                    SavedPin::reference(
+                        pin_id,
+                        library_id,
+                        &image,
+                        Some(crop),
+                        surface.pin.placement,
                     )
-                    .map_err(CaptureError::Pixels)?
-                    .ok_or(CaptureError::SourceChanged)?;
-                    let placement = surface.pin.placement;
-                    // 与参考钉图一致：先翻转，后顺时针旋转；仅方向改变，绝不按屏幕缩放。
-                    if placement.flip_h {
-                        image::imageops::flip_horizontal_in_place(&mut copied);
-                    }
-                    if placement.flip_v {
-                        image::imageops::flip_vertical_in_place(&mut copied);
-                    }
-                    copied = match placement.rotation % 4 {
-                        1 => image::imageops::rotate90(&copied),
-                        2 => image::imageops::rotate180(&copied),
-                        3 => image::imageops::rotate270(&copied),
-                        _ => copied,
-                    };
-                    Ok(CaptureDraft(PreparedOutcome::CopyReference(copied)))
-                }
+                    .map_err(|_| CaptureError::SourceChanged)?,
+                ),
+                CaptureAction::Copy => None,
             };
+            let lens = references
+                .lens(library_id)
+                .map_err(CaptureError::SourceUnavailable)?;
+            if lens.library_id() != library_id {
+                return Err(CaptureError::SourceChanged);
+            }
+            // full 与显示管线一致：静态 SDR 原图，特殊声明／动图／HDR 使用原尺寸 SDR 派生图。
+            let display = lens
+                .display(image_id)
+                .map_err(|e| CaptureError::Pixels(e.to_string()))?;
+            let bytes =
+                std::fs::read(display.path).map_err(|e| CaptureError::Pixels(e.to_string()))?;
+            if crop
+                .x
+                .checked_add(crop.width)
+                .is_none_or(|x| x > image.width)
+                || crop
+                    .y
+                    .checked_add(crop.height)
+                    .is_none_or(|y| y > image.height)
+            {
+                return Err(CaptureError::SourceChanged);
+            }
+            // 只转换选区的颜色（#127）：整张大图的线性光往返要数秒。
+            let mut copied = crate::fidelity::render::clipboard_rgba_crop(
+                &bytes,
+                (image.width, image.height),
+                crate::fidelity::render::UprightCrop {
+                    x: crop.x,
+                    y: crop.y,
+                    width: crop.width,
+                    height: crop.height,
+                },
+            )
+            .map_err(CaptureError::Pixels)?
+            .ok_or(CaptureError::SourceChanged)?;
+            let placement = surface.pin.placement;
+            // 与参考钉图一致：先翻转，后顺时针旋转；仅方向改变，绝不按屏幕缩放。
+            if placement.flip_h {
+                image::imageops::flip_horizontal_in_place(&mut copied);
+            }
+            if placement.flip_v {
+                image::imageops::flip_vertical_in_place(&mut copied);
+            }
+            copied = match placement.rotation % 4 {
+                1 => image::imageops::rotate90(&copied),
+                2 => image::imageops::rotate180(&copied),
+                3 => image::imageops::rotate270(&copied),
+                _ => copied,
+            };
+            // 截图历史里是 sRGB 像素，不带配置文件；与复制到剪贴板的内容相同。
+            let shot = Screenshot {
+                image: copied,
+                icc: None,
+            };
+            let history = CaptureHistory::prepare(&shot).map_err(CaptureError::History)?;
+            return Ok(CaptureDraft(PreparedOutcome::Reference {
+                pin,
+                image: shot.image,
+                history,
+            }));
         }
         let shot = self
             .screen

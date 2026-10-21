@@ -12,6 +12,7 @@
 //! 线程规则同 [`super`]：持有锁时不调用窗口 API。
 
 use kinshoko_core::desktop::{PinMenu, PinMenuOpen, menu_surface};
+use kinshoko_core::diagnostics::{LogEvent, WindowKind};
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalSize, WebviewUrl, WebviewWindowBuilder, WindowEvent,
 };
@@ -58,6 +59,7 @@ pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), String> {
 }
 
 fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
+    let started = std::time::Instant::now();
     let window = WebviewWindowBuilder::new(
         app,
         MENU_WINDOW,
@@ -76,6 +78,7 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     .shared_webview(app)
     .build()
     .map_err(|e| e.to_string())?;
+    crate::run_log::window_created(WindowKind::PinMenu, started);
     // 显示、隐藏都要即时：系统过渡会让铺满显示器的窗口从中间放大、隐藏时边缩小边淡出，
     // 菜单就像向左滑走（#194）。三种关法最后都只是隐藏这个窗口，在这里关掉一次即可。
     #[cfg(windows)]
@@ -91,7 +94,7 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     Ok(window)
 }
 
-/// 移到缩放比例不同的显示器上时系统会按新比例改窗口尺寸：改回整台显示器。
+/// 移到缩放比例不同的显示器上时系统会按新比例改窗口尺寸：改回菜单窗口的矩形。
 fn keep_on_monitor(app: &AppHandle, size: PhysicalSize<u32>) {
     let Some(rect) = lock(&state(app).menu)
         .open
@@ -138,6 +141,9 @@ pub fn close(app: &AppHandle, generation: u32) -> Option<String> {
     if let Some(window) = app.get_webview_window(MENU_WINDOW) {
         let focused = window.is_focused().unwrap_or(false);
         let _ = window.hide();
+        crate::run_log::record(LogEvent::WindowHidden {
+            window: WindowKind::PinMenu,
+        });
         if focused && let Some(pin_window) = app.get_webview_window(&pins::label(&pin)) {
             let _ = pin_window.set_focus();
         }

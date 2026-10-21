@@ -21,9 +21,9 @@ forceSrgb: boolean,
  */
 forceSrgbInEffect: boolean, 
 /**
- * 使用日志是否开启。
+ * 运行日志是否开启。
  */
-usageLog: boolean, 
+runLog: boolean, 
 /**
  * 切换安全模式时保留当前选择。
  */

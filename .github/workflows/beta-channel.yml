@@ -55,7 +55,7 @@ jobs:
           fi
           mkdir -p published current
           if ! gh release download "$TAG" --pattern latest.json --dir published; then
-            echo "::error::$TAG 没有 latest.json：构建时没有更新签名私钥（见 docs/validation/release-checklist/release-and-updates.md），这个版本不能经自动更新分发，测试版通道不变。"
+            echo "::error::$TAG 没有 latest.json：构建时没有更新签名私钥（见 docs/validation/release-checklist.md 的「发布与自动更新」），这个版本不能经自动更新分发，测试版通道不变。"
             exit 1
           fi
 

@@ -4,6 +4,8 @@
 //! 第一行是请求（探测本机条件，或加载模型），之后每行一张图。子进程崩溃、显存溢出或卡住
 //! 只影响子进程：主进程按超时结束它，报告 [`TagFailure`]，由调度决定重启。
 //! 标准输出里不是协议的行（例如运行库的日志）一律忽略。
+//! 接了运行日志时（[`ProcessTagger::log_to`]），子进程探测到的显存额度与它写到标准错误的行
+//! （运行库的警告、崩溃信息）经脱敏记进主进程的运行日志（#219）。
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -13,6 +15,8 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
+
+use crate::diagnostics::{Detail, LogEvent, RunLog};
 
 use super::port::{
     Device, DeviceInfo, PreparedModel, RawTag, SessionStopper, TagFailure, Tagger, TaggerSession,
@@ -103,6 +107,20 @@ fn fatal(err: EngineError) -> Reply {
     }
 }
 
+/// 在子进程里从任意线程调用：报告显卡不可用（推理进行中显存超额等，#212）并立即结束子进程，
+/// 不等手上的推理。退出即归还显存；主进程按显卡问题处理，不记在这张图头上。
+pub fn abort_device_lost(reason: &str) -> ! {
+    let mut out = std::io::stdout().lock();
+    send(
+        &mut out,
+        &Reply::Fatal {
+            reason: reason.to_owned(),
+            device_lost: true,
+        },
+    );
+    std::process::exit(1);
+}
+
 /// 子进程的主循环：读请求、推理、写结果。标准输入关闭时正常结束；返回进程退出码。
 pub fn serve(backend: &mut dyn Backend, input: impl BufRead, mut output: impl Write) -> i32 {
     let mut lines = input.lines();
@@ -168,7 +186,11 @@ pub struct ProcessTagger {
     pub load_timeout: Duration,
     /// 单张图的上限；超过时结束子进程（显存超额时 Windows 换页，一张要一分钟）。
     pub image_timeout: Duration,
+    log: Option<RunLog>,
 }
+
+/// 每个子进程最多记这么多行标准错误，运行库刷屏时不挤掉别的日志。
+const STDERR_LINES: usize = 200;
 
 impl ProcessTagger {
     /// `exe args…` 启动子进程，例如当前 exe 加子命令 `tagger`。
@@ -179,7 +201,14 @@ impl ProcessTagger {
             envs: Vec::new(),
             load_timeout: Duration::from_secs(300),
             image_timeout: Duration::from_secs(90),
+            log: None,
         }
+    }
+
+    /// 把显存额度与子进程的标准错误记进运行日志。
+    pub fn log_to(mut self, log: RunLog) -> ProcessTagger {
+        self.log = Some(log);
+        self
     }
 
     pub fn env(mut self, key: &str, value: &str) -> ProcessTagger {
@@ -193,18 +222,38 @@ impl ProcessTagger {
             .envs(self.envs.iter().map(|(k, v)| (k, v)))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null());
+            .stderr(if self.log.is_some() {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            });
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
             // CREATE_NO_WINDOW：发布版是窗口程序，子进程不要弹出控制台。
-            cmd.creation_flags(0x0800_0000);
+            // BELOW_NORMAL_PRIORITY_CLASS：CPU 档推理占满所有核，画师同时用的绘画软件要先拿到 CPU（#212）；
+            // 显卡档的子进程本来就几乎不占 CPU，同样处理。
+            cmd.creation_flags(0x0800_0000 | 0x0000_4000);
         }
         let mut child = cmd
             .spawn()
             .map_err(|e| format!("无法启动打标子进程：{e}"))?;
         let stdout = child.stdout.take().expect("已设为管道");
         let stdin = child.stdin.take().expect("已设为管道");
+        if let (Some(stderr), Some(log)) = (child.stderr.take(), self.log.clone()) {
+            std::thread::Builder::new()
+                .name("kinshoko-tagger-stderr".into())
+                .spawn(move || {
+                    // 记满以后继续读完，免得子进程写满管道卡住。
+                    let lines = BufReader::new(stderr).lines().map_while(Result::ok);
+                    for line in lines.filter(|l| !l.trim().is_empty()).take(STDERR_LINES) {
+                        log.record(LogEvent::TaggerOutput {
+                            detail: Detail::new(line),
+                        });
+                    }
+                })
+                .map_err(|e| e.to_string())?;
+        }
         let (tx, rx) = channel();
         std::thread::Builder::new()
             .name("kinshoko-tagger-reader".into())
@@ -300,6 +349,12 @@ impl Tagger for ProcessTagger {
                 _ => None,
             }
         });
+        if let (Some(log), Some(gpu)) = (&self.log, info.as_ref().and_then(|i| i.gpu.as_ref())) {
+            log.record(LogEvent::VramBudget {
+                gpu: Detail::new(&gpu.name),
+                budget_mb: gpu.vram_budget / (1024 * 1024),
+            });
+        }
         // 探测失败时不知道有没有独显：按没有独显、内存不限处理，至少能走 CPU 档。
         info.unwrap_or(DeviceInfo {
             gpu: None,

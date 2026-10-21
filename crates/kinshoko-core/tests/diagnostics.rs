@@ -27,7 +27,7 @@ fn app() -> AppFacts {
         version: "0.1.0".into(),
         force_srgb: true,
         force_srgb_in_effect: false,
-        usage_log: false,
+        run_log: false,
         data_migration_problem: None,
     }
 }
@@ -105,7 +105,7 @@ fn the_report_lists_hardware_webview2_and_each_displays_colour_state() {
         "HDR",
         "无配置文件",
         "强制 sRGB：已开启，重启后生效",
-        "使用日志：关闭",
+        "运行日志：关闭",
     ] {
         assert!(
             text.contains(expected),

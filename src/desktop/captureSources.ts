@@ -10,6 +10,32 @@ const instance = crypto.randomUUID();
 let generation = 0;
 let installation = 0;
 
+/**
+ * Every element with its rectangle, read once per collection (#216). Each captured image used to walk the whole
+ * document and read every rectangle again: with a large wall and sidebar that was tens of thousands of reads per
+ * frame, twice per capture. Layout cannot change inside the synchronous collection, so one read serves all images.
+ */
+type Painted = { node: HTMLElement; rect: DOMRect }[];
+/** Inside `readCaptureFrame`: the shared rectangles, read on first use; `null` until then. */
+let frame: { nodes: Painted | null } | null = null;
+function paintedNodes(): Painted {
+  const read = () => [...document.querySelectorAll<HTMLElement>("body *")].map((node) => ({ node, rect: node.getBoundingClientRect() }));
+  if (!frame) return read();
+  return (frame.nodes ??= read());
+}
+/**
+ * Run `read` with the element rectangles read at most once; `captureImage` calls inside it share them.
+ * A report with no visible image (a modal covers the wall, nothing is loaded) reads none.
+ */
+export function readCaptureFrame<T>(read: () => T): T {
+  frame = { nodes: null };
+  try {
+    return read();
+  } finally {
+    frame = null;
+  }
+}
+
 /** Read the painted image content, including contain letterboxing, viewport clipping and DOM overlays. */
 export function captureImage(image: HTMLImageElement, clip: HTMLElement, libraryId: string, imageId: string, width: number, height: number): CaptureReference | null {
   const style = getComputedStyle(image);
@@ -32,12 +58,12 @@ export function captureImage(image: HTMLImageElement, clip: HTMLElement, library
   if (!clipped.width || !clipped.height) return null;
   const covered: ScreenRect[] = [];
   // Only painted elements above this image count. Ancestors and transparent layout wrappers do not.
-  if (document.elementsFromPoint) for (const node of document.querySelectorAll<HTMLElement>("body *")) {
-    if (node === image || node.contains(image) || image.contains(node)) continue;
-    const r = node.getBoundingClientRect();
+  if (document.elementFromPoint) for (const { node, rect: r } of paintedNodes()) {
     const intersection = { left: Math.max(r.left, visible.left), top: Math.max(r.top, visible.top), right: Math.min(r.right, visible.right), bottom: Math.min(r.bottom, visible.bottom) };
     if (intersection.right <= intersection.left || intersection.bottom <= intersection.top) continue;
-    const top = document.elementsFromPoint((intersection.left + intersection.right) / 2, (intersection.top + intersection.bottom) / 2)[0];
+    if (node === image || node.contains(image) || image.contains(node)) continue;
+    // Only the topmost element matters: elementFromPoint stops there, elementsFromPoint builds the whole stack.
+    const top = document.elementFromPoint((intersection.left + intersection.right) / 2, (intersection.top + intersection.bottom) / 2);
     if (top && top !== image && !top.contains(image) && (top === node || node.contains(top))) covered.push(physical(intersection));
   }
   return { libraryId, imageId, shown: physical(shown), visible: clipped, covered };
@@ -47,13 +73,15 @@ export function captureImage(image: HTMLImageElement, clip: HTMLElement, library
 function collect(all: Provider[]): CaptureReference[] {
   let winner: number | null = null;
   const references: CaptureReference[] = [];
-  for (const provider of all.sort((a, b) => b.priority - a.priority)) {
-    if (winner !== null && provider.priority < winner) break;
-    const read = provider.read();
-    if (read === null) continue;
-    winner = provider.priority;
-    references.push(...read);
-  }
+  readCaptureFrame(() => {
+    for (const provider of all.sort((a, b) => b.priority - a.priority)) {
+      if (winner !== null && provider.priority < winner) break;
+      const read = provider.read();
+      if (read === null) continue;
+      winner = provider.priority;
+      references.push(...read);
+    }
+  });
   return references;
 }
 

@@ -5,8 +5,9 @@
 //! [`scrub`]，像路径或带扩展名的文件名的部分换成 `<路径>`；显示器配置文件只写它自带的名称、
 //! 版本与类型，不写文件位置。
 
+mod log_event;
+mod run_log;
 mod runtime;
-mod usage;
 
 use std::fmt::Write as _;
 
@@ -15,10 +16,11 @@ use moxcms::{ColorProfile, ProfileText};
 use crate::fidelity::IccKind;
 use crate::fidelity::inspect::summarise;
 
+pub use log_event::{Detail, Level, LibraryNo, LogEvent, PauseReason, PinSource, WindowKind};
+pub use run_log::{Clock, Moment, RunLog, run_log_default_for_version};
 pub use runtime::{
     CanvasBuffer, CapabilityCheck, RuntimeAssessment, RuntimeCapabilities, RuntimeStatus,
 };
-pub use usage::{UsageEvent, UsageLog};
 
 /// Tauri（wry）在没有指定启动参数时给 WebView2 的参数：关掉迷你菜单与 SmartScreen 检查。
 /// 自己指定参数时 wry 不再补上，这里照抄（wry 0.57 `webview2/mod.rs`）。
@@ -45,7 +47,8 @@ pub struct AppFacts {
     pub force_srgb: bool,
     /// 本次运行实际采用的“强制 sRGB”。
     pub force_srgb_in_effect: bool,
-    pub usage_log: bool,
+    /// 运行日志是否开启。
+    pub run_log: bool,
     /// 首次启动把旧数据搬进数据根目录失败的原因（#145）；本次运行仍用旧位置。
     pub data_migration_problem: Option<String>,
 }
@@ -189,8 +192,8 @@ pub fn report_with_runtime(
     let _ = writeln!(out, "强制 sRGB：{force}");
     let _ = writeln!(
         out,
-        "使用日志：{}",
-        if app.usage_log { "开启" } else { "关闭" }
+        "运行日志：{}",
+        if app.run_log { "开启" } else { "关闭" }
     );
     match &app.data_migration_problem {
         None => {

@@ -4,7 +4,7 @@
 //! 窗口里变换内容，但放大时窗口原点仍要往左上移。原生窗口立刻到位，WebView2 却要晚 1～2 帧才按
 //! 新原点重画，两个进程之间没有同步手段，于是每格滚轮都先抽搐、再闪烁（#193）。
 //!
-//! 所以钉图不再各有窗口：每台有钉图的显示器只有一个铺满屏幕的透明窗口（钉图层，[`layer_window`]），
+//! 所以钉图不再各有窗口：每台有钉图的显示器只有一个铺满屏幕的透明窗口（钉图层，[`overlay_window`]），
 //! 全部钉图都是层里的页面元素；层的窗口区域是各钉图区域的并集，把显示和点击限定在钉图本身。
 //! 层的原生窗口一旦建好就不再动。缩放、贴边滑动、拖动和翻转都只在页面里移动内容，同时改钉图的
 //! 区域：页面画到新位置之前先扩到旧区域与新内容的并集（[`widen`]），页面画完以后再缩回内容。
@@ -24,15 +24,21 @@ pub fn layers_for(region: ScreenRect, monitors: &[ScreenRect]) -> Vec<ScreenRect
         .collect()
 }
 
-/// 显示器 `monitor` 上钉图层的窗口：整台显示器，但让出最下面一行。
+/// 显示器 `monitor` 上的覆盖窗口（钉图层、钉图菜单、截图框选）：整台显示器，但让出最下面一行。
 ///
-/// 置顶窗口整个盖住一台显示器时，Windows 就当作有全屏程序在跑（`SHQueryUserNotificationState`
-/// 报 `QUNS_BUSY`，通知被压下），窗口区域再小、窗口不在前台也一样；少盖一个像素就不算（本机实测）。
-pub fn layer_window(monitor: ScreenRect) -> ScreenRect {
+/// 只要有一个窗口整个盖住一台显示器，Windows 就当作有全屏程序在跑（`SHQueryUserNotificationState`
+/// 报 `QUNS_BUSY`），与是否置顶、是否在前台、窗口区域多大都无关；少盖一行就不算。Wallpaper Engine
+/// 等程序据此暂停（#230，ADR 0011）。
+pub fn overlay_window(monitor: ScreenRect) -> ScreenRect {
     ScreenRect {
         height: monitor.height.saturating_sub(1),
         ..monitor
     }
+}
+
+/// 显示器 `monitor` 上钉图层的窗口（[`overlay_window`]）。
+pub fn layer_window(monitor: ScreenRect) -> ScreenRect {
+    overlay_window(monitor)
 }
 
 /// 钉图要变到 `to` 时，页面画到新位置之前的区域：盖住旧区域与新内容，过渡中的画面不会被裁掉。

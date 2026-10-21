@@ -107,6 +107,7 @@ impl ReferenceLens {
             return Err(Error::OutdatedLibrary);
         }
         let readers = store::Readers::open(&db, 1)?;
+        super::thumbnail::forget_placeholder_stamps();
         Ok(ReferenceLens {
             inner: Arc::new(Inner {
                 root: info.root.clone(),

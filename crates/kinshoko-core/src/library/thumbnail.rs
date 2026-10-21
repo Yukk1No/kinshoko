@@ -31,6 +31,7 @@ const SDR: &str = "sdr";
 const THUMBS_DIR: &str = "thumbs";
 
 /// 缩略图宽度档位（设备像素）。请求取整到不小于它的最小档位，避免每种列宽各存一份。
+/// 图片墙按同一组档位决定何时重新浏览（`src/wall/thumbnailTier.ts`），两边一起改。
 const TIERS: [u32; 9] = [128, 192, 256, 384, 512, 768, 1024, 1536, 2048];
 
 pub(super) fn tier(px: u32) -> u32 {
@@ -245,9 +246,59 @@ fn placeholder_file(root: &Path, sha: &str) -> Option<PathBuf> {
         .find(|path| path.is_file())
 }
 
+/// 读过的占位图 `data:` 地址（#212、#200）。
+///
+/// 图片墙每次重新浏览（自动打标每写一批图、换缩略图档位）都要带回已加载的全部卡片的占位图；
+/// 5000 张时逐个查找、读取文件约占重新浏览耗时的八成，其中查文件属性与读取各占一半。占位图的内容
+/// 只由原图字节（文件名里的 SHA-256）和管线版本（目录名）决定，所以命中时不碰磁盘。
+/// 失效：删除某张图的派生图时去掉它；整个缓存目录被删掉或换掉时以 `sdr` 目录的创建时间为准，
+/// 每次只读打开资料库（工作区浏览、缩略图请求都会）后重新查看一次这个时间
+/// （[`forget_placeholder_stamps`]）。条目到上限后不再记新的。
+static PLACEHOLDERS: Mutex<Option<PlaceholderCache>> = Mutex::new(None);
+
+const PLACEHOLDER_CACHE_LIMIT: usize = 50_000;
+
+#[derive(Default)]
+struct PlaceholderCache {
+    /// 各资料库 `sdr` 目录的创建时间；没有这个目录时为 `None`。
+    stamps: std::collections::HashMap<PathBuf, Option<std::time::SystemTime>>,
+    /// （资料库根目录，SHA-256）→（读取时的目录创建时间，`data:` 地址）。
+    urls: std::collections::HashMap<(PathBuf, String), (Option<std::time::SystemTime>, String)>,
+}
+
+fn placeholders() -> std::sync::MutexGuard<'static, Option<PlaceholderCache>> {
+    PLACEHOLDERS.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// 只读打开资料库时调用：之后每个资料库的 `sdr` 目录各重新查看一次，缓存目录被删掉或换掉的不再命中。
+pub(super) fn forget_placeholder_stamps() {
+    if let Some(cache) = placeholders().as_mut() {
+        cache.stamps.clear();
+    }
+}
+
 /// 已生成的占位图，作为 `data:` 地址随浏览页返回；还没有时为 `None`。只读，不生成。
 pub(crate) fn placeholder(root: &Path, sha: &str) -> Option<String> {
     use base64::Engine;
+    let key = (root.to_path_buf(), sha.to_owned());
+    let stamp = {
+        let mut guard = placeholders();
+        let cache = guard.get_or_insert_with(Default::default);
+        let stamp = *cache.stamps.entry(root.to_path_buf()).or_insert_with(|| {
+            let sdr = root
+                .join(CACHE_DIR)
+                .join(THUMBS_DIR)
+                .join(PIPELINE)
+                .join(SDR);
+            std::fs::metadata(sdr).ok().and_then(|m| m.created().ok())
+        });
+        if let Some((at, url)) = cache.urls.get(&key)
+            && *at == stamp
+        {
+            return Some(url.clone());
+        }
+        stamp
+    };
     let path = placeholder_file(root, sha)?;
     let bytes = std::fs::read(&path).ok()?;
     let mime = match path.extension()?.to_str()? {
@@ -255,7 +306,15 @@ pub(crate) fn placeholder(root: &Path, sha: &str) -> Option<String> {
         _ => "image/webp",
     };
     let payload = base64::engine::general_purpose::STANDARD.encode(bytes);
-    Some(format!("data:{mime};base64,{payload}"))
+    let url = format!("data:{mime};base64,{payload}");
+    let mut guard = placeholders();
+    let cache = guard.get_or_insert_with(Default::default);
+    // 满了就不再记新的，已记下的留着：图片墙重新浏览总是从头按同一顺序读，清空或淘汰最旧的都会让
+    // 超过上限的大墙每次都从头读文件；不收新条目时至少前 PLACEHOLDER_CACHE_LIMIT 张一直命中。
+    if cache.urls.len() < PLACEHOLDER_CACHE_LIMIT {
+        cache.urls.insert(key, (stamp, url.clone()));
+    }
+    Some(url)
 }
 
 /// 生成占位图要知道的事实：原图位置与转正后的尺寸。只涉及文件，不占用资料库连接。
@@ -349,6 +408,9 @@ pub(super) fn remove_for(root: &Path, sha: &str) {
     let Some(prefix) = sha.get(..2) else {
         return;
     };
+    if let Some(cache) = placeholders().as_mut() {
+        cache.urls.remove(&(root.to_path_buf(), sha.to_owned()));
+    }
     let dir = root
         .join(CACHE_DIR)
         .join(THUMBS_DIR)

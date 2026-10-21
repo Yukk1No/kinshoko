@@ -9,3 +9,5 @@ src/bindings/** text eol=lf
 docs/implementation/evidence/** linguist-generated
 src/bindings/** linguist-generated
 data/builtin-translation-table.json linguist-generated
+# 许可证原文照搬自 GNU，不是手写的。
+LICENSE linguist-vendored

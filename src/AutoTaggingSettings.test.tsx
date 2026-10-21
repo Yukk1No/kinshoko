@@ -49,6 +49,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
     ["校验模型", { state: "preparing", model: "PixAI Tagger v1.0（显卡）" }, /正在加载模型…/, "暂停"],
     ["打标", { state: "running", model: "x", device: "directMl", gpu: "RX 6500 XT", tagged: 12 }, /正在打标 · 显卡 · 已打 12 张/, "暂停"],
     ["暂停", { state: "paused" }, /已暂停/, "继续"],
+    ["全屏程序在前台", { state: "yieldedToFullScreen" }, /因全屏程序或演示模式暂停，回到桌面后自动继续/, "暂停"],
     ["打完", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0 }, /已全部打完/, null],
     ["没有可用设备", { state: "noDevice", reason: "没有独立显卡" }, /自动标签不可用：没有独立显卡/, null],
     ["出错", { state: "failed", reason: "下载失败：超时" }, /下载失败：超时.*稍后会自动重试/, null],
@@ -174,6 +175,25 @@ describe("设置 › 自动标签 › 模型", () => {
 
     fireEvent.change(await hardware(), { target: { value: "auto" } });
     await waitFor(() => expect(calls.filter((c) => c.cmd === "tagging_set_device").at(-1)?.args).toEqual({ device: null }));
+  });
+
+  it("换档之前开始的重新读取晚到时，不把刚选的档盖回去", async () => {
+    let release = () => {};
+    let reads = 0;
+    backend({
+      handle: (cmd, args) => {
+        if (cmd === "tagging_set_device") return { ...choice, selected: args.device };
+        // 第一次读取立即返回；之后（状态到达触发的重新读取）等换档完成后才送回换档前的结果。
+        if (cmd === "tagging_models" && reads++ > 0) return new Promise((done) => { release = () => done(choice); });
+        return undefined;
+      },
+    });
+    render(<AutoTaggingSettings libraryId="L1" />);
+    await waitFor(() => expect(reads).toBe(2));
+    fireEvent.change(await hardware(), { target: { value: "cpu" } });
+    await waitFor(async () => expect((await hardware()).value).toBe("cpu"));
+    await act(async () => { release(); });
+    expect((await hardware()).value).toBe("cpu");
   });
 
   it("下载完成后重新读取各档是否已下载", async () => {

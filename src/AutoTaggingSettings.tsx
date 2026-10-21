@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Cpu, PackageOpen, Sparkles, Tags } from "lucide-react";
 import type { Device } from "./bindings/Device";
 import type { HardwareOption } from "./bindings/HardwareOption";
@@ -43,13 +43,16 @@ export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string |
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** 画师改过选择（换档、导入、下载）的次数：在这之前开始的重新读取晚到时不再采用，免得把刚选的档盖回去。 */
+  const changes = useRef(0);
 
   // 状态变了（例如下载完成、换了档）就重读各档是否已下载。
   const phase = status?.state ?? null;
   useEffect(() => {
     let alive = true;
+    const since = changes.current;
     taggingModels().then(
-      (value) => alive && value && setChoice(value),
+      (value) => alive && value && since === changes.current && setChoice(value),
       () => {},
     );
     return () => {
@@ -60,6 +63,7 @@ export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string |
   async function run(change: () => Promise<ModelChoice | null>, done: string | null) {
     setError(null);
     setMessage(null);
+    changes.current += 1;
     try {
       const next = await change();
       if (next) {
@@ -123,6 +127,10 @@ function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; sta
       return row(`正在打标 · ${DEVICE_NAME[status.device]} · 已打 ${status.tagged} 张`, pause);
     case "paused":
       return row("已暂停", button("继续", taggingResume));
+    // 有全屏程序（游戏）或演示模式时自动让出显卡（#212），不是卡住或出错。系统的通知状态报告不了
+    // Windows 设置里的“请勿打扰”开关，所以不提它。
+    case "yieldedToFullScreen":
+      return row("因全屏程序或演示模式暂停，回到桌面后自动继续", pause);
     case "idle":
       return row("已全部打完");
     case "needsDownload": {

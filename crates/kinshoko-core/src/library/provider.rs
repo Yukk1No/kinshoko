@@ -19,6 +19,11 @@ pub(crate) struct ProviderImage {
     #[serde(skip)]
     pub folders: Vec<String>,
 }
+/// 工作区卡片的缩略图地址 `<资料库 id>/<参考图 id>/<档位>`：与 `Library::browse` 一样把请求的像素
+/// 取整到档位（#200）。图片墙缩放时请求的像素在同一档位内变化，地址不变，WebView 不必重新请求。
+pub(crate) fn thumbnail_address(library_id: &str, image_id: &str, px: u32) -> String {
+    format!("{library_id}/{image_id}/{}", super::thumbnail::tier(px))
+}
 pub(crate) struct ProviderSnapshot {
     pub list_revision: i64,
     pub vocabulary_revision: i64,

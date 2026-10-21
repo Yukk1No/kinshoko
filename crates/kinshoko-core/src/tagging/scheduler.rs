@@ -15,6 +15,9 @@ use crate::library::{Error as LibraryError, FactSource, Library, TaggingOutcome}
 
 use super::interpret::interpret;
 use super::models::{HUGGING_FACE, ModelSpec, ModelStore, PrepareStage, catalog};
+mod worker;
+
+use super::foreground::ForegroundCheck;
 use super::port::{
     Device, DeviceInfo, PreparedModel, SessionStopper, TagFailure, Tagger, TaggerSession,
 };
@@ -47,6 +50,9 @@ pub struct TaggingConfig {
     /// Optional application publication boundary. Only result writes acquire it;
     /// model loading and inference stay outside. Stop/join callers must release it first.
     pub publication_gate: Option<Arc<Mutex<()>>>,
+    /// 有全屏程序或演示模式时让出打标（#212）：返回真时结束会话、归还显存，每隔 `poll_interval`
+    /// 再看一次，恢复后继续。为空时不检查。
+    pub foreground: Option<ForegroundCheck>,
 }
 
 impl TaggingConfig {
@@ -61,6 +67,7 @@ impl TaggingConfig {
             max_gpu_failures: 2,
             preferred: None,
             publication_gate: None,
+            foreground: None,
         }
     }
 
@@ -132,6 +139,8 @@ pub enum TaggingStatus {
     },
     /// 画师暂停了打标；会话已结束，显存已归还。
     Paused,
+    /// 有全屏程序或演示模式，自动让出（#212）；会话已结束，显存已归还，恢复后自己继续。
+    YieldedToFullScreen,
     /// 出错，稍后自动重试。
     #[serde(rename_all = "camelCase")]
     Failed {
@@ -329,319 +338,4 @@ struct Worker {
 struct Choice {
     spec: ModelSpec,
     fallback: Option<String>,
-}
-
-impl Worker {
-    fn run(mut self) {
-        loop {
-            let (stop, paused) = {
-                let c = self.shared.control();
-                (c.stop, c.paused)
-            };
-            if stop {
-                break;
-            }
-            if paused {
-                self.end_session();
-                self.shared.set(TaggingStatus::Paused);
-                let c = self.shared.control();
-                if c.paused && !c.stop {
-                    drop(self.shared.wake.wait(c));
-                }
-                continue;
-            }
-            self.step();
-        }
-        self.end_session();
-    }
-
-    /// 结束会话（打标子进程），归还显存。
-    fn end_session(&mut self) {
-        self.shared.set_stopper(None);
-        self.session = None;
-    }
-
-    /// 显卡档在用的显卡名称；CPU 档为空。
-    fn gpu_name(&self, device: Device) -> Option<String> {
-        if device != Device::DirectMl {
-            return None;
-        }
-        self.device_info
-            .as_ref()
-            .and_then(|info| info.gpu.as_ref())
-            .map(|gpu| gpu.name.clone())
-    }
-
-    fn gpu_usable(&self) -> bool {
-        self.gpu_failures < self.config.max_gpu_failures
-    }
-
-    /// 画师选了硬件档时只看这一档的模型；自动时按顺序取本机条件满足的第一个。
-    fn choose(&mut self) -> Result<Choice, String> {
-        let info = self
-            .device_info
-            .get_or_insert_with(|| self.tagger.probe())
-            .clone();
-        let preferred = self.shared.control().preferred;
-        let mut reasons = Vec::new();
-        let candidates = self
-            .config
-            .models
-            .iter()
-            .filter(|spec| preferred.is_none_or(|device| spec.device == device));
-        for spec in candidates {
-            let unusable = match spec.device {
-                Device::DirectMl => match &info.gpu {
-                    None => Some("没有独立显卡".to_owned()),
-                    Some(_) if !self.gpu_usable() => Some("显卡多次出错，本次不再使用".to_owned()),
-                    Some(gpu) if gpu.vram_budget < vram_wanted(spec) => Some(format!(
-                        "{} 的显存额度不够（需要约 {}）",
-                        gpu.name,
-                        gigabytes(vram_wanted(spec))
-                    )),
-                    Some(_) => None,
-                },
-                Device::Cpu => (spec.ram_need != 0
-                    && info.available_ram < spec.ram_need + RAM_MARGIN)
-                    .then(|| {
-                        format!(
-                            "可用内存不够（需要约 {}）",
-                            gigabytes(spec.ram_need + RAM_MARGIN)
-                        )
-                    }),
-            };
-            match unusable {
-                Some(reason) => reasons.push(reason),
-                None => {
-                    return Ok(Choice {
-                        spec: spec.clone(),
-                        fallback: (!reasons.is_empty()).then(|| reasons.join("；")),
-                    });
-                }
-            }
-        }
-        Err(if reasons.is_empty() {
-            "没有可用的打标模型".into()
-        } else {
-            reasons.join("；")
-        })
-    }
-
-    fn step(&mut self) {
-        let Choice { spec, fallback } = match self.choose() {
-            Ok(choice) => choice,
-            Err(reason) => {
-                self.end_session();
-                self.shared.set(TaggingStatus::NoDevice { reason });
-                // 内存可能稍后够用，重新探测。
-                self.device_info = None;
-                self.shared.sleep(self.config.retry_delay);
-                return;
-            }
-        };
-        if self.chosen.as_ref().is_some_and(|key| *key != spec.key) {
-            // 自动档换到了另一个模型（例如显卡不可用退到 CPU）：它的下载要画师重新确认。
-            self.shared.control().download = false;
-        }
-        self.chosen = Some(spec.key.clone());
-        let Some(model) = self.model(&spec, fallback) else {
-            return;
-        };
-        let source = FactSource::model(&spec.source);
-        let ids = match self.library.images_to_tag(&source, BATCH) {
-            Ok(ids) => ids,
-            Err(e) => return self.fail(format!("读取待打标的图失败：{e}")),
-        };
-        if ids.is_empty() {
-            self.end_session();
-            self.shared.set(TaggingStatus::Idle {
-                model: spec.label.clone(),
-                device: spec.device,
-                gpu: self.gpu_name(spec.device),
-                tagged: self.tagged,
-            });
-            self.shared.sleep(self.config.poll_interval);
-            return;
-        }
-        for id in ids {
-            if self.shared.interrupted() {
-                return;
-            }
-            if !self.tag_one(&model, &source, &id) {
-                return;
-            }
-        }
-    }
-
-    /// 模型就绪时返回；否则显示需要下载或下载进度，返回 `None`。
-    fn model(&mut self, spec: &ModelSpec, fallback: Option<String>) -> Option<PreparedModel> {
-        if let Some(model) = self.store.ready(spec) {
-            return Some(model);
-        }
-        self.end_session();
-        if !self.shared.control().download {
-            self.shared.set(TaggingStatus::NeedsDownload {
-                model: spec.label.clone(),
-                size: spec.download_size(),
-                downloaded: self.store.downloaded(spec),
-                fallback,
-            });
-            self.shared.sleep(self.config.poll_interval);
-            return None;
-        }
-        let shared = self.shared.clone();
-        let label = spec.label.clone();
-        let mut progress = |stage: PrepareStage| {
-            shared.set(match stage {
-                PrepareStage::Downloading { downloaded, total } => TaggingStatus::Downloading {
-                    model: label.clone(),
-                    downloaded,
-                    total,
-                },
-                PrepareStage::Verifying => TaggingStatus::Preparing {
-                    model: label.clone(),
-                },
-            })
-        };
-        match self.store.prepare(spec, &mut progress, &self.shared.cancel) {
-            Ok(model) => Some(model),
-            Err(reason) => {
-                self.fail(reason);
-                None
-            }
-        }
-    }
-
-    fn fail(&mut self, reason: String) {
-        self.end_session();
-        self.shared.set(TaggingStatus::Failed { reason });
-        self.shared.sleep(self.config.retry_delay);
-    }
-
-    /// 打一张图并写入。返回 `false` 表示这一批要中止（会话失效等）。
-    fn tag_one(&mut self, model: &PreparedModel, source: &FactSource, id: &str) -> bool {
-        let spec = &model.spec;
-        let path = match self.library.original_to_tag(id) {
-            Ok(path) => path,
-            // 图在此期间被删除了。
-            Err(LibraryError::UnknownImage) => return true,
-            Err(e) => {
-                self.fail(format!("读取原图位置失败：{e}"));
-                return false;
-            }
-        };
-        if self
-            .session
-            .as_ref()
-            .is_none_or(|(key, _)| *key != spec.key)
-        {
-            self.end_session();
-            let shared = self.shared.clone();
-            let started = self.tagger.start(model, spec.device, &move |stopper| {
-                shared.register_stopper(stopper)
-            });
-            match started {
-                Ok(session) => {
-                    self.session = Some((spec.key.clone(), session));
-                }
-                Err(_) if self.shared.interrupted() => {
-                    // 加载中画师暂停（或关闭资料库）结束了子进程：不算出错，恢复后重新开始。
-                    self.end_session();
-                    return false;
-                }
-                Err(failure) => {
-                    if spec.device == Device::DirectMl {
-                        self.gpu_failures += 1;
-                    }
-                    self.fail(format!("无法开始打标：{failure}"));
-                    return false;
-                }
-            }
-            // 加载刚完成时画师暂停了：开关可能已被按过，这里确保会话结束。
-            if self.shared.interrupted() {
-                self.end_session();
-                return false;
-            }
-        }
-        self.shared.set(TaggingStatus::Running {
-            model: spec.label.clone(),
-            device: spec.device,
-            gpu: self.gpu_name(spec.device),
-            tagged: self.tagged,
-        });
-        let (_, session) = self.session.as_mut().expect("会话已开始");
-        let result = session.tag(&path);
-        let written = match result {
-            Ok(raw) => {
-                let s = interpret(spec, &raw);
-                // Only publication joins the application's final side-effect boundary.
-                // Inference and model loading above must never hold it.
-                let gate = self.config.publication_gate.clone();
-                let publication = gate
-                    .as_ref()
-                    .map(|gate| gate.lock().unwrap_or_else(|error| error.into_inner()));
-                if self.shared.interrupted() {
-                    drop(publication);
-                    self.end_session();
-                    return false;
-                }
-                self.crashes.remove(id);
-                self.tagged += 1;
-                self.library
-                    .replace_source_tags(source, id, &s.tags)
-                    .and_then(|()| self.library.replace_source_rating(source, id, s.rating))
-                    .and_then(|()| {
-                        self.library
-                            .finish_tagging(source, id, TaggingOutcome::Done)
-                    })
-            }
-            Err(TagFailure::BadImage(reason)) => {
-                self.library
-                    .finish_tagging(source, id, TaggingOutcome::Failed(reason))
-            }
-            Err(_) if self.shared.interrupted() => {
-                // 画师暂停（或停止）时结束了会话：这张不算出错，恢复后重打。
-                self.end_session();
-                return false;
-            }
-            Err(failure) => {
-                // 会话已失效：结束它，稍后重启。
-                self.end_session();
-                if matches!(failure, TagFailure::DeviceLost(_)) && spec.device == Device::DirectMl {
-                    // 输入尺寸固定，显卡重置或显存溢出不怪这张图：记在显卡头上，多次后退到 CPU 档。
-                    self.gpu_failures += 1;
-                    self.fail(failure.to_string());
-                    return false;
-                }
-                let crashes = self.crashes.entry(id.to_owned()).or_default();
-                *crashes += 1;
-                if *crashes >= self.config.max_crashes_per_image {
-                    self.crashes.remove(id);
-                    let reason = format!("打标子进程在这张图上反复出错：{failure}");
-                    let _ = self
-                        .library
-                        .finish_tagging(source, id, TaggingOutcome::Failed(reason));
-                }
-                self.fail(failure.to_string());
-                return false;
-            }
-        };
-        match written {
-            Ok(()) | Err(LibraryError::UnknownImage) => true,
-            Err(e) => {
-                self.fail(format!("写入标签建议失败：{e}"));
-                false
-            }
-        }
-    }
-}
-
-/// 显卡档要求的显存额度：比峰值估计多 25%。
-fn vram_wanted(spec: &ModelSpec) -> u64 {
-    spec.vram_need / 4 * 5
-}
-
-/// 给画师看的大小，例如 `2.3 GB`。
-fn gigabytes(bytes: u64) -> String {
-    format!("{:.1} GB", bytes as f64 / 1e9)
 }

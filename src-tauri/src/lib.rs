@@ -10,6 +10,9 @@ mod desktop;
 mod diagnostics;
 mod fidelity_gate;
 mod library;
+#[cfg(test)]
+mod plugin_acl_tests;
+mod run_log;
 mod shell;
 mod tagging;
 mod updater;
@@ -73,7 +76,9 @@ pub fn run() {
             commands::set_tag_display,
             commands::set_keep_selection_on_safe_mode,
             commands::set_force_srgb,
-            commands::set_usage_log,
+            run_log::set_run_log,
+            run_log::clear_run_log,
+            run_log::log_frontend,
             commands::set_viewer_background,
             commands::migrate_viewer_background,
             commands::ui_scale,
@@ -84,8 +89,6 @@ pub fn run() {
             diagnostics::runtime_status,
             diagnostics::open_runtime_update,
             diagnostics::export_diagnostics,
-            diagnostics::export_usage_log,
-            diagnostics::clear_usage_log,
             updater::update_status,
             updater::check_update,
             updater::install_update,
@@ -132,6 +135,9 @@ pub fn run() {
             event: tauri::WindowEvent::Destroyed,
             ..
         } if label == shell::MAIN_WINDOW => {
+            run_log::record(kinshoko_core::diagnostics::LogEvent::WindowClosed {
+                window: kinshoko_core::diagnostics::WindowKind::Main,
+            });
             desktop::clear_viewer_reference(app);
             library::revoke_import_preview_context(app);
             backup::on_main_window_closed(app);
