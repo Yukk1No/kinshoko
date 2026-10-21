@@ -34,6 +34,14 @@ it.each([
   expect(rightClick(document.querySelector(selector)!)).toBe(false);
 });
 
+it.each([
+  ['<input disabled />', "input"],
+  ["<textarea disabled></textarea>", "textarea"],
+])("被禁用的输入框不放行：%s", (markup, selector) => {
+  document.body.innerHTML = markup;
+  expect(rightClick(document.querySelector(selector)!)).toBe(true);
+});
+
 it("复选框等不能输入文字的 input 不算", () => {
   document.body.innerHTML = '<input type="checkbox" />';
   expect(rightClick(document.querySelector("input")!)).toBe(true);

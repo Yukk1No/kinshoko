@@ -3,8 +3,9 @@ const TEXT_INPUTS = new Set(["", "text", "search", "url", "email", "tel", "passw
 
 function editable(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
-  if (target instanceof HTMLTextAreaElement) return true;
-  if (target instanceof HTMLInputElement) return TEXT_INPUTS.has(target.getAttribute("type")?.toLowerCase() ?? "");
+  // 被禁用的输入框编辑不了，系统菜单也就没有用处。
+  if (target instanceof HTMLTextAreaElement) return !target.disabled;
+  if (target instanceof HTMLInputElement) return !target.disabled && TEXT_INPUTS.has(target.getAttribute("type")?.toLowerCase() ?? "");
   return (target as HTMLElement).isContentEditable || !!target.closest('[contenteditable]:not([contenteditable="false"])');
 }
 
