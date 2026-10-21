@@ -1,0 +1,21 @@
+Kinshoko
+Copyright (C) 2026 Kinshoko contributors
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version. See the file LICENSE.
+
+Additional permission under GNU GPL version 3 section 7
+
+If you modify this Program, or any covered work, by linking or combining it
+with ONNX Runtime (or a modified version of that library) and/or Microsoft
+DirectML (or a modified version of that library), containing parts covered
+by the terms of their respective licenses, the licensors of this Program
+grant you additional permission to convey the resulting work, including the
+binaries of those libraries alongside it. Corresponding Source for a
+non-source form of such a combination need not include the source code for
+the parts of ONNX Runtime or Microsoft DirectML used.
+
+You may remove this additional permission from your copy, or from any part
+of it, as described in section 7 of the GNU General Public License.

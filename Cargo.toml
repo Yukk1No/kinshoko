@@ -9,6 +9,7 @@ version = "1.0.0-beta.1"
 edition = "2024"
 rust-version = "1.95"
 publish = false
+license = "GPL-3.0-or-later"
 
 [workspace.dependencies]
 kinshoko-core = { path = "crates/kinshoko-core" }
