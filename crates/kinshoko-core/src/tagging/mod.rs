@@ -9,6 +9,7 @@
 //!   与 [`Engine`]。
 //! - [`ModelStore`]：本设备的模型仓库；[`catalog`]：内置的固定版本模型。
 
+mod foreground;
 mod interpret;
 mod memory;
 mod models;
@@ -17,6 +18,7 @@ mod port;
 mod process;
 mod scheduler;
 
+pub use foreground::{ForegroundCheck, UserNotificationState, yields_to_foreground};
 pub use memory::InMemoryTagger;
 pub use models::{
     Chunking, HUGGING_FACE, HardwareOption, ModelChoice, ModelSpec, ModelStore, PrepareStage,
@@ -26,5 +28,5 @@ pub use port::{
     Device, DeviceInfo, GpuInfo, PreparedModel, RawTag, SessionStopper, TagFailure, Tagger,
     TaggerSession,
 };
-pub use process::{Backend, Engine, EngineError, ProcessTagger, serve};
+pub use process::{Backend, Engine, EngineError, ProcessTagger, abort_device_lost, serve};
 pub use scheduler::{LibraryTaggingStatus, Tagging, TaggingConfig, TaggingStatus};

@@ -103,6 +103,20 @@ fn fatal(err: EngineError) -> Reply {
     }
 }
 
+/// 在子进程里从任意线程调用：报告显卡不可用（推理进行中显存超额等，#212）并立即结束子进程，
+/// 不等手上的推理。退出即归还显存；主进程按显卡问题处理，不记在这张图头上。
+pub fn abort_device_lost(reason: &str) -> ! {
+    let mut out = std::io::stdout().lock();
+    send(
+        &mut out,
+        &Reply::Fatal {
+            reason: reason.to_owned(),
+            device_lost: true,
+        },
+    );
+    std::process::exit(1);
+}
+
 /// 子进程的主循环：读请求、推理、写结果。标准输入关闭时正常结束；返回进程退出码。
 pub fn serve(backend: &mut dyn Backend, input: impl BufRead, mut output: impl Write) -> i32 {
     let mut lines = input.lines();

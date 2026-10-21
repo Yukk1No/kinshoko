@@ -1,6 +1,9 @@
 //! ONNX Runtime 推理（移植自 `tools/tagger-probe` 的 bench.rs）。
 
 use std::path::Path;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use kinshoko_core::tagging::{Device, EngineError, RawTag};
 use ort::session::{HasSelectedOutputs, OutputSelector, RunOptions, Session};
@@ -8,6 +11,45 @@ use ort::value::Tensor;
 
 use crate::preprocess;
 use crate::sysinfo;
+
+/// 推理进行中多久查一次显存占用。
+const VRAM_POLL: Duration = Duration::from_millis(250);
+
+/// 本进程的显存占用超过系统给的额度时，给画师看的原因；没有超额（或没有独显）时为空。
+/// 超额时 Windows 把显存换页出去，一张要一分钟，同时开着的游戏也会卡顿甚至让驱动重置（#212）。
+fn vram_exceeded() -> Option<String> {
+    let gpu = sysinfo::discrete_gpu()?;
+    (gpu.usage > gpu.budget).then(|| {
+        format!(
+            "显存不够：打标占用 {:.1} GB，超过系统现在给的 {:.1} GB（可能有游戏或其他程序在用显卡）",
+            gpu.usage as f64 / 1e9,
+            gpu.budget as f64 / 1e9
+        )
+    })
+}
+
+/// 推理期间在另一个线程盯着显存：超额就报告显卡不可用并立即结束子进程，不等这张图推理完。
+fn watch_vram() -> impl Drop {
+    struct Watch(Arc<AtomicBool>);
+    impl Drop for Watch {
+        fn drop(&mut self) {
+            self.0.store(true, Ordering::Relaxed);
+        }
+    }
+    let done = Arc::new(AtomicBool::new(false));
+    let seen = done.clone();
+    let _ = std::thread::Builder::new()
+        .name("kinshoko-vram-watch".into())
+        .spawn(move || {
+            while !seen.load(Ordering::Relaxed) {
+                if let Some(reason) = vram_exceeded() {
+                    kinshoko_core::tagging::abort_device_lost(&reason);
+                }
+                std::thread::sleep(VRAM_POLL);
+            }
+        });
+    Watch(done)
+}
 
 /// 低于这个分数的结果不回传；最低的类别阈值是 0.15。
 const REPORT_FLOOR: f32 = 0.05;
@@ -121,16 +163,14 @@ impl kinshoko_core::tagging::Engine for OrtEngine {
             image::open(image).map_err(|e| EngineError::BadImage(format!("无法解码：{e}")))?;
         let prepared = preprocess::prepare(&img);
         drop(img);
+        let watch = (self.device == Device::DirectMl).then(watch_vram);
         let scores = self.infer(prepared).map_err(|e| classify(&e, "推理失败"))?;
-        // 超出显存额度时 Windows 把显存换页出去，一张要一分钟；当作显存溢出处理。
+        drop(watch);
+        // 推理刚结束时再查一次：看守线程两次检查之间超额的也不漏掉。
         if self.device == Device::DirectMl
-            && let Some(gpu) = sysinfo::discrete_gpu()
-            && gpu.usage > gpu.budget
+            && let Some(reason) = vram_exceeded()
         {
-            return Err(EngineError::DeviceLost(format!(
-                "显存占用 {} 超过系统额度 {}",
-                gpu.usage, gpu.budget
-            )));
+            return Err(EngineError::DeviceLost(reason));
         }
         pair(&self.vocab, scores)
     }
