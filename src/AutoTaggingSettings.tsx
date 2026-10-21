@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Cpu, PackageOpen, Sparkles, Tags } from "lucide-react";
 import type { Device } from "./bindings/Device";
 import type { HardwareOption } from "./bindings/HardwareOption";
@@ -43,13 +43,16 @@ export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string |
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** 画师改过选择（换档、导入、下载）的次数：在这之前开始的重新读取晚到时不再采用，免得把刚选的档盖回去。 */
+  const changes = useRef(0);
 
   // 状态变了（例如下载完成、换了档）就重读各档是否已下载。
   const phase = status?.state ?? null;
   useEffect(() => {
     let alive = true;
+    const since = changes.current;
     taggingModels().then(
-      (value) => alive && value && setChoice(value),
+      (value) => alive && value && since === changes.current && setChoice(value),
       () => {},
     );
     return () => {
@@ -60,6 +63,7 @@ export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string |
   async function run(change: () => Promise<ModelChoice | null>, done: string | null) {
     setError(null);
     setMessage(null);
+    changes.current += 1;
     try {
       const next = await change();
       if (next) {

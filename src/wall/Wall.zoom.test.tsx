@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { createRef } from "react";
 import { Wall, type WallHandle } from "./Wall";
+import { thumbnailTier } from "./thumbnailTier";
 
 // #102 故事20/21（#111）：Ctrl+滚轮直接驱动密度，锚定光标下的图，停手 220 ms 后提交。
 let browsed: number[];
@@ -108,6 +109,15 @@ it("滚动中只预览；最后一格后 220 ms 提交一次，提交后位置�
   expect(cards().map((node) => [node.dataset.id, node.style.top, node.style.width])).toEqual(placed);
   expect(browsed.length).toBeGreaterThan(requests);
   expect(browsed.at(-1)).toBe(Math.ceil(320 * 1.5 * (window.devicePixelRatio || 1)));
+});
+
+it("提交的大小与原来同一个缩略图档位时不重新浏览（#200）", async () => {
+  const { rerender } = await setup(240);
+  const requests = browsed.length;
+  const dpr = window.devicePixelRatio || 1;
+  expect(thumbnailTier(Math.ceil(250 * 1.5 * dpr))).toBe(thumbnailTier(Math.ceil(240 * 1.5 * dpr)));
+  await act(async () => { rerender(250); });
+  expect(browsed.length).toBe(requests);
 });
 
 it("缩回原来的大小时不提交，只撤掉预览", async () => {
