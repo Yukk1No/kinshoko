@@ -17,7 +17,8 @@ use kinshoko_core::Library;
 use kinshoko_core::library::{ImportOutcome, ImportSource};
 use kinshoko_core::tagging::{
     Backend, Device, DeviceInfo, Engine, EngineError, GpuInfo, PreparedModel, ProcessTagger,
-    RawTag, SessionStopper, TagFailure, Tagger, Tagging, TaggingConfig, TaggingStatus, serve,
+    RawTag, SessionStopper, TagFailure, Tagger, Tagging, TaggingConfig, TaggingStatus,
+    abort_device_lost, serve,
 };
 
 const CHILD: &str = "child_tagger_worker";
@@ -75,6 +76,11 @@ impl Engine for FakeEngine {
         }
         if name.contains("noisy") {
             eprintln!(r"ORT 警告：C:\Users\画师\models\model.onnx 的节点回退到 CPU");
+        }
+        if name.contains("vram") {
+            // 推理进行中显存超额：别的线程报告后立即结束子进程，不等这张图。
+            std::thread::spawn(|| abort_device_lost("显存占用超过系统额度"));
+            std::thread::sleep(Duration::from_secs(3600));
         }
         if name.contains("bad") {
             return Err(EngineError::BadImage("无法解码".into()));
@@ -194,6 +200,21 @@ fn the_subprocess_vram_budget_and_its_stderr_reach_the_run_log_without_paths() {
         !text.contains("画师") && !text.contains("model.onnx"),
         "{text}"
     );
+}
+
+/// 推理进行中显存超额（#212）：子进程立即结束、归还显存，报告为显卡问题而不是这张图的问题。
+#[test]
+fn running_out_of_video_memory_mid_inference_ends_the_session_as_a_device_problem() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut session = tagger()
+        .start(&model(dir.path()), Device::DirectMl, &|_| {})
+        .unwrap();
+    let t = Instant::now();
+    assert!(matches!(
+        session.tag(&dir.path().join("vram.png")),
+        Err(TagFailure::DeviceLost(_))
+    ));
+    assert!(t.elapsed() < Duration::from_secs(2), "{:?}", t.elapsed());
 }
 
 #[test]
@@ -361,6 +382,13 @@ fn within(limit: Duration, what: &str, mut done: impl FnMut() -> bool) {
 
 /// 带一张图的资料库与打标调度；第一次加载模型会卡住。
 fn tagging_with_slow_load(dir: &Path) -> (Arc<Library>, String, Tagging, PathBuf) {
+    tagging_with_slow_load_and(dir, |_| {})
+}
+
+fn tagging_with_slow_load_and(
+    dir: &Path,
+    configure: impl FnOnce(&mut TaggingConfig),
+) -> (Arc<Library>, String, Tagging, PathBuf) {
     let library = Arc::new(Library::create(&dir.join("lib"), "库").unwrap());
     let id = import(&library, dir, &["first"]).remove(0);
     let marker = dir.join("loading.pid");
@@ -371,6 +399,7 @@ fn tagging_with_slow_load(dir: &Path) -> (Arc<Library>, String, Tagging, PathBuf
     config.base_url = server.base_url().to_owned();
     config.retry_delay = Duration::from_millis(20);
     config.poll_interval = Duration::from_millis(20);
+    configure(&mut config);
     let tagging = Tagging::start(library.clone(), Arc::new(tagger), config);
     tagging.download();
     (library, id, tagging, marker)
@@ -395,6 +424,27 @@ fn pausing_while_the_subprocess_loads_the_model_ends_it_at_once() {
         matches!(tagging.status(), TaggingStatus::Idle { .. })
     });
     assert_eq!(library.image_tags(&id, "zh-CN").unwrap().tags.len(), 1);
+}
+
+/// 加载模型期间出现全屏程序（#212）：立刻结束正在加载的子进程、归还显卡，状态是让出而不是出错。
+#[test]
+fn a_full_screen_program_appearing_while_the_model_loads_ends_the_load_at_once() {
+    let dir = tempfile::tempdir().unwrap();
+    let full_screen = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let watched = full_screen.clone();
+    let (_library, _id, tagging, marker) = tagging_with_slow_load_and(dir.path(), move |config| {
+        config.foreground = Some(kinshoko_core::tagging::ForegroundCheck::new(move || {
+            watched.load(std::sync::atomic::Ordering::SeqCst)
+        }));
+    });
+    let pid = loading_child(&marker, || format!("{:?}", tagging.status()));
+
+    full_screen.store(true, std::sync::atomic::Ordering::SeqCst);
+    within(
+        Duration::from_secs(5),
+        "让出并回收加载中的子进程",
+        || matches!(tagging.status(), TaggingStatus::YieldedToFullScreen) && !alive(pid),
+    );
 }
 
 /// 关闭资料库（丢弃调度）时子进程正在加载模型：同样立刻结束并回收，不等加载完。

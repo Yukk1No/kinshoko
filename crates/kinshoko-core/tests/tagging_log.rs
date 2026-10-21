@@ -87,3 +87,23 @@ fn pausing_in_the_middle_of_a_run_ends_it_without_a_finish() {
         Some(LogEvent::TaggingStarted { .. })
     ));
 }
+
+#[test]
+fn yielding_to_a_full_screen_program_is_logged_once_as_a_pause_with_its_reason() {
+    use kinshoko_core::diagnostics::PauseReason;
+    let t0 = Instant::now();
+    let mut log = TaggingLog::new(None);
+    log.observe(&running(0), t0);
+
+    assert_eq!(
+        log.observe(&TaggingStatus::YieldedToFullScreen, t0),
+        Some(LogEvent::TaggingPaused {
+            reason: PauseReason::FullScreen
+        })
+    );
+    assert_eq!(log.observe(&TaggingStatus::YieldedToFullScreen, t0), None);
+    assert!(matches!(
+        log.observe(&running(1), t0),
+        Some(LogEvent::TaggingStarted { .. })
+    ));
+}

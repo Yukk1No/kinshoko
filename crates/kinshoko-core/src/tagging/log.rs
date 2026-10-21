@@ -1,12 +1,11 @@
 //! 把打标的状态变化折成运行日志里的事件（#219）。只记开始、结束、出错与不可用；
-//! 张数增加、下载进度这类变化不记。暂停由暂停的一方记下原因（[`PauseReason`]）。
-//!
-//! [`PauseReason`]: crate::diagnostics::PauseReason
+//! 张数增加、下载进度这类变化不记。画师点的暂停由命令一侧记下；给全屏程序让出（#212）在这里
+//! 记成原因为 [`PauseReason::FullScreen`] 的暂停。
 
 use std::time::Instant;
 
 use super::scheduler::TaggingStatus;
-use crate::diagnostics::{Detail, LibraryNo, LogEvent};
+use crate::diagnostics::{Detail, LibraryNo, LogEvent, PauseReason};
 
 /// 一个资料库的打标在运行日志里的记录者。
 #[derive(Debug)]
@@ -16,6 +15,8 @@ pub struct TaggingLog {
     run_started: Option<Instant>,
     /// 上次记下的出错或不可用原因，同一原因不重复记。
     last_problem: Option<String>,
+    /// 正在给全屏程序让出。
+    yielded: bool,
 }
 
 impl TaggingLog {
@@ -24,11 +25,16 @@ impl TaggingLog {
             library,
             run_started: None,
             last_problem: None,
+            yielded: false,
         }
     }
 
     /// 看到新的状态；需要记下时返回事件。
     pub fn observe(&mut self, status: &TaggingStatus, now: Instant) -> Option<LogEvent> {
+        let yielded = matches!(status, TaggingStatus::YieldedToFullScreen);
+        if std::mem::replace(&mut self.yielded, yielded) && yielded {
+            return None;
+        }
         match status {
             TaggingStatus::Running { device, .. } => {
                 self.last_problem = None;
@@ -61,6 +67,12 @@ impl TaggingLog {
             TaggingStatus::Paused => {
                 self.run_started = None;
                 None
+            }
+            TaggingStatus::YieldedToFullScreen => {
+                self.run_started = None;
+                Some(LogEvent::TaggingPaused {
+                    reason: PauseReason::FullScreen,
+                })
             }
             TaggingStatus::Starting
             | TaggingStatus::NeedsDownload { .. }

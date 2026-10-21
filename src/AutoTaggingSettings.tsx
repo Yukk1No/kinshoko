@@ -127,6 +127,10 @@ function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; sta
       return row(`正在打标 · ${DEVICE_NAME[status.device]} · 已打 ${status.tagged} 张`, pause);
     case "paused":
       return row("已暂停", button("继续", taggingResume));
+    // 有全屏程序（游戏）或演示模式时自动让出显卡（#212），不是卡住或出错。系统的通知状态报告不了
+    // Windows 设置里的“请勿打扰”开关，所以不提它。
+    case "yieldedToFullScreen":
+      return row("因全屏程序或演示模式暂停，回到桌面后自动继续", pause);
     case "idle":
       return row("已全部打完");
     case "needsDownload": {

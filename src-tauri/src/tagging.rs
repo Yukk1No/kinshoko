@@ -13,8 +13,9 @@ use std::time::{Duration, Instant};
 use kinshoko_core::Library;
 use kinshoko_core::diagnostics::{LogEvent, PauseReason};
 use kinshoko_core::tagging::{
-    Device, HUGGING_FACE, LibraryTaggingStatus, ModelChoice, ModelStore, ProcessTagger, Tagging,
-    TaggingConfig, TaggingLog, catalog,
+    Device, ForegroundCheck, HUGGING_FACE, LibraryTaggingStatus, ModelChoice, ModelStore,
+    ProcessTagger, Tagging, TaggingConfig, TaggingLog, UserNotificationState, catalog,
+    yields_to_foreground,
 };
 use tauri::{AppHandle, Emitter, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt as _;
@@ -124,6 +125,9 @@ pub fn attach<R: Runtime>(app: &AppHandle<R>, library: Arc<Library>) {
     let mut config = TaggingConfig::with_catalog(state.models_dir.clone());
     config.preferred = *lock(&state.preferred);
     config.publication_gate = Some(crate::library::visibility_publication_gate(app));
+    config.foreground = Some(ForegroundCheck::new(|| {
+        yields_to_foreground(user_notification_state(), foreground_is_ours())
+    }));
     let library_id = library.info().id.clone();
     let log = TaggingLog::new(crate::library::library_no(app, &library_id));
     let tagging = Tagging::start(library, Arc::new(tagger), config);
@@ -135,6 +139,34 @@ pub fn attach<R: Runtime>(app: &AppHandle<R>, library: Arc<Library>) {
         tagging,
         log,
     });
+}
+
+/// 系统报告的通知状态（全屏程序、演示模式、忙碌等，#212；报告不了 Windows 设置里的“请勿打扰”开关）；读不到时为 `None`。
+#[cfg(windows)]
+#[allow(unsafe_code)]
+fn user_notification_state() -> Option<UserNotificationState> {
+    let mut state = 0;
+    // SAFETY：只写入本函数持有的 `state`。
+    let hr = unsafe { windows_sys::Win32::UI::Shell::SHQueryUserNotificationState(&mut state) };
+    (hr >= 0)
+        .then_some(state)
+        .and_then(UserNotificationState::from_raw)
+}
+
+#[cfg(not(windows))]
+fn user_notification_state() -> Option<UserNotificationState> {
+    None
+}
+
+/// 前台窗口属于本进程（截图框选、钉图菜单等窗口打开时系统也报忙碌，不能因此让出）。
+#[cfg(windows)]
+fn foreground_is_ours() -> bool {
+    crate::desktop::win32::foreground_window().is_some_and(|(_, pid)| pid == std::process::id())
+}
+
+#[cfg(not(windows))]
+fn foreground_is_ours() -> bool {
+    false
 }
 
 /// 结束活动库的打标并等它退出；之后整个资料库文件夹可以移动。在阻塞任务里调用。

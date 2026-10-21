@@ -99,7 +99,7 @@ pub enum PinSource {
 pub enum PauseReason {
     /// 画师点了暂停。
     Artist,
-    /// 有全屏程序在前台（#212）。
+    /// 有全屏程序或“请勿打扰”在前台，自动让出（#212）。
     FullScreen,
 }
 

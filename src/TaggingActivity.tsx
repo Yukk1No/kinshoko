@@ -23,6 +23,8 @@ function activityLabel(status: TaggingStatus): string | null {
       return `正在打标 · ${DEVICE_NAME[status.device]} · 已打 ${status.tagged} 张`;
     case "paused":
       return "已暂停";
+    case "yieldedToFullScreen":
+      return "因全屏程序暂停";
     default:
       return null;
   }
@@ -116,7 +118,7 @@ export function TaggingActivity({ libraryId: opened, registered, onOpenSettings,
   useTaggingNotices(libraryId, status);
   const text = status && activityLabel(status);
   if (!status || !text) return null;
-  const activity = status.state === "paused" ? "paused" : "busy";
+  const activity = status.state === "paused" || status.state === "yieldedToFullScreen" ? "paused" : "busy";
   if (collapsed) return <span className="k-tagging-dot" data-activity={activity} role="img" title={text} aria-label={`自动标签：${text}`} />;
   return (
     <button type="button" className="k-tagging-activity" data-activity={activity}
