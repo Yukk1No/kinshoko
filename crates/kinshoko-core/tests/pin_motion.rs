@@ -3,7 +3,7 @@
 //! 或被裁掉。
 
 use kinshoko_core::desktop::{
-    DeskPin, EdgeHide, ScreenRect, layer_region, layer_window, layers_for, widen,
+    DeskPin, EdgeHide, ScreenRect, layer_region, layers_for, overlay_window, widen,
 };
 
 const MONITOR: ScreenRect = rect(0, 0, 1920, 1080);
@@ -24,8 +24,8 @@ const fn rect(x: i32, y: i32, width: u32, height: u32) -> ScreenRect {
 fn a_layer_covers_its_monitor_short_of_the_bottom_row() {
     // 置顶窗口整个盖住显示器时，Windows 当作有全屏程序在跑，把通知压下（本机实测 QUNS_BUSY），
     // 窗口区域再小也一样。
-    assert_eq!(layer_window(MONITOR), rect(0, 0, 1920, 1079));
-    assert_eq!(layer_window(LEFT), rect(-1920, 0, 1920, 1079));
+    assert_eq!(overlay_window(MONITOR), rect(0, 0, 1920, 1079));
+    assert_eq!(overlay_window(LEFT), rect(-1920, 0, 1920, 1079));
 }
 
 #[test]
@@ -90,7 +90,7 @@ fn wheel_steps_keep_widening_the_region_until_it_settles() {
 
 #[test]
 fn a_layer_region_is_every_pin_in_it_relative_to_the_window() {
-    let window = layer_window(LEFT);
+    let window = overlay_window(LEFT);
     assert_eq!(
         layer_region(window, &[rect(-100, 50, 300, 200), rect(-1900, 10, 20, 20)]),
         vec![(1820, 50, 1920, 250), (20, 10, 40, 30)],
@@ -103,7 +103,7 @@ fn a_layer_region_is_every_pin_in_it_relative_to_the_window() {
 fn a_hidden_pin_shows_only_its_sliver_in_the_layer() {
     // 收到左边：屏幕外的部分本来就看不见。
     let hidden = rect(-194, 400, 200, 100);
-    let window = layer_window(MONITOR);
+    let window = overlay_window(MONITOR);
     assert_eq!(layer_region(window, &[hidden]), vec![(0, 400, 6, 500)]);
 }
 
@@ -111,7 +111,7 @@ fn a_hidden_pin_shows_only_its_sliver_in_the_layer() {
 fn a_sliver_on_the_bottom_edge_loses_the_row_the_layer_gives_up() {
     let hidden = rect(500, 1074, 200, 100);
     assert_eq!(
-        layer_region(layer_window(MONITOR), &[hidden]),
+        layer_region(overlay_window(MONITOR), &[hidden]),
         vec![(500, 1074, 700, 1079)]
     );
 }

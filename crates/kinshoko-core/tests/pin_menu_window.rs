@@ -1,5 +1,6 @@
 //! 钉图的统一样式菜单（#102 T5，#106）：钉图窗口小且透明，菜单由独立的置顶无边框菜单窗口承载。
-//! 菜单窗口盖住指针所在的整台显示器，菜单从指针处弹出，由页面保持在窗口（即显示器）内。
+//! 菜单窗口盖住指针所在的显示器（让出最下面一行，免得被当成全屏程序，#230），菜单从指针处弹出，
+//! 由页面保持在窗口内。
 //! 这里测窗口放在哪、锚点在哪，以及菜单要显示的状态。
 
 use kinshoko_core::desktop::{
@@ -25,11 +26,11 @@ fn monitors() -> Vec<ScreenRect> {
 }
 
 #[test]
-fn the_menu_window_covers_the_monitor_under_the_pointer() {
+fn the_menu_window_covers_the_monitor_under_the_pointer_short_of_the_bottom_row() {
     assert_eq!(
         menu_surface((300, 400), &monitors()),
         Some(MenuSurface {
-            window: rect(0, 0, 2560, 1440),
+            window: rect(0, 0, 2560, 1439),
             x: 300,
             y: 400,
         })
@@ -37,7 +38,7 @@ fn the_menu_window_covers_the_monitor_under_the_pointer() {
     assert_eq!(
         menu_surface((3000, 1000), &monitors()),
         Some(MenuSurface {
-            window: rect(2560, 200, 1920, 1080),
+            window: rect(2560, 200, 1920, 1079),
             x: 440,
             y: 800,
         })
@@ -49,7 +50,7 @@ fn a_monitor_left_of_the_primary_has_negative_coordinates() {
     assert_eq!(
         menu_surface((-100, 50), &monitors()),
         Some(MenuSurface {
-            window: rect(-1920, 0, 1920, 1080),
+            window: rect(-1920, 0, 1920, 1079),
             x: 1820,
             y: 50,
         })
@@ -59,23 +60,24 @@ fn a_monitor_left_of_the_primary_has_negative_coordinates() {
 #[test]
 fn right_and_bottom_edges_belong_to_the_next_monitor() {
     let s = menu_surface((2560, 300), &monitors()).unwrap();
-    assert_eq!(s.window, rect(2560, 200, 1920, 1080));
+    assert_eq!(s.window, rect(2560, 200, 1920, 1079));
     assert_eq!((s.x, s.y), (0, 100));
+    // 最下面一行不在菜单窗口里：锚点夹到窗口最下面一行。
     let s = menu_surface((2559, 1439), &monitors()).unwrap();
-    assert_eq!(s.window, rect(0, 0, 2560, 1440));
-    assert_eq!((s.x, s.y), (2559, 1439));
+    assert_eq!(s.window, rect(0, 0, 2560, 1439));
+    assert_eq!((s.x, s.y), (2559, 1438));
 }
 
 #[test]
 fn a_pointer_in_a_gap_between_monitors_uses_the_nearest_one_and_stays_inside_it() {
     // 右侧显示器从 y=200 开始：(3000, 100) 在两台之间的空隙里，离右侧那台最近。
     let s = menu_surface((3000, 100), &monitors()).unwrap();
-    assert_eq!(s.window, rect(2560, 200, 1920, 1080));
+    assert_eq!(s.window, rect(2560, 200, 1920, 1079));
     assert_eq!((s.x, s.y), (440, 0));
     // 远在右下方：夹到右侧显示器的右下角里面。
     let s = menu_surface((9000, 9000), &monitors()).unwrap();
-    assert_eq!(s.window, rect(2560, 200, 1920, 1080));
-    assert_eq!((s.x, s.y), (1919, 1079));
+    assert_eq!(s.window, rect(2560, 200, 1920, 1079));
+    assert_eq!((s.x, s.y), (1919, 1078));
 }
 
 #[test]
