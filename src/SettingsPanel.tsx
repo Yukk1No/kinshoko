@@ -6,8 +6,7 @@ import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { ShortcutBinding } from "./bindings/ShortcutBinding";
 import {
-  clearUsageLog,
-  exportUsageLog,
+  clearRunLog,
   rebindShortcut,
   setAutostart,
   setForceSrgb,
@@ -15,7 +14,7 @@ import {
   setTagDisplay,
   setKeepSelectionOnSafeMode,
   setUpdateChannel,
-  setUsageLog,
+  setRunLog,
   shellSettings,
 } from "./ipc";
 import { SharedPersonalApproxSettings } from "./search/SharedPersonalApproxSettings";
@@ -277,15 +276,17 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
             <RuntimeDetails />
             <SettingsGroup title="信息">
               <SettingsRow icon={<FileText size={16} />} title="诊断信息" desc="不含图片和文件名"
-                below={diagnostics.text !== null && <pre className="settings-diagnostics" aria-label="诊断信息">{diagnostics.text}</pre>}>
+                below={<>
+                  <p className="k-set-note">存成文件时附上最近 7 天的运行日志，打包成一个 zip，由你决定要不要发出去。</p>
+                  {diagnostics.text !== null && <pre className="settings-diagnostics" aria-label="诊断信息">{diagnostics.text}</pre>}
+                </>}>
                 <button type="button" className="k-btn is-sm" onClick={diagnostics.show}>查看</button>
-                <button type="button" className="k-btn is-sm" onClick={diagnostics.save}>保存…</button>
+                <button type="button" className="k-btn is-sm" onClick={diagnostics.save}>存成文件…</button>
               </SettingsRow>
-              <SettingsRow icon={<Activity size={16} />} title="使用记录" desc="只存本机，不上传"
-                below={<p className="k-set-note">只记下做了哪类操作与数量，不记文件名、路径、标签与图片。
-                  <button type="button" className="k-link" onClick={() => void exportUsageLog().catch((e) => setError(String(e)))}>导出记录…</button>
-                  <button type="button" className="k-link" onClick={() => void clearUsageLog().catch((e) => setError(String(e)))}>清除记录</button></p>}>
-                <Switch label="使用记录" checked={view.usageLog} onCheckedChange={(on) => void apply(setUsageLog(on))} />
+              <SettingsRow icon={<Activity size={16} />} title="运行日志" desc="只存本机，不上传"
+                below={<p className="k-set-note">记下出错和截图、钉图、打标的时间点，帮开发者排查问题；不记文件名、路径、标签与图片。最多留 7 天、20 MB。
+                  <button type="button" className="k-link" onClick={() => void clearRunLog().catch((e) => setError(String(e)))}>清除日志</button></p>}>
+                <Switch label="运行日志" checked={view.runLog} onCheckedChange={(on) => void apply(setRunLog(on))} />
               </SettingsRow>
               <SettingsRow icon={<Monitor size={16} />} title="按 sRGB 显示" desc="排查偏色时打开"
                 warn={view.forceSrgb !== view.forceSrgbInEffect && "从托盘退出并重启 Kinshoko 后生效。"}>

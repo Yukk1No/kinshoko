@@ -99,9 +99,9 @@ export function setForceSrgb(on: boolean): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("set_force_srgb", { on });
 }
 
-/** 开关使用日志（只写本机），立即生效。 */
-export function setUsageLog(on: boolean): Promise<ShellSettingsView> {
-  return invoke<ShellSettingsView>("set_usage_log", { on });
+/** 开关运行日志（只写本机），立即生效。 */
+export function setRunLog(on: boolean): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_run_log", { on });
 }
 
 /** 本机的界面缩放档位（百分比，#173）。只存本机，不进程序设置备份。 */
@@ -129,7 +129,7 @@ export function diagnosticsReport(runtime?: RuntimeCapabilities): Promise<string
   return invoke<string>("diagnostics_report", { runtime });
 }
 
-/** 把诊断日志存成文件；画师取消时为 false。 */
+/** 把诊断信息连同最近几天的运行日志存成 zip；画师取消时为 false。 */
 export function exportDiagnostics(runtime?: RuntimeCapabilities): Promise<boolean> {
   return invoke<boolean>("export_diagnostics", { runtime });
 }
@@ -144,14 +144,9 @@ export function openRuntimeUpdate(): Promise<void> {
   return invoke("open_runtime_update");
 }
 
-/** 把使用日志导出成文件；画师取消时为 false。 */
-export function exportUsageLog(): Promise<boolean> {
-  return invoke<boolean>("export_usage_log");
-}
-
-/** 删掉已记录的使用日志。 */
-export function clearUsageLog(): Promise<void> {
-  return invoke<void>("clear_usage_log");
+/** 删掉已记录的运行日志。 */
+export function clearRunLog(): Promise<void> {
+  return invoke<void>("clear_run_log");
 }
 
 /** 上次检查更新的结果。 */

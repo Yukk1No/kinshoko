@@ -23,25 +23,23 @@ describe("设置：诊断", () => {
     expect(screen.getByText(/重启 Kinshoko 后生效/)).toBeTruthy();
   });
 
-  it("使用日志默认关闭，可以打开、导出与清除", async () => {
+  it("运行日志跟随保存的设置，可以关掉与清除，说明不记文件名与图片", async () => {
     const calls = backend((cmd) => {
-      if (cmd === "set_usage_log") return { ...defaults, usageLog: true };
-      if (cmd === "export_usage_log") return true;
-      if (cmd === "clear_usage_log") return null;
+      if (cmd === "set_run_log") return { ...defaults, runLog: false };
+      if (cmd === "clear_run_log") return null;
       return undefined;
     });
     render(<SettingsPanel initialTab="diag" />);
 
-    const toggle = await screen.findByRole("switch", { name: "使用记录" });
-    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    const toggle = await screen.findByRole("switch", { name: "运行日志", checked: true });
+    expect(screen.getByText(/不记文件名、路径、标签与图片/)).toBeTruthy();
+    expect(screen.queryByRole("switch", { name: "使用记录" })).toBeNull();
     fireEvent.click(toggle);
-    await screen.findByRole("switch", { name: "使用记录", checked: true });
-    expect(calls.find((c) => c.cmd === "set_usage_log")?.args).toEqual({ on: true });
+    await screen.findByRole("switch", { name: "运行日志", checked: false });
+    expect(calls.find((c) => c.cmd === "set_run_log")?.args).toEqual({ on: false });
 
-    fireEvent.click(screen.getByRole("button", { name: "导出记录…" }));
-    await waitFor(() => expect(calls.some((c) => c.cmd === "export_usage_log")).toBe(true));
-    fireEvent.click(screen.getByRole("button", { name: "清除记录" }));
-    await waitFor(() => expect(calls.some((c) => c.cmd === "clear_usage_log")).toBe(true));
+    fireEvent.click(screen.getByRole("button", { name: "清除日志" }));
+    await waitFor(() => expect(calls.some((c) => c.cmd === "clear_run_log")).toBe(true));
   });
 
   it("显示诊断信息并可以存成文件", async () => {
@@ -55,7 +53,8 @@ describe("设置：诊断", () => {
     fireEvent.click(await screen.findByRole("button", { name: "查看" }));
 
     expect((await screen.findByLabelText("诊断信息")).textContent).toContain("WebView2：154.0");
-    fireEvent.click(screen.getByRole("button", { name: "保存…" }));
+    expect(screen.getByText(/附上最近 7 天的运行日志/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "存成文件…" }));
     await waitFor(() => expect(calls.some((c) => c.cmd === "export_diagnostics")).toBe(true));
   });
 });

@@ -4,7 +4,7 @@ import { afterEach, expect, it } from "vitest";
 import { SettingsPanel } from "../SettingsPanel";
 import type { TagLabel } from "../bindings/TagLabel";
 const label=(id:string,name:string):TagLabel=>({id,name,namespace:"general",untranslated:false,hasExternal:false});
-const defaults={autostart:false,shortcuts:[],showApproxSource:false,forceSrgb:false,forceSrgbInEffect:false,usageLog:false};
+const defaults={autostart:false,shortcuts:[],showApproxSource:false,forceSrgb:false,forceSrgbInEffect:false,runLog:false};
 afterEach(()=>{cleanup();clearMocks();});
 it("lists and deletes application rules without an active library",async()=>{
   let entries=[{a:label("blue","蓝瞳"),b:label("sky","天空色"),relation:"similar",sources:[]}];

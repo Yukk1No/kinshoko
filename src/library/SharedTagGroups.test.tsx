@@ -19,7 +19,7 @@ function backend(read: () => unknown = () => groups) {
   mockIPC((cmd, args) => {
     calls.push({ cmd, args });
     if (cmd === "plugin:library|shared_tag_groups" || cmd === "plugin:library|workspace_tag_groups") return read();
-    if (cmd === "shell_settings") return { autostart: false, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false, usageLog: false };
+    if (cmd === "shell_settings") return { autostart: false, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false, runLog: false };
     if (cmd === "plugin:library|safe_mode") return true;
     if (cmd === "plugin:library|workspace_status") return { revision: "R1", libraries: [] };
     return null;
