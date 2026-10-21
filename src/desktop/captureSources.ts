@@ -16,17 +16,23 @@ let installation = 0;
  * frame, twice per capture. Layout cannot change inside the synchronous collection, so one read serves all images.
  */
 type Painted = { node: HTMLElement; rect: DOMRect }[];
-let frameNodes: Painted | null = null;
+/** Inside `readCaptureFrame`: the shared rectangles, read on first use; `null` until then. */
+let frame: { nodes: Painted | null } | null = null;
 function paintedNodes(): Painted {
-  return frameNodes ?? [...document.querySelectorAll<HTMLElement>("body *")].map((node) => ({ node, rect: node.getBoundingClientRect() }));
+  const read = () => [...document.querySelectorAll<HTMLElement>("body *")].map((node) => ({ node, rect: node.getBoundingClientRect() }));
+  if (!frame) return read();
+  return (frame.nodes ??= read());
 }
-/** Run `read` with the element rectangles read once; `captureImage` calls inside it share them. */
+/**
+ * Run `read` with the element rectangles read at most once; `captureImage` calls inside it share them.
+ * A report with no visible image (a modal covers the wall, nothing is loaded) reads none.
+ */
 export function readCaptureFrame<T>(read: () => T): T {
-  frameNodes = paintedNodes();
+  frame = { nodes: null };
   try {
     return read();
   } finally {
-    frameNodes = null;
+    frame = null;
   }
 }
 

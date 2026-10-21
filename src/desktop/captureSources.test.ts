@@ -64,6 +64,13 @@ it("一次报告里所有参考图共用同一份元素矩形，读取次数不�
   expect(reads).toBeLessThanOrEqual(nodes + images.length * 2);
 });
 
+it("报告里没有可见的参考图时不读元素矩形", () => {
+  wall(0, 500);
+  reads = 0;
+  readCaptureFrame(() => []);
+  expect(reads).toBe(0);
+});
+
 it("共用矩形与逐张读取得到相同的可见范围与遮挡", () => {
   const { clip, images } = wall(5, 10);
   const alone = read(clip, images);

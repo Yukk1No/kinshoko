@@ -253,7 +253,7 @@ fn placeholder_file(root: &Path, sha: &str) -> Option<PathBuf> {
 /// 只由原图字节（文件名里的 SHA-256）和管线版本（目录名）决定，所以命中时不碰磁盘。
 /// 失效：删除某张图的派生图时去掉它；整个缓存目录被删掉或换掉时以 `sdr` 目录的创建时间为准，
 /// 每次只读打开资料库（工作区浏览、缩略图请求都会）后重新查看一次这个时间
-/// （[`forget_placeholder_stamps`]）。条目超过上限时整个清空。
+/// （[`forget_placeholder_stamps`]）。条目到上限后不再记新的。
 static PLACEHOLDERS: Mutex<Option<PlaceholderCache>> = Mutex::new(None);
 
 const PLACEHOLDER_CACHE_LIMIT: usize = 50_000;
@@ -309,10 +309,11 @@ pub(crate) fn placeholder(root: &Path, sha: &str) -> Option<String> {
     let url = format!("data:{mime};base64,{payload}");
     let mut guard = placeholders();
     let cache = guard.get_or_insert_with(Default::default);
-    if cache.urls.len() >= PLACEHOLDER_CACHE_LIMIT {
-        cache.urls.clear();
+    // 满了就不再记新的，已记下的留着：图片墙重新浏览总是从头按同一顺序读，清空或淘汰最旧的都会让
+    // 超过上限的大墙每次都从头读文件；不收新条目时至少前 PLACEHOLDER_CACHE_LIMIT 张一直命中。
+    if cache.urls.len() < PLACEHOLDER_CACHE_LIMIT {
+        cache.urls.insert(key, (stamp, url.clone()));
     }
-    cache.urls.insert(key, (stamp, url.clone()));
     Some(url)
 }
 
