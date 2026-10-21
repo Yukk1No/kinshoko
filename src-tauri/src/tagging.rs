@@ -126,7 +126,7 @@ pub fn attach<R: Runtime>(app: &AppHandle<R>, library: Arc<Library>) {
     });
 }
 
-/// 系统报告的通知状态（全屏程序、演示模式、请勿打扰等，#212）；读不到时为 `None`。
+/// 系统报告的通知状态（全屏程序、演示模式、忙碌等，#212；报告不了 Windows 设置里的“请勿打扰”开关）；读不到时为 `None`。
 #[cfg(windows)]
 #[allow(unsafe_code)]
 fn user_notification_state() -> Option<UserNotificationState> {

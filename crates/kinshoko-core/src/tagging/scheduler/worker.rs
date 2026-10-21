@@ -31,7 +31,35 @@ impl Worker {
         self.end_session();
     }
 
-    /// 有全屏程序或“请勿打扰”，要让出（#212）。
+    /// 加载模型（显卡档首次可能要几分钟）期间在另一个线程盯着前台：要让出时立即结束正在加载的子进程，
+    /// 不等加载完（#212）。返回值丢弃即停止盯着。
+    fn watch_foreground_while_loading(&self) -> Option<impl Drop> {
+        struct Watch(Arc<AtomicBool>);
+        impl Drop for Watch {
+            fn drop(&mut self) {
+                self.0.store(true, Ordering::Relaxed);
+            }
+        }
+        let check = self.config.foreground.clone()?;
+        let (shared, poll) = (self.shared.clone(), self.config.poll_interval);
+        let done = Arc::new(AtomicBool::new(false));
+        let seen = done.clone();
+        std::thread::Builder::new()
+            .name("kinshoko-tagging-foreground".into())
+            .spawn(move || {
+                while !seen.load(Ordering::Relaxed) {
+                    if check.yields() {
+                        shared.stop_session();
+                        return;
+                    }
+                    std::thread::sleep(poll);
+                }
+            })
+            .ok()?;
+        Some(Watch(done))
+    }
+
+    /// 有全屏程序或演示模式，要让出（#212）。
     fn yields(&self) -> bool {
         self.config.foreground.as_ref().is_some_and(|f| f.yields())
     }
@@ -218,14 +246,16 @@ impl Worker {
         {
             self.end_session();
             let shared = self.shared.clone();
+            let watch = self.watch_foreground_while_loading();
             let started = self.tagger.start(model, spec.device, &move |stopper| {
                 shared.register_stopper(stopper)
             });
+            drop(watch);
             match started {
                 Ok(session) => {
                     self.session = Some((spec.key.clone(), session));
                 }
-                Err(_) if self.shared.interrupted() => {
+                Err(_) if self.shared.interrupted() || self.yields() => {
                     // 加载中画师暂停（或关闭资料库）结束了子进程：不算出错，恢复后重新开始。
                     self.end_session();
                     return false;
@@ -238,8 +268,8 @@ impl Worker {
                     return false;
                 }
             }
-            // 加载刚完成时画师暂停了：开关可能已被按过，这里确保会话结束。
-            if self.shared.interrupted() {
+            // 加载刚完成时画师暂停了或全屏程序出现了：开关可能已被按过，这里确保会话结束。
+            if self.shared.interrupted() || self.yields() {
                 self.end_session();
                 return false;
             }

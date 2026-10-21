@@ -50,7 +50,7 @@ pub struct TaggingConfig {
     /// Optional application publication boundary. Only result writes acquire it;
     /// model loading and inference stay outside. Stop/join callers must release it first.
     pub publication_gate: Option<Arc<Mutex<()>>>,
-    /// 有全屏程序或“请勿打扰”时让出打标（#212）：返回真时结束会话、归还显存，每隔 `poll_interval`
+    /// 有全屏程序或演示模式时让出打标（#212）：返回真时结束会话、归还显存，每隔 `poll_interval`
     /// 再看一次，恢复后继续。为空时不检查。
     pub foreground: Option<ForegroundCheck>,
 }
@@ -139,7 +139,7 @@ pub enum TaggingStatus {
     },
     /// 画师暂停了打标；会话已结束，显存已归还。
     Paused,
-    /// 有全屏程序或“请勿打扰”，自动让出（#212）；会话已结束，显存已归还，恢复后自己继续。
+    /// 有全屏程序或演示模式，自动让出（#212）；会话已结束，显存已归还，恢复后自己继续。
     YieldedToFullScreen,
     /// 出错，稍后自动重试。
     #[serde(rename_all = "camelCase")]
