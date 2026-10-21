@@ -50,8 +50,10 @@ fn main() {
     let count: usize = opt("--count").map_or(20, |v| v.parse().expect("--count"));
     let gap: f64 = opt("--gap").map_or(0.0, |v| v.parse().expect("--gap"));
     let logical = std::thread::available_parallelism().map_or(4, |n| n.get());
-    let fg_threads: usize =
-        opt("--fg-threads").map_or(logical / 2, |v| v.parse().expect("--fg-threads"));
+    // 至少一个前台线程：只有一个逻辑核（亲和性限制）时 logical / 2 是 0，探针量不到任何东西。
+    let fg_threads: usize = opt("--fg-threads")
+        .map_or(logical / 2, |v| v.parse().expect("--fg-threads"))
+        .max(1);
 
     // 只有显卡档的模型时，CPU 档也用它（线程与优先级的行为相同，只是更慢）。
     let store = ModelStore::new(models_dir, "");
