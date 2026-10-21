@@ -1,7 +1,7 @@
-//! 诊断（#70）：“强制 sRGB”的 WebView2 启动参数、诊断日志与使用日志。
+//! 诊断（#70）：“强制 sRGB”的 WebView2 启动参数与诊断信息。
 //!
 //! 规则与脱敏在 `kinshoko_core::diagnostics`；这里只向 Windows 查询系统信息、接保存对话框。
-//! 使用日志放在数据根目录的 `logs/`，不上传。
+//! 诊断信息连同最近几天的运行日志（`crate::run_log`）一起存成 zip（#219）。
 
 use std::path::PathBuf;
 use std::sync::OnceLock;
@@ -10,36 +10,25 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use kinshoko_core::AppSettings;
 use kinshoko_core::diagnostics::{
     AppFacts, DisplayColourMode, DisplayFacts, RuntimeCapabilities, RuntimeStatus, SystemFacts,
-    UsageEvent, UsageLog, report_with_runtime, scrub, webview_browser_args,
+    report_with_runtime, scrub, webview_browser_args,
 };
-use tauri::{AppHandle, Manager, Runtime, State};
+use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt as _;
 
 use crate::shell::ShellState;
 
 static BROWSER_ARGS: OnceLock<String> = OnceLock::new();
 
-pub struct UsageState(pub UsageLog);
-
-/// 按启动时的设置定下 WebView2 启动参数、打开使用日志。在建任何窗口之前调用一次。
+/// 按启动时的设置定下 WebView2 启动参数、打开运行日志。在建任何窗口之前调用一次。
 pub fn start(app: &AppHandle, settings: &AppSettings) -> tauri::Result<()> {
     let _ = BROWSER_ARGS.set(webview_browser_args(settings.force_srgb_in_effect()));
-    let log = UsageLog::open(crate::data_dirs::app_data(app).logs(), settings.usage_log());
-    log.record(UsageEvent::AppStarted);
-    app.manage(UsageState(log));
+    crate::run_log::start(app, settings);
     Ok(())
 }
 
 /// 本进程所有窗口共用的 WebView2 启动参数（同一 WebView2 环境要求参数一致）。
 pub fn browser_args() -> &'static str {
     BROWSER_ARGS.get_or_init(|| webview_browser_args(false))
-}
-
-/// 记一条使用日志；日志关闭时什么也不做。可以在主线程上调用。
-pub fn record<R: Runtime>(app: &AppHandle<R>, event: UsageEvent) {
-    if let Some(state) = app.try_state::<UsageState>() {
-        state.0.record(event);
-    }
 }
 
 fn now() -> u64 {
@@ -106,7 +95,7 @@ fn app_facts(app: &AppHandle, state: &State<'_, ShellState>) -> Result<AppFacts,
         version: env!("CARGO_PKG_VERSION").to_owned(),
         force_srgb: shell.settings.force_srgb(),
         force_srgb_in_effect: shell.settings.force_srgb_in_effect(),
-        usage_log: shell.settings.usage_log(),
+        run_log: shell.settings.run_log(),
     })
 }
 
@@ -125,7 +114,7 @@ pub async fn diagnostics_report(
     .map_err(|e| e.to_string())
 }
 
-/// 把诊断日志存成文本文件；画师取消时返回 false。
+/// 把诊断信息连同最近几天的运行日志存成 zip；画师取消时返回 false。
 #[tauri::command]
 pub async fn export_diagnostics(
     app: AppHandle,
@@ -135,10 +124,18 @@ pub async fn export_diagnostics(
     let facts = app_facts(&app, &state)?;
     tauri::async_runtime::spawn_blocking(move || {
         let text = report_with_runtime(&facts, &system_facts(), now(), runtime.as_ref());
-        let Some(path) = save_dialog(&app, "kinshoko-诊断信息.txt", "文本", "txt") else {
+        let name = format!(
+            "kinshoko-诊断信息-{}.zip",
+            chrono::Local::now().format("%Y%m%d-%H%M")
+        );
+        let Some(path) = save_dialog(&app, &name, "zip 压缩包", "zip") else {
             return Ok(false);
         };
-        std::fs::write(path, text.replace('\n', "\r\n"))
+        let saved = match crate::run_log::log() {
+            Some(log) => log.export(&path, &text),
+            None => Err(std::io::Error::other("运行日志没有打开")),
+        };
+        saved
             .map(|()| true)
             .map_err(|e| format!("保存诊断信息失败：{e}"))
     })
@@ -170,33 +167,6 @@ pub fn open_runtime_update() -> Result<(), String> {
     Err("请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/".to_owned())
 }
 
-/// 把使用日志导出成文件；画师取消时返回 false。
-#[tauri::command]
-pub async fn export_usage_log(app: AppHandle) -> Result<bool, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let Some(path) = save_dialog(&app, "kinshoko-使用日志.jsonl", "JSON Lines", "jsonl")
-        else {
-            return Ok(false);
-        };
-        app.state::<UsageState>()
-            .0
-            .export(&path)
-            .map(|()| true)
-            .map_err(|e| format!("导出使用日志失败：{e}"))
-    })
-    .await
-    .map_err(|e| e.to_string())?
-}
-
-/// 删掉已记录的使用日志。
-#[tauri::command]
-pub async fn clear_usage_log(usage: State<'_, UsageState>) -> Result<(), String> {
-    usage
-        .0
-        .clear()
-        .map_err(|e| format!("清除使用日志失败：{e}"))
-}
-
 fn save_dialog(app: &AppHandle, name: &str, filter: &str, ext: &str) -> Option<PathBuf> {
     app.dialog()
         .file()
@@ -217,7 +187,7 @@ mod tests {
             version: "0.0.0".into(),
             force_srgb: false,
             force_srgb_in_effect: false,
-            usage_log: false,
+            run_log: false,
             data_migration_problem: None,
         };
         let facts = system_facts();

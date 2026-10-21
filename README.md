@@ -58,7 +58,7 @@ Kinshoko works offline on your own machine. There is no telemetry and no account
 - download the tagging model from Hugging Face, once;
 - let the installer download the Microsoft Edge WebView2 runtime from Microsoft, only if it is missing.
 
-The diagnostics in **设置 → 诊断** (Settings → Diagnostics) list only system, GPU, WebView2 and display information, never file names, paths or images, so you can paste them into an issue. The usage log (记录使用日志) is off by default, stays on your machine, and is exported only when you choose to.
+The diagnostics in **设置 → 诊断** (Settings → Diagnostics) list only system, GPU, WebView2 and display information, never file names, paths or images, so you can paste them into an issue. **存成文件…** (Save as file) bundles them with the last 7 days of the run log (运行日志) into a zip. The run log records errors, warnings and the timing of captures, pins, tagging and windows, never file names, paths, tag text or images. It stays on your machine, keeps at most 7 days or 20 MB, and is on by default only in test builds.
 
 ## Feedback
 

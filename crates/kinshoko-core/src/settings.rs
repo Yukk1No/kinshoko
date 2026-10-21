@@ -1,5 +1,5 @@
 //! 应用壳设置：本设备上与具体资料库无关的偏好（开机自启、全局快捷键、安全模式、相近标签来源标记、
-//! 诊断开关、使用日志与更新通道）。
+//! 诊断开关、运行日志与更新通道）。
 //!
 //! 保存在数据根目录（`data_dirs`）的 `settings.json`。后续的设置（钉图、模型选择、诊断开关等）
 //! 在 [`SettingsSnapshot`] 上加带默认值的字段即可；不认识的字段原样保留，旧版本打开新版本
@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::app_shell::{UpdateChannel, app_info};
+use crate::diagnostics::run_log_default_for_version;
 use crate::tagging::{Device, catalog};
 
 const FILE_NAME: &str = "settings.json";
@@ -138,7 +139,10 @@ pub struct SettingsSnapshot {
     viewer_background: Option<ViewerBackground>,
     /// 切换安全模式时保留当前选择和详情面板；默认关闭，切换即清空选择。
     keep_selection_on_safe_mode: bool,
-    /// 使用日志（#70）：默认关闭；只写本机，由画师决定是否导出。
+    /// 运行日志（#219）：只写本机，由画师决定是否导出；没选过时为空，按当前构建的版本号决定。
+    run_log: Option<bool>,
+    /// 旧版的“使用日志”（#70），已并入运行日志：开过的读作开启运行日志，再保存时去掉。
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
     usage_log: bool,
     /// 标签外观与可信度分档（#160）。
     tag_display: TagDisplay,
@@ -164,6 +168,7 @@ impl Default for SettingsSnapshot {
             force_srgb: false,
             viewer_background: None,
             keep_selection_on_safe_mode: false,
+            run_log: None,
             usage_log: false,
             tag_display: TagDisplay::default(),
             inspector_width: None,
@@ -350,13 +355,19 @@ impl AppSettings {
         self.update(|f| f.force_srgb = on)
     }
 
-    /// 是否记录使用日志。
-    pub fn usage_log(&self) -> bool {
-        self.file.usage_log
+    /// 是否记录运行日志。画师选过就按画师的；开过旧版使用日志的算开启；
+    /// 都没有时见 [`run_log_default_for_version`]。
+    pub fn run_log(&self) -> bool {
+        self.file.run_log.unwrap_or_else(|| {
+            self.file.usage_log || run_log_default_for_version(&app_info().version)
+        })
     }
 
-    pub fn set_usage_log(&mut self, on: bool) -> Result<(), SettingsError> {
-        self.update(|f| f.usage_log = on)
+    pub fn set_run_log(&mut self, on: bool) -> Result<(), SettingsError> {
+        self.update(|f| {
+            f.run_log = Some(on);
+            f.usage_log = false;
+        })
     }
 
     /// 标签外观与可信度分档。文件里的阈值交叉或越界时（例如手改过）按默认阈值，其余照读。

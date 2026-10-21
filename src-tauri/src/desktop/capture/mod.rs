@@ -27,6 +27,7 @@ use sources::{main_metrics, references, request_main_frame, same_surfaces};
 
 use super::{lock, state};
 use crate::data_dirs::SharedWebview as _;
+use kinshoko_core::diagnostics::{LogEvent, WindowKind};
 
 pub const CAPTURE_WINDOW: &str = "capture";
 
@@ -57,6 +58,7 @@ pub(super) struct ReferenceSurface {
 /// 开始截图：已经在框选时把框选窗口叫到前面，否则在别的线程上抓屏。
 pub fn start(app: &AppHandle) {
     super::timing("start");
+    crate::run_log::record(LogEvent::CaptureStarted);
     let token = uuid::Uuid::new_v4().simple().to_string();
     {
         let mut session = lock(&state(app).capture);
@@ -78,7 +80,7 @@ pub fn start(app: &AppHandle) {
         .name("kinshoko-capture".into())
         .spawn(move || {
             if let Err(e) = grab_and_show(&worker, &worker_token) {
-                eprintln!("截图失败：{e}");
+                crate::run_log::error("截图失败", e);
                 close_owned(&worker, &worker_token);
             }
         });
@@ -103,6 +105,9 @@ fn close_owned(app: &AppHandle, token: &str) {
     if owns && let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
         // 留着给下一次（#129）：先隐藏，再让页面丢掉这次的冻结屏幕与选区。
         let _ = window.hide();
+        crate::run_log::record(LogEvent::WindowHidden {
+            window: WindowKind::Capture,
+        });
         let _ = window.emit_to(CAPTURE_WINDOW, SESSION_EVENT, ());
     }
 }
@@ -123,7 +128,8 @@ fn capture_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     if let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
         return Ok(window);
     }
-    WebviewWindowBuilder::new(
+    let started = std::time::Instant::now();
+    let window = WebviewWindowBuilder::new(
         app,
         CAPTURE_WINDOW,
         WebviewUrl::App("index.html?view=capture".into()),
@@ -137,7 +143,9 @@ fn capture_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     .visible(false)
     .shared_webview(app)
     .build()
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?;
+    crate::run_log::window_created(WindowKind::Capture, started);
+    Ok(window)
 }
 
 fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), String> {

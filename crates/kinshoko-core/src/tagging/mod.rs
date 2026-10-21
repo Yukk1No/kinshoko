@@ -11,6 +11,7 @@
 
 mod foreground;
 mod interpret;
+mod log;
 mod memory;
 mod models;
 mod patch;
@@ -19,6 +20,7 @@ mod process;
 mod scheduler;
 
 pub use foreground::{ForegroundCheck, UserNotificationState, yields_to_foreground};
+pub use log::TaggingLog;
 pub use memory::InMemoryTagger;
 pub use models::{
     Chunking, HUGGING_FACE, HardwareOption, ModelChoice, ModelSpec, ModelStore, PrepareStage,

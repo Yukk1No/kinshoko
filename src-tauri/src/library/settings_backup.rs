@@ -103,9 +103,9 @@ pub(super) async fn restore_application_settings<R: Runtime>(
         if let Some(libraries) = lock(&state.libraries).as_ref() {
             libraries.set_safe_mode(safe);
         }
-        app.state::<crate::diagnostics::UsageState>()
-            .0
-            .set_enabled(view.usage_log);
+        if let Some(log) = crate::run_log::log() {
+            log.set_enabled(view.run_log);
+        }
         crate::tagging::apply_device_setting(&app, device);
         crate::desktop::settings_restored(&app, safe);
         // 恢复的设置可能带来另一个更新通道（#204）。

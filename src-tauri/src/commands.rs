@@ -5,7 +5,6 @@
 use kinshoko_core::{AppInfo, ShellSettingsView, ShortcutAction};
 use tauri::{AppHandle, State};
 
-use crate::diagnostics::UsageState;
 use crate::shell::{self, ShellState, UiScaleState};
 
 #[tauri::command]
@@ -87,22 +86,6 @@ pub async fn set_force_srgb(
         .settings
         .set_force_srgb(on)
         .map_err(|e| e.to_string())?;
-    Ok(shell.view())
-}
-
-/// 开关使用日志，立即生效。关闭后已记录的内容保留，由画师决定导出或清除。
-#[tauri::command]
-pub async fn set_usage_log(
-    state: State<'_, ShellState>,
-    usage: State<'_, UsageState>,
-    on: bool,
-) -> Result<ShellSettingsView, String> {
-    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
-    shell
-        .settings
-        .set_usage_log(on)
-        .map_err(|e| e.to_string())?;
-    usage.0.set_enabled(on);
     Ok(shell.view())
 }
 

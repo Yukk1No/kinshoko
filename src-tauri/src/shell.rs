@@ -6,7 +6,7 @@
 
 use std::sync::Mutex;
 
-use kinshoko_core::diagnostics::UsageEvent;
+use kinshoko_core::diagnostics::{LogEvent, WindowKind};
 use kinshoko_core::{
     AppSettings, GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutAction, UiScale,
 };
@@ -45,7 +45,7 @@ pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let mut settings = AppSettings::open(crate::data_dirs::app_data(app).settings())?;
     // 在装上新版本之前记下按本构建推定的更新通道（#204）。
     if let Err(e) = settings.remember_update_channel() {
-        eprintln!("记下更新通道失败：{e}");
+        crate::run_log::warn("记下更新通道失败", e);
     }
     // 先定下 WebView2 启动参数（强制 sRGB），之后才建窗口。
     crate::diagnostics::start(app, &settings)?;
@@ -53,7 +53,7 @@ pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(UiScaleState(Mutex::new(ui_scale)));
     let shortcuts = GlobalShortcuts::start(TauriHotkeys { app: app.clone() }, &settings);
     if let Err(e) = apply_autostart(app, settings.autostart()) {
-        eprintln!("同步开机自启失败：{e}");
+        crate::run_log::warn("同步开机自启失败", e);
     }
     app.manage(ShellState(Mutex::new(Shell {
         settings,
@@ -85,7 +85,7 @@ pub fn apply_ui_scale(app: &AppHandle, factor: f64) {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW)
         && let Err(e) = window.set_zoom(factor)
     {
-        eprintln!("应用界面缩放失败：{e}");
+        crate::run_log::warn("应用界面缩放失败", e);
     }
 }
 
@@ -109,7 +109,8 @@ pub fn open_main_window(app: &AppHandle) {
         return;
     };
     crate::desktop::clear_viewer_reference(app);
-    crate::diagnostics::record(app, UsageEvent::MainWindowOpened);
+    crate::run_log::record(LogEvent::MainWindowOpened);
+    let started = std::time::Instant::now();
     let scale = app
         .try_state::<UiScaleState>()
         .and_then(|state| state.0.lock().ok().map(|scale| scale.clone()));
@@ -126,11 +127,12 @@ pub fn open_main_window(app: &AppHandle) {
             .build()
     }) {
         Ok(window) => {
+            crate::run_log::window_created(WindowKind::Main, started);
             apply_ui_scale(app, factor);
             let _ = window.show();
             let _ = window.set_focus();
         }
-        Err(e) => eprintln!("打开主窗口失败：{e}"),
+        Err(e) => crate::run_log::error("打开主窗口失败", e),
     }
 }
 
@@ -166,7 +168,7 @@ impl HotkeyRegistrar for TauriHotkeys {
         if let Ok(shortcut) = accelerator.parse::<Shortcut>()
             && let Err(e) = self.app.global_shortcut().unregister(shortcut)
         {
-            eprintln!("注销快捷键 {accelerator} 失败：{e}");
+            crate::run_log::warn("注销快捷键失败", format!("{accelerator}：{e}"));
         }
     }
 }
