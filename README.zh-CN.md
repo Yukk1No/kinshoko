@@ -74,6 +74,8 @@ Kinshoko 在你自己的电脑上离线工作，不需要账号，也没有遥�
 
 Kinshoko 是自由软件，按 [GNU 通用公共许可证第 3 版或更新版本](LICENSE)（GPL-3.0-or-later）发布。
 
+按 GPLv3 第 7 条附加一项许可：Kinshoko 可以与 ONNX Runtime 及 Microsoft DirectML 链接并一起分发（打标子进程随应用附带这两个库），见 [LICENSE-EXCEPTION](LICENSE-EXCEPTION)。
+
 随仓库分发的第三方内容保留各自的许可证：
 
 - [`public/fonts/`](public/fonts/) 里的 Inter 与思源黑体（Source Han Sans SC）字体按 SIL Open Font License 1.1 授权。

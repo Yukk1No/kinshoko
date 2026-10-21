@@ -20,7 +20,7 @@ Search existing issues first. Do not report security issues in public; see [SECU
 4. Keep each PR to one change. Link the issue (`Closes #123`) and say how you verified it. For UI changes, attach a screenshot of the app window.
 5. The maintainer merges once CI is green.
 
-Contributions are licensed under the repository's [GPL-3.0-or-later](LICENSE).
+Contributions are licensed under the repository's [GPL-3.0-or-later](LICENSE), including the additional permission in [LICENSE-EXCEPTION](LICENSE-EXCEPTION).
 
 ## Development setup
 

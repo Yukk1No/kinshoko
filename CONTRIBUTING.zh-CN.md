@@ -18,7 +18,7 @@
 4. 一个 PR 只做一件事，在描述里链接对应 issue（`Closes #123`），并写明怎样验证的。改了界面请附应用窗口的截图。
 5. CI 全绿后由维护者合并。
 
-提交的代码按本仓库的 [GPL-3.0-or-later](LICENSE) 授权。
+提交的代码按本仓库的 [GPL-3.0-or-later](LICENSE) 授权，并适用 [LICENSE-EXCEPTION](LICENSE-EXCEPTION) 中的附加许可。
 
 ## 开发环境
 

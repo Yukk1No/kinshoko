@@ -74,6 +74,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, project layout
 
 Kinshoko is free software, licensed under the [GNU General Public License v3.0 or later](LICENSE).
 
+As an additional permission under GPLv3 section 7, Kinshoko may be linked and distributed with ONNX Runtime and Microsoft DirectML, which the tagging subprocess ships alongside the app. See [LICENSE-EXCEPTION](LICENSE-EXCEPTION).
+
 Bundled third-party material keeps its own license:
 
 - The Inter and Source Han Sans SC fonts in [`public/fonts/`](public/fonts/) are under the SIL Open Font License 1.1.
