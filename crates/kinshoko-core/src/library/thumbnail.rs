@@ -31,6 +31,7 @@ const SDR: &str = "sdr";
 const THUMBS_DIR: &str = "thumbs";
 
 /// 缩略图宽度档位（设备像素）。请求取整到不小于它的最小档位，避免每种列宽各存一份。
+/// 图片墙按同一组档位决定何时重新浏览（`src/wall/thumbnailTier.ts`），两边一起改。
 const TIERS: [u32; 9] = [128, 192, 256, 384, 512, 768, 1024, 1536, 2048];
 
 pub(super) fn tier(px: u32) -> u32 {

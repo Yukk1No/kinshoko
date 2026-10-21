@@ -99,7 +99,11 @@ impl Workspace {
                     width: image.width,
                     height: image.height,
                     adult,
-                    thumbnail: format!("{source_library}/{}/{}", image.id, query.thumbnail_px),
+                    thumbnail: crate::library::provider::thumbnail_address(
+                        source_library,
+                        &image.id,
+                        query.thumbnail_px,
+                    ),
                     placeholder: None,
                     library_id: source_library.clone(),
                     image_id: image.id.clone(),
@@ -187,7 +191,11 @@ impl Workspace {
         Ok(WorkspaceCard {
             width: image.width,
             height: image.height,
-            thumbnail: format!("{library_id}/{image_id}/{thumbnail_px}"),
+            thumbnail: crate::library::provider::thumbnail_address(
+                library_id,
+                image_id,
+                thumbnail_px,
+            ),
             placeholder: crate::library::placeholder(&provider.registration.library.root, &hash),
             adult,
             library_id: library_id.into(),

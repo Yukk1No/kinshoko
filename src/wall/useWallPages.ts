@@ -10,6 +10,7 @@ import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { browse, workspaceBrowse, isCursorExpired, isLensChanged } from "../ipc";
 import { safeTiming } from "../shell/safeTiming";
 import type { Anchor } from "./layout";
+import { thumbnailTier } from "./thumbnailTier";
 import { PAGE, type BrowserCard } from "./wallShared";
 
 export function useWallPages({
@@ -57,6 +58,11 @@ export function useWallPages({
     setTotal(null);
     setCursor(null);
   }, [reloadKey, safeMode, workspaceKey]);
+  // 按档位而不是原始像素决定何时重新浏览（#200）：同一档位内缩放时后端给出的地址不变，不必把
+  // 已加载的卡片全部重读一遍。请求仍带原始像素，由后端取整。
+  const tier = thumbnailTier(thumbnailPx);
+  const px = useRef(thumbnailPx);
+  px.current = thumbnailPx;
   const loaded = useRef(0);
   loaded.current = cards.length;
 
@@ -78,8 +84,8 @@ export function useWallPages({
           try {
             do {
               const result: { page: BrowsePage | WorkspacePage; status: WorkspaceStatus | null } = workspaceScope
-                ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, thumbnailPx }, safeMode).then(page => ({ page, status: page.status }))
-                : { page: await browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx }), status: null };
+                ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, thumbnailPx: px.current }, safeMode).then(page => ({ page, status: page.status }))
+                : { page: await browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx: px.current }), status: null };
               const page = result.page;
               if (!current()) return;
               acceptedStatus = result.status;
@@ -115,7 +121,7 @@ export function useWallPages({
         if (inflight.current === gen) inflight.current = null;
       }
     },
-    [thumbnailPx, measureBeforeReflow, onWorkspaceStatus],
+    [tier, measureBeforeReflow, onWorkspaceStatus],
   );
 
   const loadMore = useCallback(async () => {
@@ -126,8 +132,8 @@ export function useWallPages({
     let expired = false;
     try {
       const result: { page: BrowsePage | WorkspacePage; status: WorkspaceStatus | null } = workspaceScope
-        ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, thumbnailPx }, safeMode).then(page => ({ page, status: page.status }))
-        : { page: await browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx }), status: null };
+        ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, thumbnailPx: px.current }, safeMode).then(page => ({ page, status: page.status }))
+        : { page: await browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx: px.current }), status: null };
       const page = result.page;
       if (gen !== generation.current) return;
       const next = [...cards, ...page.cards];
@@ -146,7 +152,7 @@ export function useWallPages({
       if (inflight.current === gen) inflight.current = null;
     }
     if (expired) void reload(Math.max(loaded.current, PAGE));
-  }, [cards, cursor, thumbnailPx, reload, onWorkspaceStatus]);
+  }, [cards, cursor, reload, onWorkspaceStatus]);
   loadMoreRef.current = () => { void loadMore(); };
   // 布局效果：同一次提交里先于其他组件的刷新（被动效果）发出浏览，后端按到达顺序排队（#183）。
   useLayoutEffect(() => {
