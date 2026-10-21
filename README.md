@@ -52,7 +52,11 @@ The tagging model is not bundled. Kinshoko downloads it from Hugging Face the fi
 
 ## Privacy
 
-Kinshoko works offline on your own machine. There is no telemetry and no account. The only network requests are update checks to GitHub and the one-time model download.
+Kinshoko works offline on your own machine. There is no telemetry and no account. Kinshoko connects to the network only to:
+
+- check for and download updates from GitHub Releases;
+- download the tagging model from Hugging Face, once;
+- let the installer download the Microsoft Edge WebView2 runtime from Microsoft, only if it is missing.
 
 The diagnostics in **设置 → 诊断** (Settings → Diagnostics) list only system, GPU, WebView2 and display information, never file names, paths or images, so you can paste them into an issue. The usage log (记录使用日志) is off by default, stays on your machine, and is exported only when you choose to.
 
@@ -79,5 +83,6 @@ As an additional permission under GPLv3 section 7, Kinshoko may be linked and di
 Bundled third-party material keeps its own license:
 
 - The Inter and Source Han Sans SC fonts in [`public/fonts/`](public/fonts/) are under the SIL Open Font License 1.1.
+- The Fluid Functionalism code in [`src/ui/vendor/fluid/`](src/ui/vendor/fluid/) is under the MIT License; see its [`LICENSE`](src/ui/vendor/fluid/LICENSE).
 - The agent skills in [`.claude/skills/`](.claude/skills/) are under the MIT License; see [`LICENSE-mattpocock-skills`](.claude/skills/LICENSE-mattpocock-skills).
 - The tagging models are not distributed with Kinshoko. They are downloaded at runtime and remain under the licenses stated on their model cards.

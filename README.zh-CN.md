@@ -52,7 +52,11 @@ Kinshoko 从 GitHub Releases 检查更新，安装前校验更新包的签名。
 
 ## 隐私
 
-Kinshoko 在你自己的电脑上离线工作，不需要账号，也没有遥测。联网只有两处：向 GitHub 检查更新，以及首次下载打标模型。
+Kinshoko 在你自己的电脑上离线工作，不需要账号，也没有遥测。只在以下情况联网：
+
+- 从 GitHub Releases 检查并下载更新；
+- 首次从 Hugging Face 下载打标模型；
+- 电脑上没有 WebView2 运行时时，安装包从微软下载它。
 
 “设置 → 诊断”生成的诊断信息只有系统、显卡、WebView2 与显示器信息，不含文件名、路径和图片，可以直接贴进问题反馈。“记录使用日志”默认关闭，日志只留在本机，由你决定是否导出。
 
@@ -79,5 +83,6 @@ Kinshoko 是自由软件，按 [GNU 通用公共许可证第 3 版或更新版�
 随仓库分发的第三方内容保留各自的许可证：
 
 - [`public/fonts/`](public/fonts/) 里的 Inter 与思源黑体（Source Han Sans SC）字体按 SIL Open Font License 1.1 授权。
+- [`src/ui/vendor/fluid/`](src/ui/vendor/fluid/) 里的 Fluid Functionalism 代码按 MIT 许可证授权，见其 [`LICENSE`](src/ui/vendor/fluid/LICENSE)。
 - [`.claude/skills/`](.claude/skills/) 里的 agent skills 按 MIT 许可证授权，见 [`LICENSE-mattpocock-skills`](.claude/skills/LICENSE-mattpocock-skills)。
 - 打标模型不随 Kinshoko 分发，在运行时下载，适用各自模型卡上写明的许可证。

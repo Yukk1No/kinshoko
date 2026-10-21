@@ -51,7 +51,7 @@ cargo clippy --workspace --all-targets -- -D warnings   # run npm run vite:build
 node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # needs tauri-driver and an msedgedriver matching WebView2
 ```
 
-CI runs on `windows-latest`: format check, Clippy, core crate tests, generated-file check, TypeScript type check, frontend tests and the native Tauri build. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run the relevant checks locally before opening a PR.
+CI runs the Rust checks (format, Clippy, core crate tests, generated-file check) and the native app build with the WebDriver smoke test on `windows-2022`, and the TypeScript type check, frontend tests and workflow lint on `ubuntu-latest`. The app job is pinned to `windows-2022` because the smoke test does not yet pass on `windows-latest`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run the relevant checks locally before opening a PR.
 
 ## Layout
 

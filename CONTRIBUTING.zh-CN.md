@@ -49,7 +49,7 @@ cargo clippy --workspace --all-targets -- -D warnings   # 需先 npm run vite:bu
 node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # 需 tauri-driver 与匹配 WebView2 版本的 msedgedriver
 ```
 
-CI 在 `windows-latest` 上依次运行格式检查、Clippy、核心 crate 测试、生成物检查、TS 类型检查、前端测试与 Tauri 原生构建，见 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)。提 PR 前请在本地跑过对应的检查。
+CI 在 `windows-2022` 上运行 Rust 检查（格式、Clippy、核心 crate 测试、生成物检查）以及原生应用构建与 WebDriver 冒烟测试，在 `ubuntu-latest` 上运行 TS 类型检查、前端测试与工作流检查；应用这一组固定在 `windows-2022`，因为冒烟测试在 `windows-latest` 上还过不了，见 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)。提 PR 前请在本地跑过对应的检查。
 
 ## 目录
 
