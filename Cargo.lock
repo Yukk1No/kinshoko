@@ -2491,7 +2491,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
 name = "kinshoko"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "arboard",
  "chrono",
@@ -2516,7 +2516,7 @@ dependencies = [
 
 [[package]]
 name = "kinshoko-core"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "bytemuck",
@@ -2545,7 +2545,7 @@ dependencies = [
 
 [[package]]
 name = "kinshoko-tagger"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "csv",
  "image",
