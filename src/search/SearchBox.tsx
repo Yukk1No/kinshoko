@@ -139,6 +139,7 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
 
   // 放不下的条件标签收进“+n”（#222）：每次绘制后和查找框变宽变窄时量一次，个数变了才重绘。
   const root = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLInputElement>(null);
   const [fit, setFit] = useState(Infinity);
   const measure = useRef(() => {});
   measure.current = () => setFit(chipsThatFit(root.current));
@@ -228,8 +229,11 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
     (workspace ? editSharedApprox({ kind: "set", rules: [{ a: to.id, b: tag.id, relation: "similar" }] }, safe) : setTagApprox(libraryId, to.id, tag.id, "similar")).catch((e) => onError(String(e)));
   };
 
-  /** 一个条件的标签块；收起的标签块（`collapsed`）只占位量宽度，看不见也点不到。 */
-  const chip = (c: SearchInput["conditions"][number], i: number, collapsed = false) => {
+  /**
+   * 一个条件的标签块；收起的标签块（`collapsed`）只占位量宽度，看不见也点不到。
+   * `last`：“+n”浮层里仅剩的一个，去掉后浮层随之消失，焦点交回输入框。
+   */
+  const chip = (c: SearchInput["conditions"][number], i: number, collapsed = false, last = false) => {
     const resolved: Condition | undefined = tree?.conditions[i];
     const terms = c.any.map((t, j) => ({ input: t, place: j, term: resolved && resolvedTerm(resolved, t) }));
     const visible = resolved ? terms.filter((t) => t.term) : terms;
@@ -263,7 +267,7 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
         >
           ⊘
         </button>
-        <button type="button" aria-label="去掉这个条件" onClick={() => remove(i)}>
+        <button type="button" aria-label="去掉这个条件" onClick={() => { remove(i); if (last) field.current?.focus(); }}>
           ×
         </button>
       </li>
@@ -271,28 +275,29 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   };
 
   const shown = open && rows.length > 0;
-  const hidden = Math.max(input.conditions.length - fit, 0);
+  const hiddenCount = Math.max(input.conditions.length - fit, 0);
   return (
     <div className="search" ref={root}>
       <ul className="search-chips" aria-label="查找条件">
-        {hidden > 0 && (
+        {hiddenCount > 0 && (
           <li className="search-more">
             <Popover.Root>
-              <Popover.Trigger className="search-more-btn" aria-label={`还有 ${hidden} 个条件`}>+{hidden}</Popover.Trigger>
+              <Popover.Trigger className="search-more-btn" aria-label={`还有 ${hiddenCount} 个条件`}>+{hiddenCount}</Popover.Trigger>
               <Popover.Portal>
                 <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={8}>
                   <Popover.Popup className="k-popup search-more-pop" aria-label="收起的查找条件">
-                    <ul className="search-chips">{input.conditions.slice(0, hidden).map((c, i) => chip(c, i))}</ul>
+                    <ul className="search-chips">{input.conditions.slice(0, hiddenCount).map((c, i) => chip(c, i, false, hiddenCount === 1))}</ul>
                   </Popover.Popup>
                 </Popover.Positioner>
               </Popover.Portal>
             </Popover.Root>
           </li>
         )}
-        {input.conditions.map((c, i) => chip(c, i, i < hidden))}
+        {input.conditions.map((c, i) => chip(c, i, i < hiddenCount))}
       </ul>
       <div className="search-field">
         <input
+          ref={field}
           role="combobox"
           aria-label="查找参考图"
           aria-expanded={shown}

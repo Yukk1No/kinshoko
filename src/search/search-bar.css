@@ -7,6 +7,8 @@
 /* 条件标签放不下时：末尾放得下的照常显示，前面的收进“+n”，点开在浮层里换行列出，仍可排除、可去掉。
    收起的标签块只留着量宽度（chipsThatFit），看不见也点不到。 */
 .search-chip[data-collapsed] { position: absolute; visibility: hidden; pointer-events: none; }
+/* 显示中的标签块不被压缩，量到的宽度与收起时一致，收起的个数不会来回跳。 */
+.topbar > .search .search-chip { flex: none; }
 .search-more { display: flex; flex: none; }
 .search-more-btn { height: 26px; min-width: 32px; max-width: 40px; padding: 0 8px; border: 0; border-radius: 8px; background: var(--surface-2); color: var(--ink-2);
   font: inherit; font-weight: 500; font-variant-numeric: tabular-nums; cursor: pointer; transition: background var(--t-fast), color var(--t-fast); }

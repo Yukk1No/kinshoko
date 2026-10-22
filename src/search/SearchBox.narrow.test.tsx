@@ -67,3 +67,20 @@ it("收起的条件也能排除", () => {
   fireEvent.click(hidden.getAllByRole("button", { name: "排除这个条件" })[1]);
   expect(onChange).toHaveBeenLastCalledWith({ conditions: [text("天空"), { ...text("云"), negate: true }, text("夕阳")], exact: false });
 });
+
+it("只有一个条件但放不下时收成“+1”，点开仍能去掉", () => {
+  searchWidth = 200;
+  const onChange = box({ conditions: [text("夕阳下的海边")], exact: false });
+  fireEvent.click(screen.getByRole("button", { name: "还有 1 个条件" }));
+  const hidden = within(screen.getByRole("dialog", { name: "收起的查找条件" }));
+  fireEvent.click(hidden.getByRole("button", { name: "去掉这个条件" }));
+  expect(onChange).toHaveBeenLastCalledWith({ conditions: [], exact: false });
+});
+
+it("去掉浮层里最后一个收起的条件后，焦点回到输入框", () => {
+  searchWidth = 200;
+  box({ conditions: [text("夕阳下的海边")], exact: false });
+  fireEvent.click(screen.getByRole("button", { name: "还有 1 个条件" }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "收起的查找条件" })).getByRole("button", { name: "去掉这个条件" }));
+  expect(document.activeElement).toBe(screen.getByRole("combobox", { name: "查找参考图" }));
+});
