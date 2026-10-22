@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import css from "./textSelect.css?raw";
+import css from "./text-select.css?raw";
 import appCss from "../styles.css?raw";
 
 // 主界面默认不能拖选文字（#224）：误拖出的选区没有用处，只有要复制的内容才放开。
@@ -14,14 +14,14 @@ const declares = (selector: string, property: string, value: string, sheet = css
   }));
 
 describe("文字选取（#224）", () => {
-  it("应用根默认不能选文字，弹层等挂在 body 下的内容一并继承", () => {
+  it("body 默认不能选文字，弹层等挂在 body 下的内容一并继承", () => {
     expect(declares("body", "user-select", "none")).toBe(true);
   });
 
   it.each([
     "input",
     "textarea",
-    '[contenteditable="true"]',
+    '[contenteditable]:not([contenteditable="false"])',
     ".insp-file-name",
     ".insp-links",
     ".workspace-source-path",
@@ -29,6 +29,7 @@ describe("文字选取（#224）", () => {
     ".create-library-path-text",
     '[role="alert"]',
     '.k-toast[data-tone="error"]',
+    ".k-list-desc.is-warn",
     ".settings-error",
   ])("%s 仍可选中复制", (selector) => {
     expect(declares(selector, "user-select", "text")).toBe(true);

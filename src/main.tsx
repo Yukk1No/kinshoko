@@ -12,7 +12,7 @@ import "./styles.css";
 import "./ui/ui.css";
 import "./shell/main-window.css";
 import "./ui/dialogs.css";
-import "./ui/textSelect.css";
+import "./ui/text-select.css";
 
 // 同一个页面承载五种窗口：主窗口、截图框选窗口（?view=capture）、钉图层（?view=pin-layer，#193）、
 // 钉图的菜单窗口（?view=desktop-menu，#106）与还原度门槛实验窗口（?view=fidelity-gate）。
