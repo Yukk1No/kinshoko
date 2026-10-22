@@ -5,4 +5,9 @@ import type { TagLabel } from "./TagLabel";
 /**
  * 已有外部对应的 Eagle 标签。
  */
-export type EagleTagMatch = { tag: TagLabel, count: number, external: Array<string>, basis: MatchBasis, };
+export type EagleTagMatch = { tag: TagLabel, count: number, external: Array<string>, basis: MatchBasis, 
+/**
+ * 外部对应已属于库内另一个标签（例如打标模型先建了它），这个 Eagle 标签已并入它。
+ * 那个标签被安全模式藏起来时为空。
+ */
+mergedInto: TagLabel | null, };

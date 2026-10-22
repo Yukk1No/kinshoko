@@ -18,6 +18,7 @@ fn tag(id: &str, name: &str, external: &[&str], count: u32) -> VocabularyTag {
         aliases: Vec::new(),
         external: external.iter().map(|e| (*e).into()).collect(),
         count,
+        source_names: Vec::new(),
     }
 }
 

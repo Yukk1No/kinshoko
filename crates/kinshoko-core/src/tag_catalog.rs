@@ -6,6 +6,7 @@ mod approx;
 mod settings;
 pub use settings::CatalogSettingsSnapshot;
 mod groups;
+mod merges;
 mod migration;
 mod names;
 pub use approx::{
@@ -14,6 +15,7 @@ pub use approx::{
 };
 mod portable;
 mod sync;
+mod views;
 pub use groups::{
     CatalogGroupDefinition, CatalogGroupEdit, CatalogGroupMigration, CatalogGroupOrigin,
     CatalogGroupSource, CatalogGroupView,
@@ -23,7 +25,8 @@ pub use migration::{
     LegacyNameMigrationWorkspace, LegacyNameOutcome, LegacyNameResolution, LegacyNameSource,
 };
 pub use names::CatalogNameEdit;
-use sync::{Synchronized, insert_tag};
+pub(crate) use names::fill_names;
+use sync::insert_tag;
 
 use std::collections::BTreeSet;
 use std::fmt;
@@ -124,6 +127,10 @@ pub struct CatalogTag {
     pub name_preferences: Vec<LocalizedName>,
     pub aliases: Vec<TagAlias>,
     pub external: Vec<ExternalTagIdentity>,
+    /// 各资料库的来源名称（ADR-0012），按资料库顺序；`names` 中只作没有名称偏好与默认名称时的兜底。
+    #[serde(default)]
+    #[ts(as = "Option<Vec<LocalizedName>>", optional)]
+    pub source_names: Vec<LocalizedName>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -155,6 +162,10 @@ pub struct LibraryTagMapping {
     pub legacy: VocabularyTag,
     pub name_provenance: TagNameProvenance,
     pub basis: CatalogMatchBasis,
+    /// 这个库内标签现在的来源名称（ADR-0012），单库内优先于默认名称显示。
+    #[serde(default)]
+    #[ts(as = "Option<Vec<LocalizedName>>", optional)]
+    pub source_names: Vec<LocalizedName>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -197,57 +208,6 @@ pub struct CatalogImageTags {
     pub identities: Vec<ResolvedTagIdentity>,
 }
 
-impl CatalogInspection {
-    /// A compatibility view: local IDs/primary labels remain usable for Library actions;
-    /// the corrected shared definition supplies additional search words and external mappings.
-    pub fn search_vocabulary(&self, library_id: &str, vocabulary: &Vocabulary) -> Vocabulary {
-        let mappings = self
-            .mappings
-            .iter()
-            .filter(|m| m.library_id == library_id)
-            .map(|m| (m.local_tag_id.as_str(), m))
-            .collect::<std::collections::BTreeMap<_, _>>();
-        let definitions = self
-            .tags
-            .iter()
-            .map(|tag| (tag.id.as_str(), tag))
-            .collect::<std::collections::BTreeMap<_, _>>();
-        let mut view = vocabulary.clone();
-        for local in &mut view.tags {
-            let Some(mapping) = mappings.get(local.id.as_str()) else {
-                continue;
-            };
-            let Some(shared) = definitions.get(mapping.catalog_id.as_str()) else {
-                continue;
-            };
-            if mapping.name_provenance == TagNameProvenance::Catalog {
-                local.names = shared.names.clone();
-                local.aliases = shared.aliases.clone();
-            }
-            for alias in shared
-                .aliases
-                .iter()
-                .cloned()
-                .chain(shared.names.iter().map(|n| TagAlias {
-                    name: n.name.clone(),
-                    lang: Some(n.lang.clone()),
-                }))
-            {
-                if !local.aliases.contains(&alias) {
-                    local.aliases.push(alias);
-                }
-            }
-            local.external = shared
-                .external
-                .iter()
-                .filter(|e| e.vocabulary == "danbooru")
-                .map(|e| e.name.clone())
-                .collect();
-        }
-        view
-    }
-}
-
 #[derive(Debug, Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -263,6 +223,15 @@ pub struct TagCatalog {
     name_defaults: Option<crate::library::TagTranslations>,
     /// 每个资料库上次同步时的词表与目录修订号（#158）：都没变时读一张图的标签不必重新同步整份词表。
     synchronized: std::collections::HashMap<String, Synchronized>,
+}
+
+#[derive(PartialEq)]
+struct Synchronized {
+    root: std::path::PathBuf,
+    safe_mode: bool,
+    scope: crate::library::SafeModeScope,
+    vocabulary: i64,
+    catalog: i64,
 }
 
 impl TagCatalog {
@@ -288,6 +257,10 @@ impl TagCatalog {
                 library_id TEXT NOT NULL, local_tag_id TEXT NOT NULL,
                 catalog_id TEXT NOT NULL REFERENCES catalog_tag(id), legacy TEXT NOT NULL,
                 basis TEXT NOT NULL, PRIMARY KEY(library_id, local_tag_id));
+            -- 库内标签现在的来源名称（#217，ADR-0012），每次同步刷新。
+            CREATE TABLE IF NOT EXISTS library_tag_source_name (
+                library_id TEXT NOT NULL, local_tag_id TEXT NOT NULL, names TEXT NOT NULL,
+                PRIMARY KEY(library_id, local_tag_id));
             COMMIT;",
         )?;
         names::initialize(&conn, version)?;
@@ -369,78 +342,6 @@ impl TagCatalog {
         Ok(snapshot.search_vocabulary(&library.info().id, &library.vocabulary()?))
     }
 
-    /// Identity inspection for effective and rejected image tags; manual actions continue to use
-    /// each local ID and its original display label.
-    pub fn image_tags(
-        &mut self,
-        library: &Library,
-        image_id: &str,
-        lang: &str,
-    ) -> Result<CatalogImageTags, CatalogError> {
-        // 选中一张图就读一次（#158）：词表与目录都没变时只查这张图自己的标签对应。
-        if !self.is_synchronized(library)? {
-            self.synchronize(library)?;
-        }
-        let mut image = library.image_tags(image_id, lang)?;
-        let library_id = &library.info().id;
-        let mut mapping = self.conn.prepare_cached(
-            "SELECT catalog_id,name_provenance FROM library_tag_mapping WHERE library_id=?1 AND local_tag_id=?2",
-        )?;
-        let mut definition = self
-            .conn
-            .prepare_cached("SELECT definition FROM catalog_tag WHERE id=?1")?;
-        let mut identities = Vec::new();
-        for label in image
-            .tags
-            .iter_mut()
-            .map(|t| &mut t.tag)
-            .chain(image.rejected.iter_mut())
-        {
-            let Some((catalog_id, provenance)) = mapping
-                .query_row(params![library_id, label.id], |row| {
-                    Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-                })
-                .optional()?
-            else {
-                continue;
-            };
-            let Some(text) = definition
-                .query_row([&catalog_id], |row| row.get::<_, String>(0))
-                .optional()?
-            else {
-                continue;
-            };
-            let mut shared: CatalogTag = serde_json::from_str(&text)?;
-            names::resolve(&self.conn, &mut shared)?;
-            let external = shared
-                .external
-                .iter()
-                .map(|e| e.name.clone())
-                .collect::<Vec<_>>();
-            if provenance == "catalog" {
-                *label = crate::library::display_label(
-                    &label.id,
-                    shared.namespace,
-                    &shared.names,
-                    &external,
-                    lang,
-                );
-            }
-            identities.push(ResolvedTagIdentity {
-                local_tag_id: label.id.clone(),
-                catalog_id: shared.id.clone(),
-                tag: crate::library::display_label(
-                    &shared.id,
-                    shared.namespace,
-                    &shared.names,
-                    &external,
-                    lang,
-                ),
-            });
-        }
-        Ok(CatalogImageTags { image, identities })
-    }
-
     /// Cheap projection freshness check; does not load any tag definitions.
     pub fn revision(&self) -> Result<i64, CatalogError> {
         Ok(self
@@ -462,7 +363,7 @@ impl TagCatalog {
         for tag in &mut tags {
             names::resolve(&self.conn, tag)?;
         }
-        let mut stmt = self.conn.prepare("SELECT library_id,local_tag_id,catalog_id,legacy,basis,name_provenance FROM library_tag_mapping ORDER BY library_id,local_tag_id")?;
+        let mut stmt = self.conn.prepare("SELECT m.library_id,m.local_tag_id,m.catalog_id,m.legacy,m.basis,m.name_provenance,coalesce(s.names,'[]') FROM library_tag_mapping m LEFT JOIN library_tag_source_name s ON s.library_id=m.library_id AND s.local_tag_id=m.local_tag_id ORDER BY m.library_id,m.local_tag_id")?;
         let rows = stmt.query_map([], |row| {
             Ok((
                 row.get::<_, String>(0)?,
@@ -471,11 +372,13 @@ impl TagCatalog {
                 row.get::<_, String>(3)?,
                 row.get::<_, String>(4)?,
                 row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
             ))
         })?;
         let mappings = rows
             .map(|row| {
-                let (library_id, local_tag_id, catalog_id, legacy, basis, provenance) = row?;
+                let (library_id, local_tag_id, catalog_id, legacy, basis, provenance, sources) =
+                    row?;
                 Ok(LibraryTagMapping {
                     library_id,
                     local_tag_id,
@@ -487,6 +390,7 @@ impl TagCatalog {
                     } else {
                         TagNameProvenance::Pending
                     },
+                    source_names: serde_json::from_str(&sources)?,
                 })
             })
             .collect::<Result<Vec<_>, CatalogError>>()?;

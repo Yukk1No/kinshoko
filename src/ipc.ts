@@ -181,6 +181,11 @@ export function mapTagExternal(libraryId: string, tagId: string, external: strin
   return invoke<MappedExternal>(lib("map_tag_external"), { libraryId, tagId, external });
 }
 
+/** 标签管理：改某个来源名称的语言（纠正按文字判断的误判，#217）；`und` 表示未注明语言。 */
+export function setSourceNameLang(libraryId: string, tagId: string, name: string, lang: string): Promise<void> {
+  return invoke<void>(lib("set_source_name_lang"), { libraryId, tagId, name, lang });
+}
+
 /** 补外部对应时的联想（外部词表属于本设备）。 */
 export function externalSuggestions(text: string, limit: number): Promise<string[]> {
   return invoke<string[]>(lib("external_suggestions"), { text, limit });

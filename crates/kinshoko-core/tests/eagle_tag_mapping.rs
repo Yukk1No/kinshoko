@@ -88,22 +88,23 @@ fn eagle_tags_match_external_names_exactly_after_folding_case_spaces_and_full_wi
 
     let mapping = library.map_eagle_tags(&vocabulary, ZH).unwrap();
 
+    // 原文与外部名称写法相同：只是别名，显示跟随默认名称；没有翻译时显示外部名称（ADR-0012）。
     assert_eq!(
         matched(&mapping),
         [
             (
-                "Blue Eyes".to_owned(),
+                "aqua eyes".to_owned(),
+                vec!["aqua_eyes".to_owned()],
+                MatchBasis::Name
+            ),
+            (
+                "blue eyes".to_owned(),
                 vec!["blue_eyes".to_owned()],
                 MatchBasis::Name
             ),
             (
-                "long_hair".to_owned(),
+                "long hair".to_owned(),
                 vec!["long_hair".to_owned()],
-                MatchBasis::Name
-            ),
-            (
-                "ＡＱＵＡ　ＥＹＥＳ".to_owned(),
-                vec!["aqua_eyes".to_owned()],
                 MatchBasis::Name
             ),
         ]
@@ -114,13 +115,18 @@ fn eagle_tags_match_external_names_exactly_after_folding_case_spaces_and_full_wi
     let blue = vocab
         .tags
         .iter()
-        .find(|t| t.names.iter().any(|n| n.name == "Blue Eyes"))
+        .find(|t| {
+            t.aliases
+                .iter()
+                .any(|a| a.name == "Blue Eyes" && a.lang.is_none())
+        })
         .unwrap();
     assert_eq!(blue.external, ["blue_eyes"]);
+    assert!(blue.names.is_empty() && blue.source_names.is_empty());
 }
 
 #[test]
-fn translation_names_match_and_ambiguous_or_taken_names_are_left_for_the_artist() {
+fn translation_names_match_taken_names_merge_and_ambiguous_ones_are_left_for_the_artist() {
     let dir = tempfile::tempdir().unwrap();
     let (library, images) = import(
         dir.path(),
@@ -149,38 +155,53 @@ fn translation_names_match_and_ambiguous_or_taken_names_are_left_for_the_artist(
 
     let mapping = library.map_eagle_tags(&vocabulary, ZH).unwrap();
 
+    // red_eyes 已属于模型建的标签：Eagle 的 red eyes 并入它，已对上列表注明。
     assert_eq!(
         matched(&mapping),
-        [(
-            "蓝瞳".to_owned(),
-            vec!["blue_eyes".to_owned()],
-            MatchBasis::Translation
-        )]
+        [
+            (
+                "red eyes".to_owned(),
+                vec!["red_eyes".to_owned()],
+                MatchBasis::Name
+            ),
+            (
+                "蓝瞳".to_owned(),
+                vec!["blue_eyes".to_owned()],
+                MatchBasis::Translation
+            ),
+        ]
+    );
+    let merged = mapping
+        .matched
+        .iter()
+        .find(|m| m.external == ["red_eyes"])
+        .unwrap();
+    assert_eq!(
+        merged.merged_into.as_ref().map(|t| t.name.as_str()),
+        Some("red eyes")
     );
     // 张数多的排前面。
-    assert_eq!(unmatched(&mapping), ["双马尾", "red eyes", "水色瞳"]);
+    assert_eq!(unmatched(&mapping), ["双马尾", "水色瞳"]);
     assert_eq!(
         mapping.unmatched[0].candidates,
         ["low_twintails", "twintails"]
     );
-    assert_eq!(
-        mapping.unmatched[1].taken_external.as_deref(),
-        Some("red_eyes")
-    );
-    assert_eq!(
-        mapping.unmatched[1]
-            .taken_by
-            .as_ref()
-            .map(|t| t.name.as_str()),
-        Some("red eyes")
-    );
-    assert!(mapping.unmatched[2].candidates.is_empty());
+    assert!(mapping.unmatched[1].candidates.is_empty());
     assert_eq!(mapping.vocabulary_size, 5);
+    let red: Vec<_> = library
+        .vocabulary()
+        .unwrap()
+        .tags
+        .into_iter()
+        .filter(|t| t.external == ["red_eyes"] || t.aliases.iter().any(|a| a.name == "red eyes"))
+        .collect();
+    assert_eq!(red.len(), 1, "库里只剩一个标签");
+    assert_eq!(red[0].count, 2);
 
     // 再次打开向导：已写入的算作之前就有，没对上的仍列出。
     let again = library.map_eagle_tags(&vocabulary, ZH).unwrap();
-    assert_eq!(again.matched[0].basis, MatchBasis::Earlier);
-    assert_eq!(unmatched(&again), ["双马尾", "red eyes", "水色瞳"]);
+    assert!(again.matched.iter().all(|m| m.basis == MatchBasis::Earlier));
+    assert_eq!(unmatched(&again), ["双马尾", "水色瞳"]);
 }
 
 /// 只点选 `tag` 一个条件（近似查找开启）时找到的图。

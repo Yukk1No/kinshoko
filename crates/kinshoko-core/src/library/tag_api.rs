@@ -86,6 +86,16 @@ impl Library {
             .collect::<Result<_, _>>()?)
     }
 
+    /// 并掉的标签与它并入的标签（`from`, `to`）。
+    pub(crate) fn tag_merges(&self) -> Result<Vec<(String, String)>, Error> {
+        let conn = self.inner.readers.get();
+        let mut statement =
+            conn.prepare("SELECT from_tag, to_tag FROM tag_merge ORDER BY from_tag")?;
+        Ok(statement
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<Result<_, _>>()?)
+    }
+
     /// 标签词表快照：标签、各语言名称、别名、命名空间、外部对应与计数。
     pub fn vocabulary(&self) -> Result<Vocabulary, Error> {
         tags::vocabulary(&self.inner)
@@ -99,6 +109,11 @@ impl Library {
     /// 给标签设置某种语言的名称（改名）。
     pub fn rename_tag(&self, tag_id: &str, lang: &str, name: &str) -> Result<(), Error> {
         tags::rename_tag(&self.inner, tag_id, lang, name)
+    }
+
+    /// 改标签某个来源名称的语言（纠正按文字判断的误判）；`und` 表示未注明语言。
+    pub fn set_source_name_lang(&self, tag_id: &str, name: &str, lang: &str) -> Result<(), Error> {
+        tags::set_source_name_lang(&self.inner, tag_id, name, lang)
     }
 
     pub fn add_tag_alias(&self, tag_id: &str, alias: &TagAlias) -> Result<(), Error> {

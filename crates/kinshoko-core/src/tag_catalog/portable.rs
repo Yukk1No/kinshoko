@@ -42,6 +42,7 @@ pub(super) fn import_definition(
         name_preferences: Vec::new(),
         aliases: definition.aliases.clone(),
         external: definition.external.clone(),
+        source_names: Vec::new(),
     };
     tx.execute(
         "INSERT INTO catalog_tag(id,definition) VALUES (?1,?2)",
@@ -155,7 +156,12 @@ impl CatalogInspection {
                     .ok_or(CatalogError::UnknownTag)?;
                 let definition = content_definition(shared);
                 tag.namespace = definition.namespace;
-                tag.names = definition.default_names.clone();
+                // 定义没有默认名称时（只有来源名称的标签，#217）带上本库的来源名称，目标库才叫得出它。
+                tag.names = if definition.default_names.is_empty() {
+                    mapping.source_names.clone()
+                } else {
+                    definition.default_names.clone()
+                };
                 tag.external = definition
                     .external
                     .iter()

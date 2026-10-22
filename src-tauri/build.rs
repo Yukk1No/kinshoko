@@ -92,6 +92,7 @@ fn main() {
                         "personal_approx",
                         "eagle_tag_mapping",
                         "map_tag_external",
+                        "set_source_name_lang",
                         "external_suggestions",
                         "image_rating",
                         "safe_mode",

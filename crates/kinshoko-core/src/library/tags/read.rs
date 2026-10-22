@@ -1,6 +1,112 @@
-//! 标签的读取：详情里的标签、计数与词表快照（从 library/tags.rs 原样搬出）。
+//! 标签读取与显示名。
 
 use super::*;
+
+pub(in crate::library) struct TagRow {
+    namespace: TagNamespace,
+    names: Vec<LocalizedName>,
+    source_names: Vec<LocalizedName>,
+    pub(in crate::library) external: Vec<String>,
+}
+
+/// 读取若干标签的命名空间、名称与外部对应。
+pub(in crate::library) fn load_tags(
+    conn: &rusqlite::Connection,
+    ids: impl IntoIterator<Item = String>,
+) -> Result<HashMap<String, TagRow>, Error> {
+    let mut out = HashMap::new();
+    let mut tag = conn.prepare_cached("SELECT namespace FROM tag WHERE id = ?1")?;
+    let mut names =
+        conn.prepare_cached("SELECT lang, name FROM tag_name WHERE tag_id = ?1 ORDER BY lang")?;
+    let mut external =
+        conn.prepare_cached("SELECT name FROM tag_external WHERE tag_id = ?1 ORDER BY name")?;
+    for id in ids {
+        if out.contains_key(&id) {
+            continue;
+        }
+        let namespace = tag.query_row([&id], |r| TagNamespace::parse(&r.get::<_, String>(0)?))?;
+        let names = names
+            .query_map([&id], |r| {
+                Ok(LocalizedName {
+                    lang: r.get(0)?,
+                    name: r.get(1)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        let external = external
+            .query_map([&id], |r| r.get(0))?
+            .collect::<Result<Vec<String>, _>>()?;
+        let source_names = crate::library::source_names::load(conn, &id)?;
+        out.insert(
+            id,
+            TagRow {
+                namespace,
+                names,
+                source_names,
+                external,
+            },
+        );
+    }
+    Ok(out)
+}
+
+/// 主语言子标签，例如 `zh-CN` → `zh`。
+pub(super) fn primary(lang: &str) -> &str {
+    lang.split(['-', '_']).next().unwrap_or(lang)
+}
+
+/// 按界面语言选择显示名：界面语言 → 同一主语言 → 其他语言 → 外部名称（尚未翻译）。
+/// 本库的来源名称优先于默认名称。
+pub(in crate::library) fn label(id: &str, row: &TagRow, lang: &str) -> TagLabel {
+    let names = crate::library::source_names::compose(&row.names, &row.source_names, &[]);
+    display_label(id, row.namespace, &names, &row.external, lang)
+}
+
+/// 同 [`label`]，供 Search 按词表快照显示标签。
+pub(crate) fn display_label(
+    id: &str,
+    namespace: TagNamespace,
+    names: &[LocalizedName],
+    external: &[String],
+    lang: &str,
+) -> TagLabel {
+    let pick = names
+        .iter()
+        .find(|n| n.lang.eq_ignore_ascii_case(lang))
+        .or_else(|| {
+            names
+                .iter()
+                .find(|n| primary(&n.lang).eq_ignore_ascii_case(primary(lang)))
+        })
+        // 未注明语言的名称排在其他语言之后。
+        .or_else(|| {
+            names
+                .iter()
+                .find(|n| n.lang != crate::library::source_names::UND)
+        })
+        .or_else(|| names.first());
+    let (name, untranslated) = match pick {
+        Some(n) => (n.name.clone(), false),
+        None => (
+            external
+                .first()
+                .map(|e| e.replace('_', " "))
+                .unwrap_or_else(|| id.to_owned()),
+            true,
+        ),
+    };
+    TagLabel {
+        id: id.to_owned(),
+        namespace,
+        name,
+        untranslated,
+        has_external: !external.is_empty(),
+    }
+}
+
+pub(super) fn sort_labels(labels: &mut [TagLabel]) {
+    labels.sort_by(|a, b| (a.namespace, &a.name, &a.id).cmp(&(b.namespace, &b.name, &b.id)));
+}
 
 pub(in crate::library) fn image_tags(
     inner: &Inner,
@@ -118,6 +224,7 @@ pub(in crate::library) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error>
                     names: Vec::new(),
                     aliases: Vec::new(),
                     external: Vec::new(),
+                    source_names: Vec::new(),
                 },
             );
         }
@@ -137,6 +244,16 @@ pub(in crate::library) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error>
             let (id, name, lang) = row?;
             if let Some(t) = tags.get_mut(&id) {
                 t.aliases.push(TagAlias { name, lang });
+            }
+        }
+        let mut stmt =
+            tx.prepare("SELECT tag_id, lang, name FROM tag_source_name ORDER BY rowid")?;
+        for row in stmt.query_map([], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get(2)?))
+        })? {
+            let (id, lang, name) = row?;
+            if let Some(t) = tags.get_mut(&id) {
+                t.source_names.push(LocalizedName { lang, name });
             }
         }
         let mut stmt = tx.prepare("SELECT tag_id, name FROM tag_external ORDER BY name")?;

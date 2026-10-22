@@ -1,15 +1,6 @@
-//! 把资料库的可见本地定义接入统一目录（从 tag_catalog.rs 原样搬出）。
+//! 把资料库的标签同步进统一标签目录：建立或纠正库内标签对应，记下来源名称。
 
 use super::*;
-
-#[derive(PartialEq)]
-pub(super) struct Synchronized {
-    root: std::path::PathBuf,
-    safe_mode: bool,
-    scope: crate::library::SafeModeScope,
-    vocabulary: i64,
-    catalog: i64,
-}
 
 impl TagCatalog {
     /// Attach visible local definitions. Repeated attachment retains explicit corrections and
@@ -47,11 +38,14 @@ impl TagCatalog {
         }
         let mut changed = false;
         for local in vocabulary.tags {
+            changed |= record_source_names(&tx, library_id, &local)?;
             let existing = tx.query_row("SELECT catalog_id,basis FROM library_tag_mapping WHERE library_id=?1 AND local_tag_id=?2", params![library_id, local.id], |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))).optional()?;
-            if let Some((_, basis)) = &existing
-                && serde_json::from_str::<CatalogMatchBasis>(basis)? == CatalogMatchBasis::Corrected
-            {
-                continue;
+            if let Some((id, basis)) = &existing {
+                changed |= drop_copied_source_names(&tx, library_id, id, &local)?;
+                if serde_json::from_str::<CatalogMatchBasis>(basis)? == CatalogMatchBasis::Corrected
+                {
+                    continue;
+                }
             }
             let ns = serde_json::to_string(&local.namespace)?;
             let mut candidates = BTreeSet::new();
@@ -138,6 +132,7 @@ impl TagCatalog {
             }
             changed = true;
         }
+        changed |= merges::follow(&tx, library_id, &library.tag_merges()?)?;
         changed |= groups::migrate(&tx, library)?;
         changed |= approx::migrate(&tx, library, &vocabulary.personal_approx)?;
         if changed {
@@ -220,6 +215,7 @@ pub(super) fn insert_tag_with_id(
         name_preferences: Vec::new(),
         aliases: local.aliases.clone(),
         external: Vec::new(),
+        source_names: Vec::new(),
     };
     tx.execute(
         "INSERT INTO catalog_tag (id,definition) VALUES (?1,'{}')",
@@ -239,6 +235,70 @@ pub(super) fn insert_tag_with_id(
         params![id, serde_json::to_string(&tag)?],
     )?;
     Ok(id)
+}
+
+/// 记下库内标签现在的来源名称；有变化时返回真。
+pub(super) fn record_source_names(
+    tx: &Transaction<'_>,
+    library_id: &str,
+    local: &VocabularyTag,
+) -> Result<bool, CatalogError> {
+    let names = serde_json::to_string(&local.source_names)?;
+    let old = tx
+        .query_row(
+            "SELECT names FROM library_tag_source_name WHERE library_id=?1 AND local_tag_id=?2",
+            params![library_id, local.id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?;
+    if old.as_deref() == Some(names.as_str()) || (old.is_none() && local.source_names.is_empty()) {
+        return Ok(false);
+    }
+    tx.execute("INSERT INTO library_tag_source_name (library_id,local_tag_id,names) VALUES (?1,?2,?3) ON CONFLICT(library_id,local_tag_id) DO UPDATE SET names=excluded.names", params![library_id, local.id, names])?;
+    Ok(true)
+}
+
+/// beta1 把 Eagle 原文当作名称同步成了默认名称（#217）。资料库把它改为来源名称或别名后，
+/// 从首次同步时抄来的默认名称里去掉，让默认名称回到翻译表。
+pub(super) fn drop_copied_source_names(
+    tx: &Transaction<'_>,
+    library_id: &str,
+    catalog_id: &str,
+    local: &VocabularyTag,
+) -> Result<bool, CatalogError> {
+    let legacy: VocabularyTag = serde_json::from_str(&tx.query_row(
+        "SELECT legacy FROM library_tag_mapping WHERE library_id=?1 AND local_tag_id=?2",
+        params![library_id, local.id],
+        |row| row.get::<_, String>(0),
+    )?)?;
+    let moved = legacy
+        .names
+        .iter()
+        .filter(|name| {
+            // 只认 Eagle 原文的去处：本库的来源名称，或与外部名称写法相同的不分语言别名。
+            !local.names.contains(name)
+                && (local.source_names.iter().any(|s| s.name == name.name)
+                    || local.aliases.iter().any(|a| {
+                        a.name == name.name
+                            && a.lang.is_none()
+                            && local
+                                .external
+                                .iter()
+                                .any(|e| crate::library::same_spelling(e, &a.name))
+                    }))
+        })
+        .collect::<Vec<_>>();
+    if moved.is_empty() {
+        return Ok(false);
+    }
+    let mut tag = names::raw_tag(tx, catalog_id)?;
+    let before = tag.names.len();
+    tag.names.retain(|name| !moved.contains(&name));
+    if tag.names.len() == before {
+        return Ok(false);
+    }
+    names::save_tag(tx, &tag)?;
+    Ok(true)
 }
 
 pub(super) fn extend_externals(

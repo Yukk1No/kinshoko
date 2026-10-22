@@ -39,7 +39,7 @@ use ts_rs::TS;
 use unicode_normalization::UnicodeNormalization;
 
 use crate::approx::{ApproxRelation, ApproxSource, BuiltinApproxTable, ordered};
-use crate::library::{ContentRating, SafeMode, TagLabel, Vocabulary, display_label};
+use crate::library::{ContentRating, SafeMode, TagLabel, Vocabulary, compose_names, display_label};
 
 /// 搜索框里的一项：点选的标签、点选的内容分级，或直接输入的文字。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -202,16 +202,19 @@ impl Search {
             .iter()
             .map(|t| {
                 let word = |w: &str| (fold(w), w.to_owned());
-                let mut words: Vec<_> = t.names.iter().map(|n| word(&n.name)).collect();
-                if t.names.is_empty() {
-                    let shown = display_label(&t.id, t.namespace, &t.names, &t.external, "");
+                // 本库的来源名称优先于默认名称显示，也都能查到（#217）。
+                let names = compose_names(&t.names, &t.source_names, &[]);
+                let mut words: Vec<_> = names.iter().map(|n| word(&n.name)).collect();
+                if names.is_empty() {
+                    let shown = display_label(&t.id, t.namespace, &names, &t.external, "");
                     words.push(word(&shown.name));
                 }
+                words.extend(t.source_names.iter().map(|n| word(&n.name)));
                 words.extend(t.aliases.iter().map(|a| word(&a.name)));
                 Entry {
                     id: t.id.clone(),
                     namespace: t.namespace,
-                    names: t.names.clone(),
+                    names,
                     external: t.external.clone(),
                     count: t.count,
                     words,

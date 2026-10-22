@@ -11,4 +11,8 @@ external: string,
 /**
  * 在外部词表中。不在词表中的名称也会写入，但内置近似对应表多半不认识它。
  */
-known: boolean, };
+known: boolean, 
+/**
+ * 外部名称已属于另一个标签时，这个标签已并入它；这里是那个标签的 id。
+ */
+mergedInto: string | null, };

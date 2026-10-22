@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { TagNamePanel } from "./TagNamePanel";
@@ -101,4 +101,31 @@ it("opens with the requested tag first and expanded, even past the listing limit
   expect(within(screen.getByRole("list", { name: "标签" })).getAllByRole("listitem")[0]).toBe(row);
   expect(within(row).getByRole("button", { name: "改名“发型 110”" }).getAttribute("aria-expanded")).toBe("true");
   expect(within(row).getByRole("textbox", { name: "“发型 110”的显示名" })).toBeTruthy();
+});
+
+it("lists tags without an external mapping, corrects a source name's language and maps one like the import wizard (#217)", async () => {
+  const eagle = { ...tag(), id: "eagle", names: [{ lang: "en", name: "hatsune miku" }], defaultNames: [], aliases: [], external: [], sourceNames: [{ lang: "en", name: "hatsune miku" }] };
+  const mapping = { libraryId: "L1", localTagId: "local-eagle", catalogId: "eagle", nameProvenance: "catalog", basis: "independent", sourceNames: [{ lang: "en", name: "hatsune miku" }],
+    legacy: { id: "local-eagle", namespace: "general", names: [], aliases: [], external: [], count: 1, sourceNames: [] } };
+  const data = { libraries: [{ library: { id: "L1", name: "参考" }, unavailable: null }], catalog: { revision: 1, tags: [{ ...tag(), sourceNames: [] }, eagle], mappings: [mapping] } };
+  const calls: { cmd: string; args: unknown }[] = [];
+  mockIPC((cmd, args) => {
+    calls.push({ cmd, args });
+    if (cmd.endsWith("inspect_tag_catalog")) return data;
+    if (cmd.endsWith("map_tag_external")) return { external: "hatsune_miku", known: true, mergedInto: null };
+    if (cmd.endsWith("external_suggestions")) return ["hatsune_miku"];
+  });
+  render(<TagNamePanel />);
+  await screen.findByRole("listitem", { name: /分缝发型/ });
+  fireEvent.click(screen.getByRole("checkbox", { name: "只看没有外部对应的" }));
+  expect(screen.queryByRole("listitem", { name: /分缝发型/ })).toBeNull();
+  const row = screen.getByRole("listitem", { name: /hatsune miku/ });
+  fireEvent.click(within(row).getByRole("button", { name: "改名“hatsune miku”" }));
+
+  fireEvent.change(within(row).getByRole("combobox", { name: "“hatsune miku”的语言" }), { target: { value: "ja" } });
+  await waitFor(() => expect(calls).toContainEqual({ cmd: "plugin:library|set_source_name_lang", args: { libraryId: "L1", tagId: "local-eagle", name: "hatsune miku", lang: "ja" } }));
+
+  fireEvent.change(within(row).getByRole("combobox", { name: "“hatsune miku”的外部对应" }), { target: { value: "hatsune_miku" } });
+  fireEvent.click(within(row).getByRole("button", { name: "补上外部对应" }));
+  await waitFor(() => expect(calls).toContainEqual({ cmd: "plugin:library|map_tag_external", args: { libraryId: "L1", tagId: "local-eagle", external: "hatsune_miku" } }));
 });

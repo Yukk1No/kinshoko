@@ -37,6 +37,7 @@ fn tag(
             .collect(),
         external: Vec::new(),
         count,
+        source_names: Vec::new(),
     }
 }
 
@@ -175,6 +176,7 @@ fn external_names_are_not_a_way_to_find_a_tag_unless_it_is_still_untranslated() 
         aliases: Vec::new(),
         external: vec!["hair_ornament".into()],
         count: 1,
+        source_names: Vec::new(),
     };
     let search = plain(&vocabulary(vec![translated, untranslated]));
 

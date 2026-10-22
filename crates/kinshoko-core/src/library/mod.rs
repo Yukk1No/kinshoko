@@ -46,6 +46,7 @@ mod recovery;
 mod safe_mode_api;
 mod save;
 mod sidebar;
+mod source_names;
 mod store;
 mod tag_api;
 pub(crate) mod tag_definitions;
@@ -88,6 +89,7 @@ pub use permanent_delete::PermanentDeletePreview;
 pub use rating::{ContentRating, ImageRating, RatingFact, SafeMode, SafeModeScope, TaggingOutcome};
 pub use save::SaveDestination;
 pub use sidebar::Sidebar;
+pub use source_names::{UND, compose as compose_names, detect_lang};
 pub use tags::{
     FactSource, ImageTag, ImageTags, LocalizedName, PersonalApproxEntry, SourceTag, TagAlias,
     TagCount, TagEdit, TagGroupDefinition, TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef,
@@ -100,6 +102,7 @@ pub use types::{
 };
 
 use crate::approx::ApproxRelation;
+pub(crate) use eagle_tags::same_spelling;
 use events::Hub;
 use store::{DB_FILE, Readers, Writer};
 pub(crate) use tags::display_label;

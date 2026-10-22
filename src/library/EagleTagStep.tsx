@@ -63,11 +63,6 @@ function UnmatchedRow({
         <TagMarks tag={item.tag} /> · {item.count} 张
       </span>
       {item.candidates.length > 1 && <span className="import-report-reason">对上了多个外部名称，请选一个</span>}
-      {item.takenExternal && (
-        <span className="import-report-reason">
-          {item.takenExternal} 已对应到{item.takenBy ? ` ${tagName(item.takenBy)}` : "另一个标签"}
-        </span>
-      )}
       <input
         list={listId}
         aria-label={`${name} 的外部对应`}
@@ -95,6 +90,7 @@ function UnmatchedRow({
 /**
  * 迁入向导“标签的外部对应”：Eagle 标签迁入后按名称与翻译表自动匹配外部对应，列出没对上的，
  * 画师可以逐个补上或跳过。跳过的标签早已照常迁入，只是不参与内置近似对应表。
+ * 外部对应已属于库内另一个标签（例如打标模型先建了“蓝瞳”）的 Eagle 标签并入那个标签，单独列出（#217）。
  */
 export function EagleTagStep({ libraryId, onClose }: Props) {
   const [mapping, setMapping] = useState<EagleTagMapping | null>(null);
@@ -118,6 +114,7 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
   }, [libraryId]);
 
   const drop = (id: string) => setRemaining((rows) => rows.filter((r) => r.tag.id !== id));
+  const merged = mapping?.matched.filter((m) => m.mergedInto) ?? [];
 
   return (
     <section className="import-report eagle-tag-step" aria-label="标签的外部对应">
@@ -139,6 +136,18 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
         <p>本机还没有可用的外部词表（打标模型尚未就绪），只能手动补上外部对应。</p>
       )}
       {error && <p role="alert">{error}</p>}
+      {merged.length > 0 && (
+        <ul aria-label="已并入其他标签">
+          {merged.map((m) => (
+            <li key={m.tag.id}>
+              <span>
+                {tagName(m.tag)} 已并入 {m.mergedInto && tagName(m.mergedInto)}
+              </span>
+              <span className="import-report-reason">两边对应同一个外部名称，本来就是同一个标签</span>
+            </li>
+          ))}
+        </ul>
+      )}
       {done.length > 0 && (
         <ul aria-label="已补上的外部对应">
           {done.map((d) => (
@@ -146,6 +155,7 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
               <span>
                 {d.name} → {d.mapped.external}
               </span>
+              {d.mapped.mergedInto && <span className="import-report-reason">已并入对应这个外部名称的标签</span>}
               {!d.mapped.known && (
                 <span className="import-report-reason">词表中没有这个名称，内置近似对应表多半不认识它</span>
               )}

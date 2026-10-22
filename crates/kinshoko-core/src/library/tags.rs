@@ -16,13 +16,6 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
-mod edits;
-mod groups;
-mod views;
-pub(super) use edits::*;
-pub(super) use groups::*;
-pub(super) use views::*;
-
 use rusqlite::{OptionalExtension, Transaction, params};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -298,6 +291,10 @@ pub struct VocabularyTag {
     pub external: Vec<String>,
     /// 有这个有效标签的参考图张数。
     pub count: u32,
+    /// 本库的来源名称（#217），单库内优先于 `names` 显示；`und` 为未注明语言。
+    #[serde(default)]
+    #[ts(as = "Option<Vec<LocalizedName>>", optional)]
+    pub source_names: Vec<LocalizedName>,
 }
 
 /// 资料库设置中列出的一条个人近似对应表条目。
@@ -367,182 +364,15 @@ pub struct TagGroupView {
     pub tags: Vec<TagCount>,
 }
 
-// ---------------------------------------------------------------- 写入
+mod approx;
+mod groups;
+mod names;
+mod read;
+mod write;
 
-/// 在写线程上执行一个标签写入事务：词表修订号加一，提交后推送事件。
-pub(super) fn write<T: Send + 'static>(
-    inner: &Inner,
-    changed_images: Vec<String>,
-    f: impl FnOnce(&Transaction, &TranslationIndex) -> Result<T, Error> + Send + 'static,
-) -> Result<T, Error> {
-    let translations = inner.translations();
-    let (value, revision) = inner.writer.run(move |conn| {
-        let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-        let value = f(&tx, &translations)?;
-        let revision = bump_revision(&tx)?;
-        tx.commit()?;
-        Ok::<_, Error>((value, revision))
-    })?;
-    let library_id = inner.info.id.clone();
-    if !changed_images.is_empty() {
-        inner.hub.publish(LibraryEvent::ImagesChanged {
-            library_id: library_id.clone(),
-            image_ids: changed_images,
-        });
-    }
-    inner.hub.publish(LibraryEvent::VocabularyChanged {
-        library_id,
-        revision,
-    });
-    Ok(value)
-}
-
-/// 词表修订号加一，返回新值。词表内容或计数变化的写入事务里调用。
-pub(super) fn bump_revision(tx: &Transaction) -> Result<i64, Error> {
-    super::tag_definitions::seed(tx)?;
-    Ok(tx.query_row(
-        "UPDATE vocabulary_revision SET value = value + 1 RETURNING value",
-        [],
-        |r| r.get(0),
-    )?)
-}
-
-fn require_image(tx: &Transaction, image_id: &str) -> Result<(), Error> {
-    tx.query_row("SELECT 1 FROM image WHERE id = ?1", [image_id], |_| Ok(()))
-        .optional()?
-        .ok_or(Error::UnknownImage)
-}
-
-fn require_tag(tx: &Transaction, tag_id: &str) -> Result<TagNamespace, Error> {
-    tx.query_row("SELECT namespace FROM tag WHERE id = ?1", [tag_id], |r| {
-        TagNamespace::parse(&r.get::<_, String>(0)?)
-    })
-    .optional()?
-    .ok_or(Error::UnknownTag)
-}
-
-/// 浏览视角下这个标签存在：安全模式开启时，只在被封印的图上出现的标签当作不存在
-/// （与 [`Inner::sealed_only_tags`] 同一规则），画师看不见它，也不能经 id 整理它。
-fn require_visible_tag(
-    tx: &Transaction,
-    safe: SafeMode,
-    tag_id: &str,
-) -> Result<TagNamespace, Error> {
-    let namespace = require_tag(tx, tag_id)?;
-    if safe.on {
-        let adult = rating::in_scope_sql("image.id", safe.scope);
-        let sealed_only: bool = tx.query_row(
-            &format!(
-                "SELECT EXISTS (SELECT 1 FROM effective_tag e JOIN image ON image.id = e.image_id
-                                WHERE e.tag_id = ?1 AND {adult})
-                    AND NOT EXISTS (SELECT 1 FROM effective_tag e JOIN image ON image.id = e.image_id
-                                    WHERE e.tag_id = ?1 AND NOT ({adult}))"
-            ),
-            [tag_id],
-            |r| r.get(0),
-        )?;
-        if sealed_only {
-            return Err(Error::UnknownTag);
-        }
-    }
-    Ok(namespace)
-}
-
-// ---------------------------------------------------------------- 读取
-
-pub(super) struct TagRow {
-    namespace: TagNamespace,
-    names: Vec<LocalizedName>,
-    pub(super) external: Vec<String>,
-}
-
-/// 读取若干标签的命名空间、名称与外部对应。
-pub(super) fn load_tags(
-    conn: &rusqlite::Connection,
-    ids: impl IntoIterator<Item = String>,
-) -> Result<HashMap<String, TagRow>, Error> {
-    let mut out = HashMap::new();
-    let mut tag = conn.prepare_cached("SELECT namespace FROM tag WHERE id = ?1")?;
-    let mut names =
-        conn.prepare_cached("SELECT lang, name FROM tag_name WHERE tag_id = ?1 ORDER BY lang")?;
-    let mut external =
-        conn.prepare_cached("SELECT name FROM tag_external WHERE tag_id = ?1 ORDER BY name")?;
-    for id in ids {
-        if out.contains_key(&id) {
-            continue;
-        }
-        let namespace = tag.query_row([&id], |r| TagNamespace::parse(&r.get::<_, String>(0)?))?;
-        let names = names
-            .query_map([&id], |r| {
-                Ok(LocalizedName {
-                    lang: r.get(0)?,
-                    name: r.get(1)?,
-                })
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
-        let external = external
-            .query_map([&id], |r| r.get(0))?
-            .collect::<Result<Vec<String>, _>>()?;
-        out.insert(
-            id,
-            TagRow {
-                namespace,
-                names,
-                external,
-            },
-        );
-    }
-    Ok(out)
-}
-
-/// 主语言子标签，例如 `zh-CN` → `zh`。
-fn primary(lang: &str) -> &str {
-    lang.split(['-', '_']).next().unwrap_or(lang)
-}
-
-/// 按界面语言选择显示名：界面语言 → 同一主语言 → 其他语言 → 外部名称（尚未翻译）。
-pub(super) fn label(id: &str, row: &TagRow, lang: &str) -> TagLabel {
-    display_label(id, row.namespace, &row.names, &row.external, lang)
-}
-
-/// 同 [`label`]，供 Search 按词表快照显示标签。
-pub(crate) fn display_label(
-    id: &str,
-    namespace: TagNamespace,
-    names: &[LocalizedName],
-    external: &[String],
-    lang: &str,
-) -> TagLabel {
-    let pick = names
-        .iter()
-        .find(|n| n.lang.eq_ignore_ascii_case(lang))
-        .or_else(|| {
-            names
-                .iter()
-                .find(|n| primary(&n.lang).eq_ignore_ascii_case(primary(lang)))
-        })
-        .or_else(|| names.first());
-    let (name, untranslated) = match pick {
-        Some(n) => (n.name.clone(), false),
-        None => (
-            external
-                .first()
-                .map(|e| e.replace('_', " "))
-                .unwrap_or_else(|| id.to_owned()),
-            true,
-        ),
-    };
-    TagLabel {
-        id: id.to_owned(),
-        namespace,
-        name,
-        untranslated,
-        has_external: !external.is_empty(),
-    }
-}
-
-fn sort_labels(labels: &mut [TagLabel]) {
-    labels.sort_by(|a, b| (a.namespace, &a.name, &a.id).cmp(&(b.namespace, &b.name, &b.id)));
-}
-
-// ---------------------------------------------------------------- 个人近似对应表
+pub(super) use approx::*;
+pub(super) use groups::*;
+pub(super) use names::*;
+pub(crate) use read::display_label;
+pub(super) use read::*;
+pub(super) use write::*;
