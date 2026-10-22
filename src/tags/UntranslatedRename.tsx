@@ -6,11 +6,7 @@ import type { TagLabel } from "../bindings/TagLabel";
 import { editTagName, inspectTagCatalog } from "../ipc";
 import { UI_LANG } from "../search/SearchBox";
 import { currentName } from "./catalogName";
-import { languageName } from "./languages";
 import { useOpenTagNameSettings } from "./TagNameSettings";
-
-/** 输入框的占位：一个实际的显示名，不写说明文字。 */
-const EXAMPLES: Record<string, string> = { "zh-CN": "蓝瞳", "zh-TW": "藍瞳", ja: "青い瞳", en: "Blue eyes" };
 
 // 改名框在 portal 里，React 事件仍沿组件树冒泡到外层的标签（它本身是出处浮层的触发器）：在这里截住。
 const stop = (event: SyntheticEvent) => event.stopPropagation();
@@ -37,7 +33,6 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const name = tag.name;
-  const language = languageName(UI_LANG);
   const change = (next: boolean) => {
     if (busy && !next) return;
     setOpen(next);
@@ -72,12 +67,12 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
             <form onSubmit={(event) => { event.preventDefault(); save(); }}>
               <Popover.Title className="k-rename-title">给“{name}”改名</Popover.Title>
               <label className="k-field">
-                <span className="k-field-label">{language}显示名</span>
-                <input className="k-input" autoFocus value={draft} disabled={busy} placeholder={EXAMPLES[UI_LANG]}
+                <span className="k-field-label">显示名</span>
+                <input className="k-input" autoFocus value={draft} disabled={busy}
                   onChange={(event) => setDraft(event.target.value)} />
               </label>
               {duplicate && <p className="k-list-desc is-warn" role="status">已有标签叫“{text}”，两者仍是不同的标签</p>}
-              <Popover.Description className="k-set-note">只改{language}的显示；之后词表更新也不会替换，可以在设置里恢复默认</Popover.Description>
+              <Popover.Description className="k-set-note">词表更新不会替换这个名字，可以在设置里恢复默认</Popover.Description>
               {error && <p className="k-set-error" role="alert">{error}</p>}
               <div className="k-rename-acts">
                 <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => change(false)}>取消</button>
