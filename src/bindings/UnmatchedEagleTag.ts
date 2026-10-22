@@ -8,8 +8,4 @@ export type UnmatchedEagleTag = { tag: TagLabel, count: number,
 /**
  * 规范化后对上了不止一个外部名称时的候选，由画师选。
  */
-candidates: Array<string>, 
-/**
- * 对上的外部名称已对应到库内另一个标签（例如打标模型先建了它）。
- */
-takenBy: TagLabel | null, takenExternal: string | null, };
+candidates: Array<string>, };

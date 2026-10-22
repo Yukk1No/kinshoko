@@ -6,8 +6,11 @@
 //!   规范化后仍对应到多个外部名称的不自动写入，交给画师选。
 //! - 没对上的标签列出来，画师可以逐个补对应（[`super::Library::map_tag_external`]），
 //!   也可以跳过；跳过的标签早已照常迁入，只是不参与内置近似对应表。
+//! - 对上之后按 ADR-0012 安置 Eagle 原文（本库的来源名称）：与外部名称写法相同的成为不分语言的
+//!   别名，显示跟随默认名称；是翻译表中某语言的名称或别名的，成为该语言的来源名称；其余保持
+//!   按文字判断的语言。外部对应已属于库内另一个标签时，Eagle 标签并入那个标签。
 
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -15,188 +18,19 @@ use rusqlite::{OptionalExtension, Transaction, params};
 use serde::Serialize;
 use ts_rs::TS;
 
-use super::tags::{self, TagLabel, TagTranslations};
+use super::events::LibraryEvent;
+use super::source_names;
+use super::tags::{self, TagLabel, TagNamespace, TagTranslation, TagTranslations};
 use super::{Error, Inner};
 use crate::approx::BuiltinApproxTable;
 use crate::search::fold;
 
-/// 规范化后的比较键：NFKC、小写，空白与下划线折成一个空格，去掉首尾分隔符。
-fn key(text: &str) -> String {
-    let folded = fold(text);
-    folded
-        .split(|c: char| c == '_' || c.is_whitespace())
-        .filter(|part| !part.is_empty())
-        .collect::<Vec<_>>()
-        .join(" ")
-}
+mod upgrade;
+mod vocabulary;
 
-/// 外部词表：可作为外部对应的名称（如打标模型词表 `selected_tags.csv`、内置近似对应表中的
-/// 名称），以及翻译表中各外部名称的各语言名称与别名。克隆代价很小。
-#[derive(Debug, Clone, Default)]
-pub struct ExternalVocabulary {
-    inner: Arc<VocabularyIndex>,
-}
-
-#[derive(Debug, Default)]
-struct VocabularyIndex {
-    /// 规范化键 → 外部名称。
-    by_name: HashMap<String, BTreeSet<String>>,
-    /// 翻译表中名称或别名的规范化键 → 外部名称。
-    by_translation: HashMap<String, BTreeSet<String>>,
-    /// 供补对应时联想：(规范化键, 外部名称)，按外部名称排好。
-    suggest: Vec<(String, String)>,
-}
-
-impl ExternalVocabulary {
-    /// 由外部名称与翻译表构造。翻译表中的外部名称也算进词表。
-    pub fn new(names: impl IntoIterator<Item = String>, translations: &TagTranslations) -> Self {
-        let mut index = VocabularyIndex::default();
-        let mut all = BTreeSet::new();
-        for name in names {
-            let name = name.trim().to_owned();
-            if !name.is_empty() {
-                all.insert(name);
-            }
-        }
-        for entry in &translations.entries {
-            let external = entry.external.trim();
-            if external.is_empty() {
-                continue;
-            }
-            all.insert(external.to_owned());
-            let spoken = entry
-                .names
-                .values()
-                .chain(entry.aliases.iter().map(|a| &a.name));
-            for name in spoken {
-                let k = key(name);
-                if !k.is_empty() {
-                    index
-                        .by_translation
-                        .entry(k.clone())
-                        .or_default()
-                        .insert(external.to_owned());
-                    index.suggest.push((k, external.to_owned()));
-                }
-            }
-        }
-        for name in all {
-            let k = key(&name);
-            if k.is_empty() {
-                continue;
-            }
-            index
-                .by_name
-                .entry(k.clone())
-                .or_default()
-                .insert(name.clone());
-            index.suggest.push((k, name));
-        }
-        index
-            .suggest
-            .sort_by(|a, b| (&a.1, &a.0).cmp(&(&b.1, &b.0)));
-        index.suggest.dedup();
-        ExternalVocabulary {
-            inner: Arc::new(index),
-        }
-    }
-
-    /// 内置近似对应表中出现的全部外部名称。
-    pub fn builtin_names(table: &BuiltinApproxTable) -> Vec<String> {
-        let mut names: BTreeSet<String> = BTreeSet::new();
-        for (a, b) in table.pairs() {
-            names.insert(a.to_owned());
-            names.insert(b.to_owned());
-        }
-        names.into_iter().collect()
-    }
-
-    /// 读打标模型的词表 `selected_tags.csv`（`name` 列）。
-    pub fn read_tags_csv(path: &Path) -> Result<Vec<String>, String> {
-        let mut reader = csv::Reader::from_path(path).map_err(|e| e.to_string())?;
-        let column = reader
-            .headers()
-            .map_err(|e| e.to_string())?
-            .iter()
-            .position(|h| h == "name")
-            .ok_or("词表缺少 name 列")?;
-        let mut names = Vec::new();
-        for record in reader.records() {
-            let record = record.map_err(|e| e.to_string())?;
-            if let Some(name) = record.get(column) {
-                names.push(name.to_owned());
-            }
-        }
-        Ok(names)
-    }
-
-    /// 词表中的外部名称个数。
-    pub fn len(&self) -> usize {
-        self.inner.by_name.values().map(BTreeSet::len).sum()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.inner.by_name.is_empty()
-    }
-
-    /// 规范化后与 `text` 相同的外部名称。
-    pub fn by_name(&self, text: &str) -> Vec<String> {
-        self.inner
-            .by_name
-            .get(&key(text))
-            .map(|s| s.iter().cloned().collect())
-            .unwrap_or_default()
-    }
-
-    /// 翻译表中名称或别名规范化后与 `text` 相同的外部名称。
-    pub fn by_translation(&self, text: &str) -> Vec<String> {
-        self.inner
-            .by_translation
-            .get(&key(text))
-            .map(|s| s.iter().cloned().collect())
-            .unwrap_or_default()
-    }
-
-    /// 补对应时的联想：规范化后以 `query` 开头的排前面，其次是包含它的；最多 `limit` 个。
-    pub fn suggest(&self, query: &str, limit: usize) -> Vec<String> {
-        let q = key(query);
-        if q.is_empty() {
-            return Vec::new();
-        }
-        let mut hits: Vec<(bool, usize, &str)> = Vec::new();
-        let mut seen = HashSet::new();
-        for (k, name) in &self.inner.suggest {
-            if k.contains(&q) && seen.insert(name.as_str()) {
-                hits.push((!k.starts_with(&q), name.len(), name.as_str()));
-            }
-        }
-        hits.sort();
-        hits.into_iter()
-            .take(limit)
-            .map(|(_, _, n)| n.to_owned())
-            .collect()
-    }
-
-    /// 匹配一个标签的若干名称：先按外部名称本身，再按翻译表。
-    fn matches(&self, names: &[String]) -> (Vec<String>, MatchBasis) {
-        let collect = |f: &dyn Fn(&str) -> Vec<String>| {
-            names
-                .iter()
-                .flat_map(|n| f(n))
-                .collect::<BTreeSet<_>>()
-                .into_iter()
-                .collect::<Vec<_>>()
-        };
-        let by_name = collect(&|n| self.by_name(n));
-        if !by_name.is_empty() {
-            return (by_name, MatchBasis::Name);
-        }
-        (
-            collect(&|n| self.by_translation(n)),
-            MatchBasis::Translation,
-        )
-    }
-}
+pub(super) use upgrade::upgrade_source_names;
+pub use vocabulary::ExternalVocabulary;
+use vocabulary::Placement;
 
 /// 外部对应是怎么得来的。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, TS)]
@@ -220,6 +54,9 @@ pub struct EagleTagMatch {
     pub count: u32,
     pub external: Vec<String>,
     pub basis: MatchBasis,
+    /// 外部对应已属于库内另一个标签（例如打标模型先建了它），这个 Eagle 标签已并入它。
+    /// 那个标签被安全模式藏起来时为空。
+    pub merged_into: Option<TagLabel>,
 }
 
 /// 没对上外部对应的 Eagle 标签。
@@ -231,9 +68,6 @@ pub struct UnmatchedEagleTag {
     pub count: u32,
     /// 规范化后对上了不止一个外部名称时的候选，由画师选。
     pub candidates: Vec<String>,
-    /// 对上的外部名称已对应到库内另一个标签（例如打标模型先建了它）。
-    pub taken_by: Option<TagLabel>,
-    pub taken_external: Option<String>,
 }
 
 /// 迁入向导“标签的外部对应”一步的内容。
@@ -257,13 +91,15 @@ pub struct MappedExternal {
     pub external: String,
     /// 在外部词表中。不在词表中的名称也会写入，但内置近似对应表多半不认识它。
     pub known: bool,
+    /// 外部名称已属于另一个标签时，这个标签已并入它；这里是那个标签的 id。
+    pub merged_into: Option<String>,
 }
 
 /// 写线程上一个标签的匹配结果。
 enum Outcome {
     Matched(MatchBasis),
+    Merged { into: String, basis: MatchBasis },
     Ambiguous(Vec<String>),
-    Taken(String, String),
     None,
 }
 
@@ -277,7 +113,8 @@ fn eagle_tag_ids(conn: &rusqlite::Connection) -> Result<Vec<String>, Error> {
 
 fn tag_names(tx: &Transaction, tag_id: &str) -> Result<Vec<String>, Error> {
     let mut stmt = tx.prepare_cached(
-        "SELECT name FROM tag_name WHERE tag_id = ?1
+        "SELECT name FROM tag_source_name WHERE tag_id = ?1
+         UNION SELECT name FROM tag_name WHERE tag_id = ?1
          UNION SELECT name FROM tag_alias WHERE tag_id = ?1",
     )?;
     let rows = stmt.query_map([tag_id], |r| r.get(0))?;
@@ -294,6 +131,107 @@ fn owner(tx: &Transaction, external: &str) -> Result<Option<String>, Error> {
         .optional()?)
 }
 
+fn has_external(tx: &Transaction, tag_id: &str) -> Result<bool, Error> {
+    Ok(tx.query_row(
+        "SELECT EXISTS (SELECT 1 FROM tag_external WHERE tag_id = ?1)",
+        [tag_id],
+        |r| r.get(0),
+    )?)
+}
+
+/// 标签对上 `external` 之后：按 ADR-0012 安置它的来源名称；还没有默认名称时按翻译表初始化。
+fn settle(
+    tx: &Transaction,
+    vocabulary: &ExternalVocabulary,
+    tag_id: &str,
+    external: &str,
+) -> Result<(), Error> {
+    for name in source_names::load(tx, tag_id)? {
+        match vocabulary.place(&name.name, external) {
+            Placement::Alias => {
+                tx.execute(
+                    "DELETE FROM tag_source_name WHERE tag_id = ?1 AND name = ?2",
+                    params![tag_id, name.name],
+                )?;
+                tx.execute(
+                    "INSERT OR IGNORE INTO tag_alias (tag_id, name, lang) VALUES (?1, ?2, NULL)",
+                    params![tag_id, name.name],
+                )?;
+            }
+            Placement::Lang(lang) => {
+                tx.execute(
+                    "UPDATE tag_source_name SET lang = ?3 WHERE tag_id = ?1 AND name = ?2",
+                    params![tag_id, name.name, lang],
+                )?;
+            }
+            Placement::Keep => {}
+        }
+    }
+    let has_names: bool = tx.query_row(
+        "SELECT EXISTS (SELECT 1 FROM tag_name WHERE tag_id = ?1)",
+        [tag_id],
+        |r| r.get(0),
+    )?;
+    if !has_names && let Some(translation) = vocabulary.inner.translations.get(external) {
+        let namespace: String =
+            tx.query_row("SELECT namespace FROM tag WHERE id = ?1", [tag_id], |r| {
+                r.get(0)
+            })?;
+        tags::initialise_names(tx, TagNamespace::parse(&namespace)?, tag_id, translation)?;
+    }
+    Ok(())
+}
+
+/// 给标签写上 `external`：外部名称已属于另一个标签时并入它。返回并入的标签与标签有变化的图。
+fn attach(
+    tx: &Transaction,
+    vocabulary: &ExternalVocabulary,
+    tag_id: &str,
+    external: &str,
+) -> Result<(Option<String>, Vec<String>), Error> {
+    match owner(tx, external)? {
+        Some(other) if other == tag_id => {
+            settle(tx, vocabulary, tag_id, external)?;
+            Ok((None, Vec::new()))
+        }
+        Some(other) => {
+            let images = tags::merge(tx, tag_id, &other)?;
+            settle(tx, vocabulary, &other, external)?;
+            Ok((Some(other), images))
+        }
+        None => {
+            tx.execute(
+                "INSERT INTO tag_external (name, tag_id) VALUES (?1, ?2)",
+                params![external, tag_id],
+            )?;
+            settle(tx, vocabulary, tag_id, external)?;
+            Ok((None, Vec::new()))
+        }
+    }
+}
+
+/// 匹配一个还没有外部对应的标签并写入。
+fn match_tag(
+    tx: &Transaction,
+    vocabulary: &ExternalVocabulary,
+    tag_id: &str,
+    changed: &mut Vec<String>,
+) -> Result<Outcome, Error> {
+    let (found, basis) = vocabulary.matches(&tag_names(tx, tag_id)?);
+    Ok(match found.as_slice() {
+        [] => Outcome::None,
+        [external] => {
+            let (merged, images) = attach(tx, vocabulary, tag_id, external)?;
+            changed.extend(images);
+            match merged {
+                Some(into) => Outcome::Merged { into, basis },
+                None => Outcome::Matched(basis),
+            }
+        }
+        _ => Outcome::Ambiguous(found),
+    })
+}
+
 /// 自动匹配还没有外部对应的 Eagle 标签并写入，返回向导要显示的内容。
 pub(super) fn map_eagle_tags(
     inner: &Inner,
@@ -301,50 +239,49 @@ pub(super) fn map_eagle_tags(
     lang: &str,
 ) -> Result<EagleTagMapping, Error> {
     let size = vocabulary_size(vocabulary);
+    let hidden_before = {
+        let conn = inner.readers.get();
+        inner.sealed_only_tags(&conn)?
+    };
     let vocabulary = vocabulary.clone();
-    let outcomes = tags::write(inner, Vec::new(), move |tx, _| {
+    let shown_lang = lang.to_owned();
+    let (outcomes, changed) = tags::write(inner, Vec::new(), move |tx, _| {
         let mut outcomes = HashMap::new();
+        let mut changed = Vec::new();
         for tag_id in eagle_tag_ids(tx)? {
-            let has_external: bool = tx.query_row(
-                "SELECT EXISTS (SELECT 1 FROM tag_external WHERE tag_id = ?1)",
-                [&tag_id],
-                |r| r.get(0),
-            )?;
-            if has_external {
+            if has_external(tx, &tag_id)? {
                 continue;
             }
-            let (found, basis) = vocabulary.matches(&tag_names(tx, &tag_id)?);
-            let outcome = match found.as_slice() {
-                [] => Outcome::None,
-                [external] => match owner(tx, external)? {
-                    Some(other) => Outcome::Taken(external.clone(), other),
-                    None => {
-                        tx.execute(
-                            "INSERT INTO tag_external (name, tag_id) VALUES (?1, ?2)",
-                            params![external, tag_id],
-                        )?;
-                        Outcome::Matched(basis)
-                    }
-                },
-                _ => Outcome::Ambiguous(found),
-            };
-            outcomes.insert(tag_id, outcome);
+            // 并入后这个标签就不在了：先记下它原来的样子。
+            let before = tags::load_tags(tx, [tag_id.clone()])?;
+            let label = tags::label(&tag_id, &before[&tag_id], &shown_lang);
+            let outcome = match_tag(tx, &vocabulary, &tag_id, &mut changed)?;
+            outcomes.insert(tag_id, (outcome, label));
         }
-        Ok(outcomes)
+        Ok((outcomes, changed))
     })?;
+    if !changed.is_empty() {
+        inner.hub.publish(LibraryEvent::ImagesChanged {
+            library_id: inner.info.id.clone(),
+            image_ids: changed,
+        });
+    }
 
     let conn = inner.readers.get();
     let hidden = inner.sealed_only_tags(&conn)?;
     let counts = tags::counts(inner, &conn)?;
+    let targets: HashSet<String> = outcomes
+        .values()
+        .filter_map(|(o, _)| match o {
+            Outcome::Merged { into, .. } => Some(into.clone()),
+            _ => None,
+        })
+        .collect();
     let ids: Vec<String> = eagle_tag_ids(&conn)?
         .into_iter()
-        .filter(|id| !hidden.contains(id))
+        .filter(|id| !hidden.contains(id) && !targets.contains(id))
         .collect();
-    let taken_owners = outcomes.values().filter_map(|o| match o {
-        Outcome::Taken(_, owner) => Some(owner.clone()),
-        _ => None,
-    });
-    let rows = tags::load_tags(&conn, ids.iter().cloned().chain(taken_owners))?;
+    let rows = tags::load_tags(&conn, ids.iter().cloned().chain(targets.iter().cloned()))?;
     let mut mapping = EagleTagMapping {
         matched: Vec::new(),
         unmatched: Vec::new(),
@@ -354,40 +291,51 @@ pub(super) fn map_eagle_tags(
         let row = &rows[&id];
         let tag = tags::label(&id, row, lang);
         let count = counts.get(&id).copied().unwrap_or(0);
-        let mut unmatched = UnmatchedEagleTag {
-            tag: tag.clone(),
-            count,
-            candidates: Vec::new(),
-            taken_by: None,
-            taken_external: None,
+        let basis = match outcomes.get(&id) {
+            Some((Outcome::Matched(basis), _)) => *basis,
+            None => MatchBasis::Earlier,
+            Some((Outcome::Ambiguous(candidates), _)) => {
+                mapping.unmatched.push(UnmatchedEagleTag {
+                    tag,
+                    count,
+                    candidates: candidates.clone(),
+                });
+                continue;
+            }
+            Some((Outcome::None, _)) => {
+                mapping.unmatched.push(UnmatchedEagleTag {
+                    tag,
+                    count,
+                    candidates: Vec::new(),
+                });
+                continue;
+            }
+            Some((Outcome::Merged { .. }, _)) => continue,
         };
-        match outcomes.get(&id) {
-            Some(Outcome::Matched(basis)) => mapping.matched.push(EagleTagMatch {
-                tag,
-                count,
-                external: row.external.clone(),
-                basis: *basis,
-            }),
-            None => mapping.matched.push(EagleTagMatch {
-                tag,
-                count,
-                external: row.external.clone(),
-                basis: MatchBasis::Earlier,
-            }),
-            Some(Outcome::Ambiguous(candidates)) => {
-                unmatched.candidates = candidates.clone();
-                mapping.unmatched.push(unmatched);
-            }
-            Some(Outcome::Taken(external, owner)) => {
-                // 被安全模式藏起来的标签不报名字。
-                if !hidden.contains(owner) {
-                    unmatched.taken_by = Some(tags::label(owner, &rows[owner], lang));
-                }
-                unmatched.taken_external = Some(external.clone());
-                mapping.unmatched.push(unmatched);
-            }
-            Some(Outcome::None) => mapping.unmatched.push(unmatched),
+        mapping.matched.push(EagleTagMatch {
+            tag,
+            count,
+            external: row.external.clone(),
+            basis,
+            merged_into: None,
+        });
+    }
+    for (id, (outcome, before)) in &outcomes {
+        let Outcome::Merged { into, basis } = outcome else {
+            continue;
+        };
+        if hidden_before.contains(id) {
+            continue;
         }
+        // 被安全模式藏起来的标签不报名字。
+        let merged_into = (!hidden.contains(into)).then(|| tags::label(into, &rows[into], lang));
+        mapping.matched.push(EagleTagMatch {
+            tag: before.clone(),
+            count: counts.get(into).copied().unwrap_or(0),
+            external: rows[into].external.clone(),
+            basis: *basis,
+            merged_into,
+        });
     }
     mapping
         .matched
@@ -403,6 +351,7 @@ fn vocabulary_size(vocabulary: &ExternalVocabulary) -> u32 {
 }
 
 /// 画师给一个标签补上外部对应；输入规范化后在词表中只对上一个名称时用词表的写法。
+/// 外部名称已属于另一个标签时，这个标签并入它（与迁入向导的自动匹配相同，ADR-0012）。
 pub(super) fn map_tag_external(
     inner: &Inner,
     tag_id: &str,
@@ -414,16 +363,27 @@ pub(super) fn map_tag_external(
         return Err(Error::InvalidTagName);
     }
     let found = vocabulary.by_name(input);
-    let mapped = match found.as_slice() {
-        [one] => MappedExternal {
-            external: one.clone(),
-            known: true,
-        },
-        _ => MappedExternal {
-            external: input.to_owned(),
-            known: found.iter().any(|n| n == input),
-        },
+    let (external, known) = match found.as_slice() {
+        [one] => (one.clone(), true),
+        _ => (input.to_owned(), found.iter().any(|n| n == input)),
     };
-    tags::add_tag_external(inner, tag_id, &mapped.external)?;
-    Ok(mapped)
+    let vocabulary = vocabulary.clone();
+    let (tag_id, written) = (tag_id.to_owned(), external.clone());
+    let (merged_into, changed) = tags::write(inner, Vec::new(), move |tx, _| {
+        tx.query_row("SELECT 1 FROM tag WHERE id = ?1", [&tag_id], |_| Ok(()))
+            .optional()?
+            .ok_or(Error::UnknownTag)?;
+        attach(tx, &vocabulary, &tag_id, &written)
+    })?;
+    if !changed.is_empty() {
+        inner.hub.publish(LibraryEvent::ImagesChanged {
+            library_id: inner.info.id.clone(),
+            image_ids: changed,
+        });
+    }
+    Ok(MappedExternal {
+        external,
+        known,
+        merged_into,
+    })
 }

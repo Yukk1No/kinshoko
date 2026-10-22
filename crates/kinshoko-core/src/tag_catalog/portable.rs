@@ -42,6 +42,7 @@ pub(super) fn import_definition(
         name_preferences: Vec::new(),
         aliases: definition.aliases.clone(),
         external: definition.external.clone(),
+        source_names: Vec::new(),
     };
     tx.execute(
         "INSERT INTO catalog_tag(id,definition) VALUES (?1,?2)",

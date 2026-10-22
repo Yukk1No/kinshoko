@@ -10,4 +10,8 @@ export type VocabularyTag = { id: string, namespace: TagNamespace, names: Array<
 /**
  * 有这个有效标签的参考图张数。
  */
-count: number, };
+count: number, 
+/**
+ * 本库的来源名称（#217），单库内优先于 `names` 显示；`und` 为未注明语言。
+ */
+sourceNames?: Array<LocalizedName>, };

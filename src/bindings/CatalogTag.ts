@@ -7,4 +7,8 @@ import type { TagNamespace } from "./TagNamespace";
 /**
  * Resolved shared names, with defaults and explicit preferences kept independently.
  */
-export type CatalogTag = { id: string, namespace: TagNamespace, names: Array<LocalizedName>, defaultNames: Array<LocalizedName>, namePreferences: Array<LocalizedName>, aliases: Array<TagAlias>, external: Array<ExternalTagIdentity>, };
+export type CatalogTag = { id: string, namespace: TagNamespace, names: Array<LocalizedName>, defaultNames: Array<LocalizedName>, namePreferences: Array<LocalizedName>, aliases: Array<TagAlias>, external: Array<ExternalTagIdentity>, 
+/**
+ * 各资料库的来源名称（ADR-0012），按资料库顺序；`names` 中只作没有名称偏好与默认名称时的兜底。
+ */
+sourceNames?: Array<LocalizedName>, };

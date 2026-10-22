@@ -39,6 +39,35 @@ pub(super) fn resolve(conn: &Connection, tag: &mut CatalogTag) -> Result<(), Cat
         tag.names.retain(|name| name.lang != preference.lang);
         tag.names.push(preference.clone());
     }
+    // 跨库显示：没有名称偏好与默认名称的语言，用按资料库顺序第一个来源名称兜底（ADR-0012）。
+    let mut stmt = conn.prepare_cached(
+        "SELECT s.names FROM library_tag_mapping m JOIN library_tag_source_name s
+         ON s.library_id=m.library_id AND s.local_tag_id=m.local_tag_id
+         WHERE m.catalog_id=?1 ORDER BY m.library_id,m.local_tag_id",
+    )?;
+    tag.source_names.clear();
+    for names in stmt.query_map([&tag.id], |row| row.get::<_, String>(0))? {
+        for name in serde_json::from_str::<Vec<LocalizedName>>(&names?)? {
+            if !tag.source_names.contains(&name) {
+                tag.source_names.push(name);
+            }
+        }
+    }
+    let mut filled = tag.names.clone();
+    for source in &tag.source_names {
+        if source.lang != crate::library::UND && !filled.iter().any(|n| n.lang == source.lang) {
+            filled.push(source.clone());
+        }
+    }
+    filled.sort_by(|a, b| a.lang.cmp(&b.lang));
+    filled.extend(
+        tag.source_names
+            .iter()
+            .filter(|s| s.lang == crate::library::UND)
+            .take(1)
+            .cloned(),
+    );
+    tag.names = filled;
     Ok(())
 }
 
@@ -354,7 +383,13 @@ impl CatalogInspection {
             .iter()
             .map(|external| external.name.clone())
             .collect::<Vec<_>>();
-        crate::library::display_label(&label.id, tag.namespace, &tag.names, &external, lang)
+        // 单库内：名称偏好 > 本库来源名称 > 默认名称（ADR-0012）。
+        let names = crate::library::compose_names(
+            &tag.default_names,
+            &mapping.source_names,
+            &tag.name_preferences,
+        );
+        crate::library::display_label(&label.id, tag.namespace, &names, &external, lang)
     }
 }
 impl TagCatalog {

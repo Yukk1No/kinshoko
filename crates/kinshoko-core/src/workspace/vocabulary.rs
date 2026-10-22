@@ -131,6 +131,7 @@ pub(super) fn management_vocabulary(snapshot: &Snapshot, safe: bool) -> &Vocabul
                         .map(|entry| entry.name)
                         .collect(),
                     count: 0,
+                    source_names: Vec::new(),
                 });
             }
         }
@@ -157,6 +158,12 @@ pub(super) fn build_vocabulary(snapshot: &Snapshot, safe: bool) -> Vocabulary {
         let vocabulary = snapshot
             .catalog
             .search_vocabulary(&provider.registration.library.id, local_vocabulary);
+        let shared = snapshot
+            .catalog
+            .tags
+            .iter()
+            .map(|tag| (tag.id.as_str(), tag))
+            .collect::<BTreeMap<_, _>>();
         let mappings = snapshot
             .catalog
             .mappings
@@ -196,6 +203,11 @@ pub(super) fn build_vocabulary(snapshot: &Snapshot, safe: bool) -> Vocabulary {
                 .or_insert_with(|| VocabularyTag {
                     id: (*catalog_id).to_owned(),
                     count: 0,
+                    // 跨库显示：名称偏好 > 默认名称 > 按资料库顺序的第一个来源名称（ADR-0012）。
+                    names: shared
+                        .get(catalog_id)
+                        .map_or_else(|| local.names.clone(), |tag| tag.names.clone()),
+                    source_names: Vec::new(),
                     ..local.clone()
                 });
             for alias in local

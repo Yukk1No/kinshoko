@@ -266,6 +266,31 @@ pub(super) async fn map_tag_external<R: Runtime>(
     .await
 }
 
+/// 标签管理：改某个来源名称的语言（纠正按文字判断的误判，#217）。
+#[tauri::command]
+pub(super) async fn set_source_name_lang<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    tag_id: String,
+    name: String,
+    lang: String,
+) -> Result<(), String> {
+    let library = save_destination::fixed_library(
+        &app,
+        &kinshoko_core::library::SaveDestination {
+            library_id,
+            folder_id: None,
+        },
+    )?;
+    blocking(move || {
+        library
+            .set_source_name_lang(&tag_id, &name, &lang)
+            .map_err(|e| e.to_string())?;
+        save_destination::publish_saved(&app, &library)
+    })
+    .await
+}
+
 /// 补外部对应时的联想。外部词表属于本设备，不带资料库身份。
 #[tauri::command]
 pub(super) async fn external_suggestions<R: Runtime>(

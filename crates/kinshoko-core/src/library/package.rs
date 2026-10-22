@@ -202,6 +202,10 @@ fn snapshot(conn: &Connection, image_id: &str) -> Result<ImageSnapshot, Error> {
                 .map(|e| e.name.clone())
                 .collect();
         }
+        // 只有来源名称的标签（例如 Eagle 原有标签，#217）带上来源名称，目标库才叫得出它。
+        if snapshot_tag.names.is_empty() {
+            snapshot_tag.names = super::source_names::load(conn, &id)?;
+        }
         tags.push(snapshot_tag);
     }
     Ok(ImageSnapshot {
