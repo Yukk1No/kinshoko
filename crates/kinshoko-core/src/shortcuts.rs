@@ -52,6 +52,8 @@ pub struct ShellSettingsView {
     pub keep_selection_on_safe_mode: bool,
     /// 增强钉图边缘：钉图阴影外加一圈浅色细线（#239）。
     pub pin_edge_contrast: bool,
+    /// 安全模式范围（#223）：安全模式从哪一档内容分级开始作用。
+    pub safe_mode_scope: crate::library::SafeModeScope,
     #[ts(optional)]
     pub viewer_background: Option<crate::ViewerBackground>,
     /// 标签外观与可信度分档（#160）。
@@ -74,6 +76,7 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
             run_log: settings.run_log(),
             keep_selection_on_safe_mode: settings.keep_selection_on_safe_mode(),
             pin_edge_contrast: settings.pin_edge_contrast(),
+            safe_mode_scope: settings.safe_mode_scope(),
             viewer_background: settings.viewer_background(),
             tag_display: settings.tag_display(),
             inspector_width: settings.inspector_width(),

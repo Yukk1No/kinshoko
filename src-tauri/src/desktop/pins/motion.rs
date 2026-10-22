@@ -145,14 +145,16 @@ pub fn refresh_all(app: &AppHandle) {
     }
 }
 
-/// 安全模式（应用设置）开关了：不论有没有打开资料库，资料库钉图都重新核对；
-/// 重新开启时之前确认显示的也重新遮蔽。在别的线程上调用。
+/// 安全模式（应用设置）开关了或范围（#223）调整了：不论有没有打开资料库，资料库钉图都重新
+/// 核对；重新开启或收紧范围时之前确认显示的也重新遮蔽。在别的线程上调用。
 pub fn safe_mode_changed(app: &AppHandle, _on: bool) {
     // Delivery can be delayed or reordered. The committed setting is the authority;
     // the command has already revoked old reveals synchronously under this same gate.
     crate::library::with_visibility_commit(app, |_| {
         let safe = crate::library::safe_mode_on(app);
-        lock(&state(app).veils).set_safe_mode(safe);
+        let mut veils = lock(&state(app).veils);
+        veils.set_safe_mode(safe);
+        veils.set_scope(crate::library::safe_mode_scope(app));
     });
     references_changed(app);
 }

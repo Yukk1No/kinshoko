@@ -232,7 +232,7 @@ pub fn init() -> TauriPlugin<Wry> {
             app.listen_any(LIBRARY_EVENT, move |event| {
                 on_library_event(&handle, event.payload());
             });
-            // 安全模式是应用设置：开关时不论有没有打开资料库都到这里。
+            // 安全模式是应用设置：开关或调整范围（#223）时不论有没有打开资料库都到这里。
             let handle = app.clone();
             app.listen_any(library::SAFE_MODE_EVENT, move |event| {
                 if let Ok(on) = serde_json::from_str::<bool>(event.payload()) {
@@ -439,11 +439,27 @@ pub fn safe_mode_committed<R: tauri::Runtime>(app: &AppHandle<R>, safe: bool) {
     }
 }
 
+/// 同 [`safe_mode_committed`]，在安全模式范围（#223）提交时调用：收紧时之前的确认显示
+/// 当即作废，放宽时保留。
+pub fn safe_mode_scope_committed<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+    scope: kinshoko_core::library::SafeModeScope,
+) {
+    if let Some(state) = app.try_state::<DesktopState>() {
+        lock(&state.veils).set_scope(scope);
+    }
+}
+
 /// Revoke previous configuration views immediately, including same-mode explicit pin reveals.
 /// Caller holds visibility_commit. Native destruction callbacks only dispatch background cleanup.
-pub fn settings_restored<R: tauri::Runtime>(app: &AppHandle<R>, safe: bool) {
+pub fn settings_restored<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+    safe: kinshoko_core::library::SafeMode,
+) {
     let state = app.state::<DesktopState>();
-    *lock(&state.veils) = PinVeils::new(safe);
+    let mut veils = PinVeils::new(safe.on);
+    veils.set_scope(safe.scope);
+    *lock(&state.veils) = veils;
     clear_viewer_reference(app);
     *lock(&state.capture) = capture::Session::Idle;
     if let Some(window) = app.get_webview_window(capture::CAPTURE_WINDOW) {

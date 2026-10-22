@@ -5,6 +5,6 @@
  */
 export type ReferenceImage = { id: string, width: number, height: number, 
 /**
- * 需要遮蔽：安全模式开启且这张图被封印。原位模糊并显示小圆锁，不移走。
+ * 需要遮蔽：安全模式开启且这张图的有效分级在安全模式范围内。原位模糊并显示小圆锁，不移走。
  */
 sealed: boolean, };

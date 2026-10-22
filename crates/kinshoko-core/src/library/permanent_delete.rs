@@ -17,7 +17,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use ts_rs::TS;
 
-use super::{Error, Inner, LibraryEvent, fault, lens, tags, thumbnail};
+use super::{Error, Inner, LibraryEvent, SafeMode, fault, lens, tags, thumbnail};
 use crate::reference_groups::{GroupUsage, ReferenceGroupUsage};
 
 /// 永久删除预览：将删除的图、受影响的参考组和执行时要交回的令牌。
@@ -67,7 +67,8 @@ struct Bound<'a> {
     library_id: &'a str,
     image_ids: &'a [String],
     trash_revision: i64,
-    safe_mode: bool,
+    /// 安全模式的开关与范围（#223）：任一项变了，预览就过期。
+    safe_mode: SafeMode,
     groups: &'a [GroupUsage],
 }
 
@@ -85,7 +86,7 @@ impl Bound<'_> {
             h.update([0]);
         }
         h.update(self.trash_revision.to_le_bytes());
-        h.update([u8::from(self.safe_mode)]);
+        h.update([self.safe_mode.encode()]);
         h.update(serde_json::to_vec(self.groups).unwrap_or_default());
         format!("{:x}", h.finalize())
     }
@@ -107,8 +108,8 @@ pub(super) fn preview(
     usage: &dyn ReferenceGroupUsage,
 ) -> Result<PermanentDeletePreview, Error> {
     let ids = unique(ids);
-    let lens = inner.lens_filter();
-    let safe_mode = inner.safe_mode();
+    let safe_mode = inner.safe();
+    let lens = lens::lens_filter(safe_mode);
     let revision = {
         let mut conn = inner.readers.get();
         let tx = conn.transaction()?;
@@ -159,8 +160,8 @@ pub(super) fn execute(
 ) -> Result<(), Error> {
     let ids = unique(ids);
     let groups = groups_using(inner, &ids, usage)?;
-    let lens = inner.lens_filter();
-    let safe_mode = inner.safe_mode();
+    let safe_mode = inner.safe();
+    let lens = lens::lens_filter(safe_mode);
     let library_id = inner.info.id.clone();
     let token = token.to_owned();
     let deleted = ids.clone();

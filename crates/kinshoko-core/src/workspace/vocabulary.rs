@@ -226,6 +226,7 @@ pub(super) fn build_vocabulary(snapshot: &Snapshot, safe: bool) -> Vocabulary {
         tags: tags.into_values().collect(),
         personal_approx: snapshot.personal_approx.clone(),
         safe_mode: safe,
+        safe_mode_scope: snapshot.scope,
     }
 }
 

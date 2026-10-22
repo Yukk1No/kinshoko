@@ -30,6 +30,7 @@ export const defaults: ShellSettingsView = {
   runLog: true,
   keepSelectionOnSafeMode: false,
   pinEdgeContrast: false,
+  safeModeScope: "questionable",
   tagDisplay: { style: "bands", high: 0.8, low: 0.4, lowOutline: true },
   updateChannel: "stable",
 };

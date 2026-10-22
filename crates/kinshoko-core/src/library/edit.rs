@@ -5,7 +5,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::rating::{self, ContentRating, ImageRating};
+use super::rating::{self, ContentRating, ImageRating, SafeModeScope};
 use super::{Error, Inner, LibraryEvent, folders, lens, now_ms, tags};
 
 /// 对参考图的一项编辑。一次 `edit` 把编辑列表按顺序用在每张图上，全部成功才提交。
@@ -111,20 +111,22 @@ pub(super) fn edit(
     let mut seen = std::collections::HashSet::new();
     ids.retain(|id| seen.insert(id.clone()));
     let edits = edits.to_vec();
-    // 删除与恢复改变标签计数：词表修订号随之前进。人工分级跨过“含成人内容”时，安全模式下
+    // 删除与恢复改变标签计数：词表修订号随之前进。人工分级跨过安全模式范围时，安全模式下
     // 可见的词表也变了，同样前进（见下方 `resealed`）。
     let recount = edits
         .iter()
         .any(|e| matches!(e, ImageEdit::Delete | ImageEdit::Restore));
     let changed = ids.clone();
-    let lens = inner.lens_filter();
+    // 视角只读一次：过滤条件与判断跨过用的范围一致。
+    let mode = inner.safe();
+    let lens = lens::lens_filter(mode);
     let (details, revision, resealed) = inner.write(move |tx| {
         for id in &ids {
             lens::require_visible(tx, &lens, id)?;
         }
         let mut resealed = false;
         for edit in &edits {
-            resealed |= apply(tx, &ids, edit)?;
+            resealed |= apply(tx, &ids, edit, mode.scope)?;
         }
         let details = ids
             .iter()
@@ -138,7 +140,7 @@ pub(super) fn edit(
         Ok((details, revision, resealed))
     })?;
     let library_id = inner.info.id.clone();
-    // 人工分级跨过“含成人内容”：安全模式下这些图被封印或放出，浏览结果与计数都过期。
+    // 人工分级跨过安全模式范围：安全模式下这些图被封印或放出，浏览结果与计数都过期。
     if resealed {
         inner.hub.publish(LibraryEvent::ListStale {
             library_id: library_id.clone(),
@@ -174,8 +176,13 @@ fn record_folder_decision(
     Ok(())
 }
 
-/// 返回是否有图因分级改变而被安全模式封印或放出。
-fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<bool, Error> {
+/// 返回是否有图因分级改变跨过安全模式范围 `scope`（被安全模式封印或放出）。
+fn apply(
+    conn: &Connection,
+    ids: &[String],
+    edit: &ImageEdit,
+    scope: SafeModeScope,
+) -> Result<bool, Error> {
     match edit {
         ImageEdit::AddToFolder { folder_id } => {
             folders::ensure_folder(conn, folder_id)?;
@@ -231,8 +238,10 @@ fn apply(conn: &Connection, ids: &[String], edit: &ImageEdit) -> Result<bool, Er
                 stmt.execute([id])?;
             }
         }
-        ImageEdit::SetRating { rating } => return rating::set_manual(conn, ids, Some(*rating)),
-        ImageEdit::RevertRating => return rating::set_manual(conn, ids, None),
+        ImageEdit::SetRating { rating } => {
+            return rating::set_manual(conn, ids, Some(*rating), scope);
+        }
+        ImageEdit::RevertRating => return rating::set_manual(conn, ids, None, scope),
     }
     Ok(false)
 }

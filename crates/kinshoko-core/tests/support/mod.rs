@@ -17,6 +17,10 @@ struct Shared {
     files: HashMap<String, Vec<u8>>,
     /// 路径 → 下一次响应只发出这么多字节就断开（一次性）。
     cut_after: HashMap<String, usize>,
+    /// 路径 → 下一次响应发出这么多字节后停住，等 [`ModelServer::release`] 再发剩下的（一次性）。
+    stall_after: HashMap<String, usize>,
+    /// 停住的响应可以继续发了。
+    released: bool,
     /// 收到的请求：路径与 Range 起点。
     requests: Vec<(String, Option<u64>)>,
 }
@@ -61,6 +65,18 @@ impl ModelServer {
     /// 下一次请求 `path` 时只发出 `n` 字节就断开。
     pub fn cut_next(&self, path: &str, n: usize) {
         self.lock().cut_after.insert(path.to_owned(), n);
+    }
+
+    /// 下一次请求 `path` 时发出 `n` 字节后停住，直到 [`ModelServer::release`]，模拟下载到一半。
+    pub fn stall_next(&self, path: &str, n: usize) {
+        let mut s = self.lock();
+        s.stall_after.insert(path.to_owned(), n);
+        s.released = false;
+    }
+
+    /// 让停住的响应发完。
+    pub fn release(&self) {
+        self.lock().released = true;
     }
 
     pub fn requests(&self) -> Vec<(String, Option<u64>)> {
@@ -132,11 +148,12 @@ fn serve(mut stream: TcpStream, shared: &Mutex<Shared>) {
             range = v.trim().trim_end_matches('-').parse::<u64>().ok();
         }
     }
-    let (data, cut) = {
+    let (data, cut, stall) = {
         let mut s = shared.lock().unwrap();
         s.requests.push((path.clone(), range));
         let cut = s.cut_after.remove(&path);
-        (s.files.get(&path).cloned(), cut)
+        let stall = s.stall_after.remove(&path);
+        (s.files.get(&path).cloned(), cut, stall)
     };
     let Some(data) = data else {
         let _ = stream
@@ -164,6 +181,16 @@ fn serve(mut stream: TcpStream, shared: &Mutex<Shared>) {
         Some(n) => &body[..n.min(body.len())],
         None => body,
     };
-    let _ = stream.write_all(body);
+    if let Some(n) = stall {
+        let (sent, rest) = body.split_at(n.min(body.len()));
+        let _ = stream.write_all(sent);
+        let _ = stream.flush();
+        while !shared.lock().unwrap().released {
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        let _ = stream.write_all(rest);
+    } else {
+        let _ = stream.write_all(body);
+    }
     let _ = stream.flush();
 }

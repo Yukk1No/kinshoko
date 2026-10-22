@@ -103,6 +103,7 @@ pub fn run() {
             backup::restore_backup,
             tagging::tagging_status,
             tagging::tagging_download,
+            tagging::tagging_cancel_download,
             tagging::tagging_pause,
             tagging::tagging_resume,
             tagging::tagging_models,

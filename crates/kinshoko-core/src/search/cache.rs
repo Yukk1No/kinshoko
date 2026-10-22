@@ -15,7 +15,7 @@ use std::sync::{Arc, Mutex, MutexGuard, Weak};
 use super::Search;
 use crate::Library;
 use crate::approx::BuiltinApproxTable;
-use crate::library::{Error, Vocabulary};
+use crate::library::{Error, SafeModeScope, Vocabulary};
 
 /// 活动资料库的 Search 缓存，见模块说明。
 #[derive(Default)]
@@ -34,6 +34,8 @@ struct Entry {
     library: Weak<Library>,
     revision: i64,
     safe_mode: bool,
+    /// 词表快照所用的安全模式范围（#223）；只读句柄换范围时修订号不变，靠它区分。
+    scope: SafeModeScope,
     search: Arc<Search>,
 }
 
@@ -75,6 +77,7 @@ impl SearchCache {
                 && Weak::ptr_eq(&entry.library, &weak)
                 && entry.revision == revision
                 && entry.safe_mode == safe_mode
+                && entry.scope == library.safe_mode_scope()
             {
                 return Ok(entry.search.clone());
             }
@@ -92,6 +95,7 @@ impl SearchCache {
                 library: weak,
                 revision: vocabulary.revision,
                 safe_mode,
+                scope: vocabulary.safe_mode_scope,
                 search: search.clone(),
             });
         }

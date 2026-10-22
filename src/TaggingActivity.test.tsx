@@ -29,7 +29,7 @@ function mount(onOpenSettings = vi.fn(), libraryId = "L1", registered?: string[]
 
 const running = (tagged: number): TaggingStatus => ({ state: "running", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged });
 const idle = (tagged: number): TaggingStatus => ({ state: "idle", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged });
-const needsDownload = (downloaded = 0): TaggingStatus => ({ state: "needsDownload", model: "PixAI", size: 992_916_002, downloaded, fallback: null });
+const needsDownload = (downloaded = 0, cancelled = false): TaggingStatus => ({ state: "needsDownload", model: "PixAI", size: 992_916_002, downloaded, fallback: null, cancelled });
 const downloading = (downloaded: number): TaggingStatus => ({ state: "downloading", model: "PixAI", downloaded, total: 1_000_000_000 });
 /** 等待后端首次读取与订阅都到位，后面的推送才收得到。 */
 const settled = () => waitFor(() => expect(actions.some((a) => a.command === "tagging_status")).toBe(true));
@@ -129,7 +129,7 @@ describe("自动标签的右下角通知", () => {
     await waitFor(() => expect(actions).toContainEqual({ command: "tagging_download", libraryId: "L1" }));
     await waitFor(() => expect(screen.queryByText(/需要下载打标模型/)).toBeNull());
     expect(await screen.findByText("正在下载打标模型")).toBeTruthy();
-    expect(screen.getByText("可在设置 › 自动标签查看进度")).toBeTruthy();
+    expect(screen.getByText("可在设置 › 自动标签查看进度、暂停或取消")).toBeTruthy();
     await act(async () => { vi.advanceTimersByTime(6_000); });
     await waitFor(() => expect(screen.queryByText("正在下载打标模型")).toBeNull());
   });
@@ -148,6 +148,16 @@ describe("“需要下载”通知的去重", () => {
     await push(downloading(1));
     await push(needsDownload(1));
     expect(screen.queryByText(/需要下载打标模型/)).toBeNull();
+  });
+
+  it("下载中取消（#213）后回到需要下载，本次启动内不再弹出", async () => {
+    backend({ L1: downloading(100) });
+    mount();
+    await settled();
+    await push(needsDownload(500_000_000, true));
+    await push(needsDownload(500_000_000));
+    expect(shown(/需要下载打标模型/)).toBe(0);
+    expect(shown(/打标模型已下载/)).toBe(0);
   });
 
   it("下载过一部分时操作写“继续下载”；从别处开始下载后通知收起", async () => {
@@ -182,6 +192,15 @@ describe("完成类通知", () => {
     await settled();
     await push(next);
     await waitFor(() => expect(shown(/需要下载打标模型|下载失败/)).toBe(1));
+    expect(shown(/打标模型已下载/)).toBe(0);
+  });
+
+  it("下载中暂停（#213）不算下载完成", async () => {
+    backend({ L1: downloading(100) });
+    mount();
+    await settled();
+    await push({ state: "paused" });
+    expect(await screen.findByRole("button", { name: /自动标签：已暂停/ })).toBeTruthy();
     expect(shown(/打标模型已下载/)).toBe(0);
   });
 });

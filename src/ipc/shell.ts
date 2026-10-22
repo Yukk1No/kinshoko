@@ -27,7 +27,12 @@ export function taggingDownload(libraryId: string): Promise<void> {
   return invoke<void>("tagging_download", { libraryId });
 }
 
-/** 暂停打标：结束打标子进程，归还显存。 */
+/** 取消下载打标模型：回到需要下载，已下的部分保留以便下次续传。 */
+export function taggingCancelDownload(libraryId: string): Promise<void> {
+  return invoke<void>("tagging_cancel_download", { libraryId });
+}
+
+/** 暂停打标：结束打标子进程，归还显存；下载中则停下下载，继续时续传。 */
 export function taggingPause(libraryId: string): Promise<void> {
   return invoke<void>("tagging_pause", { libraryId });
 }

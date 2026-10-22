@@ -42,10 +42,13 @@ impl ProviderReaders {
         device: &DeviceLibraries,
         library_id: &str,
     ) -> Result<std::sync::Arc<crate::library::Library>, String> {
-        match device.libraries().iter().find(|r| r.id == library_id) {
+        let library = match device.libraries().iter().find(|r| r.id == library_id) {
             Some(registration) => self.opened(&registration.clone()),
             None => device.read(library_id).map_err(|e| e.to_string()),
-        }
+        }?;
+        // 只读句柄按本设备的安全模式范围给出浏览视角（#223）。
+        library.init_safe_mode_scope(device.safe_mode_scope());
+        Ok(library)
     }
 }
 impl Workspace {
@@ -82,8 +85,10 @@ impl Workspace {
             }
         }
         observed.sort_by(|a, b| a.0.id.cmp(&b.0.id));
+        // 安全模式范围变了，被封印的图跟着变：修订号不同，旧游标与界面的结果都作废（#223）。
+        let scope = device.safe_mode_scope();
         let fingerprint = |revision| -> Result<String, CatalogError> {
-            Ok(digest(&serde_json::to_vec(&(revision, &observed))?))
+            Ok(digest(&serde_json::to_vec(&(revision, &observed, scope))?))
         };
         let key = fingerprint(catalog.revision()?)?;
         if let Some(cache) = &self.cache
@@ -179,7 +184,7 @@ impl Workspace {
         let adult = providers
             .iter()
             .flat_map(|p| &p.images)
-            .filter(|i| i.adult)
+            .filter(|i| i.effective_rating().is_some_and(|r| scope.covers(r)))
             .map(|i| i.sha256.clone())
             .collect();
         let identities = providers
@@ -203,6 +208,7 @@ impl Workspace {
             providers,
             catalog: inspection,
             status,
+            scope,
             adult,
             identities,
             safe_vocabulary: std::sync::OnceLock::new(),

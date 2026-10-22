@@ -99,6 +99,7 @@ pub enum TaggingStatus {
     },
     /// 首次使用：模型还没下载，等画师确认（显示大小；`downloaded` 是上次中断时已下的部分）。
     /// `fallback` 是自动档退到这个模型的原因（例如没有独立显卡）；没有退让时为空。
+    /// `cancelled`：画师刚取消了下载（#213），界面不再催下载。
     #[serde(rename_all = "camelCase")]
     NeedsDownload {
         model: String,
@@ -107,6 +108,7 @@ pub enum TaggingStatus {
         #[ts(type = "number")]
         downloaded: u64,
         fallback: Option<String>,
+        cancelled: bool,
     },
     #[serde(rename_all = "camelCase")]
     Downloading {
@@ -154,6 +156,8 @@ struct Control {
     stop: bool,
     /// 画师确认了下载（对当前选的模型；换硬件档或自动档退到另一个模型后要重新确认）。
     download: bool,
+    /// 画师取消了下载（#213）；再确认下载时清掉。
+    cancelled: bool,
     /// 见 [`TaggingConfig::preferred`]。
     preferred: Option<Device>,
 }
@@ -162,7 +166,8 @@ struct Shared {
     control: Mutex<Control>,
     wake: Condvar,
     status: Mutex<TaggingStatus>,
-    /// 停止时取消下载。
+    /// 打断正在进行的下载（暂停、取消下载或停止时），已下载的部分保留。在持有 `control` 时置位，
+    /// 后台线程也在持有 `control` 并确认可以下载后才清掉，不会漏掉一次打断。
     cancel: AtomicBool,
     /// 当前会话的结束开关；暂停或停止时立即结束会话，不等手上那张图。
     stopper: Mutex<Option<SessionStopper>>,
@@ -212,6 +217,15 @@ impl Shared {
             return;
         }
         let _ = self.wake.wait_timeout(control, timeout);
+    }
+
+    /// 持有 `control` 时改控制并置位 `cancel`，打断正在进行的下载，再唤醒后台线程。
+    fn interrupt(&self, change: impl FnOnce(&mut Control)) {
+        let mut control = self.control();
+        change(&mut control);
+        self.cancel.store(true, Ordering::Relaxed);
+        drop(control);
+        self.wake.notify_all();
     }
 
     fn interrupted(&self) -> bool {
@@ -272,15 +286,26 @@ impl Tagging {
 
     /// 画师确认后开始下载模型（可续传）。之后模型缺失时会自动重新下载。
     pub fn download(&self) {
-        self.shared.control().download = true;
+        let mut control = self.shared.control();
+        control.download = true;
+        control.cancelled = false;
+        drop(control);
         self.shared.wake.notify_all();
     }
 
     /// 暂停打标：立即结束会话（打标子进程），归还显存。打到一半的那张恢复后重打。
+    /// 正在下载模型时停下下载，已下的部分保留，恢复后从断点续传（#213）。
     pub fn pause(&self) {
-        self.shared.control().paused = true;
+        self.shared.interrupt(|c| c.paused = true);
         self.shared.stop_session();
-        self.shared.wake.notify_all();
+    }
+
+    /// 取消下载（#213）：停下下载，回到等画师确认的需要下载；已下的部分保留，再确认时从断点续传。
+    pub fn cancel_download(&self) {
+        self.shared.interrupt(|c| {
+            c.download = false;
+            c.cancelled = true;
+        });
     }
 
     /// 换用画师在设置中选的硬件档（`None` 为自动）。这一档的模型还没下载时先显示大小，等画师确认；
@@ -308,10 +333,8 @@ impl Tagging {
 
 impl Drop for Tagging {
     fn drop(&mut self) {
-        self.shared.control().stop = true;
-        self.shared.cancel.store(true, Ordering::Relaxed);
+        self.shared.interrupt(|c| c.stop = true);
         self.shared.stop_session();
-        self.shared.wake.notify_all();
         if let Some(t) = self.thread.take() {
             let _ = t.join();
         }
