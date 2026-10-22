@@ -8,7 +8,8 @@
 //!   也可以跳过；跳过的标签早已照常迁入，只是不参与内置近似对应表。
 //! - 对上之后按 ADR-0012 安置 Eagle 原文（本库的来源名称）：与外部名称写法相同的成为不分语言的
 //!   别名，显示跟随默认名称；是翻译表中某语言的名称或别名的，成为该语言的来源名称；其余保持
-//!   按文字判断的语言。外部对应已属于库内另一个标签时，Eagle 标签并入那个标签。
+//!   按文字判断的语言。外部对应已属于库内另一个标签时，Eagle 标签并入那个标签，原文只作别名，
+//!   显示跟随那个标签。
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::Path;
@@ -182,6 +183,32 @@ fn settle(
     Ok(())
 }
 
+/// 两个标签并成一个之前：各自的来源名称只降为别名（按 ADR-0012 定语言，不分语言的不注明），
+/// 仍可查找，显示跟随默认名称（维护者在 #217 选定）。
+fn demote(
+    tx: &Transaction,
+    vocabulary: &ExternalVocabulary,
+    tag_id: &str,
+    external: &str,
+) -> Result<(), Error> {
+    for name in source_names::load(tx, tag_id)? {
+        let lang = match vocabulary.place(&name.name, external) {
+            Placement::Alias => None,
+            Placement::Lang(lang) => Some(lang),
+            Placement::Keep => (name.lang != source_names::UND).then_some(name.lang),
+        };
+        tx.execute(
+            "DELETE FROM tag_source_name WHERE tag_id = ?1 AND name = ?2",
+            params![tag_id, name.name],
+        )?;
+        tx.execute(
+            "INSERT OR IGNORE INTO tag_alias (tag_id, name, lang) VALUES (?1, ?2, ?3)",
+            params![tag_id, name.name, lang],
+        )?;
+    }
+    Ok(())
+}
+
 /// 给标签写上 `external`：外部名称已属于另一个标签时并入它。返回并入的标签与标签有变化的图。
 fn attach(
     tx: &Transaction,
@@ -195,6 +222,9 @@ fn attach(
             Ok((None, Vec::new()))
         }
         Some(other) => {
+            // 两边都降：谁先对上外部名称不影响结果。
+            demote(tx, vocabulary, tag_id, external)?;
+            demote(tx, vocabulary, &other, external)?;
             let images = tags::merge(tx, tag_id, &other)?;
             settle(tx, vocabulary, &other, external)?;
             Ok((Some(other), images))

@@ -105,6 +105,7 @@ fn eagle_originals_are_source_names_in_the_language_their_script_shows() {
             &["cyberpunk"],
             &["初音ミク"],
             &["蓝发 girl"],
+            &["蓝眼睛"],
         ],
     );
     let library = Library::create(&dir.path().join("kinshoko"), "参考").unwrap();
@@ -121,6 +122,7 @@ fn eagle_originals_are_source_names_in_the_language_their_script_shows() {
             n("en", "cyberpunk"),
             n("ja", "初音ミク"),
             n("und", "蓝发 girl"),
+            n(ZH, "蓝眼睛"),
         ]
     );
 
@@ -131,6 +133,8 @@ fn eagle_originals_are_source_names_in_the_language_their_script_shows() {
     assert_eq!(shown(&library, &images[2], ZH), ["cyberpunk"]);
     assert_eq!(shown(&library, &images[3], ZH), ["初音ミク"]);
     assert_eq!(shown(&library, &images[4], ZH), ["蓝发 girl"]);
+    // 同库的“蓝眼睛”也对上 blue_eyes：并入同一个标签，只作简中别名，显示默认名称（#217 维护者选定）。
+    assert_eq!(shown(&library, &images[5], ZH), ["蓝瞳"]);
     // blue eyes 与 Blue_Eyes 对应同一个外部名称：并成一个标签，原文成为不分语言的别名。
     let vocab = library.vocabulary().unwrap();
     let blue = vocab
@@ -138,11 +142,15 @@ fn eagle_originals_are_source_names_in_the_language_their_script_shows() {
         .iter()
         .find(|t| t.external == ["blue_eyes"])
         .unwrap();
-    assert_eq!(blue.count, 2);
+    assert_eq!(blue.count, 3);
     assert!(blue.source_names.is_empty());
     assert!(blue.aliases.contains(&TagAlias {
         name: "blue eyes".into(),
         lang: None
+    }));
+    assert!(blue.aliases.contains(&TagAlias {
+        name: "蓝眼睛".into(),
+        lang: Some(ZH.into())
     }));
     // 来源名称不算尚未翻译。
     let tags = library.image_tags(&images[2], ZH).unwrap();
@@ -158,7 +166,7 @@ fn eagle_originals_are_source_names_in_the_language_their_script_shows() {
 }
 
 #[test]
-fn an_original_that_is_a_translation_alias_becomes_a_source_name_in_that_language() {
+fn an_original_alone_that_is_a_translation_alias_becomes_a_source_name_in_that_language() {
     let dir = tempfile::tempdir().unwrap();
     let fixture = fixture(dir.path(), &[&["蓝眼睛"]]);
     let library = Library::create(&dir.path().join("kinshoko"), "参考").unwrap();
@@ -312,11 +320,10 @@ fn a_beta1_library_upgrades_its_eagle_names_into_source_names() {
 
     assert_eq!(shown(&library, &images[1], ZH), ["cyberpunk"]);
     assert_eq!(shown(&library, &images[2], ZH), ["我的叫法"]);
-    // 重新匹配：“蓝眼睛”对上内置翻译表的 blue_eyes，并入 blue eyes 那个标签；
-    // 本库的简中来源名称“蓝眼睛”优先于默认名称“蓝瞳”，两张图显示同一个标签。
-    assert_eq!(shown(&library, &images[3], ZH), ["蓝眼睛"]);
-    assert_eq!(shown(&library, &images[0], ZH), ["蓝眼睛"]);
-    assert_eq!(shown(&library, &images[0], "en"), ["蓝眼睛"]);
+    // 重新匹配：“蓝眼睛”对上内置翻译表的 blue_eyes，并入 blue eyes 那个标签，只作简中别名；
+    // 两张图都显示默认名称“蓝瞳”。
+    assert_eq!(shown(&library, &images[3], ZH), ["蓝瞳"]);
+    assert_eq!(shown(&library, &images[0], ZH), ["蓝瞳"]);
     let vocab = library.vocabulary().unwrap();
     let blue = vocab
         .tags
@@ -324,7 +331,11 @@ fn a_beta1_library_upgrades_its_eagle_names_into_source_names() {
         .find(|t| t.external == ["blue_eyes"])
         .unwrap();
     assert_eq!(blue.count, 2);
-    assert_eq!(blue.source_names, [n(ZH, "蓝眼睛")]);
+    assert!(blue.source_names.is_empty());
+    assert!(blue.aliases.contains(&TagAlias {
+        name: "蓝眼睛".into(),
+        lang: Some(ZH.into()),
+    }));
     let cyber = vocab
         .tags
         .iter()

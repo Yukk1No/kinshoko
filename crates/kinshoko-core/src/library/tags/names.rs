@@ -193,6 +193,10 @@ pub(in crate::library) fn merge(
     for sql in [
         "DELETE FROM tag_fact WHERE tag_id = ?1",
         "DELETE FROM tag_decision WHERE tag_id = ?1",
+        // 名称、别名的删除触发器会把标签记为待发布定义；先删它们和这条记录，再删标签。
+        "DELETE FROM tag_name WHERE tag_id = ?1",
+        "DELETE FROM tag_alias WHERE tag_id = ?1",
+        "DELETE FROM tag_definition_dirty WHERE local_tag_id = ?1",
         "DELETE FROM tag WHERE id = ?1",
     ] {
         tx.execute(sql, [from])?;
