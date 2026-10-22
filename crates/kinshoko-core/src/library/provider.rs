@@ -16,6 +16,7 @@ pub(crate) struct ProviderImage {
     #[serde(default)]
     pub rating: Option<ContentRating>,
     /// 旧版本缓存的“含成人内容”（那时范围固定为敏感及以上），只在读旧缓存时用。
+    /// 旧缓存分不出敏感和成人，按成人算，所以范围选“仅成人”时宁可多遮。
     #[serde(default, rename = "adult", skip_serializing)]
     pub legacy_adult: bool,
     pub deleted: bool,
@@ -30,10 +31,10 @@ pub(crate) fn thumbnail_address(library_id: &str, image_id: &str, px: u32) -> St
     format!("{library_id}/{image_id}/{}", super::thumbnail::tier(px))
 }
 impl ProviderImage {
-    /// 有效分级；旧缓存只知道是否含成人内容，按其中最宽的一档（敏感）算。
+    /// 有效分级；旧缓存只知道是否含成人内容，按最严的一档（成人）算，任何范围下都遮蔽、不会漏出。
     pub(crate) fn effective_rating(&self) -> Option<ContentRating> {
         self.rating
-            .or(self.legacy_adult.then_some(ContentRating::Questionable))
+            .or(self.legacy_adult.then_some(ContentRating::Explicit))
     }
 }
 
@@ -125,5 +126,26 @@ impl Library {
             vocabulary_revision,
             images,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::library::SafeModeScope;
+
+    #[test]
+    fn an_old_cache_entry_marked_adult_is_sealed_under_every_scope() {
+        let image: ProviderImage = serde_json::from_str(
+            r#"{"id":"i","sha256":"s","seq":1,"width":1,"height":1,"adult":true,"deleted":false}"#,
+        )
+        .unwrap();
+        for scope in [
+            SafeModeScope::Sensitive,
+            SafeModeScope::Questionable,
+            SafeModeScope::Explicit,
+        ] {
+            assert!(image.effective_rating().is_some_and(|r| scope.covers(r)));
+        }
     }
 }

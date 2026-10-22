@@ -95,6 +95,18 @@ pub enum SafeModeScope {
 }
 
 impl SafeModeScope {
+    /// 可选的各范围，从宽到严。
+    pub const ALL: [SafeModeScope; 3] = [
+        SafeModeScope::Sensitive,
+        SafeModeScope::Questionable,
+        SafeModeScope::Explicit,
+    ];
+
+    /// 起点是 `start` 的范围；“全年龄”不能作起点。
+    pub(crate) fn from_start(start: ContentRating) -> Option<SafeModeScope> {
+        Self::ALL.into_iter().find(|scope| scope.start() == start)
+    }
+
     /// 范围的起点，即范围内最宽的一档。
     pub fn start(self) -> ContentRating {
         match self {
@@ -111,14 +123,11 @@ impl SafeModeScope {
 
     /// 范围内的各档，从宽到严：查找时“R18”代表的分级。
     pub fn ratings(self) -> Vec<ContentRating> {
-        [
-            ContentRating::Sensitive,
-            ContentRating::Questionable,
-            ContentRating::Explicit,
-        ]
-        .into_iter()
-        .filter(|r| self.covers(*r))
-        .collect()
+        Self::ALL
+            .into_iter()
+            .map(SafeModeScope::start)
+            .filter(|r| self.covers(*r))
+            .collect()
     }
 
     /// 换成 `next` 是收紧（范围变大）：之前确认显示的钉图要重新遮蔽。
@@ -150,12 +159,7 @@ impl SafeMode {
     }
 
     pub(crate) fn decode(byte: u8) -> Option<SafeMode> {
-        let scope = match ContentRating::from_rank(i64::from(byte & 0x7f))? {
-            ContentRating::Sensitive => SafeModeScope::Sensitive,
-            ContentRating::Questionable => SafeModeScope::Questionable,
-            ContentRating::Explicit => SafeModeScope::Explicit,
-            ContentRating::General => return None,
-        };
+        let scope = SafeModeScope::from_start(ContentRating::from_rank(i64::from(byte & 0x7f))?)?;
         Some(SafeMode {
             on: byte & 0x80 != 0,
             scope,

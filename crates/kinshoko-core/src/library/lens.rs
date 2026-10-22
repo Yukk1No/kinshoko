@@ -64,20 +64,18 @@ pub(super) fn sealed_only_tags(
     conn: &Connection,
     safe: SafeMode,
 ) -> Result<HashSet<String>, Error> {
-    {
-        if !safe.on {
-            return Ok(HashSet::new());
-        }
-        let adult = rating::in_scope_sql("image.id", safe.scope);
-        let mut stmt = conn.prepare_cached(&format!(
-            "SELECT e.tag_id FROM effective_tag e JOIN image ON image.id = e.image_id WHERE {adult}
-             EXCEPT
-             SELECT e.tag_id FROM effective_tag e JOIN image ON image.id = e.image_id
-             WHERE NOT ({adult})"
-        ))?;
-        let rows = stmt.query_map([], |r| r.get(0))?;
-        Ok(rows.collect::<Result<_, _>>()?)
+    if !safe.on {
+        return Ok(HashSet::new());
     }
+    let adult = rating::in_scope_sql("image.id", safe.scope);
+    let mut stmt = conn.prepare_cached(&format!(
+        "SELECT e.tag_id FROM effective_tag e JOIN image ON image.id = e.image_id WHERE {adult}
+         EXCEPT
+         SELECT e.tag_id FROM effective_tag e JOIN image ON image.id = e.image_id
+         WHERE NOT ({adult})"
+    ))?;
+    let rows = stmt.query_map([], |r| r.get(0))?;
+    Ok(rows.collect::<Result<_, _>>()?)
 }
 
 /// 给定安全模式时浏览视角的过滤条件（引用 `image`）。
