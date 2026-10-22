@@ -12,6 +12,7 @@ import {
   toDevicePx,
   wheelZoomScale,
 } from "./pixels";
+import rustMotion from "../../crates/kinshoko-core/src/desktop/motion.rs?raw";
 
 // DPI 像素规则（#7 两轮回归）：canvas 后备尺寸等于钉图的物理像素，CSS 尺寸 = 物理像素 / dpr，
 // 绝不用 100vw 或 innerWidth；否则 110% 下细线变糊、1 px 网格出摩尔纹。
@@ -197,6 +198,10 @@ describe("onPin", () => {
   it("阴影以外不算", () => {
     expect(onPin({ x: 100 - PIN_EDGE - 0.5, y: 150 }, content, window, 1)).toBe(false);
     expect(onPin({ x: 150, y: 200 + PIN_EDGE }, content, window, 1)).toBe(false);
+  });
+
+  it("阴影宽度与 Rust 计算窗口区域用的 PIN_EDGE 相同", () => {
+    expect(rustMotion.match(/pub const PIN_EDGE: u32 = (\d+);/)?.[1]).toBe(String(PIN_EDGE));
   });
 
   it("阴影宽度按物理像素：200% 下是一半的 CSS 像素", () => {

@@ -208,7 +208,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
             </SettingsGroup>
             <SettingsGroup label="桌面钉图">
               <SettingsRow icon={<Pin size={16} />} title="增强钉图边缘" desc="阴影外加一圈浅色细线，深色画布上更好分辨">
-                <Switch label="增强钉图边缘" checked={view.pinEdgeContrast ?? false} onCheckedChange={(on) => void apply(setPinEdgeContrast(on))} />
+                <Switch label="增强钉图边缘" checked={view.pinEdgeContrast} onCheckedChange={(on) => void apply(setPinEdgeContrast(on))} />
               </SettingsRow>
             </SettingsGroup>
           </>)}

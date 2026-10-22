@@ -348,7 +348,7 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
    * 指针在内容或它四周的阴影上（CSS 像素，相对窗口；阴影那一圈算钉图的一部分，#239）。窗口区域
    * 在动画、拖动刚结束的一小会儿里还盖着更远的透明处，那里的按下不当作拖动或菜单（#193）。
    */
-  const inContent = (x: number, y: number) => {
+  const onThisPin = (x: number, y: number) => {
     const f = frame.current;
     return !!f && onPin({ x, y }, f.content, f.window, window.devicePixelRatio);
   };
@@ -363,7 +363,7 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
   };
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    if (!inContent(e.clientX, e.clientY)) return;
+    if (!onThisPin(e.clientX, e.clientY)) return;
     if (pressOpensMenu(e.pointerType, e.button)) {
       e.preventDefault();
       openMenu();
@@ -447,7 +447,7 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
       onPointerCancel={endGesture}
       onContextMenu={(e) => {
         e.preventDefault();
-        if (inContent(e.clientX, e.clientY)) openMenu();
+        if (onThisPin(e.clientX, e.clientY)) openMenu();
       }}
     >
       <div
