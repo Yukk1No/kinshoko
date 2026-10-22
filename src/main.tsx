@@ -12,6 +12,7 @@ import "./styles.css";
 import "./ui/ui.css";
 import "./shell/main-window.css";
 import "./ui/dialogs.css";
+import "./search/search-bar.css";
 import "./ui/text-select.css";
 
 // 同一个页面承载五种窗口：主窗口、截图框选窗口（?view=capture）、钉图层（?view=pin-layer，#193）、
