@@ -11,6 +11,6 @@ export type Vocabulary = { revision: number, tags: Array<VocabularyTag>,
  */
 personalApprox: Array<PersonalApprox>, 
 /**
- * 快照所用的浏览视角是否开着安全模式：开着时含成人内容的分级也查不到（#161）。
+ * 快照所用的浏览视角是否开着安全模式：开着时安全模式范围内的分级也查不到（#161）。
  */
 safeMode: boolean, };

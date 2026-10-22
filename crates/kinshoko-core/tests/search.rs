@@ -47,6 +47,7 @@ fn vocabulary(tags: Vec<VocabularyTag>) -> Vocabulary {
         tags,
         personal_approx: Vec::new(),
         safe_mode: false,
+        safe_mode_scope: Default::default(),
     }
 }
 

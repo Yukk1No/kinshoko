@@ -199,8 +199,9 @@ pub(in crate::library) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error>
     // 修订号与内容取自同一个读事务，保证快照一致。
     let tx = conn.transaction()?;
     let revision: i64 = tx.query_row("SELECT value FROM vocabulary_revision", [], |r| r.get(0))?;
+    let safe = inner.safe();
     let counts = counts(inner, &tx)?;
-    let hidden = inner.sealed_only_tags(&tx)?;
+    let hidden = lens::sealed_only_tags(&tx, safe)?;
     let mut tags: BTreeMap<String, VocabularyTag> = BTreeMap::new();
     {
         let mut stmt = tx.prepare("SELECT id, namespace FROM tag")?;
@@ -270,6 +271,7 @@ pub(in crate::library) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error>
         revision,
         tags: tags.into_values().collect(),
         personal_approx,
-        safe_mode: inner.safe_mode(),
+        safe_mode: safe.on,
+        safe_mode_scope: safe.scope,
     })
 }

@@ -43,6 +43,7 @@ mod permanent_delete;
 pub(crate) mod provider;
 mod rating;
 mod recovery;
+mod safe_mode_api;
 mod save;
 mod sidebar;
 mod source_names;
@@ -54,7 +55,7 @@ mod thumbnail;
 mod types;
 
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -85,7 +86,7 @@ pub use import::{ImportStages, ImportTask};
 pub use lens::{ReferenceImage, ReferenceLens};
 pub use package::{ImageSnapshot, PackageOrigin, SnapshotTag};
 pub use permanent_delete::PermanentDeletePreview;
-pub use rating::{ContentRating, ImageRating, RatingFact, TaggingOutcome};
+pub use rating::{ContentRating, ImageRating, RatingFact, SafeMode, SafeModeScope, TaggingOutcome};
 pub use save::SaveDestination;
 pub use sidebar::Sidebar;
 pub use source_names::{UND, compose as compose_names, detect_lang};
@@ -133,8 +134,8 @@ pub(crate) struct Inner {
     recovery: RecoveryReport,
     translations: RwLock<Arc<tags::TranslationIndex>>,
     package_publication_gate: RwLock<Option<Arc<Mutex<()>>>>,
-    /// 安全模式是否开启；打开资料库时默认开启。
-    safe_mode: AtomicBool,
+    /// 安全模式的开关与范围（[`SafeMode::encode`]）；打开资料库时默认开启、默认范围。
+    safe_mode: AtomicU8,
     /// 参考视角的句柄是否已经交出。
     reference_taken: AtomicBool,
     /// 只读打开、不是活动资料库（参考组读取未激活的库，#66）：不写数据库。
@@ -279,7 +280,7 @@ impl Library {
                 recovery,
                 translations: RwLock::default(),
                 package_publication_gate: RwLock::default(),
-                safe_mode: AtomicBool::new(true),
+                safe_mode: AtomicU8::new(SafeMode::new(true, SafeModeScope::default()).encode()),
                 reference_taken: AtomicBool::new(false),
                 detached: false,
                 write_revoked: Arc::new(AtomicBool::new(false)),
@@ -320,87 +321,111 @@ impl Library {
         eagle::confirm_location(&self.inner, path, choice)
     }
 
-    /// 参考图原文件的位置。
-    pub fn original_path(&self, image_id: &str) -> Result<PathBuf, Error> {
+    /// 按查询浏览参考图，按导入先后从新到旧，keyset 分页。
+    pub fn browse(&self, query: &BrowseQuery) -> Result<BrowsePage, Error> {
+        types::browse(&self.inner, query)
+    }
+
+    /// 开始导入，立即返回任务。文件 I/O 与哈希在任务自己的线程里做。
+    pub fn import(&self, source: ImportSource) -> ImportTask {
+        self.import_with_options(source, ImportOptions::default())
+    }
+
+    /// 按本次选择导入；允许重导不清除内容版本的永久删除记忆。
+    pub fn import_with_options(&self, source: ImportSource, options: ImportOptions) -> ImportTask {
+        match &self.save_destination {
+            Some(destination) => {
+                import::start_to(self.inner.clone(), source, options, destination.clone())
+            }
+            None => import::start(self.inner.clone(), source, options),
+        }
+    }
+
+    /// 订阅变更事件。事件在事务提交后才推送。
+    pub fn events(&self) -> Receiver<LibraryEvent> {
+        self.inner.hub.subscribe()
+    }
+
+    /// 参考图在目标像素宽度下的缩略图文件；缓存缺失时现场生成。
+    pub fn thumbnail(&self, image_id: &str, target_px: u32) -> Result<PathBuf, Error> {
         self.inner
             .require_visible(&self.inner.readers.get(), image_id)?;
-        self.inner.original_path(image_id)
+        thumbnail::get(&self.inner, image_id, target_px)
     }
 
-    /// 参考组包（#68）：把包里的一份原图连同导出时的整理信息快照导入，返回它在本库的参考图。
-    /// 走普通导入的写入顺序；字节须与快照的 SHA-256 一致。同库已有字节相同的原图只合并来源，
-    /// 同一个包重复导入不重复建图。快照按 `package:<包 id>:<来源库 id>:<来源图 id>` 来源分层写入，不碰人工整理。
-    pub fn import_from_package(
-        &self,
-        origin: &PackageOrigin,
-        bytes: &[u8],
-        snapshot: &ImageSnapshot,
-    ) -> Result<String, Error> {
-        let (outcome, list_changed) = import::import_package_original(
-            &self.inner,
-            origin.clone(),
-            bytes,
-            snapshot.clone(),
-            self.save_destination.clone(),
-        );
-        if list_changed {
-            self.inner.hub.publish(LibraryEvent::ListStale {
-                library_id: self.inner.info.id.clone(),
-            });
-        }
-        match outcome {
-            ImportOutcome::ReadFailed { reason } => Err(Error::PackageImage(reason)),
-            ImportOutcome::Unsupported => Err(Error::PackageImage("不是支持的图片格式".into())),
-            other => Ok(other.image_id().expect("进库的结果都有参考图").to_owned()),
-        }
+    /// 1:1 与放大时显示的文件（ADR-0005）：静态 SDR 原图交给 WebView2 直接显示；导入时标为
+    /// 动图、HDR、Chromium 不能精确表示的 ICC 或 CMYK 的，给原尺寸的 `sdr` 派生图。
+    /// 应用壳经 `thumb` 协议的 `<资料库 id>/<参考图 id>/full` 提供，看图界面只用这条路。
+    pub fn display(&self, image_id: &str) -> Result<DisplayFile, Error> {
+        self.inner
+            .require_visible(&self.inner.readers.get(), image_id)?;
+        self.inner.display(image_id)
     }
 
-    /// 打标子接口：待打标的图的原文件位置，不受安全模式影响（被封印的图也要重新打标）。
-    pub fn original_to_tag(&self, image_id: &str) -> Result<PathBuf, Error> {
-        self.inner.original_path(image_id)
-    }
-}
-
-impl Inner {
-    /// [`Library::display`]，不经过浏览视角。
-    fn display(&self, image_id: &str) -> Result<DisplayFile, Error> {
-        let (description, ..) = colour::get(self, image_id)?;
-        if description.needs_sdr_derivative() {
-            Ok(DisplayFile {
-                route: DisplayRoute::SdrDerivative,
-                path: thumbnail::full_size(self, image_id)?,
-            })
-        } else {
-            Ok(DisplayFile {
-                route: DisplayRoute::Original,
-                path: self.original_path(image_id)?,
-            })
-        }
-    }
-
-    /// [`Library::display_scaled`]，不经过浏览视角。
-    fn display_scaled(&self, image_id: &str, target_px: u32) -> Result<DisplayFile, Error> {
+    /// 查看器按目标宽度（转正后的设备像素）显示的文件：目标不小于原图宽度时同 [`Self::display`]；
+    /// 更小时（适应窗口等）是精确尺寸的 `sdr` 派生图，不交给 Chromium 缩小（#47）。
+    /// 应用壳经 `thumb` 协议的 `<资料库 id>/<参考图 id>/fit-<像素>` 提供。
+    pub fn display_scaled(&self, image_id: &str, target_px: u32) -> Result<DisplayFile, Error> {
         if target_px == 0 {
             return Err(Error::InvalidDisplaySize);
         }
-        match display::scaled(self, image_id, target_px)? {
-            Some(file) => Ok(file),
-            None => self.display(image_id),
-        }
+        self.inner
+            .require_visible(&self.inner.readers.get(), image_id)?;
+        self.inner.display_scaled(image_id, target_px)
     }
 
-    /// 原文件位置，不经过浏览视角。
-    fn original_path(&self, image_id: &str) -> Result<PathBuf, Error> {
-        let conn = self.readers.get();
-        let rel: String = conn
+    /// Receipt capability only: a detached provider and an exact live byte identity.
+    /// Render from one verified immutable byte buffer; no mode, metadata or cache is changed.
+    pub(crate) fn read_import_duplicate(
+        &self,
+        image_id: &str,
+        sha256: &str,
+        target_px: u32,
+    ) -> Result<(Vec<u8>, String), Error> {
+        use rusqlite::OptionalExtension;
+        use sha2::{Digest, Sha256};
+        if !self.inner.detached {
+            return Err(Error::UnknownImage);
+        }
+        let width: Option<u32> = self
+            .inner
+            .readers
+            .get()
             .query_row(
-                "SELECT rel_path FROM image WHERE id = ?1",
-                [image_id],
+                "SELECT width FROM image WHERE id=?1 AND sha256=?2 AND deleted_at IS NULL",
+                [image_id, sha256],
                 |row| row.get(0),
             )
-            .optional()?
-            .ok_or(Error::UnknownImage)?;
-        Ok(self.root.join(rel))
+            .optional()?;
+        let width = width.ok_or(Error::UnknownImage)?;
+        let (description, _, original) = colour::get(&self.inner, image_id)?;
+        let bytes = std::fs::read(original)?;
+        if format!("{:x}", Sha256::digest(&bytes)) != sha256 {
+            return Err(Error::SourceChanged);
+        }
+        if target_px < width || description.needs_sdr_derivative() {
+            let rendered = crate::fidelity::render::render_sdr(
+                &bytes,
+                target_px,
+                crate::fidelity::DEFAULT_DOWNSCALE,
+            )
+            .map_err(Error::Undecodable)?;
+            return Ok((rendered.bytes, rendered.mime.into()));
+        }
+        let mime = match description.format.as_str() {
+            "png" => "image/png",
+            "jpeg" | "jpg" => "image/jpeg",
+            "gif" => "image/gif",
+            _ => "image/webp",
+        };
+        Ok((bytes, mime.into()))
+    }
+
+    /// 参考图的色彩描述（导入时记录）。浏览视角：被封印的图当作不存在。
+    pub fn colour(&self, image_id: &str) -> Result<ColourDescription, Error> {
+        self.inner
+            .require_visible(&self.inner.readers.get(), image_id)?;
+        colour::get(&self.inner, image_id).map(|(d, ..)| d)
     }
 }
 

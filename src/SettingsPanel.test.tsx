@@ -57,6 +57,24 @@ describe("设置：近似查找", () => {
     expect(seen.at(-1)?.keepSelectionOnSafeMode).toBe(true);
   });
 
+  it("安全模式范围默认敏感及以上，改选后保存并告诉主窗口", async () => {
+    const calls = backend((cmd) =>
+      cmd === "plugin:library|set_safe_mode_scope" ? { ...defaults, safeModeScope: "explicit" } : undefined,
+    );
+    const seen: ShellSettingsView[] = [];
+    render(<SettingsPanel library={null} onChange={(v) => seen.push(v)} initialTab="safety" safe onSafeMode={() => {}} />);
+
+    const scope = await screen.findByRole("group", { name: "安全模式范围" });
+    expect(within(scope).getAllByRole("button").map((b) => [b.textContent, b.getAttribute("aria-pressed")])).toEqual([
+      ["轻度及以上", "false"], ["敏感及以上", "true"], ["仅成人", "false"],
+    ]);
+    fireEvent.click(within(scope).getByRole("button", { name: "仅成人" }));
+
+    await waitFor(() => expect(within(scope).getByRole("button", { name: "仅成人" }).getAttribute("aria-pressed")).toBe("true"));
+    expect(calls.find((c) => c.cmd === "plugin:library|set_safe_mode_scope")?.args).toEqual({ scope: "explicit" });
+    expect(seen.at(-1)?.safeModeScope).toBe("explicit");
+  });
+
   it("程序设置中列出全局个人近似对应表，可以删除", async () => {
     let listed = entries;
     const calls = backend((cmd, args) => {

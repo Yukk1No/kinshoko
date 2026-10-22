@@ -25,11 +25,11 @@
 //! 活动资料库的 Search 由 [`SearchCache`] 按（资料库，词表修订号，安全模式）缓存（#76）。
 
 mod cache;
-mod rating;
+mod ratings;
 
 pub use cache::SearchCache;
-pub use rating::{RatingCandidate, RatingLabel, rating_candidates};
-use rating::{matching_ratings, rating_label};
+pub use ratings::{RatingCandidate, RatingLabel, rating_candidates};
+use ratings::{matching_ratings, rating_label};
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap};
@@ -39,7 +39,7 @@ use ts_rs::TS;
 use unicode_normalization::UnicodeNormalization;
 
 use crate::approx::{ApproxRelation, ApproxSource, BuiltinApproxTable, ordered};
-use crate::library::{ContentRating, TagLabel, Vocabulary, compose_names, display_label};
+use crate::library::{ContentRating, SafeMode, TagLabel, Vocabulary, compose_names, display_label};
 
 /// 搜索框里的一项：点选的标签、点选的内容分级，或直接输入的文字。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -115,19 +115,6 @@ pub enum Term {
     Rating { rating: RatingLabel },
 }
 
-/// 可以查找的内容分级：四档各一个，另有代表含成人内容两档的“R18”。中文名与人工分级界面相同。
-const RATINGS: [(&[ContentRating], &str, &[&str]); 5] = [
-    (&[ContentRating::General], "全年龄", &["general"]),
-    (&[ContentRating::Sensitive], "轻度", &["sensitive"]),
-    (&[ContentRating::Questionable], "敏感", &["questionable"]),
-    (&[ContentRating::Explicit], "成人", &["explicit"]),
-    (
-        &[ContentRating::Questionable, ContentRating::Explicit],
-        "R18",
-        &["R-18", "成人"],
-    ),
-];
-
 /// 近似查找展开出的一个相近标签。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -200,8 +187,8 @@ impl Entry {
 /// 基于一份词表快照的查找。词表修订号不变时可以一直复用。
 pub struct Search {
     revision: i64,
-    /// 安全模式开启：含成人内容的分级查不到。
-    safe_mode: bool,
+    /// 词表快照所用的视角：安全模式开启时范围内的分级查不到；“R18”按范围。
+    safe: SafeMode,
     entries: Vec<Entry>,
     /// 每个标签的相近标签（`entries` 下标）及来源，已按个人近似对应表优先合并。
     neighbours: HashMap<String, Vec<(usize, ApproxSource)>>,
@@ -237,7 +224,7 @@ impl Search {
         let neighbours = neighbours(&entries, vocabulary, builtin);
         Search {
             revision: vocabulary.revision,
-            safe_mode: vocabulary.safe_mode,
+            safe: vocabulary.safe(),
             entries,
             neighbours,
         }
@@ -334,7 +321,7 @@ impl Search {
                         text: text.to_owned(),
                         tags,
                         similar: self.similar(&matched, dismissed, exact, lang),
-                        ratings: matching_ratings(&needle, self.safe_mode)
+                        ratings: matching_ratings(&needle, self.safe)
                             .into_iter()
                             .map(|(_, c)| c.rating)
                             .collect(),
@@ -343,7 +330,7 @@ impl Search {
                 TermInput::Rating { ratings } => {
                     expressed = true;
                     any.push(Term::Rating {
-                        rating: rating_label(ratings),
+                        rating: rating_label(ratings, self.safe.scope),
                     });
                 }
                 TermInput::Tag { id, dismissed } => {

@@ -97,6 +97,7 @@ fn main() {
                         "image_rating",
                         "safe_mode",
                         "set_safe_mode",
+                        "set_safe_mode_scope",
                     ])
                     .default_permission(tauri_build::DefaultPermissionRule::AllowAllCommands),
             )

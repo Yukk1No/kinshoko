@@ -1,4 +1,4 @@
-//! 资料库的标签接口：标签决定、词表、名称、外部对应、分组与个人近似对应表。
+//! 资料库的标签、分级与打标接口（从 library/mod.rs 原样搬出）。
 
 use super::*;
 
@@ -219,5 +219,45 @@ impl Library {
     /// 侧栏的标签分组及计数，名称按界面语言 `lang`。
     pub fn tag_groups(&self, lang: &str) -> Result<Vec<TagGroupView>, Error> {
         tags::tag_groups(&self.inner, lang)
+    }
+
+    /// 参考图原文件的位置。
+    pub fn original_path(&self, image_id: &str) -> Result<PathBuf, Error> {
+        self.inner
+            .require_visible(&self.inner.readers.get(), image_id)?;
+        self.inner.original_path(image_id)
+    }
+
+    /// 参考组包（#68）：把包里的一份原图连同导出时的整理信息快照导入，返回它在本库的参考图。
+    /// 走普通导入的写入顺序；字节须与快照的 SHA-256 一致。同库已有字节相同的原图只合并来源，
+    /// 同一个包重复导入不重复建图。快照按 `package:<包 id>:<来源库 id>:<来源图 id>` 来源分层写入，不碰人工整理。
+    pub fn import_from_package(
+        &self,
+        origin: &PackageOrigin,
+        bytes: &[u8],
+        snapshot: &ImageSnapshot,
+    ) -> Result<String, Error> {
+        let (outcome, list_changed) = import::import_package_original(
+            &self.inner,
+            origin.clone(),
+            bytes,
+            snapshot.clone(),
+            self.save_destination.clone(),
+        );
+        if list_changed {
+            self.inner.hub.publish(LibraryEvent::ListStale {
+                library_id: self.inner.info.id.clone(),
+            });
+        }
+        match outcome {
+            ImportOutcome::ReadFailed { reason } => Err(Error::PackageImage(reason)),
+            ImportOutcome::Unsupported => Err(Error::PackageImage("不是支持的图片格式".into())),
+            other => Ok(other.image_id().expect("进库的结果都有参考图").to_owned()),
+        }
+    }
+
+    /// 打标子接口：待打标的图的原文件位置，不受安全模式影响（被封印的图也要重新打标）。
+    pub fn original_to_tag(&self, image_id: &str) -> Result<PathBuf, Error> {
+        self.inner.original_path(image_id)
     }
 }

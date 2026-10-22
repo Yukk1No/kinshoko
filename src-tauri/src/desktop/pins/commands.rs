@@ -120,6 +120,7 @@ pub(super) fn reveal_here(app: &AppHandle, pin: &str) -> Result<(), String> {
         let safe = crate::library::safe_mode_on(app);
         let mut veils = lock(&state(app).veils);
         veils.set_safe_mode(safe);
+        veils.set_scope(crate::library::safe_mode_scope(app));
         veils.reveal(pin);
         Ok(())
     })?;

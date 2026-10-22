@@ -45,7 +45,7 @@ it("工作区使用范围查询并将全部来源交给检查入口，活动写�
   expect(document.querySelector(".card")?.getAttribute("data-id")).toBe("bytes");
 });
 
-it("每张有来源的卡片都有来源按钮：一份来源只显示图标，两份以上显示“N 处”；按钮不在卡片选项里", async () => {
+it("来源按钮只在图片在两个及以上图库时出现，显示“N 处”；只在一个图库的图没有按钮；按钮不在卡片选项里", async () => {
   const inspect = vi.fn();
   render(<Wall {...base} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode onInspectSources={inspect} />);
   await settle();
@@ -53,16 +53,15 @@ it("每张有来源的卡片都有来源按钮：一份来源只显示图标，�
   await act(async () => calls[0].resolve(page([card, single])));
   const multi = await screen.findByRole("button", { name: "在 2 个图库 · 查看详情" });
   expect(multi.textContent).toBe("2 处");
-  const one = screen.getByRole("button", { name: "来源：甲库 · 查看详情" });
-  expect(one.textContent).toBe("");
+  expect(document.querySelectorAll(".card-sources")).toHaveLength(1);
+  expect(document.querySelector('.card-sources[data-card="single"]')).toBeNull();
   for (const option of screen.getAllByRole("option")) {
     expect(option.querySelector("button, [tabindex], a, input")).toBeNull();
   }
   expect(multi.closest("[role='option']")).toBeNull();
   expect(multi.dataset.card).toBe("bytes");
-  expect(one.dataset.card).toBe("single");
-  fireEvent.click(one);
-  expect(inspect).toHaveBeenCalledWith(single);
+  fireEvent.click(multi);
+  expect(inspect).toHaveBeenCalledWith(card);
 });
 
 it("目录或提供方修订刷新时清掉旧卡片，迟到的旧页不写回", async () => {

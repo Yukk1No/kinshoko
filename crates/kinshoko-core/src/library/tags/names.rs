@@ -252,7 +252,7 @@ pub(in crate::library) fn set_source_name_lang(
     lang: &str,
 ) -> Result<(), Error> {
     let (tag_id, name, lang) = (tag_id.to_owned(), name.trim().to_owned(), clean(lang)?);
-    let safe = inner.safe_mode();
+    let safe = inner.safe();
     write(inner, Vec::new(), move |tx, _| {
         require_visible_tag(tx, safe, &tag_id)?;
         if tx.execute(
@@ -276,7 +276,7 @@ pub(in crate::library) fn add_tag_alias(
         name: clean(&alias.name)?,
         lang: alias.lang.clone(),
     };
-    let safe = inner.safe_mode();
+    let safe = inner.safe();
     write(inner, Vec::new(), move |tx, _| {
         require_visible_tag(tx, safe, &tag_id)?;
         tx.execute(
@@ -294,7 +294,7 @@ pub(in crate::library) fn remove_tag_alias(
     alias: &str,
 ) -> Result<(), Error> {
     let (tag_id, alias) = (tag_id.to_owned(), alias.trim().to_owned());
-    let safe = inner.safe_mode();
+    let safe = inner.safe();
     write(inner, Vec::new(), move |tx, _| {
         require_visible_tag(tx, safe, &tag_id)?;
         tx.execute(

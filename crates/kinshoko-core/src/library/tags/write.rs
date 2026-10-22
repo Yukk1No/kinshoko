@@ -54,16 +54,16 @@ pub(super) fn require_tag(tx: &Transaction, tag_id: &str) -> Result<TagNamespace
     .ok_or(Error::UnknownTag)
 }
 
-/// 浏览视角下这个标签存在：`safe`（安全模式开启）时，只在被封印的图上出现的标签当作不存在
+/// 浏览视角下这个标签存在：安全模式开启时，只在被封印的图上出现的标签当作不存在
 /// （与 [`Inner::sealed_only_tags`] 同一规则），画师看不见它，也不能经 id 整理它。
 pub(super) fn require_visible_tag(
     tx: &Transaction,
-    safe: bool,
+    safe: SafeMode,
     tag_id: &str,
 ) -> Result<TagNamespace, Error> {
     let namespace = require_tag(tx, tag_id)?;
-    if safe {
-        let adult = rating::adult_sql("image.id");
+    if safe.on {
+        let adult = rating::in_scope_sql("image.id", safe.scope);
         let sealed_only: bool = tx.query_row(
             &format!(
                 "SELECT EXISTS (SELECT 1 FROM effective_tag e JOIN image ON image.id = e.image_id

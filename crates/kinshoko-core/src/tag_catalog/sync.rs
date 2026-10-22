@@ -7,6 +7,7 @@ impl TagCatalog {
     /// the original names awaiting migration. A matching name or alias is never evidence of identity.
     pub fn synchronize(&mut self, library: &Library) -> Result<CatalogInspection, CatalogError> {
         let safe_mode = library.safe_mode();
+        let scope = library.safe_mode_scope();
         let vocabulary = library.vocabulary()?;
         let vocabulary_revision = vocabulary.revision;
         let dependencies = library.tag_definition_dependencies()?;
@@ -149,6 +150,7 @@ impl TagCatalog {
             Synchronized {
                 root: library.info().root.clone(),
                 safe_mode,
+                scope,
                 vocabulary: vocabulary_revision,
                 catalog: inspection.revision,
             },
@@ -156,7 +158,7 @@ impl TagCatalog {
         Ok(inspection)
     }
 
-    /// 自上次同步这个资料库以来，它的词表、安全模式与统一标签目录都没有变化。
+    /// 自上次同步这个资料库以来，它的词表、安全模式（开关与范围）与统一标签目录都没有变化。
     pub(super) fn is_synchronized(&self, library: &Library) -> Result<bool, CatalogError> {
         let Some(last) = self.synchronized.get(&library.info().id) else {
             return Ok(false);
@@ -165,6 +167,7 @@ impl TagCatalog {
             == Synchronized {
                 root: library.info().root.clone(),
                 safe_mode: library.safe_mode(),
+                scope: library.safe_mode_scope(),
                 vocabulary: library.vocabulary_revision()?,
                 catalog: self.revision()?,
             })

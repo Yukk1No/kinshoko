@@ -207,3 +207,8 @@ pub(crate) fn visibility_publication_gate<R: Runtime>(app: &AppHandle<R>) -> Arc
 pub fn safe_mode_on<R: Runtime>(app: &AppHandle<R>) -> bool {
     saved_safe_mode(app)
 }
+
+/// 安全模式范围（全局设置，#223）。
+pub fn safe_mode_scope<R: Runtime>(app: &AppHandle<R>) -> SafeModeScope {
+    saved_safe_mode_scope(app)
+}

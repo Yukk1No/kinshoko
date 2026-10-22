@@ -3,14 +3,21 @@
 use super::*;
 
 /// 搜索框打字时的分级候选（#161），与资料库无关。`safe_mode` 是界面当前的视角；应用的安全
-/// 模式设置开着时也按开着处理，切换的这一刻不会露出成人分级候选。
+/// 模式设置开着时也按开着处理，切换的这一刻不会露出范围内的分级候选。“R18”与要隐藏的分级
+/// 按设置里的安全模式范围（#223）。
 #[tauri::command]
 pub(super) fn rating_candidates<R: Runtime>(
     app: AppHandle<R>,
     text: String,
     safe_mode: bool,
 ) -> Vec<RatingCandidate> {
-    kinshoko_core::search::rating_candidates(&text, safe_mode || saved_safe_mode(&app))
+    kinshoko_core::search::rating_candidates(
+        &text,
+        SafeMode::new(
+            safe_mode || saved_safe_mode(&app),
+            saved_safe_mode_scope(&app),
+        ),
+    )
 }
 
 /// 搜索框打字时的候选：按命名空间与别名列出，名称按界面语言 `lang`。`safe_mode` 是界面
@@ -128,6 +135,52 @@ pub(super) async fn set_safe_mode<R: Runtime>(
         started.elapsed().as_secs_f64() * 1e3
     );
     Ok(on)
+}
+
+/// 调整安全模式范围（#223）：与开关安全模式同一条路——先保存设置，再设给开着的可写资料库
+/// （它们的修订号前进并推送列表与词表变化），钉图随即按新范围重新核对，收紧时清空确认显示；
+/// 之后推送 `safe-mode-setting`（开关不变）与新的工作区状态：工作区修订号随范围变化，界面
+/// 重读浏览、查找与计数，正在查看的图回到图片墙。返回新的设置。
+/// 安全模式关闭时也照此处理（只改变“R18”的含义）。
+#[tauri::command]
+pub(super) async fn set_safe_mode_scope<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+    scope: SafeModeScope,
+) -> Result<kinshoko_core::ShellSettingsView, String> {
+    let view = {
+        let _visibility = lock(&state.visibility_commit);
+        // 与开关相同：进行中的读取与发送都要按新视角重新核对。
+        state.safe_mode_generation.fetch_add(1, Ordering::SeqCst);
+        import_preview::revoke(&app);
+        let view = {
+            let shell = app.state::<ShellState>();
+            let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
+            shell
+                .settings
+                .set_safe_mode_scope(scope)
+                .map_err(|e| e.to_string())?;
+            shell.view()
+        };
+        *lock(&DEVICE_SAFE_MODE_SCOPE) = scope;
+        state.detached.set_safe_mode_scope(scope);
+        if let Some(libraries) = lock(&state.libraries).as_mut()
+            && let Err(error) = libraries.set_safe_mode_scope(scope)
+        {
+            // 视角已换上；只是修订号没写成，游标与工作区快照仍按视角作废。
+            crate::run_log::warn("安全模式范围的修订号未写入", error);
+        }
+        state.search.invalidate();
+        crate::desktop::safe_mode_scope_committed(&app, scope);
+        view
+    };
+    let safe = saved_safe_mode(&app);
+    // 与开关同一个通知：钉图重新核对，跟着安全模式重读的界面（词表、分组、导入……）都重读。
+    let _ = app.emit(SAFE_MODE_EVENT, safe);
+    if let Ok(status) = workspace::action(&app, safe, |w, d, c| w.status(d, c, safe)) {
+        let _ = app.emit(workspace::EVENT, status);
+    }
+    Ok(view)
 }
 
 /// 在个人近似对应表中记下两个标签相近或不相近（“＋”与“以后都不展开”）。

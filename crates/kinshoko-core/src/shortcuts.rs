@@ -50,6 +50,8 @@ pub struct ShellSettingsView {
     pub run_log: bool,
     /// 切换安全模式时保留当前选择。
     pub keep_selection_on_safe_mode: bool,
+    /// 安全模式范围（#223）：安全模式从哪一档内容分级开始作用。
+    pub safe_mode_scope: crate::library::SafeModeScope,
     #[ts(optional)]
     pub viewer_background: Option<crate::ViewerBackground>,
     /// 标签外观与可信度分档（#160）。
@@ -71,6 +73,7 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
             force_srgb_in_effect: settings.force_srgb_in_effect(),
             run_log: settings.run_log(),
             keep_selection_on_safe_mode: settings.keep_selection_on_safe_mode(),
+            safe_mode_scope: settings.safe_mode_scope(),
             viewer_background: settings.viewer_background(),
             tag_display: settings.tag_display(),
             inspector_width: settings.inspector_width(),

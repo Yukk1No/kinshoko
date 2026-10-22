@@ -229,6 +229,7 @@ pub struct TagCatalog {
 struct Synchronized {
     root: std::path::PathBuf,
     safe_mode: bool,
+    scope: crate::library::SafeModeScope,
     vocabulary: i64,
     catalog: i64,
 }

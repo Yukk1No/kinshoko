@@ -1,131 +1,8 @@
-//! 资料库的参考图接口：浏览、导入、显示、整理、永久删除与文件夹。
+//! 资料库的参考图、文件夹与永久删除接口，以及不经浏览视角的显示文件（从 library/mod.rs 原样搬出）。
 
 use super::*;
 
 impl Library {
-    /// 按查询浏览参考图，按导入先后从新到旧，keyset 分页。
-    pub fn browse(&self, query: &BrowseQuery) -> Result<BrowsePage, Error> {
-        types::browse(&self.inner, query)
-    }
-
-    /// 开始导入，立即返回任务。文件 I/O 与哈希在任务自己的线程里做。
-    pub fn import(&self, source: ImportSource) -> ImportTask {
-        self.import_with_options(source, ImportOptions::default())
-    }
-
-    /// 按本次选择导入；允许重导不清除内容版本的永久删除记忆。
-    pub fn import_with_options(&self, source: ImportSource, options: ImportOptions) -> ImportTask {
-        match &self.save_destination {
-            Some(destination) => {
-                import::start_to(self.inner.clone(), source, options, destination.clone())
-            }
-            None => import::start(self.inner.clone(), source, options),
-        }
-    }
-
-    /// 订阅变更事件。事件在事务提交后才推送。
-    pub fn events(&self) -> Receiver<LibraryEvent> {
-        self.inner.hub.subscribe()
-    }
-
-    /// 参考图在目标像素宽度下的缩略图文件；缓存缺失时现场生成。
-    pub fn thumbnail(&self, image_id: &str, target_px: u32) -> Result<PathBuf, Error> {
-        self.inner
-            .require_visible(&self.inner.readers.get(), image_id)?;
-        thumbnail::get(&self.inner, image_id, target_px)
-    }
-
-    /// 1:1 与放大时显示的文件（ADR-0005）：静态 SDR 原图交给 WebView2 直接显示；导入时标为
-    /// 动图、HDR、Chromium 不能精确表示的 ICC 或 CMYK 的，给原尺寸的 `sdr` 派生图。
-    /// 应用壳经 `thumb` 协议的 `<资料库 id>/<参考图 id>/full` 提供，看图界面只用这条路。
-    pub fn display(&self, image_id: &str) -> Result<DisplayFile, Error> {
-        self.inner
-            .require_visible(&self.inner.readers.get(), image_id)?;
-        self.inner.display(image_id)
-    }
-
-    /// 查看器按目标宽度（转正后的设备像素）显示的文件：目标不小于原图宽度时同 [`Self::display`]；
-    /// 更小时（适应窗口等）是精确尺寸的 `sdr` 派生图，不交给 Chromium 缩小（#47）。
-    /// 应用壳经 `thumb` 协议的 `<资料库 id>/<参考图 id>/fit-<像素>` 提供。
-    pub fn display_scaled(&self, image_id: &str, target_px: u32) -> Result<DisplayFile, Error> {
-        if target_px == 0 {
-            return Err(Error::InvalidDisplaySize);
-        }
-        self.inner
-            .require_visible(&self.inner.readers.get(), image_id)?;
-        self.inner.display_scaled(image_id, target_px)
-    }
-
-    /// Receipt capability only: a detached provider and an exact live byte identity.
-    /// Render from one verified immutable byte buffer; no mode, metadata or cache is changed.
-    pub(crate) fn read_import_duplicate(
-        &self,
-        image_id: &str,
-        sha256: &str,
-        target_px: u32,
-    ) -> Result<(Vec<u8>, String), Error> {
-        use rusqlite::OptionalExtension;
-        use sha2::{Digest, Sha256};
-        if !self.inner.detached {
-            return Err(Error::UnknownImage);
-        }
-        let width: Option<u32> = self
-            .inner
-            .readers
-            .get()
-            .query_row(
-                "SELECT width FROM image WHERE id=?1 AND sha256=?2 AND deleted_at IS NULL",
-                [image_id, sha256],
-                |row| row.get(0),
-            )
-            .optional()?;
-        let width = width.ok_or(Error::UnknownImage)?;
-        let (description, _, original) = colour::get(&self.inner, image_id)?;
-        let bytes = std::fs::read(original)?;
-        if format!("{:x}", Sha256::digest(&bytes)) != sha256 {
-            return Err(Error::SourceChanged);
-        }
-        if target_px < width || description.needs_sdr_derivative() {
-            let rendered = crate::fidelity::render::render_sdr(
-                &bytes,
-                target_px,
-                crate::fidelity::DEFAULT_DOWNSCALE,
-            )
-            .map_err(Error::Undecodable)?;
-            return Ok((rendered.bytes, rendered.mime.into()));
-        }
-        let mime = match description.format.as_str() {
-            "png" => "image/png",
-            "jpeg" | "jpg" => "image/jpeg",
-            "gif" => "image/gif",
-            _ => "image/webp",
-        };
-        Ok((bytes, mime.into()))
-    }
-
-    /// 参考图的色彩描述（导入时记录）。浏览视角：被封印的图当作不存在。
-    pub fn colour(&self, image_id: &str) -> Result<ColourDescription, Error> {
-        self.inner
-            .require_visible(&self.inner.readers.get(), image_id)?;
-        colour::get(&self.inner, image_id).map(|(d, ..)| d)
-    }
-
-    /// 安全模式是否开启。
-    pub fn safe_mode(&self) -> bool {
-        self.inner.safe_mode()
-    }
-
-    /// 开关安全模式。状态变化时推送 [`LibraryEvent::SafeModeChanged`]：已取得的浏览结果、
-    /// 计数、词表与详情都要重新读取。
-    pub fn set_safe_mode(&self, on: bool) {
-        if self.inner.safe_mode.swap(on, Ordering::SeqCst) != on {
-            self.inner.hub.publish(LibraryEvent::SafeModeChanged {
-                library_id: self.inner.info.id.clone(),
-                on,
-            });
-        }
-    }
-
     /// 交出参考视角的句柄。每个打开的资料库只交出一次：应用壳在装配时取得，交给参考组与
     /// 桌面钉图（可以克隆）；之后再要只得到 `None`。
     pub fn take_reference_lens(&self) -> Option<ReferenceLens> {
@@ -230,5 +107,52 @@ impl Library {
             return Err(Error::UnknownImage);
         }
         Ok(sources)
+    }
+}
+
+impl Inner {
+    /// [`Library::display`]，不经过浏览视角。
+    pub(super) fn display(&self, image_id: &str) -> Result<DisplayFile, Error> {
+        let (description, ..) = colour::get(self, image_id)?;
+        if description.needs_sdr_derivative() {
+            Ok(DisplayFile {
+                route: DisplayRoute::SdrDerivative,
+                path: thumbnail::full_size(self, image_id)?,
+            })
+        } else {
+            Ok(DisplayFile {
+                route: DisplayRoute::Original,
+                path: self.original_path(image_id)?,
+            })
+        }
+    }
+
+    /// [`Library::display_scaled`]，不经过浏览视角。
+    pub(super) fn display_scaled(
+        &self,
+        image_id: &str,
+        target_px: u32,
+    ) -> Result<DisplayFile, Error> {
+        if target_px == 0 {
+            return Err(Error::InvalidDisplaySize);
+        }
+        match display::scaled(self, image_id, target_px)? {
+            Some(file) => Ok(file),
+            None => self.display(image_id),
+        }
+    }
+
+    /// 原文件位置，不经过浏览视角。
+    pub(super) fn original_path(&self, image_id: &str) -> Result<PathBuf, Error> {
+        let conn = self.readers.get();
+        let rel: String = conn
+            .query_row(
+                "SELECT rel_path FROM image WHERE id = ?1",
+                [image_id],
+                |row| row.get(0),
+            )
+            .optional()?
+            .ok_or(Error::UnknownImage)?;
+        Ok(self.root.join(rel))
     }
 }

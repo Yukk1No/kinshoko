@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::events::LibraryEvent;
-use super::{Error, Inner, LIVE, lens, now_ms, rating};
+use super::{Error, Inner, LIVE, SafeMode, SafeModeScope, lens, now_ms, rating};
 use crate::approx::{ApproxRelation, PersonalApprox};
 
 /// 标签命名空间。名称相同、命名空间不同的是两个标签。
@@ -317,8 +317,19 @@ pub struct Vocabulary {
     pub tags: Vec<VocabularyTag>,
     /// 个人近似对应表的全部条目。
     pub personal_approx: Vec<crate::approx::PersonalApprox>,
-    /// 快照所用的浏览视角是否开着安全模式：开着时含成人内容的分级也查不到（#161）。
+    /// 快照所用的浏览视角是否开着安全模式：开着时安全模式范围内的分级也查不到（#161）。
     pub safe_mode: bool,
+    /// 快照所用的安全模式范围（#223）：决定“R18”代表哪几档，以及开着安全模式时哪些分级查不到。
+    /// 只给核心的 Search 用，界面不需要。
+    #[ts(skip)]
+    pub safe_mode_scope: SafeModeScope,
+}
+
+impl Vocabulary {
+    /// 快照所用的浏览视角。
+    pub fn safe(&self) -> SafeMode {
+        SafeMode::new(self.safe_mode, self.safe_mode_scope)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]

@@ -76,7 +76,7 @@ pub(in crate::library) fn add_to_tag_group(
     tag_ids: &[String],
 ) -> Result<(), Error> {
     let (group_id, tag_ids) = (group_id.to_owned(), tag_ids.to_vec());
-    let safe = inner.safe_mode();
+    let safe = inner.safe();
     write(inner, Vec::new(), move |tx, _| {
         if require_group(tx, &group_id)?.is_some() {
             return Err(Error::NamespaceGroup);

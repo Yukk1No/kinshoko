@@ -41,6 +41,8 @@ mod tag_commands;
 use tag_commands::*;
 mod thumbnails;
 pub use thumbnails::*;
+mod forward;
+use forward::forward_events;
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
@@ -52,8 +54,9 @@ use kinshoko_core::library::{
     BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping,
     ExternalVocabulary, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportOptions,
     ImportSource, LibraryEvent, LibraryInfo, MappedExternal, PermanentDeletePreview,
-    PersonalApproxEntry, RecoveryReport, ReferenceLens, Sidebar, TagAlias, TagEdit, TagGroupView,
-    TagNamespace, TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
+    PersonalApproxEntry, RecoveryReport, ReferenceLens, SafeMode, SafeModeScope, Sidebar, TagAlias,
+    TagEdit, TagGroupView, TagNamespace, TagTranslations, Vocabulary,
+    discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::library_batch::{
     LibraryBatchFailure, LibraryDeletePreview, LibraryDeleteToken, LibraryTarget, each_library,
@@ -80,9 +83,13 @@ use crate::shell::ShellState;
 const EVENT: &str = "library-event";
 /// 连续的列表、图片与词表变化合并推送的窗口（#142）。
 const EVENT_COALESCE: std::time::Duration = std::time::Duration::from_millis(500);
-/// 安全模式（应用设置）开关后推送，载荷为开关状态。不论有没有打开资料库都推送：
+/// 安全模式（应用设置）开关或调整范围（#223）后推送，载荷为开关状态。不论有没有打开资料库都推送：
 /// 桌面钉图据此重新核对遮蔽（#65）。
 pub const SAFE_MODE_EVENT: &str = "safe-mode-setting";
+
+/// 本设备的安全模式范围，与应用壳设置同步（启动时读一次，之后由设置命令更新）。登记表在
+/// 第一次用到时才打开（[`with_libraries`]），打开时按它设好。
+static DEVICE_SAFE_MODE_SCOPE: Mutex<SafeModeScope> = Mutex::new(SafeModeScope::Questionable);
 /// 整理在等某个库的导入收尾（#112），载荷为 `OrganizeWaiting`；界面据此给轻提示。
 const ORGANIZE_WAITING_EVENT: &str = "organize-waiting";
 /// 整理时后端把唯一的可写句柄切到了另一个库（#112），载荷为它的 `LibraryInfo`。只给跟着可写库走的
@@ -172,7 +179,12 @@ fn with_libraries<T>(
 ) -> Result<T, String> {
     let mut state = lock(state);
     if state.is_none() {
-        *state = Some(DeviceLibraries::open(device_dir).map_err(|error| error.to_string())?);
+        let mut libraries = DeviceLibraries::open(device_dir).map_err(|error| error.to_string())?;
+        // 刚打开，还没有句柄：只记下范围，不会失败。
+        libraries
+            .set_safe_mode_scope(*lock(&DEVICE_SAFE_MODE_SCOPE))
+            .map_err(|error| error.to_string())?;
+        *state = Some(libraries);
     }
     action(state.as_mut().expect("登记表已打开")).map_err(|error| error.to_string())
 }
@@ -317,7 +329,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             external_suggestions,
             image_rating,
             safe_mode,
-            set_safe_mode
+            set_safe_mode,
+            set_safe_mode_scope
         ])
         .setup(|app, _api| {
             let dirs = crate::data_dirs::app_data(app);
@@ -328,11 +341,17 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             )
             .map_err(std::io::Error::other)?;
             // 硬件档保存在应用壳设置里；这里只读一次，之后由设置命令同步。
-            let preferred = kinshoko_core::AppSettings::open(dirs.settings())
-                .ok()
-                .and_then(|s| s.tagging_device());
+            let saved = kinshoko_core::AppSettings::open(dirs.settings()).ok();
+            let preferred = saved.as_ref().and_then(|s| s.tagging_device());
+            if let Some(settings) = &saved {
+                *lock(&DEVICE_SAFE_MODE_SCOPE) = settings.safe_mode_scope();
+            }
             crate::tagging::setup(app, dirs.models().to_path_buf(), preferred);
-            app.manage(LibraryState::new(device_dir));
+            let state = LibraryState::new(device_dir);
+            state
+                .detached
+                .set_safe_mode_scope(*lock(&DEVICE_SAFE_MODE_SCOPE));
+            app.manage(state);
             workspace::monitor(app.clone());
             Ok(())
         })
@@ -346,81 +365,11 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .build()
 }
 
-/// 核心已完成切换，这里装配新的活动资料库：设上保存的安全模式、取走参考视角、清掉旧库的
-/// Search 快照、为它开始打标，并转发它的事件。每个活动句柄只装配一次；事件按句柄转发，
-/// 切换后旧句柄（例如导入仍持有的库）的事件照常带着它的资料库身份送到界面。
-///
-/// 新打开的资料库在核心里先是封存状态（安全模式开），这里再按设置放开。
-fn forward_events<R: Runtime>(
-    app: &AppHandle<R>,
-    state: &LibraryState,
-    library: Arc<Library>,
-) -> LibraryInfo {
-    let info = library.info().clone();
-    let weak = Arc::downgrade(&library);
-    let mut forwarded = lock(&state.forwarded);
-    if forwarded
-        .as_ref()
-        .is_some_and(|previous| Weak::ptr_eq(previous, &weak))
-    {
-        return info;
-    }
-    *forwarded = Some(weak.clone());
-    library.set_safe_mode(saved_safe_mode(app));
-    if let Err(error) = with_catalog(&state.device_dir, &state.catalog, |catalog| {
-        catalog.synchronize(&library)
-    }) {
-        crate::run_log::error("接入统一标签目录失败", error);
-    }
-    state.configure_library(&library);
-    let events = library.events();
-    *lock(&state.reference) = library.take_reference_lens();
-    // 刚成为活动库的库不再经只读视角读取；其他库按需重开。
-    state.detached.clear();
-    state.search.invalidate();
-    crate::tagging::attach(app, library);
-    let mut handles = lock(&state.forwarded_handles);
-    handles.retain(|handle| handle.strong_count() > 0);
-    if handles.iter().any(|handle| Weak::ptr_eq(handle, &weak)) {
-        return info;
-    }
-    handles.push(weak);
-    drop(handles);
-    let (app, search) = (app.clone(), state.search.clone());
-    // 每个句柄的事件都转发，直到句柄关闭（ADR-0008）：可写句柄切到别的库后，原库仍在进行的导入的
-    // 进度、结束与列表变化照常送到界面。事件都带资料库身份，界面只采纳它正在显示的库的安全模式与
-    // 导入事件，不串台。
-    std::thread::Builder::new()
-        .name("kinshoko-library-events".into())
-        .spawn(move || {
-            // 自动打标每写一张图都有图片与词表变化：合并后再送到界面，免得每张图都让界面重读一遍、
-            // 在后端阻塞线程池里排起长队（#142）。
-            kinshoko_core::library::forward_coalesced(events, EVENT_COALESCE, |mut event| {
-                // 有新图进库：自动标签立即检查，不等下一次轮询。
-                if matches!(event, LibraryEvent::ListStale { .. }) {
-                    crate::tagging::wake(&app);
-                }
-                // 先清掉旧快照再通知前端，前端收到事件后的查找用的是新词表。
-                // 安全模式切换后词表计数与可见的标签都变了。
-                if matches!(
-                    event,
-                    LibraryEvent::VocabularyChanged { .. }
-                        | LibraryEvent::ImagesChanged { .. }
-                        | LibraryEvent::ListStale { .. }
-                        | LibraryEvent::SafeModeChanged { .. }
-                ) {
-                    search.invalidate();
-                }
-                // Task-finished events may race the all-provider projection. Raw success details
-                // stay in the fixed task owner; polling returns the checked ordinary receipt.
-                if let LibraryEvent::TaskFinished { report, .. } = &mut event {
-                    *report = report.clone().without_content_details();
-                }
-                let _ = app.emit(EVENT, event);
-            });
-        })
-        .expect("无法启动事件转发线程");
-    info
+/// 设置里的安全模式范围（#223）；读不到设置时用登记表打开时用的那份。
+fn saved_safe_mode_scope<R: Runtime>(app: &AppHandle<R>) -> SafeModeScope {
+    app.try_state::<ShellState>()
+        .and_then(|shell| shell.0.lock().ok().map(|s| s.settings.safe_mode_scope()))
+        .unwrap_or_else(|| *lock(&DEVICE_SAFE_MODE_SCOPE))
 }
 
 /// 设置里的安全模式；读不到设置时按开启处理。
