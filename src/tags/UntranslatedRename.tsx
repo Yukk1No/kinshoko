@@ -72,7 +72,7 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
                   onChange={(event) => setDraft(event.target.value)} />
               </label>
               {duplicate && <p className="k-list-desc is-warn" role="status">已有标签叫“{text}”，两者仍是不同的标签</p>}
-              <Popover.Description className="k-set-note">之后词表更新也不会替换，可以在设置里恢复默认</Popover.Description>
+              <Popover.Description className="k-set-note">词表更新不会替换这个名字，可以在设置里恢复默认</Popover.Description>
               {error && <p className="k-set-error" role="alert">{error}</p>}
               <div className="k-rename-acts">
                 <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => change(false)}>取消</button>
