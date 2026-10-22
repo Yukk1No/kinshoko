@@ -162,7 +162,8 @@ struct Shared {
     control: Mutex<Control>,
     wake: Condvar,
     status: Mutex<TaggingStatus>,
-    /// 停止时取消下载。
+    /// 打断正在进行的下载（暂停、取消下载或停止时），已下载的部分保留。在持有 `control` 时置位，
+    /// 后台线程也在持有 `control` 并确认可以下载后才清掉，不会漏掉一次打断。
     cancel: AtomicBool,
     /// 当前会话的结束开关；暂停或停止时立即结束会话，不等手上那张图。
     stopper: Mutex<Option<SessionStopper>>,
@@ -277,9 +278,22 @@ impl Tagging {
     }
 
     /// 暂停打标：立即结束会话（打标子进程），归还显存。打到一半的那张恢复后重打。
+    /// 正在下载模型时停下下载，已下的部分保留，恢复后从断点续传（#213）。
     pub fn pause(&self) {
-        self.shared.control().paused = true;
+        let mut control = self.shared.control();
+        control.paused = true;
+        self.shared.cancel.store(true, Ordering::Relaxed);
+        drop(control);
         self.shared.stop_session();
+        self.shared.wake.notify_all();
+    }
+
+    /// 取消下载（#213）：停下下载，回到等画师确认的需要下载；已下的部分保留，再确认时从断点续传。
+    pub fn cancel_download(&self) {
+        let mut control = self.shared.control();
+        control.download = false;
+        self.shared.cancel.store(true, Ordering::Relaxed);
+        drop(control);
         self.shared.wake.notify_all();
     }
 
@@ -308,8 +322,10 @@ impl Tagging {
 
 impl Drop for Tagging {
     fn drop(&mut self) {
-        self.shared.control().stop = true;
+        let mut control = self.shared.control();
+        control.stop = true;
         self.shared.cancel.store(true, Ordering::Relaxed);
+        drop(control);
         self.shared.stop_session();
         self.shared.wake.notify_all();
         if let Some(t) = self.thread.take() {

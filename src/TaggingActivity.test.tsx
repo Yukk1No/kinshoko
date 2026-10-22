@@ -129,7 +129,7 @@ describe("自动标签的右下角通知", () => {
     await waitFor(() => expect(actions).toContainEqual({ command: "tagging_download", libraryId: "L1" }));
     await waitFor(() => expect(screen.queryByText(/需要下载打标模型/)).toBeNull());
     expect(await screen.findByText("正在下载打标模型")).toBeTruthy();
-    expect(screen.getByText("可在设置 › 自动标签查看进度")).toBeTruthy();
+    expect(screen.getByText("可在设置 › 自动标签查看进度、暂停或取消")).toBeTruthy();
     await act(async () => { vi.advanceTimersByTime(6_000); });
     await waitFor(() => expect(screen.queryByText("正在下载打标模型")).toBeNull());
   });
@@ -148,6 +148,16 @@ describe("“需要下载”通知的去重", () => {
     await push(downloading(1));
     await push(needsDownload(1));
     expect(screen.queryByText(/需要下载打标模型/)).toBeNull();
+  });
+
+  it("下载中取消（#213）后回到需要下载，本次启动内不再弹出", async () => {
+    backend({ L1: downloading(100) });
+    mount();
+    await settled();
+    await push(needsDownload(500_000_000));
+    await push(needsDownload(500_000_000));
+    expect(shown(/需要下载打标模型/)).toBe(0);
+    expect(shown(/打标模型已下载/)).toBe(0);
   });
 
   it("下载过一部分时操作写“继续下载”；从别处开始下载后通知收起", async () => {
@@ -175,13 +185,21 @@ describe("完成类通知", () => {
 
   it.each<[string, TaggingStatus]>([
     ["出错", { state: "failed", reason: "下载失败：超时" }],
-    ["中断回到需要下载", needsDownload(500_000_000)],
   ])("下载%s不算下载完成", async (_, next) => {
     backend({ L1: downloading(100) });
     mount();
     await settled();
     await push(next);
-    await waitFor(() => expect(shown(/需要下载打标模型|下载失败/)).toBe(1));
+    await waitFor(() => expect(shown(/下载失败/)).toBe(1));
+    expect(shown(/打标模型已下载/)).toBe(0);
+  });
+
+  it("下载中暂停（#213）不算下载完成", async () => {
+    backend({ L1: downloading(100) });
+    mount();
+    await settled();
+    await push({ state: "paused" });
+    expect(await screen.findByRole("button", { name: /自动标签：已暂停/ })).toBeTruthy();
     expect(shown(/打标模型已下载/)).toBe(0);
   });
 });

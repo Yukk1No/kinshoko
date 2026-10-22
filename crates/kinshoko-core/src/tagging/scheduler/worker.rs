@@ -188,7 +188,17 @@ impl Worker {
             return Some(model);
         }
         self.end_session();
-        if !self.shared.control().download {
+        let control = self.shared.control();
+        if control.paused || control.stop {
+            return None;
+        }
+        let confirmed = control.download;
+        if confirmed {
+            // 之前的暂停或取消已经生效；这一次下载重新开始计。
+            self.shared.cancel.store(false, Ordering::Relaxed);
+        }
+        drop(control);
+        if !confirmed {
             self.shared.set(TaggingStatus::NeedsDownload {
                 model: spec.label.clone(),
                 size: spec.download_size(),
@@ -214,6 +224,8 @@ impl Worker {
         };
         match self.store.prepare(spec, &mut progress, &self.shared.cancel) {
             Ok(model) => Some(model),
+            // 暂停、取消或停止打断了下载：不算出错，由主循环转到对应的状态。
+            Err(_) if self.shared.cancel.load(Ordering::Relaxed) => None,
             Err(reason) => {
                 self.fail(reason);
                 None

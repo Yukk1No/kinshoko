@@ -92,6 +92,15 @@ describe("设置 › 自动标签 › 自动打标", () => {
     expect(within(statusRow()).getByRole("progressbar").getAttribute("aria-valuenow")).toBe("50");
   });
 
+  it("下载中可以暂停或取消（#213），都发给打标所在的资料库", async () => {
+    const calls = backend({ status: { state: "downloading", model: "x", downloaded: 1, total: 2 } });
+    render(<AutoTaggingSettings libraryId="L1" />);
+    fireEvent.click(await within(statusRow()).findByRole("button", { name: "暂停" }));
+    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_pause", args: { libraryId: "L1" } }));
+    fireEvent.click(within(statusRow()).getByRole("button", { name: "取消下载" }));
+    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_cancel_download", args: { libraryId: "L1" } }));
+  });
+
   it("暂停与继续都发给打标所在的资料库", async () => {
     const calls = backend({ status: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 0 } });
     render(<AutoTaggingSettings libraryId="L1" />);
