@@ -14,8 +14,8 @@ const declares = (selector: string, property: string, value: string, sheet = css
   }));
 
 describe("文字选取（#224）", () => {
-  it("body 默认不能选文字，弹层等挂在 body 下的内容一并继承", () => {
-    expect(declares("body", "user-select", "none")).toBe(true);
+  it("主窗口 body 默认不能选文字，弹层等一并继承；实验窗口等不受影响", () => {
+    expect(declares(':root[data-view="main"] body', "user-select", "none")).toBe(true);
   });
 
   it.each([
@@ -26,6 +26,7 @@ describe("文字选取（#224）", () => {
     ".insp-links",
     ".workspace-source-path",
     ".import-report-path",
+    ".import-report-reason",
     ".create-library-path-text",
     '[role="alert"]',
     '.k-toast[data-tone="error"]',
