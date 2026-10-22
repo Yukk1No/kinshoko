@@ -191,7 +191,10 @@ it.each(["explicit", "selected"])("列表失效时 %s 详情面板保留，重�
   if (entry === "explicit") {
     fireEvent.click(await screen.findByRole("button", { name: "在 2 个图库 · 查看详情" }));
   } else {
-    fireEvent.click((await screen.findByRole("img", { name: "参考图" })).closest<HTMLElement>('[role="option"]')!, { ctrlKey: true });
+    const image = await screen.findByRole("img", { name: "参考图" });
+    // 只在一个图库的图没有来源按钮（#221），选中它照样进详情。
+    expect(document.querySelector(".card-sources")).toBeNull();
+    fireEvent.click(image.closest<HTMLElement>('[role="option"]')!, { ctrlKey: true });
   }
   const inspector = screen.getByLabelText("详情", { selector: "aside" });
   let rejectBrowse!: (reason: string) => void, started = false;
