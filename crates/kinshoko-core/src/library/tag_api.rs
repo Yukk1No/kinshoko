@@ -86,6 +86,16 @@ impl Library {
             .collect::<Result<_, _>>()?)
     }
 
+    /// 并掉的标签与它并入的标签（`from`, `to`）。
+    pub(crate) fn tag_merges(&self) -> Result<Vec<(String, String)>, Error> {
+        let conn = self.inner.readers.get();
+        let mut statement =
+            conn.prepare("SELECT from_tag, to_tag FROM tag_merge ORDER BY from_tag")?;
+        Ok(statement
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<Result<_, _>>()?)
+    }
+
     /// 标签词表快照：标签、各语言名称、别名、命名空间、外部对应与计数。
     pub fn vocabulary(&self) -> Result<Vocabulary, Error> {
         tags::vocabulary(&self.inner)

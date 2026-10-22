@@ -10,8 +10,7 @@ pub(in crate::library) fn upgrade_source_names(tx: &Transaction) -> rusqlite_mig
 }
 
 pub(super) fn upgrade(tx: &Transaction) -> Result<(), Error> {
-    let eagle = eagle_tag_ids(tx)?;
-    if eagle.is_empty() {
+    if eagle_tag_ids(tx)?.is_empty() {
         return Ok(());
     }
     // 每个标签自己的 Eagle 原文：带这个标签的 Eagle 条目里写的标签。
@@ -43,6 +42,8 @@ pub(super) fn upgrade(tx: &Transaction) -> Result<(), Error> {
         stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
             .collect::<Result<_, _>>()?
     };
+    // 只重判、重新匹配改成了来源名称的标签；画师改过名的不动（ADR-0012）。
+    let mut converted = BTreeSet::new();
     for (tag_id, lang, name) in named {
         if !originals
             .get(&tag_id)
@@ -61,13 +62,14 @@ pub(super) fn upgrade(tx: &Transaction) -> Result<(), Error> {
             &source_names::detect_lang(&name, source_names::INTERFACE_LANG),
             source_names::EAGLE,
         )?;
+        converted.insert(tag_id);
     }
     let vocabulary = ExternalVocabulary::new(
         ExternalVocabulary::builtin_names(&BuiltinApproxTable::bundled()),
         &TagTranslations::bundled(),
     );
     let mut changed = Vec::new();
-    for tag_id in eagle {
+    for tag_id in converted {
         // 并入别的标签后就不在了。
         let exists: bool = tx.query_row(
             "SELECT EXISTS (SELECT 1 FROM tag WHERE id = ?1)",
@@ -91,6 +93,7 @@ pub(super) fn upgrade(tx: &Transaction) -> Result<(), Error> {
             }
         }
     }
-    tx.execute("UPDATE vocabulary_revision SET value = value + 1", [])?;
+    // 与平常的标签写入一样刷新可携带定义，免得导出、跨库复制读到升级前的名称。
+    tags::bump_revision(tx)?;
     Ok(())
 }

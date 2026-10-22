@@ -6,6 +6,7 @@ mod approx;
 mod settings;
 pub use settings::CatalogSettingsSnapshot;
 mod groups;
+mod merges;
 mod migration;
 mod names;
 pub use approx::{
@@ -24,6 +25,7 @@ pub use migration::{
     LegacyNameMigrationWorkspace, LegacyNameOutcome, LegacyNameResolution, LegacyNameSource,
 };
 pub use names::CatalogNameEdit;
+pub(crate) use names::fill_names;
 use sync::insert_tag;
 
 use std::collections::BTreeSet;

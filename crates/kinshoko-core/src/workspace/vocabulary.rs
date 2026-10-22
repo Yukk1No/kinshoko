@@ -101,6 +101,16 @@ pub(super) fn visible_catalog(snapshot: &Snapshot, safe: bool) -> CatalogInspect
         .map(|mapping| mapping.catalog_id.as_str())
         .collect::<BTreeSet<_>>();
     catalog.tags.retain(|tag| ids.contains(tag.id.as_str()));
+    // 来源名称只取看得见的映射：不可用资料库或安全模式藏起的标签不能露出原文。
+    for tag in &mut catalog.tags {
+        let id = tag.id.clone();
+        let sources = catalog
+            .mappings
+            .iter()
+            .filter(|mapping| mapping.catalog_id == id)
+            .flat_map(|mapping| &mapping.source_names);
+        crate::tag_catalog::fill_names(tag, sources);
+    }
     catalog
 }
 /// Search candidates remain tied to live effective usage. Management also retains legitimate zero-use definitions.

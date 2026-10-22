@@ -31,7 +31,12 @@ mod vocabulary;
 
 pub(super) use upgrade::upgrade_source_names;
 pub use vocabulary::ExternalVocabulary;
-use vocabulary::Placement;
+use vocabulary::{Placement, key};
+
+/// 规范化后写法相同（不分大小写、全半角，空格与下划线视为同一个分隔符），如 `blue eyes` 与 `blue_eyes`。
+pub(crate) fn same_spelling(a: &str, b: &str) -> bool {
+    key(a) == key(b)
+}
 
 /// 外部对应是怎么得来的。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, TS)]
@@ -132,6 +137,14 @@ fn owner(tx: &Transaction, external: &str) -> Result<Option<String>, Error> {
         .optional()?)
 }
 
+fn namespace(tx: &Transaction, tag_id: &str) -> Result<String, Error> {
+    Ok(
+        tx.query_row("SELECT namespace FROM tag WHERE id = ?1", [tag_id], |r| {
+            r.get(0)
+        })?,
+    )
+}
+
 fn has_external(tx: &Transaction, tag_id: &str) -> Result<bool, Error> {
     Ok(tx.query_row(
         "SELECT EXISTS (SELECT 1 FROM tag_external WHERE tag_id = ?1)",
@@ -222,6 +235,10 @@ fn attach(
             Ok((None, Vec::new()))
         }
         Some(other) => {
+            // 命名空间是标签身份的一部分：不同命名空间的不并，留给画师处理。
+            if namespace(tx, tag_id)? != namespace(tx, &other)? {
+                return Err(Error::ExternalTaken(external.to_owned()));
+            }
             // 两边都降：谁先对上外部名称不影响结果。
             demote(tx, vocabulary, tag_id, external)?;
             demote(tx, vocabulary, &other, external)?;
@@ -250,14 +267,18 @@ fn match_tag(
     let (found, basis) = vocabulary.matches(&tag_names(tx, tag_id)?);
     Ok(match found.as_slice() {
         [] => Outcome::None,
-        [external] => {
-            let (merged, images) = attach(tx, vocabulary, tag_id, external)?;
-            changed.extend(images);
-            match merged {
-                Some(into) => Outcome::Merged { into, basis },
-                None => Outcome::Matched(basis),
+        [external] => match attach(tx, vocabulary, tag_id, external) {
+            // 外部名称属于别的命名空间的标签：不自动处理，作为候选留在没对上的里。
+            Err(Error::ExternalTaken(_)) => Outcome::Ambiguous(found),
+            result => {
+                let (merged, images) = result?;
+                changed.extend(images);
+                match merged {
+                    Some(into) => Outcome::Merged { into, basis },
+                    None => Outcome::Matched(basis),
+                }
             }
-        }
+        },
         _ => Outcome::Ambiguous(found),
     })
 }
@@ -309,7 +330,12 @@ pub(super) fn map_eagle_tags(
         .collect();
     let ids: Vec<String> = eagle_tag_ids(&conn)?
         .into_iter()
-        .filter(|id| !hidden.contains(id) && !targets.contains(id))
+        // 别的标签并入的标签只在自己这次也对上时列出，免得把早先对上的再报一遍。
+        .filter(|id| {
+            !hidden.contains(id)
+                && (!targets.contains(id)
+                    || matches!(outcomes.get(id), Some((Outcome::Matched(_), _))))
+        })
         .collect();
     let rows = tags::load_tags(&conn, ids.iter().cloned().chain(targets.iter().cloned()))?;
     let mut mapping = EagleTagMapping {

@@ -287,6 +287,7 @@ fn a_beta1_library_upgrades_its_eagle_names_into_source_names() {
             &["改过的"],
             &["蓝眼睛"],
             &["我的叫法"],
+            &["随手"],
         ],
     );
     let root = dir.path().join("kinshoko");
@@ -310,6 +311,7 @@ fn a_beta1_library_upgrades_its_eagle_names_into_source_names() {
              INSERT INTO tag_external (name, tag_id)
                  SELECT 'blue_eyes', tag_id FROM tag_source_name WHERE name = 'blue eyes';
              UPDATE tag_name SET name = '我的叫法' WHERE name = '改过的';
+             UPDATE tag_name SET name = 'blue eyes' WHERE name = '随手';
              DROP TABLE tag_source_name;
              PRAGMA user_version = {version};"
         ))
@@ -320,6 +322,8 @@ fn a_beta1_library_upgrades_its_eagle_names_into_source_names() {
 
     assert_eq!(shown(&library, &images[1], ZH), ["cyberpunk"]);
     assert_eq!(shown(&library, &images[2], ZH), ["我的叫法"]);
+    // 改过的名称恰好是外部名称的写法：也不重新匹配、不并入。
+    assert_eq!(shown(&library, &images[5], ZH), ["blue eyes"]);
     // 重新匹配：“蓝眼睛”对上内置翻译表的 blue_eyes，并入 blue eyes 那个标签，只作简中别名；
     // 两张图都显示默认名称“蓝瞳”。
     assert_eq!(shown(&library, &images[3], ZH), ["蓝瞳"]);
@@ -438,7 +442,15 @@ fn a_reference_group_package_carries_source_names_to_the_destination_library() {
     let library = Library::create(&dir.path().join("kinshoko"), "参考").unwrap();
     let images = import(&library, &fixture);
     let lens = library.take_reference_lens().unwrap();
-    let snapshot = lens.snapshot(&images[0]).unwrap();
+    let mut snapshot = lens.snapshot(&images[0]).unwrap();
+    assert_eq!(snapshot.tags[0].names, [n("en", "cyberpunk")]);
+    // 导出与跨库复制会按统一标签目录改写快照里的定义；来源名称要留下。
+    let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
+    catalog
+        .synchronize(&library)
+        .unwrap()
+        .apply_content_definitions(&library.info().id, &mut snapshot)
+        .unwrap();
     assert_eq!(snapshot.tags[0].names, [n("en", "cyberpunk")]);
 
     let second = Library::create(&dir.path().join("second"), "第二个").unwrap();
@@ -481,4 +493,43 @@ fn the_artist_corrects_a_misjudged_language_and_reimporting_keeps_it() {
             .set_source_name_lang(&tag, "没有这个叫法", "ja")
             .is_err()
     );
+}
+
+/// 只有 Eagle 原文的去处才算 beta1 抄错的默认名称；画师改名留下的别名不影响统一标签目录。
+#[test]
+fn an_ordinary_rename_kept_as_an_alias_does_not_drop_catalog_defaults() {
+    let dir = tempfile::tempdir().unwrap();
+    let fixture = fixture(dir.path(), &[&[]]);
+    let root = dir.path().join("kinshoko");
+    let library = Library::create(&root, "参考").unwrap();
+    let images = import(&library, &fixture);
+    library
+        .edit_tags(
+            std::slice::from_ref(&images[0]),
+            &[TagEdit::Add {
+                tag: TagRef::Named {
+                    namespace: TagNamespace::General,
+                    name: "旧名".into(),
+                    lang: ZH.into(),
+                },
+            }],
+        )
+        .unwrap();
+    let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
+    catalog.synchronize(&library).unwrap();
+    let tag = library.vocabulary().unwrap().tags[0].id.clone();
+    library.rename_tag(&tag, ZH, "新名").unwrap();
+    library
+        .add_tag_alias(
+            &tag,
+            &TagAlias {
+                name: "旧名".into(),
+                lang: None,
+            },
+        )
+        .unwrap();
+
+    let inspection = catalog.synchronize(&library).unwrap();
+
+    assert_eq!(inspection.tags[0].default_names, [n(ZH, "旧名")]);
 }

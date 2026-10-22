@@ -35,22 +35,35 @@ pub(super) fn resolve(conn: &Connection, tag: &mut CatalogTag) -> Result<(), Cat
             })
         })?
         .collect::<Result<_, _>>()?;
-    for preference in &tag.name_preferences {
-        tag.names.retain(|name| name.lang != preference.lang);
-        tag.names.push(preference.clone());
-    }
     // 跨库显示：没有名称偏好与默认名称的语言，用按资料库顺序第一个来源名称兜底（ADR-0012）。
     let mut stmt = conn.prepare_cached(
         "SELECT s.names FROM library_tag_mapping m JOIN library_tag_source_name s
          ON s.library_id=m.library_id AND s.local_tag_id=m.local_tag_id
          WHERE m.catalog_id=?1 ORDER BY m.library_id,m.local_tag_id",
     )?;
-    tag.source_names.clear();
+    let mut sources = Vec::new();
     for names in stmt.query_map([&tag.id], |row| row.get::<_, String>(0))? {
-        for name in serde_json::from_str::<Vec<LocalizedName>>(&names?)? {
-            if !tag.source_names.contains(&name) {
-                tag.source_names.push(name);
-            }
+        sources.extend(serde_json::from_str::<Vec<LocalizedName>>(&names?)?);
+    }
+    fill_names(tag, &sources);
+    Ok(())
+}
+
+/// 显示名称：名称偏好 > 默认名称 > 按资料库顺序第一个来源名称；不分语言的来源名称排在最后（ADR-0012）。
+/// `sources` 按资料库顺序给出参与显示的映射的来源名称。
+pub(crate) fn fill_names<'a>(
+    tag: &mut CatalogTag,
+    sources: impl IntoIterator<Item = &'a LocalizedName>,
+) {
+    tag.names = tag.default_names.clone();
+    for preference in &tag.name_preferences {
+        tag.names.retain(|name| name.lang != preference.lang);
+        tag.names.push(preference.clone());
+    }
+    tag.source_names.clear();
+    for name in sources {
+        if !tag.source_names.contains(name) {
+            tag.source_names.push(name.clone());
         }
     }
     let mut filled = tag.names.clone();
@@ -68,7 +81,6 @@ pub(super) fn resolve(conn: &Connection, tag: &mut CatalogTag) -> Result<(), Cat
             .cloned(),
     );
     tag.names = filled;
-    Ok(())
 }
 
 impl TagCatalog {

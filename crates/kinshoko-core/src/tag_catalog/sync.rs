@@ -131,6 +131,7 @@ impl TagCatalog {
             }
             changed = true;
         }
+        changed |= merges::follow(&tx, library_id, &library.tag_merges()?)?;
         changed |= groups::migrate(&tx, library)?;
         changed |= approx::migrate(&tx, library, &vocabulary.personal_approx)?;
         if changed {
@@ -271,9 +272,17 @@ pub(super) fn drop_copied_source_names(
         .names
         .iter()
         .filter(|name| {
+            // 只认 Eagle 原文的去处：本库的来源名称，或与外部名称写法相同的不分语言别名。
             !local.names.contains(name)
                 && (local.source_names.iter().any(|s| s.name == name.name)
-                    || local.aliases.iter().any(|a| a.name == name.name))
+                    || local.aliases.iter().any(|a| {
+                        a.name == name.name
+                            && a.lang.is_none()
+                            && local
+                                .external
+                                .iter()
+                                .any(|e| crate::library::same_spelling(e, &a.name))
+                    }))
         })
         .collect::<Vec<_>>();
     if moved.is_empty() {

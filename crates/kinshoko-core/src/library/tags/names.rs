@@ -137,6 +137,14 @@ pub(in crate::library) fn resolve_source_named(
 ) -> Result<String, Error> {
     let name = clean(name)?;
     if let Some(id) = find_named(tx, namespace, &name)? {
+        // 原文恰是已有标签的名称：记为不分语言的别名，名称以后改了也还找得到这个标签。
+        tx.execute(
+            "INSERT INTO tag_alias (tag_id, name, lang)
+             SELECT ?1, ?2, NULL WHERE NOT EXISTS (
+                 SELECT 1 FROM tag_source_name WHERE tag_id = ?1 AND name = ?2
+                 UNION SELECT 1 FROM tag_alias WHERE tag_id = ?1 AND name = ?2)",
+            params![id, name],
+        )?;
         return Ok(id);
     }
     let id = new_tag(tx, namespace)?;
@@ -186,6 +194,9 @@ pub(in crate::library) fn merge(
          SELECT group_id, ?2, ord FROM tag_group_member WHERE tag_id = ?1",
         "UPDATE OR IGNORE personal_approx SET tag_a = ?2 WHERE tag_a = ?1",
         "UPDATE OR IGNORE personal_approx SET tag_b = ?2 WHERE tag_b = ?1",
+        // 记下去处，统一标签目录据此接上 `from` 在目录里的状态。
+        "UPDATE tag_merge SET to_tag = ?2 WHERE to_tag = ?1",
+        "INSERT OR REPLACE INTO tag_merge (from_tag, to_tag) VALUES (?1, ?2)",
     ] {
         tx.execute(sql, params![from, to])?;
     }
