@@ -5,7 +5,7 @@ import type { HardwareOption } from "./bindings/HardwareOption";
 import type { ModelChoice } from "./bindings/ModelChoice";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
-import { importModelPackage, pickModelPackage, taggingDownload, taggingModels, taggingPause, taggingResume, taggingSetDevice } from "./ipc";
+import { importModelPackage, pickModelPackage, taggingCancelDownload, taggingDownload, taggingModels, taggingPause, taggingResume, taggingSetDevice } from "./ipc";
 import { useTaggingStatus } from "./useTaggingStatus";
 
 const gb = (bytes: number) => `${(bytes / 1_000_000_000).toFixed(1)} GB`;
@@ -107,7 +107,7 @@ export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string |
   </>;
 }
 
-/** 打标状态一行：状态文字与对应的操作（暂停、继续、下载）；下载时行下方显示进度条。 */
+/** 打标状态一行：状态文字与对应的操作（暂停、继续、下载、取消下载）；下载时行下方显示进度条。 */
 function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; status: TaggingStatus | null }) {
   const row = (desc: ReactNode, action?: ReactNode, below?: ReactNode) =>
     <SettingsRow label="打标状态" icon={<Sparkles size={16} />} title="打标状态" desc={desc} below={below}>{action}</SettingsRow>;
@@ -142,7 +142,8 @@ function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; sta
     }
     case "downloading": {
       const done = percent(status.downloaded, status.total);
-      return row(`正在下载模型 ${done}%（${mb(status.downloaded)} / ${mb(status.total)}）`, undefined,
+      // 暂停与取消都保留已下的部分，之后从断点续传（#213）。
+      return row(`正在下载模型 ${done}%（${mb(status.downloaded)} / ${mb(status.total)}）`, <>{pause}{button("取消下载", taggingCancelDownload)}</>,
         <progress className="k-task-progress" max={100} value={done} aria-label="下载进度" aria-valuenow={done} />);
     }
     case "noDevice":
