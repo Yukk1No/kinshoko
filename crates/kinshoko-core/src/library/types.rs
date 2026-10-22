@@ -7,7 +7,7 @@ use rusqlite::types::Value;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{Error, Inner, LIVE, filter, lens, rating, thumbnail};
+use super::{Error, Inner, LIVE, SafeMode, filter, lens, rating, thumbnail};
 use crate::search::ConditionTree;
 
 /// 资料库身份与位置。
@@ -308,14 +308,35 @@ const MAX_LIMIT: u32 = 1000;
 #[derive(Debug, PartialEq, Eq)]
 struct Cursor {
     library: String,
-    safe: bool,
-    /// 列表修订号：参考图增删、回收站、文件夹成员、备注、跨过成人线的分级变化时前进。
+    /// 浏览视角：安全模式开关与范围。
+    safe: SafeMode,
+    /// 列表修订号：参考图增删、回收站、文件夹成员、备注、跨过安全模式范围的分级变化、
+    /// 范围本身变化时前进。
     list: i64,
     /// 有条件时的词表修订号（有效标签变化会改变条件结果）；没有条件时恒为 0，
     /// 后台打标不打断浏览全部图的分页。
     vocabulary: i64,
     query: String,
     seq: i64,
+}
+
+/// 游标里的视角：`s`／`o`（开／关）加范围起点的档位，例如 `s2`。
+fn lens_code(safe: SafeMode) -> String {
+    format!(
+        "{}{}",
+        if safe.on { "s" } else { "o" },
+        safe.scope.start() as u8
+    )
+}
+
+fn parse_lens_code(code: &str) -> Option<SafeMode> {
+    let on = match code.get(..1)? {
+        "s" => true,
+        "o" => false,
+        _ => return None,
+    };
+    let rank: u8 = code.get(1..)?.parse().ok()?;
+    SafeMode::decode(rank).map(|mode| SafeMode { on, ..mode })
 }
 
 impl Cursor {
@@ -326,7 +347,7 @@ impl Cursor {
             "{}.{}.{}.{}.{}.{}.{}",
             Self::VERSION,
             self.library,
-            if self.safe { "s" } else { "o" },
+            lens_code(self.safe),
             self.list,
             self.vocabulary,
             self.query,
@@ -343,11 +364,7 @@ impl Cursor {
         if version != Self::VERSION {
             return Err(Error::InvalidCursor);
         }
-        let safe = match lens {
-            "s" => true,
-            "o" => false,
-            _ => return Err(Error::InvalidCursor),
-        };
+        let safe = parse_lens_code(lens).ok_or(Error::InvalidCursor)?;
         Ok(Cursor {
             library: library.to_owned(),
             safe,
@@ -373,8 +390,8 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
     let limit = query.limit.clamp(1, MAX_LIMIT);
     let tier = thumbnail::tier(query.thumbnail_px);
     let library_id = &inner.info.id;
-    // 视角只读一次：过滤条件与游标记下的视角一致。
-    let safe = inner.safe_mode();
+    // 视角只读一次：过滤条件、卡片的 `adult` 与游标记下的视角一致。
+    let safe = inner.safe();
     let fingerprint = query_fingerprint(query)?;
 
     // 范围条件在前，条件树在后；参数按出现顺序编号。浏览视角的过滤（安全模式）加在中间。
@@ -418,7 +435,7 @@ pub(super) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<BrowsePage, E
         let mut stmt = tx.prepare_cached(&format!(
             "SELECT seq, id, width, height, {}, sha256 FROM image WHERE {filter} AND seq < ?{}
              ORDER BY seq DESC LIMIT ?{}",
-            rating::adult_sql("image.id"),
+            rating::in_scope_sql("image.id", safe.scope),
             n + 1,
             n + 2
         ))?;

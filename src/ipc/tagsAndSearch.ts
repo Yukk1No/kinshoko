@@ -4,6 +4,8 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { ApproxRelation } from "../bindings/ApproxRelation";
 import type { PersonalApproxEntry } from "../bindings/PersonalApproxEntry";
 import type { RatingCandidate } from "../bindings/RatingCandidate";
+import type { SafeModeScope } from "../bindings/SafeModeScope";
+import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { Candidate } from "../bindings/Candidate";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { SearchInput } from "../bindings/SearchInput";
@@ -192,4 +194,9 @@ export function safeMode(): Promise<boolean> {
 /** 开关安全模式；当前资料库随后推送 safeModeChanged。 */
 export function setSafeMode(on: boolean): Promise<boolean> {
   return invoke<boolean>(lib("set_safe_mode"), { on });
+}
+
+/** 调整安全模式范围（#223），返回新的设置；浏览、查找、计数与钉图随后按新范围刷新。 */
+export function setSafeModeScope(scope: SafeModeScope): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>(lib("set_safe_mode_scope"), { scope });
 }

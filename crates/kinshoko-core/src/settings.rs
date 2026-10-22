@@ -18,6 +18,7 @@ use ts_rs::TS;
 
 use crate::app_shell::{UpdateChannel, app_info};
 use crate::diagnostics::run_log_default_for_version;
+use crate::library::SafeModeScope;
 use crate::tagging::{Device, catalog};
 
 const FILE_NAME: &str = "settings.json";
@@ -131,6 +132,8 @@ pub struct SettingsSnapshot {
     tagging_device: Option<Device>,
     /// 安全模式（#60）：新安装默认开启。
     safe_mode: bool,
+    /// 安全模式范围（#223）：没写过时为默认的“敏感及以上”，老用户升级后行为不变。
+    safe_mode_scope: SafeModeScope,
     /// 在查找条件里标出相近标签来自内置还是个人近似对应表（#56），默认不显示。
     show_approx_source: bool,
     /// 诊断开关“强制 sRGB”（ADR-0005）：WebView2 把显示器当作 sRGB，不按显示器配置文件做色彩管理。
@@ -164,6 +167,7 @@ impl Default for SettingsSnapshot {
             tagging_model: None,
             tagging_device: None,
             safe_mode: true,
+            safe_mode_scope: SafeModeScope::default(),
             show_approx_source: false,
             force_srgb: false,
             viewer_background: None,
@@ -321,6 +325,15 @@ impl AppSettings {
 
     pub fn set_safe_mode(&mut self, on: bool) -> Result<(), SettingsError> {
         self.update(|f| f.safe_mode = on)
+    }
+
+    /// 安全模式范围（#223）。
+    pub fn safe_mode_scope(&self) -> SafeModeScope {
+        self.file.safe_mode_scope
+    }
+
+    pub fn set_safe_mode_scope(&mut self, scope: SafeModeScope) -> Result<(), SettingsError> {
+        self.update(|f| f.safe_mode_scope = scope)
     }
 
     /// 查找条件里是否标出相近标签的来源（内置／个人）。

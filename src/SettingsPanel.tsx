@@ -1,7 +1,8 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
-import { Activity, Archive, FileText, Keyboard, Monitor, MousePointerClick, Power, RefreshCw, Scaling, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
+import { Activity, Archive, FileText, Keyboard, Layers, Monitor, MousePointerClick, Power, RefreshCw, Scaling, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
+import type { SafeModeScope } from "./bindings/SafeModeScope";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { ShortcutBinding } from "./bindings/ShortcutBinding";
@@ -13,6 +14,7 @@ import {
   setShowApproxSource,
   setTagDisplay,
   setKeepSelectionOnSafeMode,
+  setSafeModeScope,
   setUpdateChannel,
   setRunLog,
   shellSettings,
@@ -83,6 +85,13 @@ const TABS: { value: SettingsTab; name: string; icon: ReactNode; lead: string }[
 ];
 
 type TagView = "names" | "groups" | "approx" | "mapping" | "appearance";
+
+/** 安全模式范围（#223）的三档，从宽到严；名称与人工分级界面的分级名一致。 */
+const SAFE_MODE_SCOPES: { value: SafeModeScope; label: string }[] = [
+  { value: "sensitive", label: "轻度及以上" },
+  { value: "questionable", label: "敏感及以上" },
+  { value: "explicit", label: "仅成人" },
+];
 
 type Props = {
   onRestored?: () => void;
@@ -260,9 +269,14 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
             <ApplicationSettingsBackup onRestored={restored} />
           </>)}
           {page("safety", <SettingsGroup label="安全">
-            <SettingsRow icon={<SealLock size={10} />} title="安全模式" desc="隐藏成人图，钉图里模糊">
+            <SettingsRow icon={<SealLock size={10} />} title="安全模式" desc="隐藏范围内的图，钉图里模糊">
               <Keys accelerator="Ctrl+Shift+S" />
               {safe !== undefined && onSafeMode && <Switch label="安全模式" checked={safe} onCheckedChange={(on) => { if (on !== safe) onSafeMode(); }} />}
+            </SettingsRow>
+            <SettingsRow icon={<Layers size={16} />} title="安全模式范围" desc="从哪一档分级开始隐藏"
+              below={<p className="k-set-note">还没分级的图照常显示。查找里的“R18”指范围内的各档。</p>}>
+              <Segmented<SafeModeScope> label="安全模式范围" value={view.safeModeScope ?? "questionable"}
+                onChange={(scope) => void apply(setSafeModeScope(scope))} options={SAFE_MODE_SCOPES} />
             </SettingsRow>
             <SettingsRow icon={<MousePointerClick size={16} />} title="切换时保留选择" desc="选中的图和详情面板保持打开">
               <Switch label="切换时保留选择" checked={view.keepSelectionOnSafeMode ?? false} onCheckedChange={(on) => void apply(setKeepSelectionOnSafeMode(on))} />

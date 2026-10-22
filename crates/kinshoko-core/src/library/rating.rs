@@ -5,6 +5,8 @@
 //!   最严格的一档。
 //! - 有效分级只在 [`effective_rank_sql`] 定义：[`image_rating`] 的 `effective` 与安全模式（#60）的
 //!   封印都由它算出，人工分级接进这里就同时作用于两者。
+//! - 被封印只有一条判定（#223）：安全模式开启，且有效分级在安全模式范围（[`SafeModeScope`]）内。
+//!   SQL 里用 [`in_scope_sql`]，内存里用 [`SafeMode::seals`]；不允许别处写死“≥ 敏感”。
 //! - 打标进度按模型来源记录：没有记录的图就是待打标的图；无法打标的图记下原因，不再重试。
 
 use rusqlite::{Connection, OptionalExtension, params};
@@ -45,7 +47,7 @@ impl ContentRating {
         self as i64
     }
 
-    fn from_rank(rank: i64) -> Option<ContentRating> {
+    pub(crate) fn from_rank(rank: i64) -> Option<ContentRating> {
         Some(match rank {
             0 => ContentRating::General,
             1 => ContentRating::Sensitive,
@@ -55,7 +57,8 @@ impl ContentRating {
         })
     }
 
-    /// 是否含成人内容（questionable 与 explicit）：安全模式开启时封印这样的图。
+    /// 是否含成人内容（questionable 与 explicit，术语表“内容分级”的后两档）。只是分级的性质，
+    /// 不是封印的判定：封印看安全模式范围（[`SafeMode::seals`]）。
     pub fn is_adult(self) -> bool {
         self >= ContentRating::Questionable
     }
@@ -71,6 +74,102 @@ impl ContentRating {
             "explicit" | "e" => ContentRating::Explicit,
             _ => return None,
         })
+    }
+}
+
+/// 安全模式范围（#223）：安全模式从哪一档内容分级开始作用，直到最严的“成人”。是本设备的
+/// 应用设置，不随资料库走。不能从“全年龄”开始。
+#[derive(
+    Debug, Clone, Copy, Default, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, TS,
+)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum SafeModeScope {
+    /// 轻度及以上。
+    Sensitive,
+    /// 敏感及以上（默认，即 #223 之前的行为）。
+    #[default]
+    Questionable,
+    /// 仅成人。
+    Explicit,
+}
+
+impl SafeModeScope {
+    /// 范围的起点，即范围内最宽的一档。
+    pub fn start(self) -> ContentRating {
+        match self {
+            SafeModeScope::Sensitive => ContentRating::Sensitive,
+            SafeModeScope::Questionable => ContentRating::Questionable,
+            SafeModeScope::Explicit => ContentRating::Explicit,
+        }
+    }
+
+    /// 这一档在范围内。
+    pub fn covers(self, rating: ContentRating) -> bool {
+        rating >= self.start()
+    }
+
+    /// 范围内的各档，从宽到严：查找时“R18”代表的分级。
+    pub fn ratings(self) -> Vec<ContentRating> {
+        [
+            ContentRating::Sensitive,
+            ContentRating::Questionable,
+            ContentRating::Explicit,
+        ]
+        .into_iter()
+        .filter(|r| self.covers(*r))
+        .collect()
+    }
+
+    /// 换成 `next` 是收紧（范围变大）：之前确认显示的钉图要重新遮蔽。
+    pub fn tightened_by(self, next: SafeModeScope) -> bool {
+        next.start() < self.start()
+    }
+}
+
+/// 一个视角下的安全模式：开关与范围。被封印 = 开启且有效分级在范围内。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub struct SafeMode {
+    pub on: bool,
+    pub scope: SafeModeScope,
+}
+
+impl SafeMode {
+    pub fn new(on: bool, scope: SafeModeScope) -> SafeMode {
+        SafeMode { on, scope }
+    }
+
+    /// 这个有效分级的图被封印。还没有分级的图不被封印（核对不了的钉图另按封印处理）。
+    pub fn seals(self, effective: Option<ContentRating>) -> bool {
+        self.on && effective.is_some_and(|r| self.scope.covers(r))
+    }
+
+    /// 编成一个字节，供原子变量与游标、令牌使用。
+    pub(crate) fn encode(self) -> u8 {
+        (u8::from(self.on) << 7) | self.scope.start() as u8
+    }
+
+    pub(crate) fn decode(byte: u8) -> Option<SafeMode> {
+        let scope = match ContentRating::from_rank(i64::from(byte & 0x7f))? {
+            ContentRating::Sensitive => SafeModeScope::Sensitive,
+            ContentRating::Questionable => SafeModeScope::Questionable,
+            ContentRating::Explicit => SafeModeScope::Explicit,
+            ContentRating::General => return None,
+        };
+        Some(SafeMode {
+            on: byte & 0x80 != 0,
+            scope,
+        })
+    }
+}
+
+/// 只给开关时用默认范围。仅为调用方便（测试与只关心开关的地方），应用壳按设置给出范围。
+impl From<bool> for SafeMode {
+    fn from(on: bool) -> SafeMode {
+        SafeMode {
+            on,
+            scope: SafeModeScope::default(),
+        }
     }
 }
 
@@ -127,9 +226,13 @@ pub(super) fn effective_rank_sql(image_id: &str) -> String {
     )
 }
 
-/// 有效分级含成人内容（questionable 或 explicit）的条件。还没有分级的图不算。
-pub(super) fn adult_sql(image_id: &str) -> String {
-    format!("coalesce({}, 0) >= 2", effective_rank_sql(image_id))
+/// 有效分级在安全模式范围 `scope` 内的条件（安全模式开启时即被封印）。还没有分级的图不算。
+pub(super) fn in_scope_sql(image_id: &str, scope: SafeModeScope) -> String {
+    format!(
+        "coalesce({}, 0) >= {}",
+        effective_rank_sql(image_id),
+        scope.start().rank()
+    )
 }
 
 pub(super) fn replace_source_rating(
@@ -139,11 +242,13 @@ pub(super) fn replace_source_rating(
     fact: Option<RatingFact>,
 ) -> Result<(), Error> {
     let (source, id) = (source.as_str().to_owned(), image_id.to_owned());
+    // 按当前的安全模式范围判断是否跨过；范围变化本身另让修订号前进（`Library::set_safe_mode_scope`）。
+    let scope = inner.safe().scope;
     let (resealed, revision) = inner.writer.run(move |conn| {
         let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         require_image(&tx, &id)?;
-        let adult = format!("SELECT {}", adult_sql("?1"));
-        let was_adult: bool = tx.query_row(&adult, [&id], |r| r.get(0))?;
+        let in_scope = format!("SELECT {}", in_scope_sql("?1", scope));
+        let was_in: bool = tx.query_row(&in_scope, [&id], |r| r.get(0))?;
         tx.execute(
             "DELETE FROM rating_fact WHERE image_id = ?1 AND source = ?2",
             params![id, source],
@@ -154,9 +259,9 @@ pub(super) fn replace_source_rating(
                 params![id, source, f.rating.as_str(), f.score],
             )?;
         }
-        let is_adult: bool = tx.query_row(&adult, [&id], |r| r.get(0))?;
-        let resealed = was_adult != is_adult;
-        // 跨过“含成人内容”：安全模式下可见的词表（标签与计数）变了，修订号随之前进。
+        let is_in: bool = tx.query_row(&in_scope, [&id], |r| r.get(0))?;
+        let resealed = was_in != is_in;
+        // 跨过安全模式范围：安全模式下可见的词表（标签与计数）变了，修订号随之前进。
         let revision = if resealed {
             // 安全模式下浏览结果集也变了：旧的分页游标随列表修订号失效（#77 S4）。
             tx.execute("UPDATE list_revision SET value = value + 1", [])?;
@@ -167,7 +272,7 @@ pub(super) fn replace_source_rating(
         tx.commit()?;
         Ok::<_, Error>((resealed, revision))
     })?;
-    // 是否含成人内容变了：安全模式下这张图被封印或放出，浏览结果与计数都过期。
+    // 是否在安全模式范围内变了：安全模式下这张图被封印或放出，浏览结果与计数都过期。
     if resealed {
         inner.hub.publish(LibraryEvent::ListStale {
             library_id: inner.info.id.clone(),
@@ -220,20 +325,21 @@ pub(super) fn rating_of(conn: &Connection, image_id: &str) -> Result<ImageRating
     })
 }
 
-/// 设置（`Some`）或退回（`None`）人工分级。返回是否有图的“含成人内容”因此改变
+/// 设置（`Some`）或退回（`None`）人工分级。返回是否有图因此跨过安全模式范围 `scope`
 /// （安全模式下它们被封印或放出，浏览结果与计数都过期）。
 pub(super) fn set_manual(
     conn: &Connection,
     ids: &[String],
     rating: Option<ContentRating>,
+    scope: SafeModeScope,
 ) -> Result<bool, Error> {
-    let adult = format!("SELECT {}", adult_sql("?1"));
+    let in_scope = format!("SELECT {}", in_scope_sql("?1", scope));
     let mut update = conn.prepare_cached("UPDATE image SET rating_manual = ?1 WHERE id = ?2")?;
     let mut resealed = false;
     for id in ids {
-        let was: bool = conn.query_row(&adult, [id], |r| r.get(0))?;
+        let was: bool = conn.query_row(&in_scope, [id], |r| r.get(0))?;
         update.execute(params![rating.map(ContentRating::as_str), id])?;
-        let is: bool = conn.query_row(&adult, [id], |r| r.get(0))?;
+        let is: bool = conn.query_row(&in_scope, [id], |r| r.get(0))?;
         resealed |= was != is;
     }
     Ok(resealed)
