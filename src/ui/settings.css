@@ -1,0 +1,71 @@
+/* Settings dialog: vertical tabs + rows (split from dialogs.css; design/ui-system/README.md「设置」).
+   Built on the shared `.k-dialog` / `.k-list` shell in ui.css and the form controls in dialogs.css. */
+
+.k-dialog.k-settings-dialog { width: min(860px, calc(100vw - 48px)); height: min(620px, calc(100vh - 48px)); padding: 0; overflow: hidden; }
+.k-settings, .k-set-body { height: 100%; }
+.k-settings.is-loading { display: grid; place-items: center; padding: 48px; }
+.k-set-load-error { display: grid; justify-items: center; gap: 12px; }
+.k-set-body { display: grid; grid-template-columns: 200px minmax(0, 1fr); }
+.k-set-nav { display: flex; flex-direction: column; gap: 2px; padding: 20px 12px; background: var(--surface-2); }
+.k-set-heading { margin: 0 0 12px 10px; font-size: 16px; font-weight: 600; }
+.k-set-tabs { display: flex; flex-direction: column; gap: 2px; }
+.k-set-tab { display: flex; align-items: center; gap: 9px; height: 34px; padding: 0 10px; border: 0; border-radius: 9px; background: transparent; color: var(--ink-2);
+  font: inherit; text-align: left; transition: background var(--t-fast), color var(--t-fast); }
+.k-set-tab:hover { background: var(--hover); color: var(--ink); }
+.k-set-tab[data-active] { background: var(--surface); color: var(--ink); font-weight: 500; box-shadow: 0 1px 2px rgba(43, 39, 71, 0.1); }
+.k-set-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.k-set-version { margin: 0; padding: 0 10px; font-size: 12px; color: var(--ink-3); }
+.k-set-main { position: relative; min-width: 0; overflow: auto; padding: 22px 26px 26px; }
+.k-set-page { outline: 0; }
+.k-set-title { margin: 0; font-size: 17px; font-weight: 600; }
+.k-set-lead { margin: 3px 0 16px; color: var(--ink-2); }
+.k-set-group { margin: 18px 0 8px; font-size: 12px; font-weight: 600; color: var(--ink-3); letter-spacing: 0.04em; }
+.k-set-page > .k-set-group:first-of-type, .k-set-page > section:first-of-type > .k-set-group:first-child { margin-top: 0; }
+.k-set-list + .k-set-list, .k-set-list + section, section + section { margin-top: 12px; }
+.k-list-row.k-set-row { display: block; padding: 0; }
+.k-set-row-main { display: flex; align-items: center; gap: 12px; min-height: 54px; padding: 8px 14px; }
+/* 名称与描述不让给控件：名称不换行；宽控件（如列出模型的下拉）限宽，选项文字过长时省略。 */
+.k-set-row-main > .k-list-text { flex: 1 1 auto; min-width: 7em; }
+.k-set-row-main .k-list-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 12px 的说明配 18px 行高（同 .k-set-note）：沿用正文的 20px 时文字块下沉的留白多，整块比图标偏上，有说明的行也高出 2px（#218）。 */
+.k-set-row .k-list-desc { line-height: 18px; }
+.k-set-row-main > .k-list-end { min-width: 0; max-width: 55%; flex: 0 1 auto; }
+.k-set-row-main > .k-list-end > .k-select { width: 240px; max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+.k-set-row-below { padding: 0 14px 12px 58px; color: var(--ink-2); font-size: 12px; }
+.k-set-row-below > p, .k-set-row-below > div > p { margin: 4px 0; }
+.k-set-row.is-recording { background: var(--accent-soft); }
+.k-key-recorder { width: 140px; border: 0; background: transparent; color: var(--accent-strong); font: inherit; font-weight: 500; text-align: right; outline: 0; }
+.k-key-recorder::placeholder { color: var(--accent-strong); opacity: 1; }
+.k-set-muted { color: var(--ink-3); font-size: 12px; }
+.k-set-note { margin: 8px 0 0; color: var(--ink-3); font-size: 12px; line-height: 18px; }
+.k-set-error { margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, var(--danger) 10%, transparent); color: var(--danger); font-size: 12px; overflow-wrap: anywhere; }
+.k-set-row-below .k-set-error { margin: 6px 0 0; }
+.k-set-seg { width: min(400px, 100%); margin-bottom: 14px; }
+.k-set-inline { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.k-set-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.k-search { flex: 1; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border-radius: 9px; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-3); }
+.k-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; }
+.k-search:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
+.k-lang { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); }
+.k-lang input { width: 64px; height: 28px; padding: 0 6px; border: 0; border-radius: 7px; box-shadow: inset 0 0 0 1px var(--line-2); background: var(--surface); color: var(--ink); font: inherit; }
+.k-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.k-chip { display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 4px 0 9px; border-radius: 999px; background: var(--surface-2); color: var(--ink); }
+.k-chip-x { width: 18px; height: 18px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink-3); }
+.k-chip-x:hover { background: var(--hover); color: var(--ink); }
+.k-more { margin-top: 8px; color: var(--ink-3); }
+.k-more summary { cursor: pointer; }
+.k-confirm { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--warn-soft); color: var(--warn-strong); }
+.k-confirm p { margin: 0 0 6px; }
+.k-confirm-actions { display: flex; gap: 8px; margin-top: 8px; }
+.k-notice { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--warn-soft); color: var(--warn); font-size: 12px; }
+.k-notice b { color: var(--warn-strong); font-weight: 600; }
+.app-main .legacy-name-notice.k-notice { margin: 0; border-radius: 0; border-bottom: 1px solid var(--line); padding: 8px 16px; }
+.k-settings .settings-diagnostics { max-height: 220px; overflow: auto; margin: 6px 0 0; padding: 10px; border-radius: 8px; background: var(--sunken); white-space: pre-wrap; font-size: 11px; }
+.k-settings .runtime-notice.is-inline { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--warn-strong); }
+.k-settings .backup-libraries { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0; }
+.k-settings .backup-preview p, .k-settings .backup-result p { margin: 4px 0; }
+.k-settings .backup-snapshots { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.k-settings .backup-snapshots li { display: flex; align-items: center; gap: 10px; }
+.k-settings table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.k-settings th, .k-settings td { padding: 6px 8px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.k-settings select:not(.k-select) { max-width: 100%; }
