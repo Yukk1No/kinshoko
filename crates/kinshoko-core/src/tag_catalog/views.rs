@@ -39,7 +39,8 @@ impl CatalogInspection {
             for source in std::mem::take(&mut local.source_names) {
                 let alias = TagAlias {
                     name: source.name,
-                    lang: Some(source.lang),
+                    // 未注明语言的来源名称是不分语言的叫法。
+                    lang: (source.lang != crate::library::UND).then_some(source.lang),
                 };
                 if !local.aliases.contains(&alias) {
                     local.aliases.push(alias);

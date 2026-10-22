@@ -273,7 +273,13 @@ fn a_beta1_library_upgrades_its_eagle_names_into_source_names() {
     let dir = tempfile::tempdir().unwrap();
     let fixture = fixture(
         dir.path(),
-        &[&["blue eyes"], &["cyberpunk"], &["改过的"], &["蓝眼睛"]],
+        &[
+            &["blue eyes"],
+            &["cyberpunk"],
+            &["改过的"],
+            &["蓝眼睛"],
+            &["我的叫法"],
+        ],
     );
     let root = dir.path().join("kinshoko");
     let library = Library::create(&root, "参考").unwrap();
@@ -325,11 +331,18 @@ fn a_beta1_library_upgrades_its_eagle_names_into_source_names() {
         .find(|t| t.source_names.iter().any(|s| s.name == "cyberpunk"))
         .unwrap();
     assert_eq!(cyber.source_names, [n("en", "cyberpunk")]);
+    // 画师改过的名称即使与别的条目的 Eagle 原文相同也不动；那个条目自己的标签照常升级。
     assert!(
         vocab
             .tags
             .iter()
             .any(|t| t.names == [n(ZH, "我的叫法")] && t.source_names.is_empty())
+    );
+    assert!(
+        vocab
+            .tags
+            .iter()
+            .any(|t| t.names.is_empty() && t.source_names == [n(ZH, "我的叫法")])
     );
 }
 

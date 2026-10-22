@@ -118,7 +118,7 @@ function NameRow({ tag, lang, busy, pending, mappings, libraryName, open, onTogg
           </select>
         </li>))}
       </ul>}
-      {tag.external.length === 0 && mappings.length > 0 && <MapExternal name={name} busy={busy}
+      {tag.external.length === 0 && mappings.length > 0 && <MapExternal id={tag.id} name={name} busy={busy}
         onMap={(external) => onLocal(async () => { for (const mapping of mappings) await mapTagExternal(mapping.libraryId, mapping.localTagId, external); })} />}
       <details className="k-more"><summary>详情</summary><p>{NAMESPACES[tag.namespace] || "一般"} · 编号 {tag.id}</p><p>外部对应：{tag.external.map((entry) => `${entry.vocabulary}:${entry.name}`).join("、") || "无"}</p></details>
     </div>}>
@@ -128,10 +128,10 @@ function NameRow({ tag, lang, busy, pending, mappings, libraryName, open, onTogg
 }
 
 /** 没有外部对应的标签：输入外部名称补上，与迁入向导的补对应相同。 */
-function MapExternal({ name, busy, onMap }: { name: string; busy: boolean; onMap: (external: string) => void }) {
+function MapExternal({ id, name, busy, onMap }: { id: string; name: string; busy: boolean; onMap: (external: string) => void }) {
   const [draft, setDraft] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const listId = `external-${name}`;
+  const listId = `external-${id}`;
   const change = (text: string) => {
     setDraft(text);
     if (text.trim()) externalSuggestions(text, 8).then((found) => setSuggestions(found ?? []), () => {});

@@ -148,6 +148,11 @@ impl ExternalVocabulary {
             .unwrap_or_default()
     }
 
+    /// 翻译表中 `external` 的一项。
+    pub(super) fn translation(&self, external: &str) -> Option<&TagTranslation> {
+        self.inner.translations.get(external)
+    }
+
     /// 对上 `external` 之后，原文 `text` 怎么安置（ADR-0012）。
     pub(super) fn place(&self, text: &str, external: &str) -> Placement {
         if key(text) == key(external) {

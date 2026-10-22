@@ -172,7 +172,7 @@ fn settle(
         [tag_id],
         |r| r.get(0),
     )?;
-    if !has_names && let Some(translation) = vocabulary.inner.translations.get(external) {
+    if !has_names && let Some(translation) = vocabulary.translation(external) {
         let namespace: String =
             tx.query_row("SELECT namespace FROM tag WHERE id = ?1", [tag_id], |r| {
                 r.get(0)
