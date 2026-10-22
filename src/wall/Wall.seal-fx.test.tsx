@@ -1,75 +1,13 @@
 // #27：安全模式切换时图片墙上的封印／释放动画（原型 sealfx）。动画只是表现：遮蔽照旧在切换的那一帧开始，
 // 减少动态效果时没有影子，直接到结束状态。
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { describe, expect, it, vi } from "vitest";
+import { act, render } from "@testing-library/react";
 import type { BrowsePage } from "../bindings/BrowsePage";
 import { RELEASE, SEAL } from "../shell/sealfx";
 import { Wall } from "./Wall";
+import { answer, base, card, frames, fx, ghosts, installSealFx, node, PAGE, settle, wallWith } from "./Wall.seal-fx.fixtures";
 
-let resolvers: ((page: BrowsePage) => void)[];
-let bookReads: number;
-let book: HTMLButtonElement;
-let reduce: boolean;
-let mediaListeners: (() => void)[];
-
-beforeEach(() => {
-  resolvers = [];
-  bookReads = 0;
-  reduce = false;
-  mediaListeners = [];
-  localStorage.clear();
-  Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
-  Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
-  // jsdom 不排版：卡片按自己的内联位置给矩形，墙占满视口，封印书在左下角。
-  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
-    if (this.classList.contains("card")) {
-      const s = this.style;
-      return new DOMRect(parseFloat(s.left), parseFloat(s.top), parseFloat(s.width), parseFloat(s.height));
-    }
-    if (this.classList.contains("seal-book")) { bookReads++; return new DOMRect(8, 700, 40, 40); }
-    return new DOMRect(0, 0, 1000, 800);
-  });
-  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-  vi.stubGlobal("matchMedia", (query: string) => ({
-    matches: reduce && query.includes("reduce"),
-    addEventListener: (_: string, f: () => void) => { mediaListeners.push(f); },
-    removeEventListener: () => {},
-  }));
-  book = document.createElement("button");
-  book.className = "rail-btn seal-book";
-  document.body.appendChild(book);
-  mockConvertFileSrc("windows");
-  mockIPC((cmd) => {
-    if (cmd !== "plugin:library|browse") throw new Error(cmd);
-    return new Promise<BrowsePage>((resolve) => { resolvers.push(resolve); });
-  });
-});
-afterEach(() => {
-  cleanup(); clearMocks(); book.remove();
-  vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers();
-});
-
-const card = (id: string, adult = false) => ({ id, width: 100, height: 100, thumbnail: `L1/${id}/256`, adult });
-const PAGE: BrowsePage = { cards: [card("a", true), card("g")], total: 2, nextCursor: null };
-const base = {
-  libraryId: "L1", scope: { kind: "all" as const }, selected: new Set<string>(),
-  onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false,
-};
-const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
-const answer = async (page = PAGE) => { await settle(); await act(async () => resolvers[resolvers.length - 1](page)); await settle(); };
-const node = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`)!;
-const ghosts = () => document.querySelectorAll(".fx-ghost").length;
-const frames = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
-
-async function wallWith(safeMode: boolean, page = PAGE) {
-  const view = render(<Wall {...base} reloadKey={0} safeMode={safeMode} />);
-  await answer(page);
-  // 关着安全模式时成人图下一帧才放出：等这一帧过去再接管时间。
-  await act(() => new Promise<void>((r) => requestAnimationFrame(() => r())));
-  vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance"] });
-  return view;
-}
+installSealFx();
 
 describe("封印", () => {
   it("开启的那次提交里卡片就遮蔽，同时生成影子；影子飞进书里后消失", async () => {
@@ -160,7 +98,7 @@ describe("封印", () => {
   });
 
   it("减少动态效果时没有影子，封印的图直接离开，不等资料库确认", async () => {
-    reduce = true;
+    fx.reduce = true;
     const view = await wallWith(false);
     view.rerender(<Wall {...base} reloadKey={0} safeMode />);
     expect(node("a")).toBeNull();
@@ -195,11 +133,11 @@ describe("封印", () => {
 describe("每次提交只排一次版（#176 性能）", () => {
   it("没有在等飞回的图时，墙上的卡片变了也不去量封印书", async () => {
     const view = await wallWith(false);
-    bookReads = 0;
+    fx.bookReads = 0;
     view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
     await answer({ cards: [card("n"), ...PAGE.cards], total: 3, nextCursor: null });
     expect(node("n")).not.toBeNull();
-    expect(bookReads).toBe(0);
+    expect(fx.bookReads).toBe(0);
   });
 
   it("重排时先读完滚动位置与卡片矩形，再起滑动动画：起动画之后不再读滚动位置", async () => {
@@ -278,7 +216,7 @@ describe("释放", () => {
   });
 
   it("减少动态效果时回来的图直接显示，没有影子", async () => {
-    reduce = true;
+    fx.reduce = true;
     const view = await wallWith(true);
     view.rerender(<Wall {...base} reloadKey={0} safeMode={false} />);
     view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
@@ -293,15 +231,17 @@ describe("释放", () => {
     view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
     await answer();
     expect(ghosts()).toBe(1);
-    reduce = true;
-    act(() => mediaListeners.forEach((f) => f()));
+    fx.reduce = true;
+    act(() => fx.mediaListeners.forEach((f) => f()));
     expect(ghosts()).toBe(0);
     expect(node("a").classList.contains("is-arriving")).toBe(false);
   });
 
   it("让位的卡片右下角的图库标记跟着卡片一起滑，不先跳到新位置（#176）", async () => {
     const sourced = (id: string, adult = false) => ({ ...card(id, adult), libraryId: "L1", imageId: id,
-      sources: [{ libraryId: "L1", libraryName: "角色参考", imageId: id, unavailable: false }] });
+      // 标记只在两个及以上图库时出现（#221）。
+      sources: [{ libraryId: "L1", libraryName: "角色参考", imageId: id, unavailable: false },
+        { libraryId: "L2", libraryName: "场景参考", imageId: id, unavailable: false }] });
     const both: BrowsePage = { cards: [sourced("a", true), sourced("g")], total: 2, nextCursor: null };
     const view = await wallWith(true, { cards: [sourced("g")], total: 1, nextCursor: null });
     const glides: { el: HTMLElement; keyframes: Keyframe[]; timing: KeyframeAnimationOptions }[] = [];
@@ -328,66 +268,5 @@ describe("释放", () => {
       delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
       delete (HTMLElement.prototype as Partial<HTMLElement>).getAnimations;
     }
-  });
-});
-
-describe("切换时详情面板随选择清空而收起，图片墙变宽", () => {
-  let resize: (() => void)[];
-  beforeEach(() => {
-    resize = [];
-    vi.stubGlobal("ResizeObserver", class { constructor(f: () => void) { resize.push(f); } observe() {} disconnect() {} });
-  });
-  const widen = () => act(() => {
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1320 });
-    resize.forEach((f) => f());
-  });
-
-  it("关闭：墙先变宽、资料库后送回成人图，影子照样从书里飞回", async () => {
-    const view = await wallWith(true, { cards: [card("g")], total: 1, nextCursor: null });
-    view.rerender(<Wall {...base} reloadKey={0} safeMode={false} />);
-    await widen();
-    view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
-    await answer();
-    expect(ghosts()).toBe(1);
-    expect(node("a").classList.contains("is-arriving")).toBe(true);
-  });
-
-  it("开启：变宽按平常的 200 ms 重排，飞走的图让位仍按封印的节奏（620 ms）", async () => {
-    const view = await wallWith(false);
-    const glides: { id: string; timing: KeyframeAnimationOptions; from: unknown }[] = [];
-    HTMLElement.prototype.animate = function (this: HTMLElement, k: Keyframe[], timing: KeyframeAnimationOptions) {
-      glides.push({ id: this.dataset.id!, timing, from: k[0]?.transform });
-      return { cancel() {}, finish() {}, onfinish: null } as unknown as Animation;
-    } as HTMLElement["animate"];
-    try {
-      view.rerender(<Wall {...base} reloadKey={1} safeMode />);
-      await widen();
-      const widened = glides.filter((x) => x.id === "g");
-      expect(widened.at(-1)?.timing).toMatchObject({ duration: 200 });
-      const mid = node("g").getBoundingClientRect();
-      await frames(SEAL.flyAt + 20 + 16);
-      expect(node("a")).toBeNull();
-      const slide = glides.filter((x) => x.id === "g").at(-1)!;
-      expect(slide.timing).toMatchObject({ duration: 620 });
-      // 让位从变宽后的位置起滑，不先跳回变宽之前的位置。
-      const end = node("g").getBoundingClientRect();
-      expect(slide.from).toBe(`translate(${mid.left - end.left}px, ${mid.top - end.top}px) scale(${mid.width / end.width}, ${mid.height / end.height})`);
-    } finally {
-      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
-    }
-  });
-
-  it("关闭后送回的页面没有成人图：这次释放就此结束，之后别的浏览带来的成人图不从书里飞出", async () => {
-    const plain: BrowsePage = { cards: [card("g")], total: 1, nextCursor: null };
-    const view = await wallWith(true, plain);
-    view.rerender(<Wall {...base} reloadKey={0} safeMode={false} />);
-    view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
-    await answer(plain);
-    expect(ghosts()).toBe(0);
-    // 1.5 s 内另一次浏览（换了条件、导入等）送回了成人图：不是这次释放的一部分。
-    view.rerender(<Wall {...base} reloadKey={2} safeMode={false} />);
-    await answer();
-    expect(ghosts()).toBe(0);
-    expect(node("a").classList.contains("is-arriving")).toBe(false);
   });
 });
