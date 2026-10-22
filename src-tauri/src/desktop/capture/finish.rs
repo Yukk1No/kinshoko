@@ -50,6 +50,7 @@ fn validate_source(app: &AppHandle, pending: &Pending, selected: ScreenRect) -> 
     // This function also runs before decoding, outside the commit gate. Adjust only
     // this local view; committed veil mutations are serialized by visibility authority.
     veils.set_safe_mode(safe);
+    veils.set_scope(crate::library::safe_mode_scope(app));
     if veils.veiled(&surface.selection.pin, Some(image.sealed)) {
         return Err("参考图已被遮蔽，请重新框选".into());
     }

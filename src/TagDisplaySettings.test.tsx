@@ -18,7 +18,7 @@ function backend() {
   const sent: TagDisplay[] = [];
   const view = (): ShellSettingsView => ({
     autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
-    runLog: false, keepSelectionOnSafeMode: false, updateChannel: "stable", tagDisplay: saved,
+    runLog: false, keepSelectionOnSafeMode: false, safeModeScope: "questionable", updateChannel: "stable", tagDisplay: saved,
   });
   mockIPC((cmd, args) => {
     if (cmd === "shell_settings") return view();
@@ -75,7 +75,7 @@ describe("设置：标签外观", () => {
     const waiting: (() => void)[] = [];
     const view = (tagDisplay: TagDisplay): ShellSettingsView => ({
       autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
-      runLog: false, keepSelectionOnSafeMode: false, updateChannel: "stable", tagDisplay,
+      runLog: false, keepSelectionOnSafeMode: false, safeModeScope: "questionable", updateChannel: "stable", tagDisplay,
     });
     mockIPC((cmd, args) => {
       if (cmd === "shell_settings") return view(saved);
@@ -110,7 +110,7 @@ describe("设置：标签外观", () => {
     let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
     const view = (): ShellSettingsView => ({
       autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
-      runLog: false, keepSelectionOnSafeMode: false, updateChannel: "stable", tagDisplay: saved,
+      runLog: false, keepSelectionOnSafeMode: false, safeModeScope: "questionable", updateChannel: "stable", tagDisplay: saved,
     });
     let failNext = true;
     mockIPC((cmd, args) => {

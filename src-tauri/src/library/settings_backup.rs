@@ -100,14 +100,20 @@ pub(super) async fn restore_application_settings<R: Runtime>(
         *lock(&state.workspace) = None;
         *lock(&state.external_vocabulary) = None;
         state.detached.clear();
-        if let Some(libraries) = lock(&state.libraries).as_ref() {
+        let scope = view.safe_mode_scope;
+        *lock(&DEVICE_SAFE_MODE_SCOPE) = scope;
+        state.detached.set_safe_mode_scope(scope);
+        if let Some(libraries) = lock(&state.libraries).as_mut() {
             libraries.set_safe_mode(safe);
+            if let Err(error) = libraries.set_safe_mode_scope(scope) {
+                problems.push(format!("安全模式范围未完全生效：{error}"));
+            }
         }
         if let Some(log) = crate::run_log::log() {
             log.set_enabled(view.run_log);
         }
         crate::tagging::apply_device_setting(&app, device);
-        crate::desktop::settings_restored(&app, safe);
+        crate::desktop::settings_restored(&app, SafeMode::new(safe, scope));
         // 恢复的设置可能带来另一个更新通道（#204）。
         crate::updater::channel_changed(&app);
         if let Err(error) = names::refresh_labels(&app, &state) {

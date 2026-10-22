@@ -375,7 +375,9 @@ pub fn restore(app: &AppHandle) {
     // 设置在桌面插件装配之后才可读：恢复前按保存的安全模式核对一次。
     crate::library::with_visibility_commit(app, |_| {
         let safe = crate::library::safe_mode_on(app);
-        lock(&state(app).veils).set_safe_mode(safe);
+        let mut veils = lock(&state(app).veils);
+        veils.set_safe_mode(safe);
+        veils.set_scope(crate::library::safe_mode_scope(app));
     });
     let monitors = monitors();
     let pins = {

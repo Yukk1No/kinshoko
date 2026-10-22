@@ -133,6 +133,9 @@ struct Snapshot {
     providers: Vec<Provider>,
     catalog: CatalogInspection,
     status: WorkspaceStatus,
+    /// 快照所用的安全模式范围（#223）：`adult` 按它算出，快照的修订号也随它变。
+    scope: crate::library::SafeModeScope,
+    /// 有效分级在安全模式范围内的图（原图字节的 SHA-256）：安全模式开启时被封印。
     adult: BTreeSet<String>,
     identities: BTreeMap<(String, String), String>,
     safe_vocabulary: std::sync::OnceLock<Vocabulary>,

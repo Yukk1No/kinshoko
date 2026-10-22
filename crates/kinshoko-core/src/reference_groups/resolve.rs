@@ -13,7 +13,7 @@ use ts_rs::TS;
 
 use super::ReferenceGroup;
 use crate::RegisteredLibrary;
-use crate::library::{Error, ReferenceImage, ReferenceLens};
+use crate::library::{Error, ReferenceImage, ReferenceLens, SafeMode, SafeModeScope};
 
 /// 成员暂时不能显示的原因。成员与布局都保留，原因标在成员上。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -142,9 +142,13 @@ pub fn resolve(group: &ReferenceGroup, source: &dyn ReferenceSource) -> Vec<Memb
 
 /// 未激活资料库的只读参考视角，按资料库缓存（拖动钉图时每帧都要核对遮蔽，不能每次重开数据库）。
 /// 打不开的不缓存：移动盘接回后下次核对就能用。资料库切换、登记变化时应用壳调用 [`Self::clear`]。
+/// 只读视角按本设备的安全模式范围（#223）标记遮蔽，应用壳在启动与调整范围时调用
+/// [`Self::set_safe_mode_scope`]；活动资料库的参考视角用它自己句柄上的范围（由
+/// `DeviceLibraries` 设好）。
 #[derive(Default)]
 pub struct DetachedLenses {
     open: Mutex<HashMap<String, (std::path::PathBuf, ReferenceLens)>>,
+    scope: Mutex<SafeModeScope>,
 }
 
 impl DetachedLenses {
@@ -173,8 +177,14 @@ impl DetachedLenses {
                 lens
             }
         };
-        lens.set_detached_safe_mode(safe_mode);
+        let scope = *self.scope.lock().unwrap_or_else(|e| e.into_inner());
+        lens.set_detached_safe_mode(SafeMode::new(safe_mode, scope));
         Ok(lens)
+    }
+
+    /// 本设备的安全模式范围变了（#223）：之后取得的只读视角按它标记遮蔽。
+    pub fn set_safe_mode_scope(&self, scope: SafeModeScope) {
+        *self.scope.lock().unwrap_or_else(|e| e.into_inner()) = scope;
     }
 
     /// 关掉全部只读视角（释放数据库文件，例如资料库要搬家、移动盘要拔出）。
