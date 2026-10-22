@@ -1,19 +1,23 @@
-import { useEffect, useRef, useState } from "react";
-import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { KeyboardEvent, MouseEvent } from "react";
 import type { Candidate } from "../bindings/Candidate";
 import type { Condition } from "../bindings/Condition";
 import type { ContentRating } from "../bindings/ContentRating";
 import type { RatingCandidate } from "../bindings/RatingCandidate";
-import type { RatingLabel } from "../bindings/RatingLabel";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { SearchInput } from "../bindings/SearchInput";
 import type { SimilarTag } from "../bindings/SimilarTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { Term } from "../bindings/Term";
 import type { TermInput } from "../bindings/TermInput";
-import { Languages } from "lucide-react";
+import { Popover } from "@base-ui/react/popover";
 import { ExactToggle } from "./ExactToggle";
+import { chipsThatFit } from "./fitChips";
+import { RatingName, TagMarks, tagName } from "./tagLabel";
+import { TermView } from "./TermView";
 import { ratingCandidates, searchCandidates, workspaceCandidates, workspaceSourceCandidates, setTagApprox, editSharedApprox } from "../ipc";
+
+export { TagMarks, tagName, UNTRANSLATED_HINT } from "./tagLabel";
 
 /** 界面语言。多语言界面随后续切片加入。 */
 export const UI_LANG = "zh-CN";
@@ -70,66 +74,10 @@ function useRatingCandidates(lens: Lens, text: string): RatingCandidate[] {
   return found.key === key && text.trim() ? found.list : [];
 }
 
-/** 分级不是标签：条件与候选里都带“分级”字样，和标签区分开。 */
-function RatingName({ rating }: { rating: RatingLabel }) {
-  return (
-    <>
-      <span className="search-rating-mark">分级</span>
-      <span>{rating.name}</span>
-    </>
-  );
-}
-
 const sameRatings = (a: ContentRating[], b: ContentRating[]) => a.length === b.length && a.every((r, i) => r === b[i]);
-
-const NAMESPACE: Record<TagLabel["namespace"], string> = {
-  general: "",
-  artist: "作者：",
-  character: "角色：",
-  work: "作品：",
-};
-
-export const tagName = (tag: TagLabel) => `${NAMESPACE[tag.namespace]}${tag.name}`;
-
-/** 未翻译标记的说明（#160）：图标的可访问名称与悬停提示。 */
-export const UNTRANSLATED_HINT = "尚无中文名，显示的是原名";
-
-/**
- * 标签名后的提示：尚未翻译（翻译图标，#160），或没有外部对应、不参与内置近似对应表。
- * `untranslated`：换掉尚未翻译的标记，例如详情面板里可以点的改名按钮（#182）。
- */
-export function TagMarks({ tag, untranslated }: { tag: TagLabel; untranslated?: ReactNode }) {
-  return (
-    <>
-      {tag.untranslated && (untranslated ??
-        <span className="untranslated" role="img" aria-label={UNTRANSLATED_HINT} title={UNTRANSLATED_HINT}>
-          <Languages size={12} aria-hidden="true" />
-        </span>
-      )}
-      {!tag.hasExternal && (
-        <span
-          className="no-external"
-          role="img"
-          aria-label="没有外部对应，不参与内置近似对应表"
-          title="没有外部对应，不参与内置近似对应表"
-        />
-      )}
-    </>
-  );
-}
 
 function inputLabel(term: TermInput) {
   return term.kind === "text" ? `“${term.text}”` : "…";
-}
-
-/** 文字项也匹配的标签与分级，鼠标悬停时显示，画师能看见文字查到了什么。 */
-function termTitle(term: Term) {
-  if (term.kind !== "text") return undefined;
-  const lines = [
-    term.tags.length > 0 && `也匹配标签：${term.tags.map(tagName).join("、")}`,
-    term.ratings.length > 0 && `也匹配分级：${term.ratings.map((r) => r.name).join("、")}`,
-  ].filter(Boolean);
-  return lines.length ? lines.join("\n") : undefined;
 }
 
 /** 条件树里与搜索框中这一项对应的项；点选的标签已被删除时没有。 */
@@ -148,13 +96,6 @@ function resolvedTerm(condition: Condition, term: TermInput): Term | undefined {
 
 const RANK: ContentRating[] = ["general", "sensitive", "questionable", "explicit"];
 const byRank = (a: ContentRating, b: ContentRating) => RANK.indexOf(a) - RANK.indexOf(b);
-
-/** 这一项只有一个标签时是它：“＋”加的相近标签以它为另一端。分级项没有。 */
-function soleTag(term: Term): TagLabel | null {
-  if (term.kind === "tag") return term.tag;
-  if (term.kind === "rating") return null;
-  return term.tags.length === 1 ? term.tags[0] : null;
-}
 
 type Place = { condition: number; term: number };
 
@@ -195,6 +136,19 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   const dismissingNow = dismissing?.lens === context ? dismissing : null;
   const addingNow = adding?.lens === context ? adding.tag : null;
   useEffect(() => { setDismissing(null); setAdding(null); }, [context]);
+
+  // 放不下的条件标签收进“+n”（#222）：每次绘制后和查找框变宽变窄时量一次，个数变了才重绘。
+  const root = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState(Infinity);
+  const measure = useRef(() => {});
+  measure.current = () => setFit(chipsThatFit(root.current));
+  useLayoutEffect(() => measure.current());
+  useLayoutEffect(() => {
+    if (typeof ResizeObserver === "undefined" || !root.current) return;
+    const observer = new ResizeObserver(() => measure.current());
+    observer.observe(root.current);
+    return () => observer.disconnect();
+  }, []);
 
   const rows: TermInput[] = text.trim()
     ? [
@@ -274,50 +228,68 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
     (workspace ? editSharedApprox({ kind: "set", rules: [{ a: to.id, b: tag.id, relation: "similar" }] }, safe) : setTagApprox(libraryId, to.id, tag.id, "similar")).catch((e) => onError(String(e)));
   };
 
-  const shown = open && rows.length > 0;
-  return (
-    <div className="search">
-      <ul className="search-chips" aria-label="查找条件">
-        {input.conditions.map((c, i) => {
-          const resolved: Condition | undefined = tree?.conditions[i];
-          const terms = c.any.map((t, j) => ({ input: t, place: j, term: resolved && resolvedTerm(resolved, t) }));
-          const visible = resolved ? terms.filter((t) => t.term) : terms;
-          return (
-            <li key={i} className="search-chip" data-negate={c.negate || undefined}>
-              {c.negate && <span className="search-chip-not">不要</span>}
-              {visible.length === 0 ? (
-                <span className="search-chip-missing">已删除的标签</span>
+  /** 一个条件的标签块；收起的标签块（`collapsed`）只占位量宽度，看不见也点不到。 */
+  const chip = (c: SearchInput["conditions"][number], i: number, collapsed = false) => {
+    const resolved: Condition | undefined = tree?.conditions[i];
+    const terms = c.any.map((t, j) => ({ input: t, place: j, term: resolved && resolvedTerm(resolved, t) }));
+    const visible = resolved ? terms.filter((t) => t.term) : terms;
+    return (
+      <li key={i} className="search-chip" data-negate={c.negate || undefined} data-collapsed={collapsed || undefined} aria-hidden={collapsed || undefined} inert={collapsed || undefined}>
+        {c.negate && <span className="search-chip-not">不要</span>}
+        {visible.length === 0 ? (
+          <span className="search-chip-missing">已删除的标签</span>
+        ) : (
+          visible.map(({ input: t, place, term }, k) => (
+            <span key={place} className="search-term">
+              {k > 0 && <span className="search-chip-or"> 或 </span>}
+              {term ? (
+                <TermView
+                  term={term}
+                  showSource={showSource}
+                  onDismiss={(similar) => setDismissing({ condition: i, term: place, similar, lens: context })}
+                  onAdd={(to) => setAdding({ tag: to, lens: context })}
+                />
               ) : (
-                visible.map(({ input: t, place, term }, k) => (
-                  <span key={place} className="search-term">
-                    {k > 0 && <span className="search-chip-or"> 或 </span>}
-                    {term ? (
-                      <TermView
-                        term={term}
-                        showSource={showSource}
-                        onDismiss={(similar) => setDismissing({ condition: i, term: place, similar, lens: context })}
-                        onAdd={(to) => setAdding({ tag: to, lens: context })}
-                      />
-                    ) : (
-                      <span>{inputLabel(t)}</span>
-                    )}
-                  </span>
-                ))
+                <span>{inputLabel(t)}</span>
               )}
-              <button
-                type="button"
-                aria-label={c.negate ? "不再排除这个条件" : "排除这个条件"}
-                aria-pressed={c.negate}
-                onClick={() => toggle(i)}
-              >
-                ⊘
-              </button>
-              <button type="button" aria-label="去掉这个条件" onClick={() => remove(i)}>
-                ×
-              </button>
-            </li>
-          );
-        })}
+            </span>
+          ))
+        )}
+        <button
+          type="button"
+          aria-label={c.negate ? "不再排除这个条件" : "排除这个条件"}
+          aria-pressed={c.negate}
+          onClick={() => toggle(i)}
+        >
+          ⊘
+        </button>
+        <button type="button" aria-label="去掉这个条件" onClick={() => remove(i)}>
+          ×
+        </button>
+      </li>
+    );
+  };
+
+  const shown = open && rows.length > 0;
+  const hidden = Math.max(input.conditions.length - fit, 0);
+  return (
+    <div className="search" ref={root}>
+      <ul className="search-chips" aria-label="查找条件">
+        {hidden > 0 && (
+          <li className="search-more">
+            <Popover.Root>
+              <Popover.Trigger className="search-more-btn" aria-label={`还有 ${hidden} 个条件`}>+{hidden}</Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={8}>
+                  <Popover.Popup className="k-popup search-more-pop" aria-label="收起的查找条件">
+                    <ul className="search-chips">{input.conditions.slice(0, hidden).map((c, i) => chip(c, i))}</ul>
+                  </Popover.Popup>
+                </Popover.Positioner>
+              </Popover.Portal>
+            </Popover.Root>
+          </li>
+        )}
+        {input.conditions.map((c, i) => chip(c, i, i < hidden))}
       </ul>
       <div className="search-field">
         <input
@@ -403,60 +375,6 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
     </div>
   );
 }
-
-/** 条件里的一项，及其展开的相近标签。 */
-function TermView({
-  term,
-  showSource,
-  personal = true,
-  onDismiss,
-  onAdd,
-}: {
-  term: Term;
-  showSource: boolean;
-  personal?: boolean;
-  onDismiss: (similar: SimilarTag) => void;
-  onAdd: (to: TagLabel) => void;
-}) {
-  const sole = soleTag(term);
-  if (term.kind === "rating") return <RatingName rating={term.rating} />;
-  return (
-    <>
-      {term.kind === "tag" ? (
-        <>
-          <span>{tagName(term.tag)}</span>
-          <TagMarks tag={term.tag} />
-        </>
-      ) : (
-        <span title={termTitle(term)}>“{term.text}”</span>
-      )}
-      {term.similar.length > 0 && (
-        <span className="search-similar">
-          <span className="search-chip-or">或相近：</span>
-          {term.similar.map((s, k) => (
-            <span key={s.tag.id} className="search-similar-tag">
-              {k > 0 && "、"}
-              <span>{tagName(s.tag)}</span>
-              <TagMarks tag={s.tag} />
-              {showSource && (
-                <span className="search-similar-source">{s.source === "builtin" ? "内置" : "个人"}</span>
-              )}
-              <button type="button" aria-label={`不展开“${tagName(s.tag)}”`} onClick={() => onDismiss(s)}>
-                ×
-              </button>
-            </span>
-          ))}
-        </span>
-      )}
-      {sole && personal && (
-        <button type="button" aria-label={`给“${tagName(sole)}”加相近标签`} onClick={() => onAdd(sole)}>
-          ＋
-        </button>
-      )}
-    </>
-  );
-}
-
 /** “＋”：按名称或别名从可见标签里挑一个，加为 `to` 的相近标签。 */
 function AddSimilar({
   lens,
