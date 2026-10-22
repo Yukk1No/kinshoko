@@ -1,0 +1,27 @@
+/* 文字选取（#224）：主界面默认不能拖选，误拖出的选区没有用处。只放开要复制的内容——输入、
+   详情里的文件名与来源链接、路径、错误文本与警告原因。诊断框 .settings-diagnostics 在 styles.css 里另有声明。
+   只管主窗口（实验窗口照常可选），挂在 body 上，弹层、提示等渲染到 body 下的内容一并继承。 */
+:root[data-view="main"] body {
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable]:not([contenteditable="false"]),
+.insp-file-name,
+.insp-links,
+.workspace-source-path,
+.import-report-path,
+.import-report-reason,
+.create-library-path-text,
+[role="alert"],
+.k-toast[data-tone="error"],
+.k-list-desc.is-warn,
+.settings-error {
+  user-select: text;
+}
+
+[role="alert"] button,
+.k-toast[data-tone="error"] button {
+  user-select: none;
+}

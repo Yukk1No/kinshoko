@@ -112,20 +112,23 @@
 /* ---- Toasts ---- */
 .k-toasts { position: fixed; right: 18px; bottom: 18px; z-index: 200; width: 340px; max-width: calc(100vw - 36px); display: flex; flex-direction: column; gap: 8px;
   outline: 0; pointer-events: none; }
-.k-toast { pointer-events: auto; display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--ink); color: var(--bg);
-  box-shadow: 0 8px 24px rgba(43, 39, 71, 0.25); outline: 0; transition: transform 220ms var(--spring), opacity 180ms; }
+/* Same surface, ring, radius, shadow and type as .k-popup (menus, rename popover): a toast is a popup that comes to you (#214). */
+.k-toast { pointer-events: auto; display: flex; align-items: flex-start; gap: 10px; padding: 10px 10px 10px 12px; background: var(--surface); color: var(--ink);
+  border-radius: var(--r-m); box-shadow: var(--shadow-pop); outline: 0; transition: transform 220ms var(--spring), opacity 180ms; }
 .k-toast[data-starting-style], .k-toast[data-ending-style] { opacity: 0; transform: translateY(8px); }
-.k-toast:focus-visible { box-shadow: 0 0 0 2px var(--accent), 0 8px 24px rgba(43, 39, 71, 0.25); }
-.k-toast-icon { flex: none; margin-top: 2px; color: #9FD3A9; }
-.k-toast[data-tone="info"] .k-toast-icon { color: color-mix(in srgb, var(--bg) 70%, transparent); }
-.k-toast[data-tone="error"] .k-toast-icon { color: #F3A5A5; }
+.k-toast:focus-visible { box-shadow: 0 0 0 2px var(--accent), var(--shadow-pop); }
+.k-toast-icon { flex: none; margin-top: 2px; color: var(--ok); }
+.k-toast[data-tone="info"] .k-toast-icon { color: var(--ink-2); }
+.k-toast[data-tone="error"] .k-toast-icon { color: var(--danger); }
 .k-toast-text { flex: 1; min-width: 0; }
 .k-toast-title { margin: 0; font-size: 13px; font-weight: 500; line-height: 20px; overflow-wrap: anywhere; }
-.k-toast-desc { margin: 2px 0 0; font-size: 12px; line-height: 18px; opacity: 0.75; overflow-wrap: anywhere; }
+.k-toast-desc { margin: 2px 0 0; font-size: 12px; line-height: 18px; color: var(--ink-2); overflow-wrap: anywhere; }
 .k-toast-desc:empty { display: none; }
-.k-toast-action { flex: none; padding: 0 4px; height: 20px; border: 0; background: none; color: #F3A5B7; font-weight: 500; }
-.k-toast-close { flex: none; width: 20px; height: 20px; padding: 0; border: 0; display: grid; place-items: center; background: none; color: inherit; opacity: 0.55; border-radius: 5px; }
-.k-toast-close:hover { opacity: 1; background: color-mix(in srgb, var(--bg) 12%, transparent); }
+.k-toast-action { flex: none; padding: 0 6px; height: 20px; border: 0; border-radius: var(--r-xs); background: none; color: var(--accent-strong); font-weight: 500; }
+.k-toast-action:hover { background: var(--hover); }
+.k-toast-close { flex: none; width: 20px; height: 20px; padding: 0; border: 0; display: grid; place-items: center; background: none; color: var(--ink-3); border-radius: var(--r-xs); }
+.k-toast-close:hover { background: var(--hover); color: var(--ink); }
+.k-toast-action:focus-visible, .k-toast-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---- Dock (after Arc Pro dock behaviour) ---- */
 .k-dock { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 6px; border-radius: 18px;
