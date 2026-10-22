@@ -218,6 +218,18 @@ pub async fn tagging_download(
     with(&state, library_id, |active| active.tagging.download()).await
 }
 
+/// 取消下载模型（#213）：回到需要下载，已下的部分保留以便下次续传。
+#[tauri::command]
+pub async fn tagging_cancel_download(
+    state: State<'_, TaggingState>,
+    library_id: String,
+) -> Result<(), String> {
+    with(&state, library_id, |active| {
+        active.tagging.cancel_download()
+    })
+    .await
+}
+
 /// 暂停打标：立即结束打标子进程，归还显存。暂停属于本设备，换资料库后仍暂停。
 #[tauri::command]
 pub async fn tagging_pause(
