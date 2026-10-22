@@ -1,21 +1,20 @@
 """贴边隐藏、交还焦点与钉图状态恢复的检查（#63，移植 #7 原型 probe_windows.py 的后半）。
 
 用模拟键鼠在真机上走一遍：截图钉住一块逐像素随机的测试图 → 点一下“外部绘画软件”（一个普通
-Tk 窗口）再点钉图 → F4 贴边隐藏 → 检查只露细边、焦点回到外部窗口 → 指针碰细边滑出、离开收回 →
-再按 F4 回到原位 → H 翻转、R 旋转（屏幕像素与截图的镜像／旋转一致）→ 结束进程再启动，
+Tk 窗口）再点钉图 → 按收起键贴边隐藏 → 检查只露细边、焦点回到外部窗口 → 指针碰细边滑出、离开收回 →
+再按收起键回到原位 → H 翻转、R 旋转（屏幕像素与截图的镜像／旋转一致）→ 结束进程再启动，
 检查钉图的位置、翻转与旋转都恢复。
 
 用法：python scripts/probe/edge_restore.py target/release/kinshoko.exe
-需要 Pillow。运行期间会移动鼠标、按 F1/F4/H/R，请不要碰键鼠；不能有别的 Kinshoko 或占用
-F1/F4 的程序（例如 Snipaste）在运行。数据放在临时目录，不碰本机设置与资料库。
+exe 必须是探针构建（见 guard.py），可以与已安装、正在运行的 Kinshoko 同时存在；截图与收起
+全部钉图的快捷键改成 F13、F15。需要 Pillow。运行期间会移动鼠标、按 F13/F15/H/R，请不要碰
+键鼠。数据放在临时目录，不碰本机设置与资料库。
 验收要求在 100%、125% 与 150% 缩放下各跑一次。
 """
 
 import ctypes
 import os
-import subprocess
 import sys
-import tempfile
 import time
 import tkinter as tk
 from pathlib import Path
@@ -33,13 +32,14 @@ from capture_pin import (  # noqa: E402
     key,
     move,
     pause,
-    running,
     user32,
     wait_for,
     window_rect,
 )
+from guard import VK_CAPTURE, VK_HIDE_ALL, data_dir, take_input  # noqa: E402
+from guard import launch as launch_isolated  # noqa: E402
 
-VK_F1, VK_F4, VK_H, VK_R = 0x70, 0x73, 0x48, 0x52
+VK_H, VK_R = 0x48, 0x52
 SLIVER = 6
 # 贴边滑动动画（200 ms）与动画结束后改窗口（再等约 120 ms）都做完。
 SETTLE = 0.8
@@ -54,11 +54,8 @@ def click(x, y):
     pause(0.2)
 
 
-def launch(exe, env):
-    app = subprocess.Popen([str(exe), "--autostart"], env=env)
-    wait_for("应用启动", lambda: window_rect(app.pid, "dev.kinshoko-siw"), timeout=20)
-    pause(1.5)
-    return app
+def launch(exe, data):
+    return launch_isolated(exe, data, pump=lambda: [pump() for pump in PUMP])
 
 
 def foreground_pid():
@@ -112,11 +109,13 @@ def click_through(pid, title):
 
 def main():
     exe = Path(sys.argv[1]).resolve()
-    data = Path(tempfile.mkdtemp(prefix="kinshoko-probe-"))
-    env = dict(os.environ, KINSHOKO_DATA_DIR=str(data), KINSHOKO_SKIP_AUTOSTART="1")
-    if running(exe.name):
-        raise SystemExit("已有 Kinshoko 在运行（单实例），先退出它")
-    app = launch(exe, env)
+    with take_input("edge_restore.py"):
+        run(exe)
+
+
+def run(exe):
+    data = data_dir()
+    app = launch(exe, data)
 
     # “外部绘画软件”：一个普通的、能拿到焦点的窗口，里面显示逐像素随机的测试图。
     import random
@@ -140,7 +139,7 @@ def main():
         x0, y0, x1, y1 = ox + 17, oy + 11, ox + 17 + 151, oy + 11 + 97
         before = grab((x0, y0, x1, y1))
         move(ox + 5, oy + 5)
-        key(VK_F1)
+        key(VK_CAPTURE)
         wait_for("框选窗口", lambda: window_rect(app.pid, "Kinshoko 截图"))
         pause(0.3)
         move(x0, y0)
@@ -157,24 +156,24 @@ def main():
         home = wait_for("钉图窗口", lambda: window_rect(app.pid, "Kinshoko 钉图"))
         pause(1.5)
 
-        # 外部窗口先拿到焦点，再点钉图（钉图拿到焦点），然后 F4。
+        # 外部窗口先拿到焦点，再点钉图（钉图拿到焦点），然后按收起键。
         click(ox + PATTERN[0] + 100, oy + PATTERN[1] + 100)
         click((home[0] + home[2]) // 2, (home[1] + home[3]) // 2)
         results["点钉图后焦点在 Kinshoko"] = None if foreground_pid() == app.pid else "焦点不在钉图"
-        key(VK_F4)
+        key(VK_HIDE_ALL)
         pause(SETTLE)
         # 收起的钉图停在一个伸出屏幕的透明窗口里（#64）：屏幕上的部分正好是滑出时的位置，
         # 没滑出时点击穿过，只有细边画着钉图。所以按屏幕像素检查，而不是按窗口矩形。
         hidden = window_rect(app.pid, "Kinshoko 钉图")
         part = visible_part(hidden, screen)
         sliver, strip = sliver_of(part, hidden, screen, before)
-        results["F4 后只露 6 像素细边"] = (
+        results["收起后只露 6 像素细边"] = (
             "没有收到屏幕边" if sliver is None else diff(grab(sliver), strip)
         )
         results["收起时点击穿过钉图窗口"] = (
             None if click_through(app.pid, "Kinshoko 钉图") else "收起的钉图窗口挡住点击"
         )
-        results["F4 把焦点交还外部窗口"] = (
+        results["收起把焦点交还外部窗口"] = (
             None if foreground_pid() == os.getpid() else f"前台进程 {foreground_pid()}"
         )
 
@@ -195,9 +194,9 @@ def main():
             "没有收到屏幕边" if sliver is None else diff(grab(sliver), strip)
         )
 
-        key(VK_F4)
+        key(VK_HIDE_ALL)
         pause(SETTLE)
-        results["再按 F4 回到原位"] = (
+        results["再按收起键回到原位"] = (
             None if window_rect(app.pid, "Kinshoko 钉图") == home else f"回到 {window_rect(app.pid, 'Kinshoko 钉图')}"
         )
 
@@ -221,7 +220,7 @@ def main():
         app.kill()
         app.wait()
         pause(1.0)
-        app = launch(exe, env)
+        app = launch(exe, data)
         restored = wait_for("恢复的钉图", lambda: window_rect(app.pid, "Kinshoko 钉图"), timeout=10)
         move(0, 0)
         pause(1.5)
