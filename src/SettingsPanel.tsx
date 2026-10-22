@@ -1,6 +1,6 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
-import { Activity, Archive, FileText, Keyboard, Layers, Monitor, MousePointerClick, Power, RefreshCw, Scaling, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
+import { Activity, Archive, FileText, Keyboard, Layers, Monitor, MousePointerClick, Pin, Power, RefreshCw, Scaling, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { SafeModeScope } from "./bindings/SafeModeScope";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
@@ -14,6 +14,7 @@ import {
   setShowApproxSource,
   setTagDisplay,
   setKeepSelectionOnSafeMode,
+  setPinEdgeContrast,
   setSafeModeScope,
   setUpdateChannel,
   setRunLog,
@@ -213,6 +214,11 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
                   {UI_SCALE_LEVELS.map((percent) => <option key={percent} value={percent}>{percent}%</option>)}
                 </select>
               </SettingsRow>}
+            </SettingsGroup>
+            <SettingsGroup label="桌面钉图">
+              <SettingsRow icon={<Pin size={16} />} title="增强钉图边缘" desc="阴影外加一圈浅色细线，深色画布上更好分辨">
+                <Switch label="增强钉图边缘" checked={view.pinEdgeContrast} onCheckedChange={(on) => void apply(setPinEdgeContrast(on))} />
+              </SettingsRow>
             </SettingsGroup>
           </>)}
           {page("keys", <><SettingsGroup label="快捷键">

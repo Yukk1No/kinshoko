@@ -7,7 +7,8 @@
 //! - [`PinStore`]：钉图的位置、裁切、缩放、翻转与旋转，重新打开后恢复；
 //! - [`SavedPin::reference`]：资料库中参考图的整图与局部钉图（#65）；
 //! - [`EdgeHide`]：贴边隐藏收起的位置与碰细边滑出；
-//! - [`layers_for`]、[`overlay_window`]、[`widen`]、[`layer_region`]：钉图层与窗口区域的矩形（#64、#193）；
+//! - [`layers_for`]、[`overlay_window`]、[`widen`]、[`layer_region`]、[`pin_area`]：钉图层与窗口区域的矩形
+//!   （#64、#193、#239）；
 //! - [`menu_surface`]、[`PinMenu`]：钉图菜单窗口的位置与菜单状态（#106）。
 
 mod capture;
@@ -28,7 +29,9 @@ pub use history::{
     CollectedCaptureDraft, HISTORY_LIMIT, HistoryError, PreparedCapture,
 };
 pub use menu::{MenuSurface, OpenInKinshoko, PinMenu, PinMenuOpen, menu_surface};
-pub use motion::{layer_region, layer_window, layers_for, overlay_window, widen};
+pub use motion::{
+    PIN_EDGE, layer_region, layer_window, layers_for, overlay_window, pin_area, widen,
+};
 pub use pin::{
     GroupMemberRef, MAX_SCALE, MIN_OPACITY, MIN_SCALE, MIN_SIDE, PinContent, PinError, PinStore,
     Placement, RESTORE_KEEP, SavedPin, initial_scale, pull_onto_screen,

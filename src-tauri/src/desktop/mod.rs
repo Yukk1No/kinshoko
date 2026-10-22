@@ -243,7 +243,7 @@ pub fn init() -> TauriPlugin<Wry> {
             let settings_handle = app.clone();
             app.listen_any("application-settings-restored", move |_| {
                 let app = settings_handle.clone();
-                std::thread::spawn(move || pins::references_changed(&app));
+                std::thread::spawn(move || pins::refresh_all(&app));
             });
             edge::start(app);
             // 恢复上次的钉图：建窗口要等事件循环跑起来，放到别的线程。
@@ -259,6 +259,11 @@ pub fn init() -> TauriPlugin<Wry> {
             });
         })
         .build()
+}
+
+/// 设置里的“增强钉图边缘”开关了（#239）：已经钉着的钉图立即重画。不要持有设置的锁调用。
+pub fn pin_edge_contrast_changed(app: &AppHandle) {
+    pins::refresh_all(app);
 }
 
 /// 资料库转发给窗口的事件里，影响钉图遮蔽的几种：安全模式开关、分级变化（列表过期）。

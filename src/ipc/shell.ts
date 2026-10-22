@@ -100,6 +100,11 @@ export function setKeepSelectionOnSafeMode(on: boolean): Promise<ShellSettingsVi
   return invoke<ShellSettingsView>("set_keep_selection_on_safe_mode", { on });
 }
 
+/** 开关“增强钉图边缘”（#239）：已经钉着的钉图立即重画。 */
+export function setPinEdgeContrast(on: boolean): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_pin_edge_contrast", { on });
+}
+
 export function setForceSrgb(on: boolean): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("set_force_srgb", { on });
 }

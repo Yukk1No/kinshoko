@@ -30,6 +30,10 @@ runLog: boolean,
  */
 keepSelectionOnSafeMode: boolean, 
 /**
+ * 增强钉图边缘：钉图阴影外加一圈浅色细线（#239）。
+ */
+pinEdgeContrast: boolean, 
+/**
  * 安全模式范围（#223）：安全模式从哪一档内容分级开始作用。
  */
 safeModeScope: SafeModeScope, viewerBackground?: ViewerBackground, 

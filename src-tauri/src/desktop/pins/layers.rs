@@ -9,7 +9,8 @@ pub(super) struct Touched {
     pub(super) gone: Vec<(String, String)>,
 }
 
-/// 按钉图此刻的区域与是否让点击穿过，决定哪些层画它：区域碰到的每台显示器上那一种层，没有就建。
+/// 按钉图此刻的区域与是否让点击穿过，决定哪些层画它：区域（连同阴影，[`pin_area`]）碰到的
+/// 每台显示器上那一种层，没有就建。
 /// 收起、滑出一开始就换层，点击马上照新状态穿过或不穿过；新层接着画同一段动画（[`MotionBegan`]）。
 /// 新进的层都画好它之前，离开的层先留着（交接，[`pin_ready`]）；没有等着的新层时立即放手。
 pub(super) fn arrange(app: &AppHandle, pin: &str) -> Result<Touched, String> {
@@ -21,7 +22,7 @@ pub(super) fn arrange(app: &AppHandle, pin: &str) -> Result<Touched, String> {
         return Ok(Touched::default());
     };
     let mut wanted = Vec::new();
-    for monitor in layers_for(region, &monitors) {
+    for monitor in layers_for(pin_area(region), &monitors) {
         wanted.push(layer_on(app, monitor, through)?);
     }
     let mut pins = lock(&state(app).pins);
@@ -182,7 +183,7 @@ pub(super) fn finish(app: &AppHandle, touched: &Touched) {
                 let mut inside = pins
                     .values()
                     .filter(|r| r.layers.contains(label))
-                    .map(|r| r.region)
+                    .map(|r| pin_area(r.region))
                     .peekable();
                 if inside.peek().is_none() {
                     empty.push(label.clone());

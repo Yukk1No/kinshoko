@@ -47,6 +47,26 @@ pub fn widen(region: ScreenRect, to: ScreenRect) -> ScreenRect {
     region.union(&to)
 }
 
+/// 钉图四周阴影那一圈的宽度（物理像素，#239）。这一圈算钉图的一部分：显示阴影，也接点击和拖动。
+/// 前端 `PIN_EDGE`（`src/desktop/pixels.ts`）与它相同。
+pub const PIN_EDGE: u32 = 8;
+
+/// 钉图在层里占的范围：区域四周扩出 [`PIN_EDGE`]。超出坐标范围的部分截掉。
+pub fn pin_area(region: ScreenRect) -> ScreenRect {
+    let edge = i64::from(PIN_EDGE);
+    let clamp = |v: i64| v.clamp(i64::from(i32::MIN), i64::from(i32::MAX));
+    let left = clamp(i64::from(region.x) - edge);
+    let top = clamp(i64::from(region.y) - edge);
+    let right = clamp(i64::from(region.x) + i64::from(region.width) + edge);
+    let bottom = clamp(i64::from(region.y) + i64::from(region.height) + edge);
+    ScreenRect {
+        x: left as i32,
+        y: top as i32,
+        width: (right - left) as u32,
+        height: (bottom - top) as u32,
+    }
+}
+
 /// 层的窗口区域：各钉图区域在层窗口里的部分，换成相对窗口左上角的左、上、右、下
 /// （`SetWindowRgn` 要的）。不在窗口里的不算；一个都没有时为空。
 pub fn layer_region(window: ScreenRect, regions: &[ScreenRect]) -> Vec<(i32, i32, i32, i32)> {
