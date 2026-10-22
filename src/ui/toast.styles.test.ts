@@ -1,13 +1,8 @@
 import { describe, expect, it } from "vitest";
 import css from "./ui.css?raw";
+import { cssRule } from "./cssRule";
 
-/** 一条规则的声明（选择器须完全相同）。 */
-function rule(selector: string): Record<string, string> {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const body = css.match(new RegExp(`(?:^|\\})\\s*${escaped}\\s*\\{([^}]*)\\}`, "m"))?.[1];
-  if (body === undefined) throw new Error(`缺少规则 ${selector}`);
-  return Object.fromEntries(body.split(";").map((d) => d.split(/:(.*)/s).map((s) => s.trim())).filter(([k]) => k));
-}
+const rule = (selector: string) => cssRule(css, selector);
 
 describe("通知与右键菜单、改名浮层同一套外观（#214）", () => {
   const toast = rule(".k-toast");
