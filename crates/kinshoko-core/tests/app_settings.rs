@@ -168,6 +168,32 @@ fn toggling_safe_mode_clears_the_selection_until_the_artist_asks_to_keep_it() {
 }
 
 #[test]
+fn the_pin_edge_contrast_is_off_until_the_artist_turns_it_on_and_then_remembered() {
+    // #239：钉图常驻阴影；浅色细线只在画师打开“增强钉图边缘”后才加。
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(!settings.pin_edge_contrast());
+
+    settings.set_pin_edge_contrast(true).unwrap();
+    drop(settings);
+
+    assert!(AppSettings::open(dir.path()).unwrap().pin_edge_contrast());
+}
+
+#[test]
+fn a_settings_file_from_before_the_pin_edge_contrast_reads_it_as_off() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("settings.json"),
+        r#"{"version":1,"safeMode":false}"#,
+    )
+    .unwrap();
+    let settings = AppSettings::open(dir.path()).unwrap();
+    assert!(!settings.pin_edge_contrast());
+    assert!(!settings.safe_mode(), "其他设置照常读出");
+}
+
+#[test]
 fn forcing_srgb_is_off_after_a_fresh_install_and_only_takes_effect_after_a_restart() {
     let dir = tempfile::tempdir().unwrap();
     let mut settings = AppSettings::open(dir.path()).unwrap();

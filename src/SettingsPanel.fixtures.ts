@@ -29,6 +29,7 @@ export const defaults: ShellSettingsView = {
   forceSrgbInEffect: false,
   runLog: true,
   keepSelectionOnSafeMode: false,
+  pinEdgeContrast: false,
   tagDisplay: { style: "bands", high: 0.8, low: 0.4, lowOutline: true },
   updateChannel: "stable",
 };

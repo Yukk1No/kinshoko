@@ -3,7 +3,8 @@
 //! 或被裁掉。
 
 use kinshoko_core::desktop::{
-    DeskPin, EdgeHide, ScreenRect, layer_region, layers_for, overlay_window, widen,
+    DeskPin, EdgeHide, PIN_EDGE, ScreenRect, layer_region, layers_for, overlay_window, pin_area,
+    widen,
 };
 
 const MONITOR: ScreenRect = rect(0, 0, 1920, 1080);
@@ -114,6 +115,73 @@ fn a_sliver_on_the_bottom_edge_loses_the_row_the_layer_gives_up() {
         layer_region(overlay_window(MONITOR), &[hidden]),
         vec![(500, 1074, 700, 1079)]
     );
+}
+
+#[test]
+fn a_pin_takes_its_edge_around_it_in_the_layer() {
+    // #239：阴影画在钉图外面一圈，这一圈也算钉图（接点击、拖动）。
+    let e = PIN_EDGE as i32;
+    assert_eq!(
+        pin_area(rect(100, 50, 300, 200)),
+        rect(100 - e, 50 - e, 300 + 2 * PIN_EDGE, 200 + 2 * PIN_EDGE)
+    );
+    assert_eq!(
+        layer_region(
+            overlay_window(MONITOR),
+            &[pin_area(rect(100, 50, 300, 200))]
+        ),
+        vec![(100 - e, 50 - e, 400 + e, 250 + e)]
+    );
+}
+
+#[test]
+fn a_pin_edge_past_the_monitor_is_cut_off() {
+    // 贴着左上角：扩出显示器的部分不显示；下边仍让出最下面一行（ADR 0011）。
+    let e = PIN_EDGE as i32;
+    let corner = pin_area(rect(0, 0, 200, 100));
+    assert_eq!(
+        layer_region(overlay_window(MONITOR), &[corner]),
+        vec![(0, 0, 200 + e, 100 + e)]
+    );
+    let bottom = pin_area(rect(500, 1000, 200, 80));
+    assert_eq!(
+        layer_region(overlay_window(MONITOR), &[bottom]),
+        vec![(500 - e, 1000 - e, 700 + e, 1079)]
+    );
+}
+
+#[test]
+fn a_pin_edge_reaching_the_next_monitor_is_drawn_there_too() {
+    // 钉图贴着两台显示器的分界：右边那台的层画出落在它上面的那一截阴影。
+    let area = pin_area(rect(1700, 100, 220, 100));
+    assert_eq!(layers_for(area, &[MONITOR, RIGHT]), vec![MONITOR, RIGHT]);
+    assert_eq!(
+        layer_region(overlay_window(RIGHT), &[area]),
+        vec![(
+            0,
+            100 - PIN_EDGE as i32,
+            PIN_EDGE as i32,
+            200 + PIN_EDGE as i32
+        )]
+    );
+}
+
+#[test]
+fn a_hidden_pin_casts_its_edge_only_onto_the_screen_side() {
+    // 收到左边：只有露出的细边那一侧多出阴影，屏幕外的照常看不见。
+    let e = PIN_EDGE as i32;
+    let hidden = pin_area(rect(-194, 400, 200, 100));
+    assert_eq!(
+        layer_region(overlay_window(MONITOR), &[hidden]),
+        vec![(0, 400 - e, 6 + e, 500 + e)]
+    );
+}
+
+#[test]
+fn a_pin_edge_never_overflows_the_coordinate_range() {
+    let far = pin_area(rect(i32::MIN, i32::MIN, 10, 10));
+    assert_eq!((far.x, far.y), (i32::MIN, i32::MIN));
+    assert_eq!(far.width, 10 + PIN_EDGE);
 }
 
 fn tucked_left() -> EdgeHide {

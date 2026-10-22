@@ -54,6 +54,7 @@ pub(super) fn frames(
         return Vec::new();
     };
     let (veiled, unavailable) = appearance(app, &saved);
+    let edge_contrast = edge_contrast(app);
     let pins = lock(&state(app).pins);
     let layers = lock(&state(app).layers);
     let Some(r) = pins.get(pin) else {
@@ -81,6 +82,7 @@ pub(super) fn frames(
                     settle: !r.settled,
                     z: r.z,
                     began,
+                    edge_contrast,
                 },
             ))
         })
@@ -122,6 +124,22 @@ pub fn references_changed(app: &AppHandle) {
         .filter(|(_, r)| r.capture_id.is_none())
         .map(|(id, _)| id.clone())
         .collect();
+    for id in ids {
+        refresh(app, &id);
+    }
+}
+
+/// 设置里的“增强钉图边缘”（#239）；读不到设置时按关闭处理。
+fn edge_contrast(app: &AppHandle) -> bool {
+    app.try_state::<crate::shell::ShellState>()
+        .and_then(|shell| shell.0.lock().ok().map(|s| s.settings.pin_edge_contrast()))
+        .unwrap_or(false)
+}
+
+/// 应用设置变了（“增强钉图边缘”开关、恢复设置备份）：全部钉图立即重画，资料库钉图也重新核对
+/// 要不要遮蔽。不要持有设置的锁调用。
+pub fn refresh_all(app: &AppHandle) {
+    let ids: Vec<String> = lock(&state(app).pins).keys().cloned().collect();
     for id in ids {
         refresh(app, &id);
     }

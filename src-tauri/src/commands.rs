@@ -75,6 +75,25 @@ pub async fn set_keep_selection_on_safe_mode(
     Ok(shell.view())
 }
 
+/// 开关“增强钉图边缘”（#239）：保存后已经钉着的钉图立即重画。
+#[tauri::command]
+pub async fn set_pin_edge_contrast(
+    app: AppHandle,
+    state: State<'_, ShellState>,
+    on: bool,
+) -> Result<ShellSettingsView, String> {
+    let view = {
+        let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+        shell
+            .settings
+            .set_pin_edge_contrast(on)
+            .map_err(|e| e.to_string())?;
+        shell.view()
+    };
+    crate::desktop::pin_edge_contrast_changed(&app);
+    Ok(view)
+}
+
 /// 开关诊断开关“强制 sRGB”。WebView2 环境在启动时建好，重启 Kinshoko 后生效。
 #[tauri::command]
 pub async fn set_force_srgb(

@@ -118,6 +118,8 @@ pub struct PinFrame {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub began: Option<MotionBegan>,
+    /// 增强钉图边缘（应用设置，#239）：阴影外再加一圈浅色细线。
+    pub edge_contrast: bool,
 }
 
 /// 一段动画的起点：从 `from` 出发，`elapsed_ms` 毫秒以前开始。

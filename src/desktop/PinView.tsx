@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import type { PinFrame } from "../bindings/PinFrame";
-import type { SavedPin } from "../bindings/SavedPin";
 import { RuntimeFailure, RuntimeNotice } from "../RuntimeSupport";
 import {
-  captureUrl,
   closePin,
   movePin,
-  pinImageUrl,
   onPinFrame,
   onPinNotice,
   pinFrame,
@@ -31,56 +28,23 @@ import {
   pressOpensMenu,
   wheelOpacity,
 } from "./motion";
+import { latestOnly } from "./latestOnly";
+import { drawKey, sourceUrl } from "./pinSource";
 import { PinKeys } from "./pinKeys";
-import { createCanvas2dRenderer, pinSourceSize, type PinRenderer, type PinSource } from "./renderer";
+import { createCanvas2dRenderer, type PinRenderer, type PinSource } from "./renderer";
 import {
   cornerZoomScale,
   inZoomCorner,
+  onPin,
+  PIN_EDGE,
   pinCanvasSize,
   wheelZoomScale,
   type Point,
   type ZoomStart,
 } from "./pixels";
 
-/** 画面内容变了才重画 canvas（位置变化只改 CSS 变换）。 */
-function drawKey(pin: SavedPin, source: string): string {
-  const p = pin.placement;
-  return JSON.stringify([source, pin.width, pin.height, pin.crop, p.scale, p.flipH, p.flipV, p.rotation]);
-}
-
-/** 钉图此刻应该画的源图地址：截图本身，或资料库钉图经参考视角的显示文件（#65）。 */
-function sourceUrl(f: PinFrame): string {
-  const content = f.pin.content;
-  if (content.kind === "capture") return captureUrl(content.captureId);
-  return pinImageUrl(f.pin.id, pinSourceSize(f.pin, f.veiled));
-}
-
 /** 缩放停下这么久后才换源图（派生图按尺寸生成，滚轮连续几格时不每格都生成）。 */
 const SOURCE_IDLE_MS = 150;
-
-/** 只发最新的一次：上一次还没返回时，新的请求替换排队中的那个。拖动时不会积压 IPC。 */
-function latestOnly<A extends unknown[]>(send: (...args: A) => Promise<unknown>) {
-  let busy = false;
-  let queued: A | null = null;
-  const run = (...args: A) => {
-    if (busy) {
-      queued = args;
-      return;
-    }
-    busy = true;
-    void send(...args)
-      .catch(() => {})
-      .finally(() => {
-        busy = false;
-        if (queued) {
-          const next = queued;
-          queued = null;
-          run(...next);
-        }
-      });
-  };
-  return run;
-}
 
 type Gesture = {
   pointerId: number;
@@ -143,6 +107,7 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
   const menuAt = useRef(0);
   const [corner, setCorner] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [edgeContrast, setEdgeContrast] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [veiled, setVeiled] = useState(false);
   const [missing, setMissing] = useState(false);
@@ -251,6 +216,10 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
         renderer.draw(source, f.pin);
       }
     };
+    /** 阴影那一圈是固定的物理像素宽（与层的窗口区域对上），按此刻的 dpr 换成 CSS 像素（#239）。 */
+    const sizeEdge = () => {
+      host.current?.style.setProperty("--pin-edge", `${PIN_EDGE / window.devicePixelRatio}px`);
+    };
     apply.current = (f) => {
       const now = performance.now();
       const first = frame.current === null;
@@ -270,7 +239,9 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
       if (renderer) pickSource(false);
       if (body.current) body.current.style.opacity = String(f.pin.opacity);
       if (host.current) host.current.style.zIndex = String(f.z);
+      sizeEdge();
       setLocked(f.pin.locked);
+      setEdgeContrast(f.edgeContrast);
       setUnavailable(f.unavailable ?? null);
       clearTimeout(settle);
       if (!raf) tick();
@@ -278,6 +249,7 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
     const onResize = () => {
       // 拖到缩放比例不同的显示器上时，按新的 dpr 重定 CSS 尺寸与偏移。
       redraw(true);
+      sizeEdge();
       tick();
     };
 
@@ -373,16 +345,12 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
   }, [pin, keys]);
 
   /**
-   * 指针在内容上（CSS 像素，相对窗口）。窗口区域在动画、拖动刚结束的一小会儿里还盖着内容以外的
-   * 透明处，那里的按下不当作拖动或菜单（#193）。
+   * 指针在内容或它四周的阴影上（CSS 像素，相对窗口；阴影那一圈算钉图的一部分，#239）。窗口区域
+   * 在动画、拖动刚结束的一小会儿里还盖着更远的透明处，那里的按下不当作拖动或菜单（#193）。
    */
   const inContent = (x: number, y: number) => {
     const f = frame.current;
-    if (!f) return false;
-    const dpr = window.devicePixelRatio;
-    const left = (f.content.x - f.window.x) / dpr;
-    const top = (f.content.y - f.window.y) / dpr;
-    return x >= left && y >= top && x < left + f.content.width / dpr && y < top + f.content.height / dpr;
+    return !!f && onPin({ x, y }, f.content, f.window, window.devicePixelRatio);
   };
 
   /** 指针在内容的右下角缩放区里（CSS 像素，相对窗口）。 */
@@ -471,6 +439,7 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
         "pin",
         locked ? "pin-locked" : corner ? "pin-corner" : "",
         veiled ? "pin-veiled" : "",
+        edgeContrast ? "pin-edge-contrast" : "",
       ].filter(Boolean).join(" ")}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -487,6 +456,8 @@ export function PinView({ pin, keys }: { pin: string; keys: PinKeys }) {
         onPointerEnter={() => keys.enter(pin)}
         onPointerLeave={() => keys.leave(pin)}
       >
+        {/* 阴影那一圈：接住按在阴影上的指针，交给钉图的拖动与菜单（#239）。 */}
+        <div className="pin-edge" aria-hidden />
         <div className="pin-appear" aria-hidden />
         <div className="pin-veil" aria-hidden={!veiled}>
           {veiled && !confirming && (

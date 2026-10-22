@@ -65,6 +65,7 @@ function frame(side: number, scale: number, veiled: boolean): PinFrame {
     generation: 0,
     settle: false,
     z: 1,
+    edgeContrast: false,
   };
 }
 

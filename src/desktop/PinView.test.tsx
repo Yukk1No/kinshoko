@@ -69,6 +69,7 @@ function frame(locked = false, veiled = false): PinFrame {
     generation: 0,
     settle: false,
     z: 1,
+    edgeContrast: false,
   };
 }
 
@@ -240,6 +241,53 @@ describe("参考组成员暂时不可用（#66）", () => {
     expect(host.querySelector(".pin-missing")?.textContent).toBe("资料库暂时不可用：移动盘没插");
     act(() => ipc.frame!(frame()));
     expect(host.querySelector(".pin-missing")).toBeNull();
+  });
+});
+
+describe("钉图四周的阴影（#239）", () => {
+  /** 窗口是整台显示器，内容在 (80, 80)。 */
+  const onScreen = (edgeContrast = false): PinFrame => ({
+    ...frame(),
+    window: { x: 0, y: 0, width: 2560, height: 1440 },
+    edgeContrast,
+  });
+
+  it("按在阴影那一圈上拖动钉图", async () => {
+    const host = await showPin();
+    act(() => ipc.frame!(onScreen()));
+    fireEvent(host, pointer("pointerdown", { screen: [75, 100], client: [75, 100] }));
+    fireEvent(host, pointer("pointermove", { screen: [85, 100], client: [85, 100] }));
+    expect(ipc.move).toHaveBeenLastCalledWith("P1", 90, 80);
+  });
+
+  it("在阴影上点右键也打开钉图菜单", async () => {
+    const host = await showPin();
+    act(() => ipc.frame!(onScreen()));
+    fireEvent.contextMenu(host, { clientX: 100, clientY: 75 });
+    expect(ipc.menu).toHaveBeenCalledWith("P1");
+  });
+
+  it("阴影以外按下不拖动", async () => {
+    const host = await showPin();
+    act(() => ipc.frame!(onScreen()));
+    fireEvent(host, pointer("pointerdown", { screen: [70, 100], client: [70, 100] }));
+    fireEvent(host, pointer("pointermove", { screen: [80, 100], client: [80, 100] }));
+    expect(ipc.move).not.toHaveBeenCalled();
+  });
+
+  it("阴影宽度按物理像素换成 CSS 像素", async () => {
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 2 });
+    const host = await showPin();
+    expect(host.style.getPropertyValue("--pin-edge")).toBe("4px");
+  });
+
+  it("增强钉图边缘开关推来时立即加上浅色细线，关掉时撤掉", async () => {
+    const host = await showPin();
+    expect(host.classList.contains("pin-edge-contrast")).toBe(false);
+    act(() => ipc.frame!(onScreen(true)));
+    expect(host.classList.contains("pin-edge-contrast")).toBe(true);
+    act(() => ipc.frame!(onScreen(false)));
+    expect(host.classList.contains("pin-edge-contrast")).toBe(false);
   });
 });
 

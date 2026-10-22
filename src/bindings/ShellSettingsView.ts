@@ -27,7 +27,11 @@ runLog: boolean,
 /**
  * 切换安全模式时保留当前选择。
  */
-keepSelectionOnSafeMode: boolean, viewerBackground?: ViewerBackground, 
+keepSelectionOnSafeMode: boolean, 
+/**
+ * 增强钉图边缘：钉图阴影外加一圈浅色细线（#239）。
+ */
+pinEdgeContrast: boolean, viewerBackground?: ViewerBackground, 
 /**
  * 标签外观与可信度分档（#160）。
  */

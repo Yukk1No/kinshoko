@@ -4,7 +4,7 @@
 //!
 //! 钉图画在钉图层里（#193）：每台有钉图的显示器一个无边框、置顶、透明、不进任务栏的窗口（页面
 //! `?view=pin-layer`），铺满显示器（[`layer_window`]），建好后不再移动；全部钉图都是层里的页面
-//! 元素，层的窗口区域是各钉图区域的并集，把显示和点击限定在钉图本身。缩放、贴边滑动、拖动与翻转
+//! 元素，层的窗口区域是各钉图区域（连同四周阴影那一圈，#239）的并集，把显示和点击限定在钉图本身。缩放、贴边滑动、拖动与翻转
 //! 只在页面里移动内容并改区域：窗口原点一动，WebView2 就要晚 1～2 帧才跟上，画面先抽搐再被裁掉
 //! （#193）。跨两台显示器的钉图两个层都画，各露自己那一半；拖到另一台显示器就是在拖动中交给那台的
 //! 层。收起且没滑出的钉图放在同一台显示器上另一个让点击穿过的层里（其他钉图照常接点击），滑出时
@@ -31,7 +31,7 @@ use image::RgbaImage;
 use kinshoko_core::desktop::{
     CaptureEntry, CaptureSurface, MotionBegan, OpenInKinshoko, PinContent, PinFrame, PinMenu,
     PinMotion, Placement, Region, SavedPin, ScreenRect, Screenshot, Turn, initial_scale,
-    layer_region, layer_window, layers_for, place_new_pin, widen,
+    layer_region, layer_window, layers_for, pin_area, place_new_pin, widen,
 };
 use kinshoko_core::reference_groups::ReferenceSource;
 use tauri::{

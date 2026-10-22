@@ -57,6 +57,20 @@ describe("设置：近似查找", () => {
     expect(seen.at(-1)?.keepSelectionOnSafeMode).toBe(true);
   });
 
+  it("增强钉图边缘默认关闭，打开后保存（#239）", async () => {
+    const calls = backend((cmd) =>
+      cmd === "set_pin_edge_contrast" ? { ...defaults, pinEdgeContrast: true } : undefined,
+    );
+    render(<SettingsPanel library={null} initialTab="general" />);
+
+    const toggle = await screen.findByRole("switch", { name: "增强钉图边缘" });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(toggle);
+
+    await screen.findByRole("switch", { name: "增强钉图边缘", checked: true });
+    expect(calls.find((c) => c.cmd === "set_pin_edge_contrast")?.args).toEqual({ on: true });
+  });
+
   it("程序设置中列出全局个人近似对应表，可以删除", async () => {
     let listed = entries;
     const calls = backend((cmd, args) => {

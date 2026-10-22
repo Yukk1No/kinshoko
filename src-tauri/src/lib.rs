@@ -75,6 +75,7 @@ pub fn run() {
             commands::set_show_approx_source,
             commands::set_tag_display,
             commands::set_keep_selection_on_safe_mode,
+            commands::set_pin_edge_contrast,
             commands::set_force_srgb,
             run_log::set_run_log,
             run_log::clear_run_log,

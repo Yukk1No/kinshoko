@@ -49,6 +49,21 @@ export interface Rect {
   height: number;
 }
 
+/**
+ * 钉图四周阴影那一圈的宽度（物理像素，#239），与 Rust 的 `PIN_EDGE`（`kinshoko-core` 的
+ * `desktop::motion`）相同：层的窗口区域按它扩出，阴影画在里面，按在上面等于按在钉图边上。
+ */
+export const PIN_EDGE = 8;
+
+/** 指针（CSS 像素，相对层窗口）在钉图内容或它四周的阴影上。`content`、`window` 为屏幕物理像素。 */
+export function onPin(at: Point, content: Rect, window: Rect, dpr: number): boolean {
+  const left = (content.x - PIN_EDGE - window.x) / dpr;
+  const top = (content.y - PIN_EDGE - window.y) / dpr;
+  const right = (content.x + content.width + PIN_EDGE - window.x) / dpr;
+  const bottom = (content.y + content.height + PIN_EDGE - window.y) / dpr;
+  return at.x >= left && at.y >= top && at.x < right && at.y < bottom;
+}
+
 /** 拖动起点与当前点围成的选区，单位与输入相同。 */
 export function selectionRect(a: Point, b: Point): Rect {
   return {
