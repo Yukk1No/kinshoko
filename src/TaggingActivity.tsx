@@ -54,8 +54,8 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
       failure.current = null;
     }
     previous.current = { libraryId, status };
-    // 下载中暂停或取消（#213）不算下载完成；下载完总会先校验。
-    if (before?.state === "downloading" && ["preparing", "starting", "running", "idle"].includes(status.state)) {
+    // 下载中暂停或取消（#213）也不算下载完成。
+    if (before?.state === "downloading" && !["downloading", "failed", "needsDownload", "paused"].includes(status.state)) {
       toast.show({ title: "打标模型已下载", tone: "success" });
     }
     // 后端出错后定时重试并反复广播：一直是同一个原因时只报一次。
@@ -82,8 +82,8 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
       if (id !== null) toast.close(id);
     };
     if (status.state !== "needsDownload") return closeDownload();
-    // 下载中途回到需要下载只有画师取消下载一种（#213；中断走出错重试）：和关掉通知一样，本次启动内不再弹。
-    if (before?.state === "downloading") declined.current.add(libraryId);
+    // 画师取消了下载（#213）：和关掉通知一样，本次启动内不再弹。
+    if (status.cancelled) declined.current.add(libraryId);
     if (download.current !== null || declined.current.has(libraryId)) return;
     const start = () => {
       closeDownload();

@@ -18,14 +18,11 @@ fn an_interrupted_download_resumes_where_it_stopped() {
     assert!(matches!(failed, TaggingStatus::Failed { .. }));
     idle(&tagging);
 
-    let requests: Vec<_> = f
-        .server
-        .requests()
-        .into_iter()
-        .filter(|(p, _)| *p == path)
-        .map(|(_, range)| range)
-        .collect();
-    assert_eq!(requests, vec![None, Some(100_000)], "第二次从断点续传");
+    assert_eq!(
+        ranges(&f, &path),
+        vec![None, Some(100_000)],
+        "第二次从断点续传"
+    );
 }
 
 #[test]
@@ -55,6 +52,7 @@ fn a_partial_download_is_shown_before_the_artist_confirms() {
             size: 300_000,
             downloaded: 120_000,
             fallback: None,
+            cancelled: false,
         }
     );
 }
@@ -110,10 +108,13 @@ fn cancelling_a_download_asks_again_and_downloading_again_resumes() {
     });
     tagging.cancel_download();
     f.server.release();
-    let TaggingStatus::NeedsDownload { downloaded, .. } =
-        wait_for(&tagging, "回到需要下载", |s| {
-            matches!(s, TaggingStatus::NeedsDownload { .. })
-        })
+    let TaggingStatus::NeedsDownload {
+        downloaded,
+        cancelled: true,
+        ..
+    } = wait_for(&tagging, "回到需要下载", |s| {
+        matches!(s, TaggingStatus::NeedsDownload { .. })
+    })
     else {
         unreachable!()
     };

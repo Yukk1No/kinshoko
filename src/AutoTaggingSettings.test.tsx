@@ -62,7 +62,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
   });
 
   it("首次使用显示需要下载的大小，确认后才下载", async () => {
-    const calls = backend({ status: { state: "needsDownload", model: "x", size: 992_916_002, downloaded: 0, fallback: null } });
+    const calls = backend({ status: { state: "needsDownload", model: "x", size: 992_916_002, downloaded: 0, fallback: null, cancelled: false } });
     render(<AutoTaggingSettings libraryId="L1" />);
     await waitFor(() => expect(within(statusRow()).getByText(/需要下载模型（993 MB）/)).toBeTruthy());
     expect(calls.some((c) => c.cmd === "tagging_download")).toBe(false);
@@ -71,13 +71,13 @@ describe("设置 › 自动标签 › 自动打标", () => {
   });
 
   it("下载过一部分时按钮是继续下载", async () => {
-    backend({ status: { state: "needsDownload", model: "x", size: 1_000_000_000, downloaded: 250_000_000, fallback: null } });
+    backend({ status: { state: "needsDownload", model: "x", size: 1_000_000_000, downloaded: 250_000_000, fallback: null, cancelled: false } });
     render(<AutoTaggingSettings libraryId="L1" />);
     expect(await screen.findByRole("button", { name: "继续下载（已下载 25%）" })).toBeTruthy();
   });
 
   it("自动档退回 CPU 时写明原因与要下载的大小", async () => {
-    backend({ status: { state: "needsDownload", model: "x", size: 1_984_062_544, downloaded: 0, fallback: "显卡多次出错，本次不再使用" } });
+    backend({ status: { state: "needsDownload", model: "x", size: 1_984_062_544, downloaded: 0, fallback: "显卡多次出错，本次不再使用", cancelled: false } });
     render(<AutoTaggingSettings libraryId="L1" />);
     await waitFor(() => expect(within(statusRow()).getByText("显卡不可用：显卡多次出错，本次不再使用，改用 CPU 需下载 1984 MB")).toBeTruthy());
     expect(within(statusRow()).getByRole("button", { name: "下载" })).toBeTruthy();

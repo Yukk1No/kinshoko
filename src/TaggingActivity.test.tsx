@@ -29,7 +29,7 @@ function mount(onOpenSettings = vi.fn(), libraryId = "L1", registered?: string[]
 
 const running = (tagged: number): TaggingStatus => ({ state: "running", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged });
 const idle = (tagged: number): TaggingStatus => ({ state: "idle", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged });
-const needsDownload = (downloaded = 0): TaggingStatus => ({ state: "needsDownload", model: "PixAI", size: 992_916_002, downloaded, fallback: null });
+const needsDownload = (downloaded = 0, cancelled = false): TaggingStatus => ({ state: "needsDownload", model: "PixAI", size: 992_916_002, downloaded, fallback: null, cancelled });
 const downloading = (downloaded: number): TaggingStatus => ({ state: "downloading", model: "PixAI", downloaded, total: 1_000_000_000 });
 /** 等待后端首次读取与订阅都到位，后面的推送才收得到。 */
 const settled = () => waitFor(() => expect(actions.some((a) => a.command === "tagging_status")).toBe(true));
@@ -154,7 +154,7 @@ describe("“需要下载”通知的去重", () => {
     backend({ L1: downloading(100) });
     mount();
     await settled();
-    await push(needsDownload(500_000_000));
+    await push(needsDownload(500_000_000, true));
     await push(needsDownload(500_000_000));
     expect(shown(/需要下载打标模型/)).toBe(0);
     expect(shown(/打标模型已下载/)).toBe(0);
@@ -185,12 +185,13 @@ describe("完成类通知", () => {
 
   it.each<[string, TaggingStatus]>([
     ["出错", { state: "failed", reason: "下载失败：超时" }],
+    ["中断回到需要下载", needsDownload(500_000_000)],
   ])("下载%s不算下载完成", async (_, next) => {
     backend({ L1: downloading(100) });
     mount();
     await settled();
     await push(next);
-    await waitFor(() => expect(shown(/下载失败/)).toBe(1));
+    await waitFor(() => expect(shown(/需要下载打标模型|下载失败/)).toBe(1));
     expect(shown(/打标模型已下载/)).toBe(0);
   });
 

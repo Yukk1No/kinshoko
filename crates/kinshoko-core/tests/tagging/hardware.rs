@@ -206,6 +206,7 @@ fn automatic_falls_back_to_the_cpu_but_asks_before_downloading_it() {
             size: cpu.size,
             downloaded: 0,
             fallback: Some("没有独立显卡".into()),
+            cancelled: false,
         }
     );
 }
