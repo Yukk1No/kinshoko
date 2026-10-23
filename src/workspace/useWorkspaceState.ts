@@ -53,10 +53,12 @@ export function useWorkspaceState({
   useEffect(() => { if (!viewing) setViewCrop(false); }, [viewing]);
   const importControl = useRef<ImportControl>(null);
   // 导入菜单里“图片”的快捷键 Ctrl O：与菜单项同一入口，导入进行中时由入口自己忽略。
+  // 设置、分组编辑器等对话框或菜单开着时不响应，免得导入流程叠在它们上面。
   useEffect(() => {
     if (hidden) return;
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== "o") return;
+      if (e.defaultPrevented || document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
       e.preventDefault();
       importControl.current?.files();
     };

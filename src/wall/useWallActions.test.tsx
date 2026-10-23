@@ -65,6 +65,25 @@ it("移到回收站不先确认，轻提示里的“撤销”把同一批图还�
   ]);
 });
 
+it("跨图库移到回收站时一个图库失败：已移走的那部分照样能撤销", async () => {
+  mockIPC((cmd, args) => {
+    calls.push({ cmd, args: args as Record<string, unknown> });
+    const target = (args as { target?: { libraryId: string } }).target;
+    if (target?.libraryId === "L2") return Promise.reject("资料库暂时不可用");
+    return null;
+  });
+  const onError = vi.fn();
+  render(<ToastProvider><Harness onError={onError} /></ToastProvider>);
+  act(() => api.edit([card("1"), card("2", "L2"), card("3", "L3")], [{ kind: "delete" }], true));
+  expect(await screen.findByText("已移到回收站")).toBeTruthy();
+  expect(screen.getByText("2 张")).toBeTruthy();
+  expect(onError).toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+  const restores = () => calls.filter((c) => c.cmd === "plugin:library|workspace_edit_source" && (c.args.edits as { kind: string }[])[0].kind === "restore");
+  await waitFor(() => expect(restores()).toHaveLength(2));
+  expect(restores().map((c) => (c.args.target as { libraryId: string }).libraryId)).toEqual(["L1", "L3"]);
+});
+
 it("整理按每张图的来源写入，结束后刷新；clear 时取消选择", async () => {
   const onChanged = vi.fn(), onClearSelection = vi.fn();
   render(<Harness onChanged={onChanged} onClearSelection={onClearSelection} />);

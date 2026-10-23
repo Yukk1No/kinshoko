@@ -87,20 +87,22 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
    */
   const eachCard = async (cards: BrowserCard[], what: string, run: (target: WorkspaceSourceTarget) => Promise<unknown>) => {
     cardsNamed.current = cards;
-    const byLibrary = new Map<string, WorkspaceSourceTarget[]>();
+    const byLibrary = new Map<string, { card: BrowserCard; target: WorkspaceSourceTarget }[]>();
     for (const card of cards) {
       const target = targetOf(card, options.current.activeLibraryId);
       const group = byLibrary.get(target.libraryId);
-      if (group) group.push(target); else byLibrary.set(target.libraryId, [target]);
+      if (group) group.push({ card, target }); else byLibrary.set(target.libraryId, [{ card, target }]);
     }
     const failed: { libraryId: string; error: string }[] = [];
-    for (const [libraryId, targets] of byLibrary) {
-      for (const target of targets) {
-        try { await run(target); } catch (e) { failed.push({ libraryId, error: String(e) }); break; }
+    /** 已完成的图：有图库失败时，撤销只作用于这些。 */
+    const succeeded: BrowserCard[] = [];
+    for (const [libraryId, entries] of byLibrary) {
+      for (const { card, target } of entries) {
+        try { await run(target); succeeded.push(card); } catch (e) { failed.push({ libraryId, error: String(e) }); break; }
       }
     }
     if (failed.length) options.current.onError(`有图库没有${what}。${libraryFailures(failed, libraryName)}`);
-    return failed.length === 0;
+    return { ok: failed.length === 0, succeeded };
   };
 
   const actions: WallMenuActions = {
@@ -136,13 +138,13 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       const { safe, onChanged, onClearSelection } = options.current;
       void (async () => {
         try {
-          const done = await eachCard(cards, "整理完", (target) => workspaceEditSource(target, safe, edits));
-          if (done && clear) onClearSelection();
-          // 移到回收站能撤销，所以不先确认：直接做，再给一个带“撤销”的轻提示。
-          if (done && edits.length === 1 && edits[0].kind === "delete") {
+          const { ok, succeeded } = await eachCard(cards, "整理完", (target) => workspaceEditSource(target, safe, edits));
+          if (ok && clear) onClearSelection();
+          // 移到回收站能撤销，所以不先确认：直接做，再给一个带“撤销”的轻提示。有图库失败时，已移走的那部分照样能撤销。
+          if (succeeded.length > 0 && edits.length === 1 && edits[0].kind === "delete") {
             toast?.show({
-              title: "已移到回收站", description: cards.length > 1 ? `${cards.length} 张` : undefined, tone: "success",
-              action: { label: "撤销", onClick: () => actions.edit(cards, [{ kind: "restore" }], false) },
+              title: "已移到回收站", description: succeeded.length > 1 ? `${succeeded.length} 张` : undefined, tone: "success",
+              action: { label: "撤销", onClick: () => actions.edit(succeeded, [{ kind: "restore" }], false) },
             });
           }
         } finally {

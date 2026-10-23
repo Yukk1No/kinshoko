@@ -260,3 +260,19 @@ describe("主窗口", () => {
   });
 
 });
+
+describe("导入快捷键 Ctrl O", () => {
+  it("在图片墙上打开选择文件；设置等对话框开着时不响应", async () => {
+    backend(library, clean, (cmd) => (cmd === "plugin:library|pick_files" ? [] : undefined));
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.keyDown(window, { key: "o", ctrlKey: true });
+    await waitFor(() => expect(sent("plugin:library|pick_files").length).toBe(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "设置" }));
+    await screen.findByRole("dialog");
+    fireEvent.keyDown(window, { key: "o", ctrlKey: true });
+    await act(async () => { await Promise.resolve(); });
+    expect(sent("plugin:library|pick_files").length).toBe(1);
+  });
+});

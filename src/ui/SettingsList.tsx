@@ -1,8 +1,9 @@
-import type { ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
 
 /**
  * 设置与对话框里的一行（设计系统 SettingsList）：图标、名称、右侧控件，没有描述行。
- * `hint` 是名称说不清时的补充，只在整行的悬停提示里；`meta` 是这一项的当前状态（版本、进度、位置），
+ * `hint` 是名称说不清时的补充：鼠标悬停整行时是提示；键盘聚焦到这一行的控件时显示在名称下方，
+ * 并经 `aria-describedby` 读给读屏软件。`meta` 是这一项的当前状态（版本、进度、位置），
  * 用 `ink-2` 小字放在控件左边；`warn` 是需要用户处理的问题，仍在名称下方占一行。
  * 设置项改动即生效，不加“保存”按钮。`label` 给整行一个无障碍名称（例如快捷键行按动作名查找）。
  */
@@ -11,11 +12,23 @@ export function SettingsRow({ icon, title, hint, meta, warn, children, label, cl
   /** 行下方展开的内容（例如预览、确认、编辑器），与这一行同属一项。 */
   below?: ReactNode;
 }) {
-  return <li className={`k-list-row k-set-row ${className}`} aria-label={label} title={hint}>
+  const hintId = useId();
+  const row = useRef<HTMLLIElement>(null);
+  // 控件由调用方给出（开关、下拉、按钮）：把补充说明挂到这一行的每个控件上。
+  useLayoutEffect(() => {
+    if (!hint) return;
+    const controls = row.current?.querySelectorAll<HTMLElement>(".k-set-row-main .k-list-end :is(button, input, select, textarea, [role='switch'], [tabindex])") ?? [];
+    for (const control of controls) {
+      const ids = (control.getAttribute("aria-describedby") ?? "").split(" ").filter(Boolean);
+      if (!ids.includes(hintId)) control.setAttribute("aria-describedby", [...ids, hintId].join(" "));
+    }
+  });
+  return <li ref={row} className={`k-list-row k-set-row ${className}`} aria-label={label} title={hint}>
     <div className="k-set-row-main">
       {icon && <span className="k-list-icon" aria-hidden="true">{icon}</span>}
       <div className="k-list-text">
         <div className="k-list-title">{title}</div>
+        {hint && <p id={hintId} className="k-set-hint">{hint}</p>}
         {warn && <p className="k-list-desc is-warn">{warn}</p>}
       </div>
       {(meta !== undefined || children !== undefined) && <div className="k-list-end">

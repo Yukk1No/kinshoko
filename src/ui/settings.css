@@ -29,6 +29,9 @@
 .k-set-row-main .k-list-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* 12px 的说明配 18px 行高（同 .k-set-note）：沿用正文的 20px 时文字块下沉的留白多，整块比图标偏上，有说明的行也高出 2px（#218）。 */
 .k-set-row .k-list-desc { line-height: 18px; }
+/* 补充说明：悬停时在整行的提示里；键盘聚焦到这一行的控件时显示在名称下方。 */
+.k-set-hint { display: none; margin: 0; font-size: 12px; line-height: 18px; color: var(--ink-2); white-space: normal; }
+.k-set-row:has(:focus-visible) .k-set-hint { display: block; }
 .k-set-row-main > .k-list-end { min-width: 0; max-width: 55%; flex: 0 1 auto; }
 .k-set-row-main > .k-list-end > .k-select { width: 240px; max-width: 100%; min-width: 0; text-overflow: ellipsis; }
 .k-set-row-below { padding: 0 12px 12px 52px; color: var(--ink-2); font-size: 12px; }
