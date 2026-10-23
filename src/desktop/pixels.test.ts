@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   cornerZoomScale,
   dragSelection,
+  editSelection,
   inZoomCorner,
   onPin,
   PIN_EDGE,
   pinCanvasSize,
   pinDrawing,
   reachEdges,
+  selectionPart,
   selectionRect,
   toDevicePx,
   wheelZoomScale,
@@ -86,6 +88,51 @@ describe("dragSelection", () => {
   it("按下没有移动（例如双击钉住）时保留原来的选区", () => {
     expect(dragSelection(previous, { x: 30, y: 20 }, { x: 30, y: 20 })).toBe(previous);
     expect(dragSelection(null, { x: 30, y: 20 }, { x: 30, y: 20 })).toBeNull();
+  });
+});
+
+describe("selectionPart", () => {
+  const rect = { x: 100, y: 100, width: 200, height: 100 };
+
+  it("边与角向内外各伸出 reach；内部是 inside，再往外是 outside", () => {
+    expect(selectionPart(rect, { x: 200, y: 150 }, 6)).toBe("inside");
+    expect(selectionPart(rect, { x: 95, y: 96 }, 6)).toBe("nw");
+    expect(selectionPart(rect, { x: 305, y: 204 }, 6)).toBe("se");
+    expect(selectionPart(rect, { x: 200, y: 106 }, 6)).toBe("n");
+    expect(selectionPart(rect, { x: 294, y: 150 }, 6)).toBe("e");
+    expect(selectionPart(rect, { x: 200, y: 207 }, 6)).toBe("outside");
+    expect(selectionPart(rect, { x: 50, y: 150 }, 6)).toBe("outside");
+  });
+
+  it("选区很窄、两条边都够得着时取更近的那条", () => {
+    const thin = { x: 100, y: 100, width: 6, height: 100 };
+    expect(selectionPart(thin, { x: 101, y: 150 }, 6)).toBe("w");
+    expect(selectionPart(thin, { x: 105, y: 150 }, 6)).toBe("e");
+  });
+});
+
+describe("editSelection", () => {
+  const screen = { width: 1920, height: 1080 };
+  const rect = { x: 100, y: 100, width: 200, height: 100 };
+
+  it("按住内部拖动是平移，大小不变，夹在显示器里", () => {
+    expect(editSelection(rect, "inside", 30, -20, screen)).toEqual({ x: 130, y: 80, width: 200, height: 100 });
+    expect(editSelection(rect, "inside", -500, 5000, screen)).toEqual({ x: 0, y: 980, width: 200, height: 100 });
+  });
+
+  it("按住边只动那条边，按住角动两条边", () => {
+    expect(editSelection(rect, "e", 50, 99, screen)).toEqual({ x: 100, y: 100, width: 250, height: 100 });
+    expect(editSelection(rect, "n", 99, -40, screen)).toEqual({ x: 100, y: 60, width: 200, height: 140 });
+    expect(editSelection(rect, "nw", 20, 10, screen)).toEqual({ x: 120, y: 110, width: 180, height: 90 });
+  });
+
+  it("拖过对边时翻过去；拖到显示器右下边时补到边缘", () => {
+    expect(editSelection(rect, "w", 260, 0, screen)).toEqual({ x: 300, y: 100, width: 60, height: 100 });
+    expect(editSelection(rect, "se", 1619, 879, screen)).toEqual({ x: 100, y: 100, width: 1820, height: 980 });
+  });
+
+  it("没有移动时原样返回同一个选区", () => {
+    expect(editSelection(rect, "inside", 0, 0, screen)).toBe(rect);
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import css from "../styles.css?raw";
+import { appCss as css } from "../test/appCss";
 
 // 卡片自身藏着的时候（交给封印影子、或从书里飞回还没落地），它旁边的来源按钮也不能先露出来（#154）。
 const lines = css.split(/\r?\n/).map((line) => line.trim());

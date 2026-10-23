@@ -82,6 +82,45 @@ export function dragSelection(previous: Rect | null, start: Point, current: Poin
   return selectionRect(start, current);
 }
 
+/** 选区的一条边或一个角，按方位命名（n 上、s 下、w 左、e 右），也是对应的 CSS 缩放光标名。 */
+export type Grip = "n" | "s" | "w" | "e" | "nw" | "ne" | "sw" | "se";
+/** 指针按在选区的哪里：边或角（调整大小）、内部（移动）、外面（重新框选）。 */
+export type SelectionPart = Grip | "inside" | "outside";
+
+/** `at` 落在 `low`／`high` 哪条边的 `reach` 以内（两条都近时取更近的），都不近时为空串。 */
+function nearEdge(at: number, low: number, high: number, reach: number, [lowName, highName]: [string, string]): string {
+  const toLow = Math.abs(at - low);
+  const toHigh = Math.abs(at - high);
+  if (Math.min(toLow, toHigh) > reach) return "";
+  return toLow <= toHigh ? lowName : highName;
+}
+
+/** 点 `at` 在选区 `rect` 的哪个部分。边与角向内外各伸出 `reach`，单位与输入相同。 */
+export function selectionPart(rect: Rect, at: Point, reach: number): SelectionPart {
+  const right = rect.x + rect.width;
+  const bottom = rect.y + rect.height;
+  if (at.x < rect.x - reach || at.x > right + reach || at.y < rect.y - reach || at.y > bottom + reach) return "outside";
+  const grip = nearEdge(at.y, rect.y, bottom, reach, ["n", "s"]) + nearEdge(at.x, rect.x, right, reach, ["w", "e"]);
+  return (grip || "inside") as SelectionPart;
+}
+
+/**
+ * 按住选区的一部分拖动 (dx, dy) 后的选区。内部是平移，整个选区夹在显示器（冻结屏幕 `screen`）里；
+ * 边或角只动那几条边，拖过对边时翻过去，右、下边照框选一样补到边缘（[`reachEdges`]）。没有移动时原样返回。
+ */
+export function editSelection(rect: Rect, part: Grip | "inside", dx: number, dy: number, screen: { width: number; height: number }): Rect {
+  if (dx === 0 && dy === 0) return rect;
+  if (part === "inside") {
+    const clamp = (value: number, max: number) => Math.min(Math.max(value, 0), Math.max(max, 0));
+    return { ...rect, x: clamp(rect.x + dx, screen.width - rect.width), y: clamp(rect.y + dy, screen.height - rect.height) };
+  }
+  const left = rect.x + (part.includes("w") ? dx : 0);
+  const top = rect.y + (part.includes("n") ? dy : 0);
+  const right = rect.x + rect.width + (part.includes("e") ? dx : 0);
+  const bottom = rect.y + rect.height + (part.includes("s") ? dy : 0);
+  return reachEdges(selectionRect({ x: left, y: top }, { x: right, y: bottom }), screen);
+}
+
 /** 选区的右、下边离显示器边缘这么近（物理像素）时补到边缘。 */
 const EDGE_REACH = 2;
 

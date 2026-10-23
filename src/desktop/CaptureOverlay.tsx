@@ -4,7 +4,7 @@ import type { CaptureAction } from "../bindings/CaptureAction";
 import type { FrozenScreen } from "../bindings/FrozenScreen";
 import type { OriginalPixels } from "../bindings/OriginalPixels";
 import { cancelCapture, captureReadout, captureReady, captureUrl, finishCapture, frozenScreen } from "../ipc";
-import { dragSelection, reachEdges, toDevicePx, type Point, type Rect } from "./pixels";
+import { dragSelection, editSelection, reachEdges, selectionPart, toDevicePx, type Grip, type Point, type Rect, type SelectionPart } from "./pixels";
 import { Copy, Pin, X } from "lucide-react";
 import { Dock } from "../ui/Dock";
 import { FollowDock } from "../ui/FollowDock";
@@ -12,10 +12,15 @@ import { OriginalStar } from "../ui/OriginalStar";
 
 /** 太小的选区多半是误点，不截。 */
 const MIN_SIZE = 4;
+/** 选区的边与角向内外各伸出这么多 CSS 像素都算按在上面。 */
+const GRIP_REACH = 6;
+/** 手柄画在四角与四边中点。 */
+const HANDLES: Grip[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
 /**
  * 框选窗口（F1）：盖住一台显示器（让出最下面一行，不被当成全屏程序，#230），显示冻结的屏幕。拖动框选，Enter／F3／双击钉住，
- * Ctrl+C 复制，Esc 或右键取消。选区下方 14 px 跟着一个 dock：读数、复制、钉住、取消（#98）。
+ * Ctrl+C 复制，Esc 取消。有选区时与常见截图工具一样：按住选区内部拖动是移动，按住边或角是调整大小，在选区外拖动重新框选；
+ * 右键先清掉选区，没有选区时再右键取消。选区下方 14 px 跟着一个 dock：读数、复制、钉住、取消（#98）。
  * 读数（#103）：选区完全落在一张登记为来源的参考图上（结果是参考视图）时为原图对应区域的原始像素，
  * 带上 logo 的星；其余情况为屏幕像素。来源在冻结时已定，遮蔽中的图不登记，按截图处理。
  *
@@ -36,7 +41,10 @@ export function CaptureOverlay() {
   const [busy, setBusy] = useState<CaptureAction | null>(null);
   /** 当前选区的读数（见下）；会话变了就丢掉。 */
   const [readout, setReadout] = useState<{ rect: Rect; original: OriginalPixels | null } | null>(null);
-  const start = useRef<Point | null>(null);
+  /** 按下时的指针位置、按在选区的哪里、当时的选区；松开后为 null。 */
+  const start = useRef<{ at: Point; part: SelectionPart; rect: Rect | null } | null>(null);
+  /** 指针在选区的哪里，决定光标；拖动中保持按下时的部分。 */
+  const [hover, setHover] = useState<SelectionPart>("outside");
   const dpr = window.devicePixelRatio;
 
   useEffect(() => {
@@ -45,7 +53,7 @@ export function CaptureOverlay() {
     // 只认最后一次请求的回复：会话结束与下一次开始可能紧挨着到达。
     const refresh = () => {
       const request = ++sequence;
-      setRect(null); setDragging(false); setBusy(null); setReadout(null); start.current = null;
+      setRect(null); setDragging(false); setBusy(null); setReadout(null); setHover("outside"); start.current = null;
       void frozenScreen().then((next) => { if (alive && request === sequence) setScreen(next); });
     };
     refresh();
@@ -100,22 +108,39 @@ export function CaptureOverlay() {
     return next && next !== previous && screen ? reachEdges(next, screen) : next;
   };
 
+  const partAt = (point: Point) => (rect ? selectionPart(rect, point, Math.round(GRIP_REACH * dpr)) : "outside");
+
+  /** 拖动到 `to` 时的选区：选区外重新框选，内部移动，边或角调整大小。 */
+  const follow = (to: Point) => {
+    const gesture = start.current;
+    if (!gesture) return;
+    const { at: from, part, rect: before } = gesture;
+    if (part === "outside" || !before || !screen) setRect((previous) => drag(previous, from, to));
+    else setRect(editSelection(before, part, to.x - from.x, to.y - from.y, screen));
+  };
+
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (busy || (e.target as HTMLElement).closest(".capture-tools")) return;
-    if (e.button === 2) return finish("cancel");
+    if (e.button === 2) {
+      if (!rect) return finish("cancel");
+      setRect(null); setHover("outside");
+      return;
+    }
     if (e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    start.current = at(e);
+    const point = at(e);
+    const part = partAt(point);
+    start.current = { at: point, part, rect };
+    setHover(part);
     setDragging(true);
   };
   const onPointerMove = (e: PointerEvent) => {
-    const from = start.current;
-    if (from) setRect((previous) => drag(previous, from, at(e)));
+    if (start.current) follow(at(e));
+    else if (!busy && !(e.target as HTMLElement).closest(".capture-tools")) setHover(partAt(at(e)));
   };
   const onPointerUp = (e: PointerEvent) => {
-    const from = start.current;
-    if (!from) return;
-    setRect((previous) => drag(previous, from, at(e)));
+    if (!start.current) return;
+    follow(at(e));
     start.current = null;
     setDragging(false);
   };
@@ -125,6 +150,7 @@ export function CaptureOverlay() {
   return (
     <div
       className={busy ? "capture is-busy" : "capture"}
+      style={busy || hover === "outside" ? undefined : { cursor: hover === "inside" ? "move" : `${hover}-resize` }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -153,7 +179,7 @@ export function CaptureOverlay() {
             height: css(rect.height),
           }}
         >
-          {(["tl", "tr", "bl", "br"] as const).map((corner) => <span key={corner} className={`capture-handle is-${corner}`} aria-hidden="true" />)}
+          {HANDLES.map((grip) => <span key={grip} className={`capture-handle is-${grip}`} aria-hidden="true" />)}
         </div>
       )}
       {usable && !dragging && (
