@@ -73,6 +73,8 @@ jobs:
           sed -i '/^\[workspace.package\]/,/^\[/s/^version = ".*"/version = "'"$VERSION"'"/' Cargo.toml
           # 只更新工作区成员在 Cargo.lock 里的版本，不动依赖。
           cargo update --workspace
+          # 探测程序以路径依赖引用核心 crate，它的 Cargo.lock 里也记着核心 crate 的版本。
+          cargo update -p kinshoko-core --manifest-path tools/downscale-probe/Cargo.toml
           npm version "$VERSION" --no-git-tag-version
           test "$(cargo pkgid -p kinshoko | sed 's/.*@//')" = "$VERSION"
           git config user.name "github-actions[bot]"
