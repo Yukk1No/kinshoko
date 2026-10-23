@@ -197,7 +197,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
         <nav className="k-set-nav">
           <h2 className="k-set-heading">设置</h2>
           <Tabs.List className="k-set-tabs" aria-label="设置分页">
-            {TABS.map((entry) => <Tabs.Tab key={entry.value} value={entry.value} className="k-set-tab">{entry.icon}{entry.name}</Tabs.Tab>)}
+            {TABS.map((entry) => <Tabs.Tab key={entry.value} value={entry.value} className="k-set-tab">{entry.icon}<span className="k-label">{entry.name}</span></Tabs.Tab>)}
           </Tabs.List>
           <span className="k-grow" />
           {version && <p className="k-set-version">{version}</p>}

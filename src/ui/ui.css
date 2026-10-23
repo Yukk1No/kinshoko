@@ -1,6 +1,13 @@
 /* Shared redesign components (T20, design/ui-system/README.md). Tokens live in src/styles.css :root.
    Every class is prefixed `k-` so it never collides with the older component styles. */
 
+/* ---- Control label ---- */
+/* Text in a fixed-height, flex-centred control. Chromium floors the half-leading, so at fractional scales
+   (110%, 125%) a plain line box rides up to 1 device px; trimming it to cap height and baseline centres the
+   glyphs instead. The 0.04em moves the text down by half that: Han ink sits ~0.02em above Inter's cap centre.
+   Clip only inline: the trimmed box is shorter than the glyphs. */
+.k-label { min-width: 0; padding-top: 0.04em; text-box: trim-both cap alphabetic; white-space: nowrap; overflow-x: clip; text-overflow: ellipsis; }
+
 /* ---- Buttons ---- */
 .k-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: var(--r);
   font-weight: 500; white-space: nowrap; color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2);
@@ -96,7 +103,7 @@
 /* slot 10, padding 3, item 7: concentric */
 .k-seg { display: flex; padding: 3px; border-radius: var(--r); background: var(--sunken); box-shadow: inset 0 0 0 1px var(--line); gap: 2px; }
 .k-seg-item { flex: 1; min-width: 0; height: 30px; padding: 0 8px; border: 0; border-radius: var(--r-item); background: transparent; color: var(--ink-2); font-weight: 500;
-  display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; overflow: hidden;
   transition: background var(--t-fast), color var(--t-fast); }
 .k-seg-item:hover:not([data-disabled]) { color: var(--ink); }
 .k-seg-item[data-pressed] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line), var(--shadow-raise); }
