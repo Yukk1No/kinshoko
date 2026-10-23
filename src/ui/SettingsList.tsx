@@ -14,10 +14,10 @@ export function SettingsRow({ icon, title, hint, meta, warn, children, label, cl
 }) {
   const hintId = useId();
   const row = useRef<HTMLLIElement>(null);
-  // 控件由调用方给出（开关、下拉、按钮）：把补充说明挂到这一行的每个控件上。
+  // 控件由调用方给出（开关、下拉、按钮，或行下方的文件输入与按钮）：把补充说明挂到这一行的每个控件上。
   useLayoutEffect(() => {
     if (!hint) return;
-    const controls = row.current?.querySelectorAll<HTMLElement>(".k-set-row-main .k-list-end :is(button, input, select, textarea, [role='switch'], [tabindex])") ?? [];
+    const controls = row.current?.querySelectorAll<HTMLElement>(":is(.k-set-row-main .k-list-end, .k-set-row-below) :is(button, input, select, textarea, [role='switch'], [tabindex])") ?? [];
     for (const control of controls) {
       const ids = (control.getAttribute("aria-describedby") ?? "").split(" ").filter(Boolean);
       if (!ids.includes(hintId)) control.setAttribute("aria-describedby", [...ids, hintId].join(" "));
