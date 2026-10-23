@@ -4,5 +4,6 @@
 @import "./styles/viewer-search.css";
 @import "./styles/desktop.css";
 @import "./styles/fidelity-tags.css";
+@import "./styles/tokens.css";
 @import "./styles/shell.css";
 @import "./styles/shell-details.css";
