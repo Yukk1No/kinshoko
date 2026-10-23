@@ -2,7 +2,8 @@
 //! 全部依赖，在 Windows 上编译测试的大半时间花在链接上。新的测试文件在这里加一行 `mod`。
 //!
 //! 仍是独立二进制的（Cargo.toml 的 `[[test]]`）：以子进程重跑自身某个测试的（崩溃注入、
-//! 打标子进程），它们按不带模块前缀的测试名过滤；依赖全进程解码预算的 `thumbnail_memory`。
+//! 打标子进程），它们按不带模块前缀的测试名过滤；依赖全进程解码预算的 `thumbnail_memory`；
+//! 验收文档按目标名引用的 `fidelity`（`--test fidelity`）。
 //!
 //! 每个模块都用 `#[path]` 引入：这样它们按目录模块解析，文件里原有的 `mod support;`、
 //! `#[path = "support/eagle.rs"] mod eagle;` 仍相对 `tests/`，同一份辅助代码各自一份。
@@ -68,8 +69,6 @@ mod eagle_tag_collisions;
 mod eagle_tag_mapping;
 #[path = "edge_hide.rs"]
 mod edge_hide;
-#[path = "fidelity.rs"]
-mod fidelity;
 #[path = "global_shortcuts.rs"]
 mod global_shortcuts;
 #[path = "image_commands.rs"]

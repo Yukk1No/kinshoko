@@ -13,7 +13,12 @@ autotests = false
 name = "integration"
 path = "tests/integration.rs"
 
-# 以子进程重跑自身某个测试的，以及依赖全进程解码预算的（thumbnail_memory），仍各自独立。
+# 以子进程重跑自身某个测试的，以及依赖全进程解码预算的（thumbnail_memory），
+# 以及验收文档按目标名引用的 fidelity，仍各自独立。
+[[test]]
+name = "fidelity"
+path = "tests/fidelity.rs"
+
 [[test]]
 name = "application_settings_backup"
 path = "tests/application_settings_backup.rs"
