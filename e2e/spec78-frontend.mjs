@@ -2,12 +2,12 @@
 // 用法：node e2e/spec78-frontend.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]
 // 本地并行测试宜以独立 identifier 构建；默认使用 4467 / 4468，不占用 #44 的端口。
 import { spawn, execFileSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
-import { deflateSync } from "node:zlib";
-import { createHash } from "node:crypto";
 import { copyStandaloneRuntime } from "./native-standalone-guard.mjs";
+import { png } from "./spec78-frontend.helpers.mjs";
+import { escClosesActivePin, folderSearchRoundTrip, writePrototypeInput } from "./spec78-frontend.steps.mjs";
 
 const [, , appArg, edgeArg, driverArg = "tauri-driver"] = process.argv;
 if (!appArg || !edgeArg) throw new Error("用法：node e2e/spec78-frontend.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]");
@@ -19,28 +19,6 @@ const source = join(work, "参考");
 const output = resolve(process.env.KINSHOKO_VIEWER_OUTPUT ?? "docs/implementation/evidence/spec78-t01");
 for (const dir of [parent, source, output, join(work, "roaming"), join(work, "local")]) mkdirSync(dir, { recursive: true });
 
-const crcTable = Array.from({ length: 256 }, (_, c) => {
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-function chunk(type, data) {
-  const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type), data]);
-  let c = 0xffffffff;
-  for (const b of body) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
-  const crc = Buffer.alloc(4); crc.writeUInt32BE((c ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, crc]);
-}
-function png(w, h, colour) {
-  const header = Buffer.alloc(13); header.writeUInt32BE(w); header.writeUInt32BE(h, 4); header[8] = 8; header[9] = 2;
-  const pixels = Buffer.alloc((w * 3 + 1) * h);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const rgb = typeof colour === "function" ? colour(x, y) : colour;
-    const at = y * (w * 3 + 1) + 1 + x * 3;
-    pixels[at] = rgb[0]; pixels[at + 1] = rgb[1]; pixels[at + 2] = rgb[2];
-  }
-  return Buffer.concat([Buffer.from("89504e470d0a1a0a", "hex"), chunk("IHDR", header), chunk("IDAT", deflateSync(pixels)), chunk("IEND", Buffer.alloc(0))]);
-}
 for (let i = 0; i < 40; i++) writeFileSync(join(source, `${String(i).padStart(2, "0")}.png`), png(100, 100, [80 + i * 3, 150, 180]));
 writeFileSync(join(source, "大图.png"), png(2400, 1600, (x, y) => x % 120 === 0 || y % 120 === 0 ? [32, 32, 32] : [Math.round(x / 2400 * 255), Math.round(y / 1600 * 255), 120]));
 
@@ -100,9 +78,9 @@ try {
   await until("打开图库", () => find("//nav[@aria-label='查找范围']//*[@data-library-id]//button[contains(@class,'lib-head-name') and starts-with(@aria-label,'增量 T01 对照（') and not(@disabled)]"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
-  // #98: 导入 is a split button; the folder entry is in its menu, then a dialog chooses the library.
-  await click("更多导入方式");
-  await wd("POST",base+"/element/"+await until("整个文件夹菜单项",()=>find("//*[@role='menuitem' and normalize-space()='整个文件夹…']"))+"/click",{});
+  // 设计系统 v2: 导入 is one button; the folder entry is in its menu, then a dialog chooses the library.
+  await click("导入");
+  await wd("POST",base+"/element/"+await until("文件夹菜单项",()=>find("//*[@role='menuitem' and normalize-space()='文件夹']"))+"/click",{});
   // 保存位置的图库选择按可见标签“放到图库”命名。
   const librarySelect = "[...document.querySelectorAll('.k-import-dialog select')].find(s=>s.labels?.[0]?.querySelector('.k-field-label')?.textContent.trim()==='放到图库')";
   await until("导入对话框", () => exec(`return !!${librarySelect}?.options[1]`));
@@ -127,54 +105,9 @@ try {
   await until("恢复认可默认图片大小",()=>exec("return document.querySelector('.density input').value==='240'&&Math.abs(parseFloat(document.querySelector('.card').style.width)-arguments[0])<.01",[browseMetrics.cardWidth]));
   check(true,"真实键盘操作滑块改变图片墙密度，再恢复 240px 默认大小");
   const densityCheck={initial:240,larger:420,restored:240,initialWidth:browseMetrics.cardWidth,largerWidth:larger};
-  // Read only public IPC to copy the same imported sample order into the unchanged accepted prototype.
-  const samples = await wd("POST", base + "/execute/async", {script: `const done=arguments[arguments.length-1]; (async()=>{ const invoke=window.__TAURI_INTERNALS__.invoke; const library=await invoke('plugin:library|current_library'); const page=await invoke('plugin:library|browse',{libraryId:library.id,query:{scope:{kind:'all'},conditions:{conditions:[]},cursor:null,limit:500,thumbnailPx:256}}); const details=await Promise.all(page.cards.map(c=>invoke('plugin:library|image',{libraryId:library.id,imageId:c.id}))); return details; })().then(done,e=>done({error:String(e)}));`, args:[]});
-  if (!Array.isArray(samples)) throw new Error(JSON.stringify(samples));
-  // Keep this independent 43-image input local; the final T20 comparison uses its own complete
-  // actual public packet and a fresh accepted-code mirror, without replacing historical .local.
-  const prototype = join(work, "prototype-input");
-  mkdirSync(join(prototype,"media"),{recursive:true}); mkdirSync(join(prototype,"fonts"),{recursive:true});
-  const manifest = samples.map((detail)=>{
-    const original=join(source,detail.originalName); const data=readFileSync(original);
-    copyFileSync(original,join(prototype,"media",detail.id+".png"));
-    return {id:detail.id,sha256:createHash('sha256').update(data).digest('hex'),title:detail.originalName,date:new Date(detail.collectedAt).toISOString(),thumb:"media/"+detail.id+".png",view:"media/"+detail.id+".png",w:detail.width,h:detail.height,viewScale:1,format:"PNG",sourceTags:[],autoTags:[],autoModel:null,rating:{value:"general",from:"generated fixture"},sourceLinks:[],coverage:[],split:"validation"};
-  });
-  writeFileSync(join(prototype,"library.json"),JSON.stringify({images:manifest,tags:{}}));
-  for(const weight of ["Regular","Medium","SemiBold"]) copyFileSync(resolve("public/fonts/Inter-"+weight+"-hinted.woff2"),join(prototype,"fonts","Inter-"+weight+".woff2"));
-  copyFileSync(resolve("public/fonts/SourceHanSansSC-VF.ttf.woff2"),join(prototype,"fonts","SourceHanSansSC-VF.ttf.woff2"));
-  writeFileSync(join(output,"sample-manifest.json"),JSON.stringify(manifest.map(({id,sha256,title,w,h})=>({id,sha256,title,w,h})),null,2));
+  const manifest = await writePrototypeInput({ wd, base, exec, find, until, check, key, click, image, ELEMENT }, { work, source, output });
 
-  // Real multi-selection and a persisted folder/search round trip through the formal UI.
-  // #114: 新建文件夹 lives in the library's ⋯ menu (also its right-click menu).
-  await wd("POST", base + "/element/" + await find("//button[@aria-label='增量 T01 对照 的操作']") + "/click", {});
-  await wd("POST", base + "/element/" + await until("新建文件夹菜单项", () => find("//*[@role='menuitem' and normalize-space()='新建文件夹']")) + "/click", {});
-  const folderName=await find("//input[@aria-label='新文件夹名称']");
-  await wd("POST",base+"/element/"+folderName+"/value",{text:"对照选集"});
-  await key("\uE007");
-  await until("文件夹已保存",()=>find("//button[@aria-label='对照选集（0 张）']"));
-  // Folder creation refreshes the wall independently of the sidebar receipt.
-  // Wait for the actual options instead of silently clicking an empty list.
-  const selected=await until("多选前两张卡片",()=>exec("const cards=[...document.querySelectorAll('.card')].slice(0,2);return cards.length===2?cards:null"));
-  await wd("POST",base+"/actions",{actions:[{type:"key",id:"keyboard",actions:[{type:"keyDown",value:"\uE009"}]}]});
-  for(const node of selected) await wd("POST",base+"/element/"+(node[ELEMENT]??node.ELEMENT)+"/click",{});
-  await wd("POST",base+"/actions",{actions:[{type:"key",id:"keyboard",actions:[{type:"keyUp",value:"\uE009"}]}]});
-  await until("多选整理",()=>find("//*[normalize-space()='已选 2 张']"));
-  // #98: 放入 is a menu on the floating selection bar.
-  await until("放入文件夹按钮可用",()=>exec("const button=document.querySelector('[role=toolbar][aria-label=已选参考图操作] button[aria-label=放入文件夹]');return !!button&&!button.disabled"));
-  await wd("POST",base+"/element/"+await find("//*[@role='toolbar' and @aria-label='已选参考图操作']//button[@aria-label='放入文件夹']")+"/click",{});
-  await wd("POST",base+"/element/"+await until("放入菜单项",()=>find("//*[@role='menu']//*[@role='menuitem' and normalize-space()='对照选集']"))+"/click",{});
-  await until("文件夹归属已保存",()=>find("//button[@aria-label='对照选集（2 张）']"));
-  await wd("POST",base+"/element/"+await find("//button[@aria-label='对照选集（2 张）']")+"/click",{});
-  await until("文件夹范围",()=>exec("return document.querySelector('.wall').dataset.total==='2'"));
-  const search=await find("//input[@aria-label='查找参考图']");
-  await wd("POST",base+"/element/"+search+"/value",{text:"没有对应标签"}); await key("\uE007");
-  await until("真实查找结果",()=>exec("return document.querySelector('.wall').dataset.total==='0'"));
-  await wd("POST",base+"/element/"+await find("//button[@aria-label='去掉这个条件']")+"/click",{});
-  await until("清除查找仍在文件夹范围",()=>exec("return document.querySelector('.wall').dataset.total==='2'"));
-  // The library's own row in the 查找范围 nav returns to its whole scope.
-  await wd("POST",base+"/element/"+await find("//nav[@aria-label='查找范围']//button[@aria-label='增量 T01 对照（43 张）']")+"/click",{});
-  await until("返回全部范围",()=>exec("return document.querySelector('.wall').dataset.total==='43'"));
-  check(true,"Ctrl 多选、真实文件夹归属和查找清除后范围保持可用");
+  await folderSearchRoundTrip({ wd, base, exec, find, until, check, key, click, image, ELEMENT });
   const card = await until("大图卡片", () => exec("const found=[...document.querySelectorAll('.card')].find(c=>Math.abs(c.offsetHeight/c.offsetWidth-2/3)<.02); if(!found){const w=document.querySelector('.wall');w.scrollTop+=300;w.dispatchEvent(new Event('scroll'));} return found"));
   // 单击只选中并聚焦卡片，Enter 打开查看器（#146）。
   await wd("POST",base+"/element/"+(card[ELEMENT]??card.ELEMENT)+"/click",{});
@@ -234,21 +167,7 @@ try {
   resizeViewports.push(await exec("return {width:innerWidth,height:innerHeight}"));
   await until("窗口变宽锚点稳定", anchorStable);
   check(true, "原生窗口宽度往返保持同一张图的偏移");
-  // Pin two real native windows, then send Esc in only one of them.
-  const mainHandle=await wd("GET",base+"/window");
-  const pinCard=await exec("return [...document.querySelectorAll('.card')].find(c=>{const r=c.getBoundingClientRect();return r.top>=150&&r.bottom<innerHeight-50})");
-  await wd("POST",base+"/element/"+(pinCard[ELEMENT]??pinCard.ELEMENT)+"/click",{}); await until("钉图前查看器",image);
-  for(let i=0;i<2;i++) { await click("钉住整图"); await new Promise(r=>setTimeout(r,500)); }
-  const handles=await until("两个原生钉图窗口",async()=>{const h=await wd("GET",base+"/window/handles");return h.length>=3?h:null;});
-  const pinHandles=handles.filter(h=>h!==mainHandle);
-  await wd("POST",base+"/window",{handle:pinHandles[0]});
-  await until("钉图解码",()=>exec("return !!document.querySelector('.pin canvas')"));
-  await key("\uE00C");
-  await until("活动钉图已关闭",async()=>!(await wd("GET",base+"/window/handles")).includes(pinHandles[0]));
-  const remaining=await wd("GET",base+"/window/handles");
-  check(remaining.includes(pinHandles[1])&&remaining.includes(mainHandle),"Esc 关闭活动原生钉图，另一钉图和主窗口保持打开");
-  await wd("POST",base+"/window",{handle:pinHandles[1]}); await key("\uE00C");
-  await wd("POST",base+"/window",{handle:mainHandle});
+  await escClosesActivePin({ wd, base, exec, find, until, check, key, click, image, ELEMENT });
   const sourceCommit=execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();
   writeFileSync(join(output, "report.json"), JSON.stringify({status:"passed",humanAcceptance:"unverified",sourceCommit,viewport,browseMetrics,densityCheck,fitted,original,enlarged,fonts,fitAfterFonts,anchor,reading,reflow,resizeViewports,pinEscape:true,samples:manifest.length}, null, 2));
   console.log("T01 正式程序端到端检查通过");
