@@ -2,6 +2,8 @@
 
 Issues and specs live in GitHub Issues for `Yukk1No/kinshoko`. Use the `gh` CLI from this repository, or pass `--repo Yukk1No/kinshoko` explicitly. Verify the target with `git remote -v` before mutations.
 
+In Git Bash on Windows, run `git show <ref>:<path>` as `MSYS_NO_PATHCONV=1 git show <ref>:<path>`; without it MSYS rewrites the `<ref>:<path>` argument as a Windows path and git cannot find the file.
+
 ## Operations
 
 - Create issues with `gh issue create`; put multiline bodies in a temporary file and use `--body-file`.

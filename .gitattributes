@@ -11,3 +11,6 @@ src/bindings/** linguist-generated
 data/builtin-translation-table.json linguist-generated
 # 许可证原文照搬自 GNU，不是手写的。
 LICENSE linguist-vendored
+# Impeccable 技能原样取自上游，不是手写的；更新方法见 docs/agents/impeccable.md。
+.agents/skills/impeccable/** linguist-vendored
+.agents/skills/impeccable/scripts/impeccable text eol=lf
