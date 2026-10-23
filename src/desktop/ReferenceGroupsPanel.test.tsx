@@ -116,7 +116,8 @@ describe("参考组面板", () => {
   it("列出参考组与引用的资料库，读不懂的文件写出原因", async () => {
     await show();
     expect(screen.getByText("头发参考")).toBeTruthy();
-    expect(screen.getByText(/^3 张/).textContent).toMatch(/^3 张 · 主库、移动盘库 · \d{4} 年 \d+ 月 \d+ 日$/);
+    expect(screen.getByText(/^3 张/).textContent).toBe("3 张");
+    expect(screen.getByText(/^3 张/).parentElement!.textContent).toMatch(/^3 张主库、移动盘库\d{4} 年 \d+ 月 \d+ 日$/);
     expect(screen.getByText("参考组文件已损坏")).toBeTruthy();
   });
 

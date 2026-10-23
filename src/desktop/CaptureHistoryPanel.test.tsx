@@ -78,8 +78,8 @@ describe("截图面板", () => {
   it("每张截图写出时间、尺寸、多久以前与钉住状态", async () => {
     await show([entry("s1", 0, { pinned: true }), entry("s2", 27, { width: 1280, height: 720 })]);
     const time = (minutes: number) => new Date(now - minutes * 60_000).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
-    expect(within(row(`截图 ${time(0)}`)).getByText("412 × 380 · 刚刚 · 已钉住")).toBeTruthy();
-    expect(within(row(`截图 ${time(27)}`)).getByText("1280 × 720 · 27 分钟前")).toBeTruthy();
+    expect(within(row(`截图 ${time(0)}`)).getByText("412 × 380").parentElement!.textContent).toBe("412 × 380刚刚已钉住");
+    expect(within(row(`截图 ${time(27)}`)).getByText("1280 × 720").parentElement!.textContent).toBe("1280 × 720" + "27 分钟前");
   });
 
   it("收藏到明确选择的图库；已收藏的仍可再收藏到别处", async () => {

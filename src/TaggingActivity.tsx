@@ -14,13 +14,13 @@ const percent = (part: number, total: number) => (total > 0 ? Math.floor((part /
 function activityLabel(status: TaggingStatus): string | null {
   switch (status.state) {
     case "downloading":
-      return `下载打标模型 ${percent(status.downloaded, status.total)}%`;
+      return `正在下载自动标签模型 ${percent(status.downloaded, status.total)}%`;
     case "starting":
-      return "正在加载打标模型";
+      return "正在加载自动标签模型";
     case "preparing":
-      return "正在校验打标模型";
+      return "正在校验自动标签模型";
     case "running":
-      return `正在打标 · ${DEVICE_NAME[status.device]} · 已打 ${status.tagged} 张`;
+      return `正在自动标签，已标 ${status.tagged} 张（${DEVICE_NAME[status.device]}）`;
     case "paused":
       return "已暂停";
     case "yieldedToFullScreen":
@@ -56,7 +56,7 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
     previous.current = { libraryId, status };
     // 下载中暂停或取消（#213）也不算下载完成。
     if (before?.state === "downloading" && !["downloading", "failed", "needsDownload", "paused"].includes(status.state)) {
-      toast.show({ title: "打标模型已下载", tone: "success" });
+      toast.show({ title: "已下载自动标签模型", tone: "success" });
     }
     // 后端出错后定时重试并反复广播：一直是同一个原因时只报一次。
     if (status.state === "failed" && failure.current !== status.reason) {
@@ -88,12 +88,12 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
     const start = () => {
       closeDownload();
       void taggingDownload(libraryId).then(
-        () => toast.show({ title: "正在下载打标模型", description: "可在设置 › 自动标签查看进度、暂停或取消" }),
-        (e) => toast.error(`无法下载打标模型：${String(e)}`),
+        () => toast.show({ title: "正在下载自动标签模型" }),
+        (e) => toast.error(`无法下载自动标签模型：${String(e)}`),
       );
     };
     const id = toast.show({
-      title: `需要下载打标模型（${mb(status.size)}）`, timeout: 0,
+      title: `需要下载自动标签模型（${mb(status.size)}）`, timeout: 0,
       action: { label: status.downloaded > 0 ? "继续下载" : "下载", onClick: start },
       onClose: () => {
         if (download.current !== id) return;

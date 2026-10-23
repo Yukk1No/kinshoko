@@ -58,7 +58,7 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
   };
   return (
     <Popover.Root open={open} onOpenChange={change}>
-      <Popover.Trigger className="untranslated is-action" aria-label={`给“${name}”改名`} title="尚未翻译 · 点击改名" {...contained}>
+      <Popover.Trigger className="untranslated is-action" aria-label={`给“${name}”改名`} title="尚未翻译" {...contained}>
         <Languages size={12} aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Portal>

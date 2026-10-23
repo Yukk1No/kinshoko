@@ -199,7 +199,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
           {captureSave.entries.map((entry, i) => (
             <label key={entry.id}>
               <img src={captureUrl(entry.id)} alt={`截图 ${i + 1}`} width={96} />
-              <span>截图 {i + 1} · {entry.width} × {entry.height}</span>
+              <span className="k-parts"><span>截图 {i + 1}</span><span>{entry.width} × {entry.height}</span></span>
               <select aria-label={`截图 ${i + 1} 的图库`} disabled={saving}
                 value={captureSave.choices[entry.id]}
                 onChange={(e) => setCaptureSave({ ...captureSave, choices: { ...captureSave.choices, [entry.id]: e.target.value }, folders: { ...captureSave.folders, [entry.id]: null } })}>
@@ -251,7 +251,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                 {renaming?.id !== g.id && <strong className="reference-group-name">{g.name}</strong>}
                 {g.problem
                   ? <span className="reference-group-problem">{g.problem}</span>
-                  : <span className="reference-group-meta">{g.memberCount} 张 · {libraries(g.libraryIds)} · {ago(g.updatedAt)}</span>}
+                  : <span className="reference-group-meta k-parts"><span>{g.memberCount} 张</span><span>{libraries(g.libraryIds)}</span><span>{ago(g.updatedAt)}</span></span>}
               </button>
               {renaming?.id === g.id && (
                 <form className="group-name-form" onSubmit={(e) => {
@@ -300,7 +300,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                     const crop = expanded.group.members[i]?.crop;
                     return (
                       <li key={m.memberId} className={m.state.kind === "unavailable" ? "reference-group-member-unavailable" : undefined}>
-                        <span>{libraryNames.get(m.libraryId) ?? "未登记的图库"} · {crop ? `局部 ${crop.width} × ${crop.height}` : "整图"}</span>
+                        <span className="k-parts"><span>{libraryNames.get(m.libraryId) ?? "未登记的图库"}</span><span>{crop ? `局部 ${crop.width} × ${crop.height}` : "整图"}</span></span>
                         <span>{memberState(m)}</span>
                         <button type="button" className="k-btn is-sm" onClick={() => void run(() => removeGroupMember(g.id, m.memberId))}>移出</button>
                       </li>

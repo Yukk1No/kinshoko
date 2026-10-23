@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { PanelLeftOpen } from "lucide-react";
+import { useImportShortcut } from "./useImportShortcut";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
@@ -111,6 +112,7 @@ export function LibraryWorkspace({
   const [viewCrop, setViewCrop] = useState(false);
   useEffect(() => { if (!viewing) setViewCrop(false); }, [viewing]);
   const importControl = useRef<ImportControl>(null);
+  useImportShortcut(importControl, hidden);
   const [editingGroups, setEditingGroups] = useState(false);
   useEffect(()=>{if(captureRequest){setViewing(null);setSources(null);}},[captureRequest]);
   // 钉图菜单“在 Kinshoko 中打开”（#106）：按当前安全模式读这张参考图，读到才打开查看器。
@@ -222,7 +224,7 @@ export function LibraryWorkspace({
           }} />
         <main className="app-main main">
           <header className="topbar" data-tauri-drag-region>
-            {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label="展开侧栏" title="展开侧栏（Ctrl+B）"><PanelLeftOpen size={16} aria-hidden="true" /></button>}
+            {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label="展开侧栏" title="展开侧栏 Ctrl B"><PanelLeftOpen size={16} aria-hidden="true" /></button>}
           <SearchBox
             workspace
             libraryId="workspace"

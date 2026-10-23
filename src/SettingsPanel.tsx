@@ -74,15 +74,15 @@ const VIEWER_KEYS: [string, string][] = [
 ];
 
 export type SettingsTab = "general" | "keys" | "tags" | "tagging" | "backup" | "safety" | "update" | "diag";
-const TABS: { value: SettingsTab; name: string; icon: ReactNode; lead: string }[] = [
-  { value: "general", name: "通用", icon: <Settings2 size={15} aria-hidden="true" />, lead: "关掉窗口后，截图和钉图照常可用。" },
-  { value: "keys", name: "快捷键", icon: <Keyboard size={15} aria-hidden="true" />, lead: "在任何软件里都能用。" },
-  { value: "tags", name: "标签", icon: <Tags size={15} aria-hidden="true" />, lead: "改一次名字，所有图库都生效。" },
-  { value: "tagging", name: "自动标签", icon: <Sparkles size={15} aria-hidden="true" />, lead: "在本机给新图加标签建议。" },
-  { value: "backup", name: "备份", icon: <Archive size={15} aria-hidden="true" />, lead: "图片和设置分开存，恢复时互不影响。" },
-  { value: "safety", name: "安全", icon: <ShieldCheck size={15} aria-hidden="true" />, lead: "成人图收进封印书，需要时再打开。" },
-  { value: "update", name: "更新", icon: <RefreshCw size={15} aria-hidden="true" />, lead: "新版装在原位置，图库和设置都会保留。" },
-  { value: "diag", name: "诊断", icon: <Activity size={15} aria-hidden="true" />, lead: "出问题时，把这里的信息发给开发者。" },
+const TABS: { value: SettingsTab; name: string; icon: ReactNode }[] = [
+  { value: "general", name: "通用", icon: <Settings2 size={15} aria-hidden="true" /> },
+  { value: "keys", name: "快捷键", icon: <Keyboard size={15} aria-hidden="true" /> },
+  { value: "tags", name: "标签", icon: <Tags size={15} aria-hidden="true" /> },
+  { value: "tagging", name: "自动标签", icon: <Sparkles size={15} aria-hidden="true" /> },
+  { value: "backup", name: "备份", icon: <Archive size={15} aria-hidden="true" /> },
+  { value: "safety", name: "安全", icon: <ShieldCheck size={15} aria-hidden="true" /> },
+  { value: "update", name: "更新", icon: <RefreshCw size={15} aria-hidden="true" /> },
+  { value: "diag", name: "诊断", icon: <Activity size={15} aria-hidden="true" /> },
 ];
 
 type TagView = "names" | "groups" | "approx" | "mapping" | "appearance";
@@ -186,7 +186,6 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
     const meta = TABS.find((entry) => entry.value === value)!;
     return <Tabs.Panel value={value} className="k-set-page">
       <h3 className="k-set-title">{meta.name}</h3>
-      <p className="k-set-lead">{meta.lead}</p>
       {error !== null && <p className="k-set-error" role="alert">{error}</p>}
       {children}
     </Tabs.Panel>;
@@ -206,17 +205,17 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
         <div className="k-set-main">
           {page("general", <>
             <SettingsGroup label="通用">
-              <SettingsRow icon={<Power size={16} />} title="开机启动" desc="在托盘里待命">
+              <SettingsRow icon={<Power size={16} />} title="开机启动" hint="在托盘里待命">
                 <Switch label="开机启动" checked={view.autostart} onCheckedChange={(on) => void apply(setAutostart(on))} />
               </SettingsRow>
-              {uiScale !== undefined && onUiScale && <SettingsRow icon={<Scaling size={16} />} title="界面缩放" desc="只放大主窗口，钉图和截图不变">
+              {uiScale !== undefined && onUiScale && <SettingsRow icon={<Scaling size={16} />} title="界面缩放" hint="只放大主窗口，钉图和截图不变">
                 <select className="k-select" aria-label="界面缩放" value={uiScale} onChange={(e) => onUiScale(Number(e.target.value))}>
                   {UI_SCALE_LEVELS.map((percent) => <option key={percent} value={percent}>{percent}%</option>)}
                 </select>
               </SettingsRow>}
             </SettingsGroup>
             <SettingsGroup label="桌面钉图">
-              <SettingsRow icon={<Pin size={16} />} title="增强钉图边缘" desc="阴影外加一圈浅色细线，深色画布上更好分辨">
+              <SettingsRow icon={<Pin size={16} />} title="增强钉图边缘" hint="阴影外加一圈浅色细线，深色画布上更好分辨">
                 <Switch label="增强钉图边缘" checked={view.pinEdgeContrast} onCheckedChange={(on) => void apply(setPinEdgeContrast(on))} />
               </SettingsRow>
             </SettingsGroup>
@@ -239,10 +238,10 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
                 </>}
               </SettingsRow>;
             })}
-            <SettingsRow label="安全模式" title="安全模式" desc="固定按键，在主窗口里用"><Keys accelerator="Ctrl+Shift+S" /></SettingsRow>
-            <SettingsRow label="放大界面" title="放大界面" desc="固定按键，在主窗口里用"><Keys accelerator="Ctrl+=" /></SettingsRow>
-            <SettingsRow label="缩小界面" title="缩小界面" desc="固定按键，在主窗口里用"><Keys accelerator="Ctrl+-" /></SettingsRow>
-            <SettingsRow label="界面复位到 100%" title="界面复位到 100%" desc="固定按键，在主窗口里用"><Keys accelerator="Ctrl+0" /></SettingsRow>
+            <SettingsRow label="安全模式" title="安全模式" hint="固定按键，在主窗口里用"><Keys accelerator="Ctrl+Shift+S" /></SettingsRow>
+            <SettingsRow label="放大界面" title="放大界面" hint="固定按键，在主窗口里用"><Keys accelerator="Ctrl+=" /></SettingsRow>
+            <SettingsRow label="缩小界面" title="缩小界面" hint="固定按键，在主窗口里用"><Keys accelerator="Ctrl+-" /></SettingsRow>
+            <SettingsRow label="界面复位到 100%" title="界面复位到 100%" hint="固定按键，在主窗口里用"><Keys accelerator="Ctrl+0" /></SettingsRow>
           </SettingsGroup>
           {/* 查看器的操作提示（#179，原在查看器的信息浮层里）。 */}
           <SettingsGroup label="查看器">
@@ -261,7 +260,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
             {tagView === "groups" && <SharedTagGroupsSettings key={`groups/${settingsGeneration}`} onError={setError} />}
             {tagView === "approx" && <>
               <SettingsGroup label="相近标签">
-                <SettingsRow icon={<Tags size={16} />} title="标出来源" desc="相近标签旁注明内置或个人">
+                <SettingsRow icon={<Tags size={16} />} title="标出来源" hint="相近标签旁注明内置或个人">
                   <Switch label="标出来源" checked={view.showApproxSource} onCheckedChange={(on) => void apply(setShowApproxSource(on))} />
                 </SettingsRow>
               </SettingsGroup>
@@ -275,19 +274,18 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
             <ApplicationSettingsBackup onRestored={restored} />
           </>)}
           {page("safety", <SettingsGroup label="安全">
-            <SettingsRow icon={<SealLock size={10} />} title="安全模式" desc="隐藏范围内的图，钉图里模糊">
+            <SettingsRow icon={<SealLock size={10} />} title="安全模式" hint="隐藏范围内的图，钉图里模糊">
               <Keys accelerator="Ctrl+Shift+S" />
               {safe !== undefined && onSafeMode && <Switch label="安全模式" checked={safe} onCheckedChange={(on) => { if (on !== safe) onSafeMode(); }} />}
             </SettingsRow>
-            <SettingsRow icon={<Layers size={16} />} title="安全模式范围" desc="从哪一档分级开始隐藏"
-              below={<p className="k-set-note">还没分级的图照常显示。查找里的“R18”指范围内的各档。</p>}>
+            <SettingsRow icon={<Layers size={16} />} title="安全模式范围" hint="从哪一档分级开始隐藏；还没分级的图照常显示，查找里的“R18”指范围内的各档">
               <Segmented<SafeModeScope> label="安全模式范围" value={view.safeModeScope ?? "questionable"}
                 onChange={(scope) => void apply(setSafeModeScope(scope))} options={SAFE_MODE_SCOPES} />
             </SettingsRow>
-            <SettingsRow icon={<MousePointerClick size={16} />} title="切换时保留选择" desc="选中的图和详情面板保持打开">
+            <SettingsRow icon={<MousePointerClick size={16} />} title="切换时保留选择" hint="选中的图和详情面板保持打开">
               <Switch label="切换时保留选择" checked={view.keepSelectionOnSafeMode ?? false} onCheckedChange={(on) => void apply(setKeepSelectionOnSafeMode(on))} />
             </SettingsRow>
-            <SettingsRow icon={<ShieldCheck size={16} />} title="参考组与钉图" desc="原位模糊，点一下单张解开">
+            <SettingsRow icon={<ShieldCheck size={16} />} title="参考组与钉图" hint="原位模糊，点一下单张解开">
               <StatusPill tone={safe === false ? "plain" : "ok"}>{safe === false ? "未开启" : "已开启"}</StatusPill>
             </SettingsRow>
           </SettingsGroup>)}
@@ -295,7 +293,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
           {page("diag", <>
             <RuntimeDetails />
             <SettingsGroup title="信息">
-              <SettingsRow icon={<FileText size={16} />} title="诊断信息" desc="不含图片和文件名"
+              <SettingsRow icon={<FileText size={16} />} title="诊断信息" hint="不含图片和文件名"
                 below={<>
                   <p className="k-set-note">存成文件时附上最近 7 天的运行日志，打包成一个 zip，由你决定要不要发出去。</p>
                   {diagnostics.text !== null && <pre className="settings-diagnostics" aria-label="诊断信息">{diagnostics.text}</pre>}
@@ -303,12 +301,12 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
                 <button type="button" className="k-btn is-sm" onClick={diagnostics.show}>查看</button>
                 <button type="button" className="k-btn is-sm" onClick={diagnostics.save}>存成文件…</button>
               </SettingsRow>
-              <SettingsRow icon={<Activity size={16} />} title="运行日志" desc="只存本机，不上传"
-                below={<p className="k-set-note">记下出错和截图、钉图、打标的时间点，帮开发者排查问题；不记文件名、路径、标签与图片。最多留 7 天、20 MB。
+              <SettingsRow icon={<Activity size={16} />} title="运行日志" hint="只存本机，不上传"
+                below={<p className="k-set-note">记下出错和截图、钉图、自动标签的时间点，帮开发者排查问题；不记文件名、路径、标签与图片。最多留 7 天、20 MB。
                   <button type="button" className="k-link" onClick={() => void clearRunLog().catch((e) => setError(String(e)))}>清除日志</button></p>}>
                 <Switch label="运行日志" checked={view.runLog} onCheckedChange={(on) => void apply(setRunLog(on))} />
               </SettingsRow>
-              <SettingsRow icon={<Monitor size={16} />} title="按 sRGB 显示" desc="排查偏色时打开"
+              <SettingsRow icon={<Monitor size={16} />} title="按 sRGB 显示" hint="排查偏色时打开"
                 warn={view.forceSrgb !== view.forceSrgbInEffect && "从托盘退出并重启 Kinshoko 后生效。"}>
                 <Switch label="按 sRGB 显示" checked={view.forceSrgb} onCheckedChange={(on) => void apply(setForceSrgb(on))} />
               </SettingsRow>

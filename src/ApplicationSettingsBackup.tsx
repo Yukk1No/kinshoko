@@ -45,7 +45,7 @@ export function ApplicationSettingsBackup({ onRestored }: { onRestored: (setting
   });
   return <section className="application-settings-backup" aria-label="偏好设置备份">
     <SettingsGroup title="偏好设置">
-      <SettingsRow icon={<Settings2 size={16} />} title="标签名称、分组与快捷键" desc="存成一个文件，换电脑也能用"
+      <SettingsRow icon={<Settings2 size={16} />} title="标签名称、分组与快捷键" hint="存成一个文件，换电脑也能用"
         below={<>
           <div className="k-set-inline">
             <input className="k-input" aria-label="偏好设置备份文件" value={path} disabled={busy} placeholder="或输入 .kinshoko-settings 文件位置"

@@ -111,7 +111,8 @@ it("另一个图库的任务回执关闭后，不留下“正在导入”的空�
   await waitFor(() => expect(screen.queryByRole("region", { name: "导入结果" })).toBeNull());
   await new Promise(resolve => setTimeout(resolve, 900));
   expect(screen.queryByRole("region", { name: "导入进度" })).toBeNull();
-  expect((screen.getByRole("button", { name: "导入图片文件" }) as HTMLButtonElement).disabled).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "导入" }));
+  expect((await screen.findByRole("menuitem", { name: /^图片/ })).getAttribute("aria-disabled")).not.toBe("true");
 });
 
 it("回执轮询碰上浏览结果变化时只重读，不在卡片上留下“浏览结果已变化”（#98 本机 r16）", async () => {

@@ -41,7 +41,7 @@ export function WorkspaceSidebar({
       <header className="pane-head" data-tauri-drag-region>
         {section === "browse" ? <div className="pane-library">{libInPane && libraryControls}</div>
           : <h1 className="pane-title">{sectionName}</h1>}
-        <button type="button" className="k-icon-btn" aria-label="收起侧栏" title="收起侧栏（Ctrl+B）" onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button>
+        <button type="button" className="k-icon-btn" aria-label="收起侧栏" title="收起侧栏 Ctrl B" onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button>
       </header>
       <div className="pane-body" hidden={section !== "browse"}>
       <WorkspacePane status={status} scope={workspaceScope} safeMode={safe}

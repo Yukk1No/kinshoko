@@ -1,93 +1,122 @@
-/* #79: accepted prototype bd8aea4 shell tokens and rail rules.
+/* #79 → design system v3: cream paper and ink purple from the prototype, sakura accent by day and gold by night;
+   a few values deepened so every text colour reaches 4.5:1. The wall and card stay neutral grey so the frame never tints
+   the reference images. Components write semantic tokens only; values match the design system's tokens.json.
    The formal app keeps its real library, search, import and native pin components. */
 :root {
   /* #28: Inter for Latin and digits, Source Han Sans SC for CJK (src/fonts.ts); the Windows stack is the fallback. */
   --font: "Kinshoko Inter", "Kinshoko Han", "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Segoe UI Emoji", system-ui, sans-serif;
   --font-cjk: "Kinshoko Han Punct", var(--font);
   font-synthesis: none;
-  --ink-purple: #2B2747; --cream: #F4ECDC; --gold: #E3B34F; --sakura: #E0768F; --paper: #F7F3EA;
 
-  --bg: #F7F3EA;
-  --rail: #EFE8DA;
-  --surface: #FFFDF8;
-  --surface-2: #F1EBDF;
+  --bg: #f7f3ea;              /* paper */
+  --surface: #fffdf8;
+  --rail: #efe8da;
+  --surface-2: #f1ebdf;
+  --sunken: #ede7da;
   --hover: rgba(43, 39, 71, 0.07);
   --press: rgba(43, 39, 71, 0.12);
-  --ink: #2B2747;
-  --ink-2: #5B5773;
-  --ink-3: #8C88A0;
-  --line: #E3DACA;
-  --line-2: #D4C9B5;
-  --accent: #E0768F;          /* selection, focus, indicator */
-  --accent-strong: #B5465F;   /* accent as text: 4.9:1 on --surface */
+  --ink: #2b2747;             /* ink purple: text */
+  --ink-2: #5b5773;           /* secondary text */
+  --ink-3: #76718c;           /* icons only */
+  --line: #e3daca;
+  --line-2: #d4c9b5;
+  --accent: #e0768f;          /* sakura: selection, focus, indicator; never carries text */
+  --accent-strong: #a63a55;   /* accent as text */
   --accent-soft: rgba(224, 118, 143, 0.14);
-  --on-accent: #2B2747;
-  --manual: #B07D16;          /* the artist's decisions: the star from the logo */
+  --on-accent: #2b2747;
+  --manual: #8a5e08;          /* the artist's decisions, the logo's gold star */
   --manual-soft: rgba(227, 179, 79, 0.2);
-  --wall: #EAE9E6;            /* neutral ground behind thumbnails */
-  --card: #DCDBD8;
-  --danger: #B23A3A;
-  --shadow: 0 1px 2px rgba(43, 39, 71, 0.08), 0 8px 24px rgba(43, 39, 71, 0.12);
-  --shadow-pin: 0 2px 6px rgba(0, 0, 0, 0.25), 0 12px 32px rgba(0, 0, 0, 0.22);
-  /* T20 redesign (design/ui-system/README.md): layers, popovers, radii and the spring curve. */
-  --sunken: #EDE7DA;
-  /* 模型标签的可信度高档底色（#160）：比常规底（--surface-2，中档）深一档；低档不填底色。 */
-  --tag-conf-high: #E2D6BF;
-  /* 精确查找开启时的金色浅槽、图片大小滑条的下沉轨道与纸白圆钮（#102 方案 C3） */
-  --exact-on-bg: rgba(227, 179, 79, 0.16); --exact-on-ink: #9A6A10;
+  --wall: #eae9e6;            /* neutral ground behind thumbnails */
+  --card: #dcdbd8;
+  --danger: #b23a3a;
+  --danger-solid: #b23a3a;    /* white text 5.9:1 */
+  --on-solid: #ffffff;
+  --warn: #8a5e08; --warn-strong: #5e4510; --warn-soft: #fbf1d9;
+  --ok: #2f6b3e; --ok-strong: #2f6b3e; --ok-soft: #e3f1e6;
+  /* icons and actions on an `ink` card (toast): the other theme's colour */
+  --inverse-ok: #8fcb9c; --inverse-danger: #f08a8a; --inverse-accent: #f3a5b7;
+  /* 模型标签的可信度高档底色（#160）：比 --surface-2（中档）深一档；低档不填底色。 */
+  --tag-conf-high: #e2d6bf;
+  /* 精确查找开启时的金色浅槽、图片大小滑条（#102 方案 C3） */
+  --exact-on-bg: rgba(227, 179, 79, 0.16); --exact-on-ink: #9a6a10;
   --exact-on-inset: inset 0 1px 1.5px rgba(110, 75, 10, 0.16), inset 0 0 0 0.5px rgba(160, 112, 15, 0.22);
   --range-track: var(--line-2); --range-fill: var(--ink-2); --range-inset: inset 0 1px 1px rgba(43, 39, 71, 0.18);
-  --knob: radial-gradient(circle at 50% 35%, #FFFFFF 0 40%, #F6F1E6 100%);
+  --knob: #fffdf8;
   --knob-shadow: 0 0 0 0.5px rgba(43, 39, 71, 0.28), 0 1px 1.5px rgba(43, 39, 71, 0.28), 0 4px 10px rgba(43, 39, 71, 0.16);
-  --knob-shadow-pressed: 0 0 0 0.5px rgba(43, 39, 71, 0.3), 0 0 1px rgba(43, 39, 71, 0.3), 0 1px 3px rgba(43, 39, 71, 0.18);
+  --knob-shadow-pressed: 0 0 0 0.5px rgba(43, 39, 71, 0.3), 0 1px 3px rgba(43, 39, 71, 0.18);
+  /* the wordmark's gold star, the same in both themes */
+  --star: #e3b34f;
+  /* 安全模式遮蔽的墨色 */
+  --veil: #2b2747;
+  /* shadows and the dialog overlay take ink purple, not black; only things that float get one */
+  --shadow-raise: 0 1px 2px rgba(43, 39, 71, 0.08);
   --shadow-pop: 0 0 0 1px rgba(43, 39, 71, 0.06), 0 2px 4px rgba(43, 39, 71, 0.06), 0 12px 32px rgba(43, 39, 71, 0.14);
-  --r-xs: 6px; --r-s: 8px; --r: 10px; --r-m: 12px; --r-l: 14px; --r-xl: 18px;
+  --shadow-dialog: 0 24px 64px rgba(30, 28, 44, 0.3);
+  --shadow-pin: 0 2px 6px rgba(0, 0, 0, 0.25), 0 12px 32px rgba(0, 0, 0, 0.22);
+  --overlay: rgba(30, 28, 44, 0.38);      /* behind dialogs, outside a crop */
+  /* over images and the frozen screen, the same in both themes */
+  --scrim-label: rgba(0, 0, 0, 0.6);      /* labels on top of an image */
+  --scrim-capture: rgba(0, 0, 0, 0.25);   /* T17 冻结像素核对依据，不要改 */
+  --scrim-capture-out: rgba(0, 0, 0, 0.35);
+  --guide: rgba(255, 255, 255, 0.4);      /* crop thirds */
+  --pin-ring: rgba(255, 255, 255, 0.6);
+  --pin-shadow-near: rgba(0, 0, 0, 0.3); --pin-shadow-far: rgba(0, 0, 0, 0.28);
+  /* viewer grounds: neutral greys and checks; the mid ground stays at 50 % gray for judging values */
+  --ground-dark: #202020; --ground-mid: #808080; --ground-light: #d9d9d9; --checker-a: #d9d9d9; --checker-b: #8d8d8d;
+
+  --r-xs: 6px; --r-item: 7px; --r-s: 8px; --r: 10px; --r-m: 12px; --r-xl: 18px; --r-pill: 999px;
   --spring: cubic-bezier(0.2, 0.9, 0.25, 1.05);
-  --muted: var(--ink-3);
-  --win-close: #C94A4A; --on-win-close: #FFFDF8;
-  --warn: #A0700F; --warn-strong: #5E4510; --warn-soft: #FBF4E4; --ok: #3E7A4D; --ok-soft: #E3F1E6;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --t-fast: 120ms; --t: 200ms; --t-slow: 260ms;
   color-scheme: light;
 }
+/* Dark: ink purple ground, cream text, gold accent (日间樱、夜间金). `.k-dock.is-dark` borrows the dark tokens in either theme. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #1E1C2C; --rail: #17151F; --surface: #252336; --surface-2: #2C2940;
+    --bg: #1e1c2c; --surface: #252336; --rail: #17151f; --surface-2: #2c2940; --sunken: #19172a;
     --hover: rgba(244, 236, 220, 0.07); --press: rgba(244, 236, 220, 0.12);
-    --ink: #F4ECDC; --ink-2: #C8C0B2; --ink-3: #8F889E; --line: #353249; --line-2: #45415C;
-    --accent: #E3B34F; --accent-strong: #E9C26E; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2B2747;
-    --manual: #E3B34F; --manual-soft: rgba(227, 179, 79, 0.18);
-    --wall: #161618; --card: #222224; --danger: #F08A8A;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.45);
-    --sunken: #19172A; --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
-    --tag-conf-high: #48426A;
-    --warn: #E3B34F; --warn-strong: #F0CF86; --warn-soft: rgba(227, 179, 79, 0.12); --ok: #8FCB9C; --ok-soft: rgba(127, 179, 138, 0.16);
-    --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #E9C26E;
+    --ink: #f4ecdc; --ink-2: #c8c0b2; --ink-3: #9890a8; --line: #353249; --line-2: #45415c;
+    --accent: #e3b34f; --accent-strong: #e9c26e; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2b2747;
+    --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18);
+    --wall: #161618; --card: #222224; --danger: #f08a8a; --danger-solid: #c94a4a;
+    --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
+    --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
+    --inverse-ok: #2f6b3e; --inverse-danger: #b23a3a; --inverse-accent: #a63a55;
+    --tag-conf-high: #48426a;
+    --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
     --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
-    --range-track: #12101E; --range-fill: var(--ink-2); --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
-    --knob: radial-gradient(circle at 50% 35%, #FBF6EC 0 40%, #E6DCCB 100%);
+    --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
+    --knob: #fbf6ec;
     --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
-    --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 0 1px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
+    --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
+    --veil: #0f0e17;
+    --shadow-raise: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+    --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
     color-scheme: dark;
   }
 }
-:root[data-theme="dark"] {
-  --bg: #1E1C2C; --rail: #17151F; --surface: #252336; --surface-2: #2C2940;
+:root[data-theme="dark"], .k-dock.is-dark {
+  --bg: #1e1c2c; --surface: #252336; --rail: #17151f; --surface-2: #2c2940; --sunken: #19172a;
   --hover: rgba(244, 236, 220, 0.07); --press: rgba(244, 236, 220, 0.12);
-  --ink: #F4ECDC; --ink-2: #C8C0B2; --ink-3: #8F889E; --line: #353249; --line-2: #45415C;
-  --accent: #E3B34F; --accent-strong: #E9C26E; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2B2747;
-  --manual: #E3B34F; --manual-soft: rgba(227, 179, 79, 0.18);
-  --wall: #161618; --card: #222224; --danger: #F08A8A;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.45);
-  --sunken: #19172A; --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
-  --tag-conf-high: #48426A;
-  --warn: #E3B34F; --warn-strong: #F0CF86; --warn-soft: rgba(227, 179, 79, 0.12); --ok: #8FCB9C; --ok-soft: rgba(127, 179, 138, 0.16);
-  --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #E9C26E;
+  --ink: #f4ecdc; --ink-2: #c8c0b2; --ink-3: #9890a8; --line: #353249; --line-2: #45415c;
+  --accent: #e3b34f; --accent-strong: #e9c26e; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2b2747;
+  --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18);
+  --wall: #161618; --card: #222224; --danger: #f08a8a; --danger-solid: #c94a4a;
+  --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
+  --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
+  --inverse-ok: #2f6b3e; --inverse-danger: #b23a3a; --inverse-accent: #a63a55;
+  --tag-conf-high: #48426a;
+  --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
   --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
-  --range-track: #12101E; --range-fill: var(--ink-2); --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
-  --knob: radial-gradient(circle at 50% 35%, #FBF6EC 0 40%, #E6DCCB 100%);
+  --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
+  --knob: #fbf6ec;
   --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
-  --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 0 1px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --veil: #0f0e17;
+  --shadow-raise: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
@@ -113,23 +142,23 @@
 .seal-book.is-sealed:active { --bb: color-mix(in srgb, var(--ink) 12%, var(--rail)); }
 .seal-book:hover svg { transform: none; }
 .seal-book:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-/* seal colours, verbatim from the prototype (bd8aea44 styles.css, "seal and release"): day sakura, night gold, per theme */
-:root { --seal-acc: #C85672; --seal-ink: var(--ink); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seal-acc: #E3B34F; } }
-:root[data-theme="dark"] { --seal-acc: #E3B34F; }
+/* seal colours (brand invariant): the prototype's rules; deep sakura by day (3.42:1 on the rail), gold by night */
+:root { --seal-acc: #c85672; --seal-ink: var(--ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seal-acc: #e3b34f; } }
+:root[data-theme="dark"] { --seal-acc: #e3b34f; }
 /* seal and release ghosts (src/shell/sealfx.ts), verbatim from the prototype: above the wall, the viewer and the rail */
 .fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 38; overflow: hidden; }
-.fx-ghost { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; border-radius: 6px; overflow: hidden; background: var(--card); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18); will-change: transform, opacity; }
+.fx-ghost { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; border-radius: 6px; overflow: hidden; background: var(--card); box-shadow: var(--shadow-pin); will-change: transform, opacity; }
 .fx-ghost img { width: 100%; height: 100%; display: block; object-fit: contain; }
-.fx-wash { position: absolute; inset: 0; background: #2B2747; opacity: 0; }
+.fx-wash { position: absolute; inset: 0; background: var(--veil); opacity: 0; }
 .fx-burst { position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--seal-acc); box-shadow: 0 0 24px var(--seal-acc); opacity: 0; }
 .card.is-arriving, .card.is-arriving + .card-sources { visibility: hidden; }
 /* 藏着的卡片看不见遮蔽的变化：不跑模糊与墨色的过渡（模糊滤镜的过渡不能交给合成器，会让主线程每帧重绘，#176）。 */
 .card[data-leaving="true"] img, .card[data-leaving="true"]::after,
 .card.is-arriving img, .card.is-arriving::after { transition: none; }
-.rail-badge { position: absolute; top: 3px; right: 2px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 11px; line-height: 15px; }
+.rail-badge { position: absolute; top: 2px; right: 1px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--r-pill); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 16px; font-weight: 600; text-align: center; }
 .rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
-.tip { position: absolute; left: calc(100% + 10px); top: 50%; transform: translate(-4px, -50%); white-space: nowrap; background: var(--ink); color: var(--bg); padding: 5px 9px; border-radius: 7px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity var(--t-fast), transform var(--t-fast) var(--ease); z-index: 20; }
+.tip { position: absolute; left: calc(100% + 10px); top: 50%; transform: translate(-4px, -50%); white-space: nowrap; background: var(--ink); color: var(--bg); padding: 5px 8px; border-radius: var(--r-s); font-size: 12px; line-height: 18px; pointer-events: none; opacity: 0; transition: opacity var(--t-fast), transform var(--t-fast) var(--ease); z-index: 20; }
 .tip kbd { background: transparent; color: inherit; border-color: color-mix(in srgb, var(--bg) 40%, transparent); opacity: 0.8; }
 .rail-btn:hover .tip, .rail-btn:focus-visible .tip { opacity: 1; transform: translate(0, -50%); }
 
@@ -149,7 +178,7 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .pane-body[hidden] { display: none; }
 .topbar { display: flex; align-items: center; min-height: 52px; flex: none; padding: 8px 12px; gap: 8px; background: var(--surface); border-bottom: 1px solid var(--line); z-index: 2; }
 .topbar > .search { flex: 1; min-width: 0; border: 0; padding: 0; }
-.selection-hint { font-size: 12px; line-height: 18px; color: var(--ink-3); white-space: nowrap; }
+.selection-hint { font-size: 12px; line-height: 18px; color: var(--ink-2); white-space: nowrap; }
 .wall { scrollbar-gutter: stable; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 

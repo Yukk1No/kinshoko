@@ -34,7 +34,7 @@ const point = { x: 50, y: 60 };
 
 it("单张：菜单项与 #102 表一致，快捷键提示在右侧，危险项置底红字", () => {
   const { menu, rows } = show({ kind: "cards", cards: [card("1")], point });
-  expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "复制图片Ctrl C", "放入文件夹", "加入参考组", "内容分级", "在资源管理器中显示", "移到回收站Del"]);
+  expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "复制图片Ctrl C", "移到文件夹", "加入参考组", "内容分级", "在资源管理器中显示", "移到回收站Del"]);
   const items = within(menu).getAllByRole("menuitem");
   expect(items.at(-1)!.className).toContain("is-danger");
   expect(items.filter((item) => item.className.includes("is-danger"))).toHaveLength(1);
@@ -58,7 +58,7 @@ it("单张：在文件夹范围里多出“从此文件夹移出”，多来源�
     { libraryId: "L2", libraryName: "库二", imageId: "j1", unavailable: null, matches: true, deleted: false },
   ] });
   const { rows, a } = show({ kind: "cards", cards: [twoSources], point }, { kind: "folder", id: "f9" });
-  expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "复制图片Ctrl C", "放入文件夹", "从此文件夹移出", "加入参考组", "内容分级", "查看来源", "在资源管理器中显示", "移到回收站Del"]);
+  expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "复制图片Ctrl C", "移到文件夹", "从此文件夹移出", "加入参考组", "内容分级", "查看来源", "在资源管理器中显示", "移到回收站Del"]);
   fireEvent.click(screen.getByRole("menuitem", { name: "从此文件夹移出" }));
   expect(a.edit).toHaveBeenCalledWith([twoSources], [{ kind: "removeFromFolder", folderId: "f9" }], true);
 });
@@ -100,7 +100,7 @@ it("单张：各项调用对应的动作", () => {
 it("多张：钉住 N 张、复制禁用并提示一次只能复制一张，回收站项带张数", () => {
   const cards = [card("1"), card("2"), card("3")];
   const { menu, rows, a } = show({ kind: "cards", cards, point });
-  expect(rows()).toEqual(["钉住 3 张P", "复制一次只能复制一张", "放入文件夹", "加入参考组", "内容分级", "移到回收站（3 张）Del"]);
+  expect(rows()).toEqual(["钉住 3 张P", "复制一次只能复制一张", "移到文件夹", "加入参考组", "内容分级", "移到回收站（3 张）Del"]);
   const copy = within(menu).getByRole("menuitem", { name: /复制/ });
   expect(copy.getAttribute("aria-disabled")).toBe("true");
   fireEvent.click(copy);
@@ -150,10 +150,10 @@ it("空白处：剪贴板没有图片时从剪贴板导入禁用", async () => {
   expect(a.importClipboard).not.toHaveBeenCalled();
 });
 
-it("子菜单：放入文件夹列出图库的文件夹，内容分级写入分级", async () => {
+it("子菜单：移到文件夹列出图库的文件夹，内容分级写入分级", async () => {
   const one = card("1");
   const { a } = show({ kind: "cards", cards: [one], point });
-  fireEvent.click(screen.getByRole("menuitem", { name: "放入文件夹" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "移到文件夹" }));
   fireEvent.click(await screen.findByRole("menuitem", { name: "人物" }));
   expect(a.folders).toHaveBeenCalledWith("L1");
   expect(a.edit).toHaveBeenCalledWith([one], [{ kind: "addToFolder", folderId: "f1" }], false);
@@ -172,9 +172,9 @@ it("子菜单：内容分级与加入参考组", async () => {
   expect(again.a.addToGroup).toHaveBeenCalledWith([one], "g1");
 });
 
-it("多张来自不同图库时放入文件夹不可用", () => {
+it("多张来自不同图库时移到文件夹不可用", () => {
   const { menu } = show({ kind: "cards", cards: [card("1"), card("2", { libraryId: "L2" })], point });
-  const folders = within(menu).getByRole("menuitem", { name: /放入文件夹/ });
+  const folders = within(menu).getByRole("menuitem", { name: /移到文件夹/ });
   expect(folders.getAttribute("aria-disabled")).toBe("true");
 });
 
@@ -190,7 +190,7 @@ it("图片大小子菜单：几档预设，当前一档打勾，选中即提交"
 it("导入子菜单：图片文件、整个文件夹、从 Eagle", async () => {
   const { a } = show({ kind: "blank", point });
   fireEvent.click(screen.getByRole("menuitem", { name: "导入" }));
-  expect((await screen.findAllByRole("menuitem")).map((item) => item.textContent)).toEqual(expect.arrayContaining(["图片文件…", "整个文件夹…", "从 Eagle…"]));
+  expect((await screen.findAllByRole("menuitem")).map((item) => item.textContent)).toEqual(expect.arrayContaining(["图片Ctrl O", "文件夹", "从 Eagle…"]));
   fireEvent.click(screen.getByRole("menuitem", { name: "从 Eagle…" }));
   expect(a.importFrom).toHaveBeenCalledWith("eagle");
 });

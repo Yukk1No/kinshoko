@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type ComponentProps, type Ref } from "react";
 import { ImportBar, type ImportActions } from "./ImportBar";
-import { ImportSplit } from "../ui/ImportSplit";
+import { ImportButton } from "../ui/ImportButton";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
@@ -79,7 +79,7 @@ export function ImportMenu({control,...p}:ComponentProps<typeof ImportBar>&{scop
  const prefill=()=>{if(p.scope?.kind==="library"&&(p.scope.scope.kind==="folder"||p.scope.scope.kind==="folderTree"))context.setDestination({libraryId:p.scope.libraryId,folderId:p.scope.scope.id});};
  const via=(action:"files"|"folder")=>()=>{prefill();actions.current?.[action]();};
  const eagle=()=>{prefill();actions.current?.eagle();};
- // 图片墙空白处右键的“导入 ▸”与这里的分体按钮走同一入口；按钮不可用（导入进行中）时也不开始。
+ // 图片墙空白处右键的“导入 ▸”、Ctrl O 与这里的导入按钮走同一入口；按钮不可用（导入进行中）时也不开始。
  const blocked=busy.busy||active;
  const clipboard=async()=>{
   if(blocked)throw "正在导入，结束后再从剪贴板导入";
@@ -92,10 +92,10 @@ export function ImportMenu({control,...p}:ComponentProps<typeof ImportBar>&{scop
   {task?.report&&task.finishing&&<p className="k-task-sub" role="status">已导入，正在把标签定义存进图库…</p>}
   {task?.warnings.map((warning,index)=><p className="k-task-sub is-warn" role="alert" key={index}>{warning}</p>)}
  </>;
- const switcher=tasks.length>1?<label className="k-task-switch">查看导入任务<select className="k-select" aria-label="查看导入任务" value={task?.taskId??""} onChange={e=>setSelectedTask(e.target.value)}>
-  {tasks.map(t=><option key={t.taskId} value={t.taskId}>{t.libraryName} / {t.folderName} · {t.report?"已结束":"进行中"}</option>)}</select></label>:null;
+ const switcher=tasks.length>1?<label className="k-task-switch">导入任务<select className="k-select" aria-label="导入任务" value={task?.taskId??""} onChange={e=>setSelectedTask(e.target.value)}>
+  {tasks.map(t=><option key={t.taskId} value={t.taskId}>{t.libraryName} / {t.folderName}（{t.report?"已结束":"进行中"}）</option>)}</select></label>:null;
  return <div className="import-menu">
-  <ImportSplit busy={busy.busy||active} eagleBusy={busy.eagle} onFiles={via("files")} onFolder={via("folder")} onEagle={eagle}
+  <ImportButton busy={busy.busy||active} eagleBusy={busy.eagle} onFiles={via("files")} onFolder={via("folder")} onEagle={eagle}
    onShowTasks={tasks.length>0||active||finished?()=>actions.current?.showTasks():undefined}/>
   <ImportBar {...p} actionsRef={actions} onBusyChange={onBusyChange} previewContextKey={p.libraryId} libraryId={context.destination?.libraryId??""} libraryName={library?.name??"尚未选择的图库"}
     destination={context.destination} destinationReady={context.ready&&destinationAvailable(context.destination,context.providers)} running={running} finished={finished}

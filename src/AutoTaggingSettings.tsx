@@ -16,9 +16,9 @@ const DEVICE_NAME: Record<Device, string> = { directMl: "显卡", cpu: "CPU" };
 /** 一个硬件档：名称 · 显存或内存需求 · 是否已下载。不写精度（FP16/FP32 随档位定，画师不用管）。 */
 function describe(option: HardwareOption): string {
   const need = option.device === "directMl"
-    ? ` · 显存约 ${gb(option.vramNeed)}`
-    : option.ramNeed > 0 ? ` · 内存约 ${gb(option.ramNeed)}` : "";
-  return `${DEVICE_NAME[option.device]}${need} · ${option.downloaded ? "已下载" : `需下载 ${mb(option.size)}`}`;
+    ? `，显存约 ${gb(option.vramNeed)}`
+    : option.ramNeed > 0 ? `，内存约 ${gb(option.ramNeed)}` : "";
+  return `${DEVICE_NAME[option.device]}${need}，${option.downloaded ? "已下载" : `需下载 ${mb(option.size)}`}`;
 }
 
 /** 选“自动”时，说明实际在用的档。 */
@@ -85,21 +85,21 @@ export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string |
 
   const selected = choice?.options.find((o) => o.device === choice.selected);
   return <>
-    <SettingsGroup title="自动打标">
+    <SettingsGroup title="自动标签">
       <TaggingStatusRow libraryId={libraryId} status={status} />
     </SettingsGroup>
     {choice && <SettingsGroup title="模型">
-      <SettingsRow label="Tagger 模型" icon={<Tags size={16} />} title="Tagger 模型" desc="给导入的图加上标签建议">
+      <SettingsRow label="模型" icon={<Tags size={16} />} title="模型" hint="给导入的图加上标签建议">
         <span className="k-set-muted">{choice.model}</span>
       </SettingsRow>
-      <SettingsRow label="硬件加速" icon={<Cpu size={16} />} title="硬件加速" desc={selected ? describe(selected) : automatic(status)}>
+      <SettingsRow label="硬件加速" icon={<Cpu size={16} />} title="硬件加速" meta={selected ? describe(selected) : automatic(status)}>
         <select className="k-select" aria-label="硬件加速" value={choice.selected ?? "auto"}
           onChange={(e) => void run(() => taggingSetDevice(e.target.value === "auto" ? null : e.target.value as Device), null)}>
           <option value="auto">自动</option>
           {choice.options.map((o) => <option key={o.device} value={o.device}>{describe(o)}</option>)}
         </select>
       </SettingsRow>
-      <SettingsRow label="模型包" icon={<PackageOpen size={16} />} title="模型包" desc={busy ? "正在导入并校验…" : message ?? "没网时从文件导入"}
+      <SettingsRow label="模型包" icon={<PackageOpen size={16} />} title="模型包" hint="没网时从文件导入" meta={busy ? "正在导入并校验…" : message ?? undefined}
         below={error !== null && <p className="k-set-error" role="alert">{error}</p>}>
         <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void importPackage()}>导入模型包…</button>
       </SettingsRow>
@@ -110,8 +110,8 @@ export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string |
 /** 打标状态一行：状态文字与对应的操作（暂停、继续、下载、取消下载）；下载时行下方显示进度条。 */
 function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; status: TaggingStatus | null }) {
   const row = (desc: ReactNode, action?: ReactNode, below?: ReactNode) =>
-    <SettingsRow label="打标状态" icon={<Sparkles size={16} />} title="打标状态" desc={desc} below={below}>{action}</SettingsRow>;
-  if (libraryId === null) return row("添加图库后开始自动打标");
+    <SettingsRow label="状态" icon={<Sparkles size={16} />} title="状态" meta={desc} below={below}>{action}</SettingsRow>;
+  if (libraryId === null) return row("添加图库后开始");
   if (status === null) return row("正在读取…");
   const act = (f: (id: string) => Promise<void>) => () => void f(libraryId).catch(() => {});
   const button = (name: string, f: (id: string) => Promise<void>, primary = false) =>
@@ -124,7 +124,7 @@ function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; sta
     case "preparing":
       return row("正在加载模型…", pause);
     case "running":
-      return row(`正在打标 · ${DEVICE_NAME[status.device]} · 已打 ${status.tagged} 张`, pause);
+      return row(`已标 ${status.tagged} 张（${DEVICE_NAME[status.device]}）`, pause);
     case "paused":
       return row("已暂停", button("继续", taggingResume));
     // 有全屏程序（游戏）或演示模式时自动让出显卡（#212），不是卡住或出错。系统的通知状态报告不了

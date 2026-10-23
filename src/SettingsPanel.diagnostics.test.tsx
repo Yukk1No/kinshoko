@@ -76,7 +76,7 @@ describe("设置：更新", () => {
       return undefined;
     });
     render(<SettingsPanel initialTab="update" version="Kinshoko 0.1.2" />);
-    expect(await screen.findByText("Kinshoko 0.1.2", { selector: ".k-list-desc" })).toBeTruthy();
+    expect(await screen.findByText("Kinshoko 0.1.2", { selector: ".k-list-meta" })).toBeTruthy();
 
     fireEvent.click(await screen.findByRole("button", { name: "检查更新" }));
 

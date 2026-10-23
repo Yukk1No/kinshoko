@@ -9,7 +9,7 @@
 .capture-history-start .k-btn { flex: none; height: 34px; padding: 0 10px; }
 .capture-history-start .k-btn:first-child { flex: 1; min-width: 0; }
 .capture-history-start .k-btn .k-kbd { margin-left: 4px; }
-.capture-history-note, .capture-history-empty, .reference-groups-empty { margin: 0; padding: 0 2px; color: var(--ink-3); font-size: 12px; line-height: 18px; }
+.capture-history-note, .capture-history-empty, .reference-groups-empty { margin: 0; padding: 0 2px; color: var(--ink-2); font-size: 12px; line-height: 18px; }
 .group-note { margin: 0; padding: 0 2px; color: var(--ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
 .group-note.is-error { color: var(--danger); }
 .side-input { width: 100%; min-width: 0; height: 32px; padding: 0 10px; border: 0; border-radius: 9px; background: var(--surface); color: var(--ink); font: inherit;
@@ -27,7 +27,7 @@
 .capture-history-item img { width: 64px; height: 48px; flex: none; border-radius: 7px; object-fit: cover; background: var(--card); }
 .capture-history-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .capture-history-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.capture-history-meta { color: var(--ink-3); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.capture-history-meta { color: var(--ink-2); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .capture-collect-thumb { width: 64px; height: 48px; flex: none; border-radius: 7px; object-fit: cover; background: var(--card); }
 .capture-history-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .capture-history-delete { position: absolute; top: 6px; right: 4px; width: 24px; height: 24px; opacity: 0; }
@@ -40,7 +40,7 @@
 .group-name-acts { display: flex; justify-content: flex-end; gap: 6px; }
 .reference-groups-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .reference-group { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 4px; border-radius: 12px; transition: background var(--t-fast); }
-.reference-group.is-on { padding-bottom: 10px; background: var(--surface-2); box-shadow: 0 1px 2px rgba(43, 39, 71, 0.06); }
+.reference-group.is-on { padding-bottom: 10px; background: var(--surface-2); box-shadow: var(--shadow-raise); }
 .group-card-head { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-width: 0; padding: 6px; border: 0; border-radius: 9px;
   background: transparent; color: var(--ink); text-align: left; font: inherit; }
 .reference-group:not(.is-on) .group-card-head:hover { background: var(--hover); }
@@ -52,7 +52,7 @@
 .group-thumb.is-sealed { background: var(--veil); }
 .group-thumb.is-missing { background: repeating-linear-gradient(135deg, var(--card) 0 5px, var(--surface-2) 5px 10px); }
 .reference-group-name { font-weight: 600; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
-.reference-group-meta, .reference-group-problem { color: var(--ink-3); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+.reference-group-meta, .reference-group-problem { color: var(--ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
 .reference-group-problem { color: var(--warn); }
 .reference-group-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 6px; }
 .reference-group .group-name-form { padding: 0 6px; }
@@ -107,19 +107,19 @@
 .capture-shade {
   position: absolute;
   inset: 0;
-  background: rgb(0 0 0 / 0.25);
+  background: var(--scrim-capture);
 }
 
 /* 选区外沿用 35% 压暗；没有选区时上面的 25% 遮罩是 T17 冻结像素核对依据，不要改。 */
 .capture-selection {
   position: absolute;
   box-sizing: border-box;
-  outline: 1.5px solid #fff;
-  box-shadow: 0 0 0 100000px rgb(0 0 0 / 0.35);
+  outline: 1.5px solid var(--on-solid);
+  box-shadow: 0 0 0 100000px var(--scrim-capture-out);
 }
 
 /* 四角与四边中点的手柄标出能拖的地方；命中范围比手柄大，由 selectionPart 判断，手柄本身不接指针。 */
-.capture-handle { position: absolute; width: 8px; height: 8px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25); pointer-events: none; }
+.capture-handle { position: absolute; width: 8px; height: 8px; border-radius: 2px; background: var(--on-solid); box-shadow: 0 0 0 1px var(--scrim-capture); pointer-events: none; }
 .capture-handle.is-nw { left: -4px; top: -4px; }
 .capture-handle.is-ne { right: -4px; top: -4px; }
 .capture-handle.is-sw { left: -4px; bottom: -4px; }
@@ -138,8 +138,8 @@
   transform: translateX(-50%);
   padding: 6px 12px;
   border-radius: 999px;
-  background: rgb(30 28 44 / 0.72);
-  color: #f4ecdc;
+  background: color-mix(in srgb, var(--ink) 80%, transparent);
+  color: var(--bg);
   font-family: var(--font);
   font-size: 12px;
   backdrop-filter: blur(12px);
@@ -208,8 +208,8 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: var(--seal);
-  color: #fff;
+  background: var(--seal-acc);
+  color: var(--on-accent);
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -221,8 +221,8 @@
   gap: 6px;
   padding: 4px 8px;
   border-radius: 6px;
-  background: rgb(0 0 0 / 0.6);
-  color: #fff;
+  background: var(--scrim-label);
+  color: var(--on-solid);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -233,7 +233,7 @@
   display: grid;
   place-items: center;
   padding: 8px;
-  color: #fff;
+  color: var(--on-solid);
   font-size: 12px;
   text-align: center;
   pointer-events: none;
@@ -251,7 +251,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  box-shadow: inset 0 0 0 2px #e0768f;
+  box-shadow: inset 0 0 0 2px var(--accent);
   animation: pin-appear 900ms ease-out forwards;
 }
 
@@ -272,8 +272,8 @@
   max-width: calc(100% - 12px);
   padding: 2px 8px;
   border-radius: 4px;
-  background: rgb(0 0 0 / 0.75);
-  color: #fff;
+  background: var(--scrim-label);
+  color: var(--on-solid);
   font-size: 12px;
   white-space: nowrap;
   overflow: hidden;

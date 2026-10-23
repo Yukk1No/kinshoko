@@ -13,21 +13,25 @@ const px = (value: string) => Number(value.replace("px", ""));
 /** `padding` 简写的上、下内边距。 */
 const padding = (value: string) => { const [top, , bottom = top] = value.split(/\s+/).map(px); return [top, bottom]; };
 
-// jsdom 不排版，按样式表里的数字算设置行的高度（单位 px）。正文行高 20px（styles.css 的 body）。
-// 在浏览器里渲染设置页、按 150% 缩放实测：说明沿用 20px 行高时，标题加说明的文字块比图标高出约 1.2px，
-// 有说明的行也比没有说明的行高 2px（#218）。
-describe("设置行的文字垂直居中（#218）", () => {
+// jsdom 不排版，按样式表里的数字算设置行的高度（单位 px）。
+// 设计系统 v2：每行只有图标、名称、控件，没有描述行；补充说明在悬停提示里，状态是控件左边的小字。
+describe("设置行垂直居中（#218，设计系统 v2）", () => {
   const main = rule(settings, ".k-set-row-main");
   const [padTop, padBottom] = padding(main.padding);
-  const titleLine = 20;
 
-  it("说明按 12px 字号配 18px 行高，标题加说明正好填满一行的最小高度", () => {
-    const desc = rule(settings, ".k-set-row .k-list-desc");
-    expect(px(desc["line-height"])).toBe(18);
-    expect(padTop + titleLine + px(desc["line-height"]) + padBottom).toBe(px(main["min-height"]));
+  it("一行的最小高度正好放下 32 px 的控件，上下留白相等", () => {
+    expect(padTop).toBe(padBottom);
+    expect(padTop + 32 + padBottom).toBe(px(main["min-height"]));
+    expect(main["align-items"]).toBe("center");
   });
 
-  it("只改设置行：共享列表的说明样式不定行高，其他页面的行高不变", () => {
-    expect(rule(ui, ".k-list-desc")["line-height"]).toBeUndefined();
+  it("状态小字与控件同一行，不另占一行", () => {
+    const meta = rule(ui, ".k-list-meta");
+    expect(meta["white-space"]).toBe("nowrap");
+    expect(px(meta["font-size"])).toBe(12);
+  });
+
+  it("什么都没渲染的行下区域不占位，不把整行内容顶偏（“检查更新”一行偏上）", () => {
+    expect(rule(settings, ".k-set-row-below:empty").display).toBe("none");
   });
 });

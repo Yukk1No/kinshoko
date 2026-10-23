@@ -79,7 +79,7 @@ describe("B：可信度三档底色（默认）", () => {
     await screen.findByText("微笑");
     fireEvent.focus(chip("微笑"));
     const tip = await screen.findByRole("dialog", { name: "“微笑”的出处" });
-    expect(tip.textContent).toContain("来源：打标模型 · 可信度 87%（高）");
+    expect(tip.textContent).toContain("自动标签，可信度 87%（高）");
     expect(within(tip).getByRole("button", { name: "确认“微笑”" })).toBeTruthy();
     expect(within(tip).getByRole("button", { name: "否决“微笑”" })).toBeTruthy();
   });
@@ -92,7 +92,7 @@ describe("B：可信度三档底色（默认）", () => {
     fireEvent.mouseMove(chip("长发"));
     const tip = await screen.findByRole("dialog", { name: "“长发”的出处" });
     expect(tip.textContent).toContain("来源：你添加的");
-    expect(tip.textContent).toContain("来源：打标模型 · 可信度 99%（高）");
+    expect(tip.textContent).toContain("自动标签，可信度 99%（高）");
     expect(within(tip).getByRole("button", { name: "清除对“长发”的人工决定" })).toBeTruthy();
   });
 
@@ -138,7 +138,7 @@ describe("C：按出处分组＋可信度刻度", () => {
   it("分“你添加的 / 打标模型 / 导入”三组，模型组按分数降序，每个模型标签有刻度条", async () => {
     renderPanel({ ...DEFAULT_TAG_DISPLAY, style: "grouped" });
     const manual = await screen.findByRole("list", { name: "你添加的" });
-    const models = screen.getByRole("list", { name: "打标模型" });
+    const models = screen.getByRole("list", { name: "自动标签" });
     const imported = screen.getByRole("list", { name: "导入" });
     const names = (list: HTMLElement) => within(list).getAllByRole("listitem").map((li) => li.querySelector(".tag-name")!.textContent);
     expect(names(manual)).toEqual(["构图练习", "长发"]);

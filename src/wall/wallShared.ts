@@ -111,7 +111,7 @@ export const anchorKey = (libraryId: string, scope: BrowseScope) =>
 
 export const EMPTY: Record<BrowseScope["kind"], string> = {
   all: "图库里还没有参考图。点右上角的“导入”，或直接拖进窗口。",
-  folder: "这个文件夹里还没有参考图。选中图片后点“放入”，或把图片拖到侧栏的文件夹上。",
+  folder: "这个文件夹里还没有参考图。选中图片后点“移到”，或把图片拖到侧栏的文件夹上。",
   folderTree: "这个文件夹及其子文件夹还没有参考图。",
   unassigned: "这个图库没有未归类的参考图。",
   trash: "回收站是空的。",

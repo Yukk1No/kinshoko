@@ -1,0 +1,181 @@
+/* T20 main window, part 2: inspector, empty workspace and detail tags. Loaded right after main-window.css. */
+/* ---- Inspector ---- */
+/* 宽度由主窗口写在 :root 的 --inspector-width 上（#157，280–560，默认 320）；头部与内容区按它定宽，开合过渡中不跟着挤。 */
+.inspector { position: relative; width: var(--inspector-width, 320px); flex: none; display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-left: 1px solid var(--line);
+  transition: width var(--t-slow) var(--ease); overflow: hidden; }
+.inspector[data-collapsed="true"] { width: 0; border-left-width: 0; }
+/* 拖动中宽度直接跟手，不做过渡。 */
+.inspector[data-resizing="true"] { transition: none; }
+.insp-resizer { position: absolute; z-index: 2; top: 0; bottom: 0; left: 0; width: 6px; cursor: ew-resize; touch-action: none; }
+.insp-resizer:hover, .insp-resizer:active { background: linear-gradient(to right, var(--line-2) 0 2px, transparent 2px); }
+.insp-resizer:focus-visible { outline: 0; background: linear-gradient(to right, var(--accent) 0 2px, transparent 2px); }
+.insp-head { width: calc(var(--inspector-width, 320px) - 1px); height: 56px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-bottom: 1px solid var(--line); }
+.insp-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-weight: 500; }
+.insp-body { width: calc(var(--inspector-width, 320px) - 1px); flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 16px; }
+.insp-file-name { font-weight: 600; font-size: 13px; overflow-wrap: anywhere; }
+.insp-file-meta { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.insp-sec h4, .insp-h { margin: 0 0 8px; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.insp-h-hint { margin-left: auto; font-weight: 400; }
+.insp-hint { margin: 6px 0 0; color: var(--ink-2); font-size: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.insp-problem { margin: 0; color: var(--danger); font-size: 12px; }
+.insp-notice { margin: 0; color: var(--ok); font-size: 12px; }
+.insp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.insp-chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px; border-radius: var(--r-item); background: var(--surface-2); font-size: 12px; }
+.insp-chip-x { width: 16px; height: 16px; padding: 0; border: 0; border-radius: 4px; display: grid; place-items: center; background: none; color: var(--ink-3); margin-right: -4px; }
+.insp-chip-x:hover { background: var(--hover); color: var(--ink); }
+.insp-links { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.insp-links li { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--ink-2); }
+.insp-links li svg { flex: none; color: var(--ink-3); }
+.insp-links a { color: var(--accent-strong); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inspector .selection { padding: 0; border: 0; display: flex; flex-direction: column; gap: 16px; }
+/* detail rows join the panel's column so the file name sits above the tags (preview 02 order) */
+.inspector .selection-detail { display: contents; }
+.inspector .selection > * { order: 1; }
+.inspector .selection > .selbar.is-inline { order: 0; }
+.inspector .selection-detail > * { order: 2; }
+.inspector .selection-detail > .insp-file, .inspector .selection-detail > .selection-version { order: 0; }
+.inspector .selection-version { margin: 0; font-size: 12px; color: var(--ink-2); }
+.inspector .selection-note { display: flex; flex-direction: column; gap: 0; }
+.inspector .selection-note textarea { min-height: 60px; padding: 8px 10px; border: 0; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--line-2); background: var(--surface);
+  color: var(--ink); font-size: 12px; line-height: 18px; resize: vertical; }
+.inspector .selection-note textarea:focus { outline: 0; box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px var(--accent-soft); }
+.inspector .selection-note + .selection-actions { margin-top: 8px; }
+.insp-rate .k-seg-item { font-size: 12px; }
+.inspector .selection-rating { display: block; font-size: 13px; }
+.workspace-sources { width: auto; max-height: none; overflow: visible; padding: 0; border: 0; border-radius: 0; background: none; color: inherit; display: flex; flex-direction: column; gap: 16px; }
+.workspace-source-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.workspace-source-list li { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: var(--r-m); box-shadow: inset 0 0 0 1px var(--line); border: 0; }
+.workspace-source-head { display: flex; align-items: baseline; gap: 8px; }
+.workspace-source-state { margin-left: auto; color: var(--ink-2); font-size: 12px; }
+.workspace-source-editor { display: flex; flex-direction: column; gap: 16px; margin: 0; }
+.workspace-source-editor .workspace-source-path { margin: -10px 0 0; font-size: 12px; color: var(--ink-2); }
+.insp-use { margin: 0; padding: 12px 0 0; border: 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.insp-use legend { padding: 0; font-size: 12px; font-weight: 600; color: var(--ink-2); float: left; margin-bottom: 4px; }
+.insp-use-row { display: grid; gap: 8px; clear: both; }
+.insp-use-row label { display: grid; gap: 4px; font-size: 12px; color: var(--ink-2); }
+.insp-use-row select, .insp-use-row input { height: 30px; padding: 0 8px; border: 0; border-radius: var(--r-s); box-shadow: inset 0 0 0 1px var(--line-2); background: var(--surface); color: var(--ink); min-width: 0; }
+.insp-foot { display: flex; gap: 8px; }
+.insp-foot .k-btn { flex: 1; padding: 0 8px; }
+
+/* ---- Import popup (task receipts) on the new tokens ---- */
+.import-menu { position: relative; flex: none; }
+
+/* ---- Empty workspace ---- */
+.app-empty-workspace { display: flex; flex: 1; min-height: 0; }
+.app-main-centered { align-items: stretch; }
+/* safe center：窗口矮到放不下时改为顶端对齐，内容只向下溢出，上面的“返回”和标题始终能滚到（最小高度 480 px）。 */
+.app-empty-body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 12px; padding: 24px; }
+/* 没有图库时的居中引导（#172 原型 A）：欢迎页先选新建或打开，新建再填表；两屏同宽、同一位置。 */
+.welcome { width: min(460px, 100%); display: flex; flex-direction: column; gap: 22px; padding-bottom: 56px; animation: welcome-in var(--t) var(--spring); }
+@keyframes welcome-in { from { opacity: 0; transform: translateY(4px) scale(0.99); } }
+.welcome-head { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 28px; text-align: center; }
+.welcome-head h1 { margin: 0; font-size: 16px; line-height: 24px; }
+.welcome-head p { margin: 0; color: var(--ink-2); }
+.welcome-choices { display: flex; flex-direction: column; gap: 10px; }
+.welcome-choice { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; border: 0; border-radius: var(--r-m); background: var(--surface); color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line); text-align: left; transition: box-shadow var(--t-fast), transform var(--t-fast) var(--spring); }
+.welcome-choice:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--line-2), var(--shadow-raise); }
+.welcome-choice:active:not(:disabled) { transform: scale(0.99); }
+.welcome-choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.welcome-choice:disabled { opacity: 0.55; cursor: default; }
+.welcome-choice-tile { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: var(--r); background: var(--surface-2); color: var(--ink-2); }
+.welcome-choice.is-main .welcome-choice-tile { background: var(--ink); color: var(--bg); }
+.welcome-choice-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.welcome-choice-text b { font-weight: 600; }
+.welcome-choice-text span { color: var(--ink-2); font-size: 12px; }
+.welcome-choice-chev { flex: none; color: var(--ink-3); }
+.welcome-tips { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.welcome-tip { margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ink-2); font-size: 12px; }
+.welcome-tip svg { color: var(--ink-3); }
+.welcome-tip svg { flex: none; }
+.welcome-back { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; height: 28px; margin: -6px 0 2px -8px; padding: 0 8px; border: 0; border-radius: var(--r-s);
+  background: none; color: var(--ink-2); font-size: 12px; }
+.welcome-back:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+.create-library { display: flex; flex-direction: column; gap: 16px; padding: 20px; border-radius: var(--r-xl); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.create-library h1 { margin: 0; font-size: 16px; line-height: 24px; }
+.create-library-desc { margin: 2px 0 0; color: var(--ink-2); font-size: 12px; }
+/* .k-input 与 .k-field-label 来自 ui/dialogs.css；这里是竖排的字段，输入框不随 flex 伸缩。 */
+.create-library .k-field { display: flex; flex-direction: column; gap: 6px; }
+.create-library .k-input { flex: none; height: 36px; padding: 0 12px; border-radius: var(--r); }
+.create-library-path { display: flex; align-items: center; gap: 8px; min-width: 0; height: 36px; padding: 0 4px 0 12px; border-radius: var(--r); background: var(--sunken); color: var(--ink-2); }
+.create-library-path.is-set { color: var(--ink); }
+.create-library-path-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.create-library-error { margin: 0; color: var(--danger); font-size: 12px; overflow-wrap: anywhere; }
+.create-library-foot { display: flex; justify-content: flex-end; margin-top: 4px; }
+.k-btn.is-lg { height: 40px; padding: 0 18px; border-radius: var(--r); }
+.k-btn.is-lg:has(> svg:first-child) { padding-left: 16px; }
+@media (prefers-reduced-motion: reduce) { .welcome { animation: none; } }
+:root[data-reduced-motion] .welcome { animation: none; }
+
+@media (prefers-reduced-motion: reduce) { .sidebar-slot, .inspector { transition: none; } }
+:root[data-reduced-motion] .sidebar-slot, :root[data-reduced-motion] .inspector { transition: none; }
+
+/* 窄主区（例如打开详情面板）：查找框收窄而不换行——条件标签横向滚动，精确查找开关保持在尾部；
+   张数在更窄时收起（#98）。图片大小浮岛一直保留，只缩短滑条（#102）。 */
+.app-main { container: main / inline-size; }
+.topbar > .search .search-chips { display: flex; flex: 0 1 auto; min-width: 0; gap: 6px; margin: 0; padding: 0; overflow-x: auto; scrollbar-width: none; }
+.topbar > .search .search-chips::-webkit-scrollbar { display: none; }
+.topbar > .search .search-field { flex: 1 1 72px; min-width: 72px; }
+@container main (max-width: 600px) { .k-wall-corner { right: 16px; bottom: 16px; } .selbar-float { bottom: 16px; } .k-density-island { gap: 8px; padding: 0 12px; } .k-density-island .k-range { width: 96px; } }
+@container main (max-width: 600px) { .bar-meta { display: none; } }
+
+/* 详情面板的标签与备注（#98，#160）：现有标签是小标签，只写名称；出处、可信度与操作在悬停或聚焦时的浮层里。
+   一个加标签字段（类别 + 输入）。 */
+.k-tags { gap: 8px; font-size: 12px; }
+.k-tags .k-tag-chips { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+.k-tags .k-tag-chip { position: relative; display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 4px; min-height: 26px; padding: 0 8px; border-radius: var(--r-item); background: var(--surface-2); color: var(--ink); cursor: default; }
+.k-tags .k-tag-chip.is-manual { background: var(--manual-soft); box-shadow: inset 0 0 0 1px var(--manual); color: var(--ink); }
+.k-tags .k-tag-chip .tag-name { font-weight: 500; white-space: nowrap; }
+.k-tags .k-tag-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* B：模型标签按可信度三档——高档深底，中档常规底（同导入），低档不填底、字变浅；只改颜色，不改尺寸。
+   低档虚线框是设置里的开关（默认开，验收后改定，见 #160）；用 outline，不占排版。 */
+.k-tags .k-tag-chip[data-band="high"] { background: var(--tag-conf-high); }
+.k-tags .k-tag-chip[data-band="low"] { background: transparent; color: var(--ink-2); }
+.k-tags [data-low-outline] .k-tag-chip[data-band="low"] { outline: 1px dashed var(--line-2); outline-offset: -1px; }
+.k-tags [data-low-outline] .k-tag-chip[data-band="low"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* C：按出处分组，模型标签底边一条可信度刻度，长度等于可信度。 */
+.k-tags .k-tag-group { display: flex; flex-direction: column; gap: 6px; }
+.k-tags .k-tag-chip:has(.k-tag-meter) { overflow: hidden; }
+.k-tags .k-tag-meter { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--ink-3); border-radius: 0 2px 0 0; pointer-events: none; }
+/* 悬停浮层：在 portal 里，不占标签的位置（#159）；出处每行一条，操作在底部。 */
+.k-tag-tip { display: flex; flex-direction: column; gap: 1px; max-width: 260px; line-height: 18px; }
+.k-tag-tip .k-tag-tip-line.is-dim { opacity: 0.7; }
+.k-tag-tip .k-tag-tip-acts { display: flex; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, var(--bg) 20%, transparent); }
+.k-tag-tip .k-tag-tip-btn { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px; border: 0; border-radius: var(--r-xs); background: color-mix(in srgb, var(--bg) 12%, transparent); color: inherit; font: inherit; font-size: 12px; cursor: pointer; }
+.k-tag-tip .k-tag-tip-btn:hover { background: color-mix(in srgb, var(--bg) 22%, transparent); }
+.k-tag-tip .k-tag-tip-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* 尚未翻译的“文/A”可以点（#182）：就地弹出改名框，保存当前界面语言的名称偏好。 */
+.k-tags .untranslated.is-action { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: -4px; padding: 0; border: 0; border-radius: 5px;
+  background: none; color: inherit; cursor: pointer; }
+.k-tags .untranslated.is-action:hover, .k-tags .untranslated.is-action[data-popup-open] { opacity: 1; background: var(--hover); }
+.k-tags .untranslated.is-action:focus-visible { opacity: 1; outline: 2px solid var(--accent); outline-offset: 1px; }
+.k-rename { width: 280px; padding: 14px; }
+.k-rename form { display: flex; flex-direction: column; gap: 8px; }
+.k-rename .k-rename-title { margin: 0; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.k-rename .k-field { display: flex; flex-direction: column; gap: 6px; }
+.k-rename .k-input { flex: none; height: 32px; box-shadow: inset 0 0 0 1px var(--line-2); }
+.k-rename .k-input:focus { outline: 0; box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px var(--accent-soft); }
+.k-rename .k-set-note, .k-rename .k-list-desc, .k-rename .k-set-error { margin: 0; }
+.k-rename .k-rename-acts { display: flex; gap: 6px; justify-content: flex-end; }
+.k-rename .k-rename-more { margin: 2px 0 0; align-self: flex-start; font-size: 12px; text-align: left; }
+.k-tags .k-tags-empty { color: var(--ink-2); background: none; padding: 0; }
+.k-tags .k-tags-sub { margin: 2px 0 -2px; color: var(--ink-2); font-size: 12px; }
+.k-tags .k-tag-chip.is-rejected { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); }
+.k-tags .k-tag-chip.is-rejected .tag-name { text-decoration: line-through; opacity: 1; font-weight: 400; }
+.k-tags .k-tag-restore { height: 20px; padding: 0 6px; border: 0; border-radius: var(--r-xs); background: none; color: var(--accent-strong); font: inherit; font-size: 12px; }
+.k-tags .k-tag-restore:hover { background: var(--accent-soft); }
+.k-tags .k-tag-add { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+.k-tag-field { display: flex; align-items: center; height: 34px; border-radius: var(--r); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); }
+.k-tag-field:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px var(--accent-soft); }
+.k-tags .k-tag-field .k-tag-kind { flex: none; height: 26px; margin-left: 4px; padding: 0 22px 0 8px; border: 0; border-radius: var(--r-xs); background: var(--surface-2); color: var(--ink-2); font: inherit; font-size: 12px; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: right 10px top 12px, right 6px top 12px; background-size: 4px 4px; background-repeat: no-repeat; }
+.k-tags .k-tag-field input { flex: 1; min-width: 0; height: 32px; padding: 0 10px; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 12px; outline: 0; }
+.k-tags .k-tag-add-acts { display: flex; gap: 6px; margin: 0; }
+.k-tag-alias { gap: 8px; padding: 10px; border: 0; border-radius: var(--r-m); background: var(--sunken); }
+.k-tag-alias .k-tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.k-tag-alias .k-tag-chips li { display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 3px 0 8px; border-radius: var(--r-xs); background: var(--surface); }
+.k-tag-alias .k-input { flex: none; }
+.k-tag-alias-acts { display: flex; gap: 6px; justify-content: flex-end; }
+.k-note .k-note-acts { display: flex; gap: 4px; justify-content: flex-end; margin-top: 6px; }
+/* 不可用的“用来源的”明显变淡。 */
+.k-note .k-note-acts .k-btn:disabled { opacity: 0.45; cursor: default; }

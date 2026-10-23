@@ -56,7 +56,7 @@ it("shows one old name at a time with both old names and the existing preference
   const table = await within(wizard).findByRole("table", { name: "迁移后最终显示" });
   expect(within(table).getByText("核心预览结果")).toBeTruthy();
   // 标签列写标签名与语言，不写内部编号。
-  expect(within(table).getByText("分缝发型 · 简体中文")).toBeTruthy();
+  expect(within(table).getByText("分缝发型（简体中文）")).toBeTruthy();
   expect(within(table).queryByText(/shared/)).toBeNull();
   await waitFor(() => expect(confirmButton().disabled).toBe(false));
   fireEvent.click(confirmButton());

@@ -20,7 +20,7 @@ describe("原始像素读数上的星（#130）", () => {
     expect(em(star.top)).toBeLessThan(0);
   });
 
-  it("不占排版宽度、不换行，也不压住“原始像素”", () => {
+  it("不占排版宽度、不换行，也不压住读数", () => {
     // 绝对定位挂在 .k-original 上：读数文字的宽度与换行与没有星时相同。
     expect(rule(".k-original").position).toBe("relative");
     expect(star.position).toBe("absolute");
@@ -29,20 +29,15 @@ describe("原始像素读数上的星（#130）", () => {
   });
 
   it("整颗星落在读数框内，不被裁切", () => {
+    // 设计系统 v2：读数只有一行“宽 × 高”，星挂在最后一个数字的右上角，伸进右侧内边距。
     const height = px(readout.height);
-    // 最窄时的内容宽：min-width 减去右侧内边距与 1px 分隔线（border-box）。
-    const width = px(readout["min-width"]) - px(readout["padding-right"]) - 1;
-    const lineHeight = Number(readout["line-height"]);
-    const numberLine = lineHeight * px(rule(".k-dock-readout b")["font-size"]);
-    const labelLine = lineHeight * size;
-    const labelWidth = 4 * size; // “原始像素”四个全角字
-    // 两行居中：数字一行在上，“原始像素”一行在下。
-    const labelTop = (height - numberLine - labelLine) / 2 + numberLine + (labelLine - size) / 2;
-    const top = labelTop + em(star.top) * size;
+    const [, right] = readout.padding.split(/\s+/).map(px);
+    const lineHeight = px(readout["line-height"]);
+    const textTop = (height - lineHeight) / 2 + (lineHeight - size) / 2;
+    const top = textTop + em(star.top) * size;
     const bottom = top + em(star.height) * size;
-    const right = (width + labelWidth) / 2 + gap * size + em(star.width) * size;
     expect(top).toBeGreaterThan(0);
     expect(bottom).toBeLessThanOrEqual(height);
-    expect(right).toBeLessThanOrEqual(width);
+    expect((gap + em(star.width)) * size).toBeLessThanOrEqual(right);
   });
 });

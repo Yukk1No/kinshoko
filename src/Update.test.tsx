@@ -32,7 +32,8 @@ describe("主窗口的更新通知", () => {
     notice();
 
     expect(await screen.findByText("Kinshoko 0.2.0 可以更新")).toBeTruthy();
-    expect(screen.getByRole("region", { name: "提示" }).textContent).toContain("装好后自动重启");
+    // 设计系统 v3：不写解释性描述，“安装并重启”已经说清楚了。
+    expect(screen.getByRole("region", { name: "提示" }).textContent).not.toContain("装好后自动重启");
     fireEvent.click(screen.getByRole("button", { name: "安装并重启" }));
     await waitFor(() => expect(calls).toContain("install_update"));
     expect(await screen.findByText("正在更新到 0.2.0")).toBeTruthy();

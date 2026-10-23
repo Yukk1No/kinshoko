@@ -25,8 +25,8 @@ export async function eagleReimportCombination(workflow) {
   const defaults=()=>d.exec("return [...document.querySelectorAll('input[type=radio][name=eagle-deleted-content]')].map(node=>node.checked);");
   const prepare=async()=>{
     await d.pick(eagle.sourceParent);
-    await workflow.readyClick("//button[@aria-label='更多导入方式']");
-    await workflow.readyClick("//*[@role='menu']//*[@role='menuitem' and normalize-space()='整个文件夹…']");
+    await workflow.readyClick("//button[@aria-label='导入']");
+    await workflow.readyClick("//*[@role='menu']//*[@role='menuitem' and normalize-space()='文件夹']");
     await until("actual Eagle deletion choice",policy);
     await workflow.chooseDestination(b.id,folder,eagleDialog);
     const choices=await defaults();d.assert(JSON.stringify(choices)==="[true,false]","a fresh Eagle wizard defaults to remembering deleted same content",choices);

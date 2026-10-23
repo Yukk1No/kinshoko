@@ -40,14 +40,14 @@ function backend({ status = { state: "paused" } as TaggingStatus, models = choic
   return calls;
 }
 
-const statusRow = () => screen.getByRole("listitem", { name: "打标状态" });
+const statusRow = () => screen.getByRole("listitem", { name: "状态" });
 const hardware = () => screen.findByRole<HTMLSelectElement>("combobox", { name: "硬件加速" });
 
 describe("设置 › 自动标签 › 自动打标", () => {
   it.each<[string, TaggingStatus, RegExp, string | null]>([
     ["加载模型", { state: "starting" }, /正在加载模型…/, "暂停"],
     ["校验模型", { state: "preparing", model: "PixAI Tagger v1.0（显卡）" }, /正在加载模型…/, "暂停"],
-    ["打标", { state: "running", model: "x", device: "directMl", gpu: "RX 6500 XT", tagged: 12 }, /正在打标 · 显卡 · 已打 12 张/, "暂停"],
+    ["打标", { state: "running", model: "x", device: "directMl", gpu: "RX 6500 XT", tagged: 12 }, /已标 12 张（显卡）/, "暂停"],
     ["暂停", { state: "paused" }, /已暂停/, "继续"],
     ["全屏程序在前台", { state: "yieldedToFullScreen" }, /因全屏程序或演示模式暂停，回到桌面后自动继续/, "暂停"],
     ["打完", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0 }, /已全部打完/, null],
@@ -118,7 +118,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
     await waitFor(() => expect(within(statusRow()).getByText(/已暂停/)).toBeTruthy());
 
     await act(() => emit("writable-library", { id: "L2", name: "私人收藏", root: "D:\\私人收藏" }));
-    expect(await within(statusRow()).findByText(/已打 7 张/)).toBeTruthy();
+    expect(await within(statusRow()).findByText(/已标 7 张/)).toBeTruthy();
     await act(() => emit("tagging-status", { libraryId: "L1", status: { state: "failed", reason: "旧库打标失败" } }));
     expect(screen.queryByText(/旧库打标失败/)).toBeNull();
   });
@@ -137,15 +137,15 @@ describe("设置 › 自动标签 › 自动打标", () => {
   it("还没有资料库时说明打开图库后才开始", async () => {
     backend();
     render(<AutoTaggingSettings libraryId={null} />);
-    await waitFor(() => expect(within(statusRow()).getByText("添加图库后开始自动打标")).toBeTruthy());
+    await waitFor(() => expect(within(statusRow()).getByText("添加图库后开始")).toBeTruthy());
   });
 });
 
 describe("设置 › 自动标签 › 模型", () => {
-  it("Tagger 模型只读显示，没有下拉框", async () => {
+  it("模型只读显示，没有下拉框", async () => {
     backend();
     render(<AutoTaggingSettings libraryId="L1" />);
-    const row = await screen.findByRole("listitem", { name: "Tagger 模型" });
+    const row = await screen.findByRole("listitem", { name: "模型" });
     expect(within(row).getByText("PixAI Tagger v1.0")).toBeTruthy();
     expect(within(row).queryByRole("combobox")).toBeNull();
   });
@@ -155,7 +155,7 @@ describe("设置 › 自动标签 › 模型", () => {
     render(<AutoTaggingSettings libraryId="L1" />);
     const select = await hardware();
     const options = within(select).getAllByRole<HTMLOptionElement>("option").map((o) => o.textContent);
-    expect(options).toEqual(["自动", "显卡 · 显存约 1.8 GB · 已下载", "CPU · 内存约 5.0 GB · 需下载 1984 MB"]);
+    expect(options).toEqual(["自动", "显卡，显存约 1.8 GB，已下载", "CPU，内存约 5.0 GB，需下载 1984 MB"]);
     expect(select.value).toBe("auto");
     expect(document.body.textContent).not.toMatch(/FP16|FP32|精度/);
   });
@@ -180,7 +180,7 @@ describe("设置 › 自动标签 › 模型", () => {
     fireEvent.change(await hardware(), { target: { value: "cpu" } });
     await waitFor(async () => expect((await hardware()).value).toBe("cpu"));
     expect(calls.find((c) => c.cmd === "tagging_set_device")?.args).toEqual({ device: "cpu" });
-    expect(screen.getByText("CPU · 内存约 5.0 GB · 需下载 1984 MB", { selector: ".k-list-desc" })).toBeTruthy();
+    expect(screen.getByText("CPU，内存约 5.0 GB，需下载 1984 MB", { selector: ".k-list-meta" })).toBeTruthy();
 
     fireEvent.change(await hardware(), { target: { value: "auto" } });
     await waitFor(() => expect(calls.filter((c) => c.cmd === "tagging_set_device").at(-1)?.args).toEqual({ device: null }));
@@ -212,10 +212,10 @@ describe("设置 › 自动标签 › 模型", () => {
       handle: (cmd) => (cmd === "tagging_models" ? { ...choice, options: [choice.options[0], { ...choice.options[1], downloaded }] } : undefined),
     });
     render(<AutoTaggingSettings libraryId="L1" />);
-    await screen.findByRole("option", { name: /CPU · .*需下载/ });
+    await screen.findByRole("option", { name: /CPU，.*需下载/ });
     downloaded = true;
     await act(() => emit("tagging-status", { libraryId: "L1", status: { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0 } }));
-    expect(await screen.findByRole("option", { name: "CPU · 内存约 5.0 GB · 已下载" })).toBeTruthy();
+    expect(await screen.findByRole("option", { name: "CPU，内存约 5.0 GB，已下载" })).toBeTruthy();
   });
 
   it("从文件导入模型包，校验通过后显示已下载", async () => {
@@ -226,7 +226,7 @@ describe("设置 › 自动标签 › 模型", () => {
     render(<AutoTaggingSettings libraryId="L1" />);
     fireEvent.click(await screen.findByRole("button", { name: "导入模型包…" }));
     expect(await screen.findByText("模型包已导入并通过校验")).toBeTruthy();
-    expect(screen.getByRole("option", { name: "CPU · 内存约 5.0 GB · 已下载" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "CPU，内存约 5.0 GB，已下载" })).toBeTruthy();
     expect(calls.find((c) => c.cmd === "tagging_import_package")?.args).toEqual({ path: "D:\\离线\\pixai.zip" });
   });
 

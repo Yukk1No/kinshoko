@@ -67,7 +67,7 @@ export function InspectorResizer({ width, onResize }: Props) {
       role="separator"
       aria-orientation="vertical"
       aria-label="调整详情宽度"
-      title="拖动调整宽度，双击恢复默认"
+      title="调整宽度"
       aria-valuenow={width}
       aria-valuemin={INSPECTOR_WIDTH.min}
       aria-valuemax={widest()}

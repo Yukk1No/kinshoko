@@ -70,7 +70,7 @@ describe("选中一张图：内容分级", () => {
 
     fireEvent.click(within(rating).getByRole("button", { name: "全年龄" }));
 
-    expect(await screen.findByText("人工修正，重新打标不会覆盖")).toBeTruthy();
+    expect(await screen.findByText("已手动修正")).toBeTruthy();
     expect(edits).toEqual([[{ kind: "setRating", rating: "general" }]]);
   });
 
@@ -107,7 +107,7 @@ describe("选中一张图：内容分级", () => {
     fireEvent.click(screen.getByRole("button", { name: /改回自动/ }));
 
     await waitFor(() => expect(edits).toEqual([[{ kind: "revertRating" }]]));
-    await waitFor(() => expect(screen.queryByText("人工修正，重新打标不会覆盖")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("已手动修正")).toBeNull());
   });
 });
 
@@ -155,7 +155,7 @@ it("主窗口的多选经工作区读取所选图库的目录，不要求它是�
   });
   render(<SelectionPanel workspace libraryId="L2" scope={{ kind: "all" }} selected={new Set(["a", "b"])}
     onClear={() => {}} reloadKey={0} onError={() => {}} safeMode />);
-  await waitFor(() => expect(screen.getByRole("button", { name: "放入文件夹" })).toHaveProperty("disabled", false));
+  await waitFor(() => expect(screen.getByRole("button", { name: "移到文件夹" })).toHaveProperty("disabled", false));
   expect(commands.filter((c) => c.cmd.endsWith("sidebar"))).toEqual([
     { cmd: "plugin:library|workspace_sidebar", args: { libraryId: "L2", safeMode: true } },
   ]);

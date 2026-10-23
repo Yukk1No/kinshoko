@@ -3,10 +3,9 @@ import type { SaveDestination } from "../bindings/SaveDestination";
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { Dialog } from "@base-ui/react/dialog";
-import { CircleAlert, CircleCheck, CircleSlash, Download, FolderOpen, History, Images, Library, MapPinned, X } from "lucide-react";
+import { CircleAlert, Download, History, MapPinned, X } from "lucide-react";
 import { SealLock } from "../ui/SealLock";
 import type { ImportOptions } from "../bindings/ImportOptions";
-import type { ImportOutcome } from "../bindings/ImportOutcome";
 import type { ImportProgress } from "../bindings/ImportProgress";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { RecoveryReport } from "../bindings/RecoveryReport";
@@ -15,6 +14,7 @@ import { EagleTagStep } from "./EagleTagStep";
 import type { EagleLocationChoice } from "../bindings/EagleLocationChoice";
 import type { EagleRelocation } from "../bindings/EagleRelocation";
 import { cancelImport, confirmEagleLocation, discoverEagleLibraries, importContainsEagle, libraryRecovery, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
+import { EagleLibrariesDialog, ImportPlanDialog, ImportResultCard, type ImportPlan } from "./ImportBarParts";
 
 export type RunningImport = { taskId: string | null; progress: ImportProgress; libraryId?:string; destination?:SaveDestination; libraryName?:string; folderName?:string };
 /** 已结束的导入任务与它的报告。 */
@@ -51,16 +51,6 @@ type Props = {
 /** 导入入口（图片文件、整个文件夹、Eagle，以及已准备好的文件，如暂存的剪贴板图片）与找回任务卡片。 */
 export type ImportActions = { files: () => void; folder: () => void; eagle: () => void; paths: (paths: string[]) => void; showTasks: () => void };
 
-function reason(outcome: ImportOutcome): string | null {
-  switch (outcome.kind) {
-    case "unsupported":
-      return "不支持的格式";
-    case "readFailed":
-      return `读取失败：${outcome.reason}`;
-    default:
-      return null;
-  }
-}
 
 /**
  * 导入（#98）：选择文件或文件夹，或把它们拖进主窗口；先在对话框里选图库和文件夹（Eagle 另问删过的图），
@@ -80,7 +70,7 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
   const [lookingForEagle, setLookingForEagle] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
-  const [plan, setPlan] = useState<{ paths: string[]; options: ImportOptions; eagle:boolean } | null>(null);
+  const [plan, setPlan] = useState<ImportPlan | null>(null);
   const optionsByTask = useRef(new Map<string, ImportOptions>());
   const busy = !!running || preparing || plan !== null;
   /**
@@ -220,16 +210,6 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
   }, [libraryId]);
 
   const { done = 0, total = 0 } = running?.progress ?? {};
-  const counts = report && {
-    imported: report.items.filter((i) => i.outcome.kind === "imported").length,
-    merged: report.items.filter((i) => i.outcome.kind === "merged").length,
-    refreshed: report.items.filter((i) => i.outcome.kind === "refreshed").length,
-    newVersions: report.items.filter((i) => i.outcome.kind === "newVersion").length,
-    skippedDeleted: report.items.filter((i) => i.outcome.kind === "skippedDeleted").map((i) => i.path),
-    trashDuplicate: report.items.some((i) => i.outcome.kind === "trashDuplicate"),
-    rejected: report.items.filter((i) => reason(i.outcome) !== null),
-    failed: report.items.filter((i) => i.outcome.kind === "readFailed").map((i) => i.path),
-  };
   const relocations = (report?.eagleRelocations ?? []).filter((r) => !confirmed.includes(r.to));
   const confirm = async (relocation: EagleRelocation, choice: EagleLocationChoice) => {
     try {
@@ -302,36 +282,9 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
         </div>
       </section>
     )}
-    {report && counts && (
-      <section className="k-task" aria-label="导入结果">
-        <div className="k-task-top">
-          {report.cancelled ? <CircleSlash size={16} className="k-task-icon" aria-hidden="true" /> : <CircleCheck size={16} className="k-task-icon is-ok" aria-hidden="true" />}
-          <b>{report.cancelled ? "导入已取消" : "导入完成"}</b>
-          <button type="button" className="k-icon-btn is-sm" aria-label="关闭导入结果" onClick={onDismissReport}><X size={14} aria-hidden="true" /></button>
-        </div>
-        {owner && <p className="k-task-sub">放到 {owner}</p>}
-        {taskSwitcher}
-        {report.privateSummary ? <p className="k-task-sub">内容处理结果已保留</p> : <p className="k-task-stats">
-          <span>新增 <b>{counts.imported}</b></span>
-          {counts.merged > 0 && <span title="与已有的图相同，已合并">已存在 <b>{counts.merged}</b></span>}
-          {counts.refreshed > 0 && <span title="更新了 Eagle 信息，本库的整理保留">更新 <b>{counts.refreshed}</b></span>}
-          {counts.newVersions > 0 && <span title="Eagle 里内容变了，作为新版本进库，旧版本保留">新版本 <b>{counts.newVersions}</b></span>}
-          {report.eagleMissing > 0 && <span title="Eagle 里已经没有，本库保留">Eagle 已删 <b>{report.eagleMissing}</b></span>}
-        </p>}
-        {counts.rejected.length > 0 && <p className="k-task-stats"><span className="is-danger">没导入 <b>{counts.rejected.length}</b></span></p>}
-        {cardNotes}
-        {counts.skippedDeleted.length > 0 && <p className="k-task-sub">删过的图已跳过。
-          <button type="button" className="k-link" disabled={busy} onClick={() => void begin(counts.skippedDeleted, true, undefined, finished?.destination)}>这次也导入…</button></p>}
-        {(counts.trashDuplicate || report.trashDuplicates) && <p className="k-task-sub">有图在回收站里，保持删除。
-          {onOpenTrash && <button type="button" className="k-link" onClick={()=>onOpenTrash?.(finished?.libraryId??libraryId)}>去回收站</button>}</p>}
-        {counts.rejected.length > 0 && <details className="k-task-more"><summary>没导入的文件</summary><ul>
-          {counts.rejected.map((item) => <li key={item.path}><span className="import-report-path">{item.path}</span><span className="import-report-reason">{reason(item.outcome)}</span></li>)}
-        </ul></details>}
-        {counts.failed.length > 0 && <div className="k-task-acts">
-          <button type="button" className="k-btn is-sm" aria-label={`重试失败的 ${counts.failed.length} 项`} disabled={busy}
-            onClick={() => void begin(counts.failed, false, finished ? optionsByTask.current.get(finished.taskId) : undefined, finished?.destination)}>重试失败</button>
-        </div>}
-      </section>
+    {report && (
+      <ImportResultCard report={report} finished={finished} owner={owner} taskSwitcher={taskSwitcher} cardNotes={cardNotes} busy={busy}
+        begin={begin} optionsByTask={optionsByTask} libraryId={libraryId} onOpenTrash={onOpenTrash} onDismissReport={onDismissReport} />
     )}
     {sealed && <section className="k-task is-row sealed-import-prompt" aria-label="封印项重复">
       {/* #78 规定的原文：不点名内容类别，不给数量。 */}
@@ -344,66 +297,8 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
     <div className="import-bar">
       {/* 右下角的进度与结果卡片挂在 body 上。 */}
       {createPortal(<div className="k-task-cards">{cards}</div>, document.body)}
-      <Dialog.Root open={plan !== null} onOpenChange={(open) => { if (!open && !preparing) setPlan(null); }}>
-        <Dialog.Portal>
-          <Dialog.Backdrop className="k-backdrop" />
-          {/* Popup 留在 Root 下，只让内容随状态出现：卸下 Popup 会让关闭动画等不到结束，遮罩留下盖住窗口（#98 本机 r12）。 */}
-          <Dialog.Popup className="k-dialog k-import-dialog">{plan && <>
-            <Dialog.Title className="k-dialog-title">{plan.eagle ? "从 Eagle 导入" : "导入图片"}</Dialog.Title>
-            <Dialog.Description className="k-dialog-desc">{plan.eagle ? "原库不会改动。" : "选好放在哪里，就能开始。"}</Dialog.Description>
-            <div className="k-import-summary">
-              <span className="k-big-tag-icon" aria-hidden="true">{plan.eagle ? <Library size={18} /> : <Images size={18} />}</span>
-              <div className="k-list-text">
-                <div className="k-list-title">{plan.paths.length === 1 ? baseName(plan.paths[0]) : `${plan.paths.length} 个文件或文件夹`}</div>
-                <details className="k-task-more"><summary>来自</summary><ul>{plan.paths.map((path) => <li key={path}><span className="import-report-path">{path}</span></li>)}</ul></details>
-              </div>
-            </div>
-            {picker}
-            {plan.eagle && <fieldset className="k-fieldset" disabled={preparing || !!running}>
-              <legend className="k-field-label">删过的图</legend>
-              <div className="k-radio-cards">
-                {([["skipDeleted", "继续跳过", "之前删掉的不再导入"], ["allowThisImport", "这次也导入", "只对这一次有效"]] as const).map(([value, title, desc]) =>
-                  <label key={value} className={`k-radio-card${plan.options.eagleDeletedContent === value ? " is-on" : ""}`}>
-                    <input type="radio" name="eagle-deleted-content" checked={plan.options.eagleDeletedContent === value}
-                      onChange={() => setPlan({ ...plan, options: { eagleDeletedContent: value } })} />
-                    <span><span className="k-radio-title">{title}</span><span className="k-radio-desc">{desc}</span></span>
-                  </label>)}
-              </div>
-              <p className="k-set-note">新版本照常导入；回收站里的重复项保持删除。</p>
-            </fieldset>}
-            <div className="k-dialog-foot">
-              <span className="k-grow" />
-              <button type="button" className="k-btn" disabled={preparing} onClick={() => setPlan(null)}>取消</button>
-              <button type="button" className="k-btn is-primary" disabled={preparing || !!running || !destinationReady} onClick={() => void startPlan()}>开始导入</button>
-            </div>
-          </>}</Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
-      <Dialog.Root open={eagleLibraries !== null} onOpenChange={(open) => { if (!open) setEagleLibraries(null); }}>
-        <Dialog.Portal>
-          <Dialog.Backdrop className="k-backdrop" />
-          <Dialog.Popup className="k-dialog k-import-dialog">{eagleLibraries && <>
-            <Dialog.Title className="k-dialog-title">从 Eagle 导入</Dialog.Title>
-            <Dialog.Description className="k-dialog-desc">原库不变；标签、文件夹、备注都带来。</Dialog.Description>
-            {eagleLibraries.length ? <ul className="k-list" aria-label="找到的 Eagle 库">
-              {eagleLibraries.map((candidate) => <li key={candidate.path} className="k-list-row">
-                <span className="k-list-icon" aria-hidden="true"><Library size={16} /></span>
-                <div className="k-list-text">
-                  <div className="k-list-title">{candidate.name}</div>
-                  <p className="k-list-desc" title={candidate.path}>{candidate.items} 张{candidate.version && ` · Eagle ${candidate.version}`} · {candidate.path}</p>
-                </div>
-                <div className="k-list-end"><button type="button" className="k-btn is-sm" aria-label={`导入 ${candidate.name}`} disabled={busy} onClick={() => { setEagleLibraries(null); void begin([candidate.path], true); }}>导入</button></div>
-              </li>)}
-            </ul> : <p className="k-set-note" role="status">没有自动找到 Eagle 库，可以手动选择。</p>}
-            <p className="k-set-note">回收站里的图会进入可恢复的删除；区域评论会保留，暂不显示。</p>
-            <div className="k-dialog-foot">
-              <button type="button" className="k-btn" disabled={busy} onClick={() => { setEagleLibraries(null); void importFolder(true); }}><FolderOpen size={14} aria-hidden="true" />手动选择…</button>
-              <span className="k-grow" />
-              <button type="button" className="k-btn" onClick={() => setEagleLibraries(null)}>取消</button>
-            </div>
-          </>}</Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <ImportPlanDialog plan={plan} setPlan={setPlan} preparing={preparing} running={running} destinationReady={destinationReady} startPlan={startPlan} picker={picker} />
+      <EagleLibrariesDialog eagleLibraries={eagleLibraries} setEagleLibraries={setEagleLibraries} busy={busy} begin={begin} importFolder={importFolder} />
       {hovering && (
         <div className="drop-hint k-drop-hint" aria-live="polite">
           {destination === null ? "松开即可导入，再选放在哪里" : `松开即可导入到 ${libraryName}`}
@@ -421,5 +316,3 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
     </div>
   );
 }
-
-const baseName = (path: string) => path.split(/[\\/]/).filter(Boolean).at(-1) ?? path;

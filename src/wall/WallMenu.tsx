@@ -116,7 +116,7 @@ function Organize({ cards, actions, scope, single }: { cards: BrowserCard[]; act
   const libraries = new Set(cards.map((c) => c.libraryId ?? ""));
   const libraryId = libraries.size === 1 ? [...libraries][0] : null;
   return <>
-    <MenuSubmenu icon={icon(FolderInput)} label="放入文件夹" disabled={libraryId === null} popupLabel="放入文件夹" width={220}
+    <MenuSubmenu icon={icon(FolderInput)} label="移到文件夹" disabled={libraryId === null} popupLabel="移到文件夹" width={220}
       meta={libraryId === null ? "来自多个图库" : undefined}>
       {libraryId !== null && <FolderList libraryId={libraryId} actions={actions} cards={cards} />}
     </MenuSubmenu>
@@ -143,8 +143,8 @@ export function WallMenu({ target, scope, density, actions }: {
   if (target.kind === "blank") {
     return <>
       <MenuSubmenu icon={icon(Download)} label="导入" popupLabel="导入">
-        <MenuItem icon={icon(FileImage)} onClick={() => actions.importFrom("files")}>图片文件…</MenuItem>
-        <MenuItem icon={icon(FolderOpen)} onClick={() => actions.importFrom("folder")}>整个文件夹…</MenuItem>
+        <MenuItem icon={icon(FileImage)} kbd="Ctrl O" onClick={() => actions.importFrom("files")}>图片</MenuItem>
+        <MenuItem icon={icon(FolderOpen)} onClick={() => actions.importFrom("folder")}>文件夹</MenuItem>
         <MenuItem icon={icon(Images)} onClick={() => actions.importFrom("eagle")}>从 Eagle…</MenuItem>
       </MenuSubmenu>
       <ClipboardImport actions={actions} />

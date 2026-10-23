@@ -33,22 +33,22 @@ describe("多选悬浮栏（#180）", () => {
     expect(bar.classList.contains("k-dock")).toBe(true);
     expect(within(bar).getByText("已选 2 张")).toBeTruthy();
     expect(within(bar).getAllByRole("button").map((b) => b.getAttribute("aria-label")))
-      .toEqual(["放入文件夹", "删除，Del", "取消选择"]);
+      .toEqual(["移到文件夹", "移到回收站，Del", "取消选择"]);
     expect(bar.querySelector(".k-dock-item")?.textContent).toBe("");
-    await waitFor(() => expect(within(bar).getByRole("button", { name: "放入文件夹" })).toHaveProperty("disabled", false));
+    await waitFor(() => expect(within(bar).getByRole("button", { name: "移到文件夹" })).toHaveProperty("disabled", false));
   });
 
   it("放入文件夹弹出文件夹菜单，选中后放入；删除后取消选择", async () => {
     const edits = backend();
     const { bar, onClear } = renderBar();
-    const put = within(bar).getByRole("button", { name: "放入文件夹" });
+    const put = within(bar).getByRole("button", { name: "移到文件夹" });
     await waitFor(() => expect(put).toHaveProperty("disabled", false));
     fireEvent.click(put);
     fireEvent.click(await screen.findByRole("menuitem", { name: /发型/ }));
     await waitFor(() => expect(edits).toEqual([{ libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "addToFolder", folderId: "F2" }] }]));
     expect(onClear).not.toHaveBeenCalled();
 
-    fireEvent.click(within(bar).getByRole("button", { name: "删除，Del" }));
+    fireEvent.click(within(bar).getByRole("button", { name: "移到回收站，Del" }));
     await waitFor(() => expect(edits.at(-1)).toEqual({ libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "delete" }] }));
     await waitFor(() => expect(onClear).toHaveBeenCalled());
   });
@@ -57,7 +57,7 @@ describe("多选悬浮栏（#180）", () => {
     backend([]);
     const { bar } = renderBar();
     await waitFor(() => expect(bar.querySelector('[data-dock-id="put"] .k-dock-item')).toBeTruthy());
-    expect(within(bar).getByRole("button", { name: "放入文件夹" })).toHaveProperty("disabled", true);
+    expect(within(bar).getByRole("button", { name: "移到文件夹" })).toHaveProperty("disabled", true);
   });
 
   it("文件夹浏览范围里多一项“移出此文件夹”", async () => {

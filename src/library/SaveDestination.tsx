@@ -93,7 +93,7 @@ export function SaveDestinationPicker({ value, onChange, disabled = false, label
           {value && !provider && <option value={value.libraryId} disabled>未打开的图库</option>}
           {providers.map(p => <option key={p.registration.library.id} value={p.registration.library.id}
             disabled={!!p.registration.unavailable || !p.sidebar}>
-            {p.registration.library.name} · {libraryPathHint(p.registration.library.root, paths)}
+            {p.registration.library.name}（{libraryPathHint(p.registration.library.root, paths)}）
             {p.registration.unavailable ? "（未连接）" : ""}
           </option>)}
         </select></span>

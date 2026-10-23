@@ -126,22 +126,21 @@ export function BackupSettings() {
     <section className="backup-settings" aria-label="图库备份">
       <SettingsGroup title="图库">
         <SettingsRow icon={<HardDrive size={16} />} title="备份位置"
-          desc={plan.target ?? "还没选，最好放在另一块硬盘"} label="备份位置">
+          meta={plan.target ?? "还没选"} hint="最好放在另一块硬盘" label="备份位置">
           <button type="button" className="k-btn is-sm" onClick={() => void choose().catch((e) => setError(String(e)))}>
             {plan.target === null ? "选择…" : "更换"}
           </button>
         </SettingsRow>
-        <SettingsRow icon={<Archive size={16} />} title="上次备份"
-          desc={running !== null ? <span role="status">正在备份：原图 {running.done}／{running.total}</span>
+        <SettingsRow icon={<Archive size={16} />} title="上次备份" hint="每天第一次退出或空闲时自动备份一次"
+          meta={running !== null ? <span role="status">正在备份：原图 {running.done}／{running.total}</span>
             : plan.lastSuccess !== null ? stampText(plan.lastSuccess) : "还没有备份"}
-          warn={plan.lastFailure !== null && <span role="alert">没有完成（{stampText(plan.lastFailure.at)}）：{plan.lastFailure.reason}</span>}
-          below={plan.target !== null && <p className="k-set-note">每天第一次退出或空闲时自动备份一次。</p>}>
+          warn={plan.lastFailure !== null && <span role="alert">没有完成（{stampText(plan.lastFailure.at)}）：{plan.lastFailure.reason}</span>}>
           {plan.lastFailure === null && plan.lastSuccess !== null && running === null && <StatusPill tone="ok"><CircleCheck size={12} aria-hidden="true" />已备份</StatusPill>}
           <button type="button" className="k-btn is-sm is-primary" disabled={plan.target === null || running !== null}
             onClick={() => void startBackup().catch((e) => setError(String(e)))}>立即备份</button>
         </SettingsRow>
         <SettingsRow icon={<Library size={16} />} title="备份范围"
-          desc={preview ? `约 ${mb(preview.estimate.totalBytes)}` : "正在估算…"}
+          meta={preview ? `约 ${mb(preview.estimate.totalBytes)}` : "正在估算…"}
           below={<>
             {narrowed !== null && <div className="backup-libraries" role="group" aria-label="要备份的图库">
               {libraries.map(({ library }) => (
@@ -223,7 +222,7 @@ function RestoreView({ onError }: { onError: (message: string) => void }) {
   };
 
   return (
-    <SettingsRow icon={<RotateCcw size={16} />} title="恢复图库" desc="恢复为新图库，不覆盖现有" className="backup-restore"
+    <SettingsRow icon={<RotateCcw size={16} />} title="恢复图库" hint="恢复为新图库，不覆盖现有" className="backup-restore"
       below={(snapshots !== null || busy || report !== null) && <>
         {snapshots !== null && snapshots.length === 0 && <p className="k-set-note">备份位置里还没有完整的备份。</p>}
         {snapshots !== null && snapshots.length > 0 && <>

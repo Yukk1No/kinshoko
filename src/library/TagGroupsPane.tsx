@@ -203,7 +203,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
           }} /> : fresh && <FluidRow index={index}>
             <div className="sidebar-tag-group-head k-group-row">
               <button type="button" className="sidebar-item k-group-name" data-focus-key={`${group.id}:name`} aria-label={`${group.name}（${group.tags.length} 个标签）`}
-                title="按分组中任一标签查找；双击改名" disabled={busy || !onBrowse || !group.tags.length}
+                disabled={busy || !onBrowse || !group.tags.length}
                 onClick={() => onBrowse?.(group.tags.map((tag) => tag.tag.id))} onDoubleClick={() => setRenaming(group.id)}>
                 <Tags size={15} aria-hidden="true" className="k-group-icon" />
                 <span className="sidebar-label k-group-label">{group.name}</span>
@@ -217,7 +217,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
                 <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:down`} aria-label={`下移标签分组“${group.name}”`} title="下移" disabled={busy || index === groups.length - 1}
                   onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, 1) })}><ArrowDown size={14} aria-hidden="true" /></button>
                 <button type="button" className="k-icon-btn is-sm is-danger" data-focus-key={`${group.id}:delete`} aria-label={`删除标签分组“${group.name}”`} disabled={busy}
-                  title="删除分组（图片标签不变）" onClick={() => setDeleting(group.id)}><Trash2 size={14} aria-hidden="true" /></button>
+                  title="删除分组" onClick={() => setDeleting(group.id)}><Trash2 size={14} aria-hidden="true" /></button>
               </span>
             </div>
           </FluidRow>}

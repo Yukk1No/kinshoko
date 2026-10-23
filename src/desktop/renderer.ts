@@ -120,7 +120,7 @@ export function createCanvas2dRenderer(): Canvas2dRenderer | null {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, size.width, size.height);
       if (!source) {
-        ctx.fillStyle = "#8a8a8e";
+        ctx.fillStyle = "#8d8d8d"; // neutral grey stand-in before the image arrives
         ctx.fillRect(0, 0, size.width, size.height);
         return;
       }

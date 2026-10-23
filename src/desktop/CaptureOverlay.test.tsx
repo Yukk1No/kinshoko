@@ -57,7 +57,7 @@ describe("截图框选（#98 dock）", () => {
     expect(root.querySelector(".capture-shade")).not.toBeNull();
     expect(image.className).toBe("capture-screen");
     expect(image.style.width).toBe("1920px");
-    expect(screen.getByText("拖动框选 · 右键取消")).toBeTruthy();
+    expect(screen.getByText("拖动框选，右键取消")).toBeTruthy();
     expect(screen.queryByRole("toolbar")).toBeNull();
     fireEvent.load(image);
     expect(sent("capture_ready")).toEqual([{ token: "tok" }]);
@@ -118,7 +118,7 @@ describe("截图框选（#98 dock）", () => {
     fireEvent.pointerDown(root, { pointerId: 3, button: 2, clientX: 150, clientY: 120 });
     expect(root.querySelector(".capture-selection")).toBeNull();
     expect(screen.queryByRole("toolbar")).toBeNull();
-    expect(screen.getByText("拖动框选 · 右键取消")).toBeTruthy();
+    expect(screen.getByText("拖动框选，右键取消")).toBeTruthy();
     expect(sent("cancel_capture")).toEqual([]);
     fireEvent.pointerDown(root, { pointerId: 4, button: 2, clientX: 150, clientY: 120 });
     expect(sent("cancel_capture")).toEqual([{ token: "tok" }]);
@@ -211,9 +211,11 @@ describe("截图读数区分原始像素（#103）", () => {
     const mark = star()!;
     expect(mark.getAttribute("aria-hidden")).toBe("true");
     expect(mark.querySelector("path")!.getAttribute("d")).toBe("M132 32 C136.16 53.84 136.16 53.84 158 58 C136.16 62.16 136.16 62.16 132 84 C127.84 62.16 127.84 62.16 106 58 C127.84 53.84 127.84 53.84 132 32 Z");
-    expect(mark.querySelector("path")!.getAttribute("fill")).toBe("#E3B34F");
-    // 星紧跟“原始像素”最后一个字，挂在它的右上角。
-    expect(mark.parentElement!.textContent).toBe("原始像素");
+    // 颜色来自 --star 令牌（ui.css），不写在图形上。
+    expect(mark.querySelector("path")!.getAttribute("fill")).toBeNull();
+    // 设计系统 v2：读数后直接挂星，“原始像素”只在悬停提示与读屏文字里。
+    expect(mark.parentElement!.getAttribute("title")).toBe("原始像素");
+    expect(mark.parentElement!.textContent).toBe("500 × 400原始像素");
     expect(mark.parentElement!.lastChild).toBe(mark);
   });
 
@@ -271,7 +273,7 @@ describe("框选窗口用完只隐藏，下一次复用（#129）", () => {
     const image = await screen.findByAltText("");
     expect(image.getAttribute("src")).toContain("tok2");
     expect(screen.queryByRole("toolbar")).toBeNull();
-    expect(screen.getByText("拖动框选 · 右键取消")).toBeTruthy();
+    expect(screen.getByText("拖动框选，右键取消")).toBeTruthy();
     fireEvent.load(image);
     expect(sent("capture_ready")).toEqual([{ token: "tok2" }]);
   });

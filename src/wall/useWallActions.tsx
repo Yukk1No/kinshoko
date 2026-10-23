@@ -1,5 +1,4 @@
 import { useRef, useState, type ReactNode } from "react";
-import { AlertDialog } from "@base-ui/react/alert-dialog";
 import type { ScreenRect } from "../bindings/ScreenRect";
 import type { WorkspaceSourceTarget } from "../bindings/WorkspaceSourceTarget";
 import { clipboardHasImage, copyReferenceImage, pinReference, referenceGroups, revealReferenceImage, workspaceEditSource, workspaceImage, workspaceSidebar, workspaceSourceGroup } from "../ipc";
@@ -7,8 +6,9 @@ import { flattenFolders, PermanentDeleteConfirm } from "../library/SelectionPane
 import { libraryFailures, PermanentDeleteBatchConfirm } from "../library/PermanentDeleteBatch";
 import type { BrowserCard } from "./Wall";
 import type { ImportSource, WallMenuActions } from "./WallMenu";
+import { useToast } from "../ui/Toast";
 
-/** 一次最多钉住的张数；超过时先确认，只钉前这么多张。 */
+/** 一次最多钉住的张数；超过时只钉前这么多张，再用轻提示说明。 */
 export const PIN_LIMIT = 20;
 /** 多张钉图依次错开的距离（CSS 像素）。 */
 const PIN_STAGGER = 28;
@@ -54,14 +54,14 @@ export type WallActionsOptions = {
 };
 
 /**
- * 图片墙右键菜单与快捷键背后的动作：钉住（最多 20 张，超过先确认）、按来源整理、加入参考组、
+ * 图片墙右键菜单与快捷键背后的动作：钉住（最多 20 张，超过只钉前 20 张）、按来源整理（移到回收站后可撤销）、加入参考组、
  * 彻底删除（先确认受影响的参考组）、复制图片、在资源管理器中显示与从剪贴板导入（#105）。
  * dialogs 由调用方放进界面。
  */
 export function useWallActions(o: WallActionsOptions): { actions: WallMenuActions; dialogs: ReactNode } {
   const options = useRef(o);
   options.current = o;
-  const [pinMany, setPinMany] = useState<{ cards: BrowserCard[]; point: Point } | null>(null);
+  const toast = useToast();
   const [purging, setPurging] = useState<BrowserCard[] | null>(null);
 
   const pinNow = async (cards: BrowserCard[], point: Point) => {
@@ -70,8 +70,9 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     // 依次钉住：后钉的盖在先钉的上面，错开的顺序与图片墙一致。
     for (const [i, card] of cards.entries()) {
       const target = targetOf(card, activeLibraryId);
-      try { await pinReference(target.libraryId, target.imageId, null, rects[i]); } catch (e) { onError(`无法钉住：${String(e)}`); return; }
+      try { await pinReference(target.libraryId, target.imageId, null, rects[i]); } catch (e) { onError(`无法钉住：${String(e)}`); return false; }
     }
+    return true;
   };
 
   /** 卡片来源里写着的图库名；没有时用 id。 */
@@ -86,20 +87,22 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
    */
   const eachCard = async (cards: BrowserCard[], what: string, run: (target: WorkspaceSourceTarget) => Promise<unknown>) => {
     cardsNamed.current = cards;
-    const byLibrary = new Map<string, WorkspaceSourceTarget[]>();
+    const byLibrary = new Map<string, { card: BrowserCard; target: WorkspaceSourceTarget }[]>();
     for (const card of cards) {
       const target = targetOf(card, options.current.activeLibraryId);
       const group = byLibrary.get(target.libraryId);
-      if (group) group.push(target); else byLibrary.set(target.libraryId, [target]);
+      if (group) group.push({ card, target }); else byLibrary.set(target.libraryId, [{ card, target }]);
     }
     const failed: { libraryId: string; error: string }[] = [];
-    for (const [libraryId, targets] of byLibrary) {
-      for (const target of targets) {
-        try { await run(target); } catch (e) { failed.push({ libraryId, error: String(e) }); break; }
+    /** 已完成的图：有图库失败时，撤销只作用于这些。 */
+    const succeeded: BrowserCard[] = [];
+    for (const [libraryId, entries] of byLibrary) {
+      for (const { card, target } of entries) {
+        try { await run(target); succeeded.push(card); } catch (e) { failed.push({ libraryId, error: String(e) }); break; }
       }
     }
     if (failed.length) options.current.onError(`有图库没有${what}。${libraryFailures(failed, libraryName)}`);
-    return failed.length === 0;
+    return { ok: failed.length === 0, succeeded };
   };
 
   const actions: WallMenuActions = {
@@ -125,14 +128,25 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     },
     clipboardHasImage: () => clipboardHasImage(),
     pin(cards, point) {
-      if (cards.length > PIN_LIMIT) setPinMany({ cards, point });
-      else void pinNow(cards, point);
+      if (cards.length <= PIN_LIMIT) { void pinNow(cards, point); return; }
+      // 超过上限不弹确认：钉住前 PIN_LIMIT 张，再告诉画师只钉了这么多。
+      void pinNow(cards.slice(0, PIN_LIMIT), point).then((ok) => {
+        if (ok) toast?.show({ title: `已钉住前 ${PIN_LIMIT} 张`, description: `一次最多钉住 ${PIN_LIMIT} 张`, tone: "success" });
+      });
     },
     edit(cards, edits, clear) {
       const { safe, onChanged, onClearSelection } = options.current;
       void (async () => {
         try {
-          if (await eachCard(cards, "整理完", (target) => workspaceEditSource(target, safe, edits)) && clear) onClearSelection();
+          const { ok, succeeded } = await eachCard(cards, "整理完", (target) => workspaceEditSource(target, safe, edits));
+          if (ok && clear) onClearSelection();
+          // 移到回收站能撤销，所以不先确认：直接做，再给一个带“撤销”的轻提示。有图库失败时，已移走的那部分照样能撤销。
+          if (succeeded.length > 0 && edits.length === 1 && edits[0].kind === "delete") {
+            toast?.show({
+              title: "已移到回收站", description: succeeded.length > 1 ? `${succeeded.length} 张` : undefined, tone: "success",
+              action: { label: "撤销", onClick: () => actions.edit(succeeded, [{ kind: "restore" }], false) },
+            });
+          }
         } finally {
           onChanged();
         }
@@ -158,24 +172,6 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
   const purgeTarget = purging?.length === 1 ? targetOf(purging[0], o.activeLibraryId) : undefined;
   const purged = () => { setPurging(null); options.current.onClearSelection(); options.current.onChanged(); };
   const dialogs = <>
-    {pinMany && <AlertDialog.Root open onOpenChange={(open) => { if (!open) setPinMany(null); }}>
-      <AlertDialog.Portal>
-        <AlertDialog.Backdrop className="k-backdrop" />
-        <AlertDialog.Popup className="k-dialog is-alert" aria-label="钉住多张">
-          <AlertDialog.Title className="k-dialog-title">钉住多张</AlertDialog.Title>
-          <AlertDialog.Description className="k-dialog-desc">选了 {pinMany.cards.length} 张，一次最多钉住 {PIN_LIMIT} 张。钉住前 {PIN_LIMIT} 张？</AlertDialog.Description>
-          <div className="k-dialog-foot">
-            <span className="k-grow" />
-            <AlertDialog.Close className="k-btn">取消</AlertDialog.Close>
-            <button type="button" className="k-btn is-primary" onClick={() => {
-              const { cards, point } = pinMany;
-              setPinMany(null);
-              void pinNow(cards.slice(0, PIN_LIMIT), point);
-            }}>钉住前 {PIN_LIMIT} 张</button>
-          </div>
-        </AlertDialog.Popup>
-      </AlertDialog.Portal>
-    </AlertDialog.Root>}
     {purging && purgeTarget && <PermanentDeleteConfirm
       libraryId={purgeTarget.libraryId}
       ids={[purgeTarget.imageId]}

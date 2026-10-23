@@ -96,12 +96,12 @@ export function RuntimeDetails() {
     : <StatusPill tone="ok"><CircleCheck size={12} aria-hidden="true" />正常</StatusPill>;
   return <section className="runtime-details" aria-label="运行环境">
     <SettingsGroup title="运行环境">
-      <SettingsRow icon={<Monitor size={16} />} title="图片显示" desc={`WebView2 ${status?.webview2 ?? "未查询到"}`}>{state}</SettingsRow>
+      <SettingsRow icon={<Monitor size={16} />} title="图片显示" meta={`WebView2 ${status?.webview2 ?? "未查询到"}`}>{state}</SettingsRow>
       <SettingsRow icon={<Pin size={16} />} title="钉图绘制"
-        desc={status?.assessment.uses8bitFallback ? "8 位画布，浏览不受影响" : "不代表颜色还原已通过"}>
+        hint={status?.assessment.uses8bitFallback ? "8 位画布，浏览不受影响" : "不代表颜色还原已通过"}>
         {status?.assessment.uses8bitFallback ? <StatusPill tone="warn"><Info size={12} aria-hidden="true" />已降级</StatusPill> : state}
       </SettingsRow>
-      <SettingsRow icon={<RefreshCw size={16} />} title="重新检查" desc="更新组件后点一下">
+      <SettingsRow icon={<RefreshCw size={16} />} title="重新检查" hint="更新组件后点一下">
         <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch(() => {})}>检查</button>
       </SettingsRow>
     </SettingsGroup>
