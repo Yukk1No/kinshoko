@@ -59,7 +59,7 @@ export async function eagleReimportCombination(workflow) {
   const selbar="//div[contains(@class,'selbar-host')]//*[@role='toolbar' and @aria-label='已选参考图操作']";
   const trashPage=()=>workflow.allPages({kind:"library",libraryId:b.id,scope:{kind:"trash"}},blank,true);
   const softDelete=async imageId=>{
-    await workflow.scope(b.id,folder);await select(await cardFor(imageId));await workflow.readyClick(`${selbar}//button[normalize-space()='删除']`);
+    await workflow.scope(b.id,folder);await select(await cardFor(imageId));await workflow.readyClick(`${selbar}//button[starts-with(@aria-label,'移到回收站')]`);
     await until("actual Eagle source moved to recycle bin",async()=>(await detail(imageId)).deletedAt!==null);
   };
   const purge=async imageId=>{

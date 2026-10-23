@@ -24,13 +24,14 @@ const { delay, until, assertions, assert, Session } = driverClient({ driverUrl, 
 const appData = join(work, "app-data");
 const scriptSource = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", windowsHide: true }).stdout.trim();
 const scriptSha256 = createHash("sha256").update(readFileSync(new URL(import.meta.url))).digest("hex");
+const helperSha256 = createHash("sha256").update(readFileSync(new URL("./save-destination.helpers.mjs", import.meta.url))).digest("hex");
 const binarySha256 = createHash("sha256").update(readFileSync(application)).digest("hex");
 const manifestPath = resolve(manifestArg ?? "work/e2e/t10-build-manifest.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8").replace(/^\uFEFF/, ""));
 if (manifest.binarySha256.toLowerCase() !== binarySha256) throw new Error("Binary does not match the build manifest");
 const source = manifest.source;
 const sourceTree = spawnSync("git", ["rev-parse", source + "^{tree}"], { encoding: "utf8", windowsHide: true }).stdout.trim();
-const provenance = { scriptSource, scriptSha256, sourceTree, manifestPath, driverSha256: createHash("sha256").update(readFileSync(resolve(edgeArg))).digest("hex") };
+const provenance = { scriptSource, scriptSha256, helperSha256, sourceTree, manifestPath, driverSha256: createHash("sha256").update(readFileSync(resolve(edgeArg))).digest("hex") };
 const driver = spawn(driverArg, ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], {
   env: { ...process.env, KINSHOKO_DATA_DIR: appData, KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") },
   stdio: ["ignore", "inherit", "inherit"], windowsHide: true,

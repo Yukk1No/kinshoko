@@ -24,6 +24,7 @@ function quitOwnApp() {
 
 const harnessSource = spawnSync("git", ["--work-tree=" + process.cwd(), "rev-parse", "HEAD"], { encoding: "utf8", windowsHide: true }).stdout.trim();
 const harnessSha256 = createHash("sha256").update(readFileSync(resolve(process.argv[1]))).digest("hex");
+const harnessHelperSha256 = createHash("sha256").update(readFileSync(new URL("./workspace-folders.helpers.mjs", import.meta.url))).digest("hex");
 const build = JSON.parse(readFileSync(resolve("work/e2e/t08-build-source.json"), "utf8").replace(/^\uFEFF/, ""));
 const source = build.source;
 const tree = build.tree;
@@ -110,7 +111,7 @@ try {
   await until("settled directory forest screenshot", async () => { if (!await forestReady()) return false; await delay(250); return forestReady(); });
   await session.screenshot("directory-forest.png");
   if (pathsOnly) {
-    writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", validation: "supplemental native path presentation", source, tree, binarySha256, application, harnessSource, harnessSha256, environment, first, second, assertions, stories: [6] }, null, 2));
+    writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", validation: "supplemental native path presentation", source, tree, binarySha256, application, harnessSource, harnessSha256, harnessHelperSha256, environment, first, second, assertions, stories: [6] }, null, 2));
     console.log(`Evidence: ${work}`);
   } else {
   await session.click(folderButton(first.info.id, first.root));
@@ -179,13 +180,13 @@ try {
   await until("disconnected root visible", () => session.exec("return !!document.querySelector('.workspace-provider[data-offline=true] .lib-head-name[aria-label$=\"（未连接）\"]');"));
   assert(await session.exec("return document.querySelector('.workspace-provider-root .lib-head-name')?.disabled && !document.querySelector('[data-folder-id]');"), "disconnected provider keeps an explicit disabled root and discards cached folder controls");
   await session.screenshot("disconnected-root.png");
-  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, tree, binarySha256, application, harnessSource, harnessSha256, environment, first, second, originalBefore, originalAfter, assertions, stories: [6, 7, 8] }, null, 2));
+  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, tree, binarySha256, application, harnessSource, harnessSha256, harnessHelperSha256, environment, first, second, originalBefore, originalAfter, assertions, stories: [6, 7, 8] }, null, 2));
   console.log(`Evidence: ${work}`);
   }
 } catch (error) {
   console.error(error);
   if (session) await session.screenshot("failure.png").catch(() => {});
-  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "failed", source, tree, binarySha256, application, harnessSource, harnessSha256, environment, first, second, assertions, error: String(error) }, null, 2));
+  writeFileSync(join(work, "result.json"), JSON.stringify({ status: "failed", source, tree, binarySha256, application, harnessSource, harnessSha256, harnessHelperSha256, environment, first, second, assertions, error: String(error) }, null, 2));
   process.exitCode = 1;
 } finally {
   if (session) await session.close().catch(() => {});
