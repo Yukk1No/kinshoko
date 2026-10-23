@@ -118,12 +118,16 @@
   box-shadow: 0 0 0 100000px rgb(0 0 0 / 0.35);
 }
 
-/* 四角手柄只标出选区边界；改选区仍是重新拖动。 */
+/* 四角与四边中点的手柄标出能拖的地方；命中范围比手柄大，由 selectionPart 判断，手柄本身不接指针。 */
 .capture-handle { position: absolute; width: 8px; height: 8px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25); pointer-events: none; }
-.capture-handle.is-tl { left: -4px; top: -4px; }
-.capture-handle.is-tr { right: -4px; top: -4px; }
-.capture-handle.is-bl { left: -4px; bottom: -4px; }
-.capture-handle.is-br { right: -4px; bottom: -4px; }
+.capture-handle.is-nw { left: -4px; top: -4px; }
+.capture-handle.is-ne { right: -4px; top: -4px; }
+.capture-handle.is-sw { left: -4px; bottom: -4px; }
+.capture-handle.is-se { right: -4px; bottom: -4px; }
+.capture-handle.is-n { left: calc(50% - 4px); top: -4px; }
+.capture-handle.is-s { left: calc(50% - 4px); bottom: -4px; }
+.capture-handle.is-w { left: -4px; top: calc(50% - 4px); }
+.capture-handle.is-e { right: -4px; top: calc(50% - 4px); }
 
 .capture-tools { font-family: var(--font); color: var(--ink); }
 
