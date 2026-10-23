@@ -78,6 +78,23 @@ describe("迁入向导：标签的外部对应", () => {
     });
   });
 
+  it("用 ↓ 高亮一个候选再回车，只补上这一个，不再另按输入补一次", async () => {
+    const calls = backend();
+    render(<EagleTagStep libraryId="L1" onClose={() => {}} />);
+
+    const input = await screen.findByRole("combobox", { name: "水色 的外部对应" });
+    input.focus();
+    fireEvent.change(input, { target: { value: "aqua" } });
+    await screen.findByRole("option", { name: "aqua_eyes" });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(await screen.findByText(/水色 → aqua_eyes/)).toBeTruthy();
+    expect(calls.filter((c) => c.cmd === "plugin:library|map_tag_external")).toEqual([
+      { cmd: "plugin:library|map_tag_external", args: { libraryId: "L1", tagId: "t-aqua", external: "aqua_eyes" } },
+    ]);
+  });
+
   it("可以逐个跳过，也可以全部跳过", async () => {
     backend();
     let closed = false;

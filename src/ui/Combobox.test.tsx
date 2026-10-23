@@ -162,6 +162,22 @@ describe("Combobox", () => {
     expect(backs).toBe(1);
   });
 
+  it("改了字高亮回到第一项，即使候选没变", async () => {
+    function Fixed() {
+      const [text, setText] = useState("");
+      const options = [{ id: "text", label: `查找“${text}”` }, { id: "a", label: "猫耳" }, { id: "b", label: "猫尾" }];
+      return <Combobox label="标签名" value={text} onValueChange={setText} options={options} onSelect={() => {}} />;
+    }
+    render(<Fixed />);
+    await typeAndOpen("猫");
+    key("ArrowDown");
+    key("ArrowDown");
+    expect(highlighted()?.textContent).toBe("猫尾");
+    type("猫耳");
+    await act(async () => {});
+    expect(highlighted()?.textContent).toBe("查找“猫耳”");
+  });
+
   it("autoHighlight 关闭时不预先高亮，Enter 不选候选、交给外层", async () => {
     render(<TagAdder autoHighlight={false} />);
     await typeAndOpen("猫");

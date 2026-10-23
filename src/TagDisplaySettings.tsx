@@ -79,11 +79,11 @@ export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; o
     <SettingsRow className="is-thresholds" icon={<Gauge size={16} />} title="可信度分档" hint="模型给的标签分高、中、低三档"
       below={problem !== null && <p className="k-set-error" role="alert">{problem}</p>}>
       <label className="k-set-number">高档不低于
-        <input className="k-input" type="number" aria-label="高档下限" min={STEP} max={1} step={STEP} value={high}
+        <input className="k-input is-num" type="number" aria-label="高档下限" min={STEP} max={1} step={STEP} value={high}
           onChange={(e) => changeThresholds(e.target.value, low)} />
       </label>
       <label className="k-set-number">低档低于
-        <input className="k-input" type="number" aria-label="低档上限" min={0} max={1 - STEP} step={STEP} value={low}
+        <input className="k-input is-num" type="number" aria-label="低档上限" min={0} max={1 - STEP} step={STEP} value={low}
           onChange={(e) => changeThresholds(high, e.target.value)} />
       </label>
       <button type="button" className="k-btn is-sm is-quiet" onClick={() => {

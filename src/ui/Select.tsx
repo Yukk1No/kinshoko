@@ -20,7 +20,7 @@ export function Select<V extends string>({ value, options, onChange, label, disa
       <ChevronDown size={16} aria-hidden="true" />
     </Base.Trigger>
     <Base.Portal>
-      <Base.Positioner className="k-positioner" alignItemWithTrigger={false} side="bottom" align="start" sideOffset={4}>
+      <Base.Positioner className="k-positioner is-field" alignItemWithTrigger={false} side="bottom" align="start" sideOffset={4}>
         <Base.Popup className="k-popup k-select-popup">
           <Base.List className="k-listbox">
             {options.map((option) => <Base.Item key={option.value} value={option.value} disabled={option.disabled} className="k-item k-option" data-value={option.value}>
