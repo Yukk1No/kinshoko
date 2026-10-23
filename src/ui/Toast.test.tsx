@@ -31,6 +31,21 @@ it("确认类提示带操作，过一会儿自动消失", async () => {
   expect(undo).toHaveBeenCalledTimes(1);
 });
 
+it("就地更新已显示的提示：换内容、去掉操作，关掉时仍回调原来的 onClose", async () => {
+  const onClose = vi.fn();
+  render(<ToastProvider><Grab /></ToastProvider>);
+  let id = "";
+  act(() => { id = api!.show({ title: "可以更新", timeout: 0, action: { label: "安装", onClick: () => {} }, onClose }); });
+  expect(await screen.findByRole("button", { name: "安装" })).toBeTruthy();
+  act(() => { api!.update(id, { title: "正在下载", description: "3 MB", timeout: 0 }); });
+  expect(await screen.findByText("正在下载")).toBeTruthy();
+  expect(screen.getByText("3 MB")).toBeTruthy();
+  expect(screen.queryByText("可以更新")).toBeNull();
+  expect(screen.queryByRole("button", { name: "安装" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "关闭提示", hidden: true }));
+  await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+});
+
 it("没有提示容器时返回 null，组件可以退回就地显示", () => {
   render(<Grab />);
   expect(api).toBeNull();

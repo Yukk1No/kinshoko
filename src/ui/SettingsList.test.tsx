@@ -13,6 +13,12 @@ it("行的补充说明挂到这一行的控件上", () => {
   expect(ids.map((id) => document.getElementById(id)?.textContent)).toContain("开启后遮住标为敏感和成人的图");
 });
 
+it("行下方的控件（例如备份的文件输入与按钮）同样读到补充说明", () => {
+  render(<ul><SettingsRow title="偏好备份" hint="只备份本设备的偏好，不含图库" below={<button type="button">导出</button>} /></ul>);
+  const ids = screen.getByRole("button", { name: "导出" }).getAttribute("aria-describedby")!.split(" ");
+  expect(ids.map((id) => document.getElementById(id)?.textContent)).toContain("只备份本设备的偏好，不含图库");
+});
+
 it("键盘聚焦到这一行的控件时显示补充说明", () => {
   expect(settings).toMatch(/\.k-set-row:has\(:focus-visible\) \.k-set-hint \{ display: block; \}/);
 });

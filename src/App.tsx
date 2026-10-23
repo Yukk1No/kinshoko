@@ -9,19 +9,31 @@ import type { AppInfo } from "./bindings/AppInfo";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
-import { appInfo, currentLibrary, workspaceStatus, onWorkspaceChanged, onSafeModeSetting, safeMode, setSafeMode, setUiScale, shellSettings, setInspectorWidth, uiScale } from "./ipc";
+import {
+  appInfo,
+  currentLibrary,
+  workspaceStatus,
+  onWorkspaceChanged,
+  onSafeModeSetting,
+  safeMode,
+  setSafeMode,
+  setUiScale,
+  shellSettings,
+  setInspectorWidth,
+  uiScale,
+} from "./ipc";
 import { useOpenInKinshoko } from "./desktop/openInKinshoko";
+import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
+import { ReferenceGroupsPanel } from "./desktop/ReferenceGroupsPanel";
 import { CreateLibrary } from "./library/CreateLibrary";
 import { LegacyNameMigrationNotice, LegacyNameWizard } from "./library/LegacyNameMigrationPanel";
 import { LibraryPicker } from "./library/LibraryPicker";
-import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
-import { ReferenceGroupsPanel } from "./desktop/ReferenceGroupsPanel";
 import { Rail, type Section } from "./shell/Rail";
 import { initialUiScale, stepUiScale, UiScaleContext, uiScaleStepForKey } from "./shell/uiScale";
 import { SettingsPanel, type SettingsTab } from "./SettingsPanel";
 import { BackupReminder } from "./Backup";
 import { Dialog } from "@base-ui/react/dialog";
-import { UpdateBanner } from "./Update";
+import { UpdateNotice } from "./Update";
 import { RuntimeNotice } from "./RuntimeSupport";
 import { INITIAL_SAFE_LENS, needsRecheck, reduceSafeLens, type SafeLensAction } from "./shell/safeLens";
 import { safeTiming } from "./shell/safeTiming";
@@ -29,6 +41,7 @@ import type { TagDisplay } from "./bindings/TagDisplay";
 import { DEFAULT_TAG_DISPLAY } from "./tags/tagConfidence";
 import { TagDisplayContext } from "./tags/TagDisplayContext";
 import { OpenTagNameSettings } from "./tags/TagNameSettings";
+
 import { LibraryWorkspace } from "./workspace/LibraryWorkspace";
 
 /**
@@ -264,7 +277,7 @@ function MainWindow() {
   const notices = <>
     <RuntimeNotice hidden={showSettings} />
     {library && <div><LegacyNameMigrationNotice libraryId={library.id} safe={lensSafe} onOpen={() => setNameWizard(true)} /></div>}
-    <UpdateBanner />
+    <UpdateNotice />
     <BackupReminder />
   </>;
   return (
