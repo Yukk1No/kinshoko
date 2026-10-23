@@ -1,8 +1,16 @@
 # 界面系统
 
-**状态：方向已认可 · 2026-10-10；设计系统 v3 · 2026-10-23。** 负责人认可了视觉方向与改版预览（`preview/`）。v2 把字号收为 16 / 13 / 12 三档、圆角改为同心、去掉中点分隔与解释性描述；v3 把颜色从 v2 试用的 Radix Colors 换回原型的米黄纸底与墨紫字，只为文字对比度调深了几个值。规格以 claude.ai 上的 Kinshoko 设计系统（`project/README.md`、`tokens.json`）为准，令牌值照抄在 `src/styles/shell.css`。下文与 v3 冲突处以 v3 为准。
+**状态：方向已认可 · 2026-10-10；设计系统 v3 · 2026-10-23。** 负责人认可了视觉方向与改版预览（`preview/`）。v2 把字号收为 16 / 13 / 12 三档、圆角改为同心、去掉中点分隔与解释性描述；v3 把颜色从 v2 试用的 Radix Colors 换回原型的米黄纸底与墨紫字，只为文字对比度调深了几个值。颜色、圆角与动效令牌以 `src/styles/tokens.css` 为准（见下文“令牌来源”）。下文与 v3 冲突处以 v3 为准。
 
 本文件记录组件选型、品牌不变项、窗口框架、视觉与动效、文案规则。体验基线仍是认可原型 `prototype/reference-browser/`（固定提交 `bd8aea44`）及其 [设计说明](../../prototype/reference-browser/DESIGN-NOTES.md)；本文件只补正式程序需要、原型没有覆盖的部分。
+
+## 令牌来源
+
+`src/styles/tokens.css` 是界面令牌的唯一来源：日间 `:root`、夜间两套写法（跟随系统的 `prefers-color-scheme` 与手动的 `data-theme="dark"`）、封印书的 `--seal-acc`，以及圆角与动效时长。
+
+- **改颜色只改这一个文件。** 其他样式表只写 `var(--token)`，不写十六进制颜色；`src/styles/tokens.styles.test.ts` 会扫描 `src/` 下所有样式表，在令牌文件之外发现十六进制颜色就失败。确有理由写死的，列进该测试的 `ALLOWED` 并写明理由。
+- **claude.ai 上的 Kinshoko 设计系统（`project/README.md`、`tokens.json`）从这个文件导出。** 改了令牌就把新值同步过去；两边不一致时以本文件为准。
+- 查颜色只看 `tokens.css`，不必在各个组件样式表里搜。
 
 ## 组件库选型
 
