@@ -36,7 +36,7 @@ export class CombinationWorkflow {
     if (await this.d.exec("return !!document.querySelector('section[aria-label=设置]');")) await this.readyClick("//button[@aria-label='关闭设置']");
     await until("settings dialog actually closed", () => this.d.exec("return !document.querySelector('section[aria-label=设置]');"));
   }
-  // The 图库 ＋ menu (打开图库… · 新建图库… · 管理图库).
+  // The 图库 ＋ menu (打开图库…、新建图库…、管理图库).
   async openLibraryMenu() {
     if (await this.d.exec("const node=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return node?.getAttribute('aria-expanded')!=='true';", [libraryTrigger])) await this.readyClick(libraryTrigger);
     await this.d.enabled(libraryMenu);

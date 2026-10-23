@@ -102,7 +102,7 @@ try{
  const cTarget={libraryId:c.id,imageId:cCard.imageId,contentId:cCard.id};
  await session.invoke("workspace_edit_source",{target:cTarget,safeMode:true,edits:[{kind:"setNote",text:"C 独立人工备注"}]});
  await browseAll();
- // The card's source button is a sibling of its option; with N sources it reads “在 N 个图库 · 查看详情”.
+ // The card's source button is a sibling of its option; with N sources it reads “在 N 个图库，查看详情”.
  const sourcesButton=`//div[@role='listbox' and @aria-label='图片墙']//button[contains(@class,'card-sources') and @data-card='${bCard.id}' and starts-with(@aria-label,'在 ')]`;
  await until("aggregate source choices",()=>shown(sourcesButton));
  await readyClick(sourcesButton);
