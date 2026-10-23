@@ -2,14 +2,14 @@
 //! 全部依赖，在 Windows 上编译测试的大半时间花在链接上。新的测试文件在这里加一行 `mod`。
 //!
 //! 仍是独立二进制的（Cargo.toml 的 `[[test]]`）：以子进程重跑自身某个测试的（崩溃注入、
-//! 打标子进程），它们按不带模块前缀的测试名过滤；依赖全进程解码预算的 `thumbnail_memory`；
-//! 验收文档按目标名引用的 `fidelity`（`--test fidelity`）。
+//! 打标子进程），它们按不带模块前缀的测试名过滤；依赖全进程状态的 `thumbnail_memory`（解码预算）
+//! 与 `import_pipeline`（导入时预先生成的网格档位）；验收文档按目标名引用的 `fidelity`
+//! （`--test fidelity`）。
 //!
 //! 每个模块都用 `#[path]` 引入：这样它们按目录模块解析，文件里原有的 `mod support;`、
 //! `#[path = "support/eagle.rs"] mod eagle;` 仍相对 `tests/`，同一份辅助代码各自一份。
 //!
-//! 用 `cargo nextest` 跑（每个测试一个进程）：有些测试读写全进程状态，如图片墙最近请求的
-//! 网格档位、计时断言，`cargo test` 把它们放在同一进程里并发时会互相干扰。
+//! 合进来的测试在 `cargo test` 下同进程并发，不能依赖全进程状态的初始值。
 
 #![allow(clippy::duplicate_mod)]
 
@@ -73,8 +73,6 @@ mod edge_hide;
 mod global_shortcuts;
 #[path = "image_commands.rs"]
 mod image_commands;
-#[path = "import_pipeline.rs"]
-mod import_pipeline;
 #[path = "import_preview.rs"]
 mod import_preview;
 #[path = "import_recovery.rs"]

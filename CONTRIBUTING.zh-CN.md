@@ -43,7 +43,8 @@ npm run build           # release 构建，生成 NSIS 安装包到 target/relea
 npm test                # 前端测试（Vitest）
 npm run typecheck       # TS 类型检查
 npm run bindings        # 重新生成 src/bindings/（跑核心 crate 的单元测试）
-cargo nextest run -p kinshoko-core   # 核心 crate 测试；需要 cargo-nextest（每个测试一个进程）
+cargo nextest run -p kinshoko-core   # 核心 crate 测试（与 CI 相同；需要 cargo-nextest）
+cargo test -p kinshoko-core --doc    # 核心 crate 文档测试（nextest 不跑）
 cargo fmt --all
 cargo clippy --workspace --all-targets -- -D warnings   # 需先 npm run vite:build 产出 dist/
 node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # 需 tauri-driver 与匹配 WebView2 版本的 msedgedriver
