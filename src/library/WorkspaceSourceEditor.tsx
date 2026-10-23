@@ -12,6 +12,7 @@ import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { SelectionPanel } from "./SelectionPanel";
 import { Copy, Layers, Pin } from "lucide-react";
 import { useUiScale } from "../shell/uiScale";
+import { Select } from "../ui/Select";
 
 /** Adapted from library-workspace.html's explicit source selector, note editor and source actions. */
 export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, onChanged, registrations = [] }: {
@@ -71,10 +72,9 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
         onClear={onClose} onSourceChanged={onChanged} />
       <fieldset className="insp-use" disabled={busy}><legend>使用此来源</legend>
         <div className="insp-use-row">
-          <label>加入哪个参考组<select aria-label="加入哪个参考组" value={groupId} onChange={(event) => setGroupId(event.target.value)}>
-            <option value="">新建参考组</option>{groups.filter((g) => !g.problem).map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select></label>
-          {!groupId && <label>新参考组名称<input aria-label="新参考组名称" value={name} onChange={(event) => setName(event.target.value)} /></label>}
+          <div className="k-field"><span className="k-field-label">加入哪个参考组</span><Select label="加入哪个参考组" value={groupId} onChange={setGroupId} disabled={busy}
+            options={[{ value: "", label: "新建参考组" }, ...groups.filter((g) => !g.problem).map((g) => ({ value: g.id, label: g.name }))]} /></div>
+          {!groupId && <label className="k-field"><span className="k-field-label">新参考组名称</span><input className="k-input" aria-label="新参考组名称" value={name} onChange={(event) => setName(event.target.value)} /></label>}
         </div>
         <div className="insp-foot">
           <button type="button" className="k-btn" onClick={(event) => {

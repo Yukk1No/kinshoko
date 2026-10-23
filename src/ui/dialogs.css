@@ -2,16 +2,7 @@
    Built on the shared `.k-dialog` / `.k-list` shell in ui.css; tokens live in src/styles.css :root. */
 
 /* ---- Form controls ---- */
-.k-select { height: 32px; min-width: 120px; max-width: 100%; padding: 0 28px 0 10px; border: 0; border-radius: var(--r); color: var(--ink); font: inherit;
-  background: var(--surface) no-repeat;
-  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
-  background-position: right 14px center, right 10px center; background-size: 4px 4px;
-  box-shadow: inset 0 0 0 1px var(--line-2); appearance: none; }
-.k-select:focus-visible, .k-input:focus-visible { outline: 0; box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
-.k-select:disabled { opacity: 0.5; }
-.k-select.is-lg { height: 38px; width: 100%; border-radius: var(--r); padding-left: 12px; }
-.k-input { height: 32px; min-width: 0; flex: 1; padding: 0 10px; border: 0; border-radius: var(--r); font: inherit; color: var(--ink); background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--line-2); }
+/* 输入框、下拉选择与候选列表在 fields.css。 */
 .k-check { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
 .k-check input { accent-color: var(--accent-strong); margin: 0; }
 .k-link { border: 0; padding: 0; margin-left: 10px; background: none; color: var(--accent-strong); font: inherit; font-weight: 500; }
@@ -74,10 +65,6 @@
 .k-destination { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 6px; }
 .k-destination-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .k-destination .k-field { display: grid; grid-template-columns: none; gap: 6px; min-width: 0; align-items: stretch; }
-.k-field-label { font-size: 12px; font-weight: 600; color: var(--ink-2); padding: 0; }
-.k-select-wrap { position: relative; display: block; min-width: 0; }
-.k-select-wrap > svg { position: absolute; left: 12px; top: 50%; translate: 0 -50%; color: var(--ink-3); pointer-events: none; }
-.k-select-wrap > .k-select.is-lg { padding-left: 34px; }
 .k-destination .save-final-position { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .k-fieldset { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 6px; }
 
@@ -114,7 +101,7 @@
 .k-task-more ul { margin: 4px 0 0; padding-left: 16px; max-height: 120px; overflow: auto; }
 .k-task-more .import-report-reason { margin-left: 6px; color: var(--danger); }
 .k-task-switch { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-2); }
-.k-task-switch .k-select { flex: 1; min-width: 0; height: 28px; }
+.k-task-switch .k-select { flex: 1; min-width: 0; }
 .k-icon-btn.is-sm { width: 24px; height: 24px; border-radius: var(--r-xs); }
 .k-task-progress { appearance: none; display: block; width: 100%; height: 6px; margin-top: 10px; border: 0; border-radius: 3px; overflow: hidden; background: var(--sunken); }
 .k-task-progress::-webkit-progress-bar { background: var(--sunken); border-radius: 3px; }
@@ -179,7 +166,6 @@ body:has(.inspector[data-collapsed="false"]) .k-task-cards { right: calc(var(--i
 body:has(.selbar-host > .selbar) .k-task-cards { bottom: calc(18px + 66px); }
 /* 标签外观的分档阈值（#160）：短标签 + 窄数字框，一行放下两个阈值和“恢复默认”。 */
 .k-set-number { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
-.k-set-number .k-input { flex: none; width: 64px; font-variant-numeric: tabular-nums; }
 /* 窄时两个阈值和“恢复默认”折行，靠右对齐，不溢出设置窗口。 */
 .k-set-row.is-thresholds .k-set-row-main > .k-list-end { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px 12px; }
 .k-set-row.is-thresholds .k-list-end > .k-btn { white-space: nowrap; }

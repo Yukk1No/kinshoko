@@ -11,9 +11,12 @@ import type { TagLabel } from "../bindings/TagLabel";
 import type { Term } from "../bindings/Term";
 import type { TermInput } from "../bindings/TermInput";
 import { Popover } from "@base-ui/react/popover";
+import { Search } from "lucide-react";
+import { Combobox, Highlight, type ComboboxOption } from "../ui/Combobox";
 import { ExactToggle } from "./ExactToggle";
+import { tagOption } from "./tagOptions";
 import { chipsThatFit } from "./fitChips";
-import { RatingName, TagMarks, tagName } from "./tagLabel";
+import { RatingName, tagName } from "./tagLabel";
 import { TermView } from "./TermView";
 import { ratingCandidates, searchCandidates, workspaceCandidates, workspaceSourceCandidates, setTagApprox, editSharedApprox } from "../ipc";
 
@@ -34,6 +37,11 @@ const lensKey = (lens: Lens, text: string) => JSON.stringify([lens.libraryId, le
 
 /** 按 `lens` 与 `text` 取得候选；身份变了的旧结果不返回。标签整理面板挑标签时也用它。 */
 export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true): Candidate[] {
+  return useCandidateState(lens, text, keep).list;
+}
+
+/** 同 `useCandidates`，另外给出这段文字的候选是否已经取到（`ready`），没取到时不说“没有匹配”。 */
+export function useCandidateState(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true): { list: Candidate[]; ready: boolean } {
   const [found, setFound] = useState<Found>({ key: "", list: [] });
   const key = lensKey(lens, text);
   const { libraryId, safe } = lens;
@@ -50,7 +58,8 @@ export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => 
       alive = false;
     };
   }, [key, libraryId, safe, text]);
-  return found.key === key && text.trim() ? found.list : [];
+  const ready = found.key === key && !!text.trim();
+  return { list: ready ? found.list : [], ready };
 }
 
 type FoundRatings = { key: string; list: RatingCandidate[] };
@@ -125,8 +134,6 @@ type Props = {
  */
 export function SearchBox({ libraryId, safe, generation, input, tree, showSource, onChange, onError, workspace = false }: Props) {
   const [text, setText] = useState("");
-  const [active, setActive] = useState(0);
-  const [open, setOpen] = useState(false);
   const [dismissing, setDismissing] = useState<(Place & { similar: SimilarTag; lens: string }) | null>(null);
   const [adding, setAdding] = useState<{ tag: TagLabel; lens: string } | null>(null);
   const lens: Lens = { libraryId, safe, generation, workspace };
@@ -151,11 +158,17 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
     return () => observer.disconnect();
   }, []);
 
-  const rows: TermInput[] = text.trim()
+  // 第一行“查找‘X’”按文字匹配，下面是匹配的内容分级，再是候选标签。
+  const query = text.trim();
+  const rows: (ComboboxOption & { term: TermInput })[] = query
     ? [
-        { kind: "text", text: text.trim(), dismissed: [] },
-        ...ratings.map((r) => ({ kind: "rating" as const, ratings: r.rating.ratings })),
-        ...candidates.map((c) => ({ kind: "tag" as const, id: c.tag.id, dismissed: [] })),
+        { id: "text", icon: <Search size={14} />, label: `查找“${query}”`, term: { kind: "text", text: query, dismissed: [] } },
+        ...ratings.map((r) => ({
+          id: `rating-${r.rating.ratings.join("-")}`, label: <RatingName rating={r.rating} />,
+          via: r.via ? <>又名 <Highlight text={r.via} query={query} /></> : undefined,
+          term: { kind: "rating" as const, ratings: r.rating.ratings },
+        })),
+        ...candidates.map((c) => ({ ...tagOption(c, query), term: { kind: "tag" as const, id: c.tag.id, dismissed: [] } })),
       ]
     : [];
 
@@ -171,29 +184,11 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
     }
     change(conditions);
     setText("");
-    setActive(0);
   };
 
-  const pick = (i: number, e: MouseEvent) => add(rows[i], e.ctrlKey || e.metaKey);
-
-  const keyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && rows.length) {
-      e.preventDefault();
-      add(rows[Math.min(active, rows.length - 1)], e.altKey);
-    } else if (e.key === "ArrowDown" && rows.length) {
-      e.preventDefault();
-      setOpen(true);
-      setActive((a) => (a + 1) % rows.length);
-    } else if (e.key === "ArrowUp" && rows.length) {
-      e.preventDefault();
-      setActive((a) => (a - 1 + rows.length) % rows.length);
-    } else if (e.key === "Escape") {
-      if (text) setText("");
-      else setOpen(false);
-    } else if (e.key === "Backspace" && !text && input.conditions.length) {
-      change(input.conditions.slice(0, -1));
-    }
-  };
+  // 回车加 Alt、单击加 Ctrl：加进上一个条件，作为“任一”。
+  const pick = (row: (typeof rows)[number], e: KeyboardEvent | MouseEvent) =>
+    add(row.term, e.type === "keydown" ? e.altKey : e.ctrlKey || e.metaKey);
 
   const toggle = (i: number) =>
     change(input.conditions.map((c, j) => (j === i ? { ...c, negate: !c.negate } : c)));
@@ -274,7 +269,6 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
     );
   };
 
-  const shown = open && rows.length > 0;
   const hiddenCount = Math.max(input.conditions.length - fit, 0);
   return (
     <div className="search" ref={root}>
@@ -296,68 +290,20 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
         {input.conditions.map((c, i) => chip(c, i, i < hiddenCount))}
       </ul>
       <div className="search-field">
-        <input
-          ref={field}
-          role="combobox"
-          aria-label="查找参考图"
-          aria-expanded={shown}
-          aria-controls="search-candidates"
-          aria-activedescendant={shown ? `search-row-${active}` : undefined}
+        <Combobox
+          bare
+          anchor={root}
+          inputRef={field}
+          label="查找参考图"
           placeholder="查找标签或文字"
           value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            setActive(0);
-            setOpen(true);
-          }}
-          onKeyDown={keyDown}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setOpen(false)}
+          options={rows}
+          onValueChange={setText}
+          onSelect={pick}
+          onBackspaceEmpty={() => input.conditions.length && change(input.conditions.slice(0, -1))}
+          // Esc 先清掉打了一半的字，再按一次收起。
+          onKeyDown={(e) => { if (e.key === "Escape" && text) { e.preventDefault(); setText(""); } }}
         />
-        {shown && (
-          <ul
-            id="search-candidates"
-            role="listbox"
-            className="search-candidates"
-            // 点选时不让输入框失去焦点，下拉不会先关掉。
-            onMouseDown={(e) => e.preventDefault()}
-          >
-            <li
-              id="search-row-0"
-              role="option"
-              aria-selected={active === 0}
-              onClick={(e) => pick(0, e)}
-            >
-              查找“{text.trim()}”
-            </li>
-            {ratings.map((r, k) => (
-              <li
-                key={`rating-${r.rating.ratings.join("-")}`}
-                id={`search-row-${k + 1}`}
-                role="option"
-                aria-selected={active === k + 1}
-                onClick={(e) => pick(k + 1, e)}
-              >
-                <RatingName rating={r.rating} />
-                {r.via && <span className="search-candidate-via">又名：{r.via}</span>}
-              </li>
-            ))}
-            {candidates.map((c, k) => (
-              <li
-                key={c.tag.id}
-                id={`search-row-${k + 1 + ratings.length}`}
-                role="option"
-                aria-selected={active === k + 1 + ratings.length}
-                onClick={(e) => pick(k + 1 + ratings.length, e)}
-              >
-                <span className="search-candidate-name">{tagName(c.tag)}</span>
-                <TagMarks tag={c.tag} />
-                {c.via && <span className="search-candidate-via">又名：{c.via}</span>}
-                <span className="search-candidate-count">{c.count}</span>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
       <ExactToggle exact={input.exact} onChange={(exact) => onChange({ ...input, exact })} />
       {dismissingNow && (
@@ -393,34 +339,21 @@ function AddSimilar({
   onCancel: () => void;
 }) {
   const [text, setText] = useState("");
-  const found = useCandidates(lens, text, (c) => c.tag.id !== to.id);
+  const { list: found, ready } = useCandidateState(lens, text, (c) => c.tag.id !== to.id);
 
   return (
     <div className="search-popover" role="dialog" aria-label="加相近标签">
       <p>查“{tagName(to)}”时也找：</p>
-      <input
-        role="combobox"
-        aria-label={lens.workspace ? "挑一个统一标签" : "挑一个库内标签"}
-        aria-expanded={found.length > 0}
+      <Combobox
+        label={lens.workspace ? "挑一个统一标签" : "挑一个库内标签"}
         autoFocus
         value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") onCancel();
-          if (e.key === "Enter" && found.length) onPick(found[0].tag);
-        }}
+        options={found.map((c) => tagOption(c, text))}
+        empty={ready && found.length === 0 ? "没有匹配的标签" : undefined}
+        onValueChange={setText}
+        onSelect={(option) => onPick(option.tag)}
+        onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
       />
-      {found.length > 0 && (
-        <ul role="listbox" className="search-popover-list">
-          {found.map((c) => (
-            <li key={c.tag.id} role="option" aria-selected={false} onClick={() => onPick(c.tag)}>
-              <span>{tagName(c.tag)}</span>
-              <TagMarks tag={c.tag} />
-              {c.via && <span className="search-candidate-via">又名：{c.via}</span>}
-            </li>
-          ))}
-        </ul>
-      )}
       <button type="button" onClick={onCancel}>
         取消
       </button>

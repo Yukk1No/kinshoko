@@ -6,6 +6,7 @@ import type { TagNamespace } from "../bindings/TagNamespace";
 import { correctTagMapping, inspectTagCatalog, onLibraryEvent, onSafeModeSetting, publishTagDefinitions } from "../ipc";
 
 import { libraryPathHint } from "./library-path";
+import { Select } from "../ui/Select";
 
 const namespaces: Record<TagNamespace, string> = { general: "一般", artist: "作者", character: "角色", work: "作品" };
 const basis = { independent: "独立", external: "按词表", conflictingExternal: "词表有歧义", corrected: "已纠正" };
@@ -97,9 +98,7 @@ function MappingRow({ mapping, workspace, busy, onSave }: { mapping: LibraryTagM
       <details><summary>详情</summary><p>库内编号：{mapping.localTagId}</p><p>外部对应：{mapping.legacy.external.map((name) => `danbooru:${name}`).join("、") || "无"}</p></details>
     </th>
     <td><span className="k-parts"><span>{shared ? nameOf(shared) : "未命名标签"}</span><small>{basis[mapping.basis]}</small></span><details><summary>详情</summary><p>编号：{mapping.catalogId}</p><p>外部对应：{shared?.external.map((e) => `${e.vocabulary}:${e.name}`).join("、") || "无"}</p></details></td>
-    <td><select aria-label={`纠正 ${library?.name ?? "未打开的图库"} 的 ${localName(mapping)} 对应`} value={target} disabled={busy} onChange={(event) => setTarget(event.target.value)}>
-      {choices.map(({ tag, label }) => <option key={tag.id} value={tag.id}>{label}</option>)}
-      <option value="separate">拆成独立标签</option>
-    </select><button type="button" className="k-btn is-sm" disabled={busy || target === mapping.catalogId} onClick={() => onSave(target)}>保存对应</button></td>
+    <td><Select label={`纠正 ${library?.name ?? "未打开的图库"} 的 ${localName(mapping)} 对应`} value={target} disabled={busy} onChange={setTarget}
+      options={[...choices.map(({ tag, label }) => ({ value: tag.id, label })), { value: "separate", label: "拆成独立标签" }]} /><button type="button" className="k-btn is-sm" disabled={busy || target === mapping.catalogId} onClick={() => onSave(target)}>保存对应</button></td>
   </tr>;
 }

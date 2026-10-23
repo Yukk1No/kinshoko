@@ -6,11 +6,14 @@ import type { GateItem } from "../bindings/GateItem";
 import type { GatePlan } from "../bindings/GatePlan";
 import { gateImage, gatePlan, gateSave } from "../ipc";
 import { deltaE2000, p3ToLab, patchMean, type Lab } from "./colour";
+import { Select } from "../ui/Select";
 
 /** 缩略图档位，与 Rust 门槛测试一致。 */
 const THUMB_PX = 128;
 const THRESHOLD = 1;
 const ALPHA_TOLERANCE = 0.02;
+/** 显示设置里开关类项目的填写选项。 */
+const DISPLAY_SWITCH = ["未填写", "开启", "关闭", "不支持"].map((value) => ({ value, label: value }));
 
 interface PatchResult {
   /** display-p3 canvas 读回的平均编码值（0～1）：1:1 显示的图与缩略图。 */
@@ -286,31 +289,21 @@ export function FidelityGate() {
       {done && !plan?.autoSave && (
         <fieldset className="gate-manual">
           <legend>请对照 Windows 设置 → 系统 → 屏幕 填写</legend>
-          <label>
-            HDR
-            <select value={manual.hdr} onChange={(e) => setManual({ ...manual, hdr: e.target.value })}>
-              <option>未填写</option>
-              <option>开启</option>
-              <option>关闭</option>
-              <option>不支持</option>
-            </select>
+          <div className="k-field">
+            <span className="k-field-label">HDR</span>
+            <Select label="HDR" value={manual.hdr} options={DISPLAY_SWITCH} onChange={(hdr) => setManual({ ...manual, hdr })} />
+          </div>
+          <div className="k-field">
+            <span className="k-field-label">自动色彩管理</span>
+            <Select label="自动色彩管理" value={manual.autoColour} options={DISPLAY_SWITCH} onChange={(autoColour) => setManual({ ...manual, autoColour })} />
+          </div>
+          <label className="k-field">
+            <span className="k-field-label">显示器 ICC（颜色管理中的默认配置文件）</span>
+            <input className="k-input" value={manual.monitorIcc} onChange={(e) => setManual({ ...manual, monitorIcc: e.target.value })} />
           </label>
-          <label>
-            自动色彩管理
-            <select value={manual.autoColour} onChange={(e) => setManual({ ...manual, autoColour: e.target.value })}>
-              <option>未填写</option>
-              <option>开启</option>
-              <option>关闭</option>
-              <option>不支持</option>
-            </select>
-          </label>
-          <label>
-            显示器 ICC（颜色管理中的默认配置文件）
-            <input value={manual.monitorIcc} onChange={(e) => setManual({ ...manual, monitorIcc: e.target.value })} />
-          </label>
-          <label>
-            备注（例如肉眼看到的差异）
-            <input value={manual.remarks} onChange={(e) => setManual({ ...manual, remarks: e.target.value })} />
+          <label className="k-field">
+            <span className="k-field-label">备注（例如肉眼看到的差异）</span>
+            <input className="k-input" value={manual.remarks} onChange={(e) => setManual({ ...manual, remarks: e.target.value })} />
           </label>
           <button type="button" onClick={() => void save()}>
             保存报告

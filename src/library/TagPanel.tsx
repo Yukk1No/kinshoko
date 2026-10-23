@@ -9,7 +9,10 @@ import type { ImageTag } from "../bindings/ImageTag";
 import type { TagRef } from "../bindings/TagRef";
 import type { VocabularyTag } from "../bindings/VocabularyTag";
 import { addTagAlias, catalogImageTags, editTags, removeTagAlias, vocabulary, workspaceEditSourceTags } from "../ipc";
-import { TagMarks, UI_LANG, tagName, useCandidates } from "../search/SearchBox";
+import { TagMarks, UI_LANG, tagName, useCandidateState } from "../search/SearchBox";
+import { tagOption } from "../search/tagOptions";
+import { Combobox, type ComboboxOption } from "../ui/Combobox";
+import { Select } from "../ui/Select";
 import { TagChip } from "../tags/TagChip";
 import { UntranslatedRename } from "../tags/UntranslatedRename";
 import { tagStanding } from "../tags/tagConfidence";
@@ -72,7 +75,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   const [text, setText] = useState("");
   const [refresh, setRefresh] = useState(0);
   const display = useTagDisplay();
-  const candidates = useCandidates({ libraryId, safe, generation, sourceTarget }, text);
+  const { list: candidates, ready } = useCandidateState({ libraryId, safe, generation, sourceTarget }, text);
   const identityKey = JSON.stringify([libraryId, ids, safe, generation, sourceTarget]);
   const currentKey = useRef(identityKey);
   currentKey.current = identityKey;
@@ -127,6 +130,13 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   };
 
   const hasText = !!text.trim();
+  // 添加标签的候选：已经有的标签不列；最后是新建项，输入的正是某个标签的名称或别名时不给。
+  const query = text.trim();
+  const has = new Set(single ? tags?.tags.map((entry) => entry.tag.id) : []);
+  const found = candidates.filter((c) => !has.has(c.tag.id));
+  const exact = candidates.some((c) => c.tag.namespace === namespace && (c.tag.name === query || c.via === query));
+  const addOptions: (ComboboxOption & { tag: TagLabel | null })[] = found.map((c) => tagOption(c, query));
+  if (query && ready && !exact) addOptions.push({ id: "create", create: true, tag: null, label: `新建标签“${query}”` });
   const lowOutline = display.lowOutline ? "" : undefined;
   const chip = ({ tag, origins }: ImageTag, meter: boolean) => {
     const manual = origins.some((o) => o.kind === "manual");
@@ -191,39 +201,22 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
         </>
       )}
       <div className="tag-add k-tag-add">
-        <div className="k-tag-field">
-          <select className="k-tag-kind" aria-label="命名空间" title="标签类别" value={namespace}
-            onChange={(e) => setNamespace(e.target.value as TagNamespace)}>
-            {NAMESPACES.map((n) => (
-              <option key={n.value} value={n.value}>
-                {n.label}
-              </option>
-            ))}
-          </select>
-          <input
-            role="combobox"
-            aria-label="标签名"
-            aria-expanded={candidates.length > 0}
-            placeholder="加标签…"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") decide("add");
-              if (e.key === "Escape") setText("");
-            }}
-          />
-        </div>
-        {candidates.length > 0 && (
-          <ul role="listbox" className="search-popover-list" aria-label="库内标签">
-            {candidates.map((c) => (
-              <li key={c.tag.id} role="option" aria-selected={false} onClick={() => decide("add", byId(c.tag))}>
-                <span>{tagName(c.tag)}</span>
-                <TagMarks tag={c.tag} />
-                {c.via && <span className="search-candidate-via">又名：{c.via}</span>}
-              </li>
-            ))}
-          </ul>
-        )}
+        <Combobox
+          className="k-tag-field"
+          label="标签名"
+          placeholder="加标签…"
+          value={text}
+          leading={<Select className="k-tag-kind" label="命名空间" title="标签类别" value={namespace} options={NAMESPACES} onChange={setNamespace} />}
+          options={addOptions}
+          empty={query && ready && found.length === 0 ? "没有匹配的标签" : undefined}
+          onValueChange={setText}
+          onSelect={(option) => decide("add", option.tag ? byId(option.tag) : typed())}
+          onKeyDown={(e) => {
+            // 候选还没到时，回车照样按输入的名称添加。
+            if (e.key === "Enter" && !ready) { e.preventDefault(); decide("add"); }
+            if (e.key === "Escape") setText("");
+          }}
+        />
         {ids.length > 1 && <p className="selection-hint insp-hint">对已选的 {ids.length} 张一起记下</p>}
         {hasText && <div className="selection-actions k-tag-add-acts">
           <button type="button" className="k-btn is-sm is-primary" aria-label="添加标签" onClick={() => decide("add")}>添加</button>

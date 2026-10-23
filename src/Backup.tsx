@@ -21,6 +21,7 @@ import {
 } from "./ipc";
 import { Archive, CircleCheck, HardDrive, Library, RotateCcw } from "lucide-react";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
+import { Select } from "./ui/Select";
 
 /** 本地日期时间，按记录时的时区偏移，例如“2026-10-05 08:00”。 */
 export function stampText(s: Stamp): string {
@@ -158,11 +159,9 @@ export function BackupSettings() {
             </div>}
             {preview !== null && <PreviewView preview={preview} />}
           </>}>
-          <select className="k-select" aria-label="备份范围" value={narrowed === null ? "all" : "libraries"}
-            onChange={(e) => select(e.target.value === "all" ? { kind: "all" } : { kind: "libraries", ids: [], includeLinked: true })}>
-            <option value="all">全部图库</option>
-            <option value="libraries">所选图库</option>
-          </select>
+          <Select label="备份范围" value={narrowed === null ? "all" : "libraries"}
+            onChange={(value) => select(value === "all" ? { kind: "all" } : { kind: "libraries", ids: [], includeLinked: true })}
+            options={[{ value: "all", label: "全部图库" }, { value: "libraries", label: "所选图库" }]} />
         </SettingsRow>
         <RestoreView onError={setError} />
       </SettingsGroup>

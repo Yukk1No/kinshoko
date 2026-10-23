@@ -217,13 +217,13 @@ describe("安全模式", () => {
       const input = await box();
       fireEvent.focus(input);
       fireEvent.change(input, { target: { value: "只在成人" } });
-      expect(await screen.findByText("只在成人图出现的标签")).toBeTruthy();
+      expect(await screen.findByRole("option", { name: /只在成人图出现的标签/ })).toBeTruthy();
 
       if (entry === "封印书") fireEvent.click(await book());
       else fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
       // 不等后端确认，也不用再打字。
-      expect(screen.queryByText("只在成人图出现的标签")).toBeNull();
-      expect(document.querySelector(".search-candidate-count")).toBeNull();
+      expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
+      expect(document.querySelector(".k-option .k-item-meta")).toBeNull();
 
       await changed(true);
       fireEvent.blur(input);
@@ -231,7 +231,7 @@ describe("安全模式", () => {
       await waitFor(() =>
         expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ text: "只在成人", safeMode: true }),
       );
-      expect(screen.queryByText("只在成人图出现的标签")).toBeNull();
+      expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
       expect(screen.queryByRole("alert")).toBeNull();
     });
 
@@ -256,7 +256,7 @@ describe("安全模式", () => {
         finish([adult]);
         await late;
       });
-      expect(screen.queryByText("只在成人图出现的标签")).toBeNull();
+      expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
     });
 
     it("关闭后候选按新视角重新取得，再开启时又立即清掉", async () => {
@@ -267,14 +267,14 @@ describe("安全模式", () => {
       fireEvent.focus(input);
       fireEvent.change(input, { target: { value: "只在成人" } });
       await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(1));
-      expect(screen.queryByText("只在成人图出现的标签")).toBeNull();
+      expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
 
       fireEvent.click(await book());
       await changed(false);
-      expect(await screen.findByText("只在成人图出现的标签")).toBeTruthy();
+      expect(await screen.findByRole("option", { name: /只在成人图出现的标签/ })).toBeTruthy();
 
       fireEvent.keyDown(window, { key: "S", ctrlKey: true, shiftKey: true });
-      expect(screen.queryByText("只在成人图出现的标签")).toBeNull();
+      expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
     });
 
     it("词表变化后重新取得候选", async () => {
@@ -288,11 +288,11 @@ describe("安全模式", () => {
       const input = await box();
       fireEvent.focus(input);
       fireEvent.change(input, { target: { value: "名" } });
-      expect(await screen.findByText("旧名")).toBeTruthy();
+      expect(await screen.findByRole("option", { name: /旧名/ })).toBeTruthy();
       names = ["新名"];
       await push({ kind: "vocabularyChanged", libraryId: "L1", revision: 9 });
-      expect(await screen.findByText("新名")).toBeTruthy();
-      expect(screen.queryByText("旧名")).toBeNull();
+      expect(await screen.findByRole("option", { name: /新名/ })).toBeTruthy();
+      expect(screen.queryByRole("option", { name: /旧名/ })).toBeNull();
     });
 
     it("“加相近标签”的候选同样随视角作废，迟到的响应不写回", async () => {
@@ -318,7 +318,7 @@ describe("安全模式", () => {
       const dialog = screen.getByRole("dialog", { name: "加相近标签" });
       const pick = within(dialog).getByRole("combobox", { name: "挑一个库内标签" });
       fireEvent.change(pick, { target: { value: "只在成人" } });
-      expect(await within(dialog).findByText("只在成人图出现的标签")).toBeTruthy();
+      expect(await screen.findByRole("option", { name: /只在成人图出现的标签/ })).toBeTruthy();
 
       fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
       expect(screen.queryByRole("dialog", { name: "加相近标签" })).toBeNull();
@@ -327,7 +327,7 @@ describe("安全模式", () => {
       const safeDialog = screen.getByRole("dialog", { name: "加相近标签" });
       fireEvent.change(within(safeDialog).getByRole("combobox"), { target: { value: "只在成人" } });
       await waitFor(() => expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ text: "只在成人", safeMode: true }));
-      expect(within(safeDialog).queryByText("只在成人图出现的标签")).toBeNull();
+      expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
 
       // An unsafe request may finish after its dialog and lens have been revoked.
       holding = true;
@@ -340,7 +340,7 @@ describe("安全模式", () => {
       await changed(true);
       await act(async () => { finish([adult]); await late; });
       expect(screen.queryByRole("dialog", { name: "加相近标签" })).toBeNull();
-      expect(screen.queryByText("只在成人图出现的标签")).toBeNull();
+      expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
     });
 
     it("条件解析带上当前视角，视角刚切换的拒绝不当作错误显示", async () => {

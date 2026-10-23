@@ -4,6 +4,7 @@ import type { MappedExternal } from "../bindings/MappedExternal";
 import type { UnmatchedEagleTag } from "../bindings/UnmatchedEagleTag";
 import { eagleTagMapping, externalSuggestions, mapTagExternal } from "../ipc";
 import { TagMarks, tagName, UI_LANG } from "../search/SearchBox";
+import { Combobox, Highlight } from "../ui/Combobox";
 
 const SUGGESTIONS = 8;
 
@@ -13,6 +14,10 @@ type Props = {
 };
 
 type Done = { name: string; mapped: MappedExternal };
+
+/** 外部名称的候选：匹配的字标出来。 */
+export const externalOptions = (names: string[], query: string) =>
+  names.map((external) => ({ id: external, label: <Highlight text={external} query={query} /> }));
 
 /** 一个没对上的标签：输入外部名称补上对应，或跳过。 */
 function UnmatchedRow({
@@ -32,7 +37,6 @@ function UnmatchedRow({
   const [draft, setDraft] = useState(item.candidates[0] ?? "");
   const [suggestions, setSuggestions] = useState<string[]>(item.candidates);
   const [busy, setBusy] = useState(false);
-  const listId = `external-${item.tag.id}`;
 
   const change = (text: string) => {
     setDraft(text);
@@ -45,11 +49,11 @@ function UnmatchedRow({
       () => {},
     );
   };
-  const submit = async () => {
-    if (!draft.trim()) return;
+  const submit = async (external = draft.trim()) => {
+    if (!external) return;
     setBusy(true);
     try {
-      onMapped(await mapTagExternal(libraryId, item.tag.id, draft.trim()));
+      onMapped(await mapTagExternal(libraryId, item.tag.id, external));
     } catch (error) {
       onError(`无法给 ${name} 补上外部对应：${String(error)}`);
       setBusy(false);
@@ -63,20 +67,17 @@ function UnmatchedRow({
         <span>{item.count} 张</span>
       </span>
       {item.candidates.length > 1 && <span className="import-report-reason">对上了多个外部名称，请选一个</span>}
-      <input
-        list={listId}
-        aria-label={`${name} 的外部对应`}
+      <Combobox
+        label={`${name} 的外部对应`}
         placeholder="外部名称，如 blue_eyes"
         value={draft}
         disabled={busy}
-        onChange={(e) => change(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && void submit()}
+        autoHighlight={false}
+        options={externalOptions(suggestions, draft)}
+        onValueChange={change}
+        onSelect={(option) => { setDraft(option.id); void submit(option.id); }}
+        onKeyDown={(e) => { if (e.key === "Enter") void submit(); }}
       />
-      <datalist id={listId}>
-        {suggestions.map((s) => (
-          <option key={s} value={s} />
-        ))}
-      </datalist>
       <button type="button" aria-label={`补上 ${name} 的外部对应`} disabled={busy || !draft.trim()} onClick={() => void submit()}>
         补上
       </button>

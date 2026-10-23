@@ -7,6 +7,7 @@ import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
 import { importModelPackage, pickModelPackage, taggingCancelDownload, taggingDownload, taggingModels, taggingPause, taggingResume, taggingSetDevice } from "./ipc";
 import { useTaggingStatus } from "./useTaggingStatus";
+import { Select } from "./ui/Select";
 
 const gb = (bytes: number) => `${(bytes / 1_000_000_000).toFixed(1)} GB`;
 const mb = (bytes: number) => `${Math.round(bytes / 1_000_000)} MB`;
@@ -93,11 +94,9 @@ export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string |
         <span className="k-set-muted">{choice.model}</span>
       </SettingsRow>
       <SettingsRow label="硬件加速" icon={<Cpu size={16} />} title="硬件加速" meta={selected ? describe(selected) : automatic(status)}>
-        <select className="k-select" aria-label="硬件加速" value={choice.selected ?? "auto"}
-          onChange={(e) => void run(() => taggingSetDevice(e.target.value === "auto" ? null : e.target.value as Device), null)}>
-          <option value="auto">自动</option>
-          {choice.options.map((o) => <option key={o.device} value={o.device}>{describe(o)}</option>)}
-        </select>
+        <Select label="硬件加速" value={choice.selected ?? "auto"}
+          onChange={(value) => void run(() => taggingSetDevice(value === "auto" ? null : value as Device), null)}
+          options={[{ value: "auto", label: "自动" }, ...choice.options.map((o) => ({ value: o.device, label: describe(o) }))]} />
       </SettingsRow>
       <SettingsRow label="模型包" icon={<PackageOpen size={16} />} title="模型包" hint="没网时从文件导入" meta={busy ? "正在导入并校验…" : message ?? undefined}
         below={error !== null && <p className="k-set-error" role="alert">{error}</p>}>

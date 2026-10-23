@@ -37,6 +37,7 @@ import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { Switch } from "./ui/Switch";
 import { SealLock } from "./ui/SealLock";
 import { UI_SCALE_LEVELS } from "./shell/uiScale";
+import { Select } from "./ui/Select";
 
 const ACTION_LABELS: Record<ShortcutAction, string> = {
   capture: "截图",
@@ -209,9 +210,8 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
                 <Switch label="开机启动" checked={view.autostart} onCheckedChange={(on) => void apply(setAutostart(on))} />
               </SettingsRow>
               {uiScale !== undefined && onUiScale && <SettingsRow icon={<Scaling size={16} />} title="界面缩放" hint="只放大主窗口，钉图和截图不变">
-                <select className="k-select" aria-label="界面缩放" value={uiScale} onChange={(e) => onUiScale(Number(e.target.value))}>
-                  {UI_SCALE_LEVELS.map((percent) => <option key={percent} value={percent}>{percent}%</option>)}
-                </select>
+                <Select label="界面缩放" value={String(uiScale)} onChange={(value) => onUiScale(Number(value))}
+                  options={UI_SCALE_LEVELS.map((percent) => ({ value: String(percent), label: `${percent}%` }))} />
               </SettingsRow>}
             </SettingsGroup>
             <SettingsGroup label="桌面钉图">

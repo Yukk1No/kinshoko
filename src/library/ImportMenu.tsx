@@ -6,6 +6,7 @@ import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { dismissImport, importTasks, isCursorExpired, onSafeModeSetting, onWorkspaceChanged, stageClipboardImport } from "../ipc";
 import { destinationAvailable, folderChoices, SaveDestinationPicker, useSaveDestination } from "./SaveDestination";
+import { Select } from "../ui/Select";
 
 const POLL_MIN=400,POLL_MAX=3200;
 
@@ -92,8 +93,8 @@ export function ImportMenu({control,...p}:ComponentProps<typeof ImportBar>&{scop
   {task?.report&&task.finishing&&<p className="k-task-sub" role="status">已导入，正在把标签定义存进图库…</p>}
   {task?.warnings.map((warning,index)=><p className="k-task-sub is-warn" role="alert" key={index}>{warning}</p>)}
  </>;
- const switcher=tasks.length>1?<label className="k-task-switch">导入任务<select className="k-select" aria-label="导入任务" value={task?.taskId??""} onChange={e=>setSelectedTask(e.target.value)}>
-  {tasks.map(t=><option key={t.taskId} value={t.taskId}>{t.libraryName} / {t.folderName}（{t.report?"已结束":"进行中"}）</option>)}</select></label>:null;
+ const switcher=tasks.length>1?<div className="k-task-switch">导入任务<Select label="导入任务" value={task?.taskId??""} onChange={setSelectedTask}
+  options={tasks.map(t=>({value:t.taskId,label:`${t.libraryName} / ${t.folderName}（${t.report?"已结束":"进行中"}）`}))}/></div>:null;
  return <div className="import-menu">
   <ImportButton busy={busy.busy||active} eagleBusy={busy.eagle} onFiles={via("files")} onFolder={via("folder")} onEagle={eagle}
    onShowTasks={tasks.length>0||active||finished?()=>actions.current?.showTasks():undefined}/>

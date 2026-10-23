@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { mockIPC } from "@tauri-apps/api/mocks";
 import { SettingsPanel } from "./SettingsPanel";
 import { backend, defaults, resetSettingsTest, tab } from "./SettingsPanel.fixtures";
+import { chooseValue, optionNames } from "./test/select";
 
 afterEach(resetSettingsTest);
 
@@ -164,14 +165,14 @@ describe("设置：界面缩放", () => {
     const chosen: number[] = [];
     const { rerender } = render(<SettingsPanel uiScale={100} onUiScale={(percent) => chosen.push(percent)} />);
 
-    const select = await screen.findByRole("combobox", { name: "界面缩放" }) as HTMLSelectElement;
-    expect([...select.options].map((option) => option.textContent)).toEqual(["80%", "90%", "100%", "110%", "125%", "150%", "175%", "200%"]);
-    expect(select.value).toBe("100");
-    fireEvent.change(select, { target: { value: "150" } });
+    const select = await screen.findByRole("combobox", { name: "界面缩放" });
+    expect(await optionNames(select)).toEqual(["80%", "90%", "100%", "110%", "125%", "150%", "175%", "200%"]);
+    expect(select.dataset.value).toBe("100");
+    await chooseValue(select, "150");
     expect(chosen).toEqual([150]);
 
     rerender(<SettingsPanel uiScale={150} onUiScale={(percent) => chosen.push(percent)} />);
-    expect((screen.getByRole("combobox", { name: "界面缩放" }) as HTMLSelectElement).value).toBe("150");
+    expect(screen.getByRole("combobox", { name: "界面缩放" }).dataset.value).toBe("150");
   });
 
   it("快捷键分页列出放大、缩小、复位三个固定按键，不能更换", async () => {

@@ -11,10 +11,6 @@
   max-width: 520px;
   margin: 12px 0;
 }
-.gate-manual label {
-  display: grid;
-  gap: 4px;
-}
 .gate-table {
   border-collapse: collapse;
 }
@@ -86,8 +82,6 @@
   align-items: center;
 }
 
-.tag-add input,
-.tag-add select,
 .tag-alias-editor input,
 .sidebar-new-group select,
 .sidebar-pick-tag input {
@@ -95,13 +89,6 @@
   min-width: 0;
 }
 
-.tag-add input {
-  flex: 1;
-}
-
-.tag-add .search-popover-list {
-  width: 100%;
-}
 
 .tag-alias-editor {
   display: flex;

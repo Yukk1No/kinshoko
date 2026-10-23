@@ -8,6 +8,9 @@ import { editTagName, externalSuggestions, inspectTagCatalog, mapTagExternal, on
 import { SettingsRow, StatusPill } from "../ui/SettingsList";
 import { currentName } from "../tags/catalogName";
 import { SOURCE_LANGUAGES } from "../tags/languages";
+import { Select } from "../ui/Select";
+import { Combobox } from "../ui/Combobox";
+import { externalOptions } from "./EagleTagStep";
 
 const LIMIT = 80;
 const NAMESPACES: Record<string, string> = { general: "", artist: "作者", character: "角色", work: "作品" };
@@ -62,7 +65,7 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
         <input aria-label="查找要改名称的标签" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="搜标签名或别名" /></label>
       <label className="k-check"><input type="checkbox" checked={preferencesOnly} onChange={(event) => setPreferencesOnly(event.target.checked)} />只看改过名的</label>
       <label className="k-check"><input type="checkbox" checked={unmappedOnly} onChange={(event) => setUnmappedOnly(event.target.checked)} />只看没有外部对应的</label>
-      <label className="k-lang" title="名称语言">语言<input aria-label="名称语言" value={lang} onChange={(event) => setLang(event.target.value)} placeholder="zh-CN" /></label>
+      <label className="k-lang" title="名称语言">语言<input className="k-input" aria-label="名称语言" value={lang} onChange={(event) => setLang(event.target.value)} placeholder="zh-CN" /></label>
     </div>
     {busy && !workspace && <p className="k-set-note" role="status">正在读取标签…</p>}
     {error && <p className="k-set-error" role="alert">{error}</p>}
@@ -112,13 +115,12 @@ function NameRow({ tag, lang, busy, pending, mappings, libraryName, open, onTogg
       {mappings.some((mapping) => mapping.sourceNames?.length) && <ul className="k-list" aria-label="来源名称">
         {mappings.flatMap((mapping) => (mapping.sourceNames ?? []).map((source) => <li key={`${mapping.libraryId}/${mapping.localTagId}/${source.name}`} className="k-set-inline">
           <span className="k-parts"><span>{source.name}</span><span className="k-set-note">来自{libraryName(mapping.libraryId)}</span></span>
-          <select className="k-input" aria-label={`“${source.name}”的语言`} value={source.lang} disabled={busy}
-            onChange={(event) => { const next = event.target.value; onLocal(() => setSourceNameLang(mapping.libraryId, mapping.localTagId, source.name, next)); }}>
-            {[...SOURCE_LANGUAGES, ...(SOURCE_LANGUAGES.some(([code]) => code === source.lang) ? [] : [[source.lang, source.lang]])].map(([code, label]) => <option key={code} value={code}>{label}</option>)}
-          </select>
+          <Select label={`“${source.name}”的语言`} value={source.lang} disabled={busy}
+            onChange={(next) => onLocal(() => setSourceNameLang(mapping.libraryId, mapping.localTagId, source.name, next))}
+            options={[...SOURCE_LANGUAGES, ...(SOURCE_LANGUAGES.some(([code]) => code === source.lang) ? [] : [[source.lang, source.lang]])].map(([code, label]) => ({ value: code, label }))} />
         </li>))}
       </ul>}
-      {tag.external.length === 0 && mappings.length > 0 && <MapExternal id={tag.id} name={name} busy={busy}
+      {tag.external.length === 0 && mappings.length > 0 && <MapExternal name={name} busy={busy}
         onMap={(external) => onLocal(async () => { for (const mapping of mappings) await mapTagExternal(mapping.libraryId, mapping.localTagId, external); })} />}
       <details className="k-more"><summary>详情</summary><p className="k-parts"><span>{NAMESPACES[tag.namespace] || "一般"}</span><span>编号 {tag.id}</span></p><p>外部对应：{tag.external.map((entry) => `${entry.vocabulary}:${entry.name}`).join("、") || "无"}</p></details>
     </div>}>
@@ -128,18 +130,16 @@ function NameRow({ tag, lang, busy, pending, mappings, libraryName, open, onTogg
 }
 
 /** 没有外部对应的标签：输入外部名称补上，与迁入向导的补对应相同。 */
-function MapExternal({ id, name, busy, onMap }: { id: string; name: string; busy: boolean; onMap: (external: string) => void }) {
+function MapExternal({ name, busy, onMap }: { name: string; busy: boolean; onMap: (external: string) => void }) {
   const [draft, setDraft] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const listId = `external-${id}`;
   const change = (text: string) => {
     setDraft(text);
     if (text.trim()) externalSuggestions(text, 8).then((found) => setSuggestions(found ?? []), () => {});
   };
   return <div className="k-set-inline">
-    <input className="k-input" list={listId} aria-label={`“${name}”的外部对应`} placeholder="外部名称，如 blue_eyes" value={draft} disabled={busy}
-      onChange={(event) => change(event.target.value)} />
-    <datalist id={listId}>{suggestions.map((entry) => <option key={entry} value={entry} />)}</datalist>
+    <Combobox label={`“${name}”的外部对应`} placeholder="外部名称，如 blue_eyes" value={draft} disabled={busy} autoHighlight={false}
+      options={externalOptions(draft.trim() ? suggestions : [], draft)} onValueChange={change} onSelect={(option) => setDraft(option.id)} />
     <button type="button" className="k-btn is-sm" disabled={busy || !draft.trim()} onClick={() => { onMap(draft.trim()); setDraft(""); }}>补上外部对应</button>
   </div>;
 }

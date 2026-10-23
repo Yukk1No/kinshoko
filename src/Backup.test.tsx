@@ -6,6 +6,7 @@ import type { BackupStatus } from "./bindings/BackupStatus";
 import type { RestoreReport } from "./bindings/RestoreReport";
 import type { SnapshotSummary } from "./bindings/SnapshotSummary";
 import { BackupReminder, BackupSettings } from "./Backup";
+import { chooseOption } from "./test/select";
 
 afterEach(() => {
   cleanup();
@@ -86,7 +87,7 @@ describe("设置：备份", () => {
     });
     render(<BackupSettings />);
 
-    fireEvent.change(await screen.findByRole("combobox", { name: "备份范围" }), { target: { value: "libraries" } });
+    await chooseOption(await screen.findByRole("combobox", { name: "备份范围" }), "所选图库");
     const main = await screen.findByRole("checkbox", { name: "主库" });
     fireEvent.click(main);
     await waitFor(() => expect((main as HTMLInputElement).checked).toBe(true));

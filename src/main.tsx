@@ -11,6 +11,7 @@ import { blockBrowserMenu } from "./ui/browserMenu";
 import "./styles.css";
 import "./desktop/pin-edge.css";
 import "./ui/ui.css";
+import "./ui/fields.css";
 import "./shell/main-window.css";
 import "./shell/main-window-panels.css";
 // 设置早于 dialogs.css：后者减弱动效的规则要盖过设置页签的过渡。
