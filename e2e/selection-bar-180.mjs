@@ -132,7 +132,7 @@ try {
   await session.shot("2-multi-wide.png");
   results.wide = await layout();
   // Folder menu opens upward from the dock.
-  await session.click("//*[@role='toolbar' and @aria-label='已选参考图操作']//button[@aria-label='放入文件夹']"); await settle();
+  await session.click("//*[@role='toolbar' and @aria-label='已选参考图操作']//button[@aria-label='移到文件夹']"); await settle();
   await session.shot("3-multi-folder-menu.png");
   await session.exec("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.activeElement?.blur(); return true;");
   await settle();

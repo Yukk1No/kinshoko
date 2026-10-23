@@ -15,7 +15,7 @@ mkdirSync(work, { recursive: true });
 const libraries = join(work, "libraries");
 mkdirSync(libraries);
 const imagePath = join(work, "image.png");
-writeTestPng(imagePath);
+const { width, height } = writeTestPng(imagePath);
 const port = 4586;
 const driverUrl = `http://127.0.0.1:${port}`;
 const { wd, delay, until, assertions, assert, Session } = driverClient({ driverUrl, application, work });

@@ -128,12 +128,12 @@ export class CombinationWorkflow {
   }
   async task(id) { return (await this.d.invoke("import_tasks")).find(task => task.taskId === id); }
   finish(id, timeout = 90000) { return until("real completed import receipt " + id, async () => { const task = await this.task(id); return task?.report && !task.finishing ? task : null; }, timeout); }
-  // The recycle bin row in the sidebar foot follows the selected library (“回收站 · 名称（N 张）”, #113): select the
+  // The recycle bin row in the sidebar foot follows the selected library (“回收站（名称，N 张）”, #113): select the
   // library first, then its row opens that library's bin.
   async trash(libraryId) {
     await this.scope(libraryId);
     const name = (await this.d.invoke("registered_libraries")).find(entry => entry.library.id === libraryId)?.library.name;
-    const xpath = `//nav[@aria-label='查找范围']//div[contains(@class,'side-foot')]//button[starts-with(@aria-label,${literal("回收站 · " + name + "（")})]`;
+    const xpath = `//nav[@aria-label='查找范围']//div[contains(@class,'side-foot')]//button[starts-with(@aria-label,${literal("回收站（" + name + "，")})]`;
     await this.readyClick(xpath);
     await until("actual recycle-bin scope of " + libraryId, () => this.d.exec("const node=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return node?.getAttribute('aria-current')==='page';", [xpath]));
     return xpath;

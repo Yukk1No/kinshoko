@@ -18,6 +18,7 @@ export function writeTestPng(imagePath) {
   const pixels = Buffer.alloc(height * (1 + width * 3));
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) { const offset = y * (1 + width * 3) + 1 + x * 3; pixels[offset] = 70 + x; pixels[offset + 1] = 60 + y; pixels[offset + 2] = 140; }
   writeFileSync(imagePath, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(pixels)), chunk("IEND", Buffer.alloc(0))]));
+  return { width, height };
 }
 
 export function driverClient({ driverUrl, application, work }) {
