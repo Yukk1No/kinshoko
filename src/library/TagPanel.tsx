@@ -9,7 +9,7 @@ import type { ImageTag } from "../bindings/ImageTag";
 import type { TagRef } from "../bindings/TagRef";
 import type { VocabularyTag } from "../bindings/VocabularyTag";
 import { addTagAlias, catalogImageTags, editTags, removeTagAlias, vocabulary, workspaceEditSourceTags } from "../ipc";
-import { TagMarks, UI_LANG, tagName, useCandidateState } from "../search/SearchBox";
+import { LIMIT, TagMarks, UI_LANG, tagName, useCandidateState } from "../search/SearchBox";
 import { tagOption } from "../search/tagOptions";
 import { Combobox, type ComboboxOption } from "../ui/Combobox";
 import { Select } from "../ui/Select";
@@ -75,7 +75,6 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   const [text, setText] = useState("");
   const [refresh, setRefresh] = useState(0);
   const display = useTagDisplay();
-  const { list: candidates, ready } = useCandidateState({ libraryId, safe, generation, sourceTarget }, text);
   const identityKey = JSON.stringify([libraryId, ids, safe, generation, sourceTarget]);
   const currentKey = useRef(identityKey);
   currentKey.current = identityKey;
@@ -133,7 +132,9 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   // 添加标签的候选：已经有的标签不列；最后是新建项，输入的正是某个标签的名称或别名时不给。
   const query = text.trim();
   const has = new Set(single ? tags?.tags.map((entry) => entry.tag.id) : []);
-  const found = candidates.filter((c) => !has.has(c.tag.id));
+  // 已经有的标签之后要去掉：多取这么多个，去掉后仍能列满。
+  const { list: candidates, ready } = useCandidateState({ libraryId, safe, generation, sourceTarget }, text, undefined, LIMIT + has.size);
+  const found = candidates.filter((c) => !has.has(c.tag.id)).slice(0, LIMIT);
   const exact = candidates.some((c) => c.tag.namespace === namespace && (c.tag.name === query || c.via === query));
   const addOptions: (ComboboxOption & { tag: TagLabel | null })[] = found.map((c) => tagOption(c, query));
   if (query && ready && !exact) addOptions.push({ id: "create", create: true, tag: null, label: `新建标签“${query}”` });

@@ -24,7 +24,7 @@ export { TagMarks, tagName, UNTRANSLATED_HINT } from "./tagLabel";
 
 /** 界面语言。多语言界面随后续切片加入。 */
 export const UI_LANG = "zh-CN";
-const LIMIT = 8;
+export const LIMIT = 8;
 
 /**
  * 候选的身份（#76）：资料库、浏览视角（安全模式）、词表代次与输入的文字。候选只在身份与
@@ -40,24 +40,27 @@ export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => 
   return useCandidateState(lens, text, keep).list;
 }
 
-/** 同 `useCandidates`，另外给出这段文字的候选是否已经取到（`ready`），没取到时不说“没有匹配”。 */
-export function useCandidateState(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true): { list: Candidate[]; ready: boolean } {
+/**
+ * 同 `useCandidates`，另外给出这段文字的候选是否已经取到（`ready`），没取到时不说“没有匹配”。
+ * `limit`：最多取几个；调用方之后还要去掉一些（例如已经有的标签）时多取几个补上。
+ */
+export function useCandidateState(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true, limit = LIMIT): { list: Candidate[]; ready: boolean } {
   const [found, setFound] = useState<Found>({ key: "", list: [] });
-  const key = lensKey(lens, text);
+  const key = lensKey(lens, text) + `#${limit}`;
   const { libraryId, safe } = lens;
   const keepRef = useRef(keep);
   keepRef.current = keep;
   useEffect(() => {
     let alive = true;
     if (!text.trim()) return;
-    (lens.sourceTarget ? workspaceSourceCandidates(lens.sourceTarget, text, UI_LANG, safe) : lens.workspace ? workspaceCandidates(text, UI_LANG, LIMIT, safe) : searchCandidates(libraryId, text, UI_LANG, LIMIT, safe)).then(
+    (lens.sourceTarget ? workspaceSourceCandidates(lens.sourceTarget, text, UI_LANG, safe) : lens.workspace ? workspaceCandidates(text, UI_LANG, limit, safe) : searchCandidates(libraryId, text, UI_LANG, limit, safe)).then(
       (list) => alive && setFound({ key, list: list.filter((c) => keepRef.current(c)) }),
       () => alive && setFound({ key, list: [] }),
     );
     return () => {
       alive = false;
     };
-  }, [key, libraryId, safe, text]);
+  }, [key, libraryId, safe, text, limit]);
   const ready = found.key === key && !!text.trim();
   return { list: ready ? found.list : [], ready };
 }

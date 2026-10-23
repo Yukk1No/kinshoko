@@ -151,6 +151,17 @@ describe("Combobox", () => {
     expect(within(list).queryByRole("option", { name: /猫耳/ })).toBeNull();
   });
 
+  it("输入法选字时的方向键和回车不动候选", async () => {
+    render(<TagAdder />);
+    await typeAndOpen("猫");
+    key("ArrowDown", { isComposing: true });
+    expect(highlighted()?.textContent).toContain("猫耳");
+    key("Enter", { isComposing: true });
+    key("Enter", { keyCode: 229 });
+    expect(picked()).toBe("");
+    expect(screen.getByRole("listbox")).toBeTruthy();
+  });
+
   it("在空框里退格回调，有字时不回调", async () => {
     let backs = 0;
     render(<TagAdder onBackspace={() => backs++} />);

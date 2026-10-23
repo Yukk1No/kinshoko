@@ -103,6 +103,8 @@ export function Combobox<T extends ComboboxOption>({
   };
 
   const keyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    // 输入法选字时的方向键和回车属于输入法，不动候选。
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
     onKeyDown?.(event);
     if (event.defaultPrevented) return;
     const n = options.length;
