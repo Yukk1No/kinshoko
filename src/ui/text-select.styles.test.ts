@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import css from "./text-select.css?raw";
-import appCss from "../styles.css?raw";
+import { appCss } from "../test/appCss";
 
 // 主界面默认不能拖选文字（#224）：误拖出的选区没有用处，只有要复制的内容才放开。
 // jsdom 不做层叠，这里按样式表锁住声明。

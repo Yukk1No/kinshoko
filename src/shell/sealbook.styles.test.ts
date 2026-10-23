@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import css from "../styles.css?raw";
+import { appCss as css } from "../test/appCss";
 
 // 封印书是品牌不变项：样式须与原型 bd8aea44:prototype/reference-browser/src/styles.css 一字不差。
 // 旧版图标留下的 `.seal-book svg { stroke: currentColor }` 曾让书和锁都描上一圈墨色。

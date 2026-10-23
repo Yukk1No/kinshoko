@@ -73,7 +73,7 @@ describe("截图框选（#98 dock）", () => {
     expect(within(dock).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["复制，Ctrl C", "钉住，Enter", "取消，Esc"]);
     expect(within(dock).getByRole("button", { name: /^钉住/ }).className).toContain("is-primary");
     expect(within(dock).getByRole("button", { name: /^取消/ }).className).toContain("is-danger");
-    expect(root.querySelectorAll(".capture-handle")).toHaveLength(4);
+    expect(root.querySelectorAll(".capture-handle")).toHaveLength(8);
   });
 
   it("拖到显示器右下角时选区补到边缘：框选窗口让出了最下面一行，那一行照样能截到（#230）", async () => {
@@ -99,7 +99,7 @@ describe("截图框选（#98 dock）", () => {
     expect(sent("finish_capture")).toEqual([{ region, action, token: "tok" }, { region, action, token: "tok" }]);
   });
 
-  it("取消、Esc、右键都只取消；在 dock 上按下不会开始新选区", async () => {
+  it("取消与 Esc 只取消；在 dock 上按下不会开始新选区", async () => {
     const { root } = await open();
     select(root, [100, 80], [200, 160]);
     const cancel = screen.getByRole("button", { name: /^取消/ });
@@ -108,9 +108,81 @@ describe("截图框选（#98 dock）", () => {
     expect(within(screen.getByRole("toolbar", { name: "截图" })).getByText("125 × 100")).toBeTruthy();
     fireEvent.click(cancel);
     fireEvent.keyDown(window, { key: "Escape" });
-    fireEvent.pointerDown(root, { pointerId: 3, button: 2, clientX: 10, clientY: 10 });
-    expect(sent("cancel_capture")).toEqual([{ token: "tok" }, { token: "tok" }, { token: "tok" }]);
+    expect(sent("cancel_capture")).toEqual([{ token: "tok" }, { token: "tok" }]);
     expect(sent("finish_capture")).toEqual([]);
+  });
+
+  it("有选区时右键先清掉选区，没有选区时右键取消", async () => {
+    const { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    fireEvent.pointerDown(root, { pointerId: 3, button: 2, clientX: 150, clientY: 120 });
+    expect(root.querySelector(".capture-selection")).toBeNull();
+    expect(screen.queryByRole("toolbar")).toBeNull();
+    expect(screen.getByText("拖动框选 · 右键取消")).toBeTruthy();
+    expect(sent("cancel_capture")).toEqual([]);
+    fireEvent.pointerDown(root, { pointerId: 4, button: 2, clientX: 150, clientY: 120 });
+    expect(sent("cancel_capture")).toEqual([{ token: "tok" }]);
+  });
+});
+
+describe("调整已有选区（与常见截图工具相同）", () => {
+  const dock = () => within(screen.getByRole("toolbar", { name: "截图" }));
+
+  it("按住选区内部拖动是移动，大小不变", async () => {
+    const { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    select(root, [150, 120], [190, 100]);
+    expect(dock().getByText("125 × 100")).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Enter" });
+    expect(sent("finish_capture")).toEqual([{ region: { x: 175, y: 75, width: 125, height: 100 }, action: "pin", token: "tok" }]);
+  });
+
+  it("移动时整个选区夹在显示器里", async () => {
+    const { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    select(root, [150, 120], [-500, -500]);
+    fireEvent.keyDown(window, { key: "Enter" });
+    expect(sent("finish_capture")).toEqual([{ region: { x: 0, y: 0, width: 125, height: 100 }, action: "pin", token: "tok" }]);
+  });
+
+  it("按住右下角拖动调整大小，左上角不动；按住左边只动左边", async () => {
+    const { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    select(root, [201, 161], [241, 201]);
+    expect(dock().getByText("175 × 150")).toBeTruthy();
+    select(root, [99, 150], [119, 10]);
+    fireEvent.keyDown(window, { key: "Enter" });
+    expect(sent("finish_capture")).toEqual([{ region: { x: 150, y: 100, width: 150, height: 150 }, action: "pin", token: "tok" }]);
+  });
+
+  it("在选区外拖动重新框选", async () => {
+    const { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    select(root, [400, 400], [480, 440]);
+    expect(dock().getByText("100 × 50")).toBeTruthy();
+  });
+
+  it("光标随指针位置变化：内部是移动，边角是对应方向的缩放，外面仍是十字", async () => {
+    const { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    const hoverAt = (clientX: number, clientY: number) => {
+      fireEvent.pointerMove(root, { pointerId: 5, clientX, clientY });
+      return root.style.cursor;
+    };
+    expect(hoverAt(150, 120)).toBe("move");
+    expect(hoverAt(200, 160)).toBe("se-resize");
+    expect(hoverAt(150, 80)).toBe("n-resize");
+    expect(hoverAt(100, 160)).toBe("sw-resize");
+    expect(hoverAt(400, 400)).toBe("");
+  });
+
+  it("双击选区内部钉住，不改变选区", async () => {
+    const { root } = await open();
+    select(root, [100, 80], [200, 160]);
+    fireEvent.pointerDown(root, { pointerId: 6, button: 0, clientX: 150, clientY: 120 });
+    fireEvent.pointerUp(root, { pointerId: 6, clientX: 150, clientY: 120 });
+    fireEvent.doubleClick(root, { clientX: 150, clientY: 120 });
+    expect(sent("finish_capture")).toEqual([{ region: { x: 125, y: 100, width: 125, height: 100 }, action: "pin", token: "tok" }]);
   });
 
   it("聚焦在 dock 按钮上按 Enter 只执行那个按钮", async () => {
