@@ -1,0 +1,58 @@
+name: close-issues
+
+# PR 合进 integration/** 后关闭正文里 Closes/Fixes/Resolves #N 指向的 issue。
+# GitHub 只在 PR 合进默认分支（main）时自动关 issue，v1 发布前主干是 integration/v1，所以由这里补上。
+# 规则与 GitHub 一致：关键字后紧跟 #N 才算，一个关键字只认一个编号；“Partially fixes #N”与“Refs #N”不关。
+# 只读 PR 正文，不读标题和提交信息。
+
+on:
+  pull_request:
+    types: [closed]
+    branches: ["integration/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  close:
+    name: 关闭已修复的 issue
+    if: github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: 关闭 issue
+        env:
+          # grep -P 要求 UTF-8 区域设置，正文里有中文。
+          LC_ALL: C.UTF-8
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # 先去掉 HTML 注释、围栏代码块和行内代码：正文里举例写的 `Closes #N` 不算。
+          numbers=$(printf '%s\n' "$BODY" \
+            | perl -0777 -pe 's/<!--.*?-->//gs; s/^[ \t]*(`{3,}|~{3,}).*?^[ \t]*\1[^\n]*$//gms; s/`[^`\n]*`//g' \
+            | grep -oiP '(?<!partially )(?<![\w-])(close[sd]?|fix(e[sd])?|resolve[sd]?):?\s+#\K[0-9]+' \
+            | sort -un || true)
+          if [ -z "$numbers" ]; then
+            echo "PR #$PR 正文里没有 Closes/Fixes/Resolves #N。"
+            exit 0
+          fi
+          for n in $numbers; do
+            if ! state=$(gh issue view "$n" --json state -q .state 2>/dev/null); then
+              echo "::warning::#$n 不是本仓库的 issue（可能是 PR），跳过。"
+              continue
+            fi
+            if [ "$state" != OPEN ]; then
+              echo "#$n 已经是 $state，跳过。"
+              continue
+            fi
+            # 来自 fork 或 Dependabot 的 PR 拿到的是只读令牌，关不掉；提示维护者手动关。
+            if gh issue close "$n" --comment "已由 #$PR 修复，合入 \`$BASE\`。"; then
+              echo "已关闭 #$n。"
+            else
+              echo "::warning::#$n 没关掉（fork 来的 PR 只有只读令牌），请手动关闭。"
+            fi
+          done
