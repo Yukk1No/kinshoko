@@ -44,8 +44,8 @@ npm run dev             # run the app in dev mode (Vite dev server + debug build
 npm run build           # release build; the NSIS installer lands in target/release/bundle/nsis/
 npm test                # frontend tests (Vitest)
 npm run typecheck       # TypeScript type check
-npm run bindings        # run the core crate tests and regenerate src/bindings/
-cargo test -p kinshoko-core
+npm run bindings        # regenerate src/bindings/ (runs the core crate's unit tests)
+cargo nextest run -p kinshoko-core   # core crate tests; needs cargo-nextest (one process per test)
 cargo fmt --all
 cargo clippy --workspace --all-targets -- -D warnings   # run npm run vite:build first to produce dist/
 node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # needs tauri-driver and an msedgedriver matching WebView2
