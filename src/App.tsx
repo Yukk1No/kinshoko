@@ -33,7 +33,7 @@ import { initialUiScale, stepUiScale, UiScaleContext, uiScaleStepForKey } from "
 import { SettingsPanel, type SettingsTab } from "./SettingsPanel";
 import { BackupReminder } from "./Backup";
 import { Dialog } from "@base-ui/react/dialog";
-import { UpdateBanner } from "./Update";
+import { UpdateNotice } from "./Update";
 import { RuntimeNotice } from "./RuntimeSupport";
 import { INITIAL_SAFE_LENS, needsRecheck, reduceSafeLens, type SafeLensAction } from "./shell/safeLens";
 import { safeTiming } from "./shell/safeTiming";
@@ -277,7 +277,7 @@ function MainWindow() {
   const notices = <>
     <RuntimeNotice hidden={showSettings} />
     {library && <div><LegacyNameMigrationNotice libraryId={library.id} safe={lensSafe} onOpen={() => setNameWizard(true)} /></div>}
-    <UpdateBanner />
+    <UpdateNotice />
     <BackupReminder />
   </>;
   return (

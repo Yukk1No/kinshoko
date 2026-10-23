@@ -17,6 +17,8 @@ export type ToastApi = {
   show: (options: ToastOptions) => string;
   /** A real error: announced urgently, stays until 知道了 or its action is chosen. */
   error: (message: string, options?: Omit<ToastOptions, "title" | "tone">) => string;
+  /** Replaces a shown toast's content in place (e.g. progress, or a failure after an action); keeps its onClose. */
+  update: (id: string, options: Omit<ToastOptions, "onClose">) => void;
   close: (id: string) => void;
 };
 
@@ -28,13 +30,15 @@ function Bridge({ children }: { children: ReactNode }) {
   const latest = useRef(manager);
   latest.current = manager;
   const api = useMemo<ToastApi>(() => {
-    const show = ({ title, description, tone = "info", timeout, action, onClose }: ToastOptions): string => latest.current.add({
-      title, description, type: tone, onClose, timeout: timeout ?? (tone === "error" ? 0 : 5000), priority: tone === "error" ? "high" : "low",
+    const content = ({ title, description, tone = "info", timeout, action }: Omit<ToastOptions, "onClose">) => ({
+      title, description, type: tone, timeout: timeout ?? (tone === "error" ? 0 : 5000), priority: tone === "error" ? "high" as const : "low" as const,
       actionProps: action ? { children: action.label, onClick: action.onClick } : undefined,
     });
+    const show = ({ onClose, ...options }: ToastOptions): string => latest.current.add({ ...content(options), onClose });
     return {
       show,
       error: (message, options = {}) => show({ ...options, title: message, tone: "error" }),
+      update: (id, options) => latest.current.update(id, content(options)),
       close: (id) => latest.current.close(id),
     };
   }, []);
