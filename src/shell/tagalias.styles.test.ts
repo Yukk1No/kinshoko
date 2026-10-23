@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import css from "./main-window.css?raw";
+import css from "./mainWindowCss";
 
 // 别名输入框被压扁（#181）：别名编辑器是纵向 flex，通用 .k-input 带 flex: 1（基准 0%），在纵向里盖掉了 height: 32px，
 // 编辑器又是内容高度、没有空间可分，输入框只剩约 15px。jsdom 不做布局，这里锁住“编辑器里的输入框不参与纵向伸缩”。

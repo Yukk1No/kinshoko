@@ -39,7 +39,7 @@ it("点“文/A”打开改名框，保存当前界面语言的名称偏好，�
   const state = backend();
   render(<TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} />);
   const button = await screen.findByRole("button", { name: "给“ahoge”改名" });
-  expect(button.getAttribute("title")).toBe("尚未翻译 · 点击改名");
+  expect(button.getAttribute("title")).toBe("尚未翻译");
   fireEvent.click(button);
   const dialog = await screen.findByRole("dialog", { name: "给“ahoge”改名" });
   expect(dialog.textContent).toContain("词表更新不会替换这个名字，可以在设置里恢复默认");

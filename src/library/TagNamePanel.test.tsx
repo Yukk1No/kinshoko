@@ -21,8 +21,8 @@ it("loads the catalog and saves an equal-default preference explicitly, keeps al
     }
   });
   render(<TagNamePanel />);
-  const row = await screen.findByRole("listitem", { name: "分缝发型 · 默认" });
-  expect(within(row).getByText(/别名 分发/)).toBeTruthy();
+  const row = await screen.findByRole("listitem", { name: "分缝发型，默认" });
+  expect(row.getAttribute("title")).toMatch(/别名 分发/);
   fireEvent.click(within(row).getByRole("button", { name: "改名“分缝发型”" }));
   expect(within(row).getByRole("listitem").textContent).toBe("分发");
   fireEvent.click(within(row).getByRole("button", { name: "保存显示名" }));
@@ -79,7 +79,7 @@ it("marks a tag whose old library name is still pending", async () => {
   const data = { ...workspace(), catalog: { ...workspace().catalog, mappings: [{ libraryId: "a", localTagId: "x", catalogId: "shared", legacy: { id: "x", namespace: "general", names: [], aliases: [], external: [] }, nameProvenance: "pending", basis: "external" }] } };
   mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? data : undefined);
   render(<TagNamePanel />);
-  expect(await screen.findByRole("listitem", { name: "分缝发型 · 待确认" })).toBeTruthy();
+  expect(await screen.findByRole("listitem", { name: "分缝发型，待确认" })).toBeTruthy();
 });
 
 it("uses one set of words: renamed/default status and an only-renamed filter", async () => {
@@ -87,9 +87,9 @@ it("uses one set of words: renamed/default status and an only-renamed filter", a
   data.catalog.tags = [{ ...tag(), namePreferences: [{ lang: "zh-CN", name: "分缝发型" }] }, { ...tag(), id: "other", names: [{ lang: "zh-CN", name: "长发" }] }];
   mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? data : undefined);
   render(<TagNamePanel />);
-  expect(await screen.findByRole("listitem", { name: "分缝发型 · 已改名" })).toBeTruthy();
+  expect(await screen.findByRole("listitem", { name: "分缝发型，已改名" })).toBeTruthy();
   fireEvent.click(screen.getByRole("checkbox", { name: "只看改过名的" }));
-  expect(screen.queryByRole("listitem", { name: "长发 · 默认" })).toBeNull();
+  expect(screen.queryByRole("listitem", { name: "长发，默认" })).toBeNull();
 });
 
 it("opens with the requested tag first and expanded, even past the listing limit (#182)", async () => {
@@ -97,7 +97,7 @@ it("opens with the requested tag first and expanded, even past the listing limit
   data.catalog.tags = Array.from({ length: 120 }, (_, index) => ({ ...tag(), id: `shared-${index}`, names: [{ lang: "zh-CN", name: `发型 ${index}` }], aliases: [] }));
   mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? data : undefined);
   render(<TagNamePanel focus="shared-110" />);
-  const row = await screen.findByRole("listitem", { name: "发型 110 · 默认" });
+  const row = await screen.findByRole("listitem", { name: "发型 110，默认" });
   expect(within(screen.getByRole("list", { name: "标签" })).getAllByRole("listitem")[0]).toBe(row);
   expect(within(row).getByRole("button", { name: "改名“发型 110”" }).getAttribute("aria-expanded")).toBe("true");
   expect(within(row).getByRole("textbox", { name: "“发型 110”的显示名" })).toBeTruthy();

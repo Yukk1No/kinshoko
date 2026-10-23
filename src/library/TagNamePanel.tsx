@@ -94,8 +94,8 @@ function NameRow({ tag, lang, busy, pending, mappings, libraryName, open, onTogg
   const [draft, setDraft] = useState(name);
   const [alias, setAlias] = useState("");
   useEffect(() => setDraft(name), [name]);
-  const desc = [NAMESPACES[tag.namespace], preference ? `默认名 ${defaultName ?? "暂无"}` : "默认名称", aliases.length ? `别名 ${aliases.map((entry) => entry.name).join("、")}` : ""].filter(Boolean).join(" · ");
-  return <SettingsRow icon={<Tag size={15} />} title={name} desc={desc} label={`${name} · ${pending ? "待确认" : preference ? "已改名" : "默认"}`}
+  const desc = [NAMESPACES[tag.namespace], preference ? `默认名 ${defaultName ?? "暂无"}` : "默认名称", aliases.length ? `别名 ${aliases.map((entry) => entry.name).join("、")}` : ""].filter(Boolean).join("，");
+  return <SettingsRow icon={<Tag size={15} />} title={name} hint={desc} label={`${name}，${pending ? "待确认" : preference ? "已改名" : "默认"}`}
     below={open && <div className="k-name-editor" data-catalog-name-id={tag.id}>
       <div className="k-set-inline">
         <input className="k-input" aria-label={`“${name}”的显示名`} value={draft} disabled={busy} onChange={(event) => setDraft(event.target.value)} />
@@ -111,7 +111,7 @@ function NameRow({ tag, lang, busy, pending, mappings, libraryName, open, onTogg
       </div>
       {mappings.some((mapping) => mapping.sourceNames?.length) && <ul className="k-list" aria-label="来源名称">
         {mappings.flatMap((mapping) => (mapping.sourceNames ?? []).map((source) => <li key={`${mapping.libraryId}/${mapping.localTagId}/${source.name}`} className="k-set-inline">
-          <span>{source.name}<span className="k-set-note"> · 来自{libraryName(mapping.libraryId)}</span></span>
+          <span className="k-parts"><span>{source.name}</span><span className="k-set-note">来自{libraryName(mapping.libraryId)}</span></span>
           <select className="k-input" aria-label={`“${source.name}”的语言`} value={source.lang} disabled={busy}
             onChange={(event) => { const next = event.target.value; onLocal(() => setSourceNameLang(mapping.libraryId, mapping.localTagId, source.name, next)); }}>
             {[...SOURCE_LANGUAGES, ...(SOURCE_LANGUAGES.some(([code]) => code === source.lang) ? [] : [[source.lang, source.lang]])].map(([code, label]) => <option key={code} value={code}>{label}</option>)}
@@ -120,7 +120,7 @@ function NameRow({ tag, lang, busy, pending, mappings, libraryName, open, onTogg
       </ul>}
       {tag.external.length === 0 && mappings.length > 0 && <MapExternal id={tag.id} name={name} busy={busy}
         onMap={(external) => onLocal(async () => { for (const mapping of mappings) await mapTagExternal(mapping.libraryId, mapping.localTagId, external); })} />}
-      <details className="k-more"><summary>详情</summary><p>{NAMESPACES[tag.namespace] || "一般"} · 编号 {tag.id}</p><p>外部对应：{tag.external.map((entry) => `${entry.vocabulary}:${entry.name}`).join("、") || "无"}</p></details>
+      <details className="k-more"><summary>详情</summary><p className="k-parts"><span>{NAMESPACES[tag.namespace] || "一般"}</span><span>编号 {tag.id}</span></p><p>外部对应：{tag.external.map((entry) => `${entry.vocabulary}:${entry.name}`).join("、") || "无"}</p></details>
     </div>}>
     {pending ? <StatusPill tone="accent">待确认</StatusPill> : preference ? <StatusPill tone="mine">已改名</StatusPill> : <StatusPill>默认</StatusPill>}
     <button type="button" className="k-icon-btn" aria-expanded={open} aria-label={`改名“${name}”`} title="改名" onClick={onToggle}><PenLine size={14} aria-hidden="true" /></button>

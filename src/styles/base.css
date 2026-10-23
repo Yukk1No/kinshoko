@@ -30,40 +30,14 @@
   --font-ui: "Kinshoko Inter", "Kinshoko Han", "Segoe UI", "Microsoft YaHei UI", "Segoe UI Emoji", system-ui, sans-serif;
   font-family: var(--font-ui);
   font-synthesis: none;
-  font-size: 14px;
-  --bg: #f7f3ea;
-  --text: #2b2747;
-  --accent: #e0768f;
-  --accent-strong: #b5465f;
-  --line: rgb(43 39 71 / 0.14);
-  --wall: #eae9e6;
-  --card: #dcdbd7;
-  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --t-fast: 120ms;
-  --t: 200ms;
-  --t-slow: 260ms;
-  /* 封印书的锁色（#27）：日间樱色，夜间金色。 */
-  --seal: #c85672;
-  /* 遮蔽被封印的图时覆上的墨色。 */
-  --veil: #2b2747;
+  font-size: 13px;
 }
 :lang(zh), :lang(ja) { font-family: "Kinshoko Han Punct", var(--font-ui); }
 button, input, textarea, select { font: inherit; }
 b, strong, th, h1, h2, h3, h4, h5, h6 { font-weight: 600; }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1e1c2c;
-    --text: #f4ecdc;
-    --accent: #e3b34f;
-    --accent-strong: #e3b34f;
-    --line: rgb(244 236 220 / 0.14);
-    --wall: #161618;
-    --card: #232326;
-    --seal: #e3b34f;
-    --veil: #0f0e17;
-  }
-}
+/* design system v2: three sizes only, title 16 / body 13 / small 12; hierarchy comes from weight and colour */
+h1, h2, h3, h4, h5, h6 { font-size: 16px; line-height: 24px; }
+small, code, kbd, pre, samp { font-size: 12px; }
 
 html,
 body,
@@ -94,9 +68,9 @@ button:disabled {
 }
 
 button.primary {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
 }
 
 .app {

@@ -186,7 +186,6 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
                 if (e.key === "F2") { e.preventDefault(); setRenaming(node.id); }
                 else if (isMenuKey(e)) { e.preventDefault(); openMenuAt(e.currentTarget); }
               }}
-              title="双击或 F2 改名；拖到别的文件夹上移进去；右键查看更多操作"
             />}>
               <span className="k-row-icon" aria-hidden="true">{node.children.length > 0 ? <FolderOpen size={15} /> : <Folder size={15} />}</span>
               <span className="sidebar-label">{node.name}</span>

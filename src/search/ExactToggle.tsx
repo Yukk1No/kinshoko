@@ -4,10 +4,9 @@ import { Tooltip } from "@base-ui/react/tooltip";
 /**
  * 精确查找 (#102 故事13, 方案 C3): a quiet 32 × 32 icon toggle at the end of the search field.
  * Off (含相近) shows two waves, on (仅精确) two straight lines; one squashes out while the other opens.
- * Both strokes sit centred on a 16 px grid. The tooltip names the current state and what a press does.
+ * Both strokes sit centred on a 16 px grid. The tooltip only names it; the pressed state says on or off.
  */
 export function ExactToggle({ exact, onChange }: { exact: boolean; onChange: (exact: boolean) => void }) {
-  const tip = exact ? "仅精确：只查选中的标签。按下改为含相近" : "含相近：同时查相近标签。按下改为仅精确";
   return <Tooltip.Root>
     <Tooltip.Trigger delay={400} closeOnClick={false}
       render={<Toggle className="k-exact" aria-label="精确查找" pressed={exact} onPressedChange={(next) => onChange(next)} />}>
@@ -19,7 +18,7 @@ export function ExactToggle({ exact, onChange }: { exact: boolean; onChange: (ex
     </Tooltip.Trigger>
     <Tooltip.Portal>
       <Tooltip.Positioner className="k-positioner" side="bottom" sideOffset={8}>
-        <Tooltip.Popup className="k-tip">{tip}</Tooltip.Popup>
+        <Tooltip.Popup className="k-tip">精确查找</Tooltip.Popup>
       </Tooltip.Positioner>
     </Tooltip.Portal>
   </Tooltip.Root>;

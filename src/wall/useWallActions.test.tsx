@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { PIN_LIMIT, staggeredPins, useWallActions, type WallActionsOptions } from "./useWallActions";
+import { ToastProvider } from "../ui/Toast";
 import type { WallMenuActions } from "./WallMenu";
 import type { BrowserCard } from "./Wall";
 
@@ -41,20 +42,27 @@ it("不超过 20 张时直接钉住，每张按来源钉", async () => {
   expect(screen.queryByRole("alertdialog")).toBeNull();
 });
 
-it("超过 20 张先确认，确认后只钉前 20 张；取消则不钉", async () => {
+it("超过 20 张不弹确认：直接钉前 20 张，再用轻提示说明", async () => {
   const many = Array.from({ length: 23 }, (_, i) => card(String(i)));
-  render(<Harness />);
+  render(<ToastProvider><Harness /></ToastProvider>);
   act(() => api.pin(many, { x: 0, y: 0 }));
-  const dialog = await screen.findByRole("alertdialog");
-  expect(dialog.textContent).toContain("23");
-  expect(pins()).toHaveLength(0);
-  fireEvent.click(screen.getByRole("button", { name: "取消" }));
-  await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
-  expect(pins()).toHaveLength(0);
-  act(() => api.pin(many, { x: 0, y: 0 }));
-  fireEvent.click(await screen.findByRole("button", { name: "钉住前 20 张" }));
   await waitFor(() => expect(pins()).toHaveLength(20));
+  expect(screen.queryByRole("alertdialog")).toBeNull();
   expect(pins().map((c) => c.args.imageId)).toEqual(many.slice(0, 20).map((c) => c.imageId));
+  expect(await screen.findByText("已钉住前 20 张")).toBeTruthy();
+});
+
+it("移到回收站不先确认，轻提示里的“撤销”把同一批图还原", async () => {
+  render(<ToastProvider><Harness /></ToastProvider>);
+  act(() => api.edit([card("1"), card("2", "L2")], [{ kind: "delete" }], true));
+  expect(await screen.findByText("已移到回收站")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+  const edits = () => calls.filter((c) => c.cmd === "plugin:library|workspace_edit_source");
+  await waitFor(() => expect(edits()).toHaveLength(4));
+  expect(edits().slice(2).map((c) => [c.args.target, c.args.edits])).toEqual([
+    [{ libraryId: "L1", imageId: "i1", contentId: "1" }, [{ kind: "restore" }]],
+    [{ libraryId: "L2", imageId: "i2", contentId: "2" }, [{ kind: "restore" }]],
+  ]);
 });
 
 it("整理按每张图的来源写入，结束后刷新；clear 时取消选择", async () => {

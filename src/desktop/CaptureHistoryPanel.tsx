@@ -79,7 +79,7 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
           <button type="button" className="k-btn" onClick={() => run(pinClipboard())}>
             <Clipboard size={15} aria-hidden="true" />钉住剪贴板{keys.pinClipboard && <kbd className="k-kbd">{keys.pinClipboard}</kbd>}
           </button>
-          <button type="button" className="k-btn" title="先收起主窗口，再框选屏幕" onClick={() => void capture()}>
+          <button type="button" className="k-btn" onClick={() => void capture()}>
             <Scissors size={15} aria-hidden="true" />截图
           </button>
         </div>
@@ -96,12 +96,12 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
                 <img src={captureUrl(entry.id)} alt="" loading="lazy" draggable={false} />
                 <div className="capture-history-text">
                   <span className="capture-history-name">截图 {time(entry.createdAt)}</span>
-                  <span className="capture-history-meta">
-                    {entry.width} × {entry.height} · {ago(entry.createdAt)}{entry.pinned && " · 已钉住"}
+                  <span className="capture-history-meta k-parts">
+                    <span>{entry.width} × {entry.height}</span><span>{ago(entry.createdAt)}</span>{entry.pinned && <span>已钉住</span>}
                   </span>
                   <span className="capture-history-actions">
                     {collected
-                      ? <button type="button" className="side-chip is-done" aria-label="已收藏，再收藏到别处" title="再收藏到别的图库或文件夹" onClick={() => setCollecting(entry.id)}>
+                      ? <button type="button" className="side-chip is-done" aria-label="已收藏，再收藏到别处" onClick={() => setCollecting(entry.id)}>
                         <Check size={12} aria-hidden="true" />已收藏</button>
                       : <button type="button" className="side-chip" onClick={() => setCollecting(entry.id)}><BookmarkPlus size={12} aria-hidden="true" />收藏</button>}
                     <button type="button" className="side-chip" onClick={() => run(pinCapture(entry.id))}><Pin size={12} aria-hidden="true" />钉住</button>

@@ -92,9 +92,9 @@ export function UpdateSection({ version = null, channel, onChannel }: {
     : status.state === "failed" ? <StatusPill tone="warn">检查失败</StatusPill> : null;
   return (
     <SettingsGroup label="更新">
-      <SettingsRow icon={<Info size={16} />} title="当前版本" desc={version ?? "Kinshoko"}>{pill}</SettingsRow>
+      <SettingsRow icon={<Info size={16} />} title="当前版本" meta={version ?? "Kinshoko"}>{pill}</SettingsRow>
       {status.state === "manual" ? (
-        <SettingsRow icon={<Download size={16} />} title="手动更新" desc="从托盘退出，再运行新安装包"
+        <SettingsRow icon={<Download size={16} />} title="手动更新" hint="从托盘退出，再运行新安装包"
           below={steps && <div className="k-set-note">
             <p>{status.message}</p>
             <p>从托盘退出 Kinshoko 后，运行开发者提供的新版安装包，安装到原位置。装好后重新打开，继续使用已有图库、设置、参考组和钉图。</p>
@@ -102,24 +102,24 @@ export function UpdateSection({ version = null, channel, onChannel }: {
           <button type="button" className="k-btn is-sm" aria-expanded={steps} onClick={() => setSteps(!steps)}>{steps ? "收起步骤" : "查看步骤"}</button>
         </SettingsRow>
       ) : status.state === "disabled" ? (
-        <SettingsRow icon={<Download size={16} />} title="自动更新" desc="这个版本未开启" below={<p className="k-set-note">{status.message}</p>} />
+        <SettingsRow icon={<Download size={16} />} title="自动更新" meta="这个版本未开启" below={<p className="k-set-note">{status.message}</p>} />
       ) : (
         <>
           {channel !== undefined && onChannel && (
-            <SettingsRow icon={<FlaskConical size={16} />} title="更新通道" desc={channel === "beta" ? "收测试版、候选版和正式版" : "只收正式版"}>
+            <SettingsRow icon={<FlaskConical size={16} />} title="更新通道" hint={channel === "beta" ? "收测试版、候选版和正式版" : "只收正式版"}>
               <Segmented<UpdateChannel> label="更新通道" value={channel} onChange={(next) => void changeChannel(next)} options={[
                 { value: "stable", label: "正式版" }, { value: "beta", label: "测试版" },
               ]} />
             </SettingsRow>
           )}
           {status.state === "available" && (
-            <SettingsRow icon={<Download size={16} />} title={`可以更新到 ${status.version}`} desc={installing ? progressText(progress) : "装好后自动重启"}
+            <SettingsRow icon={<Download size={16} />} title={`可以更新到 ${status.version}`} meta={installing ? progressText(progress) : undefined} hint="装好后自动重启"
               below={status.notes && <p className="k-set-note update-notes">{status.notes}</p>}>
               {!installing && <button type="button" className="k-btn is-sm is-primary" onClick={() => void install()}>安装并重启</button>}
             </SettingsRow>
           )}
-          <SettingsRow icon={<RefreshCw size={16} />} title="检查更新" desc="从发布页查找新版本"
-            below={<>
+          <SettingsRow icon={<RefreshCw size={16} />} title="检查更新" hint="从发布页查找新版本"
+            below={(status.state === "failed" || error !== null) && <>
               {status.state === "failed" && <p className="k-set-error" role="alert">{status.message}</p>}
               {error !== null && <p className="k-set-error" role="alert">{error}</p>}
             </>}>

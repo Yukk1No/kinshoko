@@ -84,7 +84,7 @@ function RatingPicker({
         onChange={(value) => edit([{ kind: "setRating", rating: value }])}
         options={(Object.keys(RATING_LABELS) as ContentRating[]).map((r) => ({ value: r, label: RATING_LABELS[r] }))} />
       {rating.manual
-        ? <p className="insp-hint">人工修正，重新打标不会覆盖
+        ? <p className="insp-hint">已手动修正
           <button type="button" className="k-btn is-ghost is-sm" onClick={() => edit([{ kind: "revertRating" }])}><Undo2 size={12} aria-hidden="true" />改回自动（{auto}）</button></p>
         : <p className="insp-hint">自动分级：{auto}</p>}
     </section>
@@ -120,7 +120,7 @@ function Detail({
     <div className="selection-detail" aria-busy={stale} inert={stale}>
       <div className="insp-file">
         <div className="insp-file-name" title={detail.originalName}>{detail.originalName}</div>
-        <div className="insp-file-meta">{detail.width} × {detail.height} · 收集于 {new Date(detail.collectedAt).toLocaleString("zh-CN")}</div>
+        <div className="insp-file-meta k-parts"><span>{detail.width} × {detail.height}</span><span>收集于 {new Date(detail.collectedAt).toLocaleString("zh-CN")}</span></div>
       </div>
       {detail.versions.previous && <p className="selection-version">新版本：Eagle 中这张图的内容变了，旧版本仍保留在图库里</p>}
       {detail.versions.newer.length > 0 && <p className="selection-version">旧版本：Eagle 中这张图的内容后来变了，新版本另存为一张图</p>}
@@ -371,10 +371,10 @@ export function SelectionPanel({
     <div className="selection-actions selbar is-inline" role="toolbar" aria-label="已选参考图操作">
       <span className="selection-count">已选 {ids.length} 张</span>
       <Menu.Root modal={false}>
-        <Menu.Trigger className="selbar-btn" aria-label="放入文件夹" disabled={!folders.length} title={folders.length ? "放入文件夹" : "还没有文件夹"}>
-          <FolderInput size={15} aria-hidden="true" />放入
+        <Menu.Trigger className="selbar-btn" aria-label="移到文件夹" disabled={!folders.length} title={folders.length ? "移到文件夹" : "还没有文件夹"}>
+          <FolderInput size={15} aria-hidden="true" />移到
         </Menu.Trigger>
-        <MenuPopup width={220} align="center" label="放入文件夹">
+        <MenuPopup width={220} align="center" label="移到文件夹">
           {folders.map((f) => <MenuItem key={f.id} onClick={() => void edit([{ kind: "addToFolder", folderId: f.id }])}>{f.label}</MenuItem>)}
         </MenuPopup>
       </Menu.Root>

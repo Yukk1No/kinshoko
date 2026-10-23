@@ -62,8 +62,8 @@ export function originLine(origin: TagOrigin, thresholds: ConfidenceThresholds):
   const { source, score } = origin;
   if (isModel(origin)) {
     return score === null
-      ? "来源：打标模型"
-      : `来源：打标模型 · 可信度 ${confidencePercent(score)}%（${BAND_WORD[confidenceBand(score, thresholds)]}）`;
+      ? "自动标签"
+      : `自动标签，可信度 ${confidencePercent(score)}%（${BAND_WORD[confidenceBand(score, thresholds)]}）`;
   }
   if (source.startsWith("eagle:")) return "来源：从 Eagle 导入";
   if (source.startsWith("package:")) return "来源：参考组包";

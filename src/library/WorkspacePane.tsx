@@ -1,72 +1,22 @@
-import type { WorkspaceSource } from "../bindings/WorkspaceSource";
-import type { LibraryRegistration } from "../bindings/LibraryRegistration";
-import { WorkspaceSourceEditor } from "./WorkspaceSourceEditor";
-import { Segmented } from "../ui/Segmented";
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, FolderOpen, FolderPlus, Images, Layers, ListX, MoreHorizontal, RefreshCw, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Images, MoreHorizontal, Trash2 } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { FluidList, FluidRow } from "../ui/FluidList";
-import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
+import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { PermanentDeleteConfirm } from "./SelectionPanel";
 import { Switch } from "../ui/Switch";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
-import type { FolderNode } from "../bindings/FolderNode";
 import { isCursorExpired, isLensChanged, moveFolder, revealLibrary, unregisterLibrary, workspaceDirectories } from "../ipc";
 import { acceptsDrag, DRAG_FOLDER, DRAG_FOLDER_LIBRARY, LAST, SidebarPane } from "./SidebarPane";
-import { libraryPathHint } from "./library-path";
-import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
+import { folderPath, LibraryMenuItems, TrashRow } from "./WorkspacePaneRows";
+// 来源整理拆到 WorkspaceSources.tsx；从这里导入的调用方照旧可用。
+export { WorkspaceSources } from "./WorkspaceSources";
 
 /** 拖动悬停在折起的图库上多久后自动展开（弹簧加载，方案 D）。 */
 export const SPRING_OPEN_MS = 600;
-
-function folderPath(nodes: FolderNode[], id: string, parent: string[] = []): string[] | null {
-  for (const node of nodes) {
-    const path = [...parent, node.name];
-    if (node.id === id) return path;
-    const found = folderPath(node.children, id, path);
-    if (found) return found;
-  }
-  return null;
-}
-
-/**
- * 图库标题的操作（#102 表“侧栏 · 图库标题”，#114）：`⋯` 与右键菜单是同一组菜单项。
- * 新建文件夹 · 在资源管理器中打开 · 重新连接（未连接时） · ─ · 从列表移除。
- */
-function LibraryMenuItems({ provider, onNewFolder, onReveal, onRecheck, onRemove }: {
-  provider: WorkspaceDirectory; onNewFolder: () => void; onReveal: () => void; onRecheck?: () => void; onRemove: () => void;
-}) {
-  return <>
-    <MenuItem icon={<FolderPlus size={14} />} disabled={!provider.sidebar || Boolean(provider.registration.unavailable)} onClick={onNewFolder}>新建文件夹</MenuItem>
-    <MenuItem icon={<FolderOpen size={14} />} onClick={onReveal}>在资源管理器中打开</MenuItem>
-    {provider.registration.unavailable && onRecheck && <MenuItem icon={<RefreshCw size={14} />} onClick={onRecheck}>重新连接</MenuItem>}
-    <MenuSeparator />
-    <MenuItem icon={<ListX size={14} />} onClick={onRemove}>从列表移除</MenuItem>
-  </>;
-}
-
-/**
- * 回收站行：选中某库时是该库的回收站，选“全部图片”时是各库合计（ADR-0008）。
- * 右键菜单（#102 表“侧栏 · 回收站”，#114）：清空回收站，危险项，先确认。
- */
-function TrashRow({ label, count, current, expanded, disabled, onClick, menu }: {
-  label: string; count: number | undefined; current?: boolean; expanded?: boolean; disabled?: boolean; onClick: () => void; menu: ReactNode;
-}) {
-  return <FluidList><FluidRow index={0}>
-    <ContextMenu.Root>
-      <ContextMenu.Trigger render={<button type="button" className="sidebar-item k-row" aria-current={current ? "page" : undefined} aria-expanded={expanded}
-        disabled={disabled} aria-label={`回收站 · ${label}（${count ?? "…"} 张）`} onClick={onClick} />}>
-        <span className="k-row-icon" aria-hidden="true"><Trash2 size={15} /></span>
-        <span className="sidebar-label">回收站<span className="lib-dim"> · {label}</span></span>
-        <span className="sidebar-count">{count ?? ""}</span>
-      </ContextMenu.Trigger>
-      <MenuPopup label="回收站的操作" width={220}>{menu}</MenuPopup>
-    </ContextMenu.Root>
-  </FluidRow></FluidList>;
-}
 
 /**
  * 侧栏（方案 D，#113；design/ui-system/README.md 侧栏布局）：顶部固定“全部图片”与跨库合计；中间是
@@ -247,6 +197,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
             <span className="sidebar-label">{library.name}</span>
             {unavailable ? <span className="lib-dot is-off" aria-hidden="true" /> : <span className="sidebar-count">{sidebar?.all ?? "…"}</span>}
           </button>
+          {unavailable && onRecheck && <button type="button" className="offline-retry" title={unavailable} onClick={onRecheck}>重新连接</button>}
           <Menu.Root modal={false}>
             <Menu.Trigger className="k-icon-btn lib-more" aria-label={`${library.name} 的操作`} title="图库操作">
               <MoreHorizontal size={14} aria-hidden="true" />
@@ -258,9 +209,6 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
         </ContextMenu.Trigger>
         <MenuPopup width={200} label={`${library.name} 的操作`}>{libraryItems}</MenuPopup>
         </ContextMenu.Root>
-        {unavailable && <div className="lib-offline" role="status" title={unavailable}>
-          未连接 · 移动盘接回后可用{onRecheck && <> · <button type="button" className="offline-retry" onClick={onRecheck}><RefreshCw size={11} aria-hidden="true" />重新连接</button></>}
-        </div>}
         {expanded && sidebar && <SidebarPane directory={sidebar} unassigned={unassigned} descendantCounts={counts} includeDescendants={descendants}
           libraryName={library.name} libraryId={library.id}
           scopeSelected={selectedRoot} scope={selectedRoot ? scope.scope : { kind: "all" }}
@@ -302,40 +250,4 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
     {emptying && <PermanentDeleteConfirm libraryId={emptying.libraryId} ids={[]} emptyTrash={{ libraryName: emptying.name }}
       onDone={() => setEmptying(null)} onCancel={() => setEmptying(null)} onError={onError} />}
   </nav>;
-}
-
-/**
- * 详情面板里的多来源整理（#98）：同一文件在 N 个图库各自保留整理结果。先明确选一份来源，
- * 再用分段切换在来源之间换；标签、分级、文件夹与备注都只改所选的那一份。
- */
-export function WorkspaceSources({ card, onClose, onView, safe = true, reloadKey = 0, onChanged, registrations = [] }: {
-  card: WorkspaceCard; onClose: () => void; onView: (card: WorkspaceCard) => void;
-  safe?: boolean; reloadKey?: number; onChanged?: () => void; registrations?: LibraryRegistration[];
-}) {
-  const [editing, setEditing] = useState<WorkspaceSource | null>(null);
-  const keyOf = (source: WorkspaceSource) => source.libraryId + "/" + source.imageId;
-  const root = (id: string) => registrations.find((r) => r.library.id === id)?.library.root;
-  const hint = (id: string) => root(id) ? libraryPathHint(root(id)!, registrations.map((r) => r.library.root)) : undefined;
-  return <section className="workspace-sources" aria-label="图库来源"
-    onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } }}>
-    <div className="insp-sec">
-      <h4><Layers size={13} aria-hidden="true" />{card.sources.length > 1 ? `在 ${card.sources.length} 个图库` : "所在图库"}<span className="insp-h-hint">各自整理</span></h4>
-      <Segmented label="当前操作的来源记录" value={editing ? keyOf(editing) : null}
-        onChange={(key) => { const next = card.sources.find((s) => keyOf(s) === key); if (next) setEditing(next); }}
-        options={card.sources.map((source) => ({ value: keyOf(source), label: source.libraryName, disabled: !!source.unavailable,
-          title: [hint(source.libraryId), source.deleted ? "回收站" : null, source.unavailable ? "未连接" : null].filter(Boolean).join(" · ") || undefined }))} />
-    </div>
-    {editing && <WorkspaceSourceEditor key={keyOf(editing)} card={card} source={editing}
-      safe={safe} registrations={registrations} reloadKey={reloadKey} onSource={setEditing} onClose={onClose} onChanged={onChanged} />}
-    {!editing && <ul className="workspace-source-list">{card.sources.map((source) => <li key={keyOf(source)} data-source-library-id={source.libraryId} title={keyOf(source)}>
-      <div className="workspace-source-head">
-        <strong>{source.libraryName}</strong>
-        <span className="workspace-source-state">{source.deleted ? "回收站" : source.matches ? "符合当前查找" : "不符合当前查找"}</span>
-      </div>
-      {root(source.libraryId) && <span className="workspace-source-path" title={root(source.libraryId)}>{hint(source.libraryId)}</span>}
-      {source.unavailable ? <p className="insp-hint" role="status">{source.unavailable}</p> :
-        <div className="selection-actions"><button type="button" className="k-btn is-sm" onClick={() => setEditing(source)}>整理此来源</button>
-        <button type="button" className="k-btn is-sm" onClick={() => { onClose(); onView({ ...card, libraryId: source.libraryId, imageId: source.imageId }); }}>查看此来源</button></div>}
-    </li>)}</ul>}
-  </section>;
 }

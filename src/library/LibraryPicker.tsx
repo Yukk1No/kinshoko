@@ -141,7 +141,7 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
                 <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}>{unavailable ? "未连接" : "已连接"}</span>
                 {unavailable && <button type="button" className="k-btn is-sm" disabled={disabled} onClick={refresh}><RefreshCw size={13} aria-hidden="true" />重新连接</button>}
                 <button type="button" className="k-btn is-sm" disabled={disabled} aria-label={`移除 ${library.name}`}
-                  title="不再显示；文件不删，未完成的导入会取消" onClick={() => void remove(library.id)}>移除</button>
+                  title="文件不会删除" onClick={() => void remove(library.id)}>移除</button>
               </div>
             </li>)}
           </ul> : <p className="k-dialog-desc">还没有打开的图库。</p>}

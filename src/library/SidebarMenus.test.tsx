@@ -189,7 +189,7 @@ it("没有子文件夹的文件夹：确认框不提子文件夹", async () => {
 it("回收站：清空回收站先列出将永久删除的张数，确认后按预览的令牌删除", async () => {
   answers["plugin:library|preview_empty_trash"] = { imageIds: ["x", "y"], groups: [{ groupId: "g", name: "光影", imageIds: ["x"] }], token: "t" };
   await show(inA({ kind: "all" }));
-  const trash = screen.getByRole("button", { name: "回收站 · 人物参考（2 张）" });
+  const trash = screen.getByRole("button", { name: "回收站（人物参考，2 张）" });
   const menu = await openOn(trash, "回收站的操作");
   expect(rows(menu)).toEqual(["清空回收站…"]);
   expect(within(menu).getByRole("menuitem").className).toContain("is-danger");
@@ -207,7 +207,7 @@ it("回收站：空的回收站不能清空；“全部图片”下按图库各�
   const value = forest();
   value.providers[1].sidebar!.trash = 0;
   await show({ kind: "all" }, value);
-  const menu = await openOn(screen.getByRole("button", { name: "回收站 · 全部图库（2 张）" }), "回收站的操作");
+  const menu = await openOn(screen.getByRole("button", { name: "回收站（全部图库，2 张）" }), "回收站的操作");
   expect(rows(menu)).toEqual(["清空「人物参考」的回收站…", "清空「风景参考」的回收站…"]);
   expect(enabled(menu, "清空「人物参考」的回收站…")).toBe(true);
   expect(enabled(menu, "清空「风景参考」的回收站…")).toBe(false);

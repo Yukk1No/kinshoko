@@ -1,17 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ImageCard } from "../bindings/ImageCard";
 import type { Region } from "../bindings/Region";
-import { copyReferenceImage, displayScaledUrl, displayUrl, imageDetail, workspaceImage, isUnknownImage, pinReference, revealReferenceImage, shellSettings, migrateViewerBackground, setViewerBackground } from "../ipc";
-import { legacyViewerBackground, rememberViewerBackground } from "./background";
+import { copyReferenceImage, imageDetail, workspaceImage, isUnknownImage, pinReference, revealReferenceImage } from "../ipc";
 import type { KeyboardEvent } from "react";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
-import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Crop as CropIcon, FolderSearch, Minus, PanelRight, Palette, Pin, Plus, RotateCcw, Scan, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Pin, Plus, RotateCcw, X } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
-import { Menu, MenuCheckboxItem, MenuItem, MenuPopup, MenuRadioItem, MenuSeparator, MenuSubmenu } from "../ui/Menu";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
-import { Dock, type DockItem } from "../ui/Dock";
+import { Dock } from "../ui/Dock";
 import { FollowDock } from "../ui/FollowDock";
+import { OriginalStar } from "../ui/OriginalStar";
+import { type Background, DOCK_RESERVE, useViewerBackground, viewerDockItems, ViewerImages, ViewerMenu } from "./ViewerParts";
+import { useViewerSource } from "./useViewerSource";
 
 type Props = {
   workspace?: boolean;
@@ -32,14 +33,6 @@ type Props = {
   inspectorOpen?: boolean;
   onToggleInspector?: () => void;
 };
-type Background = "dark" | "mid" | "light" | "checker";
-const grounds: Background[] = ["dark", "mid", "light", "checker"];
-const groundNames: Record<Background, string> = { dark: "深灰", mid: "中灰", light: "浅灰", checker: "棋盘格" };
-/** 查看器 dock 底部留给自己的高度，框选 dock 不压在它上面。 */
-const DOCK_RESERVE = 76;
-const swatch = (ground: Background) => <span className="viewer-swatch" data-ground={ground} aria-hidden="true" />;
-const OneToOne = ({ size = 19 }: { size?: number }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <rect x="3" y="5" width="18" height="14" rx="3" /><path d="M8.5 10v5M8 10.5l.5-.5M15.5 10v5M15 10.5l.5-.5" /><path d="M12 11.2v.1M12 14v.1" /></svg>;
 
 
 /**
@@ -56,19 +49,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   const [mode, setMode] = useState<"fit" | "pixels" | "zoom">("fit");
   const [zoomScale, setZoomScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [background, setBackground] = useState<Background>(legacyViewerBackground);
-  const [backgroundReady, setBackgroundReady] = useState(false);
-  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
-  /**
-   * 最近读完的一张缩小派生图（fit-N）：缩到 100% 以下时临时顶上的首选，比原图便宜得多。
-   * `loaded`：常驻的那个元素已读完；读完前它画不出来，不能指望它顶上。
-   */
-  const [derived, setDerived] = useState<{ src: string; loaded: boolean } | null>(null);
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const [retry, setRetry] = useState(0);
-  /** 缩放中最近一次请求的来源宽度；记着是哪张图的，换图后不拿上一张的宽度去请求。 */
-  const cardKey = `${libraryId}/${card.id}`;
-  const [requested, setRequested] = useState({ key: cardKey, px: card.width });
+  const [background, setBackground] = useViewerBackground();
   const drag = useRef<{ id: number; x: number; y: number; offset: typeof offset } | null>(null);
   /** 框选局部：选区（原图像素）、是否在框选模式、拖动中的起点（舞台上的 CSS 像素）。 */
   const [crop, setCrop] = useState<Region | null>(null);
@@ -80,31 +61,6 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   const { dpr } = viewport;
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
-  useLayoutEffect(() => root.current?.focus(), []);
-  // A crop and an active gesture belong to one exact source, including same-sized images.
-  useLayoutEffect(() => {
-    setCrop(null);
-    setSelecting(false);
-    setDragging(false);
-    setPinStatus(null);
-    setLoadedSrc(null);
-    setDerived(null);
-    select.current = null;
-    drag.current = null;
-  }, [libraryId, card.id]);
-  // 在上面的重置之后执行，只在打开时一次。
-  useLayoutEffect(() => { if (startCrop) setSelecting(true); }, []);
-  useEffect(() => {
-    let alive = true;
-    shellSettings().then(async (view) => view?.viewerBackground ?? (await migrateViewerBackground(legacyViewerBackground()))?.viewerBackground ?? "mid")
-      .then((value) => { if (alive) { setBackground(value); setBackgroundReady(true); } }, () => { /* A failed read must never write legacy cache over restored settings. */ });
-    return () => { alive = false; };
-  }, []);
-  useEffect(() => {
-    if (!backgroundReady) return;
-    rememberViewerBackground(background);
-    void setViewerBackground(background).catch(() => {});
-  }, [background, backgroundReady]);
   useLayoutEffect(() => {
     const el = stage.current!;
     const sync = () => setViewport((prev) => {
@@ -152,27 +108,21 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     el.addEventListener("wheel", wheel, { passive: false });
     return () => el.removeEventListener("wheel", wheel);
   });
-  const desiredPx = Math.min(physicalWidth, card.width);
-  const requestedPx = requested.key === cardKey ? requested.px : desiredPx;
-  const setRequestedPx = (px: number) => setRequested({ key: cardKey, px });
-  const sourcePx = mode === "zoom" ? requestedPx : desiredPx;
-  const exactSource = sourcePx === desiredPx;
-  // 1:1 与放大走 Library::display（原图或原尺寸 sdr 派生图）；缩小走精确尺寸派生图。从不直接读原文件。
-  const originalUrl = displayUrl(libraryId, card.id);
-  const isOriginal = (address: string) => address.startsWith(originalUrl);
-  const address = sourcePx >= card.width ? originalUrl : displayScaledUrl(libraryId, card.id, sourcePx);
-  const src = address + (retry ? `?retry=${retry}` : "");
-  // WebView2 不取消被换掉的请求，每张派生图都要整图解码；同一时刻只等一张，否则快速缩放时积压，迟迟出不了图。
-  const sourcePending = loadedSrc !== src && failedSrc !== src;
-  // 连续缩放时只在停手 120 ms 后换来源（#128），原图也一样：大图第一次上屏要整张解码上传，放在手势中间会卡一帧。
-  // 每一格缩放都重新计时（100% 以上 desiredPx 不变，要看 physicalWidth）。期间已读完的位图按当前尺寸临时缩放显示，
-  // 画面跟手；精确来源读完才换上，静止时看到的仍只来自 ADR-0005 的两条路。
-  useEffect(() => {
-    if (mode !== "zoom") { setRequestedPx(desiredPx); return; }
-    if (requestedPx === desiredPx || sourcePending) return;
-    const timer = window.setTimeout(() => setRequestedPx(desiredPx), 120);
-    return () => window.clearTimeout(timer);
-  }, [desiredPx, physicalWidth, mode, requestedPx, sourcePending, cardKey]);
+  const { loadedSrc, setLoadedSrc, derived, setDerived, failedSrc, setFailedSrc, setRetry, src, exactSource, isOriginal, ready, failed, derivedMounted, derivedStandIn, lastStandIn, swapIn } = useViewerSource({ libraryId, card, mode, physicalWidth });
+  useLayoutEffect(() => root.current?.focus(), []);
+  // A crop and an active gesture belong to one exact source, including same-sized images.
+  useLayoutEffect(() => {
+    setCrop(null);
+    setSelecting(false);
+    setDragging(false);
+    setPinStatus(null);
+    setLoadedSrc(null);
+    setDerived(null);
+    select.current = null;
+    drag.current = null;
+  }, [libraryId, card.id]);
+  // 在上面的重置之后执行，只在打开时一次。
+  useLayoutEffect(() => { if (startCrop) setSelecting(true); }, []);
   useCaptureSources(() => {
     const image = stage.current?.querySelector<HTMLImageElement>("img.viewer-image");
     if (!image || !exactSource || loadedSrc !== src || failedSrc === src) return [];
@@ -189,26 +139,6 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   }, [libraryId, card.id, reloadKey, failedSrc, workspace]);
   const shown = { left, top, width, height };
   const placed = { width, height, left: 0, top: 0, transform: `translate(${left}px, ${top}px)` };
-  const ready = loadedSrc === src;
-  const failed = exactSource && failedSrc === src;
-  /**
-   * 替身（#128）：精确来源还没就绪时临时顶上的位图，按当前位置与尺寸显示。缩到 100% 以下优先用最近的缩小派生图——
-   * 让 Chromium 每帧把整张大原图重采样到新尺寸，一帧要 50～140 ms（8000 px 实测）。派生图替身的元素一直挂着（隐藏），
-   * 要用时已经读完；读完之前由最近读完的位图当替身。精确来源读取失败时不留替身，只显示错误。
-   */
-  const derivedMounted = derived !== null && derived.src !== src;
-  const derivedStandIn = derivedMounted && derived.loaded && !failed && !(ready && exactSource)
-    && (desiredPx < card.width || (!ready && loadedSrc === derived.src));
-  const lastStandIn = !ready && !derivedStandIn && !failed ? loadedSrc : null;
-  /** 解码完再换上，换图那一帧不空白；换走或换了图的元素不再回写。 */
-  const swapIn = (image: HTMLImageElement, loaded: string) => {
-    const done = () => {
-      if (!image.isConnected) return;
-      setLoadedSrc(loaded);
-      if (!isOriginal(loaded)) setDerived({ src: loaded, loaded: false });
-    };
-    if (typeof image.decode === "function") image.decode().then(done, done); else done();
-  };
   const natural = { width: card.width, height: card.height };
   const cropRect = crop && cropOnScreen(crop, shown, natural);
   /** 舞台上的点（CSS 像素）。 */
@@ -279,17 +209,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     }
   };
   const shownCropRect = cropRect && crop && !dragging ? cropRect : null;
-  const viewerTools: DockItem[] = [
-    { id: "fit", label: "适应窗口", icon: <Scan size={19} strokeWidth={1.75} />, shortcut: "0" },
-    { id: "pixels", label: "原始像素", icon: <OneToOne />, shortcut: "1" },
-    "sep",
-    { id: "crop", label: "框选局部", icon: <CropIcon size={19} strokeWidth={1.75} />, shortcut: "F1" },
-    { id: "pin", label: "钉住整图", icon: <Pin size={19} strokeWidth={1.75} />, shortcut: "P" },
-    "sep",
-    { id: "ground", label: "背景", icon: swatch(background), trayValue: background,
-      tray: grounds.map((ground) => ({ id: ground, label: groundNames[ground], icon: swatch(ground) })) },
-    { id: "inspector", label: inspectorOpen ? "隐藏详情" : "显示详情", icon: <PanelRight size={19} strokeWidth={1.75} />, shortcut: "I" },
-  ];
+  const viewerTools = viewerDockItems(background, inspectorOpen);
   const tool = (id: string, member?: string) => {
     if (id === "fit" || id === "pixels") reset(id);
     else if (id === "crop") toggleSelecting();
@@ -351,22 +271,13 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
         }}
         onPointerCancel={() => { drag.current = null; select.current = null; setDragging(false); }}
         onLostPointerCapture={() => { drag.current = null; select.current = null; setDragging(false); }} />}>
-        {viewport.width > 0 && <img key={src} className="viewer-image" src={src} alt="正在查看的参考图"
-          draggable={false} onLoad={(e) => swapIn(e.currentTarget, src)} onError={() => setFailedSrc(src)}
-          style={{ ...placed, imageRendering: scale > 2 ? "pixelated" : "auto", visibility: ready && !derivedStandIn ? "visible" : "hidden" }} />}
-        {viewport.width > 0 && derivedMounted && <img key={`derived:${derived.src}`} className="viewer-stand-in is-derived" src={derived.src} alt="" aria-hidden="true"
-          draggable={false} onLoad={() => setDerived((d) => d?.src === derived.src ? { ...d, loaded: true } : d)}
-          style={{ ...placed, visibility: derivedStandIn ? "visible" : "hidden" }} />}
-        {viewport.width > 0 && lastStandIn && <img key={`last:${lastStandIn}`} className="viewer-stand-in" src={lastStandIn} alt="" aria-hidden="true"
-          draggable={false} style={{ ...placed, imageRendering: scale > 2 && isOriginal(lastStandIn) ? "pixelated" : "auto" }} />}
-        {failed ? <div className="viewer-message" role="alert">
-          <p>无法读取这张参考图。请检查图库文件是否仍可访问。</p>
-          <button type="button" className="k-btn is-sm" onClick={() => setRetry((r) => r + 1)}>重试读取</button>
-        </div> : !ready && !derivedStandIn && !lastStandIn && <p className="viewer-message" role="status">正在读取参考图…</p>}
+        <ViewerImages viewport={viewport} src={src} swapIn={swapIn} setFailedSrc={setFailedSrc} placed={placed} scale={scale} ready={ready}
+          derived={derived} setDerived={setDerived} derivedMounted={derivedMounted} derivedStandIn={derivedStandIn} lastStandIn={lastStandIn}
+          isOriginal={isOriginal} failed={failed} setRetry={setRetry} />
         {cropRect && crop && <div className="viewer-crop" aria-label="选区"
           style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }} />}
         {shownCropRect && crop && <FollowDock anchor={shownCropRect} bounds={viewport} reserveBottom={DOCK_RESERVE}>
-          <Dock label="框选" onSelect={cropTool} readout={<><b>{crop.width} × {crop.height}</b>原始像素</>} items={[
+          <Dock label="框选" onSelect={cropTool} readout={<span className="k-original" title="原始像素">{crop.width} × {crop.height}<span className="sr-only">原始像素</span><OriginalStar /></span>} items={[
             { id: "pin", label: "钉住局部", icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary" },
             { id: "redo", label: "重选", icon: <RotateCcw size={18} strokeWidth={1.75} /> },
             { id: "cancel", label: "取消", icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },
@@ -376,26 +287,8 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
         <div className="viewer-dock"><Dock label="查看工具" items={viewerTools} value={toolValue} onSelect={tool} /></div>
       </ContextMenu.Trigger>
       {/* 查看器右键菜单（#102 表“查看器”行，#114）：每项另有 dock 按钮或快捷键。 */}
-      <MenuPopup label="查看器菜单" width={220}>
-        <MenuItem icon={<Pin size={14} />} kbd="P" onClick={() => pin(null)}>钉住整图</MenuItem>
-        <MenuItem icon={<CropIcon size={14} />} kbd="F1" onClick={pinPart}>钉住局部</MenuItem>
-        <MenuItem icon={<Copy size={14} />} onClick={copy}>复制图片</MenuItem>
-        <MenuSeparator />
-        <MenuItem icon={<Scan size={14} />} kbd="0" onClick={() => reset("fit")}>适应窗口</MenuItem>
-        <MenuItem icon={<OneToOne size={14} />} kbd="1" onClick={() => reset("pixels")}>原始像素</MenuItem>
-        <MenuSubmenu icon={<Palette size={14} />} label="背景" popupLabel="背景">
-          <Menu.RadioGroup value={background} onValueChange={(value) => setBackground(value as Background)}>
-            {grounds.map((ground) => <MenuRadioItem key={ground} value={ground}>{groundNames[ground]}</MenuRadioItem>)}
-          </Menu.RadioGroup>
-        </MenuSubmenu>
-        <MenuCheckboxItem checked={inspectorOpen} onCheckedChange={() => onToggleInspector?.()} kbd="I">详情</MenuCheckboxItem>
-        <MenuSeparator />
-        <MenuItem icon={<FolderSearch size={14} />} onClick={reveal}>在资源管理器中显示</MenuItem>
-        {onTrash && <>
-          <MenuSeparator />
-          <MenuItem icon={<Trash2 size={14} />} danger onClick={onTrash}>移到回收站</MenuItem>
-        </>}
-      </MenuPopup>
+      <ViewerMenu pin={pin} pinPart={pinPart} copy={copy} reveal={reveal} reset={reset} background={background} setBackground={setBackground}
+        inspectorOpen={inspectorOpen} onToggleInspector={onToggleInspector} onTrash={onTrash} />
       </ContextMenu.Root>
     </section>
   );

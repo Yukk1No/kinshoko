@@ -161,7 +161,7 @@ describe("设置：分页", () => {
     expect(screen.getByText("Kinshoko 9.9.9")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "通用", level: 3 })).toBeTruthy();
     await tab("安全");
-    expect(screen.getByText("成人图收进封印书，需要时再打开。")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "安全", level: 3 })).toBeTruthy();
     expect(screen.queryByRole("switch", { name: "开机启动" })).toBeNull();
   });
 
@@ -185,7 +185,7 @@ describe("设置：分页", () => {
     backend((cmd) => (cmd === "tagging_models" ? { model: "PixAI Tagger v1.0", selected: null, options: [] } : undefined));
     render(<SettingsPanel initialTab="tagging" />);
     expect(await screen.findByRole("heading", { name: "自动标签", level: 3 })).toBeTruthy();
-    expect(await screen.findByText("添加图库后开始自动打标")).toBeTruthy();
+    expect(await screen.findByText("添加图库后开始")).toBeTruthy();
   });
 
   it("安全分页的开关跟随并切换主窗口的安全模式", async () => {

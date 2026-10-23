@@ -43,7 +43,7 @@ type Group = { label: string; title: string; tags: ImageTag[] };
 function groupByStanding(tags: ImageTag[]): Group[] {
   const groups: Group[] = [
     { label: "你添加的", title: "你添加的", tags: [] },
-    { label: "打标模型", title: "打标模型 · 按可信度", tags: [] },
+    { label: "自动标签", title: "自动标签", tags: [] },
     { label: "导入", title: "导入", tags: [] },
   ];
   const scoreOf = new Map<ImageTag, number>();
@@ -140,7 +140,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
             <button type="button" className="k-tag-tip-btn" aria-label={`清除对“${name}”的人工决定`}
               onClick={() => decide("clear", byId(tag))}><Undo2 size={12} aria-hidden="true" />改回自动</button>
           ) : (
-            <button type="button" className="k-tag-tip-btn" aria-label={`确认“${name}”`} title="重新打标也不去掉"
+            <button type="button" className="k-tag-tip-btn" aria-label={`确认“${name}”`} title="确认"
               onClick={() => decide("add", byId(tag))}><Check size={12} aria-hidden="true" />保留</button>
           )}
           <button type="button" className="k-tag-tip-btn" aria-label={`否决“${name}”`} title="这张图不是它"
@@ -163,7 +163,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
               <div key={group.label} className="k-tag-group">
                 <p className="k-tags-sub">{group.title}</p>
                 <ul className="tag-list k-tag-chips" aria-label={group.label} data-low-outline={lowOutline} aria-busy={stale} inert={stale}>
-                  {group.tags.map((entry) => chip(entry, group.label === "打标模型"))}
+                  {group.tags.map((entry) => chip(entry, group.label === "自动标签"))}
                 </ul>
               </div>
             ))
@@ -228,7 +228,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
         {hasText && <div className="selection-actions k-tag-add-acts">
           <button type="button" className="k-btn is-sm is-primary" aria-label="添加标签" onClick={() => decide("add")}>添加</button>
           <button type="button" className="k-btn is-sm is-ghost" aria-label="否决标签" title="这张图不是这个标签" onClick={() => decide("reject")}>排除</button>
-          <button type="button" className="k-btn is-sm is-ghost" aria-label="清除标签决定" title="回到模型和导入给出的结果" onClick={() => decide("clear")}>改回自动</button>
+          <button type="button" className="k-btn is-sm is-ghost" aria-label="清除标签决定" title="改回自动" onClick={() => decide("clear")}>改回自动</button>
         </div>}
       </div>
       {aliasFor && (

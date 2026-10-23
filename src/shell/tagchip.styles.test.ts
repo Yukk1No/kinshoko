@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import css from "./main-window.css?raw";
+import css from "./mainWindowCss";
 
 // 详情面板标签悬停抽搐（#159）：悬停时操作按钮从宽度 0 展开，把标签撑宽，行尾的标签被挤到下一行、离开鼠标又缩回，
 // 来回循环。jsdom 不做布局，这里锁住“按钮不占排版宽度、悬停与聚焦只改不影响排版的属性”这两条声明。

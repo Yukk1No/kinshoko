@@ -81,7 +81,7 @@ export function TagGroupBar(p: Props) {
               </button>;
             })}
           </div>
-          <p className="pop-hint">点击：同时满足，再点取消 · Ctrl＋点击：与上一个条件任一 · 右键：排除，再右键取消</p>
+          
         </div>}
       </div>;
     })}

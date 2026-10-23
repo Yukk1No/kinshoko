@@ -12,6 +12,6 @@ export function OriginalStar() {
   return <motion.svg className="k-original-star" viewBox="106 32 52 52" aria-hidden="true" focusable="false"
     initial={reduced ? false : { scale: 0, rotate: -15 }} animate={{ scale: 1, rotate: 0 }}
     transition={{ type: "spring", visualDuration: 0.42, bounce: 0.38 }}>
-    <path fill="#E3B34F" d={I_STAR} />
+    <path d={I_STAR} />
   </motion.svg>;
 }

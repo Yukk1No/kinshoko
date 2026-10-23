@@ -20,7 +20,8 @@
   border-radius: 12px;
   background: color-mix(in srgb, var(--bg) 85%, transparent);
   color: var(--accent-strong);
-  font-size: 20px;
+  font-size: 16px;
+  font-weight: 600;
   pointer-events: none;
 }
 
@@ -187,7 +188,7 @@
 
 .settings h2 {
   margin: 0 0 8px;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .settings-hint {
@@ -197,7 +198,7 @@
 }
 
 .settings-error {
-  color: #c62828;
+  color: var(--danger);
 }
 
 /* 诊断与更新（#70） */
@@ -242,7 +243,7 @@
 
 .runtime-notice p, .runtime-notice ul { margin: 6px 0; }
 .runtime-details { margin: 10px 0; }
-.pin-runtime-problem { position: absolute; inset: 0; z-index: 20; max-height: none; background: var(--bg, #24252b); color: var(--text, #ededf2); }
+.pin-runtime-problem { position: absolute; inset: 0; z-index: 20; max-height: none; background: var(--bg); color: var(--ink); }
 
 /* 本地备份与恢复（#69） */
 
@@ -263,7 +264,7 @@
 }
 
 .backup-reminder {
-  color: #c62828;
+  color: var(--danger);
 }
 
 .settings-shortcuts th {
@@ -400,7 +401,7 @@
 
 .selection-note textarea {
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   resize: vertical;
 }
 

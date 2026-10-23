@@ -45,9 +45,9 @@ describe("标签的出处归类", () => {
 
 describe("悬停浮层里的出处说明", () => {
   it("模型来源写成百分比和档位，导入写明来源", () => {
-    expect(originLine({ kind: "source", source: "model:pixai", score: 0.87 }, defaults)).toBe("来源：打标模型 · 可信度 87%（高）");
-    expect(originLine({ kind: "source", source: "model:pixai", score: 0.4 }, defaults)).toBe("来源：打标模型 · 可信度 40%（中）");
-    expect(originLine({ kind: "source", source: "model:pixai", score: null }, defaults)).toBe("来源：打标模型");
+    expect(originLine({ kind: "source", source: "model:pixai", score: 0.87 }, defaults)).toBe("自动标签，可信度 87%（高）");
+    expect(originLine({ kind: "source", source: "model:pixai", score: 0.4 }, defaults)).toBe("自动标签，可信度 40%（中）");
+    expect(originLine({ kind: "source", source: "model:pixai", score: null }, defaults)).toBe("自动标签");
     expect(originLine({ kind: "source", source: "eagle:lib1", score: null }, defaults)).toBe("来源：从 Eagle 导入");
     expect(originLine({ kind: "source", source: "package:x", score: null }, defaults)).toBe("来源：参考组包");
     expect(originLine({ kind: "source", source: "restore", score: null }, defaults)).toBe("来源：备份");
@@ -58,8 +58,8 @@ describe("悬停浮层里的出处说明", () => {
 
 describe("显示的百分比与档位一致", () => {
   it("贴近阈值的分数不进位到下一档的数字", () => {
-    expect(originLine({ kind: "source", source: "model:pixai", score: 0.799 }, defaults)).toBe("来源：打标模型 · 可信度 79%（中）");
-    expect(originLine({ kind: "source", source: "model:pixai", score: 0.399 }, defaults)).toBe("来源：打标模型 · 可信度 39%（低）");
+    expect(originLine({ kind: "source", source: "model:pixai", score: 0.799 }, defaults)).toBe("自动标签，可信度 79%（中）");
+    expect(originLine({ kind: "source", source: "model:pixai", score: 0.399 }, defaults)).toBe("自动标签，可信度 39%（低）");
   });
 
   it("浮点误差内落在阈值上的分数显示阈值本身", () => {

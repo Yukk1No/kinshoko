@@ -29,11 +29,10 @@ it("是可用 Tab 聚焦的原生按钮，Enter／空格由按钮本身处理", 
   expect(document.activeElement).toBe(toggle);
 });
 
-it("键盘聚焦时浮出提示，说明当前状态与按下后的结果", async () => {
-  const { rerender } = render(<ExactToggle exact={false} onChange={() => {}} />);
+it("键盘聚焦时浮出提示，只写名称；开 / 关由按下状态表达（设计系统 v2）", async () => {
+  render(<ExactToggle exact={false} onChange={() => {}} />);
   const toggle = screen.getByRole("button", { name: "精确查找" });
   act(() => toggle.focus());
-  expect(await screen.findByText(/^含相近.*按下改为仅精确$/)).toBeTruthy();
-  rerender(<ExactToggle exact onChange={() => {}} />);
-  expect(await screen.findByText(/^仅精确.*按下改为含相近$/)).toBeTruthy();
+  expect((await screen.findAllByText("精确查找")).length).toBeGreaterThan(0);
+  expect(toggle.getAttribute("aria-pressed")).toBe("false");
 });

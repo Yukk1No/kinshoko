@@ -64,7 +64,7 @@ export function TagIdentityPanel() {
     {workspace && <>
       <p className="settings-hint">带走图库前，先把标签定义存进图库。默认名称、别名与对应随图库携带；改过的显示名留在偏好设置里。只读或离线时可以保留程序中的选择，稍后重试保存。</p>
       {workspace.libraries.map(({library, unavailable}) => <div key={"definitions-" + library.id} className="settings-actions">
-        <span title={library.root}>{library.name} · {libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span>
+        <span className="k-parts" title={library.root}><span>{library.name}</span><span className="k-set-note">{libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span></span>
         <button type="button" className="k-btn is-sm" aria-label={"保存 " + library.name + " 的标签定义"} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), "标签定义已保存到图库。")}>存进图库</button>
       </div>)}
       {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} role="status">{library.name}：{unavailable}</p>)}
@@ -89,14 +89,14 @@ function MappingRow({ mapping, workspace, busy, onSave }: { mapping: LibraryTagM
   const choices = candidates.map((tag) => {
     const name = nameOf(tag), n = (seen.get(name) ?? 0) + 1;
     seen.set(name, n);
-    return { tag, label: `${name} · ${namespaces[tag.namespace]}${candidates.filter((other) => nameOf(other) === name).length > 1 ? `（${n}）` : ""}` };
+    return { tag, label: `${name}（${namespaces[tag.namespace]}）${candidates.filter((other) => nameOf(other) === name).length > 1 ? `（${n}）` : ""}` };
   });
   return <tr data-library-id={mapping.libraryId} data-local-tag-id={mapping.localTagId}>
-    <th scope="row"><span>{library?.name ?? "未打开的图库"} · </span><span>{localName(mapping)}</span><small> · {namespaces[mapping.legacy.namespace]}</small>
+    <th scope="row"><span className="k-parts"><span>{library?.name ?? "未打开的图库"}</span><span>{localName(mapping)}</span><small>{namespaces[mapping.legacy.namespace]}</small></span>
       <p className="k-set-note">{mapping.nameProvenance === "pending" ? "旧名称待确认，确认前照旧显示。" : `别名：${mapping.legacy.aliases.map((a) => a.name).join("、") || "无"}`}</p>
       <details><summary>详情</summary><p>库内编号：{mapping.localTagId}</p><p>外部对应：{mapping.legacy.external.map((name) => `danbooru:${name}`).join("、") || "无"}</p></details>
     </th>
-    <td><span>{shared ? nameOf(shared) : "未命名标签"}</span><small> · {basis[mapping.basis]}</small><details><summary>详情</summary><p>编号：{mapping.catalogId}</p><p>外部对应：{shared?.external.map((e) => `${e.vocabulary}:${e.name}`).join("、") || "无"}</p></details></td>
+    <td><span className="k-parts"><span>{shared ? nameOf(shared) : "未命名标签"}</span><small>{basis[mapping.basis]}</small></span><details><summary>详情</summary><p>编号：{mapping.catalogId}</p><p>外部对应：{shared?.external.map((e) => `${e.vocabulary}:${e.name}`).join("、") || "无"}</p></details></td>
     <td><select aria-label={`纠正 ${library?.name ?? "未打开的图库"} 的 ${localName(mapping)} 对应`} value={target} disabled={busy} onChange={(event) => setTarget(event.target.value)}>
       {choices.map(({ tag, label }) => <option key={tag.id} value={tag.id}>{label}</option>)}
       <option value="separate">拆成独立标签</option>

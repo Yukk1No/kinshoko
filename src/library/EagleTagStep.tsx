@@ -58,9 +58,9 @@ function UnmatchedRow({
 
   return (
     <li>
-      <span>
-        {name}
-        <TagMarks tag={item.tag} /> · {item.count} 张
+      <span className="k-parts">
+        <span>{name}<TagMarks tag={item.tag} /></span>
+        <span>{item.count} 张</span>
       </span>
       {item.candidates.length > 1 && <span className="import-report-reason">对上了多个外部名称，请选一个</span>}
       <input
@@ -128,12 +128,12 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
         </button>
       </header>
       <p>
-        外部对应是标签在打标模型与内置近似对应表中的名称。没有外部对应的标签（标有
+        外部对应是标签在自动标签与内置近似对应表中的名称。没有外部对应的标签（标有
         <span className="no-external" role="img" aria-label="没有外部对应的提示图标" />
         ）照常迁入、照常可查，只是不参与内置近似对应表：查找它时不会自动带上相近的标签。可以现在补上，也可以跳过。
       </p>
       {mapping && mapping.vocabularySize === 0 && (
-        <p>本机还没有可用的外部词表（打标模型尚未就绪），只能手动补上外部对应。</p>
+        <p>本机还没有可用的外部词表（自动标签尚未就绪），只能手动补上外部对应。</p>
       )}
       {error && <p role="alert">{error}</p>}
       {merged.length > 0 && (

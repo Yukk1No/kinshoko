@@ -50,8 +50,8 @@ describe("缩放滑块左边的打标图标", () => {
   it("打标时转动，悬停可见进度，点击打开设置 › 自动标签", async () => {
     backend({ L1: running(128) });
     const { onOpenSettings } = mount();
-    const button = await screen.findByRole("button", { name: /自动标签：正在打标 · 显卡 · 已打 128 张/ });
-    expect(button.getAttribute("title")).toBe("正在打标 · 显卡 · 已打 128 张");
+    const button = await screen.findByRole("button", { name: /自动标签：正在自动标签，已标 128 张（显卡）/ });
+    expect(button.getAttribute("title")).toBe("正在自动标签，已标 128 张（显卡）");
     expect(button.dataset.activity).toBe("busy");
     fireEvent.click(button);
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
@@ -60,16 +60,16 @@ describe("缩放滑块左边的打标图标", () => {
   it("右下角收起时（#180）换成小圆点，状态仍可读", async () => {
     backend({ L1: running(128) });
     render(<ToastProvider><TaggingActivity collapsed libraryId="L1" onOpenSettings={() => {}} /></ToastProvider>);
-    const dot = await screen.findByRole("img", { name: "自动标签：正在打标 · 显卡 · 已打 128 张" });
+    const dot = await screen.findByRole("img", { name: "自动标签：正在自动标签，已标 128 张（显卡）" });
     expect(dot.classList.contains("k-tagging-dot")).toBe(true);
     expect(dot.dataset.activity).toBe("busy");
     expect(icon()).toBeNull();
   });
 
   it.each<[string, TaggingStatus, string]>([
-    ["下载", downloading(450_000_000), "下载打标模型 45%"],
-    ["加载模型", { state: "starting" }, "正在加载打标模型"],
-    ["校验模型", { state: "preparing", model: "PixAI" }, "正在校验打标模型"],
+    ["下载", downloading(450_000_000), "正在下载自动标签模型 45%"],
+    ["加载模型", { state: "starting" }, "正在加载自动标签模型"],
+    ["校验模型", { state: "preparing", model: "PixAI" }, "正在校验自动标签模型"],
   ])("%s时转动并写出进度", async (_, status, text) => {
     backend({ L1: status });
     mount();
@@ -107,7 +107,7 @@ describe("缩放滑块左边的打标图标", () => {
   it("切换可写资料库后不显示旧库的状态", async () => {
     backend({ L1: running(5), L2: idle(0) });
     mount(vi.fn(), "L1", ["L1", "L2"]);
-    await screen.findByRole("button", { name: /已打 5 张/ });
+    await screen.findByRole("button", { name: /已标 5 张/ });
     await act(() => emit("writable-library", { id: "L2", name: "私人收藏", root: "D:\\私人收藏" }));
     await waitFor(() => expect(icon()).toBeNull());
     await push(running(9), "L1");
@@ -120,18 +120,17 @@ describe("自动标签的右下角通知", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     backend({ L1: needsDownload() });
     mount();
-    expect(await screen.findByText("需要下载打标模型（993 MB）")).toBeTruthy();
+    expect(await screen.findByText("需要下载自动标签模型（993 MB）")).toBeTruthy();
     await act(async () => { vi.advanceTimersByTime(60_000); });
     const download = screen.getByRole("button", { name: "下载" });
     expect(actions.map((a) => a.command)).not.toContain("tagging_download");
 
     fireEvent.click(download);
     await waitFor(() => expect(actions).toContainEqual({ command: "tagging_download", libraryId: "L1" }));
-    await waitFor(() => expect(screen.queryByText(/需要下载打标模型/)).toBeNull());
-    expect(await screen.findByText("正在下载打标模型")).toBeTruthy();
-    expect(screen.getByText("可在设置 › 自动标签查看进度、暂停或取消")).toBeTruthy();
+    await waitFor(() => expect(screen.queryByText(/需要下载自动标签模型/)).toBeNull());
+    expect(await screen.findByText("正在下载自动标签模型")).toBeTruthy();
     await act(async () => { vi.advanceTimersByTime(6_000); });
-    await waitFor(() => expect(screen.queryByText("正在下载打标模型")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("正在下载自动标签模型")).toBeNull());
   });
 });
 
@@ -139,15 +138,15 @@ describe("“需要下载”通知的去重", () => {
   it("关掉后，本次启动内不再为这个资料库弹出", async () => {
     backend({ L1: needsDownload() });
     mount();
-    await screen.findByText(/需要下载打标模型/);
+    await screen.findByText(/需要下载自动标签模型/);
     await push(needsDownload());
-    expect(shown(/需要下载打标模型/)).toBe(1);
+    expect(shown(/需要下载自动标签模型/)).toBe(1);
 
     fireEvent.click(screen.getByRole("button", { name: "关闭提示" }));
-    await waitFor(() => expect(screen.queryByText(/需要下载打标模型/)).toBeNull());
+    await waitFor(() => expect(screen.queryByText(/需要下载自动标签模型/)).toBeNull());
     await push(downloading(1));
     await push(needsDownload(1));
-    expect(screen.queryByText(/需要下载打标模型/)).toBeNull();
+    expect(screen.queryByText(/需要下载自动标签模型/)).toBeNull();
   });
 
   it("下载中取消（#213）后回到需要下载，本次启动内不再弹出", async () => {
@@ -156,8 +155,8 @@ describe("“需要下载”通知的去重", () => {
     await settled();
     await push(needsDownload(500_000_000, true));
     await push(needsDownload(500_000_000));
-    expect(shown(/需要下载打标模型/)).toBe(0);
-    expect(shown(/打标模型已下载/)).toBe(0);
+    expect(shown(/需要下载自动标签模型/)).toBe(0);
+    expect(shown(/已下载自动标签模型/)).toBe(0);
   });
 
   it("下载过一部分时操作写“继续下载”；从别处开始下载后通知收起", async () => {
@@ -165,12 +164,12 @@ describe("“需要下载”通知的去重", () => {
     mount();
     expect(await screen.findByRole("button", { name: "继续下载" })).toBeTruthy();
     await push(downloading(300_000_000));
-    await waitFor(() => expect(screen.queryByText(/需要下载打标模型/)).toBeNull());
+    await waitFor(() => expect(screen.queryByText(/需要下载自动标签模型/)).toBeNull());
   });
 });
 
 describe("完成类通知", () => {
-  it("下载完成弹一次“打标模型已下载”，5 秒后消失", async () => {
+  it("下载完成弹一次“已下载自动标签模型”，5 秒后消失", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     backend({ L1: downloading(100) });
     mount();
@@ -178,9 +177,9 @@ describe("完成类通知", () => {
     await push(downloading(900_000_000));
     await push({ state: "preparing", model: "PixAI" });
     await push({ state: "starting" });
-    await waitFor(() => expect(shown(/打标模型已下载/)).toBe(1));
+    await waitFor(() => expect(shown(/已下载自动标签模型/)).toBe(1));
     await act(async () => { vi.advanceTimersByTime(6_000); });
-    await waitFor(() => expect(screen.queryByText("打标模型已下载")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("已下载自动标签模型")).toBeNull());
   });
 
   it.each<[string, TaggingStatus]>([
@@ -191,8 +190,8 @@ describe("完成类通知", () => {
     mount();
     await settled();
     await push(next);
-    await waitFor(() => expect(shown(/需要下载打标模型|下载失败/)).toBe(1));
-    expect(shown(/打标模型已下载/)).toBe(0);
+    await waitFor(() => expect(shown(/需要下载自动标签模型|下载失败/)).toBe(1));
+    expect(shown(/已下载自动标签模型/)).toBe(0);
   });
 
   it("下载中暂停（#213）不算下载完成", async () => {
@@ -201,7 +200,7 @@ describe("完成类通知", () => {
     await settled();
     await push({ state: "paused" });
     expect(await screen.findByRole("button", { name: /自动标签：已暂停/ })).toBeTruthy();
-    expect(shown(/打标模型已下载/)).toBe(0);
+    expect(shown(/已下载自动标签模型/)).toBe(0);
   });
 });
 
@@ -286,11 +285,11 @@ describe("切换可写资料库", () => {
   it("不弹出旧库迟到的通知，旧库的“需要下载”通知收起", async () => {
     backend({ L1: needsDownload(), L2: running(3) });
     mount(vi.fn(), "L1", ["L1", "L2"]);
-    await waitFor(() => expect(shown(/需要下载打标模型/)).toBe(1));
+    await waitFor(() => expect(shown(/需要下载自动标签模型/)).toBe(1));
 
     await act(() => emit("writable-library", { id: "L2", name: "私人收藏", root: "D:\\私人收藏" }));
-    await screen.findByRole("button", { name: /已打 3 张/ });
-    await waitFor(() => expect(shown(/需要下载打标模型/)).toBe(0));
+    await screen.findByRole("button", { name: /已标 3 张/ });
+    await waitFor(() => expect(shown(/需要下载自动标签模型/)).toBe(0));
     await push({ state: "failed", reason: "旧库打标失败" }, "L1");
     await push({ state: "noDevice", reason: "旧库没有显卡" }, "L1");
     await push(idle(4), "L2");

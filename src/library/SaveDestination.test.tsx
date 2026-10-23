@@ -35,7 +35,8 @@ it("global import requires a visible save destination and does not change browse
  },{shouldMockEvents:true});
  render(<App/>);
  // #98: the split button picks files first; the panel then asks where to save before anything starts.
- fireEvent.click(await screen.findByRole("button",{name:"导入图片文件"}));
+ fireEvent.click(await screen.findByRole("button",{name:"导入"}));
+ fireEvent.click(await screen.findByRole("menuitem",{name:/^图片/}));
  const start=await screen.findByRole("button",{name:"开始导入"});
  const menu=screen.getByRole("dialog",{name:"导入图片"});
  expect(start).toHaveProperty("disabled",true);
@@ -72,7 +73,8 @@ it("a late start reply and cancel keep the submitted owner after selecting anoth
   return null;
  },{shouldMockEvents:true});
  render(<App/>);
- fireEvent.click(await screen.findByRole("button",{name:"导入图片文件"}));
+ fireEvent.click(await screen.findByRole("button",{name:"导入"}));
+ fireEvent.click(await screen.findByRole("menuitem",{name:/^图片/}));
  const start=await screen.findByRole("button",{name:"开始导入"});
  fireEvent.change(await screen.findByRole("combobox",{name:"放到图库"}),{target:{value:"B"}});
  await waitFor(()=>expect(start).toHaveProperty("disabled",false));
@@ -117,7 +119,8 @@ it("a concrete folder entry prefills its provider and folder without activating 
   return null;
  },{shouldMockEvents:true});
  render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" scope={{kind:"library",libraryId:"B",scope:{kind:"folder",id:"folder-b"}}} running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
- fireEvent.click(screen.getByRole("button",{name:"导入图片文件"}));
+ fireEvent.click(screen.getByRole("button",{name:"导入"}));
+ fireEvent.click(await screen.findByRole("menuitem",{name:/^图片/}));
  await screen.findByRole("button",{name:"开始导入"});
  expect(await screen.findByText("放到：保存库 / 具体目录")).toBeTruthy();
  expect((screen.getByRole("combobox",{name:"放到图库"}) as HTMLSelectElement).value).toBe("B");

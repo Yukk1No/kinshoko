@@ -8,10 +8,11 @@ import { arcSpring, Dock, type DockItem } from "../ui/Dock";
 import { MenuItem } from "../ui/Menu";
 import { useReducedMotion } from "../ui/reducedMotion";
 import { flattenFolders, PermanentDeleteConfirm } from "./SelectionPanel";
+import { useToast } from "../ui/Toast";
 
 /**
  * 多选的悬浮操作栏（#98，#180）：查看器同款 Dock，浮在图片墙底部。读数是“已选 N 张”，每项一格图标：
- * 放入文件夹 | 移出此文件夹（文件夹浏览范围） | 删除；回收站里只有 恢复 | 永久删除…；最后是取消选择。
+ * 移到文件夹 | 移出此文件夹（文件夹浏览范围） | 移到回收站（轻提示里可撤销）；回收站里只有 恢复 | 永久删除…；最后是取消选择。
  * 只在选了两张及以上时出现（单张的这些操作在右键菜单里）。left 是 selectionBarPlacement 算出的水平位置；
  * onWidth 报告自己的宽度。升起、离开与左右挪动都用 Dock 的形变弹簧，减少动画时直接到位。
  */
@@ -30,6 +31,7 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
   compact?: boolean;
 }) {
   const reduced = useReducedMotion();
+  const toast = useToast();
   const [folders, setFolders] = useState<{ id: string; label: string }[] | null>(null);
   const [purging, setPurging] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -60,9 +62,16 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
   }, []);
 
   const edit = (edits: ImageEdit[], clear: boolean) => {
-    const key = selectionKey;
-    void editImages(libraryId, ids, edits).then(
-      () => { if (clear && currentKey.current === key) onClear(); },
+    const key = selectionKey, picked = ids;
+    void editImages(libraryId, picked, edits).then(
+      () => {
+        if (clear && currentKey.current === key) onClear();
+        // 移到回收站能撤销：不先确认，给一个带“撤销”的轻提示。
+        if (edits.length === 1 && edits[0].kind === "delete") toast?.show({
+          title: "已移到回收站", description: `${picked.length} 张`, tone: "success",
+          action: { label: "撤销", onClick: () => void editImages(libraryId, picked, [{ kind: "restore" }]).catch((e) => onError(String(e))) },
+        });
+      },
       (e) => { if (currentKey.current === key) onError(String(e)); },
     );
   };
@@ -71,14 +80,14 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
   const trash = scope.kind === "trash";
   const items: DockItem[] = [
     ...trash ? [] : [{
-      id: "put", label: "放入文件夹", icon: <FolderInput size={18} strokeWidth={1.75} />, disabled: !hasFolders,
+      id: "put", label: "移到文件夹", icon: <FolderInput size={18} strokeWidth={1.75} />, disabled: !hasFolders,
       note: folders && !hasFolders ? "还没有文件夹" : undefined, menuWidth: 220,
       menu: (folders ?? []).map((f) => <MenuItem key={f.id} onClick={() => edit([{ kind: "addToFolder", folderId: f.id }], false)}>{f.label}</MenuItem>),
     }, ...scope.kind === "folder" ? [{ id: "remove", label: "移出此文件夹", icon: <FolderMinus size={18} strokeWidth={1.75} /> }] : [], "sep" as const],
     ...trash
       ? [{ id: "restore", label: "恢复", icon: <RotateCcw size={18} strokeWidth={1.75} /> },
         { id: "purge", label: "永久删除…", tone: "danger" as const, icon: <Trash2 size={18} strokeWidth={1.75} /> }]
-      : [{ id: "delete", label: "删除", shortcut: "Del", tone: "danger" as const, icon: <Trash2 size={18} strokeWidth={1.75} /> }],
+      : [{ id: "delete", label: "移到回收站", shortcut: "Del", tone: "danger" as const, icon: <Trash2 size={18} strokeWidth={1.75} /> }],
     { id: "clear", label: "取消选择", icon: <X size={18} strokeWidth={1.75} /> },
   ];
   const run = (id: string) => {

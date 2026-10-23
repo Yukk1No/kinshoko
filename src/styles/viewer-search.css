@@ -16,8 +16,8 @@
   background: var(--bg); border-bottom: 1px solid var(--line); }
 .viewer-bar .viewer-back { height: 30px; padding: 0 10px 0 8px; gap: 6px; background: transparent; box-shadow: none; color: var(--ink-2); }
 .viewer-bar .viewer-back:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
-.viewer-title { margin-left: 6px; min-width: 0; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 14px; }
-.viewer-index { margin: 0 4px 0 6px; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.viewer-title { margin-left: 6px; min-width: 0; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 13px; }
+.viewer-index { margin: 0 4px 0 6px; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .viewer-bar .k-icon-btn:disabled { opacity: 0.4; }
 .viewer-zoom { display: flex; align-items: center; gap: 2px; color: var(--ink-2); }
 .viewer-zoom output { min-width: 5ch; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -26,23 +26,23 @@
   min-height: 0;
   overflow: hidden;
   position: relative;
-  background: #808080;
+  background: var(--ground-mid);
   touch-action: none;
   user-select: none;
   cursor: grab;
 }
 .viewer-stage img { display: block; position: absolute; max-width: none; }
 .viewer-stage:active { cursor: grabbing; }
-.viewer-stage[data-background="dark"] { background: #202020; }
-.viewer-stage[data-background="light"] { background: #d6d6d6; }
+.viewer-stage[data-background="dark"] { background: var(--ground-dark); }
+.viewer-stage[data-background="light"] { background: var(--ground-light); }
 .viewer-stage[data-background="checker"] {
-  background: repeating-conic-gradient(#ddd 0% 25%, #999 0% 50%) 0 0 / 24px 24px;
+  background: repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%) 0 0 / 24px 24px;
 }
 /* 背景色块：dock 与托盘里的图标，颜色与舞台底色一致。 */
-.viewer-swatch { display: block; width: 18px; height: 18px; border-radius: 5px; background: #808080; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12); }
-.viewer-swatch[data-ground="dark"] { background: #202020; }
-.viewer-swatch[data-ground="light"] { background: #d6d6d6; }
-.viewer-swatch[data-ground="checker"] { background: repeating-conic-gradient(#ddd 0% 25%, #999 0% 50%) 0 0 / 8px 8px; }
+.viewer-swatch { display: block; width: 18px; height: 18px; border-radius: 5px; background: var(--ground-mid); box-shadow: inset 0 0 0 1px var(--line-2); }
+.viewer-swatch[data-ground="dark"] { background: var(--ground-dark); }
+.viewer-swatch[data-ground="light"] { background: var(--ground-light); }
+.viewer-swatch[data-ground="checker"] { background: repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%) 0 0 / 8px 8px; }
 .viewer-dock { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 4; cursor: default; }
 .viewer-message {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -54,14 +54,14 @@
 .viewer-crop {
   position: absolute;
   box-sizing: border-box;
-  outline: 1.5px solid #fff;
-  box-shadow: 0 0 0 100000px rgb(20 18 30 / 0.45);
+  outline: 1.5px solid var(--on-solid);
+  box-shadow: 0 0 0 100000px var(--overlay);
   pointer-events: none;
   background:
-    linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0.35)) 33.33% 0 / 1px 100% no-repeat,
-    linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0.35)) 66.66% 0 / 1px 100% no-repeat,
-    linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0.35)) 0 33.33% / 100% 1px no-repeat,
-    linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0.35)) 0 66.66% / 100% 1px no-repeat;
+    linear-gradient(var(--guide), var(--guide)) 33.33% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--guide), var(--guide)) 66.66% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--guide), var(--guide)) 0 33.33% / 100% 1px no-repeat,
+    linear-gradient(var(--guide), var(--guide)) 0 66.66% / 100% 1px no-repeat;
 }
 .viewer-pin-status {
   position: absolute;
@@ -75,7 +75,7 @@
   background: var(--ink);
   color: var(--bg);
   font-size: 12px;
-  box-shadow: 0 6px 16px rgb(43 39 71 / 0.25);
+  box-shadow: var(--shadow-pop);
 }
 /* 内容分级（#53）：人工分级优先于自动分级。 */
 .selection-rating {
@@ -181,7 +181,7 @@
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 6px;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+  box-shadow: var(--shadow-pop);
 }
 
 .search-candidates li {
@@ -215,7 +215,7 @@
   padding: 0 4px;
   border: 1px solid currentColor;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 12px;
   opacity: 0.75;
 }
 
@@ -245,7 +245,7 @@
   padding: 0 4px;
   border-radius: 4px;
   background: var(--line);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .search-popover {
@@ -258,7 +258,7 @@
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 6px;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+  box-shadow: var(--shadow-pop);
 }
 
 .search-popover p {
@@ -300,7 +300,7 @@
 .no-external::before {
   content: "⌀";
   margin-left: 2px;
-  font-size: 11px;
+  font-size: 12px;
   opacity: 0.55;
 }
 

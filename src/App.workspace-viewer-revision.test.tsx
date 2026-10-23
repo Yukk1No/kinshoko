@@ -141,7 +141,7 @@ it("后台已知副本分级使聚合图封印时，保留来源详情面板，�
   state.safe = true;
   state.inTwoLibraries = true;
   render(<App />);
-  fireEvent.click(await screen.findByRole("button", { name: "在 2 个图库 · 查看详情" }));
+  fireEvent.click(await screen.findByRole("button", { name: "在 2 个图库，查看详情" }));
   const inspector = screen.getByLabelText("详情", { selector: "aside" });
   // 详情面板没有缩略图（#179）。
   expect(within(inspector).queryByRole("img")).toBeNull();
@@ -189,7 +189,7 @@ it.each(["explicit", "selected"])("列表失效时 %s 详情面板保留，重�
   state.inTwoLibraries = entry === "explicit";
   render(<App />);
   if (entry === "explicit") {
-    fireEvent.click(await screen.findByRole("button", { name: "在 2 个图库 · 查看详情" }));
+    fireEvent.click(await screen.findByRole("button", { name: "在 2 个图库，查看详情" }));
   } else {
     const image = await screen.findByRole("img", { name: "参考图" });
     // 只在一个图库的图没有来源按钮（#221），选中它照样进详情。

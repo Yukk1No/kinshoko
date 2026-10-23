@@ -39,7 +39,7 @@ it("工作区使用范围查询并将全部来源交给检查入口，活动写�
   await settle();
   expect(calls[0].query.scope).toEqual({ kind: "all" });
   await act(async () => calls[0].resolve(page([card])));
-  fireEvent.click(await screen.findByRole("button", { name: "在 2 个图库 · 查看详情" }));
+  fireEvent.click(await screen.findByRole("button", { name: "在 2 个图库，查看详情" }));
   expect(inspect).toHaveBeenCalledWith(card);
   expect(open).not.toHaveBeenCalled();
   expect(document.querySelector(".card")?.getAttribute("data-id")).toBe("bytes");
@@ -51,7 +51,7 @@ it("来源按钮只在图片在两个及以上图库时出现，显示“N 处�
   await settle();
   const single = { ...card, id: "single", imageId: "s", sources: [card.sources[0]] };
   await act(async () => calls[0].resolve(page([card, single])));
-  const multi = await screen.findByRole("button", { name: "在 2 个图库 · 查看详情" });
+  const multi = await screen.findByRole("button", { name: "在 2 个图库，查看详情" });
   expect(multi.textContent).toBe("2 处");
   expect(document.querySelectorAll(".card-sources")).toHaveLength(1);
   expect(document.querySelector('.card-sources[data-card="single"]')).toBeNull();
