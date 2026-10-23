@@ -54,8 +54,8 @@ export function DiagnosticsReport({ onError }: { onError: (message: string) => v
   const report = useDiagnosticsReport(onError);
   return <>
     <p className="settings-actions">
-      <button type="button" className="k-btn is-sm" onClick={report.show}>显示诊断信息</button>
-      <button type="button" className="k-btn is-sm" onClick={report.save}>存成文件…</button>
+      <button type="button" className="k-btn is-sm" onClick={report.show}><span className="k-label">显示诊断信息</span></button>
+      <button type="button" className="k-btn is-sm" onClick={report.save}><span className="k-label">存成文件…</span></button>
     </p>
     {report.text !== null && <pre className="settings-diagnostics" aria-label="诊断信息">{report.text}</pre>}
   </>;
@@ -76,8 +76,8 @@ export function RuntimeFailure({ problems, className = "" }: { problems: string[
     <div role="alert"><strong>运行环境检查未通过</strong><ul>{problems.map((problem) => <li key={problem}>{problem}</li>)}</ul></div>
     <p>更新 WebView2 后，从托盘退出并重启 Kinshoko。若问题继续出现，请保存本机诊断信息。</p>
     <p className="settings-actions">
-      <button type="button" className="k-btn is-sm" onClick={() => void openRuntimeUpdate().catch((e) => setError(String(e)))}>打开微软 WebView2 下载页</button>
-      {runtime && <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch((e) => setError(String(e)))}>重新检查</button>}
+      <button type="button" className="k-btn is-sm" onClick={() => void openRuntimeUpdate().catch((e) => setError(String(e)))}><span className="k-label">打开微软 WebView2 下载页</span></button>
+      {runtime && <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch((e) => setError(String(e)))}><span className="k-label">重新检查</span></button>}
     </p>
     <DiagnosticsReport onError={setError} />
     {error && <p role="alert">{error}</p>}
@@ -102,7 +102,7 @@ export function RuntimeDetails() {
         {status?.assessment.uses8bitFallback ? <StatusPill tone="warn"><Info size={12} aria-hidden="true" />已降级</StatusPill> : state}
       </SettingsRow>
       <SettingsRow icon={<RefreshCw size={16} />} title="重新检查" hint="更新组件后点一下">
-        <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch(() => {})}>检查</button>
+        <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch(() => {})}><span className="k-label">检查</span></button>
       </SettingsRow>
     </SettingsGroup>
     {failed && <RuntimeNotice className="is-inline" />}

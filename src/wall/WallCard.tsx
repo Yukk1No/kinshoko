@@ -77,7 +77,7 @@ export function wallCardNode({ card, b, landing, veiled, leaving, selected, work
       title={`在 ${sources.length} 个图库`}
       style={{ left: `${b.x + b.w - 8}px`, top: `${b.y + b.h - 8}px` }}
       onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; cardHandlers.current.inspect?.(card as WorkspaceCard); }}
-      onKeyDown={(e) => e.stopPropagation()}>{SOURCES_ICON}{`${sources.length} 处`}</button>}
+      onKeyDown={(e) => e.stopPropagation()}>{SOURCES_ICON}<span className="k-label">{`${sources.length} 处`}</span></button>}
     </Fragment>
   );
 }

@@ -241,7 +241,7 @@ export function LibraryWorkspace({
             }}
           />
           <div className="bar-meta">
-            <span className="result-count tabular" role="status" aria-label="查找结果">{resultCount === null ? "…" : resultCount + " 张"}</span>
+            <span className="result-count tabular k-label" role="status" aria-label="查找结果">{resultCount === null ? "…" : resultCount + " 张"}</span>
           </div>
           <ImportMenu control={importControl} scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
             running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}

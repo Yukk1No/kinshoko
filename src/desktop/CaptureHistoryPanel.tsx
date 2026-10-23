@@ -77,10 +77,10 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
         <h2>截图</h2>
         <div className="capture-history-start">
           <button type="button" className="k-btn" onClick={() => run(pinClipboard())}>
-            <Clipboard size={15} aria-hidden="true" />钉住剪贴板{keys.pinClipboard && <kbd className="k-kbd">{keys.pinClipboard}</kbd>}
+            <Clipboard size={15} aria-hidden="true" /><span className="k-label">钉住剪贴板</span>{keys.pinClipboard && <kbd className="k-kbd">{keys.pinClipboard}</kbd>}
           </button>
           <button type="button" className="k-btn" onClick={() => void capture()}>
-            <Scissors size={15} aria-hidden="true" />截图
+            <Scissors size={15} aria-hidden="true" /><span className="k-label">截图</span>
           </button>
         </div>
         <p className="capture-history-note">{keys.capture && `按 ${keys.capture} 截取屏幕。`}没收藏的旧截图会自动清理。</p>
@@ -102,10 +102,10 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
                   <span className="capture-history-actions">
                     {collected
                       ? <button type="button" className="side-chip is-done" aria-label="已收藏，再收藏到别处" onClick={() => setCollecting(entry.id)}>
-                        <Check size={12} aria-hidden="true" />已收藏</button>
-                      : <button type="button" className="side-chip" onClick={() => setCollecting(entry.id)}><BookmarkPlus size={12} aria-hidden="true" />收藏</button>}
-                    <button type="button" className="side-chip" onClick={() => run(pinCapture(entry.id))}><Pin size={12} aria-hidden="true" />钉住</button>
-                    <button type="button" className="side-chip" onClick={() => run(copyCapture(entry.id))}><Copy size={12} aria-hidden="true" />复制</button>
+                        <Check size={12} aria-hidden="true" /><span className="k-label">已收藏</span></button>
+                      : <button type="button" className="side-chip" onClick={() => setCollecting(entry.id)}><BookmarkPlus size={12} aria-hidden="true" /><span className="k-label">收藏</span></button>}
+                    <button type="button" className="side-chip" onClick={() => run(pinCapture(entry.id))}><Pin size={12} aria-hidden="true" /><span className="k-label">钉住</span></button>
+                    <button type="button" className="side-chip" onClick={() => run(copyCapture(entry.id))}><Copy size={12} aria-hidden="true" /><span className="k-label">复制</span></button>
                   </span>
                 </div>
                 <button type="button" className="k-icon-btn capture-history-delete" aria-label="删除这张截图" title="删除" onClick={() => run(deleteCapture(entry.id))}>

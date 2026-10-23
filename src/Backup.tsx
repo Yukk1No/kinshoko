@@ -128,7 +128,7 @@ export function BackupSettings() {
         <SettingsRow icon={<HardDrive size={16} />} title="备份位置"
           meta={plan.target ?? "还没选"} hint="最好放在另一块硬盘" label="备份位置">
           <button type="button" className="k-btn is-sm" onClick={() => void choose().catch((e) => setError(String(e)))}>
-            {plan.target === null ? "选择…" : "更换"}
+            <span className="k-label">{plan.target === null ? "选择…" : "更换"}</span>
           </button>
         </SettingsRow>
         <SettingsRow icon={<Archive size={16} />} title="上次备份" hint="每天第一次退出或空闲时自动备份一次"
@@ -137,7 +137,7 @@ export function BackupSettings() {
           warn={plan.lastFailure !== null && <span role="alert">没有完成（{stampText(plan.lastFailure.at)}）：{plan.lastFailure.reason}</span>}>
           {plan.lastFailure === null && plan.lastSuccess !== null && running === null && <StatusPill tone="ok"><CircleCheck size={12} aria-hidden="true" />已备份</StatusPill>}
           <button type="button" className="k-btn is-sm is-primary" disabled={plan.target === null || running !== null}
-            onClick={() => void startBackup().catch((e) => setError(String(e)))}>立即备份</button>
+            onClick={() => void startBackup().catch((e) => setError(String(e)))}><span className="k-label">立即备份</span></button>
         </SettingsRow>
         <SettingsRow icon={<Library size={16} />} title="备份范围"
           meta={preview ? `约 ${mb(preview.estimate.totalBytes)}` : "正在估算…"}
@@ -231,7 +231,7 @@ function RestoreView({ onError }: { onError: (message: string) => void }) {
             {snapshots.map((s) => (
               <li key={s.id}>
                 <button type="button" className="k-btn is-sm" disabled={busy} aria-label={`恢复 ${stampText(s.createdAt)} 的备份`}
-                  onClick={() => void restore(s)}>{stampText(s.createdAt)}</button>
+                  onClick={() => void restore(s)}><span className="k-label">{stampText(s.createdAt)}</span></button>
                 <span>图库 {s.libraries.map((l) => l.name).join("、") || "无"}，参考组 {s.groups.length} 个</span>
               </li>
             ))}
@@ -240,7 +240,7 @@ function RestoreView({ onError }: { onError: (message: string) => void }) {
         {busy && <p role="status">正在恢复并核对…</p>}
         {report !== null && <RestoreResult report={report} />}
       </>}>
-      <button type="button" className="k-btn is-sm" onClick={() => void list()}>选择备份…</button>
+      <button type="button" className="k-btn is-sm" onClick={() => void list()}><span className="k-label">选择备份…</span></button>
     </SettingsRow>
   );
 }

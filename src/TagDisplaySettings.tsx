@@ -91,7 +91,7 @@ export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; o
         setHigh(shown(DEFAULT_TAG_DISPLAY.high));
         setLow(shown(DEFAULT_TAG_DISPLAY.low));
         save({ high: DEFAULT_TAG_DISPLAY.high, low: DEFAULT_TAG_DISPLAY.low });
-      }}><RotateCcw size={12} aria-hidden="true" />恢复默认</button>
+      }}><RotateCcw size={12} aria-hidden="true" /><span className="k-label">恢复默认</span></button>
     </SettingsRow>
     <SettingsRow icon={<SquareDashed size={16} />} title="低档虚线框" hint="低档标签加虚线外框；关掉后只把字变浅">
       <Switch label="低档虚线框" checked={shownDisplay.lowOutline} onCheckedChange={(on) => save({ lowOutline: on })} />

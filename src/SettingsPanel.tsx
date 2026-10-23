@@ -177,7 +177,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
         ? <p className="k-set-note" role="status">正在读取设置…</p>
         : <div className="k-set-load-error">
           <p className="k-set-error" role="alert">设置没读出来：{loadError}</p>
-          <button type="button" className="k-btn" onClick={() => setLoadAttempt((n) => n + 1)}>重试</button>
+          <button type="button" className="k-btn" onClick={() => setLoadAttempt((n) => n + 1)}><span className="k-label">重试</span></button>
         </div>}
     </section>;
   }
@@ -229,12 +229,12 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
                 {isRecording ? <>
                   <input className="k-key-recorder" aria-label="按下新的组合键" placeholder="按下新的组合键…" autoFocus readOnly
                     onKeyDown={(e) => onRecordKey(binding.action, e)} onBlur={() => setRecording(null)} />
-                  <button type="button" className="k-btn is-sm" onMouseDown={(e) => e.preventDefault()} onClick={() => setRecording(null)}>取消</button>
+                  <button type="button" className="k-btn is-sm" onMouseDown={(e) => e.preventDefault()} onClick={() => setRecording(null)}><span className="k-label">取消</span></button>
                 </> : <>
                   {binding.accelerator === null ? <span className="k-set-muted">未设置</span> : <Keys accelerator={binding.accelerator} />}
                   {binding.accelerator !== null && <button type="button" className="k-btn is-sm is-quiet"
-                    onClick={() => void apply(rebindShortcut(binding.action, null))}>清除</button>}
-                  <button type="button" className="k-btn is-sm" onClick={() => setRecording(binding.action)}>{binding.accelerator === null ? "设置" : "更换"}</button>
+                    onClick={() => void apply(rebindShortcut(binding.action, null))}><span className="k-label">清除</span></button>}
+                  <button type="button" className="k-btn is-sm" onClick={() => setRecording(binding.action)}><span className="k-label">{binding.accelerator === null ? "设置" : "更换"}</span></button>
                 </>}
               </SettingsRow>;
             })}
@@ -298,8 +298,8 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
                   <p className="k-set-note">存成文件时附上最近 7 天的运行日志，打包成一个 zip，由你决定要不要发出去。</p>
                   {diagnostics.text !== null && <pre className="settings-diagnostics" aria-label="诊断信息">{diagnostics.text}</pre>}
                 </>}>
-                <button type="button" className="k-btn is-sm" onClick={diagnostics.show}>查看</button>
-                <button type="button" className="k-btn is-sm" onClick={diagnostics.save}>存成文件…</button>
+                <button type="button" className="k-btn is-sm" onClick={diagnostics.show}><span className="k-label">查看</span></button>
+                <button type="button" className="k-btn is-sm" onClick={diagnostics.save}><span className="k-label">存成文件…</span></button>
               </SettingsRow>
               <SettingsRow icon={<Activity size={16} />} title="运行日志" hint="只存本机，不上传"
                 below={<p className="k-set-note">记下出错和截图、钉图、自动标签的时间点，帮开发者排查问题；不记文件名、路径、标签与图片。最多留 7 天、20 MB。

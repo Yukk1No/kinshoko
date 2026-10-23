@@ -75,8 +75,8 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
               <Popover.Description className="k-set-note">词表更新不会替换这个名字，可以在设置里恢复默认</Popover.Description>
               {error && <p className="k-set-error" role="alert">{error}</p>}
               <div className="k-rename-acts">
-                <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => change(false)}>取消</button>
-                <button type="submit" className="k-btn is-sm is-primary" disabled={busy || !text}>保存显示名</button>
+                <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => change(false)}><span className="k-label">取消</span></button>
+                <button type="submit" className="k-btn is-sm is-primary" disabled={busy || !text}><span className="k-label">保存显示名</span></button>
               </div>
               {openSettings && <button type="button" className="k-link k-rename-more"
                 onClick={() => { change(false); openSettings(catalogId); }}>在设置中管理“{name}”的名称和别名</button>}

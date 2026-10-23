@@ -86,12 +86,12 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
               x: Math.round(rect.left * dpr), y: Math.round(rect.top * dpr),
               width: Math.round(200 * pinDpr), height: Math.round(200 * card.height / card.width * pinDpr),
             }), `已钉住「${source.libraryName}」的原图`);
-          }}><Pin size={14} aria-hidden="true" />钉住</button>
+          }}><Pin size={14} aria-hidden="true" /><span className="k-label">钉住</span></button>
           <button type="button" className="k-btn" disabled={!groupId && !name.trim()} onClick={() => run(
             () => workspaceSourceGroup(target, safe, groupId ? { groupId } : { name: name.trim() }),
             `已将「${source.libraryName}」的此来源加入参考组`,
-          )}><Layers size={14} aria-hidden="true" />加入组</button>
-          <button type="button" className="k-btn" onClick={()=>setCopying(true)}><Copy size={14} aria-hidden="true" />复制到…</button>
+          )}><Layers size={14} aria-hidden="true" /><span className="k-label">加入组</span></button>
+          <button type="button" className="k-btn" onClick={()=>setCopying(true)}><Copy size={14} aria-hidden="true" /><span className="k-label">复制到…</span></button>
         </div>
       </fieldset>
     </>}
