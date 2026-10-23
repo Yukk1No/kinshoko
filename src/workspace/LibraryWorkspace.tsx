@@ -1,29 +1,35 @@
-import type { ReactNode } from "react";
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, X } from "lucide-react";
-import { WinCtrls } from "../ui/WinCtrls";
-import { InspectorResizer } from "../shell/InspectorResizer";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { PanelLeftOpen } from "lucide-react";
+import { useImportShortcut } from "./useImportShortcut";
+import type { BrowseScope } from "../bindings/BrowseScope";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
-import { ImportMenu } from "../library/ImportMenu";
-import { WorkspacePane, WorkspaceSources } from "../library/WorkspacePane";
-import { CaptureHistoryPanel } from "../desktop/CaptureHistoryPanel";
-import { ReferenceGroupsPanel } from "../desktop/ReferenceGroupsPanel";
-import { SelectionPanel } from "../library/SelectionPanel";
-import { TagGroupsPane } from "../library/TagGroupsPane";
+import type { WorkspaceScope } from "../bindings/WorkspaceScope";
+import { referenceCard } from "../desktop/openInKinshoko";
+import { isCursorExpired } from "../ipc";
+import { ImportMenu, type ImportControl } from "../library/ImportMenu";
 import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
 import type { Section } from "../shell/Rail";
-import { Dialog } from "@base-ui/react/dialog";
 import { TaggingActivity } from "../TaggingActivity";
-import { scopeKey, Wall } from "../wall/Wall";
+import { useToast } from "../ui/Toast";
+import { WinCtrls } from "../ui/WinCtrls";
+import { scopeKey, Wall, type WallHandle, type BrowserCard } from "../wall/Wall";
+import { WallFloats } from "../wall/WallFloats";
 import { WallMenu } from "../wall/WallMenu";
 import { useWallActions } from "../wall/useWallActions";
-import { WallFloats } from "../wall/WallFloats";
 import { Viewer } from "../viewer/Viewer";
-import { useWorkspaceState } from "./useWorkspaceState";
-import { useInspectorState } from "./useInspectorState";
+import { TagGroupsDialog } from "./TagGroupsDialog";
+import { useImportTasks } from "./useImportTasks";
+import { useLibraryEvents } from "./useLibraryEvents";
+import { useSearchTree } from "./useSearchTree";
+import { useViewerStep } from "./useViewerStep";
+import { WorkspaceInspector } from "./WorkspaceInspector";
+import { WorkspaceSidebar } from "./WorkspaceSidebar";
+import { useWorkspaceInspector } from "./useWorkspaceInspector";
+import { useWorkspaceStatus } from "./useWorkspaceStatus";
 
-export type WorkspaceProps = {
+type WorkspaceProps = {
   library: LibraryInfo | null;
   captureRequest?:{id:string;stamp:number}|null;
   onCaptureRequestHandled?:()=>void;
@@ -55,7 +61,6 @@ export type WorkspaceProps = {
   onOpenTaggingSettings: () => void;
 };
 
-
 /**
  * 同一工作区浏览已登记资料库；查找范围与活动写入资料库分别保存。
  * 活动资料库变化时取消旧导入和选择视角，保留工作区查找与滚动锚点。
@@ -81,19 +86,115 @@ export function LibraryWorkspace({
   onLibraryRemoved,
   onOpenTaggingSettings,
 }: WorkspaceProps) {
-  const {
-    toast, libraryId, status, sources, setSources, loadedCards, setLoadedCards, workspaceScope,
-    setWorkspaceScope, reloadKey, setReloadKey, density, setDensity, zoomPreview, setZoomPreview,
-    resultCount, setResultCount, wall, running, report, setReport, scope, selected, setSelected, viewing,
-    setViewing, viewCrop, setViewCrop, importControl, editingGroups, setEditingGroups, problem, setProblem,
-    search, setSearch, tree, treeSafe, vocabularyKey, setVocabularyKey, onError, viewerOpen, viewingIndex,
-    step, onWallStatus, searching, recheck, started,
-  } = useWorkspaceState({ library, captureRequest, referenceRequest, hidden, safe, onSafeChanged, keepSelectionOnSafe });
-  const {
-    selectionKey, selectionLibrary, eligible, inspected, inspectorContent, panelIds, inspectorOpen,
-    setInspectorElement, inspectorMoving, draggedWidth, setDraggedWidth, panelWidth, closeInspector,
-    toggleInspector,
-  } = useInspectorState({ selected, setSelected, loadedCards, workspaceScope, libraryId, sources, setSources, hidden, viewing, inspectorWidth });
+  const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
+  keepSelectionOnSafeRef.current = keepSelectionOnSafe;
+  const toast = useToast();
+  const libraryId = library?.id ?? "";
+  const [sources, setSources] = useState<WorkspaceCard | null>(null);
+  const [loadedCards, setLoadedCards] = useState<BrowserCard[]>([]);
+  const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
+  const [reloadKey, setReloadKey] = useState(0);
+  const [density, setDensity] = useState(240);
+  /** 图片墙上 Ctrl+滚轮缩放中的预览值（#111），滑条跟着走。 */
+  const [zoomPreview, setZoomPreview] = useState<number | null>(null);
+  const [resultCount, setResultCount] = useState<number | null>(null);
+  /**
+   * 修订变化后的选择修剪：等图片墙读完新的结果，然后只保留仍在的图。范围或安全模式变了时图片墙先清空（loading
+   * 等它读完）；只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
+   */
+  const prune = useRef<"idle" | "reset" | "loading">("idle");
+  const wall = useRef<WallHandle>(null);
+  const { imports, running, setRunning, report, setReport, started } = useImportTasks();
+  const scope: BrowseScope = workspaceScope.kind === "library" ? workspaceScope.scope : { kind: "all" };
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [viewing, setViewing] = useState<BrowserCard | null>(null);
+  /** 查看器打开时即进入框选（图片墙右键“框选局部钉住”或 F1）。 */
+  const [viewCrop, setViewCrop] = useState(false);
+  useEffect(() => { if (!viewing) setViewCrop(false); }, [viewing]);
+  const importControl = useRef<ImportControl>(null);
+  useImportShortcut(importControl, hidden);
+  const [editingGroups, setEditingGroups] = useState(false);
+  useEffect(()=>{if(captureRequest){setViewing(null);setSources(null);}},[captureRequest]);
+  // 钉图菜单“在 Kinshoko 中打开”（#106）：按当前安全模式读这张参考图，读到才打开查看器。
+  useEffect(() => {
+    if (!referenceRequest) return;
+    let alive = true;
+    const { libraryId: from, imageId } = referenceRequest;
+    referenceCard(from, imageId, safe).then(
+      (card) => { if (!alive) return; setSources(null); setViewCrop(false); setViewing(card); },
+      (e) => { if (alive) toast?.error(`无法打开这张参考图：${String(e)}`); },
+    );
+    return () => { alive = false; };
+  }, [referenceRequest]);
+  const [problem, setProblem] = useState<string | null>(null);
+  /**
+   * 词表代次：词表、图片或安全模式变化时递增，重新解析条件、重新取得候选（标签可能改名、
+   * 删除、新增了叫法，或在安全模式下被封印）。与后端 Search 缓存的修订号和安全模式对应。
+   */
+  const [vocabularyKey, setVocabularyKey] = useState(0);
+  /**
+   * 工作区读取期间修订变了（CursorExpired）：那次读到的结果已经过时，不是要用户处理的问题。
+   * 像收到变更通知一样按新修订重读；变更停下后读取成功，不留下常驻横幅（#98）。
+   * 同修订的变更通知会被略过，所以不能只等通知来补读。
+   */
+  const onError = useCallback((message: string) => {
+    // 真实错误进轻提示（#98），一直留到画师按“知道了”；没有提示容器时退回就地横幅。
+    if (!isCursorExpired(message)) { if (toast) toast.error(message); else setProblem(message); return; }
+    setReloadKey((k) => k + 1);
+    setVocabularyKey((k) => k + 1);
+  }, [toast]);
+  const safeChanged = useRef(onSafeChanged);
+  safeChanged.current = onSafeChanged;
+  const viewerOpen = viewing !== null;
+  useEffect(() => {
+    if (prune.current === "reset" && resultCount === null) { prune.current = "loading"; return; }
+    if (prune.current === "idle" || resultCount === null) return;
+    prune.current = "idle";
+    const present = new Set(loadedCards.map((card) => card.id));
+    setSelected((previous) => {
+      const kept = [...previous].filter((id) => present.has(id));
+      return kept.length === previous.size ? previous : new Set(kept);
+    });
+  }, [loadedCards, resultCount]);
+  const { viewingIndex, step } = useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall });
+  const { status, statusObservations, onWallStatus, recheck } = useWorkspaceStatus({
+    safe, onError, wall, prune, setViewing, setReloadKey, setVocabularyKey,
+  });
+
+  // 视角一变就在这次渲染里推进重读序号（#183）：图片墙的重新浏览与视角变化在同一次提交里、
+  // 先于这里的状态与侧栏刷新发出。后端让这些查询排队用同一组资源，浏览排在后面要多等上百毫秒。
+  // 旧视角还在路上的浏览由图片墙按视角作废。
+  const [reloadedFor, setReloadedFor] = useState(safe);
+  if (reloadedFor !== safe) {
+    setReloadedFor(safe);
+    setReloadKey((k) => k + 1);
+  }
+  useEffect(() => {
+    // 用户偏好：默认切换即清空；保留时由重读后的修剪去掉新视角里看不到的图。
+    if (!keepSelectionOnSafeRef.current) {
+      setSources(null);
+      setSelected(new Set());
+    }
+    prune.current = "reset";
+    setViewing(null);
+    setVocabularyKey((k) => k + 1);
+  }, [safe]);
+  useEffect(() => {
+    imports.current.running = null;
+    setRunning(null); setReport(null); setSelected(new Set()); setViewing(null); setSources(null);
+    setReloadKey((k) => k + 1);
+  }, [libraryId]);
+  useLibraryEvents({
+    libraryId, toast, imports, statusObservations, wall, prune, safeChanged, keepSelectionOnSafeRef,
+    setReloadKey, setVocabularyKey, setSelected, setViewing, setRunning, setReport,
+  });
+
+  const { search, setSearch, tree, treeSafe, searching } = useSearchTree({ libraryId, safe, vocabularyKey, onError, setReloadKey });
+
+  const inspector = useWorkspaceInspector({
+    selected, setSelected, loadedCards, workspaceScope, libraryId, sources, setSources, hidden, viewing, inspectorWidth,
+  });
+  const { selectionLibrary, eligible, inspected, inspectorContent, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector } = inspector;
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
   const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
@@ -110,35 +211,17 @@ export function LibraryWorkspace({
     setDensity,
   });
 
-  const libInPane = paneOpen && section === "browse";
-  const sectionName = section === "groups" ? "参考组" : "截图";
   return (
     <>
     <div className="app-workspace workspace" hidden={hidden}>
       <div className="app-body">
-        <aside
-          className="sidebar-slot pane"
-          data-collapsed={!paneOpen}
-          aria-label={section === "browse" ? "文件夹" : section === "groups" ? "参考组" : "截图历史"}
-          aria-hidden={!paneOpen}
-          inert={!paneOpen}
-        >
-          <header className="pane-head" data-tauri-drag-region>
-            {section === "browse" ? <div className="pane-library">{libInPane && libraryControls}</div>
-              : <h1 className="pane-title">{sectionName}</h1>}
-            <button type="button" className="k-icon-btn" aria-label="收起侧栏" title="收起侧栏 Ctrl B" onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button>
-          </header>
-          <div className="pane-body" hidden={section !== "browse"}>
-          <WorkspacePane status={status} scope={workspaceScope} safeMode={safe}
-            reloadKey={reloadKey} onError={onError} onRecheck={recheck} onRemoved={onLibraryRemoved} onScope={(next) => {
-              // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
-              setWorkspaceScope(next); setSelected(new Set()); setSources(null); setViewing(null);
-            }}>
-          </WorkspacePane>
-          </div>
-          {section === "groups" && <ReferenceGroupsPanel libraryId={libraryId || undefined} />}
-          {section === "captures" && <CaptureHistoryPanel libraryId={libraryId || undefined} request={captureRequest} onRequestHandled={onCaptureRequestHandled} />}
-        </aside>
+        <WorkspaceSidebar section={section} paneOpen={paneOpen} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
+          status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} recheck={recheck}
+          onLibraryRemoved={onLibraryRemoved} libraryId={libraryId} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
+          onScope={(next) => {
+            // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
+            setWorkspaceScope(next); setSelected(new Set()); setSources(null); setViewing(null);
+          }} />
         <main className="app-main main">
           <header className="topbar" data-tauri-drag-region>
             {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label="展开侧栏" title="展开侧栏 Ctrl B"><PanelLeftOpen size={16} aria-hidden="true" /></button>}
@@ -176,32 +259,17 @@ export function LibraryWorkspace({
           <TagGroupBar workspace libraryId="workspace" safe={safe} generation={vocabularyKey} input={search}
             onChange={(next) => { setSearch(next); setSelected(new Set()); setViewing(null); }} onError={onError} onEdit={() => setEditingGroups(true)} />
           </div>
-          {/* 分组编辑器从侧栏移到标签栏的“编辑分组”（#98）。 */}
-          <Dialog.Root open={editingGroups} onOpenChange={setEditingGroups}>
-            <Dialog.Portal>
-              <Dialog.Backdrop className="k-backdrop" />
-              <Dialog.Popup className="k-dialog k-groups-dialog">
-                <Dialog.Close className="k-icon-btn k-dialog-x" aria-label="关闭"><X size={16} aria-hidden="true" /></Dialog.Close>
-                <Dialog.Title className="k-dialog-title">编辑分组</Dialog.Title>
-                <Dialog.Description className="k-dialog-desc">各图库共用，查找时满足任一标签即可。</Dialog.Description>
-                <TagGroupsPane
-                  safe={safe}
-                  generation={vocabularyKey}
-                  onBrowse={(globalIds) => {
-                    setSearch((prev) => ({
-                      ...prev,
-                      conditions: [{ any: globalIds.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }],
-                    }));
-                    setSelected(new Set());
-                    setViewing(null);
-                    setEditingGroups(false);
-                  }}
-                  onError={onError}
-                />
-                <div className="k-dialog-foot"><span className="k-grow" /><Dialog.Close className="k-btn is-primary">完成</Dialog.Close></div>
-              </Dialog.Popup>
-            </Dialog.Portal>
-          </Dialog.Root>
+          <TagGroupsDialog open={editingGroups} onOpenChange={setEditingGroups} safe={safe} generation={vocabularyKey}
+            onBrowse={(globalIds) => {
+              setSearch((prev) => ({
+                ...prev,
+                conditions: [{ any: globalIds.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }],
+              }));
+              setSelected(new Set());
+              setViewing(null);
+              setEditingGroups(false);
+            }}
+            onError={onError} />
           {problem && (
             <p className="app-problem" role="alert">
               {problem}
@@ -269,34 +337,9 @@ export function LibraryWorkspace({
           </div>
         </main>
         {inspectorContent && !hidden && (
-          <aside ref={setInspectorElement} className="inspector" aria-label="详情" data-selection={inspected?.id ?? selectionKey} data-collapsed={!inspectorOpen} data-resizing={draggedWidth !== null} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>
-            <InspectorResizer width={panelWidth} onResize={(width, done) => {
-              if (!done) { setDraggedWidth(width); return; }
-              setDraggedWidth(null);
-              onInspectorWidth(width);
-            }} />
-            <header className="insp-head" data-tauri-drag-region>
-              <button type="button" className="k-icon-btn" aria-label="收起详情" title="收起详情" onClick={closeInspector}><PanelRightClose size={16} aria-hidden="true" /></button>
-              <span className="insp-title">详情</span>
-              {inspectorOpen && <WinCtrls />}
-            </header>
-            <div className="insp-body">
-              {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => { if (sources) setSources(null); else setSelected(new Set()); }} onView={setViewing}
-                onChanged={() => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); }} />
-              : <SelectionPanel
-                workspace
-                libraryId={selectionLibrary ?? libraryId}
-                scope={scope}
-                inlineActions={false}
-                selected={new Set(panelIds)}
-                onClear={() => setSelected(new Set())}
-                reloadKey={reloadKey}
-                onError={onError}
-                safeMode={safe}
-                generation={vocabularyKey}
-              />}
-            </div>
-          </aside>
+          <WorkspaceInspector inspector={inspector} status={status} safe={safe} reloadKey={reloadKey} vocabularyKey={vocabularyKey}
+            libraryId={libraryId} scope={scope} sources={sources} setSources={setSources} setSelected={setSelected} setViewing={setViewing}
+            setReloadKey={setReloadKey} setVocabularyKey={setVocabularyKey} onError={onError} onInspectorWidth={onInspectorWidth} />
         )}
       </div>
     </div>

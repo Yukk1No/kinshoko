@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { UpdateBanner, UpdateSection } from "./Update";
+import { UpdateNotice, UpdateSection } from "./Update";
+import { ToastProvider } from "./ui/Toast";
 
 afterEach(() => {
   cleanup();
@@ -18,50 +19,81 @@ function backend(handle: (cmd: string) => unknown) {
   return calls;
 }
 
-describe("主窗口的更新提示", () => {
-  it("还没检查过时检查一次，有新版本就提示，可以安装", async () => {
+describe("主窗口的更新通知", () => {
+  const notice = () => render(<ToastProvider><UpdateNotice /></ToastProvider>);
+
+  it("还没检查过时检查一次，有新版本就在右下角通知，可以安装", async () => {
     const calls = backend((cmd) => {
       if (cmd === "update_status") return { state: "unchecked" };
       if (cmd === "check_update") return { state: "available", version: "0.2.0", notes: null };
+      if (cmd === "install_update") return new Promise(() => {});
       return null;
     });
-    render(<UpdateBanner />);
+    notice();
 
-    expect(await screen.findByText("Kinshoko 0.2.0 可以更新。")).toBeTruthy();
+    expect(await screen.findByText("Kinshoko 0.2.0 可以更新")).toBeTruthy();
+    // 设计系统 v3：不写解释性描述，“安装并重启”已经说清楚了。
+    expect(screen.getByRole("region", { name: "提示" }).textContent).not.toContain("装好后自动重启");
     fireEvent.click(screen.getByRole("button", { name: "安装并重启" }));
     await waitFor(() => expect(calls).toContain("install_update"));
+    expect(await screen.findByText("正在更新到 0.2.0")).toBeTruthy();
+
+    await act(async () => { await emit("update-progress", { downloaded: 3 * 1024 * 1024, total: 12 * 1024 * 1024 }); });
+    expect(await screen.findByText("正在下载 3.0／12.0 MB")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "安装并重启" })).toBeNull();
   });
 
-  it("换了更新通道后收起提示：旧通道查到的更新已经作废", async () => {
+  it("安装失败时通知里说明原因，可以重试", async () => {
+    let attempts = 0;
+    backend((cmd) => {
+      if (cmd === "update_status") return { state: "available", version: "0.2.0", notes: null };
+      if (cmd === "install_update") {
+        attempts += 1;
+        return attempts === 1 ? Promise.reject("签名校验失败") : new Promise(() => {});
+      }
+      return null;
+    });
+    notice();
+
+    fireEvent.click(await screen.findByRole("button", { name: "安装并重启" }));
+    expect(await screen.findByText("更新失败")).toBeTruthy();
+    expect(screen.getByText("签名校验失败")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "重试" }));
+    await waitFor(() => expect(attempts).toBe(2));
+    expect(await screen.findByText("正在更新到 0.2.0")).toBeTruthy();
+  });
+
+  it("换了更新通道后收起通知：旧通道查到的更新已经作废", async () => {
     backend((cmd) =>
       cmd === "update_status" ? { state: "available", version: "1.0.0-beta.2", notes: null } : null,
     );
-    render(<UpdateBanner />);
-    expect(await screen.findByText("Kinshoko 1.0.0-beta.2 可以更新。")).toBeTruthy();
+    notice();
+    expect(await screen.findByText("Kinshoko 1.0.0-beta.2 可以更新")).toBeTruthy();
 
     await act(async () => { await emit("update-channel-changed"); });
 
     await waitFor(() => expect(screen.queryByText(/可以更新/)).toBeNull());
   });
 
-  it("以后再说就收起提示", async () => {
+  it("关掉通知就收起", async () => {
     backend((cmd) =>
       cmd === "update_status" ? { state: "available", version: "0.2.0", notes: null } : null,
     );
-    render(<UpdateBanner />);
+    notice();
 
-    fireEvent.click(await screen.findByRole("button", { name: "以后再说" }));
+    await screen.findByText("Kinshoko 0.2.0 可以更新");
+    fireEvent.click(screen.getByRole("button", { name: "关闭提示", hidden: true }));
 
-    expect(screen.queryByText(/可以更新/)).toBeNull();
+    await waitFor(() => expect(screen.queryByText(/可以更新/)).toBeNull());
   });
 
-  it("本次运行已经检查过或未启用更新时不再联网", async () => {
+  it("本次运行已经检查过或未启用更新时不再联网，也不通知", async () => {
     for (const state of ["upToDate", "disabled", "manual"]) {
       const calls = backend((cmd) => (cmd === "update_status" ? { state } : null));
-      render(<UpdateBanner />);
+      notice();
       await waitFor(() => expect(calls).toContain("update_status"));
       expect(calls).not.toContain("check_update");
-      expect(screen.queryByRole("status")).toBeNull();
+      expect(screen.queryByText(/可以更新/)).toBeNull();
       cleanup();
     }
   });

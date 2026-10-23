@@ -4,6 +4,7 @@ import type { UpdateProgress } from "./bindings/UpdateProgress";
 import type { UpdateStatus } from "./bindings/UpdateStatus";
 import { CircleCheck, Download, FlaskConical, Info, RefreshCw } from "lucide-react";
 import { Segmented } from "./ui/Segmented";
+import { useToast } from "./ui/Toast";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { checkUpdate, installUpdate, onUpdateChannelChanged, onUpdateProgress, updateStatus } from "./ipc";
 
@@ -132,49 +133,66 @@ export function UpdateSection({ version = null, channel, onChannel }: {
 }
 
 /**
- * 主窗口顶部的更新提示。每次运行第一次显示主窗口时检查一次；有新版本时提示，
- * 画师可以安装或先不管（主窗口关掉前不再提示）。换了更新通道后收起。
+ * 主窗口右下角的更新通知。每次运行第一次显示主窗口时检查一次；有新版本时通知，
+ * 画师可以安装或关掉（本次运行不再通知）。安装时通知里显示下载进度，失败时可以重试。
+ * 换了更新通道后收起。
  */
-export function UpdateBanner() {
-  const [available, setAvailable] = useState<{ version: string } | null>(null);
-  const [dismissed, setDismissed] = useState(false);
-  const { installing, progress, error, install } = useInstall();
+export function UpdateNotice() {
+  const toast = useToast();
 
   useEffect(() => {
+    if (!toast) return;
     let alive = true;
+    /** 正在显示的更新通知；画师关掉后为 null。 */
+    let shown: string | null = null;
+    let progress: Promise<() => void> | null = null;
+    const stopProgress = () => {
+      void progress?.then((f) => f()).catch(() => {});
+      progress = null;
+    };
+    const installing = (version: string, p: UpdateProgress | null) =>
+      ({ title: `正在更新到 ${version}`, description: progressText(p), timeout: 0 });
+    const install = (id: string, version: string) => {
+      toast.update(id, installing(version, null));
+      progress = onUpdateProgress((p) => { if (shown === id) toast.update(id, installing(version, p)); });
+      // 成功时 Kinshoko 退出，由安装程序装好后重新启动；只有失败会回到这里。
+      installUpdate().catch((reason) => {
+        stopProgress();
+        if (shown === id) toast.update(id, {
+          title: "更新失败", description: String(reason), tone: "error",
+          action: { label: "重试", onClick: () => install(id, version) },
+        });
+      });
+    };
     (async () => {
       let status = await updateStatus();
       if (status?.state === "unchecked") status = await checkUpdate();
-      if (alive && status?.state === "available") setAvailable({ version: status.version });
+      if (!alive || status?.state !== "available") return;
+      const { version } = status;
+      const id: string = toast.show({
+        title: `Kinshoko ${version} 可以更新`, timeout: 0,
+        action: { label: "安装并重启", onClick: () => install(id, version) },
+        onClose: () => { if (shown === id) shown = null; },
+      });
+      shown = id;
     })().catch(() => {});
-    // 换了更新通道：旧通道查到的版本已作废（安装会失败），收起提示。
+    const close = () => {
+      const id = shown;
+      shown = null;
+      if (id !== null) toast.close(id);
+    };
+    // 换了更新通道：旧通道查到的版本已作废（安装会失败），收起通知。
     const unlisten = onUpdateChannelChanged(() => {
       alive = false;
-      setAvailable(null);
+      close();
     });
     return () => {
       alive = false;
+      close();
+      stopProgress();
       void unlisten.then((f) => f()).catch(() => {});
     };
-  }, []);
+  }, [toast]);
 
-  if (available === null || dismissed) return null;
-  return (
-    <div className="update-banner" role="status">
-      <span>Kinshoko {available.version} 可以更新。</span>
-      {installing ? (
-        <span>{progressText(progress)}</span>
-      ) : (
-        <>
-          <button type="button" onClick={() => void install()}>
-            安装并重启
-          </button>
-          <button type="button" onClick={() => setDismissed(true)}>
-            以后再说
-          </button>
-        </>
-      )}
-      {error !== null && <span className="settings-error">{error}</span>}
-    </div>
-  );
+  return null;
 }

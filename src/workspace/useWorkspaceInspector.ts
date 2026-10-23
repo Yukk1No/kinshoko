@@ -1,13 +1,15 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useWidthTransition } from "../shell/useWidthTransition";
-import { useInspectorWidth } from "../shell/InspectorResizer";
+import { useEffect, useLayoutEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
-import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { WorkspaceCard as SourcesCard } from "../bindings/WorkspaceCard";
+import type { WorkspaceScope } from "../bindings/WorkspaceScope";
+import { useInspectorWidth } from "../shell/InspectorResizer";
+import { useWidthTransition } from "../shell/useWidthTransition";
 import type { BrowserCard } from "../wall/Wall";
-import type { Dispatch, SetStateAction } from "react";
 
-type InspectorInput = {
+/** 详情面板（#98）：整理哪些图、是否打开、宽度与开合过渡。 */
+export function useWorkspaceInspector({
+  selected, setSelected, loadedCards, workspaceScope, libraryId, sources, setSources, hidden, viewing, inspectorWidth,
+}: {
   selected: Set<string>;
   setSelected: Dispatch<SetStateAction<Set<string>>>;
   loadedCards: BrowserCard[];
@@ -18,13 +20,7 @@ type InspectorInput = {
   hidden: boolean;
   viewing: BrowserCard | null;
   inspectorWidth?: number;
-};
-
-/** 详情面板显示什么、开没开、多宽（原样取自 LibraryWorkspace）。 */
-export function useInspectorState({
-  selected, setSelected, loadedCards, workspaceScope, libraryId, sources, setSources, hidden, viewing,
-  inspectorWidth,
-}: InspectorInput) {
+}) {
   // 详情面板（#98）：明确打开的多来源整理优先；否则显示当前选择的整理。
   const selectionKey = [...selected].sort().join("\n");
   const [inspectorHidden, setInspectorHidden] = useState<string | null>(null);
@@ -89,7 +85,8 @@ export function useInspectorState({
 
   return {
     selectionKey, selectionLibrary, eligible, inspected, inspectorContent, panelIds, inspectorOpen,
-    setInspectorElement, inspectorMoving, draggedWidth, setDraggedWidth, panelWidth, closeInspector,
-    toggleInspector,
+    setInspectorElement, inspectorMoving, draggedWidth, setDraggedWidth, panelWidth, closeInspector, toggleInspector,
   };
 }
+
+export type WorkspaceInspectorState = ReturnType<typeof useWorkspaceInspector>;

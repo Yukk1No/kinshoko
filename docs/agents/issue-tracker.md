@@ -10,6 +10,7 @@ Issues and specs live in GitHub Issues for `Yukk1No/kinshoko`. Use the `gh` CLI 
 - Append comments with `gh issue comment <number>`; use `--body-file` for multiline text.
 - Apply or remove labels with `gh issue edit <number> --add-label <label>` or `--remove-label <label>`.
 - Close issues with `gh issue close <number>` after recording the outcome.
+- In a PR body, write `Closes #N` for each issue the PR finishes: `.github/workflows/close-issues.yml` closes it when the PR merges into `integration/v1`, where GitHub's own auto-close does not apply. Write `Refs #N` for an issue that stays open, such as one awaiting the maintainer's confirmation on a beta.
 - A skill's instruction to publish to the tracker means creating a GitHub issue.
 - A skill's instruction to fetch a ticket means reading its issue and comments.
 
