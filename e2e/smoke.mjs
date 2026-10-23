@@ -254,11 +254,11 @@ try {
   result.library = created;
   assert(true, "建立图库并打开");
 
-  // 导入文件夹（含子文件夹）。#98：导入是顶栏的分体按钮，文件夹在“更多导入方式”菜单里；选好文件夹后
+  // 导入文件夹（含子文件夹）。设计系统 v2：导入是顶栏的一个按钮，文件夹在它的菜单里；选好文件夹后
   // 在导入对话框里选保存位置。保存位置的两个选择按可见标签命名（放到图库、文件夹），这里按位置取。
   await session.pick(source);
-  await session.click(await session.find("//button[@aria-label='更多导入方式']"));
-  await session.click(await session.waitFor("整个文件夹菜单项", "//*[@role='menuitem' and normalize-space()='整个文件夹…']"));
+  await session.click(await session.find("//button[@aria-label='导入']"));
+  await session.click(await session.waitFor("文件夹菜单项", "//*[@role='menuitem' and normalize-space()='文件夹']"));
   await until("保存目标资料库已加载", () => session.exec("return [...(document.querySelector('.k-import-dialog .k-destination-grid > label:nth-of-type(1) select')?.options ?? [])].some(o=>o.value===arguments[0]);", [created.id]));
   await session.exec("const s=document.querySelector('.k-import-dialog .k-destination-grid > label:nth-of-type(1) select');s.value=arguments[0];s.dispatchEvent(new Event('change',{bubbles:true}));",[created.id]);
   await session.exec("const s=document.querySelector('.k-import-dialog .k-destination-grid > label:nth-of-type(2) select');s.value='';s.dispatchEvent(new Event('change',{bubbles:true}));");
