@@ -6,8 +6,8 @@ import { spawn } from "node:child_process";
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
-import { deflateSync } from "node:zlib";
 import { copyStandaloneRuntime } from "./native-standalone-guard.mjs";
+import { png } from "./viewer.helpers.mjs";
 
 const [, , appArg, edgeArg, driverArg = "tauri-driver"] = process.argv;
 if (!appArg || !edgeArg) throw new Error("用法：node e2e/viewer.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]");
@@ -19,28 +19,6 @@ const source = join(work, "参考");
 const output = resolve(process.env.KINSHOKO_VIEWER_OUTPUT ?? "work/viewer47");
 for (const dir of [parent, source, output, join(work, "roaming"), join(work, "local")]) mkdirSync(dir, { recursive: true });
 
-const crcTable = Array.from({ length: 256 }, (_, c) => {
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-function chunk(type, data) {
-  const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type), data]);
-  let c = 0xffffffff;
-  for (const b of body) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
-  const crc = Buffer.alloc(4); crc.writeUInt32BE((c ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, crc]);
-}
-function png(w, h, colour) {
-  const header = Buffer.alloc(13); header.writeUInt32BE(w); header.writeUInt32BE(h, 4); header[8] = 8; header[9] = 2;
-  const pixels = Buffer.alloc((w * 3 + 1) * h);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const rgb = typeof colour === "function" ? colour(x, y) : colour;
-    const at = y * (w * 3 + 1) + 1 + x * 3;
-    pixels[at] = rgb[0]; pixels[at + 1] = rgb[1]; pixels[at + 2] = rgb[2];
-  }
-  return Buffer.concat([Buffer.from("89504e470d0a1a0a", "hex"), chunk("IHDR", header), chunk("IDAT", deflateSync(pixels)), chunk("IEND", Buffer.alloc(0))]);
-}
 for (let i = 0; i < 40; i++) writeFileSync(join(source, `${String(i).padStart(2, "0")}.png`), png(100, 100, [80 + i * 3, 150, 180]));
 writeFileSync(join(source, "大图.png"), png(2400, 1600, (x, y) => x % 120 === 0 || y % 120 === 0 ? [32, 32, 32] : [Math.round(x / 2400 * 255), Math.round(y / 1600 * 255), 120]));
 
@@ -97,9 +75,9 @@ try {
   await until("打开图库", () => find("//nav[@aria-label='查找范围']//*[@data-library-id]//button[contains(@class,'lib-head-name') and starts-with(@aria-label,'原图查看器验证（') and not(@disabled)]"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
-  // #98: 导入 is a split button; the folder entry is in its menu, then a dialog chooses the library.
-  await click("更多导入方式");
-  await wd("POST", `${base}/element/${await until("整个文件夹菜单项", () => find("//*[@role='menuitem' and normalize-space()='整个文件夹…']"))}/click`, {});
+  // 设计系统 v2: 导入 is one button; the folder entry is in its menu, then a dialog chooses the library.
+  await click("导入");
+  await wd("POST", `${base}/element/${await until("文件夹菜单项", () => find("//*[@role='menuitem' and normalize-space()='文件夹']"))}/click`, {});
   const librarySelect = "[...document.querySelectorAll('.k-import-dialog select')].find(s=>s.labels?.[0]?.querySelector('.k-field-label')?.textContent.trim()==='放到图库')";
   await until("导入对话框", () => exec(`return !!${librarySelect}?.options[1]`));
   await exec(`const s=${librarySelect};s.value=s.options[1].value;s.dispatchEvent(new Event('change',{bubbles:true}));`);
