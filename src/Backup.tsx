@@ -135,7 +135,7 @@ export function BackupSettings() {
           meta={running !== null ? <span role="status">正在备份：原图 {running.done}／{running.total}</span>
             : plan.lastSuccess !== null ? stampText(plan.lastSuccess) : "还没有备份"}
           warn={plan.lastFailure !== null && <span role="alert">没有完成（{stampText(plan.lastFailure.at)}）：{plan.lastFailure.reason}</span>}>
-          {plan.lastFailure === null && plan.lastSuccess !== null && running === null && <StatusPill tone="ok"><CircleCheck size={12} aria-hidden="true" />已备份</StatusPill>}
+          {plan.lastFailure === null && plan.lastSuccess !== null && running === null && <StatusPill tone="ok" icon={<CircleCheck size={12} aria-hidden="true" />}>已备份</StatusPill>}
           <button type="button" className="k-btn is-sm is-primary" disabled={plan.target === null || running !== null}
             onClick={() => void startBackup().catch((e) => setError(String(e)))}><span className="k-label">立即备份</span></button>
         </SettingsRow>

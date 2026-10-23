@@ -88,7 +88,7 @@ export function UpdateSection({ version = null, channel, onChannel }: {
     if (onChannel && await onChannel(next)) await check();
   };
 
-  const pill = status.state === "upToDate" ? <StatusPill tone="ok"><CircleCheck size={12} aria-hidden="true" />已是最新</StatusPill>
+  const pill = status.state === "upToDate" ? <StatusPill tone="ok" icon={<CircleCheck size={12} aria-hidden="true" />}>已是最新</StatusPill>
     : status.state === "available" ? <StatusPill tone="accent">有新版本</StatusPill>
     : status.state === "failed" ? <StatusPill tone="warn">检查失败</StatusPill> : null;
   return (

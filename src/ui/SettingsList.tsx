@@ -48,7 +48,7 @@ export function SettingsGroup({ title, label, children }: { title?: string; labe
   </>;
 }
 
-/** 状态胶囊：完成（绿）、注意（黄）或普通；胶囊里必须有文字。 */
-export function StatusPill({ tone = "plain", children }: { tone?: "ok" | "warn" | "plain" | "accent" | "mine"; children: ReactNode }) {
-  return <span className={`k-pill${tone === "plain" ? "" : ` is-${tone}`}`}><span className="k-label">{children}</span></span>;
+/** 状态胶囊：完成（绿）、注意（黄）或普通；胶囊里必须有文字，图标放在文字前。 */
+export function StatusPill({ tone = "plain", icon, children }: { tone?: "ok" | "warn" | "plain" | "accent" | "mine"; icon?: ReactNode; children: ReactNode }) {
+  return <span className={`k-pill${tone === "plain" ? "" : ` is-${tone}`}`}>{icon}<span className="k-label">{children}</span></span>;
 }
