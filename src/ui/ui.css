@@ -105,7 +105,7 @@
 /* ---- Toasts ---- */
 .k-toasts { position: fixed; right: 18px; bottom: 18px; z-index: 200; width: 340px; max-width: calc(100vw - 36px); display: flex; flex-direction: column; gap: 8px;
   outline: 0; pointer-events: none; }
-/* An `ink` card that reports what just happened; icons and the action take the other theme's step 11 (design system Toast). */
+/* An `ink` card that reports what just happened; icons and the action take the other theme's colour (design system Toast). */
 .k-toast { pointer-events: auto; display: flex; align-items: flex-start; gap: 10px; padding: 10px 10px 10px 12px; background: var(--ink); color: var(--bg);
   border-radius: var(--r-m); box-shadow: var(--shadow-pop); outline: 0; transition: transform 220ms var(--spring), opacity 180ms; }
 .k-toast[data-starting-style], .k-toast[data-ending-style] { opacity: 0; transform: translateY(8px); }
@@ -181,7 +181,7 @@
 /* the item's current state (version, progress, place): ink-2 beside the control, never a line of its own */
 .k-list-meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; }
 .k-pill { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; background: var(--surface-2); color: var(--ink-2); }
-/* a pill's text is step 12 on a step 3 fill */
+/* a pill's text is the `*-strong` colour on its `*-soft` fill */
 .k-pill.is-ok { background: var(--ok-soft); color: var(--ok-strong); }
 .k-pill.is-warn { background: var(--warn-soft); color: var(--warn-strong); }
 .k-item-meta .is-warn { color: var(--warn); }

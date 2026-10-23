@@ -1,6 +1,6 @@
-/* #79 → design system v2: every colour is a Radix Colors 3.0.0 step (mauve neutrals, gray wall, ruby / amber accent,
-   green / amber / red states); components write semantic tokens only. Values match the design system's tokens.json.
-   Steps: 1–2 grounds, 3–5 component fills, 6–7 borders, 9 solids, 10 icons, 11 secondary and coloured text, 12 text.
+/* #79 → design system v3: cream paper and ink purple from the prototype, sakura accent by day and gold by night;
+   a few values deepened so every text colour reaches 4.5:1. The wall and card stay neutral grey so the frame never tints
+   the reference images. Components write semantic tokens only; values match the design system's tokens.json.
    The formal app keeps its real library, search, import and native pin components. */
 :root {
   /* #28: Inter for Latin and digits, Source Han Sans SC for CJK (src/fonts.ts); the Windows stack is the fallback. */
@@ -8,60 +8,60 @@
   --font-cjk: "Kinshoko Han Punct", var(--font);
   font-synthesis: none;
 
-  --bg: #faf9fb;              /* mauve 2 */
-  --surface: #fdfcfd;         /* mauve 1 */
-  --rail: #f2eff3;            /* mauve 3 */
-  --surface-2: #f2eff3;       /* mauve 3 */
-  --sunken: #f2eff3;          /* mauve 3 */
-  --hover: #30004010;         /* mauve A3 */
-  --press: #20003618;         /* mauve A4 */
-  --ink: #211f26;             /* mauve 12: text */
-  --ink-2: #65636d;           /* mauve 11: secondary text */
-  --ink-3: #84828e;           /* mauve 10: icons only */
-  --line: #dbd8e0;            /* mauve 6 */
-  --line-2: #d0cdd7;          /* mauve 7 */
-  --accent: #e54666;          /* ruby 9: selection, focus, indicator; never carries text */
-  --accent-strong: #ca244d;   /* ruby 11: accent as text */
-  --accent-soft: #f3002515;   /* ruby A3 */
-  --on-accent: #ffffff;
-  --manual: #ab6400;          /* amber 11: the artist's decisions */
-  --manual-soft: #ffde003d;   /* amber A3 */
-  --wall: #f0f0f0;            /* gray 3: neutral ground behind thumbnails */
-  --card: #e0e0e0;            /* gray 5 */
-  --danger: #ce2c31;          /* red 11 */
-  --danger-solid: #e5484d;    /* red 9: white text 3.91:1, Radix's own use */
+  --bg: #f7f3ea;              /* paper */
+  --surface: #fffdf8;
+  --rail: #efe8da;
+  --surface-2: #f1ebdf;
+  --sunken: #ede7da;
+  --hover: rgba(43, 39, 71, 0.07);
+  --press: rgba(43, 39, 71, 0.12);
+  --ink: #2b2747;             /* ink purple: text */
+  --ink-2: #5b5773;           /* secondary text */
+  --ink-3: #76718c;           /* icons only */
+  --line: #e3daca;
+  --line-2: #d4c9b5;
+  --accent: #e0768f;          /* sakura: selection, focus, indicator; never carries text */
+  --accent-strong: #a63a55;   /* accent as text */
+  --accent-soft: rgba(224, 118, 143, 0.14);
+  --on-accent: #2b2747;
+  --manual: #8a5e08;          /* the artist's decisions, the logo's gold star */
+  --manual-soft: rgba(227, 179, 79, 0.2);
+  --wall: #eae9e6;            /* neutral ground behind thumbnails */
+  --card: #dcdbd8;
+  --danger: #b23a3a;
+  --danger-solid: #b23a3a;    /* white text 5.9:1 */
   --on-solid: #ffffff;
-  --warn: #ab6400; --warn-strong: #4f3422; --warn-soft: #fff7c2;   /* amber 11 / 12 / 3 */
-  --ok: #218358; --ok-strong: #193b2d; --ok-soft: #e6f6eb;         /* green 11 / 12 / 3 */
-  /* icons and actions on an `ink` card (toast): the other theme's step 11 */
-  --inverse-ok: #3dd68c; --inverse-danger: #ff9592; --inverse-accent: #ff949d;
-  /* 模型标签的可信度高档底色（#160）：mauve 5，比 --surface-2（中档）深两档；低档不填底色。 */
-  --tag-conf-high: #e3dfe6;
-  /* 精确查找开启时的浅槽（amber A3 / 11）、图片大小滑条（#102 方案 C3） */
-  --exact-on-bg: #ffde003d; --exact-on-ink: #ab6400;
-  --exact-on-inset: inset 0 1px 1.5px rgba(171, 100, 0, 0.16), inset 0 0 0 0.5px rgba(171, 100, 0, 0.22);
-  --range-track: var(--line-2); --range-fill: var(--ink-2); --range-inset: inset 0 1px 1px rgba(2, 0, 8, 0.18);
-  --knob: #fdfcfd;
-  --knob-shadow: 0 0 0 0.5px rgba(2, 0, 8, 0.28), 0 1px 1.5px rgba(2, 0, 8, 0.28), 0 4px 10px rgba(2, 0, 8, 0.16);
-  --knob-shadow-pressed: 0 0 0 0.5px rgba(2, 0, 8, 0.3), 0 1px 3px rgba(2, 0, 8, 0.18);
-  /* the wordmark's star (amber 9), the same in both themes */
-  --star: #ffc53d;
+  --warn: #8a5e08; --warn-strong: #5e4510; --warn-soft: #fbf1d9;
+  --ok: #2f6b3e; --ok-strong: #2f6b3e; --ok-soft: #e3f1e6;
+  /* icons and actions on an `ink` card (toast): the other theme's colour */
+  --inverse-ok: #8fcb9c; --inverse-danger: #f08a8a; --inverse-accent: #f3a5b7;
+  /* 模型标签的可信度高档底色（#160）：比 --surface-2（中档）深一档；低档不填底色。 */
+  --tag-conf-high: #e2d6bf;
+  /* 精确查找开启时的金色浅槽、图片大小滑条（#102 方案 C3） */
+  --exact-on-bg: rgba(227, 179, 79, 0.16); --exact-on-ink: #9a6a10;
+  --exact-on-inset: inset 0 1px 1.5px rgba(110, 75, 10, 0.16), inset 0 0 0 0.5px rgba(160, 112, 15, 0.22);
+  --range-track: var(--line-2); --range-fill: var(--ink-2); --range-inset: inset 0 1px 1px rgba(43, 39, 71, 0.18);
+  --knob: #fffdf8;
+  --knob-shadow: 0 0 0 0.5px rgba(43, 39, 71, 0.28), 0 1px 1.5px rgba(43, 39, 71, 0.28), 0 4px 10px rgba(43, 39, 71, 0.16);
+  --knob-shadow-pressed: 0 0 0 0.5px rgba(43, 39, 71, 0.3), 0 1px 3px rgba(43, 39, 71, 0.18);
+  /* the wordmark's gold star, the same in both themes */
+  --star: #e3b34f;
   /* 安全模式遮蔽的墨色 */
-  --veil: #211f26;
-  /* shadows take mauve A12 (2, 0, 8); only things that float get one */
-  --shadow-raise: 0 1px 2px rgba(2, 0, 8, 0.08);
-  --shadow-pop: 0 0 0 1px rgba(2, 0, 8, 0.06), 0 2px 4px rgba(2, 0, 8, 0.06), 0 12px 32px rgba(2, 0, 8, 0.14);
-  --shadow-dialog: 0 24px 64px rgba(2, 0, 8, 0.24);
-  --shadow-pin: 0 2px 6px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.2);
-  --overlay: rgba(0, 0, 0, 0.4);          /* blackA 6: behind dialogs, outside a crop */
+  --veil: #2b2747;
+  /* shadows and the dialog overlay take ink purple, not black; only things that float get one */
+  --shadow-raise: 0 1px 2px rgba(43, 39, 71, 0.08);
+  --shadow-pop: 0 0 0 1px rgba(43, 39, 71, 0.06), 0 2px 4px rgba(43, 39, 71, 0.06), 0 12px 32px rgba(43, 39, 71, 0.14);
+  --shadow-dialog: 0 24px 64px rgba(30, 28, 44, 0.3);
+  --shadow-pin: 0 2px 6px rgba(0, 0, 0, 0.25), 0 12px 32px rgba(0, 0, 0, 0.22);
+  --overlay: rgba(30, 28, 44, 0.38);      /* behind dialogs, outside a crop */
   /* over images and the frozen screen, the same in both themes */
-  --scrim-label: rgba(0, 0, 0, 0.6);      /* blackA 8: labels on top of an image */
+  --scrim-label: rgba(0, 0, 0, 0.6);      /* labels on top of an image */
   --scrim-capture: rgba(0, 0, 0, 0.25);   /* T17 冻结像素核对依据，不要改 */
   --scrim-capture-out: rgba(0, 0, 0, 0.35);
-  --guide: rgba(255, 255, 255, 0.4);      /* whiteA 6: crop thirds */
-  --pin-ring: rgba(255, 255, 255, 0.6);   /* whiteA 8 */
+  --guide: rgba(255, 255, 255, 0.4);      /* crop thirds */
+  --pin-ring: rgba(255, 255, 255, 0.6);
   --pin-shadow-near: rgba(0, 0, 0, 0.3); --pin-shadow-far: rgba(0, 0, 0, 0.28);
-  /* viewer grounds: gray 12 and gray 6, gray 6 / 9 checks; the mid ground stays at 50 % gray for judging values */
+  /* viewer grounds: neutral greys and checks; the mid ground stays at 50 % gray for judging values */
   --ground-dark: #202020; --ground-mid: #808080; --ground-light: #d9d9d9; --checker-a: #d9d9d9; --checker-b: #8d8d8d;
 
   --r-xs: 6px; --r-item: 7px; --r-s: 8px; --r: 10px; --r-m: 12px; --r-xl: 18px; --r-pill: 999px;
@@ -70,53 +70,53 @@
   --t-fast: 120ms; --t: 200ms; --t-slow: 260ms;
   color-scheme: light;
 }
-/* Dark: mauve / gray dark scales, amber accent (日间樱、夜间金). `.k-dock.is-dark` borrows the dark tokens in either theme. */
+/* Dark: ink purple ground, cream text, gold accent (日间樱、夜间金). `.k-dock.is-dark` borrows the dark tokens in either theme. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121113; --surface: #1a191b; --rail: #1a191b; --surface-2: #232225; --sunken: #121113;
-    --hover: #ebeaf814; --press: #eee5f81d;
-    --ink: #eeeef0; --ink-2: #b5b2bc; --ink-3: #7c7a85; --line: #3c393f; --line-2: #49474e;
-    --accent: #ffc53d; --accent-strong: #ffca16; --accent-soft: #fa820022; --on-accent: #211f26;
-    --manual: #ffca16; --manual-soft: #fa820022;
-    --wall: #191919; --card: #2a2a2a; --danger: #ff9592;
-    --warn: #ffca16; --warn-strong: #ffe7b3; --warn-soft: #302008;
-    --ok: #3dd68c; --ok-strong: #b1f1cb; --ok-soft: #132d21;
-    --inverse-ok: #218358; --inverse-danger: #ce2c31; --inverse-accent: #ca244d;
-    --tag-conf-high: #323035;
-    --exact-on-bg: #fa820022; --exact-on-ink: #ffca16;
-    --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(255, 197, 61, 0.3);
+    --bg: #1e1c2c; --surface: #252336; --rail: #17151f; --surface-2: #2c2940; --sunken: #19172a;
+    --hover: rgba(244, 236, 220, 0.07); --press: rgba(244, 236, 220, 0.12);
+    --ink: #f4ecdc; --ink-2: #c8c0b2; --ink-3: #9890a8; --line: #353249; --line-2: #45415c;
+    --accent: #e3b34f; --accent-strong: #e9c26e; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2b2747;
+    --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18);
+    --wall: #161618; --card: #222224; --danger: #f08a8a; --danger-solid: #c94a4a;
+    --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
+    --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
+    --inverse-ok: #2f6b3e; --inverse-danger: #b23a3a; --inverse-accent: #a63a55;
+    --tag-conf-high: #48426a;
+    --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
+    --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
     --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
-    --knob: #eeeef0;
+    --knob: #fbf6ec;
     --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
     --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
-    --veil: #121113;
+    --veil: #0f0e17;
     --shadow-raise: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-pop: 0 0 0 1px rgba(253, 253, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.5);
-    --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.6);
+    --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+    --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"], .k-dock.is-dark {
-  --bg: #121113; --surface: #1a191b; --rail: #1a191b; --surface-2: #232225; --sunken: #121113;
-  --hover: #ebeaf814; --press: #eee5f81d;
-  --ink: #eeeef0; --ink-2: #b5b2bc; --ink-3: #7c7a85; --line: #3c393f; --line-2: #49474e;
-  --accent: #ffc53d; --accent-strong: #ffca16; --accent-soft: #fa820022; --on-accent: #211f26;
-  --manual: #ffca16; --manual-soft: #fa820022;
-  --wall: #191919; --card: #2a2a2a; --danger: #ff9592;
-  --warn: #ffca16; --warn-strong: #ffe7b3; --warn-soft: #302008;
-  --ok: #3dd68c; --ok-strong: #b1f1cb; --ok-soft: #132d21;
-  --inverse-ok: #218358; --inverse-danger: #ce2c31; --inverse-accent: #ca244d;
-  --tag-conf-high: #323035;
-  --exact-on-bg: #fa820022; --exact-on-ink: #ffca16;
-  --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(255, 197, 61, 0.3);
+  --bg: #1e1c2c; --surface: #252336; --rail: #17151f; --surface-2: #2c2940; --sunken: #19172a;
+  --hover: rgba(244, 236, 220, 0.07); --press: rgba(244, 236, 220, 0.12);
+  --ink: #f4ecdc; --ink-2: #c8c0b2; --ink-3: #9890a8; --line: #353249; --line-2: #45415c;
+  --accent: #e3b34f; --accent-strong: #e9c26e; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2b2747;
+  --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18);
+  --wall: #161618; --card: #222224; --danger: #f08a8a; --danger-solid: #c94a4a;
+  --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
+  --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
+  --inverse-ok: #2f6b3e; --inverse-danger: #b23a3a; --inverse-accent: #a63a55;
+  --tag-conf-high: #48426a;
+  --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
+  --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
   --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
-  --knob: #eeeef0;
+  --knob: #fbf6ec;
   --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
   --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
-  --veil: #121113;
+  --veil: #0f0e17;
   --shadow-raise: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-pop: 0 0 0 1px rgba(253, 253, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.5);
-  --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
@@ -142,10 +142,10 @@
 .seal-book.is-sealed:active { --bb: color-mix(in srgb, var(--ink) 12%, var(--rail)); }
 .seal-book:hover svg { transform: none; }
 .seal-book:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-/* seal colours (brand invariant): the prototype's rules with Radix values, day ruby 10, night amber 9 */
-:root { --seal-acc: #dc3b5d; --seal-ink: var(--ink); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seal-acc: #ffc53d; } }
-:root[data-theme="dark"] { --seal-acc: #ffc53d; }
+/* seal colours (brand invariant): the prototype's rules; deep sakura by day (3.42:1 on the rail), gold by night */
+:root { --seal-acc: #c85672; --seal-ink: var(--ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seal-acc: #e3b34f; } }
+:root[data-theme="dark"] { --seal-acc: #e3b34f; }
 /* seal and release ghosts (src/shell/sealfx.ts), verbatim from the prototype: above the wall, the viewer and the rail */
 .fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 38; overflow: hidden; }
 .fx-ghost { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; border-radius: 6px; overflow: hidden; background: var(--card); box-shadow: var(--shadow-pin); will-change: transform, opacity; }

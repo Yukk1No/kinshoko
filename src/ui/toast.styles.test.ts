@@ -4,7 +4,7 @@ import { cssRule } from "./cssRule";
 
 const rule = (selector: string) => cssRule(css, selector);
 
-// 设计系统 v2（Toast）：右下角的 `ink` 卡片，`bg` 字；图标与操作文字取另一主题的 11 阶，在深色卡片上保持对比。
+// 设计系统 v3（Toast）：右下角的 `ink` 卡片，`bg` 字；图标与操作文字取另一主题的同名色（inverse-*），在实底上保持对比。
 describe("轻提示是 ink 卡片（设计系统 v2）", () => {
   const toast = rule(".k-toast");
 
@@ -20,7 +20,7 @@ describe("轻提示是 ink 卡片（设计系统 v2）", () => {
     expect(rule(".k-toast-desc")["font-size"]).toBe("12px");
   });
 
-  it("图标与操作用另一主题的 11 阶令牌，不写死颜色", () => {
+  it("图标与操作用 inverse-* 令牌，不写死颜色", () => {
     expect(rule(".k-toast-icon").color).toBe("var(--inverse-ok)");
     expect(rule('.k-toast[data-tone="error"] .k-toast-icon').color).toBe("var(--inverse-danger)");
     expect(rule(".k-toast-action").color).toBe("var(--inverse-accent)");
