@@ -1270,7 +1270,7 @@ dependencies = [
 
 [[package]]
 name = "kinshoko-core"
-version = "0.1.0"
+version = "1.0.0-beta.5"
 dependencies = [
  "base64",
  "bytemuck",
@@ -1283,6 +1283,7 @@ dependencies = [
  "png",
  "rusqlite",
  "rusqlite_migration",
+ "semver",
  "serde",
  "serde_json",
  "sha2",
