@@ -1,18 +1,16 @@
-import { SaveDestinationDialog, useSaveDestination, folderChoices, destinationAvailable, destinationLabel } from "../library/SaveDestination";
+import { SaveDestinationDialog } from "../library/SaveDestination";
 import { useCallback, useEffect, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { Dialog } from "@base-ui/react/dialog";
 import { BookmarkPlus, FolderInput, Layers, ListTree, MoreHorizontal, PackageOpen, Trash2 } from "lucide-react";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
+import { CaptureGroupSaveDialog, type CaptureSave } from "./CaptureGroupSaveDialog";
 import { ago } from "./relativeTime";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
-import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { CaptureChoice } from "../bindings/CaptureChoice";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import {
-  captureUrl,
   deleteReferenceGroup,
   exportReferenceGroupPackage,
   importReferenceGroupPackage,
@@ -30,7 +28,6 @@ import {
 } from "../ipc";
 
 type SaveTarget = { name: string } | { groupId: string };
-type CaptureSave = { target: SaveTarget; entries: CaptureEntry[]; choices: Record<string, string>; folders:Record<string,string|null> };
 
 function memberState(status: MemberStatus): string {
   switch (status.state.kind) {
@@ -50,7 +47,6 @@ function memberState(status: MemberStatus): string {
  * （`libraryId`），另存为新的参考组。
  */
 export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
-  const saveContext=useSaveDestination();
   const [groups, setGroups] = useState<GroupSummary[] | null>(null);
   const [libraryNames, setLibraryNames] = useState<Map<string, string>>(new Map());
   const [libraryOptions, setLibraryOptions] = useState<LibraryRegistration[]>([]);
@@ -60,7 +56,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
   const [expanded, setExpanded] = useState<ReferenceGroupView | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [captureSave, setCaptureSave] = useState<CaptureSave | null>(null);
+  const [captureSave, setCaptureSave] = useState<CaptureSave<SaveTarget> | null>(null);
   const [importing,setImporting]=useState(false);
   const [naming, setNaming] = useState(false);
   const [active, setActive] = useState<string | null>(null);
@@ -173,11 +169,15 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
     <section className="reference-groups" aria-label="参考组">
       <header className="reference-groups-bar">
         <h2>参考组</h2>
-        {naming ? <form className="group-name-form" onSubmit={(e) => { e.preventDefault(); if (name.trim()) void run(() => beginSave({ name })); }}>
-          <input className="side-input" aria-label="新参考组名称" placeholder="给这组钉图起个名字" autoFocus
-            value={name} onChange={(e) => setName(e.target.value)} />
+        {naming ? <form className="group-name-form is-new" onSubmit={(e) => { e.preventDefault(); if (name.trim()) void run(() => beginSave({ name })); }}
+          onKeyDown={(e) => { if (e.key === "Escape" && !saving) { e.preventDefault(); setNaming(false); setName(""); } }}>
+          <label className="k-field">
+            <span className="k-field-label">新参考组</span>
+            <input className="k-input" aria-label="新参考组名称" placeholder="给这组钉图起个名字" autoFocus disabled={saving}
+              value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
           <span className="group-name-acts">
-            <button type="button" className="k-btn is-sm" onClick={() => { setNaming(false); setName(""); }}>取消</button>
+            <button type="button" className="k-btn is-sm is-quiet" disabled={saving} onClick={() => { setNaming(false); setName(""); }}>取消</button>
             <button type="submit" className="k-btn is-sm is-primary" disabled={!name.trim() || !!captureSave || saving}>保存</button>
           </span>
         </form> : <button type="button" className="k-btn is-primary group-save" disabled={!!captureSave || saving} onClick={() => setNaming(true)}>
@@ -190,48 +190,8 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
       }} />}
       {error && <p className="group-note is-error" role="alert">{error}</p>}
       {notice && <p className="group-note" role="status">{notice}</p>}
-      {captureSave && <Dialog.Root open onOpenChange={(open) => { if (!open && !saving) setCaptureSave(null); }}>
-        <Dialog.Portal>
-        <Dialog.Backdrop className="k-backdrop" />
-        <Dialog.Popup className="k-dialog capture-group-save">
-          <Dialog.Title className="k-dialog-title">收藏截图并保存参考组</Dialog.Title>
-          <Dialog.Description className="k-dialog-desc">逐张选图库收藏，再一起存进参考组。</Dialog.Description>
-          {captureSave.entries.map((entry, i) => (
-            <label key={entry.id}>
-              <img src={captureUrl(entry.id)} alt={`截图 ${i + 1}`} width={96} />
-              <span className="k-parts"><span>截图 {i + 1}</span><span>{entry.width} × {entry.height}</span></span>
-              <select aria-label={`截图 ${i + 1} 的图库`} disabled={saving}
-                value={captureSave.choices[entry.id]}
-                onChange={(e) => setCaptureSave({ ...captureSave, choices: { ...captureSave.choices, [entry.id]: e.target.value }, folders: { ...captureSave.folders, [entry.id]: null } })}>
-                <option value="">选择图库…</option>
-                {libraryOptions.map((option) => (
-                  <option key={option.library.id} value={option.library.id} disabled={!!option.unavailable}>
-                    {option.library.name}{option.unavailable ? "（未连接）" : entry.collected.some((c) => c.libraryId === option.library.id) ? "（已收藏）" : ""}
-                  </option>
-                ))}
-                <option value="skip">不加入参考组</option>
-              </select>
-              {captureSave.choices[entry.id] && captureSave.choices[entry.id] !== "skip" && <>
-                <span>文件夹</span>
-                <select aria-label={`截图 ${i + 1} 的文件夹`} disabled={saving} value={captureSave.folders[entry.id] ?? ""}
-                  onChange={(event) => setCaptureSave({ ...captureSave, folders: { ...captureSave.folders, [entry.id]: event.target.value || null } })}>
-                  <option value="">未归类</option>
-                  {folderChoices(saveContext.providers.find((p) => p.registration.library.id === captureSave.choices[entry.id])?.sidebar?.folders ?? []).map((folder) => <option key={folder.id} value={folder.id}>{folder.path}</option>)}
-                </select>
-                <span className="group-note">存到：{destinationLabel({ libraryId: captureSave.choices[entry.id], folderId: captureSave.folders[entry.id] ?? null }, saveContext.providers)}</span>
-              </>}
-            </label>
-          ))}
-          <div className="k-dialog-foot">
-            <span className="k-grow" />
-            <button type="button" className="k-btn" disabled={saving} onClick={() => setCaptureSave(null)}>取消</button>
-            <button type="button" className="k-btn is-primary"
-              disabled={saving || !saveContext.ready || captureSave.entries.some((e) => captureSave.choices[e.id] !== "skip" && !destinationAvailable({ libraryId: captureSave.choices[e.id], folderId: captureSave.folders[e.id] ?? null }, saveContext.providers))}
-              onClick={() => void confirmCaptures()}>{saving ? "正在收藏并保存…" : "确认并保存"}</button>
-          </div>
-        </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>}
+      {captureSave && <CaptureGroupSaveDialog value={captureSave} onChange={setCaptureSave} libraries={libraryOptions} saving={saving}
+        onClose={() => setCaptureSave(null)} onConfirm={() => void confirmCaptures()} />}
       {groups && groups.length === 0 && (
         <p className="reference-groups-empty">还没有参考组。把整图或局部钉到桌面摆好，再在这里存下。</p>
       )}
@@ -257,11 +217,11 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                 <form className="group-name-form" onSubmit={(e) => {
                   e.preventDefault();
                   if (renaming.name.trim()) void run(() => renameReferenceGroup(g.id, renaming.name), () => (setRenaming(null), null));
-                }}>
-                  <input className="side-input" aria-label="参考组名称" autoFocus value={renaming.name}
+                }} onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setRenaming(null); } }}>
+                  <input className="k-input" aria-label="参考组名称" autoFocus value={renaming.name}
                     onChange={(e) => setRenaming({ id: g.id, name: e.target.value })} />
                   <span className="group-name-acts">
-                    <button type="button" className="k-btn is-sm" onClick={() => setRenaming(null)}>取消</button>
+                    <button type="button" className="k-btn is-sm is-quiet" onClick={() => setRenaming(null)}>取消</button>
                     <button type="submit" className="k-btn is-sm is-primary" disabled={!renaming.name.trim()}>保存名称</button>
                   </span>
                 </form>

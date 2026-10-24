@@ -9,22 +9,19 @@
 .k-field-row > .k-input:not(.is-num) { flex: 1; min-width: 0; }
 .k-field-unit { color: var(--ink-2); }
 
-/* `.k-input` 可以是包着 input 的框（带图标、清除按钮时），也可以直接写在 input 上。
-   `.side-input` 是参考组面板的旧名，样式与 `.k-input` 相同。 */
-.k-input, .side-input { display: flex; align-items: center; gap: 8px; box-sizing: border-box; height: 32px; min-width: 0; padding: 0 10px; border: 0; border-radius: var(--r);
+/* `.k-input` 可以是包着 input 的框（带图标、清除按钮时），也可以直接写在 input 上。 */
+.k-input { display: flex; align-items: center; gap: 8px; box-sizing: border-box; height: 32px; min-width: 0; padding: 0 10px; border: 0; border-radius: var(--r);
   background: var(--surface); color: var(--ink); font: inherit; box-shadow: inset 0 0 0 1px var(--line-2); outline: 0; transition: box-shadow var(--t-fast); }
 input.k-input { display: inline-block; text-overflow: ellipsis; }
-input.side-input { display: block; width: 100%; text-overflow: ellipsis; }
 /* 在一行里时输入框占满剩余宽度；竖排字段里不随 flex 伸缩。 */
 .k-input, .k-combo { flex: 1 1 auto; }
 .k-field > .k-input, .k-field > .k-combo, .k-combo > .k-input { flex: none; }
-.k-input:hover:not(:focus-within):not([data-disabled]):not(:disabled):not([data-invalid]),
-.side-input:hover:not(:focus):not(:disabled) { box-shadow: inset 0 0 0 1px var(--ink-3); }
-.k-input:focus-within, .k-input[data-focus], .side-input:focus { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
+.k-input:hover:not(:focus-within):not([data-disabled]):not(:disabled):not([data-invalid]) { box-shadow: inset 0 0 0 1px var(--ink-3); }
+.k-input:focus-within, .k-input[data-focus] { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
 .k-input[data-invalid], .k-input[aria-invalid="true"] { box-shadow: inset 0 0 0 1px var(--danger); }
 .k-input[data-invalid]:focus-within, .k-input[aria-invalid="true"]:focus { box-shadow: inset 0 0 0 1.5px var(--danger), 0 0 0 4px color-mix(in srgb, var(--danger) 16%, transparent); }
-.k-input[data-disabled], .k-input:disabled, .side-input:disabled { opacity: 0.5; }
-.k-input::placeholder, .k-input input::placeholder, .side-input::placeholder { color: var(--ink-2); opacity: 1; }
+.k-input[data-disabled], .k-input:disabled { opacity: 0.5; }
+.k-input::placeholder, .k-input input::placeholder { color: var(--ink-2); opacity: 1; }
 .k-input:has(> .lucide:first-child) { padding-left: 8px; } /* 光学对齐，与按钮相同 */
 .k-input > .lucide { flex: none; color: var(--ink-3); }
 .k-input input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; outline: 0; text-overflow: ellipsis; }
@@ -76,5 +73,5 @@ select.k-select { display: block; padding-right: 28px; appearance: none; backgro
 .k-select-popup .k-listbox { width: auto; max-height: none; overflow: visible; }
 
 @media (prefers-reduced-motion: reduce) {
-  .k-input, .side-input, .k-select, .k-select > .lucide:last-child { transition: none; }
+  .k-input, .k-select, .k-select > .lucide:last-child { transition: none; }
 }

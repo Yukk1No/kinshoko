@@ -153,9 +153,13 @@ describe("参考组面板", () => {
     expect(dialog.className).toContain("k-dialog");
     await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
     expect(ipc.save).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText("截图 1 的图库"), { target: { value: "lib-a" } });
+    // 选图库之前文件夹不能选。
+    const folder = within(dialog).getByRole("combobox", { name: "截图 1 的文件夹" });
+    expect(folder.hasAttribute("data-disabled")).toBe(true);
+    await chooseValue(within(dialog).getByRole("combobox", { name: "截图 1 的图库" }), "lib-a");
+    await chooseValue(within(dialog).getByRole("combobox", { name: "截图 1 的文件夹" }), "folder-a");
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "确认并保存" })); });
-    expect(ipc.save).toHaveBeenCalledWith("截图参考", [{ captureId: "shot-1", libraryId: "lib-a", folderId:null }]);
+    expect(ipc.save).toHaveBeenCalledWith("截图参考", [{ captureId: "shot-1", libraryId: "lib-a", folderId: "folder-a" }]);
   });
 
   it("打开参考组把成员钉到桌面", async () => {
