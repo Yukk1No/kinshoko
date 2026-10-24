@@ -1,8 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, PenLine, Plus, Tags, Trash2, X } from "lucide-react";
-import { FluidList, FluidRow } from "../ui/FluidList";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Link2, PenLine, Plus, Tags, Trash2, X } from "lucide-react";
 import { Combobox } from "../ui/Combobox";
 import { Select, type SelectOption } from "../ui/Select";
 import { tagOption } from "../search/tagOptions";
@@ -38,14 +37,14 @@ function escape(e: KeyboardEvent, done: () => void) {
   e.preventDefault(); e.stopPropagation(); done();
 }
 
-/** 新建标签分组：一行，名称和分组内容（自己挑选成员，或列出一个命名空间的全部标签）。 */
+/** 新建标签分组：列表末行展开成一行，名称和分组内容（自己挑选成员，或列出一个命名空间的全部标签）。 */
 function NewGroup({ onDone }: { onDone: (group: { name: string; namespace: TagNamespace | null } | null) => void }) {
   const [name, setName] = useState("");
   const [kind, setKind] = useState<TagNamespace | "">("");
   const submit = () => onDone(name.trim() ? { name: name.trim(), namespace: kind || null } : null);
   return (
     <div className="k-group-new">
-      <Tags size={16} aria-hidden="true" className="k-group-icon" />
+      <span className="k-group-icon" aria-hidden="true"><Tags size={16} /></span>
       <input
         className="k-input"
         aria-label="新标签分组名称"
@@ -166,45 +165,34 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
     return result;
   };
   const deletingGroup = groups.find((group) => group.id === deleting);
-  // 每个分组一行：名称、成员数与来源，悬停或聚焦时露出操作；下面是成员标签块（设计系统 TagChip），
-  // 悬停或聚焦时露出前移、后移与移出，行末是“加标签”。删除先确认（#98，design/ui-system/README.md）。
+  // 设计系统 SettingsList 的外框：每个分组一行，28 px 图标方块、名称、靠右的成员数（命名空间分组是胶囊）；
+  // 悬停或键盘聚焦时露出改名、上移、下移、删除。成员是 TagChip，悬停露出前移、后移、移出，末尾是幽灵按钮“加标签”。
+  // 末行是“新建分组”。删除先确认（#98，design/ui-system/README.md）。
   return (
     <section ref={section} className="sidebar-tag-groups k-groups" aria-label={label} aria-busy={busy || !fresh}>
-      <div className="k-groups-head">
-        <span className="k-groups-count">{fresh ? `${groups.length} 个分组` : "分组"}</span>
-        <button type="button" className="k-btn is-sm" aria-label="新建标签分组" title="新建分组" data-focus-key="new" disabled={busy || !fresh} onClick={() => setCreating(true)}>
-          <Plus size={14} aria-hidden="true" />新建分组</button>
-      </div>
-      {creating && <NewGroup onDone={(group) => {
-        setCreating(false);
-        remember("new");
-        if (group) void run(createSharedTagGroup(group.name, group.namespace));
-      }} />}
       {!fresh && <p className="k-set-note" role="status">正在更新标签分组…</p>}
-      {fresh && groups.length === 0 && !creating && <p className="k-groups-empty">还没有分组。把常一起找的标签放进一个分组，标签栏就能一键查找。</p>}
-      <FluidList className="k-group-list" gapClick={false}>
+      <div className="k-group-list">
+      <div className="k-group-rows">
       {groups.map((group, index) => {
         const custom = group.namespace === null;
-        const meta = custom ? `${group.tags.length} 个标签` : KINDS.find((k) => k.value === group.namespace)?.label;
         const origin = group.sources?.length ? group.sources.map((source) => `${source.libraryName} / ${source.groupName}`).join("；") : null;
         const ids = group.tags.map((t) => t.tag.id);
         return <div key={group.id} role="group" aria-label={fresh ? group.name : undefined} className="k-group">
-          {renaming === group.id ? <div className="k-group-row is-renaming" onKeyDown={(e) => escape(e, () => {})}>
-            <Tags size={16} aria-hidden="true" className="k-group-icon" />
+          {renaming === group.id ? <div className="k-group-head is-renaming" onKeyDown={(e) => escape(e, () => {})}>
+            <span className="k-group-icon" aria-hidden="true"><Tags size={16} /></span>
             <NameInput label="标签分组名称" initial={group.name} onDone={(name) => {
               setRenaming(null);
               remember(`${group.id}:rename`);
               if (name && name !== group.name) void edit({ kind: "rename", groupId: group.id, name });
             }} />
-          </div> : fresh && <FluidRow index={index}>
-            <div className="k-group-row">
+          </div> : fresh && (
+            <div className="k-group-head">
+              <span className="k-group-icon" aria-hidden="true"><Tags size={16} /></span>
               <button type="button" className="k-group-name" data-focus-key={`${group.id}:name`} aria-label={`${group.name}（${group.tags.length} 个标签）`}
-                disabled={busy || !onBrowse || !group.tags.length} title={onBrowse && group.tags.length ? "按这个分组查找；双击改名" : "双击改名"}
+                disabled={busy || !onBrowse || !group.tags.length} title={onBrowse && group.tags.length ? "按这个分组查找，双击改名" : "双击改名"}
                 onClick={() => onBrowse?.(ids)} onDoubleClick={() => setRenaming(group.id)}>
-                <Tags size={16} aria-hidden="true" className="k-group-icon" />
                 <span className="k-group-label">{group.name}</span>
-                <span className="k-group-meta">{meta}</span>
-                {origin && <span className="k-group-origin" title={`来自：${origin}`}>来自 {origin}</span>}
+                {origin && <span className="k-group-origin" role="img" aria-label={`来自：${origin}`} title={`来自：${origin}`}><Link2 size={14} aria-hidden="true" /></span>}
               </button>
               <span className="k-group-acts">
                 <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:rename`} aria-label={`改名标签分组“${group.name}”`} title="改名" disabled={busy} onClick={() => setRenaming(group.id)}><PenLine size={14} aria-hidden="true" /></button>
@@ -215,8 +203,10 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
                 <button type="button" className="k-icon-btn is-sm is-danger" data-focus-key={`${group.id}:delete`} aria-label={`删除标签分组“${group.name}”`} disabled={busy}
                   title="删除分组" onClick={() => setDeleting(group.id)}><Trash2 size={14} aria-hidden="true" /></button>
               </span>
+              {custom ? <span className="k-group-count">{group.tags.length} 个标签</span>
+                : <span className="k-pill">{KINDS.find((k) => k.value === group.namespace)?.label}</span>}
             </div>
-          </FluidRow>}
+          )}
           {((fresh && (group.tags.length > 0 || custom)) || picking === group.id) && <ul className="k-group-members">
             {fresh && group.tags.map(({ tag, count }, memberIndex) => {
               const name = tagName(tag);
@@ -226,11 +216,11 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
                   <span className="k-group-chip-name">{name}<TagMarks tag={tag} /></span><span className="k-group-chip-count">{count}</span>
                 </button>
                 {custom && <span className="k-group-member-acts">
-                  <button type="button" className="k-icon-btn is-xs" data-focus-key={`${group.id}:${tag.id}:prev`} aria-label={`把“${name}”在“${group.name}”中前移`} title="前移" disabled={busy || memberIndex === 0}
+                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:prev`} aria-label={`把“${name}”在“${group.name}”中前移`} title="前移" disabled={busy || memberIndex === 0}
                     onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, -1) })}><ArrowLeft size={12} aria-hidden="true" /></button>
-                  <button type="button" className="k-icon-btn is-xs" data-focus-key={`${group.id}:${tag.id}:next`} aria-label={`把“${name}”在“${group.name}”中后移`} title="后移" disabled={busy || memberIndex === group.tags.length - 1}
+                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:next`} aria-label={`把“${name}”在“${group.name}”中后移`} title="后移" disabled={busy || memberIndex === group.tags.length - 1}
                     onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, 1) })}><ArrowRight size={12} aria-hidden="true" /></button>
-                  <button type="button" className="k-icon-btn is-xs" data-focus-key={`${group.id}:${tag.id}:remove`} aria-label={`把“${name}”移出“${group.name}”`} title="移出分组" disabled={busy}
+                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:remove`} aria-label={`把“${name}”移出“${group.name}”`} title="移出分组" disabled={busy}
                     onClick={() => void edit({ kind: "removeMembers", groupId: group.id, tagIds: [tag.id] })}><X size={12} aria-hidden="true" /></button>
                 </span>}
               </li>;
@@ -248,7 +238,14 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
           </ul>}
         </div>;
       })}
-      </FluidList>
+      </div>
+      {creating ? <NewGroup onDone={(group) => {
+        setCreating(false);
+        remember("new");
+        if (group) void run(createSharedTagGroup(group.name, group.namespace));
+      }} /> : <button type="button" className="k-group-create" aria-label="新建标签分组" data-focus-key="new" disabled={busy || !fresh} onClick={() => setCreating(true)}>
+        <span className="k-group-icon" aria-hidden="true"><Plus size={16} /></span>新建分组</button>}
+      </div>
       <AlertDialog.Root open={!!deletingGroup} onOpenChange={(open) => { if (!open) setDeleting(null); }}>
         <AlertDialog.Portal>
           <AlertDialog.Backdrop className="k-backdrop" />
