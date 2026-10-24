@@ -4,6 +4,8 @@ import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { BookmarkPlus, FolderInput, Layers, ListTree, MoreHorizontal, PackageOpen, Trash2 } from "lucide-react";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import { CaptureGroupSaveDialog, captureChoices, type CaptureSave } from "./CaptureGroupSaveDialog";
+import { GroupNameForm } from "./GroupNameForm";
+import { useToast } from "../ui/Toast";
 import { ago } from "./relativeTime";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
@@ -55,6 +57,13 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const toast = useToast();
+  /** 结果用轻提示回报；没有 ToastProvider 时（单独渲染面板）写在面板里。 */
+  const tell = (text: string | null) => {
+    if (!text) return;
+    if (toast) toast.show({ title: text, tone: "success" });
+    else setNotice(text);
+  };
   const [expanded, setExpanded] = useState<ReferenceGroupView | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -100,7 +109,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
     setNotice(null);
     try {
       const value = await action();
-      if (done) setNotice(done(value) ?? null);
+      if (done) tell(done(value));
     } catch (e) {
       setError(String(e));
     }
@@ -132,11 +141,11 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
       else await saveReferenceGroup(target.name);
       setName("");
       setNaming(false);
-      setNotice("已把桌面钉图存为参考组");
+      tell("已把桌面钉图存为参考组");
     } else {
       if (choices.length) await savePinsToGroup(target.groupId, choices);
       else await savePinsToGroup(target.groupId);
-      setNotice("已把桌面钉图存进这个参考组");
+      tell("已把桌面钉图存进这个参考组");
     }
     setCaptureSave(null);
   };
@@ -167,24 +176,15 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
     <section className="reference-groups" aria-label="参考组">
       <header className="reference-groups-bar">
         <h2>参考组</h2>
-        {naming ? <form className="group-name-form is-new" onSubmit={(e) => { e.preventDefault(); if (name.trim()) void run(() => beginSave({ name })); }}
-          onKeyDown={(e) => { if (e.key === "Escape" && !saving) { e.preventDefault(); setNaming(false); setName(""); } }}>
-          <label className="k-field">
-            <span className="k-field-label">新参考组</span>
-            <input className="k-input" aria-label="新参考组名称" placeholder="给这组钉图起个名字" autoFocus disabled={saving}
-              value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <span className="group-name-acts">
-            <button type="button" className="k-btn is-sm is-quiet" disabled={saving} onClick={() => { setNaming(false); setName(""); }}><span className="k-label">取消</span></button>
-            <button type="submit" className="k-btn is-sm is-primary" disabled={!name.trim() || !!captureSave || saving}><span className="k-label">保存</span></button>
-          </span>
-        </form> : <button type="button" className="k-btn is-primary group-save" disabled={!!captureSave || saving} onClick={() => setNaming(true)}>
+        {naming ? <GroupNameForm className="is-new" title="新参考组" label="新参考组名称" placeholder="给这组钉图起个名字"
+          value={name} onChange={setName} busy={saving} blocked={!!captureSave}
+          onCancel={() => { setNaming(false); setName(""); }} onSubmit={() => void run(() => beginSave({ name }))} /> : <button type="button" className="k-btn is-primary group-save" disabled={!!captureSave || saving} onClick={() => setNaming(true)}>
           <BookmarkPlus size={15} aria-hidden="true" /><span className="k-label">存下桌面钉图</span>
         </button>}
       </header>
       {importing && <SaveDestinationDialog title="导入参考组包" confirmLabel="选择参考组包并导入" onClose={() => setImporting(false)} onConfirm={async (destination) => {
         const group = await importReferenceGroupPackage(destination.libraryId, destination);
-        if (group) setNotice(`已导入参考组「${group.name}」，原图保存到所选图库和文件夹`);
+        if (group) tell(`已导入参考组「${group.name}」，原图保存到所选图库和文件夹`);
       }} />}
       {error && <p className="group-note is-error" role="alert">{error}</p>}
       {notice && <p className="group-note" role="status">{notice}</p>}
@@ -212,19 +212,11 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                   : <span className="reference-group-meta k-parts"><span>{g.memberCount} 张</span><span>{libraries(g.libraryIds)}</span><span>{ago(g.updatedAt)}</span></span>}
               </button>
               {renaming?.id === g.id && (
-                <form className="group-name-form" onSubmit={(e) => {
-                  e.preventDefault();
-                  if (renaming.name.trim()) void run(() => renameReferenceGroup(g.id, renaming.name), () => (setRenaming(null), null));
-                }} onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setRenaming(null); } }}>
-                  <input className="k-input" aria-label="参考组名称" autoFocus value={renaming.name}
-                    onChange={(e) => setRenaming({ id: g.id, name: e.target.value })} />
-                  <span className="group-name-acts">
-                    <button type="button" className="k-btn is-sm is-quiet" onClick={() => setRenaming(null)}><span className="k-label">取消</span></button>
-                    <button type="submit" className="k-btn is-sm is-primary" disabled={!renaming.name.trim()}><span className="k-label">保存名称</span></button>
-                  </span>
-                </form>
+                <GroupNameForm title="改名" label="参考组名称" value={renaming.name} primary={false}
+                  onChange={(value) => setRenaming({ id: g.id, name: value })} onCancel={() => setRenaming(null)}
+                  onSubmit={() => void run(() => renameReferenceGroup(g.id, renaming.name), () => (setRenaming(null), null))} />
               )}
-              {on && (g.problem ? (
+              {on && renaming?.id !== g.id && (g.problem ? (
                 <span className="reference-group-actions">
                   <button type="button" className="k-btn is-sm" onClick={() => setDeleting(g.id)}><Trash2 size={13} aria-hidden="true" /><span className="k-label">删除</span></button>
                 </span>

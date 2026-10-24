@@ -31,7 +31,7 @@ export function captureChoices<T>(value: CaptureSave<T>): CaptureChoice[] {
 /**
  * 截图怎样存进参考组（#66、#270）：桌面上有截图钉图时，存参考组前逐张选去处——收藏进某个图库
  * （再选文件夹）、只存在参考组里（不进图库），或不加入参考组。
- * 每张截图一行：缩略图在左，去处与文件夹两个 Select 并排；位置用不了时在行内写原因。
+ * 每张截图一行：缩略图在左，去处与文件夹两个 Select 并排；已收藏的截图在名称后标“已收藏”；位置用不了时在行内写原因。
  */
 export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, onClose, onConfirm }: {
   value: CaptureSave<T>; onChange: (value: CaptureSave<T>) => void; libraries: LibraryRegistration[];
@@ -51,12 +51,16 @@ export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, 
             const folder = value.folders[entry.id] ?? null;
             const chosen = collecting(choice);
             const destination = { libraryId: choice, folderId: folder };
+            const collected = [...new Set(entry.collected.map((c) => libraries.find((l) => l.library.id === c.libraryId)?.library.name ?? "未登记的图库"))];
             const lost = chosen && saveContext.ready && !destinationAvailable(destination, saveContext.providers);
             return (
               <li key={entry.id} className={`capture-save-row${choice === SKIP ? " is-skipped" : ""}`}>
                 <img className="capture-save-thumb" src={captureUrl(entry.id)} alt={`截图 ${i + 1}`} draggable={false} />
                 <div className="capture-save-main">
-                  <p className="capture-save-head"><strong>截图 {i + 1}</strong><span>{entry.width} × {entry.height}</span></p>
+                  <p className="capture-save-head">
+                    <strong>截图 {i + 1}</strong><span>{entry.width} × {entry.height}</span>
+                    {collected.length > 0 && <span className="k-pill" title={`已收藏到 ${collected.join("、")}`}><span className="k-label">已收藏</span></span>}
+                  </p>
                   <div className="capture-save-fields">
                     <Select label={`截图 ${i + 1} 存到哪里`} icon={<Library size={16} aria-hidden="true" />} disabled={saving} value={choice}
                       onChange={(next) => onChange({ ...value, choices: { ...value.choices, [entry.id]: next }, folders: { ...value.folders, [entry.id]: null } })}
@@ -64,7 +68,7 @@ export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, 
                         { value: "", label: "选择去处…" },
                         ...libraries.map((option) => ({
                           value: option.library.id, disabled: !!option.unavailable,
-                          label: `收藏到${option.library.name}${option.unavailable ? "（未连接）" : entry.collected.some((c) => c.libraryId === option.library.id) ? "（已收藏）" : ""}`,
+                          label: `收藏到${option.library.name}${option.unavailable ? "（未连接）" : ""}`,
                         })),
                         { value: KEEP_IN_GROUP, label: "只存在参考组里" },
                         { value: SKIP, label: "不加入参考组" },
