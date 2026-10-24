@@ -166,22 +166,22 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
             {outcomes.length > PREVIEW_PAGE && <div className="k-dialog-foot is-tight">
               <span className="k-set-note">{previewPage * PREVIEW_PAGE + 1}–{Math.min((previewPage + 1) * PREVIEW_PAGE, outcomes.length)} / {outcomes.length}</span>
               <span className="k-grow" />
-              <button type="button" className="k-btn is-sm" disabled={previewPage === 0} onClick={() => setPreviewPage(previewPage - 1)}>上一页</button>
-              <button type="button" className="k-btn is-sm" disabled={(previewPage + 1) * PREVIEW_PAGE >= outcomes.length} onClick={() => setPreviewPage(previewPage + 1)}>下一页</button>
+              <button type="button" className="k-btn is-sm" disabled={previewPage === 0} onClick={() => setPreviewPage(previewPage - 1)}><span className="k-label">上一页</span></button>
+              <button type="button" className="k-btn is-sm" disabled={(previewPage + 1) * PREVIEW_PAGE >= outcomes.length} onClick={() => setPreviewPage(previewPage + 1)}><span className="k-label">下一页</span></button>
             </div>}
           </>}
         </>}
         <div className="k-dialog-foot">
-          {groups.length > 0 && !reviewing && !saved && <button type="button" className="k-btn is-ghost is-flush" disabled={busy || bulk.length === 0} onClick={bulkFollow}>剩下的都用默认（{bulk.length}）</button>}
+          {groups.length > 0 && !reviewing && !saved && <button type="button" className="k-btn is-ghost is-flush" disabled={busy || bulk.length === 0} onClick={bulkFollow}><span className="k-label">剩下的都用默认（{bulk.length}）</span></button>}
           <span className="k-grow" />
           {groups.length === 0 || saved
-            ? <Dialog.Close className="k-btn is-primary">完成</Dialog.Close>
+            ? <Dialog.Close className="k-btn is-primary"><span className="k-label">完成</span></Dialog.Close>
             : <>
-              <Dialog.Close className="k-btn" disabled={busy}>取消</Dialog.Close>
-              <button type="button" className="k-btn" disabled={busy || page === 0} onClick={() => setPage(page - 1)}>上一个</button>
+              <Dialog.Close className="k-btn" disabled={busy}><span className="k-label">取消</span></Dialog.Close>
+              <button type="button" className="k-btn" disabled={busy || page === 0} onClick={() => setPage(page - 1)}><span className="k-label">上一个</span></button>
               {reviewing
-                ? <button type="button" className="k-btn is-primary" disabled={busy || !validPreview} onClick={() => { if (view && validPreview) void run(() => confirmLegacyNames(view.plan.revision, decisions), true); }}>确认名称</button>
-                : <button type="button" className="k-btn is-primary" disabled={busy} onClick={forward}>下一个</button>}
+                ? <button type="button" className="k-btn is-primary" disabled={busy || !validPreview} onClick={() => { if (view && validPreview) void run(() => confirmLegacyNames(view.plan.revision, decisions), true); }}><span className="k-label">确认名称</span></button>
+                : <button type="button" className="k-btn is-primary" disabled={busy} onClick={forward}><span className="k-label">下一个</span></button>}
             </>}
         </div>
       </Dialog.Popup>
@@ -243,7 +243,7 @@ export function LegacyNameMigrationNotice({ libraryId, safe, onOpen }: { library
   const pending = usePendingLegacyNames((group) => group.sources.some((source) => source.libraryId === libraryId), [libraryId, safe]);
   return pending > 0 ? <p className="legacy-name-notice k-notice" role="status"><Sparkles size={14} aria-hidden="true" />
     <span className="k-grow"><b>旧名称待确认</b>　这个图库里有 {pending} 个较早的叫法</span>
-    <button type="button" className="k-btn is-sm" onClick={onOpen}>逐个确认</button></p> : null;
+    <button type="button" className="k-btn is-sm" onClick={onOpen}><span className="k-label">逐个确认</span></button></p> : null;
 }
 
 /** 设置 › 标签 › 显示名底部的提示条。 */
@@ -252,5 +252,5 @@ export function LegacyNameBanner({ onOpen }: { onOpen?: () => void }) {
   if (pending === 0 || !onOpen) return null;
   return <div className="k-notice legacy-name-banner" role="status"><Sparkles size={15} aria-hidden="true" />
     <span className="k-grow"><b>{pending} 个旧名称待确认</b>　来自较早的图库</span>
-    <button type="button" className="k-btn is-sm" onClick={onOpen}>逐个确认</button></div>;
+    <button type="button" className="k-btn is-sm" onClick={onOpen}><span className="k-label">逐个确认</span></button></div>;
 }

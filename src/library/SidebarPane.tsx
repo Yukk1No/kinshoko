@@ -188,8 +188,8 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
               }}
             />}>
               <span className="k-row-icon" aria-hidden="true">{node.children.length > 0 ? <FolderOpen size={15} /> : <Folder size={15} />}</span>
-              <span className="sidebar-label">{node.name}</span>
-              <span className="sidebar-count">{count(node)}</span>
+              <span className="sidebar-label k-label">{node.name}</span>
+              <span className="sidebar-count k-label">{count(node)}</span>
             </ContextMenu.Trigger>
             <MenuPopup label={`${node.name} 的操作`} width={200}>
               <MenuItem icon={<FolderPlus size={14} />} onClick={() => { onCreatingDone(); setCreatingUnder(node.id); }}>新建子文件夹</MenuItem>
@@ -218,8 +218,8 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
         <button type="button" className="sidebar-item k-row" aria-current={current({ kind: "unassigned" })}
           aria-label={`未归类（${unassigned} 张）`} onClick={() => onScope({ kind: "unassigned" })}>
           <span className="k-row-icon" aria-hidden="true"><Inbox size={15} /></span>
-          <span className="sidebar-label">未归类</span>
-          <span className="sidebar-count">{unassigned}</span>
+          <span className="sidebar-label k-label">未归类</span>
+          <span className="sidebar-count k-label">{unassigned}</span>
         </button>
       </FluidRow>}
       <div role="tree" aria-label="文件夹" className="sidebar-folders">
@@ -239,8 +239,8 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
             </AlertDialog.Description>
             <div className="k-dialog-foot">
               <span className="k-grow" />
-              <AlertDialog.Close className="k-btn" disabled={busy}>取消</AlertDialog.Close>
-              <button type="button" className="k-btn is-danger" disabled={busy} onClick={confirmDelete}>删除文件夹</button>
+              <AlertDialog.Close className="k-btn" disabled={busy}><span className="k-label">取消</span></AlertDialog.Close>
+              <button type="button" className="k-btn is-danger" disabled={busy} onClick={confirmDelete}><span className="k-label">删除文件夹</span></button>
             </div>
           </AlertDialog.Popup>
         </AlertDialog.Portal>

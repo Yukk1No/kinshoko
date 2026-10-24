@@ -55,8 +55,8 @@ function NewGroup({ onDone }: { onDone: (group: { name: string; namespace: TagNa
         ))}
       </select>
       <span className="k-group-new-acts">
-        <button type="button" className="k-btn is-sm" onClick={() => onDone(null)}>取消</button>
-        <button type="button" className="k-btn is-sm is-primary" disabled={!name.trim()} onClick={submit}>建立</button>
+        <button type="button" className="k-btn is-sm" onClick={() => onDone(null)}><span className="k-label">取消</span></button>
+        <button type="button" className="k-btn is-sm is-primary" disabled={!name.trim()} onClick={submit}><span className="k-label">建立</span></button>
       </span>
     </div>
   );
@@ -94,7 +94,7 @@ function PickTag({ lens, onPick, onCancel }: { lens: Lens; onPick: (tag: TagLabe
         </ul>
       )}
       <button type="button" className="k-btn is-sm" onClick={onCancel}>
-        取消
+        <span className="k-label">取消</span>
       </button>
     </div>
   );
@@ -183,7 +183,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
       <div className="k-groups-head">
         <span className="k-groups-count">{fresh ? `${groups.length} 个分组` : "分组"}</span>
         <button type="button" className="k-btn is-sm" aria-label="新建标签分组" title="新建分组" data-focus-key="new" disabled={busy || !fresh} onClick={() => setCreating(true)}>
-          <Plus size={14} aria-hidden="true" />新建分组</button>
+          <Plus size={14} aria-hidden="true" /><span className="k-label">新建分组</span></button>
       </div>
       {creating && <NewGroup onDone={(group) => {
         setCreating(false);
@@ -206,8 +206,8 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
                 disabled={busy || !onBrowse || !group.tags.length}
                 onClick={() => onBrowse?.(group.tags.map((tag) => tag.tag.id))} onDoubleClick={() => setRenaming(group.id)}>
                 <Tags size={15} aria-hidden="true" className="k-group-icon" />
-                <span className="sidebar-label k-group-label">{group.name}</span>
-                <span className="k-group-meta">{group.namespace === null ? `${group.tags.length} 个标签` : kind}</span>
+                <span className="sidebar-label k-group-label k-label">{group.name}</span>
+                <span className="k-group-meta k-label">{group.namespace === null ? `${group.tags.length} 个标签` : kind}</span>
               </button>
               <span className="k-group-acts">
                 {group.namespace === null && <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:add`} aria-label={`给“${group.name}”加标签`} title="加标签" disabled={busy} onClick={() => setPicking(group.id)}><Plus size={15} aria-hidden="true" /></button>}
@@ -231,7 +231,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
               return <li key={tag.id} className="sidebar-tag k-group-member">
                 <button type="button" className="sidebar-item k-group-chip" data-focus-key={`${group.id}:${tag.id}:chip`} aria-label={`${name}（${count} 张）`} disabled={!onBrowse}
                   onClick={() => onBrowse?.([tag.id])}>
-                  <span className="sidebar-label">{name}<TagMarks tag={tag} /></span><span className="sidebar-count">{count}</span>
+                  <span className="sidebar-label k-label">{name}<TagMarks tag={tag} /></span><span className="sidebar-count k-label">{count}</span>
                 </button>
                 {group.namespace === null && <span className="k-group-member-acts">
                   <button type="button" className="k-icon-btn is-xs" data-focus-key={`${group.id}:${tag.id}:up`} aria-label={`上移“${name}”在“${group.name}”中的顺序`} title="前移" disabled={busy || memberIndex === 0}
@@ -255,14 +255,14 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
             <AlertDialog.Description className="k-dialog-desc">「{deletingGroup?.name}」会被删除，图片的标签不变。</AlertDialog.Description>
             <div className="k-dialog-foot">
               <span className="k-grow" />
-              <AlertDialog.Close className="k-btn">取消</AlertDialog.Close>
+              <AlertDialog.Close className="k-btn"><span className="k-label">取消</span></AlertDialog.Close>
               <button type="button" className="k-btn is-danger" onClick={() => {
                 const id = deleting!; setDeleting(null);
                 // 删掉的分组没有可回的位置：回到相邻分组，没有时回到“新建分组”。
                 const at = groups.findIndex((g) => g.id === id), next = groups[at + 1] ?? groups[at - 1];
                 restore.current = next ? `${next.id}:name` : "new";
                 void edit({ kind: "delete", groupId: id });
-              }}>删除</button>
+              }}><span className="k-label">删除</span></button>
             </div>
           </AlertDialog.Popup>
         </AlertDialog.Portal>

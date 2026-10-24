@@ -88,7 +88,7 @@ export function UpdateSection({ version = null, channel, onChannel }: {
     if (onChannel && await onChannel(next)) await check();
   };
 
-  const pill = status.state === "upToDate" ? <StatusPill tone="ok"><CircleCheck size={12} aria-hidden="true" />已是最新</StatusPill>
+  const pill = status.state === "upToDate" ? <StatusPill tone="ok" icon={<CircleCheck size={12} aria-hidden="true" />}>已是最新</StatusPill>
     : status.state === "available" ? <StatusPill tone="accent">有新版本</StatusPill>
     : status.state === "failed" ? <StatusPill tone="warn">检查失败</StatusPill> : null;
   return (
@@ -100,7 +100,7 @@ export function UpdateSection({ version = null, channel, onChannel }: {
             <p>{status.message}</p>
             <p>从托盘退出 Kinshoko 后，运行开发者提供的新版安装包，安装到原位置。装好后重新打开，继续使用已有图库、设置、参考组和钉图。</p>
           </div>}>
-          <button type="button" className="k-btn is-sm" aria-expanded={steps} onClick={() => setSteps(!steps)}>{steps ? "收起步骤" : "查看步骤"}</button>
+          <button type="button" className="k-btn is-sm" aria-expanded={steps} onClick={() => setSteps(!steps)}><span className="k-label">{steps ? "收起步骤" : "查看步骤"}</span></button>
         </SettingsRow>
       ) : status.state === "disabled" ? (
         <SettingsRow icon={<Download size={16} />} title="自动更新" meta="这个版本未开启" below={<p className="k-set-note">{status.message}</p>} />
@@ -116,7 +116,7 @@ export function UpdateSection({ version = null, channel, onChannel }: {
           {status.state === "available" && (
             <SettingsRow icon={<Download size={16} />} title={`可以更新到 ${status.version}`} meta={installing ? progressText(progress) : undefined} hint="装好后自动重启"
               below={status.notes && <p className="k-set-note update-notes">{status.notes}</p>}>
-              {!installing && <button type="button" className="k-btn is-sm is-primary" onClick={() => void install()}>安装并重启</button>}
+              {!installing && <button type="button" className="k-btn is-sm is-primary" onClick={() => void install()}><span className="k-label">安装并重启</span></button>}
             </SettingsRow>
           )}
           <SettingsRow icon={<RefreshCw size={16} />} title="检查更新" hint="从发布页查找新版本"
@@ -124,7 +124,7 @@ export function UpdateSection({ version = null, channel, onChannel }: {
               {status.state === "failed" && <p className="k-set-error" role="alert">{status.message}</p>}
               {error !== null && <p className="k-set-error" role="alert">{error}</p>}
             </>}>
-            <button type="button" className="k-btn is-sm" disabled={checking || installing} onClick={() => void check()}>检查更新</button>
+            <button type="button" className="k-btn is-sm" disabled={checking || installing} onClick={() => void check()}><span className="k-label">检查更新</span></button>
           </SettingsRow>
         </>
       )}

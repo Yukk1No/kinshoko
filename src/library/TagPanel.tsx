@@ -138,15 +138,15 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
         actions={<>
           {manual ? (
             <button type="button" className="k-tag-tip-btn" aria-label={`清除对“${name}”的人工决定`}
-              onClick={() => decide("clear", byId(tag))}><Undo2 size={12} aria-hidden="true" />改回自动</button>
+              onClick={() => decide("clear", byId(tag))}><Undo2 size={12} aria-hidden="true" /><span className="k-label">改回自动</span></button>
           ) : (
             <button type="button" className="k-tag-tip-btn" aria-label={`确认“${name}”`} title="确认"
-              onClick={() => decide("add", byId(tag))}><Check size={12} aria-hidden="true" />保留</button>
+              onClick={() => decide("add", byId(tag))}><Check size={12} aria-hidden="true" /><span className="k-label">保留</span></button>
           )}
           <button type="button" className="k-tag-tip-btn" aria-label={`否决“${name}”`} title="这张图不是它"
-            onClick={() => decide("reject", byId(tag))}><Ban size={12} aria-hidden="true" />不要</button>
+            onClick={() => decide("reject", byId(tag))}><Ban size={12} aria-hidden="true" /><span className="k-label">不要</span></button>
           {!sourceTarget && <button type="button" className="k-tag-tip-btn" aria-label={`“${name}”的别名`}
-            onClick={() => setAliasFor(tag)}><AtSign size={12} aria-hidden="true" />别名</button>}
+            onClick={() => setAliasFor(tag)}><AtSign size={12} aria-hidden="true" /><span className="k-label">别名</span></button>}
         </>} />
     );
   };
@@ -226,9 +226,9 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
         )}
         {ids.length > 1 && <p className="selection-hint insp-hint">对已选的 {ids.length} 张一起记下</p>}
         {hasText && <div className="selection-actions k-tag-add-acts">
-          <button type="button" className="k-btn is-sm is-primary" aria-label="添加标签" onClick={() => decide("add")}>添加</button>
-          <button type="button" className="k-btn is-sm is-ghost" aria-label="否决标签" title="这张图不是这个标签" onClick={() => decide("reject")}>排除</button>
-          <button type="button" className="k-btn is-sm is-ghost" aria-label="清除标签决定" title="改回自动" onClick={() => decide("clear")}>改回自动</button>
+          <button type="button" className="k-btn is-sm is-primary" aria-label="添加标签" onClick={() => decide("add")}><span className="k-label">添加</span></button>
+          <button type="button" className="k-btn is-sm is-ghost" aria-label="否决标签" title="这张图不是这个标签" onClick={() => decide("reject")}><span className="k-label">排除</span></button>
+          <button type="button" className="k-btn is-sm is-ghost" aria-label="清除标签决定" title="改回自动" onClick={() => decide("clear")}><span className="k-label">改回自动</span></button>
         </div>}
       </div>
       {aliasFor && (
@@ -318,10 +318,10 @@ function AliasEditor({
       />
       <span className="k-tag-alias-acts">
         <button type="button" className="k-btn is-sm" onClick={onClose}>
-          完成
+          <span className="k-label">完成</span>
         </button>
         <button type="button" className="k-btn is-sm is-primary" disabled={!draft.trim()} onClick={add}>
-          加别名
+          <span className="k-label">加别名</span>
         </button>
       </span>
     </div>

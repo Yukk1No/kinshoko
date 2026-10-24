@@ -67,7 +67,7 @@ export function ViewerImages({ viewport, src, swapIn, setFailedSrc, placed, scal
       draggable={false} style={{ ...placed, imageRendering: scale > 2 && isOriginal(lastStandIn) ? "pixelated" : "auto" }} />}
     {failed ? <div className="viewer-message" role="alert">
       <p>无法读取这张参考图。请检查图库文件是否仍可访问。</p>
-      <button type="button" className="k-btn is-sm" onClick={() => setRetry((r) => r + 1)}>重试读取</button>
+      <button type="button" className="k-btn is-sm" onClick={() => setRetry((r) => r + 1)}><span className="k-label">重试读取</span></button>
     </div> : !ready && !derivedStandIn && !lastStandIn && <p className="viewer-message" role="status">正在读取参考图…</p>}
   </>;
 }
