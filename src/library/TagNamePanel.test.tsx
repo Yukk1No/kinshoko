@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { TagNamePanel } from "./TagNamePanel";
+import { chooseValue } from "../test/select";
 
 afterEach(() => { cleanup(); clearMocks(); });
 const tag = () => ({ id: "shared", namespace: "general", names: [{ lang: "zh-CN", name: "分缝发型" }, { lang: "en", name: "Parted hair" }], defaultNames: [{ lang: "zh-CN", name: "分缝发型" }, { lang: "en", name: "Parted hair" }], namePreferences: [] as { lang: string; name: string }[], aliases: [{ name: "分发", lang: "zh-CN" }], external: [{ vocabulary: "danbooru", name: "parted_hair" }] });
@@ -122,7 +123,7 @@ it("lists tags without an external mapping, corrects a source name's language an
   const row = screen.getByRole("listitem", { name: /hatsune miku/ });
   fireEvent.click(within(row).getByRole("button", { name: "改名“hatsune miku”" }));
 
-  fireEvent.change(within(row).getByRole("combobox", { name: "“hatsune miku”的语言" }), { target: { value: "ja" } });
+  await chooseValue(within(row).getByRole("combobox", { name: "“hatsune miku”的语言" }), "ja");
   await waitFor(() => expect(calls).toContainEqual({ cmd: "plugin:library|set_source_name_lang", args: { libraryId: "L1", tagId: "local-eagle", name: "hatsune miku", lang: "ja" } }));
 
   fireEvent.change(within(row).getByRole("combobox", { name: "“hatsune miku”的外部对应" }), { target: { value: "hatsune_miku" } });

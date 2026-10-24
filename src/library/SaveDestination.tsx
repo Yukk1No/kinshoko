@@ -6,6 +6,7 @@ import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import type { FolderNode } from "../bindings/FolderNode";
 import { isCursorExpired, onWorkspaceChanged, workspaceDirectories } from "../ipc";
 import { libraryPathHint } from "./library-path";
+import { Select } from "../ui/Select";
 
 type SaveContext = {
   destination: SaveDestination | null;
@@ -84,32 +85,28 @@ export function SaveDestinationPicker({ value, onChange, disabled = false, label
   return <fieldset className="save-destination k-destination" disabled={disabled}>
     <legend className="sr-only">保存位置</legend>
     <div className="k-destination-grid">
-      <label className="k-field">
+      <div className="k-field">
         <span className="k-field-label">{labelPrefix}图库</span>
-        <span className="k-select-wrap"><Library size={15} aria-hidden="true" />
-        <select className="k-select is-lg" value={value?.libraryId ?? ""}
-          onChange={e => onChange(e.target.value ? { libraryId: e.target.value, folderId: null } : null)}>
-          <option value="">选择图库…</option>
-          {value && !provider && <option value={value.libraryId} disabled>未打开的图库</option>}
-          {providers.map(p => <option key={p.registration.library.id} value={p.registration.library.id}
-            disabled={!!p.registration.unavailable || !p.sidebar}>
-            {p.registration.library.name}（{libraryPathHint(p.registration.library.root, paths)}）
-            {p.registration.unavailable ? "（未连接）" : ""}
-          </option>)}
-        </select></span>
-      </label>
-      <label className="k-field">
+        <Select label={`${labelPrefix}图库`} icon={<Library size={16} aria-hidden="true" />} disabled={disabled} value={value?.libraryId ?? ""}
+          onChange={id => onChange(id ? { libraryId: id, folderId: null } : null)}
+          options={[
+            { value: "", label: "选择图库…" },
+            ...(value && !provider ? [{ value: value.libraryId, label: "未打开的图库", disabled: true }] : []),
+            ...providers.map(p => ({ value: p.registration.library.id, disabled: !!p.registration.unavailable || !p.sidebar,
+              label: `${p.registration.library.name}（${libraryPathHint(p.registration.library.root, paths)}）${p.registration.unavailable ? "（未连接）" : ""}` })),
+          ]} />
+      </div>
+      <div className="k-field">
         <span className="k-field-label">文件夹</span>
-        <span className="k-select-wrap"><Folder size={15} aria-hidden="true" />
-        <select className="k-select is-lg" value={value?.folderId ?? ""}
-          disabled={!provider || !!provider.registration.unavailable}
-          onChange={e => value && onChange({ ...value, folderId: e.target.value || null })}>
-          <option value="">未归类</option>
-          {value?.folderId && !folders.some(f => f.id === value.folderId)
-            && <option value={value.folderId} disabled>这个文件夹不在了</option>}
-          {folders.map(folder => <option key={folder.id} value={folder.id}>{folder.path}</option>)}
-        </select></span>
-      </label>
+        <Select label="文件夹" icon={<Folder size={16} aria-hidden="true" />} value={value?.folderId ?? ""}
+          disabled={disabled || !provider || !!provider.registration.unavailable}
+          onChange={id => value && onChange({ ...value, folderId: id || null })}
+          options={[
+            { value: "", label: "未归类" },
+            ...(value?.folderId && !folders.some(f => f.id === value.folderId) ? [{ value: value.folderId, label: "这个文件夹不在了", disabled: true }] : []),
+            ...folders.map(folder => ({ value: folder.id, label: folder.path })),
+          ]} />
+      </div>
     </div>
     {value && <p className="save-final-position k-set-note" title={provider?.registration.library.root}>放到：{destinationLabel(value, providers)}</p>}
     {(!ready || problem) && <p className="k-set-note" role="status">{problem ?? "正在读取图库…"}</p>}

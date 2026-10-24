@@ -44,6 +44,7 @@ vi.mock("../ipc", () => ({
 
 import { ReferenceGroupsPanel } from "./ReferenceGroupsPanel";
 import { SaveDestinationProvider } from "../library/SaveDestination";
+import { chooseValue } from "../test/select";
 
 const summary: GroupSummary = {
   id: "g1",
@@ -228,8 +229,8 @@ describe("参考组面板", () => {
       fireEvent.click(screen.getByRole("button", { name: "导入参考组包" }));
     });
     expect(ipc.importPackage).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByRole("combobox",{name:"图库"}),{target:{value:"lib-a"}});
-    fireEvent.change(screen.getByRole("combobox",{name:"文件夹"}),{target:{value:"folder-a"}});
+    await chooseValue(screen.getByRole("combobox",{name:"图库"}),"lib-a");
+    await chooseValue(screen.getByRole("combobox",{name:"文件夹"}),"folder-a");
     await act(async()=>{fireEvent.click(screen.getByRole("button",{name:"选择参考组包并导入"}));});
     expect(ipc.importPackage).toHaveBeenCalledWith("lib-a",{libraryId:"lib-a",folderId:"folder-a"});
     expect(screen.getByRole("status").textContent).toContain("别人的参考组");

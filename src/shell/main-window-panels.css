@@ -94,10 +94,7 @@
 .create-library { display: flex; flex-direction: column; gap: 16px; padding: 20px; border-radius: var(--r-xl); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
 .create-library h1 { margin: 0; font-size: 16px; line-height: 24px; }
 .create-library-desc { margin: 2px 0 0; color: var(--ink-2); font-size: 12px; }
-/* .k-input 与 .k-field-label 来自 ui/dialogs.css；这里是竖排的字段，输入框不随 flex 伸缩。 */
-.create-library .k-field { display: flex; flex-direction: column; gap: 6px; }
-.create-library .k-input { flex: none; height: 36px; padding: 0 12px; border-radius: var(--r); }
-.create-library-path { display: flex; align-items: center; gap: 8px; min-width: 0; height: 36px; padding: 0 4px 0 12px; border-radius: var(--r); background: var(--sunken); color: var(--ink-2); }
+.create-library-path { display: flex; align-items: center; gap: 8px; min-width: 0; height: 32px; padding: 0 4px 0 12px; border-radius: var(--r); background: var(--sunken); color: var(--ink-2); }
 .create-library-path.is-set { color: var(--ink); }
 .create-library-path-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .create-library-error { margin: 0; color: var(--danger); font-size: 12px; overflow-wrap: anywhere; }
@@ -152,9 +149,6 @@
 .k-rename { width: 280px; padding: 14px; }
 .k-rename form { display: flex; flex-direction: column; gap: 8px; }
 .k-rename .k-rename-title { margin: 0; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
-.k-rename .k-field { display: flex; flex-direction: column; gap: 6px; }
-.k-rename .k-input { flex: none; height: 32px; box-shadow: inset 0 0 0 1px var(--line-2); }
-.k-rename .k-input:focus { outline: 0; box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px var(--accent-soft); }
 .k-rename .k-set-note, .k-rename .k-list-desc, .k-rename .k-set-error { margin: 0; }
 .k-rename .k-rename-acts { display: flex; gap: 6px; justify-content: flex-end; }
 .k-rename .k-rename-more { margin: 2px 0 0; align-self: flex-start; font-size: 12px; text-align: left; }
@@ -165,11 +159,13 @@
 .k-tags .k-tag-restore { height: 20px; padding: 0 6px; border: 0; border-radius: var(--r-xs); background: none; color: var(--accent-strong); font: inherit; font-size: 12px; }
 .k-tags .k-tag-restore:hover { background: var(--accent-soft); }
 .k-tags .k-tag-add { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
-.k-tag-field { display: flex; align-items: center; height: 34px; border-radius: var(--r); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); }
-.k-tag-field:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px var(--accent-soft); }
-.k-tags .k-tag-field .k-tag-kind { flex: none; height: 26px; margin-left: 4px; padding: 0 22px 0 8px; border: 0; border-radius: var(--r-xs); background: var(--surface-2); color: var(--ink-2); font: inherit; font-size: 12px; appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: right 10px top 12px, right 6px top 12px; background-size: 4px 4px; background-repeat: no-repeat; }
-.k-tags .k-tag-field input { flex: 1; min-width: 0; height: 32px; padding: 0 10px; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 12px; outline: 0; }
+/* 添加标签：输入框前是命名空间的小选择（24 高，与输入框同心：10 − 4 = 6）。 */
+.k-tag-field.k-input { padding-left: 4px; }
+.k-tag-field .k-select.k-tag-kind { flex: none; width: auto; height: 24px; gap: 2px; padding: 0 4px 0 8px; border-radius: var(--r-xs); background: var(--surface-2); color: var(--ink-2);
+  font-size: 12px; box-shadow: none; }
+.k-tag-field .k-select.k-tag-kind:hover:not(:disabled) { background: var(--hover); box-shadow: none; }
+.k-tag-field .k-select.k-tag-kind:focus-visible, .k-tag-field .k-select.k-tag-kind[data-popup-open] { box-shadow: none; background: var(--hover); color: var(--ink); }
+.k-tag-field .k-tag-kind > .lucide { width: 14px; height: 14px; }
 .k-tags .k-tag-add-acts { display: flex; gap: 6px; margin: 0; }
 .k-tag-alias { gap: 8px; padding: 10px; border: 0; border-radius: var(--r-m); background: var(--sunken); }
 .k-tag-alias .k-tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }

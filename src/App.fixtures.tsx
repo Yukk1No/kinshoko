@@ -17,6 +17,7 @@ import type { Candidate } from "./bindings/Candidate";
 import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
 import type { TagLabel } from "./bindings/TagLabel";
+import { chooseValue } from "./test/select";
 
 // App 的测试共用的后端模拟、数据与操作步骤（从 App.test.tsx 拆出）。
 
@@ -273,10 +274,10 @@ export const importAction = (name: "导入文件…" | "导入文件夹…" | "�
   return screen.getByRole("menuitem", { name: name === "导入文件…" ? /^图片/ : name === "导入文件夹…" ? /^文件夹/ : /从 Eagle 导入|正在查找 Eagle/ });
 };
 /** 导入面板里的保存位置为空时选当前库（与原来先选位置再选文件的操作等价）。 */
-export const chooseDestination = () => {
+export const chooseDestination = async () => {
   // 收起的导入面板也保留保存位置选择（hidden）；拖放提示显示的就是它。
-  const selector=screen.queryByRole("combobox",{name:"放到图库",hidden:true}) as HTMLSelectElement|null;
-  if(selector&&!selector.value&&Array.from(selector.options).some(o=>o.value==="L1"))fireEvent.change(selector,{target:{value:"L1"}});
+  const selector=screen.queryByRole("combobox",{name:"放到图库",hidden:true});
+  if(selector&&!selector.dataset.value&&!selector.hasAttribute("disabled"))await chooseValue(selector,"L1");
 };
 /** 侧栏标题行“图库 ＋”的菜单（方案 D，#113）：打开 / 新建 / 管理，没有图库切换。 */
 export const libraryMenu = () => screen.findByRole("button", { name: "打开、新建或管理图库" });
@@ -296,7 +297,7 @@ export async function expandLibrary(name = "工作参考") {
 }
 export async function confirmImport() {
   const button=await screen.findByRole("button",{name:/^开始(?: Eagle)? 导入$|^开始导入$/});
-  chooseDestination();
+  await chooseDestination();
   await waitFor(()=>expect((button as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(button);
 }

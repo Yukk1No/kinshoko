@@ -5,6 +5,7 @@ import { emit } from "@tauri-apps/api/event";
 import type { ModelChoice } from "./bindings/ModelChoice";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { AutoTaggingSettings } from "./AutoTaggingSettings";
+import { chooseOption, optionNames } from "./test/select";
 
 afterEach(async () => {
   cleanup();
@@ -41,7 +42,7 @@ function backend({ status = { state: "paused" } as TaggingStatus, models = choic
 }
 
 const statusRow = () => screen.getByRole("listitem", { name: "状态" });
-const hardware = () => screen.findByRole<HTMLSelectElement>("combobox", { name: "硬件加速" });
+const hardware = () => screen.findByRole("combobox", { name: "硬件加速" });
 
 describe("设置 › 自动标签 › 自动打标", () => {
   it.each<[string, TaggingStatus, RegExp, string | null]>([
@@ -154,9 +155,8 @@ describe("设置 › 自动标签 › 模型", () => {
     backend();
     render(<AutoTaggingSettings libraryId="L1" />);
     const select = await hardware();
-    const options = within(select).getAllByRole<HTMLOptionElement>("option").map((o) => o.textContent);
-    expect(options).toEqual(["自动", "显卡，显存约 1.8 GB，已下载", "CPU，内存约 5.0 GB，需下载 1984 MB"]);
-    expect(select.value).toBe("auto");
+    expect(select.textContent).toBe("自动");
+    expect(await optionNames(select)).toEqual(["自动", "显卡，显存约 1.8 GB，已下载", "CPU，内存约 5.0 GB，需下载 1984 MB"]);
     expect(document.body.textContent).not.toMatch(/FP16|FP32|精度/);
   });
 
@@ -177,12 +177,12 @@ describe("设置 › 自动标签 › 模型", () => {
   it("选一档即保存，并显示这一档的需求", async () => {
     const calls = backend({ handle: (cmd, args) => (cmd === "tagging_set_device" ? { ...choice, selected: args.device } : undefined) });
     render(<AutoTaggingSettings libraryId="L1" />);
-    fireEvent.change(await hardware(), { target: { value: "cpu" } });
-    await waitFor(async () => expect((await hardware()).value).toBe("cpu"));
+    await chooseOption(await hardware(), /^CPU/);
+    await waitFor(async () => expect((await hardware()).textContent).toMatch(/^CPU/));
     expect(calls.find((c) => c.cmd === "tagging_set_device")?.args).toEqual({ device: "cpu" });
     expect(screen.getByText("CPU，内存约 5.0 GB，需下载 1984 MB", { selector: ".k-list-meta" })).toBeTruthy();
 
-    fireEvent.change(await hardware(), { target: { value: "auto" } });
+    await chooseOption(await hardware(), "自动");
     await waitFor(() => expect(calls.filter((c) => c.cmd === "tagging_set_device").at(-1)?.args).toEqual({ device: null }));
   });
 
@@ -199,10 +199,10 @@ describe("设置 › 自动标签 › 模型", () => {
     });
     render(<AutoTaggingSettings libraryId="L1" />);
     await waitFor(() => expect(reads).toBe(2));
-    fireEvent.change(await hardware(), { target: { value: "cpu" } });
-    await waitFor(async () => expect((await hardware()).value).toBe("cpu"));
+    await chooseOption(await hardware(), /^CPU/);
+    await waitFor(async () => expect((await hardware()).textContent).toMatch(/^CPU/));
     await act(async () => { release(); });
-    expect((await hardware()).value).toBe("cpu");
+    expect((await hardware()).textContent).toMatch(/^CPU/);
   });
 
   it("下载完成后重新读取各档是否已下载", async () => {
@@ -212,10 +212,10 @@ describe("设置 › 自动标签 › 模型", () => {
       handle: (cmd) => (cmd === "tagging_models" ? { ...choice, options: [choice.options[0], { ...choice.options[1], downloaded }] } : undefined),
     });
     render(<AutoTaggingSettings libraryId="L1" />);
-    await screen.findByRole("option", { name: /CPU，.*需下载/ });
+    await waitFor(async () => expect(await optionNames(await hardware())).toContainEqual(expect.stringMatching(/CPU，.*需下载/)));
     downloaded = true;
     await act(() => emit("tagging-status", { libraryId: "L1", status: { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0 } }));
-    expect(await screen.findByRole("option", { name: "CPU，内存约 5.0 GB，已下载" })).toBeTruthy();
+    await waitFor(async () => expect(await optionNames(await hardware())).toContain("CPU，内存约 5.0 GB，已下载"));
   });
 
   it("从文件导入模型包，校验通过后显示已下载", async () => {
@@ -226,7 +226,7 @@ describe("设置 › 自动标签 › 模型", () => {
     render(<AutoTaggingSettings libraryId="L1" />);
     fireEvent.click(await screen.findByRole("button", { name: "导入模型包…" }));
     expect(await screen.findByText("模型包已导入并通过校验")).toBeTruthy();
-    expect(screen.getByRole("option", { name: "CPU，内存约 5.0 GB，已下载" })).toBeTruthy();
+    expect(await optionNames(await hardware())).toContain("CPU，内存约 5.0 GB，已下载");
     expect(calls.find((c) => c.cmd === "tagging_import_package")?.args).toEqual({ path: "D:\\离线\\pixai.zip" });
   });
 

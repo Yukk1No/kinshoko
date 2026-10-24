@@ -345,12 +345,6 @@
   padding-left: 14px;
 }
 
-.sidebar-name-input {
-  width: 100%;
-  box-sizing: border-box;
-  font: inherit;
-}
-
 .app-problem {
   display: flex;
   gap: 12px;

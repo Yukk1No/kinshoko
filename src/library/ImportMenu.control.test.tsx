@@ -4,6 +4,7 @@ import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { createRef } from "react";
 import { ImportMenu, type ImportControl } from "./ImportMenu";
 import { SaveDestinationProvider } from "./SaveDestination";
+import { chooseOption } from "../test/select";
 
 afterEach(async () => { cleanup(); await new Promise((resolve) => setTimeout(resolve, 0)); clearMocks(); });
 
@@ -50,7 +51,7 @@ it("从剪贴板导入（#105）：剪贴板图片暂存成文件后走同一导
   // 没有明确选择保存位置之前不开始。
   expect(start).toHaveProperty("disabled", true);
   expect(submitted).toBeNull();
-  fireEvent.change(await within(dialog).findByRole("combobox", { name: "放到图库" }), { target: { value: "B" } });
+  await chooseOption(await within(dialog).findByRole("combobox", { name: "放到图库" }), /^保存库/);
   await waitFor(() => expect(start).toHaveProperty("disabled", false));
   fireEvent.click(start);
   await waitFor(() => expect(submitted).toMatchObject({ libraryId: "B", destination: { libraryId: "B", folderId: null }, source: { paths: ["C:/data/clipboard-import/剪贴板图片-1.png"] } }));

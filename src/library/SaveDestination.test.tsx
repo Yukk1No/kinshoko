@@ -6,6 +6,7 @@ import { ImportMenu } from "./ImportMenu";
 import { SaveDestinationProvider } from "./SaveDestination";
 import { WorkspaceSourceEditor } from "./WorkspaceSourceEditor";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
+import { chooseOption } from "../test/select";
 const a={ id:"A",name:"浏览库",root:"C:/a" }, b={ id:"B",name:"保存库",root:"D:/b" };
 const libraries=[a,b].map(library=>({library,unavailable:null}));
 beforeEach(()=>{
@@ -41,8 +42,8 @@ it("global import requires a visible save destination and does not change browse
  const menu=screen.getByRole("dialog",{name:"导入图片"});
  expect(start).toHaveProperty("disabled",true);
  expect(submitted).toBeNull();
- fireEvent.change(await within(menu).findByRole("combobox",{name:"放到图库"}),{target:{value:"B"}});
- fireEvent.change(within(menu).getByRole("combobox",{name:"文件夹"}),{target:{value:"folder-b"}});
+ await chooseOption(await within(menu).findByRole("combobox",{name:"放到图库"}),/^保存库/);
+ await chooseOption(within(menu).getByRole("combobox",{name:"文件夹"}),"最终目录");
  expect(within(menu).getByText(/放到：保存库.*最终目录/)).toBeTruthy();
  await waitFor(()=>expect(start).toHaveProperty("disabled",false));
  fireEvent.click(start);
@@ -76,10 +77,10 @@ it("a late start reply and cancel keep the submitted owner after selecting anoth
  fireEvent.click(await screen.findByRole("button",{name:"导入"}));
  fireEvent.click(await screen.findByRole("menuitem",{name:/^图片/}));
  const start=await screen.findByRole("button",{name:"开始导入"});
- fireEvent.change(await screen.findByRole("combobox",{name:"放到图库"}),{target:{value:"B"}});
+ await chooseOption(await screen.findByRole("combobox",{name:"放到图库"}),/^保存库/);
  await waitFor(()=>expect(start).toHaveProperty("disabled",false));
  fireEvent.click(start);
- fireEvent.change(screen.getByRole("combobox",{name:"放到图库"}),{target:{value:"A"}});
+ await chooseOption(screen.getByRole("combobox",{name:"放到图库"}),/^浏览库/);
  await act(async()=>{resolveStart("late-task");await pendingStart;});
  expect(await screen.findByText("放到 保存库 / 未归类")).toBeTruthy();
  fireEvent.click(await screen.findByRole("button",{name:"取消导入"}));
@@ -103,8 +104,8 @@ it("retry starts at its original target and an explicit new choice matches the f
  render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
  fireEvent.click(await screen.findByRole("button",{name:"重试失败的 1 项"}));
  await screen.findByRole("button",{name:"开始导入"});
- expect((screen.getByRole("combobox",{name:"放到图库"}) as HTMLSelectElement).value).toBe("B");
- fireEvent.change(screen.getByRole("combobox",{name:"放到图库"}),{target:{value:"A"}});
+ expect(screen.getByRole("combobox",{name:"放到图库"}).textContent).toMatch(/^保存库/);
+ await chooseOption(screen.getByRole("combobox",{name:"放到图库"}),/^浏览库/);
  expect(screen.getByText("放到：浏览库 / 未归类")).toBeTruthy();
  fireEvent.click(screen.getByRole("button",{name:"开始导入"}));
  await waitFor(()=>expect(submitted).toMatchObject({libraryId:"A",destination:{libraryId:"A",folderId:null}}));
@@ -123,8 +124,8 @@ it("a concrete folder entry prefills its provider and folder without activating 
  fireEvent.click(await screen.findByRole("menuitem",{name:/^图片/}));
  await screen.findByRole("button",{name:"开始导入"});
  expect(await screen.findByText("放到：保存库 / 具体目录")).toBeTruthy();
- expect((screen.getByRole("combobox",{name:"放到图库"}) as HTMLSelectElement).value).toBe("B");
- expect((screen.getByRole("combobox",{name:"文件夹"}) as HTMLSelectElement).value).toBe("folder-b");
+ expect(screen.getByRole("combobox",{name:"放到图库"}).textContent).toMatch(/^保存库/);
+ expect(screen.getByRole("combobox",{name:"文件夹"}).textContent).toBe("具体目录");
 });
 
 
@@ -151,7 +152,7 @@ it("copy keeps its confirmation during a source refresh and closes it after the 
   const rendered = render(view(0));
   fireEvent.click(await screen.findByRole("button", { name: "复制到…" }));
   const dialog = screen.getByRole("dialog", { name: "复制此来源" });
-  fireEvent.change(await within(dialog).findByRole("combobox", { name: "图库" }), { target: { value: "B" } });
+  await chooseOption(await within(dialog).findByRole("combobox", { name: "图库" }), /^保存库/);
   fireEvent.click(within(dialog).getByRole("button", { name: "确认复制" }));
   await screen.findByRole("button", { name: "正在保存…" });
   refreshed = true;

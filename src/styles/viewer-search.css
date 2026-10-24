@@ -164,38 +164,9 @@
   font: inherit;
   color: inherit;
   background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 4px 8px;
 }
 
-.search-candidates {
-  position: absolute;
-  z-index: 10;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  margin: 0;
-  padding: 4px 0;
-  list-style: none;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  box-shadow: var(--shadow-pop);
-}
-
-.search-candidates li {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 4px 10px;
-  cursor: pointer;
-}
-
-.search-candidates li[aria-selected="true"] {
-  background: var(--line);
-}
-
+/* 标签分组面板（编辑分组）的候选里仍用。 */
 .search-candidate-via {
   font-size: 12px;
   opacity: 0.7;
@@ -217,13 +188,6 @@
   border-radius: 3px;
   font-size: 12px;
   opacity: 0.75;
-}
-
-.search-candidate-count {
-  margin-left: auto;
-  font-size: 12px;
-  opacity: 0.7;
-  font-variant-numeric: tabular-nums;
 }
 
 /* 近似查找（#56）：相近标签以较淡的字列在条件里，可关掉；“精确查找”一键不展开。 */
@@ -269,13 +233,7 @@
   margin-right: 6px;
 }
 
-.search-popover input {
-  font: inherit;
-  color: inherit;
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 4px 8px;
+.search-popover .k-combo {
   margin-bottom: 6px;
 }
 

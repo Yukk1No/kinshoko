@@ -5,6 +5,7 @@ import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
 import { App } from "./App";
 import { library, candidates, resolved, setShowApproxSource, clean, backend, LocalSearchFixture, sent, openLibrary } from "./App.fixtures";
+import { chooseOption } from "./test/select";
 
 describe("查找", () => {
   const box = () => screen.findByRole("combobox", { name: "查找参考图" });
@@ -40,7 +41,7 @@ describe("查找", () => {
       finishTree(resolved({ conditions: [{ any: [{ kind: "text", text: "旧库条件", dismissed: [] }], negate: false }], exact: false }));
     });
 
-    expect(within(screen.getByRole("listbox", { name: "" })).getAllByRole("option")).toHaveLength(1);
+    expect(within(screen.getByRole("listbox", { name: "查找参考图" })).getAllByRole("option")).toHaveLength(1);
     expect(screen.getByRole("list", { name: "查找条件" }).children).toHaveLength(1);
     expect(lastQuery().conditions.conditions).toHaveLength(1);
     expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ libraryId: "L2" });
@@ -52,12 +53,12 @@ describe("查找", () => {
     render(<App />);
     fireEvent.change(await box(), { target: { value: "某某" } });
 
-    await waitFor(() => expect(within(screen.getByRole("listbox", { name: "" })).getAllByRole("option")).toHaveLength(4));
-    expect(within(screen.getByRole("listbox", { name: "" })).getAllByRole("option").map((o) => o.textContent)).toEqual([
+    await waitFor(() => expect(within(screen.getByRole("listbox", { name: "查找参考图" })).getAllByRole("option")).toHaveLength(4));
+    expect(within(screen.getByRole("listbox", { name: "查找参考图" })).getAllByRole("option").map((o) => o.textContent)).toEqual([
       "查找“某某”",
       "角色：某某8",
       "作者：某某3",
-      "蓝发又名：某某色1",
+      "蓝发别名 某某色1",
     ]);
     expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ text: "某某", lang: "zh-CN" });
   });
@@ -185,7 +186,7 @@ describe("近似查找", () => {
     fireEvent.change(within(dialog).getByRole("combobox", { name: "挑一个库内标签" }), {
       target: { value: "某" },
     });
-    fireEvent.click(await within(dialog).findByRole("option", { name: /作者：某某/ }));
+    fireEvent.click(await screen.findByRole("option", { name: /作者：某某/ }));
 
     await waitFor(() =>
       expect(sent("plugin:library|set_tag_approx")).toEqual([{ libraryId: "L1", a: "B", b: "A", relation: "similar" }]),
@@ -286,12 +287,12 @@ describe("界面缩放", () => {
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.click(await screen.findByRole("button", { name: "设置" }));
-    const select = await screen.findByRole("combobox", { name: "界面缩放" }) as HTMLSelectElement;
-    await waitFor(() => expect(select.value).toBe("90"));
+    const select = await screen.findByRole("combobox", { name: "界面缩放" });
+    await waitFor(() => expect(select.textContent).toBe("90%"));
 
-    fireEvent.change(select, { target: { value: "175" } });
+    await chooseOption(select, "175%");
     await waitFor(() => expect(sent("set_ui_scale")).toEqual([{ percent: 175 }]));
-    await waitFor(() => expect(select.value).toBe("175"));
+    await waitFor(() => expect(select.textContent).toBe("175%"));
   });
 });
 

@@ -59,7 +59,7 @@ export function NameInput(props: {
   };
   return (
     <input
-      className="sidebar-name-input"
+      className="k-input is-inline"
       aria-label={props.label}
       autoFocus
       value={value}

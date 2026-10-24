@@ -60,7 +60,7 @@ describe("主窗口", () => {
 
     // 拖放监听异步注册：等它就绪；先选好保存位置（原先在点开的导入面板里选）。
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
-    chooseDestination();
+    await chooseDestination();
     const position = { x: 10, y: 10 };
     await act(() =>
       emit("tauri://drag-enter", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }),

@@ -4,6 +4,7 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
 import { TagIdentityPanel } from "./TagIdentityPanel";
+import { chooseValue, optionNames } from "../test/select";
 
 afterEach(() => { cleanup(); clearMocks(); });
 
@@ -27,18 +28,15 @@ it("inspects ambiguous local tags and saves an explicit shared correspondence", 
   render(<TagIdentityPanel />);
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
   const row = await screen.findByRole("row", { name: /第二库.*青丝/ });
-  // 行刚挂载时它的 effect 会把选择重置为当前对应；慢的 CI 上这一步可能晚于下面的 change，所以改到生效为止。
-  await waitFor(() => {
-    fireEvent.change(within(row).getByRole("combobox"), { target: { value: "blue" } });
-    expect(within(row).getByRole<HTMLButtonElement>("button", { name: "保存对应" }).disabled).toBe(false);
-  });
+  await chooseValue(within(row).getByRole("combobox"), "blue");
+  await waitFor(() => expect(within(row).getByRole<HTMLButtonElement>("button", { name: "保存对应" }).disabled).toBe(false));
   fireEvent.click(within(row).getByRole("button", { name: "保存对应" }));
   const corrected = await screen.findByRole("row", { name: /第二库.*青丝.*已纠正/ });
   expect(within(corrected).getByText("青丝")).toBeTruthy();
   expect(within(corrected).getByText(/旧名称待确认/)).toBeTruthy();
   // 编号只在“详情”里，下拉选项也不带编号。
   expect(corrected.querySelectorAll("details > summary")[0]?.textContent).toBe("详情");
-  for (const option of within(corrected).getAllByRole("option")) expect(option.textContent).not.toMatch(/blue|local/);
+  for (const name of await optionNames(within(corrected).getByRole("combobox"))) expect(name).not.toMatch(/blue|local/);
 });
 
 it.each(["inspect", "correct"])("clears inspected records and discards a late %s result when safe mode changes", async (action) => {
@@ -58,7 +56,7 @@ it.each(["inspect", "correct"])("clears inspected records and discards a late %s
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
   const row = await screen.findByRole("row", { name: /资料库.*封印标签/ });
   if (action === "correct") {
-    fireEvent.change(within(row).getByRole("combobox"), { target: { value: "other" } });
+    await chooseValue(within(row).getByRole("combobox"), "other");
     fireEvent.click(within(row).getByRole("button", { name: "保存对应" }));
   } else {
     fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
@@ -120,7 +118,7 @@ it("keeps a correction publication failure through queued and later vocabulary r
   render(<TagIdentityPanel />);
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
   const row = await screen.findByRole("row", { name: /画稿库.*白/ });
-  fireEvent.change(within(row).getByRole("combobox"), { target: { value: "split" } });
+  await chooseValue(within(row).getByRole("combobox"), "split");
   fireEvent.click(within(row).getByRole("button", { name: "保存对应" }));
   await act(async () => {
     await emit("library-event", { kind: "vocabularyChanged", libraryId: "b", revision: 3 });
@@ -146,21 +144,20 @@ it("keeps a correction chosen right after the rows appear, before their mount ef
   const workspace: TagCatalogWorkspace = { libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }], catalog: { revision: 2, tags: [{ ...local, id: "old", defaultNames: local.names, namePreferences: [] }, { ...local, id: "split", names: [{ lang: "zh-CN", name: "独立的白" }], defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "b", localTagId: "local", catalogId: "old", legacy: local, basis: "independent", nameProvenance: "catalog" }] } };
   mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? workspace : undefined);
   render(<TagIdentityPanel />);
-  // MutationObserver 回调是微任务：在 React 提交之后、被动 effect 之前选择，等同于手比挂载 effect 快。
-  const chosen = new Promise<void>((done) => {
+  // MutationObserver 回调是微任务：在 React 提交之后、被动 effect 之前就点开选择，等同于手比挂载 effect 快。
+  const opened = new Promise<HTMLElement>((done) => {
     const observer = new MutationObserver(() => {
-      const select = document.querySelector("select");
+      const select = document.querySelector<HTMLElement>(".k-select");
       if (!select) return;
       observer.disconnect();
-      fireEvent.change(select, { target: { value: "split" } });
-      done();
+      done(select);
     });
     observer.observe(document.body, { childList: true, subtree: true });
   });
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
-  await chosen;
+  await chooseValue(await opened, "split");
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
   const row = screen.getByRole("row", { name: /画稿库.*白/ });
-  expect(within(row).getByRole<HTMLSelectElement>("combobox").value).toBe("split");
+  expect(within(row).getByRole("combobox").dataset.value).toBe("split");
   expect(within(row).getByRole<HTMLButtonElement>("button", { name: "保存对应" }).disabled).toBe(false);
 });
