@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { ArrowDown, ArrowLeft, ArrowRight, PenLine, Plus, Tags, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, PenLine, Plus, Tags, Trash2, X } from "lucide-react";
 import { FluidList, FluidRow } from "../ui/FluidList";
 import { Combobox } from "../ui/Combobox";
 import { Select, type SelectOption } from "../ui/Select";
@@ -11,7 +11,7 @@ import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagNamespace } from "../bindings/TagNamespace";
 import { createSharedTagGroup, editSharedTagGroup, sharedTagGroups, onSafeModeSetting, onWorkspaceChanged, safeMode, workspaceStatus, isLensChanged } from "../ipc";
-import { TagMarks, UI_LANG, tagName, useCandidateState, type Lens } from "../search/SearchBox";
+import { LIMIT, TagMarks, UI_LANG, tagName, useCandidateState, type Lens } from "../search/SearchBox";
 import { NameInput } from "./SidebarPane";
 
 type Props = {
@@ -65,25 +65,27 @@ function NewGroup({ onDone }: { onDone: (group: { name: string; namespace: TagNa
   );
 }
 
-/** “给分组加标签”：按名称或别名从工作区可见标签里挑一个；已在分组里的不再列出。 */
+/** “给分组加标签”：成员行末尾的输入框，按名称或别名从工作区可见标签里挑一个；已在分组里的不再列出，条数照样补足。 */
 function PickTag({ lens, members, onPick, onCancel }: { lens: Lens; members: string[]; onPick: (tag: TagLabel) => void; onCancel: () => void }) {
   const [text, setText] = useState("");
-  const { list, ready } = useCandidateState(lens, text, (c) => !members.includes(c.tag.id));
+  const { list, ready } = useCandidateState(lens, text, undefined, LIMIT + members.length);
+  const found = list.filter((c) => !members.includes(c.tag.id)).slice(0, LIMIT);
   return (
-    <div className="k-group-pick">
+    <li className="k-group-pick">
       <Combobox
         label="挑一个统一标签"
         placeholder="标签名或别名"
+        inline
         autoFocus
         value={text}
         onValueChange={setText}
-        options={list.map((c) => tagOption(c, text))}
+        options={found.map((c) => tagOption(c, text))}
         empty={ready ? "没有匹配的标签" : undefined}
         onSelect={(option) => onPick(option.tag)}
         onKeyDown={(e) => escape(e, onCancel)}
       />
-      <button type="button" className="k-icon-btn" aria-label="取消加标签" title="取消" onClick={onCancel}><X size={16} aria-hidden="true" /></button>
-    </div>
+      <button type="button" className="k-icon-btn is-xs" aria-label="取消加标签" title="取消" onClick={onCancel}><X size={12} aria-hidden="true" /></button>
+    </li>
   );
 }
 
@@ -138,7 +140,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
     const parts = wanted.split(":");
     const group = parts[0];
     const chain = [wanted];
-    if (parts.length === 3) chain.push(...["up", "down", "remove", "chip"].map((action) => `${group}:${parts[1]}:${action}`));
+    if (parts.length === 3) chain.push(...["prev", "next", "remove", "chip"].map((action) => `${group}:${parts[1]}:${action}`));
     else chain.push(`${group}:up`, `${group}:down`);
     chain.push(`${group}:name`, `${group}:rename`, "new");
     const targets = [...section.current.querySelectorAll<HTMLButtonElement>("[data-focus-key]")];
@@ -164,7 +166,8 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
     return result;
   };
   const deletingGroup = groups.find((group) => group.id === deleting);
-  // 每个分组一行：名称与成员数，悬停或聚焦时露出操作；成员是可排序的小标签。删除先确认（#98，design/ui-system/README.md）。
+  // 每个分组一行：名称、成员数与来源，悬停或聚焦时露出操作；下面是成员标签块（设计系统 TagChip），
+  // 悬停或聚焦时露出前移、后移与移出，行末是“加标签”。删除先确认（#98，design/ui-system/README.md）。
   return (
     <section ref={section} className="sidebar-tag-groups k-groups" aria-label={label} aria-busy={busy || !fresh}>
       <div className="k-groups-head">
@@ -181,23 +184,29 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
       {fresh && groups.length === 0 && !creating && <p className="k-groups-empty">还没有分组。把常一起找的标签放进一个分组，标签栏就能一键查找。</p>}
       <FluidList className="k-group-list" gapClick={false}>
       {groups.map((group, index) => {
-        const kind = KINDS.find((k) => k.value === group.namespace)?.label;
-        return <div key={group.id} role="group" aria-label={fresh ? group.name : undefined} className="sidebar-tag-group k-group">
-          {renaming === group.id ? <NameInput label="标签分组名称" initial={group.name} onDone={(name) => {
-            setRenaming(null);
-            remember(`${group.id}:rename`);
-            if (name && name !== group.name) void edit({ kind: "rename", groupId: group.id, name });
-          }} /> : fresh && <FluidRow index={index}>
-            <div className="sidebar-tag-group-head k-group-row">
-              <button type="button" className="sidebar-item k-group-name" data-focus-key={`${group.id}:name`} aria-label={`${group.name}（${group.tags.length} 个标签）`}
-                disabled={busy || !onBrowse || !group.tags.length}
-                onClick={() => onBrowse?.(group.tags.map((tag) => tag.tag.id))} onDoubleClick={() => setRenaming(group.id)}>
-                <Tags size={15} aria-hidden="true" className="k-group-icon" />
-                <span className="sidebar-label k-group-label">{group.name}</span>
-                <span className="k-group-meta">{group.namespace === null ? `${group.tags.length} 个标签` : kind}</span>
+        const custom = group.namespace === null;
+        const meta = custom ? `${group.tags.length} 个标签` : KINDS.find((k) => k.value === group.namespace)?.label;
+        const origin = group.sources?.length ? group.sources.map((source) => `${source.libraryName} / ${source.groupName}`).join("；") : null;
+        const ids = group.tags.map((t) => t.tag.id);
+        return <div key={group.id} role="group" aria-label={fresh ? group.name : undefined} className="k-group">
+          {renaming === group.id ? <div className="k-group-row is-renaming" onKeyDown={(e) => escape(e, () => {})}>
+            <Tags size={16} aria-hidden="true" className="k-group-icon" />
+            <NameInput label="标签分组名称" initial={group.name} onDone={(name) => {
+              setRenaming(null);
+              remember(`${group.id}:rename`);
+              if (name && name !== group.name) void edit({ kind: "rename", groupId: group.id, name });
+            }} />
+          </div> : fresh && <FluidRow index={index}>
+            <div className="k-group-row">
+              <button type="button" className="k-group-name" data-focus-key={`${group.id}:name`} aria-label={`${group.name}（${group.tags.length} 个标签）`}
+                disabled={busy || !onBrowse || !group.tags.length} title={onBrowse && group.tags.length ? "按这个分组查找；双击改名" : "双击改名"}
+                onClick={() => onBrowse?.(ids)} onDoubleClick={() => setRenaming(group.id)}>
+                <Tags size={16} aria-hidden="true" className="k-group-icon" />
+                <span className="k-group-label">{group.name}</span>
+                <span className="k-group-meta">{meta}</span>
+                {origin && <span className="k-group-origin" title={`来自：${origin}`}>来自 {origin}</span>}
               </button>
               <span className="k-group-acts">
-                {group.namespace === null && <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:add`} aria-label={`给“${group.name}”加标签`} title="加标签" disabled={busy} onClick={() => setPicking(group.id)}><Plus size={15} aria-hidden="true" /></button>}
                 <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:rename`} aria-label={`改名标签分组“${group.name}”`} title="改名" disabled={busy} onClick={() => setRenaming(group.id)}><PenLine size={14} aria-hidden="true" /></button>
                 <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:up`} aria-label={`上移标签分组“${group.name}”`} title="上移" disabled={busy || index === 0}
                   onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, -1) })}><ArrowUp size={14} aria-hidden="true" /></button>
@@ -208,28 +217,34 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
               </span>
             </div>
           </FluidRow>}
-          {fresh && !!group.sources?.length && <p className="tag-group-origin">来自：{group.sources.map((source) => `${source.libraryName} / ${source.groupName}`).join("；")}</p>}
-          {picking === group.id && <PickTag lens={lens} onCancel={() => setPicking(null)} onPick={(tag) => {
-            setPicking(null); remember(`${group.id}:add`); void edit({ kind: "addMembers", groupId: group.id, tagIds: [tag.id] });
-          }} />}
-          {fresh && group.tags.length > 0 && <ul className="sidebar-tree k-group-members">
-            {group.tags.map(({ tag, count }, memberIndex) => {
+          {((fresh && (group.tags.length > 0 || custom)) || picking === group.id) && <ul className="k-group-members">
+            {fresh && group.tags.map(({ tag, count }, memberIndex) => {
               const name = tagName(tag);
-              return <li key={tag.id} className="sidebar-tag k-group-member">
-                <button type="button" className="sidebar-item k-group-chip" data-focus-key={`${group.id}:${tag.id}:chip`} aria-label={`${name}（${count} 张）`} disabled={!onBrowse}
+              return <li key={tag.id} className="k-group-member">
+                <button type="button" className="k-group-chip" data-focus-key={`${group.id}:${tag.id}:chip`} aria-label={`${name}（${count} 张）`} disabled={!onBrowse}
                   onClick={() => onBrowse?.([tag.id])}>
-                  <span className="sidebar-label">{name}<TagMarks tag={tag} /></span><span className="sidebar-count">{count}</span>
+                  <span className="k-group-chip-name">{name}<TagMarks tag={tag} /></span><span className="k-group-chip-count">{count}</span>
                 </button>
-                {group.namespace === null && <span className="k-group-member-acts">
-                  <button type="button" className="k-icon-btn is-xs" data-focus-key={`${group.id}:${tag.id}:up`} aria-label={`上移“${name}”在“${group.name}”中的顺序`} title="前移" disabled={busy || memberIndex === 0}
-                    onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(group.tags.map((t) => t.tag.id), memberIndex, -1) })}><ArrowUp size={12} aria-hidden="true" /></button>
-                  <button type="button" className="k-icon-btn is-xs" data-focus-key={`${group.id}:${tag.id}:down`} aria-label={`下移“${name}”在“${group.name}”中的顺序`} title="后移" disabled={busy || memberIndex === group.tags.length - 1}
-                    onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(group.tags.map((t) => t.tag.id), memberIndex, 1) })}><ArrowDown size={12} aria-hidden="true" /></button>
+                {custom && <span className="k-group-member-acts">
+                  <button type="button" className="k-icon-btn is-xs" data-focus-key={`${group.id}:${tag.id}:prev`} aria-label={`把“${name}”在“${group.name}”中前移`} title="前移" disabled={busy || memberIndex === 0}
+                    onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, -1) })}><ArrowLeft size={12} aria-hidden="true" /></button>
+                  <button type="button" className="k-icon-btn is-xs" data-focus-key={`${group.id}:${tag.id}:next`} aria-label={`把“${name}”在“${group.name}”中后移`} title="后移" disabled={busy || memberIndex === group.tags.length - 1}
+                    onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, 1) })}><ArrowRight size={12} aria-hidden="true" /></button>
                   <button type="button" className="k-icon-btn is-xs" data-focus-key={`${group.id}:${tag.id}:remove`} aria-label={`把“${name}”移出“${group.name}”`} title="移出分组" disabled={busy}
                     onClick={() => void edit({ kind: "removeMembers", groupId: group.id, tagIds: [tag.id] })}><X size={12} aria-hidden="true" /></button>
                 </span>}
               </li>;
             })}
+            {picking === group.id ? <PickTag lens={lens} members={ids} onCancel={() => {
+              // 收起后焦点回到“加标签”，不丢到页面上。
+              setPicking(null);
+              requestAnimationFrame(() => section.current?.querySelector<HTMLElement>(`[data-focus-key="${group.id}:add"]`)?.focus());
+            }} onPick={(tag) => {
+              setPicking(null); remember(`${group.id}:add`); void edit({ kind: "addMembers", groupId: group.id, tagIds: [tag.id] });
+            }} /> : custom && <li>
+              <button type="button" className="k-group-add" data-focus-key={`${group.id}:add`} aria-label={`给“${group.name}”加标签`} disabled={busy} onClick={() => setPicking(group.id)}>
+                <Plus size={14} aria-hidden="true" />加标签</button>
+            </li>}
           </ul>}
         </div>;
       })}

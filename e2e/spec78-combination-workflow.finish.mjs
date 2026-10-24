@@ -21,7 +21,7 @@ export const finishPhases = {
     const afterMutation=await d.invoke("workspace_status",{safeMode:true});
     d.assert(afterMutation.revision!==beforeMutation.revision,"a real unrelated catalog alias changes the workspace after picker input",{beforeMutation,afterMutation,monitorAlias});
     const late=await until("actual changed revision arrives after typing",async()=>(await d.readEvents()).find(event=>event.payload.event==="workspace-changed"&&event.payload.payload.revision===afterMutation.revision&&event.at>typedAt));
-    await until("fresh actual candidate after monitor refresh",()=>d.exec("const field=document.querySelector('section[aria-label=全局标签分组] input[aria-label=挑一个统一标签]');return field?.value==='最贴切'&&field===window.__T20_PICKER_NODE__&&field===document.activeElement&&document.querySelector('section[aria-label=全局标签分组] .sidebar-pick-tag [role=option]')?.textContent.includes('最贴切的蓝瞳');"));
+    await until("fresh actual candidate after monitor refresh",()=>d.exec("const field=document.querySelector('section[aria-label=全局标签分组] input[aria-label=挑一个统一标签]');return field?.value==='最贴切'&&field===window.__T20_PICKER_NODE__&&field===document.activeElement&&document.querySelector('[role=listbox][aria-label=挑一个统一标签] [role=option]')?.textContent.includes('最贴切的蓝瞳');"));
     d.assert(true,"real post-input catalog notification preserves the same focused tag picker and typed input",{typedAt,late,monitorAlias});
     await d.key("\uE007");
     const group=await until("preserved picker commits a real member",async()=>(await d.invoke("shared_tag_groups",{lang:"zh-CN",safeMode:true})).find(group=>group.name==="跨库眼睛"&&group.tags.some(member=>member.tag.id===this.blue)));

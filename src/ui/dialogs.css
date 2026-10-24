@@ -117,51 +117,67 @@
   .k-task-progress::-webkit-progress-value { transition-duration: 0ms; }
 }
 
-/* 编辑分组（#98）：每组一行（图标、名称、成员数，悬停或聚焦时露出操作），成员是可排序的小标签。 */
+/* 编辑分组（#98）：每组一行（图标、名称、成员数与来源，悬停或聚焦时露出操作），下面是成员标签块（设计系统 TagChip），
+   与分组名左对齐（8 内边距 + 16 图标 + 8 间距），行末是“加标签”。 */
 .k-groups { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .k-groups-head { display: flex; align-items: center; gap: 8px; }
 .k-groups-count { flex: 1; color: var(--ink-2); font-size: 12px; }
 .k-groups-empty { margin: 4px 2px; color: var(--ink-2); font-size: 12px; line-height: 18px; }
-.k-groups .k-group-new, .k-groups .k-group-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px; border-radius: var(--r-m); background: var(--sunken); }
-.k-groups .k-group-new .k-input { flex: 1 1 180px; min-width: 0; }
-.k-groups .k-group-new .k-select { flex: 0 1 150px; }
-.k-group-new-acts { display: flex; gap: 6px; margin-left: auto; }
-.k-groups .k-group-pick .k-input { flex: 1; min-width: 0; }
-.k-groups .k-group-pick .search-popover-list { flex-basis: 100%; }
-.k-group-list { display: flex; flex-direction: column; gap: 2px; }
-.k-group { padding: 2px 0 6px; border-bottom: 1px solid var(--line); }
-.k-group:last-child { border-bottom: 0; }
-.k-groups .k-group-row { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; min-height: 34px; padding-right: 4px; border-radius: var(--r-s); }
-.k-groups .k-group-row > .k-group-name { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 8px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink); font: inherit; text-align: left; }
-.k-groups .k-group-row > .k-group-name:disabled { color: var(--ink); cursor: default; }
+/* 新建分组：一行，图标与下面的分组图标对齐，名称占满剩余宽度。 */
+.k-group-new { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 8px; border-radius: var(--r-m); background: var(--sunken); }
+.k-group-new > .k-input { flex: 1 1 140px; }
+.k-group-new > .k-group-kind { flex: none; width: 128px; }
+.k-group-list { display: flex; flex-direction: column; }
+.k-group { padding: 6px 0 12px; border-bottom: 1px solid var(--line); }
+.k-group:last-child { border-bottom: 0; padding-bottom: 4px; }
+.k-group-row { display: flex; align-items: center; gap: 4px; min-height: 34px; padding-right: 5px; border-radius: var(--r-s); transition: background var(--t-fast); }
+.k-group-row:hover, .k-group-row:has(:focus-visible) { background: var(--hover); }
+.k-group-row.is-renaming { gap: 8px; padding: 0 8px; background: none; }
+.k-group-name { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 8px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+/* 空分组不能按它查找，但名称照常显示，不随全局 button:disabled 变淡。 */
+.k-group-name:disabled { opacity: 1; cursor: default; }
+.k-group-name:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .k-group-icon { flex: none; color: var(--ink-3); }
-.k-group-label { flex: 0 1 auto; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.k-group-meta { flex: none; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
-.k-group-acts { display: flex; gap: 2px; flex: none; opacity: 0; transition: opacity 120ms; }
-.k-group-row:hover .k-group-acts, .k-group-row:focus-within .k-group-acts { opacity: 1; }
+.k-group-label { flex: 0 1 auto; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-group-meta { flex: none; color: var(--ink-2); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.k-group-origin { flex: 0 1 auto; min-width: 0; color: var(--ink-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-group-origin::before { content: "·"; margin-right: 8px; }
+.k-group-acts { display: flex; gap: 2px; flex: none; opacity: 0; transition: opacity var(--t-fast); }
+/* 键盘聚焦才算（:focus-visible）：对话框打开时的初始焦点不点亮第一行。 */
+.k-group-row:hover .k-group-acts, .k-group-row:has(:focus-visible) .k-group-acts { opacity: 1; }
 @media (hover: none) { .k-group-acts { opacity: 1; } }
 .k-icon-btn.is-danger:hover:not(:disabled) { color: var(--danger); background: var(--hover); }
 .k-icon-btn.is-xs { width: 20px; height: 20px; border-radius: var(--r-xs); }
 .k-icon-btn:disabled { opacity: 0.5; cursor: default; }
-.k-groups .k-group-members { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 0; padding: 0 8px 0 31px; list-style: none; }
-.k-groups .k-group-member { display: inline-flex; align-items: center; gap: 1px; height: 26px; padding: 0 3px 0 0; border-radius: var(--r-pill); background: var(--sunken); }
-.k-groups .k-group-member > .k-group-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--ink-2); font: inherit; font-size: 12px; }
-.k-groups .k-group-member > .k-group-chip .sidebar-label { white-space: nowrap; }
-.k-groups .k-group-member > .k-group-chip .sidebar-count { color: var(--ink-2); font-variant-numeric: tabular-nums; }
-/* 收起时宽度为 0 但仍可用 Tab 聚焦；聚焦或悬停时展开。 */
-.k-group-member-acts { display: inline-flex; max-width: 0; overflow: hidden; opacity: 0; gap: 0; transition: max-width 140ms, opacity 140ms; }
-.k-group-member:hover .k-group-member-acts, .k-group-member:focus-within .k-group-member-acts { max-width: 64px; opacity: 1; }
-@media (hover: none) { .k-group-member-acts { max-width: 64px; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .k-group-member-acts { transition: none; } }
+.k-group-members { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 0; padding: 0 8px 0 32px; list-style: none; }
+.k-group-members > li { display: inline-flex; min-width: 0; }
+.k-group-member { align-items: center; height: 26px; border-radius: var(--r-item); background: var(--surface-2); transition: background var(--t-fast); }
+.k-group-member:hover, .k-group-member:has(:focus-visible) { background: color-mix(in srgb, var(--surface-2), var(--ink) 6%); }
+.k-group-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: 0; border-radius: var(--r-item); background: transparent; color: var(--ink); font: inherit; font-size: 12px; cursor: pointer; }
+.k-group-chip:disabled { cursor: default; }
+.k-group-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.k-group-chip-name { display: inline-flex; align-items: center; gap: 3px; font-weight: 500; white-space: nowrap; }
+.k-group-chip-name .untranslated, .k-group-chip-name .no-external { display: inline-flex; color: var(--ink-3); }
+.k-group-chip-count { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+/* 前移、后移、移出：收起时宽度为 0 但仍可用 Tab 聚焦；悬停或聚焦时展开。 */
+.k-group-member-acts { display: inline-flex; max-width: 0; overflow: hidden; opacity: 0; margin-left: -4px; transition: max-width 140ms, opacity 140ms; }
+.k-group-member:hover .k-group-member-acts, .k-group-member:has(:focus-visible) .k-group-member-acts { max-width: 64px; opacity: 1; padding-right: 3px; }
+@media (hover: none) { .k-group-member-acts { max-width: 64px; opacity: 1; padding-right: 3px; } }
+/* 加标签：虚线框的空位，点开换成同高的候选输入框。 */
+.k-group-add { display: inline-flex; align-items: center; gap: 4px; box-sizing: border-box; height: 26px; padding: 0 9px 0 7px; border: 1px dashed var(--line-2); border-radius: var(--r-item);
+  background: transparent; color: var(--ink-2); font: inherit; font-size: 12px; cursor: pointer; transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast); }
+.k-group-add:hover:not(:disabled) { border-color: var(--ink-3); background: var(--hover); color: var(--ink); }
+.k-group-add:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.k-group-add:disabled { opacity: 0.5; cursor: default; }
+.k-group-pick { align-items: center; gap: 4px; }
+.k-group-pick > .k-combo { flex: none; width: 200px; }
+.k-group-pick .k-input.is-inline { height: 26px; padding: 0 8px; border-radius: var(--r-item); font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { .k-group-member-acts, .k-group-row, .k-group-member, .k-group-acts, .k-group-add { transition: none; } }
 .k-groups-dialog .k-groups { max-height: calc(100vh - 260px); overflow: auto; }
 /* 详情面板打开时，右下角卡片停在面板左侧，不盖住面板底部的按钮（#98）。 */
 .k-task-cards { transition: right 200ms var(--spring); }
 body:has(.inspector[data-collapsed="false"]) .k-task-cards { right: calc(var(--inspector-width, 320px) + 1px + 18px); max-width: calc(100vw - var(--inspector-width, 320px) - 1px - 36px); }
 @media (prefers-reduced-motion: reduce) { .k-task-cards { transition: none; } }
-.k-groups .k-group-name > .k-group-label { flex: 0 1 auto; text-align: left; }
-.k-groups .k-group-name > .k-group-meta { margin-right: auto; }
-.k-groups .k-group-name { justify-content: flex-start; }
-.k-groups .k-group-member > .k-group-chip { width: auto; justify-content: flex-start; }
 /* 有浮动的多选操作条时，卡片抬到操作条上方，同样不遮住它。 */
 body:has(.selbar-host > .selbar) .k-task-cards { bottom: calc(18px + 66px); }
 /* 标签外观的分档阈值（#160）：短标签 + 窄数字框，一行放下两个阈值和“恢复默认”。 */
