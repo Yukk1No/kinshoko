@@ -1,12 +1,15 @@
 //! 参考组（ReferenceGroups，#66、ADR-0002）：为同一参考目的组织、独立于资料库保存的一组参考组成员。
 //!
 //! - 每个参考组一个带版本号的 JSON（`format: "kinshoko.reference-group"`），放在应用数据目录的
-//!   `reference-groups/` 下，不属于任何资料库；图片及其元数据仍归资料库所有。
-//! - 参考组成员按“资料库＋参考图”引用，可跨资料库；各自保存裁切、翻转、旋转、位置、尺寸与缩放
-//!   （[`Placement`] 与桌面钉图同义）。透明度、锁定只属于桌面，不进参考组。
+//!   `reference-groups/` 下，不属于任何资料库；资料库中的图片及其元数据仍归资料库所有。
+//! - 参考组成员按“资料库＋参考图”引用，可跨资料库；也可以是参考组自带的截图（#270，
+//!   [`MemberSource::Capture`]）：截图文件复制到 `reference-groups/<参考组>.captures/` 下，不进任何
+//!   资料库，没有成员再用它时删除。各自保存裁切、翻转、旋转、位置、尺寸与缩放
+//!   （[`Placement`](crate::desktop::Placement) 与桌面钉图同义）。透明度、锁定只属于桌面，不进参考组。
 //! - 同一张图在不同参考组里是不同的成员，互不影响；同一参考组里两块局部也是两个成员。
-//! - 打开参考组得到一组新的桌面钉图（[`ReferenceGroup::pins`]），钉图记得来自哪个成员
-//!   （[`GroupMemberRef`]），存回时更新那个成员（[`ReferenceGroups::save_pins`]）。
+//! - 打开参考组得到一组新的桌面钉图（[`ReferenceGroups::open_pins`]；组内截图放回截图历史后
+//!   钉成截图钉图），钉图记得来自哪个成员（[`GroupMemberRef`](crate::desktop::GroupMemberRef)），存回时更新那个成员
+//!   （[`ReferenceGroups::save_pins`]）。
 //! - 成员能否显示由 [`References`] 跨库核对：资料库没登记、不可用、图已删除时标出原因，
 //!   成员与布局原样保留。
 //! - 永久删除（#67）预览时经参考组用途 port（[`ReferenceGroupUsage`]）查询受影响的参考组。
@@ -15,165 +18,49 @@
 //!
 //! 每次改动先写临时文件并落盘，再改名替换，写到一半断电也不会留下半份。
 
+mod captures;
+mod error;
+mod member;
+mod merge;
 mod package;
+mod packages;
 mod resolve;
+mod usage;
 
 use std::collections::BTreeSet;
-use std::fmt;
 use std::fs;
-use std::io::{self, Write};
+use std::io;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::Library;
-use crate::desktop::{
-    GroupMemberRef, MAX_SCALE, MIN_SCALE, PinContent, Placement, Region, SavedPin,
-};
-use crate::library::ReferenceImage;
+use crate::desktop::SavedPin;
 
+use captures::write_atomically;
+use merge::{assign, merge};
+
+pub use captures::{CaptureFiles, OpenedPins};
+pub use error::GroupError;
+pub use member::{GroupCapture, GroupMember, MemberSource};
 pub use package::{
     PACKAGE_EXTENSION, PackageImage, PackageManifest, PackageProvenance, read_package,
 };
+pub use packages::{PackageCapture, PackageImport};
 pub use resolve::{
     DetachedLenses, MemberState, MemberStatus, ReferenceGroupView, ReferenceSource, References,
     UnavailableReason, resolve,
 };
+pub use usage::{GroupUsage, ReferenceGroupUsage};
 
 const FORMAT: &str = "kinshoko.reference-group";
 const FORMAT_VERSION: u32 = 1;
+/// 有组内截图成员的参考组按这一版写：旧版本读到时提示升级，而不是“已损坏”。
+/// 只引用资料库的参考组仍按 [`FORMAT_VERSION`] 写，格式不变。
+const CAPTURE_FORMAT_VERSION: u32 = 2;
 const EXTENSION: &str = "json";
-
-/// 参考组的错误。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum GroupError {
-    /// 读写参考组文件失败。
-    Io(String),
-    /// 没有这个参考组（或已删除）。
-    UnknownGroup,
-    /// 名称是空的。
-    InvalidName,
-    /// 没有可以存进参考组的资料库钉图（截图要先收藏）。
-    NoMembers,
-    /// 文件由更新版本的 Kinshoko 写成，这一版读不懂。
-    UnsupportedVersion(u32),
-    /// 文件不是合法的参考组。
-    Invalid(String),
-    /// 有成员此刻取不到原图，不能导出参考组包；逐个说明。
-    MembersUnavailable(Vec<String>),
-    /// 文件不是 Kinshoko 参考组包。
-    NotAPackage,
-    /// 参考组包已损坏（原图缺失或与清单不符等）。
-    PackageDamaged(String),
-    /// 资料库读写失败。
-    Library(String),
-}
-
-impl fmt::Display for GroupError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            GroupError::Io(e) => write!(f, "无法读写参考组：{e}"),
-            GroupError::UnknownGroup => write!(f, "没有这个参考组，可能已被删除"),
-            GroupError::InvalidName => write!(f, "参考组名称不能为空"),
-            GroupError::NoMembers => {
-                write!(
-                    f,
-                    "桌面上没有资料库中的钉图；截图要先收藏进资料库才能存进参考组"
-                )
-            }
-            GroupError::UnsupportedVersion(v) => {
-                write!(
-                    f,
-                    "参考组由更新版本的 Kinshoko 保存（格式版本 {v}），请升级后打开"
-                )
-            }
-            GroupError::Invalid(why) => write!(f, "参考组文件已损坏：{why}"),
-            GroupError::MembersUnavailable(members) => write!(
-                f,
-                "有成员取不到原图，无法导出参考组包：{}",
-                members.join("；")
-            ),
-            GroupError::NotAPackage => write!(f, "这不是 Kinshoko 参考组包"),
-            GroupError::PackageDamaged(why) => write!(f, "参考组包已损坏：{why}"),
-            GroupError::Library(why) => write!(f, "{why}"),
-        }
-    }
-}
-
-impl std::error::Error for GroupError {}
-
-impl From<io::Error> for GroupError {
-    fn from(e: io::Error) -> Self {
-        GroupError::Io(e.to_string())
-    }
-}
-
-/// 参考组成员：参考视图在这个参考组里的一次使用。
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct GroupMember {
-    /// 在参考组内唯一。
-    pub id: String,
-    pub library_id: String,
-    pub image_id: String,
-    /// 原图尺寸：局部总能核对是否在图内，资料库不在时也能按原尺寸保留布局。
-    pub source_width: u32,
-    pub source_height: u32,
-    /// 只显示原图的这一块（原图像素）；`None` 为整图。
-    pub crop: Option<Region>,
-    /// 位置、缩放、翻转与旋转；尺寸由局部与缩放得出。
-    pub placement: Placement,
-}
-
-impl GroupMember {
-    /// 资料库钉图对应的成员；截图钉图为 `None`。
-    fn from_pin(id: String, pin: &SavedPin) -> Option<GroupMember> {
-        let PinContent::Reference {
-            library_id,
-            image_id,
-            source_width,
-            source_height,
-        } = &pin.content
-        else {
-            return None;
-        };
-        Some(GroupMember {
-            id,
-            library_id: library_id.clone(),
-            image_id: image_id.clone(),
-            source_width: *source_width,
-            source_height: *source_height,
-            crop: pin.crop,
-            placement: pin.placement,
-        })
-    }
-
-    /// 打开成员得到的钉图（不透明、不锁定）。局部超出原图等不合法时为 `Err`。
-    fn pin(&self, pin_id: &str, group_id: &str) -> Result<SavedPin, String> {
-        let p = &self.placement;
-        if !(p.scale.is_finite() && (MIN_SCALE..=MAX_SCALE).contains(&p.scale)) {
-            return Err(format!("成员 {} 的缩放不合法", self.id));
-        }
-        if p.rotation > 3 {
-            return Err(format!("成员 {} 的旋转不合法", self.id));
-        }
-        let image = ReferenceImage {
-            id: self.image_id.clone(),
-            width: self.source_width,
-            height: self.source_height,
-            sealed: false,
-        };
-        let mut pin = SavedPin::reference(pin_id, &self.library_id, &image, self.crop, *p)
-            .map_err(|e| format!("成员 {}：{e}", self.id))?;
-        pin.member = Some(GroupMemberRef {
-            group_id: group_id.to_owned(),
-            member_id: self.id.clone(),
-        });
-        Ok(pin)
-    }
-}
+/// 参考组 `<id>` 自带的截图放在 `<id>.captures/` 下。
+const CAPTURES_EXTENSION: &str = "captures";
 
 /// 一个参考组。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -208,11 +95,13 @@ pub struct RestoredFrom {
 }
 
 impl ReferenceGroup {
-    /// 打开参考组：每个成员一个新的桌面钉图，按成员的先后，带着各自的局部与摆放。
+    /// 资料库成员的桌面钉图：每个成员一个新钉图，按成员的先后，带着各自的局部与摆放。
+    /// 组内截图要先放回截图历史，见 [`ReferenceGroups::open_pins`]。
     pub fn pins(&self) -> Vec<SavedPin> {
         self.members
             .iter()
-            .filter_map(|m| m.pin(&new_id(), &self.id).ok())
+            .filter(|m| m.library_id().is_some())
+            .filter_map(|m| m.pin(&new_id(), &self.id, "").ok())
             .collect()
     }
 
@@ -221,8 +110,20 @@ impl ReferenceGroup {
         let mut seen = BTreeSet::new();
         self.members
             .iter()
-            .filter(|m| seen.insert(m.library_id.as_str()))
-            .map(|m| m.library_id.clone())
+            .filter_map(GroupMember::library_id)
+            .filter(|library| seen.insert(*library))
+            .map(str::to_owned)
+            .collect()
+    }
+
+    /// 成员用到的组内截图文件名。
+    fn capture_files(&self) -> BTreeSet<&str> {
+        self.members
+            .iter()
+            .filter_map(|m| match &m.source {
+                MemberSource::Capture { capture_file } => Some(capture_file.as_str()),
+                MemberSource::Library { .. } => None,
+            })
             .collect()
     }
 
@@ -235,7 +136,8 @@ impl ReferenceGroup {
             if !ids.insert(m.id.as_str()) {
                 return Err(GroupError::Invalid(format!("成员 {} 重复", m.id)));
             }
-            m.pin("check", &self.id).map_err(GroupError::Invalid)?;
+            m.pin("check", &self.id, "check")
+                .map_err(GroupError::Invalid)?;
         }
         Ok(())
     }
@@ -255,41 +157,6 @@ pub struct GroupSummary {
     pub updated_at: i64,
     /// 这个文件读不懂时的原因；能打开时为 `None`。
     pub problem: Option<String>,
-}
-
-/// 永久删除预览（#67）：某个参考组用到了将删除的哪些图。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct GroupUsage {
-    pub group_id: String,
-    pub name: String,
-    /// 被用到的参考图（去重、按成员先后）。
-    pub image_ids: Vec<String>,
-}
-
-/// 参考组用途 port：Library 在永久删除预览时查询哪些参考组用到了这些图（#42、#67）。
-pub trait ReferenceGroupUsage {
-    fn groups_using(
-        &self,
-        library_id: &str,
-        image_ids: &[String],
-    ) -> Result<Vec<GroupUsage>, GroupError>;
-}
-
-/// Imported package content whose new group is not saved yet. Application adapters can
-/// publish tag definitions after all package IO, then finish without exposing group file details.
-/// Dropping this result keeps imported content and leaves no new group, so re-import is safe.
-pub struct PackageImport<'a> {
-    groups: &'a ReferenceGroups,
-    group: ReferenceGroup,
-}
-
-impl PackageImport<'_> {
-    pub fn finish(self) -> Result<ReferenceGroup, GroupError> {
-        self.groups.write(&self.group)?;
-        Ok(self.group)
-    }
 }
 
 /// 磁盘上的参考组文件。
@@ -331,13 +198,18 @@ impl ReferenceGroups {
     }
 
     /// Only a fully staged content-restore batch publishes these already allocated identities.
-    pub(crate) fn publish_restored(&self, group: &ReferenceGroup) -> Result<(), GroupError> {
+    /// 连同它自带的截图（`captures`，#270）一起发布。
+    pub(crate) fn publish_restored(
+        &self,
+        group: &ReferenceGroup,
+        captures: &CaptureFiles,
+    ) -> Result<(), GroupError> {
         if group.restored_from.is_none() || self.path(&group.id)?.exists() {
             return Err(GroupError::Invalid(
                 "恢复身份已存在，未覆盖现有参考组".into(),
             ));
         }
-        self.write(group)
+        self.publish_with_captures(group, captures)
     }
 
     /// 全部参考组，按最近保存的在前。
@@ -415,8 +287,10 @@ impl ReferenceGroups {
         group.id = new_id();
         group.restored_from = Some(from);
         for m in &mut group.members {
-            if let Some(new) = libraries.get(&m.library_id) {
-                m.library_id = new.clone();
+            if let MemberSource::Library { library_id, .. } = &mut m.source
+                && let Some(new) = libraries.get(library_id)
+            {
+                *library_id = new.clone();
             }
         }
         self.write(&group)?;
@@ -427,13 +301,17 @@ impl ReferenceGroups {
     /// [`GroupError::NoMembers`]。存进去的钉图记下自己成了哪个成员（[`SavedPin::member`]），
     /// 之后存回时更新那个成员。
     pub fn create(&self, name: &str, pins: &mut [SavedPin]) -> Result<ReferenceGroup, GroupError> {
+        self.create_with_captures(name, pins, &[])
+    }
+
+    /// 同 [`Self::create`]，`captures` 中的截图钉图只存在参考组里（#270）：截图文件复制进这个参考组。
+    pub fn create_with_captures(
+        &self,
+        name: &str,
+        pins: &mut [SavedPin],
+        captures: &[GroupCapture],
+    ) -> Result<ReferenceGroup, GroupError> {
         let name = valid_name(name)?;
-        if !pins
-            .iter()
-            .any(|p| matches!(p.content, PinContent::Reference { .. }))
-        {
-            return Err(GroupError::NoMembers);
-        }
         let now = crate::library::now_ms();
         let mut group = ReferenceGroup {
             id: new_id(),
@@ -444,30 +322,44 @@ impl ReferenceGroups {
             imported_from_package: None,
             restored_from: None,
         };
-        let assigned = merge(&mut group, pins);
-        self.write(&group)?;
-        assign(pins, assigned);
+        let merged = merge(&mut group, pins, captures);
+        if group.members.is_empty() {
+            return Err(GroupError::NoMembers);
+        }
+        self.commit(&group, &merged.copies)?;
+        assign(pins, merged.assigned);
         Ok(group)
     }
 
     /// 把桌面钉图存进参考组 `id`：来自这个参考组成员的钉图更新那个成员（局部、位置、尺寸、缩放、
     /// 翻转与旋转）；其他资料库钉图（包括来自别的参考组的）加为新成员；不在桌面上的成员原样保留。
-    /// 截图钉图不进组。存进去的钉图之后记得这个参考组里的成员。
+    /// 来自组内截图成员的截图钉图更新那个成员；其他截图钉图不进组。收藏后改连参考图的钉图让成员
+    /// 改为引用资料库，组内那份截图随之删除。存进去的钉图之后记得这个参考组里的成员。
     pub fn save_pins(&self, id: &str, pins: &mut [SavedPin]) -> Result<ReferenceGroup, GroupError> {
+        self.save_pins_with_captures(id, pins, &[])
+    }
+
+    /// 同 [`Self::save_pins`]，`captures` 中的截图钉图只存在参考组里（#270），加为新成员。
+    pub fn save_pins_with_captures(
+        &self,
+        id: &str,
+        pins: &mut [SavedPin],
+        captures: &[GroupCapture],
+    ) -> Result<ReferenceGroup, GroupError> {
         let mut group = self.get(id)?;
-        let assigned = merge(&mut group, pins);
+        let merged = merge(&mut group, pins, captures);
         group.updated_at = crate::library::now_ms();
-        self.write(&group)?;
-        assign(pins, assigned);
+        self.commit(&group, &merged.copies)?;
+        assign(pins, merged.assigned);
         Ok(group)
     }
 
-    /// 从参考组中去掉一个成员。
+    /// 从参考组中去掉一个成员。它是组内截图时，截图文件随之删除。
     pub fn remove_member(&self, id: &str, member_id: &str) -> Result<ReferenceGroup, GroupError> {
         let mut group = self.get(id)?;
         group.members.retain(|m| m.id != member_id);
         group.updated_at = crate::library::now_ms();
-        self.write(&group)?;
+        self.commit(&group, &[])?;
         Ok(group)
     }
 
@@ -480,81 +372,16 @@ impl ReferenceGroups {
         Ok(group)
     }
 
-    /// 删除参考组文件。引用的图与资料库不受影响。
+    /// 删除参考组文件和它自带的截图。引用的图与资料库不受影响。
     pub fn delete(&self, id: &str) -> Result<(), GroupError> {
         match fs::remove_file(self.path(id)?) {
-            Ok(()) => Ok(()),
-            Err(e) if e.kind() == io::ErrorKind::NotFound => Err(GroupError::UnknownGroup),
-            Err(e) => Err(e.into()),
+            Ok(()) => {}
+            Err(e) if e.kind() == io::ErrorKind::NotFound => return Err(GroupError::UnknownGroup),
+            Err(e) => return Err(e.into()),
         }
-    }
-
-    /// 把参考组 `id` 导出成参考组包 `out`：带上所用原图（同一原图只带一次、不重编码）与标签、备注、
-    /// 来源、分级的快照，不带来源库的其他素材。成员引用的资料库可以是未激活的库；有成员此刻取不到
-    /// 原图时不导出（[`GroupError::MembersUnavailable`]）。返回写进包里的清单。
-    pub fn export_package(
-        &self,
-        id: &str,
-        source: &dyn ReferenceSource,
-        out: &Path,
-    ) -> Result<PackageManifest, GroupError> {
-        package::export(&self.get(id)?, source, out, None)
-    }
-
-    /// Export using the current application definition, without publishing to read-only providers.
-    pub fn export_package_with_catalog(
-        &self,
-        id: &str,
-        source: &dyn ReferenceSource,
-        out: &Path,
-        catalog: &crate::tag_catalog::TagCatalog,
-    ) -> Result<PackageManifest, GroupError> {
-        let snapshot = catalog
-            .inspect()
-            .map_err(|e| GroupError::Library(e.to_string()))?;
-        package::export(&self.get(id)?, source, out, Some(&snapshot))
-    }
-
-    /// 导入参考组包：原图进 `library`（字节相同的合并），快照按参考组包来源分层写入，再另存为新的
-    /// 参考组（新身份，成员、局部与摆放与包里一致，记下 `importedFromPackage`）。包有损坏时什么都不写。
-    pub fn import_package(
-        &self,
-        package: &Path,
-        library: &Library,
-    ) -> Result<ReferenceGroup, GroupError> {
-        self.prepare_package_import(package, library, None)?
-            .finish()
-    }
-
-    /// Check the same package manifest against a fixed catalog inspection and import its
-    /// content without holding the application catalog lock during file IO or decoding.
-    pub fn prepare_package_import(
-        &self,
-        package: &Path,
-        library: &Library,
-        catalog: Option<&crate::tag_catalog::CatalogInspection>,
-    ) -> Result<PackageImport<'_>, GroupError> {
-        Ok(PackageImport {
-            groups: self,
-            group: package::import(package, library, catalog)?,
-        })
-    }
-
-    /// Import content against the current application catalog while preserving its settings.
-    pub fn import_package_with_catalog(
-        &self,
-        package: &Path,
-        library: &Library,
-        catalog: &mut crate::tag_catalog::TagCatalog,
-    ) -> Result<ReferenceGroup, GroupError> {
-        let snapshot = catalog
-            .inspect()
-            .map_err(|error| GroupError::Library(error.to_string()))?;
-        let imported = self.prepare_package_import(package, library, Some(&snapshot))?;
-        catalog.publish_library_definitions(library).map_err(|error| GroupError::Library(format!(
-            "内容已写入，但资料库标签定义尚未更新：{error}。请重试保存标签定义或重新导入参考组包。"
-        )))?;
-        imported.finish()
+        // 删不掉（例如被别的程序占用）只留下孤立文件；参考组已经删除，不再报错。
+        let _ = fs::remove_dir_all(self.captures_dir(id)?);
+        Ok(())
     }
 
     fn path(&self, id: &str) -> Result<PathBuf, GroupError> {
@@ -571,98 +398,18 @@ impl ReferenceGroups {
 
     fn write(&self, group: &ReferenceGroup) -> Result<(), GroupError> {
         let path = self.path(&group.id)?;
+        let has_captures = group.members.iter().any(|m| m.library_id().is_none());
         let file = GroupFile {
             format: FORMAT.to_owned(),
-            format_version: FORMAT_VERSION,
+            format_version: if has_captures {
+                CAPTURE_FORMAT_VERSION
+            } else {
+                FORMAT_VERSION
+            },
             group: group.clone(),
         };
         let bytes = serde_json::to_vec_pretty(&file).map_err(io::Error::other)?;
-        let tmp = self.dir.join(format!(".{}.tmp-{}", group.id, new_id()));
-        let written = (|| {
-            let mut f = fs::File::create(&tmp)?;
-            f.write_all(&bytes)?;
-            f.sync_all()?;
-            fs::rename(&tmp, &path)
-        })();
-        if written.is_err() {
-            let _ = fs::remove_file(&tmp);
-        }
-        Ok(written?)
-    }
-}
-
-impl ReferenceGroupUsage for ReferenceGroups {
-    /// 用到 `library_id` 中这些图的参考组。读不懂的参考组无法核对，按报错处理而不是当作没用到。
-    fn groups_using(
-        &self,
-        library_id: &str,
-        image_ids: &[String],
-    ) -> Result<Vec<GroupUsage>, GroupError> {
-        let mut out = Vec::new();
-        for summary in self.list()? {
-            if summary.problem.is_some() {
-                return Err(GroupError::Invalid(format!(
-                    "无法核对参考组“{}”：{}",
-                    summary.name,
-                    summary.problem.unwrap_or_default()
-                )));
-            }
-            if !summary.library_ids.iter().any(|l| l == library_id) {
-                continue;
-            }
-            let group = self.get(&summary.id)?;
-            let mut used: Vec<String> = Vec::new();
-            for m in &group.members {
-                if m.library_id == library_id
-                    && image_ids.contains(&m.image_id)
-                    && !used.contains(&m.image_id)
-                {
-                    used.push(m.image_id.clone());
-                }
-            }
-            if !used.is_empty() {
-                out.push(GroupUsage {
-                    group_id: group.id,
-                    name: group.name,
-                    image_ids: used,
-                });
-            }
-        }
-        Ok(out)
-    }
-}
-
-/// 把钉图并进参考组；返回每张钉图（按下标）成了哪个成员。写入成功后才交给 [`assign`]。
-fn merge(group: &mut ReferenceGroup, pins: &[SavedPin]) -> Vec<(usize, GroupMemberRef)> {
-    let mut assigned = Vec::new();
-    for (index, pin) in pins.iter().enumerate() {
-        let existing = pin
-            .member
-            .as_ref()
-            .filter(|m| m.group_id == group.id)
-            .and_then(|m| group.members.iter().position(|x| x.id == m.member_id));
-        let member_id = existing.map_or_else(new_id, |at| group.members[at].id.clone());
-        let Some(member) = GroupMember::from_pin(member_id.clone(), pin) else {
-            continue;
-        };
-        match existing {
-            Some(at) => group.members[at] = member,
-            None => group.members.push(member),
-        }
-        assigned.push((
-            index,
-            GroupMemberRef {
-                group_id: group.id.clone(),
-                member_id,
-            },
-        ));
-    }
-    assigned
-}
-
-fn assign(pins: &mut [SavedPin], assigned: Vec<(usize, GroupMemberRef)>) {
-    for (index, member) in assigned {
-        pins[index].member = Some(member);
+        Ok(write_atomically(&path, &bytes)?)
     }
 }
 
@@ -674,8 +421,8 @@ pub fn parse(bytes: &[u8]) -> Result<ReferenceGroup, GroupError> {
         return Err(GroupError::Invalid("不是 Kinshoko 参考组".into()));
     }
     match header.format_version {
-        Some(FORMAT_VERSION) => {}
-        Some(v) if v > FORMAT_VERSION => return Err(GroupError::UnsupportedVersion(v)),
+        Some(FORMAT_VERSION | CAPTURE_FORMAT_VERSION) => {}
+        Some(v) if v > CAPTURE_FORMAT_VERSION => return Err(GroupError::UnsupportedVersion(v)),
         _ => return Err(GroupError::Invalid("格式版本不对".into())),
     }
     let file: GroupFile =

@@ -111,6 +111,12 @@ mod rating_search;
 mod reference_capture;
 #[path = "reference_capture_actions/main.rs"]
 mod reference_capture_actions;
+#[path = "reference_group_capture_backup.rs"]
+mod reference_group_capture_backup;
+#[path = "reference_group_capture_links.rs"]
+mod reference_group_capture_links;
+#[path = "reference_group_captures.rs"]
+mod reference_group_captures;
 #[path = "reference_group_package.rs"]
 mod reference_group_package;
 #[path = "reference_group_resolve.rs"]

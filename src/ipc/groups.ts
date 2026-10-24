@@ -19,7 +19,7 @@ export function referenceGroup(groupId: string): Promise<ReferenceGroupView> {
   return invoke<ReferenceGroupView>(desk("reference_group"), { groupId });
 }
 
-/** 把桌面上的资料库钉图存成新的参考组（截图钉图不进组）。 */
+/** 把桌面钉图存成新的参考组；截图按逐张选择收藏后入组、只存在参考组里，或不加入。 */
 export function saveReferenceGroup(name: string, captures: import("../bindings/CaptureChoice").CaptureChoice[] = []): Promise<ReferenceGroup> {
   return invoke<ReferenceGroup>(desk("save_reference_group"), { name, captures });
 }
@@ -29,8 +29,9 @@ export function savePinsToGroup(groupId: string, captures: import("../bindings/C
   return invoke<ReferenceGroup>(desk("save_pins_to_group"), { groupId, captures });
 }
 
-export function groupSaveCaptures(): Promise<CaptureEntry[]> {
-  return invoke<CaptureEntry[]>(desk("group_save_captures"));
+/** 桌面上要决定怎样入组的截图；存进已有的参考组 `groupId` 时，已是它自带截图的不列出。 */
+export function groupSaveCaptures(groupId?: string): Promise<CaptureEntry[]> {
+  return invoke<CaptureEntry[]>(desk("group_save_captures"), groupId ? { groupId } : {});
 }
 
 /** 打开参考组：成员按保存的局部与摆放钉到桌面；返回新钉出的数量。 */

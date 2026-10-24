@@ -159,7 +159,7 @@ describe("参考组面板", () => {
     fireEvent.click(screen.getByRole("button", { name: "存下桌面钉图" }));
     fireEvent.change(screen.getByLabelText("新参考组名称"), { target: { value: "截图参考" } });
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
-    const dialog = await screen.findByRole("dialog", { name: "收藏截图并保存参考组" });
+    const dialog = await screen.findByRole("dialog", { name: "截图怎样存进参考组" });
     // 界面系统的模态对话框：焦点进入对话框并留在里面。
     expect(dialog.className).toContain("k-dialog");
     await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
@@ -167,10 +167,41 @@ describe("参考组面板", () => {
     // 选图库之前文件夹不能选。
     const folder = within(dialog).getByRole("combobox", { name: "截图 1 的文件夹" });
     expect(folder.hasAttribute("data-disabled")).toBe(true);
-    await chooseValue(within(dialog).getByRole("combobox", { name: "截图 1 的图库" }), "lib-a");
+    await chooseValue(within(dialog).getByRole("combobox", { name: "截图 1 存到哪里" }), "lib-a");
     await chooseValue(within(dialog).getByRole("combobox", { name: "截图 1 的文件夹" }), "folder-a");
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "确认并保存" })); });
     expect(ipc.save).toHaveBeenCalledWith("截图参考", [{ captureId: "shot-1", libraryId: "lib-a", folderId: "folder-a" }]);
+  });
+
+  it("截图可以只存在参考组里：不选图库和文件夹，交给保存入口", async () => {
+    ipc.captures.mockResolvedValueOnce([{ id: "shot-1", width: 100, height: 80, collected: [] }]);
+    await show();
+    fireEvent.click(screen.getByRole("button", { name: "存下桌面钉图" }));
+    fireEvent.change(screen.getByLabelText("新参考组名称"), { target: { value: "一次性" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    const dialog = await screen.findByRole("dialog", { name: "截图怎样存进参考组" });
+    expect(within(dialog).getByText(/只存在参考组里的截图不进图库/)).toBeTruthy();
+    await chooseValue(within(dialog).getByRole("combobox", { name: "截图 1 存到哪里" }), "group");
+    expect(within(dialog).getByRole("combobox", { name: "截图 1 的文件夹" }).hasAttribute("data-disabled")).toBe(true);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "确认并保存" })); });
+    expect(ipc.save).toHaveBeenCalledWith("一次性", [{ captureId: "shot-1", libraryId: null, folderId: null, keepInGroup: true }]);
+  });
+
+  it("参考组自带的截图在成员和缩略图里照常显示", async () => {
+    const capture = { id: "m4", captureFile: "m4.png", sourceWidth: 30, sourceHeight: 20, crop: null, placement };
+    ipc.groups.mockResolvedValue([{ ...summary, memberCount: 1, libraryIds: [] }]);
+    ipc.group.mockResolvedValue({
+      group: { ...view.group, members: [capture] },
+      members: [{ memberId: "m4", captureFile: "m4.png", state: { kind: "available", sealed: false } }],
+    } satisfies ReferenceGroupView);
+    render(<SaveDestinationProvider safe><ReferenceGroupsPanel /></SaveDestinationProvider>);
+    await act(async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); });
+    const card = screen.getByText("头发参考").closest("li")!;
+    expect([...card.querySelectorAll("img")].map((img) => img.getAttribute("src"))).toEqual(["capture://group/g1/m4"]);
+    expect(card.querySelector(".reference-group-meta")!.textContent).toContain("不在图库里");
+    await more("查看成员");
+    const members = screen.getByRole("list", { name: "头发参考 的成员" });
+    expect(members.textContent).toContain("参考组里的截图");
   });
 
   it("打开参考组把成员钉到桌面", async () => {
@@ -254,6 +285,7 @@ describe("参考组面板", () => {
   it("存入桌面钉图到已有参考组", async () => {
     await show();
     await more("存入桌面钉图");
+    expect(ipc.captures).toHaveBeenCalledWith("g1");
     expect(ipc.saveInto).toHaveBeenCalledWith("g1");
   });
 

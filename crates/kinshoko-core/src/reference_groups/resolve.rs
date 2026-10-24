@@ -11,7 +11,7 @@ use std::sync::Mutex;
 use serde::Serialize;
 use ts_rs::TS;
 
-use super::ReferenceGroup;
+use super::{MemberSource, ReferenceGroup};
 use crate::RegisteredLibrary;
 use crate::library::{Error, ReferenceImage, ReferenceLens, SafeMode, SafeModeScope};
 
@@ -29,6 +29,8 @@ pub enum UnavailableReason {
     ImageMissing,
     /// 资料库里还有这张图的记录，但原文件不在了。
     OriginalMissing,
+    /// 参考组自带的截图文件不在了（#270）。
+    CaptureMissing,
 }
 
 impl fmt::Display for UnavailableReason {
@@ -40,6 +42,7 @@ impl fmt::Display for UnavailableReason {
             }
             UnavailableReason::ImageMissing => write!(f, "参考图已从资料库中删除"),
             UnavailableReason::OriginalMissing => write!(f, "原图文件缺失"),
+            UnavailableReason::CaptureMissing => write!(f, "参考组里的截图文件缺失"),
         }
     }
 }
@@ -64,8 +67,8 @@ pub enum MemberState {
 #[ts(export)]
 pub struct MemberStatus {
     pub member_id: String,
-    pub library_id: String,
-    pub image_id: String,
+    #[serde(flatten)]
+    pub source: MemberSource,
     pub state: MemberState,
 }
 
@@ -118,22 +121,25 @@ impl ReferenceGroupView {
     }
 }
 
-/// 核对参考组的每个成员，按成员的先后。
+/// 核对参考组的每个成员，按成员的先后。组内截图没有内容分级，总是照常显示；它的文件在不在由
+/// [`super::ReferenceGroups::view`] 核对。
 pub fn resolve(group: &ReferenceGroup, source: &dyn ReferenceSource) -> Vec<MemberStatus> {
     group
         .members
         .iter()
         .map(|m| MemberStatus {
             member_id: m.id.clone(),
-            library_id: m.library_id.clone(),
-            image_id: m.image_id.clone(),
-            state: match source.image(&m.library_id, &m.image_id) {
-                Ok(image) => MemberState::Available {
-                    sealed: image.sealed,
-                },
-                Err(reason) => MemberState::Unavailable {
-                    message: reason.to_string(),
-                    reason,
+            source: m.source.clone(),
+            state: match m.source.library_image() {
+                None => MemberState::Available { sealed: false },
+                Some((library_id, image_id)) => match source.image(library_id, image_id) {
+                    Ok(image) => MemberState::Available {
+                        sealed: image.sealed,
+                    },
+                    Err(reason) => MemberState::Unavailable {
+                        message: reason.to_string(),
+                        reason,
+                    },
                 },
             },
         })

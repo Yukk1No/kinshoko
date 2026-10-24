@@ -14,9 +14,12 @@ use std::sync::{Arc, Weak};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{PinContent, SavedPin, Screenshot};
+use super::{GroupMemberRef, PinContent, SavedPin, Screenshot};
 use crate::Library;
 use crate::library::{ImportOutcome, ImportSource};
+use crate::reference_groups::GroupCapture;
+
+mod links;
 
 const INDEX_FILE: &str = "history.json";
 const FORMAT_VERSION: u32 = 1;
@@ -42,6 +45,9 @@ struct Stored {
     deleted: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     collected: Vec<CollectedCapture>,
+    /// 由它而来的组内截图成员（#270），收藏时据此改连；条目丢弃时随之消失。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    members: Vec<GroupMemberRef>,
 }
 
 /// 截图收藏进资料库后成为的参考图。
@@ -53,7 +59,8 @@ pub struct CollectedCapture {
     pub image_id: String,
 }
 
-/// 保存参考组时对一张截图的决定。空资料库表示明确不把它加入参考组。
+/// 保存参考组时对一张截图的决定：收藏进 `library_id`（`folder_id`）后入组；`keep_in_group` 为真时
+/// 只存在参考组里，不进任何资料库（#270）；两者都没有表示明确不把它加入参考组。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -62,6 +69,16 @@ pub struct CaptureChoice {
     pub library_id: Option<String>,
     #[serde(default)]
     pub folder_id: Option<String>,
+    #[serde(default)]
+    #[ts(optional)]
+    pub keep_in_group: Option<bool>,
+}
+
+impl CaptureChoice {
+    /// 只存在参考组里。
+    pub fn keeps_in_group(&self) -> bool {
+        self.keep_in_group == Some(true) && self.library_id.is_none()
+    }
 }
 
 /// 截图历史保留的张数（#7：5～10 张）。超出的旧截图在没被钉住时丢弃。
@@ -126,6 +143,13 @@ pub struct PreparedCapture {
     png: Vec<u8>,
     width: u32,
     height: u32,
+}
+
+impl PreparedCapture {
+    /// 已经编码好的截图 PNG（例如参考组自带的截图，#270），按字节放回截图历史、不重编码。
+    pub fn from_png(png: Vec<u8>, width: u32, height: u32) -> PreparedCapture {
+        PreparedCapture { png, width, height }
+    }
 }
 
 /// A screenshot retained for one collection, independently of visible desktop pins.
@@ -270,6 +294,7 @@ impl CaptureHistory {
             created_at: crate::library::now_ms(),
             deleted: false,
             collected: Vec::new(),
+            members: Vec::new(),
         };
         let path = self.path_of(&stored.id);
         let tmp = path.with_extension("png.tmp");
@@ -471,6 +496,17 @@ impl CaptureHistory {
             pinned: self.is_pinned(&stored.id),
             collected: stored.collected.clone(),
         }
+    }
+
+    /// 要只存在参考组里的截图（#270）：参考组据此复制文件。不在历史中时为 `None`。
+    pub fn group_capture(&self, id: &str) -> Option<GroupCapture> {
+        let entry = self.entry(id)?;
+        Some(GroupCapture {
+            capture_id: entry.id,
+            file: self.path_of(id),
+            width: entry.width,
+            height: entry.height,
+        })
     }
 
     /// 截图文件的位置；不在历史中时为 `None`。

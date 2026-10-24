@@ -6,6 +6,7 @@
 //! manifest.json               format "kinshoko.reference-group-package"、formatVersion、包 id、导出时间、
 //!                             参考组（成员、局部与摆放原样）、所用参考图的快照与原文件位置
 //! originals/<sha256>.<ext>    所用原图，同一原图只带一次
+//! captures/<文件名>           参考组自带的截图（#270），导入时还原到新参考组里，不进资料库
 //! ```
 //!
 //! 只带参考组用到的图，不带来源库的其他素材，也不带完整操作历史。快照（标签、备注、来源链接、分级）
@@ -27,15 +28,21 @@ use ts_rs::TS;
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipArchive, ZipWriter};
 
+use super::captures::CaptureFiles;
+use super::packages::PackageCapture;
 use super::{
-    GroupError, GroupMember, MemberState, ReferenceGroup, ReferenceSource, new_id, resolve,
+    GroupError, GroupMember, MemberSource, MemberState, ReferenceGroup, ReferenceSource, new_id,
+    resolve,
 };
 use crate::Library;
 use crate::library::{ImageSnapshot, PackageOrigin};
 
 const FORMAT: &str = "kinshoko.reference-group-package";
 const FORMAT_VERSION: u32 = 2;
+/// 带组内截图的包按这一版写，旧版本读到时提示升级；不带的仍按 [`FORMAT_VERSION`]。
+const CAPTURE_FORMAT_VERSION: u32 = 3;
 const MANIFEST: &str = "manifest.json";
+pub(super) const CAPTURES: &str = "captures";
 /// 参考组包文件的扩展名。
 pub const PACKAGE_EXTENSION: &str = "kinshoko-group";
 
@@ -78,13 +85,24 @@ pub struct PackageManifest {
     pub group: ReferenceGroup,
     /// 成员用到的参考图，每个“资料库＋参考图”一项。
     pub images: Vec<PackageImage>,
+    /// 参考组自带的截图（#270），每个文件一项。
+    #[serde(default)]
+    pub captures: Vec<PackageCapture>,
 }
 
 impl PackageManifest {
     fn image(&self, member: &GroupMember) -> Option<&PackageImage> {
+        let (library_id, image_id) = member.source.library_image()?;
         self.images
             .iter()
-            .find(|i| i.library_id == member.library_id && i.image_id == member.image_id)
+            .find(|i| i.library_id == library_id && i.image_id == image_id)
+    }
+
+    fn capture(&self, member: &GroupMember) -> Option<&PackageCapture> {
+        let MemberSource::Capture { capture_file } = &member.source else {
+            return None;
+        };
+        self.captures.iter().find(|c| &c.file == capture_file)
     }
 }
 
@@ -117,14 +135,16 @@ fn damaged(why: impl std::fmt::Display) -> GroupError {
 }
 
 /// 导出参考组 `group` 到 `out`。成员有任何一个此刻取不到原图（资料库不可用、图已删除、原文件缺失）
-/// 就不导出，列出这些成员；原文件与资料库记录的 SHA-256 不符也不导出。先写临时文件再改名替换。
+/// 就不导出，列出这些成员；原文件与资料库记录的 SHA-256 不符也不导出。参考组自带的截图从
+/// `captures` 目录逐字节带上。先写临时文件再改名替换。
 pub(super) fn export(
     group: &ReferenceGroup,
     source: &dyn ReferenceSource,
     out: &Path,
     catalog: Option<&crate::tag_catalog::CatalogInspection>,
+    captures: &Path,
 ) -> Result<PackageManifest, GroupError> {
-    let unavailable: Vec<String> = resolve(group, source)
+    let mut unavailable: Vec<String> = resolve(group, source)
         .into_iter()
         .filter_map(|m| match m.state {
             MemberState::Unavailable { message, .. } => {
@@ -133,6 +153,24 @@ pub(super) fn export(
             MemberState::Available { .. } => None,
         })
         .collect();
+    // 组内截图：文件名 → 字节，同一文件只带一次。
+    let mut capture_bytes: BTreeMap<String, Vec<u8>> = BTreeMap::new();
+    for m in &group.members {
+        if let MemberSource::Capture { capture_file } = &m.source
+            && !capture_bytes.contains_key(capture_file)
+        {
+            match fs::read(captures.join(capture_file)) {
+                Ok(bytes) => {
+                    capture_bytes.insert(capture_file.clone(), bytes);
+                }
+                Err(_) => unavailable.push(format!(
+                    "成员 {}：{}",
+                    m.id,
+                    super::UnavailableReason::CaptureMissing
+                )),
+            }
+        }
+    }
     if !unavailable.is_empty() {
         return Err(GroupError::MembersUnavailable(unavailable));
     }
@@ -140,24 +178,28 @@ pub(super) fn export(
     let mut images: Vec<PackageImage> = Vec::new();
     // sha256 → 来源库里的原文件；同一原图只带一次。
     let mut files: BTreeMap<String, (String, std::path::PathBuf)> = BTreeMap::new();
-    for m in &group.members {
+    for (library_id, image_id) in group
+        .members
+        .iter()
+        .filter_map(|m| m.source.library_image())
+    {
         if images
             .iter()
-            .any(|i| i.library_id == m.library_id && i.image_id == m.image_id)
+            .any(|i| i.library_id == library_id && i.image_id == image_id)
         {
             continue;
         }
         let lens = source
-            .lens(&m.library_id)
+            .lens(library_id)
             .map_err(|reason| GroupError::MembersUnavailable(vec![reason.to_string()]))?;
         let library_error = |e: crate::library::Error| GroupError::Library(e.to_string());
-        let mut snapshot = lens.snapshot(&m.image_id).map_err(library_error)?;
+        let mut snapshot = lens.snapshot(image_id).map_err(library_error)?;
         if let Some(catalog) = catalog {
             catalog
-                .apply_content_definitions(&m.library_id, &mut snapshot)
+                .apply_content_definitions(library_id, &mut snapshot)
                 .map_err(|error| GroupError::Library(error.to_string()))?;
         }
-        let original = lens.original_path(&m.image_id).map_err(library_error)?;
+        let original = lens.original_path(image_id).map_err(library_error)?;
         let ext = original
             .extension()
             .and_then(|e| e.to_str())
@@ -169,8 +211,8 @@ pub(super) fn export(
             .entry(snapshot.sha256.clone())
             .or_insert_with(|| (file.clone(), original));
         images.push(PackageImage {
-            library_id: m.library_id.clone(),
-            image_id: m.image_id.clone(),
+            library_id: library_id.to_owned(),
+            image_id: image_id.to_owned(),
             file: files[&snapshot.sha256].0.clone(),
             size,
             snapshot,
@@ -181,6 +223,19 @@ pub(super) fn export(
         exported_at: crate::library::now_ms(),
         group: group.clone(),
         images,
+        captures: capture_bytes
+            .iter()
+            .map(|(file, bytes)| PackageCapture {
+                file: file.clone(),
+                size: bytes.len() as u64,
+                sha256: sha256_hex(bytes),
+            })
+            .collect(),
+    };
+    let format_version = if manifest.captures.is_empty() {
+        FORMAT_VERSION
+    } else {
+        CAPTURE_FORMAT_VERSION
     };
 
     let dir = out.parent().filter(|p| !p.as_os_str().is_empty());
@@ -204,9 +259,17 @@ pub(super) fn export(
             zip.start_file(file.as_str(), options).map_err(damaged)?;
             zip.write_all(&bytes)?;
         }
+        for capture in &manifest.captures {
+            zip.start_file(
+                capture.entry(),
+                SimpleFileOptions::default().compression_method(CompressionMethod::Stored),
+            )
+            .map_err(damaged)?;
+            zip.write_all(&capture_bytes[&capture.file])?;
+        }
         let json = serde_json::to_vec_pretty(&ManifestFile {
             format: FORMAT.to_owned(),
-            format_version: FORMAT_VERSION,
+            format_version,
             manifest: manifest.clone(),
         })
         .map_err(io::Error::other)?;
@@ -249,19 +312,21 @@ fn read_manifest(zip: &mut ZipArchive<fs::File>) -> Result<PackageManifest, Grou
         return Err(GroupError::NotAPackage);
     }
     match header.format_version {
-        Some(1 | FORMAT_VERSION) => {}
-        Some(v) if v > FORMAT_VERSION => return Err(GroupError::UnsupportedVersion(v)),
+        Some(1 | FORMAT_VERSION | CAPTURE_FORMAT_VERSION) => {}
+        Some(v) if v > CAPTURE_FORMAT_VERSION => return Err(GroupError::UnsupportedVersion(v)),
         _ => return Err(damaged("格式版本不对")),
     }
+    // 第 2 版起标签带身份定义与来源本地标签对应。
+    let defined_tags = header.format_version >= Some(FORMAT_VERSION);
     let file: ManifestFile = serde_json::from_slice(&bytes).map_err(damaged)?;
     let manifest = file.manifest;
     let mut definitions = BTreeMap::new();
     for image in &manifest.images {
         for tag in &image.snapshot.tags {
-            if header.format_version == Some(FORMAT_VERSION) && tag.definition.is_none() {
+            if defined_tags && tag.definition.is_none() {
                 return Err(damaged("新版参考组包缺少标签身份定义"));
             }
-            if header.format_version == Some(FORMAT_VERSION)
+            if defined_tags
                 && tag
                     .local_tag_id
                     .as_ref()
@@ -286,12 +351,38 @@ fn read_manifest(zip: &mut ZipArchive<fs::File>) -> Result<PackageManifest, Grou
         GroupError::Invalid(why) => damaged(why),
         other => other,
     })?;
+    // 每个截图文件名都要核对，成员没用到的也一样：导入时按它写进新参考组的目录。
+    let mut capture_files = std::collections::BTreeSet::new();
+    for capture in &manifest.captures {
+        if !super::member::valid_capture_file(&capture.file) {
+            return Err(damaged(format!("截图文件名 {} 不合法", capture.file)));
+        }
+        if !capture_files.insert(capture.file.as_str()) {
+            return Err(damaged(format!("截图 {} 重复", capture.file)));
+        }
+    }
     for m in &manifest.group.members {
-        if manifest.image(m).is_none() {
+        if manifest.image(m).is_none() && manifest.capture(m).is_none() {
             return Err(damaged(format!("成员 {} 没有对应的原图", m.id)));
         }
     }
     Ok(manifest)
+}
+
+/// 包内一份组内截图的全部字节；与清单记录的大小或 SHA-256 不符时为损坏。
+fn read_capture(
+    zip: &mut ZipArchive<fs::File>,
+    capture: &PackageCapture,
+) -> Result<Vec<u8>, GroupError> {
+    let mut entry = zip
+        .by_name(&capture.entry())
+        .map_err(|_| damaged(format!("缺少截图 {}", capture.entry())))?;
+    let mut bytes = Vec::new();
+    entry.read_to_end(&mut bytes).map_err(damaged)?;
+    if bytes.len() as u64 != capture.size || sha256_hex(&bytes) != capture.sha256 {
+        return Err(damaged(format!("截图 {} 与清单记录不符", capture.entry())));
+    }
+    Ok(bytes)
 }
 
 /// 包内一份原文件的全部字节；与清单记录的大小或 SHA-256 不符时为损坏。
@@ -311,11 +402,12 @@ fn read_original(
 }
 
 /// 导入参考组包到 `library`，另存为新的参考组（由 [`super::ReferenceGroups::import_package`] 写入）。
+/// 一并返回参考组自带的截图（文件名与字节），随新参考组写入，不进资料库。
 pub(super) fn import(
     path: &Path,
     library: &Library,
     catalog: Option<&crate::tag_catalog::CatalogInspection>,
-) -> Result<ReferenceGroup, GroupError> {
+) -> Result<(ReferenceGroup, CaptureFiles), GroupError> {
     let mut zip = open(path)?;
     let manifest = read_manifest(&mut zip)?;
     if let Some(catalog) = catalog {
@@ -341,6 +433,11 @@ pub(super) fn import(
             return Err(damaged(format!("原图 {} 与清单记录不符", image.file)));
         }
     }
+    let captures = manifest
+        .captures
+        .iter()
+        .map(|c| Ok((c.file.clone(), read_capture(&mut zip, c)?)))
+        .collect::<Result<Vec<_>, GroupError>>()?;
 
     // 来源库中的“资料库＋参考图” → 本库的参考图。
     let mut imported: HashMap<(String, String), String> = HashMap::new();
@@ -377,10 +474,16 @@ pub(super) fn import(
         .group
         .members
         .iter()
-        .map(|m| GroupMember {
-            library_id: library_id.clone(),
-            image_id: imported[&(m.library_id.clone(), m.image_id.clone())].clone(),
-            ..m.clone()
+        .map(|m| match m.source.library_image() {
+            Some((source_library, source_image)) => GroupMember {
+                source: MemberSource::Library {
+                    library_id: library_id.clone(),
+                    image_id: imported[&(source_library.to_owned(), source_image.to_owned())]
+                        .clone(),
+                },
+                ..m.clone()
+            },
+            None => m.clone(),
         })
         .collect();
     let group = ReferenceGroup {
@@ -397,5 +500,5 @@ pub(super) fn import(
         restored_from: None,
     };
     group.validate()?;
-    Ok(group)
+    Ok((group, captures))
 }
