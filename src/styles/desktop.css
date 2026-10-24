@@ -33,12 +33,13 @@
 
 /* 参考组卡片 */
 .group-save { width: 100%; height: 36px; border-radius: 11px; }
-/* 起名与改名：TextField 加一行右对齐的按钮。新参考组的表单替换“存下桌面钉图”按钮，用 1 px line 圈出，
-   不铺底色，免得和选中的参考组卡片混在一起。 */
-.group-name-form { display: flex; flex-direction: column; gap: 8px; }
-.group-name-form.is-new { padding: 10px; border-radius: var(--r-m); box-shadow: inset 0 0 0 1px var(--line-2); }
-.group-name-form .k-input { flex: none; width: 100%; }
-.group-name-acts { display: flex; justify-content: flex-end; gap: 6px; }
+/* 起名与改名（GroupNameForm）：字段名与关闭按钮一行，输入框与“保存”同高 32 并排、间距 8。
+   新参考组的表单替换“存下桌面钉图”按钮，用 1 px line-2 圈出，不铺底色，免得和选中的参考组卡片混在一起；
+   同心圆角：输入框 r（10）+ 内边距 8 = 外框 r-xl（18）。 */
+.group-name-form { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.group-name-form.is-new { padding: 6px 8px 8px; border-radius: var(--r-xl); box-shadow: inset 0 0 0 1px var(--line-2); }
+.group-name-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; padding-left: 2px; }
+.group-name-form .k-field-row > .k-btn { flex: none; }
 .reference-groups-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .reference-group { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 4px; border-radius: 12px; transition: background var(--t-fast); }
 .reference-group.is-on { padding-bottom: 10px; background: var(--surface-2); box-shadow: var(--shadow-raise); }
@@ -56,22 +57,23 @@
 .reference-group-meta, .reference-group-problem { color: var(--ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
 .reference-group-problem { color: var(--warn); }
 .reference-group-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 6px; }
-.reference-group .group-name-form { padding: 0 6px; }
+.reference-group .group-name-form { padding: 0 6px 4px; }
 .reference-group-members { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0 6px 0 22px; font-size: 12px; }
 .reference-group-members li { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-width: 0; }
 .reference-group-members span { min-width: 0; overflow-wrap: anywhere; }
 .reference-group-member-unavailable { color: var(--warn); }
 .reference-groups-foot { display: flex; justify-content: center; margin-top: auto; padding-top: 8px; }
-/* 收藏截图并保存参考组：每张截图一行，缩略图在左，名称与尺寸在上，图库与文件夹两个 Select 并排。 */
-.k-dialog.k-save-dialog.capture-group-save { width: min(600px, calc(100vw - 48px)); }
+/* 收藏截图并保存参考组：沿用保存对话框（.k-save-dialog，宽 480）。截图列表同 .k-list：surface 底、1 px line 圈出、行间 1 px line。
+   每张截图一行：缩略图在左，名称、尺寸与“已收藏”在上，图库与文件夹两个 Select 并排。 */
 .capture-save-list { display: flex; flex-direction: column; max-height: min(360px, calc(100vh - 260px)); overflow-y: auto; margin: 0; padding: 0; list-style: none;
-  border-radius: var(--r-m); box-shadow: inset 0 0 0 1px var(--line); }
+  border-radius: var(--r-m); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
 .capture-save-row { display: flex; gap: 12px; align-items: flex-start; min-width: 0; padding: 12px; }
 .capture-save-row + .capture-save-row { border-top: 1px solid var(--line); }
-.capture-save-thumb { width: 72px; height: 72px; flex: none; border-radius: var(--r-s); object-fit: cover; background: var(--card); transition: opacity var(--t-fast); }
+.capture-save-thumb { width: 64px; height: 64px; flex: none; border-radius: var(--r-s); object-fit: cover; background: var(--card); transition: opacity var(--t-fast); }
 .capture-save-row.is-skipped .capture-save-thumb { opacity: 0.5; }
 .capture-save-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-.capture-save-head { display: flex; align-items: baseline; gap: 8px; margin: 0; min-width: 0; }
+.capture-save-head { display: flex; align-items: center; gap: 8px; min-height: 22px; margin: 0; min-width: 0; }
+.capture-save-head .k-pill { margin-left: auto; }
 .capture-save-head strong { font-weight: 600; }
 .capture-save-head span { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
 .capture-save-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

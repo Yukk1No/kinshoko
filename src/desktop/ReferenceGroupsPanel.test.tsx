@@ -142,6 +142,17 @@ describe("参考组面板", () => {
     expect(screen.getByRole("status").textContent).toBe("已把桌面钉图存为参考组");
   });
 
+  it("起名时按 Esc 或关闭按钮取消，回到“存下桌面钉图”", async () => {
+    await show();
+    fireEvent.click(screen.getByRole("button", { name: "存下桌面钉图" }));
+    fireEvent.keyDown(screen.getByLabelText("新参考组名称"), { key: "Escape" });
+    expect(screen.queryByLabelText("新参考组名称")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "存下桌面钉图" }));
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    expect(screen.queryByLabelText("新参考组名称")).toBeNull();
+    expect(ipc.save).not.toHaveBeenCalled();
+  });
+
   it("保存前逐张选择截图的收藏资料库，再把选择交给保存入口", async () => {
     ipc.captures.mockResolvedValueOnce([{ id: "shot-1", width: 100, height: 80, collected: [] }]);
     await show();
@@ -208,7 +219,7 @@ describe("参考组面板", () => {
     fireEvent.click(screen.getByRole("button", { name: "改名" }));
     fireEvent.change(screen.getByLabelText("参考组名称"), { target: { value: "发型" } });
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "保存名称" }));
+      fireEvent.click(screen.getByRole("button", { name: "保存" }));
     });
     expect(ipc.rename).toHaveBeenCalledWith("g1", "发型");
   });
