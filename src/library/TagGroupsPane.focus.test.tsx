@@ -45,10 +45,10 @@ it("编辑分组的操作完成、列表刷新后，键盘焦点回到同一个�
   await waitFor(() => expect(screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"))).toEqual(["服装", "发色", "姿势"]));
   expect((document.activeElement as HTMLElement).getAttribute("aria-label")).toBe("下移标签分组“发色”");
 
-  await press("下移“蓝发”在“发色”中的顺序");
+  await press("把“蓝发”在“发色”中后移");
   await waitFor(() => expect((document.activeElement as HTMLElement).getAttribute("aria-label")).not.toBeNull());
-  // 移到最后一位后“下移”不可用：焦点落在同一成员的“上移”。
-  expect((document.activeElement as HTMLElement).getAttribute("aria-label")).toBe("上移“蓝发”在“发色”中的顺序");
+  // 移到最后一位后“后移”不可用：焦点落在同一成员的“前移”。
+  expect((document.activeElement as HTMLElement).getAttribute("aria-label")).toBe("把“蓝发”在“发色”中前移");
 });
 
 it("移出成员后，焦点落在所在分组上，不丢到页面", async () => {

@@ -31,7 +31,8 @@ describe("T05 shared groups", () => {
     const calls = backend(); const browse = vi.fn();
     render(<TagGroupsPane libraryId="" safe generation={0} onBrowse={browse} onError={vi.fn()} />);
     const group = await screen.findByRole("group", { name: "发色" });
-    expect(within(group).getByText(/角色参考/)).toBeTruthy();
+    // 来源是次要信息：放在名称旁图标的悬停提示里（设计系统：次要信息收进悬停提示）。
+    expect(within(group).getByRole("img", { name: "来自：角色参考 / 发色" }).getAttribute("title")).toBe("来自：角色参考 / 发色");
     fireEvent.click(within(group).getByRole("button", { name: "发色（2 个标签）" }));
     expect(browse).toHaveBeenCalledWith(["shared-blue", "shared-purple"]);
     fireEvent.click(within(group).getByRole("button", { name: "下移标签分组“发色”" }));

@@ -80,13 +80,13 @@ async function openPicker(beforePicker?: () => Promise<void>) {
   fireEvent.click(within(group).getByRole("button", { name: "给“发色”加标签" }));
   const input = within(group).getByRole<HTMLInputElement>("combobox", { name: "挑一个统一标签" });
   fireEvent.change(input, { target: { value: "蓝" } });
-  await within(group).findByRole("option", { name: /蓝发/ });
+  await screen.findByRole("option", { name: /蓝发/ });
   return { region, input };
 }
 async function addMember(region: HTMLElement) {
   const input = await within(region).findByRole<HTMLInputElement>("combobox", { name: "挑一个统一标签" });
   expect(input.value).toBe("蓝");
-  fireEvent.click(await within(region).findByRole("option", { name: /蓝发/ }));
+  fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
   expect(await within(region).findByRole("button", { name: "蓝发（1 张）" })).toBeTruthy();
 }
 
@@ -113,7 +113,7 @@ it("closes the draft and old candidates when the safety mode really changes", as
   const { region } = await openPicker();
   await act(async () => { await emit("safe-mode-setting", false); });
   expect(within(region).queryByRole("combobox", { name: "挑一个统一标签" })).toBeNull();
-  expect(within(region).queryByRole("option", { name: /蓝发/ })).toBeNull();
+  expect(screen.queryByRole("option", { name: /蓝发/ })).toBeNull();
 });
 
 it("keeps the focused input while withholding stale labels and ignoring a late old candidate", async () => {
@@ -130,11 +130,11 @@ it("keeps the focused input while withholding stale labels and ignoring a late o
   expect(document.activeElement).toBe(input);
   expect(input.value).toBe("蓝发");
   expect(within(region).queryByRole("group", { name: "发色" })).toBeNull();
-  expect(within(region).queryByRole("option")).toBeNull();
+  expect(screen.queryByRole("option")).toBeNull();
   await act(async () => { finishOld([{ tag: { ...tag, name: "失效的旧标签" }, via: null, count: 99 }]); });
   expect(within(region).queryByText("失效的旧标签")).toBeNull();
   await act(async () => { finishNew([{ tag, via: null, count: 1 }]); finishGroups(structuredClone(groups)); });
-  expect(await within(region).findByRole("option", { name: /蓝发/ })).toBeTruthy();
+  expect(await screen.findByRole("option", { name: /蓝发/ })).toBeTruthy();
   expect(within(region).getByRole("combobox", { name: "挑一个统一标签" })).toBe(input);
 });
 

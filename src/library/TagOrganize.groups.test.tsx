@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { emit } from "@tauri-apps/api/event";
 import { App } from "../App";
 import { fake, sent, card, selectOnly } from "./TagOrganize.fixtures";
+import { chooseValue } from "../test/select";
 
 async function openGroups() {
   fireEvent.click(await screen.findByRole("button", { name: "编辑分组" }));
@@ -39,7 +40,7 @@ describe("标签分组", () => {
     });
     fireEvent.click(addMember);
     fireEvent.change(within(hair).getByRole("combobox", { name: "挑一个统一标签" }), { target: { value: "蓝" } });
-    fireEvent.click(await within(hair).findByRole("option", { name: /蓝发/ }));
+    fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
     await waitFor(() =>
       expect(sent("plugin:library|edit_shared_tag_group")).toEqual([{ edit: { kind: "addMembers", groupId: "G1", tagIds: ["T-blue"] }, safeMode: true }]),
     );
@@ -92,7 +93,7 @@ describe("标签分组", () => {
       expect(button.disabled).toBe(false);
       return button;
     }));
-    fireEvent.change(within(groups).getByRole("combobox", { name: "分组内容" }), { target: { value: "general" } });
+    await chooseValue(within(groups).getByRole("combobox", { name: "分组内容" }), "general");
     const name = within(groups).getByRole("textbox", { name: "新标签分组名称" });
     fireEvent.change(name, { target: { value: "一般" } });
     fireEvent.keyDown(name, { key: "Enter" });
