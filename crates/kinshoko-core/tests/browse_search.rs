@@ -241,7 +241,7 @@ fn a_condition_with_no_alternatives_matches_nothing_and_its_exclusion_everything
 }
 
 /// 反馈约 100 ms 内出现（验收）：大库上解析条件并取第一页。耗时，手动以 release 运行：
-/// `cargo test --release --test browse_search -- --ignored`。
+/// `cargo test --release --test integration browse_search:: -- --ignored`。
 #[test]
 #[ignore]
 fn the_first_page_of_a_search_arrives_within_100_ms_on_a_large_library() {

@@ -177,11 +177,11 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
           <input className="side-input" aria-label="新参考组名称" placeholder="给这组钉图起个名字" autoFocus
             value={name} onChange={(e) => setName(e.target.value)} />
           <span className="group-name-acts">
-            <button type="button" className="k-btn is-sm" onClick={() => { setNaming(false); setName(""); }}>取消</button>
-            <button type="submit" className="k-btn is-sm is-primary" disabled={!name.trim() || !!captureSave || saving}>保存</button>
+            <button type="button" className="k-btn is-sm" onClick={() => { setNaming(false); setName(""); }}><span className="k-label">取消</span></button>
+            <button type="submit" className="k-btn is-sm is-primary" disabled={!name.trim() || !!captureSave || saving}><span className="k-label">保存</span></button>
           </span>
         </form> : <button type="button" className="k-btn is-primary group-save" disabled={!!captureSave || saving} onClick={() => setNaming(true)}>
-          <BookmarkPlus size={15} aria-hidden="true" />存下桌面钉图
+          <BookmarkPlus size={15} aria-hidden="true" /><span className="k-label">存下桌面钉图</span>
         </button>}
       </header>
       {importing && <SaveDestinationDialog title="导入参考组包" confirmLabel="选择参考组包并导入" onClose={() => setImporting(false)} onConfirm={async (destination) => {
@@ -224,10 +224,10 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
           ))}
           <div className="k-dialog-foot">
             <span className="k-grow" />
-            <button type="button" className="k-btn" disabled={saving} onClick={() => setCaptureSave(null)}>取消</button>
+            <button type="button" className="k-btn" disabled={saving} onClick={() => setCaptureSave(null)}><span className="k-label">取消</span></button>
             <button type="button" className="k-btn is-primary"
               disabled={saving || !saveContext.ready || captureSave.entries.some((e) => captureSave.choices[e.id] !== "skip" && !destinationAvailable({ libraryId: captureSave.choices[e.id], folderId: captureSave.folders[e.id] ?? null }, saveContext.providers))}
-              onClick={() => void confirmCaptures()}>{saving ? "正在收藏并保存…" : "确认并保存"}</button>
+              onClick={() => void confirmCaptures()}><span className="k-label">{saving ? "正在收藏并保存…" : "确认并保存"}</span></button>
           </div>
         </Dialog.Popup>
         </Dialog.Portal>
@@ -261,22 +261,22 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                   <input className="side-input" aria-label="参考组名称" autoFocus value={renaming.name}
                     onChange={(e) => setRenaming({ id: g.id, name: e.target.value })} />
                   <span className="group-name-acts">
-                    <button type="button" className="k-btn is-sm" onClick={() => setRenaming(null)}>取消</button>
-                    <button type="submit" className="k-btn is-sm is-primary" disabled={!renaming.name.trim()}>保存名称</button>
+                    <button type="button" className="k-btn is-sm" onClick={() => setRenaming(null)}><span className="k-label">取消</span></button>
+                    <button type="submit" className="k-btn is-sm is-primary" disabled={!renaming.name.trim()}><span className="k-label">保存名称</span></button>
                   </span>
                 </form>
               )}
               {on && (g.problem ? (
                 <span className="reference-group-actions">
-                  <button type="button" className="k-btn is-sm" onClick={() => setDeleting(g.id)}><Trash2 size={13} aria-hidden="true" />删除</button>
+                  <button type="button" className="k-btn is-sm" onClick={() => setDeleting(g.id)}><Trash2 size={13} aria-hidden="true" /><span className="k-label">删除</span></button>
                 </span>
               ) : (
                 <span className="reference-group-actions">
                   <button type="button" className="k-btn is-sm" onClick={() => void run(
                     () => openReferenceGroup(g.id),
                     (n) => (n === 0 ? "成员都已在桌面上" : `已钉出 ${String(n)} 个成员`),
-                  )}><Layers size={13} aria-hidden="true" />摆到桌面</button>
-                  <button type="button" className="k-btn is-sm" onClick={() => setRenaming({ id: g.id, name: g.name })}>改名</button>
+                  )}><Layers size={13} aria-hidden="true" /><span className="k-label">摆到桌面</span></button>
+                  <button type="button" className="k-btn is-sm" onClick={() => setRenaming({ id: g.id, name: g.name })}><span className="k-label">改名</span></button>
                   <Menu.Root>
                     <Menu.Trigger className="k-icon-btn" aria-label="更多操作" title="更多操作"><MoreHorizontal size={15} aria-hidden="true" /></Menu.Trigger>
                     <MenuPopup label={`${g.name} 的更多操作`}>
@@ -302,7 +302,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                       <li key={m.memberId} className={m.state.kind === "unavailable" ? "reference-group-member-unavailable" : undefined}>
                         <span className="k-parts"><span>{libraryNames.get(m.libraryId) ?? "未登记的图库"}</span><span>{crop ? `局部 ${crop.width} × ${crop.height}` : "整图"}</span></span>
                         <span>{memberState(m)}</span>
-                        <button type="button" className="k-btn is-sm" onClick={() => void run(() => removeGroupMember(g.id, m.memberId))}>移出</button>
+                        <button type="button" className="k-btn is-sm" onClick={() => void run(() => removeGroupMember(g.id, m.memberId))}><span className="k-label">移出</span></button>
                       </li>
                     );
                   })}
@@ -313,7 +313,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
         })}
       </ul>
       <footer className="reference-groups-foot">
-        <button type="button" className="k-btn is-sm is-ghost" onClick={() => setImporting(true)}><FolderInput size={13} aria-hidden="true" />导入参考组包</button>
+        <button type="button" className="k-btn is-sm is-ghost" onClick={() => setImporting(true)}><FolderInput size={13} aria-hidden="true" /><span className="k-label">导入参考组包</span></button>
       </footer>
       <AlertDialog.Root open={!!deletingGroup} onOpenChange={(open) => { if (!open) setDeleting(null); }}>
         <AlertDialog.Portal>
@@ -323,11 +323,11 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
             <AlertDialog.Description className="k-dialog-desc">「{deletingGroup?.name}」会被删除，图库里的原图不受影响。</AlertDialog.Description>
             <div className="k-dialog-foot">
               <span className="k-grow" />
-              <AlertDialog.Close className="k-btn">取消</AlertDialog.Close>
+              <AlertDialog.Close className="k-btn"><span className="k-label">取消</span></AlertDialog.Close>
               <button type="button" className="k-btn is-danger" onClick={() => {
                 const id = deleting!;
                 void run(() => deleteReferenceGroup(id), () => (setDeleting(null), null));
-              }}>删除</button>
+              }}><span className="k-label">删除</span></button>
             </div>
           </AlertDialog.Popup>
         </AlertDialog.Portal>

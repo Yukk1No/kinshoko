@@ -130,7 +130,7 @@
 .k-group-name:disabled { opacity: 1; cursor: default; } /* 空分组不能按它查找，但名称照常显示，不随全局 button:disabled 变淡。 */
 .k-group-name:hover:not(:disabled) .k-group-label { text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
 .k-group-name:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-xs); }
-.k-group-label { min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-group-label { min-width: 0; font-weight: 500; }
 .k-group-origin { flex: none; display: inline-flex; color: var(--ink-3); }
 .k-group-count { flex: none; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .k-group-head > .k-pill { flex: none; }

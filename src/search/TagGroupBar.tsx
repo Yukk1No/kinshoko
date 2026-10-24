@@ -62,7 +62,7 @@ export function TagGroupBar(p: Props) {
       return <div key={g.id} className="group">
         <button type="button" className={`group-btn${open === g.id ? " is-open" : ""}${picked ? " has-picked" : ""}`} aria-expanded={open === g.id}
           onClick={() => setOpen(open === g.id ? null : g.id)}>
-          {g.name}{picked > 0 && <span className="badge tabular">{picked}</span>}<span aria-hidden>⌄</span>
+          <span className="k-label">{g.name}</span>{picked > 0 && <span className="badge tabular">{picked}</span>}<span aria-hidden>⌄</span>
         </button>
         {open === g.id && <div className="group-pop" role="group" aria-label={`${g.name}标签`}>
           <button type="button" className="group-any" aria-label={`按“${g.name}”任一标签查找`} disabled={!g.tags.length}
@@ -77,7 +77,7 @@ export function TagGroupBar(p: Props) {
                 aria-pressed={!!c}
                 onClick={(e) => c ? remove(tag.id) : add(tag.id, e.ctrlKey || e.metaKey ? "or" : "and")}
                 onContextMenu={(e) => { e.preventDefault(); if (c?.negate) remove(tag.id); else add(tag.id, "and", true); }}>
-                {tagName(tag)}<TagMarks tag={tag} /><span className="count tabular">{count}</span>
+                <span className="k-label">{tagName(tag)}</span><TagMarks tag={tag} /><span className="count tabular k-label">{count}</span>
               </button>;
             })}
           </div>
@@ -86,6 +86,6 @@ export function TagGroupBar(p: Props) {
       </div>;
     })}
     {!groups.length && <span className="groupbar-empty">建好分组后，可在这里点选标签。</span>}
-    {p.onEdit && <button type="button" className="groupbar-edit" onClick={p.onEdit}><PenLine size={13} aria-hidden="true" />编辑分组</button>}
+    {p.onEdit && <button type="button" className="groupbar-edit" onClick={p.onEdit}><PenLine size={13} aria-hidden="true" /><span className="k-label">编辑分组</span></button>}
   </div>;
 }
