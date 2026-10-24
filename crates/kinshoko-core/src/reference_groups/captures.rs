@@ -12,6 +12,9 @@ use super::{
 };
 use crate::desktop::{CaptureHistory, CollectedCapture, GroupMemberRef, PreparedCapture, SavedPin};
 
+/// 参考组自带的截图：文件名与字节（参考组包、备份用）。
+pub type CaptureFiles = Vec<(String, Vec<u8>)>;
+
 /// 打开参考组得到的钉图（[`ReferenceGroups::open_pins`]）。组内截图文件缺失、放不回截图历史的
 /// 成员钉不出来，在 `problems` 里逐个说明。
 #[derive(Debug, Clone, PartialEq)]
@@ -21,6 +24,24 @@ pub struct OpenedPins {
 }
 
 impl ReferenceGroups {
+    /// 备份的快照入口（#69、#270）：快照字节 `snapshot` 里组内截图成员用到的截图文件与字节，
+    /// 从参考组 `id` 的目录读。有文件读不到时报错，不交出缺了截图的快照。
+    pub fn snapshot_captures(&self, id: &str, snapshot: &[u8]) -> Result<CaptureFiles, GroupError> {
+        let group = super::parse(snapshot)?;
+        let dir = self.captures_dir(id)?;
+        group
+            .capture_files()
+            .into_iter()
+            .map(|file| match fs::read(dir.join(file)) {
+                Ok(bytes) => Ok((file.to_owned(), bytes)),
+                Err(e) => Err(GroupError::Invalid(format!(
+                    "{}（{file}）：{e}",
+                    UnavailableReason::CaptureMissing
+                ))),
+            })
+            .collect()
+    }
+
     /// 打开参考组：每个成员一个新的桌面钉图，按成员的先后，带着各自的局部与摆放；`skip` 为真的
     /// 成员（例如已在桌面上）不钉。组内截图按字节放回截图历史（不重编码），钉成截图钉图，截图历史
     /// 知道它正被钉住。资料库成员同 [`ReferenceGroup::pins`]。
@@ -171,6 +192,29 @@ impl ReferenceGroups {
         }
         self.sweep(group);
         Ok(())
+    }
+
+    /// 新参考组连同它自带的截图一起写入：先写截图，再写参考组文件；失败时删掉写了一半的截图目录。
+    pub(super) fn publish_with_captures(
+        &self,
+        group: &ReferenceGroup,
+        captures: &CaptureFiles,
+    ) -> Result<(), GroupError> {
+        let dir = self.captures_dir(&group.id)?;
+        let written = (|| -> Result<(), GroupError> {
+            for (file, bytes) in captures {
+                if !valid_capture_file(file) {
+                    return Err(GroupError::Invalid(format!("截图文件名 {file} 不合法")));
+                }
+                fs::create_dir_all(&dir)?;
+                write_atomically(&dir.join(file), bytes)?;
+            }
+            self.write(group)
+        })();
+        if written.is_err() {
+            let _ = fs::remove_dir_all(&dir);
+        }
+        written
     }
 
     /// 删掉参考组目录下不再被成员用到的截图（和写到一半的临时文件）；一张也不剩时删掉目录。

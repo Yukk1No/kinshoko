@@ -28,6 +28,8 @@ use ts_rs::TS;
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipArchive, ZipWriter};
 
+use super::captures::CaptureFiles;
+use super::packages::PackageCapture;
 use super::{
     GroupError, GroupMember, MemberSource, MemberState, ReferenceGroup, ReferenceSource, new_id,
     resolve,
@@ -40,9 +42,7 @@ const FORMAT_VERSION: u32 = 2;
 /// 带组内截图的包按这一版写，旧版本读到时提示升级；不带的仍按 [`FORMAT_VERSION`]。
 const CAPTURE_FORMAT_VERSION: u32 = 3;
 const MANIFEST: &str = "manifest.json";
-const CAPTURES: &str = "captures";
-/// 参考组自带的截图：文件名与字节。
-pub(super) type CaptureFiles = Vec<(String, Vec<u8>)>;
+pub(super) const CAPTURES: &str = "captures";
 /// 参考组包文件的扩展名。
 pub const PACKAGE_EXTENSION: &str = "kinshoko-group";
 
@@ -88,23 +88,6 @@ pub struct PackageManifest {
     /// 参考组自带的截图（#270），每个文件一项。
     #[serde(default)]
     pub captures: Vec<PackageCapture>,
-}
-
-/// 包里的一张组内截图：参考组里的文件名（包内位于 `captures/<文件名>`）、大小与 SHA-256。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct PackageCapture {
-    pub file: String,
-    #[ts(type = "number")]
-    pub size: u64,
-    pub sha256: String,
-}
-
-impl PackageCapture {
-    fn entry(&self) -> String {
-        format!("{CAPTURES}/{}", self.file)
-    }
 }
 
 impl PackageManifest {
@@ -368,6 +351,16 @@ fn read_manifest(zip: &mut ZipArchive<fs::File>) -> Result<PackageManifest, Grou
         GroupError::Invalid(why) => damaged(why),
         other => other,
     })?;
+    // 每个截图文件名都要核对，成员没用到的也一样：导入时按它写进新参考组的目录。
+    let mut capture_files = std::collections::BTreeSet::new();
+    for capture in &manifest.captures {
+        if !super::member::valid_capture_file(&capture.file) {
+            return Err(damaged(format!("截图文件名 {} 不合法", capture.file)));
+        }
+        if !capture_files.insert(capture.file.as_str()) {
+            return Err(damaged(format!("截图 {} 重复", capture.file)));
+        }
+    }
     for m in &manifest.group.members {
         if manifest.image(m).is_none() && manifest.capture(m).is_none() {
             return Err(damaged(format!("成员 {} 没有对应的原图", m.id)));

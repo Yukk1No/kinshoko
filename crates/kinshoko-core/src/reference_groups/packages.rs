@@ -1,13 +1,13 @@
 //! 参考组包（#68）的入口：导出、导入后另存为新的参考组，连同参考组自带的截图（#270）。
 
-use std::fs;
 use std::path::Path;
 
-use super::captures::write_atomically;
 use super::{
     GroupError, PackageManifest, ReferenceGroup, ReferenceGroups, ReferenceSource, package,
 };
 use crate::Library;
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 /// Imported package content whose new group is not saved yet. Application adapters can
 /// publish tag definitions after all package IO, then finish without exposing group file details.
@@ -16,23 +16,14 @@ pub struct PackageImport<'a> {
     groups: &'a ReferenceGroups,
     group: ReferenceGroup,
     /// 包里的组内截图：文件名与字节，随新参考组一起写入。
-    captures: package::CaptureFiles,
+    captures: super::CaptureFiles,
 }
 
 impl PackageImport<'_> {
     pub fn finish(self) -> Result<ReferenceGroup, GroupError> {
-        let dir = self.groups.captures_dir(&self.group.id)?;
-        let written = (|| -> Result<(), GroupError> {
-            for (file, bytes) in &self.captures {
-                fs::create_dir_all(&dir)?;
-                write_atomically(&dir.join(file), bytes)?;
-            }
-            self.groups.write(&self.group)
-        })();
-        if written.is_err() {
-            let _ = fs::remove_dir_all(&dir);
-        }
-        written.map(|()| self.group)
+        self.groups
+            .publish_with_captures(&self.group, &self.captures)?;
+        Ok(self.group)
     }
 }
 
@@ -111,5 +102,22 @@ impl ReferenceGroups {
             "内容已写入，但资料库标签定义尚未更新：{error}。请重试保存标签定义或重新导入参考组包。"
         )))?;
         imported.finish()
+    }
+}
+
+/// 包里的一张组内截图：参考组里的文件名（包内位于 `captures/<文件名>`）、大小与 SHA-256。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PackageCapture {
+    pub file: String,
+    #[ts(type = "number")]
+    pub size: u64,
+    pub sha256: String,
+}
+
+impl PackageCapture {
+    pub(super) fn entry(&self) -> String {
+        format!("{}/{}", package::CAPTURES, self.file)
     }
 }

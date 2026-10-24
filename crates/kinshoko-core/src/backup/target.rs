@@ -2,7 +2,7 @@
 //!
 //! - `originals/<sha 前两位>/<sha>`：按哈希存的原文件，全部快照共用，只复制新增的；
 //! - `snapshots/<快照 id>/`：`manifest.json`（格式 `kinshoko.backup`）、`libraries/<资料库 id>/`
-//!   下的数据库快照、`groups/<参考组 id>.json`。写到一半的快照在 `<快照 id>.incomplete/`，
+//!   下的数据库快照、`groups/<参考组 id>.json` 与参考组自带的截图 `groups/<参考组 id>.captures/`。写到一半的快照在 `<快照 id>.incomplete/`，
 //!   不会被当成完整备份，下次备份时清掉。
 //!
 //! 资料库与参考组只经它们的依赖清单与快照入口接触（[`Library::snapshot_at`]、
@@ -24,10 +24,13 @@ use crate::library::{
 };
 use crate::reference_groups::{self, GroupError, ReferenceGroups, RestoredFrom};
 
+mod group_captures;
 mod report;
 mod restoring;
 
 pub use report::*;
+
+use group_captures::ManifestGroup;
 
 const ROOT: &str = "kinshoko-backup";
 const STORE: &str = "originals";
@@ -66,14 +69,6 @@ struct ManifestLibrary {
 // 早期格式 v1 清单没有记录文件键；这是旧备份格式的固定值，不用于新快照。
 fn legacy_database_key() -> PathBuf {
     "library.sqlite".into()
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ManifestGroup {
-    id: String,
-    name: String,
-    sha256: String,
 }
 
 /// 画师选的备份目标目录。
@@ -258,11 +253,20 @@ impl BackupTarget {
                         ));
                         continue;
                     }
+                    let captures =
+                        match group_captures::save(sources.groups, &g.id, &bytes, &groups_dir) {
+                            Ok(captures) => captures,
+                            Err(e) => {
+                                report.problems.push(format!("参考组“{}”：{e}", g.name));
+                                continue;
+                            }
+                        };
                     write_synced(&groups_dir.join(format!("{}.json", g.id)), &bytes)?;
                     manifest.groups.push(ManifestGroup {
                         id: g.id.clone(),
                         name: g.name.clone(),
                         sha256: sha256(&bytes),
+                        captures,
                     });
                 }
                 Err(e) => report.problems.push(format!("参考组“{}”：{e}", g.name)),

@@ -83,6 +83,7 @@ impl BackupTarget {
                 })?;
         }
         let mut group_bytes = Vec::new();
+        let mut group_captures = Vec::new();
         for g in &manifest.groups {
             let bytes = fs::read(dir.join("groups").join(format!("{}.json", g.id)))
                 .map_err(|e| BackupError::Incomplete(format!("参考组“{}”：{e}", g.name)))?;
@@ -93,6 +94,7 @@ impl BackupTarget {
                 )));
             }
             group_bytes.push((g, bytes));
+            group_captures.push(group_captures::load(&dir.join("groups"), g)?);
         }
 
         fs::create_dir_all(into)?;
@@ -173,8 +175,8 @@ impl BackupTarget {
                 library::fault::storage("content_restore_library_published")
                     .map_err(library::Error::from)?;
             }
-            for group in ready_groups {
-                groups.publish_restored(&group)?;
+            for (group, captures) in ready_groups.into_iter().zip(&group_captures) {
+                groups.publish_restored(&group, captures)?;
                 library::fault::storage("content_restore_group_published")
                     .map_err(library::Error::from)?;
             }
@@ -272,8 +274,11 @@ fn check(
                     .push(format!("参考组“{}”的成员 {} 不一致", g.name, b.id));
                 continue;
             }
-            // 引用的库不在这次备份里、或是参考组自带的截图：成员原样保留，不在这里核对。
+            // 参考组自带的截图核对字节；引用的库不在这次备份里时成员原样保留，不在这里核对。
             let Some((library_id, image_id)) = a.source.library_image() else {
+                out.groups
+                    .problems
+                    .extend(group_captures::check(groups, &restored.id, a, g));
                 continue;
             };
             let Some(lens) = lenses.get(library_id) else {

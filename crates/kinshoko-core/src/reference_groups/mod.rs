@@ -40,14 +40,13 @@ use crate::desktop::SavedPin;
 use captures::write_atomically;
 use merge::{assign, merge};
 
-pub use captures::OpenedPins;
+pub use captures::{CaptureFiles, OpenedPins};
 pub use error::GroupError;
 pub use member::{GroupCapture, GroupMember, MemberSource};
 pub use package::{
-    PACKAGE_EXTENSION, PackageCapture, PackageImage, PackageManifest, PackageProvenance,
-    read_package,
+    PACKAGE_EXTENSION, PackageImage, PackageManifest, PackageProvenance, read_package,
 };
-pub use packages::PackageImport;
+pub use packages::{PackageCapture, PackageImport};
 pub use resolve::{
     DetachedLenses, MemberState, MemberStatus, ReferenceGroupView, ReferenceSource, References,
     UnavailableReason, resolve,
@@ -199,13 +198,18 @@ impl ReferenceGroups {
     }
 
     /// Only a fully staged content-restore batch publishes these already allocated identities.
-    pub(crate) fn publish_restored(&self, group: &ReferenceGroup) -> Result<(), GroupError> {
+    /// 连同它自带的截图（`captures`，#270）一起发布。
+    pub(crate) fn publish_restored(
+        &self,
+        group: &ReferenceGroup,
+        captures: &CaptureFiles,
+    ) -> Result<(), GroupError> {
         if group.restored_from.is_none() || self.path(&group.id)?.exists() {
             return Err(GroupError::Invalid(
                 "恢复身份已存在，未覆盖现有参考组".into(),
             ));
         }
-        self.write(group)
+        self.publish_with_captures(group, captures)
     }
 
     /// 全部参考组，按最近保存的在前。
