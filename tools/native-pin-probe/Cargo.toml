@@ -1,0 +1,59 @@
+[package]
+name = "kinshoko-native-pin-probe"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+description = "丢弃型原型：每张钉图一个原生分层窗口（UpdateLayeredWindow），量跟手、画质、颜色与代价。"
+
+[dependencies]
+# 读图后的色彩管理与缩放沿用应用的库；读显示器配置文件的办法与 src-tauri 的 win32 模块相同。
+kinshoko-core = { path = "../../crates/kinshoko-core" }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
+moxcms = "0.9.1"
+# rayon：缩放分到多个核（手势帧的主要开销）。
+fast_image_resize = { version = "6.1", features = ["rayon"] }
+rayon = "1"
+# windows-sys 没有 COM 接口；桌面复制（逐帧核对）和 DXGI 查询要用 windows 0.62（锁文件里已有，Tauri 带进来的）。
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Devices_Display",
+    "Win32_Graphics_Direct2D",
+    "Win32_Graphics_Direct2D_Common",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_DirectComposition",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_Gdi",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Performance",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+    "Win32_UI_ColorSystem",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+windows-numerics = "0.3"
+
+[profile.release]
+lto = "thin"
+debug = 1
+
+[profile.dev.package]
+image = { opt-level = 3 }
+moxcms = { opt-level = 3 }
+fast_image_resize = { opt-level = 3 }
+zune-jpeg = { opt-level = 3 }
+png = { opt-level = 3 }
+image-webp = { opt-level = 3 }
+fdeflate = { opt-level = 3 }
+miniz_oxide = { opt-level = 3 }
+kinshoko-core = { opt-level = 3 }
+
+# 独立构建（worktree 在主仓库目录下，不加这一行会被认成主仓库工作区的成员）。
+[workspace]
