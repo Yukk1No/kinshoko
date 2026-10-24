@@ -178,7 +178,8 @@ fn prepare_pins(
 }
 
 /// 截图收藏进了资料库（钉图菜单或截图历史的“收藏”）：截图历史记得由它而来的组内截图成员，
-/// 都改为引用收藏成的参考图（局部与摆放不变，组内那份截图删除）；桌面上来自这些成员的钉图也改连。
+/// 都改为引用收藏成的参考图（局部与摆放不变，组内那份截图删除）；桌面上来自这些成员的截图钉图
+/// 也改连，不论它显示的是哪条截图历史条目。
 /// 钉图早已关掉、截图在几个参考组里都一样。
 pub fn capture_collected(app: &AppHandle, capture_id: &str, collected: &CollectedCapture) {
     let Some(entry) = lock(&state(app).history).entry(capture_id) else {
@@ -197,7 +198,8 @@ pub fn capture_collected(app: &AppHandle, capture_id: &str, collected: &Collecte
     }
     let converted: Vec<SavedPin> = open
         .into_iter()
-        .filter(|p| p.capture_id() == Some(capture_id))
+        // 按成员认：重新打开参考组钉出的钉图显示的是另一条截图历史条目。
+        .filter(|p| p.capture_id().is_some())
         .filter(|p| p.member.as_ref().is_some_and(|m| relinked.contains(m)))
         .map(|mut pin| {
             pin.content = PinContent::Reference {
