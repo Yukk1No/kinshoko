@@ -164,40 +164,45 @@ fn prepare_pins(
     Ok((prepared, kept))
 }
 
-/// 截图收藏进了资料库（钉图菜单或截图历史的“收藏”）：桌面上显示它、来自参考组自带截图的钉图，
-/// 那个成员改为引用收藏成的参考图（局部与摆放不变，组内那份截图删除），钉图也改连参考图。
+/// 截图收藏进了资料库（钉图菜单或截图历史的“收藏”）：截图历史记得由它而来的组内截图成员，
+/// 都改为引用收藏成的参考图（局部与摆放不变，组内那份截图删除）；桌面上来自这些成员的钉图也改连。
+/// 钉图早已关掉、截图在几个参考组里都一样。
 pub fn capture_collected(app: &AppHandle, capture_id: &str, collected: &CollectedCapture) {
     let Some(entry) = lock(&state(app).history).entry(capture_id) else {
         return;
     };
     let groups = lock(&state(app).groups).clone();
-    let mut converted = Vec::new();
-    for mut pin in pins::open_pins(app) {
-        let Some(member) = pin.member.clone() else {
-            continue;
-        };
-        let from_capture = groups.get(&member.group_id).is_ok_and(|g| {
-            g.members
-                .iter()
-                .any(|m| m.id == member.member_id && m.library_id().is_none())
-        });
-        if pin.capture_id() != Some(capture_id) || !from_capture {
-            continue;
-        }
-        if groups.collected(&member, collected).is_ok() {
+    let open = pins::open_pins(app);
+    let relinked = {
+        let mut history = lock(&state(app).history);
+        groups.link_captures(&mut history, &open);
+        groups.relink_collected(&mut history, capture_id, collected)
+    };
+    if relinked.is_empty() {
+        return;
+    }
+    let converted: Vec<SavedPin> = open
+        .into_iter()
+        .filter(|p| p.capture_id() == Some(capture_id))
+        .filter(|p| p.member.as_ref().is_some_and(|m| relinked.contains(m)))
+        .map(|mut pin| {
             pin.content = PinContent::Reference {
                 library_id: collected.library_id.clone(),
                 image_id: collected.image_id.clone(),
                 source_width: entry.width,
                 source_height: entry.height,
             };
-            converted.push(pin);
-        }
-    }
-    if !converted.is_empty() {
-        remember_members(app, &converted);
-        changed(app);
-    }
+            pin
+        })
+        .collect();
+    remember_members(app, &converted);
+    changed(app);
+}
+
+/// 存进参考组后记下截图历史条目与组内截图成员的关联（[`capture_collected`] 用）。
+fn link_captures(app: &AppHandle, saved: &[SavedPin]) {
+    let groups = lock(&state(app).groups).clone();
+    groups.link_captures(&mut lock(&state(app).history), saved);
 }
 
 /// 参考组的名称；没有或读不懂时为 `None`。钉图菜单用。
@@ -216,6 +221,7 @@ pub fn save_back(app: &AppHandle, group_id: &str) -> Result<ReferenceGroup, Stri
         .save_pins(group_id, &mut open)
         .map_err(|e| e.to_string())?;
     remember_members(app, &open);
+    link_captures(app, &open);
     changed(app);
     Ok(group)
 }
@@ -255,6 +261,7 @@ pub async fn save_reference_group(
             .create_with_captures(&name, &mut open, &kept)
             .map_err(|e| e.to_string())?;
         remember_members(&app, &open);
+        link_captures(&app, &open);
         changed(&app);
         Ok(group)
     })
@@ -276,6 +283,7 @@ pub async fn save_pins_to_group(
             .save_pins_with_captures(&group_id, &mut open, &kept)
             .map_err(|e| e.to_string())?;
         remember_members(&app, &open);
+        link_captures(&app, &open);
         changed(&app);
         Ok(group)
     })

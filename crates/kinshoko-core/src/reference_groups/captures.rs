@@ -92,6 +92,7 @@ impl ReferenceGroups {
                 Ok(pin) => {
                     if let Some(capture) = pin.capture_id() {
                         history.pin(capture);
+                        let _ = history.link_member(capture, member);
                     }
                     opened.pins.push(pin);
                 }
@@ -126,6 +127,44 @@ impl ReferenceGroups {
         let group = self.get(id).ok()?;
         let member = group.members.iter().find(|m| m.id == member_id)?;
         self.capture_file(id, member)
+    }
+
+    /// 存进参考组后：显示截图历史条目、又是组内截图成员的钉图，在截图历史里记下这层关联，
+    /// 之后钉图关掉再从截图历史收藏也能改连（[`Self::relink_collected`]）。记不下时略过。
+    pub fn link_captures(&self, history: &mut CaptureHistory, pins: &[SavedPin]) {
+        for pin in pins {
+            let (Some(capture_id), Some(member)) = (pin.capture_id(), &pin.member) else {
+                continue;
+            };
+            if self.is_capture_member(member) {
+                let _ = history.link_member(capture_id, member.clone());
+            }
+        }
+    }
+
+    /// 截图历史条目 `capture_id` 收藏成了 `collected`（截图历史或钉图菜单的“收藏”）：与它关联的
+    /// 组内截图成员都改为引用那张参考图，组内副本删除，关联随之去掉。参考组已删除、成员已移出或
+    /// 已改连的关联略过。返回改连了的成员。
+    pub fn relink_collected(
+        &self,
+        history: &mut CaptureHistory,
+        capture_id: &str,
+        collected: &CollectedCapture,
+    ) -> Vec<GroupMemberRef> {
+        history
+            .take_members(capture_id)
+            .into_iter()
+            .filter(|m| self.is_capture_member(m) && self.collected(m, collected).is_ok())
+            .collect()
+    }
+
+    /// `member` 现在还是组内截图成员。
+    fn is_capture_member(&self, member: &GroupMemberRef) -> bool {
+        self.get(&member.group_id).is_ok_and(|g| {
+            g.members
+                .iter()
+                .any(|m| m.id == member.member_id && m.library_id().is_none())
+        })
     }
 
     /// 组内截图收藏进了资料库：成员改为引用那张参考图（局部与摆放不变），组内那份截图删除。

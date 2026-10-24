@@ -14,10 +14,12 @@ use std::sync::{Arc, Weak};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{PinContent, SavedPin, Screenshot};
+use super::{GroupMemberRef, PinContent, SavedPin, Screenshot};
 use crate::Library;
 use crate::library::{ImportOutcome, ImportSource};
 use crate::reference_groups::GroupCapture;
+
+mod links;
 
 const INDEX_FILE: &str = "history.json";
 const FORMAT_VERSION: u32 = 1;
@@ -43,6 +45,9 @@ struct Stored {
     deleted: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     collected: Vec<CollectedCapture>,
+    /// 由它而来的组内截图成员（#270），收藏时据此改连；条目丢弃时随之消失。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    members: Vec<GroupMemberRef>,
 }
 
 /// 截图收藏进资料库后成为的参考图。
@@ -289,6 +294,7 @@ impl CaptureHistory {
             created_at: crate::library::now_ms(),
             deleted: false,
             collected: Vec::new(),
+            members: Vec::new(),
         };
         let path = self.path_of(&stored.id);
         let tmp = path.with_extension("png.tmp");
