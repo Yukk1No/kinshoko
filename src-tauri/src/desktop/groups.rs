@@ -3,17 +3,22 @@
 //! 规则与存储在 `kinshoko_core::reference_groups`；参考组是应用数据目录 `reference-groups/` 下
 //! 独立于资料库的 JSON（ADR-0002）。
 //!
+//! 截图钉图可以收藏进资料库后入组，也可以只存在参考组里（#270）：截图文件复制进参考组，打开参考组时
+//! 放回截图历史再钉出。
+//!
 //! 成员按“资料库＋参考图”引用，可跨资料库：活动资料库经参考视角，其他已登记的资料库只读打开
 //! （[`crate::library::with_references`]）。资料库不可用、图已删除的成员照样按原布局钉出来，钉图上
 //! 写出原因；安全模式下被封印的成员原位遮蔽，画师在钉图菜单里逐张确认显示。
 //!
 //! 参考组变化后向所有窗口推送 `reference-groups`（无载荷），主窗口据此重新读取列表。
 
-use kinshoko_core::desktop::{CaptureChoice, CaptureEntry, SavedPin, pull_onto_screen};
+use kinshoko_core::desktop::{
+    CaptureChoice, CaptureEntry, CollectedCapture, PinContent, SavedPin, pull_onto_screen,
+};
 use std::path::PathBuf;
 
 use kinshoko_core::reference_groups::{
-    GroupSummary, PACKAGE_EXTENSION, ReferenceGroup, ReferenceGroupView,
+    GroupCapture, GroupSummary, PACKAGE_EXTENSION, ReferenceGroup, ReferenceGroupView,
 };
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_dialog::DialogExt as _;
@@ -39,14 +44,42 @@ fn remember_members(app: &AppHandle, saved: &[SavedPin]) {
     pins::remember_group_members(app, saved);
 }
 
-/// 列出当前桌面上需决定是否入组的截图（包括已手动收藏的）。
+/// 已是参考组 `target` 自带截图的截图钉图：存进它时原样更新那个成员，不用再选。
+fn kept_in(target: Option<&ReferenceGroup>, pin: &SavedPin) -> bool {
+    let (Some(group), Some(member)) = (target, &pin.member) else {
+        return false;
+    };
+    pin.capture_id().is_some()
+        && member.group_id == group.id
+        && group
+            .members
+            .iter()
+            .any(|m| m.id == member.member_id && m.library_id().is_none())
+}
+
+fn target_group(app: &AppHandle, group_id: Option<&str>) -> Result<Option<ReferenceGroup>, String> {
+    group_id
+        .map(|id| lock(&state(app).groups).get(id).map_err(|e| e.to_string()))
+        .transpose()
+}
+
+/// 列出当前桌面上需决定怎样入组的截图（包括已手动收藏的）。存进已有的参考组 `group_id` 时，
+/// 已是它自带截图的不列出。
 #[tauri::command]
-pub async fn group_save_captures(app: AppHandle) -> Result<Vec<CaptureEntry>, String> {
+pub async fn group_save_captures(
+    app: AppHandle,
+    group_id: Option<String>,
+) -> Result<Vec<CaptureEntry>, String> {
     blocking(move || {
+        let target = target_group(&app, group_id.as_deref())?;
         let open = pins::open_pins(&app);
         let history = lock(&state(&app).history);
         let mut captures = Vec::new();
-        for id in open.iter().filter_map(SavedPin::capture_id) {
+        for id in open
+            .iter()
+            .filter(|p| !kept_in(target.as_ref(), p))
+            .filter_map(SavedPin::capture_id)
+        {
             if !captures.iter().any(|e: &CaptureEntry| e.id == id) {
                 captures.push(
                     history
@@ -60,25 +93,51 @@ pub async fn group_save_captures(app: AppHandle) -> Result<Vec<CaptureEntry>, St
     .await
 }
 
-fn prepare_pins(app: &AppHandle, choices: &[CaptureChoice]) -> Result<Vec<SavedPin>, String> {
+/// 按逐张选择准备要存进参考组的钉图：收藏进资料库的截图钉图改连参考图；只存在参考组里的截图
+/// 一并给出它在截图历史中的文件，由参考组复制；明确不加入的略过。
+fn prepare_pins(
+    app: &AppHandle,
+    choices: &[CaptureChoice],
+    target: Option<&ReferenceGroup>,
+) -> Result<(Vec<SavedPin>, Vec<GroupCapture>), String> {
     let open = pins::open_pins(app);
     // 先核对全部选择；预览后新出现的截图也必须明确处理。
-    for id in open.iter().filter_map(SavedPin::capture_id) {
+    for id in open
+        .iter()
+        .filter(|p| !kept_in(target, p))
+        .filter_map(SavedPin::capture_id)
+    {
         if choices.iter().filter(|c| c.capture_id == id).count() != 1 {
-            return Err("桌面截图有变化，请重新选择每张截图的资料库或明确不加入参考组".into());
+            return Err("桌面截图有变化，请重新选择每张截图存到哪里".into());
         }
     }
     let mut prepared = Vec::new();
+    let mut kept = Vec::new();
     let mut completed_captures = 0;
     for pin in open {
         let Some(id) = pin.capture_id() else {
             prepared.push(pin);
             continue;
         };
+        if kept_in(target, &pin) {
+            prepared.push(pin);
+            continue;
+        }
         let choice = choices
             .iter()
             .find(|c| c.capture_id == id)
             .expect("已核对选择");
+        if choice.keeps_in_group() {
+            if !kept.iter().any(|c: &GroupCapture| c.capture_id == id) {
+                kept.push(
+                    lock(&state(app).history)
+                        .group_capture(id)
+                        .ok_or("截图已不在历史中，请关闭这张钉图后重试")?,
+                );
+            }
+            prepared.push(pin);
+            continue;
+        }
         let Some(library_id) = &choice.library_id else {
             continue;
         };
@@ -102,7 +161,43 @@ fn prepare_pins(app: &AppHandle, choices: &[CaptureChoice]) -> Result<Vec<SavedP
         prepared.push(reference);
     }
     super::history_changed(app);
-    Ok(prepared)
+    Ok((prepared, kept))
+}
+
+/// 截图收藏进了资料库（钉图菜单或截图历史的“收藏”）：桌面上显示它、来自参考组自带截图的钉图，
+/// 那个成员改为引用收藏成的参考图（局部与摆放不变，组内那份截图删除），钉图也改连参考图。
+pub fn capture_collected(app: &AppHandle, capture_id: &str, collected: &CollectedCapture) {
+    let Some(entry) = lock(&state(app).history).entry(capture_id) else {
+        return;
+    };
+    let groups = lock(&state(app).groups).clone();
+    let mut converted = Vec::new();
+    for mut pin in pins::open_pins(app) {
+        let Some(member) = pin.member.clone() else {
+            continue;
+        };
+        let from_capture = groups.get(&member.group_id).is_ok_and(|g| {
+            g.members
+                .iter()
+                .any(|m| m.id == member.member_id && m.library_id().is_none())
+        });
+        if pin.capture_id() != Some(capture_id) || !from_capture {
+            continue;
+        }
+        if groups.collected(&member, collected).is_ok() {
+            pin.content = PinContent::Reference {
+                library_id: collected.library_id.clone(),
+                image_id: collected.image_id.clone(),
+                source_width: entry.width,
+                source_height: entry.height,
+            };
+            converted.push(pin);
+        }
+    }
+    if !converted.is_empty() {
+        remember_members(app, &converted);
+        changed(app);
+    }
 }
 
 /// 参考组的名称；没有或读不懂时为 `None`。钉图菜单用。
@@ -110,7 +205,8 @@ pub fn group_name(app: &AppHandle, group_id: &str) -> Option<String> {
     lock(&state(app).groups).get(group_id).ok().map(|g| g.name)
 }
 
-/// 把桌面上来自参考组 `group_id` 的钉图存回它（钉图菜单“存回参考组”）。
+/// 把桌面上来自参考组 `group_id` 的钉图存回它（钉图菜单“存回参考组”）。来自它自带截图的截图钉图
+/// 更新那个成员，截图文件不动。
 pub fn save_back(app: &AppHandle, group_id: &str) -> Result<ReferenceGroup, String> {
     let mut open: Vec<SavedPin> = pins::open_pins(app)
         .into_iter()
@@ -137,17 +233,16 @@ pub async fn reference_group(
     group_id: String,
 ) -> Result<ReferenceGroupView, String> {
     blocking(move || {
-        let group = lock(&state(&app).groups)
-            .get(&group_id)
-            .map_err(|e| e.to_string())?;
+        let groups = lock(&state(&app).groups).clone();
+        let group = groups.get(&group_id).map_err(|e| e.to_string())?;
         Ok(crate::library::with_references(&app, |refs| {
-            ReferenceGroupView::new(group, refs)
+            groups.view(group, refs)
         }))
     })
     .await
 }
 
-/// 把桌面钉图存成新的参考组；截图按逐张选择收藏后入组，或明确略过。
+/// 把桌面钉图存成新的参考组；截图按逐张选择收藏后入组、只存在参考组里，或明确略过。
 #[tauri::command]
 pub async fn save_reference_group(
     app: AppHandle,
@@ -155,9 +250,9 @@ pub async fn save_reference_group(
     captures: Option<Vec<CaptureChoice>>,
 ) -> Result<ReferenceGroup, String> {
     blocking(move || {
-        let mut open = prepare_pins(&app, &captures.unwrap_or_default())?;
+        let (mut open, kept) = prepare_pins(&app, &captures.unwrap_or_default(), None)?;
         let group = lock(&state(&app).groups)
-            .create(&name, &mut open)
+            .create_with_captures(&name, &mut open, &kept)
             .map_err(|e| e.to_string())?;
         remember_members(&app, &open);
         changed(&app);
@@ -167,7 +262,7 @@ pub async fn save_reference_group(
 }
 
 /// 把桌面上的资料库钉图存进已有的参考组：来自它的钉图更新原成员，其他的加为新成员，
-/// 不在桌面上的成员保留。
+/// 不在桌面上的成员保留。已是它自带截图的截图钉图更新那个成员，不用再选。
 #[tauri::command]
 pub async fn save_pins_to_group(
     app: AppHandle,
@@ -175,9 +270,10 @@ pub async fn save_pins_to_group(
     captures: Option<Vec<CaptureChoice>>,
 ) -> Result<ReferenceGroup, String> {
     blocking(move || {
-        let mut open = prepare_pins(&app, &captures.unwrap_or_default())?;
+        let target = target_group(&app, Some(&group_id))?;
+        let (mut open, kept) = prepare_pins(&app, &captures.unwrap_or_default(), target.as_ref())?;
         let group = lock(&state(&app).groups)
-            .save_pins(&group_id, &mut open)
+            .save_pins_with_captures(&group_id, &mut open, &kept)
             .map_err(|e| e.to_string())?;
         remember_members(&app, &open);
         changed(&app);
@@ -187,23 +283,24 @@ pub async fn save_pins_to_group(
 }
 
 /// 打开参考组：每个成员按保存的局部与摆放钉到桌面（已在桌面上的成员不重复钉）。资料库不可用、
-/// 图已删除的成员也钉出来，保留布局并在钉图上写出原因。返回新钉出的数量。
+/// 图已删除的成员也钉出来，保留布局并在钉图上写出原因。参考组自带的截图放回截图历史后钉出，
+/// 文件缺失的说明原因。返回新钉出的数量。
 #[tauri::command]
 pub async fn open_reference_group(app: AppHandle, group_id: String) -> Result<usize, String> {
     blocking(move || {
-        let group = lock(&state(&app).groups)
-            .get(&group_id)
-            .map_err(|e| e.to_string())?;
+        let groups = lock(&state(&app).groups).clone();
+        let group = groups.get(&group_id).map_err(|e| e.to_string())?;
         let open = pins::open_pins(&app);
         let monitors = pins::monitors();
-        let fresh: Vec<SavedPin> = group
-            .pins()
+        let opened = groups.open_pins(&group, &mut lock(&state(&app).history), |m| {
+            open.iter().any(|o| o.member.as_ref() == Some(m))
+        });
+        if opened.pins.iter().any(|p| p.capture_id().is_some()) {
+            super::history_changed(&app);
+        }
+        let fresh: Vec<SavedPin> = opened
+            .pins
             .into_iter()
-            .filter(|p| {
-                !open
-                    .iter()
-                    .any(|o| o.member.is_some() && o.member == p.member)
-            })
             .map(|mut p| {
                 let (x, y) = pull_onto_screen(p.rect(), &monitors);
                 p.placement.x = x;
@@ -218,7 +315,7 @@ pub async fn open_reference_group(app: AppHandle, group_id: String) -> Result<us
             }
             let _ = store.save();
         }
-        let mut errors = Vec::new();
+        let mut errors = opened.problems;
         for pin in &fresh {
             if let Err(e) = pins::open_pin(&app, pin) {
                 errors.push(e);
@@ -248,7 +345,8 @@ pub async fn rename_reference_group(
     .await
 }
 
-/// 删除参考组。引用的图与资料库不受影响；桌面上来自它的钉图留着，只是不再记得这个参考组。
+/// 删除参考组和它自带的截图。引用的图与资料库不受影响；桌面上来自它的钉图留着，只是不再记得
+/// 这个参考组（自带截图的钉图仍显示截图历史里的那份）。
 #[tauri::command]
 pub async fn delete_reference_group(app: AppHandle, group_id: String) -> Result<(), String> {
     blocking(move || {
@@ -337,7 +435,7 @@ pub async fn import_reference_group_package(
     .await
 }
 
-/// 从参考组中去掉一个成员（桌面上的钉图留着）。
+/// 从参考组中去掉一个成员（桌面上的钉图留着）。参考组自带的截图没有成员再用时删除。
 #[tauri::command]
 pub async fn remove_group_member(
     app: AppHandle,

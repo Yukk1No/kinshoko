@@ -355,8 +355,11 @@ fn pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnec
     assert!(
         matches!(&pin.content, PinContent::Reference { library_id, image_id, .. } if library_id == &target.library_id && image_id == &target.image_id)
     );
-    assert_eq!(group.members[0].library_id, target.library_id);
-    assert_eq!(group.members[0].image_id, target.image_id);
+    assert_eq!(
+        group.members[0].library_id(),
+        Some(target.library_id.as_str())
+    );
+    assert_eq!(group.members[0].image_id(), Some(target.image_id.as_str()));
     drop(b);
     std::fs::rename(&binfo.root, temp.path().join("disconnected-B")).unwrap();
     assert!(

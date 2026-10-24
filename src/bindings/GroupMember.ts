@@ -3,13 +3,13 @@ import type { Placement } from "./Placement";
 import type { Region } from "./Region";
 
 /**
- * 参考组成员：参考视图在这个参考组里的一次使用。
+ * 参考组成员：参考视图或参考组自带的截图在这个参考组里的一次使用。
  */
 export type GroupMember = { 
 /**
  * 在参考组内唯一。
  */
-id: string, libraryId: string, imageId: string, 
+id: string, 
 /**
  * 原图尺寸：局部总能核对是否在图内，资料库不在时也能按原尺寸保留布局。
  */
@@ -21,4 +21,4 @@ crop: Region | null,
 /**
  * 位置、缩放、翻转与旋转；尺寸由局部与缩放得出。
  */
-placement: Placement, };
+placement: Placement, } & ({ libraryId: string, imageId: string, } | { captureFile: string, });

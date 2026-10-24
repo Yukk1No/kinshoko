@@ -78,8 +78,14 @@ fn collecting_a_capture_pin_makes_it_a_group_member_without_changing_its_crop_or
         .create("截图参考", std::slice::from_mut(&mut prepared))
         .unwrap();
     assert_eq!(group.members.len(), 1);
-    assert_eq!(group.members[0].library_id, collected.library_id);
-    assert_eq!(group.members[0].image_id, collected.image_id);
+    assert_eq!(
+        group.members[0].library_id(),
+        Some(collected.library_id.as_str())
+    );
+    assert_eq!(
+        group.members[0].image_id(),
+        Some(collected.image_id.as_str())
+    );
     assert_eq!(group.members[0].crop, pin.crop);
     assert_eq!(group.members[0].placement, pin.placement);
 }

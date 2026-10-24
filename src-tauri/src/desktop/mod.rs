@@ -283,7 +283,7 @@ fn on_library_event(app: &AppHandle, payload: &str) {
     });
 }
 
-/// 冻结屏幕现场编码；历史中的截图直接读文件，两者都是内嵌显示器配置文件的 PNG。
+/// 冻结屏幕现场编码；历史中的截图与参考组自带的截图直接读文件，都是内嵌显示器配置文件的 PNG。
 /// 资料库钉图的图是 [`Library::display`](kinshoko_core::Library::display) 给出的文件。
 fn capture_response(app: &AppHandle, path: &str) -> Response<Vec<u8>> {
     let mut content_type = "image/png";
@@ -300,6 +300,12 @@ fn capture_response(app: &AppHandle, path: &str) -> Response<Vec<u8>> {
             content_type = library::image_content_type(&f);
             std::fs::read(f).ok()
         })
+    } else if let Some((group, member)) =
+        path.strip_prefix("group/").and_then(|p| p.split_once('/'))
+    {
+        // 参考组自带的截图（#270），参考组面板的缩略图用。
+        let file = lock(&state(app).groups).capture_path(group, member);
+        file.and_then(|f| std::fs::read(f).ok())
     } else {
         let file = lock(&state(app).history).file(path);
         file.and_then(|f| std::fs::read(f).ok())
@@ -395,6 +401,7 @@ async fn collect_capture(
                 .map_err(|e| e.to_string())
         })?;
         history_changed(&app);
+        groups::capture_collected(&app, &id, &collected);
         Ok(collected)
     })
     .await

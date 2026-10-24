@@ -7,284 +7,17 @@
 #[path = "support/eagle.rs"]
 mod eagle;
 
+#[path = "support/group_package.rs"]
+mod fixtures;
+
+use fixtures::*;
+
 use std::collections::BTreeSet;
-use std::io::Read;
-use std::path::{Path, PathBuf};
 
-use image::RgbaImage;
-use kinshoko_core::desktop::{Placement, Region, SavedPin, Turn};
-use kinshoko_core::library::{
-    ContentRating, FactSource, ImageEdit, ImportOutcome, ImportSource, ReferenceLens, TagEdit,
-    TagNamespace, TagRef,
-};
+use kinshoko_core::library::{ContentRating, ImageEdit, ImportOutcome, ImportSource, TagNamespace};
 use kinshoko_core::reference_groups::{
-    DetachedLenses, GroupError, MemberState, ReferenceGroup, ReferenceGroups, References, resolve,
+    GroupError, MemberState, ReferenceGroup, References, resolve,
 };
-use kinshoko_core::{Library, RegisteredLibrary};
-use sha2::{Digest, Sha256};
-
-fn sha256(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
-}
-
-fn import(library: &Library, dir: &Path, seed: u8, n: u8) -> Vec<String> {
-    std::fs::create_dir_all(dir).unwrap();
-    let paths: Vec<_> = (0..n)
-        .map(|i| {
-            let path = dir.join(format!("{seed}-{i}.png"));
-            RgbaImage::from_fn(8, 6, |x, y| image::Rgba([seed, i, x as u8, y as u8]))
-                .save(&path)
-                .unwrap();
-            path
-        })
-        .collect();
-    library
-        .import(ImportSource { paths })
-        .wait()
-        .items
-        .into_iter()
-        .map(|item| match item.outcome {
-            ImportOutcome::Imported { image_id } => image_id,
-            other => panic!("未导入：{other:?}"),
-        })
-        .collect()
-}
-
-fn registered(library: &Library) -> RegisteredLibrary {
-    RegisteredLibrary {
-        id: library.info().id.clone(),
-        name: library.info().name.clone(),
-        root: library.info().root.clone(),
-    }
-}
-
-fn pin(lens: &ReferenceLens, image_id: &str, crop: Option<Region>, x: i32) -> SavedPin {
-    let image = lens.image(image_id).unwrap();
-    let mut pin = SavedPin::reference(
-        &format!("pin-{x}"),
-        lens.library_id(),
-        &image,
-        crop,
-        Placement {
-            x,
-            y: x / 2,
-            scale: 1.5,
-            ..Placement::default()
-        },
-    )
-    .unwrap();
-    pin.turn(Turn::FlipHorizontal);
-    pin
-}
-
-/// 画师的电脑：活动资料库 A（Eagle 迁入，带标签、备注、来源链接），另有已关闭的资料库 B。
-/// 参考组用了 A 的第 0 张两块局部、A 的第 1 张整图、B 的第 0 张；A 的第 2 张、B 的第 1 张没用到。
-struct Studio {
-    dir: tempfile::TempDir,
-    a: Library,
-    a_lens: ReferenceLens,
-    a_images: Vec<String>,
-    b_images: Vec<String>,
-    registry: Vec<RegisteredLibrary>,
-    groups: ReferenceGroups,
-    group: ReferenceGroup,
-    detached: DetachedLenses,
-}
-
-impl Studio {
-    fn new() -> Studio {
-        let dir = tempfile::tempdir().unwrap();
-        let (b, b_images) = {
-            let b = Library::create(&dir.path().join("lib-b"), "B").unwrap();
-            b.set_safe_mode(false);
-            let ids = import(&b, &dir.path().join("in-b"), 9, 2);
-            (registered(&b), ids)
-        };
-        let fixture = eagle::build(&dir.path().join("主库.library"), "4.0.0", 3);
-        let a = Library::create(&dir.path().join("lib-a"), "A").unwrap();
-        a.set_safe_mode(false);
-        let report = a
-            .import(ImportSource {
-                paths: vec![fixture.root.clone()],
-            })
-            .wait();
-        let mut a_images: Vec<String> = report
-            .items
-            .iter()
-            .map(|item| item.outcome.image_id().unwrap().to_owned())
-            .collect();
-        a_images.sort_by_key(|id| a.image(id).unwrap().original_name);
-        // 画师在本库的整理：人工备注、人工标签、人工分级。
-        a.edit(
-            &a_images[..1],
-            &[
-                ImageEdit::SetNote {
-                    text: "左眼的高光".into(),
-                },
-                ImageEdit::SetRating {
-                    rating: ContentRating::Explicit,
-                },
-            ],
-        )
-        .unwrap();
-        a.edit_tags(
-            &a_images[..1],
-            &[TagEdit::Add {
-                tag: TagRef::Named {
-                    namespace: TagNamespace::Character,
-                    name: "初音未来".into(),
-                    lang: "zh-CN".into(),
-                },
-            }],
-        )
-        .unwrap();
-        a.replace_source_tags(
-            &FactSource::model("test"),
-            &a_images[1],
-            &[kinshoko_core::library::SourceTag {
-                tag: TagRef::External {
-                    namespace: TagNamespace::General,
-                    name: "blue_eyes".into(),
-                },
-                score: Some(0.8),
-            }],
-        )
-        .unwrap();
-        let a_lens = a.take_reference_lens().unwrap();
-        let registry = vec![registered(&a), b.clone()];
-        let detached = DetachedLenses::default();
-        let groups = ReferenceGroups::open(&dir.path().join("groups")).unwrap();
-        let mut pins = {
-            let refs = References {
-                current: Some(a_lens.clone()),
-                registry: &registry,
-                detached: &detached,
-                safe_mode: false,
-            };
-            let b_lens =
-                kinshoko_core::reference_groups::ReferenceSource::lens(&refs, &b.id).unwrap();
-            vec![
-                pin(
-                    &a_lens,
-                    &a_images[0],
-                    Some(Region {
-                        x: 1,
-                        y: 1,
-                        width: 5,
-                        height: 4,
-                    }),
-                    10,
-                ),
-                pin(
-                    &a_lens,
-                    &a_images[0],
-                    Some(Region {
-                        x: 6,
-                        y: 2,
-                        width: 4,
-                        height: 3,
-                    }),
-                    40,
-                ),
-                pin(&a_lens, &a_images[1], None, 80),
-                pin(&b_lens, &b_images[0], None, 120),
-            ]
-        };
-        let group = groups.create("眼睛参考", &mut pins).unwrap();
-        detached.clear();
-        Studio {
-            dir,
-            a,
-            a_lens,
-            a_images,
-            b_images,
-            registry,
-            groups,
-            group,
-            detached,
-        }
-    }
-
-    fn refs(&self) -> References<'_> {
-        References {
-            current: Some(self.a_lens.clone()),
-            registry: &self.registry,
-            detached: &self.detached,
-            safe_mode: true,
-        }
-    }
-
-    fn package_path(&self) -> PathBuf {
-        self.dir.path().join("导出").join("眼睛参考.kinshoko-group")
-    }
-
-    fn export(&self) -> PathBuf {
-        let out = self.package_path();
-        std::fs::create_dir_all(out.parent().unwrap()).unwrap();
-        self.groups
-            .export_package(&self.group.id, &self.refs(), &out)
-            .unwrap();
-        self.detached.clear();
-        out
-    }
-
-    fn original_sha(&self, library: &str, image_id: &str) -> String {
-        let refs = self.refs();
-        let lens = kinshoko_core::reference_groups::ReferenceSource::lens(&refs, library).unwrap();
-        let sha = sha256(&std::fs::read(lens.original_path(image_id).unwrap()).unwrap());
-        self.detached.clear();
-        sha
-    }
-}
-
-/// 另一台电脑：一个全新的资料库与参考组目录，不认识画师电脑上的任何资料库。
-struct OtherComputer {
-    _dir: tempfile::TempDir,
-    library: Library,
-    lens: ReferenceLens,
-    registry: Vec<RegisteredLibrary>,
-    groups: ReferenceGroups,
-    detached: DetachedLenses,
-}
-
-impl OtherComputer {
-    fn new() -> OtherComputer {
-        let dir = tempfile::tempdir().unwrap();
-        let library = Library::create(&dir.path().join("lib-c"), "C").unwrap();
-        let lens = library.take_reference_lens().unwrap();
-        let registry = vec![registered(&library)];
-        let groups = ReferenceGroups::open(&dir.path().join("groups")).unwrap();
-        OtherComputer {
-            _dir: dir,
-            library,
-            lens,
-            registry,
-            groups,
-            detached: DetachedLenses::default(),
-        }
-    }
-
-    fn refs(&self) -> References<'_> {
-        References {
-            current: Some(self.lens.clone()),
-            registry: &self.registry,
-            detached: &self.detached,
-            safe_mode: true,
-        }
-    }
-}
-
-fn zip_entries(path: &Path) -> Vec<(String, Vec<u8>)> {
-    let mut archive = zip::ZipArchive::new(std::fs::File::open(path).unwrap()).unwrap();
-    (0..archive.len())
-        .map(|i| {
-            let mut entry = archive.by_index(i).unwrap();
-            let mut bytes = Vec::new();
-            entry.read_to_end(&mut bytes).unwrap();
-            (entry.name().to_owned(), bytes)
-        })
-        .collect()
-}
 
 #[test]
 fn imported_package_group_is_usable_elsewhere_with_identical_originals_and_layout() {
@@ -309,14 +42,21 @@ fn imported_package_group_is_usable_elsewhere_with_identical_originals_and_layou
             (new.source_width, new.source_height),
             (old.source_width, old.source_height)
         );
-        assert_eq!(new.library_id, other.library.info().id);
+        assert_eq!(new.library_id(), Some(other.library.info().id.as_str()));
         // 原图 SHA-256 与导出前一致。
-        let after =
-            sha256(&std::fs::read(other.lens.original_path(&new.image_id).unwrap()).unwrap());
-        assert_eq!(after, studio.original_sha(&old.library_id, &old.image_id));
+        let after = sha256(
+            &std::fs::read(other.lens.original_path(new.image_id().unwrap()).unwrap()).unwrap(),
+        );
+        assert_eq!(
+            after,
+            studio.original_sha(old.library_id().unwrap(), old.image_id().unwrap())
+        );
     }
     // 同一张图的两块局部仍指向同一张参考图。
-    assert_eq!(imported.members[0].image_id, imported.members[1].image_id);
+    assert_eq!(
+        imported.members[0].image_id(),
+        imported.members[1].image_id()
+    );
     // 导入记录 imported_from_package。
     let provenance = imported.imported_from_package.as_ref().unwrap();
     assert_eq!(provenance.group_id, studio.group.id);
@@ -337,19 +77,6 @@ fn imported_package_group_is_usable_elsewhere_with_identical_originals_and_layou
         ]
     );
     assert_eq!(reread.pins().len(), 4);
-}
-
-fn image_count(library: &Library) -> u32 {
-    library
-        .browse(&kinshoko_core::library::BrowseQuery {
-            scope: Default::default(),
-            conditions: Default::default(),
-            cursor: None,
-            limit: 100,
-            thumbnail_px: 100,
-        })
-        .unwrap()
-        .total
 }
 
 #[test]
@@ -448,13 +175,13 @@ fn importing_writes_the_snapshot_as_a_package_source_layer_and_reimport_does_not
     let ids = |g: &ReferenceGroup| {
         g.members
             .iter()
-            .map(|m| m.image_id.clone())
+            .map(|m| m.image_id().unwrap().to_owned())
             .collect::<Vec<_>>()
     };
     assert_eq!(ids(&first), ids(&again));
     assert_eq!(image_count(&other.library), 3);
 
-    let eye = &first.members[0].image_id;
+    let eye = &first.members[0].image_id().unwrap();
     let detail = other.library.image(eye).unwrap();
     assert_eq!(detail.note.manual, None);
     assert_eq!(detail.note.sources.len(), 1);
@@ -472,7 +199,7 @@ fn importing_writes_the_snapshot_as_a_package_source_layer_and_reimport_does_not
             .any(|t| t.tag.name == "初音未来" && t.tag.namespace == TagNamespace::Character)
     );
 
-    let hair = &first.members[2].image_id;
+    let hair = &first.members[2].image_id().unwrap();
     let detail = other.library.image(hair).unwrap();
     assert_eq!(
         detail.source_links,
@@ -521,7 +248,7 @@ fn importing_merges_into_an_existing_identical_original_without_touching_manual_
         .import_package(&package, &other.library)
         .unwrap();
 
-    assert_eq!(group.members[3].image_id, existing);
+    assert_eq!(group.members[3].image_id(), Some(existing.as_str()));
     assert_eq!(image_count(&other.library), 3);
     let detail = other.library.image(&existing).unwrap();
     assert_eq!(detail.note.manual.as_deref(), Some("本机的备注"));
@@ -617,7 +344,7 @@ fn package_import_uses_the_bound_destination_for_every_member_original() {
         group
             .members
             .iter()
-            .all(|m| m.library_id == other.library.info().id)
+            .all(|m| m.library_id() == Some(other.library.info().id.as_str()))
     );
     let page = other
         .library

@@ -4,4 +4,4 @@ import type { MemberState } from "./MemberState";
 /**
  * 一个成员的核对结果。
  */
-export type MemberStatus = { memberId: string, libraryId: string, imageId: string, state: MemberState, };
+export type MemberStatus = { memberId: string, state: MemberState, } & ({ libraryId: string, imageId: string, } | { captureFile: string, });

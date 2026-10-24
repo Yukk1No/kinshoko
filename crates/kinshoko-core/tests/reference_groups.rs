@@ -215,7 +215,7 @@ fn saving_pins_into_a_group_adds_new_pins_and_keeps_members_not_on_the_desktop()
         .unwrap();
     assert_eq!(saved.members.len(), 3);
     assert_eq!(saved.members[1], group.members[1]);
-    assert_eq!(saved.members[2].library_id, "lib-c");
+    assert_eq!(saved.members[2].library_id(), Some("lib-c"));
     assert_eq!(
         groups.save_pins("nope", &mut [opened[0].clone()]),
         Err(GroupError::UnknownGroup)

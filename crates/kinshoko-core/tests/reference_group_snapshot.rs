@@ -126,8 +126,11 @@ mod tests {
         let target = Library::create(&dir.path().join("target"), "Target").unwrap();
         target.set_safe_mode(false);
         let imported = groups.import_package(&package, &target).unwrap();
-        assert_eq!(imported.members[0].image_id, imported.members[1].image_id);
-        let id = &imported.members[0].image_id;
+        assert_eq!(
+            imported.members[0].image_id(),
+            imported.members[1].image_id()
+        );
+        let id = &imported.members[0].image_id().unwrap();
         let tags = target.image_tags(id, "zh-CN").unwrap();
         let names: Vec<_> = tags.tags.iter().map(|t| t.tag.name.as_str()).collect();
         let detail = target.image(id).unwrap();
@@ -195,7 +198,7 @@ mod tests {
         target.set_safe_mode(false);
         let imported = groups.import_package(&package, &target).unwrap();
         let after = target
-            .image_tags(&imported.members[0].image_id, "zh-CN")
+            .image_tags(imported.members[0].image_id().unwrap(), "zh-CN")
             .unwrap();
         let vocab = target.vocabulary().unwrap();
         assert_eq!(

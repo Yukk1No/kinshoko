@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { BookmarkPlus, FolderInput, Layers, ListTree, MoreHorizontal, PackageOpen, Trash2 } from "lucide-react";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
-import { CaptureGroupSaveDialog, type CaptureSave } from "./CaptureGroupSaveDialog";
+import { CaptureGroupSaveDialog, captureChoices, type CaptureSave } from "./CaptureGroupSaveDialog";
 import { ago } from "./relativeTime";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
@@ -22,6 +22,7 @@ import {
   registeredLibraries,
   removeGroupMember,
   thumbnailUrl,
+  captureUrl,
   renameReferenceGroup,
   savePinsToGroup,
   saveReferenceGroup,
@@ -39,7 +40,8 @@ function memberState(status: MemberStatus): string {
 }
 
 /**
- * 参考组（#66）：把桌面上的资料库钉图存成参考组，打开参考组把成员按原来的局部与摆放钉回桌面。
+ * 参考组（#66）：把桌面钉图存成参考组，打开参考组把成员按原来的局部与摆放钉回桌面。截图可以收藏进
+ * 图库后入组，也可以只存在参考组里（#270）。
  * 参考组独立于资料库保存，成员可来自多个资料库；资料库不可用、图已删除的成员保留布局并写出原因，
  * 安全模式下被封印的成员在钉图上原位遮蔽。
  *
@@ -104,7 +106,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
     }
   };
 
-  const libraries = (ids: string[]) => ids.map((id) => libraryNames.get(id) ?? "未登记的图库").join("、");
+  const libraries = (ids: string[]) => ids.map((id) => libraryNames.get(id) ?? "未登记的图库").join("、") || "不在图库里";
 
   // 卡片缩略图：读一次成员状态；参考组更新后重读。
   useEffect(() => {
@@ -141,7 +143,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
   const beginSave = async (target: SaveTarget) => {
     setSaving(true);
     try {
-      const entries = await groupSaveCaptures();
+      const entries = await ("groupId" in target ? groupSaveCaptures(target.groupId) : groupSaveCaptures());
       if (!entries.length) { await save(target, []); return; }
       const choices: Record<string, string> = {};
       for (const entry of entries) {
@@ -156,11 +158,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
     if (!captureSave) return;
     setSaving(true);
     try {
-      await run(() => save(captureSave.target, captureSave.entries.map((entry) => ({
-        captureId: entry.id,
-        libraryId: captureSave.choices[entry.id] === "skip" ? null : captureSave.choices[entry.id],
-        folderId: captureSave.folders[entry.id]??null,
-      }))));
+      await run(() => save(captureSave.target, captureChoices(captureSave)));
     } finally { setSaving(false); }
   };
 
@@ -205,7 +203,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                 {members.length > 0 && <span className="group-thumbs" aria-hidden="true">
                   {members.slice(0, 5).map((m) => <span key={m.memberId}
                     className={`group-thumb${m.state.kind === "available" ? m.state.sealed ? " is-sealed" : "" : " is-missing"}`}>
-                    {m.state.kind === "available" && !m.state.sealed && <img src={thumbnailUrl(`${m.libraryId}/${m.imageId}/128`)} alt="" draggable={false} />}
+                    {m.state.kind === "available" && !m.state.sealed && <img src={"libraryId" in m ? thumbnailUrl(`${m.libraryId}/${m.imageId}/128`) : captureUrl(`group/${g.id}/${m.memberId}`)} alt="" draggable={false} />}
                   </span>)}
                 </span>}
                 {renaming?.id !== g.id && <strong className="reference-group-name">{g.name}</strong>}
@@ -260,7 +258,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                     const crop = expanded.group.members[i]?.crop;
                     return (
                       <li key={m.memberId} className={m.state.kind === "unavailable" ? "reference-group-member-unavailable" : undefined}>
-                        <span className="k-parts"><span>{libraryNames.get(m.libraryId) ?? "未登记的图库"}</span><span>{crop ? `局部 ${crop.width} × ${crop.height}` : "整图"}</span></span>
+                        <span className="k-parts"><span>{"libraryId" in m ? libraryNames.get(m.libraryId) ?? "未登记的图库" : "参考组里的截图"}</span><span>{crop ? `局部 ${crop.width} × ${crop.height}` : "整图"}</span></span>
                         <span>{memberState(m)}</span>
                         <button type="button" className="k-btn is-sm" onClick={() => void run(() => removeGroupMember(g.id, m.memberId))}>移出</button>
                       </li>
@@ -280,7 +278,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
           <AlertDialog.Backdrop className="k-backdrop" />
           <AlertDialog.Popup className="k-dialog is-alert">
             <AlertDialog.Title className="k-dialog-title">删除参考组</AlertDialog.Title>
-            <AlertDialog.Description className="k-dialog-desc">「{deletingGroup?.name}」会被删除，图库里的原图不受影响。</AlertDialog.Description>
+            <AlertDialog.Description className="k-dialog-desc">「{deletingGroup?.name}」会被删除，图库里的原图不受影响；只存在这个参考组里的截图一起删除。</AlertDialog.Description>
             <div className="k-dialog-foot">
               <span className="k-grow" />
               <AlertDialog.Close className="k-btn">取消</AlertDialog.Close>

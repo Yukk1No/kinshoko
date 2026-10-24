@@ -3,4 +3,4 @@
 /**
  * 成员暂时不能显示的原因。成员与布局都保留，原因标在成员上。
  */
-export type UnavailableReason = { "kind": "libraryNotRegistered" } | { "kind": "libraryUnavailable", detail: string, } | { "kind": "imageMissing" } | { "kind": "originalMissing" };
+export type UnavailableReason = { "kind": "libraryNotRegistered" } | { "kind": "libraryUnavailable", detail: string, } | { "kind": "imageMissing" } | { "kind": "originalMissing" } | { "kind": "captureMissing" };
