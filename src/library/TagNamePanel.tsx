@@ -69,7 +69,7 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
     </div>
     {busy && !workspace && <p className="k-set-note" role="status">正在读取标签…</p>}
     {error && <p className="k-set-error" role="alert">{error}</p>}
-    {!workspace && !busy && <button type="button" className="k-btn is-sm" onClick={() => void run(inspectTagCatalog)}>读取标签</button>}
+    {!workspace && !busy && <button type="button" className="k-btn is-sm" onClick={() => void run(inspectTagCatalog)}><span className="k-label">读取标签</span></button>}
     {workspace && <>
       {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} className="k-set-note" role="status">{library.name}：{unavailable}</p>)}
       {shown.length === 0 ? <p className="k-set-note">{workspace.catalog.tags.length === 0 ? "图库里还没有标签。" : "没有匹配的标签。"}</p>
@@ -102,15 +102,15 @@ function NameRow({ tag, lang, busy, pending, mappings, libraryName, open, onTogg
     below={open && <div className="k-name-editor" data-catalog-name-id={tag.id}>
       <div className="k-set-inline">
         <input className="k-input" aria-label={`“${name}”的显示名`} value={draft} disabled={busy} onChange={(event) => setDraft(event.target.value)} />
-        <button type="button" className="k-btn is-sm is-primary" disabled={busy || !lang || !draft.trim()} onClick={() => onEdit({ kind: "prefer", name: { lang, name: draft.trim() } })}>保存显示名</button>
-        <button type="button" className="k-btn is-sm" disabled={busy || !preference} onClick={() => onEdit({ kind: "reset", lang })}>恢复默认</button>
+        <button type="button" className="k-btn is-sm is-primary" disabled={busy || !lang || !draft.trim()} onClick={() => onEdit({ kind: "prefer", name: { lang, name: draft.trim() } })}><span className="k-label">保存显示名</span></button>
+        <button type="button" className="k-btn is-sm" disabled={busy || !preference} onClick={() => onEdit({ kind: "reset", lang })}><span className="k-label">恢复默认</span></button>
       </div>
       <p className="k-set-note">本语言默认：{defaultName ?? "暂无译名"}</p>
-      <div className="k-chips" role="list" aria-label="别名">{aliases.map((entry) => <span role="listitem" key={`${entry.lang}/${entry.name}`} className="k-chip">{entry.name}
+      <div className="k-chips" role="list" aria-label="别名">{aliases.map((entry) => <span role="listitem" key={`${entry.lang}/${entry.name}`} className="k-chip"><span className="k-label">{entry.name}</span>
         <button type="button" className="k-chip-x" disabled={busy} aria-label={`去掉别名“${entry.name}”`} onClick={() => onEdit({ kind: "removeAlias", alias: entry })}><X size={11} aria-hidden="true" /></button></span>)}</div>
       <div className="k-set-inline">
         <input className="k-input" aria-label={`“${name}”的新别名`} placeholder="新别名" value={alias} disabled={busy} onChange={(event) => setAlias(event.target.value)} />
-        <button type="button" className="k-btn is-sm" disabled={busy || !lang || !alias.trim()} onClick={() => { onEdit({ kind: "addAlias", alias: { name: alias.trim(), lang } }); setAlias(""); }}>加别名</button>
+        <button type="button" className="k-btn is-sm" disabled={busy || !lang || !alias.trim()} onClick={() => { onEdit({ kind: "addAlias", alias: { name: alias.trim(), lang } }); setAlias(""); }}><span className="k-label">加别名</span></button>
       </div>
       {mappings.some((mapping) => mapping.sourceNames?.length) && <ul className="k-list" aria-label="来源名称">
         {mappings.flatMap((mapping) => (mapping.sourceNames ?? []).map((source) => <li key={`${mapping.libraryId}/${mapping.localTagId}/${source.name}`} className="k-set-inline">
@@ -140,6 +140,6 @@ function MapExternal({ name, busy, onMap }: { name: string; busy: boolean; onMap
   return <div className="k-set-inline">
     <Combobox label={`“${name}”的外部对应`} placeholder="外部名称，如 blue_eyes" value={draft} disabled={busy} autoHighlight={false}
       options={externalOptions(draft.trim() ? suggestions : [], draft)} onValueChange={change} onSelect={(option) => setDraft(option.id)} />
-    <button type="button" className="k-btn is-sm" disabled={busy || !draft.trim()} onClick={() => { onMap(draft.trim()); setDraft(""); }}>补上外部对应</button>
+    <button type="button" className="k-btn is-sm" disabled={busy || !draft.trim()} onClick={() => { onMap(draft.trim()); setDraft(""); }}><span className="k-label">补上外部对应</span></button>
   </div>;
 }

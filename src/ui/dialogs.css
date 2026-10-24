@@ -135,7 +135,7 @@
 .k-groups .k-group-row > .k-group-name { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 8px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink); font: inherit; text-align: left; }
 .k-groups .k-group-row > .k-group-name:disabled { color: var(--ink); cursor: default; }
 .k-group-icon { flex: none; color: var(--ink-3); }
-.k-group-label { flex: 0 1 auto; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-group-label { flex: 0 1 auto; font-weight: 500; }
 .k-group-meta { flex: none; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
 .k-group-acts { display: flex; gap: 2px; flex: none; opacity: 0; transition: opacity 120ms; }
 .k-group-row:hover .k-group-acts, .k-group-row:focus-within .k-group-acts { opacity: 1; }

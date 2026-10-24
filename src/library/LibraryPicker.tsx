@@ -138,18 +138,18 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
                 {unavailable && <p className="k-list-desc is-warn" role="status">{unavailable}</p>}
               </div>
               <div className="k-list-end">
-                <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}>{unavailable ? "未连接" : "已连接"}</span>
-                {unavailable && <button type="button" className="k-btn is-sm" disabled={disabled} onClick={refresh}><RefreshCw size={13} aria-hidden="true" />重新连接</button>}
+                <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}><span className="k-label">{unavailable ? "未连接" : "已连接"}</span></span>
+                {unavailable && <button type="button" className="k-btn is-sm" disabled={disabled} onClick={refresh}><RefreshCw size={13} aria-hidden="true" /><span className="k-label">重新连接</span></button>}
                 <button type="button" className="k-btn is-sm" disabled={disabled} aria-label={`移除 ${library.name}`}
-                  title="文件不会删除" onClick={() => void remove(library.id)}>移除</button>
+                  title="文件不会删除" onClick={() => void remove(library.id)}><span className="k-label">移除</span></button>
               </div>
             </li>)}
           </ul> : <p className="k-dialog-desc">还没有打开的图库。</p>}
           <div className="k-dialog-foot">
-            <button type="button" className="k-btn" disabled={disabled} onClick={() => void register()}><FolderOpen size={14} aria-hidden="true" />打开图库…</button>
-            <button type="button" className="k-btn" disabled={disabled} onClick={() => { setManaging(false); onCreate(); }}><FolderPlus size={14} aria-hidden="true" />新建图库…</button>
+            <button type="button" className="k-btn" disabled={disabled} onClick={() => void register()}><FolderOpen size={14} aria-hidden="true" /><span className="k-label">打开图库…</span></button>
+            <button type="button" className="k-btn" disabled={disabled} onClick={() => { setManaging(false); onCreate(); }}><FolderPlus size={14} aria-hidden="true" /><span className="k-label">新建图库…</span></button>
             <span className="k-grow" />
-            <Dialog.Close className="k-btn is-primary">完成</Dialog.Close>
+            <Dialog.Close className="k-btn is-primary"><span className="k-label">完成</span></Dialog.Close>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>

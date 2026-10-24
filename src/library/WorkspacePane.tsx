@@ -156,7 +156,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
         <button type="button" className="sidebar-item k-row" aria-current={scope.kind === "all" ? "page" : undefined}
           aria-label={total === undefined ? "全部图片" : `全部图片（${total} 张）`}
           onClick={() => onScope({ kind: "all" })}><span className="k-row-icon" aria-hidden="true"><Images size={15} /></span>
-          <span className="sidebar-label">全部图片</span><span className="sidebar-count">{total ?? ""}</span></button>
+          <span className="sidebar-label k-label">全部图片</span><span className="sidebar-count k-label">{total ?? ""}</span></button>
       </FluidRow></FluidList>
     </div>
     <div className="side-scroll">
@@ -194,10 +194,10 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
             onDrop={(e) => { e.preventDefault(); setHeadDrop(null); dropFolderHere(e); }}
             onClick={() => onScope({ kind: "library", libraryId: library.id, scope: { kind: "all" } })}
             title={unavailable ? `${library.root}\n${unavailable}` : library.root}>
-            <span className="sidebar-label">{library.name}</span>
-            {unavailable ? <span className="lib-dot is-off" aria-hidden="true" /> : <span className="sidebar-count">{sidebar?.all ?? "…"}</span>}
+            <span className="sidebar-label k-label">{library.name}</span>
+            {unavailable ? <span className="lib-dot is-off" aria-hidden="true" /> : <span className="sidebar-count k-label">{sidebar?.all ?? "…"}</span>}
           </button>
-          {unavailable && onRecheck && <button type="button" className="offline-retry" title={unavailable} onClick={onRecheck}>重新连接</button>}
+          {unavailable && onRecheck && <button type="button" className="offline-retry" title={unavailable} onClick={onRecheck}><span className="k-label">重新连接</span></button>}
           <Menu.Root modal={false}>
             <Menu.Trigger className="k-icon-btn lib-more" aria-label={`${library.name} 的操作`} title="图库操作">
               <MoreHorizontal size={14} aria-hidden="true" />
@@ -224,7 +224,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
           if (!isFolder || scope.kind !== "library") return;
           setDescendants(checked); onScope({ ...scope, scope: { kind: checked ? "folderTree" : "folder", id: local.id } });
         }} />
-      <span aria-hidden="true">含子文件夹</span>
+      <span className="k-label" aria-hidden="true">含子文件夹</span>
     </div>
     {children}
     </div>
@@ -240,8 +240,8 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
           <FluidList>{connected.map((p, index) => <FluidRow key={p.registration.library.id} index={index}>
             <button type="button" className="sidebar-item k-row trash-group-row" aria-label={`${p.registration.library.name}（${p.sidebar?.trash ?? 0} 张）`}
               title={p.registration.library.root} onClick={() => onScope(trashOf(p.registration.library.id))}>
-              <span className="sidebar-label">{p.registration.library.name}</span>
-              <span className="sidebar-count">{p.sidebar?.trash ?? 0}</span>
+              <span className="sidebar-label k-label">{p.registration.library.name}</span>
+              <span className="sidebar-count k-label">{p.sidebar?.trash ?? 0}</span>
             </button>
           </FluidRow>)}</FluidList>
         </div>}

@@ -65,7 +65,7 @@ export function ImportResultCard({ report, finished, owner, taskSwitcher, cardNo
     </ul></details>}
     {counts.failed.length > 0 && <div className="k-task-acts">
       <button type="button" className="k-btn is-sm" aria-label={`重试失败的 ${counts.failed.length} 项`} disabled={busy}
-        onClick={() => void begin(counts.failed, false, finished ? optionsByTask.current.get(finished.taskId) : undefined, finished?.destination)}>重试失败</button>
+        onClick={() => void begin(counts.failed, false, finished ? optionsByTask.current.get(finished.taskId) : undefined, finished?.destination)}><span className="k-label">重试失败</span></button>
     </div>}
   </section>
   );
@@ -106,8 +106,8 @@ export function ImportPlanDialog({ plan, setPlan, preparing, running, destinatio
           </fieldset>}
           <div className="k-dialog-foot">
             <span className="k-grow" />
-            <button type="button" className="k-btn" disabled={preparing} onClick={() => setPlan(null)}>取消</button>
-            <button type="button" className="k-btn is-primary" disabled={preparing || !!running || !destinationReady} onClick={() => void startPlan()}>开始导入</button>
+            <button type="button" className="k-btn" disabled={preparing} onClick={() => setPlan(null)}><span className="k-label">取消</span></button>
+            <button type="button" className="k-btn is-primary" disabled={preparing || !!running || !destinationReady} onClick={() => void startPlan()}><span className="k-label">开始导入</span></button>
           </div>
         </>}</Dialog.Popup>
       </Dialog.Portal>
@@ -134,14 +134,14 @@ export function EagleLibrariesDialog({ eagleLibraries, setEagleLibraries, busy, 
                 <div className="k-list-title">{candidate.name}</div>
                 <p className="k-list-desc k-parts" title={candidate.path}><span>{candidate.items} 张</span>{candidate.version && <span>Eagle {candidate.version}</span>}<span>{candidate.path}</span></p>
               </div>
-              <div className="k-list-end"><button type="button" className="k-btn is-sm" aria-label={`导入 ${candidate.name}`} disabled={busy} onClick={() => { setEagleLibraries(null); void begin([candidate.path], true); }}>导入</button></div>
+              <div className="k-list-end"><button type="button" className="k-btn is-sm" aria-label={`导入 ${candidate.name}`} disabled={busy} onClick={() => { setEagleLibraries(null); void begin([candidate.path], true); }}><span className="k-label">导入</span></button></div>
             </li>)}
           </ul> : <p className="k-set-note" role="status">没有自动找到 Eagle 库，可以手动选择。</p>}
           <p className="k-set-note">回收站里的图会进入可恢复的删除；区域评论会保留，暂不显示。</p>
           <div className="k-dialog-foot">
-            <button type="button" className="k-btn" disabled={busy} onClick={() => { setEagleLibraries(null); void importFolder(true); }}><FolderOpen size={14} aria-hidden="true" />手动选择…</button>
+            <button type="button" className="k-btn" disabled={busy} onClick={() => { setEagleLibraries(null); void importFolder(true); }}><FolderOpen size={14} aria-hidden="true" /><span className="k-label">手动选择…</span></button>
             <span className="k-grow" />
-            <button type="button" className="k-btn" onClick={() => setEagleLibraries(null)}>取消</button>
+            <button type="button" className="k-btn" onClick={() => setEagleLibraries(null)}><span className="k-label">取消</span></button>
           </div>
         </>}</Dialog.Popup>
       </Dialog.Portal>

@@ -4,7 +4,7 @@
 
 ## 自动检查
 
-`cargo test -p kinshoko-core --test eagle_import --test eagle_crash` 使用临时目录中的真 SQLite 与真文件，通过核心 crate 的公开接口检查。
+`cargo test -p kinshoko-core --test integration eagle_import::` 与 `cargo test -p kinshoko-core --test eagle_crash` 使用临时目录中的真 SQLite 与真文件，通过核心 crate 的公开接口检查。
 
 - 仿真库生成器移植自 `prototype/storage-roundtrip/make_eagle_fixture.py`，分别生成 Eagle 1.8.2、4.0.0 的主库（150 项）与第二个库（20 项）。包含嵌套和空文件夹、一图多文件夹、链接、备注、区域评论、回收站、同库重复、无文件夹、主色及未知字段。
 - 条目和库级 `metadata.json` 原样保存，包括空白与未知字段；重开后来源快照相同。区域评论完整保存并标记 `eagle-raw-unverified`，首版不显示坐标。

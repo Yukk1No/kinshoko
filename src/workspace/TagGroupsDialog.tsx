@@ -25,7 +25,7 @@ export function TagGroupsDialog({ open, onOpenChange, safe, generation, onBrowse
                   onBrowse={onBrowse}
             onError={onError}
           />
-          <div className="k-dialog-foot"><span className="k-grow" /><Dialog.Close className="k-btn is-primary">完成</Dialog.Close></div>
+          <div className="k-dialog-foot"><span className="k-grow" /><Dialog.Close className="k-btn is-primary"><span className="k-label">完成</span></Dialog.Close></div>
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

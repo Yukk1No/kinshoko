@@ -139,7 +139,7 @@ export function SaveDestinationDialog({ title, description, summary, confirmLabe
         {error && <p className="k-set-error" role="alert">{error}</p>}
         <div className="k-dialog-foot">
           <span className="k-grow" />
-          <button type="button" className="k-btn" disabled={busy} onClick={onClose}>取消</button>
+          <button type="button" className="k-btn" disabled={busy} onClick={onClose}><span className="k-label">取消</span></button>
           <button type="button" className="k-btn is-primary" disabled={busy || !context.ready || !destinationAvailable(value, context.providers)}
             onClick={() => {
               if (!value || busy) return;
@@ -148,7 +148,7 @@ export function SaveDestinationDialog({ title, description, summary, confirmLabe
               void onConfirm(fixed).then(() => { if (alive.current) onClose(); },
                 error => { if (alive.current) setError(String(error)); })
                 .finally(() => { if (alive.current) setBusy(false); });
-            }}>{busy ? "正在保存…" : confirmLabel}</button>
+            }}><span className="k-label">{busy ? "正在保存…" : confirmLabel}</span></button>
         </div>
       </Dialog.Popup>
     </Dialog.Portal>
