@@ -37,8 +37,8 @@ export function WorkspaceSources({ card, onClose, onView, safe = true, reloadKey
       </div>
       {root(source.libraryId) && <span className="workspace-source-path" title={root(source.libraryId)}>{hint(source.libraryId)}</span>}
       {source.unavailable ? <p className="insp-hint" role="status">{source.unavailable}</p> :
-        <div className="selection-actions"><button type="button" className="k-btn is-sm" onClick={() => setEditing(source)}>整理此来源</button>
-        <button type="button" className="k-btn is-sm" onClick={() => { onClose(); onView({ ...card, libraryId: source.libraryId, imageId: source.imageId }); }}>查看此来源</button></div>}
+        <div className="selection-actions"><button type="button" className="k-btn is-sm" onClick={() => setEditing(source)}><span className="k-label">整理此来源</span></button>
+        <button type="button" className="k-btn is-sm" onClick={() => { onClose(); onView({ ...card, libraryId: source.libraryId, imageId: source.imageId }); }}><span className="k-label">查看此来源</span></button></div>}
     </li>)}</ul>}
   </section>;
 }

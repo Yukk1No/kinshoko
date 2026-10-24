@@ -1,7 +1,7 @@
 // #158：选中一张参考图时详情面板要读的后端查询（详情、标签、文件夹树、来源检查）各花多少时间。
 // 规模按模型打过标的资料库：1000 张图、2000 个带外部对应的标签、每张 25 个、40 个文件夹。
 // 只打印耗时，不设门槛（调试构建与发行构建差一个数量级）：
-// cargo test -p kinshoko-core --test inspector_reads -- --ignored --nocapture
+// cargo test -p kinshoko-core --test integration inspector_reads:: -- --ignored --nocapture
 
 use std::time::{Duration, Instant};
 

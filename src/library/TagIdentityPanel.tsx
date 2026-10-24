@@ -58,7 +58,7 @@ export function TagIdentityPanel() {
   };
   return <section className="tag-identity" aria-label="图库间标签对应">
     <p className="k-set-note">同名的标签各自独立。认错了可以在这里纠正，各图库里的人工添加和否决不受影响。</p>
-    <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void run(inspectTagCatalog)}>检查标签对应</button>
+    <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void run(inspectTagCatalog)}><span className="k-label">检查标签对应</span></button>
     {busy && <p role="status">正在读取标签对应…</p>}
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
@@ -66,7 +66,7 @@ export function TagIdentityPanel() {
       <p className="settings-hint">带走图库前，先把标签定义存进图库。默认名称、别名与对应随图库携带；改过的显示名留在偏好设置里。只读或离线时可以保留程序中的选择，稍后重试保存。</p>
       {workspace.libraries.map(({library, unavailable}) => <div key={"definitions-" + library.id} className="settings-actions">
         <span className="k-parts" title={library.root}><span>{library.name}</span><span className="k-set-note">{libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span></span>
-        <button type="button" className="k-btn is-sm" aria-label={"保存 " + library.name + " 的标签定义"} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), "标签定义已保存到图库。")}>存进图库</button>
+        <button type="button" className="k-btn is-sm" aria-label={"保存 " + library.name + " 的标签定义"} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), "标签定义已保存到图库。")}><span className="k-label">存进图库</span></button>
       </div>)}
       {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} role="status">{library.name}：{unavailable}</p>)}
       {workspace.catalog.mappings.length === 0 ? <p className="k-set-note">图库里还没有标签。</p> : <table className="settings-shortcuts">
@@ -99,6 +99,6 @@ function MappingRow({ mapping, workspace, busy, onSave }: { mapping: LibraryTagM
     </th>
     <td><span className="k-parts"><span>{shared ? nameOf(shared) : "未命名标签"}</span><small>{basis[mapping.basis]}</small></span><details><summary>详情</summary><p>编号：{mapping.catalogId}</p><p>外部对应：{shared?.external.map((e) => `${e.vocabulary}:${e.name}`).join("、") || "无"}</p></details></td>
     <td><Select label={`纠正 ${library?.name ?? "未打开的图库"} 的 ${localName(mapping)} 对应`} value={target} disabled={busy} onChange={setTarget}
-      options={[...choices.map(({ tag, label }) => ({ value: tag.id, label })), { value: "separate", label: "拆成独立标签" }]} /><button type="button" className="k-btn is-sm" disabled={busy || target === mapping.catalogId} onClick={() => onSave(target)}>保存对应</button></td>
+      options={[...choices.map(({ tag, label }) => ({ value: tag.id, label })), { value: "separate", label: "拆成独立标签" }]} /><button type="button" className="k-btn is-sm" disabled={busy || target === mapping.catalogId} onClick={() => onSave(target)}><span className="k-label">保存对应</span></button></td>
   </tr>;
 }

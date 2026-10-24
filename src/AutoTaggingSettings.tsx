@@ -100,7 +100,7 @@ export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string |
       </SettingsRow>
       <SettingsRow label="模型包" icon={<PackageOpen size={16} />} title="模型包" hint="没网时从文件导入" meta={busy ? "正在导入并校验…" : message ?? undefined}
         below={error !== null && <p className="k-set-error" role="alert">{error}</p>}>
-        <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void importPackage()}>导入模型包…</button>
+        <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void importPackage()}><span className="k-label">导入模型包…</span></button>
       </SettingsRow>
     </SettingsGroup>}
   </>;
@@ -114,7 +114,7 @@ function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; sta
   if (status === null) return row("正在读取…");
   const act = (f: (id: string) => Promise<void>) => () => void f(libraryId).catch(() => {});
   const button = (name: string, f: (id: string) => Promise<void>, primary = false) =>
-    <button type="button" className={`k-btn is-sm${primary ? "" : " is-ghost"}`} onClick={act(f)}>{name}</button>;
+    <button type="button" className={`k-btn is-sm${primary ? "" : " is-ghost"}`} onClick={act(f)}><span className="k-label">{name}</span></button>;
   const pause = button("暂停", taggingPause);
 
   switch (status.state) {

@@ -324,12 +324,6 @@
   outline-offset: -2px;
 }
 
-.sidebar-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .sidebar-count {
   opacity: 0.6;
   font-variant-numeric: tabular-nums;

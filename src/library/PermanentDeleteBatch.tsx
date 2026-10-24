@@ -113,9 +113,9 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
           </>}
           <div className="k-dialog-foot">
             <span className="k-grow" />
-            <AlertDialog.Close className="k-btn" disabled={busy}>取消</AlertDialog.Close>
+            <AlertDialog.Close className="k-btn" disabled={busy}><span className="k-label">取消</span></AlertDialog.Close>
             <button type="button" className="k-btn is-danger" disabled={busy || !previews || total === 0} onClick={confirm}>
-              确认永久删除
+              <span className="k-label">确认永久删除</span>
             </button>
           </div>
         </AlertDialog.Popup>
