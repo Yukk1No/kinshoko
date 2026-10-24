@@ -1,13 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { ArrowDown, ArrowUp, PenLine, Plus, Tags, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, PenLine, Plus, Tags, Trash2, X } from "lucide-react";
 import { FluidList, FluidRow } from "../ui/FluidList";
+import { Combobox } from "../ui/Combobox";
+import { Select, type SelectOption } from "../ui/Select";
+import { tagOption } from "../search/tagOptions";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagNamespace } from "../bindings/TagNamespace";
 import { createSharedTagGroup, editSharedTagGroup, sharedTagGroups, onSafeModeSetting, onWorkspaceChanged, safeMode, workspaceStatus, isLensChanged } from "../ipc";
-import { TagMarks, UI_LANG, tagName, useCandidates, type Lens } from "../search/SearchBox";
+import { TagMarks, UI_LANG, tagName, useCandidateState, type Lens } from "../search/SearchBox";
 import { NameInput } from "./SidebarPane";
 
 type Props = {
@@ -20,82 +24,65 @@ type Props = {
   onError: (message: string) => void;
 };
 
-const KINDS: { value: TagNamespace | ""; label: string }[] = [
-  { value: "", label: "自己挑选的标签" },
+const KINDS: SelectOption<TagNamespace | "">[] = [
+  { value: "", label: "自选标签" },
   { value: "artist", label: "全部作者" },
   { value: "character", label: "全部角色" },
   { value: "work", label: "全部作品" },
-  { value: "general", label: "全部一般标签" },
+  { value: "general", label: "一般标签" },
 ];
 
-/** 新建标签分组：名称，以及自己挑选成员还是列出一个命名空间的全部标签。 */
+/** Esc 只收起这一行编辑，不连带关掉外面的“编辑分组”对话框。 */
+function escape(e: KeyboardEvent, done: () => void) {
+  if (e.key !== "Escape") return;
+  e.preventDefault(); e.stopPropagation(); done();
+}
+
+/** 新建标签分组：一行，名称和分组内容（自己挑选成员，或列出一个命名空间的全部标签）。 */
 function NewGroup({ onDone }: { onDone: (group: { name: string; namespace: TagNamespace | null } | null) => void }) {
   const [name, setName] = useState("");
   const [kind, setKind] = useState<TagNamespace | "">("");
   const submit = () => onDone(name.trim() ? { name: name.trim(), namespace: kind || null } : null);
   return (
-    <div className="sidebar-new-group k-group-new">
+    <div className="k-group-new">
+      <Tags size={16} aria-hidden="true" className="k-group-icon" />
       <input
         className="k-input"
         aria-label="新标签分组名称"
-        placeholder="分组名称，例如“发色”"
+        placeholder="分组名称"
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") submit();
-          if (e.key === "Escape") onDone(null);
+          escape(e, () => onDone(null));
         }}
       />
-      <select className="k-select" aria-label="分组内容" value={kind} onChange={(e) => setKind(e.target.value as TagNamespace | "")}>
-        {KINDS.map((k) => (
-          <option key={k.value} value={k.value}>
-            {k.label}
-          </option>
-        ))}
-      </select>
-      <span className="k-group-new-acts">
-        <button type="button" className="k-btn is-sm" onClick={() => onDone(null)}>取消</button>
-        <button type="button" className="k-btn is-sm is-primary" disabled={!name.trim()} onClick={submit}>建立</button>
-      </span>
+      <Select label="分组内容" className="k-group-kind" value={kind} onChange={setKind} options={KINDS} />
+      <button type="button" className="k-btn" onClick={() => onDone(null)}>取消</button>
+      <button type="button" className="k-btn" disabled={!name.trim()} onClick={submit}>建立</button>
     </div>
   );
 }
 
-/** “给分组加标签”：按名称或别名从工作区可见标签里挑一个。 */
-function PickTag({ lens, onPick, onCancel }: { lens: Lens; onPick: (tag: TagLabel) => void; onCancel: () => void }) {
+/** “给分组加标签”：按名称或别名从工作区可见标签里挑一个；已在分组里的不再列出。 */
+function PickTag({ lens, members, onPick, onCancel }: { lens: Lens; members: string[]; onPick: (tag: TagLabel) => void; onCancel: () => void }) {
   const [text, setText] = useState("");
-  const found = useCandidates(lens, text);
+  const { list, ready } = useCandidateState(lens, text, (c) => !members.includes(c.tag.id));
   return (
-    <div className="sidebar-pick-tag k-group-pick">
-      <input
-        className="k-input"
+    <div className="k-group-pick">
+      <Combobox
+        label="挑一个统一标签"
         placeholder="标签名或别名"
-        role="combobox"
-        aria-label="挑一个统一标签"
-        aria-expanded={found.length > 0}
         autoFocus
         value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") onCancel();
-          if (e.key === "Enter" && found.length) onPick(found[0].tag);
-        }}
+        onValueChange={setText}
+        options={list.map((c) => tagOption(c, text))}
+        empty={ready ? "没有匹配的标签" : undefined}
+        onSelect={(option) => onPick(option.tag)}
+        onKeyDown={(e) => escape(e, onCancel)}
       />
-      {found.length > 0 && (
-        <ul role="listbox" className="search-popover-list">
-          {found.map((c) => (
-            <li key={c.tag.id} role="option" aria-selected={false} onClick={() => onPick(c.tag)}>
-              <span>{tagName(c.tag)}</span>
-              <TagMarks tag={c.tag} />
-              {c.via && <span className="search-candidate-via">又名：{c.via}</span>}
-            </li>
-          ))}
-        </ul>
-      )}
-      <button type="button" className="k-btn is-sm" onClick={onCancel}>
-        取消
-      </button>
+      <button type="button" className="k-icon-btn" aria-label="取消加标签" title="取消" onClick={onCancel}><X size={16} aria-hidden="true" /></button>
     </div>
   );
 }
