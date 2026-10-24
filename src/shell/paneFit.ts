@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { INSPECTOR_WIDTH } from "./InspectorResizer";
 
 /** 侧栏宽度：平时 256，窗口窄时最窄让到 200。 */
@@ -70,4 +70,19 @@ export function usePaneFold({ body, inspector, paneOpen, onPaneOpen }: {
     }
   }, [narrow]); // eslint-disable-line react-hooks/exhaustive-deps
   return { sidebar: fitPanes(body, inspector, paneOpen && !narrow).sidebar, floating: paneOpen && narrow };
+}
+
+/**
+ * 浮起的侧栏按 Esc 收回。点开它的按钮、栏或 Ctrl B 都不把焦点移进侧栏，所以在文档上听；
+ * 里面的弹出层已经用掉的 Esc（defaultPrevented）不算。
+ */
+export function useFloatEscape(floating: boolean, onClose: () => void) {
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    if (!floating) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) { e.preventDefault(); close.current(); } };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [floating]);
 }

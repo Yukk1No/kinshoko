@@ -5,6 +5,7 @@ import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { CaptureHistoryPanel } from "../desktop/CaptureHistoryPanel";
 import { ReferenceGroupsPanel } from "../desktop/ReferenceGroupsPanel";
 import { WorkspacePane } from "../library/WorkspacePane";
+import { useFloatEscape } from "../shell/paneFit";
 import type { Section } from "../shell/Rail";
 
 /** 工作区左栏：文件夹（图库与查找范围）、参考组或截图历史。 */
@@ -30,6 +31,7 @@ export function WorkspaceSidebar({
   captureRequest?: { id: string; stamp: number } | null;
   onCaptureRequestHandled?: () => void;
 }) {
+  useFloatEscape(!!floating, onPaneToggle);
   const libInPane = paneOpen && section === "browse";
   const sectionName = section === "groups" ? "参考组" : "截图";
   return (
@@ -37,7 +39,6 @@ export function WorkspaceSidebar({
       className="sidebar-slot pane"
       data-collapsed={!paneOpen}
       data-float={floating || undefined}
-      onKeyDown={floating ? (e) => { if (e.key === "Escape") { e.stopPropagation(); onPaneToggle(); } } : undefined}
       aria-label={section === "browse" ? "文件夹" : section === "groups" ? "参考组" : "截图历史"}
       aria-hidden={!paneOpen}
       inert={!paneOpen}

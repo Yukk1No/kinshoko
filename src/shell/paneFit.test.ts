@@ -1,7 +1,7 @@
 // 窄窗口里侧栏与详情面板一起让位，主区不低于 300px。
-import { renderHook } from "@testing-library/react";
+import { fireEvent, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { fitPanes, isNarrow, usePaneFold } from "./paneFit";
+import { fitPanes, isNarrow, useFloatEscape, usePaneFold } from "./paneFit";
 
 it("放得下时两边都不变", () => {
   expect(fitPanes(968, 320, true)).toEqual({ sidebar: 256, inspector: 320 });
@@ -73,5 +73,27 @@ describe("usePaneFold", () => {
     view.rerender({ body: 708, inspector: 320, paneOpen: false });
     view.rerender({ body: 900, inspector: 320, paneOpen: false });
     expect(onPaneOpen).not.toHaveBeenCalled();
+  });
+});
+
+describe("useFloatEscape", () => {
+  it("焦点不在侧栏里时，Esc 也收回浮起的侧栏", () => {
+    const onClose = vi.fn();
+    const view = renderHook(({ floating }) => useFloatEscape(floating, onClose), { initialProps: { floating: true } });
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    view.rerender({ floating: false });
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("里面的弹出层已经用掉的 Esc 不收回侧栏", () => {
+    const onClose = vi.fn();
+    renderHook(() => useFloatEscape(true, onClose));
+    const consume = (e: KeyboardEvent) => e.preventDefault();
+    document.body.addEventListener("keydown", consume);
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    document.body.removeEventListener("keydown", consume);
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
