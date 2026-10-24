@@ -8,7 +8,7 @@ import type { BrowserCard } from "../wall/Wall";
 
 /** 详情面板（#98）：整理哪些图、是否打开、宽度与开合过渡。 */
 export function useWorkspaceInspector({
-  selected, setSelected, loadedCards, workspaceScope, libraryId, sources, setSources, hidden, viewing, inspectorWidth,
+  selected, setSelected, loadedCards, workspaceScope, libraryId, sources, setSources, hidden, viewing, inspectorWidth, fitPanel,
 }: {
   selected: Set<string>;
   setSelected: Dispatch<SetStateAction<Set<string>>>;
@@ -20,6 +20,8 @@ export function useWorkspaceInspector({
   hidden: boolean;
   viewing: BrowserCard | null;
   inspectorWidth?: number;
+  /** 窄窗口里详情面板实际画多宽（paneFit）；保存的宽度不变。 */
+  fitPanel?: (width: number) => number;
 }) {
   // 详情面板（#98）：明确打开的多来源整理优先；否则显示当前选择的整理。
   const selectionKey = [...selected].sort().join("\n");
@@ -72,10 +74,11 @@ export function useWorkspaceInspector({
   const inspectorMoving = useWidthTransition(inspectorElement);
   const [draggedWidth, setDraggedWidth] = useState<number | null>(null);
   const panelWidth = useInspectorWidth(draggedWidth ?? inspectorWidth);
+  const shownWidth = fitPanel ? fitPanel(panelWidth) : panelWidth;
   // 面板与右下角的任务卡片（挂在 body 上）共用这个宽度。
   useLayoutEffect(() => {
-    document.documentElement.style.setProperty("--inspector-width", `${panelWidth}px`);
-  }, [panelWidth]);
+    document.documentElement.style.setProperty("--inspector-width", `${shownWidth}px`);
+  }, [shownWidth]);
   useEffect(() => () => { document.documentElement.style.removeProperty("--inspector-width"); }, []);
   const closeInspector = () => { if (sources) setSources(null); else setInspectorHidden(selectionKey); };
   /** 查看器的 I 键、dock 与右键菜单（#179）：显示或隐藏详情侧栏。 */

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { PanelLeftOpen } from "lucide-react";
 import { useImportShortcut } from "./useImportShortcut";
 import type { BrowseScope } from "../bindings/BrowseScope";
@@ -10,6 +10,7 @@ import { isCursorExpired } from "../ipc";
 import { ImportMenu, type ImportControl } from "../library/ImportMenu";
 import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
+import { fitPanes, isNarrow, usePaneFold, useWidth } from "../shell/paneFit";
 import type { Section } from "../shell/Rail";
 import { TaggingActivity } from "../TaggingActivity";
 import { useToast } from "../ui/Toast";
@@ -38,6 +39,8 @@ type WorkspaceProps = {
   section: Section;
   paneOpen: boolean;
   onPaneToggle: () => void;
+  /** 窄窗口里自动收起、恢复侧栏，以及点开浮起的侧栏后收回。 */
+  onPaneOpen: (open: boolean) => void;
   onOpenBrowse: () => void;
   libraryControls: ReactNode;
   /** 新建资料库表单打开时只隐藏工作区，继续接收当前库的导入事件。 */
@@ -73,6 +76,7 @@ export function LibraryWorkspace({
   section,
   paneOpen,
   onPaneToggle,
+  onPaneOpen,
   onOpenBrowse,
   libraryControls,
   hidden,
@@ -191,10 +195,15 @@ export function LibraryWorkspace({
 
   const { search, setSearch, tree, treeSafe, searching } = useSearchTree({ libraryId, safe, vocabularyKey, onError, setReloadKey });
 
+  // 窄窗口里侧栏与详情面板按余量一起让位，主区不低于 300（#274）。
+  const [appBody, setAppBody] = useState<HTMLDivElement | null>(null);
+  const bodyWidth = useWidth(appBody);
   const inspector = useWorkspaceInspector({
     selected, setSelected, loadedCards, workspaceScope, libraryId, sources, setSources, hidden, viewing, inspectorWidth,
+    fitPanel: (width) => fitPanes(bodyWidth, width, paneOpen && !isNarrow(bodyWidth, width)).inspector,
   });
   const { selectionLibrary, eligible, inspected, inspectorContent, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector } = inspector;
+  const panes = usePaneFold({ body: bodyWidth, inspector: inspectorOpen ? inspector.panelWidth : 0, paneOpen, onPaneOpen });
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
   const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
@@ -214,13 +223,15 @@ export function LibraryWorkspace({
   return (
     <>
     <div className="app-workspace workspace" hidden={hidden}>
-      <div className="app-body">
-        <WorkspaceSidebar section={section} paneOpen={paneOpen} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
+      <div className="app-body" ref={setAppBody} style={{ "--sidebar-width": `${panes.sidebar}px` } as CSSProperties}>
+        {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
+        <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
           status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} recheck={recheck}
           onLibraryRemoved={onLibraryRemoved} libraryId={libraryId} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
           onScope={(next) => {
             // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
             setWorkspaceScope(next); setSelected(new Set()); setSources(null); setViewing(null);
+            if (panes.floating) onPaneOpen(false);
           }} />
         <main className="app-main main">
           <header className="topbar" data-tauri-drag-region>

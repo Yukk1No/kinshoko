@@ -299,6 +299,7 @@ function MainWindow() {
           section={section}
           paneOpen={paneOpen}
           onPaneToggle={() => setPaneOpen((open) => !open)}
+          onPaneOpen={setPaneOpen}
           onOpenBrowse={() => { setSection("browse"); setPaneOpen(true); }}
           libraryControls={libraryControls}
           hidden={empty}
