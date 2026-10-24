@@ -158,6 +158,19 @@ fn prepare_pins(
             format!("第 {} 张截图的收藏未完成：{error}。之前完成的 {completed_captures} 张收藏已保留；参考组尚未保存。",completed_captures+1)
         })?;
         completed_captures += 1;
+        // 这张截图若已是别的参考组自带的截图，那些成员也改连收藏成的参考图。
+        if let PinContent::Reference {
+            library_id,
+            image_id,
+            ..
+        } = &reference.content
+        {
+            let collected = CollectedCapture {
+                library_id: library_id.clone(),
+                image_id: image_id.clone(),
+            };
+            capture_collected(app, id, &collected);
+        }
         prepared.push(reference);
     }
     super::history_changed(app);
@@ -171,9 +184,10 @@ pub fn capture_collected(app: &AppHandle, capture_id: &str, collected: &Collecte
     let Some(entry) = lock(&state(app).history).entry(capture_id) else {
         return;
     };
-    let groups = lock(&state(app).groups).clone();
     let open = pins::open_pins(app);
+    // 与其他写参考组的命令一样持着参考组锁改写，免得和“存回参考组”交错；先参考组、后截图历史。
     let relinked = {
+        let groups = lock(&state(app).groups);
         let mut history = lock(&state(app).history);
         groups.link_captures(&mut history, &open);
         groups.relink_collected(&mut history, capture_id, collected)
@@ -201,7 +215,7 @@ pub fn capture_collected(app: &AppHandle, capture_id: &str, collected: &Collecte
 
 /// 存进参考组后记下截图历史条目与组内截图成员的关联（[`capture_collected`] 用）。
 fn link_captures(app: &AppHandle, saved: &[SavedPin]) {
-    let groups = lock(&state(app).groups).clone();
+    let groups = lock(&state(app).groups);
     groups.link_captures(&mut lock(&state(app).history), saved);
 }
 
