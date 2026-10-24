@@ -181,7 +181,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
         {naming ? <GroupNameForm className="is-new" title="新参考组" label="新参考组名称" placeholder="给这组钉图起个名字"
           value={name} onChange={setName} busy={saving} blocked={!!captureSave}
           onCancel={() => { setNaming(false); setName(""); }} onSubmit={() => void run(() => beginSave({ name }))} /> : <button type="button" className="k-btn is-primary group-save" disabled={!!captureSave || saving} onClick={() => setNaming(true)}>
-          <BookmarkPlus size={15} aria-hidden="true" />存下桌面钉图
+          <BookmarkPlus size={15} aria-hidden="true" /><span className="k-label">存下桌面钉图</span>
         </button>}
       </header>
       {importing && <SaveDestinationDialog title="导入参考组包" confirmLabel="选择参考组包并导入" onClose={() => setImporting(false)} onConfirm={async (destination) => {
@@ -220,15 +220,15 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
               )}
               {on && renaming?.id !== g.id && (g.problem ? (
                 <span className="reference-group-actions">
-                  <button type="button" className="k-btn is-sm" onClick={() => setDeleting(g.id)}><Trash2 size={13} aria-hidden="true" />删除</button>
+                  <button type="button" className="k-btn is-sm" onClick={() => setDeleting(g.id)}><Trash2 size={13} aria-hidden="true" /><span className="k-label">删除</span></button>
                 </span>
               ) : (
                 <span className="reference-group-actions">
                   <button type="button" className="k-btn is-sm" onClick={() => void run(
                     () => openReferenceGroup(g.id),
                     (n) => (n === 0 ? "成员都已在桌面上" : `已钉出 ${String(n)} 个成员`),
-                  )}><Layers size={13} aria-hidden="true" />摆到桌面</button>
-                  <button type="button" className="k-btn is-sm" onClick={() => setRenaming({ id: g.id, name: g.name })}>改名</button>
+                  )}><Layers size={13} aria-hidden="true" /><span className="k-label">摆到桌面</span></button>
+                  <button type="button" className="k-btn is-sm" onClick={() => setRenaming({ id: g.id, name: g.name })}><span className="k-label">改名</span></button>
                   <Menu.Root>
                     <Menu.Trigger className="k-icon-btn" aria-label="更多操作" title="更多操作"><MoreHorizontal size={15} aria-hidden="true" /></Menu.Trigger>
                     <MenuPopup label={`${g.name} 的更多操作`}>
@@ -254,7 +254,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                       <li key={m.memberId} className={m.state.kind === "unavailable" ? "reference-group-member-unavailable" : undefined}>
                         <span className="k-parts"><span>{libraryNames.get(m.libraryId) ?? "未登记的图库"}</span><span>{crop ? `局部 ${crop.width} × ${crop.height}` : "整图"}</span></span>
                         <span>{memberState(m)}</span>
-                        <button type="button" className="k-btn is-sm" onClick={() => void run(() => removeGroupMember(g.id, m.memberId))}>移出</button>
+                        <button type="button" className="k-btn is-sm" onClick={() => void run(() => removeGroupMember(g.id, m.memberId))}><span className="k-label">移出</span></button>
                       </li>
                     );
                   })}
@@ -265,7 +265,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
         })}
       </ul>
       <footer className="reference-groups-foot">
-        <button type="button" className="k-btn is-sm is-ghost" onClick={() => setImporting(true)}><FolderInput size={13} aria-hidden="true" />导入参考组包</button>
+        <button type="button" className="k-btn is-sm is-ghost" onClick={() => setImporting(true)}><FolderInput size={13} aria-hidden="true" /><span className="k-label">导入参考组包</span></button>
       </footer>
       <AlertDialog.Root open={!!deletingGroup} onOpenChange={(open) => { if (!open) setDeleting(null); }}>
         <AlertDialog.Portal>
@@ -275,11 +275,11 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
             <AlertDialog.Description className="k-dialog-desc">「{deletingGroup?.name}」会被删除，图库里的原图不受影响。</AlertDialog.Description>
             <div className="k-dialog-foot">
               <span className="k-grow" />
-              <AlertDialog.Close className="k-btn">取消</AlertDialog.Close>
+              <AlertDialog.Close className="k-btn"><span className="k-label">取消</span></AlertDialog.Close>
               <button type="button" className="k-btn is-danger" onClick={() => {
                 const id = deleting!;
                 void run(() => deleteReferenceGroup(id), () => (setDeleting(null), null));
-              }}>删除</button>
+              }}><span className="k-label">删除</span></button>
             </div>
           </AlertDialog.Popup>
         </AlertDialog.Portal>

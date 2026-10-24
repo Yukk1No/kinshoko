@@ -24,7 +24,7 @@ export function GroupNameForm({ title, label, placeholder, value, onChange, onSu
     <div className="k-field-row">
       <input className="k-input" aria-label={label} placeholder={placeholder} autoFocus disabled={busy}
         value={value} onChange={(e) => onChange(e.target.value)} />
-      <button type="submit" className={`k-btn${primary ? " is-primary" : ""}`} disabled={!value.trim() || busy || blocked}>保存</button>
+      <button type="submit" className={`k-btn${primary ? " is-primary" : ""}`} disabled={!value.trim() || busy || blocked}><span className="k-label">保存</span></button>
     </div>
   </form>;
 }

@@ -13,6 +13,6 @@ export function Segmented<T extends string>({ value, options, onChange, label, c
   return <ToggleGroup className={`k-seg ${className}`} aria-label={label} value={value === null ? [] : [value]}
     onValueChange={(next) => { const picked = next[0] as T | undefined; if (picked !== undefined && picked !== value) onChange(picked); }}>
     {options.map((option) => <Toggle key={option.value} value={option.value} className="k-seg-item" disabled={option.disabled}
-      title={option.title} aria-label={option.ariaLabel}>{option.label}</Toggle>)}
+      title={option.title} aria-label={option.ariaLabel}><span className="k-label">{option.label}</span></Toggle>)}
   </ToggleGroup>;
 }

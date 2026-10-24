@@ -44,8 +44,8 @@ export function TrashRow({ label, count, current, expanded, disabled, onClick, m
       <ContextMenu.Trigger render={<button type="button" className="sidebar-item k-row" aria-current={current ? "page" : undefined} aria-expanded={expanded}
         disabled={disabled} aria-label={`回收站（${label}，${count ?? "…"} 张）`} title={label} onClick={onClick} />}>
         <span className="k-row-icon" aria-hidden="true"><Trash2 size={15} /></span>
-        <span className="sidebar-label">回收站</span>
-        <span className="sidebar-count">{count ?? ""}</span>
+        <span className="sidebar-label k-label">回收站</span>
+        <span className="sidebar-count k-label">{count ?? ""}</span>
       </ContextMenu.Trigger>
       <MenuPopup label="回收站的操作" width={220}>{menu}</MenuPopup>
     </ContextMenu.Root>

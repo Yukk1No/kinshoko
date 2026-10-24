@@ -47,7 +47,7 @@ export function SharedPersonalApproxSettings({onError}:{onError:(message:string)
         {view.entries.map(entry=><tr key={`${entry.a.id}/${entry.b.id}`}>
           <td>{tagName(entry.a)}<TagMarks tag={entry.a}/>～{tagName(entry.b)}<TagMarks tag={entry.b}/></td>
           <td>{relationName(entry.relation)}</td>
-          <td><button type="button" className="k-btn is-sm is-quiet" disabled={busy} onClick={()=>void edit({kind:"remove",a:entry.a.id,b:entry.b.id})}>删除</button></td>
+          <td><button type="button" className="k-btn is-sm is-quiet" disabled={busy} onClick={()=>void edit({kind:"remove",a:entry.a.id,b:entry.b.id})}><span className="k-label">删除</span></button></td>
           {!!entry.sources.length&&<td>来自：{entry.sources.map(source=><span key={source.libraryId} title={source.libraryRoot}>{source.libraryName}（{libraryPathHint(source.libraryRoot, entry.sources.map(item => item.libraryRoot))}） </span>)}</td>}
         </tr>)}
       </tbody></table>}
@@ -55,7 +55,7 @@ export function SharedPersonalApproxSettings({onError}:{onError:(message:string)
         <h3>{tagName(conflict.a)} ～ {tagName(conflict.b)}</h3>
         <p className="k-set-note">{conflict.current===null?"较早图库的判断不一致，选好前先不展开。":`现在算“${relationName(conflict.current)}”，较早图库不会改它。`}</p>
         <ul>{conflict.sources.map((source,index)=><li key={`${source.libraryId}/${index}`} title={source.libraryRoot}>{source.libraryName}（{libraryPathHint(source.libraryRoot, conflict.sources.map(item => item.libraryRoot))}）：{relationName(source.relation)}</li>)}</ul>
-        <div className="k-set-inline">{([{relation:"similar",name:"相近"},{relation:"notSimilar",name:"不相近"},{relation:null,name:"保持现状"}] as const).map(choice=><button key={choice.name} type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void edit({kind:"resolveConflict",a:conflict.a.id,b:conflict.b.id,revision:view.revision,relation:choice.relation})}>{choice.name}</button>)}</div>
+        <div className="k-set-inline">{([{relation:"similar",name:"相近"},{relation:"notSimilar",name:"不相近"},{relation:null,name:"保持现状"}] as const).map(choice=><button key={choice.name} type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void edit({kind:"resolveConflict",a:conflict.a.id,b:conflict.b.id,revision:view.revision,relation:choice.relation})}><span className="k-label">{choice.name}</span></button>)}</div>
       </div>)}
     </>}
   </section>;

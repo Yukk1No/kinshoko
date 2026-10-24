@@ -227,7 +227,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     <section ref={root} className="viewer" role="region" aria-label="原图查看器"
       tabIndex={-1} onKeyDown={keyDown}>
       <header className="viewer-bar">
-        <button type="button" className="k-btn is-quiet viewer-back" aria-label="返回图片墙" onClick={onClose}><ArrowLeft size={16} />返回</button>
+        <button type="button" className="k-btn is-quiet viewer-back" aria-label="返回图片墙" onClick={onClose}><ArrowLeft size={16} /><span className="k-label">返回</span></button>
         <span className="viewer-title" title={name ?? undefined}>{name}</span>
         {position && <>
           <span className="viewer-index">{position.index + 1} / {position.total}</span>

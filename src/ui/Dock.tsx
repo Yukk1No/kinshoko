@@ -72,7 +72,7 @@ export function Dock({ items, value, onSelect, label = "工具", className = "",
   return <LayoutGroup id={`dock-${label}`}>
     <div ref={root} className={`k-dock${tone === "dark" ? " is-dark" : ""} ${className}`} role="toolbar" aria-label={label}
       onMouseLeave={() => setHovered(null)}>
-      {readout && <div className="k-dock-readout">{readout}</div>}
+      {readout && <div className="k-dock-readout"><span className="k-label">{readout}</span></div>}
       {items.map((item, k) => item === "sep"
         ? <span key={`sep-${k}`} className="k-dock-sep" aria-hidden="true" />
         : <div key={item.id} className="k-dock-cell" data-dock-id={item.id} onMouseEnter={() => setHovered(item.id)}>
