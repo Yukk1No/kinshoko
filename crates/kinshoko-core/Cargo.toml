@@ -6,6 +6,74 @@ edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 license.workspace = true
+# 集成测试大多合在 tests/integration.rs 一个二进制里，新测试文件在那里加 `mod`。
+autotests = false
+
+[[test]]
+name = "integration"
+path = "tests/integration.rs"
+
+# 以子进程重跑自身某个测试的，依赖全进程状态初始值的（thumbnail_memory、import_pipeline），
+# 以及验收文档按目标名引用的 fidelity，仍各自独立。
+[[test]]
+name = "fidelity"
+path = "tests/fidelity.rs"
+
+[[test]]
+name = "import_pipeline"
+path = "tests/import_pipeline.rs"
+
+[[test]]
+name = "application_settings_backup"
+path = "tests/application_settings_backup.rs"
+
+[[test]]
+name = "backup_content_definitions"
+path = "tests/backup_content_definitions.rs"
+
+[[test]]
+name = "backup_content_restore"
+path = "tests/backup_content_restore.rs"
+
+[[test]]
+name = "backup_crash"
+path = "tests/backup_crash.rs"
+
+[[test]]
+name = "eagle_crash"
+path = "tests/eagle_crash.rs"
+
+[[test]]
+name = "eagle_deleted_content"
+path = "tests/eagle_deleted_content.rs"
+
+[[test]]
+name = "import_crash"
+path = "tests/import_crash.rs"
+
+[[test]]
+name = "legacy_name_migration"
+path = "tests/legacy_name_migration.rs"
+
+[[test]]
+name = "permanent_delete"
+path = "tests/permanent_delete.rs"
+
+[[test]]
+name = "portable_package_checks"
+path = "tests/portable_package_checks.rs"
+
+[[test]]
+name = "portable_tags"
+path = "tests/portable_tags.rs"
+
+[[test]]
+name = "tagger_process"
+path = "tests/tagger_process.rs"
+
+[[test]]
+name = "thumbnail_memory"
+path = "tests/thumbnail_memory.rs"
 
 [dependencies]
 serde.workspace = true

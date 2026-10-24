@@ -30,7 +30,7 @@
 .k-row { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; height: 30px; padding: 0 8px; border: 0; border-radius: var(--r-s);
   background: transparent; color: var(--ink); text-align: left; line-height: 30px; }
 .k-row .k-row-icon { flex: none; display: grid; place-items: center; color: var(--ink-3); }
-.k-row .sidebar-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-row .sidebar-label { flex: 1; }
 .k-row .sidebar-count { margin-left: auto; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; opacity: 1; }
 .k-row[aria-current="page"] { background: var(--accent-soft); color: var(--accent-strong); font-weight: 500; }
 .k-row[aria-current="page"] .k-row-icon, .k-row[aria-current="page"] .sidebar-count { color: var(--accent-strong); }
@@ -51,7 +51,7 @@
 .lib-head-name:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
 .lib-head-name[aria-current="page"] { color: var(--accent-strong); background: var(--accent-soft); }
 .lib-head-name:disabled { opacity: 1; cursor: default; pointer-events: none; } /* 未连接：右键与悬停提示落在整行（.lib-head）上 */
-.lib-head-name .sidebar-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-head-name .sidebar-label { flex: 1; }
 .lib-head-name .sidebar-count { font-weight: 500; opacity: 0.85; }
 .workspace-provider > .sidebar { padding: 0; border: 0; width: auto; overflow: visible; gap: 0; }
 /* 方案 D（#113）：标题行“图库 ＋”；图库是 Finder 式分组，⋯ 悬停出现；未连接的图库名称变淡、带警示点，同一行末尾是“重新连接”。 */

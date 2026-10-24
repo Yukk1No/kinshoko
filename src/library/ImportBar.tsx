@@ -250,7 +250,7 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
           {interrupted.map((path) => <li key={path}><span className="import-report-path">{path}</span></li>)}
         </ul></details>}
         {interrupted.length > 0 && <div className="k-task-acts">
-          <button type="button" className="k-btn is-sm" aria-label="重新导入这些文件" disabled={busy} onClick={() => { void begin(interrupted); setRecovery(null); }}>重新导入</button>
+          <button type="button" className="k-btn is-sm" aria-label="重新导入这些文件" disabled={busy} onClick={() => { void begin(interrupted); setRecovery(null); }}><span className="k-label">重新导入</span></button>
         </div>}
       </section>
     )}
@@ -261,8 +261,8 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
         <p className="k-task-sub import-report-path">新位置：{relocation.to}</p>
         <p className="k-task-sub import-report-path">原位置：{relocation.from}</p>
         <div className="k-task-acts">
-          <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void confirm(relocation, { kind: "moved", sourceId: relocation.sourceId })}>是同一个库</button>
-          <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void confirm(relocation, { kind: "separate" })}>是另一个库</button>
+          <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void confirm(relocation, { kind: "moved", sourceId: relocation.sourceId })}><span className="k-label">是同一个库</span></button>
+          <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void confirm(relocation, { kind: "separate" })}><span className="k-label">是另一个库</span></button>
         </div>
       </section>
     ))}
@@ -277,8 +277,8 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
         {cardNotes}
         <div className="k-task-acts">
           <button type="button" className="k-btn is-sm" aria-label="取消导入" disabled={!running.taskId}
-            onClick={() => running.taskId && cancelImport(running.libraryId??libraryId, running.taskId).catch((e) => alive.current && setImportError(`无法取消导入：${String(e)}`))}>取消</button>
-          <button type="button" className="k-btn is-sm is-ghost" onClick={() => setBackground(running.taskId ?? "")}>后台进行</button>
+            onClick={() => running.taskId && cancelImport(running.libraryId??libraryId, running.taskId).catch((e) => alive.current && setImportError(`无法取消导入：${String(e)}`))}><span className="k-label">取消</span></button>
+          <button type="button" className="k-btn is-sm is-ghost" onClick={() => setBackground(running.taskId ?? "")}><span className="k-label">后台进行</span></button>
         </div>
       </section>
     )}
@@ -289,7 +289,7 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
     {sealed && <section className="k-task is-row sealed-import-prompt" aria-label="封印项重复">
       {/* #78 规定的原文：不点名内容类别，不给数量。 */}
       <SealLock size={10} /><span className="k-grow">有封印项重复，是否展开看看</span>
-      <button type="button" className="k-btn is-sm" aria-label="展开本次重复项" onClick={() => setPreview({ taskId: sealed.taskId, contextKey })}>展开</button>
+      <button type="button" className="k-btn is-sm" aria-label="展开本次重复项" onClick={() => setPreview({ taskId: sealed.taskId, contextKey })}><span className="k-label">展开</span></button>
     </section>}
   </>;
 

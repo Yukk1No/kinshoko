@@ -85,7 +85,7 @@ function RatingPicker({
         options={(Object.keys(RATING_LABELS) as ContentRating[]).map((r) => ({ value: r, label: RATING_LABELS[r] }))} />
       {rating.manual
         ? <p className="insp-hint">已手动修正
-          <button type="button" className="k-btn is-ghost is-sm" onClick={() => edit([{ kind: "revertRating" }])}><Undo2 size={12} aria-hidden="true" />改回自动（{auto}）</button></p>
+          <button type="button" className="k-btn is-ghost is-sm" onClick={() => edit([{ kind: "revertRating" }])}><Undo2 size={12} aria-hidden="true" /><span className="k-label">改回自动（{auto}）</span></button></p>
         : <p className="insp-hint">自动分级：{auto}</p>}
     </section>
   );
@@ -128,7 +128,7 @@ function Detail({
       <section className="insp-sec selection-folders" aria-label="所在文件夹">
         <h4>文件夹</h4>
         {detail.folders.length
-          ? <ul className="insp-chips">{detail.folders.map((folder) => <li key={folder.id} className="insp-chip">{folder.name}
+          ? <ul className="insp-chips">{detail.folders.map((folder) => <li key={folder.id} className="insp-chip"><span className="k-label">{folder.name}</span>
             {sourceMode && <button type="button" className="insp-chip-x" aria-label={`移出「${folder.name}」`} title={`移出「${folder.name}」`}
               onClick={() => edit([{ kind: "removeFromFolder", folderId: folder.id }])}><X size={11} aria-hidden="true" /></button>}</li>)}</ul>
           : <p className="insp-hint">不在任何文件夹里</p>}
@@ -146,7 +146,7 @@ function Detail({
             aria-label="保存备注"
             onClick={() => edit([{ kind: "setNote", text: draft }])}
           >
-            保存
+            <span className="k-label">保存</span>
           </button>}
           <button
             type="button"
@@ -156,7 +156,7 @@ function Detail({
             title={sources.length ? "改回来源提供的备注" : "来源没有提供备注，退回后备注为空"}
             onClick={() => edit([{ kind: "revertNote" }])}
           >
-            用来源的
+            <span className="k-label">用来源的</span>
           </button>
         </div>}
       </section>
@@ -269,9 +269,9 @@ export function PermanentDeleteConfirm({
           </>}
           <div className="k-dialog-foot">
             <span className="k-grow" />
-            <AlertDialog.Close className="k-btn" disabled={busy}>取消</AlertDialog.Close>
+            <AlertDialog.Close className="k-btn" disabled={busy}><span className="k-label">取消</span></AlertDialog.Close>
             <button type="button" className="k-btn is-danger" disabled={busy || !preview || preview.imageIds.length === 0} onClick={confirm}>
-              {emptyTrash ? "清空回收站" : "确认永久删除"}
+              <span className="k-label">{emptyTrash ? "清空回收站" : "确认永久删除"}</span>
             </button>
           </div>
         </AlertDialog.Popup>
@@ -372,7 +372,7 @@ export function SelectionPanel({
       <span className="selection-count">已选 {ids.length} 张</span>
       <Menu.Root modal={false}>
         <Menu.Trigger className="selbar-btn" aria-label="移到文件夹" disabled={!folders.length} title={folders.length ? "移到文件夹" : "还没有文件夹"}>
-          <FolderInput size={15} aria-hidden="true" />移到
+          <FolderInput size={15} aria-hidden="true" /><span className="k-label">移到</span>
         </Menu.Trigger>
         <MenuPopup width={220} align="center" label="移到文件夹">
           {folders.map((f) => <MenuItem key={f.id} onClick={() => void edit([{ kind: "addToFolder", folderId: f.id }])}>{f.label}</MenuItem>)}
@@ -380,22 +380,22 @@ export function SelectionPanel({
       </Menu.Root>
       {scope.kind === "folder" && (
         <button type="button" className="selbar-btn" onClick={() => void edit([{ kind: "removeFromFolder", folderId: scope.id }], true)}>
-          <FolderMinus size={15} aria-hidden="true" />移出此文件夹
+          <FolderMinus size={15} aria-hidden="true" /><span className="k-label">移出此文件夹</span>
         </button>
       )}
       <span className="selbar-div" aria-hidden="true" />
       {scope.kind === "trash" ? (
         <>
           <button type="button" className="selbar-btn" onClick={() => void edit([{ kind: "restore" }], true)}>
-            <RotateCcw size={15} aria-hidden="true" />恢复
+            <RotateCcw size={15} aria-hidden="true" /><span className="k-label">恢复</span>
           </button>
           <button type="button" className="selbar-btn is-danger" onClick={() => setPurging(true)}>
-            <Trash2 size={15} aria-hidden="true" />永久删除…
+            <Trash2 size={15} aria-hidden="true" /><span className="k-label">永久删除…</span>
           </button>
         </>
       ) : (
         <button type="button" className="selbar-btn is-danger" onClick={() => void edit([{ kind: "delete" }], true)}>
-          <Trash2 size={15} aria-hidden="true" />删除
+          <Trash2 size={15} aria-hidden="true" /><span className="k-label">删除</span>
         </button>
       )}
       <button type="button" className="selbar-btn is-icon" aria-label="取消选择" title="取消选择" onClick={onClear}>

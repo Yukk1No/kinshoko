@@ -50,7 +50,7 @@ export function ApplicationSettingsBackup({ onRestored }: { onRestored: (setting
           <div className="k-set-inline">
             <input className="k-input" aria-label="偏好设置备份文件" value={path} disabled={busy} placeholder="或输入 .kinshoko-settings 文件位置"
               onChange={(e)=>{setPath(e.target.value);setPreview(null);setMessage(null);setError(null);}} />
-            {path.trim() && !preview && <button type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void inspect()}>读取</button>}
+            {path.trim() && !preview && <button type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void inspect()}><span className="k-label">读取</span></button>}
           </div>
           {busy && <p role="status">正在读取或保存偏好设置…</p>}
           {preview && <div className="k-confirm" role="group" aria-label="确认替换偏好设置">
@@ -58,15 +58,15 @@ export function ApplicationSettingsBackup({ onRestored }: { onRestored: (setting
             <p>备份里没有的名称偏好和相近规则会删除。图库里的原图、备注、标签、分级与目录不变。</p>
             <p>恢复后的安全模式：<strong>{preview.safeMode ? "开启" : "关闭（成人参考图可以显示）"}</strong>。按 sRGB 显示：{preview.forceSrgb ? "开启" : "关闭"}，重启后生效。</p>
             <div className="k-confirm-actions">
-              <button type="button" className="k-btn is-sm is-primary" disabled={busy} onClick={()=>void restore()}>替换偏好设置</button>
-              <button type="button" className="k-btn is-sm" disabled={busy} onClick={()=>setPreview(null)}>取消</button>
+              <button type="button" className="k-btn is-sm is-primary" disabled={busy} onClick={()=>void restore()}><span className="k-label">替换偏好设置</span></button>
+              <button type="button" className="k-btn is-sm" disabled={busy} onClick={()=>setPreview(null)}><span className="k-label">取消</span></button>
             </div>
           </div>}
           {message && <p role="status">{message}</p>}
           {error && <p className="k-set-error" role="alert">{error}</p>}
         </>}>
-        <button type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void pick()}>恢复…</button>
-        <button type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void exportFile()}>导出</button>
+        <button type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void pick()}><span className="k-label">恢复…</span></button>
+        <button type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void exportFile()}><span className="k-label">导出</span></button>
       </SettingsRow>
     </SettingsGroup>
   </section>;

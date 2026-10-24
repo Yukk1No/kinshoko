@@ -86,13 +86,13 @@ export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, 
         </ul>
         <div className="k-dialog-foot">
           <span className="k-grow" />
-          <button type="button" className="k-btn" disabled={saving} onClick={onClose}>取消</button>
+          <button type="button" className="k-btn" disabled={saving} onClick={onClose}><span className="k-label">取消</span></button>
           <button type="button" className="k-btn is-primary"
             disabled={saving || !saveContext.ready || value.entries.some((e) => {
               const choice = value.choices[e.id];
               return choice !== SKIP && choice !== KEEP_IN_GROUP && !destinationAvailable({ libraryId: choice, folderId: value.folders[e.id] ?? null }, saveContext.providers);
             })}
-            onClick={onConfirm}>{saving ? "正在保存…" : "确认并保存"}</button>
+            onClick={onConfirm}><span className="k-label">{saving ? "正在保存…" : "确认并保存"}</span></button>
         </div>
       </Dialog.Popup>
     </Dialog.Portal>
