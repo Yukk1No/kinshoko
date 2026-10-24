@@ -1,0 +1,9 @@
+/* 主窗口与桌面窗口的全局样式，按区块分在 src/styles/ 下（每个文件保持在 20 KB 以内）。按原来的顺序导入，层叠顺序不变。 */
+@import "./styles/base.css";
+@import "./styles/library.css";
+@import "./styles/viewer-search.css";
+@import "./styles/desktop.css";
+@import "./styles/fidelity-tags.css";
+@import "./styles/tokens.css";
+@import "./styles/shell.css";
+@import "./styles/shell-details.css";

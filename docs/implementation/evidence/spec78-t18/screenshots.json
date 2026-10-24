@@ -1,0 +1,113 @@
+{
+  "kind": "actual screenshots copied byte-for-byte; source/interpretation derived",
+  "images": [
+    {
+      "file": "1791493834597-representative-pin.png",
+      "run": "1791493834597",
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "4f5955c4148d8e0fb9016e7e05662b442e0aa100",
+      "sha256": "dc1973fba26b481b445030f292a78d652121af1059e14471cbbbf7a48f0f4c62",
+      "copiedSha256": "dc1973fba26b481b445030f292a78d652121af1059e14471cbbbf7a48f0f4c62",
+      "visuallyInspected": true,
+      "colourPass": false
+    },
+    {
+      "file": "1791493834597-controlled-float16-fallback-pin.png",
+      "run": "1791493834597",
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "4f5955c4148d8e0fb9016e7e05662b442e0aa100",
+      "sha256": "dc1973fba26b481b445030f292a78d652121af1059e14471cbbbf7a48f0f4c62",
+      "copiedSha256": "dc1973fba26b481b445030f292a78d652121af1059e14471cbbbf7a48f0f4c62",
+      "visuallyInspected": true,
+      "colourPass": false
+    },
+    {
+      "file": "1791496183701-runtime-current.png",
+      "run": "1791496183701",
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "503956e9f1df4adaf6917ec94c524dd00ee89333",
+      "sha256": "cd14fb86b0c69c323984ee00b8e2679523b62f179fdbbf7aeb098caf9a8aaad9",
+      "copiedSha256": "cd14fb86b0c69c323984ee00b8e2679523b62f179fdbbf7aeb098caf9a8aaad9",
+      "visuallyInspected": true,
+      "colourPass": false
+    },
+    {
+      "file": "1791496183701-representative-original.png",
+      "run": "1791496183701",
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "503956e9f1df4adaf6917ec94c524dd00ee89333",
+      "sha256": "bf27ade28b3895864c7df0b096d59c6b3eefb38fa41af44b298e0f660af8992f",
+      "copiedSha256": "bf27ade28b3895864c7df0b096d59c6b3eefb38fa41af44b298e0f660af8992f",
+      "visuallyInspected": true,
+      "colourPass": false
+    },
+    {
+      "file": "1791496183701-controlled-fallback-details.png",
+      "run": "1791496183701",
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "503956e9f1df4adaf6917ec94c524dd00ee89333",
+      "sha256": "9e93149c77ff47ad08ffa772449c25ea68cf33fd625a173d27a856abeb2d7a3f",
+      "copiedSha256": "9e93149c77ff47ad08ffa772449c25ea68cf33fd625a173d27a856abeb2d7a3f",
+      "visuallyInspected": true,
+      "colourPass": false
+    },
+    {
+      "file": "1791496183701-controlled-required-canvas-main.png",
+      "run": "1791496183701",
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "503956e9f1df4adaf6917ec94c524dd00ee89333",
+      "sha256": "8d3d75c86977bf9f8fc4bf7345109cb403c726f9dd3ffe9068810cf988bb77d3",
+      "copiedSha256": "8d3d75c86977bf9f8fc4bf7345109cb403c726f9dd3ffe9068810cf988bb77d3",
+      "visuallyInspected": true,
+      "colourPass": false
+    },
+    {
+      "file": "1791496183701-controlled-required-decode-main.png",
+      "run": "1791496183701",
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "503956e9f1df4adaf6917ec94c524dd00ee89333",
+      "sha256": "5673b0930849b8f200102c5208d1a368cb1c70b98807757ea5f4b6bda3739c50",
+      "copiedSha256": "5673b0930849b8f200102c5208d1a368cb1c70b98807757ea5f4b6bda3739c50",
+      "visuallyInspected": true,
+      "colourPass": false
+    },
+    {
+      "file": "1791496183701-runtime-recovered.png",
+      "run": "1791496183701",
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "503956e9f1df4adaf6917ec94c524dd00ee89333",
+      "sha256": "a7f4661b9af36164e9ef59d9f317254e7c0128caeeb5c240e1a5a38afe42cc2b",
+      "copiedSha256": "a7f4661b9af36164e9ef59d9f317254e7c0128caeeb5c240e1a5a38afe42cc2b",
+      "visuallyInspected": true,
+      "colourPass": false
+    },
+    {
+      "file": "1791497038707-framework-hidden-required-canvas-pin.png",
+      "run": "1791497038707",
+      "productSource": "83da0065853e44a80bc899812289a80015d07a15",
+      "productTree": "6c6892f183925a41fec5b456236c1c42c25aca86",
+      "executableSha256": "ceb8324c24133a26b7d07ec9794195373d2fbda4538ef4e685f708edb3675fd6",
+      "harnessSource": "83da0065853e44a80bc899812289a80015d07a15",
+      "sha256": "a9400c043149b7fe13a9897ef0e906e4fcbbba54269789128c4a02f58326e5d8",
+      "copiedSha256": "a9400c043149b7fe13a9897ef0e906e4fcbbba54269789128c4a02f58326e5d8",
+      "visuallyInspected": true,
+      "colourPass": false
+    }
+  ]
+}

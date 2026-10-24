@@ -1,0 +1,18 @@
+{
+  "sourceRevision": "fce6fc7e04a9767455e15ef06a61db2e411e8b8d",
+  "integratedRevision": "71e635dabe38ff4e7ef55695088addd8bfa9881b",
+  "nativeArtifactSourceRevision": "5082f317b6a48c1ddf1dabeb1cbdc4e23fa11193",
+  "nativeCombinedWithLaterT07": "unverified; T20 carries final combination",
+  "checks": {
+    "frontend79": "passed",
+    "typescript": "passed",
+    "updatePolicy3": "passed",
+    "clippyCoreAndTauriAllTargetsDenyWarnings": "passed",
+    "nodeHarnessSyntax": "passed",
+    "nativeOldToNewNsis25": "passed only for isolated debug /S /UPDATE mode",
+    "ordinaryInteractiveInstaller": "unverified",
+    "publicSignedAutomaticUpdate": "unverified",
+    "originalSilentOnlyFailureCause": "unverified"
+  },
+  "recordedAt": "2026-10-08T16:27:27.670689+00:00"
+}

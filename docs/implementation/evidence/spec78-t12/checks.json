@@ -1,0 +1,456 @@
+{
+  "source": "66bcd29ea5384520d77fd12feead12ba0c9a95b4 plus uncommitted post-T06 test additions later committed in 97e22e32dfafc4022f40dc651ff50df7a6029474",
+  "countMethod": "Last result in each Running/Doc-tests segment. Parent tests invoke the fault-child entries; child result output is not counted twice.",
+  "rust": {
+    "passed": 657,
+    "failed": 0,
+    "ignored": 11,
+    "suites": [
+      {
+        "suite": "Running unittests src\\lib.rs (target\\debug\\deps\\kinshoko_app-db23d374e5d9c3cc.exe)",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running unittests src\\main.rs (target\\debug\\deps\\kinshoko-adf955e915b4ec54.exe)",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running unittests src\\lib.rs (target\\debug\\deps\\kinshoko_core-042f5a24e4a296e1.exe)",
+        "passed": 187,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\app_info.rs (target\\debug\\deps\\app_info-34bc6a660ecc22b5.exe)",
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\app_settings.rs (target\\debug\\deps\\app_settings-49e58f6ef4e6fe62.exe)",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\approx_library.rs (target\\debug\\deps\\approx_library-9a396c69bd1dabe0.exe)",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\approx_search.rs (target\\debug\\deps\\approx_search-a33cac3919a50ed0.exe)",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\backup_content_definitions.rs (target\\debug\\deps\\backup_content_definitions-aa41e8caea882e51.exe)",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 2
+      },
+      {
+        "suite": "Running tests\\backup_crash.rs (target\\debug\\deps\\backup_crash-b16f65ee7dcd64e8.exe)",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "suite": "Running tests\\backup_eagle.rs (target\\debug\\deps\\backup_eagle-f70f09b351f16e8e.exe)",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\backup_plan.rs (target\\debug\\deps\\backup_plan-b48d3286c4a03616.exe)",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\backup_restore.rs (target\\debug\\deps\\backup_restore-6b8c3b9c0701628a.exe)",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\backup_scope.rs (target\\debug\\deps\\backup_scope-f8c7f68db4379eed.exe)",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\browse_cursor.rs (target\\debug\\deps\\browse_cursor-e6eee9798e486b0b.exe)",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\browse_search.rs (target\\debug\\deps\\browse_search-d0236c810c6f97c1.exe)",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "suite": "Running tests\\capture_history.rs (target\\debug\\deps\\capture_history-42f9ae66eceb379a.exe)",
+        "passed": 12,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\capture_region.rs (target\\debug\\deps\\capture_region-9846d9487523dbda.exe)",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\catalog_approx.rs (target\\debug\\deps\\catalog_approx-be29379386a6cd91.exe)",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\catalog_groups.rs (target\\debug\\deps\\catalog_groups-80f1431b62fdd948.exe)",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\catalog_visibility.rs (target\\debug\\deps\\catalog_visibility-22083af268bafbd2.exe)",
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\device.rs (target\\debug\\deps\\device-4907231fd2cde860.exe)",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\device_libraries.rs (target\\debug\\deps\\device_libraries-eaa3aeb23c84b654.exe)",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\diagnostics.rs (target\\debug\\deps\\diagnostics-430bfab328e1c218.exe)",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\downscale.rs (target\\debug\\deps\\downscale-d120a0acd974d54f.exe)",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\eagle_crash.rs (target\\debug\\deps\\eagle_crash-3a2084c1b5065fb4.exe)",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "suite": "Running tests\\eagle_deleted_content.rs (target\\debug\\deps\\eagle_deleted_content-e82075f4e61f4a48.exe)",
+        "passed": 11,
+        "failed": 0,
+        "ignored": 2
+      },
+      {
+        "suite": "Running tests\\eagle_import.rs (target\\debug\\deps\\eagle_import-181bd4d2f697dc23.exe)",
+        "passed": 12,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\eagle_reimport.rs (target\\debug\\deps\\eagle_reimport-87237d5cf11ea228.exe)",
+        "passed": 13,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\eagle_tag_mapping.rs (target\\debug\\deps\\eagle_tag_mapping-eaf4e0fc9ee232d0.exe)",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\edge_hide.rs (target\\debug\\deps\\edge_hide-ebcfd7a2849e8222.exe)",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\fidelity.rs (target\\debug\\deps\\fidelity-5f22b64cb135e2e6.exe)",
+        "passed": 12,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\global_shortcuts.rs (target\\debug\\deps\\global_shortcuts-5bd7b6f0d9de1557.exe)",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\import_crash.rs (target\\debug\\deps\\import_crash-cbee1cca794d5dc2.exe)",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "suite": "Running tests\\import_recovery.rs (target\\debug\\deps\\import_recovery-3d58f915d1a7f833.exe)",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\legacy_name_migration.rs (target\\debug\\deps\\legacy_name_migration-f9f475204e8fa773.exe)",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "suite": "Running tests\\library.rs (target\\debug\\deps\\library-599eddfe87664784.exe)",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\model_package.rs (target\\debug\\deps\\model_package-a962b37a0d3f935a.exe)",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\organize.rs (target\\debug\\deps\\organize-b94921e76aa718e6.exe)",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\permanent_delete.rs (target\\debug\\deps\\permanent_delete-7d69d6a17aeb75a8.exe)",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "suite": "Running tests\\pin_geometry.rs (target\\debug\\deps\\pin_geometry-1b8a718fc9e72279.exe)",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\pin_menu.rs (target\\debug\\deps\\pin_menu-fd3133be515a6fa5.exe)",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\pin_motion.rs (target\\debug\\deps\\pin_motion-8adf3ba45593960c.exe)",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\pin_placement.rs (target\\debug\\deps\\pin_placement-d79589281c090d3e.exe)",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\pin_restore.rs (target\\debug\\deps\\pin_restore-857b9cc9dde8793f.exe)",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\pin_veil.rs (target\\debug\\deps\\pin_veil-6af7c12a49092ba9.exe)",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\portable_tags.rs (target\\debug\\deps\\portable_tags-e3f94dc76146789c.exe)",
+        "passed": 12,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "suite": "Running tests\\rating.rs (target\\debug\\deps\\rating-5a38ecb370ce9cad.exe)",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\reference_capture.rs (target\\debug\\deps\\reference_capture-c305b06659f093cd.exe)",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\reference_capture_actions.rs (target\\debug\\deps\\reference_capture_actions-11aa0eaef5bfe4d7.exe)",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\reference_group_package.rs (target\\debug\\deps\\reference_group_package-671f4fad2a6f3ef1.exe)",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\reference_group_resolve.rs (target\\debug\\deps\\reference_group_resolve-42f0d802ace68f77.exe)",
+        "passed": 11,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\reference_group_snapshot.rs (target\\debug\\deps\\reference_group_snapshot-748205430ebbdde0.exe)",
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\reference_groups.rs (target\\debug\\deps\\reference_groups-d08ad668acc5bdd0.exe)",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\reference_pin.rs (target\\debug\\deps\\reference_pin-58464a544c66d6c1.exe)",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\safe_mode.rs (target\\debug\\deps\\safe_mode-0dad99b4f2a45bf2.exe)",
+        "passed": 18,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\search.rs (target\\debug\\deps\\search-039f7729e22ee4df.exe)",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\search_cache.rs (target\\debug\\deps\\search_cache-fb51fd790c54889e.exe)",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\source_actions.rs (target\\debug\\deps\\source_actions-3782b134f5178f3a.exe)",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\tag_catalog.rs (target\\debug\\deps\\tag_catalog-862408150661dbf9.exe)",
+        "passed": 11,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\tag_names.rs (target\\debug\\deps\\tag_names-ee0732fb06f5df02.exe)",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\tagger_process.rs (target\\debug\\deps\\tagger_process-6b331809bf3b2e78.exe)",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\tagging.rs (target\\debug\\deps\\tagging-30f5245aa0ea6127.exe)",
+        "passed": 17,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\tags.rs (target\\debug\\deps\\tags-282339d6494c49ec.exe)",
+        "passed": 14,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\translations.rs (target\\debug\\deps\\translations-566d3e7bca2c14c8.exe)",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\update_policy.rs (target\\debug\\deps\\update_policy-048df4531dc976d9.exe)",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\usage_log.rs (target\\debug\\deps\\usage_log-dd02247027d4ded9.exe)",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\viewer.rs (target\\debug\\deps\\viewer-cac7d91a9812fd57.exe)",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\workspace.rs (target\\debug\\deps\\workspace-c5fdab9b4fc5f3d1.exe)",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running tests\\workspace_folders.rs (target\\debug\\deps\\workspace_folders-60cff6d327ca575c.exe)",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Running unittests src\\lib.rs (target\\debug\\deps\\kinshoko_tagger-a1b60a36fdd4a065.exe)",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Doc-tests kinshoko_app",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Doc-tests kinshoko_core",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "suite": "Doc-tests kinshoko_tagger",
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    ]
+  },
+  "frontend": {
+    "files": 33,
+    "passed": 260
+  },
+  "clippy": "workspace/all-targets -D warnings passed",
+  "typeScript": "passed",
+  "vite": "passed"
+}

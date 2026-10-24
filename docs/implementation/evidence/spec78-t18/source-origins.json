@@ -1,0 +1,113 @@
+{
+  "kind": "derived minimal source/environment record",
+  "story": 51,
+  "ticket": 96,
+  "integration": "897ebe13aae8ebff09d92f90f560d675543f4ac3",
+  "packages": [
+    {
+      "source": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "tree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "sourceFiles": 541,
+      "distFiles": 10,
+      "originalManifestSha256": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+      "identifier": "dev.kinshoko.spec78t18test",
+      "ports": [
+        4618,
+        4619
+      ],
+      "configSha256": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369"
+    },
+    {
+      "source": "83da0065853e44a80bc899812289a80015d07a15",
+      "tree": "6c6892f183925a41fec5b456236c1c42c25aca86",
+      "executableSha256": "ceb8324c24133a26b7d07ec9794195373d2fbda4538ef4e685f708edb3675fd6",
+      "sourceFiles": 552,
+      "distFiles": 10,
+      "originalManifestSha256": "be40aa8c37374c36992a6b76caff4c50b97cd5b5e24561fd3e1bafa5bd09cc35",
+      "identifier": "dev.kinshoko.spec78t18test",
+      "ports": [
+        4618,
+        4619
+      ],
+      "configSha256": "df89674590c12e907cc989bb777e87c13b67f200a6f0920a6ce612fee7b307e7"
+    }
+  ],
+  "finalChecksSource": "deb1da162584184cfecd40530aa7e2370c81a32f",
+  "finalChecksTree": "fbf909e97de754a862f4b85dee030d79cf5cdb3c",
+  "changedSourceInputsAfterB": [
+    "src/App.test.tsx"
+  ],
+  "productionCapabilitiesUnchangedFromFirstPackage": {
+    "src-tauri/capabilities/default.json": {
+      "sha256": "0c6ad1b2512452e4785c2a0dcd7b3d588c85cbe4eef7929e2ddd7e002414c4e2",
+      "matchesOld": true
+    },
+    "src-tauri/capabilities/desktop.json": {
+      "sha256": "6ef7dfe5863c5b63a4201bfb21101c7d02c8b28092155764eb2ce8b063248809",
+      "matchesOld": true
+    }
+  },
+  "testOnlyConfiguration": {
+    "identifier": "dev.kinshoko.spec78t18test",
+    "addedCapability": {
+      "identifier": "t18-test-pin-hide",
+      "description": "Isolated native test bundle only: framework hide before a controlled pin failure",
+      "windows": [
+        "pin-*"
+      ],
+      "permissions": [
+        "core:window:allow-hide"
+      ]
+    },
+    "notProductionPermission": true
+  },
+  "environment": {
+    "sourceRun": "1791496183701",
+    "reportSha256": "85ff314d09f75d1924f3e292790a0801e998bd987172c5931c01deffc41432b7",
+    "windows": "Windows 11 Professional 26H2 build26300.9550",
+    "cpu": "AMD Ryzen 7 5800X 8-Core Processor",
+    "memory": "31.9GB",
+    "gpus": [
+      "NVIDIA GeForce RTX 4070 SUPER",
+      "GameViewer Virtual Display Adapter"
+    ],
+    "webviewAvailableQuery": "154.0.4258.62",
+    "runningWebviewFileVersions": [
+      "154.0.4258.62"
+    ],
+    "runningWebviewFileVersionsB": [
+      "154.0.4258.62"
+    ],
+    "browser": {
+      "dpr": 1.1041666269302368,
+      "gamutP3": false,
+      "hdr": false,
+      "height": 801,
+      "screen": {
+        "colorDepth": 24,
+        "height": 1305,
+        "width": 2319
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "width": 1281
+    },
+    "display": "VG27AQL1A 2560x1440 primary110%, SDR automatic colour management, 8bits/channel",
+    "icc": "sRGB IEC61966-2.1 ICC2.1 matrix+curves shortSHA2b3aa1645779",
+    "forceSrgb": false,
+    "usageLog": false
+  },
+  "limits": [
+    "Available-version query alone does not establish the running process version",
+    "Current native main28 and framework-hide pin5 are independent runs",
+    "Windows10 and genuine older/absent Runtime remain unverified",
+    "First-script initial-hidden fault injection did not establish its premise",
+    "Colour/ICC/HDR/scaling quality gates remain independent",
+    "External browser page display and tray Quit not verified by these runs"
+  ],
+  "totalTrackedBuildInputs": 552,
+  "unchangedTrackedBuildInputs": 551,
+  "allInputsExceptAppTestMatchB": true,
+  "distFileCount": 10,
+  "distFilesMatchB": true
+}

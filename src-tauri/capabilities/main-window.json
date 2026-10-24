@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-window",
+  "description": "主窗口隐藏系统标题栏后自绘的窗口控件与拖动区（#98）：最大化／还原、关闭、拖动。最小化已在 default 中",
+  "windows": ["main"],
+  "permissions": [
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging"
+  ]
+}

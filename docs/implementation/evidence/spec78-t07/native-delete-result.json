@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "source": "7e5cd98ab760181e610f1689dc211209162d3c78",
+  "binarySha256": "9f5846e559b69160eb1725accd2f4792f59c406e4bda23a5e3fe65533df59bc3",
+  "assertions": [
+    "permanent delete does not leave a stale detail error in formal UI",
+    "deleted selected source is unavailable to new detail requests"
+  ],
+  "libraryId": "1834944303be4a9da1baea66d217d9fc",
+  "deletedImage": "01a11c36bb96733c9eb9978e1e9089bf"
+}

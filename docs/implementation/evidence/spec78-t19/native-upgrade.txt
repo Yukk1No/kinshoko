@@ -1,0 +1,29 @@
+PASS old target executable has no RestartManager users before real NSIS installation
+PASS old real NSIS installed exe, DirectML and uninstaller
+PASS old installed executable matches the NSIS-patched source artifact
+PASS old installed PE product version matches the upgrade package version
+PASS fixed baseline old installed app starts with unsigned updater disabled
+READY OLD FOR NORMAL TRAY EXIT
+[1009/002034.083:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS old app exited normally through its verified real native tray Quit menu
+PASS new target executable has no RestartManager users before real NSIS installation
+PASS new real NSIS installed exe, DirectML and uninstaller
+PASS new installed executable matches the NSIS-patched source artifact
+PASS new installed PE product version matches the upgrade package version
+PASS old and new installed program bytes differ
+PASS new installed app preserves the registered and last-opened library
+PASS new installed app preserves all library registrations and paths
+PASS new installed app preserves non-default settings and shortcuts
+PASS new installed app lists the old reference group
+PASS new installed app preserves reference group members, source, crop and placement
+PASS new installed app restores pin identity, source, crop, geometry, flip, rotation, opacity, lock and membership
+PASS restored old pin resolves real image content in the new native app
+PASS new installed app reads the old real SQLite library and imported original
+PASS new installed app preserves safe mode
+PASS new installed private build reports manual updates even on explicit check
+PASS new installed private build refuses automatic install at the command boundary
+PASS new installed settings show manual guidance without automatic actions
+READY NEW FOR NORMAL TRAY EXIT
+[1009/002041.682:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412
+PASS new app exited normally through its verified real native tray Quit menu
+PASS only the isolated test product was uninstalled after verification

@@ -1,0 +1,672 @@
+{
+  "kind": "derived minimal summary, not native raw originals",
+  "story": 51,
+  "ticket": 96,
+  "limitations": [
+    "Controlled absence in current Runtime is not a real older/absent Runtime",
+    "Windows 10 unverified",
+    "Basic operation and screenshots are not a colour-fidelity pass",
+    "Forced exact-owned cleanup is not tray Quit"
+  ],
+  "attempts": [
+    {
+      "run": "1791491862223",
+      "status": "failed",
+      "mode": "full",
+      "scope": null,
+      "completedChecks": 8,
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": null,
+      "harnessTree": null,
+      "observedBoundary": "Local helper execution policy rejected; export not reached",
+      "copyNote": "first harness copy reconstructed from matching Git bytes after run",
+      "nativeVisibility": null,
+      "frameworkHide": null,
+      "knownFolderAbsentAccordingToHarness": null,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T20:49:11.7380079Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "b8a01b2de22f52cfc0747f0202e6cc96f3b697cf7b1b5ab82cc81a818e03f681",
+        "native-before.json": "b0ec253bf6b0c1a490751e629b1cc44affa4a3639e799bf6f3fb37e0729db87b",
+        "native-after.json": "3018780c7ec7f321f73ab6bf8185684aed37789d06490437c995d2508fe9ab69",
+        "native-source.json": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+        "tauri.test.json": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369",
+        "harness/runtime-capabilities.mjs": "e7cea66f1dc08bae3bac3df049095d5c56bcda937d28f7ca0d7e6e3daa6f2823",
+        "harness/native-save-dialog-t18.ps1": "ab4188ee3f966d7a37b1b37883950e1698a76514c64b4e9ec1b9087af6a55884",
+        "harness/native-pin-hide-t18.py": "82d50837c3709cde2d8ed71c6065e7fe0eda2f1f36c2c17936e331ffcf29f33d"
+      }
+    },
+    {
+      "run": "1791492551662",
+      "status": "failed",
+      "mode": "full",
+      "scope": null,
+      "completedChecks": 9,
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "ef13efeb5136c9bd0523fe8bbf0e15ad39f0f536",
+      "harnessTree": "32f82f91a6201933fe6f61de725e1595a1f5cde7",
+      "observedBoundary": "Child Windows PowerShell lacked Get-FileHash; export not reached",
+      "copyNote": "harness copied before driver startup",
+      "nativeVisibility": null,
+      "frameworkHide": null,
+      "knownFolderAbsentAccordingToHarness": true,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T20:50:30.0870773Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "91fdec85f2c473bfdf586e46feea88bfa8ff920ff60e2640bfeaf6628a9c0ba6",
+        "native-before.json": "b20ce9df9f6b1ed6a483cad5c71701da9176576022765204f349bd3198747ad7",
+        "native-after.json": "cf5c66faa5c8e63676b07dc23e04103dbba293354cd25268e31933869c9dbd10",
+        "native-source.json": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+        "tauri.test.json": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369",
+        "harness/runtime-capabilities.mjs": "0495f93cabff10162b2fe43053ae5611ae7e52183aff2f8d0f1acbd405a5aa02",
+        "harness/native-save-dialog-t18.ps1": "db74b33b6d64c97a62cc8bfb63e54bdbf1e1ae12407974e767c73a796b2ba4f8",
+        "harness/native-pin-hide-t18.py": "82d50837c3709cde2d8ed71c6065e7fe0eda2f1f36c2c17936e331ffcf29f33d"
+      }
+    },
+    {
+      "run": "1791492631095",
+      "status": "failed",
+      "mode": "full",
+      "scope": null,
+      "completedChecks": 9,
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "92e0a1dc7dedd85223762c267a1d90a70a10d8a3",
+      "harnessTree": "c779986ff8eeae1a5bf1524906cb4aa111044407",
+      "observedBoundary": "Actual Save UIA controls were Pane; old control selection refused them",
+      "copyNote": "harness copied before driver startup",
+      "nativeVisibility": null,
+      "frameworkHide": null,
+      "knownFolderAbsentAccordingToHarness": true,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T20:53:20.4342804Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "4d3531ce8891f49b7b54e970af7408efb7f22c3a142275082366e85b1e7ff87a",
+        "native-before.json": "faae35ce037415ec397f4c44fed9a2cf8e8783b9db478db95b9382c789c77cb6",
+        "native-after.json": "633a56fe475eed03f169891c8e6eb11ca5b58a8f9327f4351fd72dbcb6ef0313",
+        "native-source.json": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+        "tauri.test.json": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369",
+        "harness/runtime-capabilities.mjs": "0495f93cabff10162b2fe43053ae5611ae7e52183aff2f8d0f1acbd405a5aa02",
+        "harness/native-save-dialog-t18.ps1": "36a7831fd98435d79efb811f031930a8e2b7eb7e4991d6c450d007c670c20b55",
+        "harness/native-pin-hide-t18.py": "82d50837c3709cde2d8ed71c6065e7fe0eda2f1f36c2c17936e331ffcf29f33d"
+      }
+    },
+    {
+      "run": "1791492801530",
+      "status": "failed",
+      "mode": "full",
+      "scope": null,
+      "completedChecks": 9,
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "6c01cb49e5989dc85e74299f28b1235f89bbf2bf",
+      "harnessTree": "40abcf9f08d9df2d14b82bcf811d7761bb9c794b",
+      "observedBoundary": "Cross-process GetWindowText could not verify the owned filename edit",
+      "copyNote": "harness copied before driver startup",
+      "nativeVisibility": null,
+      "frameworkHide": null,
+      "knownFolderAbsentAccordingToHarness": true,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T20:54:41.2081690Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "99dc83d437168d888cedf9d92cf59133c9ac887d473a857a9068bae35f54b56c",
+        "native-before.json": "1a1abb9b94b0535c202e5ed426bfa9093bd0812ee1b11b016dbec7fa860b8d3a",
+        "native-after.json": "ea70d11a3085503d5bb3b1de969e05e37ce600c59510d19c222af3cfe67eb2f4",
+        "native-source.json": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+        "tauri.test.json": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369",
+        "harness/runtime-capabilities.mjs": "0495f93cabff10162b2fe43053ae5611ae7e52183aff2f8d0f1acbd405a5aa02",
+        "harness/native-save-dialog-t18.ps1": "726739b8f29bc936104c13edb55f9142611b9d2dc862a285e178ce5309f5d830",
+        "harness/native-pin-hide-t18.py": "82d50837c3709cde2d8ed71c6065e7fe0eda2f1f36c2c17936e331ffcf29f33d"
+      }
+    },
+    {
+      "run": "1791492882243",
+      "status": "failed",
+      "mode": "full",
+      "scope": null,
+      "completedChecks": 17,
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "8dadee96ac944274867df0714ad86aac6c3cab0a",
+      "harnessTree": "4b89df141b7335db7c76b5eef47a82b14e1f37c8",
+      "observedBoundary": "Real thumbnail protocol tainted pin canvas; direct pixel readback raised SecurityError",
+      "copyNote": "harness copied before driver startup",
+      "nativeVisibility": null,
+      "frameworkHide": null,
+      "knownFolderAbsentAccordingToHarness": true,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T20:56:41.6367335Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "163ede6a2d26593fba6f1066e7c50d0d02d21f78f2d1eb36dc1b2250a8cbcaad",
+        "native-before.json": "a2e4de4bc22c240f8ae14e10c9dc8045e38360981c93307ddd21deef80fd2f05",
+        "native-after.json": "29bffbf67699d2390ffcfc272634ed2beea20c6c3bc9057c86aafd1c2746ffdd",
+        "native-source.json": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+        "tauri.test.json": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369",
+        "harness/runtime-capabilities.mjs": "0495f93cabff10162b2fe43053ae5611ae7e52183aff2f8d0f1acbd405a5aa02",
+        "harness/native-save-dialog-t18.ps1": "5a54e658a52499a00a78d34643b878608ee8f51e7573c644b66025d92b77d49b",
+        "harness/native-pin-hide-t18.py": "82d50837c3709cde2d8ed71c6065e7fe0eda2f1f36c2c17936e331ffcf29f33d"
+      }
+    },
+    {
+      "run": "1791493100528",
+      "status": "failed",
+      "mode": "full",
+      "scope": null,
+      "completedChecks": 9,
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "d4dbd7be63f0e314be3037bcfe08941a73867396",
+      "harnessTree": "7acb5e8bcc40d1abdd2b57355a521e334de7f6e5",
+      "observedBoundary": "Save control ID also matched a file-list item; bounded helper refused ambiguity",
+      "copyNote": "harness copied before driver startup",
+      "nativeVisibility": null,
+      "frameworkHide": null,
+      "knownFolderAbsentAccordingToHarness": true,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T21:06:35.2538773Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "9d42691c998b477f51043dd92c8127ba44d8022ccdb1f4d72b464d50800e13f3",
+        "native-before.json": "1c85a603375093838b6647ea3b9740b7e98ab966e98223deb9f9c197f8d7fc1e",
+        "native-after.json": "5f314443a7d6bd2f8fb6ae6a04a8e22166b78c663e9643ce73c478e7919033be",
+        "native-source.json": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+        "tauri.test.json": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369",
+        "harness/runtime-capabilities.mjs": "adb860d14b4534f37c1d59baa438c62ad45385d2eebd70840347810979c12c0e",
+        "harness/native-save-dialog-t18.ps1": "5a54e658a52499a00a78d34643b878608ee8f51e7573c644b66025d92b77d49b",
+        "harness/native-pin-hide-t18.py": "82d50837c3709cde2d8ed71c6065e7fe0eda2f1f36c2c17936e331ffcf29f33d"
+      }
+    },
+    {
+      "run": "1791493596411",
+      "status": "failed",
+      "mode": "full",
+      "scope": null,
+      "completedChecks": 17,
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "a7a3325743c4cb59a5e02b0026c56dfc0ba56e74",
+      "harnessTree": "f69791a01c38fa691d247d6ed3a455d6b424a4d7",
+      "observedBoundary": "Screenshot sampled existing 900ms pin appearance feedback before animation ended",
+      "copyNote": "harness copied before driver startup",
+      "nativeVisibility": null,
+      "frameworkHide": null,
+      "knownFolderAbsentAccordingToHarness": true,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T21:10:33.4666357Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "4ddb5b4bfa9e9c8f3253fe56332259ae679b5482b26923cf3cb597cf07708028",
+        "native-before.json": "450659ce3488037258a2d36820b111e4835add78cbd6a4fcd76845825ada261d",
+        "native-after.json": "1af9c61de4df4b66cc2b14c7c774cce2234a796bb84b12296369a2abdfaa72d5",
+        "native-source.json": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+        "tauri.test.json": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369",
+        "harness/runtime-capabilities.mjs": "adb860d14b4534f37c1d59baa438c62ad45385d2eebd70840347810979c12c0e",
+        "harness/native-save-dialog-t18.ps1": "d87d1843d17188b1d402f725bdbc0a291f8a647ffae3971019d45fad7cb756c8",
+        "harness/native-pin-hide-t18.py": "82d50837c3709cde2d8ed71c6065e7fe0eda2f1f36c2c17936e331ffcf29f33d"
+      }
+    },
+    {
+      "run": "1791493834597",
+      "status": "failed",
+      "mode": "full",
+      "scope": null,
+      "completedChecks": 22,
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "4f5955c4148d8e0fb9016e7e05662b442e0aa100",
+      "harnessTree": "7eed0e8550b0a1d41b966725fce35c0b52ef23ef",
+      "observedBoundary": "Single native visibility read was false after error DOM appeared; production-ready timing unconfirmed",
+      "copyNote": "harness copied before driver startup",
+      "nativeVisibility": {
+        "visible": false,
+        "observations": [],
+        "nativeAfterReady": null
+      },
+      "frameworkHide": null,
+      "knownFolderAbsentAccordingToHarness": true,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T21:15:39.5773416Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "971684fbd531396f2f918cf3e4fb4226331aa006b461849da0a696665582bd85",
+        "native-before.json": "3cc641e59dc0b68d7dfbac8974f6dbb2e85dc31f80ac02dc9ea7f30a546733bf",
+        "native-after.json": "f0c53cd31933d673caf6fe84b1b266e55aee44fe75319e8e38cf22a68a4657fe",
+        "native-source.json": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+        "tauri.test.json": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369",
+        "harness/runtime-capabilities.mjs": "6545c0712e518e65672b44ccce450d7a41caf85b08720f4a4dd61c7043d1c37e",
+        "harness/native-save-dialog-t18.ps1": "d87d1843d17188b1d402f725bdbc0a291f8a647ffae3971019d45fad7cb756c8",
+        "harness/native-pin-hide-t18.py": "82d50837c3709cde2d8ed71c6065e7fe0eda2f1f36c2c17936e331ffcf29f33d"
+      }
+    },
+    {
+      "run": "1791494233383",
+      "status": "failed",
+      "mode": "full",
+      "scope": null,
+      "completedChecks": 22,
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "ed2c2fca580f21a4b81de056538dcac2f32f08e1",
+      "harnessTree": "8ac82482bb306974da8c9ca8bdca2eedf37034a3",
+      "observedBoundary": "External Win32 hide produced 46 native false reads over 5 seconds; Tao cached-visible short circuit is source-supported, initial hidden path still unverified",
+      "copyNote": "harness copied before driver startup",
+      "nativeVisibility": {
+        "visible": false,
+        "observations": [
+          {
+            "elapsedMs": 4,
+            "visible": false
+          },
+          {
+            "elapsedMs": 164,
+            "visible": false
+          },
+          {
+            "elapsedMs": 269,
+            "visible": false
+          },
+          {
+            "elapsedMs": 378,
+            "visible": false
+          },
+          {
+            "elapsedMs": 488,
+            "visible": false
+          },
+          {
+            "elapsedMs": 596,
+            "visible": false
+          },
+          {
+            "elapsedMs": 706,
+            "visible": false
+          },
+          {
+            "elapsedMs": 814,
+            "visible": false
+          },
+          {
+            "elapsedMs": 923,
+            "visible": false
+          },
+          {
+            "elapsedMs": 1031,
+            "visible": false
+          },
+          {
+            "elapsedMs": 1140,
+            "visible": false
+          },
+          {
+            "elapsedMs": 1250,
+            "visible": false
+          },
+          {
+            "elapsedMs": 1358,
+            "visible": false
+          },
+          {
+            "elapsedMs": 1469,
+            "visible": false
+          },
+          {
+            "elapsedMs": 1579,
+            "visible": false
+          },
+          {
+            "elapsedMs": 1688,
+            "visible": false
+          },
+          {
+            "elapsedMs": 1796,
+            "visible": false
+          },
+          {
+            "elapsedMs": 1906,
+            "visible": false
+          },
+          {
+            "elapsedMs": 2015,
+            "visible": false
+          },
+          {
+            "elapsedMs": 2125,
+            "visible": false
+          },
+          {
+            "elapsedMs": 2234,
+            "visible": false
+          },
+          {
+            "elapsedMs": 2343,
+            "visible": false
+          },
+          {
+            "elapsedMs": 2449,
+            "visible": false
+          },
+          {
+            "elapsedMs": 2559,
+            "visible": false
+          },
+          {
+            "elapsedMs": 2667,
+            "visible": false
+          },
+          {
+            "elapsedMs": 2775,
+            "visible": false
+          },
+          {
+            "elapsedMs": 2883,
+            "visible": false
+          },
+          {
+            "elapsedMs": 2992,
+            "visible": false
+          },
+          {
+            "elapsedMs": 3101,
+            "visible": false
+          },
+          {
+            "elapsedMs": 3210,
+            "visible": false
+          },
+          {
+            "elapsedMs": 3319,
+            "visible": false
+          },
+          {
+            "elapsedMs": 3427,
+            "visible": false
+          },
+          {
+            "elapsedMs": 3535,
+            "visible": false
+          },
+          {
+            "elapsedMs": 3645,
+            "visible": false
+          },
+          {
+            "elapsedMs": 3754,
+            "visible": false
+          },
+          {
+            "elapsedMs": 3865,
+            "visible": false
+          },
+          {
+            "elapsedMs": 3972,
+            "visible": false
+          },
+          {
+            "elapsedMs": 4081,
+            "visible": false
+          },
+          {
+            "elapsedMs": 4191,
+            "visible": false
+          },
+          {
+            "elapsedMs": 4304,
+            "visible": false
+          },
+          {
+            "elapsedMs": 4413,
+            "visible": false
+          },
+          {
+            "elapsedMs": 4522,
+            "visible": false
+          },
+          {
+            "elapsedMs": 4632,
+            "visible": false
+          },
+          {
+            "elapsedMs": 4741,
+            "visible": false
+          },
+          {
+            "elapsedMs": 4848,
+            "visible": false
+          },
+          {
+            "elapsedMs": 4958,
+            "visible": false
+          }
+        ],
+        "nativeAfterReady": null
+      },
+      "frameworkHide": null,
+      "knownFolderAbsentAccordingToHarness": true,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T21:20:05.6133013Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "a116684d51a11a14cf4111e1e03a7cbb1fdc1697a4a82934ae58633a2568068f",
+        "native-before.json": "2e45c8e08ad30c6d47f89154f660dc7a9444b03d0dd501c5d3ae9ac93fcd0595",
+        "native-after.json": "78354b2ae8e37acdc1705185e4906c5e915894c3d7a746019a6f02000a055099",
+        "native-source.json": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+        "tauri.test.json": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369",
+        "harness/runtime-capabilities.mjs": "f343dda3bf6aab1cbe074a66caef1062a1c2c1f9e7b3aad1fbe0974a54f64e9a",
+        "harness/native-save-dialog-t18.ps1": "d87d1843d17188b1d402f725bdbc0a291f8a647ffae3971019d45fad7cb756c8",
+        "harness/native-pin-hide-t18.py": "82d50837c3709cde2d8ed71c6065e7fe0eda2f1f36c2c17936e331ffcf29f33d"
+      }
+    },
+    {
+      "run": "1791495025842",
+      "status": "failed",
+      "mode": "full",
+      "scope": null,
+      "completedChecks": 21,
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "dee66d2687be4644b906e78c7600cefe0a50726d",
+      "harnessTree": "f0c109759b02f8cd520c8b58b6cf797698af6b24",
+      "observedBoundary": "Closing the old pin destroyed its WebView before the generic callback; CDP initial-hidden setup was not executed",
+      "copyNote": "harness copied before driver startup",
+      "nativeVisibility": null,
+      "frameworkHide": null,
+      "knownFolderAbsentAccordingToHarness": true,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T21:39:35.2987176Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "25a67741f7abfafca3d059436ed9ac80035cba58eab3bbaafc35ab014f159ff8",
+        "native-before.json": "811f54554124fa9fabc89630945b5c1c05f4f125c05779a8d6daf386d5ca0d80",
+        "native-after.json": "43471aae77a7f22ccb859325f96a34a59e418598f3c832374a805a54cba0940c",
+        "native-source.json": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+        "tauri.test.json": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369",
+        "harness/runtime-capabilities.mjs": "213b41fc8ec69fbae849fadf0ff5be3810196bf868d954551a06ff745bd4efe6",
+        "harness/native-save-dialog-t18.ps1": "d87d1843d17188b1d402f725bdbc0a291f8a647ffae3971019d45fad7cb756c8",
+        "harness/native-pin-inspect-t18.py": "a6334d1d5f3a21be3387ea8608603d2afe8122c595c148c4ba3bc3a0b96bd70c",
+        "harness/native-initial-pin-t18.mjs": "627cea635ceefe4cda7ebc257646d93df55a054ef5f5d648902d733bd6ca2136"
+      }
+    },
+    {
+      "run": "1791495651613",
+      "status": "failed",
+      "mode": "full",
+      "scope": null,
+      "completedChecks": 22,
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "38d38b13f334a3659c92aa4d921084a03cda3c20",
+      "harnessTree": "eeaec76c9bed8001bf8ac16e2d971522f44b78e6",
+      "observedBoundary": "Owned initial native pin visibility was false and CDP setup accepted, but the injected marker never appeared; injection precondition failed, not a product pass or RED",
+      "copyNote": "harness copied before driver startup",
+      "nativeVisibility": null,
+      "frameworkHide": null,
+      "knownFolderAbsentAccordingToHarness": true,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T21:47:29.0817125Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "ac0cec1e9235d80acf1a73494e059dd6a6087b71cf6499259d3b3261c2120227",
+        "native-before.json": "449bfdf0f69b29675cf499469ab1b2937e2d98e4db30749577a1bc320302d95b",
+        "native-after.json": "578810cd8ab7d6dc9afc7487e76fe756a8e59ee11524916ac38c414a8a6ccfc6",
+        "native-source.json": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+        "tauri.test.json": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369",
+        "initial-hidden-pin-cdp.json": "96fca9a58ebcdd93e64f7e5683e382fe5dfcacb0fc35e67bf79eb2888824ad57",
+        "harness/runtime-capabilities.mjs": "7ad92078c6e5a204e9e8865f2c6a9dff9c528d4809333c40c8ce3fd39a26f245",
+        "harness/native-save-dialog-t18.ps1": "d87d1843d17188b1d402f725bdbc0a291f8a647ffae3971019d45fad7cb756c8",
+        "harness/native-pin-inspect-t18.py": "a6334d1d5f3a21be3387ea8608603d2afe8122c595c148c4ba3bc3a0b96bd70c",
+        "harness/native-initial-pin-t18.mjs": "627cea635ceefe4cda7ebc257646d93df55a054ef5f5d648902d733bd6ca2136"
+      }
+    },
+    {
+      "run": "1791496183701",
+      "status": "passed",
+      "mode": "main",
+      "scope": null,
+      "completedChecks": 28,
+      "productSource": "df647d279becc2a833f4f6ece46ca46893e7fc5d",
+      "productTree": "217faff3c0858e2c8dff47a669986953bf2f60c3",
+      "executableSha256": "e33b7fcbffa1840a866cf6936f9bafb12e4463b5a1b146821fdc0390f311524a",
+      "harnessSource": "503956e9f1df4adaf6917ec94c524dd00ee89333",
+      "harnessTree": "20297bf0863652032a8944628b34d3ba03db99c7",
+      "observedBoundary": "Independent main continuation passed 28 checks; no pin-error path, actual external browser page display unverified",
+      "copyNote": "harness copied before driver startup",
+      "nativeVisibility": null,
+      "frameworkHide": null,
+      "knownFolderAbsentAccordingToHarness": true,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T21:54:01.1198091Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "8570eafebcce7f398252ae984fa5212be76757e2ef9908d39c227efd4a88ca6a",
+        "native-before.json": "9bb747abea3c5aea9d940bb03b3fa16c2284e9393c34f6245818465605cb72e8",
+        "native-after.json": "21b0f89d6fb6205ae1f224cbab8a1f7482d3383723d11dd857db5df02420457d",
+        "native-source.json": "2cf9a1f514e687bd3e5cbb3ec2f24b5dd72f909a6cb64aebbd9f253acaa0febe",
+        "tauri.test.json": "e3f710d45532fb628d25b889a2d4107bf81da2733da8311edc7f4c2ef5516369",
+        "harness/runtime-capabilities.mjs": "4ee2a08cf63827544251adf7c1e7c394d8c5f63a7d17165a28ae6e068cd61455",
+        "harness/native-save-dialog-t18.ps1": "d87d1843d17188b1d402f725bdbc0a291f8a647ffae3971019d45fad7cb756c8",
+        "harness/native-pin-inspect-t18.py": "a6334d1d5f3a21be3387ea8608603d2afe8122c595c148c4ba3bc3a0b96bd70c",
+        "harness/native-initial-pin-t18.mjs": "627cea635ceefe4cda7ebc257646d93df55a054ef5f5d648902d733bd6ca2136"
+      }
+    },
+    {
+      "run": "1791497038707",
+      "status": "passed",
+      "mode": "pin-error",
+      "scope": "Framework-hide then controlled required-canvas failure; production ready must show the same native HWND",
+      "completedChecks": 5,
+      "productSource": "83da0065853e44a80bc899812289a80015d07a15",
+      "productTree": "6c6892f183925a41fec5b456236c1c42c25aca86",
+      "executableSha256": "ceb8324c24133a26b7d07ec9794195373d2fbda4538ef4e685f708edb3675fd6",
+      "harnessSource": "83da0065853e44a80bc899812289a80015d07a15",
+      "harnessTree": "6c6892f183925a41fec5b456236c1c42c25aca86",
+      "observedBoundary": "Independent test bundle passed 5 checks after public framework hide: actual native/framework hidden state followed by production-ready error display on the same HWND; first-script initial hiding remains unverified",
+      "copyNote": "harness copied before driver startup",
+      "nativeVisibility": {
+        "visible": null,
+        "observations": [
+          {
+            "elapsedMs": 4,
+            "visible": true
+          }
+        ],
+        "nativeAfterReady": {
+          "pid": 34396,
+          "hwnd": 16517406,
+          "title": "Kinshoko 钉图",
+          "class": "Tauri Window",
+          "visible": true
+        }
+      },
+      "frameworkHide": {
+        "label": "pin-6b8a6461af8a49d5a2e0a89785eaf9a0",
+        "beforeHide": {
+          "pid": 34396,
+          "hwnd": 16517406,
+          "title": "Kinshoko 钉图",
+          "class": "Tauri Window",
+          "visible": true
+        },
+        "afterHide": {
+          "pid": 34396,
+          "hwnd": 16517406,
+          "title": "Kinshoko 钉图",
+          "class": "Tauri Window",
+          "visible": false
+        },
+        "tauriHidden": true
+      },
+      "knownFolderAbsentAccordingToHarness": true,
+      "actualAfterInventory": {
+        "atUtc": "2026-10-08T22:09:56.2345307Z",
+        "knownFolderAbsent": true,
+        "ownedProcessesEmpty": true,
+        "portsEmpty": true
+      },
+      "originalArtifacts": {
+        "result.json": "d6600e9d27ed91c6d7fe4f9c625f2ec4e4a0129518bacc6076f87a21b97b0afe",
+        "native-before.json": "873e592a286676b7f4574c9ec052b006c5f28f5bcc6bde54a36e2477c10713bd",
+        "native-after.json": "d569326bedab58abcda6cef2a25a97e1f58318f2e2dcda8cc807d520bff6cd25",
+        "native-source.json": "be40aa8c37374c36992a6b76caff4c50b97cd5b5e24561fd3e1bafa5bd09cc35",
+        "tauri.test.json": "df89674590c12e907cc989bb777e87c13b67f200a6f0920a6ce612fee7b307e7",
+        "harness/runtime-capabilities.mjs": "602f35e640613a3e846a99cd80af167c156928b9d122843ad73fb9268c90b6af",
+        "harness/native-save-dialog-t18.ps1": "d87d1843d17188b1d402f725bdbc0a291f8a647ffae3971019d45fad7cb756c8",
+        "harness/native-pin-inspect-t18.py": "a6334d1d5f3a21be3387ea8608603d2afe8122c595c148c4ba3bc3a0b96bd70c",
+        "harness/native-initial-pin-t18.mjs": "627cea635ceefe4cda7ebc257646d93df55a054ef5f5d648902d733bd6ca2136"
+      }
+    }
+  ]
+}

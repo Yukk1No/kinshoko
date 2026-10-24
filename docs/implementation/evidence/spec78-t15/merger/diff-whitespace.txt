@@ -1,0 +1,6 @@
+src/bindings/ImportReport.ts:8: trailing whitespace.
++export type ImportReport = { 
+src/bindings/ImportReport.ts:12: trailing whitespace.
++sealedDuplicates: boolean, 
+src/bindings/ImportReport.ts:16: trailing whitespace.
++privateSummary: boolean, trashDuplicates: boolean, items: Array<ImportItem>, cancelled: boolean, 

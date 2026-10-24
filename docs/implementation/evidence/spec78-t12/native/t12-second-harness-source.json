@@ -1,0 +1,9 @@
+{
+  "harnessSource": "026897b686526135aa587787817b5395dc80af37",
+  "harnessSha256": "1e3d2acbe53119e4f6d912aa89eba4f4a7bf60df5147c08a2d2d7f40f5bca6d7",
+  "productDiff": "",
+  "buildManifest": "work/e2e/t12-build-source.json",
+  "binarySha256": "c77471db1d84ff06336358182d082a6b5da3fe220aa573169cdc157577c62838",
+  "run": "work/e2e/content-backup-t12-3075331-second",
+  "note": "Root per-retry reporting instruction arrived just after this already authorized script-only retry was launched."
+}

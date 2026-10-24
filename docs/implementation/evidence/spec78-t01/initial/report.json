@@ -1,0 +1,380 @@
+{
+  "status": "passed",
+  "humanAcceptance": "unverified",
+  "sourceCommit": "366bd3c5d992c387fe3eb4595449bb2281cd3b66",
+  "viewport": {
+    "dpr": 1.1041666269302368,
+    "height": 801,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "width": 1281
+  },
+  "fitted": {
+    "dpr": 1.1041666269302368,
+    "h": 801,
+    "interpolation": "auto",
+    "physicalH": 800.9999686307128,
+    "physicalLeft": 106.99999853350073,
+    "physicalTop": 51.999999956514785,
+    "physicalW": 1200.9999644081545,
+    "src": "http://thumb.localhost/8bb6f34f74014d9ebccff10c69fe3508/01a11ba5f2737514b566717bcb174ed7/fit-1201",
+    "w": 1201
+  },
+  "original": {
+    "dpr": 1.1041666269302368,
+    "h": 1600,
+    "interpolation": "auto",
+    "physicalH": 1599.9999831097666,
+    "physicalLeft": -492.9999867085389,
+    "physicalTop": -348.0000084571111,
+    "physicalW": 2399.99997466465,
+    "src": "http://thumb.localhost/8bb6f34f74014d9ebccff10c69fe3508/01a11ba5f2737514b566717bcb174ed7/full",
+    "w": 2400
+  },
+  "enlarged": {
+    "dpr": 1.1041666269302368,
+    "h": 1600,
+    "interpolation": "pixelated",
+    "physicalH": 3906.9997983608628,
+    "physicalLeft": -2222.999988663869,
+    "physicalTop": -1501.9999383170652,
+    "physicalW": 5859.999911182327,
+    "src": "http://thumb.localhost/8bb6f34f74014d9ebccff10c69fe3508/01a11ba5f2737514b566717bcb174ed7/full",
+    "w": 2400
+  },
+  "fonts": true,
+  "fitAfterFonts": {
+    "dpr": 1.1041666269302368,
+    "h": 801,
+    "interpolation": "auto",
+    "physicalH": 800.9999686307128,
+    "physicalLeft": 106.99999853350073,
+    "physicalTop": 51.999999956514785,
+    "physicalW": 1200.9999644081545,
+    "src": "http://thumb.localhost/8bb6f34f74014d9ebccff10c69fe3508/01a11ba5f2737514b566717bcb174ed7/fit-1201",
+    "w": 1201
+  },
+  "anchor": {
+    "id": "01a11ba5f13574029167ed0f3790027d",
+    "offset": -189.46697807312012
+  },
+  "reading": {
+    "id": "01a11ba5f0d871739da9da4f6f475e41",
+    "top": 720
+  },
+  "reflow": [
+    {
+      "card": 228.25,
+      "width": 961
+    },
+    {
+      "card": 228.25,
+      "width": 977
+    },
+    {
+      "card": 232.25,
+      "width": 999
+    },
+    {
+      "card": 237.75,
+      "width": 1022
+    },
+    {
+      "card": 243.5,
+      "width": 1044
+    },
+    {
+      "card": 249,
+      "width": 1065
+    },
+    {
+      "card": 254.25,
+      "width": 1101
+    },
+    {
+      "card": 263.25,
+      "width": 1116
+    },
+    {
+      "card": 267,
+      "width": 1128
+    },
+    {
+      "card": 270,
+      "width": 1139
+    },
+    {
+      "card": 216.6,
+      "width": 1148
+    },
+    {
+      "card": 218.4,
+      "width": 1163
+    },
+    {
+      "card": 221.4,
+      "width": 1169
+    },
+    {
+      "card": 222.6,
+      "width": 1178
+    },
+    {
+      "card": 224.4,
+      "width": 1185
+    },
+    {
+      "card": 225.8,
+      "width": 1191
+    },
+    {
+      "card": 227,
+      "width": 1193
+    },
+    {
+      "card": 227.4,
+      "width": 1195
+    },
+    {
+      "card": 227.8,
+      "width": 1198
+    },
+    {
+      "card": 228.4,
+      "width": 1200
+    },
+    {
+      "card": 228.8,
+      "width": 1202
+    },
+    {
+      "card": 229.2,
+      "width": 1204
+    },
+    {
+      "card": 229.6,
+      "width": 1205
+    },
+    {
+      "card": 229.8,
+      "width": 1206
+    },
+    {
+      "card": 230,
+      "width": 1207
+    },
+    {
+      "card": 230.2,
+      "width": 1207
+    },
+    {
+      "card": 230.2,
+      "width": 1208
+    },
+    {
+      "card": 230.4,
+      "width": 1208
+    },
+    {
+      "card": 230.4,
+      "width": 1208
+    },
+    {
+      "card": 230.4,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "width": 1209
+    }
+  ],
+  "pinEscape": true,
+  "samples": 43
+}

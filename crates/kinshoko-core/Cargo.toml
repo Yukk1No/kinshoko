@@ -1,0 +1,112 @@
+[package]
+name = "kinshoko-core"
+description = "Kinshoko 的领域核心：不依赖 Tauri，可单独测试。"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+# 集成测试大多合在 tests/integration.rs 一个二进制里，新测试文件在那里加 `mod`。
+autotests = false
+
+[[test]]
+name = "integration"
+path = "tests/integration.rs"
+
+# 以子进程重跑自身某个测试的，依赖全进程状态初始值的（thumbnail_memory、import_pipeline），
+# 以及验收文档按目标名引用的 fidelity，仍各自独立。
+[[test]]
+name = "fidelity"
+path = "tests/fidelity.rs"
+
+[[test]]
+name = "import_pipeline"
+path = "tests/import_pipeline.rs"
+
+[[test]]
+name = "application_settings_backup"
+path = "tests/application_settings_backup.rs"
+
+[[test]]
+name = "backup_content_definitions"
+path = "tests/backup_content_definitions.rs"
+
+[[test]]
+name = "backup_content_restore"
+path = "tests/backup_content_restore.rs"
+
+[[test]]
+name = "backup_crash"
+path = "tests/backup_crash.rs"
+
+[[test]]
+name = "eagle_crash"
+path = "tests/eagle_crash.rs"
+
+[[test]]
+name = "eagle_deleted_content"
+path = "tests/eagle_deleted_content.rs"
+
+[[test]]
+name = "import_crash"
+path = "tests/import_crash.rs"
+
+[[test]]
+name = "legacy_name_migration"
+path = "tests/legacy_name_migration.rs"
+
+[[test]]
+name = "permanent_delete"
+path = "tests/permanent_delete.rs"
+
+[[test]]
+name = "portable_package_checks"
+path = "tests/portable_package_checks.rs"
+
+[[test]]
+name = "portable_tags"
+path = "tests/portable_tags.rs"
+
+[[test]]
+name = "tagger_process"
+path = "tests/tagger_process.rs"
+
+[[test]]
+name = "thumbnail_memory"
+path = "tests/thumbnail_memory.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+ts-rs.workspace = true
+rusqlite = { version = "0.40", features = ["bundled", "functions", "backup"] }
+rusqlite_migration = "2.6"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
+moxcms = "0.9.1"
+fast_image_resize = "6.1"
+# 缩放直接借用 f32 像素缓冲（#165）。
+bytemuck = "1"
+png = "0.18"
+zune-jpeg = "0.5"
+zune-core = "0.5"
+jpeg-encoder = "0.7"
+gif = "0.14"
+sha2 = "0.10"
+# 占位图（#110）随浏览页以 data URL 返回。
+base64 = "0.22"
+uuid = { version = "1", features = ["v4", "v7"] }
+unicode-normalization = "0.1"
+# 模型下载（阻塞式，断点续传），与 tools/tagger-probe 相同。
+ureq = "2"
+# 离线导入模型包（zip），与 tools/tagger-probe 相同。
+zip = { version = "2", default-features = false, features = ["deflate"] }
+# 校验模型包里的词表，与打标子进程读词表用同一个解析器。
+csv = "1"
+# 比较更新版本号（与 Tauri updater 同一个 SemVer 实现）。
+semver = "1"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

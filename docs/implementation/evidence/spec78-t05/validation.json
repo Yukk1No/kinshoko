@@ -1,0 +1,100 @@
+{
+  "status": "passed",
+  "checkedAtUtc": "2026-10-08T17:43:27.960936+00:00",
+  "ticket": 84,
+  "spec": 78,
+  "task": "T05",
+  "stories": [
+    28,
+    29
+  ],
+  "productSource": "f7ef52b12681ed679927f7fef034629b923ae8ec",
+  "latestIntegrationMerged": "fad93218cc56ee31b77460e1b4ef0b1d8127ab3b",
+  "manifestInitialHarnessSource": "2acd42963a04e9920dc1ece6b6fd69dbb1f194b4",
+  "mainHarnessSource": "77870f5e40ee47afe467f58bb00496afbed11a23",
+  "draftHarnessSource": "125a58f76e268e3d9e1dec9ccec70fca9f6c0477",
+  "binarySha256": "7dca4915d39d648f5b0e7b615671d316b3e63b187ee97a44d4cbb2f8ed3ff239",
+  "nativeMainAssertions": 27,
+  "nativeDraftAssertions": 5,
+  "normalQuitReceipts": 6,
+  "preservedFailedNativeRuns": [
+    "native-first-result.json",
+    "native-second-result.json",
+    "native-third-result.json"
+  ],
+  "nativeProductFileHashesMatched": 370,
+  "checks": [
+    {
+      "scope": "full Rust workspace after all-source visibility fix",
+      "status": "passed",
+      "log": "workspace-tests-final.log"
+    },
+    {
+      "scope": "full frontend before new monitor test and T09 merge",
+      "status": "passed",
+      "files": 31,
+      "tests": 248,
+      "log": "frontend-all-final.log"
+    },
+    {
+      "scope": "monitor fix focused frontend",
+      "status": "passed",
+      "files": 3,
+      "tests": 30,
+      "log": "group-settings-revision-green.log"
+    },
+    {
+      "scope": "T09 merged affected core",
+      "status": "passed",
+      "tests": 20,
+      "log": "merged-core.log"
+    },
+    {
+      "scope": "T09 merged affected frontend",
+      "status": "passed",
+      "files": 5,
+      "tests": 94,
+      "log": "merged-frontend.log"
+    },
+    {
+      "scope": "T09 merged TypeScript",
+      "status": "passed",
+      "log": "merged-typecheck.log"
+    },
+    {
+      "scope": "T09 merged Vite",
+      "status": "passed",
+      "log": "merged-vite-build.log"
+    },
+    {
+      "scope": "T09 merged all-targets Clippy -D warnings",
+      "status": "passed",
+      "log": "merged-clippy.log"
+    },
+    {
+      "scope": "T09 merged cargo fmt --all --check",
+      "status": "passed",
+      "evidence": "Observed successful exit; command emits no output."
+    },
+    {
+      "scope": "own target custom-protocol native build",
+      "status": "passed",
+      "log": "native-build.log"
+    }
+  ],
+  "desktop": "released; own app, drivers, WebViews and ports 4464/4465 absent at receipt check",
+  "screenshotsInspected": [
+    "legacy-shared-group-provenance.png",
+    "formal-group-edit-sort.png",
+    "formal-visible-or-condition.png",
+    "rename-draft-after-monitor-period.png"
+  ],
+  "screenshotLimit": "no-active-library-global-settings.png shows transient reload; final persistence uses actual UI actions, public readback and normal restart.",
+  "rootPreservationReceipt": "root-preservation.json",
+  "unverified": [
+    "Windows 10 (owner accepted no available device/VM)",
+    "developer manual acceptance on real installation and real legacy libraries",
+    "actual DPI, multiple displays, pen input, wide gamut hardware"
+  ],
+  "laterScope": "T13 application settings import/atomic replacement uses group_definitions and group_migrations; not implemented by T05"
+}

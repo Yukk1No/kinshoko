@@ -1,0 +1,18 @@
+{
+  "mainRun": "work/e2e/shared-groups-1791480727533",
+  "draftRun": "work/e2e/group-draft-1791480885179",
+  "mainAssertions": 27,
+  "draftAssertions": 5,
+  "mainProductSource": "f7ef52b12681ed679927f7fef034629b923ae8ec",
+  "mainHarnessSource": "77870f5e40ee47afe467f58bb00496afbed11a23",
+  "draftHarnessSource": "125a58f76e268e3d9e1dec9ccec70fca9f6c0477",
+  "mainQuitReceipts": 5,
+  "draftQuitReceipts": 1,
+  "transientScreenshot": "no-active-library-global-settings.png was captured during the group reload after rename; it is not the final rendered-name proof. The native UI rename actions and public readback, followed by normal restart, verify no-active-library persistence.",
+  "driverFailure": "native-third-result.json records an EdgeDriver session-creation JSON EOF after a successful normal Quit. No product source change was made for the fourth run.",
+  "earlyFailure": "native-first-result.json records a rendered-control wait error after a mode transition; native-second-result.json records the mistaken expectation that disconnected current_library returns null, whereas its documented restore action reports unavailability.",
+  "buildMetadata": "The native Cargo build succeeded. tauri-driver --version is unsupported; the final manifest records cargo install --list instead.",
+  "knownFolders": "KINSHOKO_DATA_DIR and WebView profiles are isolated in each run. Shell settings use Windows known folders under AppData/Roaming/dev.kinshoko.spec78t05test, so APPDATA override alone does not isolate those settings. Production identifier was not used.",
+  "humanAcceptance": "unverified",
+  "Windows10": "unverified; no device or VM; owner accepted this status"
+}

@@ -1,0 +1,182 @@
+{
+  "status": "passed",
+  "head": "152e652311b7c70425f707faece7253ea6f76872",
+  "tree": "090970ebda061eb5be9d8567028999129538685a",
+  "archive": {
+    "files": 238,
+    "bytes": 127070176,
+    "problems": []
+  },
+  "fixedInputs": {
+    "source": "a8edbfbe5c65b9435f85721cb35ef49ac2de1fdc",
+    "tree": "b7d4ac8978d010620444e13ca71dac5b61e44c7f",
+    "listedFiles": 522,
+    "beforeAfterEqual": true,
+    "physicalChanges": {
+      "root": [],
+      "worker": []
+    },
+    "rootCheckoutEolDifferences": [
+      "crates/kinshoko-core/src/app_shell.rs",
+      "crates/kinshoko-core/src/application_settings_backup.rs",
+      "crates/kinshoko-core/src/desktop/pin.rs",
+      "crates/kinshoko-core/src/settings.rs",
+      "crates/kinshoko-core/src/shortcuts.rs",
+      "crates/kinshoko-core/src/tag_catalog/approx.rs",
+      "crates/kinshoko-core/src/tag_catalog/groups.rs",
+      "crates/kinshoko-core/src/tag_catalog/migration.rs",
+      "crates/kinshoko-core/src/tag_catalog/names.rs",
+      "crates/kinshoko-core/src/tag_catalog/settings.rs",
+      "crates/kinshoko-core/src/workspace.rs",
+      "crates/kinshoko-core/tests/application_settings_backup.rs",
+      "crates/kinshoko-core/tests/capture_history.rs",
+      "crates/kinshoko-core/tests/catalog_groups.rs",
+      "crates/kinshoko-core/tests/catalog_visibility.rs",
+      "crates/kinshoko-core/tests/eagle_crash.rs",
+      "crates/kinshoko-core/tests/legacy_name_migration.rs",
+      "crates/kinshoko-core/tests/reference_capture.rs",
+      "crates/kinshoko-core/tests/reference_group_snapshot.rs",
+      "crates/kinshoko-core/tests/tag_catalog.rs",
+      "e2e/legacy-name-startup.mjs",
+      "e2e/legacy-tag-names.mjs",
+      "e2e/native-tray-exit-t04.py",
+      "e2e/shared-personal-approx.mjs",
+      "e2e/tag-identity.mjs",
+      "src-tauri/src/commands.rs",
+      "src-tauri/src/desktop/win32.rs",
+      "src-tauri/src/library/approx.rs",
+      "src-tauri/src/library/groups.rs",
+      "src-tauri/src/library/name_migration.rs",
+      "src-tauri/src/library/names.rs",
+      "src-tauri/src/library/settings_backup.rs",
+      "src-tauri/src/tagging.rs",
+      "src/library/LegacyNameMigrationPanel.test.tsx"
+    ],
+    "note": "Worker raw hashes match all listed inputs. Root checkout differs only in the listed LF/CRLF files; merged Git content is identical."
+  },
+  "nativeManifest": {
+    "source": "5a48939e905652b9d15a4a5f47a0844012e7a8f7",
+    "trackedSourceFiles": 1034,
+    "excludedTrackedEvidenceFiles": 655,
+    "gitBlobContentMatches": true,
+    "windowsTextEolMatches": 553,
+    "mixedCheckoutEolMatches": [
+      {
+        "path": "docs/adr/0006-application-tag-catalog.md",
+        "method": "unchanged raw worker file matches manifest and normalizes to exact Git blob"
+      },
+      {
+        "path": "docs/adr/0007-application-personal-approx.md",
+        "method": "unchanged raw worker file matches manifest and normalizes to exact Git blob"
+      },
+      {
+        "path": "docs/implementation/spec-78-t13.md",
+        "method": "final newline alone is CRLF; all other Git bytes match"
+      },
+      {
+        "path": "e2e/shared-personal-approx.mjs",
+        "method": "unchanged raw worker file matches manifest and normalizes to exact Git blob"
+      },
+      {
+        "path": "src/library/LegacyNameMigrationPanel.test.tsx",
+        "method": "unchanged raw worker file matches manifest and normalizes to exact Git blob"
+      }
+    ],
+    "distFiles": 10,
+    "note": "Original source/dist preflight is archived; source content independently compared to exact Git blobs, allowing checkout CRLF only. The manifest excludes docs/implementation/evidence/."
+  },
+  "native": {
+    "status": "passed",
+    "assertions": 47,
+    "pendingRequests": 48,
+    "pendingRejected": 48,
+    "normalTrayQuits": 7,
+    "normalExitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "actualFaultExitCode": 99,
+    "binarySha256": "2c9e5a69eee742519ba08ec194662614f2da5b29cb5b68cad12149b14b2102df",
+    "originalHashesVerified": 6,
+    "reexecuted": false
+  },
+  "fixedCoreLog": {
+    "source": "a8edbfbe5c65b9435f85721cb35ef49ac2de1fdc",
+    "parentPassed": 83,
+    "ignoredEntrypoints": 5,
+    "targets": [
+      {
+        "target": "app_settings",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "target": "application_settings_backup",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "target": "backup_content_definitions",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 2
+      },
+      {
+        "target": "backup_crash",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "target": "backup_restore",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "target": "catalog_approx",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "target": "catalog_groups",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "target": "catalog_visibility",
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "target": "portable_tags",
+        "passed": 12,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "target": "tag_catalog",
+        "passed": 11,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "target": "tag_names",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      }
+    ]
+  },
+  "earlierWorkspaceSource": null
+}

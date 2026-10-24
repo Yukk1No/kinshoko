@@ -1,0 +1,208 @@
+/* Shared redesign components (T20, design/ui-system/README.md). Tokens live in src/styles.css :root.
+   Every class is prefixed `k-` so it never collides with the older component styles. */
+
+/* ---- Control label ---- */
+/* Text in a fixed-height, flex-centred control. Chromium floors the half-leading, so at fractional scales
+   (110%, 125%) a plain line box rides up to 1 device px; trimming it to cap height and baseline centres the
+   glyphs instead. The 0.04em moves the text down by half that: Han ink sits ~0.02em above Inter's cap centre.
+   Clip only inline: the trimmed box is shorter than the glyphs. WebView2 before Chromium 133 ignores text-box, so
+   the nudge comes with the trim or not at all. */
+.k-label { min-width: 0; white-space: nowrap; overflow-x: clip; text-overflow: ellipsis; }
+@supports (text-box: trim-both cap alphabetic) {
+  .k-label { padding-top: 0.04em; text-box: trim-both cap alphabetic; }
+}
+
+/* ---- Buttons ---- */
+.k-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: var(--r);
+  font-weight: 500; white-space: nowrap; color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2);
+  transition: background var(--t-fast), transform var(--t-fast) var(--spring); }
+.k-btn:has(> svg:first-child) { padding-left: 10px; } /* optical: an icon's side bearing reads as padding */
+.k-btn:hover:not(:disabled) { background: var(--surface-2); }
+.k-btn:active:not(:disabled) { transform: scale(0.97); }
+.k-btn.is-primary { background: var(--ink); color: var(--bg); box-shadow: none; }
+.k-btn.is-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 88%, var(--bg)); }
+.k-btn.is-ghost { background: transparent; box-shadow: none; color: var(--accent-strong); }
+.k-btn.is-ghost:hover:not(:disabled) { background: var(--accent-soft); }
+.k-btn.is-danger { background: var(--danger-solid); color: var(--on-solid); box-shadow: none; }
+.k-btn.is-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger-solid) 90%, var(--ink)); }
+.k-btn.is-sm { height: 28px; padding: 0 10px; font-size: 12px; border-radius: var(--r-s); }
+.k-btn.is-sm:has(> svg:first-child) { padding-left: 8px; }
+.k-btn svg { flex: none; }
+.k-icon-btn { width: 32px; height: 32px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink-2); }
+.k-icon-btn:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+.k-icon-btn:active:not(:disabled) { background: var(--press); }
+.k-kbd { margin-left: auto; font: 12px/18px var(--font); color: var(--ink-2); padding: 0 5px; border-radius: var(--r-xs); box-shadow: inset 0 0 0 1px var(--line-2); background: none; border: 0; }
+
+/* ---- Window controls (frameless main window) ---- */
+/* margin-left: auto keeps the controls at the end of the row even when the row's other items stop growing (the top bar's search has a maximum width). */
+.k-win-ctrls { display: flex; align-items: center; gap: 2px; flex: none; margin-left: auto; }
+.k-win-div { width: 1px; height: 22px; background: var(--line); margin: 0 4px 0 2px; }
+.k-win-btn { position: relative; width: 38px; height: 26px; padding: 0; border: 0; border-radius: 7px; display: grid; place-items: center; background: transparent; color: var(--ink-2);
+  transition: background var(--t-fast), color var(--t-fast); }
+/* Glyphs are drawn on the device-pixel grid and placed by WinCtrls (winGlyphs.ts); keep antialiasing for diagonals and corners. */
+.k-win-btn svg { position: absolute; display: block; }
+.k-win-btn:hover { background: var(--hover); color: var(--ink); }
+.k-win-btn:active { background: var(--press); }
+.k-win-btn.is-close:hover { background: var(--danger-solid); color: var(--on-solid); }
+.k-win-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---- Popups: menus and popovers (Base UI parts) ---- */
+.k-positioner { z-index: 60; outline: 0; }
+.k-popup { min-width: 200px; max-height: min(var(--available-height, 480px), 480px); overflow: auto; padding: 5px; background: var(--surface); color: var(--ink);
+  border-radius: var(--r-m); box-shadow: var(--shadow-pop); outline: 0;
+  transform-origin: var(--transform-origin); transition: transform 220ms var(--spring), opacity 150ms; }
+.k-popup[data-starting-style], .k-popup[data-ending-style] { opacity: 0; transform: scale(0.96) translateY(-4px); }
+.k-item { position: relative; display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px 0 8px; border-radius: var(--r-item); outline: 0; cursor: default;
+  user-select: none; white-space: nowrap; color: var(--ink); }
+.k-item[data-highlighted] { background: var(--hover); }
+.k-item[data-disabled] { opacity: 0.5; }
+.k-item-ind { width: 16px; flex: none; display: grid; place-items: center; color: var(--ink-3); }
+.k-item-ind svg.lucide-check { color: var(--accent-strong); }
+.k-item-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.k-item-meta { margin-left: auto; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.k-item-meta.is-warn { color: var(--warn); }
+.k-item.is-danger { color: var(--danger); }
+.k-item.is-danger .k-item-ind { color: var(--danger); }
+/* a status row in a submenu (loading, empty, error): ink-2 text, never highlighted */
+.k-item.is-tip { min-height: 30px; color: var(--ink-2); font-size: 12px; line-height: 18px; white-space: normal; }
+.k-item.is-tip:hover { background: none; }
+.k-sep { height: 1px; background: var(--line); margin: 4px 8px; }
+/* 子菜单行（“放入文件夹 ▸”）：右侧箭头，展开时保持高亮。 */
+.k-item-sub { flex: none; margin-left: 4px; color: var(--ink-3); }
+.k-item-meta + .k-item-sub { margin-left: 6px; }
+.k-item.is-sub[data-popup-open] { background: var(--hover); }
+.k-item.has-meta .k-item-label { display: flex; align-items: center; gap: 8px; }
+/* the group name lines up with the item text: item padding 8 + indicator 16 + gap 8 */
+.k-menu-label { padding: 6px 10px 2px 32px; font-size: 12px; line-height: 18px; color: var(--ink-2); font-weight: 600; }
+
+/* ---- Import button: one target, the source is chosen in its menu (design system ImportButton) ---- */
+.k-import { display: inline-flex; align-items: center; gap: 2px; flex: none; height: 36px; padding: 0 8px 0 10px; border: 0; border-radius: var(--r); background: transparent; color: var(--ink-2);
+  transition: background var(--t-fast), color var(--t-fast), transform var(--t-fast) var(--spring); }
+.k-import:hover:not(:disabled), .k-import[data-popup-open] { background: var(--hover); color: var(--ink); }
+.k-import:active:not(:disabled) { transform: scale(0.97); }
+.k-import .k-import-chev { color: var(--ink-3); transition: transform var(--t-slow) var(--spring); }
+.k-import[data-popup-open] .k-import-chev { transform: rotate(180deg); }
+.k-import[aria-busy="true"] > svg:first-child { animation: k-busy 1.2s var(--ease) infinite; }
+@keyframes k-busy { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .k-import[aria-busy="true"] > svg:first-child { animation: none; } }
+
+/* ---- Fluid hover list ---- */
+.k-fluid { position: relative; }
+.k-fluid-pill { position: absolute; left: 0; right: 0; border-radius: var(--r-s); background: var(--hover); pointer-events: none; }
+.k-fluid-row { position: relative; }
+
+/* ---- Switch ---- */
+.k-switch { position: relative; display: inline-block; flex: none; width: 34px; height: 20px; padding: 0; border: 0; border-radius: var(--r-pill); background: var(--line-2);
+  transition: background var(--t); cursor: pointer; }
+.k-switch[data-checked] { background: var(--accent); }
+.k-switch[data-disabled] { opacity: 0.5; cursor: default; }
+.k-switch-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--on-solid); box-shadow: var(--knob-shadow);
+  transition: transform 250ms var(--spring); }
+.k-switch[data-checked] .k-switch-thumb { transform: translateX(14px); }
+.k-switch.is-sm { width: 28px; height: 16px; }
+.k-switch.is-sm .k-switch-thumb { width: 12px; height: 12px; }
+.k-switch.is-sm[data-checked] .k-switch-thumb { transform: translateX(12px); }
+
+/* ---- Segmented switch ---- */
+/* slot 10, padding 3, item 7: concentric */
+.k-seg { display: flex; padding: 3px; border-radius: var(--r); background: var(--sunken); box-shadow: inset 0 0 0 1px var(--line); gap: 2px; }
+.k-seg-item { flex: 1; min-width: 0; height: 30px; padding: 0 8px; border: 0; border-radius: var(--r-item); background: transparent; color: var(--ink-2); font-weight: 500;
+  display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; overflow: hidden;
+  transition: background var(--t-fast), color var(--t-fast); }
+.k-seg-item:hover:not([data-disabled]) { color: var(--ink); }
+.k-seg-item[data-pressed] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line), var(--shadow-raise); }
+.k-seg-item[data-disabled] { opacity: 0.5; cursor: default; }
+
+/* ---- Toasts ---- */
+.k-toasts { position: fixed; right: 18px; bottom: 18px; z-index: 200; width: 340px; max-width: calc(100vw - 36px); display: flex; flex-direction: column; gap: 8px;
+  outline: 0; pointer-events: none; }
+/* An `ink` card that reports what just happened; icons and the action take the other theme's colour (design system Toast). */
+.k-toast { pointer-events: auto; display: flex; align-items: flex-start; gap: 10px; padding: 10px 10px 10px 12px; background: var(--ink); color: var(--bg);
+  border-radius: var(--r-m); box-shadow: var(--shadow-pop); outline: 0; transition: transform 220ms var(--spring), opacity 180ms; }
+.k-toast[data-starting-style], .k-toast[data-ending-style] { opacity: 0; transform: translateY(8px); }
+.k-toast:focus-visible { box-shadow: 0 0 0 2px var(--accent), var(--shadow-pop); }
+.k-toast-icon { flex: none; margin-top: 2px; color: var(--inverse-ok); }
+.k-toast[data-tone="info"] .k-toast-icon { color: color-mix(in srgb, var(--bg) 70%, transparent); }
+.k-toast[data-tone="error"] .k-toast-icon { color: var(--inverse-danger); }
+.k-toast-text { flex: 1; min-width: 0; }
+.k-toast-title { margin: 0; font-size: 13px; font-weight: 500; line-height: 20px; overflow-wrap: anywhere; }
+.k-toast-desc { margin: 0; font-size: 12px; line-height: 18px; opacity: 0.75; overflow-wrap: anywhere; }
+.k-toast-desc:empty { display: none; }
+.k-toast-action { flex: none; padding: 0 4px; height: 20px; border: 0; border-radius: var(--r-xs); background: none; color: var(--inverse-accent); font-weight: 500; }
+.k-toast-action:hover { background: color-mix(in srgb, var(--bg) 12%, transparent); }
+.k-toast-close { flex: none; width: 20px; height: 20px; padding: 0; border: 0; display: grid; place-items: center; background: none; color: inherit; opacity: 0.6; border-radius: var(--r-xs); }
+.k-toast-close:hover { opacity: 1; background: color-mix(in srgb, var(--bg) 12%, transparent); }
+.k-toast-action:focus-visible, .k-toast-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---- Dock (after Arc Pro dock behaviour) ---- */
+.k-dock { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 6px; border-radius: var(--r-xl);
+  background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--shadow-pop); }
+.k-dock-cell { position: relative; }
+.k-dock-item { position: relative; width: 40px; height: 40px; padding: 0; border: 0; border-radius: var(--r-m); display: grid; place-items: center; background: transparent; color: var(--ink-2); }
+.k-dock-item:hover:not(:disabled) { color: var(--ink); background: var(--hover); }
+.k-dock-item[aria-pressed="true"] { color: var(--accent-strong); }
+.k-dock-item[aria-pressed="true"]:hover { background: transparent; }
+.k-dock-item.is-primary { background: var(--ink); color: var(--bg); }
+.k-dock-item.is-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 88%, var(--bg)); color: var(--bg); }
+.k-dock-item.is-danger:hover:not(:disabled) { color: var(--danger); background: var(--hover); }
+.k-dock-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.k-dock-sel { position: absolute; inset: 0; border-radius: var(--r-m); background: var(--accent-soft); }
+.k-dock-icon { position: relative; display: grid; place-items: center; }
+.k-dock-sep { width: 1px; height: 22px; margin: 0 5px; background: var(--line-2); }
+.k-dock-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--r-pill); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 16px; font-weight: 600; text-align: center; }
+.k-dock-tip { position: absolute; bottom: calc(100% + 10px); display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: var(--r-s); background: var(--ink); color: var(--bg);
+  font-size: 12px; line-height: 18px; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-pop); }
+.k-dock-tip-note { opacity: 0.7; }
+.k-dock-tip kbd { font: inherit; padding: 0; border: 0; background: none; color: inherit; opacity: 0.7; }
+.k-dock-tray { position: absolute; bottom: calc(100% + 10px); left: 50%; translate: -50% 0; display: flex; gap: 2px; padding: 6px; border-radius: var(--r-xl);
+  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-pop); transform-origin: 50% 100%; }
+.k-dock-tray .k-dock-item[aria-pressed="true"] { box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--accent-soft); }
+/* The readout never truncates, and its original-pixel star sits past the text's right edge. */
+.k-dock-readout > .k-label { overflow-x: visible; }
+.k-dock-readout { height: 40px; display: flex; align-items: center; margin-right: 4px; padding: 0 14px 0 8px; border-right: 1px solid var(--line-2);
+  font-size: 13px; line-height: 20px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+/* 原始像素读数（#103，#130）：读数后挂 logo 的星，约为字号的 0.8，不占排版宽度；“原始像素”只在悬停提示里。 */
+.k-original { position: relative; }
+.k-original-star path { fill: var(--star); }
+.k-original-star { position: absolute; left: calc(100% + 0.06em); top: -0.38em; width: 0.8em; height: 0.8em; overflow: visible; }
+/* `.k-dock.is-dark` takes the dark theme's tokens (src/styles.css), so it needs no rules of its own. */
+
+/* ---- Dialog shell (Base UI Dialog / AlertDialog) and settings-style lists ---- */
+.k-backdrop { position: fixed; inset: 0; z-index: 90; background: var(--overlay); transition: opacity 200ms; }
+.k-backdrop[data-starting-style], .k-backdrop[data-ending-style] { opacity: 0; }
+.k-dialog { position: fixed; left: 50%; top: 50%; z-index: 91; width: min(560px, calc(100vw - 48px)); max-height: calc(100vh - 48px); overflow: auto; translate: -50% -50%;
+  padding: 20px; border-radius: var(--r-xl); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-dialog);
+  transition: transform 220ms var(--spring), opacity 160ms; }
+.k-dialog[data-starting-style], .k-dialog[data-ending-style] { opacity: 0; transform: scale(0.97); }
+.k-dialog-title { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; }
+.k-dialog-desc { margin: 4px 0 14px; color: var(--ink-2); font-size: 13px; }
+.k-dialog-foot { display: flex; align-items: center; gap: 8px; margin-top: 20px; }
+.k-grow { flex: 1; }
+/* two or more facts side by side: spacing separates them, never a middle dot */
+.k-parts { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; min-width: 0; }
+.k-list { list-style: none; margin: 0; padding: 0; border-radius: var(--r-m); box-shadow: inset 0 0 0 1px var(--line); }
+.k-list-row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 12px; border-top: 1px solid var(--line); }
+.k-list-row:first-child { border-top: 0; }
+.k-list-icon { width: 28px; height: 28px; flex: none; border-radius: var(--r-s); display: grid; place-items: center; background: var(--surface-2); color: var(--ink-2); }
+.k-list-text { flex: 1; min-width: 0; }
+.k-list-title { font-weight: 500; }
+.k-list-desc { margin: 0; color: var(--ink-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-list-desc.is-warn { color: var(--warn); white-space: normal; overflow-wrap: anywhere; }
+.k-list-end { display: flex; align-items: center; gap: 8px; flex: none; }
+/* the item's current state (version, progress, place): ink-2 beside the control, never a line of its own */
+.k-list-meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; }
+.k-pill { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; background: var(--surface-2); color: var(--ink-2); }
+/* a pill's text is the `*-strong` colour on its `*-soft` fill */
+.k-pill.is-ok { background: var(--ok-soft); color: var(--ok-strong); }
+.k-pill.is-warn { background: var(--warn-soft); color: var(--warn-strong); }
+.k-item-meta .is-warn { color: var(--warn); }
+
+@media (prefers-reduced-motion: reduce) {
+  .k-popup, .k-toast, .k-import, .k-import .k-import-chev, .k-switch-thumb, .k-btn { transition-duration: 0ms; }
+}
+:root[data-reduced-motion] .k-popup, :root[data-reduced-motion] .k-toast, :root[data-reduced-motion] .k-switch-thumb { transition-duration: 0ms; }
+
+/* ---- A dock that follows a selection (viewer crop, screen capture) ---- */
+.k-follow-dock { position: absolute; z-index: 3; cursor: default; pointer-events: auto; }

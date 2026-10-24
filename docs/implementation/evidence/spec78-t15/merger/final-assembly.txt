@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "mergeCommit": "d93e7f803e160c73862a9692935471b072fc027a",
+  "mergeTree": "79bb1657860296aa0d4be07bd155b63de2334dce",
+  "tip": "2d6bb1a8cb78309173c4dfeceec0158bd02eb1c9",
+  "tipTree": "6a595b7f1ef51b31ccac36aa894095ed5b89c46a",
+  "rootWorkingTreeClean": true,
+  "released": true
+}

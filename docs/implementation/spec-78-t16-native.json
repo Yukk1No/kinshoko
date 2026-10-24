@@ -1,0 +1,391 @@
+{
+  "spec": 78,
+  "ticket": 81,
+  "production_revision": "8106d8aa2fbb164f59b5e29aa6cc81661ac96fda",
+  "activation": "production start_capture and finish_capture IPC; real native frozen window; real system clipboard read back via pin_clipboard",
+  "runs": [
+    {
+      "source_revision": "8106d8aa2fbb164f59b5e29aa6cc81661ac96fda",
+      "finished_at_utc": "2026-10-08T13:10:31.641Z",
+      "status": "passed",
+      "windows_kernel": "10.0.26300",
+      "webview2_version": "154.0.4258.62",
+      "edgedriver_version": "154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)",
+      "dpr": 1.1041666269302368,
+      "checks": [
+        "真实查看器缩小显示 2400×1600 原图",
+        "查看器原图复制不增加截图历史",
+        "查看器 F1 钉图保留明确资料库与原图来源",
+        "查看器 F1 钉图保留原图裁切",
+        "查看器原图钉住不增加截图历史",
+        "系统剪贴板保留原图选区尺寸",
+        "系统剪贴板四角保留逐像素原图细节",
+        "已有局部变换后的复制不增加截图历史",
+        "已有局部变换后的钉住保留同一原图来源、裁切和方向",
+        "已有局部变换后的钉住不增加截图历史",
+        "已有局部翻转旋转后剪贴板仍保留原图尺寸",
+        "已有局部翻转旋转后剪贴板四角与原图对应",
+        "参考图外的 F1 复制继续保存普通屏幕截图"
+      ],
+      "viewer": {
+        "shown_physical_pixels": {
+          "x": 422,
+          "y": 394,
+          "width": 1203,
+          "height": 802
+        },
+        "selected_physical_pixels": {
+          "offsetX": 300,
+          "offsetY": 200,
+          "width": 150,
+          "height": 100
+        },
+        "expected_original_crop": {
+          "x": 598,
+          "y": 399,
+          "width": 300,
+          "height": 200
+        },
+        "actual_pin": {
+          "content": {
+            "imageId": "01a11ba2dfd172dc80580f8d51460d5d",
+            "kind": "reference",
+            "libraryId": "2fc3c31865b3426abbfd5d0793f02244",
+            "sourceHeight": 1600,
+            "sourceWidth": 2400
+          },
+          "crop": {
+            "height": 200,
+            "width": 300,
+            "x": 598,
+            "y": 399
+          },
+          "height": 200,
+          "id": "90262118f3254d24b96e295e413f87f3",
+          "locked": false,
+          "opacity": 1,
+          "placement": {
+            "flipH": false,
+            "flipV": false,
+            "rotation": 0,
+            "scale": 1,
+            "x": 740,
+            "y": 612
+          },
+          "width": 300
+        }
+      },
+      "transformed_prior_crop": {
+        "prior": {
+          "content": {
+            "height": 150,
+            "width": 100,
+            "x": 765,
+            "y": 587
+          },
+          "generation": 3,
+          "motion": "jump",
+          "pin": {
+            "content": {
+              "imageId": "01a11ba2dfd172dc80580f8d51460d5d",
+              "kind": "reference",
+              "libraryId": "2fc3c31865b3426abbfd5d0793f02244",
+              "sourceHeight": 1600,
+              "sourceWidth": 2400
+            },
+            "crop": {
+              "height": 200,
+              "width": 300,
+              "x": 598,
+              "y": 399
+            },
+            "height": 200,
+            "id": "90262118f3254d24b96e295e413f87f3",
+            "locked": false,
+            "opacity": 1,
+            "placement": {
+              "flipH": true,
+              "flipV": false,
+              "rotation": 1,
+              "scale": 0.5,
+              "x": 765,
+              "y": 587
+            },
+            "width": 300
+          },
+          "veiled": false,
+          "window": {
+            "height": 150,
+            "width": 100,
+            "x": 765,
+            "y": 587
+          }
+        },
+        "selected": {
+          "offsetX": 25,
+          "offsetY": 37,
+          "width": 12,
+          "height": 18
+        },
+        "crop": {
+          "x": 788,
+          "y": 525,
+          "width": 36,
+          "height": 24
+        },
+        "clipboard": {
+          "size": [
+            24,
+            36
+          ],
+          "corners": [
+            [
+              55,
+              36,
+              255,
+              255
+            ],
+            [
+              55,
+              13,
+              255,
+              255
+            ],
+            [
+              20,
+              36,
+              0,
+              255
+            ],
+            [
+              20,
+              13,
+              0,
+              255
+            ]
+          ]
+        },
+        "pin": {
+          "content": {
+            "imageId": "01a11ba2dfd172dc80580f8d51460d5d",
+            "kind": "reference",
+            "libraryId": "2fc3c31865b3426abbfd5d0793f02244",
+            "sourceHeight": 1600,
+            "sourceWidth": 2400
+          },
+          "crop": {
+            "height": 24,
+            "width": 36,
+            "x": 788,
+            "y": 525
+          },
+          "height": 24,
+          "id": "8b365c2a642945c6a672314b709faffe",
+          "locked": false,
+          "opacity": 1,
+          "placement": {
+            "flipH": true,
+            "flipV": false,
+            "rotation": 1,
+            "scale": 1,
+            "x": 808,
+            "y": 642
+          },
+          "width": 36
+        }
+      }
+    },
+    {
+      "source_revision": "50d204ec6723e069930875e7cfd7ecade9244e9c",
+      "finished_at_utc": "2026-10-08T13:11:41.977Z",
+      "status": "passed",
+      "windows_kernel": "10.0.26300",
+      "webview2_version": "154.0.4258.62",
+      "edgedriver_version": "154.0.4258.62 (49f7c5590dad654f33b924537ccc8be227c5a43a)",
+      "dpr": 1.5,
+      "checks": [
+        "WebView2 使用指定的测试 DPR",
+        "真实查看器缩小显示 2400×1600 原图",
+        "查看器原图复制不增加截图历史",
+        "查看器 F1 钉图保留明确资料库与原图来源",
+        "查看器 F1 钉图保留原图裁切",
+        "查看器原图钉住不增加截图历史",
+        "系统剪贴板保留原图选区尺寸",
+        "系统剪贴板四角保留逐像素原图细节",
+        "已有局部变换后的复制不增加截图历史",
+        "已有局部变换后的钉住保留同一原图来源、裁切和方向",
+        "已有局部变换后的钉住不增加截图历史",
+        "已有局部翻转旋转后剪贴板仍保留原图尺寸",
+        "已有局部翻转旋转后剪贴板四角与原图对应",
+        "参考图外的 F1 复制继续保存普通屏幕截图"
+      ],
+      "viewer": {
+        "shown_physical_pixels": {
+          "x": 386,
+          "y": 356,
+          "width": 1161,
+          "height": 774
+        },
+        "selected_physical_pixels": {
+          "offsetX": 290,
+          "offsetY": 193,
+          "width": 145,
+          "height": 96
+        },
+        "expected_original_crop": {
+          "x": 599,
+          "y": 398,
+          "width": 301,
+          "height": 200
+        },
+        "actual_pin": {
+          "content": {
+            "imageId": "01a11ba3f08a702d9037e695cca86fc3",
+            "kind": "reference",
+            "libraryId": "b862d43ff2cb4b1e9c5217184759d597",
+            "sourceHeight": 1600,
+            "sourceWidth": 2400
+          },
+          "crop": {
+            "height": 200,
+            "width": 301,
+            "x": 599,
+            "y": 398
+          },
+          "height": 200,
+          "id": "908fea2910804598b40b4634b9b7ca62",
+          "locked": false,
+          "opacity": 1,
+          "placement": {
+            "flipH": false,
+            "flipV": false,
+            "rotation": 0,
+            "scale": 1,
+            "x": 694,
+            "y": 567
+          },
+          "width": 301
+        }
+      },
+      "transformed_prior_crop": {
+        "prior": {
+          "content": {
+            "height": 151,
+            "width": 100,
+            "x": 719,
+            "y": 541
+          },
+          "generation": 3,
+          "motion": "jump",
+          "pin": {
+            "content": {
+              "imageId": "01a11ba3f08a702d9037e695cca86fc3",
+              "kind": "reference",
+              "libraryId": "b862d43ff2cb4b1e9c5217184759d597",
+              "sourceHeight": 1600,
+              "sourceWidth": 2400
+            },
+            "crop": {
+              "height": 200,
+              "width": 301,
+              "x": 599,
+              "y": 398
+            },
+            "height": 200,
+            "id": "908fea2910804598b40b4634b9b7ca62",
+            "locked": false,
+            "opacity": 1,
+            "placement": {
+              "flipH": true,
+              "flipV": false,
+              "rotation": 1,
+              "scale": 0.5,
+              "x": 719,
+              "y": 541
+            },
+            "width": 301
+          },
+          "veiled": false,
+          "window": {
+            "height": 151,
+            "width": 100,
+            "x": 719,
+            "y": 541
+          }
+        },
+        "selected": {
+          "offsetX": 25,
+          "offsetY": 37,
+          "width": 12,
+          "height": 18
+        },
+        "crop": {
+          "x": 790,
+          "y": 524,
+          "width": 37,
+          "height": 24
+        },
+        "clipboard": {
+          "size": [
+            24,
+            37
+          ],
+          "corners": [
+            [
+              58,
+              35,
+              0,
+              255
+            ],
+            [
+              58,
+              12,
+              0,
+              255
+            ],
+            [
+              22,
+              35,
+              0,
+              255
+            ],
+            [
+              22,
+              12,
+              0,
+              255
+            ]
+          ]
+        },
+        "pin": {
+          "content": {
+            "imageId": "01a11ba3f08a702d9037e695cca86fc3",
+            "kind": "reference",
+            "libraryId": "b862d43ff2cb4b1e9c5217184759d597",
+            "sourceHeight": 1600,
+            "sourceWidth": 2400
+          },
+          "crop": {
+            "height": 24,
+            "width": 37,
+            "x": 790,
+            "y": 524
+          },
+          "height": 24,
+          "id": "e4330a4081034107962bad472a792063",
+          "locked": false,
+          "opacity": 1,
+          "placement": {
+            "flipH": true,
+            "flipV": false,
+            "rotation": 1,
+            "scale": 1,
+            "x": 762,
+            "y": 596
+          },
+          "width": 37
+        }
+      }
+    }
+  ]
+}
