@@ -92,6 +92,27 @@ fn a_group_capture_is_backed_up_and_restored_after_the_original_group_is_gone() 
 }
 
 #[test]
+fn the_backup_estimate_counts_group_captures_as_new_bytes() {
+    let dir = tempfile::tempdir().unwrap();
+    let groups = ReferenceGroups::open(&dir.path().join("reference-groups")).unwrap();
+    let (group, bytes) = group_with_capture(dir.path(), &groups);
+    let json = groups.snapshot(&group.id).unwrap().len() as u64;
+    let target = BackupTarget::new(&dir.path().join("backup"));
+    std::fs::create_dir_all(dir.path().join("backup")).unwrap();
+    let scope = compute_scope(&[], &groups.list().unwrap(), &ScopeSelection::All);
+    let sources = BackupSources {
+        libraries: &[],
+        groups: &groups,
+    };
+    let estimate = target.estimate(&scope, &sources).unwrap();
+    let expected = json + bytes.len() as u64;
+    assert_eq!(
+        (estimate.total_bytes, estimate.new_bytes),
+        (expected, expected)
+    );
+}
+
+#[test]
 fn a_group_whose_capture_file_is_missing_leaves_the_backup_incomplete() {
     let dir = tempfile::tempdir().unwrap();
     let groups = ReferenceGroups::open(&dir.path().join("reference-groups")).unwrap();

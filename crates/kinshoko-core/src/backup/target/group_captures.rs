@@ -50,6 +50,16 @@ pub(super) fn save(
         .collect()
 }
 
+/// 参考组 `group_id` 的快照连同它用到的组内截图共多少字节；截图每次都重新复制，不按哈希去重。
+/// 快照读不到时为 `None`。
+pub(super) fn size(groups: &ReferenceGroups, group_id: &str) -> Option<u64> {
+    let snapshot = groups.snapshot(group_id).ok()?;
+    let files = groups
+        .snapshot_captures(group_id, &snapshot)
+        .unwrap_or_default();
+    Some(snapshot.len() as u64 + files.iter().map(|(_, b)| b.len() as u64).sum::<u64>())
+}
+
 /// 从快照目录 `groups_dir` 读回参考组 `group` 的组内截图，与清单记录的 SHA-256 核对。
 pub(super) fn load(groups_dir: &Path, group: &ManifestGroup) -> Result<CaptureFiles, BackupError> {
     group

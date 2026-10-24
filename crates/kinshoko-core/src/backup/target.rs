@@ -153,9 +153,9 @@ impl BackupTarget {
             }
         }
         for g in &scope.groups {
-            if let Ok(bytes) = sources.groups.snapshot(&g.id) {
-                est.total_bytes += bytes.len() as u64;
-                est.new_bytes += bytes.len() as u64;
+            if let Some(n) = group_captures::size(sources.groups, &g.id) {
+                est.total_bytes += n;
+                est.new_bytes += n;
             }
         }
         Ok(est)
