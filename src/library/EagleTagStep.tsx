@@ -76,7 +76,8 @@ function UnmatchedRow({
         options={externalOptions(suggestions, draft)}
         onValueChange={change}
         onSelect={(option) => { setDraft(option.id); void submit(option.id); }}
-        onKeyDown={(e) => { if (e.key === "Enter") void submit(); }}
+        // 有高亮的候选时 Enter 由 Combobox 选它；没有时按输入的名称补上。
+        onKeyDown={(e) => { if (e.key === "Enter" && !e.currentTarget.getAttribute("aria-activedescendant")) void submit(); }}
       />
       <button type="button" aria-label={`补上 ${name} 的外部对应`} disabled={busy || !draft.trim()} onClick={() => void submit()}>
         补上

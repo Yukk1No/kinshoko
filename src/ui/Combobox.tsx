@@ -84,9 +84,9 @@ export function Combobox<T extends ComboboxOption>({
   const field = inputRef ?? ownInput;
   const list = useRef<HTMLDivElement>(null);
 
-  // 候选换了，高亮回到第一项（或不高亮）。
+  // 改了字或候选换了，高亮回到第一项（或不高亮）。
   const ids = options.map((o) => o.id).join("\n");
-  useEffect(() => setActive(start), [ids, start]);
+  useEffect(() => setActive(start), [ids, start, value]);
   const current = active >= 0 && active < options.length ? active : -1;
 
   // 高亮项滚进列表可见范围。
@@ -103,6 +103,8 @@ export function Combobox<T extends ComboboxOption>({
   };
 
   const keyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    // 输入法选字时的方向键和回车属于输入法，不动候选。
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
     onKeyDown?.(event);
     if (event.defaultPrevented) return;
     const n = options.length;
@@ -179,7 +181,7 @@ export function Combobox<T extends ComboboxOption>({
     </div>}
     <Popover.Root open={shown} modal={false}>
       <Popover.Portal>
-        <Popover.Positioner className="k-positioner" anchor={anchor ?? box} side="bottom" align="start" sideOffset={4}>
+        <Popover.Positioner className="k-positioner is-field" anchor={anchor ?? box} side="bottom" align="start" sideOffset={4}>
           <Popover.Popup ref={list} id={listId} role="listbox" aria-label={label} className="k-popup k-listbox" initialFocus={false} finalFocus={false}
             // 点选时不让输入框失去焦点，列表不会先收起。
             onMouseDown={(event) => event.preventDefault()}>

@@ -37,6 +37,8 @@ input.side-input { display: block; width: 100%; text-overflow: ellipsis; }
 .k-input-clear:hover { background: var(--hover); color: var(--ink); }
 
 /* ---- Combobox ---- */
+/* 候选与选择列表常在对话框（.k-dialog 91）里打开，浮层要压在对话框之上。 */
+.k-positioner.is-field { z-index: 95; }
 .k-combo { position: relative; min-width: 0; }
 .k-combo:not(.is-bare) { display: flex; flex-direction: column; }
 .k-combo.is-bare { display: flex; }

@@ -255,13 +255,15 @@ try {
   assert(true, "建立图库并打开");
 
   // 导入文件夹（含子文件夹）。设计系统 v2：导入是顶栏的一个按钮，文件夹在它的菜单里；选好文件夹后
-  // 在导入对话框里选保存位置。保存位置的两个选择按可见标签命名（放到图库、文件夹），这里按位置取。
+  // 在导入对话框里选保存位置。保存位置的两个选择按可见标签命名（放到图库、文件夹）。
   await session.pick(source);
   await session.click(await session.find("//button[@aria-label='导入']"));
   await session.click(await session.waitFor("文件夹菜单项", "//*[@role='menuitem' and normalize-space()='文件夹']"));
-  await until("保存目标资料库已加载", () => session.exec("return [...(document.querySelector('.k-import-dialog .k-destination-grid > label:nth-of-type(1) select')?.options ?? [])].some(o=>o.value===arguments[0]);", [created.id]));
-  await session.exec("const s=document.querySelector('.k-import-dialog .k-destination-grid > label:nth-of-type(1) select');s.value=arguments[0];s.dispatchEvent(new Event('change',{bubbles:true}));",[created.id]);
-  await session.exec("const s=document.querySelector('.k-import-dialog .k-destination-grid > label:nth-of-type(2) select');s.value='';s.dispatchEvent(new Event('change',{bubbles:true}));");
+  // 保存位置是设计系统的 Select（不是原生 select）：点开“放到图库”，等新建的图库可选后点它；文件夹默认“未归类”。
+  const target = "//*[contains(@class,'k-import-dialog')]//*[@role='combobox' and @aria-label='放到图库']";
+  await session.click(await session.waitFor("保存目标选择", target));
+  await session.click(await session.waitFor("保存目标资料库已加载", `//*[contains(@class,'k-select-popup') and @data-open]//*[@role='option' and @data-value='${created.id}' and not(@data-disabled)]`));
+  await until("保存目标已选好", () => session.exec("return document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.dataset.value === arguments[1];", [target, created.id]));
   await until("开始导入可用", () => session.exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
   await session.click(await session.find(button("开始导入")));
   await until("导入完成", () => session.exec("const c=document.querySelector('section[aria-label=导入结果]');return c?.textContent.includes('导入完成')&&c.querySelector('.k-task-stats')?.textContent.includes('新增 3');"), 60000);
