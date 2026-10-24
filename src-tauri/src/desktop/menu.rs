@@ -81,9 +81,11 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     crate::run_log::window_created(WindowKind::PinMenu, started);
     // 显示、隐藏都要即时：系统过渡会让铺满显示器的窗口从中间放大、隐藏时边缩小边淡出，
     // 菜单就像向左滑走（#194）。三种关法最后都只是隐藏这个窗口，在这里关掉一次即可。
+    // 菜单开着时同样铺满显示器，标成工具窗口，免得 WebView2 把主窗口算成被挡住（见钉图层）。
     #[cfg(windows)]
     if let Ok(hwnd) = window.hwnd() {
         super::win32::disable_transitions(hwnd.0 as isize);
+        super::win32::mark_tool_window(hwnd.0 as isize);
     }
     let handle = app.clone();
     window.on_window_event(move |event| {

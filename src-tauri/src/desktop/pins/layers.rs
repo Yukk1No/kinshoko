@@ -146,6 +146,12 @@ pub(super) fn layer_on(
         WindowEvent::Destroyed => forget_layer(&handle, &layer),
         _ => {}
     });
+    // 只有一张钉图时层的窗口区域是一个矩形，WebView2 会把铺满显示器的层算成挡住了主窗口，
+    // 主窗口从此停画、点了没反应（#275）；工具窗口不参与这项检测。
+    #[cfg(windows)]
+    if let Ok(hwnd) = window.hwnd() {
+        super::super::win32::mark_tool_window(hwnd.0 as isize);
+    }
     place(&window, window_rect)?;
     set_region(&window, &[]);
     if through {
