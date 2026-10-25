@@ -31,9 +31,11 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); ipc.first = null; ipc.next = nu
 
 const capture: PinMenu = {
   pin: "P1", capture: true, opacity: 70, locked: false, actualSize: false, veiled: false, canCollect: true, group: null,
+  confirmReveal: false,
 };
 const reference: PinMenu = {
   pin: "P2", capture: false, opacity: 100, locked: false, actualSize: true, veiled: true, canCollect: false, group: "光影",
+  confirmReveal: false,
 };
 
 function show(menu: PinMenu) {
@@ -59,21 +61,44 @@ describe("钉图菜单项", () => {
     expect(within(popup).getAllByRole("separator")).toHaveLength(4);
   });
 
-  it("资料库钉图：没有收藏与复制；遮蔽时有“显示这张图”，来自参考组时有“存回参考组”", () => {
+  it("资料库钉图：没有收藏；遮蔽时有“显示这张图”、复制不可用，来自参考组时有“存回参考组”", () => {
     const { rows } = show(reference);
     expect(rows()).toEqual([
       "水平翻转H", "垂直翻转V", "顺时针旋转 90°R", "逆时针旋转 90°Shift R",
       "原始大小（100%）", "透明度100%", "锁定位置与大小",
-      "显示这张图（安全模式下已遮蔽）", "存回参考组「光影」",
+      "复制", "显示这张图（安全模式下已遮蔽）", "存回参考组「光影」",
       "在 Kinshoko 中打开", "加入参考组", "贴边隐藏",
       "关闭钉图Esc",
     ]);
   });
 
-  it("资料库钉图没有遮蔽也不来自参考组时，中间那一段整个不出现", () => {
-    const { rows, popup } = show({ ...reference, veiled: false, group: null });
+  it("资料库钉图没有遮蔽也不来自参考组时，中间那一段只有能用的“复制”（#289）", () => {
+    const { rows, popup, act } = show({ ...reference, veiled: false, group: null });
     expect(rows()).not.toContain("显示这张图（安全模式下已遮蔽）");
-    expect(within(popup).getAllByRole("separator")).toHaveLength(3);
+    expect(within(popup).getAllByRole("separator")).toHaveLength(4);
+    const copy = screen.getByRole("menuitem", { name: "复制" });
+    expect(copy.getAttribute("aria-disabled")).toBeNull();
+    fireEvent.click(copy);
+    expect(act).toHaveBeenCalledWith("copy");
+  });
+
+  it("被遮蔽的资料库钉图不能复制", () => {
+    show(reference);
+    expect(screen.getByRole("menuitem", { name: "复制" }).getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("点了小圆锁：只问“显示这张图？”，显示即 reveal，取消只关菜单", () => {
+    const dismiss = vi.fn();
+    const act = vi.fn();
+    render(<Menu.Root open><Menu.Portal><Menu.Positioner><Menu.Popup aria-label="钉图菜单">
+      <PinMenuItems menu={{ ...reference, confirmReveal: true }} act={act} dismiss={dismiss} groups={ipc.groups} />
+    </Menu.Popup></Menu.Positioner></Menu.Portal></Menu.Root>);
+    expect(screen.getByText("显示这张图？")).toBeTruthy();
+    expect(screen.getAllByRole("menuitem").map((r) => r.textContent)).toEqual(["显示", "取消"]);
+    fireEvent.click(screen.getByRole("menuitem", { name: "取消" }));
+    expect(dismiss).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("menuitem", { name: "显示" }));
+    expect(act).toHaveBeenCalledWith("reveal");
   });
 
   it("各项调用对应的动作", () => {

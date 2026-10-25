@@ -38,6 +38,8 @@ pub struct Look {
     pub unavailable: Option<String>,
     /// 增强钉图边缘（设置，#239）。
     pub edge_contrast: bool,
+    /// 深色主题（跟随系统，与页面的 `prefers-color-scheme` 相同）。
+    pub dark: bool,
 }
 
 impl Frame {
@@ -68,7 +70,10 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             f.content = live.target;
             f.click_through = live.click_through;
         }
-        let source_changed = f.pin.content != live.pin.content || f.pin.crop != live.pin.crop;
+        // 换了图（收藏后改引用），或资料库回来了、占位可以换成图。
+        let source_changed = f.pin.content != live.pin.content
+            || f.pin.crop != live.pin.crop
+            || (live.placeholder && f.look.unavailable.is_none() && !live.loading);
         let veil_changed = f.look.veiled != live.look.veiled;
         if live.look.veiled && !f.look.veiled {
             // 确认显示：清晰的源图到了才淡出（不必换图时马上淡出）。

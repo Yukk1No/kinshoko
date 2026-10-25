@@ -104,9 +104,13 @@ fn a_library_pin_at_100_percent_is_the_original_pixel_for_pixel() {
         display_scale: 1.0,
         veil: 0.0,
         ring: false,
+        appear: 0.0,
+        dark: false,
+        placeholder: false,
+        caption: Default::default(),
     };
     let out = r
-        .render_offscreen(&image, &draw_of(&job, (301, 207)), &lut)
+        .render_offscreen(&image, &draw_of(&job, (301, 207), None), &lut)
         .unwrap();
     let (dx, dy) = ((content.x - window.x) as u32, (content.y - window.y) as u32);
     let mut differ = 0;

@@ -8,9 +8,10 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use kinshoko_core::desktop::frame::SourceSize;
 use kinshoko_core::desktop::pin_colour::{self, PinLut, PinPixels};
 use kinshoko_core::desktop::{PinContent, SavedPin};
-use pin_render::{Image, Lut, LutData, Pixels, Renderer, Surface};
+use pin_render::{Image, Lut, LutData, Overlay, Pixels, Renderer, Surface};
 use pin_shell::PinId;
 
+use super::caption::{Caption, Painter};
 use super::draw::draw_of;
 use super::port::{DrawJob, RenderEvent, RenderPort};
 use super::surface::{self, Target};
@@ -37,7 +38,7 @@ enum Msg {
         seq: u64,
         reason: String,
     },
-    Draw(DrawJob),
+    Draw(Box<DrawJob>),
     Detach(PinId),
 }
 
@@ -104,7 +105,7 @@ impl RenderPort for RenderThread {
     }
 
     fn draw(&mut self, job: DrawJob) {
-        let _ = self.tx.send(Msg::Draw(job));
+        let _ = self.tx.send(Msg::Draw(Box::new(job)));
     }
 
     fn detach(&mut self, pin: PinId) {
@@ -127,7 +128,14 @@ struct Slot {
     /// 源图的配置文件（查找表的源空间）。
     source: Option<Vec<u8>>,
     want: u64,
+    /// 上一次画的说明层：画它时的说明、内容尺寸、缩放比例（千分之一）与主题。
+    caption: Option<(CaptionKey, Overlay, (i32, i32))>,
 }
+
+type CaptionKey = (Caption, (u32, u32), u32, bool);
+
+/// 读不到图时的占位：中性灰（钉图层 `renderer.ts` 的 #8d8d8d）。
+const PLACEHOLDER: [u8; 4] = [0x8d, 0x8d, 0x8d, 255];
 
 type LutKey = (Option<Vec<u8>>, Option<Arc<[u8]>>);
 
@@ -136,6 +144,9 @@ struct Worker {
     renderer: Option<Renderer>,
     pins: HashMap<PinId, Slot>,
     luts: HashMap<LutKey, Lut>,
+    painter: Painter,
+    /// 占位的 1×1 灰图（第一次要时上传）。
+    placeholder: Option<Image>,
 }
 
 impl Worker {
@@ -177,6 +188,7 @@ impl Worker {
                     if self.pins.is_empty() {
                         // 先丢查找表，再丢设备。
                         self.luts.clear();
+                        self.placeholder = None;
                         self.renderer = None;
                     }
                     notify(RenderEvent::Detached { pin });
@@ -225,39 +237,122 @@ impl Worker {
 
     fn draw(&mut self, job: &DrawJob) -> Result<(), String> {
         let slot = self.pins.get(&job.pin).ok_or("钉图不在渲染层")?;
-        let key = (slot.source.clone(), job.display.clone());
-        if !self.luts.contains_key(&key) {
-            let lut = pin_colour::lut(key.0.as_deref(), key.1.as_deref())?;
-            let renderer = self.renderer()?;
-            let lut = match &lut {
-                PinLut::Identity => renderer.lut(LutData::Identity),
-                PinLut::Table {
-                    clut,
-                    curve,
-                    linear,
-                } => renderer.lut(LutData::Table {
-                    clut,
-                    curve,
-                    linear: *linear,
-                }),
-            }
-            .map_err(|e| e.to_string())?;
-            self.luts.insert(key.clone(), lut);
+        // 占位不用源图，也就没有源图的配置文件：按 sRGB。
+        let source = if job.placeholder {
+            None
+        } else {
+            slot.source.clone()
+        };
+        let key = (source.clone(), job.display.clone());
+        self.ensure_lut(&key)?;
+        // 界面颜色（遮蔽墨色、细线、提示框、说明层）是 sRGB；截图钉图的源空间是截图时的显示器，另要一张。
+        let ui_key = (None, job.display.clone());
+        if source.is_some() {
+            self.ensure_lut(&ui_key)?;
         }
+        if job.placeholder && self.placeholder.is_none() {
+            let png = encode_png(PLACEHOLDER)?;
+            let pixels = pin_colour::derivative(&png)?;
+            let image = self
+                .renderer()?
+                .upload(Pixels {
+                    width: pixels.width,
+                    height: pixels.height,
+                    rgba: &pixels.rgba,
+                })
+                .map_err(|e| e.to_string())?;
+            self.placeholder = Some(image);
+        }
+        self.paint_caption(job)?;
         let renderer = self.renderer.as_ref().ok_or("没有 GPU 设备")?;
         let slot = self.pins.get_mut(&job.pin).ok_or("钉图不在渲染层")?;
-        let image = slot.image.as_ref().ok_or("还没有图")?;
+        let image = if job.placeholder {
+            self.placeholder.as_ref().ok_or("没有占位图")?
+        } else {
+            slot.image.as_ref().ok_or("还没有图")?
+        };
+        let overlay = slot.caption.as_ref().map(|(_, o, at)| (o, *at));
         let surface = slot
             .surfaces
             .as_mut()
             .ok_or("没有窗口画面")?
             .get_mut(job.slot)
             .ok_or("没有这个槽")?;
-        let draw = draw_of(job, (image.width(), image.height()));
+        let mut draw = draw_of(job, (image.width(), image.height()), overlay);
+        if source.is_some() {
+            draw.ui_lut = Some(&self.luts[&ui_key]);
+        }
         renderer
             .draw(surface, image, &draw, &self.luts[&key])
             .map_err(|e| e.to_string())
     }
+
+    fn ensure_lut(&mut self, key: &LutKey) -> Result<(), String> {
+        if self.luts.contains_key(key) {
+            return Ok(());
+        }
+        let lut = pin_colour::lut(key.0.as_deref(), key.1.as_deref())?;
+        let renderer = self.renderer()?;
+        let lut = match &lut {
+            PinLut::Identity => renderer.lut(LutData::Identity),
+            PinLut::Table {
+                clut,
+                curve,
+                linear,
+            } => renderer.lut(LutData::Table {
+                clut,
+                curve,
+                linear: *linear,
+            }),
+        }
+        .map_err(|e| e.to_string())?;
+        self.luts.insert(key.clone(), lut);
+        Ok(())
+    }
+
+    /// 说明层变了（或内容尺寸变了）才重画、重新上传。
+    fn paint_caption(&mut self, job: &DrawJob) -> Result<(), String> {
+        let size = (job.content.width, job.content.height);
+        let key: CaptionKey = (
+            job.caption.clone(),
+            size,
+            (job.display_scale * 1000.0).round() as u32,
+            job.dark,
+        );
+        let slot = self.pins.get(&job.pin).ok_or("钉图不在渲染层")?;
+        if slot.caption.as_ref().map(|(k, ..)| k) == Some(&key)
+            || (job.caption.is_empty() && slot.caption.is_none())
+        {
+            return Ok(());
+        }
+        let painted = self
+            .painter
+            .paint(&job.caption, size, job.display_scale, job.dark);
+        let overlay = match painted {
+            Some(p) => {
+                let o = self
+                    .renderer()?
+                    .overlay(p.width, p.height, &p.rgba)
+                    .map_err(|e| e.to_string())?;
+                Some((key, o, p.at))
+            }
+            None => None,
+        };
+        if let Some(slot) = self.pins.get_mut(&job.pin) {
+            slot.caption = overlay;
+        }
+        Ok(())
+    }
+}
+
+/// 一个像素的 PNG（占位图走与派生图相同的颜色管线）。
+fn encode_png(rgba: [u8; 4]) -> Result<Vec<u8>, String> {
+    let mut out = std::io::Cursor::new(Vec::new());
+    image::RgbaImage::from_raw(1, 1, rgba.to_vec())
+        .ok_or("占位图")?
+        .write_to(&mut out, image::ImageFormat::Png)
+        .map_err(|e| e.to_string())?;
+    Ok(out.into_inner())
 }
 
 #[cfg(test)]

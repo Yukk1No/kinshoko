@@ -7,6 +7,8 @@ use kinshoko_core::desktop::frame::SourceSize;
 use kinshoko_core::desktop::{SavedPin, ScreenRect};
 use pin_shell::PinId;
 
+use super::caption::Caption;
+
 /// 往一个窗口槽画一帧并 Present。
 #[derive(Debug, Clone, PartialEq)]
 pub struct DrawJob {
@@ -27,6 +29,14 @@ pub struct DrawJob {
     pub veil: f32,
     /// 增强钉图边缘（设置）：加一圈浅色细线。
     pub ring: bool,
+    /// 出现提示框的不透明度（新钉图出现后 0.9 秒里从 1 渐隐到 0）。
+    pub appear: f32,
+    /// 深色主题（提示框与小圆锁的颜色）。
+    pub dark: bool,
+    /// 读不到图：画中性灰的占位，不用源图。
+    pub placeholder: bool,
+    /// 说明层：小圆锁、原因文字、提示。
+    pub caption: Caption,
 }
 
 /// 渲染层做完了一件事。

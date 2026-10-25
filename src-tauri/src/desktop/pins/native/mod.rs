@@ -10,6 +10,7 @@
 //!
 //! 没有钉图时不建平台层和 GPU 设备；最后一张关掉后整个丢掉。
 
+mod caption;
 #[cfg(windows)]
 mod courier;
 mod draw;
@@ -85,6 +86,18 @@ pub(super) fn frame(app: &AppHandle, frame: Frame) {
 pub(super) fn menu_closed(app: &AppHandle) {
     host::post_existing(app, |o| o.menu_closed());
 }
+
+/// 在钉图底部显示一条提示（菜单动作的结果，任意线程）。
+#[cfg(windows)]
+pub(super) fn notice(app: &AppHandle, pin: &str, text: &str) {
+    let (pin, text) = (pin.to_owned(), text.to_owned());
+    host::post_existing(app, move |o| {
+        o.notice(&pin, text, std::time::Instant::now())
+    });
+}
+
+#[cfg(not(windows))]
+pub(super) fn notice(_: &AppHandle, _: &str, _: &str) {}
 
 #[cfg(not(windows))]
 pub(super) fn open(_: &AppHandle, _: Frame) {}

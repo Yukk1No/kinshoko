@@ -129,11 +129,23 @@ pub(super) fn look(app: &AppHandle, pin: &SavedPin) -> native::Look {
         veiled,
         unavailable,
         edge_contrast: edge_contrast(app),
+        dark: dark_theme(app),
     }
+}
+
+/// 系统是深色主题（页面的 `prefers-color-scheme` 跟着它）；读不到时按浅色。
+fn dark_theme(app: &AppHandle) -> bool {
+    app.get_webview_window("main")
+        .and_then(|w| w.theme().ok())
+        .is_some_and(|t| t == tauri::Theme::Dark)
 }
 
 /// 给画着钉图的每个层发一条提示。
 pub(super) fn notify(app: &AppHandle, pin: &str, text: &str) {
+    if is_native(app, pin) {
+        native::notice(app, pin, text);
+        return;
+    }
     let layers = lock(&state(app).pins)
         .get(pin)
         .map(|r| r.layers.clone())

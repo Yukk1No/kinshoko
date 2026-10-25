@@ -36,6 +36,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock"] }
 xcap = "0.9.8"
 arboard = { version = "3.6", default-features = false, features = ["image-data"] }
 tauri-plugin-updater = "2"
+cosmic-text = { version = "0.19", default-features = false, features = ["std", "swash"] }
 
 [dev-dependencies]
 image = { version = "0.25", default-features = false, features = ["bmp"] }

@@ -8,11 +8,17 @@
 use std::time::Duration;
 
 use kinshoko_core::desktop::ScreenRect;
-use kinshoko_core::desktop::frame::{RectF, Step, plan, veil_left, window_for};
+use kinshoko_core::desktop::frame::{
+    APPEAR_MS, RectF, Step, appear_ring, plan, veil_left, window_for,
+};
 use pin_shell::{PinId, PinShell};
 
+use super::super::caption::Caption;
 use super::super::port::{DrawJob, RenderPort};
-use super::{ANIM_FRAME, Effect, Live, Orchestra, Reveal, SETTLE_MS, Screen, Submit};
+use super::{ANIM_FRAME, Effect, Live, MISSING, Orchestra, Reveal, SETTLE_MS, Screen, Submit};
+
+/// 淡到这么浅就当作没有了（不到 1/255 的一半）。
+const FADED: f64 = 1e-3;
 
 /// 路上的事。
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -51,9 +57,30 @@ impl Live {
         }
     }
 
-    /// 还在动：内容在过渡，或遮蔽在淡出。
+    /// 出现提示框此刻的不透明度。
+    fn appear(&self, at: f64) -> f64 {
+        self.appeared
+            .filter(|start| at - start < f64::from(APPEAR_MS))
+            .map_or(0.0, |start| appear_ring(at - start))
+    }
+
+    /// 还在动：内容在过渡，遮蔽在淡出，或出现提示框在渐隐。
     fn animating(&self, at: f64) -> bool {
-        !self.motion.done(at) || matches!(self.reveal, Reveal::Fading(s) if veil_left(at - s) > 0.0)
+        !self.motion.done(at)
+            || matches!(self.reveal, Reveal::Fading(s) if veil_left(at - s) > 0.0)
+            || self.appeared.is_some()
+    }
+
+    fn caption(&self) -> Caption {
+        Caption {
+            lock: self.look.veiled,
+            reason: self
+                .look
+                .unavailable
+                .clone()
+                .or_else(|| self.placeholder.then(|| MISSING.to_owned())),
+            notice: self.notice.as_ref().map(|(text, _)| text.clone()),
+        }
     }
 }
 
@@ -95,7 +122,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             return;
         }
         let content = live.motion.at(at).snap();
-        let veil = live.veil(at);
+        let mut veil = live.veil(at);
         live.frame_due = live.animating(at).then(|| now + ANIM_FRAME);
         let screen = screen_at(&self.screens, content);
         let profile = screen.and_then(|s| s.profile.clone());
@@ -103,11 +130,26 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         if profile != live.profile {
             live.fresh = false;
         }
-        // 遮蔽在淡出：每一帧都要重画。
+        // 遮蔽在淡出、提示框在渐隐：每一帧都要重画。
         if matches!(live.reveal, Reveal::Fading(_)) {
             live.fresh = false;
-            if veil <= 0.0 {
+            if veil < FADED {
+                veil = 0.0;
                 live.reveal = Reveal::Idle;
+            }
+        }
+        // 还没显示：第一帧按提示框最浓画好。
+        let mut appear = if live.window.is_none() {
+            1.0
+        } else {
+            live.appear(at)
+        };
+        if live.appeared.is_some() {
+            live.fresh = false;
+            // 曲线的尾巴（毫秒换算的误差）当作已经渐隐完。
+            if appear < FADED {
+                appear = 0.0;
+                live.appeared = None;
             }
         }
         let visible = self.shell.visible_slot(pin);
@@ -159,6 +201,10 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             display_scale,
             veil: veil as f32,
             ring: live.look.edge_contrast,
+            appear: appear as f32,
+            dark: live.look.dark,
+            placeholder: live.placeholder,
+            caption: live.caption(),
         };
         if then != Then::Swap {
             let submit = submit(pin, live, content, window);
@@ -174,6 +220,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
     }
 
     pub(super) fn drawn(&mut self, pin: PinId, result: Result<(), String>) {
+        let (now, self_ms) = (self.now, self.ms(self.now));
         let Some(live) = self.pins.get_mut(&pin) else {
             return;
         };
@@ -203,6 +250,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             Then::Show => {
                 live.window = Some(window);
                 live.drawn = content;
+                // 出现提示框从显示出来的这一刻起渐隐（第一帧按 1 画好了）。
+                live.appeared = Some(self_ms);
+                live.frame_due = Some(now + ANIM_FRAME);
                 let key = live.key.clone();
                 self.shell.show(pin, window);
                 self.effects.push(Effect::Shown(key));

@@ -70,6 +70,11 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 if place == Hit::Outside {
                     return;
                 }
+                if live.look.veiled && on_lock(shown, p.at, scale) && !press_opens_menu(button) {
+                    let key = live.key.clone();
+                    self.effects.push(Effect::RevealAsked(key));
+                    return;
+                }
                 if press_opens_menu(button) {
                     self.open_menu(p.pin);
                     return;
@@ -280,4 +285,11 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let key = live.key.clone();
         self.effects.push(Effect::Released(key));
     }
+}
+
+/// 小圆锁（直径 28 CSS 像素，在内容正中）。
+fn on_lock(content: ScreenRect, at: (i32, i32), scale: f64) -> bool {
+    let cx = f64::from(content.x) + f64::from(content.width) / 2.0;
+    let cy = f64::from(content.y) + f64::from(content.height) / 2.0;
+    (f64::from(at.0) - cx).hypot(f64::from(at.1) - cy) <= 14.0 * scale
 }

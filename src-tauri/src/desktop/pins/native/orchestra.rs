@@ -37,6 +37,10 @@ use screen::Pending;
 pub const SETTLE_MS: u64 = 120;
 /// 动画中多久上屏一次：比最快的显示器的刷新周期还短，合成器每次刷新取最新的一次提交。
 pub const ANIM_FRAME: Duration = Duration::from_millis(4);
+/// 提示在钉图上留多久（钉图层 `PinView` 的 1600 ms）。
+pub const NOTICE_MS: u64 = 1600;
+/// 读不到图、又没有别的原因时写的话（钉图层 `PinView` 的同一句）。
+pub const MISSING: &str = "参考图无法读取：图库没有打开，或原图已缺失";
 /// 光标在钉图上时拦下的键：Esc 关闭，H／V 翻转，R／Shift+R 旋转。菜单打开时一个都不拦。
 const KEYS: [Key; 4] = [
     Key::Escape,
@@ -61,6 +65,8 @@ pub enum Effect {
     /// 画师要打开这张钉图的菜单（鼠标右键、笔的侧键、笔或触摸按住）。键盘钩子已不拦键；菜单
     /// 关掉后调 [`Orchestra::menu_closed`]。
     Menu(String),
+    /// 画师点了遮蔽钉图上的小圆锁：在菜单窗口里问“显示这张图？”。
+    RevealAsked(String),
     /// 收起（贴边隐藏）着的钉图被画师就地拖动、缩放或翻转了：从此刻的位置算起，不再算收起。
     Released(String),
     /// 写进运行日志的警告。
@@ -118,6 +124,12 @@ struct Live {
     /// `requested` 还在路上。
     loading: bool,
     loaded: bool,
+    /// 读不到图：画灰色占位与原因。
+    placeholder: bool,
+    /// 第一次显示的时刻（毫秒）：出现提示框从这时渐隐。渐隐完了为 `None`。
+    appeared: Option<f64>,
+    /// 底部的提示与它消失的时刻。
+    notice: Option<(String, Instant)>,
     closing: bool,
 }
 
@@ -192,7 +204,11 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let targets = self.shell.create(id).map_err(|e| e.to_string())?;
         self.render.attach(id, targets);
         let size = source_size(&frame.pin, frame.look.veiled);
-        self.render.load(id, &frame.pin, size);
+        // 已知读不到（资料库不可用、本设备没登记、原图不在，#66）：不读，直接画占位。
+        let placeholder = frame.look.unavailable.is_some();
+        if !placeholder {
+            self.render.load(id, &frame.pin, size);
+        }
         if frame.click_through {
             self.shell.set_click_through(id, true);
         }
@@ -220,12 +236,29 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 gesture: None,
                 cursor: PinCursor::Arrow,
                 requested: size,
-                loading: true,
-                loaded: false,
+                loading: !placeholder,
+                loaded: placeholder,
+                placeholder,
+                appeared: None,
+                notice: None,
                 closing: false,
             },
         );
+        if placeholder {
+            self.update(id, false);
+        }
         Ok(())
+    }
+
+    /// 在钉图底部显示一条提示（菜单动作的结果），[`NOTICE_MS`] 后消失。钉图不在时什么都不做。
+    pub fn notice(&mut self, key: &str, text: String, now: Instant) {
+        self.now = now;
+        let Some(id) = self.id_of(key) else { return };
+        let Some(live) = self.live(id) else { return };
+        live.notice = Some((text, now + Duration::from_millis(NOTICE_MS)));
+        live.fresh = false;
+        let gesture = live.gesture_until.is_some();
+        self.update(id, gesture);
     }
 
     /// 关掉一张钉图：先让渲染层丢掉 Surface，报完再关窗口（[`Effect::Closed`]）。
@@ -257,6 +290,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                     l.gesture_until.filter(|_| l.gesture.is_none()),
                     l.frame_due,
                     l.gesture.as_ref().and_then(Gesture::hold_due),
+                    l.notice.as_ref().map(|(_, until)| *until),
                 ]
             })
             .flatten()
@@ -279,6 +313,11 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             let live = self.pins.get_mut(&id).expect("刚列出");
             if live.closing {
                 continue;
+            }
+            if live.notice.as_ref().is_some_and(|(_, until)| now >= *until) {
+                live.notice = None;
+                live.fresh = false;
+                live.frame_due = Some(now);
             }
             if live.gesture_until.is_some_and(|t| now >= t) && live.gesture.is_none() {
                 live.gesture_until = None;
@@ -337,6 +376,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 }
                 live.loaded = true;
                 live.loading = false;
+                live.placeholder = false;
                 live.fresh = false;
                 if live.reveal == Reveal::Waiting {
                     live.reveal = Reveal::Fading(at);
@@ -346,9 +386,18 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             }
             RenderEvent::LoadFailed { pin, reason } => {
                 if let Some(live) = self.live(pin) {
+                    // 画占位与原因（钉图层也是这样）；已有图时留着原来的图。
                     live.loading = false;
+                    let first = !std::mem::replace(&mut live.loaded, true);
+                    if first {
+                        live.placeholder = true;
+                        live.fresh = false;
+                    }
+                    let gesture = live.gesture_until.is_some();
                     self.effects.push(Effect::Warn("原生钉图读不到图", reason));
-                    self.give_up_unshown(pin);
+                    if first {
+                        self.update(pin, gesture);
+                    }
                 }
             }
             RenderEvent::Detached { pin } => {

@@ -11,11 +11,30 @@ const VEIL_BLUR: f64 = 14.0;
 const VEIL_INK: [f32; 4] = [43.0 / 255.0, 39.0 / 255.0, 71.0 / 255.0, 0.92];
 /// 增强钉图边缘那圈细线的宽度（`0 0 0 1px`），CSS 像素。
 const RING: f64 = 1.0;
+/// 出现提示框（`.pin-appear` 的 `inset 0 0 0 2px var(--accent)`）：宽度 CSS 像素，浅色、深色主题的
+/// `--accent`。
+const APPEAR: f64 = 2.0;
+const ACCENT_LIGHT: [f32; 3] = [224.0 / 255.0, 118.0 / 255.0, 143.0 / 255.0];
+const ACCENT_DARK: [f32; 3] = [227.0 / 255.0, 179.0 / 255.0, 79.0 / 255.0];
 
-/// `image` 是已上传的源图尺寸（整图或缩小的派生图）。
-pub fn draw_of(job: &DrawJob, image: (u32, u32)) -> pin_render::Draw<'static> {
+/// `image` 是已上传的源图尺寸（整图或缩小的派生图；占位时是 1×1 的灰）。`overlay` 是画好的说明层与它
+/// 相对内容左上角的位置。
+pub fn draw_of<'a>(
+    job: &DrawJob,
+    image: (u32, u32),
+    overlay: Option<(&'a pin_render::Overlay, (i32, i32))>,
+) -> pin_render::Draw<'a> {
     let d = drawing(&job.state);
-    let src = source_rect(&job.state, image.0, image.1);
+    let src = if job.placeholder {
+        kinshoko_core::desktop::frame::RectF {
+            x: 0.0,
+            y: 0.0,
+            width: f64::from(image.0),
+            height: f64::from(image.1),
+        }
+    } else {
+        source_rect(&job.state, image.0, image.1)
+    };
     let (w, c) = (job.window, job.content);
     pin_render::Draw {
         turn: pin_render::Turn {
@@ -34,6 +53,22 @@ pub fn draw_of(job: &DrawJob, image: (u32, u32)) -> pin_render::Draw<'static> {
             amount: job.veil.min(1.0),
             blur: (VEIL_BLUR * job.display_scale) as f32,
             ink: VEIL_INK,
+        }),
+        appear: (job.appear > 0.0).then(|| {
+            let [r, g, b] = if job.dark { ACCENT_DARK } else { ACCENT_LIGHT };
+            pin_render::Appear {
+                width: (APPEAR * job.display_scale) as f32,
+                colour: [r, g, b, job.appear.min(1.0)],
+            }
+        }),
+        overlay: overlay.map(|(o, (x, y))| {
+            (
+                o,
+                [
+                    job.content.x.saturating_add(x) as f32,
+                    job.content.y.saturating_add(y) as f32,
+                ],
+            )
         }),
         ..pin_render::Draw::new(
             pin_render::Window {
@@ -99,13 +134,17 @@ mod tests {
             display_scale: 1.5,
             veil: 0.0,
             ring: false,
+            appear: 0.0,
+            dark: false,
+            placeholder: false,
+            caption: Default::default(),
         }
     }
 
     #[test]
     fn carries_window_content_turn_opacity_and_shadow() {
         let j = job(None, 1.0);
-        let d = draw_of(&j, (400, 200));
+        let d = draw_of(&j, (400, 200), None);
         assert_eq!(
             d.window,
             pin_render::Window {
@@ -139,11 +178,36 @@ mod tests {
         let mut j = job(None, 1.0);
         j.veil = 0.25;
         j.ring = true;
-        let d = draw_of(&j, (400, 200));
+        let d = draw_of(&j, (400, 200), None);
         assert_eq!(d.ring, 1.5);
         let veil = d.veil.expect("遮蔽");
         assert_eq!((veil.amount, veil.blur), (0.25, 21.0));
         assert_eq!(veil.ink, VEIL_INK);
+    }
+
+    #[test]
+    fn the_appear_ring_is_2_css_px_of_the_theme_accent() {
+        let mut j = job(None, 1.0);
+        j.appear = 0.5;
+        let d = draw_of(&j, (400, 200), None);
+        let a = d.appear.expect("提示框");
+        assert_eq!(a.width, 3.0);
+        assert_eq!(a.colour, [224.0 / 255.0, 118.0 / 255.0, 143.0 / 255.0, 0.5]);
+        j.dark = true;
+        assert_eq!(
+            draw_of(&j, (400, 200), None).appear.unwrap().colour[1],
+            179.0 / 255.0
+        );
+        j.appear = 0.0;
+        assert_eq!(draw_of(&j, (400, 200), None).appear, None);
+    }
+
+    #[test]
+    fn a_placeholder_shows_the_whole_grey_texel() {
+        let mut j = job(None, 1.0);
+        j.placeholder = true;
+        let d = draw_of(&j, (1, 1), None);
+        assert_eq!(d.crop, pin_render::Rect::new(0.0, 0.0, 1.0, 1.0));
     }
 
     #[test]
@@ -154,7 +218,7 @@ mod tests {
             width: 200,
             height: 100,
         };
-        let d = draw_of(&job(Some(crop), 0.5), (200, 100));
+        let d = draw_of(&job(Some(crop), 0.5), (200, 100), None);
         assert_eq!(d.crop, pin_render::Rect::new(50.0, 25.0, 100.0, 50.0));
     }
 }

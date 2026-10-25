@@ -100,7 +100,8 @@ fn apply(app: &AppHandle, effect: Effect) {
             super::super::stop_waiting(app, &pin);
         }
         Effect::CloseRequested(pin) => super::super::close(app, &pin),
-        Effect::Menu(pin) => super::super::native_menu(app, &pin),
+        Effect::Menu(pin) => super::super::native_menu(app, &pin, false),
+        Effect::RevealAsked(pin) => super::super::native_menu(app, &pin, true),
         Effect::Released(pin) => {
             lock(&state(app).edge).release(&pin);
             if let Some(r) = lock(&state(app).pins).get_mut(&pin) {

@@ -42,9 +42,11 @@ pub(crate) struct PinUniform {
     pub ink: [f32; 4],
     /// 增强边缘细线：预乘的编码值与 alpha。
     pub ring: [f32; 4],
+    /// 出现提示框：预乘的编码值与 alpha。
+    pub appear: [f32; 4],
     /// 窗口原点 x, y，不透明度，缩小时的 mip 层（log2 比例）。
     pub misc: [f32; 4],
-    /// 阴影宽度，细线宽度，模糊标准差（第 0 层纹素），未用。
+    /// 阴影宽度，细线宽度，模糊标准差（第 0 层纹素），出现提示框的宽度。
     pub shape: [f32; 4],
     /// 翻转旋转位，采样方式，可用的最高 mip 层，标志位。
     pub flags: [u32; 4],
@@ -100,6 +102,17 @@ pub(crate) fn pack(
         ring[3],
     ];
 
+    let (appear, appear_width) = match draw.appear {
+        Some(a) if a.colour[3] > 0.0 && a.width > 0.0 => {
+            let k = a.colour[3].min(1.0);
+            (
+                [a.colour[0] * k, a.colour[1] * k, a.colour[2] * k, k],
+                a.width,
+            )
+        }
+        _ => ([0.0; 4], 0.0),
+    };
+
     let overlay = match (draw.overlay, overlay) {
         (Some((_, [x, y])), Some((w, h))) => [x, y, w as f32, h as f32],
         _ => [0.0; 4],
@@ -122,13 +135,14 @@ pub(crate) fn pack(
         overlay,
         ink,
         ring,
+        appear,
         misc: [
             draw.window.x as f32,
             draw.window.y as f32,
             draw.opacity.clamp(0.0, 1.0),
             ratio.log2().max(0.0),
         ],
-        shape: [draw.edge.max(0.0), draw.ring.max(0.0), blur, 0.0],
+        shape: [draw.edge.max(0.0), draw.ring.max(0.0), blur, appear_width],
         flags: [turn, mode as u32, top, bits],
     }
 }
