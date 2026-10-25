@@ -29,8 +29,6 @@ mod frames;
 mod gesture;
 mod screen;
 
-#[cfg(test)]
-use frames::View;
 pub use frames::{Frame, Look};
 use gesture::Gesture;
 use screen::Pending;

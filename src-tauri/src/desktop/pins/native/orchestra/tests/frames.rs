@@ -311,7 +311,7 @@ fn views_tell_the_app_what_is_shown_and_whether_it_is_still() {
     let v = r.o.views(r.now);
     assert_eq!(
         v,
-        [View {
+        [super::super::frames::View {
             key: "marker".into(),
             id: A,
             content: home,
