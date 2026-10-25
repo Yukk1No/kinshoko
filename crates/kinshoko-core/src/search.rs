@@ -25,9 +25,11 @@
 //! 活动资料库的 Search 由 [`SearchCache`] 按（资料库，词表修订号，安全模式）缓存（#76）。
 
 mod cache;
+mod catalog;
 mod ratings;
 
 pub use cache::SearchCache;
+pub use catalog::CatalogSearch;
 pub use ratings::{RatingCandidate, RatingLabel, rating_candidates};
 use ratings::{matching_ratings, rating_label};
 

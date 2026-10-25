@@ -17,7 +17,7 @@ pub(super) fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> 
     };
     // Registered detached provider. The workspace safety veto includes nonmatching/offline sources.
     let state = app.state::<LibraryState>();
-    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(app);
     // 核对与读文件前后各一次，共用这次请求里打开的提供方（#123）：不在同一请求里反复重开资料库，
     // 渲染与读文件不占用全局锁。
@@ -48,7 +48,7 @@ pub(super) fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> 
         Ok(bytes) => bytes,
         Err(_) => return not_found(),
     };
-    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
+    if !state.safe_mode.still(&generation)
         || saved_safe_mode(app) != safe
         || workspace::read_image(app, &mut opened, library_id, image_id).is_err()
     {

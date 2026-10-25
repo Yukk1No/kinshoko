@@ -17,6 +17,7 @@ pub mod library;
 pub mod library_batch;
 pub mod portable_tags;
 pub mod reference_groups;
+pub mod safe_mode;
 pub mod search;
 mod settings;
 mod shortcuts;
