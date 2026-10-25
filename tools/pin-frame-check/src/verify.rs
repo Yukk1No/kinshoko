@@ -261,10 +261,20 @@ fn run(
                 w: x1 - x0 + 1,
                 h: y1 - y0 + 1,
             };
-            // 中间一行左边框的宽度。
+            // 中间一行左边框的宽度，按“品红多过一半”量：缩得很小时三线性采样把边框内沿与绿色混在一起，
+            // 只数纯品红会少算一两个像素（外框仍按纯品红认）。
+            let mostly_magenta = |x: i32, y: i32| {
+                let p = y as usize * pitch + x as usize * 4;
+                let (b, g, r) = (
+                    i32::from(data[p]),
+                    i32::from(data[p + 1]),
+                    i32::from(data[p + 2]),
+                );
+                (r + b) / 2 - g > 127
+            };
             let mid = (y0 + y1) / 2;
             let mut run = 0;
-            while x0 + run <= x1 && magenta(x0 + run, mid) {
+            while x0 + run <= x1 && mostly_magenta(x0 + run, mid) {
                 run += 1;
             }
             ctx.Unmap(st, 0);

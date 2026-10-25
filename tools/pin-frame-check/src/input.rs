@@ -9,8 +9,9 @@ use std::process::{Command, Stdio};
 use std::time::Duration;
 
 use pin_shell::{Key, PinInput, PinKeys, PinShell};
-use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, WPARAM};
+use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::UI::Input::Ime::{HIMC, ImmAssociateContext};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_KEYUP, MOUSE_EVENT_FLAGS,
     MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MOVE, MOUSEEVENTF_WHEEL, MOUSEINPUT,
@@ -18,7 +19,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DispatchMessageW, FindWindowW, GetCursorPos,
-    GetForegroundWindow, GetMessageW, KillTimer, MSG, PostMessageW, PostQuitMessage,
+    GetForegroundWindow, GetMessageW, GetWindowRect, KillTimer, MSG, PostMessageW, PostQuitMessage,
     RegisterClassExW, SW_SHOW, SetCursorPos, SetForegroundWindow, SetTimer, ShowWindow,
     TranslateMessage, WINDOW_EX_STYLE, WM_CLOSE, WM_DESTROY, WM_KEYDOWN, WM_TIMER, WNDCLASSEXW,
     WS_OVERLAPPEDWINDOW, WindowFromPoint,
@@ -76,6 +77,8 @@ pub fn key_sink(seconds: u32) {
         ) else {
             return;
         };
+        // 不经输入法：中文输入法开着时按键到这里变成 VK_PROCESSKEY，数不到 H/V/R。
+        let _ = ImmAssociateContext(h, HIMC::default());
         let _ = ShowWindow(h, SW_SHOW);
         let _ = SetForegroundWindow(h);
         SetTimer(Some(h), 1, seconds * 1000, None);
@@ -141,13 +144,19 @@ pub fn input_test(app: &mut App) -> Result<bool, String> {
     app.pump_for(1500)?;
     let sink_hwnd =
         unsafe { FindWindowW(w!("KinshokoKeySink"), None) }.map_err(|e| e.to_string())?;
+    let mut saved = POINT::default();
+    let mut r = RECT::default();
+    unsafe {
+        let _ = GetCursorPos(&mut saved);
+        let _ = GetWindowRect(sink_hwnd, &mut r);
+    }
+    // 子进程自己 SetForegroundWindow 可能被前台锁挡住：像画师那样点一下它的客户区。
+    cursor((r.left + r.right) / 2, (r.top + r.bottom) / 2);
+    send(&[mouse(MOUSEEVENTF_LEFTDOWN, 0), mouse(MOUSEEVENTF_LEFTUP, 0)]);
+    app.pump_for(300)?;
     let fg0 = unsafe { GetForegroundWindow() };
     let mut ok = fg0 == sink_hwnd;
     println!("前台是收键窗口：{ok}");
-    let mut saved = POINT::default();
-    unsafe {
-        let _ = GetCursorPos(&mut saved);
-    }
     app.shell.set_keys(PinKeys::new([
         Key::Letter('H'),
         Key::Letter('V'),
