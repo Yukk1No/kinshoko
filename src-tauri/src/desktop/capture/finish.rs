@@ -36,7 +36,7 @@ fn validate_source(app: &AppHandle, pending: &Pending, selected: ScreenRect) -> 
         // Includes the strictest rating of every known byte-identical provider.
         crate::library::visible_source(app, library_id, image_id)?;
     } else if !pins::capture_source_open(app, &surface.selection.pin.id)
-        || app.get_webview_window(&surface.window).is_none()
+        || (surface.hwnd.is_none() && app.get_webview_window(&surface.window).is_none())
     {
         return Err("参考图已关闭，请重新框选".into());
     }

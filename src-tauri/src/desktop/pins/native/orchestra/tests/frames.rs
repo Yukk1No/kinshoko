@@ -303,3 +303,27 @@ fn grabbing_a_pin_mid_slide_drags_it_from_where_it_is_seen() {
     r.pointer((at.0 + 1, at.1), PointerEvent::Move);
     assert_eq!(r.o.shown(A, r.now).x, seen.x + 1, "抓住的点留在指针下");
 }
+
+#[test]
+fn views_tell_the_app_what_is_shown_and_whether_it_is_still() {
+    let mut r = Rig::shown();
+    let home = r.o.pins[&A].pin.rect();
+    let v = r.o.views(r.now);
+    assert_eq!(
+        v,
+        [View {
+            key: "marker".into(),
+            id: A,
+            content: home,
+            still: true,
+            click_through: false,
+        }]
+    );
+    r.tuck();
+    r.animate(u64::from(SLIDE_MS) / 2);
+    let mid = &r.o.views(r.now)[0];
+    assert!(!mid.still && mid.click_through);
+    assert_eq!(mid.content, r.o.shown(A, r.now));
+    r.animate(u64::from(SLIDE_MS) / 2 + SETTLE_MS);
+    assert!(r.o.views(r.now)[0].still);
+}

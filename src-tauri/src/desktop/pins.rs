@@ -64,6 +64,8 @@ const NOTICE_EVENT: &str = "pin-notice";
 const FRAME_EVENT: &str = "pin-frame";
 /// 钉图离开了这个层（关闭、拖到别的显示器、交给另一个层）。
 const GONE_EVENT: &str = "pin-gone";
+/// F1 登记原生钉图时用的“窗口”名：原生钉图没有 WebView 窗口，遮挡按窗口句柄查。
+const NATIVE_SURFACE: &str = "native-pin";
 const CLOSED: &str = "钉图已关闭";
 const LOCKED: &str = "钉图已锁定";
 
@@ -233,6 +235,28 @@ pub(super) fn capture_surfaces(app: &AppHandle) -> Vec<super::capture::Reference
         if veiled || unavailable.is_some() {
             continue;
         }
+        if lock(&state(app).pins)
+            .get(&pin.id)
+            .is_some_and(|r| r.native)
+        {
+            // 原生钉图：按它此刻显示的位置（滑出的也算）；动画、手势中与收起时不算。
+            if let Some(seen) = native::seen(&pin.id)
+                && seen.still
+                && !seen.click_through
+            {
+                surfaces.push(super::capture::ReferenceSurface {
+                    window: NATIVE_SURFACE.into(),
+                    hwnd: Some(seen.hwnd),
+                    selection: CaptureSurface {
+                        pin: pin.clone(),
+                        shown: seen.content,
+                        visible: seen.content,
+                        covered: Vec::new(),
+                    },
+                });
+            }
+            continue;
+        }
         let pins = lock(&state(app).pins);
         let layers = lock(&state(app).layers);
         let Some(r) = pins.get(&pin.id) else {
@@ -256,6 +280,7 @@ pub(super) fn capture_surfaces(app: &AppHandle) -> Vec<super::capture::Reference
                 .collect();
             surfaces.push(super::capture::ReferenceSurface {
                 window: label.clone(),
+                hwnd: None,
                 selection: CaptureSurface {
                     pin: pin.clone(),
                     shown: r.content,

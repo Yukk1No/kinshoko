@@ -146,6 +146,13 @@ impl WinShell {
         unsafe { SetTimer(Some(host), proc::DISPLAY_TIMER, 2000, None) };
         Ok(WinShell { state })
     }
+
+    /// 看得见的槽的窗口句柄（按整数）：应用壳据此查哪些窗口盖在钉图上（F1 截图冻结时的遮挡）。
+    pub fn window_handle(&self, pin: PinId) -> Option<isize> {
+        let s = self.state.borrow();
+        let p = s.pins.get(&pin)?;
+        Some(p.windows[p.slots.visible()].hwnd.0 as isize)
+    }
 }
 
 impl Drop for WinShell {

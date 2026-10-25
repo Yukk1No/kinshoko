@@ -158,6 +158,7 @@ pub(super) fn references(
             };
             surfaces.push(ReferenceSurface {
                 window: "main".into(),
+                hwnd: None,
                 selection: CaptureSurface {
                     pin,
                     shown: screen(source.shown),
@@ -175,6 +176,7 @@ pub(super) fn same_surfaces(before: &[ReferenceSurface], after: &[ReferenceSurfa
     before.len() == after.len()
         && before.iter().zip(after).all(|(a, b)| {
             a.window == b.window
+                && a.hwnd == b.hwnd
                 && a.selection.pin == b.selection.pin
                 && a.selection.shown == b.selection.shown
                 && a.selection.visible == b.selection.visible
@@ -184,6 +186,14 @@ pub(super) fn same_surfaces(before: &[ReferenceSurface], after: &[ReferenceSurfa
 
 // 与图像一起固定遮挡关系；框选窗口出现后，当前 Z 序已不再代表被冻结的屏幕。
 fn freeze_visibility(app: &AppHandle, surface: &mut ReferenceSurface) -> bool {
+    #[cfg(windows)]
+    if let Some(hwnd) = surface.hwnd {
+        let Some(covered) = crate::desktop::win32::covering_windows(hwnd) else {
+            return false;
+        };
+        surface.selection.covered.extend(covered);
+        return true;
+    }
     let Some(window) = app.get_webview_window(&surface.window) else {
         return false;
     };

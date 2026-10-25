@@ -23,13 +23,39 @@ mod port;
 mod render;
 mod surface;
 
-use std::sync::OnceLock;
+use std::collections::BTreeMap;
+use std::sync::{Mutex, OnceLock};
+
+use kinshoko_core::desktop::ScreenRect;
 
 use tauri::{AppHandle, Manager};
 
 use orchestra::Orchestra;
 pub(super) use orchestra::{Frame, Look};
 use render::RenderThread;
+
+/// 一张原生钉图此刻的样子：F1 截图冻结时据此把选区映射回原图（界面线程每次用完编排后更新）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct Seen {
+    /// 内容此刻在屏幕上的位置。
+    pub content: ScreenRect,
+    /// 显示出来了，不在动画、手势中。
+    pub still: bool,
+    pub click_through: bool,
+    /// 看得见的槽的窗口：查哪些窗口盖在它上面。
+    pub hwnd: isize,
+}
+
+static SEEN: Mutex<BTreeMap<String, Seen>> = Mutex::new(BTreeMap::new());
+
+/// 原生钉图此刻的样子；还没显示、已关时为 `None`。
+pub(super) fn seen(pin: &str) -> Option<Seen> {
+    crate::desktop::lock(&SEEN).get(pin).copied()
+}
+
+fn publish(seen: BTreeMap<String, Seen>) {
+    *crate::desktop::lock(&SEEN) = seen;
+}
 
 /// 本次运行是否用原生钉图（开发设置 `nativePins`，启动后第一次问时读一次）。
 static ENABLED: OnceLock<bool> = OnceLock::new();

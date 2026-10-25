@@ -71,6 +71,21 @@ fn with(
             return Ok(());
         };
         let result = f(o);
+        super::publish(
+            o.views(Instant::now())
+                .into_iter()
+                .filter_map(|v| {
+                    let hwnd = o.platform().window_handle(v.id)?;
+                    let seen = super::Seen {
+                        content: v.content,
+                        still: v.still,
+                        click_through: v.click_through,
+                        hwnd,
+                    };
+                    Some((v.key, seen))
+                })
+                .collect(),
+        );
         for effect in o.take_effects() {
             courier::send(app, Job::Effect(effect));
         }

@@ -29,6 +29,8 @@ mod frames;
 mod gesture;
 mod screen;
 
+#[cfg(test)]
+use frames::View;
 pub use frames::{Frame, Look};
 use gesture::Gesture;
 use screen::Pending;
@@ -407,6 +409,11 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 }
             }
         }
+    }
+
+    /// 平台层（应用壳查窗口句柄用）。
+    pub fn platform(&self) -> &S {
+        &self.shell
     }
 
     fn id_of(&self, key: &str) -> Option<PinId> {

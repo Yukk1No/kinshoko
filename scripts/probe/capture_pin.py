@@ -1,8 +1,11 @@
 """截图钉图的像素检查（#62，沿用 #7 原型 probe_windows.py 的做法）。
 
 用模拟键鼠在真机上走一遍：显示一块逐像素随机的测试图 → 按 F1 → 拖动框选 → 双击钉住，
-然后比较三份像素：按 F1 前的屏幕、存进截图历史的截图文件、钉图窗口显示在屏幕上的像素。
+然后比较三份像素：按 F1 前的屏幕、存进截图历史的截图文件、钉图显示在屏幕上的像素。
 SDR 桌面上三者应逐像素一致（未缩放、未翻转旋转）。验收要求在 100% 与 150% 缩放下各跑一次。
+
+驱动的是原生钉图（#285）：临时数据目录的 `settings.json` 打开 `nativePins`。每张钉图一个窗口
+（标题 `Kinshoko pin`），比内容四周各大 `PIN_EDGE`（阴影那一圈）。
 
 用法：python scripts/probe/capture_pin.py target/release/kinshoko.exe
 需要 Pillow。运行期间会移动鼠标、按 F1，请不要碰键鼠；不能有别的 Kinshoko 或占用 F1 的程序
@@ -30,6 +33,9 @@ VK_F1 = 0x70
 KEYUP = 0x0002
 LEFTDOWN, LEFTUP = 0x0002, 0x0004
 PATTERN = (240, 160)
+# 原生钉图的窗口标题，与窗口比内容四周各大的物理像素（kinshoko-core 的 PIN_EDGE）。
+PIN_TITLE = "Kinshoko pin"
+PIN_EDGE = 8
 
 
 def key(vk):
@@ -61,6 +67,19 @@ def window_rect(pid, title):
 
     user32.EnumWindows(visit, 0)
     return found[0] if found else None
+
+
+def pin_content(pid):
+    """原生钉图的内容在屏幕上的矩形：看得见的那个槽的窗口去掉四周的阴影圈。没有时为 None。"""
+    r = window_rect(pid, PIN_TITLE)
+    return r and (r[0] + PIN_EDGE, r[1] + PIN_EDGE, r[2] - PIN_EDGE, r[3] - PIN_EDGE)
+
+
+def probe_data():
+    """临时数据目录，打开原生钉图。"""
+    data = Path(tempfile.mkdtemp(prefix="kinshoko-probe-"))
+    (data / "settings.json").write_text('{"nativePins": true}', encoding="utf-8")
+    return data
 
 
 def running(image):
@@ -105,7 +124,7 @@ def diff(a, b):
 
 def main():
     exe = Path(sys.argv[1]).resolve()
-    data = Path(tempfile.mkdtemp(prefix="kinshoko-probe-"))
+    data = probe_data()
     env = dict(os.environ, KINSHOKO_DATA_DIR=str(data), KINSHOKO_SKIP_AUTOSTART="1")
     if running(exe.name):
         raise SystemExit("已有 Kinshoko 在运行（单实例），先退出它")
@@ -152,12 +171,12 @@ def main():
             user32.mouse_event(LEFTUP, 0, 0, 0, 0)
             time.sleep(0.05)
 
-        pin = wait_for("钉图窗口", lambda: window_rect(app.pid, "Kinshoko 钉图"))
+        pin = wait_for("钉图窗口", lambda: pin_content(app.pid))
         move(0, 0)
         pause(1.5)  # 等出现时的描边淡出
         captures = list((data / "captures").glob("*.png"))
         results = {
-            "钉图窗口尺寸等于选区": None
+            "钉图内容尺寸等于选区": None
             if (pin[2] - pin[0], pin[3] - pin[1]) == before.size
             else f"{pin} 与选区 {before.size} 不同",
             "新钉图略微偏离原位置": None if (pin[0], pin[1]) != (x0, y0) else "与选区完全重合",
