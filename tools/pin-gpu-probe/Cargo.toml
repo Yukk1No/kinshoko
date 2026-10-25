@@ -1,0 +1,43 @@
+[package]
+name = "kinshoko-pin-gpu-probe"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+description = "丢弃型原型：每张钉图一个原生窗口，wgpu 画，窗口几何只在看不见的备用窗口上改，再一次提交换上来。"
+
+[dependencies]
+# 渲染只经 wgpu（WGSL），不出现平台类型；这里只开 DX12，正式方案按平台开 DX12／Metal／Vulkan。
+wgpu = { version = "30", default-features = false, features = ["dx12", "wgsl", "std"] }
+pollster = "0.4"
+bytemuck = { version = "1", features = ["derive"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+# 平台层（窗口、DComp、桌面复制核对、内存查询）。windows 0.62 已在应用的锁文件里（Tauri 带进来的）。
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_DirectComposition",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_Gdi",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Performance",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[profile.release]
+lto = "thin"
+debug = 1
+
+[profile.dev.package."*"]
+opt-level = 2
+
+# 独立构建（worktree 在主仓库目录下，不加这一行会被认成主仓库工作区的成员）。
+[workspace]
