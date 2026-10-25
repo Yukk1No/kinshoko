@@ -12,6 +12,7 @@ use pin_shell::{
 use super::*;
 use crate::desktop::pins::native::port::{DrawJob, RenderEvent, RenderPort};
 
+mod caption;
 mod failures;
 mod frames;
 mod motion;
@@ -107,9 +108,11 @@ impl Rig {
             o: Orchestra::new(shell, FakeRender::default()),
             now: Instant::now(),
         };
-        r.o.open(Frame::at_home(marker(), Look::default()), Instant::now())
+        r.o.open(Frame::at_home(marker(), Look::default()), r.now)
             .unwrap();
         r.finish_render();
+        // 出现提示框渐隐完，之后的测试从静止开始。
+        r.animate(u64::from(kinshoko_core::desktop::frame::APPEAR_MS));
         r.o.take_effects();
         r.o.shell().take_calls();
         r.o.render().calls.clear();

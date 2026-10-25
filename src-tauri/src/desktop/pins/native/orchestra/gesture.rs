@@ -70,8 +70,12 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 if place == Hit::Outside {
                     return;
                 }
+                if live.look.veiled && on_lock(shown, p.at, scale) && !press_opens_menu(button) {
+                    self.open_menu(p.pin, true);
+                    return;
+                }
                 if press_opens_menu(button) {
-                    self.open_menu(p.pin);
+                    self.open_menu(p.pin, false);
                     return;
                 }
                 let target = live.target;
@@ -212,8 +216,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         self.changed(pin, 0, true);
     }
 
-    /// 打开菜单：键盘钩子不再拦键（菜单窗口要收键），按着的手势作废。同一次按下只开一次。
-    pub(super) fn open_menu(&mut self, pin: PinId) {
+    /// 打开菜单（`reveal`：确认显示被遮蔽的图）：键盘钩子不再拦键（菜单窗口要收键），按着的手势
+    /// 作废。同一次按下只开一次。
+    pub(super) fn open_menu(&mut self, pin: PinId, reveal: bool) {
         let now = self.now;
         if self.menu_at.is_some_and(|t| now < t + MENU_DEDUPE) {
             return;
@@ -225,7 +230,11 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         if !std::mem::replace(&mut self.menu_open, true) {
             self.shell.set_keys(PinKeys::none());
         }
-        self.effects.push(Effect::Menu(key));
+        self.effects.push(if reveal {
+            Effect::RevealAsked(key)
+        } else {
+            Effect::Menu(key)
+        });
     }
 
     /// 菜单关掉了（或没打开）：键盘钩子恢复拦键。
@@ -259,7 +268,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             let elapsed = u32::try_from(now.duration_since(g.at).as_millis()).unwrap_or(u32::MAX);
             let last = (f64::from(g.last.0), f64::from(g.last.1));
             if held_for_menu(g.kind, at, last, elapsed, scale) {
-                self.open_menu(id);
+                self.open_menu(id, false);
             }
         }
     }
@@ -280,4 +289,11 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let key = live.key.clone();
         self.effects.push(Effect::Released(key));
     }
+}
+
+/// 小圆锁（直径 28 CSS 像素，在内容正中）。
+fn on_lock(content: ScreenRect, at: (i32, i32), scale: f64) -> bool {
+    let cx = f64::from(content.x) + f64::from(content.width) / 2.0;
+    let cy = f64::from(content.y) + f64::from(content.height) / 2.0;
+    (f64::from(at.0) - cx).hypot(f64::from(at.1) - cy) <= 14.0 * scale
 }

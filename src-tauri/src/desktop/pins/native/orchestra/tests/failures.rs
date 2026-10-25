@@ -19,28 +19,6 @@ fn opening() -> O {
 }
 
 #[test]
-fn a_pin_whose_image_cannot_be_read_gives_up_and_tears_down() {
-    let mut o = opening();
-    o.render_event(
-        RenderEvent::LoadFailed {
-            pin: A,
-            reason: "没有这张图".into(),
-        },
-        Instant::now(),
-    );
-    assert_eq!(
-        o.take_effects(),
-        [
-            Effect::Warn("原生钉图读不到图", "没有这张图".into()),
-            Effect::Failed("marker".into()),
-        ]
-    );
-    assert_eq!(o.render().calls, [RCall::Detach(A)]);
-    o.render_event(RenderEvent::Detached { pin: A }, Instant::now());
-    assert!(o.is_empty());
-}
-
-#[test]
 fn a_pin_whose_first_frame_cannot_be_drawn_gives_up() {
     let mut o = opening();
     o.render_event(

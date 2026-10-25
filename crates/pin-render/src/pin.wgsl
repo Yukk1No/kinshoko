@@ -10,6 +10,7 @@ struct Pin {
     overlay: vec4<f32>,
     ink: vec4<f32>,
     ring: vec4<f32>,
+    appear: vec4<f32>,
     misc: vec4<f32>,
     shape: vec4<f32>,
     flags: vec4<u32>,
@@ -270,6 +271,11 @@ fn fs(@builtin(position) frag: vec4<f32>) -> @location(0) vec4<f32> {
         let a = clamp(lin.a, 0.0, 1.0);
         if (a > 0.0) {
             colour = shown(vec4<f32>(oetf(lin.rgb / lin.a) * a, a));
+        }
+        // 出现提示框（pin-appear 的 inset 描边）：在图上、遮蔽墨色之下。
+        let aw = pin.shape.w;
+        if (aw > 0.0 && (any(s < c0 + aw) || any(s >= c1 - aw))) {
+            colour = over(ui(pin.appear), colour);
         }
         colour = over(ui(pin.ink), colour);
     } else {

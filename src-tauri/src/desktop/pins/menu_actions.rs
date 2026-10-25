@@ -30,12 +30,13 @@ pub async fn pin_menu(
     pin: String,
 ) -> Result<(), String> {
     *lock(&MENU_LAYER) = Some((pin.clone(), window.label().to_owned()));
-    tauri::async_runtime::spawn_blocking(move || popup_menu(&app, &pin))
+    tauri::async_runtime::spawn_blocking(move || popup_menu(&app, &pin, false))
         .await
         .map_err(|e| e.to_string())?
 }
 
-fn popup_menu(app: &AppHandle, pin: &str) -> Result<(), String> {
+/// `confirm_reveal`：只问“显示这张图？”（点了遮蔽原生钉图上的小圆锁）。
+fn popup_menu(app: &AppHandle, pin: &str, confirm_reveal: bool) -> Result<(), String> {
     let frame = current_frame(app, pin).ok_or(CLOSED)?;
     let has_library = !crate::library::registered(app)?.is_empty();
     let group = frame
@@ -43,18 +44,19 @@ fn popup_menu(app: &AppHandle, pin: &str) -> Result<(), String> {
         .member
         .as_ref()
         .and_then(|m| super::super::groups::group_name(app, &m.group_id));
-    super::super::menu::popup(
-        app,
-        PinMenu::new(&frame.pin, frame.veiled, has_library, group),
-    )
+    let menu = PinMenu {
+        confirm_reveal,
+        ..PinMenu::new(&frame.pin, frame.veiled, has_library, group)
+    };
+    super::super::menu::popup(app, menu)
 }
 
-/// 原生钉图要开菜单（右键、笔侧键、按住；编排已停止键盘钩子拦键）：在别的线程上弹出。弹不出来时
-/// 键盘钩子恢复拦键。
-pub(super) fn native_menu(app: &AppHandle, pin: &str) {
+/// 原生钉图要开菜单（右键、笔侧键、按住；编排已停止键盘钩子拦键），或点了小圆锁要确认显示
+/// （`confirm_reveal`）：在别的线程上弹出。弹不出来时键盘钩子恢复拦键。
+pub(super) fn native_menu(app: &AppHandle, pin: &str, confirm_reveal: bool) {
     let (app, pin) = (app.clone(), pin.to_owned());
     std::thread::spawn(move || {
-        if let Err(e) = popup_menu(&app, &pin) {
+        if let Err(e) = popup_menu(&app, &pin, confirm_reveal) {
             native::menu_closed(&app);
             crate::run_log::warn("打不开钉图菜单", e);
         }
@@ -146,20 +148,24 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<St
                 Err(e) => e,
             })
         }
-        ACTION_COLLECT | ACTION_COPY => {
+        ACTION_COLLECT => {
             let capture_id = lock(&state(app).pins)
                 .get(pin)
                 .and_then(|r| r.capture_id.clone())?;
-            Some(if action == ACTION_COLLECT {
-                {
-                    request_collection(app, &capture_id);
-                    "请在主窗口选择保存位置".into()
-                }
-            } else {
-                match copy_capture_image(app, &capture_id) {
-                    Ok(()) => "已复制".to_owned(),
-                    Err(e) => e,
-                }
+            request_collection(app, &capture_id);
+            Some("请在主窗口选择保存位置".into())
+        }
+        ACTION_COPY => {
+            let capture_id = lock(&state(app).pins)
+                .get(pin)
+                .and_then(|r| r.capture_id.clone());
+            let copied = match capture_id {
+                Some(capture_id) => copy_capture_image(app, &capture_id),
+                None => copy_reference_pin(app, pin),
+            };
+            Some(match copied {
+                Ok(()) => "已复制".to_owned(),
+                Err(e) => e,
             })
         }
         _ => None,
@@ -176,6 +182,36 @@ pub(in crate::desktop) fn copy_capture_image(
         .ok_or("截图已不在截图历史中")?;
     let image = image::open(file).map_err(|e| e.to_string())?.to_rgba8();
     copy_to_clipboard(app, &image)
+}
+
+/// 复制资料库钉图（#289）：钉图显示的那一块原图像素（局部钉图只取局部，不带翻转旋转）。经浏览视角：
+/// 被封印、原文件不在时报错，剪贴板保持原样。会读文件。
+fn copy_reference_pin(app: &AppHandle, pin: &str) -> Result<(), String> {
+    let saved = lock(&state(app).store).get(pin).cloned().ok_or(CLOSED)?;
+    let PinContent::Reference {
+        library_id,
+        image_id,
+        ..
+    } = &saved.content
+    else {
+        return Err(CLOSED.to_owned());
+    };
+    if appearance(app, &saved).0 {
+        return Err("安全模式下已遮蔽，不能复制".to_owned());
+    }
+    let pixels = crate::library::visible_source(app, library_id, image_id)?
+        .clipboard_pixels(image_id)
+        .map_err(|e| e.to_string())?;
+    let pixels = match saved.crop {
+        Some(c) => image::imageops::crop_imm(&pixels, c.x, c.y, c.width, c.height).to_image(),
+        None => pixels,
+    };
+    let prepared = super::super::clipboard::PreparedImage::prepare(&pixels)?;
+    // 解码期间安全模式或分级可能变了：在可见性提交里重新核对后才写剪贴板。
+    crate::library::with_visibility_commit(app, |_| {
+        crate::library::visible_source(app, library_id, image_id)?;
+        prepared.commit(app)
+    })
 }
 
 /// 把这一个资料库钉图加进参考组 `group_id`（钉图菜单“加入参考组 ▸”）：保留它此刻的局部与摆放，

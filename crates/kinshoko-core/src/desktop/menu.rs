@@ -72,6 +72,8 @@ pub struct PinMenu {
     pub can_collect: bool,
     /// 来自参考组时，那个参考组的名称（“存回参考组”）。
     pub group: Option<String>,
+    /// 画师点了遮蔽钉图上的小圆锁：只问“显示这张图？”（原生钉图，#285）。
+    pub confirm_reveal: bool,
 }
 
 impl PinMenu {
@@ -87,6 +89,7 @@ impl PinMenu {
             veiled,
             can_collect: capture && has_library,
             group,
+            confirm_reveal: false,
         }
     }
 }

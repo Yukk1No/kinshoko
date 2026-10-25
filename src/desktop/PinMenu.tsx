@@ -39,9 +39,15 @@ function GroupList({ load, act }: { load: () => Promise<GroupSummary[]>; act: (a
  * 原始大小、透明度、锁定，截图钉图的收藏与复制，资料库钉图的显示遮蔽图与存回参考组——再加上
  * 在 Kinshoko 中打开、加入参考组 ▸、贴边隐藏与关闭钉图。快捷键提示与钉图窗口的按键一致。
  */
-export function PinMenuItems({ menu, act, groups = referenceGroups }: {
-  menu: PinMenu; act: (action: PinMenuAction) => void; groups?: () => Promise<GroupSummary[]>;
+export function PinMenuItems({ menu, act, dismiss = () => {}, groups = referenceGroups }: {
+  menu: PinMenu; act: (action: PinMenuAction) => void; dismiss?: () => void; groups?: () => Promise<GroupSummary[]>;
 }) {
+  // 点了遮蔽钉图上的小圆锁（原生钉图）：只问这一句，与钉图层里的确认相同。
+  if (menu.confirmReveal) return <>
+    <MenuTip>显示这张图？</MenuTip>
+    <MenuItem icon={icon(Eye)} onClick={() => act("reveal")}>显示</MenuItem>
+    <MenuItem icon={icon(X)} onClick={dismiss}>取消</MenuItem>
+  </>;
   const opacity = OPACITY_STEPS.includes(menu.opacity) ? menu.opacity : null;
   return <>
     <MenuItem icon={icon(FlipHorizontal2)} kbd="H" onClick={() => act("flipH")}>水平翻转</MenuItem>
@@ -56,13 +62,14 @@ export function PinMenuItems({ menu, act, groups = referenceGroups }: {
       </Menu.RadioGroup>
     </MenuSubmenu>
     <MenuCheckboxItem checked={menu.locked} onCheckedChange={() => act("lock")}>锁定位置与大小</MenuCheckboxItem>
-    {(menu.capture || menu.veiled || menu.group !== null) && <MenuSeparator />}
-    {menu.capture && <>
+    <MenuSeparator />
+    {menu.capture && (
       <MenuItem icon={icon(BookmarkPlus)} disabled={!menu.canCollect} onClick={() => act("collect")}>
         {menu.canCollect ? "收藏到…" : "收藏（还没有图库）"}
       </MenuItem>
-      <MenuItem icon={icon(Copy)} onClick={() => act("copy")}>复制</MenuItem>
-    </>}
+    )}
+    {/* 资料库钉图复制钉图显示的那一块原图像素（#289）；被遮蔽时不能复制。 */}
+    <MenuItem icon={icon(Copy)} disabled={menu.veiled} onClick={() => act("copy")}>复制</MenuItem>
     {!menu.capture && menu.veiled && <MenuItem icon={icon(Eye)} onClick={() => act("reveal")}>显示这张图（安全模式下已遮蔽）</MenuItem>}
     {!menu.capture && menu.group !== null && <MenuItem icon={icon(Save)} onClick={() => act("saveGroup")}>存回参考组「{menu.group}」</MenuItem>}
     <MenuSeparator />
@@ -152,7 +159,7 @@ export function DesktopMenuView() {
         <Menu.Portal>
           <Menu.Positioner className="k-positioner" anchor={anchor} side="bottom" align="start" sideOffset={2} collisionPadding={4}>
             <Menu.Popup className="k-popup" aria-label="钉图菜单" onContextMenu={(e) => e.preventDefault()}>
-              <PinMenuItems menu={open.menu} act={act} />
+              <PinMenuItems menu={open.menu} act={act} dismiss={dismiss} />
             </Menu.Popup>
           </Menu.Positioner>
         </Menu.Portal>

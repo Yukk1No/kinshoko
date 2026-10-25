@@ -28,6 +28,15 @@ fn lerp(from: ScreenRect, to: ScreenRect, t: f64) -> ScreenRect {
     .snap()
 }
 
+/// 毫秒换成小数时有舍入：各边差不过一像素。
+fn near(got: ScreenRect, want: ScreenRect) {
+    let ok = (got.x - want.x).abs() <= 1
+        && (got.y - want.y).abs() <= 1
+        && got.width.abs_diff(want.width) <= 1
+        && got.height.abs_diff(want.height) <= 1;
+    assert!(ok, "{got:?} 与 {want:?} 差太多");
+}
+
 #[test]
 fn a_wheel_notch_eases_out_cubic_over_zoom_ms_frame_by_frame() {
     let mut r = Rig::shown();
@@ -43,7 +52,7 @@ fn a_wheel_notch_eases_out_cubic_over_zoom_ms_frame_by_frame() {
         t += step;
         let want = lerp(from, to, t as f64 / f64::from(ZOOM_MS));
         let last = *seen.borrow().last().expect("每帧都提交");
-        assert_eq!(last.content, want, "{t} ms");
+        near(last.content, want);
     }
     assert_eq!(seen.borrow().last().unwrap().content, to);
     let frames = seen.borrow().len();
@@ -105,7 +114,7 @@ fn dragging_the_corner_zooms_with_the_same_animation_about_the_top_left() {
     assert_eq!(r.o.shown(A, r.now), from);
     r.animate(70);
     let mid = r.o.shown(A, r.now);
-    assert_eq!(mid, lerp(from, to, 0.5));
+    near(mid, lerp(from, to, 0.5));
     // 继续拖：从此刻看到的位置接着走。
     r.pointer((corner.0 + 200, corner.1 + 200), PointerEvent::Move);
     assert_eq!(r.o.shown(A, r.now), mid);
@@ -125,7 +134,7 @@ fn actual_size_from_the_menu_animates_too() {
     r.frame(f);
     assert_eq!(r.o.shown(A, r.now), from);
     r.animate(u64::from(ZOOM_MS) / 2);
-    assert_eq!(r.o.shown(A, r.now), lerp(from, to, 0.5));
+    near(r.o.shown(A, r.now), lerp(from, to, 0.5));
     r.animate(u64::from(ZOOM_MS) / 2);
     assert_eq!(r.o.shown(A, r.now), to);
 }

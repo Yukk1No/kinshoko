@@ -104,6 +104,15 @@ pub struct Veil {
     pub ink: [f32; 4],
 }
 
+/// 出现提示框（`pin-appear`）：紧贴内容里沿描一圈强调色，新钉图出现后渐隐。
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Appear {
+    /// 宽度，物理像素（CSS 2px × 缩放比例）。
+    pub width: f32,
+    /// sRGB 编码值与不透明度（渐隐就是降低它）。
+    pub colour: [f32; 4],
+}
+
 /// 一次绘制。
 #[derive(Debug, Clone, Copy)]
 pub struct Draw<'a> {
@@ -122,6 +131,8 @@ pub struct Draw<'a> {
     /// 增强边缘细线的宽度，物理像素；0 时不画。
     pub ring: f32,
     pub veil: Option<Veil>,
+    /// 出现提示框，画在图上、遮蔽之下。
+    pub appear: Option<Appear>,
     /// 说明层（小圆锁、原因文字）与它左上角在屏幕上的位置，按 1:1 画在最上面。
     pub overlay: Option<(&'a Overlay, [f32; 2])>,
     /// 界面颜色（遮蔽墨色、细线、说明层，都是 sRGB）到显示器的表：`pin_colour::lut(None, 显示器)`。
@@ -141,6 +152,7 @@ impl<'a> Draw<'a> {
             edge: 0.0,
             ring: 0.0,
             veil: None,
+            appear: None,
             overlay: None,
             ui_lut: None,
         }

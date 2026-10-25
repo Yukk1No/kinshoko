@@ -157,3 +157,34 @@ fn golden_veil() {
 }
 
 // ---- 设备丢失 -------------------------------------------------------------------------------
+
+#[test]
+fn appear_ring_is_drawn_inside_the_content_and_fades_with_its_alpha() {
+    let r = renderer();
+    let source = small();
+    let image = upload(&r, &pin_colour::derivative(&png(&source, None)).unwrap());
+    let identity = lut(&r, &PinLut::Identity);
+    let plain = with_edge((100, 50, 40, 30), 8, full(&source));
+    let base = r.render_offscreen(&image, &plain, &identity).unwrap();
+    let mut draw = plain;
+    draw.appear = Some(pin_render::Appear {
+        width: 2.0,
+        colour: [224.0 / 255.0, 118.0 / 255.0, 143.0 / 255.0, 1.0],
+    });
+    let out = r.render_offscreen(&image, &draw, &identity).unwrap();
+    // 内容最外两圈是强调色，第三圈与中间是原图，内容外面（阴影）不变。
+    for (x, y) in [(8, 8 + 10), (9, 8 + 10), (8 + 20, 8 + 29)] {
+        assert_eq!(out.pixel(x, y), [224, 118, 143, 255], "({x}, {y})");
+    }
+    for (x, y) in [(10, 18), (28, 20), (7, 18), (28, 4)] {
+        assert_eq!(out.pixel(x, y), base.pixel(x, y), "({x}, {y})");
+    }
+    // 渐隐：一半不透明度时介于两者之间。
+    draw.appear = Some(pin_render::Appear {
+        width: 2.0,
+        colour: [224.0 / 255.0, 118.0 / 255.0, 143.0 / 255.0, 0.5],
+    });
+    let half = r.render_offscreen(&image, &draw, &identity).unwrap();
+    let (a, b, c) = (base.pixel(8, 18)[1], half.pixel(8, 18)[1], 118u8);
+    assert!(b > a.min(c) && b < a.max(c), "{a} {b} {c}");
+}
