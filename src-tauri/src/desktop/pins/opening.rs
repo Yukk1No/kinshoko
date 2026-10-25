@@ -175,7 +175,7 @@ pub fn open_pin(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
         },
     );
     if native {
-        native::open(app, pin.clone());
+        native::open(app, native::Frame::at_home(pin.clone(), look(app, pin)));
         return Ok(());
     }
     let _arranging = lock(&ARRANGING);

@@ -21,6 +21,12 @@ pub struct DrawJob {
     pub state: SavedPin,
     /// 钉图所在显示器的颜色配置文件；`None` 按 sRGB。
     pub display: Option<Arc<[u8]>>,
+    /// 那台显示器的缩放比例：以 CSS 像素定的尺寸（模糊半径、细线）按它换成物理像素。
+    pub display_scale: f64,
+    /// 遮蔽的程度：1 为完全遮蔽（模糊并盖墨色），0 为不遮蔽；确认显示后淡出时在两者之间。
+    pub veil: f32,
+    /// 增强钉图边缘（设置）：加一圈浅色细线。
+    pub ring: bool,
 }
 
 /// 渲染层做完了一件事。

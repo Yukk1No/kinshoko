@@ -11,7 +11,8 @@ fn opening() -> O {
         profile: None,
     }]);
     let mut o = Orchestra::new(shell, FakeRender::default());
-    o.open(marker()).unwrap();
+    o.open(Frame::at_home(marker(), Look::default()), Instant::now())
+        .unwrap();
     o.render().calls.clear();
     o.render().open.clear();
     o
@@ -20,10 +21,13 @@ fn opening() -> O {
 #[test]
 fn a_pin_whose_image_cannot_be_read_gives_up_and_tears_down() {
     let mut o = opening();
-    o.render_event(RenderEvent::LoadFailed {
-        pin: A,
-        reason: "没有这张图".into(),
-    });
+    o.render_event(
+        RenderEvent::LoadFailed {
+            pin: A,
+            reason: "没有这张图".into(),
+        },
+        Instant::now(),
+    );
     assert_eq!(
         o.take_effects(),
         [
@@ -32,22 +36,28 @@ fn a_pin_whose_image_cannot_be_read_gives_up_and_tears_down() {
         ]
     );
     assert_eq!(o.render().calls, [RCall::Detach(A)]);
-    o.render_event(RenderEvent::Detached { pin: A });
+    o.render_event(RenderEvent::Detached { pin: A }, Instant::now());
     assert!(o.is_empty());
 }
 
 #[test]
 fn a_pin_whose_first_frame_cannot_be_drawn_gives_up() {
     let mut o = opening();
-    o.render_event(RenderEvent::Loaded {
-        pin: A,
-        size: SourceSize::Width(500),
-    });
+    o.render_event(
+        RenderEvent::Loaded {
+            pin: A,
+            size: SourceSize::Width(500),
+        },
+        Instant::now(),
+    );
     o.render().calls.clear();
-    o.render_event(RenderEvent::Drawn {
-        pin: A,
-        result: Err("设备丢了".into()),
-    });
+    o.render_event(
+        RenderEvent::Drawn {
+            pin: A,
+            result: Err("设备丢了".into()),
+        },
+        Instant::now(),
+    );
     assert_eq!(
         o.take_effects(),
         [
@@ -61,10 +71,13 @@ fn a_pin_whose_first_frame_cannot_be_drawn_gives_up() {
 #[test]
 fn a_reload_that_fails_after_showing_keeps_the_pin() {
     let mut r = Rig::shown();
-    r.o.render_event(RenderEvent::LoadFailed {
-        pin: A,
-        reason: "x".into(),
-    });
+    r.o.render_event(
+        RenderEvent::LoadFailed {
+            pin: A,
+            reason: "x".into(),
+        },
+        Instant::now(),
+    );
     assert_eq!(
         r.o.take_effects(),
         [Effect::Warn("原生钉图读不到图", "x".into())]
@@ -113,9 +126,7 @@ fn settling_while_a_draw_is_in_flight_still_fits_the_window_back() {
     // 画还在路上时又来一格，随后停手。
     r.o.shell().push(wheel);
     r.o.pump(r.now);
-    r.now += Duration::from_millis(SETTLE_MS);
-    r.o.tick(r.now);
-    r.run();
+    r.animate(u64::from(ZOOM_MS) + SETTLE_MS);
     let fit = window_for(r.o.pins[&A].pin.rect(), &[SCREEN]).unwrap();
     assert_eq!(r.o.shell().window(A), Some(fit));
     assert_eq!(r.o.next_deadline(), None);

@@ -9,6 +9,8 @@ pub const ZOOM_MS: u32 = 140;
 pub const SLIDE_MS: u32 = 200;
 /// 新钉图出现时描一圈强调色的边，在这么久里渐隐（毫秒，#7 反馈）。
 pub const APPEAR_MS: u32 = 900;
+/// 确认显示被遮蔽的钉图后，遮蔽在这么久里淡出（毫秒，`pin-veil` 的 `transition`）。
+pub const REVEAL_MS: u32 = 400;
 
 /// 缓出曲线：前快后慢，两端固定在 0 和 1。与前端 `easeOutCubic` 相同。
 pub fn ease_out_cubic(t: f64) -> f64 {
@@ -107,6 +109,11 @@ pub fn appear_ring(elapsed_ms: f64) -> f64 {
     1.0 - css_ease_out(elapsed_ms / f64::from(APPEAR_MS))
 }
 
+/// 确认显示后还剩多少遮蔽：从 1 淡到 0，曲线同 CSS 的 `ease-out`。
+pub fn veil_left(elapsed_ms: f64) -> f64 {
+    1.0 - css_ease_out(elapsed_ms / f64::from(REVEAL_MS))
+}
+
 /// CSS `ease-out`：三次贝塞尔 (0,0)、(0,0)、(0.58,1)、(1,1)，按横坐标 `x` 求纵坐标。
 fn css_ease_out(x: f64) -> f64 {
     let x = x.clamp(0.0, 1.0);
@@ -201,5 +208,13 @@ mod tests {
         assert!(appear_ring(f64::from(APPEAR_MS) * 2.0).abs() < 1e-9);
         // ease-out 前快后慢：一半时间时已褪去一大半；cubic-bezier(0,0,0.58,1) 在 x=0.5 处约 0.6846（x(t)=1.74t²-0.74t³=0.5 时 t≈0.6257，y=3t²-2t³）。
         assert!((appear_ring(f64::from(APPEAR_MS) / 2.0) - (1.0 - 0.6846)).abs() < 1e-3);
+    }
+
+    #[test]
+    fn the_veil_fades_out_over_reveal_ms_with_css_ease_out() {
+        assert!((veil_left(0.0) - 1.0).abs() < 1e-9);
+        assert!((veil_left(-5.0) - 1.0).abs() < 1e-9);
+        assert!(veil_left(f64::from(REVEAL_MS)).abs() < 1e-9);
+        assert!((veil_left(f64::from(REVEAL_MS) / 2.0) - (1.0 - 0.6846)).abs() < 1e-3);
     }
 }

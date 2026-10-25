@@ -334,8 +334,19 @@ pub fn show(
     motion: PinMotion,
     click_through: bool,
 ) -> Result<(), String> {
-    // 原生钉图的窗口由编排自己管（贴边、菜单动作等迁过去之前什么都不做，#285）。
-    if lock(&state(app).pins).get(pin).is_some_and(|r| r.native) {
+    // 原生钉图的窗口由编排自己管：记下内容要到哪，把一帧推给它（#285）。
+    let native = lock(&state(app).pins).get_mut(pin).is_some_and(|r| {
+        if r.native {
+            r.content = content;
+            r.click_through = click_through;
+            r.motion = motion;
+        }
+        r.native
+    });
+    if native {
+        if let Some(frame) = native_frame(app, pin, motion, true) {
+            native::frame(app, frame);
+        }
         return Ok(());
     }
     let _arranging = lock(&ARRANGING);

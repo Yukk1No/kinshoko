@@ -30,21 +30,48 @@ pub async fn pin_menu(
     pin: String,
 ) -> Result<(), String> {
     *lock(&MENU_LAYER) = Some((pin.clone(), window.label().to_owned()));
-    tauri::async_runtime::spawn_blocking(move || {
-        let frame = current_frame(&app, &pin).ok_or(CLOSED)?;
-        let has_library = !crate::library::registered(&app)?.is_empty();
-        let group = frame
-            .pin
-            .member
-            .as_ref()
-            .and_then(|m| super::super::groups::group_name(&app, &m.group_id));
-        super::super::menu::popup(
-            &app,
-            PinMenu::new(&frame.pin, frame.veiled, has_library, group),
-        )
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || popup_menu(&app, &pin))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn popup_menu(app: &AppHandle, pin: &str) -> Result<(), String> {
+    let frame = current_frame(app, pin).ok_or(CLOSED)?;
+    let has_library = !crate::library::registered(app)?.is_empty();
+    let group = frame
+        .pin
+        .member
+        .as_ref()
+        .and_then(|m| super::super::groups::group_name(app, &m.group_id));
+    super::super::menu::popup(
+        app,
+        PinMenu::new(&frame.pin, frame.veiled, has_library, group),
+    )
+}
+
+/// 原生钉图要开菜单（右键、笔侧键、按住；编排已停止键盘钩子拦键）：在别的线程上弹出。弹不出来时
+/// 键盘钩子恢复拦键。
+pub(super) fn native_menu(app: &AppHandle, pin: &str) {
+    let (app, pin) = (app.clone(), pin.to_owned());
+    std::thread::spawn(move || {
+        if let Err(e) = popup_menu(&app, &pin) {
+            native::menu_closed(&app);
+            crate::run_log::warn("打不开钉图菜单", e);
+        }
+    });
+}
+
+/// 菜单关掉了：原生钉图的键盘钩子恢复拦键；菜单拿着焦点时焦点交回原来的程序（原生钉图不拿焦点）。
+/// 返回它是不是原生钉图。
+pub fn menu_closed(app: &AppHandle, pin: &str, focused: bool) -> bool {
+    let native = lock(&state(app).pins).get(pin).is_some_and(|r| r.native);
+    if native {
+        native::menu_closed(app);
+        if focused {
+            super::super::edge::hand_back_focus();
+        }
+    }
+    native
 }
 
 /// 选了钉图菜单里的一项：先收起菜单窗口（焦点交回钉图），再在别的线程上做这件事。

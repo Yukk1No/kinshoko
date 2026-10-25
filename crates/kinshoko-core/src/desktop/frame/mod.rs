@@ -19,7 +19,10 @@ mod view;
 #[cfg(test)]
 mod test_rng;
 
-pub use anim::{APPEAR_MS, ContentMotion, RectF, SLIDE_MS, ZOOM_MS, appear_ring, ease_out_cubic};
+pub use anim::{
+    APPEAR_MS, ContentMotion, REVEAL_MS, RectF, SLIDE_MS, ZOOM_MS, appear_ring, ease_out_cubic,
+    veil_left,
+};
 pub use input::{
     HOLD_MS, HOLD_SLOP, Hit, Monitor, PointerButton, PointerKind, ZOOM_CORNER, ZOOM_CORNER_SHARE,
     held_for_menu, hit, press_opens_menu, scale_at,

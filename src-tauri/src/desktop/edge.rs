@@ -122,7 +122,7 @@ fn remember_external_foreground() {
 /// 焦点在本进程（钉图、主窗口）时，交还给最近的外部前台窗口（通常是绘画软件）。
 /// 焦点本来就在外部时不动它。
 #[cfg(windows)]
-fn hand_back_focus() {
+pub(super) fn hand_back_focus() {
     let ours = super::win32::foreground_window().is_some_and(|(_, pid)| pid == std::process::id());
     let last = LAST_EXTERNAL.load(Ordering::Relaxed);
     if ours && last != 0 {
@@ -141,7 +141,7 @@ fn remember_external_foreground() {
 }
 
 #[cfg(not(windows))]
-fn hand_back_focus() {}
+pub(super) fn hand_back_focus() {}
 
 #[cfg(not(windows))]
 fn cursor_position() -> Option<(i32, i32)> {

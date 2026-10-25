@@ -2,8 +2,8 @@
 
 use std::time::{Duration, Instant};
 
-use kinshoko_core::desktop::frame::{SourceSize, window_for};
-use kinshoko_core::desktop::{PinContent, Placement, SavedPin, ScreenRect};
+use kinshoko_core::desktop::frame::{SourceSize, ZOOM_MS, window_for};
+use kinshoko_core::desktop::{PinContent, PinMotion, Placement, SavedPin, ScreenRect};
 use pin_shell::fake::{Call, FakeShell};
 use pin_shell::{
     Display, Key, PinId, PinInput, PinKeys, Pointer, PointerButton, PointerEvent, PointerKind,
@@ -13,6 +13,9 @@ use super::*;
 use crate::desktop::pins::native::port::{DrawJob, RenderEvent, RenderPort};
 
 mod failures;
+mod frames;
+mod motion;
+mod pointer;
 
 /// 渲染层的一次调用。
 #[derive(Debug, Clone, PartialEq)]
@@ -104,7 +107,8 @@ impl Rig {
             o: Orchestra::new(shell, FakeRender::default()),
             now: Instant::now(),
         };
-        r.o.open(marker()).unwrap();
+        r.o.open(Frame::at_home(marker(), Look::default()), Instant::now())
+            .unwrap();
         r.finish_render();
         r.o.take_effects();
         r.o.shell().take_calls();
@@ -129,7 +133,7 @@ impl Rig {
                     RCall::Detach(pin) => RenderEvent::Detached { pin },
                     RCall::Attach(_) => continue,
                 };
-                self.o.render_event(event);
+                self.o.render_event(event, self.now);
             }
         }
     }
@@ -156,6 +160,15 @@ impl Rig {
         });
     }
 
+    fn key(&mut self, key: Key, shift: bool) {
+        self.input(PinInput::Key {
+            pin: A,
+            key,
+            shift,
+            repeat: false,
+        });
+    }
+
     fn pointer(&mut self, at: (i32, i32), event: PointerEvent) {
         self.input(PinInput::Pointer(Pointer {
             pin: A,
@@ -169,6 +182,31 @@ impl Rig {
         self.now += Duration::from_millis(ms);
         self.o.tick(self.now);
         self.run();
+    }
+
+    /// 一帧一帧地往前走 `ms` 毫秒（动画中每 [`ANIM_FRAME`] 上屏一次）。
+    fn animate(&mut self, ms: u64) {
+        let step = ANIM_FRAME.as_millis() as u64;
+        let mut left = ms;
+        while left > 0 {
+            let d = left.min(step);
+            self.wait(d);
+            left -= d;
+        }
+    }
+
+    /// 应用壳推来一帧。
+    fn frame(&mut self, f: Frame) {
+        self.o.frame(f, self.now);
+        self.run();
+    }
+
+    /// 钉图此刻的状态，按 `motion` 推回来的一帧。
+    fn home_frame(&self, motion: PinMotion) -> Frame {
+        Frame {
+            motion,
+            ..Frame::at_home(self.o.pins[&A].pin.clone(), Look::default())
+        }
     }
 
     fn shell_calls(&mut self) -> Vec<Call> {
@@ -196,7 +234,8 @@ fn a_new_pin_is_drawn_once_its_image_arrives_then_shown() {
     }]);
     let mut o: O = Orchestra::new(shell, FakeRender::default());
     let pin = marker();
-    o.open(pin.clone()).unwrap();
+    o.open(Frame::at_home(pin.clone(), Look::default()), Instant::now())
+        .unwrap();
     let window = window_for(pin.rect(), &[SCREEN]).unwrap();
     assert_eq!(
         o.render().calls,
@@ -204,23 +243,29 @@ fn a_new_pin_is_drawn_once_its_image_arrives_then_shown() {
     );
     assert_eq!(
         o.shell().take_calls(),
-        [Call::Keys(PinKeys::new([Key::Escape])), Call::Create(A)]
+        [Call::Keys(PinKeys::new(KEYS)), Call::Create(A)]
     );
 
-    o.render_event(RenderEvent::Loaded {
-        pin: A,
-        size: SourceSize::Width(500),
-    });
+    o.render_event(
+        RenderEvent::Loaded {
+            pin: A,
+            size: SourceSize::Width(500),
+        },
+        Instant::now(),
+    );
     let RCall::Draw(job) = o.render().calls.last().cloned().unwrap() else {
         panic!("应当画第一帧");
     };
     assert_eq!((job.slot, job.window, job.content), (0, window, pin.rect()));
     assert!(o.shell().calls().is_empty(), "画好之前不显示");
 
-    o.render_event(RenderEvent::Drawn {
-        pin: A,
-        result: Ok(()),
-    });
+    o.render_event(
+        RenderEvent::Drawn {
+            pin: A,
+            result: Ok(()),
+        },
+        Instant::now(),
+    );
     assert_eq!(o.shell().take_calls(), [Call::Show(A, window)]);
     assert_eq!(o.take_effects(), [Effect::Shown("marker".into())]);
 }
@@ -229,19 +274,22 @@ fn a_new_pin_is_drawn_once_its_image_arrives_then_shown() {
 fn one_wheel_notch_swaps_once_then_only_redraws_until_settled() {
     let mut r = Rig::shown();
     r.wheel(1.0, false);
+    r.animate(u64::from(ZOOM_MS));
     let calls = r.shell_calls();
     assert!(
         matches!(calls.as_slice(), [Call::Stage(A, _), Call::Swap(A)]),
         "{calls:?}"
     );
-    assert_eq!(r.draws().len(), 1);
+    let draws = r.draws();
+    assert!(draws.len() > 20, "动画中每帧重画：{}", draws.len());
+    assert_eq!(draws.last().unwrap().content, r.o.pins[&A].pin.rect());
 
     for _ in 0..3 {
         r.wheel(1.0, false);
+        r.animate(u64::from(ZOOM_MS));
         assert_eq!(r.shell_calls(), [], "包络里只重画");
-        let draws = r.draws();
-        assert_eq!(draws.len(), 1);
-        assert_eq!(draws[0].slot, r.o.shell().visible_slot(A));
+        let visible = r.o.shell().visible_slot(A);
+        assert!(r.draws().iter().all(|d| d.slot == visible));
     }
 }
 
@@ -251,6 +299,7 @@ fn settling_swaps_the_window_back_to_fit_the_pin() {
     for _ in 0..3 {
         r.wheel(1.0, false);
     }
+    r.animate(u64::from(ZOOM_MS));
     r.shell_calls();
     r.wait(SETTLE_MS - 1);
     assert_eq!(r.shell_calls(), [], "还没停手");
@@ -310,13 +359,13 @@ fn a_locked_pin_does_not_move_or_zoom() {
 fn updates_during_a_swap_wait_for_it_and_never_draw_the_outgoing_slot() {
     let mut r = Rig::shown();
     r.o.shell().hold_swaps(true);
-    r.wheel(1.0, false);
+    r.key(Key::Letter('R'), false);
     assert!(r.o.shell().swap_pending(A));
     r.draws();
     r.wheel(1.0, false);
     r.wheel(1.0, false);
-    r.pointer((150, 150), PointerEvent::Down(PointerButton::Primary));
-    r.pointer((170, 150), PointerEvent::Move);
+    r.pointer((300, 400), PointerEvent::Down(PointerButton::Primary));
+    r.pointer((320, 400), PointerEvent::Move);
     assert_eq!(r.draws(), [], "换窗完成前不画");
     r.shell_calls();
 
@@ -331,15 +380,12 @@ fn updates_during_a_swap_wait_for_it_and_never_draw_the_outgoing_slot() {
 #[test]
 fn a_move_waits_for_a_redraw_still_in_flight() {
     let mut r = Rig::shown();
-    r.wheel(1.0, false);
-    r.shell_calls();
-    r.draws();
-    // 包络里重画，渲染层还没画完时又拖动。
+    // 重画（透明度），渲染层还没画完时又拖动。
     r.o.shell().push(PinInput::Wheel {
         pin: A,
         at: (200, 300),
-        notches: 1.0,
-        ctrl: false,
+        notches: -1.0,
+        ctrl: true,
     });
     r.o.pump(r.now);
     assert_eq!(r.o.render().open.len(), 1);
@@ -363,7 +409,11 @@ fn a_move_waits_for_a_redraw_still_in_flight() {
     );
     assert_eq!(r.shell_calls(), [Call::Raise(A)], "重画还在路上：不平移");
     r.run();
-    assert_eq!(r.draws().len(), 2);
+    assert_eq!(r.draws().len(), 1);
+    assert!(matches!(
+        r.shell_calls().as_slice(),
+        [Call::Translate(A, _)]
+    ));
 }
 
 #[test]
@@ -399,6 +449,7 @@ fn every_change_is_saved() {
 fn settling_after_zooming_out_asks_for_the_exact_size_derivative() {
     let mut r = Rig::shown();
     r.wheel(-1.0, false);
+    r.animate(u64::from(ZOOM_MS));
     r.o.render().calls.clear();
     r.wait(SETTLE_MS);
     let scale = r.o.pins[&A].pin.placement.scale;
@@ -412,10 +463,13 @@ fn settling_after_zooming_out_asks_for_the_exact_size_derivative() {
 #[test]
 fn a_stale_load_is_ignored() {
     let mut r = Rig::shown();
-    r.o.render_event(RenderEvent::Loaded {
-        pin: A,
-        size: SourceSize::Full,
-    });
+    r.o.render_event(
+        RenderEvent::Loaded {
+            pin: A,
+            size: SourceSize::Full,
+        },
+        Instant::now(),
+    );
     assert_eq!(r.draws(), []);
 }
 
@@ -479,11 +533,15 @@ fn the_draw_carries_the_profile_of_the_display_under_the_pin() {
     let mut o: O = Orchestra::new(shell, FakeRender::default());
     let mut pin = marker();
     pin.placement.x = 2700;
-    o.open(pin).unwrap();
-    o.render_event(RenderEvent::Loaded {
-        pin: A,
-        size: SourceSize::Width(500),
-    });
+    o.open(Frame::at_home(pin, Look::default()), Instant::now())
+        .unwrap();
+    o.render_event(
+        RenderEvent::Loaded {
+            pin: A,
+            size: SourceSize::Width(500),
+        },
+        Instant::now(),
+    );
     let RCall::Draw(job) = o.render().calls.last().cloned().unwrap() else {
         panic!()
     };
@@ -499,10 +557,13 @@ fn submissions_are_reported_before_the_shell_is_told() {
     let log = seen.clone();
     r.o.on_submit(move |s| log.borrow_mut().push(*s));
     r.wheel(1.0, false);
+    r.animate(u64::from(ZOOM_MS));
+    let zoomed = seen.borrow().len();
+    assert!(zoomed > 20, "动画的每一帧都登记：{zoomed}");
     r.pointer((150, 150), PointerEvent::Down(PointerButton::Primary));
     r.pointer((160, 150), PointerEvent::Move);
     let seen = seen.borrow();
-    assert_eq!(seen.len(), 2);
-    assert_eq!(seen[1].content, r.o.pins[&A].pin.rect());
-    assert_eq!(Some(seen[1].window), r.o.shell().window(A));
+    assert_eq!(seen.len(), zoomed + 1);
+    assert_eq!(seen[zoomed].content, r.o.pins[&A].pin.rect());
+    assert_eq!(Some(seen[zoomed].window), r.o.shell().window(A));
 }

@@ -37,8 +37,15 @@ impl Motion {
     }
 }
 
-/// 给画着钉图的每个层发一帧（各层的 `window` 不同）。会查资料库，不要持有锁调用。
+/// 给画着钉图的每个层发一帧（各层的 `window` 不同）；原生钉图推给它的编排。会查资料库，不要持有锁
+/// 调用。
 pub(super) fn emit_frames(app: &AppHandle, pin: &str, motion: PinMotion) {
+    if is_native(app, pin) {
+        if let Some(frame) = native_frame(app, pin, motion, false) {
+            native::frame(app, frame);
+        }
+        return;
+    }
     for (layer, frame) in frames(app, pin, Some(motion)) {
         let _ = app.emit_to(layer.as_str(), FRAME_EVENT, &frame);
     }
@@ -89,6 +96,42 @@ pub(super) fn frames(
         .collect()
 }
 
+fn is_native(app: &AppHandle, pin: &str) -> bool {
+    lock(&state(app).pins).get(pin).is_some_and(|r| r.native)
+}
+
+/// 原生钉图（[`native`]）的一帧：钉图状态、内容要到哪、外观。会查资料库，不要持有锁调用。
+/// `geometry`：应用壳改了几何（[`show`]）；为假时只刷新外观（[`refresh`]）。
+pub(super) fn native_frame(
+    app: &AppHandle,
+    pin: &str,
+    motion: PinMotion,
+    geometry: bool,
+) -> Option<native::Frame> {
+    let saved = lock(&state(app).store).get(pin).cloned()?;
+    let look = look(app, &saved);
+    let pins = lock(&state(app).pins);
+    let r = pins.get(pin)?;
+    Some(native::Frame {
+        pin: saved,
+        content: r.content,
+        motion,
+        click_through: r.click_through,
+        geometry,
+        look,
+    })
+}
+
+/// 钉图的外观（遮蔽、不能显示的原因、增强边缘）。会查资料库，不要持有锁调用。
+pub(super) fn look(app: &AppHandle, pin: &SavedPin) -> native::Look {
+    let (veiled, unavailable) = appearance(app, pin);
+    native::Look {
+        veiled,
+        unavailable,
+        edge_contrast: edge_contrast(app),
+    }
+}
+
 /// 给画着钉图的每个层发一条提示。
 pub(super) fn notify(app: &AppHandle, pin: &str, text: &str) {
     let layers = lock(&state(app).pins)
@@ -104,8 +147,26 @@ pub(super) fn notify(app: &AppHandle, pin: &str, text: &str) {
     }
 }
 
-/// 当前这一帧（不改窗口），以钉图的第一个层为准；钉图不在任何层里时为 `None`。
+/// 当前这一帧（不改窗口），以钉图的第一个层为准；钉图不在任何层里时为 `None`。原生钉图没有层，
+/// 窗口按内容算。
 pub(super) fn current_frame(app: &AppHandle, pin: &str) -> Option<PinFrame> {
+    if is_native(app, pin) {
+        let f = native_frame(app, pin, PinMotion::Jump, false)?;
+        let z = lock(&state(app).pins).get(pin).map_or(0, |r| r.z);
+        return Some(PinFrame {
+            pin: f.pin,
+            window: f.content,
+            content: f.content,
+            motion: f.motion,
+            veiled: f.look.veiled,
+            unavailable: f.look.unavailable,
+            generation: 0,
+            settle: false,
+            z,
+            began: None,
+            edge_contrast: f.look.edge_contrast,
+        });
+    }
     frames(app, pin, Some(PinMotion::Jump))
         .into_iter()
         .next()
