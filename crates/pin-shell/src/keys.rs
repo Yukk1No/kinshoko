@@ -8,7 +8,8 @@ use kinshoko_core::desktop::ScreenRect;
 
 use crate::types::PinId;
 
-/// 钉图认的键（按美式键位的位置，不随输入法变）。
+/// 钉图认的键：按虚拟键码，即当前键盘布局上的那个字母或数字（与现在前端按 `KeyboardEvent.key`
+/// 认 H/V/R 相同，德语布局按 Z 就是 Z）；在输入法之前取，不随输入法变。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Key {
     /// `A`～`Z`，大写。

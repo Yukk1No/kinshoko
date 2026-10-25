@@ -167,7 +167,9 @@ pub fn selftest(app: &mut App, report: &Path) -> Result<bool, String> {
     app.pump_for(400)?;
 
     let verdict = checker.map(|c| c.finish());
-    let pass = verdict.as_ref().is_none_or(|v| v.checked > 0 && v.bad == 0);
+    let pass = verdict
+        .as_ref()
+        .is_none_or(|v| v.checked > 0 && v.matched > 0 && v.bad == 0);
     let mut out = String::new();
     let _ = writeln!(
         out,

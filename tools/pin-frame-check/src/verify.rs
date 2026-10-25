@@ -38,6 +38,8 @@ pub struct Verdict {
     pub bad: u32,
     /// 核对了的帧数；为 0 说明桌面复制没取到帧（显示器休眠、锁屏），结论无效。
     pub checked: u32,
+    /// 对上了某次提交的帧数；为 0 说明钉图根本没显示出来，结论同样无效。
+    pub matched: u32,
 }
 
 pub struct Handle {
@@ -52,6 +54,7 @@ impl Handle {
             text: "核对线程崩溃".into(),
             bad: 0,
             checked: 0,
+            matched: 0,
         })
     }
 }
@@ -65,6 +68,7 @@ pub fn start(log: Arc<Mutex<Vec<Submitted>>>, monitor: Rect) -> Handle {
             text: format!("桌面复制不可用：{e}"),
             bad: 0,
             checked: 0,
+            matched: 0,
         },
     });
     Handle { stop, thread }
@@ -355,6 +359,7 @@ fn run(
             text: r,
             bad: wrong_border + unmatched + flash + backwards,
             checked,
+            matched: matched + matched_clipped,
         })
     }
 }
