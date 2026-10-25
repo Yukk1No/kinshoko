@@ -1,0 +1,111 @@
+//! 原生钉图的逐帧核对与平台层验收（#283）：用 `frame::plan` 与 pin-render 驱动测试钉图，经 pin-shell
+//! 上屏，DXGI 桌面复制逐帧核对；量换窗等待、界面线程每条消息的处理时间、焦点、穿透、全屏判定。
+//! 开发工具，不进发布包。用法见 README。
+
+mod app;
+mod input;
+mod modes;
+mod rect;
+mod selftest;
+mod sys;
+mod verify;
+
+use app::{App, Options};
+
+fn parse() -> Result<(Options, Vec<String>), String> {
+    let mut o = Options {
+        count: 1,
+        ..Default::default()
+    };
+    let mut rest = Vec::new();
+    let mut args = std::env::args().skip(1);
+    while let Some(a) = args.next() {
+        let mut value = |name: &str| args.next().ok_or(format!("{name} 后面要一个值"));
+        match a.as_str() {
+            "--selftest" => o.selftest = Some(value("--selftest")?.into()),
+            "--verify" => o.verify = true,
+            "--naive" => o.naive = true,
+            "--present-first" => o.present_first = true,
+            "--count" => o.count = value("--count")?.parse().map_err(|_| "--count 要数字")?,
+            "--hold" => o.hold_ms = Some(value("--hold")?.parse().map_err(|_| "--hold 要毫秒")?),
+            "--fill" => o.fill = true,
+            "--input-test" => o.input_test = true,
+            "--region-test" => o.region_test = true,
+            "--scale" => o.scale = Some(value("--scale")?.parse().map_err(|_| "--scale 要数字")?),
+            "--device-loss" | "--info" => rest.push(a),
+            "--key-sink" => {
+                let s: u32 = value("--key-sink")?
+                    .parse()
+                    .map_err(|_| "--key-sink 要秒数")?;
+                input::key_sink(s);
+                std::process::exit(0);
+            }
+            s => return Err(format!("不认识的选项 {s}，用法见 README")),
+        }
+    }
+    Ok((o, rest))
+}
+
+fn run() -> Result<bool, String> {
+    let (opts, rest) = parse()?;
+    if rest.iter().any(|a| a == "--info") {
+        let mem = (sys::private_mb(), sys::vram_mb());
+        let r = pin_render::Renderer::new().map_err(|e| e.to_string())?;
+        println!(
+            "{}；刷新 {:.2} ms；QUNS {}；建设备前 私有 {:.0} MB、显存 {:.0} MB；之后 私有 {:.0} MB、显存 {:.0} MB",
+            r.describe(),
+            sys::refresh_ms(),
+            sys::quns(),
+            mem.0,
+            mem.1,
+            sys::private_mb(),
+            sys::vram_mb()
+        );
+        return Ok(true);
+    }
+    let mut app = App::new(opts.clone())?;
+    let before = (sys::private_mb(), sys::vram_mb());
+    for k in 0..opts.count {
+        app.add_pin(k)?;
+    }
+    println!(
+        "设备与 {} 张钉图：私有 {:.0} → {:.0} MB，显存 {:.0} → {:.0} MB",
+        app.pins.len(),
+        before.0,
+        sys::private_mb(),
+        before.1,
+        sys::vram_mb()
+    );
+    if let Some(report) = opts.selftest.clone() {
+        return selftest::selftest(&mut app, &report);
+    }
+    if let Some(ms) = opts.hold_ms {
+        modes::hold(&mut app, ms)?;
+        return Ok(true);
+    }
+    if opts.input_test {
+        return input::input_test(&mut app);
+    }
+    if opts.region_test {
+        modes::region_test(&mut app)?;
+        return Ok(true);
+    }
+    if rest.iter().any(|a| a == "--device-loss") {
+        return Ok(modes::device_loss(&mut app)? < 1000.0);
+    }
+    Err("没有指定模式，用法见 README".into())
+}
+
+fn main() {
+    match run() {
+        Ok(true) => {}
+        Ok(false) => {
+            eprintln!("验收不通过");
+            std::process::exit(2);
+        }
+        Err(e) => {
+            eprintln!("{e}");
+            std::process::exit(1);
+        }
+    }
+}

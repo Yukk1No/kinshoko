@@ -1,0 +1,39 @@
+[package]
+name = "kinshoko-pin-frame-check"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+description = "开发工具：用 frame::plan、pin-render 与 pin-shell 驱动一张测试钉图，DXGI 桌面复制逐帧核对，量换窗、焦点、穿透与全屏判定。不进发布包。"
+
+[dependencies]
+kinshoko-core = { path = "../../crates/kinshoko-core" }
+pin-render = { path = "../../crates/pin-render" }
+pin-shell = { path = "../../crates/pin-shell" }
+# 桌面复制核对、计时、内存显存、全屏判定、真实输入（SendInput）与焦点。
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_Gdi",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Performance",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[profile.release]
+lto = "thin"
+debug = 1
+
+[profile.dev.package."*"]
+opt-level = 2
+
+# 独立构建：不并入主工作区（tools 已被排除），有自己的 Cargo.lock。
+[workspace]
