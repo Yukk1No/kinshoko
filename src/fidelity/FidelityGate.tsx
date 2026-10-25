@@ -4,9 +4,11 @@
 import { useEffect, useState } from "react";
 import type { GateItem } from "../bindings/GateItem";
 import type { GatePlan } from "../bindings/GatePlan";
-import { gateImage, gatePlan, gateSave } from "../ipc";
+import type { PinGate } from "../bindings/PinGate";
+import { gateImage, gatePins, gatePlan, gateSave } from "../ipc";
 import { deltaE2000, p3ToLab, patchMean, type Lab } from "./colour";
 import { Select } from "../ui/Select";
+import { PinGateSection, pinGateMarkdown, pinGatePassed } from "./pinGate";
 
 /** 缩略图档位，与 Rust 门槛测试一致。 */
 const THUMB_PX = 128;
@@ -166,7 +168,7 @@ interface Manual {
   remarks: string;
 }
 
-function markdown(plan: GatePlan, results: SampleResult[], env: object, manual: Manual, passed: boolean) {
+function markdown(plan: GatePlan, results: SampleResult[], pins: PinGate, env: object, manual: Manual, passed: boolean) {
   const lines = [
     "# Kinshoko 还原度门槛实验报告",
     "",
@@ -198,18 +200,20 @@ function markdown(plan: GatePlan, results: SampleResult[], env: object, manual: 
       `| ${r.fileName} | ${r.group} | ${route} | ${r.gated ? "是" : "否"} | ${r.maxDeltaE?.toFixed(2) ?? "—"} | ${nominal} | ${thumbNominal} | ${direct} | ${verdict} | \`${r.sha256.slice(0, 16)}…\` |`,
     );
   }
+  lines.push("", ...pinGateMarkdown(pins));
   return lines.join("\n") + "\n";
 }
 
 export function FidelityGate() {
   const [plan, setPlan] = useState<GatePlan | null>(null);
   const [results, setResults] = useState<SampleResult[]>([]);
+  const [pins, setPins] = useState<PinGate | null>(null);
   const [canvasSpace, setCanvasSpace] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [manual, setManual] = useState<Manual>({ hdr: "未填写", autoColour: "未填写", monitorIcc: "", remarks: "" });
-  const done = plan !== null && results.length === plan.items.length;
-  const passed = done && results.every((r) => !r.gated || (r.passed && !r.error));
+  const done = plan !== null && results.length === plan.items.length && pins !== null;
+  const passed = done && results.every((r) => !r.gated || (r.passed && !r.error)) && pinGatePassed(pins);
 
   useEffect(() => {
     let cancelled = false;
@@ -240,6 +244,9 @@ export function FidelityGate() {
         if (cancelled) return;
         setResults((rs) => [...rs, result]);
       }
+      const pins = await gatePins();
+      if (cancelled) return;
+      setPins(pins);
     })().catch((e) => setError(String(e)));
     return () => {
       cancelled = true;
@@ -247,7 +254,7 @@ export function FidelityGate() {
   }, []);
 
   const save = async () => {
-    if (!plan) return;
+    if (!plan || !pins) return;
     const env = { ...browserEnvironment(), canvasColorSpace: canvasSpace };
     const report = {
       kind: "kinshoko-fidelity-gate",
@@ -256,9 +263,10 @@ export function FidelityGate() {
       environment: { app: plan.environment, page: env, manual },
       library: plan.library,
       samples: results.map(({ originalUrl: _o, thumbnailUrl: _t, ...r }) => r),
+      pins,
     };
     try {
-      setSaved(await gateSave(report, markdown(plan, results, env, manual, passed), passed));
+      setSaved(await gateSave(report, markdown(plan, results, pins, env, manual, passed), passed));
     } catch (e) {
       setError(String(e));
     }
@@ -342,6 +350,7 @@ export function FidelityGate() {
           ))}
         </tbody>
       </table>
+      {plan && <PinGateSection pins={pins} />}
     </main>
   );
 }

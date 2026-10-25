@@ -86,6 +86,8 @@ moxcms = "0.9.1"
 fast_image_resize = "6.1"
 # 缩放直接借用 f32 像素缓冲（#165）。
 bytemuck = "1"
+# 钉图像素按 Rgba16Float 上传（desktop::pin_colour）。
+half = "2"
 png = "0.18"
 zune-jpeg = "0.5"
 zune-core = "0.5"

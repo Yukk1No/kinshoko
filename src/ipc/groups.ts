@@ -4,6 +4,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { GatePlan } from "../bindings/GatePlan";
+import type { PinGate } from "../bindings/PinGate";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroup } from "../bindings/ReferenceGroup";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -95,6 +96,11 @@ export function captureUrl(address: string): string {
 /** 等样本资料库准备好后取得门槛实验计划。 */
 export function gatePlan(): Promise<GatePlan> {
   return invoke<GatePlan>("gate_plan");
+}
+
+/** 钉图离屏渲染 vs 正式派生图（#282）：第一次调用时 Rust 在 GPU 上画全部样本。 */
+export function gatePins(): Promise<PinGate> {
+  return invoke<PinGate>("gate_pins");
 }
 
 /** 样本的原文件、应用 1:1 显示的文件（display）或某档缩略图的原始字节。 */
