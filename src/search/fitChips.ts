@@ -16,7 +16,7 @@ export function fitChips(widths: number[], room: number, { gap, more }: { gap: n
   return shown;
 }
 
-/** 输入框至少留这么宽（#222），条件标签再多也不挤占。与样式表里 `.search-field` 的最小宽度一致。 */
+/** 输入框至少留这么宽（#222），条件标签再多也不挤占。与样式表里 `.search-field` 的 flex-basis 一致。 */
 const INPUT_MIN = 80;
 /** “+n”按钮的宽度上限，量之前先按它留位置。 */
 const MORE_WIDTH = 40;
