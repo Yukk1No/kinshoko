@@ -91,15 +91,38 @@ fn srgb_pixels_round_trip_through_the_srgb_lut_to_the_same_8_bit_values() {
 }
 
 #[test]
-fn an_srgb_display_with_its_own_icc_goes_through_the_table_and_keeps_8_bit_values() {
-    // 显示器报出 sRGB 的 ICC 字节时不是恒等（字节不同于“没有 ICC”），走 3D 表与曲线。
+fn an_srgb_display_with_its_own_icc_is_the_identity() {
+    // 显示器报出 sRGB 的 ICC 字节（字节不同于“没有 ICC”），原色差一点点（Windows 自带的那份差万分之一）：
+    // 对 8 位值是同一个空间，按恒等画。
+    let mut nearly = ColorProfile::new_srgb();
+    nearly.red_colorant.x += 2e-4;
+    nearly.green_colorant.y -= 1e-4;
+    for p in [ColorProfile::new_srgb(), nearly] {
+        let icc = profiles::encode(&p).unwrap();
+        assert_eq!(lut(None, Some(&icc)).unwrap(), PinLut::Identity);
+        assert_eq!(
+            lut(Some(&icc), None).unwrap(),
+            PinLut::Identity,
+            "截图钉图同理"
+        );
+    }
+    let calibrated = crate::fidelity::pin_gate::calibrated_display_icc();
+    assert!(matches!(
+        lut(None, Some(&calibrated)).unwrap(),
+        PinLut::Table { .. }
+    ));
+}
+
+#[test]
+fn the_table_to_an_srgb_icc_keeps_8_bit_values() {
+    // 表与曲线本身（lut 对 sRGB 显示器会走恒等）：按线性值查的 3D 表与显示器曲线不改 8 位值。
     let image = RgbaImage::from_fn(256, 3, |x, y| {
         let v = x as u8;
         image::Rgba([v, v.wrapping_mul(7).wrapping_add(y as u8), 255 - v, 255])
     });
     let pixels = derivative(&png(&image, None)).unwrap();
     let srgb = profiles::encode(&ColorProfile::new_srgb()).unwrap();
-    let lut = lut(None, Some(&srgb)).unwrap();
+    let lut = table(None, parse_rgb(&srgb).unwrap()).unwrap();
     assert!(matches!(lut, PinLut::Table { .. }));
     for (p, want) in pixels.rgba.chunks_exact(4).zip(image.pixels()) {
         let rgb = apply(&lut, [p[0], p[1], p[2]].map(f32_of));

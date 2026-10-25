@@ -2562,6 +2562,7 @@ dependencies = [
  "kinshoko-core",
  "kinshoko-tagger",
  "pin-render",
+ "pin-shell",
  "serde",
  "serde_json",
  "tauri",
@@ -2573,6 +2574,7 @@ dependencies = [
  "tauri-plugin-updater",
  "tempfile",
  "uuid",
+ "wgpu",
  "windows-sys 0.61.2",
  "xcap",
 ]

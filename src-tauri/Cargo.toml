@@ -18,6 +18,9 @@ tauri-build = { version = "2", features = [] }
 kinshoko-core.workspace = true
 kinshoko-tagger.workspace = true
 pin-render.workspace = true
+pin-shell.workspace = true
+# 只用 Surface 目标的类型，在平台层与渲染层之间转交。版本跟 pin-render 走。
+wgpu = { version = "30", default-features = false, features = ["std"] }
 tauri = { version = "2", features = ["tray-icon"] }
 serde.workspace = true
 serde_json.workspace = true

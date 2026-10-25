@@ -147,10 +147,12 @@ pub fn reference_file(app: &AppHandle, pin: &str, size: &str) -> Option<std::pat
     file.ok().map(|f| f.path)
 }
 
-/// 把一个钉图（新钉的、启动时恢复的、参考组里打开的）放进它所在显示器的钉图层。
+/// 把一个钉图（新钉的、启动时恢复的、参考组里打开的）放进它所在显示器的钉图层；开着原生钉图时
+/// 交给原生钉图（[`native`]），窗口建好之前就返回。
 /// 截图历史此前已经记下它被钉住。
 pub fn open_pin(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
     super::super::timing("pin.window.begin");
+    let native = native::enabled(app);
     let rect = pin.rect();
     lock(&state(app).pins).insert(
         pin.id.clone(),
@@ -169,8 +171,13 @@ pub fn open_pin(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
             entering: Vec::new(),
             leaving: Vec::new(),
             shown: false,
+            native,
         },
     );
+    if native {
+        native::open(app, pin.clone());
+        return Ok(());
+    }
     let _arranging = lock(&ARRANGING);
     match arrange(app, &pin.id) {
         Ok(touched) => {

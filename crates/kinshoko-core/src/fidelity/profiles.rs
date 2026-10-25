@@ -13,6 +13,14 @@ pub(crate) fn srgb_eotf(v: f32) -> f32 {
     }
 }
 
+pub(crate) fn srgb_oetf(l: f32) -> f32 {
+    if l <= 0.003_130_8 {
+        l * 12.92
+    } else {
+        1.055 * l.powf(1.0 / 2.4) - 0.055
+    }
+}
+
 /// 同一组原色、线性传递函数的工作空间。
 pub(crate) fn linear_of(profile: &ColorProfile) -> ColorProfile {
     let mut linear = profile.clone();
