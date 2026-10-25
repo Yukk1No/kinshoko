@@ -6,6 +6,7 @@
 //! 不像应用代码那样逐处写 SAFETY 说明；会碰别的进程的只有 SendInput 与 WindowFromPoint 这类查询。
 
 mod app;
+mod follow;
 mod input;
 mod modes;
 mod rect;
@@ -50,6 +51,16 @@ fn parse() -> Result<(Options, Vec<String>), String> {
 }
 
 fn run() -> Result<bool, String> {
+    // `--app <提交记录> <报告>`：核对真实应用里的原生钉图，工具自己不建平台层与渲染层。
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if let [mode, trace, report] = &args[..]
+        && mode == "--app"
+    {
+        return follow::follow(&follow::Follow {
+            trace: trace.into(),
+            report: report.into(),
+        });
+    }
     let (opts, rest) = parse()?;
     if rest.iter().any(|a| a == "--info") {
         let mem = (sys::private_mb(), sys::vram_mb());

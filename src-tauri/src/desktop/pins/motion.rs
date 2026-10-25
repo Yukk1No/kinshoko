@@ -173,6 +173,9 @@ pub(super) fn mark_closing(app: &AppHandle, pin: &str) {
 /// 关闭钉图（Esc、菜单、Alt+F4）：各层放手，不再恢复，截图不再被它钉住。在别的线程上调用。
 pub(super) fn close(app: &AppHandle, pin: &str) {
     crate::library::with_visibility_commit(app, |_| mark_closing(app, pin));
+    if lock(&state(app).pins).get(pin).is_some_and(|r| r.native) {
+        native::close(app, pin);
+    }
     let arranging = lock(&ARRANGING);
     let layers = lock(&state(app).pins)
         .get_mut(pin)

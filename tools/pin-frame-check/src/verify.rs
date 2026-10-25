@@ -29,6 +29,9 @@ pub struct Submitted {
     pub translucent: bool,
     /// 屏幕上应当看得见品红（外框有一部分在窗口与显示器里）。看不见品红而这一项为真，就是闪了一下。
     pub border_visible: bool,
+    /// 外框位置与边框宽度额外放宽的像素。放大很多时边框内沿被插值抹开约一个源图像素，纯品红的
+    /// 外框会比提交的窄（`--app` 的测试图小，放大到 5 倍以上）；自测用大图，为 0。
+    pub slack: f64,
 }
 
 /// 核对结论。
@@ -282,7 +285,6 @@ fn run(
                 run += 1;
             }
             ctx.Unmap(st, 0);
-            let near = |a: i32, b: i32| (a - b).abs() <= 2;
             // 每次提交在屏幕上应有的品红外框：四条边框里看得见的部分（被屏幕或窗口裁过）的外框。
             // 放得比屏幕大时可能只剩一两条边框，外框就只是那几条。左边框完整可见时再量边框宽度。
             let hit = submitted.iter().enumerate().rev().find_map(|(k, s)| {
@@ -299,6 +301,7 @@ fn run(
                     .iter()
                     .filter_map(|r| r.intersect(&vis))
                     .reduce(|a, b| a.union(&b))?;
+                let near = |a: i32, b: i32| f64::from((a - b).abs()) <= 2.0 + s.slack;
                 let ok = near(expect.x, found.x)
                     && near(expect.y, found.y)
                     && near(expect.right(), found.right())
@@ -323,7 +326,9 @@ fn run(
                     matched_clipped += 1;
                     seen.insert(k);
                 }
-                Some((k, s, true)) if (run as f64 - s.border).abs() <= 2.0 + s.border * 0.03 => {
+                Some((k, s, true))
+                    if (run as f64 - s.border).abs() <= 2.0 + s.slack + s.border * 0.03 =>
+                {
                     matched += 1;
                     seen.insert(k);
                 }

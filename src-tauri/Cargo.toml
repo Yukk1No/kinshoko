@@ -18,6 +18,9 @@ tauri-build = { version = "2", features = [] }
 kinshoko-core.workspace = true
 kinshoko-tagger.workspace = true
 pin-render.workspace = true
+pin-shell.workspace = true
+# 只用 Surface 目标的类型，在平台层与渲染层之间转交。版本跟 pin-render 走。
+wgpu = { version = "30", default-features = false, features = ["std"] }
 tauri = { version = "2", features = ["tray-icon"] }
 serde.workspace = true
 serde_json.workspace = true
@@ -44,6 +47,6 @@ windows-sys = { version = "0.61", features = ["Win32_Devices_Display", "Win32_Gr
 
 # 与工作区相同，只是把 unsafe 从 forbid 放宽到 deny：读取显示器配置文件、前台窗口、光标位置与窗口遮挡
 # 没有安全的封装，
-# 只允许 `desktop/win32.rs` 一个模块局部放开（见该文件开头）。
+# 只允许 `desktop/win32.rs` 与原生钉图建 Surface 的 `desktop/pins/native/surface.rs` 局部放开（见两个文件开头）。
 [lints.rust]
 unsafe_code = "deny"

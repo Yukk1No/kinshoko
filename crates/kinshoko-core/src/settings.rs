@@ -144,6 +144,10 @@ pub struct SettingsSnapshot {
     keep_selection_on_safe_mode: bool,
     /// 增强钉图边缘（#239）：钉图阴影外再加一圈浅色细线，在深色画布上也分得清；默认关闭。
     pin_edge_contrast: bool,
+    /// 开发设置：桌面钉图改用原生窗口（#277、#284），界面上没有，重启生效；默认关，关着时不写进文件。
+    /// 原生钉图成为唯一实现后删掉（#286）。
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    native_pins: bool,
     /// 运行日志（#219）：只写本机，由画师决定是否导出；没选过时为空，按当前构建的版本号决定。
     run_log: Option<bool>,
     /// 旧版的“使用日志”（#70），已并入运行日志：开过的读作开启运行日志，再保存时去掉。
@@ -175,6 +179,7 @@ impl Default for SettingsSnapshot {
             viewer_background: None,
             keep_selection_on_safe_mode: false,
             pin_edge_contrast: false,
+            native_pins: false,
             run_log: None,
             usage_log: false,
             tag_display: TagDisplay::default(),
@@ -364,6 +369,11 @@ impl AppSettings {
 
     pub fn set_pin_edge_contrast(&mut self, on: bool) -> Result<(), SettingsError> {
         self.update(|f| f.pin_edge_contrast = on)
+    }
+
+    /// 开发设置：桌面钉图用原生窗口（#284）。只能手改 `settings.json` 的 `nativePins`。
+    pub fn native_pins(&self) -> bool {
+        self.file.native_pins
     }
 
     /// 设置里保存的“强制 sRGB”，下次启动时生效。

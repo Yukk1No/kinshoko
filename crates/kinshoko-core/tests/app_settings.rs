@@ -194,6 +194,30 @@ fn a_settings_file_from_before_the_pin_edge_contrast_reads_it_as_off() {
 }
 
 #[test]
+fn native_pins_are_a_hidden_developer_setting_that_is_off_and_unwritten_by_default() {
+    // #284：开发设置，界面上没有；只能手改 settings.json。
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(!settings.native_pins());
+    settings.set_safe_mode(false).unwrap();
+    let written = std::fs::read_to_string(dir.path().join("settings.json")).unwrap();
+    assert!(!written.contains("nativePins"), "{written}");
+
+    std::fs::write(
+        dir.path().join("settings.json"),
+        r#"{"version":1,"nativePins":true}"#,
+    )
+    .unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(settings.native_pins());
+    settings.set_safe_mode(true).unwrap();
+    assert!(
+        AppSettings::open(dir.path()).unwrap().native_pins(),
+        "改别的设置不会丢掉它"
+    );
+}
+
+#[test]
 fn forcing_srgb_is_off_after_a_fresh_install_and_only_takes_effect_after_a_restart() {
     let dir = tempfile::tempdir().unwrap();
     let mut settings = AppSettings::open(dir.path()).unwrap();

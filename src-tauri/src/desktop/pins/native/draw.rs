@@ -1,0 +1,127 @@
+//! 一次绘制交给 pin-render 的参数：由钉图状态、窗口与源图尺寸换算，不碰 GPU。
+
+use kinshoko_core::desktop::PIN_EDGE;
+use kinshoko_core::desktop::frame::{drawing, source_rect};
+
+use super::port::DrawJob;
+
+/// `image` 是已上传的源图尺寸（整图或缩小的派生图）。
+pub fn draw_of(job: &DrawJob, image: (u32, u32)) -> pin_render::Draw<'static> {
+    let d = drawing(&job.state);
+    let src = source_rect(&job.state, image.0, image.1);
+    let (w, c) = (job.window, job.content);
+    pin_render::Draw {
+        turn: pin_render::Turn {
+            quarter: d.quarter_turns,
+            flip_h: d.flip_h,
+            flip_v: d.flip_v,
+        },
+        opacity: job.state.opacity as f32,
+        edge: PIN_EDGE as f32,
+        ..pin_render::Draw::new(
+            pin_render::Window {
+                x: w.x,
+                y: w.y,
+                width: w.width,
+                height: w.height,
+            },
+            pin_render::Rect::new(c.x as f32, c.y as f32, c.width as f32, c.height as f32),
+            pin_render::Rect::new(
+                src.x as f32,
+                src.y as f32,
+                src.width as f32,
+                src.height as f32,
+            ),
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use kinshoko_core::desktop::{PinContent, Placement, Region, SavedPin, ScreenRect};
+    use pin_shell::PinId;
+
+    use super::*;
+
+    fn job(crop: Option<Region>, scale: f64) -> DrawJob {
+        let pin = SavedPin {
+            id: "p".into(),
+            content: PinContent::Reference {
+                library_id: "l".into(),
+                image_id: "i".into(),
+                source_width: 400,
+                source_height: 200,
+            },
+            crop,
+            width: crop.map_or(400, |c| c.width),
+            height: crop.map_or(200, |c| c.height),
+            placement: Placement {
+                x: 50,
+                y: 60,
+                scale,
+                rotation: 1,
+                flip_h: true,
+                ..Placement::default()
+            },
+            opacity: 0.5,
+            locked: false,
+            member: None,
+        };
+        DrawJob {
+            pin: PinId(1),
+            slot: 0,
+            window: ScreenRect {
+                x: 30,
+                y: 40,
+                width: 300,
+                height: 500,
+            },
+            content: pin.rect(),
+            state: pin,
+            display: None,
+        }
+    }
+
+    #[test]
+    fn carries_window_content_turn_opacity_and_shadow() {
+        let j = job(None, 1.0);
+        let d = draw_of(&j, (400, 200));
+        assert_eq!(
+            d.window,
+            pin_render::Window {
+                x: 30,
+                y: 40,
+                width: 300,
+                height: 500
+            }
+        );
+        let c = j.state.rect();
+        assert_eq!(
+            d.content,
+            pin_render::Rect::new(c.x as f32, c.y as f32, c.width as f32, c.height as f32)
+        );
+        assert_eq!(
+            d.turn,
+            pin_render::Turn {
+                quarter: 1,
+                flip_h: true,
+                flip_v: false
+            }
+        );
+        assert_eq!(d.opacity, 0.5);
+        assert_eq!(d.edge, PIN_EDGE as f32);
+        assert_eq!(d.crop, pin_render::Rect::new(0.0, 0.0, 400.0, 200.0));
+    }
+
+    #[test]
+    fn a_crop_maps_onto_a_smaller_derivative() {
+        let crop = Region {
+            x: 100,
+            y: 50,
+            width: 200,
+            height: 100,
+        };
+        let d = draw_of(&job(Some(crop), 0.5), (200, 100));
+        assert_eq!(d.crop, pin_render::Rect::new(50.0, 25.0, 100.0, 50.0));
+    }
+}

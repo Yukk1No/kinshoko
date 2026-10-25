@@ -90,13 +90,13 @@ pub fn key_sink(seconds: u32) {
     }
 }
 
-fn send(inputs: &[INPUT]) {
+pub(crate) fn send(inputs: &[INPUT]) {
     unsafe {
         SendInput(inputs, std::mem::size_of::<INPUT>() as i32);
     }
 }
 
-fn mouse(flags: MOUSE_EVENT_FLAGS, data: i32) -> INPUT {
+pub(crate) fn mouse(flags: MOUSE_EVENT_FLAGS, data: i32) -> INPUT {
     INPUT {
         r#type: INPUT_MOUSE,
         Anonymous: INPUT_0 {
@@ -109,7 +109,7 @@ fn mouse(flags: MOUSE_EVENT_FLAGS, data: i32) -> INPUT {
     }
 }
 
-fn key(vk: u8) {
+pub(crate) fn key(vk: u8) {
     let k = |up: bool| INPUT {
         r#type: INPUT_KEYBOARD,
         Anonymous: INPUT_0 {
@@ -127,7 +127,7 @@ fn key(vk: u8) {
     send(&[k(false), k(true)]);
 }
 
-fn cursor(x: i32, y: i32) {
+pub(crate) fn cursor(x: i32, y: i32) {
     unsafe {
         let _ = SetCursorPos(x, y);
     }

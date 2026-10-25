@@ -26,6 +26,22 @@ target/release/kinshoko-pin-frame-check.exe --selftest <报告.txt> --verify
 - `--info`：显卡、刷新周期、QUNS、建设备前后的内存。
 
 ```bash
+target/release/kinshoko-pin-frame-check.exe --app <提交记录> <报告.txt>
+```
+
+核对真实应用里的原生钉图（#284）：工具不画钉图，把测试图（400×600，品红边框 20 像素）放进剪贴板、按 F3 让应用钉住，在主显示器上用真实鼠标一格一帧放大到比屏幕大再缩回、每帧三格、隔 150 ms 一格、拖动、拖出屏幕一半再拖回，最后按 Esc 关掉。应用每次提交前往环境变量 `KINSHOKO_PIN_TRACE` 指的文件追加一行，工具边读边核对，“对不上的帧”要求为 0。应用要先用独立的数据目录与 identifier 起好，`settings.json` 里 `"nativePins": true`，不能有别的 Kinshoko 占着 F3：
+
+```bash
+npx tauri build --no-bundle --config '{"identifier":"dev.kinshoko.pintest"}'
+```
+
+```powershell
+$env:KINSHOKO_DATA_DIR = "$env:TEMP\kinshoko-pintest"; $env:KINSHOKO_PIN_TRACE = "$env:TEMP\kinshoko-pintest\trace.txt"; target\release\kinshoko.exe
+```
+
+显示器的配置文件要是 sRGB（或没有）：钉图按显示器转换颜色，广色域显示器上品红不再是纯品红，核对认不出边框。
+
+```bash
 bash scripts/run-all.sh <输出目录>
 ```
 

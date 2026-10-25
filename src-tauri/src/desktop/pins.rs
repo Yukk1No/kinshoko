@@ -52,6 +52,7 @@ mod menu_actions;
 pub use menu_actions::*;
 mod motion;
 pub use motion::*;
+mod native;
 mod opening;
 pub use opening::*;
 
@@ -96,6 +97,8 @@ pub struct PinRecord {
     leaving: Vec<String>,
     /// 至少一个层已经画好它（[`wait_shown`]）。
     shown: bool,
+    /// 原生钉图（[`native`]）：不进钉图层，窗口与绘制都在那边。
+    native: bool,
 }
 
 /// 一个钉图层：铺在哪台显示器上，是否让点击穿过，窗口显示了没有。
@@ -331,6 +334,10 @@ pub fn show(
     motion: PinMotion,
     click_through: bool,
 ) -> Result<(), String> {
+    // 原生钉图的窗口由编排自己管（贴边、菜单动作等迁过去之前什么都不做，#285）。
+    if lock(&state(app).pins).get(pin).is_some_and(|r| r.native) {
+        return Ok(());
+    }
     let _arranging = lock(&ARRANGING);
     let before = {
         let mut pins = lock(&state(app).pins);
@@ -373,6 +380,8 @@ pub(super) fn capture_source_open(app: &AppHandle, pin: &str) -> bool {
 
 /// 启动时恢复上次的钉图（位置、裁切、缩放、翻转与旋转）。在别的线程上调用。
 pub fn restore(app: &AppHandle) {
+    // 在这条线程上读一次开关（会等应用壳设置装好），之后主线程上问也不用等锁。
+    native::enabled(app);
     // 设置在桌面插件装配之后才可读：恢复前按保存的安全模式核对一次。
     crate::library::with_visibility_commit(app, |_| {
         let safe = crate::library::safe_mode_on(app);

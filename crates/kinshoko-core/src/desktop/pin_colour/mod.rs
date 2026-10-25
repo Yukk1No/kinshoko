@@ -122,6 +122,10 @@ pub const CURVE_SIZE: usize = 4096;
 /// 两边都是矩阵型（源为工作空间时只看显示器）时，结点存的是线性的显示器原色值，裁剪与显示器曲线
 /// 放到逐通道的 `curve` 里，色域边上的折点不进 3D 表。资料库钉图（源为工作空间）的表按线性值查：
 /// 结点值是结点的线性函数，三线性插值精确，同为 sRGB 的显示器 8 位值逐像素不变。别的配置文件（查找表型）由 moxcms 逐结点转换，结点存 sRGB 曲线展开的值。
+///
+/// 几乎就是 sRGB 的配置文件（[`nearly_srgb`]，例如 Windows 自带的“sRGB Color Space Profile.icm”，
+/// 原色差万分之二）当作 sRGB：源与显示器都是 sRGB 时是恒等，不经表与曲线的浮点误差，sRGB 图在
+/// sRGB 显示器上 100% 时逐像素不变。
 pub fn lut(source: Option<&[u8]>, display: Option<&[u8]>) -> Result<PinLut, String> {
     if source == display {
         return Ok(PinLut::Identity);
@@ -131,6 +135,43 @@ pub fn lut(source: Option<&[u8]>, display: Option<&[u8]>) -> Result<PinLut, Stri
         None => ColorProfile::new_srgb(),
     };
     let source = source.map(parse_rgb).transpose()?;
+    if nearly_srgb(&display)? && source.as_ref().map_or(Ok(true), nearly_srgb)? {
+        return Ok(PinLut::Identity);
+    }
+    table(source, display)
+}
+
+/// 原色允许的偏差（D50 下的 XYZ）。Windows 自带的 sRGB 配置文件差 2.2e-4。
+const SRGB_COLORANT_SLACK: f64 = 1e-3;
+
+/// 矩阵型、原色与 sRGB 相差不到 [`SRGB_COLORANT_SLACK`]、三条曲线把每个 8 位值都展开到 sRGB 曲线
+/// 上同一个 8 位值附近（半级以内）：画出来与 sRGB 分不出。
+fn nearly_srgb(p: &ColorProfile) -> Result<bool, String> {
+    let srgb = ColorProfile::new_srgb();
+    let near = |a: &moxcms::Xyzd, b: &moxcms::Xyzd| {
+        [a.x - b.x, a.y - b.y, a.z - b.z]
+            .iter()
+            .all(|d| d.abs() < SRGB_COLORANT_SLACK)
+    };
+    if !p.is_matrix_shaper()
+        || !near(&p.red_colorant, &srgb.red_colorant)
+        || !near(&p.green_colorant, &srgb.green_colorant)
+        || !near(&p.blue_colorant, &srgb.blue_colorant)
+    {
+        return Ok(false);
+    }
+    let ramp: Vec<f32> = (0..=255u8)
+        .flat_map(|v| [f32::from(v) / 255.0; 3])
+        .collect();
+    let linear = convert(p, &profiles::linear_of(p), &ramp)?;
+    Ok(linear.iter().zip(&ramp).all(|(&l, &e)| {
+        let code = profiles::srgb_oetf(l.clamp(0.0, 1.0)) * 255.0;
+        (code - e * 255.0).abs() < 0.5
+    }))
+}
+
+/// 查找表本身（[`lut`] 已排除恒等的情况）。
+fn table(source: Option<ColorProfile>, display: ColorProfile) -> Result<PinLut, String> {
     let n = LUT_SIZE;
     let nodes: Vec<[f32; 3]> = (0..n * n * n)
         .map(|i| [i % n, i / n % n, i / (n * n)].map(node))
