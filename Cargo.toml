@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/kinshoko-core", "crates/kinshoko-tagger", "crates/pin-shell", "src-tauri"]
+members = ["crates/kinshoko-core", "crates/kinshoko-tagger", "crates/pin-render", "crates/pin-shell", "src-tauri"]
 # 探测工具与原型各自带 Cargo.lock，不并入工作区。
 exclude = ["tools", "prototype"]
 
@@ -14,6 +14,7 @@ license = "GPL-3.0-or-later"
 [workspace.dependencies]
 kinshoko-core = { path = "crates/kinshoko-core" }
 kinshoko-tagger = { path = "crates/kinshoko-tagger" }
+pin-render = { path = "crates/pin-render" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 ts-rs = "12"

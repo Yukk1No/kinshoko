@@ -3,17 +3,21 @@
 //! 在报告目录下新建一个只放门槛样本的资料库（不碰画师的资料库），打开窗口
 //! `fidelity-gate`，由 WebView2 自己解码原图与缩略图、读回 `display-p3` canvas 比较色块
 //! ΔE2000，并把结果与本机环境（GPU、驱动、Windows、WebView2 版本、显示器 ICC、HDR 与
-//! 自动色彩管理状态）写成 JSON 与 Markdown 报告。带 `--exit` 时保存后退出，退出码表示是否通过，
+//! 自动色彩管理状态）写成 JSON 与 Markdown 报告。
+//! 钉图渲染层另有一项离屏比较（[`pins`]）。带 `--exit` 时保存后退出，退出码表示是否通过，
 //! 供 CI 使用。
 
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Condvar, Mutex, OnceLock};
 
 use kinshoko_core::fidelity::gate::{self, GatePlan};
+use kinshoko_core::fidelity::pin_gate::PinGate;
 use tauri::ipc::Response;
 use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
 
 use crate::data_dirs::SharedWebview as _;
+
+mod pins;
 
 pub const ARG: &str = "--fidelity-gate";
 const EXIT_ARG: &str = "--exit";
@@ -41,6 +45,9 @@ struct Prepared {
     run: gate::GateRun,
     report_dir: PathBuf,
     environment: serde_json::Value,
+    display: pins::MainDisplay,
+    /// 钉图比较要在 GPU 上画全部样本，页面要时才算，只算一次。
+    pins: OnceLock<PinGate>,
 }
 
 #[derive(Default)]
@@ -73,11 +80,12 @@ pub fn start(app: &AppHandle, options: Options) {
             .unwrap_or_else(|_| std::env::temp_dir())
             .join("Kinshoko 还原度报告")
     });
+    let display = primary_display(app);
     let handle = app.clone();
     std::thread::Builder::new()
         .name("kinshoko-fidelity-gate".into())
         .spawn(move || {
-            let result = prepare(&report_dir).map(Arc::new);
+            let result = prepare(&report_dir, display).map(Arc::new);
             let state = handle.state::<GateState>();
             *state.slot.lock().unwrap_or_else(|e| e.into_inner()) = Some(result);
             state.ready.notify_all();
@@ -101,7 +109,22 @@ pub fn start(app: &AppHandle, options: Options) {
     }
 }
 
-fn prepare(report_dir: &Path) -> Result<Prepared, String> {
+/// 主显示器与它的 ICC：钉图比较的查找表对着它。
+fn primary_display(app: &AppHandle) -> pins::MainDisplay {
+    let name = app
+        .primary_monitor()
+        .ok()
+        .flatten()
+        .and_then(|m| m.name().cloned())
+        .unwrap_or_default();
+    #[cfg(windows)]
+    let icc = crate::desktop::win32::display_profile(&name);
+    #[cfg(not(windows))]
+    let icc = None;
+    pins::MainDisplay { name, icc }
+}
+
+fn prepare(report_dir: &Path, display: pins::MainDisplay) -> Result<Prepared, String> {
     let stamp = chrono_stamp();
     let dir = report_dir.join(format!("run-{stamp}"));
     let run = gate::prepare(&dir).map_err(|e| e.to_string())?;
@@ -109,6 +132,8 @@ fn prepare(report_dir: &Path) -> Result<Prepared, String> {
         run,
         report_dir: report_dir.to_path_buf(),
         environment: environment(),
+        display,
+        pins: OnceLock::new(),
     })
 }
 
@@ -196,6 +221,20 @@ pub async fn gate_plan(app: AppHandle) -> Result<GatePlan, String> {
             library: prepared.run.library.info().root.clone(),
             auto_save,
         })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// 钉图离屏渲染 vs 正式派生图（见 [`pins`]）。第一次调用时在 GPU 上画全部样本。
+#[tauri::command]
+pub async fn gate_pins(app: AppHandle) -> Result<PinGate, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let prepared = app.state::<GateState>().wait()?;
+        Ok(prepared
+            .pins
+            .get_or_init(|| pins::run(&prepared.run, &prepared.display))
+            .clone())
     })
     .await
     .map_err(|e| e.to_string())?

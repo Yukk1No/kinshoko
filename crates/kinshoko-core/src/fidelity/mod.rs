@@ -9,6 +9,7 @@ pub mod budget;
 mod description;
 pub mod gate;
 pub(crate) mod inspect;
+pub mod pin_gate;
 pub(crate) mod profiles;
 pub(crate) mod render;
 

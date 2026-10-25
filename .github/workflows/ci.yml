@@ -84,6 +84,11 @@ jobs:
       - name: 核心 crate 文档测试
         run: cargo test -p kinshoko-core --doc --locked
 
+      # 钉图渲染层的离屏比对（#282）：在真 GPU 设备上画、读回、与派生图和金样比较。
+      # runner 没有显卡，Renderer::new 找不到硬件适配器时退到后备适配器（WARP），测的就是这条路。
+      - name: 钉图渲染层测试（WARP 离屏比对）
+        run: cargo nextest run -p pin-render --locked --no-fail-fast
+
       - name: ts-rs 生成物与提交内容一致
         shell: pwsh
         run: |
