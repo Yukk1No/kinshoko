@@ -1,7 +1,7 @@
 //! 钉图的显存与私有内存（#282）：`cargo run --release -p pin-render --example memory`。
 //!
-//! 按显示尺寸上传常见尺寸的钉图（默认 1000×1500），依次量只建设备、1 张、5 张、10 张、全部释放，
-//! 再对照一张整张上传的 24 MP 图。私有内存是进程的私有提交，显存是本进程在第一块显卡本地段上的
+//! 按显示尺寸上传常见尺寸的钉图（默认 1000×1500），依次量只建设备、1 张、5 张、10 张、全部释放、
+//! 再来一轮 10 张，再对照一张整张上传的 24 MP 图。私有内存是进程的私有提交，显存是本进程在第一块显卡本地段上的
 //! 占用（DXGI），另记 wgpu 分配器报告的已分配与已向驱动申请的字节。只在 Windows 上有。
 #![allow(unsafe_code)]
 
@@ -73,6 +73,22 @@ fn main() {
     pins.clear();
     r.wait_idle();
     row("全部释放", Some(&r));
+    // 再来一轮：私有内存若是驱动留着复用的上传内存，这一轮不再涨。
+    for _ in 0..10 {
+        pins.push(
+            r.upload(Pixels {
+                width: w,
+                height: h,
+                rgba: &common,
+            })
+            .unwrap(),
+        );
+    }
+    r.wait_idle();
+    row(&format!("再上传 10 张 {w}×{h}"), Some(&r));
+    pins.clear();
+    r.wait_idle();
+    row("再全部释放", Some(&r));
     drop(common);
 
     let big = pixels(6000, 4000);

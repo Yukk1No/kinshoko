@@ -111,6 +111,7 @@ pub fn run() {
             tagging::tagging_pick_package,
             tagging::tagging_import_package,
             fidelity_gate::gate_plan,
+            fidelity_gate::gate_pins,
             fidelity_gate::gate_image,
             fidelity_gate::gate_save,
         ])

@@ -1,6 +1,9 @@
 //! 离屏比对：在真 GPU 设备（没有显卡时是后备适配器，Windows 上为 WARP）上画钉图并读回，
 //! 与 `kinshoko-core` 的派生图、moxcms 直接转换和金样比较。
 //!
+//! WARP 在同一进程里多个设备同时画大量样本时偶发访问冲突（0xc0000005）：在 WARP 上用 nextest
+//! （每个用例一个进程，CI 就这样跑）或 `--test-threads=1`。
+//!
 //! `PIN_RENDER_FALLBACK=1` 时只用后备适配器（WARP）。金样在 `tests/golden/`；改了画法要更新时用 `PIN_RENDER_BLESS=1 cargo test -p pin-render` 重写。
 
 use std::path::PathBuf;
