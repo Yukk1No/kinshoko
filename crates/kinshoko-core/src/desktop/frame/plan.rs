@@ -88,7 +88,8 @@ pub fn plan(
 
 /// `window` 整个盖住某台显示器时，把它的一条边收进那台显示器一行（或一列），直到一台都不盖满。
 ///
-/// 先选最下面一行（ADR 0011），其次上、右、左；优先只损失那台显示器一行的边（窗口的这条边正好
+/// 先选最下面一行（ADR 0011），其次上、右、左；窗口下边伸到别的显示器上（例如左屏矮、右屏高）时，
+/// 收下边会裁掉那台显示器上的一大块，于是改收与这台显示器重合的另一条边；优先只损失那台显示器一行的边（窗口的这条边正好
 /// 与显示器的边重合），收边时不切掉 `keep`。`keep` 本身不盖满任何显示器时总有可收的边。
 /// 宽或高不到 2 像素的显示器不算。
 pub fn uncover(
@@ -164,6 +165,12 @@ mod tests {
             width,
             height,
         }
+    }
+
+    /// 左、上、右、下。
+    fn sides(r: ScreenRect) -> (i64, i64, i64, i64) {
+        let (x, y) = (i64::from(r.x), i64::from(r.y));
+        (x, y, x + i64::from(r.width), y + i64::from(r.height))
     }
 
     const SCREEN: ScreenRect = rect(0, 0, 2560, 1440);
@@ -340,13 +347,13 @@ mod tests {
         // 裁到两台显示器的外接矩形。
         let c = rect(2000, 1300, 1000, 1000);
         let w = window_for(c, TWO).unwrap();
-        let (_, _, right, bottom) = edges(w);
+        let (_, _, right, bottom) = sides(w);
         assert_eq!(w.x, 2000 - PIN_EDGE as i32);
         assert_eq!(bottom, 2160);
         assert_eq!(right, 3000 + i64::from(PIN_EDGE));
         // 只碰左屏时裁到左屏。
         let only_left = window_for(rect(2400, 1300, 100, 1000), TWO).unwrap();
-        assert_eq!(edges(only_left).3, 1440);
+        assert_eq!(sides(only_left).3, 1440);
     }
 
     #[test]
@@ -358,6 +365,15 @@ mod tests {
         for m in TWO {
             assert!(w.contains(&rect(m.x + 1, m.y + 1, m.width - 2, m.height - 2)));
         }
+    }
+
+    #[test]
+    fn a_short_monitor_beside_a_tall_one_gives_up_its_top_row() {
+        // 左屏比右屏矮、顶端对齐，钉图盖满左屏并伸进右屏：窗口下边在右屏里，收到左屏最下面一行
+        // 会把右屏那一块裁掉。让出左屏最上面一行只损失一行（右屏顶行也随之让出），仍不盖满。
+        let w = window_for(rect(-50, -50, 3000, 3000), TWO).unwrap();
+        assert_eq!(w, rect(0, 1, 2560 + 3000 - 50 - 2560 + PIN_EDGE, 2159));
+        assert!(!covers_a_monitor(w, TWO));
     }
 
     #[test]
@@ -440,7 +456,7 @@ mod tests {
         };
         for ms in [ONE.to_vec(), TWO.to_vec()] {
             let all = ms.iter().copied().reduce(|a, b| a.union(&b)).unwrap();
-            let (l, t, r, b) = edges(all);
+            let (l, t, r, b) = sides(all);
             for &x0 in &near(l as i32, r as i32) {
                 for &x1 in &near(l as i32, r as i32) {
                     for &y0 in &near(t as i32, b as i32) {

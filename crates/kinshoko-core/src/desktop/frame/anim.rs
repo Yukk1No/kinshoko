@@ -10,6 +10,7 @@ pub const SLIDE_MS: u32 = 200;
 /// 新钉图出现时描一圈强调色的边，在这么久里渐隐（毫秒，#7 反馈）。
 pub const APPEAR_MS: u32 = 900;
 
+/// 缓出曲线：前快后慢，两端固定在 0 和 1。与前端 `easeOutCubic` 相同。
 pub fn ease_out_cubic(t: f64) -> f64 {
     let u = 1.0 - t.clamp(0.0, 1.0);
     1.0 - u * u * u

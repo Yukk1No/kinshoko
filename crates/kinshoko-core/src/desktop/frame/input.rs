@@ -39,11 +39,12 @@ pub enum Hit {
 
 /// 缩放区最大这么多 CSS 像素，小钉图按比例缩小（内容短边的 [`ZOOM_CORNER_SHARE`]）。
 pub const ZOOM_CORNER: f64 = 24.0;
+/// 小钉图的缩放区占内容短边的这一部分，留出拖动的地方。
 pub const ZOOM_CORNER_SHARE: f64 = 0.3;
 
-/// 屏幕上的 `at` 落在内容为 `content` 的钉图的哪里。`scale` 是指针所在显示器的缩放比例
+/// 屏幕上的 `at` 落在内容为 `content` 的钉图的哪里。`display_scale` 是指针所在显示器的缩放比例
 /// （[`scale_at`]）。缩放区从内容右下角往里量，向右下一直到阴影外缘。
-pub fn hit(content: ScreenRect, at: (f64, f64), scale: f64) -> Hit {
+pub fn hit(content: ScreenRect, at: (f64, f64), display_scale: f64) -> Hit {
     let (left, top) = (f64::from(content.x), f64::from(content.y));
     let (w, h) = (f64::from(content.width), f64::from(content.height));
     let (right, bottom) = (left + w, top + h);
@@ -52,7 +53,7 @@ pub fn hit(content: ScreenRect, at: (f64, f64), scale: f64) -> Hit {
     if x < left - edge || y < top - edge || x >= right + edge || y >= bottom + edge {
         return Hit::Outside;
     }
-    let zone = (ZOOM_CORNER * scale).min(ZOOM_CORNER_SHARE * w.min(h));
+    let zone = (ZOOM_CORNER * display_scale).min(ZOOM_CORNER_SHARE * w.min(h));
     if x >= right - zone && y >= bottom - zone {
         return Hit::ZoomCorner;
     }
@@ -63,8 +64,9 @@ pub fn hit(content: ScreenRect, at: (f64, f64), scale: f64) -> Hit {
     }
 }
 
-/// 笔或触摸按住多久打开钉图菜单（毫秒），以及按住时允许的抖动（CSS 像素）。
+/// 笔或触摸按住多久打开钉图菜单（毫秒）。
 pub const HOLD_MS: u32 = 500;
+/// 按住时允许的抖动（CSS 像素），再动就是拖动。
 pub const HOLD_SLOP: f64 = 4.0;
 
 /// 指针的种类。
@@ -92,20 +94,20 @@ pub fn press_opens_menu(button: PointerButton) -> bool {
     button == PointerButton::Secondary
 }
 
-/// 笔或触摸按住不动 [`HOLD_MS`] 打开菜单；动出 [`HOLD_SLOP`]（乘以缩放比例 `scale`）就是拖动。
+/// 笔或触摸按住不动 [`HOLD_MS`] 打开菜单；动出 [`HOLD_SLOP`]（乘以显示器缩放比例 `display_scale`）就是拖动。
 /// 鼠标不用长按。`start`、`now` 为屏幕物理像素。
 pub fn held_for_menu(
     kind: PointerKind,
     start: (f64, f64),
     now: (f64, f64),
     elapsed_ms: u32,
-    scale: f64,
+    display_scale: f64,
 ) -> bool {
     if kind == PointerKind::Mouse {
         return false;
     }
     let moved = (now.0 - start.0).hypot(now.1 - start.1);
-    moved <= HOLD_SLOP * scale && elapsed_ms >= HOLD_MS
+    moved <= HOLD_SLOP * display_scale && elapsed_ms >= HOLD_MS
 }
 
 #[cfg(test)]

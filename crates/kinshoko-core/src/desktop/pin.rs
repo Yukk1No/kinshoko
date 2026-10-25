@@ -199,6 +199,17 @@ impl SavedPin {
         (side(w), side(h))
     }
 
+    /// 旋转后、缩放后、未取整的内容尺寸（物理像素）。[`window_size`](Self::window_size) 是它取整。
+    pub fn exact_size(&self) -> (f64, f64) {
+        let p = &self.placement;
+        let (w, h) = if p.rotation % 2 == 1 {
+            (self.height, self.width)
+        } else {
+            (self.width, self.height)
+        };
+        (f64::from(w.max(1)) * p.scale, f64::from(h.max(1)) * p.scale)
+    }
+
     /// 原位上的窗口矩形。
     pub fn rect(&self) -> ScreenRect {
         let (width, height) = self.window_size();

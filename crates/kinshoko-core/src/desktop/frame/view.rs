@@ -1,6 +1,7 @@
 //! 钉图怎么摆、怎么画：以光标为中心缩放、拖角缩放、透明度、翻转旋转后的绘制变换、局部在源图上的
 //! 位置。状态就是 [`SavedPin`]，这里只换算；从前端 `pixels.ts`、`motion.ts`、`renderer.ts` 搬来。
 
+use super::RectF;
 use crate::desktop::{MIN_OPACITY, PinContent, Region, SavedPin};
 
 /// 滚轮缩放：每格（`delta_y` 100）×1.12，向上（负值）放大。与前端 `wheelZoomScale` 相同。
@@ -27,7 +28,13 @@ pub fn corner_zoom_scale(start: ZoomStart, dx: f64, dy: f64) -> f64 {
 
 /// Ctrl+滚轮调透明度：每格 10%，向上更不透明，限制在 [`MIN_OPACITY`]～1。与前端 `wheelOpacity` 相同。
 pub fn wheel_opacity(opacity: f64, delta_y: f64) -> f64 {
-    let next = ((opacity - delta_y.signum() * 0.1) * 10.0).round() / 10.0;
+    // 与 JS 的 Math.sign 相同：没有竖直滚动（只横向滚动）时不变。
+    let sign = if delta_y == 0.0 {
+        0.0
+    } else {
+        delta_y.signum()
+    };
+    let next = ((opacity - sign * 0.1) * 10.0).round() / 10.0;
     next.clamp(MIN_OPACITY, 1.0)
 }
 
@@ -44,7 +51,7 @@ pub struct ZoomAnchor {
 impl ZoomAnchor {
     /// 以屏幕上的 `at` 为锚点。滚轮缩放取光标，拖角缩放取内容左上角。
     pub fn new(pin: &SavedPin, at: (f64, f64)) -> ZoomAnchor {
-        let (w, h) = exact_size(pin);
+        let (w, h) = pin.exact_size();
         let p = &pin.placement;
         ZoomAnchor {
             at,
@@ -58,22 +65,11 @@ impl ZoomAnchor {
             return false;
         }
         pin.placement.scale = pin.clamp_scale(scale);
-        let (w, h) = exact_size(pin);
+        let (w, h) = pin.exact_size();
         pin.placement.x = (self.at.0 - self.fraction.0 * w).round() as i32;
         pin.placement.y = (self.at.1 - self.fraction.1 * h).round() as i32;
         true
     }
-}
-
-/// 旋转后、缩放后、未取整的内容尺寸（物理像素）。
-fn exact_size(pin: &SavedPin) -> (f64, f64) {
-    let p = &pin.placement;
-    let (w, h) = if p.rotation % 2 == 1 {
-        (pin.height, pin.width)
-    } else {
-        (pin.width, pin.height)
-    };
-    (f64::from(w.max(1)) * p.scale, f64::from(h.max(1)) * p.scale)
 }
 
 /// 画钉图的变换：以内容中心为原点，先镜像再顺时针转 `quarter_turns` 个四分之一圈，按
@@ -138,18 +134,9 @@ pub fn source_size(pin: &SavedPin, veiled: bool) -> SourceSize {
     }
 }
 
-/// 源图上的矩形（源图像素，派生图上可以是小数）。
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct SourceRect {
-    pub x: f64,
-    pub y: f64,
-    pub width: f64,
-    pub height: f64,
-}
-
 /// 局部（原图像素）在一张 `width`×`height` 的源图上的位置：派生图按它与原图的比例换算，整图钉图为
-/// 整张源图。局部以外的像素不画（局部钉图不露边）。与前端 `pinSourceRect` 相同。
-pub fn source_rect(pin: &SavedPin, width: u32, height: u32) -> SourceRect {
+/// 整张源图。局部以外的像素不画（局部钉图不露边）。与前端 `pinRectF` 相同。
+pub fn source_rect(pin: &SavedPin, width: u32, height: u32) -> RectF {
     let (full_w, full_h) = match pin.content {
         PinContent::Reference {
             source_width,
@@ -166,7 +153,7 @@ pub fn source_rect(pin: &SavedPin, width: u32, height: u32) -> SourceRect {
     });
     let sx = f64::from(width) / f64::from(full_w.max(1));
     let sy = f64::from(height) / f64::from(full_h.max(1));
-    SourceRect {
+    RectF {
         x: f64::from(crop.x) * sx,
         y: f64::from(crop.y) * sy,
         width: f64::from(crop.width) * sx,
@@ -289,14 +276,14 @@ mod tests {
             );
             let anchor = ZoomAnchor::new(&p, cursor);
             let before = (
-                (cursor.0 - f64::from(p.placement.x)) / exact_size(&p).0,
-                (cursor.1 - f64::from(p.placement.y)) / exact_size(&p).1,
+                (cursor.0 - f64::from(p.placement.x)) / p.exact_size().0,
+                (cursor.1 - f64::from(p.placement.y)) / p.exact_size().1,
             );
             let mut scale = p.placement.scale;
             for _ in 0..30 {
                 scale = wheel_zoom_scale(scale, rng.float(-300.0, 300.0));
                 anchor.zoom(&mut p, scale);
-                let (ew, eh) = exact_size(&p);
+                let (ew, eh) = p.exact_size();
                 // 锚点在内容上的位置换回屏幕：与光标相差不到半个物理像素。
                 let x = f64::from(p.placement.x) + before.0 * ew;
                 let y = f64::from(p.placement.y) + before.1 * eh;
@@ -380,6 +367,20 @@ mod tests {
         assert!(!drawing(&pin(101, 37, at(0, 0, 0.5))).nearest);
     }
 
+    // 前端 pinCanvasSize 的 110%、150% 用例检查 CSS 尺寸乘回 dpr 是物理像素；原生窗口没有 CSS 像素，
+    // 对应的性质是内容尺寸只看物理像素，与所在显示器的缩放比例无关（跨屏、拖到另一台显示器时不跳）。
+    // toDevicePx、contentTransform 只属于 WebView，原生没有对应。
+    #[test]
+    fn content_size_does_not_depend_on_the_display_scale() {
+        let p = pin(101, 37, at(2500, 300, 1.0));
+        let size = p.window_size();
+        let mut moved = p.clone();
+        // 从 100% 的左屏拖到 150% 的右屏。
+        assert!(moved.move_to(2700, 300));
+        assert_eq!(moved.window_size(), size);
+        assert_eq!(size, (101, 37));
+    }
+
     #[test]
     fn drawing_matches_pin_drawing() {
         let base = pin(40, 10, at(0, 0, 1.0));
@@ -447,6 +448,8 @@ mod tests {
         close(wheel_opacity(0.1, 100.0), 0.1);
         assert_eq!(wheel_opacity(1.0, -100.0), 1.0);
         close(wheel_opacity(0.15, 100.0), 0.1);
+        // 只横向滚动（deltaY 为 0）时不变，同 Math.sign(0)。
+        close(wheel_opacity(0.5, 0.0), 0.5);
     }
 
     #[test]
@@ -495,7 +498,7 @@ mod tests {
             width: 300,
             height: 200,
         };
-        let whole = SourceRect {
+        let whole = RectF {
             x: 0.0,
             y: 0.0,
             width: 400.0,
@@ -504,7 +507,7 @@ mod tests {
         assert_eq!(source_rect(&reference(0.5, None), 400, 300), whole);
         assert_eq!(
             source_rect(&reference(1.0, Some(crop)), 800, 600),
-            SourceRect {
+            RectF {
                 x: 100.0,
                 y: 50.0,
                 width: 300.0,
@@ -513,7 +516,7 @@ mod tests {
         );
         assert_eq!(
             source_rect(&reference(0.5, Some(crop)), 400, 300),
-            SourceRect {
+            RectF {
                 x: 50.0,
                 y: 25.0,
                 width: 150.0,
@@ -531,7 +534,7 @@ mod tests {
         };
         assert_eq!(
             source_rect(&capture, 800, 600),
-            SourceRect {
+            RectF {
                 x: 10.0,
                 y: 5.0,
                 width: 60.0,
