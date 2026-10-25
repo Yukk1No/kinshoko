@@ -140,7 +140,7 @@ impl FakeShell {
             .unwrap_or_else(|| panic!("钉图 {pin:?} 不存在或已关"))
     }
 
-    fn to_top(&mut self, pin: PinId) {
+    fn put_on_top(&mut self, pin: PinId) {
         self.order.retain(|&p| p != pin);
         self.order.insert(0, pin);
     }
@@ -180,7 +180,7 @@ impl PinShell for FakeShell {
     fn show(&mut self, pin: PinId, rect: ScreenRect) {
         self.calls.push(Call::Show(pin, rect));
         self.pin_mut(pin).slots.show(rect);
-        self.to_top(pin);
+        self.put_on_top(pin);
     }
 
     fn translate(&mut self, pin: PinId, rect: ScreenRect) {
@@ -211,7 +211,7 @@ impl PinShell for FakeShell {
     fn raise(&mut self, pin: PinId) {
         self.calls.push(Call::Raise(pin));
         self.pin(pin);
-        self.to_top(pin);
+        self.put_on_top(pin);
     }
 
     fn set_click_through(&mut self, pin: PinId, on: bool) {
