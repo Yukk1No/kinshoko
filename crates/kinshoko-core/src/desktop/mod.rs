@@ -10,10 +10,12 @@
 //! - [`layers_for`]、[`overlay_window`]、[`widen`]、[`layer_region`]、[`pin_area`]：钉图层与窗口区域的矩形
 //!   （#64、#193、#239）；
 //! - [`menu_surface`]、[`PinMenu`]：钉图菜单窗口的位置与菜单状态（#106）；
+//! - [`frame`]：原生钉图的几何、命中、动画与每一帧怎么上屏（#277）。
 //! - [`pin_colour`]：钉图上传给 GPU 的像素与到显示器的查找表（ADR 0014）。
 
 mod capture;
 mod edge;
+pub mod frame;
 mod history;
 mod menu;
 mod motion;
