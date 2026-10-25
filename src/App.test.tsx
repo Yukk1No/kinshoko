@@ -150,6 +150,8 @@ describe("主窗口", () => {
 
   it("详情面板的宽度是本设备设置：重新打开主窗口后沿用上次的宽度（#157）", async () => {
     vi.stubGlobal("innerWidth", 1600);
+    // 工作区够宽，详情面板不用为主区让位（#274）。
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1544 });
     let saved: number | undefined;
     backend(library, clean, (cmd, args) => {
       if (cmd === "set_inspector_width") { saved = (args as { width: number }).width; return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved }; }

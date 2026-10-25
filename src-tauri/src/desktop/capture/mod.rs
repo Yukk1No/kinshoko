@@ -28,6 +28,7 @@ use sources::{main_metrics, references, request_main_frame, same_surfaces};
 use super::{lock, state};
 use crate::data_dirs::SharedWebview as _;
 use kinshoko_core::diagnostics::{LogEvent, WindowKind};
+use kinshoko_core::safe_mode::SafeModeSnapshot;
 
 pub const CAPTURE_WINDOW: &str = "capture";
 
@@ -47,7 +48,7 @@ pub struct Pending {
     /// 冻结屏幕的一次性标记，防止页面拿到上一次的图。
     token: String,
     references: Vec<ReferenceSurface>,
-    safe_generation: u64,
+    safe_generation: SafeModeSnapshot,
 }
 
 pub(super) struct ReferenceSurface {

@@ -5,15 +5,18 @@ import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { CaptureHistoryPanel } from "../desktop/CaptureHistoryPanel";
 import { ReferenceGroupsPanel } from "../desktop/ReferenceGroupsPanel";
 import { WorkspacePane } from "../library/WorkspacePane";
+import { useFloatEscape } from "../shell/paneFit";
 import type { Section } from "../shell/Rail";
 
 /** 工作区左栏：文件夹（图库与查找范围）、参考组或截图历史。 */
 export function WorkspaceSidebar({
-  section, paneOpen, onPaneToggle, libraryControls, status, workspaceScope, safe, reloadKey, onError, recheck,
+  section, paneOpen, floating, onPaneToggle, libraryControls, status, workspaceScope, safe, reloadKey, onError, recheck,
   onLibraryRemoved, onScope, libraryId, captureRequest, onCaptureRequestHandled,
 }: {
   section: Section;
   paneOpen: boolean;
+  /** 窄窗口里侧栏浮在图片墙上（paneFit）；Esc 收回。 */
+  floating?: boolean;
   onPaneToggle: () => void;
   libraryControls: ReactNode;
   status: WorkspaceStatus | null;
@@ -28,12 +31,14 @@ export function WorkspaceSidebar({
   captureRequest?: { id: string; stamp: number } | null;
   onCaptureRequestHandled?: () => void;
 }) {
+  useFloatEscape(!!floating, onPaneToggle);
   const libInPane = paneOpen && section === "browse";
   const sectionName = section === "groups" ? "参考组" : "截图";
   return (
     <aside
       className="sidebar-slot pane"
       data-collapsed={!paneOpen}
+      data-float={floating || undefined}
       aria-label={section === "browse" ? "文件夹" : section === "groups" ? "参考组" : "截图历史"}
       aria-hidden={!paneOpen}
       inert={!paneOpen}

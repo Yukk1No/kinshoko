@@ -129,7 +129,7 @@ pub(super) async fn read_import_preview<R: Runtime>(
                 }
                 workspace::current(&app, true, mode_generation)?;
                 let state = app.state::<LibraryState>();
-                with_libraries(&state.device_dir, &state.libraries, |device| {
+                with_libraries(&state, |device| {
                     Ok(
                         device.commit_import_preview_chunk(&content, offset, 1023, true, |chunk| {
                             on_chunk

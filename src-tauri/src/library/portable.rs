@@ -6,9 +6,7 @@ use kinshoko_core::tag_catalog::CatalogInspection;
 /// This reads the app catalog without activating or writing any provider.
 pub fn content_definitions<R: Runtime>(app: &AppHandle<R>) -> Result<CatalogInspection, String> {
     let state = app.state::<LibraryState>();
-    with_catalog(&state.device_dir, &state.catalog, |catalog| {
-        catalog.inspect()
-    })
+    with_catalog(&state.search, |catalog| catalog.inspect())
 }
 
 /// Reuse T09's registered, identity-checked writable pool without activating the provider.
@@ -19,12 +17,10 @@ pub fn publish_definition_dependencies<R: Runtime>(
 ) -> Result<(), String> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
-    let library = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-        libraries.write(library_id)
-    })?;
+    let library = with_libraries(&state, |libraries| libraries.write(library_id))?;
     state.configure_library(&library);
     library.set_safe_mode(saved_safe_mode(app));
-    with_catalog(&state.device_dir, &state.catalog, |catalog| {
+    with_catalog(&state.search, |catalog| {
         catalog.publish_library_definitions(&library)
     })
 }
@@ -35,7 +31,7 @@ pub(super) async fn publish_tag_definitions<R: Runtime>(
     state: State<'_, LibraryState>,
     library_id: String,
 ) -> Result<TagCatalogWorkspace, String> {
-    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let worker = app.clone();
     let result = blocking(move || {
@@ -43,15 +39,13 @@ pub(super) async fn publish_tag_definitions<R: Runtime>(
             "标签定义未保存到资料库：{error}。程序中的对应和名称选择已保留；资料库可写后，请重试保存标签定义。"
         ))?;
         let state = worker.state::<LibraryState>();
-        with_libraries(&state.device_dir, &state.libraries, |libraries| {
-            Ok(with_catalog(&state.device_dir, &state.catalog, |catalog| {
+        with_libraries(&state, |libraries| {
+            Ok(with_catalog(&state.search, |catalog| {
                 catalog.inspect_libraries(libraries, safe)
             }))
         })?
     }).await?;
-    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
-        || saved_safe_mode(&app) != safe
-    {
+    if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
         return Err("安全模式已变化，请重新检查标签对应".into());
     }
     Ok(result)
@@ -68,7 +62,7 @@ pub fn export_package<R: Runtime>(
     // Take the reference registry snapshot before the catalog lock. Workspace readers take
     // libraries then catalog; holding catalog while reading libraries would invert that order.
     with_references(app, |references| {
-        with_catalog(&state.device_dir, &state.catalog, |catalog| {
+        with_catalog(&state.search, |catalog| {
             Ok(groups.export_package_with_catalog(group_id, references, path, catalog))
         })?
         .map_err(|error| error.to_string())
@@ -90,7 +84,7 @@ pub fn import_package<R: Runtime>(
     // Per-image rating publication already uses this gate. No package IO or decoding is
     // performed while holding either lock; always take the final gate before the catalog.
     with_visibility_commit(app, |_| {
-        with_catalog(&state.device_dir, &state.catalog, |catalog| {
+        with_catalog(&state.search, |catalog| {
             catalog.publish_library_definitions(library)
         })
     })

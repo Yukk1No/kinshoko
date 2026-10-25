@@ -8,7 +8,7 @@ pub(super) async fn recovery(
     state: State<'_, LibraryState>,
     library_id: String,
 ) -> Result<RecoveryReport, String> {
-    with_libraries(&state.device_dir, &state.libraries, |device| {
+    with_libraries(&state, |device| {
         Ok(device.write(&library_id)?.recovery().clone())
     })
 }
@@ -49,14 +49,13 @@ pub(super) async fn import_contains_eagle(source: ImportSource) -> Result<bool, 
 }
 
 #[tauri::command]
-pub(super) async fn cancel_import(
-    state: State<'_, LibraryState>,
+pub(super) async fn cancel_import<R: Runtime>(
+    app: AppHandle<R>,
     library_id: String,
     task_id: String,
 ) -> Result<(), String> {
-    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
     blocking(move || {
-        with_libraries(&device_dir, &libraries, |libraries| {
+        with_libraries(&app.state::<LibraryState>(), |libraries| {
             libraries.cancel_import(&library_id, &task_id)
         })
     })

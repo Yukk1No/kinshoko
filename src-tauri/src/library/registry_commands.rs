@@ -21,7 +21,7 @@ pub(super) async fn create_library<R: Runtime>(
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
         let library = with_visibility_commit(&app, |_| {
-            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+            with_libraries(&state, |libraries| {
                 libraries.create(&parent.join(name.trim()), &name)
             })
         })?;
@@ -32,12 +32,11 @@ pub(super) async fn create_library<R: Runtime>(
 
 /// 本设备登记的资料库，以及这次检查时不可用的原因（例如移动盘没插）。
 #[tauri::command]
-pub(super) async fn registered_libraries(
-    state: State<'_, LibraryState>,
+pub(super) async fn registered_libraries<R: Runtime>(
+    app: AppHandle<R>,
 ) -> Result<Vec<LibraryRegistration>, String> {
-    let (device_dir, libraries) = (state.device_dir.clone(), state.libraries.clone());
     blocking(move || {
-        let registered = with_libraries(&device_dir, &libraries, |libraries| {
+        let registered = with_libraries(&app.state::<LibraryState>(), |libraries| {
             Ok(libraries.libraries().to_vec())
         })?;
         Ok(DeviceLibraries::inspect_registrations(&registered))
@@ -55,9 +54,7 @@ pub(super) async fn register_library<R: Runtime>(
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
         let library = with_visibility_commit(&app, |_| {
-            with_libraries(&state.device_dir, &state.libraries, |libraries| {
-                libraries.register(&root)
-            })
+            with_libraries(&state, |libraries| libraries.register(&root))
         })?;
         Ok(forward_events(&app, &state, library))
     })
@@ -74,9 +71,7 @@ pub(super) async fn switch_library<R: Runtime>(
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
         let library = with_visibility_commit(&app, |_| {
-            with_libraries(&state.device_dir, &state.libraries, |libraries| {
-                libraries.switch(&library_id)
-            })
+            with_libraries(&state, |libraries| libraries.switch(&library_id))
         })?;
         Ok(forward_events(&app, &state, library))
     })
@@ -93,7 +88,7 @@ pub(super) async fn unregister_library<R: Runtime>(
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
         let closed = with_visibility_commit(&app, |_| {
-            with_libraries(&state.device_dir, &state.libraries, |libraries| {
+            with_libraries(&state, |libraries| {
                 let closed = libraries
                     .current()
                     .is_some_and(|library| library.info().id == library_id);

@@ -20,11 +20,7 @@ pub(super) fn restore<R: Runtime>(app: &AppHandle<R>) -> Result<Option<Arc<Libra
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
     let opened = with_visibility_commit(app, |_| {
-        with_libraries(
-            &state.device_dir,
-            &state.libraries,
-            DeviceLibraries::restore_last_opened,
-        )
+        with_libraries(&state, DeviceLibraries::restore_last_opened)
     })?;
     if let Some(library) = &opened {
         forward_events(app, &state, library.clone());
@@ -48,9 +44,7 @@ pub fn writable<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<Arc<
         || {
             let _transition = lock(&state.transition);
             let access = with_visibility_commit(app, |_| {
-                with_libraries(&state.device_dir, &state.libraries, |libraries| {
-                    libraries.organize(library_id)
-                })
+                with_libraries(&state, |libraries| libraries.organize(library_id))
             })?;
             if let WriterAccess::Ready {
                 library,
@@ -79,9 +73,7 @@ pub(super) fn readable<R: Runtime>(
 ) -> Result<Arc<Library>, String> {
     let state = app.state::<LibraryState>();
     let safe = saved_safe_mode(app);
-    with_libraries(&state.device_dir, &state.libraries, |libraries| {
-        libraries.resolve(library_id, safe)
-    })
+    with_libraries(&state, |libraries| libraries.resolve(library_id, safe))
 }
 
 /// Validate the exact visible workspace source before creating a desktop reference.
@@ -97,9 +89,7 @@ pub fn visible_source<R: Runtime>(
 /// 仍是这个图库（与 `registered_libraries` 相同，网络盘的 I/O 不阻塞库操作）。会读文件。
 pub fn library_folder<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<PathBuf, String> {
     let state = app.state::<LibraryState>();
-    let registered = with_libraries(&state.device_dir, &state.libraries, |libraries| {
-        Ok(libraries.libraries().to_vec())
-    })?;
+    let registered = with_libraries(&state, |libraries| Ok(libraries.libraries().to_vec()))?;
     DeviceLibraries::library_folder(&registered, library_id).map_err(|e| e.to_string())
 }
 
@@ -139,9 +129,7 @@ pub fn registered<R: Runtime>(
 ) -> Result<Vec<kinshoko_core::RegisteredLibrary>, String> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
-    with_libraries(&state.device_dir, &state.libraries, |libraries| {
-        Ok(libraries.libraries().to_vec())
-    })
+    with_libraries(&state, |libraries| Ok(libraries.libraries().to_vec()))
 }
 
 /// 把恢复出的资料库登记到本设备，不切换过去（#69）。
@@ -149,7 +137,7 @@ pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> R
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
     with_visibility_commit(app, |_| {
-        with_libraries(&state.device_dir, &state.libraries, |libraries| {
+        with_libraries(&state, |libraries| {
             for root in roots {
                 libraries.add_registration(root)?;
             }
@@ -161,7 +149,7 @@ pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> R
 }
 
 /// Current authority generation for native capture actions.
-pub fn capture_generation<R: Runtime>(app: &AppHandle<R>) -> u64 {
+pub fn capture_generation<R: Runtime>(app: &AppHandle<R>) -> SafeModeSnapshot {
     workspace::generation(app)
 }
 
@@ -190,11 +178,11 @@ pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
 /// registrations and native window creation may synchronously dispatch to that thread.
 pub(crate) fn with_visibility_commit<R: Runtime, T>(
     app: &AppHandle<R>,
-    commit: impl FnOnce(u64) -> T,
+    commit: impl FnOnce(SafeModeSnapshot) -> T,
 ) -> T {
     let state = app.state::<LibraryState>();
     let _visibility = lock(&state.visibility_commit);
-    commit(state.safe_mode_generation.load(Ordering::SeqCst))
+    commit(state.safe_mode.snapshot())
 }
 
 /// The same pure Rust gate is injected into background result publication.
@@ -205,10 +193,10 @@ pub(crate) fn visibility_publication_gate<R: Runtime>(app: &AppHandle<R>) -> Arc
 
 /// 安全模式是否开启（全局设置）；读不到设置时按开启处理。
 pub fn safe_mode_on<R: Runtime>(app: &AppHandle<R>) -> bool {
-    saved_safe_mode(app)
+    saved_mode(app).on
 }
 
 /// 安全模式范围（全局设置，#223）。
 pub fn safe_mode_scope<R: Runtime>(app: &AppHandle<R>) -> SafeModeScope {
-    saved_safe_mode_scope(app)
+    saved_mode(app).scope
 }

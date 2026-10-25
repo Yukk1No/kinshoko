@@ -32,7 +32,7 @@ pub(super) async fn export_application_settings<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        with_catalog(&state.device_dir, &state.catalog, |catalog| {
+        with_catalog(&state.search, |catalog| {
             let shell_state = app.state::<ShellState>();
             let shell = lock(&shell_state.0);
             Ok(ApplicationSettingsBackup::export(
@@ -62,46 +62,45 @@ pub(super) async fn restore_application_settings<R: Runtime>(
         let _visibility = lock(&state.visibility_commit);
         // Invalidate before waiting for catalog readers; keep final sends/copies excluded
         // through the replacement and desktop reset, even when the mode stays the same.
-        state.safe_mode_generation.fetch_add(1, Ordering::SeqCst);
+        state.safe_mode.revoke();
         import_preview::revoke(&app);
-        let (view, safe, device, mut problems) =
-            with_catalog(&state.device_dir, &state.catalog, |catalog| {
-                let shell_state = app.state::<ShellState>();
-                let mut shell = lock(&shell_state.0);
-                let previous = shell.settings.clone();
-                let result = ApplicationSettingsBackup::restore_checked(
-                    &mut shell.settings,
-                    catalog,
-                    &path,
-                    &fingerprint,
-                );
-                if let Err(error) = result {
-                    return Ok(Err(error));
-                }
-                state.safe_mode_generation.fetch_add(1, Ordering::SeqCst);
-                let crate::shell::Shell {
-                    settings,
-                    shortcuts,
-                } = &mut *shell;
-                shortcuts.reload(&previous, settings);
-                let mut problems = Vec::new();
-                if let Err(error) = crate::shell::apply_autostart(&app, settings.autostart()) {
-                    problems.push(format!("开机自启未同步：{error}"));
-                }
-                Ok(Ok((
-                    shortcuts.settings_view(settings),
-                    settings.safe_mode(),
-                    settings.tagging_device(),
-                    problems,
-                )))
-            })??;
+        let (view, safe, device, mut problems) = with_catalog(&state.search, |catalog| {
+            let shell_state = app.state::<ShellState>();
+            let mut shell = lock(&shell_state.0);
+            let previous = shell.settings.clone();
+            let result = ApplicationSettingsBackup::restore_checked(
+                &mut shell.settings,
+                catalog,
+                &path,
+                &fingerprint,
+            );
+            if let Err(error) = result {
+                return Ok(Err(error));
+            }
+            state.safe_mode.commit(|mode| {
+                *mode = SafeMode::new(shell.settings.safe_mode(), shell.settings.safe_mode_scope())
+            });
+            let crate::shell::Shell {
+                settings,
+                shortcuts,
+            } = &mut *shell;
+            shortcuts.reload(&previous, settings);
+            let mut problems = Vec::new();
+            if let Err(error) = crate::shell::apply_autostart(&app, settings.autostart()) {
+                problems.push(format!("开机自启未同步：{error}"));
+            }
+            Ok(Ok((
+                shortcuts.settings_view(settings),
+                settings.safe_mode(),
+                settings.tagging_device(),
+                problems,
+            )))
+        })??;
         state.search.invalidate();
-        state.search_catalog_revision.store(-1, Ordering::SeqCst);
         *lock(&state.workspace) = None;
         *lock(&state.external_vocabulary) = None;
         state.detached.clear();
         let scope = view.safe_mode_scope;
-        *lock(&DEVICE_SAFE_MODE_SCOPE) = scope;
         state.detached.set_safe_mode_scope(scope);
         if let Some(libraries) = lock(&state.libraries).as_mut() {
             libraries.set_safe_mode(safe);

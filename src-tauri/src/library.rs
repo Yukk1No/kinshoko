@@ -45,7 +45,7 @@ mod forward;
 use forward::forward_events;
 
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
@@ -63,8 +63,9 @@ use kinshoko_core::library_batch::{
     group_by_library,
 };
 use kinshoko_core::reference_groups::{DetachedLenses, References};
+use kinshoko_core::safe_mode::{SafeModeSnapshot, SafeModeState};
 use kinshoko_core::search::{
-    Candidate, ConditionTree, RatingCandidate, Search, SearchCache, SearchInput,
+    Candidate, CatalogSearch, ConditionTree, RatingCandidate, SearchInput,
 };
 use kinshoko_core::tag_catalog::{
     CatalogCorrection, CatalogError, CatalogImageTags, TagCatalog, TagCatalogWorkspace,
@@ -87,9 +88,6 @@ const EVENT_COALESCE: std::time::Duration = std::time::Duration::from_millis(500
 /// 桌面钉图据此重新核对遮蔽（#65）。
 pub const SAFE_MODE_EVENT: &str = "safe-mode-setting";
 
-/// 本设备的安全模式范围，与应用壳设置同步（启动时读一次，之后由设置命令更新）。登记表在
-/// 第一次用到时才打开（[`with_libraries`]），打开时按它设好。
-static DEVICE_SAFE_MODE_SCOPE: Mutex<SafeModeScope> = Mutex::new(SafeModeScope::Questionable);
 /// 整理在等某个库的导入收尾（#112），载荷为 `OrganizeWaiting`；界面据此给轻提示。
 const ORGANIZE_WAITING_EVENT: &str = "organize-waiting";
 /// 整理时后端把唯一的可写句柄切到了另一个库（#112），载荷为它的 `LibraryInfo`。只给跟着可写库走的
@@ -109,12 +107,11 @@ struct LibraryState {
     forwarded_handles: Mutex<Vec<Weak<Library>>>,
     /// 切换、恢复和取消登记串行完成，包括旧库打标退出。
     transition: Mutex<()>,
-    /// 活动资料库词表快照上的 Search，按（资料库，词表修订号，安全模式）校验；词表或图片
-    /// 变化、安全模式切换、切换资料库时清掉，下次查找时重建（#76）。
-    search: Arc<SearchCache>,
-    catalog: Arc<Mutex<Option<TagCatalog>>>,
-    search_catalog_revision: Arc<AtomicI64>,
-    safe_mode_generation: AtomicU64,
+    /// 本设备安全模式的权威状态（#272）：启动时按设置初始化，设置命令经它提交。
+    safe_mode: SafeModeState,
+    /// 统一标签目录与其上的查找（#76、#272）：词表或图片变化、安全模式切换、切换资料库时
+    /// 清掉查找缓存，下次查找时重建。
+    search: Arc<CatalogSearch>,
     import_preview_generation: AtomicU64,
     /// Serialize visibility revocation with the final externally visible side effect.
     visibility_commit: Arc<Mutex<()>>,
@@ -124,8 +121,6 @@ struct LibraryState {
     reference: Mutex<Option<ReferenceLens>>,
     /// 未激活资料库的只读参考视角（参考组跨库引用，#66）。切换、登记变化时清掉，释放数据库文件。
     detached: DetachedLenses,
-    /// 随软件分发的内置近似对应表，启动时读取一次。
-    builtin_approx: Arc<BuiltinApproxTable>,
     /// 随软件分发的翻译表（见 [`bundled_translations`]）：资料库首次进库的外部名称取它的
     /// 各语言名称，迁入向导也按它匹配 Eagle 标签。
     translations: Arc<TagTranslations>,
@@ -134,24 +129,26 @@ struct LibraryState {
 }
 
 impl LibraryState {
-    fn new(device_dir: PathBuf) -> LibraryState {
+    fn new(device_dir: PathBuf, safe_mode: SafeMode) -> LibraryState {
+        let translations = bundled_translations();
         LibraryState {
+            search: Arc::new(CatalogSearch::new(
+                device_dir.clone(),
+                translations.clone(),
+                BuiltinApproxTable::bundled(),
+            )),
             device_dir,
             libraries: Arc::default(),
             forwarded: Mutex::new(None),
             forwarded_handles: Mutex::new(Vec::new()),
             transition: Mutex::new(()),
-            search: Arc::default(),
-            catalog: Arc::default(),
-            search_catalog_revision: Arc::new(AtomicI64::new(-1)),
-            safe_mode_generation: AtomicU64::new(0),
+            safe_mode: SafeModeState::new(safe_mode),
             import_preview_generation: AtomicU64::new(0),
             visibility_commit: Arc::new(Mutex::new(())),
             workspace: Mutex::default(),
             reference: Mutex::new(None),
             detached: DetachedLenses::default(),
-            builtin_approx: Arc::new(BuiltinApproxTable::bundled()),
-            translations: Arc::new(bundled_translations()),
+            translations: Arc::new(translations),
             external_vocabulary: Mutex::new(None),
         }
     }
@@ -172,64 +169,29 @@ impl LibraryState {
     }
 }
 
+/// 本设备登记表与活动资料库；登记表第一次用到时才打开，打开时按设置里的安全模式范围设好。
 fn with_libraries<T>(
-    device_dir: &Path,
-    state: &Mutex<Option<DeviceLibraries>>,
+    state: &LibraryState,
     action: impl FnOnce(&mut DeviceLibraries) -> Result<T, DeviceLibraryError>,
 ) -> Result<T, String> {
-    let mut state = lock(state);
-    if state.is_none() {
-        let mut libraries = DeviceLibraries::open(device_dir).map_err(|error| error.to_string())?;
+    let mut libraries = lock(&state.libraries);
+    if libraries.is_none() {
+        let mut opened =
+            DeviceLibraries::open(&state.device_dir).map_err(|error| error.to_string())?;
         // 刚打开，还没有句柄：只记下范围，不会失败。
-        libraries
-            .set_safe_mode_scope(*lock(&DEVICE_SAFE_MODE_SCOPE))
+        opened
+            .set_safe_mode_scope(state.safe_mode.current().scope)
             .map_err(|error| error.to_string())?;
-        *state = Some(libraries);
+        *libraries = Some(opened);
     }
-    action(state.as_mut().expect("登记表已打开")).map_err(|error| error.to_string())
+    action(libraries.as_mut().expect("登记表已打开")).map_err(|error| error.to_string())
 }
 
 fn with_catalog<T>(
-    device_dir: &Path,
-    state: &Mutex<Option<TagCatalog>>,
+    catalog: &CatalogSearch,
     action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,
 ) -> Result<T, String> {
-    let mut state = lock(state);
-    if state.is_none() {
-        let mut catalog = TagCatalog::open(device_dir).map_err(|e| e.to_string())?;
-        catalog
-            .install_name_defaults(bundled_translations())
-            .map_err(|e| e.to_string())?;
-        *state = Some(catalog);
-    }
-    action(state.as_mut().expect("统一目录已打开")).map_err(|e| e.to_string())
-}
-
-fn catalog_search(
-    device_dir: &Path,
-    catalog: &Mutex<Option<TagCatalog>>,
-    revision: &AtomicI64,
-    cache: &SearchCache,
-    library: &Arc<Library>,
-    builtin: &BuiltinApproxTable,
-    safe_mode: bool,
-) -> Result<Arc<Search>, String> {
-    // Hold catalog serialization until the cached projection has been built. A correction
-    // cannot race an older snapshot back into the cache after invalidation.
-    with_catalog(device_dir, catalog, |catalog| {
-        let snapshot = catalog.synchronize(library)?;
-        if revision.swap(snapshot.revision, Ordering::SeqCst) != snapshot.revision {
-            cache.invalidate();
-        }
-        cache
-            .search_with(library, safe_mode, |vocabulary| {
-                Search::new(
-                    &snapshot.search_vocabulary(&library.info().id, vocabulary),
-                    builtin,
-                )
-            })
-            .map_err(CatalogError::Library)
-    })
+    catalog.with_catalog(action).map_err(|e| e.to_string())
 }
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -343,14 +305,14 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             // 硬件档保存在应用壳设置里；这里只读一次，之后由设置命令同步。
             let saved = kinshoko_core::AppSettings::open(dirs.settings()).ok();
             let preferred = saved.as_ref().and_then(|s| s.tagging_device());
-            if let Some(settings) = &saved {
-                *lock(&DEVICE_SAFE_MODE_SCOPE) = settings.safe_mode_scope();
-            }
             crate::tagging::setup(app, dirs.models().to_path_buf(), preferred);
-            let state = LibraryState::new(device_dir);
-            state
-                .detached
-                .set_safe_mode_scope(*lock(&DEVICE_SAFE_MODE_SCOPE));
+            // 读不到设置时按 SafeModeState 的默认值：开启，默认范围。
+            let safe_mode = saved.as_ref().map_or_else(
+                || SafeModeState::default().current(),
+                |s| SafeMode::new(s.safe_mode(), s.safe_mode_scope()),
+            );
+            let state = LibraryState::new(device_dir, safe_mode);
+            state.detached.set_safe_mode_scope(safe_mode.scope);
             app.manage(state);
             workspace::monitor(app.clone());
             Ok(())
@@ -365,18 +327,17 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .build()
 }
 
-/// 设置里的安全模式范围（#223）；读不到设置时用登记表打开时用的那份。
-fn saved_safe_mode_scope<R: Runtime>(app: &AppHandle<R>) -> SafeModeScope {
-    app.try_state::<ShellState>()
-        .and_then(|shell| shell.0.lock().ok().map(|s| s.settings.safe_mode_scope()))
-        .unwrap_or_else(|| *lock(&DEVICE_SAFE_MODE_SCOPE))
+/// 设置里的安全模式（[`SafeModeState`]）；资料库插件还没装配时按其默认值。
+fn saved_mode<R: Runtime>(app: &AppHandle<R>) -> SafeMode {
+    app.try_state::<LibraryState>().map_or_else(
+        || SafeModeState::default().current(),
+        |state| state.safe_mode.current(),
+    )
 }
 
-/// 设置里的安全模式；读不到设置时按开启处理。
+/// 设置里的安全模式开关；还没迁移的命令组用它“开始记下、结束复核”。
 fn saved_safe_mode<R: Runtime>(app: &AppHandle<R>) -> bool {
-    app.try_state::<ShellState>()
-        .and_then(|shell| shell.0.lock().ok().map(|s| s.settings.safe_mode()))
-        .unwrap_or(true)
+    saved_mode(app).on
 }
 
 async fn blocking<T: Send + 'static>(

@@ -23,9 +23,7 @@ pub(super) fn forward_events<R: Runtime>(
     }
     *forwarded = Some(weak.clone());
     library.set_safe_mode(saved_safe_mode(app));
-    if let Err(error) = with_catalog(&state.device_dir, &state.catalog, |catalog| {
-        catalog.synchronize(&library)
-    }) {
+    if let Err(error) = with_catalog(&state.search, |catalog| catalog.synchronize(&library)) {
         crate::run_log::error("接入统一标签目录失败", error);
     }
     state.configure_library(&library);
