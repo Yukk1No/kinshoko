@@ -6,7 +6,7 @@ use kinshoko_core::tag_catalog::CatalogInspection;
 /// This reads the app catalog without activating or writing any provider.
 pub fn content_definitions<R: Runtime>(app: &AppHandle<R>) -> Result<CatalogInspection, String> {
     let state = app.state::<LibraryState>();
-    with_catalog(&state.catalog, |catalog| catalog.inspect())
+    with_catalog(&state.search, |catalog| catalog.inspect())
 }
 
 /// Reuse T09's registered, identity-checked writable pool without activating the provider.
@@ -20,7 +20,7 @@ pub fn publish_definition_dependencies<R: Runtime>(
     let library = with_libraries(&state, |libraries| libraries.write(library_id))?;
     state.configure_library(&library);
     library.set_safe_mode(saved_safe_mode(app));
-    with_catalog(&state.catalog, |catalog| {
+    with_catalog(&state.search, |catalog| {
         catalog.publish_library_definitions(&library)
     })
 }
@@ -40,7 +40,7 @@ pub(super) async fn publish_tag_definitions<R: Runtime>(
         ))?;
         let state = worker.state::<LibraryState>();
         with_libraries(&state, |libraries| {
-            Ok(with_catalog(&state.catalog, |catalog| {
+            Ok(with_catalog(&state.search, |catalog| {
                 catalog.inspect_libraries(libraries, safe)
             }))
         })?
@@ -62,7 +62,7 @@ pub fn export_package<R: Runtime>(
     // Take the reference registry snapshot before the catalog lock. Workspace readers take
     // libraries then catalog; holding catalog while reading libraries would invert that order.
     with_references(app, |references| {
-        with_catalog(&state.catalog, |catalog| {
+        with_catalog(&state.search, |catalog| {
             Ok(groups.export_package_with_catalog(group_id, references, path, catalog))
         })?
         .map_err(|error| error.to_string())
@@ -84,7 +84,7 @@ pub fn import_package<R: Runtime>(
     // Per-image rating publication already uses this gate. No package IO or decoding is
     // performed while holding either lock; always take the final gate before the catalog.
     with_visibility_commit(app, |_| {
-        with_catalog(&state.catalog, |catalog| {
+        with_catalog(&state.search, |catalog| {
             catalog.publish_library_definitions(library)
         })
     })

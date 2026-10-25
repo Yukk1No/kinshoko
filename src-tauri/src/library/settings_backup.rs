@@ -32,7 +32,7 @@ pub(super) async fn export_application_settings<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
-        with_catalog(&state.catalog, |catalog| {
+        with_catalog(&state.search, |catalog| {
             let shell_state = app.state::<ShellState>();
             let shell = lock(&shell_state.0);
             Ok(ApplicationSettingsBackup::export(
@@ -62,9 +62,9 @@ pub(super) async fn restore_application_settings<R: Runtime>(
         let _visibility = lock(&state.visibility_commit);
         // Invalidate before waiting for catalog readers; keep final sends/copies excluded
         // through the replacement and desktop reset, even when the mode stays the same.
-        state.safe_mode.commit(|_| {});
+        state.safe_mode.revoke();
         import_preview::revoke(&app);
-        let (view, safe, device, mut problems) = with_catalog(&state.catalog, |catalog| {
+        let (view, safe, device, mut problems) = with_catalog(&state.search, |catalog| {
             let shell_state = app.state::<ShellState>();
             let mut shell = lock(&shell_state.0);
             let previous = shell.settings.clone();
@@ -96,7 +96,7 @@ pub(super) async fn restore_application_settings<R: Runtime>(
                 problems,
             )))
         })??;
-        state.catalog.invalidate();
+        state.search.invalidate();
         *lock(&state.workspace) = None;
         *lock(&state.external_vocabulary) = None;
         state.detached.clear();

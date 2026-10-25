@@ -6,7 +6,7 @@ pub(super) fn refresh_labels<R: Runtime>(
     app: &AppHandle<R>,
     state: &LibraryState,
 ) -> Result<(), String> {
-    state.catalog.invalidate();
+    state.search.invalidate();
     if let Ok(active) = state.active() {
         let _ = app.emit(
             EVENT,
@@ -28,7 +28,7 @@ pub(super) async fn edit_tag_name<R: Runtime>(
     catalog_id: String,
     edit: CatalogNameEdit,
 ) -> Result<TagCatalogWorkspace, String> {
-    let (reader, catalog) = (app.clone(), state.catalog.clone());
+    let (reader, catalog) = (app.clone(), state.search.clone());
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {
@@ -76,7 +76,7 @@ pub(super) async fn edit_local_alias<R: Runtime>(
     local_id: String,
     edit: LocalAliasEdit,
 ) -> Result<(), String> {
-    let catalog = state.catalog.clone();
+    let catalog = state.search.clone();
     let reader = app.clone();
     blocking(move || {
         // 别名记在本设备的统一目录里，资料库只读核对：不必是可写库（ADR-0008）。

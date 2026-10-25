@@ -111,7 +111,7 @@ struct LibraryState {
     safe_mode: SafeModeState,
     /// 统一标签目录与其上的查找（#76、#272）：词表或图片变化、安全模式切换、切换资料库时
     /// 清掉查找缓存，下次查找时重建。
-    catalog: Arc<CatalogSearch>,
+    search: Arc<CatalogSearch>,
     import_preview_generation: AtomicU64,
     /// Serialize visibility revocation with the final externally visible side effect.
     visibility_commit: Arc<Mutex<()>>,
@@ -130,10 +130,11 @@ struct LibraryState {
 
 impl LibraryState {
     fn new(device_dir: PathBuf, safe_mode: SafeMode) -> LibraryState {
+        let translations = bundled_translations();
         LibraryState {
-            catalog: Arc::new(CatalogSearch::new(
+            search: Arc::new(CatalogSearch::new(
                 device_dir.clone(),
-                bundled_translations(),
+                translations.clone(),
                 BuiltinApproxTable::bundled(),
             )),
             device_dir,
@@ -147,7 +148,7 @@ impl LibraryState {
             workspace: Mutex::default(),
             reference: Mutex::new(None),
             detached: DetachedLenses::default(),
-            translations: Arc::new(bundled_translations()),
+            translations: Arc::new(translations),
             external_vocabulary: Mutex::new(None),
         }
     }

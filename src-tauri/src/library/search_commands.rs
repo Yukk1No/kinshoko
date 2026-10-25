@@ -26,7 +26,7 @@ pub(super) async fn search_candidates<R: Runtime>(
     limit: u32,
     safe_mode: bool,
 ) -> Result<Vec<Candidate>, String> {
-    let catalog = state.catalog.clone();
+    let catalog = state.search.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
         let search = catalog
@@ -48,7 +48,7 @@ pub(super) async fn resolve_search<R: Runtime>(
     lang: String,
     safe_mode: bool,
 ) -> Result<ConditionTree, String> {
-    let catalog = state.catalog.clone();
+    let catalog = state.search.clone();
     crate::run_log::record(LogEvent::SearchResolved {
         terms: input.conditions.len().min(u32::MAX as usize) as u32,
     });
@@ -158,7 +158,7 @@ pub(super) async fn set_safe_mode_scope<R: Runtime>(
             // 视角已换上；只是修订号没写成，游标与工作区快照仍按视角作废。
             crate::run_log::warn("安全模式范围的修订号未写入", error);
         }
-        state.catalog.invalidate();
+        state.search.invalidate();
         crate::desktop::safe_mode_scope_committed(&app, scope);
         view
     };
@@ -212,7 +212,7 @@ pub(super) async fn personal_approx<R: Runtime>(
     library_id: String,
     lang: String,
 ) -> Result<Vec<PersonalApproxEntry>, String> {
-    let catalog = state.catalog.clone();
+    let catalog = state.search.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
         with_catalog(&catalog, |catalog| {
@@ -247,7 +247,7 @@ pub(super) fn external_vocabulary<R: Runtime>(
     {
         return Ok(vocabulary.clone());
     }
-    let mut names = ExternalVocabulary::builtin_names(state.catalog.builtin_approx());
+    let mut names = ExternalVocabulary::builtin_names(state.search.builtin_approx());
     if let Some(path) = &csv {
         names.extend(ExternalVocabulary::read_tags_csv(path)?);
     }

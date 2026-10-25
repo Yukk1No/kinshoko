@@ -11,7 +11,7 @@ pub(super) fn with_resources<T>(
     f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
 ) -> Result<T, String> {
     with_libraries(state, |device| {
-        Ok(with_catalog(&state.catalog, |catalog| {
+        Ok(with_catalog(&state.search, |catalog| {
             let mut slot = lock(&state.workspace);
             if slot.is_none() {
                 *slot = Some(Workspace::open(&state.device_dir)?);
@@ -121,7 +121,7 @@ pub(super) async fn workspace_resolve<R: Runtime>(
     safe_mode: bool,
 ) -> Result<ConditionTree, String> {
     blocking(move || {
-        let catalog = app.state::<LibraryState>().catalog.clone();
+        let catalog = app.state::<LibraryState>().search.clone();
         stable(&app, safe_mode, |w, d, c| {
             w.resolve(d, c, &input, &lang, safe_mode, catalog.builtin_approx())
         })
@@ -137,7 +137,7 @@ pub(super) async fn workspace_candidates<R: Runtime>(
     safe_mode: bool,
 ) -> Result<Vec<Candidate>, String> {
     blocking(move || {
-        let catalog = app.state::<LibraryState>().catalog.clone();
+        let catalog = app.state::<LibraryState>().search.clone();
         stable(&app, safe_mode, |w, d, c| {
             w.candidates(
                 d,

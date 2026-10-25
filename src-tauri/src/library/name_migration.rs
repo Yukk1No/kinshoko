@@ -21,7 +21,7 @@ pub(super) async fn plan_legacy_names<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
 ) -> Result<LegacyNameMigrationWorkspace, String> {
-    let (reader, catalog) = (app.clone(), state.catalog.clone());
+    let (reader, catalog) = (app.clone(), state.search.clone());
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {
@@ -45,7 +45,7 @@ pub(super) async fn confirm_legacy_names<R: Runtime>(
     revision: i64,
     decisions: Vec<LegacyNameDecision>,
 ) -> Result<LegacyNameMigrationWorkspace, String> {
-    let (reader, catalog) = (app.clone(), state.catalog.clone());
+    let (reader, catalog) = (app.clone(), state.search.clone());
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {
@@ -75,7 +75,7 @@ pub(super) async fn preview_legacy_names<R: Runtime>(
     revision: i64,
     decisions: Vec<LegacyNameDecision>,
 ) -> Result<LegacyNameMigrationPreview, String> {
-    let (reader, catalog) = (app.clone(), state.catalog.clone());
+    let (reader, catalog) = (app.clone(), state.search.clone());
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {

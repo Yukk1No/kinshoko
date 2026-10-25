@@ -7,8 +7,8 @@
 //! - **开始记下、结束复核**（[`SafeModeState::snapshot`] / [`SafeModeState::still`]）：只比较
 //!   代次。其间发生过任何一次提交（包括重复设成同一值、设置没保存成）即失效，调用方丢弃结果。
 //!
-//! 提交与外壳的可见性锁、设置保存、通知资料库和桌面的顺序由应用壳负责，这里只保证换值与
-//! 代次前进是一步。
+//! 提交与外壳的可见性锁、通知资料库和桌面的顺序由应用壳负责；这里保证换值与代次前进是一步，
+//! 带保存的提交（[`SafeModeState::try_commit`]）保存成功才换值。
 
 use std::sync::{Mutex, MutexGuard};
 
@@ -74,18 +74,25 @@ impl SafeModeState {
         state.mode
     }
 
-    /// 同 [`Self::commit`]，然后调用 `save` 保存设置；保存不成时退回原值（代次再前进一次，
-    /// 取过的快照仍失效）。`save` 不持本状态的锁，调用方负责让提交串行（应用壳的可见性锁）。
+    /// 只让代次加一，设置不变：取过的快照都失效（例如整份设置即将被替换时）。
+    pub fn revoke(&self) {
+        self.commit(|_| {});
+    }
+
+    /// 带保存的提交：先 [`Self::revoke`]，再用 `change` 改过的设置调用 `save`；保存成功才换上
+    /// 新设置（代次再加一），保存不成时设置不变、取过的快照仍失效。保存期间读到的仍是原值。
+    /// `save` 不持本状态的锁，调用方负责让提交串行（应用壳的可见性锁）。
     pub fn try_commit<T, E>(
         &self,
         change: impl FnOnce(&mut SafeMode),
         save: impl FnOnce(SafeMode) -> Result<T, E>,
     ) -> Result<T, E> {
-        let previous = self.current();
-        let next = self.commit(change);
-        save(next).inspect_err(|_| {
-            self.commit(|mode| *mode = previous);
-        })
+        self.revoke();
+        let mut next = self.current();
+        change(&mut next);
+        let saved = save(next)?;
+        self.commit(|mode| *mode = next);
+        Ok(saved)
     }
 
     fn lock(&self) -> MutexGuard<'_, State> {
@@ -150,6 +157,8 @@ mod tests {
             |mode| mode.on = false,
             |next| {
                 assert!(!next.on);
+                assert!(state.current().on, "还没保存成就露出了新设置");
+                assert!(!state.still(&snapshot), "保存前没有作废快照");
                 Err("磁盘满了")
             },
         );

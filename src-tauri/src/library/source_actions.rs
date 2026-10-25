@@ -78,7 +78,7 @@ pub(super) async fn workspace_edit_source<R: Runtime>(
                     .map(|_| ())
             })
         })?;
-        app.state::<LibraryState>().catalog.invalidate();
+        app.state::<LibraryState>().search.invalidate();
         Ok(())
     })
     .await
@@ -99,7 +99,7 @@ pub(super) async fn workspace_edit_source_tags<R: Runtime>(
                 library.edit_tags(std::slice::from_ref(&t.image_id), &edits)
             })
         })?;
-        app.state::<LibraryState>().catalog.invalidate();
+        app.state::<LibraryState>().search.invalidate();
         publish_definition_dependencies(&app, &target.library_id).map_err(|error| format!("这个来源的标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))?;
         Ok(())
     })

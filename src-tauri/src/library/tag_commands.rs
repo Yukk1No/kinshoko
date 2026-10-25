@@ -11,7 +11,7 @@ pub(super) async fn image_tags<R: Runtime>(
     image_id: String,
     lang: String,
 ) -> Result<ImageTags, String> {
-    let catalog = state.catalog.clone();
+    let catalog = state.search.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
         with_catalog(&catalog, |catalog| {
@@ -29,7 +29,7 @@ pub(super) async fn catalog_image_tags<R: Runtime>(
     image_id: String,
     lang: String,
 ) -> Result<CatalogImageTags, String> {
-    let catalog = state.catalog.clone();
+    let catalog = state.search.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
         with_catalog(&catalog, |catalog| {
@@ -44,7 +44,7 @@ pub(super) async fn inspect_tag_catalog<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
 ) -> Result<TagCatalogWorkspace, String> {
-    let (reader, catalog) = (app.clone(), state.catalog.clone());
+    let (reader, catalog) = (app.clone(), state.search.clone());
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {
@@ -69,7 +69,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
     local_tag_id: String,
     correction: CatalogCorrection,
 ) -> Result<TagCatalogWorkspace, String> {
-    let (reader, catalog) = (app.clone(), state.catalog.clone());
+    let (reader, catalog) = (app.clone(), state.search.clone());
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let publish_library_id = library_id.clone();
@@ -87,7 +87,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
     let publish_app = app.clone();
     let publication =
         blocking(move || publish_definition_dependencies(&publish_app, &publish_library_id)).await;
-    state.catalog.invalidate();
+    state.search.invalidate();
     // Compatibility event refreshes current candidates, conditions and selected image labels.
     if let Ok(active) = state.active() {
         let _ = app.emit(
@@ -127,7 +127,7 @@ pub(super) async fn vocabulary<R: Runtime>(
     state: State<'_, LibraryState>,
     library_id: String,
 ) -> Result<Vocabulary, String> {
-    let catalog = state.catalog.clone();
+    let catalog = state.search.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
         with_catalog(&catalog, |catalog| catalog.search_vocabulary(&library))
@@ -143,7 +143,7 @@ pub(super) async fn tag_groups<R: Runtime>(
     library_id: String,
     lang: String,
 ) -> Result<Vec<TagGroupView>, String> {
-    let catalog = state.catalog.clone();
+    let catalog = state.search.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
         with_catalog(&catalog, |catalog| catalog.tag_groups(&library, &lang))

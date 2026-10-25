@@ -76,7 +76,7 @@ fn a_library_assembled_by_the_app_names_model_tags_and_finds_them_by_chinese_nam
     assert_eq!(names(&library, &image), [("蓝瞳".to_owned(), false)]);
     let search = Search::new(
         &library.vocabulary().unwrap(),
-        state.catalog.builtin_approx(),
+        state.search.builtin_approx(),
     );
     for text in ["蓝瞳", "蓝眼睛"] {
         let found = search.candidates(text, "zh-CN", 5);
