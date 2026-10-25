@@ -6,18 +6,12 @@ use super::*;
 /// 模式设置开着时也按开着处理，切换的这一刻不会露出范围内的分级候选。“R18”与要隐藏的分级
 /// 按设置里的安全模式范围（#223）。
 #[tauri::command]
-pub(super) fn rating_candidates<R: Runtime>(
-    app: AppHandle<R>,
+pub(super) fn rating_candidates(
+    state: State<'_, LibraryState>,
     text: String,
     safe_mode: bool,
 ) -> Vec<RatingCandidate> {
-    kinshoko_core::search::rating_candidates(
-        &text,
-        SafeMode::new(
-            safe_mode || saved_safe_mode(&app),
-            saved_safe_mode_scope(&app),
-        ),
-    )
+    kinshoko_core::search::rating_candidates(&text, state.safe_mode.effective(safe_mode))
 }
 
 /// 搜索框打字时的候选：按命名空间与别名列出，名称按界面语言 `lang`。`safe_mode` 是界面
@@ -32,17 +26,12 @@ pub(super) async fn search_candidates<R: Runtime>(
     limit: u32,
     safe_mode: bool,
 ) -> Result<Vec<Candidate>, String> {
-    let (cache, builtin) = (state.search.clone(), state.builtin_approx.clone());
-    let (dir, catalog, revision) = (
-        state.device_dir.clone(),
-        state.catalog.clone(),
-        state.search_catalog_revision.clone(),
-    );
+    let catalog = state.catalog.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
-        let search = catalog_search(
-            &dir, &catalog, &revision, &cache, &library, &builtin, safe_mode,
-        )?;
+        let search = catalog
+            .search(&library, safe_mode)
+            .map_err(|e| e.to_string())?;
         Ok(search.candidates(&text, &lang, limit as usize))
     })
     .await
@@ -59,20 +48,15 @@ pub(super) async fn resolve_search<R: Runtime>(
     lang: String,
     safe_mode: bool,
 ) -> Result<ConditionTree, String> {
-    let (cache, builtin) = (state.search.clone(), state.builtin_approx.clone());
-    let (dir, catalog, revision) = (
-        state.device_dir.clone(),
-        state.catalog.clone(),
-        state.search_catalog_revision.clone(),
-    );
+    let catalog = state.catalog.clone();
     crate::run_log::record(LogEvent::SearchResolved {
         terms: input.conditions.len().min(u32::MAX as usize) as u32,
     });
     blocking(move || {
         let library = readable(&app, &library_id)?;
-        let search = catalog_search(
-            &dir, &catalog, &revision, &cache, &library, &builtin, safe_mode,
-        )?;
+        let search = catalog
+            .search(&library, safe_mode)
+            .map_err(|e| e.to_string())?;
         Ok(search.resolve(&input, &lang))
     })
     .await
@@ -80,11 +64,12 @@ pub(super) async fn resolve_search<R: Runtime>(
 
 /// 安全模式是否开启（全局设置）。
 #[tauri::command]
-pub(super) async fn safe_mode<R: Runtime>(app: AppHandle<R>) -> Result<bool, String> {
-    Ok(saved_safe_mode(&app))
+pub(super) async fn safe_mode(state: State<'_, LibraryState>) -> Result<bool, String> {
+    Ok(state.safe_mode.current().on)
 }
 
-/// 开关安全模式：先保存设置，再设给开着的可写资料库；资料库推送 `safeModeChanged`。
+/// 开关安全模式：先提交给 [`SafeModeState`] 并保存设置（保存不成时退回原值），再设给开着的
+/// 可写资料库；资料库推送 `safeModeChanged`。
 /// 安全模式属于本设备，不随资料库变；之后切换到的资料库按保存的设置打开。
 #[tauri::command]
 pub(super) async fn set_safe_mode<R: Runtime>(
@@ -102,15 +87,17 @@ pub(super) async fn set_safe_mode<R: Runtime>(
         #[cfg(debug_assertions)]
         let locked_at = started.elapsed();
         // Revoke even a repeated setting or failed save; pending work must revalidate.
-        state.safe_mode_generation.fetch_add(1, Ordering::SeqCst);
-        import_preview::revoke(&app);
-        if let Some(shell) = app.try_state::<ShellState>() {
-            let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
-            shell
-                .settings
-                .set_safe_mode(on)
-                .map_err(|e| e.to_string())?;
-        }
+        state.safe_mode.try_commit(
+            |mode| mode.on = on,
+            |_| {
+                import_preview::revoke(&app);
+                let Some(shell) = app.try_state::<ShellState>() else {
+                    return Ok(());
+                };
+                let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
+                shell.settings.set_safe_mode(on).map_err(|e| e.to_string())
+            },
+        )?;
         #[cfg(debug_assertions)]
         {
             saved_at = started.elapsed();
@@ -150,19 +137,20 @@ pub(super) async fn set_safe_mode_scope<R: Runtime>(
 ) -> Result<kinshoko_core::ShellSettingsView, String> {
     let view = {
         let _visibility = lock(&state.visibility_commit);
-        // 与开关相同：进行中的读取与发送都要按新视角重新核对。
-        state.safe_mode_generation.fetch_add(1, Ordering::SeqCst);
-        import_preview::revoke(&app);
-        let view = {
-            let shell = app.state::<ShellState>();
-            let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
-            shell
-                .settings
-                .set_safe_mode_scope(scope)
-                .map_err(|e| e.to_string())?;
-            shell.view()
-        };
-        *lock(&DEVICE_SAFE_MODE_SCOPE) = scope;
+        // 与开关相同：进行中的读取与发送都要按新视角重新核对；保存不成时退回原值。
+        let view = state.safe_mode.try_commit(
+            |mode| mode.scope = scope,
+            |_| {
+                import_preview::revoke(&app);
+                let shell = app.state::<ShellState>();
+                let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
+                shell
+                    .settings
+                    .set_safe_mode_scope(scope)
+                    .map_err(|e| e.to_string())?;
+                Ok::<_, String>(shell.view())
+            },
+        )?;
         state.detached.set_safe_mode_scope(scope);
         if let Some(libraries) = lock(&state.libraries).as_mut()
             && let Err(error) = libraries.set_safe_mode_scope(scope)
@@ -170,11 +158,11 @@ pub(super) async fn set_safe_mode_scope<R: Runtime>(
             // 视角已换上；只是修订号没写成，游标与工作区快照仍按视角作废。
             crate::run_log::warn("安全模式范围的修订号未写入", error);
         }
-        state.search.invalidate();
+        state.catalog.invalidate();
         crate::desktop::safe_mode_scope_committed(&app, scope);
         view
     };
-    let safe = saved_safe_mode(&app);
+    let safe = state.safe_mode.current().on;
     // 与开关同一个通知：钉图重新核对，跟着安全模式重读的界面（词表、分组、导入……）都重读。
     let _ = app.emit(SAFE_MODE_EVENT, safe);
     if let Ok(status) = workspace::action(&app, safe, |w, d, c| w.status(d, c, safe)) {
@@ -224,10 +212,10 @@ pub(super) async fn personal_approx<R: Runtime>(
     library_id: String,
     lang: String,
 ) -> Result<Vec<PersonalApproxEntry>, String> {
-    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    let catalog = state.catalog.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
-        with_catalog(&dir, &catalog, |catalog| {
+        with_catalog(&catalog, |catalog| {
             let snapshot = catalog.synchronize(&library)?;
             let mut entries = library.personal_approx(&lang)?;
             for entry in &mut entries {
@@ -259,7 +247,7 @@ pub(super) fn external_vocabulary<R: Runtime>(
     {
         return Ok(vocabulary.clone());
     }
-    let mut names = ExternalVocabulary::builtin_names(&state.builtin_approx);
+    let mut names = ExternalVocabulary::builtin_names(state.catalog.builtin_approx());
     if let Some(path) = &csv {
         names.extend(ExternalVocabulary::read_tags_csv(path)?);
     }

@@ -23,9 +23,7 @@ pub(super) fn forward_events<R: Runtime>(
     }
     *forwarded = Some(weak.clone());
     library.set_safe_mode(saved_safe_mode(app));
-    if let Err(error) = with_catalog(&state.device_dir, &state.catalog, |catalog| {
-        catalog.synchronize(&library)
-    }) {
+    if let Err(error) = with_catalog(&state.catalog, |catalog| catalog.synchronize(&library)) {
         crate::run_log::error("接入统一标签目录失败", error);
     }
     state.configure_library(&library);
@@ -33,7 +31,7 @@ pub(super) fn forward_events<R: Runtime>(
     *lock(&state.reference) = library.take_reference_lens();
     // 刚成为活动库的库不再经只读视角读取；其他库按需重开。
     state.detached.clear();
-    state.search.invalidate();
+    state.catalog.invalidate();
     crate::tagging::attach(app, library);
     let mut handles = lock(&state.forwarded_handles);
     handles.retain(|handle| handle.strong_count() > 0);
@@ -42,7 +40,7 @@ pub(super) fn forward_events<R: Runtime>(
     }
     handles.push(weak);
     drop(handles);
-    let (app, search) = (app.clone(), state.search.clone());
+    let (app, search) = (app.clone(), state.catalog.clone());
     // 每个句柄的事件都转发，直到句柄关闭（ADR-0008）：可写句柄切到别的库后，原库仍在进行的导入的
     // 进度、结束与列表变化照常送到界面。事件都带资料库身份，界面只采纳它正在显示的库的安全模式与
     // 导入事件，不串台。

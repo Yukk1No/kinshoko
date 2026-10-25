@@ -6,7 +6,7 @@ pub(super) fn refresh_labels<R: Runtime>(
     app: &AppHandle<R>,
     state: &LibraryState,
 ) -> Result<(), String> {
-    state.search.invalidate();
+    state.catalog.invalidate();
     if let Ok(active) = state.active() {
         let _ = app.emit(
             EVENT,
@@ -28,16 +28,12 @@ pub(super) async fn edit_tag_name<R: Runtime>(
     catalog_id: String,
     edit: CatalogNameEdit,
 ) -> Result<TagCatalogWorkspace, String> {
-    let (dir, libraries, catalog) = (
-        state.device_dir.clone(),
-        state.libraries.clone(),
-        state.catalog.clone(),
-    );
-    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let (reader, catalog) = (app.clone(), state.catalog.clone());
+    let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {
-        with_libraries(&dir, &libraries, |libraries| {
-            Ok(with_catalog(&dir, &catalog, |catalog| {
+        with_libraries(&reader.state::<LibraryState>(), |libraries| {
+            Ok(with_catalog(&catalog, |catalog| {
                 let visible = catalog.inspect_libraries(libraries, safe)?;
                 if !visible.catalog.tags.iter().any(|tag| tag.id == catalog_id) {
                     return Err(CatalogError::UnknownTag);
@@ -62,9 +58,7 @@ pub(super) async fn edit_tag_name<R: Runtime>(
     })
     .await?;
     refresh_labels(&app, &state)?;
-    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
-        || saved_safe_mode(&app) != safe
-    {
+    if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
         return Err("安全模式已变化，请重新读取标签名称".into());
     }
     Ok(result)
@@ -82,12 +76,12 @@ pub(super) async fn edit_local_alias<R: Runtime>(
     local_id: String,
     edit: LocalAliasEdit,
 ) -> Result<(), String> {
-    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    let catalog = state.catalog.clone();
     let reader = app.clone();
     blocking(move || {
         // 别名记在本设备的统一目录里，资料库只读核对：不必是可写库（ADR-0008）。
         let library = readable(&reader, &library_id)?;
-        with_catalog(&dir, &catalog, |catalog| {
+        with_catalog(&catalog, |catalog| {
             let snapshot = catalog.synchronize(&library)?;
             let mapping = snapshot
                 .mappings

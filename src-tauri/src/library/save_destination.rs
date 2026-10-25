@@ -9,9 +9,7 @@ pub(super) fn fixed_library<R: Runtime>(
 ) -> Result<Arc<Library>, String> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
-    let library = with_libraries(&state.device_dir, &state.libraries, |device| {
-        device.write(&destination.library_id)
-    })?;
+    let library = with_libraries(&state, |device| device.write(&destination.library_id))?;
     library
         .validate_destination(destination)
         .map_err(|e| e.to_string())?;
@@ -66,14 +64,14 @@ pub(super) fn publish_saved<R: Runtime>(
                 "内容处理结果已保留，资料库标签定义未更新：{error}。可在统一标签目录重试保存定义。"
             )
         })?;
-    with_catalog(&state.device_dir, &state.catalog, |catalog| {
+    with_catalog(&state.catalog, |catalog| {
         catalog.publish_library_definitions(library)
     })
     .map_err(|e| format!("内容已保存，资料库标签定义未更新：{e}。可在统一标签目录重试保存定义。"))
 }
 fn complete<R: Runtime>(app: &AppHandle<R>, owner: &str, id: &str, warning: Option<String>) {
     let state = app.state::<LibraryState>();
-    if let Err(error) = with_libraries(&state.device_dir, &state.libraries, |device| {
+    if let Err(error) = with_libraries(&state, |device| {
         device.complete_import_publication(owner, id, warning)
     }) {
         crate::run_log::error("无法记录原导入任务的收尾结果", error);
@@ -88,7 +86,7 @@ pub(super) fn begin<R: Runtime>(
     let library = fixed_library(app, &destination)?;
     let events = library.events();
     let state = app.state::<LibraryState>();
-    let id = with_libraries(&state.device_dir, &state.libraries, |device| {
+    let id = with_libraries(&state, |device| {
         let id = device.start_import_to(destination.clone(), source, options)?;
         device.defer_import_completion(&id)?;
         Ok(id)
@@ -138,7 +136,7 @@ pub(super) async fn dismiss_import<R: Runtime>(
         with_visibility_commit(&app, |_| {
             import_preview::revoke(&app);
             let state = app.state::<LibraryState>();
-            with_libraries(&state.device_dir, &state.libraries, |device| {
+            with_libraries(&state, |device| {
                 device.dismiss_import(&library_id, &task_id)
             })
         })
@@ -167,7 +165,7 @@ pub(super) async fn workspace_copy_source<R: Runtime>(
             .map_err(|e| e.to_string())?;
         let state = app.state::<LibraryState>();
         // Source access completed before taking catalog; never invert device → catalog order.
-        with_catalog(&state.device_dir, &state.catalog, |catalog| {
+        with_catalog(&state.catalog, |catalog| {
             catalog.synchronize(&source)?;
             catalog
                 .inspect()?

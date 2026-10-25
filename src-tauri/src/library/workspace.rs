@@ -10,8 +10,8 @@ pub(super) fn with_resources<T>(
     state: &LibraryState,
     f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
 ) -> Result<T, String> {
-    with_libraries(&state.device_dir, &state.libraries, |device| {
-        Ok(with_catalog(&state.device_dir, &state.catalog, |catalog| {
+    with_libraries(state, |device| {
+        Ok(with_catalog(&state.catalog, |catalog| {
             let mut slot = lock(&state.workspace);
             if slot.is_none() {
                 *slot = Some(Workspace::open(&state.device_dir)?);
@@ -34,17 +34,15 @@ pub(super) fn action<R: Runtime, T>(
         f(workspace, device, catalog)
     })
 }
-pub(super) fn generation<R: Runtime>(app: &AppHandle<R>) -> u64 {
-    app.state::<LibraryState>()
-        .safe_mode_generation
-        .load(Ordering::SeqCst)
+pub(super) fn generation<R: Runtime>(app: &AppHandle<R>) -> SafeModeSnapshot {
+    app.state::<LibraryState>().safe_mode.snapshot()
 }
 pub(super) fn current<R: Runtime>(
     app: &AppHandle<R>,
     safe: bool,
-    expected: u64,
+    expected: SafeModeSnapshot,
 ) -> Result<(), String> {
-    if generation(app) != expected || saved_safe_mode(app) != safe {
+    if !app.state::<LibraryState>().safe_mode.still(&expected) || saved_safe_mode(app) != safe {
         Err(kinshoko_core::library::Error::LensChanged.to_string())
     } else {
         Ok(())
@@ -123,9 +121,9 @@ pub(super) async fn workspace_resolve<R: Runtime>(
     safe_mode: bool,
 ) -> Result<ConditionTree, String> {
     blocking(move || {
-        let builtin = app.state::<LibraryState>().builtin_approx.clone();
+        let catalog = app.state::<LibraryState>().catalog.clone();
         stable(&app, safe_mode, |w, d, c| {
-            w.resolve(d, c, &input, &lang, safe_mode, &builtin)
+            w.resolve(d, c, &input, &lang, safe_mode, catalog.builtin_approx())
         })
     })
     .await
@@ -139,9 +137,17 @@ pub(super) async fn workspace_candidates<R: Runtime>(
     safe_mode: bool,
 ) -> Result<Vec<Candidate>, String> {
     blocking(move || {
-        let builtin = app.state::<LibraryState>().builtin_approx.clone();
+        let catalog = app.state::<LibraryState>().catalog.clone();
         stable(&app, safe_mode, |w, d, c| {
-            w.candidates(d, c, &text, &lang, limit as usize, safe_mode, &builtin)
+            w.candidates(
+                d,
+                c,
+                &text,
+                &lang,
+                limit as usize,
+                safe_mode,
+                catalog.builtin_approx(),
+            )
         })
     })
     .await
@@ -178,9 +184,7 @@ pub(super) fn read_image<R: Runtime>(
     let expected = generation(app);
     // 先在锁外打开这次请求要核对的提供方（只短暂持有登记表的锁取登记），锁里只读修订与核对。
     let state = app.state::<LibraryState>();
-    let registrations = with_libraries(&state.device_dir, &state.libraries, |device| {
-        Ok(device.libraries().to_vec())
-    })?;
+    let registrations = with_libraries(&state, |device| Ok(device.libraries().to_vec()))?;
     opened.open_all(&registrations);
     let library = action(app, safe, |workspace, device, catalog| {
         workspace.image_reader(device, catalog, opened, library_id, image_id, safe)

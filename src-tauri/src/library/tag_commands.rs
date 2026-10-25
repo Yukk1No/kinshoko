@@ -11,10 +11,10 @@ pub(super) async fn image_tags<R: Runtime>(
     image_id: String,
     lang: String,
 ) -> Result<ImageTags, String> {
-    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    let catalog = state.catalog.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
-        with_catalog(&dir, &catalog, |catalog| {
+        with_catalog(&catalog, |catalog| {
             Ok(catalog.image_tags(&library, &image_id, &lang)?.image)
         })
     })
@@ -29,10 +29,10 @@ pub(super) async fn catalog_image_tags<R: Runtime>(
     image_id: String,
     lang: String,
 ) -> Result<CatalogImageTags, String> {
-    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    let catalog = state.catalog.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
-        with_catalog(&dir, &catalog, |catalog| {
+        with_catalog(&catalog, |catalog| {
             catalog.image_tags(&library, &image_id, &lang)
         })
     })
@@ -44,24 +44,18 @@ pub(super) async fn inspect_tag_catalog<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
 ) -> Result<TagCatalogWorkspace, String> {
-    let (dir, libraries, catalog) = (
-        state.device_dir.clone(),
-        state.libraries.clone(),
-        state.catalog.clone(),
-    );
-    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let (reader, catalog) = (app.clone(), state.catalog.clone());
+    let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {
-        with_libraries(&dir, &libraries, |libraries| {
-            Ok(with_catalog(&dir, &catalog, |catalog| {
+        with_libraries(&reader.state::<LibraryState>(), |libraries| {
+            Ok(with_catalog(&catalog, |catalog| {
                 catalog.inspect_libraries(libraries, safe)
             }))
         })?
     })
     .await?;
-    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
-        || saved_safe_mode(&app) != safe
-    {
+    if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
         return Err("安全模式已变化，请重新检查标签对应".into());
     }
     Ok(result)
@@ -75,19 +69,15 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
     local_tag_id: String,
     correction: CatalogCorrection,
 ) -> Result<TagCatalogWorkspace, String> {
-    let (dir, libraries, catalog) = (
-        state.device_dir.clone(),
-        state.libraries.clone(),
-        state.catalog.clone(),
-    );
-    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let (reader, catalog) = (app.clone(), state.catalog.clone());
+    let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let publish_library_id = library_id.clone();
     let result = blocking(move || {
-        with_libraries(&dir, &libraries, |libraries| {
+        with_libraries(&reader.state::<LibraryState>(), |libraries| {
             let library = libraries.read(&library_id)?;
             library.set_safe_mode(safe);
-            Ok(with_catalog(&dir, &catalog, |catalog| {
+            Ok(with_catalog(&catalog, |catalog| {
                 catalog.correct(&library, &local_tag_id, correction)?;
                 catalog.inspect_libraries(libraries, safe)
             }))
@@ -97,7 +87,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
     let publish_app = app.clone();
     let publication =
         blocking(move || publish_definition_dependencies(&publish_app, &publish_library_id)).await;
-    state.search.invalidate();
+    state.catalog.invalidate();
     // Compatibility event refreshes current candidates, conditions and selected image labels.
     if let Ok(active) = state.active() {
         let _ = app.emit(
@@ -108,9 +98,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
             },
         );
     }
-    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
-        || saved_safe_mode(&app) != safe
-    {
+    if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
         return Err("安全模式已变化，请重新检查标签对应".into());
     }
     publication.map_err(|error| format!("标签对应已保存在程序中，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))?;
@@ -139,12 +127,10 @@ pub(super) async fn vocabulary<R: Runtime>(
     state: State<'_, LibraryState>,
     library_id: String,
 ) -> Result<Vocabulary, String> {
-    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    let catalog = state.catalog.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
-        with_catalog(&dir, &catalog, |catalog| {
-            catalog.search_vocabulary(&library)
-        })
+        with_catalog(&catalog, |catalog| catalog.search_vocabulary(&library))
     })
     .await
 }
@@ -157,12 +143,10 @@ pub(super) async fn tag_groups<R: Runtime>(
     library_id: String,
     lang: String,
 ) -> Result<Vec<TagGroupView>, String> {
-    let (dir, catalog) = (state.device_dir.clone(), state.catalog.clone());
+    let catalog = state.catalog.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
-        with_catalog(&dir, &catalog, |catalog| {
-            catalog.tag_groups(&library, &lang)
-        })
+        with_catalog(&catalog, |catalog| catalog.tag_groups(&library, &lang))
     })
     .await
 }

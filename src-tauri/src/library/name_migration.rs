@@ -21,24 +21,18 @@ pub(super) async fn plan_legacy_names<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
 ) -> Result<LegacyNameMigrationWorkspace, String> {
-    let (dir, libraries, catalog) = (
-        state.device_dir.clone(),
-        state.libraries.clone(),
-        state.catalog.clone(),
-    );
-    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let (reader, catalog) = (app.clone(), state.catalog.clone());
+    let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {
-        with_libraries(&dir, &libraries, |libraries| {
-            Ok(with_catalog(&dir, &catalog, |catalog| {
+        with_libraries(&reader.state::<LibraryState>(), |libraries| {
+            Ok(with_catalog(&catalog, |catalog| {
                 view(catalog, libraries, safe)
             }))
         })?
     })
     .await?;
-    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
-        || saved_safe_mode(&app) != safe
-    {
+    if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
         return Err("安全模式已变化，请重新打开名称迁移向导".into());
     }
     Ok(result)
@@ -51,16 +45,12 @@ pub(super) async fn confirm_legacy_names<R: Runtime>(
     revision: i64,
     decisions: Vec<LegacyNameDecision>,
 ) -> Result<LegacyNameMigrationWorkspace, String> {
-    let (dir, libraries, catalog) = (
-        state.device_dir.clone(),
-        state.libraries.clone(),
-        state.catalog.clone(),
-    );
-    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let (reader, catalog) = (app.clone(), state.catalog.clone());
+    let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {
-        with_libraries(&dir, &libraries, |libraries| {
-            Ok(with_catalog(&dir, &catalog, |catalog| {
+        with_libraries(&reader.state::<LibraryState>(), |libraries| {
+            Ok(with_catalog(&catalog, |catalog| {
                 let current = view(catalog, libraries, safe)?;
                 if current.plan.revision != revision {
                     return Err(CatalogError::StaleNameMigration);
@@ -72,9 +62,7 @@ pub(super) async fn confirm_legacy_names<R: Runtime>(
     })
     .await?;
     names::refresh_labels(&app, &state)?;
-    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
-        || saved_safe_mode(&app) != safe
-    {
+    if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
         return Err("安全模式已变化，请重新打开名称迁移向导".into());
     }
     Ok(result)
@@ -87,16 +75,12 @@ pub(super) async fn preview_legacy_names<R: Runtime>(
     revision: i64,
     decisions: Vec<LegacyNameDecision>,
 ) -> Result<LegacyNameMigrationPreview, String> {
-    let (dir, libraries, catalog) = (
-        state.device_dir.clone(),
-        state.libraries.clone(),
-        state.catalog.clone(),
-    );
-    let generation = state.safe_mode_generation.load(Ordering::SeqCst);
+    let (reader, catalog) = (app.clone(), state.catalog.clone());
+    let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {
-        with_libraries(&dir, &libraries, |libraries| {
-            Ok(with_catalog(&dir, &catalog, |catalog| {
+        with_libraries(&reader.state::<LibraryState>(), |libraries| {
+            Ok(with_catalog(&catalog, |catalog| {
                 let current = view(catalog, libraries, safe)?;
                 if current.plan.revision != revision {
                     return Err(CatalogError::StaleNameMigration);
@@ -106,9 +90,7 @@ pub(super) async fn preview_legacy_names<R: Runtime>(
         })?
     })
     .await?;
-    if state.safe_mode_generation.load(Ordering::SeqCst) != generation
-        || saved_safe_mode(&app) != safe
-    {
+    if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
         return Err("安全模式已变化，请重新打开名称迁移向导".into());
     }
     Ok(result)

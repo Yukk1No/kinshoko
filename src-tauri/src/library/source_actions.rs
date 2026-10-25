@@ -17,15 +17,14 @@ pub(super) fn action<R: Runtime, T>(
     let _transition = lock(&state.transition);
     // Includes the production SourceEditor rating path and permanent source deletion.
     let _visibility = lock(&state.visibility_commit);
-    let expected = state.safe_mode_generation.load(Ordering::SeqCst);
+    let expected = state.safe_mode.snapshot();
     if saved_safe_mode(app) != safe {
         return Err(kinshoko_core::library::Error::LensChanged.to_string());
     }
     let value = workspace::with_resources(&state, |workspace, device, catalog| {
         f(workspace, device, catalog, target)
     })?;
-    if state.safe_mode_generation.load(Ordering::SeqCst) != expected || saved_safe_mode(app) != safe
-    {
+    if !state.safe_mode.still(&expected) || saved_safe_mode(app) != safe {
         return Err(kinshoko_core::library::Error::LensChanged.to_string());
     }
     Ok(value)
@@ -79,7 +78,7 @@ pub(super) async fn workspace_edit_source<R: Runtime>(
                     .map(|_| ())
             })
         })?;
-        app.state::<LibraryState>().search.invalidate();
+        app.state::<LibraryState>().catalog.invalidate();
         Ok(())
     })
     .await
@@ -100,7 +99,7 @@ pub(super) async fn workspace_edit_source_tags<R: Runtime>(
                 library.edit_tags(std::slice::from_ref(&t.image_id), &edits)
             })
         })?;
-        app.state::<LibraryState>().search.invalidate();
+        app.state::<LibraryState>().catalog.invalidate();
         publish_definition_dependencies(&app, &target.library_id).map_err(|error| format!("这个来源的标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))?;
         Ok(())
     })
