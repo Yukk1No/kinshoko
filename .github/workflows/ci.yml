@@ -73,11 +73,12 @@ jobs:
 
       # 与 npm run bindings 相同：先删掉生成物再跑核心 crate 测试，测试过程中 ts-rs 重新生成类型。
       # nextest 跨测试二进制并行（cargo test 一个二进制跑完才跑下一个），但不跑文档测试，下一步单独跑。
-      - name: 核心 crate 测试（同时重新生成 ts-rs 类型）
+      # pin-shell 的 Windows 集成测试建屏幕外、没有内容的窗口，验证样式、异步换窗与收起旧槽。
+      - name: 核心 crate 与钉图平台层测试（同时重新生成 ts-rs 类型）
         shell: pwsh
         run: |
           Remove-Item -Recurse -Force src/bindings -ErrorAction SilentlyContinue
-          cargo nextest run -p kinshoko-core --locked --no-fail-fast
+          cargo nextest run -p kinshoko-core -p pin-shell --locked --no-fail-fast
 
       # 文档里的 compile_fail 示例守住运行日志的隐私边界（diagnostics::log_event）。
       - name: 核心 crate 文档测试
