@@ -10,6 +10,7 @@ mod hook;
 mod input;
 mod monitors;
 mod proc;
+mod tools;
 mod window;
 
 use std::cell::RefCell;
@@ -17,7 +18,7 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use windows::Win32::Foundation::{HWND, POINT};
+use windows::Win32::Foundation::HWND;
 use windows::Win32::Graphics::DirectComposition::{
     DCompositionCreateDevice3, IDCompositionDesktopDevice,
 };
@@ -27,11 +28,10 @@ use windows::Win32::UI::HiDpi::{
 };
 use windows::Win32::UI::Input::KeyboardAndMouse::SetCapture;
 use windows::Win32::UI::WindowsAndMessaging::{
-    DestroyWindow, DispatchMessageW, GWL_EXSTYLE, GetCursorPos, GetWindowLongW, HWND_TOPMOST,
-    KillTimer, MSG, PM_REMOVE, PeekMessageW, SET_WINDOW_POS_FLAGS, SWP_HIDEWINDOW, SWP_NOACTIVATE,
-    SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, SetCursor, SetTimer,
+    DestroyWindow, DispatchMessageW, GWL_EXSTYLE, GetWindowLongW, HWND_TOPMOST, KillTimer, MSG,
+    PM_REMOVE, PeekMessageW, SET_WINDOW_POS_FLAGS, SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOMOVE,
+    SWP_NOOWNERZORDER, SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, SetCursor, SetTimer,
     SetWindowLongW, SetWindowPos, TranslateMessage, WS_EX_LAYERED, WS_EX_TRANSPARENT,
-    WindowFromPoint,
 };
 
 use crate::displays::{Display, DisplayWatch};
@@ -78,7 +78,6 @@ pub(crate) struct State {
     tickets: u64,
     refresh: Duration,
     watch: DisplayWatch,
-    // 先停钩子、时钟两个线程，再销毁窗口（字段按声明顺序释放）。
     hook: hook::Hook,
     clock: clock::Clock,
 }
@@ -147,38 +146,6 @@ impl WinShell {
         unsafe { SetTimer(Some(host), proc::DISPLAY_TIMER, 2000, None) };
         Ok(WinShell { state })
     }
-
-    /// 对照组，只给逐帧核对工具证明它抓得到错位：直接改可见槽的位置与尺寸，`present` 里渲染层往
-    /// 可见槽画，再提交。`present_first` 时先画后改窗口。这正是 ADR 0013 否决的做法，别处不要用。
-    pub fn control_group(
-        &mut self,
-        pin: PinId,
-        rect: ScreenRect,
-        present_first: bool,
-        present: impl FnOnce(),
-    ) {
-        let hwnd = {
-            let mut s = self.state.borrow_mut();
-            let Some(p) = s.pin(pin) else { return };
-            p.slots.show(rect);
-            p.windows[p.slots.visible()].hwnd
-        };
-        let place = || set_pos(hwnd, None, Some(rect), SWP_NOZORDER | SWP_SHOWWINDOW);
-        if present_first {
-            present();
-            place();
-        } else {
-            place();
-            present();
-        }
-        self.state.borrow().commit();
-    }
-
-    /// 某个槽的窗口（测试与核对工具用）。
-    pub fn hwnd(&self, pin: PinId, slot: usize) -> Option<isize> {
-        let s = self.state.borrow();
-        s.pins.get(&pin).map(|p| p.windows[slot].hwnd.0 as isize)
-    }
 }
 
 impl Drop for WinShell {
@@ -188,7 +155,13 @@ impl Drop for WinShell {
             self.close(pin);
         }
         proc::unbind();
-        let host = self.state.borrow().host;
+        // 先停钩子、时钟两个线程，它们不会再往宿主窗口投消息，再销毁窗口。
+        let host = {
+            let mut s = self.state.borrow_mut();
+            s.hook.stop();
+            s.clock.stop();
+            s.host
+        };
         // SAFETY：本线程的宿主窗口。
         unsafe {
             let _ = KillTimer(Some(host), proc::DISPLAY_TIMER);
@@ -284,9 +257,7 @@ impl State {
                 // SAFETY：两个都是本线程的槽窗口；引用只在这里用。
                 unsafe {
                     if let (Some(o), Some(n)) = (window::slot_data(old), window::slot_data(new)) {
-                        o.pressed.set(false);
-                        n.pressed.set(true);
-                        n.button.set(o.button.get());
+                        o.hand_over(n);
                     }
                     SetCapture(new);
                 }
@@ -383,11 +354,22 @@ impl PinShell for WinShell {
             .get_mut(&pin)
             .ok_or_else(|| ShellError(format!("钉图 {pin:?} 不存在")))?;
         let visible = p.slots.visible();
-        for (i, slot) in p.windows.iter_mut().enumerate() {
-            let opacity = if i == visible { 1.0 } else { 0.0 };
-            slot.visual = window::new_visual(&dcomp, &slot.target, opacity)
-                .map_err(|e| err("重建 visual", e))?;
-        }
+        let opacity = |i: usize| if i == visible { 1.0 } else { 0.0 };
+        // 两个都建好再换上：失败时两个槽都留着原来的 visual。
+        let a = window::new_visual(&dcomp, &p.windows[0].target, opacity(0));
+        let b = window::new_visual(&dcomp, &p.windows[1].target, opacity(1));
+        let (a, b) = match (a, b) {
+            (Ok(a), Ok(b)) => (a, b),
+            (Err(e), _) | (_, Err(e)) => {
+                for slot in &p.windows {
+                    // SAFETY：目标与原来的 visual 都有效；改回原来的根。
+                    let _ = unsafe { slot.target.SetRoot(&slot.visual) };
+                }
+                return Err(err("重建 visual", e));
+            }
+        };
+        p.windows[0].visual = a;
+        p.windows[1].visual = b;
         Ok([p.windows[0].surface_target(), p.windows[1].surface_target()])
     }
 
@@ -490,14 +472,9 @@ impl PinShell for WinShell {
             }
         }
         // 光标已经在这张钉图上：马上换，不等下一次移动。
-        let mut at = POINT::default();
-        // SAFETY：出参由本函数持有；只查询光标下的窗口。
-        unsafe {
-            if GetCursorPos(&mut at).is_ok()
-                && window::any_slot_data(WindowFromPoint(at)).is_some_and(|d| d.pin == pin)
-            {
-                SetCursor(Some(handle));
-            }
+        if window::pin_under_cursor() == Some(pin) {
+            // SAFETY：系统光标句柄。
+            unsafe { SetCursor(Some(handle)) };
         }
     }
 

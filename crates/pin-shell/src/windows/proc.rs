@@ -11,7 +11,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::{Rc, Weak};
 
-use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
+use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM};
 use windows::Win32::UI::Controls::WM_MOUSELEAVE;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     GetCapture, ReleaseCapture, SetCapture, TME_LEAVE, TRACKMOUSEEVENT, TrackMouseEvent,
@@ -20,19 +20,19 @@ use windows::Win32::UI::Input::Pointer::{
     GetPointerInfo, GetPointerPenInfo, GetPointerType, POINTER_INFO, POINTER_PEN_INFO,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    DefWindowProcW, GWLP_USERDATA, GetCursorPos, GetWindowRect, HTCLIENT, MA_NOACTIVATE,
-    PA_NOACTIVATE, PT_PEN, PT_TOUCH, PostMessageW, SetCursor, SetWindowLongPtrW, WM_APP,
-    WM_CAPTURECHANGED, WM_DISPLAYCHANGE, WM_DPICHANGED, WM_LBUTTONDOWN, WM_LBUTTONUP,
-    WM_MOUSEACTIVATE, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_NCDESTROY, WM_POINTERACTIVATE,
-    WM_POINTERCAPTURECHANGED, WM_POINTERDOWN, WM_POINTERLEAVE, WM_POINTERUP, WM_POINTERUPDATE,
-    WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETCURSOR, WM_SETTINGCHANGE, WM_TIMER, WindowFromPoint,
+    DefWindowProcW, GWLP_USERDATA, GetWindowRect, HTCLIENT, MA_NOACTIVATE, PA_NOACTIVATE, PT_PEN,
+    PT_TOUCH, PostMessageW, SetCursor, SetWindowLongPtrW, WM_APP, WM_CAPTURECHANGED,
+    WM_DISPLAYCHANGE, WM_DPICHANGED, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEACTIVATE, WM_MOUSEMOVE,
+    WM_MOUSEWHEEL, WM_NCDESTROY, WM_POINTERACTIVATE, WM_POINTERCAPTURECHANGED, WM_POINTERDOWN,
+    WM_POINTERLEAVE, WM_POINTERUP, WM_POINTERUPDATE, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETCURSOR,
+    WM_SETTINGCHANGE, WM_TIMER,
 };
 
 use super::State;
 use super::input::{
     buttons_held, client_to_screen, lparam_point, unpack_key, wheel_ctrl, wheel_notches,
 };
-use super::window::{SlotData, any_slot_data, slot_data};
+use super::window::{SlotData, any_slot_data, pin_under_cursor, slot_data};
 use crate::types::{HookEvent, PinInput, Pointer, PointerEvent};
 use crate::{PointerButton, PointerKind};
 
@@ -109,14 +109,7 @@ fn origin(hwnd: HWND) -> (i32, i32) {
 
 /// 光标现在是不是在同一张钉图的某个槽上（换窗时指针从一个槽到另一个槽，不算离开）。
 fn over_same_pin(data: &SlotData) -> bool {
-    let mut p = POINT::default();
-    // SAFETY：`p` 由本函数持有；WindowFromPoint 只查询。返回的槽数据只在这里读一次。
-    unsafe {
-        if GetCursorPos(&mut p).is_err() {
-            return false;
-        }
-        any_slot_data(WindowFromPoint(p)).is_some_and(|d| d.pin == data.pin)
-    }
+    pin_under_cursor() == Some(data.pin)
 }
 
 fn pointer(data: &SlotData, kind: PointerKind, at: (i32, i32), event: PointerEvent) {

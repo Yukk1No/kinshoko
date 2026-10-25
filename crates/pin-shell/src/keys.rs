@@ -142,6 +142,11 @@ impl KeyGate {
         }))
     }
 
+    /// 没有按着的键（这时重装钩子不会丢掉一次松开）。
+    pub fn idle(&self) -> bool {
+        self.held.is_empty()
+    }
+
     pub fn up(&mut self, key: Option<Key>) -> Verdict {
         match key {
             Some(key) if self.held.remove(&key) == Some(true) => Verdict::Swallow(None),
@@ -296,7 +301,9 @@ mod tests {
     fn release_of_a_swallowed_key_is_swallowed_even_off_the_pin() {
         let mut g = KeyGate::default();
         g.down(&table(), Some(H), (10, 10), Mods::default());
+        assert!(!g.idle());
         assert_eq!(g.up(Some(H)), Verdict::Swallow(None));
+        assert!(g.idle());
         // 只拦一次：下一次松开（没拦下的按下）照常放行。
         assert_eq!(g.up(Some(H)), Verdict::Pass);
     }

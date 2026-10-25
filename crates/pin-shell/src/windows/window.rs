@@ -10,16 +10,17 @@
 
 use std::cell::Cell;
 
-use windows::Win32::Foundation::{ERROR_CLASS_ALREADY_EXISTS, GetLastError, HWND};
+use windows::Win32::Foundation::{ERROR_CLASS_ALREADY_EXISTS, GetLastError, HWND, POINT};
 use windows::Win32::Graphics::DirectComposition::{
     IDCompositionDesktopDevice, IDCompositionTarget, IDCompositionVisual3,
 };
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::System::Threading::GetCurrentThreadId;
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DestroyWindow, GWLP_USERDATA, GetClassNameW, GetWindowLongPtrW, HCURSOR,
-    IDC_ARROW, IDC_SIZEALL, IDC_SIZENWSE, LoadCursorW, RegisterClassExW, SetWindowLongPtrW,
-    WNDCLASSEXW, WNDPROC, WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP, WS_EX_TOOLWINDOW,
-    WS_EX_TOPMOST, WS_POPUP,
+    CreateWindowExW, DestroyWindow, GWLP_USERDATA, GetClassNameW, GetCursorPos, GetWindowLongPtrW,
+    GetWindowThreadProcessId, HCURSOR, IDC_ARROW, IDC_SIZEALL, IDC_SIZENWSE, LoadCursorW,
+    RegisterClassExW, SetWindowLongPtrW, WNDCLASSEXW, WNDPROC, WS_EX_NOACTIVATE,
+    WS_EX_NOREDIRECTIONBITMAP, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP, WindowFromPoint,
 };
 use windows::core::{Interface, PCWSTR, w};
 
@@ -40,6 +41,24 @@ pub(super) struct SlotData {
     pub button: Cell<PointerButton>,
     /// 已请求 `WM_MOUSELEAVE`。
     pub tracking: Cell<bool>,
+}
+
+impl SlotData {
+    /// 换窗时把按着的指针交给另一个槽（同一张钉图）。
+    pub fn hand_over(&self, to: &SlotData) {
+        to.pressed.set(self.pressed.replace(false));
+        to.button.set(self.button.get());
+    }
+}
+
+/// 光标下是本线程哪张钉图的槽。
+pub(super) fn pin_under_cursor() -> Option<PinId> {
+    let mut p = POINT::default();
+    // SAFETY：出参由本函数持有；WindowFromPoint 只查询，槽数据只在这里读一次。
+    unsafe {
+        GetCursorPos(&mut p).ok()?;
+        any_slot_data(WindowFromPoint(p)).map(|d| d.pin)
+    }
 }
 
 /// 一个槽：窗口与它的 DComp 目标、根 visual。
@@ -172,11 +191,16 @@ pub(super) unsafe fn slot_data<'a>(hwnd: HWND) -> Option<&'a SlotData> {
     unsafe { (GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *const SlotData).as_ref() }
 }
 
-/// 任意窗口（例如光标下的那个）是不是本线程的槽窗口；是就给出它的数据。
+/// 任意窗口（例如光标下的那个）是不是本线程的槽窗口；是就给出它的数据。别的进程（另一个
+/// Kinshoko、核对工具）也有同名窗口类，先认线程，再认类名。
 ///
 /// # Safety
 /// 同 [`slot_data`]。
 pub(super) unsafe fn any_slot_data<'a>(hwnd: HWND) -> Option<&'a SlotData> {
+    // SAFETY：只查询窗口所属的线程；句柄无效时返回 0。
+    if unsafe { GetWindowThreadProcessId(hwnd, None) != GetCurrentThreadId() } {
+        return None;
+    }
     let mut class = [0u16; 32];
     // SAFETY：缓冲区由本函数持有；句柄无效时返回 0。
     let n = unsafe { GetClassNameW(hwnd, &mut class) } as usize;

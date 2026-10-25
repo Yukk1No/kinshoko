@@ -20,8 +20,8 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, GetCursorPos, GetMessageW, HC_ACTION, HHOOK, KBDLLHOOKSTRUCT, MSG, PM_NOREMOVE,
-    PeekMessageW, PostMessageW, PostThreadMessageW, SetWindowsHookExW, UnhookWindowsHookEx,
-    WH_KEYBOARD_LL, WM_APP, WM_KEYDOWN, WM_QUIT, WM_SYSKEYDOWN,
+    PeekMessageW, PostMessageW, PostThreadMessageW, SetTimer, SetWindowsHookExW,
+    UnhookWindowsHookEx, WH_KEYBOARD_LL, WM_APP, WM_KEYDOWN, WM_QUIT, WM_SYSKEYDOWN, WM_TIMER,
 };
 
 use super::input::{key_from_vk, pack_key};
@@ -31,6 +31,8 @@ use crate::keys::{HitTable, KeyGate, Mods, Verdict, late_ms};
 const WM_REINSTALL: u32 = WM_APP + 1;
 /// 两次重装至少隔这么久（一阵卡顿里每个按键都会晚）。
 const REINSTALL_GAP: Duration = Duration::from_secs(1);
+/// 兜底：系统移除钩子之后不再有回调，晚到的回调也就看不到。每隔这么久没有按着的键时悄悄重装一次。
+const REFRESH_MS: u32 = 30_000;
 
 /// 发给宿主窗口的消息号。
 #[derive(Clone, Copy)]
@@ -92,15 +94,23 @@ impl Hook {
     }
 }
 
-impl Drop for Hook {
-    fn drop(&mut self) {
+impl Hook {
+    /// 卸下钩子、停下线程并等它退出；之后不再投消息。可以调多次。
+    pub fn stop(&mut self) {
         if self.thread_id != 0 {
             // SAFETY：只投递一条线程消息。
             let _ = unsafe { PostThreadMessageW(self.thread_id, WM_QUIT, WPARAM(0), LPARAM(0)) };
+            self.thread_id = 0;
         }
         if let Some(t) = self.thread.take() {
             let _ = t.join();
         }
+    }
+}
+
+impl Drop for Hook {
+    fn drop(&mut self) {
+        self.stop();
     }
 }
 
@@ -141,22 +151,23 @@ fn run(shared: Arc<Shared>, ready: mpsc::Sender<u32>) {
     let _ = ready.send(me);
     let mut hook = install(&shared);
     let mut last_reinstall: Option<Instant> = None;
+    // SAFETY：线程计时器，到时往本线程的队列放 WM_TIMER。
+    unsafe { SetTimer(None, 0, REFRESH_MS, None) };
     let mut msg = MSG::default();
     // SAFETY：`msg` 由本函数持有；GetMessageW 出错（-1）或收到 WM_QUIT（0）时退出。
     while unsafe { GetMessageW(&mut msg, None, 0, 0) }.0 > 0 {
-        if msg.message != WM_REINSTALL {
-            continue;
-        }
-        if last_reinstall.is_some_and(|t| t.elapsed() < REINSTALL_GAP) {
-            continue;
-        }
+        let report = match msg.message {
+            WM_REINSTALL if last_reinstall.is_none_or(|t| t.elapsed() >= REINSTALL_GAP) => true,
+            WM_TIMER if GATE.with(|g| g.borrow().idle()) => false,
+            _ => continue,
+        };
         last_reinstall = Some(Instant::now());
         if let Some(h) = hook.take() {
             // SAFETY：`h` 是本线程装的钩子；已被系统移除时这里返回失败，忽略。
             let _ = unsafe { UnhookWindowsHookEx(h) };
         }
         hook = install(&shared);
-        if hook.is_some() {
+        if report && hook.is_some() {
             post(&shared, shared.messages.status, 0, msg.wParam.0 as isize);
         }
     }

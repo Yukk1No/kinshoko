@@ -645,6 +645,7 @@ dependencies = [
  "csv",
  "fast_image_resize",
  "gif",
+ "half",
  "image",
  "jpeg-encoder",
  "moxcms 0.9.1",

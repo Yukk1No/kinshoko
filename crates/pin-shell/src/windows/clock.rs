@@ -55,12 +55,19 @@ impl Clock {
     }
 }
 
-impl Drop for Clock {
-    fn drop(&mut self) {
+impl Clock {
+    /// 停下线程并等它退出；之后不再投消息。可以调多次。
+    pub fn stop(&mut self) {
         self.tx = None;
         if let Some(t) = self.thread.take() {
             let _ = t.join();
         }
+    }
+}
+
+impl Drop for Clock {
+    fn drop(&mut self) {
+        self.stop();
     }
 }
 

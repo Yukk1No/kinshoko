@@ -1,6 +1,9 @@
 //! 原生钉图的逐帧核对与平台层验收（#283）：用 `frame::plan` 与 pin-render 驱动测试钉图，经 pin-shell
 //! 上屏，DXGI 桌面复制逐帧核对；量换窗等待、界面线程每条消息的处理时间、焦点、穿透、全屏判定。
 //! 开发工具，不进发布包。用法见 README。
+//!
+//! 工具直接调 Win32 读系统状态、发真实输入：`unsafe` 块只读写本函数持有的缓冲区和本进程的窗口，
+//! 不像应用代码那样逐处写 SAFETY 说明；会碰别的进程的只有 SendInput 与 WindowFromPoint 这类查询。
 
 mod app;
 mod input;
@@ -80,8 +83,7 @@ fn run() -> Result<bool, String> {
         return selftest::selftest(&mut app, &report);
     }
     if let Some(ms) = opts.hold_ms {
-        modes::hold(&mut app, ms)?;
-        return Ok(true);
+        return modes::hold(&mut app, ms);
     }
     if opts.input_test {
         return input::input_test(&mut app);

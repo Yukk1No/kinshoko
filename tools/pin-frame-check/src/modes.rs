@@ -13,8 +13,8 @@ use windows::Win32::UI::WindowsAndMessaging::WindowFromPoint;
 use crate::app::{App, MARKER};
 use crate::sys;
 
-/// 钉住一段时间。`--fill` 时放到盖满屏幕（窗口按 ADR 0011 让出一行）。
-pub fn hold(app: &mut App, ms: u64) -> Result<(), String> {
+/// 钉住一段时间。`--fill` 时放到盖满屏幕（窗口按 ADR 0011 让出一行）。全程不能报 `QUNS_BUSY`。
+pub fn hold(app: &mut App, ms: u64) -> Result<bool, String> {
     app.pump_for(200)?;
     if app.opts.fill {
         let m = app.monitor;
@@ -29,6 +29,7 @@ pub fn hold(app: &mut App, ms: u64) -> Result<(), String> {
         app.settle()?;
     }
     app.pump_for(300)?;
+    let quns = sys::quns();
     let windows: Vec<String> = app.pins.iter().map(|p| format!("{:?}", p.window)).collect();
     println!(
         "钉住 {} 张；窗口 {}；私有 {:.0} MB，显存 {:.0} MB；QUNS {}",
@@ -36,11 +37,12 @@ pub fn hold(app: &mut App, ms: u64) -> Result<(), String> {
         windows.join(" "),
         sys::private_mb(),
         sys::vram_mb(),
-        sys::quns()
+        quns
     );
     app.pump_for(ms)?;
-    println!("结束前 QUNS {}", sys::quns());
-    Ok(())
+    let end = sys::quns();
+    println!("结束前 QUNS {end}");
+    Ok(quns != "QUNS_BUSY" && end != "QUNS_BUSY")
 }
 
 fn screen_pixel(x: i32, y: i32) -> (u8, u8, u8) {
