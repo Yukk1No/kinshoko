@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/kinshoko-core", "crates/kinshoko-tagger", "src-tauri"]
+members = ["crates/kinshoko-core", "crates/kinshoko-tagger", "crates/pin-shell", "src-tauri"]
 # 探测工具与原型各自带 Cargo.lock，不并入工作区。
 exclude = ["tools", "prototype"]
 
