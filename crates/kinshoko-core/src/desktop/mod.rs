@@ -9,7 +9,8 @@
 //! - [`EdgeHide`]：贴边隐藏收起的位置与碰细边滑出；
 //! - [`layers_for`]、[`overlay_window`]、[`widen`]、[`layer_region`]、[`pin_area`]：钉图层与窗口区域的矩形
 //!   （#64、#193、#239）；
-//! - [`menu_surface`]、[`PinMenu`]：钉图菜单窗口的位置与菜单状态（#106）。
+//! - [`menu_surface`]、[`PinMenu`]：钉图菜单窗口的位置与菜单状态（#106）；
+//! - [`pin_colour`]：钉图上传给 GPU 的像素与到显示器的查找表（ADR 0014）。
 
 mod capture;
 mod edge;
@@ -17,6 +18,7 @@ mod history;
 mod menu;
 mod motion;
 mod pin;
+pub mod pin_colour;
 mod placement;
 mod screenshot;
 mod types;
