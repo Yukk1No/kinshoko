@@ -95,6 +95,10 @@ fn apply(app: &AppHandle, effect: Effect) {
         }
         Effect::CloseRequested(pin) => super::super::close(app, &pin),
         Effect::Closed(_) => {}
+        Effect::Failed(pin) => {
+            super::super::stop_waiting(app, &pin);
+            super::super::closed(app, &pin);
+        }
         Effect::Warn(site, detail) => crate::run_log::warn(site, detail),
     }
 }

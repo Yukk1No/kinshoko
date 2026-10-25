@@ -12,6 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use windows::Win32::Foundation::GlobalFree;
 use windows::Win32::Foundation::{HANDLE, HWND, LPARAM, POINT, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
     GetMonitorInfoW, MONITOR_DEFAULTTOPRIMARY, MONITORINFO, MonitorFromPoint,
@@ -133,9 +134,17 @@ fn clipboard_marker() -> Result<(), String> {
             EmptyClipboard().map_err(|e| e.to_string())?;
             let mem = GlobalAlloc(GMEM_MOVEABLE, bytes.len()).map_err(|e| e.to_string())?;
             let p = GlobalLock(mem);
+            if p.is_null() {
+                let _ = GlobalFree(Some(mem));
+                return Err("锁不住剪贴板内存".to_owned());
+            }
             std::ptr::copy_nonoverlapping(bytes.as_ptr(), p.cast::<u8>(), bytes.len());
             let _ = GlobalUnlock(mem);
-            SetClipboardData(format, Some(HANDLE(mem.0))).map_err(|e| e.to_string())?;
+            // 交给剪贴板之后内存归它；没交出去才自己放掉。
+            if let Err(e) = SetClipboardData(format, Some(HANDLE(mem.0))) {
+                let _ = GlobalFree(Some(mem));
+                return Err(e.to_string());
+            }
             Ok::<(), String>(())
         })();
         let _ = CloseClipboard();
@@ -278,8 +287,16 @@ fn front_sink() -> Result<(Child, HWND), String> {
     Ok((sink, hwnd))
 }
 
+fn close_sink(sink: &mut Child, hwnd: HWND) {
+    unsafe {
+        let _ = PostMessageW(Some(hwnd), WM_CLOSE, WPARAM(0), LPARAM(0));
+    }
+    let _ = sink.wait();
+}
+
 pub fn follow(f: &Follow) -> Result<bool, String> {
     let monitor = primary_monitor();
+    clipboard_marker()?;
     // 前台放收键窗口：钉图的操作都不该抢走它；钉图的 Esc 也只在前台不是 Kinshoko 时才拦得到（见 README）。
     let (mut sink, sink_hwnd) = front_sink()?;
     let sink_front = unsafe { GetForegroundWindow() } == sink_hwnd;
@@ -288,7 +305,6 @@ pub fn follow(f: &Follow) -> Result<bool, String> {
     let stop = Arc::new(AtomicBool::new(false));
     let reader = tail(f.trace.clone(), from, monitor, log.clone(), stop.clone());
 
-    clipboard_marker()?;
     cursor(monitor.x + 200, monitor.y + 150);
     key(VK_F3);
     let started = Instant::now();
@@ -296,6 +312,7 @@ pub fn follow(f: &Follow) -> Result<bool, String> {
         if started.elapsed() > Duration::from_secs(15) {
             stop.store(true, Ordering::SeqCst);
             let _ = reader.join();
+            close_sink(&mut sink, sink_hwnd);
             return Err(format!(
                 "15 秒内 {} 里没有新的提交：应用没在跑、没开 nativePins，或没设 KINSHOKO_PIN_TRACE",
                 f.trace.display()
@@ -376,10 +393,7 @@ pub fn follow(f: &Follow) -> Result<bool, String> {
     frames(10);
     stop.store(true, Ordering::SeqCst);
     let _ = reader.join();
-    unsafe {
-        let _ = PostMessageW(Some(sink_hwnd), WM_CLOSE, WPARAM(0), LPARAM(0));
-    }
-    let _ = sink.wait();
+    close_sink(&mut sink, sink_hwnd);
 
     let ok = verdict.bad == 0 && verdict.checked > 0 && verdict.matched > 0 && kept_front;
     let report = format!(

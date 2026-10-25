@@ -39,6 +39,8 @@ pub enum Effect {
     CloseRequested(String),
     /// 钉图的窗口已关。
     Closed(String),
+    /// 第一帧之前读不到图或画不上：钉图已在收掉，应用收掉本次运行的记录，状态留到下次启动。
+    Failed(String),
     /// 写进运行日志的警告。
     Warn(&'static str, String),
 }
@@ -263,6 +265,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             RenderEvent::LoadFailed { pin, reason } => {
                 if self.live(pin).is_some() {
                     self.effects.push(Effect::Warn("原生钉图读不到图", reason));
+                    self.give_up_unshown(pin);
                 }
             }
             RenderEvent::Detached { pin } => {
@@ -433,7 +436,11 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             // 没画上：窗口不动，下一次更新重来。
             live.fresh = false;
             self.effects.push(Effect::Warn("原生钉图画不上", e));
-            self.replay(pin);
+            if matches!(then, Then::Show) {
+                self.give_up_unshown(pin);
+            } else {
+                self.replay(pin);
+            }
             return;
         }
         if live.closing {
@@ -455,6 +462,18 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             Then::Keep => live.drawn = content,
         }
         self.replay(pin);
+    }
+
+    /// 还没显示过的钉图出错了：不会自己好，收掉，免得留下一张看不见、等不到显示的钉图。
+    fn give_up_unshown(&mut self, pin: PinId) {
+        let Some(live) = self.pins.get_mut(&pin) else {
+            return;
+        };
+        if live.window.is_some() || std::mem::replace(&mut live.closing, true) {
+            return;
+        }
+        self.effects.push(Effect::Failed(live.key.clone()));
+        self.render.detach(pin);
     }
 
     fn swapped(&mut self, pin: PinId) {
