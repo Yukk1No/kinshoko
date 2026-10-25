@@ -293,6 +293,13 @@ impl SavedPin {
         };
     }
 
+    /// 缩放限制在 [`MIN_SCALE`]～[`MAX_SCALE`]，较长的一边不小于 [`MIN_SIDE`]。
+    pub fn clamp_scale(&self, scale: f64) -> f64 {
+        let longest = f64::from(self.width.max(self.height).max(1));
+        let floor = (f64::from(MIN_SIDE) / longest).max(MIN_SCALE);
+        scale.clamp(floor.min(MAX_SCALE), MAX_SCALE)
+    }
+
     /// 缩放到 `scale`，屏幕上的 `anchor`（物理像素，例如光标）保持不动。
     /// 缩放限制在 [`MIN_SCALE`]～[`MAX_SCALE`]，较长的一边不小于 [`MIN_SIDE`]。
     /// 锁定时不缩放，返回 false。
@@ -300,9 +307,7 @@ impl SavedPin {
         if self.locked {
             return false;
         }
-        let longest = f64::from(self.width.max(self.height).max(1));
-        let floor = (f64::from(MIN_SIDE) / longest).max(MIN_SCALE);
-        let scale = scale.clamp(floor.min(MAX_SCALE), MAX_SCALE);
+        let scale = self.clamp_scale(scale);
         let old = self.rect();
         self.placement.scale = scale;
         let (w, h) = self.window_size();
