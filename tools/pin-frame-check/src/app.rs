@@ -297,6 +297,7 @@ impl App {
             translucent: !opaque,
             border_visible: opaque
                 && (visible(Rect::new(c.x, c.y, b, c.h)) || visible(Rect::new(c.x, c.y, c.w, b))),
+            slack: 0.0,
         });
     }
 

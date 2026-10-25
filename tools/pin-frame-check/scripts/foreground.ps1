@@ -1,6 +1,6 @@
 # 打印当前前台窗口的进程名、类名与是否最大化，以及测试用 Edge 主窗口的状态（诊断 Edge 被判为隐藏的原因）。
-[Console]::OutputEncoding = [Text.Encoding]::UTF8
 param([string]$Profile)
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
 Add-Type @"
 using System; using System.Runtime.InteropServices; using System.Text;
 public static class W {
