@@ -101,6 +101,9 @@ fn a_library_pin_at_100_percent_is_the_original_pixel_for_pixel() {
         content,
         state: pin,
         display: display.map(Into::into),
+        display_scale: 1.0,
+        veil: 0.0,
+        ring: false,
     };
     let out = r
         .render_offscreen(&image, &draw_of(&job, (301, 207)), &lut)

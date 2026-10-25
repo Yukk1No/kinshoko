@@ -24,10 +24,10 @@ mod surface;
 
 use std::sync::OnceLock;
 
-use kinshoko_core::desktop::SavedPin;
 use tauri::{AppHandle, Manager};
 
 use orchestra::Orchestra;
+pub(super) use orchestra::{Frame, Look};
 use render::RenderThread;
 
 /// 本次运行是否用原生钉图（开发设置 `nativePins`，启动后第一次问时读一次）。
@@ -55,11 +55,11 @@ pub(super) fn enabled(app: &AppHandle) -> bool {
 
 /// 打开一张钉图（任意线程）。打不开时写运行日志、收掉本次运行的钉图记录，状态留到下次启动。
 #[cfg(windows)]
-pub(super) fn open(app: &AppHandle, pin: SavedPin) {
-    let (handle, key) = (app.clone(), pin.id.clone());
+pub(super) fn open(app: &AppHandle, frame: Frame) {
+    let (handle, key) = (app.clone(), frame.pin.id.clone());
     host::post(
         app,
-        move |o| o.open(pin),
+        move |o| o.open(frame, std::time::Instant::now()),
         move |e| {
             crate::run_log::error("无法打开原生钉图", e);
             std::thread::spawn(move || super::closed(&handle, &key));
@@ -74,8 +74,26 @@ pub(super) fn close(app: &AppHandle, pin: &str) {
     host::post_existing(app, move |o| o.close(&pin));
 }
 
+/// 应用壳改了钉图或它的外观（菜单动作、贴边隐藏、遮蔽、设置）：照着帧显示（任意线程）。
+#[cfg(windows)]
+pub(super) fn frame(app: &AppHandle, frame: Frame) {
+    host::post_existing(app, move |o| o.frame(frame, std::time::Instant::now()));
+}
+
+/// 钉图菜单关掉了（或没打开）：键盘钩子恢复拦键（任意线程）。
+#[cfg(windows)]
+pub(super) fn menu_closed(app: &AppHandle) {
+    host::post_existing(app, |o| o.menu_closed());
+}
+
 #[cfg(not(windows))]
-pub(super) fn open(_: &AppHandle, _: SavedPin) {}
+pub(super) fn open(_: &AppHandle, _: Frame) {}
+
+#[cfg(not(windows))]
+pub(super) fn frame(_: &AppHandle, _: Frame) {}
+
+#[cfg(not(windows))]
+pub(super) fn menu_closed(_: &AppHandle) {}
 
 #[cfg(not(windows))]
 pub(super) fn close(_: &AppHandle, _: &str) {}

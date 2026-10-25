@@ -5,6 +5,13 @@ use kinshoko_core::desktop::frame::{drawing, source_rect};
 
 use super::port::DrawJob;
 
+/// 遮蔽的模糊半径（`pin-veil` 的 `blur(14px)`），CSS 像素。
+const VEIL_BLUR: f64 = 14.0;
+/// 遮蔽的墨色：`--veil`（#2b2747）的 sRGB 编码值，不透明度 0.92。
+const VEIL_INK: [f32; 4] = [43.0 / 255.0, 39.0 / 255.0, 71.0 / 255.0, 0.92];
+/// 增强钉图边缘那圈细线的宽度（`0 0 0 1px`），CSS 像素。
+const RING: f64 = 1.0;
+
 /// `image` 是已上传的源图尺寸（整图或缩小的派生图）。
 pub fn draw_of(job: &DrawJob, image: (u32, u32)) -> pin_render::Draw<'static> {
     let d = drawing(&job.state);
@@ -18,6 +25,16 @@ pub fn draw_of(job: &DrawJob, image: (u32, u32)) -> pin_render::Draw<'static> {
         },
         opacity: job.state.opacity as f32,
         edge: PIN_EDGE as f32,
+        ring: if job.ring {
+            (RING * job.display_scale) as f32
+        } else {
+            0.0
+        },
+        veil: (job.veil > 0.0).then(|| pin_render::Veil {
+            amount: job.veil.min(1.0),
+            blur: (VEIL_BLUR * job.display_scale) as f32,
+            ink: VEIL_INK,
+        }),
         ..pin_render::Draw::new(
             pin_render::Window {
                 x: w.x,
@@ -79,6 +96,9 @@ mod tests {
             content: pin.rect(),
             state: pin,
             display: None,
+            display_scale: 1.5,
+            veil: 0.0,
+            ring: false,
         }
     }
 
@@ -111,6 +131,19 @@ mod tests {
         assert_eq!(d.opacity, 0.5);
         assert_eq!(d.edge, PIN_EDGE as f32);
         assert_eq!(d.crop, pin_render::Rect::new(0.0, 0.0, 400.0, 200.0));
+        assert_eq!((d.ring, d.veil), (0.0, None));
+    }
+
+    #[test]
+    fn veil_and_ring_are_sized_in_css_pixels_of_the_display() {
+        let mut j = job(None, 1.0);
+        j.veil = 0.25;
+        j.ring = true;
+        let d = draw_of(&j, (400, 200));
+        assert_eq!(d.ring, 1.5);
+        let veil = d.veil.expect("遮蔽");
+        assert_eq!((veil.amount, veil.blur), (0.25, 21.0));
+        assert_eq!(veil.ink, VEIL_INK);
     }
 
     #[test]

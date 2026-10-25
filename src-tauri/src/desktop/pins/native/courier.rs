@@ -73,7 +73,9 @@ fn run(app: &AppHandle, job: Job) {
                 });
             }
         }
-        Job::Render(event) => host::post_existing(app, move |o| o.render_event(event)),
+        Job::Render(event) => {
+            host::post_existing(app, move |o| o.render_event(event, Instant::now()));
+        }
         Job::Effect(effect) => apply(app, effect),
         Job::Deadline(_) => {}
     }
@@ -82,7 +84,11 @@ fn run(app: &AppHandle, job: Job) {
 fn apply(app: &AppHandle, effect: Effect) {
     match effect {
         Effect::Saved(pin) => {
-            if let Some(r) = lock(&state(app).pins).get_mut(&pin.id) {
+            // 收起着的钉图只改了透明度：内容还在细边那里。
+            let tucked = lock(&state(app).edge).is_hidden(&pin.id);
+            if let Some(r) = lock(&state(app).pins).get_mut(&pin.id)
+                && !tucked
+            {
                 r.content = pin.rect();
             }
             super::super::edit(app, &pin.id.clone(), |p| *p = pin);
@@ -94,6 +100,13 @@ fn apply(app: &AppHandle, effect: Effect) {
             super::super::stop_waiting(app, &pin);
         }
         Effect::CloseRequested(pin) => super::super::close(app, &pin),
+        Effect::Menu(pin) => super::super::native_menu(app, &pin),
+        Effect::Released(pin) => {
+            lock(&state(app).edge).release(&pin);
+            if let Some(r) = lock(&state(app).pins).get_mut(&pin) {
+                r.click_through = false;
+            }
+        }
         Effect::Closed(_) => {}
         Effect::Failed(pin) => {
             super::super::stop_waiting(app, &pin);

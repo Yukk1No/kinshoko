@@ -7,7 +7,7 @@
 //! 窗口只隐藏，下次复用。显示、隐藏都是即时的，不带系统过渡（#194）。
 //!
 //! 焦点：菜单窗口拿着焦点关掉时（Esc、选中一项、点在菜单外的空白处），焦点交回打开它的钉图，
-//! 与原生菜单一样；因为点了别的程序而失去焦点时不抢回来。
+//! 与原生菜单一样；原生钉图不拿焦点，交回打开菜单之前的程序。因为点了别的程序而失去焦点时不抢回来。
 //!
 //! 线程规则同 [`super`]：持有锁时不调用窗口 API。
 
@@ -144,9 +144,14 @@ pub fn close(app: &AppHandle, generation: u32) -> Option<String> {
         crate::run_log::record(LogEvent::WindowHidden {
             window: WindowKind::PinMenu,
         });
-        if focused && let Some(pin_window) = app.get_webview_window(&pins::label(&pin)) {
+        if !pins::menu_closed(app, &pin, focused)
+            && focused
+            && let Some(pin_window) = app.get_webview_window(&pins::label(&pin))
+        {
             let _ = pin_window.set_focus();
         }
+    } else {
+        pins::menu_closed(app, &pin, false);
     }
     Some(pin)
 }
