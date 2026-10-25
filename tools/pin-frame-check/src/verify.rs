@@ -34,7 +34,7 @@ pub struct Submitted {
 /// 核对结论。
 pub struct Verdict {
     pub text: String,
-    /// 对不上的帧：外框对不上任何一次提交、边框宽度不符、应看得见却没有品红。验收要求为 0。
+    /// 对不上的帧：外框对不上任何一次提交、边框宽度不符、应看得见却没有品红、画面倒退。验收要求为 0。
     pub bad: u32,
     /// 核对了的帧数；为 0 说明桌面复制没取到帧（显示器休眠、锁屏），结论无效。
     pub checked: u32,
@@ -353,7 +353,7 @@ fn run(
         }
         Ok(Verdict {
             text: r,
-            bad: wrong_border + unmatched + flash,
+            bad: wrong_border + unmatched + flash + backwards,
             checked,
         })
     }

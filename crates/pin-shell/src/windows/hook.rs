@@ -24,7 +24,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     UnhookWindowsHookEx, WH_KEYBOARD_LL, WM_APP, WM_KEYDOWN, WM_QUIT, WM_SYSKEYDOWN, WM_TIMER,
 };
 
-use super::input::{key_from_vk, pack_key};
+use super::input::{key_from_vk, pack_key, vk_from_key};
 use crate::keys::{HitTable, KeyGate, Mods, Verdict, late_ms};
 
 /// 钩子线程自己的消息：重装钩子，`wParam` 为晚了多少毫秒。
@@ -158,7 +158,18 @@ fn run(shared: Arc<Shared>, ready: mpsc::Sender<u32>) {
     while unsafe { GetMessageW(&mut msg, None, 0, 0) }.0 > 0 {
         let report = match msg.message {
             WM_REINSTALL if last_reinstall.is_none_or(|t| t.elapsed() >= REINSTALL_GAP) => true,
-            WM_TIMER if GATE.with(|g| g.borrow().idle()) => false,
+            WM_TIMER => {
+                // 钩子被移除期间松开的键收不到松开，按物理状态清掉，否则兜底永远等不到空闲。
+                let idle = GATE.with(|g| {
+                    let mut g = g.borrow_mut();
+                    g.forget_released(|key| held(vk_from_key(key) as u16));
+                    g.idle()
+                });
+                if !idle {
+                    continue;
+                }
+                false
+            }
             _ => continue,
         };
         last_reinstall = Some(Instant::now());

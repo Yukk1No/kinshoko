@@ -49,7 +49,7 @@ pub(super) fn key_from_vk(vk: u32) -> Option<Key> {
     }
 }
 
-fn vk_from_key(key: Key) -> u32 {
+pub(super) fn vk_from_key(key: Key) -> u32 {
     match key {
         Key::Letter(c) => u32::from(c.to_ascii_uppercase()),
         Key::Digit(d) => 0x30 + u32::from(d),

@@ -39,7 +39,7 @@ pub trait PinShell {
     /// 目标在 [`PinShell::close`] 或 [`PinShell::retarget`] 之前有效。
     fn create(&mut self, pin: PinId) -> Result<[wgpu::SurfaceTargetUnsafe; 2], ShellError>;
 
-    /// 设备丢失、渲染层重建之后，给同一对窗口换新的 Surface 目标。调用前先丢掉旧的 Surface；之后
+    /// 设备丢失、渲染层重建之后，给同一对窗口换新的 Surface 目标，还没完成的 `swap` 作废。调用前先丢掉旧的 Surface；之后
     /// 往可见槽画一帧，再 [`PinShell::show`] 一次才会显示出来。
     fn retarget(&mut self, pin: PinId) -> Result<[wgpu::SurfaceTargetUnsafe; 2], ShellError>;
 

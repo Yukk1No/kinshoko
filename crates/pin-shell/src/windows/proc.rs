@@ -263,8 +263,13 @@ fn pen_or_touch(data: &SlotData, msg: u32, id: u32) -> Option<LRESULT> {
     // SAFETY：出参由本函数持有。`ptPixelLocation` 是屏幕物理像素（进程 Per-Monitor V2）。
     unsafe { GetPointerInfo(id, &mut info) }.ok()?;
     let at = (info.ptPixelLocation.x, info.ptPixelLocation.y);
+    // 只跟第一个按下的接触点：第二根手指（或笔落下时的手指）不拖动、不松开这张钉图。
+    if data.contact.get().is_some_and(|c| c != id) {
+        return Some(LRESULT(0));
+    }
     let event = match msg {
         WM_POINTERDOWN => {
+            data.contact.set(Some(id));
             let button = if kind == PointerKind::Pen && barrel(id) {
                 PointerButton::Secondary
             } else {
@@ -277,6 +282,7 @@ fn pen_or_touch(data: &SlotData, msg: u32, id: u32) -> Option<LRESULT> {
         WM_POINTERUPDATE => PointerEvent::Move,
         WM_POINTERUP => {
             data.pressed.set(false);
+            data.contact.set(None);
             post_host(WM_RETIRE, 0);
             PointerEvent::Up(data.button.get())
         }
@@ -287,6 +293,7 @@ fn pen_or_touch(data: &SlotData, msg: u32, id: u32) -> Option<LRESULT> {
             PointerEvent::Leave
         }
         _ => {
+            data.contact.set(None);
             if !data.pressed.replace(false) {
                 return Some(LRESULT(0));
             }

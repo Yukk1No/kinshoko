@@ -115,7 +115,8 @@ pub fn region_test(app: &mut App) -> Result<(), String> {
 }
 
 /// 设备丢失后重建：渲染层整个重建、重新上传，平台层给同一对窗口新的 Surface 目标，量多久重新显示。
-pub fn device_loss(app: &mut App) -> Result<f64, String> {
+/// 1 秒内重新显示、且屏幕上看得见钉图才算通过。
+pub fn device_loss(app: &mut App) -> Result<bool, String> {
     app.pump_for(300)?;
     let t = Instant::now();
     app.render.simulate_device_loss();
@@ -148,5 +149,5 @@ pub fn device_loss(app: &mut App) -> Result<f64, String> {
     let c = app.pins[0].pin.rect();
     let shown = is_magenta(screen_pixel(c.x + 2, c.y + c.height as i32 / 2));
     println!("设备丢失（检测到={lost}）→ 重新显示 {ms:.0} ms；之后屏幕上看得见钉图边框={shown}");
-    Ok(ms)
+    Ok(ms < 1000.0 && shown)
 }

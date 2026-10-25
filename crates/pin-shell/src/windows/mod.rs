@@ -353,6 +353,9 @@ impl PinShell for WinShell {
             .pins
             .get_mut(&pin)
             .ok_or_else(|| ShellError(format!("钉图 {pin:?} 不存在")))?;
+        // 换窗请求是对旧 visual 的，合成器回报晚到也不能再把新的、还没画的备用槽换上。
+        p.slots.cancel_swap();
+        p.swap_at = None;
         let visible = p.slots.visible();
         let opacity = |i: usize| if i == visible { 1.0 } else { 0.0 };
         // 两个都建好再换上：失败时两个槽都留着原来的 visual。

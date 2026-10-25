@@ -173,7 +173,7 @@ impl PinShell for FakeShell {
 
     fn retarget(&mut self, pin: PinId) -> Result<[wgpu::SurfaceTargetUnsafe; 2], ShellError> {
         self.calls.push(Call::Retarget(pin));
-        self.pin(pin);
+        self.pin_mut(pin).slots.cancel_swap();
         Ok(FakeShell::targets(pin))
     }
 

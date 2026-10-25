@@ -41,6 +41,8 @@ pub(super) struct SlotData {
     pub button: Cell<PointerButton>,
     /// 已请求 `WM_MOUSELEAVE`。
     pub tracking: Cell<bool>,
+    /// 按在这个槽上的笔或触摸接触点（指针编号）；别的接触点在它松开前不算。
+    pub contact: Cell<Option<u32>>,
 }
 
 impl SlotData {
@@ -130,6 +132,7 @@ pub(super) fn create_slot(
         pressed: Cell::new(false),
         button: Cell::new(PointerButton::Primary),
         tracking: Cell::new(false),
+        contact: Cell::new(None),
     });
     // SAFETY：窗口类已注册。建好之后再把 `data` 的所有权交给窗口（GWLP_USERDATA，WM_NCDESTROY
     // 收回）；在那之前窗口过程看到的是空指针，按普通窗口处理。

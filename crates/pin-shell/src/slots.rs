@@ -82,6 +82,12 @@ impl Slots {
         self.pending = None;
     }
 
+    /// 作废还没完成的 `swap` 与摆好的备用槽（设备丢失换了 visual，旧的请求不能再换上）。
+    pub fn cancel_swap(&mut self) {
+        self.pending = None;
+        self.staged = false;
+    }
+
     /// 记下要换窗，`ticket` 是适配器用来认“合成器收下了哪些”的序号。
     pub fn request_swap(&mut self, ticket: u64) -> Result<(), Misuse> {
         if !self.staged {
@@ -190,6 +196,18 @@ mod tests {
         assert_eq!(s.rect(0), Some(rect(1, 1, 5, 5)));
         s.request_swap(2).unwrap();
         assert_eq!(s.complete(2), Some((1, 0)));
+    }
+
+    #[test]
+    fn cancelled_swap_never_completes() {
+        let mut s = Slots::new();
+        s.show(rect(0, 0, 10, 10));
+        s.stage(rect(0, 0, 20, 20));
+        s.request_swap(1).unwrap();
+        s.cancel_swap();
+        assert_eq!(s.complete(1), None);
+        assert_eq!(s.visible(), 0);
+        assert_eq!(s.request_swap(2), Err(Misuse::NotStaged));
     }
 
     #[test]

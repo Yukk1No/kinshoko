@@ -93,7 +93,7 @@ fn run() -> Result<bool, String> {
         return Ok(true);
     }
     if rest.iter().any(|a| a == "--device-loss") {
-        return Ok(modes::device_loss(&mut app)? < 1000.0);
+        return modes::device_loss(&mut app);
     }
     Err("没有指定模式，用法见 README".into())
 }

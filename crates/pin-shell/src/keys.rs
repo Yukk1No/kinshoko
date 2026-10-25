@@ -118,7 +118,9 @@ impl KeyGate {
         let pin = table.pin_at(at);
         match self.held.get(&key) {
             // 自动重复：跟着按下时的决定走；光标还在钉图上才交给编排。
+            // 拦截表已关掉这个键（菜单打开了）：吞到松开为止，但不再交给钉图。
             Some(true) => {
+                let pin = pin.filter(|_| table.keys.contains(key));
                 return Verdict::Swallow(pin.map(|pin| Captured {
                     pin,
                     key,
@@ -145,6 +147,11 @@ impl KeyGate {
     /// 没有按着的键（这时重装钩子不会丢掉一次松开）。
     pub fn idle(&self) -> bool {
         self.held.is_empty()
+    }
+
+    /// 忘掉物理上已经松开的键：钩子被系统移除期间松开的键，钩子收不到它的松开。
+    pub fn forget_released(&mut self, still_down: impl Fn(Key) -> bool) {
+        self.held.retain(|&key, _| still_down(key));
     }
 
     pub fn up(&mut self, key: Option<Key>) -> Verdict {
@@ -326,6 +333,37 @@ mod tests {
             g.down(&table(), Some(R), (900, 10), Mods::default()),
             Verdict::Swallow(None)
         );
+    }
+
+    #[test]
+    fn repeats_are_swallowed_but_not_dispatched_once_the_key_is_disabled() {
+        let mut g = KeyGate::default();
+        g.down(&table(), Some(R), (10, 10), Mods::default());
+        let menu = HitTable {
+            keys: PinKeys::none(),
+            ..table()
+        };
+        assert_eq!(
+            g.down(&menu, Some(R), (10, 10), Mods::default()),
+            Verdict::Swallow(None)
+        );
+        assert_eq!(g.up(Some(R)), Verdict::Swallow(None));
+    }
+
+    #[test]
+    fn keys_released_while_the_hook_was_gone_are_forgotten() {
+        let mut g = KeyGate::default();
+        g.down(&table(), Some(H), (10, 10), Mods::default());
+        g.down(&table(), Some(R), (10, 10), Mods::default());
+        g.forget_released(|k| k == R);
+        assert!(!g.idle());
+        g.forget_released(|_| false);
+        assert!(g.idle());
+        // 忘掉之后再按，重新判断。
+        assert!(matches!(
+            g.down(&table(), Some(H), (10, 10), Mods::default()),
+            Verdict::Swallow(Some(Captured { repeat: false, .. }))
+        ));
     }
 
     #[test]
