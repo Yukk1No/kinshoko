@@ -62,11 +62,15 @@ fn pressing_the_lock_asks_to_reveal_instead_of_dragging() {
         ..Look::default()
     });
     r.o.take_effects();
+    r.shell_calls();
     let c = r.o.pins[&A].pin.rect();
     let centre = (c.x + c.width as i32 / 2, c.y + c.height as i32 / 2);
     r.pointer(centre, PointerEvent::Down(PointerButton::Primary));
     assert_eq!(r.o.take_effects(), [Effect::RevealAsked("marker".into())]);
     assert_eq!(r.o.pins[&A].gesture, None);
+    // 确认是一个菜单：钩子不再拦键，Esc 交给菜单而不是关掉钉图。
+    assert_eq!(r.shell_calls(), [Call::Keys(PinKeys::none())]);
+    r.o.menu_closed();
     // 小圆锁以外照常拖动。
     r.pointer(
         (c.x + 20, c.y + 20),

@@ -140,6 +140,7 @@ fn a_capture_pin_menu_carries_its_state() {
             veiled: false,
             can_collect: true,
             group: None,
+            confirm_reveal: false,
         }
     );
 }
