@@ -203,7 +203,7 @@ impl Renderer {
                 levels: image.levels,
             },
             overlay.map(|o| (o.width, o.height)),
-            lut.tables.is_none(),
+            lut.bits,
         );
         self.guarded(|| {
             let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {

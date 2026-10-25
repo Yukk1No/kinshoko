@@ -34,11 +34,22 @@ fn srgb_oetf(l: f32) -> f32 {
 /// 按着色器的做法查表：编码、三线性插值、夹到 0～1、编码后查显示器曲线。
 fn apply(lut: &PinLut, linear: [f32; 3]) -> [f32; 3] {
     let e = linear.map(|l| l.signum() * srgb_oetf(l.abs()));
-    let (clut, curve) = match lut {
+    let (clut, curve, linear) = match lut {
         PinLut::Identity => return e.map(|v| v.clamp(0.0, 1.0)),
-        PinLut::Table { clut, curve } => (clut, curve),
+        PinLut::Table {
+            clut,
+            curve,
+            linear,
+        } => (clut, curve, *linear),
     };
     let (lo, hi) = LUT_DOMAIN;
+    // 按线性值查的表：输入与结点范围都换成线性值。
+    let (e, (lo, hi)) = if linear {
+        let l = |v: f32| v.signum() * srgb_eotf(v.abs());
+        (e.map(l), (l(lo), l(hi)))
+    } else {
+        (e, (lo, hi))
+    };
     let n = LUT_SIZE;
     let at = e.map(|e| ((e - lo) / (hi - lo) * (n - 1) as f32).clamp(0.0, (n - 1) as f32));
     let i0 = at.map(|t| (t.floor() as usize).min(n - 2));
@@ -72,6 +83,24 @@ fn srgb_pixels_round_trip_through_the_srgb_lut_to_the_same_8_bit_values() {
     let pixels = derivative(&png(&image, None)).unwrap();
     assert_eq!((pixels.width, pixels.height, pixels.source), (256, 3, None));
     let lut = lut(None, None).unwrap();
+    for (p, want) in pixels.rgba.chunks_exact(4).zip(image.pixels()) {
+        let rgb = apply(&lut, [p[0], p[1], p[2]].map(f32_of));
+        let got = rgb.map(|v| (v * 255.0).round() as u8);
+        assert_eq!(got, [want[0], want[1], want[2]]);
+    }
+}
+
+#[test]
+fn an_srgb_display_with_its_own_icc_goes_through_the_table_and_keeps_8_bit_values() {
+    // 显示器报出 sRGB 的 ICC 字节时不是恒等（字节不同于“没有 ICC”），走 3D 表与曲线。
+    let image = RgbaImage::from_fn(256, 3, |x, y| {
+        let v = x as u8;
+        image::Rgba([v, v.wrapping_mul(7).wrapping_add(y as u8), 255 - v, 255])
+    });
+    let pixels = derivative(&png(&image, None)).unwrap();
+    let srgb = profiles::encode(&ColorProfile::new_srgb()).unwrap();
+    let lut = lut(None, Some(&srgb)).unwrap();
+    assert!(matches!(lut, PinLut::Table { .. }));
     for (p, want) in pixels.rgba.chunks_exact(4).zip(image.pixels()) {
         let rgb = apply(&lut, [p[0], p[1], p[2]].map(f32_of));
         let got = rgb.map(|v| (v * 255.0).round() as u8);

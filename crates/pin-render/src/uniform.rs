@@ -18,6 +18,8 @@ pub(crate) enum Mode {
 
 /// `flags.w` 的位。
 pub(crate) const LUT_IDENTITY: u32 = 1;
+/// 查找表的输入是线性值（`LutData::Table` 的 `linear`）。
+pub(crate) const LUT_LINEAR: u32 = 4;
 pub(crate) const BLUR: u32 = 2;
 
 /// 缩放比例离 1 这么近时按 1:1 逐像素取（与 `pinCanvasSize` 的 `pixelated` 同一个意思）。
@@ -58,7 +60,7 @@ pub(crate) fn pack(
     draw: &Draw<'_>,
     source: Source,
     overlay: Option<(u32, u32)>,
-    lut_identity: bool,
+    lut_bits: u32,
 ) -> PinUniform {
     let crop = clamp_crop(draw.crop, source);
     let odd = draw.turn.quarter % 2 == 1;
@@ -103,10 +105,7 @@ pub(crate) fn pack(
     let turn = u32::from(draw.turn.quarter % 4)
         | if draw.turn.flip_h { 4 } else { 0 }
         | if draw.turn.flip_v { 8 } else { 0 };
-    let mut bits = 0;
-    if lut_identity {
-        bits |= LUT_IDENTITY;
-    }
+    let mut bits = lut_bits;
     if blur >= MIN_BLUR {
         bits |= BLUR;
     }
@@ -194,7 +193,7 @@ mod tests {
                 quarter,
                 ..Turn::default()
             };
-            pack(&d, src, None, true)
+            pack(&d, src, None, LUT_IDENTITY)
         };
         assert_eq!(at(Rect::new(0.0, 0.0, 200.0, 100.0), 0).flags[1], 0);
         assert_eq!(at(Rect::new(0.0, 0.0, 100.0, 200.0), 1).flags[1], 0);
@@ -225,7 +224,7 @@ mod tests {
             ),
             source(100, 100),
             None,
-            false,
+            0,
         );
         assert_eq!(p.crop, [0.0, 90.0, 100.0, 100.0]);
     }
@@ -241,7 +240,7 @@ mod tests {
             blur: 14.0,
             ink: [0.2, 0.4, 0.6, 0.92],
         });
-        let p = pack(&d, source(64, 64), None, false);
+        let p = pack(&d, source(64, 64), None, 0);
         assert!((p.shape[2] - 0.7).abs() < 1e-6);
         assert_eq!(p.flags[3] & BLUR, BLUR);
         assert!((p.ink[3] - 0.46).abs() < 1e-6);
@@ -251,6 +250,6 @@ mod tests {
             amount: 0.01,
             ..d.veil.unwrap()
         });
-        assert_eq!(pack(&d, source(64, 64), None, false).flags[3] & BLUR, 0);
+        assert_eq!(pack(&d, source(64, 64), None, 0).flags[3] & BLUR, 0);
     }
 }

@@ -64,6 +64,8 @@ pub struct Lut {
     generation: u64,
     /// `None` 为恒等。
     tables: Option<(wgpu::TextureView, wgpu::TextureView)>,
+    /// 着色器的查找表标志（`uniform::LUT_IDENTITY`、`uniform::LUT_LINEAR`）。
+    bits: u32,
 }
 
 /// 说明层：预乘 alpha 的 RGBA8，sRGB 编码。

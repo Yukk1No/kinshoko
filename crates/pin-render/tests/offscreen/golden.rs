@@ -87,6 +87,18 @@ fn golden_enhanced_edge() {
     // 紧贴内容外沿的那一圈是浅色细线（白 60% 盖在阴影上）。
     let ring = out.pixel(7, 20);
     assert!(ring[0] > 140 && ring[3] > 170, "{ring:?}");
+
+    // 没有阴影时细线照画：白 60% 盖在透明上。
+    let mut bare = Draw::new(
+        window_at(99, 49, 42, 32),
+        Rect::new(100.0, 50.0, 40.0, 30.0),
+        full(&source),
+    );
+    bare.ring = 1.0;
+    let out = r.render_offscreen(&image, &bare, &identity).unwrap();
+    for p in [out.pixel(0, 0), out.pixel(0, 10), out.pixel(41, 31)] {
+        assert!(p.iter().all(|&v| v.abs_diff(153) <= 1), "{p:?}");
+    }
 }
 
 #[test]

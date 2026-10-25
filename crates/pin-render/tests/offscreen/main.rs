@@ -46,7 +46,15 @@ fn upload(r: &Renderer, pixels: &PinPixels) -> Image {
 fn lut(r: &Renderer, lut: &PinLut) -> Lut {
     match lut {
         PinLut::Identity => r.lut(LutData::Identity),
-        PinLut::Table { clut, curve } => r.lut(LutData::Table { clut, curve }),
+        PinLut::Table {
+            clut,
+            curve,
+            linear,
+        } => r.lut(LutData::Table {
+            clut,
+            curve,
+            linear: *linear,
+        }),
     }
     .unwrap()
 }

@@ -11,6 +11,8 @@
 //! 查找表的约定（`pin-render` 照此采样，那边的测试核对两边一致）：源空间编码值 `e` 落在
 //! [`LUT_DOMAIN`] 上均匀分布的 [`LUT_SIZE`]³ 个结点里，结点 `(r, g, b)` 存在第 `(b·N + g)·N + r` 项；
 //! 三线性插值的结果夹到 0～1、按 sRGB 曲线编码，再查一条逐通道的显示器曲线（[`PinLut`]）。
+//! 资料库钉图到矩阵型显示器时表的输入改为线性值（`linear`）：结点均匀分布在 [`LUT_DOMAIN`] 两端
+//! 按扩展 sRGB 曲线展开后的区间上。
 
 use image::{ImageReader, Rgba32FImage};
 use moxcms::{ColorProfile, DataColorSpace, Layout, RenderingIntent, TransformOptions};
@@ -102,8 +104,13 @@ pub enum PinLut {
     Identity,
     /// `clut`：[`LUT_SIZE`]³ 个结点，每项三个 f32，是显示器原色下的“近线性”值，不裁到 0～1；
     /// `curve`：[`CURVE_SIZE`] 项，每项三个 f32，把夹到 0～1、再按 sRGB 曲线编码的 `clut` 结果
-    /// 映射成显示器编码（第 `i` 项对应编码值 `i / (CURVE_SIZE - 1)`）。
-    Table { clut: Vec<f32>, curve: Vec<f32> },
+    /// 映射成显示器编码（第 `i` 项对应编码值 `i / (CURVE_SIZE - 1)`）；
+    /// `linear`：表的输入是线性值而不是编码值（见模块说明）。
+    Table {
+        clut: Vec<f32>,
+        curve: Vec<f32>,
+        linear: bool,
+    },
 }
 
 /// 显示器曲线的项数。
@@ -112,8 +119,8 @@ pub const CURVE_SIZE: usize = 4096;
 /// 源空间（`None` 为工作空间）→ 显示器配置文件（`None` 按 sRGB）的查找表，约定见模块说明。
 ///
 /// 两边都是矩阵型（源为工作空间时只看显示器）时，结点存的是线性的显示器原色值，裁剪与显示器曲线
-/// 放到逐通道的 `curve` 里：这种结点值是各通道一元函数之和，三线性插值几乎没有误差，色域边上的
-/// 折点也不进 3D 表。别的配置文件（查找表型）由 moxcms 逐结点转换，结点存 sRGB 曲线展开的值。
+/// 放到逐通道的 `curve` 里，色域边上的折点不进 3D 表。资料库钉图（源为工作空间）的表按线性值查：
+/// 结点值是结点的线性函数，三线性插值精确，同为 sRGB 的显示器 8 位值逐像素不变。别的配置文件（查找表型）由 moxcms 逐结点转换，结点存 sRGB 曲线展开的值。
 pub fn lut(source: Option<&[u8]>, display: Option<&[u8]>) -> Result<PinLut, String> {
     if source == display {
         return Ok(PinLut::Identity);
@@ -143,7 +150,7 @@ pub fn lut(source: Option<&[u8]>, display: Option<&[u8]>) -> Result<PinLut, Stri
             None => (
                 nodes
                     .iter()
-                    .flat_map(|e| e.map(signed_eotf))
+                    .flat_map(|e| e.map(linear_node))
                     .collect::<Vec<f32>>(),
                 to_bt2020(&ColorProfile::new_srgb())?,
             ),
@@ -159,7 +166,11 @@ pub fn lut(source: Option<&[u8]>, display: Option<&[u8]>) -> Result<PinLut, Stri
             .collect();
         let ramp: Vec<f32> = steps.iter().flat_map(|&t| [srgb_eotf(t); 3]).collect();
         let curve = convert(&profiles::linear_of(&display), &display, &ramp)?;
-        return Ok(PinLut::Table { clut, curve });
+        return Ok(PinLut::Table {
+            clut,
+            curve,
+            linear: source.is_none(),
+        });
     }
 
     let encoded = match &source {
@@ -177,6 +188,7 @@ pub fn lut(source: Option<&[u8]>, display: Option<&[u8]>) -> Result<PinLut, Stri
     Ok(PinLut::Table {
         clut: encoded.into_iter().map(srgb_eotf).collect(),
         curve: steps.iter().flat_map(|&t| [t; 3]).collect(),
+        linear: false,
     })
 }
 
@@ -217,6 +229,13 @@ pub fn display_reference(bytes: &[u8], display: Option<&[u8]>) -> Result<image::
 fn node(i: usize) -> f32 {
     let (lo, hi) = LUT_DOMAIN;
     lo + (hi - lo) * i as f32 / (LUT_SIZE - 1) as f32
+}
+
+/// 按线性值查的表（`linear`）里编码值结点 `e` 对应的线性值：两端展开后的区间上均匀分布。
+fn linear_node(e: f32) -> f32 {
+    let (lo, hi) = (signed_eotf(LUT_DOMAIN.0), signed_eotf(LUT_DOMAIN.1));
+    let (dlo, dhi) = LUT_DOMAIN;
+    lo + (hi - lo) * (e - dlo) / (dhi - dlo)
 }
 
 /// sRGB 曲线解码，负值按符号对称（扩展 sRGB）。

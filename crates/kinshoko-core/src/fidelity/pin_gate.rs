@@ -175,6 +175,22 @@ impl PinGateItem {
                 reference.dimensions()
             ));
         }
+        let (w, h) = rendered.dimensions();
+        if let Some(p) = sample
+            .patches
+            .iter()
+            .find(|p| p.x + p.width > w || p.y + p.height > h)
+        {
+            return Err(format!("色块 {p:?} 超出 {w}×{h} 的图"));
+        }
+        // 透明度不经查找表：哪里不同（例如什么也没画出来）就是画错了，色块比较会把它跳过。
+        if let Some((g, w)) = rendered
+            .pixels()
+            .zip(reference.pixels())
+            .find(|(g, w)| g[3].abs_diff(w[3]) > 1)
+        {
+            return Err(format!("透明度不同：画出 {g:?}，应为 {w:?}"));
+        }
         let profile = match display {
             Some(bytes) => ColorProfile::new_from_slice(bytes).map_err(|e| format!("{e:?}"))?,
             None => ColorProfile::new_srgb(),

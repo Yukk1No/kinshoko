@@ -47,8 +47,13 @@ pub struct Pixels<'a> {
 pub enum LutData<'a> {
     /// 源空间就是显示器：编码值原样输出。
     Identity,
-    /// `clut`：[`LUT_SIZE`]³ 项 RGB f32；`curve`：[`CURVE_SIZE`] 项 RGB f32。约定见 `pin_colour`。
-    Table { clut: &'a [f32], curve: &'a [f32] },
+    /// `clut`：[`LUT_SIZE`]³ 项 RGB f32；`curve`：[`CURVE_SIZE`] 项 RGB f32；`linear`：`clut` 的
+    /// 输入是线性值（[`LUT_DOMAIN`] 两端按扩展 sRGB 曲线展开），否则是编码值。约定见 `pin_colour`。
+    Table {
+        clut: &'a [f32],
+        curve: &'a [f32],
+        linear: bool,
+    },
 }
 
 /// 屏幕上的窗口：左上角与尺寸，物理像素。

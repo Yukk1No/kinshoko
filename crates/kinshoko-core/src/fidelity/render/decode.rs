@@ -89,7 +89,10 @@ pub(super) fn band_rows(width: u32) -> u32 {
 }
 
 /// 动图首帧（APNG 的默认图不在动画里时取第一个动画帧），其余为普通解码。
-pub(super) fn decode_first_frame(bytes: &[u8], inspection: &Inspection) -> Result<DynamicImage, String> {
+pub(super) fn decode_first_frame(
+    bytes: &[u8],
+    inspection: &Inspection,
+) -> Result<DynamicImage, String> {
     if inspection.format == ImageFormat::Png && inspection.apng_hidden_default {
         let decoder =
             image::codecs::png::PngDecoder::new(Cursor::new(bytes)).map_err(|e| e.to_string())?;

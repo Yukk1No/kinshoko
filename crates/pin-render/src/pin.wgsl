@@ -30,6 +30,7 @@ const CURVE_N: i32 = 4096;
 const MODE_EXACT: u32 = 0u;
 const MODE_MINIFY: u32 = 1u;
 const LUT_IDENTITY: u32 = 1u;
+const LUT_LINEAR: u32 = 4u;
 const BLUR: u32 = 2u;
 
 @vertex
@@ -147,6 +148,13 @@ fn oetf(l: vec3<f32>) -> vec3<f32> {
     return sign(l) * select(hi, lo, a <= vec3<f32>(0.0031308));
 }
 
+fn eotf(e: vec3<f32>) -> vec3<f32> {
+    let a = abs(e);
+    let lo = a / 12.92;
+    let hi = pow((a + 0.055) / 1.055, vec3<f32>(2.4));
+    return sign(e) * select(hi, lo, a <= vec3<f32>(0.04045));
+}
+
 fn lut_at(i: vec3<i32>) -> vec3<f32> {
     return textureLoad(lut, i, 0).rgb;
 }
@@ -161,7 +169,16 @@ fn display(e: vec3<f32>) -> vec3<f32> {
         return clamp(e, vec3<f32>(0.0), vec3<f32>(1.0));
     }
     let n = f32(LUT_N - 1);
-    let g = clamp((e - LUT_LO) / (LUT_HI - LUT_LO) * n, vec3<f32>(0.0), vec3<f32>(n));
+    var x = e;
+    var lo = LUT_LO;
+    var hi = LUT_HI;
+    if ((pin.flags.w & LUT_LINEAR) != 0u) {
+        // 矩阵型显示器：表是线性值的线性函数，按线性值查，三线性插值精确。
+        x = eotf(e);
+        lo = eotf(vec3<f32>(LUT_LO)).x;
+        hi = eotf(vec3<f32>(LUT_HI)).x;
+    }
+    let g = clamp((x - lo) / (hi - lo) * n, vec3<f32>(0.0), vec3<f32>(n));
     let i = min(vec3<i32>(floor(g)), vec3<i32>(LUT_N - 2));
     let f = g - vec3<f32>(i);
     let x00 = mix(lut_at(i), lut_at(i + vec3<i32>(1, 0, 0)), f.x);
@@ -241,13 +258,15 @@ fn fs(@builtin(position) frag: vec4<f32>) -> @location(0) vec4<f32> {
             colour = vec4<f32>(oetf(lin.rgb / lin.a) * a, a);
         }
         colour = over(pin.ink, colour);
-    } else if (edge > 0.0) {
+    } else {
         // pin-edge.css：0 0.25e 0.625e 近处投影与 0 0 0.375e 贴身暗边（CSS 模糊半径的一半是标准差）；
-        // 只画在内容外面。增强边缘的细线在最上面。
-        let drop = vec2<f32>(0.0, 0.25 * edge);
-        let a1 = 0.30 * cover(s, c0 + drop, c1 + drop, 0.3125 * edge);
-        let a2 = 0.28 * cover(s, c0, c1, 0.1875 * edge);
-        colour = vec4<f32>(0.0, 0.0, 0.0, 1.0 - (1.0 - a1) * (1.0 - a2));
+        // 只画在内容外面。增强边缘的细线在最上面，与阴影无关。
+        if (edge > 0.0) {
+            let drop = vec2<f32>(0.0, 0.25 * edge);
+            let a1 = 0.30 * cover(s, c0 + drop, c1 + drop, 0.3125 * edge);
+            let a2 = 0.28 * cover(s, c0, c1, 0.1875 * edge);
+            colour = vec4<f32>(0.0, 0.0, 0.0, 1.0 - (1.0 - a1) * (1.0 - a2));
+        }
         let w = pin.shape.y;
         if (w > 0.0 && all(s >= c0 - w) && all(s < c1 + w)) {
             colour = over(pin.ring, colour);

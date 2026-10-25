@@ -47,18 +47,20 @@ npm run typecheck       # TypeScript type check
 npm run bindings        # regenerate src/bindings/ (runs the core crate's unit tests)
 cargo nextest run -p kinshoko-core   # core crate tests (what CI runs; needs cargo-nextest)
 cargo test -p kinshoko-core --doc    # core crate doctests (nextest skips them)
+cargo nextest run -p pin-render      # pin renderer offscreen tests (GPU, or WARP without one)
 cargo fmt --all
 cargo clippy --workspace --all-targets -- -D warnings   # run npm run vite:build first to produce dist/
 node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # needs tauri-driver and an msedgedriver matching WebView2
 ```
 
-CI runs the Rust checks (format, Clippy, core crate tests, generated-file check) and the native app build with the WebDriver smoke test on `windows-2022`, and the TypeScript type check, frontend tests and workflow lint on `ubuntu-latest`. The app job is pinned to `windows-2022` because the smoke test does not yet pass on `windows-latest`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run the relevant checks locally before opening a PR.
+CI runs the Rust checks (format, Clippy, core crate tests, pin renderer offscreen tests on WARP, generated-file check) and the native app build with the WebDriver smoke test on `windows-2022`, and the TypeScript type check, frontend tests and workflow lint on `ubuntu-latest`. The app job is pinned to `windows-2022` because the smoke test does not yet pass on `windows-latest`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run the relevant checks locally before opening a PR.
 
 ## Layout
 
 | Path | Contents |
 | --- | --- |
 | `crates/kinshoko-core/` | Domain core crate, independent of Tauri. Domain logic lives here; tests go through its public interface with real SQLite and real files in a temp directory. |
+| `crates/pin-render/` | Desktop pin GPU drawing on wgpu (ADR 0013); no platform types, no dependency on the core crate. |
 | `crates/kinshoko-tagger/` | Tagging subprocess: ONNX Runtime inference on DirectML, or on the CPU without a dedicated GPU. |
 | `src-tauri/` | Tauri 2 app shell (crate `kinshoko`). Commands only forward, convert types and push events. |
 | `src/` | React 19 + TypeScript + Vite frontend. `src/ipc.ts` is the only place that calls Tauri commands. |

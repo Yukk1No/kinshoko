@@ -7,19 +7,23 @@ use kinshoko_core::fidelity::pin_gate::{PinGate, PinGateItem};
 use pin_render::{Draw, LutData, Pixels, Rect, Renderer, Window};
 
 /// 主显示器：名称（报告用）与它的 ICC（读不到为 `None`，按 sRGB）。
-pub struct Display {
+pub struct MainDisplay {
     pub name: String,
     pub icc: Option<Vec<u8>>,
 }
 
 /// 渲染层起不来、查找表建不成时整项记为出错；单个样本出错只记在那一项上。
-pub fn run(run: &GateRun, display: &Display) -> PinGate {
+pub fn run(run: &GateRun, display: &MainDisplay) -> PinGate {
     let icc = display.icc.as_deref();
     let mut gate = PinGate {
         display: format!(
             "{}（{}）",
             display.name,
-            if icc.is_some() { "显示器 ICC" } else { "没有 ICC，按 sRGB" }
+            if icc.is_some() {
+                "显示器 ICC"
+            } else {
+                "没有 ICC，按 sRGB"
+            }
         ),
         ..PinGate::default()
     };
@@ -34,7 +38,15 @@ pub fn run(run: &GateRun, display: &Display) -> PinGate {
     let lut = pin_colour::lut(None, icc).and_then(|lut| {
         match &lut {
             PinLut::Identity => renderer.lut(LutData::Identity),
-            PinLut::Table { clut, curve } => renderer.lut(LutData::Table { clut, curve }),
+            PinLut::Table {
+                clut,
+                curve,
+                linear,
+            } => renderer.lut(LutData::Table {
+                clut,
+                curve,
+                linear: *linear,
+            }),
         }
         .map_err(|e| e.to_string())
     });

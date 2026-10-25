@@ -45,7 +45,7 @@ struct Prepared {
     run: gate::GateRun,
     report_dir: PathBuf,
     environment: serde_json::Value,
-    display: pins::Display,
+    display: pins::MainDisplay,
     /// 钉图比较要在 GPU 上画全部样本，页面要时才算，只算一次。
     pins: OnceLock<PinGate>,
 }
@@ -110,7 +110,7 @@ pub fn start(app: &AppHandle, options: Options) {
 }
 
 /// 主显示器与它的 ICC：钉图比较的查找表对着它。
-fn primary_display(app: &AppHandle) -> pins::Display {
+fn primary_display(app: &AppHandle) -> pins::MainDisplay {
     let name = app
         .primary_monitor()
         .ok()
@@ -121,10 +121,10 @@ fn primary_display(app: &AppHandle) -> pins::Display {
     let icc = crate::desktop::win32::display_profile(&name);
     #[cfg(not(windows))]
     let icc = None;
-    pins::Display { name, icc }
+    pins::MainDisplay { name, icc }
 }
 
-fn prepare(report_dir: &Path, display: pins::Display) -> Result<Prepared, String> {
+fn prepare(report_dir: &Path, display: pins::MainDisplay) -> Result<Prepared, String> {
     let stamp = chrono_stamp();
     let dir = report_dir.join(format!("run-{stamp}"));
     let run = gate::prepare(&dir).map_err(|e| e.to_string())?;

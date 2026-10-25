@@ -88,14 +88,19 @@ impl Renderer {
 
     /// 上传到某台显示器的查找表。
     pub fn lut(&self, data: LutData<'_>) -> Result<Lut, Error> {
-        let (clut, curve) = match data {
+        let (clut, curve, linear) = match data {
             LutData::Identity => {
                 return Ok(Lut {
                     generation: self.generation,
                     tables: None,
+                    bits: uniform::LUT_IDENTITY,
                 });
             }
-            LutData::Table { clut, curve } => (clut, curve),
+            LutData::Table {
+                clut,
+                curve,
+                linear,
+            } => (clut, curve, linear),
         };
         if clut.len() != LUT_SIZE.pow(3) * 3 || curve.len() != CURVE_SIZE * 3 {
             return Err(Error::Invalid(format!(
@@ -134,6 +139,7 @@ impl Renderer {
             Lut {
                 generation: self.generation,
                 tables: Some((clut, curve)),
+                bits: if linear { uniform::LUT_LINEAR } else { 0 },
             }
         })
     }
