@@ -30,6 +30,13 @@ enum Msg {
         size: SourceSize,
         pixels: PinPixels,
     },
+    /// 第 `seq` 次读图失败。经渲染线程转交，只报给还认得这张钉图的那一个编排：上一个编排留下的
+    /// 读图线程拿着旧渲染线程的发送端，钉图编号又会从头用起。
+    ReadFailed {
+        pin: PinId,
+        seq: u64,
+        reason: String,
+    },
     Draw(DrawJob),
     Detach(PinId),
 }
@@ -69,12 +76,7 @@ impl RenderPort for RenderThread {
         self.seq += 1;
         let seq = self.seq;
         let _ = self.tx.send(Msg::Want(pin, seq));
-        let (tx, read, notify, state) = (
-            self.tx.clone(),
-            self.read.clone(),
-            self.notify.clone(),
-            state.clone(),
-        );
+        let (tx, read, state) = (self.tx.clone(), self.read.clone(), state.clone());
         let spawned =
             std::thread::Builder::new()
                 .name("pin-read".into())
@@ -88,7 +90,9 @@ impl RenderPort for RenderThread {
                                 pixels,
                             });
                         }
-                        Err(reason) => notify(RenderEvent::LoadFailed { pin, reason }),
+                        Err(reason) => {
+                            let _ = tx.send(Msg::ReadFailed { pin, seq, reason });
+                        }
                     },
                 );
         if let Err(e) = spawned {
@@ -158,6 +162,11 @@ impl Worker {
                     Ok(false) => {}
                     Err(reason) => notify(RenderEvent::LoadFailed { pin, reason }),
                 },
+                Msg::ReadFailed { pin, seq, reason } => {
+                    if self.pins.get(&pin).is_some_and(|p| p.want == seq) {
+                        notify(RenderEvent::LoadFailed { pin, reason });
+                    }
+                }
                 Msg::Draw(job) => {
                     let pin = job.pin;
                     let result = self.draw(&job);
@@ -248,5 +257,44 @@ impl Worker {
         renderer
             .draw(surface, image, &draw, &self.luts[&key])
             .map_err(|e| e.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Mutex;
+
+    use super::*;
+
+    #[test]
+    fn only_the_latest_read_of_a_pin_this_thread_knows_is_reported_failed() {
+        let mut worker = Worker::default();
+        worker.pins.insert(
+            PinId(1),
+            Slot {
+                want: 2,
+                ..Slot::default()
+            },
+        );
+        let (tx, rx) = channel();
+        for (pin, seq) in [(1, 1), (7, 2), (1, 2)] {
+            tx.send(Msg::ReadFailed {
+                pin: PinId(pin),
+                seq,
+                reason: format!("{pin}/{seq}"),
+            })
+            .unwrap();
+        }
+        drop(tx);
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let log = seen.clone();
+        worker.run(&rx, &move |e| log.lock().unwrap().push(e));
+        assert_eq!(
+            *seen.lock().unwrap(),
+            [RenderEvent::LoadFailed {
+                pin: PinId(1),
+                reason: "1/2".into()
+            }]
+        );
     }
 }

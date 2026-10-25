@@ -91,8 +91,10 @@ struct Live {
     window: Option<ScreenRect>,
     /// 上一次画进看得见的槽的内容矩形。
     drawn: ScreenRect,
-    /// 上一次绘制之后，除了位置还有没有别的变化（透明度、换了源图）。
+    /// 上一次绘制之后，除了位置还有没有别的变化（透明度、换了源图、换了显示器配置文件）。
     fresh: bool,
+    /// 上一次绘制按哪个显示器配置文件转的颜色。
+    profile: Option<Arc<[u8]>>,
     pending: Option<Pending>,
     /// 路上有事时来的更新：是否手势中。
     dirty: Option<bool>,
@@ -156,6 +158,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 pin,
                 window: None,
                 fresh: false,
+                profile: None,
                 pending: None,
                 dirty: None,
                 gesture_until: None,
@@ -354,13 +357,18 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             return;
         };
         if live.pending.is_some() {
-            live.dirty = Some(live.dirty.unwrap_or(false) || gesture);
+            // 只留最新的：停手之后的更新要盖掉路上记下的“手势中”。
+            live.dirty = Some(gesture);
             return;
         }
         if !live.loaded {
             return;
         }
         let content = live.pin.rect();
+        let profile = display_at(&self.displays, content);
+        if profile != live.profile {
+            live.fresh = false;
+        }
         let visible = self.shell.visible_slot(pin);
         let (slot, window, then) = match live.window {
             None => match window_for(content, &monitors) {
@@ -394,6 +402,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         };
         let live = self.pins.get_mut(&pin).expect("上面找到");
         live.fresh = true;
+        live.profile.clone_from(&profile);
         live.pending = Some(Pending::Draw {
             window,
             content,
@@ -405,7 +414,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             window,
             content,
             state: live.pin.clone(),
-            display: display_at(&self.displays, content),
+            display: profile,
         };
         if then != Then::Swap {
             let submit = submit(pin, live, window);

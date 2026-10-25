@@ -12,6 +12,8 @@ use pin_shell::{
 use super::*;
 use crate::desktop::pins::native::port::{DrawJob, RenderEvent, RenderPort};
 
+mod failures;
+
 /// 渲染层的一次调用。
 #[derive(Debug, Clone, PartialEq)]
 enum RCall {
@@ -88,12 +90,16 @@ fn marker() -> SavedPin {
 impl Rig {
     /// 开一张钉图，渲染层把读图、绘制都做完，钉图显示出来；调用记录清空。
     fn shown() -> Rig {
-        let shell = FakeShell::new(vec![Display {
+        Rig::shown_on(vec![Display {
             id: "A".into(),
             rect: SCREEN,
             scale: 1.0,
             profile: None,
-        }]);
+        }])
+    }
+
+    fn shown_on(displays: Vec<Display>) -> Rig {
+        let shell = FakeShell::new(displays);
         let mut r = Rig {
             o: Orchestra::new(shell, FakeRender::default()),
             now: Instant::now(),
@@ -499,74 +505,4 @@ fn submissions_are_reported_before_the_shell_is_told() {
     assert_eq!(seen.len(), 2);
     assert_eq!(seen[1].content, r.o.pins[&A].pin.rect());
     assert_eq!(Some(seen[1].window), r.o.shell().window(A));
-}
-
-/// 开一张钉图，渲染层还没回报。
-fn opening() -> O {
-    let shell = FakeShell::new(vec![Display {
-        id: "A".into(),
-        rect: SCREEN,
-        scale: 1.0,
-        profile: None,
-    }]);
-    let mut o = Orchestra::new(shell, FakeRender::default());
-    o.open(marker()).unwrap();
-    o.render().calls.clear();
-    o.render().open.clear();
-    o
-}
-
-#[test]
-fn a_pin_whose_image_cannot_be_read_gives_up_and_tears_down() {
-    let mut o = opening();
-    o.render_event(RenderEvent::LoadFailed {
-        pin: A,
-        reason: "没有这张图".into(),
-    });
-    assert_eq!(
-        o.take_effects(),
-        [
-            Effect::Warn("原生钉图读不到图", "没有这张图".into()),
-            Effect::Failed("marker".into()),
-        ]
-    );
-    assert_eq!(o.render().calls, [RCall::Detach(A)]);
-    o.render_event(RenderEvent::Detached { pin: A });
-    assert!(o.is_empty());
-}
-
-#[test]
-fn a_pin_whose_first_frame_cannot_be_drawn_gives_up() {
-    let mut o = opening();
-    o.render_event(RenderEvent::Loaded {
-        pin: A,
-        size: SourceSize::Width(500),
-    });
-    o.render().calls.clear();
-    o.render_event(RenderEvent::Drawn {
-        pin: A,
-        result: Err("设备丢了".into()),
-    });
-    assert_eq!(
-        o.take_effects(),
-        [
-            Effect::Warn("原生钉图画不上", "设备丢了".into()),
-            Effect::Failed("marker".into()),
-        ]
-    );
-    assert_eq!(o.render().calls, [RCall::Detach(A)]);
-}
-
-#[test]
-fn a_reload_that_fails_after_showing_keeps_the_pin() {
-    let mut r = Rig::shown();
-    r.o.render_event(RenderEvent::LoadFailed {
-        pin: A,
-        reason: "x".into(),
-    });
-    assert_eq!(
-        r.o.take_effects(),
-        [Effect::Warn("原生钉图读不到图", "x".into())]
-    );
-    assert_eq!(r.o.render().calls, []);
 }
