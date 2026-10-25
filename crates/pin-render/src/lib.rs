@@ -25,9 +25,9 @@ pub use error::Error;
 pub use renderer::{Image, Lut, MemoryReport, Overlay, Renderer, Surface};
 
 /// 查找表每一维的结点数（与 `kinshoko-core::desktop::pin_colour::LUT_SIZE` 相同）。
-pub const LUT_SIZE: usize = 33;
+pub const LUT_SIZE: usize = 65;
 /// 查找表输入覆盖的编码值范围（与 `pin_colour::LUT_DOMAIN` 相同）。
-pub const LUT_DOMAIN: (f32, f32) = (-0.5, 1.5);
+pub const LUT_DOMAIN: (f32, f32) = (-1.5, 2.5);
 /// 显示器曲线的项数（与 `pin_colour::CURVE_SIZE` 相同）。
 pub const CURVE_SIZE: usize = 4096;
 
@@ -124,6 +124,9 @@ pub struct Draw<'a> {
     pub veil: Option<Veil>,
     /// 说明层（小圆锁、原因文字）与它左上角在屏幕上的位置，按 1:1 画在最上面。
     pub overlay: Option<(&'a Overlay, [f32; 2])>,
+    /// 界面颜色（遮蔽墨色、细线、说明层，都是 sRGB）到显示器的表：`pin_colour::lut(None, 显示器)`。
+    /// `None` 时与钉图用同一张，资料库钉图就是这样；截图钉图的表以截图时的显示器为源，要另给这一张。
+    pub ui_lut: Option<&'a Lut>,
 }
 
 impl<'a> Draw<'a> {
@@ -139,6 +142,7 @@ impl<'a> Draw<'a> {
             ring: 0.0,
             veil: None,
             overlay: None,
+            ui_lut: None,
         }
     }
 }

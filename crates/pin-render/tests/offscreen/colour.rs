@@ -103,4 +103,35 @@ fn a_screenshot_back_on_its_own_display_is_the_captured_pixels() {
     assert_same(&straight(&out), &shot, "截图回到原显示器");
 }
 
+#[test]
+fn interface_colours_on_a_screenshot_pin_are_srgb_not_the_capture_display() {
+    // 截图回到 P3 显示器（钉图的表是恒等），说明层的 sRGB 红仍按 sRGB 显示，不当成 P3 红。
+    let r = renderer();
+    let p3 = pin_colour_p3();
+    let shot = photo(20, 10);
+    let pixels = pin_colour::screenshot(&png(&shot, Some(p3.clone()))).unwrap();
+    let table = lut(
+        &r,
+        &pin_colour::lut(pixels.source.as_deref(), Some(&p3)).unwrap(),
+    );
+    let ui = lut(&r, &pin_colour::lut(None, Some(&p3)).unwrap());
+    let red = RgbaImage::from_pixel(20, 10, image::Rgba([255, 0, 0, 255]));
+    let overlay = r.overlay(20, 10, red.as_raw()).unwrap();
+    let mut draw = plain((0, 0, 20, 10), full(&shot));
+    draw.overlay = Some((&overlay, [0.0, 0.0]));
+    draw.ui_lut = Some(&ui);
+    let out = r
+        .render_offscreen(&upload(&r, &pixels), &draw, &table)
+        .unwrap();
+    let want = pin_colour::display_reference(&png(&red, None), Some(&p3)).unwrap();
+    // 按 sRGB 解释时 P3 显示器上约 (234, 51, 35)，当成 P3 时是 (255, 0, 0)；允许四舍五入差 1 级。
+    let got = straight(&out);
+    for (g, w) in got.pixels().zip(want.pixels()) {
+        assert!(
+            g.0.iter().zip(w.0).all(|(g, w)| g.abs_diff(w) <= 1),
+            "{g:?} vs {w:?}"
+        );
+    }
+}
+
 // ---- 金样 -----------------------------------------------------------------------------------

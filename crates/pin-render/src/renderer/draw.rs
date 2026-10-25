@@ -186,8 +186,10 @@ impl Renderer {
     /// 核对句柄、打包统一变量，建绑定组。
     fn bind(&self, image: &Image, draw: &Draw<'_>, lut: &Lut) -> Result<wgpu::BindGroup, Error> {
         let overlay = draw.overlay.map(|(o, _)| o);
+        let ui = draw.ui_lut.unwrap_or(lut);
         if image.generation != self.generation
             || lut.generation != self.generation
+            || ui.generation != self.generation
             || overlay.is_some_and(|o| o.generation != self.generation)
         {
             return Err(Error::Stale);
@@ -203,7 +205,7 @@ impl Renderer {
                 levels: image.levels,
             },
             overlay.map(|o| (o.width, o.height)),
-            lut.bits,
+            lut.bits | ui.bits << uniform::UI_SHIFT,
         );
         self.guarded(|| {
             let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -214,10 +216,8 @@ impl Renderer {
             });
             self.queue
                 .write_buffer(&buffer, 0, bytemuck::bytes_of(&packed));
-            let (clut, curve) = match &lut.tables {
-                Some((clut, curve)) => (clut, curve),
-                None => (&self.empty_lut, &self.empty_curve),
-            };
+            let (clut, curve) = self.tables(lut);
+            let (ui_clut, ui_curve) = self.tables(ui);
             let view = |binding, view| wgpu::BindGroupEntry {
                 binding,
                 resource: wgpu::BindingResource::TextureView(view),
@@ -234,9 +234,19 @@ impl Renderer {
                     view(2, clut),
                     view(3, curve),
                     view(4, overlay.map_or(&self.empty_overlay, |o| &o.view)),
+                    view(5, ui_clut),
+                    view(6, ui_curve),
                 ],
             })
         })
+    }
+
+    /// 查找表的两张纹理；恒等时绑空纹理（着色器不读）。
+    fn tables<'a>(&'a self, lut: &'a Lut) -> (&'a wgpu::TextureView, &'a wgpu::TextureView) {
+        match &lut.tables {
+            Some((clut, curve)) => (clut, curve),
+            None => (&self.empty_lut, &self.empty_curve),
+        }
     }
 
     fn render(

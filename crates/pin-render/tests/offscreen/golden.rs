@@ -72,6 +72,13 @@ fn golden_shadow() {
     assert_eq!(out.pixel(0, 0), [0, 0, 0, 0]);
     assert_eq!(out.pixel(11, 11), [0, 0, 0, 0]);
     assert!(out.pixel(12, 12)[3] >= 1);
+
+    // 透明的源像素在内容里仍然透明，命中用的 1/255 只在阴影那一圈。
+    let clear = RgbaImage::new(40, 30);
+    let image = upload(&r, &pin_colour::derivative(&png(&clear, None)).unwrap());
+    let out = r.render_offscreen(&image, &draw, &identity).unwrap();
+    assert_eq!(out.pixel(8 + 20, 8 + 15), [0, 0, 0, 0]);
+    assert!(out.pixel(0, 0)[3] >= 1);
 }
 
 #[test]

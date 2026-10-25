@@ -109,6 +109,36 @@ fn an_srgb_display_with_its_own_icc_goes_through_the_table_and_keeps_8_bit_value
 }
 
 #[test]
+fn saturated_wide_gamut_primaries_return_to_their_own_display_unclipped() {
+    // 原色与二次色在扩展 sRGB 里落得很远（BT.2020 绿的红分量约 -0.59），不能被查找表的范围裁掉。
+    let bt2020 = profiles::encode(&ColorProfile::new_bt2020()).unwrap();
+    for (name, icc) in [
+        ("Display P3", profiles::display_p3_icc()),
+        ("BT.2020", bt2020),
+    ] {
+        for rgb in [
+            [255, 0, 0],
+            [0, 255, 0],
+            [0, 0, 255],
+            [0, 255, 255],
+            [255, 0, 255],
+            [255, 255, 0],
+        ] {
+            let image = RgbaImage::from_pixel(2, 2, image::Rgba([rgb[0], rgb[1], rgb[2], 255]));
+            let pixels = derivative(&png(&image, Some(icc.clone()))).unwrap();
+            let linear = [0, 1, 2].map(|c| f32_of(pixels.rgba[c]));
+            let back = apply(&lut(None, Some(&icc)).unwrap(), linear);
+            for (got, want) in back.iter().zip(rgb) {
+                assert!(
+                    (got * 255.0 - f32::from(want)).abs() < 2.0,
+                    "{name} {rgb:?}：{back:?}（线性 sRGB {linear:?}）"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn wide_gamut_colours_stay_outside_srgb_and_reach_a_p3_display_unclipped() {
     let red = RgbaImage::from_pixel(2, 2, image::Rgba([255, 0, 0, 255]));
     let p3 = profiles::display_p3_icc();

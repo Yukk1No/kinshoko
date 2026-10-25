@@ -22,9 +22,10 @@ use crate::fidelity::profiles::{self, srgb_eotf};
 use crate::fidelity::render::decode_upright;
 
 /// 查找表每一维的结点数。
-pub const LUT_SIZE: usize = 33;
-/// 查找表输入（源空间编码值）覆盖的范围。0 与 1 都是结点，裁到显示器色域的折点因此插值无误差。
-pub const LUT_DOMAIN: (f32, f32) = (-0.5, 1.5);
+pub const LUT_SIZE: usize = 65;
+/// 查找表输入（源空间编码值）覆盖的范围：包得住 BT.2020 原色在扩展 sRGB 里的值（绿约 -0.79／1.07）。
+/// 结点间隔 1/16，0 与 1 都是结点，裁到显示器色域的折点因此插值无误差。
+pub const LUT_DOMAIN: (f32, f32) = (-1.5, 2.5);
 
 /// 上传给钉图的像素：线性工作空间、预乘 alpha 的 RGBA，每个分量是 f16 的位。
 #[derive(Debug, Clone, PartialEq)]

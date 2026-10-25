@@ -1,8 +1,8 @@
 // 钉图：整个窗口一个三角形，按屏幕坐标算每个像素落在内容、阴影还是外面。
 //
 // 源图是线性工作空间、预乘 alpha 的 Rgba16Float，全部用 textureLoad 手工采样（不用采样器）：
-// 只读裁切范围里完整的纹素，局部以外的像素不会混进来。颜色在扩展 sRGB 编码下合成（与 CSS 相同），
-// 最后查表转到显示器编码，按预乘 alpha 输出。各字段见 uniform.rs 的 PinUniform。
+// 只读裁切范围里完整的纹素，局部以外的像素不会混进来。钉图颜色与界面颜色（遮蔽墨色、细线、说明层）
+// 各自查表转到显示器编码，再在显示器编码下合成，按预乘 alpha 输出。各字段见 uniform.rs 的 PinUniform。
 
 struct Pin {
     content: vec4<f32>,
@@ -20,11 +20,13 @@ struct Pin {
 @group(0) @binding(2) var lut: texture_3d<f32>;
 @group(0) @binding(3) var curve: texture_2d<f32>;
 @group(0) @binding(4) var overlay: texture_2d<f32>;
+@group(0) @binding(5) var ui_lut: texture_3d<f32>;
+@group(0) @binding(6) var ui_curve: texture_2d<f32>;
 
 // 与 lib.rs 的 LUT_SIZE、LUT_DOMAIN、CURVE_SIZE 相同。
-const LUT_N: i32 = 33;
-const LUT_LO: f32 = -0.5;
-const LUT_HI: f32 = 1.5;
+const LUT_N: i32 = 65;
+const LUT_LO: f32 = -1.5;
+const LUT_HI: f32 = 2.5;
 const CURVE_N: i32 = 4096;
 
 const MODE_EXACT: u32 = 0u;
@@ -32,6 +34,8 @@ const MODE_MINIFY: u32 = 1u;
 const LUT_IDENTITY: u32 = 1u;
 const LUT_LINEAR: u32 = 4u;
 const BLUR: u32 = 2u;
+// 界面颜色那张表的标志在 flags.w 里左移这么多位。
+const UI_SHIFT: u32 = 3u;
 
 @vertex
 fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4<f32> {
@@ -155,24 +159,17 @@ fn eotf(e: vec3<f32>) -> vec3<f32> {
     return sign(e) * select(hi, lo, a <= vec3<f32>(0.04045));
 }
 
-fn lut_at(i: vec3<i32>) -> vec3<f32> {
-    return textureLoad(lut, i, 0).rgb;
-}
-
-fn curve_at(i: i32) -> vec3<f32> {
-    return textureLoad(curve, vec2<i32>(i, 0), 0).rgb;
-}
-
 // 源空间编码值 → 显示器编码值（查找表的约定见 kinshoko-core 的 desktop::pin_colour）。
-fn display(e: vec3<f32>) -> vec3<f32> {
-    if ((pin.flags.w & LUT_IDENTITY) != 0u) {
+// `bits` 是这张表的 LUT_IDENTITY／LUT_LINEAR。
+fn display(e: vec3<f32>, table: texture_3d<f32>, crv: texture_2d<f32>, bits: u32) -> vec3<f32> {
+    if ((bits & LUT_IDENTITY) != 0u) {
         return clamp(e, vec3<f32>(0.0), vec3<f32>(1.0));
     }
     let n = f32(LUT_N - 1);
     var x = e;
     var lo = LUT_LO;
     var hi = LUT_HI;
-    if ((pin.flags.w & LUT_LINEAR) != 0u) {
+    if ((bits & LUT_LINEAR) != 0u) {
         // 矩阵型显示器：表是线性值的线性函数，按线性值查，三线性插值精确。
         x = eotf(e);
         lo = eotf(vec3<f32>(LUT_LO)).x;
@@ -181,20 +178,37 @@ fn display(e: vec3<f32>) -> vec3<f32> {
     let g = clamp((x - lo) / (hi - lo) * n, vec3<f32>(0.0), vec3<f32>(n));
     let i = min(vec3<i32>(floor(g)), vec3<i32>(LUT_N - 2));
     let f = g - vec3<f32>(i);
-    let x00 = mix(lut_at(i), lut_at(i + vec3<i32>(1, 0, 0)), f.x);
-    let x10 = mix(lut_at(i + vec3<i32>(0, 1, 0)), lut_at(i + vec3<i32>(1, 1, 0)), f.x);
-    let x01 = mix(lut_at(i + vec3<i32>(0, 0, 1)), lut_at(i + vec3<i32>(1, 0, 1)), f.x);
-    let x11 = mix(lut_at(i + vec3<i32>(0, 1, 1)), lut_at(i + vec3<i32>(1, 1, 1)), f.x);
+    let x00 = mix(textureLoad(table, i, 0).rgb, textureLoad(table, i + vec3<i32>(1, 0, 0), 0).rgb, f.x);
+    let x10 = mix(textureLoad(table, i + vec3<i32>(0, 1, 0), 0).rgb, textureLoad(table, i + vec3<i32>(1, 1, 0), 0).rgb, f.x);
+    let x01 = mix(textureLoad(table, i + vec3<i32>(0, 0, 1), 0).rgb, textureLoad(table, i + vec3<i32>(1, 0, 1), 0).rgb, f.x);
+    let x11 = mix(textureLoad(table, i + vec3<i32>(0, 1, 1), 0).rgb, textureLoad(table, i + vec3<i32>(1, 1, 1), 0).rgb, f.x);
     let y = mix(mix(x00, x10, f.y), mix(x01, x11, f.y), f.z);
 
     let t = oetf(clamp(y, vec3<f32>(0.0), vec3<f32>(1.0))) * f32(CURVE_N - 1);
     let j = min(vec3<i32>(floor(t)), vec3<i32>(CURVE_N - 2));
     let h = t - vec3<f32>(j);
     return vec3<f32>(
-        mix(curve_at(j.x).r, curve_at(j.x + 1).r, h.x),
-        mix(curve_at(j.y).g, curve_at(j.y + 1).g, h.y),
-        mix(curve_at(j.z).b, curve_at(j.z + 1).b, h.z),
+        mix(textureLoad(crv, vec2<i32>(j.x, 0), 0).r, textureLoad(crv, vec2<i32>(j.x + 1, 0), 0).r, h.x),
+        mix(textureLoad(crv, vec2<i32>(j.y, 0), 0).g, textureLoad(crv, vec2<i32>(j.y + 1, 0), 0).g, h.y),
+        mix(textureLoad(crv, vec2<i32>(j.z, 0), 0).b, textureLoad(crv, vec2<i32>(j.z + 1, 0), 0).b, h.z),
     );
+}
+
+// 预乘、源空间编码的钉图颜色 → 预乘的显示器编码。
+fn shown(c: vec4<f32>) -> vec4<f32> {
+    if (c.a <= 0.0) {
+        return vec4<f32>(0.0);
+    }
+    return vec4<f32>(display(c.rgb / c.a, lut, curve, pin.flags.w) * c.a, c.a);
+}
+
+// 预乘、sRGB 编码的界面颜色（遮蔽墨色、细线、说明层）→ 预乘的显示器编码。截图钉图的源空间是
+// 截图时那台显示器，界面颜色另走工作空间到显示器的表（`Draw::ui_lut`）。
+fn ui(c: vec4<f32>) -> vec4<f32> {
+    if (c.a <= 0.0) {
+        return vec4<f32>(0.0);
+    }
+    return vec4<f32>(display(c.rgb / c.a, ui_lut, ui_curve, pin.flags.w >> UI_SHIFT) * c.a, c.a);
 }
 
 // 预乘颜色的“源在上”合成。
@@ -227,7 +241,7 @@ fn fs(@builtin(position) frag: vec4<f32>) -> @location(0) vec4<f32> {
     let c1 = pin.content.xy + pin.content.zw;
     let edge = pin.shape.x;
 
-    // 预乘、扩展 sRGB 编码下的颜色（查表之前）。
+    // 预乘、显示器编码下的颜色：钉图与界面颜色各自查表后合成。
     var colour = vec4<f32>(0.0);
     if (all(s >= c0) && all(s < c1)) {
         // 屏幕 → 源图：先撤旋转，再撤翻转（画的时候先翻转、再旋转）。
@@ -255,9 +269,9 @@ fn fs(@builtin(position) frag: vec4<f32>) -> @location(0) vec4<f32> {
         }
         let a = clamp(lin.a, 0.0, 1.0);
         if (a > 0.0) {
-            colour = vec4<f32>(oetf(lin.rgb / lin.a) * a, a);
+            colour = shown(vec4<f32>(oetf(lin.rgb / lin.a) * a, a));
         }
-        colour = over(pin.ink, colour);
+        colour = over(ui(pin.ink), colour);
     } else {
         // pin-edge.css：0 0.25e 0.625e 近处投影与 0 0 0.375e 贴身暗边（CSS 模糊半径的一半是标准差）；
         // 只画在内容外面。增强边缘的细线在最上面，与阴影无关。
@@ -269,24 +283,22 @@ fn fs(@builtin(position) frag: vec4<f32>) -> @location(0) vec4<f32> {
         }
         let w = pin.shape.y;
         if (w > 0.0 && all(s >= c0 - w) && all(s < c1 + w)) {
-            colour = over(pin.ring, colour);
+            colour = over(ui(pin.ring), colour);
         }
     }
 
     if (pin.overlay.z > 0.0) {
         let o = s - pin.overlay.xy;
         if (all(o >= vec2<f32>(0.0)) && all(o < pin.overlay.zw)) {
-            colour = over(textureLoad(overlay, vec2<i32>(floor(o)), 0), colour);
+            colour = over(ui(textureLoad(overlay, vec2<i32>(floor(o)), 0)), colour);
         }
     }
 
-    var out = vec4<f32>(0.0);
-    if (colour.a > 0.0) {
-        out = vec4<f32>(display(colour.rgb / colour.a) * colour.a, colour.a);
-    }
-    out *= pin.misc.z;
-    // 阴影那一圈算钉图的一部分：最淡处也留 1/255，窗口按 alpha 命中时按得到。
-    if (edge > 0.0 && all(s >= c0 - edge) && all(s < c1 + edge)) {
+    var out = colour * pin.misc.z;
+    // 阴影那一圈算钉图的一部分：最淡处也留 1/255，窗口按 alpha 命中时按得到。内容里不动，透明的源像素
+    // 仍然透明。
+    let inside = all(s >= c0) && all(s < c1);
+    if (edge > 0.0 && !inside && all(s >= c0 - edge) && all(s < c1 + edge)) {
         out.a = max(out.a, 1.0 / 255.0);
     }
     return out;

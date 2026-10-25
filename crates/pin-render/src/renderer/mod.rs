@@ -60,6 +60,7 @@ impl Image {
 }
 
 /// 到某台显示器的查找表。
+#[derive(Debug)]
 pub struct Lut {
     generation: u64,
     /// `None` 为恒等。
@@ -171,6 +172,8 @@ impl Renderer {
                 texture_entry(2, D3),
                 texture_entry(3, D2),
                 texture_entry(4, D2),
+                texture_entry(5, D3),
+                texture_entry(6, D2),
             ],
         });
         let mip_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {

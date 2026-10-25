@@ -21,6 +21,8 @@ pub(crate) const LUT_IDENTITY: u32 = 1;
 /// 查找表的输入是线性值（`LutData::Table` 的 `linear`）。
 pub(crate) const LUT_LINEAR: u32 = 4;
 pub(crate) const BLUR: u32 = 2;
+/// 界面颜色那张表的 LUT_IDENTITY／LUT_LINEAR 左移这么多位，与 pin.wgsl 相同。
+pub(crate) const UI_SHIFT: u32 = 3;
 
 /// 缩放比例离 1 这么近时按 1:1 逐像素取（与 `pinCanvasSize` 的 `pixelated` 同一个意思）。
 const EXACT: f32 = 1e-3;
