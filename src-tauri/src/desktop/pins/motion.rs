@@ -41,7 +41,7 @@ impl Motion {
 /// 调用。
 pub(super) fn emit_frames(app: &AppHandle, pin: &str, motion: PinMotion) {
     if is_native(app, pin) {
-        if let Some(frame) = native_frame(app, pin, motion) {
+        if let Some(frame) = native_frame(app, pin, motion, false) {
             native::frame(app, frame);
         }
         return;
@@ -101,7 +101,13 @@ fn is_native(app: &AppHandle, pin: &str) -> bool {
 }
 
 /// 原生钉图（[`native`]）的一帧：钉图状态、内容要到哪、外观。会查资料库，不要持有锁调用。
-pub(super) fn native_frame(app: &AppHandle, pin: &str, motion: PinMotion) -> Option<native::Frame> {
+/// `geometry`：应用壳改了几何（[`show`]）；为假时只刷新外观（[`refresh`]）。
+pub(super) fn native_frame(
+    app: &AppHandle,
+    pin: &str,
+    motion: PinMotion,
+    geometry: bool,
+) -> Option<native::Frame> {
     let saved = lock(&state(app).store).get(pin).cloned()?;
     let look = look(app, &saved);
     let pins = lock(&state(app).pins);
@@ -111,6 +117,7 @@ pub(super) fn native_frame(app: &AppHandle, pin: &str, motion: PinMotion) -> Opt
         content: r.content,
         motion,
         click_through: r.click_through,
+        geometry,
         look,
     })
 }
@@ -144,7 +151,7 @@ pub(super) fn notify(app: &AppHandle, pin: &str, text: &str) {
 /// 窗口按内容算。
 pub(super) fn current_frame(app: &AppHandle, pin: &str) -> Option<PinFrame> {
     if is_native(app, pin) {
-        let f = native_frame(app, pin, PinMotion::Jump)?;
+        let f = native_frame(app, pin, PinMotion::Jump, false)?;
         let z = lock(&state(app).pins).get(pin).map_or(0, |r| r.z);
         return Some(PinFrame {
             pin: f.pin,

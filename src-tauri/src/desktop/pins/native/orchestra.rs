@@ -115,6 +115,8 @@ struct Live {
     cursor: PinCursor,
     /// 最近一次要的源图，与它到了没有。
     requested: SourceSize,
+    /// `requested` 还在路上。
+    loading: bool,
     loaded: bool,
     closing: bool,
 }
@@ -218,6 +220,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 gesture: None,
                 cursor: PinCursor::Arrow,
                 requested: size,
+                loading: true,
                 loaded: false,
                 closing: false,
             },
@@ -284,6 +287,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 let size = source_size(&live.pin, live.look.veiled);
                 if size != live.requested {
                     live.requested = size;
+                    live.loading = true;
                     self.render.load(id, &live.pin, size);
                 }
                 self.update(id, false);
@@ -332,6 +336,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                     return;
                 }
                 live.loaded = true;
+                live.loading = false;
                 live.fresh = false;
                 if live.reveal == Reveal::Waiting {
                     live.reveal = Reveal::Fading(at);
@@ -340,7 +345,8 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 self.update(pin, gesture);
             }
             RenderEvent::LoadFailed { pin, reason } => {
-                if self.live(pin).is_some() {
+                if let Some(live) = self.live(pin) {
+                    live.loading = false;
                     self.effects.push(Effect::Warn("原生钉图读不到图", reason));
                     self.give_up_unshown(pin);
                 }

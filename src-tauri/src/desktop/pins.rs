@@ -344,7 +344,7 @@ pub fn show(
         r.native
     });
     if native {
-        if let Some(frame) = native_frame(app, pin, motion) {
+        if let Some(frame) = native_frame(app, pin, motion, true) {
             native::frame(app, frame);
         }
         return Ok(());

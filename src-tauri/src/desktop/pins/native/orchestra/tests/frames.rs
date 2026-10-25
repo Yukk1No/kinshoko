@@ -1,5 +1,7 @@
 //! 应用壳推来的帧（#285）：贴边隐藏、菜单动作、遮蔽与设置、改引用。
 
+use std::time::Duration;
+
 use kinshoko_core::desktop::frame::{REVEAL_MS, SLIDE_MS, VEILED_SOURCE_PX};
 
 use super::*;
@@ -93,6 +95,7 @@ fn a_refresh_during_a_gesture_keeps_the_local_geometry() {
     r.pointer((190, 170), PointerEvent::Move);
     let moved = r.o.pins[&A].pin.placement;
     let mut f = stale;
+    f.geometry = false;
     f.pin.opacity = 0.5;
     f.look.edge_contrast = true;
     r.frame(f);
@@ -212,4 +215,91 @@ fn frames_for_unknown_pins_are_ignored() {
     r.frame(f);
     assert_eq!(r.draws(), []);
     assert_eq!(r.shell_calls(), []);
+}
+
+#[test]
+fn a_menu_turn_right_after_a_gesture_is_shown() {
+    let mut r = Rig::shown();
+    r.wheel(1.0, false);
+    // 收尾之前从菜单旋转：应用壳改了几何的帧不能被当成刷新丢掉。
+    let mut f = r.home_frame(PinMotion::Jump);
+    f.pin.turn(kinshoko_core::desktop::Turn::RotateClockwise);
+    f.content = f.pin.rect();
+    r.frame(f);
+    assert_eq!(r.o.pins[&A].pin.placement.rotation, 1);
+}
+
+#[test]
+fn an_appearance_refresh_never_moves_the_pin() {
+    let mut r = Rig::shown();
+    let mut stale = r.home_frame(PinMotion::Jump);
+    stale.geometry = false;
+    r.key(Key::Letter('R'), false);
+    r.animate(SETTLE_MS * 2);
+    r.frame(stale);
+    assert_eq!(
+        r.o.pins[&A].pin.placement.rotation, 1,
+        "应用壳的保存还没落地"
+    );
+}
+
+#[test]
+fn a_refresh_while_the_clear_source_loads_keeps_the_veil() {
+    let mut r = Rig::shown();
+    let mut f = r.home_frame(PinMotion::Jump);
+    f.look.veiled = true;
+    r.frame(f.clone());
+    f.look.veiled = false;
+    r.o.frame(f.clone(), r.now);
+    // 清晰的源图还在路上时又来一次刷新（设置变了）。
+    f.geometry = false;
+    f.look.edge_contrast = true;
+    r.o.frame(f, r.now);
+    let open = std::mem::take(&mut r.o.render().open);
+    let load = open
+        .iter()
+        .position(|c| matches!(c, RCall::Load(..)))
+        .unwrap();
+    // 先只画路上的那几帧（都还遮蔽着），再交图。
+    r.now += Duration::from_millis(u64::from(REVEAL_MS));
+    for c in &open[..load] {
+        if let RCall::Draw(j) = c {
+            r.o.render_event(
+                RenderEvent::Drawn {
+                    pin: j.pin,
+                    result: Ok(()),
+                },
+                r.now,
+            );
+        }
+    }
+    r.o.tick(r.now);
+    let veils: Vec<f32> =
+        r.o.render()
+            .open
+            .iter()
+            .filter_map(|c| match c {
+                RCall::Draw(j) => Some(j.veil),
+                _ => None,
+            })
+            .collect();
+    assert!(veils.iter().all(|v| *v == 1.0), "{veils:?}");
+}
+
+#[test]
+fn grabbing_a_pin_mid_slide_drags_it_from_where_it_is_seen() {
+    let mut r = Rig::shown();
+    let tucked = r.tuck();
+    r.animate(u64::from(SLIDE_MS) + SETTLE_MS);
+    let f = Frame {
+        content: ScreenRect { x: 0, ..tucked },
+        ..r.home_frame(PinMotion::Slide)
+    };
+    r.frame(f);
+    r.animate(48);
+    let seen = r.o.shown(A, r.now);
+    let at = (seen.x + seen.width as i32 - 10, seen.y + 20);
+    r.pointer(at, PointerEvent::Down(PointerButton::Primary));
+    r.pointer((at.0 + 1, at.1), PointerEvent::Move);
+    assert_eq!(r.o.shown(A, r.now).x, seen.x + 1, "抓住的点留在指针下");
 }

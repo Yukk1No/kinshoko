@@ -3,8 +3,8 @@
 //! 参考组改引用，都由应用壳改好 `pins.json` 再推一帧过来。
 //!
 //! 几何的规则：帧里的 `content` 是内容静止时要到的位置；`motion` 决定怎么过去（缩放、滑动带动画）。
-//! 画师正在这边拖动、缩放（手势中）时来的 `Jump` 帧只是刷新外观：应用壳那边的保存可能还没落地，
-//! 几何以这边为准。
+//! 只刷新外观的帧（`geometry` 为假：遮蔽、设置、改引用）不碰几何：应用壳那边的保存（这边拖动、
+//! 缩放、按键之后）可能还没落地，几何以这边为准。
 
 use std::time::{Duration, Instant};
 
@@ -24,6 +24,8 @@ pub struct Frame {
     pub motion: PinMotion,
     /// 收起且没滑出：点击穿过它落到下面的程序。
     pub click_through: bool,
+    /// 应用壳改了几何（菜单的翻转旋转、原始大小，贴边隐藏）；为假时只刷新外观。
+    pub geometry: bool,
     pub look: Look,
 }
 
@@ -46,6 +48,7 @@ impl Frame {
             pin,
             motion: PinMotion::Jump,
             click_through: false,
+            geometry: true,
             look,
         }
     }
@@ -60,8 +63,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             return;
         };
         let Some(live) = self.live(id) else { return };
-        let busy = live.gesture.is_some() || live.gesture_until.is_some();
-        if busy && f.motion == PinMotion::Jump {
+        if !f.geometry {
             f.pin.placement = live.pin.placement;
             f.content = live.target;
             f.click_through = live.click_through;
@@ -98,8 +100,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let size = source_size(&live.pin, live.look.veiled);
         if source_changed || (veil_changed && size != live.requested) {
             live.requested = size;
+            live.loading = true;
             self.render.load(id, &live.pin, size);
-        } else if live.reveal == Reveal::Waiting {
+        } else if live.reveal == Reveal::Waiting && !live.loading {
             live.reveal = Reveal::Fading(at);
         }
         let gesture = live.gesture_until.is_some();

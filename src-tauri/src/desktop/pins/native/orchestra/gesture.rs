@@ -88,8 +88,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                         },
                     }
                 } else {
+                    // 从此刻看到的位置拖（贴边滑动中途抓住时抓住的点留在指针下）。
                     Grab::Move {
-                        origin: (target.x, target.y),
+                        origin: (shown.x, shown.y),
                     }
                 };
                 live.gesture = Some(Gesture {
