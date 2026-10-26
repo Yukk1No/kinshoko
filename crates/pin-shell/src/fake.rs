@@ -47,6 +47,7 @@ pub struct FakeShell {
     displays: Vec<Display>,
     keys: PinKeys,
     hold_swaps: bool,
+    fail_retarget: bool,
     tickets: u64,
 }
 
@@ -82,6 +83,11 @@ impl FakeShell {
     /// 为真时 `swap` 不自动完成，要等 [`FakeShell::finish_swaps`]。
     pub fn hold_swaps(&mut self, hold: bool) {
         self.hold_swaps = hold;
+    }
+
+    /// 为真时 `retarget` 报错（设备丢失后建不了新的 visual）。
+    pub fn fail_retarget(&mut self, fail: bool) {
+        self.fail_retarget = fail;
     }
 
     /// 完成所有等着的 `swap`，下一次 `pump` 报 `Swapped`。
@@ -173,6 +179,9 @@ impl PinShell for FakeShell {
 
     fn retarget(&mut self, pin: PinId) -> Result<[wgpu::SurfaceTargetUnsafe; 2], ShellError> {
         self.calls.push(Call::Retarget(pin));
+        if self.fail_retarget {
+            return Err(ShellError("建不了 visual".into()));
+        }
         self.pin_mut(pin).slots.cancel_swap();
         Ok(FakeShell::targets(pin))
     }

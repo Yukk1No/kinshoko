@@ -32,8 +32,12 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             let targets = match self.shell.retarget(id) {
                 Ok(t) => t,
                 Err(e) => {
+                    // 再也画不上：收掉，免得留下一张看不见的钉图（与第一次显示失败相同）。
                     self.effects
                         .push(Effect::Warn("原生钉图设备丢失后换不了目标", e.to_string()));
+                    live.closing = true;
+                    self.effects.push(Effect::Failed(live.key.clone()));
+                    self.render.detach(id);
                     continue;
                 }
             };

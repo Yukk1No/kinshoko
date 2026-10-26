@@ -30,6 +30,29 @@ fn after_device_loss_the_pin_gets_new_targets_its_image_and_is_shown_again() {
 }
 
 #[test]
+fn a_pin_that_cannot_get_new_targets_after_device_loss_is_closed() {
+    let mut r = Rig::shown();
+    r.o.shell().fail_retarget(true);
+    r.o.render_event(RenderEvent::DeviceLost, r.now);
+    assert_eq!(
+        r.o.take_effects(),
+        [
+            Effect::Warn("原生钉图 GPU 设备丢失", "重建".into()),
+            Effect::Warn(
+                "原生钉图设备丢失后换不了目标",
+                "钉图窗口：建不了 visual".into()
+            ),
+            Effect::Failed("marker".into()),
+        ]
+    );
+    assert_eq!(r.o.render().calls, [RCall::Detach(A)]);
+    assert_eq!(r.shell_calls(), [Call::Retarget(A)]);
+    r.finish_render();
+    assert_eq!(r.shell_calls(), [Call::Close(A)]);
+    assert!(r.o.is_empty());
+}
+
+#[test]
 fn a_draw_that_failed_with_the_lost_device_does_not_give_the_pin_up() {
     let mut r = Rig::shown();
     // 一格滚轮：画还在路上时设备丢了，这一帧随后报失败。

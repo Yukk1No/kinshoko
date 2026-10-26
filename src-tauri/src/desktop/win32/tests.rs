@@ -229,6 +229,7 @@ fn a_plain_window_becomes_a_tool_window() {
     };
     assert!(!hwnd.is_null(), "创建测试窗口失败");
     let window = Window(hwnd);
+    // SAFETY：句柄由本测试创建，在 `window` 销毁之前有效。
     let style = || unsafe { GetWindowLongW(window.0, GWL_EXSTYLE) } as u32;
     assert_eq!(style() & WS_EX_TOOLWINDOW, 0);
     assert!(make_tool_window(hwnd as isize));
