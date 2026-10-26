@@ -134,7 +134,7 @@ def quns():
 
 def frames(port, prefix, exclude=None):
     args = ["node", str(FRAMES), str(port), prefix] + ([exclude] if exclude else [])
-    out = subprocess.run(args, capture_output=True, text=True, timeout=20)
+    out = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", timeout=20)
     if out.returncode != 0:
         return {"visibility": "找不到页面", "frames": 0, "error": out.stderr.strip()}
     return json.loads(out.stdout)
@@ -234,8 +234,8 @@ def main():
         # 主窗口：再启动一次（单实例）把它叫出来，最大化放到钉图背后。
         subprocess.Popen([str(exe)], env=env)
         main_win = wait_for("主窗口", lambda: windows(app.pid, "Kinshoko"), timeout=15)[0][0]
+        # 不用 bring_front：再启动时主窗口已到前台；对 WebView 窗口按 Alt 会进系统菜单模式，CDP 就不回了。
         user32.ShowWindow(main_win, 3)
-        bring_front(main_win)
         pause(2.0)
         measure("Kinshoko 主窗口最大化在钉图背后", APP_PORT, "http://tauri.localhost/", "view=", back=main_win)
     finally:

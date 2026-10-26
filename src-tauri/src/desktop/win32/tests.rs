@@ -205,3 +205,35 @@ fn transitions_can_be_turned_off_for_a_live_window_only() {
     drop(window);
     assert!(!disable_transitions(hwnd));
 }
+
+/// #275：钉图菜单窗口标成工具窗口，Chromium 的遮挡判定才跳过它。窗口已销毁时如实报告失败。
+#[test]
+fn a_plain_window_becomes_a_tool_window() {
+    let class: Vec<u16> = "STATIC\0".encode_utf16().collect();
+    // SAFETY：系统内置的 STATIC 窗口类；参数都是本函数持有的值。没有工具窗口样式。
+    let hwnd = unsafe {
+        CreateWindowExW(
+            WS_EX_NOACTIVATE,
+            class.as_ptr(),
+            ptr::null(),
+            WS_POPUP,
+            0,
+            0,
+            200,
+            100,
+            ptr::null_mut(),
+            ptr::null_mut(),
+            ptr::null_mut(),
+            ptr::null(),
+        )
+    };
+    assert!(!hwnd.is_null(), "创建测试窗口失败");
+    let window = Window(hwnd);
+    let style = || unsafe { GetWindowLongW(window.0, GWL_EXSTYLE) } as u32;
+    assert_eq!(style() & WS_EX_TOOLWINDOW, 0);
+    assert!(make_tool_window(hwnd as isize));
+    assert_ne!(style() & WS_EX_TOOLWINDOW, 0);
+    assert_ne!(style() & WS_EX_NOACTIVATE, 0, "别的样式不变");
+    drop(window);
+    assert!(!make_tool_window(hwnd as isize));
+}

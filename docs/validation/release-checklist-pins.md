@@ -17,6 +17,8 @@ cd tools/pin-frame-check && cargo build --release
 - 运行期间不要碰键鼠。脚本会弹出钉图、最大化的测试用 Edge，动真实鼠标键盘。
 - 先退出本机装着的 Kinshoko 和别的占用 F1／F3／F4 的程序（例如 Snipaste）：脚本按默认快捷键操作，Kinshoko 是单实例。
 - 主显示器的颜色配置文件要是 sRGB（或没有）：逐帧核对靠纯品红认边框。
+- 把会自己回到前台的程序（Claude 桌面应用、聊天软件）最小化：脚本要让测试窗口拿到前台再检查“钉图不抢前台”。
+- Python 脚本要在 UTF-8 控制台里跑：`PYTHONIOENCODING=utf-8`。
 - 屏幕截图只截钉图那一块（`pin-frame-check --grab`，桌面复制；GDI 截屏拍不到原生钉图），全桌面截图不进仓库。
 
 ## 开发机：脚本检查

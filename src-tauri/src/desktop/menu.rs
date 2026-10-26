@@ -86,6 +86,8 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     #[cfg(windows)]
     if let Ok(hwnd) = window.hwnd() {
         super::win32::disable_transitions(hwnd.0 as isize);
+        // 铺满显示器：不标成工具窗口时，菜单开着的这一会儿背后的程序停止绘制（#275）。
+        super::win32::make_tool_window(hwnd.0 as isize);
     }
     let handle = app.clone();
     window.on_window_event(move |event| {

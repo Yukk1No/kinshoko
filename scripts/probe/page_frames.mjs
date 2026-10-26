@@ -6,6 +6,13 @@
 
 const [port = "9339", prefix = "data:", exclude] = process.argv.slice(2);
 
+// 页面整个卡住时 Runtime.evaluate 不回：10 秒后报卡在哪一步。
+let step = "取页面列表";
+setTimeout(() => {
+  console.log(JSON.stringify({ visibility: "没有回应", frames: 0, step }));
+  process.exit(0);
+}, 10000).unref();
+
 const pages = await (await fetch(`http://127.0.0.1:${port}/json`)).json();
 const page = pages.find(
   (p) => p.type === "page" && p.url.startsWith(prefix) && !(exclude && p.url.includes(exclude)),
@@ -15,6 +22,7 @@ if (!page) {
   process.exit(1);
 }
 
+step = `连接 ${page.url}`;
 const ws = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((resolve, reject) => {
   ws.onopen = resolve;
@@ -41,6 +49,7 @@ const expression = `new Promise((resolve) => {
   setTimeout(done, 2000);
   requestAnimationFrame(tick);
 })`;
+step = `在 ${page.url} 里数帧`;
 ws.send(
   JSON.stringify({ id: 1, method: "Runtime.evaluate", params: { expression, awaitPromise: true, returnByValue: true } }),
 );
