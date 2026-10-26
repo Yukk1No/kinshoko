@@ -149,3 +149,14 @@ fn the_gesture_settles_settle_ms_after_the_animation_ends() {
     assert_eq!(r.o.pins[&A].gesture_until, None);
     assert_eq!(r.o.next_deadline(), None);
 }
+
+#[test]
+fn a_notch_up_zooms_in_and_down_zooms_out() {
+    let mut r = Rig::shown();
+    let from = r.o.pins[&A].pin.rect();
+    r.wheel(1.0, false);
+    assert!(r.o.pins[&A].pin.rect().width > from.width, "向上一格放大");
+    r.animate(200);
+    r.wheel(-2.0, false);
+    assert!(r.o.pins[&A].pin.rect().width < from.width, "向下缩小");
+}

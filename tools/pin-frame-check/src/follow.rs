@@ -25,7 +25,8 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_WHEEL,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    FindWindowW, GetForegroundWindow, GetWindowRect, PostMessageW, WM_CLOSE,
+    FindWindowW, GetClassNameW, GetForegroundWindow, GetWindowRect, PostMessageW, WM_CLOSE,
+    WindowFromPoint,
 };
 use windows::core::w;
 
@@ -44,6 +45,7 @@ pub struct Follow {
 const SIZE: (u32, u32) = (400, 600);
 const VK_F3: u8 = 0x72;
 const VK_ESCAPE: u8 = 0x1b;
+const VK_F4: u8 = 0x73;
 
 fn border(scale: f64) -> f64 {
     f64::from(SIZE.0.min(SIZE.1) / 20) * scale
@@ -85,7 +87,7 @@ fn crc32(bytes: &[u8]) -> u32 {
 }
 
 /// 不压缩的 PNG（zlib 存储块），RGBA8，不带色彩块（按 sRGB）。
-fn png(w: u32, h: u32, rgba: &[u8]) -> Vec<u8> {
+pub(crate) fn png(w: u32, h: u32, rgba: &[u8]) -> Vec<u8> {
     let mut raw = Vec::with_capacity(rgba.len() + h as usize);
     for row in rgba.chunks_exact(w as usize * 4) {
         raw.push(0);
@@ -253,6 +255,13 @@ fn centre(r: Rect) -> (i32, i32) {
     (r.x + r.w / 2, r.y + r.h / 2)
 }
 
+/// 这一点上是不是原生钉图的窗口。
+fn pin_window_at((x, y): (i32, i32)) -> bool {
+    let mut class = [0u16; 32];
+    let n = unsafe { GetClassNameW(WindowFromPoint(POINT { x, y }), &mut class) };
+    String::from_utf16_lossy(&class[..n.max(0) as usize]) == "KinshokoPinSlot"
+}
+
 /// 拖动：按下、每帧挪一步、松开。
 fn drag(from: (i32, i32), steps: &[(i32, i32)]) {
     cursor(from.0, from.1);
@@ -320,6 +329,13 @@ pub fn follow(f: &Follow) -> Result<bool, String> {
         }
         std::thread::sleep(Duration::from_millis(20));
     }
+    // 第一次提交时钉图还没显示（图读好、画好才显示）：等钉图窗口真出现在光标会去的地方，否则
+    // 先滚的几格落到底下的窗口去了。
+    let c = last(&log).expect("上面等到了").content;
+    let shown = Instant::now();
+    while !pin_window_at(centre(c)) && shown.elapsed() < Duration::from_secs(5) {
+        std::thread::sleep(Duration::from_millis(20));
+    }
     frames(30);
     let checker = verify::start(log.clone(), monitor);
     let mut phases = String::new();
@@ -380,6 +396,44 @@ pub fn follow(f: &Follow) -> Result<bool, String> {
     drag((grip.0 - out * 30, grip.1), &home);
     frames(20);
     phase("拖出屏幕一半再拖回", &log);
+
+    // 拖角缩放：按住内容右下角往外拖再拖回，每帧一步，带缩放动画（#285）。
+    let c = last(&log).expect("有提交").content;
+    let corner = (c.x + c.w - 4, c.y + c.h - 4);
+    let grow: Vec<(i32, i32)> = (0..30).map(|_| (8, 12)).collect();
+    let shrink: Vec<(i32, i32)> = (0..30).map(|_| (-8, -12)).collect();
+    drag(corner, &grow);
+    frames(5);
+    drag((corner.0 + 240, corner.1 + 360), &shrink);
+    frames(30);
+    phase("拖角放大再缩回", &log);
+
+    // 贴边隐藏：F4 收到最近的屏幕边，指针碰细边滑出、离开收回，再按 F4 回原位（#285）。
+    let home = last(&log).expect("有提交").content;
+    cursor(monitor.x + monitor.w / 2, monitor.y + monitor.h / 2);
+    frames(3);
+    key(VK_F4);
+    frames(40);
+    let tucked = last(&log).expect("有提交").content;
+    let sliver = (
+        tucked.x.max(monitor.x),
+        tucked.y.max(monitor.y),
+        (tucked.x + tucked.w).min(monitor.x + monitor.w),
+        (tucked.y + tucked.h).min(monitor.y + monitor.h),
+    );
+    cursor((sliver.0 + sliver.2) / 2, (sliver.1 + sliver.3) / 2);
+    frames(40);
+    cursor(monitor.x + monitor.w / 2, monitor.y + monitor.h / 2);
+    frames(40);
+    key(VK_F4);
+    frames(40);
+    let back = last(&log).expect("有提交").content;
+    phase(
+        &format!(
+            "F4 收起、碰细边滑出、离开收回、F4 回原位（贴边前 {home:?}，收起 {tucked:?}，回来 {back:?}）"
+        ),
+        &log,
+    );
 
     let verdict = checker.finish();
     let kept_front = sink_front && unsafe { GetForegroundWindow() } == sink_hwnd;

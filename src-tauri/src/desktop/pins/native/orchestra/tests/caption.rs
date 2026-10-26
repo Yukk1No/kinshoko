@@ -100,6 +100,16 @@ fn an_unavailable_pin_shows_a_grey_stand_in_with_the_reason() {
 }
 
 #[test]
+fn a_stand_in_is_not_a_capture_source() {
+    // F1 框在占位上取的应是屏幕像素，不是原图。
+    let r = open_with(Look {
+        unavailable: Some("资料库不可用".into()),
+        ..Look::default()
+    });
+    assert!(!r.o.views(r.now)[0].still);
+}
+
+#[test]
 fn a_failed_read_shows_the_stand_in_instead_of_giving_up() {
     let shell = FakeShell::new(vec![Display {
         id: "A".into(),

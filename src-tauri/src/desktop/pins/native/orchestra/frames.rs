@@ -114,3 +114,41 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         self.update(id, gesture);
     }
 }
+
+/// 应用壳看得到的一张钉图此刻的样子（F1 截图冻结时按它把选区映射回原图）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct View {
+    pub key: String,
+    pub id: pin_shell::PinId,
+    /// 内容此刻在屏幕上的位置。
+    pub content: ScreenRect,
+    /// 看得见的窗口：内容盖满一台显示器时让出一行，那一行露出的是桌面。
+    pub window: ScreenRect,
+    /// 静止：显示出来了、画的是原图（不是占位），不在动画、手势中。
+    pub still: bool,
+    pub click_through: bool,
+}
+
+impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
+    /// 各钉图此刻的样子（还没显示、正在关的不算）。
+    pub fn views(&self, now: Instant) -> Vec<View> {
+        let at = self.ms(now);
+        self.pins
+            .iter()
+            .filter_map(|(id, l)| Some((id, l, l.window?)))
+            .filter(|(_, l, _)| !l.closing)
+            .map(|(id, l, window)| View {
+                key: l.key.clone(),
+                id: *id,
+                content: l.motion.at(at).snap(),
+                window,
+                still: !l.placeholder
+                    && l.motion.done(at)
+                    && l.gesture.is_none()
+                    && l.gesture_until.is_none()
+                    && l.pending.is_none(),
+                click_through: l.click_through,
+            })
+            .collect()
+    }
+}

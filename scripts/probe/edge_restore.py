@@ -1,9 +1,11 @@
 """贴边隐藏、交还焦点与钉图状态恢复的检查（#63，移植 #7 原型 probe_windows.py 的后半）。
 
 用模拟键鼠在真机上走一遍：截图钉住一块逐像素随机的测试图 → 点一下“外部绘画软件”（一个普通
-Tk 窗口）再点钉图 → F4 贴边隐藏 → 检查只露细边、焦点回到外部窗口 → 指针碰细边滑出、离开收回 →
-再按 F4 回到原位 → H 翻转、R 旋转（屏幕像素与截图的镜像／旋转一致）→ 结束进程再启动，
-检查钉图的位置、翻转与旋转都恢复。
+Tk 窗口）再点钉图（原生钉图不抢前台）→ F4 贴边隐藏 → 检查只露细边、点击穿过、前台仍是外部窗口 →
+指针碰细边滑出、离开收回 → 再按 F4 回到原位 → 光标在钉图上按 H 翻转、R 旋转（屏幕像素与截图的
+镜像／旋转一致）→ 结束进程再启动，检查钉图的位置、翻转与旋转都恢复。
+
+驱动的是原生钉图（#285），见 `capture_pin.py`。
 
 用法：python scripts/probe/edge_restore.py target/release/kinshoko.exe
 需要 Pillow。运行期间会移动鼠标、按 F1/F4/H/R，请不要碰键鼠；不能有别的 Kinshoko 或占用
@@ -15,7 +17,6 @@ import ctypes
 import os
 import subprocess
 import sys
-import tempfile
 import time
 import tkinter as tk
 from pathlib import Path
@@ -27,12 +28,16 @@ from capture_pin import (  # noqa: E402
     LEFTDOWN,
     LEFTUP,
     PATTERN,
+    PIN_TITLE,
     PUMP,
     diff,
     grab,
     key,
     move,
     pause,
+    pin_content,
+    probe_data,
+    started,
     running,
     user32,
     wait_for,
@@ -56,7 +61,7 @@ def click(x, y):
 
 def launch(exe, env):
     app = subprocess.Popen([str(exe), "--autostart"], env=env)
-    wait_for("应用启动", lambda: window_rect(app.pid, "dev.kinshoko-siw"), timeout=20)
+    wait_for("应用启动", lambda: started(app.pid), timeout=20)
     pause(1.5)
     return app
 
@@ -72,24 +77,20 @@ def screen_rect():
     return (0, 0, user32.GetSystemMetrics(0), user32.GetSystemMetrics(1))
 
 
-def visible_part(rect, screen):
-    l, t, r, b = rect
+def tucked(home, screen, image):
+    """贴边收起后：细边在屏幕上的矩形与那里应显示的钉图像素，以及滑出时内容的矩形。
+    与 kinshoko-core 的 `EdgeHide` 相同：收到最近的屏幕边。钉图未缩放、未翻转。"""
+    l, t, r, b = home
     sl, st, sr, sb = screen
-    return (max(l, sl), max(t, st), min(r, sr), min(b, sb))
-
-
-def sliver_of(part, hidden, screen, image):
-    """收起后细边在屏幕上的矩形，以及那里应显示的钉图像素（钉图未缩放、未翻转）。"""
     w, h = image.size
-    if hidden[0] < screen[0]:
-        return (screen[0], part[1], screen[0] + SLIVER, part[1] + h), image.crop((w - SLIVER, 0, w, h))
-    if hidden[2] > screen[2]:
-        return (screen[2] - SLIVER, part[1], screen[2], part[1] + h), image.crop((0, 0, SLIVER, h))
-    if hidden[1] < screen[1]:
-        return (part[0], screen[1], part[0] + w, screen[1] + SLIVER), image.crop((0, h - SLIVER, w, h))
-    if hidden[3] > screen[3]:
-        return (part[0], screen[3] - SLIVER, part[0] + w, screen[3]), image.crop((0, 0, w, SLIVER))
-    return None, None
+    nearest = min(range(4), key=lambda i: (l - sl, sr - r, t - st, sb - b)[i])
+    if nearest == 0:
+        return (sl, t, sl + SLIVER, b), image.crop((w - SLIVER, 0, w, h)), (sl, t, sl + w, b)
+    if nearest == 1:
+        return (sr - SLIVER, t, sr, b), image.crop((0, 0, SLIVER, h)), (sr - w, t, sr, b)
+    if nearest == 2:
+        return (l, st, r, st + SLIVER), image.crop((0, h - SLIVER, w, h)), (l, st, r, st + h)
+    return (l, sb - SLIVER, r, sb), image.crop((0, 0, w, SLIVER)), (l, sb - h, r, sb)
 
 
 def click_through(pid, title):
@@ -112,7 +113,7 @@ def click_through(pid, title):
 
 def main():
     exe = Path(sys.argv[1]).resolve()
-    data = Path(tempfile.mkdtemp(prefix="kinshoko-probe-"))
+    data = probe_data()
     env = dict(os.environ, KINSHOKO_DATA_DIR=str(data), KINSHOKO_SKIP_AUTOSTART="1")
     if running(exe.name):
         raise SystemExit("已有 Kinshoko 在运行（单实例），先退出它")
@@ -154,67 +155,58 @@ def main():
             user32.mouse_event(LEFTDOWN, 0, 0, 0, 0)
             user32.mouse_event(LEFTUP, 0, 0, 0, 0)
             time.sleep(0.05)
-        home = wait_for("钉图窗口", lambda: window_rect(app.pid, "Kinshoko 钉图"))
+        home = wait_for("钉图窗口", lambda: pin_content(app.pid))
         pause(1.5)
 
-        # 外部窗口先拿到焦点，再点钉图（钉图拿到焦点），然后 F4。
+        # 外部窗口先拿到焦点，再点钉图：原生钉图不激活，前台仍是外部窗口；然后 F4。
         click(ox + PATTERN[0] + 100, oy + PATTERN[1] + 100)
         click((home[0] + home[2]) // 2, (home[1] + home[3]) // 2)
-        results["点钉图后焦点在 Kinshoko"] = None if foreground_pid() == app.pid else "焦点不在钉图"
+        results["点钉图后前台仍是外部窗口"] = (
+            None if foreground_pid() == os.getpid() else f"前台进程 {foreground_pid()}"
+        )
+        move(screen[2] // 2, screen[3] // 2)
         key(VK_F4)
         pause(SETTLE)
-        # 收起的钉图停在一个伸出屏幕的透明窗口里（#64）：屏幕上的部分正好是滑出时的位置，
-        # 没滑出时点击穿过，只有细边画着钉图。所以按屏幕像素检查，而不是按窗口矩形。
-        hidden = window_rect(app.pid, "Kinshoko 钉图")
-        part = visible_part(hidden, screen)
-        sliver, strip = sliver_of(part, hidden, screen, before)
-        results["F4 后只露 6 像素细边"] = (
-            "没有收到屏幕边" if sliver is None else diff(grab(sliver), strip)
-        )
+        sliver, strip, peek = tucked(home, screen, before)
+        results["F4 后只露 6 像素细边"] = diff(grab(sliver), strip)
         results["收起时点击穿过钉图窗口"] = (
-            None if click_through(app.pid, "Kinshoko 钉图") else "收起的钉图窗口挡住点击"
+            None if click_through(app.pid, PIN_TITLE) else "收起的钉图窗口挡住点击"
         )
-        results["F4 把焦点交还外部窗口"] = (
+        results["F4 后前台仍是外部窗口"] = (
             None if foreground_pid() == os.getpid() else f"前台进程 {foreground_pid()}"
         )
 
-        # 碰细边滑出，离开收回；滑出与收回都不改原生窗口（#64）。
-        if sliver:
-            move((sliver[0] + sliver[2]) // 2, (sliver[1] + sliver[3]) // 2)
+        # 碰细边滑出，离开收回。
+        move((sliver[0] + sliver[2]) // 2, (sliver[1] + sliver[3]) // 2)
         pause(SETTLE)
-        results["指针碰细边时滑出"] = diff(grab(part), before)
-        results["滑出与收回不改原生窗口"] = (
-            None if window_rect(app.pid, "Kinshoko 钉图") == hidden else "滑出时窗口变了"
-        )
+        results["指针碰细边时滑出"] = diff(grab(peek), before)
         results["滑出后能点到钉图"] = (
-            None if not click_through(app.pid, "Kinshoko 钉图") else "滑出的钉图仍让点击穿过"
+            None if not click_through(app.pid, PIN_TITLE) else "滑出的钉图仍让点击穿过"
         )
         move(screen[2] // 2, screen[3] // 2)
         pause(SETTLE)
-        results["指针离开后收回"] = (
-            "没有收到屏幕边" if sliver is None else diff(grab(sliver), strip)
-        )
+        results["指针离开后收回"] = diff(grab(sliver), strip)
 
         key(VK_F4)
         pause(SETTLE)
-        results["再按 F4 回到原位"] = (
-            None if window_rect(app.pid, "Kinshoko 钉图") == home else f"回到 {window_rect(app.pid, 'Kinshoko 钉图')}"
-        )
+        back = pin_content(app.pid)
+        results["再按 F4 回到原位"] = None if back == home else f"回到 {back}"
 
-        # 翻转、旋转：先点钉图让它拿到焦点。
-        click((home[0] + home[2]) // 2, (home[1] + home[3]) // 2)
-        move(0, 0)
+        # 翻转、旋转：键盘钩子只在光标位于钉图上时拦键。
+        move((home[0] + home[2]) // 2, (home[1] + home[3]) // 2)
         key(VK_H)
         pause(0.5)
         flipped = before.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
-        results["H 翻转后屏幕像素是截图的镜像"] = diff(grab(window_rect(app.pid, "Kinshoko 钉图")), flipped)
-        click((home[0] + home[2]) // 2, (home[1] + home[3]) // 2)
-        move(0, 0)
+        results["H 翻转后屏幕像素是截图的镜像"] = diff(grab(pin_content(app.pid)), flipped)
         key(VK_R)
         pause(0.5)
         turned = flipped.transpose(Image.Transpose.ROTATE_270)  # 顺时针 90°
-        turned_rect = window_rect(app.pid, "Kinshoko 钉图")
+        turned_rect = pin_content(app.pid)
         results["R 旋转后宽高互换、像素是截图的旋转"] = diff(grab(turned_rect), turned)
+        results["按键时前台仍是外部窗口"] = (
+            None if foreground_pid() == os.getpid() else f"前台进程 {foreground_pid()}"
+        )
+        move(0, 0)
 
         # 结束进程（不走正常退出）再启动：状态改动后不久就已写回文件。
         pause(1.0)
@@ -222,8 +214,7 @@ def main():
         app.wait()
         pause(1.0)
         app = launch(exe, env)
-        restored = wait_for("恢复的钉图", lambda: window_rect(app.pid, "Kinshoko 钉图"), timeout=10)
-        move(0, 0)
+        restored = wait_for("恢复的钉图", lambda: pin_content(app.pid), timeout=10)
         pause(1.5)
         results["重开后钉图回到原位置"] = None if restored == turned_rect else f"{restored} ≠ {turned_rect}"
         results["重开后翻转与旋转都恢复"] = diff(grab(restored), turned)

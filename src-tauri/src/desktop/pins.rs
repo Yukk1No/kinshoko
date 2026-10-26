@@ -64,6 +64,8 @@ const NOTICE_EVENT: &str = "pin-notice";
 const FRAME_EVENT: &str = "pin-frame";
 /// 钉图离开了这个层（关闭、拖到别的显示器、交给另一个层）。
 const GONE_EVENT: &str = "pin-gone";
+/// F1 登记原生钉图时用的“窗口”名：原生钉图没有 WebView 窗口，遮挡按窗口句柄查。
+const NATIVE_SURFACE: &str = "native-pin";
 const CLOSED: &str = "钉图已关闭";
 const LOCKED: &str = "钉图已锁定";
 
@@ -233,6 +235,30 @@ pub(super) fn capture_surfaces(app: &AppHandle) -> Vec<super::capture::Reference
         if veiled || unavailable.is_some() {
             continue;
         }
+        if lock(&state(app).pins)
+            .get(&pin.id)
+            .is_some_and(|r| r.native)
+        {
+            // 原生钉图：按它此刻显示的位置（滑出的也算）；动画、手势中、收起与占位时不算。
+            // 看得见的只是窗口里那部分：盖满显示器时让出的那一行是桌面。
+            if let Some(seen) = native::seen(&pin.id)
+                && seen.still
+                && !seen.click_through
+                && let Some(visible) = seen.content.intersect(&seen.window)
+            {
+                surfaces.push(super::capture::ReferenceSurface {
+                    window: NATIVE_SURFACE.into(),
+                    hwnd: Some(seen.hwnd),
+                    selection: CaptureSurface {
+                        pin: pin.clone(),
+                        shown: seen.content,
+                        visible,
+                        covered: Vec::new(),
+                    },
+                });
+            }
+            continue;
+        }
         let pins = lock(&state(app).pins);
         let layers = lock(&state(app).layers);
         let Some(r) = pins.get(&pin.id) else {
@@ -256,6 +282,7 @@ pub(super) fn capture_surfaces(app: &AppHandle) -> Vec<super::capture::Reference
                 .collect();
             surfaces.push(super::capture::ReferenceSurface {
                 window: label.clone(),
+                hwnd: None,
                 selection: CaptureSurface {
                     pin: pin.clone(),
                     shown: r.content,
@@ -300,6 +327,13 @@ pub(super) fn open_reference_selection(
 pub struct ShownWaiters {
     pins: Mutex<HashMap<String, bool>>,
     changed: Condvar,
+}
+
+/// 原生钉图放到最上面（钉图层的窗口自己保持在上面，不用）。
+pub(super) fn raise_native(app: &AppHandle, pin: &str) {
+    if motion::is_native(app, pin) {
+        native::raise(app, pin);
+    }
 }
 
 /// 等新钉图的第一帧画好、显示出来（[`pin_ready`]），最多 `timeout`。钉图已关、层建失败时立即返回。

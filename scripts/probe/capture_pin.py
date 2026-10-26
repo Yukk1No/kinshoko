@@ -1,10 +1,14 @@
 """截图钉图的像素检查（#62，沿用 #7 原型 probe_windows.py 的做法）。
 
 用模拟键鼠在真机上走一遍：显示一块逐像素随机的测试图 → 按 F1 → 拖动框选 → 双击钉住，
-然后比较三份像素：按 F1 前的屏幕、存进截图历史的截图文件、钉图窗口显示在屏幕上的像素。
+然后比较三份像素：按 F1 前的屏幕、存进截图历史的截图文件、钉图显示在屏幕上的像素。
 SDR 桌面上三者应逐像素一致（未缩放、未翻转旋转）。验收要求在 100% 与 150% 缩放下各跑一次。
 
+驱动的是原生钉图（#285）：临时数据目录的 `settings.json` 打开 `nativePins`。每张钉图一个窗口
+（标题 `Kinshoko pin`），比内容四周各大 `PIN_EDGE`（阴影那一圈）。
+
 用法：python scripts/probe/capture_pin.py target/release/kinshoko.exe
+截屏用桌面复制：先在 tools/pin-frame-check 里 `cargo build --release`（GDI 截屏拍不到原生钉图）。
 需要 Pillow。运行期间会移动鼠标、按 F1，请不要碰键鼠；不能有别的 Kinshoko 或占用 F1 的程序
 （例如 Snipaste）在运行。数据放在临时目录，不碰本机设置与资料库。
 """
@@ -20,7 +24,7 @@ import tkinter as tk
 from ctypes import wintypes
 from pathlib import Path
 
-from PIL import Image, ImageGrab, ImageTk
+from PIL import Image, ImageTk
 
 user32 = ctypes.windll.user32
 # 物理像素坐标（每显示器 DPI 感知 v2），与 Kinshoko 一致。
@@ -30,6 +34,9 @@ VK_F1 = 0x70
 KEYUP = 0x0002
 LEFTDOWN, LEFTUP = 0x0002, 0x0004
 PATTERN = (240, 160)
+# 原生钉图的窗口标题，与窗口比内容四周各大的物理像素（kinshoko-core 的 PIN_EDGE）。
+PIN_TITLE = "Kinshoko pin"
+PIN_EDGE = 8
 
 
 def key(vk):
@@ -63,6 +70,37 @@ def window_rect(pid, title):
     return found[0] if found else None
 
 
+def started(pid):
+    """单实例窗口出现了（标题随 identifier：`dev.kinshoko-siw`，测试实例如 `dev.kinshoko.pintest-siw`）。"""
+    found = []
+
+    @ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+    def visit(hwnd, _):
+        owner = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+        text = ctypes.create_unicode_buffer(256)
+        user32.GetWindowTextW(hwnd, text, 256)
+        if owner.value == pid and text.value.startswith("dev.kinshoko") and text.value.endswith("-siw"):
+            found.append(hwnd)
+        return True
+
+    user32.EnumWindows(visit, 0)
+    return bool(found)
+
+
+def pin_content(pid):
+    """原生钉图的内容在屏幕上的矩形：看得见的那个槽的窗口去掉四周的阴影圈。没有时为 None。"""
+    r = window_rect(pid, PIN_TITLE)
+    return r and (r[0] + PIN_EDGE, r[1] + PIN_EDGE, r[2] - PIN_EDGE, r[3] - PIN_EDGE)
+
+
+def probe_data():
+    """临时数据目录，打开原生钉图。"""
+    data = Path(tempfile.mkdtemp(prefix="kinshoko-probe-"))
+    (data / "settings.json").write_text('{"nativePins": true}', encoding="utf-8")
+    return data
+
+
 def running(image):
     out = subprocess.run(["tasklist", "/FI", f"IMAGENAME eq {image}", "/NH"], capture_output=True, text=True)
     return image.lower() in out.stdout.lower()
@@ -92,8 +130,29 @@ def wait_for(what, fn, timeout=8.0):
     raise SystemExit(f"等待超时：{what}")
 
 
+# 截屏用核对工具的桌面复制（`--grab`）：原生钉图是 DirectComposition 窗口，GDI 截屏拍不到。
+FRAME_CHECK = Path(
+    os.environ.get(
+        "KINSHOKO_FRAME_CHECK",
+        Path(__file__).resolve().parents[2]
+        / "tools/pin-frame-check/target/release/kinshoko-pin-frame-check.exe",
+    )
+)
+
+
 def grab(box):
-    return ImageGrab.grab(bbox=box, all_screens=True).convert("RGB")
+    """屏幕上 `box`（左、上、右、下，物理像素）的像素。"""
+    if not FRAME_CHECK.exists():
+        raise SystemExit(f"先在 tools/pin-frame-check 里 cargo build --release（找不到 {FRAME_CHECK}）")
+    left, top, right, bottom = box
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "grab.png"
+        subprocess.run(
+            [str(FRAME_CHECK), "--grab", str(left), str(top), str(right - left), str(bottom - top), str(out)],
+            check=True,
+        )
+        with Image.open(out) as im:
+            return im.convert("RGB")
 
 
 def diff(a, b):
@@ -105,13 +164,13 @@ def diff(a, b):
 
 def main():
     exe = Path(sys.argv[1]).resolve()
-    data = Path(tempfile.mkdtemp(prefix="kinshoko-probe-"))
+    data = probe_data()
     env = dict(os.environ, KINSHOKO_DATA_DIR=str(data), KINSHOKO_SKIP_AUTOSTART="1")
     if running(exe.name):
         raise SystemExit("已有 Kinshoko 在运行（单实例），先退出它")
     app = subprocess.Popen([str(exe), "--autostart"], env=env)
     # 单实例窗口出现说明应用已启动；再等一会儿让全局快捷键注册完。
-    wait_for("应用启动", lambda: window_rect(app.pid, "dev.kinshoko-siw"), timeout=20)
+    wait_for("应用启动", lambda: started(app.pid), timeout=20)
     time.sleep(1.5)
 
     # 逐像素随机的测试图：任何重新采样或颜色转换都会让像素对不上。
@@ -152,12 +211,12 @@ def main():
             user32.mouse_event(LEFTUP, 0, 0, 0, 0)
             time.sleep(0.05)
 
-        pin = wait_for("钉图窗口", lambda: window_rect(app.pid, "Kinshoko 钉图"))
+        pin = wait_for("钉图窗口", lambda: pin_content(app.pid))
         move(0, 0)
         pause(1.5)  # 等出现时的描边淡出
         captures = list((data / "captures").glob("*.png"))
         results = {
-            "钉图窗口尺寸等于选区": None
+            "钉图内容尺寸等于选区": None
             if (pin[2] - pin[0], pin[3] - pin[1]) == before.size
             else f"{pin} 与选区 {before.size} 不同",
             "新钉图略微偏离原位置": None if (pin[0], pin[1]) != (x0, y0) else "与选区完全重合",

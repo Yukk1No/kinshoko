@@ -7,6 +7,7 @@
 
 mod app;
 mod follow;
+mod grab;
 mod input;
 mod modes;
 mod rect;
@@ -60,6 +61,14 @@ fn run() -> Result<bool, String> {
             trace: trace.into(),
             report: report.into(),
         });
+    }
+    // `--grab <x> <y> <宽> <高> <out.png>`：桌面复制拍一块屏幕，给探针核对像素。
+    if let [mode, x, y, w, h, out] = &args[..]
+        && mode == "--grab"
+    {
+        let n = |v: &str| v.parse::<i32>().map_err(|_| format!("--grab 要整数：{v}"));
+        grab::grab(rect::Rect::new(n(x)?, n(y)?, n(w)?, n(h)?), out.as_ref())?;
+        return Ok(true);
     }
     let (opts, rest) = parse()?;
     if rest.iter().any(|a| a == "--info") {

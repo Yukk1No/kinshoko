@@ -36,7 +36,7 @@ fn validate_source(app: &AppHandle, pending: &Pending, selected: ScreenRect) -> 
         // Includes the strictest rating of every known byte-identical provider.
         crate::library::visible_source(app, library_id, image_id)?;
     } else if !pins::capture_source_open(app, &surface.selection.pin.id)
-        || app.get_webview_window(&surface.window).is_none()
+        || (surface.hwnd.is_none() && app.get_webview_window(&surface.window).is_none())
     {
         return Err("参考图已关闭，请重新框选".into());
     }
@@ -80,11 +80,16 @@ pub async fn finish_capture(
     // 读大原图可能要一秒左右，先关掉窗口会让人以为按键没生效。
     tauri::async_runtime::spawn_blocking(move || {
         // 出错甚至 panic 也要结束会话、隐藏窗口，否则之后的 F1 都被当成还在截。
-        let _close = CloseOnDrop(&app, &token);
+        let close = CloseOnDrop(&app, &token);
         let started = std::time::Instant::now();
         let result = finish_blocking(&app, pending, region, action);
         if let Ok(Some(pin)) = &result {
             pins::wait_shown(&app, pin, Duration::from_secs(5));
+            // 框选窗口关掉时系统把激活交还给原来的窗口；它若是置顶窗口就会盖住新钉图。
+            // 隐藏与交还激活都是异步的：等它们做完再放上来。
+            drop(close);
+            std::thread::sleep(Duration::from_millis(150));
+            pins::raise_native(&app, pin);
         }
         match &result {
             Ok(_) => crate::run_log::record(LogEvent::CaptureFinished {

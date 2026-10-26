@@ -53,6 +53,8 @@ pub struct Pending {
 
 pub(super) struct ReferenceSurface {
     pub window: String,
+    /// 原生钉图（没有 WebView 窗口）：看得见的槽的窗口句柄。
+    pub hwnd: Option<isize>,
     pub selection: CaptureSurface,
 }
 

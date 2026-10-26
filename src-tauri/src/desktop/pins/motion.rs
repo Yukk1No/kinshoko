@@ -96,7 +96,7 @@ pub(super) fn frames(
         .collect()
 }
 
-fn is_native(app: &AppHandle, pin: &str) -> bool {
+pub(super) fn is_native(app: &AppHandle, pin: &str) -> bool {
     lock(&state(app).pins).get(pin).is_some_and(|r| r.native)
 }
 
