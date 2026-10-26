@@ -315,6 +315,7 @@ fn views_tell_the_app_what_is_shown_and_whether_it_is_still() {
             key: "marker".into(),
             id: A,
             content: home,
+            window: r.o.pins[&A].window.unwrap(),
             still: true,
             click_through: false,
         }]

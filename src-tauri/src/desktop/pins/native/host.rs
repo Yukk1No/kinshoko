@@ -78,6 +78,7 @@ fn with(
                     let hwnd = o.platform().window_handle(v.id)?;
                     let seen = super::Seen {
                         content: v.content,
+                        window: v.window,
                         still: v.still,
                         click_through: v.click_through,
                         hwnd,

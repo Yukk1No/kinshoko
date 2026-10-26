@@ -239,10 +239,12 @@ pub(super) fn capture_surfaces(app: &AppHandle) -> Vec<super::capture::Reference
             .get(&pin.id)
             .is_some_and(|r| r.native)
         {
-            // 原生钉图：按它此刻显示的位置（滑出的也算）；动画、手势中与收起时不算。
+            // 原生钉图：按它此刻显示的位置（滑出的也算）；动画、手势中、收起与占位时不算。
+            // 看得见的只是窗口里那部分：盖满显示器时让出的那一行是桌面。
             if let Some(seen) = native::seen(&pin.id)
                 && seen.still
                 && !seen.click_through
+                && let Some(visible) = seen.content.intersect(&seen.window)
             {
                 surfaces.push(super::capture::ReferenceSurface {
                     window: NATIVE_SURFACE.into(),
@@ -250,7 +252,7 @@ pub(super) fn capture_surfaces(app: &AppHandle) -> Vec<super::capture::Reference
                     selection: CaptureSurface {
                         pin: pin.clone(),
                         shown: seen.content,
-                        visible: seen.content,
+                        visible,
                         covered: Vec::new(),
                     },
                 });

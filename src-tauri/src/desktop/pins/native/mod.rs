@@ -39,6 +39,8 @@ use render::RenderThread;
 pub(super) struct Seen {
     /// 内容此刻在屏幕上的位置。
     pub content: ScreenRect,
+    /// 看得见的窗口（内容盖满显示器时让出了一行）。
+    pub window: ScreenRect,
     /// 显示出来了，不在动画、手势中。
     pub still: bool,
     pub click_through: bool,
