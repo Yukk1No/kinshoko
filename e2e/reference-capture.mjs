@@ -1,8 +1,10 @@
 // #81 / spec #78 T16：真实 WebView2 来源登记、F1 生产命令、原生剪贴板往返。
 // node e2e/reference-capture.mjs <isolated-identifier kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]
 // 与其他原生测试串行运行；KINSHOKO_SKIP_AUTOSTART + 独立临时数据目录。
+// 原生钉图（ADR 0013）不是 WebView 窗口，也没有查询或变换它的命令：新钉图从数据目录的 pins.json
+// 读回；需要翻转、旋转、缩放已有钉图的“局部变换后再框选”一段随 WebView 钉图层一起删了。
 import { spawn, spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { release, tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
@@ -62,7 +64,7 @@ const click = async (text) => wd("POST", `${base}/element/${await find(`//button
 const image = () => exec(`const i = document.querySelector('.viewer-stage img'); if (!i?.complete || !i.naturalWidth || getComputedStyle(i).visibility !== 'visible') return null; const r=i.getBoundingClientRect(); return { left:Math.round(r.left*devicePixelRatio), top:Math.round(r.top*devicePixelRatio), width:Math.round(r.width*devicePixelRatio), height:Math.round(r.height*devicePixelRatio), naturalWidth:i.naturalWidth, src:i.currentSrc, dpr:devicePixelRatio };`);
 const windows = () => invoke("plugin:window|get_all_windows");
 async function capture(shown, action) {
-  // 真实原生抓屏和冻结窗口；来源由实际 Viewer/PinView 报告。只以公共命令提交选区。
+  // 真实原生抓屏和冻结窗口；来源由实际 Viewer 报告。只以公共命令提交选区。
   await desktop("start_capture");
   await until("冻结窗口已显示", () => native("is_visible", "capture"));
   const origin = await native("inner_position", "capture");
@@ -92,12 +94,12 @@ function originalRegion(pin, shown, selected) {
   const bottom = Math.ceil(Math.max(...corners.map(p => p[1])) - 1e-8);
   return { x: baseCrop.x + left, y: baseCrop.y + top, width: right - left, height: bottom - top };
 }
+// 应用壳把每张钉图的状态写进数据目录的 pins.json（SavedPin，camelCase）。
+function savedPins() {
+  try { return JSON.parse(readFileSync(join(data, "pins.json"), "utf8")).pins ?? []; } catch { return []; }
+}
 async function newPin(before) {
-  const label = await until("新原生钉图", async () => (await windows()).find(label => label.startsWith("pin-") && !before.includes(label)));
-  const pin = label.slice(4);
-  const frame = await until("钉图首帧", async () => { const f = await desktop("pin_frame", { pin }); return f && f.content.width > 0 ? f : null; });
-  await until("钉图已显示", () => native("is_visible", label));
-  return frame;
+  return until("新原生钉图", async () => savedPins().find(pin => !before.includes(pin.id)));
 }
 function readClipboardRoundTrip(entry) {
   const path = join(data, "captures", `${entry.id}.png`);
@@ -142,41 +144,20 @@ try {
   await new Promise(done => setTimeout(done, 500));
   const selected = await capture(shown, "copy");
   check((await desktop("capture_history")).length === 0, "查看器原图复制不增加截图历史");
-  const beforePin = await windows();
+  const beforePin = savedPins().map(pin => pin.id);
   const pinnedSelection = await capture(shown, "pin");
-  const frame = await newPin(beforePin);
-  const expected = originalRegion({ ...frame.pin, crop: null, placement: { flipH: false, flipV: false, rotation: 0 } }, shown, pinnedSelection);
-  report.viewer = { fitted, sourcePath, shown, selected, pinnedSelection, expected, pin: frame.pin };
-  check(frame.pin.content.kind === "reference" && frame.pin.content.libraryId === sourcePath[0] && frame.pin.content.imageId === sourcePath[1], "查看器 F1 钉图保留明确资料库与原图来源");
-  check(sameRegion(frame.pin.crop, expected), "查看器 F1 钉图保留原图裁切");
+  const pin = await newPin(beforePin);
+  const expected = originalRegion({ ...pin, crop: null, placement: { flipH: false, flipV: false, rotation: 0 } }, shown, pinnedSelection);
+  report.viewer = { fitted, sourcePath, shown, selected, pinnedSelection, expected, pin };
+  check(pin.content.kind === "reference" && pin.content.libraryId === sourcePath[0] && pin.content.imageId === sourcePath[1], "查看器 F1 钉图保留明确资料库与原图来源");
+  check(sameRegion(pin.crop, expected), "查看器 F1 钉图保留原图裁切");
   check((await desktop("capture_history")).length === 0, "查看器原图钉住不增加截图历史");
   // 使用真正的 F3 生产入口读回系统剪贴板；该动作才新增第一条截图历史。
   await desktop("pin_clipboard");
   let entries = await desktop("capture_history");
-  let clipboard = readClipboardRoundTrip(entries[0]);
+  const clipboard = readClipboardRoundTrip(entries[0]);
   check(clipboard.size[0] === expected.width && clipboard.size[1] === expected.height, "系统剪贴板保留原图选区尺寸");
   check(JSON.stringify(clipboard.corners) === JSON.stringify(expectedCorners(expected, { flipH: false, flipV: false, rotation: 0 })), "系统剪贴板四角保留逐像素原图细节");
-  // 先把所有其它钉图移走，避免测试源被另一个真实置顶窗口遮挡。
-  for (const label of await windows()) if (label.startsWith("pin-") && label !== `pin-${frame.pin.id}`) await desktop("move_pin", { pin: label.slice(4), x: shown.x + shown.width + 50, y: shown.y });
-  await desktop("turn_pin", { pin: frame.pin.id, turn: "flipHorizontal" });
-  await desktop("turn_pin", { pin: frame.pin.id, turn: "rotateClockwise" });
-  await desktop("zoom_pin", { pin: frame.pin.id, scale: 0.5, anchorX: frame.content.x, anchorY: frame.content.y });
-  await new Promise(done => setTimeout(done, 1000));
-  const prior = await desktop("pin_frame", { pin: frame.pin.id });
-  const beforeHistory = entries.length;
-  const part = await capture(prior.content, "copy");
-  check((await desktop("capture_history")).length === beforeHistory, "已有局部变换后的复制不增加截图历史");
-  const transformedCrop = originalRegion(prior.pin, prior.content, part);
-  const beforeTransformedPin = await windows();
-  await capture(prior.content, "pin");
-  const transformedPin = await newPin(beforeTransformedPin);
-  check(sameRegion(transformedPin.pin.crop, transformedCrop) && transformedPin.pin.content.libraryId === prior.pin.content.libraryId && transformedPin.pin.content.imageId === prior.pin.content.imageId && transformedPin.pin.placement.flipH === prior.pin.placement.flipH && transformedPin.pin.placement.rotation === prior.pin.placement.rotation, "已有局部变换后的钉住保留同一原图来源、裁切和方向");
-  check((await desktop("capture_history")).length === beforeHistory, "已有局部变换后的钉住不增加截图历史");
-  await desktop("pin_clipboard");
-  entries = await desktop("capture_history"); clipboard = readClipboardRoundTrip(entries[0]);
-  check(clipboard.size[0] === transformedCrop.height && clipboard.size[1] === transformedCrop.width, "已有局部翻转旋转后剪贴板仍保留原图尺寸");
-  check(JSON.stringify(clipboard.corners) === JSON.stringify(expectedCorners(transformedCrop, prior.pin.placement)), "已有局部翻转旋转后剪贴板四角与原图对应");
-  report.transformed = { prior, selected: part, crop: transformedCrop, clipboard, pin: transformedPin.pin };
   const beforeOutside = entries.length;
   const outside = await capture({ x: mainOrigin.x, y: mainOrigin.y, width: 80, height: 80 }, "copy");
   entries = await desktop("capture_history");
