@@ -63,3 +63,44 @@ it("只放回后面那张时也回到原位：前面那张已移走也不乱序"
   act(() => second(["c"]));
   expect(shown()).toEqual(["a", "c", "d"]);
 });
+
+it("移走时还在路上的下一页回来也不把移走的卡片带回来（#290）", async () => {
+  // 第一页取满一整页（PAGE = 500），下一页才由 loadMore 去取。
+  const first = Array.from({ length: 500 }, (_, i) => card(`p${i}`));
+  let second: ((page: WorkspacePage) => void) | undefined;
+  mockIPC((command, args) => {
+    if (command !== "plugin:library|workspace_browse") throw new Error(command);
+    const cursor = (args as { query: { cursor: string | null } }).query.cursor;
+    if (cursor === null) return { cards: first, total: 501, nextCursor: "p2", status: { revision: "r", libraries: [] } } satisfies WorkspacePage;
+    return new Promise<WorkspacePage>((resolve) => { second = resolve; });
+  });
+  const ref = createRef<WallHandle>();
+  render(<Wall ref={ref} libraryId="A" scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
+    onOpenImage={() => {}} viewerOpen={false} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
+  await settle();
+  expect(total()).toBe("501");
+  act(() => ref.current!.loadMore());
+  await settle();
+  expect(second).toBeTypeOf("function");
+  act(() => { ref.current!.remove(["p0"]); });
+  await act(async () => second!({ cards: [card("last")], total: 501, nextCursor: null, status: { revision: "r", libraries: [] } }));
+  expect(shown()).not.toContain("p0");
+  expect(total()).toBe("500");
+});
+
+it("全部移走再全部放回仍按原来的先后，几千张也不卡住", async () => {
+  const many = Array.from({ length: 2400 }, (_, i) => `c${i}`);
+  mockIPC(() => ({ cards: many.map(card), total: many.length, nextCursor: null, status: { revision: "r", libraries: [] } }) satisfies WorkspacePage);
+  const ref = createRef<WallHandle>();
+  render(<Wall ref={ref} libraryId="A" scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
+    onOpenImage={() => {}} viewerOpen={false} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
+  await settle();
+  let putBack!: (ids: string[]) => void;
+  act(() => { putBack = ref.current!.remove(many); });
+  expect(total()).toBe("0");
+  const started = performance.now();
+  act(() => putBack([...many].reverse()));
+  expect(performance.now() - started).toBeLessThan(1500);
+  expect(total()).toBe("2400");
+  expect(shown().slice(0, 3)).toEqual(["c0", "c1", "c2"]);
+});

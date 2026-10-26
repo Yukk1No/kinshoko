@@ -151,28 +151,40 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
     selectAll() { selectAllRef.current(); },
     remove(ids) {
       const removing = new Set(ids);
-      /** 移走时墙上的先后：放回时按它找邻居。 */
-      const order = shownCards.current.map((card) => card.id);
+      /** 移走时墙上每张卡片的位置：放回时按它排回原来的先后。 */
+      const rank = new Map(shownCards.current.map((card, index) => [card.id, index]));
       let removed = shownCards.current.filter((card) => removing.has(card.id));
       if (!removed.length) return () => {};
+      // 还在路上的下一页是按移走前的卡片拼的，回来会把移走的卡片带回来：作废它。整理完的重新浏览会再取。
+      generation.current += 1;
+      inflight.current = null;
       measureBeforeReflow();
       setCards((now) => now.filter((card) => !removing.has(card.id)));
       setTotal((count) => (count === null ? count : count - removed.length));
       return (failedIds) => {
         const failing = new Set(failedIds);
-        const returning = removed.filter((card) => failing.has(card.id) && !shownCards.current.some((c) => c.id === card.id));
+        const shown = new Set(shownCards.current.map((card) => card.id));
+        const returning = removed.filter((card) => failing.has(card.id) && !shown.has(card.id));
         removed = removed.filter((card) => !returning.includes(card));
         if (!returning.length) return;
+        generation.current += 1;
+        inflight.current = null;
         measureBeforeReflow();
-        setCards((now) => returning.reduce((next, card) => {
-          if (next.some((c) => c.id === card.id)) return next;
-          // 放回原位：插到原来排在它后面、现在还在墙上的第一张前面；后面都不在时接在前面最近的那张后面。
-          const at = order.indexOf(card.id);
-          const after = order.slice(at + 1).map((id) => next.findIndex((c) => c.id === id)).find((i) => i >= 0);
-          const before = order.slice(0, at).reverse().map((id) => next.findIndex((c) => c.id === id)).find((i) => i >= 0);
-          const index = after ?? (before === undefined ? 0 : before + 1);
-          return [...next.slice(0, index), card, ...next.slice(index)];
-        }, now));
+        // 一次归并：放回的卡片按原来的位置，插到原来排在它后面的第一张墙上卡片之前。
+        const back = [...returning].sort((x, y) => rank.get(x.id)! - rank.get(y.id)!);
+        setCards((now) => {
+          const present = new Set(now.map((card) => card.id));
+          const pending = back.filter((card) => !present.has(card.id));
+          const next: BrowserCard[] = [];
+          let i = 0;
+          for (const card of now) {
+            const at = rank.get(card.id);
+            if (at !== undefined) while (i < pending.length && rank.get(pending[i].id)! < at) next.push(pending[i++]);
+            next.push(card);
+          }
+          next.push(...pending.slice(i));
+          return next;
+        });
         setTotal((count) => (count === null ? count : count + returning.length));
       };
     },
