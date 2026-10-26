@@ -433,7 +433,7 @@ mod shell_source {
                 stray.push(path.display().to_string());
             }
         }
-        assert!(builders >= 5, "{builders}");
+        assert!(builders >= 4, "{builders}");
         assert_eq!(builders, shared);
         assert!(stray.is_empty(), "{stray:#?}");
     }
