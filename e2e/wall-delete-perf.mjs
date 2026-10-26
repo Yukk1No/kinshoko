@@ -6,7 +6,7 @@
 //
 // 步骤：建一个资料库并导入样本 → 窗口最大化、浏览它的全部图片 → 每轮 Ctrl 单击选中墙顶部的 N 张（1 张、20 张），
 // 在卡片上按 Del。页面里逐帧记录：卡片离开墙的时刻、墙上张数变成删后张数的时刻，以及墙最后一次变化（卡片增减、
-// 位置、张数）的时刻；之后 1.5 秒内没有再变化才算稳定。每种张数在“只读了第一页”与“滚到底读完全部页”两种墙上各跑。
+// 位置、张数）的时刻，以及后端做完（新出现的轻提示）的时刻；后端做完之后墙上 1.5 秒内没有再变化才算稳定。每种张数在“只读了第一页”与“滚到底读完全部页”两种墙上各跑。
 // 每轮结束点轻提示里的“撤销”，等墙恢复原来的张数再进下一轮。
 // 数据目录与 WebView2 配置都在 work/e2e/ 下的新目录里，不碰本设备的正式资料库。结果写到该目录的 result.json。
 
@@ -89,7 +89,9 @@ const ROUND = `
   await new Promise((r) => setTimeout(r, 400));
   const chosen = canvas.querySelectorAll('.card[aria-selected="true"]').length;
   if (chosen !== count) throw new Error('选中了 ' + chosen + ' 张，应为 ' + count);
-  let last = 0, removedAt = null, totalAt = null;
+  let last = 0, removedAt = null, totalAt = null, doneAt = null;
+  // 后端做完的信号：这次按键之后新出现的轻提示（成功是“已移到回收站”，失败是错误提示），修复前后都在整理返回后才出。
+  const earlierToasts = new Set(document.querySelectorAll('.k-toast'));
   const observer = new MutationObserver(() => { last = performance.now(); });
   observer.observe(wall, { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'data-total'] });
   const t0 = performance.now();
@@ -103,7 +105,8 @@ const ROUND = `
       const now = performance.now();
       if (removedAt === null && ids.every((id) => !canvas.querySelector('.card[data-id="' + CSS.escape(id) + '"]'))) removedAt = now;
       if (totalAt === null && Number(wall.dataset.total) === total - count) totalAt = now;
-      if (removedAt !== null && totalAt !== null && now - last >= quiet) return resolve();
+      if (doneAt === null && [...document.querySelectorAll('.k-toast')].some((node) => !earlierToasts.has(node))) { doneAt = now; last = Math.max(last, now); }
+      if (removedAt !== null && totalAt !== null && doneAt !== null && now - last >= quiet) return resolve();
       if (now > deadline) return reject(new Error('60 秒内没有稳定'));
       requestAnimationFrame(tick);
     };
@@ -112,7 +115,7 @@ const ROUND = `
   observer.disconnect();
   const at = (t) => Math.round(t - t0);
   return {
-    count, removedMs: at(removedAt), totalMs: at(totalAt), stableMs: at(Math.max(last, removedAt, totalAt)),
+    count, removedMs: at(removedAt), totalMs: at(totalAt), doneMs: at(doneAt), stableMs: at(Math.max(last, removedAt, totalAt, doneAt)),
   };
 `;
 
@@ -160,7 +163,7 @@ try {
         entry.round = round;
         entry.scenario = scenario;
         result.rounds.push(entry);
-        console.log(`${scenario} 第 ${round} 轮 ${count} 张`, JSON.stringify({ removedMs: entry.removedMs, totalMs: entry.totalMs, stableMs: entry.stableMs }));
+        console.log(`${scenario} 第 ${round} 轮 ${count} 张`, JSON.stringify({ removedMs: entry.removedMs, totalMs: entry.totalMs, doneMs: entry.doneMs, stableMs: entry.stableMs }));
         save();
         if (round === 1 && count === SIZES.at(-1)) await session.screenshot(join(work, `after-delete-${scenario}-${count}.png`));
         // 撤销：点轻提示里的“撤销”，等墙回到原来的张数并安静下来。
@@ -174,7 +177,7 @@ try {
   for (const scenario of SCENARIOS) for (const count of SIZES) {
     const runs = result.rounds.filter((r) => r.count === count && r.scenario === scenario);
     const median = (field) => runs.map((r) => r[field]).sort((a, b) => a - b)[Math.floor(runs.length / 2)];
-    summary[`${scenario}/${count}`] = { removedMs: median("removedMs"), totalMs: median("totalMs"), stableMs: median("stableMs") };
+    summary[`${scenario}/${count}`] = { removedMs: median("removedMs"), totalMs: median("totalMs"), doneMs: median("doneMs"), stableMs: median("stableMs") };
   }
   result.summary = summary;
   console.log("中位数", JSON.stringify(summary));

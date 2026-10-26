@@ -87,13 +87,16 @@ it("点删除后先移走卡片，不等后端；失败的图库那部分放回�
 
 it("另一个资料库里那份来源仍在视图里的卡片不先移走：删的只是显示的这份", async () => {
   failing({});
-  const removeCards = vi.fn((_cards: BrowserCard[]) => () => {});
+  const done = vi.fn();
+  const removeCards = vi.fn((_cards: BrowserCard[]) => done);
   render(<Harness removeCards={removeCards} />);
   const source = (libraryId: string, imageId: string) => ({ libraryId, libraryName: libraryId, imageId, unavailable: null, matches: true, deleted: false });
   const shared: BrowserCard = { ...card("1"), sources: [source("L1", "i1"), source("L2", "j1")] };
   const only: BrowserCard = { ...card("2"), sources: [source("L1", "i2")] };
   act(() => api.edit([shared, only], [{ kind: "delete" }], false));
   expect(removeCards).toHaveBeenCalledWith([only]);
+  // 全部做成也要告诉图片墙“做完了”：它据此恢复翻页（#290）。
+  await waitFor(() => expect(done).toHaveBeenCalledWith([]));
 });
 
 it("批量命令整个失败时全部放回并给出原因；不移走卡片的整理不先移走", async () => {

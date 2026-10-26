@@ -118,6 +118,8 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const layoutWidth = useRef(0);
   const beforeReflow = useRef(new Map<string, DOMRect>());
   const motions = useRef(new Map<string, Animation>());
+  /** 先移走、后端还没做完的卡片（#290）；见 useWallPages。 */
+  const pendingRemoval = useRef(new Set<string>());
   /**
    * 安全模式切换那一刻量下的卡片位置。资料库按新视角送回卡片后，留下的卡片从这里滑到新位置，
    * 节奏按原型的封印／释放重排（从点下去的时刻算起）。
@@ -155,6 +157,8 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
       const rank = new Map(shownCards.current.map((card, index) => [card.id, index]));
       let removed = shownCards.current.filter((card) => removing.has(card.id));
       if (!removed.length) return () => {};
+      for (const card of removed) pendingRemoval.current.add(card.id);
+      const batch = removed.map((card) => card.id);
       // 还在路上的下一页是按移走前的卡片拼的，回来会把移走的卡片带回来：作废它。整理完的重新浏览会再取。
       generation.current += 1;
       inflight.current = null;
@@ -162,6 +166,8 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
       setCards((now) => now.filter((card) => !removing.has(card.id)));
       setTotal((count) => (count === null ? count : count - removed.length));
       return (failedIds) => {
+        // 后端做完了：这批不再算“正在移走”，恢复翻页。
+        for (const id of batch) pendingRemoval.current.delete(id);
         const failing = new Set(failedIds);
         const shown = new Set(shownCards.current.map((card) => card.id));
         const returning = removed.filter((card) => failing.has(card.id) && !shown.has(card.id));
@@ -225,6 +231,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const { loadMore } = useWallPages({
     cards, setCards, cursor, setCursor, setTotal, setError, generation, inflight, view, restoring, anchor, shownCards,
     measureBeforeReflow, onWorkspaceStatus, releasePage, thumbnailPx, reloadKey, loadMoreRef, workspaceScope, safeMode,
+    pendingRemoval,
   });
 
   const { holdForDoubleClick } = useWidthSync({ holdReflow, scroller, layoutWidth, measureBeforeReflow, setWidth, syncMount });

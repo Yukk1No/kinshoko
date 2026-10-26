@@ -104,3 +104,35 @@ it("全部移走再全部放回仍按原来的先后，几千张也不卡住", a
   expect(total()).toBe("2400");
   expect(shown().slice(0, 3)).toEqual(["c0", "c1", "c2"]);
 });
+
+it("整理还没结束时不翻下一页，重新浏览回来的页也去掉移走的卡片与张数；结束后照常翻页（#290）", async () => {
+  const first = Array.from({ length: 500 }, (_, i) => card(`p${i}`));
+  const nextPages: string[] = [];
+  mockIPC((command, args) => {
+    if (command !== "plugin:library|workspace_browse") throw new Error(command);
+    const cursor = (args as { query: { cursor: string | null } }).query.cursor;
+    if (cursor !== null) nextPages.push(cursor);
+    // 后端还没删完：张数与第一页都还算着 p0。
+    return cursor === null
+      ? { cards: first, total: 501, nextCursor: "p2", status: { revision: "r", libraries: [] } } satisfies WorkspacePage
+      : { cards: [card("last")], total: 501, nextCursor: null, status: { revision: "r", libraries: [] } } satisfies WorkspacePage;
+  });
+  const ref = createRef<WallHandle>();
+  const props = { libraryId: "A", scope: { kind: "all" as const }, selected: new Set<string>(), onSelectionChange: () => {},
+    onOpenImage: () => {}, viewerOpen: false, workspaceScope: { kind: "all" as const }, safeMode: true };
+  const view = render(<Wall ref={ref} {...props} reloadKey={0} />);
+  await settle();
+  let done!: (ids: string[]) => void;
+  act(() => { done = ref.current!.remove(["p0"]); });
+  act(() => ref.current!.loadMore());
+  await settle();
+  expect(nextPages).toEqual([]);
+  view.rerender(<Wall ref={ref} {...props} reloadKey={1} />);
+  await settle();
+  expect(shown()).not.toContain("p0");
+  expect(total()).toBe("500");
+  act(() => done([]));
+  act(() => ref.current!.loadMore());
+  await settle();
+  expect(nextPages).toEqual(["p2"]);
+});

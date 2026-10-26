@@ -46,7 +46,7 @@ export type WallActionsOptions = {
   onInspect: (card: BrowserCard) => void;
   /** 整理写入后：重新浏览并刷新词表。 */
   onChanged: () => void;
-  /** 先把卡片从墙上移走（#290）；返回把后端没做成的那部分放回原位的函数。 */
+  /** 先把卡片从墙上移走（#290）；返回结束函数，后端做完后带上没做成的卡片调用（全部做成时为空）。 */
   removeCards?: (cards: BrowserCard[]) => (failed: BrowserCard[]) => void;
   onClearSelection: () => void;
   onError: (message: string) => void;
@@ -161,8 +161,8 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
           }
           const failedLibraries = new Set(failed.map((f) => f.libraryId));
           const succeeded = entries.filter(({ target }) => !failedLibraries.has(target.libraryId)).map(({ card }) => card);
+          putBack?.(moved.filter((card) => !succeeded.includes(card)));
           if (failed.length) {
-            putBack?.(moved.filter((card) => !succeeded.includes(card)));
             onError(`有图库没有整理完。${libraryFailures(failed, libraryName)}`);
           }
           if (!failed.length && clear) onClearSelection();

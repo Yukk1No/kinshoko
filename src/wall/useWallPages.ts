@@ -16,6 +16,7 @@ import { PAGE, type BrowserCard } from "./wallShared";
 export function useWallPages({
   cards, setCards, cursor, setCursor, setTotal, setError, generation, inflight, view, restoring, anchor, shownCards,
   measureBeforeReflow, onWorkspaceStatus, releasePage, thumbnailPx, reloadKey, loadMoreRef, workspaceScope, safeMode,
+  pendingRemoval,
 }: {
   cards: BrowserCard[];
   setCards: Dispatch<SetStateAction<BrowserCard[]>>;
@@ -37,6 +38,11 @@ export function useWallPages({
   loadMoreRef: MutableRefObject<() => void>;
   workspaceScope: WorkspaceScope | undefined;
   safeMode: boolean;
+  /**
+   * 先移走、后端还没做完的卡片（#290）。这期间不翻下一页（接着翻会拿旧游标与删前的张数）；
+   * 重新浏览回来的页去掉它们，张数也减去页里还算着的那些。
+   */
+  pendingRemoval: MutableRefObject<Set<string>>;
 }) {
   // Keyed by value: re-selecting the same range creates a new but equal object. Clearing on that
   // identity change emptied the wall without the reload below ever running again (T20 r5/r6).
@@ -100,6 +106,12 @@ export function useWallPages({
             if (current() && isCursorExpired(e) && attempt < 3) continue;
             throw e;
           }
+          const pending = pendingRemoval.current;
+          if (pending.size) {
+            const kept = next.filter((card) => !pending.has(card.id));
+            count -= next.length - kept.length;
+            next.splice(0, next.length, ...kept);
+          }
           // 送回的还是墙上这些卡片（封印后按节奏先移走了飞走的图）：不量也不重排，正在补位的动画不被打断。
           const prev = shownCards.current;
           const unchanged = prev.length === next.length
@@ -125,7 +137,7 @@ export function useWallPages({
   );
 
   const loadMore = useCallback(async () => {
-    if (inflight.current !== null || !cursor) return;
+    if (inflight.current !== null || !cursor || pendingRemoval.current.size) return;
     const gen = generation.current;
     inflight.current = gen;
     const { libraryId, scope, conditions, workspaceScope, safeMode } = view.current;
