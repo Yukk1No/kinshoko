@@ -48,13 +48,24 @@ pub(super) fn current<R: Runtime>(
         Ok(())
     }
 }
-pub(super) fn stable<R: Runtime, T>(
+/// [`action`] 加上代次复核：做完时安全模式变过就丢弃结果。
+pub(super) fn guarded<R: Runtime, T>(
     app: &AppHandle<R>,
     safe: bool,
     f: impl FnOnce(&mut Workspace, &DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
 ) -> Result<T, String> {
     let expected = generation(app);
-    let value = action(app, safe, |workspace, device, catalog| {
+    let value = action(app, safe, f)?;
+    current(app, safe, expected)?;
+    Ok(value)
+}
+/// [`guarded`] 再加上前后修订号复核，给自己不复核修订号的读取用。
+pub(super) fn stable<R: Runtime, T>(
+    app: &AppHandle<R>,
+    safe: bool,
+    f: impl FnOnce(&mut Workspace, &DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
+) -> Result<T, String> {
+    guarded(app, safe, |workspace, device, catalog| {
         let before = workspace.status(device, catalog, safe)?;
         let value = f(workspace, device, catalog)?;
         let after = workspace.status(device, catalog, safe)?;
@@ -62,9 +73,7 @@ pub(super) fn stable<R: Runtime, T>(
             return Err(kinshoko_core::library::Error::CursorExpired.into());
         }
         Ok(value)
-    })?;
-    current(app, safe, expected)?;
-    Ok(value)
+    })
 }
 pub(super) fn monitor<R: Runtime>(app: AppHandle<R>) {
     std::thread::Builder::new()
@@ -98,13 +107,23 @@ pub(super) async fn workspace_browse<R: Runtime>(
     safe_mode: bool,
 ) -> Result<WorkspacePage, String> {
     blocking(move || {
-        // 浏览耗时（#183）：开发构建在控制台输出，含等资源锁的时间。
+        // 浏览耗时（#183）：开发构建在控制台输出，`wait` 是等资源锁的时间，core 另有分段（#288）。
         #[cfg(debug_assertions)]
         let started = std::time::Instant::now();
-        let page = stable(&app, safe_mode, |w, d, c| w.browse(d, c, &query, safe_mode));
+        #[cfg(debug_assertions)]
+        let mut waited = 0.0;
+        // 不用 `stable`：`browse` 重算结果时自己复核修订号，复用结果时修订号是刚读的（#288），
+        // 前后再各取一次状态只是多开几遍资料库。
+        let page = guarded(&app, safe_mode, |w, d, c| {
+            #[cfg(debug_assertions)]
+            {
+                waited = started.elapsed().as_secs_f64() * 1e3;
+            }
+            w.browse(d, c, &query, safe_mode)
+        });
         #[cfg(debug_assertions)]
         eprintln!(
-            "workspace.browse safe={safe_mode} ok={} cards={} ms={:.1}",
+            "workspace.browse safe={safe_mode} ok={} cards={} wait={waited:.1} ms={:.1}",
             page.is_ok(),
             page.as_ref().map_or(0, |p| p.cards.len()),
             started.elapsed().as_secs_f64() * 1e3
