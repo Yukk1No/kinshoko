@@ -205,6 +205,8 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
           const note = edits.find((e) => e.kind === "setNote")?.text ?? null;
           return ids.map((id) => detail(id, note));
         }
+        case "plugin:library|workspace_edit_sources":
+          return [];
         case "plugin:library|recovery":
           return recovery;
         case "plugin:library|search_candidates":

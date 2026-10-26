@@ -6,7 +6,9 @@ pub use import_preview::{
     ImportPreviewContent, ImportPreviewSession, PreparedImportPreview, ResolvedImportPreview,
 };
 mod source;
-pub use source::{WorkspaceSourceInspection, WorkspaceSourceTarget};
+pub use source::{
+    WorkspaceSourceBatch, WorkspaceSourceInspection, WorkspaceSourceTarget, group_sources,
+};
 mod browse;
 mod snapshot;
 pub use snapshot::ProviderReaders;

@@ -376,7 +376,7 @@ fn pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnec
 }
 
 /// 两个图库里有同一张图（字节相同），A 是可写库。
-fn same_image_in_two_libraries(
+pub(crate) fn same_image_in_two_libraries(
     temp: &std::path::Path,
 ) -> (
     DeviceLibraries,
@@ -403,7 +403,7 @@ fn same_image_in_two_libraries(
     (device, a, b, catalog, workspace)
 }
 
-fn wall_card(
+pub(crate) fn wall_card(
     device: &DeviceLibraries,
     catalog: &mut kinshoko_core::tag_catalog::TagCatalog,
     workspace: &mut kinshoko_core::workspace::Workspace,
@@ -426,7 +426,10 @@ fn wall_card(
         .clone()
 }
 
-fn source_in(card: &kinshoko_core::workspace::WorkspaceCard, library: &Library) -> String {
+pub(crate) fn source_in(
+    card: &kinshoko_core::workspace::WorkspaceCard,
+    library: &Library,
+) -> String {
     card.sources
         .iter()
         .find(|s| s.library_id == library.info().id)

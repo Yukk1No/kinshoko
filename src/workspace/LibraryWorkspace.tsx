@@ -212,6 +212,10 @@ export function LibraryWorkspace({
     onCrop: (card) => { setViewCrop(true); setViewing(card); },
     onInspect: (card) => setSources(card as WorkspaceCard),
     onChanged: () => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); },
+    removeCards: (cards) => {
+      const putBack = wall.current?.remove(cards.map((card) => card.id));
+      return (failed) => putBack?.(failed.map((card) => card.id));
+    },
     onClearSelection: () => setSelected(new Set()),
     importFrom: (source) => importControl.current?.[source](),
     importClipboard: async () => { await importControl.current?.clipboard(); },

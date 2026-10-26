@@ -211,6 +211,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             source_actions::workspace_source_inspection,
             source_actions::workspace_source_candidates,
             source_actions::workspace_edit_source,
+            source_actions::workspace_edit_sources,
             source_actions::workspace_edit_source_tags,
             workspace::workspace_status,
             workspace::workspace_browse,

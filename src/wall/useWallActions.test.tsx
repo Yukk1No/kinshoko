@@ -1,20 +1,11 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { PIN_LIMIT, staggeredPins, useWallActions, type WallActionsOptions } from "./useWallActions";
+import { expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { mockIPC } from "@tauri-apps/api/mocks";
+import { PIN_LIMIT, staggeredPins } from "./useWallActions";
 import { ToastProvider } from "../ui/Toast";
-import type { WallMenuActions } from "./WallMenu";
-import type { BrowserCard } from "./Wall";
+import { api, calls, card, Harness, named, setupWallActions } from "./useWallActions.fixtures";
 
-const card = (id: string, libraryId = "L1"): BrowserCard => ({
-  id, width: 100, height: 100, thumbnail: "", adult: false, libraryId, imageId: `i${id}`, sources: [],
-});
-let calls: { cmd: string; args: Record<string, unknown> }[];
-beforeEach(() => {
-  calls = [];
-  mockIPC((cmd, args) => { calls.push({ cmd, args: args as Record<string, unknown> }); return null; });
-});
-afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
+setupWallActions();
 
 it("多张钉住从指针位置起错开排列（窗口客户区物理像素）", () => {
   const rects = staggeredPins({ x: 100, y: 50 }, 3, 2);
@@ -22,16 +13,6 @@ it("多张钉住从指针位置起错开排列（窗口客户区物理像素）"
   expect(PIN_LIMIT).toBe(20);
 });
 
-let api: WallMenuActions;
-function Harness(options: Partial<WallActionsOptions>) {
-  const { actions, dialogs } = useWallActions({
-    safe: false, activeLibraryId: "L1", onOpen: () => {}, onCrop: () => {}, onInspect: () => {}, onChanged: () => {},
-    onClearSelection: () => {}, onError: () => {}, importFrom: () => {}, selectAll: () => {}, setDensity: () => {},
-    onNotice: () => {}, importClipboard: async () => {}, ...options,
-  });
-  api = actions;
-  return <>{dialogs}</>;
-}
 const pins = () => calls.filter((c) => c.cmd === "plugin:desktop|pin_reference");
 
 it("不超过 20 张时直接钉住，每张按来源钉", async () => {
@@ -50,51 +31,6 @@ it("超过 20 张不弹确认：直接钉前 20 张，再用轻提示说明", as
   expect(screen.queryByRole("alertdialog")).toBeNull();
   expect(pins().map((c) => c.args.imageId)).toEqual(many.slice(0, 20).map((c) => c.imageId));
   expect(await screen.findByText("已钉住前 20 张")).toBeTruthy();
-});
-
-it("移到回收站不先确认，轻提示里的“撤销”把同一批图还原", async () => {
-  render(<ToastProvider><Harness /></ToastProvider>);
-  act(() => api.edit([card("1"), card("2", "L2")], [{ kind: "delete" }], true));
-  expect(await screen.findByText("已移到回收站")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "撤销" }));
-  const edits = () => calls.filter((c) => c.cmd === "plugin:library|workspace_edit_source");
-  await waitFor(() => expect(edits()).toHaveLength(4));
-  expect(edits().slice(2).map((c) => [c.args.target, c.args.edits])).toEqual([
-    [{ libraryId: "L1", imageId: "i1", contentId: "1" }, [{ kind: "restore" }]],
-    [{ libraryId: "L2", imageId: "i2", contentId: "2" }, [{ kind: "restore" }]],
-  ]);
-});
-
-it("跨图库移到回收站时一个图库失败：已移走的那部分照样能撤销", async () => {
-  mockIPC((cmd, args) => {
-    calls.push({ cmd, args: args as Record<string, unknown> });
-    const target = (args as { target?: { libraryId: string } }).target;
-    if (target?.libraryId === "L2") return Promise.reject("资料库暂时不可用");
-    return null;
-  });
-  const onError = vi.fn();
-  render(<ToastProvider><Harness onError={onError} /></ToastProvider>);
-  act(() => api.edit([card("1"), card("2", "L2"), card("3", "L3")], [{ kind: "delete" }], true));
-  expect(await screen.findByText("已移到回收站")).toBeTruthy();
-  expect(screen.getByText("2 张")).toBeTruthy();
-  expect(onError).toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "撤销" }));
-  const restores = () => calls.filter((c) => c.cmd === "plugin:library|workspace_edit_source" && (c.args.edits as { kind: string }[])[0].kind === "restore");
-  await waitFor(() => expect(restores()).toHaveLength(2));
-  expect(restores().map((c) => (c.args.target as { libraryId: string }).libraryId)).toEqual(["L1", "L3"]);
-});
-
-it("整理按每张图的来源写入，结束后刷新；clear 时取消选择", async () => {
-  const onChanged = vi.fn(), onClearSelection = vi.fn();
-  render(<Harness onChanged={onChanged} onClearSelection={onClearSelection} />);
-  act(() => api.edit([card("1"), card("2", "L2")], [{ kind: "delete" }], true));
-  await waitFor(() => expect(onChanged).toHaveBeenCalled());
-  const edits = calls.filter((c) => c.cmd === "plugin:library|workspace_edit_source");
-  expect(edits.map((c) => c.args.target)).toEqual([
-    { libraryId: "L1", imageId: "i1", contentId: "1" }, { libraryId: "L2", imageId: "i2", contentId: "2" },
-  ]);
-  expect(edits[0].args.edits).toEqual([{ kind: "delete" }]);
-  expect(onClearSelection).toHaveBeenCalled();
 });
 
 it("复制图片按卡片显示的来源复制原图，成功后轻提示（#105）", async () => {
@@ -153,10 +89,6 @@ it("加入参考组按每张图的来源加入", async () => {
   expect(call.args).toMatchObject({ target: { libraryId: "L1", imageId: "i1", contentId: "1" }, groupId: "g1" });
 });
 
-const named = (id: string, libraryId: string, libraryName: string): BrowserCard => ({
-  ...card(id, libraryId),
-  sources: [{ libraryId, libraryName, imageId: `i${id}`, unavailable: null, matches: true, deleted: true }],
-} as BrowserCard);
 
 it("一张图的彻底删除按它显示的来源预览并确认", async () => {
   mockIPC((cmd, args) => {
@@ -265,41 +197,18 @@ it("部分图库已删除、其他图库预览过期时取消重新列出：已�
   expect(screen.queryByRole("alertdialog")).toBeNull();
 });
 
-it("跨图库的整理与加入参考组：一个图库失败时其他图库照常完成，按图库报告（#112）", async () => {
+it("跨图库加入参考组：一个图库失败时其他图库照常完成，按图库报告（#112）", async () => {
   mockIPC((cmd, args) => {
     calls.push({ cmd, args: args as Record<string, unknown> });
     const target = (args as { target?: { libraryId: string } }).target;
     if (target?.libraryId === "L2") return Promise.reject("资料库暂时不可用");
     return null;
   });
-  const onError = vi.fn(), onChanged = vi.fn();
-  render(<Harness onError={onError} onChanged={onChanged} />);
-  act(() => api.edit([named("1", "L1", "工作参考"), named("2", "L2", "私人收藏"), named("3", "L3", "移动盘")], [{ kind: "delete" }], false));
-  await waitFor(() => expect(onChanged).toHaveBeenCalled());
-  expect(calls.filter((c) => c.cmd === "plugin:library|workspace_edit_source").map((c) => (c.args.target as { libraryId: string }).libraryId)).toEqual(["L1", "L2", "L3"]);
-  expect(onError).toHaveBeenCalledWith("有图库没有整理完。「私人收藏」：资料库暂时不可用");
-
-  onError.mockClear();
+  const onError = vi.fn();
+  render(<Harness onError={onError} />);
   act(() => api.addToGroup([named("1", "L1", "工作参考"), named("2", "L2", "私人收藏"), named("3", "L3", "移动盘")], "g1"));
   await waitFor(() => expect(onError).toHaveBeenCalled());
   expect(calls.filter((c) => c.cmd === "plugin:library|workspace_source_group").map((c) => (c.args.target as { libraryId: string }).libraryId)).toEqual(["L1", "L2", "L3"]);
   expect(onError).toHaveBeenCalledWith("有图库没有加入参考组。「私人收藏」：资料库暂时不可用");
 });
 
-it("跨图库逐张整理按图库分组：一个图库失败后跳过它剩下的图，不再一张张等超时，其他图库照常完成", async () => {
-  mockIPC((cmd, args) => {
-    calls.push({ cmd, args: args as Record<string, unknown> });
-    const target = (args as { target?: { libraryId: string } }).target;
-    if (target?.libraryId === "L2") return Promise.reject("等导入收尾超时");
-    return null;
-  });
-  const onError = vi.fn(), onChanged = vi.fn();
-  render(<Harness onError={onError} onChanged={onChanged} />);
-  const cards = [named("1", "L2", "私人收藏"), named("2", "L1", "工作参考"), named("3", "L2", "私人收藏"), named("4", "L3", "移动盘"), named("5", "L2", "私人收藏"), named("6", "L1", "工作参考")];
-  act(() => api.edit(cards, [{ kind: "delete" }], false));
-  await waitFor(() => expect(onChanged).toHaveBeenCalled());
-  const edits = calls.filter((c) => c.cmd === "plugin:library|workspace_edit_source").map((c) => c.args.target as { libraryId: string; imageId: string });
-  expect(edits.map((t) => [t.libraryId, t.imageId])).toEqual([["L2", "i1"], ["L1", "i2"], ["L1", "i6"], ["L3", "i4"]]);
-  expect(onError).toHaveBeenCalledTimes(1);
-  expect(onError).toHaveBeenCalledWith("有图库没有整理完。「私人收藏」：等导入收尾超时");
-});

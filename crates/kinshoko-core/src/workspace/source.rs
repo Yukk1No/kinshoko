@@ -12,6 +12,38 @@ pub struct WorkspaceSourceTarget {
     pub content_id: String,
 }
 
+/// 同一个图库里要一起整理的来源（#290）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkspaceSourceBatch {
+    pub library_id: String,
+    pub targets: Vec<WorkspaceSourceTarget>,
+}
+
+/// 按图库分组，图库按第一次出现的先后，组内去掉重复的图并保持先后。
+pub fn group_sources(targets: &[WorkspaceSourceTarget]) -> Vec<WorkspaceSourceBatch> {
+    let mut batches: Vec<WorkspaceSourceBatch> = Vec::new();
+    for target in targets {
+        let index = match batches
+            .iter()
+            .position(|b| b.library_id == target.library_id)
+        {
+            Some(index) => index,
+            None => {
+                batches.push(WorkspaceSourceBatch {
+                    library_id: target.library_id.clone(),
+                    targets: Vec::new(),
+                });
+                batches.len() - 1
+            }
+        };
+        let batch = &mut batches[index];
+        if !batch.targets.iter().any(|t| t.image_id == target.image_id) {
+            batch.targets.push(target.clone());
+        }
+    }
+    batches
+}
+
 #[derive(Debug, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -117,7 +149,29 @@ impl Workspace {
         target: &WorkspaceSourceTarget,
         safe: bool,
     ) -> Result<(), CatalogError> {
+        self.require_sources(device, catalog, std::slice::from_ref(target), safe)
+    }
+
+    /// 在同一份快照上核对每一份来源。
+    fn require_sources(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        targets: &[WorkspaceSourceTarget],
+        safe: bool,
+    ) -> Result<(), CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
+        for target in targets {
+            Self::require_in(&snapshot, target, safe)?;
+        }
+        Ok(())
+    }
+
+    fn require_in(
+        snapshot: &Snapshot,
+        target: &WorkspaceSourceTarget,
+        safe: bool,
+    ) -> Result<(), CatalogError> {
         let provider = snapshot
             .providers
             .iter()
@@ -182,11 +236,34 @@ impl Workspace {
         writer: &Library,
         action: impl FnOnce(&Library) -> Result<T, Error>,
     ) -> Result<T, CatalogError> {
-        if writer.info().id != target.library_id {
+        self.write_sources_with(
+            device,
+            catalog,
+            std::slice::from_ref(target),
+            safe,
+            writer,
+            |library, _| action(library),
+        )
+    }
+
+    /// 同 [`Self::write_source_with`]，一次整理同一图库的多份来源（#290）：只核对一次，
+    /// `action` 只调一次，拿到这些来源的图片 id（顺序同输入）。任何一份来源不属于句柄的图库、
+    /// 或核对不过时整批都不做。
+    pub fn write_sources_with<T>(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        targets: &[WorkspaceSourceTarget],
+        safe: bool,
+        writer: &Library,
+        action: impl FnOnce(&Library, &[String]) -> Result<T, Error>,
+    ) -> Result<T, CatalogError> {
+        if targets.iter().any(|t| writer.info().id != t.library_id) {
             return Err(Error::SourceChanged.into());
         }
-        self.require_source(device, catalog, target, safe)?;
+        self.require_sources(device, catalog, targets, safe)?;
         writer.set_safe_mode(safe);
-        Ok(action(writer)?)
+        let ids: Vec<String> = targets.iter().map(|t| t.image_id.clone()).collect();
+        Ok(action(writer, &ids)?)
     }
 }

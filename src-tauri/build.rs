@@ -16,6 +16,7 @@ fn main() {
                         "workspace_source_inspection",
                         "workspace_source_candidates",
                         "workspace_edit_source",
+                        "workspace_edit_sources",
                         "workspace_edit_source_tags",
                         "workspace_status",
                         "workspace_browse",
