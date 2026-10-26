@@ -261,6 +261,13 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         self.update(id, gesture);
     }
 
+    /// 放到最上面（框选窗口关掉后，系统把激活交还的置顶窗口会盖住新钉图）。
+    pub fn raise(&mut self, key: &str) {
+        if let Some(id) = self.id_of(key) {
+            self.shell.raise(id);
+        }
+    }
+
     /// 关掉一张钉图：先让渲染层丢掉 Surface，报完再关窗口（[`Effect::Closed`]）。
     pub fn close(&mut self, key: &str) {
         let Some(id) = self.id_of(key) else { return };

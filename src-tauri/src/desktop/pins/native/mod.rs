@@ -113,6 +113,16 @@ pub(super) fn menu_closed(app: &AppHandle) {
     host::post_existing(app, |o| o.menu_closed());
 }
 
+/// 放到最上面（任意线程）。
+#[cfg(windows)]
+pub(super) fn raise(app: &AppHandle, pin: &str) {
+    let pin = pin.to_owned();
+    host::post_existing(app, move |o| o.raise(&pin));
+}
+
+#[cfg(not(windows))]
+pub(super) fn raise(_: &AppHandle, _: &str) {}
+
 /// 在钉图底部显示一条提示（菜单动作的结果，任意线程）。
 #[cfg(windows)]
 pub(super) fn notice(app: &AppHandle, pin: &str, text: &str) {

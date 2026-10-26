@@ -327,6 +327,13 @@ pub struct ShownWaiters {
     changed: Condvar,
 }
 
+/// 原生钉图放到最上面（钉图层的窗口自己保持在上面，不用）。
+pub(super) fn raise_native(app: &AppHandle, pin: &str) {
+    if motion::is_native(app, pin) {
+        native::raise(app, pin);
+    }
+}
+
 /// 等新钉图的第一帧画好、显示出来（[`pin_ready`]），最多 `timeout`。钉图已关、层建失败时立即返回。
 /// 只在后台线程调用；不轮询窗口状态，免得和建窗口抢主线程。
 pub(super) fn wait_shown(app: &AppHandle, pin: &str, timeout: std::time::Duration) {
