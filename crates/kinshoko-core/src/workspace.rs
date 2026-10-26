@@ -10,6 +10,7 @@ pub use source::{
     WorkspaceSourceBatch, WorkspaceSourceInspection, WorkspaceSourceTarget, group_sources,
 };
 mod browse;
+use browse::BrowseCache;
 mod snapshot;
 pub use snapshot::ProviderReaders;
 mod vocabulary;
@@ -159,6 +160,7 @@ impl Snapshot {
 pub struct Workspace {
     conn: Connection,
     cache: Option<std::sync::Arc<Snapshot>>,
+    browse_cache: BrowseCache,
 }
 impl Workspace {
     pub fn open(dir: &Path) -> Result<Self, CatalogError> {
@@ -166,7 +168,11 @@ impl Workspace {
         let conn = Connection::open(dir.join("workspace.sqlite"))?;
         conn.busy_timeout(std::time::Duration::from_secs(5))?;
         conn.execute_batch("CREATE TABLE IF NOT EXISTS provider_facts(library_id TEXT PRIMARY KEY, images TEXT NOT NULL);")?;
-        Ok(Self { conn, cache: None })
+        Ok(Self {
+            conn,
+            cache: None,
+            browse_cache: BrowseCache::default(),
+        })
     }
     /// Names and group management share browse safety, while unused definitions remain manageable.
     pub(crate) fn inspect_catalog(

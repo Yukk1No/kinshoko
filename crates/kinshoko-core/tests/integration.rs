@@ -171,6 +171,8 @@ mod viewer;
 mod workspace;
 #[path = "workspace_folders.rs"]
 mod workspace_folders;
+#[path = "workspace_paging.rs"]
+mod workspace_paging;
 #[path = "workspace_thumbnails.rs"]
 mod workspace_thumbnails;
 #[path = "writer_switch.rs"]
