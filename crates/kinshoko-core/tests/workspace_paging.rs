@@ -1,7 +1,11 @@
 //! 工作区浏览的结果复用与大图库翻页耗时（#288）。
 use image::{Rgba, RgbaImage};
 use kinshoko_core::DeviceLibraries;
-use kinshoko_core::library::{ImageEdit, ImportSource, Library};
+use kinshoko_core::approx::BuiltinApproxTable;
+use kinshoko_core::library::{
+    ContentRating, FactSource, ImageEdit, ImportSource, Library, RatingFact,
+};
+use kinshoko_core::search::{ConditionInput, SearchInput, TermInput};
 use kinshoko_core::tag_catalog::TagCatalog;
 use kinshoko_core::workspace::{Workspace, WorkspaceQuery, WorkspaceScope};
 
@@ -164,4 +168,64 @@ fn pages_and_reloads_of_one_result_reuse_it_until_a_revision_changes() {
     let after = browse(&mut workspace, None, 240, true);
     assert_eq!(workspace.browse_builds(), 3);
     assert_eq!(after.total, 2);
+}
+
+/// 来源分级在安全模式范围同一侧改动（一般 → 敏感）不推进资料库的修订号（自动打标逐张写分级，
+/// 推进就会让翻页游标频繁失效）。按分级查找的结果因此不能复用，每次都重算（#302 评审）。
+#[test]
+fn rating_conditions_see_a_source_rating_change_that_stays_on_one_side_of_safe_mode() {
+    let dir = tempfile::tempdir().unwrap();
+    let app = dir.path().join("app");
+    let mut device = DeviceLibraries::open(&app).unwrap();
+    let a = device.create(&dir.path().join("a"), "A").unwrap();
+    let id = files(dir.path(), &[&a], 44).remove(0);
+    let rate = |rating| {
+        a.replace_source_rating(
+            &FactSource::model("test"),
+            &id,
+            Some(RatingFact {
+                rating,
+                score: Some(0.9),
+            }),
+        )
+        .unwrap()
+    };
+    rate(ContentRating::General);
+    let mut catalog = TagCatalog::open(&app).unwrap();
+    let mut workspace = Workspace::open(&app).unwrap();
+    let sensitive = workspace
+        .resolve(
+            &device,
+            &mut catalog,
+            &SearchInput {
+                conditions: vec![ConditionInput {
+                    any: vec![TermInput::Rating {
+                        ratings: vec![ContentRating::Sensitive],
+                    }],
+                    negate: false,
+                }],
+                exact: true,
+            },
+            "en",
+            true,
+            &BuiltinApproxTable::default(),
+        )
+        .unwrap();
+    let mut total = |workspace: &mut Workspace| {
+        workspace
+            .browse(
+                &device,
+                &mut catalog,
+                &WorkspaceQuery {
+                    conditions: sensitive.clone(),
+                    ..query()
+                },
+                true,
+            )
+            .unwrap()
+            .total
+    };
+    assert_eq!(total(&mut workspace), 0);
+    rate(ContentRating::Sensitive);
+    assert_eq!(total(&mut workspace), 1);
 }

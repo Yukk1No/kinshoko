@@ -112,7 +112,7 @@ pub(super) async fn workspace_browse<R: Runtime>(
         let started = std::time::Instant::now();
         #[cfg(debug_assertions)]
         let mut waited = 0.0;
-        // 不用 `stable`：`browse` 重算结果时自己复核修订号，复用结果时修订号是刚读的（#288），
+        // 不用 `stable`：`browse` 做完整页（含读占位图）后自己复核修订号，复用结果时也复核（#288），
         // 前后再各取一次状态只是多开几遍资料库。
         let page = guarded(&app, safe_mode, |w, d, c| {
             #[cfg(debug_assertions)]

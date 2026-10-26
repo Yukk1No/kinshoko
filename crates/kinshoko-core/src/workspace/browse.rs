@@ -10,7 +10,7 @@ struct BrowseRow {
 
 /// 最近几组排好的浏览结果，键与游标里的相同（#288）：同一组结果翻页、从头重读只切片。
 /// 键里含修订号、范围与条件，修订号一变旧结果就再也取不到，不需要另外失效。留几组而不是一组，
-/// 免得两处用不同条件交替浏览时互相挤掉。
+/// 免得两处用不同条件交替浏览时互相挤掉。按分级查找的结果不留（[`reads_ratings`]）。
 #[derive(Default)]
 pub(super) struct BrowseCache {
     results: std::collections::VecDeque<(String, std::sync::Arc<Vec<BrowseRow>>)>,
@@ -79,20 +79,15 @@ impl Workspace {
                 offset.parse::<usize>().map_err(|_| Error::InvalidCursor)?
             }
         };
-        let cached = self.browse_cache.get(&key);
+        // 按分级查找的结果不复用：来源分级没跨过安全模式范围时不推进修订号。
+        let reuse = !reads_ratings(&query.conditions);
+        let cached = reuse.then(|| self.browse_cache.get(&key)).flatten();
         let hit = cached.is_some();
         let rows = match cached {
             Some(rows) => rows,
             None => {
                 self.browse_cache.builds += 1;
-                let rows = std::sync::Arc::new(collect_rows(device, &snapshot, query, safe)?);
-                // Includes registration, catalog and changes in providers that did not match this query.
-                // 复用结果时不必再查：键里的修订号就是开头刚读的。
-                if self.snapshot(device, catalog)?.status.revision != snapshot.status.revision {
-                    return Err(Error::CursorExpired.into());
-                }
-                self.browse_cache.put(key.clone(), rows.clone());
-                rows
+                std::sync::Arc::new(collect_rows(device, &snapshot, query, safe)?)
             }
         };
         #[cfg(debug_assertions)]
@@ -116,6 +111,15 @@ impl Workspace {
                 ..row.card.clone()
             })
             .collect::<Vec<_>>();
+        // 做完整页（含读占位图）再复核一次，复用结果时也一样：这期间某张图被封印，就不能带着
+        // 旧的 `adult` 和占位图交出去。Includes registration, catalog and changes in providers
+        // that did not match this query.
+        if self.snapshot(device, catalog)?.status.revision != snapshot.status.revision {
+            return Err(Error::CursorExpired.into());
+        }
+        if reuse && !hit {
+            self.browse_cache.put(key.clone(), rows);
+        }
         #[cfg(debug_assertions)]
         eprintln!(
             "workspace.browse.phases snapshot={snapshot_ms:.1} rows={rows_ms:.1}({}) page={:.1} cards={}",
@@ -190,6 +194,18 @@ impl Workspace {
             id: hash,
         })
     }
+}
+
+/// 条件里有没有按有效分级匹配的项（点选的分级，或文字也匹配某档分级的名称）。
+fn reads_ratings(tree: &ConditionTree) -> bool {
+    tree.conditions
+        .iter()
+        .flat_map(|c| &c.any)
+        .any(|term| match term {
+            Term::Rating { .. } => true,
+            Term::Text { ratings, .. } => !ratings.is_empty(),
+            Term::Tag { .. } => false,
+        })
 }
 
 /// 一组浏览结果：每个来源各自跑完整的查找，再按字节身份合并，按最新加入排序。
