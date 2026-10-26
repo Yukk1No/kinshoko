@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import type { ScreenRect } from "../bindings/ScreenRect";
 import type { WorkspaceSourceTarget } from "../bindings/WorkspaceSourceTarget";
-import { clipboardHasImage, copyReferenceImage, pinReference, referenceGroups, revealReferenceImage, workspaceEditSource, workspaceImage, workspaceSidebar, workspaceSourceGroup } from "../ipc";
+import { clipboardHasImage, copyReferenceImage, pinReference, referenceGroups, revealReferenceImage, workspaceEditSources, workspaceImage, workspaceSidebar, workspaceSourceGroup } from "../ipc";
 import { flattenFolders, PermanentDeleteConfirm } from "../library/SelectionPanel";
 import { libraryFailures, PermanentDeleteBatchConfirm } from "../library/PermanentDeleteBatch";
 import type { BrowserCard } from "./Wall";
@@ -33,6 +33,10 @@ const targetOf = (card: BrowserCard, fallbackLibrary: string): WorkspaceSourceTa
   libraryId: card.libraryId ?? fallbackLibrary, imageId: card.imageId ?? card.id, contentId: card.id,
 });
 
+/** 整理这份来源后卡片还在当前视图里：别的来源仍符合这个视图（例如另一个资料库里那份没进回收站）。 */
+const staysAfter = (card: BrowserCard, target: WorkspaceSourceTarget) =>
+  (card.sources ?? []).some((s) => s.matches && !(s.libraryId === target.libraryId && s.imageId === target.imageId));
+
 export type WallActionsOptions = {
   safe: boolean;
   /** 卡片没有标出图库时的后备图库。 */
@@ -42,6 +46,8 @@ export type WallActionsOptions = {
   onInspect: (card: BrowserCard) => void;
   /** 整理写入后：重新浏览并刷新词表。 */
   onChanged: () => void;
+  /** 先把卡片从墙上移走（#290）；返回把后端没做成的那部分放回原位的函数。 */
+  removeCards?: (cards: BrowserCard[]) => (failed: BrowserCard[]) => void;
   onClearSelection: () => void;
   onError: (message: string) => void;
   /** 成功的轻提示（例如“已复制图片”）。 */
@@ -80,7 +86,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     cardsNamed.current.flatMap((card) => card.sources ?? []).find((source) => source.libraryId === libraryId)?.libraryName ?? libraryId;
   const cardsNamed = useRef<BrowserCard[]>([]);
   /**
-   * 跨图库逐张执行（ADR-0008）：后端按需把可写句柄切到每张图的图库；一个图库失败（断连等）时
+   * 加入参考组跨图库逐张执行（ADR-0008；整理走一次批量命令，见 `edit`）：后端按需把可写句柄切到每张图的图库；一个图库失败（断连等）时
    * 其他图库照常完成，最后按图库报告没完成的原因。按图库分组依次做（按图库第一次出现的顺序）：
    * 可写句柄每个图库只切一次；一个图库失败（例如导入一直没收尾、等到上限）后跳过它剩下的图，
    * 不让每张图各等一次上限，其他图库也不必跟着等。
@@ -135,11 +141,31 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       });
     },
     edit(cards, edits, clear) {
-      const { safe, onChanged, onClearSelection } = options.current;
+      const { safe, activeLibraryId, onChanged, onClearSelection, onError, removeCards } = options.current;
+      cardsNamed.current = cards;
+      const entries = cards.map((card) => ({ card, target: targetOf(card, activeLibraryId) }));
+      // 移到回收站与还原让卡片离开当前视图：先移走，不等后端与整墙重读（#290）。别的来源还让它留在视图里的卡片不动。
+      const leaving = edits.length === 1 && (edits[0].kind === "delete" || edits[0].kind === "restore");
+      const moved = leaving ? entries.filter(({ card, target }) => !staysAfter(card, target)).map(({ card }) => card) : [];
+      const putBack = moved.length ? removeCards?.(moved) : undefined;
       void (async () => {
         try {
-          const { ok, succeeded } = await eachCard(cards, "整理完", (target) => workspaceEditSource(target, safe, edits));
-          if (ok && clear) onClearSelection();
+          // 一次调用：后端按图库分组，每个图库只切一次可写句柄、整理一次；一个图库失败不影响其他图库（ADR-0008）。
+          let failed: { libraryId: string; error: string }[];
+          try {
+            failed = await workspaceEditSources(entries.map(({ target }) => target), safe, edits);
+          } catch (e) {
+            putBack?.(moved);
+            onError(`没有整理完：${String(e)}`);
+            return;
+          }
+          const failedLibraries = new Set(failed.map((f) => f.libraryId));
+          const succeeded = entries.filter(({ target }) => !failedLibraries.has(target.libraryId)).map(({ card }) => card);
+          if (failed.length) {
+            putBack?.(moved.filter((card) => !succeeded.includes(card)));
+            onError(`有图库没有整理完。${libraryFailures(failed, libraryName)}`);
+          }
+          if (!failed.length && clear) onClearSelection();
           // 移到回收站能撤销，所以不先确认：直接做，再给一个带“撤销”的轻提示。有图库失败时，已移走的那部分照样能撤销。
           if (succeeded.length > 0 && edits.length === 1 && edits[0].kind === "delete") {
             toast?.show({

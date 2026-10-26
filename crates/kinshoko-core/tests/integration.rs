@@ -145,6 +145,8 @@ mod search;
 mod search_cache;
 #[path = "source_actions.rs"]
 mod source_actions;
+#[path = "source_batch.rs"]
+mod source_batch;
 #[path = "tag_catalog.rs"]
 mod tag_catalog;
 #[path = "tag_names.rs"]

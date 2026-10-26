@@ -92,6 +92,10 @@ export function workspaceSourceInspection(target: import("../bindings/WorkspaceS
 export function workspaceEditSource(target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, edits: ImageEdit[]): Promise<void> {
   return invoke(lib("workspace_edit_source"), { target, safeMode, edits });
 }
+/** 跨图库的多份来源一次整理（#290）：后端按图库分组，每个图库只切一次可写句柄；返回没完成的图库与原因。 */
+export function workspaceEditSources(targets: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget[], safeMode: boolean, edits: ImageEdit[]): Promise<import("../bindings/LibraryBatchFailure").LibraryBatchFailure[]> {
+  return invoke(lib("workspace_edit_sources"), { targets, safeMode, edits });
+}
 export function workspaceEditSourceTags(target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, edits: TagEdit[]): Promise<void> {
   return invoke(lib("workspace_edit_source_tags"), { target, safeMode, edits });
 }

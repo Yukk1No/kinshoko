@@ -1,6 +1,8 @@
 //! The selected aggregate source is a complete identity, independent of active browsing.
 use super::*;
-use kinshoko_core::workspace::{Workspace, WorkspaceSourceInspection, WorkspaceSourceTarget};
+use kinshoko_core::workspace::{
+    Workspace, WorkspaceSourceInspection, WorkspaceSourceTarget, group_sources,
+};
 
 pub(super) fn action<R: Runtime, T>(
     app: &AppHandle<R>,
@@ -13,6 +15,15 @@ pub(super) fn action<R: Runtime, T>(
         &WorkspaceSourceTarget,
     ) -> Result<T, CatalogError>,
 ) -> Result<T, String> {
+    guarded(app, safe, |w, d, c| f(w, d, c, target))
+}
+
+/// 来源动作共用的锁与安全模式复核；所选来源由 `f` 自己核对。
+fn guarded<R: Runtime, T>(
+    app: &AppHandle<R>,
+    safe: bool,
+    f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
+) -> Result<T, String> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
     // Includes the production SourceEditor rating path and permanent source deletion.
@@ -21,9 +32,7 @@ pub(super) fn action<R: Runtime, T>(
     if saved_safe_mode(app) != safe {
         return Err(kinshoko_core::library::Error::LensChanged.to_string());
     }
-    let value = workspace::with_resources(&state, |workspace, device, catalog| {
-        f(workspace, device, catalog, target)
-    })?;
+    let value = workspace::with_resources(&state, f)?;
     if !state.safe_mode.still(&expected) || saved_safe_mode(app) != safe {
         return Err(kinshoko_core::library::Error::LensChanged.to_string());
     }
@@ -80,6 +89,40 @@ pub(super) async fn workspace_edit_source<R: Runtime>(
         })?;
         app.state::<LibraryState>().search.invalidate();
         Ok(())
+    })
+    .await
+}
+
+/// 跨图库的多份来源一次整理（#290）：按图库分组，每个图库只切一次可写句柄、调一次整理；
+/// 一个图库失败不影响其他图库。返回没有完成的图库与原因，全部完成时为空。
+#[tauri::command]
+pub(super) async fn workspace_edit_sources<R: Runtime>(
+    app: AppHandle<R>,
+    targets: Vec<WorkspaceSourceTarget>,
+    safe_mode: bool,
+    edits: Vec<ImageEdit>,
+) -> Result<Vec<LibraryBatchFailure>, String> {
+    blocking(move || {
+        let results = each_library(group_sources(&targets), |batch| {
+            let writer = writable(&app, &batch.library_id)?;
+            guarded(&app, safe_mode, |w, d, c| {
+                w.write_sources_with(d, c, &batch.targets, safe_mode, &writer, |library, ids| {
+                    library.edit(ids, &edits).map(|_| ())
+                })
+            })
+        });
+        if results.iter().any(|(_, result)| result.is_ok()) {
+            app.state::<LibraryState>().search.invalidate();
+        }
+        Ok(results
+            .into_iter()
+            .filter_map(|(batch, result)| {
+                result.err().map(|error| LibraryBatchFailure {
+                    library_id: batch.library_id,
+                    error,
+                })
+            })
+            .collect())
     })
     .await
 }

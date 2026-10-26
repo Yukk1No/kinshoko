@@ -69,6 +69,7 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
     if (command === "plugin:library|workspace_sidebar" || command === "plugin:library|sidebar") return { all: state.available ? 1 : 0, trash: 0, folders: [] };
     if (command === "shell_settings") return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid" };
     if (command === "app_info") return { productName: "Kinshoko", version: "1" };
+    if (command === "plugin:library|workspace_edit_sources") return [];
     return null;
   }, { shouldMockEvents: true });
   return state;
@@ -222,8 +223,8 @@ it("查看器右键“移到回收站”把正在看的这份来源移进回收�
   const menu = await screen.findByRole("menu", { name: "查看器菜单" });
   fireEvent.click(within(menu).getByRole("menuitem", { name: "移到回收站" }));
   await waitFor(() => expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull());
-  await waitFor(() => expect(state.calls.filter((c) => c.command === "plugin:library|workspace_edit_source").map((c) => c.args)).toEqual([
-    { target: { libraryId: "A", imageId: "a", contentId: "bytes" }, safeMode: false, edits: [{ kind: "delete" }] },
+  await waitFor(() => expect(state.calls.filter((c) => c.command === "plugin:library|workspace_edit_sources").map((c) => c.args)).toEqual([
+    { targets: [{ libraryId: "A", imageId: "a", contentId: "bytes" }], safeMode: false, edits: [{ kind: "delete" }] },
   ]));
 });
 

@@ -47,6 +47,11 @@ export type WallHandle = {
   loadMore: () => void;
   /** 选中已读到的全部图（Ctrl+A，空白处菜单的“全选”）。 */
   selectAll: () => void;
+  /**
+   * 先把这些卡片从墙上移走，其余卡片照常滑过去补位，不等后端（#290）。
+   * 返回放回函数：后端没做成的那部分按 id 放回原位；已放回或已不在的不重复放。
+   */
+  remove: (ids: string[]) => (failedIds: string[]) => void;
 };
 
 /** 卡片上的快捷键（与右键菜单同一选择规则）：P 钉住、F1 进入查看器框选、Del 移到回收站、Ctrl+C 复制图片。 */

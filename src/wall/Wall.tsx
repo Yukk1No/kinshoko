@@ -149,6 +149,33 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
     invalidate() { generation.current += 1; inflight.current = null; },
     loadMore() { loadMoreRef.current(); },
     selectAll() { selectAllRef.current(); },
+    remove(ids) {
+      const removing = new Set(ids);
+      /** 移走时墙上的先后：放回时按它找邻居。 */
+      const order = shownCards.current.map((card) => card.id);
+      let removed = shownCards.current.filter((card) => removing.has(card.id));
+      if (!removed.length) return () => {};
+      measureBeforeReflow();
+      setCards((now) => now.filter((card) => !removing.has(card.id)));
+      setTotal((count) => (count === null ? count : count - removed.length));
+      return (failedIds) => {
+        const failing = new Set(failedIds);
+        const returning = removed.filter((card) => failing.has(card.id) && !shownCards.current.some((c) => c.id === card.id));
+        removed = removed.filter((card) => !returning.includes(card));
+        if (!returning.length) return;
+        measureBeforeReflow();
+        setCards((now) => returning.reduce((next, card) => {
+          if (next.some((c) => c.id === card.id)) return next;
+          // 放回原位：插到原来排在它后面、现在还在墙上的第一张前面；后面都不在时接在前面最近的那张后面。
+          const at = order.indexOf(card.id);
+          const after = order.slice(at + 1).map((id) => next.findIndex((c) => c.id === id)).find((i) => i >= 0);
+          const before = order.slice(0, at).reverse().map((id) => next.findIndex((c) => c.id === id)).find((i) => i >= 0);
+          const index = after ?? (before === undefined ? 0 : before + 1);
+          return [...next.slice(0, index), card, ...next.slice(index)];
+        }, now));
+        setTotal((count) => (count === null ? count : count + returning.length));
+      };
+    },
   }), [measureBeforeReflow]);
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 

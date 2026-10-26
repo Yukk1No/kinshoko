@@ -90,7 +90,7 @@ describe("整理", () => {
     fireEvent.contextMenu(card("a"));
     fireEvent.click(await screen.findByRole("menuitem", { name: "还原" }));
     await waitFor(() =>
-      expect(sent("plugin:library|workspace_edit_source").at(-1)).toMatchObject({ target: { imageId: "a" }, edits: [{ kind: "restore" }] }),
+      expect(sent("plugin:library|workspace_edit_sources").at(-1)).toMatchObject({ targets: [{ imageId: "a" }], edits: [{ kind: "restore" }] }),
     );
   });
 
