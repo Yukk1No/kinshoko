@@ -67,8 +67,6 @@ pub struct OriginalPixels {
 pub enum PinMotion {
     /// 直接到（翻转、旋转、恢复）。
     Jump,
-    /// 拖动：直接到。
-    Drag,
     /// 缩放动画。
     Zoom,
     /// 贴边收起、滑出与回到原位的动画。

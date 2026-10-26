@@ -118,7 +118,10 @@ pub(super) fn notice(_: &AppHandle, _: &str, _: &str) {}
 #[cfg(not(windows))]
 pub(super) fn open(app: &AppHandle, frame: Frame) {
     let (app, key) = (app.clone(), frame.pin.id);
-    std::thread::spawn(move || super::closed(&app, &key));
+    std::thread::spawn(move || {
+        super::stop_waiting(&app, &key);
+        super::closed(&app, &key);
+    });
 }
 
 #[cfg(not(windows))]

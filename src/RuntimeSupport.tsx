@@ -69,7 +69,7 @@ export function RuntimeNotice({ className = "", hidden = false }: { className?: 
 }
 
 /** 实际生产路径也可直接报告失败。 */
-export function RuntimeFailure({ problems, className = "" }: { problems: string[]; className?: string }) {
+function RuntimeFailure({ problems, className = "" }: { problems: string[]; className?: string }) {
   const runtime = useContext(RuntimeContext);
   const [error, setError] = useState<string | null>(null);
   return <aside className={`runtime-notice ${className}`} aria-label="运行环境提示">

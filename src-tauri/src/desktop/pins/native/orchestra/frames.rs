@@ -93,7 +93,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let duration = match f.motion {
             PinMotion::Zoom => ZOOM_MS,
             PinMotion::Slide => SLIDE_MS,
-            PinMotion::Jump | PinMotion::Drag => 0,
+            PinMotion::Jump => 0,
         };
         let target = RectF::from(live.target);
         if live.motion.target() != target {

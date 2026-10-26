@@ -46,7 +46,8 @@ pub fn open(app: &AppHandle, capture: &CaptureEntry, at: ScreenRect) -> Result<S
         let _ = store.save();
     }
     history_changed(app);
-    open_pin(app, &pin).map(|()| pin.id)
+    open_pin(app, &pin);
+    Ok(pin.id)
 }
 
 /// 从查看器把资料库中的一张参考图钉到桌面：整图（`crop` 为 `None`）或局部（原图像素）。
@@ -104,7 +105,8 @@ pub(super) fn pin_reference_here(
         store.put(pin.clone());
         let _ = store.save();
     }
-    open_pin(app, &pin)
+    open_pin(app, &pin);
+    Ok(())
 }
 
 /// 钉图此刻要不要原位遮蔽（模糊并显示小圆锁，见 [`kinshoko_core::desktop::PinVeils`]），以及暂时
@@ -150,7 +152,7 @@ pub fn reference_file(app: &AppHandle, pin: &str, size: &str) -> Option<std::pat
 /// 打开一个钉图（新钉的、启动时恢复的、参考组里打开的）：交给原生钉图（[`native`]），窗口建好之前
 /// 就返回；打不开时原生钉图写运行日志并收掉本次运行的记录，状态留到下次启动。
 /// 截图历史此前已经记下它被钉住。
-pub fn open_pin(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
+pub fn open_pin(app: &AppHandle, pin: &SavedPin) {
     super::super::timing("pin.window.begin");
     lock(&state(app).pins).insert(
         pin.id.clone(),
@@ -163,5 +165,4 @@ pub fn open_pin(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
         },
     );
     native::open(app, native::Frame::at_home(pin.clone(), look(app, pin)));
-    Ok(())
 }

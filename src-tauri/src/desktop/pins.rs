@@ -191,7 +191,8 @@ pub(super) fn open_reference_selection(
         store.put(pin.clone());
         let _ = store.save();
     }
-    open_pin(app, &pin).map(|()| pin.id)
+    open_pin(app, &pin);
+    Ok(pin.id)
 }
 
 /// 正在等第一帧的新钉图（id → 已显示）。只登记有人等的钉图，原生钉图显示出第一帧时唤醒
@@ -203,7 +204,7 @@ pub struct ShownWaiters {
 }
 
 /// 钉图放到最上面。
-pub(super) fn raise_native(app: &AppHandle, pin: &str) {
+pub(super) fn raise(app: &AppHandle, pin: &str) {
     native::raise(app, pin);
 }
 
@@ -233,11 +234,11 @@ pub fn show(
     content: ScreenRect,
     motion: PinMotion,
     click_through: bool,
-) -> Result<(), String> {
+) {
     {
         let mut pins = lock(&state(app).pins);
         let Some(r) = pins.get_mut(pin) else {
-            return Ok(());
+            return;
         };
         r.content = content;
         r.click_through = click_through;
@@ -245,7 +246,6 @@ pub fn show(
     if let Some(frame) = native_frame(app, pin, motion, true) {
         native::frame(app, frame);
     }
-    Ok(())
 }
 
 /// Called at the final commit while holding visibility authority. Physical Destroyed
@@ -284,8 +284,6 @@ pub fn restore(app: &AppHandle) {
         crate::run_log::error("恢复资料库钉图时无法打开资料库", e);
     }
     for pin in &pins {
-        if let Err(e) = open_pin(app, pin) {
-            crate::run_log::error("恢复钉图失败", e);
-        }
+        open_pin(app, pin);
     }
 }

@@ -165,7 +165,8 @@ pub(super) fn zoom(app: &AppHandle, pin: &str, scale: f64) -> Result<(), String>
         );
         p.zoom(scale, centre)
     })?;
-    show(app, pin, rect, PinMotion::Zoom, false)
+    show(app, pin, rect, PinMotion::Zoom, false);
+    Ok(())
 }
 
 /// 翻转或旋转钉图（中心不动）。
@@ -174,5 +175,6 @@ pub(super) fn turn_here(app: &AppHandle, pin: &str, turn: Turn) -> Result<(), St
         p.turn(turn);
         true
     })?;
-    show(app, pin, rect, PinMotion::Jump, false)
+    show(app, pin, rect, PinMotion::Jump, false);
+    Ok(())
 }
