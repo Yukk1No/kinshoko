@@ -2,7 +2,7 @@
 //! 用真实鼠标滚轮缩放、拖动，最后按 Esc 关掉。应用在环境变量 `KINSHOKO_PIN_TRACE` 指的文件里每次
 //! 提交前追加一行（时间、钉图、内容矩形、窗口、缩放、透明度），这里边读边交给逐帧核对。
 //!
-//! 会动真实鼠标键盘、改剪贴板，先确认没人在用电脑。应用要用 `nativePins` 打开的测试实例。
+//! 会动真实鼠标键盘、改剪贴板，先确认没人在用电脑。应用要用独立数据目录与 identifier 起好的测试实例。
 
 use std::fmt::Write as _;
 use std::io::{Read, Seek, SeekFrom};
@@ -323,7 +323,7 @@ pub fn follow(f: &Follow) -> Result<bool, String> {
             let _ = reader.join();
             close_sink(&mut sink, sink_hwnd);
             return Err(format!(
-                "15 秒内 {} 里没有新的提交：应用没在跑、没开 nativePins，或没设 KINSHOKO_PIN_TRACE",
+                "15 秒内 {} 里没有新的提交：应用没在跑，或没设 KINSHOKO_PIN_TRACE",
                 f.trace.display()
             ));
         }

@@ -1,7 +1,7 @@
 //! 说明层（#285）：遮蔽时的小圆锁、读不到图时的原因文字（#66）、菜单动作后的提示。在 CPU 上画成
 //! 一张预乘 alpha 的 sRGB 小图，渲染层按 1:1 画在钉图最上面（`pin_render::Draw::overlay`）。
 //!
-//! 样子照钉图层的 `desktop.css`（`.pin-veil-lock`、`.pin-missing`、`.pin-notice`），尺寸是 CSS 像素，
+//! 样子照以前钉图层的 `desktop.css`（`.pin-veil-lock`、`.pin-missing`、`.pin-notice`），尺寸是 CSS 像素，
 //! 按显示器缩放比例换成物理像素。字用 cosmic-text 排（系统字体），不调平台文字 API。
 //!
 //! 各部分（[`Part`]）按缩放比例与文字缓存；内容尺寸变了（缩放动画）只重新摆放、合成，不重新排字

@@ -1,4 +1,4 @@
-//! 指针、滚轮与按键（与钉图层的 `PinView` 相同）：鼠标、笔、触摸走同一套，按住拖动移动，按住右下角
+//! 指针、滚轮与按键（沿用以前钉图层 `PinView` 的规则）：鼠标、笔、触摸走同一套，按住拖动移动，按住右下角
 //! 缩放区拖动缩放（左上角不动），锁定时都不动、只等按住开菜单；滚轮以光标为中心缩放，Ctrl+滚轮调
 //! 透明度；H/V 翻转，R/Shift+R 旋转，Esc 关闭。菜单：鼠标右键、笔的侧键，或笔与触摸按住不动约半秒
 //! （同一次按下只开一次）。按下的钉图到最上层。
@@ -17,7 +17,7 @@ use pin_shell::{Key, PinCursor, PinId, PinKeys, PinShell, Pointer, PointerEvent}
 use super::super::port::RenderPort;
 use super::{Effect, KEYS, Orchestra, SETTLE_MS};
 
-/// 同一次按下引出的几个开菜单的事件（按下、长按）只开一次（钉图层的 `MENU_DEDUPE_MS`）。
+/// 同一次按下引出的几个开菜单的事件（按下、长按）只开一次（以前钉图层的 `MENU_DEDUPE_MS`）。
 const MENU_DEDUPE: Duration = Duration::from_millis(800);
 
 /// 按着的指针。
@@ -273,7 +273,8 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         }
     }
 
-    /// 收起着的钉图被就地改：原位挪到此刻的位置，不再收起，不再点击穿透（钉图层的 `change_here`）。
+    /// 收起着的钉图被就地改：原位挪到此刻的位置，不再收起，不再点击穿透（与菜单动作的
+    /// `change_here` 相同）。
     fn untuck(&mut self, pin: PinId) {
         let live = self.pins.get_mut(&pin).expect("调用方已找到");
         if !live.tucked {

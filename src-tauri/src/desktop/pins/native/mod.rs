@@ -1,5 +1,5 @@
-//! 原生钉图（#277、ADR 0013）：每张钉图一个原生窗口，wgpu 绘制。开发设置 `nativePins`（`settings.json`，
-//! 界面上没有，重启生效）打开时取代钉图层；关着时这里什么都不做。#284 起与钉图层并存，#286 删掉钉图层。
+//! 原生钉图（#277、ADR 0013）：每张钉图一个原生窗口，wgpu 绘制。#286 起是钉图唯一的实现（以前的
+//! WebView 钉图层已删，见 ADR 0011、0013）。只在 Windows 上有；别的平台上钉图打不开。
 //!
 //! 线程：
 //! - 界面线程（Tauri 主线程）：[`Orchestra`]、Windows 平台层（窗口消息、`translate`／`stage`／`swap`）。
@@ -24,11 +24,11 @@ mod render;
 mod surface;
 
 use std::collections::BTreeMap;
-use std::sync::{Mutex, OnceLock};
+use std::sync::Mutex;
 
 use kinshoko_core::desktop::ScreenRect;
 
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 use orchestra::Orchestra;
 pub(super) use orchestra::{Frame, Look};
@@ -57,29 +57,6 @@ pub(super) fn seen(pin: &str) -> Option<Seen> {
 
 fn publish(seen: BTreeMap<String, Seen>) {
     *crate::desktop::lock(&SEEN) = seen;
-}
-
-/// 本次运行是否用原生钉图（开发设置 `nativePins`，启动后第一次问时读一次）。
-static ENABLED: OnceLock<bool> = OnceLock::new();
-
-/// 要读应用壳设置：不要在主线程上第一次调用（[`super::restore`] 启动时已在别的线程上问过）。
-/// 应用壳设置在桌面插件之后才装好，启动时等它一会儿，免得按“没设置”记下。
-pub(super) fn enabled(app: &AppHandle) -> bool {
-    *ENABLED.get_or_init(|| {
-        if !cfg!(windows) {
-            return false;
-        }
-        let started = std::time::Instant::now();
-        loop {
-            if let Some(shell) = app.try_state::<crate::shell::ShellState>() {
-                return shell.0.lock().is_ok_and(|s| s.settings.native_pins());
-            }
-            if started.elapsed() > std::time::Duration::from_secs(10) {
-                return false;
-            }
-            std::thread::sleep(std::time::Duration::from_millis(10));
-        }
-    })
 }
 
 /// 打开一张钉图（任意线程）。打不开时写运行日志、收掉本次运行的钉图记录，状态留到下次启动。
@@ -137,8 +114,12 @@ pub(super) fn notice(app: &AppHandle, pin: &str, text: &str) {
 #[cfg(not(windows))]
 pub(super) fn notice(_: &AppHandle, _: &str, _: &str) {}
 
+/// 别的平台上没有原生钉图：本次运行的记录收掉，状态留到下次启动。
 #[cfg(not(windows))]
-pub(super) fn open(_: &AppHandle, _: Frame) {}
+pub(super) fn open(app: &AppHandle, frame: Frame) {
+    let (app, key) = (app.clone(), frame.pin.id);
+    std::thread::spawn(move || super::closed(&app, &key));
+}
 
 #[cfg(not(windows))]
 pub(super) fn frame(_: &AppHandle, _: Frame) {}

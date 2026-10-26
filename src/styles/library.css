@@ -243,7 +243,6 @@
 
 .runtime-notice p, .runtime-notice ul { margin: 6px 0; }
 .runtime-details { margin: 10px 0; }
-.pin-runtime-problem { position: absolute; inset: 0; z-index: 20; max-height: none; background: var(--bg); color: var(--ink); }
 
 /* 本地备份与恢复（#69） */
 

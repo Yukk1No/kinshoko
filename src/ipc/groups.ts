@@ -1,7 +1,6 @@
 import type { SaveDestination } from "../bindings/SaveDestination";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { GatePlan } from "../bindings/GatePlan";
 import type { PinGate } from "../bindings/PinGate";
@@ -77,13 +76,6 @@ export function importReferenceGroupPackage(libraryId: string, destination?:Save
 /** 参考组有变化（保存、重命名、删除）：重新读取。 */
 export function onReferenceGroupsChanged(handler: () => void): Promise<UnlistenFn> {
   return listen("reference-groups", () => handler());
-}
-
-/** 发给本钉图窗口的提示（例如“已收藏到…”）。只收发给这个窗口的，不收别的钉图的。 */
-export function onPinNotice(pin: string, handler: (text: string) => void): Promise<UnlistenFn> {
-  return getCurrentWebviewWindow().listen<{ pin: string; text: string }>("pin-notice", (e) => {
-    if (e.payload.pin === pin) handler(e.payload.text);
-  });
 }
 
 /** 截图历史中的截图或冻结屏幕（自定义协议 capture）转成 <img> 可用的 URL。 */

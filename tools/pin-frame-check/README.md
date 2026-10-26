@@ -35,7 +35,7 @@ target/release/kinshoko-pin-frame-check.exe --grab <x> <y> <宽> <高> <out.png>
 target/release/kinshoko-pin-frame-check.exe --app <提交记录> <报告.txt>
 ```
 
-核对真实应用里的原生钉图（#284）：工具不画钉图，把测试图（400×600，品红边框 20 像素）放进剪贴板、按 F3 让应用钉住，在主显示器上用真实鼠标一格一帧放大到比屏幕大再缩回、每帧三格、隔 150 ms 一格、拖动、拖出屏幕一半再拖回、拖角放大再缩回（#285）、F4 收起后碰细边滑出再收回、F4 回原位（#285），最后按 Esc 关掉。应用每次提交前往环境变量 `KINSHOKO_PIN_TRACE` 指的文件追加一行，工具边读边核对，“对不上的帧”要求为 0。应用要先用独立的数据目录与 identifier 起好，`settings.json` 里 `"nativePins": true`，不能有别的 Kinshoko 占着 F3：
+核对真实应用里的原生钉图（#284）：工具不画钉图，把测试图（400×600，品红边框 20 像素）放进剪贴板、按 F3 让应用钉住，在主显示器上用真实鼠标一格一帧放大到比屏幕大再缩回、每帧三格、隔 150 ms 一格、拖动、拖出屏幕一半再拖回、拖角放大再缩回（#285）、F4 收起后碰细边滑出再收回、F4 回原位（#285），最后按 Esc 关掉。应用每次提交前往环境变量 `KINSHOKO_PIN_TRACE` 指的文件追加一行，工具边读边核对，“对不上的帧”要求为 0。应用要先用独立的数据目录与 identifier 起好，不能有别的 Kinshoko 占着 F3：
 
 ```bash
 npx tauri build --no-bundle --config '{"identifier":"dev.kinshoko.pintest"}'

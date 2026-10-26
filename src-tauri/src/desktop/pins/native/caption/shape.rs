@@ -1,4 +1,4 @@
-//! 形状：小圆锁（`.pin-veil-lock` 与 `PinView` 里的 SVG）与圆角底（`.pin-notice`）。每个像素取 4×4 个
+//! 形状：小圆锁（照以前钉图层的 `.pin-veil-lock` 与 `PinView` 里的 SVG）与圆角底（`.pin-notice`）。每个像素取 4×4 个
 //! 采样点算覆盖率（抗锯齿）。
 
 use super::Part;

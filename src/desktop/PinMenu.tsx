@@ -42,7 +42,7 @@ function GroupList({ load, act }: { load: () => Promise<GroupSummary[]>; act: (a
 export function PinMenuItems({ menu, act, dismiss = () => {}, groups = referenceGroups }: {
   menu: PinMenu; act: (action: PinMenuAction) => void; dismiss?: () => void; groups?: () => Promise<GroupSummary[]>;
 }) {
-  // 点了遮蔽钉图上的小圆锁（原生钉图）：只问这一句，与钉图层里的确认相同。
+  // 点了遮蔽钉图上的小圆锁：只问这一句。
   if (menu.confirmReveal) return <>
     <MenuTip>显示这张图？</MenuTip>
     <MenuItem icon={icon(Eye)} onClick={() => act("reveal")}>显示</MenuItem>

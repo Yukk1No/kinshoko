@@ -3,7 +3,7 @@ import type { RuntimeCapabilities } from "./bindings/RuntimeCapabilities";
 import type { RuntimeStatus } from "./bindings/RuntimeStatus";
 import { diagnosticsReport, exportDiagnostics, openRuntimeUpdate, runtimeStatus } from "./ipc";
 import { probeRuntime } from "./runtime";
-import { CircleCheck, Info, Monitor, Pin, RefreshCw } from "lucide-react";
+import { CircleCheck, Monitor, RefreshCw } from "lucide-react";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 
 type RuntimeContextValue = {
@@ -68,7 +68,7 @@ export function RuntimeNotice({ className = "", hidden = false }: { className?: 
   return <RuntimeFailure problems={problems} className={className} />;
 }
 
-/** 实际生产路径也可直接报告失败，例如钉图窗口无法建立画布。 */
+/** 实际生产路径也可直接报告失败。 */
 export function RuntimeFailure({ problems, className = "" }: { problems: string[]; className?: string }) {
   const runtime = useContext(RuntimeContext);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +84,7 @@ export function RuntimeFailure({ problems, className = "" }: { problems: string[
   </aside>;
 }
 
-/** 稳定的本机入口（设置 › 诊断 › 运行环境）；成功只说明基础解码与绘制，色彩门槛保持独立。 */
+/** 稳定的本机入口（设置 › 诊断 › 运行环境）；成功只说明基础解码，色彩门槛保持独立。 */
 export function RuntimeDetails() {
   const runtime = useContext(RuntimeContext);
   if (!runtime) return null;
@@ -97,10 +97,6 @@ export function RuntimeDetails() {
   return <section className="runtime-details" aria-label="运行环境">
     <SettingsGroup title="运行环境">
       <SettingsRow icon={<Monitor size={16} />} title="图片显示" meta={`WebView2 ${status?.webview2 ?? "未查询到"}`}>{state}</SettingsRow>
-      <SettingsRow icon={<Pin size={16} />} title="钉图绘制"
-        hint={status?.assessment.uses8bitFallback ? "8 位画布，浏览不受影响" : "不代表颜色还原已通过"}>
-        {status?.assessment.uses8bitFallback ? <StatusPill tone="warn" icon={<Info size={12} aria-hidden="true" />}>已降级</StatusPill> : state}
-      </SettingsRow>
       <SettingsRow icon={<RefreshCw size={16} />} title="重新检查" hint="更新组件后点一下">
         <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch(() => {})}><span className="k-label">检查</span></button>
       </SettingsRow>

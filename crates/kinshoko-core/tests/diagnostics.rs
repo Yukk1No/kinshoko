@@ -2,8 +2,8 @@
 //! 诊断日志只含硬件、系统与显示器的色彩状态，不含文件名、路径与图片。
 
 use kinshoko_core::diagnostics::{
-    AppFacts, CanvasBuffer, CapabilityCheck, DisplayColourMode, DisplayFacts, RuntimeCapabilities,
-    SystemFacts, report, report_with_runtime, webview_browser_args,
+    AppFacts, CapabilityCheck, DisplayColourMode, DisplayFacts, RuntimeCapabilities, SystemFacts,
+    report, report_with_runtime, webview_browser_args,
 };
 
 /// Tauri（wry）不传启动参数时 WebView2 默认带的参数；自己传参数时要保留。
@@ -66,14 +66,12 @@ fn a_system_report_does_not_infer_renderer_support_from_windows_or_webview_versi
 }
 
 #[test]
-fn a_missing_pin_canvas_has_a_specific_reason_without_claiming_a_colour_result() {
+fn a_missing_image_decoder_has_a_specific_reason_without_claiming_a_colour_result() {
     let runtime = RuntimeCapabilities {
-        image_decode: CapabilityCheck::Available,
-        canvas_2d: CapabilityCheck::Missing,
-        canvas_buffer: CanvasBuffer::Unavailable,
+        image_decode: CapabilityCheck::Missing,
     };
     let text = report_with_runtime(&app(), &system(Vec::new()), GENERATED_AT, Some(&runtime));
-    assert!(text.contains("无法建立二维画布，钉图无法显示"), "{text}");
+    assert!(text.contains("缺少图片解码接口"), "{text}");
     assert!(text.contains("不代表色彩门槛通过"), "{text}");
     assert!(!runtime.assess().problems.is_empty());
 }

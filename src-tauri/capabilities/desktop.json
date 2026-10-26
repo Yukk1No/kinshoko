@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "desktop",
-  "description": "截图框选窗口、钉图窗口与钉图菜单窗口的权限（#62、#63、#106）。钉图的拖动由程序移动窗口，不用系统拖动",
-  "windows": ["capture", "pin-*", "desktop-menu"],
+  "description": "截图框选窗口与钉图菜单窗口的权限（#62、#106）。钉图是原生窗口，不是 WebView，不需要权限",
+  "windows": ["capture", "desktop-menu"],
   "permissions": ["core:default", "desktop:default"]
 }
