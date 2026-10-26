@@ -1,9 +1,13 @@
 //! 真正的渲染层：一个渲染线程持有 GPU 设备、各钉图的源图与 Surface、查找表；读图与颜色转换在
 //! 另起的读图线程上，转好的像素交给渲染线程上传。没有钉图时不建设备，最后一张丢掉后释放。
+//!
+//! GPU 设备丢失（驱动重启、远程桌面切换）时丢掉所有 Surface、图、查找表与设备，报
+//! [`RenderEvent::DeviceLost`]，由编排重新挂上、重新读图。出错时与空闲时每 [`LOST_POLL`] 查一次。
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, channel};
+use std::time::{Duration, Instant};
 
 use kinshoko_core::desktop::frame::SourceSize;
 use kinshoko_core::desktop::pin_colour::{self, PinLut, PinPixels};
@@ -20,6 +24,12 @@ use super::surface::{self, Target};
 pub type ReadSource = dyn Fn(&SavedPin, SourceSize) -> Result<Vec<u8>, String> + Send + Sync;
 /// 渲染层的回报，在渲染线程或读图线程上调用。
 pub type Notify = dyn Fn(RenderEvent) + Send + Sync;
+
+/// 空闲时多久查一次设备丢没丢：钉图不动时也要在 1 秒内重新显示（#277）。
+const LOST_POLL: Duration = Duration::from_millis(250);
+/// 测试钩子：设了这个环境变量（毫秒数）时，进程里第一次建好 GPU 设备后过这么久模拟一次设备丢失
+/// （`Renderer::simulate_device_loss`），真机验收量重新显示要多久。
+const LOSE_DEVICE_ENV: &str = "KINSHOKO_PIN_LOSE_DEVICE_MS";
 
 enum Msg {
     Attach(PinId, Result<[Target; 2], String>),
@@ -56,7 +66,17 @@ impl RenderThread {
         let n = notify.clone();
         std::thread::Builder::new()
             .name("pin-render".into())
-            .spawn(move || Worker::default().run(&rx, &*n))
+            .spawn(move || {
+                let lose_after = std::env::var(LOSE_DEVICE_ENV)
+                    .ok()
+                    .and_then(|ms| ms.parse().ok())
+                    .map(Duration::from_millis);
+                Worker {
+                    lose_after,
+                    ..Worker::default()
+                }
+                .run(&rx, &*n);
+            })
             .expect("建渲染线程");
         RenderThread {
             tx,
@@ -147,14 +167,36 @@ struct Worker {
     painter: Painter,
     /// 占位的 1×1 灰图（第一次要时上传）。
     placeholder: Option<Image>,
+    /// 测试钩子 [`LOSE_DEVICE_ENV`]：还没排上时是多久以后，排上后是哪一刻。
+    lose_after: Option<Duration>,
+    lose_at: Option<Instant>,
 }
 
 impl Worker {
     fn run(mut self, rx: &Receiver<Msg>, notify: &Notify) {
-        while let Ok(msg) = rx.recv() {
+        loop {
+            let wait = self.lose_at.map_or(LOST_POLL, |t| {
+                t.saturating_duration_since(Instant::now()).min(LOST_POLL)
+            });
+            let msg = match rx.recv_timeout(wait) {
+                Ok(msg) => msg,
+                Err(RecvTimeoutError::Timeout) => {
+                    if self.lose_at.is_some_and(|t| Instant::now() >= t) {
+                        self.lose_at = None;
+                        if let Some(r) = &self.renderer {
+                            r.simulate_device_loss();
+                        }
+                    }
+                    self.recover(notify);
+                    continue;
+                }
+                Err(RecvTimeoutError::Disconnected) => break,
+            };
             match msg {
                 Msg::Attach(pin, targets) => {
-                    if let Err(reason) = self.attach(pin, targets) {
+                    if let Err(reason) = self.attach(pin, targets)
+                        && !self.recover(notify)
+                    {
                         notify(RenderEvent::LoadFailed { pin, reason });
                     }
                 }
@@ -171,7 +213,11 @@ impl Worker {
                 } => match self.upload(pin, seq, pixels) {
                     Ok(true) => notify(RenderEvent::Loaded { pin, size }),
                     Ok(false) => {}
-                    Err(reason) => notify(RenderEvent::LoadFailed { pin, reason }),
+                    Err(reason) => {
+                        if !self.recover(notify) {
+                            notify(RenderEvent::LoadFailed { pin, reason });
+                        }
+                    }
                 },
                 Msg::ReadFailed { pin, seq, reason } => {
                     if self.pins.get(&pin).is_some_and(|p| p.want == seq) {
@@ -181,6 +227,10 @@ impl Worker {
                 Msg::Draw(job) => {
                     let pin = job.pin;
                     let result = self.draw(&job);
+                    if result.is_err() {
+                        // 先报丢失：编排随之作废路上的绘制，这一帧的失败就不算数。
+                        self.recover(notify);
+                    }
                     notify(RenderEvent::Drawn { pin, result });
                 }
                 Msg::Detach(pin) => {
@@ -200,8 +250,30 @@ impl Worker {
     fn renderer(&mut self) -> Result<&Renderer, String> {
         if self.renderer.is_none() {
             self.renderer = Some(Renderer::new().map_err(|e| e.to_string())?);
+            if let Some(after) = self.lose_after.take() {
+                self.lose_at = Some(Instant::now() + after);
+            }
         }
         Ok(self.renderer.as_ref().expect("刚建好"))
+    }
+
+    /// 设备丢了：丢掉 Surface、图、说明层、查找表与设备（先丢用它的，再丢它），报
+    /// [`RenderEvent::DeviceLost`]，返回真。钉图的登记与要的图（`want`）留着。
+    fn recover(&mut self, notify: &Notify) -> bool {
+        if !self.renderer.as_ref().is_some_and(Renderer::is_lost) {
+            return false;
+        }
+        for slot in self.pins.values_mut() {
+            slot.surfaces = None;
+            slot.image = None;
+            slot.source = None;
+            slot.caption = None;
+        }
+        self.luts.clear();
+        self.placeholder = None;
+        self.renderer = None;
+        notify(RenderEvent::DeviceLost);
+        true
     }
 
     fn attach(&mut self, pin: PinId, targets: Result<[Target; 2], String>) -> Result<(), String> {
@@ -360,6 +432,27 @@ mod tests {
     use std::sync::Mutex;
 
     use super::*;
+
+    #[test]
+    fn a_lost_device_is_dropped_with_everything_made_on_it_and_reported_once() {
+        let mut worker = Worker::default();
+        worker.pins.insert(PinId(1), Slot::default());
+        if worker.renderer().is_err() {
+            return; // 没有任何适配器（连 WARP 都没有）的机器上测不了。
+        }
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let log = seen.clone();
+        let notify = move |e| log.lock().unwrap().push(e);
+        assert!(!worker.recover(&notify), "设备好好的");
+        worker.ensure_lut(&(None, None)).unwrap();
+        worker.renderer.as_ref().unwrap().simulate_device_loss();
+        assert!(worker.recover(&notify));
+        assert!(!worker.recover(&notify), "只报一次");
+        assert_eq!(*seen.lock().unwrap(), [RenderEvent::DeviceLost]);
+        assert!(worker.renderer.is_none() && worker.luts.is_empty());
+        assert!(worker.pins.contains_key(&PinId(1)), "钉图的登记留着");
+        assert!(worker.renderer().is_ok(), "之后再要设备就新建一个");
+    }
 
     #[test]
     fn only_the_latest_read_of_a_pin_this_thread_knows_is_reported_failed() {

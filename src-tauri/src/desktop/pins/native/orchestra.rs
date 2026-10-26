@@ -25,6 +25,7 @@ use pin_shell::{Display, HookEvent, Key, PinCursor, PinId, PinInput, PinKeys, Pi
 
 use super::port::{RenderEvent, RenderPort};
 
+mod device;
 mod frames;
 mod gesture;
 mod screen;
@@ -131,6 +132,8 @@ struct Live {
     /// 底部的提示与它消失的时刻。
     notice: Option<(String, Instant)>,
     closing: bool,
+    /// 设备丢失后等重新显示（`window` 为 `None`）时，丢失的时刻：不再出现提示框。
+    restoring: Option<Instant>,
 }
 
 /// 确认显示之后的遮蔽。
@@ -242,6 +245,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 appeared: None,
                 notice: None,
                 closing: false,
+                restoring: None,
             },
         );
         if placeholder {
@@ -413,6 +417,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                     self.effects.push(Effect::Closed(live.key));
                 }
             }
+            RenderEvent::DeviceLost => self.device_lost(),
         }
     }
 
