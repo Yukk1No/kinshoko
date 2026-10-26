@@ -224,6 +224,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let Some(live) = self.pins.get_mut(&pin) else {
             return;
         };
+        if std::mem::take(&mut live.stale_draw) {
+            return;
+        }
         let Some(Pending::Draw {
             window,
             content,

@@ -169,10 +169,12 @@ def main():
         bring_front(edge_win)
         put_png(test_image())
 
-        def measure(scene, port=EDGE_PORT, prefix="data:", exclude=None, back=None, gate_quns=True, gate_front=True):
+        def measure(scene, port=EDGE_PORT, prefix="data:", exclude=None, back=None, gate_quns=True, gate_front=True,
+                    setup=None):
             v = frames(port, prefix, exclude)
             rows.append({"scene": scene, **v, "quns": quns(), "front": foreground() == (back or edge_win),
-                         "pins": len(windows(app.pid, PIN_TITLE)), "gate_quns": gate_quns, "gate_front": gate_front})
+                         "pins": len(windows(app.pid, PIN_TITLE)), "gate_quns": gate_quns, "gate_front": gate_front,
+                         "setup": setup})
             r = rows[-1]
             print(f"{scene}\t{r['visibility']}\trAF {r['frames']}\tQUNS {r['quns']}\t前台不变 {r['front']}"
                   f"\t钉图 {r['pins']}", flush=True)
@@ -205,7 +207,8 @@ def main():
         pause(1.0)
         covered = [w for _, w in windows(app.pid, PIN_TITLE) if w[2] - w[0] >= sw and w[3] - w[1] >= sh - 1]
         print(f"盖满屏幕的钉图窗口：{covered}（屏幕 {sw}×{sh}，应让出一行）")
-        measure("一张盖满屏幕（让出一行）＋7 张")
+        # 没放大到盖满屏幕时这一项没测到全屏判定，不能算通过。
+        measure("一张盖满屏幕（让出一行）＋7 张", setup=None if covered else "没有钉图盖满屏幕")
 
         user32.mouse_event(RIGHTDOWN, 0, 0, 0, 0)
         user32.mouse_event(RIGHTUP, 0, 0, 0, 0)
@@ -248,7 +251,7 @@ def main():
     base = rows[0]["frames"]
     failed = 0
     for r in rows:
-        problems = []
+        problems = [r["setup"]] if r["setup"] else []
         if r["visibility"] != "visible":
             problems.append(f"visibilityState={r['visibility']}")
         if r["frames"] < 0.9 * base:

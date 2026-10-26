@@ -134,6 +134,8 @@ struct Live {
     closing: bool,
     /// 设备丢失后等重新显示（`window` 为 `None`）时，丢失的时刻：不再出现提示框。
     restoring: Option<Instant>,
+    /// 设备丢失时还在路上的绘制：它的回报随后到，不能当成重建后那一次的。
+    stale_draw: bool,
 }
 
 /// 确认显示之后的遮蔽。
@@ -246,6 +248,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 notice: None,
                 closing: false,
                 restoring: None,
+                stale_draw: false,
             },
         );
         if placeholder {

@@ -106,3 +106,37 @@ fn a_pin_known_to_be_unreadable_is_not_read_again_after_device_loss() {
         [Call::Retarget(A), Call::Show(A, _)]
     ));
 }
+
+#[test]
+fn the_lost_draw_failing_late_does_not_close_an_unreadable_pin_drawn_again() {
+    let mut r = Rig::shown();
+    let frame = Frame {
+        look: Look {
+            unavailable: Some("资料库暂时不可用".into()),
+            ..Look::default()
+        },
+        ..r.home_frame(PinMotion::Jump)
+    };
+    r.o.frame(frame, r.now);
+    // 占位那一帧还在路上时设备丢了：重建后马上又画占位，旧的那一帧随后才报失败。
+    assert!(r.o.pins[&A].pending.is_some());
+    r.o.render().open.clear();
+    r.o.render_event(RenderEvent::DeviceLost, r.now);
+    assert!(r.o.pins[&A].pending.is_some(), "重建后画占位");
+    r.o.render_event(
+        RenderEvent::Drawn {
+            pin: A,
+            result: Err("GPU 设备丢失".into()),
+        },
+        r.now,
+    );
+    assert!(
+        r.o.take_effects()
+            .iter()
+            .all(|e| !matches!(e, Effect::Failed(_) | Effect::Warn("原生钉图画不上", _))),
+        "旧的失败不算在重建后那一帧上"
+    );
+    r.run();
+    assert!(!r.o.pins[&A].closing);
+    assert!(r.o.shell().window(A).is_some());
+}

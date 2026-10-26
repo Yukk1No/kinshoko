@@ -9,6 +9,7 @@
 use kinshoko_core::desktop::frame::source_size;
 use pin_shell::{PinId, PinShell};
 
+use super::screen::Pending;
 use super::{Effect, Orchestra, RenderPort};
 
 impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
@@ -21,7 +22,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             if live.closing {
                 continue;
             }
-            // 路上的绘制、换窗都作废：它们的回报随后到，没有 `pending` 就不理。
+            // 路上的绘制、换窗都作废。绘制的回报随后到，重建后画占位时已经有新的 `pending`，
+            // 要记下丢掉它；换窗随 `retarget` 取消，不会再报。
+            live.stale_draw |= matches!(live.pending, Some(Pending::Draw { .. }));
             live.pending = None;
             live.dirty = None;
             live.fresh = false;
