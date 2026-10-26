@@ -45,7 +45,7 @@ T17 可提供同一 `CaptureSurface` 列表并复用 `CaptureSelection::finish`�
 
 使用 [`e2e/reference-capture.mjs`](../../e2e/reference-capture.mjs)。在独立 identifier `dev.kinshoko.spec78t16test`、临时资料库、临时 WebView 用户目录和 4457／4458 端口运行。设置 `KINSHOKO_SKIP_AUTOSTART=1`。未下载打标模型。每次只结束本次 driver 的 Windows Job，并清理已核对路径的测试临时目录。
 
-脚本在正式程序中建库、导入 2400×1600 逐像素细节图并打开真实查看器。来源由实际 Viewer／PinView 报告。脚本通过正式 `start_capture`、`finish_capture` 命令开始与完成选区；冻结窗口真实显示。通过 `pin_frame` 核对来源、裁切与方向。复制后调用正式 `pin_clipboard` 从系统剪贴板读回，并检查写出的 PNG 四角像素。
+脚本在正式程序中建库、导入 2400×1600 逐像素细节图并打开真实查看器。来源由实际 Viewer／PinView 报告（PinView 已随 WebView 钉图层删除）。脚本通过正式 `start_capture`、`finish_capture` 命令开始与完成选区；冻结窗口真实显示。通过 `pin_frame` 核对来源、裁切与方向。（2026-10-26 补记：原生钉图取代 WebView 钉图层后 `pin_frame` 已删，脚本改从数据目录的 `pins.json` 读回新钉图；“已有局部翻转、旋转后”一段要变换已有钉图，脚本已无法驱动，随之删去，下表该列只是当时的记录，#305。）复制后调用正式 `pin_clipboard` 从系统剪贴板读回，并检查写出的 PNG 四角像素。
 
 环境：Windows 内核 `10.0.26300`；WebView2 与 EdgeDriver `154.0.4258.62`。
 

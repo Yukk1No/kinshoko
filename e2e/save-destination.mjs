@@ -18,7 +18,7 @@ const imagePath = join(work, "image.png");
 const { width, height } = writeTestPng(imagePath);
 const port = 4586;
 const driverUrl = `http://127.0.0.1:${port}`;
-const { wd, delay, until, assertions, assert, Session } = driverClient({ driverUrl, application, work });
+const { delay, until, assertions, assert, Session } = driverClient({ driverUrl, application, work });
 
 const appData = join(work, "app-data");
 const scriptSource = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", windowsHide: true }).stdout.trim();
@@ -138,9 +138,7 @@ try{
  const copied=spawnSync("powershell",["-NoProfile","-NonInteractive","-STA","-Command","Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; $t10Image=[System.Drawing.Image]::FromFile($env:KINSHOKO_T10_CLIPBOARD); [System.Windows.Forms.Clipboard]::SetImage($t10Image); $t10Image.Dispose()"],{env:{...process.env,KINSHOKO_T10_CLIPBOARD:imagePath},windowsHide:true,encoding:"utf8"});
  if(copied.status!==0)throw new Error(copied.stderr);
  await session.desktop("pin_clipboard");
- // Move the genuine always-on-top capture pin away from the controls under test.
- const nativeWindows=await wd("POST",`${session.base}/execute/async`,{script:"const done=arguments[arguments.length-1];window.__TAURI_INTERNALS__.invoke('plugin:window|get_all_windows').then(done);",args:[]});
- for(const label of nativeWindows)if(label.startsWith("pin-"))await session.desktop("move_pin",{pin:label.slice(4),x:1400,y:800});
+ // The native capture pin (ADR 0013) is not a WebView window; WebDriver clicks go into the page and are not blocked by it.
  const capture=(await session.desktop("capture_history"))[0];
  await openPane("截图历史");
  await readyClick("//*[contains(@class,'capture-history')]//button[normalize-space()='收藏']");

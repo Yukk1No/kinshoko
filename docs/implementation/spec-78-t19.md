@@ -1,5 +1,7 @@
 # #78 T19：私有安装包更新与公开阶段门槛
 
+> 2026-10-26 补记：`e2e/private-upgrade.mjs`、`e2e/native-tray-exit.py`、`e2e/nsis-file-locks.py`随原生钉图（ADR 0013）取代 WebView 钉图层而退役（#305）。它们调用的 `pin_frame` 等命令已删，又只能配本文记录的冻结构建跑；需要时从提交 `3857dd8f` 取回（`git show 3857dd8f:e2e/<文件名>`）。
+
 关联：[规格 #78](https://github.com/Yukk1No/kinshoko/issues/78) 故事 50；[工单 #97](https://github.com/Yukk1No/kinshoko/issues/97)。本记录独立于 #42、#70、PR #71 与历史验收，不继承其通过状态。
 
 ## 结果与来源

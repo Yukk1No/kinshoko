@@ -1,5 +1,7 @@
 # #78 T12：资料库内容备份与恢复
 
+> 2026-10-26 补记：`e2e/library-content-backup.mjs`随原生钉图（ADR 0013）取代 WebView 钉图层而退役（#305）。它们调用的 `pin_frame` 等命令已删，又只能配本文记录的冻结构建跑；需要时从提交 `3857dd8f` 取回（`git show 3857dd8f:e2e/<文件名>`）。
+
 关联：[独立规格 #78](https://github.com/Yukk1No/kinshoko/issues/78) 故事 33、35、37；[工单 #91](https://github.com/Yukk1No/kinshoko/issues/91)。本单从集成提交 `e9be4ea11fdd610270936e13e257e600d199d01f` 开始。#42、PR #71、T11 和前置备份记录没有改写。
 
 实现已完成。Windows 11 正式程序的内容备份组合通过 57 项断言。同一冻结程序的 smoke 通过 5 项断言。源码、构建、失败原件、截图范围和释放记录见 [独立证据索引](evidence/spec78-t12/README.md)。Windows 10 保持未验证。
