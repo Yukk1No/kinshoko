@@ -1,5 +1,7 @@
 # #78 T11：可携带的标签定义与参考组包
 
+> 2026-10-26 补记：`e2e/portable-tags.mjs`随原生钉图（ADR 0013）取代 WebView 钉图层而退役（#305）。它们调用的 `pin_frame` 等命令已删，又只能配本文记录的冻结构建跑；需要时从提交 `3857dd8f` 取回（`git show 3857dd8f:e2e/<文件名>`）。
+
 关联：[独立规格 #78](https://github.com/Yukk1No/kinshoko/issues/78) 故事 37；[工单 #90](https://github.com/Yukk1No/kinshoko/issues/90)。这是本次增量实现记录。没有改写 #42、PR #71 或此前验收记录。
 
 ## 实现与边界
