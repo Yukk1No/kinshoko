@@ -53,6 +53,9 @@ pub enum RenderEvent {
     LoadFailed { pin: PinId, reason: String },
     /// [`RenderPort::detach`] 完成：这张钉图的 Surface 已丢掉，平台层可以关它的窗口了。
     Detached { pin: PinId },
+    /// GPU 设备丢失（驱动重启、远程桌面切换）。渲染层已丢掉所有 Surface、图与设备，路上的绘制都不算；
+    /// 每张钉图要重新 [`RenderPort::attach`]（平台层换的新目标）、[`RenderPort::load`]，再画、再显示。
+    DeviceLost,
 }
 
 /// 渲染层。没有钉图时实现不持有 GPU 设备。

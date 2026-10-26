@@ -403,8 +403,11 @@ pub fn follow(f: &Follow) -> Result<bool, String> {
     let grow: Vec<(i32, i32)> = (0..30).map(|_| (8, 12)).collect();
     let shrink: Vec<(i32, i32)> = (0..30).map(|_| (-8, -12)).collect();
     drag(corner, &grow);
-    frames(5);
-    drag((corner.0 + 240, corner.1 + 360), &shrink);
+    // 等缩放动画走完再从角当时真正的位置拖回：角落后于光标（动画、按比例缩放），按光标估的角
+    // 可能在钉图外，按下去会点到背后的窗口、抢走前台。
+    frames(40);
+    let c = last(&log).expect("有提交").content;
+    drag((c.x + c.w - 4, c.y + c.h - 4), &shrink);
     frames(30);
     phase("拖角放大再缩回", &log);
 

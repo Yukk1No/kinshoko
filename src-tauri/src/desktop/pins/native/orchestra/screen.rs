@@ -138,8 +138,8 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 live.reveal = Reveal::Idle;
             }
         }
-        // 还没显示：第一帧按提示框最浓画好。
-        let mut appear = if live.window.is_none() {
+        // 还没显示：第一帧按提示框最浓画好（设备丢失后重新显示的除外）。
+        let mut appear = if live.window.is_none() && live.restoring.is_none() {
             1.0
         } else {
             live.appear(at)
@@ -224,6 +224,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let Some(live) = self.pins.get_mut(&pin) else {
             return;
         };
+        if std::mem::take(&mut live.stale_draw) {
+            return;
+        }
         let Some(Pending::Draw {
             window,
             content,
@@ -251,8 +254,16 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 live.window = Some(window);
                 live.drawn = content;
                 // 出现提示框从显示出来的这一刻起渐隐（第一帧按 1 画好了）。
-                live.appeared = Some(self_ms);
-                live.frame_due = Some(now + ANIM_FRAME);
+                if let Some(lost) = live.restoring.take() {
+                    let ms = now.saturating_duration_since(lost).as_millis();
+                    self.effects.push(Effect::Warn(
+                        "原生钉图设备丢失后重新显示",
+                        format!("{ms} ms"),
+                    ));
+                } else {
+                    live.appeared = Some(self_ms);
+                    live.frame_due = Some(now + ANIM_FRAME);
+                }
                 let key = live.key.clone();
                 self.shell.show(pin, window);
                 self.effects.push(Effect::Shown(key));

@@ -1,7 +1,7 @@
 //! 直接调用的 Windows 接口：显示器当前使用的颜色配置文件（ICC，#62）；前台窗口、交还焦点与
 //! 光标位置（贴边隐藏，#63）；一次调用同时改窗口的位置与尺寸（#64）；诊断日志用的系统版本、
 //! 处理器、内存、显卡与显示器色彩模式（#70）；冻结截图时盖在参考图上的窗口（含 DWM 云化与
-//! 分层透明度，#125）；还没有窗口时的启动错误提示（#145）；关掉钉图菜单窗口的系统显示、隐藏过渡（#194）。
+//! 分层透明度，#125）；还没有窗口时的启动错误提示（#145）；关掉钉图菜单窗口的系统显示、隐藏过渡（#194），把它标成工具窗口（#275）。
 //!
 //! 这些信息只有 Win32 函数提供，没有安全的 Rust 封装，所以本模块是应用壳里唯一允许
 //! `unsafe` 的地方。每处调用都只传本函数自己持有的缓冲区，句柄在同一函数内创建并释放
@@ -30,7 +30,8 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     GW_HWNDNEXT, GWL_EXSTYLE, GetCursorPos, GetForegroundWindow, GetLayeredWindowAttributes,
     GetTopWindow, GetWindow, GetWindowLongW, GetWindowRect, GetWindowThreadProcessId, IsIconic,
     IsWindow, IsWindowVisible, LWA_ALPHA, MB_ICONERROR, MB_OK, MessageBoxW, SWP_NOACTIVATE,
-    SWP_NOOWNERZORDER, SWP_NOZORDER, SetForegroundWindow, SetWindowPos, WS_EX_LAYERED,
+    SWP_NOOWNERZORDER, SWP_NOZORDER, SetForegroundWindow, SetWindowLongW, SetWindowPos,
+    WS_EX_LAYERED, WS_EX_TOOLWINDOW,
 };
 
 /// 启动失败、还没有任何窗口时的错误提示（#145：数据文件夹不可写）。
@@ -268,6 +269,23 @@ pub fn disable_transitions(hwnd: isize) -> bool {
         )
     };
     hr == 0
+}
+
+/// 标成工具窗口（#275）：Chromium 的遮挡判定跳过工具窗口。铺满显示器的透明菜单窗口不是工具窗口时，
+/// 窗口区域是一个矩形就按整个窗口算不透明，背后的 Edge、Electron 程序与 Kinshoko 主窗口被判成挡住、停止绘制。
+/// 工具窗口也不出现在 Alt+Tab 里。窗口已经不在时返回 false。
+pub fn make_tool_window(hwnd: isize) -> bool {
+    let hwnd = hwnd as HWND;
+    // SAFETY：IsWindow 接受任意值；已销毁的句柄只会让它返回 0。
+    if unsafe { IsWindow(hwnd) } == 0 {
+        return false;
+    }
+    // SAFETY：`hwnd` 刚确认是有效窗口；只改扩展样式里的一位。
+    unsafe {
+        let style = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
+        SetWindowLongW(hwnd, GWL_EXSTYLE, (style | WS_EX_TOOLWINDOW) as i32);
+        GetWindowLongW(hwnd, GWL_EXSTYLE) as u32 & WS_EX_TOOLWINDOW != 0
+    }
 }
 
 /// 光标位置，物理像素（进程是每显示器 DPI 感知）。

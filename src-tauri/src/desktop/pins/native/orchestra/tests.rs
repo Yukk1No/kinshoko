@@ -13,6 +13,7 @@ use super::*;
 use crate::desktop::pins::native::port::{DrawJob, RenderEvent, RenderPort};
 
 mod caption;
+mod device_loss;
 mod failures;
 mod frames;
 mod motion;
