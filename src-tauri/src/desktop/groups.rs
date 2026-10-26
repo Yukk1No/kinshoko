@@ -339,13 +339,10 @@ pub async fn open_reference_group(app: AppHandle, group_id: String) -> Result<us
             }
             let _ = store.save();
         }
-        let mut errors = opened.problems;
         for pin in &fresh {
-            if let Err(e) = pins::open_pin(&app, pin) {
-                errors.push(e);
-            }
+            pins::open_pin(&app, pin);
         }
-        match errors.first() {
+        match opened.problems.first() {
             Some(e) => Err(e.clone()),
             None => Ok(fresh.len()),
         }

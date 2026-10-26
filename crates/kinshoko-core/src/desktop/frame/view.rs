@@ -1,5 +1,5 @@
 //! 钉图怎么摆、怎么画：以光标为中心缩放、拖角缩放、透明度、翻转旋转后的绘制变换、局部在源图上的
-//! 位置。状态就是 [`SavedPin`]，这里只换算；从前端 `pixels.ts`、`motion.ts`、`renderer.ts` 搬来。
+//! 位置。状态就是 [`SavedPin`]，这里只换算；最早写在已删除的 WebView 钉图层里（#286）。
 
 use super::RectF;
 use crate::desktop::{MIN_OPACITY, PinContent, Region, SavedPin};

@@ -7,8 +7,7 @@
 //! - [`PinStore`]：钉图的位置、裁切、缩放、翻转与旋转，重新打开后恢复；
 //! - [`SavedPin::reference`]：资料库中参考图的整图与局部钉图（#65）；
 //! - [`EdgeHide`]：贴边隐藏收起的位置与碰细边滑出；
-//! - [`layers_for`]、[`overlay_window`]、[`widen`]、[`layer_region`]、[`pin_area`]：钉图层与窗口区域的矩形
-//!   （#64、#193、#239）；
+//! - [`overlay_window`]、[`pin_area`]：覆盖窗口让出的一行与钉图阴影的范围（ADR 0011、#239）；
 //! - [`menu_surface`]、[`PinMenu`]：钉图菜单窗口的位置与菜单状态（#106）；
 //! - [`frame`]：原生钉图的几何、命中、动画与每一帧怎么上屏（#277）。
 //! - [`pin_colour`]：钉图上传给 GPU 的像素与到显示器的查找表（ADR 0014）。
@@ -33,9 +32,7 @@ pub use history::{
     CollectedCaptureDraft, HISTORY_LIMIT, HistoryError, PreparedCapture,
 };
 pub use menu::{MenuSurface, OpenInKinshoko, PinMenu, PinMenuOpen, menu_surface};
-pub use motion::{
-    PIN_EDGE, layer_region, layer_window, layers_for, overlay_window, pin_area, widen,
-};
+pub use motion::{PIN_EDGE, overlay_window, pin_area};
 pub use pin::{
     GroupMemberRef, MAX_SCALE, MIN_OPACITY, MIN_SCALE, MIN_SIDE, PinContent, PinError, PinStore,
     Placement, RESTORE_KEEP, SavedPin, initial_scale, pull_onto_screen,
@@ -43,7 +40,7 @@ pub use pin::{
 pub use placement::{ScreenRect, place_new_pin};
 pub use screenshot::{Region, Screenshot};
 pub use types::{
-    CaptureAction, CaptureReference, CaptureReferenceFrame, FrozenScreen, MotionBegan,
-    OriginalPixels, PinFrame, PinMotion, Turn,
+    CaptureAction, CaptureReference, CaptureReferenceFrame, FrozenScreen, OriginalPixels,
+    PinMotion, Turn,
 };
 pub use veil::PinVeils;

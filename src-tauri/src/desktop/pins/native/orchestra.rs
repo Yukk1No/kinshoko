@@ -10,7 +10,7 @@
 //!
 //! 内容此刻在哪由 [`ContentMotion`] 按时间求出：缩放（滚轮、拖角、“原始大小”）以 `ZOOM_MS`、贴边以
 //! `SLIDE_MS` 的 `easeOutCubic` 从此刻看到的位置过渡到新目标，动画中再来输入就从当前位置重新计时
-//! （与钉图层的 `motion.retarget` 相同）。动画中每 [`ANIM_FRAME`] 上屏一次。
+//! （沿用以前钉图层的 `motion.retarget`）。动画中每 [`ANIM_FRAME`] 上屏一次。
 //!
 //! 手势（滚轮、拖动、动画）在最后一次变化、动画结束后 [`SETTLE_MS`] 结束（[`Orchestra::tick`]）：
 //! 窗口收回刚好盖住钉图，再按显示尺寸要一张派生图（[`source_size`]）。
@@ -37,9 +37,9 @@ use screen::Pending;
 pub const SETTLE_MS: u64 = 120;
 /// 动画中多久上屏一次：比最快的显示器的刷新周期还短，合成器每次刷新取最新的一次提交。
 pub const ANIM_FRAME: Duration = Duration::from_millis(4);
-/// 提示在钉图上留多久（钉图层 `PinView` 的 1600 ms）。
+/// 提示在钉图上留多久（沿用以前钉图层的 1600 ms）。
 pub const NOTICE_MS: u64 = 1600;
-/// 读不到图、又没有别的原因时写的话（钉图层 `PinView` 的同一句）。
+/// 读不到图、又没有别的原因时写的话（沿用以前钉图层的同一句）。
 pub const MISSING: &str = "参考图无法读取：图库没有打开，或原图已缺失";
 /// 光标在钉图上时拦下的键：Esc 关闭，H／V 翻转，R／Shift+R 旋转。菜单打开时一个都不拦。
 const KEYS: [Key; 4] = [
@@ -393,7 +393,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             }
             RenderEvent::LoadFailed { pin, reason } => {
                 if let Some(live) = self.live(pin) {
-                    // 画占位与原因（钉图层也是这样）；已有图时留着原来的图。
+                    // 画占位与原因（以前钉图层也是这样）；已有图时留着原来的图。
                     live.loading = false;
                     let first = !std::mem::replace(&mut live.loaded, true);
                     if first {

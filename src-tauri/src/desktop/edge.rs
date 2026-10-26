@@ -104,9 +104,7 @@ fn apply(app: &AppHandle, moves: &[PinMove]) {
             height,
         };
         let click_through = lock(&state(app).edge).peeking(&m.pin) == Some(false);
-        if let Err(e) = show(app, &m.pin, content, PinMotion::Slide, click_through) {
-            crate::run_log::warn("移动收起的钉图失败", e);
-        }
+        show(app, &m.pin, content, PinMotion::Slide, click_through);
     }
 }
 

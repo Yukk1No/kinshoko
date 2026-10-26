@@ -4,7 +4,7 @@
 然后比较三份像素：按 F1 前的屏幕、存进截图历史的截图文件、钉图显示在屏幕上的像素。
 SDR 桌面上三者应逐像素一致（未缩放、未翻转旋转）。验收要求在 100% 与 150% 缩放下各跑一次。
 
-驱动的是原生钉图（#285）：临时数据目录的 `settings.json` 打开 `nativePins`。每张钉图一个窗口
+驱动的是原生钉图（#285）。每张钉图一个窗口
 （标题 `Kinshoko pin`），比内容四周各大 `PIN_EDGE`（阴影那一圈）。
 
 用法：python scripts/probe/capture_pin.py target/release/kinshoko.exe
@@ -95,10 +95,8 @@ def pin_content(pid):
 
 
 def probe_data():
-    """临时数据目录，打开原生钉图。"""
-    data = Path(tempfile.mkdtemp(prefix="kinshoko-probe-"))
-    (data / "settings.json").write_text('{"nativePins": true}', encoding="utf-8")
-    return data
+    """临时数据目录。"""
+    return Path(tempfile.mkdtemp(prefix="kinshoko-probe-"))
 
 
 def running(image):

@@ -1,4 +1,4 @@
-//! 应用壳推来的帧：钉图层的 `PinFrame` 去掉层以后剩下的那些。菜单动作（翻转、旋转、原始大小、
+//! 应用壳推来的帧：钉图此刻的状态、内容要到哪与外观。菜单动作（翻转、旋转、原始大小、
 //! 透明度、锁定）、贴边隐藏（收起、滑出、回到原位，点击穿透）、遮蔽与“增强钉图边缘”设置、
 //! 参考组改引用，都由应用壳改好 `pins.json` 再推一帧过来。
 //!
@@ -29,7 +29,7 @@ pub struct Frame {
     pub look: Look,
 }
 
-/// 钉图的外观（钉图层 `PinFrame` 的同名字段）。
+/// 钉图的外观（遮蔽、不能显示的原因、增强边缘、深色主题）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Look {
     /// 原位遮蔽（安全模式）：只取 64 px 派生图，模糊并盖墨色。
@@ -93,7 +93,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let duration = match f.motion {
             PinMotion::Zoom => ZOOM_MS,
             PinMotion::Slide => SLIDE_MS,
-            PinMotion::Jump | PinMotion::Drag => 0,
+            PinMotion::Jump => 0,
         };
         let target = RectF::from(live.target);
         if live.motion.target() != target {

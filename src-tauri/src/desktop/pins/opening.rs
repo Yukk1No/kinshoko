@@ -46,7 +46,8 @@ pub fn open(app: &AppHandle, capture: &CaptureEntry, at: ScreenRect) -> Result<S
         let _ = store.save();
     }
     history_changed(app);
-    open_pin(app, &pin).map(|()| pin.id)
+    open_pin(app, &pin);
+    Ok(pin.id)
 }
 
 /// 从查看器把资料库中的一张参考图钉到桌面：整图（`crop` 为 `None`）或局部（原图像素）。
@@ -104,11 +105,12 @@ pub(super) fn pin_reference_here(
         store.put(pin.clone());
         let _ = store.save();
     }
-    open_pin(app, &pin)
+    open_pin(app, &pin);
+    Ok(())
 }
 
-/// 钉图此刻要不要原位遮蔽（见 [`PinFrame::veiled`]、[`kinshoko_core::desktop::PinVeils`]），以及暂时
-/// 不能显示的原因（[`PinFrame::unavailable`]）。资料库钉图经参考视角核对：活动资料库现取句柄，
+/// 钉图此刻要不要原位遮蔽（模糊并显示小圆锁，见 [`kinshoko_core::desktop::PinVeils`]），以及暂时
+/// 不能显示的原因（资料库没登记、不可用、图已删除、原图缺失，#66）。资料库钉图经参考视角核对：活动资料库现取句柄，
 /// 未激活的已登记资料库只读打开（#66）。会查资料库，不要持有桌面状态的锁调用。
 pub(super) fn appearance(app: &AppHandle, pin: &SavedPin) -> (bool, Option<String>) {
     // 核对不了（资料库没登记、不可用、图已不在）时 sealed 为 None，安全模式开启时按被封印处理。
@@ -126,7 +128,7 @@ pub(super) fn appearance(app: &AppHandle, pin: &SavedPin) -> (bool, Option<Strin
     (lock(&state(app).veils).veiled(pin, sealed), unavailable)
 }
 
-/// 资料库钉图要显示的文件（`capture` 协议的 `pin/<钉图 id>/full|fit-<像素>`）。经参考视角读取；
+/// 资料库钉图要显示的文件：`size` 为 `full`（1:1）或 `fit-<像素>`（整张缩到的宽度）。经参考视角读取；
 /// 资料库没有激活时只读打开它（不切换活动库，#66）。会读文件，不要在主线程上调用。
 pub fn reference_file(app: &AppHandle, pin: &str, size: &str) -> Option<std::path::PathBuf> {
     let saved = lock(&state(app).store).get(pin).cloned()?;
@@ -147,59 +149,20 @@ pub fn reference_file(app: &AppHandle, pin: &str, size: &str) -> Option<std::pat
     file.ok().map(|f| f.path)
 }
 
-/// 把一个钉图（新钉的、启动时恢复的、参考组里打开的）放进它所在显示器的钉图层；开着原生钉图时
-/// 交给原生钉图（[`native`]），窗口建好之前就返回。
+/// 打开一个钉图（新钉的、启动时恢复的、参考组里打开的）：交给原生钉图（[`native`]），窗口建好之前
+/// 就返回；打不开时原生钉图写运行日志并收掉本次运行的记录，状态留到下次启动。
 /// 截图历史此前已经记下它被钉住。
-pub fn open_pin(app: &AppHandle, pin: &SavedPin) -> Result<(), String> {
+pub fn open_pin(app: &AppHandle, pin: &SavedPin) {
     super::super::timing("pin.window.begin");
-    let native = native::enabled(app);
-    let rect = pin.rect();
     lock(&state(app).pins).insert(
         pin.id.clone(),
         PinRecord {
             capture_id: pin.capture_id().map(str::to_owned),
             closing: false,
-            content: rect,
-            region: rect,
-            settled: true,
-            generation: 0,
-            motion: PinMotion::Jump,
-            began: (rect, Instant::now()),
+            content: pin.rect(),
             click_through: false,
-            z: next_z(),
-            layers: Vec::new(),
-            entering: Vec::new(),
-            leaving: Vec::new(),
             shown: false,
-            native,
         },
     );
-    if native {
-        native::open(app, native::Frame::at_home(pin.clone(), look(app, pin)));
-        return Ok(());
-    }
-    let _arranging = lock(&ARRANGING);
-    match arrange(app, &pin.id) {
-        Ok(touched) => {
-            emit_frames(app, &pin.id, PinMotion::Jump);
-            finish(app, &touched);
-            // 新钉图要在最上面：它进的层可能已被别的程序盖住（以前每个钉图是新窗口，自然在上面）。
-            for layer in &touched.layers {
-                if let Some(window) = app.get_webview_window(layer) {
-                    raise(&window);
-                }
-            }
-            Ok(())
-        }
-        Err(e) => {
-            if let Some(record) = lock(&state(app).pins).get_mut(&pin.id) {
-                record.closing = true;
-            }
-            // A final capture commit may already hold the visibility gate. Cleanup must
-            // never re-enter it or block native window construction on the main thread.
-            let (app, pin) = (app.clone(), pin.id.clone());
-            std::thread::spawn(move || closed(&app, &pin));
-            Err(format!("无法打开钉图窗口：{e}"))
-        }
-    }
+    native::open(app, native::Frame::at_home(pin.clone(), look(app, pin)));
 }

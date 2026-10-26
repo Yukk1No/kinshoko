@@ -5,8 +5,8 @@
 //! 窗口调用会派发到主线程，而主线程上的回调（快捷键、窗口事件、菜单）也会来拿这些锁。
 //! 抓屏、读写剪贴板与收藏都在别的线程上做。
 //!
-//! - 截图历史、冻结屏幕与资料库钉图的图走自定义协议 `capture`：`screen/<标记>`、`<截图 id>`，
-//!   或 `pin/<钉图 id>/full|fit-<像素>`（#65，经参考视角，只给已钉住的图）；
+//! - 截图历史、冻结屏幕与参考组自带的截图走自定义协议 `capture`：`screen/<标记>`、`<截图 id>`、
+//!   `group/<参考组 id>/<成员>`；
 //! - 资料库事件（安全模式开关、分级变化）到达时，资料库钉图重新核对要不要遮蔽；
 //! - 截图历史变化时向所有窗口推送 `capture-history`（截图列表，从新到旧）；
 //! - 参考组（#66）：桌面上的资料库钉图存成参考组、打开参考组把成员钉到桌面（[`groups`]）；
@@ -86,10 +86,8 @@ pub struct DesktopState {
     /// 框选结束前等新钉图显示（#127）。
     pin_shown: pins::ShownWaiters,
     capture_geometry_generation: AtomicU64,
-    /// 本次运行中打开着的钉图。锁的顺序：先 `pins` 后 `layers`。
+    /// 本次运行中打开着的钉图。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
-    /// 钉图层（#193）：每台有钉图的显示器一个铺满屏幕的窗口。
-    layers: Mutex<pins::Layers>,
     /// 钉图状态（`pins.json`），重新打开后恢复。
     store: Mutex<PinStore>,
     /// 钉图状态改了还没写回文件。
@@ -121,7 +119,7 @@ pub fn clear_viewer_reference<R: tauri::Runtime>(app: &AppHandle<R>) {
 
 /// Native geometry changes are causal even when a window returns to exactly the same rectangle.
 pub fn capture_geometry_changed<R: tauri::Runtime>(app: &tauri::AppHandle<R>, label: &str) {
-    if (label == "main" || label.starts_with("pin-"))
+    if label == "main"
         && let Some(state) = app.try_state::<DesktopState>()
     {
         state
@@ -158,26 +156,13 @@ pub fn init() -> TauriPlugin<Wry> {
             capture::cancel_capture,
             pins::pin_clipboard,
             pins::pin_capture,
-            pins::pin_frame,
-            pins::pin_layer_pins,
-            pins::raise_pin,
-            pins::pin_ready,
-            pins::pin_menu,
             pins::pin_menu_action,
             desktop_menu,
             desktop_menu_shown,
             close_desktop_menu,
             take_open_request,
             copy_capture,
-            pins::close_pin,
-            pins::move_pin,
-            pins::zoom_pin,
-            pins::turn_pin,
-            pins::settle_pin,
-            pins::set_pin_opacity,
-            pins::set_pin_locked,
             pins::pin_reference,
-            pins::reveal_pin,
             image_actions::copy_reference_image,
             image_actions::reveal_reference_image,
             image_actions::reveal_library,
@@ -220,7 +205,6 @@ pub fn init() -> TauriPlugin<Wry> {
                 pin_shown: pins::ShownWaiters::default(),
                 capture_geometry_generation: AtomicU64::new(0),
                 pins: Mutex::default(),
-                layers: Mutex::default(),
                 store: Mutex::new(store),
                 dirty: AtomicBool::new(false),
                 edge: Mutex::default(),
@@ -284,9 +268,7 @@ fn on_library_event(app: &AppHandle, payload: &str) {
 }
 
 /// 冻结屏幕现场编码；历史中的截图与参考组自带的截图直接读文件，都是内嵌显示器配置文件的 PNG。
-/// 资料库钉图的图是 [`Library::display`](kinshoko_core::Library::display) 给出的文件。
 fn capture_response(app: &AppHandle, path: &str) -> Response<Vec<u8>> {
-    let mut content_type = "image/png";
     let body = if let Some(token) = path.strip_prefix("screen/") {
         timing("png.begin");
         let png = capture::frozen_png(app, token);
@@ -295,11 +277,6 @@ fn capture_response(app: &AppHandle, path: &str) -> Response<Vec<u8>> {
             png.as_ref().map_or(0, Vec::len)
         ));
         png
-    } else if let Some((pin, size)) = path.strip_prefix("pin/").and_then(|p| p.split_once('/')) {
-        pins::reference_file(app, pin, size).and_then(|f| {
-            content_type = library::image_content_type(&f);
-            std::fs::read(f).ok()
-        })
     } else if let Some((group, member)) =
         path.strip_prefix("group/").and_then(|p| p.split_once('/'))
     {
@@ -312,7 +289,7 @@ fn capture_response(app: &AppHandle, path: &str) -> Response<Vec<u8>> {
     };
     match body {
         Some(bytes) => Response::builder()
-            .header(header::CONTENT_TYPE, content_type)
+            .header(header::CONTENT_TYPE, "image/png")
             .header(header::CACHE_CONTROL, "no-store")
             .body(bytes),
         None => Response::builder()

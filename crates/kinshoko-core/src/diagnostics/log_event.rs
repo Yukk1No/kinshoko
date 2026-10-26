@@ -77,8 +77,6 @@ pub enum WindowKind {
     Main,
     /// 截图的框选窗口。
     Capture,
-    /// 承载全部钉图的钉图层。
-    PinLayer,
     PinMenu,
 }
 

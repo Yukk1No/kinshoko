@@ -6,15 +6,17 @@
 //! `desktop_menu_shown` 才显示窗口并给它焦点。菜单关掉（Esc、点外部、窗口失去焦点）或选中一项后
 //! 窗口只隐藏，下次复用。显示、隐藏都是即时的，不带系统过渡（#194）。
 //!
-//! 焦点：菜单窗口拿着焦点关掉时（Esc、选中一项、点在菜单外的空白处），焦点交回打开它的钉图，
-//! 与原生菜单一样；原生钉图不拿焦点，交回打开菜单之前的程序。因为点了别的程序而失去焦点时不抢回来。
+//! 焦点：钉图不拿焦点，菜单窗口拿着焦点关掉时（Esc、选中一项、点在菜单外的空白处），焦点交回打开
+//! 菜单之前的程序。因为点了别的程序而失去焦点时不抢回来。
 //!
 //! 线程规则同 [`super`]：持有锁时不调用窗口 API。
 
+use kinshoko_core::desktop::ScreenRect;
 use kinshoko_core::desktop::{PinMenu, PinMenuOpen, menu_surface};
 use kinshoko_core::diagnostics::{LogEvent, WindowKind};
 use tauri::{
-    AppHandle, Emitter, Manager, PhysicalSize, WebviewUrl, WebviewWindowBuilder, WindowEvent,
+    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
+    WindowEvent,
 };
 
 use super::{lock, pins, state};
@@ -53,7 +55,7 @@ pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), String> {
         Some(window) => window,
         None => build(app)?,
     };
-    pins::place(&window, surface.window)?;
+    place(&window, surface.window)?;
     let _ = app.emit_to(MENU_WINDOW, OPEN_EVENT, &open);
     Ok(())
 }
@@ -106,7 +108,7 @@ fn keep_on_monitor(app: &AppHandle, size: PhysicalSize<u32>) {
     if (size.width, size.height) != (rect.width, rect.height)
         && let Some(window) = app.get_webview_window(MENU_WINDOW)
     {
-        let _ = pins::place(&window, rect);
+        let _ = place(&window, rect);
     }
 }
 
@@ -128,7 +130,7 @@ pub fn shown(app: &AppHandle, generation: u32) {
 }
 
 /// 关掉第 `generation` 次菜单，返回它是哪个钉图的；不是此刻打开着的那一次时什么都不做。
-/// 菜单窗口拿着焦点时，焦点交回钉图。
+/// 菜单窗口拿着焦点时，焦点交回打开菜单之前的程序。
 pub fn close(app: &AppHandle, generation: u32) -> Option<String> {
     let open = {
         let mut menus = lock(&state(app).menu);
@@ -144,14 +146,24 @@ pub fn close(app: &AppHandle, generation: u32) -> Option<String> {
         crate::run_log::record(LogEvent::WindowHidden {
             window: WindowKind::PinMenu,
         });
-        if !pins::menu_closed(app, &pin, focused)
-            && focused
-            && let Some(pin_window) = app.get_webview_window(&pins::label(&pin))
-        {
-            let _ = pin_window.set_focus();
-        }
+        pins::menu_closed(app, focused);
     } else {
-        pins::menu_closed(app, &pin, false);
+        pins::menu_closed(app, false);
     }
     Some(pin)
+}
+
+/// 一次调用同时改窗口的位置与尺寸（Windows 上），免得合成出只改了一半的一帧。
+fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(), String> {
+    #[cfg(windows)]
+    if let Ok(hwnd) = window.hwnd()
+        && super::win32::set_window_rect(hwnd.0 as isize, rect.x, rect.y, rect.width, rect.height)
+    {
+        return Ok(());
+    }
+    // 先移到目标显示器再定尺寸：跨越缩放比例不同的显示器时，移动会先按新比例改一次尺寸。
+    window
+        .set_position(PhysicalPosition::new(rect.x, rect.y))
+        .and_then(|_| window.set_size(PhysicalSize::new(rect.width, rect.height)))
+        .map_err(|e| e.to_string())
 }

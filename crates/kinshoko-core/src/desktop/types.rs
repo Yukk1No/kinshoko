@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{SavedPin, ScreenRect};
+use super::ScreenRect;
 
 /// 框选完成后做什么。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -65,10 +65,8 @@ pub struct OriginalPixels {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub enum PinMotion {
-    /// 直接到（翻转、旋转、恢复、动画结束后改窗口）。
+    /// 直接到（翻转、旋转、恢复）。
     Jump,
-    /// 拖动：直接到；拖到另一台显示器时那台的钉图层接着画（#193）。
-    Drag,
     /// 缩放动画。
     Zoom,
     /// 贴边收起、滑出与回到原位的动画。
@@ -84,49 +82,4 @@ pub enum Turn {
     FlipVertical,
     RotateClockwise,
     RotateCounterClockwise,
-}
-
-/// 应用壳发给钉图层的一帧：画哪个钉图、画什么、层的原生窗口在哪、内容要到哪（#64）。
-///
-/// 钉图都画在所在显示器的钉图层里，层的窗口铺满显示器、从不移动，窗口区域把显示和点击限定在
-/// 钉图上（#193）；页面把内容画在 `content` 相对 `window` 的位置。
-#[derive(Debug, Clone, PartialEq, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct PinFrame {
-    pub pin: SavedPin,
-    pub window: ScreenRect,
-    pub content: ScreenRect,
-    pub motion: PinMotion,
-    /// 原位遮蔽（模糊并显示小圆锁）：安全模式开启时被封印的参考图，或资料库没打开、核对不了的
-    /// 参考图（#60、#65）。画师确认显示这一张后为 false；截图钉图总是 false。
-    pub veiled: bool,
-    /// 资料库钉图暂时不能显示的原因（资料库没登记、不可用、图已删除、原图缺失，#66）；
-    /// 能显示时没有。钉图保留位置与尺寸，画占位并写出原因。
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[ts(optional)]
-    pub unavailable: Option<String>,
-    /// 动画结束后页面带着它调用 `settle_pin`；不是最新一帧的就不再改窗口。
-    pub generation: u32,
-    /// 钉图的区域还盖着内容以外的地方（动画、拖动或翻转刚开始）：页面画完、手势结束后调用
-    /// `settle_pin`，把区域缩回内容（#193）。
-    pub settle: bool,
-    /// 钉图之间的上下次序：大的在上。按下、新钉的钉图到最上面（#193）。
-    pub z: u32,
-    /// 动画中才有：这一段动画从哪里、多久以前开始。中途接手钉图的层（收起时换到让点击穿过的层、
-    /// 跨屏）据此接着画同一段动画，与交出它的层对得上（#193）。
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[ts(optional)]
-    pub began: Option<MotionBegan>,
-    /// 增强钉图边缘（应用设置，#239）：阴影外再加一圈浅色细线。
-    pub edge_contrast: bool,
-}
-
-/// 一段动画的起点：从 `from` 出发，`elapsed_ms` 毫秒以前开始。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct MotionBegan {
-    pub from: ScreenRect,
-    pub elapsed_ms: u32,
 }

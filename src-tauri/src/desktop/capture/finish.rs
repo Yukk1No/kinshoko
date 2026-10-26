@@ -89,7 +89,7 @@ pub async fn finish_capture(
             // 隐藏与交还激活都是异步的：等它们做完再放上来。
             drop(close);
             std::thread::sleep(Duration::from_millis(150));
-            pins::raise_native(&app, pin);
+            pins::raise(&app, pin);
         }
         match &result {
             Ok(_) => crate::run_log::record(LogEvent::CaptureFinished {

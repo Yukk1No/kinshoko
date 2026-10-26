@@ -22,36 +22,25 @@ pub(super) const ACTION_EDGE_HIDE: &str = "edgeHide";
 /// 钉图的右键菜单（#64；#106 起与主窗口同样式）：翻转、旋转、原始大小、透明度、锁定，截图钉图的
 /// 收藏与复制，资料库钉图（#65）被遮蔽时的“显示这张图”与来自参考组时的“存回参考组”，再加上
 /// 在 Kinshoko 中打开、加入参考组、贴边隐藏与关闭钉图。菜单项在页面里（`src/desktop/PinMenu.tsx`）。
-/// 页面在鼠标右键、笔的侧键或笔与触摸按住不动时调用；菜单弹在光标（笔尖）处。
-#[tauri::command]
-pub async fn pin_menu(
-    app: AppHandle,
-    window: tauri::WebviewWindow,
-    pin: String,
-) -> Result<(), String> {
-    *lock(&MENU_LAYER) = Some((pin.clone(), window.label().to_owned()));
-    tauri::async_runtime::spawn_blocking(move || popup_menu(&app, &pin, false))
-        .await
-        .map_err(|e| e.to_string())?
-}
-
-/// `confirm_reveal`：只问“显示这张图？”（点了遮蔽原生钉图上的小圆锁）。
+/// 鼠标右键、笔的侧键或笔与触摸按住不动时打开（[`native_menu`]）；菜单弹在光标（笔尖）处。
+///
+/// `confirm_reveal`：只问“显示这张图？”（点了遮蔽钉图上的小圆锁）。
 fn popup_menu(app: &AppHandle, pin: &str, confirm_reveal: bool) -> Result<(), String> {
-    let frame = current_frame(app, pin).ok_or(CLOSED)?;
+    let saved = lock(&state(app).store).get(pin).cloned().ok_or(CLOSED)?;
+    let (veiled, _) = appearance(app, &saved);
     let has_library = !crate::library::registered(app)?.is_empty();
-    let group = frame
-        .pin
+    let group = saved
         .member
         .as_ref()
         .and_then(|m| super::super::groups::group_name(app, &m.group_id));
     let menu = PinMenu {
         confirm_reveal,
-        ..PinMenu::new(&frame.pin, frame.veiled, has_library, group)
+        ..PinMenu::new(&saved, veiled, has_library, group)
     };
     super::super::menu::popup(app, menu)
 }
 
-/// 原生钉图要开菜单（右键、笔侧键、按住；编排已停止键盘钩子拦键），或点了小圆锁要确认显示
+/// 钉图要开菜单（右键、笔侧键、按住；编排已停止键盘钩子拦键），或点了小圆锁要确认显示
 /// （`confirm_reveal`）：在别的线程上弹出。弹不出来时键盘钩子恢复拦键。
 pub(super) fn native_menu(app: &AppHandle, pin: &str, confirm_reveal: bool) {
     let (app, pin) = (app.clone(), pin.to_owned());
@@ -63,17 +52,12 @@ pub(super) fn native_menu(app: &AppHandle, pin: &str, confirm_reveal: bool) {
     });
 }
 
-/// 菜单关掉了：原生钉图的键盘钩子恢复拦键；菜单拿着焦点时焦点交回原来的程序（原生钉图不拿焦点）。
-/// 返回它是不是原生钉图。
-pub fn menu_closed(app: &AppHandle, pin: &str, focused: bool) -> bool {
-    let native = lock(&state(app).pins).get(pin).is_some_and(|r| r.native);
-    if native {
-        native::menu_closed(app);
-        if focused {
-            super::super::edge::hand_back_focus();
-        }
+/// 菜单关掉了：键盘钩子恢复拦键；菜单拿着焦点时焦点交回原来的程序（钉图不拿焦点）。
+pub fn menu_closed(app: &AppHandle, focused: bool) {
+    native::menu_closed(app);
+    if focused {
+        super::super::edge::hand_back_focus();
     }
-    native
 }
 
 /// 选了钉图菜单里的一项：先收起菜单窗口（焦点交回钉图），再在别的线程上做这件事。
@@ -130,7 +114,7 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<St
             refresh(app, pin);
             Some(if locked { "已锁定" } else { "已解锁" }.to_owned())
         }
-        ACTION_ACTUAL_SIZE => zoom(app, pin, 1.0, None).err(),
+        ACTION_ACTUAL_SIZE => zoom(app, pin, 1.0).err(),
         ACTION_REVEAL => reveal_here(app, pin).err(),
         ACTION_OPEN => {
             let saved = lock(&state(app).store).get(pin).cloned()?;

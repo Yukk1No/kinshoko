@@ -3,4 +3,4 @@
 /**
  * 仅列检查实际失败的原因。不根据 OS、Runtime 版本或可选 API 推断。
  */
-export type RuntimeAssessment = { problems: Array<string>, uses8bitFallback: boolean, };
+export type RuntimeAssessment = { problems: Array<string>, };

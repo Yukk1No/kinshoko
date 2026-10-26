@@ -134,7 +134,7 @@ struct Slot {
 
 type CaptionKey = (Caption, (u32, u32), u32, bool);
 
-/// 读不到图时的占位：中性灰（钉图层 `renderer.ts` 的 #8d8d8d）。
+/// 读不到图时的占位：中性灰（沿用以前钉图层的 #8d8d8d）。
 const PLACEHOLDER: [u8; 4] = [0x8d, 0x8d, 0x8d, 255];
 
 type LutKey = (Option<Vec<u8>>, Option<Arc<[u8]>>);

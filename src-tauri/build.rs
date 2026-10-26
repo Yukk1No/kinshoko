@@ -102,7 +102,7 @@ fn main() {
                     .default_permission(tauri_build::DefaultPermissionRule::AllowAllCommands),
             )
             .plugin(
-                // 截图与钉图（#62）：主窗口、框选窗口与钉图窗口都用 `desktop:default`。
+                // 截图与钉图（#62）：主窗口、框选窗口与钉图菜单窗口都用 `desktop:default`。
                 "desktop",
                 tauri_build::InlinedPlugin::new()
                     .commands(&[
@@ -115,26 +115,13 @@ fn main() {
                         "cancel_capture",
                         "pin_clipboard",
                         "pin_capture",
-                        "pin_frame",
-                        "pin_layer_pins",
-                        "raise_pin",
-                        "pin_ready",
-                        "pin_menu",
                         "pin_menu_action",
                         "desktop_menu",
                         "desktop_menu_shown",
                         "close_desktop_menu",
                         "take_open_request",
                         "copy_capture",
-                        "close_pin",
-                        "move_pin",
-                        "zoom_pin",
-                        "turn_pin",
-                        "settle_pin",
-                        "set_pin_opacity",
-                        "set_pin_locked",
                         "pin_reference",
-                        "reveal_pin",
                         "copy_reference_image",
                         "reveal_reference_image",
                         "reveal_library",

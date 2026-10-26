@@ -1,5 +1,5 @@
 //! 钉图的动画：缩放（[`ZOOM_MS`]）、贴边滑动（[`SLIDE_MS`]）与出现时的提示框（[`APPEAR_MS`]），
-//! 都按时间求值。从前端 `motion.ts` 与 `desktop.css` 的 `pin-appear` 搬来。
+//! 都按时间求值。时长与曲线沿用已删除的 WebView 钉图层（#286）。
 
 use crate::desktop::ScreenRect;
 
@@ -12,7 +12,7 @@ pub const APPEAR_MS: u32 = 900;
 /// 确认显示被遮蔽的钉图后，遮蔽在这么久里淡出（毫秒，`pin-veil` 的 `transition`）。
 pub const REVEAL_MS: u32 = 400;
 
-/// 缓出曲线：前快后慢，两端固定在 0 和 1。与前端 `easeOutCubic` 相同。
+/// 缓出曲线：前快后慢，两端固定在 0 和 1（三次缓出）。
 pub fn ease_out_cubic(t: f64) -> f64 {
     let u = 1.0 - t.clamp(0.0, 1.0);
     1.0 - u * u * u
@@ -147,7 +147,6 @@ mod tests {
         }
     }
 
-    // 与前端 motion.test.ts 的 ContentMotion、easeOutCubic 用例相同。
     #[test]
     fn eases_out_to_the_target_and_stays() {
         let mut m = ContentMotion::new(rect(0.0, 0.0, 100.0, 50.0), 0.0);
