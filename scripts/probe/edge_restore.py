@@ -37,6 +37,7 @@ from capture_pin import (  # noqa: E402
     pause,
     pin_content,
     probe_data,
+    started,
     running,
     user32,
     wait_for,
@@ -60,7 +61,7 @@ def click(x, y):
 
 def launch(exe, env):
     app = subprocess.Popen([str(exe), "--autostart"], env=env)
-    wait_for("应用启动", lambda: window_rect(app.pid, "dev.kinshoko-siw"), timeout=20)
+    wait_for("应用启动", lambda: started(app.pid), timeout=20)
     pause(1.5)
     return app
 

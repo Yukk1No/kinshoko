@@ -69,6 +69,24 @@ def window_rect(pid, title):
     return found[0] if found else None
 
 
+def started(pid):
+    """单实例窗口出现了（标题随 identifier：`dev.kinshoko-siw`，测试实例如 `dev.kinshoko.pintest-siw`）。"""
+    found = []
+
+    @ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+    def visit(hwnd, _):
+        owner = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+        text = ctypes.create_unicode_buffer(256)
+        user32.GetWindowTextW(hwnd, text, 256)
+        if owner.value == pid and text.value.startswith("dev.kinshoko") and text.value.endswith("-siw"):
+            found.append(hwnd)
+        return True
+
+    user32.EnumWindows(visit, 0)
+    return bool(found)
+
+
 def pin_content(pid):
     """原生钉图的内容在屏幕上的矩形：看得见的那个槽的窗口去掉四周的阴影圈。没有时为 None。"""
     r = window_rect(pid, PIN_TITLE)
@@ -130,7 +148,7 @@ def main():
         raise SystemExit("已有 Kinshoko 在运行（单实例），先退出它")
     app = subprocess.Popen([str(exe), "--autostart"], env=env)
     # 单实例窗口出现说明应用已启动；再等一会儿让全局快捷键注册完。
-    wait_for("应用启动", lambda: window_rect(app.pid, "dev.kinshoko-siw"), timeout=20)
+    wait_for("应用启动", lambda: started(app.pid), timeout=20)
     time.sleep(1.5)
 
     # 逐像素随机的测试图：任何重新采样或颜色转换都会让像素对不上。

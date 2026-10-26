@@ -25,7 +25,8 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_WHEEL,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    FindWindowW, GetForegroundWindow, GetWindowRect, PostMessageW, WM_CLOSE,
+    FindWindowW, GetClassNameW, GetForegroundWindow, GetWindowRect, PostMessageW, WM_CLOSE,
+    WindowFromPoint,
 };
 use windows::core::w;
 
@@ -254,6 +255,13 @@ fn centre(r: Rect) -> (i32, i32) {
     (r.x + r.w / 2, r.y + r.h / 2)
 }
 
+/// 这一点上是不是原生钉图的窗口。
+fn pin_window_at((x, y): (i32, i32)) -> bool {
+    let mut class = [0u16; 32];
+    let n = unsafe { GetClassNameW(WindowFromPoint(POINT { x, y }), &mut class) };
+    String::from_utf16_lossy(&class[..n.max(0) as usize]) == "KinshokoPinSlot"
+}
+
 /// 拖动：按下、每帧挪一步、松开。
 fn drag(from: (i32, i32), steps: &[(i32, i32)]) {
     cursor(from.0, from.1);
@@ -319,6 +327,13 @@ pub fn follow(f: &Follow) -> Result<bool, String> {
                 f.trace.display()
             ));
         }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    // 第一次提交时钉图还没显示（图读好、画好才显示）：等钉图窗口真出现在光标会去的地方，否则
+    // 先滚的几格落到底下的窗口去了。
+    let c = last(&log).expect("上面等到了").content;
+    let shown = Instant::now();
+    while !pin_window_at(centre(c)) && shown.elapsed() < Duration::from_secs(5) {
         std::thread::sleep(Duration::from_millis(20));
     }
     frames(30);
