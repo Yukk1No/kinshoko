@@ -26,6 +26,12 @@ target/release/kinshoko-pin-frame-check.exe --selftest <报告.txt> --verify
 - `--info`：显卡、刷新周期、QUNS、建设备前后的内存。
 
 ```bash
+target/release/kinshoko-pin-frame-check.exe --grab <x> <y> <宽> <高> <out.png>
+```
+
+用桌面复制拍屏幕上的一块存成 PNG，`scripts/probe` 的探针用它核对像素：原生钉图是 DirectComposition 窗口，GDI 截屏（`ImageGrab`）拍不到。
+
+```bash
 target/release/kinshoko-pin-frame-check.exe --app <提交记录> <报告.txt>
 ```
 

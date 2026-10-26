@@ -87,7 +87,7 @@ fn crc32(bytes: &[u8]) -> u32 {
 }
 
 /// 不压缩的 PNG（zlib 存储块），RGBA8，不带色彩块（按 sRGB）。
-fn png(w: u32, h: u32, rgba: &[u8]) -> Vec<u8> {
+pub(crate) fn png(w: u32, h: u32, rgba: &[u8]) -> Vec<u8> {
     let mut raw = Vec::with_capacity(rgba.len() + h as usize);
     for row in rgba.chunks_exact(w as usize * 4) {
         raw.push(0);

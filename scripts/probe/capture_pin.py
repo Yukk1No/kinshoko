@@ -8,6 +8,7 @@ SDR 桌面上三者应逐像素一致（未缩放、未翻转旋转）。验收�
 （标题 `Kinshoko pin`），比内容四周各大 `PIN_EDGE`（阴影那一圈）。
 
 用法：python scripts/probe/capture_pin.py target/release/kinshoko.exe
+截屏用桌面复制：先在 tools/pin-frame-check 里 `cargo build --release`（GDI 截屏拍不到原生钉图）。
 需要 Pillow。运行期间会移动鼠标、按 F1，请不要碰键鼠；不能有别的 Kinshoko 或占用 F1 的程序
 （例如 Snipaste）在运行。数据放在临时目录，不碰本机设置与资料库。
 """
@@ -23,7 +24,7 @@ import tkinter as tk
 from ctypes import wintypes
 from pathlib import Path
 
-from PIL import Image, ImageGrab, ImageTk
+from PIL import Image, ImageTk
 
 user32 = ctypes.windll.user32
 # 物理像素坐标（每显示器 DPI 感知 v2），与 Kinshoko 一致。
@@ -129,8 +130,29 @@ def wait_for(what, fn, timeout=8.0):
     raise SystemExit(f"等待超时：{what}")
 
 
+# 截屏用核对工具的桌面复制（`--grab`）：原生钉图是 DirectComposition 窗口，GDI 截屏拍不到。
+FRAME_CHECK = Path(
+    os.environ.get(
+        "KINSHOKO_FRAME_CHECK",
+        Path(__file__).resolve().parents[2]
+        / "tools/pin-frame-check/target/release/kinshoko-pin-frame-check.exe",
+    )
+)
+
+
 def grab(box):
-    return ImageGrab.grab(bbox=box, all_screens=True).convert("RGB")
+    """屏幕上 `box`（左、上、右、下，物理像素）的像素。"""
+    if not FRAME_CHECK.exists():
+        raise SystemExit(f"先在 tools/pin-frame-check 里 cargo build --release（找不到 {FRAME_CHECK}）")
+    left, top, right, bottom = box
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "grab.png"
+        subprocess.run(
+            [str(FRAME_CHECK), "--grab", str(left), str(top), str(right - left), str(bottom - top), str(out)],
+            check=True,
+        )
+        with Image.open(out) as im:
+            return im.convert("RGB")
 
 
 def diff(a, b):
