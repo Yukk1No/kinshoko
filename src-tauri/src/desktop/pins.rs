@@ -256,8 +256,20 @@ pub(super) fn capture_source_open(app: &AppHandle, pin: &str) -> bool {
         .is_some_and(|record| !record.closing)
 }
 
+/// 应用壳设置在桌面插件之后才装好：恢复钉图前等它一会儿，免得钉图的外观（增强钉图边缘）按“没设置”
+/// 定下。最多等 10 秒。
+fn wait_for_shell_settings(app: &AppHandle) {
+    let started = Instant::now();
+    while app.try_state::<crate::shell::ShellState>().is_none()
+        && started.elapsed() < std::time::Duration::from_secs(10)
+    {
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+}
+
 /// 启动时恢复上次的钉图（位置、裁切、缩放、翻转与旋转）。在别的线程上调用。
 pub fn restore(app: &AppHandle) {
+    wait_for_shell_settings(app);
     // 设置在桌面插件装配之后才可读：恢复前按保存的安全模式核对一次。
     crate::library::with_visibility_commit(app, |_| {
         let safe = crate::library::safe_mode_on(app);
