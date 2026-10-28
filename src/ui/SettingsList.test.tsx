@@ -32,3 +32,11 @@ it("一组设置不显示组名，说明和行在同一个容器里", () => {
   expect(group.classList.contains("k-set-group")).toBe(true);
   expect(group.querySelector(".k-set-note")?.textContent).toBe("恢复不改当前设置。");
 });
+
+// #310：行下方的内容出现时展开、消失时收起；没有过渡可等（减弱动效）时立刻卸掉，不留看不见的控件。
+it("行下方的内容消失后不留在页面里", () => {
+  const { rerender } = render(<ul><SettingsRow title="状态" below={<progress aria-label="下载进度" />} /></ul>);
+  expect(screen.getByLabelText("下载进度").closest(".k-set-row-below")?.hasAttribute("data-open")).toBe(true);
+  rerender(<ul><SettingsRow title="状态" /></ul>);
+  expect(screen.queryByLabelText("下载进度")).toBeNull();
+});

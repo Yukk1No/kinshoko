@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 /**
  * 设置与对话框里的一行（设计系统 SettingsList）：图标、名称、右侧控件，没有描述行。
@@ -14,6 +14,19 @@ export function SettingsRow({ icon, title, hint, meta, warn, children, label, cl
 }) {
   const hintId = useId();
   const row = useRef<HTMLLIElement>(null);
+  // 行下方的内容出现时展开、消失时收起（#310）：收起的过渡里仍画着上一次的内容，收完再卸掉。
+  const belowOpen = below !== undefined && below !== null && below !== false;
+  const lastBelow = useRef<ReactNode>(null);
+  const belowArea = useRef<HTMLDivElement>(null);
+  const [, setBelowCleared] = useState(0);
+  if (belowOpen) lastBelow.current = below;
+  const clearBelow = () => { lastBelow.current = null; setBelowCleared((n) => n + 1); };
+  // 没有过渡可等（减弱动效时时长为 0，不会有 transitionend）就立刻卸掉。
+  useLayoutEffect(() => {
+    if (belowOpen || lastBelow.current === null || !belowArea.current) return;
+    const durations = getComputedStyle(belowArea.current).transitionDuration.split(",").map((d) => parseFloat(d) || 0);
+    if (Math.max(0, ...durations) === 0) clearBelow();
+  }, [belowOpen]);
   // 控件由调用方给出（开关、下拉、按钮，或行下方的文件输入与按钮）：把补充说明挂到这一行的每个控件上。
   useLayoutEffect(() => {
     if (!hint) return;
@@ -36,7 +49,10 @@ export function SettingsRow({ icon, title, hint, meta, warn, children, label, cl
         {children}
       </div>}
     </div>
-    {below && <div className="k-set-row-below">{below}</div>}
+    {(belowOpen || lastBelow.current !== null) && <div ref={belowArea} className="k-set-row-below" data-open={belowOpen ? "" : undefined} inert={!belowOpen}
+      onTransitionEnd={(e) => { if (!belowOpen && e.target === e.currentTarget) clearBelow(); }}>
+      <div className="k-set-row-below-clip"><div className="k-set-row-below-body">{belowOpen ? below : lastBelow.current}</div></div>
+    </div>}
   </li>;
 }
 

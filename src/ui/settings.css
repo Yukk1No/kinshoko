@@ -23,9 +23,9 @@
 .k-set-group { padding: 6px; border-radius: var(--r-xl); background: var(--sunken); }
 .k-set-group > .k-set-list { overflow: hidden; background: var(--surface); box-shadow: 0 0 0 1px var(--line), var(--shadow-raise); }
 .k-set-group > .k-set-note { margin: 0; padding: 8px 12px 6px; }
-.k-set-group .k-set-row-below { padding: 10px 12px 12px; background: var(--bg); border-top: 1px solid var(--line); }
-.k-set-group .k-set-row-below > :first-child { margin-top: 0; }
-.k-set-group .k-set-row-below > :last-child { margin-bottom: 0; }
+.k-set-group .k-set-row-below-body { padding: 10px 12px 12px; background: var(--bg); border-top: 1px solid var(--line); }
+.k-set-group .k-set-row-below-body > :first-child { margin-top: 0; }
+.k-set-group .k-set-row-below-body > :last-child { margin-bottom: 0; }
 .k-set-list + .k-set-list, .k-set-group + .k-set-group, .k-set-group + section, section + .k-set-group, .k-set-list + section, section + section { margin-top: 12px; }
 .k-list-row.k-set-row { display: block; padding: 0; }
 .k-set-row-main { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 12px; }
@@ -39,17 +39,25 @@
 .k-set-row:has(:focus-visible) .k-set-hint { display: block; }
 .k-set-row-main > .k-list-end { min-width: 0; max-width: 55%; flex: 0 1 auto; }
 .k-set-row-main > .k-list-end > .k-select { width: 240px; max-width: 100%; min-width: 0; text-overflow: ellipsis; }
-.k-set-row-below { padding: 0 12px 12px 52px; color: var(--ink-2); font-size: 12px; }
-.k-set-row-below > p, .k-set-row-below > div > p { margin: 4px 0; }
+/* 行下方的内容（#310）：出现时从 0 展开并淡入，消失时收起（行先保留旧内容，收完再卸掉）。
+   grid 的 0fr → 1fr 让高度能过渡到内容的实际高度；新插入时由 @starting-style 从收起态开始。
+   减弱动效时 --t 为 0，直接出现与消失。 */
+.k-set-row-below { display: grid; grid-template-rows: 0fr; opacity: 0;
+  transition: grid-template-rows var(--t) var(--ease), opacity var(--t) var(--ease); }
+.k-set-row-below[data-open] { grid-template-rows: 1fr; opacity: 1; }
+@starting-style { .k-set-row-below[data-open] { grid-template-rows: 0fr; opacity: 0; } }
+.k-set-row-below-clip { min-height: 0; overflow: hidden; }
+.k-set-row-below-body { padding: 0 12px 12px 52px; color: var(--ink-2); font-size: 12px; }
+.k-set-row-below-body > p, .k-set-row-below-body > div > p { margin: 4px 0; }
 /* a `below` that rendered nothing (e.g. a fragment of false conditions) must not add its padding: the row stays centred */
-.k-set-row-below:empty { display: none; }
+.k-set-row-below-body:empty { display: none; }
 .k-set-row.is-recording { background: var(--accent-soft); }
 .k-key-recorder { width: 140px; border: 0; background: transparent; color: var(--accent-strong); font: inherit; font-weight: 500; text-align: right; outline: 0; }
 .k-key-recorder::placeholder { color: var(--accent-strong); opacity: 1; }
 .k-set-muted { color: var(--ink-2); font-size: 12px; }
 .k-set-note { margin: 8px 0 0; color: var(--ink-2); font-size: 12px; line-height: 18px; }
 .k-set-error { margin: 0 0 12px; padding: 8px 12px; border-radius: var(--r); background: var(--surface-2); color: var(--danger); font-size: 12px; overflow-wrap: anywhere; }
-.k-set-row-below .k-set-error { margin: 6px 0 0; }
+.k-set-row-below-body .k-set-error { margin: 6px 0 0; }
 .k-set-seg { width: min(400px, 100%); margin-bottom: 14px; }
 .k-set-inline { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .k-set-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
