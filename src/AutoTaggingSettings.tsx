@@ -86,10 +86,10 @@ export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string |
 
   const selected = choice?.options.find((o) => o.device === choice.selected);
   return <>
-    <SettingsGroup title="自动标签">
+    <SettingsGroup label="自动标签">
       <TaggingStatusRow libraryId={libraryId} status={status} />
     </SettingsGroup>
-    {choice && <SettingsGroup title="模型">
+    {choice && <SettingsGroup label="模型">
       <SettingsRow label="模型" icon={<Tags size={16} />} title="模型" hint="给导入的图加上标签建议">
         <span className="k-set-muted">{choice.model}</span>
       </SettingsRow>

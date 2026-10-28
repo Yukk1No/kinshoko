@@ -40,12 +40,15 @@ export function SettingsRow({ icon, title, hint, meta, warn, children, label, cl
   </li>;
 }
 
-/** 一组行；`title` 是组标题（如“图库”“偏好设置”）。 */
-export function SettingsGroup({ title, label, children }: { title?: string; label?: string; children: ReactNode }) {
-  return <>
-    {title && <h4 className="k-set-group">{title}</h4>}
-    <ul className="k-list k-set-list" aria-label={label ?? title}>{children}</ul>
-  </>;
+/**
+ * 一组行（#310）：浅槽托盘里放一张卡，组与组靠托盘分开，不写看得见的组名。`label` 是这组的无障碍名称；
+ * `note` 是说明这一整组的小字，放在卡片下方、仍在托盘里，和它说明的行算同一组。
+ */
+export function SettingsGroup({ label, note, children }: { label: string; note?: ReactNode; children: ReactNode }) {
+  return <div className="k-set-group">
+    <ul className="k-list k-set-list" aria-label={label}>{children}</ul>
+    {note && <p className="k-set-note">{note}</p>}
+  </div>;
 }
 
 /** 状态胶囊：完成（绿）、注意（黄）或普通；胶囊里必须有文字，图标放在文字前。 */

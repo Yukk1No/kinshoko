@@ -125,7 +125,7 @@ export function BackupSettings() {
 
   return (
     <section className="backup-settings" aria-label="图库备份">
-      <SettingsGroup title="图库">
+      <SettingsGroup label="图库" note="含原图、逐图整理、文件夹、参考组和标签定义；恢复不改当前设置。名称、分组和相近规则在下面的偏好设置里。">
         <SettingsRow icon={<HardDrive size={16} />} title="备份位置"
           meta={plan.target ?? "还没选"} hint="最好放在另一块硬盘" label="备份位置">
           <button type="button" className="k-btn is-sm" onClick={() => void choose().catch((e) => setError(String(e)))}>
@@ -165,7 +165,6 @@ export function BackupSettings() {
         </SettingsRow>
         <RestoreView onError={setError} />
       </SettingsGroup>
-      <p className="k-set-note">含原图、逐图整理、文件夹、参考组和标签定义；恢复不改当前设置。名称、分组和相近规则在下面的偏好设置里。</p>
       {error !== null && <p className="k-set-error" role="alert">{error}</p>}
     </section>
   );

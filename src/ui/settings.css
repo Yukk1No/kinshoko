@@ -18,10 +18,15 @@
 .k-set-main { position: relative; min-width: 0; overflow: auto; padding: 20px 24px 24px; }
 .k-set-page { outline: 0; }
 .k-set-title { margin: 0 0 16px; font-size: 16px; line-height: 24px; font-weight: 600; }
-/* the group name lines up with the row text below it (row inset 12 + icon 28 + gap 12) */
-.k-set-group { margin: 20px 0 8px; padding-left: 52px; font-size: 12px; line-height: 18px; font-weight: 600; color: var(--ink-2); }
-.k-set-page > .k-set-group:first-of-type, .k-set-page > section:first-of-type > .k-set-group:first-child { margin-top: 0; }
-.k-set-list + .k-set-list, .k-set-list + section, section + section { margin-top: 12px; }
+/* 一组设置（#310）：下沉槽托盘里放一张浮起的卡，组与组靠托盘分开，不写组名。托盘 18 − 内边距 6 = 卡片 12（同心）。
+   整组的说明在卡片下方、仍在托盘里，与卡内文字同一左边；行下方的内容是卡片底部的内槽。 */
+.k-set-group { padding: 6px; border-radius: var(--r-xl); background: var(--sunken); }
+.k-set-group > .k-set-list { overflow: hidden; background: var(--surface); box-shadow: 0 0 0 1px var(--line), var(--shadow-raise); }
+.k-set-group > .k-set-note { margin: 0; padding: 8px 12px 6px; }
+.k-set-group .k-set-row-below { padding: 10px 12px 12px; background: var(--bg); border-top: 1px solid var(--line); }
+.k-set-group .k-set-row-below > :first-child { margin-top: 0; }
+.k-set-group .k-set-row-below > :last-child { margin-bottom: 0; }
+.k-set-list + .k-set-list, .k-set-group + .k-set-group, .k-set-group + section, section + .k-set-group, .k-set-list + section, section + section { margin-top: 12px; }
 .k-list-row.k-set-row { display: block; padding: 0; }
 .k-set-row-main { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 12px; }
 /* 名称与描述不让给控件：名称不换行；宽控件（如列出模型的下拉）限宽，选项文字过长时省略。 */

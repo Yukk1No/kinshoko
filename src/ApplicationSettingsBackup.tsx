@@ -44,7 +44,7 @@ export function ApplicationSettingsBackup({ onRestored }: { onRestored: (setting
     if (result.problems.length) setError(result.problems.join("；"));
   });
   return <section className="application-settings-backup" aria-label="偏好设置备份">
-    <SettingsGroup title="偏好设置">
+    <SettingsGroup label="偏好设置">
       <SettingsRow icon={<Settings2 size={16} />} title="标签名称、分组与快捷键" hint="存成一个文件，换电脑也能用"
         below={<>
           <div className="k-set-inline">

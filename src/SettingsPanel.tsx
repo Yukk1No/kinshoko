@@ -292,7 +292,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
           {page("update", <UpdateSection version={version ?? null} channel={view.updateChannel} onChannel={(next) => apply(setUpdateChannel(next))} />)}
           {page("diag", <>
             <RuntimeDetails />
-            <SettingsGroup title="信息">
+            <SettingsGroup label="信息">
               <SettingsRow icon={<FileText size={16} />} title="诊断信息" hint="不含图片和文件名"
                 below={<>
                   <p className="k-set-note">存成文件时附上最近 7 天的运行日志，打包成一个 zip，由你决定要不要发出去。</p>
