@@ -155,7 +155,11 @@ export function DesktopMenuView() {
     {/* 点在菜单外（同一台显示器上）就关闭；别的显示器上的点击经窗口失去焦点关闭。 */}
     <div className="desktop-menu-backdrop" onPointerDown={dismiss} onContextMenu={(e) => { e.preventDefault(); dismiss(); }} />
     {open && anchor && (
-      <Menu.Root key={open.generation} open modal={false} onOpenChange={(next) => { if (!next) dismiss(); }}>
+      <Menu.Root key={open.generation} open modal={false} onOpenChange={(next, details) => {
+        // 根菜单没有同级菜单：没有触发元素的根菜单会把自己的子菜单当成同级，子菜单一打开就把整个菜单关掉（#309）。
+        if (!next && details.reason === "sibling-open") { details.cancel(); return; }
+        if (!next) dismiss();
+      }}>
         <Menu.Portal>
           <Menu.Positioner className="k-positioner" anchor={anchor} side="bottom" align="start" sideOffset={2} collisionPadding={4}>
             <Menu.Popup className="k-popup" aria-label="钉图菜单" onContextMenu={(e) => e.preventDefault()}>

@@ -208,6 +208,24 @@ describe("菜单窗口", () => {
     expect(ipc.close).toHaveBeenCalledTimes(3);
   });
 
+  it("悬停在带子菜单的项上：展开子菜单，主菜单不关（#309）", async () => {
+    render(<DesktopMenuView />);
+    await settle();
+    act(() => ipc.next!(open(10, reference)));
+    for (const name of [/透明度/, "加入参考组"]) {
+      const trigger = await screen.findByRole("menuitem", { name });
+      fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+      fireEvent.mouseEnter(trigger);
+      fireEvent.pointerMove(trigger, { pointerType: "mouse" });
+      fireEvent.mouseMove(trigger);
+      await act(async () => { await new Promise((r) => setTimeout(r, 200)); });
+      await settle();
+      expect(screen.queryByRole("menu", { name: "钉图菜单" })).toBeTruthy();
+      expect(ipc.close).not.toHaveBeenCalled();
+    }
+    expect(await screen.findByRole("menu", { name: "加入参考组" })).toBeTruthy();
+  });
+
   it("又右键了别的钉图：换成新的菜单", async () => {
     render(<DesktopMenuView />);
     await settle();
