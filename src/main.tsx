@@ -9,6 +9,7 @@ import { recordUncaughtErrors } from "./runLog";
 import { blockBrowserMenu } from "./ui/browserMenu";
 import "./styles.css";
 import "./ui/ui.css";
+import "./ui/toast.css";
 import "./ui/fields.css";
 import "./shell/main-window.css";
 import "./shell/main-window-panels.css";

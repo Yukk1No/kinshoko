@@ -52,22 +52,25 @@ function Stack() {
   return toasts.map((toast) => {
     const Icon = icons[(toast.type as ToastTone | undefined) ?? "info"] ?? Info;
     return <Toast.Root key={toast.id} toast={toast} className="k-toast" data-tone={toast.type}>
-      <Icon size={16} className="k-toast-icon" aria-hidden="true" />
-      <div className="k-toast-text">
-        <Toast.Title className="k-toast-title" />
-        <Toast.Description className="k-toast-desc" />
-      </div>
-      {toast.actionProps && <Toast.Action className="k-toast-action" />}
-      {/* Our own close: Base UI's Toast.Close hides itself from assistive tech while the stack is collapsed. */}
-      <button type="button" className="k-toast-close" aria-label={toast.type === "error" ? "知道了" : "关闭提示"} title={toast.type === "error" ? "知道了" : "关闭"}
-        onClick={() => close(toast.id)}><X size={14} aria-hidden="true" /></button>
+      {/* Content clips a taller toast to the frontmost one's height while the stack is collapsed. */}
+      <Toast.Content className="k-toast-content">
+        <span className="k-toast-icon"><Icon size={16} aria-hidden="true" /></span>
+        <div className="k-toast-text">
+          <Toast.Title className="k-toast-title" />
+          <Toast.Description className="k-toast-desc" />
+        </div>
+        {toast.actionProps && <Toast.Action className="k-toast-action" />}
+        {/* Our own close: Base UI's Toast.Close hides itself from assistive tech while the stack is collapsed. */}
+        <button type="button" className="k-toast-close" aria-label={toast.type === "error" ? "知道了" : "关闭提示"} title={toast.type === "error" ? "知道了" : "关闭"}
+          onClick={() => close(toast.id)}><X size={14} aria-hidden="true" /></button>
+      </Toast.Content>
     </Toast.Root>;
   });
 }
 
 /**
- * Toast stack (Base UI Toast) replacing the sticky red banners: bottom-right, auto-dismissing for
- * confirmations, persistent for real errors. Mount once around the window's content.
+ * Toast stack (Base UI Toast) replacing the sticky red banners: bottom-right, collapsed behind the newest toast until
+ * hovered or focused, auto-dismissing for confirmations, persistent for real errors. Mount once around the window's content.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   return <Toast.Provider limit={4}>
