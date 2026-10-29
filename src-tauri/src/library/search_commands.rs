@@ -228,7 +228,7 @@ pub(super) async fn personal_approx<R: Runtime>(
     .await
 }
 
-/// 随软件分发的翻译表（`data/builtin-translation-table.json`），启动时取一次。唯一的注入点：
+/// 随软件分发的翻译表（`crates/kinshoko-core/data/builtin-translation-table.json`），启动时取一次。唯一的注入点：
 /// 每个打开的资料库在装配时（[`forward_events`]）装上它，迁入向导的外部词表也按它匹配。
 pub(super) fn bundled_translations() -> TagTranslations {
     TagTranslations::bundled()

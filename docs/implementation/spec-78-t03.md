@@ -21,7 +21,7 @@
 
 ## 正式界面与原型来源
 
-直接读取并改编固定原型 `bd8aea44c4a311571ee3c07382cb7755f87f3153:prototype/reference-browser/src/components/SettingsDialog.tsx` 的设置 fieldset／legend／明确动作结构，以及 `InfoPanel.tsx` 的标签和来源表达。名称字段分离来自已接受的 [`prototype/spec78-alignment/tag-name-model.html`](../../prototype/spec78-alignment/tag-name-model.html)；该保存 HTML 内的历史“未确认”文字不改变 #78 后续确认的范围。T01 正式布局在集成后用于本单原生检查。
+直接读取并改编固定原型 `bd8aea44c4a311571ee3c07382cb7755f87f3153:prototype/reference-browser/src/components/SettingsDialog.tsx` 的设置 fieldset／legend／明确动作结构，以及 `InfoPanel.tsx` 的标签和来源表达。名称字段分离来自已接受的 [`prototype/spec78-alignment/tag-name-model.html`](../../design/prototype/spec78-alignment/tag-name-model.html)；该保存 HTML 内的历史“未确认”文字不改变 #78 后续确认的范围。T01 正式布局在集成后用于本单原生检查。
 
 正式 [`TagNamePanel`](../../src/library/TagNamePanel.tsx) 提供可搜索标签选择器，只渲染一个编辑器，选项限制为 80 个；可筛选当前语言已保存偏好。标签当前显示、名称来源、该语言默认、显式保存／恢复默认、别名增删分别展示。无译名标签也可选择并按外部名称定位。正式 [`names` IPC](../../src-tauri/src/library/names.rs) 过滤当前安全视角，响应边界复核模式代次；前端模式变化清空旧数据并丢弃迟到结果。
 

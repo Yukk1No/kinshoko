@@ -32,7 +32,7 @@
 
 ## 正式界面与原型参考
 
-直接读取固定认可原型 `bd8aea44c4a311571ee3c07382cb7755f87f3153` 的 [`SearchBox.tsx`](../../prototype/reference-browser/src/components/SearchBox.tsx) 与 [`search.ts`](../../prototype/reference-browser/src/search.ts)。正式 `SearchBox` 继续沿用其条件 chip、输入文字与选择标签的区分、任一／排除及可见展开结构，适配既有正式界面的长期动作。原型没有本单所需的全局持久规则管理，因此这部分由核心与正式设置新增，未声称复制原型已有功能。原型两文件的 Git blob 保持不变。
+直接读取固定认可原型 `bd8aea44c4a311571ee3c07382cb7755f87f3153` 的 [`SearchBox.tsx`](../../design/prototype/reference-browser/src/components/SearchBox.tsx) 与 [`search.ts`](../../design/prototype/reference-browser/src/search.ts)。正式 `SearchBox` 继续沿用其条件 chip、输入文字与选择标签的区分、任一／排除及可见展开结构，适配既有正式界面的长期动作。原型没有本单所需的全局持久规则管理，因此这部分由核心与正式设置新增，未声称复制原型已有功能。原型两文件的 Git blob 保持不变。
 
 [`SharedPersonalApproxSettings.tsx`](../../src/search/SharedPersonalApproxSettings.tsx) 在无活动库时也显示当前规则、删除与来源。相反来源显示库名和最短可区分路径，完整位置在提示中；三种选择与当前已有全局判断的说明分别显示。来源标记设置继续默认关闭。
 

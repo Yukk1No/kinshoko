@@ -274,7 +274,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(os.path.dirname(HERE))
 DEFAULT_TRANSLATIONS = os.path.join(HERE, "translations.tsv")
 DEFAULT_REVIEW = os.path.join(HERE, "review.tsv")
-DEFAULT_OUT = os.path.join(REPO_ROOT, "data", "builtin-translation-table.json")
+DEFAULT_OUT = os.path.join(REPO_ROOT, "crates", "kinshoko-core", "data", "builtin-translation-table.json")
 DEFAULT_CACHE = os.path.join(HERE, ".cache")
 
 

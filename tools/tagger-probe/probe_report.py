@@ -1,6 +1,6 @@
 """Summarise a tagger-probe predictions.jsonl against the acceptance contract.
 
-Usage: python scripts/analysis/probe_report.py <predictions.jsonl | report.zip> [--split evaluation|calibration|all]
+Usage: python tools/tagger-probe/probe_report.py <predictions.jsonl | report.zip> [--split evaluation|calibration|all]
 
 - Rating gate: positives are samples with pixiv's R-18 flag, except pages reviewed as only
   suggestive (coverage "r18-page-borderline"; the flag covers the whole work). Two rules are reported:
