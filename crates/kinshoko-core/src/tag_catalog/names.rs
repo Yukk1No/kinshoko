@@ -472,3 +472,7 @@ pub(super) fn adopt_existing_choice(
 ) -> Result<bool, CatalogError> {
     Ok(tx.execute("UPDATE library_tag_mapping SET name_provenance='catalog' WHERE library_id=?1 AND local_tag_id=?2 AND name_provenance<>'catalog' AND EXISTS (SELECT 1 FROM catalog_name_adoption WHERE catalog_id=?3)", params![library_id, local_id, catalog_id])? > 0)
 }
+
+#[cfg(test)]
+#[path = "names/tests.rs"]
+mod tests;
